@@ -19,10 +19,10 @@ import { corpusParGate, ecrivainsParGate, transitif } from './ecrivainsAtteints.
 import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from './toutes.mjs'
-import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
-const RACINE = gitDeLArbreReel(undefined, { net: true })('rev-parse', '--show-toplevel')
+const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /** Scripts ÉCRIVAINS atteints par chaque gate — mesuré le 2026-09-04, stock à faire DÉCROÎTRE. */
 const ATTENDU = {
@@ -210,6 +210,10 @@ const ATTENDU = {
     'scripts/migrations/replay-head.mjs',
     'scripts/ops/suivi.mjs',
     'scripts/raw/build-implemente.mjs',
+    // +1 le 2026-10-07 (#2400) : la garde des balayages non résolus (`scripts/guards/balayages-non-resolus.test.mjs`)
+    // dérive par `balayagesNonResolus` de `perimetre.mjs`, qui sauve ses mémos sous `node_modules/.cache/perimetre/`,
+    // hors de l'arbre ; l'arbre n'est jamais écrit.
+    'scripts/test/perimetre.mjs',
     'scripts/test/verrou.mjs',
     // +2 le 2026-10-04 (#2278) : le banc de la garde `mods:check` forge ses mods sous `mkdtempSync` de
     // os.tmpdir() (`rmSync` en `t.after`), et la garde qu'il importe copie chaque mod sous un `mkdtempSync`
@@ -344,7 +348,10 @@ const ATTENDU = {
     'scripts/test/gitDeBanc.test.mjs',
     // +2 le 2026-10-07 (#2400) : `perimetre.mjs` écrit ses mémos sous `node_modules/.cache/perimetre/` par sa
     // seule CLI ; son banc lui passe un dossier de mémos et des dépôts forgés sous `mkdtempSync` d'os.tmpdir()
-    // (`rmSync` par t.after) — l'arbre n'est jamais écrit.
+    // (`rmSync` par t.after) — l'arbre n'est jamais écrit. +1 le 2026-10-07 (#2400) : le reporter Vitest
+    // `dureesVitest.mjs` écrit son rapport sous le `--outputFile.durees` que lui passe la CLI de `perimetre.mjs`
+    // (`node_modules/.cache/perimetre/`) ; son banc n'en appelle que la fonction pure `dureesDesModules`.
+    'scripts/test/dureesVitest.mjs',
     'scripts/test/perimetre.mjs',
     'scripts/test/perimetre.test.mjs',
     'scripts/test/run-capture.test.mjs',

@@ -1,0 +1,5663 @@
+{
+  "quoi": "Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site de lecture ou de listage que `scripts/test/perimetre.mjs` ne rattache à aucune racine, `famille` = sa classe (`CLASSES`, `scripts/guards/lib/balayagesNonResolus.mjs`), `ref` = helper et raison. Compte par famille à la naissance : sortie de processus 54, paramètre non lié 298, appel non suivi 280, forme non évaluée 55, déstructuration de tableau 68, variable sans valeur initiale 70, import non suivi 46, URL 32, environnement de processus 23, identifiant introuvable 5, chemin absolu 9, propriété non suivie 3, autre 0. Une entrée se solde en rendant le site RÉSOLUBLE (forme lisible par `racinesBalayees.mjs`), puis en régénérant : `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/balayagesNonResolus.mjs`.",
+  "entrees": [
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL('AGENTS.md', racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL('CLAUDE.md', racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(SURFACE_CLAUDE, racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(SURFACE_CODEX, racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(`../../${SURFACE_CLAUDE}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(`../../${surface}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(`../../${surface}`, import.meta.url)",
+      "occurrence": 2
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(s, racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/docs/lib/plateforme-win32-hooks.mjs",
+      "ref": "existsSync : URL new URL('./.wfrp-win32-sdk-bridge.mjs', reel.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/hooks/inject-project-credo.test.mjs",
+      "ref": "injectProjectCredo : URL new URL(`file:///${join(root, 'scripts/hooks/inject-project-credo.mjs').replaceAll('\\\\', '/')}`)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/raw/lib/fixtures/page-crb.mjs",
+      "ref": "readFileSync : URL new URL(`./pages-crb/p${n}.json`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/source/nom-ascii.test.mjs",
+      "ref": "readFileSync : URL new URL(rel, new URL('file:///' + RACINE.replace(/\\\\/g, '/')))",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/data/cargo-avail-raw.test.ts",
+      "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/data/cargo-avail-refine.test.ts",
+      "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/data/props-integrity.test.ts",
+      "ref": "readFileSync : URL new URL(rel, racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/data/schemas/grammaire/grammaire.test.ts",
+      "ref": "readFileSync : URL new URL(f, dossier)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/data/schemas/grammaire/grammaire.test.ts",
+      "ref": "readFileSync : URL new URL(fichier, RACINE)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "ref": "listerDossier : URL new URL(`./${part}/defs`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "ref": "readFileSync : URL new URL(`./${part}/defs`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/gameIso/rig/quadruped/quad-vues-ratchet.test.ts",
+      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "lireEntreesDeSite : URL new URL(`../${STOCK_NOM}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "texteEnPlace : URL new URL(`../${STOCK_NOM}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/action-atteignabilite.test.ts",
+      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/posture-tir.test.ts",
+      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/roll-modal-invariant.test.ts",
+      "ref": "existsSync : URL new URL(f, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/roll-modal-invariant.test.ts",
+      "ref": "readFileSync : URL new URL(f, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/sequence-socle-naval.test.ts",
+      "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/sieges-requis.test.ts",
+      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/travel-carto.test.ts",
+      "ref": "readFileSync : URL new URL(`../ui/${f}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/ui/OptionChooser.test.tsx",
+      "ref": "readFileSync : URL new URL(f, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/ui/ScreenShell.test.tsx",
+      "ref": "readFileSync : URL new URL(`./styles/${feuille}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/ui/camera-sans-plaque.test.ts",
+      "ref": "readFileSync : URL new URL(p, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/build-doctrines.test.mjs",
+      "ref": "readFileSync : appel l.trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "installer : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "readdirSync : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.test.mjs",
+      "ref": "readFile : appel path.relative",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/manual-docs-ratchet.test.mjs",
+      "ref": "texteDuDoc : appel Object.values",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/manual-docs-ratchet.test.mjs",
+      "ref": "texteDuDoc : appel Object.values",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/manual-docs-ratchet.test.mjs",
+      "ref": "texteDuDoc : appel queue.shift",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/gates/classerPush.mjs",
+      "ref": "classerPush : appel SKILLS.split",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/gates/classerPush.test.mjs",
+      "ref": "corpusParGate : appel commande.split",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/gates/classerPush.test.mjs",
+      "ref": "readFileSync : appel l.trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "corpusParGate : appel commande.split",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "ecrivainsParGate : appel commande.split",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "ecrivainsParGate : appel commande.split",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "ecrivainsParGate : appel commande.split",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "ecrivainsParGate : appel commande.split",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
+      "ref": "mesurerEnRendu : appel segments.slice(0, segments.findIndex((s) => s.includes('*'))).join",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
+      "ref": "reconstruireApresGit : appel segments.slice(0, segments.findIndex((s) => s.includes('*'))).join",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
+      "ref": "reconstruireApresGit : appel segments.slice(0, segments.findIndex((s) => s.includes('*'))).join",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/git-hooks/merge-docs.test.mjs",
+      "ref": "ciblesPures : appel segments.slice(0, segments.findIndex((s) => s.includes('*'))).join",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/depotGabarit.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/depotGabarit.test.mjs",
+      "ref": "readFileSync : appel (brut ?? '').split",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/depotGabarit.test.mjs",
+      "ref": "readFileSync : appel GABARITS.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/folioLineAlign.mjs",
+      "ref": "makeChapterReader : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/folioLineAlignAudit.ts",
+      "ref": "auditDataDir : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/folioLineAlignAudit.ts",
+      "ref": "auditFolioLineAlign : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.mjs",
+      "ref": "natureDuChemin : appel lanceurs.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : appel lecteur",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : appel lecteur",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : appel lecteur",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : appel lecteur",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : appel lecteur",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 8
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 9
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 10
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 11
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "lireEnLot : appel rendant",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "lireEnLot : appel rendant",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "natureDuChemin : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/lister.test.mjs",
+      "ref": "listerArbre : appel poser",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/lister.test.mjs",
+      "ref": "listerArbre : appel poser",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/lister.test.mjs",
+      "ref": "listerArbre : appel poser",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/modulesFeuilles.mjs",
+      "ref": "readFileSync : appel absolu",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/sourceCorpus.test.mjs",
+      "ref": "readCorpus : appel relative",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/sourceCorpus.test.mjs",
+      "ref": "readCorpus : appel relative",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/sourceCorpus.test.mjs",
+      "ref": "readCorpus : appel relative",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/data-edit-guard.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/data-edit-guard.mjs",
+      "ref": "rappel : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/exception-add-guard.mjs",
+      "ref": "avertissement : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/exception-add-guard.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/exception-add-guard.mjs",
+      "ref": "readFileSync : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/exception-add-guard.mjs",
+      "ref": "readFileSync : appel String",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/memoire-tombale-guard.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/memoire-tombale-guard.mjs",
+      "ref": "refus : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/new-src-file-guard.mjs",
+      "ref": "existsSync : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/new-src-file-guard.mjs",
+      "ref": "verdictsDe : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/new-src-file-guard.test.mjs",
+      "ref": "existsSync : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "cheminDEcriture : appel m[1].toUpperCase",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPointeurs : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPointeurs : appel m[1].toUpperCase",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPoison : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPoison : appel m[1].toUpperCase",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 8
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 9
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 10
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 11
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 12
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "verdictDe : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "verdictDe : appel refus",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "baseDeLAppel : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "canoniser : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "construireContexte : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "racineDeLArbre : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "scriptsNpm : appel portee.getStore",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "cheminDEcriture : appel fs.realpathSync.native",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/solde-ticket-guard.test.mjs",
+      "ref": "existsSync : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "readFileSync : appel l.trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/suivi-lien-guard.mjs",
+      "ref": "relire : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "codedSites : appel fixtureSource",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "codedSites : appel fixtureSource",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "findMaps : appel writeProject",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "findMaps : appel writeProject",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "findMaps : appel writeProject",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "findMaps : appel writeProject",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/migrations/2026-09-14-1699-source-chemins-ascii.mjs",
+      "ref": "migrer : appel ['scripts', 'raw', 'empty-folios-baseline.json'].join",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/migrations/2026-09-14-1699-source-chemins-ascii.mjs",
+      "ref": "migrer : appel out.split",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
+      "ref": "migrer : appel ['scripts', 'raw', 'empty-folios-baseline.json'].join",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
+      "ref": "migrer : appel out.split",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "existsSync : appel appels[1].argv.at",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/chantier.mjs",
+      "ref": "natureDuChemin : appel gestes.arbrePrincipal",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/publier.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/publier.mjs",
+      "ref": "contexteDe : appel lanceurs.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/ruleset-main.test.mjs",
+      "ref": "ciALaRef : appel GABARITS.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/ruleset-main.test.mjs",
+      "ref": "ciALaRef : appel GABARITS.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/ruleset-main.test.mjs",
+      "ref": "ciALaRef : appel GABARITS.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/suivi.mjs",
+      "ref": "editer : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/suivi.mjs",
+      "ref": "etatDeSession : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/suivi.mjs",
+      "ref": "listerSuivis : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/suivi.mjs",
+      "ref": "suivre : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "commitDe : appel lanceurs.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 8
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 9
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 10
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 11
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 12
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 13
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 14
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 15
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 16
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 17
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 18
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 19
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 20
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 21
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 22
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 23
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 24
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 25
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 26
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 27
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 28
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 29
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 30
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 31
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 32
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 33
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 34
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 35
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 36
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 37
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 38
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 39
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 40
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 41
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/vigie.mjs",
+      "ref": "tick : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/vigie.mjs",
+      "ref": "verdictDeCi : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/vigie.mjs",
+      "ref": "verdictDeCi : appel refus",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/vigie.test.mjs",
+      "ref": "tick : appel refus",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/vigie.test.mjs",
+      "ref": "tick : appel refus",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/vigie.test.mjs",
+      "ref": "tick : appel refus",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "dossiersFR : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "dossiersFR : appel String",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "dossiersFR : appel String",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "dossiersFR : appel String",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "dossiersFR : appel String",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "existsSync : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "grainAll : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "mobilierAll : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "scanAll : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "scanAll : appel String",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "titresSoudesAll : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "dossiersFR : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "dossiersFR : appel String",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "mobilierAll : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "scanAll : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "scanAll : appel String",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "scanAll : appel String",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "scanAll : appel String",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "titresSoudesAll : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/lib/carte-lignes.mjs",
+      "ref": "lireEnLot : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/lib/carte-lignes.mjs",
+      "ref": "readFileSync : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/lib/fichiersCitants.mjs",
+      "ref": "listerArbre : appel [racines].flat",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDuSigle : appel source",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDuSigle : appel source",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDuSigle : appel source",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfRequisDe : appel source",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfRequisDe : appel source",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/reparer-mobilier.mjs",
+      "ref": "sitesDuLivre : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/reparer-titres.mjs",
+      "ref": "readFileSync : appel opt",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/reparer-titres.mjs",
+      "ref": "readFileSync : appel opt",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/reparer-titres.mjs",
+      "ref": "readText : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/reparer-titres.mjs",
+      "ref": "sondeDuLivre : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/sonde-mobilier.mjs",
+      "ref": "readText : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/sonde-mobilier.mjs",
+      "ref": "sitesDuLivre : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/sonde-titres.test.mjs",
+      "ref": "readText : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/workflow-args.test.mjs",
+      "ref": "lireRendu : appel ecrire",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/workflow-args.test.mjs",
+      "ref": "lireRendu : appel ecrire",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/workflow-args.test.mjs",
+      "ref": "lireRendu : appel ecrire",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/workflow-args.test.mjs",
+      "ref": "lireRendu : appel ecrire",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/source/prose-source-plugin.mjs",
+      "ref": "readText : appel corpus.chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/source/prose-source-plugin.mjs",
+      "ref": "readText : appel corpus.chemin",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/test/perimetre.test.mjs",
+      "ref": "apprendre : appel rapport",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/test/perimetre.test.mjs",
+      "ref": "existsSync : appel rapport",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/test/perimetre.test.mjs",
+      "ref": "existsSync : appel rapport",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/comment-poison-guard.test.ts",
+      "ref": "statSync : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/criticals-folio.test.ts",
+      "ref": "makeChapterReader : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/data-wellformed.test.ts",
+      "ref": "readFileSync : appel jsonSous",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/folio-line-align.test.ts",
+      "ref": "auditFolioLineAlign : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/refs-migrated.test.ts",
+      "ref": "readFileSync : appel RACINES.flatMap",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/defs-scenes/effets.test.ts",
+      "ref": "readFileSync : appel Object.keys",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/defs-scenes/effets.test.ts",
+      "ref": "readFileSync : appel Object.keys",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/gen-projection-art.test.ts",
+      "ref": "projeterDefs : appel dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/gen-projection-art.test.ts",
+      "ref": "projeterDefs : appel dossier",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/gen-projection-art.test.ts",
+      "ref": "projeterDefs : appel dossier",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/gen-projection-art.test.ts",
+      "ref": "projeterDefs : appel dossier",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/gen-projection-art.test.ts",
+      "ref": "projeterDefs : appel dossier",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/gen-projection-art.test.ts",
+      "ref": "projeterDefs : appel dossier",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/gen-registry-lecteur.test.ts",
+      "ref": "lireDefs : appel dossierDe",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/gen-registry-lecteur.test.ts",
+      "ref": "lireDefs : appel dossierDe",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/schemas/gen-registry-lecteur.test.ts",
+      "ref": "lireDefs : appel dossierDe",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/numero-de-chapitre.test.ts",
+      "ref": "corpusDe : appel chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/numero-de-chapitre.test.ts",
+      "ref": "corpusDe : appel chemin",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/numero-de-chapitre.test.ts",
+      "ref": "readFileSync : appel chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "adresseDuTitre : appel relative",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "adresseDuTitre : appel relative",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "adresseDuTitre : appel relative",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "adresseDuTitre : appel relative",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "adresseDuTitre : appel relative",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "adresseDuTitre : appel relative",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 7
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 8
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 9
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 10
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 11
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 12
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 13
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 14
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "corpusDe : appel relative",
+      "occurrence": 15
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/structures-contrat.test.ts",
+      "ref": "readFileSync : appel jsons",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readFileSync : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/scenes/generateurs-byte-stables.test.ts",
+      "ref": "readFileSync : appel par.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/scripts-nul-guard.test.ts",
+      "ref": "positionsDeNulDuFichier : appel l.trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/hors-modal-intent-path.test.ts",
+      "ref": "readFileSync : appel e.dans.split",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fichier",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fichier",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel fichier",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel file.shift",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel file.shift",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel file.shift",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel file.shift",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel file.shift",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "chemin : appel file.shift",
+      "occurrence": 6
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "cheminCanonique : appel fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/state/netownership-import-isole.test.ts",
+      "ref": "readFileSync : appel file.shift",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/ui/primitive-owners-guard.test.ts",
+      "ref": "classesDefiniesPar : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/ui/primitive-owners-guard.test.ts",
+      "ref": "existsSync : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/ui/primitive-owners-guard.test.ts",
+      "ref": "existsSync : appel JSON.parse",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/zod-retire-guard.test.ts",
+      "ref": "readFileSync : appel createRequire(import.meta.url).resolve",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/zod-retire-guard.test.ts",
+      "ref": "readFileSync : appel createRequire(import.meta.url).resolve",
+      "occurrence": 2
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.test.mjs",
+      "ref": "readFile : chemin absolu C:\\depot\\src\\é.ts",
+      "occurrence": 1
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/guards/lib/livraison.test.mjs",
+      "ref": "verdictDePublication : chemin absolu /fixture-consommateurs",
+      "occurrence": 1
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/guards/lib/livraison.test.mjs",
+      "ref": "verdictDePublication : chemin absolu /fixture-consommateurs",
+      "occurrence": 2
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
+      "ref": "migrer : chemin absolu /tmp/aucun-depot-1699/Source",
+      "occurrence": 1
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/test/verrou.test.mjs",
+      "ref": "attendreLibre : chemin absolu /tmp/banc.verrou",
+      "occurrence": 1
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/test/verrou.test.mjs",
+      "ref": "attendreLibre : chemin absolu /tmp/banc.verrou",
+      "occurrence": 2
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/test/verrou.test.mjs",
+      "ref": "attendreLibre : chemin absolu /tmp/banc.verrou",
+      "occurrence": 3
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "src/state/partage.testkit.ts",
+      "ref": "glob : chemin absolu /src/data",
+      "occurrence": 1
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "src/state/partage.testkit.ts",
+      "ref": "glob : chemin absolu /src/scenes",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.test.mjs",
+      "ref": "readFile : déstructuration de tableau entree",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "ecrivainsParGate : déstructuration de tableau corpus",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "ecrivainsParGate : déstructuration de tableau corpus",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "ecrivainsParGate : déstructuration de tableau corpus",
+      "occurrence": 3
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "ecrivainsParGate : déstructuration de tableau corpus",
+      "occurrence": 4
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/gates/ecrivainsAtteints.test.mjs",
+      "ref": "statSync : déstructuration de tableau corpus",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/gen-espaces.mts",
+      "ref": "ecrire : déstructuration de tableau chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/gen-espaces.mts",
+      "ref": "existsSync : déstructuration de tableau chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-docs.mjs",
+      "ref": "readFileSync : déstructuration de tableau A",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-docs.mjs",
+      "ref": "readFileSync : déstructuration de tableau B",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-docs.mjs",
+      "ref": "readFileSync : déstructuration de tableau O",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-stocks.mjs",
+      "ref": "readFileSync : déstructuration de tableau A",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-stocks.mjs",
+      "ref": "readFileSync : déstructuration de tableau B",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-stocks.mjs",
+      "ref": "readFileSync : déstructuration de tableau O",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-stocks.test.mjs",
+      "ref": "readFileSync : déstructuration de tableau fA",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/guards/lib/depotGabarit.mjs",
+      "ref": "etatDeLaCopie : déstructuration de tableau chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/guards/lib/depotGabarit.mjs",
+      "ref": "natureDuChemin : déstructuration de tableau chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "regenererStock : déstructuration de tableau a",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "regenererStock : déstructuration de tableau a",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "regenererStock : déstructuration de tableau b",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "regenererStock : déstructuration de tableau b",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/migrations/lib/croissance.test.mjs",
+      "ref": "existsSync : déstructuration de tableau rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/assemble-domain.mjs",
+      "ref": "readFileSync : déstructuration de tableau jsonPath",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/build-atlas-index.mjs",
+      "ref": "readFileSync : déstructuration de tableau chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "existsSync : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "listerDossier : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-folio-continuity.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-folio-continuity.mjs",
+      "ref": "scanEmptyFoliosInBook : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "chapterTexts : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "scanBookDir : déstructuration de tableau d",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "texteEnPlace : déstructuration de tableau r",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "texteEnPlace : déstructuration de tableau r",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-source-puces.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-source-puces.test.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-source-tables.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-source-tables.test.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "existsSync : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "listerDossier : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "rendu : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "rendu : déstructuration de tableau dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "rendre : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/lib/empty-folios-stock.mjs",
+      "ref": "mesurerLivre : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/lib/empty-folios-stock.mjs",
+      "ref": "scanEmptyFoliosInBook : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/reparer-mobilier.mjs",
+      "ref": "readText : déstructuration de tableau fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/tri.mjs",
+      "ref": "readFileSync : déstructuration de tableau fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/workflow-args.mjs",
+      "ref": "lireRendu : déstructuration de tableau reste",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/source/reparer-adresses.mjs",
+      "ref": "reparerAdresses : déstructuration de tableau fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/test/verrou.mjs",
+      "ref": "etapesDePrise : déstructuration de tableau prise",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/test/verrou.mjs",
+      "ref": "etapesDePrise : déstructuration de tableau prise",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/maison-sans-source.test.ts",
+      "ref": "jsons : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/maison-sans-source.test.ts",
+      "ref": "jsons : déstructuration de tableau dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/plage-bornes-contrat.test.ts",
+      "ref": "readFileSync : déstructuration de tableau chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "readFileSync : déstructuration de tableau fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "reparerAdresses : déstructuration de tableau fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "reparerAdresses : déstructuration de tableau fichier",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "reparerAdresses : déstructuration de tableau fichier",
+      "occurrence": 3
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/spec-pool-contrat.test.ts",
+      "ref": "fichiersDeDonnees : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/spec-pool-contrat.test.ts",
+      "ref": "fichiersDeDonnees : déstructuration de tableau dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/spec-pool-contrat.test.ts",
+      "ref": "fichiersDeDonnees : déstructuration de tableau dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/gameIso/rig/parts/tenues/palette-literal.test.ts",
+      "ref": "texteEnPlace : déstructuration de tableau regeneration",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/state/flowtest-derived-stake.test.ts",
+      "ref": "readFileSync : déstructuration de tableau fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/state/roll-seam-exclusivity-guard.test.ts",
+      "ref": "existsSync : déstructuration de tableau file",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/state/roll-seam-exclusivity-guard.test.ts",
+      "ref": "existsSync : déstructuration de tableau file",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/state/roll-seam-exclusivity-guard.test.ts",
+      "ref": "readFileSync : déstructuration de tableau file",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/state/roll-seam-exclusivity-guard.test.ts",
+      "ref": "readFileSync : déstructuration de tableau file",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/state/roll-seam-exclusivity-guard.test.ts",
+      "ref": "readFileSync : déstructuration de tableau rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/ui/primitive-owners-guard.test.ts",
+      "ref": "classesDefiniesPar : déstructuration de tableau css",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/ui/primitive-owners-guard.test.ts",
+      "ref": "classesDefiniesPar : déstructuration de tableau css",
+      "occurrence": 2
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "installer : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "readFileSync : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/guards/budget-contexte.mjs",
+      "ref": "controlerBudgetDeLaPlage : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/guards/budget-contexte.mjs",
+      "ref": "readFileSync : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "controlerBudgetDeLaPlage : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "controlerBudgetDeLaPlage : process introuvable",
+      "occurrence": 2
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "debutDeLaPlage : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
+      "ref": "migrer : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.mjs",
+      "ref": "existsSync : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.mjs",
+      "ref": "npxCli : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "existsSync : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "npxCli : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 2
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 3
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 4
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 5
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 6
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 7
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 8
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/mods/verifier.test.mjs",
+      "ref": "verifier : process introuvable",
+      "occurrence": 9
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/ops/reprendre-file.mjs",
+      "ref": "readFileSync : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/gates/classerPush.test.mjs",
+      "ref": "readFileSync : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/gates/toutes.mjs",
+      "ref": "principal : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/gen-espaces.mts",
+      "ref": "readFileSync : forme AwaitExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
+      "ref": "reconstruireApresGit : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
+      "ref": "reconstruireApresGit : forme ElementAccessExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/git-hooks/pre-push.mjs",
+      "ref": "readFileSync : forme FirstLiteralToken",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/gitHorsHote.test.mjs",
+      "ref": "readFileSync : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : forme BinaryExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : forme BinaryExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : forme BinaryExpression",
+      "occurrence": 3
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : forme BinaryExpression",
+      "occurrence": 4
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : forme BinaryExpression",
+      "occurrence": 5
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLeCommit : forme BinaryExpression",
+      "occurrence": 6
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/lister.test.mjs",
+      "ref": "listerArbre : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/lister.test.mjs",
+      "ref": "readFileSync : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/memoryLinks.test.mjs",
+      "ref": "scanRepoMemoryLinks : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/refsDeLigne.test.mjs",
+      "ref": "readFileSync : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/guards/lib/regenStock.mts",
+      "ref": "regenererStock : forme AwaitExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/hooks/inject-project-credo.mjs",
+      "ref": "injectProjectCredo : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/migrations/lib/empreinteRejeu.test.mjs",
+      "ref": "existsSync : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/node-requis.test.mjs",
+      "ref": "listerDossier : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/node-requis.test.mjs",
+      "ref": "readFileSync : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/node-requis.test.mjs",
+      "ref": "readFileSync : forme ElementAccessExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/node-requis.test.mjs",
+      "ref": "readFileSync : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/node-requis.test.mjs",
+      "ref": "readFileSync : forme NewExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/publier.mjs",
+      "ref": "contexteDe : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/suivi.test.mjs",
+      "ref": "etatDeSession : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : forme AwaitExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : forme AwaitExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : forme AwaitExpression",
+      "occurrence": 3
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : forme AwaitExpression",
+      "occurrence": 4
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "existsSync : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "readFileSync : forme AwaitExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "grainAll : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "mobilierAll : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "scanAll : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "scanAll : forme NewExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.mjs",
+      "ref": "titresSoudesAll : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "mobilierAll : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "scanAll : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "scanAll : forme NewExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "scanAll : forme NewExpression",
+      "occurrence": 3
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "scanAll : forme NewExpression",
+      "occurrence": 4
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "titresSoudesAll : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/raw/workflow-args.mjs",
+      "ref": "lireRendu : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/analyse-retention-guard.test.ts",
+      "ref": "readFileSync : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "readFileSync : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/data/schema-contract.test.ts",
+      "ref": "readFileSync : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/gameIso/rig/palettes-declarees.test.ts",
+      "ref": "readFileSync : forme AwaitExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/scenes/generateurs-byte-stables.test.ts",
+      "ref": "readFileSync : forme AwaitExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/ui/css-modules-guard.test.ts",
+      "ref": "classesDefinies : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/ui/css-modules-guard.test.ts",
+      "ref": "classesDefinies : forme NewExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/ui/css-modules-guard.test.ts",
+      "ref": "existsSync : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/ui/css-modules-guard.test.ts",
+      "ref": "existsSync : forme NewExpression",
+      "occurrence": 2
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "ref": "existsSync : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "identifiant introuvable",
+      "fichier": "scripts/guards/lib/racineNpm.mjs",
+      "ref": "existsSync : courant introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "identifiant introuvable",
+      "fichier": "scripts/guards/lib/racineNpm.mjs",
+      "ref": "existsSync : courant introuvable",
+      "occurrence": 2
+    },
+    {
+      "famille": "identifiant introuvable",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "cheminDEcriture : undefined introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "identifiant introuvable",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPointeurs : undefined introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "identifiant introuvable",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPoison : undefined introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/data/lib/cellulesDeSortsFan.ts",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/data/lib/cellulesDeSortsFan.ts",
+      "ref": "readdirSync : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/guards/lib/folioIntegrity.mjs",
+      "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/guards/lib/folioIntegrity.mjs",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/guards/lib/folioIntegrity.mjs",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/guards/lib/tsProgram.test.mjs",
+      "ref": "existsSync : import par défaut ou espace path",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/_lib.mjs",
+      "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/_lib.mjs",
+      "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/_lib.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/anchor-fill.mjs",
+      "ref": "existsSync : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/anchor-fill.mjs",
+      "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/anchor-fill.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/anchor-fill.mjs",
+      "ref": "resolveBookOffset : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/anchor-fill.mjs",
+      "ref": "runBook : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "readFileSync : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "scanEmptyFoliosInBook : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "mobilierAvec : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "mobilierAvec : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "mobilierAvec : import par défaut ou espace booksData",
+      "occurrence": 3
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "mobilierAvec : import par défaut ou espace booksData",
+      "occurrence": 4
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "mobilierAvec : import par défaut ou espace booksData",
+      "occurrence": 5
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "mobilierAvec : import par défaut ou espace booksData",
+      "occurrence": 6
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "mobilierAvec : import par défaut ou espace booksData",
+      "occurrence": 7
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-source-format.test.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 3
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/folio-bootstrap.mjs",
+      "ref": "buildFolioToc : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/folio-bootstrap.mjs",
+      "ref": "corpusRange : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/folio-bootstrap.mjs",
+      "ref": "runBook : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/reanchor-split.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/reanchor.mjs",
+      "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/recouper-source.mjs",
+      "ref": "chapitresEnService : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/recouper-source.mjs",
+      "ref": "existsSync : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/recouper-source.mjs",
+      "ref": "existsSync : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/recouper-source.mjs",
+      "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/recouper-source.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/recouper-source.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/recouper-source.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 3
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/recouper-source.mjs",
+      "ref": "suivreLeDiff : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/source/lecteur-fs.mjs",
+      "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/racines-vivantes.test.ts",
+      "ref": "readFileSync : import ./schemas/_registry.generated non résolu",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/refs-migrated.test.ts",
+      "ref": "extractedBooks : import par défaut ou espace booksJson",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/refs-migrated.test.ts",
+      "ref": "extractedBooks : import par défaut ou espace booksJson",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/scenes/bundled-projects.test.ts",
+      "ref": "fichiersMd : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "canoniser : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/enregistreur-lectures.mjs",
+      "ref": "installer : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "listerDossier : paramètre nom",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "readFileSync : paramètre nom",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "statSync : paramètre nom",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "statSync : paramètre nom",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "statSync : paramètre nom",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/rendre-cible.test.mjs",
+      "ref": "existsSync : paramètre c",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/gates/classerPush.mjs",
+      "ref": "classerPush : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/gates/classerPush.test.mjs",
+      "ref": "existsSync : paramètre absolu",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/gates/classerPush.test.mjs",
+      "ref": "readFileSync : paramètre absolu",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/commit-msg.mjs",
+      "ref": "readFileSync : paramètre c",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
+      "ref": "reconstruireApresGit : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
+      "ref": "reconstruireApresGit : paramètre chemin",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/pre-push.mjs",
+      "ref": "jugerPush : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/pre-push.mjs",
+      "ref": "jugerPush : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/pre-push.mjs",
+      "ref": "jugerPush : paramètre f",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/pre-push.mjs",
+      "ref": "jugerPush : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/pre-push.mjs",
+      "ref": "jugerPush : paramètre rels",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.mjs",
+      "ref": "controlerBudgetDeLaPlage : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.mjs",
+      "ref": "controlerBudgetDeLaPlage : paramètre chemins",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.mjs",
+      "ref": "controlerBudgetDeLaPlage : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.mjs",
+      "ref": "controlerBudgetDeLaPlage : paramètre rels",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.mjs",
+      "ref": "mesurerBudget : paramètre chemins",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.mjs",
+      "ref": "mesurerBudget : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "controlerBudgetDeLaPlage : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "controlerBudgetDeLaPlage : paramètre chemins",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "controlerBudgetDeLaPlage : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "controlerBudgetDeLaPlage : paramètre rels",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "mesurerBudget : paramètre chemins",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "mesurerBudget : paramètre chemins",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "mesurerBudget : paramètre chemins",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "mesurerBudget : paramètre chemins",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "mesurerBudget : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "mesurerBudget : paramètre dossier",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "mesurerBudget : paramètre dossier",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "mesurerBudget : paramètre dossier",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouches.test.mjs",
+      "ref": "ventilationDeGit : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouches.test.mjs",
+      "ref": "ventilationDeGit : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouches.test.mjs",
+      "ref": "ventilationDeGit : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouches.test.mjs",
+      "ref": "ventilationDeGit : paramètre rels",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouchesAudit.ts",
+      "ref": "sourceGit : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouchesAudit.ts",
+      "ref": "sourceGit : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouchesAudit.ts",
+      "ref": "sourceGit : paramètre rels",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouchesAudit.ts",
+      "ref": "ventilationDeGit : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouchesAudit.ts",
+      "ref": "ventilationDeGit : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouchesAudit.ts",
+      "ref": "ventilationDeGit : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/cssCouchesAudit.ts",
+      "ref": "ventilationDeGit : paramètre rels",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/genericDomainImport.mjs",
+      "ref": "readFileSync : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/gitHorsHote.test.mjs",
+      "ref": "sitesDuDepot : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/gitHorsHote.test.mjs",
+      "ref": "sitesDuDepot : paramètre rel",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/gitHorsHote.test.mjs",
+      "ref": "sitesDuDepot : paramètre rel",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "ceQueFaitLaFusionEnCours : paramètre d",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/importGraph.mjs",
+      "ref": "readFileSync : paramètre abss",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/lint.testkit.mjs",
+      "ref": "readFileSync : paramètre fichiers",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/lintStage.mjs",
+      "ref": "readFileSync : paramètre fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/sourceCorpus.test.mjs",
+      "ref": "readdirSync : paramètre d",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "existsSync : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "existsSync : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "lireEntreesDeSite : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "lireStockJson : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "regenererStock : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "regenererStock : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "regenererStock : paramètre dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "regenererStock : paramètre dir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
+      "ref": "regenererStock : paramètre dir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/bootstrap-conteneur.mjs",
+      "ref": "existsSync : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : paramètre racine",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/solde-ticket-guard.mjs",
+      "ref": "readFileSync : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre chemin",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre chemin",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre dossier",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre dossier",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre f",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre f",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre f",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre rel",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre rel",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre rels",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre rels",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre rels",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "locateGrid : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "locateGrid : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "locateGrid : paramètre dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/map/check.test.ts",
+      "ref": "locateGrid : paramètre dir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1686-ardoise-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1687-usable-sieges-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 6
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1691-relief-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "lireArbre : paramètre rel",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/migrations/lib/1715-roof-defaults-portes.test.mjs",
+      "ref": "projetAvant : paramètre rel",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/etapesDuTrain.mjs",
+      "ref": "resoudreOutilLocal : paramètre ctx",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/etapesDuTrain.mjs",
+      "ref": "sourcesMesurees : paramètre ctx",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/etapesDuTrain.test.mjs",
+      "ref": "readFileSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/knip-exports-ratchet.test.mjs",
+      "ref": "existsSync : paramètre from",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/knip-exports-ratchet.test.mjs",
+      "ref": "readdirSync : paramètre d",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/knip-exports-ratchet.test.mjs",
+      "ref": "statSync : paramètre d",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/knip-exports-ratchet.test.mjs",
+      "ref": "statSync : paramètre from",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/publier.mjs",
+      "ref": "contexteDe : paramètre c",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/publier.mjs",
+      "ref": "contexteDe : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/suivi.test.mjs",
+      "ref": "readFileSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "pagesDeLAtlas : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "pagesDeLAtlas : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "pagesDeLAtlas : paramètre dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "pagesDeLAtlas : paramètre dir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "pagesDeLAtlas : paramètre dir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "pagesDeLAtlas : paramètre dir",
+      "occurrence": 6
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "pagesDeLAtlas : paramètre dir",
+      "occurrence": 7
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "pagesDeLAtlas : paramètre dir",
+      "occurrence": 8
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "relatifsRetenus : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/_lib.test.mjs",
+      "ref": "relatifsRetenus : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/assemble-domain.test.mjs",
+      "ref": "existsSync : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/assemble-domain.test.mjs",
+      "ref": "existsSync : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/assemble-domain.test.mjs",
+      "ref": "listerArbre : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/assemble-domain.test.mjs",
+      "ref": "listerArbre : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/assemble-domain.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/assemble-domain.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/build-atlas-index.mjs",
+      "ref": "readFileSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/build-atlas-index.test.mjs",
+      "ref": "blocsDeLAtlas : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/build-atlas-index.test.mjs",
+      "ref": "lignesDesCoeurs : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/build-atlas-index.test.mjs",
+      "ref": "lignesDesCoeurs : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/build-atlas-index.test.mjs",
+      "ref": "lignesDesCoeurs : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/build-catalogs.test.mjs",
+      "ref": "readFileSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : paramètre path",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : paramètre path",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : paramètre path",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : paramètre path",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : paramètre path",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : paramètre path",
+      "occurrence": 6
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "scanBookDir : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "scanBookDir : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "scanBookDir : paramètre dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "scanBookDir : paramètre dir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "scanBookDir : paramètre dir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-folio-continuity.test.mjs",
+      "ref": "scanEmptyFoliosInBook : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : paramètre dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : paramètre dir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : paramètre dir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : paramètre dir",
+      "occurrence": 6
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanBareFolioViolations : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanBareFolioViolations : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanBookNoChapterSrcViolations : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanChDotViolations : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanChDotViolations : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanChapterBoundaryFolioViolations : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanChapterBoundaryFolioViolations : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanChapterBoundaryFolioViolations : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanDocsRawViolations : paramètre raw",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanDocsRawViolations : paramètre raw",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanDocsRawViolations : paramètre raw",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanDocsRawViolations : paramètre raw",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanDocsRawViolations : paramètre raw",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanDocsRawViolations : paramètre raw",
+      "occurrence": 6
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanImplProseViolations : paramètre raw",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanImplProseViolations : paramètre raw",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanImplProseViolations : paramètre raw",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanImplProseViolations : paramètre raw",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanImplProseViolations : paramètre raw",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanImplProseViolations : paramètre raw",
+      "occurrence": 6
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanImplProseViolations : paramètre raw",
+      "occurrence": 7
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanMultiFolioSplitViolations : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanMultiFolioSplitViolations : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanMultiFolioSplitViolations : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanTout : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanTout : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanTout : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanTout : paramètre rawDir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanUnknownAbbrViolations : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/citation-graphy-guard.test.mjs",
+      "ref": "scanUnknownAbbrViolations : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/lib/carte-lignes.mjs",
+      "ref": "ceQuiChange : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "existsSync : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 6
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 7
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 8
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 9
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 10
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 11
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 12
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 13
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 14
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reanchor.test.mjs",
+      "ref": "scan : paramètre dir",
+      "occurrence": 15
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 6
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 7
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 8
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 9
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 10
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 11
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 12
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 13
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 14
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 15
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reconcile.test.mjs",
+      "ref": "computeReconciliation : paramètre opts",
+      "occurrence": 16
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "reparer : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "reparer : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "reparer : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "reparer : paramètre rawDir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/workflow-args.mjs",
+      "ref": "lireRenduDeRun : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/workflow-args.test.mjs",
+      "ref": "argsDeTableSimulee : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/workflow-args.test.mjs",
+      "ref": "argsDeTableSimulee : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/workflow-args.test.mjs",
+      "ref": "chargerDossiers : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/workflow-args.test.mjs",
+      "ref": "chargerDossiers : paramètre dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/workflow-args.test.mjs",
+      "ref": "readFileSync : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/recette/lib.mjs",
+      "ref": "readdirSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/recette/lib.mjs",
+      "ref": "statSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/test/partition.mjs",
+      "ref": "readFileSync : paramètre f",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/test/perimetre.test.mjs",
+      "ref": "perimetreDuDepot : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "server/src/no-math-random-guard.test.ts",
+      "ref": "readdirSync : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "server/src/no-math-random-guard.test.ts",
+      "ref": "statSync : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/config-id-unique.test.ts",
+      "ref": "listerArbre : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/data-wellformed.test.ts",
+      "ref": "listerArbre : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/plage-bornes-contrat.test.ts",
+      "ref": "listerArbre : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/refs-migrated.test.ts",
+      "ref": "listerArbre : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "adresseDuTitre : paramètre chapitre",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "readFileSync : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "readFileSync : paramètre racine",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "readFileSync : paramètre racine",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "readFileSync : paramètre racine",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "readFileSync : paramètre racine",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "refSurDisque : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "refSurDisque : paramètre racine",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "refSurDisque : paramètre racine",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "texteRendu : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "texteRendu : paramètre racine",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "texteRendu : paramètre racine",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "texteRendu : paramètre racine",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/source/reparer-adresses.test.ts",
+      "ref": "texteRendu : paramètre racine",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/structures-contrat.test.ts",
+      "ref": "listerArbre : paramètre d",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/structures-contrat.test.ts",
+      "ref": "readFileSync : paramètre defs",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/gameIso/stage/anim-css-branchee.test.ts",
+      "ref": "readFileSync : paramètre feuille",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/state/built-brand-lint.test.ts",
+      "ref": "readFileSync : paramètre fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/state/seating-recomposition.test.ts",
+      "ref": "readFileSync : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/state/usable.test.ts",
+      "ref": "readFileSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/ui/editor/scene-field-editability-guard.test.ts",
+      "ref": "readFileSync : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/ui/ui-ratchets.test.ts",
+      "ref": "readFileSync : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "propriété non suivie",
+      "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
+      "ref": "reconstruireApresGit : propriété depot.cwd",
+      "occurrence": 1
+    },
+    {
+      "famille": "propriété non suivie",
+      "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
+      "ref": "reconstruireApresGit : propriété depot.cwd",
+      "occurrence": 2
+    },
+    {
+      "famille": "propriété non suivie",
+      "fichier": "scripts/ops/publier.mjs",
+      "ref": "contexteDe : propriété depot.cwd",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "ciblesPures : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/build-all.mjs",
+      "ref": "executer : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/build-doctrines.mjs",
+      "ref": "ecrireOuVerifier : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/build-doctrines.mjs",
+      "ref": "rendu : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/cibles-pures.test.mjs",
+      "ref": "ciblesPures : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/cibles-pures.test.mjs",
+      "ref": "ciblesPures : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/cibles-pures.test.mjs",
+      "ref": "ciblesPures : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 3
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/cibles-pures.test.mjs",
+      "ref": "readFileSync : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/gates/testsParGate.test.mjs",
+      "ref": "gatesDeCi : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/gates/testsParGate.test.mjs",
+      "ref": "listerTests : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/gates/testsParGate.test.mjs",
+      "ref": "readFileSync : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/git-hooks/docs-rebuild.mjs",
+      "ref": "reconstruireApresGit : appel sortieOuNull(vu)?.trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/guards/lib/gitPorte.test.mjs",
+      "ref": "natureDuChemin : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/guards/lib/horsStrateAudit.ts",
+      "ref": "auditHorsStrate : appel sortieOuNull(vu)?.trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/guards/lib/horsStrateAudit.ts",
+      "ref": "scanDuCorpus : appel sortieOuNull(vu)?.trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/guards/memoire-forme.test.mjs",
+      "ref": "readFileSync : appel gitDeLArbreReel(RACINE)('ls-files', '.claude/') .split",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/guards/memoire-forme.test.mjs",
+      "ref": "readFileSync : appel gitDeLArbreReel(RACINE)('ls-files', '.claude/memory') .split",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/guards/memoire-forme.test.mjs",
+      "ref": "readFileSync : appel gitDeLArbreReel(RACINE)('ls-files', '.claude/memory') .split",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 3
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 4
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 5
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 6
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 7
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 8
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 9
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 10
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 11
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 12
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "verdictDe : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartiteur.test.mjs",
+      "ref": "verdictDe : appel String(vu.valeur.stdout).trim",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "baseDeLAppel : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "canoniser : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "construireContexte : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/hooks/suivi-lien-guard.mjs",
+      "ref": "relire : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/suivi.mjs",
+      "ref": "editer : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/suivi.mjs",
+      "ref": "etatDeSession : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/suivi.mjs",
+      "ref": "listerSuivis : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/suivi.mjs",
+      "ref": "suivre : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/vigie.mjs",
+      "ref": "tick : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/vigie.mjs",
+      "ref": "verdictDeCi : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/vigie.mjs",
+      "ref": "verdictDeCi : appel String(vu.valeur.stdout).trim",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/vigie.test.mjs",
+      "ref": "tick : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/vigie.test.mjs",
+      "ref": "tick : appel String(vu.valeur.stdout).trim",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/ops/vigie.test.mjs",
+      "ref": "tick : appel String(vu.valeur.stdout).trim",
+      "occurrence": 3
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/schemas/grammaire/collection-cle.test.ts",
+      "ref": "scanDuCorpus : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/schemas/grammaire/parse-de-mesure.test.ts",
+      "ref": "scanDuCorpus : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/slots-contrat.test.ts",
+      "ref": "scanDuCorpus : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/structures-contrat.test.ts",
+      "ref": "listerDocuments : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/structures-contrat.test.ts",
+      "ref": "readFileSync : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/structures-contrat.test.ts",
+      "ref": "readFileSync : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/structures-contrat.test.ts",
+      "ref": "scanDuCorpus : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/structures-contrat.test.ts",
+      "ref": "scannerRedeclarations : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPointeurs : horsContenu sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/hooks/poison-postcheck.mjs",
+      "ref": "voletPoison : horsContenu sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/hooks/repartition.mjs",
+      "ref": "construireContexte : entree sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/_lib.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/audit-refs-chapitre.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "ecrireOuVerifier : catalogues sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-catalogue-complete.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-catalogue-complete.test.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-catalogue-complete.test.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "chapterLinesOf : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "lineCount : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "chapterTextOf : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "scanAll : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "scanAll : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.mjs",
+      "ref": "scanMissingEntities : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanAll : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : res sans valeur initiale",
+      "occurrence": 3
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : res sans valeur initiale",
+      "occurrence": 4
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : res sans valeur initiale",
+      "occurrence": 5
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-entity-in-chapter.test.mjs",
+      "ref": "scanMissingEntities : res sans valeur initiale",
+      "occurrence": 6
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.mjs",
+      "ref": "lineCount : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.mjs",
+      "ref": "scanDeadRefs : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.mjs",
+      "ref": "scanDeadRefs : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : res sans valeur initiale",
+      "occurrence": 3
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : res sans valeur initiale",
+      "occurrence": 4
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : res sans valeur initiale",
+      "occurrence": 5
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : res sans valeur initiale",
+      "occurrence": 6
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/check-refs.test.mjs",
+      "ref": "scanDeadRefs : res sans valeur initiale",
+      "occurrence": 7
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 3
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "rendu : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.mjs",
+      "ref": "rendu : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 3
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 4
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 5
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 6
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 7
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/coverage.test.mjs",
+      "ref": "rendre : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/reanchor.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/raw/releve.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "scripts/source/lecteur-fs.mjs",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/night-stake-form.test.ts",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/night-stakes-rules.test.ts",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/prop-art-labels-failfast.test.ts",
+      "ref": "labelDArt : racine sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/prop-art-labels-failfast.test.ts",
+      "ref": "labelDArt : racine sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/prop-art-labels-failfast.test.ts",
+      "ref": "labelDArt : racine sans valeur initiale",
+      "occurrence": 3
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/prop-art-labels-failfast.test.ts",
+      "ref": "labelDArt : racine sans valeur initiale",
+      "occurrence": 4
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/prop-art-labels-failfast.test.ts",
+      "ref": "labelDArt : racine sans valeur initiale",
+      "occurrence": 5
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/regles-soudures.test.ts",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : res sans valeur initiale",
+      "occurrence": 3
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : res sans valeur initiale",
+      "occurrence": 4
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/source/decoupe.test.ts",
+      "ref": "readFileSync : res sans valeur initiale",
+      "occurrence": 5
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/source/index-imprime.test.ts",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "readFileSync : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/data/source/prose-source.test.ts",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 1
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 2
+    },
+    {
+      "famille": "variable sans valeur initiale",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : res sans valeur initiale",
+      "occurrence": 3
+    }
+  ]
+}
