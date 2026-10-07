@@ -1534,11 +1534,20 @@
   {
     "id": "grapheDImports",
     "type": "primitives.manifest",
-    "label": "sitesDeModule/liaisonsDe/chargementsDe/specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports",
+    "label": "sitesDeModule/liaisonsDe/chargementsDe/specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports/globsDe/grapheInverse",
     "fichier": "scripts/guards/lib/importGraph.mjs",
-    "concept": "sites de module et liaisons avec noms, rôles et positions, chargements littéraux ou calculés, résolution et clôture des imports, lecture après effacement des types",
+    "concept": "sites de module et liaisons avec noms, rôles et positions, chargements littéraux ou calculés, résolution et clôture des imports contre le disque ou un ensemble de fichiers, motifs d'import.meta.glob, graphe inverse, lecture après effacement des types",
     "perimetre": "toute lecture de noms, de chargements ou de spécificateurs de module, ou marche d'import dans les gardes et générateurs",
     "verrou": "importGraph.test.mjs"
+  },
+  {
+    "id": "racinesBalayees",
+    "type": "primitives.manifest",
+    "label": "lectureDeModule/lecteurDExpressions/evaluer/APPEL_DE_BALAYAGE",
+    "fichier": "scripts/guards/lib/racinesBalayees.mjs",
+    "concept": "racines balayées qu'un module déclare par ses appels aux helpers de listage et de lecture en lot, et lecture d'une expression de chemin (littéral, join, URL du module, constante locale ou importée)",
+    "perimetre": "toute dérivation des dossiers ou fichiers qu'un module lit par listage, et toute lecture statique d'une expression de chemin",
+    "verrou": "racinesBalayees.test.mjs"
   },
   {
     "id": "constructionsReservees",

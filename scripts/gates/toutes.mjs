@@ -259,7 +259,7 @@ export const ECRIT_LU = {
       '(.claude/settings.json, .codex/hooks.json : scripts/node-requis.test.mjs y lit les modules lancés, ' +
       'le 2026-09-27, #1801) ; +1 écrivain le 2026-10-05 (#2279 N0) : `test/verrou.test.mjs` fait se disputer ' +
       'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) ; ' +
-      '`scripts/test/corpus.test.mjs` forge ses fixtures avec mkdtempSync(tmpdir()) et les nettoie par t.after',
+      '`scripts/test/perimetre.test.mjs` forge ses dépôts avec mkdtempSync(tmpdir()), mémos compris, et les nettoie par t.after',
   },
   'test:docs': {
     ecrit: [],

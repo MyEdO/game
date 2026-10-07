@@ -258,8 +258,8 @@ function rendu() {
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
    \`pre-commit\` REFUSE au nom de l'intégrité (arbre imbriqué, lock npm amputé, fins de ligne) et
-    AVERTIT sur la forme, que la CI refuse ; les tests liés au diff se jouent à la main
-    (\`npm run test:lies\`). \`post-checkout\`,
+    AVERTIT sur la forme, que la CI refuse ; les tests du périmètre se jouent à la main
+    (\`npm run test:perimetre\`). \`post-checkout\`,
     \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. \`post-commit\` traite les
     commits de fusion résolus manuellement, depuis l'ancien HEAD du reflog vers le nouveau HEAD ;
     un amend du seul message ne réinstalle rien. Un reflog absent impose la réparation conservatrice

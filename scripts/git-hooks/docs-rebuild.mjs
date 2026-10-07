@@ -70,10 +70,14 @@ export function sourcesMesurees(racine) {
   try { return JSON.parse(readFileSync(join(racine, SOURCES_LUES), 'utf8')) } catch { return null }
 }
 
+/** Les manifestes de dépendances : leurs lectures ne sont pas mesurées, un changement invalide toute
+ *  sélection par lectures (docs dérivés, périmètre de tests). */
+export const LECTURES_DES_DEPENDANCES = Object.freeze(['package.json', 'package-lock.json', 'server/package.json', 'server/package-lock.json'])
+
 const parentDe = (chemin) => (chemin.includes('/') ? chemin.slice(0, chemin.lastIndexOf('/')) : '')
 
 /** Les dossiers qui contiennent `chemin`, du parent à la racine (`''`) comprise. */
-function ancetresDe(chemin) {
+export function ancetresDe(chemin) {
   const ancetres = [parentDe(chemin)]
   while (ancetres.at(-1) !== '') ancetres.push(parentDe(ancetres.at(-1)))
   return ancetres
@@ -117,7 +121,7 @@ export function touchesDocSources(chemins, mesure, { seulement = null } = {}) {
 export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERATORS }) {
   const tous = (raison) => ({ scripts: generateurs.map((g) => g.script), complete: true, raison })
   if (lot === null) return tous('plage Git inconnue')
-  if (lot.some((f) => ['package.json', 'package-lock.json', 'server/package.json', 'server/package-lock.json'].includes(f))) return tous('toolchain modifiée : lectures des dépendances non mesurées')
+  if (lot.some((f) => LECTURES_DES_DEPENDANCES.includes(f))) return tous('toolchain modifiée : lectures des dépendances non mesurées')
   if (!mesure || generateurs.some((g) => !Array.isArray(mesure[g.script]?.fichiers) || !Array.isArray(mesure[g.script]?.dossiers) || !Array.isArray(mesure[g.script]?.cibles))) return tous('mesure absente ou incomplète')
   if (lot.some((f) => ['scripts/docs/build-all.mjs', 'scripts/git-hooks/docs-rebuild.mjs'].includes(f) || f.startsWith('scripts/docs/lib/'))) return tous('graphe ou outil de mesure modifié')
   if (generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||

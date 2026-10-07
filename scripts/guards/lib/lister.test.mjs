@@ -289,6 +289,15 @@ test('correspondGlob : `**` vaut ZÉRO ou plusieurs dossiers', () => {
   assert.equal(correspondGlob('pages/raw/un-coeur/combat.md', motif), false)
 })
 
+test('correspondGlob : `{a,b}` vaut l’une de ses alternatives, dans son segment', () => {
+  const motif = 'pages/*/{index,_registre.genere}.md'
+  assert.equal(correspondGlob('pages/un-coeur/index.md', motif), true)
+  assert.equal(correspondGlob('pages/un-coeur/_registre.genere.md', motif), true)
+  assert.equal(correspondGlob('pages/un-coeur/_registreXgenere.md', motif), false)
+  assert.equal(correspondGlob('pages/un-coeur/autre.md', motif), false)
+  assert.equal(correspondGlob('pages/un-coeur/index/x.md', 'pages/*/{index,autre}/x.md'), true)
+})
+
 test('correspondGlob : un chemin rendu par Windows se lit en POSIX', () => {
   assert.equal(correspondGlob('pages\\raw\\un-coeur\\catalogue-divers.md', 'pages/raw/**/catalogue-*.md'), true)
 })

@@ -323,21 +323,27 @@ const ATTENDU = {
     'scripts/ops/vigie.test.mjs',
   ],
   'test:runner': [
+    // +3 le 2026-10-07 (#2400) : `perimetre.mjs` importe `selectionDesGenerateurs` et `ancetresDe` de
+    // `scripts/git-hooks/docs-rebuild.mjs`, qui atteint ces écrivains ; leurs écritures vivent derrière
+    // `reconstruireApresGit`, `genererCode` et les `main` sous `import.meta.main`, que le banc n'appelle pas.
+    'scripts/docs/build-all.mjs',
+    'scripts/docs/lib/ecriture-derives.mjs',
+    'scripts/git-hooks/journal.mjs',
     // +2 le 2026-10-04 (#2155) : le banc du module de banc git (`gitDeBanc.test.mjs`) prend ses dépôts
     // jetables à la primitive (`instanceDeDepot`, `rmSync` en finally) ; elle n'écrit que sous
     // `mkdtempSync` de os.tmpdir() — l'arbre n'est jamais écrit.
     'scripts/guards/lib/depotGabarit.mjs',
     'scripts/lancer-local.test.mjs',
-    'scripts/test/corpus.test.mjs',
     // +1 le 2026-09-24 (#1801) : la porte de version de Node se prouve sur un FAUX ARBRE
     // (`mkdtempSync` + `writeFileSync`/`copyFileSync` sous os.tmpdir(), `rmSync` en finally) — un
     // `engines.node` intenable ne se fabrique pas autrement ; l'arbre du dépôt n'est jamais écrit.
     'scripts/node-requis.test.mjs',
     'scripts/test/gitDeBanc.test.mjs',
-    // +1 le 2026-10-05 (#2327 A7) : le banc de `test:lies` forge ses dépôts (`instanceDeDepot`, sous
-    // os.tmpdir()) et les retire (`rmSync` en finally) — l'index d'un dépôt jetable ne se fabrique pas
-    // autrement ; l'arbre n'est jamais écrit.
-    'scripts/test/lies.test.mjs',
+    // +2 le 2026-10-07 (#2400) : `perimetre.mjs` écrit ses mémos sous `node_modules/.cache/perimetre/` par sa
+    // seule CLI ; son banc lui passe un dossier de mémos et des dépôts forgés sous `mkdtempSync` d'os.tmpdir()
+    // (`rmSync` par t.after) — l'arbre n'est jamais écrit.
+    'scripts/test/perimetre.mjs',
+    'scripts/test/perimetre.test.mjs',
     'scripts/test/run-capture.test.mjs',
     'scripts/test/run-isolation.test.mjs',
     'scripts/test/verrou.mjs',
