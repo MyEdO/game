@@ -78,7 +78,7 @@ function noterChemin(cible) {
       : null
     if (!chemin) return
     const rel = relatifSousRacine(racine, chemin)
-    if (!rel || (!dansLaMesure(rel, ignores) && !ciblesDerivees.has(rel)) || cibles.has(rel) || vus.has(rel)) return
+    if (!rel || !dansLaMesure(rel, ignores, ciblesDerivees) || cibles.has(rel) || vus.has(rel)) return
     vus.add(rel)
     brut.appendFileSync(`${sortie}.${process.pid}.hooks.jsonl`, `${rel}\n`)
   } catch { /* une lecture non enregistrable ne casse jamais le générateur */ }

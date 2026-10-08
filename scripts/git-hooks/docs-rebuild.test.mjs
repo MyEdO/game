@@ -1,7 +1,4 @@
-// Porte des hooks post-merge / post-rewrite et de l'étape docs de `ops:publier` : « ce lot peut-il
-// avoir périmé un doc dérivé ? ». La réponse se DÉRIVE de la mesure, donc elle se teste sur une
-// mesure FORGÉE (volet pur) puis sur celle que RENDENT les générateurs de l'arbre (volet classes, #1773).
-//   node --test scripts/git-hooks/docs-rebuild.test.mjs
+// #1773, #2329, #2475
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { dirname, join } from 'node:path'
@@ -9,9 +6,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { genererCode, mesurerEnRendu } from '../docs/build-all.mjs'
+import { ciblesSurDisque, executer, genererCode, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
+import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { lotDuPostMerge, planDuCheckout, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
+import { lotDuPostMerge, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -242,18 +240,6 @@ test('post-merge après `merge --squash` (argument 1) : le lot est ce qu’empor
   }
 })
 
-// post-checkout (#2203) : un changement de branche régénère les docs purs dont une source a bougé ;
-// un worktree NEUF (aucune mesure) ne bloque jamais sur un `docs:build` complet, il dit la commande.
-test('post-checkout : HEAD immobile → rien ; sans mesure → consigne ; sinon la sélection de post-merge', () => {
-  const a = 'a'.repeat(40)
-  const b = 'b'.repeat(40)
-  assert.equal(planDuCheckout({ avant: a, apres: a, mesure: MESURE, lot: ['src/ui/Prose.tsx'] }), 'rien')
-  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: null, lot: null }), 'consigne')
-  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: ['src/ui/Prose.tsx'] }), 'regenerer')
-  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: ['README.md'] }), 'rien')
-  assert.equal(planDuCheckout({ avant: a, apres: b, mesure: MESURE, lot: null }), 'regenerer', 'lot inconnu : on régénère')
-})
-
 test('CÂBLAGE : chaque post-hook passe son NOM à docs-rebuild.mjs, post-checkout ses deux HEAD, post-merge son drapeau squash', () => {
   const lire = (hook) => readFileSync(join(RACINE, 'scripts', 'git-hooks', hook), 'utf8')
   assert.match(lire('post-checkout'), /docs-rebuild\.mjs" post-checkout "\$1" "\$2"/)
@@ -293,30 +279,6 @@ test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans d
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
-})
-
-test('sélection initiale explicite : cibles nues tolérées, fermeture des producteurs et lecteurs conservée', () => {
-  const doc = (nom) => ['docs', `${nom}.md`].join('/')
-  const { racine } = instanceDeDepot({ fichiers: {} })
-  const generateurs = [
-    { script: 'g/code.mjs', targets: ['src/code.gen.ts'] },
-    { script: 'g/a.mjs', targets: [doc('a')] },
-    { script: 'g/b.mjs', targets: [doc('b')] },
-    { script: 'g/c.mjs', targets: [doc('c')] },
-  ]
-  const mesure = {
-    'g/code.mjs': { fichiers: ['data/code.json'], dossiers: [], cibles: [] },
-    'g/a.mjs': { fichiers: ['src/code.gen.ts'], dossiers: [], cibles: [doc('a')] },
-    'g/b.mjs': { fichiers: [doc('a')], dossiers: [], cibles: [doc('b')] },
-    'g/c.mjs': { fichiers: ['ailleurs/c.txt'], dossiers: [], cibles: [doc('c')] },
-  }
-  try {
-    const plan = selectionDesGenerateurs({ lot: [], scriptsInitiaux: ['g/a.mjs'], mesure, cwd: racine, generateurs })
-    assert.equal(plan.complete, false)
-    assert.deepEqual(plan.scripts, ['g/code.mjs', 'g/a.mjs', 'g/b.mjs'])
-    assert.deepEqual(selectionDesGenerateurs({ lot: [], scriptsInitiaux: [], mesure, cwd: racine, generateurs }).scripts, [])
-    assert.equal(selectionDesGenerateurs({ lot: [], scriptsInitiaux: ['g/inconnu.mjs'], mesure, cwd: racine, generateurs }).complete, true)
-  } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
 test('post-commit réel : fusion automatique unique, conflit résolu, amend lock/message et reflog inconnu', () => {
@@ -479,7 +441,7 @@ test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pen
   }
 })
 
-test('fusion server seule : installer avant code ; lot sans lockfile : aucun npm ; code rouge arrête docs', () => {
+test('fusion server seule : installer avant passe attestée ; lot sans lockfile : aucun npm ; rouge arrête docs', () => {
   for (const server of [true, false]) {
     const avant = server ? { 'server/package-lock.json': '{}', 'package-lock.json': '{}' } : { 'a.txt': 'a' }
     const apres = server ? { 'server/package-lock.json': '{}\n' } : { 'a.txt': 'b' }
@@ -488,10 +450,10 @@ test('fusion server seule : installer avant code ; lot sans lockfile : aucun npm
     try {
       const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: () => {},
         npm: (_cmd, args) => { gestes.push(args.join(' ')); return { status: 0 } },
-        code: () => { gestes.push('code'); return 1 }, docs: () => { gestes.push('docs') },
+        docs: (_cmd, args) => { gestes.push(args.slice(1).join(' ')); throw new Error('rouge réel de la passe') },
       })
       assert.equal(vu, 1)
-      assert.deepEqual(gestes, server ? ['--prefix server ci --no-audit --no-fund', 'code'] : ['code'])
+      assert.deepEqual(gestes, server ? ['--prefix server ci --no-audit --no-fund', '--perimes'] : ['--perimes'])
     } finally {
       rmSync(racine, { recursive: true, force: true })
     }
@@ -548,6 +510,38 @@ test('checkout neuf : ancien SHA nul et cache absent seuls dispensent de répét
   }
 })
 
+test('checkout existant sans mesure : génération attestée puis second checkout silencieux', () => {
+  const primitive = pathToFileURL(join(RACINE, 'scripts/docs/lib/ecriture-derives.mjs')).href
+  const cible = ['docs', 'checkout.md'].join('/')
+  const generateurs = [{ runner: 'node', script: 'g/checkout.mjs', targets: [cible] }]
+  const { racine } = instanceDeDepot({ fichiers: {
+    '.gitignore': 'docs/\n.wt-checkout/\n',
+    'source.txt': 'source réelle',
+    'g/checkout.mjs': `import { readFileSync } from 'node:fs'\nimport { ecrireOuVerifier } from ${JSON.stringify(primitive)}\necrireOuVerifier({out: readFileSync('source.txt', 'utf8'), path: ${JSON.stringify(cible)}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer'})\n`,
+  } })
+  const git = gitDe(racine)
+  const worktree = join(racine, '.wt-checkout')
+  const head = git('rev-parse', 'HEAD').trim()
+  git('worktree', 'add', '-q', '-b', 'chantier/checkout', worktree, 'HEAD')
+  mkdirSync(join(worktree, 'docs'))
+  const appels = []
+  const options = { cwd: worktree, hook: 'post-checkout', avant: head, apres: head, generateurs,
+    annoncer: () => {}, npm: () => assert.fail('aucun équipement'),
+    docs: (_cmd, args) => {
+      appels.push(args.slice(1))
+      assert.equal(executer({ cwd: worktree, argv: ['--quiet', ...args.slice(1)], generateurs, verificateurs: [] }), 0)
+    },
+  }
+  try {
+    assert.equal(reconstruireApresGit(options), 0)
+    assert.deepEqual(appels, [['--perimes']])
+    assert.equal(readFileSync(join(worktree, cible), 'utf8'), 'source réelle')
+    assert.equal(preuveValide(worktree, { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, true)
+    assert.equal(reconstruireApresGit(options), 0)
+    assert.equal(appels.length, 1)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE indépendant intact', () => {
   const primitive = pathToFileURL(join(RACINE, 'scripts/docs/lib/ecriture-derives.mjs')).href
   const module = pathToFileURL(join(RACINE, 'scripts/docs/build-all.mjs')).href
@@ -555,7 +549,7 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
   const noms = ['code', 'a', 'b', 'c']
   const cible = (nom) => nom === 'code' ? 'src/code.gen.ts' : doc(nom)
   const generateurs = noms.map((nom) => ({ runner: 'node', script: `g/${nom}.mjs`, targets: [cible(nom)] }))
-  const source = (nom) => nom === 'b' ? doc('a') : `notes/${nom}/source.txt`
+  const source = (nom) => nom === 'b' ? doc('a') : nom === 'a' ? 'scripts/docs/lib/source-a.txt' : `notes/${nom}/source.txt`
   const generateur = (nom) => [
     "import { appendFileSync, readFileSync } from 'node:fs'",
     `import { ecrireOuVerifier } from ${JSON.stringify(primitive)}`,
@@ -567,7 +561,7 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
   ].join('\n')
   const { racine } = instanceDeDepot({ fichiers: {
     '.gitignore': 'node_modules/\n', 'commun.txt': 'commun',
-    'notes/a/source.txt': 'a', 'notes/c/source.txt': 'c', 'notes/code/source.txt': 'code',
+    'scripts/docs/lib/source-a.txt': 'a', 'notes/c/source.txt': 'c', 'notes/code/source.txt': 'code',
     ...Object.fromEntries(noms.map((nom) => [`g/${nom}.mjs`, generateur(nom)])),
   } })
   const git = gitDe(racine)
@@ -585,17 +579,17 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
   }
   try {
     const complet = jouer()
-    git('add', 'docs', 'notes', 'g', 'src', 'commun.txt', '.gitignore')
+    git('add', 'docs', 'notes', 'scripts', 'g', 'src', 'commun.txt', '.gitignore')
     git('commit', '-q', '-m', 'mesure initiale')
     const origine = git('rev-parse', 'HEAD').trim()
-    writeFileSync(join(racine, 'notes/a/source.txt'), 'a modifié')
-    git('add', 'notes/a/source.txt')
+    writeFileSync(join(racine, source('a')), 'a modifié')
+    git('add', source('a'))
     git('commit', '-q', '-m', 'main modifie source a')
     git('update-ref', 'refs/heads/main-modifie', 'HEAD')
     git('update-ref', 'HEAD', origine)
-    writeFileSync(join(racine, 'notes/a/source.txt'), 'a')
+    writeFileSync(join(racine, source('a')), 'a')
     git('read-tree', origine)
-    git('merge', '--ff-only', 'main-modifie')
+    git('merge', '--no-ff', '-m', 'fusion lib docs', 'main-modifie')
     const independant = readFileSync(join(racine, doc('c')), 'utf8')
     const codeAvant = statSync(join(racine, cible('code'))).mtimeMs
     const journal = readFileSync(join(racine, 'node_modules/code-journal.txt'), 'utf8')
@@ -610,7 +604,10 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
     assert.equal(readFileSync(join(racine, 'node_modules/code-journal.txt'), 'utf8'), journal)
     assert.equal(readFileSync(join(racine, doc('c')), 'utf8'), independant)
     assert.match(readFileSync(join(racine, doc('b')), 'utf8'), /a modifié/)
-    assert.match(annonces.join(''), /sélection \(2\/4\)/)
+    assert.match(annonces.join(''), /attestation périmée.*g\/a\.mjs.*sources différentes/)
+    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-commit', generateurs,
+      annoncer: () => {}, docs: () => assert.fail('fusion déjà attestée'),
+    }), 0)
     for (const nonPertinent of [false, true]) {
       git('update-ref', 'ORIG_HEAD', 'HEAD')
       if (nonPertinent) {
@@ -625,6 +622,17 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
       }), 0)
       assert.deepEqual(gestes, [])
     }
+    git('update-ref', 'ORIG_HEAD', 'HEAD')
+    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-commit', generateurs,
+      annoncer: () => {}, npm: () => assert.fail('équipement ordinaire'), docs: () => assert.fail('attestation ordinaire fraîche'),
+    }), 0)
+    writeFileSync(join(racine, source('c')), 'c hors lot')
+    let horsLot
+    assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-commit', generateurs,
+      annoncer: () => {}, npm: () => assert.fail('équipement ordinaire périmé'), docs: (_cmd, args) => { horsLot = jouer(args.slice(1)) },
+    }), 0)
+    assert.equal(horsLot.compte, 1)
+    assert.match(readFileSync(join(racine, doc('c')), 'utf8'), /c hors lot/)
     writeFileSync(join(racine, 'notes/code/source.txt'), 'code modifié')
     git('add', 'notes/code/source.txt')
     git('commit', '-q', '-m', 'source code')
@@ -636,7 +644,7 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
         jouer(args.slice(1))
       },
     }), 0)
-    assert.match(ordre[0], /ecriture\necriture\n$/)
+    assert.equal(ordre[0], journal)
     assert.match(readFileSync(join(racine, cible('code')), 'utf8'), /code modifié/)
     writeFileSync(join(racine, 'package-lock.json'), '{}')
     git('add', 'package-lock.json')
@@ -652,7 +660,7 @@ test('profil du hook après fusion : chaîne réelle 2/4 générateurs, CODE ind
       docs: (_cmd, args) => { jouer(args.slice(1)) },
     }), 0)
     assert.match(readFileSync(join(racine, doc('c')), 'utf8'), /DEPENDANCE2/)
-    assert.match(annoncesLock.join(''), /génération complète.*toolchain modifiée/)
+    assert.match(annoncesLock.join(''), /attestation périmée/)
     git('update-ref', 'ORIG_HEAD', 'HEAD')
     rmSync(join(racine, cible('code')))
     assert.equal(reconstruireApresGit({ cwd: racine, hook: 'post-merge', generateurs, annoncer: () => {}, docs: (_cmd, args) => { jouer(args.slice(1)) } }), 0)

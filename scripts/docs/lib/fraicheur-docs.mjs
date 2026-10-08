@@ -1,30 +1,45 @@
-import { createHash, randomUUID } from 'node:crypto'
-import { constants, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { constants, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
-import { correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
-import { canoniser, dansLaMesure, ignoresGit, relatifSousRacine } from './chemin-mesure.mjs'
+import { correspondGlob, listerArbre, listerDossier } from '../../guards/lib/lister.mjs'
+import { canoniser, dansLaMesure, perimetreDeMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
+import { ecrireJsonAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
+import { clotureDImports } from '../../guards/lib/importGraph.mjs'
 
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 const empreinte = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const egaux = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+const RACINE_OUTILLAGE = fileURLToPath(new URL('../../../', import.meta.url))
 
-function nouvelleVue(racine) {
-  return { racine, mesures: new Map() }
+function mesurerOutillage(ancien) {
+  if (ancien?.length && ancien.every(([rel, hash]) => hashFichier(RACINE_OUTILLAGE, rel) === hash)) return ancien
+  const fichiers = clotureDImports(['scripts/docs/build-all.mjs', 'scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs'], { racine: RACINE_OUTILLAGE })
+  return [...fichiers].sort().map((rel) => [rel, hashFichier(RACINE_OUTILLAGE, rel)])
 }
 
-function dansVue(racine, vue, famille, cle, mesurer) {
-  if (!vue) return mesurer()
-  if (vue.racine !== racine) throw new Error('racine de vue différente')
-  let mesures = vue.mesures.get(famille)
-  if (!mesures) vue.mesures.set(famille, mesures = new Map())
-  if (!mesures.has(cle)) mesures.set(cle, mesurer())
-  return mesures.get(cle)
+export function nouvelleVue(racine, options, preuve = chargerPreuve(racine), mesures = lireMesure(racine, options, true), outillagePrecedent) {
+  const entrees = Object.values({ ...mesures, ...Object.fromEntries(Object.entries(preuve?.generateurs ?? {}).map(([s, r]) => [s, r.mesure])) })
+  const perimetre = perimetreDeMesure(racine)
+  const ignores = perimetre.ignores
+  const motifs = [options.generateurs.flatMap((g) => g.targets), ...options.generateurs.map((g) => [...g.targets, ...(g.injecte ?? [])])]
+  const selections = new Map(motifs.map((m) => [JSON.stringify(m), m]))
+  const cibles = new Map([...selections].map(([cle, m]) => [cle, options.ciblesSurDisque(m, racine)]))
+  const derivees = new Set(cibles.get(JSON.stringify(motifs[0])))
+  const fichiers = new Set(['package.json', 'package-lock.json', ...options.generateurs.map((g) => g.script), ...[...cibles.values()].flat(), ...entrees.flatMap((e) => e.fichiers ?? [])])
+  const hashes = new Map([...fichiers].map((rel) => [rel, hashFichier(racine, rel)]))
+  const listings = new Map([...new Set(entrees.flatMap((e) => e.dossiers ?? []))].map((rel) => [rel, listing(racine, rel, ignores, derivees)]))
+  const requetes = new Map(entrees.flatMap((e) => (e.git ?? []).map((q) => [JSON.stringify(q), q])))
+  const git = new Map([...requetes].map(([cle, q]) => [cle, gitPorte.relireRequeteMesuree(gitPorte.depotDe(racine), q)]))
+  const demandes = new Map(entrees.flatMap((e) => (e.sondes ?? []).map((q) => [JSON.stringify(q), q])))
+  const sondes = new Map([...demandes].map(([cle, q]) => [cle, sonde(racine, q)]))
+  const outillage = mesurerOutillage(outillagePrecedent ?? Object.values(preuve?.generateurs ?? {})[0]?.sources?.contexte?.outillage)
+  return { racine, hashes, listings, git, sondes, ignores, cibles, outillage, perimetre }
 }
 
-function cheminSous(racine, relatif, vue) {
-  if (vue) return dansVue(racine, vue, 'chemin', relatif, () => cheminSous(racine, relatif))
+function cheminSous(racine, relatif) {
   if (typeof relatif !== 'string' || relatif.includes('\\') || path.posix.isAbsolute(relatif)
     || relatif.split('/').some((p) => p === '..' || p === '.') || /^[a-z]:/i.test(relatif)) throw new Error('chemin de preuve invalide')
   const absolu = path.resolve(racine, relatif)
@@ -33,7 +48,7 @@ function cheminSous(racine, relatif, vue) {
 }
 
 function hashFichier(racine, rel, vue) {
-  if (vue) return dansVue(racine, vue, 'hash', rel, () => hashFichier(racine, rel))
+  if (vue) return vue.hashes.get(rel)
   const absolu = cheminSous(racine, rel)
   if (!existsSync(absolu)) return null
   if (!statSync(absolu).isFile()) throw new Error(`fichier attendu : ${rel}`)
@@ -50,19 +65,19 @@ function lireMesure(racine, options, facultative = false) {
   return mesure
 }
 
-function entreeValide(racine, entree, vue) {
+function entreeValide(racine, entree) {
   if (!entree || !Array.isArray(entree.fichiers) || !Array.isArray(entree.dossiers) || !Array.isArray(entree.cibles)) throw new Error('mesure incomplète')
-  for (const rel of [...entree.fichiers, ...entree.dossiers, ...entree.cibles]) cheminSous(racine, rel, vue)
+  for (const rel of [...entree.fichiers, ...entree.dossiers, ...entree.cibles]) cheminSous(racine, rel)
   if (entree.incomplet?.length) throw new Error(`mesure non certifiable : ${entree.incomplet.join(', ')}`)
 }
 
 function listing(racine, rel, ignores, derivees = new Set()) {
   return listerDossier(cheminSous(racine, rel), { absent: 'vide' })
-    .filter((nom) => { const chemin = rel ? `${rel}/${nom}` : nom; return derivees.has(chemin) || dansLaMesure(chemin, ignores) })
+    .filter((nom) => dansLaMesure(rel ? `${rel}/${nom}` : nom, ignores, derivees))
 }
 
 function sonde(racine, requete, vue) {
-  if (vue) return dansVue(racine, vue, 'sonde', JSON.stringify(requete), () => sonde(racine, requete))
+  if (vue) return vue.sondes.get(JSON.stringify(requete))
   const absolu = cheminSous(racine, requete.chemin)
   if (requete.type === 'exists') return { ...requete, existe: existsSync(absolu), nature: null }
   if (requete.type !== 'stat') throw new Error('type de sonde invalide')
@@ -79,29 +94,31 @@ function contexte(racine, g, vue) {
     generateur: g,
     runtime: [process.version, process.platform, process.arch],
     outils: ['package.json', 'package-lock.json'].map((rel) => [rel, hashFichier(racine, rel, vue)]),
+    outillage: vue?.outillage ?? mesurerOutillage(),
+    perimetre: (vue?.perimetre ?? perimetreDeMesure(racine)).signature,
   }
 }
 
 function mesurerSources(racine, g, entree, options, vue) {
-  entreeValide(racine, entree, vue)
-  const ignores = dansVue(racine, vue, 'ignores', '', () => ignoresGit(racine))
-  const fichiers = [...new Set([g.script, ...entree.fichiers])].sort()
-  const dossiers = [...new Set(entree.dossiers)].sort()
+  entreeValide(racine, entree)
+  const ignores = vue?.ignores ?? perimetreDeMesure(racine).ignores
   const motifs = options.generateurs.flatMap((g) => g.targets)
-  const derivees = new Set(dansVue(racine, vue, 'cibles', JSON.stringify(motifs), () => options.ciblesSurDisque(motifs, racine)))
-  const filtre = JSON.stringify([[...ignores], [...derivees]])
+  const derivees = new Set(vue ? vue.cibles.get(JSON.stringify(motifs)) : options.ciblesSurDisque(motifs, racine))
+  const admis = (rel) => dansLaMesure(rel, ignores, derivees)
+  const fichiers = [...new Set([g.script, ...entree.fichiers.filter(admis)])].sort()
+  const dossiers = [...new Set(entree.dossiers.filter(admis))].sort()
   return {
     contexte: contexte(racine, g, vue),
     fichiers: fichiers.map((rel) => [rel, hashFichier(racine, rel, vue)]),
-    dossiers: dossiers.map((rel) => [rel, dansVue(racine, vue, 'listing', JSON.stringify([rel, filtre]), () => listing(racine, rel, ignores, derivees))]),
-    git: (entree.git ?? []).map((q) => dansVue(racine, vue, 'git', JSON.stringify(q), () => gitPorte.relireRequeteMesuree(gitPorte.depotDe(racine), q))),
-    sondes: (entree.sondes ?? []).map((q) => sonde(racine, q, vue)),
+    dossiers: dossiers.map((rel) => [rel, vue ? vue.listings.get(rel) : listing(racine, rel, ignores, derivees)]),
+    git: (entree.git ?? []).map((q) => vue ? vue.git.get(JSON.stringify(q)) : gitPorte.relireRequeteMesuree(gitPorte.depotDe(racine), q)),
+    sondes: (entree.sondes ?? []).filter((q) => admis(q.chemin)).map((q) => sonde(racine, q, vue)),
   }
 }
 
 function sortiesDe(racine, g, options, vue) {
   const motifs = [...g.targets, ...(g.injecte ?? [])]
-  return [...new Set(dansVue(racine, vue, 'cibles', JSON.stringify(motifs), () => options.ciblesSurDisque(motifs, racine)))].sort()
+  return [...new Set(vue ? vue.cibles.get(JSON.stringify(motifs)) : options.ciblesSurDisque(motifs, racine))].sort()
 }
 
 function estDocPur(rel, options) {
@@ -124,11 +141,7 @@ export function chargerPreuve(racine) {
 }
 
 function ecrirePreuve(racine, preuve) {
-  const cible = cheminSous(racine, CACHE_FRAICHEUR)
-  mkdirSync(path.dirname(cible), { recursive: true })
-  const temporaire = `${cible}.${randomUUID()}.tmp`
-  try { writeFileSync(temporaire, JSON.stringify(preuve)); renameSync(temporaire, cible) }
-  finally { rmSync(temporaire, { force: true }) }
+  ecrireJsonAtomique(cheminSous(racine, CACHE_FRAICHEUR), preuve)
 }
 
 export function invaliderPreuve(racine, scripts) {
@@ -142,12 +155,15 @@ export function preparerPreuves(racine, options) {
   const cache = chargerPreuve(racine) ?? { version: 2, generateurs: {} }
   const mesure = lireMesure(racine, options, true)
   const depot = gitPorte.depotDe(racine)
-  const chemins = new Set([...gitPorte.listerImage(depot, gitPorte.INDEX), ...gitPorte.listerImage(depot, gitPorte.TRAVAIL)])
+  const perimetre = perimetreDeMesure(racine)
+  const ignores = perimetre.ignores
+  const chemins = new Set(perimetre.nature === 'git'
+    ? [...gitPorte.listerImage(depot, gitPorte.INDEX), ...gitPorte.listerImage(depot, gitPorte.TRAVAIL)].filter((rel) => dansLaMesure(rel, ignores))
+    : listerArbre(racine, { filtre: (rel) => dansLaMesure(rel, ignores), descendre: (rel) => dansLaMesure(rel, ignores) }))
   for (const g of options.generateurs) {
     for (const rel of sortiesDe(racine, g, options)) chemins.add(rel)
     for (const rel of mesure[g.script]?.fichiers ?? []) chemins.add(rel)
   }
-  const ignores = ignoresGit(racine)
   const derivees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
   const dossiers = new Set([''])
   for (const rel of chemins) {
@@ -158,20 +174,25 @@ export function preparerPreuves(racine, options) {
   return {
     cache,
     mesure,
+    vue: nouvelleVue(racine, options, cache),
     fichiers: new Map([...chemins].map((rel) => [rel, hashFichier(racine, rel)])),
     dossiers: new Map([...dossiers].map((rel) => [rel, listing(racine, rel, ignores, derivees)])),
   }
 }
 
 export function avantGenerateur(racine, g, options, preparation) {
+  const entree = preparation.mesure[g.script]
+  const vue = nouvelleVue(racine, options, null, entree ? { [g.script]: entree } : {}, preparation.vue.outillage)
   let connus
-  try { connus = mesurerSources(racine, g, preparation.mesure[g.script], options) } catch { connus = null }
-  return { connus, contexte: contexte(racine, g), preparation }
+  try { connus = mesurerSources(racine, g, entree, options, vue) } catch { connus = null }
+  return { connus, contexte: contexte(racine, g, vue), preparation }
 }
 
 export function certifierGenerateur(racine, g, entree, options, avant) {
   try {
-    const sources = mesurerSources(racine, g, entree, options)
+    const preuve = { version: 2, generateurs: { [g.script]: { mesure: entree, sources: { contexte: avant.contexte } } } }
+    const vue = nouvelleVue(racine, options, preuve, {})
+    const sources = mesurerSources(racine, g, entree, options, vue)
     if (!egaux(sources.contexte, avant.contexte)) throw new Error('outillage modifié pendant génération')
     const anciensFichiers = new Map([...avant.preparation.fichiers, ...(avant.connus?.fichiers ?? [])])
     const anciensDossiers = new Map([...avant.preparation.dossiers, ...(avant.connus?.dossiers ?? [])])
@@ -181,11 +202,14 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     for (const [rel, noms] of sources.dossiers) {
       if (!anciensDossiers.has(rel) || !egaux(anciensDossiers.get(rel), noms)) throw new Error(`listing modifié ou non capturé : ${rel}`)
     }
-    if (!egaux(sources.git, entree.git ?? []) || !egaux(sources.sondes, entree.sondes ?? [])) throw new Error('requête ou sonde modifiée pendant génération')
-    const record = { mesure: entree, sources, sorties: mesurerSorties(racine, g, options) }
-    if (!egaux(sources, mesurerSources(racine, g, entree, options))) throw new Error('source modifiée pendant certification')
+    const deriveesMesurees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
+    const sondesMesurees = (entree.sondes ?? []).filter((q) => dansLaMesure(q.chemin, vue.ignores, deriveesMesurees))
+    if (!egaux(sources.git, entree.git ?? []) || !egaux(sources.sondes, sondesMesurees)) throw new Error('requête ou sonde modifiée pendant génération')
+    const record = { mesure: entree, sources, sorties: mesurerSorties(racine, g, options, vue) }
+    const finale = nouvelleVue(racine, options, preuve, {})
+    if (!egaux(sources, mesurerSources(racine, g, entree, options, finale))) throw new Error('source modifiée pendant certification')
     for (const [rel, hash] of record.sorties) avant.preparation.fichiers.set(rel, hash)
-    const ignores = ignoresGit(racine)
+    const ignores = perimetreDeMesure(racine).ignores
     const derivees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
     const parents = new Set()
     for (const [rel] of record.sorties) {
@@ -200,6 +224,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
 
 export function enregistrerPreuve(racine, options, preparation, records, vue) {
   const cache = { version: 2, generateurs: { ...preparation.cache.generateurs } }
+  vue ??= nouvelleVue(racine, options, { version: 2, generateurs: { ...cache.generateurs, ...Object.fromEntries([...records].filter(([, r]) => r)) } })
   const derniersEcrivains = new Map()
   for (const [script, record] of records) {
     const g = options.generateurs.find((g) => g.script === script)
@@ -219,9 +244,10 @@ export function enregistrerPreuve(racine, options, preparation, records, vue) {
   return { ok: true, preuve: cache }
 }
 
-function recordValide(racine, g, options, record, { sorties = true, vue } = {}) {
+export function recordValide(racine, g, options, record, { sorties = true, vue } = {}) {
   try {
     if (!record) return { ok: false, raison: 'certificat absent' }
+    vue ??= nouvelleVue(racine, options, { version: 2, generateurs: { [g.script]: record } })
     if (!egaux(record.sources, mesurerSources(racine, g, record.mesure, options, vue))) return { ok: false, raison: 'sources différentes' }
     if (sorties && !egaux(record.sorties, mesurerSorties(racine, g, options, vue))) return { ok: false, raison: 'sorties différentes' }
     return { ok: true }
@@ -230,105 +256,112 @@ function recordValide(racine, g, options, record, { sorties = true, vue } = {}) 
 
 export function preuveValide(racine, options, preuve = chargerPreuve(racine)) {
   if (!preuve || options.generateurs.some((g) => !preuve.generateurs[g.script])) return { ok: false, raison: 'cache absent ou incomplet' }
+  let vue
+  try { vue = nouvelleVue(racine, options, preuve) } catch (e) { return { ok: false, raison: e.message } }
   for (const g of options.generateurs) {
-    const vu = recordValide(racine, g, options, preuve.generateurs[g.script])
+    const vu = recordValide(racine, g, options, preuve.generateurs[g.script], { vue })
     if (!vu.ok) return { ...vu, script: g.script }
   }
   return { ok: true, preuve }
 }
 
-export function copierDocsFrais({ principal, cible, selecteur, apresPreparation, apresCopie, ...options }) {
+export function copierDocsFrais({ principal, cible, apresPreparation, apresCopie, ...options }) {
   try {
     const head = gitPorte.shaDe(gitPorte.depotDe(principal), 'HEAD')
     if (head !== gitPorte.shaDe(gitPorte.depotDe(cible), 'HEAD')) return { ok: false, complete: true, raison: 'HEAD différents' }
     const cache = chargerPreuve(principal)
-    if (!cache || options.generateurs.some((g) => !cache.generateurs[g.script])) return { ok: false, complete: true, raison: 'cache absent ou incomplet' }
+    if (!cache) return { ok: false, complete: true, raison: 'cache absent' }
     const hashCache = hashFichier(principal, CACHE_FRAICHEUR)
     const hashMesure = hashFichier(principal, options.sourcesLues)
-    const mesureActuelle = lireMesure(principal, options)
-    const mesure = {}
-    const vuePrincipalAvant = nouvelleVue(principal)
+    lireMesure(principal, options)
+    const mesure = lireMesure(cible, options, true)
+    const cacheLocal = chargerPreuve(cible) ?? { version: 2, generateurs: {} }
+    const vuePrincipalAvant = nouvelleVue(principal, options, cache)
     const sourcesAvant = new Map()
     const validitesPrincipales = new Map()
     const docsPurs = new Map()
     for (const g of options.generateurs) {
       const record = cache.generateurs[g.script]
-      entreeValide(principal, record.mesure, vuePrincipalAvant)
-      entreeValide(principal, mesureActuelle[g.script], vuePrincipalAvant)
-      mesure[g.script] = record.mesure
+      if (!record) continue
+      entreeValide(principal, record.mesure)
       sourcesAvant.set(g.script, mesurerSources(principal, g, record.mesure, options, vuePrincipalAvant))
+      const validite = recordValide(principal, g, options, record, { vue: vuePrincipalAvant }).ok
+      validitesPrincipales.set(g.script, validite)
+      if (!validite) continue
       for (const [rel, hash] of record.sorties.filter(([r]) => estDocPur(r, options))) {
         if (!existsSync(cheminSous(principal, rel))) return { ok: false, complete: true, raison: `doc absent : ${rel}` }
         const producteur = options.generateurDe(rel, options.generateurs)
         if (producteur.script === g.script) docsPurs.set(rel, { hash, producteur })
       }
-      for (const rel of options.ciblesSurDisque(g.targets.filter(estUnDocMarkdown), principal)) {
-        if (!existsSync(cheminSous(principal, rel))) return { ok: false, complete: true, raison: `doc absent : ${rel}` }
-      }
     }
-    invaliderPreuve(cible, options.generateurs.map((g) => g.script))
     const provisoires = new Map()
     for (const [rel, { hash, producteur }] of docsPurs) {
       if (existsSync(cheminSous(cible, rel))) continue
-      if (!validitesPrincipales.has(producteur.script)) validitesPrincipales.set(producteur.script, recordValide(principal, producteur, options, cache.generateurs[producteur.script], { vue: vuePrincipalAvant }).ok)
       if (!validitesPrincipales.get(producteur.script)) continue
       if (hashFichier(principal, rel) !== hash) continue
       const destination = cheminSous(cible, rel)
+      invaliderPreuve(cible, [producteur.script])
       mkdirSync(path.dirname(destination), { recursive: true })
       copyFileSync(cheminSous(principal, rel), destination, constants.COPYFILE_EXCL)
       if (hashFichier(cible, rel) !== hash) return { ok: false, complete: true, raison: 'doc modifié pendant préparation' }
       provisoires.set(rel, hash)
     }
     apresPreparation?.()
-    const vueCiblePreparee = nouvelleVue(cible)
-    const graines = new Set()
+    for (const [rel, hash] of provisoires) if (hashFichier(cible, rel) !== hash) return { ok: false, complete: true, raison: 'doc provisoire modifié avant retrait' }
+    const vueCiblePreparee = nouvelleVue(cible, options, { version: 2, generateurs: { ...Object.fromEntries(Object.entries(cacheLocal.generateurs).map(([s, r]) => [`local:${s}`, r])), ...cache.generateurs } })
+    const selection = new Set()
+    const records = new Map()
     for (const g of options.generateurs) {
       const record = cache.generateurs[g.script]
-      if (!recordValide(principal, g, options, record, { vue: vuePrincipalAvant }).ok || !recordValide(cible, g, options, record, { sorties: false, vue: vueCiblePreparee }).ok) graines.add(g.script)
-      for (const [rel, hash] of record.sorties) {
-        if (!estDocPur(rel, options) && hashFichier(cible, rel, vueCiblePreparee) !== hash) graines.add(g.script)
+      const local = cacheLocal.generateurs[g.script]
+      if (recordValide(cible, g, options, local, { vue: vueCiblePreparee }).ok) {
+        records.set(g.script, local)
+        continue
       }
+      if (!validitesPrincipales.get(g.script) || !recordValide(cible, g, options, record, { sorties: false, vue: vueCiblePreparee }).ok
+        || record.sorties.some(([rel, hash]) => hashFichier(cible, rel, vueCiblePreparee) !== hash)) selection.add(g.script)
+      else records.set(g.script, record)
     }
-    const plan = selecteur({ lot: [], scriptsInitiaux: [...graines], mesure, cwd: principal, generateurs: options.generateurs })
-    if (plan.complete) return { ok: false, complete: true, raison: plan.raison }
-    const selection = new Set(plan.scripts)
     for (const [rel, hash] of provisoires) {
       if (!selection.has(options.generateurDe(rel, options.generateurs).script)) continue
       if (hashFichier(cible, rel) !== hash) return { ok: false, complete: true, raison: 'doc provisoire modifié avant retrait' }
       rmSync(cheminSous(cible, rel))
     }
-    const copies = new Set()
+    const copies = new Set([...provisoires.keys()].filter((rel) => !selection.has(options.generateurDe(rel, options.generateurs).script)))
     for (const [rel, { hash, producteur }] of docsPurs) {
       if (selection.has(producteur.script)) continue
+      if (records.get(producteur.script) !== cache.generateurs[producteur.script]) continue
       if (hashFichier(principal, rel) !== hash) return { ok: false, complete: true, raison: 'doc principal modifié pendant copie' }
       const destination = cheminSous(cible, rel)
+      invaliderPreuve(cible, [producteur.script])
       mkdirSync(path.dirname(destination), { recursive: true })
       copyFileSync(cheminSous(principal, rel), destination)
       copies.add(rel)
     }
-    const records = new Map(options.generateurs.filter((g) => !selection.has(g.script)).map((g) => [g.script, cache.generateurs[g.script]]))
+    for (const [script, record] of records) mesure[script] = record.mesure
     mkdirSync(path.dirname(cheminSous(cible, options.sourcesLues)), { recursive: true })
     writeFileSync(cheminSous(cible, options.sourcesLues), JSON.stringify(mesure))
     apresCopie?.()
-    const vuePrincipalFinale = nouvelleVue(principal)
-    const vueCibleFinale = nouvelleVue(cible)
+    const vuePrincipalFinale = nouvelleVue(principal, options, cache)
+    const vueCibleFinale = nouvelleVue(cible, options, { version: 2, generateurs: Object.fromEntries(records) })
     if (hashFichier(principal, CACHE_FRAICHEUR) !== hashCache || hashFichier(principal, options.sourcesLues) !== hashMesure
       || gitPorte.shaDe(gitPorte.depotDe(principal), 'HEAD') !== head || gitPorte.shaDe(gitPorte.depotDe(cible), 'HEAD') !== head) {
       return { ok: false, complete: true, raison: 'preuve, mesure ou HEAD modifié pendant copie' }
     }
     for (const g of options.generateurs) {
+      if (!cache.generateurs[g.script]) continue
       if (!egaux(sourcesAvant.get(g.script), mesurerSources(principal, g, cache.generateurs[g.script].mesure, options, vuePrincipalFinale))) {
         return { ok: false, complete: true, raison: 'source principale modifiée pendant copie' }
       }
     }
     for (const g of options.generateurs.filter((g) => !selection.has(g.script))) {
       const record = records.get(g.script)
-      if (!recordValide(principal, g, options, record, { vue: vuePrincipalFinale }).ok || !recordValide(cible, g, options, record, { vue: vueCibleFinale }).ok) {
+      if ((record === cache.generateurs[g.script] && !recordValide(principal, g, options, record, { vue: vuePrincipalFinale }).ok) || !recordValide(cible, g, options, record, { vue: vueCibleFinale }).ok) {
         return { ok: false, complete: true, raison: 'sources ou copies modifiées pendant copie' }
       }
     }
-    const preparation = { cache: { version: 2, generateurs: {} } }
+    const preparation = { cache: cacheLocal }
     enregistrerPreuve(cible, options, preparation, records, vueCibleFinale)
-    return { ok: true, copies: copies.size, scriptsARegenerer: plan.scripts, complete: false, raison: plan.raison }
+    return { ok: true, copies: copies.size, scriptsARegenerer: options.generateurs.filter((g) => selection.has(g.script)).map((g) => g.script), complete: false, raison: 'attestations par générateur' }
   } catch (e) { return { ok: false, complete: true, raison: e.message } }
 }

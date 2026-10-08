@@ -268,12 +268,16 @@ function rendu() {
     annoncée ; un commit ordinaire ne lance aucun équipement. Un lockfile modifié impose
     \`npm ci\` dans sa racine (racine ou \`server/\`) avant toute génération ; un échec nomme la
     réparation à rejouer et arrête les générations, sans annuler la fusion déjà effectuée. Les docs
-    se régénèrent par sélection des sources mesurées, préalables et lecteurs aval ; une mesure
-    absente/incomplète, une cible absente ou un outil de mesure modifié impose le lot complet,
-    annoncé. Les générateurs de CODE suivent eux aussi cette sélection et ses préalables ; un lot
-    vide ou sans source pertinente ne les rejoue pas. Un changement de toolchain impose le lot
-    complet, car les lectures de dépendances ne sont pas mesurées. Les cibles de code déjà produites
-    se vérifient sans réécriture pendant cette passe.
+    se régénèrent uniquement lorsque leur attestation est périmée. La passe \`--perimes\` consulte
+    chaque certificat au rang du registre canonique, puis renouvelle sa vue après écriture : une
+    sortie identique laisse son lecteur frais. L'attestation couvre aussi la clôture des imports des
+    outils de génération, de mesure et de certification. La plage Git décide de l'équipement npm ;
+    les sources, sondes, listings, sorties et outils mesurés décident des générations. Tous les modes
+    d'écriture, code et mixtes compris, mesurent et certifient ; une fusion déjà attestée ne rejoue
+    aucun générateur lors du commit de fusion. Un commit ordinaire examine aussi l'attestation de
+    l'arbre courant, sans équipement npm. Un arbre neuf conserve sa consigne d'équipement.
+    Une préparation illisible ou une certification impossible arrête la passe en erreur avant
+    le générateur suivant ; une source ou un outil changé pendant la passe invalide son attestation.
     Chaque étape annonce début, fin et durée. La fermeture des issues suit la PUBLICATION : job
    \`fermetures\` de
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
@@ -399,16 +403,18 @@ chantier du ticket \`<N>\` depuis n'importe quel worktree du dépôt (le chantie
 l'arbre principal) : il pose le worktree lié \`.wt-<N>\` sur \`origin/main\`, crée la branche
 \`chantier/<N>\`, y joue \`npm ci\` et imprime le port dev dérivé. L’équipement final copie les docs
 Markdown dérivés depuis le principal lorsque les deux HEAD complets concordent. Chaque générateur
-porte son certificat local dans \`node_modules/.cache/docs-fraicheur.json\` : fichiers réellement lus,
+porte son certificat local dans \`docs/.cache/docs-fraicheur.json\` : fichiers réellement lus,
 listings réellement parcourus, requêtes Git et sondes de présence, outillage et sorties. Pour chaque
-doc, des sources identiques permettent la copie ; des sources différentes sélectionnent son
-générateur et les dépendances de la sélection canonique, puis \`docs:build --only\` les rejoue. Un
-fichier hors de ses sources ne bloque pas sa copie. Le code et les fichiers mixtes ne sont jamais
-copiés ; leur divergence sélectionne leurs producteurs. Une preuve absente ou incomplète, un doc
-absent ou une divergence pendant la copie déclenche le \`docs:build\` complet, avec sa raison. Une
-sélection partielle renouvelle les certificats des seuls générateurs rejoués ; un rouge, \`--code\` ou
-\`--mixtes\` retire seulement les certificats concernés. La certification exige des sources stables
-pendant la génération et au contrôle final. Le code généré reste celui du \`npm ci\` du chantier. \`docs:check\` rejoue toujours les générateurs et
+doc, des sources et sorties valides permettent la copie. Un certificat absent laisse les autres
+docs frais copiables ; les certificats locaux du code produit par \`npm ci\` sont conservés. Le code
+et les fichiers mixtes ne sont jamais copiés. La finalisation \`docs:build --perimes\` examine la
+fraîcheur au rang, y compris après une copie impossible ou interrompue, avec sa raison. Les modes
+sélectifs conservent les autres mesures et certificats. Un générateur rouge perd son seul certificat
+avant écriture ; une génération réussie reçoit sa nouvelle preuve. La certification exige des sources
+stables pendant la génération et au contrôle final. Les captures temporaires vivent dans
+\`docs/.cache/lectures/<PID>\`. Un export sans dépôt Git capture l'arbre physique, en excluant
+\`node_modules\` et \`docs/.cache\` ; un marqueur \`.git\` défectueux refuse la certification.
+Une sélection de code ou de fichiers mixtes vide n'écrit rien. \`docs:check\` rejoue toujours les générateurs et
 vérificateurs, sans écrire de preuve ni modifier les docs. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
 du harnais, et imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte

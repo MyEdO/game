@@ -192,10 +192,10 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
  *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). */
 const EXEMPTIONS_DU_MUR = [
   'scripts/guards/lib/sourceCorpus.test.mjs:37',
-  'scripts/docs/lib/enregistreur-lectures.mjs:105', 'scripts/docs/lib/enregistreur-lectures.mjs:111',
-  'scripts/docs/lib/enregistreur-lectures.mjs:140', 'scripts/docs/lib/enregistreur-lectures.mjs:172',
-  'scripts/docs/lib/enregistreur-lectures.mjs:176', 'scripts/docs/lib/enregistreur-lectures.mjs:197',
-  'scripts/docs/lib/enregistreur-lectures.mjs:203',
+  'scripts/docs/lib/enregistreur-lectures.mjs:100', 'scripts/docs/lib/enregistreur-lectures.mjs:106',
+  'scripts/docs/lib/enregistreur-lectures.mjs:135', 'scripts/docs/lib/enregistreur-lectures.mjs:167',
+  'scripts/docs/lib/enregistreur-lectures.mjs:171', 'scripts/docs/lib/enregistreur-lectures.mjs:192',
+  'scripts/docs/lib/enregistreur-lectures.mjs:198',
   'scripts/test/partition.mjs:173', 'scripts/test/partition.mjs:178',
 ]
 

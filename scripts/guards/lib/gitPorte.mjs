@@ -41,6 +41,7 @@ import { mesurerProtectionWorktree, retirerResiduelVide } from './protectionWork
 import { Buffer } from 'node:buffer'
 import { spawn as spawnAsync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
@@ -434,12 +435,9 @@ function feinteDeGit(env, argv, site, journal = process.stderr) {
   return regle.absent ? spawnIntrouvable('git') : { status: regle.status, stdout: regle.stdout ?? '', stderr: regle.stderr ?? '' }
 }
 
-/** `git <args>` dans le dépôt, en union à trois issues. `options` : `OPTIONS_DE_L_HOTE` pour une
- *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. `index` : le
- *  `GIT_INDEX_FILE` de CETTE commande seule (`git help git`, « ENVIRONMENT VARIABLES »), `INDEX_DU_DEPOT`
- *  le retire de son environnement ; `encodage` : `'buffer'` rend `stdout` en octets. */
-function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE, index, encodage } = {}) {
-  const { cwd, env, spawn, attendre } = lanceurDe(depot)
+// #2475 / #2477
+function environnementDe(depot) {
+  const { env } = lanceurDe(depot)
   const fournisseur = typeof env === 'function'
   const environnement = fournisseur ? env() : env
   if (fournisseur && (typeof environnement?.then === 'function'
@@ -447,6 +445,15 @@ function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE,
     || Object.values(environnement).some((valeur) => valeur !== undefined && typeof valeur !== 'string'))) {
     throw new TypeError('gitPorte : fournisseur env — un objet environnement synchrone est attendu, sans promesse ni valeur absente ou invalide')
   }
+  return environnement
+}
+
+/** `git <args>` dans le dépôt, en union à trois issues. `options` : `OPTIONS_DE_L_HOTE` pour une
+ *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. `index` : le
+ *  `GIT_INDEX_FILE` de CETTE commande seule (`git help git`, « ENVIRONMENT VARIABLES »), `INDEX_DU_DEPOT`
+ *  le retire de son environnement ; `encodage` : `'buffer'` rend `stdout` en octets. */
+function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE, index, encodage, environnement = environnementDe(depot) } = {}) {
+  const { cwd, spawn, attendre } = lanceurDe(depot)
   const argv = [...options, ...args]
   const site = `git ${args[0]}`
   const envDeLaCommande = index === undefined ? environnement
@@ -507,10 +514,11 @@ function lire(depot, args, opts) {
  * absent ou code non nul : un lot que git ne rend pas n'est le vide d'AUCUN de ses éléments, et le
  * rendre vide ferait passer chacun pour « ne change rien ». `quoi` nomme le lot dans la levée.
  * @param {Depot} depot @param {string[]} args @param {Parameters<typeof interroger>[2]} opts @param {string} quoi
+ * @param {(texte: string) => boolean} [valider]
  * @returns {string}
  * @throws {GitIndisponible}
  */
-function lireLeLotOuLever(depot, args, opts, quoi) {
+function lireLeLotOuLever(depot, args, opts, quoi, valider) {
   const vu = interroger(depot, args, opts)
   if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
     const motif = !vu.disponible ? vu.raison : vu.absent ? 'un objet manque' : `git ${args[0]} sort en ${vu.valeur.status}`
@@ -520,6 +528,7 @@ function lireLeLotOuLever(depot, args, opts, quoi) {
       issue: !vu.disponible ? vu.issue : vu.absent ? 'mesure' : 'refus', diagnostic,
     }))
   }
+  if (valider && !valider(vu.valeur.stdout)) throw new GitIndisponible(indisponible(`${quoi} illisible : format de réponse inattendu`, { diagnostic: vu.valeur }))
   return vu.valeur.stdout
 }
 
@@ -1501,7 +1510,11 @@ export function arbrePrincipal(depot) {
   return commun.disponible ? { ...commun, valeur: dirname(commun.valeur) } : commun
 }
 
-export const CONTRATS_DE_DERIVATION = [{ fonction: dossierGitCommun, namespace: '.git', champ: 'valeur' }]
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: dossierGitCommun, namespace: '.git', champ: 'valeur' },
+  { fonction: politiqueExclusionsDe, lectures: 'corpus', retour: { exclude: { chemin: 'corpus' }, global: { chemin: 'corpus' } } },
+  { fonction: nonSuivisIgnoresDe, lectures: 'corpus', retour: 'corpus' },
+]
 
 /** Le dépôt de ce projet (`DEPOT`), en https comme en ssh, avec ou sans `.git`, casse ignorée comme
  *  GitHub l'ignore. Notion d'ORIGINE, donc hôte des lectures git : la porte au push et la préflight
@@ -1540,8 +1553,9 @@ const HORS_ARBRE = /not a git repository|must be run in a work tree/i
 
 /** La RACINE de l'arbre de travail (`rev-parse --show-toplevel`), `null` hors d'un arbre ; toute
  *  autre indisponibilité va à `confier`.
- *  @param {Depot} depot @returns {string | null} */
-export function racineDe(depot) {
+ *  @param {Depot} depot @param {{ strict?: boolean, environnement?: NodeJS.ProcessEnv }} [opts] @returns {string | null} */
+export function racineDe(depot, { strict = false, environnement } = {}) {
+  if (strict) return lireLeLotOuLever(depot, ['rev-parse', '--show-toplevel'], { environnement }, 'racine Git', (s) => s.endsWith('\n') && !s.includes('\0') && isAbsolute(s.replace(/\r?\n$/, ''))).replace(/\r?\n$/, '')
   const vu = interroger(depot, ['rev-parse', '--show-toplevel'])
   if (vu.disponible) return sortieOuNull(vu)?.trim() || null
   return HORS_ARBRE.test(vu.raison) ? null : confier(depot, vu)
@@ -1667,6 +1681,32 @@ export function cheminsIgnores(depot, chemins, { suivisCompris = false } = {}) {
   if (!chemins.length) return new Set()
   const brut = lire(depot, ['check-ignore', '--stdin', '-z', ...(suivisCompris ? ['--no-index'] : [])], { entree: chemins.map((c) => `${c}\0`).join('') })
   return new Set((brut ?? '').split('\0').filter(Boolean))
+}
+
+// git-scm.com/docs/gitignore ; git-scm.com/docs/git-config
+export function nonSuivisIgnoresDe(depot) {
+  const brut = lireLeLotOuLever(depot, ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'], {}, 'non suivis ignorés', (s) => !s || s.endsWith('\0'))
+  return new Set(brut.split('\0').filter(Boolean).map((p) => p.replace(/\/$/, '')))
+}
+
+// git-scm.com/docs/gitignore ; git-scm.com/docs/git-config
+export function politiqueExclusionsDe(depot) {
+  const environnement = { ...(environnementDe(depot) ?? process.env) }
+  const opts = { environnement }
+  const { cwd } = lanceurDe(depot)
+  const brut = lireLeLotOuLever(depot, ['config', '--null', '--list'], opts, 'configuration des exclusions', (s) => !s || s.endsWith('\0'))
+  const configuration = brut.split('\0').filter((s) => s.toLowerCase().startsWith('core.excludesfile\n') || s.toLowerCase() === 'core.excludesfile')
+    .map((s) => s.includes('\n') ? s.slice(s.indexOf('\n') + 1) : '')
+  const excludeBrut = lireLeLotOuLever(depot, ['rev-parse', '--path-format=absolute', '--git-path', 'info/exclude'], opts, 'info/exclude', (s) => s.length > 1 && !s.includes('\0') && s.endsWith('\n'))
+  const exclude = { chemin: resolve(cwd, excludeBrut.replace(/\r?\n$/, '')) }
+  if (configuration.length && configuration.at(-1) === '') return { exclude, global: { configuration, origine: 'desactivee', chemin: null } }
+  const racineGit = racineDe(depot, { strict: true, environnement })
+  if (configuration.length) {
+    const chemin = lireLeLotOuLever(depot, ['config', '--null', '--path', '--get', 'core.excludesFile'], opts, 'chemin global des exclusions', (s) => s.length > 1 && s.endsWith('\0') && !s.slice(0, -1).includes('\0'))
+    return { exclude, global: { configuration, origine: 'configuree', chemin: resolve(racineGit, chemin.slice(0, -1)) } }
+  }
+  const base = environnement.XDG_CONFIG_HOME || join(environnement.HOME || environnement.USERPROFILE || homedir(), '.config')
+  return { exclude, global: { configuration, origine: 'standard', chemin: resolve(racineGit, base, 'git', 'ignore') } }
 }
 
 /** `chemin` est-il IGNORÉ ? `cheminsIgnores` d'un seul chemin.

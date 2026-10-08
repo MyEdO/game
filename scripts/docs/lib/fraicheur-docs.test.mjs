@@ -5,8 +5,7 @@ import path from 'node:path'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
-import { ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, SOURCES_LUES } from '../build-all.mjs'
-import { selectionDesGenerateurs } from '../../git-hooks/docs-rebuild.mjs'
+import { ciblesPures, ciblesSurDisque, estCiblePure, executer, generateurDe, SOURCES_LUES } from '../build-all.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 import { avantGenerateur, certifierGenerateur, chargerPreuve, copierDocsFrais, enregistrerPreuve, preparerPreuves, preuveValide } from './fraicheur-docs.mjs'
 
@@ -62,7 +61,7 @@ function banc() {
   return { racine, cible, mesure, jeter: () => rmSync(racine, { recursive: true, force: true }) }
 }
 
-const copier = (b, extra = {}) => copierDocsFrais({ principal: b.racine, cible: b.cible, selecteur: selectionDesGenerateurs, ...options, ...extra })
+const copier = (b, extra = {}) => copierDocsFrais({ principal: b.racine, cible: b.cible, ...options, ...extra })
 
 const docFroid = (nom) => ['docs', 'raw', `${nom}.md`].join('/')
 
@@ -103,7 +102,7 @@ test('cible froide : glob injecte recoupant les docs purs, listing, fichiers et 
   } finally { b.jeter() }
 })
 
-test('cible froide : source RAW différente suit la fermeture et retire seulement les provisoires sélectionnés', () => {
+test('cible froide : source RAW différente conserve les producteurs frais et copie leurs docs', () => {
   const b = bancFroid()
   try {
     poser(b.racine, 'notes/raw.md', '# RAW changé\n')
@@ -111,11 +110,10 @@ test('cible froide : source RAW différente suit la fermeture et retire seulemen
     assert.equal(vu.ok, true, vu.raison)
     assert.ok(vu.scriptsARegenerer.includes('g/injecte.mjs'))
     assert.ok(vu.scriptsARegenerer.includes('g/lecteur.mjs'))
-    const attendu = selectionDesGenerateurs({ lot: [], scriptsInitiaux: ['g/injecte.mjs', 'g/lecteur.mjs'], mesure: b.mesure, cwd: b.racine, generateurs: b.opts.generateurs })
-    assert.deepEqual(vu.scriptsARegenerer, attendu.scripts)
-    assert.equal(vu.copies, 0)
-    assert.equal(existsSync(path.join(b.cible, docFroid('a'))), false)
-    assert.equal(existsSync(path.join(b.cible, docFroid('b'))), false)
+    assert.deepEqual(vu.scriptsARegenerer, ['g/injecte.mjs', 'g/lecteur.mjs'])
+    assert.equal(vu.copies, 2)
+    assert.equal(existsSync(path.join(b.cible, docFroid('a'))), true)
+    assert.equal(existsSync(path.join(b.cible, docFroid('b'))), true)
     assert.equal(existsSync(path.join(b.cible, docFroid('lecteur'))), false)
     assert.equal(readFileSync(path.join(b.cible, 'notes/raw.md'), 'utf8'), '# RAW\n')
   } finally { b.jeter() }
@@ -287,9 +285,7 @@ for (const [nom, changer] of [
 
 for (const [nom, changer] of [
   ['cache absent', (b) => rmSync(path.join(b.racine, CACHE_FRAICHEUR))],
-  ['doc absent', (b) => rmSync(path.join(b.racine, doc('a')))],
   ['mesure absente', (b) => rmSync(path.join(b.racine, SOURCES_LUES))],
-  ['cache incomplet', (b) => { const p = chargerPreuve(b.racine); delete p.generateurs['g/a.mjs']; poser(b.racine, CACHE_FRAICHEUR, JSON.stringify(p)) }],
   ['HEAD différent', (b) => { poser(b.cible, 'data/a/source.txt', 'commit'); gitDe(b.cible)('add', 'data/a/source.txt'); gitDe(b.cible)('commit', '-q', '-m', 'autre HEAD') }],
 ]) {
   test(`repli complet : ${nom}`, () => {
@@ -298,6 +294,58 @@ for (const [nom, changer] of [
     finally { b.jeter() }
   })
 }
+
+test('certificat local divergent : doc local conservé et autre producteur copié', () => {
+  const primitive = new URL('./ecriture-derives.mjs', import.meta.url).href
+  const generateurs = ['a', 'b'].map(nom => ({ runner: 'node', script: `g/${nom}.mjs`, targets: [doc(nom)] }))
+  const { racine } = instanceDeDepot({ fichiers: {
+    '.gitignore': 'docs/\n.wt-local/\n',
+    ...Object.fromEntries(['a', 'b'].flatMap(nom => [
+      [`data/${nom}.txt`, nom],
+      [`g/${nom}.mjs`, `import { readFileSync } from 'node:fs'\nimport { ecrireOuVerifier } from ${JSON.stringify(primitive)}\necrireOuVerifier({ out: readFileSync('data/${nom}.txt', 'utf8'), path: ${JSON.stringify(doc(nom))}, check: process.argv.includes('--check'), staleMsg: 'périmé', rerunMsg: 'relancer' })\n`],
+    ])),
+  } })
+  const cible = path.join(racine, '.wt-local')
+  lancerGit(['worktree', 'add', '-q', '-b', 'chantier/local', cible, 'HEAD'], { cwd: racine })
+  const opts = { ...options, generateurs }
+  try {
+    for (const arbre of [racine, cible]) mkdirSync(path.join(arbre, 'docs'))
+    assert.equal(executer({ cwd: racine, argv: ['--quiet'], generateurs, verificateurs: [] }), 0)
+    poser(cible, 'data/a.txt', 'source locale')
+    assert.equal(executer({ cwd: cible, argv: ['--quiet', '--only', 'g/a.mjs'], generateurs, verificateurs: [] }), 0)
+    const local = chargerPreuve(cible).generateurs['g/a.mjs']
+    const vu = copierDocsFrais({ principal: racine, cible, ...opts })
+    assert.equal(vu.ok, true, vu.raison)
+    assert.equal(vu.copies, 1)
+    assert.deepEqual(vu.scriptsARegenerer, [])
+    assert.equal(readFileSync(path.join(cible, doc('a')), 'utf8'), 'source locale')
+    assert.equal(readFileSync(path.join(cible, doc('b')), 'utf8'), 'b')
+    assert.deepEqual(chargerPreuve(cible).generateurs['g/a.mjs'], local)
+    assert.equal(preuveValide(cible, opts).ok, true)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('cache partiel : copie les docs frais et conserve le code certifié localement', () => {
+  const b = banc()
+  try {
+    for (const nom of ['a', 'b']) poser(b.cible, doc(nom), readFileSync(path.join(b.racine, doc(nom))))
+    poser(b.cible, SOURCES_LUES, JSON.stringify(b.mesure))
+    certifier(b.cible, b.mesure)
+    const local = chargerPreuve(b.cible).generateurs['g/code.mjs']
+    const cache = chargerPreuve(b.racine)
+    delete cache.generateurs['g/a.mjs']
+    delete cache.generateurs['g/code.mjs']
+    poser(b.racine, CACHE_FRAICHEUR, JSON.stringify(cache))
+    rmSync(path.join(b.cible, doc('a')))
+    rmSync(path.join(b.cible, doc('b')))
+    const vu = copier(b)
+    assert.equal(vu.ok, true, vu.raison)
+    assert.equal(vu.copies, 1)
+    assert.equal(readFileSync(path.join(b.cible, doc('b')), 'utf8'), '# B\n')
+    assert.deepEqual(vu.scriptsARegenerer, ['g/a.mjs'])
+    assert.deepEqual(chargerPreuve(b.cible).generateurs['g/code.mjs'], local)
+  } finally { b.jeter() }
+})
 
 test('mixte édité : sélection du producteur, jamais copie du fichier injecté', () => {
   const b = banc()
@@ -352,6 +400,45 @@ test('source modifiée pendant génération : certificat refusé', () => {
     const avant = avantGenerateur(b.racine, g, options, preparation)
     poser(b.racine, 'data/a/source.txt', 'course')
     assert.equal(certifierGenerateur(b.racine, g, b.mesure[g.script], options, avant).ok, false)
+  } finally { b.jeter() }
+})
+
+test('politique modifiée pendant génération : certificat refusé', () => {
+  const b = banc()
+  try {
+    const preparation = preparerPreuves(b.racine, options)
+    const g = options.generateurs[0]
+    const avant = avantGenerateur(b.racine, g, options, preparation)
+    poser(b.racine, '.gitignore', readFileSync(path.join(b.racine, '.gitignore'), 'utf8') + '*.cache\n')
+    const vu = certifierGenerateur(b.racine, g, b.mesure[g.script], options, avant)
+    assert.equal(vu.ok, false)
+    assert.match(vu.raison, /modifié pendant génération/)
+  } finally { b.jeter() }
+})
+
+test('certificat : nature seule refusée', () => {
+  const b = banc()
+  try {
+    const cache = chargerPreuve(b.racine)
+    cache.generateurs['g/a.mjs'].sources.contexte.perimetre = { nature: 'git' }
+    poser(b.racine, CACHE_FRAICHEUR, JSON.stringify(cache))
+    assert.equal(preuveValide(b.racine, options).ok, false)
+  } finally { b.jeter() }
+})
+
+test('certificat : nouveau fichier ignoré exclu des observations finales', () => {
+  const b = banc()
+  try {
+    const g = options.generateurs[0]
+    const preparation = preparerPreuves(b.racine, options)
+    const avant = avantGenerateur(b.racine, g, options, preparation)
+    poser(b.racine, 'docs/inedit.txt', 'cache lu après création')
+    const entree = { ...b.mesure[g.script], fichiers: [...b.mesure[g.script].fichiers, 'docs/inedit.txt'],
+      sondes: [{ chemin: 'docs/inedit.txt', type: 'exists', existe: true, nature: null }] }
+    const vu = certifierGenerateur(b.racine, g, entree, options, avant)
+    assert.equal(vu.ok, true, vu.raison)
+    assert.ok(!vu.record.sources.fichiers.some(([rel]) => rel === 'docs/inedit.txt'))
+    assert.deepEqual(vu.record.sources.sondes, [])
   } finally { b.jeter() }
 })
 

@@ -298,7 +298,7 @@ test('un `installer` SANS ensemble `ignores` refuse de s\'installer, au lieu d\'
   const fs = await import('node:fs')
   const avant = fs.default.readFileSync
   for (const ignores of [undefined, ['node_modules']]) {
-    assert.throws(() => installer({ racine: RACINE, ignores }), /`ignores` \(ensemble `ignoresGit`\) absent/)
+    assert.throws(() => installer({ racine: RACINE, ignores }), /`ignores` \(ensemble du périmètre de mesure\) absent/)
     assert.equal(fs.default.readFileSync, avant, 'l\'enveloppe de `fs` a été posée malgré le refus')
   }
 })

@@ -10,7 +10,7 @@
 // (2026-09-02) : 5 lectures capturées sans l'appel, 1 006 avec.
 //
 // Périmètre : chemins sous `WFRP_LECTURES_RACINE` qui entrent dans la mesure (`dansLaMesure`, sur
-// l'ensemble `ignoresGit` calculé une fois par l'appelant et passé en JSON par `WFRP_LECTURES_IGNORES`,
+// l'ensemble `perimetreDeMesure().ignores` calculé une fois par l'appelant et passé en JSON par `WFRP_LECTURES_IGNORES`,
 // #1769), hors les cibles écrites par le générateur (`WFRP_LECTURES_CIBLE`, séparées par des virgules — un
 // générateur relit son propre .md en mode `--check`).
 // Un `readdirSync` enregistre le DOSSIER et son listing trié, restreint à la mesure : un fichier ajouté au dossier
@@ -35,19 +35,14 @@ const SORTIE = process.env.WFRP_LECTURES_SORTIE
 const IGNORES = process.env.WFRP_LECTURES_IGNORES
 
 /** Enveloppe `fs` et rend le collecteur — exporté pour que le test monte la mécanique à nu.
- *  `ignores` : l'ensemble `ignoresGit` de la racine. */
+ *  `ignores` : l'ensemble `perimetreDeMesure().ignores` de la racine. */
 export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], observer }) {
-  if (!(ignores instanceof Set)) throw new TypeError('enregistreur-lectures : `ignores` (ensemble `ignoresGit`) absent — sans lui, chaque lecture serait écartée en silence')
+  if (!(ignores instanceof Set)) throw new TypeError('enregistreur-lectures : `ignores` (ensemble du périmètre de mesure) absent — sans lui, chaque lecture serait écartée en silence')
   if (!Array.isArray(ciblesDerivees) || ciblesDerivees.some((p) => typeof p !== 'string' || !p || p.includes('\\') || path.isAbsolute(p) || p.split('/').includes('..'))) throw new TypeError('enregistreur-lectures : cibles dérivées hors racine')
   const base = canoniser(racine)
   const exclues = new Set(cibles)
   const derivees = new Set(ciblesDerivees)
-  const parentsDerives = new Set(ciblesDerivees.flatMap((p) => {
-    const parents = []
-    for (let d = path.posix.dirname(p); d !== '.'; d = path.posix.dirname(d)) parents.push(d)
-    return parents
-  }))
-  const admissible = (rel) => rel !== '.git' && !rel.startsWith('.git/') && rel !== 'node_modules' && !rel.startsWith('node_modules/') && (dansLaMesure(rel, ignores) || derivees.has(rel) || parentsDerives.has(rel))
+  const admissible = (rel) => dansLaMesure(rel, ignores, derivees)
   const fichiers = new Set()
   const dossiers = new Map()
   const git = new Map()

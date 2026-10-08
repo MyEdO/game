@@ -471,7 +471,7 @@ const ATTENDU = {
     'scripts/docs/lib/enregistreur-lectures.test.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/docs/lib/fraicheur-docs.test.mjs',
-    'scripts/git-hooks/journal.mjs',
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
     'scripts/test/verrou.mjs',
     // `scripts/docs/lib/jsdocUnion.test.mjs`
     'scripts/docs/lib/jsdocUnion.test.mjs',
@@ -508,12 +508,14 @@ const ATTENDU = {
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
   ],
   'docs:build': [
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/guards/lib/protectionWorktree.mjs',
+    'scripts/guards/lib/ecritureJsonAtomique.mjs',
   ],
   'test:raw': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un

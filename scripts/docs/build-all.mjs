@@ -33,8 +33,9 @@ import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
-import { ignoresGit } from './lib/chemin-mesure.mjs'
-import { avantGenerateur, certifierGenerateur, enregistrerPreuve, invaliderPreuve, preparerPreuves } from './lib/fraicheur-docs.mjs'
+import { perimetreDeMesure } from './lib/chemin-mesure.mjs'
+import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
+import { avantGenerateur, certifierGenerateur, chargerPreuve, enregistrerPreuve, invaliderPreuve, nouvelleVue, preparerPreuves, recordValide } from './lib/fraicheur-docs.mjs'
 
 import { GENERATORS, SOURCES_LUES } from './lib/cibles-generees.mjs'
 export { GENERATORS, SOURCES_LUES, estCiblePure } from './lib/cibles-generees.mjs'
@@ -57,37 +58,21 @@ export const perimetreDesMixtes = (generateurs) =>
   generateurs.filter((g) => ecritDuCode(g) || (g.injecte ?? []).length > 0)
 
 /**
- * Produit les cibles de CODE (`generateursDeCode`), en écriture, sans enregistreur : LA
+ * Produit et certifie les cibles de CODE (`generateursDeCode`).
  * fonction des points de génération du code — `npm run gen`, `postinstall`, les hooks git
  * post-checkout / post-merge / post-rewrite, `buildStart` de vite.config.ts. `quiet` capture la sortie
  * d'un générateur VERT. REND le code de sortie : 0, ou 1 au premier rouge, nommé.
  */
 export function genererCode({ cwd, quiet = false, generateurs = GENERATORS }) {
-  return ecrireSansMesure(generateursDeCode(generateurs), { cwd, quiet, nom: 'gen', perimes: 'les cibles de code' })
+  return executer({ cwd, argv: ['--code', ...(quiet ? ['--quiet'] : [])], generateurs })
 }
 
 /**
- * `--mixtes` : `perimetreDesMixtes`, en écriture, sans enregistreur — il ne réécrit pas
- * `SOURCES_LUES`, dont il effacerait la mesure des générateurs non joués. REND le code de sortie : 0,
+ * `--mixtes` : `perimetreDesMixtes`, avec conservation des autres mesures. REND le code de sortie : 0,
  * ou 1 au premier rouge, nommé.
  */
 export function genererMixtes({ cwd, quiet = false, generateurs = GENERATORS }) {
-  return ecrireSansMesure(perimetreDesMixtes(generateurs), { cwd, quiet, nom: 'docs:mixtes', perimes: 'les mixtes' })
-}
-
-/** `liste` jouée en écriture, dans son ordre, sans enregistreur ; ARRÊT au premier rouge, nommé par `nom`. */
-function ecrireSansMesure(liste, { cwd, quiet, nom, perimes }) {
-  const tsxEsm = tsxEsmPour(liste, cwd)
-  for (const g of liste) {
-    try {
-      etapeProfilee(`[${nom}] ${g.script}`, () => run(g, { cwd, quiet, mode: 'ecrire', tsxEsm }))
-    } catch (e) {
-      transmettreDiagnostic(e, quiet)
-      process.stderr.write(`${nom} — ARRÊT sur ${g.script} (${natureDuRouge(issueDe(e))}) : ${perimes} ne sont PAS à jour.\n`)
-      return 1
-    }
-  }
-  return 0
+  return executer({ cwd, argv: ['--mixtes', ...(quiet ? ['--quiet'] : [])], generateurs })
 }
 
 /** Étapes de `--check` qui ne GÉNÈRENT rien (vérificateurs purs, sans `--check`) : `build-all.mjs`
@@ -269,7 +254,7 @@ export function preparerLectures(cwd, racineLectures) {
   rmSync(racineLectures, { recursive: true, force: true })
   mkdirSync(racineLectures, { recursive: true })
   const ignores = path.join(racineLectures, 'ignores.json')
-  writeFileSync(ignores, JSON.stringify([...ignoresGit(cwd)]))
+  writeFileSync(ignores, JSON.stringify([...perimetreDeMesure(cwd).ignores]))
   return ignores
 }
 
@@ -369,13 +354,13 @@ function argumentsDe(argv, drapeau) {
 /**
  * `docs:build` (écriture, puis les vérificateurs purs), `--code` (`genererCode`), `--mixtes`
  * (`genererMixtes`) ou `--check`
- * (vérification). REND (promesse) le code de sortie.
+ * (vérification). REND le code de sortie.
  * En écriture, le premier rouge ARRÊTE : un générateur rouge laisse docs/ à moitié régénéré, et
  * enchaîner les suivants fabriquerait un lot incohérent que le hook annoncerait « à committer ».
  * En `--check`, rien n'est écrit : chaque générateur et chaque vérificateur rend son verdict, et tous
  * les rouges sont nommés à la fin, sortie 1.
  */
-export async function executer({
+export function executer({
   cwd,
   argv = process.argv,
   generateurs = GENERATORS,
@@ -383,6 +368,9 @@ export async function executer({
 }) {
   const quiet = argv.includes('--quiet')
   const check = argv.includes('--check')
+  const perimes = argv.includes('--perimes') && !check
+  const modeSelectif = argv.includes('--code') || argv.includes('--mixtes')
+  const selection = argv.includes('--code') ? generateursDeCode(generateurs) : argv.includes('--mixtes') ? perimetreDesMixtes(generateurs) : generateurs
   const only = argumentsDe(argv, '--only')
   const fraicheur = { generateurs, verificateurs, ciblesPures, ciblesSurDisque, sourcesLues: SOURCES_LUES }
   if (only !== null) {
@@ -393,55 +381,67 @@ export async function executer({
       return 1
     }
   }
-  if (argv.includes('--code')) {
-    if (!check) invaliderPreuve(cwd, generateursDeCode(generateurs).map((g) => g.script))
-    return genererCode({ cwd, quiet, generateurs })
-  }
-  if (argv.includes('--mixtes')) {
-    if (!check) invaliderPreuve(cwd, perimetreDesMixtes(generateurs).map((g) => g.script))
-    return genererMixtes({ cwd, quiet, generateurs })
-  }
   const seulement = only && new Set(only)
-  let preparation
-  const records = new Map()
-  if (!check) {
-    try { preparation = preparerPreuves(cwd, fraicheur) } catch (e) {
-      console.error(`docs:build — certification indisponible : ${e.message}`)
-    }
-    invaliderPreuve(cwd, generateurs.filter((g) => !seulement || seulement.has(g.script)).map((g) => g.script))
-  }
   // Refus d'un tsx NON LOCAL avant le premier générateur : à mi-chaîne, docs/ serait à moitié écrit.
-  const tsxEsm = tsxEsmPour(generateurs, cwd)
+  const tsxEsm = tsxEsmPour(selection, cwd)
   const { doublons } = proprietairesDeCibles(cwd, generateurs)
   if (doublons.length) {
     process.stderr.write(`docs:build — ARRÊT : cible(s) déclarée(s) par DEUX générateurs :\n${doublons.map((d) => `  ${d}`).join('\n')}\n`)
     return 1
   }
+  if (modeSelectif && !selection.some((g) => !seulement || seulement.has(g.script))) return 0
+  let preparation
+  const records = new Map()
+  if (!check) {
+    try { preparation = preparerPreuves(cwd, fraicheur) } catch (e) {
+      console.error(`docs:build — ARRÊT : certification indisponible : ${e.message}`)
+      return 1
+    }
+  }
   // Cibles écrites en entier, DÉPLIÉES une fois : la lecture tardive se juge contre elles.
   const ecritesPar = new Map(generateurs.map((g) => [g.script, ciblesSurDisque(g.targets, cwd)]))
-  const racineLectures = path.join(cwd, 'node_modules', '.cache', 'lectures-docs', String(process.pid))
+  const racineLectures = path.join(cwd, path.dirname(CACHE_FRAICHEUR), 'lectures', String(process.pid))
   // Le cache de lectures de ce run se purge à chaque sortie d'`executer`.
   try {
     const ignoresLectures = preparerLectures(cwd, racineLectures)
     const derivees = path.join(racineLectures, 'derivees.json')
     writeFileSync(derivees, JSON.stringify([...new Set([...ecritesPar.values()].flat())].sort()))
     let ancienneMesure = {}
-    if (seulement && !check) {
+    if (!check) {
       try { ancienneMesure = JSON.parse(readFileSync(path.join(cwd, SOURCES_LUES), 'utf8')) } catch { ancienneMesure = {} }
     }
     const parGenerateur = Object.fromEntries(generateurs.filter((g) => Object.hasOwn(ancienneMesure, g.script)).map((g) => [g.script, ancienneMesure[g.script]]))
+    let preuve = chargerPreuve(cwd)
+    let vue = perimes ? nouvelleVue(cwd, fraicheur, preuve) : undefined
+    let ecrits = 0
     // Verdicts de `--check`, TOUS collectés : un générateur rouge ne masque pas les suivants.
     const refus = []
     const refuser = (message) => {
       process.stderr.write(`${message}\n`)
       refus.push(message)
     }
+    const verifierPreuve = (preuve) => {
+      const absents = [...records.keys()].filter((script) => !preuve.generateurs[script])
+      for (const script of absents) refuser(`docs:build — ARRÊT : certificat final absent : ${script}`)
+      return absents.length === 0
+    }
     for (const [rang, g] of generateurs.entries()) {
       if (seulement && !seulement.has(g.script)) continue
+      if (!selection.includes(g)) continue
+      if (perimes) {
+        const validite = recordValide(cwd, g, fraicheur, preuve?.generateurs[g.script], { vue })
+        if (validite.ok) continue
+        console.error(`docs:build — ${g.script} périmé : ${validite.raison}`)
+      }
       const dossier = path.join(racineLectures, String(rang))
+      writeFileSync(ignoresLectures, JSON.stringify([...perimetreDeMesure(cwd).ignores]))
       writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
       let mesure
       const avant = preparation && avantGenerateur(cwd, g, fraicheur, preparation)
+      if (!check) {
+        invaliderPreuve(cwd, [g.script])
+        ecrits++
+      }
       try {
         mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
           cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees,
@@ -499,16 +499,25 @@ export async function executer({
       if (!check && avant) {
         const certification = certifierGenerateur(cwd, g, entree, fraicheur, avant)
         records.set(g.script, certification.ok ? certification.record : null)
-        if (!certification.ok) console.error(`docs:build — ${g.script} non certifié : ${certification.raison}`)
+        if (!certification.ok) {
+          console.error(`docs:build — ARRÊT : ${g.script} non certifié : ${certification.raison}`)
+          return 1
+        }
+      }
+      if (perimes && preparation) {
+        ecrireSiDifferent(path.join(cwd, SOURCES_LUES), serialiserSourcesLues(parGenerateur))
+        preuve = enregistrerPreuve(cwd, fraicheur, preparation, records).preuve
+        if (!verifierPreuve(preuve)) return 1
+        vue = nouvelleVue(cwd, fraicheur, preuve)
       }
     }
-    if (!check) {
+    if (!check && ecrits) {
       ecrireSiDifferent(path.join(cwd, SOURCES_LUES), serialiserSourcesLues(parGenerateur))
       console.log(`${SOURCES_LUES} — ${Object.keys(parGenerateur).length} générateur(s) mesuré(s).`)
     }
     // Les vérificateurs purs, en écriture comme en `--check` : ils n'écrivent rien, leur code de sortie
     // est leur verdict, et ils jugent le rendu que `docs:build` vient d'écrire.
-    const verificateursJoues = verificateurs
+    const verificateursJoues = modeSelectif || (perimes && !ecrits) ? [] : verificateurs
     for (const script of verificateursJoues) {
       try {
         etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${script}`, () => execFileResilient(process.execPath, [script], {
@@ -522,8 +531,10 @@ export async function executer({
       }
     }
     if (!check) {
-      if (!refus.length && preparation) {
+      if (refus.length && perimes) invaliderPreuve(cwd, [...records.keys()])
+      if (!refus.length && preparation && ecrits) {
         const { preuve } = enregistrerPreuve(cwd, fraicheur, preparation, records)
+        verifierPreuve(preuve)
         console.log(`docs:build — ${[...records.keys()].filter((script) => preuve.generateurs[script]).length} générateur(s) certifié(s)`)
       }
       return refus.length ? 1 : 0
