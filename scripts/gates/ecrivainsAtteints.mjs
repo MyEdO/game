@@ -14,10 +14,10 @@ import { join } from 'node:path'
 import { clotureDImports } from '../guards/lib/importGraph.mjs'
 import { gatesDeCi } from './gatesDeCi.mjs'
 import { GATES, listerTests, testsDe } from './testsParGate.mjs'
+import { OPERATIONS_FS } from '../guards/lib/ecrituresFichiers.mjs'
 
 /** Appels qui ÉCRIVENT sur le disque. Le `\b` évite `outputFile` dans une liste de drapeaux. */
-const ECRITURE =
-  /\b(?:writeFileSync|writeFile|createWriteStream|appendFileSync|appendFile|mkdirSync|mkdir|rmSync|rmdirSync|unlinkSync|renameSync|rename|cpSync|copyFileSync|truncateSync)\s*\(/
+const ECRITURE = new RegExp(`\\b(?:${Object.entries(OPERATIONS_FS).filter(([, op]) => op.detecteeParGateHistorique).map(([nom]) => nom).join('|')})\\s*\\(`)
 
 /** Une ligne de commentaire ou d'import ne prouve rien du corps du module. */
 export const inerte = (ligne) => /^\s*(?:\/\/|\*|\/\*)/.test(ligne) || /^\s*import\s/.test(ligne)

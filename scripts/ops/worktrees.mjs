@@ -24,13 +24,15 @@ import { fileURLToPath } from 'node:url'
 import {
   TRONC, depotDe, elaguerWorktrees, estAncetre, etatDeLArbre, fetchOrigin, natureDuChemin, refusDeGit, retirerWorktree, reussi, supprimerBranche, worktreesDe,
 } from '../guards/lib/gitPorte.mjs'
+import { mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
+import { mesurerProcessusWorktrees } from '../guards/lib/processusWorktrees.mjs'
 import { normaliserRacine } from '../port-dev.mjs'
 
 /** Racine de l'arbre qui porte CE script (le dépôt commun répond pour tous ses worktrees). */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
-/** Les sept classes, de la plus intouchable à la seule purgeable. */
-export const CLASSES = ['principal', 'tenu', 'absent', 'verrouillé', 'sale', 'propre+hors-main', 'propre+fusionné']
+/** Les classes, de la plus intouchable à la seule purgeable. */
+export const CLASSES = ['principal', 'tenu', 'absent', 'verrouillé', 'sale', 'protégé', 'propre+hors-main', 'propre+fusionné']
 
 /**
  * Les arbres que CE processus TIENT, en forme comparable (`normaliserRacine`) : celui d'où vient le
@@ -57,19 +59,19 @@ export function arbresTenus({ worktrees = [], racine = RACINE, cwd = process.cwd
  *
  * `tenu` vient juste après `principal` : un arbre que le processus courant occupe ne se retire pas
  * depuis lui-même — git refuse (`EPERM` sur le `.git` ouvert) ou réussit à moitié (worktree
- * désenregistré, dossier resté). Un AUTRE processus qui tient un arbre (shell, `vite dev`) n'est pas
- * couvert : le refus de git reste la barrière, et la re-mesure de `purger` le NOMME.
+ * désenregistré, dossier resté). `mesurerProtectionWorktree` mesure les autres processus.
  * @param {{principal?: boolean, sale?: boolean, fusionne?: boolean|null, verrouille?: boolean,
- *   absent?: boolean, chemin?: string}} etat
+ *   absent?: boolean, protection?: {ok: boolean, refus: string[]}, chemin?: string}} etat
  * @param {{tenus?: Set<string>}} [opts] ensemble NORMALISÉ des arbres tenus par ce processus
- * @returns {'principal'|'tenu'|'absent'|'verrouillé'|'sale'|'propre+hors-main'|'propre+fusionné'}
+ * @returns {'principal'|'tenu'|'absent'|'verrouillé'|'sale'|'protégé'|'propre+hors-main'|'propre+fusionné'}
  */
-export function classerWorktree({ principal = false, sale = false, fusionne = null, verrouille = false, absent = false, chemin = '' }, { tenus } = {}) {
+export function classerWorktree({ principal = false, sale = false, fusionne = null, verrouille = false, absent = false, protection, chemin = '' }, { tenus } = {}) {
   if (principal) return 'principal'
   if (chemin && tenus?.has(normaliserRacine(chemin))) return 'tenu'
   if (absent) return 'absent'
   if (verrouille) return 'verrouillé'
   if (sale) return 'sale'
+  if (protection && !protection.ok) return 'protégé'
   return fusionne === true ? 'propre+fusionné' : 'propre+hors-main'
 }
 
@@ -81,11 +83,13 @@ export const refDe = (w) => w.branche ?? `détaché@${shaCourt(w.head)}`
 
 /** LA raison — pourquoi on y touche, ou pourquoi on n'y touche pas. PURE. */
 export function raisonDe(w) {
+  if (w.protection && !w.protection.ok) return w.protection.refus.join(' ; ')
   switch (w.classe) {
     case 'principal': return 'arbre principal — jamais touché'
     case 'tenu': return 'tenu par ce processus (script ou cwd) — jamais retiré depuis lui : rejouer depuis un autre worktree'
     case 'absent': return `répertoire absent (${w.prunable ?? 'disparu du disque'}) — git worktree prune`
     case 'verrouillé': return `verrouillé${w.verrouillePour ? ` : ${w.verrouillePour}` : ''} — déverrouiller d'abord`
+    case 'protégé': return w.protection.refus.join(' ; ')
     case 'sale': return 'modifications non commitées — rien ne se retire sous elles'
     case 'propre+hors-main': return w.fusionne === null
       ? 'verdict de fusion indisponible — origin/main non lu'
@@ -129,7 +133,7 @@ export const GESTES_DE_LA_PURGE = Object.freeze({ retirerWorktree, supprimerBran
  *   | {ok: false, refus: string}}
  */
 export function inventaire({
-  racine = RACINE, cwd = process.cwd(), gestes = GESTES_DE_L_INVENTAIRE, nature = natureDuChemin, sansFetch = false,
+  racine = RACINE, cwd = process.cwd(), gestes = GESTES_DE_L_INVENTAIRE, nature = natureDuChemin, sansFetch = false, mesurer = mesurerProtectionWorktree, processus = mesurerProcessusWorktrees,
 } = {}) {
   let bruts
   try {
@@ -144,6 +148,8 @@ export function inventaire({
   const depot = depotDe(principal)
   const fusionLue = sansFetch || gestes.fetchOrigin(depot).disponible === true
 
+  let snapshot
+  try { snapshot = processus() } catch (e) { snapshot = { processus: [], erreurs: [e.message] } }
   const worktrees = bruts.map((w) => {
     if (w.principal) return { ...w, absent: false, sale: false, fusionne: null, classe: 'principal' }
     const absent = nature(w.chemin) !== 'repertoire'
@@ -155,11 +161,12 @@ export function inventaire({
       const vu = gestes.estAncetre(depot, w.head, TRONC.suivi)
       fusionne = vu.disponible && !vu.absent ? vu.valeur === true : null
     }
-    const enrichi = { ...w, absent, sale, fusionne }
+    const protection = absent ? undefined : mesurer(w.chemin, { snapshot })
+    const enrichi = { ...w, absent, sale, fusionne, protection }
     return { ...enrichi, classe: classerWorktree({ ...enrichi, principal: false }, { tenus }) }
   })
 
-  return { ok: true, worktrees, fusionLue, principal, tenus }
+  return { ok: true, worktrees, fusionLue, principal, tenus, portee: snapshot.portee }
 }
 
 /**
@@ -187,13 +194,13 @@ export function purger({ principal = RACINE, worktrees, gestes = GESTES_DE_LA_PU
     const removeOk = reussi(vuRemove)
     tentes.push({ chemin: w.chemin, branche: w.branche, ok: removeOk })
     joues.push({ chemin: w.chemin, geste: `git worktree remove ${w.chemin}`, ok: removeOk, detail: rendu(vuRemove) })
-    if (!removeOk || !w.branche) continue
+    if (!removeOk || nature(w.chemin) !== 'absent' || !w.branche) continue
     const vuBranche = gestes.supprimerBranche(depot, w.branche)
     joues.push({ chemin: w.chemin, geste: `git branch -d ${w.branche}`, ok: reussi(vuBranche), detail: rendu(vuBranche) })
   }
   // Un worktree `absent` (dossier disparu, `prunable`) suffit à justifier la taille : sans cela,
   // l'inventaire le répéterait à chaque passage tant qu'aucun retrait n'a lieu par ailleurs.
-  if (joues.length || worktrees.some((w) => w.classe === 'absent')) {
+  if (tentes.every((t) => nature(t.chemin) === 'absent') && (joues.length || worktrees.some((w) => w.classe === 'absent'))) {
     const vuPrune = gestes.elaguerWorktrees(depot)
     joues.push({ chemin: principal, geste: 'git worktree prune', ok: reussi(vuPrune), detail: rendu(vuPrune) })
   }
@@ -202,10 +209,7 @@ export function purger({ principal = RACINE, worktrees, gestes = GESTES_DE_LA_PU
       chemin: t.chemin,
       geste: `re-mesure ${t.chemin}`,
       ok: false,
-      detail: t.ok
-        ? `retiré par git, dossier présent : à retirer à la main (\`rm -rf ${t.chemin}\`)`
-        : `désenregistré ou non, dossier présent : à retirer à la main (\`rm -rf ${t.chemin}\`), ` +
-          `branche \`${t.branche ?? 'détachée'}\` conservée`,
+      detail: `dossier présent : ${t.chemin}, branche ${t.branche ?? 'détachée'} conservée`,
     })
   }
   return joues
@@ -219,6 +223,7 @@ function main() {
     process.exit(1)
   }
   for (const w of vu.worktrees) process.stdout.write(`${ligneDInventaire(w)}\n`)
+  if (vu.portee) process.stdout.write(vu.portee + '\n')
   const comptes = comptesParClasse(vu.worktrees)
   process.stdout.write(`\n${Object.entries(comptes).map(([c, n]) => `${c}=${n}`).join(' ')}\n`)
   if (!vu.fusionLue) process.stdout.write('origin/main non lu (fetch indisponible) : aucun verdict de fusion\n')

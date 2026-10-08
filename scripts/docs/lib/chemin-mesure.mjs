@@ -1,6 +1,6 @@
-// Décision « ce chemin lu est-il sous la racine MESURÉE ? » (#1721) — feuille pure, partagée par les
+// Décision « ce chemin lu est-il sous la racine MESURÉE ? » (#1721) — module partagé par les
 // deux volets de l'enregistreur de lectures (thread principal `enregistreur-lectures.mjs`, thread des
-// hooks `enregistreur-hooks.mjs`), qui la portaient chacun en copie.
+// hooks `enregistreur-hooks.mjs`).
 //
 // NTFS est INSENSIBLE À LA CASSE : `c:\…` et `C:\…`, ou un segment dont la casse diffère de celle de
 // la racine, désignent le même fichier. Une comparaison d'octets (`abs.startsWith(base + sep)`)
@@ -15,37 +15,47 @@ import path from 'node:path'
 
 /** Ancêtre EXISTANT le plus proche d'un chemin absolu (lui-même s'il existe), ou `null` quand rien
  *  n'existe jusqu'à la racine (lecteur absent). */
-export function ancetreExistant(abs) {
+export function ancetreExistant(abs, { strict = false } = {}) {
   let ancetre = abs
-  while (!fs.existsSync(ancetre)) {
+  while (true) {
+    if (strict) {
+      try { fs.statSync(ancetre); return ancetre }
+      catch (e) {
+        if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw new Error(`ancêtre illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
+      }
+    } else if (fs.existsSync(ancetre)) return ancetre
     const parent = path.dirname(ancetre)
     if (parent === ancetre) return null
     ancetre = parent
   }
-  return ancetre
 }
 
 /**
  * Forme CANONIQUE d'un chemin : `fs.realpathSync.native` rend la casse telle que le disque la porte
  * et suit jonctions et noms courts 8.3. Un chemin ABSENT du disque (le fichier d'un Write de
  * création) se canonise par son ancêtre EXISTANT le plus proche, le reste recollé tel quel : la
- * jonction traversée en amont est suivie quand même (#1973). Ancêtre illisible : la forme résolue —
- * `path.relative` compare déjà sans la casse sur win32, le repli reste juste.
+ * jonction traversée en amont est suivie quand même (#1973). Sans `strict`, une lecture illisible
+ * garde la forme lexicale ; avec `strict`, seuls ENOENT et ENOTDIR permettent la remontée.
  *
  * DIRECTION de ce que suivre une jonction change : un fichier lu SOUS la racine par une jonction qui
  * pointe HORS d'elle devient un chemin hors racine — il est compté REJETÉ, pas retenu (mesuré sur une
  * jonction réelle). L'inverse tient aussi : la racine étant canonisée, un chemin atteint par une
  * jonction qui pointe DANS la racine y rentre.
  */
-export function canoniser(chemin) {
+export function canoniser(chemin, { strict = false } = {}) {
   const abs = path.resolve(chemin)
-  const ancetre = ancetreExistant(abs)
-  if (ancetre === null) return abs
-  try {
-    return path.join(fs.realpathSync.native(ancetre), path.relative(ancetre, abs))
-  } catch {
-    return abs
+  let ancetre = ancetreExistant(abs, { strict })
+  while (ancetre !== null) {
+    try { return path.join(fs.realpathSync.native(ancetre), path.relative(ancetre, abs)) }
+    catch (e) {
+      if (!strict) return abs
+      if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw new Error(`canonisation physique illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
+      const parent = path.dirname(ancetre)
+      if (parent === ancetre) return abs
+      ancetre = ancetreExistant(parent, { strict })
+    }
   }
+  return abs
 }
 
 /**
@@ -87,3 +97,5 @@ export function dansLaMesure(rel, ignores) {
   for (let fin = rel.length; fin > 0; fin = rel.lastIndexOf('/', fin - 1)) if (ignores.has(rel.slice(0, fin))) return false
   return true
 }
+
+export const CONTRATS_DE_DERIVATION = [{ fonction: ancetreExistant, lectures: 'corpus' }, { fonction: canoniser, lectures: 'corpus' }]

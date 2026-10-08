@@ -1,7 +1,7 @@
 /**
  * Génère docs/ajouter-une-icone.md — recette d'ajout d'une icône + état du registre.
  * La part FACTUELLE (familles et ids du registre, charte de dessin lue au fichier étalon,
- * signatures des 3 rendus, entrée `ICON_FAMILIES` de gen-registry.mjs, données JSON porteuses
+ * signatures des 3 rendus, entrée `ICON_FAMILIES` de lib/cibles-registres.mjs, données JSON porteuses
  * d'une icône, périmètre et glyphes tolérés du garde anti-emoji) est DÉRIVÉE des fichiers réels,
  * fail-fast si l'un disparaît ; la part ÉDITORIALE (pourquoi passer par le registre, quoi vérifier
  * avant de committer) vit ICI, en dur.
@@ -18,20 +18,22 @@ import { readFileSync, existsSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 import { ALLOWED_CHARS } from '../guards/lib/emojiAffordance.mjs'
+import { REGISTRIES } from './lib/cibles-registres.mjs'
+
+const OUTIL = 'build-icones'
+
+function abandon(msg) {
+  console.error(`${OUTIL} — ${msg}`)
+  process.exit(1)
+}
+
+function lire(p) {
+  if (!existsSync(p)) abandon(`fichier « ${p} » introuvable (déplacé/supprimé ?)`)
+  return readFileSync(p, 'utf8')
+}
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
-  const OUTIL = 'build-icones'
-
-  function abandon(msg) {
-    console.error(`${OUTIL} — ${msg}`)
-    process.exit(1)
-  }
-
-  function lire(p) {
-    if (!existsSync(p)) abandon(`fichier « ${p} » introuvable (déplacé/supprimé ?)`)
-    return readFileSync(p, 'utf8')
-  }
 
   /** Première capture d'un motif, fail-fast (une constante déplacée casse ici, pas dans le .md). */
   function capture(texte, motif, quoi, ou) {
@@ -135,24 +137,13 @@ function rendu() {
 
   // ── Entrée du générateur de registres ────────────────────────────────────────────────────────────
 
-  const GEN = lire('scripts/gen-registry.mjs')
-  const ENTREE = (() => {
-    const lignes = GEN.split('\n')
-    const i = lignes.findIndex((l) => l.includes("arrayName: 'ICON_FAMILIES'"))
-    if (i === -1) abandon("l'entrée `ICON_FAMILIES` introuvable dans scripts/gen-registry.mjs (renommée/déplacée ?)")
-    let debut = i
-    while (debut > 0 && !/^\s*\{\s*$/.test(lignes[debut])) debut -= 1
-    let fin = i
-    while (fin < lignes.length - 1 && !/^\s*\},?\s*$/.test(lignes[fin])) fin += 1
-    return lignes.slice(debut, fin + 1).join('\n')
-  })()
-  const CHAMPS_ENTREE = Object.fromEntries(
-    [...ENTREE.matchAll(/(\w+):\s*'([^']+)'/g)].map((m) => [m[1], m[2]]),
-  )
+  const CHAMPS_ENTREE = REGISTRIES.find(r => r.arrayName === 'ICON_FAMILIES')
+  if (!CHAMPS_ENTREE) abandon("l'entrée `ICON_FAMILIES` introuvable dans scripts/docs/lib/cibles-registres.mjs")
   for (const requis of ['dir', 'out', 'arrayName']) {
-    if (!CHAMPS_ENTREE[requis]) abandon(`l'entrée ICON_FAMILIES de gen-registry.mjs n'a plus de champ « ${requis} »`)
+    if (typeof CHAMPS_ENTREE[requis] !== 'string' || !CHAMPS_ENTREE[requis].trim()) abandon(`l'entrée ICON_FAMILIES de scripts/docs/lib/cibles-registres.mjs n'a plus de champ « ${requis} »`)
   }
-  const UNION = capture(ENTREE, /idUnion: \{ typeName: '([^']+)'/, "le `typeName` de l'union d'ids ICON_FAMILIES", 'scripts/gen-registry.mjs')
+  const UNION = CHAMPS_ENTREE.idUnion?.typeName
+  if (typeof UNION !== 'string' || !UNION.trim()) abandon("le `typeName` de l'union d'ids ICON_FAMILIES est absent de scripts/docs/lib/cibles-registres.mjs")
 
   const TYPES_TS = lire('src/ui/icons/types.ts')
   const ALIAS_ID = capture(TYPES_TS, /export type (IconId) =/, "l'alias `IconId`", 'src/ui/icons/types.ts')
@@ -268,7 +259,7 @@ function rendu() {
 \`src/ui/icons/_registry.generated.ts\` (familles, ids, comptes), la charte de dessin et les
 constantes de trait de \`src/ui/icons/defs/action.ts\`, la regex de nommage et les couleurs admises
 de \`src/ui/icons/icons.test.ts\`, les signatures des trois rendus de \`src/ui/Icon.tsx\`, l'entrée
-\`ICON_FAMILIES\` de \`scripts/gen-registry.mjs\`, les valeurs \`"icon"\` des \`src/data/*.json\`, et le
+\`ICON_FAMILIES\` de \`scripts/docs/lib/cibles-registres.mjs\`, les valeurs \`"icon"\` des \`src/data/*.json\`, et le
 périmètre + les glyphes tolérés du garde anti-emoji
 (\`scripts/guards/lib/emojiAffordance.mjs\`, \`src/ui/no-emoji-affordance.test.ts\`) — dont l'ABSENCE de
 stock d'exceptions, contrôlée aux identifiants déclarés/importés par cette garde. **Angles morts** :
@@ -331,7 +322,7 @@ npm run gen
 
 Réécrit \`${CHAMPS_ENTREE.out}\` (import explicite de chaque fichier de \`${CHAMPS_ENTREE.dir}\` +
 union de littéraux \`${UNION}\`, dérivée des champs \`id: '…'\` — script générique
-\`scripts/gen-registry.mjs\`, entrée \`${CHAMPS_ENTREE.arrayName}\`). Auto en dev (plugin Vite) et
+\`scripts/gen-registry.mjs\`, entrée \`${CHAMPS_ENTREE.arrayName}\` de \`scripts/docs/lib/cibles-registres.mjs\`). Auto en dev (plugin Vite) et
 câblé dans \`npm run build\` — mais lancer la commande à la main après un ajout pour vérifier le
 compteur de fichiers (\`${CHAMPS_ENTREE.arrayName} ← N fichiers\`) ; le fichier généré ne se committe pas (#2203).
 

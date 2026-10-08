@@ -59,6 +59,37 @@ test('découpe : un split sur NUL hors de l’hôte', () => {
   assert.deepEqual(formes("sortie.split('\\n')"), [])
 })
 
+test('les données NUL de fs se distinguent des sorties Git par leur provenance', () => {
+  for (const texte of [
+    "import { readFileSync as lire } from 'node:fs'; lire('/proc/123/cmdline', 'utf8').split('\\0')",
+    "import fs from 'fs'; fs.readFileSync('/proc/123/cmdline').toString().split('\\x00')",
+    "import * as disque from 'node:fs'; disque.readFileSync('/proc/123/cmdline', 'utf8').split('\\u0000')",
+    "import fs from 'node:fs'; const lire = fs.readFileSync; lire('/proc/123/cmdline', 'utf8').split('\\0')",
+    "const { readFileSync: lire } = require('fs'); (lire('/proc/123/cmdline', 'utf8')).split('\\0')",
+    "const fs = require('node:fs'); fs.readFileSync('/proc/123/cmdline', 'utf8').split('\\0')",
+    "import { readFile } from 'node:fs/promises'; (await readFile('/proc/123/cmdline', 'utf8')).split('\\0')",
+    "import fs from 'node:fs'; const promises = fs.promises; (await promises.readFile('/proc/123/cmdline')).toString().split('\\0')",
+  ]) assert.deepEqual(formes(texte), [], texte)
+  for (const texte of [
+    "import { readFileSync as lire } from './autre.mjs'; lire('x').split('\\0')",
+    "import fs from 'node:fs'; function f(fs) { return fs.readFileSync('x').split('\\0') }",
+    "import fs from 'node:fs'; let lire = fs.readFileSync; lire = autre; lire('x').split('\\0')",
+    "import fs from 'node:fs'; const lire = fs.readFileSync; lire = autre; lire('x').split('\\0')",
+    "function require() { return autre }; require('node:fs').readFileSync('x').split('\\0')",
+    "import fs from 'node:fs'; const contenu = fs.readFileSync('x'); contenu = sortieGit; contenu.split('\\0')",
+    "import fs from 'node:fs'; const contenu = fs.readFileSync('x'); contenu.split('\\0')",
+    "import fs from 'node:fs'; const contenu = fs.readFileSync('x'); contenu.toString = () => sortieGit; contenu.toString().split('\\0')",
+    "import fs from 'node:fs'; fs['readFileSync'] = autre; fs.readFileSync('x').split('\\0')",
+    "import fs from 'node:fs'; fs.readFileSync('x').split('\\0'); git(['status']).split('\\0')",
+    "git(['status']).toString().split('\\0')",
+    "inconnu().split('\\0')",
+  ]) assert.deepEqual(formes(texte), [[1, 'decoupe']], texte)
+})
+
+test('une syntaxe invalide ne blanchit pas une découpe NUL', () => {
+  assert.throws(() => formes("const = ; sortie.split('\\0')"), /syntaxe indéterminée.*x\.mjs/)
+})
+
 test('forme : une option qui produit des chemins, où qu’elle soit écrite hors de l’hôte', () => {
   assert.deepEqual(formes("lire(['diff', '--cached', '--name-only']).split('\\n')"), [[1, 'forme']])
   assert.deepEqual(formes("const args = ['ls-files', '-z']"), [[1, 'forme'], [1, 'forme']])

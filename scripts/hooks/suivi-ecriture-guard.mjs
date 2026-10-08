@@ -1,43 +1,13 @@
-// Garde PreToolUse de l'ÉCRITURE du suivi de vague (#2460) : `.git/suivi/<N>.json`, sa mesure
-// `<N>.mesure.json` et l'ancien `<N>.md` ne s'écrivent que par `scripts/ops/suivi.mjs`. « Ca aurait du
-// etre un json modifiable que via des outils adaptés, histoire d'éviter de faire n'importe quoi dessus,
-// non ? » (utilisateur, 2026-10-07, #2460). Design jugé : #2460, commentaire 6044039158, §3.
-//
-// - Write, Edit, `ctx_patch` (`OUTILS_ECRITURE`) : refus quand le chemin résolu (`cheminDEcriture`) est
-//   un tel fichier, directement sous `dossierDesSuivis`.
-// - Shell (`OUTILS_SHELL`) : refus quand, dans un segment exécuté, un tel fichier cité sous un chemin `suivi`
-//   est la CIBLE d'une redirection (`ciblesDeRedirection`), ou un argument d'une commande qui ÉCRIT
-//   (`ECRIVAINS`, un interpréteur `INTERPRETES`, `ecritMalgreLaTete` : `sed -i`, `sort -o`…) hors d'un
-//   lancement de `scripts/ops/suivi.mjs` (`lancementsDuSuivi`). Un chemin cité dans un argument TEXTE
-//   (`gh … --body "voir .git/suivi/665.json"`, un geste du suivi) n'est pas une écriture ; une lecture
-//   (`cat`, `Get-Content`) non plus.
-//
-// Poreuse par construction : un script FICHIER qui écrit le JSON, un `cd .git/suivi && cp a 665.json`, un
-// éditeur externe passent. La seconde ligne, indépendante du canal, est la lecture : schéma et
-// empreinte (`lireSuivi`, scripts/ops/suiviDonnee.mjs) disent un suivi écrit hors de l'outil.
+// #2460, commentaire 6044039158, §3 ; #2498.
 import { basename, dirname } from 'node:path'
 import { OUTILS_ECRITURE, OUTILS_SHELL, cheminDEcriture, commandeDe, ecrituresDe, outilCouvert } from '../guards/lib/contratGarde.mjs'
-import { basenameExecutable, ciblesDeRedirection, ecritMalgreLaTete, sansRedirections } from '../guards/lib/commandeShell.mjs'
+import { ciblesDEcritureDeCommande } from '../guards/lib/ecrituresShell.mjs'
 import { dossierDesSuivis } from '../guards/lib/gitPorte.mjs'
 import { canoniser } from '../docs/lib/chemin-mesure.mjs'
 import { lancementsDuSuivi } from './suivi-lien-guard.mjs'
 
 /** Le nom d'un fichier de suivi gardé. */
 const FICHIER_DE_SUIVI = /^\d+\.(?:json|mesure\.json|md)$/
-
-/** Un fichier de suivi gardé, cité sous un chemin `suivi`. */
-const CITE = /suivi[\\/]+\d+\.(?:mesure\.json|json|md)(?![\w.])/
-
-/** Les commandes qui ÉCRIVENT les chemins qu'elles reçoivent : copie, déplacement, création, troncature,
- *  suppression — POSIX et PowerShell (cmdlets et alias). */
-const ECRIVAINS = new Set([
-  'cp', 'mv', 'tee', 'touch', 'rm', 'ln', 'install', 'dd', 'truncate',
-  'set-content', 'sc', 'add-content', 'ac', 'out-file', 'tee-object', 'new-item', 'ni', 'copy-item', 'cpi', 'copy',
-  'move-item', 'mi', 'move', 'remove-item', 'ri', 'del', 'erase', 'rename-item', 'rni',
-])
-
-/** Les interpréteurs : leur code en ligne (`node -e`, `python -c`, `pwsh -Command`) écrit ce qu'il veut. */
-const INTERPRETES = new Set(['node', 'python', 'python3', 'py', 'perl', 'ruby', 'deno', 'bun', 'bash', 'sh', 'zsh', 'pwsh', 'powershell'])
 
 /** Le refus, pour le fichier `cite`. PURE. */
 const refus = (cite) => ({
@@ -59,29 +29,20 @@ function refusDEcriture(ecrit, dir) {
   return dossier.disponible && meme(dirname(chemin.reel), canoniser(dossier.valeur)) ? refus(chemin.reel) : null
 }
 
-/** Vrai si le segment (textes) est une commande qui écrit ses arguments. PURE. */
-const ecritSesArguments = (textes) => {
-  const tete = basenameExecutable(textes[0])
-  return ECRIVAINS.has(tete) || INTERPRETES.has(tete) || ecritMalgreLaTete(textes)
-}
-
 /** Le refus d'une commande shell, `null` si aucun fichier de suivi n'y est la cible d'une écriture. PURE. */
-function refusDeCommande(commande) {
-  if (!CITE.test(commande)) return null
+function refusDeCommande(commande, dir) {
   const { segments, lancements } = lancementsDuSuivi(commande)
-  for (const s of segments) {
-    const ecrits = [
-      ...ciblesDeRedirection(s.source.jetons),
-      ...(!lancements.has(s) && ecritSesArguments(s.jetons) ? sansRedirections(s.source.jetons).slice(1).map((j) => j.text) : []),
-    ]
-    const cite = ecrits.map((t) => CITE.exec(t)?.[0]).find(Boolean)
-    if (cite) return refus(cite)
+  const autorises = new Set([...lancements].map(s => s.source))
+  for (const cible of ciblesDEcritureDeCommande(commande, { base: dir, segments: segments.map(s => s.source), exclureArguments: s => autorises.has(s) })) {
+    if (cible.inconnue) continue
+    const refuse = refusDEcriture({ path: cible.chemin }, dir)
+    if (refuse) return refuse
   }
   return null
 }
 
-function evaluer(entree, { dir }) {
-  if (outilCouvert(OUTILS_SHELL, entree.tool_name)) return refusDeCommande(commandeDe(entree))
+function evaluer(entree, { dir, baseDeLAppel }) {
+  if (outilCouvert(OUTILS_SHELL, entree.tool_name)) return refusDeCommande(commandeDe(entree), baseDeLAppel)
   return ecrituresDe(entree).map((ecrit) => refusDEcriture(ecrit, dir))
 }
 

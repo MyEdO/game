@@ -34,7 +34,7 @@ const PORTES_GIT = Object.freeze({
 })
 
 /** Préfiltre textuel : un module sans appel nommé d'une lecture n'a aucun site de base. */
-export const APPEL_DE_LECTURE = new RegExp(`\\b(?:${[...PRIMITIVES, ...Object.keys(PORTES_GIT)].join('|')})\\s*\\(`)
+export const APPEL_DE_LECTURE = new RegExp(`\\bCONTRATS_DE_DERIVATION\\b|\\b(?:${[...PRIMITIVES, ...Object.keys(PORTES_GIT)].join('|')})\\s*\\(`)
 
 const CHEMINS = new Set(['join', 'resolve'])
 /** Les receveurs d'un `join`/`resolve` de chemin : le module `node:path` et ses variantes. */
@@ -160,8 +160,9 @@ export function lecteurDExpressions(rel, arbre) {
         const liaisons = s.importClause.namedBindings
         if (liaisons && ts.isNamedImports(liaisons))
           for (const e of liaisons.elements) poser(e.name.text, { importe: s.moduleSpecifier.text, nom: (e.propertyName ?? e.name).text })
-        if (s.importClause.name) poser(s.importClause.name.text, { horsNom: true })
-        if (liaisons && ts.isNamespaceImport(liaisons)) poser(liaisons.name.text, { horsNom: true })
+        const builtin = ['node:os', 'os', 'node:fs', 'fs'].includes(s.moduleSpecifier.text)
+        if (s.importClause.name) poser(s.importClause.name.text, builtin ? { importe: s.moduleSpecifier.text, nom: 'default' } : { horsNom: true })
+        if (liaisons && ts.isNamespaceImport(liaisons)) poser(liaisons.name.text, builtin ? { importe: s.moduleSpecifier.text, nom: '*' } : { horsNom: true })
       }
     }
     blocs.set(instructions, index)
@@ -333,12 +334,17 @@ export function lecteurDExpressions(rel, arbre) {
       const receveur = ts.isPropertyAccessExpression(n.expression) ? n.expression.expression : null
       if (CHEMINS.has(nom) && (!receveur || (ts.isIdentifier(receveur) && MODULES_DE_CHEMIN.has(receveur.text)) ||
         (ts.isPropertyAccessExpression(receveur) && MODULES_DE_CHEMIN.has(receveur.name.text))))
-        return { k: 'join', v: args.map((a) => expr(a, p)) }
+        return { k: nom, v: args.map((a) => expr(a, p)) }
       if (nom === 'join' && receveur && ts.isCallExpression(receveur) && nomAppele(receveur) === 'split' && ts.isPropertyAccessExpression(receveur.expression))
         return expr(receveur.expression.expression, p)
       if (nom === 'dirname' && args[0]) return { k: 'dir', v: expr(args[0], p) }
       if (nom === 'cwd' && ts.isPropertyAccessExpression(n.expression) && texteDe(n.expression.expression) === 'process') return { k: 'chemin', v: '' }
-      if (nom === 'tmpdir' || nom === 'mkdtempSync') return { k: 'hors' }
+      const receveurLie = receveur && ts.isIdentifier(receveur) ? lier(receveur, p) : null
+      const lie = ts.isIdentifier(n.expression) ? lier(n.expression, p)
+        : receveurLie?.k === 'importe' && ['*', 'default'].includes(receveurLie.nom) ? { ...receveurLie, nom } : null
+      if (lie?.k === 'importe' && ['node:os', 'os'].includes(lie.spec) && lie.nom === 'tmpdir') return { k: 'couverture', origine: 'node:os#tmpdir', raison: 'répertoire temporaire dépendant de l’environnement' }
+      if (lie?.k === 'importe' && ['node:fs', 'fs'].includes(lie.spec) && lie.nom === 'mkdtempSync' && args[0]) return { k: 'temporaire', prefixe: expr(args[0], p) }
+      if (nom === 'readdirSync' && args[0]) return { k: 'fragment', de: expr(args[0], p) }
       if (['fileURLToPath', 'depotDe', 'depotReel', 'freeze'].includes(nom) && args[0]) return expr(args[0], p)
       if ((nom === 'replace' || nom === 'replaceAll') && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
       if (SOUS_ENSEMBLES.has(nom) && ts.isPropertyAccessExpression(n.expression)) return expr(n.expression.expression, p)
@@ -411,6 +417,15 @@ export function lectureDeModule(rel, arbre) {
       }
     }
   }
+  const declaration = exports.CONTRATS_DE_DERIVATION
+  if (declaration?.k === 'liste') for (const descriptor of declaration.v) {
+    if (descriptor.k !== 'objet') continue
+    const { fonction, namespace, champ, lectures } = descriptor.v
+    if (fonction?.k !== 'fn' || !Object.hasOwn(fonctions, fonction.id)) continue
+    if (namespace?.k === 'lit' && typeof namespace.v === 'string' && namespace.v && !namespace.v.split('/').includes('..'))
+      fonctions[fonction.id].contrat = { namespace: namespace.v, ...(champ?.k === 'lit' ? { champ: champ.v } : {}) }
+    else if (lectures?.k === 'lit' && lectures.v === 'corpus') fonctions[fonction.id].contrat = { lectures: 'corpus' }
+  }
   return { sites, fonctions, exports, etoiles }
 }
 
@@ -467,7 +482,10 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   let objets = 0
   /** La clé d'une valeur : un objet rendu vaut par identité. */
   const cleDe = (v) => {
-    if ('chemin' in v) return `c${v.sous === undefined ? '' : '*'}${v.chemin}`
+    if ('chemin' in v) return `c${v.chemin}:${v.sous ?? ''}`
+    if ('espace' in v) return `e${v.espace}:${v.cheminExterne}`
+    if ('fragment' in v) return `d${cleDe(v.fragment)}`
+    if ('couvertureCorpusEntier' in v) return `u${JSON.stringify(v.couvertureCorpusEntier)}`
     if ('texte' in v) return `t${v.texte}`
     if ('non' in v) return `n${v.non}`
     if ('relais' in v) return `r${v.relais}`
@@ -509,6 +527,14 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
       case 'lit': return [{ texte: e.v }]
       case 'chemin': return [borne(posix.normalize(e.v || '.'))]
       case 'hors': return [{ hors: true }]
+      case 'espace': return [{ espace: e.racine, cheminExterne: e.chemin }]
+      case 'couverture': return [couverture(e.origine, e.raison)]
+      case 'temporaire': return valeurs(e.prefixe, ctx).map((v) => {
+        if ('espace' in v) return { ...v, cheminExterne: posix.dirname(v.cheminExterne || '.') }
+        const prefixe = 'texte' in v ? ancrer(v.texte) : v
+        return 'chemin' in prefixe ? couverture(`corpus:${prefixe.chemin || '.'}`, 'suffixe aléatoire mkdtempSync') : prefixe
+      })
+      case 'fragment': return valeurs(e.de, ctx).map((base) => 'espace' in base ? { fragment: base } : { non: 'appel readdirSync' })
       case 'non': return [{ non: e.raison }]
       case 'transforme': return [{ non: e.raison }]
       case 'liste': case 'union': return uniques(e.v.flatMap((x) => valeurs(x, ctx)))
@@ -525,19 +551,19 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
         const arg = ctx.env.args[e.index]
         return arg ? uniques(arg.flatMap((v) => 'absent' in v ? defaut() : [v])) : defaut()
       }
-      case 'champ': return valeurs(e.de, ctx).flatMap((o) => 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)
+      case 'champ': return valeurs(e.de, ctx).flatMap((o) => 'fragment' in o && e.nom === 'name' ? [o] : 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)
         : 'objet' in o && o.etales ? uniques(o.etales.flatMap((x) => valeurs({ k: 'champ', de: x, nom: e.nom, texte: e.texte }, o.ctx))
           .flatMap((v) => 'absent' in v && e.defaut ? valeurs(e.defaut, ctx) : [v]))
         : 'objet' in o || 'absent' in o ? (e.defaut ? valeurs(e.defaut, ctx) : [{ absent: true }])
-        : 'non' in o || 'relais' in o || 'hors' in o ? [o] : [{ non: `propriété ${e.texte}` }])
+        : 'non' in o || 'relais' in o || 'hors' in o || 'couvertureCorpusEntier' in o ? [o] : [{ non: `propriété ${e.texte}` }])
       case 'appel': {
         const args = e.args.map((a) => valeurs(a, ctx))
         return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c ? retour(c.fn, args) : 'lambda' in c ? rendusDeLambda(c, e.texte)
           : 'relais' in c ? [c] : [{ non: `appel ${e.texte}` }])
       }
-      case 'dir': return valeurs(e.v, ctx).map((v) => 'chemin' in v ? borne(posix.dirname(v.chemin || '.')) : 'texte' in v ? { texte: posix.dirname(v.texte) } : v)
-      case 'join': case 'concat': {
-        const lier = e.k === 'join' ? joindre : concatener
+      case 'dir': return valeurs(e.v, ctx).map((v) => 'espace' in v ? parentExterne(v) : 'chemin' in v ? borne(posix.dirname(v.chemin || '.')) : 'texte' in v ? { texte: posix.dirname(v.texte) } : v)
+      case 'join': case 'resolve': case 'concat': {
+        const lier = e.k === 'concat' ? concatener : (a, s) => joindre(a, s, e.k === 'resolve')
         let acc = [{ texte: '' }]
         for (const partie of e.v) {
           const suite = valeurs(partie, ctx)
@@ -545,7 +571,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
           const presente = suite.some((x) => !('absent' in x))
           const vus = new Map()
           for (const a of acc) {
-            if (FINALES.some((k) => k in a)) {
+            if (['relais', 'non', 'absent'].some((k) => k in a)) {
               if (presente) vus.set(cleDe(a), a)
               if (absente) vus.set(cleDe(absente), absente)
               continue
@@ -595,6 +621,10 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   const retour = (fn, args) => sousPile(`retour ${fn.f}#${fn.id}`, args, fn.id, () => {
     const decl = lecture(fn.f)?.fonctions[fn.id]
     if (!decl) return [{ non: `fonction ${fn.id} illisible` }]
+    if (decl.contrat?.namespace) {
+      const rendu = { k: 'espace', racine: `${fn.f}#${fn.id}:${decl.contrat.namespace}`, chemin: '' }
+      return decl.contrat.champ ? valeurs({ k: 'objet', v: { [decl.contrat.champ]: rendu } }, { f: fn.f, env: null }) : valeurs(rendu, { f: fn.f, env: null })
+    }
     if (!decl.retours.length) return [{ non: `${fn.id} sans retour` }]
     return decl.retours.flatMap((r) => valeurs(r, { f: fn.f, env: { fn: fn.id, args } }))
   })
@@ -611,6 +641,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     const { resultat: { resultat: rendu, stable }, requetes } = tracer(() => memoisable(() => sousPile(`lectures ${fn.f}#${fn.id}`, args, fn.id, () => {
       const lu = lecture(fn.f)
       if (!lu) return [{ non: `module ${fn.f} illisible` }]
+      if (lu.fonctions[fn.id]?.contrat?.lectures === 'corpus') return [couverture(`${fn.f}#${fn.id}`, 'résumé de lecture déclaré à la source')]
       return uniques(lu.sites.filter((s) => s.dans === fn.id).flatMap((s) => lecturesDuSite(fn.f, s, { fn: fn.id, args })))
     })))
     if (stable) memo.set(cle, { rendu, requetes })
@@ -643,6 +674,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
         if (!peutLire(sommet.fn.f)) continue
         const lu = lecture(sommet.fn.f)
         if (!lu?.fonctions[sommet.fn.id]) { sommet.oui = true; continue }
+        if (lu.fonctions[sommet.fn.id].contrat?.lectures === 'corpus') { sommet.oui = true; continue }
         for (const site of lu.sites.filter((s) => s.dans === sommet.fn.id)) {
           if (site.lecture) { sommet.oui = true; continue }
           const cibles = valeurs(site.cible, { f: sommet.fn.f, env: null })
@@ -671,6 +703,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
    *  coupe répute relais : un « non » n'est jamais l'effet de la pile qui l'a vu, et la réponse se mémoïse. */
   const estRelais = (fn) => {
     const cle = `${fn.f}#${fn.id}`
+    if (lecture(fn.f)?.fonctions[fn.id]?.contrat?.lectures === 'corpus') return true
     if (!atteintLecture(fn)) return false
     const deja = relais.get(cle)
     if (deja) {
@@ -688,6 +721,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
 
   /** Les racines d'un site : la lecture elle-même, ou celles du relais appelé avec ses arguments. */
   function lecturesDuSite(f, site, env) {
+    if (env && lecture(f)?.fonctions[env.fn]?.contrat?.lectures === 'corpus') return [couverture(`${f}#${env.fn}`, 'résumé de lecture déclaré à la source')]
     const ctx = { f, env }
     const arg = (i) => site.args[i] ? valeurs(site.args[i], ctx) : [{ chemin: '' }]
     if (site.lecture) {
@@ -711,7 +745,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   }
 
   const finir = (vals) => uniques(vals).filter((v) => !('absent' in v))
-    .map((v) => 'texte' in v ? ancrer(v.texte) : 'fn' in v || 'objet' in v || 'lambda' in v ? { non: 'racine non chemin' } : v)
+    .map(racineFinale)
 
   return {
     /** Les sites de lecture d'un module et leurs racines ; un site RELAIS (racine liée à un paramètre de
@@ -721,7 +755,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
       if (!lu) return []
       const rendus = []
       for (const site of lu.sites) {
-        const vals = lecturesDuSite(f, site, site.dans ? { fn: site.dans, args: null } : null)
+        const vals = finir(lecturesDuSite(f, site, site.dans ? { fn: site.dans, args: null } : null))
         if (!vals.length) continue
         rendus.push({ ligne: site.ligne, appel: site.appel, relais: vals.some((v) => 'relais' in v), valeurs: vals.filter((v) => !('relais' in v)) })
       }
@@ -739,9 +773,6 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     tracer,
   }
 }
-
-/** Les valeurs qui absorbent ce qui les suit dans un `join` ou un gabarit (`joindre`). */
-const FINALES = Object.freeze(['relais', 'hors', 'non', 'absent'])
 
 /** Une REQUÊTE de l'évaluateur, en texte : `lecture` d'un module, `cible` d'un spécificateur, `peutLire`. */
 export const requeteDe = (...parties) => JSON.stringify(parties)
@@ -762,25 +793,47 @@ const borne = (chemin) => {
   return net === '..' || net.startsWith('../') ? { hors: true } : { chemin: net }
 }
 
-/** `join` : une partie non résolue APRÈS un préfixe résolu non vide rend le préfixe, lu comme dossier
- *  (`sous`) ; un relais absorbe ce qui le suit. */
-function joindre(a, s) {
-  if ('absent' in s) return s
-  if ('relais' in a || 'hors' in a || 'non' in a || 'absent' in a) return a
-  if ('relais' in s || 'hors' in s) return s
+function joindre(a, s, absoluRemplace = false) {
+  if ('couvertureCorpusEntier' in a || 'couvertureCorpusEntier' in s) return 'couvertureCorpusEntier' in a ? a : s
+  if ('relais' in a || 'relais' in s) return 'relais' in a ? a : s
+  if ('non' in a && 'espace' in s) return couverture(s.espace, a.non)
+  if ('non' in s && 'espace' in a) return couverture(a.espace, s.non)
+  if ('non' in a) return a
+  if ('absent' in a || 'absent' in s) return 'absent' in a ? a : s
+  if ('fragment' in s) return JSON.stringify(s.fragment) === JSON.stringify(a) && 'espace' in a ? couverture(a.espace, 'descente par fragment de namespace susceptible de lien') : { non: 'fragment de répertoire hors de sa base' }
+  if ('espace' in a) {
+    if (!('texte' in s)) return couverture(a.espace, 'suffixe externe indéterminé')
+    if (/^([a-zA-Z]:)?[\\/]/.test(s.texte)) return couverture(a.espace, `chemin absolu ${s.texte}`)
+    const cheminExterne = posix.join(a.cheminExterne || '.', s.texte.replace(/\\/g, '/'))
+    return cheminExterne === '..' || cheminExterne.startsWith('../') ? couverture(a.espace, 'sortie du namespace externe') : { ...a, cheminExterne }
+  }
+  if ('espace' in s) return 'texte' in a && !a.texte ? s : couverture(s.espace, 'namespace externe recomposé')
+  if ('hors' in a || 'hors' in s) return { non: 'origine extérieure sans borne' }
   if ('non' in s) {
     const prefixe = 'chemin' in a ? a : a.texte ? ancrer(a.texte) : null
-    return prefixe && 'chemin' in prefixe && prefixe.chemin ? { chemin: prefixe.chemin, sous: s.non } : s
+    return prefixe && 'chemin' in prefixe ? couverture(`corpus:${prefixe.chemin || '.'}`, s.non) : s
   }
   if ('fn' in s || 'objet' in s || 'lambda' in s) return { non: 'racine non chemin' }
   if ('chemin' in s) return s
-  if ('chemin' in a) return /^([a-zA-Z]:)?[\\/]/.test(s.texte) ? { non: `chemin absolu ${s.texte}` } : borne(posix.join(a.chemin || '.', s.texte.replace(/\\/g, '/')))
-  return { texte: a.texte ? posix.join(a.texte, s.texte) : s.texte }
+  if ('chemin' in a) return /^([a-zA-Z]:)?[\\/]/.test(s.texte) && absoluRemplace ? { non: `chemin absolu ${s.texte}` } : borne(posix.join(a.chemin || '.', s.texte.replace(/\\/g, '/')))
+  return { texte: a.texte ? absoluRemplace && /^([a-zA-Z]:)?[\\/]/.test(s.texte) ? s.texte : posix.join(a.texte, s.texte) : s.texte }
 }
+
+const parentExterne = (v) => v.cheminExterne && v.cheminExterne !== '.'
+  ? { ...v, cheminExterne: posix.dirname(v.cheminExterne) } : couverture(v.espace, 'parent du namespace externe')
+
+const couverture = (origine, raison) => ({ couvertureCorpusEntier: { origine, raison } })
+
+const racineFinale = (v) => 'couvertureCorpusEntier' in v
+  ? { chemin: '', sous: `couverture corpus entier : ${v.couvertureCorpusEntier.origine} — ${v.couvertureCorpusEntier.raison}` }
+  : 'espace' in v ? v.cheminExterne && v.cheminExterne !== '.' ? racineFinale(couverture(v.espace, 'descente dans namespace susceptible de lien')) : { hors: true }
+    : 'fragment' in v ? { non: 'fragment de répertoire sans sa base' }
+      : 'texte' in v ? ancrer(v.texte)
+        : 'fn' in v || 'objet' in v || 'lambda' in v ? { non: 'racine non chemin' } : v
 
 /** Concaténation de gabarit : un chemin suivi d'un texte s'y joint, séparateur de tête retiré. */
 function concatener(a, s) {
-  if ('chemin' in a && 'texte' in s) return joindre(a, { texte: s.texte.replace(/^[\\/]+/, '') })
+  if (('chemin' in a || 'espace' in a) && 'texte' in s) return joindre(a, { texte: s.texte.replace(/^[\\/]+/, '') })
   if ('texte' in a && 'texte' in s) return { texte: a.texte + s.texte }
   if ('texte' in a && !a.texte) return s
   return joindre(a, s)
@@ -793,5 +846,5 @@ function concatener(a, s) {
  */
 export function evaluer(e) {
   return evaluateurDuDepot({ lecture: () => null, cible: () => null }).valeurs(e, { f: '', env: null })
-    .filter((v) => !('absent' in v)).map((v) => 'texte' in v ? ancrer(v.texte) : v)
+    .filter((v) => !('absent' in v)).map(racineFinale)
 }
