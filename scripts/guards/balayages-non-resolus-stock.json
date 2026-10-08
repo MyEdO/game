@@ -4263,12 +4263,6 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/ops/session.test.mjs",
-      "ref": "lancerSession : appel argumentsAction.shift",
-      "occurrence": 2
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "scripts/ops/synchroniser.test.mjs",
       "ref": "commitDe : appel lanceurs.get",
       "occurrence": 1
@@ -32928,30 +32922,6 @@
       "fichier": "scripts/hooks/suivi-lien-guard.test.mjs",
       "ref": "repartir : appel String(vu.valeur.stdout).trim",
       "occurrence": 4
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/ops/session.mjs",
-      "ref": "commandeSession : appel String(vu.valeur.stdout).trim",
-      "occurrence": 1
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/ops/session.mjs",
-      "ref": "lancerSession : appel String(vu.valeur.stdout).trim",
-      "occurrence": 1
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/ops/session.test.mjs",
-      "ref": "commandeSession : appel String(vu.valeur.stdout).trim",
-      "occurrence": 1
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/ops/session.test.mjs",
-      "ref": "commandeSession : appel String(vu.valeur.stdout).trim",
-      "occurrence": 2
     },
     {
       "famille": "sortie de processus",
