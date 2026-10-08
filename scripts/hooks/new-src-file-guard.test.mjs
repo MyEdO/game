@@ -11,7 +11,7 @@ import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 import { REGISTRE } from './registre.mjs'
 import {
   estComposantUI, estDeclare, relPath, cheminEntree, maquetteEntree, REGISTRE_DEFAUT, cheminRegistre,
-  MANIFESTE_PRIMITIVES, garde,
+  MANIFESTE_PRIMITIVES, garde, cheminJournal, JOURNAL,
 } from './new-src-file-guard.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -128,11 +128,20 @@ test('une maquette de RÉSERVATION (« TODO ») ne déclare rien', () => {
 })
 
 test('échappement SKIP_NEW_SRC_GUARD=1 → passe, et LOGGUE la dérogation', () => {
-  const r = lance(join(REPO, FANTOME), { SKIP_NEW_SRC_GUARD: '1' })
-  assert.equal(r.code, 0)
-  assert.match(r.err, /\[trace\] .*new-src-guard-skips\.log : .* SKIP_NEW_SRC_GUARD=1 /)
-  assert.match(r.err, new RegExp(FANTOME))
-  assert.match(r.out, /additionalContext/)
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-journal-garde-'))
+  const journal = join(dossier, 'new-src-guard-skips.log')
+  try {
+    const r = lance(join(REPO, FANTOME), { SKIP_NEW_SRC_GUARD: '1', WFRP_JOURNAL_NEW_SRC_GUARD: journal })
+    assert.equal(r.code, 0)
+    assert.match(r.err, /\[trace\] .*new-src-guard-skips\.log : .* SKIP_NEW_SRC_GUARD=1 /)
+    assert.match(r.err, new RegExp(FANTOME))
+    assert.match(r.out, /additionalContext/)
+    assert.match(readFileSync(journal, 'utf8'), new RegExp(`^.* SKIP_NEW_SRC_GUARD=1 ${FANTOME}\\n$`))
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+  assert.equal(cheminJournal({}), JOURNAL)
+  assert.equal(cheminJournal({ WFRP_JOURNAL_NEW_SRC_GUARD: 'X' }), 'X')
 })
 
 test('un harnais .test.tsx et un fichier hors src/ui ne sont pas bloqués', () => {

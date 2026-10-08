@@ -47,6 +47,10 @@ test('affectation autonome, préfixe et portée sous-shell', () => {
 test('AST : identité fs, alias, ombre, réaffectation et rôles', () => {
   const chemins = texte => ciblesDEcritureJS(texte).map(c => c.chemin)
   assert.deepEqual(chemins("require('fs').readFileSync('.superpowers/x')"), [])
+  assert.deepEqual(chemins("require('fs').openSync('x', 'r')"), [])
+  assert.deepEqual(chemins("require('fs').openSync('x', 0)"), [])
+  assert.deepEqual(chemins("require('fs').openSync('x', 'r+')"), ['x'])
+  assert.deepEqual(chemins("require('fs').openSync('x', 2)"), ['x'])
   assert.deepEqual(chemins("require('fs').toString('.superpowers/x')"), [])
   assert.deepEqual(chemins("require('fs').writeFileSync('.superpowers/x', 'a')"), ['.superpowers/x'])
   assert.deepEqual(chemins("const fs=require('node:fs'); const alias=fs; alias.copyFileSync('source', 'dest')"), ['dest'])
