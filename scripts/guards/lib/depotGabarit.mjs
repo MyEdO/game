@@ -103,19 +103,25 @@ export { ENV_GIT_FEINT }
 
 /**
  * `fn()` sous une git FEINTE (`envGitFeint(regles)`) posée sur `process.env`, retirée à la sortie :
- * la panne de git d'une lecture faite dans CE processus. `fn` est SYNCHRONE : une promesse rendue
- * LÈVE, la feinte serait retirée avant ses lectures.
+ * la panne de git d'une lecture faite dans CE processus. Une promesse rendue garde la feinte jusqu'à
+ * ce qu'elle se règle (#2503) : retirée avant, ses lectures en vol la perdraient.
  * @template T @param {Parameters<typeof envGitFeint>[0]} regles @param {() => T} fn @returns {T}
  */
 export function sousGitFeint(regles, fn) {
   Object.assign(process.env, envGitFeint(regles))
+  const retirer = () => { delete process.env[ENV_GIT_FEINT] }
+  let vu
   try {
-    const vu = fn()
-    if (typeof vu?.then === 'function') throw new TypeError('sousGitFeint : `fn` rend une promesse — la feinte serait retirée en vol')
-    return vu
-  } finally {
-    delete process.env[ENV_GIT_FEINT]
+    vu = fn()
+  } catch (e) {
+    retirer()
+    throw e
   }
+  if (typeof vu?.then !== 'function') {
+    retirer()
+    return vu
+  }
+  return /** @type {T} */ (/** @type {unknown} */ (Promise.resolve(vu).finally(retirer)))
 }
 
 /** L'écriture `geste` a réussi (`reussi`) : la fixture ne se construit pas sur une écriture refusée. */

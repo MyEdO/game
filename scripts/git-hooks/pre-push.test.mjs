@@ -14,21 +14,23 @@ import { dirname, join } from 'node:path'
 import { instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { REFUS_PUSH_VERS_MAIN, REF_PROTEGEE, jugerPush, refsAPousser } from './pre-push.mjs'
 import { lancerGit } from '../test/gitDeBanc.mjs'
+import { PORTE_DE_PLAGE } from '../guards/lib/plageStock.mjs'
+import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 
 const ZERO = '0'.repeat(40)
 
-test('#2285 famille prepush callback : origin complet', () => {
+test('#2285 famille prepush callback : origin complet', async () => {
   const racine = depot()
   try {
     const stderr = 'note origin\n'.repeat(45) + 'cause origin tardive\n'
     const stdout = 'stdout origin distinct'
     assert.ok(stderr.indexOf('cause origin tardive') > 400)
-    const vu = sousGitFeint([{ si: ['remote', 'get-url', 'origin'], status: 30, stdout, stderr }], () => jugerPush({ cwd: racine, stdin: '' }))
+    const vu = await sousGitFeint([{ si: ['remote', 'get-url', 'origin'], status: 30, stdout, stderr }], () => jugerPush({ cwd: racine, stdin: '' }))
     assert.deepEqual(vu.refus, ['origin illisible, git indisponible : refus (status 30) — ' + stderr + '\n' + stdout])
   } finally { jeter(racine) }
 })
 
-test('#2285 famille prepush union : ascendance complète', () => {
+test('#2285 famille prepush union : ascendance complète', async () => {
   const racine = depot()
   try {
     const sha = tete(racine)
@@ -36,17 +38,20 @@ test('#2285 famille prepush union : ascendance complète', () => {
     const stdout = 'stdout ancêtre distinct'
     assert.ok(stderr.indexOf('cause ancêtre tardive') > 400)
     const stdin = 'refs/heads/feat/x ' + sha + ' refs/heads/feat/x ' + sha + '\n'
-    const vu = sousGitFeint([{ si: ['merge-base', '--is-ancestor'], status: 31, stdout, stderr }], () => jugerPush({ cwd: racine, stdin }))
+    const vu = await sousGitFeint([{ si: ['merge-base', '--is-ancestor'], status: 31, stdout, stderr }], () => jugerPush({ cwd: racine, stdin }))
     assert.deepEqual(vu.refus, ['refs/heads/feat/x → refs/heads/feat/x : ascendance illisible — refus (status 31) — ' + stderr + '\n' + stdout])
   } finally { jeter(racine) }
 })
 
 const git = (cwd) => (args) => lancerGit(args, { cwd }).trim()
 
+/** Le socle porte la porte de plage du disque : son tronc la juge par elle (#2503). */
+const PORTE_DE_PLAGE_SUR_DISQUE = Object.fromEntries(fermetureSurDisque(PORTE_DE_PLAGE.module))
+
 /** Dépôt jetable, `origin` conforme. */
 const depot = () =>
   instanceDeDepot({
-    fichiers: { 'src/a.ts': 'export const a = 1\n' },
+    fichiers: { ...PORTE_DE_PLAGE_SUR_DISQUE, 'src/a.ts': 'export const a = 1\n' },
     origin: `https://github.com/${DEPOT}.git`,
     refs: { 'refs/remotes/origin/main': 'HEAD' },
   }).racine
@@ -61,10 +66,10 @@ const pousse = (racine, { refDistante = REF_PROTEGEE, sha, base = ZERO } = {}) =
 
 // ── Le refus qui MIROITE le ruleset : aucun push n'entre dans `main` ─────────────────────────────
 
-test('un push vers `main` est REFUSÉ et NOMMÉ : main n’avance que par la file de fusion', () => {
+test('un push vers `main` est REFUSÉ et NOMMÉ : main n’avance que par la file de fusion', async () => {
   const racine = depot()
   try {
-    const { refus } = jugerPush({ cwd: racine, stdin: pousse(racine) })
+    const { refus } = await jugerPush({ cwd: racine, stdin: pousse(racine) })
     assert.deepEqual(refus, [REFUS_PUSH_VERS_MAIN])
     assert.match(REFUS_PUSH_VERS_MAIN, /file de fusion — publier par `npm run ops:publier`/)
   } finally {
@@ -74,10 +79,10 @@ test('un push vers `main` est REFUSÉ et NOMMÉ : main n’avance que par la fil
 
 // ── Push LIBRE sur une branche de travail ──────────────────────────────────────────────────────
 
-test('une branche `chantier/**` se pousse librement : la CI de la branche est le juge', () => {
+test('une branche `chantier/**` se pousse librement : la CI de la branche est le juge', async () => {
   const racine = depot()
   try {
-    const { refus, notes } = jugerPush({
+    const { refus, notes } = await jugerPush({
       cwd: racine,
       stdin: pousse(racine, { refDistante: 'refs/heads/chantier/1776' }),
     })
@@ -88,10 +93,10 @@ test('une branche `chantier/**` se pousse librement : la CI de la branche est le
   }
 })
 
-test('une branche `feat/**` se pousse librement aussi', () => {
+test('une branche `feat/**` se pousse librement aussi', async () => {
   const racine = depot()
   try {
-    const { refus } = jugerPush({ cwd: racine, stdin: pousse(racine, { refDistante: 'refs/heads/feat/x' }) })
+    const { refus } = await jugerPush({ cwd: racine, stdin: pousse(racine, { refDistante: 'refs/heads/feat/x' }) })
     assert.deepEqual(refus, [])
   } finally {
     jeter(racine)
@@ -109,19 +114,19 @@ function depotDeuxCommits() {
   return racine
 }
 
-test('fast-forward vers une branche `chantier/**` : libre', () => {
+test('fast-forward vers une branche `chantier/**` : libre', async () => {
   const racine = depotDeuxCommits()
   try {
     const base = git(racine)(['rev-parse', 'HEAD~1'])
     const stdin = pousse(racine, { refDistante: 'refs/heads/chantier/1776', base })
-    const { refus } = jugerPush({ cwd: racine, stdin })
+    const { refus } = await jugerPush({ cwd: racine, stdin })
     assert.deepEqual(refus, [])
   } finally {
     jeter(racine)
   }
 })
 
-test('NON fast-forward vers une branche `chantier/**` : libre — un seul écrivain', () => {
+test('NON fast-forward vers une branche `chantier/**` : libre — un seul écrivain', async () => {
   const racine = depotDeuxCommits()
   try {
     const stdin = pousse(racine, {
@@ -129,7 +134,7 @@ test('NON fast-forward vers une branche `chantier/**` : libre — un seul écriv
       sha: git(racine)(['rev-parse', 'HEAD~1']),
       base: tete(racine),
     })
-    const { refus, notes } = jugerPush({ cwd: racine, stdin })
+    const { refus, notes } = await jugerPush({ cwd: racine, stdin })
     assert.deepEqual(refus, [])
     assert.match(notes.join('\n'), /branche de chantier — fast-forward non jugé/)
   } finally {
@@ -137,19 +142,19 @@ test('NON fast-forward vers une branche `chantier/**` : libre — un seul écriv
   }
 })
 
-test('NON fast-forward vers `main` : refusé — miroir de `non_fast_forward` du ruleset', () => {
+test('NON fast-forward vers `main` : refusé — miroir de `non_fast_forward` du ruleset', async () => {
   const racine = depotDeuxCommits()
   try {
     const sha = git(racine)(['rev-parse', 'HEAD~1'])
     const stdin = pousse(racine, { sha, base: tete(racine) })
-    const { refus } = jugerPush({ cwd: racine, stdin })
+    const { refus } = await jugerPush({ cwd: racine, stdin })
     assert.match(refus.join('\n'), /push non fast-forward vers refs\/heads\/main/)
   } finally {
     jeter(racine)
   }
 })
 
-test('NON fast-forward vers `feat/x` : refusé aussi — seule `chantier/**` est exemptée', () => {
+test('NON fast-forward vers `feat/x` : refusé aussi — seule `chantier/**` est exemptée', async () => {
   const racine = depotDeuxCommits()
   try {
     const stdin = pousse(racine, {
@@ -157,18 +162,18 @@ test('NON fast-forward vers `feat/x` : refusé aussi — seule `chantier/**` est
       sha: git(racine)(['rev-parse', 'HEAD~1']),
       base: tete(racine),
     })
-    const { refus } = jugerPush({ cwd: racine, stdin })
+    const { refus } = await jugerPush({ cwd: racine, stdin })
     assert.match(refus.join('\n'), /push non fast-forward vers refs\/heads\/feat\/x/)
   } finally {
     jeter(racine)
   }
 })
 
-test('une ref distante NEUVE n’écrase aucune histoire : fast-forward non jugé', () => {
+test('une ref distante NEUVE n’écrase aucune histoire : fast-forward non jugé', async () => {
   const racine = depotDeuxCommits()
   try {
     const stdin = pousse(racine, { refDistante: 'refs/heads/feat/neuve', base: ZERO })
-    const { refus, notes } = jugerPush({ cwd: racine, stdin })
+    const { refus, notes } = await jugerPush({ cwd: racine, stdin })
     assert.deepEqual(refus, [])
     assert.match(notes.join('\n'), /n’existe pas encore côté distant/)
   } finally {
@@ -178,13 +183,13 @@ test('une ref distante NEUVE n’écrase aucune histoire : fast-forward non jug�
 
 // ── Origine ────────────────────────────────────────────────────────────────────────────────────
 
-test('un origin ÉTRANGER est refusé, et le refus le cite', () => {
+test('un origin ÉTRANGER est refusé, et le refus le cite', async () => {
   const racine = instanceDeDepot({
     fichiers: { 'src/a.ts': 'export const a = 1\n' },
     origin: 'https://github.com/quelquun/autre.git',
   }).racine
   try {
-    const { refus } = jugerPush({ cwd: racine, stdin: pousse(racine) })
+    const { refus } = await jugerPush({ cwd: racine, stdin: pousse(racine) })
     assert.match(refus.join('\n'), /origin = « https:\/\/github\.com\/quelquun\/autre\.git »/)
     assert.ok(refus.join('\n').includes(`github.com/${DEPOT}`))
   } finally {
@@ -198,7 +203,7 @@ test('un origin ÉTRANGER est refusé, et le refus le cite', () => {
 const PORTEUR_DE_STOCK = 'scripts/guards/lib/exemptions.mjs'
 const sourceStock = (entrees) => `export const STOCK = [\n${entrees.join('\n')}\n]\n`
 
-test('un STOCK nominatif qui grandit dans la plage sans `CLIQUET:` au commit est refusé', () => {
+test('un STOCK nominatif qui grandit dans la plage sans `CLIQUET:` au commit est refusé', async () => {
   const racine = depot()
   try {
     const commettre = (contenu, message) => {
@@ -210,7 +215,7 @@ test('un STOCK nominatif qui grandit dans la plage sans `CLIQUET:` au commit est
     }
     const base = commettre(sourceStock([]), 'chore: socle du stock')
     commettre(sourceStock(["  'src/a.ts',", "  'src/b.ts',"]), 'chore: deux entrées de plus, sans le dire')
-    const { refus } = jugerPush({
+    const { refus } = await jugerPush({
       cwd: racine,
       stdin: pousse(racine, { refDistante: 'refs/heads/chantier/x', base }),
     })
@@ -223,7 +228,7 @@ test('un STOCK nominatif qui grandit dans la plage sans `CLIQUET:` au commit est
   }
 })
 
-test('un module qui FRANCHIT la frontière sans `RECLASSEMENT:` au commit est refusé (#1806 D2″)', () => {
+test('un module qui FRANCHIT la frontière sans `RECLASSEMENT:` au commit est refusé (#1806 D2″)', async () => {
   const racine = depot()
   try {
     const manifeste = 'src/data/primitives.manifest.json'
@@ -243,7 +248,7 @@ test('un module qui FRANCHIT la frontière sans `RECLASSEMENT:` au commit est re
     const base = commettre('chore: socle')
     ecrire('src/ui/Ecran2.tsx', "import { Console } from './Console'\nexport const E2 = Console\n")
     commettre('feat: second écran')
-    const { refus } = jugerPush({
+    const { refus } = await jugerPush({
       cwd: racine,
       stdin: pousse(racine, { refDistante: 'refs/heads/chantier/x', base }),
     })
@@ -266,10 +271,10 @@ test('deux refs sur stdin donnent deux refs jugées', () => {
   assert.deepEqual(refsAPousser(lignes).map((r) => r.refDistante), ['refs/heads/main', 'refs/heads/x'])
 })
 
-test('git INDISPONIBLE (hors dépôt) : un refus NOMMÉ qui porte la raison de git, jamais « origin absent »', () => {
+test('git INDISPONIBLE (hors dépôt) : un refus NOMMÉ qui porte la raison de git, jamais « origin absent »', async () => {
   const hors = mkdtempSync(join(tmpdir(), 'pre-push-hors-'))
   try {
-    const { refus } = jugerPush({ cwd: hors, stdin: '' })
+    const { refus } = await jugerPush({ cwd: hors, stdin: '' })
     assert.equal(refus.length, 1)
     assert.match(refus[0], /^origin illisible, git indisponible : .*not a git repository/i)
   } finally {

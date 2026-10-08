@@ -522,18 +522,16 @@ function entreesDeLAnalyse(img, fichiersDeFixture = () => false) {
 }
 
 /** Entrées d'une image de fichier (`entreesNominatives`), chacune avec le `texte` de sa ligne
- *  nommante, ou `null` quand l'image ne se lit pas (lecteur absent, fichier supprimé, binaire,
- *  dialecte inconnu) : le REPLI de ligne juge alors, et l'entrée COMPTE.
+ *  nommante, ou `null` quand l'image ne se lit pas : lecteur absent, fichier absent de l'image (le
+ *  lecteur rend `null`), dialecte inconnu (`entreesNominatives` rend `null`) ; le REPLI de ligne juge
+ *  alors, et l'entrée COMPTE. Toute autre erreur, du lecteur ou de l'outillage, se PROPAGE (#2503).
  *  @returns {{ ligne: number, nomme: number, cle: string, texte: string }[] | null} */
 function entreesDeLImage(lire, fichier) {
   if (typeof lire !== 'function') return null;
-  let source;
-  try { source = lire(fichier); } catch { return null; }
+  const source = lire(fichier);
   if (typeof source !== 'string') return null;
-  try {
-    const lignes = source.split('\n');
-    return entreesNominatives(source, fichier)?.map((e) => copierSite(e, { ...e, texte: (lignes[e.nomme - 1] ?? '').replace(/\r$/, '').trim() })) ?? null;
-  } catch { return null; }
+  const lignes = source.split('\n');
+  return entreesNominatives(source, fichier)?.map((e) => copierSite(e, { ...e, texte: (lignes[e.nomme - 1] ?? '').replace(/\r$/, '').trim() })) ?? null;
 }
 
 /** `ligne` → `nomme` d'une image lue (`entreesDeLImage`), ou `null`. */

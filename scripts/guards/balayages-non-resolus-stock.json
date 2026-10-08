@@ -57,12 +57,6 @@
     },
     {
       "famille": "URL",
-      "fichier": "scripts/guards/lib/stocksNominatifs.test.mjs",
-      "ref": "readFileSync : URL new URL('./fixtures/2472-' + ref + '.json.gz.b64', import.meta.url)",
-      "occurrence": 1
-    },
-    {
-      "famille": "URL",
       "fichier": "scripts/hooks/inject-project-credo.test.mjs",
       "ref": "injectProjectCredo : URL new URL(`file:///${join(root, 'scripts/hooks/inject-project-credo.mjs').replaceAll('\\\\', '/')}`)",
       "occurrence": 1
@@ -3978,12 +3972,6 @@
       "fichier": "scripts/hooks/segments-profonds.test.mjs",
       "ref": "segmentsProfonds : appel portee.getStore",
       "occurrence": 17
-    },
-    {
-      "famille": "appel non suivi",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "readFileSync : appel l.trim",
-      "occurrence": 1
     },
     {
       "famille": "appel non suivi",
@@ -28257,12 +28245,6 @@
     },
     {
       "famille": "environnement de processus",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "debutDeLaPlage : process introuvable",
-      "occurrence": 1
-    },
-    {
-      "famille": "environnement de processus",
       "fichier": "scripts/migrations/lib/1699-source-chemins-ascii.test.mjs",
       "ref": "migrer : process introuvable",
       "occurrence": 1
@@ -28404,12 +28386,6 @@
       "fichier": "scripts/git-hooks/docs-rebuild.test.mjs",
       "ref": "reconstruireApresGit : forme ElementAccessExpression",
       "occurrence": 2
-    },
-    {
-      "famille": "forme non évaluée",
-      "fichier": "scripts/git-hooks/pre-push.mjs",
-      "ref": "readFileSync : forme FirstLiteralToken",
-      "occurrence": 1
     },
     {
       "famille": "forme non évaluée",
@@ -29487,36 +29463,6 @@
     },
     {
       "famille": "paramètre non lié",
-      "fichier": "scripts/git-hooks/pre-push.mjs",
-      "ref": "jugerPush : paramètre chemin",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/git-hooks/pre-push.mjs",
-      "ref": "jugerPush : paramètre dossier",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/git-hooks/pre-push.mjs",
-      "ref": "jugerPush : paramètre f",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/git-hooks/pre-push.mjs",
-      "ref": "jugerPush : paramètre rel",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/git-hooks/pre-push.mjs",
-      "ref": "jugerPush : paramètre rels",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
       "fichier": "scripts/guards/budget-contexte.mjs",
       "ref": "controlerBudgetDeLaPlage : paramètre chemin",
       "occurrence": 1
@@ -29898,96 +29844,6 @@
       "fichier": "scripts/hooks/repartiteur.test.mjs",
       "ref": "verdictDe : paramètre entree",
       "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre chemin",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre chemin",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre chemin",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre dossier",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre dossier",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre dossier",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre f",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre f",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre f",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rel",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rel",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rel",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rels",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rels",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rels",
-      "occurrence": 3
     },
     {
       "famille": "paramètre non lié",

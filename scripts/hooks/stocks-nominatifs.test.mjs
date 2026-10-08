@@ -14,7 +14,7 @@ import {
   apportDeFusion, croissanceDesStocks, croissancesNonCouvertes, cliquetsDuMessage, declarationsDuMessage, entreesNominatives,
   estEntreeNominative, estPorteurDeStock, fichierNommePar, raisonDeRefus,
 } from '../guards/lib/stocksNominatifs.mjs'
-import { croissancesDeLaPlage, raisonDeRefusDePlage, SHA_NUL } from '../guards/lib/plageStock.mjs'
+import { croissancesDeLaPlage, lectureDeLaPlage, raisonDeRefusDePlage, refusDeLaPlage, SHA_NUL } from '../guards/lib/plageStock.mjs'
 import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -28,17 +28,6 @@ function exigerHistoireComplete() {
     git('rev-parse', '--is-shallow-repository').trim(), 'false',
     "dépôt SUPERFICIEL : cette mesure lit le DIFF du dernier commit — poser `fetch-depth: 0` sur le `actions/checkout` du job qui joue `test:hooks`.",
   )
-}
-
-/** La porte était-elle EN VIGUEUR dans le commit jugé ? (sa lib y est-elle ?) Une porte juge les
- *  commits qui la PORTENT ; condamner l'histoire d'avant serait un verdict rétroactif, et l'échapper
- *  par un stock de shas rendrait à cette porte le vice qu'elle combat. Rien à tenir à jour : la
- *  condition s'éteint d'elle-même dès le premier commit qui embarque la lib. */
-function porteEnVigueur() {
-  try {
-    git('cat-file', '-e', 'HEAD:scripts/guards/lib/stocksNominatifs.mjs')
-    return true
-  } catch { return false }
 }
 
 /** Début de la plage à juger. En CI, l'événement de push le porte (`GITHUB_EVENT_PATH` → `before`) ;
@@ -1088,6 +1077,9 @@ test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de pl
 const FENETRE_STOCKS = { avant: '571f54287', apres: '02cc09c04' }
 const FENETRE_REGISTRE = { debut: '2c11fdd9a', fin: 'c8d3105ae' }
 const FENETRE_STOCK_OBJET = { debut: 'da3acf95c', fin: 'a9b7edf17' }
+/** Une FENÊTRE mesure la porte ACTUELLE sur l'histoire : sa lecture va à `refusDeLaPlage`, jamais au
+ *  juge de l'ère de ses commits (#2503). */
+const refusDeLaFenetre = (fenetre) => refusDeLaPlage(lectureDeLaPlage({ cwd: RACINE, ...fenetre }))
 const gitOuNull = (...args) => {
   try { return git(...args) } catch { return null }
 }
@@ -1123,7 +1115,7 @@ test('fenêtre — un stock JSON RÉORDONNÉ ne grandit pas : l’entrée se com
 })
 
 test('fenêtre — les croissances non couvertes de la plage, par commit', (t) => {
-  const { refus } = croissancesDeLaPlage({ cwd: RACINE, ...FENETRE_REGISTRE })
+  const refus = refusDeLaFenetre(FENETRE_REGISTRE)
   const vus = refus.map((r) => `${r.sha.slice(0, 9)} ${r.fichier} +${r.net}`)
   for (const v of vus) t.diagnostic(v)
   assert.ok(
@@ -1139,7 +1131,7 @@ test('fenêtre — les croissances non couvertes de la plage, par commit', (t) =
 })
 
 test('fenêtre — un stock OBJET dont les valeurs sont des tableaux est rendu, avec son déclaré', () => {
-  const { refus } = croissancesDeLaPlage({ cwd: RACINE, ...FENETRE_STOCK_OBJET })
+  const refus = refusDeLaFenetre(FENETRE_STOCK_OBJET)
   const ecrivains = refus.find((r) => r.fichier === 'scripts/gates/ecrivainsAtteints.test.mjs')
   assert.deepEqual(
     [ecrivains?.sha.slice(0, 9), ecrivains?.net, ecrivains?.declare], ['a9b7edf17', 63, 53],
@@ -1149,16 +1141,9 @@ test('fenêtre — un stock OBJET dont les valeurs sont des tableaux est rendu, 
 
 // ── La mesure sur le dépôt RÉEL ───────────────────────────────────────────────────────────────────
 
-test('CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence', (t) => {
-  if (!porteEnVigueur()) {
-    t.diagnostic(
-      `HEAD (${git('rev-parse', '--short', 'HEAD').trim()}) est ANTÉRIEUR à cette porte : sa lib n'y ` +
-        'est pas, la règle ne juge que les commits qui la portent.',
-    )
-    return
-  }
+test('CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence', async (t) => {
   exigerHistoireComplete()
-  const { refus, notes, commits } = croissancesDeLaPlage({
+  const { refus, notes, commits } = await croissancesDeLaPlage({
     cwd: RACINE, debut: debutDeLaPlage(), fin: git('rev-parse', 'HEAD').trim(), vers: refPoussee(),
   })
   for (const n of notes) t.diagnostic(n)
