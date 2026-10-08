@@ -7,7 +7,7 @@
  "versionContenu": 2,
  "source": {
   "book": "ennemi-dans-l-ombre",
-  "page": 12,
+  "page": 11,
   "note": "EDO 01 l.5 · l.13"
  },
  "narratif": {
@@ -2704,13 +2704,18 @@
    "surtitre": "Une campagne pour Warhammer Fantasy Roleplay",
    "titre": "L’Ennemi Intérieur",
    "sousTitre": {
-    "texte": "Tome 1 — L’Ennemi dans l’Ombre"
+    "texte": "Tome 1 — L’Ennemi dans l’Ombre",
+    "adapteDe": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 4,
+     "note": "EDO 00 l.259"
+    }
    },
    "chapitre": "Chapitre 1 — On recherche : aventuriers courageux",
    "pitch": "Nos héros forment un groupe hétéroclite que la soif d'aventures a conduit à prendre la direction d'Altdorf, tout comme de nombreux habitants des campagnes et des bourgades de l'Empire. Altdorf, l'immense et trépidante capitale, où les rues sont pavées d'or et où tout est possible.\n\nCertains Personnages se connaissent peut-être déjà ; les autres se rencontreront pour la première fois lorsqu'ils approcheront de l'auberge-relais la plus proche, nommée La Diligence.",
    "source": {
     "book": "ennemi-dans-l-ombre",
-    "page": 12,
+    "page": 11,
     "note": "EDO 01 l.5 · l.13"
    },
    "ambiance": "veillee"
@@ -2722,7 +2727,12 @@
    },
    "titre": "Chapitre 1 — la route d’Altdorf",
    "sousTitre": {
-    "texte": "Ce que la compagnie emporte vers la capitale"
+    "texte": "Au sortir de la Drakwald, la compagnie atteint les murs blancs d’Altdorf.",
+    "adapteDe": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 32,
+     "note": "EDO 03 l.3"
+    }
    }
   }
  },
@@ -39502,11 +39512,7 @@
      "y": 59
     },
     "scene": "route-principale-virage",
-    "icon": "scenario/travel",
-    "when": {
-     "kind": "flag",
-     "expr": "edo-ch1-depart"
-    }
+    "icon": "scenario/travel"
    },
    {
     "id": "auberge-des-sept-rayons",
@@ -39557,7 +39563,12 @@
      "expr": "edo-ch1-depart"
     },
     "refus": {
-     "texte": "Aucun trajet ne part encore de ce relais."
+     "texte": "La diligence attend dans la remise : montez à bord pour prendre la route.",
+     "adapteDe": {
+      "book": "ennemi-dans-l-ombre",
+      "page": 17,
+      "note": "EDO 01 l.255"
+     }
     }
    },
    {
@@ -39579,7 +39590,12 @@
      "expr": "edo-ch1-corps-kastor-fouille"
     },
     "refus": {
-     "texte": "Vous n'avez pas fini d'examiner les lieux de l'embuscade."
+     "texte": "Un corps gît encore sous un buisson, à l’écart de la diligence renversée : examinez-le avant de reprendre la route.",
+     "adapteDe": {
+      "book": "ennemi-dans-l-ombre",
+      "page": 26,
+      "note": "EDO 02 l.89"
+     }
     }
    },
    {

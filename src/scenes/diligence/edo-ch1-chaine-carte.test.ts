@@ -28,16 +28,19 @@ const ctx = (...flags: string[]): ConditionCtx => ({ flags: tableTotale(flags, (
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 const etat = (placeId: string, c?: ConditionCtx) => routesEtat(map, placeId, c).map((e) => [e.route.id, e.ouverte]);
 const refus = (placeId: string, c: ConditionCtx) => routesEtat(map, placeId, c).map((e) => e.route.refus?.texte);
+const REFUS_T1 = 'La diligence attend dans la remise : montez à bord pour prendre la route.';
+const REFUS_T2 = 'Un corps gît encore sous un buisson, à l’écart de la diligence renversée : examinez-le avant de reprendre la route.';
 
 describe('carte du ch.1 — anti-spoiler, état de drapeaux par état de drapeaux', () => {
-  it('aucun drapeau : seul le relais existe, et le seul trajet est OFFERT fermé, avec sa raison', () => {
-    expect(ids(visiblePlaces(map, ctx()))).toEqual(['la-diligence']);
+  // EDO 01 l.13
+  it('aucun drapeau : le relais et la route principale existent, le tronçon 1 est OFFERT fermé, avec sa raison', () => {
+    expect(ids(visiblePlaces(map, ctx()))).toEqual(['la-diligence', 'route-principale']);
     expect(ids(routesFrom(map, 'la-diligence', ctx()))).toEqual([]);
     expect(etat('la-diligence', ctx())).toEqual([[T1, false]]);
-    expect(refus('la-diligence', ctx())).toEqual(['Aucun trajet ne part encore de ce relais.']);
+    expect(refus('la-diligence', ctx())).toEqual([REFUS_T1]);
   });
 
-  it(`\`${DEPART}\` : les trois lieux paraissent, seul le premier tronçon s'ouvre`, () => {
+  it(`\`${DEPART}\` : les lieux aval paraissent, seul le premier tronçon s'ouvre`, () => {
     const c = ctx(DEPART);
     expect(ids(visiblePlaces(map, c))).toEqual(AVAL);
     expect(ids(routesFrom(map, 'la-diligence', c))).toEqual([T1]);
@@ -49,7 +52,7 @@ describe('carte du ch.1 — anti-spoiler, état de drapeaux par état de drapeau
   it(`\`${DEPART}\` sans \`${CORPS}\` : le tronçon 2 est OFFERT fermé avec sa raison, pas caché en silence`, () => {
     const c = ctx(DEPART);
     expect(etat('route-principale', c)).toEqual([[T2, false]]);
-    expect(refus('route-principale', c)).toEqual(["Vous n'avez pas fini d'examiner les lieux de l'embuscade."]);
+    expect(refus('route-principale', c)).toEqual([REFUS_T2]);
   });
 
   it(`\`${DEPART}\` + \`${CORPS}\` : le tronçon 2 s'ouvre`, () => {
