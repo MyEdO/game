@@ -71,10 +71,10 @@ const POPULATIONS = Object.freeze(['vitest-node', 'vitest-jsdom', 'node'])
 /** Les paires (durée apprise ici, durée CI) sous lesquelles une population prend son REPLI (`REPLI_FACTEUR_CI`). */
 const PAIRES_MIN = 10
 
-/** Le facteur durée ici / durée CI de REPLI par population, sous `PAIRES_MIN` paires : paramètre de BANC, Σlocal/ΣCI
- *  mesuré le 2026-10-08, 16 cœurs, contre le journal de la course 37724465833 (juge de design #2497). Node n'en a pas :
- *  `non calibré`, facteur 1. */
-const REPLI_FACTEUR_CI = Object.freeze({ 'vitest-node': 0.9, 'vitest-jsdom': 3.5 })
+/** Le facteur durée ici / durée CI de REPLI de chaque population, sous `PAIRES_MIN` paires : paramètre de BANC, Σlocal/ΣCI
+ *  (`facteursCi`) mesuré le 2026-10-08, 16 cœurs, sur le mémo commun après 3 runs réels et la course 37757884555 :
+ *  vitest-node 128 paires, vitest-jsdom 23, node 163 (#2497). */
+export const REPLI_FACTEUR_CI = Object.freeze({ 'vitest-node': 2.16, 'vitest-jsdom': 3.63, node: 5.85 })
 
 /** Le mémo des durées apprises, sous `dossierDesMesures` : `{ [test]: ms }`. */
 const DUREES = 'durees.json'
@@ -605,9 +605,9 @@ const populationDe = (t, environnementDe) => {
 
 /**
  * Le FACTEUR durée ici / durée CI de chaque population (#2497) : Σlocal/ΣCI de ses paires (`locales` ∩ `ci`) dès
- * `PAIRES_MIN` paires ; sinon son repli de banc (`REPLI_FACTEUR_CI`), à défaut 1, `non calibré`. PURE.
+ * `PAIRES_MIN` paires ; sinon son repli de banc (`REPLI_FACTEUR_CI`). PURE.
  * @param {{ locales?: Record<string, number>, ci?: { vitest?: Record<string, number>, node?: Record<string, number> }, environnementDe: (test: string) => string | null }} p
- * @returns {Record<string, { valeur: number, paires: number, origine: 'paires' | 'repli' | 'non calibré' }>}
+ * @returns {Record<string, { valeur: number, paires: number, origine: 'paires' | 'repli' }>}
  */
 export function facteursCi({ locales = {}, ci = {}, environnementDe }) {
   const sommes = tableTotale(POPULATIONS, () => ({ local: 0, ci: 0, paires: 0 }))
@@ -619,7 +619,7 @@ export function facteursCi({ locales = {}, ci = {}, environnementDe }) {
   return tableTotale(POPULATIONS, (p) => {
     const { local, ci: somme, paires } = sommes[p]
     if (paires >= PAIRES_MIN && somme > 0) return { valeur: local / somme, paires, origine: 'paires' }
-    return Object.hasOwn(REPLI_FACTEUR_CI, p) ? { valeur: REPLI_FACTEUR_CI[p], paires, origine: 'repli' } : { valeur: 1, paires, origine: 'non calibré' }
+    return { valeur: REPLI_FACTEUR_CI[p], paires, origine: 'repli' }
   })
 }
 
@@ -857,12 +857,11 @@ export function surcoutObserve(famille, murMs, appris, workers) {
 
 /** Le libellé d'une durée en secondes. */
 const secondes = (ms) => `${(ms / 1000).toFixed(1)} s`
-/** L'estimation d'un test en texte (`estimationsDe`) : apprise ici, de la CI calibrée (sa course, son facteur, sa
- *  population), de la CI non calibrée, ou inconnue. PURE. */
+/** L'estimation d'un test en texte (`estimationsDe`) : apprise ici, de la CI calibrée (sa course, son facteur — de
+ *  paires ou de repli —, sa population), ou inconnue. PURE. */
 export const texteDeLEstimation = ({ ms, source, run, facteur, population }) => {
   if (ms === null) return ' durée inconnue'
   if (source === 'locale') return ` ~${secondes(ms)} (apprise ici)`
-  if (facteur.origine === 'non calibré') return ` ~${secondes(ms)} (CI ${run}, non calibrée, ${population})`
   return ` ~${secondes(ms)} (CI ${run} × ${facteur.valeur.toFixed(2)}${facteur.origine === 'repli' ? ' repli de banc' : ''}, ${population})`
 }
 
@@ -930,7 +929,7 @@ function principal() {
   for (const { site, helper, raison } of nonResolus) console.log(`  non résolu ${site} ${helper} — ${raison}`)
   const sources = [...estimations.values()].reduce((n, { source }) => ({ ...n, [source]: (n[source] ?? 0) + 1 }), {})
   journal(`estimations : ${Object.entries(sources).map(([s, n]) => `${s} ${n}`).join(' | ') || 'aucune'} ; durées CI : ${ci.run ? `course ${ci.run} du ${ci.date} (${ci.sha.slice(0, 9)})` : 'aucune mémorisée'}`)
-  journal(`facteurs CI : ${Object.entries(facteurs).map(([p, f]) => `${p} ${f.valeur.toFixed(2)} (${f.origine === 'paires' ? `${f.paires} paires` : `${f.origine === 'repli' ? 'repli de banc' : 'non calibré'}, ${f.paires} paire(s)`})`).join(' | ')}`)
+  journal(`facteurs CI : ${Object.entries(facteurs).map(([p, f]) => `${p} ${f.valeur.toFixed(2)} (${f.origine === 'paires' ? `${f.paires} paires` : `repli de banc, ${f.paires} paire(s)`})`).join(' | ')}`)
   journal(rapatriement === null ? 'CI non rapatriée — --liste n’écrit rien'
     : !rapatriement.disponible ? `CI non rapatriée — ${rapatriement.raison}`
       : rapatriement.valeur.etat === 'refus' ? `CI non rapatriée — ${rapatriement.valeur.raison}`
