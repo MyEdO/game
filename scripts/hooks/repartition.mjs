@@ -216,7 +216,9 @@ function refusDesLieuxPoses(command, poses) {
 /**
  * Le contexte d'un appel, construit UNE fois : la SEULE résolution de « où ça s'exécute ». `dir` = la
  * cible PROUVÉE par la commande (`cibleDeLaCommande`, retenue seulement si elle existe), sinon la base
- * de l'appel (`baseDeLAppel`) ; `null` quand ce n'est pas jugeable, avec `nonJugeable` = `{ raison,
+ * de l'appel. Le champ `baseDeLAppel` porte le cwd initial calculé par la fonction homonyme, avant
+ * les changements de répertoire des segments ; `null` si cette base est non jugeable. `dir` vaut
+ * `null` quand ce n'est pas jugeable, avec `nonJugeable` = `{ raison,
  * canal }` (refusé par `canal-outil-guard.mjs`) — lieu non jugeable, ou ce que la commande pose
  * (`lieuxPosesParLaCommande`). `racineNpm` = la racine npm de `dir` (`racineNpmDe`), où `npm run <x>`
  * se résout. `cibleIgnoree` = ce que la commande nommait sans que ce soit un répertoire réel.
@@ -224,14 +226,14 @@ function refusDesLieuxPoses(command, poses) {
 export function construireContexte(entree, { env = process.env, cwd = process.cwd(), platform = process.platform } = {}) {
   const commun = { env }
   const lieu = baseDeLAppel(entree, cwd, platform)
-  if (lieu.nonJugeable) return { ...commun, dir: null, racineNpm: null, cibleIgnoree: null, nonJugeable: lieu.nonJugeable }
+  if (lieu.nonJugeable) return { ...commun, baseDeLAppel: null, dir: null, racineNpm: null, cibleIgnoree: null, nonJugeable: lieu.nonJugeable }
   const command = commandeDe(entree)
   const cible = cibleDeLaCommande(command, lieu.base, platform)
   const dir = cible.dir ?? lieu.base
   const racineNpm = racineNpmDe(dir)
   const poses = sousRacineNpm(racineNpm, () => lieuxPosesParLaCommande(command, entree?.tool_name))
-  if (poses.length) return { ...commun, dir: null, racineNpm: null, cibleIgnoree: cible.ignore, nonJugeable: refusDesLieuxPoses(command, poses) }
-  return { ...commun, dir, racineNpm, cibleIgnoree: cible.ignore, nonJugeable: null }
+  if (poses.length) return { ...commun, baseDeLAppel: lieu.base, dir: null, racineNpm: null, cibleIgnoree: cible.ignore, nonJugeable: refusDesLieuxPoses(command, poses) }
+  return { ...commun, baseDeLAppel: lieu.base, dir, racineNpm, cibleIgnoree: cible.ignore, nonJugeable: null }
 }
 
 /**

@@ -431,7 +431,7 @@
     "fichier": "scripts/gen-registry.mjs",
     "concept": "registre-par-defs auto-chargé (dépose un fichier → intégré)",
     "perimetre": "tout dataset extensible (créatures, tenues, armes, sons, icônes…)",
-    "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/build-all.mjs)"
+    "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/lib/cibles-generees.mjs)"
   },
   {
     "id": "genFormats",
@@ -1617,9 +1617,63 @@
     "type": "primitives.manifest",
     "label": "lectureDeModule/lecteurDExpressions/evaluateurDuDepot/evaluer/APPEL_DE_LECTURE/requeteDe/partiesDeRequete",
     "fichier": "scripts/guards/lib/racinesBalayees.mjs",
-    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; requêtes tracées d'une évaluation, clé de son mémo",
+    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; contrats déclarés à la source pour namespaces bornés et résumés de lectures ; sortie d'une borne ou suffixe indéterminé couverts par le corpus entier avec origine et raison traçables ; requêtes tracées d'une évaluation, clé de son mémo",
     "perimetre": "toute dérivation des dossiers ou fichiers qu'un module lit par listage, et toute lecture statique d'une expression de chemin",
     "verrou": "racinesBalayees.test.mjs"
+  },
+  {
+    "id": "ciblesDEcritureDeCommande",
+    "type": "primitives.manifest",
+    "label": "ciblesDEcritureDeCommande",
+    "fichier": "scripts/guards/lib/ecrituresShell.mjs",
+    "concept": "cibles possibles des opérations shell reconnues : rôles des chemins, redirections et Node inline ; cwd chronologique et variables littérales prouvées par scope ; expressions non résolues conservées comme inconnues",
+    "perimetre": "gardes d'écriture shell des stockages protégés ; extraction statique sans exécution de la commande",
+    "verrou": "ecrituresShell.test.mjs, superpowers-ecriture-guard.test.mjs, suivi-ecriture-guard.test.mjs"
+  },
+  {
+    "id": "commandeShell",
+    "type": "primitives.manifest",
+    "label": "pipelinesProfonds/pipelinesDeJetons/texteDuSegment/jetonNu/sansRedirections/ciblesDeRedirection/ciblesDeRedirectionAvecProvenance/cibleDeLaCommande/affectationPowerShell/CHANGEMENTS_DE_REPERTOIRE",
+    "fichier": "scripts/guards/lib/commandeShell.mjs",
+    "concept": "lecture canonique des commandes shell : jetons avec provenance des quotes, pipelines profonds et identité des scopes ; texte d'un segment conservant les raw des jetons ; arguments et cibles de redirection, avec provenance ; cwd nommé par la commande et affectations PowerShell ; les valeurs persistantes d'un segment distinguent affectation autonome et préfixe d'environnement",
+    "perimetre": "toutes gardes et portes qui interprètent une commande shell, ses chemins, ses porteurs ou ses redirections",
+    "verrou": "commandeShell.test.mjs, ecrituresShell.test.mjs, repartiteur.test.mjs"
+  },
+  {
+    "id": "ciblesDEcritureJS",
+    "type": "primitives.manifest",
+    "label": "ciblesDEcritureJS/OPERATIONS_FS",
+    "fichier": "scripts/guards/lib/ecrituresFichiers.mjs",
+    "concept": "métadonnées uniques des opérations FS et positions des chemins modifiés ; extraction AST des cibles littérales sous provenance fs/node:fs/promises, alias et portée vérifiés, diagnostics contrôlés et cibles inconnues explicites",
+    "perimetre": "Node inline des gardes shell et liste des noms détectés par la gate des écrivains atteints",
+    "verrou": "ecrituresFichiers.test.mjs, ecrituresShell.test.mjs, ecrivainsAtteints.test.mjs"
+  },
+  {
+    "id": "protectionWorktree",
+    "type": "primitives.manifest",
+    "label": "mesurerProtectionWorktree/ignoresAuthores/retirerResiduelVide",
+    "fichier": "scripts/guards/lib/protectionWorktree.mjs",
+    "concept": "protection d'un worktree mesurée depuis processus, état Git, ignorés authorés et cartes de session ; retrait non récursif d'un résidu vide absolu, sans suivre un lien",
+    "perimetre": "inventaire et porte de retrait d'un worktree ; traces de publication préservées parmi les ignorés",
+    "verrou": "protectionWorktree.test.mjs, gitPorte.test.mjs, worktrees.test.mjs"
+  },
+  {
+    "id": "processusWorktrees",
+    "type": "primitives.manifest",
+    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus",
+    "fichier": "scripts/guards/lib/processusWorktrees.mjs",
+    "concept": "mesure Windows/Linux des identités, propriétaires, commandes et cwd ; liens au worktree ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
+    "perimetre": "protection des worktrees contre les processus vivants et inventaire lisible de la portée mesurée",
+    "verrou": "processusWorktrees.test.mjs, protectionWorktree.test.mjs"
+  },
+  {
+    "id": "ciblesGenerees",
+    "type": "primitives.manifest",
+    "label": "estCiblePure/GENERATORS",
+    "fichier": "scripts/docs/lib/cibles-generees.mjs",
+    "concept": "registre unique des générateurs et de leurs cibles entièrement reconstructibles ; reconnaissance des cibles pures sans charger les générateurs",
+    "perimetre": "construction documentaire, fraîcheur des dérivés et classification des ignorés de worktree",
+    "verrou": "cibles-pures.test.mjs, generateurs-contrat.test.mjs, protectionWorktree.test.mjs"
   },
   {
     "id": "ecritureJsonAtomique",

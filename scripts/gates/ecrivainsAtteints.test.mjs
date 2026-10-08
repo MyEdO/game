@@ -26,9 +26,15 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /** Scripts ÉCRIVAINS atteints par chaque gate — mesuré le 2026-09-04, stock à faire DÉCROÎTRE. */
 const ATTENDU = {
-  'agents:check': ['scripts/agents/compat-cli.mjs'],
-  'test:agents': ['scripts/agents/compat-cli.mjs'],
-  'test:hooks': [
+  'agents:check': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/agents/compat-cli.mjs'],
+  'test:agents': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/agents/compat-cli.mjs'],
+  'test:hooks': ['scripts/guards/lib/protectionWorktree.mjs',
+    'scripts/guards/lib/ecrituresFichiers.test.mjs',
+    'scripts/guards/lib/ecrituresShell.test.mjs',
+    'scripts/guards/lib/processusWorktrees.test.mjs',
+    'scripts/guards/lib/protectionWorktree.test.mjs',
+    'scripts/guards/lib/racinesBalayees.test.mjs',
+    'scripts/hooks/superpowers-ecriture-guard.test.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/guards/budget-contexte.test.mjs',
     'scripts/docs/lib/enregistreur-lectures.mjs',
@@ -259,8 +265,8 @@ const ATTENDU = {
   'mods:check': ['scripts/mods/verifier.mjs'],
   // La porte de publication des résolutions de fusion (#2328) n'atteint AUCUN module écrivain : elle lit
   // l'histoire par git et rend son verdict.
-  'livraison:plage': [],
-  'test:ops': [
+  'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'test:ops': ['scripts/guards/lib/protectionWorktree.mjs',
     // #2461
     'scripts/ops/session-runtime.mjs',
     'scripts/ops/session.test.mjs',
@@ -366,7 +372,7 @@ const ATTENDU = {
     // dans les bancs — l'arbre n'est jamais écrit.
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
   ],
-  'test:runner': [
+  'test:runner': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
@@ -415,7 +421,7 @@ const ATTENDU = {
     // n'est jamais écrit.
     'scripts/test/verrou.test.mjs',
   ],
-  'test:docs': [
+  'test:docs': ['scripts/guards/lib/protectionWorktree.mjs',
     // #2499
     'scripts/gates/toutes.mjs',
     'scripts/guards/lib/purgerPerimes.mjs',
@@ -459,7 +465,7 @@ const ATTENDU = {
     'scripts/guards/lib/depotGabarit.mjs',
   ],
   'deps:unused': [],
-  'test:recette': [
+  'test:recette': ['scripts/guards/lib/protectionWorktree.mjs',
     'scripts/recette/lib.mjs',
     // +1 le 2026-10-07 (#2198) : le banc de `shot` capture dans un dossier d'`os.tmpdir()` qu'il efface
     // (`rmSync` en `t.after`) ; l'arbre n'est jamais écrit.
@@ -475,7 +481,7 @@ const ATTENDU = {
   ],
   // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles
   // de CODE par `ecrireOuVerifier`.
-  build: [
+  build: ['scripts/guards/lib/protectionWorktree.mjs',
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
@@ -484,8 +490,9 @@ const ATTENDU = {
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/guards/lib/protectionWorktree.mjs',
   ],
-  'test:raw': [
+  'test:raw': ['scripts/guards/lib/protectionWorktree.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-20 (#1825) : le banc du contrat d'acceptation de l'Atlas IMPORTE
     // l'acceptation déclarée par chaque lecteur, `croissance.mjs` compris — une ligne de contrat
@@ -593,21 +600,21 @@ const ATTENDU = {
     // que son cœur PUR (`reparerLivre`, `infidelite`) sur un livre forgé en mémoire.
     'scripts/raw/reparer-titres.mjs',
   ],
-  'raw:check-refs': [],
+  'raw:check-refs': ['scripts/guards/lib/protectionWorktree.mjs', ],
   // La gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE `fieldBlockMask` de
   // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
   // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
   // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
-  'raw:check-code-refs': ['scripts/raw/build-implemente.mjs'],
+  'raw:check-code-refs': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/raw/build-implemente.mjs'],
   // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
   // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté
   // (scripts/raw/reparer-ancres.mjs), et c'est LUI qui importe la garde, jamais l'inverse.
-  'raw:check-ancres': [],
-  'raw:check-folio-continuity': [],
-  'raw:check-source-tables': [],
-  'raw:check-source-format': [],
-  'raw:check-source-puces': [],
-  'raw:check-renvois': [],
+  'raw:check-ancres': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-folio-continuity': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-source-tables': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-source-format': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-source-puces': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-renvois': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'server:typecheck': [],
 }
 

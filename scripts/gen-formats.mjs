@@ -25,7 +25,8 @@ const require = createRequire(import.meta.url)
 const RACINE_DU_DEPOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 
 /** LA cible. */
-export const SORTIE = 'src/state/formats.generated.ts'
+import { SORTIE_FORMATS as SORTIE } from './docs/lib/cibles-registres.mjs'
+export { SORTIE_FORMATS as SORTIE } from './docs/lib/cibles-registres.mjs'
 
 /** Les racines persistées, déclarées UNE fois : la constante générée, le module qui écrit le format
  *  et le type exporté qui en porte la forme sérialisée. */

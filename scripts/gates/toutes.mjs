@@ -84,11 +84,13 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * avec la PORTE qui ferme le cas, nommée au chemin (jamais à la gate). Aucune écriture n'est
  * effacée de la table pour faire passer une lane : elle change de champ, en disant pourquoi.
  */
+const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide appelle rmdirSync seulement depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables. "
+
 export const ECRIT_LU = {
   'agents:check': {
     ecrit: [],
     lit: ['.claude/', '.agents/', '.codex/', 'AGENTS.md', 'CLAUDE.md', 'scripts/agents/'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'mode `check` : `runCompat` n’écrit que sous `mode === "sync"` (`runCompat`, scripts/agents/compat-cli.mjs) ; ' +
       'les 48 lectures mesurées sont les DEUX côtés de la compat — .claude/ (source) et .agents/ + .codex/ + ' +
       'AGENTS.md + CLAUDE.md (miroirs comparés), plus son propre code',
@@ -96,7 +98,7 @@ export const ECRIT_LU = {
   'test:agents': {
     ecrit: [],
     lit: ['.claude/', '.codex/', 'scripts/agents/', 'scripts/hooks/', 'AGENTS.md', 'CLAUDE.md'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'les écritures sont INJECTÉES et comptées, jamais faites (`atomicWrite` injecté, scripts/agents/compat.test.mjs) ; ' +
       'LIT les DEUX côtés de la compat sur l’arbre RÉEL, racine `new URL("../../", import.meta.url)` — ' +
       '.claude/settings.json et .codex/hooks.json, CLAUDE.md (contrat sur la ligne `@.claude/credo.md`) ' +
@@ -127,7 +129,7 @@ export const ECRIT_LU = {
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
       '.lint-',
     ],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
@@ -203,7 +205,7 @@ export const ECRIT_LU = {
   'livraison:plage': {
     ecrit: [],
     lit: ['.claude/soldes/', 'scripts/guards/livraison-plage.mjs', 'scripts/guards/lib/', 'scripts/node-requis.mjs', 'scripts/port-dev.mjs', 'src/lib/coupeAuMot.mjs', 'package.json'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'aucune écriture : la porte de publication (#2328, scripts/guards/lib/livraison.mjs) lit l’HISTOIRE par git — ' +
       'le graphe de `merge-base origin/main..HEAD`, le patch de chaque fusion contre sa fusion automatique ' +
       '(`merge-tree --write-tree`, dont les objets inaccessibles vont à l’odb, jamais à l’arbre), le journal ' +
@@ -213,7 +215,7 @@ export const ECRIT_LU = {
   'test:ops': {
     ecrit: [],
     lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +
       'son JobHost Windows ne lance au banc que des enfants Node neutres sous ces dossiers temporaires, jamais Windows Terminal ni un agent ; lancement WT, inventaire, Git et publication sont injectés ; ' +
       'fraicheur-docs.mjs ne reçoit des bancs chantier que leurs dépôts jetables sous os.tmpdir(), ou un copierDocs injecté ; aucun ledger du principal réel n’est écrit ; ' +
@@ -256,7 +258,7 @@ export const ECRIT_LU = {
   'test:runner': {
     ecrit: [],
     lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'gitDeBanc.test.mjs importe installer du collecteur et ses dépendances sous scripts/ : aucune SORTIE fournie, aucun flush appelé ; ' +
       'ses captures Git restent en mémoire sur des dépôts instanceDeDepot sous os.tmpdir(), restaurés puis supprimés en finally ; ' +
       'chaque cas fabrique son arbre sous os.tmpdir() (`mkdtempSync`), y compris son node_modules/.cache ; ' +
@@ -286,7 +288,7 @@ export const ECRIT_LU = {
       'scripts/art-ref/',
       '.claude/settings.json', '.github/workflows/', '.gitignore', 'package.json', 'patches/',
     ],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
       'les bancs fraîcheur écrivent leur cache dans leurs dépôts sous os.tmpdir(), supprimés en finally ; ' +
       'la sélection pure de docs-rebuild est importée sans son main : ni journaliserLeHook ni prendreOutillage/prendreVerrou ne sont appelés ; ' +
@@ -332,7 +334,7 @@ export const ECRIT_LU = {
   'test:recette': {
     ecrit: [],
     lit: ['scripts/recette/', 'scripts/port-dev.mjs'],
-    raison: 'le profil de navigateur et les captures vivent hors de l’arbre (le banc capture sous os.tmpdir() et l’efface) ; LIT le dériveur de port qu’il éprouve',
+    raison: RETRAIT_WORKTREE_FERME + 'le profil de navigateur et les captures vivent hors de l’arbre (le banc capture sous os.tmpdir() et l’efface) ; LIT le dériveur de port qu’il éprouve',
   },
   typecheck: {
     ecrit: [],
@@ -396,7 +398,7 @@ export const ECRIT_LU = {
         'que `test` et `typecheck` lisent depuis d’autres lanes : ce serait un faux conflit',
     },
     lit: ['src/', 'scripts/', 'Source/', 'tsconfig.json', 'vite.config.ts', 'package.json', 'index.html', CACHE_FRAICHEUR],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       '`gen && vite build` : le typage est jugé par la gate `typecheck` (step `npm run typecheck` de ci.yml, avant `build`), ' +
       '`build` juge que le bundle se construit, et `dist/` n’est lu par aucune gate ; LIT tsconfig.json ' +
       'parce que `transformWithOxc` de Vite 8.3.2 résout la configuration TypeScript pendant la transformation ' +
@@ -425,7 +427,9 @@ export const ECRIT_LU = {
     raison:
       'chaque générateur de `GENERATORS` joué en écriture, puis les vérificateurs purs ; LIT Source/ ' +
       '(catalogues et rapports d’Atlas) et .claude/memory/ parce que `build-doctrines.mjs` dérive ' +
-      '`docs/doctrines.md` des fiches `.claude/memory/user-*.md` SUIVIES par git (`fichesSuivies`)',
+      '`docs/doctrines.md` des fiches `.claude/memory/user-*.md` SUIVIES par git (`fichesSuivies`) ; ' +
+      'protectionWorktree.mjs est acquis par gitPorte.mjs : son unique écrivain retirerResiduelVide appelle rmdirSync, ' +
+      'uniquement depuis retirerWorktree ; aucun générateur de docs:build ne demande un retrait de worktree',
   },
   'test:raw': {
     ecrit: [],
@@ -465,7 +469,7 @@ export const ECRIT_LU = {
         '`rawDir` — les pages du dépôt ne sont jamais écrites',
     },
     lit: ['docs/raw/', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/', 'scripts/port-dev.mjs', 'Source/', 'src/', '.claude/agents/'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'harnais de l’Atlas : il lit les fiches que les trois rapports écrivent ; éprouvant les scripts ' +
       'eux-mêmes, il LIT ce qu’ils lisent — Source/ et src/ ; ses deux bancs ' +
       'écrivains (`check-source-format.test.mjs`, `lib/marker-pages.test.mjs`) ne posent que des dossiers ' +
@@ -486,21 +490,21 @@ export const ECRIT_LU = {
   'raw:check-refs': {
     ecrit: [],
     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'aucune écriture dans les scripts atteints ; LIT le registre de livres et le normaliseur de références ' +
       '(src/data/books.json, src/data/source/normalize.ts) et son stock scripts/raw/dead-refs-stock.json, absent quand il est soldé',
   },
   'raw:check-code-refs': {
     ecrit: [],
     lit: ['docs/raw/', 'src/', 'Source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'aucune écriture dans les scripts atteints ; LIT Source/, les stocks scripts/raw/dead-code-refs-stock.json et ' +
       'scripts/raw/empty-line-code-refs-stock.json, absents quand ils sont soldés, et scripts/raw/graphy-stock.json (sites différés)',
   },
   'raw:check-ancres': {
     ecrit: [],
     lit: ['docs/raw/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'aucune écriture, et AUCUN stock : l’ancre d’un titre se CALCULE (scripts/raw/lib/ancres.mjs), '
       + 'donc un renvoi mort est un renvoi faux, jamais un héritage à geler. LIT les pages de l’Atlas, '
       + 'le registre de livres (énumération des cœurs, `pagesDeLAtlas`) et l’extracteur de liens partagé '
@@ -510,7 +514,7 @@ export const ECRIT_LU = {
   'raw:check-folio-continuity': {
     ecrit: [],
     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, le normaliseur de références, ' +
       'le stock NOMINATIF des sauts de folio (scripts/raw/folio-gaps-stock.json) et les deux stocks des ancres ' +
       'sans contenu (scripts/raw/empty-folios-perdues-stock.json, scripts/raw/empty-folios-benignes-stock.json) ; ' +
@@ -519,7 +523,7 @@ export const ECRIT_LU = {
   'raw:check-source-tables': {
     ecrit: [],
     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, le parseur de tables (src/data/source/decoupe.ts), les dossiers à `dir` de ' +
       'Source/ et son stock nominatif scripts/raw/source-tables-stock.json ; aucune écriture ' +
       'n’est atteinte',
@@ -527,7 +531,7 @@ export const ECRIT_LU = {
   'raw:check-source-puces': {
     ecrit: [],
     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, le normaliseur de citations (src/data/source/decoupe.ts), les dossiers ' +
       'à `dir` de Source/ et son stock nominatif scripts/raw/source-puces-stock.json ; aucune écriture ' +
       'n’est atteinte',
@@ -535,7 +539,7 @@ export const ECRIT_LU = {
   'raw:check-renvois': {
     ecrit: [],
     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/data/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, les chapitres des livres couverts par le lecteur fs (scripts/source/lecteur-fs.mjs), ' +
       'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; aucune ' +
       'écriture n’est atteinte',
@@ -543,7 +547,7 @@ export const ECRIT_LU = {
   'raw:check-source-format': {
     ecrit: [],
     lit: ['Source/', 'src/data/books.json', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/source/nom-ascii.mjs', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres et les dossiers FR de Source/ (ceux à `dir` plus les ' +
       'pré-pipeline atteints par balayage), ainsi que son stock nominatif ' +
       'scripts/raw/source-format-stock.json ; aucune écriture n’est atteinte',

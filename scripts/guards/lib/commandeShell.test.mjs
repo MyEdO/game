@@ -3,8 +3,51 @@
 //   node --test scripts/guards/lib/commandeShell.test.mjs   (chaîné dans `npm run test:hooks`)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { resolve } from 'node:path'
 import { CAS_HOTE_POWERSHELL, argumentsDuCas } from '../../hooks/hote-powershell-cas.mjs'
-import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine, valeurParametre } from './commandeShell.mjs'
+import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine, valeurParametre, pipelinesDeJetons, texteDuSegment, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance } from './commandeShell.mjs'
+
+test('redirections : provenance de la cible séparée ou collée', () => {
+  const [segment] = pipelinesDeJetons('echo \'$P/x\' > "$P/x" 2>$P/y').flat()
+  const cibles = ciblesDeRedirectionAvecProvenance(segment.jetons)
+  assert.deepEqual(cibles.map((j) => [j.text, j.raw]), [['$P/x', '"$P/x"'], ['$P/y', '$P/y']])
+  assert.ok(cibles[0].quote)
+})
+
+test('cibleDeLaCommande : paramètres de cwd, base inconnue et restauration absolue', () => {
+  const cwd = resolve('depart')
+  const cible = resolve(cwd, 'avec espace')
+  const options = { existe: () => true }
+  for (const commande of [
+    'cd -- "avec espace"',
+    'cmd /c cd /d "avec espace"',
+    'Set-Location -Path "avec espace"',
+    'Set-Location -LiteralPath "avec espace"',
+  ]) assert.equal(cibleDeLaCommande(commande, cwd, process.platform, options).dir, cible, commande)
+  assert.equal(cibleDeLaCommande('cmd /c cd /d cible', cwd, process.platform, options).dir, resolve(cwd, 'cible'))
+  for (const commande of ['cd relatif', 'cd -- relatif', 'Set-Location -Path relatif']) {
+    const resultat = cibleDeLaCommande(commande, null, process.platform, options)
+    assert.equal(resultat.dir, null, commande)
+    assert.equal(resultat.ignore.raison, 'répertoire de départ indéterminé', commande)
+  }
+  assert.equal(cibleDeLaCommande(`cd "${cible}"`, null, process.platform, options).dir, cible)
+  assert.equal(cibleDeLaCommande('cd -inconnu cible && cd relatif', cwd, process.platform, options).dir, null)
+  assert.equal(cibleDeLaCommande(`cd -inconnu cible && cd "${cible}"`, cwd, process.platform, options).dir, cible)
+})
+
+test('texteDuSegment : raw quotés, affectation autonome et grammaires non enrichies', () => {
+  for (const [commande, attendu, valeurs] of [
+    ["nohup cp 'source avec espace' \"destination avec espace\"", "cp 'source avec espace' \"destination avec espace\"", 0],
+    ["env P='avec espace'", "P='avec espace'", 1],
+    ["P='avec espace' cp x y", 'cp x y', 0],
+    ["$p = 'avec espace'", "$p = 'avec espace'", 0],
+    ['set P=avec', 'set P=avec', 0],
+  ]) {
+    const [segment] = pipelinesDeJetons(commande, 0, { scripts: {} }).flat()
+    assert.equal(texteDuSegment(segment), attendu)
+    assert.equal(segment.valeurs.length, valeurs)
+  }
+})
 
 test('valeurParametre : le nom EXACT gagne, un préfixe strict ambigu est refusé, la casse est libre', () => {
   const noms = ['Query', 'QueryDialect', 'Filter']

@@ -3,6 +3,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { posix } from 'node:path'
+import { writeFileSync, rmSync } from 'node:fs'
+import { instanceDeDepot } from './depotGabarit.mjs'
+import { balayagesNonResolus, perimetreDuDepot } from '../../test/perimetre.mjs'
 import { analyserTexte } from './dialecte.mjs'
 import { evaluateurDuDepot, evaluer, lectureDeModule } from './racinesBalayees.mjs'
 
@@ -24,6 +27,102 @@ const evaluateurDe = (modules) => {
 const racinesDe = (modules, f) => evaluateurDe(modules).sitesDe(f).filter((s) => !s.relais).map((s) => s.valeurs)
 
 const ROOT = "import { join } from 'node:path'\nimport { fileURLToPath } from 'node:url'\nimport { readdirSync, readFileSync, existsSync, mkdtempSync } from 'node:fs'\nconst ROOT = fileURLToPath(new URL('../..', import.meta.url))\n"
+const couvert = (origine, raison) => ({ chemin: '', sous: `couverture corpus entier : ${origine} — ${raison}` })
+const couvertureTemporaire = couvert('node:os#tmpdir', 'répertoire temporaire dépendant de l’environnement')
+
+test('contrats de source : référence locale, alias importé, homonyme opaque et résumé corpus', () => {
+  const modules = {
+    'canon.mjs': "export function opaque() { return inconnu() }\nexport function lit() { readFileSync(inconnu()) }\nexport const CONTRATS_DE_DERIVATION = [{fonction:opaque,namespace:'/host'}, {fonction:lit,lectures:'corpus'}]",
+    'autre.mjs': 'export function opaque() { return inconnu() }',
+    'banc.mjs': "import {opaque as vrai, lit} from './canon.mjs'\nimport {opaque as faux} from './autre.mjs'\nreadFileSync(vrai())\nreadFileSync(faux())\nlit('../arbitraire')",
+  }
+  assert.deepEqual(racinesDe(modules, 'banc.mjs'), [[{ hors: true }], [{ non: 'appel inconnu' }], [couvert('canon.mjs#lit', 'résumé de lecture déclaré à la source')]])
+  assert.deepEqual(racinesDe(modules, 'canon.mjs'), [[couvert('canon.mjs#lit', 'résumé de lecture déclaré à la source')]])
+})
+
+test('namespace borné : fragments recomposés, parent et sortie couvrent le corpus, cible readlink opaque', () => {
+  const texte = "import {join,dirname} from 'node:path'\nexport function base() {return opaque()}\nexport const CONTRATS_DE_DERIVATION=[{fonction:base,namespace:'/proc'}]\nconst b=base()\nfor(const nom of readdirSync(b)) {readFileSync(join(b,nom,'stat'));readFileSync(nom)}\nreadFileSync(dirname(b))\nreadFileSync(join(b,'..','src'))\nreadFileSync(readlinkSync(join(b,'1/cwd')))"
+  const rendu = racinesDe({ 'banc.mjs': texte }, 'banc.mjs')
+  assert.deepEqual(rendu, [[{ hors: true }], [couvert('banc.mjs#base:/proc', 'descente par fragment de namespace susceptible de lien')], [{ non: 'fragment de répertoire sans sa base' }], [couvert('banc.mjs#base:/proc', 'parent du namespace externe')], [couvert('banc.mjs#base:/proc', 'sortie du namespace externe')], [{ non: 'appel readlinkSync' }]])
+  for (const fichier of ['src/a.ts', 'scripts/x.mjs', 'Source/livre.md'])
+    for (const indice of [3, 4]) assert.ok(fichier.startsWith(rendu[indice][0].chemin))
+})
+
+test('fragment direct de namespace : lecture descendante couvre le consommateur réel', () => {
+  const source = "import {join} from 'node:path';import {readdirSync,readFileSync} from 'node:fs';function base(){return opaque()};export const CONTRATS_DE_DERIVATION=[{fonction:base,namespace:'.git'}];const b=base();for(const nom of readdirSync(b)){readFileSync(join(b,nom))}"
+  const racines = racinesDe({ 'scripts/banc.test.mjs': source }, 'scripts/banc.test.mjs')
+  const { racine, sha } = instanceDeDepot({ fichiers: { 'scripts/banc.test.mjs': source, 'src/a.md': 'initial', '.gitignore': 'node_modules/' } })
+  try {
+    writeFileSync(posix.join(racine, 'src/a.md'), 'touché')
+    assert.ok(perimetreDuDepot(racine, { base: sha }).retenus.has('scripts/banc.test.mjs'))
+    assert.deepEqual(racines[1], [couvert('scripts/banc.test.mjs#base:.git', 'descente par fragment de namespace susceptible de lien')])
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('composition : mkdtemp couvre son suffixe aléatoire, join et resolve diffèrent, extérieur ne masque pas inconnu', () => {
+  const texte = "import {join,resolve} from 'node:path'\nimport {tmpdir} from 'node:os'\nimport {mkdtempSync} from 'node:fs'\nreadFileSync(mkdtempSync(join(process.cwd(),'fixture-')))\nreadFileSync(join('src','/data'))\nreadFileSync(resolve('src','/data'))\nreadFileSync(join(tmpdir(),inconnu()))\nreadFileSync(join(tmpdir(),'..','x'))\nreadFileSync(choix ? tmpdir() : inconnu())\nreadFileSync('/absolu/arbitraire')"
+  assert.deepEqual(racinesDe({ 'banc.mjs': texte }, 'banc.mjs'), [
+    [couvert('corpus:fixture-', 'suffixe aléatoire mkdtempSync')], [{ chemin: 'src/data' }], [{ non: 'chemin absolu /data' }],
+    [couvertureTemporaire], [couvertureTemporaire],
+    [couvertureTemporaire, { non: 'appel inconnu' }], [{ non: 'chemin absolu /absolu/arbitraire' }],
+  ])
+})
+
+test('tmpdir et mkdtemp : identité builtin aliasée, homonymes locaux et étrangers', () => {
+  assert.deepEqual(racinesDe({ 'banc.mjs': "import {tmpdir as lieu} from 'node:os';import {mkdtempSync as creer} from 'node:fs';readFileSync(creer(lieu()+'x-'))" }, 'banc.mjs'), [[couvertureTemporaire]])
+  assert.deepEqual(racinesDe({ 'banc.mjs': "import * as os from 'node:os';import fsReel from 'node:fs';readFileSync(fsReel.mkdtempSync(os.tmpdir()+'x-'))" }, 'banc.mjs'), [[couvertureTemporaire]])
+  assert.deepEqual(racinesDe({ 'banc.mjs': "function tmpdir(){return 'src'};function mkdtempSync(x){return 'Source'};readFileSync(tmpdir());readFileSync(mkdtempSync('x'))" }, 'banc.mjs'), [[{ chemin: 'src' }], [{ chemin: 'Source' }]])
+  const modules = { 'autre.mjs': "export function tmpdir(){return 'src'};export function mkdtempSync(){return 'Source'}", 'banc.mjs': "import {tmpdir,mkdtempSync} from './autre.mjs';readFileSync(tmpdir());readFileSync(mkdtempSync())" }
+  assert.deepEqual(racinesDe(modules, 'banc.mjs'), [[{ chemin: 'src' }], [{ chemin: 'Source' }]])
+})
+
+test('mkdtemp : le consommateur réel retient une lecture sous suffixe aléatoire', () => {
+  const { racine, sha } = instanceDeDepot({ fichiers: {
+    'scripts/banc.test.mjs': "import {join} from 'node:path';import {mkdtempSync,readFileSync} from 'node:fs';const dir=mkdtempSync(join(process.cwd(),'fixture-'));readFileSync(join(dir,'x.md'))",
+    'fixture-ABC/x.md': 'initial', '.gitignore': 'node_modules/',
+  } })
+  try {
+    assert.deepEqual(balayagesNonResolus(racine), [])
+    writeFileSync(posix.join(racine, 'fixture-ABC/x.md'), 'touché')
+    assert.ok(perimetreDuDepot(racine, { base: sha }).retenus.has('scripts/banc.test.mjs'))
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('contrat sérialisé : la source est une dépendance des réponses mises en cache', () => {
+  const source = "export function lit(){readFileSync(inconnu())}\nexport const CONTRATS_DE_DERIVATION=[{fonction:lit,lectures:'corpus'}]"
+  const modules = { 'canon.mjs': source, 'banc.mjs': "import {lit} from './canon.mjs'\nlit('x')" }
+  const evaluateur = evaluateurDe(modules)
+  const premier = evaluateur.tracer(() => evaluateur.sitesDe('banc.mjs'))
+  const second = evaluateur.tracer(() => evaluateur.sitesDe('banc.mjs'))
+  assert.ok(second.requetes.has(JSON.stringify(['lecture', 'canon.mjs'])))
+  assert.deepEqual([...second.requetes].sort(), [...premier.requetes].sort())
+  assert.equal(JSON.parse(JSON.stringify(lire('canon.mjs', source))).fonctions.lit.contrat.lectures, 'corpus')
+  modules['canon.mjs'] = source.replace("lectures:'corpus'", "lectures:'invalide'")
+  assert.notDeepEqual(evaluateurDe(modules).sitesDe('banc.mjs'), premier.resultat)
+})
+
+test('consommateur canonique : couverture de tous fichiers et changement de contrat après cache chaud', () => {
+  const source = "export function lit(){readFileSync(inconnu())}\nexport const CONTRATS_DE_DERIVATION=[{fonction:lit,lectures:'corpus'}]"
+  const { racine, sha } = instanceDeDepot({ fichiers: {
+    'scripts/canon.mjs': source,
+    'scripts/banc.test.mjs': "import {lit} from './canon.mjs'\nlit('../inconnu')",
+    'src/a.md': 'initial', 'Source/b.md': 'initial',
+    '.gitignore': 'node_modules/',
+  } })
+  try {
+    assert.deepEqual(balayagesNonResolus(racine), [])
+    assert.deepEqual(balayagesNonResolus(racine), [])
+    for (const fichier of ['src/a.md', 'Source/b.md']) {
+      writeFileSync(posix.join(racine, fichier), 'touché')
+      assert.ok(perimetreDuDepot(racine, { base: sha }).retenus.has('scripts/banc.test.mjs'), fichier)
+      writeFileSync(posix.join(racine, fichier), 'initial')
+    }
+    writeFileSync(posix.join(racine, 'scripts/canon.mjs'), source.replace("lectures:'corpus'", "lectures:'invalide'"))
+    const froid = balayagesNonResolus(racine)
+    assert.ok(froid.some((s) => s.fichier === 'scripts/canon.mjs' && s.raison === 'appel inconnu'))
+    assert.deepEqual(balayagesNonResolus(racine), froid)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
 
 test('lectures de base : littéral, join depuis la racine du module, boucle, fichier exact, sonde d’absence, porte git', () => {
   const texte = ROOT + [
@@ -54,8 +153,8 @@ test('RELAIS dérivé : un paramètre qui alimente une lecture, à un puis deux 
   assert.deepEqual(evaluateur.sitesDe('scripts/lib/corpus.mjs').map((s) => s.relais), [true])
   assert.deepEqual(evaluateur.relaisExportes('scripts/lib/corpus.mjs'), ['corpus'])
   assert.deepEqual(racinesDe(modules, 'scripts/garde.test.mjs'), [
-    [{ chemin: 'src/ui', sous: 'paramètre rel' }, { chemin: 'src/ui' }],
-    [{ chemin: 'src/a/sous', sous: 'paramètre rel' }, { chemin: 'src/b/sous', sous: 'paramètre rel' }, { chemin: 'src/a/sous' }, { chemin: 'src/b/sous' }],
+    [couvert('corpus:src/ui', 'paramètre rel'), { chemin: 'src/ui' }],
+    [couvert('corpus:src/a/sous', 'paramètre rel'), couvert('corpus:src/b/sous', 'paramètre rel'), { chemin: 'src/a/sous' }, { chemin: 'src/b/sous' }],
   ])
 })
 
@@ -99,9 +198,9 @@ test('`join` de TABLEAU : `split(…).join(…)` rend son texte, seul le `join` 
   assert.deepEqual(racinesDe({ 'scripts/x/t.test.mjs': texte }, 'scripts/x/t.test.mjs'), [[{ chemin: 'docs' }], [{ chemin: 'src/ui' }], [{ non: 'appel [\'a\', \'b\'].join' }]])
 })
 
-test('un dossier temporaire est HORS du dépôt, jamais un non résolu', () => {
-  const texte = ROOT + "const d = mkdtempSync(join(tmpdir(), 'x-'))\nreaddirSync(d)\nreadFileSync(join(d, 'a.json'))\n"
-  assert.deepEqual(racinesDe({ 'scripts/t.test.mjs': texte }, 'scripts/t.test.mjs'), [[{ hors: true }], [{ hors: true }]])
+test('un dossier temporaire dépendant de l’environnement couvre le corpus', () => {
+  const texte = ROOT + "import {tmpdir} from 'node:os'\nconst d = mkdtempSync(join(tmpdir(), 'x-'))\nreaddirSync(d)\nreadFileSync(join(d, 'a.json'))\n"
+  assert.deepEqual(racinesDe({ 'scripts/t.test.mjs': texte }, 'scripts/t.test.mjs'), [[couvertureTemporaire], [couvertureTemporaire]])
 })
 
 test('CYCLE de relais : une ré-entrée aux MÊMES arguments est un cycle nommé ; à d’autres arguments elle s’évalue, la suivante est un cycle nommé', () => {
@@ -167,7 +266,7 @@ test('RÉAFFECTATION : la liaison vaut sa valeur initiale et chaque membre droit
   const sites = evaluateurDe(modules).sitesDe('scripts/x/garde.test.mjs')
   assert.deepEqual(sites.map((s) => [`${s.ligne} ${s.appel}`, s.relais, s.valeurs]), [
     ['5 readFileSync', false, [{ non: 'appel cache.get' }, { non: 'valeur nulle' }, { chemin: 'Source/livre/ch.md' }]],
-    ['8 readdirSync', false, [{ hors: true }]],
+    ['8 readdirSync', false, [couvertureTemporaire]],
     ['11 existsSync', true, [{ non: 'ancetre réaffectée en récurrence' }]],
     ['20 readFileSync', false, [{ chemin: 'a.json' }, { non: 'n réaffectée' }]],
   ])

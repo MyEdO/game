@@ -108,10 +108,13 @@ test('contexte : la cible PROUVÉE par la commande, sinon le `cwd` de l’entré
     const cible = join(REPO, 'scripts')
     const cdCible = `cd "${cible.replace(/\\/g, '/')}" && ls`
     assert.equal(construireContexte(shell(cdCible, { cwd: base }), { cwd: REPO }).dir, cible)
+    assert.equal(construireContexte(shell(cdCible, { cwd: base }), { cwd: REPO }).baseDeLAppel, base)
+    assert.equal(construireContexte(shell(`(${cdCible}); echo x > dehors`, { cwd: base }), { cwd: REPO }).baseDeLAppel, base)
     assert.equal(construireContexte(shell('ls'), { cwd: REPO }).dir, REPO)
     const absent = construireContexte(shell('cd /nulle/part && ls', { cwd: base }), { cwd: REPO })
     assert.equal(absent.dir, base, 'un répertoire absent n’est pas retenu')
     assert.ok(absent.cibleIgnoree)
+    assert.equal(absent.baseDeLAppel, base)
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
