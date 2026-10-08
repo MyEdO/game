@@ -2,10 +2,10 @@ import type { Combatant, ItemInstance, ShipPoste, Weapon } from './types';
 
 /**
  * ÉTAT DE CHARGE — module FEUILLE (aucun import runtime) : les LECTEURS purs du cycle de charge.
- * Arbitrage utilisateur 2026-08-16 : « quand on charge une arme on sélectionne une munition » et « si j'ai
- * 2 armes à distance elles gèrent chacune leur propre rechargement et munition ». L'état vit donc sur
- * l'INSTANCE d'arme (`Combatant.weapons[i]`), ou sur la PIÈCE servie (`ShipPoste`) pour son canon.
- * Les ÉCRIVAINS (`loadWeapon`/`unloadWeapon`, engine/items.ts) sont les seuls à poser/effacer.
+ * L'état vit sur l'ARME (docs/plans/2026-08-16-hud-combat.md:73-79) : son registre (`loadRegister`), ou la
+ * PIÈCE servie (`ShipPoste`) pour son canon.
+ * Les ÉCRIVAINS (`loadWeapon`/`unloadWeapon`/`oublierCycleDeCharge`, engine/items.ts) sont les seuls à
+ * poser/effacer.
  */
 export interface WeaponLoadState {
   ammoUid?: string;
@@ -13,6 +13,17 @@ export interface WeaponLoadState {
   loaded?: boolean;
   reloadProgress?: number;
   chambered?: number;
+}
+
+/** Table TOTALE des champs du CYCLE de charge : tout `WeaponLoadState` hors le CHOIX de munition (`ammoUid`).
+ *  Un champ ajouté au registre sans classement ne compile pas. */
+export const CYCLE_DE_CHARGE = {
+  loaded: true, reloadProgress: true, loadedAmmoUid: true, chambered: true,
+} as const satisfies Record<Exclude<keyof WeaponLoadState, 'ammoUid'>, true>;
+
+/** Le CYCLE de charge de ce registre a-t-il commencé ? Vrai dès qu'un champ de `CYCLE_DE_CHARGE` y est PRÉSENT. */
+export function cycleCommence(reg: WeaponLoadState): boolean {
+  return Object.keys(CYCLE_DE_CHARGE).some((k) => k in reg);
 }
 
 /** L'OBJET SOURCE de l'arme tenue : l'objet PORTÉ d'une arme dérivée (`derivedFromItem`), la pièce du poste

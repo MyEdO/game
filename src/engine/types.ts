@@ -508,9 +508,7 @@ export interface Weapon {
    *  `src/engine/effect-rule-anchor.test.ts`. */
   source?: EffectSource;
   // ── ÉTAT DE CHARGE (par ARME) ─────────────────────────────────────────────────────────────────────
-  // Chaque arme choisit sa munition à son propre chargement ; chaque arme à distance possédée gère
-  // son propre rechargement et sa propre munition (arbitrage utilisateur 2026-08-16 : « si j ai 2 armes
-  // à distance elles gèrent chacune leur propre rechargement et munition »).
+  // Chaque arme à distance gère son rechargement et sa munition (docs/plans/2026-08-16-hud-combat.md:73-79).
   // L'état vit donc sur l'INSTANCE d'arme (`Combatant.weapons[i]`), jamais sur le combattant ; une pièce
   // d'artillerie SERVIE porte le sien sur `ShipPoste`. Source unique de lecture/écriture :
   // `loadRegister`/`loadWeapon`/`unloadWeapon` (engine/items.ts). Préservé au re-dérivage du set
@@ -1084,13 +1082,11 @@ export type ItemKind = 'melee' | 'ranged' | 'armor' | 'ammo' | 'misc';
 /** Instance d'objet portée par un personnage (dérivée d'un trapping à stats). */
 export interface ItemInstance {
   uid: string;
-  // ── ÉTAT DE CHARGE de CET objet-arme : chaque arme à distance possédée gère son propre
-  // rechargement et sa propre munition (arbitrage utilisateur 2026-08-16 : « si j ai 2 armes à distance
-  // elles gèrent chacune leur propre rechargement et munition ») —
+  // ── ÉTAT DE CHARGE de CET objet-arme (docs/plans/2026-08-16-hud-combat.md:73-79) —
   // l'OBJET possédé est le porteur qui SURVIT au re-dérivage du set actif (`recomputeLoadout`
   // reconstruit les `Weapon`, jamais les items) — changer de set ne téléporte donc aucun coup
   // chargé. Registre résolu par `loadRegister` (engine/weaponLoad) ; seuls
-  // `loadWeapon`/`unloadWeapon` (engine/items) posent et effacent.
+  // `loadWeapon`/`unloadWeapon`/`oublierCycleDeCharge` (engine/items) posent et effacent.
   /** Munition CHOISIE pour le prochain chargement de CETTE arme (uid d'un ItemInstance `kind 'ammo'`). */
   ammoUid?: string;
   /** Munition CAPTURÉE dans le coup chargé de CETTE arme : posée au chargement, consommée au tir. */
@@ -1307,7 +1303,7 @@ export interface AuthoredShipPoste {
   ammoUid?: string;
   /** Munition CAPTURÉE dans le coup chargé de la pièce (uid dans `ammo`) : posée à l'achèvement du Test
    *  étendu de recharge, consommée au tir. La munition se fixe AU CHARGEMENT : changer la sélection
-   *  d'une pièce chargée la DÉCHARGE (arbitrage utilisateur 2026-08-16, AskUserQuestion). */
+   *  d'une pièce chargée la DÉCHARGE (docs/plans/2026-08-16-hud-combat.md:80-86). */
   loadedAmmoUid?: string;
   /** Ancre spatiale optionnelle de la pièce dans l'espace de la scène (authorable). Absente → dérivée
    *  (emplacement au sol = pos de l'entité ; coque = empreinte décalée par l'arc). Index-only, aucun effet combat. */
@@ -1763,9 +1759,8 @@ export interface Combatant {
    *  si le lanceur est hors de combat (minions de Nécromancie liés au sorcier). Géré par state/summonFlow. */
   summon?: { byId: string; expiresAtRound?: number; despawnIfSummonerDown?: boolean; label?: string; spellId?: string };
   // L'ÉTAT DE CHARGE (munition choisie/capturée, `loaded`, progression, chargeur) vit sur l'INSTANCE
-  // D'ARME (`Weapon`) : chaque arme à distance possédée gère son propre rechargement et sa propre
-  // munition (arbitrage utilisateur 2026-08-16 : « si j ai 2 armes à distance elles gèrent chacune leur
-  // propre rechargement et munition »). Aucun de ces champs ne vit sur le COMBATTANT.
+  // D'ARME (`Weapon`) (docs/plans/2026-08-16-hud-combat.md:73-79). Aucun de ces champs ne vit sur le
+  // COMBATTANT.
   /** Salve (Aux Armes p.126) : nombre de tirs DÉJÀ effectués ce tour (réinit. au changement de tour) ;
    *  chaque tir suivant d'une arme à Salve subit −10 cumulatif (lu par `attackModifiers`). */
   shotsThisTurn?: number;

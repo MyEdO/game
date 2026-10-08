@@ -4,6 +4,7 @@
  */
 import type { Combatant, ConditionInstance } from './types';
 import { findConditionById } from '../data';
+import { oublierCycleDeCharge } from './items';
 
 /** Cet État suit-il le porteur hors du combat ? Drapeau DÉCLARÉ sur l'entrée d'`etats.json`
  *  (`EtatData.persistsAfterCombat`) : le moteur lit le champ, il n'énumère aucun id. Un État absent du
@@ -19,14 +20,15 @@ export function isPersistentCondition(id: string): boolean {
  * - `sort: false` : propre à la rencontre ; le héros du groupe garde la sienne. `raison` : la réf nue de
  *   la règle, ou la raison d'ingénierie.
  * `entree` : la valeur posée à l'entrée en combat (`entreeEnRencontre`) ; absente, celle du groupe entre.
+ * `sortie` : la transformation de la valeur qui revient au groupe (`carryOverState`) ; absente, elle revient telle quelle.
  */
-export type Report =
-  | { sort: true; entree?: unknown; raison?: string }
+export type Report<V = unknown> =
+  | { sort: true; entree?: unknown; sortie?: (v: V) => V; raison?: string }
   | { sort: 'etats-persistants' }
   | { sort: false; raison: string; entree?: unknown };
 
-const PERSISTE: Report = { sort: true };
-const rencontre = (raison: string, entree?: unknown): Report => (entree === undefined ? { sort: false, raison } : { sort: false, raison, entree });
+const PERSISTE = { sort: true } as const;
+const rencontre = (raison: string, entree?: unknown) => (entree === undefined ? { sort: false, raison } as const : { sort: false, raison, entree } as const);
 
 const TOUR = 'compteur du tour ou du Round de combat';
 const COQUE = 'coque, poste ou équipage d’un combat naval, jamais porté par un héros du groupe';
@@ -53,7 +55,8 @@ export const REPORT_DE_COMBATTANT = {
   characteristics: PERSISTE, wounds: PERSISTE,
   advantage: rencontre('LDB 14 l.219', 0),
   conditions: { sort: 'etats-persistants' },
-  weapons: rencontre(DERIVE), armour: rencontre(DERIVE), items: PERSISTE, encumbrance: rencontre(DERIVE),
+  weapons: rencontre(DERIVE), armour: rencontre(DERIVE), encumbrance: rencontre(DERIVE),
+  items: { sort: true, sortie: oublierCycleDeCharge, raison: 'LDB 62 l.335 ; #1678 P4' },
   skills: PERSISTE, talents: PERSISTE, loadouts: PERSISTE, activeLoadoutId: PERSISTE, barre: PERSISTE,
   spells: PERSISTE, componentSpells: PERSISTE, sinPoints: PERSISTE, masteredWeapons: PERSISTE,
   activeEffects: { sort: true, raison: 'LDB 46 l.93, CRB 070 l.27' }, castPenalties: PERSISTE,
@@ -85,7 +88,7 @@ export const REPORT_DE_COMBATTANT = {
   engagedWith: rencontre(RELATION, []), meleeThisRound: rencontre(RELATION, []), attackedThisRound: rencontre(RELATION),
   contactWith: rencontre(RELATION), grapplingWith: rencontre(RELATION),
   appearance: PERSISTE, appearanceOverride: PERSISTE,
-} satisfies Record<keyof Combatant, Report>;
+} satisfies { [K in keyof Combatant]-?: Report<Combatant[K]> };
 
 const CHAMPS = Object.entries(REPORT_DE_COMBATTANT) as [keyof Combatant, Report][];
 
@@ -100,7 +103,7 @@ export function carryOverState(c: Combatant): Partial<Combatant> {
   const out: Record<string, unknown> = {};
   for (const [cle, r] of CHAMPS) {
     if (r.sort === 'etats-persistants') out[cle] = persistentConditions(c);
-    else if (r.sort) out[cle] = structuredClone(c[cle]);
+    else if (r.sort) out[cle] = r.sortie ? r.sortie(structuredClone(c[cle])) : structuredClone(c[cle]);
   }
   return out as Partial<Combatant>;
 }

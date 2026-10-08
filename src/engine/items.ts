@@ -24,7 +24,7 @@ import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
-import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
+import { CYCLE_DE_CHARGE, loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
 
 let uidCounter = 0;
 export function newUid(): string {
@@ -1125,7 +1125,7 @@ export function selectedAmmo(c: Combatant, weapon: Weapon): ItemInstance | undef
 
 /** Munition RÉELLEMENT dans l'arme — celle que le tir consomme et qui augmente le coup (`weaponWithAmmo`,
  *  bandes de portée). Capturée au chargement par `loadWeapon` (PROPRIÉTAIRE UNIQUE de `loadedAmmoUid`).
- *  Arbitrage utilisateur 2026-08-16 « La munition se fixe au CHARGEMENT » (`docs/plans/2026-08-16-hud-combat.md` §1).
+ *  Munition fixée au CHARGEMENT : docs/plans/2026-08-16-hud-combat.md:80-86.
  *  Lue dans le REGISTRE de l'arme (pièce servie → la pièce). Sans cycle de chargement (`reload` 0 : Arc,
  *  fronde) il n'y a rien à capturer → le choix courant vaut coup. Repli sur le choix courant quand rien
  *  n'est capturé (arme authorée « prête » sans capture posée). PUR. */
@@ -1137,8 +1137,8 @@ export function loadedAmmo(c: Combatant, weapon: Weapon): ItemInstance | undefin
 }
 
 /** CHARGE une arme : pose ENSEMBLE, DANS SON REGISTRE, l'état de charge (`loaded`, `reloadProgress`,
- *  `chambered`) et la munition CAPTURÉE (`loadedAmmoUid`) — arbitrage utilisateur 2026-08-16 « quand on
- *  charge une arme on sélectionne une munition ». PROPRIÉTAIRE UNIQUE de la pose : fin de rechargement
+ *  `chambered`) et la munition CAPTURÉE (`loadedAmmoUid`) — docs/plans/2026-08-16-hud-combat.md:73-79.
+ *  PROPRIÉTAIRE UNIQUE de la pose : fin de rechargement
  *  (joueur ET IA), début de combat, spawn, prise d'une pièce. Mute en place. */
 export function loadWeapon(c: Combatant, weapon?: Weapon, poste?: ShipPoste): void {
   if (!weapon && !poste) return;
@@ -1153,8 +1153,8 @@ export function loadWeapon(c: Combatant, weapon?: Weapon, poste?: ShipPoste): vo
 }
 
 /** DÉCHARGE une arme : efface ENSEMBLE, DANS SON REGISTRE, l'état de charge et la munition capturée.
- *  PROPRIÉTAIRE UNIQUE de l'effacement : coup parti, bordée, bascule de munition sur une arme chargée
- *  (arbitrage utilisateur 2026-08-16). `poste` fourni SANS arme = décharge de la seule pièce (bordée).
+ *  PROPRIÉTAIRE UNIQUE de l'effacement en combat : coup parti, bordée, bascule de munition sur une arme
+ *  chargée (docs/plans/2026-08-16-hud-combat.md:80-86). `poste` fourni SANS arme = décharge de la seule pièce (bordée).
  *  Aucune munition n'est détruite : le décompte du stock n'a lieu qu'au tir (`consumeAmmo`). Mute en place. */
 export function unloadWeapon(c?: Combatant, weapon?: Weapon, poste?: ShipPoste): void {
   const regs: WeaponLoadState[] = [];
@@ -1171,6 +1171,16 @@ export function unloadWeapon(c?: Combatant, weapon?: Weapon, poste?: ShipPoste):
   }
 }
 
+/** OUBLIE le cycle de charge (`CYCLE_DE_CHARGE`) de chaque objet : les champs sont SUPPRIMÉS, le choix de
+ *  munition (`ammoUid`) reste. Sortie de combat des `items` (`REPORT_DE_COMBATTANT`, #1678 P4) : l'entrée
+ *  suivante charge un registre jamais commencé. Mute en place et rend `items`. */
+export function oublierCycleDeCharge(items: ItemInstance[] | undefined): ItemInstance[] | undefined {
+  for (const it of items ?? []) {
+    for (const champ of Object.keys(CYCLE_DE_CHARGE) as (keyof typeof CYCLE_DE_CHARGE)[]) delete it[champ];
+  }
+  return items;
+}
+
 /** DR cumulés du Test étendu de rechargement de CETTE arme (LDB 62 l.335) — écrivain UNIQUE de la
  *  progression : la remise à zéro d'une interruption comme le cumul d'un jet passent par ici, toujours
  *  DANS le registre (pièce servie, objet possédé ou instance d'arme). `poste` = pièce visée explicitement
@@ -1182,8 +1192,8 @@ export function setReloadProgress(c: Combatant | undefined, weapon: Weapon | und
 
 /** CHOIX de munition « à charger au prochain rechargement » (`ammoUid`) — écrivain UNIQUE : hotbar du
  *  joueur, sélecteur de pièce du navire (MDG 12). Ne touche NI l'état de charge NI le coup capturé :
- *  changer d'avis ne décharge rien par lui-même (c'est l'appelant qui décide de décharger, arbitrage
- *  utilisateur 2026-08-16). Mute en place. */
+ *  changer d'avis ne décharge rien par lui-même ; l'appelant décide de décharger
+ *  (docs/plans/2026-08-16-hud-combat.md:80-86). Mute en place. */
 export function setAmmoChoice(c: Combatant | undefined, weapon: Weapon | undefined, uid: string | undefined, poste?: ShipPoste): void {
   const reg: WeaponLoadState | undefined = poste ?? (c && weapon ? loadRegister(c, weapon) : undefined);
   if (reg) reg.ammoUid = uid;
