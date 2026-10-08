@@ -151,7 +151,7 @@ function verifierOrdreDiag({ run, capture, chemin }) {
   assert.equal(diagSortie.length, 4, `bloc [diag] absent ou incomplet en sortie : ${run.stdout}`)
   assert.match(
     diagSortie[0],
-    /^\[diag\] machine : \d+ cœurs · [\d.]+ Go · disponible [\d.]+ Go → (\d+ workers? portés?|mémoire insuffisante pour un worker \(\d+ Mo < \d+ Mo\)) · réserve de [12] parents? · borné par (cœurs|(mémoire|plancher) \(\d+ cœurs servis\)) · (mono|partagé) \(seuil 7\) · maxWorkers=/,
+    /^\[diag\] machine : \d+ cœurs · [\d.]+ Go · disponible [\d.]+ Go → régime (suite|lot) \(\d+ Mo par worker\) · (\d+ workers? portés?|plancher de \d+ workers?, au-delà de la mémoire \(\d+ Mo < \d+ Mo\)) · réserve de [12] parents? · borné par (cœurs|(mémoire|plancher) \(\d+ cœurs servis\)) · (mono|partagé) \(seuil 7\) · maxWorkers=/,
   )
   assert.match(diagSortie[1], /^\[diag\] mémoire système max : [\d.]+ Go \/ [\d.]+ Go \(\d+ %\) · rss lanceur max \d+ Mo · fenêtre [\d.]+ s$/)
   assert.match(diagSortie[2], /^\[diag\] sentinelles : act hors act \d+ · /)
@@ -210,8 +210,8 @@ test('plafond de charge : injecté par défaut, jamais doublé si l’appelant b
     assert.deepEqual(lance(sansBorne, [], 16).argv.slice(0, 2), ['run', '--maxWorkers=4'])
     // Plafond `min(4, cœurs − 1)` sur le chemin RÉEL du lanceur, pas seulement dans la fonction pure.
     assert.deepEqual(lance(petiteMachine, [], 4).argv.slice(0, 2), ['run', '--maxWorkers=3'])
-    // La mémoire disponible borne sur le chemin RÉEL : 5 000 Mo ne portent pas un worker, le plancher en sert un.
-    assert.deepEqual(lance(memoirePauvre, [], 16, 5000).argv.slice(0, 2), ['run', '--maxWorkers=1'])
+    // La mémoire disponible borne sur le chemin RÉEL : 5 000 Mo ne portent qu'un worker, le plancher en sert deux.
+    assert.deepEqual(lance(memoirePauvre, [], 16, 5000).argv.slice(0, 2), ['run', '--maxWorkers=2'])
 
     const borne = lance(avecBorne, ['--maxWorkers=2'], 16)
     assert.equal(borne.run.status, 0, `run en échec : ${borne.run.stdout}${borne.run.stderr}`)
@@ -221,6 +221,36 @@ test('plafond de charge : injecté par défaut, jamais doublé si l’appelant b
     assert.equal(maxs.length, 1, `borne injectée par-dessus : ${borne.argv.join(' ')}`)
   } finally {
     for (const base of [sansBorne, petiteMachine, avecBorne, memoirePauvre]) rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('régime : `--regime=lot` borne les workers par l’empreinte du lot, jamais transmis à Vitest ; `suite` par défaut', () => {
+  const parDefaut = fauxDepot(VITEST_VERT)
+  const enLot = fauxDepot(VITEST_VERT)
+  try {
+    // 10 240 Mo à 16 cœurs : suite ⌊8778 / 2340⌋ = 3 workers, lot ⌊8778 / 1973⌋ = 4.
+    const suite = lance(parDefaut, [], 16, 10240)
+    assert.deepEqual(suite.argv.slice(0, 2), ['run', '--maxWorkers=3'])
+    assert.match(suite.run.stdout, /^\[diag\] machine : .* → régime suite \(2340 Mo par worker\) · 3 workers portés · /m)
+    const lot = lance(enLot, ['--regime=lot'], 16, 10240)
+    assert.equal(lot.run.status, 0, `run en échec : ${lot.run.stdout}${lot.run.stderr}`)
+    assert.deepEqual(lot.argv.slice(0, 2), ['run', '--maxWorkers=4'])
+    assert.match(lot.run.stdout, /^\[diag\] machine : .* → régime lot \(1973 Mo par worker\) · 4 workers portés · /m)
+    assert.equal(lot.argv.filter((a) => a.startsWith('--regime')).length, 0, `--regime transmis à Vitest : ${lot.argv.join(' ')}`)
+  } finally {
+    for (const base of [parDefaut, enLot]) rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('régime inconnu : REFUS nommé, aucun Vitest lancé', () => {
+  const base = fauxDepot(VITEST_VERT)
+  try {
+    const run = lanceMono(base, {}, ['--regime=tranche'])
+    assert.equal(run.status, 2, `${run.stdout}${run.stderr}`)
+    assert.match(run.stderr, /REFUS — régime de lancement inconnu : « --regime=tranche » — attendu --regime=suite\|lot/)
+    assert.throws(() => readFileSync(join(base, 'argv.json')), /ENOENT/, 'Vitest a été lancé malgré le refus')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
   }
 })
 
@@ -370,6 +400,7 @@ test('partie mal formée, ou combinée à un filtre de fichier : REFUS nommé, a
     ['4/3', [], /REFUS — WFRP_TEST_PARTIE mal formée : « 4\/3 »/],
     ['', [], /REFUS — WFRP_TEST_PARTIE mal formée : « {2}»/],
     ['1/3', ['un-filtre.ts'], /REFUS — WFRP_TEST_PARTIE combinée à un filtre de fichier \(un-filtre\.ts\)/],
+    ['1/3', ['--regime=lot'], /REFUS — WFRP_TEST_PARTIE combinée à --regime=lot : une partie joue la suite/],
   ]) {
     const base = fauxDepot(VITEST_VERT)
     try {
