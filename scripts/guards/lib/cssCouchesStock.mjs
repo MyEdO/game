@@ -2572,7 +2572,6 @@ export const STYLE_INLINE_RATCHET = [
   { fichier: 'src/ui/editor/EffectList.tsx', ref: 'label.dr :: flex', occurrence: 2 },
   { fichier: 'src/ui/editor/EffectList.tsx', ref: 'label.dr :: flex', occurrence: 3 },
   { fichier: 'src/ui/editor/EffectList.tsx', ref: 'span.dr :: minWidth', occurrence: 1 },
-  { fichier: 'src/ui/editor/FlowEditor.tsx', ref: 'input :: flex', occurrence: 1 },
   { fichier: 'src/ui/editor/Inspector.tsx', ref: 'p.hint :: color', occurrence: 1 },
   { fichier: 'src/ui/editor/LogicDock.tsx', ref: 'div.logic-dock :: expr', occurrence: 1 },
   { fichier: 'src/ui/editor/Palette.tsx', ref: 'button.terrain-swatch :: background', occurrence: 1 },

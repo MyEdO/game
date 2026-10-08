@@ -1,7 +1,20 @@
+// LE BUDGET DU CONTEXTE PERMANENT : ce que chaque session charge avant son premier mot (`mesurerBudget`), et la
+// porte qui refuse sa croissance sans la ligne `CLIQUET:` du porteur du plafond, au commit (`refusDeBudget`,
+// scripts/git-hooks/porte-du-commit.mjs) et sur une plage (`controlerBudgetDeLaPlage`).
+//
+// L'ÈRE (#2503) : sur une plage, chaque commit se juge par la porte de son ère (`groupesParEre`,
+// `porteDEre.mjs`), `merge-base` de ce commit avec le tronc que la plage exclut (`debut`). Le JUGEMENT vient
+// de l'arbre de l'ère : `importsDe` et `estCheminDuBudget` (quels commits touchent le budget),
+// `mesurerBudget` (ce qui se compte), `refusDeBudget` (ce qui se refuse). La LECTURE reste celle de l'arbre
+// qui juge : graphe, `ceQueFaitLeCommit`, messages, et les lecteurs `lireTout`/`lister` sur les objets git.
+// Le contrat d'entrée de `importsDe(texte)`, `estCheminDuBudget(chemin, imports)`,
+// `mesurerBudget(cwd, { lireTout, lister })` et `refusDeBudget({ reference, mesure, message })` est donc
+// APPEND-ONLY : une ère ancienne le reçoit tel que l'arbre qui juge le lit.
 import { readFileSync, readdirSync } from 'node:fs'
 import { Buffer } from 'node:buffer'
 import { resolve } from 'node:path'
-import { cliquetsDuMessage } from './lib/stocksNominatifs.mjs'
+import { cliquetsDuMessage, declarationLue, mesuresNonCouvertes } from './lib/stocksNominatifs.mjs'
+import { cheminDuModule, groupesParEre } from './lib/porteDEre.mjs'
 import { depotDe, grapheDe, journalDe, ceQueFaitLeCommit, lireEnLot, listerImage, enfantsDirects, GitIndisponible } from './lib/gitPorte.mjs'
 import { baseDuDiff } from '../gates/classerPush.mjs'
 
@@ -90,11 +103,9 @@ export function refusDeBudget({ mesure, reference, message }) {
   const plafond = reference.total
   if (mesure.total <= plafond) return null
   const montee = mesure.total - plafond
-  const pourLePorteur = cliquetsDuMessage(message).filter((k) => k.fichier === PORTEUR_DU_PLAFOND)
-  if (pourLePorteur.some((k) => k.n === montee)) return null
-  const declare = pourLePorteur.length
-    ? ` Le message annonce \`+${pourLePorteur[0].n}\`, pas +${montee}.`
-    : ''
+  const [nonCouverte] = mesuresNonCouvertes([{ fichier: PORTEUR_DU_PLAFOND, n: montee }], cliquetsDuMessage(message))
+  if (!nonCouverte) return null
+  const declare = ` Déclaration : ${declarationLue(nonCouverte)}.`
   const grossis = postesQuiGrossissent(reference, mesure)
   const dits = grossis.length
     ? grossis.slice(0, 5).map((p) => `${p.nom} +${p.delta} octets (${p.avant} → ${p.apres})`).join(' · ')
@@ -110,7 +121,26 @@ export function refusDeBudget({ mesure, reference, message }) {
   }
 }
 
-export function controlerBudgetDeLaPlage({ cwd = process.cwd(), debut, fin = 'HEAD' } = {}) {
+/** La porte de budget telle qu'une ère la charge (`jugeDeLEre`) : son module, ses juges, et sa VIE. */
+export const PORTE_DE_BUDGET = Object.freeze({
+  module: cheminDuModule(import.meta.url),
+  exports: ['importsDe', 'estCheminDuBudget', 'mesurerBudget', 'refusDeBudget'],
+  vie: vieDuBudget,
+})
+
+/** La VIE d'une porte de budget chargée : son `mesurerBudget` rend un `total` numérique sur une image connue, et
+ *  son `refusDeBudget` refuse une montée que le message ne déclare pas. */
+function vieDuBudget({ module }) {
+  const mesure = module.mesurerBudget('.', { lireTout: (rels) => new Map(rels.map((rel) => [rel, 'vie\n'])), lister: () => [] })
+  if (typeof mesure?.total !== 'number' || mesure.total <= 0) return false
+  return Boolean(module.refusDeBudget({ reference: { postes: [], total: 0 }, mesure, message: '' }))
+}
+
+/**
+ * Les commits de `debut..fin` qui font grossir le budget sans leur ligne `CLIQUET:`, chacun jugé par la porte
+ * de son ère : `{ commitsControles, refus: [{ sha, ere, decision, reason }], notes }`.
+ */
+export async function controlerBudgetDeLaPlage({ cwd = process.cwd(), debut, fin = 'HEAD' } = {}) {
   if (debut === undefined) {
     const evenement = process.env.GITHUB_EVENT_PATH
       ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'))
@@ -133,40 +163,51 @@ export function controlerBudgetDeLaPlage({ cwd = process.cwd(), debut, fin = 'HE
   exigerLectures()
   if (journal === null) throw new Error(`budget : messages illisibles — ${revisions[0]}`)
   const messages = new Map(journal.map((c) => [c.sha, c.message]))
-  const mesurerImage = (arbre) => {
+  const mesurerImage = (juge, arbre) => {
     const chemins = listerImage(depot, arbre, '.claude/skills', '.claude/agents')
-    const mesure = mesurerBudget(cwd, {
+    const mesure = juge.mesurerBudget(cwd, {
       lireTout: (rels) => lireEnLot(depot, arbre, rels),
       lister: (dossier) => enfantsDirects(chemins, dossier),
     })
     exigerLectures()
     return mesure
   }
-  const resultat = { commitsControles: 0, refus: [] }
-  for (const commit of commits) {
-    const apport = ceQueFaitLeCommit(depot, commit)
-    const chemins = apport.chemins()
-    exigerLectures()
-    if (!chemins.length) continue
-    const imports = [
-      ...importsDe(lireEnLot(depot, apport.base, ['CLAUDE.md']).get('CLAUDE.md')),
-      ...importsDe(lireEnLot(depot, commit.sha, ['CLAUDE.md']).get('CLAUDE.md')),
-    ]
-    exigerLectures()
-    if (!chemins.some((chemin) => estCheminDuBudget(chemin, imports))) continue
-    const reference = mesurerImage(apport.base)
-    const mesure = mesurerImage(commit.sha)
-    const message = messages.get(commit.sha)
-    if (message === undefined) throw new Error(`budget : message absent — ${commit.sha}`)
-    const refus = refusDeBudget({ reference, mesure, message })
-    resultat.commitsControles += 1
-    if (refus) resultat.refus.push({ sha: commit.sha, ...refus })
+  const resultat = { commitsControles: 0, refus: [], notes: [] }
+  const actuelle = { importsDe, estCheminDuBudget, mesurerBudget, refusDeBudget }
+  const groupes = await groupesParEre(depot, commits, debut, PORTE_DE_BUDGET)
+  exigerLectures()
+  for (const { ere, commits: groupe, juge: deLEre, note } of groupes) {
+    if (note) resultat.notes.push(note)
+    const juge = deLEre ?? actuelle
+    for (const commit of groupe) {
+      const apport = ceQueFaitLeCommit(depot, commit)
+      const chemins = apport.chemins()
+      exigerLectures()
+      if (!chemins.length) continue
+      const imports = [
+        ...juge.importsDe(lireEnLot(depot, apport.base, ['CLAUDE.md']).get('CLAUDE.md')),
+        ...juge.importsDe(lireEnLot(depot, commit.sha, ['CLAUDE.md']).get('CLAUDE.md')),
+      ]
+      exigerLectures()
+      if (!chemins.some((chemin) => juge.estCheminDuBudget(chemin, imports))) continue
+      const reference = mesurerImage(juge, apport.base)
+      const mesure = mesurerImage(juge, commit.sha)
+      const message = messages.get(commit.sha)
+      if (message === undefined) throw new Error(`budget : message absent — ${commit.sha}`)
+      const refus = juge.refusDeBudget({ reference, mesure, message })
+      resultat.commitsControles += 1
+      if (refus) resultat.refus.push({ sha: commit.sha, ere, ...refus })
+    }
   }
+  const rang = new Map(commits.map((c, i) => [c.sha, i]))
+  resultat.refus.sort((a, b) => rang.get(a.sha) - rang.get(b.sha))
   exigerLectures()
   return resultat
 }
 
-if (import.meta.main) {
+/** Le CLI : la mesure, puis le contrôle de la plage. Hors évaluation du module (aucun `await` de premier
+ *  niveau) : la porte de son ère peut être ce module même, que `jugeDeLEre` importe. */
+async function principal() {
   try {
     const mesure = mesurerBudget(process.cwd())
     for (const p of mesure.postes) process.stdout.write(`${String(p.octets).padStart(6)}  ${p.nom}\n`)
@@ -179,7 +220,8 @@ if (import.meta.main) {
         if (!valeur || valeur.startsWith('--')) throw new Error(`budget : valeur absente pour ${nom}`)
         return valeur
       }
-      const resultat = controlerBudgetDeLaPlage({ debut: argument('--base'), fin: argument('--tete') ?? 'HEAD' })
+      const resultat = await controlerBudgetDeLaPlage({ debut: argument('--base'), fin: argument('--tete') ?? 'HEAD' })
+      for (const note of resultat.notes) process.stdout.write(`note : ${note}\n`)
       process.stdout.write(`${resultat.commitsControles} commit contrôlé(s)\n`)
       for (const refus of resultat.refus) process.stderr.write(`${refus.sha}: ${refus.reason}\n`)
       if (resultat.refus.length) process.exitCode = 1
@@ -189,3 +231,5 @@ if (import.meta.main) {
     process.exitCode = 1
   }
 }
+
+if (import.meta.main) principal()

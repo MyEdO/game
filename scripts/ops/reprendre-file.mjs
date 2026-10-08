@@ -3,16 +3,13 @@ import { createHash } from 'node:crypto'
 import { DEPOT, appelGhRunner, pagesRest, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { TRONC } from '../guards/lib/gitPorte.mjs'
-import { estPrDuTrain, fusionDePr } from '../guards/lib/fusionPr.mjs'
+import { estPrDuTrain, etatFileDePr } from '../guards/lib/fusionPr.mjs'
 import { ANNULEE, PLAFOND_RELANCES, WORKFLOW, jobsJuges, motifDAnnulation, phraseDesJobs, verdictJuge } from '../guards/lib/coursesCi.mjs'
 
-export const BORNE_SONDES = 12
-export const PERIODE_MS = 5_000
-/** Âge, depuis sa dernière mise à jour, d'une course annulée avant sa relance (#2392). */
+/** #2392 */
 export const DELAI_RELANCE_MS = 10 * 60_000
 const route = (suffixe) => `repos/${DEPOT}/${suffixe}`
 const shaValide = (sha) => /^[0-9a-f]{40}$/i.test(String(sha ?? ''))
-const uuidValide = (uuid) => /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(String(uuid ?? ''))
 const prDePublication = (pr) => estPrDuTrain(pr?.body)
   && pr?.base?.ref === TRONC.nom && pr.base?.repo?.full_name === DEPOT
   && pr.head?.repo?.full_name === DEPOT && /^chantier\/.+/.test(pr.head?.ref ?? '') && shaValide(pr.head?.sha)
@@ -79,7 +76,7 @@ function relanceDe(pr, course, { appel, maintenant, lectureSeule }) {
   return vu.ok ? { statut: 'relancee', raison: relance } : { statut: 'refusee', raison: `${relance} refusée : ${vu.raison}` }
 }
 
-async function reprendrePr(pr, course, { appel, attendre, borne }) {
+function reprendrePr(pr, course, { appel, maintenant }) {
   const actuelle = () => {
     const relue = lire(route(`pulls/${pr.number}`), appel)
     if (prDePublication(relue) && relue.head?.sha === pr.head.sha && relue.merged_at && shaValide(relue.merge_commit_sha))
@@ -96,21 +93,12 @@ async function reprendrePr(pr, course, { appel, attendre, borne }) {
   etat = actuelle()
   if (etat?.statut === 'merged') return etat
   if (!etat) return { statut: 'ignoree', raison: 'tête changée avant demande' }
-  let vue = fusionDePr({ depot: DEPOT, numero: pr.number, sha: pr.head.sha, appel })
-  for (let sonde = 0; vue.ok && vue.statut === 'pending' && sonde < borne; sonde += 1) {
-    if (vue.attendue !== pr.head.sha || !uuidValide(vue.uuid))
-      return { statut: 'indeterminee', raison: 'demande pendante sans tête attendue ou UUID valide' }
-    await attendre(PERIODE_MS)
-    etat = actuelle()
-    if (etat?.statut === 'merged') return etat
-    if (!etat) return { statut: 'ignoree', raison: 'tête changée pendant suivi' }
-    vue = fusionDePr({ depot: DEPOT, numero: pr.number, sha: pr.head.sha, uuid: vue.uuid, appel })
-  }
-  if (!vue.ok) return { statut: 'refusee', raison: vue.raison }
-  if (vue.statut === 'failed') return { statut: 'refusee', raison: vue.message }
-  if (vue.statut === 'pending') return { statut: 'indeterminee', raison: `pending après ${borne} sondes` }
-  if (vue.statut === 'merged') return { statut: vue.statut, raison: 'fusion confirmée' }
-  return { statut: vue.statut, raison: `${vue.deja ? 'déjà en file' : 'entrée en file confirmée'} (compte « ${vue.compte} »)` }
+  const vue = etatFileDePr({ depot: DEPOT, numero: pr.number, sha: pr.head.sha, appel, maintenant })
+  if (!vue.ok) return { statut: 'indeterminee', raison: vue.raison, entree: vue.entree?.id }
+  if (vue.statut === 'anomalie') return { statut: 'anomalie', raison: vue.raison, entree: vue.entree.id }
+  if (vue.statut === 'merged') return { statut: 'merged', raison: 'fusion confirmée' }
+  if (vue.statut === 'enqueued') return { statut: 'enqueued', raison: `déjà en file (compte « ${vue.compte} »)`, entree: vue.entree.id }
+  return { statut: 'a-enfiler', raison: `PR verte à enfiler par le train local (compte « ${vue.compte} ») : npm run ops:publier -- --detache` }
 }
 
 function signaler(pr, course, resultat, appel, veille) {
@@ -130,7 +118,9 @@ function signaler(pr, course, resultat, appel, veille) {
     resultat.raison += ` — collecte des tickets des commits refusée : ${e.message} ; seuls les tickets du titre et du corps sont connus`
   }
   const tickets = numerosCites([pr.title, pr.body, ...messages].join('\n'))
-  const empreinte = createHash('sha256').update(`${resultat.statut}:${resultat.raison}`).digest('hex').slice(0, 16)
+  const identite = ['relancee', 'plafond', 'candidate'].includes(resultat.statut)
+    ? `${course.id}:${course.run_attempt ?? 1}` : resultat.entree ?? ''
+  const empreinte = createHash('sha256').update(`${resultat.statut}:${identite}`).digest('hex').slice(0, 16)
   const marque = `<!-- reprise-file:${pr.number}:${pr.head.sha}:${empreinte} -->`
   const lienCi = `https://github.com/${DEPOT}/actions/runs/${course.id}/attempts/${course.run_attempt ?? 1}`
   const lienVeille = veille.id ? `[veille ${veille.id}](${veille.serveur}/${DEPOT}/actions/runs/${veille.id})` : 'veille locale'
@@ -149,11 +139,11 @@ function signaler(pr, course, resultat, appel, veille) {
 
 export async function reprendreFile({ appel, evenement = {}, lectureSeule = false,
   veille = { serveur: process.env.GITHUB_SERVER_URL ?? 'https://github.com', depot: process.env.GITHUB_REPOSITORY ?? DEPOT, id: process.env.GITHUB_RUN_ID ?? null },
-  attendre = (ms) => new Promise((resoudre) => setTimeout(resoudre, ms)), borne = BORNE_SONDES, maintenant = Date.now } = {}) {
+  maintenant = Date.now } = {}) {
   if (veille.serveur !== 'https://github.com' || veille.depot !== DEPOT || (veille.id !== null && !/^[1-9]\d*$/.test(String(veille.id))))
     throw new Error('identité du run de veille invalide')
   if (evenement.workflow_run && (evenement.workflow_run.status !== 'completed'
-    || evenement.workflow_run.conclusion !== 'success' || evenement.workflow_run.name !== WORKFLOW
+    || evenement.workflow_run.name !== WORKFLOW
     || evenement.workflow_run.repository?.full_name !== DEPOT)) return []
   const prs = pagesRest(route(`pulls?state=open&base=${encodeURIComponent(TRONC.nom)}`), appel)
   if (!prs.ok) throw new Error(prs.raison)
@@ -163,10 +153,9 @@ export async function reprendreFile({ appel, evenement = {}, lectureSeule = fals
     const course = coursesDe(pr, appel)
     if (!course || course.status !== 'completed') continue
     const resultat = course.conclusion !== 'success' ? relanceDe(pr, course, { appel, maintenant, lectureSeule })
-      : lectureSeule ? { statut: 'candidate', raison: 'lecture seule' }
-        : await reprendrePr(pr, course, { appel, attendre, borne })
+      : reprendrePr(pr, course, { appel, maintenant })
     if (!resultat) continue
-    if (!lectureSeule && resultat.statut !== 'ignoree') signaler(pr, course, resultat, appel, veille)
+    if (!lectureSeule && !['ignoree', 'enqueued', 'merged'].includes(resultat.statut)) signaler(pr, course, resultat, appel, veille)
     const mesure = { pr: pr.number, sha: pr.head.sha, run: course.id, attempt: course.run_attempt ?? 1, ...resultat }
     resultats.push(mesure)
   }

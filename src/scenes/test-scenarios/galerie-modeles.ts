@@ -98,8 +98,8 @@ function construireScene(): Scene {
 
   const scene = arena({ id: 'test-galerie', label: 'Galerie — tous les modèles', w: W, h: H, heroStart: { x: 0, y: 0 } });
   scene.startMessage =
-    `Galerie : ${creatures.length} créatures (à l'échelle de leur Taille) · ${careers.length} carrières · ${weapons.length} armes · ${MUTANTS.length} mutants · 1 démo Monstrueuse 4×4. ` +
-    'Tourne (Q/E) et zoome (molette) pour inspecter. Aucun combat.';
+    { texte: `Galerie : ${creatures.length} créatures (à l'échelle de leur Taille) · ${careers.length} carrières · ${weapons.length} armes · ${MUTANTS.length} mutants · 1 démo Monstrueuse 4×4. ` +
+    'Tourne (Q/E) et zoome (molette) pour inspecter. Aucun combat.' };
   scene.entities = [...scene.entities, ...ents]; // conserve le heroStart d'arena
   return scene;
 }

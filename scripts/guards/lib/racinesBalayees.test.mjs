@@ -182,9 +182,7 @@ test('FONCTION ANONYME passée en argument : appelée, elle rend ses retours dan
   }
   const sites = evaluateurDe(modules).sitesDe('scripts/x/vue.mjs').filter((s) => !s.relais)
   assert.deepEqual(sites.map((s) => [`${s.ligne} ${s.appel}`, s.valeurs]), [
-    ['6 cheminSous', [{ non: "cycle d'appels cheminSous" }]],
-    ['9 cheminSous', [{ non: "cycle d'appels cheminSous" }]],
-    ['10 lire', [{ non: "cycle d'appels cheminSous, dansVue" }, { non: 'appel vue.get' }, { chemin: 'donnees/a.json' }, { non: "cycle d'appels cheminSous" }]],
+    ['10 lire', [{ non: "cycle d'appels cheminSous, dansVue" }, { non: 'appel vue.get' }, { chemin: 'donnees/a.json' }]],
   ])
 })
 
@@ -274,7 +272,7 @@ test('une lecture COUPÉE (profondeur) ne tranche pas le relais : le site qui l�
   }
 })
 
-test('une lecture COUPÉE par un CYCLE ne tranche pas le relais : le site porte le cycle nommé (cas réel minimisé : analyseRetenue.mjs, `rendTeinte` et `teinte`)', () => {
+test('un walker AST récursif sans lecture ne constitue aucun relais', () => {
   const modules = {
     'scripts/guards/lib/analyseRetenue.mjs':
     "function rendTeinte(fn, ctx) {\n" +
@@ -288,9 +286,76 @@ test('une lecture COUPÉE par un CYCLE ne tranche pas le relais : le site porte 
     "  if (ts.isConditionalExpression(e)) return teinte(e.whenTrue, ctx) || teinte(e.whenFalse, ctx)\n" +
     "}\n",
   }
-  assert.deepEqual(sitesDansLOrdre(modules, ['scripts/guards/lib/analyseRetenue.mjs']), [
-    ...[2, 7, 9, 9].map((ligne) => [`scripts/guards/lib/analyseRetenue.mjs:${ligne} teinte`, false, [JSON.stringify({ non: "cycle d'appels teinte" })]]),
-  ])
+  assert.deepEqual(sitesDansLOrdre(modules, ['scripts/guards/lib/analyseRetenue.mjs']), [])
+})
+
+// #2001
+test('les cycles purs restent purs dans un module qui porte aussi un lecteur, quel que soit l’ordre', () => {
+  const modules = {
+    'scripts/lib/m.mjs': ENTETE + 'export function a(d) { return b(d) }\nexport function b(d) { return a(d) }\nexport function lire(d) { return readdirSync(d) }\n',
+    'scripts/t.test.mjs': "import { a, b, lire } from './lib/m.mjs'\na('src')\nb('docs')\nlire('donnees')\n",
+  }
+  const attendu = [['scripts/t.test.mjs:4 lire', false, ['{"chemin":"donnees"}']]]
+  for (const ordre of [['scripts/t.test.mjs', 'scripts/lib/m.mjs'], ['scripts/lib/m.mjs', 'scripts/t.test.mjs']])
+    assert.deepEqual(sitesDansLOrdre(modules, ordre).filter(([s]) => s.startsWith('scripts/t.')), attendu)
+  assert.deepEqual(evaluateurDe(modules).relaisExportes('scripts/lib/m.mjs'), ['lire'])
+})
+
+// #2001
+test('un cycle pur entre modules et réexports ne constitue aucun relais', () => {
+  const modules = {
+    'scripts/lib/a.mjs': "import { b } from './b.mjs'\nexport function a(d) { return b(d) }\n",
+    'scripts/lib/b.mjs': "import { a } from './a.mjs'\nexport function b(d) { return a(d) }\n",
+    'scripts/lib/public.mjs': "export { a as marcher } from './a.mjs'\n",
+    'scripts/t.test.mjs': "import { marcher as parcourir } from './lib/public.mjs'\nparcourir('src')\n",
+  }
+  for (const ordre of [['scripts/t.test.mjs', 'scripts/lib/a.mjs', 'scripts/lib/b.mjs'], ['scripts/lib/b.mjs', 'scripts/lib/a.mjs', 'scripts/t.test.mjs']])
+    assert.deepEqual(sitesDansLOrdre(modules, ordre), [])
+})
+
+// #2001
+test('un walker récursif atteignant une vraie lecture conserve sa racine et sa coupe', () => {
+  const modules = {
+    'scripts/lib/m.mjs': ENTETE + 'export function parcourir(d) { readdirSync(d); return parcourir(d) }\n',
+    'scripts/t.test.mjs': "import { parcourir } from './lib/m.mjs'\nparcourir('src')\n",
+  }
+  assert.deepEqual(racinesDe(modules, 'scripts/t.test.mjs'), [[{ chemin: 'src' }, { non: "cycle d'appels parcourir" }]])
+})
+
+// #2001
+test('une fonction pure récursive calculant la racine garde sa coupe au seul site de lecture', () => {
+  const modules = {
+    'scripts/t.test.mjs': ENTETE + "function chemin(d) { return chemin(d) }\nreaddirSync(chemin('src'))\n",
+  }
+  const sites = evaluateurDe(modules).sitesDe('scripts/t.test.mjs')
+  assert.deepEqual(sites.map((s) => [s.appel, s.valeurs]), [['readdirSync', [{ non: "cycle d'appels chemin" }]]])
+})
+
+// #2001
+test('les preuves négatives et positives mémorisées conservent leurs requêtes de dépendance', () => {
+  for (const lecteur of [false, true]) {
+    const modules = {
+      'scripts/lib/a.mjs': "import { b } from './b.mjs'\nexport function a(d) { return b(d) }\n",
+      'scripts/lib/b.mjs': ENTETE + `export function b(d) { ${lecteur ? 'return readdirSync(d)' : 'return d'} }\n`,
+    }
+    const evaluateur = evaluateurDe(modules)
+    const premiere = evaluateur.tracer(() => evaluateur.relaisExportes('scripts/lib/a.mjs'))
+    const repetee = evaluateur.tracer(() => evaluateur.relaisExportes('scripts/lib/a.mjs'))
+    assert.deepEqual(premiere.resultat, lecteur ? ['a'] : [])
+    assert.deepEqual(repetee.resultat, premiere.resultat)
+    assert.deepEqual([...repetee.requetes].sort(), [...premiere.requetes].sort())
+    for (const requete of [['lecture', 'scripts/lib/b.mjs'], ['cible', 'scripts/lib/a.mjs', './b.mjs'], ['peutLire', 'scripts/lib/b.mjs']])
+      assert.ok(repetee.requetes.has(JSON.stringify(requete)), JSON.stringify(requete))
+  }
+})
+
+// #2001
+test('une arête importée opaque ne prouve pas la pureté d’un cycle', () => {
+  const modules = {
+    'scripts/lib/m.mjs': "import { inconnu } from './absent.mjs'\nexport function parcourir(d) { inconnu(d); return parcourir(d) }\n",
+    'scripts/t.test.mjs': "import { parcourir } from './lib/m.mjs'\nparcourir('src')\n",
+  }
+  assert.deepEqual(racinesDe(modules, 'scripts/t.test.mjs'), [[{ non: "cycle d'appels parcourir" }]])
 })
 
 test('lectures de la refusion de main : `undefined` est une VALEUR NULLE, `await x` vaut `x`, un import RENOMMÉ du module de chemin se lit sous son nom exporté (recette/lib.test.mjs, ops/session.mjs)', () => {

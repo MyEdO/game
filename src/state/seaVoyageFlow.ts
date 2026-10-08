@@ -2183,7 +2183,7 @@ function buildBoardingScene(playerHullRef: string, playerHullName: string, b: Se
     terrain: defautsDeCompilation.pont,
     ambiance: 'exterieur',
     heroStart: [3, 7],
-    startMessage: t('sv.boardingStart', { ship: b.label }),
+    startMessage: { texte: t('sv.boardingStart', { ship: b.label }) },
     encounters: [{ id: 'enc-abordage', enemies }],
   });
 }

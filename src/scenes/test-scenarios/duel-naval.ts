@@ -43,9 +43,9 @@ const construireScene = (): Scene => buildScene({
   metresPerTile: 10, // MDG 13 l.362 : 1 point de Distance = 10 m → 1 case ; portées 50/75/150 m = 5/7,5/15 cases
   heroStart: [2, 7],
   startMessage:
-    'Barre à toi ! Tu tiens la barre du navire — manœuvre, puis ordonne la bordée. Ton équipage sert les canons et la ' +
+    { texte: 'Barre à toi ! Tu tiens la barre du navire — manœuvre, puis ordonne la bordée. Ton équipage sert les canons et la ' +
     'voile en ton nom. La coque ennemie est à environ 150 mètres : aligne une bordée et fais feu — l’adversaire fera ' +
-    'de même. Elle se rendra une fois la coque à moitié éventrée.',
+    'de même. Elle se rendra une fois la coque à moitié éventrée.' },
   entities: [
     // Coque ALLIÉE (le Grimm) — cap EST, deux bordées de canons moyens + une chasse de proue ; passagers = 2 marins.
     { id: 'grimm-duel', kind: 'personnage', ref: 'loup-imperial', pos: { x: 3, y: 7 }, facing: 'E', label: 'Le Grimm',

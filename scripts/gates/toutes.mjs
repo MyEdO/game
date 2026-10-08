@@ -125,12 +125,14 @@ export const ECRIT_LU = {
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
       'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
+      '.lint-',
     ],
     raison:
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
       'les autres fixtures vivent sous os.tmpdir() ; lancerLint peut écrire sa configuration temporaire .lint- à la racine et la supprime en finally ; ' +
+      'le balayage des lectures PDF peut lire cette configuration .lint- pendant son existence ; ' +
       'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
       'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
@@ -172,9 +174,10 @@ export const ECRIT_LU = {
       '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +3 écrivains le ' +
       '2026-09-30 (#2132) : `hooks/suivi-lien-guard.test.mjs` et `hooks/inject-suivi.test.mjs` forgent un dépôt ' +
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
-      '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
+      '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, et `ops/suiviFichiers.mjs` (#2460), son écriture atomique, n’écrivent que derrière sa porte ' +
       '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
-      'sur l’arbre principal ; +2 écrivains le 2026-10-04 (#2278) : ' +
+      'sur l’arbre principal ; +1 écrivain le 2026-10-07 (#2460) : `hooks/suivi-ecriture-guard.test.mjs` forge un ' +
+      'dépôt jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), la garde n’y écrit rien ; +2 écrivains le 2026-10-04 (#2278) : ' +
       '`mods/verifier.test.mjs` forge ses mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
       '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally ; ' +
       '`scripts/guards/budget-contexte.test.mjs` forge ses fixtures avec instanceDeDepot sous os.tmpdir(), ' +
@@ -221,9 +224,9 @@ export const ECRIT_LU = {
       '`import.meta.main`. Les cas qui demandent une explication : `knip-exports-ratchet.mjs` (seul ' +
       '`--sync`, sous la porte de `main()`, écrirait la baseline), `ruleset-main.mjs` (le corps du ruleset ' +
       'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
-      '`suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
+      '`suivi.mjs` et `suiviFichiers.mjs` (#2460) (ils écrivent `.git/suivi/<N>.json` et `<N>.mesure.json`, dans le répertoire git COMMUN et ' +
       'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
-      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
+      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<nom>.verrou` voisin du fichier écrit, le verrou de mesure `.<N>.mesure.verrou` (#2460), leur temporaire et leur reprise, dans ce même ' +
       'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; `synchroniser.mjs` (#2187 : il avance ' +
       'l’arbre PRINCIPAL — fichiers W′, `.git/index`, `.git/index.lock`, `.git/synchro/`, `.git/synchro-conflits/` — ' +
       'sous sa porte `import.meta.main` ; son banc ne le joue que sur des dépôts `instanceDeDepot` sous os.tmpdir()) ; `ecritureJsonAtomique.mjs` (scripts/guards/lib), atteint par `publier.mjs`, ' +
@@ -276,9 +279,12 @@ export const ECRIT_LU = {
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
       'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
       'scripts/etape-profilee.mjs',
-      'scripts/git-hooks/docs-rebuild.mjs', 'scripts/git-hooks/journal.mjs', 'scripts/hooks/barriere-outil.mjs',
+      'scripts/git-hooks/', 'scripts/hooks/',
       'scripts/test/verrou.mjs', 'scripts/node-requis.mjs',
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
+      'scripts/gates/', 'scripts/ops/reprendre-file.mjs', 'scripts/ops/ruleset-main.mjs',
+      'scripts/art-ref/',
+      '.claude/settings.json', '.github/workflows/', '.gitignore', 'package.json', 'patches/',
     ],
     raison:
       'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
@@ -303,7 +309,12 @@ export const ECRIT_LU = {
       '(`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
       'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
       '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
-      'l’Atlas et Source/ — rien n’est écrit',
+      'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
+      'par `build-reprise.test.mjs` et `rendre` (sonde du 2026-10-07, #2499 : zéro écriture mesurée). ' +
+      '`scripts/gates/toutes.mjs` atteint `purgerPerimes`, mais `principal` reste derrière `import.meta.main` ; ' +
+      'ni ses mkdir/writeFile ni sa purge ne sont appelés. `scripts/ops/reprendre-file.mjs` garde sa CLI ' +
+      'derrière `import.meta.main` : `reprendreFile` et appendFileSync sous GITHUB_STEP_SUMMARY ne sont pas appelés. ' +
+      'Les seules sorties de la sonde de lectures sont archivées hors arbre',
   },
   'deps:unused': {
     ecrit: [],

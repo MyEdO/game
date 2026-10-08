@@ -15,7 +15,8 @@
  * PÉRIMÈTRE : `src/**` et `scripts/**`, tests COMPRIS (une fixture de test est un producteur comme
  * un autre — trois d'entre elles ont été trouvées à l'ancienne graphie par ce même lot). Les blocs
  * de FRONTMATTER y sont MASQUÉS (`masquerFrontmatter`) : `description` y est une clé de fiche ; le
- * `meta` d'un script de workflow aussi (`masquerMetaDeWorkflow`) : `description` y est une clé exigée.
+ * `meta` d'un script de workflow aussi (`masquerMetaDeWorkflow`) : `description` y est une clé exigée ;
+ * une définition d'outil MCP aussi (`masquerDefinitionDOutil`) : `description` y est une clé du protocole.
  *
  * ANGLE MORT DÉCLARÉ : la détection est TEXTUELLE et ancrée sur des formes d'AUTHORING littérales
  * (`type: 'journal', text:`, `description:` d'une scène, `choices: [{ text:`). Un document construit
@@ -127,7 +128,40 @@ function masquerMetaDeWorkflow(texte: string): string {
     .join('\n');
 }
 
-const masquer = (texte: string): string => masquerMetaDeWorkflow(masquerFrontmatter(texte));
+/**
+ * DÉFINITION D'OUTIL MCP masquée AVANT toute mesure — exclusion STRUCTURELLE, sur le modèle du `meta`.
+ *
+ * Un objet littéral qui porte, à son premier niveau, les trois clés `name`, `description` ET
+ * `inputSchema` est la définition d'un outil (`tools/list` du protocole MCP, où `description` est une
+ * clé de l'outil ; `OUTIL_SUIVI`, scripts/ops/suiviDonnee.mjs) : rien de ce qui vit là n'authore un
+ * document de scène. L'objet s'ouvre sur une ligne terminée par `{` et court jusqu'à la ligne `}` de
+ * MÊME indentation ; son premier niveau est l'indentation de sa première ligne non vide. Un objet auquel
+ * manque l'une des trois clés reste mesuré.
+ *
+ * Les lignes masquées sont VIDÉES, jamais retirées : les `fichier:ligne` rendus restent ceux du
+ * fichier réel.
+ */
+const OUVERTURE_OBJET = /^(\s*)\S.*\{\s*$/;
+const CLES_D_OUTIL = ['name', 'description', 'inputSchema'];
+
+function masquerDefinitionDOutil(texte: string): string {
+  const lignes = texte.split('\n');
+  for (let i = 0; i < lignes.length; i += 1) {
+    const ouverture = OUVERTURE_OBJET.exec(lignes[i]);
+    if (!ouverture) continue;
+    const fin = lignes.findIndex((l, k) => k > i && l.startsWith(`${ouverture[1]}}`));
+    if (fin < 0) continue;
+    const corps = lignes.slice(i + 1, fin);
+    const niveau = /^(\s*)/.exec(corps.find((l) => l.trim() !== '') ?? '')?.[1] ?? '';
+    const cles = new Set(corps.map((l) => new RegExp(`^${niveau}([A-Za-z_$][\\w$]*)\\s*:`).exec(l)?.[1]).filter(Boolean));
+    if (!CLES_D_OUTIL.every((c) => cles.has(c))) continue;
+    for (let k = i + 1; k < fin; k += 1) lignes[k] = '';
+    i = fin;
+  }
+  return lignes.join('\n');
+}
+
+const masquer = (texte: string): string => masquerDefinitionDOutil(masquerMetaDeWorkflow(masquerFrontmatter(texte)));
 
 describe('graphie de la prose de scène — aucun producteur ne réécrit la forme retirée (#1467 L1b)', () => {
   const corpus = detenteur(() => readCorpus(RACINES, { exts: EXTS, tests: true }).filter((f) => !estExempt(f.rel)));
@@ -188,6 +222,26 @@ describe('graphie de la prose de scène — aucun producteur ne réécrit la for
     const trouve = (src: string) => [...masquer(src).matchAll(new RegExp(FORMES[2].motif.source, 'g'))].map((m) => masquer(src).slice(0, m.index).split('\n').length);
     expect(trouve(fixtureDeWorkflow), 'seul le `description:` de scène HORS meta est attrapé, à sa ligne').toEqual([7]);
     expect(masquer(fixtureDeWorkflow).split('\n')).toHaveLength(fixtureDeWorkflow.split('\n').length);
+  });
+
+  it('définition d’outil MCP : la clé `description` d’un objet `name` + `description` + `inputSchema` passe, une scène voisine reste attrapée', () => {
+    // Forme RÉELLE : `OUTIL_SUIVI` (scripts/ops/suiviDonnee.mjs), description continuée sur deux lignes.
+    const definition = [
+      'export const OUTIL_SUIVI = {',
+      "  name: 'suivi',",
+      "  description: 'Écrit le suivi de vague '",
+      "    + 'par un lot de mutations.',",
+      '  inputSchema: z.toJSONSchema(Lot),',
+      '}',
+      "const scene = { id: 'a', description: 'une scène' }",
+      'const presque = {',
+      "  name: 'scène',",
+      "  description: 'sans inputSchema, ce n’est pas un outil',",
+      '}',
+    ].join('\n');
+    const trouve = (src: string) => [...masquer(src).matchAll(new RegExp(FORMES[2].motif.source, 'g'))].map((m) => masquer(src).slice(0, m.index).split('\n').length);
+    expect(trouve(definition), 'seuls la scène et l’objet sans `inputSchema` sont attrapés, à leur ligne').toEqual([7, 10]);
+    expect(masquer(definition).split('\n')).toHaveLength(definition.split('\n').length);
   });
 
   it('aucun site à l’ancienne graphie dans `src/**` ni `scripts/**`', () => {

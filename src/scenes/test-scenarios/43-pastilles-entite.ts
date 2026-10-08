@@ -50,10 +50,10 @@ function construireScene(): Scene {
     ambientLight: 'jour',
     heroStart: [6, 6],
     startMessage:
-      'Le Soldat sert le bélier : autour de lui, TROIS choses offrent un geste — le cheval libre (Monter), ' +
+      { texte: 'Le Soldat sert le bélier : autour de lui, TROIS choses offrent un geste — le cheval libre (Monter), ' +
       'le coffre à deux objets (Ramasser, panneau borné à ses deux candidats) et l’engin lui-même ' +
       '(Pousser). Chaque geste se clique SUR la chose, jamais dans la barre ; un geste refusé reste ' +
-      'visible et dit pourquoi ; Échap referme un panneau sans rien engager.',
+      'visible et dit pourquoi ; Échap referme un panneau sans rien engager.' },
     entities: [
       {
         id: 'coffre-de-cour', kind: 'prop', ref: 'coffre', pos: { x: 5, y: 7 }, label: 'Coffre entrouvert',

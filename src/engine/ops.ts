@@ -25,6 +25,7 @@ import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
+import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import { bypassedAP } from './armourBypass';
 import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
 import { rollObsession } from '../data/obsessions';
@@ -1142,8 +1143,8 @@ export type GameOp =
    *  −10 aux CC/CT/Ag/Dex/Int (plafond −30), et Ivresse (1d10) au seuil BE. Posé sur la branche `fail`
    *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
   | { op: 'intoxicate' }
-  /** Effet non modélisé : journalisé verbatim, arbitrage MJ (rien d'inventé). */
-  | { op: 'narrative'; text: string };
+  /** Narration de campagne : texte Markdown et provenance locale. #2001. */
+  | { op: 'narrative'; text: string; source?: SourceRef; adapteDe?: SourceRef };
 
 /** Profil d'ANNULATION d'un effet PASSIF (système unifié) — le « flag de typage » qui dit CE QUI le neutralise.
  *  Porté par chaque `PassiveMod` ; une table `kind → annulateurs` (engine/trauma) applique le gating. */

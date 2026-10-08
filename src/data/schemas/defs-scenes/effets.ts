@@ -15,7 +15,7 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { ouverts } from '../grammaire/descente';
-import { champAdapteDe, champsProse, proseNommee, refineAdapteDe, refineProse, META_PROSE, META_ADAPTE_DE } from '../grammaire/prose';
+import { proseNommee } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, refTestDeCorruption, surchargePaletteSchema } from '../grammaire/valeurs';
 import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
 import { idDe, refOuSpec } from '../grammaire/ref';
@@ -38,7 +38,7 @@ export const effectTargetSchema = z.enum(['party', 'hero']);
  *  d'éditeur (le snapshot EST son identité). */
 export const idDeCreature: z.ZodType<string, string> = idDe('creature');
 export const livingRefSchema = z.union([
-  nommerChamps(z.strictObject({ creatureId: idDeCreature }), { creatureId: { label: "créature" } }),
+  nommerChamps(z.strictObject({ creatureId: idDeCreature }), { creatureId: { label: "créature" , texte: { regime: "technique"} } }),
   nommerChamps(z.strictObject({ custom: customStatblockSchema }), { custom: { label: "profil personnalisé" } }),
 ]);
 /** `ChaosAlign` (`engine/corruption.ts`) — Puissance du Chaos d'une table de mutation alignée. MÊME
@@ -54,7 +54,7 @@ export const favorLevelSchema = enumNomme({
   importante: 'Faveur Importante',
 });
 /** `CrewHire` (`engine/crewMorale.ts`) — un rôle d'équipage salarié et son effectif. */
-export const crewHireSchema = nommerChamps(z.strictObject({ roleId: z.string(), count: z.number() }), { roleId: { label: "rôle" }, count: { label: "nombre" } });
+export const crewHireSchema = nommerChamps(z.strictObject({ roleId: z.string(), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
 /** `PursuitFoeRef` (`state/pursuitFlow.ts`) — adversaire de poursuite : une RÉFÉRENCE de vivant
  *  (`livingRefSchema` — bestiaire ou statbloc d'éditeur), jamais des stats recopiées. Son Mouvement et
  *  sa valeur de Test de Mouvement se LISENT sur la fiche référencée, résolus au démarrage
@@ -64,7 +64,7 @@ export const crewHireSchema = nommerChamps(z.strictObject({ roleId: z.string(), 
 export const pursuitFoeSchema = nommerChamps(z.strictObject({
   id: z.string().optional(),
   ref: livingRefSchema,
-}), { id: { label: "identifiant" }, ref: { label: "référence" } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, ref: { label: "référence" } });
 /** LDB 15 l.94. */
 export const pursuitPolicySchema = nommerChamps(z.strictObject({
   sacrifice: z.enum(['jamais', 'toujours', 'si-ecart']).optional(),
@@ -73,7 +73,7 @@ export const pursuitPolicySchema = nommerChamps(z.strictObject({
   arret: z.enum(['le-plus-lent', 'aucun']).optional(),
   /** LDB 15 l.94. */
   prioritaires: z.array(z.string()).optional(),
-}), { sacrifice: { label: "sacrifice" }, ecartM: { label: "écart de Mouvement" }, arret: { label: "arrêt" }, prioritaires: { label: "cibles prioritaires" } });
+}), { sacrifice: { label: "sacrifice"  }, ecartM: { label: "écart de Mouvement" }, arret: { label: "arrêt"  }, prioritaires: { label: "cibles prioritaires" , texte: { regime: "technique"} } });
 /** ADE II 8. */
 export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   allyName: z.string().optional(),
@@ -91,7 +91,7 @@ export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   sceneEncounters: z.record(z.string(), z.string()).optional(),
   /** ADE II 8 l.81. */
   allyMod: z.number().optional(),
-}), { allyName: { label: "nom des alliés" }, enemyName: { label: "nom des ennemis" }, allyMight: { label: "puissance alliée" }, enemyMight: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" }, situations: { label: "situations" }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" }, allyMod: { label: "modificateur allié" } }), 'massBattle.terrain');
+}), { allyName: { label: "nom des alliés" , texte: { regime: "designation"} }, enemyName: { label: "nom des ennemis" , texte: { regime: "designation"} }, allyMight: { label: "puissance alliée" }, enemyMight: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, allyMod: { label: "modificateur allié" } }), 'massBattle.terrain');
 
 /** `ScheduleSpec` (`engine/clock.ts`) — échéance d'horloge, résolue par `scheduleAt` (source unique
  *  de `delayedEffect` ET `setObjective`). Étalée en SHAPE : les deux variantes qui la portent sont
@@ -117,21 +117,20 @@ export const scheduleShape = {
 
 // ── Les variantes ───────────────────────────────────────────────────────────────────────────────
 
-export const setFlagSchema = nommerChamps(z.strictObject({ type: z.literal('setFlag'), flag: z.string(), value: z.boolean().optional() }), { type: { label: "type" }, flag: { label: "drapeau" }, value: { label: "valeur" } });
+export const setFlagSchema = nommerChamps(z.strictObject({ type: z.literal('setFlag'), flag: z.string(), value: z.boolean().optional() }), { type: { label: "type"  }, flag: { label: "drapeau" , texte: { regime: "technique"} }, value: { label: "valeur" } });
 
 /** Pose/met à jour un OBJECTIF courant (surface « je fais quoi maintenant ? », #238) sur la pile
  *  `store.objectives`, keyé par `id` STABLE : re-poser le même `id` MET À JOUR sa prose (`desc`). Le HUD
  *  affiche le plus récent. Archivé aussi au journal. Échéance optionnelle (même `ScheduleSpec` que
  *  `delayedEffect`) → pose `Objective.deadline` (minute absolue) → compte à rebours dans le bandeau. */
-export const setObjectiveSchema = nommerChamps(z.strictObject({
+export const setObjectiveSchema = proseNommee(nommerChamps(z.strictObject({
   type: z.literal('setObjective'),
   id: z.string(),
-  desc: z.string(),
   ...scheduleShape,
-}), { type: { label: "type" }, id: { label: "identifiant" }, desc: { label: "texte" }, ...scheduleMeta });
+}), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, ...scheduleMeta }), 'setObjective.desc');
 
 /** Retire un objectif de la pile : `id` précis, ou TOUS si absent (fin d'acte). */
-export const clearObjectiveSchema = nommerChamps(z.strictObject({ type: z.literal('clearObjective'), id: z.string().optional() }), { type: { label: "type" }, id: { label: "identifiant" } });
+export const clearObjectiveSchema = nommerChamps(z.strictObject({ type: z.literal('clearObjective'), id: z.string().optional() }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
 
 /** Objet donné par `giveTrapping` : feuille OUVERTE de `INSTANCIABLE_PAR_ID`, FORME DE SORTIE déclarée
  *  nue (patron `sortSchema`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
@@ -158,7 +157,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   appraiseTriedDay: z.number().optional(),
   /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
   price: moneyPartialSchema.optional(),
-}), { type: { label: "type" }, trappingId: { label: "objet" }, custom: { label: "profil personnalisé" }, heroId: { label: "héros" }, qualities: { label: "qualités" }, identified: { label: "identifié" }, skin: { label: "palette" }, magicKnown: { label: "magie connue" }, detectTried: { label: "détection tentée" }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
+}), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, skin: { label: "palette", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTried: { label: "détection tentée" }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que
@@ -168,9 +167,9 @@ const idDeVehicule: z.ZodType<string, string> = idDe('vehicle');
 export const givePossessionSchema = nommerChamps(z.strictObject({
   type: z.literal('givePossession'),
   nature: z.enum(['bete', 'serviteur', 'vehicule']),
-  ref: z.union([livingRefSchema, nommerChamps(z.strictObject({ vehicleId: idDeVehicule }), { vehicleId: { label: "véhicule" } })]),
+  ref: z.union([livingRefSchema, nommerChamps(z.strictObject({ vehicleId: idDeVehicule }), { vehicleId: { label: "véhicule" , texte: { regime: "technique"} } })]),
   heroId: z.string().optional(),
-}), { type: { label: "type" }, nature: { label: "nature" }, ref: { label: "référence" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, nature: { label: "nature"  }, ref: { label: "référence" }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** Donne (ou RETIRE, montant négatif) de l'argent au groupe. La charge porte son NOM comme toute
  *  autre action du vocabulaire (`giveXp.amount`, `givePossession.ref`) : `montant` est une somme
@@ -178,25 +177,25 @@ export const givePossessionSchema = nommerChamps(z.strictObject({
 export const giveMoneySchema = nommerChamps(z.strictObject({
   type: z.literal('giveMoney'),
   montant: moneyPartialSchema,
-}), { type: { label: "type" }, montant: { label: "montant" } });
+}), { type: { label: "type"  }, montant: { label: "montant" } });
 
 /** Octroie des Points d'Expérience à TOUT le groupe (XP de session, identique pour tous). Support
  *  générique de l'attribution événementielle par scénario (`PDT 13 l.5`) : chaque scénario/campagne
  *  authore ses propres octrois via cette action, à tout point narratif (victoire, objectif, dialogue…). */
-export const giveXpSchema = nommerChamps(z.strictObject({ type: z.literal('giveXp'), amount: z.number() }), { type: { label: "type" }, amount: { label: "quantité" } });
+export const giveXpSchema = nommerChamps(z.strictObject({ type: z.literal('giveXp'), amount: z.number() }), { type: { label: "type"  }, amount: { label: "quantité" } });
 
-export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: z.string() }), { type: { label: "type" }, encounter: { label: "rencontre" } });
+export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: z.string() }), { type: { label: "type"  }, encounter: { label: "rencontre" , texte: { regime: "technique"} } });
 
 /** Combat de masse / Puissance de Bataille : ouvre l'écran de bataille sur le
  *  `MassBattleSpec` AUTHORÉ (armées, Rounds prévus, situations de Scènes par Round, rencontres des
  *  Scènes de combat, modificateur permanent). Appliqué par le store `startMassBattle` (state/massBattleFlow). */
 /** ADE II 8 */
-export const startMassBattleSchema = nommerChamps(z.strictObject({ type: z.literal('startMassBattle'), battle: massBattleSpecSchema }), { type: { label: "type" }, battle: { label: "bataille" } });
+export const startMassBattleSchema = nommerChamps(z.strictObject({ type: z.literal('startMassBattle'), battle: massBattleSpecSchema }), { type: { label: "type"  }, battle: { label: "bataille" } });
 
-export const transitionSchema = nommerChamps(z.strictObject({ type: z.literal('transition'), scene: z.string(), entry: z.string().optional() }), { type: { label: "type" }, scene: { label: "scène" }, entry: { label: "entrée" } });
+export const transitionSchema = nommerChamps(z.strictObject({ type: z.literal('transition'), scene: z.string(), entry: z.string().optional() }), { type: { label: "type"  }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} } });
 
 /** Retour à la scène précédente (sortie d'intérieur), à la case d'entrée. */
-export const transitionBackSchema = nommerChamps(z.strictObject({ type: z.literal('transitionBack') }), { type: { label: "type" } });
+export const transitionBackSchema = nommerChamps(z.strictObject({ type: z.literal('transitionBack') }), { type: { label: "type"  } });
 
 /** Ouvre le dialogue scripté `dialogue`. `speakerId` (optionnel) = id d'une `SceneEntity` de la
  *  scène courante → son PORTRAIT et son NOM (label) pour toute la session de dialogue, tant qu'un
@@ -205,17 +204,14 @@ export const startDialogueSchema = nommerChamps(z.strictObject({
   type: z.literal('startDialogue'),
   dialogue: z.string(),
   speakerId: z.string().optional(),
-}), { type: { label: "type" }, dialogue: { label: "dialogue" }, speakerId: { label: "locuteur" } });
+}), { type: { label: "type"  }, dialogue: { label: "dialogue" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} } });
 
 /** Ligne de journal : `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
-export const journalSchema = nommerChamps(z
-  .strictObject({ type: z.literal('journal'), ...champsProse(), ...champAdapteDe() })
-  .superRefine(refineProse({ type: 'projet', exigeProse: true }))
-  .superRefine(refineAdapteDe), { type: { label: "type" }, ...META_PROSE, ...META_ADAPTE_DE });
+export const journalSchema = proseNommee(nommerChamps(z.strictObject({ type: z.literal('journal') }), { type: { label: "type"  } }), 'journal.desc');
 
 /** Remet au joueur un document du narratif (#679) : `documentId` → `narratif.documents`, résolu au parse
  *  du projet (`refsNarrativesPendantes`, `./refs-narratives.ts`). */
-export const documentSchema = nommerChamps(z.strictObject({ type: z.literal('document'), documentId: z.string() }), { type: { label: "type" }, documentId: { label: "document" } });
+export const documentSchema = nommerChamps(z.strictObject({ type: z.literal('document'), documentId: z.string() }), { type: { label: "type"  }, documentId: { label: "document" , texte: { regime: "technique"} } });
 
 /** Mécanique MAISON du carnet d'enquête (#670, aucune règle RAW) : révèle/avance un `Indice` de
  *  `campaignNarratif`. `stade` omis → `revealClue` (`state/clues.ts`). */
@@ -223,10 +219,10 @@ export const revealClueSchema = nommerChamps(z.strictObject({
   type: z.literal('revealClue'),
   indiceId: z.string(),
   stade: z.string().optional(),
-}), { type: { label: "type" }, indiceId: { label: "indice" }, stade: { label: "stade" } });
+}), { type: { label: "type"  }, indiceId: { label: "indice" , texte: { regime: "technique"} }, stade: { label: "stade" , texte: { regime: "technique"} } });
 
 /** Écarte un indice comme fausse piste (barré, relisible au carnet) — mécanique MAISON (#670). */
-export const discreditClueSchema = nommerChamps(z.strictObject({ type: z.literal('discreditClue'), indiceId: z.string() }), { type: { label: "type" }, indiceId: { label: "indice" } });
+export const discreditClueSchema = nommerChamps(z.strictObject({ type: z.literal('discreditClue'), indiceId: z.string() }), { type: { label: "type"  }, indiceId: { label: "indice" , texte: { regime: "technique"} } });
 
 /** Enfoncer une PORTE/objet à PLUSIEURS (`EDO Appendice 2`) : objet (BE = Bonus d'Endurance, B =
  *  Blessures) ; chaque héros frappe (Bagarre, dégâts = DR + BF − BE). `flag` posé quand l'objet cède. */
@@ -236,7 +232,7 @@ export const forceDoorSchema = nommerChamps(z.strictObject({
   doorBE: z.number(),
   doorB: z.number(),
   flag: z.string().optional(),
-}), { type: { label: "type" }, label: { label: "libellé" }, doorBE: { label: "Bonus d’Endurance de la porte" }, doorB: { label: "Blessures de la porte" }, flag: { label: "drapeau" } });
+}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, doorBE: { label: "Bonus d’Endurance de la porte" }, doorB: { label: "Blessures de la porte" }, flag: { label: "drapeau" , texte: { regime: "technique"} } });
 
 /** Règle l'horloge par SAUT EN AVANT (le temps ne recule jamais) : soit sur une `phase` de la
  *  journée (« passe à l'aube/…/nuit »), soit sur une heure précise (`hour`[`:minute`]) — jamais les
@@ -261,30 +257,30 @@ export const setTimeSchema = nommerChamps(z
     if (v.minute !== undefined && !parHeure) {
       ctx.addIssue({ code: 'custom', message: 'setTime : `minute` ne se pose qu\'avec `hour`', path: ['minute'] });
     }
-  }), { type: { label: "type" }, phase: { label: "phase" }, hour: { label: "heure" }, minute: { label: "minute" } });
+  }), { type: { label: "type"  }, phase: { label: "phase"  }, hour: { label: "heure" }, minute: { label: "minute" } });
 
 /** Ouvre la boutique d'une entité marchande (par son id) — permet d'inclure le Marchand dans un
  *  dialogue (ex. choix « Montrez-moi vos marchandises »). L'entité doit porter `merchant` (#2). */
-export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: z.string() }), { type: { label: "type" }, entityId: { label: "entité" } });
+export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: z.string() }), { type: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } });
 
 /** Ouvre le PORT d'un lieu de la carte du monde — SCRIPTÉ (arrivée mise en scène, cinématique
  *  de quête) sur le MÊME chemin que l'accostage en mer (`openPortAt`, state/seaVoyageFlow) : avec profil
  *  de port → relâche à terre en attente de décision (`pendingShoreLeave`) ; sans profil → transition
  *  directe. `placeId` = id d'un `MapPlace` de `state.worldMap`. */
 /** MDG 15 l.127-129 */
-export const openPortSchema = nommerChamps(z.strictObject({ type: z.literal('openPort'), placeId: z.string() }), { type: { label: "type" }, placeId: { label: "lieu" } });
+export const openPortSchema = nommerChamps(z.strictObject({ type: z.literal('openPort'), placeId: z.string() }), { type: { label: "type"  }, placeId: { label: "lieu" , texte: { regime: "technique"} } });
 
 /** LDB 75 l.19 */
 export const medicalAidSchema = nommerChamps(z.strictObject({
   type: z.literal('medicalAid'),
   acts: z
-    .array(nommerChamps(z.strictObject({ act: z.enum(['wounds', 'bleed', 'trauma', 'surgery']), cost: moneyPartialSchema.optional() }), { act: { label: "acte" }, cost: { label: "coût" } }))
+    .array(nommerChamps(z.strictObject({ act: z.enum(['wounds', 'bleed', 'trauma', 'surgery']), cost: moneyPartialSchema.optional() }), { act: { label: "acte"  }, cost: { label: "coût" } }))
     .optional(),
   entityId: z.string(),
-}), { type: { label: "type" }, acts: { label: "actes" }, entityId: { label: "entité" } });
+}), { type: { label: "type"  }, acts: { label: "actes" }, entityId: { label: "entité" , texte: { regime: "technique"} } });
 
 /** LDB 17 l.41 */
-export const restoreFortuneSchema = nommerChamps(z.strictObject({ type: z.literal('restoreFortune') }), { type: { label: "type" } });
+export const restoreFortuneSchema = nommerChamps(z.strictObject({ type: z.literal('restoreFortune') }), { type: { label: "type"  } });
 
 /** LDB 18 l.296 ; LDB 66 ; LDB 21 l.95 */
 export const restSchema = nommerChamps(z.strictObject({
@@ -292,16 +288,16 @@ export const restSchema = nommerChamps(z.strictObject({
   days: z.number().optional(),
   lodging: z.enum(['auberge', 'maison', 'camp']).optional(),
   quality: z.enum(['normale', 'pietre']).optional(),
-}), { type: { label: "type" }, days: { label: "jours" }, lodging: { label: "couchage" }, quality: { label: "qualité" } });
+}), { type: { label: "type"  }, days: { label: "jours" }, lodging: { label: "couchage"  }, quality: { label: "qualité"  } });
 
 /** LDB 18 l.338 */
-export const mealPartySchema = nommerChamps(z.strictObject({ type: z.literal('mealParty') }), { type: { label: "type" } });
+export const mealPartySchema = nommerChamps(z.strictObject({ type: z.literal('mealParty') }), { type: { label: "type"  } });
 
 /** LDB 21 l.95 */
-export const inflictNightmaresSchema = nommerChamps(z.strictObject({ type: z.literal('inflictNightmares'), heroId: z.string().optional() }), { type: { label: "type" }, heroId: { label: "héros" } });
+export const inflictNightmaresSchema = nommerChamps(z.strictObject({ type: z.literal('inflictNightmares'), heroId: z.string().optional() }), { type: { label: "type"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** ADE II 9 l.21 */
-export const ambitionLostSchema = nommerChamps(z.strictObject({ type: z.literal('ambitionLost'), heroId: z.string().optional() }), { type: { label: "type" }, heroId: { label: "héros" } });
+export const ambitionLostSchema = nommerChamps(z.strictObject({ type: z.literal('ambitionLost'), heroId: z.string().optional() }), { type: { label: "type"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** LDB 21 l.25-27, l.54-56 */
 export const inflictPsychologySchema = nommerChamps(z.strictObject({
@@ -311,7 +307,7 @@ export const inflictPsychologySchema = nommerChamps(z.strictObject({
   label: z.string(),
   target: effectTargetSchema.optional(),
   heroId: z.string().optional(),
-}), { type: { label: "type" }, kind: { label: "type" }, indice: { label: "indice" }, label: { label: "libellé" }, target: { label: "cible" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, kind: { label: "type"  }, indice: { label: "indice" }, label: { label: "libellé" , texte: { regime: "designation"} }, target: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** Inflige une Maladie à un héros (défaut : le premier) — nourriture avariée, contact infecté,
  *  morsure… L'auteur choisit la maladie (diseaseDefs()) ; incubation/durée sont tirées à la contraction. */
@@ -320,7 +316,7 @@ export const inflictDiseaseSchema = nommerChamps(z.strictObject({
   type: z.literal('inflictDisease'),
   disease: z.string(),
   heroId: z.string().optional(),
-}), { type: { label: "type" }, disease: { label: "maladie" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** LDB 18 l.338-343 */
 export const inflictHungerSchema = nommerChamps(z.strictObject({
@@ -328,7 +324,7 @@ export const inflictHungerSchema = nommerChamps(z.strictObject({
   days: z.number().optional(),
   target: effectTargetSchema.optional(),
   heroId: z.string().optional(),
-}), { type: { label: "type" }, days: { label: "jours" }, target: { label: "cible" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, days: { label: "jours" }, target: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** LDB 18 l.338-343 */
 export const inflictThirstSchema = nommerChamps(z.strictObject({
@@ -336,7 +332,7 @@ export const inflictThirstSchema = nommerChamps(z.strictObject({
   days: z.number().optional(),
   target: effectTargetSchema.optional(),
   heroId: z.string().optional(),
-}), { type: { label: "type" }, days: { label: "jours" }, target: { label: "cible" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, days: { label: "jours" }, target: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** LDB 18 l.326-334 */
 export const exposureNightSchema = nommerChamps(z.strictObject({
@@ -345,7 +341,7 @@ export const exposureNightSchema = nommerChamps(z.strictObject({
   count: z.number().optional(),
   target: effectTargetSchema.optional(),
   heroId: z.string().optional(),
-}), { type: { label: "type" }, kind: { label: "type" }, count: { label: "nombre" }, target: { label: "cible" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, kind: { label: "type"  }, count: { label: "nombre" }, target: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 export const inflictTraumaSchema = nommerChamps(z.strictObject({
   type: z.literal('inflictTrauma'),
@@ -353,7 +349,7 @@ export const inflictTraumaSchema = nommerChamps(z.strictObject({
   severity: z.enum(['mineur', 'majeur']).optional(),
   location: hitLocationSchema,
   heroId: z.string().optional(),
-}), { type: { label: "type" }, kind: { label: "type" }, severity: { label: "gravité" }, location: { label: "localisation" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, kind: { label: "type"  }, severity: { label: "gravité"  }, location: { label: "localisation"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** Souffle de ZONE (Lot 3) centré sur une case : tous les combattants à `radius` cases (Chebyshev)
  *  — en combat par position, hors combat le groupe (à partyPos) — subissent les `ops` (vocabulaire
@@ -364,7 +360,7 @@ export const zoneBlastSchema = nommerChamps(z.strictObject({
   center: nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } }),
   radius: z.number(),
   ops: z.array(gameOpSchema),
-}), { type: { label: "type" }, center: { label: "centre" }, radius: { label: "rayon" }, ops: { label: "opérations" } });
+}), { type: { label: "type"  }, center: { label: "centre" }, radius: { label: "rayon" }, ops: { label: "opérations" } });
 
 /** LDB 15 l.80-84 */
 export const fallSchema = nommerChamps(z.strictObject({
@@ -373,12 +369,12 @@ export const fallSchema = nommerChamps(z.strictObject({
   heroId: z.string().optional(),
   metres: z.number(),
   to: ptSchema.optional(),
-}), { type: { label: "type" }, target: { label: "cible" }, heroId: { label: "héros" }, metres: { label: "mètres" }, to: { label: "destination" } });
+}), { type: { label: "type"  }, target: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, metres: { label: "mètres" }, to: { label: "destination" } });
 
 /** Mise en scène (Lot L) : règle le niveau de LUMIÈRE de la scène (0 = noir, 1 = plein jour) — « les
  *  lumières baissent, le rideau se lève ». Lu par le rendu (overlay d'assombrissement). Générique :
  *  tout intérieur (donjon, salle, théâtre). null implicite = auto (horloge/ambiance) tant qu'aucun setLight. */
-export const setLightSchema = nommerChamps(z.strictObject({ type: z.literal('setLight'), level: z.number() }), { type: { label: "type" }, level: { label: "niveau" } });
+export const setLightSchema = nommerChamps(z.strictObject({ type: z.literal('setLight'), level: z.number() }), { type: { label: "type"  }, level: { label: "niveau" } });
 
 /** Porte dynamique (brouillard de guerre) : ouvre/ferme la porte de l'arête (x,y,side), et/ou RÉVÈLE
  *  une porte secrète (`setDoorRevealed`, `EDO 08 l.404`) — `revealed` s'applique AVANT `open` —, et/ou
@@ -397,7 +393,7 @@ export const setDoorSchema = nommerChamps(z.strictObject({
   if (v.open === undefined && v.revealed === undefined && v.attempted === undefined) {
     ctx.addIssue({ code: 'custom', path: ['open'], message: "setDoor : au moins l'un de `open`, `revealed` ou `attempted`" });
   }
-}), { type: { label: "type" }, x: { label: "abscisse" }, y: { label: "ordonnée" }, side: { label: "côté" }, z: { label: "étage" }, open: { label: "ouvert" }, revealed: { label: "révélé" }, attempted: { label: "tentative effectuée" } });
+}), { type: { label: "type"  }, x: { label: "abscisse" }, y: { label: "ordonnée" }, side: { label: "côté"  }, z: { label: "étage" }, open: { label: "ouvert" }, revealed: { label: "révélé" }, attempted: { label: "tentative effectuée" } });
 
 /** Repositionne (ANIMÉ) ou RETIRE une entité de scène posée — mise en scène scriptée (#701 : fuite,
  *  entrée, disparition d'un figurant). `to` = case cible (repositionnement) ; `remove` = l'entité
@@ -407,17 +403,17 @@ export const moveEntitySchema = nommerChamps(z.strictObject({
   id: z.string(),
   to: ptSchema.optional(),
   remove: z.boolean().optional(),
-}), { type: { label: "type" }, id: { label: "identifiant" }, to: { label: "destination" }, remove: { label: "retirer" } });
+}), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, to: { label: "destination" }, remove: { label: "retirer" } });
 
 /** Son PONCTUEL (cloche de minuit, cri hors-champ…) — id du registre audio (#701). */
-export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: z.string() }), { type: { label: "type" }, id: { label: "identifiant" } });
+export const playSfxSchema = nommerChamps(z.strictObject({ type: z.literal('playSfx'), id: z.string() }), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } });
 
 /** LDB 40 l.25-29, l.36, l.46 */
 export const giveSinSchema = nommerChamps(z.strictObject({
   type: z.literal('giveSin'),
   amount: z.number().optional(),
   heroId: z.string().optional(),
-}), { type: { label: "type" }, amount: { label: "quantité" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, amount: { label: "quantité" }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** LDB 19 l.25-75 */
 export const corruptionExposureSchema = nommerChamps(z.strictObject({
@@ -426,7 +422,7 @@ export const corruptionExposureSchema = nommerChamps(z.strictObject({
   skill: refTestDeCorruption.optional(),
   align: chaosAlignSchema.optional(),
   heroId: z.string().optional(),
-}), { type: { label: "type" }, level: { label: "niveau" }, skill: { label: "Compétence" }, align: { label: "Puissance du Chaos" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, level: { label: "niveau"  }, skill: { label: "Compétence" }, align: { label: "Puissance du Chaos"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** Exposition HYDRIQUE (`MSRC 16` p.91 — « Maladies transmises par l'eau ») : Test de **Résistance
  *  Intermédiaire (+0)** modifié (tableau 1 « Source d'eau » = `source`, choix d'auteur de la zone
@@ -440,7 +436,7 @@ export const waterExposureSchema = nommerChamps(z.strictObject({
   source: z.string().optional(),
   target: effectTargetSchema.optional(),
   heroId: z.string().optional(),
-}), { type: { label: "type" }, mode: { label: "mode" }, source: { label: "source" }, target: { label: "cible" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, mode: { label: "mode"  }, source: { label: "source" , texte: { regime: "technique"} }, target: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** Id de `spells.json` : porte `idDe('spell')`, FORME DE SORTIE déclarée nue (patron `couvertureSchema`,
  *  `./scene.ts`) — `Effect` est un `z.infer` écrit par l'éditeur et par la console. */
@@ -451,7 +447,7 @@ export const learnSpellSchema = nommerChamps(z.strictObject({
   type: z.literal('learnSpell'),
   spell: sortSchema,
   heroId: z.string().optional(),
-}), { type: { label: "type" }, spell: { label: "sort" }, heroId: { label: "héros" } });
+}), { type: { label: "type"  }, spell: { label: "sort" , texte: { regime: "technique"} }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
 /** Incantation SCRIPTÉE (#98) : rituel scénique, piège magique, PNJ qui lance à un beat précis (dialogue,
  *  trigger, effet différé). `casterId`/`targetId` = id STABLE d'un combattant — un combattant EN COMBAT
@@ -468,27 +464,26 @@ export const castSpellSchema = nommerChamps(z.strictObject({
   spellId: sortSchema,
   targetId: z.string().optional(),
   mode: z.enum(['jet', 'forceSuccess']).optional(),
-}), { type: { label: "type" }, casterId: { label: "lanceur" }, spellId: { label: "sort" }, targetId: { label: "cible" }, mode: { label: "mode" } });
+}), { type: { label: "type"  }, casterId: { label: "lanceur" , texte: { regime: "technique"} }, spellId: { label: "sort" , texte: { regime: "technique"} }, targetId: { label: "cible" , texte: { regime: "technique"} }, mode: { label: "mode"  } });
 
 /** LDB 05 l.793-841 ; LDB 17 l.81 */
-export const sessionEndSchema = nommerChamps(z.strictObject({ type: z.literal('sessionEnd') }), { type: { label: "type" } });
+export const sessionEndSchema = nommerChamps(z.strictObject({ type: z.literal('sessionEnd') }), { type: { label: "type"  } });
 
 /** CRÉATION DE PERSONNAGE (#83) : ouvre l'assistant EXISTANT (`src/ui/creator/`) pour un NOUVEAU héros
  *  (comme le bouton « + » de l'écran Groupe) — un remplaçant scénarisé, un compagnon rejoignant le groupe.
  *  Navigue vers l'écran `creator` (`setEditingHero(null)` + `setScreen('creator')`). */
-export const openCharacterCreatorSchema = nommerChamps(z.strictObject({ type: z.literal('openCharacterCreator') }), { type: { label: "type" } });
+export const openCharacterCreatorSchema = nommerChamps(z.strictObject({ type: z.literal('openCharacterCreator') }), { type: { label: "type"  } });
 
 /** LDB 22 l.5 ; LDB 23 l.5-19 */
-export const interludeSchema = nommerChamps(z.strictObject({ type: z.literal('interlude'), weeks: z.number().optional() }), { type: { label: "type" }, weeks: { label: "semaines" } });
+export const interludeSchema = nommerChamps(z.strictObject({ type: z.literal('interlude'), weeks: z.number().optional() }), { type: { label: "type"  }, weeks: { label: "semaines" } });
 
 /** LDB 23 l.139-153 */
-export const grantFavorSchema = nommerChamps(z.strictObject({
+export const grantFavorSchema = proseNommee(nommerChamps(z.strictObject({
   type: z.literal('grantFavor'),
   heroId: z.string().optional(),
   level: favorLevelSchema,
   owedTo: z.string(),
-  desc: z.string(),
-}), { type: { label: "type" }, heroId: { label: "héros" }, level: { label: "niveau" }, owedTo: { label: "bénéficiaire" }, desc: { label: "texte" } });
+}), { type: { label: "type"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, level: { label: "niveau"  }, owedTo: { label: "bénéficiaire" , texte: { regime: "designation"} } }), 'grantFavor.desc');
 
 /** LDB 15 l.88-108 */
 export const startPursuitSchema = nommerChamps(z.strictObject({
@@ -500,15 +495,15 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   foes: listeCle(pursuitFoeSchema, 'id'),
   encounter: z.string().optional(),
   policy: pursuitPolicySchema.optional(),
-}), { type: { label: "type" }, partyRole: { label: "rôle du groupe" }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" }, policy: { label: "décisions de poursuite" } });
+}), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });
 
 /** Ouvre les JEUX DE TAVERNE (`NADJ 16`, option `tavern-games`) — à poser sur un choix de dialogue
  *  d'aubergiste (« Une partie ? ») ou une entité de taverne. Sans effet si l'option est éteinte. */
-export const openTavernGamesSchema = nommerChamps(z.strictObject({ type: z.literal('openTavernGames') }), { type: { label: "type" } });
+export const openTavernGamesSchema = nommerChamps(z.strictObject({ type: z.literal('openTavernGames') }), { type: { label: "type"  } });
 
 /** Ouvre la CARTE DU MONDE (#T2) — à poser sur la porte/route d'un lieu (« partir en voyage »).
  *  Sans effet si le projet n'a pas de carte ou en combat. */
-export const openWorldMapSchema = nommerChamps(z.strictObject({ type: z.literal('openWorldMap') }), { type: { label: "type" } });
+export const openWorldMapSchema = nommerChamps(z.strictObject({ type: z.literal('openWorldMap') }), { type: { label: "type"  } });
 
 /** Dote le groupe d'un NAVIRE DE CAMPAGNE (`state.vessel`, `MDG 13-15`) — à poser quand le groupe
  *  reçoit/achète un bateau (don d'un patron, chantier). `vehicleId` = un navire de `vehicles.json`
@@ -525,7 +520,7 @@ export const setVesselSchema = nommerChamps(z.strictObject({
   waterLitres: z.number().optional(),
   provisions: z.number().optional(),
   crew: z.array(crewHireSchema).optional(),
-}), { type: { label: "type" }, vehicleId: { label: "véhicule" }, label: { label: "libellé" }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
+}), { type: { label: "type"  }, vehicleId: { label: "véhicule" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
 
 /** Fait varier l'HUMEUR DE MANANN du navire de campagne (`MDG 15 l.83-125`) — à poser sur une
  *  bénédiction de prêtre, un sacrifice ou tout événement narratif d'auteur. `factorId` = un facteur
@@ -537,7 +532,7 @@ export const adjustManannSchema = nommerChamps(z.strictObject({
   type: z.literal('adjustManann'),
   factorId: z.string().optional(),
   delta: nommerChamps(z.strictObject({ flat: z.number(), d10: z.number(), sign: z.union([z.literal(1), z.literal(-1)]) }), { flat: { label: "valeur fixe" }, d10: { label: "dés à dix faces" }, sign: { label: "signe" } }).optional(),
-}), { type: { label: "type" }, factorId: { label: "facteur" }, delta: { label: "variation" } });
+}), { type: { label: "type"  }, factorId: { label: "facteur" , texte: { regime: "technique"} }, delta: { label: "variation" } });
 
 /** AJUSTE le navire de campagne EXISTANT (#233) — patch des SEULS champs fournis, contrairement à
  *  `setVessel` (remplacement total : effacerait Humeur de Manann/dégâts/Moral accumulés). À poser
@@ -553,9 +548,9 @@ export const adjustVesselSchema = nommerChamps(z.strictObject({
   waterLitres: z.number().optional(),
   provisions: z.number().optional(),
   crew: z.array(crewHireSchema).optional(),
-}), { type: { label: "type" }, label: { label: "libellé" }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
+}), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, morale: { label: "moral" }, hullCurrent: { label: "coque actuelle" }, hullMax: { label: "coque maximale" }, saboteurDR: { label: "DR de sabotage" }, waterLitres: { label: "eau en litres" }, provisions: { label: "provisions" }, crew: { label: "équipage" } });
 
-export const endDialogueSchema = nommerChamps(z.strictObject({ type: z.literal('endDialogue') }), { type: { label: "type" } });
+export const endDialogueSchema = nommerChamps(z.strictObject({ type: z.literal('endDialogue') }), { type: { label: "type"  } });
 
 // ── Les deux variantes RÉCURSIVES (elles portent un `Flow<Effect>`) ──────────────────────────────
 
@@ -662,18 +657,17 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
  *  seul `EffectOp` mécanique). */
 export const sceneFlowSchema: z.ZodType<Flow<Effect>> = z.lazy(() =>
   z.discriminatedUnion('kind', [
-    nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(sceneFlowSchema) }), { kind: { label: "type" }, steps: { label: "étape" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectSchema }), { kind: { label: "type" }, effect: { label: "effet" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: sceneFlowSchema, else: sceneFlowSchema.optional() }), { kind: { label: "type" }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(sceneFlowSchema) }), { kind: { label: "type"  }, steps: { label: "étape" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectSchema }), { kind: { label: "type"  }, effect: { label: "effet" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: sceneFlowSchema, else: sceneFlowSchema.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }),
     noeudTest(sceneFlowSchema),
-    nommerChamps(z.strictObject({
+    proseNommee(nommerChamps(z.strictObject({
       kind: z.literal('choice'),
-      prompt: z.string(),
       advantageCost: z.number().optional(),
       icon: z.string().optional(),
       yes: sceneFlowSchema,
       no: sceneFlowSchema.optional(),
-    }), { kind: { label: "type" }, prompt: { label: "invite" }, advantageCost: { label: "coût en Avantage" }, icon: { label: "icône" }, yes: { label: "oui" }, no: { label: "non" } }),
+    }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage" }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
   ]),
 );
 
@@ -745,5 +739,5 @@ export function libelleEffet(type: Effect['type']): PlayerText {
   return dataLabel(noms[0]);
 }
 
-nommerChamps(delayedEffectSchema, { type: { label: "type" }, flow: { label: "enchaînement", transparent: true }, cancelFlag: { label: "drapeau d’annulation" }, ...scheduleMeta });
-nommerChamps(petitePriereSchema, { type: { label: "type" }, heroId: { label: "héros" }, reward: { label: "récompense" } });
+nommerChamps(delayedEffectSchema, { type: { label: "type"  }, flow: { label: "enchaînement", transparent: true }, cancelFlag: { label: "drapeau d’annulation" , texte: { regime: "technique"} }, ...scheduleMeta });
+nommerChamps(petitePriereSchema, { type: { label: "type"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, reward: { label: "récompense" } });

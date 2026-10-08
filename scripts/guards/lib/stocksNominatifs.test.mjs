@@ -1,10 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
+import { createRequire } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { entreesNominatives, croissanceDesStocks, bilanDesStocks, croissanceDesCles, croissancesNonCouvertes, raisonDeRefus } from './stocksNominatifs.mjs';
-import { refusDeLaPlage } from './plageStock.mjs';
+import { PORTE_DE_PLAGE, bilanDuCommit, refusDeLaPlage } from './plageStock.mjs';
+import { depotDe } from './gitPorte.mjs';
+import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs';
+import { parUnitesDeCode } from './lister.mjs';
 
 const PORTEUR = 'scripts/guards/lib/temoin.mjs';
 const compter = (source, chemin = PORTEUR) => entreesNominatives(source, chemin).length;
@@ -244,15 +251,29 @@ test('#2472 le bilan réduit toutes les clés signées du même porteur', () => 
 });
 
 const sha256 = texte => createHash('sha256').update(texte).digest('hex');
-function temoinReel(ref) {
-  const fixture = JSON.parse(gunzipSync(Buffer.from(readFileSync(new URL('./fixtures/2472-' + ref + '.json.gz.b64', import.meta.url), 'ascii').trim(), 'base64')).toString('utf8'));
+const empreinteOuNull = texte => (texte === null ? null : sha256(texte));
+/** Un témoin réel `fixtures/<nom>.json.gz.b64`, extrait des objets git par sa `commande` et vérifié par
+ *  ses empreintes : un commit (`diff`, `images`) ou une FUSION (`fusion`, l'entrée de `bilanDeFusion`). */
+function temoinReel(nom) {
+  const ref = nom.split('-')[1];
+  const fixture = JSON.parse(gunzipSync(Buffer.from(readFileSync(new URL('./fixtures/' + nom + '.json.gz.b64', import.meta.url), 'ascii').trim(), 'base64')).toString('utf8'));
   assert.match(fixture.sha, new RegExp('^' + ref + '[a-f0-9]{' + (40 - ref.length) + '}$'));
-  assert.match(fixture.parent, /^[a-f0-9]{40}$/);
   assert.ok(fixture.commande.includes(fixture.sha));
+  if (fixture.textes) {
+    for (const t of fixture.textes)
+      for (const lu of [...t.parents, t.commune, t.fusion]) assert.equal(empreinteOuNull(lu.texte), lu.hash);
+    const lire = choisir => fichier => {
+      const t = fixture.textes.find(x => x.fichier === fichier);
+      return t ? choisir(t).texte : null;
+    };
+    const fusion = { fichiers: fixture.fichiers, lire: { fusion: lire(t => t.fusion), parents: [0, 1].map(i => lire(t => t.parents[i])), commune: lire(t => t.commune) } };
+    return { ...fixture, fusion };
+  }
+  assert.match(fixture.parent, /^[a-f0-9]{40}$/);
   assert.equal(sha256(fixture.diff), fixture.hashDiff);
   for (const image of fixture.images) {
-    assert.equal(sha256(image.pre), image.hashPre);
-    assert.equal(image.post === null ? null : sha256(image.post), image.hashPost);
+    assert.equal(empreinteOuNull(image.pre), image.hashPre);
+    assert.equal(empreinteOuNull(image.post), image.hashPost);
   }
   const images = {
     lirePreImage: fichier => fixture.images.find(i => i.fichier === fichier)?.pre ?? null,
@@ -262,7 +283,7 @@ function temoinReel(ref) {
 }
 
 test('#2472 témoin réel 904a78dda : deux ajouts et deux retraits ont un net nul', () => {
-  const { sha, diff, images } = temoinReel('904a78dda');
+  const { sha, diff, images } = temoinReel('2472-904a78dda');
   const bilan = bilanDesStocks(diff, images);
   const porteur = bilan.find(b => b.fichier === 'scripts/gates/ecrivainsAtteints.test.mjs');
   assert.deepEqual([porteur.retenues.length, porteur.perdues.length], [2, 2]);
@@ -272,7 +293,7 @@ test('#2472 témoin réel 904a78dda : deux ajouts et deux retraits ont un net nu
 });
 
 test('#2472 témoin réel 1befc7e36 : le compte affiché, jugé et déclaré vaut 184', () => {
-  const { sha, diff, images } = temoinReel('1befc7e36');
+  const { sha, diff, images } = temoinReel('2472-1befc7e36');
   const fichier = 'scripts/guards/balayages-non-resolus-stock.json';
   const bilan = bilanDesStocks(diff, images);
   const croissances = croissanceDesStocks(diff, images);
@@ -293,10 +314,69 @@ test('#2472 témoin réel 1befc7e36 : le compte affiché, jugé et déclaré vau
 });
 
 test('#2472 supprimer le fichier porteur retire toutes ses entrées', () => {
-  const { diff, images } = temoinReel('904a78dda');
+  const { diff, images } = temoinReel('2472-904a78dda');
   const fichier = 'scripts/hooks/solde-ticket-guard.test.mjs';
   assert.equal(images.lirePostImage(fichier), null);
   const bilan = bilanDesStocks(diff, images).find(b => b.fichier === fichier);
   assert.deepEqual([bilan.retenues.length, bilan.perdues.length, croissanceDesCles(bilan.parCle)], [0, 1, -1]);
   assert.deepEqual(croissanceDesStocks(diff, images), []);
+});
+
+// #2503 : chaque commit se juge par la porte de son ÈRE. Les témoins sont les trois commits de
+// `chantier/2400` acceptés avant `581b0be01` (#2472), relus depuis leurs objets git.
+const DEPOT = depotDe(fileURLToPath(new URL('../../..', import.meta.url)));
+const BALAYAGES = 'scripts/guards/balayages-non-resolus-stock.json';
+const ECRIVAINS = 'scripts/gates/ecrivainsAtteints.test.mjs';
+const ERE_NETTE = 'bf79a00ad07d45d1f15509461db7079fa81e4b30';
+const enCommit = ({ sha, message, diff, images, fusion }) => ({ sha, message, ...(fusion ? { fusion } : { diff, images }) });
+const refusPar = (juge, commit) => juge.refusDeLaPlage({ commits: [commit], cumul: bilanDuCommit(commit) })
+  .map(r => [r.fichier, r.net, r.declare]).sort(([a], [b]) => parUnitesDeCode(a, b));
+const porteDe = async ere => {
+  const { juge, note } = await jugeDeLEre(DEPOT, ere, PORTE_DE_PLAGE);
+  assert.equal(note, null, `la porte de l'ère ${ere.slice(0, 9)} se charge`);
+  return juge;
+};
+
+test('#2503 témoins réels : la porte actuelle refuse les trois CLIQUET d\'avant #2472, la porte de leur ère aucun', async () => {
+  for (const [nom, fichier, net, declare] of [
+    ['2503-d75a9f231', ECRIVAINS, 3, 5],
+    ['2472-1befc7e36', BALAYAGES, 184, 189],
+    ['2503-4f007a449', BALAYAGES, 217, 318],
+  ]) {
+    const temoin = temoinReel(nom);
+    const commit = enCommit(temoin);
+    assert.deepEqual(refusPar({ refusDeLaPlage }, commit), [[fichier, net, declare]], nom);
+    assert.deepEqual(refusPar(await porteDe(temoin.ere), commit), [], nom);
+  }
+});
+
+test('#2503 contre-témoin : les entrées de 1befc7e36 en commit NEUF, ère ⊇ 581b0be01, se jugent au net', async () => {
+  const temoin = temoinReel('2472-1befc7e36');
+  const juger = async (ere, message) => refusPar(await porteDe(ere), { ...enCommit(temoin), message });
+  const cliquets = (balayages, ecrivains) =>
+    `neuf\n\nCLIQUET: ${BALAYAGES} +${balayages} — contre-témoin du commit neuf\nCLIQUET: ${ECRIVAINS} +${ecrivains} — contre-témoin du commit neuf`;
+  assert.deepEqual(await juger(ERE_NETTE, ''), [[ECRIVAINS, 4, null], [BALAYAGES, 184, null]]);
+  assert.deepEqual(await juger(ERE_NETTE, cliquets(184, 4)), []);
+  assert.deepEqual(await juger(ERE_NETTE, cliquets(189, 4)), [[BALAYAGES, 184, 189]]);
+  assert.deepEqual((await juger(temoin.ere, '')).filter(([f]) => f === BALAYAGES), [[BALAYAGES, 189, null]]);
+});
+
+test('#2503 outillage en panne : l’API native de `typescript` irrésoluble lève une erreur nommée, jamais un verdict au repli', async () => {
+  const module = 'scripts/guards/lib/stocksNominatifs.mjs';
+  const hors = mkdtempSync(join(tmpdir(), 'sans-typescript-'));
+  const ecrire = (rel, texte) => {
+    mkdirSync(dirname(join(hors, rel)), { recursive: true });
+    writeFileSync(join(hors, rel), texte);
+  };
+  try {
+    for (const [rel, texte] of fermetureSurDisque(module)) ecrire(rel, texte);
+    const ast = pathToFileURL(createRequire(import.meta.url).resolve('typescript/unstable/ast')).href;
+    ecrire('node_modules/typescript/package.json', JSON.stringify({ name: 'typescript', type: 'module', exports: { './unstable/ast': './ast.js' } }));
+    ecrire('node_modules/typescript/ast.js', `export * from '${ast}';\n`);
+    const isole = await import(pathToFileURL(join(hors, module)).href);
+    const { diff, images } = temoinReel('2472-1befc7e36');
+    assert.throws(() => isole.bilanDesStocks(diff, images), /Package subpath '\.\/unstable\/\w+' is not defined by "exports"/);
+  } finally {
+    rmSync(hors, { recursive: true, force: true });
+  }
 });

@@ -1,4 +1,4 @@
-import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
+import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './meta';
 /**
  * MÉCANIQUE de la grammaire de document (#1466 L1a) — l'algèbre exécutable portée en donnée :
  * `GameOp`, `Condition`, `FlowTest`, `EffectOp`, `Flow`, `TriggeredEffect`, et les entrées de
@@ -6,6 +6,7 @@ import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
  * op par op ; `OPS_NON_TYPEES` porte celles qui restent à décrire (lot L1c #1468).
  */
 import { z } from 'zod';
+import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
 import { isMenaceId, menaceIds } from '../../../engine/menace';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
@@ -98,13 +99,14 @@ const estNoeudZod = (v: unknown): v is z.ZodType => typeof v === 'object' && v !
  * porteur lisent ses régimes (`mecaniqueDe`).
  */
 const DECLARATIONS_D_OPS = {
-  banish: nommerChamps(z.strictObject({ op: z.literal('banish'), narration: z.enum(['chaos', 'unravel']).optional(), onlyGroups: z.array(z.string()).optional() }), { op: { label: "opération" }, narration: { label: "narration" }, onlyGroups: { label: "groupes autorisés" } }),
+  narrative: proseNommee(nommerChamps(z.strictObject({ op: z.literal('narrative') }), { op: { label: 'opération'  } }), 'narrative.text'),
+  banish: nommerChamps(z.strictObject({ op: z.literal('banish'), narration: z.enum(['chaos', 'unravel']).optional(), onlyGroups: z.array(z.string()).optional() }), { op: { label: "opération"  }, narration: { label: "narration"  }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} } }),
   corruption: nommerChamps(z.strictObject({
     op: z.literal('corruption'),
     amount: z.number(),
     perSL: perSLSchema.optional(),
     align: chaosAlignSchema.optional(),
-  }), { op: { label: "opération" }, amount: { label: "quantité" }, perSL: { label: "par DR" }, align: { label: "Puissance du Chaos" } }),
+  }), { op: { label: "opération"  }, amount: { label: "quantité" }, perSL: { label: "par DR" }, align: { label: "Puissance du Chaos"  } }),
   /** `min` : plancher d'une perte de mutation (EDO 11 l.190), réservé au `passive` de mutation —
    *  seul `attachMutation` le résout (`engine/corruption.ts`). */
   charMod: declarerPayload({
@@ -121,26 +123,26 @@ const DECLARATIONS_D_OPS = {
     level: exposureLevelSchema.optional(),
     skill: refTestDeCorruption.optional(),
     easeSteps: z.number().optional(),
-  }), { op: { label: "opération" }, level: { label: "niveau" }, skill: { label: "Compétence" }, easeSteps: { label: "crans de facilité" } }),
+  }), { op: { label: "opération"  }, level: { label: "niveau"  }, skill: { label: "Compétence" }, easeSteps: { label: "crans de facilité" } }),
   aggravateSymptom: nommerChamps(z.strictObject({
     op: z.literal('aggravateSymptom'),
     disease: idDe('maladie'),
     symptomId: idDe('symptome'),
     severity: symptomSeveritySchema,
     otherwise: z.array(z.lazy(() => gameOpSchema)).optional(),
-  }), { op: { label: "opération" }, disease: { label: "maladie" }, symptomId: { label: "symptôme" }, severity: { label: "gravité" }, otherwise: { label: "sinon" } }),
+  }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptomId: { label: "symptôme" , texte: { regime: "technique"} }, severity: { label: "gravité"  }, otherwise: { label: "sinon" } }),
   attenuateSymptom: nommerChamps(z.strictObject({
     op: z.literal('attenuateSymptom'),
     disease: idDe('maladie'),
     symptomId: idDe('symptome'),
     otherwise: z.array(z.lazy(() => gameOpSchema)).optional(),
-  }), { op: { label: "opération" }, disease: { label: "maladie" }, symptomId: { label: "symptôme" }, otherwise: { label: "sinon" } }),
+  }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptomId: { label: "symptôme" , texte: { regime: "technique"} }, otherwise: { label: "sinon" } }),
   grantSymptom: nommerChamps(z.strictObject({
     op: z.literal('grantSymptom'),
     disease: idDe('maladie'),
     symptomId: idDe('symptome'),
     severity: symptomSeveritySchema.optional(),
-  }), { op: { label: "opération" }, disease: { label: "maladie" }, symptomId: { label: "symptôme" }, severity: { label: "gravité" } }),
+  }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, symptomId: { label: "symptôme" , texte: { regime: "technique"} }, severity: { label: "gravité"  } }),
   /** `amputer` (LDB 18 l.233-286) : AUTHORABLE comme toute op (l'atelier la propose sous « Séquelles &
    *  mobilité » — un Trait de créature qui tranche un membre s'écrit avec elle), mais AUCUNE donnée
    *  committée ne la porte aujourd'hui : ses seuls producteurs sont les rangées de Critique, où
@@ -153,29 +155,29 @@ const DECLARATIONS_D_OPS = {
     loc: hitLocationSchema.optional(),
     unites: formulaSchema.optional(),
     unitesPerSL: perSLSchema.optional(),
-  }), { op: { label: "opération" }, sequels: { label: "séquelles" }, loc: { label: "localisation" }, unites: { label: "unités" }, unitesPerSL: { label: "unités par DR" } }),
+  }), { op: { label: "opération"  }, sequels: { label: "séquelles" , texte: { regime: "technique"} }, loc: { label: "localisation"  }, unites: { label: "unités" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, unitesPerSL: { label: "unités par DR" } }),
   /** `fall` — la hauteur ne s'authore JAMAIS au site : elle se lit dans la table nommée (`MDG 13
    *  l.684`), par Taille de coque et par station du tombant. La table se désigne par la graphie
  *  CANONIQUE d'une référence (`{id}`) ; `ref(type)` ne s'applique pas — ces tables n'ont pas de
  *  dataset à elles, elles vivent DANS le jeu de Critiques qui les imprime. */
-  fall: nommerChamps(z.strictObject({ op: z.literal('fall'), hauteur: nommerChamps(z.strictObject({ table: nommerChamps(z.strictObject({ id: z.string() }), { id: { label: "identifiant" } }) }), { table: { label: "table" } }) }), { op: { label: "opération" }, hauteur: { label: "hauteur" } }),
-  heal: nommerChamps(z.strictObject({ op: z.literal('heal'), amount: formulaSchema, perSL: perSLSchema.optional() }), { op: { label: "opération" }, amount: { label: "quantité" }, perSL: { label: "par DR" } }),
+  fall: nommerChamps(z.strictObject({ op: z.literal('fall'), hauteur: nommerChamps(z.strictObject({ table: nommerChamps(z.strictObject({ id: z.string() }), { id: { label: "identifiant" , texte: { regime: "technique"} } }) }), { table: { label: "table" } }) }), { op: { label: "opération"  }, hauteur: { label: "hauteur" } }),
+  heal: nommerChamps(z.strictObject({ op: z.literal('heal'), amount: formulaSchema, perSL: perSLSchema.optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, perSL: { label: "par DR" } }),
   /** `money` — mouvement de la bourse PERSONNELLE de la cible. La charge porte son NOM (`montant`),
    *  comme toute autre action du vocabulaire (`giveMoney.montant`, `giveXp.amount`) : elle n'est jamais
    *  étalée parmi les clés de l'op (garde `src/data/monnaie-forme-unique.test.ts`, sonde A). La seule
    *  dénomination chiffrable est `brass`, l'unité de compte de `engine/money.ts`. */
-  money: nommerChamps(z.strictObject({ op: z.literal('money'), montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" } }) }), { op: { label: "opération" }, montant: { label: "montant" } }),
-  healCaster: nommerChamps(z.strictObject({ op: z.literal('healCaster'), amount: formulaSchema }), { op: { label: "opération" }, amount: { label: "quantité" } }),
-  kill: nommerChamps(z.strictObject({ op: z.literal('kill') }), { op: { label: "opération" } }),
-  loseTurn: nommerChamps(z.strictObject({ op: z.literal('loseTurn'), what: loseTurnWhatSchema.optional() }), { op: { label: "opération" }, what: { label: "objet" } }),
-  noBreath: nommerChamps(z.strictObject({ op: z.literal('noBreath') }), { op: { label: "opération" } }),
-  noHunger: nommerChamps(z.strictObject({ op: z.literal('noHunger') }), { op: { label: "opération" } }),
-  removeTrait: nommerChamps(z.strictObject({ op: z.literal('removeTrait'), traitId: idDe('trait') }), { op: { label: "opération" }, traitId: { label: "Trait" } }),
+  money: nommerChamps(z.strictObject({ op: z.literal('money'), montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }) }), { op: { label: "opération"  }, montant: { label: "montant" } }),
+  healCaster: nommerChamps(z.strictObject({ op: z.literal('healCaster'), amount: formulaSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  kill: nommerChamps(z.strictObject({ op: z.literal('kill') }), { op: { label: "opération"  } }),
+  loseTurn: nommerChamps(z.strictObject({ op: z.literal('loseTurn'), what: loseTurnWhatSchema.optional() }), { op: { label: "opération"  }, what: { label: "objet"  } }),
+  noBreath: nommerChamps(z.strictObject({ op: z.literal('noBreath') }), { op: { label: "opération"  } }),
+  noHunger: nommerChamps(z.strictObject({ op: z.literal('noHunger') }), { op: { label: "opération"  } }),
+  removeTrait: nommerChamps(z.strictObject({ op: z.literal('removeTrait'), traitId: idDe('trait') }), { op: { label: "opération"  }, traitId: { label: "Trait" , texte: { regime: "technique"} } }),
   /** `domeWard` — le dôme OCTROIE un Trait à ceux qu'il couvre (`LDB 47 l.410`) : le Trait se nomme
    *  par la MÊME graphie que partout ailleurs (`traitId`), son Indice est une `Formula`. AUCUNE zone :
    *  elle est déjà écrite par la ligne « Cible » du sort (ZdE, `LDB 47 l.28`) — l'op la LIT. */
-  domeWard: nommerChamps(z.strictObject({ op: z.literal('domeWard'), traitId: idDe('trait'), indice: formulaSchema }), { op: { label: "opération" }, traitId: { label: "Trait" }, indice: { label: "indice" } }),
-  suffocate: nommerChamps(z.strictObject({ op: z.literal('suffocate') }), { op: { label: "opération" } }),
+  domeWard: nommerChamps(z.strictObject({ op: z.literal('domeWard'), traitId: idDe('trait'), indice: formulaSchema }), { op: { label: "opération"  }, traitId: { label: "Trait" , texte: { regime: "technique"} }, indice: { label: "indice" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  suffocate: nommerChamps(z.strictObject({ op: z.literal('suffocate') }), { op: { label: "opération"  } }),
   /** `offTerrainMod` — passif POSITIONNEL : hors de son terrain d'ÉLECTION, le porteur subit un M
    *  IMPOSÉ (`mSet`, Créature marine MDG 16 l.17 « son M tombe à 1 » ; Aquatique MSRC 15 l.139 → 0),
    *  un malus de DR à TOUS ses Tests (`testDR`) et/ou la suffocation (`suffocates`). Le terrain se
@@ -186,15 +188,15 @@ const DECLARATIONS_D_OPS = {
     mSet: z.number().optional(),
     testDR: z.number().optional(),
     suffocates: z.boolean().optional(),
-  }), { op: { label: "opération" }, terrain: { label: "terrain" }, mSet: { label: "Mouvement imposé" }, testDR: { label: "DR de Test" }, suffocates: { label: "asphyxie" } }),
-  skillMod: nommerChamps(z.strictObject({ op: z.literal('skillMod'), skill: refOuSpec('skill'), mod: z.number(), sense: senseSchema.optional() }), { op: { label: "opération" }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, sense: { label: "sens" } }),
+  }), { op: { label: "opération"  }, terrain: { label: "terrain" , texte: { regime: "technique"} }, mSet: { label: "Mouvement imposé" }, testDR: { label: "DR de Test" }, suffocates: { label: "asphyxie" } }),
+  skillMod: nommerChamps(z.strictObject({ op: z.literal('skillMod'), skill: refOuSpec('skill'), mod: z.number(), sense: senseSchema.optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, sense: { label: "sens"  } }),
   /** Cible EXCLUSIVE, `skill` OU `testType` (`engine/ops.ts`, union `skillDRBonus`). `testType` : id de
    *  `crew-test-types.json`, document `config` dont les ids vivent sous `types[]` — hors de l'INDEX
    *  DES IDS (`IDS_PAR_ESPACE`, `scripts/gen-espaces.mts`) ; clé étrangère tenue par
    *  `scripts/guards/lib/gameOpRefFk.mjs` pour les sous-listes à ids des documents `config` (#1473). */
   skillDRBonus: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), skill: refOuSpec('skill'), bonus: formulaSchema }), { op: { label: "opération" }, skill: { label: "Compétence" }, bonus: { label: "bonus" } }),
-    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), testType: z.string(), bonus: formulaSchema }), { op: { label: "opération" }, testType: { label: "type de Test" }, bonus: { label: "bonus" } }),
+    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), skill: refOuSpec('skill'), bonus: formulaSchema }), { op: { label: "opération"  }, skill: { label: "Compétence" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('skillDRBonus'), testType: z.string(), bonus: formulaSchema }), { op: { label: "opération"  }, testType: { label: "type de Test" , texte: { regime: "technique"} }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { skill?: unknown; testType?: unknown };
@@ -213,18 +215,18 @@ const DECLARATIONS_D_OPS = {
     minutes: formulaSchema.optional(),
     hours: formulaSchema.optional(),
     days: formulaSchema.optional(),
-  }), { op: { label: "opération" }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, blocked: { label: "bloqué" }, maxZeroDR: { label: "plafond de zéro DR" }, rounds: { label: "Rounds" }, minutes: { label: "minutes" }, hours: { label: "heures" }, days: { label: "jours" } }),
+  }), { op: { label: "opération"  }, skill: { label: "Compétence" }, mod: { label: "modificateur" }, blocked: { label: "bloqué" }, maxZeroDR: { label: "plafond de zéro DR" }, rounds: { label: "Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, minutes: { label: "minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, hours: { label: "heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, days: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   grantCareerSkill: declarerPayload({ op: z.literal('grantCareerSkill'), skill: aChoix('skill') }, { op: { label: "opération" }, skill: { label: "Compétence" } }),
   grantCareerTalent: declarerPayload({ op: z.literal('grantCareerTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),
   grantTalent: declarerPayload({ op: z.literal('grantTalent'), talent: aChoix('talent') }, { op: { label: "opération" }, talent: { label: 'Talent' } }),
-  grantReverseToken: nommerChamps(z.strictObject({ op: z.literal('grantReverseToken'), skill: refOuSpec('skill').optional() }), { op: { label: "opération" }, skill: { label: "Compétence" } }),
+  grantReverseToken: nommerChamps(z.strictObject({ op: z.literal('grantReverseToken'), skill: refOuSpec('skill').optional() }), { op: { label: "opération"  }, skill: { label: "Compétence" } }),
   exposeDisease: nommerChamps(z.strictObject({
     op: z.literal('exposeDisease'),
     disease: ouReserve(idDe('maladie'), ARG_TEMPLATE),
     difficultyShift: z.number().optional(),
     incubation: z.literal('instant').optional(),
-  }), { op: { label: "opération" }, disease: { label: "maladie" }, difficultyShift: { label: "décalage de difficulté" }, incubation: { label: "incubation" } }),
-  contractDisease: nommerChamps(z.strictObject({ op: z.literal('contractDisease'), disease: idDe('maladie') }), { op: { label: "opération" }, disease: { label: "maladie" } }),
+  }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, difficultyShift: { label: "décalage de difficulté" }, incubation: { label: "incubation"  } }),
+  contractDisease: nommerChamps(z.strictObject({ op: z.literal('contractDisease'), disease: idDe('maladie') }), { op: { label: "opération"  }, disease: { label: "maladie" , texte: { regime: "technique"} } }),
   reduceDiseaseDays: nommerChamps(z.strictObject({
     op: z.literal('reduceDiseaseDays'),
     days: z.number().optional(),
@@ -232,16 +234,16 @@ const DECLARATIONS_D_OPS = {
     disease: idDe('maladie').optional(),
     oncePerDisease: z.boolean().optional(),
     daysPerSL: perSLSchema.optional(),
-  }), { op: { label: "opération" }, days: { label: "jours" }, dice: { label: "dés" }, disease: { label: "maladie" }, oncePerDisease: { label: "une fois par maladie" }, daysPerSL: { label: "jours par DR" } }),
-  diseaseTestMod: nommerChamps(z.strictObject({ op: z.literal('diseaseTestMod'), diseases: refs('maladie').optional(), amount: z.number() }), { op: { label: "opération" }, diseases: { label: "maladies" }, amount: { label: "quantité" } }),
-  suppressSymptom: nommerChamps(z.strictObject({ op: z.literal('suppressSymptom'), symptomId: idDe('symptome') }), { op: { label: "opération" }, symptomId: { label: "symptôme" } }),
+  }), { op: { label: "opération"  }, days: { label: "jours" }, dice: { label: "dés" }, disease: { label: "maladie" , texte: { regime: "technique"} }, oncePerDisease: { label: "une fois par maladie" }, daysPerSL: { label: "jours par DR" } }),
+  diseaseTestMod: nommerChamps(z.strictObject({ op: z.literal('diseaseTestMod'), diseases: refs('maladie').optional(), amount: z.number() }), { op: { label: "opération"  }, diseases: { label: "maladies" , texte: { regime: "technique"} }, amount: { label: "quantité" } }),
+  suppressSymptom: nommerChamps(z.strictObject({ op: z.literal('suppressSymptom'), symptomId: idDe('symptome') }), { op: { label: "opération"  }, symptomId: { label: "symptôme" , texte: { regime: "technique"} } }),
   giveTrapping: nommerChamps(z.strictObject({
     op: z.literal('giveTrapping'),
     trappingId: idDe('trapping', INSTANCIABLE_PAR_ID).optional(),
     custom: z.string().optional(),
     count: z.number().optional(),
     perSL: perSLSchema.optional(),
-  }), { op: { label: "opération" }, trappingId: { label: "objet" }, custom: { label: "profil personnalisé" }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
+  }), { op: { label: "opération"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
   /** `summon` — la créature invoquée se nomme par un id du bestiaire (`idDe('creature')`) : une op
    *  sans créature est refusée AU PARSE (#1882), jamais spawnée. `addTraits` : instances de Trait
    *  (`grammaire/reference.ts › traitInstanceSchema`), dont l'`id` est un `z.string()` et non une feuille
@@ -255,7 +257,7 @@ const DECLARATIONS_D_OPS = {
     size: sizeCategorySchema.optional(),
     allyOfCaster: z.boolean().optional(),
     despawnIfCasterDown: z.boolean().optional(),
-  }), { op: { label: "opération" }, ref: { label: "référence" }, count: { label: "nombre" }, countPerSL: { label: "nombre par DR" }, addTraits: { label: "traits ajoutés" }, size: { label: "Taille" }, allyOfCaster: { label: "allié du lanceur" }, despawnIfCasterDown: { label: "disparaître avec le lanceur" } }),
+  }), { op: { label: "opération"  }, ref: { label: "référence" , texte: { regime: "technique"} }, count: { label: "nombre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, countPerSL: { label: "nombre par DR" }, addTraits: { label: "traits ajoutés" }, size: { label: "Taille"  }, allyOfCaster: { label: "allié du lanceur" }, despawnIfCasterDown: { label: "disparaître avec le lanceur" } }),
   scheduleRespawn: nommerChamps(z.strictObject({
     op: z.literal('scheduleRespawn'),
     ref: ouReserve(idDe('creature'), SELF_REF),
@@ -263,14 +265,14 @@ const DECLARATIONS_D_OPS = {
     count: formulaSchema.optional(),
     allyOfCaster: z.boolean().optional(),
     cancelFlag: z.string().optional(),
-  }), { op: { label: "opération" }, ref: { label: "référence" }, delayDays: { label: "délai en jours" }, count: { label: "nombre" }, allyOfCaster: { label: "allié du lanceur" }, cancelFlag: { label: "drapeau d’annulation" } }),
-  polymorph: nommerChamps(z.strictObject({ op: z.literal('polymorph'), ref: idDe('creature') }), { op: { label: "opération" }, ref: { label: "référence" } }),
+  }), { op: { label: "opération"  }, ref: { label: "référence" , texte: { regime: "technique"} }, delayDays: { label: "délai en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, count: { label: "nombre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, allyOfCaster: { label: "allié du lanceur" }, cancelFlag: { label: "drapeau d’annulation" , texte: { regime: "technique"} } }),
+  polymorph: nommerChamps(z.strictObject({ op: z.literal('polymorph'), ref: idDe('creature') }), { op: { label: "opération"  }, ref: { label: "référence" , texte: { regime: "technique"} } }),
   transform: nommerChamps(z.strictObject({
     op: z.literal('transform'),
     tag: z.string(),
     ops: z.array(z.lazy(() => gameOpSchema)),
     morphRef: idDe('creature').optional(),
-  }), { op: { label: "opération" }, tag: { label: "marque" }, ops: { label: "opérations" }, morphRef: { label: "forme transformée" } }),
+  }), { op: { label: "opération"  }, tag: { label: "marque" , texte: { regime: "technique"} }, ops: { label: "opérations" }, morphRef: { label: "forme transformée" , texte: { regime: "technique"} } }),
   /** Table INLINE (`rows`) OU RÉFÉRENCÉE (`tableId`), exclusives (`engine/ops.ts`, union `rollTable`). */
   rollTable: z.union([
     nommerChamps(z.strictObject({
@@ -280,7 +282,7 @@ const DECLARATIONS_D_OPS = {
       addNegativeSL: z.boolean().optional(),
       extraRollsPerStep: z.number().optional(),
       rows: z.array(nommerChamps(z.strictObject({ min: z.number(), max: z.number(), ops: z.array(z.lazy(() => gameOpSchema)) }), { min: { label: "minimum" }, max: { label: "maximum" }, ops: { label: "opérations" } })),
-    }), { op: { label: "opération" }, die: { label: "dé de tirage" }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, rows: { label: "rangées" } }),
+    }), { op: { label: "opération"  }, die: { label: "dé de tirage"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, rows: { label: "rangées" } }),
     nommerChamps(z.strictObject({
       op: z.literal('rollTable'),
       die: deDeTableSchema.optional(),
@@ -288,7 +290,7 @@ const DECLARATIONS_D_OPS = {
       addNegativeSL: z.boolean().optional(),
       extraRollsPerStep: z.number().optional(),
       tableId: idDe('table'),
-    }), { op: { label: "opération" }, die: { label: "dé de tirage" }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, tableId: { label: "table" } }),
+    }), { op: { label: "opération"  }, die: { label: "dé de tirage"  }, mod: { label: "modificateur" }, addNegativeSL: { label: "ajouter les DR négatifs" }, extraRollsPerStep: { label: "jets supplémentaires par cran" }, tableId: { label: "table" , texte: { regime: "technique"} } }),
   ], {
     error: (iss) => {
       const v = (iss.input ?? {}) as { rows?: unknown; tableId?: unknown };
@@ -306,8 +308,8 @@ const DECLARATIONS_D_OPS = {
     hearingOnly: z.boolean().optional(),
     exceptSkills: z.array(ref('skill')).optional(),
     weaponHand: z.enum(['main', 'off']).optional(),
-  }), { op: { label: "opération" }, amount: { label: "quantité" }, char: { label: "caractéristiques" }, combatOnly: { label: "combat uniquement" }, movementOnly: { label: "Mouvement uniquement" }, hearingOnly: { label: "ouïe uniquement" }, exceptSkills: { label: "Compétences exclues" }, weaponHand: { label: "main de l’arme" } }),
-  perRound: nommerChamps(z.strictObject({ op: z.literal('perRound'), ops: z.array(z.lazy(() => gameOpSchema)) }), { op: { label: "opération" }, ops: { label: "opérations" } }),
+  }), { op: { label: "opération"  }, amount: { label: "quantité" }, char: { label: "caractéristiques"  }, combatOnly: { label: "combat uniquement" }, movementOnly: { label: "Mouvement uniquement" }, hearingOnly: { label: "ouïe uniquement" }, exceptSkills: { label: "Compétences exclues" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} }, weaponHand: { label: "main de l’arme"  } }),
+  perRound: nommerChamps(z.strictObject({ op: z.literal('perRound'), ops: z.array(z.lazy(() => gameOpSchema)) }), { op: { label: "opération"  }, ops: { label: "opérations" } }),
   delayed: nommerChamps(z.strictObject({
     op: z.literal('delayed'),
     afterMinutes: formulaSchema.optional(),
@@ -318,13 +320,13 @@ const DECLARATIONS_D_OPS = {
     forHours: formulaSchema.optional(),
     forDays: formulaSchema.optional(),
     ops: z.array(z.lazy(() => gameOpSchema)),
-  }), { op: { label: "opération" }, afterMinutes: { label: "délai en minutes" }, afterHours: { label: "délai en heures" }, afterDays: { label: "délai en jours" }, afterDuration: { label: "après la durée" }, forMinutes: { label: "durée en minutes" }, forHours: { label: "durée en heures" }, forDays: { label: "durée en jours" }, ops: { label: "opérations" } }),
+  }), { op: { label: "opération"  }, afterMinutes: { label: "délai en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterHours: { label: "délai en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterDays: { label: "délai en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, afterDuration: { label: "après la durée" }, forMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, forHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, forDays: { label: "durée en jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, ops: { label: "opérations" } }),
   zone: nommerChamps(z.strictObject({
     op: z.literal('zone'),
     shape: zoneShapeSchema,
     radiusMeters: formulaSchema.optional(),
     lengthMeters: formulaSchema.optional(),
-    lengthPerSL: nommerChamps(z.strictObject({ every: z.number(), metersFormula: formulaSchema }), { every: { label: "intervalle" }, metersFormula: { label: "distance" } }).optional(),
+    lengthPerSL: nommerChamps(z.strictObject({ every: z.number(), metersFormula: formulaSchema }), { every: { label: "intervalle" }, metersFormula: { label: "distance" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }).optional(),
     blocksLoS: z.boolean().optional(),
     onCross: z.array(z.lazy(() => gameOpSchema)).optional(),
     perRound: z.array(z.lazy(() => gameOpSchema)).optional(),
@@ -332,7 +334,7 @@ const DECLARATIONS_D_OPS = {
     barrier: z.boolean().optional(),
     gate: z.literal('profane').optional(),
     noCorruption: z.boolean().optional(),
-  }), { op: { label: "opération" }, shape: { label: "forme" }, radiusMeters: { label: "rayon en mètres" }, lengthMeters: { label: "longueur en mètres" }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès" }, noCorruption: { label: "sans Corruption" } }),
+  }), { op: { label: "opération"  }, shape: { label: "forme"  }, radiusMeters: { label: "rayon en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthMeters: { label: "longueur en mètres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, lengthPerSL: { label: "longueur par DR" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, gate: { label: "condition d’accès"  }, noCorruption: { label: "sans Corruption" } }),
   /** `addQualities`/`removeQualities` : ids de Qualité, et `requiresWeapon`, hors de `TYPES` — gardés
    *  par `GAMEOP_FIELD_TARGETS` (`scripts/guards/lib/gameOpRefFk.mjs`). */
   augmentWeapon: nommerChamps(z.strictObject({
@@ -346,7 +348,7 @@ const DECLARATIONS_D_OPS = {
     suppressEnchants: z.boolean().optional(),
     passive: z.array(z.lazy(() => gameOpSchema)).optional(),
     onHitEffects: z.array(z.lazy(() => triggeredEffectSchema)).optional(),
-  }), { op: { label: "opération" }, addQualities: { label: "qualités ajoutées" }, damageBonus: { label: "bonus de dégâts" }, bypass: { label: "armure ignorée" }, requiresWeapon: { label: "arme requise" }, removeQualities: { label: "qualités retirées" }, removeType: { label: "type retiré" }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }),
+  }), { op: { label: "opération"  }, addQualities: { label: "qualités ajoutées" , texte: { regime: "technique"} }, damageBonus: { label: "bonus de dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, bypass: { label: "armure ignorée"  }, requiresWeapon: { label: "arme requise" , texte: { regime: "technique"} }, removeQualities: { label: "qualités retirées" , texte: { regime: "technique"} }, removeType: { label: "type retiré"  }, suppressEnchants: { label: "supprimer les enchantements" }, passive: { label: "passifs" }, onHitEffects: { label: "à la touche" } }),
   /** `qualities` (ids de Qualité) et `subType` (id de Groupe d'arme), hors de `TYPES` — gardés par
    *  `GAMEOP_FIELD_TARGETS` (`scripts/guards/lib/gameOpRefFk.mjs`). */
   grantWeapon: nommerChamps(z.strictObject({
@@ -363,12 +365,12 @@ const DECLARATIONS_D_OPS = {
     skin: surchargePaletteSchema.optional(),
     form: idDe('trapping', INSTANCIABLE_PAR_ID).optional(),
     chooseForm: z.boolean().optional(),
-  }), { op: { label: "opération" }, label: { label: "libellé" }, damage: { label: "dégâts" }, damagePlus: { label: "dégâts supplémentaires" }, plusBF: { label: "ajouter le Bonus de Force" }, qualities: { label: "qualités" }, subType: { label: "sous-type" }, reach: { label: "allonge" }, hands: { label: "mains" }, onHitEffects: { label: "à la touche" }, skin: { label: "palette" }, form: { label: "forme" }, chooseForm: { label: "choisir la forme" } }),
+  }), { op: { label: "opération"  }, label: { label: "libellé" , texte: { regime: "designation"} }, damage: { label: "dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, damagePlus: { label: "dégâts supplémentaires" }, plusBF: { label: "ajouter le Bonus de Force" }, qualities: { label: "qualités" , texte: { regime: "technique"} }, subType: { label: "sous-type" , texte: { regime: "technique"} }, reach: { label: "allonge"  }, hands: { label: "mains" }, onHitEffects: { label: "à la touche" }, skin: { label: "palette" }, form: { label: "forme" , texte: { regime: "technique"} }, chooseForm: { label: "choisir la forme" } }),
   rollThreshold: nommerChamps(z.strictObject({
     op: z.literal('rollThreshold'),
     sides: z.number(),
     thresholds: z.array(nommerChamps(z.strictObject({ atLeast: z.number(), ops: z.array(z.lazy(() => gameOpSchema)) }), { atLeast: { label: "minimum" }, ops: { label: "opérations" } })),
-  }), { op: { label: "opération" }, sides: { label: "faces" }, thresholds: { label: "seuils" } }),
+  }), { op: { label: "opération"  }, sides: { label: "faces" }, thresholds: { label: "seuils" } }),
 };
 
 type DeclarationsDOps = typeof DECLARATIONS_D_OPS;
@@ -419,7 +421,7 @@ export const OPS_NON_TYPEES: readonly string[] = [
   'grantNaturalWeapon', 'grantPsychTrait', 'grantTrait', 'handGate', 'ignoreAnimosity',
   'ignoreStatePenalties', 'incomingAdvantage', 'incomingAttackMod', 'incomingSpellDRMod', 'interruptFocus',
   'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands', 'mitigateIncoming', 'moveMod', 'moveScale',
-  'narrative', 'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removePsychTrait', 'removeShipPoste',
+  'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removePsychTrait', 'removeShipPoste',
   'rollMutation', 'sbBonus', 'senseLoss', 'sinMod', 'spendAdvantage', 'statusMod', 'suppressPsych', 'teamCommander',
   'teleport', 'weaponDamageMod', 'weaponRollMod', 'weatherWard', 'wounds',
 ];
@@ -525,10 +527,10 @@ export const startleCauseSchema = enumNomme({ noise: 'Bruits forts', magic: 'Mag
 export const hasWhatSchema = enumNomme({ group: 'le Groupe', talent: 'le Talent', trait: 'le Trait', psych: 'l’état psy' });
 
 
-const charRefSchema = nommerChamps(z.strictObject({ who: actorRefSchema, char: charKeySchema, bonus: z.boolean().optional() }), { who: { label: "acteur" }, char: { label: "caractéristiques" }, bonus: { label: "bonus" } });
+const charRefSchema = nommerChamps(z.strictObject({ who: actorRefSchema, char: charKeySchema, bonus: z.boolean().optional() }), { who: { label: "acteur"  }, char: { label: "caractéristiques"  }, bonus: { label: "bonus" } });
 const compareSubjectSchema = z.union([
-  nommerChamps(z.strictObject({ who: actorRefSchema, field: actorFieldSchema }), { who: { label: "acteur" }, field: { label: "champ" } }),
-  nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string() }), { who: { label: "acteur" }, condition: { label: "condition" } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, field: actorFieldSchema }), { who: { label: "acteur"  }, field: { label: "champ"  } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} } }),
   charRefSchema,
 ]);
 /** `CompareSubject & { factor?: number }` (`engine/flowCore.ts:131`) — un `z.intersection` d'un
@@ -542,16 +544,16 @@ const compareValueSchema = z.union([
     who: actorRefSchema,
     field: actorFieldSchema,
     factor: z.number().optional(),
-  }), { who: { label: "acteur" }, field: { label: "champ" }, factor: { label: "facteur" } }),
-  nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string(), factor: z.number().optional() }), { who: { label: "acteur" }, condition: { label: "condition" }, factor: { label: "facteur" } }),
-  nommerChamps(z.strictObject({ who: actorRefSchema, char: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur" }, char: { label: "caractéristiques" }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
+  }), { who: { label: "acteur"  }, field: { label: "champ"  }, factor: { label: "facteur" } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, condition: z.string(), factor: z.number().optional() }), { who: { label: "acteur"  }, condition: { label: "condition" , texte: { regime: "technique"} }, factor: { label: "facteur" } }),
+  nommerChamps(z.strictObject({ who: actorRefSchema, char: charKeySchema, bonus: z.boolean().optional(), factor: z.number().optional() }), { who: { label: "acteur"  }, char: { label: "caractéristiques"  }, bonus: { label: "bonus" }, factor: { label: "facteur" } }),
 ]);
 
 /** `Condition` (`engine/flowCore.ts:112`) — algèbre CLOSE, récursive via `all`/`any`/`not`. */
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
   z.discriminatedUnion('kind', [
-    nommerChamps(z.strictObject({ kind: z.literal('always') }), { kind: { label: "type" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('flag'), expr: z.string().min(1, 'Condition « flag » : le drapeau (`expr`) est vide — nommez le drapeau posé par l’Effet `setFlag`, ou retirez la Condition.') }), { kind: { label: "type" }, expr: { label: "expression" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('always') }), { kind: { label: "type"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('flag'), expr: z.string().min(1, 'Condition « flag » : le drapeau (`expr`) est vide — nommez le drapeau posé par l’Effet `setFlag`, ou retirez la Condition.') }), { kind: { label: "type"  }, expr: { label: "expression" , texte: { regime: "technique"} } }),
     nommerChamps(z.strictObject({
       kind: z.literal('time'),
       window: nommerChamps(z.strictObject({
@@ -560,38 +562,38 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
         beforeHour: z.number().optional(),
         beforeMinute: z.number().optional(),
       }), { afterHour: { label: "après cette heure" }, afterMinute: { label: "après cette minute" }, beforeHour: { label: "avant cette heure" }, beforeMinute: { label: "avant cette minute" } }),
-    }), { kind: { label: "type" }, window: { label: "créneau horaire" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('hasItem'), trappingId: z.string(), count: z.number().optional() }), { kind: { label: "type" }, trappingId: { label: "objet" }, count: { label: "nombre" } }),
+    }), { kind: { label: "type"  }, window: { label: "créneau horaire" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('hasItem'), trappingId: z.string(), count: z.number().optional() }), { kind: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, count: { label: "nombre" } }),
     nommerChamps(z.strictObject({
       kind: z.literal('money'),
       atLeast: nommerChamps(z.strictObject({ gold: z.number().optional(), silver: z.number().optional(), brass: z.number().optional() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } }),
-    }), { kind: { label: "type" }, atLeast: { label: "minimum" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('partyDead'), who: partyWhoSchema }), { kind: { label: "type" }, who: { label: "acteur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('skill'), id: z.string(), spec: z.string().optional(), advances: z.number().optional(), who: partyWhoSchema.optional() }), { kind: { label: "type" }, id: { label: "identifiant" }, spec: { label: "spécialisation" }, advances: { label: "augmentations" }, who: { label: "acteur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partyWhoSchema.optional() }), { kind: { label: "type" }, id: { label: "identifiant" }, who: { label: "acteur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partyWhoSchema.optional() }), { kind: { label: "type" }, id: { label: "identifiant" }, who: { label: "acteur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: z.string(), who: partyWhoSchema.optional() }), { kind: { label: "type" }, atLeast: { label: "minimum" }, who: { label: "acteur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type" }, subject: { label: "sujet" }, op: { label: "opération" }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type" }, op: { label: "opération" }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('location'), is: hitLocationSchema }), { kind: { label: "type" }, is: { label: "valeur attendue" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('attackKind'), is: z.string() }), { kind: { label: "type" }, is: { label: "valeur attendue" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('startleCause'), is: startleCauseSchema }), { kind: { label: "type" }, is: { label: "valeur attendue" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('woundsDealt'), op: compareOpSchema, value: z.number() }), { kind: { label: "type" }, op: { label: "opération" }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageGap'), op: compareOpSchema, value: z.number() }), { kind: { label: "type" }, op: { label: "opération" }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageLead'), op: compareOpSchema, value: z.number() }), { kind: { label: "type" }, op: { label: "opération" }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('foeInLoS') }), { kind: { label: "type" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('hiddenFromFoes') }), { kind: { label: "type" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('engaged') }), { kind: { label: "type" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('crewTest') }), { kind: { label: "type" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('nearestFoe'), op: compareOpSchema, value: z.number() }), { kind: { label: "type" }, op: { label: "opération" }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('capability'), who: actorRefSchema, id: z.string(), op: compareOpSchema.optional(), value: z.number().optional() }), { kind: { label: "type" }, who: { label: "acteur" }, id: { label: "identifiant" }, op: { label: "opération" }, value: { label: "valeur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('relation'), who: actorRefSchema, is: relationOrCampSchema }), { kind: { label: "type" }, who: { label: "acteur" }, is: { label: "valeur attendue" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: hasWhatSchema, value: z.string(), spec: z.string().optional() }), { kind: { label: "type" }, who: { label: "acteur" }, what: { label: "objet" }, value: { label: "valeur" }, spec: { label: "spécialisation" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('casterChaosDomain'), is: z.string() }), { kind: { label: "type" }, is: { label: "valeur attendue" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('visiblePassive'), who: actorRefSchema }), { kind: { label: "type" }, who: { label: "acteur" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('all'), of: z.array(conditionSchema) }), { kind: { label: "type" }, of: { label: "contenu" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('any'), of: z.array(conditionSchema) }), { kind: { label: "type" }, of: { label: "contenu" } }),
-    nommerChamps(z.strictObject({ kind: z.literal('not'), of: conditionSchema }), { kind: { label: "type" }, of: { label: "contenu" } }),
+    }), { kind: { label: "type"  }, atLeast: { label: "minimum" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('partyDead'), who: partyWhoSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('skill'), id: z.string(), spec: z.string().optional(), advances: z.number().optional(), who: partyWhoSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, spec: { label: "spécialisation" , texte: { regime: "technique"} }, advances: { label: "augmentations" }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('career'), id: z.string(), who: partyWhoSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('species'), id: z.string(), who: partyWhoSchema.optional() }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('status'), atLeast: z.string(), who: partyWhoSchema.optional() }), { kind: { label: "type"  }, atLeast: { label: "minimum" , texte: { regime: "technique"} }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('compare'), subject: compareSubjectSchema, op: compareOpSchema, value: compareValueSchema }), { kind: { label: "type"  }, subject: { label: "sujet" }, op: { label: "opération"  }, value: { label: "valeur" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('slThreshold'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('location'), is: hitLocationSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('attackKind'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }),
+    nommerChamps(z.strictObject({ kind: z.literal('startleCause'), is: startleCauseSchema }), { kind: { label: "type"  }, is: { label: "valeur attendue"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('woundsDealt'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageGap'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('engagedAdvantageLead'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('foeInLoS') }), { kind: { label: "type"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('hiddenFromFoes') }), { kind: { label: "type"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('engaged') }), { kind: { label: "type"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('crewTest') }), { kind: { label: "type"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('nearestFoe'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('capability'), who: actorRefSchema, id: z.string(), op: compareOpSchema.optional(), value: z.number().optional() }), { kind: { label: "type"  }, who: { label: "acteur"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, op: { label: "opération"  }, value: { label: "valeur" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('relation'), who: actorRefSchema, is: relationOrCampSchema }), { kind: { label: "type"  }, who: { label: "acteur"  }, is: { label: "valeur attendue"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('has'), who: actorRefSchema, what: hasWhatSchema, value: z.string(), spec: z.string().optional() }), { kind: { label: "type"  }, who: { label: "acteur"  }, what: { label: "objet"  }, value: { label: "valeur" , texte: { regime: "technique"} }, spec: { label: "spécialisation" , texte: { regime: "technique"} } }),
+    nommerChamps(z.strictObject({ kind: z.literal('casterChaosDomain'), is: z.string() }), { kind: { label: "type"  }, is: { label: "valeur attendue" , texte: { regime: "technique"} } }),
+    nommerChamps(z.strictObject({ kind: z.literal('visiblePassive'), who: actorRefSchema }), { kind: { label: "type"  }, who: { label: "acteur"  } }),
+    nommerChamps(z.strictObject({ kind: z.literal('all'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('any'), of: z.array(conditionSchema) }), { kind: { label: "type"  }, of: { label: "contenu" } }),
+    nommerChamps(z.strictObject({ kind: z.literal('not'), of: conditionSchema }), { kind: { label: "type"  }, of: { label: "contenu" } }),
   ]),
 );
 
@@ -606,13 +608,13 @@ export const catalogStakeSchema = nommerChamps(z.strictObject({
     kind: z.string(),
     entryId: z.string().optional(),
     entryCategory: z.string().optional(),
-  }), { dataset: { label: "registre" }, kind: { label: "type" }, entryId: { label: "entrée" }, entryCategory: { label: "catégorie d’entrée" } }),
+  }), { dataset: { label: "registre"  }, kind: { label: "type" , texte: { regime: "technique"} }, entryId: { label: "entrée" , texte: { regime: "technique"} }, entryCategory: { label: "catégorie d’entrée" , texte: { regime: "technique"} } }),
   values: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
-}), { key: { label: "clé" }, values: { label: "valeurs" } });
+}), { key: { label: "clé" }, values: { label: "valeurs" , texte: { regime: "technique"} } });
 
 /** `AuthoredStake` (`src/data/index.ts`) — la phrase qu'un DOCUMENT de campagne écrit lui-même
  *  (arbitrage user 2026-08-12, #1262) : elle voyage avec le document et ne pointe aucun dataset. */
-export const authoredStakeSchema = nommerChamps(z.strictObject({ authored: z.string() }), { authored: { label: "enjeu rédigé" } });
+export const authoredStakeSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'stake.authored');
 
 /** `DerivedStake` (`src/data/index.ts`) — enjeu DÉRIVÉ de l'entité porteuse (`{kind, id}`), calculé
  *  au montage de l'étape par le socle. */
@@ -620,7 +622,7 @@ export const derivedStakeSchema = nommerChamps(z.strictObject({
   from: nommerChamps(z.strictObject({
     kind: z.enum(Object.keys(CATEGORY_BY_SOURCE_KIND) as [EffectSourceKind, ...EffectSourceKind[]]),
     id: z.string(),
-  }), { kind: { label: "type" }, id: { label: "identifiant" } }),
+  }), { kind: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} } }),
 }), { from: { label: "provenance" } });
 
 /** `StakeRef` (`src/data/index.ts`) — les TROIS formes d'enjeu d'une entrée de jet, qui passent par
@@ -647,10 +649,10 @@ export const flowTestSchema = nommerChamps(z.strictObject({
   vsCapricieux: z.boolean().optional(),
   easierIf: nommerChamps(z
     .strictObject({
-      hasSkill: nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional() }), { id: { label: "identifiant" }, spec: { label: "spécialisation" } }).optional(),
+      hasSkill: nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional() }), { id: { label: "identifiant" , texte: { regime: "technique"} }, spec: { label: "spécialisation" , texte: { regime: "technique"} } }).optional(),
       hasTalent: idDe('talent').optional(),
       steps: z.number().optional(),
-    }), { hasSkill: { label: "Compétence requise" }, hasTalent: { label: "Talent requis" }, steps: { label: "étape" } })
+    }), { hasSkill: { label: "Compétence requise" }, hasTalent: { label: "Talent requis" , texte: { regime: "technique"} }, steps: { label: "étape" } })
     .optional(),
   argDifficulty: z.boolean().optional(),
   unlessImmune: z.string().optional(),
@@ -675,7 +677,7 @@ export const flowTestSchema = nommerChamps(z.strictObject({
       });
     })
     .optional(),
-  difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté" } })).optional(),
+  difficultyBy: z.array(nommerChamps(z.strictObject({ cond: conditionSchema, difficulty: difficultySchema }), { cond: { label: "condition" }, difficulty: { label: "difficulté"  } })).optional(),
   opposed: nommerChamps(z
     .strictObject({
       attacker: charKeySchema,
@@ -683,7 +685,7 @@ export const flowTestSchema = nommerChamps(z.strictObject({
       attackerLabel: z.string().optional(),
       bonusSL: z.number().optional(),
       attackerBonusSL: z.number().optional(),
-    }), { attacker: { label: "attaquant" }, attackerSkill: { label: "Compétence de l’attaquant" }, attackerLabel: { label: "nom de l’attaquant" }, bonusSL: { label: "bonus de DR" }, attackerBonusSL: { label: "bonus de DR de l’attaquant" } })
+    }), { attacker: { label: "attaquant"  }, attackerSkill: { label: "Compétence de l’attaquant" , texte: { regime: "technique"} }, attackerLabel: { label: "nom de l’attaquant" , texte: { regime: "technique"} }, bonusSL: { label: "bonus de DR" }, attackerBonusSL: { label: "bonus de DR de l’attaquant" } })
     .optional(),
 }).superRefine((v, ctx) => {
   // UN JET NOMME CE QU'IL TESTE (#1657 B3-3). Sans `skill` ni `characteristic`, la porte n'a rien à
@@ -697,7 +699,7 @@ export const flowTestSchema = nommerChamps(z.strictObject({
     message: 'jet SANS compétence ni caractéristique : la porte le jouerait sur une valeur de 0 '
       + '(auto-échec muet). Nommer `skill` (id de compétence) ou `characteristic`.',
   });
-}), { stake: { label: "enjeu" }, skill: { label: "Compétence" }, sense: { label: "sens" }, characteristic: { label: "caractéristique" }, difficulty: { label: "difficulté" }, requireSL: { label: "DR requis" }, label: { label: "libellé" }, tool: { label: "outil" }, vsGroups: { label: "contre les groupes" }, vsStatus: { label: "contre le statut" }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, easierIf: { label: "facilité conditionnelle" }, argDifficulty: { label: "difficulté de l’argument" }, unlessImmune: { label: "sauf immunité" }, onlyGroups: { label: "groupes autorisés" }, exceptGroups: { label: "groupes exclus" }, gate: { label: "condition d’accès" }, noSupport: { label: "sans assistance" }, menace: { label: "menace" }, difficultyBy: { label: "difficultés conditionnelles" }, opposed: { label: "opposition" } });
+}), { stake: { label: "enjeu" }, skill: { label: "Compétence" }, sense: { label: "sens"  }, characteristic: { label: "caractéristique"  }, difficulty: { label: "difficulté"  }, requireSL: { label: "DR requis" }, label: { label: "libellé" , texte: { regime: "designation"} }, tool: { label: "outil" , texte: { regime: "technique"} }, vsGroups: { label: "contre les groupes" , texte: { regime: "technique"} }, vsStatus: { label: "contre le statut" , texte: { regime: "technique"} }, begging: { label: "mendicité" }, vsCapricieux: { label: "contre Capricieux" }, easierIf: { label: "facilité conditionnelle" }, argDifficulty: { label: "difficulté de l’argument" }, unlessImmune: { label: "sauf immunité" , texte: { regime: "technique"} }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, exceptGroups: { label: "groupes exclus" , texte: { regime: "technique"} }, gate: { label: "condition d’accès" }, noSupport: { label: "sans assistance" }, menace: { label: "menace" , texte: { regime: "technique"} }, difficultyBy: { label: "difficultés conditionnelles" }, opposed: { label: "opposition" } });
 
 
 /** Test ÉTENDU (`LDB 12 l.172-174`) : un acteur cumule des DR Round par Round jusqu'à `targetDR`
@@ -716,7 +718,7 @@ export const extendedTestSchema = nommerChamps(z.strictObject({
   /** ENJEU du Test (#1117) — référence de donnée, résolue par `resolveStake` et affichée par la
    *  modale du Round. Authorable par site ; à défaut, l'applier pose celui du Test étendu. */
   stake: stakeRefSchema.optional(),
-}), { type: { label: "type" }, skill: { label: "Compétence" }, characteristic: { label: "caractéristique" }, difficulty: { label: "difficulté" }, label: { label: "libellé" }, targetDR: { label: "DR à atteindre" }, flag: { label: "drapeau" }, stake: { label: "enjeu" } });
+}), { type: { label: "type"  }, skill: { label: "Compétence" }, characteristic: { label: "caractéristique"  }, difficulty: { label: "difficulté"  }, label: { label: "libellé" , texte: { regime: "designation"} }, targetDR: { label: "DR à atteindre" }, flag: { label: "drapeau" , texte: { regime: "technique"} }, stake: { label: "enjeu" } });
 
 /** Options de `noeudTest` — ce qu'un document RESSERRE sur le nœud partagé, jamais un spread. */
 export interface OptionsNoeudTest {
@@ -775,7 +777,7 @@ export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeud
         });
       })
     : flowTestSchema;
-  const noeud = nommerChamps(z.strictObject({ kind: z.literal('test'), test, success: branche, fail: branche }), { kind: { label: "type" }, test: { label: "Test" }, success: { label: "réussite" }, fail: { label: "échec" } });
+  const noeud = nommerChamps(z.strictObject({ kind: z.literal('test'), test, success: branche, fail: branche }), { kind: { label: "type"  }, test: { label: "Test" }, success: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, fail: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } });
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
     // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la
@@ -818,8 +820,8 @@ export const effectOnSchema = enumNomme({
 /** `EffectTargeting` (`engine/flowCore.ts:469`). */
 export const effectTargetingSchema = z.union([
   effectOnSchema,
-  nommerChamps(z.strictObject({ near: z.enum(['victim', 'self']), radiusMeters: z.number() }), { near: { label: "près de" }, radiusMeters: { label: "rayon en mètres" } }),
-  nommerChamps(z.strictObject({ pick: z.literal('engaged'), sizeAtMost: z.literal('self').optional(), max: z.number() }), { pick: { label: "sélection" }, sizeAtMost: { label: "Taille maximale" }, max: { label: "maximum" } }),
+  nommerChamps(z.strictObject({ near: z.enum(['victim', 'self']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
+  nommerChamps(z.strictObject({ pick: z.literal('engaged'), sizeAtMost: z.literal('self').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
 ]);
 
 /** DÉCLENCHEUR d'un `TriggeredEffect` (`EffectTrigger`, `engine/flowCore.ts`). Le `satisfies` garde
@@ -872,8 +874,8 @@ export const stageOutcomeSchema = z.enum([
  */
 export const crewTargetSchema = z.union([
   nommerChamps(z.strictObject({ poste: z.literal(true) }), { poste: { label: "poste" } }),
-  nommerChamps(z.strictObject({ stations: refs('shipStation', { min: 1 }) }), { stations: { label: "présences" } }),
-  nommerChamps(z.strictObject({ role: ref('crewRole') }), { role: { label: "rôle" } }),
+  nommerChamps(z.strictObject({ stations: refs('shipStation', { min: 1 }) }), { stations: { label: "présences" , texte: { regime: "technique"} } }),
+  nommerChamps(z.strictObject({ role: ref('crewRole') }), { role: { label: "rôle" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} } }),
 ]);
 
 // ============================================================================
@@ -930,7 +932,7 @@ function construire(regimes: Regimes) {
       path: ['op'],
       message: `GameOp « ${v.op} » : op inconnue de OP_DEFS et de OPS_NON_TYPEES (src/data/schemas/grammaire/mecanique.ts) — la typer, ou l'inscrire à la liste avec sa raison mesurée.`,
     });
-  }), { op: { label: "opération" } }).transform((v) => v as GameOp);
+  }), { op: { label: "opération" , texte: { regime: "technique"} } }).transform((v) => v as GameOp);
 
   /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
    *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `do` par
@@ -943,6 +945,7 @@ function construire(regimes: Regimes) {
     const op = (valeur as { op?: string } | null)?.op;
     return op && opDefs[op] ? [opDefs[op]] : [];
   }, 'payloads-op');
+  nommerNoeud(gameOp, { opacite: { nature: 'dispatch-op', raison: 'Payloads stricts déclarés ; OPS_NON_TYPEES reste opaque.' } });
 
   const effectOp = nommerChamps(z.strictObject({
     type: z.literal('ops'),
@@ -951,25 +954,24 @@ function construire(regimes: Regimes) {
     heroId: z.string().optional(),
     untilTime: z.number().optional(),
     label: z.string().optional(),
-  }), { type: { label: "type" }, ops: { label: "opérations" }, on: { label: "cible" }, heroId: { label: "héros" }, untilTime: { label: "échéance" }, label: { label: "libellé" } });
+  }), { type: { label: "type"  }, ops: { label: "opérations" }, on: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, untilTime: { label: "échéance" }, label: { label: "libellé" , texte: { regime: "designation"} } });
 
   /** `Flow<EffectOp>` (`engine/flowCore.ts:492`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice). */
   const flow: z.ZodType<Flow<EffectOp>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
-      nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type" }, steps: { label: "étape" } }),
-      nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectOp }), { kind: { label: "type" }, effect: { label: "effet" } }),
-      nommerChamps(z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: flow, else: flow.optional() }), { kind: { label: "type" }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }),
+      nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }),
+      nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectOp }), { kind: { label: "type"  }, effect: { label: "effet" } }),
+      nommerChamps(z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }),
       noeudTest(flow),
-      nommerChamps(z.strictObject({
+      proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choice'),
-        prompt: z.string(),
         // Coût LITTÉRAL, ou TEMPLATE `$indice` (`engine/flowCore::INDICE_TEMPLATE`) — accepté AU PARSE
         // seulement : `withArg` (`state/triggeredEffects`) le remplace par l'Indice de l'instance porteuse.
         advantageCost: ouReserve(z.number(), INDICE_TEMPLATE).optional(),
         icon: z.string().optional(),
         yes: flow,
         no: flow.optional(),
-      }), { kind: { label: "type" }, prompt: { label: "invite" }, advantageCost: { label: "coût en Avantage" }, icon: { label: "icône" }, yes: { label: "oui" }, no: { label: "non" } }),
+      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
     ]),
   );
 
@@ -982,7 +984,7 @@ function construire(regimes: Regimes) {
     condition: z.string().optional(),
     attackType: z.enum(['melee', 'ranged']).optional(),
     optional: z.boolean().optional(),
-  }), { trigger: { label: "déclenchement" }, on: { label: "cible" }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" }, attackType: { label: "type d’attaque" }, optional: { label: "facultatif" } });
+  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, optional: { label: "facultatif" } });
 
   /** `TravelTableEntry` (`src/engine/travelTables.ts:15-26`) — entrée d100 de l'enveloppe `TravelTable`,
    *  partagée par `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
@@ -1005,7 +1007,7 @@ function construire(regimes: Regimes) {
         char: charKeySchema.optional(),
         difficulty: difficultySchema,
         fallM: z.number(),
-      }), { skill: { label: "Compétence" }, char: { label: "caractéristiques" }, difficulty: { label: "difficulté" }, fallM: { label: "hauteur de chute" } }).optional(),
+      }), { skill: { label: "Compétence" }, char: { label: "caractéristiques"  }, difficulty: { label: "difficulté"  }, fallM: { label: "hauteur de chute" } }).optional(),
       /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
       ridingPenalty: z.number().optional(),
       /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */
@@ -1022,8 +1024,8 @@ function construire(regimes: Regimes) {
       /** ISSUE de la bête, quand le `desc` verbatim en pose une (Patte brisée : « Fracture (Majeure) …
        *  peu d'espoir qu'elle y survive ») — fragment d'AFFICHAGE joueur, ligne propre au journal. */
       outcome: z.string().optional(),
-    }), { riderTest: { label: "Test du cavalier" }, ridingPenalty: { label: "malus de Chevaucher" }, forcedAllure: { label: "allure imposée" }, preventsMount: { label: "monture inutilisable" }, notHealedByCare: { label: "sans récupération par soins" }, endCondition: { label: "condition de fin" }, outcome: { label: "issue" } }).optional(),
-  }), { min: { label: "minimum" }, max: { label: "maximum" }, id: { label: "identifiant" }, label: { label: "libellé" }, desc: { label: "texte" }, stageOutcome: { label: "issue d’étape" }, vehicleWounds: { label: "Blessures du véhicule" }, occupantOps: { label: "opérations des occupants" }, mount: { label: "monture" } });
+    }), { riderTest: { label: "Test du cavalier" }, ridingPenalty: { label: "malus de Chevaucher" }, forcedAllure: { label: "allure imposée"  }, preventsMount: { label: "monture inutilisable" }, notHealedByCare: { label: "sans récupération par soins" }, endCondition: { label: "condition de fin" , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/incidents-monture.ts:schema"}} }, outcome: { label: "issue"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/incidents-monture.ts:schema"}} } }).optional(),
+  }), { min: { label: "minimum" }, max: { label: "maximum" }, id: { label: "identifiant"  , texte: { regime: "technique"} }, label: { label: "libellé"  , texte: { regime: "designation"} }, desc: { label: "texte"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/incidents-monture.ts:schema"}} }, stageOutcome: { label: "issue d’étape"  }, vehicleWounds: { label: "Blessures du véhicule"  , texte: { regime: "technique"} }, occupantOps: { label: "opérations des occupants" }, mount: { label: "monture" } });
   /**
    * `ShipCrewHit` (`src/data/shipCriticals.ts`) — ce qu'un Critique de coque fait à l'ÉQUIPAGE. Le
    * porteur dit QUI encaisse (`crewTarget`, REQUIS) ; l'ISSUE est SOIT une épreuve (le nœud `test` du
@@ -1057,7 +1059,7 @@ function construire(regimes: Regimes) {
     hullCrits: z.string().optional(),
     crewHit: shipCrewHit.optional(),
     note: z.string(),
-  }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: "identifiant" }, label: { label: "libellé" }, ops: { label: "opérations" }, shrapnel: { label: "éclats" }, hullCrits: { label: "Critiques de coque" }, crewHit: { label: "coup à l’équipage" }, note: { label: "note" } });
+  }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: "identifiant"  , texte: { regime: "technique"} }, label: { label: "libellé"  , texte: { regime: "designation"} }, ops: { label: "opérations" }, shrapnel: { label: "éclats" }, hullCrits: { label: "Critiques de coque"  , texte: { regime: "technique"} }, crewHit: { label: "coup à l’équipage" }, note: { label: "note"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/ship-criticals.ts:schema"}} } });
 
   for (const noeud of [gameOp, effectOp, flow]) REGIMES_DES_NOEUDS.set(noeud, regimes);
   return { regimes, opDefs, gameOp, effectOp, flow, triggeredEffect, travelTableEntry, shipCrewHit, shipCritEntry };

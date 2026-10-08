@@ -484,6 +484,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   }
   const uniques = (vals) => [...new Map(vals.map((v) => [cleDe(v), v])).values()]
   const relais = new Map()
+  const atteintes = new Map()
 
   const importe = (f, spec, nom, vus = new Set()) => {
     const g = cible(f, spec)
@@ -616,19 +617,67 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
     return rendu
   }
 
+  // #2001
+  const atteintLecture = (fn) => {
+    const cle = `${fn.f}#${fn.id}`
+    const deja = atteintes.get(cle)
+    if (deja) {
+      fusionner(deja.requetes)
+      return deja.oui
+    }
+    const { resultat: graphe, requetes } = tracer(() => {
+      const sommets = new Map()
+      const aLire = []
+      const sommetDe = (cible) => {
+        const identite = `${cible.f}#${cible.id}`
+        if (!sommets.has(identite)) {
+          sommets.set(identite, { fn: cible, parents: new Set(), oui: false })
+          aLire.push(identite)
+        }
+        return identite
+      }
+      sommetDe(fn)
+      for (let i = 0; i < aLire.length; i++) {
+        const identite = aLire[i]
+        const sommet = sommets.get(identite)
+        if (!peutLire(sommet.fn.f)) continue
+        const lu = lecture(sommet.fn.f)
+        if (!lu?.fonctions[sommet.fn.id]) { sommet.oui = true; continue }
+        for (const site of lu.sites.filter((s) => s.dans === sommet.fn.id)) {
+          if (site.lecture) { sommet.oui = true; continue }
+          const cibles = valeurs(site.cible, { f: sommet.fn.f, env: null })
+          if (!cibles.length || cibles.some((c) => !('fn' in c))) sommet.oui = true
+          for (const cible of cibles.filter((c) => 'fn' in c)) sommets.get(sommetDe(cible.fn)).parents.add(identite)
+        }
+      }
+      const positives = [...sommets].filter(([, sommet]) => sommet.oui).map(([identite]) => identite)
+      for (let i = 0; i < positives.length; i++) {
+        for (const parent of sommets.get(positives[i]).parents) {
+          const sommet = sommets.get(parent)
+          if (sommet.oui) continue
+          sommet.oui = true
+          positives.push(parent)
+        }
+      }
+      return sommets
+    })
+    for (const [identite, sommet] of graphe) atteintes.set(identite, { oui: sommet.oui, requetes })
+    return atteintes.get(cle).oui
+  }
+
   /** La fonction est-elle un RELAIS : un de ses paramètres alimente-t-il une lecture ? Une fonction déjà en
    *  cours d'évaluation est supposée relais : ses lectures liées s'évaluent, et une boucle s'y nomme (`sousPile`).
    *  Une lecture COUPÉE (`COUPE`) ne tranche pas : supposée relais, la coupe se nomme au site qui l'appelle. Toute
    *  coupe répute relais : un « non » n'est jamais l'effet de la pile qui l'a vu, et la réponse se mémoïse. */
   const estRelais = (fn) => {
     const cle = `${fn.f}#${fn.id}`
+    if (!atteintLecture(fn)) return false
     const deja = relais.get(cle)
     if (deja) {
       fusionner(deja.requetes)
       return deja.oui
     }
     if (enCours.has(cle)) return true
-    if (!peutLire(fn.f)) return false
     enCours.add(cle)
     try {
       const { resultat: oui, requetes } = tracer(() => lecturesDe(fn, null).some((v) => 'relais' in v || ('non' in v && COUPE.test(v.non))))

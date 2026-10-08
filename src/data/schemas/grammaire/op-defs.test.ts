@@ -30,8 +30,16 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
   });
 
   it('une op NON TYPÉE garde la forme loose', () => {
-    expect(OPS_NON_TYPEES).toContain('narrative');
-    expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', quoiQueCeSoit: 3 }).success).toBe(true);
+    expect(OPS_NON_TYPEES).toContain('condition');
+    expect(gameOpSchema.safeParse({ op: 'condition', id: 'inconscient', quoiQueCeSoit: 3 }).success).toBe(true);
+  });
+
+  it('narrative est typée : texte et provenance locaux, aucun champ étranger', () => {
+    expect(OPS_NON_TYPEES).not.toContain('narrative');
+    expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit' }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', source: { book: 'ennemi-dans-l-ombre', page: 12 } }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', quoiQueCeSoit: 3 }).success).toBe(false);
   });
 
   /** `condition` reste LOOSE, mais la combinaison que `applyOps` lève en plein combat (récurrence

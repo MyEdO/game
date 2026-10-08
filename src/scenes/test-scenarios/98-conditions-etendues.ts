@@ -19,8 +19,8 @@ const construireScene = (): Scene => buildScene({
   terrain: 'herbe',
   heroStart: [1, 4],
   startMessage:
-    'Un garde bavard au poste de contrôle — ses réponses varient selon qui, dans le groupe, ' +
-    'porte la bonne Compétence, la bonne carrière, la bonne espèce ou le bon Statut.',
+    { texte: 'Un garde bavard au poste de contrôle — ses réponses varient selon qui, dans le groupe, ' +
+    'porte la bonne Compétence, la bonne carrière, la bonne espèce ou le bon Statut.' },
   entities: [
     {
       id: 'garde', kind: 'personnage', ref: 'villageois', label: 'Garde du poste',

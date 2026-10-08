@@ -27,7 +27,7 @@ const T3 = 'route-sept-rayons-altdorf';
 const ctx = (...flags: string[]): ConditionCtx => ({ flags: tableTotale(flags, () => true), gameTime: 0 });
 const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
 const etat = (placeId: string, c?: ConditionCtx) => routesEtat(map, placeId, c).map((e) => [e.route.id, e.ouverte]);
-const refus = (placeId: string, c: ConditionCtx) => routesEtat(map, placeId, c).map((e) => e.route.refus);
+const refus = (placeId: string, c: ConditionCtx) => routesEtat(map, placeId, c).map((e) => e.route.refus?.texte);
 
 describe('carte du ch.1 — anti-spoiler, état de drapeaux par état de drapeaux', () => {
   it('aucun drapeau : seul le relais existe, et le seul trajet est OFFERT fermé, avec sa raison', () => {

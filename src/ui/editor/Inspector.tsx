@@ -18,6 +18,7 @@ import { PARTS_RELIEF } from '../../data/materials.types';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { NumberField } from '../NumberField';
 import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../state/zones';
@@ -2235,7 +2236,8 @@ function SceneProps({
             setScene({ ...scene, music: m.ambient === undefined && m.combat === undefined ? undefined : m });
           }}
         />
-        <ProseField label="Message d'introduction" value={scene.startMessage ?? ''} onChange={(t) => setScene({ ...scene, startMessage: t || undefined })} />
+        <ProseField label="Message d'introduction" value={scene.startMessage?.texte ?? ''} onChange={(texte) => setScene({ ...scene, startMessage: texte ? { ...scene.startMessage, texte } : undefined })} />
+        {scene.startMessage && <ProvenanceDuTexte copie identite={`${scene.id}/introduction`} sujet="du message d'introduction" value={scene.startMessage} onChange={(patch) => setScene({ ...scene, startMessage: { ...scene.startMessage!, ...patch } })} />}
       </Fold>
       <Fold title="Matières de relief">
         <p className="hint">

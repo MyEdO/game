@@ -507,10 +507,8 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
             Titre
             <input value={ouverture.titre} onChange={(e) => patchOuv({ titre: e.target.value })} />
           </label>
-          <label className="ed-field">
-            Sous-titre
-            <input value={ouverture.sousTitre ?? ''} onChange={(e) => patchOuv({ sousTitre: e.target.value || undefined })} />
-          </label>
+          <ProseField label="Sous-titre de l'ouverture" value={ouverture.sousTitre?.texte ?? ''} onChange={(texte) => patchOuv({ sousTitre: texte ? { ...ouverture.sousTitre, texte } : undefined })} />
+          {ouverture.sousTitre && <ProvenanceDuTexte copie identite="ouverture/sous-titre" sujet="du sous-titre de l'ouverture" value={ouverture.sousTitre} onChange={(patch) => patchOuv({ sousTitre: { ...ouverture.sousTitre!, ...patch } })} />}
           <label className="ed-field">
             Chapitre
             <input value={ouverture.chapitre ?? ''} onChange={(e) => patchOuv({ chapitre: e.target.value || undefined })} />
@@ -540,10 +538,8 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
             Titre
             <input value={cloture.titre} onChange={(e) => patchClo({ titre: e.target.value })} />
           </label>
-          <label className="ed-field">
-            Sous-titre
-            <input value={cloture.sousTitre ?? ''} onChange={(e) => patchClo({ sousTitre: e.target.value || undefined })} />
-          </label>
+          <ProseField label="Sous-titre de la clôture" value={cloture.sousTitre?.texte ?? ''} onChange={(texte) => patchClo({ sousTitre: texte ? { ...cloture.sousTitre, texte } : undefined })} />
+          {cloture.sousTitre && <ProvenanceDuTexte copie identite="cloture/sous-titre" sujet="du sous-titre de la clôture" value={cloture.sousTitre} onChange={(patch) => patchClo({ sousTitre: { ...cloture.sousTitre!, ...patch } })} />}
           <div className="ed-field">
             Condition de clôture
             <ConditionEditor cond={cloture.when} kinds={CONDITION_KINDS_CARTE} onChange={(when) => patchClo({ when })} />

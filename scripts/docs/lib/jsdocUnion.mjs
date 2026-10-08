@@ -7,9 +7,11 @@ import { contexteImports, estAppelDeclare } from '../../guards/lib/canonUnique.m
 // scripts/docs/build-vocabulaire.mjs (unions `GameOp` de src/engine/ops.ts,
 // `Condition`/`Flow`/`EffectTrigger`/`EffectTargeting` de src/engine/flowCore.ts).
 import * as ts from 'typescript/unstable/ast'
+import { TypeFlags, SymbolFlags } from 'typescript/unstable/sync'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { VIRTUAL_ROOT, virtualProgram, libererSessions } from '../../guards/lib/tsProgram.mjs'
+import { fileURLToPath } from 'node:url'
+import { VIRTUAL_ROOT, virtualProgram, repoProgram, libererSessions } from '../../guards/lib/tsProgram.mjs'
 
 /** Abréviations FR à ne PAS prendre pour une fin de phrase (« ex. », « l. », « p. »… — sinon un
  *  « (ex. » tronque le rôle en pleine parenthèse ouverte). */
@@ -245,7 +247,106 @@ export function indexerConstantes(fichiers) {
       }
     })
   }
+  const root = fileURLToPath(new URL('../../../', import.meta.url))
+  const candidat = entree => {
+    const liaisons = new Map()
+    entree.sf.forEachChild(node => {
+      if (!ts.isImportDeclaration(node) || !node.importClause || node.importClause.isTypeOnly || !ts.isStringLiteral(node.moduleSpecifier) || node.moduleSpecifier.text === 'zod') return
+      const spec = node.moduleSpecifier.text
+      const cible = path.resolve(path.dirname(path.resolve(entree.chemin)), spec).replace(/\.(?:m?js|m?ts)$/, '').toLowerCase()
+      const meta = spec.startsWith('.') && cible === path.join(root, 'src/data/schemas/grammaire/meta').toLowerCase()
+      const bindings = node.importClause.namedBindings
+      if (bindings && ts.isNamedImports(bindings)) for (const e of bindings.elements) {
+        if (!e.isTypeOnly && !(meta && ['nommerChamps', 'nommerNoeud'].includes(e.propertyName?.text ?? e.name.text))) liaisons.set(e.name.text, false)
+      }
+      else if (bindings && ts.isNamespaceImport(bindings)) liaisons.set(bindings.name.text, meta)
+      if (node.importClause.name) liaisons.set(node.importClause.name.text, false)
+    })
+    let trouve = false
+    const visiter = node => {
+      if (ts.isCallExpression(node)) {
+        let cible = node.expression
+        const membre = ts.isPropertyAccessExpression(cible) ? cible.name.text : undefined
+        while (ts.isPropertyAccessExpression(cible)) cible = cible.expression
+        if (ts.isIdentifier(cible) && liaisons.has(cible.text) && !(liaisons.get(cible.text) && ['nommerChamps', 'nommerNoeud'].includes(membre))) trouve = true
+      }
+      if (!trouve) node.forEachChild(visiter)
+    }
+    visiter(entree.sf)
+    return trouve
+  }
+  if (![...index.values()].some(candidat)) return index
+  const textes = Object.fromEntries([...index.values()].map(e => [e.chemin, e.text]))
+  let session
+  const erreurs = []
+  try {
+    session = repoProgram(root, () => fichiers.map(f => path.resolve(f)), textes)
+    const parFichier = new Map()
+    for (const entree of index.values()) {
+      if (!parFichier.has(entree.chemin)) {
+        const source = session.program.getSourceFile(path.resolve(entree.chemin))
+        if (!source) throw new Error(`indexerConstantes — source sémantique absente : ${entree.chemin}`)
+        const contexte = contexteImports(source, session.checker)
+        const formes = new Map()
+        const composition = node => {
+          if (ts.isParenthesizedExpression(node)) return composition(node.expression)
+          if (!ts.isCallExpression(node)) return null
+          let symbole = session.checker.getSymbolAtLocation(ts.isPropertyAccessExpression(node.expression) ? node.expression.name : node.expression)
+          while (symbole?.flags & SymbolFlags.Alias) symbole = session.checker.getAliasedSymbol(symbole)
+          const declaration = symbole?.valueDeclaration?.resolve()
+          if (declaration && ts.isFunctionDeclaration(declaration) && declaration.name?.text === 'proseNommee' && path.relative(root, declaration.getSourceFile().fileName).replaceAll('\\', '/') === 'src/data/schemas/grammaire/prose.ts') return node
+          if (ts.isPropertyAccessExpression(node.expression)) return composition(node.expression.expression)
+          if (estAppelDeclare(node, source, { 'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'] }, contexte)) return composition(node.arguments[0])
+          return null
+        }
+        const visiter = node => {
+          const canon = composition(node)
+          if (canon) {
+            const type = session.checker.getTypeAtLocation(node)
+            const zod = session.checker.getPropertyOfType(type, '_zod')
+            const origine = zod?.declarations?.some(d => d.resolve().getSourceFile().fileName.replaceAll('\\', '/').includes('/node_modules/zod/'))
+            const output = session.checker.getPropertyOfType(type, '_output')
+            if (!origine || !output) throw new Error(`proprietesZod — composition canonique sans sortie Zod : ${node.getText(source)}`)
+            const sortie = session.checker.getTypeOfSymbolAtLocation(output, node)
+            if (sortie.flags & TypeFlags.Union) throw new Error(`proprietesZod — sortie composée en union non représentable : ${node.getText(source)}`)
+            if (!(sortie.flags & TypeFlags.Object) || session.checker.isArrayType(sortie) || session.checker.isTupleType(sortie)) throw new Error(`proprietesZod — sortie composée non objet : ${node.getText(source)}`)
+            const champs = session.checker.getPropertiesOfType(sortie).map(p => {
+              const valeur = session.checker.getTypeOfSymbolAtLocation(p, node)
+              return { nom: p.name, optionnel: !!(p.flags & SymbolFlags.Optional), typeSortie: session.checker.typeToString(valeur), literal: valeur.flags & TypeFlags.StringLiteral ? valeur.value : undefined }
+            })
+            if (!champs.length) throw new Error(`proprietesZod — sortie composée sans champs résolus : ${node.getText(source)}`)
+            formes.set(`${node.pos}:${node.end}`, { champs, base: { pos: canon.arguments[0].pos, end: canon.arguments[0].end } })
+          }
+          node.forEachChild(visiter)
+        }
+        visiter(source)
+        parFichier.set(entree.chemin, formes)
+      }
+      entree.formesFinales = parFichier.get(entree.chemin)
+    }
+  } catch (erreur) { erreurs.push(erreur) }
+  finally { libererSessions(session ? [session] : [], erreurs) }
   return index
+}
+
+export function proprietesZod(node, entree) {
+  const memeSource = entree && node.getSourceFile().text === entree.text && path.resolve(node.getSourceFile().fileName).toLowerCase() === path.resolve(entree.sf.fileName).toLowerCase()
+  const final = memeSource ? entree.formesFinales?.get(`${node.pos}:${node.end}`) : undefined
+  const retrouver = n => n.pos === final?.base.pos && n.end === final?.base.end ? n : n.forEachChild(retrouver)
+  const base = noyauZod(final ? retrouver(node.getSourceFile()) : node, entree)
+  if (!ts.isCallExpression(base) || !ts.isObjectLiteralExpression(base.arguments[0])) {
+    throw new Error(`proprietesZod — forme d'objet zod illisible : ${node.getText(node.getSourceFile())}`)
+  }
+  const propres = []
+  let precedent = base.arguments[0].properties.pos
+  for (const p of base.arguments[0].properties) {
+    if (ts.isSpreadAssignment(p)) propres.push({ spread: p.expression.getText(p.getSourceFile()) })
+    else if (p.name) propres.push({ nom: p.name.getText(p.getSourceFile()).replace(/^['"]|['"]$/g, ''), init: p.initializer, optionnel: p.initializer ? estOptionnel(p.initializer, entree) : false, role: jsdocRole(p.getSourceFile().text.slice(precedent, p.getStart(p.getSourceFile()))) })
+    precedent = p.end
+  }
+  if (!final) return propres
+  const ordre = [...propres.filter(p => p.nom && final.champs.some(c => c.nom === p.nom)).map(p => p.nom), ...final.champs.filter(c => !propres.some(p => p.nom === c.nom)).map(c => c.nom)]
+  return ordre.map(nom => ({ ...propres.find(p => p.nom === nom), ...final.champs.find(c => c.nom === nom) }))
 }
 
 /**
@@ -277,7 +378,7 @@ function declarationReelle(entree, programmes) {
     if (!decl || !ts.isVariableDeclaration(decl) || !ts.isVariableStatement(decl.parent.parent)) return null
     if (decl.initializer && ts.isPropertyAccessExpression(decl.initializer)) { acces = decl.initializer; continue }
     const source = decl.getSourceFile()
-    return { decl, statement: decl.parent.parent, sf: source, text: source.text, decorateursZod: entree.decorateursZod }
+    return { decl, statement: decl.parent.parent, sf: source, text: source.text, chemin: entree.chemin, decorateursZod: entree.decorateursZod, formesFinales: entree.formesFinales }
   }
 }
 
@@ -312,27 +413,23 @@ export function readZodUnionMembers(index, alias, discriminant, tool, opts = {})
       if (!cible) {
         throw new Error(`${tool} — membre « ${m.text} » de « ${alias} » : schéma introuvable dans les fichiers indexés`)
       }
-      const objet = noyauZod(cible.decl.initializer, cible)
-      if (!ts.isCallExpression(objet) || !ts.isObjectLiteralExpression(objet.arguments[0])) {
-        throw new Error(`${tool} — membre « ${m.text} » : forme d'objet zod illisible`)
-      }
+      const proprietes = proprietesZod(cible.decl.initializer, cible)
       let name = null
       const fields = []
-      for (const prop of objet.arguments[0].properties) {
-        if (ts.isSpreadAssignment(prop)) {
-          fields.push(`...${opts.nomsDeSpread?.[prop.expression.getText(cible.sf)] ?? prop.expression.getText(cible.sf)}`)
+      for (const prop of proprietes) {
+        if (prop.spread) {
+          fields.push(`...${opts.nomsDeSpread?.[prop.spread] ?? prop.spread}`)
           continue
         }
-        const pname = prop.name?.getText(cible.sf)
+        const pname = prop.nom
         if (!pname) continue
-        if (ts.isGetAccessorDeclaration(prop)) { fields.push(pname); continue }
-        if (!ts.isPropertyAssignment(prop)) continue
-        const litt = prop.initializer
-        if (pname === discriminant && ts.isCallExpression(litt) && ts.isStringLiteral(litt.arguments[0])) {
+        const litt = prop.init
+        if (pname === discriminant && prop.literal !== undefined) { name = prop.literal; continue }
+        if (pname === discriminant && litt && ts.isCallExpression(litt) && ts.isStringLiteral(litt.arguments[0])) {
           name = litt.arguments[0].text
           continue
         }
-        fields.push(pname + (estOptionnel(litt, cible) ? '?' : ''))
+        fields.push(pname + (prop.optionnel ? '?' : ''))
       }
       if (!name) {
         throw new Error(`${tool} — membre « ${m.text} » sans « ${discriminant}: z.literal('…') »`)

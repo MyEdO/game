@@ -75,10 +75,10 @@ const construireScene = (): Scene => buildScene({
   terrain: 'herbe',
   heroStart: [2, 4],
   startMessage:
-    'Trois échoppes : un armurier (parlez-lui directement), une herboriste (engagez la conversation puis demandez ' +
+    { texte: 'Trois échoppes : un armurier (parlez-lui directement), une herboriste (engagez la conversation puis demandez ' +
     'à voir ses marchandises) et un maquignon (parlez-lui directement, il vend montures et véhicules). Faites ' +
     'évaluer l’épée mystérieuse du Négociant, marchandez, réparez sa maille, vendez sa dague. Ouvrez la fiche du ' +
-    `Maître d’armes (onglet ${t('sheet.tab.possessions')}) pour l’écran d’emplacements (couches d’armure, cape, bascule Set I/Set II).`,
+    `Maître d’armes (onglet ${t('sheet.tab.possessions')}) pour l’écran d’emplacements (couches d’armure, cape, bascule Set I/Set II).` },
   entities: [
     // Armurier : interaction directe → la boutique s'ouvre tout de suite.
     { id: 'armurier', kind: 'personnage', ref: 'humain', label: 'Armurier', pos: { x: 7, y: 2 }, appearance: { species: 'humains-reiklander' }, merchant: { archetype: 'armurier' } },

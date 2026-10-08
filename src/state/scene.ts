@@ -35,7 +35,7 @@ import type {
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
   facadeSectionSchema, layerSchema, reliefDefaultsSchema, roofDefaultsSchema, sceneRoofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
-  victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, PORTEURS_DU_TYPE,
+  victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, messageIntroductionSchema, PORTEURS_DU_TYPE,
 } from '../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../data/schemas/defs-scenes/communs';
 // Seul import runtime de ce module vers `src/data` : l'opacité d'une arête est une propriété de sa
@@ -474,7 +474,7 @@ export interface Scene {
    *  cf. `normalizeScene`) — une transition vers un étage doit pouvoir NOMMER cet étage (#835 FU-5). */
   entryPoints?: Record<string, { x: number; y: number; z?: number }>;
   /** Scène de départ pour la campagne enchaînée. */
-  startMessage?: string;
+  startMessage?: z.infer<typeof messageIntroductionSchema>;
   /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
   couvre?: string[];
 }

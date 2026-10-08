@@ -17,6 +17,7 @@ import { allBuiltinCampaigns, campagneDuJeu, documentDuJeu, type BuiltinCampaign
 import { Row, Stack } from './Layout';
 import { ChipDeRefus } from './ChipDeRefus';
 import { GatedAction, raisonSi } from './GatedAction';
+import { Prose } from './Prose';
 
 /** Une entrée sélectionnable de la bibliothèque : soit une campagne EMBARQUÉE (lecture seule,
  *  exportable mais jamais supprimable), soit un projet de la bibliothèque locale (supprimable). */
@@ -245,7 +246,7 @@ export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {
           {selected.kind === 'library' && selected.sp.published && <span className="chip">publiée</span>}
         </Row>
         {selected.kind === 'library' && selected.sp.project.desc && (
-          <p>{selected.sp.project.desc}</p>
+          <Prose md={selected.sp.project.desc} porteur={typeof selected.sp.project.id === 'string' ? { type: 'projet', id: selected.sp.project.id, chemin: 'desc' } : undefined} />
         )}
         {selected.kind === 'library' && selected.sp.project.auteur && (
           <p className="mini-title">Par {selected.sp.project.auteur}</p>

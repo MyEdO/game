@@ -450,7 +450,7 @@ test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pa
 for (const [nom, stderr] of [
   ['newline', 'fatal: panne simulée\n'],
   ['cause tardive', `${'note de refus\n'.repeat(50)}fatal: cause tardive\n`],
-]) test(`sousGitFeint : la feinte vaut dans CE processus pendant \`fn\`, et se retire même sur une levée — ${nom}`, () => {
+]) test(`sousGitFeint : la feinte vaut dans CE processus pendant \`fn\`, et se retire même sur une levée — ${nom}`, async () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
   try {
     const depot = depotDe(racine, { env: envDeDepotForge })
@@ -461,8 +461,13 @@ for (const [nom, stderr] of [
     assert.equal(process.env[ENV_GIT_FEINT], undefined)
     assert.equal(shaDe(depot, 'HEAD'), avant)
     assert.deepEqual(envGitFeint([{ si: [], status: 1 }]), { [ENV_GIT_FEINT]: '[{"si":[],"status":1}]' })
-    assert.throws(() => sousGitFeint([], async () => shaDe(depot, 'HEAD')), /sousGitFeint : `fn` rend une promesse/)
-    assert.equal(process.env[ENV_GIT_FEINT], undefined, 'la feinte est retirée après le refus')
+    const enVol = sousGitFeint([{ si: ['rev-parse'], status: 128, stderr }], async () => {
+      await new Promise((fin) => setImmediate(fin))
+      return shaDe(depot, 'HEAD')
+    })
+    assert.ok(process.env[ENV_GIT_FEINT], 'une promesse en vol garde la feinte')
+    await assert.rejects(enVol, (e) => e instanceof GitIndisponible && e.raison === stderr)
+    assert.equal(process.env[ENV_GIT_FEINT], undefined, 'la feinte est retirée quand la promesse se règle')
   } finally {
     jeter(racine)
   }

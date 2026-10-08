@@ -128,13 +128,32 @@ const avecIndice = (stades: NarratifBlock['indices'][number]['stades']): Narrati
   indices: [{ id: 'indice-1', affaireId: 'affaire-a', kind: 'indice', titre: 'Un indice', stades }],
 });
 
+describe('NarratifEditor — provenance propre aux deux sous-titres', () => {
+  it.each([
+    ["Sous-titre de l'ouverture", "du sous-titre de l'ouverture", 'ouverture'],
+    ['Sous-titre de la clôture', 'du sous-titre de la clôture', 'cloture'],
+  ] as const)('%s : le sous-titre adapté garde son texte et ne modifie pas le pitch', (label, sujet, cle) => {
+    mount({ ...emptyNarratif(), ouverture: { titre: 'Titre', pitch: 'Pitch.', source: { book: 'ennemi-dans-l-ombre', page: 12 } }, cloture: { titre: 'Fin', when: { kind: 'flag', expr: 'fini' } } });
+    click(btn('Cadre'));
+    const zone = [...container.querySelectorAll('label.ed-field')].find(e => e.firstElementChild?.textContent === label)!.querySelector('textarea')!;
+    setValue(zone, 'Sous-titre maison.');
+    provenance('Adapté', sujet);
+    setValue(livre(sujet), 'aux-armes');
+    poserPage(sujet, '3');
+    expect(last[cle]?.sousTitre).toEqual({ texte: 'Sous-titre maison.', source: undefined, adapteDe: { book: 'aux-armes', page: 3 } });
+    expect(last.ouverture?.source).toEqual({ book: 'ennemi-dans-l-ombre', page: 12 });
+    expect(last.ouverture?.pitch).toBe('Pitch.');
+    expect(narratifSchema.safeParse(last).error?.issues).toBeUndefined();
+  });
+});
+
 describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, seule une réf complète est émise)', () => {
   it('ouverture sourcée : le livre choisi seul n’émet rien ; la page validée complète `ouverture.source`, qui parse ; « aucun » la retire', () => {
     mount();
     click(btn('Cadre'));
     click(btn('Ajouter une ouverture'));
     setValue(field('Titre'), 'Ch. 1');
-    setValue(container.querySelector('textarea')!, 'Pitch maison.');
+    setValue([...container.querySelectorAll('label.ed-field')].find(e => e.firstElementChild?.textContent === 'Pitch (Markdown)')!.querySelector('textarea')!, 'Pitch maison.');
     expect(last.ouverture?.source).toBeUndefined();
     provenance('Copie', "de l'ouverture");
     setValue(livre("de l'ouverture"), 'ennemi-dans-l-ombre');
@@ -151,7 +170,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     mount();
     click(btn('Cadre'));
     click(btn('Ajouter une ouverture'));
-    const pitch = container.querySelector('textarea')!.closest('label')!;
+    const pitch = [...container.querySelectorAll('label.ed-field')].find(e => e.firstElementChild?.textContent === 'Pitch (Markdown)')!;
     expect(pitch.textContent).toBe('Pitch (Markdown)');
   });
 

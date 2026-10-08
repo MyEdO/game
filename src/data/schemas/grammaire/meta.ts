@@ -9,6 +9,11 @@ import './locale-fr';
 
 /** Méta d'édition d'UN champ de premier niveau d'un document. */
 export interface MetaChamp {
+  texte?: {
+    regime: 'narration' | 'document' | 'designation' | 'technique' | 'atelier';
+    usage?: string;
+    horsContrat?: { motif: 'catalogue' | 'sans-saisie-campagne' | 'sans-rendu-joueur'; preuve: string };
+  };
   transparent?: true;
   /** Libellé FR affiché par l'atelier (Codex/Compendium) à la place de la clé technique. */
   label: string;
@@ -30,6 +35,7 @@ export interface NomDeNoeud {
   readonly label?: string;
   readonly nom?: string;
   readonly element?: string;
+  readonly opacite?: { nature: 'dispatch-op'; raison: string };
 }
 
 function verifierChamps(noeud: unknown, champs: Readonly<Record<string, MetaChamp>> | undefined): asserts champs is Readonly<Record<string, MetaChamp>> {

@@ -18,8 +18,8 @@ const construireScene = (): Scene => buildScene({
   terrain: 'herbe',
   heroStart: [2, 5],
   startMessage:
-    'Des cris dans votre dos — trois silhouettes armées surgissent du talus et se lancent à vos ' +
-    'trousses. Fuyez !',
+    { texte: 'Des cris dans votre dos — trois silhouettes armées surgissent du talus et se lancent à vos ' +
+    'trousses. Fuyez !' },
   // Bande franchie au premier pas (comme la clairière d'Ulric) : ouvre la poursuite sans délai.
   triggers: [
     {

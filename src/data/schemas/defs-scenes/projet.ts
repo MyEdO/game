@@ -20,6 +20,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
 import { sceneSchema } from './scene';
@@ -52,10 +53,10 @@ export const projetDoc = document(
   },
   {
     versionContenu: { label: 'Version de contenu', hint: "Numéro de l'auteur, comparé à l'import (dédup de bibliothèque)" },
-    auteur: { label: 'Auteur' },
+    auteur: { label: 'Auteur', texte: { regime: 'designation' } },
     scenes: { label: 'Scènes' },
     worldMap: { label: 'Carte du monde' },
-    activeAxes: { label: 'Axes actifs' },
+    activeAxes: { label: 'Axes actifs', texte: { regime: 'technique', usage: 'ids des axes actifs du registre' } },
     narratif: { label: 'Bloc narratif' },
   },
   {
@@ -72,7 +73,15 @@ export const projetDoc = document(
   },
   {
     affinerEntree: (entree) =>
-      entree.superRefine((valeur, ctx) => {
+      nommerChamps(entree, {
+        ...metaDesChamps(entree),
+        id: { label: 'Identifiant', texte: { regime: 'technique', usage: 'id stable du projet' } },
+        label: { label: 'Nom', texte: { regime: 'designation' } },
+        labelF: { label: 'Nom féminin', texte: { regime: 'designation' } },
+        desc: { label: 'Description', texte: { regime: 'document', horsContrat: { motif: 'sans-saisie-campagne', preuve: 'src/ui/editor/Editor.tsx:Avancé' } } },
+        maison: { label: 'Maison', texte: { regime: 'technique', usage: 'diagnostic de provenance documentaire du projet' } },
+        icon: { label: 'Icône', texte: { regime: 'technique', usage: 'id de l’icône du projet' } },
+      }).superRefine((valeur, ctx) => {
         const doc = valeur as { scenes: unknown[]; worldMap?: unknown; narratif: NarratifAReferences };
         /** FK INTRA-document (#671, #679) : toute référence narrative des scènes (`presetId` d'entité,
          *  `documentId`/`indiceId`/`stade` d'Effect, Flows portés compris) et de la carte du monde résout

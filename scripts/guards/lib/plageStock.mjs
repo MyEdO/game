@@ -13,6 +13,20 @@
 //     jugée par commit seule, la plage refuserait un travail dont le solde est nul — faux rouge.
 // Donc : les croissances non couvertes se lèvent PAR COMMIT, et l'on n'en retient que les fichiers
 // dont la croissance CUMULÉE sur toute la plage reste positive.
+// Jugée COMME UN TOUT contre sa base, la plage est réfutée (#2503, 2026-10-08) : sur `chantier/2400`,
+// Σ annonces / net signé / cumul valent 14/12/10 (`ecrivainsAtteints`) et 5656/5520/5520 (`balayages`).
+// Des annonces exactes rendent 12 ≠ 10 : les fusions du tronc entrent au cumul, jamais aux messages ;
+// et `Σ ≥ cumul` rouvre le tampon (`+100` annoncé pour `+1`, 99 entrées silencieuses).
+//
+// L'ÈRE (#2503) : chaque commit se juge par la porte de son ère (`jugeesParLeurEre`, `porteDEre.mjs`),
+// `merge-base` de ce commit avec le tronc que la plage EXCLUT (`troncDesEres` : `debut` d'un push vers le
+// tronc, `TRONC.suivi` sinon), jamais par celle de l'arbre qui juge ni par la sienne propre : la CI du tronc
+// (`before..after`) rend le verdict de la file (`HEAD ^base`). Seule une FENÊTRE voit un commit déjà sur
+// `TRONC.suivi` être sa propre ère. Le code d'une ère est servi sous les URL du dépôt par des hooks de
+// chargement (`porteDEre.mjs`) : les racines dérivées de `import.meta.url` restent celles du dépôt. Le CONTRAT
+// d'entrée de `refusDeLaPlage` et `reclassementsDeLaPlage` (`diff`, `images`, `fusion`, `cotes`,
+// `message`, `cumul`) est donc APPEND-ONLY : une ère ancienne le reçoit tel que
+// l'arbre qui juge le lit (`lectureDeLaPlage`). Les `cotes()` se construisent ici (`cotesLisibles`).
 //
 // Le filtre CUMULÉ est un bilan d'ÉTATS, clé par clé (`bilanDesStocks`, renommages de chaque paire de
 // bouts, #1806 D5″) : `debut..fin`, moins ce que le tronc a changé entre l'état qu'en connaît `debut`
@@ -39,6 +53,10 @@ import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQu
 import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
+import { cheminDuModule, groupesParEre } from './porteDEre.mjs'
+
+// Chargé après la porte de version des hooks qui l'importent : scripts/node-requis.mjs (#1801).
+const { texteDeStock } = await import('./stockDeSites.mjs')
 
 /** Le sha nul que git écrit sur stdin du pre-push pour une branche NEUVE. */
 export const SHA_NUL = '0'.repeat(40)
@@ -124,7 +142,8 @@ export function reclassementsDeLaPlage({ commits = [] } = {}) {
 export function raisonDeRefusDePlage(refus) {
   const lignes = refus.map((r) => {
     const declare = r.declare === null ? '' : ` (le message annonce \`+${r.declare}\`)`;
-    return `${r.sha.slice(0, 9)}${r.fusion ? ' (fusion)' : ''} ${r.fichier} +${r.net} entrée(s)${declare} — ex. ${r.exemples.join(' · ')}`
+    const ere = r.ere ? ` jugé par la porte de son ère ${r.ere.slice(0, 9)},` : ''
+    return `${r.sha.slice(0, 9)}${r.fusion ? ' (fusion)' : ''}${ere} ${r.fichier} +${r.net} entrée(s)${declare} — ex. ${r.exemples.join(' · ')}`
   })
   return (
     `⛔ STOCK NOMINATIF qui GRANDIT dans la plage poussée : ${lignes.join(' || ')}. Geste : porter ` +
@@ -132,6 +151,20 @@ export function raisonDeRefusDePlage(refus) {
     "ou retirer l'entrée (un stock nominatif est une DETTE vers zéro, jamais un registre). `+N` " +
     "compte les ENTRÉES du stock — ses éléments —, jamais ce qu'elles dénombrent."
   )
+}
+
+/**
+ * `cotes` dont une `GitIndisponible` d'ici sort en `Error` au texte de `refusDeGit` : le juge d'une ère
+ * (`jugeesParLeurEre`) la lit, quelle que soit la classe `GitIndisponible` qu'il connaît (#2503).
+ * @template T @param {() => T} cotes @returns {() => T}
+ */
+export const cotesLisibles = (cotes) => () => {
+  try {
+    return cotes()
+  } catch (e) {
+    if (e instanceof GitIndisponible) throw new Error(refusDeGit(e), { cause: e })
+    throw e
+  }
 }
 
 /** `fait` (`ceQuiChange`) restreint aux `chemins` : rien hors d'eux, rien du tout sans eux. */
@@ -197,7 +230,7 @@ export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion)
 }
 
 /**
- * Lecture de la plage réelle `<fin>`, privée de `<debut>`, dans `cwd`, et refus qu'elle porte.
+ * LECTURE de la plage réelle `<fin>`, privée de `<debut>`, dans `cwd` : ses commits lus et son cumul.
  * `vers` = la ref POUSSÉE. Le tronc d'avant est `debut` quand `vers` est `TRONC.branche` ; sinon, et
  * dès que `debut` est nul (branche NEUVE sur stdin du hook, tête hors CI), c'est `TRONC.suivi`, que la
  * plage exclut aussi. Une FENÊTRE (`vers` absent, `debut` donné) n'exclut que `debut`. Un tronc
@@ -206,9 +239,12 @@ export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion)
  * git est rendue à part (`indisponible`), et l'appelant la NOMME : une plage illisible ne se juge
  * pas, elle se dit.
  * @param {{ cwd?: string, debut: string, fin: string, vers?: string | null }} p
- * @returns {{ refus: [], reclassements: [], notes: string[], plage: string, indisponible: string|null, commits?: number }}
+ * `commits` nul : la plage ne se lit pas. `pannes` reçoit les indisponibilités de git, lecture comprise.
+ * `troncDesEres` = le tronc que la plage exclut, contre lequel se mesure l'ère de ses commits : `debut` d'un
+ * push vers le tronc, `TRONC.suivi` sinon (#2503).
+ * @returns {{ depot: import('./gitPorte.mjs').Depot, commits: object[] | null, cumul: { fichier: string, parCle: Map<string, number> }[], notes: string[], plage: string, pannes: string[], troncDesEres?: string }}
  */
-export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null } = {}) {
+export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null } = {}) {
   const pannes = []
   const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
   const notes = []
@@ -222,13 +258,14 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = n
     if (!tronc) notes.push(`tronc \`${TRONC.suivi}\` illisible depuis ${fin.slice(0, 9)} : ses commits ne sont PAS exclus de la plage`)
   }
   const seul = !debut && !tronc
+  const troncDesEres = debut && vers === TRONC.branche ? debut : TRONC.suivi
   if (seul) notes.push(`plage inconnue : ni sha distant ni tronc — ${fin.slice(0, 9)} seul est jugé, sans ses parents`)
   const revisions = seul ? [`${fin}^!`] : [debut ? `${debut}..${fin}` : fin, ...(tronc ? [`^${tronc}`] : [])]
   const plage = revisions.join(' ')
   const shas = shasDe(depot, revisions)
   if (shas === null) {
     notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
-    return { refus: [], reclassements: [], notes, plage, indisponible: pannes[0] ?? null }
+    return { depot, commits: null, cumul: [], notes, plage, pannes }
   }
   const messages = new Map((journalDe(depot, revisions) ?? []).map((c) => [c.sha, c.message]))
   const texteA = (arbre) => (f) => lireEnLot(depot, arbre, [f]).get(f) ?? null
@@ -246,15 +283,15 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = n
         ...(fusion
           ? { fusion: entreeDeFusion(depot, fusion, texteA(sha)) }
           : { diff: fait.diff(), images: { lirePostImage: texteA(sha), lirePreImage: fait.lirePreImage, renommages: fait.renommages() } }),
-        cotes: () => (deplaceLaFrontiere({ chemins: fait.chemins(), nesOuMorts: () => fait.chemins('AD'), base, commit, racine: cwd })
+        cotes: cotesLisibles(() => (deplaceLaFrontiere({ chemins: fait.chemins(), nesOuMorts: () => fait.chemins('AD'), base, commit, racine: cwd })
           ? { base: cote(base), commit: cote(commit), ...(fusion ? { parents: fusion.parents.map((p) => cote(source(p))) } : {}) }
-          : null),
+          : null)),
       }
     })
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
     notes.push(`plage \`${plage}\` illisible : rien n'est jugé`)
-    return { refus: [], reclassements: [], notes, plage, indisponible: refusDeGit(e) }
+    return { depot, commits: null, cumul: [], notes, plage, pannes: [refusDeGit(e)] }
   }
   const bilanEntre = (a, b) => {
     const change = ceQuiChange(depot, a, b)
@@ -267,12 +304,71 @@ export function croissancesDeLaPlage({ cwd = process.cwd(), debut, fin, vers = n
   const cumul = seul
     ? commits.flatMap((c) => bilanDuCommit(c))
     : bilanSoustrait(bilanEntre(bout, fin), troncDuBout ? bilanEntre(troncDuBout, troncDeFin) : [])
-  return {
-    refus: refusDeLaPlage({ commits, cumul }),
-    reclassements: reclassementsDeLaPlage({ commits }),
-    notes,
-    commits: shas.length,
-    plage,
-    indisponible: pannes[0] ?? null,
+  return { depot, commits, cumul, notes, plage, pannes, troncDesEres }
+}
+
+/**
+ * La plage lue (`lectureDeLaPlage`) et les refus qu'elle porte : chaque commit jugé par la porte de son
+ * ère (`jugeesParLeurEre`), le cumul lu par l'arbre qui juge. `indisponible` nomme une panne de git.
+ * @param {Parameters<typeof lectureDeLaPlage>[0]} p
+ * @returns {Promise<{ refus: object[], reclassements: object[], eres?: { ere: string | null, commits: string[], note: string | null }[], notes: string[], plage: string, indisponible: string|null, commits?: number }>}
+ */
+export async function croissancesDeLaPlage(p = {}) {
+  const { depot, commits, cumul, notes, plage, pannes, troncDesEres } = lectureDeLaPlage(p)
+  if (!commits) return { refus: [], reclassements: [], notes, plage, indisponible: pannes[0] ?? null }
+  const { refus, reclassements, eres } = await jugeesParLeurEre(depot, commits, cumul, troncDesEres)
+  for (const { note } of eres) if (note) notes.push(note)
+  return { refus, reclassements, eres, notes, commits: commits.length, plage, indisponible: pannes[0] ?? null }
+}
+
+/** La porte de plage telle qu'une ère la charge (`jugeDeLEre`) : son module, ses deux juges, et sa
+ *  VIE, une image JSON-objet dont `entreesNominatives` voit l'entrée. */
+export const PORTE_DE_PLAGE = Object.freeze({
+  module: cheminDuModule(import.meta.url),
+  exports: ['refusDeLaPlage', 'reclassementsDeLaPlage'],
+  vie: vieDeLaPorte,
+})
+
+/** La VIE d'une porte de plage chargée : son `entreesNominatives` voit l'entrée d'une image JSON-objet, et son
+ *  `refusDeLaPlage` refuse le commit qui la fait naître sans `CLIQUET:`, le cumul en croissance. */
+async function vieDeLaPorte({ module, charger }) {
+  const { entreesNominatives } = await charger('scripts/guards/lib/stocksNominatifs.mjs')
+  const chemin = (dossiers, extension) => `${['scripts', ...dossiers].join('/')}.${extension}`
+  const fichier = chemin(['guards', 'vie-stock'], 'json')
+  const image = texteDeStock('vie de la porte', [{ fichier: chemin(['vie'], 'mjs') }])
+  const entrees = entreesNominatives(image, fichier)
+  if (entrees?.length !== 1) return false
+  const lignes = image.split('\n').slice(0, -1)
+  const diff = [`diff --git a/${fichier} b/${fichier}`, 'new file mode 100644', '--- /dev/null', `+++ b/${fichier}`,
+    `@@ -0,0 +1,${lignes.length} @@`, ...lignes.map((l) => `+${l}`), ''].join('\n')
+  const images = { lirePostImage: (f) => (f === fichier ? image : null), lirePreImage: () => null, renommages: new Map() }
+  const refus = module.refusDeLaPlage({
+    commits: [{ sha: '0'.repeat(40), message: '', diff, images }],
+    cumul: [{ fichier, parCle: new Map([[entrees[0].cle, 1]]) }],
+  })
+  return refus.length > 0
+}
+
+/**
+ * Les commits lus (`croissancesDeLaPlage`) jugés chacun par la porte de son ÈRE (`groupesParEre`) : refus
+ * et reclassements dans l'ordre de l'histoire, chacun avec son `ere` ; `eres` = `[{ ere, commits, note }]`.
+ * Une ère sans la porte, non chargeable, ou un tronc illisible : la porte actuelle juge, et la note le dit.
+ * @param {import('./gitPorte.mjs').Depot} depot @param {object[]} commits
+ * @param {{ fichier: string, parCle: Map<string, number> }[]} cumul
+ * @param {string} tronc le tronc des ères (`lectureDeLaPlage`, `troncDesEres`)
+ * @param {Parameters<typeof groupesParEre>[3]} [porte]
+ */
+async function jugeesParLeurEre(depot, commits, cumul, tronc, porte = PORTE_DE_PLAGE) {
+  const rang = new Map(commits.map((c, i) => [c.sha, i]))
+  const refus = []
+  const reclassements = []
+  const eres = []
+  for (const { ere, commits: groupe, juge: deLEre, note } of await groupesParEre(depot, commits, tronc, porte)) {
+    eres.push({ ere, commits: groupe.map((c) => c.sha), note })
+    const juge = deLEre ?? { refusDeLaPlage, reclassementsDeLaPlage }
+    refus.push(...juge.refusDeLaPlage({ commits: groupe, cumul }).map((r) => ({ ...r, ere })))
+    reclassements.push(...juge.reclassementsDeLaPlage({ commits: groupe }).map((r) => ({ ...r, ere })))
   }
+  const ordre = (a, b) => rang.get(a.sha) - rang.get(b.sha)
+  return { refus: refus.sort(ordre), reclassements: reclassements.sort(ordre), eres }
 }

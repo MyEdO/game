@@ -147,7 +147,7 @@ function construireScene(): Scene {
     ],
     dialogues: DIALOGUES,
     encounters: [{ id: 'enc-homme-de-main', members: [{ entityId: 'homme-de-main' }] }],
-    startMessage: 'Le couloir de l’étage. Au nord, la croisée donne sur les écuries ; à l’ouest, la porte du bureau.',
+    startMessage: { texte: 'Le couloir de l’étage. Au nord, la croisée donne sur les écuries ; à l’ouest, la porte du bureau.' },
   });
 }
 
