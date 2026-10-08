@@ -3,7 +3,9 @@
 //
 // Rien ici ne touche l'arbre : le moteur reçoit des étapes FACTICES et un journal EN MÉMOIRE, les
 // verdicts reçoivent des listes de courses littérales. Ce que ce fichier ne couvre pas est dit :
-// les `jouer` réels (build-all, push, gh) ne sont jugés que par le train joué.
+// les `jouer` réels (build-all, push, gh) ne sont jugés que par le train joué. Exceptions nommées : les
+// CLI réelles sous git feint (#2285), le constat d'une `fin` tuée sur le journal CAPTURÉ du témoin 6 et la
+// veille composite tuée sous bash (#2493, `.git/suivi/2493-design-verdict-2026-10-08.md`, §4 T2 et T3).
 import { corpsDeFusion, fusionDe, issueDeFusion, refusDEnfileur, reponseHttp } from '../guards/lib/fusionPr.mjs'
 import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
 import { REFUS_DE_FILE } from './fixtures/github-refus-file.mjs'
@@ -13,8 +15,9 @@ import test, { after, describe, mock } from 'node:test'
 import childProcess from 'node:child_process'
 import { syncBuiltinESMExports } from 'node:module'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,9 +26,13 @@ import { ast, typescript } from '../guards/lib/dialecte.mjs'
 import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
-import { GitIndisponible, MARQUE_FEINTE, classer, depotDe, pousser, refusDeGit, sortieDe } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, MARQUE_FEINTE, ajouterOrigine, classer, commitDe, depotDe, pousser, refusDeGit, reussi, shaDe, sortieDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
+import { citerArgv, lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
+import { estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
+import { mesurerPrincipal, synchroniserPrincipal } from './synchroniser.mjs'
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
 import {
   CODE_ARRET_MOTEUR,
@@ -47,7 +54,7 @@ import {
   runDe,
   transitionsDuRun,
   veillerLeTrain,
-  citerArgv,
+  constaterLaMort,
   contexteDe,
   etatDeLEtape,
   etatDuTrain,
@@ -56,8 +63,9 @@ import {
   journalInitial,
   journalVide,
   lancementNpm,
-  lancerDetache,
   ligneDeDetachement,
+  lireJournal,
+  mortDuRun,
   modeDuLog,
   motifDeRotation,
   nomDeJournal,
@@ -65,6 +73,7 @@ import {
   optionsDe,
   planDeReprise,
   rotationnerLog,
+  transitionDuRun,
   vivant,
 } from './publier.mjs'
 import {
@@ -102,6 +111,7 @@ test('optionsDe : les drapeaux et l’option à valeur, sans grammaire emprunté
     fileTimeoutMin: FILE_TIMEOUT_MIN,
     veiller: null,
     depuis: 0,
+    constat: false,
     inconnus: [],
   })
   assert.equal(optionsDe(['--detache']).detache, true)
@@ -119,6 +129,9 @@ test('optionsDe : les drapeaux et l’option à valeur, sans grammaire emprunté
   // Un run illisible n'est jamais veillé : il se rend inconnu, et la commande refuse.
   assert.deepEqual(optionsDe(['--veiller', 'dernier']).inconnus, ['--veiller dernier'])
   assert.deepEqual(optionsDe(['--veiller']).inconnus, ['--veiller'])
+  // `--constat` (#2493) : seulement avec `--veiller`.
+  assert.deepEqual([optionsDe(['--veiller', '4242-1790000000000', '--constat']).constat, optionsDe(['--veiller', '4242-1790000000000', '--constat']).inconnus], [true, []])
+  assert.deepEqual([optionsDe(['--constat']).constat, optionsDe(['--constat']).inconnus], [false, ['--constat']])
 })
 
 // ── nomDeJournal ───────────────────────────────────────────────────────────────────────
@@ -701,24 +714,24 @@ test('la table des ÉTAPES nomme les sept étapes, dans l’ordre du régime —
   assert.deepEqual(NOMS, ['preflight', 'docs', 'push-branche', 'pr', 'file', 'pilotage', 'fin'])
 })
 
-test('#2187 `fin` : le principal synchronisé par `ctx.synchroniserPrincipal()`, son état au `dit`, un refus ne rougit jamais le train', () => {
+test('#2187 #2493 `fin` : le principal synchronisé sur la FUSION, sa ligne au `dit` ; sans état, la cause et la re-mesure ; jamais un train rouge', () => {
   const fin = ETAPES.find((e) => e.nom === 'fin')
   const journal = { tete: 'a'.repeat(40), etapes: { file: { detail: { fusion: 'b'.repeat(40) } } } }
-  const appels = []
-  const jouer = (rendu) => fin.jouer({ synchroniserPrincipal: () => { appels.push(rendu); return rendu } }, journal)
-  const avance = { ok: true, vu: { etat: 'avance', de: 'c', vers: 'd', configurationClientChangee: [] } }
-  assert.deepEqual(jouer(avance), { ok: true, detail: { principal: avance }, dit: `publication complète de aaaaaaaaa en bbbbbbbbb ; principal : ${JSON.stringify(avance.vu)}` })
-  const refus = { ok: true, vu: { etat: 'branche-etrangere', branche: 'x' } }
-  assert.equal(jouer(refus).ok, true)
-  assert.match(jouer(refus).dit, /principal : \{"etat":"branche-etrangere","branche":"x"\}$/)
-  const illisible = { ok: false, raison: 'aucun état lisible (code 1)' }
+  const visees = []
+  const jouer = (rendu) => fin.jouer({ synchroniserPrincipal: ({ visee }) => { visees.push(visee); return rendu } }, journal)
+  const avance = { ok: true, vu: { etat: 'avance' }, ligne: 'avancé de ccccccccc à bbbbbbbbb ; post-merge ccccccccc..bbbbbbbbb en fond : PID 7 depuis d (1 s), issue : /l' }
+  assert.deepEqual(jouer(avance), { ok: true, detail: { principal: avance }, dit: `publication complète de aaaaaaaaa en bbbbbbbbb ; principal ${avance.ligne}` })
+  const illisible = { ok: false, raison: 'spawnSync node ETIMEDOUT', ligne: 'synchroniseur sorti sans état (spawnSync node ETIMEDOUT) ; re-mesure : interrompu : …' }
   assert.equal(jouer(illisible).ok, true)
-  assert.match(jouer(illisible).dit, /publication complète .* ; principal non synchronisé : aucun état lisible \(code 1\)$/)
-  assert.equal(appels.length, 5)
+  assert.equal(jouer(illisible).dit, `publication complète de aaaaaaaaa en bbbbbbbbb ; principal ${illisible.ligne}`)
+  assert.deepEqual(visees, ['b'.repeat(40), 'b'.repeat(40), 'b'.repeat(40)])
   const ctx = contexteDe({ racine: mkdtempSync(join(tmpdir(), 'sans-synchro-')), branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+  assert.throws(() => ctx.synchroniserPrincipal({ visee: 'court' }), /ctx\.synchroniserPrincipal : un sha COMPLET/)
   const vu = ctx.synchroniserPrincipal()
   assert.equal(vu.ok, false, 'aucun synchroniseur sous cette racine : aucun état, et aucune exception')
-  assert.match(vu.raison, /aucun état lisible \(code 1\)/)
+  assert.equal(vu.raison, 'code 1')
+  assert.equal(vu.mesure.etat, 'git-indisponible')
+  assert.match(vu.ligne, /^synchroniseur sorti sans état \(code 1\) ; re-mesure : refusé \(git-indisponible\) : /)
 })
 
 // ── messageDuTrain / PLAGE_DE_CITATIONS ──────────────────────────────────────────
@@ -1070,7 +1083,7 @@ test('lancerDetache : sous win32, un chemin de script à ESPACE reste UN argumen
 test('lancerDetache : sous win32, un pid illisible ARRÊTE le lancement au lieu d’annoncer un train fantôme', () => {
   assert.throws(
     () => lancerDetache({ ...LANCEMENT, plateforme: 'win32', executerSync: () => ({ stdout: '', stderr: 'Start-Process : refus' }) }),
-    /détachement manqué.*Start-Process : refus/s,
+    { message: '[détachement] /dep/scripts/ops/publier.mjs : détachement manqué, powershell a rendu «  » Start-Process : refus' },
   )
 })
 
@@ -1898,7 +1911,7 @@ function journauxDuRun(etapes, { run = RUN, journal = journalVide('b') } = {}) {
 }
 
 /** La veille sur une suite de lectures (la dernière se répète), horloge et sommeil injectés ; l'horloge
- *  part du LANCEMENT_DU_RUN du run, sauf `depart`. */
+ *  part du LANCEMENT_DU_RUN du run, sauf `depart`. Sa première ligne (#2493) est vérifiée, puis retirée. */
 function veille(lectures, { depart = LANCEMENT_DU_RUN, ...o } = {}) {
   const lignes = []
   let i = 0
@@ -1908,6 +1921,8 @@ function veille(lectures, { depart = LANCEMENT_DU_RUN, ...o } = {}) {
     fileTimeoutMin: 10,
     lire: () => lectures[Math.min(i++, lectures.length - 1)],
     ecrire: (l) => lignes.push(l),
+    journal: 'j.json',
+    pid: 99,
     vivant: () => true,
     maintenant: () => horloge,
     dormir: (ms) => {
@@ -1915,7 +1930,8 @@ function veille(lectures, { depart = LANCEMENT_DU_RUN, ...o } = {}) {
     },
     ...o,
   })
-  return { code, lignes, lectures: i, horloge }
+  assert.equal(lignes[0], `[veille] PID 99 veille le run ${RUN} (journal j.json)`)
+  return { code, lignes: lignes.slice(1), lectures: i, horloge }
 }
 
 test('veillerLeTrain : un run VERT — une ligne par transition, numérotée, la ligne PUBLICATION:, code 0', () => {
@@ -1949,16 +1965,50 @@ test('veillerLeTrain : ARRÊT MOTEUR — verdict `rouge moteur`, ou train mort s
   assert.equal(vu.code, CODE_ARRET_MOTEUR)
   assert.deepEqual(vu.lignes, ['#1 un — en-vol', 'PUBLICATION: rouge moteur — ARRÊT INATTENDU : boum'])
 
-  // Mort en vol : le journal reste `en-vol`, sans verdict. La mort constatée, le journal est RELU une
-  // fois (le verdict a pu tomber entre la lecture et la sonde), puis la veille sort.
+  // Mort en vol (#2493) : le journal reste `en-vol`, sans verdict. La mort est CONSTATÉE au journal
+  // (`constaterLaMort`), relue, émise, puis la veille sort sur le verdict constaté.
   const enVol = journauxDuRun([factice('un', { ok: true })]).slice(0, 2)
-  const mort = veille(enVol, { vivant: () => false, log: 'x.log' })
-  assert.equal(mort.code, CODE_ARRET_MOTEUR)
-  assert.equal(mort.lectures, 2)
-  assert.deepEqual(mort.lignes, ['#1 un — en-vol', 'PUBLICATION: rouge moteur — train 4242 mort sans verdict au journal — x.log'])
-  // Le verdict écrit juste avant la mort gagne : il est lu à la relecture.
+  const dossier = mkdtempSync(join(tmpdir(), 'constat-'))
+  try {
+    const chemins = { dossier, json: join(dossier, 'b.json'), log: join(dossier, 'b.log') }
+    ecrireJsonAtomique(chemins.json, enVol[1])
+    writeFileSync(chemins.log, '')
+    const a = new Date(LANCEMENT_DU_RUN).toISOString()
+    const mort = veille([], {
+      lire: () => lireJournal(chemins.json, 'b'), vivant: () => false,
+      constater: () => constaterLaMort({ chemins, par: 'veille 99', vivant: () => false, maintenant: () => LANCEMENT_DU_RUN, mesurer: () => assert.fail('aucune mesure hors de `fin`') }),
+    })
+    const raison = `train 4242 mort pendant un (constat : veille 99, ${a})`
+    assert.equal(mort.code, CODE_ARRET_MOTEUR)
+    assert.deepEqual(mort.lignes, ['#1 un — en-vol', `#2 un — rouge — INTERROMPUE : ${raison}`, `PUBLICATION: rouge moteur — ${raison}`])
+    assert.deepEqual(JSON.parse(readFileSync(chemins.json, 'utf8')).verdict, { etat: 'rouge', etape: 'moteur', raison, constat: { par: 'veille 99', a } })
+    assert.equal(readFileSync(chemins.log, 'utf8'), `[publier] un — INTERROMPUE : ${raison}\nPUBLICATION: rouge moteur — ${raison}\n`)
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+  // Le verdict écrit juste avant la mort gagne : la veille, sans constat, le lit à la relecture.
   const tardif = veille([enVol[1], journauxDuRun([factice('un', { ok: true })]).at(-1)], { vivant: () => false })
   assert.equal(tardif.code, 0)
+  // Un train mort avant d'écrire son run au journal : relu une fois, puis `rouge moteur`.
+  const avant = journauxDuRun([factice('un', { ok: true })], { run: AVANT }).at(-1)
+  const sansJournal = veille([avant], { vivant: () => false })
+  assert.equal(sansJournal.code, CODE_ARRET_MOTEUR)
+  assert.equal(sansJournal.lectures, 2)
+  assert.deepEqual(sansJournal.lignes, ['PUBLICATION: rouge moteur — train 4242 mort avant d\'écrire son run au journal'])
+})
+
+test('mortDuRun : pid mort, ou `fin` en vol au-delà de la borne du synchroniseur ; rien pour un run jugé ou vivant', () => {
+  const debut = Date.parse('2026-10-08T11:29:54.094Z')
+  const journal = { run: RUN, pid: 4242, verdict: null, etapes: { file: { etat: 'vert', run: RUN, seq: 9 }, fin: { etat: 'en-vol', debut: new Date(debut).toISOString(), run: RUN, seq: 12 } } }
+  assert.equal(mortDuRun(journal, { vivant: () => true, maintenant: () => debut + 360_000 }), null)
+  assert.deepEqual(mortDuRun(journal, { vivant: () => true, maintenant: () => debut + 360_001 }), { pid: 4242, nom: 'fin' })
+  assert.deepEqual(mortDuRun(journal, { vivant: () => false, maintenant: () => debut }), { pid: 4242, nom: 'fin' })
+  assert.equal(mortDuRun({ ...journal, verdict: { etat: 'vert' } }, { vivant: () => false }), null)
+  assert.equal(mortDuRun(null, { vivant: () => false }), null)
+  const j = { run: RUN, etapes: {} }
+  transitionDuRun(j, 'un', { etat: 'en-vol' })
+  transitionDuRun(j, 'un', { etat: 'vert' })
+  assert.deepEqual(j, { run: RUN, seq: 2, etapes: { un: { etat: 'vert', run: RUN, seq: 2 } } })
 })
 
 test('veillerLeTrain : la borne DÉRIVÉE de la borne de file du run, comptée depuis le LANCEMENT', () => {
@@ -2080,9 +2130,12 @@ test('commandeDeVeille / idDeRun / runDe : la commande que `--detache` imprime',
   assert.equal(pidDeRun('0-1'), null)
   assert.equal(pidDeRun('abc'), null)
   const commande = commandeDeVeille({ script: 'Mes Projets\\Game\\scripts\\ops\\publier.mjs', run })
-  assert.equal(commande, 'node "Mes Projets/Game/scripts/ops/publier.mjs" --veiller 4242-1790000000000')
-  // Son argument, relu par `optionsDe`, désigne le même run.
-  assert.equal(optionsDe(['--veiller', commande.split(' --veiller ')[1]]).veiller, run)
+  assert.equal(commande, 'node "Mes Projets/Game/scripts/ops/publier.mjs" --veiller 4242-1790000000000; node "Mes Projets/Game/scripts/ops/publier.mjs" --veiller 4242-1790000000000 --constat')
+  assert.equal(commandeDeVeille({ script: '/r/publier.mjs', run, depuis: 7 }), 'node "/r/publier.mjs" --veiller 4242-1790000000000 --depuis 7; node "/r/publier.mjs" --veiller 4242-1790000000000 --constat')
+  // Ses arguments, relus par `optionsDe`, désignent le même run.
+  const [veillee, constat] = commande.split('; ').map((partie) => optionsDe(partie.split('.mjs" ')[1].split(' ')))
+  assert.deepEqual([veillee.veiller, veillee.constat, veillee.inconnus], [run, false, []])
+  assert.deepEqual([constat.veiller, constat.constat, constat.inconnus], [run, true, []])
   assert.equal(optionsDe(['--veiller', run, '--depuis', '7']).depuis, 7)
   assert.deepEqual(optionsDe(['--depuis', '-1']).inconnus, ['--depuis -1'])
 })
@@ -2105,4 +2158,148 @@ test('lancement : le parent de `--detache` et l’enfant nomment le MÊME run', 
     },
   })
   assert.equal(lancementDe(vuEnv), LANCEMENT_DU_RUN)
+})
+
+// ── #2493 : la mort d'un train sans verdict, CONSTATÉE (T2, T3) ─────────────────────────
+
+/** Le témoin 6 de #2493 (2026-10-08) : journal et log du train `42408`, tué en `fin` PR fusionnée (provenance :
+ *  `fixtures/temoin-2493-fin-tuee/provenance.json`). */
+const TEMOIN_6 = Object.freeze({
+  dossier: fileURLToPath(new URL('./fixtures/temoin-2493-fin-tuee/', import.meta.url)),
+  run: '42408-1791457996063',
+  tete: '565f26dfc4784f5a237d97cedb80df14c72eb4ee',
+  empreintes: {
+    'chantier_2497.json': 'e9239e833c54857198c759029b8dbe7b0de6c6fca1be1a9ad2a559a91e3653f9',
+    'chantier_2497.log': '96bd327017afdc9e985d0e614fc5405cbda1164302907877303e3dca160308e5',
+  },
+})
+
+/** Le journal et le log du témoin 6, empreintes vérifiées, copiés sous un dossier jetable. */
+function copieDuTemoin6() {
+  const dossier = mkdtempSync(join(tmpdir(), 'temoin-2493-'))
+  for (const [nom, empreinte] of Object.entries(TEMOIN_6.empreintes)) {
+    const source = join(TEMOIN_6.dossier, nom)
+    assert.equal(createHash('sha256').update(readFileSync(source)).digest('hex'), empreinte, `${nom} : fixture altérée`)
+    copyFileSync(source, join(dossier, nom))
+  }
+  return { dossier, json: join(dossier, 'chantier_2497.json'), log: join(dossier, 'chantier_2497.log') }
+}
+
+/** Un principal laissé `interrompu` après « commit » (journal à `avance`, HEAD = U), et son U. */
+async function principalInterrompu() {
+  const env = envDeDepotForge()
+  const amont = instanceDeDepot({ fichiers: { 'a.md': 'a\n' } })
+  const principal = instanceDeDepot({ fichiers: { 'a.md': 'a\n' } })
+  const jeter = () => { for (const d of [amont.racine, principal.racine]) rmSync(d, { recursive: true, force: true }) }
+  assert.ok(reussi(ajouterOrigine(depotDe(principal.racine, { env }), amont.racine)))
+  writeFileSync(join(amont.racine, 'a.md'), 'b\n')
+  assert.ok(reussi(commitDe(depotDe(amont.racine, { env }), { message: 'amont', chemins: ['a.md'] })))
+  const U = /** @type {string} */ (shaDe(depotDe(amont.racine, { env }), 'HEAD'))
+  const vu = await synchroniserPrincipal({ depuis: principal.racine, env, gestes: { etape: (nom) => { if (nom === 'commit') throw new Error('mort après commit') } } })
+  assert.equal(vu.etat, 'interrompu', JSON.stringify(vu))
+  return { racine: principal.racine, U, env, jeter }
+}
+
+test('#2493 T2 : la `fin` tuée du témoin 6 — la veille CONSTATE au journal : vert INTERROMPUE, principal re-mesuré, une seule fois', async () => {
+  const chemins = copieDuTemoin6()
+  const monde = await principalInterrompu()
+  try {
+    const mesurer = () => mesurerPrincipal({ depuis: monde.racine, visee: monde.U, env: monde.env })
+    const par = `veille ${process.pid}`
+    const lignes = []
+    const code = veillerLeTrain({
+      run: TEMOIN_6.run, fileTimeoutMin: 120, journal: chemins.json, ecrire: (l) => lignes.push(l), dormir: () => {},
+      lire: () => lireJournal(chemins.json, 'chantier/2497'),
+      constater: () => constaterLaMort({ chemins, par, mesurer }),
+    })
+    assert.equal(code, 0, lignes.join('\n'))
+    const fin = new RegExp(`^#13 fin — vert — INTERROMPUE : train 42408 mort sans verdict \\(constat : ${par}, \\d{4}-[\\d:.TZ-]+\\) ; principal interrompu : avance \\w{9}\\.\\.\\w{9} entamée \\(étape avance\\), HEAD \\w{9} — reprise due \\(journal .+\\) ; post-merge \\w{9}\\.\\.\\w{9} dû depuis .+, aucun consommateur vivant$`)
+    assert.match(lignes.at(-2), fin)
+    assert.equal(lignes.at(-1), `PUBLICATION: vert ${TEMOIN_6.tete}`)
+    const journal = JSON.parse(readFileSync(chemins.json, 'utf8'))
+    assert.deepEqual([journal.verdict.etat, journal.verdict.constat.par, journal.etapes.fin.seq, journal.etapes.fin.etat], ['vert', par, 13, 'vert'])
+    const log = readFileSync(chemins.log, 'utf8').trimEnd().split('\n')
+    assert.match(log.at(-2), /^\[publier\] fin — INTERROMPUE : train 42408 mort sans verdict \(constat : /)
+    assert.equal(log.at(-1), `PUBLICATION: vert ${TEMOIN_6.tete}`)
+    const avant = [readFileSync(chemins.json, 'utf8'), readFileSync(chemins.log, 'utf8')]
+    assert.equal(constaterLaMort({ chemins, par: 'second constat', mesurer }), null)
+    assert.deepEqual([readFileSync(chemins.json, 'utf8'), readFileSync(chemins.log, 'utf8')], avant, 'un second constat n’ajoute rien')
+  } finally {
+    monde.jeter()
+    rmSync(chemins.dossier, { recursive: true, force: true })
+  }
+})
+
+test('#2493 T2 variante : le même train mort pendant `file` — `rouge moteur`, code 4', () => {
+  const chemins = copieDuTemoin6()
+  try {
+    const journal = JSON.parse(readFileSync(chemins.json, 'utf8'))
+    delete journal.etapes.pilotage
+    delete journal.etapes.fin
+    Object.assign(journal.etapes.file, { etat: 'en-vol', fin: undefined, detail: null, seq: 8 })
+    journal.seq = 8
+    ecrireJsonAtomique(chemins.json, journal)
+    const lignes = []
+    const code = veillerLeTrain({
+      run: TEMOIN_6.run, fileTimeoutMin: 120, journal: chemins.json, ecrire: (l) => lignes.push(l), dormir: () => {}, vivant: () => false,
+      lire: () => lireJournal(chemins.json, 'chantier/2497'),
+      constater: () => constaterLaMort({ chemins, par: 'veille 1', vivant: () => false, mesurer: () => assert.fail('aucune mesure hors de `fin`') }),
+    })
+    assert.equal(code, CODE_ARRET_MOTEUR)
+    assert.match(lignes.at(-1), /^PUBLICATION: rouge moteur — train 42408 mort pendant file \(constat : veille 1, .+\)$/)
+  } finally {
+    rmSync(chemins.dossier, { recursive: true, force: true })
+  }
+})
+
+/** `processus` tué : `Stop-Process -Force` sous win32 (Git Bash en rend 127), `SIGKILL` ailleurs. */
+function tuer(pid) {
+  if (process.platform === 'win32') spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `Stop-Process -Id ${pid} -Force`], { windowsHide: true })
+  else process.kill(pid, 'SIGKILL')
+}
+
+test('#2493 T3 : la veille COMPOSITE sous bash, sa première veille TUÉE, puis le train : le constat rend le verdict, code 0, jamais 127', async () => {
+  const branche = `chantier/2493-t3-${process.pid}-${Date.now()}`
+  const chemins = cheminsDeJournal(RACINE, branche)
+  const train = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 120000)'], { stdio: 'ignore' })
+  const run = idDeRun({ pid: /** @type {number} */ (train.pid), lancement: Date.now() })
+  const tete = 'c'.repeat(40)
+  const fusion = /** @type {string} */ (shaDe(depotDe(RACINE), 'HEAD'))
+  mkdirSync(chemins.dossier, { recursive: true })
+  ecrireJsonAtomique(chemins.json, {
+    branche, base: null, tete, ejections: 0, run, pid: train.pid, fileTimeoutMin: 10, seq: 2, verdict: null,
+    etapes: {
+      file: { etat: 'vert', detail: { fusion }, tete, run, seq: 1 },
+      fin: { etat: 'en-vol', debut: new Date().toISOString(), detail: null, tete, run, seq: 2 },
+    },
+  })
+  writeFileSync(chemins.log, '')
+  const env = { ...process.env, ...envGitFeint([{ si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 }]), WFRP_PUBLIER_ENFANT: '' }
+  const bash = spawn('bash', ['-c', commandeDeVeille({ script: fileURLToPath(new URL('./publier.mjs', import.meta.url)), run })], { env, stdio: ['ignore', 'pipe', 'pipe'] })
+  let sortie = ''
+  bash.stdout.on('data', (d) => { sortie += d })
+  const fini = new Promise((ok) => bash.on('close', (code) => ok(code)))
+  const attendre = (motif) => sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: () => motif.exec(sortie), abouti: (vu) => vu !== null })
+  let veille = 0
+  try {
+    const premiere = await attendre(/^\[veille\] PID (\d+) veille le run /m)
+    assert.ok(premiere, sortie)
+    veille = Number(premiere[1])
+    tuer(veille)
+    assert.ok(await attendre(new RegExp(`^\\[veille\\] constat du run ${run} après la sortie de sa veille$`, 'm')), sortie)
+    train.kill()
+    const borne = setTimeout(() => bash.kill(), 60_000)
+    const code = await fini
+    clearTimeout(borne)
+    assert.equal(code, 0, sortie)
+    assert.match(sortie, new RegExp(`^#3 fin — vert — INTERROMPUE : train ${train.pid} mort sans verdict \\(constat : veille \\d+, .+\\) ; principal `, 'm'))
+    assert.equal(sortie.trimEnd().split('\n').at(-1), `PUBLICATION: vert ${tete}`)
+  } finally {
+    train.kill()
+    bash.kill()
+    for (const pid of [veille, train.pid, bash.pid]) {
+      if (pid) assert.equal(await sousEcheanceAsync({ attente: { echeanceMs: 10_000, pasMs: 50 }, essai: () => estPidVivant(pid), abouti: (vit) => !vit }), false, `PID ${pid} survit`)
+    }
+    for (const chemin of [chemins.json, chemins.log, `${chemins.json}.constat.verrou`]) rmSync(chemin, { force: true })
+  }
 })

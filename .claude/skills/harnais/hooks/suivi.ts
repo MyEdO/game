@@ -73,39 +73,33 @@ async function mesurer($: EngineInterface, epique: number) {
 const atomeSynchro = atom({ plugin: 'harnais', key: 'synchro' } as const, { texte: null } as HarnaisSynchroEnAttente)
 
 /**
- * Borne (ms) de `synchroniser.mjs` : l'attente de ses verrous, le `fetch`, puis `post-merge` (`npm ci`,
- * docs dérivés) ; même valeur que `TIMEOUT_SYNCHRONISEUR` (`scripts/agents/compat-core.mjs`), côté Codex.
- * Valeur maison.
+ * Borne (ms) de `synchroniser.mjs` : l'attente de ses verrous, le `fetch`, l'avance git ; le `post-merge`
+ * court en fond (`--consommer`, #2493) ; même valeur que `TIMEOUT_SYNCHRONISEUR`
+ * (`scripts/agents/compat-core.mjs`), côté Codex. Valeur maison.
  */
 const BORNE_SYNCHRO_MS = 300 * 1000
 
-/** Les états de synchronisation qui ne disent rien à la session, sans configuration client changée. */
-const ETATS_MUETS = new Set(['a-jour', 'avance'])
-
-/**
- * Le texte d'un état reçu, `null` s'il est muet : `ETATS_MUETS` et `configurationClientChangee` vide ou
- * absent (#2187 commentaire 6029118597, C4).
- */
-function texteDeSynchro(vu: HarnaisSynchro): string | null {
-  const changes = Array.isArray(vu.configurationClientChangee) ? vu.configurationClientChangee.map(String) : []
-  const etatMuet = ETATS_MUETS.has(vu.etat)
-  if (etatMuet && !changes.length) return null
-  const configuration = changes.length ? ` — la session tourne sur la configuration d'avant : ${changes.join(', ')}` : ''
-  return `[synchroniser] principal : ${JSON.stringify(vu)}${configuration}${etatMuet ? '' : ' — reprise : `npm run ops:synchroniser`'}`
+/** `synchroniser.mjs` lancé avec `args`, son état lu ; un lancement manqué est un échec nommé. */
+async function synchroniserMjs($: EngineInterface, args: readonly string[]): Promise<Lu<HarnaisSynchro>> {
+  try {
+    return lire(await $.process.run(...appel($.plugin.root, 'synchroniser', args, { borneMs: BORNE_SYNCHRO_MS })), { codes: [0, 1, 2] })
+  } catch (erreur) {
+    return { ok: false, motif: `non lancé (${String(erreur)})` }
+  }
 }
 
 /**
- * Le principal synchronisé (`scripts/ops/synchroniser.mjs --json`, #2187) : un état non muet
- * (`texteDeSynchro`), ou un échec, est retenu pour UN bloc de contexte, tel que reçu.
+ * Le principal synchronisé (`scripts/ops/synchroniser.mjs --json`, #2187) : son `texte` non vide est retenu
+ * pour UN bloc de contexte ; sans état lisible, le motif et la `ligne` de la re-mesure (`--mesurer --json`, #2493).
  */
 async function synchroniser($: EngineInterface) {
-  let lu: Lu<HarnaisSynchro>
-  try {
-    lu = lire(await $.process.run(...appel($.plugin.root, 'synchroniser', ['--json'], { borneMs: BORNE_SYNCHRO_MS })), { codes: [0, 1, 2] })
-  } catch (erreur) {
-    lu = { ok: false, motif: `non lancé (${String(erreur)})` }
+  const lu = await synchroniserMjs($, ['--json'])
+  let texte: string | null
+  if (lu.ok) texte = lu.valeur.texte || null
+  else {
+    const mesure = await synchroniserMjs($, ['--mesurer', '--json'])
+    texte = `[synchroniser] principal : synchroniseur sorti sans état (${lu.motif}) ; re-mesure : ${mesure.ok ? mesure.valeur.ligne : mesure.motif}`
   }
-  const texte = lu.ok ? texteDeSynchro(lu.valeur) : `[synchroniser] principal non synchronisé : ${lu.motif} — reprise : \`npm run ops:synchroniser\``
   await update($, atomeSynchro, () => ({ texte }))
 }
 

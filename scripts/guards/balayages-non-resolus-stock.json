@@ -231,12 +231,6 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/ops/chantier.mjs",
-      "ref": "natureDuChemin : appel gestes.arbrePrincipal",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "scripts/ops/session-runtime.mjs",
       "ref": "controleur : appel sessions.lire",
       "occurrence": 1

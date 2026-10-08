@@ -187,8 +187,8 @@ export function compilerMatcher(matcher, surface) {
 
 /**
  * Le `timeout` (s) du hook de synchronisation du principal : l'attente de ses verrous
- * (`ATTENTE`, `scripts/ops/synchroniser.mjs`), le `fetch`, puis `post-merge`
- * (`npm ci`, docs dérivés). Valeur maison.
+ * (`ATTENTE`, `scripts/ops/synchroniser.mjs`), le `fetch`, l'avance git ; le `post-merge` court en fond
+ * (`--consommer`, #2493). Valeur maison.
  */
 export const TIMEOUT_SYNCHRONISEUR = 300
 

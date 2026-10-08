@@ -257,6 +257,11 @@ const ATTENDU = {
     // `mkdtempSync` d'os.tmpdir() (`rmSync` par t.after) — l'arbre n'est jamais écrit.
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
     'scripts/guards/lib/ecritureJsonAtomique.test.mjs',
+    // +2 le 2026-10-08 (#2493) : `renommageResilient.mjs`, le renommage que `ecritureJsonAtomique.mjs` délègue, sur
+    // les chemins de ses appelants ; son banc renomme sous un `mkdtempSync` d'os.tmpdir() (`rmSync` en `after`) —
+    // l'arbre n'est jamais écrit.
+    'scripts/guards/lib/renommageResilient.mjs',
+    'scripts/guards/lib/renommageResilient.test.mjs',
     'scripts/test/verrou.mjs',
     // +2 le 2026-10-04 (#2278) : le banc de la garde `mods:check` forge ses mods sous `mkdtempSync` de
     // os.tmpdir() (`rmSync` en `t.after`), et la garde qu'il importe copie chaque mod sous un `mkdtempSync`
@@ -382,6 +387,9 @@ const ATTENDU = {
     // qu'atteignent `publier.mjs` (journal du train) et `vigie.mjs` (cache des verdicts) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
+    // +1 le 2026-10-08 (#2493) : `renommageResilient.mjs`, le renommage que `ecritureJsonAtomique.mjs` et
+    // `synchroniser.mjs` délèguent, sur les chemins de leurs appelants — l'arbre n'est jamais écrit.
+    'scripts/guards/lib/renommageResilient.mjs',
   ],
   'test:runner': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : le banc du lanceur des gates node forge un dépôt JETABLE (`mkdtempSync` +
@@ -394,6 +402,9 @@ const ATTENDU = {
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
+    // +1 le 2026-10-08 (#2493) : `renommageResilient.mjs`, le renommage que `ecritureJsonAtomique.mjs` délègue, sur
+    // les chemins de ses appelants — l'arbre n'est jamais écrit.
+    'scripts/guards/lib/renommageResilient.mjs',
     // +2 le 2026-10-07 (#2400) : `perimetre.mjs` importe `selectionDesGenerateurs` et `ancetresDe` de
     // `scripts/git-hooks/docs-rebuild.mjs`, qui atteint `build-all.mjs` et `journal.mjs` ; leurs écritures vivent
     // derrière `reconstruireApresGit`, `genererCode` et les `main` sous `import.meta.main`, que le banc n'appelle
