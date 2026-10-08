@@ -1,33 +1,7 @@
 import { analyserCorpus, typescript } from './dialecte.mjs'
 import { creerProvenanceFs } from './provenanceFs.mjs'
-
-export const OPERATIONS_FS = {
-  writeFileSync: { chemins: [0], detecteeParGateHistorique: true },
-  writeFile: { chemins: [0], detecteeParGateHistorique: true },
-  createWriteStream: { chemins: [0], detecteeParGateHistorique: true },
-  appendFileSync: { chemins: [0], detecteeParGateHistorique: true },
-  appendFile: { chemins: [0], detecteeParGateHistorique: true },
-  mkdirSync: { chemins: [0], detecteeParGateHistorique: true },
-  mkdir: { chemins: [0], detecteeParGateHistorique: true },
-  rmSync: { chemins: [0], detecteeParGateHistorique: true },
-  rm: { chemins: [0], detecteeParGateHistorique: false },
-  rmdirSync: { chemins: [0], detecteeParGateHistorique: true },
-  rmdir: { chemins: [0], detecteeParGateHistorique: false },
-  unlinkSync: { chemins: [0], detecteeParGateHistorique: true },
-  unlink: { chemins: [0], detecteeParGateHistorique: false },
-  renameSync: { chemins: [0, 1], detecteeParGateHistorique: true },
-  rename: { chemins: [0, 1], detecteeParGateHistorique: true },
-  cpSync: { chemins: [1], detecteeParGateHistorique: true },
-  cp: { chemins: [1], detecteeParGateHistorique: false },
-  copyFileSync: { chemins: [1], detecteeParGateHistorique: true },
-  copyFile: { chemins: [1], detecteeParGateHistorique: false },
-  truncateSync: { chemins: [0], detecteeParGateHistorique: true },
-  truncate: { chemins: [0], detecteeParGateHistorique: false },
-  linkSync: { chemins: [1], detecteeParGateHistorique: false },
-  link: { chemins: [1], detecteeParGateHistorique: false },
-  symlinkSync: { chemins: [1], detecteeParGateHistorique: false },
-  symlink: { chemins: [1], detecteeParGateHistorique: false },
-}
+import { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
+export { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
 
 export function ciblesDEcritureJS(texte) {
   const ts = typescript()
@@ -40,6 +14,12 @@ export function ciblesDEcritureJS(texte) {
     parcours(sourceFile, (n) => {
       if (!ts.isCallExpression(n)) return
       const operation = provenance(n.expression)?.operation
+      const definition = OPERATIONS_FS[operation]
+      if (definition?.drapeaux !== undefined) {
+        const argument = n.arguments[definition.drapeaux]
+        const drapeaux = argument && ts.isNumericLiteral(argument) ? Number(argument.text) : litteral(argument)
+        if ((!argument || drapeaux !== null) && !ouvreEnEcriture(drapeaux ?? undefined)) return
+      }
       for (const indice of Object.hasOwn(OPERATIONS_FS, operation) ? OPERATIONS_FS[operation].chemins : []) {
         const chemin = litteral(n.arguments[indice])
         sorties.push({ chemin, inconnue: chemin === null, operation })

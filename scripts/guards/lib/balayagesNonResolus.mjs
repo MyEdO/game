@@ -77,7 +77,7 @@ export function classer(nonResolus) {
 }
 
 /** La MESURE du dépôt de `racine` : `classer` de ses balayages non résolus. */
-export const mesure = (racine = RACINE) => classer(balayagesNonResolus(racine))
+export const mesure = (racine = RACINE, options) => classer(balayagesNonResolus(racine, options))
 
 /** Le `quoi` du stock, comptes par classe à sa naissance. */
 const QUOI = (comptes) => 'Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site '

@@ -25,7 +25,7 @@
 //      que le filtre rend — une grammaire de motif locale à un site rendrait un motif inerte.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -224,15 +224,23 @@ test('UNICITÉ — chaque règle du mur est déclarée par UN SEUL bloc d’oxli
 
 test('IGNORES — aucun ignore global ne couvre un fichier sous le mur', () => {
   const fichiers = fichiersSousLeMur()
-  const resultat = lancerLint(RACINE_DEPOT,fichiers,{cwd:RACINE_DEPOT,configuration:{overrides:[],rules:{},options:{reportUnusedDisableDirectives:'off'}}})
-  assert.deepEqual(resultat.defauts,[])
-  assert.equal(JSON.parse(resultat.stdout).number_of_files,new Set(fichiers).size)
-  const temoin='scripts/docs/build-all.mjs'
-  for(const motif of [temoin,'scripts/docs/**']) {
-    const plante=lancerLint(RACINE_DEPOT,[temoin],{cwd:RACINE_DEPOT,configuration:{overrides:[],rules:{},ignorePatterns:[...configurationLint.ignorePatterns,motif]}})
-    assert.deepEqual(plante.defauts,[])
-    assert.equal(JSON.parse(plante.stdout).number_of_files,0)
-  }
+  const dossier = mkdtempSync(join(tmpdir(), 'lint-ignores-'))
+  try {
+    for (const fichier of fichiers) {
+      const cible = join(dossier, fichier)
+      mkdirSync(dirname(cible), { recursive: true })
+      copyFileSync(join(RACINE_DEPOT, fichier), cible)
+    }
+    const resultat = lancerLint(RACINE_DEPOT,fichiers,{cwd:dossier,configuration:{overrides:[],rules:{},options:{reportUnusedDisableDirectives:'off'}}})
+    assert.deepEqual(resultat.defauts,[])
+    assert.equal(JSON.parse(resultat.stdout).number_of_files,new Set(fichiers).size)
+    const temoin='scripts/docs/build-all.mjs'
+    for(const motif of [temoin,'scripts/docs/**']) {
+      const plante=lancerLint(RACINE_DEPOT,[temoin],{cwd:dossier,configuration:{overrides:[],rules:{},ignorePatterns:[...configurationLint.ignorePatterns,motif]}})
+      assert.deepEqual(plante.defauts,[])
+      assert.equal(JSON.parse(plante.stdout).number_of_files,0)
+    }
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
 })
 
 test('DIRECTIVES — sous les globs du mur, les seules directives qui l’éteignent sont les exemptions nommées', async () => {

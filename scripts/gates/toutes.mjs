@@ -38,6 +38,8 @@
 // `--liste` n'imprime que le plan (ce qui serait joué) sans rien jouer ; `--serie` joue tout en une
 // lane ; `--gates a,b` restreint la liste.
 import '../node-requis.mjs'
+import { photoArbre } from '../guards/lib/photoArbre.mjs'
+export { photoArbre } from '../guards/lib/photoArbre.mjs'
 import { spawn, spawnSync } from 'node:child_process'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -47,7 +49,6 @@ import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
 import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
 import {
   compterRejeux,
-  execFileResilient,
   reessayerAuChargement,
   rejeux,
 } from '../guards/lib/spawnResilient.mjs'
@@ -109,34 +110,28 @@ export const ECRIT_LU = {
   'test:hooks': {
     ecrit: [],
     ecritFerme: {
-      '.lint-':
-        'configuration temporaire de lancerLint (scripts/guards/lib/lintStage.mjs) dans son cwd, la racine quand un test la lui passe ; ' +
-        'nom .lint-PID-aléatoire.config.mjs, supprimé par unlinkSync en finally ; oxlint.config.mjs ignore *.config.*',
       'node_modules/typescript/dist/api/node/wtf8.js':
         'contrat d’installation TypeScript (scripts/guards/contrat-typescript.mjs) : appliquerCorrectif de scripts/guards/lib/gitPorte.mjs ' +
         'borne git apply à cet unique --include ; postinstall exécute verifierContratTypeScript avant les générateurs et hooks, donc le banc réel ' +
         'rencontre le SDK déjà corrigé : --reverse --check puis return false sans écriture, éprouvé par le banc d’idempotence ; ' +
         'node_modules/ est gitignoré et reste hors des clés de contenu, mais les gates natives lisent ce SDK',
-      '.claude/logs/new-src-guard-skips.log':
-        'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs, écrit par ' +
-        'scripts/hooks/repartition.mjs) : il est ' +
-        'GITIGNORÉ (motif `.claude/*` de .gitignore, sans négation pour `logs/`), donc il n’entre dans aucune des ' +
-        'deux clés de contenu et ne salit pas l’arbre ; aucune gate ne le lit',
     },
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
       'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
-      '.lint-',
     ],
     raison: RETRAIT_WORKTREE_FERME +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
-      'les autres fixtures vivent sous os.tmpdir() ; lancerLint peut écrire sa configuration temporaire .lint- à la racine et la supprime en finally ; ' +
-      'le balayage des lectures PDF peut lire cette configuration .lint- pendant son existence ; ' +
+      'le journal de dérogations est injecté par WFRP_JOURNAL_NEW_SRC_GUARD (`cheminJournal`), écrit et vérifié sous os.tmpdir() ; ' +
+      'sonde #2489 du 2026-10-08 : journal réel seul pollueur des sept suites avant correction, paire hook/générateurs corrigée sans changement de l’arbre ; ' +
+      '`testsSansEcriture.mjs` refuse les mutations fs des processus Node héritant du préchargeur dans la racine, ignorés compris, et photographie état et empreintes avant/après la suite ; ' +
+      'les autres fixtures vivent sous os.tmpdir() ; le banc de configuration de lancerLint copie le fichier jugé dans sa fixture temporaire, ' +
+      'y écrit .lint-PID-aléatoire.config.mjs et y mesure cette écriture avec le collecteur de lectures, puis exige la suppression de la configuration ; ' +
       'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
-      'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
+      'ces variables sont absentes du banc lintStage : installer rend un collecteur sur la fixture temporaire, restauré en finally avant son retrait ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
       'le contrat d’installation TypeScript lit le patch réel sous patches/ et peut corriger uniquement node_modules/typescript/dist/api/node/wtf8.js ; ' +
       'LIT src/ massivement (3 888 chemins) — les gardes de la ' +
@@ -856,25 +851,6 @@ export const queue = (texte, n) =>
 
 /** Lignes de queue imprimées sous chaque rouge du résumé. */
 const LIGNES_DE_QUEUE = 40
-
-/**
- * `git status --porcelain` en ENTIER (docs compris). NE LÈVE PAS : le 2026-09-04, cet appel a rendu
- * `STATUS_DLL_INIT_FAILED` après sept minutes de gates et l'exception a emporté le processus AVANT le
- * résumé — vingt-deux verdicts payés, aucun imprimé. Une photo impossible est une LIGNE du résumé.
- * REND `{ texte, erreur }`.
- */
-export function photoArbre(racine) {
-  try {
-    return {
-      texte: execFileResilient('git', ['status', '--porcelain'], { cwd: racine, encoding: 'utf8', maxBuffer: 1 << 28 }, {
-        site: 'toutes.mjs/photoArbre',
-      }),
-      erreur: null,
-    }
-  } catch (e) {
-    return { texte: null, erreur: e.message }
-  }
-}
 
 const secondesDepuis = (debut) => (Date.now() - debut) / 1000
 

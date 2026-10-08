@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from './toutes.mjs'
+import { GATES } from './testsParGate.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -35,6 +36,15 @@ const ATTENDU = {
     'scripts/test/node-tests.mjs',
   ],
   'test:hooks': ['scripts/guards/lib/protectionWorktree.mjs',
+    'scripts/gates/testsSansEcriture.test.mjs',
+    // #2489 : bancs Vitest et génération sous os.tmpdir() ; rapports périmètre relayés
+    // après contrôle dans l'outil, bancs des reporters dans des dépôts temporaires.
+    'scripts/gates/generationCode.test.mjs',
+    'scripts/gates/vitestSansEcriture.test.mjs',
+    'scripts/guards/lib/perimetreSansEcriture.mjs',
+    'scripts/guards/lib/perimetreSansEcriture.test.mjs',
+    // #2489 : le cache de mesure est injecté sous os.tmpdir(), puis effacé.
+    'scripts/guards/balayages-non-resolus.test.mjs',
     'scripts/guards/lib/ecrituresFichiers.test.mjs',
     'scripts/guards/lib/ecrituresShell.test.mjs',
     'scripts/guards/lib/processusWorktrees.test.mjs',
@@ -652,6 +662,10 @@ const ATTENDU = {
   'raw:check-renvois': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'server:typecheck': [],
 }
+
+// #2489
+// Le cycle n'écrit que son journal de refus sous os.tmpdir(), retiré en finally.
+for (const gate of GATES) ATTENDU[gate].push('scripts/guards/lib/controleEcritures.mjs')
 
 test('aucune gate n’acquiert un module ÉCRIVAIN sans que ÉCRIT/LU soit re-mesurée', () => {
   const mesure = ecrivainsParGate(RACINE)

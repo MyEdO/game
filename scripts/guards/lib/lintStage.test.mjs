@@ -10,7 +10,6 @@ import { fileURLToPath } from 'node:url'
 import { CONFIG_LINT, defautsDeRapport, fermetureDeConfig, lancerLint, lintDeLIndex, lotsDeLigne } from './lintStage.mjs'
 import { depotReel, envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { installer } from '../../docs/lib/enregistreur-lectures.mjs'
-import { ignoresGit } from '../../docs/lib/chemin-mesure.mjs'
 import configurationLint from '../../../oxlint.config.mjs'
 import { gitDeLArbreReel, lancerGit } from '../../test/gitDeBanc.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
@@ -115,19 +114,24 @@ test('MORSURE — un fichier fautif est refusé, un fichier IGNORÉ par la confi
   }
 })
 
-test('configuration fournie : une écriture .lint- du processus à la racine, supprimée après le lint', () => {
-  const collecteur = installer({ racine: RACINE, ignores: ignoresGit(RACINE) })
+test('configuration fournie : une écriture .lint- dans la fixture temporaire, supprimée après le lint', () => {
+  const dossier = dossierDeFixtures()
+  const rel = 'src/state/rollSeam.ts'
+  mkdirSync(dirname(join(dossier, rel)), { recursive: true })
+  copyFileSync(join(RACINE, rel), join(dossier, rel))
+  const collecteur = installer({ racine: dossier, ignores: new Set() })
   try {
-    const { defauts, stdout, codeSortie } = lancerLint(RACINE, ['src/state/rollSeam.ts'], { cwd: RACINE, configuration: configurationLint })
+    const { defauts, stdout, codeSortie } = lancerLint(RACINE, [rel], { cwd: dossier, configuration: configurationLint })
     assert.equal(codeSortie, 0)
     assert.deepEqual(defauts, [])
     assert.equal(JSON.parse(stdout).number_of_files, 1)
     const { ecrits } = collecteur.rendu()
     assert.equal(ecrits.length, 1, JSON.stringify(ecrits))
     assert.match(ecrits[0], new RegExp(`^\\.lint-${process.pid}-[a-z0-9]+\\.config\\.mjs$`))
-    assert.equal(existsSync(join(RACINE, ecrits[0])), false)
+    assert.equal(existsSync(join(dossier, ecrits[0])), false)
   } finally {
     collecteur.restaurer()
+    rmSync(dossier, { recursive: true, force: true })
   }
 })
 

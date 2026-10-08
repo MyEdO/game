@@ -337,7 +337,7 @@ test('JobHost erreurs contrôlées : image absente et timeout du child neutre re
   const host = fileURLToPath(new URL('./session-process.ps1', import.meta.url))
   for (const node of [join(b.dossier, 'absent.exe'), process.execPath]) {
     const commande = ligneControleur({ node, script: fixture, dossier: b.dossier, id: 'neutre' })
-    const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', node, '-CommandLine', commande, '-Worktree', b.dossier, '-TimeoutMs', '300'], { encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(process.env) })
+    const vu = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', host, '-Node', node, '-CommandLine', commande, '-Worktree', b.dossier, '-TimeoutMs', '3000'], { encoding: 'utf8', windowsHide: true, timeout: 15_000, env: envAgent(process.env) })
     assert.equal(vu.error, undefined)
     assert.equal(vu.status, 0)
     assert.match(vu.stderr, /session JobHost/)
