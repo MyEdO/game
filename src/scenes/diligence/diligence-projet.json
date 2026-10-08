@@ -7,7 +7,7 @@
  "versionContenu": 2,
  "source": {
   "book": "ennemi-dans-l-ombre",
-  "page": 12,
+  "page": 11,
   "note": "EDO 01 l.5 · l.13"
  },
  "narratif": {
@@ -2704,13 +2704,18 @@
    "surtitre": "Une campagne pour Warhammer Fantasy Roleplay",
    "titre": "L’Ennemi Intérieur",
    "sousTitre": {
-    "texte": "Tome 1 — L’Ennemi dans l’Ombre"
+    "texte": "Tome 1 — L’Ennemi dans l’Ombre",
+    "adapteDe": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 164,
+     "note": "EDO 12 l.502 · l.506"
+    }
    },
    "chapitre": "Chapitre 1 — On recherche : aventuriers courageux",
    "pitch": "Nos héros forment un groupe hétéroclite que la soif d'aventures a conduit à prendre la direction d'Altdorf, tout comme de nombreux habitants des campagnes et des bourgades de l'Empire. Altdorf, l'immense et trépidante capitale, où les rues sont pavées d'or et où tout est possible.\n\nCertains Personnages se connaissent peut-être déjà ; les autres se rencontreront pour la première fois lorsqu'ils approcheront de l'auberge-relais la plus proche, nommée La Diligence.",
    "source": {
     "book": "ennemi-dans-l-ombre",
-    "page": 12,
+    "page": 11,
     "note": "EDO 01 l.5 · l.13"
    },
    "ambiance": "veillee"
@@ -2722,7 +2727,12 @@
    },
    "titre": "Chapitre 1 — la route d’Altdorf",
    "sousTitre": {
-    "texte": "Ce que la compagnie emporte vers la capitale"
+    "texte": "Le reste du trajet n’a rien de remarquable : la compagnie arrive à Altdorf.",
+    "adapteDe": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 29,
+     "note": "EDO 02 l.189"
+    }
    }
   }
  },
@@ -7863,18 +7873,78 @@
       "x": 13,
       "y": 32
      },
-     "facing": "N"
+     "facing": "N",
+     "label": "Diligence",
+     "usable": {
+      "actions": [
+       {
+        "id": "monter-a-bord",
+        "label": "Monter à bord",
+        "unique": true,
+        "flow": {
+         "kind": "seq",
+         "steps": [
+          {
+           "kind": "do",
+           "effect": {
+            "type": "setFlag",
+            "flag": "edo-ch1-depart"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "clearObjective",
+            "id": "edo-ch1-place-a-bord"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "journal",
+            "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.251 · l.255"
+            }
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "setObjective",
+            "id": "edo-ch1-route",
+            "desc": "Se rendre à Altdorf.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.247"
+            }
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "openWorldMap"
+           }
+          }
+         ]
+        }
+       }
+      ]
+     }
     }
    ],
    "dialogues": [],
    "triggers": [
     {
-     "id": "edo-ch1-depart-remise",
+     "id": "edo-ch1-arrivee-relais",
      "rect": {
-      "x": 12,
-      "y": 31,
-      "w": 4,
-      "h": 3
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 38
      },
      "once": true,
      "flow": {
@@ -7883,8 +7953,14 @@
        {
         "kind": "do",
         "effect": {
-         "type": "setFlag",
-         "flag": "edo-ch1-depart"
+         "type": "setObjective",
+         "id": "edo-ch1-place-a-bord",
+         "desc": "Trouver une place à bord d’une diligence pour Altdorf.",
+         "adapteDe": {
+          "book": "ennemi-dans-l-ombre",
+          "page": 11,
+          "note": "EDO 01 l.13"
+         }
         }
        }
       ]
@@ -19708,6 +19784,13 @@
          "type": "setFlag",
          "flag": "edo-ch1-clos"
         }
+       },
+       {
+        "kind": "do",
+        "effect": {
+         "type": "clearObjective",
+         "id": "edo-ch1-route"
+        }
        }
       ]
      }
@@ -20716,6 +20799,46 @@
      "pos": {
       "x": 37,
       "y": 3
+     },
+     "label": "Corps",
+     "usable": {
+      "actions": [
+       {
+        "id": "fouiller",
+        "unique": true,
+        "flow": {
+         "kind": "seq",
+         "steps": [
+          {
+           "kind": "do",
+           "effect": {
+            "type": "setFlag",
+            "flag": "edo-ch1-corps-kastor-fouille"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "clearObjective",
+            "id": "edo-ch1-embuscade"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "journal",
+            "desc": "Sous un buisson, un peu à l’écart de la diligence renversée, gît un autre corps : deux carreaux d’arbalète dans le dos, des vêtements de citadin.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 26,
+             "note": "EDO 02 l.79 · l.89"
+            }
+           }
+          }
+         ]
+        }
+       }
+      ]
      }
     },
     {
@@ -22828,12 +22951,12 @@
    "dialogues": [],
    "triggers": [
     {
-     "id": "edo-ch1-corps-kastor",
+     "id": "edo-ch1-arrivee-virage",
      "rect": {
-      "x": 35,
-      "y": 2,
-      "w": 4,
-      "h": 3
+      "x": 0,
+      "y": 0,
+      "w": 40,
+      "h": 24
      },
      "once": true,
      "flow": {
@@ -22842,8 +22965,14 @@
        {
         "kind": "do",
         "effect": {
-         "type": "setFlag",
-         "flag": "edo-ch1-corps-kastor-fouille"
+         "type": "setObjective",
+         "id": "edo-ch1-embuscade",
+         "desc": "Examiner les lieux de l’embuscade.",
+         "adapteDe": {
+          "book": "ennemi-dans-l-ombre",
+          "page": 26,
+          "note": "EDO 02 l.89"
+         }
         }
        }
       ]
@@ -39502,11 +39631,7 @@
      "y": 59
     },
     "scene": "route-principale-virage",
-    "icon": "scenario/travel",
-    "when": {
-     "kind": "flag",
-     "expr": "edo-ch1-depart"
-    }
+    "icon": "scenario/travel"
    },
    {
     "id": "auberge-des-sept-rayons",
@@ -39557,7 +39682,12 @@
      "expr": "edo-ch1-depart"
     },
     "refus": {
-     "texte": "Aucun trajet ne part encore de ce relais."
+     "texte": "La diligence attend dans la remise : montez à bord pour prendre la route.",
+     "adapteDe": {
+      "book": "ennemi-dans-l-ombre",
+      "page": 17,
+      "note": "EDO 01 l.255"
+     }
     }
    },
    {
@@ -39579,7 +39709,12 @@
      "expr": "edo-ch1-corps-kastor-fouille"
     },
     "refus": {
-     "texte": "Vous n'avez pas fini d'examiner les lieux de l'embuscade."
+     "texte": "Un corps gît encore sous un buisson, à l’écart de la diligence renversée : examinez-le avant de reprendre la route.",
+     "adapteDe": {
+      "book": "ennemi-dans-l-ombre",
+      "page": 26,
+      "note": "EDO 02 l.89"
+     }
     }
    },
    {

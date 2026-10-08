@@ -31,10 +31,35 @@ https://github.com/MyEdO/game/issues/665#issuecomment-5849927764. Cette skill la
 - `user-doctrine-cadence-portes-de-gout-une-par-acte` : une porte de goût par acte (arbitrage 3 du
   pilotage ci-dessus).
 
+## Charte d'adaptation
+
+Tirée des réponses de l'utilisateur au pilotage du 2026-09-26 (#665, issuecomment-5849927764), portées
+par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranche ne monte à aucune porte.
+
+- **Piliers de plaisir.** « le but principale c'est que le jeu soit plaisant et respecte au lieu l'esprit
+  du JDR et de la campagne, comme font toutes adaptations de JDR papier en jeu vidéo comme les Pathfinder »
+  (2026-09-26). La référence est le CRPG adapté d'un module papier : réactivité (chaque geste rend un
+  retour visible), densité (chaque lieu offre quelque chose à faire ou à apprendre), et la réponse du
+  genre quand le livre ne dit rien.
+- **Politique de média.** Chaque beat reçoit un média : scène jouée, dialogue, interlude, résumé, coupé. Le
+  découpage d'un acte se valide à sa porte : « Chaque séance groupe trois choses : jouer la tranche
+  livrée, valider le découpage de l'acte suivant, trancher les exceptions » (2026-09-26). Les textes
+  suivent la règle 5 de campagne (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`).
+- **Points au MJ.** « le livre laisse énormement de place au MJ et n'indique que quelque éléments
+  importants a l'histoire et le MJ fait le reste avec quelques indices/impératifs a suivre » (2026-09-26).
+  Trois familles :
+  - les **impératifs** du livre (éléments importants, indices, « doivent absolument ») sont des
+    INVARIANTS, cités au `Source/` et implémentés ;
+  - une **règle de jeu** laissée au MJ reçoit un arbitrage EXPLICITE (CLAUDE.md règle 7) : donnée maison
+    éditable, ou choix du joueur, avec la cérémonie du credo (verbatim et date au ticket) ;
+  - le **reste narratif** se conçoit comme un MJ, en puisant dans les compagnons (« péages, les
+    PNJs/scénarios annexes et autres, mais pas que »), et chaque ajout est tagué `maison`.
+- **Budget d'art.** « aucune vague d'art sans demande » (méthode validée le 2026-09-26, étape 8). C'est un
+  défaut : l'utilisateur le lève quand il le veut.
+
 ## Les étapes et leurs outils
 
-0. **Cadre** — doctrines consignées ; skill `creer-une-campagne` ; charte d'adaptation (piliers de
-   plaisir dont réactivité et densité, politique de média, typologie des points au MJ).
+0. **Cadre** — doctrines consignées ; skill `creer-une-campagne` ; la charte d'adaptation ci-dessus.
 1. **Ré-ancrage de l'épique** — tri des tickets ouverts du label de campagne, commentaire de pilotage ;
    ni code ni salve de tickets.
 2. **Trame des cinq tomes, avant tout chapitre** — fils transversaux, états et compteurs de campagne lus
