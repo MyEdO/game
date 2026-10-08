@@ -26,7 +26,7 @@ import { garde as fermetureHorsCommit } from './fermeture-hors-commit-guard.mjs'
 import { garde as hooksGitContournes } from './hooks-git-contournes-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
-import { LECTURES_LIBRES, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, matcherDOutils } from '../guards/lib/contratGarde.mjs'
+import { LECTURES_LIBRES, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, matcherDOutils, nomOutilDeSurface } from '../guards/lib/contratGarde.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Les DEUX surfaces d'agents, déclarées par `agents:sync` depuis les registres
@@ -61,7 +61,7 @@ const matcherDe = (surface, script, phase = 'PreToolUse') =>
 /** Ce matcher couvre-t-il `outil`, lu par le moteur de `surface` (`compilerMatcher`) ? */
 const couvre = (surface, script, outil, phase = 'PreToolUse') => {
   const matcher = matcherDe(surface, script, phase)
-  return matcher !== null && compilerMatcher(matcher, surface)(outil)
+  return matcher !== null && compilerMatcher(matcher, surface)(nomOutilDeSurface(outil, MOTEUR_DE_SURFACE[surface].surface))
 }
 
 test('les gardes de commande sont au registre PreToolUse de leur point d’entrée, câblé sur les DEUX surfaces', () => {
@@ -154,7 +154,7 @@ test('les matchers des points d’entrée couvrent les MÊMES outils sur .claude
 const OUTILS_CONNUS = [
   'Agent', 'Bash', 'BashOutput', 'Edit', 'ExitPlanMode', 'Glob', 'Grep', 'KillShell',
   'NotebookEdit', 'PowerShell', 'Read', 'SlashCommand', 'Task', 'TodoWrite', 'WebFetch',
-  'WebSearch', 'Write',
+  'WebSearch', 'Write', ...OUTILS_ECRITURE,
 ]
 const MCP_TOOL = /^mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_]+$/
 

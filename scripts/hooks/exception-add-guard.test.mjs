@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { AVERTISSEMENT, entries, evaluate } from './exception-add-guard.mjs'
+import { AVERTISSEMENT, entries, evaluate, readWrite } from './exception-add-guard.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 
@@ -18,6 +18,25 @@ const avertit = (d) => {
   assert.equal(d.decision, undefined, 'un avertissement ne décide rien')
 }
 const silent = (d) => assert.equal(d, null, `attendu : silence, obtenu : ${d?.contexte}`)
+
+test('images complètes canoniques : avant virtuel et existence explicite, sans déduire du contenu vide', () => {
+  const avant = "const B = { 'garde': 3 }\n"
+  const canon = (old_string, content, existeAvant) => readWrite({ path: GUARD, old_string, content, existeAvant })
+  const conservée = canon(avant, avant, true)
+  assert.equal(conservée.before, avant, 'le fichier disque inexistant ne remplace pas la préimage virtuelle')
+  assert.equal(conservée.exists, true)
+  silent(evaluate(conservée))
+  const hausse = canon(avant, "const B = { 'garde': 4 }\n", true)
+  assert.match(evaluate(hausse).contexte, /HAUSSE de baseline/)
+  const création = canon('', avant, false)
+  assert.equal(création.exists, false)
+  silent(evaluate(création))
+  const videExistant = canon('', avant, true)
+  assert.equal(videExistant.exists, true)
+  avertit(evaluate(videExistant))
+  silent(evaluate(canon(avant, '', true)))
+  silent(evaluate(canon('', avant, false)))
+})
 
 // ── Contournements PROUVÉS (doivent AVERTIR) ─────────────────────────────────────────────────────
 test('bypass (a) : deux entrées quotées PACKÉES sur une seule ligne → détecté', () => {

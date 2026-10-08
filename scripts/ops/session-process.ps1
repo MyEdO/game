@@ -8,8 +8,6 @@ $ErrorActionPreference = 'Stop'
 Remove-Item Env:WFRP_SESSION_JETON -ErrorAction SilentlyContinue
 Remove-Item Env:WFRP_SESSION_REVENDICATION -ErrorAction SilentlyContinue
 Remove-Item Env:CLAUDE_CODE_CHILD_SESSION -ErrorAction SilentlyContinue
-Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue
-Remove-Item Env:GITHUB_TOKEN -ErrorAction SilentlyContinue
 $env:WFRP_SESSION_JOBHOST = [string]$PID
 try {
   Add-Type -TypeDefinition @'

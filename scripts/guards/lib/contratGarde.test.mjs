@@ -5,12 +5,30 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { cheminDEcriture } from './contratGarde.mjs'
+import { cheminDEcriture, commandeDe, ecrituresDe, normaliserNomOutil, nomLeanCtx, outilCouvert, OUTILS_ECRITURE, OUTILS_CREATION, OUTILS_SHELL, MOTIF_LEAN_CTX, texteAvant, texteNeuf, texteRemplace, ecritLeFichierEntier } from './contratGarde.mjs'
 import { instanceDeDepot } from './depotGabarit.mjs'
 
 /** Graphie MSYS (`/c/Users/…`) d'un chemin win32 absolu. */
 const versMsys = (p) => '/' + p[0].toLowerCase() + p.slice(2).replace(/\\/g, '/')
 const ecriture = (file_path, opts) => cheminDEcriture({ file_path }, { base: tmpdir(), ...opts })
+
+test('outils natifs : graphies MCP actives partagent le contrat et apply_patch est une écriture complète', () => {
+  for (const prefixe of ['mcp__lean-ctx__', 'mcp__lean_ctx__']) {
+    assert.equal(nomLeanCtx(prefixe + 'ctx_shell'), 'ctx_shell')
+    assert.equal(normaliserNomOutil(prefixe + 'ctx_shell'), 'mcp__lean-ctx__ctx_shell')
+    assert.ok(outilCouvert(OUTILS_SHELL, prefixe + 'ctx_shell'))
+    assert.ok(outilCouvert([MOTIF_LEAN_CTX], prefixe + 'ctx_inconnu'))
+  }
+  assert.ok(OUTILS_ECRITURE.includes('apply_patch'))
+  assert.ok(OUTILS_CREATION.includes('apply_patch'))
+  assert.equal(commandeDe({ tool_name: 'apply_patch', tool_input: { command: 'git commit' } }), '')
+  const op = { path: '/f', content: 'après entier', old_string: 'avant entier' }
+  assert.deepEqual(ecrituresDe({ ecritures: [op] }), [op])
+  assert.equal(texteAvant(op, () => 'disque'), 'avant entier')
+  assert.equal(texteRemplace(op), 'avant entier')
+  assert.equal(texteNeuf(op), 'après entier')
+  assert.ok(ecritLeFichierEntier(op))
+})
 
 test('cheminDEcriture : dans un dépôt, racine + relatif, contenu versionné — graphie native ou MSYS', () => {
   const { racine } = instanceDeDepot()

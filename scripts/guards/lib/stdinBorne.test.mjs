@@ -3,7 +3,7 @@
 // et le minuteur ne borne que la LECTURE — un stdin fermé laisse au hook le code de son verdict.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { DELAI_STDIN_MS } from './stdinBorne.mjs'
@@ -72,4 +72,12 @@ test('stdin FERMÉ : le minuteur est désarmé, un verdict plus long que le dél
   const { code: sorti, signal } = await sortie(enfant)
   assert.equal(signal, null, `enfant tué par la coupe du test après ${COUPE_MS} ms`)
   assert.equal(sorti, 7, 'le minuteur de lecture a tranché le verdict : il n’a pas été désarmé à end')
+})
+
+test('lecteur borné : le flux injecté est lu et sa limite retourne vide sans conserver de listeners', () => {
+  for (const [texte, limite, attendu] of [['entrée injectée', 100, 'entrée injectée'], ['trop-long', 2, '']]) {
+    const code = `import assert from 'node:assert/strict'; import { Readable } from 'node:stream'; import { lireStdinBorne } from ${JSON.stringify(PRIMITIVE)}; const stdin=Readable.from([${JSON.stringify(texte)}]); const brut=await lireStdinBorne(1000,{stdin,limite:${limite}}); assert.equal(brut,${JSON.stringify(attendu)}); assert.equal(stdin.listenerCount('data'),0); assert.equal(stdin.listenerCount('end'),0); assert.equal(stdin.listenerCount('error'),0)`
+    const vu = spawnSync(process.execPath, ['--input-type=module', '-e', code], { input: 'flux réel distinct', encoding: 'utf8', timeout: 5000 })
+    assert.equal(vu.status, 0, vu.stderr); assert.equal(vu.error, undefined)
+  }
 })

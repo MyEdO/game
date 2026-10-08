@@ -1,7 +1,7 @@
 // Garde PreToolUse des canaux d'écriture (`OUTILS_ECRITURE`) des tables d'exceptions de garde : doctrine
 // `user-doctrine-gardes-jamais-de-ask` (2026-07-13, 2026-09-28) ; juge de diff : `.claude/agents/juge.md`.
-import { readFileSync } from 'node:fs'
-import { OUTILS_ECRITURE, cheminDEcriture, cheminVise, ecritLeFichierEntier, ecrituresDe, texteAvant, texteNeuf } from '../guards/lib/contratGarde.mjs'
+import { existsSync, readFileSync } from 'node:fs'
+import { OUTILS_ECRITURE, cheminDEcriture, cheminVise, ecritLeFichierEntier, ecrituresDe, fichierExistait, texteAvant, texteNeuf } from '../guards/lib/contratGarde.mjs'
 import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 
 // Gardes-tests connus, par leur NOM NU : une liste de noms se compare en CHAÎNE, jamais par regex
@@ -96,14 +96,9 @@ export function readWrite(input) {
   const after = texteNeuf(input)
   if (typeof after !== 'string') return null
   const file = String(cheminVise(input) ?? '')
-  if (!ecritLeFichierEntier(input)) {
-    const lire = () => { try { return readFileSync(file, 'utf8') } catch { return '' } }
-    return { file, before: String(texteAvant(input, lire)), after, isWrite: false, exists: true }
-  }
-  let before
-  let exists = true
-  try { before = readFileSync(file, 'utf8') } catch { before = ''; exists = false }
-  return { file, before, after, isWrite: true, exists }
+  const isWrite = ecritLeFichierEntier(input)
+  const lire = () => { try { return readFileSync(file, 'utf8') } catch { return '' } }
+  return { file, before: String(texteAvant(input, lire)), after, isWrite, exists: fichierExistait(input, () => isWrite ? existsSync(file) : true) }
 }
 
 /** L'avertissement pour UNE écriture, `null` sans ajout ; un relatif se résout contre `base`. */

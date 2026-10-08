@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
 import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique } from './session-runtime.mjs'
+import { preflightSessionStart } from './session-start.mjs'
 
 const script = fileURLToPath(import.meta.url), ops = fileURLToPath(new URL('.', import.meta.url))
 const politique = lirePolitique()
@@ -87,7 +88,7 @@ export function verifierContratAgent(agent, executable, { executer = spawnSync, 
   const general = aide(['--help'])
   if (agent === 'claude') { if (!/prompt/i.test(general)) refuser('CONTRAT CLI INCOMPATIBLE : prompt Claude absent'); return }
   const exec = aide(['exec', '--help'])
-  const manquants = ['--ignore-user-config', '--model', '--config', '--output-schema', '--output-last-message'].filter((option) => !exec.includes(option))
+  const manquants = ['--dangerously-bypass-hook-trust', '--model', '--config', '--output-schema', '--output-last-message'].filter((option) => !exec.includes(option))
   if (!/\bexec\b/.test(general)) manquants.push('exec')
   if (manquants.length) refuser(`CONTRAT CLI INCOMPATIBLE : ${manquants.join(', ')}`)
 }
@@ -99,7 +100,7 @@ export function argsTerminal({ profil, nom, worktree, script, node, commande }) 
   return ['-w', '0', 'new-tab', '--profile', optionWT(profil), '--title', optionWT(nom), '--suppressApplicationTitle', '--startingDirectory', optionWT(worktree), 'powershell.exe', '-NoLogo', '-NoProfile', '-EncodedCommand', Buffer.from(expression, 'utf16le').toString('base64')]
 }
 
-export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env } = {}) {
+export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env, preflight = preflightSessionStart } = {}) {
   const options = normaliserLancement(entree, cwd)
   if (options.worktree && !fs.existsSync(options.worktree)) refuser(`WORKTREE ABSENT : ${options.worktree}`)
   const c = contexte(options.worktree ?? cwd)
@@ -107,10 +108,11 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   const texte = fs.readFileSync(options.consigne, 'utf8')
   const executable = natif(options.agent, options.executable)
   contrat(options.agent, executable, { env })
+  const hooks = await preflight(c.worktree, options.agent)
   planAgent({ ...c, agent: options.agent }, { natif: executable, consigne: texte, rapport: 'rapport', schema: 'schema', politique })
   const profil = terminal({ chemin: env.WFRP_WT_SETTINGS, nom: options.profilWT })
   const dossier = join(c.gitCommun, 'sessions'), sessions = sessionsDe(dossier)
-  const r = sessions.reserver({ ...c, ticket: options.ticket, nom: options.nom, agent: options.agent, consigne: options.consigne, executable, onglet: { titre: options.nom, profil } })
+  const r = sessions.reserver({ ...c, hooks, ticket: options.ticket, nom: options.nom, agent: options.agent, consigne: options.consigne, executable, onglet: { titre: options.nom, profil } })
   const commande = ligneControleur({ script: join(ops, 'session-runtime.mjs'), dossier, id: r.carte.sessionId })
   const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree })
   let vu
@@ -118,7 +120,7 @@ export async function lancerSession(entree, { cwd = process.cwd(), contexte = co
   catch (error) { vu = { error } }
   if (vu.error || vu.status !== 0) { await sessions.echecDemarrage(r.carte.sessionId, r.jeton, `WT SPAWN : ${vu.error?.message ?? vu.stderr ?? vu.status}`); refuser('WT SPAWN ÉCHOUÉ') }
   const carte = await sessions.attenteDemarrage(r.carte.sessionId, r.jeton)
-  if (!carte.revendiqueLe || !['vivante', 'nettoyage', 'fermee'].includes(carte.etat) || (carte.etat !== 'vivante' && !['sortie', 'echec'].includes(carte.issueSortie))) refuser(`DÉMARRAGE ÉCHOUÉ : ${carte.raison ?? 'REVENDICATION ABSENTE OU SORTIE INCONNUE'}`)
+  if (!carte.recuSessionStart || !carte.revendiqueLe || !['vivante', 'nettoyage', 'fermee'].includes(carte.etat) || (carte.etat !== 'vivante' && !['sortie', 'echec'].includes(carte.issueSortie))) refuser(`DÉMARRAGE ÉCHOUÉ : ${carte.raison ?? 'REÇU NATIF OU REVENDICATION ABSENT'}`)
   return { sessionId: carte.sessionId, ticket: carte.ticket, etat: carte.etat, jeton: r.jeton, veille: `node ${JSON.stringify(script)} attendre ${carte.sessionId} --timeout-ms 3600000` }
 }
 

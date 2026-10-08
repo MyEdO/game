@@ -9,18 +9,40 @@ import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent } from './session-runtime.mjs'
 import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal } from './session.mjs'
+import { preflightSessionStart } from './session-start.mjs'
+import { aplatirHooks } from '../agents/compat-core.mjs'
+
+const racineScripts = fileURLToPath(new URL('../../', import.meta.url))
+const hooksBanc = { claude: await preflightSessionStart(racineScripts, 'claude'), codex: await preflightSessionStart(racineScripts, 'codex') }
 
 const identite = (pid) => ({ pid, creation: `date-${pid}` })
 function banc(t, { auSommeil = () => {} } = {}) {
   const dossier = mkdtempSync(join(process.env.WFRP_SESSION_TEST_FIXTURES ?? tmpdir(), 'sessions-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
   const fixtures = join(dossier, 'fixtures'); mkdirSync(fixtures)
+  for (const surface of ['claude', 'codex']) {
+    mkdirSync(join(dossier, `.${surface}`), { recursive: true })
+    fs.copyFileSync(join(racineScripts, `.${surface}/credo.md`), join(dossier, `.${surface}/credo.md`))
+    const rel = surface === 'claude' ? '.claude/settings.json' : '.codex/hooks.json'
+    fs.copyFileSync(join(racineScripts, rel), join(dossier, rel))
+    for (const hook of aplatirHooks(JSON.parse(readFileSync(join(dossier, rel), 'utf8')), rel)) {
+      mkdirSync(join(dossier, 'scripts/hooks'), { recursive: true })
+      fs.copyFileSync(join(racineScripts, 'scripts/hooks', hook.script), join(dossier, 'scripts/hooks', hook.script))
+    }
+  }
   const fichiers = { codex: join(fixtures, 'codex.exe'), claude: join(fixtures, 'claude.exe'), rapport: join(fixtures, 'rapport.json'), schema: join(fixtures, 'schema.json') }
   for (const fichier of Object.values(fichiers)) writeFileSync(fichier, '')
   let maintenant = 1000
   const vivants = new Map([[10, identite(10)], [20, identite(20)], [30, identite(30)]])
   const sessions = creerSessions({ dossier, horloge: () => maintenant, processus: (pid) => vivants.get(pid) ?? null, inventaire: () => [...vivants.values(), { ...identite(99), nom: 'codex.exe' }], dormir: async () => { maintenant += 50; auSommeil(sessions, vivants) }, lanceur: () => identite(99) })
-  const reserver = (p = {}) => sessions.reserver({ ticket: 2461, nom: 'banc', agent: 'claude', consigne: join(dossier, 'consigne.md'), worktree: dossier, racine: dossier, branche: 'chantier/2461', head: 'a'.repeat(40), ...p })
+  const claim = sessions.revendiquer
+  sessions.revendiquer = (...args) => {
+    const carte = claim(...args)
+    const { chemin, ...contexte } = JSON.parse(readFileSync(join(dossier, `${carte.sessionId}.hook-context`), 'utf8'))
+    writeFileSync(chemin, JSON.stringify({ ...contexte, version: 1, date: carte.date, nativeSessionId: 'native-banc' }))
+    return carte
+  }
+  const reserver = (p = {}) => sessions.reserver({ ticket: 2461, nom: 'banc', agent: 'claude', hooks: hooksBanc[p.agent ?? 'claude'], consigne: join(dossier, 'consigne.md'), worktree: dossier, racine: dossier, branche: 'chantier/2461', head: 'a'.repeat(40), ...p })
   const revendiquer = (r) => sessions.revendiquer(r.carte.sessionId, r.nonce, { controleur: identite(10), jobHost: identite(30) })
   return { sessions, reserver, revendiquer, vivants, dossier, fichiers, avance: (ms) => { maintenant += ms } }
 }
@@ -105,6 +127,47 @@ test('attente démarrage observe revendication et fin naturelle ou libère absen
   assert.equal(b.sessions.lire(absent.carte.sessionId).codeEnveloppe, undefined)
 })
 
+test('démarrage sans reçu ou nonce étranger arrête le fils et attend le nettoyage du JobHost', async (t) => {
+  for (const panne of ['absent', 'nonce']) {
+    let arret = false
+    const b = banc(t, { auSommeil: (sessions, vivants) => {
+      const c = sessions.lire(id)
+      if (c.etat !== 'arret-demande') return
+      arret = true
+      sessions.sortie(id, { codeAgent: null, arret: true }); vivants.clear()
+    } })
+    const r = b.reserver(), id = r.carte.sessionId; b.revendiquer(r)
+    b.sessions.muter(id, (c) => { c.demarrageJusqua = 1100 })
+    const path = join(b.dossier, `${id}.sessionstart`)
+    if (panne === 'absent') rmSync(path)
+    else { const recu = JSON.parse(readFileSync(path)); recu.nonce = 'f'.repeat(64); writeFileSync(path, JSON.stringify(recu)) }
+    const c = await b.sessions.attenteDemarrage(id, r.jeton)
+    assert.match(c.raison, new RegExp(panne === 'absent' ? 'REÇU SESSIONSTART ABSENT' : 'NONCE INCORRECT'))
+    assert.equal(arret, true); assert.equal(c.etat, 'fermee'); assert.equal(c.issueSortie, 'echec')
+    assert.equal(existsSync(join(b.dossier, `${id}.stop`)), true)
+  }
+})
+
+test('sortie rapide sans reçu natif refuse le succès même avec revendication mesurée', async (t) => {
+  const b = banc(t), r = b.reserver(), id = r.carte.sessionId
+  b.revendiquer(r); rmSync(join(b.dossier, `${id}.sessionstart`))
+  b.sessions.sortie(id, { codeAgent: 0 }); b.vivants.clear()
+  const c = await b.sessions.attenteDemarrage(id, r.jeton)
+  assert.match(c.raison, /REÇU SESSIONSTART ABSENT/)
+  assert.equal(c.issueSortie, 'echec'); assert.equal(c.recuSessionStart, undefined)
+})
+
+test('contrôleur refuse une empreinte modifiée juste avant spawn et purge son contexte temporaire', async (t) => {
+  const b = banc(t), r = b.reserver({ executable: b.fichiers.claude }), id = r.carte.sessionId
+  b.revendiquer(r)
+  fs.appendFileSync(join(b.dossier, 'scripts/hooks/bootstrap-conteneur.mjs'), '\n')
+  let spawns = 0
+  await assert.rejects(piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', lancer: () => { spawns++; throw new Error('spawn atteint') } }), /HOOKS : EMPREINTE CHANGÉE AVANT SPAWN/)
+  assert.equal(spawns, 0)
+  assert.equal(existsSync(join(b.dossier, `${id}.hook-context`)), false)
+  assert.equal(existsSync(join(b.dossier, `${id}.sessionstart`)), false)
+})
+
 test('argsTerminal transporte valeurs arbitraires dans PowerShell réel sans interpolation', { skip: process.platform !== 'win32' }, (t) => {
   const b = banc(t), capture = join(b.dossier, "capture ; ' ‘ ’ “ ”.ps1"), sortie = join(b.dossier, 'capture.json')
   writeFileSync(capture, 'param($Node,$CommandLine,$Worktree)\n@{Node=$Node;CommandLine=$CommandLine;Worktree=$Worktree}|ConvertTo-Json -Compress|Set-Content -LiteralPath $Worktree -Encoding UTF8')
@@ -142,13 +205,13 @@ test('planAgent dérive l’argv Codex de la politique, envAgent retire les secr
   const politique = lirePolitique()
   const plan = planAgent(carte, { natif: b.fichiers.codex, consigne: 'faire', rapport: b.fichiers.rapport, schema: b.fichiers.schema, politique })
   assert.equal(plan.shell, false)
-  assert.deepEqual(plan.args, ['exec', '--ignore-user-config', '-m', politique.model, '-c', `model_reasoning_effort="${politique.reasoningEffort}"`, '-c', 'approval_policy="never"', '-c', 'sandbox_mode="danger-full-access"', '-C', b.dossier, '-o', b.fichiers.rapport, '--output-schema', b.fichiers.schema, 'faire'])
-  for (const interdit of [/dangerously/, /^--add-dir$/, /^--sandbox$/, /^--approve-for-me$/, /^-p$/, /windows\.sandbox/, /network_access/]) assert.ok(!plan.args.some((a) => interdit.test(a)), String(interdit))
+  assert.deepEqual(plan.args, ['exec', '-m', politique.model, '-c', `model_reasoning_effort="${politique.reasoningEffort}"`, '-c', 'approval_policy="never"', '-c', 'sandbox_mode="danger-full-access"', '-c', 'features.hooks=true', '--dangerously-bypass-hook-trust', '-C', b.dossier, '-o', b.fichiers.rapport, '--output-schema', b.fichiers.schema, 'faire'])
+  for (const interdit of [/dangerously-bypass-approvals/, /^--add-dir$/, /^--sandbox$/, /^--approve-for-me$/, /^-p$/, /windows\.sandbox/, /network_access/]) assert.ok(!plan.args.some((a) => interdit.test(a)), String(interdit))
   assert.throws(() => planAgent(carte, { natif: 'codex.cmd', politique }), /NATIF/)
   for (const fautive of [{ ...politique, sandbox: 'workspace-write' }, { ...politique, profile: 'wfrp-agent' }, { ...politique, ignoreUserConfig: false }, { ...politique, reasoningEffort: 'banane' }, { ...politique, model: 'gpt-5' }]) assert.throws(() => planAgent(carte, { natif: 'codex.exe', consigne: 'faire', rapport: 'r', schema: 's', politique: fautive }), /POLITIQUE INVALIDE/)
   assert.equal(envAgent({ WFRP_SESSION_JETON: 'secret', WFRP_SESSION_REVENDICATION: 'nonce', CLAUDE_CODE_CHILD_SESSION: '1', OK: 'oui' }).OK, 'oui')
   assert.equal(Object.keys(envAgent({ WFRP_SESSION_JETON: 'secret', CLAUDE_CODE_CHILD_SESSION: '1' })).length, 0)
-  assert.deepEqual(envAgent({ GH_TOKEN: 'feint', GITHUB_TOKEN: 'feint', OK: 'oui' }), { OK: 'oui' })
+  assert.deepEqual(envAgent({ GH_TOKEN: 'feint', GITHUB_TOKEN: 'feint', OK: 'oui' }), { GH_TOKEN: 'feint', GITHUB_TOKEN: 'feint', OK: 'oui' })
   const rapport = { sessionId: 'id', ticket: 2461, worktree: b.dossier, atterrissage: 'b'.repeat(40), resume: 'fait' }
   assert.deepEqual(validerRapport(rapport, carte), { ok: true })
   assert.deepEqual(validerRapport({ ...rapport, atterrissage: null }, carte), { ok: true })
@@ -176,7 +239,7 @@ test('lanceur injecté : Codex sans fichier de profil, capacité une fois, boots
   assert.equal('profilExiste' in b.sessions.lire(r.sessionId), false)
   assert.ok(r.jeton); assert.ok(r.veille.includes('attendre'))
   assert.ok(!argv.join(' ').includes(r.jeton)); assert.ok(argv.includes('0'))
-  assert.equal(env.WFRP_SESSION_JETON, undefined); assert.equal(env.GH_TOKEN, undefined); assert.equal(env.GITHUB_TOKEN, undefined)
+  assert.equal(env.WFRP_SESSION_JETON, undefined); assert.equal(env.GH_TOKEN, 'feint'); assert.equal(env.GITHUB_TOKEN, 'feint')
   assert.equal(env.WFRP_SESSION_REVENDICATION, undefined)
   assert.equal(r.etat, 'vivante')
   assert.throws(() => readFileSync(join(b.dossier, `${r.sessionId}.bootstrap`)), /ENOENT/)
@@ -456,6 +519,41 @@ test('supervision Codex : rapport absent ou JSON illisible sur sortie 0 nommés,
   }
 })
 
+test('supervision conserve le refus du reçu comme cause primaire et ne range aucun rapport sans démarrage prouvé', async (t) => {
+  for (const panne of ['absent', 'nonce']) for (const sortie of ['nonzero', 'rapport-invalide', 'rapport-valide']) {
+    await t.test(`${panne}/${sortie}`, async (t) => {
+    const b = banc(t), r = b.reserver({ agent: 'codex' }); b.revendiquer(r)
+    const cheminRecu = join(b.dossier, `${r.carte.sessionId}.sessionstart`)
+    if (panne === 'absent') rmSync(cheminRecu)
+    else { const recu = JSON.parse(readFileSync(cheminRecu, 'utf8')); recu.nonce = 'f'.repeat(64); writeFileSync(cheminRecu, JSON.stringify(recu)) }
+    const child = new EventEmitter(); child.pid = 20; child.kill = () => true
+    let lectures = 0
+    const rapport = { sessionId: r.carte.sessionId, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
+    const promesse = b.sessions.superviser(r.carte.sessionId, {
+      lancer: () => child, causeSortie: async () => 'cause secondaire de sortie',
+      lireRapport: () => { lectures++; return sortie === 'rapport-invalide' ? { ...rapport, inconnu: true } : rapport },
+      periodeMs: 1,
+    })
+    b.vivants.delete(20); queueMicrotask(() => child.emit('exit', sortie === 'nonzero' ? 9 : 0, null))
+    const fin = await promesse
+    assert.equal(fin.raison, panne === 'absent' ? 'REÇU SESSIONSTART ABSENT' : 'REÇU SESSIONSTART NONCE INCORRECT', `${panne}/${sortie}`)
+    assert.equal(fin.issueSortie, 'echec'); assert.equal(fin.rapport, undefined); assert.equal(lectures, 0)
+    assert.equal(b.sessions.lire(r.carte.sessionId).rapport, undefined)
+    })
+  }
+})
+
+test('supervision avec reçu natif valide conserve preuve et rapport normaux', async (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex' }); b.revendiquer(r)
+  const child = new EventEmitter(); child.pid = 20; child.kill = () => true
+  const rapport = { sessionId: r.carte.sessionId, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
+  const promesse = b.sessions.superviser(r.carte.sessionId, { lancer: () => child, lireRapport: () => rapport, periodeMs: 1 })
+  b.vivants.delete(20); queueMicrotask(() => child.emit('exit', 0, null))
+  const fin = await promesse
+  assert.equal(fin.raison, undefined); assert.equal(fin.issueSortie, 'sortie'); assert.deepEqual(fin.rapport, rapport)
+  assert.equal(fin.recuSessionStart.nativeSessionId, 'native-banc')
+})
+
 test('rapport : le schéma est la seule source ; un mot-clé hors de l’interprète lève', () => {
   const schema = JSON.parse(readFileSync(new URL('./session-report.schema.json', import.meta.url), 'utf8'))
   const conforme = validateurDeSchema(schema), rapport = { sessionId: 'id', ticket: 1, worktree: 'W', atterrissage: null, resume: 'fait' }
@@ -518,7 +616,7 @@ test('JobHost possède Job sans breakaway, suspend/assign/resume, cleanup handle
 
 test('politique : schéma strict lu une fois ; sandbox et approbation à leur seule valeur prouvée ; clé inconnue, réseau, profil et type faux refusés', (t) => {
   const b = banc(t), chemin = join(b.dossier, 'politique.json')
-  const valide = { sandbox: 'danger-full-access', approvalPolicy: 'never', ignoreUserConfig: true, model: 'gpt-6.1-sol', reasoningEffort: 'medium' }
+  const valide = { sandbox: 'danger-full-access', approvalPolicy: 'never', model: 'gpt-6.1-sol', reasoningEffort: 'medium' }
   const sans = (cle) => Object.fromEntries(Object.entries(valide).filter(([k]) => k !== cle))
   assert.deepEqual(Object.keys(lirePolitique()).sort(), Object.keys(valide).sort())
   writeFileSync(chemin, JSON.stringify(valide)); assert.deepEqual(lirePolitique(chemin), valide)
@@ -611,7 +709,7 @@ test('correction 7 : existence exe insuffisante, contrat CLI injecté requis ava
   const gestes = { cwd: b.dossier, contexte: () => ({ racine: b.dossier, gitCommun: b.dossier, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40) }), terminal: () => ({ nom: 'PS' }), natif: () => b.fichiers.codex, sessionsDe: () => b.sessions, lancerWT: () => { wt++; return { status: 0 } }, env: {}, contrat: () => { contrats++; throw new Error('CONTRAT CLI INCOMPATIBLE') } }
   await assert.rejects(lancerSession({ ticket: 2461, consigne, nom: 'banc', agent: 'codex', worktree: b.dossier }, gestes), /CONTRAT CLI INCOMPATIBLE/)
   assert.equal(contrats, 1); assert.equal(wt, 0); assert.equal(b.sessions.lister().cartes.length, 0)
-  const requis = ['--ignore-user-config', '--model', '--config', '--output-schema', '--output-last-message']
+  const requis = ['--dangerously-bypass-hook-trust', '--model', '--config', '--output-schema', '--output-last-message']
   const executer = (omis) => (exe, args, options) => { assert.equal(exe, b.fichiers.codex); assert.equal(options.shell, false); assert.ok(options.timeout <= 10000); return { status: 0, stdout: args[0] === '--version' ? 'codex-cli 1.0' : args[0] === '--help' ? 'Commands: exec' : requis.filter((x) => x !== omis).join('\n') } }
   verifierContratAgent('codex', b.fichiers.codex, { executer: executer(), env: {} })
   for (const omis of requis) assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: executer(omis), env: {} }), new RegExp(`CONTRAT CLI INCOMPATIBLE : ${omis}`))

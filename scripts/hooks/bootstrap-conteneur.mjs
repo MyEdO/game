@@ -29,6 +29,7 @@ import { attendreLibre, prendreVerrou } from '../test/verrou.mjs'
 import { SOURCES_LUES } from '../docs/build-all.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
 import { BUDGET_CONSTAT, JOURNAL_DOCS, PREREQUIS } from './bootstrap-prerequis.mjs'
+import { entreeHookNative, produireRecuSessionStart } from '../ops/session-start.mjs'
 
 /** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */
 export const estConteneurDistant = (env) => env.CLAUDE_CODE_REMOTE === 'true'
@@ -169,8 +170,15 @@ export function bootstrap(env = process.env, racine = process.cwd(), run = lance
   return mettreEnConformite({ racine, run, gestes, pannes, depot: depotDe(racine, { enPanne: (raison) => pannes.push(raison) }) })
 }
 
+export function bootstrapSessionStart({ env = process.env, racine = process.cwd(), entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
+  const lignes = bootstrap(env, racine, run, gestes)
+  if (lignes.length) output.write(`${lignes.join('\n')}\n`)
+  produireRecuSessionStart({ surface: 'claude', entree, env, worktree: racine })
+  return lignes
+}
+
 if (import.meta.main && process.argv[2] === '--docs-build') process.exitCode = construireDocs(process.argv[3]) ?? 0
 else if (import.meta.main) {
-  const lignes = bootstrap(process.env, process.env.CLAUDE_PROJECT_DIR || process.cwd())
-  if (lignes.length) process.stdout.write(`${lignes.join('\n')}\n`)
+  try { bootstrapSessionStart({ racine: process.env.CLAUDE_PROJECT_DIR || process.cwd(), entree: await entreeHookNative() }) }
+  catch (e) { process.stderr.write(`${e.message}\n`); process.exitCode = 1 }
 }

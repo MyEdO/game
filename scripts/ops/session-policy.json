@@ -1,7 +1,6 @@
 {
   "sandbox": "danger-full-access",
   "approvalPolicy": "never",
-  "ignoreUserConfig": true,
   "model": "gpt-6.1-sol",
   "reasoningEffort": "medium"
 }
