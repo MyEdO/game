@@ -28,8 +28,10 @@ import {
   capacite,
   memoireDisponibleMo,
   memoireDisponibleOctets,
-  EMPREINTE_WORKER_MO,
+  EMPREINTES_WORKER_MO,
   PARENT_MO,
+  PLANCHER_WORKERS,
+  regimeDeArgv,
   TAS_UTILISE,
   TAS_WORKER_MO,
   partieDe,
@@ -248,47 +250,82 @@ test('mémoire disponible sous cgroup : le cache de fichiers est disponible, bor
   assert.equal(memoireDisponibleOctets(V1, lire, { ...nombres, contrainte: 9223372036854771712 }) / Mo, 11955)
 })
 
-test('invariant mémoire : parents × PARENT_MO + W × EMPREINTE_WORKER_MO ≤ mémoire disponible, plancher 1, jamais plus que les cœurs', () => {
-  for (let cpus = 1; cpus <= 32; cpus++) {
-    for (let memoire = 1000; memoire <= 64000; memoire += 250) {
-      const c = capacite(cpus, memoire)
-      const w = workersServis(c.servis)
-      const partage = repartitionWorkers(c.servis).split
-      const parents = partage ? 2 : 1
-      const cas = `${cpus} cœurs, ${memoire} Mo disponibles → ${w} workers, ${parents} parent(s)`
-      assert.ok(w >= 1, cas)
-      if (memoire < PARENT_MO + EMPREINTE_WORKER_MO) assert.equal(w, 1, `plancher : ${cas}`)
-      else assert.ok(parents * PARENT_MO + w * EMPREINTE_WORKER_MO <= memoire, `mémoire dépassée : ${cas}`)
-      // Mono IMPOSÉ après coup (`--coverage`, filtre d'un seul côté) sur une capacité qui partageait.
-      if (partage) {
-        assert.ok(PARENT_MO + maxWorkersMono(c.servis) * EMPREINTE_WORKER_MO <= memoire, `mono imposé : ${cas}`)
+test('invariant mémoire, par régime : parents × PARENT_MO + W × empreinte ≤ mémoire disponible, plancher à 2 workers dès 3 cœurs, jamais plus que les cœurs', () => {
+  assert.equal(PLANCHER_WORKERS, 2)
+  for (const [regime, empreinte] of Object.entries(EMPREINTES_WORKER_MO)) {
+    for (let cpus = 1; cpus <= 32; cpus++) {
+      for (let memoire = 1000; memoire <= 64000; memoire += 250) {
+        const c = capacite(cpus, memoire, regime)
+        const w = workersServis(c.servis)
+        const partage = repartitionWorkers(c.servis).split
+        const parents = partage ? 2 : 1
+        const cas = `${regime}, ${cpus} cœurs, ${memoire} Mo disponibles → ${w} workers, ${parents} parent(s)`
+        assert.deepEqual([c.regime, c.empreinteMo], [regime, empreinte], cas)
+        assert.ok(w >= 1, cas)
+        if (memoire < PARENT_MO + PLANCHER_WORKERS * empreinte) assert.equal(w, Math.min(PLANCHER_WORKERS, workersServis(cpus)), `plancher : ${cas}`)
+        else assert.ok(parents * PARENT_MO + w * empreinte <= memoire, `mémoire dépassée : ${cas}`)
+        assert.equal(c.borne === 'plancher', w > Math.max(0, c.portes), `borne plancher ⇔ plus de workers que la mémoire n'en porte : ${cas}`)
+        // Mono IMPOSÉ après coup (`--coverage`, filtre d'un seul côté) sur une capacité qui partageait.
+        if (partage) {
+          assert.ok(PARENT_MO + maxWorkersMono(c.servis) * empreinte <= memoire, `mono imposé : ${cas}`)
+        }
+        assert.ok(w <= workersServis(cpus), `plus que les cœurs : ${cas}`)
       }
-      assert.ok(w <= workersServis(cpus), `plus que les cœurs : ${cas}`)
     }
   }
 })
 
+test('régime : table à deux régimes, un régime inconnu lève', () => {
+  assert.deepEqual(EMPREINTES_WORKER_MO, { suite: 2340, lot: 1973 })
+  assert.ok(Object.isFrozen(EMPREINTES_WORKER_MO))
+  assert.throws(() => capacite(16, 9011, 'tranche'), /régime de lancement inconnu : « tranche » — attendu suite \| lot/)
+  assert.throws(() => capacite(16, 9011), /régime de lancement inconnu : « undefined »/)
+})
+
+test('régime de l’argv du lanceur : `suite` par défaut, `--regime=<r>` retiré de l’argv, toute autre forme REFUSÉE', () => {
+  assert.deepEqual(regimeDeArgv(['src/a.test.ts', '--bail']), { regime: 'suite', argv: ['src/a.test.ts', '--bail'] })
+  assert.deepEqual(regimeDeArgv(['src/a.test.ts', '--regime=lot', '--bail']), { regime: 'lot', argv: ['src/a.test.ts', '--bail'] })
+  assert.deepEqual(regimeDeArgv(['--regime=suite']), { regime: 'suite', argv: [] })
+  assert.match(regimeDeArgv(['--regime=tranche']).refus, /^régime de lancement inconnu : « --regime=tranche » — attendu --regime=suite\|lot$/)
+  assert.match(regimeDeArgv(['--regime', 'lot']).refus, /^régime de lancement inconnu : « --regime » — attendu --regime=suite\|lot$/)
+  assert.match(regimeDeArgv(['--regime=lot', '--regime=suite']).refus, /^--regime donné 2 fois \(--regime=lot, --regime=suite\)/)
+})
+
 test('capacité : cas choisis, attendus écrits à la main', () => {
-  // Conteneur de 4 cœurs, 15 424 Mo disponibles : les cœurs bornent, mono à 3 workers.
-  assert.deepEqual(capacite(4, 15424), { cpus: 4, memoireMo: 15424, servis: 4, portes: 3, parents: 1, borne: 'cœurs' })
+  const suite = { regime: 'suite', empreinteMo: 2340 }
+  const lot = { regime: 'lot', empreinteMo: 1973 }
+  // Conteneur de 4 cœurs, 15 424 Mo disponibles : ⌊(15424 − 1462) / 2340⌋ = 5 portés, les cœurs bornent, mono à 3 workers.
+  assert.deepEqual(capacite(4, 15424, 'suite'), { cpus: 4, memoireMo: 15424, ...suite, servis: 4, portes: 5, parents: 1, borne: 'cœurs' })
   assert.equal(workersServis(4), 3)
-  // 16 cœurs, 24 000 Mo : un parent partagerait (7 cœurs servis), deux retombent sous le seuil.
-  assert.deepEqual(capacite(16, 24000), { cpus: 16, memoireMo: 24000, servis: 6, portes: 5, parents: 1, borne: 'mémoire' })
+  // 16 cœurs, 16 000 Mo : un parent partagerait (⌊14538 / 2340⌋ = 6, 7 cœurs servis), deux retombent sous le seuil
+  // (⌊(16000 − 2924) / 2340⌋ = 5).
+  assert.deepEqual(capacite(16, 16000, 'suite'), { cpus: 16, memoireMo: 16000, ...suite, servis: 6, portes: 5, parents: 1, borne: 'mémoire' })
   assert.equal(workersServis(6), 4)
-  // 16 cœurs, 25 000 Mo : la mémoire borne, partage à node 4 + jsdom 2, deux parents.
-  assert.deepEqual(capacite(16, 25000), { cpus: 16, memoireMo: 25000, servis: 7, portes: 6, parents: 2, borne: 'mémoire' })
+  // 16 cœurs, 17 000 Mo : ⌊14076 / 2340⌋ = 6 à deux parents, la mémoire borne, partage à node 4 + jsdom 2.
+  assert.deepEqual(capacite(16, 17000, 'suite'), { cpus: 16, memoireMo: 17000, ...suite, servis: 7, portes: 6, parents: 2, borne: 'mémoire' })
   assert.deepEqual(repartitionWorkers(7), { split: true, node: 4, jsdom: 2 })
-  // Poste de 31,2 Go : au plus node 5 + jsdom 3 ; la borne de 10 cœurs des lanes mord à 35 306 Mo.
-  assert.deepEqual(capacite(16, 31948), { cpus: 16, memoireMo: 31948, servis: 9, portes: 8, parents: 2, borne: 'mémoire' })
-  assert.deepEqual(repartitionWorkers(9), { split: true, node: 5, jsdom: 3 })
-  assert.deepEqual(capacite(10, 35305), { cpus: 10, memoireMo: 35305, servis: 9, portes: 8, parents: 2, borne: 'mémoire' })
-  assert.deepEqual(capacite(10, 35306), { cpus: 10, memoireMo: 35306, servis: 10, portes: 9, parents: 2, borne: 'cœurs' })
-  // Mémoire riche : les cœurs bornent, node 10 + jsdom 5.
-  assert.deepEqual(capacite(16, 65536), { cpus: 16, memoireMo: 65536, servis: 16, portes: 17, parents: 2, borne: 'cœurs' })
-  // Mémoire qui ne porte pas un worker : le plancher en sert un, et le dit.
-  assert.deepEqual(capacite(16, 5000), { cpus: 16, memoireMo: 5000, servis: 2, portes: 0, parents: 1, borne: 'plancher' })
+  // Poste de 31,2 Go : ⌊29024 / 2340⌋ = 12, node 8 + jsdom 4 ; la borne de 10 cœurs des lanes mord à 2924 + 9 × 2340 = 23 984 Mo.
+  assert.deepEqual(capacite(16, 31948, 'suite'), { cpus: 16, memoireMo: 31948, ...suite, servis: 13, portes: 12, parents: 2, borne: 'mémoire' })
+  assert.deepEqual(repartitionWorkers(13), { split: true, node: 8, jsdom: 4 })
+  assert.deepEqual(capacite(10, 23983, 'suite'), { cpus: 10, memoireMo: 23983, ...suite, servis: 9, portes: 8, parents: 2, borne: 'mémoire' })
+  assert.deepEqual(capacite(10, 23984, 'suite'), { cpus: 10, memoireMo: 23984, ...suite, servis: 10, portes: 9, parents: 2, borne: 'cœurs' })
+  // Mémoire riche : ⌊62612 / 2340⌋ = 26, les cœurs bornent, node 10 + jsdom 5.
+  assert.deepEqual(capacite(16, 65536, 'suite'), { cpus: 16, memoireMo: 65536, ...suite, servis: 16, portes: 26, parents: 2, borne: 'cœurs' })
+  // 16 cœurs, 9 011 Mo : lot ⌊7549 / 1973⌋ = 3, suite ⌊7549 / 2340⌋ = 3 → 3 workers chacun.
+  assert.deepEqual(capacite(16, 9011, 'lot'), { cpus: 16, memoireMo: 9011, ...lot, servis: 4, portes: 3, parents: 1, borne: 'mémoire' })
+  assert.deepEqual(capacite(16, 9011, 'suite'), { cpus: 16, memoireMo: 9011, ...suite, servis: 4, portes: 3, parents: 1, borne: 'mémoire' })
+  assert.equal(workersServis(4), 3)
+  // 16 cœurs, 10 240 Mo : lot ⌊8778 / 1973⌋ = 4 → 4 workers ; suite ⌊8778 / 2340⌋ = 3 → 3.
+  assert.deepEqual(capacite(16, 10240, 'lot'), { cpus: 16, memoireMo: 10240, ...lot, servis: 5, portes: 4, parents: 1, borne: 'mémoire' })
+  assert.deepEqual(capacite(16, 10240, 'suite'), { cpus: 16, memoireMo: 10240, ...suite, servis: 4, portes: 3, parents: 1, borne: 'mémoire' })
+  assert.equal(workersServis(5), 4)
+  // Mémoire qui ne porte qu'un worker (⌊3538 / 2340⌋ = 1) : le plancher en sert 2, et le dit.
+  assert.deepEqual(capacite(16, 5000, 'suite'), { cpus: 16, memoireMo: 5000, ...suite, servis: 3, portes: 1, parents: 1, borne: 'plancher' })
+  assert.equal(workersServis(3), 2)
+  // Deux cœurs ne servent qu'un worker : les cœurs bornent, pas le plancher.
+  assert.deepEqual(capacite(2, 4000, 'suite'), { cpus: 2, memoireMo: 4000, ...suite, servis: 2, portes: 1, parents: 1, borne: 'cœurs' })
   assert.equal(workersServis(2), 1)
-  assert.deepEqual(capacite(1, 1000), { cpus: 1, memoireMo: 1000, servis: 1, portes: -1, parents: 1, borne: 'plancher' })
+  assert.deepEqual(capacite(1, 1000, 'suite'), { cpus: 1, memoireMo: 1000, ...suite, servis: 1, portes: -1, parents: 1, borne: 'plancher' })
 })
 
 test('tas d’un worker : relevé sur la ligne de fichier du reporter, préfixée ou non', () => {
@@ -423,7 +460,7 @@ test('comptage : cumul par libellé sur un mélange, zéros sur une sortie saine
 test('bloc [diag] : quatre lignes, mode et bornes RENDUS (jamais déduits des cœurs)', () => {
   const compte = compterSentinelles([ECHANTILLONS['test expiré']])
   const mesure = {
-    capacite: capacite(16, 65536),
+    capacite: capacite(16, 65536, 'suite'),
     memGo: 31.9,
     memMaxGo: 12.75,
     rssMaxMo: 84.4,
@@ -435,7 +472,7 @@ test('bloc [diag] : quatre lignes, mode et bornes RENDUS (jamais déduits des c�
   assert.equal(lignes.length, 4)
   assert.equal(
     lignes[0],
-    '[diag] machine : 16 cœurs · 31.9 Go · disponible 64.0 Go → 17 workers portés · réserve de 2 parents · borné par cœurs · mono (seuil 7) · maxWorkers=4',
+    '[diag] machine : 16 cœurs · 31.9 Go · disponible 64.0 Go → régime suite (2340 Mo par worker) · 26 workers portés · réserve de 2 parents · borné par cœurs · mono (seuil 7) · maxWorkers=4',
   )
   assert.equal(
     lignes[1],
@@ -454,15 +491,15 @@ test('bloc [diag] : quatre lignes, mode et bornes RENDUS (jamais déduits des c�
 
 test('bloc [diag] : la mémoire qui borne et le plancher sont dits, le tas alerte à 85 % et se dit non relevé', () => {
   const compte = compterSentinelles([])
-  const mesure = { capacite: capacite(16, 25000), memGo: 31.2, memMaxGo: 20, rssMaxMo: 60, secondes: 10 }
+  const mesure = { capacite: capacite(16, 25000, 'lot'), memGo: 31.2, memMaxGo: 20, rssMaxMo: 60, secondes: 10 }
   const borne = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'node 4+jsdom 2', tasMaxMo: 2612 })
   const [machine, , , tas] = borne.trimEnd().split('\n')
-  assert.match(machine, / · disponible 24\.4 Go → 6 workers portés · réserve de 2 parents · borné par mémoire \(7 cœurs servis\) · partagé /)
+  assert.match(machine, / · disponible 24\.4 Go → régime lot \(1973 Mo par worker\) · 11 workers portés · réserve de 2 parents · borné par mémoire \(12 cœurs servis\) · partagé /)
   assert.equal(tas, `[diag] tas max d'un worker : 2612 Mo / ${TAS_WORKER_MO} Mo (85 %) · ALERTE ≥ 85 %`)
   const sousSeuil = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'x', tasMaxMo: 2611 })
   assert.ok(!sousSeuil.includes('ALERTE'), sousSeuil)
-  const pauvre = bilanDiagnostic(compte, { ...mesure, capacite: capacite(16, 5000), partage: false, maxWorkers: '1', tasMaxMo: null })
-  assert.match(pauvre, / · disponible 4\.9 Go → mémoire insuffisante pour un worker \(5000 Mo < 5060 Mo\) · réserve de 1 parent · borné par plancher \(2 cœurs servis\) · mono /)
+  const pauvre = bilanDiagnostic(compte, { ...mesure, capacite: capacite(16, 5000, 'suite'), partage: false, maxWorkers: '2', tasMaxMo: null })
+  assert.match(pauvre, / · disponible 4\.9 Go → régime suite \(2340 Mo par worker\) · plancher de 2 workers, au-delà de la mémoire \(5000 Mo < 6142 Mo\) · réserve de 1 parent · borné par plancher \(3 cœurs servis\) · mono /)
   const muet = bilanDiagnostic(compte, { ...mesure, partage: true, maxWorkers: 'x', tasMaxMo: null })
   assert.match(muet, new RegExp(`^\\[diag\\] tas max d'un worker : non relevé / ${TAS_WORKER_MO} Mo$`, 'm'))
 })
@@ -487,6 +524,8 @@ test('partie : un filtre de fichier, un drapeau restrictif ou global à un proce
   assert.match(refusDePartie({ filtres: [], argv: ['-t', 'x'] }), /drapeau restrictif -t/)
   assert.match(refusDePartie({ filtres: [], argv: ['--shard=1/2'] }), /drapeau restrictif --shard=1\/2/)
   assert.match(refusDePartie({ filtres: [], argv: ['--config', 'x.ts'] }), /drapeau --config, global à un seul processus/)
+  assert.match(refusDePartie({ filtres: [], argv: ['--regime=lot'] }), /combinée à --regime=lot : une partie joue la suite, sous le régime `suite`/)
+  assert.match(refusDePartie({ filtres: [], argv: ['--regime=suite'] }), /combinée à --regime=suite/)
 })
 
 test('partie : pour K ∈ {1..5}, les K tranches sont DISJOINTES et leur union est la liste', () => {

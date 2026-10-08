@@ -142,7 +142,7 @@ const RENDRE_SEUL = fileURLToPath(new URL('lib/rendre-seul.mjs', import.meta.url
  * quand le rendu se mesure, puis `tsx/esm` (argv, joué après `NODE_OPTIONS`). `rendues` : le fichier
  * de `ENV_CIBLES_RENDUES`.
  */
-function commandeDe({ runner, script }, { cwd, mode, tsxEsm, lectures, ignores, cibles, rendues, derivees }) {
+function commandeDe({ runner, script, targets, injecte }, { cwd, mode, tsxEsm, lectures, ignores, cibles, rendues, derivees, motifsDeclares }) {
   const args = [
     ...(runner === 'tsx' ? ['--import', pathToFileURL(tsxEsm).href] : []),
     ...(mode === 'rendre' ? [RENDRE_SEUL] : []),
@@ -158,6 +158,8 @@ function commandeDe({ runner, script }, { cwd, mode, tsxEsm, lectures, ignores, 
     env.WFRP_LECTURES_IGNORES = ignores
     if (derivees) env.WFRP_LECTURES_CIBLES_DERIVEES = derivees
     env.WFRP_LECTURES_CIBLE = cibles.join(',')
+    env.WFRP_LECTURES_MOTIFS_PROPRES = JSON.stringify([...(targets ?? []), ...(injecte ?? [])])
+    env.WFRP_LECTURES_MOTIFS_DECLARES = JSON.stringify(motifsDeclares ?? [])
   }
   return { args, env }
 }
@@ -264,11 +266,11 @@ export function preparerLectures(cwd, racineLectures) {
  * où il injecte un champ) : ses `targets` et `injecte` dépliés sortent de ses sources. LÈVE comme `run`.
  * REND `lues` (`fusionnerLectures`) et `entree`, ce que `SOURCES_LUES` consigne pour `g`.
  */
-export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, rendues, derivees }) {
+export function mesurerGenerateur(g, { cwd, mode, quiet, tsxEsm, lectures, ignores, rendues, derivees, motifsDeclares }) {
   mkdirSync(lectures, { recursive: true })
   const ecrites = ciblesSurDisque(g.targets, cwd)
   const injectees = ciblesSurDisque(g.injecte ?? [], cwd)
-  run(g, { cwd, quiet, mode, tsxEsm, lectures, ignores, derivees, cibles: [...new Set([...ecrites, ...injectees])].sort(), rendues })
+  run(g, { cwd, quiet, mode, tsxEsm, lectures, ignores, derivees, motifsDeclares, cibles: [...new Set([...ecrites, ...injectees])].sort(), rendues })
   const lues = fusionnerLectures(lectures)
   return { lues, entree: { cibles: ecrites.filter(estUnDocMarkdown), fichiers: lues.fichiers, dossiers: [...lues.dossiers.keys()], git: lues.git ?? [], sondes: lues.sondes ?? [], incomplet: lues.incomplet ?? [] } }
 }
@@ -292,7 +294,7 @@ export function mesurerEnRendu(scripts, { cwd, generateurs = GENERATORS }) {
     writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
     return new Map(mesures.map((g, i) => [
       g.script,
-      mesurerGenerateur(g, { cwd, mode: 'rendre', quiet: true, tsxEsm, ignores, derivees, lectures: path.join(racineLectures, String(i)) }),
+      mesurerGenerateur(g, { cwd, mode: 'rendre', quiet: true, tsxEsm, ignores, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]), lectures: path.join(racineLectures, String(i)) }),
     ]))
   } finally {
     rmSync(racineLectures, { recursive: true, force: true })
@@ -444,7 +446,7 @@ export function executer({
       }
       try {
         mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
-          cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees,
+          cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]),
           rendues: path.join(dossier, 'cibles-rendues'),
         }))
       } catch (e) {

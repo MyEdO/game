@@ -9,6 +9,9 @@
 // `WFRP_TEST_PARTIE=i/K` ne joue que la tranche `i` de la suite (`trancher`, partition.mjs), sous
 // le même choix partagé/mono : c'est le job matrice `suite` de `.github/workflows/ci.yml`.
 //
+// `--regime=lot|suite` (`regimeDeArgv`, partition.mjs ; `suite` par défaut) choisit l'empreinte d'un worker
+// (`EMPREINTES_WORKER_MO`) qui borne les workers ; il n'est jamais transmis à Vitest.
+//
 // La sortie des enfants est relayée telle quelle ET tee-ée AU FIL DE L'EAU dans
 // `node_modules/.cache/vitest-run-<pid>.txt` : un run tué (timeout, coupure) laisse quand même son
 // début, et le fichier porte LUI-MÊME son `status:` — seul artefact hors du pont d'outillage.
@@ -28,6 +31,7 @@ import {
   enteteCapture,
   envEnfant,
   partieDe,
+  regimeDeArgv,
   partitionner,
   porteBilan,
   refusDePartie,
@@ -87,10 +91,16 @@ const balayerAteliersMorts = () => {
 const posix = (p) => p.split(path.sep).join('/')
 
 const DEBUT = Date.now()
-const ARGV = process.argv.slice(2)
+const ARGV_DU_LANCEUR = process.argv.slice(2)
+const REGIME = regimeDeArgv(ARGV_DU_LANCEUR)
+if (REGIME.refus) {
+  console.error(`[test] REFUS — ${REGIME.refus}`)
+  process.exit(2)
+}
+const ARGV = REGIME.argv
 const { filtres, mono } = separerArguments(ARGV, (t) => fs.existsSync(path.resolve(RACINE, t)))
 const PARTIE = partieDe(process.env[VARIABLE_PARTIE])
-const refusPartie = PARTIE?.refus ?? (PARTIE ? refusDePartie({ filtres, argv: ARGV }) : null)
+const refusPartie = PARTIE?.refus ?? (PARTIE ? refusDePartie({ filtres, argv: ARGV_DU_LANCEUR }) : null)
 if (refusPartie) {
   console.error(`[test] REFUS — ${refusPartie}`)
   process.exit(2)
@@ -119,7 +129,7 @@ if (verrou.avertissement) console.error(verrou.avertissement)
 const ENV = envEnfant(process.env)
 // Mémoire DISPONIBLE, pas totale : ce que ce processus peut encore obtenir au lancement, limite de
 // cgroup et autres processus déjà servis — c'est elle que les workers se partagent (#1801).
-const CAPACITE = capaciteDuLanceur(process.env)
+const CAPACITE = capaciteDuLanceur(process.env, REGIME.regime)
 const CPUS = CAPACITE.servis
 const WORKERS = repartitionWorkers(CPUS)
 // Mode RÉELLEMENT servi : le partage se décide au-delà du seuil, mais se retire encore après coup

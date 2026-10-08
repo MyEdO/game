@@ -47,6 +47,32 @@ test('natureDuRouge : un processus tué ou coupé se nomme par son signal ou son
 const PRIMITIVE = pathToFileURL(path.join(ICI, 'lib', 'ecriture-derives.mjs')).href
 const BUILD_ALL = pathToFileURL(path.join(ICI, 'build-all.mjs')).href
 
+for (const glob of [false, true]) test(`build froid réel : listing propre ${glob ? 'glob' : 'littéral'} et sonde future`, () => {
+  const cible = 'data/froid.generated.ts'
+  const script = [
+    "import { existsSync, readFileSync } from 'node:fs'",
+    `import { listerDossier } from ${JSON.stringify(pathToFileURL(path.join(ICI, '../guards/lib/lister.mjs')).href)}`,
+    `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
+    `existsSync(${JSON.stringify(cible)})`,
+    ...(glob ? ["existsSync('data/futur.generated.ts')"] : []),
+    "const sources = listerDossier('data').filter(n => n.endsWith('.txt')).map(n => readFileSync('data/' + n, 'utf8')).join('')",
+    `ecrireOuVerifier({ path: ${JSON.stringify(cible)}, out: 'export const froid = ' + JSON.stringify(sources) + '\\n', check: process.argv.includes('--check'), staleMsg: 'froid périmé', rerunMsg: 'relancer' })`,
+  ].join('\n')
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\ndocs/\n', 'data/source.txt': 'source', 'g/froid.mjs': script } })
+  const generateurs = [{ runner: 'node', script: 'g/froid.mjs', targets: [glob ? 'data/*.generated.ts' : cible] }]
+  try {
+    assert.equal(existsSync(path.join(racine, cible)), false)
+    const froid = executer(racine, ['--code'], {}, [], generateurs)
+    assert.equal(froid.status, 0, froid.sortie)
+    const preuve = chargerPreuve(racine)
+    assert.equal(preuveValide(racine, { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, true)
+    assert.equal(preuve.generateurs['g/froid.mjs'].mesure.sondes.some(q => q.chemin.endsWith('.generated.ts')), false)
+    const bytes = readFileSync(path.join(racine, cible))
+    assert.equal(executer(racine, ['--check', '--code'], {}, [], generateurs).status, 0)
+    assert.deepEqual(readFileSync(path.join(racine, cible)), bytes)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 test('export physique vide : sélection code vide sans écriture ni certification', () => {
   const racine = mkdtempSync(path.join(tmpdir(), 'export-code-vide-'))
   try {

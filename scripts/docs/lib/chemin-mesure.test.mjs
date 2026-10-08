@@ -8,11 +8,38 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ancetreExistant, canoniser, dansLaMesure, perimetreDeMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { ancetreExistant, canoniser, dansLaMesure, perimetreDeMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { envDeDepotForge, instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { depotDe, politiqueExclusionsDe } from '../../guards/lib/gitPorte.mjs'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
+
+test('admission déclarée : endpoints glob ignorés, natures et frontières', () => {
+  const motifs = ['data/*.generated.ts', 'node_modules/*.generated.ts', '.git/*.generated.ts', 'docs/.cache/*.generated.ts']
+  const ignores = new Set(['data', 'node_modules', '.git', 'docs/.cache'])
+  for (const nature of ['file', 'directory', 'link', 'other']) {
+    const snapshot = { nature: 'directory', entrees: [{ nom: 'own.generated.ts', nature }, { nom: 'other.generated.ts', nature }, { nom: 'foreign.cache', nature }] }
+    const projection = projeterListingMesure('data', snapshot, ignores, new Set(), ['data/own.generated.ts'], motifs)
+    assert.deepEqual(projection.entrees, nature === 'file' ? [snapshot.entrees[1]] : snapshot.entrees.slice(0, 2))
+  }
+  assert.equal(dansLaMesure('data/own.generated.ts', ignores, new Set(), motifs), true)
+  assert.equal(dansLaMesure('data/own.generated.ts/foreign.txt', ignores, new Set(), motifs), false)
+  for (const rel of ['node_modules/a.generated.ts', '.git/a.generated.ts', 'docs/.cache/a.generated.ts', 'data/foreign.cache']) assert.equal(dansLaMesure(rel, ignores, new Set(), motifs), false)
+})
+
+test('projection froide : seuls les fichiers propres sortent, dossiers, liens et autre producteur restent', () => {
+  const snapshot = { nature: 'directory', entrees: [
+    { nom: 'a.generated.ts', nature: 'file' }, { nom: 'b.generated.ts', nature: 'directory' },
+    { nom: 'c.generated.ts', nature: 'link' }, { nom: 'autre.ts', nature: 'file' }, { nom: 'cache', nature: 'directory' },
+  ] }
+  const copie = JSON.stringify(snapshot)
+  const derivees = new Set(['data/a.generated.ts', 'data/b.generated.ts', 'data/c.generated.ts', 'data/autre.ts'])
+  assert.deepEqual(projeterListingMesure('data', snapshot, new Set(['data/cache']), derivees, ['data/*.generated.ts']), {
+    nature: 'directory', entrees: snapshot.entrees.slice(1, 4),
+  })
+  assert.equal(JSON.stringify(snapshot), copie)
+  assert.throws(() => projeterListingMesure('data', [], new Set()), /photographie typée/)
+})
 
 // #2475 / #2477
 function bancAdresses(run) {

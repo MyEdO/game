@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import fs from 'node:fs'
+import { syncBuiltinESMExports } from 'node:module'
 import path from 'node:path'
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
@@ -24,6 +26,169 @@ const poser = (racine, rel, bytes) => {
   mkdirSync(path.dirname(path.join(racine, rel)), { recursive: true })
   writeFileSync(path.join(racine, rel), bytes)
 }
+
+test('préparation : une capture physique commune, null conservé, clés absentes lues et DTO privés', (t) => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'data/lien\n', 'data/source.txt': 'source', 'data/non-capture.txt': 'autre', 'data/sousdir/enfant.txt': 'enfant', 'g/froid.mjs': 'export const froid = 1\n' } })
+  const g = { runner: 'node', script: 'g/froid.mjs', targets: [doc('froid')] }
+  const opts = { ...options, generateurs: [g] }
+  const entree = { fichiers: [g.script, 'data/source.txt', 'data/absent.txt'], dossiers: ['data'], cibles: [], git: [], sondes: [], incomplet: [] }
+  const compter = (espion, rel, types = false) => espion.mock.calls.filter(({ arguments: args }) => args[0] === path.join(racine, rel) && (!types || args[1]?.withFileTypes === true)).length
+  try {
+    poser(racine, SOURCES_LUES, JSON.stringify({ [g.script]: entree }))
+    symlinkSync(path.join(racine, 'data/sousdir'), path.join(racine, 'data/lien'), process.platform === 'win32' ? 'junction' : 'dir')
+    const lectures = t.mock.method(fs, 'readFileSync')
+    const listages = t.mock.method(fs, 'readdirSync')
+    const presences = t.mock.method(fs, 'existsSync')
+    syncBuiltinESMExports()
+    const preparation = preparerPreuves(racine, opts)
+    assert.equal(compter(lectures, 'data/source.txt'), 1)
+    assert.equal(compter(listages, 'data', true), 1)
+    assert.equal(compter(presences, 'data/absent.txt'), 2)
+    assert.equal(preparation.vue.hashes.get('data/absent.txt'), null)
+    assert.equal(preparation.fichiers.get('data/absent.txt'), null)
+    assert.equal(preparation.vue.hashes.has('data/non-capture.txt'), false)
+    assert.equal(compter(lectures, 'data/non-capture.txt'), 1)
+    assert.equal(typeof preparation.fichiers.get('data/non-capture.txt'), 'string')
+    assert.equal(preparation.vue.listings.has('data/sousdir'), false)
+    assert.equal(compter(listages, 'data/sousdir', true), 1)
+    const courant = preparation.vue.listings.get('data')
+    const prive = preparation.dossiers.get('data')
+    assert.deepEqual(Object.fromEntries(prive.entrees.map(({ nom, nature }) => [nom, nature])), { lien: 'link', 'non-capture.txt': 'file', 'source.txt': 'file', sousdir: 'directory' })
+    assert.notStrictEqual(prive, courant)
+    assert.notStrictEqual(prive.entrees, courant.entrees)
+    for (let i = 0; i < prive.entrees.length; i++) assert.notStrictEqual(prive.entrees[i], courant.entrees[i])
+    const capturePrivee = JSON.stringify(prive)
+    courant.entrees[0].nature = 'mutation'
+    courant.entrees.push({ nom: 'faux', nature: 'file' })
+    assert.equal(JSON.stringify(prive), capturePrivee)
+    const ancienHash = preparation.fichiers.get('data/source.txt')
+    poser(racine, 'data/source.txt', 'source suivante')
+    poser(racine, 'data/absent.txt', 'désormais présente')
+    const suivante = preparerPreuves(racine, opts)
+    assert.equal(compter(lectures, 'data/source.txt'), 2)
+    assert.equal(compter(listages, 'data', true), 2)
+    assert.notEqual(suivante.fichiers.get('data/source.txt'), ancienHash)
+    assert.equal(typeof suivante.fichiers.get('data/absent.txt'), 'string')
+  } finally {
+    t.mock.restoreAll()
+    syncBuiltinESMExports()
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('baseline privée : modifier la préparation ne blanchit pas une source nouvelle', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\n', 'data/source.txt': 'source', 'g/froid.mjs': 'export const froid = 1\n' } })
+  const g = { runner: 'node', script: 'g/froid.mjs', targets: ['data/*.generated.ts'] }
+  const opts = { ...options, generateurs: [g] }
+  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: ['data'], cibles: [], git: [], sondes: [], incomplet: [] }
+  try {
+    const preparation = preparerPreuves(racine, opts)
+    const avant = avantGenerateur(racine, g, opts, preparation)
+    preparation.dossiers.get('data').entrees.push({ nom: 'nouvelle.txt', nature: 'file' })
+    preparation.dossiers.get('data').entrees.sort((a, b) => a.nom < b.nom ? -1 : a.nom > b.nom ? 1 : 0)
+    poser(racine, 'data/nouvelle.txt', 'source clandestine')
+    poser(racine, 'data/propre.generated.ts', 'sortie propre')
+    assert.equal(certifierGenerateur(racine, g, entree, opts, avant).ok, false)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+for (const producteur of ['propre', 'autre']) for (const nature of ['directory', 'link']) test(`admission réelle : glob ignoré ${producteur} FILE→${nature}`, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\n', 'data/source.txt': 'source', 'g/froid.mjs': 'export const froid = 1\n', 'g/autre.mjs': 'export const autre = 1\n' } })
+  const cible = 'data/propre.generated.ts'
+  const endpoint = `data/${producteur}.generated.ts`
+  const g = { runner: 'node', script: 'g/froid.mjs', targets: ['data/propre*.generated.ts'] }
+  const opts = { ...options, generateurs: [g, { runner: 'node', script: 'g/autre.mjs', targets: ['data/autre*.generated.ts'] }] }
+  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: ['data'], cibles: [], git: [], sondes: [], incomplet: [] }
+  try {
+    poser(racine, endpoint, 'ancien endpoint')
+    const preparation = preparerPreuves(racine, opts)
+    const avant = avantGenerateur(racine, g, opts, preparation)
+    const snapshot = JSON.stringify(avant.baseline.dossiers.get('data'))
+    preparation.dossiers.get('data').entrees[0].nom = 'mutation privée'
+    assert.equal(JSON.stringify(avant.baseline.dossiers.get('data')), snapshot)
+    rmSync(path.join(racine, endpoint))
+    if (nature === 'directory') mkdirSync(path.join(racine, endpoint))
+    else symlinkSync(path.join(racine, 'data'), path.join(racine, endpoint), process.platform === 'win32' ? 'junction' : 'dir')
+    if (producteur === 'autre') poser(racine, cible, 'sortie propre')
+    assert.equal(certifierGenerateur(racine, g, entree, opts, avant).ok, false)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+for (const glob of [false, true]) test(`certification froide : fichier propre ${glob ? 'sous glob' : 'littéral'} dans le dossier source listé`, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\n', 'data/source.txt': 'source', 'g/froid.mjs': 'export const froid = 1\n' } })
+  const cible = 'data/froid.generated.ts'
+  const g = { runner: 'node', script: 'g/froid.mjs', targets: [glob ? 'data/*.generated.ts' : cible] }
+  const opts = { ...options, generateurs: [g] }
+  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: ['data'], cibles: [], git: [], sondes: [], incomplet: [] }
+  try {
+    assert.equal(existsSync(path.join(racine, cible)), false)
+    const preparation = preparerPreuves(racine, opts)
+    const avant = avantGenerateur(racine, g, opts, preparation)
+    poser(racine, cible, 'export const produit = 1\n')
+    const vu = certifierGenerateur(racine, g, entree, opts, avant)
+    assert.equal(vu.ok, true, vu.raison)
+    enregistrerPreuve(racine, opts, preparation, new Map([[g.script, vu.record]]))
+    assert.equal(preuveValide(racine, opts).ok, true)
+    const ancien = JSON.parse(JSON.stringify(chargerPreuve(racine)))
+    ancien.generateurs[g.script].sources.dossiers = ancien.generateurs[g.script].sources.dossiers.map(([rel, snapshot]) => [rel, snapshot.entrees.map(e => e.nom)])
+    assert.equal(preuveValide(racine, opts, ancien).ok, false)
+    poser(racine, 'data/soeur.txt', 'nouvelle source')
+    assert.equal(preuveValide(racine, opts).ok, false)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+for (const cas of ['propre', 'source', 'ignore', 'vide', 'lien', 'observe', 'sonde', 'contenu', 'lecture']) test(`structure froide : ${cas}`, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\nsecret.tmp\n', 'data/source.txt': 'source', 'data/temoin.txt': 'temoin', 'g/froid.mjs': 'export const froid = 1\n', 'g/lecteur.mjs': 'export const lecteur = 1\n' } })
+  const cible = 'data/neuf/sortie.generated.ts'
+  const g = { runner: 'node', script: 'g/froid.mjs', targets: ['data/neuf/*.generated.ts'] }
+  const lecteur = { runner: 'node', script: 'g/lecteur.mjs', targets: ['data/neuf/lecteur.generated.ts'] }
+  const opts = { ...options, generateurs: [g, lecteur] }
+  const entree = { fichiers: [g.script, 'data/temoin.txt'], dossiers: cas === 'observe' ? ['data/neuf'] : [], cibles: [], git: [], sondes: cas === 'sonde' ? [{ chemin: 'data/neuf', type: 'exists', existe: false, nature: null }] : [], incomplet: [] }
+  try {
+    const preparation = preparerPreuves(racine, opts)
+    const avant = avantGenerateur(racine, g, opts, preparation)
+    const socle = JSON.stringify({ fichiers: [...preparation.fichiers], dossiers: [...preparation.dossiers] })
+    poser(racine, cible, 'export const produit = 1\n')
+    if (cas === 'source') poser(racine, 'data/neuf/etranger.txt', 'source clandestine')
+    if (cas === 'ignore') poser(racine, 'data/neuf/secret.tmp', 'ignoré clandestin')
+    if (cas === 'vide') mkdirSync(path.join(racine, 'data/neuf/vide'))
+    if (cas === 'lien') symlinkSync(path.join(racine, 'data'), path.join(racine, 'data/neuf/lien'), process.platform === 'win32' ? 'junction' : 'dir')
+    if (cas === 'contenu') poser(racine, 'data/source.txt', 'source modifiée sans lecture')
+    if (cas === 'lecture') { rmSync(path.join(racine, 'data/source.txt')); mkdirSync(path.join(racine, 'data/source.txt')) }
+    const vu = certifierGenerateur(racine, g, entree, opts, avant)
+    assert.equal(vu.ok, cas === 'propre', vu.raison)
+    if (cas !== 'propre') assert.equal(JSON.stringify({ fichiers: [...preparation.fichiers], dossiers: [...preparation.dossiers] }), socle)
+    else {
+      const prochain = avantGenerateur(racine, lecteur, opts, preparation)
+      poser(racine, lecteur.targets[0], 'export const lecteur = 2\n')
+      const suivant = certifierGenerateur(racine, lecteur, { ...entree, fichiers: [lecteur.script, cible], dossiers: ['data/neuf'] }, opts, prochain)
+      assert.equal(suivant.ok, true, suivant.raison)
+    }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+for (const cas of ['creation', 'suppression', 'contenu', 'propre-dossier', 'source-dossier', 'dossier-absent', 'regles']) test(`contre-témoin froid : ${cas}`, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\n', 'data/source.txt': 'source', 'g/froid.mjs': 'export const froid = 1\n', 'g/autre.mjs': 'export const autre = 1\n' } })
+  const cible = 'data/froid.generated.ts'
+  const autre = 'data/autre.generated.ts'
+  const g = { runner: 'node', script: 'g/froid.mjs', targets: [cible] }
+  const opts = { ...options, generateurs: [g, { runner: 'node', script: 'g/autre.mjs', targets: ['data/autre*.generated.ts'] }] }
+  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: ['data'], cibles: [], git: [], sondes: [], incomplet: [] }
+  try {
+    if (cas !== 'creation') poser(racine, autre, 'autre producteur')
+    const preparation = preparerPreuves(racine, opts)
+    const avant = avantGenerateur(racine, g, opts, preparation)
+    poser(racine, cible, 'export const propre = 1\n')
+    if (cas === 'creation') poser(racine, autre, 'autre producteur')
+    if (cas === 'suppression') rmSync(path.join(racine, autre))
+    if (cas === 'contenu') poser(racine, autre, 'autre producteur modifié')
+    if (cas === 'propre-dossier') { rmSync(path.join(racine, cible)); mkdirSync(path.join(racine, cible)) }
+    if (cas === 'source-dossier') { rmSync(path.join(racine, 'data/source.txt')); mkdirSync(path.join(racine, 'data/source.txt')) }
+    if (cas === 'dossier-absent') rmSync(path.join(racine, 'data'), { recursive: true })
+    if (cas === 'regles') poser(racine, '.gitignore', '*.generated.ts\nsource.txt\n')
+    assert.equal(certifierGenerateur(racine, g, entree, opts, avant).ok, false, cas)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
 
 function certifier(racine, mesure, opts = options) {
   const preparation = preparerPreuves(racine, opts)

@@ -23,6 +23,28 @@ import fs from 'node:fs'
 import childProcess, { spawnSync } from 'node:child_process'
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
 
+test('admission collecteur : glob ignoré propre et autre, FILE DIR LINK', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'admission-collecteur-'))
+  mkdirSync(path.join(racine, 'data'))
+  for (const producteur of ['own', 'other']) {
+    writeFileSync(path.join(racine, `data/${producteur}-file.generated.ts`), producteur)
+    mkdirSync(path.join(racine, `data/${producteur}-dir.generated.ts`))
+    fs.symlinkSync(path.join(racine, 'data'), path.join(racine, `data/${producteur}-link.generated.ts`), process.platform === 'win32' ? 'junction' : 'dir')
+  }
+  const c = installer({ racine, ignores: new Set(['own', 'other'].flatMap(p => ['file', 'dir', 'link'].map(n => `data/${p}-${n}.generated.ts`))), motifsPropres: ['data/own-*.generated.ts'], motifsDeclares: ['data/*.generated.ts'] })
+  try {
+    listerDossier(path.join(racine, 'data'))
+    statSync(path.join(racine, 'data/own-dir.generated.ts'))
+    readFileSync(path.join(racine, 'data/other-file.generated.ts'))
+    const vu = c.rendu()
+    assert.deepEqual(vu.dossiers.data.entrees.map(e => [e.nom, e.nature]), [
+      ['other-dir.generated.ts', 'directory'], ['other-file.generated.ts', 'file'], ['other-link.generated.ts', 'link'], ['own-dir.generated.ts', 'directory'], ['own-link.generated.ts', 'link'],
+    ])
+    assert.ok(vu.sondes.some(q => q.chemin === 'data/own-dir.generated.ts' && q.nature === 'directory'))
+    assert.ok(vu.fichiers.includes('data/other-file.generated.ts'))
+  } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }
+})
+
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 const RACINE = path.resolve(ICI, '..', '..', '..')
 /** Les lectures de `script` (un générateur de `GENERATORS`) par LA mesure rendue (`mesurerEnRendu`). */
@@ -107,10 +129,12 @@ test('mesure 2456 : fusion et sérialisation conservent sondes, Git et refus', (
   const q = { args: ['ls-files'], cwd: '', status: 0, stdout: 'a.md\n', stderr: '' }
   const s = { chemin: 'absent', type: 'exists', existe: false, nature: null }
   try {
-    writeFileSync(path.join(dossier, 'a.1.json'), JSON.stringify({ git: [q], sondes: [s], incomplet: ['refus'] }))
+    const photographie = { nature: 'directory', entrees: [{ nom: 'a.md', nature: 'file' }] }
+    writeFileSync(path.join(dossier, 'a.1.json'), JSON.stringify({ git: [q], sondes: [s], incomplet: ['refus'], dossiers: { gen: photographie } }))
     writeFileSync(path.join(dossier, 'a.1.hooks-mesures.jsonl'), `${JSON.stringify({ git: [q] })}\n${JSON.stringify({ sondes: [s] })}\n`)
     const lues = fusionnerLectures(dossier)
     assert.deepEqual(lues.git, [q]); assert.deepEqual(lues.sondes, [s]); assert.deepEqual(lues.incomplet, ['refus'])
+    assert.deepEqual(lues.dossiers.get('gen'), photographie)
     const entree = { cibles: [], fichiers: [], dossiers: [], git: lues.git, sondes: lues.sondes, incomplet: lues.incomplet }
     assert.deepEqual(JSON.parse(serialiserSourcesLues({ g: entree })).g, entree)
   } finally { rmSync(dossier, { recursive: true, force: true }) }
@@ -128,7 +152,27 @@ test('mesure 2456 : un dérivé ignoré lu est source, les cibles propres et cac
     fs.readFileSync(path.join(racine, 'node_modules/cache.ts'))
     listerDossier(path.join(racine, 'gen'))
     assert.deepEqual(c.rendu().fichiers, ['gen/autre.ts'])
-    assert.deepEqual(c.rendu().dossiers.gen, ['autre.ts', 'nonlu.ts', 'propre.ts'])
+    assert.deepEqual(c.rendu().dossiers.gen, { nature: 'directory', entrees: [{ nom: 'autre.ts', nature: 'file' }, { nom: 'nonlu.ts', nature: 'file' }] })
+  } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('collecteur froid : glob futur propre absent puis créé, sondes exclues et dossier propre conservé', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'collecteur-froid-'))
+  mkdirSync(path.join(racine, 'data'))
+  mkdirSync(path.join(racine, 'data/dossier.generated.ts'))
+  writeFileSync(path.join(racine, 'data/source.txt'), 'source')
+  const c = installer({ racine, ignores: new Set(), motifsPropres: ['data/*.generated.ts'] })
+  try {
+    fs.existsSync(path.join(racine, 'data/froid.generated.ts'))
+    assert.throws(() => fs.statSync(path.join(racine, 'data/froid.generated.ts')), { code: 'ENOENT' })
+    const avant = listerDossier(path.join(racine, 'data'), { avecTypes: true })
+    fs.writeFileSync(path.join(racine, 'data/froid.generated.ts'), 'produit')
+    fs.readFileSync(path.join(racine, 'data/froid.generated.ts'))
+    fs.statSync(path.join(racine, 'data/dossier.generated.ts'))
+    assert.deepEqual(c.rendu().fichiers, [])
+    assert.deepEqual(c.rendu().sondes.map(q => q.chemin), ['data/dossier.generated.ts'])
+    assert.deepEqual(c.rendu().dossiers.data, avant)
+    assert.equal(avant.entrees.some(e => e.nom === 'froid.generated.ts'), false)
   } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }
 })
 
@@ -250,15 +294,14 @@ test('casse : une lecture par un chemin à casse différente est COMPTÉE, une l
   }
 })
 
-// #1769 : un script Python pose `__pycache__/` (ignoré par git) dans un dossier que les générateurs
-// listent. Enregistré, il faisait dépendre la mesure de l'état local du disque.
+// #1769
 test('un dossier IGNORÉ par git, posé dans un dossier lu, ne change ni le listing ni les dossiers', () => {
   const { racine: brute } = instanceDeDepot({
     fichiers: { '.gitignore': '__pycache__/\n*.log\n', 'lib/geometrie.py': 'x = 1\n' },
   })
   const racine = realpathSync.native(brute)
   try {
-    // Un fichier SUIVI qui répond pourtant à un motif de `.gitignore` : il reste dans le plan git.
+    // #1769
     writeFileSync(path.join(racine, 'lib', 'suivi.log'), 'trace\n')
     lancerGit(['add', '-f', 'lib/suivi.log'], { cwd: racine })
     const cache = path.join(racine, 'lib', '__pycache__')
@@ -282,7 +325,7 @@ test('un dossier IGNORÉ par git, posé dans un dossier lu, ne change ni le list
 
     const propre = mesurerLib()
     assert.deepEqual(propre.rendu.fichiers, ['lib/geometrie.py', 'lib/suivi.log'], 'le fichier SUIVI sous motif ignoré est sorti de la mesure')
-    assert.deepEqual(propre.rendu.dossiers, { lib: ['geometrie.py', 'suivi.log'] })
+    assert.deepEqual(propre.rendu.dossiers, { lib: { nature: 'directory', entrees: [{ nom: 'geometrie.py', nature: 'file' }, { nom: 'suivi.log', nature: 'file' }] } })
 
     mkdirSync(cache)
     writeFileSync(path.join(cache, 'geometrie.pyc'), 'bytecode')

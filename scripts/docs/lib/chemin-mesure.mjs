@@ -13,7 +13,7 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { cheminsIgnores, depotDe, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe } from '../../guards/lib/gitPorte.mjs'
-import { listerArbre } from '../../guards/lib/lister.mjs'
+import { correspondGlob, listerArbre } from '../../guards/lib/lister.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 
 /** Ancêtre EXISTANT le plus proche d'un chemin absolu (lui-même s'il existe), ou `null` quand rien
@@ -150,17 +150,21 @@ function signatureGit(racine, base, depot, ignores, racineGit) {
   }
 }
 
-/**
- * Le chemin RELATIF POSIX (`relatifSousRacine`) entre-t-il dans la mesure ? Non s'il est ignoré par
- * git (`ignoresGit`), lui ou l'un de ses dossiers parents, ni s'il est sous `.git` — le dépôt lui-même,
- * que `ls-files` ne rend jamais. SEULE décision du périmètre : fichier lu, dossier listé et entrée de
- * listing passent tous ici.
- */
-export function dansLaMesure(rel, ignores, derivees = new Set()) {
+/** #2475 / #2477 */
+export function dansLaMesure(rel, ignores, derivees = new Set(), motifsDeclares = []) {
   if (EXCLUSIONS_FIXES.some((p) => rel === p || rel.startsWith(`${p}/`))) return false
+  if (motifsDeclares.some((motif) => correspondGlob(rel, motif))) return true
   if (derivees.has(rel) || [...derivees].some((p) => p.startsWith(`${rel}/`))) return true
   for (let fin = rel.length; fin > 0; fin = rel.lastIndexOf('/', fin - 1)) if (ignores.has(rel.slice(0, fin))) return false
   return true
+}
+
+export function projeterListingMesure(rel, snapshot, ignores, derivees = new Set(), propres = [], motifsDeclares = []) {
+  if (!snapshot || !['directory', 'absent', 'other'].includes(snapshot.nature) || !Array.isArray(snapshot.entrees)) throw new Error('listing sans photographie typée')
+  return { nature: snapshot.nature, entrees: snapshot.entrees.filter((e) => {
+    const chemin = rel ? `${rel}/${e.nom}` : e.nom
+    return dansLaMesure(chemin, ignores, derivees, motifsDeclares) && !(e.nature === 'file' && propres.some((motif) => correspondGlob(chemin, motif)))
+  }) }
 }
 
 export const CONTRATS_DE_DERIVATION = [{ fonction: ancetreExistant, lectures: 'corpus', retour: 'corpus' }, { fonction: canoniser, lectures: 'corpus', retour: 'corpus' }]
