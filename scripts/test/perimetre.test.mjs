@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { REPLI_SURCOUT_MS, SURCOUTS, apprendre, ordreDuLanceur, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ordreDuLanceur, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
 import DureesVitest from './dureesVitest.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -320,9 +320,9 @@ test('estimationsDe : la durée apprise ICI prime, puis la durée CI × le facte
   assert.deepEqual([...estimations].map(([t, { ms, source, population }]) => [t, ms, source, population ?? null]), [
     ['src/l.test.ts', 500, 'locale', null],
     ['scripts/l.test.mjs', 700, 'locale', null],
-    ['src/n.test.ts', 900, 'ci', 'vitest-node'],
-    ['src/j.test.tsx', 3500, 'ci', 'vitest-jsdom'],
-    ['scripts/c.test.mjs', 2000, 'ci', 'node'],
+    ['src/n.test.ts', Math.round(1000 * REPLI_FACTEUR_CI['vitest-node']), 'ci', 'vitest-node'],
+    ['src/j.test.tsx', Math.round(1000 * REPLI_FACTEUR_CI['vitest-jsdom']), 'ci', 'vitest-jsdom'],
+    ['scripts/c.test.mjs', Math.round(2000 * REPLI_FACTEUR_CI.node), 'ci', 'node'],
     ['src/illisible.test.ts', null, 'inconnue', null],
     ['scripts/z.test.mjs', null, 'inconnue', null],
   ])
@@ -330,7 +330,8 @@ test('estimationsDe : la durée apprise ICI prime, puis la durée CI × le facte
   assert.deepEqual([...estimationsDe(tests, { locales })].map(([, { source }]) => source), ['locale', 'locale', 'inconnue', 'inconnue', 'inconnue', 'inconnue', 'inconnue'], 'sans CI : apprise ou inconnue')
 })
 
-test('facteursCi : Σlocal/ΣCI des paires dès 10 ; dessous, le repli de banc ; node sans repli : 1, non calibré', () => {
+test('facteursCi : Σlocal/ΣCI des paires dès 10 ; dessous, le repli de banc, pour CHAQUE population', () => {
+  for (const population of ['vitest-node', 'vitest-jsdom', 'node']) assert.ok(Number.isFinite(REPLI_FACTEUR_CI[population]) && REPLI_FACTEUR_CI[population] > 0, `repli de banc mesuré pour ${population}`)
   const noms = (n, prefixe, ext) => Array.from({ length: n }, (_, i) => `${prefixe}${i}.test.${ext}`)
   const [vitestNode, jsdom, node] = [noms(10, 'src/n', 'ts'), noms(9, 'src/j', 'tsx'), noms(3, 'scripts/m', 'mjs')]
   const ci = { vitest: tableTotale([...vitestNode, ...jsdom], () => 100), node: tableTotale(node, () => 100) }
@@ -338,8 +339,8 @@ test('facteursCi : Σlocal/ΣCI des paires dès 10 ; dessous, le repli de banc ;
   const environnementDe = (t) => t.endsWith('.tsx') ? 'jsdom' : 'node'
   assert.deepEqual(facteursCi({ locales, ci, environnementDe }), {
     'vitest-node': { valeur: 2, paires: 10, origine: 'paires' },
-    'vitest-jsdom': { valeur: 3.5, paires: 9, origine: 'repli' },
-    node: { valeur: 1, paires: 3, origine: 'non calibré' },
+    'vitest-jsdom': { valeur: REPLI_FACTEUR_CI['vitest-jsdom'], paires: 9, origine: 'repli' },
+    node: { valeur: REPLI_FACTEUR_CI.node, paires: 3, origine: 'repli' },
   })
   const node10 = noms(10, 'scripts/p', 'mjs')
   assert.deepEqual(facteursCi({ locales: tableTotale(node10, () => 50), ci: { node: tableTotale(node10, () => 100) }, environnementDe }).node,
@@ -351,7 +352,7 @@ test('texte d’une estimation et d’un mur : apprise ici, CI calibrée ou non,
   assert.equal(texteDeLEstimation({ ms: 900, source: 'ci', run: 37724465833, population: 'vitest-node', facteur: { valeur: 0.9, paires: 3, origine: 'repli' } }),
     ' ~0.9 s (CI 37724465833 × 0.90 repli de banc, vitest-node)')
   assert.equal(texteDeLEstimation({ ms: 2100, source: 'ci', run: 1, population: 'vitest-jsdom', facteur: { valeur: 2.1, paires: 40, origine: 'paires' } }), ' ~2.1 s (CI 1 × 2.10, vitest-jsdom)')
-  assert.equal(texteDeLEstimation({ ms: 2000, source: 'ci', run: 1, population: 'node', facteur: { valeur: 1, paires: 0, origine: 'non calibré' } }), ' ~2.0 s (CI 1, non calibrée, node)')
+  assert.equal(texteDeLEstimation({ ms: 11_700, source: 'ci', run: 1, population: 'node', facteur: { valeur: 5.85, paires: 0, origine: 'repli' } }), ' ~11.7 s (CI 1 × 5.85 repli de banc, node)')
   assert.equal(texteDeLEstimation({ ms: null, source: 'inconnue' }), ' durée inconnue')
   assert.equal(texteDuMur(3000), '3.0 s')
   assert.equal(texteDuMur(1000, { sansDuree: 2 }), '≥ 1.0 s (minorant : 2 test(s) sans durée)')
@@ -589,9 +590,9 @@ test('planDuPerimetre : sur des mesures d’un dossier temporaire, la durée CI 
   const retenus = new Map([['src/a.test.ts', { rang: 1 }], ['src/j.test.tsx', { rang: 1 }]])
   const { ci, facteurs, estimations, plan } = planDuPerimetre(retenus, { mesures: mesuresDe(commun), lire, budget: 180, workers: { vitest: 1 } })
   assert.deepEqual([ci.run, [...lus].sort()], [5, ['src/a.test.ts', 'src/j.test.tsx']])
-  assert.deepEqual([estimations.get('src/a.test.ts').source, estimations.get('src/j.test.tsx').ms, estimations.get('src/j.test.tsx').population], ['locale', 3500, 'vitest-jsdom'])
+  assert.deepEqual([estimations.get('src/a.test.ts').source, estimations.get('src/j.test.tsx').ms, estimations.get('src/j.test.tsx').population], ['locale', Math.round(1000 * REPLI_FACTEUR_CI['vitest-jsdom']), 'vitest-jsdom'])
   assert.deepEqual([facteurs['vitest-node'].origine, facteurs['vitest-node'].paires], ['repli', 1])
-  assert.deepEqual([plan.nCi, plan.murCiMs], [1, 3500])
+  assert.deepEqual([plan.nCi, plan.murCiMs], [1, Math.round(1000 * REPLI_FACTEUR_CI['vitest-jsdom'])])
 })
 
 test('surcoûts : le mémo porte le MODÈLE du mur dans son nom — un surcoût écrit sous un autre modèle, ou dans l’ancien `surcouts.json`, n’est pas lu ; repli de banc', (t) => {
