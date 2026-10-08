@@ -4551,6 +4551,60 @@
     },
     {
       "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 42
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 43
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 44
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 45
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 46
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 47
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 48
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 49
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/synchroniser.test.mjs",
+      "ref": "committer : appel lanceurs.get",
+      "occurrence": 50
+    },
+    {
+      "famille": "appel non suivi",
       "fichier": "scripts/raw/_lib.mjs",
       "ref": "readText : appel _chapterCache.get",
       "occurrence": 1
@@ -19096,31 +19150,31 @@
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : paramètre resultat",
+      "ref": "existsSync : paramètre vu",
       "occurrence": 1
     },
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : paramètre resultat",
+      "ref": "existsSync : paramètre vu",
       "occurrence": 2
     },
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : paramètre resultat",
+      "ref": "existsSync : paramètre vu",
       "occurrence": 3
     },
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : paramètre resultat",
+      "ref": "existsSync : paramètre vu",
       "occurrence": 4
     },
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "readFileSync : paramètre resultat",
+      "ref": "readFileSync : paramètre vu",
       "occurrence": 1
     },
     {
@@ -20793,6 +20847,12 @@
     },
     {
       "famille": "sortie de processus",
+      "fichier": "scripts/ops/chantier.mjs",
+      "ref": "attendreLibre : appel String(vu.valeur.stdout).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
       "fichier": "scripts/ops/suivi.mjs",
       "ref": "editer : appel String(vu.valeur.stdout).trim",
       "occurrence": 1
@@ -20813,36 +20873,6 @@
       "famille": "sortie de processus",
       "fichier": "scripts/ops/suivi.mjs",
       "ref": "listerSuivis : appel String(vu.valeur.stdout).trim",
-      "occurrence": 1
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : appel String(vu.valeur.stdout).trim",
-      "occurrence": 1
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : appel String(vu.valeur.stdout).trim",
-      "occurrence": 2
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : appel String(vu.valeur.stdout).trim",
-      "occurrence": 3
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "existsSync : appel String(vu.valeur.stdout).trim",
-      "occurrence": 4
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/ops/synchroniser.test.mjs",
-      "ref": "readFileSync : appel String(vu.valeur.stdout).trim",
       "occurrence": 1
     },
     {

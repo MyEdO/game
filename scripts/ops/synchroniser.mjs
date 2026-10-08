@@ -6,31 +6,106 @@
 // Limite nommée : un écrivain NON git entre la comparaison et l'écriture d'un W′, et un ignoré créé
 // entre la capture et `read-tree`, ne sont pas exclus (verdict, D4 (b) et (c)).
 //
-// Usage : `npm run ops:synchroniser [-- --json]`, depuis n'importe quel worktree du dépôt.
+// Le post-merge de l'avance court en FOND (#2493, `.git/suivi/2493-design-verdict-2026-10-08.md`) : la plage
+// due vit dans `<git-common-dir>/synchro-consommateurs/du.json`, un consommateur détaché (`--consommer`) la
+// joue et la solde.
+//
+// Usage : `npm run ops:synchroniser [-- --json]`, `[-- --mesurer [--visee <sha>] --json]` (ni fetch, ni
+// verrou, ni écriture), `[-- --consommer]` (le consommateur), depuis n'importe quel worktree du dépôt.
 import { randomUUID, createHash } from 'node:crypto'
-import { accessSync, closeSync, constants as fsConstants, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, rmdirSync, writeFileSync, writeSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { accessSync, appendFileSync, closeSync, constants as fsConstants, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, writeFileSync, writeSync } from 'node:fs'
+import { basename, dirname, join, resolve } from 'node:path'
 import {
-  GitIndisponible, INDEX, TRONC, ajoutDe, arbrePrincipal, attributsDe, avancerArbre, brancheDe, ceQuiChange, ceriseDe,
-  cheminGit, cheminsIgnores, contenuDuBlob, depotDe, ecrireBlob, entreesDe, estAncetre, etatDeLArbre, fetchOrigin,
+  GitIndisponible, INDEX, TIMEOUT_DU_DISTANT_MS, TIMEOUT_DU_HOOK_MS, TIMEOUT_READ_TREE_MS, TRONC, ajoutDe, arbrePrincipal, attributsDe, avancerArbre, brancheDe, ceQuiChange, ceriseDe,
+  cheminGit, cheminsIgnores, combienDe, contenuDuBlob, depotDe, ecrireBlob, entreesDe, estAncetre, etatDeLArbre, fetchOrigin,
   fusionDiff3, fusionnesEnCours, lancerHook, poserDansIndex, poserRef, rafraichirIndex, rebaseEntame, refusDeGit,
   reussi, shaDe, shasDuTravail, transactionDeRefs,
 } from '../guards/lib/gitPorte.mjs'
-import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
+import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
+import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
+import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { estPidVivant, prendreVerrouAsync, sousEcheanceAsync } from '../test/verrou.mjs'
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
 
 /** Les chemins dont un changement B..U ne prend effet qu'à la PROCHAINE session d'un client (verdict, D2). */
 export const CONFIGURATION_CLIENT = Object.freeze([/^\.claude\/settings\.json$/, /^\.codex\/hooks\.json$/, /^\.claude\/skills\/harnais\//])
 
-/** Les points d'arrêt `gestes.etape(nom)` des étapes 4 à 10 du verdict, dans l'ordre ; la capture
- *  (étape 3) et la reprise reconnue (avant sa transaction) ont les leurs, `capture` et `reprise`, hors
- *  de cette liste. */
-export const ETAPES = Object.freeze(['transaction', 'travail', 'arbre', 'index', 'commit', 'consommateurs', 'liberation'])
+/** Les points d'arrêt `gestes.etape(nom)` des étapes 4 à 10 du verdict, dans l'ordre (#2493, verdict §2) ;
+ *  la capture (étape 3) et la reprise reconnue (avant sa transaction) ont les leurs, `capture` et
+ *  `reprise`, hors de cette liste. */
+export const ETAPES = Object.freeze(['transaction', 'travail', 'arbre', 'index', 'commit', 'liberation', 'consommateurs'])
 
 /** L'attente bornée des verrous (`synchro.verrou`, `index.lock`, verrous de refs d'une reprise) : un essai
  *  tous les `pasMs`, une annonce au premier refus puis au plus une par `annonceMs` (`annonceEspacee`). */
 export const ATTENTE = Object.freeze({ echeanceMs: 120_000, pasMs: 200, annonceMs: 5_000 })
+
+/** L'âge (ms) au-delà duquel le tenant de `synchro.verrou` est PÉRIMÉ, vivant ou non (#2493, verdict §2). */
+export const BORNE_DU_VERROU_MS = ATTENTE.echeanceMs + TIMEOUT_DU_DISTANT_MS + TIMEOUT_READ_TREE_MS + 60_000
+
+/** L'âge (ms) au-delà duquel le tenant du verrou du consommateur est PÉRIMÉ, vivant ou non (#2493, verdict §2). */
+export const BORNE_DU_CONSOMMATEUR_MS = TIMEOUT_DU_HOOK_MS + ATTENTE.echeanceMs + 60_000
+
+/** Le tenant que porte le verrou `chemin` (`verrou.mjs`), `null` s'il est absent, illisible ou sans PID. */
+function tenantDe(chemin) {
+  try {
+    const lu = JSON.parse(readFileSync(chemin, 'utf8'))
+    return Number.isInteger(lu?.pid) ? lu : null
+  } catch {
+    return null
+  }
+}
+
+/** L'âge (s) d'un tenant à l'`horloge`, `null` sans date lisible. PURE. */
+const ageDe = (tenant, horloge) => {
+  const date = Date.parse(tenant?.date ?? '')
+  return Number.isFinite(date) ? Math.round((horloge() - date) / 1000) : null
+}
+
+/**
+ * Le `estVivant` d'une prise du verrou `chemin` : `estVivant(pid)`, et le tenant `pid` relu n'a pas dépassé
+ * `borneMs` d'âge.
+ * @param {string} chemin @param {number} borneMs @param {(pid: number) => boolean} estVivant @param {() => number} horloge
+ */
+const vivantSousBorne = (chemin, borneMs, estVivant, horloge) => (/** @type {number} */ pid) => {
+  if (!estVivant(pid)) return false
+  const tenant = tenantDe(chemin)
+  const age = tenant?.pid === pid ? ageDe(tenant, horloge) : null
+  return age === null || age * 1000 <= borneMs
+}
+
+/** La date de modification ISO du fichier `chemin`, `null` s'il manque. */
+function mtimeDe(chemin) {
+  try {
+    return statSync(chemin).mtime.toISOString()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Le `estVivant` d'une prise du verrou `chemin` (`vivantSousBorne`, sans borne si `borneMs` est `null`) qui
+ * CONSIGNE dans `orphelins` (clé `chemin`) son tenant jugé absent (#2493) : `PID mort`, ou `âge > borne`.
+ * @param {string} chemin @param {number | null} borneMs @param {(pid: number) => boolean} estVivant @param {() => number} horloge
+ * @param {Map<string, Orphelin>} orphelins
+ */
+const consignant = (chemin, borneMs, estVivant, horloge, orphelins) => (/** @type {number} */ pid) => {
+  const tenant = tenantDe(chemin)
+  const vivant = borneMs === null ? estVivant(pid) : vivantSousBorne(chemin, borneMs, estVivant, horloge)(pid)
+  if (!vivant && tenant?.pid === pid) {
+    orphelins.set(chemin, { verrou: chemin, pid, depuis: tenant.date ?? mtimeDe(chemin), preuve: estVivant(pid) ? 'âge > borne' : 'PID mort' })
+  }
+  return vivant
+}
+
+/** @typedef {{ verrou: string, pid: number, depuis: string | null, preuve: 'jeton du journal' | 'PID mort' | 'âge > borne' }} Orphelin */
+
+/** Les orphelins `orphelins` nommés : `<nom> (PID p mort depuis d, preuve)`, joints par `, `. PURE. @param {Orphelin[]} orphelins */
+const nomDesOrphelins = (orphelins) => orphelins
+  .map((o) => `${basename(o.verrou)} (PID ${o.pid}${o.preuve === 'âge > borne' ? '' : ' mort'} depuis ${o.depuis ?? '?'}, ${o.preuve})`).join(', ')
+
+/** `verrou tenu par le PID p depuis d (a s)` : le tenant d'un verrou, à l'`horloge`. */
+const tenuPar = (tenant, horloge) => `verrou tenu par le PID ${tenant?.pid ?? '?'} depuis ${tenant?.date ?? '?'} (${ageDe(tenant, horloge) ?? '?'} s)`
 
 /** `annoncer` au premier appel, puis au plus une fois par `intervalleMs` de `horloge`. */
 export function annonceEspacee(annoncer, horloge, intervalleMs) {
@@ -123,29 +198,6 @@ const octetsDe = (chemin) => (existsSync(chemin) ? readFileSync(chemin) : null)
 const memes = (/** @type {Buffer | null} */ lus, /** @type {string | null} */ attendu) =>
   lus === null ? attendu === null : attendu !== null && lus.equals(Buffer.from(attendu, 'base64'))
 
-/** Les codes d'un `rename` que Windows refuse pendant qu'un autre processus tient la cible ouverte. */
-const RENOMMAGE_REFUSE = new Set(['EPERM', 'EACCES', 'EBUSY'])
-
-/**
- * L'index `cible` REMPLACÉ par le fichier `candidat` (`renameSync`), rejoué sous `BACKOFFS_MS` tant que
- * le système le refuse (`RENOMMAGE_REFUSE`). REND les codes des refus essuyés ; LÈVE le dernier refus à
- * épuisement.
- * @param {string} candidat @param {string} cible @param {{ attendre?: (ms: number) => void }} [opts] @returns {string[]}
- */
-export function remplacerIndex(candidat, cible, { attendre = attendreSync } = {}) {
-  const refus = []
-  for (;;) {
-    try {
-      renameSync(candidat, cible)
-      return refus
-    } catch (e) {
-      const code = /** @type {any} */ (e)?.code
-      if (!RENOMMAGE_REFUSE.has(code) || refus.length >= BACKOFFS_MS.length) throw e
-      refus.push(code)
-      attendre(BACKOFFS_MS[refus.length - 1])
-    }
-  }
-}
 
 /**
  * Synchronise l'arbre PRINCIPAL du dépôt de `depuis` sur `origin/main`. REND un état nommé :
@@ -157,11 +209,16 @@ export function remplacerIndex(candidat, cible, { attendre = attendreSync } = {}
  * versions sous `<git-common-dir>/synchro-conflits/<U>/` (`versions`) ; `avance` et `a-jour` purgent ces
  * dépôts. `env` : l'environnement de git ; `gestes` : `etape(nom)` après chaque étape d'`ETAPES`,
  * `estVivant` et `attente` des verrous (mesure), UNE échéance pour `synchro.verrou` puis `index.lock` ;
- * `annoncer(texte)` : chaque attente d'un verrou tenu.
- * @param {{ depuis?: string, env?: NodeJS.ProcessEnv, horloge?: () => number, annoncer?: (texte: string) => void,
+ * `annoncer(texte)` : chaque attente d'un verrou tenu. Une reprise conclue ENCHAÎNE un passage complet
+ * (`synchroniser`, fetch compris) sous le même verrou et la même échéance (`enchainer`). Le consommateur est
+ * lancé UNE fois, en fin de passage, après toutes ses avances, dès qu'une plage est due et qu'aucun journal
+ * ne reste en cours : l'état rendu, refus compris, porte `consommateurs` (`lancerConsommateur`) ;
+ * `consommateur` : le script lancé en fond, celui du principal par défaut. Chaque verrou repris à un
+ * détenteur absent est nommé dans `orphelins` (`Orphelin`).
+ * @param {{ depuis?: string, env?: NodeJS.ProcessEnv, horloge?: () => number, annoncer?: (texte: string) => void, consommateur?: string,
  *   gestes?: { etape?: (nom: string) => void | Promise<void>, estVivant?: (pid: number) => boolean, attente?: { echeanceMs: number, pasMs: number, annonceMs?: number } } }} [p]
  */
-export async function synchroniserPrincipal({ depuis = process.cwd(), env, gestes = {}, horloge = Date.now, annoncer = () => {} } = {}) {
+export async function synchroniserPrincipal({ depuis = process.cwd(), env, gestes = {}, horloge = Date.now, annoncer = () => {}, consommateur } = {}) {
   const { etape = () => {}, estVivant = estPidVivant } = gestes
   const attente = { ...ATTENTE, ...gestes.attente }
   const racine = arbrePrincipal(depotDe(depuis, { env }))
@@ -169,36 +226,63 @@ export async function synchroniserPrincipal({ depuis = process.cwd(), env, geste
   const depot = depotDe(racine.valeur, { env })
   const commun = join(racine.valeur, '.git')
   const debut = horloge()
+  const cheminDuVerrou = join(commun, 'synchro.verrou')
+  /** @type {Map<string, Orphelin>} */
+  const orphelinDuVerrou = new Map()
   const verrou = await prendreVerrouAsync({
-    chemin: join(commun, 'synchro.verrou'), libelle: 'synchronisation du principal', commande: 'ops:synchroniser',
-    cwd: racine.valeur, estVivant, horloge,
-    attente: { ...attente, annoncer: ((dire) => (tenant) => dire(`[synchroniser] verrou tenu par le PID ${tenant?.pid ?? '?'}`))(annonceEspacee(annoncer, horloge, attente.annonceMs)) },
+    chemin: cheminDuVerrou, libelle: 'synchronisation du principal', commande: 'ops:synchroniser',
+    cwd: racine.valeur, estVivant: consignant(cheminDuVerrou, BORNE_DU_VERROU_MS, estVivant, horloge, orphelinDuVerrou), horloge,
+    attente: { ...attente, annoncer: ((dire) => (tenant) => dire(`[synchroniser] ${tenuPar(tenant, horloge)}`))(annonceEspacee(annoncer, horloge, attente.annonceMs)) },
   })
-  if (verrou.etat !== 'pris') return { etat: 'occupe', message: verrou.message, tenant: verrou.tenant ?? null }
+  if (verrou.etat !== 'pris') return { etat: 'occupe', message: verrou.message, tenant: verrou.tenant ?? null, ageS: ageDe(verrou.tenant, horloge) }
   /** @type {any} */
-  const ctx = { depot, racine: racine.valeur, commun, index: '', verrouIndex: '', jeton: null, etape, attente, debut, horloge, estVivant, annoncer: annonceEspacee(annoncer, horloge, attente.annonceMs), tx: null, outillage: null }
+  const ctx = {
+    depot, racine: racine.valeur, commun, index: '', verrouIndex: '', jeton: null, etape, attente, debut, horloge, estVivant,
+    annoncer: annonceEspacee(annoncer, horloge, attente.annonceMs), tx: null, outillage: null, env,
+    consommateur: consommateur ?? join(racine.valeur, 'scripts', 'ops', 'synchroniser.mjs'), orphelins: [...orphelinDuVerrou.values()],
+  }
+  const avecOrphelins = (vu) => (ctx.orphelins.length ? { ...vu, orphelins: ctx.orphelins } : vu)
   try {
     const relatif = cheminGit(depot, 'index')
     if (!relatif) throw new GitIndisponible('chemin de l’index non rendu')
     ctx.index = resolve(racine.valeur, relatif)
     ctx.verrouIndex = `${ctx.index}.lock`
     const journal = journalEnCours(commun)
-    const vu = journal ? await reprendre(ctx, journal) : await synchroniser(ctx)
+    const repris = journal ? await reprendre(ctx, journal) : null
+    const vu = repris === null ? await synchroniser(ctx)
+      : repris.etat === 'avance' ? enchainer(repris, await synchroniser(ctx))
+        : repris
     if (vu.etat === 'avance' || vu.etat === 'a-jour') rmSync(join(commun, CONFLITS), { recursive: true, force: true })
-    return vu
+    if (journalEnCours(commun) !== null) return avecOrphelins(vu)
+    const consommateurs = await lancerConsommateur(ctx)
+    await ctx.etape('consommateurs')
+    return avecOrphelins(avecConsommateurs(vu, consommateurs))
   } catch (e) {
     const indisponible = e instanceof GitIndisponible
     if (!indisponible && ctx.jeton === null) throw e
     await abandonner(ctx)
     const laisse = journalEnCours(commun)
     const journal = laisse ? { journal: cheminDuJournal(ctx, laisse.vers) } : {}
-    if (indisponible) return { etat: 'git-indisponible', raison: e.raison, ...journal }
+    if (indisponible) return avecOrphelins({ etat: 'git-indisponible', raison: e.raison, ...journal })
     const verrous = octetsDe(ctx.verrouIndex)?.toString('utf8') === ctx.jeton ? [ctx.verrouIndex] : []
-    return { etat: 'interrompu', raison: String(/** @type {any} */ (e)?.stack ?? e), ...journal, verrous }
+    return avecOrphelins({ etat: 'interrompu', raison: String(/** @type {any} */ (e)?.stack ?? e), ...journal, verrous })
   } finally {
     libererOutillage(ctx)
     verrou.liberer()
   }
+}
+
+
+/**
+ * La reprise conclue `repris` suivie du passage `suite` : une avance de `repris.de` au dernier `vers`,
+ * `reprise` = la plage reprise ; un refus de `suite` est rendu tel quel. PURE.
+ */
+function enchainer(repris, suite) {
+  const reprise = { de: repris.de, vers: repris.vers }
+  if (suite.etat === 'a-jour') return { ...repris, reprise }
+  if (suite.etat !== 'avance') return suite
+  const configuration = [...new Set([...(repris.configurationClientChangee ?? []), ...(suite.configurationClientChangee ?? [])])]
+  return { ...suite, de: repris.de, configurationClientChangee: configuration, reprise }
 }
 
 /** Le dossier du journal de l'avance vers U (journal, index de transport et candidat). */
@@ -228,12 +312,8 @@ function journalEnCours(commun) {
   return null
 }
 
-/** Le journal écrit d'un seul geste (temporaire puis `rename`). */
-function ecrireJournal(ctx, journal) {
-  const chemin = cheminDuJournal(ctx, journal.vers)
-  writeFileSync(`${chemin}.tmp`, JSON.stringify(journal))
-  renameSync(`${chemin}.tmp`, chemin)
-}
+/** Le journal écrit d'un seul geste (`ecrireJsonAtomique`). */
+const ecrireJournal = (ctx, journal) => ecrireJsonAtomique(cheminDuJournal(ctx, journal.vers), journal)
 
 /** Un essai de prise d'`index.lock` (`wx`) sous `jeton` : `cree`, `repris` s'il porte déjà `jetonConnu`, `tenu` sinon. */
 function prendreVerrouIndexUneFois(ctx, jeton, jetonConnu) {
@@ -537,37 +617,109 @@ async function avancer(ctx, journal, aU, { reprise = false } = {}) {
   }
   const avecCandidat = { ...journal, etape: 'candidat', empreinteCandidat: empreinteDe(candidat) }
   ecrireJournal(ctx, avecCandidat)
-  remplacerIndex(candidat, ctx.index)
+  renommerResilient(candidat, ctx.index)
   await ctx.etape('index')
   return conclure(ctx, avecCandidat, tx)
 }
 
-/** Les étapes 8 à 10 : `commit` de la transaction, `ORIG_HEAD` = B, puis `consommer`. */
+/** Les étapes 8 à 10 (#2493, verdict §2) : `commit` de la transaction, puis `apresLeCommit`. */
 async function conclure(ctx, journal, tx) {
   const vu = await tx.commit()
   ctx.tx = null
   if (!vu.ok) return interrompre(ctx, journal, vu.raison)
+  return apresLeCommit(ctx, journal)
+}
+
+/** `ORIG_HEAD` = B, journal à `avance`, plage due enregistrée (`enregistrerDu`) ; puis `liberer`. */
+async function apresLeCommit(ctx, journal) {
   const orig = poserRef(ctx.depot, 'ORIG_HEAD', journal.de)
   if (!reussi(orig)) throw new GitIndisponible(orig.disponible ? refusDeGit(orig) : orig)
   ecrireJournal(ctx, { ...journal, etape: 'avance' })
+  enregistrerDu(ctx, journal)
   await ctx.etape('commit')
-  return consommer(ctx, journal)
+  return liberer(ctx, journal)
 }
 
-/** Les étapes 9 et 10 : `post-merge` lancé, son code LU ; puis libération. */
-async function consommer(ctx, journal) {
+/** L'étape 9 : `index.lock`, journal et outillage libérés ; le consommateur part en fin de passage (`synchroniserPrincipal`). */
+async function liberer(ctx, journal) {
+  libererVerrouIndex(ctx, journal.jeton)
+  oublierJournal(ctx, journal.vers)
   libererOutillage(ctx)
-  const commun = { de: journal.de, vers: journal.vers, configurationClientChangee: journal.configuration }
-  const ignore = hookIgnore(ctx, 'post-merge')
-  if (ignore) {
-    await ctx.etape('consommateurs')
-    return finir(ctx, journal, { etat: 'avance-non-prete', ...commun, code: null, hookIgnore: ignore, sortie: `hook présent mais non exécutable, ignoré par git : ${ignore}` })
+  await ctx.etape('liberation')
+  return { etat: 'avance', de: journal.de, vers: journal.vers, configurationClientChangee: journal.configuration }
+}
+
+/** Le dossier du consommateur : `du.json` et les logs `<pid>.log`. */
+const dossierDesConsommateurs = (commun) => join(commun, 'synchro-consommateurs')
+
+/** La plage due `{ de, vers, du, echec }`. */
+const cheminDuDu = (commun) => join(dossierDesConsommateurs(commun), 'du.json')
+
+/** Le verrou du consommateur, sous `.git` : `npm ci` efface `node_modules/.cache`. */
+export const verrouDuConsommateur = (commun) => join(commun, 'synchro-consommateurs.verrou')
+
+/** Le log du consommateur `pid`. */
+const logDuConsommateur = (commun, pid) => join(dossierDesConsommateurs(commun), `${pid}.log`)
+
+/** La plage due, `null` sans plage ou illisible. @param {string} commun */
+function lireDu(commun) {
+  try {
+    return JSON.parse(readFileSync(cheminDuDu(commun), 'utf8'))
+  } catch {
+    return null
   }
-  const vu = lancerHook(ctx.depot, 'post-merge', ['0'])
-  const diagnostic = vu.disponible ? (vu.absent ? vu.diagnostic : vu.valeur) : vu.diagnostic
-  const code = diagnostic?.status ?? null
-  await ctx.etape('consommateurs')
-  return finir(ctx, journal, code === 0 ? { etat: 'avance', ...commun } : { etat: 'avance-non-prete', ...commun, code, sortie: refusDeGit(vu) })
+}
+
+/** La plage due FUSIONNÉE avec l'avance `journal` : `de` et `du` gardés s'ils existent, `vers` = U, `echec` effacé. */
+function enregistrerDu(ctx, journal) {
+  const lu = lireDu(ctx.commun)
+  ecrireJsonAtomique(cheminDuDu(ctx.commun), { de: lu?.de ?? journal.de, vers: journal.vers, du: lu?.du ?? new Date(ctx.horloge()).toISOString(), echec: null })
+}
+
+/** Le consommateur `en-cours` de la plage `du` du dossier `commun`, tenu par `tenant`, à l'`horloge`. */
+const enCours = (commun, horloge, du, tenant) => ({
+  etat: 'en-cours', pid: tenant.pid, depuis: tenant.date, ageS: ageDe(tenant, horloge), de: du.de, vers: du.vers, log: logDuConsommateur(commun, tenant.pid),
+})
+
+/** Le consommateur en `echec` de la plage `du`, `null` sans échec posé. PURE. */
+const echecDe = (du) => (du.echec ? { etat: 'echec', code: du.echec.code, fin: du.echec.fin, de: du.de, vers: du.vers, log: du.echec.log } : null)
+
+/**
+ * Le consommateur de la plage due, appelé UNE fois par passage : aucun sans plage ; `echec` posé sans avance
+ * neuve ; `ignore` quand git ignore le hook (`hookIgnore`) ; `en-cours` tenu par un vivant ; sinon LANCÉ,
+ * détaché (`lancerDetache`, `--consommer`), le tenant absent de son verrou nommé dans `ctx.orphelins`.
+ */
+async function lancerConsommateur(ctx) {
+  const du = lireDu(ctx.commun)
+  if (!du) return null
+  if (du.echec) return echecDe(du)
+  const ignore = hookIgnore(ctx, 'post-merge')
+  if (ignore) return { etat: 'ignore', hook: ignore, de: du.de, vers: du.vers }
+  const chemin = verrouDuConsommateur(ctx.commun)
+  const tenant = tenantDe(chemin)
+  /** @type {Map<string, Orphelin>} */
+  const orphelin = new Map()
+  if (tenant && consignant(chemin, BORNE_DU_CONSOMMATEUR_MS, ctx.estVivant, ctx.horloge, orphelin)(tenant.pid)) return enCours(ctx.commun, ctx.horloge, du, tenant)
+  ctx.orphelins.push(...orphelin.values())
+  purgerPerimes({ dossier: dossierDesConsommateurs(ctx.commun), motif: /^\d+\.log$/, ageMs: PEREMPTION_MS })
+  const pid = lancerDetache({ script: ctx.consommateur, args: ['--consommer'], cwd: ctx.racine, fdLog: 'ignore', envSupplementaire: ctx.env ?? {} })
+  return enCours(ctx.commun, ctx.horloge, du, { pid, date: new Date(ctx.horloge()).toISOString() })
+}
+
+/**
+ * L'état `vu` et son consommateur : `avance` ou `a-jour` devient `avance-non-prete` pour un hook ignoré par git
+ * ou un consommateur en échec ; tout autre état, et tout autre consommateur, porte `consommateurs`. PURE.
+ */
+function avecConsommateurs(vu, consommateurs) {
+  if (!consommateurs) return vu
+  if (vu.etat !== 'avance' && vu.etat !== 'a-jour') return { ...vu, consommateurs }
+  const { de, vers } = consommateurs
+  const configuration = vu.configurationClientChangee ? { configurationClientChangee: vu.configurationClientChangee } : {}
+  if (consommateurs.etat === 'ignore') {
+    return { etat: 'avance-non-prete', de, vers, ...configuration, code: null, hookIgnore: consommateurs.hook, sortie: `hook présent mais non exécutable, ignoré par git : ${consommateurs.hook}` }
+  }
+  if (consommateurs.etat === 'echec') return { etat: 'avance-non-prete', de, vers, ...configuration, code: consommateurs.code, log: consommateurs.log, consommateurs }
+  return { ...vu, consommateurs }
 }
 
 /**
@@ -603,6 +755,7 @@ async function reprendre(ctx, journal) {
   if (prise === 'tenu') {
     return { etat: 'operation-en-cours', operations: ['index.lock'], raison: `Unable to create '${ctx.verrouIndex}': File exists.` }
   }
+  if (prise === 'repris') ctx.orphelins.push({ verrou: ctx.verrouIndex, pid: journal.pid, depuis: mtimeDe(ctx.verrouIndex), preuve: 'jeton du journal' })
   const impossible = (raison, { verrous = [], ...details } = {}) => {
     if (prise === 'cree') libererVerrouIndex(ctx, journal.jeton)
     return { etat: 'reprise-impossible', raison, journal: cheminDuJournal(ctx, journal.vers), verrous: prise === 'repris' ? [...verrous, ctx.verrouIndex] : verrous, ...details }
@@ -613,11 +766,7 @@ async function reprendre(ctx, journal) {
   if (perimes.length) return impossible('verrous de refs périmés', { verrous: perimes })
   if (brancheDe(depot) !== TRONC.nom) return impossible('HEAD hors de main')
   const tete = shaDe(depot, 'HEAD')
-  if (tete === journal.vers) {
-    const orig = poserRef(depot, 'ORIG_HEAD', journal.de)
-    if (!reussi(orig)) throw new GitIndisponible(orig.disponible ? refusDeGit(orig) : orig)
-    return consommer(ctx, journal)
-  }
+  if (tete === journal.vers) return apresLeCommit(ctx, journal)
   if (tete !== journal.de) return impossible(`HEAD = ${tete}, ni ${journal.de} ni ${journal.vers}`)
   const empreinte = empreinteDe(ctx.index)
   const candidat = journal.empreinteCandidat !== null && empreinte === journal.empreinteCandidat
@@ -649,17 +798,20 @@ async function reprendre(ctx, journal) {
 
 /**
  * Le verrou d'outillage du principal (`verrouOutillageDe`, barrière des hooks d'outil) pris sous
- * l'échéance du passage, pour les étapes 5 à 8 ; `consommer` le libère. REND `null` s'il est pris, le
+ * l'échéance du passage, pour les étapes 5 à 8 ; `liberer` le libère. REND `null` s'il est pris, le
  * refus `occupe` sinon.
  */
 async function prendreOutillage(ctx) {
   const chemin = verrouOutillageDe(ctx.racine)
   if (chemin === null) throw new GitIndisponible(`git-dir de ${ctx.racine} illisible`)
+  /** @type {Map<string, Orphelin>} */
+  const orphelin = new Map()
   const vu = await prendreVerrouAsync({
-    chemin, libelle: 'outillage du principal', commande: 'ops:synchroniser', cwd: ctx.racine, estVivant: ctx.estVivant, horloge: ctx.horloge,
+    chemin, libelle: 'outillage du principal', commande: 'ops:synchroniser', cwd: ctx.racine, estVivant: consignant(chemin, null, ctx.estVivant, ctx.horloge, orphelin), horloge: ctx.horloge,
     attente: attenteRestante(ctx, (tenant) => ctx.annoncer(`[synchroniser] outillage tenu par le PID ${tenant?.pid ?? '?'}`)),
   })
   if (vu.etat !== 'pris') return { etat: 'occupe', message: vu.message, tenant: vu.tenant ?? null }
+  ctx.orphelins.push(...orphelin.values())
   ctx.outillage = vu
   return null
 }
@@ -673,12 +825,265 @@ function libererOutillage(ctx) {
 /** La transaction d'une REPRISE refusée : l'état laissé par le mort reste tel quel, `interrompu` le nomme. */
 const refusEnReprise = (ctx, journal, refus) => interrompre(ctx, journal, `transaction de refs refusée en reprise : ${refus.etat}`, { refus })
 
-/** La CLI : `--json` imprime l'état en JSON. Code 0 pour `avance` et `a-jour`, 1 pour un autre état, 2 si git manque. */
+/**
+ * Le CONSOMMATEUR (`--consommer`, #2493 verdict §2) : sous son verrou, joue `post-merge` sur la plage due
+ * (`ORIG_HEAD` = son `de`) tant qu'elle change, puis la SOLDE sous `synchro.verrou` : supprimée sur un code 0,
+ * `echec` posé sinon. Chaque ligne va à `<git-common-dir>/synchro-consommateurs/<pid>.log`, une exception
+ * comprise. REND 0, 1 sur une exception.
+ * @param {{ depuis?: string, env?: NodeJS.ProcessEnv, horloge?: () => number, estVivant?: (pid: number) => boolean,
+ *   attente?: { echeanceMs: number, pasMs: number } }} [p]
+ */
+export async function consommerLaPlage({ depuis = process.cwd(), env, horloge = Date.now, estVivant = estPidVivant, attente = ATTENTE } = {}) {
+  const racine = arbrePrincipal(depotDe(depuis, { env }))
+  if (!racine.disponible) throw new GitIndisponible(racine.raison)
+  const depot = depotDe(racine.valeur, { env })
+  const commun = join(racine.valeur, '.git')
+  const log = logDuConsommateur(commun, process.pid)
+  mkdirSync(dossierDesConsommateurs(commun), { recursive: true })
+  const ecrire = (/** @type {string} */ texte) => appendFileSync(log, `${texte}\n`)
+  const iso = () => new Date(horloge()).toISOString()
+  const chemin = verrouDuConsommateur(commun)
+  /** @type {Map<string, Orphelin>} */
+  const orphelin = new Map()
+  const prise = await prendreVerrouAsync({
+    chemin, libelle: 'consommateur du post-merge', commande: 'ops:synchroniser --consommer', cwd: racine.valeur,
+    estVivant: consignant(chemin, BORNE_DU_CONSOMMATEUR_MS, estVivant, horloge, orphelin), horloge,
+  })
+  if (prise.etat !== 'pris') {
+    ecrire(`[consommateurs] déjà en cours : PID ${prise.tenant?.pid ?? '?'} depuis ${prise.tenant?.date ?? '?'}`)
+    return 0
+  }
+  if (orphelin.size) ecrire(`[consommateurs] ${iso()} verrou orphelin repris : ${nomDesOrphelins([...orphelin.values()])}`)
+  let tenu = true
+  const lacher = () => {
+    if (tenu) prise.liberer()
+    tenu = false
+  }
+  try {
+    for (;;) {
+      const du = lireDu(commun)
+      if (!du) return 0
+      const orig = poserRef(depot, 'ORIG_HEAD', du.de)
+      if (!reussi(orig)) throw new GitIndisponible(orig.disponible ? refusDeGit(orig) : orig)
+      const debut = horloge()
+      ecrire(`[consommateurs] ${iso()} post-merge ORIG_HEAD=${du.de.slice(0, 9)} HEAD=${du.vers.slice(0, 9)} — début`)
+      const vu = lancerHook(depot, 'post-merge', ['0'])
+      const diagnostic = vu.disponible ? (vu.absent ? vu.diagnostic : vu.valeur) : vu.diagnostic
+      const code = diagnostic?.status ?? null
+      const sortie = [diagnostic?.stdout, diagnostic?.stderr].map((flux) => String(flux ?? '').trimEnd()).filter(Boolean).join('\n')
+      ecrire(`[consommateurs] ${iso()} post-merge — fin, code ${code} (${((horloge() - debut) / 1000).toFixed(1)} s)${sortie ? `\n${sortie}` : ''}`)
+      const cheminSynchro = join(commun, 'synchro.verrou')
+      const synchro = await prendreVerrouAsync({
+        chemin: cheminSynchro, libelle: 'synchronisation du principal', commande: 'ops:synchroniser --consommer', cwd: racine.valeur,
+        estVivant: vivantSousBorne(cheminSynchro, BORNE_DU_VERROU_MS, estVivant, horloge), horloge, attente,
+      })
+      if (synchro.etat !== 'pris') {
+        ecrire(`[consommateurs] verrou de synchronisation tenu par le PID ${synchro.tenant?.pid ?? '?'} (âge ${ageDe(synchro.tenant, horloge) ?? '?'} s) : plage due laissée au prochain passage`)
+        return 0
+      }
+      try {
+        const relu = lireDu(commun)
+        if (relu && (relu.de !== du.de || relu.vers !== du.vers)) continue
+        if (relu && code === 0) rmSync(cheminDuDu(commun), { force: true })
+        else if (relu) ecrireJsonAtomique(cheminDuDu(commun), { ...relu, echec: { pid: process.pid, fin: iso(), code, log } })
+        lacher()
+        return 0
+      } finally {
+        synchro.liberer()
+      }
+    }
+  } catch (e) {
+    ecrire(`[consommateurs] ${iso()} arrêt : ${e instanceof GitIndisponible ? refusDeGit(e) : /** @type {any} */ (e)?.stack ?? e}`)
+    return 1
+  } finally {
+    lacher()
+  }
+}
+
+/** Le tenant VIVANT du verrou `chemin` sous `borneMs`, `null` sinon. */
+function tenantVivant(chemin, borneMs, estVivant, horloge) {
+  const tenant = tenantDe(chemin)
+  return tenant && vivantSousBorne(chemin, borneMs, estVivant, horloge)(tenant.pid) ? tenant : null
+}
+
+/**
+ * Les verrous ORPHELINS d'une MESURE (#2493) : `synchro.verrou`, outillage et consommateur tenus par un
+ * détenteur absent (`consignant`), `index.lock` portant le jeton du journal `journal` d'un PID mort.
+ * @returns {Orphelin[]}
+ */
+function orphelinsMesures({ commun, racine, verrouIndex, journal, horloge, estVivant }) {
+  /** @type {Map<string, Orphelin>} */
+  const orphelins = new Map()
+  const verrous = [[join(commun, 'synchro.verrou'), BORNE_DU_VERROU_MS], [verrouOutillageDe(racine), null], [verrouDuConsommateur(commun), BORNE_DU_CONSOMMATEUR_MS]]
+  for (const [chemin, borneMs] of verrous) {
+    const tenant = chemin === null ? null : tenantDe(chemin)
+    if (tenant) consignant(/** @type {string} */ (chemin), borneMs, estVivant, horloge, orphelins)(tenant.pid)
+  }
+  const index = journal && verrouIndex && octetsDe(verrouIndex)?.toString('utf8') === journal.jeton && !estVivant(journal.pid)
+    ? [{ verrou: verrouIndex, pid: journal.pid, depuis: mtimeDe(verrouIndex), preuve: /** @type {const} */ ('jeton du journal') }] : []
+  return [...index, ...orphelins.values()]
+}
+
+/** Le champ `consommateurs` d'une MESURE : `en-cours`, `echec`, ou `du` sans consommateur vivant ; `null` sans plage. */
+function consommateursMesures(commun, horloge, estVivant) {
+  const du = lireDu(commun)
+  if (!du) return null
+  if (du.echec) return echecDe(du)
+  const tenant = tenantVivant(verrouDuConsommateur(commun), BORNE_DU_CONSOMMATEUR_MS, estVivant, horloge)
+  return tenant ? enCours(commun, horloge, du, tenant) : { etat: 'du', depuis: du.du, de: du.de, vers: du.vers }
+}
+
+/**
+ * La MESURE du principal (#2493, verdict §2), sans fetch, sans verrou, sans écriture : `interrompu` (journal
+ * présent), `a-jour`, `occupe`, `en-retard`, `divergent`, ou un refus d'état ; chacune porte `mesure: true`,
+ * `consommateurs` dès qu'une plage est due, et `orphelins` dès qu'un verrou est tenu par un détenteur absent
+ * (`orphelinsMesures`). `visee` : le sha visé, `origin/main` local par défaut.
+ * @param {{ depuis?: string, visee?: string | null, env?: NodeJS.ProcessEnv, horloge?: () => number, estVivant?: (pid: number) => boolean }} [p]
+ */
+export function mesurerPrincipal({ depuis = process.cwd(), visee = null, env, horloge = Date.now, estVivant = estPidVivant } = {}) {
+  try {
+    const racine = arbrePrincipal(depotDe(depuis, { env }))
+    if (!racine.disponible) return { etat: 'git-indisponible', mesure: true, raison: racine.raison }
+    const depot = depotDe(racine.valeur, { env })
+    const commun = join(racine.valeur, '.git')
+    const consommateurs = consommateursMesures(commun, horloge, estVivant)
+    const journal = journalEnCours(commun)
+    const relatif = cheminGit(depot, 'index')
+    const verrouIndex = relatif ? `${resolve(racine.valeur, relatif)}.lock` : null
+    const orphelins = orphelinsMesures({ commun, racine: racine.valeur, verrouIndex, journal, horloge, estVivant })
+    const avec = (vu) => ({ ...vu, mesure: true, ...(consommateurs ? { consommateurs } : {}), ...(orphelins.length ? { orphelins } : {}) })
+    const refus = refusDEtat(depot, racine.valeur)
+    if (refus) return avec(refus)
+    const head = shaDe(depot, 'HEAD')
+    if (!head) throw new GitIndisponible('HEAD ne nomme aucun commit')
+    const V = visee ?? shaDe(depot, TRONC.suivi)
+    if (journal) {
+      return avec({
+        etat: 'interrompu', journal: join(commun, 'synchro', journal.vers, 'journal.json'), de: journal.de, vers: journal.vers,
+        etape: journal.etape, head, visee: V, verrous: verrouIndex && existsSync(verrouIndex) ? [verrouIndex] : [],
+      })
+    }
+    if (!V || !shaDe(depot, V)) return avec({ etat: 'origin-indisponible', raison: `visée ${V ?? TRONC.suivi} absente du dépôt local` })
+    const ancetre = (a, b) => {
+      const vu = estAncetre(depot, a, b)
+      if (!vu.disponible) throw new GitIndisponible(vu)
+      return 'valeur' in vu && vu.valeur === true
+    }
+    if (head === V || ancetre(V, head)) return avec({ etat: 'a-jour', sha: head, visee: V })
+    if (!ancetre(head, V)) return avec({ etat: 'divergent', de: head, vers: V })
+    const retard = combienDe(depot, [`${head}..${V}`])
+    const tenant = tenantVivant(join(commun, 'synchro.verrou'), BORNE_DU_VERROU_MS, estVivant, horloge)
+    if (tenant) return avec({ etat: 'occupe', tenant, ageS: ageDe(tenant, horloge), head, visee: V, retard })
+    return avec({ etat: 'en-retard', head, visee: V, retard })
+  } catch (e) {
+    if (e instanceof GitIndisponible) return { etat: 'git-indisponible', mesure: true, raison: e.raison }
+    throw e
+  }
+}
+
+/** Les 9 premiers caractères d'un sha. PURE. */
+const court = (sha) => String(sha ?? '?').slice(0, 9)
+
+/** La ligne d'un refus nommé : sa raison, sa branche, ses opérations, ses chemins, ou sa plage. PURE. */
+function motifDuRefus(vu) {
+  if (vu.raison) return String(vu.raison).split('\n')[0]
+  if (vu.branche) return vu.branche
+  if (Array.isArray(vu.operations)) return vu.operations.join(', ')
+  if (Array.isArray(vu.chemins)) return vu.chemins.map((c) => (typeof c === 'string' ? c : c.chemin)).join(', ')
+  return vu.de && vu.vers ? `${court(vu.de)}..${court(vu.vers)}` : ''
+}
+
+/** Le suffixe du consommateur d'un état, `''` s'il n'en porte pas. PURE. */
+function suffixeDuConsommateur(vu) {
+  const c = vu.consommateurs
+  if (!c || vu.etat === 'avance-non-prete') return ''
+  const plage = `${court(c.de)}..${court(c.vers)}`
+  if (c.etat === 'en-cours') return ` ; post-merge ${plage} en fond : PID ${c.pid} depuis ${c.depuis} (${c.ageS} s), issue : ${c.log}`
+  if (c.etat === 'echec') return ` ; post-merge ${plage} en échec (code ${c.code}, ${c.fin}) : ${c.log}`
+  if (c.etat === 'ignore') return ` ; post-merge ${plage} ignoré par git : ${c.hook}`
+  return ` ; post-merge ${plage} dû depuis ${c.depuis}, aucun consommateur vivant`
+}
+
+/** Le suffixe des verrous orphelins d'un état : repris par un passage, à reprendre pour une mesure ; `''` sans orphelin. PURE. */
+const suffixeDesOrphelins = (vu) => (vu.orphelins?.length
+  ? ` ; verrous orphelins ${vu.mesure ? 'à reprendre' : 'repris'} : ${nomDesOrphelins(vu.orphelins)}` : '')
+
+/**
+ * La LIGNE d'un état de passage ou de mesure (#2493, verdict §2), suffixée de ses verrous orphelins, de son
+ * consommateur et de la configuration client changée. PURE.
+ * @param {any} vu
+ */
+export function ligneDeLEtat(vu) {
+  const configuration = vu.configurationClientChangee?.length ? ` ; configuration client changée : ${vu.configurationClientChangee.join(', ')}` : ''
+  return `${corpsDeLaLigne(vu)}${suffixeDesOrphelins(vu)}${suffixeDuConsommateur(vu)}${configuration}`
+}
+
+/** Le corps de `ligneDeLEtat`, sans suffixe. PURE. */
+function corpsDeLaLigne(vu) {
+  const avance = `avancé de ${court(vu.de)} à ${court(vu.vers)}`
+  switch (vu.etat) {
+    case 'a-jour':
+      return `à jour sur ${court(vu.sha)}`
+    case 'avance':
+      return `${avance}${vu.reprise ? ` (reprise de ${court(vu.reprise.de)}..${court(vu.reprise.vers)})` : ''}`
+    case 'avance-non-prete':
+      return vu.hookIgnore ? `${avance}, post-merge ignoré par git : ${vu.hookIgnore}` : `${avance}, post-merge en échec (code ${vu.code}, ${vu.consommateurs?.fin ?? '?'}) : ${vu.log}`
+    case 'interrompu':
+      return vu.mesure
+        ? `interrompu : avance ${court(vu.de)}..${court(vu.vers)} entamée (étape ${vu.etape}), HEAD ${court(vu.head)} — reprise due (journal ${vu.journal})`
+        : `interrompu : ${String(vu.raison ?? '').split('\n')[0]} — reprise due (journal ${vu.journal ?? '?'})`
+    case 'occupe': {
+      const age = vu.ageS === null || vu.ageS === undefined ? '?' : Math.round(vu.ageS / 60)
+      return `occupé : verrou tenu par le PID ${vu.tenant?.pid ?? '?'} depuis ${vu.tenant?.date ?? '?'} (${age} min, ${vu.tenant?.commande ?? '?'})`
+    }
+    case 'en-retard':
+      return `en retard : HEAD ${court(vu.head)}, ${vu.retard} commit(s) derrière ${court(vu.visee)}, aucune avance entamée — synchronisation due`
+    default:
+      return `refusé (${vu.etat}) : ${motifDuRefus(vu)}`
+  }
+}
+
+/** Les états qu'un passage peut taire. */
+const ETATS_MUETS = new Set(['a-jour', 'avance'])
+
+/** La commande de reprise d'un état : le consommateur seul (`--consommer`) pour une avance au post-merge en échec. PURE. */
+const repriseDe = (vu) => (vu.etat === 'avance-non-prete' && vu.consommateurs?.etat === 'echec' ? 'npm run ops:synchroniser -- --consommer' : 'npm run ops:synchroniser')
+
+/**
+ * Le texte qu'un passage rend à une SESSION : `''` pour `a-jour` ou `avance` sans configuration client
+ * changée, consommateur ni verrou orphelin ; sinon `[synchroniser] principal <ligneDeLEtat>`, suivi de la
+ * reprise (`repriseDe`) hors d'`a-jour` et d'`avance`. PURE.
+ * @param {any} vu
+ */
+export function texteDeSession(vu) {
+  const muet = ETATS_MUETS.has(vu.etat)
+  if (muet && !vu.configurationClientChangee?.length && !vu.consommateurs && !vu.orphelins?.length) return ''
+  return `[synchroniser] principal ${ligneDeLEtat(vu)}${muet ? '' : ` — reprise : \`${repriseDe(vu)}\``}`
+}
+
+/** Le code de sortie d'un état : 0 pour `avance` et `a-jour`, 2 si git manque, 1 sinon. PURE. */
+const codeDe = (vu) => (vu.etat === 'avance' || vu.etat === 'a-jour' ? 0 : vu.etat === 'git-indisponible' ? 2 : 1)
+
+/**
+ * La CLI : `--json` imprime l'état et son `texte` (`texteDeSession`) en JSON ; `--mesurer [--visee <sha>]`
+ * mesure sans rien écrire (`mesurerPrincipal`), sa `ligne` (`ligneDeLEtat`) et son `texte` en JSON ;
+ * `--consommer` joue la plage due (`consommerLaPlage`), en échec comprise.
+ * Code 0 pour `avance` et `a-jour`, 1 pour un autre état, 2 si git manque.
+ */
 async function principal(argv) {
   const json = argv.includes('--json')
+  if (argv.includes('--consommer')) return consommerLaPlage()
+  if (argv.includes('--mesurer')) {
+    const visee = argv[argv.indexOf('--visee') + 1]
+    const mesure = mesurerPrincipal({ visee: argv.includes('--visee') ? visee : null })
+    const ligne = ligneDeLEtat(mesure)
+    const texte = `[synchroniser] principal ${ligne}`
+    process.stdout.write(json ? `${JSON.stringify({ ...mesure, ligne, texte })}\n` : `${texte}\n`)
+    return codeDe(mesure)
+  }
   const vu = await synchroniserPrincipal({ annoncer: (texte) => process.stderr.write(`${texte}\n`) })
-  process.stdout.write(json ? `${JSON.stringify(vu)}\n` : `[synchroniser] ${vu.etat}${'raison' in vu && vu.raison ? ` — ${vu.raison}` : ''}\n`)
-  return vu.etat === 'avance' || vu.etat === 'a-jour' ? 0 : vu.etat === 'git-indisponible' ? 2 : 1
+  process.stdout.write(json ? `${JSON.stringify({ ...vu, texte: texteDeSession(vu) })}\n` : `[synchroniser] principal ${ligneDeLEtat(vu)}\n`)
+  return codeDe(vu)
 }
 
 if (import.meta.main) process.exitCode = await principal(process.argv.slice(2))

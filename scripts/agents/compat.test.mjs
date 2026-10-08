@@ -8,7 +8,6 @@ import {
   HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
-import { ETATS_MUETS } from '../hooks/synchroniser-principal.mjs';
 
 /** Registre de fixture : le point d'entrée de `ENTREES_OUTIL`, deux gardes au répartiteur. */
 const REGISTRES = new Map([
@@ -209,14 +208,11 @@ test('CÂBLAGE — la synchronisation du principal est le PREMIER SessionStart d
   }
 });
 
-test('le mod harnais et le hook Codex partagent la borne et les états muets de la synchronisation (#2187 commentaire 6029118597, C7)', async () => {
+test('le mod harnais et le hook Codex partagent la borne de la synchronisation (#2187 commentaire 6029118597, C7)', async () => {
   const mod = await readFile(new URL('../../.claude/skills/harnais/hooks/suivi.ts', import.meta.url), 'utf8');
   const borne = /^const BORNE_SYNCHRO_MS = ([\d_]+) \* 1000$/m.exec(mod);
   assert.ok(borne, 'BORNE_SYNCHRO_MS introuvable dans suivi.ts');
   assert.equal(Number(borne[1].replaceAll('_', '')), TIMEOUT_SYNCHRONISEUR, 'BORNE_SYNCHRO_MS === TIMEOUT_SYNCHRONISEUR * 1000');
-  const muets = /^const ETATS_MUETS = new Set\((\[[^\]]*\])\)$/m.exec(mod);
-  assert.ok(muets, 'ETATS_MUETS introuvable dans suivi.ts');
-  assert.deepEqual(JSON.parse(muets[1].replaceAll("'", '"')), [...ETATS_MUETS]);
 });
 
 test('sortie PAR CLÉ : sync réécrit la seule clé `hooks` de settings.json, permissions et ordre des clés à l’octet près', async () => {

@@ -11,11 +11,15 @@ import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import {
-  EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis, nomValide, ouvrirChantier, refusDeCreation,
-  relancerChantier, resumeDeChantier,
+  ATTENTE_DU_CONSOMMATEUR_MS, EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, attendreLeConsommateur, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis,
+  nomValide, ouvrirChantier, refusDeCreation, relancerChantier, resumeDeChantier,
 } from './chantier.mjs'
 import { synchroniserPrincipal } from './synchroniser.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
+import { estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
+
+/** Le script du consommateur du post-merge, celui de CET arbre : un principal jetable n'en porte pas. */
+const SYNCHRONISEUR = join(import.meta.dirname, 'synchroniser.mjs')
 
 test('un nom de chantier est un numéro de ticket, avec un slug optionnel en minuscules', () => {
   for (const bon of ['1736', '42', '1732-1734-outillage', '1736-publication', '12-a', '12-a1-b2']) {
@@ -96,26 +100,58 @@ describe('#2187 matrice 18 : le principal synchronisé d’abord, relance sur `a
       writeFileSync(join(autre, 'b.txt'), 'b')
       const gitAutre = gitDe(autre)
       gitAutre('add', 'b.txt'); gitAutre('-c', 'user.name=banc', '-c', 'user.email=banc@banc.invalid', 'commit', '-q', '-m', 'amont'); gitAutre('push', '-q', 'origin', 'main')
-      const synchroniser = () => synchroniserPrincipal({ depuis: racine, env: envDeDepotForge() })
+      const consommateurs = []
+      const synchroniser = async () => {
+        const vu = await synchroniserPrincipal({ depuis: racine, env: envDeDepotForge(), consommateur: SYNCHRONISEUR })
+        consommateurs.push(vu.consommateurs)
+        return vu
+      }
+      const attendreConsommateur = (c, o) => attendreLeConsommateur(c, { ...o, racine })
       const creer = (args) => creerChantier({ racine, ...args })
       const relances = []
       const dits = []
-      const code = await ouvrirChantier(ARGS, {
-        synchroniser, creer: pas('creer avant la relance'), dire: (t) => dits.push(t), imprimer: () => {},
-        relancer: (args) => {
-          relances.push(args)
-          return ouvrirChantier(args, { synchroniser, creer, relancer: pas('une seconde relance'), dire: (t) => dits.push(t), imprimer: () => {} })
-        },
-      })
-      assert.deepEqual(relances, [ARGS])
-      assert.equal(await code, 0, dits.join(''))
-      assert.equal(existsSync(join(racine, 'b.txt')), true, 'le principal a avancé')
-      assert.equal(existsSync(cibleDe(racine, '18')), true, 'la seconde exécution crée le chantier')
-      assert.match(dits.join(''), /principal avancé .*relance `npm run ops:chantier -- 18 --sans-ci`/)
+      try {
+        const code = await ouvrirChantier(ARGS, {
+          synchroniser, attendreConsommateur, creer: pas('creer avant la relance'), dire: (t) => dits.push(t), imprimer: () => {},
+          relancer: (args) => {
+            relances.push(args)
+            return ouvrirChantier(args, { synchroniser, attendreConsommateur, creer, relancer: pas('une seconde relance'), dire: (t) => dits.push(t), imprimer: () => {} })
+          },
+        })
+        assert.deepEqual(relances, [ARGS])
+        assert.equal(await code, 0, dits.join(''))
+        assert.equal(existsSync(join(racine, 'b.txt')), true, 'le principal a avancé')
+        assert.equal(existsSync(cibleDe(racine, '18')), true, 'la seconde exécution crée le chantier')
+        assert.match(dits.join(''), /principal avancé .*relance `npm run ops:chantier -- 18 --sans-ci`/)
+        assert.equal(consommateurs[0]?.etat, 'en-cours', 'le post-merge de l’avance court en fond')
+      } finally {
+        for (const pid of consommateurs.map((c) => c?.pid).filter(Boolean)) {
+          assert.equal(await sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: () => estPidVivant(pid), abouti: (vit) => !vit }), false, `consommateur ${pid} vivant`)
+        }
+      }
     } finally {
       rmSync(autre, { recursive: true, force: true })
       jeter()
     }
+  })
+
+  test('#2493 post-merge du principal en fond : attendu AVANT la règle ; attente échue → annoncée, le chantier part d’origin/main', async () => {
+    const enCours = { etat: 'en-cours', pid: 7, depuis: '2026-10-08T10:00:00.000Z', ageS: 1, de: 'a'.repeat(40), vers: 'b'.repeat(40), log: '/l/7.log' }
+    const avance = { etat: 'avance', de: 'a'.repeat(40), vers: 'b'.repeat(40), configurationClientChangee: [], consommateurs: enCours }
+    const attendus = []
+    const relances = []
+    const code = await ouvrirChantier(ARGS, {
+      synchroniser: async () => avance, attendreConsommateur: (c) => { attendus.push(c); return true },
+      relancer: (args) => { relances.push(args); return 0 }, creer: pas('creer'), dire: () => {}, imprimer: () => {},
+    })
+    assert.deepEqual([code, attendus, relances], [0, [enCours], [ARGS]])
+    const dits = []
+    const echu = await ouvrirChantier(ARGS, {
+      synchroniser: async () => avance, attendreConsommateur: () => false, relancer: pas('relancer'),
+      creer: () => ({ ok: true, resume: 'worktree=x' }), dire: (t) => dits.push(t), imprimer: () => {},
+    })
+    assert.equal(echu, 0)
+    assert.equal(dits.join(''), `[chantier] post-merge aaaaaaaaa..bbbbbbbbb du principal toujours en cours après ${ATTENTE_DU_CONSOMMATEUR_MS / 60_000} min : le chantier part d’origin/main\n`)
   })
 
   test('refus nommé (divergent) : annoncé tel quel, le chantier se crée depuis origin, aucune relance', async () => {

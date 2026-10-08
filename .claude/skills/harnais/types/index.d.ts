@@ -45,8 +45,9 @@ export type HarnaisMesureDeVigie = { ligne: string; transitions: string[]; etat:
 /** L'atome de la fonction `vigie` : l'`etat` de la dernière mesure VALIDE (`null` avant la première), le `--depuis` suivant. */
 export type HarnaisVigie = { etat: string | null }
 
-/** L'état que rend `synchroniser.mjs --json` (#2187) : son `etat` nommé et ses champs, opaques au mod. */
-export type HarnaisSynchro = { etat: string } & Record<string, unknown>
+/** L'état que rend `synchroniser.mjs --json` ou `--mesurer --json` (#2187, #2493) : son `etat` nommé, son `texte`
+ *  de session (vide pour un état muet) et ses champs, opaques au mod. */
+export type HarnaisSynchro = { etat: string, texte: string, ligne?: string } & Record<string, unknown>
 
 /** L'atome `harnais.synchro` : le texte de l'état de synchronisation à porter UNE fois en contexte, `null` sinon. */
 export type HarnaisSynchroEnAttente = { texte: string | null }
