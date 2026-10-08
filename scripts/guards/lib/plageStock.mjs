@@ -54,7 +54,9 @@ import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFau
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
 import { cheminDuModule, groupesParEre } from './porteDEre.mjs'
-import { texteDeStock } from './stockDeSites.mjs'
+
+// Chargé après la porte de version des hooks qui l'importent : scripts/node-requis.mjs (#1801).
+const { texteDeStock } = await import('./stockDeSites.mjs')
 
 /** Le sha nul que git écrit sur stdin du pre-push pour une branche NEUVE. */
 export const SHA_NUL = '0'.repeat(40)
