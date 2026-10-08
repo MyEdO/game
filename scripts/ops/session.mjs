@@ -1,12 +1,12 @@
 import fs from 'node:fs'
-import { join, resolve, isAbsolute, basename, extname } from 'node:path'
+import { join, resolve, isAbsolute, basename, extname, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { homedir } from 'node:os'
+import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
-import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur } from './session-runtime.mjs'
+import { creerSessions, contexteSessions, envAgent, planAgent, lireJsonc, ligneControleur, lirePolitique } from './session-runtime.mjs'
 
 const script = fileURLToPath(import.meta.url), ops = fileURLToPath(new URL('.', import.meta.url))
-const politique = JSON.parse(fs.readFileSync(new URL('./session-policy.json', import.meta.url), 'utf8'))
+const politique = lirePolitique()
 const refuser = (raison) => { throw new Error(raison) }
 
 export function optionsSession(argv) {
@@ -40,10 +40,6 @@ export function normaliserLancement(options, cwd) {
   return { ...options, ticket, nom: options.nom ?? `s${ticket}`, agent, consigne: cwd ? resolve(cwd, consigne) : consigne, worktree: options.worktree && cwd ? resolve(cwd, options.worktree) : options.worktree }
 }
 
-export function profilCodexExiste({ profil = politique.profile, chemin = join(process.env.CODEX_HOME ?? join(homedir(), '.codex'), `${profil}.config.toml`) } = {}) {
-  try { if (basename(chemin) !== `${profil}.config.toml` || !fs.statSync(chemin).isFile()) return false; fs.readFileSync(chemin, 'utf8'); return true } catch { return false }
-}
-
 export function profilTerminal({ chemin, nom } = {}) {
   const chemins = chemin ? [chemin] : [join(process.env.LOCALAPPDATA ?? '', 'Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json'), join(process.env.LOCALAPPDATA ?? '', 'Microsoft/Windows Terminal/settings.json')]
   const existants = chemins.filter((p) => fs.existsSync(p))
@@ -56,11 +52,26 @@ export function profilTerminal({ chemin, nom } = {}) {
   return { nom: profil.guid ?? profil.name, closeOnExit: fermeture, chemin: existants[0] }
 }
 
-export function executableNatif(agent, explicite, executer = spawnSync) {
+const TRIPLES_CODEX = { x64: 'x86_64-pc-windows-msvc', arm64: 'aarch64-pc-windows-msvc' }
+const estFichier = (chemin) => { try { return fs.statSync(chemin).isFile() } catch { return false } }
+
+function codexDuShim(shim, arch) {
+  const paquet = join(dirname(shim), 'node_modules', '@openai', 'codex')
+  let vendor
+  try { vendor = join(dirname(createRequire(join(paquet, 'package.json')).resolve(`@openai/codex-win32-${arch}/package.json`)), 'vendor') }
+  catch { vendor = join(paquet, 'vendor') }
+  return join(vendor, TRIPLES_CODEX[arch], 'bin', 'codex.exe')
+}
+
+export function executableNatif(agent, explicite, executer = spawnSync, { arch = process.arch } = {}) {
   if (explicite) { if (!isAbsolute(explicite) || extname(explicite).toLowerCase() !== '.exe' || !fs.existsSync(explicite) || !fs.statSync(explicite).isFile()) refuser('AGENT NATIF ABSENT : fichier .exe absolu requis'); return explicite }
-  const vu = executer('where.exe', [`${agent}.exe`], { encoding: 'utf8', windowsHide: true, timeout: 10_000 })
-  if (vu.error || vu.status !== 0) refuser(`AGENT NATIF ABSENT : ${agent}.exe (aucun shim cmd)`)
-  const chemins = vu.stdout.trim().split(/\r?\n/).filter(Boolean)
+  const ou = (nom) => { const vu = executer('where.exe', [nom], { encoding: 'utf8', windowsHide: true, timeout: 10_000 }); return vu.error || vu.status !== 0 ? [] : vu.stdout.trim().split(/\r?\n/).filter(Boolean) }
+  let chemins = ou(`${agent}.exe`)
+  if (!chemins.length && agent === 'codex') {
+    if (!TRIPLES_CODEX[arch]) refuser(`AGENT NATIF ABSENT : codex.exe (architecture ${arch} non supportée)`)
+    chemins = [...new Set(ou('codex.cmd').map((shim) => codexDuShim(shim, arch)).filter(estFichier))]
+  }
+  if (!chemins.length) refuser(`AGENT NATIF ABSENT : ${agent}.exe${agent === 'codex' ? ' (ni natif ni paquet npm @openai/codex)' : ''}`)
   if (chemins.length !== 1) refuser(`AGENT NATIF AMBIGU : ${agent}.exe ; préciser --executable`)
   return chemins[0]
 }
@@ -76,8 +87,8 @@ export function verifierContratAgent(agent, executable, { executer = spawnSync, 
   const general = aide(['--help'])
   if (agent === 'claude') { if (!/prompt/i.test(general)) refuser('CONTRAT CLI INCOMPATIBLE : prompt Claude absent'); return }
   const exec = aide(['exec', '--help'])
-  const manquants = ['--profile', '--sandbox', '--approve-for-me', '--add-dir', '--output-schema', '--output-last-message'].filter((option) => !exec.includes(option))
-  if (!/\bexec\b/.test(general) || !exec.includes('<name>.config.toml')) manquants.push('exec/profil-v2')
+  const manquants = ['--ignore-user-config', '--model', '--config', '--output-schema', '--output-last-message'].filter((option) => !exec.includes(option))
+  if (!/\bexec\b/.test(general)) manquants.push('exec')
   if (manquants.length) refuser(`CONTRAT CLI INCOMPATIBLE : ${manquants.join(', ')}`)
 }
 
@@ -88,26 +99,18 @@ export function argsTerminal({ profil, nom, worktree, script, node, commande }) 
   return ['-w', '0', 'new-tab', '--profile', optionWT(profil), '--title', optionWT(nom), '--suppressApplicationTitle', '--startingDirectory', optionWT(worktree), 'powershell.exe', '-NoLogo', '-NoProfile', '-EncodedCommand', Buffer.from(expression, 'utf16le').toString('base64')]
 }
 
-export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, profilExiste = profilCodexExiste, contrat = verifierContratAgent, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env } = {}) {
+export async function lancerSession(entree, { cwd = process.cwd(), contexte = contexteSessions, terminal = profilTerminal, natif = executableNatif, contrat = verifierContratAgent, lancerWT = spawnSync, sessionsDe = (dossier) => creerSessions({ dossier }), env = process.env } = {}) {
   const options = normaliserLancement(entree, cwd)
-  if (options.agent === 'codex' && options.worktree && !fs.existsSync(options.worktree)) refuser(`CHANTIER ABSENT : npm run ops:chantier -- ${options.ticket}`)
-  let c = contexte(options.worktree ?? cwd)
-  if (options.agent === 'codex') {
-    const cible = options.worktree ?? join(c.racine, `.wt-${options.ticket}`)
-    if (!fs.existsSync(cible)) refuser(`CHANTIER ABSENT : npm run ops:chantier -- ${options.ticket}`)
-    c = contexte(cible)
-    if (!c.branche?.startsWith('chantier/')) refuser(`BRANCHE DE CHANTIER REQUISE : npm run ops:chantier -- ${options.ticket}`)
-  }
+  if (options.worktree && !fs.existsSync(options.worktree)) refuser(`WORKTREE ABSENT : ${options.worktree}`)
+  const c = contexte(options.worktree ?? cwd)
   if (!c.head || !c.branche) refuser('ÉTAT GIT INDISPONIBLE')
   const texte = fs.readFileSync(options.consigne, 'utf8')
-  const existe = options.agent !== 'codex' || profilExiste()
-  if (!existe) refuser(`PROFIL ABSENT : ${politique.profile}`)
   const executable = natif(options.agent, options.executable)
   contrat(options.agent, executable, { env })
-  planAgent({ ...c, agent: options.agent }, { natif: executable, consigne: texte, gitCommun: c.gitCommun, rapport: 'rapport', schema: 'schema', profilExiste: existe, politique })
+  planAgent({ ...c, agent: options.agent }, { natif: executable, consigne: texte, rapport: 'rapport', schema: 'schema', politique })
   const profil = terminal({ chemin: env.WFRP_WT_SETTINGS, nom: options.profilWT })
   const dossier = join(c.gitCommun, 'sessions'), sessions = sessionsDe(dossier)
-  const r = sessions.reserver({ ...c, ticket: options.ticket, nom: options.nom, agent: options.agent, consigne: options.consigne, executable, profilExiste: existe, onglet: { titre: options.nom, profil } })
+  const r = sessions.reserver({ ...c, ticket: options.ticket, nom: options.nom, agent: options.agent, consigne: options.consigne, executable, onglet: { titre: options.nom, profil } })
   const commande = ligneControleur({ script: join(ops, 'session-runtime.mjs'), dossier, id: r.carte.sessionId })
   const args = argsTerminal({ profil: profil.nom, nom: options.nom, script: join(ops, 'session-process.ps1'), node: process.execPath, commande, worktree: c.worktree })
   let vu

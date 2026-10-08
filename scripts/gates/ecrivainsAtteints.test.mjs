@@ -27,7 +27,13 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Scripts ÉCRIVAINS atteints par chaque gate — mesuré le 2026-09-04, stock à faire DÉCROÎTRE. */
 const ATTENDU = {
   'agents:check': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/agents/compat-cli.mjs'],
-  'test:agents': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/agents/compat-cli.mjs'],
+  'test:agents': [
+    'scripts/guards/lib/protectionWorktree.mjs',
+    'scripts/agents/compat-cli.mjs',
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
+  ],
   'test:hooks': ['scripts/guards/lib/protectionWorktree.mjs',
     'scripts/guards/lib/ecrituresFichiers.test.mjs',
     'scripts/guards/lib/ecrituresShell.test.mjs',
@@ -35,6 +41,9 @@ const ATTENDU = {
     'scripts/guards/lib/protectionWorktree.test.mjs',
     'scripts/guards/lib/racinesBalayees.test.mjs',
     'scripts/hooks/superpowers-ecriture-guard.test.mjs',
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/guards/budget-contexte.test.mjs',
     'scripts/docs/lib/enregistreur-lectures.mjs',
@@ -263,10 +272,12 @@ const ATTENDU = {
   // +1 le 2026-10-04 (#2278) : la garde copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en
   // finally ; l'arbre n'est jamais écrit.
   'mods:check': ['scripts/mods/verifier.mjs'],
-  // La porte de publication des résolutions de fusion (#2328) n'atteint AUCUN module écrivain : elle lit
-  // l'histoire par git et rend son verdict.
+  // #2328
   'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'test:ops': ['scripts/guards/lib/protectionWorktree.mjs',
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     // #2461
     'scripts/ops/session-runtime.mjs',
     'scripts/ops/session.test.mjs',
@@ -373,6 +384,12 @@ const ATTENDU = {
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
   ],
   'test:runner': ['scripts/guards/lib/protectionWorktree.mjs',
+    // +1 le 2026-10-08 (#2497) : le banc du lanceur des gates node forge un dépôt JETABLE (`mkdtempSync` +
+    // `writeFileSync` sous os.tmpdir(), `rmSync` en finally) et y joue `node --test` ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.test.mjs',
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
@@ -422,6 +439,9 @@ const ATTENDU = {
     'scripts/test/verrou.test.mjs',
   ],
   'test:docs': ['scripts/guards/lib/protectionWorktree.mjs',
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     // #2499
     'scripts/gates/toutes.mjs',
     'scripts/guards/lib/purgerPerimes.mjs',
@@ -466,6 +486,9 @@ const ATTENDU = {
   ],
   'deps:unused': [],
   'test:recette': ['scripts/guards/lib/protectionWorktree.mjs',
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     'scripts/recette/lib.mjs',
     // +1 le 2026-10-07 (#2198) : le banc de `shot` capture dans un dossier d'`os.tmpdir()` qu'il efface
     // (`rmSync` en `t.after`) ; l'arbre n'est jamais écrit.
@@ -493,6 +516,9 @@ const ATTENDU = {
     'scripts/guards/lib/protectionWorktree.mjs',
   ],
   'test:raw': ['scripts/guards/lib/protectionWorktree.mjs',
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-20 (#1825) : le banc du contrat d'acceptation de l'Atlas IMPORTE
     // l'acceptation déclarée par chaque lecteur, `croissance.mjs` compris — une ligne de contrat
@@ -606,9 +632,7 @@ const ATTENDU = {
   // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
   // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
   'raw:check-code-refs': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/raw/build-implemente.mjs'],
-  // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
-  // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté
-  // (scripts/raw/reparer-ancres.mjs), et c'est LUI qui importe la garde, jamais l'inverse.
+  // #1824
   'raw:check-ancres': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'raw:check-folio-continuity': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'raw:check-source-tables': ['scripts/guards/lib/protectionWorktree.mjs', ],

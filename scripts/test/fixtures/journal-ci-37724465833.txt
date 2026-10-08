@@ -1,0 +1,6 @@
+suite 2/3	UNKNOWN STEP	2026-10-08T03:49:44.2282517Z [partie] 2/3 : 638 fichier(s) sur 1898 · empreinte 8d54ca0ea83a · liste 69b3203f1d0e
+suite 1/3	UNKNOWN STEP	2026-10-08T03:48:57.0680970Z [partie] 1/3 : 645 fichier(s) sur 1898 · empreinte 3e1408cef471 · liste 69b3203f1d0e
+suite 3/3	UNKNOWN STEP	2026-10-08T03:49:08.9743016Z [partie] 3/3 : 615 fichier(s) sur 1898 · empreinte 2f018ea055c9 · liste 69b3203f1d0e
+suite 2/3	UNKNOWN STEP	2026-10-08T03:50:05.9835044Z  ✓ src/state/store.test.ts (202 tests) 2960ms 481 MB heap used
+suite 2/3	UNKNOWN STEP	2026-10-08T03:50:27.8928666Z      ✓ dessine la niche d’États même quand le héros n’en porte AUCUN : 4 alvéoles réservées 575ms 732 MB heap used
+docs-tests	UNKNOWN STEP	2026-10-08T03:48:56.2711798Z > node scripts/test/node-tests.mjs test:docs
