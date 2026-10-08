@@ -50,7 +50,7 @@ const carte: WorldMap = {
       modes: ['pied'],
       perilDie: 0,
       when: { kind: 'not', of: { kind: 'flag', expr: 'ch1-clos' } },
-      refus: REFUS,
+      refus: { texte: REFUS },
     },
   ],
 };

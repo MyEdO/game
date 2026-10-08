@@ -30,8 +30,8 @@ const construireAuberge = (): Scene => buildScene({
     { id: 'phillipe', kind: 'personnage', ref: 'humain', label: 'Phillipe', pos: { x: 6, y: 4 }, appearance: { species: 'humains-reiklander' } },
   ],
   startMessage:
-    'Une tablée d’auberge : Gustav, Isolde et Phillipe. Parlez à Gustav — la conversation passe de ' +
-    'main en main, portrait et nom changeant à chaque réplique (`speakerId`, #669).',
+    { texte: 'Une tablée d’auberge : Gustav, Isolde et Phillipe. Parlez à Gustav — la conversation passe de ' +
+    'main en main, portrait et nom changeant à chaque réplique (`speakerId`, #669).' },
   dialogues: [
     {
       id: 'dlg-tablee',

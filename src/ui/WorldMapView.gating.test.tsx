@@ -52,7 +52,7 @@ const carte: WorldMap = {
       km: 42,
       modes: ['pied'],
       when: { kind: 'not', of: { kind: 'flag', expr: 'chapitre-clos' } },
-      refus: 'Les gardes ont barré le pont de Bögen.',
+      refus: { texte: 'Les gardes ont barré le pont de Bögen.' },
     },
   ],
 };

@@ -6,7 +6,7 @@ import { Inspector } from './Inspector';
 import { emptyScene, type Scene, type SceneEntity } from '../../state/scene';
 import { lightTones } from '../../data';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
-import { facadeFeatureKindSchema, roofProfileSchema } from '../../data/schemas/defs-scenes/scene';
+import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
 import type { Sel } from './editorState';
 import { validateScene } from '../../state/validateScene';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
@@ -23,8 +23,8 @@ afterEach(demonterRacines);
  *  `setScene` dans `latest` — assez pour vérifier qu'une saisie ATTERRIT dans la Scène, et qu'elle
  *  SURVIT à un aller-retour JSON (le Schéma de Scène est de la donnée pure, aucune sérialisation
  *  dédiée — `JSON.parse(JSON.stringify(...))` EST le round-trip sauvegarde/chargement, #841). */
-function mount(entity: SceneEntity) {
-  const scene: Scene = { ...emptyScene(4, 4), entities: [entity] };
+function mount(entity?: SceneEntity) {
+  const scene: Scene = { ...emptyScene(4, 4), entities: entity ? [entity] : [] };
   let latest = scene;
   const montage = monterRacine(null);
   const render = (s: Scene) => {
@@ -37,7 +37,7 @@ function mount(entity: SceneEntity) {
           latest = next;
           render(next);
         }}
-        sel={{ type: 'entity', id: entity.id }}
+        sel={entity ? { type: 'entity', id: entity.id } : null}
         setSel={() => undefined}
         enemyCreatures={[{ id: 'humain', label: 'Humain' }]}
         openLogic={() => undefined}
@@ -60,6 +60,27 @@ function mount(entity: SceneEntity) {
 function roundTrip(scene: Scene): Scene {
   return JSON.parse(JSON.stringify(scene)) as Scene;
 }
+
+describe('Inspector — introduction locale', () => {
+  it('le texte et son folio adapté restent dans leur objet après aller-retour', async () => {
+    const h = mount();
+    await h.mount();
+    const saisir = async (element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, value: string) => {
+      const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : element instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+      await act(async () => { Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(element, value); element.dispatchEvent(new Event('input', { bubbles: true })); element.dispatchEvent(new Event('change', { bubbles: true })); });
+    };
+    const zone = [...h.container.querySelectorAll('label.ed-field')].find(e => e.firstElementChild?.textContent === "Message d'introduction")!.querySelector('textarea')!;
+    await saisir(zone, 'Entrée maison.');
+    const sujet = "du message d'introduction";
+    await act(async () => { h.container.querySelector<HTMLButtonElement>(`[aria-label="Adapté — provenance ${sujet}"]`)!.click(); });
+    await saisir(h.container.querySelector<HTMLSelectElement>(`[aria-label="Livre de la source ${sujet}"]`)!, 'ennemi-dans-l-ombre');
+    const page = h.container.querySelector<HTMLInputElement>(`[aria-label="Page de la source ${sujet}"]`)!;
+    await saisir(page, '12');
+    await act(async () => { page.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+    expect(roundTrip(h.sceneOf()).startMessage).toEqual({ texte: 'Entrée maison.', adapteDe: { book: 'ennemi-dans-l-ombre', page: 12 } });
+    expect(sceneSchema.safeParse(roundTrip(h.sceneOf())).error?.issues).toBeUndefined();
+  });
+});
 
 describe('Inspector — apparence visuelle des murs', () => {
   it('conserve la structure mécanique quand une apparence est choisie et sérialisée', async () => {

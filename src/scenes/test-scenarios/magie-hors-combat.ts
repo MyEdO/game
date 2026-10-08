@@ -23,9 +23,9 @@ const construireScene = (): Scene => buildScene({
   size: [14, 9],
   heroStart: [2, 4],
   startMessage:
-    `Exploration (aucun combat). Cliquez une fiche de lanceur → onglet « ${t('sheet.tab.magie')} » : soignez/bénissez ` +
+    { texte: `Exploration (aucun combat). Cliquez une fiche de lanceur → onglet « ${t('sheet.tab.magie')} » : soignez/bénissez ` +
     'l’allié blessé (Prêtre), puis « Focaliser » et « Lancer » un Sort d’Arcane (Sorcier). ' +
-    'Les Projectiles magiques restent marqués « en combat ».',
+    'Les Projectiles magiques restent marqués « en combat ».' },
 });
 
 export const scenario: TestScenario = {

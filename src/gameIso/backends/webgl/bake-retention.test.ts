@@ -90,7 +90,7 @@ const MUTATIONS: Record<Exclude<keyof Scene, 'type'>, (s: Scene) => Scene> = {
   stations: (s) => ({ ...s, stations: [{ sceneId: 'ailleurs', pos: { x: 1, y: 1 } }] }),
   flags: (s) => ({ ...s, flags: { ...s.flags, neuf: true } }),
   entryPoints: (s) => ({ ...s, entryPoints: { ...(s.entryPoints ?? {}), porte: { x: 1, y: 1 } } }),
-  startMessage: (s) => ({ ...s, startMessage: 'Autre message' }),
+  startMessage: (s) => ({ ...s, startMessage: { texte: 'Autre message' } }),
   couvre: (s) => ({ ...s, couvre: ['EDO-01#b1'] }),
 };
 

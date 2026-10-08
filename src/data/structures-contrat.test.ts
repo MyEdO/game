@@ -7,6 +7,7 @@ import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { detenteur } from '../detenteur.testkit';
 import { tableTotale } from '../lib/tableTotale';
 import {
@@ -93,7 +94,7 @@ const GARDE = {
 
 /** `docs/structures-donnees.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
 const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
-const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 /** Le DÉCLARÉ couvre les DEUX racines (#1466 L1a) — jointure par BASENAME, comme le scan key.
  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
  *  composition defs + enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et c'est la
@@ -738,6 +739,41 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
 describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOYAU, jamais au CHAMP', () => {
   const documents = CONCEPTS.filter((c) => c.strate === 'Document');
 
+  // #2001
+  it('prose nommée : le texte et sa provenance locale forment une enveloppe', () => {
+    const classement = (o: object) => classerValeur(signature(Object.keys(o)), Object.keys(o));
+    for (const o of [
+      { texte: 'Maison' },
+      { texte: 'Copie', source: { book: 'ldb', page: 12 } },
+      { texte: 'Adaptation', adapteDe: { book: 'ldb', page: 12 } },
+    ]) expect(classement(o)).toMatchObject({ concept: 'prose-nommee', strate: 'Document', statut: 'cible' });
+    expect(classement({ source: { book: 'ldb', page: 12 } })).toBeNull();
+    expect(classement({ book: 'ldb', page: 12 })).toMatchObject({ concept: 'source' });
+    expect(classement({ book: 'ldb', ch: '12', parts: [] })).toMatchObject({ concept: 'adresse' });
+    expect(classement({ id: 'x' })).toBeNull();
+  });
+
+  // #2001
+  it('les porteurs bruts de texte du corpus scanné sont des proses sans concept concurrent', () => {
+    const porteurs: { site: string; objet: Record<string, unknown> }[] = [];
+    const marche = (v: unknown, site: string): void => {
+      if (Array.isArray(v)) { v.forEach((e, i) => marche(e, `${site}[${i}]`)); return; }
+      if (!v || typeof v !== 'object') return;
+      const o = v as Record<string, unknown>;
+      if (Object.prototype.hasOwnProperty.call(o, 'texte')) porteurs.push({ site, objet: o });
+      for (const [k, e] of Object.entries(o)) marche(e, `${site}.${k}`);
+    };
+    for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')), d.chemin);
+    expect(porteurs).toHaveLength(25);
+    for (const { site, objet } of porteurs) {
+      expect(typeof objet.texte, site).toBe('string');
+      expect(Object.keys(objet).filter((k) => !['texte', 'source', 'adapteDe'].includes(k)), site).toEqual([]);
+      expect(classerValeur(signature(Object.keys(objet)), Object.keys(objet)), site).toMatchObject({
+        concept: 'prose-nommee', strate: 'Document', statut: 'cible',
+      });
+    }
+  });
+
   it('A — aucun concept d’enveloppe n’est keyé par CHAMP : un concept champ-keyé est AVEUGLE à la forme', () => {
     // La preuve tient dans le seul concept champ-keyé du lexique : `prix` revendique TOUTE forme
     // posée sous `price`, jusqu'à la chaîne d'une règle optionnelle qui n'a rien d'un prix.
@@ -761,6 +797,11 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       'un noyau d’enveloppe a mordu ailleurs que sur sa porte (ou l’a lâchée) — un concept qui déborde est le débordement global que le DoD interdit, et il se NOMME ici avant de se déclarer.',
     ).toEqual(
       lignes([
+        'prose-nommee | arene-projet.json › startMessage | texte',
+        'prose-nommee | barge-du-sel-projet.json › refus | texte',
+        'prose-nommee | barge-du-sel-projet.json › sousTitre | texte',
+        'prose-nommee | diligence-projet.json › refus | texte',
+        'prose-nommee | diligence-projet.json › sousTitre | texte',
         'narratif | arene-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
         'narratif | loup-et-saumure-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
         'narratif | barge-du-sel-projet.json › narratif | affaires,documents,indices,objets,presetsPnj+…',

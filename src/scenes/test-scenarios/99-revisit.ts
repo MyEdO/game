@@ -23,9 +23,9 @@ const construireReserve = (): Scene => buildScene({
   ambiance: 'interieur',
   heroStart: [0, 1],
   startMessage:
-    'Une réserve poussiéreuse. Un coffre non gardé traîne près de l’entrée ; une porte de bois barre ' +
+    { texte: 'Une réserve poussiéreuse. Un coffre non gardé traîne près de l’entrée ; une porte de bois barre ' +
     'le fond du couloir. (Fouillez le coffre puis ouvrez la porte pour rejoindre le couloir — revenez ' +
-    'ensuite ici pour vérifier que rien n’a été remis en place.)',
+    'ensuite ici pour vérifier que rien n’a été remis en place.)' },
   walls: [{ x: 2, y: 1, side: 'E', door: true }],
   entities: [
     {
@@ -53,7 +53,7 @@ const construireCouloir = (): Scene => buildScene({
   terrain: 'pierre',
   ambiance: 'interieur',
   heroStart: [3, 1],
-  startMessage: 'Un couloir de service, sans rien à voir. (Repartez vers la Réserve pour la revisiter.)',
+  startMessage: { texte: 'Un couloir de service, sans rien à voir. (Repartez vers la Réserve pour la revisiter.)' },
   triggers: [
     {
       id: 'couloir-vers-reserve',

@@ -102,9 +102,9 @@ function construireScene(): Scene {
     entities: decor,
     heroStart: [7, 1], // sur le chemin, au nord (couche 0)
     startMessage:
-      "Vous tenez le chemin, au nord. Suivez-le vers le sud : il passe SOUS le pont. Pour marcher DESSUS, prenez " +
+      { texte: "Vous tenez le chemin, au nord. Suivez-le vers le sud : il passe SOUS le pont. Pour marcher DESSUS, prenez " +
       "l'une des deux rampes (est ou ouest). À l'ouest, un plateau se gravit ; au sud-est, un rebord de falaise " +
-      "surplombe un creux — infranchissable à pied.",
+      "surplombe un creux — infranchissable à pied." },
   });
   return scene;
 }

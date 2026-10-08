@@ -63,8 +63,8 @@ afterEach(() => {
 function click(el: Element) {
   act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 }
-function setValue(el: HTMLInputElement | HTMLSelectElement, value: string) {
-  const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+function setValue(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, value: string) {
+  const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype : el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
   const setter = Object.getOwnPropertyDescriptor(proto, 'value')!.set!;
   act(() => {
     setter.call(el, value);
@@ -93,9 +93,9 @@ function flagInput(): HTMLInputElement {
   if (!el) throw new Error('champ de flag introuvable');
   return el as HTMLInputElement;
 }
-function refusInput(): HTMLInputElement | null {
+function refusInput(): HTMLTextAreaElement | null {
   const wrap = [...container.querySelectorAll('.ed-field, label')].find((e) => (e.textContent ?? '').includes('Raison du refus'));
-  return (wrap?.querySelector('input') ?? null) as HTMLInputElement | null;
+  return (wrap?.querySelector('textarea') ?? null) as HTMLTextAreaElement | null;
 }
 function alerte(): string | null {
   return container.querySelector('[role="status"]')?.textContent ?? null;
@@ -133,8 +133,15 @@ describe('#684 L3 — panneau ROUTE : « Praticable si » + raison du refus (Map
     expect(container.querySelector('[role="status"] .fold'), 'aucun pli : le refus ne porte aucune faute de la porte à détailler').toBeNull();
 
     setValue(refusInput()!, 'Le pont est coupé par la crue.');
-    expect(lastMap!.routes[0].refus).toBe('Le pont est coupé par la crue.');
+    expect(lastMap!.routes[0].refus).toEqual({ texte: 'Le pont est coupé par la crue.' });
     expect(alerte()).toBeNull();
+    const sujet = 'du refus de route';
+    click(container.querySelector(`[aria-label="Adapté — provenance ${sujet}"]`)!);
+    setValue(container.querySelector<HTMLSelectElement>(`[aria-label="Livre de la source ${sujet}"]`)!, 'ennemi-dans-l-ombre');
+    const page = container.querySelector<HTMLInputElement>(`[aria-label="Page de la source ${sujet}"]`)!;
+    setValue(page, '12');
+    act(() => { page.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
+    expect(lastMap!.routes[0].refus).toEqual({ texte: 'Le pont est coupé par la crue.', source: undefined, adapteDe: { book: 'ennemi-dans-l-ombre', page: 12 } });
 
     // Retour à « Toujours » : la raison part avec la condition (pas de `refus` orphelin en donnée).
     setValue(kindSelect(), 'always');

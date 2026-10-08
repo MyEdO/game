@@ -395,6 +395,8 @@ export interface CatalogStake {
  *  document ne renvoie à aucune fiche Codex. */
 export interface AuthoredStake {
   authored: string;
+  source?: SourceRef;
+  adapteDe?: SourceRef;
   key?: never;
   values?: never;
   from?: never;

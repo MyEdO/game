@@ -70,12 +70,12 @@ const construireVillage = (): Scene => buildScene({
   weather: 'pluie', // nuit dehors = Exposition (la météo de la scène de départ suit le voyage)
   rest: { auberge: true },
   startMessage:
-    'L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg ' +
+    { texte: 'L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg ' +
     '(30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois ' +
     'nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta ' +
     'fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de ' +
     'cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour ' +
-    'voyager.)',
+    'voyager.)' },
   entities: [
     { id: 'aubergiste', kind: 'personnage', ref: 'humain', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-auberge' },
   ],
@@ -106,7 +106,7 @@ const construireHameau = (): Scene => buildScene({
   terrain: 'herbe',
   heroStart: [3, 4],
   weather: 'pluie', // la longue route part d'ici : camper sous la pluie expose
-  startMessage: 'Vous voilà à Federholz. (Reprenez la carte pour repartir — la LONGUE route d’Altdorf part d’ici.)',
+  startMessage: { texte: 'Vous voilà à Federholz. (Reprenez la carte pour repartir — la LONGUE route d’Altdorf part d’ici.)' },
 });
 
 const construireBourg = (): Scene => buildScene({
@@ -116,7 +116,7 @@ const construireBourg = (): Scene => buildScene({
   size: [12, 8],
   terrain: 'herbe',
   heroStart: [3, 4],
-  startMessage: 'Steinbruck, ses quais et sa halle. (Reprenez la carte pour repartir.)',
+  startMessage: { texte: 'Steinbruck, ses quais et sa halle. (Reprenez la carte pour repartir.)' },
 });
 
 // Cité d'arrivée + INTERLUDE (Entre deux aventures) : marcher sur le cercle ouvre les Activités.
@@ -127,7 +127,7 @@ const construireCite = (): Scene => buildScene({
   size: [12, 8],
   terrain: 'herbe',
   heroStart: [3, 4],
-  startMessage: 'Altdorf, au bout de la longue route. Marchez sur le cercle runique pour l’entre-deux-aventures (Activités).',
+  startMessage: { texte: 'Altdorf, au bout de la longue route. Marchez sur le cercle runique pour l’entre-deux-aventures (Activités).' },
   entities: [
     { id: 'cercle', kind: 'prop', ref: 'cercle-runique', pos: { x: 6, y: 4 } },
   ],

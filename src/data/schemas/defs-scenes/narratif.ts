@@ -29,14 +29,14 @@ export const indiceStadeSchema = proseNommee(nommerChamps(z.strictObject({
   /** id STABLE du stade, unique DANS l'indice. */
   id: z.string().min(1, 'id vide.'),
   documentId: z.string().min(1, 'id de document vide.').optional(),
-}), { id: { label: "identifiant" }, documentId: { label: "document" } }), 'narratif.indices[].stades[].prose');
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, documentId: { label: "document" , texte: { regime: "technique"} } }), 'narratif.indices[].stades[].prose');
 
 /** #679 ; #2427. */
 export const documentNarratifSchema = proseNommee(nommerChamps(z.strictObject({
   /** id STABLE, unique dans le narratif ET non-colluant avec un id global. */
   id: z.string().min(1, 'id vide.'),
   titre: z.string().min(1, 'titre vide.'),
-}), { id: { label: "identifiant" }, titre: { label: "titre" } }), 'narratif.documents[].prose');
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, titre: { label: "titre" , texte: { regime: "designation"} } }), 'narratif.documents[].prose');
 
 /** Un indice ou une rumeur d'une affaire — révélé par stades. */
 export const indiceSchema = nommerChamps(z.strictObject({
@@ -50,14 +50,14 @@ export const indiceSchema = nommerChamps(z.strictObject({
   /** Autres indices (ids) que celui-ci recoupe/débloque. */
   refs: z.array(z.string()).optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" }, affaireId: { label: "affaire" }, kind: { label: "type" }, titre: { label: "titre" }, stades: { label: "stades" }, refs: { label: "renvois" }, couvre: { label: "entrées couvertes" } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, affaireId: { label: "affaire" , texte: { regime: "technique"} }, kind: { label: "type"  }, titre: { label: "titre" , texte: { regime: "designation"} }, stades: { label: "stades" }, refs: { label: "renvois" , texte: { regime: "technique"} }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** Une affaire (fil d'enquête) de la campagne. */
 export const affaireSchema = nommerChamps(z.strictObject({
   id: z.string().min(1, 'id vide.'),
   titre: z.string(),
   desc: z.string().optional(),
-}), { id: { label: "identifiant" }, titre: { label: "titre" }, desc: { label: "texte" } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, titre: { label: "titre" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de l’affaire réservée à l’atelier"} } });
 
 
 /** Un PNJ pré-composé : créature globale surchargée (`base`) ou profil ad hoc embarqué (`profil`,
@@ -76,7 +76,7 @@ export const presetPnjSchema = nommerChamps(z.strictObject({
   ...champAdapteDe(),
 })
   .superRefine(refineAdapteDe)
-  .superRefine(refinePresetAdapte), { id: { label: "identifiant" }, base: { label: "base" }, profil: { label: "profil" }, apparence: { label: "apparence" }, portrait: { label: "portrait" }, source: { label: "source" }, couvre: { label: "entrées couvertes" }, ...META_ADAPTE_DE });
+  .superRefine(refinePresetAdapte), { id: { label: "identifiant" , texte: { regime: "technique"} }, base: { label: "base" , texte: { regime: "technique"} }, profil: { label: "profil" }, apparence: { label: "apparence" }, portrait: { label: "portrait" , texte: { regime: "technique"} }, source: { label: "source" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, ...META_ADAPTE_DE });
 
 /** Un preset ADAPTÉ (`adapteDe`) ne porte pas de prose ADRESSÉE : la prose d'un preset est `profil.desc`,
  *  et `profil.descRef` en fait la copie du livre (#2001). */
@@ -91,17 +91,19 @@ function refinePresetAdapte(v: unknown, ctx: z.RefinementCtx): void {
 export const ecartSchema = nommerChamps(z.strictObject({
   entree: entreeDeFicheSchema,
   motif: z.string().regex(/\S/, 'motif vide.'),
-}), { entree: { label: "entrée" }, motif: { label: "motif" } });
+}), { entree: { label: "entrée" , texte: { regime: "technique"} }, motif: { label: "motif" , texte: { regime: "atelier",usage: "motif d’écart du dossier de chapitre"} } });
 
 /** Ouverture CÉRÉMONIELLE du chapitre (#717, `OuvertureBlock`). Rendu par `<Prose>` : titre et
  *  pitch non vides sont la seule exigence. */
+export const sousTitreOuvertureSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'narratif.ouverture.sousTitre.texte');
+export const sousTitreClotureSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'narratif.cloture.sousTitre.texte');
 export const ouvertureSchema = proseNommee(nommerChamps(z.strictObject({
   surtitre: z.string().optional(),
   titre: z.string().min(1, 'titre vide.'),
-  sousTitre: z.string().optional(),
+  sousTitre: sousTitreOuvertureSchema.optional(),
   chapitre: z.string().optional(),
   ambiance: z.enum(['veillee', 'parchemin']).optional(),
-}), { surtitre: { label: "surtitre" }, titre: { label: "titre" }, sousTitre: { label: "sous-titre" }, chapitre: { label: "chapitre" }, ambiance: { label: "ambiance" } }), 'narratif.ouverture.pitch');
+}), { surtitre: { label: "surtitre" , texte: { regime: "designation"} }, titre: { label: "titre" , texte: { regime: "designation"} }, sousTitre: { label: "sous-titre" }, chapitre: { label: "chapitre" , texte: { regime: "designation"} }, ambiance: { label: "ambiance"  } }), 'narratif.ouverture.pitch');
 
 /** CLÔTURE du chapitre (#717, `ClotureBlock`) — `when` évalué au contexte HORS COMBAT (`condCtx`),
  *  d'où le MÊME schéma borné que le `when` d'un lieu de carte (un kind non évaluable serait FAUX
@@ -109,8 +111,8 @@ export const ouvertureSchema = proseNommee(nommerChamps(z.strictObject({
 export const clotureSchema = nommerChamps(z.strictObject({
   when: conditionCondCtxSchema,
   titre: z.string().min(1, 'titre vide.'),
-  sousTitre: z.string().optional(),
-}), { when: { label: "condition" }, titre: { label: "titre" }, sousTitre: { label: "sous-titre" } });
+  sousTitre: sousTitreClotureSchema.optional(),
+}), { when: { label: "condition" }, titre: { label: "titre" , texte: { regime: "designation"} }, sousTitre: { label: "sous-titre" } });
 
 /** Un id narratif COLLISIONNE avec la règle globale s'il résout déjà comme créature OU possession. */
 export const collisionneAvecLeGlobal = (id: string): boolean => !!findCreatureById(id) || !!findTrappingById(id);
@@ -209,7 +211,7 @@ const formeNarratif = nommerChamps(z.strictObject({
   ouverture: ouvertureSchema.optional(),
   cloture: clotureSchema.optional(),
   ecartes: listeCle(ecartSchema, 'entree').optional(),
-}), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" }, documents: { label: "documents" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
+}), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" , texte: { regime: "atelier",usage: "objets embarqués typés au catalogue, onglet en lecture seule"} }, documents: { label: "documents" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
 
 /** `NarratifBlock` (`state/campaignNarratif.ts`) — forme + sémantique. */
 export const narratifSchema = formeNarratif.superRefine(raffineNarratif);

@@ -43,9 +43,9 @@ const construireScene = (): Scene => buildScene({
     },
   ],
   startMessage:
-    "Clairière des Enfants d'Ulric. Deux lycanthropes vous attendent sous forme HUMAINE. Avancez vers l'EST " +
+    { texte: "Clairière des Enfants d'Ulric. Deux lycanthropes vous attendent sous forme HUMAINE. Avancez vers l'EST " +
     "pour les engager : à leur tour, ils prendront leur forme hybride à tête de loup (deux Actions), gagnant " +
-    "les Caractéristiques et Traits du fauve. Observez la bascule d'apparence et de profil, puis abattez-les.",
+    "les Caractéristiques et Traits du fauve. Observez la bascule d'apparence et de profil, puis abattez-les." },
 });
 
 export const scenario: TestScenario = {

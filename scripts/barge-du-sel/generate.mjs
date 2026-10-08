@@ -276,7 +276,7 @@ const worldMap = {
       id: 'route-quai-ilot', a: 'quai-du-sel', b: 'ilot-du-sel', km: 30, modes: ['mer'], sea: true, seaHeading: 'nord',
       ambush: { scene: 'barge-du-sel-embuscade', encounter: 'enc-embuscade-sel', at: 0.5 },
       when: flagWhen(FLAG_CAP),
-      refus: "Aucun cap n'est donné : la Louve grise ne sait pas encore où porter le sel.",
+      refus: { texte: "Aucun cap n'est donné : la Louve grise ne sait pas encore où porter le sel." },
     },
   ],
 };
@@ -296,7 +296,7 @@ const narratif = {
   ...emptyNarratif(),
   ouverture: {
     titre: 'La Barge du Sel',
-    sousTitre: 'Une traversée courte, une mer mal fréquentée',
+    sousTitre: { texte: 'Une traversée courte, une mer mal fréquentée' },
     // Prose MAISON, comme le scénario qui la porte (`identite.maison`) : aucun livre ne la publie.
     pitch:
       "Trente kilomètres de mer grise séparent le quai de l'îlot du sel. Une traversée d'une journée, que les caboteurs faisaient sans y penser.\n\nDepuis trois lunes, des voiles noires y prélèvent leur part, et plus personne ne trouve d'équipage pour la faire. La Louve grise appareille quand même — la cale pleine, le canon servi.",
@@ -305,7 +305,7 @@ const narratif = {
   cloture: {
     when: flagWhen(FLAG_ACCOSTE),
     titre: 'La Barge du Sel — la traversée est faite',
-    sousTitre: 'Ce que la Louve grise ramène de la traversée',
+    sousTitre: { texte: 'Ce que la Louve grise ramène de la traversée' },
   },
 };
 

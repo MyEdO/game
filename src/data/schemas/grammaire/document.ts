@@ -14,7 +14,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
 import { defDe } from './descente';
-import { noyauEnum, nommerChamps, type MetaChamp, type MetaDesChamps } from './meta';
+import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
 import { champsProse, refineProse, type PorteurDeProse } from './prose';
 import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
@@ -527,7 +527,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
     refineProse({ type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   const affine = affinerEntree ? affinerEntree(avecProse) : avecProse;
-  nommerChamps(affine as z.ZodObject<z.ZodRawShape>, noms);
+  nommerChamps(affine as z.ZodObject<z.ZodRawShape>, { ...noms, ...metaDesChamps(affine) });
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));
 
   // EMBALLAGE par FAMILLE (#1467) : le dataset est ce que le FICHIER porte — une LISTE d'entrées

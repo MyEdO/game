@@ -75,6 +75,14 @@ export interface SiteProse {
  * site qui change de porteur, et `src/ui/prose-sites.test.ts` rougit — dans les deux sens.
  */
 export const SITES_PROSE: SiteProse[] = [
+  { cle: 'src/ui/TeamSegments.tsx#Prose.md#1', origine: 'Y', note: 'projection de segments narrés ; les tons annotent le Markdown complet sans en changer le texte.' },
+  { cle: 'src/ui/RecapLine.tsx#Prose.md#1', origine: 'Y', note: 'RecapLine.text matérialise une conséquence de résolution.' },
+  { cle: 'src/ui/RevealBody.tsx#Prose.md#1', origine: 'S', note: 'RevealEntry sceneEntry.lines reçoit scenes[].startMessage.texte ; le snapshot ne porte pas l’id du document source.' },
+  { cle: 'src/ui/LogDrawer.tsx#Prose.md#1', origine: 'S', note: 'journal runtime matérialise journal.desc/narrative.text ; absence de l’id du document porteur.' },
+  { cle: 'src/ui/CascadeModal.tsx#Prose.md#1', origine: 'S', note: 'CascadeStep.label matérialise flow.choice.prompt ; absence de l’id du document porteur.' },
+  { cle: 'src/ui/ObjectiveBanner.tsx#Prose.md#1', origine: 'S', note: 'Objective.text matérialisé depuis setObjective.desc ; l’id du document porteur est absent du runtime Objective.' },
+  { cle: 'src/ui/BackgroundPanel.tsx#Prose.md#1', origine: 'S', note: 'favor.desc projeté depuis grantFavor.desc ou une faveur mécanique de catalogue ; Favor runtime ne porte pas l’id de son document source.' },
+  { cle: 'src/ui/CampaignLibraryScreen.tsx#Prose.md#1', origine: 'S', porteur: 'projet.desc' },
   // ── Codex : la fiche et ses rangées ───────────────────────────────────────────────────────────
   { cle: 'src/ui/compendium/CodexEntry.tsx#Prose.md#1', origine: 'S', porteur: '<entrée>.<chemin de la rangée>', note: 'rangée `t:text` : porteur composé par `CodexRowView` quand la rangée en déclare un (sinon nu)' },
   { cle: 'src/ui/compendium/CodexEntry.tsx#Prose.md#2', origine: 'Y', note: 'corps d’un `t:fold` — forme technique d’atelier (`describe`), jamais un champ' },
@@ -124,13 +132,17 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/PartyScreen.tsx#DetailFrame.prose#1', origine: 'Y', note: 'présentation composée des champs du héros + libellés i18n' },
 
   // ── Prose de SCÈNE : adressée, mais son projet n'a pas d'identité en jeu (reste nommé de T0) ───
-  { cle: 'src/ui/CampaignOpeningScreen.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `narratif.ouverture.pitch` est un champ adressé (cf. `CHEMINS_ADRESSES`) mais l’id du projet n’est pas en portée — `campaignDoc` (`src/state/store.ts:2218`) ne porte pas d’id et `pendingCampaign` redevient `null` après `loadProject` (`src/state/devtools.test.ts:444`). Un porteur à l’id faux serait pire que pas de porteur.' },
+  { cle: 'src/ui/CampaignOpeningScreen.tsx#Prose.md#1', origine: 'S', note: 'narratif.ouverture.sousTitre.texte ; pendingOuverture ne porte pas l’id du projet.' },
+  { cle: 'src/ui/CampaignOpeningScreen.tsx#Prose.md#2', origine: 'S', note: 'narratif.ouverture.pitch ; pendingOuverture ne porte pas l’id du projet.' },
+  { cle: 'src/ui/ChapterRecapScreen.tsx#Prose.md#1', origine: 'S', note: 'narratif.cloture.sousTitre.texte projeté dans pendingChapterRecap.sousTitre ; l’id du projet est absent de ce snapshot.' },
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `narratif.indices[].stades[].prose` — même blocage d’identité de projet' },
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#2', origine: 'S', note: 'RESTE T0 : idem (lectures précédentes)' },
   { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `store.document.text` — la prose de `narratif.documents[].prose` que pose l’effet `document` (`src/state/combatEffects.ts`), même blocage d’identité de projet ; la même surface rend aussi le rapport de naufrage, texte RUNTIME (`src/state/shipwreck.ts`)' },
   { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', note: 'RESTE T0 : `massBattle.terrain`, authoré dans l’effet de scène — même blocage d’identité de projet' },
   { cle: 'src/ui/editor/DialogueDetail.tsx#ProseField.lecture#1', origine: 'S', note: 'RESTE T0 : réplique d’un nœud de dialogue lue tant qu’elle adresse un passage (`descRef`) — prose de scène, même blocage d’identité de projet' },
   { cle: 'src/ui/editor/EffectList.tsx#ProseField.lecture#1', origine: 'S', note: 'RESTE T0 : ligne de l’effet `journal` lue tant qu’elle adresse un passage (`descRef`) — prose de scène, même blocage d’identité de projet' },
+  { cle: 'src/ui/editor/EffectList.tsx#ProseField.lecture#2', origine: 'S', note: 'Objectif adressé, texte matérialisé lu dans l’éditeur.' },
+  { cle: 'src/ui/editor/EffectList.tsx#ProseField.lecture#3', origine: 'S', note: 'Faveur adressée, texte matérialisé lu dans l’éditeur.' },
 
   // ── Galerie DEV (montée vivante : des sites réels, pas des fixtures) ──────────────────────────
   { cle: 'src/ui/gallery/registry.tsx#DetailFrame.prose#1', origine: 'S', porteur: 'careers.desc' },

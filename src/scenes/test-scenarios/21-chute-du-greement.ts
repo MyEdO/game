@@ -80,8 +80,8 @@ function construireScene(): Scene {
     metresPerTile: 10,
     heroStart: [3, 6],
     startMessage:
-      'Deux matelots dans la mâture : Ott dans le gréement, Nissa au nid-de-pie. Un boulet dans le gréement, '
-      + 'et il faudra tenir bon — sinon la hauteur se tire, puis les Dégâts. Console : __wfrp.shipCrit("greement").',
+      { texte: 'Deux matelots dans la mâture : Ott dans le gréement, Nissa au nid-de-pie. Un boulet dans le gréement, '
+      + 'et il faudra tenir bon — sinon la hauteur se tire, puis les Dégâts. Console : __wfrp.shipCrit("greement").' },
     entities: [
       // La coque des HÉROS : c'est elle que le Critique frappe, et ses `crewIds` sont les deux postés.
       cogueDEssai,

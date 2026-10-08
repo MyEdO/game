@@ -44,9 +44,9 @@ export function CombatBanner() {
       {line && (
         <div key={key} className={`cb-ev cb-now cb-tone-${line.tone} halo-champ`}>
           <span className="cb-ic"><Icon id={line.icon} size={15} /></span>
-          <span className="cb-tx">
+          <div className="cb-tx">
             <TeamSegments segments={line.segments} />
-          </span>
+          </div>
         </div>
       )}
     </div>

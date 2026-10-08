@@ -32,7 +32,7 @@ describe('textes des scénarios de test : les onglets et les héros nommés exis
   for (const sc of testScenarios) {
     it(`${sc.id} : chaque « onglet X » cité est un onglet de la fiche`, () => {
       const { scene } = sc.construire();
-      expect(ongletsInconnus([scene.startMessage ?? '', sc.tests, sc.partyNote].join(' '))).toEqual([]);
+      expect(ongletsInconnus([scene.startMessage?.texte ?? '', sc.tests, sc.partyNote].join(' '))).toEqual([]);
     });
   }
 
@@ -40,7 +40,7 @@ describe('textes des scénarios de test : les onglets et les héros nommés exis
     const sc = testScenarios.find((s) => s.id === 'entrainement')!;
     const { party, scene } = sc.construire();
     const bretteur = party.find((h) => h.items?.some((i) => i.trappingId === 'arme-simple'))!;
-    expect(scene.startMessage).toContain(`fiche du ${bretteur.label} (onglet ${t('sheet.tab.possessions')})`);
+    expect(scene.startMessage?.texte).toContain(`fiche du ${bretteur.label} (onglet ${t('sheet.tab.possessions')})`);
     expect(sc.tests).toContain(`fiche « ${bretteur.label} »`);
   });
 });

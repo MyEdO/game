@@ -72,6 +72,8 @@
  *  `CONCEPTS` est testée. Faire passer une graphie en `cible` (donc hors du dénominateur)
  *  exige de toucher CE fichier — un mot du lexique ne solde plus des centaines d'occurrences. */
 export const STRUCTURES_CIBLES = [
+  { concept: "prose-nommee", signature: "texte", date: "2026-10-08" },
+  { concept: "prose-nommee", signature: "texte+…", date: "2026-10-08" },
   { concept: "reference", signature: "id", date: "2026-08-23" },
   { concept: "reference", signature: "id,spec", date: "2026-08-23" },
   { concept: "reference", signature: "choix,id", date: "2026-08-23" },

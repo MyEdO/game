@@ -90,7 +90,7 @@ describe('parseProject — le refus est une DONNÉE (`ProjetRefuse`)', () => {
     expect(refus.cause).toBe('schema');
     const faute = refus.fautes.find((f) => f.chemin.join('.') === 'label');
     expect(faute, 'une faute au chemin `label`').toBeTruthy();
-    expect(refus.message).toContain(`  - Libellé: ${faute!.message}`);
+    expect(refus.message).toContain(`  - Nom: ${faute!.message}`);
   });
 
   it('réfs de port inconnues : fautes de SCHÉMA, TOUTES nommées à leur chemin', () => {

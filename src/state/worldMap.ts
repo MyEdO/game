@@ -11,6 +11,8 @@
  * marche forcée au niveau carte.
  */
 import type { Effect, Scene } from './scene';
+import type { z } from 'zod';
+import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
 import { garanti } from './combatants';
 import { normalizeScene } from './scene';
 import type { TravelMode } from '../engine/travel';
@@ -107,8 +109,8 @@ export type MapRoute = MapRouteTrace & Praticabilite;
  *  raison JOUEUR de l'indisponibilité portée par `GatedAction` (infobulle — arbitrage 2026-08-24, jamais
  *  inline par défaut). Lue par `routesFrom`. */
 export type Praticabilite =
-  | { when?: undefined; refus?: undefined }
-  | { when: Condition; refus: string };
+  | { when?: undefined; refus?: z.infer<typeof refusRouteSchema> }
+  | { when: Condition; refus: z.infer<typeof refusRouteSchema> };
 
 /** Le tracé d'une route, hors praticabilité. */
 export interface MapRouteTrace {

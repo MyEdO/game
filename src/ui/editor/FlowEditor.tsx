@@ -1,4 +1,8 @@
 import type { JSX } from 'react';
+import { useId } from 'react';
+import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
+import { Stack } from '../Layout';
 /**
  * ÉDITEUR DE FLOW — la « liste de blocs imbriqués » (façon RPG Maker / ink) qui authore la LOGIQUE
  * d'un trigger / choix de dialogue / piège / sort : une séquence de blocs
@@ -118,6 +122,7 @@ export function NoeudTestField({ value, onChange, desc, racine, retirable = true
  * EXPLICITE contre laquelle le jet roule, celle de la Compétence n'étant que le défaut.
  */
 export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: FlowTest) => void }) {
+  const identite = useId();
   const upd = (patch: Partial<FlowTest>) => onChange({ ...test, ...patch });
   const setEase = (patch: Partial<NonNullable<FlowTest['easierIf']>>) => {
     const m = { ...(test.easierIf ?? {}), ...patch };
@@ -160,13 +165,10 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
             Enjeu : {test.stake.key.dataset}/{test.stake.key.kind} (catalogue)
           </span>
         ) : (
-          <input
-            style={{ flex: 1 }}
-            placeholder="Enjeu — ce que ce jet met en jeu, annoncé au joueur AVANT de lancer"
-            title="Enjeu du jet : la phrase lue par le joueur dans la fenêtre de jet. Dites la conséquence RÉELLE des branches (ce que la réussite gagne, ce que l’échec coûte)."
-            value={test.stake?.authored ?? ''}
-            onChange={(e) => upd({ stake: e.target.value.trim() ? { authored: e.target.value } : undefined })}
-          />
+          <Stack>
+            <ProseField label="Enjeu du jet" value={test.stake?.authored ?? ''} onChange={(authored) => upd({ stake: authored.trim() ? { authored, ...(test.stake?.authored !== undefined ? { source: test.stake.source, adapteDe: test.stake.adapteDe } : {}) } : undefined })} />
+            {test.stake?.authored !== undefined && <ProvenanceDuTexte copie identite={`${identite}/enjeu`} sujet="de l'enjeu" value={test.stake} onChange={(patch) => upd({ stake: { authored: test.stake!.authored!, ...patch } })} />}
+          </Stack>
         )}
       </div>
       {isSocialTest(test.skill?.id, test.characteristic) && (
@@ -238,6 +240,11 @@ function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: Flow) => void; ctx: Ctx }) 
               label: <><Icon id="nav/dice" size="sm" /> Test de compétence</>,
               onPick: () => onAdd({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire', requireSL: 0 }, success: EMPTY_FLOW, fail: EMPTY_FLOW }),
             },
+            {
+              key: 'choice',
+              label: <><Icon id="ui/balance" size="sm" /> Choix du joueur</>,
+              onPick: () => onAdd({ kind: 'choice', prompt: '', yes: EMPTY_FLOW }),
+            },
           ],
         },
         ...pickable(menuDEffets(ctx), (key) => onAdd({ kind: 'do', effect: newEffect(key as Effect['type']) })),
@@ -307,6 +314,17 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
             <div className="eff-body">
               <FlowEditor flow={node} ctx={ctx} onChange={(f) => updAt(i, f)} />
             </div>
+          )}
+          {node.kind === 'choice' && (
+            <Stack className="eff-body">
+              <ProseField label="Invite du choix" value={node.prompt} onChange={(prompt) => updAt(i, { ...node, prompt })} />
+              <ProvenanceDuTexte copie identite={`${cles[i]}/choix`} sujet="du choix" value={node} onChange={(patch) => updAt(i, { ...node, ...patch })} />
+              <NumberField label="Coût en Avantage" value={typeof node.advantageCost === 'number' ? node.advantageCost : 0} min={0} onChange={(advantageCost) => updAt(i, { ...node, advantageCost })} />
+              <span className="branch-label ok">Si OUI :</span>
+              <FlowEditor flow={node.yes} ctx={ctx} onChange={(yes) => updAt(i, { ...node, yes })} />
+              <label className="ed-check"><input type="checkbox" checked={node.no !== undefined} onChange={(e) => updAt(i, { ...node, no: e.target.checked ? EMPTY_FLOW : undefined })} /> Branche NON</label>
+              {node.no && <FlowEditor flow={node.no} ctx={ctx} onChange={(no) => updAt(i, { ...node, no })} />}
+            </Stack>
           )}
         </details>
       ))}

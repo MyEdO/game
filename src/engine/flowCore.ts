@@ -28,6 +28,7 @@ import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
 import { opDemandeUnDe, type GameOp, type PairedSense } from './ops';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 // Type SEUL (effacé à la compilation — aucun cycle runtime) : `StakeRef` est la forme canonique de la
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
 import type { StakeRef } from '../data';
@@ -509,7 +510,7 @@ export type Flow<E = EffectOp> =
   | { kind: 'do'; effect: E }
   | { kind: 'if'; cond: Condition; then: Flow<E>; else?: Flow<E> }
   | { kind: 'test'; test: FlowTest; success: Flow<E>; fail: Flow<E> }
-  | { kind: 'choice'; prompt: string; advantageCost?: number | IndiceTemplate; icon?: string; yes: Flow<E>; no?: Flow<E> };
+  | { kind: 'choice'; prompt: string; source?: SourceRef; adapteDe?: SourceRef; advantageCost?: number | IndiceTemplate; icon?: string; yes: Flow<E>; no?: Flow<E> };
 
 /** TEMPLATE d'instance du coût d'Avantage d'un `choice` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
  *  `AA 08 l.87`), substitué par `withArg` (`state/triggeredEffects`) avant exécution. Resté tel quel, le

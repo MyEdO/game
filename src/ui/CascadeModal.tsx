@@ -40,6 +40,7 @@ import { frozenOpposedRow, tableRow, witnessRow, buildRollRow, type BuiltRollRow
 import type { CascadeStep, CascadeRollStep, CascadeRoll, BatchParticipant, SeuilDeSauvegarde } from '../state/pendings';
 import type { Combatant } from '../engine/types';
 import { buildParticipantRows, rollAllUnrolledRows } from './buildParticipantRows';
+import { Prose, mdToText } from './Prose';
 
 /** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
  *  elle est MONDIALE (`worldOwner`, seam #275 Décision 3 — désertion/Moral, aucun `actorId` par
@@ -352,7 +353,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // textuel sous la phrase d'enjeu. La nuance de #1078 tient : les CHIPS restent leurs propres
   // portes (aucun ⓘ voisin) — ceci ne vaut que pour la ligne de TITRE. Le sous-titre, lui, ne garde
   // que la position (« jet N/M »).
-  const modalTitle = cur.label ?? p.title;
+  const modalTitle = mdToText(cur.label ?? p.title);
   const titleNode = (
     <>
       <Icon id={cur.icon || p.icon || 'nav/dice'} size="sm" /> {modalTitle}
@@ -729,12 +730,13 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         postRollExtra={
           <>
             {rev?.kind === 'critical' && <CriticalBody entry={rev} actor={revActor} subject={revSubject} />}
+            {cur.label && <Prose md={cur.label} />}
             {!rev && cur.outcome?.length ? <RecapLineList lines={cur.outcome} /> : null}
             <OptionChooser
               layout="grid"
-              groupLabel={cur.label}
+              groupLabel={cur.label ? mdToText(cur.label) : undefined}
               options={(cur.options ?? []).map((o) => ({
-                key: o.key, label: o.label, title: o.detail,
+                key: o.key, label: mdToText(o.label), title: o.detail ? mdToText(o.detail) : undefined,
                 ...(o.refus ? { refus: o.refus } : {}),
                 selected: cur.chosen === o.key,
                 onSelect: () => choose(cur.id, o.key),

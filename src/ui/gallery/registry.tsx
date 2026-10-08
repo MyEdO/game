@@ -1399,6 +1399,7 @@ function RecapLineDemo() {
         { text: 'Gustav franchit le mur (DR +2).', tone: 'ok', icon: 'action/force' },
         { text: 'Grunni rate son embuscade.', tone: 'bad', segments: [{ text: 'Grunni', team: 'enemy' }, { text: ' rate son embuscade.' }] },
         { text: 'La nuit tombe sur le campement.', tone: 'info' },
+        { text: '**Gustav** rejoint les compagnons au bord du chemin. La pluie a laissé de longues traces sur les pierres et chacun prend le temps de retrouver ses affaires avant de repartir.\n\nLe groupe observe les maisons, les fenêtres encore éclairées et les silhouettes qui traversent la place. Ce témoin synthétique conserve plusieurs paragraphes pour vérifier la lecture dans une rangée étroite.\n\n- Vérifier le passage près du vieux mur.\n- Rejoindre les compagnons sous le porche.\n- Consulter le [repère de lecture](https://example.com/recette-2001).', tone: 'ok', icon: 'action/force' },
       ]}
     />
   );
@@ -1440,9 +1441,9 @@ function RevealBodyDemo() {
 /** Segments tonés par camp : les noms cités se colorent, le reste est neutre. */
 function TeamSegmentsDemo() {
   return (
-    <p>
+    <div>
       <TeamSegments segments={[{ text: 'Gustav', team: 'ally' }, { text: ' frappe ' }, { text: 'le mutant', team: 'enemy' }, { text: ' au bras.' }]} />
-    </p>
+    </div>
   );
 }
 
@@ -1453,9 +1454,9 @@ function CombatBannerDemo() {
       {(['', 'cb-tone-strong', 'cb-tone-grave'] as const).map((ton, i) => (
         <div key={i} className={`cb-ev ${ton}`}>
           <span className="cb-ic"><Icon id="action/attack" size={15} /></span>
-          <span className="cb-tx">
+          <div className="cb-tx">
             <TeamSegments segments={[{ text: 'Gustav', team: 'ally' }, { text: ' frappe ' }, { text: 'le mutant', team: 'enemy' }]} />
-          </span>
+          </div>
         </div>
       ))}
     </Stack>
@@ -1717,7 +1718,7 @@ function CoinsDemo() {
 
 /** Tiroir du journal : l'historique complet, ouvert sur ses lignes narrées. */
 function LogDrawerDemo() {
-  return <LogDrawer battle={null} journal={['La porte cède sous l’épaule de Gustav.', 'Une odeur de suif monte de la cave.']} initialOpen />;
+  return <LogDrawer battle={null} journal={['La porte cède sous l’épaule de Gustav.', 'Une odeur de suif monte de la cave.', '**Le passage est ouvert.** Les compagnons attendent dans la cour tandis que les lanternes dessinent de longues ombres sur les marches. Le vent se calme et les voix deviennent plus faciles à distinguer.\n\nUne seconde lecture rassemble les observations du groupe sans changer leur ordre. Ce témoin synthétique permet de comparer les phrases courtes précédentes et une entrée de journal de plusieurs paragraphes.\n\n- Une porte entrouverte au fond de la cour.\n- Des traces de pluie sur le seuil.\n- Un [repère de lecture](https://example.com/recette-2001) pour garder un lien dans le texte.']} initialOpen />;
 }
 
 /** Panneau d'inspection : identité, badges de camp, statbloc — modale de lecture seule. */

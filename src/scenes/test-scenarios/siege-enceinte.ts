@@ -77,9 +77,9 @@ export function spec(): MapSpec {
     ambiance: 'exterieur',
     ambientLight: 'jour', // plein jour : on voit l'assaut approcher sur tout le glacis
     startMessage:
-      "Défendez l'enceinte. Gagnez le CHEMIN DE RONDE (le dessus du mur) par la RAMPE du flanc gauche, SERVEZ une " +
+      { texte: "Défendez l'enceinte. Gagnez le CHEMIN DE RONDE (le dessus du mur) par la RAMPE du flanc gauche, SERVEZ une " +
       "pièce et pilonnez l'assaut en contrebas. La batterie ennemie brèche la porte de très loin ; les assaillants " +
-      "ne peuvent forcer le passage — le tunnel de la porte — qu'une fois la herse abattue.",
+      "ne peuvent forcer le passage — le tunnel de la porte — qu'une fois la herse abattue." },
 
     // ── Légende partagée (base z0='herbe', z1='vide'). '~'=rivière, '='=pont, 'P'=pavé de cour, '4/3/2/1'=paliers
     //    de la rampe. L'ENCEINTE ('#' mur plein, 'D' porte) est décrite par la RECETTE `cells` ci-dessous. ─────────

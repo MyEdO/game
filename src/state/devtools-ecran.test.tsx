@@ -92,7 +92,7 @@ describe('__wfrp.editorWorldMap — le brouillon de carte du monde, par le pont 
       ],
       routes: [
         { id: 'r-ouverte', a: 'a', b: 'b', km: 12, modes: ['pied'] },
-        { id: 'r-gatee', a: 'b', b: 'a', km: 20, modes: ['pied'], when, refus: 'Le pont est effondré.' },
+        { id: 'r-gatee', a: 'b', b: 'a', km: 20, modes: ['pied'], when, refus: { texte: 'Le pont est effondré.' } },
       ],
     };
     expect(await api.projectSave(entree)).toMatch(/^✓/);

@@ -216,7 +216,7 @@ export interface MapSpec {
   ambientLight?: string;
   metresPerTile?: number;
   music?: Scene['music'];
-  startMessage?: string;
+  startMessage?: Scene['startMessage'];
   rest?: Scene['rest'];
   flags?: Record<string, boolean>;
   /** Terrain de base (z0 / couche unique). Absent = la SEMENCE du dépôt (`DEFAULT_TERRAIN`). */

@@ -183,7 +183,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   it.each(GESTES)('%s — projet SANS NOM : mots d’auteur, rapport de la porte replié en détail', (geste) => {
     const r = rendu({ ...projet(), label: '' }, geste);
     expect(r.message).toMatch(/^.+ : ce projet n’a pas de nom\.$/);
-    expect(r.detail).toContain('  - Libellé: ');
+    expect(r.detail).toContain('  - Nom: ');
   });
 
   it('ouverture SANS NOM : le verbe du geste et la cause, en une phrase', () => {
@@ -243,13 +243,12 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   const ENREGISTREMENT = 'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Faute : scène « Salle du banc » › dialogue « dlg » › nœud « n1 » › ';
   const ADAPTE = { book: 'ennemi-dans-l-ombre', page: 14 };
 
-  /** Mêmes documents refusés qu'avant la réécriture des messages (#2001) : seuls le NOMBRE de fautes
-   *  (une par défaut) et leur TEXTE (la faute seule, le site au chemin) changent. */
+  /* #2001 */
   it.each([
-    ['réplique VIDE', { desc: '' }, 'texte — texte vide.'],
-    ['réplique SANS TEXTE', {}, 'texte — texte obligatoire.'],
-    ['réplique adaptée SANS TEXTE', { adapteDe: ADAPTE }, 'texte — texte obligatoire.'],
-    ['réplique adaptée VIDE', { desc: '', adapteDe: ADAPTE }, 'texte — texte vide.'],
+    ['réplique VIDE', { desc: '' }, 'réplique — texte vide.'],
+    ['réplique SANS TEXTE', {}, 'réplique — texte obligatoire.'],
+    ['réplique adaptée SANS TEXTE', { adapteDe: ADAPTE }, 'réplique — texte obligatoire.'],
+    ['réplique adaptée VIDE', { desc: '', adapteDe: ADAPTE }, 'réplique — texte vide.'],
   ])('%s (#2001) : refusée, UNE faute, dite en français, le nœud au chemin', (_cas, noeud, faute) => {
     expect(rendu(avecNoeud(noeud), 'enregistrement').message).toBe(`${ENREGISTREMENT}${faute}`);
   });

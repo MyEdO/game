@@ -117,8 +117,8 @@ function construireScene(): Scene {
     },
     heroStart: [2, 7],
     startMessage:
-      'Au détour des arbres, une diligence renversée, des corps éparpillés… et des formes difformes ' +
-      'penchées dessus, qui se relèvent en grognant.',
+      { texte: 'Au détour des arbres, une diligence renversée, des corps éparpillés… et des formes difformes ' +
+      'penchées dessus, qui se relèvent en grognant.' },
     // — Carnage : la diligence, l'attelage, les voyageurs, le sang (props visibles, décor de combat) —
     entities: [
       { id: 'epave', kind: 'prop', pos: { x: 15, y: 6 }, ref: 'epave-carrosse', label: 'Diligence éventrée' },

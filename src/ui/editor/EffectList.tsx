@@ -361,7 +361,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         {effect.type === 'setObjective' && (
           <>
             <input placeholder="id_de_l_objectif (stable — re-poser = mise à jour)" value={e.id ?? ''} onChange={(ev) => upd({ id: ev.target.value })} />
-            <input placeholder="Consigne joueur (ex. « Retrouver Gustav au port »)" value={e.desc ?? ''} onChange={(ev) => upd({ desc: ev.target.value })} />
+            <ProseField label="Consigne joueur" lecture={adresseUnPassage(effect.descRef) ? effect.desc ?? '' : undefined} value={effect.desc ?? ''} onChange={(desc) => upd({ desc: desc || undefined })} />
+            <ProvenanceDuTexte identite={identite} sujet="de l'objectif" value={effect} onChange={upd} />
             <label className="radio">
               <input
                 type="checkbox"
@@ -546,7 +547,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <option value="importante">Importante (jamais par Activité — aventure)</option>
             </select>
             <input placeholder="Due à… (créancier)" value={e.owedTo ?? ''} onChange={(ev) => upd({ owedTo: ev.target.value })} />
-            <input placeholder="Description (nature de la Faveur)" value={e.desc ?? ''} onChange={(ev) => upd({ desc: ev.target.value })} />
+            <ProseField label="Nature de la Faveur" lecture={adresseUnPassage(effect.descRef) ? effect.desc ?? '' : undefined} value={effect.desc ?? ''} onChange={(desc) => upd({ desc: desc || undefined })} />
+            <ProvenanceDuTexte identite={identite} sujet="de la Faveur" value={effect} onChange={upd} />
             <input placeholder="id du héros (vide = le premier)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
           </>
         )}

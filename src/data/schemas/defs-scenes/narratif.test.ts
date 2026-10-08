@@ -22,7 +22,7 @@ describe('narratifSchema — cadre de campagne (#717)', () => {
       ouverture: {
         ...ouverture,
         surtitre: 'Une campagne pour Warhammer Fantasy Roleplay',
-        sousTitre: 'Tome 1',
+        sousTitre: { texte: 'Tome 1' },
         chapitre: 'Chapitre 1',
         source: { book: 'ennemi-dans-l-ombre', page: 12, note: 'EDO 01 l.5' },
         ambiance: 'veillee',

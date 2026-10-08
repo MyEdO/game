@@ -323,7 +323,7 @@ export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GEN
           });
         }
       });
-    }), { book: { label: "livre" }, ch: { label: "chapitre" }, parts: { label: "parties" } });
+    }), { book: { label: "livre", texte: { regime: 'technique', usage: 'id du livre de l’adresse de prose' } }, ch: { label: "chapitre", texte: { regime: 'technique', usage: 'adresse du chapitre extrait' } }, parts: { label: "parties" } });
 }
 
 /** L'adresse de prose qui admet tous les genres de fragment (`descRefSchemaDe`). */

@@ -45,8 +45,8 @@ const construireScene = (): Scene => buildScene({
   terrain: 'herbe',
   heroStart: [1, 4],
   startMessage:
-    'Le comptoir du marchand disparu. Le commis peut ouvrir le registre ; la rumeur de taverne colle ' +
-    'au forgeron du coin, sans preuve.',
+    { texte: 'Le comptoir du marchand disparu. Le commis peut ouvrir le registre ; la rumeur de taverne colle ' +
+    'au forgeron du coin, sans preuve.' },
   entities: [
     {
       id: 'commis', kind: 'personnage', ref: 'villageois', label: 'Commis du comptoir',

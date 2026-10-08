@@ -70,7 +70,7 @@ import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId, ecrireActeur, inBattleId } from './combatants';
+import { actorIn, coqueParId, ecrireActeur, inBattleId, garanti } from './combatants';
 import { addPossession, type PossessionInput } from './possessionsFlow';
 import { possessionLabel, type Possession, type LivingRef } from '../engine/possession';
 import { ev } from './combatLog';
@@ -1387,15 +1387,16 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('setObjective'), icon: 'map-tool/start-flag',
     make: () => ({ type: 'setObjective', id: '', desc: '' }),
     apply: (e, env) => {
+      const texte = garanti(e.desc, e.id, 'texte de l’objectif matérialisé');
       // Pile keyée par id STABLE : re-poser le même id MET À JOUR le texte (et le remonte en tête), sinon
       // AJOUTE en fin (le plus récent = surface HUD). #238 « personne ne lit le journal » → archivé aussi.
       const hasSched = e.afterMinutes != null || e.afterDays != null || e.atDate != null || e.atHour != null || e.atMinute != null;
       const deadline = hasSched ? scheduleAt(env.get().gameTime, e) : undefined;
       env.set((s: GameState) => {
         const rest = s.objectives.filter((o) => o.id !== e.id);
-        return { objectives: [...rest, { id: e.id, text: e.desc, deadline }] };
+        return { objectives: [...rest, { id: e.id, text: texte, deadline }] };
       });
-      env.log(t('eff.objectiveSet', { text: e.desc }));
+      env.log(t('eff.objectiveSet', { text: texte }));
     },
   },
   clearObjective: {
@@ -1601,7 +1602,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Faveur de départ de campagne ou octroi narratif (#509) — cible : héros désigné, sinon le
       // premier héros vivant (`env.targets` : même défaut que les autres Effets `hero`).
       const hero = env.targets('hero', e.heroId)[0];
-      if (hero) env.get().favorGrant(hero.id, e.level, e.owedTo, e.desc);
+      if (hero) env.get().favorGrant(hero.id, e.level, e.owedTo, garanti(e.desc, e.owedTo, 'texte de la Faveur matérialisé'));
     },
   },
 

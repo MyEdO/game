@@ -594,7 +594,7 @@ export function Editor({
           routes: worldMap.routes.map((r) => ({
             id: r.id, a: r.a, b: r.b, km: r.km,
             ...(r.when !== undefined ? { when: structuredClone(r.when) } : {}),
-            ...(r.refus !== undefined ? { refus: r.refus } : {}),
+            ...(r.refus !== undefined ? { refus: r.refus.texte } : {}),
           })),
         },
         // Recette #2404 : point ÉCRAN du milieu d'une arête, par la projection de la vue (`tileEdge` sur les

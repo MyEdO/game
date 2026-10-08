@@ -42,7 +42,13 @@ afterEach(() => {
 });
 
 /** Classes de la ligne d'issue rendue dans le cadre `.rm-journal`. */
-const issueClasses = () => [...host.querySelectorAll('.rm-journal .recap-line')].map((e) => e.className.trim());
+const issueClasses = () => [...host.querySelectorAll('.rm-journal .recap-line')].map((e) => {
+  expect(e.classList.contains('row')).toBe(true);
+  expect(e.getAttribute('data-align')).toBe('start');
+  expect(e.getAttribute('data-gap')).toBe('xs');
+  expect(e.getAttribute('data-wrap')).toBe('no');
+  return [...e.classList].filter(c => c !== 'row').join(' ');
+});
 
 const rolledRow = () => buildRollRow({
   row: { d: { label: 'Athlétisme', base: 45, modifier: 0, target: 45, roll: 22, success: true, sl: 2 } },
@@ -55,6 +61,7 @@ describe('issue d’un jet — pleine couleur par DÉFAUT', () => {
     expect(lines[0].tone, 'la fabrique ne pose aucun ton par défaut').toBeUndefined();
     act(() => root.render(<RollShell title="T" rows={[rolledRow()]} rolled outcome={lines} actions={[]} />));
     expect(issueClasses()).toEqual(['recap-line']);
+    expect(host.querySelector('.rm-journal .recap-line')?.textContent).toBe('Le total repart de zéro !');
   });
 
   it('un ton AUTHORÉ est respecté : `ok` colore, `info` atténue', () => {
@@ -64,6 +71,7 @@ describe('issue d’un jet — pleine couleur par DÉFAUT', () => {
     ]));
     act(() => root.render(<RollShell title="T" rows={[rolledRow()]} rolled outcome={lines} actions={[]} />));
     expect(issueClasses()).toEqual(['recap-line ok', 'recap-line info']);
+    expect([...host.querySelectorAll('.rm-journal .recap-line')].map(e => e.textContent)).toEqual(['La chanson porte', '— une précision de second plan']);
   });
 });
 

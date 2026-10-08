@@ -16,7 +16,12 @@ import { EffectList, type Ctx } from './EffectList';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 import type { Dialogue, Effect } from '../../state/scene';
 import { dialogueNodeSchema } from '../../data/schemas/defs-scenes/scene';
-import { journalSchema } from '../../data/schemas/defs-scenes/effets';
+import { journalSchema, setObjectiveSchema, grantFavorSchema, sceneFlowSchema } from '../../data/schemas/defs-scenes/effets';
+import { FlowEditor } from './FlowEditor';
+import { GameOpEditor } from './GameOpEditor';
+import { OP_DEFS } from '../../data/schemas/grammaire/mecanique';
+import type { Flow } from '../../state/flow';
+import type { GameOp } from '../../engine/ops';
 import type { DescRef, SourceRef } from '../../data/schemas/grammaire/valeurs';
 import { bookAbr, findBookById } from '../../data';
 import { GALLERY_SPECIMENS } from '../gallery/registry';
@@ -358,6 +363,74 @@ describe('ProvenanceDuTexte — câblage : la ligne de journal', () => {
     saisir(container!.querySelector<HTMLTextAreaElement>('details.eff-row textarea.prose-field')!, '');
     expect(dernier[0].type).toBe('journal');
     expect((dernier[0] as { desc?: string }).desc).toBeUndefined();
+  });
+});
+
+describe('provenance des nouveaux effets adressables', () => {
+  const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE } as unknown as Ctx;
+  it.each([
+    [{ type: 'setObjective', id: 'objectif', desc: TEXTE, descRef: DESC_REF }, "de l'objectif", setObjectiveSchema],
+    [{ type: 'grantFavor', level: 'mineure', owedTo: 'Créancier', desc: TEXTE, descRef: DESC_REF }, 'de la Faveur', grantFavorSchema],
+  ] as const)('%s : lecture, détachement et adaptation conservent le texte', (initiale, sujet, schema) => {
+    let dernier: Effect[] = [];
+    function Atelier() {
+      const [effects, setEffects] = useState<Effect[]>([{ ...initiale }]);
+      dernier = effects;
+      return <EffectList effects={effects} ctx={ctx} onChange={setEffects} />;
+    }
+    monter(<Atelier />);
+    expect(container!.querySelector('textarea.prose-field')).toBeNull();
+    expect(container!.textContent).toContain(TEXTE);
+    act(() => { champ<HTMLButtonElement>(`Détacher le texte ${sujet}`).click(); });
+    expect(container!.querySelector<HTMLTextAreaElement>('textarea.prose-field')?.value).toBe(TEXTE);
+    poserRef(sujet, REF);
+    expect(dernier[0]).toMatchObject({ desc: TEXTE, adapteDe: REF });
+    expect(schema.safeParse(dernier[0]).success).toBe(true);
+    expect((dernier[0] as { descRef?: unknown }).descRef).toBeUndefined();
+    expect(bouton('Copie', sujet)).toBeNull();
+  });
+});
+
+describe('provenance des branches de Flow et de la narration stricte', () => {
+  const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
+  it.each([
+    [{ kind: 'choice', prompt: 'Entrer ?', yes: { kind: 'seq', steps: [] }, no: { kind: 'seq', steps: [] } }, 'du choix'],
+    [{ kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu maison.' } }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } }, "de l'enjeu"],
+  ] as const)('%s : la référence est écrite sur le texte, les branches sont conservées', (initiale, sujet) => {
+    let dernier: Flow;
+    function Atelier() {
+      const [flow, setFlow] = useState<Flow>(JSON.parse(JSON.stringify(initiale)));
+      dernier = flow;
+      return <FlowEditor flow={flow} ctx={ctx} onChange={setFlow} />;
+    }
+    monter(<Atelier />);
+    choisir('Adapté', sujet);
+    poserRef(sujet, REF);
+    expect(sceneFlowSchema.safeParse(dernier!).error?.issues).toBeUndefined();
+    const node = dernier!.kind === 'seq' ? dernier!.steps[0] : dernier!;
+    if (node.kind === 'choice') {
+      expect(node.adapteDe).toEqual(REF);
+      expect(node.yes).toEqual(initiale.kind === 'choice' ? initiale.yes : undefined);
+      expect(node.no).toEqual(initiale.kind === 'choice' ? initiale.no : undefined);
+    } else if (node.kind === 'test') {
+      expect(node.test.stake).toEqual({ authored: 'Enjeu maison.', source: undefined, adapteDe: REF });
+      expect(node.success).toEqual({ kind: 'seq', steps: [] });
+      expect(node.fail).toEqual({ kind: 'seq', steps: [] });
+    } else throw new Error('branche perdue');
+  });
+  it('narrative : le texte saisi et sa référence appartiennent au payload strict', () => {
+    let dernier: GameOp[] = [];
+    function Atelier() {
+      const [ops, setOps] = useState<GameOp[]>([{ op: 'narrative', text: 'Texte maison.' }]);
+      dernier = ops;
+      return <GameOpEditor ops={ops} onChange={setOps} />;
+    }
+    monter(<Atelier />);
+    saisir([...container!.querySelectorAll('label.ed-field')].find(e => e.firstElementChild?.textContent === 'Texte journalisé')!.querySelector('textarea')!, TEXTE);
+    choisir('Adapté', 'de la narration');
+    poserRef('de la narration', REF);
+    expect(dernier).toEqual([{ op: 'narrative', text: TEXTE, source: undefined, adapteDe: REF }]);
+    expect(OP_DEFS.narrative.safeParse(dernier[0]).success).toBe(true);
   });
 });
 

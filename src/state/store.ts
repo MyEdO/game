@@ -2248,7 +2248,7 @@ export const useGame = create<GameState>((set, get) => ({
       facing: poserCapDuGroupe({}, capEntrant),
       flags: { ...scene.flags },
       campaignSceneId: scene.id,
-      journal: scene.startMessage ? [scene.startMessage] : [],
+      journal: scene.startMessage ? [scene.startMessage.texte] : [],
       campaignNarratif: narratif ?? null,
     });
     // Gestes VIVANTS de la frontière (`stageGestes`) : la carte s'ouvre à son cran, CENTRÉE, et sans
@@ -2266,7 +2266,7 @@ export const useGame = create<GameState>((set, get) => ({
     // skippable ; le Journal garde l'archive consultable. Poussée APRÈS `openEncounterPsych` et en
     // séquence PROPRE (`own`) : la carte passe DEVANT les Tests de Sang-froid de la rencontre, qui
     // sont parqués par la doctrine du slot et repris à la clôture de la carte — jamais perdus.
-    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage] }, { own: true });
+    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte] }, { own: true });
   },
 
   loadProject: (scenes, entryId, worldMap, narratif) => {
@@ -2352,7 +2352,7 @@ export const useGame = create<GameState>((set, get) => ({
     }));
     resetStageGestes(); // idem `startScene` : la scène d'arrivée se regarde depuis SON cran, depuis son centre, et la
                         // touche encore enfoncée n'y marche pas (la main a armé ce geste dans la scène de départ)
-    if (target.startMessage) get().log(target.startMessage);
+    if (target.startMessage) get().log(target.startMessage.texte);
     get().advanceTime(TIME_COST.sceneTransition); // seam « tout est horodaté » : 0 en intérieur (paramétrable, #T2 extérieur/voyage)
     bus.emit(EVT.SCENE_DIRTY);
     get().autoSave(); // checkpoint d'ENTRÉE de scène (hors combat) — avant qu'une rencontre ne démarre le combat
@@ -2360,7 +2360,7 @@ export const useGame = create<GameState>((set, get) => ({
     // N1 : entrée de zone (transition) en MODALE — étape d'AFFICHAGE skippable (Journal = archive),
     // poussée APRÈS `openEncounterPsych` et en séquence PROPRE (`own`), pour la même raison qu'à
     // `startScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
-    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage] }, { own: true });
+    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte] }, { own: true });
   },
 
   moveParty: (pt) => {
