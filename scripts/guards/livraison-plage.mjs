@@ -13,7 +13,7 @@ const GESTE_DE_FRAICHEUR = 'Geste : `git fetch origin` si cette base est antéri
 if (import.meta.main) {
   const rang = process.argv.indexOf('--base')
   const base = rang === -1 ? TRONC.suivi : process.argv[rang + 1]
-  const { ok, texte } = await verdictDePublication(depotDe(process.cwd()), { base })
+  const { ok, texte } = verdictDePublication(depotDe(process.cwd()), { base })
   if (ok) {
     process.stdout.write(`[livraison:plage] ${texte}\n`)
   } else {

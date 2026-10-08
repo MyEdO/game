@@ -375,7 +375,7 @@ export const ETAPES = [
     // TOUJOURS rejouée : elle EST la garde. Elle pose la tête et, sur un lot neuf, la base du lot
     // (`merge-base origin/main HEAD`) que l'étape `docs` compare à la tête.
     dejaFaite: () => false,
-    async jouer(ctx, journal) {
+    jouer(ctx, journal) {
       const { racine, questions } = ctx
       const entame = questions.rebaseEntame()
       if (entame)
@@ -404,7 +404,7 @@ export const ETAPES = [
       const vuFetch = ctx.tronc()
       if (!vuFetch.disponible) return { ok: false, raison: `origin non consultable : ${refusDeGit(vuFetch)}` }
       // #2328 A3
-      const fusions = await questions.verdictDesFusions()
+      const fusions = questions.verdictDesFusions()
       if (!fusions.ok) return { ok: false, raison: fusions.texte }
       const outil = resoudreOutilLocal(racine, 'vitest', 'vitest')
       if (outil.refus) return { ok: false, raison: outil.refus }

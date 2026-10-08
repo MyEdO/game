@@ -502,9 +502,9 @@ export function transitionsDuRun(journal, run, depuis) {
  * Une étape peut demander une RELANCE (`{ relancer: [<noms>] }`, cas « PR éjectée de la file ») : les
  * étapes nommées repassent « à faire » et le train reprend du début. Le compteur `ejections` du
  * journal est la borne, et l'étape qui demande la relance la lit.
- * @returns {Promise<{etat:'vert'|'rouge'|'indeterminee', etape?:string, raison?:string}>}
+ * @returns {{etat:'vert'|'rouge'|'indeterminee', etape?:string, raison?:string}}
  */
-export async function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journaliser = () => {} } = {}) {
+export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journaliser = () => {} } = {}) {
   const noms = etapes.map((e) => e.nom)
   const transition = (nom, vue) => {
     journal.seq = (journal.seq ?? 0) + 1
@@ -540,7 +540,7 @@ export async function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, jo
         tete: ctx.tete ?? null,
       })
       sauver(journal)
-      const vu = (await etape.jouer(ctx, journal)) ?? { ok: false, raison: 'aucun verdict rendu' }
+      const vu = etape.jouer(ctx, journal) ?? { ok: false, raison: 'aucun verdict rendu' }
       const secondes = (Date.now() - debut) / 1000
       transition(etape.nom, {
         etat: vu.ok ? 'vert' : vu.indetermine ? 'indéterminée' : 'rouge',
@@ -909,7 +909,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog, maint
 }
 
 
-async function main() {
+function main() {
   // L'enfant détaché tend son filet AVANT tout geste faillible : son journal est sa seule voix.
   if (process.env.WFRP_PUBLIER_ENFANT === '1' && process.env.WFRP_PUBLIER_LOG) {
     filetDuTrainEnfant({ chemin: process.env.WFRP_PUBLIER_LOG })
@@ -998,7 +998,7 @@ async function main() {
       const reprise = planDeReprise(journal, ETAPES.map((e) => e.nom), ctx.tete)
       journaliser(`[publier] reprise : ${reprise ?? 'rien à jouer (tout est vert pour cette tête)'}\n`)
     }
-    verdict = await jouerLeTrain(ctx, ETAPES, journal, { sauver: (j) => ecrireJsonAtomique(chemins.json, j), journaliser })
+    verdict = jouerLeTrain(ctx, ETAPES, journal, { sauver: (j) => ecrireJsonAtomique(chemins.json, j), journaliser })
   } catch (e) {
     verdict = { etat: 'rouge', etape: 'moteur', raison: e instanceof GitIndisponible ? refusDeGit(e) : `ARRÊT INATTENDU : ${e?.stack ?? e}` }
     if (e instanceof GitIndisponible) journaliser(`${verdict.raison}\n`)
@@ -1013,11 +1013,11 @@ async function main() {
 /**
  * `main`, dont une panne de git AVANT le train (racine, branche, tête vivante) sort en ligne finale
  * NOMMÉE — au log de l'enfant détaché, sur stderr sinon —, jamais en pile brute.
- * @returns {Promise<number>}
+ * @returns {number}
  */
-async function mainNomme() {
+function mainNomme() {
   try {
-    return await main()
+    return main()
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
     const verdict = { etat: 'rouge', etape: 'moteur', raison: refusDeGit(e) }
@@ -1028,4 +1028,4 @@ async function mainNomme() {
   }
 }
 
-if (import.meta.main) process.exit(await mainNomme())
+if (import.meta.main) process.exit(mainNomme())

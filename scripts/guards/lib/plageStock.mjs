@@ -327,19 +327,30 @@ export const PORTE_DE_PLAGE = Object.freeze({
   vie: vieDeLaPorte,
 })
 
-/** La VIE d'une porte de plage chargée : son `entreesNominatives` voit l'entrée d'une image JSON-objet. */
-async function vieDeLaPorte({ charger }) {
+/** La VIE d'une porte de plage chargée : son `entreesNominatives` voit l'entrée d'une image JSON-objet, et son
+ *  `refusDeLaPlage` refuse le commit qui la fait naître sans `CLIQUET:`, le cumul en croissance. */
+async function vieDeLaPorte({ module, charger }) {
   const { entreesNominatives } = await charger('scripts/guards/lib/stocksNominatifs.mjs')
-  const chemin = (nom, extension) => `${['scripts', nom].join('/')}.${extension}`
-  const image = texteDeStock('vie de la porte', [{ fichier: chemin('vie', 'mjs') }])
-  return entreesNominatives(image, chemin('vie-stock', 'json'))?.length === 1
+  const chemin = (dossiers, extension) => `${['scripts', ...dossiers].join('/')}.${extension}`
+  const fichier = chemin(['guards', 'vie-stock'], 'json')
+  const image = texteDeStock('vie de la porte', [{ fichier: chemin(['vie'], 'mjs') }])
+  const entrees = entreesNominatives(image, fichier)
+  if (entrees?.length !== 1) return false
+  const lignes = image.split('\n').slice(0, -1)
+  const diff = [`diff --git a/${fichier} b/${fichier}`, 'new file mode 100644', '--- /dev/null', `+++ b/${fichier}`,
+    `@@ -0,0 +1,${lignes.length} @@`, ...lignes.map((l) => `+${l}`), ''].join('\n')
+  const images = { lirePostImage: (f) => (f === fichier ? image : null), lirePreImage: () => null, renommages: new Map() }
+  const refus = module.refusDeLaPlage({
+    commits: [{ sha: '0'.repeat(40), message: '', diff, images }],
+    cumul: [{ fichier, parCle: new Map([[entrees[0].cle, 1]]) }],
+  })
+  return refus.length > 0
 }
 
 /**
  * Les commits lus (`croissancesDeLaPlage`) jugés chacun par la porte de son ÈRE (`groupesParEre`) : refus
  * et reclassements dans l'ordre de l'histoire, chacun avec son `ere` ; `eres` = `[{ ere, commits, note }]`.
- * Une ère antérieure à la porte ne juge rien ; une ère non chargeable, ou un tronc illisible, juge par
- * la porte actuelle, et la note le dit.
+ * Une ère sans la porte, non chargeable, ou un tronc illisible : la porte actuelle juge, et la note le dit.
  * @param {import('./gitPorte.mjs').Depot} depot @param {object[]} commits
  * @param {{ fichier: string, parCle: Map<string, number> }[]} cumul
  * @param {string} tronc le tronc des ères (`lectureDeLaPlage`, `troncDesEres`)
@@ -350,9 +361,8 @@ async function jugeesParLeurEre(depot, commits, cumul, tronc, porte = PORTE_DE_P
   const refus = []
   const reclassements = []
   const eres = []
-  for (const { ere, commits: groupe, juge: deLEre, note, anterieure } of await groupesParEre(depot, commits, tronc, porte)) {
+  for (const { ere, commits: groupe, juge: deLEre, note } of await groupesParEre(depot, commits, tronc, porte)) {
     eres.push({ ere, commits: groupe.map((c) => c.sha), note })
-    if (anterieure) continue
     const juge = deLEre ?? { refusDeLaPlage, reclassementsDeLaPlage }
     refus.push(...juge.refusDeLaPlage({ commits: groupe, cumul }).map((r) => ({ ...r, ere })))
     reclassements.push(...juge.reclassementsDeLaPlage({ commits: groupe }).map((r) => ({ ...r, ere })))

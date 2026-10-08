@@ -12,14 +12,21 @@
 // `bindingsVivants.mjs`, `sourceCorpus.mjs`, `RACINE_DU_CODE`) reste celle du dépôt, et un spécificateur
 // nu (`typescript`) s'y résout.
 //
-// Une porte absente de l'ère : l'ère est ANTÉRIEURE à la porte, l'appelant ne juge pas. Une porte
-// présente qui ne se charge pas, à qui manque un export, ou dont la sonde de VIE échoue : `juge` nul et
-// une NOTE, l'appelant juge par la porte actuelle et rend la note.
+// Une ère SANS la porte au chemin de `module` (base antérieure à la porte, porte déplacée), une porte qui
+// ne se charge pas, à qui manque un export, ou dont la sonde de VIE échoue : `juge` nul et une NOTE,
+// l'appelant juge par la porte actuelle et rend la note. Aucun commit n'échappe à toute porte.
+// L'arbre de l'ère se lit chemin par chemin (`lireEnLot`), jamais listé en entier.
+//
+// Limites (#2503) :
+// - une branche de base ancienne garde la sémantique de sa base jusqu'à sa prochaine fusion du tronc :
+//   celle de son pre-commit, sous laquelle ses commits ont été acceptés ;
+// - le budget mesure l'ère contre `merge_group.base_sha` (file empilée), le tronc que SA plage exclut
+//   (`budget-contexte.mjs`, `controlerBudgetDeLaPlage`).
 import { createHash } from 'node:crypto'
 import { registerHooks } from 'node:module'
 import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { baseCommune, lireEnLot, listerImage } from './gitPorte.mjs'
+import { baseCommune, lireEnLot } from './gitPorte.mjs'
 import { clotureDImports } from './importGraph.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 
@@ -62,28 +69,26 @@ function fermetureDuDisque(racine, module) {
   return fermeturesDuDisque.get(cle)
 }
 
-/** La fermeture de `module` dans l'arbre `ere` de `depot` : `null` si `module` n'y est pas. */
+/** La fermeture de `module` dans l'arbre `ere` de `depot` : `null` si `module` n'y est pas. Chaque texte se
+ *  lit par `lireEnLot`, à la première question de la fermeture sur son chemin. */
 function fermetureDeLEre(depot, ere, racine, module) {
-  const presents = new Set(listerImage(depot, ere))
-  if (!presents.has(module)) return null
   const base = resolve(racine).split(sep).join('/')
   const rel = (abs) => (abs.startsWith(`${base}/`) ? abs.slice(base.length + 1) : null)
   const lus = new Map()
+  const lu = (chemin) => {
+    if (!lus.has(chemin)) for (const [c, texte] of lireEnLot(depot, ere, [chemin])) lus.set(c, texte)
+    return lus.get(chemin) ?? null
+  }
+  if (lu(module) === null) return null
   const membres = clotureDImports([module], {
     racine,
     dynamiques: true,
     arbre: {
-      existe: (abs) => presents.has(rel(abs)),
-      lire: (abss) => {
-        const textes = lireEnLot(depot, ere, abss.map(rel))
-        for (const abs of abss) lus.set(rel(abs), textes.get(rel(abs)) ?? null)
-        return new Map(abss.map((abs) => [abs, lus.get(rel(abs))]))
-      },
+      existe: (abs) => rel(abs) !== null && lu(rel(abs)) !== null,
+      lire: (abss) => new Map(abss.map((abs) => [abs, lu(rel(abs))])),
     },
   })
-  const manquants = [...membres].filter((m) => !lus.has(m))
-  const restes = lireEnLot(depot, ere, manquants)
-  return [...membres].map((m) => [m, lus.has(m) ? lus.get(m) : (restes.get(m) ?? null)])
+  return [...membres].map((m) => [m, lu(m)])
 }
 
 /** Les textes servis, par ère : `ere` → (chemin absolu → texte). @type {Map<string, Map<string, string>>} */
@@ -151,7 +156,7 @@ const memoParVie = new WeakMap()
  * fermeture. Mémoïsé par ère dans le processus.
  * @param {import('./gitPorte.mjs').Depot} depot @param {string} ere
  * @param {{ racine?: string, module: string, exports: string[], vie: (p: { module: object, charger: (rel: string) => Promise<object> }) => unknown | Promise<unknown> }} porte
- * @returns {Promise<{ juge: object | null, note: string | null, anterieure: boolean, source: 'disque' | 'arbre' | null }>}
+ * @returns {Promise<{ juge: object | null, note: string | null, source: 'disque' | 'arbre' | null }>}
  */
 export function jugeDeLEre(depot, ere, { racine = RACINE_DU_CODE, module, exports, vie }) {
   if (!memoParVie.has(vie)) memoParVie.set(vie, new Map())
@@ -163,13 +168,13 @@ export function jugeDeLEre(depot, ere, { racine = RACINE_DU_CODE, module, export
 
 /**
  * Les `commits` groupés par ÈRE (`ereDuCommit` contre `tronc`), chacun avec le juge de son ère
- * (`jugeDeLEre`, `porte`), dans l'ordre de première apparition : `[{ ere, commits, juge, note, anterieure }]`.
- * `juge` nul : l'appelant juge par sa porte actuelle (ère non chargeable, ou tronc illisible, que la note
- * dit) ; `anterieure` : il ne juge pas.
+ * (`jugeDeLEre`, `porte`), dans l'ordre de première apparition : `[{ ere, commits, juge, note }]`.
+ * `juge` nul : l'appelant juge par sa porte actuelle (ère sans la porte, non chargeable, ou tronc illisible,
+ * que la note dit).
  * @template {{ sha: string }} C
  * @param {import('./gitPorte.mjs').Depot} depot @param {readonly C[]} commits @param {string} tronc
  * @param {Parameters<typeof jugeDeLEre>[2]} porte
- * @returns {Promise<{ ere: string | null, commits: C[], juge: object | null, note: string | null, anterieure: boolean }[]>}
+ * @returns {Promise<{ ere: string | null, commits: C[], juge: object | null, note: string | null }[]>}
  */
 export async function groupesParEre(depot, commits, tronc, porte) {
   /** @type {Map<string | null, C[]>} */
@@ -182,22 +187,22 @@ export async function groupesParEre(depot, commits, tronc, porte) {
   for (const [ere, groupe] of groupes) {
     const vu = ere
       ? await jugeDeLEre(depot, ere, porte)
-      : { juge: null, note: `${groupe.map((c) => c.sha.slice(0, 9)).join(', ')} sans ère (tronc \`${tronc}\` illisible) : jugé(s) par la porte actuelle`, anterieure: false }
-    rendus.push({ ere, commits: groupe, juge: vu.juge, note: vu.note, anterieure: vu.anterieure })
+      : { juge: null, note: `${groupe.map((c) => c.sha.slice(0, 9)).join(', ')} sans ère (tronc \`${tronc}\` illisible) : jugé(s) par la porte actuelle` }
+    rendus.push({ ere, commits: groupe, juge: vu.juge, note: vu.note })
   }
   return rendus
 }
 
 async function chargerLaPorte(depot, ere, { racine, module, exports, vie }) {
   const ere9 = ere.slice(0, 9)
-  const inchargeable = (raison) => ({ juge: null, note: `${ere9} non chargeable : ${raison}`, anterieure: false, source: null })
+  const inchargeable = (raison) => ({ juge: null, note: `${ere9} non chargeable : ${raison}`, source: null })
   let textes
   try {
     textes = fermetureDeLEre(depot, ere, racine, module)
   } catch (e) {
     return inchargeable(`arbre illisible (${e.message})`)
   }
-  if (!textes) return { juge: null, note: `${ere9} antérieure à la porte \`${module}\` : ses commits ne sont pas jugés`, anterieure: true, source: null }
+  if (!textes) return { juge: null, note: `${ere9} sans la porte \`${module}\` : jugé(s) par la porte actuelle`, source: null }
   const source = fermetureDuDisque(racine, module) === empreinteDe(textes) ? 'disque' : 'arbre'
   const urlDe = source === 'disque' ? (rel) => pathToFileURL(join(racine, rel)).href : servirLEre(ere, racine, textes)
   try {
@@ -206,7 +211,7 @@ async function chargerLaPorte(depot, ere, { racine, module, exports, vie }) {
     const manquants = exports.filter((nom) => typeof juge[nom] !== 'function')
     if (manquants.length) return inchargeable(`export(s) absent(s) de \`${module}\` : ${manquants.join(', ')}`)
     if (!(await vie({ module: juge, charger }))) return inchargeable('sonde de vie négative')
-    return { juge, note: null, anterieure: false, source }
+    return { juge, note: null, source }
   } catch (e) {
     return inchargeable(e?.message ?? String(e))
   }

@@ -128,10 +128,12 @@ export const PORTE_DE_BUDGET = Object.freeze({
   vie: vieDuBudget,
 })
 
-/** La VIE d'une porte de budget chargée : son `mesurerBudget` rend un `total` numérique sur une image connue. */
+/** La VIE d'une porte de budget chargée : son `mesurerBudget` rend un `total` numérique sur une image connue, et
+ *  son `refusDeBudget` refuse une montée que le message ne déclare pas. */
 function vieDuBudget({ module }) {
-  const { total } = module.mesurerBudget('.', { lireTout: (rels) => new Map(rels.map((rel) => [rel, 'vie\n'])), lister: () => [] })
-  return typeof total === 'number' && total > 0
+  const mesure = module.mesurerBudget('.', { lireTout: (rels) => new Map(rels.map((rel) => [rel, 'vie\n'])), lister: () => [] })
+  if (typeof mesure?.total !== 'number' || mesure.total <= 0) return false
+  return Boolean(module.refusDeBudget({ reference: { postes: [], total: 0 }, mesure, message: '' }))
 }
 
 /**
@@ -174,9 +176,8 @@ export async function controlerBudgetDeLaPlage({ cwd = process.cwd(), debut, fin
   const actuelle = { importsDe, estCheminDuBudget, mesurerBudget, refusDeBudget }
   const groupes = await groupesParEre(depot, commits, debut, PORTE_DE_BUDGET)
   exigerLectures()
-  for (const { ere, commits: groupe, juge: deLEre, note, anterieure } of groupes) {
+  for (const { ere, commits: groupe, juge: deLEre, note } of groupes) {
     if (note) resultat.notes.push(note)
-    if (anterieure) continue
     const juge = deLEre ?? actuelle
     for (const commit of groupe) {
       const apport = ceQueFaitLeCommit(depot, commit)

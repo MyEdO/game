@@ -10,15 +10,15 @@ import * as porteActuelle from './plageStock.mjs'
 import { PORTE_DE_PLAGE } from './plageStock.mjs'
 import { RACINE } from './bindingsVivants.mjs'
 import * as stocksActuels from './stocksNominatifs.mjs'
-import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs'
+import { fermetureSurDisque, groupesParEre, jugeDeLEre } from './porteDEre.mjs'
 
 test('#2503 fermeture IDENTIQUE à celle du disque : le module qui tourne, sans hooks, mémoïsé par ère', async () => {
   const { racine, sha } = instanceDeDepot({ fichiers: Object.fromEntries(fermetureSurDisque('scripts/guards/lib/plageStock.mjs')), message: 'socle' })
   try {
     const premier = jugeDeLEre(depotDe(racine), sha, PORTE_DE_PLAGE)
     assert.equal(jugeDeLEre(depotDe(racine), sha, PORTE_DE_PLAGE), premier, 'une ère se charge une fois par processus')
-    const { juge, note, anterieure, source } = await premier
-    assert.deepEqual([note, anterieure, source], [null, false, 'disque'])
+    const { juge, note, source } = await premier
+    assert.deepEqual([note, source], [null, 'disque'])
     assert.equal(juge, porteActuelle, 'le module déjà chargé')
   } finally {
     rmSync(racine, { recursive: true, force: true })
@@ -74,6 +74,17 @@ test('#2503 un membre `.ts` de l’ère, ABSENT du disque, est servi par l’èr
   try {
     const { juge, note, source } = await jugeDeLEre(depotDe(racine), sha, { ...PORTE_DE_PLAGE, vie: () => true })
     assert.deepEqual([note, source, juge?.VU], [null, 'arbre', 2])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2503 porte DÉPLACÉE : l’ère sans la porte au chemin de `module` rend un juge nul et sa note — le groupe est jugé par la porte actuelle, jamais laissé sans porte', async () => {
+  const { racine, sha } = instanceDeDepot({ fichiers: Object.fromEntries(fermetureSurDisque(PORTE_DE_PLAGE.module)), message: 'socle' })
+  try {
+    const module = ['scripts', 'guards', 'lib', 'plage', 'stock.mjs'].join('/')
+    const vu = await groupesParEre(depotDe(racine), [{ sha }], sha, { ...PORTE_DE_PLAGE, module })
+    assert.deepEqual(vu, [{ ere: sha, commits: [{ sha }], juge: null, note: `${sha.slice(0, 9)} sans la porte \`${module}\` : jugé(s) par la porte actuelle` }])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

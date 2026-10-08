@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { PORTE_DE_PLAGE, cotesLisibles, refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, reclassementsDeLaPlage, SHA_NUL } from './plageStock.mjs'
+import { PORTE_DE_PLAGE, cotesLisibles, lectureDeLaPlage, refusDeLaPlage, raisonDeRefusDePlage, croissancesDeLaPlage, reclassementsDeLaPlage, SHA_NUL } from './plageStock.mjs'
 import { franchisDuCommit } from './reclassementCss.mjs'
 import { GitIndisponible, TRONC, depotDe, refusDeGit } from './gitPorte.mjs'
 import { bilanDesStocks } from './stocksNominatifs.mjs'
@@ -15,6 +15,10 @@ import { texteDeStock } from './stockDeSites.mjs'
 import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs'
 import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
+import { fileURLToPath } from 'node:url'
+
+/** La racine du dépôt réel. */
+const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
 
 const PORTEUR = 'scripts/x.test.mjs'
 
@@ -1478,10 +1482,13 @@ test('#2223 REFUS d’une plage : le geste suit la sorte du commit fautif — fu
 const X = 'x.txt'
 const Y = 'y.txt'
 
+/** Le stock que fait naître la sonde de VIE de la porte de plage (`vieDeLaPorte`) : toute porte forgée le compte. */
+const VIE_DE_LA_PLAGE = `${['scripts', 'guards', 'vie-stock'].join('/')}.json`
+
 /** Le texte d'une porte de plage forgée. */
 const porteForgee = ({ porteurs, net }) => [
   "import './stocksNominatifs.mjs'",
-  `const PORTEURS = ${JSON.stringify(porteurs)}`,
+  `const PORTEURS = ${JSON.stringify([...porteurs, VIE_DE_LA_PLAGE])}`,
   'export function refusDeLaPlage({ commits }) {',
   '  const refus = []',
   "  for (const { sha, message = '', diff = '' } of commits) {",
@@ -1611,6 +1618,7 @@ test('#2503 ÈRE, file puis tronc : la PR qui change la porte rend le même verd
 test('#2503 ÈRE non chargeable : la porte actuelle juge, et la note le dit', async () => {
   for (const [cas, autres, raison] of [
     ['vie négative', { [STOCKS_VIVANTS]: 'export const entreesNominatives = () => []\n' }, 'sonde de vie négative'],
+    ['porte muette', { [MODULE_PORTE]: "import './stocksNominatifs.mjs'\nexport const refusDeLaPlage = () => []\nexport const reclassementsDeLaPlage = () => []\n" }, 'sonde de vie négative'],
     ['export absent', { [MODULE_PORTE]: "import './stocksNominatifs.mjs'\nexport const refusDeLaPlage = () => []\n" }, 'export(s) absent(s) de `scripts/guards/lib/plageStock.mjs` : reclassementsDeLaPlage'],
     ['module qui ne se parse pas', { [MODULE_PORTE]: "import './stocksNominatifs.mjs'\nexport const refusDeLaPlage = (\n" }, 'arbre illisible .sitesDeModule : .* ne se parse pas'],
   ]) {
@@ -1629,7 +1637,7 @@ test('#2503 ÈRE non chargeable : la porte actuelle juge, et la note le dit', as
   }
 })
 
-test('#2503 ÈRE antérieure à la porte : ses commits ne sont pas jugés, et la note le dit', async () => {
+test('#2503 ÈRE SANS la porte : la porte actuelle juge, un stock qui naît muet est refusé, et la note le dit', async () => {
   const { racine: repo, sha: socle } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' }, message: 'socle' })
   try {
     const git = gitDe(repo)
@@ -1638,13 +1646,24 @@ test('#2503 ÈRE antérieure à la porte : ses commits ne sont pas jugés, et la
     mkdirSync(dirname(join(repo, PORTEUR)), { recursive: true })
     writeFileSync(join(repo, PORTEUR), sourceStock([A]), 'utf8')
     git('add', PORTEUR)
-    git('commit', '-q', '--no-verify', '-m', 'un stock naît avant la porte')
-    const vu = await croissancesDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: git('rev-parse', 'HEAD').trim(), vers: CHANTIER })
-    assert.deepEqual(vu.refus, [])
-    assert.deepEqual(vu.notes, [`${socle.slice(0, 9)} antérieure à la porte \`${MODULE_PORTE}\` : ses commits ne sont pas jugés`])
+    git('commit', '-q', '--no-verify', '-m', 'un stock naît, muet, sur une base sans la porte')
+    const muet = git('rev-parse', 'HEAD').trim()
+    const vu = await croissancesDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: muet, vers: CHANTIER })
+    assert.deepEqual(vu.refus.map((r) => [r.sha, r.fichier, r.net, r.ere]), [[muet, PORTEUR, 1, socle]])
+    assert.deepEqual(vu.notes, [`${socle.slice(0, 9)} sans la porte \`${MODULE_PORTE}\` : jugé(s) par la porte actuelle`])
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
+})
+
+test('#2503 ÈRE SANS la porte, données réelles : `a9b7edf17` poussé sur le tronc `da3acf95c^` rend les refus de la porte actuelle', async () => {
+  const sha = (ref) => gitDe(RACINE)('rev-parse', ref).trim()
+  const plage = { cwd: RACINE, debut: sha('da3acf95c^'), fin: sha('a9b7edf17'), vers: TRONC.branche }
+  const actuelle = refusDeLaPlage(lectureDeLaPlage(plage)).map((r) => [r.sha, r.fichier, r.net, r.declare])
+  assert.ok(actuelle.length, 'témoin : la porte actuelle refuse cette plage')
+  const vu = await croissancesDeLaPlage(plage)
+  assert.deepEqual(vu.refus.map((r) => [r.sha, r.fichier, r.net, r.declare]), actuelle)
+  assert.ok(vu.notes.some((n) => n.includes(`sans la porte \`${MODULE_PORTE}\``)), vu.notes.join('\n'))
 })
 
 test('#2503 GitIndisponible entre modules : une lecture en panne sous le juge d’une ère CHARGÉE rend un refus `illisible` au texte de `refusDeGit`', async () => {

@@ -353,14 +353,21 @@ describe('budget de plage — ÈRE (#2503)', () => {
     })
   })
 
-  test('une ère ANTÉRIEURE à la porte : nommée, ses commits non jugés', async () => {
+  test('une ère SANS la porte : la porte actuelle juge, la montée muette est refusée, et la note le dit', async () => {
     await depotDEres({}, async ({ socle, poser, controle }) => {
-      const c1 = poser({ 'CLAUDE.md': 'a\nb\n' }, 'CLAUDE.md grandit avant la porte')
-      assert.deepEqual(await controle(socle, c1), {
-        commitsControles: 0,
-        refus: [],
-        notes: [`${socle.slice(0, 9)} antérieure à la porte \`${MODULE}\` : ses commits ne sont pas jugés`],
-      })
+      const c1 = poser({ 'CLAUDE.md': 'a\nb\n' }, 'CLAUDE.md grandit sur une base sans la porte')
+      const vu = await controle(socle, c1)
+      assert.deepEqual(vu.refus.map((r) => [r.sha, r.ere]), [[c1, socle]])
+      assert.deepEqual(vu.notes, [`${socle.slice(0, 9)} sans la porte \`${MODULE}\` : jugé(s) par la porte actuelle`])
+    })
+  })
+
+  test('une porte d’ère MUETTE (son `refusDeBudget` ne refuse rien) n’est pas chargeable : la porte actuelle juge', async () => {
+    await depotDEres({ [MODULE]: porteForgee({ poids: 'lignes', cliquet: 'muette' }) }, async ({ socle, poser, controle }) => {
+      const c1 = poser({ 'CLAUDE.md': 'a\nb\n' }, 'CLAUDE.md grandit, muet')
+      const vu = await controle(socle, c1)
+      assert.deepEqual(vu.refus.map((r) => [r.sha, r.ere]), [[c1, socle]])
+      assert.deepEqual(vu.notes, [`${socle.slice(0, 9)} non chargeable : sonde de vie négative`])
     })
   })
 

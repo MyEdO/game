@@ -255,19 +255,19 @@ const factice = (nom, verdict, { deja = false, joues } = {}) => ({
   },
 })
 
-test('jouerLeTrain : joue dans l’ordre et rend vert', async () => {
+test('jouerLeTrain : joue dans l’ordre et rend vert', () => {
   const joues = []
   const journal = journalVide('b')
-  const vu = await jouerLeTrain({}, [factice('un', { ok: true }, { joues }), factice('deux', { ok: true }, { joues })], journal)
+  const vu = jouerLeTrain({}, [factice('un', { ok: true }, { joues }), factice('deux', { ok: true }, { joues })], journal)
   assert.deepEqual(vu, { etat: 'vert' })
   assert.deepEqual(joues, ['un', 'deux'])
   assert.equal(journal.etapes.deux.etat, 'vert')
 })
 
-test('jouerLeTrain : ARRÊTE à la première rouge', async () => {
+test('jouerLeTrain : ARRÊTE à la première rouge', () => {
   const joues = []
   const journal = journalVide('b')
-  const vu = await jouerLeTrain({}, [
+  const vu = jouerLeTrain({}, [
     factice('un', { ok: true }, { joues }),
     factice('deux', { ok: false, raison: 'cassé' }, { joues }),
     factice('trois', { ok: true }, { joues }),
@@ -277,17 +277,17 @@ test('jouerLeTrain : ARRÊTE à la première rouge', async () => {
   assert.equal(journal.etapes.trois, undefined)
 })
 
-test('jouerLeTrain : saute ce que dejaFaite déclare', async () => {
+test('jouerLeTrain : saute ce que dejaFaite déclare', () => {
   const joues = []
   const journal = journalVide('b')
-  await jouerLeTrain({}, [factice('un', { ok: true }, { joues, deja: true }), factice('deux', { ok: true }, { joues })], journal)
+  jouerLeTrain({}, [factice('un', { ok: true }, { joues, deja: true }), factice('deux', { ok: true }, { joues })], journal)
   assert.deepEqual(joues, ['deux'])
 })
 
-test('jouerLeTrain : une étape DÉJÀ FAITE s’ENREGISTRE, estampillée à la tête VIVANTE du ctx', async () => {
+test('jouerLeTrain : une étape DÉJÀ FAITE s’ENREGISTRE, estampillée à la tête VIVANTE du ctx', () => {
   const sauves = []
   const journal = journalVide('b')
-  await jouerLeTrain({ tete: 'vivante' }, [factice('un', { ok: true }, { deja: true }), factice('deux', { ok: true })], journal, {
+  jouerLeTrain({ tete: 'vivante' }, [factice('un', { ok: true }, { deja: true }), factice('deux', { ok: true })], journal, {
     sauver: (j) => sauves.push(Object.keys(j.etapes).join('+')),
   })
   const vue = journal.etapes.un
@@ -302,14 +302,14 @@ test('jouerLeTrain : une étape DÉJÀ FAITE s’ENREGISTRE, estampillée à la 
   assert.equal(journal.etapes.deux.tete, 'vivante')
   // Le détail PRÉCÉDENT survit : `file.dejaFaite` relit `detail.fusion`, l’écraser referait attendre la file.
   const repris = { ...journalVide('b'), etapes: { file: { etat: 'vert', tete: 'vivante', detail: { fusion: 'f' } } } }
-  await jouerLeTrain({ tete: 'vivante' }, [factice('file', { ok: true }, { deja: true })], repris)
+  jouerLeTrain({ tete: 'vivante' }, [factice('file', { ok: true }, { deja: true })], repris)
   assert.deepEqual(repris.etapes.file.detail, { fusion: 'f', dejaFaite: true })
 })
 
-test('jouerLeTrain : le journal est écrit à l’ENTRÉE (`en-vol`) et au VERDICT de chaque étape jouée', async () => {
+test('jouerLeTrain : le journal est écrit à l’ENTRÉE (`en-vol`) et au VERDICT de chaque étape jouée', () => {
   const sauves = []
   const journal = entameDuRun(journalVide('b'), { run: '7-1', pid: 7, fileTimeoutMin: 1 })
-  await jouerLeTrain({}, [factice('un', { ok: true, dit: 'fait' }), factice('deux', { ok: false, raison: 'x' })], journal, {
+  jouerLeTrain({}, [factice('un', { ok: true, dit: 'fait' }), factice('deux', { ok: false, raison: 'x' })], journal, {
     sauver: (j) => sauves.push(`${Object.entries(j.etapes).map(([n, e]) => `${n}:${e.etat}`).join('+')}`),
   })
   assert.deepEqual(sauves, ['un:en-vol', 'un:vert', 'un:vert+deux:en-vol', 'un:vert+deux:rouge'])
@@ -318,14 +318,14 @@ test('jouerLeTrain : le journal est écrit à l’ENTRÉE (`en-vol`) et au VERDI
   assert.deepEqual([journal.etapes.deux.run, journal.etapes.deux.dit], ['7-1', 'x'])
 })
 
-test('jouerLeTrain : une étape INDÉTERMINÉE arrête le train sans le rougir', async () => {
+test('jouerLeTrain : une étape INDÉTERMINÉE arrête le train sans le rougir', () => {
   const journal = journalVide('b')
-  const vu = await jouerLeTrain({}, [factice('ci', { indetermine: true, raison: 'pas de verdict' })], journal)
+  const vu = jouerLeTrain({}, [factice('ci', { indetermine: true, raison: 'pas de verdict' })], journal)
   assert.deepEqual(vu, { etat: 'indeterminee', etape: 'ci', raison: 'pas de verdict' })
   assert.equal(journal.etapes.ci.etat, 'indéterminée')
 })
 
-test('jouerLeTrain : une RELANCE remet les étapes nommées à faire et reprend du début', async () => {
+test('jouerLeTrain : une RELANCE remet les étapes nommées à faire et reprend du début', () => {
   const joues = []
   const journal = journalVide('b')
   let bouge = true
@@ -344,7 +344,7 @@ test('jouerLeTrain : une RELANCE remet les étapes nommées à faire et reprend 
       },
     },
   ]
-  const vu = await jouerLeTrain({}, etapes, journal)
+  const vu = jouerLeTrain({}, etapes, journal)
   assert.deepEqual(vu, { etat: 'vert' })
   assert.deepEqual(joues, ['rebase', 'push', 'rebase', 'push'])
 })
@@ -1644,19 +1644,19 @@ test('refusDeBranche : une branche qu’aucun filtre `push.branches` de `ci.yml`
   assert.match(refusDeBranche('chantier/1', []), /aucun `push`/)
 })
 
-test('preflight : une branche hors des filtres `push.branches` est ROUGE avant tout geste ; un `ci.yml` illisible aussi', async () => {
+test('preflight : une branche hors des filtres `push.branches` est ROUGE avant tout geste ; un `ci.yml` illisible aussi', () => {
   const preflight = ETAPES.find((e) => e.nom === 'preflight')
   const ctxDe = (filtres) => ({
     branche: 'claude/x',
     get filtresDePush() { if (filtres instanceof Error) throw filtres; return filtres },
     questions: { rebaseEntame: () => null, brancheDe: () => 'claude/x', cheminsSales: () => assert.fail('aucune lecture après le refus') },
   })
-  assert.match((await preflight.jouer(ctxDe(['chantier/**']), journalVide('claude/x'))).raison, /^la branche claude.x ne déclenche pas/)
-  assert.equal((await preflight.jouer(ctxDe(new Error('ci.yml : filtre illisible')), journalVide('claude/x'))).raison, 'ci.yml : filtre illisible')
+  assert.match(preflight.jouer(ctxDe(['chantier/**']), journalVide('claude/x')).raison, /^la branche claude.x ne déclenche pas/)
+  assert.equal(preflight.jouer(ctxDe(new Error('ci.yml : filtre illisible')), journalVide('claude/x')).raison, 'ci.yml : filtre illisible')
 })
 
 
-test('preflight #2285 fc1 : fetch refusé conserve le diagnostic et interdit le verdict', async () => {
+test('preflight #2285 fc1 : fetch refusé conserve le diagnostic et interdit le verdict', () => {
   const preflight = ETAPES.find((e) => e.nom === 'preflight')
   const stderr = `${'note fetch\n'.repeat(50)}fatal: cause tardive fetch\n`
   const stdout = 'stdout fetch distinct\n'
@@ -1675,13 +1675,13 @@ test('preflight #2285 fc1 : fetch refusé conserve le diagnostic et interdit le 
       combienDe: () => assert.fail('aucune lecture après fetch refusé'),
     },
   }
-  assert.deepEqual(await preflight.jouer(ctx, journalVide('chantier/x')), {
+  assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), {
     ok: false,
     raison: `origin non consultable : refus (status 128) — ${stderr}\n${stdout}`,
   })
 })
 
-test('preflight #2285 fc1 : fetch et verdict verts poursuivent les lectures', async () => {
+test('preflight #2285 fc1 : fetch et verdict verts poursuivent les lectures', () => {
   const preflight = ETAPES.find((e) => e.nom === 'preflight')
   const appels = []
   const base = 'b'.repeat(40)
@@ -1703,7 +1703,7 @@ test('preflight #2285 fc1 : fetch et verdict verts poursuivent les lectures', as
     },
   }
   const journal = journalVide('chantier/x')
-  const vu = await preflight.jouer(ctx, journal)
+  const vu = preflight.jouer(ctx, journal)
   assert.equal(vu.ok, true)
   assert.deepEqual(vu.detail, { derivesSales: [], base })
   assert.equal(journal.base, base)
@@ -1711,7 +1711,7 @@ test('preflight #2285 fc1 : fetch et verdict verts poursuivent les lectures', as
   assert.deepEqual(appels, ['fetch', 'verdict', 'combien', 'base'])
 })
 
-test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, avec le refus de la porte de publication (#2328)', async () => {
+test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, avec le refus de la porte de publication (#2328)', () => {
   const preflight = ETAPES.find((e) => e.nom === 'preflight')
   const ctx = {
     branche: 'chantier/x',
@@ -1727,7 +1727,7 @@ test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, a
       combienDe: () => assert.fail('aucune lecture après le refus'),
     },
   }
-  const vu = await preflight.jouer(ctx, journalVide('chantier/x'))
+  const vu = preflight.jouer(ctx, journalVide('chantier/x'))
   assert.equal(vu.ok, false)
   assert.match(vu.raison, /^⛔ origin\/main \(base 0123456789 du .+\)\.\.HEAD : 1 fusion\(s\) dont la RÉSOLUTION/)
 })
@@ -1882,13 +1882,13 @@ const AVANT = '4100-1780000000000'
 
 /** Les journaux que le disque porte, sauvegarde après sauvegarde, pendant qu'un run joue `etapes` —
  *  écrits par le MOTEUR réel (`jouerLeTrain`), puis le verdict tel que `main` le pose. */
-async function journauxDuRun(etapes, { run = RUN, journal = journalVide('b') } = {}) {
+function journauxDuRun(etapes, { run = RUN, journal = journalVide('b') } = {}) {
   const vus = []
   entameDuRun(journal, { run, pid: pidDeRun(run), fileTimeoutMin: 10 })
   vus.push(structuredClone(journal))
   let verdict
   try {
-    verdict = await jouerLeTrain({ tete: 't' }, etapes, journal, { sauver: (j) => vus.push(structuredClone(j)) })
+    verdict = jouerLeTrain({ tete: 't' }, etapes, journal, { sauver: (j) => vus.push(structuredClone(j)) })
   } catch (e) {
     verdict = { etat: 'rouge', etape: 'moteur', raison: `ARRÊT INATTENDU : ${e.message}` }
   }
@@ -1918,29 +1918,29 @@ function veille(lectures, { depart = LANCEMENT_DU_RUN, ...o } = {}) {
   return { code, lignes, lectures: i, horloge }
 }
 
-test('veillerLeTrain : un run VERT — une ligne par transition, numérotée, la ligne PUBLICATION:, code 0', async () => {
-  const vus = await journauxDuRun([factice('un', { ok: true, dit: 'arbre propre' }), factice('deux', { ok: true, dit: 'poussé' })])
+test('veillerLeTrain : un run VERT — une ligne par transition, numérotée, la ligne PUBLICATION:, code 0', () => {
+  const vus = journauxDuRun([factice('un', { ok: true, dit: 'arbre propre' }), factice('deux', { ok: true, dit: 'poussé' })])
   const { code, lignes } = veille(vus)
   assert.equal(code, 0)
   assert.deepEqual(lignes, ['#1 un — en-vol', '#2 un — vert — arbre propre', '#3 deux — en-vol', '#4 deux — vert — poussé', 'PUBLICATION: vert null'])
 })
 
-test('veillerLeTrain : un run ROUGE — la raison en UNE ligne, code 1', async () => {
-  const vus = await journauxDuRun([factice('un', { ok: true }), factice('deux', { ok: false, raison: 'arbre NON COMMITÉ (2) :\n    a.ts\n    b.ts' })])
+test('veillerLeTrain : un run ROUGE — la raison en UNE ligne, code 1', () => {
+  const vus = journauxDuRun([factice('un', { ok: true }), factice('deux', { ok: false, raison: 'arbre NON COMMITÉ (2) :\n    a.ts\n    b.ts' })])
   const { code, lignes } = veille(vus)
   assert.equal(code, 1)
   assert.deepEqual(lignes.slice(-2), ['#4 deux — rouge — arbre NON COMMITÉ (2) : · a.ts · b.ts', 'PUBLICATION: rouge deux — arbre NON COMMITÉ (2) :'])
 })
 
-test('veillerLeTrain : un run INDÉTERMINÉ sort sur le code du train', async () => {
-  const vus = await journauxDuRun([factice('un', { indetermine: true, raison: 'aucune fusion en 10 min' })])
+test('veillerLeTrain : un run INDÉTERMINÉ sort sur le code du train', () => {
+  const vus = journauxDuRun([factice('un', { indetermine: true, raison: 'aucune fusion en 10 min' })])
   const { code, lignes } = veille(vus)
   assert.equal(code, CODE_INDETERMINEE)
   assert.equal(lignes.at(-1), 'PUBLICATION: indéterminée file null')
 })
 
-test('veillerLeTrain : ARRÊT MOTEUR — verdict `rouge moteur`, ou train mort sans verdict', async () => {
-  const vus = await journauxDuRun([
+test('veillerLeTrain : ARRÊT MOTEUR — verdict `rouge moteur`, ou train mort sans verdict', () => {
+  const vus = journauxDuRun([
     factice('un', () => {
       throw new Error('boum')
     }),
@@ -1951,18 +1951,18 @@ test('veillerLeTrain : ARRÊT MOTEUR — verdict `rouge moteur`, ou train mort s
 
   // Mort en vol : le journal reste `en-vol`, sans verdict. La mort constatée, le journal est RELU une
   // fois (le verdict a pu tomber entre la lecture et la sonde), puis la veille sort.
-  const enVol = (await journauxDuRun([factice('un', { ok: true })])).slice(0, 2)
+  const enVol = journauxDuRun([factice('un', { ok: true })]).slice(0, 2)
   const mort = veille(enVol, { vivant: () => false, log: 'x.log' })
   assert.equal(mort.code, CODE_ARRET_MOTEUR)
   assert.equal(mort.lectures, 2)
   assert.deepEqual(mort.lignes, ['#1 un — en-vol', 'PUBLICATION: rouge moteur — train 4242 mort sans verdict au journal — x.log'])
   // Le verdict écrit juste avant la mort gagne : il est lu à la relecture.
-  const tardif = veille([enVol[1], (await journauxDuRun([factice('un', { ok: true })])).at(-1)], { vivant: () => false })
+  const tardif = veille([enVol[1], journauxDuRun([factice('un', { ok: true })]).at(-1)], { vivant: () => false })
   assert.equal(tardif.code, 0)
 })
 
-test('veillerLeTrain : la borne DÉRIVÉE de la borne de file du run, comptée depuis le LANCEMENT', async () => {
-  const enVol = (await journauxDuRun([factice('un', { ok: true })])).slice(0, 2)
+test('veillerLeTrain : la borne DÉRIVÉE de la borne de file du run, comptée depuis le LANCEMENT', () => {
+  const enVol = journauxDuRun([factice('un', { ok: true })]).slice(0, 2)
   const vu = veille(enVol, { periodeMs: 60_000, fileTimeoutMin: 999 })
   assert.equal(vu.code, CODE_BORNE_DEPASSEE)
   // Le `fileTimeoutMin` du RUN (10, posé par `entameDuRun`) fait la borne, pas celui de la veille.
@@ -1977,15 +1977,15 @@ test('veillerLeTrain : la borne DÉRIVÉE de la borne de file du run, comptée d
   assert.equal(tard.lectures, 3)
 })
 
-test('veillerLeTrain : aucune ligne RÉPÉTÉE tant qu’une étape reste en vol', async () => {
-  const [entame, enVol, ...fin] = await journauxDuRun([factice('un', { ok: true, dit: 'fusionnée' })])
+test('veillerLeTrain : aucune ligne RÉPÉTÉE tant qu’une étape reste en vol', () => {
+  const [entame, enVol, ...fin] = journauxDuRun([factice('un', { ok: true, dit: 'fusionnée' })])
   const { code, lignes } = veille([entame, ...Array(12).fill(enVol), ...fin])
   assert.equal(code, 0)
   assert.deepEqual(lignes, ['#1 un — en-vol', '#2 un — vert — fusionnée', 'PUBLICATION: vert null'])
 })
 
-test('veillerLeTrain : RÉ-ARMÉE avec `depuis` = le dernier `#seq` lu, elle ne ré-émet aucune ligne périmée', async () => {
-  const vus = await journauxDuRun([factice('un', { ok: true, dit: 'a' }), factice('deux', { ok: true, dit: 'b' })])
+test('veillerLeTrain : RÉ-ARMÉE avec `depuis` = le dernier `#seq` lu, elle ne ré-émet aucune ligne périmée', () => {
+  const vus = journauxDuRun([factice('un', { ok: true, dit: 'a' }), factice('deux', { ok: true, dit: 'b' })])
   // La première veille s'arrête sans verdict (le Monitor qui la portait plafonne) après `#3`.
   const premiere = veille(vus.slice(0, 4))
   assert.equal(premiere.code, CODE_BORNE_DEPASSEE)
@@ -1999,21 +1999,21 @@ test('veillerLeTrain : RÉ-ARMÉE avec `depuis` = le dernier `#seq` lu, elle ne 
   ])
 })
 
-test('veillerLeTrain : le journal du run PRÉCÉDENT au démarrage ne dit rien, verdict compris', async () => {
-  const precedent = (await journauxDuRun([factice('un', { ok: false, raison: 'vieux rouge' })], { run: AVANT })).at(-1)
-  const courant = await journauxDuRun([factice('un', { ok: true, dit: 'neuf' })])
+test('veillerLeTrain : le journal du run PRÉCÉDENT au démarrage ne dit rien, verdict compris', () => {
+  const precedent = journauxDuRun([factice('un', { ok: false, raison: 'vieux rouge' })], { run: AVANT }).at(-1)
+  const courant = journauxDuRun([factice('un', { ok: true, dit: 'neuf' })])
   const { code, lignes } = veille([precedent, precedent, precedent, ...courant])
   assert.equal(code, 0)
   assert.deepEqual(lignes, ['#1 un — en-vol', '#2 un — vert — neuf', 'PUBLICATION: vert null'])
 })
 
-test('veillerLeTrain : un run REPRIS (`--reprendre`) ne rejoue aucune transition déjà émise', async () => {
-  const premier = (await journauxDuRun(
+test('veillerLeTrain : un run REPRIS (`--reprendre`) ne rejoue aucune transition déjà émise', () => {
+  const premier = journauxDuRun(
     [factice('un', { ok: true, dit: 'a' }), factice('deux', { ok: true, dit: 'b' }), factice('trois', { ok: false, raison: 'file' })],
     { run: AVANT },
-  )).at(-1)
+  ).at(-1)
   const { journal } = journalInitial({ reprendre: true, lu: structuredClone(premier), branche: 'b' })
-  const repris = await journauxDuRun(
+  const repris = journauxDuRun(
     [factice('un', { ok: true }, { deja: true }), factice('deux', { ok: true }, { deja: true }), factice('trois', { ok: true, dit: 'fusionnée' })],
     { journal },
   )
@@ -2024,9 +2024,9 @@ test('veillerLeTrain : un run REPRIS (`--reprendre`) ne rejoue aucune transition
   assert.deepEqual(lignes, ['#1 trois — en-vol', '#2 trois — vert — fusionnée', 'PUBLICATION: vert null'])
 })
 
-test('veillerLeTrain : une RELANCE du moteur réel ne ré-émet pas l’étape verte « déjà faite », rejoue le reste', async () => {
+test('veillerLeTrain : une RELANCE du moteur réel ne ré-émet pas l’étape verte « déjà faite », rejoue le reste', () => {
   let bouge = true
-  const vus = await journauxDuRun([
+  const vus = journauxDuRun([
     factice('un', { ok: true, dit: 'garde' }),
     { nom: 'deux', dejaFaite: (_ctx, j) => j.etapes.deux?.etat === 'vert', jouer: () => ({ ok: true, dit: 'commis' }) },
     {
