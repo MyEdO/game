@@ -626,3 +626,17 @@ test('minorant PAR FAMILLE (sonde du juge de diff) : la famille qui porte un tes
     'mur réel 5.0 s pour ≥ 3.9 s estimés (écart ≤ +28 %, estimation minorante : 1 test(s) sans durée)')
   assert.equal(texteDuReel(5000, 4000, 0), 'mur réel 5.0 s pour 4.0 s estimés (écart +25 %)')
 })
+
+test('part CI PAR RANG (sonde du juge de mesure #2497) : seules les durées CI de CE rang s’annulent, les rangs précédents gardent les leurs', () => {
+  const retenus = new Map([['scripts/a.test.mjs', { rang: 1 }], ['scripts/b.test.mjs', { rang: 2 }], ['scripts/c.test.mjs', { rang: 2 }]])
+  const estimations = new Map([['scripts/a.test.mjs', { ms: 100_000, source: 'ci' }], ['scripts/b.test.mjs', { ms: 100_000, source: 'locale' }], ['scripts/c.test.mjs', { ms: 50_000, source: 'ci' }]])
+  const plan = planDExecution(retenus, { budget: 300, estimations, workers: { node: 2 } })
+  const [, second] = plan.rangs
+  assert.deepEqual([plan.murMs, second.murMs, second.murCiMs], [150_000, 50_000, 150_000 - 100_000], 'annuler c seul baisse le mur de 150 s à 100 s')
+  assert.equal(texteDuMur(second.murMs, second), '50.0 s, dont 50.0 s estimées depuis la CI (1 test(s))')
+  assert.equal(texteDuMur(plan.murMs, plan), '150.0 s, dont 50.0 s estimées depuis la CI (2 test(s))')
+})
+
+test('part CI NÉGATIVE (anomalie d’ordonnancement) : « non séparable », jamais planchée en 0 ni dite absorbée', () => {
+  assert.equal(texteDuMur(180_000, { murCiMs: -1702, nCi: 54 }), '180.0 s, part CI non séparable (54 test(s) estimés depuis la CI)')
+})
