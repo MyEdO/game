@@ -53,7 +53,7 @@ import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQu
 import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
-import { cheminDuModule, ereDuCommit, jugeDeLEre } from './porteDEre.mjs'
+import { cheminDuModule, groupesParEre } from './porteDEre.mjs'
 import { texteDeStock } from './stockDeSites.mjs'
 
 /** Le sha nul que git écrit sur stdin du pre-push pour une branche NEUVE. */
@@ -336,33 +336,24 @@ async function vieDeLaPorte({ charger }) {
 }
 
 /**
- * Les commits lus (`croissancesDeLaPlage`) jugés chacun par la porte de son ÈRE (`ereDuCommit`) : refus
+ * Les commits lus (`croissancesDeLaPlage`) jugés chacun par la porte de son ÈRE (`groupesParEre`) : refus
  * et reclassements dans l'ordre de l'histoire, chacun avec son `ere` ; `eres` = `[{ ere, commits, note }]`.
  * Une ère antérieure à la porte ne juge rien ; une ère non chargeable, ou un tronc illisible, juge par
  * la porte actuelle, et la note le dit.
  * @param {import('./gitPorte.mjs').Depot} depot @param {object[]} commits
  * @param {{ fichier: string, parCle: Map<string, number> }[]} cumul
  * @param {string} tronc le tronc des ères (`lectureDeLaPlage`, `troncDesEres`)
- * @param {Parameters<typeof jugeDeLEre>[2]} [porte]
+ * @param {Parameters<typeof groupesParEre>[3]} [porte]
  */
 async function jugeesParLeurEre(depot, commits, cumul, tronc, porte = PORTE_DE_PLAGE) {
-  /** @type {Map<string | null, object[]>} */
-  const groupes = new Map()
-  for (const c of commits) {
-    const ere = ereDuCommit(depot, c.sha, tronc)
-    groupes.set(ere, [...(groupes.get(ere) ?? []), c])
-  }
   const rang = new Map(commits.map((c, i) => [c.sha, i]))
   const refus = []
   const reclassements = []
   const eres = []
-  for (const [ere, groupe] of groupes) {
-    const vu = ere
-      ? await jugeDeLEre(depot, ere, porte)
-      : { juge: null, note: `${groupe.map((c) => c.sha.slice(0, 9)).join(', ')} sans ère (tronc \`${tronc}\` illisible) : jugé(s) par la porte actuelle`, anterieure: false }
-    eres.push({ ere, commits: groupe.map((c) => c.sha), note: vu.note })
-    if (vu.anterieure) continue
-    const juge = vu.juge ?? { refusDeLaPlage, reclassementsDeLaPlage }
+  for (const { ere, commits: groupe, juge: deLEre, note, anterieure } of await groupesParEre(depot, commits, tronc, porte)) {
+    eres.push({ ere, commits: groupe.map((c) => c.sha), note })
+    if (anterieure) continue
+    const juge = deLEre ?? { refusDeLaPlage, reclassementsDeLaPlage }
     refus.push(...juge.refusDeLaPlage({ commits: groupe, cumul }).map((r) => ({ ...r, ere })))
     reclassements.push(...juge.reclassementsDeLaPlage({ commits: groupe }).map((r) => ({ ...r, ere })))
   }

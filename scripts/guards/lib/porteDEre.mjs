@@ -161,6 +161,33 @@ export function jugeDeLEre(depot, ere, { racine = RACINE_DU_CODE, module, export
   return memo.get(cle)
 }
 
+/**
+ * Les `commits` groupés par ÈRE (`ereDuCommit` contre `tronc`), chacun avec le juge de son ère
+ * (`jugeDeLEre`, `porte`), dans l'ordre de première apparition : `[{ ere, commits, juge, note, anterieure }]`.
+ * `juge` nul : l'appelant juge par sa porte actuelle (ère non chargeable, ou tronc illisible, que la note
+ * dit) ; `anterieure` : il ne juge pas.
+ * @template {{ sha: string }} C
+ * @param {import('./gitPorte.mjs').Depot} depot @param {readonly C[]} commits @param {string} tronc
+ * @param {Parameters<typeof jugeDeLEre>[2]} porte
+ * @returns {Promise<{ ere: string | null, commits: C[], juge: object | null, note: string | null, anterieure: boolean }[]>}
+ */
+export async function groupesParEre(depot, commits, tronc, porte) {
+  /** @type {Map<string | null, C[]>} */
+  const groupes = new Map()
+  for (const c of commits) {
+    const ere = ereDuCommit(depot, c.sha, tronc)
+    groupes.set(ere, [...(groupes.get(ere) ?? []), c])
+  }
+  const rendus = []
+  for (const [ere, groupe] of groupes) {
+    const vu = ere
+      ? await jugeDeLEre(depot, ere, porte)
+      : { juge: null, note: `${groupe.map((c) => c.sha.slice(0, 9)).join(', ')} sans ère (tronc \`${tronc}\` illisible) : jugé(s) par la porte actuelle`, anterieure: false }
+    rendus.push({ ere, commits: groupe, juge: vu.juge, note: vu.note, anterieure: vu.anterieure })
+  }
+  return rendus
+}
+
 async function chargerLaPorte(depot, ere, { racine, module, exports, vie }) {
   const ere9 = ere.slice(0, 9)
   const inchargeable = (raison) => ({ juge: null, note: `${ere9} non chargeable : ${raison}`, anterieure: false, source: null })

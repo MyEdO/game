@@ -4,9 +4,19 @@
 // Ticket #2328, Attendu, verbatim : « Ceux-ci restent exigés là où la livraison se juge : commit de
 // solde, porte de publication. » Une fusion se COMMITE sans eux (lot 1) ; la résolution qu'elle porte
 // se juge avant la publication, par son propre message, ou par un commit POSTÉRIEUR de la plage qui nomme son sha.
+//
+// L'ÈRE (#2503) : à la publication, chaque fusion se juge par la porte de son ère (`groupesParEre`,
+// `porteDEre.mjs`), `merge-base` de cette fusion avec le tronc que la plage exclut (`base`). La frontière :
+// la LECTURE, dans `fusionsNonJugees`, reste celle de l'arbre qui juge — base commune, graphe de la plage,
+// patchs `-U0` des fusions (`ceQueFontLesCommits`), messages, et le lecteur des soldes dans `tete` ; le
+// JUGEMENT, `refusDesFusions`, vient de l'arbre de l'ère — l'apport (`apportDeLaResolution`, `estFichierEcran`),
+// le seuil (`SUBSTANTIVE_MIN_LINES`), les trailers exigés et ce qui les satisfait (`TRAILERS`, sha nommé,
+// commits postérieurs, soldes cités). Le contrat d'entrée de `refusDesFusions({ fusions, commits, patchs,
+// messages, lireSoldes })` est donc APPEND-ONLY : une ère ancienne le reçoit tel que l'arbre qui juge le lit.
 import { estFichierVitest } from './fichierVitest.mjs'
 import { numerosCites } from './fermetures.mjs'
 import { GitIndisponible, TRONC, baseCommune, ceQueFontLesCommits, grapheDe, journalDe, lireEnLot, refusDeGit } from './gitPorte.mjs'
+import { cheminDuModule, groupesParEre } from './porteDEre.mjs'
 
 /** Le seuil de SUBSTANCE d'un commit : au commit, ses lignes de diff sous `src/` ; à la publication,
  *  les lignes CHANGÉES (ajoutées ou supprimées) sous `src/` de la résolution d'une fusion (#2328 A4). */
@@ -114,21 +124,68 @@ function descendantsDe(commits, sha) {
 }
 
 /**
- * Les FUSIONS de la plage `merge-base(base, tete)..tete` dont la résolution porte au moins
- * `SUBSTANTIVE_MIN_LINES` lignes changées sous `src/` (`apportDeLaResolution`) sans `JUGE:` ni `REFUTATION:` — plus
- * `JUGE-VISION:` quand un écran en change. Les porte le message de la fusion elle-même, ou un commit qui en DESCEND,
- * dans la plage, et la NOMME (sha court de `SHA_COURT_MIN` caractères ou plus) par son message, ou par le
- * solde (`.claude/soldes/ref-<N>.md`, `<N>.md`, lus dans `tete`) d'un ticket que son message cite.
- * UNE lecture du graphe, UN lot pour l'apport des fusions (`ceQueFontLesCommits`), UN journal.
+ * Le JUGEMENT des `fusions` d'une plage lue : celles dont la résolution porte au moins
+ * `SUBSTANTIVE_MIN_LINES` lignes changées sous `src/` (`apportDeLaResolution`) sans `JUGE:` ni `REFUTATION:` —
+ * plus `JUGE-VISION:` quand un écran en change. Les porte le message de la fusion elle-même, ou un commit de
+ * `commits` qui en DESCEND et la NOMME (sha court de `SHA_COURT_MIN` caractères ou plus) par son message, ou
+ * par le solde (`.claude/soldes/ref-<N>.md`, `<N>.md`, lus par `lireSoldes`) d'un ticket que son message cite.
+ * PURE hormis `lireSoldes`.
+ * @param {{ fusions: { sha: string }[], commits: { sha: string, parents: string[] }[], patchs: Map<string, Map<string, string>>,
+ *   messages: Map<string, string>, lireSoldes: (chemins: string[]) => Map<string, string | null> }} lecture
+ * @returns {{ sha: string, lignesChangees: number, manque: string[] }[]}
+ */
+export function refusDesFusions({ fusions, commits, patchs, messages, lireSoldes }) {
+  const aJuger = fusions
+    .map((f) => ({ sha: f.sha, ...apportDeLaResolution(patchs.get(f.sha)) }))
+    .filter((f) => f.lignesChangees >= SUBSTANTIVE_MIN_LINES)
+  if (!aJuger.length) return []
+  const soldesCites = (shas) => [...new Set([...shas].flatMap((s) => numerosCites(messages.get(s))))]
+    .flatMap((n) => [`.claude/soldes/ref-${n}.md`, `.claude/soldes/${n}.md`])
+  const posterieurs = new Map(aJuger.map((f) => [f.sha, descendantsDe(commits, f.sha)]))
+  const chemins = [...new Set([...posterieurs.values()].flatMap(soldesCites))]
+  const soldes = chemins.length ? lireSoldes(chemins) : new Map()
+  return aJuger.flatMap((f) => {
+    const apres = posterieurs.get(f.sha)
+    const textes = soldesCites(apres).map((c) => soldes.get(c)).filter((t) => typeof t === 'string')
+    const exiges = ['JUGE', 'REFUTATION', ...(f.ecran ? ['JUGE-VISION'] : [])]
+    const manque = exiges.filter((nom) => !messagePorte(messages.get(f.sha), nom)
+      && ![...apres].some((s) => messageNomme(messages.get(s), nom, f.sha)) && !textes.some((t) => soldeNomme(t, nom, f.sha)))
+    return manque.length ? [{ sha: f.sha, lignesChangees: f.lignesChangees, manque }] : []
+  })
+}
+
+/** La porte de livraison telle qu'une ère la charge (`jugeDeLEre`) : son module, son juge, et sa VIE. */
+export const PORTE_DE_LIVRAISON = Object.freeze({
+  module: cheminDuModule(import.meta.url),
+  exports: ['refusDesFusions'],
+  vie: vieDeLaLivraison,
+})
+
+/** La VIE d'une porte de livraison chargée : une résolution de cent lignes sous `src/`, sans juge, est refusée. */
+function vieDeLaLivraison({ module }) {
+  const sha = '0'.repeat(40)
+  const chemin = `${['src', 'vie'].join('/')}.ts`
+  const patch = `@@ -0,0 +1,100 @@\n${'+x\n'.repeat(100)}`
+  const refus = module.refusDesFusions({
+    fusions: [{ sha }], commits: [{ sha, parents: [] }], patchs: new Map([[sha, new Map([[chemin, patch]])]]),
+    messages: new Map([[sha, '']]), lireSoldes: () => new Map(),
+  })
+  return refus?.length === 1 && refus[0].manque.length > 0
+}
+
+/**
+ * Les FUSIONS de la plage `merge-base(base, tete)..tete` que refuse la porte de leur ÈRE (`refusDesFusions`,
+ * `groupesParEre` contre `base`). UNE lecture du graphe, UN lot pour l'apport des fusions
+ * (`ceQueFontLesCommits`), UN journal ; `notes` dit les ères antérieures ou non chargeables.
  * @param {import('./gitPorte.mjs').Depot} depot
  * @param {{ base?: string, tete?: string }} [bornes]
  * `borne` : le `merge-base` et sa date de commit — le verdict dépend de la fraîcheur de `base`, et la
  * borne le DIT (#2328 L3).
- * @returns {{ plage: string, borne: { base: string, sha: string, date: string, tete: string }, refus: { sha: string, lignesChangees: number, manque: string[] }[] }}
+ * @returns {Promise<{ plage: string, borne: { base: string, sha: string, date: string, tete: string }, refus: { sha: string, lignesChangees: number, manque: string[] }[], notes: string[] }>}
  * @throws {GitIndisponible} aucune base commune, plage ou journal que git ne rend pas, ou fusion
  *   illisible (`ceQueFontLesCommits`).
  */
-export function fusionsNonJugees(depot, { base = TRONC.suivi, tete = 'HEAD' } = {}) {
+export async function fusionsNonJugees(depot, { base = TRONC.suivi, tete = 'HEAD' } = {}) {
   const sha = baseCommune(depot, base, tete)
   if (!sha) throw new GitIndisponible(`aucune base commune entre ${base} et ${tete} : la plage à publier n'est pas lisible`)
   const date = journalDe(depot, [`${sha}^!`])?.[0]?.date
@@ -138,29 +195,21 @@ export function fusionsNonJugees(depot, { base = TRONC.suivi, tete = 'HEAD' } = 
   const commits = grapheDe(depot, [plage])
   if (!commits) throw new GitIndisponible(`plage ${plage} illisible`)
   const fusions = commits.filter((c) => c.parents.length > 1)
-  if (!fusions.length) return { plage, borne, refus: [] }
+  if (!fusions.length) return { plage, borne, refus: [], notes: [] }
   const patchs = ceQueFontLesCommits(depot, fusions).patchs()
-  const aJuger = fusions
-    .map((f) => ({ sha: f.sha, ...apportDeLaResolution(patchs.get(f.sha)) }))
-    .filter((f) => f.lignesChangees >= SUBSTANTIVE_MIN_LINES)
-  if (!aJuger.length) return { plage, borne, refus: [] }
   const journal = journalDe(depot, [plage])
   if (!journal) throw new GitIndisponible(`journal de ${plage} illisible`)
   const messages = new Map(journal.map((c) => [c.sha, c.message]))
-  const soldesCites = (shas) => [...new Set([...shas].flatMap((s) => numerosCites(messages.get(s))))]
-    .flatMap((n) => [`.claude/soldes/ref-${n}.md`, `.claude/soldes/${n}.md`])
-  const posterieurs = new Map(aJuger.map((f) => [f.sha, descendantsDe(commits, f.sha)]))
-  const chemins = [...new Set([...posterieurs.values()].flatMap(soldesCites))]
-  const soldes = chemins.length ? lireEnLot(depot, tete, chemins) : new Map()
-  const refus = aJuger.flatMap((f) => {
-    const apres = posterieurs.get(f.sha)
-    const textes = soldesCites(apres).map((c) => soldes.get(c)).filter((t) => typeof t === 'string')
-    const exiges = ['JUGE', 'REFUTATION', ...(f.ecran ? ['JUGE-VISION'] : [])]
-    const manque = exiges.filter((nom) => !messagePorte(messages.get(f.sha), nom)
-      && ![...apres].some((s) => messageNomme(messages.get(s), nom, f.sha)) && !textes.some((t) => soldeNomme(t, nom, f.sha)))
-    return manque.length ? [{ sha: f.sha, lignesChangees: f.lignesChangees, manque }] : []
-  })
-  return { plage, borne, refus }
+  const lireSoldes = (chemins) => lireEnLot(depot, tete, chemins)
+  const refus = []
+  const notes = []
+  for (const { commits: groupe, juge, note, anterieure } of await groupesParEre(depot, fusions, base, PORTE_DE_LIVRAISON)) {
+    if (note) notes.push(note)
+    if (anterieure) continue
+    refus.push(...(juge ?? { refusDesFusions }).refusDesFusions({ fusions: groupe, commits, patchs, messages, lireSoldes }))
+  }
+  const rang = new Map(commits.map((c, i) => [c.sha, i]))
+  return { plage, borne, refus: refus.sort((a, b) => rang.get(a.sha) - rang.get(b.sha)), notes }
 }
 
 /** La borne d'une plage (`fusionsNonJugees`) en clair : le `merge-base` en sha court, sa date. PURE. */
@@ -168,24 +217,25 @@ const plageEnClair = ({ base, sha, date, tete }) => `${base} (base ${sha.slice(0
 
 /** Le refus de publication des `refus` de `fusionsNonJugees`, une ligne par fusion. PURE. */
 const raisonDeFusionsNonJugees = (borne, refus) =>
-  `⛔ ${plageEnClair(borne)} : ${refus.length} fusion(s) dont la RÉSOLUTION porte ≥${SUBSTANTIVE_MIN_LINES} lignes changées sous src/ sans juge qui la nomme (#2328) :\n` +
+  `⛔ ${plageEnClair(borne)} : ${refus.length} fusion(s) dont la RÉSOLUTION substantielle sous src/ n'a pas de juge qui la nomme, au seuil de la porte de son ère (#2328, #2503) :\n` +
   refus.map((r) => `  ${r.sha.slice(0, 9)} (${r.lignesChangees} lignes changées) : manque ${r.manque.map((m) => `\`${m}:\``).join(', ')}`).join('\n') +
   `\nGeste : le message de la fusion porte ces lignes ; sinon un commit postérieur de la plage (ou le solde \`.claude/soldes/ref-<N>.md\` d'un ticket qu'il cite) les porte, chacune nommant le sha court (${SHA_COURT_MIN} caractères ou plus) de la fusion.`
 
 /**
  * Le verdict de PUBLICATION (#2328 A3) de la plage `merge-base(base, tete)..tete` : `ok`, et son `texte`
  * qui nomme la borne de la plage (`plageEnClair`) — la ligne de succès, `raisonDeFusionsNonJugees`,
- * ou le refus NOMMÉ d'une lecture que git ne rend pas. Joué par la gate `livraison:plage` et le
- * préflight d'`ops:publier`, jamais au pre-push : une fusion se pousse (DoD 1).
+ * ou le refus NOMMÉ d'une lecture que git ne rend pas —, suivi des notes d'ère. Joué par la gate
+ * `livraison:plage` et le préflight d'`ops:publier`, jamais au pre-push : une fusion se pousse (DoD 1).
  * @param {import('./gitPorte.mjs').Depot} depot @param {{ base?: string, tete?: string }} [bornes]
- * @returns {{ ok: boolean, texte: string }}
+ * @returns {Promise<{ ok: boolean, texte: string }>}
  */
-export function verdictDePublication(depot, bornes) {
+export async function verdictDePublication(depot, bornes) {
   try {
-    const { borne, refus } = fusionsNonJugees(depot, bornes)
+    const { borne, refus, notes } = await fusionsNonJugees(depot, bornes)
+    const dites = notes.map((note) => `\n  note : ${note}`).join('')
     return refus.length
-      ? { ok: false, texte: raisonDeFusionsNonJugees(borne, refus) }
-      : { ok: true, texte: `${plageEnClair(borne)} : toute résolution substantielle de fusion est jugée` }
+      ? { ok: false, texte: `${raisonDeFusionsNonJugees(borne, refus)}${dites}` }
+      : { ok: true, texte: `${plageEnClair(borne)} : toute résolution substantielle de fusion est jugée${dites}` }
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e
     return { ok: false, texte: `⛔ lecture git indisponible : ${refusDeGit(e)} — la porte de publication ne juge pas ce que git n'a pas lu.` }

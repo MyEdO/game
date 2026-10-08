@@ -9,9 +9,13 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { depotDe } from './gitPorte.mjs'
-import { SUBSTANTIVE_MIN_LINES, apportDeLaResolution, fusionsNonJugees, verdictDePublication } from './livraison.mjs'
+import { PORTE_DE_LIVRAISON, SUBSTANTIVE_MIN_LINES, apportDeLaResolution, fusionsNonJugees, verdictDePublication } from './livraison.mjs'
+import { fermetureSurDisque } from './porteDEre.mjs'
 
-test('#2285 consommateurs livraison : diagnostic autonome et erreur programme par identité', () => {
+/** La porte de livraison du disque, que le socle d'un dépôt forgé porte : son tronc est son ère (#2503). */
+const PORTE_SUR_DISQUE = Object.fromEntries(fermetureSurDisque(PORTE_DE_LIVRAISON.module))
+
+test('#2285 consommateurs livraison : diagnostic autonome et erreur programme par identité', async () => {
   const sha = 'a'.repeat(40)
   const stderr = 'note livraison\n'.repeat(45) + 'cause livraison tardive\n'
   const stdout = 'stdout livraison distinct'
@@ -25,7 +29,7 @@ test('#2285 consommateurs livraison : diagnostic autonome et erreur programme pa
       if (argv.includes('version')) return { status: 0, stdout: version, stderr: '' }
       return { status: 23, stdout, stderr }
     } })
-    const vu = verdictDePublication(depot)
+    const vu = await verdictDePublication(depot)
     assert.equal(vu.ok, false)
     assert.match(vu.texte, version.includes('2.32') ? /git 2\.32 ne sait pas/ : /version de git illisible/)
     assert.ok(vu.texte.includes(stderr), vu.texte)
@@ -34,7 +38,7 @@ test('#2285 consommateurs livraison : diagnostic autonome et erreur programme pa
   }
   const erreur = new TypeError('programme livraison')
   const depot = depotDe('/fixture-consommateurs', { env: {}, spawn: () => { throw erreur } })
-  assert.throws(() => verdictDePublication(depot), (e) => e === erreur)
+  await assert.rejects(verdictDePublication(depot), (e) => e === erreur)
 })
 import { validateJugeFile, validateJugeVisionFile } from '../../git-hooks/porte-du-commit.mjs'
 import { gitDe, resultatDeGit } from '../../test/gitDeBanc.mjs'
@@ -50,7 +54,7 @@ const lignes = (n, marque = 'l') => `${Array.from({ length: n }, (_, i) => `expo
  * `messageDeFusion`. Rend `{ racine, git, fusion, poser(fichiers, message), juger() }`.
  */
 function chantierFusionne({ socle, main, chantier, resolution = {}, messageDeFusion = 'merge: intègre main' }) {
-  const { racine } = instanceDeDepot({ fichiers: socle, message: 'socle' })
+  const { racine } = instanceDeDepot({ fichiers: { ...PORTE_SUR_DISQUE, ...socle }, message: 'socle' })
   const git = gitDe(racine)
   const ecrire = (fichiers) => {
     for (const [chemin, texte] of Object.entries(fichiers)) {
@@ -86,116 +90,116 @@ const juge = (sha) => `JUGE: juge de diff sur la résolution de ${sha.slice(0, 9
 const refutation = (sha) => `REFUTATION: le juge a attaqué la résolution de ${sha.slice(0, 9)}, aucune faille`
 const vision = (sha) => `JUGE-VISION: captures de l'écran que touche ${sha.slice(0, 9)} jugées conformes`
 
-test('#2328 DoD 2 — une résolution de 15 lignes changées sous src/ sans juge est REFUSÉE en nommant son sha ; un commit postérieur qui la NOMME la fait passer', () => {
+test('#2328 DoD 2 — une résolution de 15 lignes changées sous src/ sans juge est REFUSÉE en nommant son sha ; un commit postérieur qui la NOMME la fait passer', async () => {
   const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
   try {
-    assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
-    const verdict = verdictDePublication(depotDe(racine, { env: envDeDepotForge() }), { base: 'tronc' })
+    assert.deepEqual((await juger()).refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
+    const verdict = await verdictDePublication(depotDe(racine, { env: envDeDepotForge() }), { base: 'tronc' })
     assert.equal(verdict.ok, false)
     assert.match(verdict.texte, new RegExp(`${fusion.slice(0, 9)} \\(15 lignes changées\\) : manque \`JUGE:\`, \`REFUTATION:\``))
     assert.match(verdict.texte, /\nGeste : le message de la fusion porte ces lignes ; sinon un commit postérieur/, 'le geste nomme d’abord la voie la plus simple')
     poser({}, `chore: refs #42 — juge\n\n${juge('0123456789')}\n${refutation('0123456789')}`)
-    assert.equal(juger().refus.length, 1, 'test opposé : un juge qui ne NOMME pas la fusion ne la couvre pas')
+    assert.equal((await juger()).refus.length, 1, 'test opposé : un juge qui ne NOMME pas la fusion ne la couvre pas')
     poser({}, `chore: refs #42 — juge\n\n${juge(fusion)}\n${refutation(fusion)}`)
-    assert.deepEqual(juger().refus, [])
+    assert.deepEqual((await juger()).refus, [])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('#2328 — test opposé : une fusion PROPRE, ou une résolution d’UNE ligne arbitrée (#700), passe sans trailers', () => {
+test('#2328 — test opposé : une fusion PROPRE, ou une résolution d’UNE ligne arbitrée (#700), passe sans trailers', async () => {
   const propre = chantierFusionne({ socle: { 'src/a.ts': lignes(3) }, main: { 'src/m.ts': lignes(40) }, chantier: { 'src/c.ts': lignes(40) } })
   const une = chantierFusionne(conflitResolu('src/a.ts', 0))
   try {
-    assert.deepEqual(propre.juger().refus, [])
-    assert.deepEqual(une.juger().refus, [])
+    assert.deepEqual((await propre.juger()).refus, [])
+    assert.deepEqual((await une.juger()).refus, [])
   } finally {
     rmSync(propre.racine, { recursive: true, force: true })
     rmSync(une.racine, { recursive: true, force: true })
   }
 })
 
-test('#2328 — une résolution qui CHANGE un écran exige aussi `JUGE-VISION:`', () => {
+test('#2328 — une résolution qui CHANGE un écran exige aussi `JUGE-VISION:`', async () => {
   const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/ui/E.tsx', 12))
   try {
     poser({}, `chore: refs #42\n\n${juge(fusion)}\n${refutation(fusion)}`)
-    assert.deepEqual(juger().refus.map((r) => r.manque), [['JUGE-VISION']])
+    assert.deepEqual((await juger()).refus.map((r) => r.manque), [['JUGE-VISION']])
     poser({}, `chore: refs #42\n\n${vision(fusion)}`)
-    assert.deepEqual(juger().refus, [])
+    assert.deepEqual((await juger()).refus, [])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('#2328 — le message de la fusion ELLE-MÊME porte `JUGE:` et `REFUTATION:` sans nommer son sha : la fusion est jugée', () => {
+test('#2328 — le message de la fusion ELLE-MÊME porte `JUGE:` et `REFUTATION:` sans nommer son sha : la fusion est jugée', async () => {
   const message = 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
   const { racine, juger } = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: message })
   try {
-    assert.deepEqual(juger().refus, [])
+    assert.deepEqual((await juger()).refus, [])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('#2328 — test opposé : la fusion sans trailers, ou avec un trailer trop court, est refusée', () => {
+test('#2328 — test opposé : la fusion sans trailers, ou avec un trailer trop court, est refusée', async () => {
   const nue = chantierFusionne(conflitResolu('src/a.ts', 12))
   const courte = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: rien' })
   try {
-    assert.deepEqual(nue.juger().refus, [{ sha: nue.fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
-    assert.deepEqual(courte.juger().refus, [{ sha: courte.fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
+    assert.deepEqual((await nue.juger()).refus, [{ sha: nue.fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
+    assert.deepEqual((await courte.juger()).refus, [{ sha: courte.fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
   } finally {
     rmSync(nue.racine, { recursive: true, force: true })
     rmSync(courte.racine, { recursive: true, force: true })
   }
 })
 
-test('#2328 — test opposé : `AUTOREFUTATION:` dans le message de la fusion ne vaut pas `REFUTATION:`', () => {
+test('#2328 — test opposé : `AUTOREFUTATION:` dans le message de la fusion ne vaut pas `REFUTATION:`', async () => {
   const message = 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nAUTOREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
   const { racine, fusion, juger } = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: message })
   try {
-    assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
+    assert.deepEqual((await juger()).refus, [{ sha: fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('#2328 — test opposé : une PROSE qui contient « juge : » ou un trailer préfixé ne juge pas la fusion', () => {
+test('#2328 — test opposé : une PROSE qui contient « juge : » ou un trailer préfixé ne juge pas la fusion', async () => {
   const nie = 'merge: intègre main\n\nAucun juge : personne n’a encore relu cette résolution, à faire\nPas de refutation : rien n’a été lancé sur cette fusion pour le moment'
   const prefixe = 'merge: intègre main\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nCONTRE-REFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
   const prose = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: nie })
   const tiret = chantierFusionne({ ...conflitResolu('src/a.ts', 12), messageDeFusion: prefixe })
   try {
-    assert.deepEqual(prose.juger().refus, [{ sha: prose.fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
-    assert.deepEqual(tiret.juger().refus, [{ sha: tiret.fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
+    assert.deepEqual((await prose.juger()).refus, [{ sha: prose.fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
+    assert.deepEqual((await tiret.juger()).refus, [{ sha: tiret.fusion, lignesChangees: 15, manque: ['REFUTATION'] }])
   } finally {
     rmSync(prose.racine, { recursive: true, force: true })
     rmSync(tiret.racine, { recursive: true, force: true })
   }
 })
 
-test('#2328 — une fusion qui change un ÉCRAN : son message porte aussi `JUGE-VISION:`, sinon `manque` le nomme seul', () => {
+test('#2328 — une fusion qui change un ÉCRAN : son message porte aussi `JUGE-VISION:`, sinon `manque` le nomme seul', async () => {
   const trailers = 'JUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille'
   const avecVision = chantierFusionne({ ...conflitResolu('src/ui/E.tsx', 12), messageDeFusion: `merge: intègre main\n\n${trailers}\nJUGE-VISION: captures de l’écran que touche cette fusion jugées conformes` })
   const sansVision = chantierFusionne({ ...conflitResolu('src/ui/E.tsx', 12), messageDeFusion: `merge: intègre main\n\n${trailers}` })
   try {
-    assert.deepEqual(avecVision.juger().refus, [])
-    assert.deepEqual(sansVision.juger().refus.map((r) => r.manque), [['JUGE-VISION']])
+    assert.deepEqual((await avecVision.juger()).refus, [])
+    assert.deepEqual((await sansVision.juger()).refus.map((r) => r.manque), [['JUGE-VISION']])
   } finally {
     rmSync(avecVision.racine, { recursive: true, force: true })
     rmSync(sansVision.racine, { recursive: true, force: true })
   }
 })
 
-test('#2328 — test opposé : le juge d’un AUTRE commit qui ne nomme pas le sha ne vaut toujours pas pour la fusion', () => {
+test('#2328 — test opposé : le juge d’un AUTRE commit qui ne nomme pas le sha ne vaut toujours pas pour la fusion', async () => {
   const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
   try {
     poser({}, 'chore: refs #42 — juge\n\nJUGE: juge de diff sur la résolution de cette fusion, verdict PUBLIABLE\nREFUTATION: le juge a attaqué la résolution de cette fusion, aucune faille')
-    assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
+    assert.deepEqual((await juger()).refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('#2328 — le solde `.claude/soldes/ref-<N>.md` d’un ticket que cite un commit postérieur nomme la fusion', () => {
+test('#2328 — le solde `.claude/soldes/ref-<N>.md` d’un ticket que cite un commit postérieur nomme la fusion', async () => {
   const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
   try {
     const corps = (titre, texte) => `## ${titre}\n${texte}\n`
     poser({ '.claude/soldes/ref-42.md': `${corps('Juge', juge(fusion))}\n${corps('Réfutation', refutation(fusion))}` }, 'chore: refs #42 — solde')
-    assert.deepEqual(juger().refus, [])
+    assert.deepEqual((await juger()).refus, [])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('#2328 — une fusion que git ne rejoue pas (octopus) : le verdict est un refus NOMMÉ', () => {
+test('#2328 — une fusion que git ne rejoue pas (octopus) : le verdict est un refus NOMMÉ', async () => {
   const { racine } = instanceDeDepot({ fichiers: { 'src/a.ts': lignes(1) }, message: 'socle' })
   const git = gitDe(racine)
   try {
@@ -205,7 +209,7 @@ test('#2328 — une fusion que git ne rejoue pas (octopus) : le verdict est un r
     }
     git('checkout', '-q', '-b', 'chantier', 'tronc')
     git('merge', '-q', '--no-ff', '-m', 'octopus', 'un', 'deux')
-    const verdict = verdictDePublication(depotDe(racine, { env: envDeDepotForge() }), { base: 'tronc' })
+    const verdict = await verdictDePublication(depotDe(racine, { env: envDeDepotForge() }), { base: 'tronc' })
     assert.equal(verdict.ok, false)
     assert.match(verdict.texte, /^⛔ lecture git indisponible : mesure \(status \?\) — fusion [0-9a-f]{9} à 3 parents/)
   } finally { rmSync(racine, { recursive: true, force: true }) }
@@ -222,7 +226,7 @@ test('#2328 A4 — les lignes AJOUTÉES et SUPPRIMÉES sous src/ comptent, hors 
   assert.equal(SUBSTANTIVE_MIN_LINES, 10)
 })
 
-test('#2328 A4 — une résolution qui garde « ours » et SUPPRIME l’apport de main sous src/ est refusée sans juge, acceptée avec', () => {
+test('#2328 A4 — une résolution qui garde « ours » et SUPPRIME l’apport de main sous src/ est refusée sans juge, acceptée avec', async () => {
   const avant = lignes(3)
   const { racine, fusion, poser, juger } = chantierFusionne({
     socle: { 'src/a.ts': avant },
@@ -231,33 +235,33 @@ test('#2328 A4 — une résolution qui garde « ours » et SUPPRIME l’apport d
     resolution: { 'src/a.ts': avant.replace('= 0', '= 100') },
   })
   try {
-    assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 201, manque: ['JUGE', 'REFUTATION'] }])
+    assert.deepEqual((await juger()).refus, [{ sha: fusion, lignesChangees: 201, manque: ['JUGE', 'REFUTATION'] }])
     poser({}, `chore: refs #42 — juge\n\n${juge(fusion)}\n${refutation(fusion)}`)
-    assert.deepEqual(juger().refus, [])
+    assert.deepEqual((await juger()).refus, [])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('#2328 — test opposé : un juge qui nomme la fusion sur une branche SŒUR, non descendante, ne la couvre pas', () => {
+test('#2328 — test opposé : un juge qui nomme la fusion sur une branche SŒUR, non descendante, ne la couvre pas', async () => {
   const { racine, git, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
   try {
     git('checkout', '-q', '-b', 'soeur', `${fusion}^1`)
     poser({}, `chore: refs #42 — juge\n\n${juge(fusion)}\n${refutation(fusion)}`)
     git('checkout', '-q', 'chantier'); git('merge', '-q', '--no-ff', '-m', 'merge: soeur', 'soeur')
-    assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
+    assert.deepEqual((await juger()).refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
     poser({}, `chore: refs #42 — juge\n\n${juge(fusion)}\n${refutation(fusion)}`)
-    assert.deepEqual(juger().refus, [], 'témoin : le même juge, DESCENDANT, la couvre')
+    assert.deepEqual((await juger()).refus, [], 'témoin : le même juge, DESCENDANT, la couvre')
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('#2328 — une fusion de FUSION : main fusionné dans une branche intermédiaire, elle-même fusionnée dans le chantier, voit la résolution', () => {
+test('#2328 — une fusion de FUSION : main fusionné dans une branche intermédiaire, elle-même fusionnée dans le chantier, voit la résolution', async () => {
   const { racine, git, fusion, poser, juger } = chantierFusionne(conflitResolu('src/a.ts', 12))
   try {
     git('checkout', '-q', '-b', 'final', `${fusion}^1`)
     poser({ 'src/c.ts': lignes(3, 'c') }, 'chantier: suite')
     git('merge', '-q', '--no-ff', '-m', 'merge: intermédiaire', 'chantier')
-    assert.deepEqual(juger().refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
+    assert.deepEqual((await juger()).refus, [{ sha: fusion, lignesChangees: 15, manque: ['JUGE', 'REFUTATION'] }])
     poser({}, `chore: refs #42 — juge\n\n${juge(fusion)}\n${refutation(fusion)}`)
-    assert.deepEqual(juger().refus, [])
+    assert.deepEqual((await juger()).refus, [])
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
@@ -280,16 +284,122 @@ test('gate `livraison:plage` : rend 1 et nomme la fusion non jugée, 0 quand ell
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('#2328 L1 — UNE grammaire de section : un même solde rend le même verdict au commit et à la publication', () => {
+test('#2328 L1 — UNE grammaire de section : un même solde rend le même verdict au commit et à la publication', async () => {
   const { racine, fusion, poser, juger } = chantierFusionne(conflitResolu('src/ui/E.tsx', 12))
   try {
     const section = (titre, ligne) => `## ${titre}\nverdict : PUBLIABLE\n\n${ligne}\n`
     const solde = [section('Juge', juge(fusion)), section('Réfutation', refutation(fusion)), section('Juge-Vision', vision(fusion))].join('\n')
     poser({ '.claude/soldes/ref-42.md': solde }, 'chore: refs #42 — solde en deux paragraphes')
-    assert.deepEqual(juger().refus, [], 'publication : la section court jusqu’au titre suivant')
+    assert.deepEqual((await juger()).refus, [], 'publication : la section court jusqu’au titre suivant')
     assert.equal(validateJugeFile(solde).ok, true, 'commit : la même section, le même verdict')
     assert.equal(validateJugeVisionFile(solde).ok, true)
     const maigre = '## Juge\nverdict : PUBLIABLE\n'
     assert.match(validateJugeFile(maigre).problems.join(), /"## Juge" trop maigre/, 'témoin : une section maigre reste refusée au commit')
   } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+// ── #2503 : chaque fusion de la plage jugée par la porte de livraison de son ÈRE (`groupesParEre`) ──
+// Les portes forgées tiennent le contrat d'entrée de `refusDesFusions` en quelques lignes : les lignes
+// changées sous `src/` de la résolution, refusées sans ligne `JUGE:` au message à partir de `seuil`.
+
+const MODULE_DE_LIVRAISON = PORTE_DE_LIVRAISON.module
+
+/** Le texte d'une porte de livraison forgée, au seuil `seuil`, aveugle aux chemins qui portent `aveugle`. */
+const porteDeLivraison = (seuil, aveugle = null) => [
+  `const AVEUGLE = ${JSON.stringify(aveugle)}`,
+  'export function refusDesFusions({ fusions, patchs, messages }) {',
+  '  return fusions.flatMap(({ sha }) => {',
+  "    const lignesChangees = [...(patchs.get(sha) ?? new Map())].filter(([c]) => c.startsWith('src/') && !(AVEUGLE && c.includes(AVEUGLE)))",
+  "      .reduce((n, [, patch]) => n + patch.split('\\n').filter((l) => /^[+-](?![+-]{2} )/.test(l)).length, 0)",
+  `    if (lignesChangees < ${seuil} || /^JUGE: /m.test(messages.get(sha) ?? '')) return []`,
+  "    return [{ sha, lignesChangees, manque: ['JUGE'] }]",
+  '  })',
+  '}',
+  '',
+].join('\n')
+
+/** Un dépôt jetable : `tronc` sur le socle, `chantier` courant ; `fusionner(n)` fusionne une branche de
+ *  côté dans la branche courante en ajoutant `n` lignes sous `src/` à la résolution. */
+function depotDeFusions(fichiers) {
+  const { racine, sha: socle } = instanceDeDepot({ fichiers: { 'src/a.ts': lignes(1), ...fichiers }, message: 'socle' })
+  const git = gitDe(racine)
+  const poser = (aPoser, message) => {
+    for (const [chemin, texte] of Object.entries(aPoser)) {
+      mkdirSync(join(racine, chemin, '..'), { recursive: true })
+      writeFileSync(join(racine, chemin), texte)
+    }
+    git('add', '-A'); git('commit', '-q', '--allow-empty', '-m', message)
+    return git('rev-parse', 'HEAD').trim()
+  }
+  let cotes = 0
+  const fusionner = (n, message = 'merge: intègre un côté') => {
+    const ici = git('rev-parse', '--abbrev-ref', 'HEAD').trim()
+    cotes += 1
+    git('checkout', '-q', '-b', `cote-${cotes}`)
+    poser({ [`src/cote${cotes}.ts`]: lignes(1) }, 'côté')
+    git('checkout', '-q', ici)
+    resultatDeGit(['merge', '--no-commit', '--no-ff', `cote-${cotes}`], { cwd: racine })
+    return poser({ [`src/resolution${cotes}.ts`]: lignes(n, 'r') }, message)
+  }
+  git('branch', 'tronc')
+  git('checkout', '-q', '-b', 'chantier')
+  const juger = async () => {
+    const { refus, notes } = await fusionsNonJugees(depotDe(racine, { env: envDeDepotForge() }), { base: 'tronc' })
+    return { refus: refus.map((r) => [r.sha, r.lignesChangees]), notes }
+  }
+  /** Pose `fichiers` sur `tronc` (T1), sans quitter la branche courante. */
+  const avancerLeTronc = (aPoser, message) => {
+    const ici = git('rev-parse', '--abbrev-ref', 'HEAD').trim()
+    git('checkout', '-q', 'tronc')
+    const t1 = poser(aPoser, message)
+    git('checkout', '-q', ici)
+    return t1
+  }
+  return { racine, socle, git, poser, fusionner, juger, avancerLeTronc }
+}
+
+test('#2503 ÈRE, livraison, compte qui MONTE : une fusion née sous T0 (seuil 10) garde sa porte quand T1 abaisse le seuil ; après la fusion de T1, la suivante est refusée', async () => {
+  const d = depotDeFusions({ [MODULE_DE_LIVRAISON]: porteDeLivraison(10) })
+  try {
+    const avant = d.fusionner(5)
+    d.avancerLeTronc({ [MODULE_DE_LIVRAISON]: porteDeLivraison(3) }, 'T1 : seuil 3')
+    assert.deepEqual(await d.juger(), { refus: [], notes: [] }, 'jugée par la porte de son ère T0')
+    d.git('merge', '-q', '--no-ff', '-m', 'merge: intègre T1', 'tronc')
+    const apres = d.fusionner(5)
+    assert.deepEqual((await d.juger()).refus, [[apres, 5]])
+    assert.notEqual(avant, apres)
+  } finally { rmSync(d.racine, { recursive: true, force: true }) }
+})
+
+test('#2503 ÈRE, livraison, compte qui BAISSE : la fusion refusée dans l’ère T0 (seuil 3) passe dans l’ère T1 (seuil 30)', async () => {
+  const d = depotDeFusions({ [MODULE_DE_LIVRAISON]: porteDeLivraison(3) })
+  try {
+    const sousT0 = d.fusionner(15)
+    d.avancerLeTronc({ [MODULE_DE_LIVRAISON]: porteDeLivraison(30) }, 'T1 : seuil 30')
+    assert.deepEqual((await d.juger()).refus, [[sousT0, 15]], 'la branche en vol garde la porte de son ère')
+    d.git('checkout', '-q', '-b', 'chantier-t1', 'tronc')
+    d.fusionner(15)
+    assert.deepEqual((await d.juger()).refus, [])
+  } finally { rmSync(d.racine, { recursive: true, force: true }) }
+})
+
+test('#2503 ÈRE, livraison : une branche qui AFFAIBLIT la porte (c1), fusionne sans juge (c2) puis la RESTAURE (c3) voit c2 refusée', async () => {
+  const d = depotDeFusions({ [MODULE_DE_LIVRAISON]: porteDeLivraison(10) })
+  try {
+    d.poser({ [MODULE_DE_LIVRAISON]: porteDeLivraison(10, 'resolution') }, 'c1 : la porte ne voit plus les résolutions')
+    const c2 = d.fusionner(15)
+    d.poser({ [MODULE_DE_LIVRAISON]: porteDeLivraison(10) }, 'c3 : la porte restaurée')
+    assert.deepEqual((await d.juger()).refus, [[c2, 15]])
+  } finally { rmSync(d.racine, { recursive: true, force: true }) }
+})
+
+test('#2503 ÈRE, livraison : une ère ANTÉRIEURE à la porte est nommée, ses fusions non jugées', async () => {
+  const d = depotDeFusions({})
+  try {
+    d.fusionner(15)
+    assert.deepEqual(await d.juger(), {
+      refus: [],
+      notes: [`${d.socle.slice(0, 9)} antérieure à la porte \`${MODULE_DE_LIVRAISON}\` : ses commits ne sont pas jugés`],
+    })
+  } finally { rmSync(d.racine, { recursive: true, force: true }) }
 })
