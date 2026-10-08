@@ -12,7 +12,7 @@ export function ouvrirControleEcritures(racine, env = process.env) {
   const dossier = mkdtempSync(join(tmpdir(), 'tests-sans-ecriture-'))
   let ferme = false
   return {
-    env: { ...env, NODE_OPTIONS: `${env.NODE_OPTIONS ?? ''} --import=${INTERCEPTEUR}`.trim(),
+    env: { ...env, PYTHONDONTWRITEBYTECODE: '1', NODE_OPTIONS: `${env.NODE_OPTIONS ?? ''} --import=${INTERCEPTEUR}`.trim(),
       WFRP_TESTS_RACINE: racine, WFRP_TESTS_REFUS: join(dossier, 'refus') },
     fermer() {
       if (ferme) return []

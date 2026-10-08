@@ -1,12 +1,40 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import { syncBuiltinESMExports } from 'node:module'
-import { basename, dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { canoniser, relatifSousRacine } from '../../docs/lib/chemin-mesure.mjs'
-import { OPERATIONS_FS, ouvreEnEcriture } from './ecrituresFichiers.mjs'
+import { URL as NodeURL, fileURLToPath } from 'node:url'
+import { canoniser, relatifSousRacine } from '../../docs/lib/chemin-mesure.mjs?wfrp-hote-interception'
+import { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
+
+const lecteursHote = { statSync: fs.statSync, existsSync: fs.existsSync, realpathSync: fs.realpathSync }
+const realpathNativeHote = fs.realpathSync.native
+const cheminsHote = { resolve: path.resolve, dirname: path.dirname, join: path.join, relative: path.relative, isAbsolute: path.isAbsolute, basename: path.basename }
+const cwdHote = process.cwd.bind(process)
+const resoudre = (p) => cheminsHote.resolve(cwdHote(), p)
+
+function surHote(geste) {
+  const lecteursEntree = { ...fs }
+  const cheminsEntree = { ...path }
+  const nativeEntree = lecteursHote.realpathSync.native
+  const cwdEntree = process.cwd
+  try {
+    Object.assign(fs, lecteursHote)
+    lecteursHote.realpathSync.native = realpathNativeHote
+    Object.assign(path, cheminsHote)
+    process.cwd = cwdHote
+    return geste()
+  } finally {
+    process.cwd = cwdEntree
+    for (const nom of Object.keys(cheminsHote)) path[nom] = cheminsEntree[nom]
+    lecteursHote.realpathSync.native = nativeEntree
+    for (const nom of Object.keys(lecteursHote)) fs[nom] = lecteursEntree[nom]
+  }
+}
+
+const canonique = (p) => surHote(() => canoniser(p, { strict: true }))
+const relatif = (base, p, physique) => surHote(() => relatifSousRacine(base, p, physique))
 
 export function installer({ racine, signaler }) {
-  const base = canoniser(racine, { strict: true })
+  const base = canonique(resoudre(racine))
   const descripteurs = new Map()
   const originaux = []
   const envelopper = (objet, nom, fabrique) => {
@@ -16,21 +44,21 @@ export function installer({ racine, signaler }) {
     objet[nom] = fabrique(original)
   }
   const cheminDe = (p) => typeof p === 'number' ? descripteurs.get(p)
-    : p instanceof URL ? fileURLToPath(p) : Buffer.isBuffer(p) ? p.toString() : typeof p === 'string' ? resolve(p) : p && typeof p.fd === 'number' ? descripteurs.get(p.fd) : null
+    : p instanceof NodeURL ? fileURLToPath(p) : Buffer.isBuffer(p) ? resoudre(p.toString()) : typeof p === 'string' ? resoudre(p) : p && typeof p.fd === 'number' ? descripteurs.get(p.fd) : null
   const estIPC = (chemin) => process.platform === 'win32' && /^\\\\[.?]\\pipe\\/i.test(chemin)
   const cibleOuverte = (p) => {
     const chemin = cheminDe(p)
-    return estIPC(chemin) ? chemin : canoniser(chemin, { strict: true })
+    return estIPC(chemin) ? chemin : canonique(chemin)
   }
   const verifier = (nom, p) => {
     const chemin = cheminDe(p)
     if (!chemin) return
     if (estIPC(chemin)) return
     const physique = (c) => OPERATIONS_FS[nom]?.entree
-      ? join(canoniser(dirname(c), { strict: true }), basename(c)) : canoniser(c, { strict: true })
-    const relatif = relatifSousRacine(base, chemin, (c) => resolve(c)) ?? relatifSousRacine(base, chemin, physique)
-    if (relatif === null) return
-    const message = `[tests] REFUS écriture dans l'arbre : ${nom} ${relatif || '.'}`
+      ? cheminsHote.join(canonique(cheminsHote.dirname(c)), cheminsHote.basename(c)) : canonique(c)
+    const sousRacine = relatif(base, chemin, resoudre) ?? relatif(base, chemin, physique)
+    if (sousRacine === null) return
+    const message = `[tests] REFUS écriture dans l'arbre : ${nom} ${sousRacine || '.'}`
     signaler(message)
     throw new Error(message)
   }
@@ -108,7 +136,7 @@ const marque = Symbol.for('wfrp.tests.ecritures')
 if (racine && !globalThis[marque]) {
   if (!sortie) throw new Error('interception des tests incomplète : WFRP_TESTS_REFUS absent')
   const append = fs.appendFileSync
-  if (relatifSousRacine(canoniser(racine), sortie) !== null) throw new Error('journal de refus des tests sous la racine')
+  if (relatif(canonique(resoudre(racine)), resoudre(sortie), canonique) !== null) throw new Error('journal de refus des tests sous la racine')
   globalThis[marque] = true
   installer({ racine, signaler: (message) => append(`${sortie}.${process.pid}.jsonl`, JSON.stringify(message) + '\n') })
 }

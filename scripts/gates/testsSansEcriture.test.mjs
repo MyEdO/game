@@ -17,6 +17,95 @@ const GARDE = {
   ticket: '#2489',
 }
 
+test('la canonisation de la garde ne devient pas une source mesurée du générateur', () => avecDepot((racine) => {
+  const collecteur = new URL('../docs/lib/enregistreur-lectures.mjs', import.meta.url).href
+  const r = joue(racine, `
+    import fs from 'node:fs'; import path from 'node:path'; import os from 'node:os'; import assert from 'node:assert/strict';
+    import { installer } from ${JSON.stringify(collecteur)};
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'mesure-garde-')); fs.mkdirSync(path.join(d, 'src'));
+    const collecte = installer({ racine: d, ignores: new Set() });
+    try {
+      fs.writeFileSync(path.join(d, 'src', 'sortie.ts'), 'export const x = 1');
+      assert.deepEqual(collecte.rendu().sondes, []);
+      fs.statSync(path.join(d, 'src'));
+      assert.deepEqual(collecte.rendu().sondes, [{ chemin: 'src', type: 'stat', existe: true, nature: 'directory' }]);
+    } finally { collecte.restaurer(); fs.rmSync(d, { recursive: true, force: true }); }
+  `)
+  assert.equal(r.code, 0, r.brut)
+}))
+
+test('les façades fs, native, path et cwd sont conservées après succès et erreur stricte', () => avecDepot((racine) => {
+  const r = joue(racine, `
+    import fs from 'node:fs'; import path from 'node:path'; import os from 'node:os'; import assert from 'node:assert/strict';
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'facade-garde-'));
+    const avant = { stat: fs.statSync, exists: fs.existsSync, real: fs.realpathSync, native: fs.realpathSync.native, resolve: path.resolve, basename: path.basename, cwd: process.cwd };
+    let lectures = 0;
+    const stat = (...a) => { lectures++; return avant.stat(...a) };
+    const exists = (...a) => { lectures++; return avant.exists(...a) };
+    const real = (...a) => { lectures++; return avant.real(...a) };
+    const native = (...a) => { lectures++; return avant.native(...a) };
+    real.native = native;
+    const resolve = () => { throw Error('resolve simulé ne doit pas entrer dans la garde') };
+    const basename = () => { throw Error('basename simulé ne doit pas entrer dans la garde') };
+    const cwd = () => 'Z:' + String.fromCharCode(92) + 'simulation';
+    fs.statSync = stat; fs.existsSync = exists; fs.realpathSync = real; path.resolve = resolve; path.basename = basename; process.cwd = cwd;
+    const identites = () => {
+      assert.equal(fs.statSync, stat); assert.equal(fs.existsSync, exists); assert.equal(fs.realpathSync, real);
+      assert.equal(fs.realpathSync.native, native); assert.equal(path.resolve, resolve); assert.equal(path.basename, basename); assert.equal(process.cwd, cwd);
+      assert.equal(lectures, 0);
+    };
+    try {
+      fs.writeFileSync(path.join(d, 'permis'), 'x'); identites();
+      assert.throws(() => fs.writeFileSync(path.join(d, 'invalide' + String.fromCharCode(0)), 'x')); identites();
+      fs.rmSync(path.join(d, 'permis')); identites();
+    } finally {
+      fs.statSync = avant.stat; fs.existsSync = avant.exists; fs.realpathSync = avant.real; path.resolve = avant.resolve; path.basename = avant.basename; process.cwd = avant.cwd;
+      fs.rmSync(d, { recursive: true, force: true });
+    }
+  `)
+  assert.equal(r.code, 0, r.brut)
+}))
+
+test('le préchargeur laisse tsProgram se charger après le crochet de plateforme', () => avecDepot((racine) => {
+  const programme = new URL('../guards/lib/tsProgram.mjs', import.meta.url).href
+  const remplacement = `data:text/javascript,${encodeURIComponent("import path from 'node:path'; export default { ...path, resolve: () => '/plateforme-apres-garde' }")}`
+  const r = joue(racine, `
+    import assert from 'node:assert/strict'; import { registerHooks } from 'node:module';
+    let atteint = false;
+    const crochet = registerHooks({ resolve(spec, contexte, suivant) {
+      if (spec === 'node:path' && contexte.parentURL === ${JSON.stringify(programme)}) {
+        atteint = true; return { url: ${JSON.stringify(remplacement)}, shortCircuit: true };
+      }
+      return suivant(spec, contexte);
+    } });
+    try {
+      const { VIRTUAL_ROOT } = await import(${JSON.stringify(programme)});
+      assert.equal(atteint, true); assert.equal(VIRTUAL_ROOT, '/plateforme-apres-garde');
+    } finally { crochet.deregister(); }
+  `)
+  assert.equal(r.code, 0, r.brut)
+}))
+
+test('le préchargeur réserve son instance hôte et laisse le helper normal suivre les hooks de plateforme', () => avecDepot((racine) => {
+  const helper = new URL('../docs/lib/chemin-mesure.mjs', import.meta.url).href
+  const remplacement = `data:text/javascript,${encodeURIComponent("import path from 'node:path'; export default { ...path, resolve: () => '/plateforme-apres-garde' }")}`
+  const r = joue(racine, `
+    import assert from 'node:assert/strict'; import { registerHooks } from 'node:module';
+    let atteint = false;
+    const crochet = registerHooks({ resolve(spec, contexte, suivant) {
+      if (spec === 'node:path' && contexte.parentURL === ${JSON.stringify(helper)}) {
+        atteint = true; return { url: ${JSON.stringify(remplacement)}, shortCircuit: true };
+      }
+      return suivant(spec, contexte);
+    } });
+    try {
+      const { canoniser } = await import(${JSON.stringify(helper)});
+      assert.equal(atteint, true); assert.match(canoniser('absent'), /plateforme-apres-garde$/);
+    } finally { crochet.deregister(); }
+  `)
+  assert.equal(r.code, 0, r.brut)
+}))
+
 function avecDepot(fn) {
   const racine = mkdtempSync(join(tmpdir(), 'tests-sans-ecriture-banc-'))
   try {
@@ -34,10 +123,10 @@ function avecDepot(fn) {
   }
 }
 
-function joue(racine, texte, { intercepter = true } = {}) {
+function joue(racine, texte, { intercepter = true, env = process.env } = {}) {
   const messages = []
   let brut = ''
-  const code = lancerSansEcriture({ racine, args: ['--input-type=module', '--eval', texte], journal: (m) => messages.push(m),
+  const code = lancerSansEcriture({ racine, env, args: ['--input-type=module', '--eval', texte], journal: (m) => messages.push(m),
     spawn: (commande, args, options) => {
       const resultat = spawnSync(commande, args, { ...options, stdio: 'pipe', encoding: 'utf8',
         env: intercepter ? options.env : { ...options.env, NODE_OPTIONS: '', WFRP_TESTS_RACINE: '', WFRP_TESTS_REFUS: '' },
@@ -48,6 +137,43 @@ function joue(racine, texte, { intercepter = true } = {}) {
   })
   return { code, messages, brut }
 }
+
+test('le préchargeur fonctionne avant une porte Node sans retrait de types', () => avecDepot((racine) => {
+  const r = joue(racine, `
+    import { spawnSync } from 'node:child_process'; import assert from 'node:assert/strict';
+    const enfant = spawnSync(process.execPath, ['--no-experimental-strip-types', '--eval', "process.stdout.write('préchargeur JS')"], { encoding: 'utf8' });
+    assert.equal(enfant.status, 0, enfant.stderr); assert.equal(enfant.stdout, 'préchargeur JS');
+  `)
+  assert.equal(r.code, 0, r.brut)
+}))
+
+test('un enfant Python hérite du refus de bytecode même si l’appelant autorise le cache', () => avecDepot((racine) => {
+  writeFileSync(join(racine, 'banc_python.py'), 'VALEUR = "module lu"\n')
+  const r = joue(racine, `
+    import { spawnSync } from 'node:child_process'; import assert from 'node:assert/strict'; import fs from 'node:fs';
+    const enfant = spawnSync('python', ['-c', 'import os,sys,banc_python; print(banc_python.VALEUR); print(os.environ["PYTHONDONTWRITEBYTECODE"]); print(sys.dont_write_bytecode)'], { encoding: 'utf8' });
+    assert.equal(enfant.status, 0, enfant.stderr); assert.deepEqual(enfant.stdout.trim().split(/\\r?\\n/), ['module lu', '1', 'True']);
+    assert.equal(fs.existsSync('__pycache__'), false);
+  `, { env: { ...process.env, PYTHONDONTWRITEBYTECODE: '0' } })
+  assert.equal(r.code, 0, r.brut)
+}))
+
+test('les écritures et nettoyages NodeURL restent refusés lorsque URL globale est remplacée', () => avecDepot((racine, lire) => {
+  const r = joue(racine, `
+    import fs from 'node:fs'; import { pathToFileURL } from 'node:url'; import assert from 'node:assert/strict';
+    const cible = pathToFileURL(process.cwd() + '/suivi');
+    const avant = globalThis.URL;
+    try {
+      globalThis.URL = class { constructor() { throw Error('URL navigateur') } };
+      assert.throws(() => fs.writeFileSync(cible, 'pollution'), /REFUS.*writeFileSync suivi/);
+      assert.throws(() => fs.rmSync(cible, { force: true }), /REFUS.*rmSync suivi/);
+    } finally { globalThis.URL = avant }
+  `)
+  assert.equal(r.code, 1, r.brut)
+  assert.match(r.messages.join('\n'), /writeFileSync suivi/)
+  assert.match(r.messages.join('\n'), /rmSync suivi/)
+  assert.equal(lire('suivi'), 'initial\n')
+}))
 
 test('un arbre initialement sale mais inchangé est accepté ; le code enfant est conservé', () => avecDepot((racine) => {
   writeFileSync(join(racine, 'suivi'), 'sale\n')

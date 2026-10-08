@@ -14,18 +14,19 @@ import childProcess from 'node:child_process'
 import { syncBuiltinESMExports } from 'node:module'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { codeSeul } from '../guards/lib/commentPoison.mjs'
 import { ast, typescript } from '../guards/lib/dialecte.mjs'
 import { manquementsDeFeuilles } from '../guards/lib/modulesFeuilles.mjs'
 import { numerosCites } from '../guards/lib/fermetures.mjs'
+import { clotureDImports } from '../guards/lib/importGraph.mjs'
 import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { GitIndisponible, MARQUE_FEINTE, classer, depotDe, pousser, refusDeGit, sortieDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
-import { envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
 import {
   CODE_ARRET_MOTEUR,
@@ -485,18 +486,26 @@ test('#2285 avant train : processus réel, diagnostic complet puis ligne finale 
 })
 
 test('#2285 consommateurs moteur : vrai CLI, journal et log autonomes', () => {
-  const branche = 'chantier/2285-consommateurs-' + process.pid + '-' + Date.now()
-  const chemins = cheminsDeJournal(RACINE, branche)
-  assert.equal(existsSync(chemins.json), false)
-  assert.equal(existsSync(chemins.log), false)
-  const stderr = 'note moteur\n'.repeat(45) + 'cause moteur tardive\n'
-  const stdout = 'stdout moteur distinct'
-  assert.ok(stderr.indexOf('cause moteur tardive') > 400)
-  assert.ok(stderr.endsWith('\n'))
+  const { racine } = instanceDeDepot()
   try {
-    const vu = spawnSync(process.execPath, [fileURLToPath(new URL('./publier.mjs', import.meta.url))], {
-      encoding: 'utf8', env: { ...process.env, ...envGitFeint([
-        { si: ['--show-toplevel'], stdout: RACINE, status: 0 },
+    cpSync(join(RACINE, 'node_modules/semver'), join(racine, 'node_modules/semver'), { recursive: true })
+    copyFileSync(join(RACINE, 'package.json'), join(racine, 'package.json'))
+    for (const rel of clotureDImports(['scripts/ops/publier.mjs'], { racine: RACINE, typesEffaces: true })) {
+      const cible = join(racine, rel)
+      mkdirSync(dirname(cible), { recursive: true })
+      copyFileSync(join(RACINE, rel), cible)
+    }
+    const branche = 'chantier/2285-consommateurs-' + process.pid + '-' + Date.now()
+    const chemins = cheminsDeJournal(racine, branche)
+    assert.equal(existsSync(chemins.json), false)
+    assert.equal(existsSync(chemins.log), false)
+    const stderr = 'note moteur\n'.repeat(45) + 'cause moteur tardive\n'
+    const stdout = 'stdout moteur distinct'
+    assert.ok(stderr.indexOf('cause moteur tardive') > 400)
+    assert.ok(stderr.endsWith('\n'))
+    const vu = spawnSync(process.execPath, [join(racine, 'scripts/ops/publier.mjs')], {
+      cwd: racine, encoding: 'utf8', env: { ...envDeDepotForge(), ...envGitFeint([
+        { si: ['--show-toplevel'], stdout: racine, status: 0 },
         { si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 },
         { si: ['HEAD^{commit}'], stdout: 'a'.repeat(40), status: 0 },
         { si: ['rev-parse', '--git-path', 'rebase-merge'], stdout, stderr, status: 29 },
@@ -514,8 +523,7 @@ test('#2285 consommateurs moteur : vrai CLI, journal et log autonomes', () => {
     }
     assert.equal(log.trimEnd().split('\n').at(-1), 'PUBLICATION: rouge moteur — refus (status 29) — note moteur')
   } finally {
-    rmSync(chemins.json, { force: true })
-    rmSync(chemins.log, { force: true })
+    rmSync(racine, { recursive: true, force: true })
   }
 })
 

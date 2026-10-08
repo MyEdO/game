@@ -25,13 +25,13 @@ test('Vitest installe la garde avant import, transmet aux enfants et restaure en
     symlinkSync(join(RACINE, 'node_modules'), join(racine, 'node_modules'), 'junction')
     writeFileSync(join(racine, '.gitignore'), 'node_modules\n')
     const setup = join(racine, 'setup.mjs')
-    writeFileSync(setup, `import { protegerSuiteVitest } from ${JSON.stringify(SETUP)}; protegerSuiteVitest(${JSON.stringify(racine)});`)
+    writeFileSync(setup, `import { protegerSuiteVitest } from ${JSON.stringify(SETUP)}; await protegerSuiteVitest(${JSON.stringify(racine)});`)
     writeFileSync(join(racine, 'vitest.config.mjs'), `export default {test:{include:['scripts/map/*.test.ts','src/*.test.ts'],setupFiles:[${JSON.stringify(setup)}],pool:'forks',maxWorkers:1,isolate:false}};`)
     const fichier = join(racine, 'scripts/map/banc.test.ts')
     const jouer = (source) => {
       writeFileSync(fichier, source)
       git('add', '.'); git('commit', '-q', '-m', 'banc')
-      const env = { ...process.env }
+      const env = { ...process.env, PYTHONDONTWRITEBYTECODE: '0' }
       delete env.NODE_TEST_CONTEXT; delete env.WFRP_TESTS_RACINE; delete env.WFRP_TESTS_REFUS; delete env.NODE_OPTIONS
       return spawnSync(process.execPath, [CLI, 'run', '--config', 'vitest.config.mjs'], { cwd: racine, env, encoding: 'utf8', maxBuffer: 1e7 })
     }
@@ -43,8 +43,8 @@ test('Vitest installe la garde avant import, transmet aux enfants et restaure en
     assert.notEqual(enfant.status, 0, enfant.stdout + enfant.stderr)
     assert.match(enfant.stdout + enfant.stderr, /REFUS.*pollution/)
     mkdirSync(join(racine, 'src'))
-    writeFileSync(join(racine, 'src/hors-scripts.test.ts'), `import {test,expect} from 'vitest'; test('env restauré hors scripts',()=>{expect(process.env.WFRP_TESTS_RACINE).toBeUndefined();expect(process.env.WFRP_TESTS_REFUS).toBeUndefined()});`)
-    const vert = jouer(`${imports} import {mkdtempSync,rmSync} from 'node:fs'; import {tmpdir} from 'node:os'; import {join} from 'node:path'; test('temporaire',()=>{const d=mkdtempSync(join(tmpdir(),'vitest-banc-'));try{writeFileSync(join(d,'permis'),'ok');expect(1).toBe(1)}finally{rmSync(d,{recursive:true,force:true})}});`)
+    writeFileSync(join(racine, 'src/hors-scripts.test.ts'), `// @vitest-environment jsdom\nimport {test,expect} from 'vitest';import {URL as NodeURL} from 'node:url';test('jsdom hors scripts : env restauré et URL de navigateur',()=>{expect(process.env.WFRP_TESTS_RACINE).toBeUndefined();expect(process.env.WFRP_TESTS_REFUS).toBeUndefined();expect(process.env.PYTHONDONTWRITEBYTECODE).toBe('0');expect(URL).toBe(window.URL);expect(URL).not.toBe(NodeURL);expect(new URL('/module','http://localhost:5173').protocol).toBe('http:');expect(new NodeURL('file:///tmp/module').protocol).toBe('file:')});`)
+    const vert = jouer(`${imports} import {mkdtempSync,rmSync} from 'node:fs'; import {tmpdir} from 'node:os'; import {join} from 'node:path'; test('temporaire',()=>{expect(process.env.PYTHONDONTWRITEBYTECODE).toBe('1');const d=mkdtempSync(join(tmpdir(),'vitest-banc-'));try{writeFileSync(join(d,'permis'),'ok');expect(1).toBe(1)}finally{rmSync(d,{recursive:true,force:true})}});`)
     assert.equal(vert.status, 0, vert.stdout + vert.stderr)
     assert.throws(() => readFileSync(join(racine, 'pollution')), /ENOENT/)
   } finally { rmSync(racine, { recursive: true, force: true }) }
