@@ -1,5 +1,5 @@
 // COURSES CI — l'unique lecture `gh run list` de ce dépôt (hors sondes), et celles des jobs et du
-// journal en échec d'une course.
+// journal d'une course (`journalDe`).
 //
 // Une COURSE est une exécution de workflow. Deux QUESTIONS, une seule lecture : « les courses de tel
 // COMMIT » (l'étape `file` du train, qui juge la tête de sa PR ; le closer, qui situe sa plage) et
@@ -206,6 +206,20 @@ const DIRECTIVE = /^##\[/
 const ETAPE_INCONNUE = 'UNKNOWN STEP'
 
 /**
+ * Les lignes d'un journal `gh run view <id> --log` ou `--log-failed` (une ligne = `<job>\t<étape>\t<horodatage> <texte>`),
+ * horodatage retiré (`HORODATAGE`) ; une ligne sans ces trois colonnes est écartée. PUR.
+ * @param {string} journal @returns {{job: string, etape: string, texte: string}[]}
+ */
+export function lignesDuJournal(journal) {
+  const lignes = []
+  for (const brute of String(journal ?? '').split(/\r?\n/)) {
+    const [job, etape, ...reste] = brute.split('\t')
+    if (reste.length) lignes.push({ job, etape, texte: reste.join('\t').replace(HORODATAGE, '') })
+  }
+  return lignes
+}
+
+/**
  * Les ÉCHECS d'un journal `gh run view <id> --log-failed` (une ligne = `<job>\t<étape>\t<horodatage> <texte>`),
  * par job dans l'ordre du journal. `etape` : l'étape fautive, celle de la PREMIÈRE erreur du job — sa
  * colonne d'étape, ou, quand GitHub l'écrit `UNKNOWN STEP`, le dernier `##[group]Run …` ouvert avant elle.
@@ -218,10 +232,7 @@ const ETAPE_INCONNUE = 'UNKNOWN STEP'
  */
 export function echecsDuLog(journal, { borne = BORNE_LIGNES_D_ECHEC, contexte = BORNE_LIGNES_DE_CONTEXTE } = {}) {
   const parJob = new Map()
-  for (const brute of String(journal ?? '').split(/\r?\n/)) {
-    const [job, colonne, ...reste] = brute.split('\t')
-    if (!reste.length) continue
-    const texte = reste.join('\t').replace(HORODATAGE, '')
+  for (const { job, etape: colonne, texte } of lignesDuJournal(journal)) {
     const ligne = texte.trim()
     if (!parJob.has(job)) parJob.set(job, { tests: [], erreur: null, groupe: null, etape: null, fenetre: [], fige: null })
     const vu = parJob.get(job)
@@ -249,13 +260,15 @@ export function echecsDuLog(journal, { borne = BORNE_LIGNES_D_ECHEC, contexte = 
 }
 
 /**
- * Le journal des jobs en ÉCHEC de la course `id` (`gh run view <id> --log-failed`), de l'essai `attempt` s'il
- * est nommé, en union à trois issues.
- * @param {{cwd?:string, id:number, attempt?:number|null, spawn?:Function}} p
+ * Le journal de la course `id`, de l'essai `attempt` s'il est nommé : ses jobs en ÉCHEC seuls (`echecsSeuls`,
+ * `gh run view <id> --log-failed`) ou tous (`--log`), en union à trois issues.
+ * @param {{cwd?:string, id:number, attempt?:number|null, echecsSeuls:boolean, spawn?:Function}} p
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
+ * @throws {TypeError} `echecsSeuls` n'est pas un booléen : la question n'est pas posée.
  */
-export function journalEnEchecDe({ cwd = process.cwd(), id, attempt = null, spawn = spawnSync }) {
-  const vu = classer(spawn('gh', [...vueDeCourse(id, attempt), '--log-failed'], {
+export function journalDe({ cwd = process.cwd(), id, attempt = null, echecsSeuls, spawn = spawnSync }) {
+  if (typeof echecsSeuls !== 'boolean') throw new TypeError('journalDe : `echecsSeuls` est la question')
+  const vu = classer(spawn('gh', [...vueDeCourse(id, attempt), echecsSeuls ? '--log-failed' : '--log'], {
     cwd, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000,
   }))
   if (!vu.disponible) return vu

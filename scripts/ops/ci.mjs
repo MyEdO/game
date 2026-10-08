@@ -11,7 +11,7 @@
 // Usage : node scripts/ops/ci.mjs --attendre [<sha>] | --echecs <run>
 import { fileURLToPath } from 'node:url'
 import { GitIndisponible, brancheDe, depotDe, estShaComplet, shasDistants } from '../guards/lib/gitPorte.mjs'
-import { coursesCi, echecsDuLog, jobsEnEchecDe, journalEnEchecDe, phraseDesJobs, verdictDesRuns, verdictJuge } from '../guards/lib/coursesCi.mjs'
+import { coursesCi, echecsDuLog, jobsEnEchecDe, journalDe, phraseDesJobs, verdictDesRuns, verdictJuge } from '../guards/lib/coursesCi.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { PERIODE_SONDE_MS, refusDeBranche } from './etapesDuTrain.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
@@ -106,7 +106,7 @@ export function lignesDuRouge({ jobs, echecs }) {
 
 /**
  * Les jobs en échec de la course `id` (`jobsEnEchecDe`) et leurs `lignes` : par job rouge, ses lignes
- * d'échec (`journalEnEchecDe`, `lignesDuRouge`, lu seulement s'il y a un job rouge) ; par job annulé, son nom,
+ * d'échec (`journalDe`, `lignesDuRouge`, lu seulement s'il y a un job rouge) ; par job annulé, son nom,
  * puis le motif de l'annulation ; sans l'un ni l'autre, la phrase qui le dit (`phraseDesJobs`). En union.
  * @param {{cwd:string, id:number, attempt?:number|null, spawn?:Function}} p `attempt` : l'essai jugé, sinon le
  *   dernier ; `spawn` va aux deux lectures `gh`
@@ -118,7 +118,7 @@ export function echecsDeLaCourse({ cwd, id, attempt = null, spawn }) {
   const { rouges, annules, motif } = jobs.valeur
   let rougesNommes = []
   if (rouges.length) {
-    const journal = journalEnEchecDe({ cwd, id, attempt, spawn })
+    const journal = journalDe({ cwd, id, attempt, echecsSeuls: true, spawn })
     if (!journal.disponible) return journal
     rougesNommes = lignesDuRouge({ jobs: rouges, echecs: echecsDuLog(journal.valeur) })
   }

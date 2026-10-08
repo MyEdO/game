@@ -27,8 +27,16 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Scripts ÉCRIVAINS atteints par chaque gate — mesuré le 2026-09-04, stock à faire DÉCROÎTRE. */
 const ATTENDU = {
   'agents:check': ['scripts/agents/compat-cli.mjs'],
-  'test:agents': ['scripts/agents/compat-cli.mjs'],
+  'test:agents': [
+    'scripts/agents/compat-cli.mjs',
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
+  ],
   'test:hooks': [
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/guards/budget-contexte.test.mjs',
     'scripts/docs/lib/enregistreur-lectures.mjs',
@@ -261,6 +269,9 @@ const ATTENDU = {
   // l'histoire par git et rend son verdict.
   'livraison:plage': [],
   'test:ops': [
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     // #2461
     'scripts/ops/session-runtime.mjs',
     'scripts/ops/session.test.mjs',
@@ -367,6 +378,12 @@ const ATTENDU = {
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
   ],
   'test:runner': [
+    // +1 le 2026-10-08 (#2497) : le banc du lanceur des gates node forge un dépôt JETABLE (`mkdtempSync` +
+    // `writeFileSync` sous os.tmpdir(), `rmSync` en finally) et y joue `node --test` ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.test.mjs',
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
@@ -416,6 +433,9 @@ const ATTENDU = {
     'scripts/test/verrou.test.mjs',
   ],
   'test:docs': [
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     // #2499
     'scripts/gates/toutes.mjs',
     'scripts/guards/lib/purgerPerimes.mjs',
@@ -460,6 +480,9 @@ const ATTENDU = {
   ],
   'deps:unused': [],
   'test:recette': [
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     'scripts/recette/lib.mjs',
     // +1 le 2026-10-07 (#2198) : le banc de `shot` capture dans un dossier d'`os.tmpdir()` qu'il efface
     // (`rmSync` en `t.after`) ; l'arbre n'est jamais écrit.
@@ -486,6 +509,9 @@ const ATTENDU = {
     'scripts/docs/lib/fraicheur-docs.mjs',
   ],
   'test:raw': [
+    // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
+    // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/test/node-tests.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-20 (#1825) : le banc du contrat d'acceptation de l'Atlas IMPORTE
     // l'acceptation déclarée par chaque lecteur, `croissance.mjs` compris — une ligne de contrat

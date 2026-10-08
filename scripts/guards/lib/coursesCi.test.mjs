@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  BORNE_LIGNES_DE_CONTEXTE, BORNE_LIGNES_D_ECHEC, CHAMPS, coursesCi, echecsDuLog, journalEnEchecDe, jobsEnEchecDe, jobsJuges, motifDAnnulation,
+  BORNE_LIGNES_DE_CONTEXTE, BORNE_LIGNES_D_ECHEC, CHAMPS, coursesCi, echecsDuLog, journalDe, jobsEnEchecDe, jobsJuges, lignesDuJournal, motifDAnnulation,
   phraseDesJobs, triees, verdictDesJobs, verdictDesRuns, verdictJuge,
 } from './coursesCi.mjs'
 
@@ -95,7 +95,7 @@ test('`jobsEnEchecDe` rend les noms des jobs ROUGES et ANNULÉS d’une course, 
   let vu = null
   jobsEnEchecDe({ id: 37371342026, attempt: 1, spawn: (cmd, args) => { vu = [cmd, ...args]; return { status: 0, stdout: '{"jobs":[]}', stderr: '' } } })
   assert.deepEqual(vu, ['gh', 'run', 'view', '37371342026', '--attempt', '1', '--json', 'jobs'], 'l’essai JUGÉ, jamais le dernier qu’une relance remet en vol')
-  journalEnEchecDe({ id: 7, attempt: 2, spawn: (cmd, args) => { vu = [cmd, ...args]; return { status: 0, stdout: '', stderr: '' } } })
+  journalDe({ id: 7, attempt: 2, echecsSeuls: true, spawn: (cmd, args) => { vu = [cmd, ...args]; return { status: 0, stdout: '', stderr: '' } } })
   assert.deepEqual(vu, ['gh', 'run', 'view', '7', '--attempt', '2', '--log-failed'])
   assert.equal(jobsEnEchecDe({ id: 1, spawn: () => ({ status: 4, stdout: '', stderr: 'x' }) }).disponible, false)
   assert.equal(jobsEnEchecDe({ id: 1, spawn: () => ({ status: 0, stdout: '{}', stderr: '' }) }).disponible, false)
@@ -306,12 +306,27 @@ test('echecsDuLog : colonne `UNKNOWN STEP` — l’étape est le dernier `##[gro
   assert.ok(!types.lignes.some((l) => l.startsWith('# ')), 'rien de l’étape précédente (le résumé TAP)')
 })
 
-test('journalEnEchecDe : `gh run view <id> --log-failed`, en union — jamais un journal vide pour une panne', () => {
+test('journalDe : `gh run view <id> --log-failed` sous `echecsSeuls`, en union — jamais un journal vide pour une panne', () => {
   let vus = null
-  const lu = journalEnEchecDe({ id: 7, spawn: (cmd, args) => { vus = [cmd, ...args]; return { status: 0, stdout: JOURNAL_TSC, stderr: '' } } })
+  const lu = journalDe({ id: 7, echecsSeuls: true, spawn: (cmd, args) => { vus = [cmd, ...args]; return { status: 0, stdout: JOURNAL_TSC, stderr: '' } } })
   assert.deepEqual(vus, ['gh', 'run', 'view', '7', '--log-failed'])
   assert.deepEqual(lu, { disponible: true, valeur: JOURNAL_TSC })
-  assert.equal(journalEnEchecDe({ id: 7, spawn: () => ({ status: 1, stdout: '', stderr: 'run 7 introuvable' }) }).disponible, false)
+  assert.equal(journalDe({ id: 7, echecsSeuls: true, spawn: () => ({ status: 1, stdout: '', stderr: 'run 7 introuvable' }) }).disponible, false)
+})
+
+test('journalDe : `--log` (tous les jobs) sans `echecsSeuls` ; la question non posée lève', () => {
+  let vus = null
+  const lu = journalDe({ id: 7, attempt: 1, echecsSeuls: false, spawn: (cmd, args) => { vus = [cmd, ...args]; return { status: 0, stdout: JOURNAL_TSC, stderr: '' } } })
+  assert.deepEqual(vus, ['gh', 'run', 'view', '7', '--attempt', '1', '--log'])
+  assert.deepEqual(lu, { disponible: true, valeur: JOURNAL_TSC })
+  assert.throws(() => journalDe({ id: 7, spawn: () => assert.fail('aucun appel sans question') }), TypeError)
+})
+
+test('lignesDuJournal : job, étape et texte sans horodatage ni BOM ; une ligne sans trois colonnes est écartée', () => {
+  assert.deepEqual(lignesDuJournal(`${JOURNAL_NODE.split('\n').slice(0, 2).join('\n')}\nligne nue`), [
+    { job: 'build', etape: 'UNKNOWN STEP', texte: "Current runner version: '2.337.0'" },
+    { job: 'build', etape: 'UNKNOWN STEP', texte: '# Subtest: un nom CITÉ À PLAT que deux cœurs portent : sortie 1, UNE anomalie nommant le stock et les deux cœurs, rien d’écrit' },
+  ])
 })
 
 // ── Verdicts : `verdictDesRuns`, `verdictDesJobs`, `verdictJuge` ───────────────────────────────
