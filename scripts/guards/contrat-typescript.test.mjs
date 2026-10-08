@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+import { clotureDImports } from './lib/importGraph.mjs';
 import { appliquerPatch, verifierInstallation, verifierApiNative, verifierContratTypeScript } from './contrat-typescript.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -83,7 +84,7 @@ test('Git applique le patch initial puis le contrat natif démarre et se répèt
     const origine = path.join(root, 'node_modules', nom);
     if (fs.existsSync(origine)) fs.cpSync(origine, path.join(dossier, 'node_modules', nom), { recursive: true });
   }
-  for (const rel of ['scripts/guards/contrat-typescript.mjs', 'scripts/guards/lib/gitPorte.mjs', 'scripts/guards/lib/ticketsGh.mjs', 'scripts/port-dev.mjs', 'src/lib/coupeAuMot.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/guards/lib/tsProgram.mjs', 'scripts/guards/lib/dialecte.mjs']) {
+  for (const rel of clotureDImports(['scripts/guards/contrat-typescript.mjs'], { racine: root, dynamiques: true, typesEffaces: true })) {
     const destination = path.join(dossier, rel);
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(path.join(root, rel), destination);

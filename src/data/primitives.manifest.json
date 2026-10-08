@@ -1640,6 +1640,15 @@
     "verrou": "commandeShell.test.mjs, ecrituresShell.test.mjs, repartiteur.test.mjs"
   },
   {
+    "id": "provenanceFs",
+    "type": "primitives.manifest",
+    "label": "creerProvenanceFs",
+    "fichier": "scripts/guards/lib/provenanceFs.mjs",
+    "concept": "provenance des bindings des API fs : imports, require, alias, destructuration et promises ; identité des symboles et mutations contrôlées sans politique de lecture ou d’écriture",
+    "perimetre": "lecteurs et écrivains AST utilisant les API natives fs ; bindings immuables et ombres lexicales vérifiées par le checker natif",
+    "verrou": "gitHorsHote.test.mjs, ecrituresFichiers.test.mjs"
+  },
+  {
     "id": "ciblesDEcritureJS",
     "type": "primitives.manifest",
     "label": "ciblesDEcritureJS/OPERATIONS_FS",

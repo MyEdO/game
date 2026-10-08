@@ -8,6 +8,8 @@ import { join, resolve, win32 } from 'node:path'
 import { liensProcessus, mesurerProcessusWorktrees, porteeProcessus, racineProcessusLinux } from './processusWorktrees.mjs'
 import { litteralJs } from './litteralJs.mjs'
 
+const DRIVE = 'C' + ':'
+
 test('jonction réelle extérieure vers arbre : cwd et référence commandée physiques', async () => {
   const terrain = mkdtempSync(join(tmpdir(), 'processus-alias-'))
   const racine = join(terrain, 'arbre')
@@ -30,11 +32,11 @@ test('jonction réelle extérieure vers arbre : cwd et référence commandée ph
 })
 
 test('références de commande : code inline, URL fichier et frontières des chemins voisins', () => {
-  const racine = win32.resolve('/terrain avec espace/.wt-1')
+  const racine = DRIVE + '/terrain avec espace/.wt-1'
   const fichier = racine.replace(/\\/g, '/') + '/x.cjs'
   for (const commande of [`node -e "require('${fichier}');setInterval(()=>{},1000)"`, `node -e "import('file:///${fichier}');setInterval(()=>{},1000)"`])
-    assert.ok(liensProcessus({ cwd: win32.resolve('/autre'), commande }, racine, 'win32').length, commande)
-  assert.deepEqual(liensProcessus({ cwd: win32.resolve('/autre'), commande: `node -e "require('${fichier.replace('/.wt-1/', '/.wt-1-bis/')}')"` }, racine, 'win32'), [])
+    assert.ok(liensProcessus({ cwd: DRIVE + '/autre', commande }, racine, 'win32').length, commande)
+  assert.deepEqual(liensProcessus({ cwd: DRIVE + '/autre', commande: `node -e "require('${fichier.replace('/.wt-1/', '/.wt-1-bis/')}')"` }, racine, 'win32'), [])
   assert.equal(racineProcessusLinux('linux'), '/proc')
   assert.throws(() => racineProcessusLinux('win32'), /non supporté/)
 })
@@ -64,12 +66,12 @@ test('références réelles depuis un autre cwd : require inline et import URL f
 })
 
 test('processus : cwd, argument absolu/relatif, prefix, espaces et frontière', () => {
-  const racine = win32.resolve('/terrain avec espace/.wt-1')
+  const racine = DRIVE + '/terrain avec espace/.wt-1'
   for (const p of [
     { cwd: racine, commande: 'node' },
-    { cwd: win32.resolve('/autre'), commande: 'node "' + racine + '\\x.mjs"' },
+    { cwd: DRIVE + '/autre', commande: 'node "' + racine + '\\x.mjs"' },
     { cwd: win32.dirname(racine), commande: 'node ".wt-1/x.mjs"' },
-    { cwd: win32.resolve('/autre'), commande: 'npm --prefix="' + racine + '" run dev' },
+    { cwd: DRIVE + '/autre', commande: 'npm --prefix="' + racine + '" run dev' },
   ]) assert.ok(liensProcessus(p, racine, 'win32').length, JSON.stringify(p))
   assert.deepEqual(liensProcessus({ cwd: racine + '-bis', commande: 'node "' + racine + '-bis/x"' }, racine, 'win32'), [])
 })
