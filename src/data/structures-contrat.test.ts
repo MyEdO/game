@@ -1138,10 +1138,10 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       const paquet = JSON.parse(readFileSync(chemin, 'utf8'));
       const scene = paquet.scenes.find((s: { id: string }) => s.id === 'la-diligence');
       paquet.worldMap.places.push({ id: 'lieu-croissance-2337', label: 'Lieu de contrôle', pos: { x: 20, y: 20 }, scene: scene.id, icon: 'scenario/hamlet' });
-      const declencheur = structuredClone(scene.triggers.find((t: { id: string }) => t.id === 'edo-ch1-depart-remise'));
-      declencheur.id = 'declencheur-croissance-2337';
-      declencheur.flow.steps[0].effect.flag = 'croissance-2337';
-      scene.triggers.push(declencheur);
+      scene.triggers.push({
+        id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true,
+        flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'croissance-2337' } }] },
+      });
       writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
       const apres = scannerDonnees(copie, DEFS, CHOIX);
       const ecarts = ecartsDeFormes(apres);

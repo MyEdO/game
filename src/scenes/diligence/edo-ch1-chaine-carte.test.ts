@@ -7,8 +7,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
 import { routesEtat, routesFrom, visiblePlaces } from '../../state/worldMap';
 import { reachableCells } from '../../state/mapQC';
-import { propFootTiles } from '../../state/footprint';
-import { sceneMetresPerTile, startOf } from '../../state/scene';
+import { aPorteeDe } from '../../state/exploreNav';
+import { startOf } from '../../state/scene';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { tableTotale } from '../../lib/tableTotale';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
@@ -86,42 +86,91 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(paquet.narratif?.cloture?.when).toEqual({ kind: 'flag', expr: CLOS });
   });
 
-  it('arrivé à la porte sud, un pas dans la ville pose le drapeau et arme le récapitulatif du chapitre', () => {
+  it('du relais à la porte sud, les gestes du groupe posent les drapeaux et la clôture solde les deux objectifs', () => {
+    const objectifs = () => get().objectives.map((o) => o.id);
     useGame.getState().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
     useGame.getState().acquitterOuverture();
+    expect(get().scene?.id).toBe('la-diligence');
+
+    useGame.getState().moveParty({ x: 17, y: 3 });
+    expect(objectifs()).toEqual(['edo-ch1-place-a-bord']);
+
+    useGame.getState().moveParty({ x: 13, y: 31 });
+    expect(get().flags[DEPART], 'marcher près de la diligence ne fait pas monter à bord').toBeFalsy();
+
+    useGame.getState().jouerAction('diligence-remise-charrette', 'monter-a-bord');
+    expect(get().flags[DEPART]).toBe(true);
+    expect(get().worldMapOpen).toBe(true);
+    expect(objectifs()).toEqual(['edo-ch1-route']);
+
+    useGame.getState().transitionTo('route-principale-virage');
+    useGame.getState().moveParty({ x: 36, y: 3 });
+    useGame.getState().jouerAction('cadavre-kastor-lieberung', 'fouiller');
+    expect(get().flags[CORPS]).toBe(true);
+
     useGame.getState().transitionTo('altdorf-porte-sud');
     expect(get().flags[CLOS]).toBeFalsy();
     expect(get().pendingChapterRecap).toBeNull();
 
-    useGame.getState().moveParty({ x: 8, y: 10 });
+    useGame.getState().moveParty({ x: 7, y: 9 });
     expect(get().flags[CLOS]).toBe(true);
     expect(get().pendingChapterRecap?.titre).toBe(paquet.narratif!.cloture!.titre);
+    expect(get().pendingChapterRecap?.chronique.map((c) => c.text))
+      .toEqual(['Trouver une place à bord d’une diligence pour Altdorf.', 'Se rendre à Altdorf.']);
   });
 });
 
 /**
- * Producteurs JOUÉS au store : le rect de chaque déclencheur est fait de cases ATTEIGNABLES à pied depuis
- * l'arrivée du groupe (`reachableCells`, hors des murs), hormis les cases du décor qu'il ENTOURE, et un pas
- * dedans pose le drapeau.
+ * Producteurs JOUÉS au store, chacun sur des cases ATTEIGNABLES à pied depuis l'arrivée du groupe
+ * (`reachableCells`, hors des murs) : le GESTE authoré d'un décor se joue depuis l'un de ses abords
+ * (`aPorteeDe`, la portée de `jouerAction`), le rect d'un déclencheur se franchit d'un pas.
  */
-describe('ch.1 — chaque producteur se déclenche au pas du groupe, sur des cases atteignables', () => {
+describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur des cases atteignables', () => {
   const get = () => useGame.getState();
   beforeEach(() => {
     useGame.getState().loadProject(paquet.scenes, paquet.scenes[0].id, paquet.worldMap, paquet.narratif);
     useGame.getState().acquitterOuverture();
   });
+  const entrer = (id: string) => {
+    if (get().scene?.id !== id) useGame.getState().transitionTo(id);
+    const scene = get().scene!;
+    expect(scene.id).toBe(id);
+    return scene;
+  };
 
-  const PRODUCTEURS = [
-    { scene: 'la-diligence', trigger: 'edo-ch1-depart-remise', flag: DEPART, arriveeDedans: false, entoure: 'charrette' },
-    { scene: 'route-principale-virage', trigger: 'edo-ch1-corps-kastor', flag: CORPS, arriveeDedans: false },
-    { scene: 'altdorf-porte-sud', trigger: 'edo-ch1-entree-altdorf', flag: CLOS, arriveeDedans: true },
+  const GESTES = [
+    { scene: 'la-diligence', entite: 'diligence-remise-charrette', action: 'monter-a-bord', flag: DEPART },
+    { scene: 'route-principale-virage', entite: 'cadavre-kastor-lieberung', action: 'fouiller', flag: CORPS },
   ];
 
-  for (const p of PRODUCTEURS)
+  for (const p of GESTES)
+    it(`${p.scene} › ${p.entite} › ${p.action} pose \`${p.flag}\``, () => {
+      const scene = entrer(p.scene);
+      const ent = scene.entities.find((e) => e.id === p.entite);
+      expect(ent, `décor « ${p.entite} » absent de ${p.scene}`).toBeTruthy();
+      expect(ent!.usable?.actions?.map((a) => a.id), `« ${p.entite} » ne porte pas le geste « ${p.action} »`).toContain(p.action);
+
+      const depart = startOf(scene)!;
+      expect(aPorteeDe(depart, ent!), `l'arrivée (${depart.x},${depart.y}) ne doit pas être à portée de « ${p.entite} »`).toBe(false);
+      const atteint = reachableCells(scene, depart);
+      const abords = [...atteint].map((k) => k.split(',').map(Number)).filter(([x, y, z]) => aPorteeDe({ x, y, z }, ent!));
+      expect(abords.length, `aucun abord de « ${p.entite} » atteignable depuis l'arrivée`).toBeGreaterThan(0);
+
+      expect(get().flags[p.flag]).toBeFalsy();
+      useGame.getState().jouerAction(p.entite, p.action);
+      expect(get().flags[p.flag], 'le geste joué hors de portée ne pose rien').toBeFalsy();
+      const [x, y] = abords[0];
+      useGame.getState().moveParty({ x, y });
+      expect(get().flags[p.flag], 'le pas seul ne pose rien').toBeFalsy();
+      useGame.getState().jouerAction(p.entite, p.action);
+      expect(get().flags[p.flag]).toBe(true);
+    });
+
+  const PAS = [{ scene: 'altdorf-porte-sud', trigger: 'edo-ch1-entree-altdorf', flag: CLOS, arriveeDedans: true }];
+
+  for (const p of PAS)
     it(`${p.scene} › ${p.trigger} pose \`${p.flag}\``, () => {
-      if (get().scene?.id !== p.scene) useGame.getState().transitionTo(p.scene);
-      const scene = get().scene!;
-      expect(scene.id).toBe(p.scene);
+      const scene = entrer(p.scene);
       const trig = scene.triggers.find((t) => t.id === p.trigger);
       expect(trig, `déclencheur « ${p.trigger} » absent de ${p.scene}`).toBeTruthy();
       expect(trig!.once).toBe(true);
@@ -131,18 +180,13 @@ describe('ch.1 — chaque producteur se déclenche au pas du groupe, sur des cas
       const cases: string[] = [];
       for (let y = trig!.rect.y; y < trig!.rect.y + trig!.rect.h; y++)
         for (let x = trig!.rect.x; x < trig!.rect.x + trig!.rect.w; x++) cases.push(`${x},${y},0`);
-      const decor = p.entoure ? scene.entities.find((e) => e.kind === 'prop' && e.ref === p.entoure && cases.includes(`${e.pos.x},${e.pos.y},0`)) : undefined;
-      if (p.entoure) expect(decor, `aucun décor « ${p.entoure} » dans le rect ${JSON.stringify(trig!.rect)}`).toBeTruthy();
-      const sousDecor = new Set(decor ? propFootTiles(decor.ref, decor.pos, decor.facing, sceneMetresPerTile(scene)).map((t) => `${t.x},${t.y},0`) : []);
-      if (decor) expect([...sousDecor].filter((k) => !cases.includes(k)), `le décor « ${p.entoure} » déborde du rect`).toEqual([]);
-      const marchables = cases.filter((k) => !sousDecor.has(k));
-      expect(marchables.filter((k) => !atteint.has(k)), `case(s) du rect ${JSON.stringify(trig!.rect)} inatteignable(s)`).toEqual([]);
+      expect(cases.filter((k) => !atteint.has(k)), `case(s) du rect ${JSON.stringify(trig!.rect)} inatteignable(s)`).toEqual([]);
       const dedans = cases.includes(`${depart.x},${depart.y},0`);
       expect(dedans, `l'arrivée (${depart.x},${depart.y}) ${p.arriveeDedans ? 'doit' : 'ne doit pas'} être dans le rect`)
         .toBe(p.arriveeDedans);
 
       expect(get().flags[p.flag]).toBeFalsy();
-      const [x, y] = marchables[0].split(',').map(Number);
+      const [x, y] = cases[0].split(',').map(Number);
       useGame.getState().moveParty({ x, y });
       expect(get().flags[p.flag]).toBe(true);
     });

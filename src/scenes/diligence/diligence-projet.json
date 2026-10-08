@@ -2707,8 +2707,8 @@
     "texte": "Tome 1 — L’Ennemi dans l’Ombre",
     "adapteDe": {
      "book": "ennemi-dans-l-ombre",
-     "page": 4,
-     "note": "EDO 00 l.259"
+     "page": 164,
+     "note": "EDO 12 l.502 · l.506"
     }
    },
    "chapitre": "Chapitre 1 — On recherche : aventuriers courageux",
@@ -7873,18 +7873,78 @@
       "x": 13,
       "y": 32
      },
-     "facing": "N"
+     "facing": "N",
+     "label": "Diligence",
+     "usable": {
+      "actions": [
+       {
+        "id": "monter-a-bord",
+        "label": "Monter à bord",
+        "unique": true,
+        "flow": {
+         "kind": "seq",
+         "steps": [
+          {
+           "kind": "do",
+           "effect": {
+            "type": "setFlag",
+            "flag": "edo-ch1-depart"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "clearObjective",
+            "id": "edo-ch1-place-a-bord"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "journal",
+            "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.251 · l.255"
+            }
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "setObjective",
+            "id": "edo-ch1-route",
+            "desc": "Se rendre à Altdorf.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 17,
+             "note": "EDO 01 l.247"
+            }
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "openWorldMap"
+           }
+          }
+         ]
+        }
+       }
+      ]
+     }
     }
    ],
    "dialogues": [],
    "triggers": [
     {
-     "id": "edo-ch1-depart-remise",
+     "id": "edo-ch1-arrivee-relais",
      "rect": {
-      "x": 12,
-      "y": 31,
-      "w": 4,
-      "h": 3
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 38
      },
      "once": true,
      "flow": {
@@ -7893,8 +7953,14 @@
        {
         "kind": "do",
         "effect": {
-         "type": "setFlag",
-         "flag": "edo-ch1-depart"
+         "type": "setObjective",
+         "id": "edo-ch1-place-a-bord",
+         "desc": "Trouver une place à bord d’une diligence pour Altdorf.",
+         "adapteDe": {
+          "book": "ennemi-dans-l-ombre",
+          "page": 11,
+          "note": "EDO 01 l.13"
+         }
         }
        }
       ]
@@ -19718,6 +19784,13 @@
          "type": "setFlag",
          "flag": "edo-ch1-clos"
         }
+       },
+       {
+        "kind": "do",
+        "effect": {
+         "type": "clearObjective",
+         "id": "edo-ch1-route"
+        }
        }
       ]
      }
@@ -20726,6 +20799,39 @@
      "pos": {
       "x": 37,
       "y": 3
+     },
+     "label": "Corps",
+     "usable": {
+      "actions": [
+       {
+        "id": "fouiller",
+        "unique": true,
+        "flow": {
+         "kind": "seq",
+         "steps": [
+          {
+           "kind": "do",
+           "effect": {
+            "type": "setFlag",
+            "flag": "edo-ch1-corps-kastor-fouille"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "journal",
+            "desc": "Sous un buisson, un peu à l’écart de la diligence renversée, gît un autre corps : deux carreaux d’arbalète dans le dos, des vêtements de citadin.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 26,
+             "note": "EDO 02 l.79 · l.89"
+            }
+           }
+          }
+         ]
+        }
+       }
+      ]
      }
     },
     {
@@ -22836,30 +22942,7 @@
     }
    ],
    "dialogues": [],
-   "triggers": [
-    {
-     "id": "edo-ch1-corps-kastor",
-     "rect": {
-      "x": 35,
-      "y": 2,
-      "w": 4,
-      "h": 3
-     },
-     "once": true,
-     "flow": {
-      "kind": "seq",
-      "steps": [
-       {
-        "kind": "do",
-        "effect": {
-         "type": "setFlag",
-         "flag": "edo-ch1-corps-kastor-fouille"
-        }
-       }
-      ]
-     }
-    }
-   ],
+   "triggers": [],
    "encounters": [],
    "flags": {},
    "environment": "sauvage"
