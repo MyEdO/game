@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { apprendre, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
+import { REPLI_SURCOUT_MS, SURCOUTS, apprendre, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
 import DureesVitest from './dureesVitest.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -592,4 +592,17 @@ test('planDuPerimetre : sur des mesures d’un dossier temporaire, la durée CI 
   assert.deepEqual([estimations.get('src/a.test.ts').source, estimations.get('src/j.test.tsx').ms, estimations.get('src/j.test.tsx').population], ['locale', 3500, 'vitest-jsdom'])
   assert.deepEqual([facteurs['vitest-node'].origine, facteurs['vitest-node'].paires], ['repli', 1])
   assert.deepEqual([plan.nCi, plan.murCiMs], [1, 3500])
+})
+
+test('surcoûts : le mémo porte le MODÈLE du mur dans son nom — un surcoût écrit sous un autre modèle, ou dans l’ancien `surcouts.json`, n’est pas lu ; repli de banc', (t) => {
+  const commun = mkdtempSync(join(tmpdir(), 'perimetre-surcouts-'))
+  t.after(() => rmSync(commun, { recursive: true, force: true }))
+  const mesures = mesuresDe(commun)
+  const surcoutsLus = () => planDuPerimetre(new Map(), { mesures, lire: () => new Map(), workers: {} }).surcouts
+  mesures.ecrire('surcouts.json', { vitest: 7077, node: 42170 })
+  mesures.ecrire(nomDuMemo('surcouts', 'un-autre-modele'), { vitest: 1, node: 2 })
+  assert.deepEqual(surcoutsLus(), { ...REPLI_SURCOUT_MS })
+  mesures.ecrire(SURCOUTS, { node: 337 })
+  assert.deepEqual(surcoutsLus(), { ...REPLI_SURCOUT_MS, node: 337 })
+  assert.match(SURCOUTS, /^surcouts\.[^.]+\.json$/)
 })

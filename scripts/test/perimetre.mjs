@@ -63,7 +63,7 @@ const SIGNAUX = Object.freeze(['symbole', 'module', 'reste'])
  *  `surcoutObserve` mesuré le 2026-10-07, 16 cœurs, contre le mur `max(Σ/workers, plus long)` — un MAJORANT du
  *  surcoût que mesure `murSimule`, qui ne descend jamais sous ce mur — : Vitest : 22 fichiers sur 2 workers, mur
  *  84,7 s ; node : 20 fichiers de moins de 3 s sur 15 workers, mur 4,5 s. */
-const REPLI_SURCOUT_MS = Object.freeze({ vitest: 3749, node: 2911 })
+export const REPLI_SURCOUT_MS = Object.freeze({ vitest: 3749, node: 2911 })
 
 /** Les POPULATIONS d'une durée de la CI, chacune son facteur (`facteursCi`). */
 const POPULATIONS = Object.freeze(['vitest-node', 'vitest-jsdom', 'node'])
@@ -79,8 +79,15 @@ const REPLI_FACTEUR_CI = Object.freeze({ 'vitest-node': 0.9, 'vitest-jsdom': 3.5
 /** Le mémo des durées apprises, sous `dossierDesMesures` : `{ [test]: ms }`. */
 const DUREES = 'durees.json'
 
-/** Le mémo des surcoûts de lancement appris, sous `dossierDesMesures` : `{ [famille]: ms }`. */
-const SURCOUTS = 'surcouts.json'
+/** Le NOM d'un mémo `base` dont la valeur dépend du modèle `modele` : une valeur écrite sous un autre modèle, par du
+ *  code d'une autre version, n'est jamais lue, ni écrasée. PURE. */
+export const nomDuMemo = (base, modele) => `${base}.${modele}.json`
+
+/** Le MODÈLE du mur (`murDesFichiers`) : changé à chaque changement du sens du mur, donc du surcoût appris. */
+const MODELE_DU_MUR = 'liste-ordre-lanceur'
+
+/** Le mémo des surcoûts de lancement appris, sous `dossierDesMesures` : `{ [famille]: ms }`, sous `MODELE_DU_MUR`. */
+export const SURCOUTS = nomDuMemo('surcouts', MODELE_DU_MUR)
 
 /** L'attente d'un écrivain des mesures derrière un autre (`prendreVerrou`) : une écriture dure quelques ms. */
 const ATTENTE_DES_MESURES = Object.freeze({ echeanceMs: 30_000, pasMs: 25 })
