@@ -196,7 +196,7 @@ const EXEMPTIONS_DU_MUR = [
   'scripts/docs/lib/enregistreur-lectures.mjs:140', 'scripts/docs/lib/enregistreur-lectures.mjs:172',
   'scripts/docs/lib/enregistreur-lectures.mjs:176', 'scripts/docs/lib/enregistreur-lectures.mjs:197',
   'scripts/docs/lib/enregistreur-lectures.mjs:203',
-  'scripts/test/partition.mjs:173', 'scripts/test/partition.mjs:178',
+  'scripts/test/partition.mjs:191', 'scripts/test/partition.mjs:196',
 ]
 
 const porteCommentaireEslint = texte => texte.includes('eslint') || texte.includes('oxlint')

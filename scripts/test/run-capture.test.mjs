@@ -151,7 +151,7 @@ function verifierOrdreDiag({ run, capture, chemin }) {
   assert.equal(diagSortie.length, 4, `bloc [diag] absent ou incomplet en sortie : ${run.stdout}`)
   assert.match(
     diagSortie[0],
-    /^\[diag\] machine : \d+ cœurs · [\d.]+ Go · disponible [\d.]+ Go → régime (suite|lot) \(\d+ Mo par worker\) · (-?\d+ workers? portés?|plancher de \d+ workers?, au-delà de la mémoire \(\d+ Mo < \d+ Mo\)) · réserve de [12] parents? · borné par (cœurs|(mémoire|plancher) \(\d+ cœurs servis\)) · (mono|partagé) \(seuil 7\) · maxWorkers=/,
+    /^\[diag\] machine : \d+ cœurs · [\d.]+ Go · disponible [\d.]+ Go → régime (suite|lot) \(\d+ Mo par worker\) · (\d+ workers? portés?|plancher de \d+ workers?, au-delà de la mémoire \(\d+ Mo < \d+ Mo\)) · réserve de [12] parents? · borné par (cœurs|(mémoire|plancher) \(\d+ cœurs servis\)) · (mono|partagé) \(seuil 7\) · maxWorkers=/,
   )
   assert.match(diagSortie[1], /^\[diag\] mémoire système max : [\d.]+ Go \/ [\d.]+ Go \(\d+ %\) · rss lanceur max \d+ Mo · fenêtre [\d.]+ s$/)
   assert.match(diagSortie[2], /^\[diag\] sentinelles : act hors act \d+ · /)

@@ -470,10 +470,15 @@ const murSimule = (durees, workers) => {
   return Math.max(...libres)
 }
 
+/** Les paquets de lancement des tests `tests` d'une famille, un lancement par paquet : `paquetsDArgv` de leurs chemins
+ *  triés. Lu par le plan (`murDesFichiers`) et par le lancement (`principal`). PURE. */
+export const paquetsDeLancement = (tests) => paquetsDArgv([...tests].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)))
+
 /**
  * Le MUR estimé des fichiers `[test, ms][]` de chaque famille (#2400, #2474) : par famille lancée, son ordonnancement
  * par liste simulé dans l'ordre de son lanceur (`ordreDuLanceur`, `murSimule`) sur ses workers EFFECTIFS
- * (`workers`), plus son surcoût de lancement (`surcouts`) ; les familles s'enchaînent. PURE.
+ * (`workers`), plus son surcoût de lancement (`surcouts`) par lancement, un par paquet (`paquetsDeLancement`) ; les
+ * familles s'enchaînent. PURE.
  * @param {Record<string, [string, number][]>} fichiers
  * @param {{ workers?: Record<string, number>, surcouts?: Record<string, number> }} [options]
  */
@@ -481,7 +486,9 @@ function murDesFichiers(fichiers, { workers = {}, surcouts = {} } = {}) {
   let mur = 0
   for (const f of FAMILLES) {
     const liste = fichiers[f] ?? []
-    if (liste.length) mur += murSimule(ordreDuLanceur(f, liste).map(([, ms]) => ms), Math.max(1, workers[f] ?? 1)) + (surcouts[f] ?? 0)
+    if (liste.length)
+      mur += murSimule(ordreDuLanceur(f, liste).map(([, ms]) => ms), Math.max(1, workers[f] ?? 1)) +
+        (surcouts[f] ?? 0) * paquetsDeLancement(liste.map(([t]) => t)).length
   }
   return mur
 }
@@ -981,8 +988,8 @@ function principal() {
   const lances = new Set(plan.lances)
   mkdirSync(cache, { recursive: true })
   const paquets = [
-    ...paquetsDArgv(vitest.filter((t) => lances.has(t))).map((p) => ({ famille: 'vitest', p })),
-    ...paquetsDArgv(node.filter((t) => lances.has(t))).map((p) => ({ famille: 'node', p })),
+    ...paquetsDeLancement(vitest.filter((t) => lances.has(t))).map((p) => ({ famille: 'vitest', p })),
+    ...paquetsDeLancement(node.filter((t) => lances.has(t))).map((p) => ({ famille: 'node', p })),
   ]
   const lancements = [
     ...paquets.map(({ famille, p }, i) => {

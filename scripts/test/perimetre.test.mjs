@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, argumentsVitest, bilanDuLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
 import { PORTEE_LOT_S, regimeDeArgv } from './partition.mjs'
 import DureesVitest from './dureesVitest.mjs'
@@ -343,6 +343,15 @@ test('mur du plan : ordonnancement simulé sur les workers effectifs + surcoût,
   assert.deepEqual([deux.murMs, deux.murParFamille], [4000 + 500 + 3000 + 700, { vitest: 4500, node: 3700 }])
   assert.deepEqual(plan(['scripts/n.test.mjs'], { workers, surcouts: { vitest: 500, node: 700 } }).murParFamille, { vitest: 0, node: 3700 }, 'une famille non lancée ne paie pas son surcoût')
   assert.equal(plan([], { workers, surcouts: { vitest: 500 } }).murMs, 0)
+})
+
+test('mur du plan : un surcoût par LANCEMENT — des chemins assez longs pour deux paquets d’argv en paient deux', () => {
+  const tests = Array.from({ length: 160 }, (_, i) => `src/${'x'.repeat(200)}${String(i).padStart(3, '0')}.test.ts`)
+  assert.equal(paquetsDeLancement(tests).length, 2)
+  const estimations = new Map(tests.map((t) => [t, { ms: 1000 }]))
+  const plan = planDExecution(new Map(tests.map((t) => [t, { rang: 0 }])), { estimations, workers: { vitest: 160 }, surcouts: { vitest: 500 } })
+  assert.equal(plan.murParFamille.vitest, 1000 + 2 * 500)
+  assert.equal(paquetsDeLancement(tests.slice(0, 2)).length, 1)
 })
 
 /** Le mur du plan de `durees` (`{ [test]: ms }`), tous au rang touché, sur `workers`. */

@@ -177,7 +177,7 @@ export function capacite(cpus, memoireMo, regime) {
     servis,
     portes,
     parents: repartitionWorkers(servis).split ? 2 : 1,
-    borne: Math.max(1, servis - 1) > portes ? 'plancher' : servis < cpus ? 'mémoire' : 'cœurs',
+    borne: maxWorkersMono(servis) > portes ? 'plancher' : servis < cpus ? 'mémoire' : 'cœurs',
   }
 }
 
@@ -216,15 +216,17 @@ export function cotesRequis(filtres, partition, racine, plateforme = process.pla
 export const capaciteDuLanceur = (env, regime) =>
   capacite(coeurs(env, () => os.availableParallelism()), memoireDisponibleMo(env), regime)
 
+/** Le nom d'un argument de l'argv, sans sa valeur `=…`. PURE. */
+const nomDuDrapeau = (a) => a.split('=')[0]
+
 /** Drapeau du lanceur qui nomme le régime (`EMPREINTES_WORKER_MO`), `--regime=<r>` ; jamais transmis à Vitest. */
 export const DRAPEAU_REGIME = '--regime'
 
 /** Le régime demandé par l'argv du lanceur et l'argv SANS lui : `suite` par défaut, `{ refus }` nommé pour une
  *  valeur inconnue ou une forme sans `=`. */
 export function regimeDeArgv(argv) {
-  const nom = (a) => a.split('=')[0]
-  const demandes = argv.filter((a) => nom(a) === DRAPEAU_REGIME)
-  const reste = argv.filter((a) => nom(a) !== DRAPEAU_REGIME)
+  const demandes = argv.filter((a) => nomDuDrapeau(a) === DRAPEAU_REGIME)
+  const reste = argv.filter((a) => nomDuDrapeau(a) !== DRAPEAU_REGIME)
   const attendu = `attendu ${DRAPEAU_REGIME}=${Object.keys(EMPREINTES_WORKER_MO).join('|')}`
   if (demandes.length > 1) return { refus: `${DRAPEAU_REGIME} donné ${demandes.length} fois (${demandes.join(', ')}) — ${attendu}` }
   if (!demandes.length) return { regime: 'suite', argv: reste }
@@ -254,7 +256,7 @@ export function separerArguments(argv, estChemin = () => true) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a.startsWith('-')) {
-      const nom = a.split('=')[0]
+      const nom = nomDuDrapeau(a)
       if (DRAPEAUX_MONO.includes(nom)) mono = true
       // Forme séparée `--reporter json` : la valeur suit et n'est pas un positionnel.
       if (!a.includes('=') && argv[i + 1] && !argv[i + 1].startsWith('-') && VALEUR_ATTENDUE.includes(nom)) i++
@@ -306,7 +308,9 @@ export function cheminsGlobSuspects(chemins) {
  *  (`argumentsEnfant`). */
 export const maxWorkersMono = (cpus) => Math.max(1, Math.min(4, cpus - 1))
 
-/** Plafond à injecter devant l'argv de l'appelant : rien si l'appelant borne déjà lui-même. */
+/** Plafond à injecter devant l'argv de l'appelant : rien si l'appelant borne déjà lui-même. Le nom se replie en casse
+ *  et sans tirets : il couvre les deux graphies que cac accepte, `--maxWorkers` et `--max-workers`
+ *  (node_modules/vitest/dist/chunks/cac.DfDGTQ9W.js:186-190, 215-217). */
 export function bornesWorkers(argv, cpus) {
   const nom = (a) => a.split('=')[0].toLowerCase().replace(/-/g, '')
   const borne = argv.some((a) => a.startsWith('-') && nom(a) === 'maxworkers')
@@ -395,14 +399,14 @@ export function bilanDiagnostic(
   { capacite, memGo, memMaxGo, rssMaxMo, secondes, partage, maxWorkers, tasMaxMo },
 ) {
   const { cpus, memoireMo, regime, empreinteMo, servis, portes, parents } = capacite
-  const plancher = Math.max(1, servis - 1)
-  const reserve = parents * PARENT_MO + plancher * empreinteMo
+  const workersMono = maxWorkersMono(servis)
+  const reserve = parents * PARENT_MO + workersMono * empreinteMo
   const pourcent = memGo > 0 ? Math.round((memMaxGo / memGo) * 100) : 0
   const comptes = SENTINELLES.map(([libelle]) => `${libelle} ${compte[libelle] ?? 0}`).join(' · ')
   const borne = capacite.borne === 'cœurs' ? 'cœurs' : `${capacite.borne} (${servis} cœurs servis)`
   const porte =
     capacite.borne === 'plancher'
-      ? `plancher de ${plancher} worker${plancher > 1 ? 's' : ''}, au-delà de la mémoire (${Math.round(memoireMo)} Mo < ${reserve} Mo)`
+      ? `plancher de ${workersMono} worker${workersMono > 1 ? 's' : ''}, au-delà de la mémoire (${Math.round(memoireMo)} Mo < ${reserve} Mo)`
       : `${portes} worker${portes > 1 ? 's' : ''} porté${portes > 1 ? 's' : ''}`
   const tasPourcent = tasMaxMo === null ? 0 : Math.round((tasMaxMo / TAS_WORKER_MO) * 100)
   const tas =
@@ -456,12 +460,11 @@ export function partieDe(valeur) {
 export function refusDePartie({ filtres, argv }) {
   if (filtres.length)
     return `${VARIABLE_PARTIE} combinée à un filtre de fichier (${filtres.join(', ')}) : une partie se joue sur sa tranche ENTIÈRE`
-  const nom = (a) => a.split('=')[0]
-  const restrictif = argv.find((a) => DRAPEAUX_RESTRICTIFS.includes(nom(a)))
+  const restrictif = argv.find((a) => DRAPEAUX_RESTRICTIFS.includes(nomDuDrapeau(a)))
   if (restrictif) return `${VARIABLE_PARTIE} combinée au drapeau restrictif ${restrictif} : une partie se joue sur sa tranche ENTIÈRE`
-  const regime = argv.find((a) => nom(a) === DRAPEAU_REGIME)
+  const regime = argv.find((a) => nomDuDrapeau(a) === DRAPEAU_REGIME)
   if (regime) return `${VARIABLE_PARTIE} combinée à ${regime} : une partie joue la suite, sous le régime \`suite\``
-  const global = argv.find((a) => a.startsWith('-') && DRAPEAUX_MONO.includes(nom(a)))
+  const global = argv.find((a) => a.startsWith('-') && DRAPEAUX_MONO.includes(nomDuDrapeau(a)))
   if (global) return `${VARIABLE_PARTIE} combinée au drapeau ${global}, global à un seul processus Vitest : la tranche porte sa propre config`
   return null
 }
