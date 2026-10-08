@@ -499,7 +499,8 @@ const fichiersVides = () => tableTotale(FAMILLES, () => [])
  * @param {Map<string, { rang: number, specificite?: number }>} retenus
  * @param {{ budget?: number, estimations?: Map<string, { ms: number }>, signaux?: Map<string, { signal: string }>, workers?: Record<string, number>, surcouts?: Record<string, number> }} [options]
  * Chaque mur porte ses tests lancés SANS DURÉE (`sansDuree`), dont il n'est qu'un minorant, et sa part estimée
- * depuis la CI (`murCiMs`, ses `nCi` tests lancés de source `ci`) : le mur moins le mur où leurs durées valent 0.
+ * depuis la CI (`murCiMs`, ses `nCi` tests lancés de source `ci`) : le mur cumulé moins le même mur où les durées CI
+ * de CE rang (au total : de tous) valent 0, les autres gardant les leurs ; jamais planchée (`texteDuMur`).
  * `murParFamille` : le mur de chaque famille seule ; `sansDureeParFamille` : ses tests lancés sans durée.
  * @returns {{ lances: string[], aLaCI: string[], murMs: number, murBudgeteMs: number, sansDuree: number, murCiMs: number, nCi: number, murParFamille: Record<string, number>, sansDureeParFamille: Record<string, number>, rangs: { rang: string, murMs: number, sansDuree: number, murCiMs: number, nCi: number, lances: number, aLaCI: number, inconnues: number }[] }}
  */
@@ -512,9 +513,8 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   const specificite = (t) => retenus.get(t).specificite ?? 0
   const deLaCi = (t) => estimations.get(t)?.source === 'ci'
   const mur = (fichiers) => murDesFichiers(fichiers, { workers, surcouts })
-  const partCi = (complet, sansCi) => Math.max(0, Math.round(complet - sansCi))
+  const partCi = (fichiers, tests) => Math.round(mur(fichiers) - mur(tableTotale(FAMILLES, (f) => fichiers[f].map(([t, ms]) => [t, tests.has(t) ? 0 : ms]))))
   const cumuls = fichiersVides()
-  const sansCi = fichiersVides()
   const avec = (t) => ({ ...cumuls, [familleDe(t)]: [...cumuls[familleDe(t)], [t, cout(t)]] })
   const lances = []
   const aLaCI = []
@@ -523,7 +523,7 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   for (const rang of [...parRang.keys()].sort((a, b) => a - b)) {
     const tests = parRang.get(rang).sort((a, b) => force(a) - force(b) || specificite(a) - specificite(b) || cout(a) - cout(b) || (a < b ? -1 : 1))
     const avant = mur(cumuls)
-    const avantSansCi = mur(sansCi)
+    const ciDuRang = new Set()
     const bilan = { rang: libelleDuRang(rang), murMs: 0, sansDuree: 0, murCiMs: 0, nCi: 0, lances: 0, aLaCI: 0, inconnues: 0 }
     for (const t of tests) {
       if (inconnue(t)) bilan.inconnues += 1
@@ -538,22 +538,22 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
         continue
       }
       Object.assign(cumuls, avec(t))
-      sansCi[familleDe(t)] = [...sansCi[familleDe(t)], [t, deLaCi(t) ? 0 : cout(t)]]
       if (rang === 0) horsBudget = mur(cumuls)
       if (inconnue(t)) bilan.sansDuree += 1
+      if (deLaCi(t)) ciDuRang.add(t)
       if (deLaCi(t)) bilan.nCi += 1
       lances.push(t)
       bilan.lances += 1
     }
     bilan.murMs = mur(cumuls) - avant
-    bilan.murCiMs = partCi(bilan.murMs, mur(sansCi) - avantSansCi)
+    bilan.murCiMs = partCi(cumuls, ciDuRang)
     rangs.push(bilan)
   }
   const total = (cle) => rangs.reduce((n, r) => n + r[cle], 0)
   const murParFamille = tableTotale(FAMILLES, (f) => murDesFichiers({ [f]: cumuls[f] }, { workers, surcouts }))
   const sansDureeParFamille = tableTotale(FAMILLES, (f) => lances.filter((t) => familleDe(t) === f && inconnue(t)).length)
   return { lances, aLaCI, murMs: mur(cumuls), murBudgeteMs: mur(cumuls) - horsBudget, sansDuree: total('sansDuree'),
-    murCiMs: partCi(mur(cumuls), mur(sansCi)), nCi: total('nCi'), murParFamille, sansDureeParFamille, rangs }
+    murCiMs: partCi(cumuls, new Set(lances.filter(deLaCi))), nCi: total('nCi'), murParFamille, sansDureeParFamille, rangs }
 }
 
 /** Les modules `entrees` (`{ rel, text }`, `text` null : absent) analysés par lots de `LOT_D_ANALYSE`,
@@ -643,10 +643,15 @@ export function estimationsDe(tests, { locales = {}, ci = {}, facteurs = {}, env
   }))
 }
 
-/** Le MUR `murMs` en texte : sa part estimée depuis la CI (`murCiMs`, `nCi` tests ; nulle, le plus long l'absorbe) ;
- *  avec `sansDuree` tests lancés sans durée, un MINORANT `≥ X s`. PURE. */
+/** La part CI `murCiMs` de `nCi` tests d'un mur, en texte (`texteDuMur`). PURE. */
+const texteDeLaPartCi = (murCiMs, nCi) => murCiMs < 0 ? `, part CI non séparable (${nCi} test(s) estimés depuis la CI)`
+  : `, dont ${secondes(murCiMs)} estimées depuis la CI (${nCi} test(s)${murCiMs === 0 ? ', absorbées par le plus long' : ''})`
+
+/** Le MUR `murMs` en texte : sa part estimée depuis la CI (`murCiMs`, `nCi` tests ; #2497 : EXACTEMENT nulle, le
+ *  plus long l'absorbe ; négative, anomalie d'ordonnancement, non séparable — jamais planchée) ; avec `sansDuree` tests
+ *  lancés sans durée, un MINORANT `≥ X s`. PURE. */
 export const texteDuMur = (murMs, { sansDuree = 0, murCiMs = 0, nCi = 0 } = {}) =>
-  `${sansDuree ? '≥ ' : ''}${secondes(murMs)}${nCi ? `, dont ${secondes(murCiMs)} estimées depuis la CI (${nCi} test(s)${murCiMs === 0 ? ', absorbées par le plus long' : ''})` : ''}${sansDuree ? ` (minorant : ${sansDuree} test(s) sans durée)` : ''}`
+  `${sansDuree ? '≥ ' : ''}${secondes(murMs)}${nCi ? texteDeLaPartCi(murCiMs, nCi) : ''}${sansDuree ? ` (minorant : ${sansDuree} test(s) sans durée)` : ''}`
 
 /**
  * Les déclarations EXPORTÉES d'un module, nom → texte (`export *` sous `*`, l'export par défaut sous
