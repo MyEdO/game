@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { EventEmitter } from 'node:events'
 import { spawnSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent } from './session-runtime.mjs'
+import { creerSessions, envAgent, planAgent, validerRapport, lireJsonc, ligneControleur, mesurerProcessus, lirePolitique, contratCodex, consigneAgent, lancerAgent, lireRapportDe, validateurDeSchema, piloterAgent } from './session-runtime.mjs'
 import { lancerSession, optionsSession, profilTerminal, executableNatif, verifierContratAgent, commandeSession, argsTerminal } from './session.mjs'
 
 const identite = (pid) => ({ pid, creation: `date-${pid}` })
@@ -136,7 +136,7 @@ test('attendre borne, rapporte et accuse consommation après sortie', async (t) 
   assert.ok(b.sessions.lire(r.carte.sessionId).consommeLe)
 })
 
-test('agent natif, politique Codex explicite, env secret retiré et rapport lié au Git mesuré', (t) => {
+test('planAgent dérive l’argv Codex de la politique, envAgent retire les secrets, validerRapport juge forme et identité, lireJsonc tolère commentaires et virgules finales', (t) => {
   const b = banc(t)
   const carte = { sessionId: 'id', ticket: 2461, worktree: b.dossier, branche: 'chantier/2461', head: 'a'.repeat(40), agent: 'codex' }
   const politique = lirePolitique()
@@ -144,10 +144,8 @@ test('agent natif, politique Codex explicite, env secret retiré et rapport lié
   assert.equal(plan.shell, false)
   assert.deepEqual(plan.args, ['exec', '--ignore-user-config', '-m', politique.model, '-c', `model_reasoning_effort="${politique.reasoningEffort}"`, '-c', 'approval_policy="never"', '-c', 'sandbox_mode="danger-full-access"', '-C', b.dossier, '-o', b.fichiers.rapport, '--output-schema', b.fichiers.schema, 'faire'])
   for (const interdit of [/dangerously/, /^--add-dir$/, /^--sandbox$/, /^--approve-for-me$/, /^-p$/, /windows\.sandbox/, /network_access/]) assert.ok(!plan.args.some((a) => interdit.test(a)), String(interdit))
-  const derivee = { ...politique, ignoreUserConfig: false, model: 'modele-banc', reasoningEffort: 'high' }
-  assert.deepEqual(planAgent(carte, { natif: b.fichiers.codex, consigne: 'faire', rapport: 'r', schema: 's', politique: derivee }).args, ['exec', '-m', 'modele-banc', '-c', 'model_reasoning_effort="high"', '-c', 'approval_policy="never"', '-c', 'sandbox_mode="danger-full-access"', '-C', b.dossier, '-o', 'r', '--output-schema', 's', 'faire'])
   assert.throws(() => planAgent(carte, { natif: 'codex.cmd', politique }), /NATIF/)
-  for (const fautive of [{ ...politique, sandbox: 'workspace-write' }, { ...politique, profile: 'wfrp-agent' }]) assert.throws(() => planAgent(carte, { natif: 'codex.exe', consigne: 'faire', rapport: 'r', schema: 's', politique: fautive }), /POLITIQUE INVALIDE/)
+  for (const fautive of [{ ...politique, sandbox: 'workspace-write' }, { ...politique, profile: 'wfrp-agent' }, { ...politique, ignoreUserConfig: false }, { ...politique, reasoningEffort: 'banane' }, { ...politique, model: 'gpt-5' }]) assert.throws(() => planAgent(carte, { natif: 'codex.exe', consigne: 'faire', rapport: 'r', schema: 's', politique: fautive }), /POLITIQUE INVALIDE/)
   assert.equal(envAgent({ WFRP_SESSION_JETON: 'secret', WFRP_SESSION_REVENDICATION: 'nonce', CLAUDE_CODE_CHILD_SESSION: '1', OK: 'oui' }).OK, 'oui')
   assert.equal(Object.keys(envAgent({ WFRP_SESSION_JETON: 'secret', CLAUDE_CODE_CHILD_SESSION: '1' })).length, 0)
   assert.deepEqual(envAgent({ GH_TOKEN: 'feint', GITHUB_TOKEN: 'feint', OK: 'oui' }), { OK: 'oui' })
@@ -431,7 +429,6 @@ test('supervision Codex : spawn échoué, arrêt via handle, sortie non nulle ; 
     const promesse = b.sessions.superviser(r.carte.sessionId, {
       lancer: () => { if (cas === 'spawn') throw new Error('spawn refusé'); return child },
       lireRapport: () => { lectures++; return cas === 'rapport' ? { ...rapport, publier: true } : rapport },
-      mesurerGit: () => assert.fail('git mesuré'), publier: async () => assert.fail('publié'),
       periodeMs: 1,
     })
     if (cas === 'arret') b.sessions.demanderArret('banc', r.jeton)
@@ -445,6 +442,65 @@ test('supervision Codex : spawn échoué, arrêt via handle, sortie non nulle ; 
     if (cas === 'rapport') { assert.equal(fin.raison, 'RAPPORT INVALIDE'); assert.equal(fin.issueSortie, 'echec'); assert.equal(fin.rapport, undefined) }
     if (['atterri', 'non-atterri'].includes(cas)) { assert.deepEqual(b.sessions.lire(r.carte.sessionId).rapport, rapport); assert.equal(fin.issueSortie, 'sortie'); assert.equal(fin.raison, undefined) }
   }
+})
+
+test('supervision Codex : rapport absent ou JSON illisible sur sortie 0 nommés, jamais le message brut de Node', async (t) => {
+  for (const cas of [{ contenu: null, attendu: 'RAPPORT ABSENT' }, { contenu: '{ casse', attendu: 'RAPPORT INVALIDE' }]) {
+    const b = banc(t), r = b.reserver({ agent: 'codex' }); b.revendiquer(r)
+    const chemin = join(b.dossier, `${r.carte.sessionId}.rapport`), child = new EventEmitter(); child.pid = 20; child.kill = () => true
+    if (cas.contenu !== null) writeFileSync(chemin, cas.contenu)
+    const promesse = b.sessions.superviser(r.carte.sessionId, { lancer: () => child, lireRapport: () => lireRapportDe(chemin), periodeMs: 1 })
+    b.vivants.delete(20); queueMicrotask(() => child.emit('exit', 0, null))
+    const fin = await promesse
+    assert.equal(fin.codeAgent, 0); assert.equal(fin.issueSortie, 'echec'); assert.equal(fin.raison, cas.attendu); assert.equal(fin.rapport, undefined)
+  }
+})
+
+test('rapport : le schéma est la seule source ; un mot-clé hors de l’interprète lève', () => {
+  const schema = JSON.parse(readFileSync(new URL('./session-report.schema.json', import.meta.url), 'utf8'))
+  const conforme = validateurDeSchema(schema), rapport = { sessionId: 'id', ticket: 1, worktree: 'W', atterrissage: null, resume: 'fait' }
+  assert.equal(conforme(rapport), true); assert.equal(conforme({ ...rapport, atterrissage: 'a'.repeat(40) }), true)
+  for (const fautif of [{ ...rapport, atterrissage: 'a'.repeat(39) }, { ...rapport, ticket: 1.5 }, { ...rapport, autre: 1 }, { ...rapport, resume: null }, [], 'texte']) assert.equal(conforme(fautif), false, JSON.stringify(fautif))
+  assert.equal(validateurDeSchema({ ...schema, required: [...schema.required, 'publier'] })(rapport), false)
+  for (const inconnu of [{ type: 'toString' }, { type: ['string', 'constructor'] }, { ...schema, properties: { ...schema.properties, x: false } }, true, [], null, 3, { ...schema, minProperties: 1 }, { ...schema, properties: { ...schema.properties, resume: { type: 'string', format: 'uri' } } }, { type: 'number' }, { ...schema, additionalProperties: true }]) assert.throws(() => validateurDeSchema(inconnu), /SCHÉMA HORS INTERPRÈTE/, JSON.stringify(inconnu))
+})
+
+test('contrôleur : le rapport validé passe dans la carte, puis ni .rapport ni .stderr ne restent au registre', async (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex', executable: b.fichiers.codex }), id = r.carte.sessionId
+  b.revendiquer(r)
+  const rapport = { sessionId: id, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
+  const script = `require('fs').writeFileSync(${JSON.stringify(join(b.dossier, `${id}.rapport`))}, ${JSON.stringify(JSON.stringify(rapport))}); process.stderr.write('trace du banc\\n')`
+  const fin = await piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', lancer: (exe, args, options) => spawn(process.execPath, ['-e', script], options) })
+  assert.deepEqual(fin.rapport, rapport); assert.equal(fin.issueSortie, 'sortie')
+  for (const suffixe of ['.rapport', '.stderr']) assert.equal(existsSync(join(b.dossier, `${id}${suffixe}`)), false, suffixe)
+})
+
+test('contrôleur : une purge impossible est nommée sur stderr sans changer l’issue', async (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex', executable: b.fichiers.codex }), id = r.carte.sessionId, lignes = []
+  b.revendiquer(r)
+  const rapport = { sessionId: id, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
+  const script = `require('fs').writeFileSync(${JSON.stringify(join(b.dossier, `${id}.rapport`))}, ${JSON.stringify(JSON.stringify(rapport))})`
+  t.mock.method(process.stderr, 'write', (morceau) => { lignes.push(String(morceau)); return true })
+  const fin = await piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', lancer: (exe, args, options) => spawn(process.execPath, ['-e', script], options), retirer: () => { throw Object.assign(new Error('occupé'), { code: 'EBUSY' }) } })
+  assert.deepEqual(fin.rapport, rapport); assert.equal(fin.issueSortie, 'sortie')
+  for (const suffixe of ['.rapport', '.stderr']) assert.ok(lignes.includes(`[session] PURGE IMPOSSIBLE : ${join(b.dossier, `${id}${suffixe}`)} — EBUSY\n`), suffixe)
+})
+
+test('contrôleur : un petit-enfant qui écrit sur stderr après la sortie 0 de Codex ne recrée pas le journal purgé', { timeout: 30_000 }, async (t) => {
+  const b = banc(t), r = b.reserver({ agent: 'codex', executable: b.fichiers.codex }), id = r.carte.sessionId, lignes = []
+  b.revendiquer(r)
+  const debut = join(b.dossier, 'petit-enfant.debut'), fini = join(b.dossier, 'petit-enfant.fini')
+  const rapport = { sessionId: id, ticket: 2461, worktree: b.dossier, atterrissage: null, resume: 'fait' }
+  const petit = `const fs = require('fs'); fs.writeFileSync(${JSON.stringify(debut)}, ''); setTimeout(() => process.stderr.write('tardif du petit-enfant\\n', () => { fs.writeFileSync(${JSON.stringify(fini)}, ''); process.exit(0) }), 400)`
+  const parent = `const fs = require('fs'), { spawn } = require('child_process'); fs.writeFileSync(${JSON.stringify(join(b.dossier, `${id}.rapport`))}, ${JSON.stringify(JSON.stringify(rapport))}); spawn(process.execPath, ['-e', ${JSON.stringify(petit)}], { detached: true, stdio: ['ignore', 'ignore', 'inherit'] }).unref(); const borne = Date.now() + 5000; while (!fs.existsSync(${JSON.stringify(debut)}) && Date.now() < borne) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20); process.exit(0)`
+  t.mock.method(process.stderr, 'write', (morceau) => { lignes.push(String(morceau)); return true })
+  const fin = await piloterAgent({ sessions: b.sessions, dossier: b.dossier, carte: b.sessions.lire(id), consigne: 'faire', lancer: (exe, args, options) => spawn(process.execPath, ['-e', parent], options) })
+  assert.equal(fin.codeAgent, 0); assert.ok(existsSync(debut), `petit-enfant démarré — stderr : ${lignes.join('')}`)
+  const borne = Date.now() + 5000
+  while (!existsSync(fini) && Date.now() < borne) await new Promise((ok) => setTimeout(ok, 20))
+  await new Promise((ok) => setTimeout(ok, 200))
+  assert.ok(existsSync(fini), 'petit-enfant a écrit'); assert.ok(lignes.join('').includes('tardif du petit-enfant'))
+  assert.equal(existsSync(join(b.dossier, `${id}.stderr`)), false)
 })
 
 test('JobHost possède Job sans breakaway, suspend/assign/resume, cleanup handle et wait avant exit0', () => {
@@ -466,7 +522,7 @@ test('politique : schéma strict lu une fois ; sandbox et approbation à leur se
   const sans = (cle) => Object.fromEntries(Object.entries(valide).filter(([k]) => k !== cle))
   assert.deepEqual(Object.keys(lirePolitique()).sort(), Object.keys(valide).sort())
   writeFileSync(chemin, JSON.stringify(valide)); assert.deepEqual(lirePolitique(chemin), valide)
-  for (const fautive of [{ ...valide, sandbox: 'workspace-write' }, { ...valide, sandbox: 'read-only' }, { ...valide, inconnue: 1 }, { ...valide, profile: 'wfrp-agent' }, { ...valide, networkAccess: false }, { ...valide, windowsSandbox: 'elevated' }, { ...valide, ignoreUserConfig: 'true' }, { sandbox: 'danger-full-access' }, sans('model'), sans('reasoningEffort'), { ...valide, model: '' }, { ...valide, reasoningEffort: 'Moyen!' }, { ...valide, approvalPolicy: 'on-request' }, { ...valide, approveForMe: true }, sans('approvalPolicy')]) {
+  for (const fautive of [{ ...valide, sandbox: 'workspace-write' }, { ...valide, sandbox: 'read-only' }, { ...valide, inconnue: 1 }, { ...valide, profile: 'wfrp-agent' }, { ...valide, networkAccess: false }, { ...valide, windowsSandbox: 'elevated' }, { ...valide, ignoreUserConfig: 'true' }, { ...valide, ignoreUserConfig: false }, { ...valide, reasoningEffort: 'banane' }, { ...valide, model: 'gpt-5' }, { sandbox: 'danger-full-access' }, sans('model'), sans('reasoningEffort'), { ...valide, model: '' }, { ...valide, reasoningEffort: 'Moyen!' }, { ...valide, approvalPolicy: 'on-request' }, { ...valide, approveForMe: true }, sans('approvalPolicy')]) {
     writeFileSync(chemin, JSON.stringify(fautive)); assert.throws(() => lirePolitique(chemin), /POLITIQUE INVALIDE/, JSON.stringify(fautive))
   }
 })

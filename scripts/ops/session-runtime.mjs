@@ -26,7 +26,7 @@ const CarteSession = z.object({
   if (['nettoyage', 'fermee'].includes(c.etat) && !['sortie', 'echec'].includes(c.issueSortie)) ctx.addIssue({ code: 'custom', message: 'issue de sortie requise' })
   if (c.etat === 'echec-controle' && c.codeEnveloppe !== undefined) ctx.addIssue({ code: 'custom', message: 'sortie enveloppe inconnue' })
 })
-const PolitiqueSession = z.object({ sandbox: z.enum(['danger-full-access']), approvalPolicy: z.enum(['never']), ignoreUserConfig: z.boolean(), model: z.string().min(1), reasoningEffort: z.string().regex(/^[a-z]+$/) }).strict()
+const PolitiqueSession = z.object({ sandbox: z.enum(['danger-full-access']), approvalPolicy: z.enum(['never']), ignoreUserConfig: z.literal(true), model: z.enum(['gpt-6.1-sol']), reasoningEffort: z.enum(['medium']) }).strict()
 const validerPolitique = (brut) => {
   const vu = PolitiqueSession.safeParse(brut)
   if (!vu.success) throw new Error(`POLITIQUE INVALIDE : ${vu.error.issues.map((e) => `${e.path.join('.') || e.keys?.join(',') || '—'}: ${e.message}`).join('; ')}`)
@@ -79,7 +79,7 @@ export function planAgent(carte, { natif, consigne, rapport, schema, politique }
   if (carte.agent === 'claude') return { executable: natif, args: [consigne], shell: false }
   if (carte.agent !== 'codex') throw new Error('AGENT INCONNU')
   const p = validerPolitique(politique)
-  return { executable: natif, shell: false, args: ['exec', ...(p.ignoreUserConfig ? ['--ignore-user-config'] : []), '-m', p.model, '-c', `model_reasoning_effort="${p.reasoningEffort}"`, '-c', `approval_policy="${p.approvalPolicy}"`, '-c', `sandbox_mode="${p.sandbox}"`, '-C', carte.worktree, '-o', rapport, '--output-schema', schema, consigne] }
+  return { executable: natif, shell: false, args: ['exec', '--ignore-user-config', '-m', p.model, '-c', `model_reasoning_effort="${p.reasoningEffort}"`, '-c', `approval_policy="${p.approvalPolicy}"`, '-c', `sandbox_mode="${p.sandbox}"`, '-C', carte.worktree, '-o', rapport, '--output-schema', schema, consigne] }
 }
 
 export const contratCodex = ({ sessionId, ticket, worktree }) => `Rapport final JSON : sessionId=${sessionId}, ticket=${ticket}, worktree=${worktree} ; atterrissage = sha du commit d'atterrissage sur main si ta publication est MERGED, sinon null ; resume décrit le résultat.`
@@ -99,11 +99,40 @@ export function lancerAgent(plan, carte, { journal, lancer = spawn, echo = (morc
 
 const cheminComparable = (chemin) => process.platform === 'win32' ? resolve(chemin).toLowerCase() : resolve(chemin)
 
+const TYPES_DE_SCHEMA = Object.assign(Object.create(null), { string: (v) => typeof v === 'string', integer: Number.isInteger, null: (v) => v === null, object: (v) => !!v && typeof v === 'object' && !Array.isArray(v) })
+const MOTS_DE_SCHEMA = new Set(['type', 'pattern', 'required', 'properties', 'additionalProperties'])
+
+export function validateurDeSchema(schema) {
+  if (!TYPES_DE_SCHEMA.object(schema) || Object.getPrototypeOf(schema) !== Object.prototype) throw new Error(`SCHÉMA HORS INTERPRÈTE : sous-schéma non objet (${JSON.stringify(schema)})`)
+  const hors = Object.keys(schema).filter((mot) => !MOTS_DE_SCHEMA.has(mot))
+  const types = schema.type === undefined ? null : [schema.type].flat()
+  if (types?.some((type) => !TYPES_DE_SCHEMA[type])) hors.push(`type ${types.join('|')}`)
+  if (schema.additionalProperties !== undefined && schema.additionalProperties !== false) hors.push('additionalProperties')
+  if (hors.length) throw new Error(`SCHÉMA HORS INTERPRÈTE : ${hors.join(', ')}`)
+  const motif = schema.pattern === undefined ? null : new RegExp(schema.pattern, 'u')
+  const proprietes = Object.entries(schema.properties ?? {}).map(([cle, sous]) => [cle, validateurDeSchema(sous)])
+  const objet = schema.properties !== undefined || schema.required !== undefined || schema.additionalProperties === false
+  return (valeur) => {
+    if (types && !types.some((type) => TYPES_DE_SCHEMA[type](valeur))) return false
+    if (motif && typeof valeur === 'string' && !motif.test(valeur)) return false
+    if (!objet) return true
+    if (!TYPES_DE_SCHEMA.object(valeur) || (schema.required ?? []).some((cle) => !Object.hasOwn(valeur, cle))) return false
+    if (schema.additionalProperties === false && Object.keys(valeur).some((cle) => !Object.hasOwn(schema.properties ?? {}, cle))) return false
+    return proprietes.every(([cle, conforme]) => !Object.hasOwn(valeur, cle) || conforme(valeur[cle]))
+  }
+}
+
 const SCHEMA_RAPPORT = fileURLToPath(new URL('./session-report.schema.json', import.meta.url))
-const CLES_RAPPORT = JSON.parse(fs.readFileSync(SCHEMA_RAPPORT, 'utf8')).required.toSorted().join(',')
+const rapportConforme = validateurDeSchema(JSON.parse(fs.readFileSync(SCHEMA_RAPPORT, 'utf8')))
+
+export function lireRapportDe(chemin) {
+  let texte
+  try { texte = fs.readFileSync(chemin, 'utf8') } catch (e) { if (e.code === 'ENOENT') throw new Error('RAPPORT ABSENT', { cause: e }); throw e }
+  try { return JSON.parse(texte) } catch (e) { throw new Error('RAPPORT INVALIDE', { cause: e }) }
+}
 
 export function validerRapport(rapport, carte) {
-  if (!rapport || typeof rapport !== 'object' || Object.keys(rapport).toSorted().join(',') !== CLES_RAPPORT || typeof rapport.sessionId !== 'string' || !Number.isInteger(rapport.ticket) || typeof rapport.worktree !== 'string' || typeof rapport.resume !== 'string' || (rapport.atterrissage !== null && !/^[0-9a-f]{40}$/.test(String(rapport.atterrissage)))) return { ok: false, raison: 'RAPPORT INVALIDE' }
+  if (!rapportConforme(rapport)) return { ok: false, raison: 'RAPPORT INVALIDE' }
   if (rapport.sessionId !== carte.sessionId || rapport.ticket !== carte.ticket || cheminComparable(rapport.worktree) !== cheminComparable(carte.worktree)) return { ok: false, raison: 'RAPPORT ÉTRANGER' }
   return { ok: true }
 }
@@ -370,19 +399,29 @@ export function contexteSessions(worktree) {
   return { racine: principal.valeur, gitCommun: join(principal.valeur, '.git'), worktree: resolve(worktree), branche: brancheDe(depot), head: shaDe(depot, 'HEAD') }
 }
 
+export async function piloterAgent({ sessions, dossier, carte, consigne, lancer, retirer = (fichier) => fs.rmSync(fichier, { force: true }) }) {
+  const id = carte.sessionId, rapport = join(dossier, `${id}.rapport`), journal = join(dossier, `${id}.stderr`)
+  let agent
+  try {
+    const plan = planAgent(carte, { natif: carte.executable, consigne: consigneAgent(carte, consigne), rapport, schema: SCHEMA_RAPPORT, politique: lirePolitique() })
+    return await sessions.superviser(id, {
+      lancer: () => { agent = lancerAgent(plan, carte, { journal, lancer }); return agent.child },
+      causeSortie: () => agent.cause(),
+      lireRapport: () => lireRapportDe(rapport),
+    })
+  } finally {
+    if (agent) await agent.cause()
+    for (const fichier of [rapport, journal]) { try { retirer(fichier) } catch (e) { process.stderr.write(`[session] PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
+  }
+}
+
 export async function controleur({ dossier, id, hostPid = Number(process.env.WFRP_SESSION_JOBHOST) }) {
   const sessions = creerSessions({ dossier })
   sessions.revendiquer(id, undefined, { controleurPid: process.pid, jobHostPid: hostPid })
   delete process.env.WFRP_SESSION_REVENDICATION
   try {
-  const carte = sessions.lire(id), rapport = join(dossier, `${id}.rapport`)
-  const plan = planAgent(carte, { natif: carte.executable, consigne: consigneAgent(carte, fs.readFileSync(carte.consigne, 'utf8')), rapport, schema: SCHEMA_RAPPORT, politique: lirePolitique() })
-  let agent
-  return await sessions.superviser(id, {
-    lancer: () => { agent = lancerAgent(plan, carte, { journal: join(dossier, `${id}.stderr`) }); return agent.child },
-    causeSortie: () => agent.cause(),
-    lireRapport: () => lireJSON(rapport),
-  })
+    const carte = sessions.lire(id)
+    return await piloterAgent({ sessions, dossier, carte, consigne: fs.readFileSync(carte.consigne, 'utf8') })
   } catch (e) { return sessions.sortie(id, { codeAgent: null, raison: e.message }) }
 }
 
