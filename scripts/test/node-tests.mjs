@@ -27,18 +27,23 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Le reporter `node --test` des durées par fichier. */
 const REPORTER_DUREES = pathToFileURL(join(RACINE, 'scripts/test/dureesNodeTest.mjs')).href
 
+/** Le reporter par défaut de `node --test` en version `versionNode` : `spec` dès node 23 (nodejs/node#54548) ;
+ *  avant, `spec` sous un terminal (`tty`), `tap` hors terminal (node v22, `internal/test_runner/utils`
+ *  `kDefaultReporter`). PURE. */
+export const reporterParDefaut = (versionNode, tty) => Number(versionNode.split('.')[0]) >= 23 || tty ? 'spec' : 'tap'
+
 /**
  * Les arguments de reporter d'un lancement : la sortie de l'appelant gardée — son `--test-reporter` s'il en passe un
- * (seul et sans destination : `stdout`), sinon celle de `node --test` par défaut, `spec` sous un terminal (`tty`),
- * `tap` hors terminal —, puis le reporter des durées vers `sortie`. PURE.
- * @param {string[]} drapeaux @param {{ tty: boolean, sortie: string }} p
+ * (seul et sans destination : `stdout`), sinon celle de `node --test` par défaut sous la version qui tourne
+ * (`reporterParDefaut`) —, puis le reporter des durées vers `sortie`. PURE.
+ * @param {string[]} drapeaux @param {{ tty: boolean, sortie: string, versionNode?: string }} p
  */
-export function reportersDuLancement(drapeaux, { tty, sortie }) {
+export function reportersDuLancement(drapeaux, { tty, sortie, versionNode = process.versions.node }) {
   const compte = (nom) => drapeaux.filter((d) => d === nom || d.startsWith(`${nom}=`)).length
   const reporters = compte('--test-reporter')
   const sortieDeLAppelant = reporters
     ? (reporters === 1 && compte('--test-reporter-destination') === 0 ? ['--test-reporter-destination=stdout'] : [])
-    : [`--test-reporter=${tty ? 'spec' : 'tap'}`, '--test-reporter-destination=stdout']
+    : [`--test-reporter=${reporterParDefaut(versionNode, tty)}`, '--test-reporter-destination=stdout']
   return [...sortieDeLAppelant, `--test-reporter=${REPORTER_DUREES}`, `--test-reporter-destination=${sortie}`]
 }
 

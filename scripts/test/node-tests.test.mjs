@@ -5,12 +5,18 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { lancerGate, reportersDuLancement } from './node-tests.mjs'
+import { lancerGate, reporterParDefaut, reportersDuLancement } from './node-tests.mjs'
 
 const durees = (args) => args.filter((a) => a.startsWith('--test-reporter')).slice(-2)
 
-test('reportersDuLancement : la sortie par défaut de `node --test` gardée (spec sous terminal, tap hors terminal), puis les durées', () => {
-  const [tap, spec] = [false, true].map((tty) => reportersDuLancement([], { tty, sortie: '/t/d.json' }))
+test('reporterParDefaut : celui de la version de node qui tourne — node 22 : spec sous terminal, tap hors terminal ; dès node 23 : spec', () => {
+  assert.deepEqual([reporterParDefaut('22.23.2', false), reporterParDefaut('22.23.2', true)], ['tap', 'spec'])
+  assert.deepEqual([reporterParDefaut('23.0.0', false), reporterParDefaut('24.15.0', false), reporterParDefaut('26.1.0', true)], ['spec', 'spec', 'spec'])
+})
+
+test('reportersDuLancement : la sortie par défaut de `node --test` gardée, puis les durées', () => {
+  const [tap, spec] = [false, true].map((tty) => reportersDuLancement([], { tty, sortie: '/t/d.json', versionNode: '22.23.2' }))
+  assert.equal(reportersDuLancement([], { tty: false, sortie: 's' })[0], `--test-reporter=${reporterParDefaut(process.versions.node, false)}`, 'la version qui tourne par défaut')
   assert.deepEqual(tap.slice(0, 2), ['--test-reporter=tap', '--test-reporter-destination=stdout'])
   assert.deepEqual(spec.slice(0, 2), ['--test-reporter=spec', '--test-reporter-destination=stdout'])
   assert.match(durees(tap)[0], /^--test-reporter=file:.*\/scripts\/test\/dureesNodeTest\.mjs$/)
@@ -45,7 +51,7 @@ test('lancerGate : imprime `[durees] node <gate>` en chemins RELATIFS POSIX, n�
   const imprimes = []
   const code = lancerGate({ gate: 'test:essai', tests: ['scripts/a/un.test.mjs'], racine, temporaire, tty: false, spawn, imprimer: (l) => imprimes.push(l) })
   assert.equal(code, 0)
-  assert.match(stdout, /^TAP version 13/, 'la sortie par défaut hors terminal : tap')
+  assert.match(stdout, reporterParDefaut(process.versions.node, false) === 'tap' ? /^TAP version 13/ : /✔ un/, 'la sortie par défaut de la version qui tourne, hors terminal')
   assert.equal(imprimes.length, 1)
   const [, gate, json] = /^\[durees\] node (\S+) (\{.*\})$/.exec(imprimes[0])
   assert.equal(gate, 'test:essai')

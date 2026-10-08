@@ -29,14 +29,17 @@ export const dureesValides = (lu) => lu !== null && typeof lu === 'object' && !A
 
 /**
  * Les durées par fichier d'un journal `gh run view <id> --log` (`lignesDuJournal`). `lus` : les durées Vitest lues ;
- * `attendus` : la somme des fichiers annoncés par les `[partie]`, chacune comptée une fois. PURE.
+ * `attendus` : la somme des fichiers annoncés par les `[partie]`, chacune comptée une fois ; `parties` : les `i/K`
+ * lues ; `manquantes` : les `i/K` absentes, i ∈ 1..K de chaque K lu ; `illisibles` : les gates dont la ligne
+ * `[durees] node` ne se lit pas. PURE.
  * @param {string} journal
- * @returns {{ vitest: Record<string, number>, node: Record<string, number>, lus: number, attendus: number }}
+ * @returns {{ vitest: Record<string, number>, node: Record<string, number>, lus: number, attendus: number, parties: string[], manquantes: string[], illisibles: string[] }}
  */
 export function dureesDuJournal(journal) {
   const vitest = {}
   const node = {}
   const parties = new Map()
+  const illisibles = []
   let lus = 0
   for (const { job, texte } of lignesDuJournal(journal)) {
     const partie = PARTIE.exec(texte)
@@ -49,11 +52,13 @@ export function dureesDuJournal(journal) {
     const gate = LIGNE_NODE.exec(texte.trim())
     if (gate) {
       let lu
-      try { lu = JSON.parse(gate[2]) } catch { continue }
+      try { lu = JSON.parse(gate[2]) } catch { illisibles.push(gate[1]); continue }
       Object.assign(node, dureesValides(lu))
     }
   }
-  return { vitest, node, lus, attendus: [...parties.values()].reduce((a, b) => a + b, 0) }
+  const totaux = new Set([...parties.keys()].map((p) => Number(p.split('/')[1])))
+  const manquantes = [...totaux].flatMap((k) => Array.from({ length: k }, (_, i) => `${i + 1}/${k}`).filter((p) => !parties.has(p)))
+  return { vitest, node, lus, attendus: [...parties.values()].reduce((a, b) => a + b, 0), parties: [...parties.keys()].sort(), manquantes, illisibles }
 }
 
 /**
@@ -82,8 +87,9 @@ export function referenceCi({ cwd = process.cwd(), spawn = spawnSync } = {}) {
 
 /**
  * RAPATRIE les durées de la course de référence (`referenceCi`) dans le mémo `DUREES_CI` de `mesures`
- * (`remplacer`, sans fusion). La course déjà mémorisée n'est pas relue (`deja`) ; un journal où les durées Vitest
- * lues manquent aux attendues, ou sans aucune, est REFUSÉ (`refus`), mémo inchangé ; gh, réseau ou écriture
+ * (`remplacer`, sans fusion). La course déjà mémorisée n'est pas relue (`deja`) ; un journal INCOMPLET — sans
+ * `[partie]`, une partie manquante, une ligne `[durees] node` illisible, aucune durée Vitest ou moins que les
+ * attendues — est REFUSÉ (`refus`), mémo inchangé ; gh, réseau ou écriture
  * indisponibles : `{ disponible: false, raison }`, mémo inchangé.
  * @param {{ mesures: { lire: Function, remplacer: Function }, cwd?: string, spawn?: Function }} p
  * @returns {{ disponible: true, valeur: { etat: 'deja' | 'rapatrie', memo: object } | { etat: 'refus', raison: string } } | { disponible: false, raison: string }}
@@ -96,7 +102,10 @@ export function rapatrierDureesCi({ mesures, cwd = process.cwd(), spawn = spawnS
   if (actuel.run === run && actuel.attempt === attempt) return fait({ etat: 'deja', memo: actuel })
   const journal = journalDe({ cwd, id: run, attempt, echecsSeuls: false, spawn })
   if (!journal.disponible) return journal
-  const { vitest, node, lus, attendus } = dureesDuJournal(journal.valeur)
+  const { vitest, node, lus, attendus, parties, manquantes, illisibles } = dureesDuJournal(journal.valeur)
+  if (!parties.length) return fait({ etat: 'refus', raison: `course ${run} : aucune ligne [partie] au journal` })
+  if (manquantes.length) return fait({ etat: 'refus', raison: `course ${run} : partie(s) absente(s) du journal : ${manquantes.join(', ')}` })
+  if (illisibles.length) return fait({ etat: 'refus', raison: `course ${run} : ligne [durees] node illisible : ${illisibles.join(', ')}` })
   if (!lus) return fait({ etat: 'refus', raison: `course ${run} : aucune durée Vitest au journal` })
   if (lus < attendus) return fait({ etat: 'refus', raison: `course ${run} : ${lus} durée(s) Vitest lue(s) pour ${attendus} fichier(s) annoncé(s)` })
   const memo = { run, attempt, sha, date, vitest, node }

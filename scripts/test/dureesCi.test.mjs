@@ -16,14 +16,22 @@ const LIGNE_NODE = 'docs-tests\tUNKNOWN STEP\t2026-10-08T03:49:03.0046616Z [dure
 
 const JOURNAL = [JOURNAL_VERT, JOURNAL_ROUGE, LIGNE_NODE].join('\n')
 
+/** Un journal COMPLET de deux fichiers : la ligne `[partie]` FABRIQUÉE à la forme de `scripts/test/run.mjs` (1 partie,
+ *  2 fichiers), les deux lignes de module réelles, la ligne node. */
+const COMPLET = ['suite 1/1\tUNKNOWN STEP\t2026-10-08T03:49:44.2282517Z [partie] 1/1 : 2 fichier(s) sur 2 · empreinte 0 · liste 0',
+  ...[JOURNAL_VERT, JOURNAL_ROUGE].join('\n').split('\n').filter((l) => !l.includes('[partie]')), LIGNE_NODE].join('\n')
+
 test('dureesDuJournal : la ligne de MODULE ✓ ou ❯ (jamais celle d’un test), la `[durees] node` d’une gate, les `[partie]` attendues', () => {
   assert.deepEqual(dureesDuJournal(JOURNAL), {
     vitest: { 'src/state/store.test.ts': 2960, 'src/data/schemas/grammaire/op-defs.test.ts': 105 },
     node: { 'scripts/docs/a.test.mjs': 1234, 'scripts/docs/b.test.mjs': 56 },
     lus: 2,
     attendus: 645 + 638 + 615,
+    parties: ['1/3', '2/3', '3/3'],
+    manquantes: [],
+    illisibles: [],
   })
-  assert.deepEqual(dureesDuJournal(''), { vitest: {}, node: {}, lus: 0, attendus: 0 })
+  assert.deepEqual(dureesDuJournal(''), { vitest: {}, node: {}, lus: 0, attendus: 0, parties: [], manquantes: [], illisibles: [] })
 })
 
 test('memoCiDe : la forme `{ run, attempt, sha, date, vitest, node }`, durées finies ≥ 0 ; toute autre forme rend {}', () => {
@@ -65,7 +73,7 @@ test('referenceCi : la course merge_group RÉUSSIE la plus récente ; aucune : i
 })
 
 test('rapatrierDureesCi : le mémo est REMPLACÉ — une entrée disparue de la CI sort du mémo — par l’essai jugé de la course de référence', () => {
-  const { spawn, appels } = ghDe({ courses: COURSES, journal: [JOURNAL_VERT.split('\n').slice(3).join('\n'), JOURNAL_ROUGE, LIGNE_NODE].join('\n') })
+  const { spawn, appels } = ghDe({ courses: COURSES, journal: COMPLET })
   const mesures = mesuresEnMemoire(ANCIEN)
   const rendu = rapatrierDureesCi({ mesures, spawn })
   const memo = { run: 8, attempt: 2, sha: 'vert', date: '2026-10-08T04:00:00Z', vitest: { 'src/state/store.test.ts': 2960, 'src/data/schemas/grammaire/op-defs.test.ts': 105 }, node: { 'scripts/docs/a.test.mjs': 1234, 'scripts/docs/b.test.mjs': 56 } }
@@ -86,7 +94,7 @@ test('rapatrierDureesCi : moins de durées Vitest lues que de fichiers annoncés
   const mesures = mesuresEnMemoire(ANCIEN)
   assert.deepEqual(rapatrierDureesCi({ mesures, spawn: ghDe({ courses: COURSES }).spawn }),
     { disponible: true, valeur: { etat: 'refus', raison: 'course 8 : 2 durée(s) Vitest lue(s) pour 1898 fichier(s) annoncé(s)' } })
-  assert.deepEqual(rapatrierDureesCi({ mesures, spawn: ghDe({ courses: COURSES, journal: LIGNE_NODE }).spawn }),
+  assert.deepEqual(rapatrierDureesCi({ mesures, spawn: ghDe({ courses: COURSES, journal: [COMPLET.split('\n')[0], LIGNE_NODE].join('\n') }).spawn }),
     { disponible: true, valeur: { etat: 'refus', raison: 'course 8 : aucune durée Vitest au journal' } })
   assert.deepEqual([mesures.etat[DUREES_CI], mesures.etat.remplacements], [ANCIEN, 0])
 })
@@ -97,7 +105,18 @@ test('rapatrierDureesCi : gh indisponible, ou mémo non écrit : `{ disponible: 
   assert.deepEqual([horsLigne.disponible, horsLigne.raison], [false, 'gh: réseau indisponible'])
   assert.deepEqual([mesures.etat[DUREES_CI], mesures.etat.remplacements], [ANCIEN, 0])
   const verrouille = { ...mesuresEnMemoire(ANCIEN), remplacer: () => { throw new Error('verrou tenu') } }
-  const journal = [JOURNAL_VERT.split('\n').slice(3).join('\n'), JOURNAL_ROUGE].join('\n')
+  const journal = COMPLET
   assert.deepEqual(rapatrierDureesCi({ mesures: verrouille, spawn: ghDe({ courses: COURSES, journal }).spawn }),
     { disponible: false, raison: `mémo ${DUREES_CI} non écrit — verrou tenu`, issue: 'mesure' })
+})
+
+test('rapatrierDureesCi : un journal INCOMPLET est refusé, nommé — job de suite absent en entier (sonde du juge de diff), aucune [partie], ligne node illisible', () => {
+  const mesures = mesuresEnMemoire(ANCIEN)
+  const refus = (journal) => rapatrierDureesCi({ mesures, spawn: ghDe({ courses: COURSES, journal }).spawn }).valeur
+  const sansSuite1 = JOURNAL.split('\n').filter((l) => !l.startsWith('suite 1/3\t')).join('\n')
+  assert.deepEqual(refus(sansSuite1), { etat: 'refus', raison: 'course 8 : partie(s) absente(s) du journal : 1/3' })
+  assert.deepEqual(refus(COMPLET.split('\n').filter((l) => !l.includes('[partie]')).join('\n')), { etat: 'refus', raison: 'course 8 : aucune ligne [partie] au journal' })
+  assert.deepEqual(refus(`${COMPLET}\ntypes\tUNKNOWN STEP\t2026-10-08T03:51:00.0000000Z [durees] node test:ops {"scripts/ops/a.test.mjs":}`),
+    { etat: 'refus', raison: 'course 8 : ligne [durees] node illisible : test:ops' })
+  assert.deepEqual([mesures.etat[DUREES_CI], mesures.etat.remplacements], [ANCIEN, 0])
 })

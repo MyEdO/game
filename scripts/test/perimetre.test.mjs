@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { REPLI_SURCOUT_MS, SURCOUTS, apprendre, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
+import { REPLI_SURCOUT_MS, SURCOUTS, apprendre, ordreDuLanceur, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
 import DureesVitest from './dureesVitest.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -605,4 +605,24 @@ test('surcoûts : le mémo porte le MODÈLE du mur dans son nom — un surcoût 
   mesures.ecrire(SURCOUTS, { node: 337 })
   assert.deepEqual(surcoutsLus(), { ...REPLI_SURCOUT_MS, node: 337 })
   assert.match(SURCOUTS, /^surcouts\.[^.]+\.json$/)
+})
+
+/** L'ordre de démarrage MESURÉ de `node --test` sous Windows (juge de diff #2497, node v22) sur ces fichiers. */
+const ORDRE_WINDOWS = ['B2/x', 'Z', 'a-b/x', 'a.test', 'a2/x', 'aB/x', 'a/Y2', 'a/x', 'a/y', 'a_b/x', 'b', 'é/x'].map((n) => `${n}.test.mjs`)
+
+test('ordreDuLanceur : node trie le chemin au séparateur NATIF — l’ordre mesuré sous Windows avec \\, l’ordre POSIX avec /', () => {
+  const melange = [...ORDRE_WINDOWS].reverse().map((t) => [t, 1])
+  assert.deepEqual(ordreDuLanceur('node', melange, '\\').map(([t]) => t), ORDRE_WINDOWS)
+  assert.deepEqual(ordreDuLanceur('node', melange, '/').map(([t]) => t),
+    ['B2/x', 'Z', 'a-b/x', 'a.test', 'a/Y2', 'a/x', 'a/y', 'a2/x', 'aB/x', 'a_b/x', 'b', 'é/x'].map((n) => `${n}.test.mjs`))
+})
+
+test('minorant PAR FAMILLE (sonde du juge de diff) : la famille qui porte un test sans durée dit « ≥ » et son écart un majorant', () => {
+  const retenus = new Map([['scripts/neuf.test.mjs', { rang: 0 }], ['scripts/connu.test.mjs', { rang: 0 }]])
+  const estimations = estimationsDe([...retenus.keys()], { locales: { 'scripts/connu.test.mjs': 1000 } })
+  const plan = planDExecution(retenus, { budget: 180, estimations, workers: { node: 15 }, surcouts: { node: 2911 } })
+  assert.deepEqual(plan.sansDureeParFamille, { vitest: 0, node: 1 })
+  assert.equal(texteDuReel(5000, plan.murParFamille.node, plan.sansDureeParFamille.node),
+    'mur réel 5.0 s pour ≥ 3.9 s estimés (écart ≤ +28 %, estimation minorante : 1 test(s) sans durée)')
+  assert.equal(texteDuReel(5000, 4000, 0), 'mur réel 5.0 s pour 4.0 s estimés (écart +25 %)')
 })

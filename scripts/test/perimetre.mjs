@@ -448,15 +448,19 @@ function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos
 const FAMILLES = Object.freeze(['vitest', 'node'])
 
 /**
- * L'ORDRE dans lequel le lanceur de la famille `famille` démarre ses fichiers `[test, ms][]`. PURE.
- * - node : lexical (node v22, `internal/test_runner/runner` `createTestFileList` → `ArrayPrototypeSort`).
+ * L'ORDRE dans lequel le lanceur de la famille `famille` démarre ses fichiers `[test, ms][]` (chemins POSIX). PURE.
+ * - node : lexical sur le chemin au séparateur NATIF `separateur` (node v22, `internal/test_runner/runner`
+ *   `createTestFileList` → `ArrayPrototypeSort` des chemins du glob).
  * - vitest : durée décroissante (`BaseSequencer.sort`, node_modules/vitest/dist/chunks/index.DpLw24bj.js:13385-13414) ;
  *   ses autres clés — échec au run précédent d'abord, fichier sans résultat en cache d'abord, puis par taille — lisent
  *   le cache de Vitest, absent des mesures : non reproduites.
  */
-const ordreDuLanceur = (famille, fichiers) => [...fichiers].sort(famille === 'node'
-  ? ([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)
-  : ([a, ma], [b, mb]) => mb - ma || (a < b ? -1 : a > b ? 1 : 0))
+export const ordreDuLanceur = (famille, fichiers, separateur = sep) => {
+  const natif = (chemin) => chemin.split('/').join(separateur)
+  return [...fichiers].sort(famille === 'node'
+    ? ([a], [b]) => (natif(a) < natif(b) ? -1 : natif(a) > natif(b) ? 1 : 0)
+    : ([a, ma], [b, mb]) => mb - ma || (a < b ? -1 : a > b ? 1 : 0))
+}
 
 /** Le MUR simulé de durées `durees` démarrées dans cet ordre sur `workers` workers : chaque fichier va au premier
  *  worker libre (ordonnancement par liste). PURE. */
@@ -496,8 +500,8 @@ const fichiersVides = () => tableTotale(FAMILLES, () => [])
  * @param {{ budget?: number, estimations?: Map<string, { ms: number }>, signaux?: Map<string, { signal: string }>, workers?: Record<string, number>, surcouts?: Record<string, number> }} [options]
  * Chaque mur porte ses tests lancés SANS DURÉE (`sansDuree`), dont il n'est qu'un minorant, et sa part estimée
  * depuis la CI (`murCiMs`, ses `nCi` tests lancés de source `ci`) : le mur moins le mur où leurs durées valent 0.
- * `murParFamille` : le mur de chaque famille seule.
- * @returns {{ lances: string[], aLaCI: string[], murMs: number, murBudgeteMs: number, sansDuree: number, murCiMs: number, nCi: number, murParFamille: Record<string, number>, rangs: { rang: string, murMs: number, sansDuree: number, murCiMs: number, nCi: number, lances: number, aLaCI: number, inconnues: number }[] }}
+ * `murParFamille` : le mur de chaque famille seule ; `sansDureeParFamille` : ses tests lancés sans durée.
+ * @returns {{ lances: string[], aLaCI: string[], murMs: number, murBudgeteMs: number, sansDuree: number, murCiMs: number, nCi: number, murParFamille: Record<string, number>, sansDureeParFamille: Record<string, number>, rangs: { rang: string, murMs: number, sansDuree: number, murCiMs: number, nCi: number, lances: number, aLaCI: number, inconnues: number }[] }}
  */
 export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations = new Map(), signaux = new Map(), workers, surcouts } = {}) {
   const parRang = new Map()
@@ -547,8 +551,9 @@ export function planDExecution(retenus, { budget = BUDGET_LOCAL_S, estimations =
   }
   const total = (cle) => rangs.reduce((n, r) => n + r[cle], 0)
   const murParFamille = tableTotale(FAMILLES, (f) => murDesFichiers({ [f]: cumuls[f] }, { workers, surcouts }))
+  const sansDureeParFamille = tableTotale(FAMILLES, (f) => lances.filter((t) => familleDe(t) === f && inconnue(t)).length)
   return { lances, aLaCI, murMs: mur(cumuls), murBudgeteMs: mur(cumuls) - horsBudget, sansDuree: total('sansDuree'),
-    murCiMs: partCi(mur(cumuls), mur(sansCi)), nCi: total('nCi'), murParFamille, rangs }
+    murCiMs: partCi(mur(cumuls), mur(sansCi)), nCi: total('nCi'), murParFamille, sansDureeParFamille, rangs }
 }
 
 /** Les modules `entrees` (`{ rel, text }`, `text` null : absent) analysés par lots de `LOT_D_ANALYSE`,
@@ -825,8 +830,8 @@ export function mesuresDe(dossier) {
 
 /**
  * Les WORKERS de chaque famille d'un lancement (#2400) : ceux que `run.mjs` sert à UN processus Vitest
- * (`capaciteDuLanceur`, `maxWorkersMono`) — les reporters du périmètre (`reportersVitest` : `--reporter`,
- * `--outputFile`) sont des `DRAPEAUX_MONO` (scripts/test/partition.mjs:205), sans partage node/jsdom —, et la
+ * (`capaciteDuLanceur`, `maxWorkersMono`) — le `--reporter` du périmètre (`reportersVitest`) est un `DRAPEAUX_MONO`
+ * (scripts/test/partition.mjs:205, `separerArguments`), sans partage node/jsdom —, et la
  * concurrence par défaut de `node --test` (`--test-concurrency`, doc Node : `os.availableParallelism() - 1`).
  * @param {NodeJS.ProcessEnv} env
  */
@@ -856,11 +861,12 @@ export const texteDeLEstimation = ({ ms, source, run, facteur, population }) => 
   return ` ~${secondes(ms)} (CI ${run} × ${facteur.valeur.toFixed(2)}${facteur.origine === 'repli' ? ' repli de banc' : ''}, ${population})`
 }
 
-/** Le texte de l'écart d'un mur réel `reelMs` à son estimation `estimeMs`, en %. PURE. */
-const texteDeLEcart = (reelMs, estimeMs) => {
-  if (estimeMs <= 0) return 'écart non défini'
+/** Le mur RÉEL `reelMs` face à son estimation `estimeMs` et leur écart en % ; avec `sansDuree` tests lancés sans durée,
+ *  l'estimation est un MINORANT (`≥`) et l'écart un MAJORANT (`≤`). PURE. */
+export const texteDuReel = (reelMs, estimeMs, sansDuree = 0) => {
   const pourcent = Math.round(((reelMs - estimeMs) / estimeMs) * 100)
-  return `écart ${pourcent > 0 ? '+' : ''}${pourcent} %`
+  const ecart = estimeMs <= 0 ? 'écart non défini' : `écart ${sansDuree ? '≤ ' : ''}${pourcent > 0 ? '+' : ''}${pourcent} %`
+  return `mur réel ${secondes(reelMs)} pour ${sansDuree ? '≥ ' : ''}${secondes(estimeMs)} estimés (${ecart}${sansDuree ? `, estimation minorante : ${sansDuree} test(s) sans durée` : ''})`
 }
 
 /** Le RAPPORT de durées du lancement `i` de la famille `famille`, sous `dossier`, propre au processus `pid`. PURE. */
@@ -964,9 +970,8 @@ function principal() {
     ecrireLesMesures(mesures, SURCOUTS, { [famille]: surcout })
   }
   for (const [famille, murMs] of Object.entries(reels))
-    journal(`${famille} : mur réel ${secondes(murMs)} pour ${secondes(plan.murParFamille[famille])} estimés au plan (${texteDeLEcart(murMs, plan.murParFamille[famille])})`)
-  const reelTotal = Object.values(reels).reduce((a, b) => a + b, 0)
-  journal(`mur réel total ${secondes(reelTotal)} pour ${plan.sansDuree ? '≥ ' : ''}${secondes(plan.murMs)} estimés (${texteDeLEcart(reelTotal, plan.murMs)})`)
+    journal(`${famille} au plan : ${texteDuReel(murMs, plan.murParFamille[famille], plan.sansDureeParFamille[famille])}`)
+  journal(`total : ${texteDuReel(Object.values(reels).reduce((a, b) => a + b, 0), plan.murMs, plan.sansDuree)}`)
   return code
 }
 
