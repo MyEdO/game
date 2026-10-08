@@ -82,8 +82,8 @@ test('deux reporters fichier et stdout sont relayés, puis apprendre lit le chem
   ], `
     const { apprendre, mesuresDe } = await import(${JSON.stringify(PERIMETRE)});
     const mesures = mesuresDe(${JSON.stringify(join(racine, 'rapports', 'mesures'))});
-    const appris = apprendre(${JSON.stringify(racine)}, ${JSON.stringify(un)}, mesures);
-    console.log(JSON.stringify({ appris, memo: mesures.lire('durees.json')['propre.test.mjs'] }));
+    const { appris, workers } = apprendre(${JSON.stringify(racine)}, ${JSON.stringify(un)}, mesures, 'node', 1);
+    console.log(JSON.stringify({ appris, workers, memo: mesures.lire('durees.json')['propre.test.mjs'] }));
   `)
   assert.equal(lancement.status, 0, lancement.stderr)
   const [resultat, mesure] = lancement.stdout.trim().split('\n').map((l) => JSON.parse(l))
@@ -93,6 +93,7 @@ test('deux reporters fichier et stdout sont relayés, puis apprendre lit le chem
   assert.equal(typeof JSON.parse(readFileSync(deux, 'utf8'))[join(racine, 'propre.test.mjs')], 'number')
   assert.equal(typeof mesure.appris['propre.test.mjs'], 'number')
   assert.equal(mesure.memo, mesure.appris['propre.test.mjs'])
+  assert.equal(mesure.workers, 1)
 }))
 
 test('un enfant rouge restitue aussi ses durées et garde son verdict', () => avecDepot((racine) => {

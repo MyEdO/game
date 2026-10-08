@@ -411,13 +411,17 @@ sélection partielle renouvelle les certificats des seuls générateurs rejoués
 pendant la génération et au contrôle final. Le code généré reste celui du \`npm ci\` du chantier. \`docs:check\` rejoue toujours les générateurs et
 vérificateurs, sans écrire de preuve ni modifier les docs. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte
-(\`node <racine>/scripts/ops/publier.mjs --veiller <run>\`) qui SUIT ce run jusqu'au verdict — elle lit le
-journal JSON, émet une ligne par transition d'étape, finit sur la ligne \`PUBLICATION:\` et sort en 0
-(vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur, borne dépassée). C'est la seule
-veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne porte le numéro
-\`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par la même commande suivie de
-\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. La CI d'une
+du harnais, et imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte, COMPOSITE
+(\`node <racine>/scripts/ops/publier.mjs --veiller <run>; node <racine>/scripts/ops/publier.mjs --veiller <run> --constat\`),
+qui SUIT ce run jusqu'au verdict — elle lit le journal JSON, émet une ligne par transition d'étape, finit sur
+la ligne \`PUBLICATION:\` et sort en 0 (vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur,
+borne dépassée), jamais 127 : une veille tuée, son \`--constat\` reprend depuis la dernière transition du
+journal et rend le code du verdict. Un train mort sans verdict est CONSTATÉ au journal par sa veille ou par le
+prochain \`ops:publier\` : mort en \`fin\`, la publication est verte (\`INTERROMPUE\`, avec la mesure du
+principal). C'est la seule veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne
+porte le numéro \`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par
+\`… --veiller <run> --depuis <dernier seq lu>; … --veiller <run> --constat\`, sans rien ré-émettre, et sa
+borne court depuis le LANCEMENT du run. La CI d'une
 branche poussée s'attend de même, en fond : \`npm run ops:ci -- --attendre [<sha>]\` (\`${script('ops:ci')}\`)
 attend la course \`CI\` du sha poussé et sort sur son verdict, un code par verdict (verte 0, rouge 1, annulée,
 absente, borne dépassée), en nommant sur un rouge les tests en échec de chaque job rouge ; \`--echecs <run>\`
@@ -469,8 +473,9 @@ ${lignesFamilles}
 Le partage de la suite (\`${script('test')}\`) est décidé par \`repartitionWorkers\` : en dessous de
 ${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. Les
 cœurs servis sont bornés par la mémoire DISPONIBLE au lancement (\`capacite\`) : autant de workers que
-la mémoire en porte, à l'empreinte mesurée d'un worker sous sa borne de tas, une réserve déduite par
-processus Vitest. Les variables
+la mémoire en porte, à l'empreinte d'un worker de son régime (\`EMPREINTES_WORKER_MO\`, \`--regime\` de
+\`scripts/test/run.mjs\`), jamais moins que \`PLANCHER_WORKERS\` quand les cœurs le permettent, une réserve
+(\`PARENT_MO\`) déduite par processus Vitest. Les variables
 d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures (seule façon
 de jouer l'autre chemin sur une machine quelconque).
 

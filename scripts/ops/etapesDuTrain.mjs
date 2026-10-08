@@ -668,13 +668,12 @@ export const ETAPES = [
     dejaFaite(ctx, journal) {
       return journal.etapes.fin?.etat === 'vert' && journal.etapes.fin.tete === ctx.tete
     },
-    // #2187 : le principal synchronisé après la fusion ; son état est un fait distinct de la publication,
+    // #2187, #2493 : le principal synchronisé sur la fusion ; son état est un fait distinct de la publication,
     // jamais un échec du train.
     jouer(ctx, journal) {
-      const principal = ctx.synchroniserPrincipal()
-      const publie = `publication complète de ${journal.tete?.slice(0, 9)} en ${String(journal.etapes.file?.detail?.fusion ?? '?').slice(0, 9)}`
-      const dit = principal.ok ? `principal : ${JSON.stringify(principal.vu)}` : `principal non synchronisé : ${principal.raison}`
-      return { ok: true, detail: { principal }, dit: `${publie} ; ${dit}` }
+      const fusion = journal.etapes.file?.detail?.fusion ?? null
+      const principal = ctx.synchroniserPrincipal({ visee: fusion })
+      return { ok: true, detail: { principal }, dit: `publication complète de ${journal.tete?.slice(0, 9)} en ${String(fusion ?? '?').slice(0, 9)} ; principal ${principal.ligne}` }
     },
   },
 ]

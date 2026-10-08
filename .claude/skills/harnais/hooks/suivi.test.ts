@@ -32,7 +32,7 @@ const LOT = [{ geste: 'cocher', ticket: 4, n: 2 }]
  * la plus ancienne. Rend les argv lancés (lecteur, mesures), le journal, `relacher` et `finirMesure`.
  */
 function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => null, suspendre: () => boolean = () => false,
-  synchro: () => Panne = () => ({ exitCode: 0, stdout: JSON.stringify({ etat: 'a-jour', sha: 'a' }), stderr: '' })) {
+  synchro: (argv: readonly string[]) => Panne = () => ({ exitCode: 0, stdout: JSON.stringify({ etat: 'a-jour', sha: 'a', texte: '' }), stderr: '' })) {
   const argvs: string[][] = []
   const synchros: string[][] = []
   const outils: unknown[] = []
@@ -57,7 +57,7 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
     if (e.argv[1]?.endsWith('/scripts/ops/synchroniser.mjs')) {
       synchros.push([...e.argv])
       ordre.push('synchroniser')
-      return { value: { ...synchro(), isStdoutTruncated: false, isStderrTruncated: false } }
+      return { value: { ...synchro(e.argv.slice(2)), isStdoutTruncated: false, isStderrTruncated: false } }
     }
     if (e.argv.includes('--mesurer')) {
       mesures.push([...e.argv])
@@ -136,36 +136,44 @@ test('session.start : `synchroniser.mjs --json` AVANT le lecteur ; `a-jour` ne d
   expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
 })
 
-test('un état de synchronisation nommé (code 1) entre UNE fois en contexte, tel quel ; un échec de lancement aussi (#2187)', async ($, on) => {
+test('le `texte` d’un état de synchronisation nommé (code 1) entre UNE fois en contexte, tel quel (#2187, #2493)', async ($, on) => {
   mock.clock(on)
-  const conflit = { etat: 'conflit', chemins: [{ chemin: 'a.md', raison: 'fusion de a.md en conflit' }], versions: '/v' }
+  const texte = '[synchroniser] principal refusé (conflit) : a.md — reprise : `npm run ops:synchroniser`'
+  const conflit = { etat: 'conflit', chemins: [{ chemin: 'a.md', raison: 'fusion de a.md en conflit' }], versions: '/v', texte }
   monde(on, () => SANS_LIEN, () => null, () => false, () => ({ exitCode: 1, stdout: JSON.stringify(conflit), stderr: '' }))
   await $.session.start(DEMARRAGE)
-  const reprise = ' — reprise : `npm run ops:synchroniser`'
   expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([
-    { name: 'synchroniser', text: `[synchroniser] principal : ${JSON.stringify(conflit)}${reprise}` },
+    { name: 'synchroniser', text: texte },
     { name: 'suivi', text: SANS_LIEN.contexte },
   ])
   expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
 })
 
-test('`avance` avec configuration client changée : en contexte, une fois, les chemins de la configuration d’avant (#2187 commentaire 6029118597, C4)', async ($, on) => {
+test('`avance` dont le post-merge court en fond : son `texte` en contexte, une fois (#2493)', async ($, on) => {
   mock.clock(on)
-  const avance = { etat: 'avance', de: 'a', vers: 'b', configurationClientChangee: ['.claude/settings.json'] }
-  monde(on, () => SANS_LIEN, () => null, () => false, () => ({ exitCode: 0, stdout: JSON.stringify(avance), stderr: '' }))
+  const texte = '[synchroniser] principal avancé de aaaaaaaaa à bbbbbbbbb ; post-merge aaaaaaaaa..bbbbbbbbb en fond : PID 7 depuis 2026-10-08T10:00:00.000Z (3 s), issue : /l/7.log'
+  const avance = { etat: 'avance', de: 'a'.repeat(40), vers: 'b'.repeat(40), configurationClientChangee: [], texte }
+  const vu = monde(on, () => SANS_LIEN, () => null, () => false, () => ({ exitCode: 0, stdout: JSON.stringify(avance), stderr: '' }))
   await $.session.start(DEMARRAGE)
+  expect(vu.synchros.map((argv) => argv.slice(2))).toEqual([['--json']])
   expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([
-    { name: 'synchroniser', text: `[synchroniser] principal : ${JSON.stringify(avance)} — la session tourne sur la configuration d'avant : .claude/settings.json` },
+    { name: 'synchroniser', text: texte },
     { name: 'suivi', text: SANS_LIEN.contexte },
   ])
   expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
 })
 
-test('synchroniseur muet (code 1, stdout vide) : le motif en contexte, une fois (#2187)', async ($, on) => {
+test('synchroniseur sorti sans état (code 1, stdout vide) : le motif et la re-mesure `--mesurer --json`, une fois (#2493)', async ($, on) => {
   mock.clock(on)
-  monde(on, () => SANS_LIEN, () => null, () => false, () => ({ exitCode: 1, stdout: '', stderr: 'tué' }))
+  const ligne = 'interrompu : avance aaaaaaaaa..bbbbbbbbb entamée (étape avance), HEAD bbbbbbbbb — reprise due (journal /j)'
+  const mesure = { etat: 'interrompu', mesure: true, ligne, texte: `[synchroniser] principal ${ligne}` }
+  const vu = monde(on, () => SANS_LIEN, () => null, () => false, (argv) => (argv.includes('--mesurer')
+    ? { exitCode: 1, stdout: JSON.stringify(mesure), stderr: '' }
+    : { exitCode: 1, stdout: '', stderr: 'tué' }))
   await $.session.start(DEMARRAGE)
-  expect((await $.prompt.context({ blocks: [] })).blocks[0]).toEqual({ name: 'synchroniser', text: '[synchroniser] principal non synchronisé : sortie JSON illisible — reprise : `npm run ops:synchroniser`' })
+  expect(vu.synchros.map((argv) => argv.slice(2))).toEqual([['--json'], ['--mesurer', '--json']])
+  expect((await $.prompt.context({ blocks: [] })).blocks[0]).toEqual({ name: 'synchroniser', text: `[synchroniser] principal : synchroniseur sorti sans état (sortie JSON illisible) ; re-mesure : ${ligne}` })
+  expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
 })
 
 test('sans lien : bandeau vide sur terminal ET desktop, l’index en contexte', async ($, on) => {

@@ -63,6 +63,8 @@ scripts/data/.out/
 
 *.exe
 *.log
+# Un journal capturé verbatim est une FIXTURE de test (#2493, témoin 6), pas un journal de travail.
+!scripts/**/fixtures/**/*.log
 
 # Config de Vite recompilée à côté d'elle-même à chaque `vite build`/`vite dev`, puis effacée : tant
 # qu'elle est là, elle est NON SUIVIE à la racine et `perimetreSale` la compte, ce qui fait écrire un
