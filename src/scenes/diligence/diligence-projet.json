@@ -20819,6 +20819,13 @@
           {
            "kind": "do",
            "effect": {
+            "type": "clearObjective",
+            "id": "edo-ch1-embuscade"
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
             "type": "journal",
             "desc": "Sous un buisson, un peu à l’écart de la diligence renversée, gît un autre corps : deux carreaux d’arbalète dans le dos, des vêtements de citadin.",
             "adapteDe": {
@@ -22942,7 +22949,36 @@
     }
    ],
    "dialogues": [],
-   "triggers": [],
+   "triggers": [
+    {
+     "id": "edo-ch1-arrivee-virage",
+     "rect": {
+      "x": 0,
+      "y": 0,
+      "w": 40,
+      "h": 24
+     },
+     "once": true,
+     "flow": {
+      "kind": "seq",
+      "steps": [
+       {
+        "kind": "do",
+        "effect": {
+         "type": "setObjective",
+         "id": "edo-ch1-embuscade",
+         "desc": "Examiner les lieux de l’embuscade.",
+         "adapteDe": {
+          "book": "ennemi-dans-l-ombre",
+          "page": 26,
+          "note": "EDO 02 l.89"
+         }
+        }
+       }
+      ]
+     }
+    }
+   ],
    "encounters": [],
    "flags": {},
    "environment": "sauvage"

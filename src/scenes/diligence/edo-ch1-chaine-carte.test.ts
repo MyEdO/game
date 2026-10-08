@@ -103,10 +103,15 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(get().worldMapOpen).toBe(true);
     expect(objectifs()).toEqual(['edo-ch1-route']);
 
+    const drapeauxAvantVirage = { ...get().flags };
     useGame.getState().transitionTo('route-principale-virage');
     useGame.getState().moveParty({ x: 36, y: 3 });
+    expect(objectifs()).toEqual(['edo-ch1-route', 'edo-ch1-embuscade']);
+    expect(get().flags, 'l’arrivée au virage ne pose que sa marque `once`')
+      .toEqual({ ...drapeauxAvantVirage, '__trigger_edo-ch1-arrivee-virage': true });
     useGame.getState().jouerAction('cadavre-kastor-lieberung', 'fouiller');
     expect(get().flags[CORPS]).toBe(true);
+    expect(objectifs()).toEqual(['edo-ch1-route']);
 
     useGame.getState().transitionTo('altdorf-porte-sud');
     expect(get().flags[CLOS]).toBeFalsy();
@@ -116,7 +121,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(get().flags[CLOS]).toBe(true);
     expect(get().pendingChapterRecap?.titre).toBe(paquet.narratif!.cloture!.titre);
     expect(get().pendingChapterRecap?.chronique.map((c) => c.text))
-      .toEqual(['Trouver une place à bord d’une diligence pour Altdorf.', 'Se rendre à Altdorf.']);
+      .toEqual(['Trouver une place à bord d’une diligence pour Altdorf.', 'Examiner les lieux de l’embuscade.', 'Se rendre à Altdorf.']);
   });
 });
 
