@@ -27,7 +27,8 @@
 //   · `lanceur`  — un appel dont le premier argument est l'exécutable `git` (`execFileSync('git', …)`,
 //     `run('git', …)`), ou un `exec`/`execSync` dont la ligne de commande commence par `git ` : git
 //     lancé sans l'hôte ;
-//   · `decoupe`  — un `split` sur NUL : la découpe d'une sortie `-z` hors de l'hôte ;
+//   · `decoupe`  — un `split` sur NUL hors lecture de donnée FS prouvée ;
+//     une origine inconnue est refusée ;
 //   · `forme`    — une option qui produit des CHEMINS (`--name-only`, `--name-status`, `--numstat`,
 //     `ls-files`, `ls-tree`, `-z`) : une QUESTION de l'hôte la fixe elle-même, aucun appelant ne l'écrit.
 import { readFileSync } from 'node:fs'
@@ -35,6 +36,8 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { INDEX, depotDe, fichiersDuGrep, listerImage } from './gitPorte.mjs'
 import { estFichierVitest } from './fichierVitest.mjs'
+import { analyserCorpus, typescript } from './dialecte.mjs'
+import { creerProvenanceFs } from './provenanceFs.mjs'
 
 /** L'arbre lu par défaut : celui où VIT ce module. */
 export const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -47,7 +50,7 @@ export const HOTE = 'scripts/guards/lib/gitPorte.mjs'
 
 const MODULE = /\.(?:mjs|cjs|mts|cts|ts|js)$/
 const LANCEUR = /[\w$]\s*\(\s*(['"`])git\1|\bexec(?:Sync)?\(\s*(['"`])git\s/g
-const DECOUPE = /split\(\s*(['"`])(?:\\0|\\x00|\\u0000)\1\s*\)/g
+const CANDIDAT_DECOUPE = /\bsplit\s*\(\s*(['"`])(?:\\0|\\x00|\\u0000)\1/
 const FORME = /(['"`])(--name-only|--name-status|--numstat|ls-files|ls-tree|-z)\1/g
 
 /** Un import statique de l'hôte (`-E` de `git grep`). */
@@ -76,7 +79,28 @@ export function sitesHorsHote(chemin, texte) {
   const sites = []
   const noter = (forme, i) => sites.push({ chemin, ligne: ligneDe(i), forme, extrait: lignes[ligneDe(i) - 1].trim().slice(0, 120) })
   for (const m of code.matchAll(LANCEUR)) noter('lanceur', m.index)
-  for (const m of code.matchAll(DECOUPE)) noter('decoupe', m.index)
+  if (CANDIDAT_DECOUPE.test(code)) for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel: chemin, text: texte }])) {
+    const ts = typescript()
+    if (!sourceFile || diagnostics.length) throw new Error(`sitesHorsHote : syntaxe indéterminée pour ${chemin} : ${diagnostics.map(d => d.text).join('; ')}`)
+    const provenance = creerProvenanceFs({ sourceFile, checker, ts })
+    const parcourir = (n, visiter) => { visiter(n); n.forEachChild(c => parcourir(c, visiter)) }
+    const donneeFichier = n => {
+      if (!n) return false
+      if (ts.isParenthesizedExpression(n) || ts.isAwaitExpression(n)) return donneeFichier(n.expression)
+      if (ts.isCallExpression(n)) {
+        const operation = provenance(n.expression)?.operation
+        if (operation === 'readFileSync' || operation === 'readFile') return true
+        return ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'toString' && donneeFichier(n.expression.expression)
+      }
+      return false
+    }
+    parcourir(sourceFile, n => {
+      if (!ts.isCallExpression(n) || !ts.isPropertyAccessExpression(n.expression) || n.expression.name.text !== 'split') return
+      const separateur = n.arguments[0]
+      if (!separateur || !ts.isStringLiteralLikeNode(separateur) || separateur.text !== '\0') return
+      if (!donneeFichier(n.expression.expression)) noter('decoupe', n.expression.name.getStart(sourceFile))
+    })
+  }
   for (const m of code.matchAll(FORME)) noter('forme', m.index)
   return sites.sort((a, b) => a.ligne - b.ligne)
 }

@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { repartir } from './repartition.mjs'
 import { garde } from './suivi-ecriture-guard.mjs'
+import { REGISTRE } from './registre.mjs'
 
 const SCRIPTS = JSON.parse(FS.readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).scripts
 
@@ -26,9 +27,12 @@ test('#2460 — `.git/suivi/665.json` : Write, Edit, ctx_patch et l’écriture 
       `node -e "require('fs').writeFileSync('${P}', '{}')"`,
       `npm run ops:suivi -- 665 && sed -i s/a/b/ ${P}`,
       `npm run ops:suivi -- 665 --rendu > ${P}`,
+      'cd .git/suivi; echo x > 665.json',
     ].map((command) => ['Bash', { command }, 'deny']),
     ...[
       `cat ${P}`, `grep juge ${P}`,
+      `cp ${P} ailleurs.json`, `node ${P}`,
+      `node -e "require('fs').readFileSync('${P}')"`,
       `npm run ops:suivi -- 665 --lot '{"epique": 665, "mutations": [{"geste": "cocher", "ticket": 2400, "n": 4}]}'`,
       'npm run ops:suivi -- 665 --ajouter-etape 2400 "tour 10 publié"',
       `cat .git/suivi/2437-query.json > copie.json`, 'echo x > .git/suivi/consignes/2460.md',
@@ -41,7 +45,7 @@ test('#2460 — `.git/suivi/665.json` : Write, Edit, ctx_patch et l’écriture 
   ]
   try {
     for (const [tool_name, tool_input, attendu] of cas) {
-      const { sortie } = await repartir({ PreToolUse: [garde] }, JSON.stringify({
+      const { sortie } = await repartir({ PreToolUse: REGISTRE.PreToolUse.filter(g => g === garde) }, JSON.stringify({
         hook_event_name: 'PreToolUse', tool_name, tool_input, session_id: 's',
       }), { env: {}, cwd: racine })
       const quoi = `${tool_name} ${JSON.stringify(tool_input)}`

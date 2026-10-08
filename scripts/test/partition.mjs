@@ -129,37 +129,55 @@ export function memoireDisponibleMo(env, mesure = mesureMemoireDisponibleMo) {
  *  `worker perdu 0`. */
 export const TAS_WORKER_MO = 3072
 
-/** Empreinte RSS d'un worker sous `TAS_WORKER_MO`, en Mo. Paramètre de BANC : maximum de deux
- *  runs de la suite du 2026-09-26 sur le conteneur de `TAS_WORKER_MO` (3 workers, borne 3 072 Mo,
- *  RSS échantillonnée toutes les 3 s), somme des RSS des workers à l'échantillon du pic de la somme,
- *  divisée par 3 : run par `NODE_OPTIONS` 10 794 Mo → 3 598 ; run par la config 10 298 Mo → 3 433.
- *  Pic transitoire d'UN worker : 5 413 Mo et 4 909 Mo. */
-export const EMPREINTE_WORKER_MO = 3598
+/** Empreinte d'un worker Vitest par RÉGIME de lancement, en Mo : `suite` (la suite entière), `lot` (un lot de
+ *  fichiers, `test:perimetre`). Paramètres de BANC du 2026-10-08, Vitest 5.0.3, Windows 16 cœurs, mémoire de
+ *  travail des processus échantillonnée (#2497) ; empreinte = somme au pic / workers. `suite` : run s4, 2 workers,
+ *  389 workers recyclés, somme au pic 4 680 Mo → 2 340 (pic transitoire d'UN worker 3 974). `lot` : runs a2
+ *  (71 fichiers, 2 506 / 2 = 1 253) et b3 (6 fichiers lourds, 3 301 / 2 = 1 651) ; le lot prend le pic
+ *  transitoire d'UN worker de b3, 1 973, comme marge. */
+export const EMPREINTES_WORKER_MO = Object.freeze({ suite: 2340, lot: 1973 })
 
-/** RSS d'un processus Vitest parent, en Mo, réservée par processus Vitest lancé. Paramètre de BANC,
- *  mêmes deux runs, en mono seulement : pic du parent 1 205 Mo (`NODE_OPTIONS`) et 1 462 Mo
- *  (config), maximum retenu. */
+/** Portée du régime `lot` (`EMPREINTES_WORKER_MO`), en secondes de mur estimé du lancement Vitest : la durée du plus
+ *  long lot mesuré, b3, 294,4 s à 2 workers (2026-10-08, #2497, c.6060346318). Le pic d'un worker croît avec la part de
+ *  travail qu'il porte ; au-delà, l'empreinte du lot n'est pas mesurée. */
+export const PORTEE_LOT_S = 294.4
+
+/** RSS d'un processus Vitest parent, en Mo, réservée par processus Vitest lancé. Paramètre de BANC : deux
+ *  runs de la suite du 2026-09-26, en mono : pic du parent 1 205 Mo (`NODE_OPTIONS`) et 1 462 Mo (config),
+ *  maximum retenu ; run s4 du 2026-10-08 (`EMPREINTES_WORKER_MO`) : 1 434 Mo de mémoire de travail. */
 export const PARENT_MO = 1462
 
-/** Capacité servie par le lanceur : cœurs mesurés bornés par les workers que la mémoire disponible
- *  porte, plus le cœur du parent (même convention que `repartitionWorkers`/`maxWorkersMono`).
- *  Calculée avec un parent ; si ce résultat partage, recalculée avec deux (node et jsdom) — elle
- *  peut alors retomber sous le seuil, en mono, qui n'a qu'un parent. `portes` est le compte AVANT
- *  plancher ; sous un worker, le lanceur en sert un quand même et `borne` vaut `'plancher'`. */
-export function capacite(cpus, memoireMo) {
+/** Workers servis quand la mémoire en porte moins, dès que les cœurs le permettent (`servis ≥ 3`) : sous
+ *  `isolate:false`, UN worker reçoit tous les fichiers d'un environnement en une requête
+ *  (node_modules/vitest/dist/chunks/index.DpLw24bj.js:11912-11920). Mesuré sur la suite le 2026-10-08 (#2497) :
+ *  5 414 Mo pour ce worker seul, 6,2 Go pour l'arbre, contre 5,65 Go à 2 workers. */
+export const PLANCHER_WORKERS = 2
+
+/** Capacité servie par le lanceur sous le régime `regime` (`EMPREINTES_WORKER_MO`) : cœurs mesurés bornés
+ *  par les workers que la mémoire disponible porte, plus le cœur du parent (même convention que
+ *  `repartitionWorkers`/`maxWorkersMono`). Calculée avec un parent ; si ce résultat partage, recalculée avec
+ *  deux (node et jsdom) — elle peut alors retomber sous le seuil, en mono, qui n'a qu'un parent. `portes` est
+ *  le compte AVANT plancher ; sous `PLANCHER_WORKERS`, le lanceur en sert ce plancher quand les cœurs le
+ *  permettent, et `borne` vaut `'plancher'` dès qu'il sert plus que la mémoire ne porte. Un régime inconnu lève. */
+export function capacite(cpus, memoireMo, regime) {
+  if (!Object.hasOwn(EMPREINTES_WORKER_MO, regime))
+    throw new Error(`régime de lancement inconnu : « ${regime} » — attendu ${Object.keys(EMPREINTES_WORKER_MO).join(' | ')}`)
+  const empreinteMo = EMPREINTES_WORKER_MO[regime]
   const avec = (parents) => {
-    const portes = Math.floor((memoireMo - parents * PARENT_MO) / EMPREINTE_WORKER_MO)
-    return { portes, servis: Math.min(cpus, 1 + Math.max(1, portes)) }
+    const portes = Math.floor((memoireMo - parents * PARENT_MO) / empreinteMo)
+    return { portes, servis: Math.min(cpus, 1 + Math.max(PLANCHER_WORKERS, portes)) }
   }
   const mono = avec(1)
   const { portes, servis } = repartitionWorkers(mono.servis).split ? avec(2) : mono
   return {
     cpus,
     memoireMo,
+    regime,
+    empreinteMo,
     servis,
     portes,
     parents: repartitionWorkers(servis).split ? 2 : 1,
-    borne: portes < 1 ? 'plancher' : servis < cpus ? 'mémoire' : 'cœurs',
+    borne: maxWorkersMono(servis) > portes ? 'plancher' : servis < cpus ? 'mémoire' : 'cœurs',
   }
 }
 
@@ -192,10 +210,31 @@ export function cotesRequis(filtres, partition, racine, plateforme = process.pla
   return cotes.length ? cotes : ['node']
 }
 
-/** La capacité servie par le lanceur sous l'environnement `env` : `capacite` des cœurs (`coeurs`, mesure
- *  `os.availableParallelism`) et de la mémoire disponible (`memoireDisponibleMo`). Lue par `run.mjs` et par
- *  l'estimation du mur de `perimetre.mjs`. */
-export const capaciteDuLanceur = (env) => capacite(coeurs(env, () => os.availableParallelism()), memoireDisponibleMo(env))
+/** La capacité servie par le lanceur sous l'environnement `env` et le régime `regime` : `capacite` des cœurs
+ *  (`coeurs`, mesure `os.availableParallelism`) et de la mémoire disponible (`memoireDisponibleMo`). Lue par
+ *  `run.mjs` et par l'estimation du mur de `perimetre.mjs`. */
+export const capaciteDuLanceur = (env, regime) =>
+  capacite(coeurs(env, () => os.availableParallelism()), memoireDisponibleMo(env), regime)
+
+/** Le nom d'un argument de l'argv, sans sa valeur `=…`. PURE. */
+const nomDuDrapeau = (a) => a.split('=')[0]
+
+/** Drapeau du lanceur qui nomme le régime (`EMPREINTES_WORKER_MO`), `--regime=<r>` ; jamais transmis à Vitest. */
+export const DRAPEAU_REGIME = '--regime'
+
+/** Le régime demandé par l'argv du lanceur et l'argv SANS lui : `suite` par défaut, `{ refus }` nommé pour une
+ *  valeur inconnue ou une forme sans `=`. */
+export function regimeDeArgv(argv) {
+  const demandes = argv.filter((a) => nomDuDrapeau(a) === DRAPEAU_REGIME)
+  const reste = argv.filter((a) => nomDuDrapeau(a) !== DRAPEAU_REGIME)
+  const attendu = `attendu ${DRAPEAU_REGIME}=${Object.keys(EMPREINTES_WORKER_MO).join('|')}`
+  if (demandes.length > 1) return { refus: `${DRAPEAU_REGIME} donné ${demandes.length} fois (${demandes.join(', ')}) — ${attendu}` }
+  if (!demandes.length) return { regime: 'suite', argv: reste }
+  const regime = demandes[0].slice(DRAPEAU_REGIME.length + 1)
+  if (!demandes[0].includes('=') || !Object.hasOwn(EMPREINTES_WORKER_MO, regime))
+    return { refus: `régime de lancement inconnu : « ${demandes[0]} » — ${attendu}` }
+  return { regime, argv: reste }
+}
 
 /** Drapeaux dont la sémantique est globale à UN processus : rapport unique (`--coverage`,
  *  `--outputFile`), sortie machine que le préfixage `[node] `/`[jsdom] ` rendrait illisible
@@ -217,7 +256,7 @@ export function separerArguments(argv, estChemin = () => true) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a.startsWith('-')) {
-      const nom = a.split('=')[0]
+      const nom = nomDuDrapeau(a)
       if (DRAPEAUX_MONO.includes(nom)) mono = true
       // Forme séparée `--reporter json` : la valeur suit et n'est pas un positionnel.
       if (!a.includes('=') && argv[i + 1] && !argv[i + 1].startsWith('-') && VALEUR_ATTENDUE.includes(nom)) i++
@@ -269,7 +308,9 @@ export function cheminsGlobSuspects(chemins) {
  *  (`argumentsEnfant`). */
 export const maxWorkersMono = (cpus) => Math.max(1, Math.min(4, cpus - 1))
 
-/** Plafond à injecter devant l'argv de l'appelant : rien si l'appelant borne déjà lui-même. */
+/** Plafond à injecter devant l'argv de l'appelant : rien si l'appelant borne déjà lui-même. Le nom se replie en casse
+ *  et sans tirets : il couvre les deux graphies que cac accepte, `--maxWorkers` et `--max-workers`
+ *  (node_modules/vitest/dist/chunks/cac.DfDGTQ9W.js:186-190, 215-217). */
 export function bornesWorkers(argv, cpus) {
   const nom = (a) => a.split('=')[0].toLowerCase().replace(/-/g, '')
   const borne = argv.some((a) => a.startsWith('-') && nom(a) === 'maxworkers')
@@ -357,14 +398,15 @@ export function bilanDiagnostic(
   compte,
   { capacite, memGo, memMaxGo, rssMaxMo, secondes, partage, maxWorkers, tasMaxMo },
 ) {
-  const { cpus, memoireMo, servis, portes, parents } = capacite
-  const reserve = parents * PARENT_MO + EMPREINTE_WORKER_MO
+  const { cpus, memoireMo, regime, empreinteMo, servis, portes, parents } = capacite
+  const workersMono = maxWorkersMono(servis)
+  const reserve = parents * PARENT_MO + workersMono * empreinteMo
   const pourcent = memGo > 0 ? Math.round((memMaxGo / memGo) * 100) : 0
   const comptes = SENTINELLES.map(([libelle]) => `${libelle} ${compte[libelle] ?? 0}`).join(' · ')
   const borne = capacite.borne === 'cœurs' ? 'cœurs' : `${capacite.borne} (${servis} cœurs servis)`
   const porte =
     capacite.borne === 'plancher'
-      ? `mémoire insuffisante pour un worker (${Math.round(memoireMo)} Mo < ${reserve} Mo)`
+      ? `plancher de ${workersMono} worker${workersMono > 1 ? 's' : ''}, au-delà de la mémoire (${Math.round(memoireMo)} Mo < ${reserve} Mo)`
       : `${portes} worker${portes > 1 ? 's' : ''} porté${portes > 1 ? 's' : ''}`
   const tasPourcent = tasMaxMo === null ? 0 : Math.round((tasMaxMo / TAS_WORKER_MO) * 100)
   const tas =
@@ -374,7 +416,7 @@ export function bilanDiagnostic(
         (tasMaxMo >= SEUIL_ALERTE_TAS * TAS_WORKER_MO ? ` · ALERTE ≥ ${Math.round(SEUIL_ALERTE_TAS * 100)} %` : '')
   return [
     `[diag] machine : ${cpus} cœurs · ${memGo.toFixed(1)} Go · disponible ${(memoireMo / 2 ** 10).toFixed(1)} Go` +
-      ` → ${porte} · réserve de ${parents} parent${parents > 1 ? 's' : ''} · borné par ${borne}` +
+      ` → régime ${regime} (${empreinteMo} Mo par worker) · ${porte} · réserve de ${parents} parent${parents > 1 ? 's' : ''} · borné par ${borne}` +
       ` · ${partage ? 'partagé' : 'mono'} (seuil ${SEUIL_PARTAGE}) · maxWorkers=${maxWorkers}`,
     `[diag] mémoire système max : ${memMaxGo.toFixed(1)} Go / ${memGo.toFixed(1)} Go (${pourcent} %)` +
       ` · rss lanceur max ${Math.round(rssMaxMo)} Mo · fenêtre ${secondes.toFixed(1)} s`,
@@ -412,15 +454,17 @@ export function partieDe(valeur) {
 }
 
 /** Refus de jouer une partie sous ces arguments, ou `null`. Une partie est COMPLÈTE sur sa tranche :
- *  aucun filtre de fichier ni drapeau restrictif (`DRAPEAUX_RESTRICTIFS`), et aucun drapeau global à un seul
- *  processus (`DRAPEAUX_MONO`), dont la config ou la racine contrediraient celle de la tranche. */
+ *  aucun filtre de fichier ni drapeau restrictif (`DRAPEAUX_RESTRICTIFS`), aucun régime (`DRAPEAU_REGIME`) —
+ *  elle joue la suite —, et aucun drapeau global à un seul processus (`DRAPEAUX_MONO`), dont la config ou la
+ *  racine contrediraient celle de la tranche. */
 export function refusDePartie({ filtres, argv }) {
   if (filtres.length)
     return `${VARIABLE_PARTIE} combinée à un filtre de fichier (${filtres.join(', ')}) : une partie se joue sur sa tranche ENTIÈRE`
-  const nom = (a) => a.split('=')[0]
-  const restrictif = argv.find((a) => DRAPEAUX_RESTRICTIFS.includes(nom(a)))
+  const restrictif = argv.find((a) => DRAPEAUX_RESTRICTIFS.includes(nomDuDrapeau(a)))
   if (restrictif) return `${VARIABLE_PARTIE} combinée au drapeau restrictif ${restrictif} : une partie se joue sur sa tranche ENTIÈRE`
-  const global = argv.find((a) => a.startsWith('-') && DRAPEAUX_MONO.includes(nom(a)))
+  const regime = argv.find((a) => nomDuDrapeau(a) === DRAPEAU_REGIME)
+  if (regime) return `${VARIABLE_PARTIE} combinée à ${regime} : une partie joue la suite, sous le régime \`suite\``
+  const global = argv.find((a) => a.startsWith('-') && DRAPEAUX_MONO.includes(nomDuDrapeau(a)))
   if (global) return `${VARIABLE_PARTIE} combinée au drapeau ${global}, global à un seul processus Vitest : la tranche porte sa propre config`
   return null
 }

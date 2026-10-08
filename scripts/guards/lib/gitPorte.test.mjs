@@ -12,7 +12,7 @@ import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
-  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
+  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, dossierGitCommun, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
   fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
@@ -719,6 +719,24 @@ test('arbrePrincipal : depuis un WORKTREE RÉEL, la réponse est l’arbre PRINC
   } finally { jeter(racine) }
 })
 
+test('dossierGitCommun : namespace administratif réel partagé, refus structurels conservés', () => {
+  const { racine, g } = depot()
+  const lie = join(racine, '.wt-admin')
+  try {
+    g('worktree', 'add', '-q', '-b', 'admin', lie)
+    const principal = dossierGitCommun(forge(racine))
+    const depuisLie = dossierGitCommun(forge(lie))
+    assert.equal(principal.disponible, true, principal.raison)
+    assert.equal(depuisLie.valeur, principal.valeur)
+    assert.equal(principal.valeur.toLowerCase(), join(racine, '.git').replace(/\\/g, '/').toLowerCase())
+    assert.equal(natureDuChemin(depuisLie.valeur), 'repertoire')
+    for (const stdout of ['', '/x/nu.git', '/x/Game/.git/modules/sub']) {
+      const d = () => depotFeint('/x/Game/sub', () => ({ status: 0, stdout, stderr: '' }))
+      assert.deepEqual(dossierGitCommun(d()), arbrePrincipal(d()))
+    }
+  } finally { jeter(racine) }
+})
+
 test('#2285 classer : diagnostic multiligne intégral et flux distincts', () => {
   const ligne = `fatal: ${'mot '.repeat(100).trimEnd()}`
   const stderr = `\n\n${ligne}\nune seconde ligne\ncause concrète au-delà de quatre cents caractères`
@@ -1391,7 +1409,7 @@ test('ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de
       ['conclureFusionSansChemins', () => conclureFusionSansChemins(d, { chemins: ['a.txt'], message: 'm' }), [['--literal-pathspecs', 'rm', '-q', '--cached', '--', 'a.txt'], ['commit', '-q', '-F', '-']]],
       ['pousser', () => pousser(d, { vers: 'refs/heads/x', bail: true }), [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/x']]],
       ['ajouterWorktree', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main' }), [['worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
-      ['retirerWorktree', () => retirerWorktree(d, '/w'), [['worktree', 'remove', '--', '/w']]],
+      ['retirerWorktree', () => retirerWorktree(d, '/w', { mesurer: () => ({ ok: true }), residu: () => {} }), [['worktree', 'remove', '--', '/w']]],
       ['supprimerBranche', () => supprimerBranche(d, 'b'), [['branch', '-d', '--', 'b']]],
       ['elaguerWorktrees', () => elaguerWorktrees(d), [['worktree', 'prune']]],
     ]
@@ -1713,7 +1731,7 @@ test('une ÉTIQUETTE annotée dont le commit cible MANQUE : `GitIndisponible` no
 test('un CHEMIN positionnel qui commence par `-` passe APRÈS `--` : git le lit comme un chemin, jamais comme une option', () => {
   const { d, vus } = espion()
   const gestes = {
-    retirerWorktree: [() => retirerWorktree(d, '-f'), ['worktree', 'remove', '--', '-f']],
+    retirerWorktree: [() => retirerWorktree(d, '-f', { mesurer: () => ({ ok: true }), residu: () => {} }), ['worktree', 'remove', '--', '-f']],
     ajouterWorktree: [() => ajouterWorktree(d, { chemin: '-f', branche: 'b', depuis: 'HEAD' }), ['worktree', 'add', '-b', 'b', '--', '-f', 'HEAD']],
     ajouterOrigine: [() => ajouterOrigine(d, '-u'), ['remote', 'add', '--', 'origin', '-u']],
     commitDe: [() => commitDe(d, { message: 'm', chemins: ['-A'] }), ['--literal-pathspecs', 'commit', '-q', '-F', '-', '--', '-A']],

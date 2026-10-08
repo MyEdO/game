@@ -26,14 +26,21 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /** Scripts ÉCRIVAINS atteints par chaque gate — mesuré le 2026-09-04, stock à faire DÉCROÎTRE. */
 const ATTENDU = {
-  'agents:check': ['scripts/agents/compat-cli.mjs'],
+  'agents:check': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/agents/compat-cli.mjs'],
   'test:agents': [
+    'scripts/guards/lib/protectionWorktree.mjs',
     'scripts/agents/compat-cli.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
   ],
-  'test:hooks': [
+  'test:hooks': ['scripts/guards/lib/protectionWorktree.mjs',
+    'scripts/guards/lib/ecrituresFichiers.test.mjs',
+    'scripts/guards/lib/ecrituresShell.test.mjs',
+    'scripts/guards/lib/processusWorktrees.test.mjs',
+    'scripts/guards/lib/protectionWorktree.test.mjs',
+    'scripts/guards/lib/racinesBalayees.test.mjs',
+    'scripts/hooks/superpowers-ecriture-guard.test.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
@@ -270,10 +277,9 @@ const ATTENDU = {
   // +1 le 2026-10-04 (#2278) : la garde copie chaque mod sous un `mkdtempSync` de os.tmpdir(), effacé en
   // finally ; l'arbre n'est jamais écrit.
   'mods:check': ['scripts/mods/verifier.mjs'],
-  // La porte de publication des résolutions de fusion (#2328) n'atteint AUCUN module écrivain : elle lit
-  // l'histoire par git et rend son verdict.
-  'livraison:plage': [],
-  'test:ops': [
+  // #2328
+  'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'test:ops': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
@@ -385,7 +391,7 @@ const ATTENDU = {
     // `synchroniser.mjs` délèguent, sur les chemins de leurs appelants — l'arbre n'est jamais écrit.
     'scripts/guards/lib/renommageResilient.mjs',
   ],
-  'test:runner': [
+  'test:runner': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : le banc du lanceur des gates node forge un dépôt JETABLE (`mkdtempSync` +
     // `writeFileSync` sous os.tmpdir(), `rmSync` en finally) et y joue `node --test` ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.test.mjs',
@@ -443,7 +449,7 @@ const ATTENDU = {
     // n'est jamais écrit.
     'scripts/test/verrou.test.mjs',
   ],
-  'test:docs': [
+  'test:docs': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
@@ -490,7 +496,7 @@ const ATTENDU = {
     'scripts/guards/lib/depotGabarit.mjs',
   ],
   'deps:unused': [],
-  'test:recette': [
+  'test:recette': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
@@ -509,7 +515,7 @@ const ATTENDU = {
   ],
   // +2 le 2026-09-30 (#2203) : `gen` est `build-all.mjs --code` (`genererCode`), qui écrit les cibles
   // de CODE par `ecrireOuVerifier`.
-  build: [
+  build: ['scripts/guards/lib/protectionWorktree.mjs',
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
@@ -518,8 +524,9 @@ const ATTENDU = {
     'scripts/docs/build-all.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     'scripts/docs/lib/fraicheur-docs.mjs',
+    'scripts/guards/lib/protectionWorktree.mjs',
   ],
-  'test:raw': [
+  'test:raw': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
@@ -630,21 +637,19 @@ const ATTENDU = {
     // que son cœur PUR (`reparerLivre`, `infidelite`) sur un livre forgé en mémoire.
     'scripts/raw/reparer-titres.mjs',
   ],
-  'raw:check-refs': [],
+  'raw:check-refs': ['scripts/guards/lib/protectionWorktree.mjs', ],
   // La gate enchaîne `citation-graphy-guard.mjs`, qui IMPORTE `fieldBlockMask` de
   // `build-implemente.mjs` (frontière du bloc de champ généré, source unique, #925) ; la réécriture
   // des fiches de ce module vit derrière sa porte `import.meta.main` (`main` de build-implemente.mjs).
   // Mesurée par `scripts/docs/lib/enregistreur-lectures.mjs` en `--import` sur le CLI : ZÉRO écriture.
-  'raw:check-code-refs': ['scripts/raw/build-implemente.mjs'],
-  // La garde des renvois d'ancre de l'Atlas (#1824) n'atteint AUCUN module écrivain : elle lit les
-  // pages, calcule leurs ancres et rend son verdict — l'outil qui répare vit à côté
-  // (scripts/raw/reparer-ancres.mjs), et c'est LUI qui importe la garde, jamais l'inverse.
-  'raw:check-ancres': [],
-  'raw:check-folio-continuity': [],
-  'raw:check-source-tables': [],
-  'raw:check-source-format': [],
-  'raw:check-source-puces': [],
-  'raw:check-renvois': [],
+  'raw:check-code-refs': ['scripts/guards/lib/protectionWorktree.mjs', 'scripts/raw/build-implemente.mjs'],
+  // #1824
+  'raw:check-ancres': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-folio-continuity': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-source-tables': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-source-format': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-source-puces': ['scripts/guards/lib/protectionWorktree.mjs', ],
+  'raw:check-renvois': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'server:typecheck': [],
 }
 

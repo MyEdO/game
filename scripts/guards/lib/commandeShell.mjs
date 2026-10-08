@@ -558,7 +558,7 @@ export function argumentChaine(segment) {
  *  (sinon `null`) ; `null` si le segment ne porte rien. Le flag porteur est cherché PARMI LES FLAGS
  *  DE TÊTE, jamais à une position fixe : `bash -euo pipefail -c "…"`, `sh -ex -c "…"`,
  *  `powershell -NoProfile -Command "…"` sont des formes courantes. */
-function lecturePorteur(segment) {
+function lecturePorteur(segment, jetons) {
   const famille = ENROBEURS_ARGUMENT.get(basenameExecutable(segment[0]))
   if (!famille) return null
   const args = segment.slice(1)
@@ -579,7 +579,10 @@ function lecturePorteur(segment) {
       if (groupe.valeurSuivante) k += 1
       continue
     }
-    if (famille.porteurs.some((f) => memeFlag(f, args[k]))) return portee(famille, args[k + 1] ?? null, args, k + 2)
+    if (famille.porteurs.some((f) => memeFlag(f, args[k]))) {
+      const fideles = famille === FAMILLE_CMD && jetons ? args.map((a, i) => i >= k + 2 ? jetons[i + 1].raw ?? a : a) : args
+      return portee(famille, args[k + 1] ?? null, fideles, k + 2)
+    }
     const colle = famille.porteurs.find((f) => args[k].startsWith(`${f}=`))
     if (colle) return portee(famille, args[k].slice(colle.length + 1), args, k + 1)
     if (famille.aValeur(args[k])) k += 1
@@ -800,7 +803,7 @@ export function scriptsNpm(dir = racineNpmCourante() ?? DEPOT_DU_LECTEUR) {
     try {
       const pkg = JSON.parse(readFileSync(join(clef, 'package.json'), 'utf8'))
       table = Object.fromEntries(Object.entries(pkg?.scripts ?? {}).filter(([, v]) => typeof v === 'string'))
-    } catch { /* pas de package.json lisible → aucun script résolu */ }
+    } catch {}
     CACHE_SCRIPTS.set(clef, table)
   }
   return CACHE_SCRIPTS.get(clef)
@@ -887,6 +890,12 @@ export function pipelinesDeJetons(command, profondeur = 0, options = {}) {
   return pipelinesDuFlux(tokenizeCommand(command), profondeur, { ...options, budget, shell: options.shell ?? { parent: options.hote ?? null } })
 }
 
+export function texteDuSegment(segment) {
+  const jetons = segment.jetons.length ? segment.jetons
+    : segment.enTete.filter((j) => segment.valeurs.some((v) => v.jeton === j))
+  return jetons.map((j) => j.raw ?? j.text).join(' ')
+}
+
 /** Le séparateur qu'un bloc absorbe (`;`, `|`, `&&`, `||`, `)`), jeton de son segment. */
 const separateur = (op) => ({ text: op, raw: op, op: null, separateur: op })
 /** Le corps d'un bloc rendu au flux : ses séparateurs redeviennent des opérateurs. */
@@ -952,7 +961,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       const posees = segment.length === 0 ? valeurs : declarationsDuSegment(segment)
       const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
       if (segment.length > 0) {
-        const porteur = ouvreDesBlocs ? null : lecturePorteur(textes)
+        const porteur = ouvreDesBlocs ? null : lecturePorteur(textes, segment)
         const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(segment, scripts))
         if (inner !== null) {
           const debutSuite = porteur?.suite ?? null
@@ -1325,7 +1334,8 @@ function lireRedirections(jetons, depart) {
     if (!m) { lu.arguments.push(jetons[i]); continue }
     const separee = m[0] === jetons[i].text && !m[1]
     const cible = m[1] ? null : separee ? (jetons[i + 1]?.text ?? null) : jetons[i].text.slice(m[0].length)
-    lu.redirections.push({ operateur: m[0], cible })
+    const cibleJeton = cible === null ? null : separee ? jetons[i + 1] : { ...jetons[i], text: cible, raw: (jetons[i].raw ?? jetons[i].text).slice(m[0].length) }
+    lu.redirections.push({ operateur: m[0], cible, cibleJeton })
     if (separee) i += 1
   }
   return lu
@@ -1344,6 +1354,12 @@ export function ciblesDeRedirection(jetons, depart = 0) {
   return lireRedirections(jetons, depart).redirections
     .filter((r) => r.cible !== null && r.operateur.includes('>'))
     .map((r) => r.cible)
+}
+
+export function ciblesDeRedirectionAvecProvenance(jetons, depart = 0) {
+  return lireRedirections(jetons, depart).redirections
+    .filter((r) => r.cibleJeton && r.operateur.includes('>'))
+    .map((r) => r.cibleJeton)
 }
 
 // ── Répertoire CIBLE de la commande (#587) ─────────────────────────────────────────────────────────
@@ -1394,7 +1410,9 @@ const VARIABLE_NON_EXPANSEE_RE = /[$%]/
  *  Les `cd` se PLIENT dans l'ordre : chacun se résout contre le répertoire où le précédent a mené. */
 function cheminNommeParLaCommande(command, cwd, platform) {
   const pas = (depuis, brut) => {
+    if (brut === null) return { brut: '', resolu: null }
     const natif = versCheminNatif(brut, platform)
+    if (!isAbsolute(natif) && (depuis ? depuis.resolu === null : cwd === null)) return { brut, resolu: null }
     const herite = !isAbsolute(natif) && VARIABLE_NON_EXPANSEE_RE.test(depuis?.brut ?? '')
     return { brut: herite ? depuis.brut : brut, resolu: resolve(depuis?.resolu ?? cwd, natif) }
   }
@@ -1402,7 +1420,14 @@ function cheminNommeParLaCommande(command, cwd, platform) {
   for (const segment of segmentsLus(command)) {
     const dashC = valeursGitDashC(segment)
     if (dashC.length) return dashC.reduce(pas, lieu)
-    if (VERS_UN_CHEMIN.includes(basenameExecutable(segment[0])) && segment[1]) lieu = pas(lieu, segment[1])
+    if (VERS_UN_CHEMIN.includes(basenameExecutable(segment[0]))) {
+      const args = segment.slice(1)
+      const noms = ['Path', 'LiteralPath', 'PassThru', 'StackName']
+      const nomme = valeurParametre(args, 'Path', noms) || valeurParametre(args, 'LiteralPath', noms)
+      const marqueur = args[0] === '--' || args[0]?.toLowerCase() === '/d'
+      const brut = nomme || (marqueur ? args[1] : args[0])
+      lieu = pas(lieu, brut && (!brut.startsWith('-') || marqueur) ? brut : null)
+    }
   }
   return lieu
 }
@@ -1422,6 +1447,7 @@ export function cibleDeLaCommande(command, cwd = process.cwd(), platform = proce
   if (!command) return { dir: null, ignore: null }
   const nomme = cheminNommeParLaCommande(command, cwd, platform)
   if (!nomme) return { dir: null, ignore: null }
+  if (nomme.resolu === null) return { dir: null, ignore: { chemin: nomme.brut, raison: 'répertoire de départ indéterminé' } }
   if (VARIABLE_NON_EXPANSEE_RE.test(nomme.brut)) {
     return { dir: null, ignore: { chemin: nomme.brut, raison: 'variable de shell non expansée' } }
   }
@@ -1430,3 +1456,5 @@ export function cibleDeLaCommande(command, cwd = process.cwd(), platform = proce
   }
   return { dir: nomme.resolu, ignore: null }
 }
+
+export const CONTRATS_DE_DERIVATION = [{ fonction: pipelinesDeJetons, lectures: 'corpus' }]

@@ -37,6 +37,7 @@
 // ou joue un geste (`commitDe`, `pousser`…) ; la sous-commande, ses drapeaux et sa forme restent ici.
 // Une question épingle `OPTIONS_DE_L_HOTE` ; un écrivain ne pose rien, la configuration de
 // l'utilisateur (identité, signature, proxy, identifiants) fait foi.
+import { mesurerProtectionWorktree, retirerResiduelVide } from './protectionWorktree.mjs'
 import { Buffer } from 'node:buffer'
 import { spawn as spawnAsync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
@@ -620,14 +621,16 @@ const CHAMPS_V2 = Object.freeze({ 1: 8, 2: 9, u: 10 })
  * @param {Depot} depot
  * @returns {{ etat: string, chemins: string[] }[]}
  */
-export function etatDeLArbre(depot) {
-  const champs = (lire(depot, ['--no-optional-locks', 'status', '--porcelain=v2', '-z', '--untracked-files=all', '--no-renames', '--ignore-submodules=none']) ?? '')
+export function etatDeLArbre(depot, { ignores = false, strict = false } = {}) {
+  const texte = lire(depot, ['--no-optional-locks', 'status', '--porcelain=v2', '-z', '--untracked-files=all', ...(ignores ? ['--ignored=matching'] : []), '--no-renames', '--ignore-submodules=none'])
+  if (strict && texte === null) throw new Error('git status illisible : ' + depot.cwd)
+  const champs = (texte ?? '')
     .split('\0').filter(Boolean)
   const entrees = []
   for (let i = 0; i < champs.length; i += 1) {
     const type = champs[i][0]
-    if (type === '?') {
-      entrees.push({ etat: '??', chemins: [champs[i].slice(2)] })
+    if (type === '?' || type === '!') {
+      entrees.push({ etat: type === '!' ? '!!' : '??', chemins: [champs[i].slice(2)] })
       continue
     }
     const n = CHAMPS_V2[type]
@@ -1449,6 +1452,27 @@ export function estAncetre(depot, ancetre, descendant) {
   return fait(vu.valeur.status === 0)
 }
 
+/** Dossier administratif commun validé du dépôt. */
+export function dossierGitCommun(depot) {
+  const { cwd } = depot
+  const refus = (motif, details = {}) => {
+    const flux = [details.diagnostic?.stdout, details.diagnostic?.stderr].filter((texte) => texte && !motif.includes(texte)).join('\n')
+    return indisponible(`arbre principal non résolu : ${motif}${motif.includes(cwd) ? '' : ` (depuis ${cwd})`}${flux ? ` — ${flux}` : ''}`, details)
+  }
+  const vu = interroger(depot, ['rev-parse', '--path-format=absolute', '--git-common-dir'])
+  if (!vu.disponible) return refus(vu.raison, vu)
+  if (vu.absent) return refus("git n'y connaît pas de dépôt", { issue: 'refus', diagnostic: vu.diagnostic })
+  if (vu.valeur.status !== 0) return refus(`git rev-parse --git-common-dir rend ${vu.valeur.status}`, { issue: 'refus', diagnostic: vu.valeur })
+  const brut = String(vu.valeur.stdout).trim()
+  const compare = normaliserRacine(brut)
+  if (!compare) return refus('git rev-parse --git-common-dir rend une réponse vide')
+  if (!compare.endsWith('/.git')) {
+    return refus(`répertoire git hors d'un arbre — dépôt nu (« …/x.git »), sous-module ou --separate-git-dir : ${brut}`)
+  }
+  const chemin = brut.replace(/\\/g, '/').replace(/\/+$/, '')
+  return fait(chemin)
+}
+
 /**
  * L'ARBRE PRINCIPAL du dépôt — la racine des GESTES git d'un outil, depuis n'importe quel worktree
  * (`ops:chantier`, `ops:worktrees`).
@@ -1473,24 +1497,11 @@ export function estAncetre(depot, ancetre, descendant) {
  * @returns {{disponible:true, valeur:string}|{disponible:false, raison:string}}
  */
 export function arbrePrincipal(depot) {
-  const { cwd } = depot
-  const refus = (motif, details = {}) => {
-    const flux = [details.diagnostic?.stdout, details.diagnostic?.stderr].filter((texte) => texte && !motif.includes(texte)).join('\n')
-    return indisponible(`arbre principal non résolu : ${motif}${motif.includes(cwd) ? '' : ` (depuis ${cwd})`}${flux ? ` — ${flux}` : ''}`, details)
-  }
-  const vu = interroger(depot, ['rev-parse', '--path-format=absolute', '--git-common-dir'])
-  if (!vu.disponible) return refus(vu.raison, vu)
-  if (vu.absent) return refus("git n'y connaît pas de dépôt", { issue: 'refus', diagnostic: vu.diagnostic })
-  if (vu.valeur.status !== 0) return refus(`git rev-parse --git-common-dir rend ${vu.valeur.status}`, { issue: 'refus', diagnostic: vu.valeur })
-  const brut = String(vu.valeur.stdout).trim()
-  const compare = normaliserRacine(brut)
-  if (!compare) return refus('git rev-parse --git-common-dir rend une réponse vide')
-  if (!compare.endsWith('/.git')) {
-    return refus(`répertoire git hors d'un arbre — dépôt nu (« …/x.git »), sous-module ou --separate-git-dir : ${brut}`)
-  }
-  const chemin = brut.replace(/\\/g, '/').replace(/\/+$/, '')
-  return fait(chemin.slice(0, -'/.git'.length))
+  const commun = dossierGitCommun(depot)
+  return commun.disponible ? { ...commun, valeur: dirname(commun.valeur) } : commun
 }
+
+export const CONTRATS_DE_DERIVATION = [{ fonction: dossierGitCommun, namespace: '.git', champ: 'valeur' }]
 
 /** Le dépôt de ce projet (`DEPOT`), en https comme en ssh, avec ou sans `.git`, casse ignorée comme
  *  GitHub l'ignore. Notion d'ORIGINE, donc hôte des lectures git : la porte au push et la préflight
@@ -1955,7 +1966,15 @@ export const ajouterWorktree = (depot, { chemin, branche, depuis }) => {
 }
 
 /** Le worktree `chemin`, retiré sans forcer (`worktree remove`). @param {Depot} depot @param {string} chemin */
-export const retirerWorktree = (depot, chemin) => ecrire(depot, ['worktree', 'remove', '--', chemin])
+export function retirerWorktree(depot, chemin, { mesurer = mesurerProtectionWorktree, residu = retirerResiduelVide } = {}) {
+  const protection = mesurer(chemin)
+  if (!protection.ok) return indisponible(protection.refus.join(' ; '), { issue: 'refus' })
+  const vu = ecrire(depot, ['worktree', 'remove', '--', chemin])
+  if (!reussi(vu)) return vu
+  try { residu(chemin) }
+  catch (e) { return indisponible('résidu ' + chemin + ' : ' + (e.code ?? e.message) + ' — branche conservée', { issue: 'refus' }) }
+  return vu
+}
 
 /** La branche `branche`, supprimée si elle est fusionnée (`branch -d`). @param {Depot} depot @param {string} branche */
 export const supprimerBranche = (depot, branche) => ecrire(depot, ['branch', '-d', '--', ...revisionsDe([branche])])
@@ -2087,6 +2106,6 @@ export function transactionDeRefs(depot, { message }) {
  * @returns {{disponible: true, valeur: string} | {disponible: false, raison: string}}
  */
 export function dossierDesSuivis(cwd) {
-  const vu = arbrePrincipal(depotDe(cwd))
-  return vu.disponible ? { ...vu, valeur: join(vu.valeur, '.git', 'suivi') } : vu
+  const vu = dossierGitCommun(depotDe(cwd))
+  return vu.disponible ? { ...vu, valeur: join(vu.valeur, 'suivi') } : vu
 }

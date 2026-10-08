@@ -6,8 +6,26 @@
 import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
-import { crees, depot, efface, rienTouche } from './joue.mjs';
+import { crees, depot, efface, joue, rienTouche } from './joue.mjs';
+
+test('joue transporte les imports statiques hors de la copie et conserve les fichiers posés', (t) => {
+  const banc = "import { parUnitesDeCode } from './scripts/guards/lib/lister.mjs'; console.log(['b', 'a'].sort(parUnitesDeCode).join(','));";
+  for (const remplacement of [null, 'export const parUnitesDeCode = (a, b) => a < b ? 1 : a > b ? -1 : 0; export const parLibelle = parUnitesDeCode;']) {
+    const fichiers = { 'banc.mjs': banc, ...(remplacement === null ? {} : { 'src/lib/ordre.mjs': remplacement }) };
+    const d = depot(fichiers, ['scripts/guards/lib/lister.mjs']);
+    t.after(() => efface(d.racine));
+    const migration = joue(d.racine, '../guards/lib/lister.mjs');
+    assert.equal(migration.code, 0, migration.sortie);
+    assert.ok(fs.existsSync(path.join(d.racine, 'src/lib/ordre.mjs')));
+    const execution = spawnSync(process.execPath, [path.join(d.racine, 'banc.mjs')], { encoding: 'utf8', timeout: 30_000 });
+    assert.equal(execution.error, undefined);
+    assert.equal(execution.status, 0, execution.stdout + execution.stderr);
+    assert.equal(execution.stdout.trim(), remplacement === null ? 'a,b' : 'b,a');
+    assert.deepEqual(rienTouche(d.racine, d.avant), []);
+  }
+});
 
 test('`crees` NOMME le fichier créé dans le dossier surveillé, et lui seul', (t) => {
   const d = depot({ 'src/data/a.json': '[]' });

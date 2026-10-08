@@ -356,3 +356,5 @@ export function decisionCumulee(decisions) {
   const refus = decisions.filter(Boolean)
   return refus.length ? { decision: 'deny', reason: refus.map((d) => d.reason).join(' || ') } : null
 }
+
+export const CONTRATS_DE_DERIVATION = [{ fonction: cheminDEcriture, lectures: 'corpus' }]

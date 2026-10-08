@@ -8,11 +8,16 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { GitIndisponible, classer, depotDe, worktreesDe } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, classer, depotDe, retirerWorktree, worktreesDe } from '../guards/lib/gitPorte.mjs'
 import {
-  CLASSES, GESTES_DE_L_INVENTAIRE, arbresTenus, classerWorktree, comptesParClasse, inventaire, ligneDInventaire, purger,
+  CLASSES, GESTES_DE_L_INVENTAIRE, GESTES_DE_LA_PURGE, arbresTenus, classerWorktree, comptesParClasse, inventaire as inventaireReel, ligneDInventaire, purger as purgerReel,
 } from './worktrees.mjs'
+import { mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
+
+const inventaire = (options) => inventaireReel({ processus: () => ({ processus: [], portee: 'banc' }), ...options })
+
+const purger = (options) => purgerReel({ gestes: { ...GESTES_DE_LA_PURGE, retirerWorktree: (d, c) => retirerWorktree(d, c, { mesurer: (p) => mesurerProtectionWorktree(p, { snapshot: { processus: [], portee: 'banc' } }) }) }, ...options })
 
 /** Les ÉCRIVAINS de la purge, factices : `vus` journalise chaque geste, `code(geste)` rend son code
  *  de sortie. */
@@ -41,6 +46,7 @@ test('classerWorktree : l’ordre du RISQUE est total, une combinaison ne rend q
     [{ verrouille: true, sale: true, fusionne: true }, 'verrouillé'],
     [{ sale: true, fusionne: true }, 'sale'],
     [{ sale: true, fusionne: false }, 'sale'],
+    [{ fusionne: true, protection: { ok: false, refus: ['PID vivant'] } }, 'protégé'],
     [{ fusionne: false }, 'propre+hors-main'],
     [{ fusionne: null }, 'propre+hors-main'],
     [{}, 'propre+hors-main'],
@@ -49,7 +55,7 @@ test('classerWorktree : l’ordre du RISQUE est total, une combinaison ne rend q
   for (const [etat, attendu] of cas) {
     assert.equal(classerWorktree(etat, { tenus: TENUS }), attendu, `${JSON.stringify(etat)} → ${attendu}`)
   }
-  assert.equal(CLASSES.length, 7, 'sept classes, et le verdict vit à UN endroit')
+  assert.equal(CLASSES.length, 8, 'classes de risque, et le verdict vit à UN endroit')
   assert.deepEqual([...new Set(cas.map(([, c]) => c))].sort(), [...CLASSES].sort())
 })
 
@@ -337,15 +343,14 @@ test('purger : un remove ROUGE dont le dossier RESTE se dit, avec le geste à la
     gestes: gestesFactices(vus, (geste) => (geste.startsWith('worktree remove') ? 1 : 0)),
     nature: (chemin) => (chemin === '/dep/.wt-bloque' ? 'repertoire' : 'absent'),
   })
-  // La branche n'est PAS supprimée (le remove a échoué) ; la taille se joue ; puis la re-mesure parle.
-  assert.deepEqual(vus, ['worktree remove /dep/.wt-bloque', 'worktree prune'])
+  // #2494
+  assert.deepEqual(vus, ['worktree remove /dep/.wt-bloque'])
   assert.deepEqual(gestes.map((g) => [g.geste, g.ok]), [
     ['git worktree remove /dep/.wt-bloque', false],
-    ['git worktree prune', true],
     ['re-mesure /dep/.wt-bloque', false],
   ])
-  assert.match(gestes[2].detail, /dossier présent : à retirer à la main \(`rm -rf \/dep\/\.wt-bloque`\)/)
-  assert.match(gestes[2].detail, /branche `chantier\/bloque` conservée/)
+  assert.match(gestes[1].detail, /dossier présent.*branche chantier\/bloque conservée/)
+  assert.doesNotMatch(gestes[1].detail, /rm -rf/)
 })
 
 // Le `remove` VERT qui laisse le dossier : git a désenregistré le worktree et rendu 0, mais un
@@ -360,11 +365,9 @@ test('purger : un remove VERT dont le dossier RESTE est nommé lui aussi', () =>
   })
   assert.deepEqual(gestes.map((g) => [g.geste, g.ok]), [
     ['git worktree remove /dep/.wt-reste', true],
-    ['git branch -d chantier/reste', true],
-    ['git worktree prune', true],
     ['re-mesure /dep/.wt-reste', false],
   ])
-  assert.match(gestes[3].detail, /retiré par git, dossier présent : à retirer à la main \(`rm -rf \/dep\/\.wt-reste`\)/)
+  assert.match(gestes[1].detail, /dossier présent.*branche chantier\/reste conservée/)
 })
 
 test('purger : un remove rouge dont le dossier a bel et bien DISPARU ne dit rien de plus', () => {
