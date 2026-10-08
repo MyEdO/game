@@ -39,13 +39,13 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSyn
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
+  GitIndisponible, TRONC, abandonnerFusion, attributsDe, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
   conclureFusionSansChemins, depotDe,
   estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, indisponible, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { coursesCi, jobsEnEchecDe } from '../guards/lib/coursesCi.mjs'
-import { gatesDeCi, texteDeCi } from '../gates/gatesDeCi.mjs'
+import { texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
@@ -67,10 +67,6 @@ export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Délai par défaut, en minutes, de l'attente de la fusion par la file (#2178) : deux délais de réponse
  *  de la file (`DELAI_DE_REPONSE_MINUTES`) — les entrées qui la précèdent, puis la sienne. */
 export const FILE_TIMEOUT_MIN = 2 * DELAI_DE_REPONSE_MINUTES
-
-/** Les gates qui jugent les DÉRIVÉS commités : une course de file rouge sur leurs seuls jobs se
- *  reprend (`causeDEjection`, etapesDuTrain.mjs), la régénération les guérit. */
-export const GATES_DES_DERIVES = Object.freeze(['docs:build', 'agents:check'])
 
 // ── Purs : options, journal, plan ──────────────────────────────────────────────────────
 
@@ -707,6 +703,7 @@ const questionsDuTrain = (depot) => Object.freeze({
   baseAuTronc: () => baseCommune(depot, TRONC.suivi, 'HEAD'),
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
   cheminsSales: () => cheminsSales(depot),
+  attributsDeFusion: (chemins) => attributsDe(depot, chemins, 'merge'),
   commitsDeLaPlage: (plage) => commitsDeLaPlage(plage, depot.cwd),
   verdictDesFusions: () => verdictDePublication(depot),
 })
@@ -747,10 +744,6 @@ function shaComplet(geste, sha) {
   if (typeof sha === 'string' && estShaComplet(sha)) return sha
   throw new Error(`ctx.${geste} : un sha COMPLET — refusé : ${JSON.stringify(sha)}`)
 }
-
-/** Les jobs de `ci.yml` qui portent une gate des dérivés (`GATES_DES_DERIVES`). */
-const jobsDesDerives = (racine) =>
-  Object.freeze([...new Set(gatesDeCi({ cwd: racine }).filter((g) => GATES_DES_DERIVES.includes(g.nom)).map((g) => g.job))])
 
 /**
  * Les PR de `branche`, réduites (`prDeRest`), récentes d'abord, en union `{ ok, prs }` / `{ ok:false,
@@ -798,7 +791,7 @@ function numeroDeTicket(geste, numero) {
  * (un sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
  * un sha), `lireFusion` (un numéro de PR, un sha et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
  * Données : `generators` (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit
- * `estDocDerive` ; `jobsDesDerives`, les jobs de `ci.yml` qui portent `GATES_DES_DERIVES` ; `filtresDePush`, les
+ * `estDocDerive` ; `filtresDePush`, les
  * filtres `push.branches` de `ci.yml` (`branchesDePush`).
  */
 export function contexteDe({ racine, branche, options, journaliser, fdLog, maintenant = Date.now }) {
@@ -813,9 +806,6 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog, maint
     journaliser,
     fdLog,
     generators: GENERATORS,
-    get jobsDesDerives() {
-      return jobsDesDerives(racine)
-    },
     get filtresDePush() {
       return branchesDePush(texteDeCi({ cwd: racine }), `${DOSSIER}/${PORTE}`)
     },

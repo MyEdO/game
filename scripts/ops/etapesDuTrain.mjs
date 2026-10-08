@@ -81,16 +81,18 @@ export const coursesDeFileTerminees = (courses, numero) => (courses ?? [])
 
 /**
  * Une PR de l'API REST (`GET /repos/{owner}/{repo}/pulls`), réduite à ce que le train lit. PUR.
- * `mergeable_state` n'est rendu que par la lecture d'UNE PR (`GET …/pulls/{n}`).
+ * `mergeable_state` n'est rendu que par la lecture d'UNE PR (`GET …/pulls/{n}`), et GitHub le calcule
+ * en différé : `conflit` vaut `true` sur `dirty`, `null` sur `unknown` ou absent (calcul en cours),
+ * `false` sinon.
  * @returns {{numero:number, etat:'ouverte'|'fusionnee'|'fermee', tete:string,
- *   fusion:string|null, conflit:boolean}}
+ *   fusion:string|null, conflit:boolean|null}}
  */
 export const prDeRest = (p) => ({
   numero: p.number,
   etat: p.merged_at ? 'fusionnee' : p.state === 'open' ? 'ouverte' : 'fermee',
   tete: p.head?.sha ?? null,
   fusion: p.merged_at ? p.merge_commit_sha ?? null : null,
-  conflit: p.mergeable_state === 'dirty',
+  conflit: p.mergeable_state === 'dirty' ? true : p.mergeable_state === 'unknown' || p.mergeable_state == null ? null : false,
 })
 
 /**
@@ -148,8 +150,12 @@ export function partitionSales(chemins, generators, ...reste) {
 /** Motif du commit de dérivés de l'étape `docs` — ceux que la régénération du train vient d'écrire. */
 export const MOTIF_REGENERATION = 'docs dérivés régénérés par le train de publication'
 
-/** Motif de la fusion d'`origin/main` qui reprend une PR éjectée de la file. */
-export const MOTIF_EJECTION = 'fusion d’origin/main après éjection de la file de fusion'
+/** Motif de la fusion d'`origin/main` qui REPREND une PR que le serveur ne fusionne pas : en conflit
+ *  avec la base, refusée à la demande, ou éjectée de la file. */
+export const MOTIF_EJECTION = 'fusion d’origin/main : reprise d’une PR que la file de fusion refuse'
+
+/** Motif du commit des stocks de sites régénérés par l'étape `docs` après une fusion du tronc. */
+export const MOTIF_STOCKS = 'stocks de sites régénérés au point fixe après fusion du tronc'
 
 /** Refus commun aux commits du train : sans `#N`, la porte du commit refuserait le message. */
 export const REFUS_SANS_TICKET =
@@ -258,6 +264,32 @@ export function synchroniserAgents(ctx) {
   return { ok: true }
 }
 
+/**
+ * Régénère les stocks de sites au point fixe (`npm run stocks:regen`, `regenStock.mts --tous`) quand la
+ * branche a absorbé le tronc pendant le lot, puis commet ceux qu'elle a écrits. Une fusion sous pilote
+ * (`merge-stocks.mjs`) rend l'union des côtés, pas la mesure de l'arbre fusionné (#2525). Les chemins
+ * commis sont les manuscrits sales dont l'attribut `merge` vaut `stocks` ; tout autre manuscrit sale
+ * est laissé au contrôle de l'étape, rien n'est commis. Une croissance refusée par la porte du commit
+ * reste rouge : le train n'écrit jamais de `CLIQUET:`.
+ * @returns {{ok: true, dit?: string} | {ok: false, raison: string}}
+ */
+function regenererStocks(ctx, journal) {
+  const vu = ctx.npm('stocks:regen')
+  if (vu.status !== 0)
+    return { ok: false, raison: `\`npm run stocks:regen\` a rendu ${vu.status ?? vu.signal} après la fusion du tronc : stocks de sites non régénérés (sortie au journal du train)` }
+  const { manuscrits } = partitionSales(ctx.questions.cheminsSales(), ctx.generators)
+  const attributs = ctx.questions.attributsDeFusion(manuscrits)
+  const stocks = manuscrits.filter((c) => attributs.get(c) === 'stocks')
+  if (!stocks.length || stocks.length !== manuscrits.length) return { ok: true }
+  const numeros = numerosDeLaPlage(ctx.questions)
+  if (!numeros.length) return { ok: false, raison: REFUS_SANS_TICKET }
+  const commit = ctx.commit({ message: messageDuTrain({ portee: 'chore(stocks)', titre: 'stocks de sites', numeros, motif: MOTIF_STOCKS }), chemins: stocks })
+  if (!reussi(commit))
+    return { ok: false, raison: `commit des stocks de sites régénérés REFUSÉ par la porte du commit (une croissance née de la fusion du tronc : \`CLIQUET:\` à écrire à la main) :\n${stocks.map((c) => `    ${c}`).join('\n')}\n${refusDeGit(commit)}` }
+  journal.tete = ctx.tete
+  return { ok: true, dit: `${stocks.length} stock(s) de sites régénéré(s) commis — tête ${journal.tete.slice(0, 9)}` }
+}
+
 /** La course de BRANCHE de la tête `tete`, jugée (`verdictJuge`) ; une lecture indisponible est `illisible`. */
 function brancheJugee(ctx, tete) {
   const vues = ctx.coursesCi(tete)
@@ -284,20 +316,16 @@ function issueDeBranche(ci, pr, tete) {
 }
 
 /**
- * Une PR mise en file y est encore, ou en a été ÉJECTÉE. `merge-queue-reject.md` : « if there are
- * failed required status checks or conflicts with the base branch, the pull request will be removed
- * from the queue ». Un CONFLIT avec la base (`mergeable_state: dirty`), ou une course de file rouge
- * sur les seuls jobs des DÉRIVÉS (`ctx.jobsDesDerives`), se reprennent ; tout autre rouge se NOMME.
- * Une course rouge n'est ATTRIBUÉE à la PR que si `G^1`, le premier parent de son commit de file, est dans `origin/main` :
- * sinon elle juge un GROUPE dont une entrée précédente a pu casser, et GitHub reconstruit l'entrée
- * (`managing-a-merge-queue.md` l.104-109) — on attend. Une course de file ANNULÉE se redemande sur la même
- * tête (#2392) ; `ecartees` : les courses terminées avant la demande (`coursesDeFileTerminees`).
+ * Une PR mise en file y est encore, ou en a été ÉJECTÉE (`merge-queue-reject.md`, « will be removed
+ * from the queue »). La course de branche et le CONFLIT avec la base se jugent en tête de l'étape
+ * `file`. Une course de file rouge ATTRIBUÉE à la PR se REPREND (#2525) : la file n'admet qu'une tête
+ * dont la course de branche est verte. Elle n'est attribuée que si `G^1`, le premier parent de son
+ * commit de file, est dans `origin/main` ; sinon GitHub reconstruit l'entrée (`managing-a-merge-queue.md`
+ * l.104-109) et on attend. Des jobs illisibles se NOMMENT. Une course de file ANNULÉE se redemande sur la
+ * même tête (#2392) ; `ecartees` : les courses terminées avant la demande (`coursesDeFileTerminees`).
  * @returns {{attendre:true, dit:string}|{redemander:true, raison:string}|{reprendre:boolean, raison:string}}
  */
 function causeDEjection(ctx, pr, tete, ecartees, enFile) {
-  const branche = issueDeBranche(brancheJugee(ctx, tete), pr, tete)
-  if (branche?.raison) return { reprendre: false, raison: branche.raison }
-  if (pr.conflit) return { reprendre: true, raison: `PR #${pr.numero} en CONFLIT avec la base de la file` }
   const vues = ctx.coursesDeFile()
   if (!vues.disponible) return { attendre: true, dit: `courses de file illisibles : ${vues.raison}` }
   const course = courseDeFile(vues.valeur, pr.numero, { tete, parentsDe: ctx.parentsDe, ecartees })
@@ -316,19 +344,18 @@ function causeDEjection(ctx, pr, tete, ecartees, enFile) {
   if (juge.jobsIllisibles) return { reprendre: false, raison: `PR #${pr.numero} éjectée par la course ${url} ; jobs illisibles : ${juge.jobsIllisibles}` }
   const jobs = phraseDesJobs(juge) || 'aucun job nommé'
   if (juge.etat === 'annulee') return { redemander: true, raison: `PR #${pr.numero} éjectée par la course ${url} ANNULÉE — ${jobs}` }
-  const derives = new Set(ctx.jobsDesDerives)
-  const reprendre = juge.rouges.length > 0 && juge.rouges.every((j) => derives.has(j))
-  return { reprendre, raison: `PR #${pr.numero} éjectée par la course ${url} — ${jobs}` }
+  return { reprendre: true, raison: `PR #${pr.numero} éjectée par la course ${url} — ${jobs}` }
 }
 
-/** Le refus d'une éjection au-delà de `BORNE_EJECTIONS`, ou `null`. PUR. */
+/** Le refus d'une reprise au-delà de `BORNE_EJECTIONS`, ou `null`. PUR. */
 const ejectionHorsBorne = (journal, cause) => (journal.ejections ?? 0) >= BORNE_EJECTIONS
-  ? `${cause.raison} — éjectée une ${(journal.ejections ?? 0) + 1}ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS})`
+  ? `${cause.raison} — reprise une ${(journal.ejections ?? 0) + 1}ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS})`
   : null
 
 /**
- * Reprise BORNÉE d'une PR éjectée (#2178, design v3) : FUSION d'`origin/main` dans la branche — jamais
- * un rebase —, puis `docs`, `push-branche`, `pr` et `file` (nouvelle demande de fusion) se rejouent.
+ * Reprise BORNÉE d'une PR que le serveur ne fusionne pas (#2178, design v3 ; #2525) : en conflit avec la
+ * base, refusée à la demande, ou éjectée. FUSION d'`origin/main` dans la branche — jamais un rebase —,
+ * puis `docs` (qui régénère les stocks de sites), `push-branche`, `pr` et `file` se rejouent.
  * Un conflit dont TOUS les chemins sont des cibles PURES (`estCiblePure`) se conclut en les retirant
  * de l'index, puis les cibles de code se produisent (`post-merge` ne joue pas sur un `git commit`) ;
  * tout autre conflit abandonne la fusion.
@@ -429,7 +456,8 @@ export const ETAPES = [
     // Les MIXTES (`injecte` des `generators`) et les miroirs d'agents : régénérés, puis commis. Une
     // saleté de dérivés laissée par un hook (post-merge, post-rewrite) est commise ici aussi. Le train
     // ne régénère que ce qu'il commet : `--mixtes`, si la plage touche une source de `perimetreDesMixtes`
-    // (#2193).
+    // (#2193) ; les stocks de sites, si la branche a absorbé le tronc pendant le lot (`regenererStocks`,
+    // un état git qui survit à `--reprendre`).
     nom: 'docs',
     // La tête ENREGISTRÉE sur l'étape, jamais `journal.tete` — celui-ci avance à la fusion d'une
     // reprise, et un `docs` vert d'avant serait alors sauté à tort ; un dérivé sali depuis la rejoue.
@@ -445,7 +473,8 @@ export const ETAPES = [
       const salesAvant = ctx.questions.cheminsSales()
       const seulement = perimetreDesMixtes(ctx.generators).map((g) => g.script)
       const regenerer = touchesDocSources(touches, sourcesMesurees(racine), { seulement })
-      if (!regenerer && !salesAvant.length) return { ok: true, dit: 'aucune source de mixte dans la plage, arbre propre : docs inchangés' }
+      const fusionDuTronc = ctx.questions.baseAuTronc() !== journal.base
+      if (!regenerer && !fusionDuTronc && !salesAvant.length) return { ok: true, dit: 'aucune source de mixte dans la plage, arbre propre : docs inchangés' }
       if (regenerer) {
         const passe = ctx.docs('--mixtes')
         if (passe.status !== 0)
@@ -456,6 +485,11 @@ export const ETAPES = [
       }
       const agents = synchroniserAgents(ctx)
       if (!agents.ok) return agents
+      if (fusionDuTronc) {
+        const stocks = regenererStocks(ctx, journal)
+        if (!stocks.ok) return stocks
+        if (stocks.dit) ctx.journaliser(`[publier] docs — ${stocks.dit}\n`)
+      }
       const chemins = ctx.questions.cheminsSales()
       const { manuscrits } = partitionSales(chemins, ctx.generators)
       if (manuscrits.length)
@@ -530,6 +564,10 @@ export const ETAPES = [
         attendu({ ok: true, detail: { pr: pr.numero, fusion }, dit: `PR #${pr.numero} fusionnée en ${String(fusion ?? '?').slice(0, 9)}` })
       // `null` : aucune demande ; `{uuid}` : demande PENDANTE ; `{enFile:true}` : PR mise en file.
       let demande = null
+      // Le refus de la demande (`{pr, raison}`), en attente de la relecture de la PR : un conflit la
+      // reprend, une PR propre le rend ; aucune nouvelle demande tant qu'il est posé.
+      let refus = null
+      const refuser = (pr, raison) => { refus = { pr: pr.numero, raison }; demande = null }
       const ecartees = new Set()
       const patienter = () => attendreSync(Math.max(0, Math.min(PERIODE_SONDE_MS, fin - Date.now())))
       while (Date.now() < fin) {
@@ -549,15 +587,26 @@ export const ETAPES = [
             patienter()
             continue
           }
+          const branche = issueDeBranche(brancheJugee(ctx, journal.tete), pr, journal.tete)
+          if (branche?.raison) return attendu({ ok: false, detail: { pr: pr.numero }, raison: branche.raison })
+          // #2525
+          if (pr.conflit === true) return attendu(reprendreApresEjection(ctx, journal, { raison: `PR #${pr.numero} en CONFLIT avec la base` }))
+          if (refus) {
+            if (pr.conflit === false) return attendu({ ok: false, detail: { pr: refus.pr }, raison: refus.raison })
+            ctx.journaliser(`[publier] file — PR #${pr.numero} : demande refusée, conflit avec la base pas encore jugé par GitHub\n`)
+            patienter()
+            continue
+          }
           let issue = null
           if (!demande) {
-            const branche = issueDeBranche(brancheJugee(ctx, journal.tete), pr, journal.tete)
-            if (branche?.raison) return attendu({ ok: false, detail: { pr: pr.numero }, raison: branche.raison })
             if (branche) ctx.journaliser(`[publier] file — ${branche.dit}\n`)
             else {
               issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
               noterLeCompte(issue)
-              if (!issue.ok) return attendu({ ok: false, detail: { pr: pr.numero }, raison: `demande de fusion de la PR #${pr.numero} REFUSÉE${sousLeCompte(issue)} : ${issue.raison}` })
+              if (!issue.ok) {
+                refuser(pr, `demande de fusion de la PR #${pr.numero} REFUSÉE${sousLeCompte(issue)} : ${issue.raison}`)
+                continue
+              }
               if (issue.statut === 'pending' && issue.deja && issue.attendue !== journal.tete)
                 return attendu({ ok: false, detail: { pr: pr.numero }, raison: `une demande de fusion de la PR #${pr.numero} est DÉJÀ pendante (409, ${issue.uuid}) sur ${String(issue.attendue).slice(0, 9)}, pas la tête publiée ${journal.tete.slice(0, 9)} : GitHub l’annule (schéma de \`merge-async\`, \`sha\`) — \`--reprendre\` après son échec` })
               if (issue.statut === 'pending' && issue.deja)
@@ -572,8 +621,10 @@ export const ETAPES = [
             }
           }
           if (issue?.statut === 'merged') return fusionnee(pr, issue.fusion)
-          if (issue?.statut === 'failed')
-            return attendu({ ok: false, detail: { pr: pr.numero }, raison: `demande de fusion de la PR #${pr.numero} en ÉCHEC${sousLeCompte(issue)} : ${issue.message}` })
+          if (issue?.statut === 'failed') {
+            refuser(pr, `demande de fusion de la PR #${pr.numero} en ÉCHEC${sousLeCompte(issue)} : ${issue.message}`)
+            continue
+          }
           if (!demande && (issue?.statut === 'pending' || issue?.statut === 'enqueued')) {
             const vues = ctx.coursesDeFile()
             if (vues.disponible) for (const id of coursesDeFileTerminees(vues.valeur, pr.numero)) ecartees.add(id)
@@ -602,6 +653,7 @@ export const ETAPES = [
         }
         patienter()
       }
+      if (refus) return attendu({ ok: false, detail: { pr: refus.pr }, raison: refus.raison })
       return attendu({
         indetermine: true,
         raison: `aucune fusion en ${ctx.options.fileTimeoutMin} min pour ${journal.tete.slice(0, 9)} — \`--reprendre\` reprend l’attente (une nouvelle demande rend la demande pendante, 409, ou la file, 200)`,
