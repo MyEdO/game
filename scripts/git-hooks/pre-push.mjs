@@ -63,8 +63,8 @@ export function refsAPousser(stdin) {
     .filter((r) => r.shaLocal && r.shaLocal !== ZERO)
 }
 
-/** Verdict COMPLET du hook : `{ refus: [], notes: [] }`. Aucune sortie, aucun code — testable. */
-export function jugerPush({ cwd, stdin }) {
+/** Verdict COMPLET du hook, une promesse de `{ refus: [], notes: [] }`. Aucune sortie, aucun code — testable. */
+export async function jugerPush({ cwd, stdin }) {
   // Les lectures git passent par les questions de l'hôte unique : `null` dit « l'objet n'existe pas »,
   // et une INDISPONIBILITÉ (git absent, hors dépôt) devient un refus NOMMÉ au lieu d'un `fatal:` brut.
   const pannes = []
@@ -79,7 +79,7 @@ export function jugerPush({ cwd, stdin }) {
 
   for (const { refLocale, shaLocal, refDistante, shaDistant } of refsAPousser(stdin)) {
     // Stocks nominatifs de la PLAGE poussée : par commit, filtrés par la croissance cumulée.
-    const stocks = croissancesDeLaPlage({ cwd, debut: shaDistant, fin: shaLocal, vers: refDistante })
+    const stocks = await croissancesDeLaPlage({ cwd, debut: shaDistant, fin: shaLocal, vers: refDistante })
     for (const n of stocks.notes) notes.push(n)
     if (stocks.indisponible)
       refus.push(`${refLocale} → ${refDistante} : plage \`${stocks.plage}\` illisible : ${stocks.indisponible}`)
@@ -122,7 +122,7 @@ if (import.meta.main) {
       return ''
     }
   })()
-  const { refus, notes } = jugerPush({ cwd, stdin })
+  const { refus, notes } = await jugerPush({ cwd, stdin })
   for (const n of notes) process.stderr.write(`[pre-push] ${n}\n`)
   if (refus.length) {
     journal.refuser(...refus)

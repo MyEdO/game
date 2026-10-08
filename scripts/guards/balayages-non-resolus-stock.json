@@ -58,7 +58,7 @@
     {
       "famille": "URL",
       "fichier": "scripts/guards/lib/stocksNominatifs.test.mjs",
-      "ref": "readFileSync : URL new URL('./fixtures/2472-' + ref + '.json.gz.b64', import.meta.url)",
+      "ref": "readFileSync : URL new URL('./fixtures/' + nom + '.json.gz.b64', import.meta.url)",
       "occurrence": 1
     },
     {
@@ -17157,6 +17157,12 @@
     },
     {
       "famille": "environnement de processus",
+      "fichier": "scripts/guards/budget-contexte.test.mjs",
+      "ref": "controlerBudgetDeLaPlage : process introuvable",
+      "occurrence": 3
+    },
+    {
+      "famille": "environnement de processus",
       "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
       "ref": "debutDeLaPlage : process introuvable",
       "occurrence": 1
@@ -18424,18 +18430,6 @@
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/guards/budget-contexte.mjs",
-      "ref": "controlerBudgetDeLaPlage : paramètre chemins",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/guards/budget-contexte.mjs",
-      "ref": "controlerBudgetDeLaPlage : paramètre dossier",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/guards/budget-contexte.mjs",
       "ref": "controlerBudgetDeLaPlage : paramètre rels",
       "occurrence": 1
     },
@@ -18455,18 +18449,6 @@
       "famille": "paramètre non lié",
       "fichier": "scripts/guards/budget-contexte.test.mjs",
       "ref": "controlerBudgetDeLaPlage : paramètre chemin",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/guards/budget-contexte.test.mjs",
-      "ref": "controlerBudgetDeLaPlage : paramètre chemins",
-      "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/guards/budget-contexte.test.mjs",
-      "ref": "controlerBudgetDeLaPlage : paramètre dossier",
       "occurrence": 1
     },
     {
@@ -18639,6 +18621,72 @@
     },
     {
       "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre f",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "croissancesDeLaPlage : paramètre rels",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "lectureDeLaPlage : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "lectureDeLaPlage : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "lectureDeLaPlage : paramètre f",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "lectureDeLaPlage : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/plageStock.test.mjs",
+      "ref": "lectureDeLaPlage : paramètre rels",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/porteDEre.test.mjs",
+      "ref": "jugeDeLEre : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
       "fichier": "scripts/guards/lib/sourceCorpus.test.mjs",
       "ref": "readdirSync : paramètre d",
       "occurrence": 1
@@ -18720,6 +18768,12 @@
       "fichier": "scripts/guards/lib/stockDeSites.test.mjs",
       "ref": "regenererStock : paramètre dir",
       "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/stocksNominatifs.test.mjs",
+      "ref": "jugeDeLEre : paramètre chemin",
+      "occurrence": 1
     },
     {
       "famille": "paramètre non lié",
@@ -18808,32 +18862,8 @@
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre chemin",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre chemin",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
       "ref": "croissancesDeLaPlage : paramètre dossier",
       "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre dossier",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre dossier",
-      "occurrence": 3
     },
     {
       "famille": "paramètre non lié",
@@ -18844,32 +18874,8 @@
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre f",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre f",
-      "occurrence": 3
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
       "ref": "croissancesDeLaPlage : paramètre rel",
       "occurrence": 1
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rel",
-      "occurrence": 2
-    },
-    {
-      "famille": "paramètre non lié",
-      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rel",
-      "occurrence": 3
     },
     {
       "famille": "paramètre non lié",
@@ -18880,14 +18886,32 @@
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rels",
-      "occurrence": 2
+      "ref": "lectureDeLaPlage : paramètre chemin",
+      "occurrence": 1
     },
     {
       "famille": "paramètre non lié",
       "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
-      "ref": "croissancesDeLaPlage : paramètre rels",
-      "occurrence": 3
+      "ref": "lectureDeLaPlage : paramètre dossier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "lectureDeLaPlage : paramètre f",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "lectureDeLaPlage : paramètre rel",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/stocks-nominatifs.test.mjs",
+      "ref": "lectureDeLaPlage : paramètre rels",
+      "occurrence": 1
     },
     {
       "famille": "paramètre non lié",

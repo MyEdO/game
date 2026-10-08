@@ -146,6 +146,10 @@ const ATTENDU = {
     // 2026-09-18, `git status --porcelain` identique avant/après, et `/tmp` sans résidu.
     'scripts/guards/lib/modulesFeuilles.test.mjs',
     'scripts/guards/lib/plageStock.test.mjs',
+    // +1 le 2026-10-08 (#2503) : le banc de la porte d'une ÈRE forge des dépôts JETABLES
+    // (`instanceDeDepot` sous os.tmpdir(), `rmSync` en finally) dont il charge l'ère ; l'arbre du dépôt
+    // n'est jamais écrit.
+    'scripts/guards/lib/porteDEre.test.mjs',
     // +1 le 2026-10-07 (#2001) : le banc de `mesurerProseInline` pose son projet de fixture sous un
     // `mkdtempSync` d'os.tmpdir() (`mkdirSync`/`writeFileSync`, `rmSync` en finally) — la mesure balaie
     // des FICHIERS sous une racine ; l'arbre du dépôt n'est jamais écrit.
@@ -167,6 +171,10 @@ const ATTENDU = {
     // en sortie) qui sortent avec le code du loader ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/spawnResilient.test.mjs',
     'scripts/guards/lib/stockDeSites.test.mjs',
+    // +1 le 2026-10-08 (#2503) : le banc de l'outillage en panne copie la fermeture de
+    // `stocksNominatifs.mjs` et un faux paquet `typescript` sous un `mkdtempSync` d'os.tmpdir() (`rmSync`
+    // en finally) — une résolution de paquet ne se fausse pas autrement ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/stocksNominatifs.test.mjs',
     // +4 −1 le 2026-09-26 (#1973), net +3 : les hooks d'écriture se taisent hors de tout dépôt et lisent
     // le disque au chemin RÉEL ; quatre bancs le mesurent sous `os.tmpdir()` (`rmSync` en finally,
     // l'arbre versionné n'est jamais écrit). Data-edit ne pose que des DOSSIERS (`instanceDeDepot`,
