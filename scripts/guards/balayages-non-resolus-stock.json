@@ -213,12 +213,6 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/regenStock.mts",
-      "ref": "regenererStock : appel M.regenerations",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "scripts/hooks/new-src-file-guard.mjs",
       "ref": "existsSync : appel String",
       "occurrence": 1

@@ -82,6 +82,7 @@ import {
   ETAPES,
   MOTIF_EJECTION,
   MOTIF_REGENERATION,
+  MOTIF_STOCKS,
   PLAGE_DE_CITATIONS,
   corpsDePilotage,
   courseDeFile,
@@ -423,8 +424,8 @@ describe('estDocDerive', () => {
 test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
-  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsDesDerives', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
-  assert.deepEqual(Object.keys(ctx.questions).sort(), ['baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
+  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
@@ -919,6 +920,7 @@ test('étape `docs` : `build-all --mixtes` ROUGE est un refus nommé par la fin 
       questions: {
         ceQuiChange: () => ({ chemins: () => ['src/data/careers.json'] }),
         cheminsSales: () => [],
+        baseAuTronc: () => 'b'.repeat(40),
       },
     }
     const vu = docs.jouer(ctx, { base: 'b'.repeat(40), tete: 'a'.repeat(40) })
@@ -952,7 +954,7 @@ test('étape `docs` : la sélection se restreint à `perimetreDesMixtes` — la 
         docs: (mode) => { gestes.push(['docs', mode]); return { status: 1, stderr: '' } },
         npm: (script) => { gestes.push(['npm', script]); return { status: 0 } },
         commit: () => assert.fail('aucun commit'),
-        questions: { ceQuiChange: () => ({ chemins: () => chemins }), cheminsSales: () => [] },
+        questions: { ceQuiChange: () => ({ chemins: () => chemins }), cheminsSales: () => [], baseAuTronc: () => 'b'.repeat(40) },
       }, { base: 'b'.repeat(40), tete: 'a'.repeat(40) })
       return { vu, gestes }
     }
@@ -962,6 +964,98 @@ test('étape `docs` : la sélection se restreint à `perimetreDesMixtes` — la 
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
+})
+
+// #2525
+describe('étape `docs` : stocks de sites régénérés après une fusion du tronc', () => {
+  const docs = ETAPES.find((e) => e.nom === 'docs')
+  const STOCK = 'scripts/guards/balayages-non-resolus-stock.json'
+  const VERT = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }
+  const racine = mkdtempSync(join(tmpdir(), 'etape-docs-stocks-'))
+  after(() => rmSync(racine, { recursive: true, force: true }))
+  mkdirSync(join(racine, 'docs'))
+  writeFileSync(join(racine, 'docs', '.sources-lues.json'), JSON.stringify(Object.fromEntries(perimetreDesMixtes(GENERATORS).map((g) => [g.script, { cibles: [], fichiers: [], dossiers: [] }]))))
+  const journal = () => ({ base: 'b'.repeat(40), tete: 'a'.repeat(40) })
+
+  /** `stocks:regen` salit `ecrits` ; `commit` retire ses chemins de la saleté et avance la tête. */
+  const ctxStocks = ({ base = 'm'.repeat(40), codes = {}, ecrits = [STOCK], commit = VERT } = {}) => {
+    const gestes = []
+    const lignes = []
+    let sales = []
+    let tete = 'a'.repeat(40)
+    const ctx = {
+      racine,
+      generators: GENERATORS,
+      get tete() { return tete },
+      journaliser: (l) => { lignes.push(l) },
+      docs: () => assert.fail('aucune source de mixte dans la plage'),
+      npm: (script) => {
+        gestes.push(['npm', script])
+        if (script === 'stocks:regen') sales = [...ecrits]
+        return { status: codes[script] ?? 0 }
+      },
+      commit: (p) => {
+        gestes.push(['commit', p])
+        if (reussi(commit)) { sales = sales.filter((c) => !p.chemins.includes(c)); tete = 'c'.repeat(40) }
+        return commit
+      },
+      questions: {
+        ceQuiChange: () => ({ chemins: () => [] }),
+        cheminsSales: () => sales,
+        baseAuTronc: () => base,
+        attributsDeFusion: (chemins) => new Map(chemins.map((c) => [c, c === STOCK ? 'stocks' : 'unspecified'])),
+        commitsDeLaPlage: () => [{ sha: 'd'.repeat(40), message: 'feat(ops): refs #2525 — x' }],
+      },
+    }
+    return { ctx, gestes, lignes }
+  }
+
+  test('base AU TRONC changée pendant le lot : `stocks:regen` après `agents:check`, puis commit `chore(stocks)` des seuls stocks écrits', () => {
+    const { ctx, gestes, lignes } = ctxStocks()
+    const j = journal()
+    const vu = docs.jouer(ctx, j)
+    assert.equal(vu.ok, true, vu.raison)
+    assert.deepEqual(gestes.map((g) => g[0] === 'npm' ? g[1] : g[0]), ['agents:check', 'stocks:regen', 'commit'])
+    const { message, chemins } = gestes[2][1]
+    assert.deepEqual(chemins, [STOCK])
+    assert.ok(message.startsWith('chore(stocks): refs #2525 — stocks de sites\n'), message)
+    assert.ok(message.includes(MOTIF_STOCKS))
+    assert.ok(!message.includes('CLIQUET:'), 'le train n’écrit jamais de motif de cliquet')
+    assert.equal(j.tete, 'c'.repeat(40))
+    assert.ok(lignes.includes('[publier] docs — 1 stock(s) de sites régénéré(s) commis — tête ccccccccc\n'), lignes.join(''))
+  })
+
+  test('base au tronc INCHANGÉE : aucune régénération de stocks', () => {
+    const { ctx, gestes } = ctxStocks({ base: 'b'.repeat(40) })
+    const vu = docs.jouer(ctx, journal())
+    assert.deepEqual([vu.ok, vu.dit], [true, 'aucune source de mixte dans la plage, arbre propre : docs inchangés'])
+    assert.deepEqual(gestes, [])
+  })
+
+  test('`stocks:regen` ROUGE : refus nommé, rien de commis', () => {
+    const { ctx, gestes } = ctxStocks({ codes: { 'stocks:regen': 1 } })
+    const vu = docs.jouer(ctx, journal())
+    assert.equal(vu.ok, false)
+    assert.equal(vu.raison, '`npm run stocks:regen` a rendu 1 après la fusion du tronc : stocks de sites non régénérés (sortie au journal du train)')
+    assert.ok(!gestes.some((g) => g[0] === 'commit'))
+  })
+
+  test('une CROISSANCE refusée par la porte du commit reste ROUGE et nommée : le `CLIQUET:` s’écrit à la main', () => {
+    const refus = classer({ status: 1, stdout: '', stderr: '⛔ croissance du stock balayages-non-resolus : CLIQUET: exigé\n' })
+    const { ctx } = ctxStocks({ commit: refus })
+    const vu = docs.jouer(ctx, journal())
+    assert.equal(vu.ok, false)
+    assert.ok(vu.raison.startsWith(`commit des stocks de sites régénérés REFUSÉ par la porte du commit (une croissance née de la fusion du tronc : \`CLIQUET:\` à écrire à la main) :\n    ${STOCK}\n`), vu.raison)
+    assert.ok(vu.raison.includes('⛔ croissance du stock balayages-non-resolus'))
+  })
+
+  test('un MANUSCRIT hors stock sali par la régénération : rien n’est commis, le contrôle des manuscrits les nomme tous', () => {
+    const { ctx, gestes } = ctxStocks({ ecrits: [STOCK, 'src/a.ts'] })
+    const vu = docs.jouer(ctx, journal())
+    assert.equal(vu.ok, false)
+    assert.equal(vu.raison, `fichier MANUSCRIT sale après la régénération :\n    ${STOCK}\n    src/a.ts`)
+    assert.ok(!gestes.some((g) => g[0] === 'commit'))
+  })
 })
 
 // ── synchroniserAgents ─────────────────────────────────────────────────────────────────
@@ -1314,12 +1408,15 @@ test('#2285 tronc : fetch muet nonzero refuse avant le SHA, succès avec warning
 
 const REST = (plus = {}) => ({ number: 7, state: 'open', merged_at: null, merge_commit_sha: null, head: { sha: 'ttttttttt' }, mergeable_state: 'clean', ...plus })
 
-test('prDeRest : ouverte, fusionnée (sha de fusion), fermée ; conflit par `mergeable_state: dirty`', () => {
+test('prDeRest : ouverte, fusionnée (sha de fusion), fermée ; conflit à trois états par `mergeable_state`', () => {
   assert.deepEqual(prDeRest(REST()), { numero: 7, etat: 'ouverte', tete: 'ttttttttt', fusion: null, conflit: false })
   assert.deepEqual(prDeRest(REST({ state: 'closed', merged_at: 'x', merge_commit_sha: 'f'.repeat(40) })).etat, 'fusionnee')
   assert.equal(prDeRest(REST({ state: 'closed', merged_at: 'x', merge_commit_sha: 'f'.repeat(40) })).fusion, 'f'.repeat(40))
   assert.equal(prDeRest(REST({ state: 'closed' })).etat, 'fermee')
   assert.equal(prDeRest(REST({ mergeable_state: 'dirty' })).conflit, true)
+  assert.equal(prDeRest(REST({ mergeable_state: 'unknown' })).conflit, null)
+  assert.equal(prDeRest(REST({ mergeable_state: undefined })).conflit, null)
+  for (const etat of ['clean', 'blocked', 'behind', 'unstable', 'has_hooks']) assert.equal(prDeRest(REST({ mergeable_state: etat })).conflit, false, etat)
 })
 
 test('prDeLaBranche / etatDeLaPr : l’OUVERTE d’abord, sinon la FUSIONNÉE de la tête ; une fermée n’est pas la PR', () => {
@@ -1432,22 +1529,25 @@ const etapeFile = ETAPES.find((e) => e.nom === 'file')
 
 const courseDeBrancheVerte = { headSha: 'ttttttttt', status: 'completed', conclusion: 'success', databaseId: 40, workflowName: 'CI' }
 
-/** Le contexte de l'étape `file` : la PR lue, les courses de branche et de file, les jobs rouges, et
+/** Le contexte de l'étape `file` : la PR lue (`prs` : ses lectures successives), les courses de branche et de file, les jobs rouges, et
  *  les réponses de la demande de fusion (`demande` au PUT, `suivis` aux GET successifs). */
-const ctxFile = ({ pr, branche = [courseDeBrancheVerte], branches = [branche], file = [], fileAvant = [], files = [fileAvant, file], jobs = [], annules = [], motif = null, fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], conclusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, demande = { ok: true, statut: 'enqueued' }, suivis = [], parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
+const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = [branche], file = [], fileAvant = [], files = [fileAvant, file], jobs = [], annules = [], motif = null, fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], conclusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, demande = { ok: true, statut: 'enqueued' }, suivis = [], parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
   const gestes = []
   const lignes = []
   let suivi = 0
   let lectureDeBranche = 0
   let lectureDeFile = 0
+  let lectureDePr = 0
   const ctx = {
     racine: RACINE,
     branche: 'chantier/2178',
     options: { fileTimeoutMin },
     journaliser: (ligne) => { lignes.push(ligne) },
     tete: 'nnnnnnnnn',
-    jobsDesDerives: ['docs'],
-    lirePr: () => ({ ok: true, prs: pr ? [prDeRest(pr)] : [] }),
+    lirePr: () => {
+      const lue = prs[Math.min(lectureDePr++, prs.length - 1)]
+      return { ok: true, prs: lue ? [prDeRest(lue)] : [] }
+    },
     coursesCi: () => ({ disponible: true, valeur: branches[Math.min(lectureDeBranche++, branches.length - 1)] }),
     coursesDeFile: () => ({ disponible: true, valeur: files[Math.min(lectureDeFile++, files.length - 1)] }),
     parentsDe: () => ({ ok: true, parents }),
@@ -1583,7 +1683,8 @@ test('#2392 file : la demande journalise le COMPTE qui la porte, une fois ; une 
     [{ ok: true, statut: 'merged', fusion: 'f'.repeat(40), compte: 'cgauche' }, '[publier] file — demande de fusion sous le compte « cgauche »\n'],
     [{ ok: true, statut: 'enqueued', deja: true, compte: 'cgauche' }, '[publier] file — déjà en file, constaté sous le compte « cgauche »\n'],
   ]) {
-    const { ctx, lignes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), demande })
+    const { ctx, lignes } = ctxFile({ pr: REST(), demande })
+    ctx.etatFileDePr = () => ({ ok: true, statut: 'merged', fusion: 'f'.repeat(40) })
     const vu = etapeFile.jouer(ctx, journalPush())
     assert.deepEqual(lignes.filter((l) => l.includes('compte')), [ligne])
     assert.equal(vu.detail.compte, 'cgauche', 'l’issue de l’étape porte le compte')
@@ -1621,11 +1722,48 @@ test('file : une demande PENDANTE (202, ou 409 déjà pendante) se SUIT par son 
   }
 })
 
-test('file : une demande en ÉCHEC (`failed`, 400) ou REFUSÉE est ROUGE et nommée', () => {
+test('file : une demande en ÉCHEC (`failed`, 400) ou REFUSÉE, sur une PR relue SANS conflit, est ROUGE et nommée, sans nouvelle demande', () => {
   const echec = ctxFile({ pr: REST(), demande: { ok: true, statut: 'failed', message: 'Pull request is closed.' } })
   assert.equal(etapeFile.jouer(echec.ctx, journalPush()).raison, 'demande de fusion de la PR #7 en ÉCHEC : Pull request is closed.')
+  assert.deepEqual(echec.gestes.map((g) => g[0]), ['demander'])
   const refus = ctxFile({ pr: REST(), demande: { ok: false, raison: 'HTTP 403 : Resource not accessible' } })
   assert.equal(etapeFile.jouer(refus.ctx, journalPush()).raison, 'demande de fusion de la PR #7 REFUSÉE : HTTP 403 : Resource not accessible')
+  assert.deepEqual(refus.gestes.map((g) => g[0]), ['demander'])
+})
+
+// #2525
+const REFUS_POUR_CONFLIT = { ok: false, raison: REFUS_DE_FILE.concatene }
+const ECHEC_POUR_CONFLIT = { ok: true, statut: 'failed', message: 'Pull request has merge conflicts' }
+
+test('file #2525 : une demande REFUSÉE ou en ÉCHEC, sur une PR relue en CONFLIT, se REPREND : fusion d’origin/main, relance, aucune nouvelle demande', () => {
+  for (const demande of [REFUS_POUR_CONFLIT, ECHEC_POUR_CONFLIT]) {
+    const { ctx, gestes } = ctxFile({ prs: [REST(), REST({ mergeable_state: 'dirty' })], demande })
+    const journal = journalPush()
+    const vu = etapeFile.jouer(ctx, journal)
+    assert.deepEqual([vu.ok, vu.relancer], [true, ['docs', 'push-branche', 'pr', 'file']], vu.raison)
+    assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner'])
+    assert.match(vu.dit, /^PR #7 en CONFLIT avec la base — origin\/main fusionné/)
+    assert.equal(journal.ejections, 1)
+  }
+})
+
+test('file #2525 : après un refus, une PR dont le conflit n’est pas jugé (`unknown`) s’ATTEND, puis son verdict tranche', () => {
+  const sommeil = mock.method(Atomics, 'wait', () => 'timed-out')
+  try {
+    const inconnue = REST({ mergeable_state: 'unknown' })
+    const reprise = ctxFile({ prs: [REST(), inconnue, inconnue, REST({ mergeable_state: 'dirty' })], demande: REFUS_POUR_CONFLIT })
+    const vu = etapeFile.jouer(reprise.ctx, journalPush())
+    assert.deepEqual([vu.ok, vu.relancer], [true, ['docs', 'push-branche', 'pr', 'file']], vu.raison)
+    assert.deepEqual(reprise.gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner'])
+    assert.equal(reprise.lignes.filter((l) => l.includes('demande refusée, conflit avec la base pas encore jugé')).length, 2)
+    const propre = ctxFile({ prs: [REST(), inconnue, REST()], demande: REFUS_POUR_CONFLIT })
+    assert.equal(etapeFile.jouer(propre.ctx, journalPush()).raison, `demande de fusion de la PR #7 REFUSÉE : ${REFUS_DE_FILE.concatene}`)
+    assert.deepEqual(propre.gestes.map((g) => g[0]), ['demander'])
+    const borne = ctxFile({ prs: [REST(), inconnue], demande: REFUS_POUR_CONFLIT, fileTimeoutMin: 0.002 })
+    const fin = etapeFile.jouer(borne.ctx, journalPush())
+    assert.deepEqual([fin.ok, fin.raison], [false, `demande de fusion de la PR #7 REFUSÉE : ${REFUS_DE_FILE.concatene}`])
+    assert.deepEqual(borne.gestes.map((g) => g[0]), ['demander'], 'jamais de nouvelle demande tant que le refus est posé')
+  } finally { sommeil.mock.restore() }
 })
 
 test('file : un 409 « déjà pendante » sur une AUTRE tête est REFUSÉ d’emblée, nommé, sans suivi (« the merge will be cancelled »)', () => {
@@ -1651,10 +1789,22 @@ test('file : une course de file rouge sur un GROUPE (G^1 hors d’origin/main) n
   }
 })
 
-test('file : une course de file rouge dont G^1 est ANCÊTRE d’origin/main est attribuée à la PR', () => {
-  const { ctx, gestes } = ctxFile({ pr: REST(), file: [courseDeFileRouge], jobs: ['suite'], parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]] })
+test('file #2525 : une course de file rouge dont G^1 est ANCÊTRE d’origin/main est attribuée à la PR et se REPREND, quels que soient ses jobs', () => {
+  for (const jobs of [['suite'], ['docs']]) {
+    const { ctx, gestes } = ctxFile({ pr: REST(), file: [courseDeFileRouge], jobs, parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]] })
+    const vu = etapeFile.jouer(ctx, journalPush())
+    assert.deepEqual([vu.ok, vu.relancer], [true, ['docs', 'push-branche', 'pr', 'file']], `jobs=${jobs}`)
+    assert.ok(vu.dit.startsWith(`PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 — jobs rouges : ${jobs[0]} — origin/main fusionné`), vu.dit)
+    assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs', 'tronc', 'fusionner'])
+  }
+})
+
+test('file : une course de file rouge attribuée dont les jobs sont ILLISIBLES est un rouge NOMMÉ, sans fusion', () => {
+  const { ctx, gestes } = ctxFile({ pr: REST(), file: [courseDeFileRouge], parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]] })
+  ctx.jobsEnEchec = (id) => { gestes.push(['jobs', id]); return { disponible: false, raison: 'HTTP 502' } }
   const vu = etapeFile.jouer(ctx, journalPush())
-  assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 — jobs rouges : suite`)
+  assert.equal(vu.ok, false)
+  assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 ; jobs illisibles : HTTP 502`)
   assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs'])
 })
 
@@ -1764,14 +1914,6 @@ test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, a
   assert.match(vu.raison, /^⛔ origin\/main \(base 0123456789 du .+\)\.\.HEAD : 1 fusion\(s\) dont la RÉSOLUTION/)
 })
 
-test('file : ÉJECTÉE par une course de file rouge HORS des dérivés — rouge NOMMÉ (course, jobs), aucune fusion', () => {
-  const { ctx, gestes } = ctxFile({ pr: REST(), file: [courseDeFileRouge], jobs: ['suite'] })
-  const vu = etapeFile.jouer(ctx, journalPush())
-  assert.equal(vu.ok, false)
-  assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/99 — jobs rouges : suite`)
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs'], 'aucune reprise sur un rouge que le tronc n’explique pas')
-})
-
 test('#2392 file : une course de file ANNULÉE se REDEMANDE sur la même tête, sans fusion d’origin/main ; la vieille course, écartée, n’éjecte plus', () => {
   const { ctx, gestes, lignes } = ctxFile({ pr: REST(), files: [[], [courseDeFileRouge]], annules: ['docs', 'suite 1/3'], parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]], fileTimeoutMin: 0.002 })
   const journal = journalPush()
@@ -1788,48 +1930,47 @@ test(`#2392 file : une course de file ANNULÉE au-delà de la borne (${BORNE_EJE
   const { ctx, gestes } = ctxFile({ pr: REST(), files: [[], [courseDeFileRouge], [courseDeFileRouge], [neuve, courseDeFileRouge]], annules: ['docs'], parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]] })
   const vu = etapeFile.jouer(ctx, journalPush())
   assert.equal(vu.ok, false)
-  assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/100 ANNULÉE — jobs annulés : docs — éjectée une 2ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS})`)
+  assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/100 ANNULÉE — jobs annulés : docs — reprise une 2ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS})`)
   assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs', 'demander', 'tronc', 'jobs'], 'aucune fusion')
 })
 
-test('file : ÉJECTÉE par un CONFLIT — reprise BORNÉE : FUSION d’origin/main (jamais rebase), relance docs → push → pr → file', () => {
-  const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }) })
-  const journal = journalPush()
-  const vu = etapeFile.jouer(ctx, journal)
-  assert.equal(vu.ok, true)
-  assert.deepEqual(vu.relancer, ['docs', 'push-branche', 'pr', 'file'])
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner'])
-  assert.match(gestes[2][1], /^chore\(merge\): refs #2178 — fusion de origin\/main dans chantier\/2178\n/)
-  assert.deepEqual([journal.ejections, journal.tete], [1, 'nnnnnnnnn'])
+test('file #2525 : une PR en CONFLIT avant la demande — reprise BORNÉE sans demande, même course de branche en vol : FUSION d’origin/main (jamais rebase), relance docs → push → pr → file', () => {
+  const enVol = { headSha: 'ttttttttt', status: 'in_progress', conclusion: null, databaseId: 40, workflowName: 'CI' }
+  for (const branche of [[courseDeBrancheVerte], [enVol]]) {
+    const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), branche, fileTimeoutMin: 0.002 })
+    const journal = journalPush()
+    const vu = etapeFile.jouer(ctx, journal)
+    assert.equal(vu.ok, true, vu.raison)
+    assert.deepEqual(vu.relancer, ['docs', 'push-branche', 'pr', 'file'])
+    assert.deepEqual(gestes.map((g) => g[0]), ['tronc', 'fusionner'], 'aucune demande de fusion')
+    assert.match(gestes[1][1], /^chore\(merge\): refs #2178 — fusion de origin\/main dans chantier\/2178\n/)
+    assert.ok(gestes[1][1].includes(MOTIF_EJECTION))
+    assert.deepEqual([journal.ejections, journal.tete], [1, 'nnnnnnnnn'])
+  }
 })
 
-test('file : ÉJECTÉE par une course de file rouge sur les seuls jobs des DÉRIVÉS — reprise', () => {
-  const { ctx } = ctxFile({ pr: REST(), file: [courseDeFileRouge], jobs: ['docs'] })
-  const vu = etapeFile.jouer(ctx, journalPush())
-  assert.deepEqual([vu.ok, vu.relancer], [true, ['docs', 'push-branche', 'pr', 'file']])
-})
-
-test(`file : une ÉJECTION au-delà de la borne (${BORNE_EJECTIONS}) est rouge, sans fusion`, () => {
-  const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }) })
+test(`file : une reprise au-delà de la borne (${BORNE_EJECTIONS}) est rouge, sans fusion ni demande`, () => {
+  const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), fileTimeoutMin: 0.002 })
   const vu = etapeFile.jouer(ctx, { ...journalPush(), ejections: BORNE_EJECTIONS })
   assert.equal(vu.ok, false)
-  assert.match(vu.raison, /en CONFLIT avec la base de la file — éjectée une 2ᵉ fois, au-delà de la borne \(1\)/)
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander'])
+  assert.equal(vu.raison, 'PR #7 en CONFLIT avec la base — reprise une 2ᵉ fois, au-delà de la borne (1) : la cause n’est pas le tronc')
+  assert.deepEqual(gestes, [])
 })
 
-test('file : une fusion en CONFLIT est ABANDONNÉE et nomme ses fichiers — la main à l’humain, puis `--reprendre`', () => {
+test('file : une fusion en CONFLIT résiduel, un STOCK sous pilote compris, est ABANDONNÉE et nomme ses fichiers — la main à l’humain, puis `--reprendre`', () => {
   const stdout = `${'note stdout\n'.repeat(50)}cause stdout tardive\n`
   const stderr = `${'note stderr\n'.repeat(50)}cause stderr tardive\n`
   const refus = classer({ status: 17, stdout, stderr })
-  const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), fusion: refus, conflits: ['src/a.ts'] })
+  const stock = 'scripts/guards/balayages-non-resolus-stock.json'
+  const { ctx, gestes } = ctxFile({ pr: REST({ mergeable_state: 'dirty' }), fusion: refus, conflits: [stock] })
   const journal = journalPush()
   const vu = etapeFile.jouer(ctx, journal)
   assert.equal(vu.ok, false)
-  assert.match(vu.raison, /fusion de origin\/main REFUSÉE \(CONFLIT, abandonnée\) — fichiers :\n {4}src\/a\.ts/)
+  assert.ok(vu.raison.includes(`fusion de origin/main REFUSÉE (CONFLIT, abandonnée) — fichiers :\n    ${stock}\n`), vu.raison)
   assert.ok(vu.raison.includes(stdout))
   assert.ok(vu.raison.includes(stderr))
   assert.match(vu.raison, /refus \(status 17\)/)
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'abandonner'])
+  assert.deepEqual(gestes.map((g) => g[0]), ['tronc', 'fusionner', 'abandonner'])
   assert.equal(journal.ejections, 0)
 })
 
@@ -1841,9 +1982,9 @@ test('file : une fusion dont TOUS les conflits sont des cibles PURES se CONCLUT 
   const journal = journalPush()
   const vu = etapeFile.jouer(ctx, journal)
   assert.deepEqual([vu.ok, vu.relancer], [true, ['docs', 'push-branche', 'pr', 'file']], vu.raison)
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'conclure', 'docs'])
-  assert.equal(gestes[4][1], '--code', 'post-merge ne joue pas sur un `git commit` : les cibles de code se produisent ici')
-  assert.deepEqual(gestes[3][1], { chemins: conflits, message: gestes[2][1] })
+  assert.deepEqual(gestes.map((g) => g[0]), ['tronc', 'fusionner', 'conclure', 'docs'])
+  assert.equal(gestes[3][1], '--code', 'post-merge ne joue pas sur un `git commit` : les cibles de code se produisent ici')
+  assert.deepEqual(gestes[2][1], { chemins: conflits, message: gestes[1][1] })
   assert.equal(journal.ejections, 1)
 })
 
@@ -1861,7 +2002,7 @@ test('file : un conflit MIXTE (une cible pure ET un manuscrit) n’est jamais co
   assert.ok(vu.raison.includes('docs/systemes.md'))
   assert.ok(vu.raison.includes('src/a.ts'))
   assert.match(vu.raison, /CONFLIT, abandonnée/)
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'fusionner', 'abandonner'])
+  assert.deepEqual(gestes.map((g) => g[0]), ['tronc', 'fusionner', 'abandonner'])
 })
 
 test('file : la tête de la PR a CHANGÉ hors du train — rouge nommé', () => {

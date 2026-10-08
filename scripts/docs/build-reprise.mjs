@@ -292,7 +292,9 @@ function rendu() {
       texte: (module) =>
         `Le pilote de fusion des stocks de sites (${listeCode(pilotesDe(module))}), déclaré par
    \`.gitattributes\` et servi par \`${module}\` : fusion par groupe de site ; sans lui, deux soldes
-   de groupes disjoints d'un même stock rouvrent un conflit. Un stock se régénère par la commande
+   de groupes disjoints d'un même stock rouvrent un conflit. Le serveur (GitHub) n'exécute aucun pilote
+   de fusion : une PR en conflit se reprend par le train (étape \`file\`, #2525). Tous les stocks se
+   régénèrent par \`npm run stocks:regen\`, un seul par
    \`npx tsx scripts/guards/lib/regenStock.mts <module qui mesure>\`, jamais par \`docs:build\`.`,
     },
   ].map((f) => ({ ...f, porte: f.porte ?? clePiloteDe(f.module) }))
@@ -430,8 +432,11 @@ de chantier, ouvre sa PR vers \`main\` et l'ARME ; la FILE DE FUSION du serveur 
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). L'étape \`file\`
 journalise le compte qui demande la fusion ; une course de branche ANNULÉE s'attend, sa relance appartenant à
 la reprise serveur, jusqu'à son ${PLAFOND_RELANCES}ᵉ essai, où le train rend la main avec le geste
-\`gh run rerun <id> --failed\`. Aucun rebase : une PR éjectée de la file pour un conflit ou un dérivé périmé se
-reprend par une FUSION d'\`origin/main\` dans la branche, une fois ; une PR éjectée par une course de file
+\`gh run rerun <id> --failed\`. Aucun rebase : l'étape \`file\` reprend une PR par une FUSION
+d'\`origin/main\` dans la branche, une fois, si elle est en CONFLIT avec la base (vu sur la PR avant la
+demande, ou relu après un refus de la demande) ou éjectée de la file par une course rouge qui lui est
+ATTRIBUÉE ; l'étape \`docs\` régénère alors les stocks de sites (\`npm run stocks:regen\`) et les commet
+(\`chore(stocks)\`, #2525) ; un refus sans conflit reste rouge ; une PR éjectée par une course de file
 ANNULÉE se redemande sur la même tête, sans fusion, dans la même borne ; un run neuf rotationne le log
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.

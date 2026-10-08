@@ -16,7 +16,7 @@ import {
   DECROISSANT, FORMAT_JSON, FORMAT_MJS, REMESURE, SOUS_LOT, comptesParFamille, ecartDeRegeneration,
   entreesRegenerees, formatDe, lireEntreesDeSite, lireStockJson, texteDeStock, texteEnPlace, texteRegenere,
 } from './stockDeSites.mjs'
-import { lotDeLaLigne, regenererStock } from './regenStock.mts'
+import { jouerModules, lotDeLaLigne, modulesQuiMesurent, regenererStock } from './regenStock.mts'
 import { constructionsReserveesDuCorpus, scanConstructionsReservees, ECRITURE_DE_STOCK_JSON } from './canonUnique.mjs'
 import { listerDossier } from './lister.mjs'
 import { corpusDesGardes } from './commentPoison.mjs'
@@ -361,3 +361,43 @@ test('la commande refuse, code 2, un module sans `regenerations`, une valeur qui
   assert.ok(r3.stderr.includes(join(RACINE, nonSuivi)), r3.stderr)
   assert.equal(existsSync(join(RACINE, nonSuivi)), false)
 }))
+
+// #2525
+test('modulesQuiMesurent : les modules qui EXPORTENT `regenerations` (const, function, async function), lus sur l’arbre syntaxique', () => {
+  const f = (rel, text) => ({ rel, text })
+  const vus = modulesQuiMesurent([
+    f('scripts/a.mjs', 'export const regenerations = () => []\n'),
+    f('scripts/b.ts', 'export function regenerations(): unknown[] { return [] }\n'),
+    f('scripts/c.mts', 'export async function regenerations() { return [] }\n'),
+    f('scripts/d.mjs', 'const regenerations = () => []\nexport const autre = regenerations\n'),
+    f('scripts/e.mjs', '// export const regenerations = () => []\nexport const x = "export function regenerations() {}"\n'),
+    f('scripts/f.d.mts', 'export function regenerations(): unknown[];\n'),
+    f('scripts/g.test.mjs', 'export const regenerations = () => []\n'),
+    f('scripts/h.json', '{"regenerations": []}\n'),
+  ])
+  assert.deepEqual(vus, ['scripts/a.mjs', 'scripts/b.ts', 'scripts/c.mts'])
+})
+
+test('jouerModules : chaque module est joué, et le PLUS GRAND code est rendu, quel que soit l’ordre', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'stock-de-sites-'))
+  const vide = join(dir, 'vide.mjs')
+  writeFileSync(vide, 'export function regenerations() { return [] }\n')
+  const pasListe = join(dir, 'pas-liste.mjs')
+  writeFileSync(pasListe, 'export function regenerations() { return 3 }\n')
+  const erreur = console.error
+  console.error = () => {}
+  try {
+    assert.equal(await jouerModules([vide], []), 0)
+    assert.equal(await jouerModules([vide, pasListe], []), 2)
+    assert.equal(await jouerModules([pasListe, vide], []), 2)
+  } finally {
+    console.error = erreur
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('la commande refuse `--tous` avec un module, code 2', () => {
+  const r = commande(['--tous', 'a.mjs'])
+  assert.equal(r.status, 2)
+  assert.match(r.stderr, /Usage : npx tsx scripts\/guards\/lib\/regenStock\.mts <module qui mesure> \| --tous/)
+})

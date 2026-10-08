@@ -105,6 +105,7 @@
     "relay:deploy": "npm --prefix server run deploy",
     "galleries": "node scripts/gen-galleries.mjs",
     "recette:shot": "node scripts/recette/shot-screen.mjs",
+    "stocks:regen": "node scripts/lancer-local.mjs tsx -- tsx scripts/guards/lib/regenStock.mts --tous",
     "map:check": "node scripts/lancer-local.mjs tsx -- tsx scripts/map/check.mts",
     "test:map": "node scripts/lancer-local.mjs vitest -- vitest run scripts/map"
   },
