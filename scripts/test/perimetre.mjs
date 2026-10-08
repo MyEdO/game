@@ -32,7 +32,7 @@ import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { paquetsDArgv } from '../guards/lib/porteSpawn.mjs'
 import { arbrePrincipal, baseCommune, ceQuiChange, depotDe, lireEnLot, listerImage, racineDe, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
 import { ancetresDe, LECTURES_DES_DEPENDANCES, selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/docs-rebuild.mjs'
-import { capaciteDuLanceur, codeEnfant, environnementDe, maxWorkersMono } from './partition.mjs'
+import { DRAPEAU_REGIME, EMPREINTES_WORKER_MO, PORTEE_LOT_S, capaciteDuLanceur, codeEnfant, environnementDe, maxWorkersMono } from './partition.mjs'
 import { DUREES_CI, dureesValides, memoCiDe, rapatrierDureesCi } from './dureesCi.mjs'
 import { EXTS_LINT, lancerLint } from '../guards/lib/lintStage.mjs'
 import { prendreVerrou } from './verrou.mjs'
@@ -84,7 +84,7 @@ const DUREES = 'durees.json'
 export const nomDuMemo = (base, modele) => `${base}.${modele}.json`
 
 /** Le MODÈLE du mur (`murDesFichiers`) : changé à chaque changement du sens du mur, donc du surcoût appris. */
-const MODELE_DU_MUR = 'liste-ordre-lanceur'
+const MODELE_DU_MUR = 'liste-ordre-lanceur-servis'
 
 /** Le mémo des surcoûts de lancement appris, sous `dossierDesMesures` : `{ [famille]: ms }`, sous `MODELE_DU_MUR`. */
 export const SURCOUTS = nomDuMemo('surcouts', MODELE_DU_MUR)
@@ -834,15 +834,20 @@ export function mesuresDe(dossier) {
 }
 
 /**
- * Les WORKERS de chaque famille d'un lancement (#2400) : ceux que `run.mjs` sert à UN processus Vitest
- * (`capaciteDuLanceur`, `maxWorkersMono`) — le `--reporter` du périmètre (`reportersVitest`) est un `DRAPEAUX_MONO`
- * (scripts/test/partition.mjs:205, `separerArguments`), sans partage node/jsdom —, et la
+ * Les WORKERS de chaque famille d'un lancement (#2400) sous le régime `regime` : ceux que `run.mjs` sert à UN
+ * processus Vitest (`capaciteDuLanceur`, `maxWorkersMono`) — le `--reporter` du périmètre (`reportersVitest`) est un
+ * `DRAPEAUX_MONO` (scripts/test/partition.mjs, `separerArguments`), sans partage node/jsdom —, et la
  * concurrence par défaut de `node --test` (`--test-concurrency`, doc Node : `os.availableParallelism() - 1`).
- * @param {NodeJS.ProcessEnv} env
+ * @param {NodeJS.ProcessEnv} env @param {'suite' | 'lot'} regime
  */
-export function workersDuLancement(env) {
-  return { vitest: maxWorkersMono(capaciteDuLanceur(env).servis), node: Math.max(1, availableParallelism() - 1) }
+export function workersDuLancement(env, regime) {
+  return { vitest: maxWorkersMono(capaciteDuLanceur(env, regime).servis), node: Math.max(1, availableParallelism() - 1) }
 }
+
+/** Les arguments `node` du lancement Vitest d'un paquet de tests : `run.mjs` sous le régime `regime` (`DRAPEAU_REGIME`),
+ *  les reporters écrivant le rapport `sortie` (`reportersVitest`). PURE. */
+export const argumentsVitest = (paquet, sortie, regime) =>
+  ['scripts/test/run.mjs', `${DRAPEAU_REGIME}=${regime}`, ...paquet, ...reportersVitest(sortie)]
 
 /**
  * Le SURCOÛT observé d'un lancement de la famille `famille` (#2400, #2474) : son mur RÉEL `murMs`, moins le mur
@@ -853,6 +858,20 @@ export function workersDuLancement(env) {
 export function surcoutObserve(famille, murMs, appris, workers) {
   const estime = murDesFichiers({ [famille]: Object.entries(appris) }, { workers })
   return Math.max(0, Math.round(murMs - estime))
+}
+
+/**
+ * Le bilan d'UN lancement de la famille `famille` (#2497) : son surcoût observé (`surcoutObserve`) sur les workers
+ * SERVIS de sa `lecture` (`apprendre`), jamais sur ceux du plan (`planifies`) — `null`, aucun surcoût, sans workers
+ * servis —, et sa ligne de journal, qui dit les servis quand ils diffèrent du plan. PURE.
+ * @param {string} famille @param {number} murMs @param {{ appris: Record<string, number>, workers: number | null }} lecture @param {number} planifies
+ * @returns {{ surcout: number | null, texte: string }}
+ */
+export function bilanDuLancement(famille, murMs, { appris, workers: servis }, planifies) {
+  const tete = `${famille} : ${Object.keys(appris).length} fichier(s), mur réel ${secondes(murMs)}`
+  if (servis === null) return { surcout: null, texte: `${tete} ; workers servis non rapportés : aucun surcoût appris` }
+  const surcout = surcoutObserve(famille, murMs, appris, { [famille]: servis })
+  return { surcout, texte: `${tete}${servis === planifies ? '' : `, servis ${servis}, plan ${planifies}`} ; surcoût observé ${secondes(surcout)}` }
 }
 
 /** Le libellé d'une durée en secondes. */
@@ -875,6 +894,22 @@ export const texteDuReel = (reelMs, estimeMs, sansDuree = 0) => {
 
 /** Le RAPPORT de durées du lancement `i` de la famille `famille`, sous `dossier`, propre au processus `pid`. PURE. */
 export const rapportDuLancement = (dossier, pid) => (famille, i) => join(dossier, `${famille}-${pid}-${i}.json`)
+
+/**
+ * Le PLAN du lancement et son RÉGIME Vitest (`EMPREINTES_WORKER_MO`, #2497), seule source du lancement et du journal :
+ * `planDuPerimetre` sous les workers du régime `lot` (`workersDe`) ; si le mur vitest de ce plan dépasse
+ * `PORTEE_LOT_S`, le plan sous les workers de `suite` fait foi. PURE.
+ * @param {Map<string, { rang: number, specificite?: number }>} retenus
+ * @param {{ mesures: ReturnType<typeof mesuresDe>, lire: (rels: string[]) => Map<string, string | null>, budget?: number, signaux?: Map<string, { signal: string }>, workersDe: (regime: 'lot' | 'suite') => Record<string, number> }} p
+ */
+export function planDuLancement(retenus, { workersDe, ...p }) {
+  const sous = (regime) => {
+    const workers = workersDe(regime)
+    return { regime, workers, ...planDuPerimetre(retenus, { ...p, workers }) }
+  }
+  const lot = sous('lot')
+  return lot.plan.murParFamille.vitest <= PORTEE_LOT_S * 1000 ? lot : sous('suite')
+}
 
 /**
  * Le PLAN d'exécution des tests `retenus` sur les `mesures` (`mesuresDe`) : durées apprises ici (`DUREES`) et de
@@ -907,8 +942,8 @@ function principal() {
   const mesures = mesuresDe(dossierDesMesures(racine))
   const rapatriement = options.liste ? null : rapatrierDureesCi({ mesures, cwd: racine })
   const budget = options.budget ?? BUDGET_LOCAL_S
-  const workers = workersDuLancement(process.env)
-  const { ci, facteurs, estimations, surcouts, plan } = planDuPerimetre(retenus, { mesures, lire, budget, signaux, workers })
+  const { regime, workers, ci, facteurs, estimations, surcouts, plan } =
+    planDuLancement(retenus, { mesures, lire, budget, signaux, workersDe: (r) => workersDuLancement(process.env, r) })
   const part = (liste) => liste.filter((t) => retenus.has(t)).length
   const journal = (texte) => console.log(`[perimetre] ${texte}`)
   journal(`base ${base} → ${tete ?? 'arbre de travail'} : ${touches.length} fichier(s) touché(s)`)
@@ -934,7 +969,7 @@ function principal() {
     : !rapatriement.disponible ? `CI non rapatriée — ${rapatriement.raison}`
       : rapatriement.valeur.etat === 'refus' ? `CI non rapatriée — ${rapatriement.valeur.raison}`
         : `CI ${rapatriement.valeur.etat === 'deja' ? 'déjà mémorisée' : 'rapatriée'} : course ${rapatriement.valeur.memo.run}`)
-  journal(`mur : workers vitest ${workers.vitest}, node ${workers.node} ; surcoût de lancement vitest ${secondes(surcouts.vitest)}, node ${secondes(surcouts.node)}`)
+  journal(`mur : régime vitest ${regime} (${EMPREINTES_WORKER_MO[regime]} Mo par worker) sur un mur vitest ${plan.sansDureeParFamille.vitest ? '≥ ' : ''}${secondes(plan.murParFamille.vitest)} (portée du lot ${PORTEE_LOT_S} s), workers vitest ${workers.vitest}, node ${workers.node} ; surcoût de lancement vitest ${secondes(surcouts.vitest)}, node ${secondes(surcouts.node)}`)
   for (const r of plan.rangs)
     journal(`  ${r.rang} : mur estimé ${texteDuMur(r.murMs, r)}, ${r.lances} lancé(s)${r.inconnues ? ` ; ${r.inconnues} de durée inconnue ${r.rang === 'touché' ? 'lancé(s) hors estimation' : 'à la CI'}` : ''}${r.aLaCI ? ` ; ${r.aLaCI} fichier(s) ${r.rang.replace('import ', '')} restent à la CI` : ''}`)
   journal(`budget ${budget} s de mur (touché hors budget) : ${plan.lances.length} lancé(s), mur estimé ${texteDuMur(plan.murMs, plan)}, dont ${secondes(plan.murBudgeteMs)} au budget ; → CI ${plan.aLaCI.length}`)
@@ -952,7 +987,7 @@ function principal() {
   const lancements = [
     ...paquets.map(({ famille, p }, i) => {
       const sortie = rapport(famille, i)
-      return { famille, sortie, args: famille === 'vitest' ? ['scripts/test/run.mjs', ...p, ...reportersVitest(sortie)]
+      return { famille, sortie, args: famille === 'vitest' ? argumentsVitest(p, sortie, regime)
         : ['--test', '--test-reporter=spec', '--test-reporter-destination=stdout',
           `--test-reporter=${pathToFileURL(join(RACINE, 'scripts/test/dureesNodeTest.mjs')).href}`, `--test-reporter-destination=${sortie}`, ...p] }
     }),
@@ -967,11 +1002,11 @@ function principal() {
     if (code === 0) code = codeEnfant(r.status, r.signal)
     if (!famille) continue
     reels[famille] = (reels[famille] ?? 0) + murMs
-    const appris = apprendre(racine, sortie, mesures)
-    if (!Object.keys(appris).length) continue
-    const surcout = surcoutObserve(famille, murMs, appris, workers)
-    journal(`${famille} : ${Object.keys(appris).length} fichier(s), mur réel ${secondes(murMs)} ; surcoût observé ${secondes(surcout)}`)
-    ecrireLesMesures(mesures, SURCOUTS, { [famille]: surcout })
+    const lecture = apprendre(racine, sortie, mesures, famille, workers[famille])
+    if (!Object.keys(lecture.appris).length) continue
+    const { surcout, texte } = bilanDuLancement(famille, murMs, lecture, workers[famille])
+    journal(texte)
+    if (surcout !== null) ecrireLesMesures(mesures, SURCOUTS, { [famille]: surcout })
   }
   for (const [famille, murMs] of Object.entries(reels))
     journal(`${famille} au plan : ${texteDuReel(murMs, plan.murParFamille[famille], plan.sansDureeParFamille[famille])}`)
@@ -979,17 +1014,28 @@ function principal() {
   return code
 }
 
-/** Fusionne dans les `DUREES` de `mesures` (`mesuresDe`) le rapport de durées `rapport` d'UN lancement
- *  (`rapportDuLancement` ; `dureesVitest` ou `dureesNodeTest` : `{ [chemin absolu]: ms }`, chemins rendus relatifs), puis
- *  l'efface, que l'écriture (`ecrireLesMesures`) réussisse ou échoue. Rend les durées apprises ; `{}` sans rapport. */
-export function apprendre(racine, rapport, mesures) {
+/** La lecture du rapport de durées `lu` d'UN lancement de chaque famille : ses durées `{ [chemin absolu]: ms }` et ses
+ *  workers SERVIS, `null` s'ils ne sont pas un entier ≥ 1. vitest : `{ workers, durees }` de `dureesVitest.mjs` ; node :
+ *  `{ [chemin absolu]: ms }` de `dureesNodeTest.mjs`, workers du plan `planifies` (`workersDuLancement`, doc Node
+ *  `--test-concurrency`). PURE. */
+const LECTURES_DE_RAPPORT = Object.freeze({
+  vitest: (lu) => ({ durees: lu?.durees ?? {}, workers: Number.isInteger(lu?.workers) && lu.workers >= 1 ? lu.workers : null }),
+  node: (lu, planifies) => ({ durees: lu ?? {}, workers: planifies }),
+})
+
+/** Fusionne dans les `DUREES` de `mesures` (`mesuresDe`) les durées du rapport `rapport` d'UN lancement de la famille
+ *  `famille` (`rapportDuLancement`, `LECTURES_DE_RAPPORT` ; chemins rendus relatifs), puis l'efface, que l'écriture
+ *  (`ecrireLesMesures`) réussisse ou échoue. Rend les durées apprises et les workers servis ; `{ appris: {}, workers: null }`
+ *  sans rapport. */
+export function apprendre(racine, rapport, mesures, famille, planifies) {
   const base = resolve(racine).split(sep).join('/')
   const relDe = (a) => a.split(sep).join('/').replace(`${base}/`, '')
   let lu
-  try { lu = JSON.parse(readFileSync(rapport, 'utf8')) } catch { return {} } finally { rmSync(rapport, { force: true }) }
-  const appris = Object.fromEntries(Object.entries(lu).map(([f, ms]) => [relDe(f), Math.round(ms)]))
+  try { lu = JSON.parse(readFileSync(rapport, 'utf8')) } catch { return { appris: {}, workers: null } } finally { rmSync(rapport, { force: true }) }
+  const { durees, workers } = LECTURES_DE_RAPPORT[famille](lu, planifies)
+  const appris = Object.fromEntries(Object.entries(durees).map(([f, ms]) => [relDe(f), Math.round(ms)]))
   if (Object.keys(appris).length) ecrireLesMesures(mesures, DUREES, appris)
-  return appris
+  return { appris, workers }
 }
 
 if (import.meta.main) {

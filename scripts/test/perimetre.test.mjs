@@ -1,12 +1,13 @@
 // Banc du périmètre de tests (#2400) : un dépôt git FORGÉ par classe de lien, sous mkdtempSync.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ordreDuLanceur, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, argumentsVitest, bilanDuLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
+import { PORTEE_LOT_S, regimeDeArgv } from './partition.mjs'
 import DureesVitest from './dureesVitest.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 
@@ -175,6 +176,66 @@ test('toolchain touchée (lectures des dépendances comprises) ⇒ suite entièr
   assert.deepEqual(perimetre.toolchain, ['server/package.json', 'tsconfig.json'])
   assert.deepEqual([...perimetre.retenus.keys()].sort(), ['scripts/temoin.test.mjs', 'src/h.test.ts'])
   assert.equal(perimetre.retenus.get('src/h.test.ts').nature, 'toolchain')
+})
+
+/** Mesures d'un dossier temporaire où les tests `durees` (`{ [test]: ms }`) ont une durée apprise, surcoûts nuls. */
+function mesuresDuLancement(t, durees) {
+  const commun = mkdtempSync(join(tmpdir(), 'perimetre-regime-'))
+  t.after(() => rmSync(commun, { recursive: true, force: true }))
+  const mesures = mesuresDe(commun)
+  mesures.ecrire('durees.json', durees)
+  mesures.ecrire(SURCOUTS, { vitest: 0, node: 0 })
+  return mesures
+}
+const lireNode = (rels) => new Map(rels.map((r) => [r, 'export {}\n']))
+/** Workers vitest de chaque régime, distincts : le plan dit sous lesquels il a été calculé. */
+const WORKERS_DU_REGIME = { lot: { vitest: 4, node: 1 }, suite: { vitest: 2, node: 1 } }
+const workersDe = (regime) => WORKERS_DU_REGIME[regime]
+
+test('régime du lancement : tout retenu (setup touché) mais le budget borne le lancement sous la portée ⇒ `lot`', (t) => {
+  const tests = Array.from({ length: 40 }, (_, i) => `src/s${String(i).padStart(2, '0')}.test.ts`)
+  const mesures = mesuresDuLancement(t, tableTotale(tests, () => 30000))
+  const retenus = new Map(tests.map((f) => [f, { rang: 1_000_000 }]))
+  const r = planDuLancement(retenus, { mesures, lire: lireNode, budget: 180, workersDe })
+  assert.equal(r.regime, 'lot')
+  assert.deepEqual(r.workers, WORKERS_DU_REGIME.lot)
+  assert.deepEqual([r.plan.lances.length, r.plan.aLaCI.length, r.plan.murParFamille.vitest], [24, 16, 180000])
+})
+
+test('régime du lancement : un rang touché massif dont le mur sous `lot` dépasse la portée ⇒ `suite`, plan RECALCULÉ sous ses workers', (t) => {
+  const tests = Array.from({ length: 10 }, (_, i) => `src/t${i}.test.ts`)
+  const mesures = mesuresDuLancement(t, tableTotale(tests, () => 200000))
+  const retenus = new Map(tests.map((f) => [f, { rang: 0 }]))
+  const r = planDuLancement(retenus, { mesures, lire: lireNode, budget: 180, workersDe })
+  // Sous lot, 4 workers : 3 × 200 s = 600 s > 294,4 s. Sous suite, 2 workers : 5 × 200 s.
+  assert.equal(r.regime, 'suite')
+  assert.deepEqual(r.workers, WORKERS_DU_REGIME.suite)
+  assert.deepEqual([r.plan.lances.length, r.plan.murParFamille.vitest], [10, 1000000])
+})
+
+test('régime du lancement : un mur vitest ÉGAL à la portée reste `lot`', (t) => {
+  const mesures = mesuresDuLancement(t, { 'src/a.test.ts': PORTEE_LOT_S * 1000 })
+  const r = planDuLancement(new Map([['src/a.test.ts', { rang: 0 }]]), { mesures, lire: lireNode, budget: 180, workersDe })
+  assert.deepEqual([r.regime, r.plan.murParFamille.vitest], ['lot', 294400])
+})
+
+test('régime du lancement : les workers d’un régime se mesurent UNE fois — les workers rendus sont ceux du plan', (t) => {
+  const mesures = mesuresDuLancement(t, { 'src/a.test.ts': 100000, 'src/b.test.ts': 100000 })
+  let appels = 0
+  // Chaque mesure rend une autre valeur : 1 worker, puis 2.
+  const changeant = () => ({ vitest: ++appels, node: 1 })
+  const r = planDuLancement(new Map([['src/a.test.ts', { rang: 0 }], ['src/b.test.ts', { rang: 0 }]]), { mesures, lire: lireNode, budget: 180, workersDe: changeant })
+  assert.deepEqual([r.regime, r.workers.vitest, r.plan.murParFamille.vitest, appels], ['lot', 1, 200000, 1])
+})
+
+test('lancement vitest : `run.mjs` reçoit `--regime=<r>`, que son lanceur lit et retire', () => {
+  for (const regime of ['lot', 'suite']) {
+    const args = argumentsVitest(['src/a.test.ts', 'src/b.test.ts'], 'rapport.json', regime)
+    assert.deepEqual(args.slice(0, 4), ['scripts/test/run.mjs', `--regime=${regime}`, 'src/a.test.ts', 'src/b.test.ts'])
+    const lu = regimeDeArgv(args.slice(1))
+    assert.equal(lu.regime, regime)
+    assert.deepEqual(lu.argv, args.slice(2))
+  }
 })
 
 test('renommage : le chemin QUITTÉ reste touché sous la racine qui le balayait', (t) => {
@@ -456,12 +517,47 @@ test('lireArguments : --tete exige --base, --budget exige un entier de secondes'
 /** Un module Vitest de durée `ms` (`TestModule.diagnostic()`), pour `DureesVitest`. */
 const moduleVitest = (moduleId, ms) => ({ moduleId, diagnostic: () => ({ environmentSetupDuration: 0, prepareDuration: 0, collectDuration: 0, setupDuration: 0, duration: ms }) })
 
-/** Le reporter Vitest réel d'un lancement : il écrit le rapport `sortie` des modules `modules`. */
-const lancerVitest = (sortie, modules) => {
+/** Le reporter Vitest réel d'un lancement sous `maxWorkers` résolus : il écrit le rapport `sortie` des modules `modules`. */
+const lancerVitest = (sortie, modules, maxWorkers = 2) => {
   const reporter = new DureesVitest()
-  reporter.onInit({ config: { outputFile: { durees: sortie } } })
+  reporter.onInit({ config: { outputFile: { durees: sortie }, maxWorkers } })
   reporter.onTestRunEnd(modules)
 }
+
+test('dureesVitest : le rapport porte les workers résolus de la config (`maxWorkers`), `null` sans eux', (t) => {
+  const dossier = mkdtempSync(join(tmpdir(), 'perimetre-reporter-'))
+  t.after(() => rmSync(dossier, { recursive: true, force: true }))
+  const sortie = join(dossier, 'rapport.json')
+  lancerVitest(sortie, [moduleVitest('/r/a.test.ts', 12)], 3)
+  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8')), { workers: 3, durees: { '/r/a.test.ts': 12 } })
+  lancerVitest(sortie, [moduleVitest('/r/a.test.ts', 12)], null)
+  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8')), { workers: null, durees: { '/r/a.test.ts': 12 } })
+})
+
+test('apprendre : un rapport vitest SANS workers valides apprend ses durées, et aucun workers servis', (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-apprendre-sans-workers-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const rapport = rapportDuLancement(racine, 7)
+  const ecrits = []
+  const mesures = { lire: () => ({}), ecrire: (nom, e) => { ecrits.push([nom, e]) } }
+  for (const [i, workers] of [[0, null], [1, 0], [2, 2.5], [3, '4']]) {
+    writeFileSync(rapport('vitest', i), JSON.stringify({ workers, durees: { [join(racine, 'src', 'a.test.ts')]: 10 } }))
+    assert.deepEqual(apprendre(racine, rapport('vitest', i), mesures, 'vitest', 3), { appris: { 'src/a.test.ts': 10 }, workers: null }, JSON.stringify(workers))
+  }
+  assert.equal(ecrits.length, 4)
+})
+
+test('bilanDuLancement : le surcoût se simule sur les workers SERVIS, pas ceux du plan ; sans servis, aucun surcoût', () => {
+  const appris = { 'src/a.test.ts': 4000, 'src/b.test.ts': 4000, 'src/c.test.ts': 4000, 'src/d.test.ts': 4000 }
+  // Servis 4 : mur simulé 4 s, surcoût 10 − 4 = 6 s ; sur les 2 du plan, il serait de 10 − 8 = 2 s.
+  assert.deepEqual(bilanDuLancement('vitest', 10_000, { appris, workers: 4 }, 2),
+    { surcout: 6000, texte: 'vitest : 4 fichier(s), mur réel 10.0 s, servis 4, plan 2 ; surcoût observé 6.0 s' })
+  assert.deepEqual(bilanDuLancement('vitest', 10_000, { appris, workers: 4 }, 4),
+    { surcout: 6000, texte: 'vitest : 4 fichier(s), mur réel 10.0 s ; surcoût observé 6.0 s' })
+  assert.deepEqual(bilanDuLancement('vitest', 10_000, { appris, workers: null }, 2),
+    { surcout: null, texte: 'vitest : 4 fichier(s), mur réel 10.0 s ; workers servis non rapportés : aucun surcoût appris' })
+})
+
 
 test('apprendre : le rapport d’UN lancement (arrondi) se fusionne dans les mesures, chemins relatifs, puis s’efface ; celui d’un autre lancement reste', (t) => {
   const racine = mkdtempSync(join(tmpdir(), 'perimetre-apprendre-'))
@@ -471,11 +567,11 @@ test('apprendre : le rapport d’UN lancement (arrondi) se fusionne dans les mes
   mkdirSync(cache)
   const rapport = rapportDuLancement(cache, 1)
   mesuresDe(commun).ecrire('durees.json', { 'src/ancien.test.ts': 7, 'src/v.test.ts': 1 })
-  writeFileSync(rapport('vitest', 0), JSON.stringify({ [join(racine, 'src', 'v.test.ts')]: 250.2 }))
+  writeFileSync(rapport('vitest', 0), JSON.stringify({ workers: 3, durees: { [join(racine, 'src', 'v.test.ts')]: 250.2 } }))
   writeFileSync(rapport('node', 1), JSON.stringify({ [join(racine, 'scripts', 'n.test.mjs')]: 41.6 }))
-  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesuresDe(commun)), { 'src/v.test.ts': 250 })
+  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesuresDe(commun), 'vitest', 4), { appris: { 'src/v.test.ts': 250 }, workers: 3 })
   assert.deepEqual([existsSync(rapport('vitest', 0)), existsSync(rapport('node', 1))], [false, true])
-  assert.deepEqual(apprendre(racine, rapport('node', 1), mesuresDe(commun)), { 'scripts/n.test.mjs': 42 })
+  assert.deepEqual(apprendre(racine, rapport('node', 1), mesuresDe(commun), 'node', 15), { appris: { 'scripts/n.test.mjs': 42 }, workers: 15 })
   assert.deepEqual(mesuresDe(commun).lire('durees.json'), { 'src/ancien.test.ts': 7, 'src/v.test.ts': 250, 'scripts/n.test.mjs': 42 })
   assert.equal(existsSync(rapport('node', 1)), false)
 })
@@ -490,9 +586,9 @@ test('apprendre : le rapport du paquet 1 n’est JAMAIS attribué au paquet 2, m
   const ecrits = []
   const mesures = { lire: () => ({}), ecrire: (nom, e) => { if (echecs-- > 0) throw new Error('verrou tenu'); ecrits.push([nom, e]) } }
   lancerVitest(rapport('vitest', 0), [moduleVitest(join(racine, 'src', 'a.test.ts'), 60000)])
-  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesures), { 'src/a.test.ts': 60000 })
+  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesures, 'vitest', 2), { appris: { 'src/a.test.ts': 60000 }, workers: 2 })
   lancerVitest(rapport('vitest', 1), [moduleVitest(join(racine, 'src', 'b.test.ts'), 1000)])
-  assert.deepEqual(apprendre(racine, rapport('vitest', 1), mesures), { 'src/b.test.ts': 1000 })
+  assert.deepEqual(apprendre(racine, rapport('vitest', 1), mesures, 'vitest', 2), { appris: { 'src/b.test.ts': 1000 }, workers: 2 })
   assert.deepEqual(ecrits, [['durees.json', { 'src/b.test.ts': 1000 }]])
 })
 
@@ -503,9 +599,9 @@ test('apprendre : un paquet SANS rapport apprend {} — le rapport du paquet pr�
   const rapport = rapportDuLancement(racine, 4242)
   const mesures = { lire: () => ({}), ecrire: () => { throw new Error('verrou tenu') } }
   lancerVitest(rapport('vitest', 0), [moduleVitest(join(racine, 'src', 'a.test.ts'), 60000)])
-  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesures), { 'src/a.test.ts': 60000 })
+  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesures, 'vitest', 2), { appris: { 'src/a.test.ts': 60000 }, workers: 2 })
   assert.equal(existsSync(rapport('vitest', 0)), false, 'le rapport ne survit pas à son lancement')
-  assert.deepEqual(apprendre(racine, rapport('vitest', 1), mesures), {})
+  assert.deepEqual(apprendre(racine, rapport('vitest', 1), mesures, 'vitest', 2), { appris: {}, workers: null })
 })
 
 test('mesures : sous le répertoire git COMMUN, le même depuis un worktree lié', (t) => {
@@ -537,7 +633,7 @@ test('apprendre : une écriture des mesures qui échoue s’imprime avec sa caus
   const imprime = []
   t.mock.method(console, 'log', (texte) => { imprime.push(texte) })
   const enPanne = { lire: () => ({}), ecrire: () => { throw new Error('verrou tenu') } }
-  assert.deepEqual(apprendre(racine, rapport('node', 0), enPanne), { 'scripts/n.test.mjs': 42 })
+  assert.deepEqual(apprendre(racine, rapport('node', 0), enPanne, 'node', 15), { appris: { 'scripts/n.test.mjs': 42 }, workers: 15 })
   assert.deepEqual(imprime, ['[perimetre] mesures non écrites — verrou tenu'])
   assert.equal(existsSync(rapport('node', 0)), false, 'le rapport ne survit pas à son lancement')
   assert.equal(ecrireLesMesures(enPanne, 'surcouts.json', { node: 1 }), false)
