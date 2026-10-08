@@ -5,8 +5,9 @@ import { fileURLToPath } from 'node:url'
 import { spawn, spawnSync } from 'node:child_process'
 import { z } from 'zod'
 import { prendreVerrou } from '../test/verrou.mjs'
-import { depotDe, arbrePrincipal, brancheDe, shaDe, etatDeLArbre } from '../guards/lib/gitPorte.mjs'
-import { citerArgv, cheminsDeJournal, lireJournal, idDeRun, envDeLancement, veillerLeTrain, FILE_TIMEOUT_MIN } from './publier.mjs'
+import { depotDe, arbrePrincipal, brancheDe, shaDe } from '../guards/lib/gitPorte.mjs'
+import { citerArgv } from './publier.mjs'
+import { BORNE_RAISON } from '../guards/lib/ticketsGh.mjs'
 
 export const PRODUCTEUR = 'ops:session'
 const terminaux = new Set(['fermee', 'echec-reservation', 'echec-controle'])
@@ -18,7 +19,6 @@ const CarteSession = z.object({
   lanceur: Identite, empreinteJeton: z.string().regex(/^[0-9a-f]{64}$/), empreinteNonce: z.string().regex(/^[0-9a-f]{64}$/).optional(),
   etat: z.enum(['reservee', 'vivante', 'arret-demande', 'nettoyage', 'fermee', 'echec-reservation', 'echec-controle']),
   controleur: Identite.optional(), jobHost: Identite.optional(), agentProcessus: Identite.optional(),
-  publication: z.object({ etat: z.enum(['non-demandee', 'demandee', 'lancee', 'echouee', 'fusionnee']) }).passthrough(),
   evenements: z.array(z.object({ ticket: z.number().int().positive(), nom: z.string(), sessionId: z.uuid(), date: z.iso.datetime(), type: z.enum(['lancement', 'clôture', 'échec']) })),
 }).passthrough().superRefine((c, ctx) => {
   if (c.etat === 'reservee' && !c.empreinteNonce) ctx.addIssue({ code: 'custom', message: 'nonce requis' })
@@ -26,6 +26,13 @@ const CarteSession = z.object({
   if (['nettoyage', 'fermee'].includes(c.etat) && !['sortie', 'echec'].includes(c.issueSortie)) ctx.addIssue({ code: 'custom', message: 'issue de sortie requise' })
   if (c.etat === 'echec-controle' && c.codeEnveloppe !== undefined) ctx.addIssue({ code: 'custom', message: 'sortie enveloppe inconnue' })
 })
+const PolitiqueSession = z.object({ sandbox: z.enum(['danger-full-access']), approvalPolicy: z.enum(['never']), ignoreUserConfig: z.literal(true), model: z.enum(['gpt-6.1-sol']), reasoningEffort: z.enum(['medium']) }).strict()
+const validerPolitique = (brut) => {
+  const vu = PolitiqueSession.safeParse(brut)
+  if (!vu.success) throw new Error(`POLITIQUE INVALIDE : ${vu.error.issues.map((e) => `${e.path.join('.') || e.keys?.join(',') || '—'}: ${e.message}`).join('; ')}`)
+  return vu.data
+}
+export const lirePolitique = (chemin = new URL('./session-policy.json', import.meta.url)) => validerPolitique(JSON.parse(fs.readFileSync(chemin, 'utf8')))
 const empreinte = (secret) => createHash('sha256').update(secret).digest('hex')
 const identique = (a, b) => !!a && !!b && a.pid === b.pid && a.creation === b.creation
 const sommeil = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -67,19 +74,66 @@ export function lireJsonc(texte) {
   return JSON.parse(nettoye)
 }
 
-export function planAgent(carte, { natif, consigne, gitCommun, rapport, schema, profilExiste, politique }) {
+export function planAgent(carte, { natif, consigne, rapport, schema, politique }) {
   if (extname(natif ?? '').toLowerCase() !== '.exe') throw new Error('AGENT NATIF ABSENT : executable .exe requis')
   if (carte.agent === 'claude') return { executable: natif, args: [consigne], shell: false }
   if (carte.agent !== 'codex') throw new Error('AGENT INCONNU')
-  if (!profilExiste) throw new Error(`PROFIL ABSENT : ${politique.profile}`)
-  if (politique.sandbox !== 'workspace-write' || politique.approveForMe !== true || politique.networkAccess !== false) throw new Error('POLITIQUE INVALIDE')
-  return { executable: natif, shell: false, args: ['exec', '-p', politique.profile, '-C', carte.worktree, '--add-dir', gitCommun, '--sandbox', politique.sandbox, '--approve-for-me', '-c', `sandbox_workspace_write.network_access=${politique.networkAccess}`, '-o', rapport, '--output-schema', schema, consigne] }
+  const p = validerPolitique(politique)
+  return { executable: natif, shell: false, args: ['exec', '--ignore-user-config', '-m', p.model, '-c', `model_reasoning_effort="${p.reasoningEffort}"`, '-c', `approval_policy="${p.approvalPolicy}"`, '-c', `sandbox_mode="${p.sandbox}"`, '-C', carte.worktree, '-o', rapport, '--output-schema', schema, consigne] }
 }
 
-export function validerRapport(rapport, carte, git) {
-  if (!rapport || Object.keys(rapport).sort().join(',') !== 'head,publier,resume,sessionId,ticket,worktree' || typeof rapport.publier !== 'boolean' || typeof rapport.resume !== 'string' || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(rapport.head ?? '')) return { ok: false, raison: 'RAPPORT INVALIDE' }
-  if (rapport.sessionId !== carte.sessionId || rapport.ticket !== carte.ticket || resolve(rapport.worktree) !== resolve(carte.worktree)) return { ok: false, raison: 'RAPPORT ÉTRANGER' }
-  if (!carte.branche.startsWith('chantier/') || git.branche !== carte.branche || git.head !== rapport.head || !git.propre) return { ok: false, raison: 'GIT DIVERGENT' }
+export const contratCodex = ({ sessionId, ticket, worktree }) => `Rapport final JSON : sessionId=${sessionId}, ticket=${ticket}, worktree=${worktree} ; atterrissage = sha du commit d'atterrissage sur main si ta publication est MERGED, sinon null ; resume décrit le résultat.`
+
+export const consigneAgent = (carte, texte) => carte.agent === 'codex' ? `${texte}\n\n${contratCodex({ sessionId: carte.sessionId, ticket: carte.ticket, worktree: carte.worktree })}` : texte
+
+export function lancerAgent(plan, carte, { journal, lancer = spawn, echo = (morceau) => process.stderr.write(morceau), delaiMs = 2_000 }) {
+  const child = lancer(plan.executable, plan.args, { cwd: carte.worktree, shell: false, stdio: carte.agent === 'codex' ? ['inherit', 'inherit', 'pipe'] : 'inherit', env: envAgent(process.env) })
+  child.stderr?.on('data', (morceau) => { echo(morceau); fs.appendFileSync(journal, morceau) })
+  const ferme = new Promise((ok) => { if (!child.stderr) return ok(); child.stderr.once('close', ok); child.stderr.once('error', ok) })
+  const cause = async () => {
+    await Promise.race([ferme, new Promise((ok) => setTimeout(ok, delaiMs).unref())])
+    try { return fs.readFileSync(journal, 'utf8').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).join(' · ').slice(-BORNE_RAISON) } catch { return '' }
+  }
+  return { child, cause }
+}
+
+const cheminComparable = (chemin) => process.platform === 'win32' ? resolve(chemin).toLowerCase() : resolve(chemin)
+
+const TYPES_DE_SCHEMA = Object.assign(Object.create(null), { string: (v) => typeof v === 'string', integer: Number.isInteger, null: (v) => v === null, object: (v) => !!v && typeof v === 'object' && !Array.isArray(v) })
+const MOTS_DE_SCHEMA = new Set(['type', 'pattern', 'required', 'properties', 'additionalProperties'])
+
+export function validateurDeSchema(schema) {
+  if (!TYPES_DE_SCHEMA.object(schema) || Object.getPrototypeOf(schema) !== Object.prototype) throw new Error(`SCHÉMA HORS INTERPRÈTE : sous-schéma non objet (${JSON.stringify(schema)})`)
+  const hors = Object.keys(schema).filter((mot) => !MOTS_DE_SCHEMA.has(mot))
+  const types = schema.type === undefined ? null : [schema.type].flat()
+  if (types?.some((type) => !TYPES_DE_SCHEMA[type])) hors.push(`type ${types.join('|')}`)
+  if (schema.additionalProperties !== undefined && schema.additionalProperties !== false) hors.push('additionalProperties')
+  if (hors.length) throw new Error(`SCHÉMA HORS INTERPRÈTE : ${hors.join(', ')}`)
+  const motif = schema.pattern === undefined ? null : new RegExp(schema.pattern, 'u')
+  const proprietes = Object.entries(schema.properties ?? {}).map(([cle, sous]) => [cle, validateurDeSchema(sous)])
+  const objet = schema.properties !== undefined || schema.required !== undefined || schema.additionalProperties === false
+  return (valeur) => {
+    if (types && !types.some((type) => TYPES_DE_SCHEMA[type](valeur))) return false
+    if (motif && typeof valeur === 'string' && !motif.test(valeur)) return false
+    if (!objet) return true
+    if (!TYPES_DE_SCHEMA.object(valeur) || (schema.required ?? []).some((cle) => !Object.hasOwn(valeur, cle))) return false
+    if (schema.additionalProperties === false && Object.keys(valeur).some((cle) => !Object.hasOwn(schema.properties ?? {}, cle))) return false
+    return proprietes.every(([cle, conforme]) => !Object.hasOwn(valeur, cle) || conforme(valeur[cle]))
+  }
+}
+
+const SCHEMA_RAPPORT = fileURLToPath(new URL('./session-report.schema.json', import.meta.url))
+const rapportConforme = validateurDeSchema(JSON.parse(fs.readFileSync(SCHEMA_RAPPORT, 'utf8')))
+
+export function lireRapportDe(chemin) {
+  let texte
+  try { texte = fs.readFileSync(chemin, 'utf8') } catch (e) { if (e.code === 'ENOENT') throw new Error('RAPPORT ABSENT', { cause: e }); throw e }
+  try { return JSON.parse(texte) } catch (e) { throw new Error('RAPPORT INVALIDE', { cause: e }) }
+}
+
+export function validerRapport(rapport, carte) {
+  if (!rapportConforme(rapport)) return { ok: false, raison: 'RAPPORT INVALIDE' }
+  if (rapport.sessionId !== carte.sessionId || rapport.ticket !== carte.ticket || cheminComparable(rapport.worktree) !== cheminComparable(carte.worktree)) return { ok: false, raison: 'RAPPORT ÉTRANGER' }
   return { ok: true }
 }
 
@@ -151,7 +205,6 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
           sauver(chemin(c.sessionId), c)
         } else if (['vivante', 'arret-demande'].includes(c.etat) && !encorePresent(c, vue)) {
           c.etat = 'echec-controle'; c.raison = 'contrôle perdu, sortie inconnue'; c.issueSortie = 'echec'; c.echecLe = maintenant(); delete c.codeEnveloppe
-          if (c.publication.etat !== 'non-demandee') c.publication = { etat: 'echouee', raison: c.raison }
           c.evenements.push({ ticket: c.ticket, nom: c.nom, sessionId: c.sessionId, date: c.echecLe, type: 'échec' })
           sauver(chemin(c.sessionId), c)
         }
@@ -203,7 +256,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       return sousVerrou(() => {
         if (collection().cartes.some((c) => c.producteur === PRODUCTEUR && !terminaux.has(c.etat) && (c.ticket === p.ticket || c.nom === p.nom))) throw new Error('COLLISION : ticket ou nom déjà réservé')
         const sessionId = randomUUID(), jeton = randomBytes(32).toString('hex'), nonce = randomBytes(32).toString('hex')
-        const carte = { ...p, sessionId, producteur: PRODUCTEUR, lanceur: lanceur ? lanceur() : vue.processus.get(process.pid), date: maintenant(), reserveJusqua: horloge() + 60_000, empreinteJeton: empreinte(jeton), empreinteNonce: empreinte(nonce), etat: 'reservee', publication: { etat: 'non-demandee' }, evenements: [{ ticket: p.ticket, nom: p.nom, sessionId, date: maintenant(), type: 'lancement' }] }
+        const carte = { ...p, sessionId, producteur: PRODUCTEUR, lanceur: lanceur ? lanceur() : vue.processus.get(process.pid), date: maintenant(), reserveJusqua: horloge() + 60_000, empreinteJeton: empreinte(jeton), empreinteNonce: empreinte(nonce), etat: 'reservee', evenements: [{ ticket: p.ticket, nom: p.nom, sessionId, date: maintenant(), type: 'lancement' }] }
         validerCarte(carte, `${sessionId}.json`)
         sauver(chemin(sessionId), carte)
         sauver(bootstrap(sessionId), { nonce })
@@ -291,9 +344,8 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         await dormir(100)
       } while (true)
     },
-    async superviser(id, { lancer, lireRapport, mesurerGit, publier, periodeMs = 500 }) {
+    async superviser(id, { lancer, lireRapport, causeSortie, periodeMs = 500 }) {
       let child, timer, fini, arret = false
-      const annulation = new AbortController()
       try {
         const initiale = lire(id)
         child = lancer(initiale)
@@ -302,26 +354,18 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         if (identite) api.agentDemarre(id, identite)
         timer = setInterval(() => {
           if (arret) return
-          try { const demande = lireJSON(stop(id)); if (demande.sessionId === id && demande.demandeId === lire(id).demandeId) { arret = true; child.kill(); annulation.abort(); } }
-          catch (e) { if (e.code !== 'ENOENT') { arret = true; child.kill(); annulation.abort(); } }
+          try { const demande = lireJSON(stop(id)); if (demande.sessionId === id && demande.demandeId === lire(id).demandeId) { arret = true; child.kill() } }
+          catch (e) { if (e.code !== 'ENOENT') { arret = true; child.kill() } }
         }, periodeMs)
         const fin = await fini
-        let rapport, publication = { etat: 'non-demandee' }, raison
+        let rapport, raison
         if (lire(id).etat === 'arret-demande') arret = true
+        if (causeSortie && fin.codeAgent !== 0 && !arret) { const cause = await causeSortie(); raison = `AGENT SORTI EN ${fin.codeAgent ?? fin.signal}${cause ? ` : ${cause}` : ''}` }
         if (initiale.agent === 'codex' && fin.codeAgent === 0 && !arret) {
-          try {
-            rapport = lireRapport(); const validation = validerRapport(rapport, initiale, mesurerGit())
-            if (!validation.ok) raison = validation.raison
-            else if (rapport.publier) {
-              controle(lire(id))
-              muter(id, (c) => { if (c.etat === 'arret-demande') throw new Error('ARRÊT DEMANDÉ'); c.rapport = rapport; c.publication = { etat: 'demandee' } })
-              muter(id, (c) => { if (c.etat === 'arret-demande') throw new Error('ARRÊT DEMANDÉ'); c.publication = { etat: 'lancee' } })
-              publication = await publier(initiale, rapport, annulation.signal)
-              if (publication.etat !== 'fusionnee' || publication.statut !== 'MERGED' || !publication.sha || !publication.pr) { publication = { ...publication, etat: 'echouee', raison: publication.raison ?? 'VERDICT MERGED ABSENT' }; raison = publication.raison }
-            }
-          } catch (e) { raison = e.message; publication = { etat: 'echouee', raison } }
+          try { const lu = lireRapport(), validation = validerRapport(lu, initiale); if (validation.ok) rapport = lu; else raison = validation.raison }
+          catch (e) { raison = e.message }
         }
-        return { ...sortie(id, { ...fin, arret, rapport, publication, raison }), codeEnveloppe: 0 }
+        return { ...sortie(id, { ...fin, arret, rapport, raison }), codeEnveloppe: 0 }
       } catch (e) {
         if (child && child.exitCode === null && !arret) child.kill()
         if (fini) { try { await fini } catch {} }
@@ -355,26 +399,20 @@ export function contexteSessions(worktree) {
   return { racine: principal.valeur, gitCommun: join(principal.valeur, '.git'), worktree: resolve(worktree), branche: brancheDe(depot), head: shaDe(depot, 'HEAD') }
 }
 
-export async function publierSession(carte, rapport, signal, { lancer = spawn, executer = spawnSync, lire = lireJournal, veiller = veillerLeTrain, horloge = Date.now, mesurerHead = () => shaDe(depotDe(carte.worktree), 'HEAD') } = {}) {
-  const script = join(carte.worktree, 'scripts/ops/publier.mjs')
-  const lancement = horloge()
-  if (signal?.aborted) return { etat: 'echouee', raison: 'ARRÊT DEMANDÉ' }
-  const child = lancer(process.execPath, [script], { cwd: carte.worktree, shell: false, stdio: 'inherit', env: { ...envAgent(process.env), ...envDeLancement(lancement) } })
-  const annuler = () => child.kill()
-  signal?.addEventListener('abort', annuler, { once: true })
-  const fin = new Promise((ok, non) => { child.once('error', non); child.once('exit', (code) => ok(code)) })
-  const code = await fin
-  signal?.removeEventListener('abort', annuler)
-  if (signal?.aborted) return { etat: 'echouee', raison: 'ARRÊT DEMANDÉ' }
-  const chemins = cheminsDeJournal(carte.worktree, carte.branche), run = idDeRun({ pid: child.pid, lancement })
-  const veille = veiller({ run, fileTimeoutMin: FILE_TIMEOUT_MIN, lire: () => lire(chemins.json, carte.branche), ecrire: (ligne) => process.stdout.write(`${ligne}\n`) })
-  const journal = lire(chemins.json, carte.branche)
-  if (code !== 0 || veille !== 0 || journal.run !== run || journal.verdict?.etat !== 'vert') return { etat: 'echouee', raison: `TRAIN ${code} / VEILLE ${veille}` }
-  const mesure = executer('gh', ['pr', 'view', carte.branche, '--json', 'number,state,mergeCommit'], { cwd: carte.worktree, encoding: 'utf8', windowsHide: true, timeout: 30_000, env: envAgent(process.env) })
-  if (mesure.error || mesure.status !== 0) return { etat: 'echouee', raison: 'PR INDISPONIBLE APRÈS TRAIN' }
-  const vu = JSON.parse(mesure.stdout)
-  if (vu.state !== 'MERGED' || !vu.mergeCommit?.oid || !mesurerHead()) return { etat: 'echouee', raison: `PR ${vu.state ?? 'inconnue'}` }
-  return { etat: 'fusionnee', statut: vu.state, pr: vu.number, sha: vu.mergeCommit.oid }
+export async function piloterAgent({ sessions, dossier, carte, consigne, lancer, retirer = (fichier) => fs.rmSync(fichier, { force: true }) }) {
+  const id = carte.sessionId, rapport = join(dossier, `${id}.rapport`), journal = join(dossier, `${id}.stderr`)
+  let agent
+  try {
+    const plan = planAgent(carte, { natif: carte.executable, consigne: consigneAgent(carte, consigne), rapport, schema: SCHEMA_RAPPORT, politique: lirePolitique() })
+    return await sessions.superviser(id, {
+      lancer: () => { agent = lancerAgent(plan, carte, { journal, lancer }); return agent.child },
+      causeSortie: () => agent.cause(),
+      lireRapport: () => lireRapportDe(rapport),
+    })
+  } finally {
+    if (agent) await agent.cause()
+    for (const fichier of [rapport, journal]) { try { retirer(fichier) } catch (e) { process.stderr.write(`[session] PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
+  }
 }
 
 export async function controleur({ dossier, id, hostPid = Number(process.env.WFRP_SESSION_JOBHOST) }) {
@@ -382,18 +420,8 @@ export async function controleur({ dossier, id, hostPid = Number(process.env.WFR
   sessions.revendiquer(id, undefined, { controleurPid: process.pid, jobHostPid: hostPid })
   delete process.env.WFRP_SESSION_REVENDICATION
   try {
-  const carte = sessions.lire(id), dossierOps = fileURLToPath(new URL('.', import.meta.url))
-  const politique = lireJSON(join(dossierOps, 'session-policy.json'))
-  const texte = fs.readFileSync(carte.consigne, 'utf8')
-  const rapport = join(dossier, `${id}.rapport`)
-  const consigne = carte.agent === 'codex' ? `${texte}\nRapport final JSON : sessionId=${id}, ticket=${carte.ticket}, worktree=${carte.worktree}; head doit être le HEAD final mesuré, publier est ton intention de publication, resume décrit le résultat.` : texte
-  const plan = planAgent(carte, { natif: carte.executable, consigne, gitCommun: join(carte.racine, '.git'), rapport, schema: join(dossierOps, 'session-report.schema.json'), profilExiste: carte.profilExiste, politique })
-  return await sessions.superviser(id, {
-    lancer: () => spawn(plan.executable, plan.args, { cwd: carte.worktree, shell: false, stdio: 'inherit', env: envAgent(process.env) }),
-    lireRapport: () => lireJSON(rapport),
-    mesurerGit: () => { const depot = depotDe(carte.worktree); return { branche: brancheDe(depot), head: shaDe(depot, 'HEAD'), propre: etatDeLArbre(depot).length === 0 } },
-    publier: publierSession,
-  })
+    const carte = sessions.lire(id)
+    return await piloterAgent({ sessions, dossier, carte, consigne: fs.readFileSync(carte.consigne, 'utf8') })
   } catch (e) { return sessions.sortie(id, { codeAgent: null, raison: e.message }) }
 }
 
