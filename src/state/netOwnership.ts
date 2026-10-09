@@ -592,6 +592,8 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['interludeCraftStart', PAR_ARG0],
     ['interludeOrder', PAR_ARG0],
     ['interludeBank', PAR_ARG0],
+    // Barre de console : le 1er argument est le porteur dont la barre se matérialise.
+    ['materialiserBarre', PAR_ARG0],
     // Retrait bancaire : le dépôt appartient à un héros — son propriétaire retire.
     ['interludeWithdraw', {
       rule: (s, seat, args) => {

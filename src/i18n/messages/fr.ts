@@ -2550,6 +2550,9 @@ export const fr = {
   'agate.noFocusSkillWind': '{name} ne maîtrise pas Focalisation ({wind})',
   // ADE II 8 l.233 (seuil de la moitié de l'Équipe requise, `state/siegePush.pushCrewOk`).
   'agate.pushUndercrew': 'équipe trop réduite pour pousser l’engin',
+  // Raison de SITE (`ui/CombatConsole.tsx`) : la case de la barre porte une entrée que la situation
+  // n'offre plus, et que le registre ne ferme pas lui-même.
+  'agate.horsOffre': 'indisponible dans cette situation',
   // ── PASTILLES D'ENTITÉ (spec HUD zone 4) : ce qu'une chose du champ offre, dit au joueur.
   'pastille.nGestes': '{n} gestes',
   'pastille.intitule': 'Que faire ?',

@@ -36,10 +36,10 @@ import { shipOfCrew } from '../state/shipPostes';
 import { quartIndex } from '../state/shipCrew';
 import { isVehicle } from '../engine/vehicle';
 import { controlsCombatant } from '../state/netOwnership';
-import { inBattleId } from '../state/combatants';
+import { actorIn, inBattleId } from '../state/combatants';
 import { combatDistance } from '../state/footprint';
 import { hotbar } from '../state/hotbarBridge';
-import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, resoudreDisposition, type EntreeBarre, type ZoneBarre } from '../state/dispositionConsole';
+import { ARSENAL_SANS_SET, TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, materialiserPorteur, offreDeZone, resoudreDisposition, type EntreeBarre, type OffreDeZone, type ZoneBarre } from '../state/dispositionConsole';
 import { charIcon, type EffectChip } from '../gameIso/effectIcons';
 import { HERO_RING, ENEMY_RING, ENEMY_TINT, hpColor } from '../gameIso/teamColors';
 import { PortraitTile } from './PortraitTile';
@@ -546,6 +546,24 @@ export function CombatConsole() {
     return a ? `${activeLoadout(a)?.id ?? ''}|${a.weapons.filter((w) => w.type === 'ranged').map((w) => w.uid).join(',')}` : '';
   });
   useEffect(() => { setAmmoOuvert(null); setRechargeOuverte(false); setGeste2eOuvert(null); }, [armeDuPanneau]);
+  // MATÉRIALISATION de la barre (fiche `user-arbitrage-barre-materialisee-et-sans-pages`) : ce que la
+  // console AFFICHE s'écrit dans le porteur APRÈS le rendu, jamais pendant. Seule la forme complète —
+  // celle du siège qui tient le porteur (`controlsCombatant`) — l'affiche, donc l'écrit (en coop,
+  // l'action part en intent ; `demandee` évite de la renvoyer avant le snapshot). L'offre vue est
+  // posée plus bas par le rendu, dans `aMaterialiser`.
+  const demandee = useRef<string | null>(null);
+  let aMaterialiser: { porteurId: string; offres: OffreDeZone[] } | null = null;
+  useEffect(() => {
+    if (!aMaterialiser) return;
+    const { porteurId, offres } = aMaterialiser;
+    const s = useGame.getState();
+    const porteur = actorIn(s, porteurId);
+    if (!porteur || materialiserPorteur(porteur, offres) === porteur) return;
+    const demande = JSON.stringify([porteurId, offres, porteur.barre ?? null]);
+    if (demandee.current === demande) return;
+    demandee.current = demande;
+    s.materialiserBarre(porteurId, offres);
+  });
 
   if (!battle || battle.over) return null;
   // LE BANDEAU DE PHASE, source unique : la pause de Round, ou l'INTERLUDE de ciblage par la carte
@@ -920,26 +938,32 @@ export function CombatConsole() {
     vehicule ? cellFor('sing-shanty', 'geste', { off: !canSing, args: { shipId: active.id } }) : undefined,
     vehicule ? cellFor('ship-reload', 'geste', { off: !reloadable, args: { shipId: active.id, posteUid: reloadable?.item.uid } }) : undefined,
   ];
-  // ADRESSE FIXE — chaque case d'une zone rend ce que le PORTEUR y a posé (`active.barre`), et à
-  // défaut le pré-remplissage déduit (`dispositionDeduite`). Une case laissée vide RESTE à sa place :
-  // rien ne remonte d'un rang, la position s'apprend. Le pool est l'offre COMPLÈTE de la zone — une
-  // capacité posée au-delà du pré-remplissage s'y retrouve. Deux cases de même id (deux potions, deux
-  // sorts) se consomment dans l'ordre du pool, qui est l'ordre de lecture.
+  // ADRESSE FIXE — chaque case d'une zone rend l'entrée que la barre MATÉRIALISÉE du porteur porte à
+  // ce rang (`resoudreDisposition`) : une entrée nouvelle de l'offre prend le premier rang libre, un
+  // trou reste un trou, rien ne glisse. Le pool est l'offre COMPLÈTE de la zone, dans l'ordre de lecture.
+  const offresVues: OffreDeZone[] = [];
+  /** Une entrée de la barre que la situation n'OFFRE plus : sa case reste dessinée, FERMÉE, avec la
+   *  raison du registre (`actionGate`), à défaut la raison de site `agate.horsOffre`. */
+  const caseHorsOffre = (e: EntreeBarre): Cell | undefined => {
+    const c = cellFor(e.actionId, 'geste', { key: e.cle, off: true });
+    return c && { ...c, gate: c.gate ?? t('agate.horsOffre') };
+  };
   const placer = (zone: ZoneBarre, pool: Cell[], setId?: string): (Cell | undefined)[] => {
     // L'ADRESSE de la case = son action ET sa CLÉ DÉCLARÉE (`cellFor`) : une identité de MODÈLE
     // (`sort-<spellId>`, `q-objet-<trappingId>`…), jamais un uid d'instance — consommer une potion
     // ne déplace pas la case où le joueur l'a posée.
     const entreeDe = (c: Cell): EntreeBarre => ({ actionId: c.id, cle: c.key });
     const parCle = new Map(pool.map((c) => [cleEntree(entreeDe(c)), c]));
-    const deduite = dispositionDeduite(zone, pool.map(entreeDe));
-    return resoudreDisposition(active.barre, zone, deduite, setId).map((e) => (e ? parCle.get(cleEntree(e)) : undefined));
+    const offre = offreDeZone(zone, pool.map(entreeDe));
+    offresVues.push({ zone, setId, offre });
+    return resoudreDisposition(active.barre, zone, offre, setId).map((e) => (e ? parCle.get(cleEntree(e)) ?? caseHorsOffre(e) : undefined));
   };
 
   // La rangée BASSE est LIBRE (placement joueur — spec §1c-bis) et son remplissage PAR DÉFAUT est le
   // DÉBORD des gestes déduits (spec §1b), borné à `LEFT_CELLS` : au-delà, le geste déduit ne paraît
   // pas (mesuré : jusqu'à 10 déduits pour 6 slots). Arbitrage de géométrie de la travée : #1434.
   // Le placement de la travée gauche est PAR SET (spec zone 6) : commuter le set change la disposition.
-  const left: (Cell | undefined)[] = placer('arsenal', deduced.filter((c): c is Cell => !!c), heldSet?.id);
+  const left: (Cell | undefined)[] = placer('arsenal', deduced.filter((c): c is Cell => !!c), heldSet?.id ?? ARSENAL_SANS_SET);
 
   // ── ACCÈS RAPIDE (2×2) : le nécessaire du héros — consommables à compteur, Soin, aspersion ──────
   const rapides: (Cell | undefined)[] = [
@@ -1049,6 +1073,9 @@ export function CombatConsole() {
     }),
   ].filter((c): c is Cell => !!c);
   const right = placer('capacites', candidates);
+  // La barre AFFICHÉE se matérialise (effet post-rendu, en tête du composant) ; la forme spectatrice
+  // n'affiche aucune case, elle n'écrit donc rien.
+  if (!spectatrice) aMaterialiser = { porteurId: active.id, offres: offresVues };
   // PONT CLAVIER de la console (`keybindings.ts`, section hotbar) : on publie chaque zone PAR ADRESSE,
   // trous compris — le rang d'une case ne dépend pas de ce que ses voisines contiennent. Les touches
   // 1-8 se lient aux 8 premiers rangs de la GRILLE (spec zone 8 : « la touche suit la CASE […] 1-8 =

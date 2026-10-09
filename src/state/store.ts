@@ -120,6 +120,7 @@ import { outOfCombatUpkeep } from './outOfCombatUpkeep';
 import { checkPartyWiped } from './partyWipe';
 import { touchActors } from './combatOrParty';
 import { actorIn, capDuGroupe, ecrireActeur, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from './combatants';
+import { materialiserPorteur, type OffreDeZone } from './dispositionConsole';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
 import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot } from './corruptionFlow';
@@ -1530,6 +1531,10 @@ export interface GameState extends RollFlowActionsMap {
    *  `MSRC 07 l.78/l.82/l.94`). Aucun défaut : détaché, il n'est visé par aucune présence. Même patron
    *  que `setShipRole`. */
   setShipStation: (crewId: string, station: string | null) => void;
+  /** MATÉRIALISE la barre de console du porteur (`Combatant.barre`) : chaque entrée NOUVELLE de
+   *  l'offre de ses zones devient connue et s'y écrit au premier rang libre (`materialiserPorteur`).
+   *  Sans effet quand rien ne change. Patche `party` ET `battle.combatants`. */
+  materialiserBarre: (porteurId: string, offres: OffreDeZone[]) => void;
   /** Sélectionne la munition PERSISTANTE d'un poste d'artillerie (`ShipPoste.ammoUid` — boulet/mitraille,
    *  MDG 12 l.410-424), depuis la fiche du navire. `null` → retour au défaut (1re compatible). */
   setPosteAmmo: (shipId: string, posteUid: string, ammoUid: string | null) => void;
@@ -3154,6 +3159,11 @@ export const useGame = create<GameState>((set, get) => ({
   setTravelRole: (heroId, role) => set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role || undefined }))),
   setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
   setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
+  materialiserBarre: (porteurId, offres) => {
+    const porteur = actorIn(get(), porteurId);
+    if (!porteur || materialiserPorteur(porteur, offres) === porteur) return;
+    set((s) => ecrireActeur(s, porteurId, (c) => materialiserPorteur(c, offres)));
+  },
   setPosteAmmo: (shipId, posteUid, ammoUid) => {
     const b = get().battle;
     const ship = inBattleId(b, shipId);
@@ -3161,10 +3171,8 @@ export const useGame = create<GameState>((set, get) => ({
     if (!b || !poste) return;
     // Le poste est PARTAGÉ par référence avec `mannedPoste` du chef (serveChef) → muter la même instance
     // suffit ; le `set` re-render (pattern combat : mutation + refresh).
-    // La munition se fixe au CHARGEMENT — arbitrage utilisateur 2026-08-16 par AskUserQuestion, verbatim de la demande qui
-    // l'ouvre : « on doit pouvoir choisir ses munitions avec nos armes de tir facilement depuis sa barre
-    // d'action ». Changer celle d'une pièce CHARGÉE la DÉCHARGE — Test étendu de
-    // recharge à refaire (LDB 62 l.335) ; re-sélectionner la même est sans effet ; rien n'est détruit (décompte
+    // Munition fixée au CHARGEMENT : docs/plans/2026-08-16-hud-combat.md:80-86 ; LDB 62 l.335.
+    // Changer celle d'une pièce CHARGÉE la DÉCHARGE ; re-sélectionner la même est sans effet ; rien n'est détruit (décompte
     // au tir). Le CHEF qui la sert perd aussi son gate de tir : la pièce n'a plus de coup.
     if (poste.loaded !== false && (poste.loadedAmmoUid ?? poste.ammoUid) !== (ammoUid ?? undefined)) {
       const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;

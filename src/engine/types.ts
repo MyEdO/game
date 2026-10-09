@@ -1370,17 +1370,26 @@ export interface EntreeBarre {
   cle: string;
 }
 
-/** CE QUE LE PORTEUR A POSÉ sur les cases de sa console, PAR ADRESSE : une `EntreeBarre` au rang N
- *  d'une zone. `null` = case volontairement vidée (elle reste dessinée à sa place) ; rang ABSENT du
- *  Record = laissé au pré-remplissage déduit. Objet creux, jamais un tableau à trous : le snapshot de
- *  partie sérialise en JSON, où un trou deviendrait `null` — donc « vidée ».
- *  UN modèle pour les trois zones — le set au poing n'est qu'une dimension de l'adresse de l'arsenal.
- *  Lecture/écriture : `src/state/dispositionConsole.ts` (validateur `poserDansBarre`). */
+/** UNE zone de la console, MATÉRIALISÉE dans le porteur (fiche
+ *  `user-arbitrage-barre-materialisee-et-sans-pages`). */
+export interface ZoneDisposee {
+  /** L'entrée de chaque rang. Rang absent ou `null` = case LIBRE (un trou laissé par le joueur en est
+   *  une). Objet creux, jamais un tableau à trous : le snapshot de partie sérialise en JSON. */
+  rangs: Record<number, EntreeBarre | null>;
+  /** `cleEntree` de toute entrée déjà placée dans la zone, matérialisée ou posée : une entrée connue
+   *  ne revient jamais d'elle-même à la barre. */
+  connues: string[];
+}
+
+/** LA BARRE DU PORTEUR, par zone. UN modèle pour les trois zones — le set au poing n'est qu'une
+ *  dimension de l'adresse de l'arsenal. Lecture/écriture : `src/state/dispositionConsole.ts` (geste
+ *  `poserDansBarre`, matérialisation `materialiserPorteur`). */
 export interface DispositionConsole {
-  /** Arsenal, par `WeaponLoadout.id` : commuter le set affiche SA disposition. */
-  arsenal?: Record<string, Record<number, EntreeBarre | null>>;
-  accesRapide?: Record<number, EntreeBarre | null>;
-  capacites?: Record<number, EntreeBarre | null>;
+  /** Arsenal, par `WeaponLoadout.id` (`ARSENAL_SANS_SET` sans set) : commuter le set affiche SA
+   *  disposition. */
+  arsenal?: Record<string, ZoneDisposee>;
+  accesRapide?: ZoneDisposee;
+  capacites?: ZoneDisposee;
 }
 
 /** UNE exposition à une maladie (op `exposeDisease`) — consommée par le bilan de fin de combat
@@ -1587,9 +1596,9 @@ export interface Combatant {
   loadouts?: WeaponLoadout[];
   activeLoadoutId?: string;
   /** DISPOSITION de la console de combat, PAR ADRESSE de case (spec HUD zone 6 : la barre est
-   *  éditable, la déduction ne fait que pré-remplir). Donnée du PORTEUR : elle voyage avec lui
-   *  (save, roster, coop) sans table annexe ni clé de partie. Porte unique d'écriture :
-   *  `poserDansBarre` (`src/state/dispositionConsole.ts`). */
+   *  éditable ; l'offre déduite s'y matérialise une fois). Donnée du PORTEUR : elle voyage avec lui
+   *  (save, roster, coop) sans table annexe ni clé de partie. Écriture :
+   *  `poserDansBarre`, `materialiserPorteur` (`src/state/dispositionConsole.ts`). */
   barre?: DispositionConsole;
   /** Sorts/prières connus — `id` de `src/data/spells.json`, résolus par `findSpellById`. */
   spells?: string[];

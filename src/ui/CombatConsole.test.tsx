@@ -25,6 +25,8 @@ import { ActiveModal } from './ActiveModal';
 import { vehicleCombatant } from '../engine/vehicle';
 import { actionGate, ACTION_CANDIDATES, REMEDES } from '../state/actionRegistry';
 import { emptyScene } from '../state/scene';
+import { poserDansBarre, resoudreDisposition, retirerDeBarre } from '../state/dispositionConsole';
+import { ecrireActeur } from '../state/combatants';
 import { mdToText } from './Prose';
 import { CombatConsole } from './CombatConsole';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -1318,8 +1320,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
       h.skills = [...(h.skills ?? []), { id: 'guerison', advances: 10 } as never];
       h.items = [...h.items!, ...uids.map((u) => objet('potion-de-guerison', u))];
       // Le joueur a posé SA potion au 3ᵉ rang de l'accès rapide.
-      h.barre = { accesRapide: { 2: { actionId: 'use-item', cle: 'q-objet-potion-de-guerison' } } };
-      return h;
+      return poserDansBarre(h, { zone: 'accesRapide', index: 2 }, { actionId: 'use-item', cle: 'q-objet-potion-de-guerison' });
     };
     monter(avecPotions(['i-po1', 'i-po2']));
     const rangs = () => casesRapide().map((c) => c.getAttribute('data-cell'));
@@ -1588,43 +1589,102 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(useGame.getState().battle!.acted, 'la touche du rang n’a pas dépensé l’Action de la Défensive').toBe(true);
   });
 
-  // Le cœur du lot A1 : les cases se rendent PAR ADRESSE. Une case vidée par le joueur RESTE vide à sa
-  // place — aucune recomposition ne fait remonter la suivante (patron RT : la position s'apprend).
-  it('D-5bis — la DISPOSITION du porteur commande l’adresse : case vidée, case posée, id inconnu', () => {
-    const h = hero('h1', 'Gunnar');
-    h.conditions = [];
-    monter(h, { foes: [foe('e1', 9, 9)] });
+  // Le cœur du lot S2 (fiche `user-arbitrage-barre-materialisee-et-sans-pages`) : la barre AFFICHÉE
+  // s'écrit UNE fois dans le porteur ; ensuite RIEN ne glisse — retirer laisse un trou, une entrée
+  // nouvelle prend la première case libre, une entrée qui quitte l'offre garde sa case, fermée.
+  describe('D-5bis — la barre se MATÉRIALISE dans le porteur, et rien ne glisse jamais', () => {
+    let ecritures = 0;
+    let origine: ReturnType<typeof useGame.getState>['materialiserBarre'];
+    let net: ReturnType<typeof useGame.getState>['net'];
+    beforeEach(() => {
+      ecritures = 0;
+      origine = useGame.getState().materialiserBarre;
+      net = useGame.getState().net;
+      useGame.setState({ materialiserBarre: (...a) => { ecritures++; origine(...a); } });
+    });
+    afterEach(() => {
+      useGame.setState({ materialiserBarre: origine, net });
+    });
+    const gunnar = () => {
+      const h = hero('h1', 'Gunnar');
+      h.conditions = [];
+      return h;
+    };
     const cellules = () => [...host.querySelectorAll('.cc-grid-right .cc-cell')];
     const lire = () => cellules().map((c) => c.getAttribute('data-action'));
-    const temoin = lire();
-    expect(temoin[0], 'témoin : le pré-remplissage déduit garnit le rang 0').not.toBeNull();
+    const porteurDuStore = () => useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
+    const ecrire = (f: (c: Combatant) => Combatant) => act(() => useGame.setState((s) => ecrireActeur(s, 'h1', f)));
 
-    // (a) rang 0 VIDÉ : il reste vide, et les rangs suivants ne bougent pas d'un cran.
-    const vide = hero('h1', 'Gunnar');
-    vide.conditions = [];
-    vide.barre = { capacites: { 0: null } };
-    monter(vide, { foes: [foe('e1', 9, 9)] });
-    expect(lire()[0], 'la case vidée s’est repeuplée').toBeNull();
-    // Le PRÉ-REMPLISSAGE s'écoule dans les rangs LIBRES, dans l'ordre : rien n'est perdu, rien n'est
-    // dupliqué — la case vidée, elle, n'est pas reprise.
-    expect(lire().slice(1), 'le pré-remplissage a perdu ou dupliqué une case').toEqual(temoin.slice(0, temoin.length - 1));
+    it('premier affichage : UNE écriture, puis ZÉRO aux rendus suivants à offre égale', () => {
+      monter(gunnar(), { foes: [foe('e1', 9, 9)] });
+      const affichee = lire();
+      expect(ecritures, 'la barre affichée ne s’est pas écrite (ou s’est écrite plusieurs fois)').toBe(1);
+      const ecrite = resoudreDisposition(porteurDuStore().barre, 'capacites', []).map((e) => e?.actionId ?? null);
+      expect(ecrite, 'la barre écrite n’est pas celle qui était affichée').toEqual(affichee);
+      expect(useGame.getState().party[0].barre, 'le héros du groupe n’a pas reçu sa barre').toEqual(porteurDuStore().barre);
+      act(() => { root.render(<CombatConsole />); });
+      act(() => useGame.setState({ battle: { ...useGame.getState().battle! } }));
+      expect(ecritures, 'un rendu à offre égale a réécrit la barre').toBe(1);
+      expect(lire()).toEqual(affichee);
+    });
 
-    // (b) entrée POSÉE : elle se rend à SON adresse, et QUITTE son rang déduit (poser = déplacer,
-    // jamais dupliquer).
-    const pose = hero('h1', 'Gunnar');
-    pose.conditions = [];
-    pose.barre = { capacites: { 0: { actionId: 'defend', cle: 'defend' } } };
-    monter(pose, { foes: [foe('e1', 9, 9)] });
-    expect(lire()[0]).toBe('defend');
-    expect(lire().filter((a) => a === 'defend').length, 'la capacité posée s’est dédoublée').toBe(1);
+    it('retirer laisse un TROU qui reste ; une entrée NOUVELLE de l’offre prend la 1ʳᵉ case libre ; rien ne glisse', () => {
+      monter(gunnar(), { foes: [foe('e1', 9, 9)] });
+      const temoin = lire();
+      expect(temoin[0], 'témoin : la barre garnit le rang 0').not.toBeNull();
+      expect(temoin, 'témoin : Se désengager n’est offert qu’Engagé').not.toContain('disengage');
+      ecrire((c) => retirerDeBarre(c, { zone: 'capacites', index: 0 }));
+      expect(lire()[0], 'la case retirée s’est repeuplée').toBeNull();
+      expect(lire().slice(1), 'retirer a fait glisser les voisines').toEqual(temoin.slice(1));
+      expect(ecritures, 'l’entrée retirée a été réécrite').toBe(1);
+      // Engagé : Se désengager ENTRE dans l'offre — au premier rang libre, le trou.
+      ecrire((c) => ({ ...c, engagedWith: ['e1'] }));
+      expect(lire()[0], 'l’entrée nouvelle n’a pas pris la première case libre').toBe('disengage');
+      expect(lire().slice(1), 'l’entrée nouvelle a fait glisser les voisines').toEqual(temoin.slice(1));
+      expect(ecritures, 'l’entrée nouvelle ne s’est pas écrite').toBe(2);
+      // Plus Engagé : Se désengager QUITTE l'offre. Sa case reste, FERMÉE, avec sa raison.
+      ecrire((c) => ({ ...c, engagedWith: [] }));
+      expect(lire()[0], 'l’entrée sortie de l’offre a quitté sa case').toBe('disengage');
+      const fermee = cellules()[0] as HTMLButtonElement;
+      expect(fermee.hasAttribute('data-gated'), 'la case hors offre ne porte pas de raison').toBe(true);
+      expect(refusAuSurvol(fermee)).toBe(actionGate('disengage', { active: porteurDuStore(), battle: useGame.getState().battle!, netMode: 'local' }).reason);
+      expect(ecritures).toBe(2);
+    });
 
-    // (c) id INCONNU (save d'une autre version) : entrée ignorée, la case reste VIDE — la déduction ne
-    // la reprend pas, le joueur l'avait remplie.
-    const inconnu = hero('h1', 'Gunnar');
-    inconnu.conditions = [];
-    inconnu.barre = { capacites: { 0: { actionId: 'action-qui-nexiste-pas', cle: 'action-qui-nexiste-pas' } } };
-    monter(inconnu, { foes: [foe('e1', 9, 9)] });
-    expect(lire()[0], 'un id inconnu a laissé la déduction reprendre la case').toBeNull();
+    it('une entrée hors offre que le registre ne ferme pas porte la raison de SITE (i18n)', () => {
+      monter(poserDansBarre(gunnar(), { zone: 'capacites', index: 11 }, { actionId: 'frenzy', cle: 'frenzy' }), { foes: [foe('e1', 9, 9)] });
+      expect(actionGate('frenzy', { active: porteurDuStore(), battle: useGame.getState().battle!, netMode: 'local' }).ok, 'témoin : le registre ouvre Frénésie').toBe(true);
+      const fermee = cellules()[11] as HTMLButtonElement;
+      expect(fermee.getAttribute('data-action')).toBe('frenzy');
+      expect(refusAuSurvol(fermee)).toBe(t('agate.horsOffre'));
+    });
+
+    it('POSER sur une case occupée ÉCHANGE avec l’ancien rang : les autres ne bougent pas', () => {
+      monter(gunnar(), { foes: [foe('e1', 9, 9)] });
+      const temoin = lire();
+      const cible = temoin.findIndex((a, i) => i > 0 && a !== null);
+      ecrire((c) => poserDansBarre(c, { zone: 'capacites', index: cible }, resoudreDisposition(c.barre, 'capacites', [])[0]!));
+      const attendu = [...temoin];
+      [attendu[0], attendu[cible]] = [temoin[cible], temoin[0]];
+      expect(lire()).toEqual(attendu);
+    });
+
+    it('COOP : seul le siège qui POSSÈDE le porteur écrit sa barre', () => {
+      act(() => useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 1, ownership: { h1: 0 } } }));
+      monter(gunnar(), { foes: [foe('e1', 9, 9)] });
+      expect(ecritures, 'un siège qui ne possède pas le héros a écrit sa barre').toBe(0);
+      // Le héros passe à CE siège : sa console s'affiche, et c'est lui qui écrit.
+      act(() => useGame.setState({ net: { ...useGame.getState().net, ownership: { h1: 1 } } }));
+      expect(ecritures, 'le siège propriétaire n’a pas écrit la barre').toBe(1);
+    });
+
+    it('id INCONNU (save d’une autre version) : la case reste VIDE et OCCUPÉE', () => {
+      const inconnu = gunnar();
+      inconnu.barre = { capacites: { rangs: { 0: { actionId: 'action-qui-nexiste-pas', cle: 'action-qui-nexiste-pas' } }, connues: [] } };
+      monter(inconnu, { foes: [foe('e1', 9, 9)] });
+      expect(lire()[0], 'l’id inconnu a été rendu, ou sa case reprise').toBeNull();
+      expect(lire()[1], 'la barre n’a pas commencé au premier rang LIBRE').not.toBeNull();
+    });
   });
 
   // Plusieurs cases partagent un même `actionId` (une par Compétence d'Avantage, une par sort) : sans
@@ -1646,9 +1706,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(memeAction.length, 'un seul sort : la sonde ne mesurerait aucune collision').toBeGreaterThan(1);
     // Le 2ᵉ sort, posé au rang 0 : c'est LUI qui doit s'y rendre.
     const elue = memeAction[1];
-    const pose = sorcier();
-    pose.barre = { capacites: { 0: { actionId: 'cast-spell', cle: elue } } };
-    monter(pose, { foes: [foe('e1', 9, 9)] });
+    monter(poserDansBarre(sorcier(), { zone: 'capacites', index: 0 }, { actionId: 'cast-spell', cle: elue }), { foes: [foe('e1', 9, 9)] });
     expect(cles()[0], 'l’adresse a rendu une AUTRE compétence que celle posée').toBe(elue);
     expect(cles().filter((k) => k === elue).length, 'la compétence posée s’est dédoublée').toBe(1);
   });

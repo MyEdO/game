@@ -42,6 +42,9 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
   // Postes de bord / arme d'équipe / engin de siège : même hotbar, même possession (l'actif).
   'battleShipReload', 'battleManPoste', 'battleLeavePoste', 'battleWater', 'battlePushEngine',
   'battleAidTeam',
+  // Matérialisation de la barre de console (`Combatant.barre`) au premier affichage : écrite par le
+  // siège qui POSSÈDE le porteur (route `PAR_ARG0` de `netOwnership.ROUTES`).
+  'materialiserBarre',
   'spendResolveCondition',
   // Escalade d'une arête (capacité `escalade`) : jumeau de `fallAcross`, même possession (l'actif).
   'climbAcross',

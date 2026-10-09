@@ -116,6 +116,13 @@ describe('possession réseau (netOwnership)', () => {
     expect(seatOwns(s, 1, 'h2')).toBe(true);
   });
 
+  it('materialiserBarre : seul le siège qui POSSÈDE le porteur écrit sa barre, quel que soit l’actif', () => {
+    const s = base({}); // actif = h1 (hôte) ; h2 au siège 1
+    expect(intentAllowedFor(s, 1, 'materialiserBarre', ['h2', []])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'materialiserBarre', ['h2', []]), 'le siège de l’actif a écrit la barre d’autrui').toBe(false);
+    expect(intentAllowedFor(s, 1, 'materialiserBarre', ['h1', []]), 'un invité a écrit la barre du héros de l’hôte').toBe(false);
+  });
+
   it('partyAddHero : permis tant que le siège a des emplacements à remplir, refusé ensuite', () => {
     // 2 slots au siège 1, il possède déjà h2 → 1 restant.
     const s = base({

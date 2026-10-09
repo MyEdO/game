@@ -10,7 +10,8 @@
  *      pose lui-même (`Combatant.barre`), d'où le volet (c).
  *  (c) DISPOSITION DATA-DRIVEN — une case posée par le joueur porte un id qu'aucun littéral ne cite :
  *      c'est le VALIDATEUR d'écriture (`poserDansBarre`) qui tient la frontière du registre, et la
- *      lecture qui absorbe une donnée héritée sans jamais inventer une case.
+ *      lecture qui absorbe une donnée héritée sans jamais inventer une case. La barre se MATÉRIALISE
+ *      dans le porteur et rien n'y glisse (fiche `user-arbitrage-barre-materialisee-et-sans-pages`).
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────────
  * `SANS_SURFACE` EST UN ÉCHAFAUDAGE DE CHANTIER, PAS UNE ABSOLUTION (posé le 2026-08-17).
@@ -35,8 +36,8 @@ import { ACTIONS, findConditionById } from '../data/index';
 import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, REMEDES, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from './actionRegistry';
 import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from './targetingModes';
 import { KEYBINDINGS } from './keybindings';
-import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, poserDansBarre, resoudreDisposition, retirerDeBarre } from './dispositionConsole';
-import type { Combatant } from '../engine/types';
+import { ARSENAL_SANS_SET, TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, materialiserPorteur, materialiserZone, offreDeZone, poserDansBarre, resoudreDisposition, retirerDeBarre } from './dispositionConsole';
+import type { Combatant, EntreeBarre } from '../engine/types';
 import { useGame, type BattleState } from './store';
 import { emptyScene } from './scene';
 import { createHero } from '../engine/character';
@@ -275,12 +276,21 @@ describe('(a) atteignabilité — toute action du registre a une surface vivante
   });
 });
 
-describe('(c) disposition data-driven — le validateur d’écriture tient la frontière du registre', () => {
+describe('(c) disposition data-driven — la barre se MATÉRIALISE, rien ne glisse jamais', () => {
   /** Un porteur nu : seule sa disposition nous intéresse ici. */
   const porteur = () => ({ id: 'H', label: 'H' } as unknown as Combatant);
   /** Une entrée : l'action, et la CLÉ DÉCLARÉE de sa case (par défaut celle du registre). */
   const e = (actionId: string, cle = actionId) => ({ actionId, cle });
-  /** Les entrées que la console DÉDUIT réellement (littéraux `cellFor('…')`), bornées aux déclarées. */
+  /** Un SORT par lettre : N alvéoles d'une même action, distinguées par leur clé. */
+  const sort = (k: string) => e('cast-spell', `sort-${k}`);
+  const nomDe = (x: EntreeBarre | null) => (x ? (x.cle.startsWith('sort-') ? x.cle.slice(5) : x.cle) : '_');
+  /** La grille de capacités LUE comme une chaîne (un caractère par rang pour les sorts). */
+  const vue = (c: Combatant, offre: EntreeBarre[]) => resoudreDisposition(c.barre, 'capacites', offre).map(nomDe).join('');
+  /** L'offre A…L : douze sorts, la grille entière. */
+  const AL = 'ABCDEFGHIJKL'.split('').map(sort);
+  /** Le porteur dont la barre A…L est ÉCRITE (premier affichage). */
+  const materialise = (offre: EntreeBarre[]) => materialiserPorteur(porteur(), [{ zone: 'capacites', offre }]);
+  /** Les entrées réellement déduites par la console (littéraux `cellFor('…')`), bornées aux déclarées. */
   const deduitsReels = [...new Set(CONSOLE_KEYS)].filter((k) => ACTIONS.some((a) => a.id === k)).map((id) => e(id));
 
   it('ÉCRITURE fail-fast : id hors registre, rang hors borne, zone inconnue, arsenal sans set', () => {
@@ -292,43 +302,114 @@ describe('(c) disposition data-driven — le validateur d’écriture tient la f
     // … et le témoin POSITIF : les mêmes adresses, valides, passent (la garde ne refuse pas tout).
     expect(() => poserDansBarre(porteur(), { zone: 'capacites', index: TAILLE_ZONE.capacites - 1 }, e('defend'))).not.toThrow();
     expect(() => poserDansBarre(porteur(), { zone: 'arsenal', index: 0, setId: 'set-1' }, e('defend'))).not.toThrow();
+    expect(() => poserDansBarre(porteur(), { zone: 'arsenal', index: 0, setId: ARSENAL_SANS_SET }, e('defend'))).not.toThrow();
     expect(() => retirerDeBarre(porteur(), { zone: 'accesRapide', index: 0 })).not.toThrow();
   });
 
-  it('LECTURE par adresse : l’entrée posée se rend à SON rang, le rang vidé le reste, les voisins ne glissent pas', () => {
-    const deduite = dispositionDeduite('capacites', [e('course'), e('mouvement'), e('defend')]);
-    const pose = poserDansBarre(porteur(), { zone: 'capacites', index: 5 }, e('aim'));
-    const rendu = resoudreDisposition(pose.barre, 'capacites', deduite);
-    expect(rendu[5]).toEqual(e('aim'));
-    expect(rendu.slice(0, 3), 'le pré-remplissage déduit a bougé').toEqual(deduite);
-    // Case VIDÉE : elle reste vide, la déduction ne la reprend PAS ; le pré-remplissage s'écoule dans
-    // les rangs LIBRES suivants, sans rien perdre ni dupliquer.
-    const vide = retirerDeBarre(pose, { zone: 'capacites', index: 0 });
-    const apres = resoudreDisposition(vide.barre, 'capacites', deduite);
-    expect(apres[0], 'la case vidée a été reprise par la déduction').toBeNull();
-    expect(apres.slice(1, 4), 'le pré-remplissage a perdu ou dupliqué une entrée').toEqual(deduite);
-    expect(apres[5], 'le rang POSÉ a bougé alors qu’une autre case était vidée').toEqual(e('aim'));
-    // L'arsenal s'adresse PAR SET : la disposition d'un set n'atteint pas l'autre.
-    const arsenal = poserDansBarre(porteur(), { zone: 'arsenal', index: 1, setId: 'set-a' }, e('charge'));
-    const deduiteA = dispositionDeduite('arsenal', [e('attaque')]);
-    expect(resoudreDisposition(arsenal.barre, 'arsenal', deduiteA, 'set-a')[1]).toEqual(e('charge'));
-    expect(resoudreDisposition(arsenal.barre, 'arsenal', deduiteA, 'set-b')[1]).toBeNull();
+  it('MATÉRIALISER est IDEMPOTENT : m(m(z, o), o) ≡ m(z, o), et rien n’entre deux fois', () => {
+    const offre = [sort('A'), sort('B'), e('defend')];
+    const une = materialiserZone('capacites', undefined, offre);
+    const deux = materialiserZone('capacites', une, offre);
+    expect(deux).toEqual(une);
+    expect(deux, 'une zone où rien n’entre se rend telle quelle').toBe(une);
+    // … et l'écriture dans le porteur aussi : le second passage ne produit AUCUN porteur neuf.
+    const ecrit = materialise(offre);
+    expect(ecrit.barre?.capacites).toEqual(une);
+    expect(materialiserPorteur(ecrit, [{ zone: 'capacites', offre }]), 'une 2ᵉ matérialisation a réécrit le porteur').toBe(ecrit);
+  });
+
+  // L'offre SITUATIONNELLE change d'un tour à l'autre (Se désengager n'existe qu'Engagé) : « Se
+  // défendre » et « Viser » gardent leur rang.
+  it('l’offre CHANGE d’un tour à l’autre : les rangs connus ne bougent pas, la nouvelle entrée prend le 1er rang libre', () => {
+    const tourA = [e('course'), e('mouvement'), e('defend'), e('aim')];
+    const tourB = [e('course'), e('mouvement'), e('disengage'), e('defend'), e('aim')];
+    const h = materialise(tourA);
+    const nom = (c: Combatant, offre: EntreeBarre[]) => resoudreDisposition(c.barre, 'capacites', offre).slice(0, 5).map(nomDe).join(' ');
+    expect(nom(h, tourA)).toBe('course mouvement defend aim _');
+    expect(nom(h, tourB), 'une entrée connue a glissé quand l’offre a changé').toBe('course mouvement defend aim disengage');
+    // Le tour suivant, Se désengager quitte l'offre : sa case RESTE (fermée à l'écran), rien ne remonte.
+    const h2 = materialiserPorteur(h, [{ zone: 'capacites', offre: tourB }]);
+    expect(nom(h2, tourA), 'l’entrée sortie de l’offre a quitté son rang').toBe('course mouvement defend aim disengage');
+  });
+
+  // Poser X au rang 4 n'affecte que ce rang : D…K restent en place, L reste à la barre.
+  it('POSER sur une case occupée ÉCHANGE : rien ne glisse, la délogée retourne à la liste et reste connue', () => {
+    const h = materialise(AL);
+    expect(vue(h, AL)).toBe('ABCDEFGHIJKL');
+    const x = poserDansBarre(h, { zone: 'capacites', index: 3 }, sort('X'));
+    expect(vue(x, [...AL, sort('X')]), 'poser a fait glisser les voisines').toBe('ABCXEFGHIJKL');
+    expect(x.barre!.capacites!.connues, 'la délogée a été oubliée : elle reviendrait d’elle-même').toContain(cleEntree(sort('D')));
+    // DÉPLACER une entrée de la barre sur une case occupée : la délogée prend l'ANCIEN rang.
+    const d = poserDansBarre(h, { zone: 'capacites', index: 5 }, sort('A'));
+    expect(vue(d, AL)).toBe('FBCDEAGHIJKL');
+    // … sur une case libre : l'ancien rang devient un TROU, et le reste de sa clé.
+    const libre = poserDansBarre(retirerDeBarre(h, { zone: 'capacites', index: 5 }), { zone: 'capacites', index: 5 }, sort('A'));
+    expect(vue(libre, AL)).toBe('_BCDEAGHIJKL');
+    expect(Object.prototype.hasOwnProperty.call(libre.barre!.capacites!.rangs, 0), 'l’ancien rang a perdu sa clé').toBe(true);
+  });
+
+  it('RETIRER laisse un trou : rien ne glisse, et l’entrée retirée ne REVIENT pas', () => {
+    const h = materialise(AL);
+    const r = retirerDeBarre(h, { zone: 'capacites', index: 3 });
+    expect(vue(r, AL), 'retirer a fait glisser les voisines').toBe('ABC_EFGHIJKL');
+    // Au rendu suivant, à offre égale : la case retirée reste un trou.
+    const apres = materialiserPorteur(r, [{ zone: 'capacites', offre: AL }]);
+    expect(vue(apres, AL), 'l’entrée retirée est revenue d’elle-même').toBe('ABC_EFGHIJKL');
+    // Le trou est une case LIBRE pour une capacité NOUVELLE — et rien ne glisse quand elle le remplit.
+    const avecM = [...AL, sort('M')];
+    expect(vue(materialiserPorteur(apres, [{ zone: 'capacites', offre: avecM }]), avecM)).toBe('ABCMEFGHIJKL');
+  });
+
+  it('retirer laisse un TROU même quand l’offre déborde la zone', () => {
+    const treize = [...AL, sort('M')];
+    const r = retirerDeBarre(materialise(treize), { zone: 'capacites', index: 7 });
+    expect(vue(materialiserPorteur(r, [{ zone: 'capacites', offre: treize }]), treize)).toBe('ABCDEFG_IJKL');
+  });
+
+  it('l’entrée restée à la liste faute de rang est CONNUE ; une capacité APPARUE ensuite prend le premier trou', () => {
+    const treize = [...AL, sort('M')];
+    const h = materialise(treize);
+    expect(vue(h, treize)).toBe('ABCDEFGHIJKL');
+    expect(h.barre!.capacites!.connues, 'l’entrée restée à la liste n’a pas été écrite connue').toContain(cleEntree(sort('M')));
+    const trou = retirerDeBarre(h, { zone: 'capacites', index: 7 });
+    const quatorze = [...treize, sort('N')];
+    expect(vue(materialiserPorteur(trou, [{ zone: 'capacites', offre: quatorze }]), quatorze)).toBe('ABCDEFGNIJKL');
+  });
+
+  it('l’arsenal aussi : une offre de 10 pour 6 cases, retirer le rang 2 laisse un TROU', () => {
+    const arme = (k: string) => e('attaque', `arme-${k}`);
+    const dix = 'ABCDEFGHIJ'.split('').map(arme);
+    const lire = (c: Combatant) =>
+      resoudreDisposition(c.barre, 'arsenal', dix, 'set-a').map((x) => (x ? x.cle.slice(5) : '_')).join('');
+    const h = materialiserPorteur(porteur(), [{ zone: 'arsenal', setId: 'set-a', offre: dix }]);
+    expect(lire(h)).toBe('ABCDEF');
+    const r = retirerDeBarre(h, { zone: 'arsenal', index: 2, setId: 'set-a' });
+    expect(lire(materialiserPorteur(r, [{ zone: 'arsenal', setId: 'set-a', offre: dix }]))).toBe('AB_DEF');
+  });
+
+  it('l’arsenal se dispose PAR SET, et sous `ARSENAL_SANS_SET` pour un porteur sans set', () => {
+    const offre = [e('attaque'), e('charge')];
+    const h = materialiserPorteur(porteur(), [
+      { zone: 'arsenal', setId: 'set-a', offre },
+      { zone: 'arsenal', setId: ARSENAL_SANS_SET, offre: [e('charge')] },
+    ]);
+    const posee = poserDansBarre(h, { zone: 'arsenal', index: 4, setId: 'set-a' }, e('charge'));
+    expect(resoudreDisposition(posee.barre, 'arsenal', offre, 'set-a').slice(0, 5).map(nomDe)).toEqual(['attaque', '_', '_', '_', 'charge']);
+    expect(resoudreDisposition(posee.barre, 'arsenal', [e('charge')], ARSENAL_SANS_SET)[0], 'la disposition d’un set a atteint l’autre').toEqual(e('charge'));
+    expect(() => resoudreDisposition(posee.barre, 'arsenal', offre), 'l’arsenal se lit sans set').toThrow(/PAR SET/);
   });
 
   /**
    * LE CHEMIN RÉEL DE LA SAVE : `saves.ts` sérialise l'état par `JSON.parse(JSON.stringify(data))`, et
-   * le snapshot réseau passe par le même goulot. Un tableau à trous en serait ressorti `[null, null, …]`
-   * — soit « rangs 0-1 VIDÉS » alors que le joueur n'avait touché QUE le rang 3. La zone est donc un
-   * objet creux, et cet aller-retour est la mesure qui le tient.
+   * le snapshot réseau passe par le même goulot. Un tableau à trous en serait ressorti `[null, null, …]`.
+   * La zone est donc un objet creux, et cet aller-retour est la mesure qui le tient.
    */
-  it('ALLER-RETOUR JSON (chemin de `saves.ts`) : poser au rang 3 ne vide pas les rangs 0-2', () => {
-    const deduite = dispositionDeduite('capacites', [e('course'), e('mouvement'), e('defend')]);
-    const pose = poserDansBarre(porteur(), { zone: 'capacites', index: 3 }, e('aim'));
-    const avant = resoudreDisposition(pose.barre, 'capacites', deduite);
-    const apresSave = resoudreDisposition(JSON.parse(JSON.stringify(pose.barre)), 'capacites', deduite);
-    expect(apresSave, 'la sauvegarde a changé ce que la console rend').toEqual(avant);
-    expect(apresSave.slice(0, 3), 'les rangs jamais touchés ont été vidés par la sérialisation').toEqual(deduite);
-    expect(apresSave[3]).toEqual(e('aim'));
+  it('ALLER-RETOUR JSON (chemin de `saves.ts`) : la barre se relit à l’identique, trous compris', () => {
+    const h = retirerDeBarre(poserDansBarre(materialise(AL), { zone: 'capacites', index: 9 }, sort('X')), { zone: 'capacites', index: 2 });
+    const apresSave = { ...h, barre: JSON.parse(JSON.stringify(h.barre)) } as Combatant;
+    expect(vue(apresSave, AL), 'la sauvegarde a changé ce que la console rend').toBe(vue(h, AL));
+    expect(vue(apresSave, AL)).toBe('AB_DEFGHIXKL');
+    expect(materialiserPorteur(apresSave, [{ zone: 'capacites', offre: AL }]), 'la relecture a réécrit la barre').toBe(apresSave);
   });
 
   /**
@@ -336,63 +417,57 @@ describe('(c) disposition data-driven — le validateur d’écriture tient la f
    * sort, `select-attack` par attaque, `use-item` par objet). Sans la CLÉ de la case, l'adresse rendrait
    * la n-ième occurrence de l'offre — donc un autre sort dès que l'offre change d'ordre.
    */
-  it('l’adresse porte la CLÉ de la case : elle survit à une permutation de l’offre, et poser DÉPLACE', () => {
+  it('l’adresse porte la CLÉ de la case : elle survit à une permutation de l’offre', () => {
     const feu = e('cast-spell', 'sort-boule-de-feu');
     const lumiere = e('cast-spell', 'sort-lumiere');
-    const pose = poserDansBarre(porteur(), { zone: 'capacites', index: 0 }, feu);
-    // L'offre change d'ordre (un sort appris, un autre épuisé) : l'adresse rend TOUJOURS le même sort.
+    const h = materialise([feu, lumiere]);
     for (const offre of [[feu, lumiere], [lumiere, feu]]) {
-      const rendu = resoudreDisposition(pose.barre, 'capacites', dispositionDeduite('capacites', offre));
-      expect(rendu[0], 'l’adresse a changé de sort avec l’ordre de l’offre').toEqual(feu);
-      // POSER = DÉPLACER : le sort posé ne se dédouble pas dans le pré-remplissage…
-      expect(rendu.filter((x) => x && cleEntree(x) === cleEntree(feu)).length, 'le sort posé apparaît deux fois').toBe(1);
-      // … et il ne laisse pas de trou derrière lui : l'autre sort remonte à sa place.
-      expect(rendu[1], 'poser une capacité déduite a troué le pré-remplissage').toEqual(lumiere);
+      const rendu = resoudreDisposition(h.barre, 'capacites', offre);
+      expect(rendu.slice(0, 2), 'l’adresse a changé de sort avec l’ordre de l’offre').toEqual([feu, lumiere]);
     }
   });
 
   /**
-   * L'IDENTITÉ EST CELLE DU MODÈLE, PAS DE L'INSTANCE (sonde du juge S7) : la case d'un consommable se
+   * L'IDENTITÉ EST CELLE DU MODÈLE, PAS DE L'INSTANCE : la case d'un consommable se
    * déclare `q-objet-<trappingId>` — boire une potion consomme un `uid` mais ne déplace RIEN. Une
    * adresse bâtie sur l'uid d'args (`itemUid`) mourrait à la première gorgée.
    */
   it('l’adresse d’un consommable SURVIT à la consommation d’une instance (identité de modèle)', () => {
     const potion = e('use-item', 'q-objet-potion-de-soin');
     const pose = poserDansBarre(porteur(), { zone: 'accesRapide', index: 2 }, potion);
-    const rendu = resoudreDisposition(pose.barre, 'accesRapide', dispositionDeduite('accesRapide', [potion, e('heal', 'q-soigner')]));
+    const rendu = resoudreDisposition(pose.barre, 'accesRapide', offreDeZone('accesRapide', [potion, e('heal', 'q-soigner')]));
     expect(rendu[2], 'la potion a quitté l’adresse où le joueur l’avait posée').toEqual(potion);
     // TÉMOIN — une adresse d'INSTANCE (ce que produirait un balayage d'`args` : `itemUid`) ne
     // désigne PLUS aucune case de l'offre dès que l'uid change ; celle du MODÈLE, si.
-    const offre = dispositionDeduite('accesRapide', [potion]);
-    const parInstance = poserDansBarre(porteur(), { zone: 'accesRapide', index: 2 }, e('use-item', 'itm-42'));
-    const renduInstance = resoudreDisposition(parInstance.barre, 'accesRapide', offre)[2]!;
-    const offerte = (x: typeof potion) => offre.some((o) => cleEntree(o) === cleEntree(x));
-    expect(offerte(renduInstance), 'témoin muet : l’identité d’instance aurait dû ne désigner aucune case').toBe(false);
+    const offre = offreDeZone('accesRapide', [potion]);
+    const parInstance = e('use-item', 'itm-42');
+    const offerte = (x: EntreeBarre) => offre.some((o) => cleEntree(o) === cleEntree(x));
+    expect(offerte(parInstance), 'témoin muet : l’identité d’instance aurait dû ne désigner aucune case').toBe(false);
     expect(offerte(potion), 'l’identité de MODÈLE ne désigne plus la case offerte').toBe(true);
   });
 
   /** Sonde du juge S6 : deux cases de même identité rendraient la même alvéole deux fois. */
   it('COLLISION D’ADRESSE : deux cases de même identité dans une zone sont un bug, et il se voit', () => {
     const feu = e('cast-spell', 'sort-boule-de-feu');
-    expect(() => dispositionDeduite('capacites', [feu, e('course'), feu])).toThrow(/deux cases de même identité/);
+    expect(() => offreDeZone('capacites', [feu, e('course'), feu])).toThrow(/deux cases de même identité/);
     // Même action, clés DIFFÉRENTES : aucune collision (c'est le cas normal des N alvéoles d'une action).
-    expect(() => dispositionDeduite('capacites', [feu, e('cast-spell', 'sort-lumiere')])).not.toThrow();
+    expect(() => offreDeZone('capacites', [feu, e('cast-spell', 'sort-lumiere')])).not.toThrow();
   });
 
-  it('LECTURE tolérante : un id que ce binaire ne connaît plus est IGNORÉ, sa case reste vide', () => {
-    // Donnée héritée (save d'une autre version) : elle n'a pas pu passer par le validateur.
-    const herite = { capacites: { 0: e('id-dune-autre-version') } };
-    const rendu = resoudreDisposition(herite, 'capacites', dispositionDeduite('capacites', [e('course')]));
-    expect(rendu[0], 'la déduction a repris une case que le joueur avait remplie').toBeNull();
+  it('LECTURE tolérante : un id que ce binaire ne connaît plus est IGNORÉ, sa case reste vide et occupée', () => {
+    // Donnée héritée (save d'une autre version) : elle n'a pas pu passer par la porte d'écriture.
+    const herite = { capacites: { rangs: { 0: e('id-dune-autre-version') }, connues: [] } };
+    const rendu = resoudreDisposition(herite, 'capacites', offreDeZone('capacites', [e('course')]));
+    expect(rendu[0], 'la case de l’id inconnu a été rendue ou reprise').toBeNull();
+    expect(rendu[1], 'la nouvelle entrée n’a pas pris le premier rang LIBRE').toEqual(e('course'));
   });
 
-  it('le PRÉ-REMPLISSAGE ne produit que des ids du registre (et refuse tout le reste)', () => {
+  it('l’OFFRE ne porte que des ids du registre (et refuse tout le reste) ; la zone rend sa géométrie entière', () => {
     expect(deduitsReels.length, 'aucun id déduit mesuré : la sonde serait verte à vide').toBeGreaterThan(10);
-    expect(() => dispositionDeduite('capacites', deduitsReels)).not.toThrow();
-    expect(() => dispositionDeduite('capacites', [e('course'), e('pas-une-action')])).toThrow(/registre/);
-    // Géométrie : la zone ne pré-remplit jamais au-delà de son compte de cases.
-    expect(dispositionDeduite('arsenal', deduitsReels).length).toBe(TAILLE_ZONE.arsenal);
-    expect(resoudreDisposition(undefined, 'arsenal', dispositionDeduite('arsenal', [])).length).toBe(TAILLE_ZONE.arsenal);
+    expect(() => offreDeZone('capacites', deduitsReels)).not.toThrow();
+    expect(() => offreDeZone('capacites', [e('course'), e('pas-une-action')])).toThrow(/registre/);
+    expect(resoudreDisposition(undefined, 'arsenal', deduitsReels, ARSENAL_SANS_SET).filter(Boolean).length).toBe(TAILLE_ZONE.arsenal);
+    expect(resoudreDisposition(undefined, 'arsenal', [], ARSENAL_SANS_SET).length).toBe(TAILLE_ZONE.arsenal);
   });
 
   it('CLAVIER par adresse : exactement 8 liaisons de rang, sur les 8 premiers rangs des capacités', () => {
