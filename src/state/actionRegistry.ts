@@ -3,8 +3,7 @@
  *
  * Trois tables, trois responsabilités, aucune logique en JSON :
  *  - `ACTION_GATES`    — les PRÉDICATS d'offre, par id. Source UNIQUE : `CombatConsole` et `turnEconomy`
- *                        les consomment (ils en tenaient chacun une dérivation manuscrite, et la
- *                        divergence a déjà coûté un bug — Détermination, commit `0e14119b`).
+ *                        les lisent par `actionGate` / `verdictDOffre`, verrou d'État compris.
  *  - `ACTION_CANDIDATES` — les SÉLECTEURS impurs (listes de cibles/objets), enveloppes NOMMÉES des
  *                        fonctions existantes : aucune n'est réécrite ici.
  *  - `ACTION_RUN`      — les DISPATCHERS : une entrée par méthode `battle*` du store.
@@ -16,7 +15,7 @@ import type { Combatant } from '../engine/types';
 import type { BattleState, GameState } from './store';
 import { canMove, trampleTarget, entityPickables, activeCombatant } from './store';
 import { currentTargetingMode } from './targetingModes';
-import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat } from '../engine/conditions';
+import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat, restrictingConditions } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied } from '../engine/psychology';
 import { isVehicle } from '../engine/vehicle';
@@ -81,8 +80,8 @@ const instanceDeLEtat = ({ active, def }: ActionCtx) =>
   active.conditions?.find((c) => c.id === etatDeclare(def));
 
 /** L'Action du Tour est-elle encore disponible ET utilisable ? (Sonné/Inconscient → `canTakeAction`).
- *  Périmètre STRICT de l'économie du tour : les restrictions d'ÉTAT propres à une famille d'actes
- *  (Brisé interdit l'offensive, Frénésie ferme tout sauf CC/Athlétisme) sont des gates à part. */
+ *  Périmètre STRICT de l'économie du tour : les restrictions d'ÉTAT vivent ailleurs — le verrou
+ *  d'État d'`actionGate` (`verrouDEtat`, LDB 16 l.52) et la Frénésie (`action-libre-hors-frenesie`). */
 function actionLibre({ active, battle }: ActionCtx): ActionGate {
   if (battle.acted) return no(t('agate.actionSpent'));
   if (!canTakeAction(active)) return no(t('agate.unableToAct'));
@@ -123,6 +122,15 @@ function mouvementIntact({ active, battle }: ActionCtx): ActionGate {
  *  navire agit par ses Tests d'équipage et sa barre. */
 function fantassin({ active }: ActionCtx): ActionGate {
   return isVehicle(active) ? no(t('agate.hullHasNoBody')) : ok;
+}
+
+/** VERROU D'ÉTAT (LDB 16 l.52) : un État porté qui déclare `restrictsAction` (`etats.json`, lu par
+ *  `restrictingConditions`) ferme l'option, sauf si elle déclare `echappeAuVerrou`. L'État se NOMME
+ *  par son libellé de donnée. */
+function verrouDEtat(active: Combatant, echappeAuVerrou: ActionDef['echappeAuVerrou']): ActionGate {
+  if (echappeAuVerrou) return ok;
+  const verrou = restrictingConditions(active)[0];
+  return verrou ? no(t('agate.actionLocked', { etat: findConditionById(verrou.id)!.label })) : ok;
 }
 
 /** ET séquentiel de gates : le PREMIER refus l'emporte, avec SA raison (aucune raison fabriquée). */
@@ -269,17 +277,27 @@ export function remedesPertinents(ctx: ActionCtx): ActionDef[] {
   return REMEDES.filter((def) => ACTION_GATES[GATE_ETAT_PORTE]({ ...ctx, def }).ok);
 }
 
-/** Verdict d'offre d'une action, par son id — porte de lecture UNIQUE pour les surfaces.
- *  Le champ `gate` de l'entrée peut nommer PLUSIEURS prédicats : ils se composent par l'ET séquentiel
- *  déjà écrit (`et`) — toutes passent, sinon la PREMIÈRE raison refusée est rendue (aucune raison
- *  fabriquée). Une condition de plus sur une action = une ligne de JSON, jamais un gate composé à la main. */
+/** Une OPTION d'offre : ses prédicats (`gate`) et son échappement au verrou d'État. Une entrée de
+ *  `actions.json` en est une ; un prédicat sans entrée (`{ gate }`, `turnEconomy`) n'a pas d'échappement. */
+type OptionDOffre = Pick<ActionDef, 'gate' | 'echappeAuVerrou'>;
+
+/** Verdict d'une option d'offre — LA composition unique, lue par `actionGate` et par `turnEconomy`.
+ *  Le champ `gate` peut nommer PLUSIEURS prédicats : ils se composent par l'ET séquentiel déjà écrit
+ *  (`et`) — tous passent, sinon la PREMIÈRE raison refusée est rendue (aucune raison fabriquée).
+ *  Le verrou d'État (`verrouDEtat`) précède les gates déclarés : il vaut pour TOUTE option. */
+export function verdictDOffre(option: OptionDOffre, ctx: ActionCtx): ActionGate {
+  const noms = Array.isArray(option.gate) ? option.gate : [option.gate];
+  const inconnu = noms.find((g) => !ACTION_GATES[g]);
+  if (inconnu) return no(`gate inconnu : ${inconnu}`);
+  return et(({ active }) => verrouDEtat(active, option.echappeAuVerrou), ...noms.map((g) => ACTION_GATES[g]))(ctx);
+}
+
+/** Verdict d'offre d'une action, par son id — porte de lecture UNIQUE pour les surfaces. Une condition
+ *  de plus sur une action = une ligne de JSON, jamais un gate composé à la main. */
 export function actionGate(actionId: string, ctx: ActionCtx): ActionGate {
   const def = ACTIONS.find((a) => a.id === actionId);
   if (!def) return no(`action inconnue : ${actionId}`);
-  const noms = Array.isArray(def.gate) ? def.gate : [def.gate];
-  const inconnu = noms.find((g) => !ACTION_GATES[g]);
-  if (inconnu) return no(`gate inconnu : ${inconnu}`);
-  return et(...noms.map((g) => ACTION_GATES[g]))({ ...ctx, def });
+  return verdictDOffre(def, { ...ctx, def });
 }
 
 /** Contexte des sélecteurs : impurs par nature (ils lisent le combat, parfois la scène). */

@@ -18,9 +18,9 @@
    une grandeur que le reste du HUD doit connaître pour ne pas s'y poser dessus (frise, fil de
    combat). Une seule source, dérivée du côté d'alvéole ; les tranches ne règlent que ce côté. */
 :root {
-  /* ALVÉOLE PAYSAGE — deux dimensions, jamais un carré (arbitrage utilisateur 2026-08-17, spec
-     « BUDGET DE HAUTEUR » : la planche budgétise 90×66 à 1920, et un carré de 84px faisait un pont de
-     ~28-29 % du viewport chez l'utilisateur là où la planche en tient 20,1 %).
+  /* ALVÉOLE PAYSAGE — deux dimensions, jamais un carré (`docs/plans/2026-08-16-spec-hud-combat.md:24-31`) :
+     la planche budgétise 90×66 à 1920, et un carré de 84px faisait un pont de ~28-29 % du viewport là
+     où la planche en tient 20,1 %.
      LARGEUR : progression continue sur la largeur d'écran (le pont doit porter ses quatre régions avec
      le fronton CENTRÉ — planche : arche centrée à 959,5/1920 ; mesuré à 1280 : 62,7px de côté pour une
      travée droite de 412px dans 424px de voie).
@@ -277,11 +277,8 @@
   min-width: 0;
   padding: 8px 8px 10px;
 }
-/* MATIÈRE UNIQUE DU PONT — arbitrage utilisateur 2026-08-17 (AskUserQuestion, verbatim) : « une matière
-   unique, fidèle à la planche : tout le pont dans la même teinte bronze/bois, les régions se distinguent
-   par leurs alvéoles et liserés, pas par des plaques de couleurs différentes ».
-   Arbitrage utilisateur 2026-08-24 (« UN PONT CONTINU », spec §1c-ter) : les régions ne peignent plus
-   RIEN — ni fond, ni liseré. Le fond et le liseré sont ceux de la BANDE, une seule fois, de bord à
+/* MATIÈRE UNIQUE DU PONT (`docs/plans/2026-08-16-spec-hud-combat.md:231-239`, §1c-ter). Les régions ne
+   peignent RIEN — ni fond, ni liseré. Le fond et le liseré sont ceux de la BANDE, une seule fois, de bord à
    bord ; une nappe de région (même de la bonne famille de teintes) rouvrait une couture à chaque
    écart de région — mesuré à 1990px, quatre bandes plus sombres entre les zones, lues comme des
    trous de carte. Une région se distingue par ses ALVÉOLES.
@@ -895,9 +892,9 @@
 .cc-gutter-action { --gc: var(--gauge-action); }
 .cc-gutter-move { --gc: var(--gauge-move); }
 /* Aperçu du geste en cours : les crans qui vont partir se lisent en SEGMENT FANTÔME — teinte éteinte
-   sous un filet clair, STATIQUE (patron BG3/Solasta). Rien ne clignote sur ce pont : « je ne veux pas
-   que la taille de l'interface ou les boutons bougent » (arbitrage user 2026-08-16) vaut aussi pour ce
-   qui bat — un cran qui pulse est un mouvement permanent dans le champ de lecture. L'information est
+   sous un filet clair, STATIQUE (patron BG3/Solasta). Rien ne clignote sur ce pont : la géométrie
+   immuable (`docs/plans/2026-08-16-hud-combat.md:35-36`) vaut aussi pour ce qui bat — un cran qui
+   pulse est un mouvement permanent dans le champ de lecture. L'information est
    la MÊME (ces crans-là partent), elle se lit d'un coup d'œil au lieu d'attendre une phase. */
 .cc-gutter-rail > i.spend {
   opacity: 1;
@@ -1105,9 +1102,9 @@ button.cc-socle svg {
   color: var(--tooltip-warn);
 }
 /* Plus aucune option utile au tour (`hasMeaningfulOption`) : la plaque passe à l'ambre du spécimen F
-   — c'est un APPEL à sortir, pas une alerte. ÉTAT ALLUMÉ STATIQUE : rien ne bat sur ce pont (arbitrage
-   user 2026-08-16, « je ne veux pas que la taille de l'interface ou les boutons bougent ») — une
-   pulsation permanente tire l'œil en boucle sans rien ajouter à ce que la teinte dit déjà. */
+   — c'est un APPEL à sortir, pas une alerte. ÉTAT ALLUMÉ STATIQUE : rien ne bat sur ce pont
+   (`docs/plans/2026-08-16-hud-combat.md:35-36`) — une pulsation permanente tire l'œil en boucle sans
+   rien ajouter à ce que la teinte dit déjà. */
 .cc-end.pulse {
   background: linear-gradient(180deg, var(--cc-end-warn-hi), var(--cc-end-warn-lo));
   border-color: var(--tooltip-warn);

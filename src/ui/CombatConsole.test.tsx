@@ -3854,30 +3854,29 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
 });
 
 /**
- * ÉTAT QUI VERROUILLE L'ACTION — la console ne connaît AUCUN nom d'État : elle lit le drapeau
- * `restrictsAction` de la donnée (`isActionLocked`, `LDB 16 l.52`). La sonde parcourt donc TOUS les
- * États qui le déclarent : le jour où un second le porte, il ferme les mêmes cases sans une ligne
- * de code — et ce test le vérifie déjà.
+ * ÉTAT QUI VERROUILLE L'ACTION — la console ne connaît AUCUN nom d'État : le verrou est celui du
+ * registre (`actionGate`, drapeau `restrictsAction` de la donnée, `LDB 16 l.52`). La sonde parcourt
+ * donc TOUS les États qui le déclarent : le jour où un second le porte, il ferme les mêmes cases sans
+ * une ligne de code — et ce test le vérifie déjà.
  */
 describe('CombatConsole — tout État qui déclare `restrictsAction` ferme les mêmes cases', () => {
   const caseAction = (id: string) => host.querySelector(`[data-action="${id}"]`) as HTMLButtonElement | null;
   const verrouillants = etats.filter((e) => e.restrictsAction);
 
-  it('la Défensive se ferme pour CHAQUE État verrouillant de la donnée, et reste ouverte sans lui', () => {
+  it('la Défensive se ferme en NOMMANT chaque État verrouillant de la donnée, et reste ouverte sans lui', () => {
     expect(verrouillants.length, 'aucun État ne déclare `restrictsAction` : la sonde ne mesurerait rien').toBeGreaterThan(0);
     // TÉMOIN : le MÊME héros, sans État verrouillant, garde la case OUVERTE.
     const libre = hero('h1', 'Gunnar');
     libre.conditions = [];
     monter(libre, { foes: [foe('e1', 9, 9)] });
-    expect(caseAction('defend')!.disabled, 'sans État verrouillant, la Défensive devrait être offerte').toBe(false);
+    expect(caseAction('defend')!.disabled || caseAction('defend')!.getAttribute('aria-disabled') === 'true', 'sans État verrouillant, la Défensive devrait être offerte').toBe(false);
     for (const etat of verrouillants) {
       const h = hero('h1', 'Gunnar');
       h.conditions = [{ id: etat.id, value: 1 }] as ConditionInstance[];
       monter(h, { foes: [foe('e1', 9, 9)] });
-      expect(
-        caseAction('defend')!.disabled,
-        `l’État ${etat.id} déclare restrictsAction, la Défensive reste pourtant ouverte`,
-      ).toBe(true);
+      const c = caseAction('defend')!;
+      expect(c.getAttribute('aria-disabled'), `l’État ${etat.id} déclare restrictsAction, la Défensive reste pourtant ouverte`).toBe('true');
+      expect(c.querySelector('[data-gate]')?.textContent, `la case ne nomme pas l’État ${etat.id}`).toBe(t('agate.actionLocked', { etat: etat.label }));
     }
   });
 });

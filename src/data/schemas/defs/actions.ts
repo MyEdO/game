@@ -1,7 +1,7 @@
 /** LDB 13 l.106. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { blocageDeLivraison } from '../grammaire/valeurs';
+import { blocageDeLivraison, enumNomme } from '../grammaire/valeurs';
 
 export const file = 'actions.json';
 export const famille = 'entite';
@@ -108,6 +108,15 @@ const doc = document(
     /** L'action FAIT NAÎTRE un panneau-paramètre (`PanneauParametre`) de SON alvéole : la surface qui
      *  la rend y pose l'ANCRE du panneau. Déclaré ICI pour qu'aucune console ne teste un id. */
     panneau: z.boolean().optional(),
+    /** L'entrée reste OFFERTE sous un État qui verrouille l'Action (`restrictsAction`, `etats.json`) —
+     *  `actionGate` ferme toute entrée qui ne le déclare pas. Le MOTIF : `fuite` (LDB 16 l.52 ; geste
+     *  qui la rend possible : LDB 16 l.35, l.64-66), `determination` (LDB 17 l.59-61),
+     *  `conduite-du-tour` (pilotage du tour ou d'un flux, sans Action ni Mouvement du personnage). */
+    echappeAuVerrou: enumNomme({
+      fuite: 'Fuite, ou geste qui la rend possible',
+      determination: 'Dépense de Détermination',
+      'conduite-du-tour': 'Conduite du tour',
+    }).optional(),
   },
   {
     surface: { label: 'Surface d’accueil', hint: 'Zone de la console de combat où l’action naît par défaut' },
@@ -139,6 +148,10 @@ const doc = document(
     role: { label: 'Rôle de la sortie', hint: 'Valide le geste, ou y renonce — la proéminence du bouton s’en déduit' },
     hote: { label: 'Action hôte', hint: 'Action dont l’alvéole porte ce geste secondaire' },
     panneau: { label: 'Ouvre un panneau-paramètre', hint: 'L’action fait naître un panneau ancré à sa propre alvéole' },
+    echappeAuVerrou: {
+      label: 'Offerte sous verrou d’État',
+      hint: 'Motif pour lequel l’action reste offerte quand un État verrouille l’Action (Brisé) : fuite (s’éloigner, se relever, se dégager), Détermination, conduite du tour',
+    },
   },
   {
     codex: {

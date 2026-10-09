@@ -27,7 +27,7 @@ import { SpectatorChip } from './SpectatorChip';
 import { spectatorSeatOfModal } from './ownership';
 import { actorHasSkill } from '../engine/skills';
 import { hasHealSkill, healableTargets } from '../engine/healing';
-import { canTakeAction, isActionLocked, isOutOfAction, raisonRefusDetermination } from '../engine/conditions';
+import { canTakeAction, isOutOfAction, raisonRefusDetermination } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -49,9 +49,8 @@ import { Icon } from './Icon';
 import { ItemIcon } from './ItemIcon';
 import type { IconIdInput } from './icons';
 
-/** Nombre de cases de chaque travée — GÉOMÉTRIE IMMUABLE (arbitrage utilisateur 2026-08-16 :
- *  « je ne veux pas que la taille de l'interface ou les boutons bougent »). Le contenu varie,
- *  le compte de cases JAMAIS : une case sans contenu se DESSINE vide. Les trois zones ADRESSABLES
+/** Nombre de cases de chaque travée — GÉOMÉTRIE IMMUABLE (`docs/plans/2026-08-16-hud-combat.md:35-36`).
+ *  Le contenu varie, le compte de cases JAMAIS : une case sans contenu se DESSINE vide. Les trois zones ADRESSABLES
  *  tiennent leur taille de `TAILLE_ZONE` : c'est la même mesure qui borne la disposition du porteur. */
 const LEFT_CELLS = TAILLE_ZONE.arsenal; // travée gauche : 2×3 — les gestes déduits du set (§1a) puis les cases LIBRES
 const QUICK_CELLS = TAILLE_ZONE.accesRapide; // rubrique ACCÈS RAPIDE : 2×2 (consommables groupés + Soin)
@@ -274,7 +273,7 @@ const ACTION_DISSIPER = 'dispel';
  *  (`action-atteignabilite.test.ts:66`). */
 const ACTION_RECHARGER = 'reload';
 
-/** Le bandeau de phase, à ses DEUX adresses (arbitrage utilisateur 2026-08-24) : sur le parapet du
+/** Le bandeau de phase, à ses DEUX adresses (`.claude/memory/user-arbitrage-round0-forme-rt-et-splash-conserve.md`) : sur le parapet du
  *  pont (pauses de round, interlude de ciblage) ou, à l'OUVERTURE d'un combat, CENTRÉ EN HAUT DE LA
  *  CARTE comme la référence Rogue Trader le pose. Une seule boîte, une seule matière — l'adresse est
  *  un ATTRIBUT (`data-phase`), jamais un second composant ni une classe de plus. La MATIÈRE est la peau partagée
@@ -609,10 +608,9 @@ export function CombatConsole() {
   // l'INITIATIVE : sur une embuscade, un ENNEMI (Knud) portait portrait, stats et arsenal dans le
   // cadre du joueur. Le pont est celui du joueur — le premier contrôlé, sinon le premier héros du
   // groupe (partie entièrement en Auto-combat), sinon seulement la tête d'ordre.
-  /** OUVERTURE d'un combat (arbitrage utilisateur 2026-08-24, référence RT « round 0 », capture
-   *  archivée) : le bandeau de phase et son bouton quittent le coin du pont pour le HAUT DE LA
-   *  CARTE, centrés. Les pauses de round SUIVANTES gardent leur bandeau sur le parapet du pont —
-   *  l'arbitrage ne porte que sur l'ouverture. */
+  /** OUVERTURE d'un combat (`.claude/memory/user-arbitrage-round0-forme-rt-et-splash-conserve.md`) : le
+   *  bandeau de phase et son bouton quittent le coin du pont pour le HAUT DE LA CARTE, centrés. Les
+   *  pauses de round SUIVANTES gardent leur bandeau sur le parapet du pont. */
   const ouverture = !!pendingRoundStart && pendingRoundStart.round <= 1;
   const active = activeCombatant(battle) ?? (phase ? pontDOuverture(battle) : undefined);
   if (!active) {
@@ -631,9 +629,8 @@ export function CombatConsole() {
   // les cases navales du registre, dans la MÊME travée.
   const controlled = controlsCombatant(useGame.getState(), active);
   const vehicule = isVehicle(active);
-  /** FORME SPECTATRICE (arbitrage utilisateur 2026-08-24, verbatim : « D'ailleurs même au tour de
-   *  l'adversaire, pourquoi je vois son pont entier ? Même RT ne fait pas ca ») — tout tour NON tenu
-   *  par ce siège (ennemi, IA, autre siège coop, auto-combat) ET toute pause de Round : la bande
+  /** FORME SPECTATRICE (`.claude/memory/user-arbitrage-tour-adverse-console-spectatrice-jamais-pont-entier.md`)
+   *  — tout tour NON tenu par ce siège (ennemi, IA, autre siège coop, auto-combat) ET toute pause de Round : la bande
    *  garde sa géométrie, mais son CONTENU devient un médaillon. Aucune case n'est grisée : il n'y a
    *  plus de case. Le prédicat de possession est l'unique `controlsCombatant` — aucun cas de kind. */
   const spectatrice = !controlled || !!pendingRoundStart;
@@ -664,11 +661,6 @@ export function CombatConsole() {
   const heroIdx = party.findIndex((h) => h.id === active.id);
   const ring = heroIdx >= 0 ? HERO_RING[heroIdx % HERO_RING.length] : ENEMY_RING;
   const previewDelta = previewResourceDelta(battle);
-  const stunned = !canTakeAction(active);
-  // ÉTAT qui VERROUILLE l'Action (Brisé, `LDB 16 l.52`) : lu au drapeau `restrictsAction` de la donnée
-  // (`isActionLocked`), jamais par id — tout État qui le déclare ferme les mêmes cases.
-  const actionVerrouillee = isActionLocked(active);
-  const busy = battle.acted || stunned || actionVerrouillee;
 
   // ── LA CONSOLE CONSOMME LE REGISTRE DES ACTIONS ────────────────────────────────────────────────
   // Contexte d'offre commun à toutes les cases (prédicats `ACTION_GATES`, spec HUD « Zone 12 »).
@@ -903,7 +895,7 @@ export function CombatConsole() {
       ? cellFor('reload', 'arme', {
           label: `Recharger${reloadProg ? ` ${reloadProg}/${rechargeables[0].reload}` : ''}`,
           on: needsReload,
-          off: busy || !needsReload || frenzied,
+          off: !needsReload,
           args: { weaponUid: rechargeables[0].uid },
           ouvre: rechargeChoisissable ? () => setRechargeOuverte((v) => !v) : undefined,
         })
@@ -912,7 +904,7 @@ export function CombatConsole() {
     // du registre (`charge-possible`), le verbatim de l'infobulle de sa fiche.
     chargeDeduite && !vehicule ? cellFor('charge', 'geste') : undefined,
     // G3 — Viser
-    rangedWs.length > 0 ? cellFor('aim', 'arme', { label: active.aiming ? 'En joue' : 'Viser', on: !!active.aiming, off: busy || !!active.aiming || frenzied }) : undefined,
+    rangedWs.length > 0 ? cellFor('aim', 'arme', { label: active.aiming ? 'En joue' : 'Viser', on: !!active.aiming, off: !!active.aiming }) : undefined,
     // G6 — geste d'ARME : la jauge est l'ARSENAL tenu (`canPushback`). L'Empoignade n'en est PAS un
     // (LDB 14 l.155, l.159) : elle reste à la modale d'attaque à mains nues (`useAttackJetProps.tsx:96`).
     canPush ? cellFor('pushback', 'geste', { on: !!active.pushbackMode }) : undefined,
@@ -920,15 +912,15 @@ export function CombatConsole() {
     // fenêtre de jet n'en garde que l'affichage. Bascule (re-clic = désarmer), gate en texte visible.
     // Les DEUX cases existent dès qu'une arme de tir est au poing — « Dans le tas » se grise hors
     // contexte (aucun groupe serré), elle ne disparaît pas. Géométrie de la travée : arbitrage #1434.
-    rangedWs.length > 0 ? cellFor('posture-tir', 'arme', { on: posture('heldGround'), off: busy }) : undefined,
-    rangedWs.length > 0 ? cellFor('posture-tas', 'arme', { on: posture('intoCrowd'), off: busy }) : undefined,
+    rangedWs.length > 0 ? cellFor('posture-tir', 'arme', { on: posture('heldGround') }) : undefined,
+    rangedWs.length > 0 ? cellFor('posture-tas', 'arme', { on: posture('intoCrowd') }) : undefined,
     // G6bis — gestes d'ÉTAT du porteur (surface `geste-d-etat` du registre, spec §1a) : ce que sa
     // SITUATION ouvre — en selle, à une pièce servie, à la barre — jamais ce que son arme offre.
-    active.mountId ? cellFor('dismount', 'geste', { off: actionVerrouillee }) : undefined,
-    active.mannedPoste ? cellFor('leave-poste', 'geste', { off: busy }) : undefined,
+    active.mountId ? cellFor('dismount', 'geste') : undefined,
+    active.mannedPoste ? cellFor('leave-poste', 'geste') : undefined,
     // La barre : le BARREUR la tient (`atHelm`), et la COQUE elle-même quand c'est SON tour — même case,
     // mêmes arguments (`battleShipManeuver` accepte l'un ou l'autre, `combatSlice.ts:1362`).
-    atHelm || vehicule ? cellFor('maneuver-ship', 'geste', { off: busy, args: { crewId: active.id } }) : undefined,
+    atHelm || vehicule ? cellFor('maneuver-ship', 'geste', { args: { crewId: active.id } }) : undefined,
     // NAVIRE (échelle Mer) : au tour de la coque, ses Tests d'équipage sont les gestes de la travée —
     // les MÊMES cases du registre, pas une 2ᵉ barre. Bordée et Rude épreuve dépensent l'Action du navire
     // (gate `navire-action`) ; chant et recharge sont des tâches parallèles (gate `toujours`), donc leur
@@ -974,14 +966,13 @@ export function CombatConsole() {
         icon: <ItemIcon item={it} />,
         label: `${g.label}${g.uids.length > 1 ? ` ×${g.uids.length}` : ''}`,
         rule: it.trappingId ? { category: 'trappings', id: it.trappingId } : undefined,
-        off: busy || frenzied,
         args: { itemUid: g.uids[0] },
       });
     }),
     healTargets.length > 0
-      ? cellFor('heal', 'geste', { key: 'q-soigner', off: busy || frenzied })
+      ? cellFor('heal', 'geste', { key: 'q-soigner' })
       : undefined,
-    waterTargets.length > 0 ? cellFor('water', 'geste', { off: busy || frenzied }) : undefined,
+    waterTargets.length > 0 ? cellFor('water', 'geste') : undefined,
   ];
   const quick = placer('accesRapide', rapides.filter((c): c is Cell => !!c));
 
@@ -1010,7 +1001,7 @@ export function CombatConsole() {
     cellFor('course', 'mouvement'),
     cellFor('mouvement', 'mouvement'),
     isEngaged(active) ? cellFor('disengage', 'mouvement') : undefined,
-    cellFor('defend', 'defense', { off: busy }),
+    cellFor('defend', 'defense'),
     // Une Compétence porte l'icône de SA caractéristique (source unique `charIcon`) : six alvéoles
     // d'Avantage ne partagent plus le même glyphe. UNE entrée de registre (`gain-advantage`), N cases.
     ...advSkills.map((s) =>
@@ -1019,18 +1010,17 @@ export function CombatConsole() {
         icon: icon(charIcon(byId('skill', s.skillId)?.characteristic)),
         label: byId('skill', s.skillId)?.label ?? s.skillId,
         rule: { category: 'skills', id: s.skillId },
-        off: busy,
         args: { skillId: s.skillId },
       }),
     ),
-    hasBattement(active) ? cellFor('battement', 'avantage', { off: busy }) : undefined,
-    hasDistraire(active) ? cellFor('distraire', 'avantage', { off: busy }) : undefined,
+    hasBattement(active) ? cellFor('battement', 'avantage') : undefined,
+    hasDistraire(active) ? cellFor('distraire', 'avantage', { off: battle.acted || !canTakeAction(active) }) : undefined,
     // REMÈDES D'ÉTAT — une case par entrée de remède dont l'État est porté ; la famille se lit au COÛT
     // déclaré, l'ordre est celui de la donnée. Un remède hors d'atteinte garde sa case, fermée, avec sa
     // raison (verrou de l'État — `LDB 18 l.15`).
     ...remedes.map((def) => cellFor(def.id, def.coutAction === 'mouvement' ? 'mouvement' : 'geste')),
     isFrenzyCapable(active) && !isFrenzied(active) ? cellFor('frenzy', 'geste') : undefined,
-    canAidTeam(active, battle.combatants) ? cellFor('aid-team', 'geste', { off: busy }) : undefined,
+    canAidTeam(active, battle.combatants) ? cellFor('aid-team', 'geste') : undefined,
     // DÉTERMINATION — deux des trois dépenses (LDB 17 l.59-60) sont des alvéoles, comme toute action :
     // leurs dispatchers sont DIRECTS (`battleResolvePsychImmune`/`battleResolveIgnoreCrit` dépensent le
     // point au clic), il n'y a donc plus rien à ARMER. La 3ᵉ (« Retirez un État », l.61) vit sur la
@@ -1045,16 +1035,15 @@ export function CombatConsole() {
     dispellable.length > 0
       ? cellFor('dispel', 'magie', {
           label: `${findActionById(ACTION_DISSIPER)!.label}${dispelProg ? ` ${dispelProg.total}/${dispelProg.ni}` : ''}`,
-          off: busy || frenzied,
         })
       : undefined,
     ...selfManeuvers.map((m) =>
-      cellFor('self-maneuver', 'geste', { key: `self-${m.id}`, label: m.label, rule: { category: 'maneuvers', id: m.id }, off: busy, args: { maneuverId: m.id } }),
+      cellFor('self-maneuver', 'geste', { key: `self-${m.id}`, label: m.label, rule: { category: 'maneuvers', id: m.id }, args: { maneuverId: m.id } }),
     ),
     // Attaques de trait : adossées au conduit (elles se paient en crans d'Avantage). Une attaque de
     // ZONE immédiate (Hurlement) part par `maneuver-area` ; les autres ARMENT le clic (`select-attack`).
     ...attacks.map((a) => {
-      const habillage = { key: `attaque-${a.id}`, icon: icon(a.icon), label: a.label, rule: { category: 'traits', id: a.id } as CodexTarget, adv: a.cost?.advantage ?? 0, off: busy };
+      const habillage = { key: `attaque-${a.id}`, icon: icon(a.icon), label: a.label, rule: { category: 'traits', id: a.id } as CodexTarget, adv: a.cost?.advantage ?? 0 };
       return a.targeting === 'zone'
         ? cellFor('maneuver-area', 'attaque', { ...habillage, args: { attackKind: a.kind } })
         : cellFor('select-attack', 'attaque', { ...habillage, args: { attackId: a.id } });
@@ -1068,7 +1057,7 @@ export function CombatConsole() {
       const progres = dr != null && sp.cn ? `DR ${dr}/${sp.cn}` : undefined;
       return cellFor('cast-spell', 'magie', {
         key: `sort-${sp.id}`, icon: icon('magic/power'), label: sp.label, rule: { category: 'spells', id: sp.id },
-        off: busy || frenzied, args: { spellId: sp.id }, progres,
+        args: { spellId: sp.id }, progres,
       });
     }),
   ].filter((c): c is Cell => !!c);
@@ -1234,11 +1223,8 @@ export function CombatConsole() {
         </div>
       )}
 
-      {/* LES DEUX FORMES du pont (arbitrage utilisateur 2026-08-24, référence RT : « rond = on
-          regarde, carré = on peut cliquer ; rien ne se grise, rien ne se désactive — la console
-          cesse d'être une console » ; précisé le 2026-09-20, verbatim : « moi je voulais que cela
-          n'affiche que cette partie sans les barres gauche et droite pour les ennemies et avant le
-          début du combat ») :
+      {/* LES DEUX FORMES du pont (`docs/plans/Analyse HUD Rogue Trader.dc.html:332`,
+          `.claude/memory/user-arbitrage-tour-adverse-console-spectatrice-jamais-pont-entier.md`) :
           · COMPLÈTE — la BANDE de bord à bord et ses quatre régions (travée gauche · arche · travée
             droite · coin), quand ce siège tient le tour ;
           · SPECTATRICE — l'ARCHE SEULE : le portrait dans son arche, ses jauges, son rack d'États,

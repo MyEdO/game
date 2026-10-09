@@ -2528,6 +2528,8 @@ export const fr = {
   'agate.noMoveToUndo': 'aucun déplacement à annuler',
   'agate.hullHasNoBody': 'une coque n’a pas de corps : geste de fantassin',
   'agate.frenzyOnly': 'Frénésie : seuls la Capacité de Combat et l’Athlétisme',
+  // LDB 16 l.52 — `{etat}` = libellé de l'État porté (`etats.json`).
+  'agate.actionLocked': '{etat} : Mouvement et Action servent à fuir',
   'agate.alreadyEngaged': 'déjà Engagé',
   'agate.noMovementLeft': 'plus de Mouvement ce tour',
   'agate.noResolve': 'aucun point de Détermination',

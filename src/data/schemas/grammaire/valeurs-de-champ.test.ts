@@ -95,6 +95,8 @@ const NOMMES = [
   'tete|bras|corps|jambe',
   'toute|khorne|nurgle|slaanesh|tzeentch',
   'vue|ouie',
+  // `actions.json` `echappeAuVerrou` (#1678) : le motif d'une entrée offerte sous un verrou d'État.
+  'fuite|determination|conduite-du-tour',
   'action|free|charge',
   'base|avancee',
   'capacite-de-combat|capacite-de-tir',

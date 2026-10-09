@@ -345,6 +345,9 @@ export interface ActionDef {
   panneau?: boolean;
   /** Entrée HÔTE d'un `surface: 'geste-secondaire'` : l'alvéole de CETTE action porte le geste. */
   hote?: string;
+  /** MOTIF pour lequel l'entrée reste offerte sous un État qui verrouille l'Action (`restrictsAction`) ;
+   *  absent = fermée par `actionGate`. */
+  echappeAuVerrou?: 'fuite' | 'determination' | 'conduite-du-tour';
 }
 export const ACTIONS = actionsJson as ActionDef[];
 /** Action par id STABLE (jamais par libellé). */
@@ -1488,8 +1491,8 @@ export interface EtatData extends StatusData {
   resolveHeals?: number;
   /** Cet État VERROUILLE l'Action : le Mouvement + l'Action doivent servir à fuir/se cacher (Brisé, LDB 16
    *  l.52). Drapeau DÉCLARATIF lu en DONNÉES par `isActionLocked`/`restrictingConditions` (engine/conditions),
-   *  partagé par le gate de hotbar (`battleSelectAction`) ET l'IA (dépense PROACTIVE de Détermination pour se
-   *  ressaisir) — plus de nom d'État en dur. */
+   *  partagé par le gate de hotbar (`battleSelectAction`), le verrou d'État d'`actionGate` (`verrouDEtat`) ET
+   *  l'IA (dépense PROACTIVE de Détermination pour se ressaisir). */
   restrictsAction?: boolean;
   /** Cet État ne porte JAMAIS plus d'un pion, quelle que soit la cause — LDB 16 l.115 (Inconscient :
    *  « soit vous êtes *Inconscient*, soit vous ne l'êtes pas »), l.37 (À Terre), l.137 (Surpris).

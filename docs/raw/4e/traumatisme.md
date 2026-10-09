@@ -48,7 +48,7 @@ BE et PA réduisent les Dégâts **sauf indication contraire** (certaines règle
 **Voir aussi** : États À Terre / Inconscient → [etats.md](etats.md) (LDB 16) ; [Guérison des PB](#10-guérison-des-points-de-blessure).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.12-19) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
+- `LDB 18` (l.12-19) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `isConditionLocked`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
 
@@ -398,4 +398,4 @@ Source : `LDB 18 l.346`.
 **Voir aussi** : États → [etats.md](etats.md) ; sorts infligeant Suffocation (Ombres étrangleuses, Transmutation de Chamon).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.346) → `faim`, `soif`, `recovery`, `hungerThirstPenalty`, `effectiveChar`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `REPORT_DE_COMBATTANT`, `breathHoldSeconds`, +39 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/characteristics.ts`, +15 fichiers
+- `LDB 18` (l.346) → `faim`, `soif`, `recovery`, `hungerThirstPenalty`, `effectiveChar`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `breathHoldSeconds`, `REPORT_DE_COMBATTANT`, +39 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/characteristics.ts`, +15 fichiers

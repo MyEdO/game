@@ -671,7 +671,7 @@ trois règles :
 ## Raison d'un refus, et emplacement vide (arbitrages user 2026-08-24)
 
 Deux règles NON NÉGOCIABLES, tranchées à l'écran par l'utilisateur sur une capture de la console de
-combat — elles supplantent la spec HUD datée (`docs/plans/2026-08-16-spec-hud-combat.md` l.291 et
+combat — elles supplantent la spec HUD datée (`docs/plans/2026-08-16-spec-hud-combat.md` l.295 et
 l.206-210), qui n'avait jamais été validée en rendu :
 
 1. **La raison d'un refus vit au SURVOL et au FOCUS, jamais en texte inline.** Verbatim (2026-08-24) :

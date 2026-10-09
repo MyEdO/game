@@ -54,6 +54,21 @@ describe('hasMeaningfulOption — garde-fou « tour gâché » (R6)', () => {
     expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }))).toBe(true);
   });
 
+  it('Brisé (LDB 16 l.52), Action intacte mais Mouvement dépensé et Détermination à 0 → false (verrou d’État)', () => {
+    const h = hero({ resolve: 0, conditions: [{ id: 'brise', value: 1 }] });
+    expect(hasMeaningfulOption(h, battle(h, { acted: false, movementUsed: 99, movedPreAction: true }))).toBe(false);
+  });
+
+  it('Brisé, Mouvement restant → true (la fuite échappe au verrou)', () => {
+    const h = hero({ resolve: 0, conditions: [{ id: 'brise', value: 1 }] });
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 0 }))).toBe(true);
+  });
+
+  it('Brisé, tout dépensé, Détermination en réserve → true (la Détermination échappe au verrou, LDB 17 l.59-61)', () => {
+    const h = hero({ resolve: 1, conditions: [{ id: 'brise', value: 1 }] });
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }))).toBe(true);
+  });
+
   it('un ennemi n’a jamais d’« option de joueur » → false', () => {
     const e = hero({ id: 'E', kind: 'enemy' });
     expect(hasMeaningfulOption(e, battle(e))).toBe(false);

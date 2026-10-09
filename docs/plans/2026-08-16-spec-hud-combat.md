@@ -216,7 +216,7 @@ arbitrages du programme et les registres du dépôt :
   AU-DESSUS (colliers + valeur chiffrée) + **onglets de PAGES I/II/III** (planche —
   fonctionnement annoté : II = épinglages joueur, III éteinte tant qu'aucun contexte ;
   la géométrie 2×6 est CONSTANTE par page) [pages NON retenues au lot A — annotation de
-  planche (cf. l.256), déviation de la référence RT à faire valider à l'écran]. C'EST TOUT.
+  planche (cf. l.260), déviation de la référence RT à faire valider à l'écran]. C'EST TOUT.
 - **COIN (F)** : icône + libellé (« Fin du tour ») + touche (ESPACE) + ligne d'ÉTAT
   (planche : « Action non dépensée » — l'avertissement garde-fou existant). C'EST TOUT.
 
@@ -233,6 +233,10 @@ entre chacune. La planche répond par UN PONT (mesures relevées sur la planche 
   Les travées, les pages, le conduit d'Avantage et le coin Fin du tour sont des RÉGIONS
   du pont — jamais des boîtes soeurs flottantes. **Le terrain n'est JAMAIS visible entre
   deux zones de console.**
+- ✅ **MATIÈRE UNIQUE DU PONT** — ARBITRAGE (AskUserQuestion 2026-08-17, verbatim : « une
+  matière unique, fidèle à la planche : tout le pont dans la même teinte bronze/bois, les
+  régions se distinguent par leurs alvéoles et liserés, pas par des plaques de couleurs
+  différentes »).
 - **L'ARCHE est le FRONTON du pont** : même matière, continue avec lui, elle S'ÉLÈVE
   au-dessus du bord (planche : arche `[781,811,357,269]`, ~52px au-dessus du liseré) —
   pas un panneau posé devant.

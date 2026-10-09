@@ -499,7 +499,7 @@ En dépensant un Point de Résilience, un personnage peut choisir *lui-même* le
 
 **Voir aussi** : [Relance et inversion du dé](#relance-et-inversion-du-dé), [Tests opposés](#tests-opposés), Destin et Résilience (domaine propre)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 17` (l.17-25, l.46-48, l.57-61, l.67-68) → `ResilienceButton`, `canReroll`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `restoreFortune`, `RunModal`, `FateSaveModal`, `hasMeaningfulOption`, `sourceSuspended`, +128 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/etats.ts`, +61 fichiers
+- `LDB 17` (l.17-25, l.46-48, l.57-61, l.67-68) → `ResilienceButton`, `canReroll`, `RenounceModal`, `OPTIONS_DU_TOUR`, `DeterminationButton`, `CritLocationPicker`, `restoreFortune`, `RunModal`, `FateSaveModal`, `sourceSuspended`, +128 — `src/data/characteristics.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/actions.ts`, +62 fichiers
 
 ---
 
@@ -620,5 +620,5 @@ Ces trois mécaniques constituent des extensions légitimes du système de DR da
 **Voir aussi** : [Doubles — Critique et Maladresse](#doubles--critique-et-maladresse), [Influencer un test — Chance, Résilience, Talents](#influencer-un-test--chance-résilience-talents), [Tests étendus](#tests-étendus)
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 12` (l.124-127) → `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `useTestJetProps`, `WallSpec`, `evaluateTest`, `Inspector`, `double-critique-maladresse`, `SL_IMPRESSIVE`, `isImpressiveFailure`, +2 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/engine/tests.ts`, `src/state/flowOutcomes.ts`, `src/state/mapSpec.ts`, +2 fichiers
-- `LDB 17` (l.23) → `canReroll`, `RunModal`, `FateSaveModal`, `FateSaveSource`, `canActFirst`, `FateSaveOption`, `fateSaveOptions`, `fateSaveOrDie`, `freeActFirst`, `REPORT_DE_COMBATTANT`, +24 — `src/data/flow-stakes.json`, `src/engine/fortune.ts`, `src/engine/ops.ts`, `src/engine/persistence.ts`, `src/engine/tests.ts`, `src/state/actionRegistry.ts`, +13 fichiers
+- `LDB 17` (l.23) → `canReroll`, `RunModal`, `FateSaveModal`, `FateSaveSource`, `FateSaveOption`, `canActFirst`, `fateSaveOptions`, `fateSaveOrDie`, `freeActFirst`, `REPORT_DE_COMBATTANT`, +24 — `src/data/flow-stakes.json`, `src/engine/fortune.ts`, `src/engine/ops.ts`, `src/engine/persistence.ts`, `src/engine/tests.ts`, `src/state/actionRegistry.ts`, +13 fichiers
 - `NADJ 16` (l.7, l.11, l.19, l.25, l.34, l.57, l.97) → `SequenceRoundOps`, `doc`, `SequenceDice`, `TavernGame`, `al-zahr`, `SequenceParams`, `alvatafl`, `SequenceTieSide`, `TavernGameModal`, `SequenceVolleyRow`, +38 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/tavernGames.ts`, `src/data/tavernGames.json`, `src/engine/sequenceVocab.ts`, +8 fichiers

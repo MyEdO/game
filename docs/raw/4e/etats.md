@@ -69,7 +69,7 @@ Un personnage peut subir plusieurs fois le même État. Les pénalités s'accumu
 - `LDB 16 l.137` — Surpris ne se cumule pas
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.11-15, l.37, l.115, l.137) → `jsonOpSchema`, `PRONE_POSE`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `effectiveChar`, `doc`, `stopBleedOutcome`, `empileSurPionExistant`, `mouvementIntact`, +74 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/characteristics.ts`, +26 fichiers
+- `LDB 16` (l.11-15, l.37, l.115, l.137) → `jsonOpSchema`, `PRONE_POSE`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `effectiveChar`, `doc`, `stopBleedOutcome`, `empileSurPionExistant`, `mouvementIntact`, +74 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, +27 fichiers
 
 ---
 
@@ -105,7 +105,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Aveuglé (état analogue pour la vue)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.29) → `PRONE_POSE`, `competenceParId`, `isMovementSkill`, `meleeAttackerBonusLines`, `AttackOptions`, `SkillData`, `GameOp`, `createCombatSlice`, `GameState`, `maybeOpenDefense` — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/gameIso/groundPose.ts`, `src/state/combatFlow.ts`, +2 fichiers
+- `LDB 16` (l.29) → `PRONE_POSE`, `doc`, `competenceParId`, `isMovementSkill`, `meleeAttackerBonusLines`, `AttackOptions`, `SkillData`, `GameOp`, `createCombatSlice`, `GameState`, +1 — `src/data/index.ts`, `src/data/schemas/defs/actions.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/gameIso/groundPose.ts`, +3 fichiers
 
 ---
 
@@ -132,9 +132,9 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Traumatisme (`traumatisme.md`), Inconscient
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.33-39) → `PRONE_POSE`, `collectHeroRoundEndUpkeep`, `findAwaitingExtension`, `competenceParId`, `isMovementSkill`, `meleeAttackerBonusLines`, `AttackOptions`, `SkillData`, `GameOp`, `createCombatSlice`, +2 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/gameIso/groundPose.ts`, `src/state/combat/roundHooks.ts`, +3 fichiers
-- `LDB 17` (l.61) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `forceCrewRole`, +94 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +49 fichiers
-- `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
+- `LDB 16` (l.33-39) → `PRONE_POSE`, `doc`, `collectHeroRoundEndUpkeep`, `findAwaitingExtension`, `competenceParId`, `isMovementSkill`, `meleeAttackerBonusLines`, `AttackOptions`, `SkillData`, `GameOp`, +3 — `src/data/index.ts`, `src/data/schemas/defs/actions.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/gameIso/groundPose.ts`, +4 fichiers
+- `LDB 17` (l.61) → `ResilienceButton`, `RenounceModal`, `OPTIONS_DU_TOUR`, `DeterminationButton`, `CritLocationPicker`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `forceCrewRole`, +94 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +50 fichiers
+- `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `isConditionLocked`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
 
@@ -153,7 +153,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Assourdi
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.43-47) → `PRONE_POSE`, `combat-fatigue`, `doc`, `brise`, `Condition`, `aaBleedUnconsciousDue`, `tileSeenByFoe`, `empetre`, `hasFoeInLoS`, `empoisonne`, +17 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, +10 fichiers
+- `LDB 16` (l.43-47) → `OPTIONS_DU_TOUR`, `PRONE_POSE`, `combat-fatigue`, `doc`, `actionLibre`, `verrouDEtat`, `brise`, `Condition`, `aaBleedUnconsciousDue`, `tileSeenByFoe`, +20 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/data/schemas/defs/etats.ts`, +13 fichiers
 
 ---
 
@@ -179,7 +179,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Psychologie (`psychologie.md`), Exténué
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.50-58) → `combat-fatigue`, `doc`, `StateRecoveryModal`, `EnemyAction`, `addCondition`, `brise`, `Condition`, `aaBleedUnconsciousDue`, `describeStateRecovery`, `tileSeenByFoe`, +26 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, +16 fichiers
+- `LDB 16` (l.50-58) → `OPTIONS_DU_TOUR`, `combat-fatigue`, `doc`, `actionLibre`, `StateRecoveryModal`, `EnemyAction`, `addCondition`, `verrouDEtat`, `brise`, `Condition`, +29 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/data/schemas/defs/etats.ts`, +19 fichiers
 
 ---
 
@@ -203,7 +203,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Empoignade (`combat.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.60-66, l.72) → `combat-fatigue`, `doc`, `StateRecoveryModal`, `EnemyAction`, `addCondition`, `brise`, `Condition`, `aaBleedUnconsciousDue`, `describeStateRecovery`, `tileSeenByFoe`, +25 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, +16 fichiers
+- `LDB 16` (l.60-66, l.72) → `OPTIONS_DU_TOUR`, `combat-fatigue`, `doc`, `actionLibre`, `StateRecoveryModal`, `EnemyAction`, `addCondition`, `verrouDEtat`, `brise`, `Condition`, +28 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/data/schemas/defs/etats.ts`, +19 fichiers
 
 ---
 
@@ -286,7 +286,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 **Voir aussi** : Brisé, Sonné, Hémorragique, Empoisonné, Inconscient, Traumatisme (`traumatisme.md`), Psychologie (`psychologie.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 16` (l.86-101) → `combat-fatigue`, `unstable`, `REPORT_DE_COMBATTANT`, `doc`, `EnemyAction`, `stopBleedOutcome`, `Formula`, `needsRecoveryRoll`, `brise`, `sleepParty`, +29 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, `src/engine/healing.ts`, +15 fichiers
-- `LDB 21` (l.33) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `REPORT_DE_COMBATTANT`, `fearSourceFor`, `psychImmuneToFrom`, `aiMaybeFrenzy`, `availableFreeAttackOps`, `Condition`, `describeApproach`, +41 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +20 fichiers
+- `LDB 21` (l.33) → `OPTIONS_DU_TOUR`, `ApproachModal`, `FrenzyModal`, `REPORT_DE_COMBATTANT`, `fearSourceFor`, `psychImmuneToFrom`, `aiMaybeFrenzy`, `availableFreeAttackOps`, `Condition`, `describeApproach`, +41 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +20 fichiers
 
 ---
 
@@ -342,7 +342,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 **Voir aussi** : Traumatisme (`traumatisme.md`), Hémorragique, Empoisonné, À Terre, Exténué
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 16` (l.111-119) → `jsonOpSchema`, `combat-fatigue`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `doc`, `stopBleedOutcome`, `empileSurPionExistant`, `mouvementIntact`, `opRow`, +50 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, +22 fichiers
-- `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
+- `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `isConditionLocked`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
 
@@ -427,9 +427,9 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 - `LDB 16 l.27-139` — descriptions individuelles
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.15-17, l.27-139) → `jsonOpSchema`, `PRONE_POSE`, `combat-fatigue`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `effectiveChar`, `REPORT_DE_COMBATTANT`, `doc`, `StateRecoveryModal`, +109 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, +37 fichiers
-- `LDB 17` (l.61) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `forceCrewRole`, +94 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +49 fichiers
-- `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
+- `LDB 16` (l.15-17, l.27-139) → `OPTIONS_DU_TOUR`, `jsonOpSchema`, `PRONE_POSE`, `combat-fatigue`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `effectiveChar`, `REPORT_DE_COMBATTANT`, `doc`, +111 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/data/schemas/defs/etats.ts`, +38 fichiers
+- `LDB 17` (l.61) → `ResilienceButton`, `RenounceModal`, `OPTIONS_DU_TOUR`, `DeterminationButton`, `CritLocationPicker`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `forceCrewRole`, +94 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/actions.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, +50 fichiers
+- `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `isConditionLocked`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
 

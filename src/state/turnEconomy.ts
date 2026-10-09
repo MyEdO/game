@@ -2,30 +2,35 @@ import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';
 import { isOutOfAction } from '../engine/conditions';
 import { canStrikeFirst } from '../engine/qualities/dispatch';
-import { ACTION_GATES, freeDisengage, type ActionCtx } from './actionRegistry';
+import { actionGate, verdictDOffre, freeDisengage, type ActionCtx } from './actionRegistry';
+
+/** Les options de l'économie du tour : l'id d'une entrée de `actions.json` (gate ET échappement au
+ *  verrou d'État en donnée, lus par `actionGate`), ou un prédicat sans entrée (`{ gate }`, lu par
+ *  `verdictDOffre`, sans échappement). Attaque · Mouvement (LDB 16 l.52) · Piétinement gratuit (LDB 85)
+ *  · attaque d'Arme gratuite de Frénésie (LDB 21 l.33) · Détermination (LDB 17 l.59-61). */
+const OPTIONS_DU_TOUR: (string | { gate: string })[] = [
+  'attaque',
+  'mouvement',
+  { gate: 'pietinement-gratuit' },
+  { gate: 'attaque-libre-frenesie' },
+  'resolve-psych-immune',
+];
 
 /**
  * Le héros actif a-t-il ENCORE une option UTILE ce tour ? (R6 du diagnostic lisibilité-combat). Sert au
  * garde-fou « tour gâché » et au surlignage « Fin du tour ».
  *
- * Les prédicats viennent du REGISTRE (`ACTION_GATES`, `src/state/actionRegistry.ts`) : ce module et
- * les surfaces (console, barre) lisent LA MÊME table — il n'y a plus de 2ᵉ dérivation manuscrite ici
- * (la divergence entre les deux dérivations a déjà coûté un bug, Détermination, commit `0e14119b`).
+ * Chaque option se juge par le verdict d'offre du REGISTRE (`actionGate` / `verdictDOffre`,
+ * `src/state/actionRegistry.ts`), verrou d'État compris : la composition lue par la console.
  * Pur : les gates consommés ne lisent que l'acteur et son combat.
  */
 export function hasMeaningfulOption(active: Combatant, battle: BattleState): boolean {
   if (active.kind !== 'hero') return false;
   const ctx: ActionCtx = { active, battle };
-  // Action disponible · Mouvement restant · désengagement gratuit (LDB 15 l.47) · Piétinement gratuit
-  // (LDB 85) · attaque d'Arme gratuite de Frénésie (LDB 21 l.33) · Détermination en réserve (LDB 17 l.59-61).
-  const gates = [
-    'action-libre',
-    'mouvement-restant',
-    'pietinement-gratuit',
-    'attaque-libre-frenesie',
-    'determination-en-reserve',
-  ];
-  return gates.some((g) => ACTION_GATES[g](ctx).ok) || freeDisengage(ctx);
+  const offerte = (o: string | { gate: string }) =>
+    (typeof o === 'string' ? actionGate(o, ctx) : verdictDOffre(o, ctx)).ok;
+  // Désengagement gratuit (LDB 15 l.47).
+  return OPTIONS_DU_TOUR.some(offerte) || freeDisengage(ctx);
 }
 
 /**
