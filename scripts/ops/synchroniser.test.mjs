@@ -103,8 +103,51 @@ const logDe = (principal, pid) => join(principal, '.git', 'synchro-consommateurs
 /** La plage due du principal `principal`, `null` sans plage. */
 const duDe = (principal) => {
   const chemin = join(principal, '.git', 'synchro-consommateurs', 'du.json')
-  return existsSync(chemin) ? JSON.parse(readFileSync(chemin, 'utf8')) : null
+  try {
+    return JSON.parse(readFileSync(chemin, 'utf8'))
+  } catch (e) {
+    if (e.code === 'ENOENT') return null
+    throw e
+  }
 }
+
+test('duDe : lecture unique, disparition concurrente et erreurs strictes', async (t) => {
+  const fixture = instanceDeDepot({ fichiers: { 'a.md': 'a\n' } })
+  jetables.push(fixture.racine)
+  const chemin = join(fixture.racine, '.git', 'synchro-consommateurs', 'du.json')
+  mkdirSync(dirname(chemin), { recursive: true })
+  const contenu = { de: 'a', vers: 'b', echec: null }
+  writeFileSync(chemin, JSON.stringify(contenu))
+  assert.deepEqual(duDe(fixture.racine), contenu)
+  writeFileSync(chemin, '{')
+  assert.throws(() => duDe(fixture.racine), SyntaxError)
+  writeFileSync(chemin, JSON.stringify(contenu))
+  const fs = (await import('node:fs')).default
+  const { syncBuiltinESMExports } = await import('node:module')
+  const original = fs.readFileSync
+  const interdit = Object.assign(new Error('lecture du registre interdite'), { code: 'EACCES' })
+  let mode = 'eacces'
+  let suppressions = 0
+  const lecture = t.mock.method(fs, 'readFileSync', function (p, ...args) {
+    if (p === chemin) {
+      if (mode === 'eacces') throw interdit
+      rmSync(chemin)
+      suppressions += 1
+    }
+    return original.call(this, p, ...args)
+  })
+  try {
+    syncBuiltinESMExports()
+    assert.throws(() => duDe(fixture.racine), (e) => e === interdit)
+    mode = 'supprimer'
+    assert.equal(duDe(fixture.racine), null)
+    assert.equal(suppressions, 1)
+  } finally {
+    lecture.mock.restore()
+    syncBuiltinESMExports()
+  }
+  assert.equal(fs.readFileSync, original)
+})
 
 /**
  * La plage due du principal `principal` SOLDÉE : son verrou de consommateur libre, chaque PID de `pids` mort
@@ -533,24 +576,74 @@ describe('synchroniserPrincipal — matrice', () => {
     }
   })
 
-  test('11 deux synchronisations concurrentes, deux processus réels : une avance, l’autre mesure a-jour', async () => {
+  test('11 deux synchronisations concurrentes, deux processus réels : une avance, l’autre mesure a-jour', async (t) => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
-    const vus = await Promise.all([lancerEnParallele(m.principal), lancerEnParallele(m.principal)])
-    const rendus = vus.map((v) => {
-      try { return JSON.parse(v.stdout) } catch { return null }
-    })
-    const pids = rendus.map((rendu) => rendu?.consommateurs?.pid).filter((pid) => pid !== undefined)
+    const marque = join(m.principal, '.git', 'consommateur-pret')
+    const liberation = join(m.principal, '.git', 'consommateur-libre')
+    const barriere = join(m.principal, '.git', 'post-merge-barriere.mjs')
+    writeFileSync(barriere, `
+import { existsSync, writeFileSync } from 'node:fs'
+import { sousEcheanceAsync } from ${JSON.stringify(pathToFileURL(join(import.meta.dirname, '..', 'test', 'verrou.mjs')).href)}
+writeFileSync(${JSON.stringify(marque)}, '')
+const libere = await sousEcheanceAsync({ attente: { echeanceMs: 60000, pasMs: 20 }, essai: () => existsSync(${JSON.stringify(liberation)}), abouti: (vu) => vu })
+process.exitCode = libere ? 0 : 1
+`)
+    hookDeFixture(m.principal, `exec '${process.execPath.replaceAll('\\', '/')}' '${barriere.replaceAll('\\', '/')}'\n`)
+    const pids = []
+    const erreurs = []
+    let attente
+    let finie = false
     try {
+      const vus = await Promise.all([lancerEnParallele(m.principal), lancerEnParallele(m.principal)])
+      const erreursLecture = []
+      const etats = vus.map((v) => {
+        try {
+          const etat = JSON.parse(v.stdout)
+          const pid = etat?.consommateurs?.pid
+          if (Number.isInteger(pid) && pid > 0) pids.push(pid)
+          return etat
+        } catch (e) {
+          erreursLecture.push(e)
+          return null
+        }
+      })
+      if (erreursLecture.length === 1) throw erreursLecture[0]
+      if (erreursLecture.length) throw new AggregateError(erreursLecture, 'sorties JSON des synchroniseurs illisibles')
+      attente = consommationFinie(m.principal, pids).then(
+        () => { finie = true; return { status: 'fulfilled' } },
+        (reason) => { finie = true; return { status: 'rejected', reason } },
+      )
+      const pret = await sousEcheanceAsync({
+        attente: { echeanceMs: 30_000, pasMs: 20 },
+        essai: () => existsSync(marque) && attendreLibre({ chemin: verrouDuConsommateur(join(m.principal, '.git')) }).etat === 'occupe',
+        abouti: (vu) => vu,
+      })
+      assert.equal(pret, true, 'le consommateur réel tient la fixture et son verrou')
+      assert.equal(finie, false, 'le banc attend le consommateur encore retenu par la barrière')
+      writeFileSync(liberation, '')
+      const reglement = await attente
+      if (reglement.status === 'rejected') throw reglement.reason
       assert.deepEqual(vus.map((v) => v.status), [0, 0], JSON.stringify(vus))
-      assert.deepEqual(vus.map((v) => JSON.parse(v.stdout).etat).sort(), ['a-jour', 'avance'])
-      await consommationFinie(m.principal, pids)
+      assert.deepEqual(etats.map((v) => v.etat).sort(), ['a-jour', 'avance'])
       assert.equal(head(m.principal), U)
       assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
       assert.equal(existsSync(join(m.principal, '.git', 'synchro.verrou')), false)
+      assert.equal(pids.some((pid) => pid && estPidVivant(pid)), false)
+    } catch (e) {
+      erreurs.push(e)
     } finally {
-      if (rendus.some((rendu) => rendu !== null)) await consommationFinie(m.principal, pids)
+      try { writeFileSync(liberation, '') } catch (e) { erreurs.push(e) }
+      const reglements = await Promise.allSettled([attente, consommationFinie(m.principal, pids)])
+      for (const reglement of reglements) {
+        if (reglement.status === 'rejected') erreurs.push(reglement.reason)
+        else if (reglement.value?.status === 'rejected') erreurs.push(reglement.value.reason)
+      }
     }
+    const uniques = [...new Set(erreurs)]
+    t.diagnostic(JSON.stringify({ pids: [...new Set(pids)], vivants: pids.filter(estPidVivant), erreurs: uniques.map((e) => e instanceof Error ? e.message : String(e)) }))
+    if (uniques.length === 1) throw uniques[0]
+    if (uniques.length) throw new AggregateError(uniques, 'échec du banc et de ses consommateurs')
   })
 
   test('12 merge.autoStash=true sans effet', async () => {

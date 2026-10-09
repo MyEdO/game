@@ -170,8 +170,8 @@ export const SURFACE_CODEX = '.codex/hooks.json';
  * supported » ; « invalid matcher ·· in ·· »).
  */
 export const MOTEUR_DE_SURFACE = Object.freeze({
-  [SURFACE_CLAUDE]: { lookaround: true, listeExacte: /^[A-Za-z0-9_ ,|-]*$/ },
-  [SURFACE_CODEX]: { lookaround: false, listeExacte: null },
+  [SURFACE_CLAUDE]: { lookaround: true, listeExacte: /^[A-Za-z0-9_ ,|-]*$/, surface: 'claude' },
+  [SURFACE_CODEX]: { lookaround: false, listeExacte: null, surface: 'codex' },
 });
 
 /** Le matcher `matcher` de `surface`, compilé comme la surface le lit : `(nomDOutil) => boolean`. */

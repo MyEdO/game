@@ -36,6 +36,8 @@ const ATTENDU = {
     'scripts/test/node-tests.mjs',
   ],
   'test:hooks': ['scripts/guards/lib/protectionWorktree.mjs',
+    'scripts/agents/compat-cli.mjs',
+    'scripts/guards/lib/patchCodex.test.mjs',
     'scripts/gates/testsSansEcriture.test.mjs',
     // #2489 : bancs Vitest et génération sous os.tmpdir() ; rapports périmètre relayés
     // après contrôle dans l'outil, bancs des reporters dans des dépôts temporaires.
@@ -290,6 +292,9 @@ const ATTENDU = {
   // #2328
   'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'test:ops': ['scripts/guards/lib/protectionWorktree.mjs',
+    'scripts/agents/compat-cli.mjs',
+    'scripts/hooks/bootstrap-conteneur.mjs',
+    'scripts/ops/session-start.test.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',

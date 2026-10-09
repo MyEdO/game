@@ -12,7 +12,7 @@ import { depotAuxPannes, estIgnore, racineSurDisque } from './gitPorte.mjs'
 import { versCheminNatif } from './commandeShell.mjs'
 
 /** La commande shell d'une entrée de hook (`''` sans commande). */
-export const commandeDe = (entree) => String(entree?.tool_input?.command ?? '')
+export const commandeDe = (entree) => entree?.tool_name === 'apply_patch' ? '' : String(entree?.tool_input?.command ?? '')
 
 /** Le `tool_input` d'une entrée de hook, `null` s'il n'est pas un objet. */
 export const entreeDOutil = (entree) => (entree?.tool_input && typeof entree.tool_input === 'object' ? entree.tool_input : null)
@@ -25,7 +25,8 @@ export const EDITION = 'edition'
 export const SHELL = 'shell'
 export const PASSERELLE = 'passerelle'
 
-const PREFIXE_LEAN_CTX = 'mcp__lean-ctx__'
+export const PREFIXES_LEAN_CTX = Object.freeze({ claude: 'mcp__lean-ctx__', codex: 'mcp__lean_ctx__' })
+const PREFIXE_LEAN_CTX = PREFIXES_LEAN_CTX.claude
 
 /** Motif de matcher qui couvre TOUT outil lean-ctx : un outil non classé y passe, et se fait refuser
  *  (garde `canal-outil`). */
@@ -73,7 +74,14 @@ export const FAMILLES_LEAN_CTX = Object.freeze({
 })
 
 /** Le nom nu d'un outil lean-ctx, `null` hors lean-ctx. */
-export const nomLeanCtx = (outil) => (String(outil).startsWith(PREFIXE_LEAN_CTX) ? String(outil).slice(PREFIXE_LEAN_CTX.length) : null)
+export const nomLeanCtx = (outil) => {
+  const prefixe = Object.values(PREFIXES_LEAN_CTX).find((p) => String(outil).startsWith(p))
+  return prefixe ? String(outil).slice(prefixe.length) : null
+}
+
+export const normaliserNomOutil = (outil) => nomLeanCtx(outil) === null ? outil : PREFIXE_LEAN_CTX + nomLeanCtx(outil)
+
+export const nomOutilDeSurface = (outil, surface) => nomLeanCtx(outil) === null ? outil : PREFIXES_LEAN_CTX[surface] + nomLeanCtx(outil)
 
 const classement = (nu) => (Object.hasOwn(FAMILLES_LEAN_CTX, nu) ? FAMILLES_LEAN_CTX[nu] : null)
 
@@ -99,16 +107,16 @@ const outilsDeFamille = (famille) => Object.keys(FAMILLES_LEAN_CTX).filter((nu) 
 /** Les canaux shell : Bash, PowerShell, et la famille SHELL de lean-ctx. */
 export const OUTILS_SHELL = ['Bash', 'PowerShell', ...outilsDeFamille(SHELL)]
 
-/** Les canaux d'écriture de fichier : Write, Edit, et la famille ÉDITION de lean-ctx (`ctx_patch`, le
+/** Les canaux d'écriture de fichier : Write, Edit, apply_patch, et la famille ÉDITION de lean-ctx (`ctx_patch`, le
  *  canal prescrit par `~/.claude/CLAUDE.md`). */
-export const OUTILS_ECRITURE = ['Write', 'Edit', ...outilsDeFamille(EDITION)]
+export const OUTILS_ECRITURE = ['Write', 'Edit', 'apply_patch', ...outilsDeFamille(EDITION)]
 
 /** Les canaux d'écriture qui CRÉENT un fichier : `Edit` n'en crée pas. */
 export const OUTILS_CREATION = OUTILS_ECRITURE.filter((outil) => outil !== 'Edit')
 
 /** L'outil `nom` est-il couvert par `outils` ? Une entrée `….*` (`MOTIF_LEAN_CTX`) couvre son préfixe. */
 export const outilCouvert = (outils, nom) =>
-  outils.some((o) => (o.endsWith('.*') ? String(nom).startsWith(o.slice(0, -2)) : o === nom))
+  outils.some((o) => (o.endsWith('.*') ? String(normaliserNomOutil(nom)).startsWith(o.slice(0, -2)) : o === normaliserNomOutil(nom)))
 
 const echapper = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -118,13 +126,16 @@ const echapper = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
  * `Edit` couvre `NotebookEdit`) : les noms hors lean-ctx et les lean-ctx de `LECTURES_LIBRES` nommés,
  * puis, avec le motif, tout outil lean-ctx hors `LECTURES_LIBRES` — par lookahead si le moteur le sait
  * (`lookaround`), sinon tout outil lean-ctx.
- * @param {string[]} outils @param {{ lookaround: boolean, listeExacte: RegExp | null }} moteur
+ * @param {string[]} outils @param {{ lookaround: boolean, listeExacte: RegExp | null, surface?: 'claude'|'codex' }} moteur
  */
-export function matcherDOutils(outils, { lookaround, listeExacte }) {
-  if (!outils.includes(MOTIF_LEAN_CTX)) return listeExacte ? outils.join('|') : `^(?:${outils.map(echapper).join('|')})$`
-  const nommes = outils.filter((o) => o !== MOTIF_LEAN_CTX && (nomLeanCtx(o) === null || LECTURES_LIBRES.includes(nomLeanCtx(o))))
+export function matcherDOutils(outils, { lookaround, listeExacte, surface = 'claude' }) {
+  const prefixe = PREFIXES_LEAN_CTX[surface]
+  outils = outils.map((o) => nomOutilDeSurface(o, surface))
+  const motif = prefixe + '.*'
+  if (!outils.includes(motif)) return listeExacte ? outils.join('|') : `^(?:${outils.map(echapper).join('|')})$`
+  const nommes = outils.filter((o) => o !== motif && (nomLeanCtx(o) === null || LECTURES_LIBRES.includes(nomLeanCtx(o))))
   const horsLecture = lookaround ? `(?!(?:${LECTURES_LIBRES.map(echapper).join('|')})$)` : ''
-  return `^(?:${[...nommes.map(echapper), `${echapper(PREFIXE_LEAN_CTX)}${horsLecture}.+`].join('|')})$`
+  return `^(?:${[...nommes.map(echapper), `${echapper(prefixe)}${horsLecture}.+`].join('|')})$`
 }
 
 /** Les clés de l'outil appelé par la passerelle : `name` (schéma de `ctx_call`), `tool` (chaîne du
@@ -150,6 +161,7 @@ export function outilAppele(entree) {
  * @returns {object[]}
  */
 export function ecrituresDe(entree) {
+  if (Array.isArray(entree?.ecritures)) return entree.ecritures
   const input = entreeDOutil(entree)
   if (input === null) return []
   if (familleLeanCtx(nomLeanCtx(entree.tool_name)) !== EDITION) return [input]
@@ -314,6 +326,8 @@ export const texteRemplace = (ecrit) => ecrit?.old_string ?? texteDeLOp(ecrit, '
 
 /** L'écriture pose-t-elle le fichier ENTIER ? `Write` (`content`), `ctx_patch` op `create`. */
 export const ecritLeFichierEntier = (ecrit) => typeof ecrit?.content === 'string' || ecrit?.op === 'create'
+
+export const fichierExistait = (ecrit, lireExistence) => typeof ecrit?.existeAvant === 'boolean' ? ecrit.existeAvant : lireExistence()
 
 /** Les ops ANCRÉES de `ctx_patch` qui remplacent des lignes : `line`, ou `start_line`..`end_line`. */
 const OPS_DE_LIGNES = new Set(['set_line', 'replace_lines', 'delete'])

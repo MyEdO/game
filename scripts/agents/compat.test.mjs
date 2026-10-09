@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
   transformSkillTree, validateRolePairs, buildExpectedOutputs as sortiesAttendues, collectDiffs,
-  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, hooksAttendus, remplacerCleJson,
+  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, compilerMatcher, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
 
@@ -156,6 +156,23 @@ test('les hooks ATTENDUS dérivent des registres : un par point d’entrée et p
   ]);
   assert.deepEqual(outil(codex), outil(claude).map((h) => ({ ...h, matcher: `^(?:${h.matcher})$` })), 'la même source, ANCRÉE pour le moteur regex de Codex (`MOTEUR_DE_SURFACE`)');
   assert.ok(codex.every((h) => h.command.startsWith('node scripts/hooks/') && h.args === undefined));
+});
+
+test('les matchers générés capturent les noms natifs réellement observés de Codex et Claude', async () => {
+  const registres = await chargerRegistres();
+  for (const [surface, shell, inconnu] of [
+    [SURFACE_CODEX, 'mcp__lean_ctx__ctx_shell', 'mcp__lean_ctx__ctx_execute'],
+    [SURFACE_CLAUDE, 'mcp__lean-ctx__ctx_shell', 'mcp__lean-ctx__ctx_execute'],
+  ]) {
+    const hooks = hooksAttendus(registres, surface);
+    const pre = compilerMatcher(hooks.PreToolUse[0].matcher, surface);
+    const post = compilerMatcher(hooks.PostToolUse[0].matcher, surface);
+    assert.ok(pre(shell), surface);
+    assert.ok(pre(inconnu), surface);
+    assert.ok(pre('apply_patch'), surface);
+    assert.ok(post('apply_patch'), surface);
+    assert.equal(pre('NotebookEdit'), false);
+  }
 });
 
 test('CONTRAT — toute déclaration Claude est en forme EXEC : `command` = `node`, `args` non vide, aucun `$` hors `${CLAUDE_PROJECT_DIR}` (#2112, #2125)', async () => {
