@@ -115,7 +115,7 @@ test('CONTEXTE : les familles sev:/type:/domaine: manquantes sont NOMMÉES, sans
   assert.equal(evaluate(cmd), null, 'un label suffit au refus : les familles ne bloquent pas')
   const ctx = contexteEmission(cmd)
   assert.match(ctx, /sev: type: domaine:/)
-  assert.equal(contexteEmission('gh issue create --title X --label sev:mineur --label type:donnée --label domaine:combat'), null)
+  assert.equal(contexteEmission('gh issue create --title X --label sev:mineur --label type:donnée --label domaine:combat --label épique'), null)
   assert.match(contexteEmission('gh issue create --title X --label sev:mineur,type:donnée'), /domaine:/)
 })
 
@@ -130,7 +130,7 @@ test('CONTEXTE : un titre au-delà de 200 caractères est signalé, jamais refus
   const cmd = 'gh issue create --title "' + long + '" --label sev:mineur --label type:donnée --label domaine:combat'
   assert.equal(evaluate(cmd), null)
   assert.match(contexteEmission(cmd), /201 caractères/)
-  const court = 'gh issue create --title "' + 'T'.repeat(200) + '" --label sev:mineur --label type:donnée --label domaine:combat'
+  const court = 'gh issue create --title "' + 'T'.repeat(200) + '" --label sev:mineur --label type:donnée --label domaine:combat --label épique'
   assert.equal(contexteEmission(court), null, '200 pile reste silencieux (le seuil est un dépassement)')
 })
 
@@ -138,6 +138,42 @@ test('CONTEXTE : aucune émission de ticket → aucun contexte', () => {
   assert.equal(contexteEmission('git status'), null)
   assert.equal(contexteEmission('gh issue list --label sev:majeur'), null)
   assert.equal(contexteEmission(''), null)
+})
+
+// ── Rattachement en sous-issue native (#2561) : note de CONTEXTE, jamais un refus ─────────────────
+const LABELS = '--label sev:mineur --label type:donnée --label domaine:combat'
+
+test('RATTACHEMENT : toute création hors épique reçoit la note, sans refus, corps jamais lu', () => {
+  for (const cmd of [
+    'gh issue create --title X ' + LABELS + ' --body "constat"',
+    'gh issue create --title X ' + LABELS + ' --body-file corps.md',
+    'gh issue create --title X ' + LABELS,
+  ]) {
+    assert.equal(evaluate(cmd), null)
+    assert.match(contexteEmission(cmd), /^Rattachement/m, cmd)
+  }
+})
+
+test('RATTACHEMENT : une création portant le label `épique` est exemptée', () => {
+  assert.equal(contexteEmission('gh issue create --title X ' + LABELS + ' --label épique --body "plan"'), null)
+  assert.equal(contexteEmission('gh issue create --title X --label sev:mineur,type:donnée,domaine:combat,épique'), null)
+})
+
+test("RATTACHEMENT : la note pose les trois questions dans l'ordre du credo, la sous-issue de famille en dernier", () => {
+  const note = contexteEmission('gh issue create --title X ' + LABELS + ' --body "constat"')
+  const rangs = ['(1) corrigeable dans le geste', '(2) la COUCHE', '`campagne:*` = scénario', '(3) sinon, APRÈS la création', 'sous-issue de sa FAMILLE', 'jamais orpheline']
+    .map((jalon) => note.indexOf(jalon))
+  assert.ok(rangs.every((r) => r >= 0), `jalons absents : ${rangs}`)
+  assert.deepEqual([...rangs].sort((a, b) => a - b), rangs)
+  assert.ok(note.includes(`gh api -X POST repos/${DEPOT}/issues/<famille>/sub_issues -F sub_issue_id=<id>`))
+})
+
+test("AIDE : `gh issue create --help`, `-h` et `gh help issue create` ne sont pas des créations", () => {
+  for (const cmd of ['gh issue create --help', 'gh issue create -h', 'gh help issue create', 'gh api --help repos/o/r/issues -f title=x']) {
+    assert.ok(allows(cmd), cmd)
+    assert.equal(contexteEmission(cmd), null, cmd)
+  }
+  assert.ok(denies('gh issue create --title X'), 'sans aide, la création sans label reste refusée')
 })
 
 test('une commande trop imbriquée pour être jugée est refusée', () => {

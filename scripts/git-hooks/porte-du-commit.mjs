@@ -34,8 +34,11 @@
 //   `evaluate`                    solde conforme pour chaque ticket fermé — dont, dans « ## Restes »,
 //                                 UN SEUL reste routé (skill orchestrer § Fermeture), une preuve au
 //                                 site (`fichier:ligne`) pour « corrigé dans ce commit », un état
-//                                 lisible pour « inventaire #<épic> », et une « ## Recette visuelle »
-//                                 à capture vérifiée quand un ÉCRAN est touché ;
+//                                 lisible pour « inventaire #<épic> », une « ## Recette visuelle »
+//                                 à capture vérifiée quand un ÉCRAN est touché, et la preuve de sa
+//                                 NATURE (`NATURE: <nature> [#M]`, scripts/guards/lib/nature.mjs, qui
+//                                 fait le `state_reason` de la fermeture) : « ## Sonde » d'un `caduc`,
+//                                 « ## Décision » d'un `décidé` ;
 //   `evaluatePorteDuTicket`       commit de substance (`src`/`scripts`) dont le message ne cite
 //                                 AUCUN ticket ;
 //   `evaluateAntiEsquive`         réfutation d'un commit « ref #N » de substance ;
@@ -86,6 +89,8 @@ import { SUBSTANTIVE_MIN_LINES, TRAILERS, corpsDuTrailer, estFichierEcran, secti
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import { lectureDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
+import { grammaireDesNatures, natureDuSolde } from '../guards/lib/nature.mjs'
+import { DATE } from '../guards/memoire-forme.mjs'
 
 /** Des numéros canoniques (`fermetures.mjs`) en nombres, dédupliqués et triés. PURE. */
 const enNombres = (numeros) => [...new Set(numeros.map(Number))].sort((a, b) => a - b)
@@ -451,6 +456,47 @@ function checkRecetteVisuelle(content, { touchesUi, verifierCaptureDe }) {
   return verifierCaptureDe(capture).problemes
 }
 
+const TITRE_SONDE = 'Sonde'
+const TITRE_DECISION = 'D[ée]cision'
+const BLOC_DE_CODE_RE = /^[ \t]*```[^\n]*\n[\s\S]*?^[ \t]*```[ \t]*\r?$/gm
+const SHA_RE = /\b[0-9a-f]{7,40}\b/g
+const CITATION_RE = /«[^»]+»/
+
+/** Les shas que cite la section « ## Sonde » d'un solde `caduc` (`natureDuSolde`), `[]` pour toute
+ *  autre nature. PUR. @param {string | null} content @returns {string[]} */
+function shasDeLaSonde(content) {
+  if (natureDuSolde(content).nature !== 'caduc') return []
+  return [...new Set(sectionDe(content, TITRE_SONDE)?.match(SHA_RE) ?? [])]
+}
+
+/** La NATURE du solde (`natureDuSolde`) et sa preuve : `doublon` nomme `#M` ≠ `numero` ;
+ *  `caduc` porte une « ## Sonde » à deux blocs de code (commande, sortie) qui nomme un sha ANCÊTRE de
+ *  HEAD (`commitEstAncetre`, non joué sur un appel PUR) ; `décidé` porte une « ## Décision » dont une
+ *  ligne cite `«…»` avec sa date (`DATE`, scripts/guards/memoire-forme.mjs). */
+function checkNature(content, { numero, commitEstAncetre }) {
+  const lu = natureDuSolde(content, numero)
+  if (lu.erreur) return [lu.erreur]
+  if (lu.nature === 'caduc') {
+    const sonde = sectionDe(content, TITRE_SONDE)
+    if (sonde === null) return ['"NATURE: caduc" sans section "## Sonde" (bloc de code de la commande, bloc de code de sa sortie, sha où le constat ne se reproduit pas)']
+    const blocs = sonde.match(BLOC_DE_CODE_RE)?.length ?? 0
+    if (blocs < 2) return [`"## Sonde" porte ${blocs} bloc(s) de code — la commande PUIS sa sortie, deux blocs clôturés`]
+    const shas = shasDeLaSonde(content)
+    if (shas.length === 0) return ['"## Sonde" ne nomme aucun sha — le commit où le constat ne se reproduit pas']
+    if (commitEstAncetre && !shas.some((sha) => commitEstAncetre(sha) === true)) {
+      return [`"## Sonde" ne nomme aucun commit ANCÊTRE de HEAD (${shas.join(', ')}) — la sonde n'a pas été jouée dans cette histoire`]
+    }
+  }
+  if (lu.nature === 'décidé') {
+    const decision = sectionDe(content, TITRE_DECISION)
+    if (decision === null) return ['"NATURE: décidé" sans section "## Décision" (la décision utilisateur, citée « … » avec sa date AAAA-MM-JJ sur la même ligne)']
+    if (!decision.split('\n').some((l) => CITATION_RE.test(l) && DATE.test(l))) {
+      return ['"## Décision" sans ligne qui cite la décision « … » ET porte sa date AAAA-MM-JJ']
+    }
+  }
+  return []
+}
+
 /** La capture que cite la section « ## Recette visuelle » d'un solde, `null` sans section ni ligne
  *  `capture:`. PUR. @param {string | null} content @returns {string | null} */
 function captureDuSolde(content) {
@@ -465,7 +511,8 @@ function captureDuSolde(content) {
  * modifie ; `issuesFermees` = tickets fermés par CE commit ; `touchesUi` = le diff touche un écran ;
  * `verifierCaptureDe(chemin)` = contrôle de la capture de recette (voir `verifierCapture`) ;
  * `commitEstAncetre(sha)` / `fichiersDuCommit(sha)` / `lignesDuCommit(sha, fichier)` = l'histoire
- * git, pour « corrigé par <sha> ».
+ * git, pour « corrigé par <sha> » et la « ## Sonde » d'un solde `caduc` ; `numero` = le ticket que le
+ * solde ferme (`checkNature`).
  */
 export function validateSolde(content, today, {
   fichiersEmportes = null,
@@ -476,6 +523,7 @@ export function validateSolde(content, today, {
   commitEstAncetre = null,
   fichiersDuCommit = null,
   lignesDuCommit = null,
+  numero,
 } = {}) {
   if (!content) return { ok: false, problems: ['fichier absent'], refuted: false }
 
@@ -490,6 +538,7 @@ export function validateSolde(content, today, {
 
   problems.push(...checkRestesSection(content, { fichiersEmportes, lignesEmportees, issuesFermees, commitEstAncetre, fichiersDuCommit, lignesDuCommit }))
   problems.push(...checkRecetteVisuelle(content, { touchesUi, verifierCaptureDe }))
+  problems.push(...checkNature(content, { numero, commitEstAncetre }))
 
   const { problems: refutationProblems, refuted } = checkRefutationSection(content)
   problems.push(...refutationProblems)
@@ -560,7 +609,7 @@ export function evaluate({ message, commentaire, today, readSoldes, soldeOnDisk 
       })
       continue
     }
-    const { ok, problems } = validateSolde(emporte, today, { ...contexte, ...citations, verifierCaptureDe, issuesFermees: issues })
+    const { ok, problems } = validateSolde(emporte, today, { ...contexte, ...citations, verifierCaptureDe, issuesFermees: issues, numero: n })
     if (!ok) failures.push({ n, problems })
   }
   if (failures.length === 0) return null
@@ -572,7 +621,10 @@ export function evaluate({ message, commentaire, today, readSoldes, soldeOnDisk 
       `avec une ligne "VERIFIE: <ce que l'orchestrateur a concrètement vérifié, ≥${MIN_VERIFIE_LEN} caractères>", ` +
       `une section "## Restes" ("RAS" seul, ou des items "- <reste signalé par l'agent> -> <#N nouveau ticket ` +
       `(un SEUL par fermeture) | corrigé dans ce commit (<fichier>:<ligne>) | corrigé par <sha> ` +
-      `<fichier>:<ligne> | RAS : justification | inventaire #<épic> : <état>>"), une section ` +
+      `<fichier>:<ligne> | RAS : justification | inventaire #<épic> : <état>>"), au plus une ligne ` +
+      `"NATURE: ${grammaireDesNatures()}" en tête de ligne (absente = corrigé ; elle fait le state_reason ` +
+      `de la fermeture : caduc exige une section "## Sonde" — bloc de la commande, bloc de sa sortie, sha ` +
+      `ancêtre de HEAD —, décidé une section "## Décision" dont une ligne cite « … » avec sa date AAAA-MM-JJ), une section ` +
       `"## Réfutation" (ligne "verdict: ` +
       `CONFIRMÉ|PARTIEL|RÉFUTÉ", ≥${MIN_REFUTATION_LEN} caractères — qui a attaqué quoi sur le diff/DoD), et ` +
       `la date du jour (demande 2026-07-14), puis le STAGER (\`git add .claude/soldes/<N>.md\`) : la preuve ` +
@@ -1111,9 +1163,11 @@ export function histoireDesCitations(depot, shas, { histoire = histoireDeHead(de
 }
 
 /** Les shas que cite un solde par « corrigé par <sha> <fichier>:<ligne> » (`CORRIGE_PAR_RE`, la lecture
- *  de `checkRestesSection`). PUR. @param {string | null} content @returns {string[]} */
+ *  de `checkRestesSection`) et par la « ## Sonde » d'un solde `caduc` (`shasDeLaSonde`, la lecture de
+ *  `checkNature`). PUR. @param {string | null} content @returns {string[]} */
 export function shasCitesDuSolde(content) {
-  return content ? restesItems(content).map((l) => CORRIGE_PAR_RE.exec(l)?.[1]).filter(Boolean) : []
+  if (!content) return []
+  return [...restesItems(content).map((l) => CORRIGE_PAR_RE.exec(l)?.[1]).filter(Boolean), ...shasDeLaSonde(content)]
 }
 
 /** Date de dernière écriture la plus RÉCENTE parmi `fichiers` (ms, `0` si aucune lisible). */

@@ -9,6 +9,7 @@ import { resolve } from 'node:path'
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { REFUS_SATURE, basenameExecutable, nouveauBudget, segmentsProfonds } from '../guards/lib/commandeShell.mjs'
 import { fermetureGh } from '../guards/lib/fermetures.mjs'
+import { grammaireDesNatures } from '../guards/lib/nature.mjs'
 
 // Endpoint d'UN ticket : `repos/<o>/<r>/issues/<N>` (avec ou sans barre de tête). SEUL cet appel peut
 // FERMER — la collection `/issues` CRÉE, `graphql` ne porte pas d'état sur cette route, et un GET ne
@@ -69,7 +70,9 @@ export function evaluateFermetureHorsCommit(command, { lire = (p) => readFileSyn
   const parCommit =
     `la fermeture passe par un commit \`corrige #N\` porteur de son solde (.claude/soldes/<N>.md) — ` +
     `le job \`fermetures\` de fermetures.yml (\`scripts/ops/fermer-depuis-main.mjs\`) ferme l'issue ET y poste ` +
-    `le solde, checks requis du sha publié sur main verts. Fermer à la main court-circuite le contrôle entier.`
+    `le solde, checks requis du sha publié sur main verts. Une issue sans objet se ferme par le même chemin : ` +
+    `la ligne "NATURE: ${grammaireDesNatures()}" de son solde (scripts/guards/lib/nature.mjs) fait le ` +
+    `state_reason (absente = corrigé). Fermer à la main court-circuite le contrôle entier.`
   for (const segment of segments) {
     const forme = fermetureGh(segment)
     if (forme) {

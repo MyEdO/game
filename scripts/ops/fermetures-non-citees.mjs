@@ -6,10 +6,10 @@
 // Ici la mesure part de l'API : issues FERMÉES dans la fenêtre, croisées avec les commits fermants
 // (grammaire de `scripts/guards/lib/fermetures.mjs`) et avec les soldes SUIVIS par git. Le verdict
 // porte sur l'ÉCART à la baseline nominative datée `fermetures-non-citees.json` :
-//   - fermeture NEUVE hors baseline, non citée, sans solde suivi, sans label `duplicate` -> ROUGE ;
+//   - fermeture NEUVE hors baseline, non citée, sans solde suivi -> ROUGE ;
 //   - entrée de baseline qui a depuis un solde suivi ou un commit fermant -> ROUGE « entrée périmée » ;
-//   - `state_reason: not_planned` N'EXEMPTE PAS (une fermeture « pas prévu » sans solde est exactement
-//     la fuite) ; seul `duplicate` exempte, le survivant du doublon portant le solde.
+//   - ni un `state_reason` ni un label n'exemptent : un doublon, un constat caduc ou une décision se
+//     ferment par la ligne `NATURE:` de leur solde (scripts/guards/lib/nature.mjs), comme le reste.
 //
 // Usage : `npm run ops:fermetures-non-citees` (fenêtre 7 j) ou
 // `node scripts/ops/fermetures-non-citees.mjs --depuis 2026-08-20`. Le nom dit le RAPPORT : `ops:fermer`
@@ -26,10 +26,7 @@ import { INDEX, depotDe, journalDe, listerImage } from '../guards/lib/gitPorte.m
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const CHEMIN_BASELINE = join(RACINE, 'scripts', 'ops', 'fermetures-non-citees.json')
 
-/** Label qui EXEMPTE : le doublon n'a pas de solde propre, c'est le survivant qui le porte. */
-export const LABEL_EXEMPTANT = 'duplicate'
-
-/** SECONDE exemption, et la seule autre : l'issue du canari, fermée par le canari LUI-MÊME quand
+/** SEULE exemption : l'issue du canari, fermée par le canari LUI-MÊME quand
  *  toutes ses mesures sont vertes (`.github/workflows/canari.yml`, step « Résumé »). Ce n'est pas une
  *  fuite : le rapport EST la preuve, et il vit dans le fil de l'issue.
  *  L'issue se reconnaît à son TITRE, comme dans le workflow — `SURVIVANTE` la cherche par
@@ -62,9 +59,7 @@ export function comparerFermetures(baseline, fermees, cites, soldes) {
 
   const nonCitees = fermees.filter((f) => !cite.has(String(f.numero)))
   const jugeables = nonCitees.filter(
-    (f) => !(f.labels ?? []).includes(LABEL_EXEMPTANT)
-      && !fermeeParLeCanari(f)
-      && !solde.has(String(f.numero)),
+    (f) => !fermeeParLeCanari(f) && !solde.has(String(f.numero)),
   )
 
   const ecart = ecartsDeStock({
@@ -92,10 +87,9 @@ export function comparerFermetures(baseline, fermees, cites, soldes) {
 
   const rapport = nonCitees.map((f) => {
     const n = String(f.numero)
-    const etat = (f.labels ?? []).includes(LABEL_EXEMPTANT) ? 'doublon (exempté)'
-      : fermeeParLeCanari(f) ? 'canari (exempté)'
-        : solde.has(n) ? 'solde suivi'
-          : connues.has(n) ? 'baseline' : 'NEUVE'
+    const etat = fermeeParLeCanari(f) ? 'canari (exempté)'
+      : solde.has(n) ? 'solde suivi'
+        : connues.has(n) ? 'baseline' : 'NEUVE'
     const labels = (f.labels ?? []).join(',') || '(sans label)'
     return `#${n} [${etat}] ${f.closedAt} par ${f.closedBy} · ${f.stateReason} · ${labels} · ${f.titre}`
   })

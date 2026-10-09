@@ -210,12 +210,13 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
   tickets commentés.
 - **Épique : pas de salve d'ouverture** — premier lot + index des phases EN PROSE, les enfants naissent
   à leur vague. Pas de checklist dans le corps (elle meurt toujours) : le plan et l'ÉTAT vivent dans le
-  suivi de vague, la STRUCTURE dans les liens. Une vague d'épique fait DÉCROÎTRE le compteur qu'elle vise.
+  suivi de vague, la STRUCTURE dans les sous-issues (épique → famille → tickets). Une vague d'épique
+  fait DÉCROÎTRE le compteur qu'elle vise.
   Épique muette depuis 14 jours sans label `gelée` = anomalie à SIGNALER.
 - **Métriques**, à l'ouverture de session et au moins une fois par SEMAINE, écrites dans le suivi de
-  vague : delta net de tickets (cible ≤ 0), part des fermetures dépilant du stock de plus de 28
-  jours (≥ 50 %), résorption des restes (≥ 60 % sous deux semaines). Deux semaines sans mesure =
-  anomalie à signaler.
+  vague : travail restant, croissance nette (cible ≤ 0), orphelins et balance par vague, mesurés par
+  `npm run ops:stock-issues` ; part des fermetures dépilant du stock de plus de 28 jours (≥ 50 %),
+  résorption des restes (≥ 60 % sous deux semaines). Deux semaines sans mesure = anomalie à signaler.
 
 ## Calibrage
 

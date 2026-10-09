@@ -13,6 +13,12 @@
 //     de 200 (p90 = 204 sur 400). Un refus mordrait 4 émissions sur 5 — un geste ROUTINIER, que le
 //     régime utilisateur du 2026-09-01 (« Personnellement je m'absente des heures ») interdit de
 //     bloquer ; la mesure passe d'abord, le refus se re-décide sur la chute.
+//     Et le RATTACHEMENT (#2561, credo puce « Le poison se corrige DANS LE GESTE ») : toute création
+//     CLI qui ne porte pas le label `épique` reçoit la note des quatre questions, dans l'ordre du
+//     credo, dont la dernière est la sous-issue native à poser APRÈS la création. Le rattachement
+//     n'existe pas avant que l'issue existe : il ne se juge pas ici, mais a posteriori par les
+//     orphelins de `npm run ops:stock-issues`, créations REST/GraphQL comprises.
+//   - Une demande d'AIDE (`gh help …`, `--help`, `-h`) n'exécute rien : elle n'est pas une création.
 //
 // Robustesse : on ne fait PAS un grep de sous-chaîne (`gh issue create` cité dans un `--body`/un
 // `echo` mordrait à tort) — on réutilise le TOKENIZER quote-aware de `scripts/guards/lib/commandeShell.mjs`
@@ -28,6 +34,8 @@
 // tant qu'AUCUN script `open-ticket` n'existe dans ce dépôt — le jour où il en porte un qui appelle
 // `gh issue create`, la création est refusée comme les autres.
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { LABEL_EPIQUE } from '../guards/lib/epique.mjs'
+import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { REFUS_SATURE, nouveauBudget, segmentsProfonds } from '../guards/lib/commandeShell.mjs'
 
 /** Un token porte-t-il une option de label ? (`--label`, `--label=X`, `-l`, `-lX` glué) */
@@ -42,6 +50,9 @@ export function ghArgs(segment) {
   return exe === 'gh' ? segment.slice(start + 1) : null
 }
 
+/** Les arguments `gh` demandent-ils l'AIDE (`gh help …`, `--help`, `-h`) ? Rien ne s'exécute alors. */
+const demandeAide = (args) => args[0] === 'help' || args.includes('--help') || args.includes('-h')
+
 /** Index du token `action` suivant IMMÉDIATEMENT `groupe` (`issue create`), `-1` sinon. L'adjacence
  *  rend la lecture robuste à un flag global à valeur intercalé (`gh -R owner/repo issue create`). */
 function indexSousCommande(args, groupe, actions) {
@@ -49,10 +60,10 @@ function indexSousCommande(args, groupe, actions) {
   return -1
 }
 
-/** Le SEGMENT exécute-t-il `gh issue create|new` ? */
+/** Le SEGMENT exécute-t-il `gh issue create|new` (et non son aide) ? */
 export function isGhIssueCreateSegment(segment) {
   const args = ghArgs(segment)
-  return args !== null && indexSousCommande(args, 'issue', ['create', 'new']) !== -1
+  return args !== null && !demandeAide(args) && indexSousCommande(args, 'issue', ['create', 'new']) !== -1
 }
 
 /** Valeur d'un flag long/court, graphies `--flag v`, `--flag=v`, `-t v`, `-tv` (`''` si absent). */
@@ -80,7 +91,7 @@ function valeursFlag(args, noms) {
  *  l'un ni l'autre, la même route LIT la liste des tickets. */
 export function isGhApiIssueCreate(segment) {
   const args = ghArgs(segment)
-  if (!args || args[0] !== 'api') return false
+  if (!args || args[0] !== 'api' || demandeAide(args)) return false
   if (!args.some((a) => /^\/?repos\/[^/]+\/[^/]+\/issues\/?$/.test(a))) return false
   const methode = valeurFlag(args, ['-X', '--method']).toUpperCase()
   if (methode && methode !== 'POST') return false
@@ -90,7 +101,7 @@ export function isGhApiIssueCreate(segment) {
 /** Le SEGMENT crée-t-il un ticket par GraphQL (`gh api graphql` dont la requête porte `createIssue`) ? */
 export function isGhGraphqlIssueCreate(segment) {
   const args = ghArgs(segment)
-  return Boolean(args && args[0] === 'api' && args.includes('graphql') && /createIssue/.test(args.join(' ')))
+  return Boolean(args && args[0] === 'api' && !demandeAide(args) && args.includes('graphql') && /createIssue/.test(args.join(' ')))
 }
 
 /** Labels posés par une création d'API : champ `labels` du POST REST, `labelIds` de la mutation, ou
@@ -162,8 +173,23 @@ export function evaluate(command, options) {
 const FAMILLES = ['sev:', 'type:', 'domaine:']
 const TITRE_MAX = 200
 
+/** Les trois questions du rattachement, dans l'ordre du credo (puce « Le poison se corrige DANS LE
+ *  GESTE ») ; la dernière pose la sous-issue native
+ *  (`POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues`, champ `sub_issue_id` = l'`id` REST
+ *  de l'issue, pas son numéro). */
+const NOTE_RATTACHEMENT =
+  'Rattachement (credo, puce « Le poison se corrige DANS LE GESTE »), dans CET ordre : ' +
+  "(1) corrigeable dans le geste ? alors pas d'issue, on corrige ; (2) la COUCHE : " +
+  '`type:règle-optionnelle` / `policy-à-trancher` = système ; `campagne:*` = scénario → valeur ' +
+  "d'adaptation décidée et tracée, pas d'issue ; (3) sinon, APRÈS la création, rattache-la en " +
+  "sous-issue de sa FAMILLE (les fichiers, la couture qu'elle touche), elle-même sous son épique — " +
+  `jamais orpheline : \`gh api -X POST repos/${DEPOT}/issues/<famille>/sub_issues -F ` +
+  `sub_issue_id=<id>\`, où <id> = \`gh api repos/${DEPOT}/issues/<numéro créé> --jq .id\`. ` +
+  'Les orphelins se comptent par `npm run ops:stock-issues`.'
+
 /**
- * Contexte à INJECTER (jamais un refus) : familles de labels absentes, titre au-delà de `TITRE_MAX`.
+ * Contexte à INJECTER (jamais un refus) : familles de labels absentes, titre au-delà de `TITRE_MAX`,
+ * et les questions du rattachement sur toute création qui ne porte pas le label `épique`.
  * `null` si la commande n'ouvre aucun ticket, ou si rien ne manque.
  */
 export function contexteEmission(command, options) {
@@ -172,11 +198,11 @@ export function contexteEmission(command, options) {
   for (const segment of segmentsProfonds(command, 0, options)) {
     if (!isGhIssueCreateSegment(segment)) continue
     const args = ghArgs(segment)
-    const labels = valeursFlag(args, ['--label', '-l']).flatMap((v) => v.split(','))
-    const absentes = FAMILLES.filter((f) => !labels.some((l) => l.trim().startsWith(f)))
+    const labels = valeursFlag(args, ['--label', '-l']).flatMap((v) => v.split(',')).map((l) => l.trim())
+    const absentes = FAMILLES.filter((f) => !labels.some((l) => l.startsWith(f)))
     if (absentes.length > 0) {
       notes.push(
-        'Familles de labels ABSENTES : ' + absentes.join(' ') + ' — l\'index du backlog se cherche PAR ' +
+        'Familles de labels ABSENTES : ' + absentes.join(' ') + " — l'index du backlog se cherche PAR " +
         'famille (`gh issue list --label sev:majeur --label domaine:X`) ; 10 tickets sur 50 les portent ' +
         'toutes les trois (mesure 2026-09-02).',
       )
@@ -188,6 +214,7 @@ export function contexteEmission(command, options) {
         'paragraphe — le détail va au corps (p90 mesuré = 204 sur les 400 derniers tickets).',
       )
     }
+    if (!labels.includes(LABEL_EPIQUE)) notes.push(NOTE_RATTACHEMENT)
   }
   return notes.length > 0 ? notes.join('\n') : null
 }
