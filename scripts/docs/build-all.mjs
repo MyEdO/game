@@ -427,92 +427,133 @@ export function executer({
       for (const script of absents) refuser(`docs:build — ARRÊT : certificat final absent : ${script}`)
       return absents.length === 0
     }
-    for (const [rang, g] of generateurs.entries()) {
-      if (seulement && !seulement.has(g.script)) continue
-      if (!selection.includes(g)) continue
-      if (perimes) {
-        const validite = recordValide(cwd, g, fraicheur, preuve?.generateurs[g.script], { vue })
-        if (validite.ok) continue
-        console.error(`docs:build — ${g.script} périmé : ${validite.raison}`)
-      }
-      const dossier = path.join(racineLectures, String(rang))
-      writeFileSync(ignoresLectures, JSON.stringify([...perimetreDeMesure(cwd).ignores]))
-      writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
-      let mesure
-      const avant = preparation && avantGenerateur(cwd, g, fraicheur, preparation)
-      if (!check) {
-        invaliderPreuve(cwd, [g.script])
-        ecrits++
-      }
-      try {
-        mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
-          cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]),
-          rendues: path.join(dossier, 'cibles-rendues'),
-        }))
-      } catch (e) {
-        transmettreDiagnostic(e, quiet)
-        const issue = issueDe(e)
-        if (!check) {
-          process.stderr.write(`docs:build — ARRÊT sur ${g.script} (${natureDuRouge(issue)}) : docs/ n'est PAS à jour.\n`)
-          return 1
-        }
-        refus.push(`docs:check — ${g.script} — ${natureDuRouge(issue)}`)
-        continue
-      }
-      const nonRendues = ciblesLitteralesNonRendues(g, path.join(dossier, 'cibles-rendues'))
-      if (nonRendues.length) {
-        const message = `docs:build — ARRÊT sur ${g.script} : cible(s) LITTÉRALE(S) déclarée(s) que son rendu ne produit pas : ${nonRendues.join(', ')}.`
-        if (!check) {
-          process.stderr.write(`${message}\n`)
-          return 1
-        }
-        refuser(message)
-        continue
-      }
-      const { lues, entree } = mesure
-      // Un chemin lu hors racine sort de la mesure : dit ici, il cesse d'être indiscernable d'une
-      // absence de lecture (un générateur dont les sources vivent derrière une jonction, par exemple).
-      if (lues.cheminsRejetes > 0) {
-        process.stdout.write(`docs:build — ${g.script} : ${lues.cheminsRejetes} chemin(s) lu(s) hors racine, écarté(s) de la mesure.\n`)
-      }
-      const aveugle = refusSourcesInsuffisantes(g.script, lues.fichiers.length, lues.cheminsRejetes)
-      if (aveugle) {
-        if (!check) {
-          process.stderr.write(`${aveugle}\n`)
-          return 1
-        }
-        refuser(aveugle)
-        continue
-      }
-      const ecritesAuMemeRangOuPlusTard = new Map(
-        generateurs.flatMap((autre, r) => (r >= rang ? ecritesPar.get(autre.script).map((c) => [c, autre.script]) : [])),
-      )
-      const lectureTardive = lues.fichiers.find((source) => ecritesAuMemeRangOuPlusTard.has(source))
-      if (lectureTardive) {
-        const message = `docs:build — ARRÊT sur ${g.script} : lit « ${lectureTardive} », que ${ecritesAuMemeRangOuPlusTard.get(lectureTardive)} écrit au même rang ou plus tard — cette source serait périmée.`
-        if (!check) {
-          process.stderr.write(`${message}\n`)
-          return 1
-        }
-        refuser(message)
-        continue
-      }
-      parGenerateur[g.script] = entree
-      if (!check && avant) {
-        const certification = certifierGenerateur(cwd, g, entree, fraicheur, avant)
-        records.set(g.script, certification.ok ? certification.record : null)
-        if (!certification.ok) {
-          console.error(`docs:build — ARRÊT : ${g.script} non certifié : ${certification.raison}`)
-          return 1
-        }
-      }
-      if (perimes && preparation) {
-        ecrireSiDifferent(path.join(cwd, SOURCES_LUES), serialiserSourcesLues(parGenerateur))
-        preuve = enregistrerPreuve(cwd, fraicheur, preparation, records).preuve
-        if (!verifierPreuve(preuve)) return 1
-        vue = nouvelleVue(cwd, fraicheur, preuve)
-      }
+    const eligibles = generateurs.filter((g) => selection.includes(g) && (!seulement || seulement.has(g.script)))
+    if (perimes) for (const g of eligibles) {
+      const record = preparation.cache.generateurs[g.script]
+      if (record) records.set(g.script, record)
     }
+    let reprise = null
+    let passe = 0
+    do {
+      passe++
+      for (const [rang, g] of generateurs.entries()) {
+        if (seulement && !seulement.has(g.script)) continue
+        if (!selection.includes(g)) continue
+        if (reprise && !reprise.has(g.script)) continue
+        if (perimes && !reprise) {
+          const validite = recordValide(cwd, g, fraicheur, preuve?.generateurs[g.script], { vue })
+          if (validite.ok) continue
+          console.error(`docs:build — ${g.script} périmé : ${validite.raison}`)
+        }
+        const dossier = path.join(racineLectures, `${passe}-${rang}`)
+        writeFileSync(ignoresLectures, JSON.stringify([...perimetreDeMesure(cwd).ignores]))
+        writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
+        let mesure
+        let avant
+        try { avant = preparation && avantGenerateur(cwd, g, fraicheur, preparation) } catch (e) {
+          console.error(`docs:build — ARRÊT : ${g.script} non certifiable : ${e.message}`)
+          return 1
+        }
+        if (!check) {
+          invaliderPreuve(cwd, [g.script])
+          ecrits++
+        }
+        try {
+          mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
+            cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]),
+            rendues: path.join(dossier, 'cibles-rendues'),
+          }))
+        } catch (e) {
+          transmettreDiagnostic(e, quiet)
+          const issue = issueDe(e)
+          if (!check) {
+            process.stderr.write(`docs:build — ARRÊT sur ${g.script} (${natureDuRouge(issue)}) : docs/ n'est PAS à jour.\n`)
+            return 1
+          }
+          refus.push(`docs:check — ${g.script} — ${natureDuRouge(issue)}`)
+          continue
+        }
+        const nonRendues = ciblesLitteralesNonRendues(g, path.join(dossier, 'cibles-rendues'))
+        if (nonRendues.length) {
+          const message = `docs:build — ARRÊT sur ${g.script} : cible(s) LITTÉRALE(S) déclarée(s) que son rendu ne produit pas : ${nonRendues.join(', ')}.`
+          if (!check) {
+            process.stderr.write(`${message}\n`)
+            return 1
+          }
+          refuser(message)
+          continue
+        }
+        const { lues, entree } = mesure
+        // Un chemin lu hors racine sort de la mesure : dit ici, il cesse d'être indiscernable d'une
+        // absence de lecture (un générateur dont les sources vivent derrière une jonction, par exemple).
+        if (lues.cheminsRejetes > 0) {
+          process.stdout.write(`docs:build — ${g.script} : ${lues.cheminsRejetes} chemin(s) lu(s) hors racine, écarté(s) de la mesure.\n`)
+        }
+        const aveugle = refusSourcesInsuffisantes(g.script, lues.fichiers.length, lues.cheminsRejetes)
+        if (aveugle) {
+          if (!check) {
+            process.stderr.write(`${aveugle}\n`)
+            return 1
+          }
+          refuser(aveugle)
+          continue
+        }
+        const lectureTardive = lues.fichiers.map((source) => ({
+          source,
+          ecrivain: generateurs.find((autre, r) => r >= rang && autre.targets.some((motif) => correspondGlob(source, motif))),
+        })).find(({ ecrivain }) => ecrivain)
+        if (lectureTardive) {
+          const message = `docs:build — ARRÊT sur ${g.script} : lit « ${lectureTardive.source} », que ${lectureTardive.ecrivain.script} écrit au même rang ou plus tard — cette source serait périmée.`
+          if (!check) {
+            process.stderr.write(`${message}\n`)
+            return 1
+          }
+          refuser(message)
+          continue
+        }
+        parGenerateur[g.script] = entree
+        if (!check && avant) {
+          const certification = certifierGenerateur(cwd, g, entree, fraicheur, avant)
+          records.delete(g.script)
+          records.set(g.script, certification.ok ? certification.record : null)
+          if (!certification.ok) {
+            console.error(`docs:build — ARRÊT : ${g.script} non certifié : ${certification.raison}`)
+            return 1
+          }
+          preparation.mesure[g.script] = entree
+        }
+        if (perimes && preparation) {
+          preuve = { version: 2, generateurs: { ...preparation.cache.generateurs, ...Object.fromEntries(records) } }
+          vue = nouvelleVue(cwd, fraicheur, preuve)
+        }
+      }
+      if (check) break
+      preuve = { version: 2, generateurs: { ...preparation.cache.generateurs, ...Object.fromEntries(records) } }
+      vue = nouvelleVue(cwd, fraicheur, preuve)
+      const divergences = eligibles.map((g) => {
+        const record = preuve.generateurs[g.script]
+        const validite = recordValide(cwd, g, fraicheur, record, { sorties: false, vue })
+        if (!validite.ok) return [g.script, validite.raison]
+        const pures = record.sorties.filter(([rel]) => g.targets.some((motif) => correspondGlob(rel, motif)))
+        const actuelles = [...new Set(ciblesSurDisque(g.targets, cwd))].sort().map((rel) => [rel, vue.hashes.get(rel)])
+        if (JSON.stringify(pures) !== JSON.stringify(actuelles)) {
+          const anciennes = new Map(pures)
+          const presentes = new Map(actuelles)
+          const chemins = [...new Set([...anciennes.keys(), ...presentes.keys()])].filter((rel) => anciennes.get(rel) !== presentes.get(rel))
+          return [g.script, `sorties pures différentes : ${chemins.join(', ')}`]
+        }
+        return null
+      }).filter(Boolean)
+      reprise = new Set(divergences.map(([script]) => script))
+      if (reprise.size) {
+        for (const [script, raison] of divergences) console.error(`docs:build — fermeture ${passe} : ${script} périmé : ${raison}`)
+        if (passe >= eligibles.length + 1) {
+          invaliderPreuve(cwd, [...records.keys()])
+          console.error(`docs:build — ARRÊT : fermeture non convergente après ${passe} passes : ${[...reprise].join(', ')}`)
+          return 1
+        }
+      }
+    } while (reprise.size)
     if (!check && ecrits) {
       ecrireSiDifferent(path.join(cwd, SOURCES_LUES), serialiserSourcesLues(parGenerateur))
       console.log(`${SOURCES_LUES} — ${Object.keys(parGenerateur).length} générateur(s) mesuré(s).`)

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { constants, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
@@ -49,8 +49,12 @@ function cheminSous(racine, relatif) {
 function hashFichier(racine, rel, vue) {
   if (vue) return vue.hashes.get(rel)
   const absolu = cheminSous(racine, rel)
-  if (!existsSync(absolu)) return null
-  if (!statSync(absolu).isFile()) throw new Error(`fichier attendu : ${rel}`)
+  let stat
+  try { stat = lstatSync(absolu) } catch (e) {
+    if (['ENOENT', 'ENOTDIR'].includes(e.code)) return null
+    throw e
+  }
+  if (!stat.isFile()) throw new Error(`fichier attendu : ${rel}`)
   return empreinte(readFileSync(absolu))
 }
 
@@ -165,9 +169,29 @@ export function preparerPreuves(racine, options) {
     for (const rel of mesure[g.script]?.fichiers ?? []) chemins.add(rel)
   }
   const dossiers = new Set([''])
+  const fichiers = new Set()
+  const natures = new Map()
   for (const rel of chemins) {
-    let parent = path.posix.dirname(rel)
-    while (parent !== '.') { dossiers.add(parent); parent = path.posix.dirname(parent) }
+    let stat
+    let prefixe = ''
+    let sousLien = false
+    const segments = rel.split('/')
+    for (const [rang, segment] of segments.entries()) {
+      prefixe = prefixe ? `${prefixe}/${segment}` : segment
+      if (!natures.has(prefixe)) {
+        let nature = null
+        try { nature = lstatSync(path.join(racine, prefixe)) } catch (e) {
+          if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw e
+        }
+        natures.set(prefixe, nature)
+      }
+      stat = natures.get(prefixe)
+      if (stat?.isSymbolicLink()) { sousLien = true; break }
+      if (rang < segments.length - 1) dossiers.add(prefixe)
+    }
+    if (sousLien) continue
+    if (!stat || stat.isFile()) fichiers.add(rel)
+    if (stat?.isDirectory()) dossiers.add(rel)
   }
   for (const e of Object.values(mesure)) for (const rel of e.dossiers ?? []) dossiers.add(rel)
   const vue = nouvelleVue(racine, options, cache)
@@ -175,7 +199,7 @@ export function preparerPreuves(racine, options) {
     cache,
     mesure,
     vue,
-    fichiers: new Map([...chemins].map((rel) => [rel, vue.hashes.has(rel) ? vue.hashes.get(rel) : hashFichier(racine, rel)])),
+    fichiers: new Map([...fichiers].map((rel) => [rel, vue.hashes.has(rel) ? vue.hashes.get(rel) : hashFichier(racine, rel)])),
     dossiers: new Map([...dossiers].map((rel) => [rel, vue.listings.has(rel) ? structuredClone(vue.listings.get(rel)) : listing(racine, rel)])),
   }
 }
@@ -183,9 +207,10 @@ export function preparerPreuves(racine, options) {
 export function avantGenerateur(racine, g, options, preparation) {
   const entree = preparation.mesure[g.script]
   const vue = nouvelleVue(racine, options, null, entree ? { [g.script]: entree } : {}, preparation.vue.outillage)
-  let connus
-  try { connus = mesurerSources(racine, g, entree, options, vue) } catch { connus = null }
-  return { connus, contexte: contexte(racine, g, vue), preparation, baseline: { fichiers: new Map(preparation.fichiers), dossiers: new Map([...preparation.dossiers].map(([rel, snapshot]) => [rel, { nature: snapshot.nature, entrees: snapshot.entrees.map(({ nom, nature }) => ({ nom, nature })) }])), ignores: new Set(vue.ignores), derivees: new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine)) } }
+  const initial = contexte(racine, g, preparation.vue)
+  const actuel = contexte(racine, g, vue)
+  for (const champ of Object.keys(initial)) if (!egaux(initial[champ], actuel[champ])) throw new Error(`contexte modifié depuis préparation : ${champ}`)
+  return { contexte: actuel, preparation, baseline: { fichiers: new Map(preparation.fichiers), dossiers: new Map([...preparation.dossiers].map(([rel, snapshot]) => [rel, { nature: snapshot.nature, entrees: snapshot.entrees.map(({ nom, nature }) => ({ nom, nature })) }])), ignores: new Set(vue.ignores), derivees: new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine)) } }
 }
 
 export function certifierGenerateur(racine, g, entree, options, avant) {
@@ -194,8 +219,8 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     const vue = nouvelleVue(racine, options, preuve, {})
     const sources = mesurerSources(racine, g, entree, options, vue)
     if (!egaux(sources.contexte, avant.contexte)) throw new Error('outillage modifié pendant génération')
-    const anciensFichiers = new Map([...avant.baseline.fichiers, ...(avant.connus?.fichiers ?? [])])
-    const anciensDossiers = new Map([...avant.baseline.dossiers, ...(avant.connus?.dossiers ?? [])])
+    const anciensFichiers = avant.baseline.fichiers
+    const anciensDossiers = avant.baseline.dossiers
     const motifsDeclares = options.generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])])
     for (const [rel, hash] of sources.fichiers) {
       if (!anciensFichiers.has(rel) || anciensFichiers.get(rel) !== hash) throw new Error(`source modifiée ou non capturée : ${rel}`)
@@ -298,8 +323,25 @@ export function recordValide(racine, g, options, record, { sorties = true, vue }
   try {
     if (!record) return { ok: false, raison: 'certificat absent' }
     vue ??= nouvelleVue(racine, options, { version: 2, generateurs: { [g.script]: record } })
-    if (!egaux(record.sources, mesurerSources(racine, g, record.mesure, options, vue))) return { ok: false, raison: 'sources différentes' }
-    if (sorties && !egaux(record.sorties, mesurerSorties(racine, g, options, vue))) return { ok: false, raison: 'sorties différentes' }
+    const sources = mesurerSources(racine, g, record.mesure, options, vue)
+    for (const champ of ['contexte', 'fichiers', 'dossiers', 'git', 'sondes']) {
+      if (egaux(record.sources[champ], sources[champ])) continue
+      const precedent = record.sources[champ]
+      const courant = sources[champ]
+      const anciens = ['fichiers', 'dossiers'].includes(champ) ? new Map(precedent) : null
+      const actuels = anciens && new Map(courant)
+      const chemins = anciens ? [...new Set([...anciens.keys(), ...actuels.keys()])].filter((rel) => !egaux(anciens.get(rel), actuels.get(rel))) : []
+      return { ok: false, raison: `sources différentes : ${champ}${chemins.length ? ` : ${chemins.join(', ')}` : ''}` }
+    }
+    if (sorties) {
+      const actuelles = mesurerSorties(racine, g, options, vue)
+      if (!egaux(record.sorties, actuelles)) {
+        const anciennes = new Map(record.sorties)
+        const presentes = new Map(actuelles)
+        const chemins = [...new Set([...anciennes.keys(), ...presentes.keys()])].filter((rel) => anciennes.get(rel) !== presentes.get(rel))
+        return { ok: false, raison: `sorties différentes : ${chemins.join(', ')}` }
+      }
+    }
     return { ok: true }
   } catch (e) { return { ok: false, raison: e.message } }
 }

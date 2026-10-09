@@ -27,6 +27,77 @@ const poser = (racine, rel, bytes) => {
   writeFileSync(path.join(racine, rel), bytes)
 }
 
+for (const [fichier, champ] of [['package.json', 'outils'], ['.gitignore', 'perimetre']]) test(`contexte initial autoritaire : mutation de ${fichier} avant rang suivant`, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'docs/\n', 'package.json': '{"name":"banc"}', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
+  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
+  const opts = { ...options, generateurs: [g] }
+  try {
+    const preparation = preparerPreuves(racine, opts)
+    poser(racine, fichier, fichier === 'package.json' ? '{"name":"muté"}' : 'docs/\n*.tmp\n')
+    assert.throws(() => avantGenerateur(racine, g, opts, preparation), new RegExp(`contexte modifié depuis préparation : ${champ}`))
+    assert.equal(chargerPreuve(racine), null)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+for (const present of [true, false]) test(`baseline conservée entre passes : source connue ${present ? 'présente' : 'absente'} mutée avant rejeu`, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'docs/\n', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
+  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
+  const opts = { ...options, generateurs: [g] }
+  const entree = { fichiers: [g.script, 'data/source.txt', 'data/connue.txt'], dossiers: ['data'], cibles: [], git: [], sondes: [], incomplet: [] }
+  try {
+    if (present) poser(racine, 'data/connue.txt', 'capture initiale')
+    poser(racine, SOURCES_LUES, JSON.stringify({ [g.script]: entree }))
+    const preparation = preparerPreuves(racine, opts)
+    const capture = preparation.fichiers.get('data/connue.txt')
+    assert.equal(capture === null, !present)
+    poser(racine, 'data/connue.txt', 'mutation avant le rang suivant')
+    const avant = avantGenerateur(racine, g, opts, preparation)
+    poser(racine, doc('a'), 'sortie')
+    const vu = certifierGenerateur(racine, g, entree, opts, avant)
+    assert.equal(vu.ok, false)
+    assert.match(vu.raison, /source modifiée ou non capturée : data\/connue\.txt/)
+    assert.equal(preparation.fichiers.get('data/connue.txt'), capture)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('inventaire Git : lien inutilisé capturé par son parent ; lien effectivement lu reste refusé', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'docs/\n', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
+  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
+  const opts = { ...options, generateurs: [g] }
+  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: ['data'], cibles: [], git: [], sondes: [], incomplet: [] }
+  const externe = fs.mkdtempSync(path.join(racine, '..', 'fraicheur-lien-externe-'))
+  try {
+    poser(externe, 'source.txt', 'externe')
+    symlinkSync(externe, path.join(racine, 'data/lien'), process.platform === 'win32' ? 'junction' : 'dir')
+    const preparation = preparerPreuves(racine, opts)
+    for (const captures of [preparation.fichiers, preparation.dossiers]) {
+      assert.equal([...captures.keys()].some((rel) => rel === 'data/lien' || rel.startsWith('data/lien/')), false)
+    }
+    assert.deepEqual(preparation.dossiers.get('data').entrees.find((e) => e.nom === 'lien'), { nom: 'lien', nature: 'link' })
+    const avant = avantGenerateur(racine, g, opts, preparation)
+    poser(racine, doc('a'), 'sortie')
+    assert.equal(certifierGenerateur(racine, g, entree, opts, avant).ok, true)
+    const refuse = certifierGenerateur(racine, g, { ...entree, fichiers: [...entree.fichiers, 'data/lien/source.txt'] }, opts, avant)
+    assert.equal(refuse.ok, false)
+    assert.match(refuse.raison, /hors racine/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(externe, { recursive: true, force: true })
+  }
+})
+
+test('source mesurée : lien POSIX pendant ne devient jamais une absence connue', { skip: process.platform === 'win32' }, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'docs/\n', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
+  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
+  const opts = { ...options, generateurs: [g] }
+  try {
+    symlinkSync('absente.txt', path.join(racine, 'data/pendant'), 'file')
+    const entree = { fichiers: [g.script, 'data/pendant'], dossiers: ['data'], cibles: [], git: [], sondes: [], incomplet: [] }
+    poser(racine, SOURCES_LUES, JSON.stringify({ [g.script]: entree }))
+    assert.throws(() => preparerPreuves(racine, opts), /fichier attendu : data\/pendant/)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 test('préparation : une capture physique commune, null conservé, clés absentes lues et DTO privés', (t) => {
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'data/lien\n', 'data/source.txt': 'source', 'data/non-capture.txt': 'autre', 'data/sousdir/enfant.txt': 'enfant', 'g/froid.mjs': 'export const froid = 1\n' } })
   const g = { runner: 'node', script: 'g/froid.mjs', targets: [doc('froid')] }
@@ -43,7 +114,7 @@ test('préparation : une capture physique commune, null conservé, clés absente
     const preparation = preparerPreuves(racine, opts)
     assert.equal(compter(lectures, 'data/source.txt'), 1)
     assert.equal(compter(listages, 'data', true), 1)
-    assert.equal(compter(presences, 'data/absent.txt'), 2)
+    assert.equal(compter(presences, 'data/absent.txt'), 1)
     assert.equal(preparation.vue.hashes.get('data/absent.txt'), null)
     assert.equal(preparation.fichiers.get('data/absent.txt'), null)
     assert.equal(preparation.vue.hashes.has('data/non-capture.txt'), false)

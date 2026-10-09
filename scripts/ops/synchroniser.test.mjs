@@ -537,11 +537,20 @@ describe('synchroniserPrincipal — matrice', () => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
     const vus = await Promise.all([lancerEnParallele(m.principal), lancerEnParallele(m.principal)])
-    assert.deepEqual(vus.map((v) => v.status), [0, 0], JSON.stringify(vus))
-    assert.deepEqual(vus.map((v) => JSON.parse(v.stdout).etat).sort(), ['a-jour', 'avance'])
-    assert.equal(head(m.principal), U)
-    assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
-    assert.equal(existsSync(join(m.principal, '.git', 'synchro.verrou')), false)
+    const rendus = vus.map((v) => {
+      try { return JSON.parse(v.stdout) } catch { return null }
+    })
+    const pids = rendus.map((rendu) => rendu?.consommateurs?.pid).filter((pid) => pid !== undefined)
+    try {
+      assert.deepEqual(vus.map((v) => v.status), [0, 0], JSON.stringify(vus))
+      assert.deepEqual(vus.map((v) => JSON.parse(v.stdout).etat).sort(), ['a-jour', 'avance'])
+      await consommationFinie(m.principal, pids)
+      assert.equal(head(m.principal), U)
+      assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
+      assert.equal(existsSync(join(m.principal, '.git', 'synchro.verrou')), false)
+    } finally {
+      if (rendus.some((rendu) => rendu !== null)) await consommationFinie(m.principal, pids)
+    }
   })
 
   test('12 merge.autoStash=true sans effet', async () => {

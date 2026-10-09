@@ -125,7 +125,8 @@ function signatureGit(racine, base, depot, ignores, racineGit) {
   const gitCanonique = canoniser(racineGit)
   const prefixe = relatifSousRacine(gitCanonique, racine)
   if (prefixe === null) throw new Error('racine mesurée hors dépôt Git')
-  const dossiersExclus = new Set([...cheminsIgnores(depot, [...ignores].map((rel) => `${rel}/`))].map((rel) => rel.replace(/\/$/, '')))
+  const dossiers = [...ignores].filter((rel) => !EXCLUSIONS_FIXES.includes(rel) && fs.lstatSync(path.join(racine, rel)).isDirectory())
+  const dossiersExclus = new Set([...EXCLUSIONS_FIXES, ...[...cheminsIgnores(depot, dossiers.map((rel) => `${rel}/`))].map((rel) => rel.replace(/\/$/, ''))])
   const fichiers = listerArbre(racine, {
     filtre: (rel) => path.posix.basename(rel) === '.gitignore',
     descendre: (rel) => dansLaMesure(rel, dossiersExclus),

@@ -14,6 +14,25 @@ import { depotDe, politiqueExclusionsDe } from '../../guards/lib/gitPorte.mjs'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
+test('signature Git : lien ignoré POSIX sans suivre sa cible ni lui ajouter un slash', { skip: process.platform === 'win32' }, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'unused-link\n', 'source.txt': 'source' } })
+  const externe = mkdtempSync(join(tmpdir(), 'politique-lien-externe-'))
+  try {
+    writeFileSync(join(externe, '.gitignore'), 'première politique\n')
+    symlinkSync(externe, join(racine, 'unused-link'), 'dir')
+    const avant = perimetreDeMesure(racine)
+    assert.equal(avant.ignores.has('unused-link'), true)
+    assert.equal(avant.signature.fichiers.some(([rel]) => rel.startsWith('unused-link/')), false)
+    writeFileSync(join(externe, '.gitignore'), 'seconde politique\n')
+    assert.deepEqual(perimetreDeMesure(racine).signature, avant.signature)
+    writeFileSync(join(racine, '.gitignore'), 'unused-link\n*.tmp\n')
+    assert.notDeepEqual(perimetreDeMesure(racine).signature, avant.signature)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(externe, { recursive: true, force: true })
+  }
+})
+
 test('admission déclarée : endpoints glob ignorés, natures et frontières', () => {
   const motifs = ['data/*.generated.ts', 'node_modules/*.generated.ts', '.git/*.generated.ts', 'docs/.cache/*.generated.ts']
   const ignores = new Set(['data', 'node_modules', '.git', 'docs/.cache'])
