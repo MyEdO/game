@@ -3,7 +3,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  balanceParVague, croissanceNette, jugerStock, orphelins, ticketsDeLaListe,
+  balanceParVague, croissanceNette, emisesSansEpique, jugerStock, ticketsDeLaListe,
 } from './stock-issues.mjs'
 
 const MAINTENANT = Date.parse('2026-10-09T12:00:00Z')
@@ -41,18 +41,21 @@ test('croissance nette sur 7 j glissants : ROUGE si créées > fermées', () => 
   assert.doesNotMatch(jugerStock(equilibre, MAINTENANT).rouges.join('\n'), /croissance/)
 })
 
-test('orphelins : ouverts sans parent natif, corps ignoré, hors épiques, hors bots, hors fermés', () => {
+test('émises sans épique : créées dans la fenêtre sans parent natif, bots COMPRIS, stock ancien et épiques exclus', () => {
   const t = tickets(
-    issue(5),
-    issue(6, { body: 'Épique : #1' }),
-    issue(1, { labels: ['épique'] }),
-    issue(2, { parent: 1 }),
-    issue(3, { bot: true }),
-    issue(4, { ouvert: false, fermee: 40 }),
+    issue(5, { creee: 1 }),
+    issue(6, { creee: 2, body: 'Épique : #1' }),
+    issue(7, { creee: 3, bot: true }),
+    issue(8, { creee: 4, ouvert: false, fermee: 1 }),
+    issue(1, { creee: 1, labels: ['épique'] }),
+    issue(2, { creee: 1, parent: 1 }),
+    issue(3, { creee: 30 }),
+    issue(4, { creee: 40, bot: true }),
   )
-  assert.deepEqual(orphelins(t), [5, 6])
-  const ligne = jugerStock(t, MAINTENANT).mesures.find((m) => m.startsWith('orphelins'))
-  assert.equal(ligne, 'orphelins (ouverts sans parent) : 2', 'le COMPTE seul, jamais la liste des numéros')
+  assert.deepEqual(emisesSansEpique(t, MAINTENANT), { total: 4, bots: 1 })
+  const ligne = jugerStock(t, MAINTENANT).mesures.find((m) => m.startsWith('émises sans épique'))
+  assert.equal(ligne, 'émises sans épique 7 j : 4 (dont 1 de bots)', 'le COMPTE seul, jamais la liste des numéros')
+  assert.doesNotMatch(jugerStock(t, MAINTENANT).rouges.join('\n'), /émises/, 'une mesure, jamais un ROUGE')
 })
 
 test('balance par vague : ROUGE si les enfants fermés d\'une épique sont moins que ses enfants créés', () => {

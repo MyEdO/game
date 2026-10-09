@@ -1,11 +1,13 @@
 // COMPTEUR DU TRAVAIL RESTANT du backlog (#2561), joué à la main par `npm run ops:stock-issues`.
-// Credo, puce « Le poison se corrige DANS LE GESTE » : un ticket naît SOUS-ISSUE native de son épique
-// (`parent_issue_url`, `scripts/guards/lib/epique.mjs`).
+// Credo, puce « Le poison se corrige DANS LE GESTE » : un ticket émis par une vague naît SOUS-ISSUE
+// native de son épique (`parent_issue_url`, `scripts/guards/lib/epique.mjs`). Le stock sans parent
+// d'avant ne se rattache pas : seule l'ÉMISSION se mesure.
 //
 // Mesures, sur un instantané des issues ouvertes et fermées (pull requests écartées, `estPullRequest`) :
 //   - travail restant = issues ouvertes                                                    -> mesure ;
 //   - croissance nette sur la fenêtre glissante (créées − fermées) > 0                     -> ROUGE ;
-//   - orphelins : ouvertes sans parent, hors épiques et hors bots                          -> mesure ;
+//   - émises sans épique : créées dans la fenêtre, sans parent, hors épiques, bots compris
+//     (`claude[bot]` émet les tickets des sessions cloud), dont celles des bots           -> mesure ;
 //   - balance par vague : enfants d'une épique fermés < enfants créés dans la fenêtre     -> ROUGE ;
 //     un enfant est toute issue dont la CHAÎNE de parents remonte à l'épique.
 //
@@ -52,9 +54,13 @@ export function croissanceNette(tickets, maintenant, jours = FENETRE_JOURS) {
   return { creees, fermees, net: creees - fermees }
 }
 
-/** Numéros des issues ouvertes sans parent, hors épiques et hors bots, croissants. PUR. */
-export const orphelins = (tickets) =>
-  tickets.filter((t) => t.ouvert && !t.epique && !t.bot && t.parent === null).map((t) => t.numero).sort((a, b) => a - b)
+/** Issues créées dans la fenêtre sans parent, hors épiques, bots compris : leur compte et celui des
+ *  bots. PUR. */
+export function emisesSansEpique(tickets, maintenant, jours = FENETRE_JOURS) {
+  const borne = maintenant - jours * JOUR_MS
+  const emises = tickets.filter((t) => t.creee >= borne && !t.epique && t.parent === null)
+  return { total: emises.length, bots: emises.filter((t) => t.bot).length }
+}
 
 /** Épiques de la chaîne de parents d'un ticket, de la plus proche à la plus lointaine. Un cycle
  *  s'arrête au premier numéro revu. PUR. @param {Map<number, {parent:number|null, epique:boolean}>} parNumero */
@@ -96,12 +102,12 @@ export function balanceParVague(tickets, maintenant, jours = FENETRE_JOURS) {
 export function jugerStock(tickets, maintenant, jours = FENETRE_JOURS) {
   const ouvertes = tickets.filter((t) => t.ouvert).length
   const croissance = croissanceNette(tickets, maintenant, jours)
-  const sansEpique = orphelins(tickets)
+  const sansEpique = emisesSansEpique(tickets, maintenant, jours)
   const balance = balanceParVague(tickets, maintenant, jours)
   const mesures = [
     `travail restant : ${ouvertes} issue(s) ouverte(s)`,
     `croissance nette ${jours} j : ${croissance.creees} créée(s) − ${croissance.fermees} fermée(s) = ${croissance.net}`,
-    `orphelins (ouverts sans parent) : ${sansEpique.length}`,
+    `émises sans épique ${jours} j : ${sansEpique.total} (dont ${sansEpique.bots} de bots)`,
     ...balance.filter((b) => !b.rouge).map((b) => `vague de l'épique #${b.epique} : ${b.fermees} fermé(s) ≥ ${b.creees} créé(s)`),
   ]
   const rouges = [

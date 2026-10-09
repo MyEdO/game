@@ -161,7 +161,7 @@ test('RATTACHEMENT : une création portant le label `épique` est exemptée', ()
 
 test("RATTACHEMENT : la note pose les trois questions dans l'ordre du credo, la sous-issue de l'épique en dernier", () => {
   const note = contexteEmission('gh issue create --title X ' + LABELS + ' --body "constat"')
-  const rangs = ['(1) corrigeable dans le geste', '(2) la COUCHE', '`campagne:*` = scénario', '(3) sinon, après création', 'sous-issue de son épique', 'jamais orpheline']
+  const rangs = ['(1) corrigeable dans le geste', '(2) la COUCHE', '`campagne:*` = scénario', "(3) sinon, si elle naît d'une vague", 'sous-issue de son épique après création', 'ops:stock-issues']
     .map((jalon) => note.indexOf(jalon))
   assert.ok(rangs.every((r) => r >= 0), `jalons absents : ${rangs}`)
   assert.deepEqual([...rangs].sort((a, b) => a - b), rangs)

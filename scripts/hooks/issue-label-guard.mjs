@@ -15,9 +15,10 @@
 //     bloquer ; la mesure passe d'abord, le refus se re-décide sur la chute.
 //     Et le RATTACHEMENT (#2561, credo puce « Le poison se corrige DANS LE GESTE ») : toute création
 //     CLI qui ne porte pas le label `épique` reçoit la note des trois questions, dans l'ordre du
-//     credo, dont la dernière est la sous-issue native à poser APRÈS la création. Le rattachement
-//     n'existe pas avant que l'issue existe : il ne se juge pas ici, mais a posteriori par les
-//     orphelins de `npm run ops:stock-issues`, créations REST/GraphQL comprises.
+//     credo, dont la dernière est, pour une issue née d'une vague, la sous-issue native de son épique
+//     à poser APRÈS la création. Le rattachement n'existe pas avant que l'issue existe : il ne se juge
+//     pas ici, mais a posteriori par les émises sans épique de `npm run ops:stock-issues`, créations
+//     REST/GraphQL comprises.
 //   - Une demande d'AIDE (`gh help …`, `--help`, `-h`) n'exécute rien : elle n'est pas une création.
 //
 // Robustesse : on ne fait PAS un grep de sous-chaîne (`gh issue create` cité dans un `--body`/un
@@ -174,18 +175,18 @@ const FAMILLES = ['sev:', 'type:', 'domaine:']
 const TITRE_MAX = 200
 
 /** Les trois questions du rattachement, dans l'ordre du credo (puce « Le poison se corrige DANS LE
- *  GESTE ») ; la dernière pose la sous-issue native
+ *  GESTE ») ; la dernière pose, pour une issue née d'une vague, la sous-issue native
  *  (`POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues`, champ `sub_issue_id` = l'`id` REST
  *  de l'issue, pas son numéro). */
 const NOTE_RATTACHEMENT =
   'Rattachement (credo, puce « Le poison se corrige DANS LE GESTE »), dans CET ordre : ' +
   "(1) corrigeable dans le geste ? alors pas d'issue, on corrige ; (2) la COUCHE : " +
   '`type:règle-optionnelle` / `policy-à-trancher` = système ; `campagne:*` = scénario → valeur ' +
-  "d'adaptation décidée et tracée, pas d'issue ; (3) sinon, après création, rattache-la en " +
-  'sous-issue de son épique — ' +
-  `jamais orpheline : \`gh api -X POST repos/${DEPOT}/issues/<épique>/sub_issues -F ` +
+  "d'adaptation décidée et tracée, pas d'issue ; (3) sinon, si elle naît d'une vague, rattache-la " +
+  'en sous-issue de son épique après création : ' +
+  `\`gh api -X POST repos/${DEPOT}/issues/<épique>/sub_issues -F ` +
   `sub_issue_id=<id>\`, où <id> = \`gh api repos/${DEPOT}/issues/<numéro créé> --jq .id\`. ` +
-  'Les orphelins se comptent par `npm run ops:stock-issues`.'
+  'Les émises sans épique se comptent par `npm run ops:stock-issues`.'
 
 /**
  * Contexte à INJECTER (jamais un refus) : familles de labels absentes, titre au-delà de `TITRE_MAX`,
