@@ -1,4 +1,5 @@
-import { beforeAll, describe, it, expect } from 'vitest';
+import { afterAll, beforeEach, vi, beforeAll, describe, it, expect } from 'vitest';
+import * as cssImages from '../../scripts/guards/lib/cssImages.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,7 +52,24 @@ const UI = fileURLToPath(new URL('.', import.meta.url)); // src/ui/
 /** L'image CSS de l'arbre de travail, lue UNE fois avant les `it` : chaque lecture rejoue tout le corpus
  *  git, et un `it` qui la paierait dépasserait sa limite sous charge (#2349). */
 let image: ReturnType<typeof imageDuDisque>;
-beforeAll(() => { image = imageDuDisque(); }, 120_000);
+const lecturesImage = { nombre: 0 };
+const originalImageCss = cssImages.imageCss;
+const compterImage: typeof cssImages.imageCss = (...args) => {
+  lecturesImage.nombre++;
+  return originalImageCss(...args);
+};
+let espionImage = vi.spyOn(cssImages, 'imageCss').mockImplementation(compterImage);
+beforeEach(() => {
+  espionImage = vi.spyOn(cssImages, 'imageCss').mockImplementation(compterImage);
+});
+afterAll(() => {
+  try { expect(lecturesImage.nombre).toBe(1); }
+  finally { espionImage.mockRestore(); }
+});
+beforeAll(() => {
+  image = imageDuDisque();
+  expect(lecturesImage.nombre).toBe(1);
+}, 120_000);
 /** Les modules d'ÉCRAN de l'arbre de travail. */
 const ecransDuDisque = () => modulesDEcran(image);
 /** Les trois volets du stock CSS, mesurés sur l'arbre de travail. */
@@ -1490,7 +1508,7 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
   });
 
   it('le stock committé est un point fixe de sa régénération', () => {
-    for (const r of regenerations()) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
+    for (const r of regenerations(mesureDuDisque())) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   it('(xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée', () => {
