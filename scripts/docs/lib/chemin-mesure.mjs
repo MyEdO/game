@@ -9,9 +9,12 @@
 // Décision « ce chemin sous la racine entre-t-il dans la mesure ? » (#1769) — même feuille : la mesure
 // est celle du plan GIT. Ce que git IGNORE (un `__pycache__` posé par un script Python, `node_modules`)
 // n'est ni un fichier lu, ni un dossier listé, ni une entrée de listing : un clone propre ne l'a pas.
-import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { cheminsIgnores, depotDe, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe } from '../../guards/lib/gitPorte.mjs'
+import { correspondGlob, listerArbre } from '../../guards/lib/lister.mjs'
+import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 
 /** Ancêtre EXISTANT le plus proche d'un chemin absolu (lui-même s'il existe), ou `null` quand rien
  *  n'existe jusqu'à la racine (lecteur absent). */
@@ -78,24 +81,91 @@ export function relatifSousRacine(racineCanonique, chemin, canoniserChemin = can
  * Windows, 10 appels) : 56 à 693 ms selon la charge, d'où un seul appel par `docs:build`, transmis aux processus mesurés.
  */
 export function ignoresGit(racine) {
-  const sortie = execFileSync(
-    'git',
-    ['-c', 'core.quotepath=false', 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
-    { cwd: racine, encoding: 'utf8', maxBuffer: 1 << 28 },
-  )
-  return new Set(sortie.split('\0').filter(Boolean).map((p) => p.replace(/\/$/, '')))
+  return nonSuivisIgnoresDe(depotDe(racine))
 }
 
-/**
- * Le chemin RELATIF POSIX (`relatifSousRacine`) entre-t-il dans la mesure ? Non s'il est ignoré par
- * git (`ignoresGit`), lui ou l'un de ses dossiers parents, ni s'il est sous `.git` — le dépôt lui-même,
- * que `ls-files` ne rend jamais. SEULE décision du périmètre : fichier lu, dossier listé et entrée de
- * listing passent tous ici.
- */
-export function dansLaMesure(rel, ignores) {
-  if (rel === '.git' || rel.startsWith('.git/')) return false
+export function perimetreDeMesure(racine) {
+  const base = canoniser(racine)
+  const depot = depotDe(racine)
+  const racineGit = racineDe(depot)
+  if (racineGit !== null) {
+    const ignores = new Set([...ignoresGit(base), ...EXCLUSIONS_FIXES])
+    return { nature: 'git', ignores, signature: signatureGit(racine, base, depot, ignores, racineGit) }
+  }
+  const volume = path.resolve(base, path.sep)
+  const segments = path.relative(volume, base).split(path.sep).filter(Boolean)
+  const ancetres = [base, ...segments.map((_segment, i) => path.join(volume, ...segments.slice(0, segments.length - i - 1)))]
+  for (const ancetre of ancetres) {
+    try { fs.lstatSync(path.join(ancetre, '.git')) } catch (erreur) {
+      if (erreur.code === 'ENOENT') continue
+      throw erreur
+    }
+    throw new Error('marqueur .git présent sans dépôt valide')
+  }
+  return { nature: 'physique', ignores: new Set(EXCLUSIONS_FIXES), signature: { nature: 'physique', exclusions: EXCLUSIONS_FIXES } }
+}
+
+const EXCLUSIONS_FIXES = ['.git', 'node_modules', path.posix.dirname(CACHE_FRAICHEUR)].sort()
+
+function hashPolitique(chemin, sansSuivre = false, racineCanonique, relatifAttendu) {
+  if (racineCanonique && relatifSousRacine(racineCanonique, path.dirname(chemin)) !== path.posix.dirname(relatifAttendu).replace(/^\.$/, ''))
+    throw new Error(`politique hors racine : ${relatifAttendu}`)
+  let stat
+  try { stat = sansSuivre ? fs.lstatSync(chemin) : fs.statSync(chemin) } catch (e) {
+    if (e.code === 'ENOENT') return null
+    throw e
+  }
+  if (stat.isSymbolicLink()) return { lien: fs.readlinkSync(chemin) }
+  if (racineCanonique && relatifSousRacine(racineCanonique, chemin) !== relatifAttendu) throw new Error(`politique hors racine : ${relatifAttendu}`)
+  if (!stat.isFile()) throw new Error(`politique attendue dans un fichier : ${chemin}`)
+  return createHash('sha256').update(fs.readFileSync(chemin)).digest('hex')
+}
+
+function signatureGit(racine, base, depot, ignores, racineGit) {
+  const gitCanonique = canoniser(racineGit)
+  const prefixe = relatifSousRacine(gitCanonique, racine)
+  if (prefixe === null) throw new Error('racine mesurée hors dépôt Git')
+  const dossiers = [...ignores].filter((rel) => !EXCLUSIONS_FIXES.includes(rel) && fs.lstatSync(path.join(racine, rel)).isDirectory())
+  const dossiersExclus = new Set([...EXCLUSIONS_FIXES, ...[...cheminsIgnores(depot, dossiers.map((rel) => `${rel}/`))].map((rel) => rel.replace(/\/$/, ''))])
+  const fichiers = listerArbre(racine, {
+    filtre: (rel) => path.posix.basename(rel) === '.gitignore',
+    descendre: (rel) => dansLaMesure(rel, dossiersExclus),
+  })
+  const politique = politiqueExclusionsDe(depot)
+  const regles = [...new Set(['.gitignore', ...fichiers])].sort().map((rel) => {
+    const chemin = path.join(racine, rel)
+    return [prefixe ? `${prefixe}/${rel}` : rel, hashPolitique(chemin, true, base, rel)]
+  })
+  for (let parent = path.posix.dirname(prefixe); prefixe && parent !== '.'; parent = path.posix.dirname(parent)) {
+    const rel = `${parent}/.gitignore`
+    const chemin = path.join(racineGit, rel)
+    regles.push([rel, hashPolitique(chemin, true, gitCanonique, rel)])
+  }
+  if (prefixe) regles.push(['.gitignore', hashPolitique(path.join(racineGit, '.gitignore'), true, gitCanonique, '.gitignore')])
+  const excludeEffectif = politique.exclude.chemin
+  return {
+    nature: 'git', exclusions: EXCLUSIONS_FIXES,
+    fichiers: regles.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0),
+    exclude: { chemin: canoniser(excludeEffectif), hash: hashPolitique(excludeEffectif) },
+    global: { ...politique.global, hash: politique.global.chemin ? hashPolitique(politique.global.chemin) : null },
+  }
+}
+
+/** #2475 / #2477 */
+export function dansLaMesure(rel, ignores, derivees = new Set(), motifsDeclares = []) {
+  if (EXCLUSIONS_FIXES.some((p) => rel === p || rel.startsWith(`${p}/`))) return false
+  if (motifsDeclares.some((motif) => correspondGlob(rel, motif))) return true
+  if (derivees.has(rel) || [...derivees].some((p) => p.startsWith(`${rel}/`))) return true
   for (let fin = rel.length; fin > 0; fin = rel.lastIndexOf('/', fin - 1)) if (ignores.has(rel.slice(0, fin))) return false
   return true
 }
 
-export const CONTRATS_DE_DERIVATION = [{ fonction: ancetreExistant, lectures: 'corpus' }, { fonction: canoniser, lectures: 'corpus' }]
+export function projeterListingMesure(rel, snapshot, ignores, derivees = new Set(), propres = [], motifsDeclares = []) {
+  if (!snapshot || !['directory', 'absent', 'other'].includes(snapshot.nature) || !Array.isArray(snapshot.entrees)) throw new Error('listing sans photographie typée')
+  return { nature: snapshot.nature, entrees: snapshot.entrees.filter((e) => {
+    const chemin = rel ? `${rel}/${e.nom}` : e.nom
+    return dansLaMesure(chemin, ignores, derivees, motifsDeclares) && !(e.nature === 'file' && propres.some((motif) => correspondGlob(chemin, motif)))
+  }) }
+}
+
+export const CONTRATS_DE_DERIVATION = [{ fonction: ancetreExistant, lectures: 'corpus', retour: 'corpus' }, { fonction: canoniser, lectures: 'corpus', retour: 'corpus' }]

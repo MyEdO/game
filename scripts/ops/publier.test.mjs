@@ -2418,9 +2418,9 @@ function tuer(pid) {
   else process.kill(pid, 'SIGKILL')
 }
 
-test('#2493 T3 : la veille COMPOSITE sous bash, sa première veille TUÉE, puis le train : le constat rend le verdict, code 0, jamais 127', async () => {
+test('#2493 T3 : la veille COMPOSITE sous le shell POSIX de Git, sa première veille TUÉE, puis le train : le constat rend le verdict, code 0, jamais 127', async () => {
   const { racine, sha: fusion } = implantationDuCli()
-  let train, bash, borne, veille = 0
+  let train, shell, borne, veille = 0
   try {
     const branche = `chantier/2493-t3-${process.pid}-${Date.now()}`
     const chemins = cheminsDeJournal(racine, branche)
@@ -2437,10 +2437,10 @@ test('#2493 T3 : la veille COMPOSITE sous bash, sa première veille TUÉE, puis 
     })
     writeFileSync(chemins.log, '')
     const env = { ...envDeDepotForge(), ...envGitFeint([{ si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 }]), WFRP_PUBLIER_ENFANT: '' }
-    bash = spawn('bash', ['-c', commandeDeVeille({ script: join(racine, 'scripts/ops/publier.mjs'), run })], { cwd: racine, env, stdio: ['ignore', 'pipe', 'pipe'] })
+    shell = spawn(gitDe(racine, { net: true })('var', 'GIT_SHELL_PATH'), ['-c', commandeDeVeille({ script: join(racine, 'scripts/ops/publier.mjs'), run })], { cwd: racine, env, stdio: ['ignore', 'pipe', 'pipe'] })
     let sortie = ''
-    bash.stdout.on('data', (d) => { sortie += d })
-    const fini = new Promise((ok) => bash.on('close', (code) => ok(code)))
+    shell.stdout.on('data', (d) => { sortie += d })
+    const fini = new Promise((ok) => shell.on('close', (code) => ok(code)))
     const attendre = (motif) => sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: () => motif.exec(sortie), abouti: (vu) => vu !== null })
     const premiere = await attendre(/^\[veille\] PID (\d+) veille le run /m)
     assert.ok(premiere, sortie)
@@ -2448,7 +2448,7 @@ test('#2493 T3 : la veille COMPOSITE sous bash, sa première veille TUÉE, puis 
     tuer(veille)
     assert.ok(await attendre(new RegExp(`^\\[veille\\] constat du run ${run} après la sortie de sa veille$`, 'm')), sortie)
     train.kill()
-    borne = setTimeout(() => bash.kill(), 60_000)
+    borne = setTimeout(() => shell.kill(), 60_000)
     const code = await fini
     clearTimeout(borne)
     assert.equal(code, 0, sortie)
@@ -2458,9 +2458,9 @@ test('#2493 T3 : la veille COMPOSITE sous bash, sa première veille TUÉE, puis 
     clearTimeout(borne)
     try {
       train?.kill()
-      bash?.kill()
+      shell?.kill()
       if (veille && estPidVivant(veille)) tuer(veille)
-      for (const pid of [veille, train?.pid, bash?.pid]) {
+      for (const pid of [veille, train?.pid, shell?.pid]) {
         if (pid) assert.equal(await sousEcheanceAsync({ attente: { echeanceMs: 10_000, pasMs: 50 }, essai: () => estPidVivant(pid), abouti: (vit) => !vit }), false, `PID ${pid} survit`)
       }
     } finally {

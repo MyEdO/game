@@ -27,7 +27,6 @@ import { portDev, urlDev } from '../port-dev.mjs'
 import { annonceEspacee, synchroniserPrincipal, verrouDuConsommateur } from './synchroniser.mjs'
 import { attendreLibre } from '../test/verrou.mjs'
 import { GENERATORS, NON_GENERATOR_CHECKS, SOURCES_LUES, ciblesPures, ciblesSurDisque, estCiblePure, generateurDe } from '../docs/build-all.mjs'
-import { selectionDesGenerateurs } from '../git-hooks/docs-rebuild.mjs'
 import { copierDocsFrais } from '../docs/lib/fraicheur-docs.mjs'
 
 /** Racine de l'arbre qui porte CE script. */
@@ -215,14 +214,15 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
     if (args.includes('docs:build')) {
       const copie = etape('copie des docs dérivés', () => copierDocs({
         principal, cible, generateurs: GENERATORS, verificateurs: NON_GENERATOR_CHECKS,
-        ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, sourcesLues: SOURCES_LUES, selecteur: selectionDesGenerateurs,
+        ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, sourcesLues: SOURCES_LUES,
       }))
       if (copie.ok) {
         ;(annoncer ?? ((texte) => process.stderr.write(texte)))(`[chantier] docs dérivés copiés : ${copie.copies}\n`)
         if (!copie.scriptsARegenerer?.length) continue
-        args = [...argsEquipe, '--', '--only', ...copie.scriptsARegenerer]
+        args = [...argsEquipe, '--', '--perimes']
       } else {
         ;(annoncer ?? ((texte) => process.stderr.write(texte)))(`[chantier] repli docs:build : ${copie.raison}\n`)
+        args = [...argsEquipe, '--', '--perimes']
       }
     }
     const vuNpm = etape(`${relance}${ou}`, () => npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, {

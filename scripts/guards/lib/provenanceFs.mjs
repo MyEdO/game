@@ -35,11 +35,15 @@ export function creerProvenanceFs({ sourceFile, checker, ts }) {
     if (ts.isPropertyAccessExpression(n)) {
       const base = provenance(n.expression, vus)
       if (base?.fs) return n.name.text === 'promises' ? base : { operation: n.name.text }
+      if (base?.operation === 'realpathSync' && n.name.text === 'native') return base
       return null
     }
-    if (ts.isElementAccessExpression(n) && provenance(n.expression, vus)?.fs) {
+    if (ts.isElementAccessExpression(n)) {
+      const base = provenance(n.expression, vus)
       const operation = litteral(n.argumentExpression)
-      return operation === 'promises' ? { fs: true } : { operation }
+      if (base?.fs) return operation === 'promises' ? { fs: true } : { operation }
+      if (base?.operation === 'realpathSync' && operation === 'native') return base
+      return null
     }
     if (!ts.isIdentifier(n)) return null
     const s = symbole(n)

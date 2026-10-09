@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { inspect } from 'node:util'
 import { CHAMPS_DE_CLE, CHAMPS_D_ECHEANCE, SEPARATEUR_DE_REMEDE, cleDeSite, sitesEnEntrees } from './stock.mjs'
 import {
   DECROISSANT, FORMAT_JSON, FORMAT_MJS, REMESURE, SOUS_LOT, comptesParFamille, ecartDeRegeneration,
@@ -326,7 +327,7 @@ test('#2285 famille regen callback : CLI refuse avant écriture', () => withTemp
   const stdout = 'stdout attribut distinct'
   assert.ok(stderr.indexOf('cause attribut tardive') > 400)
   const vu = commande([module], envGitFeint([{ si: ['check-attr'], status: 35, stdout, stderr }, { si: [], status: 97, stderr: 'GARDE regen\n' }]))
-  assert.equal(vu.status, 2, vu.stderr)
+  assert.equal(vu.status, 2, inspect(vu, { depth: null }))
   const quote = String.fromCharCode(96)
   assert.ok(vu.stderr.includes(stock + ' : l\'attribut git merge vaut (git check-attr en échec : refus (status 35) — ' + stderr + '\n' + stdout + '), pas ' + quote + 'stocks' + quote + ' (.gitattributes) : rien n\'est écrit.\n'), vu.stderr)
   assert.equal(readFileSync(stock, 'utf8'), 'sentinelle\n')

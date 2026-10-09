@@ -537,11 +537,20 @@ describe('synchroniserPrincipal — matrice', () => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
     const vus = await Promise.all([lancerEnParallele(m.principal), lancerEnParallele(m.principal)])
-    assert.deepEqual(vus.map((v) => v.status), [0, 0], JSON.stringify(vus))
-    assert.deepEqual(vus.map((v) => JSON.parse(v.stdout).etat).sort(), ['a-jour', 'avance'])
-    assert.equal(head(m.principal), U)
-    assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
-    assert.equal(existsSync(join(m.principal, '.git', 'synchro.verrou')), false)
+    const rendus = vus.map((v) => {
+      try { return JSON.parse(v.stdout) } catch { return null }
+    })
+    const pids = rendus.map((rendu) => rendu?.consommateurs?.pid).filter((pid) => pid !== undefined)
+    try {
+      assert.deepEqual(vus.map((v) => v.status), [0, 0], JSON.stringify(vus))
+      assert.deepEqual(vus.map((v) => JSON.parse(v.stdout).etat).sort(), ['a-jour', 'avance'])
+      await consommationFinie(m.principal, pids)
+      assert.equal(head(m.principal), U)
+      assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
+      assert.equal(existsSync(join(m.principal, '.git', 'synchro.verrou')), false)
+    } finally {
+      if (rendus.some((rendu) => rendu !== null)) await consommationFinie(m.principal, pids)
+    }
   })
 
   test('12 merge.autoStash=true sans effet', async () => {
@@ -708,10 +717,18 @@ describe('synchroniserPrincipal — matrice', () => {
     committer(m.amont, { 'a.md': 'b\n' })
     writeFileSync(join(m.principal, '.git', 'index.lock'), '')
     const annonces = []
+    let maintenant = Date.now()
+    const horloge = () => maintenant
+    const avancer = setInterval(() => { maintenant += 20 }, 20)
     const liberer = setTimeout(() => rmSync(join(m.principal, '.git', 'index.lock')), 400)
-    const vu = await synchroniserEtConsommer({ depuis: m.principal, env: ENV, gestes: { attente: { echeanceMs: 3_000, pasMs: 20 } }, annoncer: (t) => annonces.push(t) })
-    clearTimeout(liberer)
-    assert.equal(vu.etat, 'avance')
+    let vu
+    try {
+      vu = await synchroniserEtConsommer({ depuis: m.principal, env: ENV, horloge, gestes: { attente: { echeanceMs: 3_000, pasMs: 20 } }, annoncer: (t) => annonces.push(t) })
+    } finally {
+      clearInterval(avancer)
+      clearTimeout(liberer)
+    }
+    assert.equal(vu.etat, 'avance', JSON.stringify(vu))
     assert.equal(annonces.length, 1)
     const date = new Date(Date.now() - 42_000).toISOString()
     writeFileSync(join(m.principal, '.git', 'synchro.verrou'), JSON.stringify({ pid: 999_999, commande: 'ops:synchroniser', date }))

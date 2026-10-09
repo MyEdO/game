@@ -3,7 +3,8 @@ import '../node-requis.mjs'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ciblesSurDisque, GENERATORS, generateursDeCode, genererCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesSurDisque, GENERATORS, generateursDeCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
+import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import { ceQuEmporteLIndex, ceQuiChange, depotDe, estAncetre, etatDeLArbre, fusionnesEnCours, parentsDe, racineDe, refusDeGit, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
@@ -52,18 +53,6 @@ export function lotDuPostMerge(cwd, { squash = false } = {}) {
 /** Consigne d'un arbre SANS mesure (worktree neuf) : ses docs purs sont absents, rien ne les a produits. */
 export const CONSIGNE_SANS_MESURE =
   'docs dérivés absents ou non mesurés (docs/.sources-lues.json) : `npm run docs:build` les produit\n'
-
-/**
- * Décision de post-checkout (`avant`, `apres` : les HEAD que git passe au hook). HEAD immobile :
- * `rien` ; arbre sans mesure : `consigne` — un changement de branche ne bloque jamais sur un
- * `docs:build` complet ; sinon la sélection de post-merge (`touchesDocSources`). PURE.
- * @returns {'rien'|'consigne'|'regenerer'}
- */
-export function planDuCheckout({ avant, apres, mesure, lot }) {
-  if (avant === apres) return 'rien'
-  if (mesure === null) return 'consigne'
-  return touchesDocSources(lot, mesure) ? 'regenerer' : 'rien'
-}
 
 /** Les sources MESURÉES de l'arbre (`docs/.sources-lues.json`), ou `null` si le dérivé est illisible. */
 export function sourcesMesurees(racine) {
@@ -118,16 +107,15 @@ export function touchesDocSources(chemins, mesure, { seulement = null } = {}) {
   })
 }
 
-export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERATORS, scriptsInitiaux = null }) {
+export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERATORS }) {
   const tous = (raison) => ({ scripts: generateurs.map((g) => g.script), complete: true, raison })
-  if (scriptsInitiaux === null && lot === null) return tous('plage Git inconnue')
-  if (scriptsInitiaux === null && lot.some((f) => LECTURES_DES_DEPENDANCES.includes(f))) return tous('toolchain modifiée : lectures des dépendances non mesurées')
+  if (lot === null) return tous('plage Git inconnue')
+  if (lot.some((f) => LECTURES_DES_DEPENDANCES.includes(f))) return tous('toolchain modifiée : lectures des dépendances non mesurées')
   if (!mesure || generateurs.some((g) => !Array.isArray(mesure[g.script]?.fichiers) || !Array.isArray(mesure[g.script]?.dossiers) || !Array.isArray(mesure[g.script]?.cibles))) return tous('mesure absente ou incomplète')
-  if (scriptsInitiaux === null && lot.some((f) => ['scripts/docs/build-all.mjs', 'scripts/git-hooks/docs-rebuild.mjs'].includes(f) || f.startsWith('scripts/docs/lib/'))) return tous('graphe ou outil de mesure modifié')
-  if (scriptsInitiaux === null && generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||
+  if (lot.some((f) => ['scripts/docs/build-all.mjs', 'scripts/git-hooks/docs-rebuild.mjs'].includes(f) || f.startsWith('scripts/docs/lib/'))) return tous('graphe ou outil de mesure modifié')
+  if (generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||
     [...g.targets, ...(g.injecte ?? [])].some((c) => !c.includes('*') && !existsSync(join(cwd, c))))) return tous('cible absente')
-  if (scriptsInitiaux && scriptsInitiaux.some((s) => !generateurs.some((g) => g.script === s))) return tous('générateur initial inconnu')
-  const selection = new Set(scriptsInitiaux ?? generateurs.filter((g) => touchesDocSources(lot, mesure, { seulement: [g.script] })).map((g) => g.script))
+  const selection = new Set(generateurs.filter((g) => touchesDocSources(lot, mesure, { seulement: [g.script] })).map((g) => g.script))
   const sorties = (g) => [...g.targets, ...(g.injecte ?? [])]
   let changement = true
   while (changement) {
@@ -149,15 +137,17 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
   return { scripts: generateurs.filter((g) => selection.has(g.script)).map((g) => g.script), complete: false, raison: 'sources mesurées et préalables' }
 }
 
-export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, code = genererCode, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, generateurs = GENERATORS }) {
+export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, generateurs = GENERATORS }) {
   let lot
   if (hook === 'post-commit') {
     const depot = depotDe(cwd, { enPanne: (_raison, vu) => annoncer(`[${hook}] lecture Git indisponible : ${refusDeGit(vu)}\n`) })
     const parents = parentsDe(depot, 'HEAD')
-    if (parents !== null && parents.length < 2) return 0
-    const nouveau = shaDe(depot, 'HEAD')
-    const ancien = shaPrecedentDeHead(depot)
-    lot = parents === null || nouveau === null || ancien === null ? null : touchedFiles(cwd, { de: ancien, a: nouveau })
+    if (parents !== null && parents.length < 2) lot = []
+    else {
+      const nouveau = shaDe(depot, 'HEAD')
+      const ancien = shaPrecedentDeHead(depot)
+      lot = parents === null || nouveau === null || ancien === null ? null : touchedFiles(cwd, { de: ancien, a: nouveau })
+    }
   } else lot = hook === 'post-checkout' ? (avant === apres ? [] : touchedFiles(cwd, { de: avant, a: apres }))
     : hook === 'post-merge' ? lotDuPostMerge(cwd, { squash: avant === '1' }) : touchedFiles(cwd)
   const mesure = sourcesMesurees(cwd)
@@ -166,11 +156,7 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
     annoncer(`[${hook}] worktree neuf : préparation requise par ops:chantier (\`npm ci\`, \`npm --prefix server ci\`, \`npm run docs:build\`)\n`)
     return 0
   }
-  const selection = selectionDesGenerateurs({ lot, mesure, cwd, generateurs })
-  const selectionnes = generateurs.filter((g) => selection.scripts.includes(g.script))
-  if (selection.scripts.length) annoncer(`[${hook}] docs : ${selection.complete ? 'génération complète' : 'sélection'} (${selection.scripts.length}/${generateurs.length}) — ${selection.raison}\n`)
   if (lot === null) annoncer(`[${hook}] plage Git inconnue : npm ci racine et server requis avant génération\n`)
-  let codeProduit = false
   let outillage = null
   try {
     for (const prefixe of ['', 'server/']) {
@@ -194,23 +180,16 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
         annoncer(`[${hook}] fusion effectuée, équipement incomplet : relancer \`${relance}\` dans ${cwd} (${vu?.error?.message ?? `code ${vu?.status}`}) ; générations arrêtées\n`)
         return 1
       }
-      if (!prefixe) codeProduit = true
     }
   } finally {
     outillage?.liberer?.()
   }
-  if (!codeProduit && generateursDeCode(selectionnes).length > 0 && etape('cibles de code', () => code({ cwd, quiet: false, generateurs: selectionnes })) !== 0) {
-    annoncer(`[${hook}] génération de code interrompue : docs non régénérés\n`)
-    return 1
-  }
-  if (hook === 'post-checkout') {
-    const plan = planDuCheckout({ avant, apres, mesure, lot })
-    if (plan === 'consigne') annoncer(CONSIGNE_SANS_MESURE)
-    if (plan !== 'regenerer') return 0
-  }
-  if (!selection.scripts.length) return 0
+  if (!generateurs.length) return 0
+  const validite = preuveValide(cwd, { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES })
+  if (validite.ok) return 0
+  annoncer(`[${hook}] docs : attestation périmée${validite.script ? ` (${validite.script})` : ''} — ${validite.raison}\n`)
   try {
-    etape('docs dérivés', () => docs(process.execPath, ['scripts/docs/build-all.mjs', '--verifier-code', ...(selection.complete ? [] : ['--only', ...selection.scripts])], { cwd, stdio: 'inherit' }))
+    etape('docs dérivés', () => docs(process.execPath, ['scripts/docs/build-all.mjs', '--perimes'], { cwd, stdio: 'inherit' }))
   } catch (e) {
     annoncer(`[${hook}] docs — régénération INTERROMPUE : corriger le diagnostic puis relancer \`npm run docs:build\` (${e.status ?? e.message})\n`)
     return 1

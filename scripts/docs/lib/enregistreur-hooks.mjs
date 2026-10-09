@@ -17,20 +17,25 @@
 // Chaque chemin retenu est APPENDU (le thread des hooks n'a pas d'événement de sortie fiable) dans
 // `<sortie>.<pid>.hooks.jsonl` ; `fusionnerLectures` réunit ce fichier et ceux du thread principal.
 import fs from 'node:fs'
+import path from 'node:path'
 import { syncBuiltinESMExports } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { canoniser, dansLaMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { installer } from './enregistreur-lectures.mjs'
+import { correspondGlob } from '../../guards/lib/lister.mjs'
 
 let racine = null
 let sortie = null
 let ignores = new Set()
 let cibles = new Set()
 let ciblesDerivees = new Set()
+let motifsPropres = []
+let motifsDeclares = []
 const vus = new Set()
 
 const brut = {
   appendFileSync: fs.appendFileSync,
+  lstatSync: fs.lstatSync,
 }
 
 /** `openSync` sert aussi à écrire : seul le mode lecture (`r`, `rs`, `O_RDONLY`) est une source. */
@@ -43,7 +48,9 @@ export function initialize(donnees) {
   ignores = new Set(donnees.ignores)
   cibles = new Set(donnees.cibles ?? [])
   ciblesDerivees = new Set(donnees.ciblesDerivees ?? [])
-  installer({ racine: donnees.racine, ignores, cibles: [...cibles], ciblesDerivees: [...ciblesDerivees],
+  motifsPropres = donnees.motifsPropres ?? []
+  motifsDeclares = donnees.motifsDeclares ?? []
+  installer({ racine: donnees.racine, ignores, cibles: [...cibles], motifsPropres, motifsDeclares, ciblesDerivees: [...ciblesDerivees],
     observer: (mesure) => brut.appendFileSync(`${sortie}.${process.pid}.hooks-mesures.jsonl`, `${JSON.stringify(mesure)}\n`) })
   const lire = fs.readFileSync
   const ouvrir = fs.openSync
@@ -78,7 +85,11 @@ function noterChemin(cible) {
       : null
     if (!chemin) return
     const rel = relatifSousRacine(racine, chemin)
-    if (!rel || (!dansLaMesure(rel, ignores) && !ciblesDerivees.has(rel)) || cibles.has(rel) || vus.has(rel)) return
+    if (!rel || !dansLaMesure(rel, ignores, ciblesDerivees, motifsDeclares) || vus.has(rel)) return
+    if (cibles.has(rel) || motifsPropres.some((motif) => correspondGlob(rel, motif))) {
+      try { if (brut.lstatSync(path.join(racine, rel)).isFile()) return }
+      catch (e) { if (['ENOENT', 'ENOTDIR'].includes(e.code)) return; throw e }
+    }
     vus.add(rel)
     brut.appendFileSync(`${sortie}.${process.pid}.hooks.jsonl`, `${rel}\n`)
   } catch { /* une lecture non enregistrable ne casse jamais le générateur */ }

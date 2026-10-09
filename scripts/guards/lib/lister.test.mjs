@@ -25,11 +25,11 @@
 //      que le filtre rend — une grammaire de motif locale à un site rendrait un motif inerte.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob } from './lister.mjs'
+import { listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob, motifDeGlob } from './lister.mjs'
 import { clotureDImports, estModule } from './importGraph.mjs'
 import { norm } from '../../../src/lib/normalize.ts'
 import { ciblesSurDisque, GENERATORS, NON_GENERATOR_CHECKS } from '../../docs/build-all.mjs'
@@ -39,6 +39,64 @@ import configurationLint, { BLOCS_LINT as configEslint, REGLES_ORDRE_TOTAL } fro
 
 
 const RACINE_DEPOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
+
+test('cache glob : compilation réutilisée, FIFO borné et expressions publiques isolées', () => {
+  const motifs = ['__cache2475__/a/*.ts', '__cache2475__/**/b.{md,ts}', '__cache2475__/c.[]+?.ts', '__cache2475__/**', '__cache2475__/z', '__cache2475__/{x,y}/*']
+  const chemins = ['__cache2475__/a/x.ts', '__cache2475__/a/y.md', '__cache2475__/b.ts', '__cache2475__/profond/b.md', '__cache2475__/c.[]+?.ts', '__cache2475__/z', '__cache2475__/x/source', '__cache2475__\\a\\x.ts']
+  const attendu = chemins.map(p => motifs.map(m => motifDeGlob(m).test(p.replace(/\\/g, '/'))))
+  for (let i = 0; i < 256; i++) correspondGlob('', `__cache2475__/avant/${i}`)
+  const constructeur = globalThis.RegExp
+  let compilations = 0
+  globalThis.RegExp = new Proxy(constructeur, { construct(cible, args, nouveau) { compilations++; return Reflect.construct(cible, args, nouveau) } })
+  try {
+    for (let i = 0; i < 100; i++) assert.equal(correspondGlob('__cache2475__/a/x.ts', motifs[0]), true)
+    assert.equal(compilations, 1, 'le motif répété a été recompilé')
+    for (let i = 0; i < 3; i++) assert.deepEqual(chemins.map(p => motifs.map(m => correspondGlob(p, m))), attendu)
+    assert.equal(compilations, motifs.length)
+    assert.equal(correspondGlob('__cache2475__/a/x.ts', { toString: () => motifs[0] }), true)
+    assert.equal(compilations, motifs.length)
+    const publique = motifDeGlob(motifs[0])
+    const autrePublique = motifDeGlob(motifs[0])
+    assert.notEqual(publique, autrePublique)
+    publique.compile('^jamais$')
+    publique.test = () => false
+    publique.lastIndex = 123
+    assert.equal(autrePublique.test('__cache2475__/a/x.ts'), true)
+    assert.equal(correspondGlob('__cache2475__/a/x.ts', motifs[0]), true)
+    for (let i = 0; i < 256; i++) correspondGlob('', `__cache2475__/purge/${i}`)
+    compilations = 0
+    const premier = '__cache2475__/fifo/premier'
+    correspondGlob(premier, premier)
+    for (let i = 0; i < 255; i++) correspondGlob('', `__cache2475__/fifo/${i}`)
+    assert.equal(compilations, 256)
+    assert.equal(correspondGlob(premier, premier), true)
+    assert.equal(compilations, 256)
+    correspondGlob('', '__cache2475__/fifo/dernier')
+    assert.equal(compilations, 257)
+    assert.equal(correspondGlob(premier, premier), true)
+    assert.equal(compilations, 258, 'le premier motif n’a pas été évincé après 256 entrées nouvelles')
+  } finally { globalThis.RegExp = constructeur }
+  assert.equal(globalThis.RegExp, constructeur)
+})
+
+test('photographie typée : nature avant/après, lien, dossier vide et absence restent distincts', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'listing-type-'))
+  try {
+    writeFileSync(join(dir, 'A'), 'a')
+    mkdirSync(join(dir, 'Cible'))
+    symlinkSync(join(dir, 'Cible'), join(dir, 'Lien'), process.platform === 'win32' ? 'junction' : 'dir')
+    const avant = listerDossier(dir, { avecTypes: true })
+    assert.deepEqual(avant, { nature: 'directory', entrees: [{ nom: 'A', nature: 'file' }, { nom: 'Cible', nature: 'directory' }, { nom: 'Lien', nature: 'link' }] })
+    assert.deepEqual(listerDossier(dir), ['A', 'Cible', 'Lien'])
+    assert.deepEqual(listerDossier(join(dir, 'A'), { absent: 'vide', avecTypes: true }), { nature: 'other', entrees: [] })
+    assert.deepEqual(listerDossier(join(dir, 'absent'), { absent: 'vide', avecTypes: true }), { nature: 'absent', entrees: [] })
+    assert.deepEqual(listerDossier(join(dir, 'Cible'), { avecTypes: true }), { nature: 'directory', entrees: [] })
+    rmSync(join(dir, 'A'))
+    mkdirSync(join(dir, 'A'))
+    assert.equal(listerDossier(dir, { avecTypes: true }).entrees[0].nature, 'directory')
+    assert.equal(avant.entrees[0].nature, 'file')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
 
 /** Le bloc de la config réelle qui déclare cette règle du mur — UN seul (volet UNICITÉ). */
 function blocDe(regle) {
@@ -192,10 +250,10 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
  *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). */
 const EXEMPTIONS_DU_MUR = [
   'scripts/guards/lib/sourceCorpus.test.mjs:37',
-  'scripts/docs/lib/enregistreur-lectures.mjs:105', 'scripts/docs/lib/enregistreur-lectures.mjs:111',
-  'scripts/docs/lib/enregistreur-lectures.mjs:140', 'scripts/docs/lib/enregistreur-lectures.mjs:172',
-  'scripts/docs/lib/enregistreur-lectures.mjs:176', 'scripts/docs/lib/enregistreur-lectures.mjs:197',
-  'scripts/docs/lib/enregistreur-lectures.mjs:203',
+  'scripts/docs/lib/enregistreur-lectures.mjs:104', 'scripts/docs/lib/enregistreur-lectures.mjs:110',
+  'scripts/docs/lib/enregistreur-lectures.mjs:140', 'scripts/docs/lib/enregistreur-lectures.mjs:173',
+  'scripts/docs/lib/enregistreur-lectures.mjs:177', 'scripts/docs/lib/enregistreur-lectures.mjs:198',
+  'scripts/docs/lib/enregistreur-lectures.mjs:204',
   'scripts/test/partition.mjs:191', 'scripts/test/partition.mjs:196',
 ]
 
