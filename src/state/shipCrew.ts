@@ -10,7 +10,9 @@ import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
-import type { CampaignVessel } from './store';
+import type { CampaignVessel, GameState } from './store';
+import { inBattleId } from './combatants';
+import { knownShanties } from '../engine/combatFeatures/dispatch';
 import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
@@ -21,6 +23,7 @@ import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
 import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
 import { battleRng } from './battleRng';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { t } from '../i18n';
 import type { Get, Set as SetFn } from './flowTypes';
 
@@ -170,10 +173,33 @@ export function shipSaboteurDR(ship: Combatant): number {
   return clampSaboteurDR(ship.saboteurDR ?? 0);
 }
 
-/** QUART de veille (MDG 09 l.40 : « Une seule chanson de marin peut être chantée lors de chaque quart ») —
- *  le RAW ne chiffre pas le quart ; on prend le quart de veille naval STANDARD de 4 heures (240 min). */
-export const QUART_MINUTES = 240;
-export const quartIndex = (gameTime: number): number => Math.floor(gameTime / QUART_MINUTES);
+/** Début de chacun des sept QUARTS d'un navire, en minutes depuis minuit — MDG 03 l.71-81. */
+export const DEBUTS_DES_QUARTS: readonly number[] = [0, 4 * 60, 8 * 60, 12 * 60, 16 * 60, 18 * 60, 20 * 60];
+
+/** Rang ABSOLU du quart qui contient `gameTime` (jour × 7 + quart du jour) — MDG 09 l.40. */
+export function quartIndex(gameTime: number): number {
+  const jour = Math.floor(gameTime / MINUTES_PER_DAY);
+  const minute = gameTime - jour * MINUTES_PER_DAY;
+  return jour * DEBUTS_DES_QUARTS.length + DEBUTS_DES_QUARTS.filter((debut) => debut <= minute).length - 1;
+}
+
+/** Le marin peut-il CHANTER (MDG 09 l.32-38) ? Dans la rencontre et en état d'agir (`isOutOfAction`),
+ *  et connaît une chanson (`knownShanties`). Aptitude UNIQUE lue par `chanteurDuQuart`. */
+export function chanteurApte(c: Combatant): boolean {
+  return !isOutOfAction(c) && knownShanties(c).length > 0;
+}
+
+/** Le CHANTEUR de la coque pour ce quart (MDG 09 l.32-40) : le marin apte (`chanteurApte`) qui connaît
+ *  le plus de chansons et n'en chante aucune — sinon la RAISON du refus (quart déjà chanté, l.40 ;
+ *  aucun chanteur). Prédicat UNIQUE du dispatcher `battleSingShanty` et du verdict d'offre
+ *  `chanson-a-chanter`. */
+export function chanteurDuQuart(ship: Combatant, battle: GameState['battle'], gameTime: number): { chanteur: Combatant } | { raison: string } {
+  if (ship.lastShantyQuart === quartIndex(gameTime)) return { raison: t('agate.shantyQuartSung') };
+  const chanteur = (ship.crewIds ?? []).map((id) => inBattleId(battle, id))
+    .filter((c): c is Combatant => !!c && chanteurApte(c) && !c.singingShanty)
+    .sort((a, b) => knownShanties(b).length - knownShanties(a).length)[0];
+  return chanteur ? { chanteur } : { raison: t('agate.noShantySinger') };
+}
 
 /** Préfixe d'identité des effets de chanson (retrait ciblé à l'interruption — MDG 09 l.38). */
 const SHANTY_LABEL = (label: string): string => t('crew.shantyLabel', { label });

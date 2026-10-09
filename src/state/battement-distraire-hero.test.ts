@@ -153,7 +153,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
     useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, acted: false } });
     return { H, E };
   }
-  const ctx = (H: Combatant) => ({ active: H, battle: useGame.getState().battle! });
+  const ctx = (H: Combatant) => ({ gameTime: 0, active: H, battle: useGame.getState().battle! });
 
   it('BATTEMENT : sans adversaire ENGAGÉ, la case est refusée AVEC sa raison ; l’Engagement l’ouvre', () => {
     const { H, E } = terrain();

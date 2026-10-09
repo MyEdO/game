@@ -35,7 +35,7 @@ function combat(mode: 'local' | 'host' | 'guest' = 'host') {
 
 const battle = () => useGame.getState().battle!;
 const mains = () => battle().handRaisedBy ?? [];
-const ctx = (): Parameters<typeof actionGate>[1] => ({ active: battle().combatants[0] as Combatant, battle: battle(), netMode: useGame.getState().net.mode });
+const ctx = (): Parameters<typeof actionGate>[1] => ({ gameTime: 0, active: battle().combatants[0] as Combatant, battle: battle(), netMode: useGame.getState().net.mode });
 
 beforeEach(() => {
   useGame.setState({ battle: null, net: { ...useGame.getState().net, mode: 'local', mySeat: 0, ownership: {}, seatNames: {} } });

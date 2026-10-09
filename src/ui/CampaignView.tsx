@@ -223,6 +223,7 @@ export function CampaignView() {
         active: (inBattleId(battle, battle.order[battle.turn]) ?? battle.combatants[0])!,
         battle,
         netMode,
+        gameTime,
       })
     : { ok: false, reason: '' };
   // #21 : pendant un ciblage d'ENTITÉ, cliquer un PORTRAIT (frise ou dock) cible ce combattant —

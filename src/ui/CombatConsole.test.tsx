@@ -1647,13 +1647,13 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
       expect(lire()[0], 'l’entrée sortie de l’offre a quitté sa case').toBe('disengage');
       const fermee = cellules()[0] as HTMLButtonElement;
       expect(fermee.hasAttribute('data-gated'), 'la case hors offre ne porte pas de raison').toBe(true);
-      expect(refusAuSurvol(fermee)).toBe(actionGate('disengage', { active: porteurDuStore(), battle: useGame.getState().battle!, netMode: 'local' }).reason);
+      expect(refusAuSurvol(fermee)).toBe(actionGate('disengage', { gameTime: 0, active: porteurDuStore(), battle: useGame.getState().battle!, netMode: 'local' }).reason);
       expect(ecritures).toBe(2);
     });
 
     it('une entrée hors offre que le registre ne ferme pas porte la raison de SITE (i18n)', () => {
       monter(poserDansBarre(gunnar(), { zone: 'capacites', index: 11 }, { actionId: 'frenzy', cle: 'frenzy' }), { foes: [foe('e1', 9, 9)] });
-      expect(actionGate('frenzy', { active: porteurDuStore(), battle: useGame.getState().battle!, netMode: 'local' }).ok, 'témoin : le registre ouvre Frénésie').toBe(true);
+      expect(actionGate('frenzy', { gameTime: 0, active: porteurDuStore(), battle: useGame.getState().battle!, netMode: 'local' }).ok, 'témoin : le registre ouvre Frénésie').toBe(true);
       const fermee = cellules()[11] as HTMLButtonElement;
       expect(fermee.getAttribute('data-action')).toBe('frenzy');
       expect(refusAuSurvol(fermee)).toBe(t('agate.horsOffre'));
@@ -1790,7 +1790,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     monter(h, { foes: [foe('e1', 9, 9)] });
     const det = caseAction('resolve-psych-immune')!;
     expect(det.hasAttribute('data-gated')).toBe(true);
-    const attendue = actionGate('resolve-psych-immune', { active: h, battle: useGame.getState().battle! }).reason;
+    const attendue = actionGate('resolve-psych-immune', { gameTime: 0, active: h, battle: useGame.getState().battle! }).reason;
     // La raison du REGISTRE (jamais une chaîne recopiée ici) se lit au survol ET au focus…
     expect(refusAuSurvol(det)).toBe(attendue);
     expect(refusAuFocus(det)).toBe(attendue);
@@ -2480,7 +2480,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     expect(useGame.getState().battle!.turn, 'le tour du navire n’est pas passé').not.toBe(0);
   });
 
-  it('N-4 — une pièce DÉJÀ chargée éteint la recharge (restriction de site), la case restant dessinée', () => {
+  it('N-4 — une pièce DÉJÀ chargée ferme la recharge avec sa raison (`piece-a-recharger`), la case restant dessinée', () => {
     const crew = hero('gunner', 'Artilleur');
     const ship = navire();
     ship.postes = [{ ...poste(), loaded: true } as ShipPoste];
@@ -2508,7 +2508,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
       const c = caseAction(id);
       expect(c, `la géométrie garde sa case « ${id} »`).not.toBeNull();
       expect(estFermee(c!), `« ${id} » reste cliquable au tour d’une coque`).toBe(true);
-      const attendue = actionGate(id, { active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle! }).reason;
+      const attendue = actionGate(id, { gameTime: 0, active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle! }).reason;
       expect(refusAuSurvol(c!), `« ${id} » se ferme sans dire pourquoi au survol`).toBe(attendue);
       const copie = c!.querySelector('.hors-ecran[data-gate]');
       expect(copie?.textContent, `« ${id} » : rien à lire pour un lecteur d’écran`).toBe(attendue);
@@ -3817,7 +3817,7 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
 
   it('FOCUS RÉEL (clavier) : la case gatée prend le focus et ouvre sa raison ; le blur la referme', () => {
     const det = consoleGatee();
-    const attendue = actionGate('resolve-psych-immune', {
+    const attendue = actionGate('resolve-psych-immune', { gameTime: 0,
       active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!,
     }).reason;
     expect(refusAuFocus(det)).toBe(attendue);
@@ -3843,7 +3843,7 @@ describe('CombatConsole — la raison d’une case fermée s’atteint au clavie
 
   it('TACTILE : un tap sur la case fermée MONTRE sa raison — et n’exécute rien', () => {
     const det = consoleGatee();
-    const attendue = actionGate('resolve-psych-immune', {
+    const attendue = actionGate('resolve-psych-immune', { gameTime: 0,
       active: useGame.getState().battle!.combatants[0], battle: useGame.getState().battle!,
     }).reason;
     const avant = useGame.getState().battle!.combatants[0].resolve;

@@ -22,11 +22,11 @@ const OPTIONS_DU_TOUR: (string | { gate: string })[] = [
  *
  * Chaque option se juge par le verdict d'offre du REGISTRE (`actionGate` / `verdictDOffre`,
  * `src/state/actionRegistry.ts`), verrou d'État compris : la composition lue par la console.
- * Pur : les gates consommés ne lisent que l'acteur et son combat.
+ * Pur : les gates consommés ne lisent que l'acteur, son combat et l'heure de jeu.
  */
-export function hasMeaningfulOption(active: Combatant, battle: BattleState): boolean {
+export function hasMeaningfulOption(active: Combatant, battle: BattleState, gameTime: number): boolean {
   if (active.kind !== 'hero') return false;
-  const ctx: ActionCtx = { active, battle };
+  const ctx: ActionCtx = { active, battle, gameTime };
   const offerte = (o: string | { gate: string }) =>
     (typeof o === 'string' ? actionGate(o, ctx) : verdictDOffre(o, ctx)).ok;
   // Désengagement gratuit (LDB 15 l.47).

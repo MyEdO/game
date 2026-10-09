@@ -220,12 +220,12 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as Parameters<typeof actionGate>[1]['battle'];
     const muets = ACTIONS.filter((a) => {
-      const v = actionGate(a.id, { active, battle });
+      const v = actionGate(a.id, { gameTime: 0, active, battle });
       return typeof v.ok !== 'boolean' || (!v.ok && !v.reason);
     }).map((a) => a.id);
     expect(muets, `Action(s) dont le gate ne rend pas un verdict motivé :\n  ${muets.join('\n  ')}`).toEqual([]);
     // Fail-closed : un id inconnu ne « passe » jamais.
-    expect(actionGate('id-inexistant', { active, battle }).ok).toBe(false);
+    expect(actionGate('id-inexistant', { gameTime: 0, active, battle }).ok).toBe(false);
   });
   it('`BattleState.action` se type DEPUIS le registre : `armed` + MODES_HORS_REGISTRE = BATTLE_ACTION_MODES', () => {
     const derives = new Set([

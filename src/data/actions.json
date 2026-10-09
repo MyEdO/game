@@ -21,7 +21,10 @@
     "label": "Charger",
     "icon": "journal/charge",
     "surface": "deduite-du-set",
-    "gate": "charge-possible",
+    "gate": [
+      "charge-possible",
+      "action-libre"
+    ],
     "intent": "portee-charge",
     "coutAction": "mouvement",
     "rule": "charger",
@@ -41,7 +44,10 @@
     "label": "Course",
     "icon": "travel/foot",
     "surface": "grille",
-    "gate": "mouvement-restant-fantassin",
+    "gate": [
+      "mouvement-restant-fantassin",
+      "action-libre"
+    ],
     "echappeAuVerrou": "fuite",
     "intent": "portee-course",
     "coutAction": "action",
@@ -62,7 +68,10 @@
     "label": "Mouvement",
     "icon": "journal/move",
     "surface": "grille",
-    "gate": "mouvement-restant-fantassin",
+    "gate": [
+      "mouvement-non-cloue",
+      "mouvement-restant-fantassin"
+    ],
     "echappeAuVerrou": "fuite",
     "intent": "portee-mouvement",
     "coutAction": "mouvement",
@@ -79,7 +88,10 @@
     "label": "Viser",
     "icon": "action/aim",
     "surface": "deduite-du-set",
-    "gate": "action-libre-hors-frenesie",
+    "gate": [
+      "action-libre-hors-frenesie",
+      "pas-deja-en-joue"
+    ],
     "run": "battleAim",
     "coutAction": "action",
     "rule": "viser",
@@ -99,7 +111,10 @@
     "label": "Recharger",
     "icon": "journal/reload",
     "surface": "deduite-du-set",
-    "gate": "action-libre-hors-frenesie",
+    "gate": [
+      "action-libre-hors-frenesie",
+      "arme-a-recharger"
+    ],
     "run": "battleReload",
     "candidates": "armes-a-distance",
     "panneau": true,
@@ -117,7 +132,7 @@
     "label": "Choisir la munition",
     "icon": "action/shoot",
     "surface": "deduite-du-set",
-    "gate": "toujours",
+    "gate": "hors-frenesie",
     "run": "battleSelectAmmo",
     "candidates": "munitions-compatibles",
     "coutAction": "aucun",
@@ -664,7 +679,7 @@
     "label": "Diriger l’équipe",
     "icon": "action/lead",
     "surface": "grille",
-    "gate": "action-libre",
+    "gate": "action-libre-hors-frenesie",
     "run": "battleAidTeam",
     "coutAction": "action",
     "rule": "commandant-d-equipe",
@@ -709,7 +724,10 @@
     "label": "Bordée",
     "icon": "action/aim",
     "surface": "grille",
-    "gate": "navire-action",
+    "gate": [
+      "navire-action",
+      "navire-arme"
+    ],
     "run": "battleSelectAction",
     "armed": "battery",
     "mode": "battery",
@@ -741,7 +759,7 @@
     "label": "Chanson de marin",
     "icon": "scenario/opera",
     "surface": "grille",
-    "gate": "toujours",
+    "gate": "chanson-a-chanter",
     "run": "battleSingShanty",
     "coutAction": "gratuit",
     "maison": "tâche PARALLÈLE : le chant occupe le chanteur, pas l’Action du navire — arbitrage maison (l’acte exige pourtant un Test).",
@@ -757,7 +775,7 @@
     "label": "Recharger la pièce",
     "icon": "journal/reload",
     "surface": "grille",
-    "gate": "toujours",
+    "gate": "piece-a-recharger",
     "run": "battleShipReload",
     "coutAction": "gratuit",
     "maison": "tâche d’équipage PARALLÈLE : elle occupe l’équipage, pas le tour du navire — arbitrage maison (l’acte exige pourtant un Test).",

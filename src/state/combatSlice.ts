@@ -18,7 +18,7 @@ import { SceneEntity, porteMasquee, structureIsDown } from './scene';
 import * as travelFlow from './travelFlow';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
-import { Combatant, HitLocation, CHAR_LABELS, type FireArc, type Weapon } from '../engine/types';
+import { Combatant, HitLocation, CHAR_LABELS, type FireArc } from '../engine/types';
 import { rollLine, hostStep, openSequence, pushDisplay } from './rollSeam';
 import { creatureAttacks, type AttackKind } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
@@ -57,7 +57,7 @@ import { resolveOpposed, extendedTestStep } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
-import { cycleCommence, loadRegister, weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
+import { cycleCommence, loadRegister, weaponLoaded, reloadProgressOf, armeARecharger } from '../engine/weaponLoad';
 import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, consumeAmmo, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { trappingById } from './campaignData';
 import { canPushback, canStrikeFirst, reloadDRTarget } from '../engine/qualities/dispatch';
@@ -66,7 +66,7 @@ import { teamCommandTargets } from './commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, isActionLocked, stacks, recoveredStacks, COND, setConditionGainedHook, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, raisonVerrouDAction, stacks, recoveredStacks, COND, setConditionGainedHook, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
 import { hasHealSkill, availableHealModes, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
@@ -76,10 +76,10 @@ import { testValue, actorHasSkill, soutienDetail } from '../engine/skills';
 import { rollOups } from '../engine/oups';
 import { spawnEnemy, placeCombatant } from './spawn';
 import { ficheDEntite } from './sceneNpc';
-import { applyShipPostes, autoFormCrews, servingCrewPresent, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned } from './shipPostes';
+import { applyShipPostes, autoFormCrews, servingCrewPresent, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, posteARecharger } from './shipPostes';
 import { posteHullOf, pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
-import { crewTestContributors, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, withCrewActed } from './shipCrew';
+import { crewTestContributors, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, chanteurDuQuart, withCrewActed } from './shipCrew';
 import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime } from '../engine/crewMorale';
@@ -1568,12 +1568,9 @@ export function createCombatSlice(get: Get, set: Set) {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const ship = inBattleId(battle, shipId);
-      if (!ship || ship.lastShantyQuart === quartIndex(get().gameTime)) return; // « une seule chanson … par quart »
-      const crew = exposedCrew((ship.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c));
-      // Le CHANTEUR : le marin apte au Talent qui connaît le plus de chansons (les specs = chansons apprises, l.36).
-      const singer = crew.filter((c) => knownShanties(c).length > 0 && !c.singingShanty)
-        .sort((a, b) => knownShanties(b).length - knownShanties(a).length)[0];
-      if (!singer) return;
+      const quart = ship && chanteurDuQuart(ship, battle, get().gameTime);
+      if (!ship || !quart || !('chanteur' in quart)) return;
+      const singer = quart.chanteur;
       const known = knownShanties(singer);
       set({
         pendingShanty: { shipId: ship.id, singerId: singer.id, shantyId: known.length === 1 ? findSeaShantyById(known[0])?.id ?? null : null, result: null },
@@ -1968,6 +1965,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active) || !canTakeAction(active)) return;
       if (!active.weapons.some((w) => w.type === 'ranged')) return; // viser = pour le tir
+      if (active.aiming) return; // verdict d'offre `pas-deja-en-joue` (`actionRegistry.ts`)
       active.aiming = true;
       set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('aim', t('cs.aim', { name: active.label }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -2006,9 +2004,8 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active) || !canTakeAction(active)) return;
-      const reloadable = (x: Weapon) => x.type === 'ranged' && (x.reload ?? 0) > 0 && !weaponLoaded(active, x);
-      const w0 = weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : active.weapons.find(reloadable);
-      if (!w0 || !reloadable(w0)) return; // rien à recharger (Arc = pas de défaut, ou déjà chargée)
+      const w0 = weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : active.weapons.find((x) => armeARecharger(active, x));
+      if (!w0 || !armeARecharger(active, w0)) return;
       // Pièce SERVIE en sous-effectif : recharge ×2 (MDG 12 l.462). Le bake reflète les servants APTES présents
       // (effectif complet → recharge normale) ; pour un chef sans poste → arme inchangée (cas héros qui sert seul).
       const present = servingCrewPresent(active, battle.combatants);
@@ -2040,10 +2037,9 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const ship = inBattleId(battle, shipId);
       const poste = ship?.postes?.find((p) => p.item.uid === posteUid);
-      if (!ship || !poste || poste.loaded !== false) return; // pièce déjà chargée → rien à recharger
-      const chef = poste.crewIds?.[0] ? inBattleId(battle, poste.crewIds![0]) : undefined;
+      if (!ship || !poste || !posteARecharger(ship, poste, battle.crewActed)) return;
+      const chef = inBattleId(battle, poste.crewIds![0]);
       if (!chef) return;
-      if ((battle.crewActed?.[ship.id] ?? []).includes(chef.id)) return; // chef déjà engagé ce Round → 1 Test de recharge/pièce/Round
       const servants = (poste.crewIds ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
       const w0 = mannedPosteWeapon(chef, poste);
       if (!w0) return;
@@ -2951,14 +2947,11 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || !scene) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
-      // Brisé (LDB 16 l.52) : Mouvement + Action doivent servir à FUIR / se cacher — aucune action
-      // offensive. Le déplacement (fuite) passe par le clic-sol implicite (filtre dans computeMoveReach) ;
-      // ici seule la fermeture (null) passe. La Détermination n'entre PLUS par cette porte : ses trois
-      // dépenses (LDB 17 l.59-61) sont des dispatchers directs, qui n'arment aucun mode.
-      // (« Se cacher » par Discrétion = pas de système de furtivité en combat ; approximé par « rester
-      // hors de vue » → récupération en fin de Round, cf. brokenRecovery.)
-      if (isActionLocked(active) && a !== null) {
-        get().log(t('cs.brokenFlee', { name: active.label }));
+      // Verrou d'État (`raisonVerrouDAction`, LDB 16 l.52) : aucun mode ne s'arme, seule la fermeture
+      // (`null`) passe, et le refus se journalise. Dépenses de Détermination : dispatchers directs (LDB 17 l.59-61).
+      const verrou = a !== null ? raisonVerrouDAction(active) : undefined;
+      if (verrou) {
+        get().log(verrou);
         return;
       }
       // Pas d'Action ce tour (Sonné LDB 16 l.125 / Surpris l.135 — lu en DONNÉES via `canTakeAction`/gating,

@@ -6,7 +6,8 @@ import { testStatePenalty, addCondition } from '../engine/conditions';
 import { crewRoleValue, crewTalentDR, crewTestModOf } from '../engine/crewMorale';
 import { findCrewRoleById, findSeaShantyById } from '../data';
 import { rollCrewRole } from './shipManeuver';
-import { endShanty, applyShantyToCrew, quartIndex, QUART_MINUTES } from './shipCrew';
+import { endShanty, applyShantyToCrew, quartIndex, DEBUTS_DES_QUARTS } from './shipCrew';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, SkillInstance } from '../engine/types';
 
@@ -136,15 +137,31 @@ describe('Flux « Chanson de marin » (Talent, MDG 09 l.32-40)', () => {
     expect((marinC.activeEffects ?? []).some((e) => e.effectId === shantyId)).toBe(false); // le vrai effet de chant est parti
   });
 
-  it('QUART = 4 h : au quart suivant, on peut de nouveau chanter', () => {
+  it('au quart suivant (MDG 03 l.76, 04h), on peut de nouveau chanter', () => {
     openShanty();
     useGame.getState().shantyForceSuccess();
     useGame.getState().shantyConfirm();
-    useGame.setState({ gameTime: QUART_MINUTES }); // quart suivant
+    useGame.setState({ gameTime: DEBUTS_DES_QUARTS[1] });
     const bard = useGame.getState().battle!.combatants.find((c) => c.id === 'barde')!;
     delete bard.singingShanty; // le chant précédent est fini
     useGame.getState().battleSingShanty('ship');
     expect(useGame.getState().pendingShanty).not.toBeNull();
+  });
+});
+
+describe('les sept QUARTS d’un navire (MDG 03 l.71-81)', () => {
+  const h = (heure: number) => heure * 60;
+
+  it('16h-18h et 18h-20h sont deux quarts distincts (mi-quarts du chien, l.79-80)', () => {
+    expect(quartIndex(h(17))).not.toBe(quartIndex(h(19)));
+    expect(quartIndex(h(16))).toBe(quartIndex(h(18) - 1));
+    expect(quartIndex(h(18))).toBe(quartIndex(h(20) - 1));
+  });
+
+  it('sept quarts par jour (l.71) : 20h-00h est UN quart, minuit ouvre le quart de nuit du lendemain', () => {
+    expect(quartIndex(h(20))).toBe(quartIndex(MINUTES_PER_DAY - 1));
+    expect(quartIndex(MINUTES_PER_DAY)).toBe(7);
+    expect(new Set([0, 4, 8, 12, 16, 18, 20].map((x) => quartIndex(h(x)))).size).toBe(7);
   });
 });
 

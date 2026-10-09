@@ -13,13 +13,14 @@
  */
 import type { Combatant } from '../engine/types';
 import type { BattleState, GameState } from './store';
-import { canMove, trampleTarget, entityPickables, activeCombatant } from './store';
+import { canMove, trampleTarget, entityPickables, activeCombatant, useGame } from './store';
 import { currentTargetingMode } from './targetingModes';
-import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat, restrictingConditions } from '../engine/conditions';
+import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat, raisonVerrouDAction, raisonMouvementCloue } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied } from '../engine/psychology';
 import { isVehicle } from '../engine/vehicle';
 import { compatibleAmmo } from '../engine/items';
+import { armeARecharger } from '../engine/weaponLoad';
 import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, selfManeuversOf, selfManeuverApplicable, battementFoes, distraireFoes } from './combatManeuvers';
 import { inBattleId } from './combatants';
@@ -29,8 +30,10 @@ import { waterSprayCandidates } from '../engine/suffocation';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { availableAttacks, placingZoneOf, STANCE_BLOCK } from './combatFlow';
-import { mountablesNear, mountMovement } from './mount';
-import { servablePostes, crewPosteOf, type ShipPoste } from './shipPostes';
+import { mountablesNear, mountMovement, mountOf } from './mount';
+import { servablePostes, crewPosteOf, pieceARecharger, type ShipPoste } from './shipPostes';
+import { chanteurDuQuart } from './shipCrew';
+import { refuserGeste } from './refusVisible';
 import { pushSlot } from './siegePush';
 import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../data/index';
 import { isArcaneSpell, castBlockedBy, focusSkillFor, focusWindLabel } from '../engine/magic';
@@ -43,12 +46,15 @@ export interface ActionGate {
   reason?: string;
 }
 
-/** Contexte d'évaluation — PUR : l'acteur et son combat suffisent aux prédicats de règle. Les rares
- *  gates de TABLE (coop) lisent `netMode`, jamais le store entier. */
+/** Contexte d'évaluation — PUR : l'acteur, son combat et l'heure de jeu. Les gates de TABLE (coop)
+ *  lisent `netMode`, jamais le store entier. */
 export interface ActionCtx {
   active: Combatant;
   battle: BattleState;
   netMode?: string;
+  /** HEURE DE JEU (`GameState.gameTime`) : le quart d'une Chanson de marin (`chanson-a-chanter`,
+   *  MDG 09 l.40). */
+  gameTime: number;
   /** L'ENTRÉE évaluée, posée par `actionGate` à partir de l'entrée résolue : un gate y lit ce que
    *  l'action DÉCLARE (l'État qu'elle traite) au lieu de nommer un id. */
   def?: ActionDef;
@@ -93,8 +99,10 @@ function actionLibre({ active, battle }: ActionCtx): ActionGate {
 function desengagementGate(ctx: ActionCtx): ActionGate {
   const { active, battle } = ctx;
   if (!isEngaged(active)) return no(t('agate.notEngaged'));
-  if (!battle.acted) return ok;
-  return freeDisengage(ctx) ? ok : no(t('agate.actionSpentNoFreeDisengage'));
+  if (freeDisengage(ctx)) return ok;
+  if (battle.acted) return no(t('agate.actionSpentNoFreeDisengage'));
+  // LDB 15 l.49 ; LDB 16 l.125.
+  return canTakeAction(active) ? ok : no(t('agate.unableToAct'));
 }
 
 /** Le désengagement est-il GRATUIT ? Avantage strictement supérieur à TOUS les foes Engagés encore
@@ -107,13 +115,20 @@ export function freeDisengage({ active, battle }: ActionCtx): boolean {
   return foes.length > 0 && active.advantage > Math.max(0, ...foes.map((f) => f.advantage));
 }
 
-/** Le Mouvement du Tour est-il ENCORE INTACT ? Prédicat PARTAGÉ (gestes qui exigent l'élan complet). */
-function mouvementIntact({ active, battle }: ActionCtx): ActionGate {
-  // Un porteur qu'un État CLOUE (`gating.movement: 'none'` — Inconscient, Surpris ; LDB 16 l.113/l.132)
-  // n'a aucun Mouvement à dépenser : le geste qui en coûte se REFUSE en le disant, au lieu de laisser
-  // le dispatcher rendre en silence. Le budget est celui de la monture s'il en a une (`mountMovement`).
-  if (mountMovement(battle, active) <= 0) return no(t('agate.cannotMove'));
-  return battle.movementUsed > 0 ? no(t('agate.movementStarted')) : ok;
+/** Le MOBILE (la monture d'un cavalier, sinon le porteur) est-il CLOUÉ par un statut ? Raison UNIQUE
+ *  `raisonMouvementCloue`, lue par le Mouvement (`mouvement-non-cloue`) et par `mouvementIntact`. */
+function mouvementNonCloue({ active, battle }: ActionCtx): ActionGate {
+  const raison = raisonMouvementCloue(mountOf(battle, active) ?? active);
+  return raison ? no(raison) : ok;
+}
+
+/** Le Mouvement du Tour est-il ENCORE INTACT ? Prédicat PARTAGÉ (gestes qui exigent l'élan complet).
+ *  Budget du mobile : `mountMovement`. */
+function mouvementIntact(ctx: ActionCtx): ActionGate {
+  const cloue = mouvementNonCloue(ctx);
+  if (!cloue.ok) return cloue;
+  if (mountMovement(ctx.battle, ctx.active) <= 0) return no(t('agate.cannotMove'));
+  return ctx.battle.movementUsed > 0 ? no(t('agate.movementStarted')) : ok;
 }
 
 /** L'acteur a-t-il un CORPS de fantassin ? Une coque n'en a pas (`engine/vehicle.ts` : « ni arme
@@ -124,13 +139,12 @@ function fantassin({ active }: ActionCtx): ActionGate {
   return isVehicle(active) ? no(t('agate.hullHasNoBody')) : ok;
 }
 
-/** VERROU D'ÉTAT (LDB 16 l.52) : un État porté qui déclare `restrictsAction` (`etats.json`, lu par
- *  `restrictingConditions`) ferme l'option, sauf si elle déclare `echappeAuVerrou`. L'État se NOMME
- *  par son libellé de donnée. */
+/** VERROU D'ÉTAT (LDB 16 l.52) : un État porté qui déclare `restrictsAction` (`etats.json`) ferme
+ *  l'option, sauf si elle déclare `echappeAuVerrou`. La raison est `raisonVerrouDAction`. */
 function verrouDEtat(active: Combatant, echappeAuVerrou: ActionDef['echappeAuVerrou']): ActionGate {
   if (echappeAuVerrou) return ok;
-  const verrou = restrictingConditions(active)[0];
-  return verrou ? no(t('agate.actionLocked', { etat: findConditionById(verrou.id)!.label })) : ok;
+  const verrou = raisonVerrouDAction(active);
+  return verrou ? no(verrou) : ok;
 }
 
 /** ET séquentiel de gates : le PREMIER refus l'emporte, avec SA raison (aucune raison fabriquée). */
@@ -148,8 +162,9 @@ const et =
 export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   toujours: () => ok,
   'action-libre': actionLibre,
-  'action-libre-hors-frenesie': (ctx) =>
-    isFrenzied(ctx.active) ? no(t('agate.frenzyOnly')) : actionLibre(ctx),
+  /** LDB 21 l.33 ; `select-ammo` : #2546. */
+  'hors-frenesie': ({ active }) => (isFrenzied(active) ? no(t('agate.frenzyOnly')) : ok),
+  'action-libre-hors-frenesie': (ctx) => et(ACTION_GATES['hors-frenesie'], actionLibre)(ctx),
   'action-libre-hors-frenesie-fantassin': (ctx) =>
     et(fantassin, ACTION_GATES['action-libre-hors-frenesie'])(ctx),
   'mouvement-intact': mouvementIntact,
@@ -165,6 +180,15 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   /** Charge — fiche `regles/charger` (`LDB 15 l.35-37`), foyer du verbatim au Codex. */
   'charge-possible': (ctx) => (isEngaged(ctx.active) ? no(t('agate.alreadyEngaged')) : mouvementIntact(ctx)),
   'mouvement-restant': ({ active, battle }) => (canMove(battle, active) ? ok : no(t('agate.noMovementLeft'))),
+  'mouvement-non-cloue': mouvementNonCloue,
+  /** L'arme visée par la case (`args.weaponUid`), sinon l'une des armes du porteur, a un rechargement à
+   *  faire — prédicat du dispatcher `battleReload` (`armeARecharger`). */
+  'arme-a-recharger': ({ active, args }) => {
+    const armes = args?.weaponUid ? active.weapons.filter((w) => w.uid === args.weaponUid) : active.weapons;
+    return armes.some((w) => armeARecharger(active, w)) ? ok : no(t('agate.weaponAlreadyLoaded'));
+  },
+  /** Le porteur n'est pas déjà en joue — même lecture que le dispatcher `battleAim`. */
+  'pas-deja-en-joue': ({ active }) => (active.aiming ? no(t('agate.alreadyAiming')) : ok),
   desengagement: desengagementGate,
   // Deux refus, un seul gate : plus de point en réserve, OU un État que rien ne lève (le fait porteur
   // le déclare — LDB 20 l.188 ; source unique `raisonRefusDetermination`). `conditionId` absent (dépenses
@@ -259,6 +283,17 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     (pushSlot(active, battle.combatants).undercrew ? no(t('agate.pushUndercrew')) : ok),
   'navire-action': ({ active, battle }) =>
     !isVehicle(active) ? no(t('agate.notAVessel')) : battle.acted ? no(t('agate.vesselActionSpent')) : ok,
+  /** La coque porte au moins une pièce : la Bordée a de quoi tirer. */
+  'navire-arme': ({ active }) => ((active.postes ?? []).length > 0 ? ok : no(t('agate.noGunPoste'))),
+  /** MDG 09 l.32-40 — prédicat du dispatcher `battleSingShanty` (`chanteurDuQuart`), sur la coque. */
+  'chanson-a-chanter': ({ active, battle, gameTime }) => {
+    if (!isVehicle(active)) return no(t('agate.notAVessel'));
+    const quart = chanteurDuQuart(active, battle, gameTime);
+    return 'chanteur' in quart ? ok : no(quart.raison);
+  },
+  /** MDG 12 l.462 — prédicat du dispatcher `battleShipReload` (`pieceARecharger`). */
+  'piece-a-recharger': ({ active, battle }) =>
+    pieceARecharger(active, battle.crewActed) ? ok : no(t('agate.noPosteToReload')),
 };
 
 /** Les entrées de REMÈDE du registre — celles que la donnée porte au gate `etat-porte`. */
@@ -540,6 +575,9 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
 };
 
 /** Exécute une action par son ID. Porte UNIQUE — le clavier, les cases et les pastilles y passent.
+ *  Le verdict d'offre (`actionGate`, sur les MÊMES paramètres) la garde : un geste qu'une surface montre
+ *  fermé ne passe par aucune autre, et son refus se DIT (`refuserGeste`). Seul le désarmement
+ *  (`toggleOff`) passe outre : rendre un mode armé n'engage rien.
  *  Une action déclarée `blocked` (aucun dispatcher) ne fait rien : le registre le DIT, il ne feint pas.
  *  Une action qui déclare une INTENTION (`intent`) arme d'abord le mode local qui peint sa portée
  *  (`localIntent.ts`, spec zone 4) : c'est le clic du champ, ensuite, qui commet le geste. Les deux
@@ -547,6 +585,12 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
 export function runAction(actionId: string, get: () => GameState, ctx: ActionRunCtx = {}): void {
   const def = ACTIONS.find((a) => a.id === actionId);
   if (!def) return;
+  if (!ctx.toggleOff) {
+    const s = get();
+    const active = s.battle && activeCombatant(s.battle);
+    const verdict = active && actionGate(def.id, { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, args: ctx });
+    if (verdict && !verdict.ok) { refuserGeste(get, useGame.setState, verdict.reason!); return; }
+  }
   if (def.intent) get().battleArmIntent(ctx.toggleOff ? null : def.id);
   if (def.run) ACTION_RUN[def.run]?.(get, ctx, def);
 }

@@ -33,7 +33,7 @@ import { COVER_ORDER } from '../engine/cover';
 import { rangeBandModifier, outnumberMod, canFireWhileEngaged, type ModLine } from '../engine/combat';
 import { effectiveWeaponRange } from '../engine/weaponDamage';
 import { loadedAmmo } from '../engine/items';
-import { weaponLoaded } from '../engine/weaponLoad';
+import { armeARecharger } from '../engine/weaponLoad';
 import { structureImmune, structureAimCell } from '../engine/structures';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { finite, expectedDamage, isNeutralized, spellActionValue, spellIsOffensive, spellTargetHarm, opValue } from './aiSpellValue';
@@ -557,7 +557,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Rechargement (LDB 62 l.333) : une arme à Recharge DÉCHARGÉE ne peut pas tirer → il faut recharger d'abord
   // (Test étendu de Projectiles). Cycle `loaded` unifié héros/ennemi (spawn chargé, tir → déchargé).
   const rangedW = enemy.weapons.find((w) => w.type === 'ranged');
-  const reloadNeeded = hasRanged && !!rangedW && (rangedW.reload ?? 0) > 0 && !weaponLoaded(enemy, rangedW);
+  const reloadNeeded = hasRanged && !!rangedW && armeARecharger(enemy, rangedW);
 
   // Un ennemi sans AUCUN moyen d'agir (aucun sort jouable NI arme) passe la main : un sort (offensif OU
   // soutien) compte comme une capacité d'action → un lanceur de pur soutien DOIT pouvoir agir. Servir une

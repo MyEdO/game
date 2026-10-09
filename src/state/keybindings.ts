@@ -410,7 +410,7 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
-      return !!active && actionGate('undo-move', { active, battle: s.battle!, netMode: s.net.mode }).ok;
+      return !!active && actionGate('undo-move', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
     run: (g) => runAction('undo-move', g),
   },

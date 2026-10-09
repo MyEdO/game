@@ -757,7 +757,6 @@ export const fr = {
   'cs.freeAttack': "{name} : attaque d'arme libre (Action préservée).",
   'cs.combatStart': 'Le combat commence ! (Round 1)',
   'cs.surprised': '{name} est Surpris : ni Mouvement ni Action ce tour (Détermination possible).',
-  'cs.brokenFlee': '{name} est Brisé : il ne peut que fuir ou puiser dans sa Détermination.',
   'cs.useConsumable': '{name} utilise : {item}.',
   'cs.sigmarWard': "{name} : −20 en Langue (Magick) — la cible est sous la protection de Sigmar (N'écoutez point la Sorcière).",
   'cs.aqshyBonus': '{name} : +{n} en Langue (Magick) — Aqshy se nourrit des flammes proches.',
@@ -2530,6 +2529,14 @@ export const fr = {
   'agate.frenzyOnly': 'Frénésie : seuls la Capacité de Combat et l’Athlétisme',
   // LDB 16 l.52 — `{etat}` = libellé de l'État porté (`etats.json`).
   'agate.actionLocked': '{etat} : Mouvement et Action servent à fuir',
+  // `gating.movement: 'none'` (`etats.json`, `psychology.json`) — `{etat}` = libellé du statut qui cloue.
+  'agate.movementLocked': '{etat} : Mouvement impossible',
+  'agate.weaponAlreadyLoaded': 'arme déjà chargée',
+  'agate.alreadyAiming': 'déjà en joue',
+  'agate.noGunPoste': 'aucune pièce d’artillerie à bord',
+  'agate.shantyQuartSung': 'une chanson de marin a déjà été chantée ce quart',
+  'agate.noShantySinger': 'aucun marin en état de chanter une chanson connue',
+  'agate.noPosteToReload': 'aucune pièce à recharger ce Round',
   'agate.alreadyEngaged': 'déjà Engagé',
   'agate.noMovementLeft': 'plus de Mouvement ce tour',
   'agate.noResolve': 'aucun point de Détermination',

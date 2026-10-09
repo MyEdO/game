@@ -151,7 +151,7 @@ import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { norm } from '../lib/normalize';
 import { gelerLaConstante } from '../lib/gelerProfond';
-import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
+import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme, armeARecharger } from '../engine/weaponLoad';
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, buildWeapon, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
@@ -388,8 +388,8 @@ export function banRangedActive(battle: BattleState | null | undefined): boolean
   return battle?.banRanged ?? (battle?.victoryCondition?.type === 'firstBlood');
 }
 
-/** Rencontre de SIÈGE effective (`EncounterDef.siege` — arbitrage utilisateur du 2026-09-04, verbatims
- *  au foyer unique : JSDoc de `siege`, `data/schemas/defs-scenes/scene.ts`) — SEUL point
+/** Rencontre de SIÈGE effective (`EncounterDef.siege` — #1680, verbatim daté
+ *  au foyer unique : JSDoc de `siege`, `src/data/schemas/defs-scenes/scene.ts`) — SEUL point
  *  de résolution, consommé par `buildAiInput` pour offrir (ou non) les structures destructibles au
  *  choix de cible de l'IA. Défaut LITTÉRAL `false` : contrairement à `banRangedActive`, rien n'est
  *  dérivé d'un autre champ — ni de `victoryCondition`, ni de la présence d'une structure dans la
@@ -8222,7 +8222,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // recommence à zéro (géré à la prise de Blessure, applyAttackResult). Coûte l'Action ; calque de `recover`.
       if (!canAct) return advanceTurn(get, set);
       const rw = enemy.weapons.find((w) => w.type === 'ranged');
-      if (!rw || (rw.reload ?? 0) <= 0 || weaponLoaded(enemy, rw)) return advanceTurn(get, set); // rien à recharger
+      if (!rw || !armeARecharger(enemy, rw)) return advanceTurn(get, set);
       const reloadTarget = reloadDRTarget(rw);
       const progressBefore = reloadProgressOf(enemy, rw);
       const skillValue = combatValue(enemy, 'ranged', rw); // CT + avances Projectiles

@@ -343,6 +343,19 @@ export function crewPosteOf(id: string, combatants: Combatant[]): { hull: Combat
   return undefined;
 }
 
+/** CETTE pièce de la coque attend-elle un Test de recharge ce Round (MDG 12 l.462) ? Déchargée, avec un
+ *  chef qui n'a pas encore agi (`crewActed`). Prédicat UNIQUE du dispatcher `battleShipReload` et du
+ *  verdict d'offre `piece-a-recharger`. PUR. */
+export function posteARecharger(hull: Combatant, poste: ShipPoste, crewActed: Record<string, string[]> | undefined): boolean {
+  const chef = poste.crewIds?.[0];
+  return poste.loaded === false && !!chef && !(crewActed?.[hull.id] ?? []).includes(chef);
+}
+
+/** La PREMIÈRE pièce de la coque qui attend sa recharge ce Round (`posteARecharger`), ou `undefined`. */
+export function pieceARecharger(hull: Combatant, crewActed: Record<string, string[]> | undefined): ShipPoste | undefined {
+  return (hull.postes ?? []).find((p) => posteARecharger(hull, p, crewActed));
+}
+
 /** Postes qu'un `actor` peut REJOINDRE maintenant : ceux d'un emplacement/coque ADJACENT (empreinte, ≤ 1 case)
  *  dont il ne fait PAS DÉJÀ partie de l'équipage. Une pièce déjà servie reste « rejoignable » en SUPPORT (Arme
  *  d'équipe : on peut être plusieurs à servir) — `serveAtPoste` décide ensuite chef-vs-support. KIND-AGNOSTIQUE

@@ -109,7 +109,7 @@ export function entityGestes(state: GameState): OffresRenduesParPorteur[] {
   if (!battle || battle.over || !controlsActive(state)) return [];
   const active = activeCombatant(battle);
   if (!active) return [];
-  return offresDuRegistre('pastille-entite', { active, battle, netMode: state.net.mode, state }).map((g) => ({
+  return offresDuRegistre('pastille-entite', { active, battle, netMode: state.net.mode, gameTime: state.gameTime, state }).map((g) => ({
     porteurId: g.porteurId,
     // Le nom du porteur à l'écran : le combattant qui le porte, ou l'entité de scène (un tas au sol).
     porteurLabel: actorIn(state, g.porteurId)?.label ?? state.scene?.entities.find((e) => e.id === g.porteurId)?.label,

@@ -21,57 +21,57 @@ const battle = (active: Combatant, over: Partial<BattleState> = {}): BattleState
 describe('hasMeaningfulOption — garde-fou « tour gâché » (R6)', () => {
   it('tour frais (Action + Mouvement) → true', () => {
     const h = hero();
-    expect(hasMeaningfulOption(h, battle(h))).toBe(true);
+    expect(hasMeaningfulOption(h, battle(h), 0)).toBe(true);
   });
 
   it('Action ET Mouvement dépensés, rien d’autre → false', () => {
     const h = hero();
-    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }))).toBe(false);
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }), 0)).toBe(false);
   });
 
   it('Action dépensée mais Mouvement restant → true', () => {
     const h = hero();
-    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 0 }))).toBe(true);
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 0 }), 0)).toBe(true);
   });
 
   it('tout dépensé mais Détermination + un État retirable → true', () => {
     const h = hero({ resolve: 1, conditions: [{ id: 'sonne', value: 1 }] });
-    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }))).toBe(true);
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }), 0)).toBe(true);
   });
 
   it('tout dépensé, Détermination SANS aucun État → true (immunité Psychologie / ignorer les modificateurs de critique, LDB 17 l.59-61)', () => {
     const h = hero({ resolve: 1, conditions: [] });
-    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }))).toBe(true);
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }), 0)).toBe(true);
   });
 
   it('tout dépensé, Détermination à 0 et un État → false (rien à dépenser)', () => {
     const h = hero({ resolve: 0, conditions: [{ id: 'sonne', value: 1 }] });
-    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }))).toBe(false);
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }), 0)).toBe(false);
   });
 
   it('tout dépensé mais attaque libre de Frénésie disponible → true', () => {
     const h = hero({ psychState: [{ type: 'frenesie' }], talents: [{ talentId: 'frenesie', times: 1 }] });
-    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }))).toBe(true);
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }), 0)).toBe(true);
   });
 
   it('Brisé (LDB 16 l.52), Action intacte mais Mouvement dépensé et Détermination à 0 → false (verrou d’État)', () => {
     const h = hero({ resolve: 0, conditions: [{ id: 'brise', value: 1 }] });
-    expect(hasMeaningfulOption(h, battle(h, { acted: false, movementUsed: 99, movedPreAction: true }))).toBe(false);
+    expect(hasMeaningfulOption(h, battle(h, { acted: false, movementUsed: 99, movedPreAction: true }), 0)).toBe(false);
   });
 
   it('Brisé, Mouvement restant → true (la fuite échappe au verrou)', () => {
     const h = hero({ resolve: 0, conditions: [{ id: 'brise', value: 1 }] });
-    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 0 }))).toBe(true);
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 0 }), 0)).toBe(true);
   });
 
   it('Brisé, tout dépensé, Détermination en réserve → true (la Détermination échappe au verrou, LDB 17 l.59-61)', () => {
     const h = hero({ resolve: 1, conditions: [{ id: 'brise', value: 1 }] });
-    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }))).toBe(true);
+    expect(hasMeaningfulOption(h, battle(h, { acted: true, movementUsed: 99, movedPreAction: true }), 0)).toBe(true);
   });
 
   it('un ennemi n’a jamais d’« option de joueur » → false', () => {
     const e = hero({ id: 'E', kind: 'enemy' });
-    expect(hasMeaningfulOption(e, battle(e))).toBe(false);
+    expect(hasMeaningfulOption(e, battle(e), 0)).toBe(false);
   });
 });
 

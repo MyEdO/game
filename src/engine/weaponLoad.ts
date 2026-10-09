@@ -62,6 +62,12 @@ export function weaponLoaded(c: Combatant, weapon: Weapon): boolean {
   return reg === c.mannedPoste ? reg.loaded !== false : reg.loaded === true;
 }
 
+/** CETTE arme a-t-elle un rechargement à faire ? Arme de tir à Indice de Recharge, pas prête
+ *  (`weaponLoaded`). Prédicat UNIQUE : dispatcher `battleReload`, verdict d'offre `arme-a-recharger`, IA (`ai.ts`, `combatFlow.ts`). */
+export function armeARecharger(c: Combatant, weapon: Weapon): boolean {
+  return weapon.type === 'ranged' && (weapon.reload ?? 0) > 0 && !weaponLoaded(c, weapon);
+}
+
 /** DR déjà cumulés au Test étendu de rechargement de CETTE arme (LDB 62 l.335). */
 export function reloadProgressOf(c: Combatant, weapon: Weapon): number {
   return loadRegister(c, weapon).reloadProgress ?? 0;

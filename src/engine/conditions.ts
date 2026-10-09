@@ -6,7 +6,7 @@ import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, ty
 import { evalCondition } from './flowCore';
 import { conditionLockCtx } from './actorView';
 import { tickRound, type Duration } from './duration';
-import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel, skills } from '../data';
+import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel, skills, type StatusData } from '../data';
 import { indexParId } from '../data/versionDataset';
 import { slugId } from '../data/slug';
 import { t } from '../i18n';
@@ -639,10 +639,7 @@ export function testStatePenalty(c: Combatant, skill?: string): number {
  * SOURCE UNIQUE de la somme (`meleeAttackerBonus`) et de son affichage (chip « +20 À Terre »).
  * Lues en DONNÉES (`incomingAttackMod` des `passive` d'État, kind `etat`). Deux familles :
  *  - INCONDITIONNELS (À Terre/Surpris +20, Aveuglé +10 — `LDB 16 l.35/l.135/l.45`) : le MEILLEUR
- *    seul. Ce non-cumul est un arbitrage MAISON, pas une citation : `LDB 16 l.13` ne régit que les
- *    PÉNALITÉS subies par le porteur, et `l.11` fait au contraire s'accumuler les pions d'un même
- *    État. À Terre et Surpris ne se cumulent de toute façon pas (l.37/l.137) ; Aveuglé, si — le
- *    comportement courant est mesuré et ticketé #1138, et n'est PAS modifié ici.
+ *    seul — maison — #1138.
  *  - flanc/derrière (Assourdi +10, `flankRear:true`, `LDB 16 l.29`) : bonus SUPPLÉMENTAIRE ADDITIF,
  *    appliqué SEULEMENT si `opts.flankRear` (l'appelant a établi l'angle via le facing) ; « ce bonus
  *    n'est pas augmenté avec de multiples États *Assourdi* » (l.29) → max entre entrées flankRear.
@@ -690,19 +687,22 @@ export function incomingMeleeAdvantage(target: Combatant): number {
  *  lues en DONNÉES (`StatusData.gating`, etats.json/psychology.json), JAMAIS par-nom : un nouvel État/
  *  trait psy déclare son blocage dans le JSON et le moteur l'applique. Agrégation : `action:'none'` et
  *  `cannotDefend` sont des OU (un seul statut bloquant suffit) ; le Mouvement prend le PIRE
- *  (`none` > `half`/`crawl` > normal). « Etat comme Psy » : `PsychologyData extends StatusData`. */
-export function conditionGating(c: Combatant): { noAction: boolean; cannotDefend: boolean; movement: 'normal' | 'half' | 'none' } {
+ *  (`none` > `half`/`crawl` > normal). « Etat comme Psy » : `PsychologyData extends StatusData`.
+ *  `cloueur` : le PREMIER statut porté qui pose `movement: 'none'`. */
+export function conditionGating(c: Combatant): { noAction: boolean; cannotDefend: boolean; movement: 'normal' | 'half' | 'none'; cloueur?: StatusData } {
   let noAction = false; let cannotDefend = false; let movement: 'normal' | 'half' | 'none' = 'normal';
-  const apply = (g?: { action?: 'none'; movement?: 'none' | 'half' | 'crawl'; cannotDefend?: true }): void => {
+  let cloueur: StatusData | undefined;
+  const apply = (s?: StatusData): void => {
+    const g = s?.gating;
     if (!g) return;
     if (g.action === 'none') noAction = true;
     if (g.cannotDefend) cannotDefend = true;
-    if (g.movement === 'none') movement = 'none';
+    if (g.movement === 'none') { movement = 'none'; cloueur ??= s; }
     else if ((g.movement === 'half' || g.movement === 'crawl') && movement !== 'none') movement = 'half';
   };
-  for (const cond of c.conditions ?? []) apply(findConditionById(cond.id)?.gating);
-  for (const p of c.psychState ?? []) apply(findPsychologyById(p.type)?.gating);
-  return { noAction, cannotDefend, movement };
+  for (const cond of c.conditions ?? []) apply(findConditionById(cond.id));
+  for (const p of c.psychState ?? []) apply(findPsychologyById(p.type));
+  return { noAction, cannotDefend, movement, cloueur };
 }
 
 /** Ne peut pas se défendre lors d'un Test opposé (Surpris LDB 16 l.135 / Inconscient l.113 « rien faire
@@ -727,10 +727,25 @@ export function restrictingConditions(c: Combatant): { id: string; stacks: numbe
   return out;
 }
 
-/** Le combattant porte-t-il un État qui VERROUILLE son Action (`restrictsAction`) ? Une seule vérité de
- *  données partagée par le gate de hotbar (`battleSelectAction`) ET l'IA (`planProactiveSpend`). */
+/** Le combattant porte-t-il un État qui VERROUILLE son Action (`restrictsAction`) ? Même vérité de
+ *  données que `raisonVerrouDAction`, lue par l'IA (`planProactiveSpend`). */
 export function isActionLocked(c: Combatant): boolean {
   return restrictingConditions(c).length > 0;
+}
+
+/** RAISON du verrou d'État (LDB 16 l.52) : le premier État `restrictsAction` porté, nommé par son
+ *  libellé de donnée. Texte UNIQUE du refus, lu par le registre (`verdictDOffre`) et par
+ *  `battleSelectAction`. `undefined` = aucun verrou. */
+export function raisonVerrouDAction(c: Combatant): string | undefined {
+  const verrou = restrictingConditions(c)[0];
+  return verrou && t('agate.actionLocked', { etat: findConditionById(verrou.id)!.label });
+}
+
+/** RAISON du Mouvement CLOUÉ (`gating.movement: 'none'`, `etats.json`/`psychology.json`) : le
+ *  `cloueur` de `conditionGating`, nommé par son libellé. `undefined` = libre. */
+export function raisonMouvementCloue(c: Combatant): string | undefined {
+  const cloueur = conditionGating(c).cloueur;
+  return cloueur && t('agate.movementLocked', { etat: cloueur.label });
 }
 
 /**

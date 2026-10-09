@@ -29,7 +29,7 @@ function setup() {
 
 const ctxDe = (def?: ActionDef): ActionCtx => {
   const battle = useGame.getState().battle!;
-  return { active: battle.combatants.find((c) => c.kind === 'hero')!, battle, def };
+  return { gameTime: 0, active: battle.combatants.find((c) => c.kind === 'hero')!, battle, def };
 };
 
 describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit', () => {

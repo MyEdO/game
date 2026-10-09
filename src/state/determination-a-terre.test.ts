@@ -74,7 +74,7 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
   it('à 0 PB, la case « Se relever » reste FERMÉE alors que la dépense, elle, est OUVERTE', () => {
     const { H } = setup(0, 1);
     const battle = useGame.getState().battle!;
-    const geste = actionGate('stand', { active: vivant(H.id), battle });
+    const geste = actionGate('stand', { gameTime: 0, active: vivant(H.id), battle });
     expect(geste.ok, 'le GESTE ne rend aucune Blessure : il reste refusé (LDB 16 l.35)').toBe(false);
     expect(geste.reason).toBe(findConditionById('a-terre')!.lockedReason);
     expect(raisonRefusDetermination(vivant(H.id), 'a-terre'), 'la dépense doit rester ouverte').toBeUndefined();
