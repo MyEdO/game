@@ -203,7 +203,10 @@ de temps, elles ne s'y suspendent pas.
 n'arrete jamais tant qu'il a des tickets a traiter »). Un « bilan » est un point d'étape ENTRE deux
 dispatchs : dès que tous les agents sont rendus, l'action suivante est de dispatcher le prochain lot
 ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge machine).
-- **Un lot fait 10-12 tickets d'un MÊME domaine** : la cérémonie de vague coûte ~5-6 h FIXES.
+- **Un lot fait 10-12 tickets d'un MÊME domaine** : la cérémonie de vague coûte ~5-6 h FIXES. Il se
+  COMPOSE au dispatch par les tickets ouverts qui citent un même fichier de code :
+  `gh api "search/issues?q=repo:MyEdO/game+is:issue+is:open+%22<chemin>%22+in:body&per_page=100"`
+  (sonde du 2026-10-09 : `src/state/seaVoyageFlow.ts` → 40, `scripts/gates/toutes.mjs` → 7).
 - **Validation utilisateur = ASYNCHRONE** : le lot en attente de goût se PARQUE (worktree conservé,
   capture prête, question consignée), la vague CONTINUE — jamais gelée entière. En ABSENCE, dispatcher
   ce qui n'appelle aucun goût (données, gardes, ré-instruction) ; écrans et arbitrages en PRÉSENCE.
@@ -211,12 +214,13 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
   tickets commentés.
 - **Épique : pas de salve d'ouverture** — premier lot + index des phases EN PROSE, les enfants naissent
   à leur vague. Pas de checklist dans le corps (elle meurt toujours) : le plan et l'ÉTAT vivent dans le
-  suivi de vague, la STRUCTURE dans les liens. Une vague d'épique fait DÉCROÎTRE le compteur qu'elle vise.
+  suivi de vague, la STRUCTURE dans les sous-issues de l'épique. Une vague d'épique
+  fait DÉCROÎTRE le compteur qu'elle vise.
   Épique muette depuis 14 jours sans label `gelée` = anomalie à SIGNALER.
 - **Métriques**, à l'ouverture de session et au moins une fois par SEMAINE, écrites dans le suivi de
-  vague : delta net de tickets (cible ≤ 0), part des fermetures dépilant du stock de plus de 28
-  jours (≥ 50 %), résorption des restes (≥ 60 % sous deux semaines). Deux semaines sans mesure =
-  anomalie à signaler.
+  vague : travail restant, croissance nette (cible ≤ 0), émises sans épique et balance par vague,
+  mesurés par `npm run ops:stock-issues` ; part des fermetures dépilant du stock de plus de 28 jours
+  (≥ 50 %), résorption des restes (≥ 60 % sous deux semaines). Deux semaines sans mesure = anomalie à signaler.
 
 ## Calibrage
 

@@ -29,7 +29,7 @@
 import { TRONC, arbrePrincipal, branchesDe, depotDe, divergenceDe, fetchOrigin, journalDe, refusDeGit, reussi } from '../guards/lib/gitPorte.mjs'
 import { numerosDeLaChaine } from '../guards/lib/fermetures.mjs'
 import { inventaire } from './worktrees.mjs'
-import { DEPOT, appelGhRunner, pagesRest } from '../guards/lib/ticketsGh.mjs'
+import { DEPOT, appelGhRunner, estPullRequest, pagesRest } from '../guards/lib/ticketsGh.mjs'
 
 /** Le propriétaire du Project (un Project d'UTILISATEUR, pas d'organisation). */
 export const PROPRIETAIRE = 'cgauche'
@@ -348,7 +348,7 @@ export function planDeSync(lignes, itemsExistants = [], { issues = new Map() } =
 export function indexerIssues(entrees, numeros) {
   const parNumero = new Map()
   for (const entree of Array.isArray(entrees) ? entrees : []) {
-    if (entree?.pull_request) continue
+    if (estPullRequest(entree)) continue
     const numero = Number(entree?.number)
     if (!Number.isFinite(numero)) continue
     parNumero.set(numero, {

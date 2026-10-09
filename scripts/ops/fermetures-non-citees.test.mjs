@@ -56,10 +56,11 @@ test('`not_planned` N EXEMPTE PAS : une fermeture « pas prévu » sans solde es
   assert.match(r.rouges[0], /state_reason not_planned/)
 })
 
-test('label `duplicate` : SEUL exemptant — le survivant du doublon porte le solde', () => {
-  const r = comparerFermetures(BASE_FIXTURE, [fermee(1700, { labels: ['duplicate'] })], [], [])
-  assert.deepEqual(r.rouges, [])
-  assert.match(r.rapport[0], /\[doublon \(exempté\)\]/)
+test('label `duplicate` et `state_reason: duplicate` N’EXEMPTENT PAS : un doublon sort par `NATURE: doublon #M` de son solde', () => {
+  const r = comparerFermetures(BASE_FIXTURE, [fermee(1700, { labels: ['duplicate'], stateReason: 'duplicate' })], [], [])
+  assert.equal(r.rouges.length, 1)
+  assert.match(r.rouges[0], /FERMETURE NEUVE.*#1700/)
+  assert.match(r.rapport[0], /\[NEUVE\]/)
 })
 
 // L'issue du canari se reconnaît à son TITRE, jamais à son label : les deux issues canari ouvertes

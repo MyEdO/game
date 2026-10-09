@@ -21,6 +21,7 @@
 import { fileURLToPath } from 'node:url'
 import { coursesCi } from '../guards/lib/coursesCi.mjs'
 import { depotDe, parentsDe, shaDe } from '../guards/lib/gitPorte.mjs'
+import { natureDuSolde, raisonDeFermeture } from '../guards/lib/nature.mjs'
 import {
   WORKFLOW_FERMETURES, avertissementIntraitable, avertissementRapportee, avertissementRouvert, baseDeLaPlage,
   commitsDeLaPlage, decisionPour, fermeturesDeLaPlage, marqueDe, marqueRecente, motifDePlageIllisible,
@@ -41,22 +42,20 @@ const appelGh = appelGhRunner({ cwd: RACINE, maxBuffer: 32 * 1024 * 1024 })
  * fil (un PATCH raté au run précédent) : sans cela, le rejeu du job posterait un second solde
  * identique.
  *
- * `state_reason=completed` est passé EXPLICITEMENT. `PATCH /repos/{owner}/{repo}/issues/{n}` porte
- * `state` et `state_reason` en DEUX champs distincts, et la doc REST ne DÉFINIT aucune valeur de
- * `state_reason` pour un `state=closed` sans raison : s'en remettre au défaut, c'est parier sur un
- * comportement non écrit. Les 100 dernières fermetures du dépôt portent toutes `completed` (sonde
- * `gh api repos/cgauche/game/issues?state=closed --jq .[].state_reason`, 2026-09-18) — ce que posait
- * la rédaction d'avant, `gh issue close --reason completed` ; l'écrire ici rend le geste IDENTIQUE.
- * @param {{numero:string|number, corps:string, poser?:boolean, appel?:Function}} p
+ * `state_reason=<raison>` est passé EXPLICITEMENT, sur les deux chemins : `raison` est celle de la
+ * NATURE du solde (`raisonDeFermeture`, scripts/guards/lib/nature.mjs). `PATCH
+ * /repos/{owner}/{repo}/issues/{n}` porte `state` et `state_reason` en DEUX champs distincts, et la
+ * doc REST ne DÉFINIT aucune valeur de `state_reason` pour un `state=closed` sans raison.
+ * @param {{numero:string|number, corps:string, raison:string, poser?:boolean, appel?:Function}} p
  * @returns {{ok:boolean, raison?:string}}
  */
-export function fermerLeTicket({ numero, corps, poser = true, appel = appelGh }) {
+export function fermerLeTicket({ numero, corps, raison, poser = true, appel = appelGh }) {
   if (poser) {
     const pose = poserCommentaire({ depot: DEPOT, numero, corps, appel })
     if (!pose.ok) return { ok: false, raison: `commentaire non posé — ${pose.raison}` }
   }
   const ferme = appel([
-    'api', cheminTicket(DEPOT, numero), '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed',
+    'api', cheminTicket(DEPOT, numero), '-X', 'PATCH', '-f', 'state=closed', '-f', `state_reason=${raison}`,
   ])
   return ferme.ok ? { ok: true } : { ok: false, raison: ferme.raison }
 }
@@ -107,8 +106,10 @@ export function traiterUnTicket({
   if (decision === 'rouvert') return { ok: true, avertissement: avertissementRouvert(numero, sha) }
 
   const emporte = solde(sha, numero)
+  const nature = natureDuSolde(emporte, numero)
+  if (nature.erreur) return { ok: true, avertissement: avertissementIntraitable(numero, `solde de ${sha} : ${nature.erreur}`) }
   const corps = `${emporte ?? `Fermé par le commit ${sha}, publié sur main (aucun solde emporté).`}\n\n${marqueDe(sha)}\n`
-  const vu = fermer({ numero, corps, poser: posteUnSolde(decision) })
+  const vu = fermer({ numero, corps, raison: raisonDeFermeture(nature.nature), poser: posteUnSolde(decision) })
   if (!vu.ok) return { ok: false, raison: `fermeture impossible — ${vu.raison}` }
   const dejaAuFil = decision === 'patcher' ? ' — solde DÉJÀ au fil, seul l’état restait ouvert' : ''
   return { ok: true, dit: `fermée (solde du commit ${sha}${emporte ? '' : ' — ABSENT'})${dejaAuFil}` }

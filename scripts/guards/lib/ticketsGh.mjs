@@ -82,6 +82,10 @@ export const appelGhRunner = ({ cwd, maxBuffer = 64 * 1024 * 1024, executer = ex
   }
 }
 
+/** L'entrée d'une liste `repos/<o>/<r>/issues` est-elle une PULL REQUEST ? La route sert AUSSI les PR,
+ *  qui portent le champ `pull_request` ; un ticket ne le porte jamais. PUR. @param {unknown} entree */
+export const estPullRequest = (entree) => Boolean(entree?.pull_request)
+
 /** Route REST d'un ticket. @param {string} depot `<owner>/<repo>` @param {string|number} numero */
 export const cheminTicket = (depot, numero) => `repos/${depot}/issues/${numero}`
 
@@ -150,7 +154,7 @@ export function lireTicket({ depot, numero, appel }) {
     return { ok: false, raison: `réponse gh illisible (${e.message})` }
   }
   // La route `/issues/<n>` sert AUSSI les pull requests : la refuser AVANT toute lecture.
-  if (issue?.pull_request) return { ok: false, raison: `#${numero} est une pull request, pas un ticket` }
+  if (estPullRequest(issue)) return { ok: false, raison: `#${numero} est une pull request, pas un ticket` }
   const pages = pagesRest(`${chemin}/comments`, appel)
   if (!pages.ok) return { ok: false, raison: pages.raison }
   return {
