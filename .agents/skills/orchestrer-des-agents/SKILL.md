@@ -211,7 +211,7 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
   tickets commentés.
 - **Épique : pas de salve d'ouverture** — premier lot + index des phases EN PROSE, les enfants naissent
   à leur vague. Pas de checklist dans le corps (elle meurt toujours) : le plan et l'ÉTAT vivent dans le
-  suivi de vague, la STRUCTURE dans les sous-issues (épique → famille → tickets). Une vague d'épique
+  suivi de vague, la STRUCTURE dans les sous-issues de l'épique. Une vague d'épique
   fait DÉCROÎTRE le compteur qu'elle vise.
   Épique muette depuis 14 jours sans label `gelée` = anomalie à SIGNALER.
 - **Métriques**, à l'ouverture de session et au moins une fois par SEMAINE, écrites dans le suivi de

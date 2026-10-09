@@ -1,6 +1,6 @@
 // ÉPIQUE et RATTACHEMENT NATIF — credo, puce « Le poison se corrige DANS LE GESTE » (#2561). Un ticket
-// naît SOUS-ISSUE native de sa famille, elle-même sous-issue de son épique (`parent_issue_url` du
-// schéma `issue`). Lu par le compteur du travail restant (`scripts/ops/stock-issues.mjs`). PUR.
+// naît SOUS-ISSUE native de son épique (`parent_issue_url` du schéma `issue`). Lu par le compteur du
+// travail restant (`scripts/ops/stock-issues.mjs`). PUR.
 
 /** Le label qui fait d'une issue une épique : le TITRE est de l'affichage, jamais lu. */
 export const LABEL_EPIQUE = 'épique'

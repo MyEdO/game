@@ -159,13 +159,13 @@ test('RATTACHEMENT : une création portant le label `épique` est exemptée', ()
   assert.equal(contexteEmission('gh issue create --title X --label sev:mineur,type:donnée,domaine:combat,épique'), null)
 })
 
-test("RATTACHEMENT : la note pose les trois questions dans l'ordre du credo, la sous-issue de famille en dernier", () => {
+test("RATTACHEMENT : la note pose les trois questions dans l'ordre du credo, la sous-issue de l'épique en dernier", () => {
   const note = contexteEmission('gh issue create --title X ' + LABELS + ' --body "constat"')
-  const rangs = ['(1) corrigeable dans le geste', '(2) la COUCHE', '`campagne:*` = scénario', '(3) sinon, APRÈS la création', 'sous-issue de sa FAMILLE', 'jamais orpheline']
+  const rangs = ['(1) corrigeable dans le geste', '(2) la COUCHE', '`campagne:*` = scénario', '(3) sinon, après création', 'sous-issue de son épique', 'jamais orpheline']
     .map((jalon) => note.indexOf(jalon))
   assert.ok(rangs.every((r) => r >= 0), `jalons absents : ${rangs}`)
   assert.deepEqual([...rangs].sort((a, b) => a - b), rangs)
-  assert.ok(note.includes(`gh api -X POST repos/${DEPOT}/issues/<famille>/sub_issues -F sub_issue_id=<id>`))
+  assert.ok(note.includes(`gh api -X POST repos/${DEPOT}/issues/<épique>/sub_issues -F sub_issue_id=<id>`))
 })
 
 test("AIDE : `gh issue create --help`, `-h` et `gh help issue create` ne sont pas des créations", () => {

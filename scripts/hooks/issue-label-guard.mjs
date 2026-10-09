@@ -14,7 +14,7 @@
 //     régime utilisateur du 2026-09-01 (« Personnellement je m'absente des heures ») interdit de
 //     bloquer ; la mesure passe d'abord, le refus se re-décide sur la chute.
 //     Et le RATTACHEMENT (#2561, credo puce « Le poison se corrige DANS LE GESTE ») : toute création
-//     CLI qui ne porte pas le label `épique` reçoit la note des quatre questions, dans l'ordre du
+//     CLI qui ne porte pas le label `épique` reçoit la note des trois questions, dans l'ordre du
 //     credo, dont la dernière est la sous-issue native à poser APRÈS la création. Le rattachement
 //     n'existe pas avant que l'issue existe : il ne se juge pas ici, mais a posteriori par les
 //     orphelins de `npm run ops:stock-issues`, créations REST/GraphQL comprises.
@@ -181,9 +181,9 @@ const NOTE_RATTACHEMENT =
   'Rattachement (credo, puce « Le poison se corrige DANS LE GESTE »), dans CET ordre : ' +
   "(1) corrigeable dans le geste ? alors pas d'issue, on corrige ; (2) la COUCHE : " +
   '`type:règle-optionnelle` / `policy-à-trancher` = système ; `campagne:*` = scénario → valeur ' +
-  "d'adaptation décidée et tracée, pas d'issue ; (3) sinon, APRÈS la création, rattache-la en " +
-  "sous-issue de sa FAMILLE (les fichiers, la couture qu'elle touche), elle-même sous son épique — " +
-  `jamais orpheline : \`gh api -X POST repos/${DEPOT}/issues/<famille>/sub_issues -F ` +
+  "d'adaptation décidée et tracée, pas d'issue ; (3) sinon, après création, rattache-la en " +
+  'sous-issue de son épique — ' +
+  `jamais orpheline : \`gh api -X POST repos/${DEPOT}/issues/<épique>/sub_issues -F ` +
   `sub_issue_id=<id>\`, où <id> = \`gh api repos/${DEPOT}/issues/<numéro créé> --jq .id\`. ` +
   'Les orphelins se comptent par `npm run ops:stock-issues`.'
 

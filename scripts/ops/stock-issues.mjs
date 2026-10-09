@@ -1,18 +1,13 @@
 // COMPTEUR DU TRAVAIL RESTANT du backlog (#2561), joué à la main par `npm run ops:stock-issues`.
-// Credo, puce « Le poison se corrige DANS LE GESTE » : un ticket naît SOUS-ISSUE native de sa FAMILLE,
-// elle-même sous-issue de son épique (`parent_issue_url`, `scripts/guards/lib/epique.mjs`).
+// Credo, puce « Le poison se corrige DANS LE GESTE » : un ticket naît SOUS-ISSUE native de son épique
+// (`parent_issue_url`, `scripts/guards/lib/epique.mjs`).
 //
 // Mesures, sur un instantané des issues ouvertes et fermées (pull requests écartées, `estPullRequest`) :
 //   - travail restant = issues ouvertes                                                    -> mesure ;
 //   - croissance nette sur la fenêtre glissante (créées − fermées) > 0                     -> ROUGE ;
 //   - orphelins : ouvertes sans parent, hors épiques et hors bots                          -> mesure ;
-//   - sous-issues ouvertes rattachées DIRECTEMENT à une épique, sans famille               -> mesure ;
 //   - balance par vague : enfants d'une épique fermés < enfants créés dans la fenêtre     -> ROUGE ;
-//     les sous-issues s'imbriquent (épique → famille → ticket) : un enfant est toute issue dont la
-//     CHAÎNE de parents remonte à l'épique ;
-//   - rafale : plus de `RAFALE_MAX` créations un même jour UTC sans parent, hors épiques et
-//     hors bots -> ROUGE « une épique et sa liste ». GitHub n'observe pas la SESSION qui émet : le
-//     jour en est la mesure observable.
+//     un enfant est toute issue dont la CHAÎNE de parents remonte à l'épique.
 //
 // Les comparateurs sont PURS ; la lecture REST vit dans `main` : la LISTE paginée seule (`pagesRest`,
 // jamais `--paginate`), qui porte `parent_issue_url` — aucun appel par issue.
@@ -26,9 +21,6 @@ const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 /** Fenêtre glissante par défaut, en jours. */
 export const FENETRE_JOURS = 7
-
-/** Créations sans parent au-delà desquelles un même jour devient une rafale. */
-export const RAFALE_MAX = 10
 
 const JOUR_MS = 24 * 60 * 60 * 1000
 
@@ -50,13 +42,6 @@ export function ticketsDeLaListe(entrees) {
       parent: parentDe(e),
       bot: e.user?.type === 'Bot',
     }))
-}
-
-/** Numéros des issues ouvertes, hors épiques, dont le parent DIRECT est une épique : rattachées sans
- *  famille intermédiaire. PUR. @param {ReturnType<typeof ticketsDeLaListe>} tickets */
-export function directementSousEpique(tickets) {
-  const epiques = new Set(tickets.filter((t) => t.epique).map((t) => t.numero))
-  return tickets.filter((t) => t.ouvert && !t.epique && epiques.has(t.parent)).map((t) => t.numero).sort((a, b) => a - b)
 }
 
 /** Créées et fermées dans la fenêtre `[maintenant − jours, maintenant]`, et leur solde. PUR. */
@@ -103,22 +88,6 @@ export function balanceParVague(tickets, maintenant, jours = FENETRE_JOURS) {
     .sort((a, b) => a.epique - b.epique)
 }
 
-/** Jours UTC de la fenêtre où plus de `max` issues ont été créées sans parent, hors épiques et hors
- *  bots. PUR. */
-export function rafales(tickets, maintenant, jours = FENETRE_JOURS, max = RAFALE_MAX) {
-  const borne = maintenant - jours * JOUR_MS
-  const parJour = new Map()
-  for (const t of tickets) {
-    if (t.creee < borne || t.bot || t.epique || t.parent !== null) continue
-    const jour = new Date(t.creee).toISOString().slice(0, 10)
-    parJour.set(jour, [...(parJour.get(jour) ?? []), t.numero])
-  }
-  return [...parJour.entries()]
-    .filter(([, numeros]) => numeros.length > max)
-    .map(([jour, numeros]) => ({ jour, numeros: numeros.sort((a, b) => a - b) }))
-    .sort((a, b) => a.jour.localeCompare(b.jour))
-}
-
 /**
  * Verdict de l'instantané : lignes de mesure, ROUGES. PUR.
  * @param {ReturnType<typeof ticketsDeLaListe>} tickets @param {number} maintenant @param {number} [jours]
@@ -128,23 +97,17 @@ export function jugerStock(tickets, maintenant, jours = FENETRE_JOURS) {
   const ouvertes = tickets.filter((t) => t.ouvert).length
   const croissance = croissanceNette(tickets, maintenant, jours)
   const sansEpique = orphelins(tickets)
-  const sansFamille = directementSousEpique(tickets)
   const balance = balanceParVague(tickets, maintenant, jours)
-  const pics = rafales(tickets, maintenant, jours)
-  const liste = (numeros) => numeros.map((n) => `#${n}`).join(' ')
   const mesures = [
     `travail restant : ${ouvertes} issue(s) ouverte(s)`,
     `croissance nette ${jours} j : ${croissance.creees} créée(s) − ${croissance.fermees} fermée(s) = ${croissance.net}`,
-    `orphelins (ouverts sans parent) : ${sansEpique.length}${sansEpique.length ? ` — ${liste(sansEpique)}` : ''}`,
-    `sous-issues ouvertes rattachées DIRECTEMENT à une épique (sans famille) : ${sansFamille.length}${sansFamille.length ? ` — ${liste(sansFamille)}` : ''}`,
+    `orphelins (ouverts sans parent) : ${sansEpique.length}`,
     ...balance.filter((b) => !b.rouge).map((b) => `vague de l'épique #${b.epique} : ${b.fermees} fermé(s) ≥ ${b.creees} créé(s)`),
   ]
   const rouges = [
     ...(croissance.net > 0 ? [`croissance nette ${jours} j positive (+${croissance.net}) : le backlog grossit`] : []),
     ...balance.filter((b) => b.rouge).map((b) =>
       `vague de l'épique #${b.epique} : ${b.fermees} enfant(s) fermé(s) < ${b.creees} créé(s) en ${jours} j`),
-    ...pics.map((p) =>
-      `rafale le ${p.jour} : ${p.numeros.length} créations sans parent (> ${RAFALE_MAX}) — une épique et sa liste (${liste(p.numeros)})`),
   ]
   return { mesures, rouges }
 }

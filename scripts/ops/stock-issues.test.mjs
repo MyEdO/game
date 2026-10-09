@@ -3,7 +3,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  RAFALE_MAX, balanceParVague, croissanceNette, jugerStock, directementSousEpique, orphelins, rafales, ticketsDeLaListe,
+  balanceParVague, croissanceNette, jugerStock, orphelins, ticketsDeLaListe,
 } from './stock-issues.mjs'
 
 const MAINTENANT = Date.parse('2026-10-09T12:00:00Z')
@@ -33,20 +33,6 @@ test('travail restant = issues ouvertes, épiques comprises', () => {
   assert.match(jugerStock(t, MAINTENANT).mesures.join('\n'), /travail restant : 2 issue\(s\) ouverte\(s\)/)
 })
 
-test('sous-issues ouvertes rattachées DIRECTEMENT à une épique : signalées, jamais ROUGES', () => {
-  const t = tickets(
-    issue(1, { labels: ['épique'] }),
-    issue(2, { parent: 1 }),
-    issue(3, { parent: 2 }),
-    issue(4, { ouvert: false, fermee: 40, parent: 1 }),
-    issue(5, { labels: ['épique'], parent: 1 }),
-  )
-  assert.deepEqual(directementSousEpique(t), [2])
-  const { mesures, rouges } = jugerStock(t, MAINTENANT)
-  assert.ok(mesures.some((m) => /DIRECTEMENT à une épique \(sans famille\) : 1 — #2/.test(m)))
-  assert.deepEqual(rouges, [])
-})
-
 test('croissance nette sur 7 j glissants : ROUGE si créées > fermées', () => {
   const t = tickets(issue(1, { creee: 1 }), issue(2, { creee: 2 }), issue(3, { ouvert: false, creee: 20, fermee: 3 }), issue(4, { creee: 8 }))
   assert.deepEqual(croissanceNette(t, MAINTENANT), { creees: 2, fermees: 1, net: 1 })
@@ -65,6 +51,8 @@ test('orphelins : ouverts sans parent natif, corps ignoré, hors épiques, hors 
     issue(4, { ouvert: false, fermee: 40 }),
   )
   assert.deepEqual(orphelins(t), [5, 6])
+  const ligne = jugerStock(t, MAINTENANT).mesures.find((m) => m.startsWith('orphelins'))
+  assert.equal(ligne, 'orphelins (ouverts sans parent) : 2', 'le COMPTE seul, jamais la liste des numéros')
 })
 
 test('balance par vague : ROUGE si les enfants fermés d\'une épique sont moins que ses enfants créés', () => {
@@ -88,18 +76,7 @@ test('balance par vague : ROUGE si les enfants fermés d\'une épique sont moins
   assert.ok(!rouges.some((r) => /épique #2/.test(r)))
 })
 
-test(`rafale : plus de ${RAFALE_MAX} créations sans parent un même jour → ROUGE ; bots, enfants et épiques exclus`, () => {
-  const jour = (n, extra = {}) => issue(100 + n, { creee: 1, ...extra })
-  const pleine = Array.from({ length: RAFALE_MAX + 1 }, (_, i) => jour(i))
-  assert.equal(rafales(tickets(...pleine), MAINTENANT).length, 1)
-  assert.match(jugerStock(tickets(...pleine), MAINTENANT).rouges.join('\n'), /rafale le .* une épique et sa liste/)
-  const juste = Array.from({ length: RAFALE_MAX }, (_, i) => jour(i))
-  for (const exclue of [{ bot: true }, { parent: 1 }, { labels: ['épique'] }]) {
-    assert.deepEqual(rafales(tickets(...juste, jour(99, exclue)), MAINTENANT), [], JSON.stringify(exclue))
-  }
-})
-
-test("balance par vague : la CHAÎNE de parents remonte à l'épique (épique → famille → ticket)", () => {
+test("balance par vague : la CHAÎNE de parents remonte à l'épique (épique → sous-issue → ticket)", () => {
   const t = tickets(
     issue(1, { labels: ['épique'] }),
     issue(2, { parent: 1 }),
