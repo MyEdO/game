@@ -305,7 +305,7 @@ test('équipement : npm ci à la RACINE puis dans server/, puis docs:build, dans
     assert.deepEqual(appels.map((a) => a.args), [
       ['ci', '--no-audit', '--no-fund'],
       ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'],
-      ['run', 'docs:build'],
+      ['run', 'docs:build', '--', '--perimes'],
     ])
     assert.deepEqual([...new Set(appels.map((a) => a.cwd))], [cibleDe(racine, '47')],
       'tous se jouent DANS le worktree neuf (le sous-projet par --prefix, jamais par un cwd)')
@@ -374,7 +374,7 @@ test('origin injoignable : refus qui NOMME la raison, et aucun worktree posé', 
   } finally { jeter() }
 })
 
-test('docs ciblés : copie puis docs:build --only, ordre et cwd conservés', () => {
+test('docs ciblés : copie puis docs:build --perimes, ordre et cwd conservés', () => {
   const { racine, jeter } = depotAvecOrigin()
   try {
     const appels = []
@@ -386,7 +386,7 @@ test('docs ciblés : copie puis docs:build --only, ordre et cwd conservés', () 
     })
     assert.equal(vu.ok, true, vu.refus)
     assert.equal(appels.length, 3)
-    assert.deepEqual(appels[2], { args: ['run', 'docs:build', '--', '--only', ...scripts], cwd: cibleDe(racine, '2456-selection') })
+    assert.deepEqual(appels[2], { args: ['run', 'docs:build', '--', '--perimes'], cwd: cibleDe(racine, '2456-selection') })
   } finally { jeter() }
 })
 

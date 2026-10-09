@@ -10,7 +10,7 @@
 // (2026-09-02) : 5 lectures capturées sans l'appel, 1 006 avec.
 //
 // Périmètre : chemins sous `WFRP_LECTURES_RACINE` qui entrent dans la mesure (`dansLaMesure`, sur
-// l'ensemble `ignoresGit` calculé une fois par l'appelant et passé en JSON par `WFRP_LECTURES_IGNORES`,
+// l'ensemble `perimetreDeMesure().ignores` calculé une fois par l'appelant et passé en JSON par `WFRP_LECTURES_IGNORES`,
 // #1769), hors les cibles écrites par le générateur (`WFRP_LECTURES_CIBLE`, séparées par des virgules — un
 // générateur relit son propre .md en mode `--check`).
 // Un `readdirSync` enregistre le DOSSIER et son listing trié, restreint à la mesure : un fichier ajouté au dossier
@@ -25,9 +25,9 @@ import childProcess from 'node:child_process'
 import path from 'node:path'
 import { register, syncBuiltinESMExports } from 'node:module'
 import { isMainThread } from 'node:worker_threads'
-import { canoniser, dansLaMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { canoniser, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { normaliserRequeteMesuree, verifierRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
-import { parUnitesDeCode } from '../../guards/lib/lister.mjs'
+import { correspondGlob, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 
 const MARQUE = Symbol.for('wfrp.enregistreur-lectures')
 const RACINE = process.env.WFRP_LECTURES_RACINE
@@ -35,19 +35,14 @@ const SORTIE = process.env.WFRP_LECTURES_SORTIE
 const IGNORES = process.env.WFRP_LECTURES_IGNORES
 
 /** Enveloppe `fs` et rend le collecteur — exporté pour que le test monte la mécanique à nu.
- *  `ignores` : l'ensemble `ignoresGit` de la racine. */
-export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], observer }) {
-  if (!(ignores instanceof Set)) throw new TypeError('enregistreur-lectures : `ignores` (ensemble `ignoresGit`) absent — sans lui, chaque lecture serait écartée en silence')
+ *  `ignores` : l'ensemble `perimetreDeMesure().ignores` de la racine. */
+export function installer({ racine, ignores, cibles = [], motifsPropres = [], motifsDeclares = [], ciblesDerivees = [], observer }) {
+  if (!(ignores instanceof Set)) throw new TypeError('enregistreur-lectures : `ignores` (ensemble du périmètre de mesure) absent — sans lui, chaque lecture serait écartée en silence')
   if (!Array.isArray(ciblesDerivees) || ciblesDerivees.some((p) => typeof p !== 'string' || !p || p.includes('\\') || path.isAbsolute(p) || p.split('/').includes('..'))) throw new TypeError('enregistreur-lectures : cibles dérivées hors racine')
   const base = canoniser(racine)
   const exclues = new Set(cibles)
   const derivees = new Set(ciblesDerivees)
-  const parentsDerives = new Set(ciblesDerivees.flatMap((p) => {
-    const parents = []
-    for (let d = path.posix.dirname(p); d !== '.'; d = path.posix.dirname(d)) parents.push(d)
-    return parents
-  }))
-  const admissible = (rel) => rel !== '.git' && !rel.startsWith('.git/') && rel !== 'node_modules' && !rel.startsWith('node_modules/') && (dansLaMesure(rel, ignores) || derivees.has(rel) || parentsDerives.has(rel))
+  const admissible = (rel) => dansLaMesure(rel, ignores, derivees, motifsDeclares)
   const fichiers = new Set()
   const dossiers = new Map()
   const git = new Map()
@@ -83,19 +78,23 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
    */
   const retenu = (p, rejets) => {
     if (typeof p === 'number') return null
-    const brut =
+    const cheminBrut =
       typeof p === 'string' ? p
       : Buffer.isBuffer(p) ? p.toString('utf8')
       : p instanceof URL && p.protocol === 'file:' ? decodeURIComponent(p.pathname).replace(/^\/([A-Za-z]:)/, '$1')
       : null
-    if (!brut) return null
-    const abs = path.resolve(base, brut)
+    if (!cheminBrut) return null
+    const abs = path.resolve(base, cheminBrut)
     const rel = relatifSousRacine(base, abs, canoniserMemo)
     if (rel === null) {
       rejets?.add(canoniserMemo(abs))
       return null
     }
-    if (!rel || !admissible(rel) || exclues.has(rel)) return null
+    if (!rel || !admissible(rel)) return null
+    if (exclues.has(rel) || motifsPropres.some((motif) => correspondGlob(rel, motif))) {
+      try { if (brut.lstatSync(abs).isFile()) return null }
+      catch (e) { if (['ENOENT', 'ENOTDIR'].includes(e.code)) return null; throw e }
+    }
     return rel
   }
 
@@ -113,6 +112,7 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
     promisesWriteFile: fs.promises.writeFile,
     existsSync: fs.existsSync,
     statSync: fs.statSync,
+    lstatSync: fs.lstatSync,
     promisesStat: fs.promises.stat,
     execFileSync: childProcess.execFileSync,
     spawnSync: childProcess.spawnSync,
@@ -138,7 +138,8 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
       const rel = retenu(p, cheminsRejetes)
       if (rel === null || dossiers.has(rel)) return
       // eslint-disable-next-line murs/ordre-total -- lecture PRISTINE du crochet : passer par `listerDossier` rappellerait l'enveloppe
-      dossiers.set(rel, brut.readdirSync(path.resolve(base, rel)).map(String).filter((n) => admissible(`${rel}/${n}`)).sort())
+      const entrees = brut.readdirSync(path.resolve(base, rel), { withFileTypes: true }).map((e) => ({ nom: e.name, nature: e.isSymbolicLink() ? 'link' : e.isFile() ? 'file' : e.isDirectory() ? 'directory' : 'other' })).sort((a, b) => parUnitesDeCode(a.nom, b.nom))
+      dossiers.set(rel, projeterListingMesure(rel, { nature: 'directory', entrees }, ignores, derivees, [...cibles, ...motifsPropres], motifsDeclares))
       return { dossiers: { [rel]: dossiers.get(rel) } }
     })
   }
@@ -241,6 +242,8 @@ if (isMainThread && RACINE && SORTIE && !globalThis[MARQUE]) {
     ignores: new Set(ignores),
     cibles: (process.env.WFRP_LECTURES_CIBLE ?? '').split(',').filter(Boolean),
     ciblesDerivees,
+    motifsPropres: JSON.parse(process.env.WFRP_LECTURES_MOTIFS_PROPRES ?? '[]'),
+    motifsDeclares: JSON.parse(process.env.WFRP_LECTURES_MOTIFS_DECLARES ?? '[]'),
   })
   // Ce qu'un THREAD DE HOOKS (tsx) charge et lit échappe à l'enveloppe de `fs` posée ici : le volet
   // `enregistreur-hooks.mjs` enregistre depuis ce thread-là les modules ET les fichiers lus.
@@ -251,6 +254,8 @@ if (isMainThread && RACINE && SORTIE && !globalThis[MARQUE]) {
       ignores,
       cibles: (process.env.WFRP_LECTURES_CIBLE ?? '').split(',').filter(Boolean),
       ciblesDerivees,
+      motifsPropres: JSON.parse(process.env.WFRP_LECTURES_MOTIFS_PROPRES ?? '[]'),
+      motifsDeclares: JSON.parse(process.env.WFRP_LECTURES_MOTIFS_DECLARES ?? '[]'),
     },
   })
   process.on('exit', () => {

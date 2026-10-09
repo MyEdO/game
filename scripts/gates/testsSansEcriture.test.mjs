@@ -87,7 +87,9 @@ test('le préchargeur laisse tsProgram se charger après le crochet de plateform
 }))
 
 test('le préchargeur réserve son instance hôte et laisse le helper normal suivre les hooks de plateforme', () => avecDepot((racine) => {
-  const helper = new URL('../docs/lib/chemin-mesure.mjs', import.meta.url).href
+  const helperURL = new URL('../docs/lib/chemin-mesure.mjs', import.meta.url)
+  helperURL.searchParams.set('banc', 'plateforme')
+  const helper = helperURL.href
   const remplacement = `data:text/javascript,${encodeURIComponent("import path from 'node:path'; export default { ...path, resolve: () => '/plateforme-apres-garde' }")}`
   const r = joue(racine, `
     import assert from 'node:assert/strict'; import { registerHooks } from 'node:module';

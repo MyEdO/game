@@ -1,7 +1,7 @@
 // Contrat de `docs:check` (#1679 L2 T1d, #1801, #1775, #2203) :
 //   · `--check` rejoue chaque générateur et compare son rendu au DISQUE, sans rien écrire ;
 //   · en `--check`, `executer` va au bout : chaque rouge est nommé avec sa nature, sortie 1 ;
-//   · `--mixtes` (#2193) ne réécrit que `perimetreDesMixtes`, dérivé de la table, jamais `SOURCES_LUES`.
+// #2193, #2475
 //   node --test scripts/docs/build-all-check.test.mjs  (chaîné dans `npm run test:docs`)
 //
 // Les cas de bout en bout jouent `executer` pour de vrai, `generateurs` injectés, sur un DÉPÔT
@@ -9,16 +9,18 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
+import { genererCode, issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
 import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
 import { chargerPreuve, preuveValide } from './lib/fraicheur-docs.mjs'
 import { ciblesPures, ciblesSurDisque, SOURCES_LUES } from './build-all.mjs'
+import { clotureDImports } from '../guards/lib/importGraph.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 
@@ -45,6 +47,357 @@ test('natureDuRouge : un processus tué ou coupé se nomme par son signal ou son
 const PRIMITIVE = pathToFileURL(path.join(ICI, 'lib', 'ecriture-derives.mjs')).href
 const BUILD_ALL = pathToFileURL(path.join(ICI, 'build-all.mjs')).href
 
+function copierOutillage(racine) {
+  const origine = path.resolve(ICI, '../..')
+  const copie = path.join(racine, 'outillage')
+  const racines = ['scripts/docs/build-all.mjs', 'scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs']
+  for (const rel of clotureDImports(racines, { racine: origine })) {
+    mkdirSync(path.dirname(path.join(copie, rel)), { recursive: true })
+    copyFileSync(path.join(origine, rel), path.join(copie, rel))
+  }
+  symlinkSync(path.join(origine, 'node_modules'), path.join(copie, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir')
+  return { copie, outil: pathToFileURL(path.join(copie, racines[0])).href }
+}
+
+function depotFermeture({ mutation = false, cycle = false, injections = false } = {}) {
+  const generateurs = ['a', 'b'].map((nom) => ({ runner: 'node', script: `g/${nom}.mjs`, targets: [`data/${nom}*.generated.ts`], ...(injections ? { injecte: ['notes/mixte.md'] } : {}) }))
+  const scripts = Object.fromEntries(['a', 'b'].map((nom) => {
+    const cible = cycle ? `\`data/${nom}-\${noms.length}.generated.ts\`` : JSON.stringify(`data/${nom}.generated.ts`)
+    return [`g/${nom}.mjs`, [
+      "import { readFileSync, readdirSync, writeFileSync } from 'node:fs'",
+      `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
+      `const lu = readFileSync('inputs/${nom}.txt', 'utf8')`,
+      ...(nom === 'a' || cycle ? [`const noms = readdirSync('data').filter((n) => !n.startsWith('${nom}') || !n.endsWith('.generated.ts')).sort()`] : []),
+      `ecrireOuVerifier({ path: ${cible}, out: ${nom === 'a' || cycle ? 'JSON.stringify(noms)' : 'lu'}, check: process.argv.includes('--check'), staleMsg: 'froid périmé', rerunMsg: 'relancer' })`,
+      ...(!cycle && nom === 'b' ? ["if (lu === 'suivante') ecrireOuVerifier({ path: 'data/b-suivante.generated.ts', out: lu, check: process.argv.includes('--check'), staleMsg: 'glob périmé', rerunMsg: 'relancer' })"] : []),
+      ...(injections ? ["ecrireOuVerifier({ path: 'notes/mixte.md', out: lu, check: process.argv.includes('--check'), staleMsg: 'mixte périmé', rerunMsg: 'relancer' })"] : []),
+      ...(mutation && nom === 'b' ? ["if (!process.argv.includes('--check')) writeFileSync('inputs/a.txt', 'mutation externe')"] : []),
+    ].join('\n')]
+  }))
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\ndocs/\n', 'data/source.txt': 'source', 'inputs/a.txt': 'a', 'inputs/b.txt': 'b', ...(injections ? { 'notes/mixte.md': 'initial' } : {}), ...scripts } })
+  return { racine, generateurs, options: { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES } }
+}
+
+for (const injections of [false, true]) test(`fermeture froide : producteur amont rejoué réellement après sortie étrangère${injections ? ', derniers injecteurs dans ordre réel' : ''}`, () => {
+  const { racine, generateurs, options } = depotFermeture({ injections })
+  try {
+    assert.equal(existsSync(path.join(racine, 'data/a.generated.ts')), false)
+    assert.equal(existsSync(path.join(racine, 'data/b.generated.ts')), false)
+    const vu = executer(racine, [], {}, [], generateurs)
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.equal((vu.sortie.match(/g\/a\.mjs — début/g) ?? []).length, 2, vu.sortie)
+    assert.equal((vu.sortie.match(/g\/b\.mjs — début/g) ?? []).length, 1, vu.sortie)
+    assert.match(vu.sortie, /fermeture 1 : g\/a\.mjs périmé : sources différentes : dossiers : data/)
+    assert.deepEqual(JSON.parse(readFileSync(path.join(racine, 'data/a.generated.ts'), 'utf8')), ['b.generated.ts', 'source.txt'])
+    assert.equal(preuveValide(racine, options).ok, true, vu.sortie)
+    if (injections) {
+      assert.equal(readFileSync(path.join(racine, 'notes/mixte.md'), 'utf8'), 'a')
+      const preuve = chargerPreuve(racine)
+      assert.deepEqual(preuve.generateurs['g/a.mjs'].sorties.find(([rel]) => rel === 'notes/mixte.md'), preuve.generateurs['g/b.mjs'].sorties.find(([rel]) => rel === 'notes/mixte.md'))
+    }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('--perimes : éligible frais sauté puis repris après nouvelle sortie glob aval', () => {
+  const { racine, generateurs, options } = depotFermeture()
+  try {
+    const initial = executer(racine, [], {}, [], generateurs)
+    assert.equal(initial.status, 0, initial.sortie)
+    writeFileSync(path.join(racine, 'inputs/b.txt'), 'suivante')
+    const vu = executer(racine, ['--perimes'], {}, [], generateurs)
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.equal((vu.sortie.match(/g\/a\.mjs — début/g) ?? []).length, 1, vu.sortie)
+    assert.equal((vu.sortie.match(/g\/b\.mjs — début/g) ?? []).length, 1, vu.sortie)
+    assert.match(vu.sortie, /fermeture 1 : g\/a\.mjs périmé/)
+    assert.equal(existsSync(path.join(racine, 'data/b-suivante.generated.ts')), true)
+    assert.equal(preuveValide(racine, options).ok, true, vu.sortie)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('--perimes : injecteur frais sauté conservé puis normalisé après dernier écrivain rejoué', () => {
+  const { racine, generateurs, options } = depotFermeture({ injections: true })
+  try {
+    const initial = executer(racine, [], {}, [], generateurs)
+    assert.equal(initial.status, 0, initial.sortie)
+    assert.equal(readFileSync(path.join(racine, 'notes/mixte.md'), 'utf8'), 'a')
+    writeFileSync(path.join(racine, 'inputs/b.txt'), 'b-modifiée')
+    const vu = executer(racine, ['--perimes'], {}, [], generateurs)
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.equal((vu.sortie.match(/g\/a\.mjs — début/g) ?? []).length, 0, vu.sortie)
+    assert.equal((vu.sortie.match(/g\/b\.mjs — début/g) ?? []).length, 1, vu.sortie)
+    assert.equal(existsSync(path.join(racine, 'data/b-suivante.generated.ts')), false)
+    assert.equal(readFileSync(path.join(racine, 'notes/mixte.md'), 'utf8'), 'b-modifiée')
+    const preuve = chargerPreuve(racine)
+    assert.equal(preuveValide(racine, options, preuve).ok, true, vu.sortie)
+    assert.deepEqual(preuve.generateurs['g/a.mjs'].sorties.find(([rel]) => rel === 'notes/mixte.md'), preuve.generateurs['g/b.mjs'].sorties.find(([rel]) => rel === 'notes/mixte.md'))
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('fermeture respecte --only ; --check ne génère ni ne publie de certificat', () => {
+  const { racine, generateurs } = depotFermeture()
+  try {
+    const seul = executer(racine, ['--only', 'g/a.mjs'], {}, [], generateurs)
+    assert.equal(seul.status, 0, seul.sortie)
+    assert.doesNotMatch(seul.sortie, /g\/b\.mjs — début|fermeture/)
+    assert.equal(existsSync(path.join(racine, 'data/b.generated.ts')), false)
+    assert.equal(chargerPreuve(racine).generateurs['g/b.mjs'], undefined)
+    const cache = readFileSync(path.join(racine, CACHE_FRAICHEUR))
+    const mesure = readFileSync(path.join(racine, SOURCES_LUES))
+    const cible = readFileSync(path.join(racine, 'data/a.generated.ts'))
+    const check = executer(racine, ['--check'], {}, [], generateurs)
+    assert.equal(check.status, 1, check.sortie)
+    assert.doesNotMatch(check.sortie, /fermeture/)
+    assert.equal(existsSync(path.join(racine, 'data/b.generated.ts')), false)
+    assert.deepEqual(readFileSync(path.join(racine, CACHE_FRAICHEUR)), cache)
+    assert.deepEqual(readFileSync(path.join(racine, SOURCES_LUES)), mesure)
+    assert.deepEqual(readFileSync(path.join(racine, 'data/a.generated.ts')), cible)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('fermeture : une mutation de source connue entre passes reste fatale', () => {
+  const { racine, generateurs, options } = depotFermeture({ mutation: true })
+  try {
+    const vu = executer(racine, [], {}, [], generateurs)
+    assert.equal(vu.status, 1, vu.sortie)
+    assert.match(vu.sortie, /source modifiée ou non capturée : inputs\/a\.txt/)
+    assert.equal(preuveValide(racine, options).ok, false)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('lecture tardive : nouveau endpoint glob aval absent au dépliage initial refusé par déclaration', () => {
+  const { racine, generateurs } = depotFermeture()
+  try {
+    const premier = { runner: 'node', script: 'g/premier.mjs', targets: ['data/premier.generated.ts'], injecte: ['data/b-nouvelle.generated.ts'] }
+    writeFileSync(path.join(racine, premier.script), [
+      "import { readFileSync } from 'node:fs'",
+      `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
+      "const lu = readFileSync('inputs/a.txt', 'utf8')",
+      "for (const cible of ['data/premier.generated.ts', 'data/b-nouvelle.generated.ts']) ecrireOuVerifier({ path: cible, out: lu, check: process.argv.includes('--check'), staleMsg: 'premier périmé', rerunMsg: 'relancer' })",
+    ].join('\n'))
+    const script = path.join(racine, 'g/a.mjs')
+    writeFileSync(script, readFileSync(script, 'utf8') + "\nreadFileSync('data/b-nouvelle.generated.ts', 'utf8')\n")
+    assert.equal(existsSync(path.join(racine, 'data/b-nouvelle.generated.ts')), false)
+    assert.deepEqual(ciblesSurDisque(generateurs[1].targets, racine), [])
+    const vu = executer(racine, [], {}, [], [premier, ...generateurs])
+    assert.equal(vu.status, 1, vu.sortie)
+    assert.match(vu.sortie, /g\/premier\.mjs — début/)
+    assert.equal(existsSync(path.join(racine, 'data/b-nouvelle.generated.ts')), true)
+    assert.match(vu.sortie, /lit « data\/b-nouvelle\.generated\.ts », que g\/b\.mjs écrit au même rang ou plus tard/)
+    assert.doesNotMatch(vu.sortie, /g\/b\.mjs — début/)
+    assert.equal(chargerPreuve(racine)?.generateurs['g/a.mjs'], undefined)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('contexte initial : outillage copié muté entre préparation et rang suivant refusé', async () => {
+  const { racine, generateurs, options } = depotFermeture()
+  try {
+    const { copie } = copierOutillage(racine)
+    const { avantGenerateur, preparerPreuves } = await import(pathToFileURL(path.join(copie, 'scripts/docs/lib/fraicheur-docs.mjs')).href)
+    const preparation = preparerPreuves(racine, options)
+    const cible = path.join(copie, 'scripts/guards/lib/ecritureJsonAtomique.mjs')
+    writeFileSync(cible, readFileSync(cible, 'utf8') + '\n')
+    assert.throws(() => avantGenerateur(racine, generateurs[0], options, preparation), /contexte modifié depuis préparation : outillage/)
+    assert.equal(chargerPreuve(racine), null)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('fermeture : cycle de listings et sorties globs refusé après borne explicite', () => {
+  const { racine, generateurs, options } = depotFermeture({ cycle: true })
+  try {
+    const vu = executer(racine, [], {}, [], generateurs)
+    assert.equal(vu.status, 1, vu.sortie)
+    assert.match(vu.sortie, /fermeture non convergente après 3 passes : g\/a\.mjs/)
+    assert.equal((vu.sortie.match(/g\/a\.mjs — début/g) ?? []).length, 2, vu.sortie)
+    assert.equal((vu.sortie.match(/g\/b\.mjs — début/g) ?? []).length, 2, vu.sortie)
+    assert.equal(preuveValide(racine, options).ok, false)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+for (const glob of [false, true]) test(`build froid réel : listing propre ${glob ? 'glob' : 'littéral'} et sonde future`, () => {
+  const cible = 'data/froid.generated.ts'
+  const script = [
+    "import { existsSync, readFileSync } from 'node:fs'",
+    `import { listerDossier } from ${JSON.stringify(pathToFileURL(path.join(ICI, '../guards/lib/lister.mjs')).href)}`,
+    `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`,
+    `existsSync(${JSON.stringify(cible)})`,
+    ...(glob ? ["existsSync('data/futur.generated.ts')"] : []),
+    "const sources = listerDossier('data').filter(n => n.endsWith('.txt')).map(n => readFileSync('data/' + n, 'utf8')).join('')",
+    `ecrireOuVerifier({ path: ${JSON.stringify(cible)}, out: 'export const froid = ' + JSON.stringify(sources) + '\\n', check: process.argv.includes('--check'), staleMsg: 'froid périmé', rerunMsg: 'relancer' })`,
+  ].join('\n')
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\ndocs/\n', 'data/source.txt': 'source', 'g/froid.mjs': script } })
+  const generateurs = [{ runner: 'node', script: 'g/froid.mjs', targets: [glob ? 'data/*.generated.ts' : cible] }]
+  try {
+    assert.equal(existsSync(path.join(racine, cible)), false)
+    const froid = executer(racine, ['--code'], {}, [], generateurs)
+    assert.equal(froid.status, 0, froid.sortie)
+    const preuve = chargerPreuve(racine)
+    assert.equal(preuveValide(racine, { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, true)
+    assert.equal(preuve.generateurs['g/froid.mjs'].mesure.sondes.some(q => q.chemin.endsWith('.generated.ts')), false)
+    const bytes = readFileSync(path.join(racine, cible))
+    assert.equal(executer(racine, ['--check', '--code'], {}, [], generateurs).status, 0)
+    assert.deepEqual(readFileSync(path.join(racine, cible)), bytes)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('export physique vide : sélection code vide sans écriture ni certification', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'export-code-vide-'))
+  try {
+    assert.equal(genererCode({ cwd: racine, quiet: true, generateurs: [] }), 0)
+    assert.deepEqual(listerDossier(racine), [])
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+for (const gitDefectueux of [false, true]) test(`export physique code réel : ${gitDefectueux ? 'marqueur git défectueux refusé' : 'dépendances liées et certificat local'}`, () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'export-code-reel-'))
+  const dependances = mkdtempSync(path.join(tmpdir(), 'export-dependances-'))
+  const cible = ['src', 'export.generated.ts'].join('/')
+  const generateurs = [{ runner: 'node', script: 'g/a.mjs', targets: [cible] }]
+  try {
+    for (const dossier of ['src', 'g', 'docs']) mkdirSync(path.join(racine, dossier))
+    writeFileSync(path.join(racine, 'src/a.ts'), 'export const a = 1\n')
+    writeFileSync(path.join(racine, 'src/commun.ts'), 'export const commun = 1\n')
+    writeFileSync(path.join(racine, 'g/a.mjs'), generateurReel('a').replaceAll(DOC_A, cible))
+    symlinkSync(dependances, path.join(racine, 'node_modules'), 'junction')
+    if (gitDefectueux) writeFileSync(path.join(racine, '.git'), 'gitdir: inexistant\n')
+    const avantDependances = listerDossier(dependances)
+    const vu = executer(racine, ['--code'], {}, [], generateurs)
+    if (gitDefectueux) {
+      assert.equal(vu.status, 1, vu.sortie)
+      assert.equal(existsSync(path.join(racine, cible)), false)
+      assert.equal(chargerPreuve(racine), null)
+    } else {
+      assert.equal(vu.status, 0, vu.sortie)
+      assert.equal(existsSync(path.join(racine, cible)), true)
+      const options = { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES }
+      const preuve = chargerPreuve(racine)
+      assert.equal(preuveValide(racine, options).ok, true)
+      assert.equal(preuve.generateurs['g/a.mjs'].sources.contexte.perimetre.nature, 'physique')
+      assert.equal(existsSync(path.join(racine, 'docs/.cache/docs-fraicheur.json')), true)
+      writeFileSync(path.join(racine, 'src/a.ts'), 'source modifiée après certificat')
+      assert.equal(preuveValide(racine, options).ok, false)
+    }
+    assert.deepEqual(listerDossier(dependances), avantDependances)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(dependances, { recursive: true, force: true })
+  }
+})
+
+function modesReels(racine) {
+  const code = ['src', 'a.generated.ts'].join('/')
+  writeFileSync(path.join(racine, 'g/a.mjs'), generateurReel('a').replaceAll(DOC_A, code))
+  return [{ ...GENERATEURS_REELS[0], targets: [code] }, { ...GENERATEURS_REELS[1], targets: [], injecte: [DOC_B] }]
+}
+
+for (const mode of ['--code', '--mixtes']) test(`${mode} certifie ses écritures ; check ne modifie ni sorties ni preuve`, () => {
+  const { racine } = depotReel({ docsIgnores: true })
+  try {
+    const generateurs = modesReels(racine)
+    const initial = executer(racine, [], {}, [], generateurs)
+    assert.equal(initial.status, 0, initial.sortie)
+    const preuveAvant = readFileSync(path.join(racine, CACHE_FRAICHEUR))
+    const source = path.join(racine, 'src/a.ts')
+    writeFileSync(source, 'export const a = 999999\n')
+    const cible = path.join(racine, generateurs[0].targets[0])
+    const avant = readFileSync(cible)
+    const check = executer(racine, ['--check', mode], {}, [], generateurs)
+    assert.equal(check.status, 1, check.sortie)
+    assert.deepEqual(readFileSync(cible), avant)
+    assert.deepEqual(readFileSync(path.join(racine, CACHE_FRAICHEUR)), preuveAvant)
+    const vu = executer(racine, [mode], {}, [], generateurs)
+    assert.equal(vu.status, 0, vu.sortie)
+    const preuve = chargerPreuve(racine)
+    assert.ok(preuve.generateurs[generateurs[0].script], vu.sortie)
+    assert.equal(preuveValide(racine, { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, true)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('préparation illisible : arrêt avant tout générateur', () => {
+  const { racine } = depotReel({ docsIgnores: true })
+  try {
+    writeFileSync(path.join(racine, SOURCES_LUES), '{')
+    const avant = readFileSync(path.join(racine, DOC_A))
+    const vu = executer(racine, [])
+    assert.equal(vu.status, 1, vu.sortie)
+    assert.doesNotMatch(vu.sortie, /g\/a\.mjs — début|g\/b\.mjs — début/)
+    assert.deepEqual(readFileSync(path.join(racine, DOC_A)), avant)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('certification refusée : arrêt avant générateur aval', () => {
+  const { racine } = depotReel({ docsIgnores: true })
+  try {
+    mkdirSync(path.join(racine, 'references-vides'))
+    const source = generateurReel('a').replace("import { readFileSync }", "import { readFileSync, readdirSync }")
+      + "\nreaddirSync('references-vides')\n"
+    writeFileSync(path.join(racine, 'g/a.mjs'), source)
+    const aval = readFileSync(path.join(racine, DOC_B))
+    const vu = executer(racine, [])
+    assert.equal(vu.status, 1, vu.sortie)
+    assert.match(vu.sortie, /listing modifié ou non capturé/)
+    assert.doesNotMatch(vu.sortie, /g\/b\.mjs — début/)
+    assert.deepEqual(readFileSync(path.join(racine, DOC_B)), aval)
+    assert.equal(chargerPreuve(racine)?.generateurs['g/a.mjs'], undefined)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+for (const argv of [[], ['--perimes']]) test(`preuve finale refusée : sortie rouge ${argv.join(' ') || 'complète'}`, () => {
+  const { racine } = depotReel({ docsIgnores: true })
+  try {
+    mkdirSync(path.join(racine, 'v'))
+    writeFileSync(path.join(racine, 'v/course.mjs'), "import { writeFileSync } from 'node:fs'\nwriteFileSync('src/a.ts', 'course finale')\n")
+    writeFileSync(path.join(racine, 'src/a.ts'), 'source nouvelle')
+    const vu = executer(racine, argv, {}, ['v/course.mjs'])
+    assert.equal(vu.status, 1, vu.sortie)
+    assert.equal(chargerPreuve(racine)?.generateurs['g/a.mjs'], undefined)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('--perimes sans écriture ne lance aucun générateur ni vérificateur', () => {
+  const { racine } = depotReel({ docsIgnores: true })
+  try {
+    mkdirSync(path.join(racine, 'v'))
+    writeFileSync(path.join(racine, 'v/refus.mjs'), "throw new Error('NE DOIT PAS TOURNE')")
+    const avant = statSync(path.join(racine, DOC_A)).mtimeMs
+    const vu = executer(racine, ['--perimes'], {}, ['v/refus.mjs'])
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.doesNotMatch(vu.sortie, /g\/a\.mjs — début|g\/b\.mjs — début|NE DOIT PAS TOURNE/)
+    assert.equal(statSync(path.join(racine, DOC_A)).mtimeMs, avant)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('--perimes recertifie un certificat absent avec une mesure déjà présente', () => {
+  const { racine } = depotReel({ docsIgnores: true })
+  try {
+    rmSync(path.join(racine, CACHE_FRAICHEUR))
+    const vu = executer(racine, ['--perimes'])
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.equal(preuveValide(racine, { generateurs: GENERATEURS_REELS, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, true, vu.sortie)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+for (const identique of [true, false]) test(`--perimes mesure le lecteur au rang après producteur, sortie ${identique ? 'identique' : 'différente'}`, () => {
+  const { racine } = depotReel({ docsIgnores: true })
+  try {
+    writeFileSync(path.join(racine, 'g/b.mjs'), generateurReel('b').replace("readFileSync('src/b.ts', 'utf8')", `readFileSync('${DOC_A}', 'utf8')`).replace('${lu.length}', '${lu}'))
+    const initial = executer(racine, [])
+    assert.equal(initial.status, 0, initial.sortie)
+    const ancien = readFileSync(path.join(racine, DOC_B))
+    writeFileSync(path.join(racine, 'src/a.ts'), identique ? 'export const a = 2\n' : 'export const a = 222222\n')
+    const vu = executer(racine, ['--perimes'])
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.match(vu.sortie, /g\/a\.mjs — début/)
+    if (identique) {
+      assert.doesNotMatch(vu.sortie, /g\/b\.mjs — début/)
+      assert.deepEqual(readFileSync(path.join(racine, DOC_B)), ancien)
+    } else {
+      assert.match(vu.sortie, /g\/b\.mjs — début/)
+      assert.notDeepEqual(readFileSync(path.join(racine, DOC_B)), ancien)
+    }
+    assert.equal(preuveValide(racine, { generateurs: GENERATEURS_REELS, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, true)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 /** Un générateur RÉEL : lit ses DEUX sources (`SEUIL_SOURCES`), rend un doc qui CITE un chemin, et
  *  passe par la primitive. `cliquet` : sous `BANC_SORTIE=<code>`, il pose ce code AVANT la
  *  primitive, comme `reconcile.mjs` — les deux rouges doivent alors se dire. */
@@ -69,11 +422,11 @@ const GENERATEURS_REELS = [
 /** Joue `executer` dans un processus À PART (il imprime sur stderr, que le banc lit), par un HARNAIS
  *  posé sous le `node_modules/` ignoré du dépôt jetable : un module qui en importe un autre par
  *  `file://` absolu, lancé comme tout script. */
-function executer(racine, argv, env = {}, verificateurs = [], generateurs = GENERATEURS_REELS) {
-  const harnais = path.join(racine, 'node_modules', 'harnais-executer.mjs')
+function executer(racine, argv, env = {}, verificateurs = [], generateurs = GENERATEURS_REELS, outil = BUILD_ALL) {
+  const harnais = path.join(racine, 'docs', '.cache', 'harnais-executer.mjs')
   mkdirSync(path.dirname(harnais), { recursive: true })
   writeFileSync(harnais, [
-    `import { executer } from ${JSON.stringify(BUILD_ALL)}`,
+    `import { executer } from ${JSON.stringify(outil)}`,
     `process.exitCode = await executer({ cwd: ${JSON.stringify(racine)}, argv: ${JSON.stringify(['--quiet', ...argv])}, generateurs: ${JSON.stringify(generateurs)}, verificateurs: ${JSON.stringify(verificateurs)} })`,
   ].join('\n'))
   const r = spawnSync(process.execPath, [harnais], { cwd: racine, encoding: 'utf8', env: { ...process.env, ...env } })
@@ -117,6 +470,28 @@ test('`--check` rejoue chaque générateur : un corps divergent posé sur le dis
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
+})
+
+test('attestation : source app hors mesure reste fraîche ; outil transitif et hook URL invalident', () => {
+  const { racine } = depotReel({ docsIgnores: true })
+  try {
+    const { copie, outil } = copierOutillage(racine)
+    const jouer = (argv) => executer(racine, argv, {}, [], GENERATEURS_REELS, outil)
+    const initial = jouer([])
+    assert.equal(initial.status, 0, initial.sortie)
+    writeFileSync(path.join(racine, 'src/inconnu.ts'), 'export const inconnu = 1\n')
+    const frais = jouer(['--perimes'])
+    assert.equal(frais.status, 0, frais.sortie)
+    assert.doesNotMatch(frais.sortie, /g\/a\.mjs — début|g\/b\.mjs — début/)
+    for (const rel of ['scripts/docs/lib/enregistreur-hooks.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs']) {
+      const cible = path.join(copie, rel)
+      writeFileSync(cible, readFileSync(cible, 'utf8') + '\n')
+      const perime = jouer(['--perimes'])
+      assert.equal(perime.status, 0, perime.sortie)
+      assert.match(perime.sortie, /g\/a\.mjs — début/)
+      assert.match(perime.sortie, /g\/b\.mjs — début/)
+    }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
 test('`--check` va AU BOUT : un corps divergent ET un cliquet rouge dans le même run, nommés chacun', () => {
@@ -202,11 +577,11 @@ test('perimetreDesMixtes se DÉRIVE de la table : un générateur qui gagne un `
   assert.deepEqual(perimetreDesMixtes([code, devenuMixte, mixte]), [code, devenuMixte, mixte])
 })
 
-test('`--mixtes` réécrit les seuls générateurs du périmètre, et JAMAIS `SOURCES_LUES`', () => {
+test('`--mixtes` réécrit sa mesure et conserve celle des générateurs hors périmètre', () => {
   const { racine } = depotReel()
   try {
     const sourcesLues = path.join(racine, 'docs', '.sources-lues.json')
-    writeFileSync(sourcesLues, 'SENTINELLE\n')
+    const mesureAvant = JSON.parse(readFileSync(sourcesLues, 'utf8'))
     const docB = readFileSync(path.join(racine, DOC_B), 'utf8')
     writeFileSync(path.join(racine, 'src/a.ts'), 'export const a = 22222\n')
     writeFileSync(path.join(racine, 'src/b.ts'), 'export const b = 22222\n')
@@ -215,7 +590,9 @@ test('`--mixtes` réécrit les seuls générateurs du périmètre, et JAMAIS `SO
     assert.equal(vu.status, 0, vu.sortie)
     assert.match(readFileSync(path.join(racine, DOC_A), 'utf8'), /\(47 octets\)/, 'le mixte est régénéré')
     assert.equal(readFileSync(path.join(racine, DOC_B), 'utf8'), docB, 'un générateur hors périmètre ne joue pas')
-    assert.equal(readFileSync(sourcesLues, 'utf8'), 'SENTINELLE\n', '`--mixtes` ne réécrit pas la mesure')
+    const mesureApres = JSON.parse(readFileSync(sourcesLues, 'utf8'))
+    assert.deepEqual(mesureApres['g/b.mjs'], mesureAvant['g/b.mjs'])
+    assert.deepEqual(mesureApres['g/a.mjs'].cibles, [])
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

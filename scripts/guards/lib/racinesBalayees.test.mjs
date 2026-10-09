@@ -40,6 +40,63 @@ test('contrats de source : référence locale, alias importé, homonyme opaque e
   assert.deepEqual(racinesDe(modules, 'canon.mjs'), [[couvert('canon.mjs#lit', 'résumé de lecture déclaré à la source')]])
 })
 
+// #2475 / #2477
+test('contrat de retour : seules les feuilles déclarées couvrent le corpus, composition et cache réel', () => {
+  const source = "export function politique() { return opaque() }\nexport function inventaire() { return opaque() }\n" +
+    "export function seulementLit() { readFileSync(inconnu()); return opaque() }\n" +
+    "export const CONTRATS_DE_DERIVATION = [\n" +
+    "{fonction:politique,lectures:'corpus',retour:{exclude:{chemin:'corpus'},global:{chemin:'corpus'}}},\n" +
+    "{fonction:inventaire,lectures:'corpus',retour:'corpus'},\n{fonction:seulementLit,lectures:'corpus'}]\n"
+  const modules = {
+    'canon.mjs': source,
+    'public.mjs': "export {politique as policy, inventaire} from './canon.mjs'\n",
+    'autre.mjs': 'export function politique() { return opaque() }\n',
+    'banc.mjs': "import {join,dirname} from 'node:path'\nimport {policy,inventaire} from './public.mjs'\n" +
+      "import {politique as fausse} from './autre.mjs'\nimport {seulementLit} from './canon.mjs'\n" +
+      "const p = policy()\nreadFileSync(join(p.exclude.chemin,'.gitignore'))\nreadFileSync(dirname(p.global.chemin)+'/suite')\n" +
+      "readFileSync(join(inventaire(),'.gitignore'))\nreadFileSync(p.global.configuration)\nreadFileSync(p.exclude.chemin.inconnue)\n" +
+      "readFileSync(fausse().exclude.chemin)\nreadFileSync(seulementLit().inconnue)\n" +
+      "readFileSync(join(p.exclude.chemin,inconnu()))\nreadFileSync(join(inconnu(),p.exclude.chemin))\n" +
+      "readFileSync(choix ? p.exclude.chemin : inconnu())\n",
+  }
+  const retour = (champ) => couvert(`canon.mjs#politique:retour.${champ}`, 'résumé de retour déclaré à la source')
+  assert.deepEqual(evaluateurDe(modules).sitesDe('banc.mjs').filter((s) => s.appel === 'readFileSync' && !s.relais).map((s) => s.valeurs), [
+    [retour('exclude.chemin')], [retour('global.chemin')],
+    [couvert('canon.mjs#inventaire:retour', 'résumé de retour déclaré à la source')],
+    [{ non: 'propriété p.global.configuration' }], [{ non: 'propriété p.exclude.chemin.inconnue' }],
+    [{ non: 'appel opaque' }], [{ non: 'appel opaque' }],
+    [retour('exclude.chemin'), { non: 'appel inconnu' }],
+    [{ non: 'appel inconnu' }, retour('exclude.chemin')],
+    [retour('exclude.chemin'), { non: 'appel inconnu' }],
+  ])
+  const evaluateur = evaluateurDe(modules)
+  const premier = evaluateur.tracer(() => evaluateur.sitesDe('banc.mjs'))
+  const repete = evaluateur.tracer(() => evaluateur.sitesDe('banc.mjs'))
+  assert.ok(repete.requetes.has(JSON.stringify(['lecture', 'canon.mjs'])))
+  assert.deepEqual([...repete.requetes].sort(), [...premier.requetes].sort())
+  assert.equal(JSON.parse(JSON.stringify(lire('canon.mjs', source))).fonctions.politique.contrat.retour.v.exclude.v.chemin.k, 'couverture')
+  const sansLecture = "export function politique() { return opaque() }\n" +
+    "export const CONTRATS_DE_DERIVATION = [{fonction:politique,retour:{exclude:{chemin:'corpus'}}}]\n"
+  const { racine, sha } = instanceDeDepot({ fichiers: {
+    'scripts/canon.mjs': sansLecture,
+    'scripts/banc.test.mjs': "import {readFileSync} from 'node:fs';import {join} from 'node:path';import {politique} from './canon.mjs';readFileSync(join(politique().exclude.chemin,'.gitignore'))",
+    'src/a.md': 'initial', 'Source/b.md': 'initial', '.gitignore': 'node_modules/',
+  } })
+  try {
+    assert.deepEqual(balayagesNonResolus(racine), [])
+    assert.deepEqual(balayagesNonResolus(racine), [])
+    for (const fichier of ['src/a.md', 'Source/b.md']) {
+      writeFileSync(posix.join(racine, fichier), 'touché')
+      assert.ok(perimetreDuDepot(racine, { base: sha }).retenus.has('scripts/banc.test.mjs'), fichier)
+      writeFileSync(posix.join(racine, fichier), 'initial')
+    }
+    writeFileSync(posix.join(racine, 'scripts/canon.mjs'), sansLecture.replace("chemin:'corpus'", "chemin:'invalide'"))
+    const invalide = balayagesNonResolus(racine)
+    assert.ok(invalide.some((s) => s.fichier === 'scripts/banc.test.mjs' && s.raison === 'appel opaque'))
+    assert.deepEqual(balayagesNonResolus(racine), invalide)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 test('namespace borné : fragments recomposés, parent et sortie couvrent le corpus, cible readlink opaque', () => {
   const texte = "import {join,dirname} from 'node:path'\nexport function base() {return opaque()}\nexport const CONTRATS_DE_DERIVATION=[{fonction:base,namespace:'/proc'}]\nconst b=base()\nfor(const nom of readdirSync(b)) {readFileSync(join(b,nom,'stat'));readFileSync(nom)}\nreadFileSync(dirname(b))\nreadFileSync(join(b,'..','src'))\nreadFileSync(readlinkSync(join(b,'1/cwd')))"
   const rendu = racinesDe({ 'banc.mjs': texte }, 'banc.mjs')
@@ -63,7 +120,7 @@ test('composition : mkdtemp couvre son suffixe aléatoire, join et resolve diff�
   const texte = "import {join,resolve} from 'node:path'\nimport {tmpdir} from 'node:os'\nimport {mkdtempSync} from 'node:fs'\nreadFileSync(mkdtempSync(join(process.cwd(),'fixture-')))\nreadFileSync(join('src','/data'))\nreadFileSync(resolve('src','/data'))\nreadFileSync(join(tmpdir(),inconnu()))\nreadFileSync(join(tmpdir(),'..','x'))\nreadFileSync(choix ? tmpdir() : inconnu())\nreadFileSync('/absolu/arbitraire')"
   assert.deepEqual(racinesDe({ 'banc.mjs': texte }, 'banc.mjs'), [
     [couvert('corpus:fixture-', 'suffixe aléatoire mkdtempSync')], [{ chemin: 'src/data' }], [{ non: 'chemin absolu /data' }],
-    [couvertureTemporaire], [couvertureTemporaire],
+    [couvertureTemporaire, { non: 'appel inconnu' }], [couvertureTemporaire],
     [couvertureTemporaire, { non: 'appel inconnu' }], [{ non: 'chemin absolu /absolu/arbitraire' }],
   ])
 })

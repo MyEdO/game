@@ -138,8 +138,7 @@ export const ECRIT_LU = {
       'le contrat d’installation TypeScript lit le patch réel sous patches/ et peut corriger uniquement node_modules/typescript/dist/api/node/wtf8.js ; ' +
       'LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
-      'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
-      'scripts/git-hooks/, sélection de `docs-rebuild.mjs`) ; ' +
+      'LIT docs/ pour le listing de docs/raw ; le banc de scripts/git-hooks/ injecte sa mesure par mesurerEnRendu ; ' +
       'LIT Source/ parce que `idempotence-ordre-des-cles.test.mjs` copie le corpus (Source/ moins les ' +
       '`.pdf`, écartés par extension : sans les extractions quatre migrations sortent 1 faute de livres) sous ' +
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
@@ -291,7 +290,7 @@ export const ECRIT_LU = {
     raison: RETRAIT_WORKTREE_FERME +
       'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
       'les bancs fraîcheur écrivent leur cache dans leurs dépôts sous os.tmpdir(), supprimés en finally ; ' +
-      'la sélection pure de docs-rebuild est importée sans son main : ni journaliserLeHook ni prendreOutillage/prendreVerrou ne sont appelés ; ' +
+      'ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), atteint par les bancs de certification, écrit uniquement leurs caches de fixtures sous os.tmpdir() ; ' +
       'fixtures sous os.tmpdir(), dont celles de scripts/docs/lib/jsdocUnion.test.mjs ' +
       '(jsdoc-native-, zod-native-, union-optional-native-, supprimées en finally) ; ' +
       'scripts/docs/lib/plateforme-win32-fs.test.mjs écrit ses douze fixtures de décodage sous os.tmpdir(), préfixe plateforme-win32-decodage-, ' +
@@ -383,12 +382,14 @@ export const ECRIT_LU = {
     ecrit: [],
     ecritFerme: {
       [CACHE_FRAICHEUR]:
-        '`build-all.mjs --code` appelle invaliderPreuve : écriture seulement si chargerPreuve reconnaît un cache v2 valide existant ; ' +
-        'destination sous node_modules/ gitignoré, hors arbre versionné ; les seuls lecteurs réels build/docs:build sont dans le même job/lane docs de ci.yml, ' +
+        '`build-all.mjs --code` invalide puis certifie ses écritures par ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), temporaire propre au PID puis renommage ; ' +
+        'destination sous docs/.cache/ gitignoré, hors arbre versionné ; les seuls lecteurs réels build/docs:build sont dans le même job/lane docs de ci.yml, ' +
         'séquentiels par jouerLane ; les autres lanes ne lisent que leurs caches de fixtures sous os.tmpdir()',
       'src/':
         'les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs) sont produites AVANT toute gate ' +
         '(`npm run gen`, ci-dessous) : `ecrireOuVerifier` ne réécrit pas un rendu identique',
+      'docs/.sources-lues.json':
+        '`build-all.mjs --code` conserve les mesures des autres générateurs et enregistre celles des cibles de code ; seuls build et docs:build lisent cette mesure réelle dans le même job/lane docs, séquentiels par jouerLane ; les autres lanes utilisent leurs mesures de fixtures sous os.tmpdir()',
       'vite.config.ts.timestamp-':
         'Vite recompile sa config dans un module horodaté posé à côté d’elle, puis l’efface — mesuré ' +
         '(`vite.config.ts.timestamp-1788894628882-….mjs`, sonde 2026-09-08). LA PORTE : AUCUNE gate ne lit ' +
@@ -413,9 +414,10 @@ export const ECRIT_LU = {
     ecrit: [],
     ecritFerme: {
       [CACHE_FRAICHEUR]:
-        'cache gitignoré sous node_modules/, hors arbre versionné ; seuls build et docs:build lisent celui de la racine réelle : ' +
+        'certificat écrit par ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), temporaire propre au PID puis renommage sur ce cache gitignoré sous docs/.cache/, hors arbre versionné ; seuls build et docs:build lisent celui de la racine réelle : ' +
         'même job/lane docs de ci.yml, joués séquentiellement par jouerLane ; les autres lanes ne lisent que leurs caches de fixtures sous os.tmpdir()',
       'docs/':
+        'les mesures docs/.sources-lues.json sont écrites par build-all.mjs ; ' +
         'les cibles PURES de `GENERATORS` ne sont pas commitées (#2203 A2) : leurs lecteurs les RENDENT ' +
         '(`rendreCible`, scripts/docs/build-all.mjs), jamais du disque ; un MIXTE (`injecte`) n’est réécrit que ' +
         'si son rendu diffère (`ecrireOuVerifier`), ce que `Arbre inchangé` refuse dans le même job',

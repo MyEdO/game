@@ -195,12 +195,6 @@
     },
     {
       "famille": "appel non suivi",
-      "fichier": "scripts/guards/lib/gitPorte.mjs",
-      "ref": "natureDuChemin : appel lanceurs.get",
-      "occurrence": 1
-    },
-    {
-      "famille": "appel non suivi",
       "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
       "ref": "chapterLinesOf : appel _chapterCache.get",
       "occurrence": 1
@@ -444,30 +438,6 @@
       "fichier": "src/zod-retire-guard.test.ts",
       "ref": "readFileSync : appel createRequire(import.meta.url).resolve",
       "occurrence": 2
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/git-hooks/porte-du-commit.mjs",
-      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/git-hooks/porte-du-commit.mjs",
-      "ref": "ouDeLaLecture : courant réaffectée en récurrence",
-      "occurrence": 2
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/git-hooks/porte-du-commit.mjs",
-      "ref": "racineSurDisque : courant réaffectée en récurrence",
-      "occurrence": 1
-    },
-    {
-      "famille": "autre",
-      "fichier": "scripts/guards/lib/gitPorte.mjs",
-      "ref": "existsSync : courant réaffectée en récurrence",
-      "occurrence": 1
     },
     {
       "famille": "chemin absolu",
@@ -2459,24 +2429,6 @@
       "famille": "sortie de processus",
       "fichier": "scripts/docs/cibles-pures.test.mjs",
       "ref": "readFileSync : appel gitDeLArbreReel(undefined, { net: true })",
-      "occurrence": 1
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/git-hooks/docs-rebuild.mjs",
-      "ref": "reconstruireApresGit : appel sortieOuNull(vu)?.trim",
-      "occurrence": 1
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/guards/lib/horsStrateAudit.ts",
-      "ref": "auditHorsStrate : appel sortieOuNull(vu)?.trim",
-      "occurrence": 1
-    },
-    {
-      "famille": "sortie de processus",
-      "fichier": "scripts/guards/lib/horsStrateAudit.ts",
-      "ref": "scanDuCorpus : appel sortieOuNull(vu)?.trim",
       "occurrence": 1
     },
     {

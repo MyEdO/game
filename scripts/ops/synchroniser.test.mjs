@@ -810,10 +810,18 @@ process.exitCode = libere ? 0 : 1
     committer(m.amont, { 'a.md': 'b\n' })
     writeFileSync(join(m.principal, '.git', 'index.lock'), '')
     const annonces = []
+    let maintenant = Date.now()
+    const horloge = () => maintenant
+    const avancer = setInterval(() => { maintenant += 20 }, 20)
     const liberer = setTimeout(() => rmSync(join(m.principal, '.git', 'index.lock')), 400)
-    const vu = await synchroniserEtConsommer({ depuis: m.principal, env: ENV, gestes: { attente: { echeanceMs: 3_000, pasMs: 20 } }, annoncer: (t) => annonces.push(t) })
-    clearTimeout(liberer)
-    assert.equal(vu.etat, 'avance')
+    let vu
+    try {
+      vu = await synchroniserEtConsommer({ depuis: m.principal, env: ENV, horloge, gestes: { attente: { echeanceMs: 3_000, pasMs: 20 } }, annoncer: (t) => annonces.push(t) })
+    } finally {
+      clearInterval(avancer)
+      clearTimeout(liberer)
+    }
+    assert.equal(vu.etat, 'avance', JSON.stringify(vu))
     assert.equal(annonces.length, 1)
     const date = new Date(Date.now() - 42_000).toISOString()
     writeFileSync(join(m.principal, '.git', 'synchro.verrou'), JSON.stringify({ pid: 999_999, commande: 'ops:synchroniser', date }))

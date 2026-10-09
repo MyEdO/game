@@ -18,20 +18,21 @@ export { parUnitesDeCode, parLibelle } from '../../../src/lib/ordre.mjs'
 /**
  * Noms des enfants DIRECTS de `dir`, triés par unités de code.
  * @param {string} dir
- * @param {{ absent?: 'lever' | 'vide' }} [options] `absent: 'vide'` rend `[]` quand le dossier
+ * @param {{ absent?: 'lever' | 'vide', avecTypes?: boolean }} [options] `absent: 'vide'` rend `[]` en mode noms quand le dossier
  *   n'existe pas (ENOENT) ou n'est pas un dossier (ENOTDIR) ; toute AUTRE erreur lève (une lecture
  *   refusée n'est pas un dossier vide).
- * @returns {string[]}
+ * @returns {string[] | { nature: 'directory' | 'absent' | 'other', entrees: { nom: string, nature: 'file' | 'directory' | 'link' | 'other' }[] }}
  */
-export function listerDossier(dir, { absent = 'lever' } = {}) {
+export function listerDossier(dir, { absent = 'lever', avecTypes = false } = {}) {
   let noms
   try {
-    noms = readdirSync(dir)
+    noms = readdirSync(dir, avecTypes ? { withFileTypes: true } : undefined)
   } catch (err) {
-    if (absent === 'vide' && (err?.code === 'ENOENT' || err?.code === 'ENOTDIR')) return []
+    if (absent === 'vide' && (err?.code === 'ENOENT' || err?.code === 'ENOTDIR')) return avecTypes ? { nature: err.code === 'ENOENT' ? 'absent' : 'other', entrees: [] } : []
     throw err
   }
-  return noms.map(String).sort()
+  if (!avecTypes) return noms.map(String).sort()
+  return { nature: 'directory', entrees: noms.map((e) => ({ nom: e.name, nature: e.isSymbolicLink() ? 'link' : e.isFile() ? 'file' : e.isDirectory() ? 'directory' : 'other' })).sort((a, b) => a.nom < b.nom ? -1 : a.nom > b.nom ? 1 : 0) }
 }
 
 /**
@@ -66,8 +67,18 @@ export function motifDeGlob(motif) {
 /** Un morceau de segment sans alternative : `*` ne franchit pas `/`, le reste est littéral. */
 const litteralDeMotif = (morceau) => morceau.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')
 
+const motifsCompiles = new Map()
 /** Ce chemin est-il visé par ce motif ? Séparateurs POSIX, quelle que soit la plateforme. */
-export const correspondGlob = (chemin, motif) => motifDeGlob(motif).test(String(chemin ?? '').replace(/\\/g, '/'))
+export const correspondGlob = (chemin, motif) => {
+  const cle = String(motif)
+  let expression = motifsCompiles.get(cle)
+  if (!expression) {
+    expression = motifDeGlob(cle)
+    if (motifsCompiles.size >= 256) motifsCompiles.delete(motifsCompiles.keys().next().value)
+    motifsCompiles.set(cle, expression)
+  }
+  return expression.test(String(chemin ?? '').replace(/\\/g, '/'))
+}
 
 /**
  * Chemins RELATIFS POSIX des FICHIERS sous `dir`, à toute profondeur : dossiers parcourus dans
