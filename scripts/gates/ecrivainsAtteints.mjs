@@ -23,7 +23,7 @@ const ECRITURE = new RegExp(`\\b(?:${Object.entries(OPERATIONS_FS).filter(([, op
 export const inerte = (ligne) => /^\s*(?:\/\/|\*|\/\*)/.test(ligne) || /^\s*import\s/.test(ligne)
 
 /** Le lanceur des tests `node --test` : sa liste de fichiers n'est PAS dans la commande. */
-const LANCEUR_TESTS = 'scripts/test/node-tests.mjs'
+const LANCEUR_TESTS = 'scripts/gates/testsSansEcriture.mjs'
 
 /** Chemins de script d'une commande npm dépliée, tels que la racine les porte. Une gate qui passe
  *  par le lanceur des tests prend ses graines à `testsParGate` — la table qui décide, par
@@ -32,7 +32,7 @@ function fichiersDe(commande, racine, gate) {
   const out = []
   for (const jeton of commande.split(/\s+/))
     if (/^[\w./-]+\.(?:mjs|mts|js|ts)$/.test(jeton) && existsSync(join(racine, jeton))) out.push(jeton)
-  if (out.includes(LANCEUR_TESTS) && GATES.includes(gate)) out.push(...testsDe(gate, () => listerTests(racine)))
+  if (out.includes(LANCEUR_TESTS) && GATES.includes(gate)) out.push('scripts/test/node-tests.mjs', ...testsDe(gate, () => listerTests(racine)))
   return out
 }
 

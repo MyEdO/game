@@ -30,21 +30,22 @@
 // `worktree remove --force`, `checkout` ou `restore`.
 // Un rebase INTERROMPU trouvé sur disque à la préflight est NOMMÉ, jamais avorté d'office.
 //
-// Usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run> [--depuis <seq>]]
+// Usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run> [--depuis <seq>] [--constat]]
 // `--veiller <run>` suit le run nommé par `--detache` (`veillerLeTrain`), sans rien jouer ; `--depuis <seq>`
-// la ré-arme après la dernière transition `#<seq>` lue.
-import { spawnSync, spawn } from 'node:child_process'
+// la ré-arme après la dernière transition `#<seq>` lue ; `--constat` la reprend après la sortie de sa veille
+// (#2493), depuis la dernière transition du journal.
+import { spawnSync } from 'node:child_process'
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  GitIndisponible, TRONC, abandonnerFusion, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
+  GitIndisponible, TRONC, abandonnerFusion, attributsDe, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
   conclureFusionSansChemins, depotDe,
   estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, indisponible, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { coursesCi, jobsEnEchecDe } from '../guards/lib/coursesCi.mjs'
-import { gatesDeCi, texteDeCi } from '../gates/gatesDeCi.mjs'
+import { texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { commitsDeLaPlage } from '../guards/lib/plageFermante.mjs'
@@ -56,6 +57,9 @@ import { BORNE_EJECTIONS, ETAPES, prDeRest } from './etapesDuTrain.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { TIMEOUT_SYNCHRONISEUR } from '../agents/compat-core.mjs'
+import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { prendreVerrou } from '../test/verrou.mjs'
+import { ligneDeLEtat, mesurerPrincipal } from './synchroniser.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -63,10 +67,6 @@ export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Délai par défaut, en minutes, de l'attente de la fusion par la file (#2178) : deux délais de réponse
  *  de la file (`DELAI_DE_REPONSE_MINUTES`) — les entrées qui la précèdent, puis la sienne. */
 export const FILE_TIMEOUT_MIN = 2 * DELAI_DE_REPONSE_MINUTES
-
-/** Les gates qui jugent les DÉRIVÉS commités : une course de file rouge sur leurs seuls jobs se
- *  reprend (`causeDEjection`, etapesDuTrain.mjs), la régénération les guérit. */
-export const GATES_DES_DERIVES = Object.freeze(['docs:build', 'agents:check'])
 
 // ── Purs : options, journal, plan ──────────────────────────────────────────────────────
 
@@ -76,12 +76,12 @@ export const GATES_DES_DERIVES = Object.freeze(['docs:build', 'agents:check'])
  * pas la nôtre.
  * @param {string[]} argv arguments APRÈS `node publier.mjs`
  * `--veiller <run>` prend un identifiant de run (`idDeRun`), `--depuis <seq>` un entier ≥ 0 ; toute autre
- * valeur est rendue inconnue.
- * @returns {{detache:boolean, reprendre:boolean, etapes:boolean, fileTimeoutMin:number, veiller:string|null, depuis:number, inconnus:string[]}}
+ * valeur est rendue inconnue. `--constat` ne vaut qu'avec `--veiller`.
+ * @returns {{detache:boolean, reprendre:boolean, etapes:boolean, fileTimeoutMin:number, veiller:string|null, depuis:number, constat:boolean, inconnus:string[]}}
  */
 export function optionsDe(argv) {
   const args = (argv ?? []).map(String)
-  const connus = new Set(['--detache', '--reprendre', '--etapes', '--file-timeout-min'])
+  const connus = new Set(['--detache', '--reprendre', '--etapes', '--file-timeout-min', '--constat'])
   const valeurs = { '--file-timeout-min': FILE_TIMEOUT_MIN }
   const inconnus = []
   let veiller = null
@@ -110,6 +110,7 @@ export function optionsDe(argv) {
     }
     if (!connus.has(a)) inconnus.push(a)
   }
+  if (args.includes('--constat') && veiller === null) inconnus.push('--constat')
   return {
     detache: args.includes('--detache'),
     reprendre: args.includes('--reprendre'),
@@ -117,6 +118,7 @@ export function optionsDe(argv) {
     fileTimeoutMin: valeurs['--file-timeout-min'],
     veiller,
     depuis,
+    constat: veiller !== null && args.includes('--constat'),
     inconnus,
   }
 }
@@ -191,89 +193,6 @@ export const modeDuLog = ({ reprendre = false, enfant = false } = {}) => (repren
  */
 export const ligneDeDetachement = ({ pid, log, args }) =>
   `[publier] détaché — pid=${pid} log=${log} args=${(args ?? []).join(' ')}\n`
-
-/**
- * Un token de ligne de commande Win32 : ce que `CommandLineToArgvW` (donc `node`, donc tout
- * exécutable C) relira comme UN argument. PURE. `Start-Process -ArgumentList` JOINT ses éléments par
- * des espaces SANS les re-citer : sans ce passage, `['arg avec espace']` arrive au train en trois
- * arguments (mesuré le 2026-09-17), et un script dont le CHEMIN porte un espace n'est pas trouvé.
- * Règle Win32 : le token est entouré de guillemets doubles ; les backslashes qui PRÉCÈDENT un
- * guillemet — ou la fin du token — se doublent ; le guillemet interne s'échappe en `\\"`.
- * @param {string} valeur
- * @returns {string} token cité
- */
-export function citerArgv(valeur) {
-  const texte = String(valeur)
-  let token = '"'
-  let backslashes = 0
-  for (const caractere of texte) {
-    if (caractere === '\\') {
-      backslashes += 1
-      continue
-    }
-    if (caractere === '"') {
-      token += '\\'.repeat(backslashes * 2 + 1) + '"'
-      backslashes = 0
-      continue
-    }
-    token += '\\'.repeat(backslashes) + caractere
-    backslashes = 0
-  }
-  return `${token}${'\\'.repeat(backslashes * 2)}"`
-}
-
-/**
- * Le seul site de détachement du TRAIN (#1784) — `spawnBorne` (scripts/gates/toutes.mjs) en détache aussi ses
- * gates, mais sous POSIX seulement (`detached: process.platform !== 'win32'`) : sous win32 elles
- * héritent de la console de l'appelant. Sous win32, `spawn({ detached: true })` pose
- * `DETACHED_PROCESS` (libuv) : le train n'a AUCUNE console, et chacun de ses enfants console
- * (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au premier plan ; `Start-Process -WindowStyle
- * Hidden` n'en ouvre qu'une, celle du train, CACHÉE, dont ses enfants héritent. Le pid rendu est
- * celui du NODE du train (`-PassThru`), jamais celui du `powershell` intermédiaire, qui rend la main
- * aussitôt et meurt sans emporter le train. Aucune redirection n'est demandée à `Start-Process` : le
- * train ouvre LUI-MÊME son journal (`modeDuLog`) et le passe en stdio à ses enfants, et
- * `-RedirectStandard*` retiendrait le `powershell` jusqu'à la fin du train.
- * @param {{script:string, args:string[], cwd:string, fdLog:number, envSupplementaire?:Record<string,string>,
- *          plateforme?:string, node?:string, detacher?:Function, executerSync?:Function}} p
- * @returns {number|undefined} pid du processus NODE du train
- */
-export function lancerDetache({
-  script,
-  args,
-  cwd,
-  fdLog,
-  envSupplementaire = {},
-  plateforme = process.platform,
-  node = process.execPath,
-  detacher = spawn,
-  executerSync = spawnSync,
-}) {
-  const env = { ...process.env, ...envSupplementaire }
-  if (plateforme !== 'win32') {
-    const enfant = detacher(node, [script, ...args], { cwd, detached: true, stdio: ['ignore', fdLog, fdLog], env })
-    enfant.unref()
-    return enfant.pid
-  }
-  const cite = (valeur) => `'${String(valeur).replace(/'/g, "''")}'`
-  const liste = [script, ...args].map((a) => cite(citerArgv(a))).join(',')
-  const vu = executerSync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-NonInteractive',
-      '-Command',
-      `(Start-Process -FilePath ${cite(node)} -ArgumentList ${liste} -WindowStyle Hidden -PassThru).Id`,
-    ],
-    { cwd, env, encoding: 'utf8', windowsHide: true },
-  )
-  const pid = Number(String(vu?.stdout ?? '').trim().split(/\s+/).pop())
-  if (!Number.isInteger(pid) || pid <= 0) {
-    throw new Error(
-      `[publier] détachement manqué : powershell a rendu « ${String(vu?.stdout ?? '').trim()} » ${String(vu?.stderr ?? '').trim()}`,
-    )
-  }
-  return pid
-}
 
 /**
  * Le filet de l'enfant détaché (#1784). Détaché, le train n'a plus de stdio redirigé : sa console est
@@ -468,9 +387,17 @@ export function codeDeVerdict(verdict) {
  */
 export const borneDeVeilleMin = (fileTimeoutMin) => (BORNE_EJECTIONS + 2) * fileTimeoutMin
 
-/** La commande de veille d'un run, que `--detache` imprime : `node` direct (aucun en-tête `npm` dans la
- *  sortie suivie), chemin en `/`, lisible de Git Bash comme de PowerShell. PURE. */
-export const commandeDeVeille = ({ script, run }) => `node "${String(script).replace(/\\/g, '/')}" --veiller ${run}`
+/**
+ * La commande de veille d'un run, que `--detache` imprime : `node` direct (aucun en-tête `npm` dans la
+ * sortie suivie), chemin en `/`, lisible de Git Bash comme de PowerShell. COMPOSITE (#2493) : la veille,
+ * puis `--constat` après sa sortie quelle qu'elle soit (`;` en bash comme en PowerShell) ; le code est celui
+ * du constat, un code de verdict. `depuis` : le dernier `#seq` lu, pour la ré-armer. PURE.
+ * @param {{script:string, run:string, depuis?:number}} p
+ */
+export function commandeDeVeille({ script, run, depuis }) {
+  const node = `node "${String(script).replace(/\\/g, '/')}" --veiller ${run}`
+  return `${node}${depuis === undefined ? '' : ` --depuis ${depuis}`}; ${node} --constat`
+}
 
 /** Un `dit` en UNE ligne : la veille émet une ligne par transition. PURE. */
 const enUneLigne = (texte) => String(texte).split('\n').map((l) => l.trim()).filter(Boolean).join(' · ')
@@ -492,6 +419,13 @@ export function transitionsDuRun(journal, run, depuis) {
   return { courant: true, lignes, seq: neuves.length ? neuves.at(-1)[1].seq : depuis, verdict: journal.verdict ?? null }
 }
 
+/** La TRANSITION `vue` de l'étape `nom` du run de `journal`, estampillée de son `run` et du `seq` suivant.
+ *  MUTE `journal`. */
+export function transitionDuRun(journal, nom, vue) {
+  journal.seq = (journal.seq ?? 0) + 1
+  journal.etapes[nom] = { ...vue, run: journal.run ?? null, seq: journal.seq }
+}
+
 /**
  * Le MOTEUR du train : joue les étapes dans l'ordre, saute celles que `dejaFaite` déclare, arrête à
  * la première rouge, écrit le journal à l'ENTRÉE de chaque étape jouée (`en-vol`) et après son verdict ;
@@ -506,10 +440,7 @@ export function transitionsDuRun(journal, run, depuis) {
  */
 export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journaliser = () => {} } = {}) {
   const noms = etapes.map((e) => e.nom)
-  const transition = (nom, vue) => {
-    journal.seq = (journal.seq ?? 0) + 1
-    journal.etapes[nom] = { ...vue, run: journal.run ?? null, seq: journal.seq }
-  }
+  const transition = (nom, vue) => transitionDuRun(journal, nom, vue)
   for (let tour = 0; tour <= etapes.length; tour += 1) {
     let relance = null
     for (const etape of etapes) {
@@ -609,17 +540,89 @@ export function vivant(pid) {
 }
 
 /**
- * La VEILLE d'un run (`--veiller <run>`) : relit le JOURNAL toutes les `periodeMs`, émet une ligne par
- * transition du run courant (`transitionsDuRun`), puis sa ligne `PUBLICATION:` et sort sur son code
- * (`codeDeVerdict`). Tant que le journal porte un autre run (course d'ouverture : le run d'avant), elle
- * se tait. Ré-armée (`depuis` = le dernier `#seq` lu), elle ne ré-émet aucune transition. Le train
- * mort sans verdict au journal — relu une fois après le constat — sort en `CODE_ARRET_MOTEUR` ; la borne
- * (`borneDeVeilleMin` de la borne de file du run, ou de `fileTimeoutMin` tant qu'il n'a rien écrit),
- * comptée depuis le LANCEMENT du run (`runDe`), jamais depuis le départ de la veille, passée sans
- * verdict sort en `CODE_BORNE_DEPASSEE`.
+ * L'étape `en-vol` de plus haut `seq` du run de `journal`, `null` sans étape en vol. PURE.
+ * @param {object|null} journal
+ */
+const etapeEnVol = (journal) => Object.entries(journal?.etapes ?? {})
+  .filter(([, vue]) => vue?.etat === 'en-vol' && vue.run === journal.run && Number.isInteger(vue.seq))
+  .sort(([, a], [, b]) => b.seq - a.seq)[0]?.[0] ?? null
+
+/**
+ * La MORT du run de `journal` sans verdict (#2493, verdict §2) : son pid ne vit plus, ou son étape `fin` en vol
+ * dépasse la borne du synchroniseur (`TIMEOUT_SYNCHRONISEUR`) d'une minute. REND `{ pid, nom }` (`nom` =
+ * l'étape en vol, `etapeEnVol`), `null` pour un run vivant, sans run ou déjà jugé. PURE hors de `vivant`.
+ * @param {object|null} journal @param {{vivant?:(pid:number) => boolean, maintenant?:() => number}} [p]
+ * @returns {{pid:number, nom:string|null}|null}
+ */
+export function mortDuRun(journal, { vivant: estVivant = vivant, maintenant = Date.now } = {}) {
+  if (!journal?.run || journal.verdict) return null
+  const pid = journal.pid ?? pidDeRun(journal.run)
+  const nom = etapeEnVol(journal)
+  const debut = Date.parse(journal.etapes?.fin?.debut ?? '')
+  const finEchue = nom === 'fin' && Number.isFinite(debut) && maintenant() - debut > TIMEOUT_SYNCHRONISEUR * 1000 + 60_000
+  return !estVivant(pid) || finEchue ? { pid, nom } : null
+}
+
+/**
+ * Le CONSTAT de la mort d'un run sans verdict (#2493, verdict §2), sous le verrou `<journal>.constat.verrou` :
+ * le journal relu, rien s'il ne porte pas de run, un verdict, ou un run vivant (`mortDuRun`). Mort en `fin`,
+ * la publication est faite : transition `fin` VERTE, `INTERROMPUE`, avec la mesure du principal sur la
+ * fusion (`mesurer`). Mort ailleurs : transition ROUGE, verdict `rouge moteur`. Le verdict porte
+ * `constat: { par, a }` ; journal et log écrits. REND le verdict, `null` sans constat.
+ * @param {{chemins:{json:string, log:string}, par:string, vivant?:(pid:number) => boolean, maintenant?:() => number,
+ *          mesurer?:(visee:string|null) => object}} p
+ */
+export function constaterLaMort({ chemins, par, vivant: estVivant = vivant, maintenant = Date.now, mesurer = (visee) => mesurerPrincipal({ depuis: RACINE, visee }) }) {
+  if (!existsSync(chemins.json)) return null
+  const verrou = prendreVerrou({
+    chemin: `${chemins.json}.constat.verrou`, libelle: 'constat de la mort du train', commande: par,
+    attente: { echeanceMs: 10_000, pasMs: 100 },
+  })
+  if (verrou.etat !== 'pris') return null
+  try {
+    const journal = lireJournal(chemins.json, null)
+    const mort = mortDuRun(journal, { vivant: estVivant, maintenant })
+    if (!mort) return null
+    const { pid, nom } = mort
+    const a = new Date(maintenant()).toISOString()
+    const constat = { par, a }
+    const precedente = nom ? journal.etapes[nom] : {}
+    let verdict
+    let dit
+    if (nom === 'fin') {
+      const mesure = mesurer(journal.etapes.file?.detail?.fusion ?? null)
+      dit = `INTERROMPUE : train ${pid} mort sans verdict (constat : ${par}, ${a}) ; principal ${ligneDeLEtat(mesure)}`
+      transitionDuRun(journal, nom, { ...precedente, etat: 'vert', fin: a, dit })
+      verdict = { etat: 'vert', constat }
+    } else {
+      const raison = `train ${pid} mort pendant ${nom ?? 'son entame'} (constat : ${par}, ${a})`
+      dit = `INTERROMPUE : ${raison}`
+      if (nom) transitionDuRun(journal, nom, { ...precedente, etat: 'rouge', fin: a, dit })
+      verdict = { etat: 'rouge', etape: 'moteur', raison, constat }
+    }
+    journal.verdict = verdict
+    ecrireJsonAtomique(chemins.json, journal)
+    appendFileSync(chemins.log, `[publier] ${nom ?? 'moteur'} — ${dit}\n${ligneDePublication(verdict, journal.tete)}\n`)
+    return verdict
+  } finally {
+    verrou.liberer()
+  }
+}
+
+/**
+ * La VEILLE d'un run (`--veiller <run>`) : sa première ligne nomme son PID, le run et le `journal` ; elle relit
+ * le JOURNAL toutes les `periodeMs`, émet une ligne par transition du run courant (`transitionsDuRun`), puis
+ * sa ligne `PUBLICATION:` et sort sur son code (`codeDeVerdict`). Tant que le journal porte un autre run
+ * (course d'ouverture : le run d'avant), elle se tait. Ré-armée (`depuis` = le dernier `#seq` lu), elle ne
+ * ré-émet aucune transition ; `constat` (`--constat`, après la sortie d'une veille) part de la dernière
+ * transition du journal. Le run mort sans verdict (`mortDuRun`) est CONSTATÉ (`constater`, qui l'écrit au
+ * journal), puis relu ; un train mort avant d'écrire son run au journal, relu une fois, sort en
+ * `CODE_ARRET_MOTEUR`. La borne (`borneDeVeilleMin` de la borne de file du run, ou de `fileTimeoutMin` tant
+ * qu'il n'a rien écrit), comptée depuis le LANCEMENT du run (`runDe`), jamais depuis le départ de la veille,
+ * passée sans verdict sort en `CODE_BORNE_DEPASSEE`.
  * @param {{run:string, fileTimeoutMin:number, lire:() => object|null, ecrire:(ligne:string) => void,
- *          depuis?:number, log?:string, vivant?:(pid:number) => boolean, maintenant?:() => number,
- *          dormir?:(ms:number) => void, periodeMs?:number}} p
+ *          constater?:() => object|null, depuis?:number, constat?:boolean, journal?:string, pid?:number,
+ *          vivant?:(pid:number) => boolean, maintenant?:() => number, dormir?:(ms:number) => void, periodeMs?:number}} p
  * @returns {number} code de sortie
  */
 export function veillerLeTrain({
@@ -627,17 +630,26 @@ export function veillerLeTrain({
   fileTimeoutMin,
   lire,
   ecrire,
+  constater = () => null,
   depuis = 0,
-  log = '',
+  constat = false,
+  journal: cheminDuJournal = '',
+  pid: pidDeLaVeille = process.pid,
   vivant: estVivant = vivant,
   maintenant = Date.now,
   dormir = attendreSync,
   periodeMs = PERIODE_DE_VEILLE_MS,
 }) {
   const { pid, lancement } = runDe(run)
+  ecrire(`[veille] PID ${pidDeLaVeille} veille le run ${run} (journal ${cheminDuJournal})`)
   let seq = depuis
+  if (constat) {
+    const lu = lire()
+    if (lu?.run === run && Number.isInteger(lu.seq)) seq = Math.max(seq, lu.seq)
+    ecrire(`[veille] constat du run ${run} après la sortie de sa veille`)
+  }
   let borneMin = fileTimeoutMin
-  let mortConstatee = false
+  let sansJournal = false
   for (;;) {
     const journal = lire()
     const vu = transitionsDuRun(journal, run, seq)
@@ -648,13 +660,14 @@ export function veillerLeTrain({
       ecrire(ligneDePublication(vu.verdict, journal.tete))
       return codeDeVerdict(vu.verdict)
     }
-    if (!estVivant(pid)) {
-      if (mortConstatee) {
-        const verdict = { etat: 'rouge', etape: 'moteur', raison: `train ${pid} mort sans verdict au journal${log ? ` — ${log}` : ''}` }
+    if (vu.courant && mortDuRun(journal, { vivant: estVivant, maintenant }) && constater()) continue
+    if (!vu.courant && !estVivant(pid)) {
+      if (sansJournal) {
+        const verdict = { etat: 'rouge', etape: 'moteur', raison: `train ${pid} mort avant d'écrire son run au journal` }
         ecrire(ligneDePublication(verdict))
         return codeDeVerdict(verdict)
       }
-      mortConstatee = true
+      sansJournal = true
       continue
     }
     const borneMs = borneDeVeilleMin(borneMin) * 60_000
@@ -690,6 +703,7 @@ const questionsDuTrain = (depot) => Object.freeze({
   baseAuTronc: () => baseCommune(depot, TRONC.suivi, 'HEAD'),
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
   cheminsSales: () => cheminsSales(depot),
+  attributsDeFusion: (chemins) => attributsDe(depot, chemins, 'merge'),
   commitsDeLaPlage: (plage) => commitsDeLaPlage(plage, depot.cwd),
   verdictDesFusions: () => verdictDePublication(depot),
 })
@@ -730,10 +744,6 @@ function shaComplet(geste, sha) {
   if (typeof sha === 'string' && estShaComplet(sha)) return sha
   throw new Error(`ctx.${geste} : un sha COMPLET — refusé : ${JSON.stringify(sha)}`)
 }
-
-/** Les jobs de `ci.yml` qui portent une gate des dérivés (`GATES_DES_DERIVES`). */
-const jobsDesDerives = (racine) =>
-  Object.freeze([...new Set(gatesDeCi({ cwd: racine }).filter((g) => GATES_DES_DERIVES.includes(g.nom)).map((g) => g.job))])
 
 /**
  * Les PR de `branche`, réduites (`prDeRest`), récentes d'abord, en union `{ ok, prs }` / `{ ok:false,
@@ -781,7 +791,7 @@ function numeroDeTicket(geste, numero) {
  * (un sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
  * un sha), `lireFusion` (un numéro de PR, un sha et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
  * Données : `generators` (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit
- * `estDocDerive` ; `jobsDesDerives`, les jobs de `ci.yml` qui portent `GATES_DES_DERIVES` ; `filtresDePush`, les
+ * `estDocDerive` ; `filtresDePush`, les
  * filtres `push.branches` de `ci.yml` (`branchesDePush`).
  */
 export function contexteDe({ racine, branche, options, journaliser, fdLog, maintenant = Date.now }) {
@@ -796,9 +806,6 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog, maint
     journaliser,
     fdLog,
     generators: GENERATORS,
-    get jobsDesDerives() {
-      return jobsDesDerives(racine)
-    },
     get filtresDePush() {
       return branchesDePush(texteDeCi({ cwd: racine }), `${DOSSIER}/${PORTE}`)
     },
@@ -894,15 +901,21 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog, maint
     },
     pousser: ({ vers, bail }) => pousser(depot, { vers, bail }),
     /** La synchronisation du principal (`scripts/ops/synchroniser.mjs --json`, #2187) en processus neuf :
-     *  `{ ok: true, vu }` (l'état rendu), ou `{ ok: false, raison }` quand aucun état n'est lisible. */
-    synchroniserPrincipal() {
+     *  `{ ok: true, vu, ligne }` (l'état rendu et sa `ligneDeLEtat`), ou, sans état lisible, `{ ok: false,
+     *  raison, mesure, ligne }` : la cause et la RE-MESURE du principal (`mesurerPrincipal`) contre `visee`,
+     *  un sha complet ou `null` (#2493). */
+    synchroniserPrincipal({ visee = null } = {}) {
+      const cible = visee === null ? null : shaComplet('synchroniserPrincipal', visee)
       const vu = spawnSync(process.execPath, [join(racine, 'scripts/ops/synchroniser.mjs'), '--json'], {
         cwd: racine, stdio: ['ignore', 'pipe', fdLog], encoding: 'utf8', timeout: TIMEOUT_SYNCHRONISEUR * 1000,
       })
       try {
-        return { ok: true, vu: JSON.parse(vu.stdout) }
+        const lu = JSON.parse(vu.stdout)
+        return { ok: true, vu: lu, ligne: ligneDeLEtat(lu) }
       } catch {
-        return { ok: false, raison: vu.error?.message ?? `aucun état lisible (code ${vu.status})` }
+        const cause = vu.error?.message ?? `code ${vu.status}${vu.signal ? ` signal ${vu.signal}` : ''}`
+        const mesure = mesurerPrincipal({ depuis: racine, visee: cible })
+        return { ok: false, raison: cause, mesure, ligne: `synchroniseur sorti sans état (${cause}) ; re-mesure : ${ligneDeLEtat(mesure)}` }
       }
     },
   }
@@ -916,7 +929,7 @@ function main() {
   }
   const options = optionsDe(process.argv.slice(2))
   if (options.inconnus.length) {
-    process.stderr.write(`[publier] option inconnue : ${options.inconnus.join(' ')}\n  usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run> [--depuis <seq>]]\n`)
+    process.stderr.write(`[publier] option inconnue : ${options.inconnus.join(' ')}\n  usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run> [--depuis <seq>] [--constat]]\n`)
     process.exit(1)
   }
   const depot = depotDuTrain(RACINE)
@@ -929,15 +942,19 @@ function main() {
   const chemins = cheminsDeJournal(RACINE, branche)
   mkdirSync(chemins.dossier, { recursive: true })
   const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
+  // #2493 : le run mort sans verdict est constaté AVANT tout mode, et avant la rotation du log (`ouvrirLog`).
+  if (surDisque) constaterLaMort({ chemins, par: `publier ${process.argv.slice(2).join(' ') || '(train)'} ${process.pid}` })
 
   if (options.veiller) {
     return veillerLeTrain({
       run: options.veiller,
       fileTimeoutMin: options.fileTimeoutMin,
       depuis: options.depuis,
+      constat: options.constat,
+      journal: chemins.json,
       lire: () => lireJournal(chemins.json, branche),
       ecrire: (ligne) => process.stdout.write(`${ligne}\n`),
-      log: chemins.log,
+      constater: () => constaterLaMort({ chemins, par: `veille ${process.pid}` }),
     })
   }
 

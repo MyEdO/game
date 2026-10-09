@@ -1,11 +1,12 @@
 // node --test scripts/ops/synchroniser.test.mjs
 // Matrice du verdict #2187 (`.git/suivi/2187-design-synchroniseur-verdict-2026-10-07.md`, « Matrice de
-// preuves », items 1 à 15 et 17, et « Incertain → test qui tranche ») sur fixtures `instanceDeDepot`.
+// preuves », items 1 à 15 et 17, et « Incertain → test qui tranche ») sur fixtures `instanceDeDepot` ; le
+// post-merge en fond et la mesure (#2493, `.git/suivi/2493-design-verdict-2026-10-08.md`, §4 T1).
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve, sep } from 'node:path'
+import { basename, dirname, join, resolve, sep } from 'node:path'
 import { after, describe, test } from 'node:test'
 import { pathToFileURL } from 'node:url'
 import {
@@ -14,9 +15,13 @@ import {
 } from '../guards/lib/gitPorte.mjs'
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { ETAPES, remplacerIndex, resoudreBaseVide, synchroniserPrincipal, tailleDeMarqueur } from './synchroniser.mjs'
+import {
+  ETAPES, ligneDeLEtat, mesurerPrincipal, resoudreBaseVide, synchroniserPrincipal, tailleDeMarqueur, texteDeSession,
+  verrouDuConsommateur,
+} from './synchroniser.mjs'
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
-import { attendreLibre, sousEcheanceAsync } from '../test/verrou.mjs'
+import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
+import { attendreLibre, estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
 
 const ENV = envDeDepotForge()
 const ATTENTE = { echeanceMs: 3_000, pasMs: 20 }
@@ -89,13 +94,53 @@ const lireDepot = (dossier, p) => tableTotale(['base', 'amont', 'locale', 'propo
   return existsSync(chemin) ? readFileSync(chemin, 'utf8') : null
 })
 
-const sync = (racine, gestes = {}) => synchroniserPrincipal({ depuis: racine, env: ENV, gestes: { attente: ATTENTE, ...gestes } })
+/** Le script du consommateur, celui de CET arbre : le principal d'une fixture n'en porte pas. */
+const SYNCHRONISEUR = join(import.meta.dirname, 'synchroniser.mjs')
+
+/** Le log du consommateur `pid` du principal `principal`. */
+const logDe = (principal, pid) => join(principal, '.git', 'synchro-consommateurs', `${pid}.log`)
+
+/** La plage due du principal `principal`, `null` sans plage. */
+const duDe = (principal) => {
+  const chemin = join(principal, '.git', 'synchro-consommateurs', 'du.json')
+  return existsSync(chemin) ? JSON.parse(readFileSync(chemin, 'utf8')) : null
+}
+
+/**
+ * La plage due du principal `principal` SOLDÉE : son verrou de consommateur libre, chaque PID de `pids` mort
+ * et, sous `solde`, `du.json` absent ou en `echec`, sous 60 s ; aucun consommateur détaché ne survit au test.
+ * REND la plage restante.
+ * @param {string} principal @param {readonly (number | undefined)[]} [pids] @param {{ solde?: boolean }} [p]
+ */
+async function consommationFinie(principal, pids = [], { solde: exige = true } = {}) {
+  const chemin = verrouDuConsommateur(join(principal, '.git'))
+  const solde = await sousEcheanceAsync({
+    attente: { echeanceMs: 60_000, pasMs: 50 },
+    essai: () => {
+      const du = duDe(principal)
+      return attendreLibre({ chemin }).etat === 'libre' && (!exige || du === null || du.echec !== null) && !pids.some((pid) => pid && estPidVivant(pid))
+    },
+    abouti: (fini) => fini,
+  })
+  assert.equal(solde, true, `consommateur toujours vivant ou plage due non soldée : ${JSON.stringify({ du: duDe(principal), pids })}`)
+  return duDe(principal)
+}
+
+/** Une synchronisation en processus depuis `p.depuis`, le consommateur (`SYNCHRONISEUR`) du principal `principal`
+ *  attendu jusqu'au solde. */
+async function synchroniserEtConsommer(p, principal = /** @type {string} */ (p.depuis)) {
+  const vu = await synchroniserPrincipal({ consommateur: SYNCHRONISEUR, ...p })
+  await consommationFinie(principal, [vu.consommateurs?.pid], { solde: vu.consommateurs?.etat === 'en-cours' })
+  return vu
+}
+
+const sync = (racine, gestes = {}, principal = racine) => synchroniserEtConsommer({ depuis: racine, env: ENV, gestes: { attente: ATTENTE, ...gestes } }, principal)
 
 /** Le script d'un processus synchroniseur réel : s'arrête (SIGKILL) après l'étape `argv[3]`. */
 const ENFANT = `
-import { synchroniserPrincipal } from ${JSON.stringify(pathToFileURL(join(import.meta.dirname, 'synchroniser.mjs')).href)}
+import { synchroniserPrincipal } from ${JSON.stringify(pathToFileURL(SYNCHRONISEUR).href)}
 const [principal, arret] = process.argv.slice(2)
-const vu = await synchroniserPrincipal({ depuis: principal, env: process.env, gestes: {
+const vu = await synchroniserPrincipal({ depuis: principal, env: process.env, consommateur: ${JSON.stringify(SYNCHRONISEUR)}, gestes: {
   attente: { echeanceMs: 10000, pasMs: 20 },
   etape: (nom) => { if (nom === arret) process.kill(process.pid, 'SIGKILL') },
 } })
@@ -216,7 +261,11 @@ describe('synchroniserPrincipal — matrice', () => {
     const m = monde({ 'a.md': 'un\n' })
     const U = committer(m.amont, { 'a.md': 'deux\n' })
     const vu = await sync(m.principal)
-    assert.deepEqual(vu, { etat: 'avance', de: m.B, vers: U, configurationClientChangee: [] })
+    const { consommateurs, ...etat } = vu
+    assert.deepEqual(etat, { etat: 'avance', de: m.B, vers: U, configurationClientChangee: [] })
+    assert.equal(consommateurs.etat, 'en-cours')
+    assert.deepEqual([consommateurs.de, consommateurs.vers], [m.B, U])
+    assert.equal(duDe(m.principal), null, 'la plage due est soldée')
     assert.equal(head(m.principal), U)
     assert.equal(brancheDe(depot(m.principal)), 'main')
     assert.equal(shaDe(depot(m.principal), 'ORIG_HEAD'), m.B)
@@ -226,14 +275,14 @@ describe('synchroniserPrincipal — matrice', () => {
     assert.deepEqual(await sync(m.principal), { etat: 'a-jour', sha: U })
   })
 
-  test('verrou d’outillage (barrière des hooks d’outil, #2187) : tenu des étapes 5 à 8, libre avant et dès les consommateurs ; tenu par un vivant → occupe, rien appliqué', async () => {
+  test('verrou d’outillage (barrière des hooks d’outil, #2187) : tenu des étapes 5 à 8, libre avant et dès la libération ; tenu par un vivant → occupe, rien appliqué', async () => {
     const m = monde({ 'a.md': 'un\n' })
     committer(m.amont, { 'a.md': 'deux\n' })
     const chemin = /** @type {string} */ (verrouOutillageDe(m.principal))
     const tenu = {}
     const vu = await sync(m.principal, { etape: (nom) => { tenu[nom] = attendreLibre({ chemin }).etat === 'occupe' } })
     assert.equal(vu.etat, 'avance')
-    assert.deepEqual(tenu, { capture: false, transaction: false, travail: true, arbre: true, index: true, commit: true, consommateurs: false, liberation: false })
+    assert.deepEqual(tenu, { capture: false, transaction: false, travail: true, arbre: true, index: true, commit: true, liberation: false, consommateurs: false })
     assert.equal(existsSync(chemin), false)
 
     const autre = monde({ 'a.md': 'un\n' })
@@ -454,7 +503,7 @@ describe('synchroniserPrincipal — matrice', () => {
       const annonces = []
       let vu
       try {
-        vu = await synchroniserPrincipal({ depuis: m.principal, env: ENV, gestes: { attente: { echeanceMs: 30_000, pasMs: 5 } }, annoncer: (texte) => annonces.push(texte) })
+        vu = await synchroniserEtConsommer({ depuis: m.principal, env: ENV, gestes: { attente: { echeanceMs: 30_000, pasMs: 5 } }, annoncer: (texte) => annonces.push(texte) })
       } finally {
         const passages = await arreter()
         t.diagnostic(`git status concurrents : ${passages} ; index.lock trouvé tenu : ${annonces.length} fois`)
@@ -565,7 +614,7 @@ describe('synchroniserPrincipal — matrice', () => {
     assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
   })
 
-  test('15 post-merge en échec : avance-non-prete, code lu', async () => {
+  test('15 post-merge en échec : `du.json` porte l’échec, le passage suivant rend avance-non-prete, code lu (#2493)', async () => {
     const m = monde({ 'a.md': 'a\n' })
     const U = committer(m.amont, { 'a.md': 'b\n' })
     mkdirSync(join(m.principal, 'hooks-fixture'))
@@ -573,11 +622,22 @@ describe('synchroniserPrincipal — matrice', () => {
     chmodSync(join(m.principal, 'hooks-fixture', 'post-merge'), 0o755)
     exiger(reglerDepot(depot(m.principal), 'core.hooksPath', 'hooks-fixture'), 'hooksPath')
     const vu = await sync(m.principal)
-    assert.equal(vu.etat, 'avance-non-prete')
-    assert.equal(vu.code, 3)
-    assert.match(vu.sortie, /post-merge 0/)
+    assert.equal(vu.etat, 'avance', JSON.stringify(vu))
     assert.equal(head(m.principal), U)
     assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
+    const du = duDe(m.principal)
+    assert.deepEqual([du.de, du.vers, du.echec.code, du.echec.pid, du.echec.log], [m.B, U, 3, vu.consommateurs.pid, logDe(m.principal, vu.consommateurs.pid)])
+    assert.match(readFileSync(logDe(m.principal, vu.consommateurs.pid), 'utf8'), /post-merge 0/)
+    const suivant = await sync(m.principal)
+    assert.deepEqual([suivant.etat, suivant.de, suivant.vers, suivant.code, suivant.log], ['avance-non-prete', m.B, U, 3, du.echec.log])
+    assert.equal(ligneDeLEtat(suivant), `avancé de ${m.B.slice(0, 9)} à ${U.slice(0, 9)}, post-merge en échec (code 3, ${du.echec.fin}) : ${du.echec.log}`)
+    assert.ok(texteDeSession(suivant).endsWith(' — reprise : `npm run ops:synchroniser -- --consommer`'), texteDeSession(suivant))
+    writeFileSync(join(m.principal, 'hooks-fixture', 'post-merge'), '#!/bin/sh\necho "post-merge $1" >&2\nexit 0\n')
+    const reprise = spawnSync(process.execPath, [SYNCHRONISEUR, '--consommer'], { cwd: m.principal, env: ENV, encoding: 'utf8', timeout: 60_000 })
+    assert.equal(reprise.status, 0, `${reprise.error?.message ?? ''} ${reprise.stderr}`)
+    assert.equal(duDe(m.principal), null)
+    assert.match(readFileSync(logDe(m.principal, reprise.pid), 'utf8'), new RegExp(`post-merge ORIG_HEAD=${m.B.slice(0, 9)} HEAD=${U.slice(0, 9)} — début\\n.+ post-merge — fin, code 0 `))
+    assert.deepEqual(await sync(m.principal), { etat: 'a-jour', sha: U })
   })
 
   test('15 bis post-merge présent mais non exécutable : avance-non-prete, jamais avance', async () => {
@@ -590,14 +650,17 @@ describe('synchroniserPrincipal — matrice', () => {
     exiger(reglerDepot(depot(m.principal), 'core.hooksPath', 'hooks-fixture'), 'hooksPath')
     const union = lancerHook(depot(m.principal), 'post-merge', ['0'])
     const brut = (union.disponible ? (union.absent ? union.diagnostic : union.valeur) : union.diagnostic)?.status ?? null
-    const vu = await sync(m.principal)
+    const premier = await sync(m.principal)
+    const vu = process.platform === 'win32' ? await sync(m.principal) : premier
     assert.equal(vu.etat, 'avance-non-prete', JSON.stringify(vu))
     assert.equal(head(m.principal), U)
     assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
     if (process.platform === 'win32') {
       assert.equal(brut, 1, 'win32 : git lance le hook sans #! et sort en 1')
+      assert.equal(premier.etat, 'avance')
       assert.equal(vu.code, 1)
-      assert.match(vu.sortie, /cannot spawn/)
+      assert.equal(vu.log, logDe(m.principal, premier.consommateurs.pid))
+      assert.match(readFileSync(logDe(m.principal, premier.consommateurs.pid), 'utf8'), /cannot spawn/)
     } else {
       assert.equal(brut, 0, 'POSIX : git ignore le hook non exécutable et rend 0')
       assert.equal(vu.code, null)
@@ -645,15 +708,36 @@ describe('synchroniserPrincipal — matrice', () => {
     committer(m.amont, { 'a.md': 'b\n' })
     writeFileSync(join(m.principal, '.git', 'index.lock'), '')
     const annonces = []
+    let maintenant = Date.now()
+    const horloge = () => maintenant
+    const avancer = setInterval(() => { maintenant += 20 }, 20)
     const liberer = setTimeout(() => rmSync(join(m.principal, '.git', 'index.lock')), 400)
-    const vu = await synchroniserPrincipal({ depuis: m.principal, env: ENV, gestes: { attente: { echeanceMs: 3_000, pasMs: 20 } }, annoncer: (t) => annonces.push(t) })
-    clearTimeout(liberer)
-    assert.equal(vu.etat, 'avance')
+    let vu
+    try {
+      vu = await synchroniserEtConsommer({ depuis: m.principal, env: ENV, horloge, gestes: { attente: { echeanceMs: 3_000, pasMs: 20 } }, annoncer: (t) => annonces.push(t) })
+    } finally {
+      clearInterval(avancer)
+      clearTimeout(liberer)
+    }
+    assert.equal(vu.etat, 'avance', JSON.stringify(vu))
     assert.equal(annonces.length, 1)
-    writeFileSync(join(m.principal, '.git', 'synchro.verrou'), JSON.stringify({ pid: 999_999 }))
-    const occupe = await synchroniserPrincipal({ depuis: m.principal, env: ENV, gestes: { attente: { echeanceMs: 400, pasMs: 20 }, estVivant: () => true }, annoncer: (t) => annonces.push(t) })
+    const date = new Date(Date.now() - 42_000).toISOString()
+    writeFileSync(join(m.principal, '.git', 'synchro.verrou'), JSON.stringify({ pid: 999_999, commande: 'ops:synchroniser', date }))
+    const occupe = await synchroniserEtConsommer({ depuis: m.principal, env: ENV, gestes: { attente: { echeanceMs: 400, pasMs: 20 }, estVivant: () => true }, annoncer: (t) => annonces.push(t) })
     assert.equal(occupe.etat, 'occupe')
-    assert.deepEqual(annonces.slice(1), ['[synchroniser] verrou tenu par le PID 999999'])
+    assert.ok(occupe.ageS >= 42, String(occupe.ageS))
+    assert.equal(annonces.length, 2)
+    assert.match(annonces[1], new RegExp(`^\\[synchroniser\\] verrou tenu par le PID 999999 depuis ${date} \\(4\\d s\\)$`))
+    assert.equal(ligneDeLEtat(occupe), `occupé : verrou tenu par le PID 999999 depuis ${date} (1 min, ops:synchroniser)`)
+  })
+
+  test('borne d’âge : un tenant VIVANT de `synchro.verrou` plus vieux que sa borne est repris (#2493)', async () => {
+    const m = monde({ 'a.md': 'a\n' })
+    const U = committer(m.amont, { 'a.md': 'b\n' })
+    writeFileSync(join(m.principal, '.git', 'synchro.verrou'), JSON.stringify({ pid: process.pid, commande: 'ops:synchroniser', date: '2026-01-01T00:00:00.000Z' }))
+    const vu = await sync(m.principal, { attente: { echeanceMs: 400, pasMs: 20 } })
+    assert.equal(vu.etat, 'avance', JSON.stringify(vu))
+    assert.equal(head(m.principal), U)
   })
 
   test('17 appel depuis un WT : le principal avance, HEAD du WT inchangé', async () => {
@@ -661,7 +745,7 @@ describe('synchroniserPrincipal — matrice', () => {
     const U = committer(m.amont, { 'a.md': 'b\n' })
     const wt = join(m.principal, '.wt-x')
     exiger(ajouterWorktree(depot(m.principal), { chemin: wt, branche: 'chantier/x', depuis: 'HEAD' }), 'worktree')
-    const vu = await sync(wt)
+    const vu = await sync(wt, {}, m.principal)
     assert.equal(vu.etat, 'avance')
     assert.equal(head(m.principal), U)
     assert.equal(head(wt), m.B)
@@ -671,7 +755,7 @@ describe('synchroniserPrincipal — matrice', () => {
 
 describe('14 mort réelle à chaque étape 4 à 10, puis reprise par un processus NEUF', () => {
   for (const arret of ETAPES) {
-    test(`mort après « ${arret} »`, () => {
+    test(`mort après « ${arret} »`, async () => {
       const m = monde({ 'm.md': 'titre\n', 'f.md': 'a\nb\nc\n', 'n.md': 'n\n' })
       const U = committer(m.amont, { 'm.md': 'titre\namont\n', 'f.md': 'A\nb\nc\n', 'n.md': 'n2\n', 'neuf.md': 'neuf\n' })
       ecrireTravail(m.principal, 'm.md', 'titre\namont\nlocal\n')
@@ -683,7 +767,8 @@ describe('14 mort réelle à chaque étape 4 à 10, puis reprise par un processu
       const reprise = lancer(m.principal)
       assert.equal(reprise.status, 0, reprise.stderr)
       const vu = JSON.parse(reprise.stdout)
-      assert.equal(vu.etat, 'avance', reprise.stdout)
+      assert.equal(await consommationFinie(m.principal, [vu.consommateurs?.pid]), null, 'la plage due finit consommée')
+      assert.equal(vu.etat, ETAPES.indexOf(arret) < ETAPES.indexOf('liberation') ? 'avance' : 'a-jour', reprise.stdout)
       assert.equal(head(m.principal), U)
       assert.equal(shaDe(depot(m.principal), 'ORIG_HEAD'), m.B)
       assert.equal(travail(m.principal, 'm.md'), 'titre\namont\nlocal\n')
@@ -780,6 +865,154 @@ describe('14 mort réelle à chaque étape 4 à 10, puis reprise par un processu
   })
 })
 
+/** Le hook `post-merge` de fixture de `racine` : `corps` sous `#!/bin/sh`, posé par `core.hooksPath`. */
+function hookDeFixture(racine, corps) {
+  mkdirSync(join(racine, 'hooks-fixture'))
+  writeFileSync(join(racine, 'hooks-fixture', 'post-merge'), `#!/bin/sh\n${corps}`)
+  chmodSync(join(racine, 'hooks-fixture', 'post-merge'), 0o755)
+  exiger(reglerDepot(depot(racine), 'core.hooksPath', 'hooks-fixture'), 'hooksPath')
+}
+
+/** `scripts/` de CET arbre posé dans le principal `racine` (jonction, exclue de git) : le consommateur
+ *  qu'y lance la CLI est `<principal>/scripts/ops/synchroniser.mjs`. */
+function scriptsDansLePrincipal(racine) {
+  symlinkSync(resolve(import.meta.dirname, '..'), join(racine, 'scripts'), 'junction')
+  appendFileSync(join(racine, '.git', 'info', 'exclude'), '/scripts\n')
+}
+
+/** Le post-merge de fixture de T1 (s), et l'échéance (ms) dans laquelle la CLI rend la main : moins que lui,
+ *  avec la marge d'une machine chargée (3,5 s mesurées sous `test:perimetre`, 2026-10-08). */
+const POST_MERGE_S = 12
+const RENDU_MS = 10_000
+
+describe('#2493 T1 : le post-merge court en fond, la synchronisation rend la main', () => {
+  test('la CLI réelle rend `avance` AVANT la fin du post-merge, le consommateur nommé le joue puis solde la plage ; une 2ᵉ avance pendant lui est rejouée de B', async () => {
+    const m = monde({ 'a.md': 'a\n' })
+    const U = committer(m.amont, { 'a.md': 'b\n' })
+    hookDeFixture(m.principal, `sleep ${POST_MERGE_S}\necho "post-merge $1" >&2\nexit 0\n`)
+    scriptsDansLePrincipal(m.principal)
+    let P
+    try {
+      const debut = Date.now()
+      const cli = spawnSync(process.execPath, [join(m.principal, 'scripts', 'ops', 'synchroniser.mjs'), '--json'], { cwd: m.principal, env: ENV, encoding: 'utf8', timeout: RENDU_MS })
+      const duree = Date.now() - debut
+      assert.equal(cli.status, 0, `${cli.error?.message ?? ''} ${cli.stderr}`)
+      assert.ok(duree < RENDU_MS, `${duree} ms`)
+      const vu = JSON.parse(cli.stdout)
+      P = vu.consommateurs.pid
+      const L = vu.consommateurs.log
+      assert.deepEqual([vu.etat, vu.de, vu.vers, vu.consommateurs.etat], ['avance', m.B, U, 'en-cours'])
+      assert.equal(L, logDe(m.principal, P))
+      const [B9, U9] = [m.B.slice(0, 9), U.slice(0, 9)]
+      assert.ok(vu.texte.startsWith(`[synchroniser] principal avancé de ${B9} à ${U9} ; post-merge ${B9}..${U9} en fond : PID ${P} depuis `), vu.texte)
+      assert.ok(vu.texte.endsWith(`issue : ${L}`), vu.texte)
+      assert.equal(head(m.principal), U)
+      for (const trace of ['synchro', 'index.lock', 'synchro.verrou']) assert.equal(existsSync(join(m.principal, '.git', trace)), false, trace)
+      const tenant = await sousEcheanceAsync({
+        attente: { echeanceMs: 10_000, pasMs: 20 }, abouti: (t) => t?.pid === P,
+        essai: () => { try { return JSON.parse(readFileSync(verrouDuConsommateur(join(m.principal, '.git')), 'utf8')) } catch { return null } },
+      })
+      assert.equal(tenant?.pid, P, 'le consommateur tient son verrou')
+      assert.equal(estPidVivant(P), true)
+      const U2 = committer(m.amont, { 'a.md': 'c\n' })
+      const seconde = await synchroniserPrincipal({ depuis: m.principal, env: ENV, consommateur: SYNCHRONISEUR, gestes: { attente: ATTENTE } })
+      assert.deepEqual([seconde.etat, seconde.de, seconde.vers, seconde.consommateurs.pid, seconde.consommateurs.de], ['avance', U, U2, P, m.B])
+      assert.equal(await consommationFinie(m.principal, [P]), null)
+      const lignes = readFileSync(logDe(m.principal, P), 'utf8')
+      assert.deepEqual(lignes.match(/post-merge ORIG_HEAD=\w+ HEAD=\w+ — début/g), [
+        `post-merge ORIG_HEAD=${B9} HEAD=${U9} — début`, `post-merge ORIG_HEAD=${B9} HEAD=${U2.slice(0, 9)} — début`,
+      ])
+      assert.match(lignes, /post-merge 0/)
+      assert.match(lignes, /— fin, code 0 \(\d+\.\d s\)/)
+      assert.equal(shaDe(depot(m.principal), 'ORIG_HEAD'), m.B)
+    } finally {
+      await consommationFinie(m.principal, [P])
+    }
+  })
+
+  test('mort réelle après « commit » : la mesure dit `interrompu` et ses verrous orphelins ; le passage suivant les NOMME, reprend PUIS avance jusqu’à U2, et lance UN consommateur après son dernier commit', async () => {
+    const m = monde({ 'a.md': 'a\n' })
+    const U = committer(m.amont, { 'a.md': 'b\n' })
+    const tue = lancer(m.principal, 'commit')
+    assert.notEqual(tue.status, 0)
+    const mort = tue.pid
+    const mesure = mesurerPrincipal({ depuis: m.principal, visee: U, env: ENV })
+    assert.deepEqual([mesure.etat, mesure.mesure, mesure.etape, mesure.de, mesure.vers, mesure.head, mesure.consommateurs?.etat], ['interrompu', true, 'avance', m.B, U, U, 'du'])
+    const orphelins = (etat) => etat.orphelins.map((o) => [basename(o.verrou), o.pid, o.preuve])
+    assert.deepEqual(orphelins(mesure), [['index.lock', mort, 'jeton du journal'], ['synchro.verrou', mort, 'PID mort'], ['outillage.verrou', mort, 'PID mort']])
+    assert.match(ligneDeLEtat(mesure), new RegExp(`^interrompu : avance \\w{9}\\.\\.\\w{9} entamée \\(étape avance\\), HEAD \\w{9} — reprise due \\(journal .+journal\\.json\\) ; verrous orphelins à reprendre : index\\.lock \\(PID ${mort} mort depuis \\S+, jeton du journal\\), synchro\\.verrou \\(PID ${mort} mort depuis \\S+, PID mort\\), outillage\\.verrou \\(PID ${mort} mort depuis \\S+, PID mort\\)`))
+    const U2 = committer(m.amont, { 'a.md': 'c\n' })
+    const etapes = []
+    const vu = await sync(m.principal, { etape: (nom) => { etapes.push(nom) } })
+    assert.deepEqual([vu.etat, vu.de, vu.vers, vu.reprise], ['avance', m.B, U2, { de: m.B, vers: U }])
+    assert.deepEqual(orphelins(vu), [['synchro.verrou', mort, 'PID mort'], ['index.lock', mort, 'jeton du journal'], ['outillage.verrou', mort, 'PID mort']])
+    assert.match(ligneDeLEtat(vu), new RegExp(`^avancé de ${m.B.slice(0, 9)} à ${U2.slice(0, 9)} \\(reprise de ${m.B.slice(0, 9)}\\.\\.${U.slice(0, 9)}\\) ; verrous orphelins repris : synchro\\.verrou \\(PID ${mort} mort depuis \\S+, PID mort\\), index\\.lock \\(PID ${mort} mort depuis \\S+, jeton du journal\\), outillage\\.verrou \\(PID ${mort} mort depuis \\S+, PID mort\\) ; post-merge `), ligneDeLEtat(vu))
+    assert.deepEqual(etapes, ['commit', 'liberation', 'capture', 'transaction', 'travail', 'arbre', 'index', 'commit', 'liberation', 'consommateurs'])
+    assert.deepEqual(readdirSync(join(m.principal, '.git', 'synchro-consommateurs')).filter((f) => f.endsWith('.log')), [`${vu.consommateurs.pid}.log`])
+    assert.equal(head(m.principal), U2)
+    assert.equal(mesurerPrincipal({ depuis: m.principal, env: ENV }).etat, 'a-jour')
+  })
+
+  test('mort réelle après « commit », amont RÉÉCRIT : la reprise conclue puis le refus `divergent` portent UN consommateur, la plage soldée', async () => {
+    const m = monde({ 'a.md': 'a\n' })
+    const U = committer(m.amont, { 'a.md': 'b\n' })
+    assert.notEqual(lancer(m.principal, 'commit').status, 0)
+    exiger(poserRef(depot(m.amont), 'refs/heads/main', m.B), 'amont réécrit')
+    const V = committer(m.amont, { 'r.md': 'réécrit\n' })
+    const vu = await sync(m.principal)
+    assert.deepEqual([vu.etat, vu.de, vu.vers, vu.consommateurs?.etat, vu.consommateurs?.de, vu.consommateurs?.vers], ['divergent', U, V, 'en-cours', m.B, U])
+    assert.equal(head(m.principal), U)
+    assert.deepEqual(readdirSync(join(m.principal, '.git', 'synchro-consommateurs')).filter((f) => f.endsWith('.log')), [`${vu.consommateurs.pid}.log`])
+    assert.equal(duDe(m.principal), null)
+    assert.ok(ligneDeLEtat(vu).includes(` ; post-merge ${m.B.slice(0, 9)}..${U.slice(0, 9)} en fond : PID ${vu.consommateurs.pid} `), ligneDeLEtat(vu))
+    assert.ok(texteDeSession(vu).endsWith(' — reprise : `npm run ops:synchroniser`'), texteDeSession(vu))
+  })
+
+  test('mesure sans écriture : `en-retard` (compte), `occupe` sous un verrou vivant, `a-jour` ; aucune ref ni fichier posé', async () => {
+    const m = monde({ 'a.md': 'a\n' })
+    const U = committer(m.amont, { 'a.md': 'b\n' })
+    const U2 = committer(m.amont, { 'a.md': 'c\n' })
+    exiger(fetchOrigin(depot(m.principal)), 'fetch')
+    const retard = mesurerPrincipal({ depuis: m.principal, env: ENV })
+    assert.deepEqual(retard, { etat: 'en-retard', mesure: true, head: m.B, visee: U2, retard: 2 })
+    assert.equal(ligneDeLEtat(retard), `en retard : HEAD ${m.B.slice(0, 9)}, 2 commit(s) derrière ${U2.slice(0, 9)}, aucune avance entamée — synchronisation due`)
+    const cli = spawnSync(process.execPath, [SYNCHRONISEUR, '--mesurer', '--json'], { cwd: m.principal, env: ENV, encoding: 'utf8', timeout: 60_000 })
+    const lu = JSON.parse(cli.stdout)
+    assert.deepEqual([cli.status, lu.ligne, lu.texte], [1, ligneDeLEtat(retard), `[synchroniser] principal ${ligneDeLEtat(retard)}`])
+    assert.equal(mesurerPrincipal({ depuis: m.principal, visee: U, env: ENV }).retard, 1)
+    const date = new Date().toISOString()
+    writeFileSync(join(m.principal, '.git', 'synchro.verrou'), JSON.stringify({ pid: process.pid, commande: 'ops:synchroniser', date }))
+    const occupe = mesurerPrincipal({ depuis: m.principal, env: ENV })
+    assert.deepEqual([occupe.etat, occupe.tenant.pid, occupe.retard], ['occupe', process.pid, 2])
+    assert.equal(ligneDeLEtat(occupe), `occupé : verrou tenu par le PID ${process.pid} depuis ${date} (0 min, ops:synchroniser)`)
+    const mort = spawnSync(process.execPath, ['--version']).pid
+    writeFileSync(join(m.principal, '.git', 'synchro.verrou'), JSON.stringify({ pid: mort, commande: 'ops:synchroniser', date }))
+    const orpheline = mesurerPrincipal({ depuis: m.principal, env: ENV })
+    assert.equal(ligneDeLEtat(orpheline), `en retard : HEAD ${m.B.slice(0, 9)}, 2 commit(s) derrière ${U2.slice(0, 9)}, aucune avance entamée — synchronisation due ; verrous orphelins à reprendre : synchro.verrou (PID ${mort} mort depuis ${date}, PID mort)`)
+    rmSync(join(m.principal, '.git', 'synchro.verrou'))
+    assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
+    assert.equal(head(m.principal), m.B)
+    assert.deepEqual(mesurerPrincipal({ depuis: m.principal, visee: m.B, env: ENV }), { etat: 'a-jour', mesure: true, sha: m.B, visee: m.B })
+  })
+
+  test('texteDeSession : muet pour `a-jour`/`avance` nus, la ligne sinon, la reprise hors avance', () => {
+    const [a, b] = ['a'.repeat(40), 'b'.repeat(40)]
+    assert.equal(texteDeSession({ etat: 'a-jour', sha: a }), '')
+    assert.equal(texteDeSession({ etat: 'avance', de: a, vers: b, configurationClientChangee: [] }), '')
+    assert.equal(texteDeSession({ etat: 'avance', de: a, vers: b, configurationClientChangee: ['.codex/hooks.json'] }),
+      '[synchroniser] principal avancé de aaaaaaaaa à bbbbbbbbb ; configuration client changée : .codex/hooks.json')
+    assert.equal(texteDeSession({ etat: 'divergent', de: a, vers: b }), '[synchroniser] principal refusé (divergent) : aaaaaaaaa..bbbbbbbbb — reprise : `npm run ops:synchroniser`')
+    assert.equal(texteDeSession({ etat: 'avance-non-prete', de: a, vers: b, code: null, hookIgnore: '/h/post-merge' }),
+      '[synchroniser] principal avancé de aaaaaaaaa à bbbbbbbbb, post-merge ignoré par git : /h/post-merge — reprise : `npm run ops:synchroniser`')
+    const echec = { etat: 'echec', code: 3, fin: 'F', de: a, vers: b, log: '/l/9.log' }
+    assert.equal(texteDeSession({ etat: 'avance-non-prete', de: a, vers: b, code: 3, log: '/l/9.log', consommateurs: echec }),
+      '[synchroniser] principal avancé de aaaaaaaaa à bbbbbbbbb, post-merge en échec (code 3, F) : /l/9.log — reprise : `npm run ops:synchroniser -- --consommer`')
+    const orphelins = [{ verrou: '/g/synchro.verrou', pid: 7, depuis: 'D', preuve: 'PID mort' }, { verrou: '/g/c.verrou', pid: 8, depuis: 'E', preuve: 'âge > borne' }]
+    assert.equal(texteDeSession({ etat: 'a-jour', sha: a, orphelins }),
+      '[synchroniser] principal à jour sur aaaaaaaaa ; verrous orphelins repris : synchro.verrou (PID 7 mort depuis D, PID mort), c.verrou (PID 8 depuis E, âge > borne)')
+  })
+})
+
 describe('incertains', () => {
   test('PID recyclé : estVivant toujours vrai → occupe à échéance, jamais de reprise', async () => {
     const m = monde({ 'm.md': 'titre\n' })
@@ -806,7 +1039,7 @@ describe('incertains', () => {
       for (let i = 0; i < 1000; i += 1) {
         const candidat = join(m.principal, '.git', 'index.candidat')
         copyFileSync(source, candidat)
-        refus.push(...remplacerIndex(candidat, source))
+        refus.push(...renommerResilient(candidat, source))
       }
     } finally {
       passages = await arreter()

@@ -296,7 +296,9 @@ function rendu() {
       texte: (module) =>
         `Le pilote de fusion des stocks de sites (${listeCode(pilotesDe(module))}), déclaré par
    \`.gitattributes\` et servi par \`${module}\` : fusion par groupe de site ; sans lui, deux soldes
-   de groupes disjoints d'un même stock rouvrent un conflit. Un stock se régénère par la commande
+   de groupes disjoints d'un même stock rouvrent un conflit. Le serveur (GitHub) n'exécute aucun pilote
+   de fusion : une PR en conflit se reprend par le train (étape \`file\`, #2525). Tous les stocks se
+   régénèrent par \`npm run stocks:regen\`, un seul par
    \`npx tsx scripts/guards/lib/regenStock.mts <module qui mesure>\`, jamais par \`docs:build\`.`,
     },
   ].map((f) => ({ ...f, porte: f.porte ?? clePiloteDe(f.module) }))
@@ -417,13 +419,17 @@ stables pendant la génération et au contrôle final. Les captures temporaires 
 Une sélection de code ou de fichiers mixtes vide n'écrit rien. \`docs:check\` rejoue toujours les générateurs et
 vérificateurs, sans écrire de preuve ni modifier les docs. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte
-(\`node <racine>/scripts/ops/publier.mjs --veiller <run>\`) qui SUIT ce run jusqu'au verdict — elle lit le
-journal JSON, émet une ligne par transition d'étape, finit sur la ligne \`PUBLICATION:\` et sort en 0
-(vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur, borne dépassée). C'est la seule
-veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne porte le numéro
-\`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par la même commande suivie de
-\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. La CI d'une
+du harnais, et imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte, COMPOSITE
+(\`node <racine>/scripts/ops/publier.mjs --veiller <run>; node <racine>/scripts/ops/publier.mjs --veiller <run> --constat\`),
+qui SUIT ce run jusqu'au verdict — elle lit le journal JSON, émet une ligne par transition d'étape, finit sur
+la ligne \`PUBLICATION:\` et sort en 0 (vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur,
+borne dépassée), jamais 127 : une veille tuée, son \`--constat\` reprend depuis la dernière transition du
+journal et rend le code du verdict. Un train mort sans verdict est CONSTATÉ au journal par sa veille ou par le
+prochain \`ops:publier\` : mort en \`fin\`, la publication est verte (\`INTERROMPUE\`, avec la mesure du
+principal). C'est la seule veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne
+porte le numéro \`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par
+\`… --veiller <run> --depuis <dernier seq lu>; … --veiller <run> --constat\`, sans rien ré-émettre, et sa
+borne court depuis le LANCEMENT du run. La CI d'une
 branche poussée s'attend de même, en fond : \`npm run ops:ci -- --attendre [<sha>]\` (\`${script('ops:ci')}\`)
 attend la course \`CI\` du sha poussé et sort sur son verdict, un code par verdict (verte 0, rouge 1, annulée,
 absente, borne dépassée), en nommant sur un rouge les tests en échec de chaque job rouge ; \`--echecs <run>\`
@@ -432,8 +438,11 @@ de chantier, ouvre sa PR vers \`main\` et l'ARME ; la FILE DE FUSION du serveur 
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). L'étape \`file\`
 journalise le compte qui demande la fusion ; une course de branche ANNULÉE s'attend, sa relance appartenant à
 la reprise serveur, jusqu'à son ${PLAFOND_RELANCES}ᵉ essai, où le train rend la main avec le geste
-\`gh run rerun <id> --failed\`. Aucun rebase : une PR éjectée de la file pour un conflit ou un dérivé périmé se
-reprend par une FUSION d'\`origin/main\` dans la branche, une fois ; une PR éjectée par une course de file
+\`gh run rerun <id> --failed\`. Aucun rebase : l'étape \`file\` reprend une PR par une FUSION
+d'\`origin/main\` dans la branche, une fois, si elle est en CONFLIT avec la base (vu sur la PR avant la
+demande, ou relu après un refus de la demande) ou éjectée de la file par une course rouge qui lui est
+ATTRIBUÉE ; l'étape \`docs\` régénère alors les stocks de sites (\`npm run stocks:regen\`) et les commet
+(\`chore(stocks)\`, #2525) ; un refus sans conflit reste rouge ; une PR éjectée par une course de file
 ANNULÉE se redemande sur la même tête, sans fusion, dans la même borne ; un run neuf rotationne le log
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.

@@ -61,7 +61,7 @@ function scriptsDuLanceur() {
   const scripts = JSON.parse(readFileSync(join(RACINE, 'package.json'), 'utf8')).scripts ?? {}
   const par = {}
   for (const [nom, commande] of Object.entries(scripts)) {
-    const m = /^node scripts\/test\/node-tests\.mjs\s+(\S+)$/.exec(commande)
+    const m = /^node scripts\/gates\/testsSansEcriture\.mjs\s+(\S+)$/.exec(commande)
     if (m) par[nom] = m[1]
   }
   return par
@@ -74,7 +74,7 @@ test('propriété = EXÉCUTION : la table, package.json et ci.yml nomment le MÊ
   assert.deepEqual(
     Object.keys(parScript).sort(),
     [...GATES].sort(),
-    'une gate de RACINES sans script `node scripts/test/node-tests.mjs <gate>` dans package.json (ou l’inverse) : ' +
+    'une gate de RACINES sans script `node scripts/gates/testsSansEcriture.mjs <gate>` dans package.json (ou l’inverse) : ' +
       'une table qui répartit des tests que personne ne lance ne prouve rien',
   )
   const enCi = gatesDeCi({ cwd: RACINE })

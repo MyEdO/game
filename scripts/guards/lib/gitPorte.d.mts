@@ -63,6 +63,8 @@ export function attributDe(depot: Depot, chemin: string, nom: string): string | 
 export const INDEX: string;
 export const SUIVI: string;
 export const TRAVAIL: string;
+/** Les fichiers que l'image `arbre` (une ref, `INDEX`, `SUIVI` ou `TRAVAIL`) porte sous `dossiers`, chemins POSIX. */
+export function listerImage(depot: Depot, arbre: string, ...dossiers: string[]): string[];
 
 /** Une entrée d'image (`entreesDe`) : mode et sha du blob. */
 export type EntreeDImage = { mode: string; sha: string };

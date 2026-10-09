@@ -7,11 +7,16 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { cleDeSite, ecartDuVolet, remedeNomme } from './lib/stock.mjs'
 import { ecartDeRegeneration, lireEntreesDeSite, texteEnPlace } from './lib/stockDeSites.mjs'
 import { CLASSES, EXEMPTIONS, STOCK, classer, mesure, regenerations } from './lib/balayagesNonResolus.mjs'
 
-const { sites } = mesure()
+const dossierDesMemos = mkdtempSync(join(tmpdir(), 'balayages-memos-'))
+let sites
+try { ({ sites } = mesure(undefined, { dossierDesMemos })) }
+finally { rmSync(dossierDesMemos, { recursive: true, force: true }) }
 const stock = lireEntreesDeSite(join(fileURLToPath(new URL('../..', import.meta.url)), STOCK))
 
 test('aucun balayage NON RÉSOLU neuf hors du stock — le rendre résoluble, jamais le stocker', () => {

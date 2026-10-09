@@ -1652,7 +1652,7 @@ export const caractereDeCommentaire = (depot) => (lire(depot, ['config', '-z', '
 export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])?.trim() || null
 
 /** Borne d'un `ls-remote` (`shasDistants`), en millisecondes : celle de `fetchOrigin`. */
-const TIMEOUT_DU_DISTANT_MS = 60000
+export const TIMEOUT_DU_DISTANT_MS = 60000
 
 /**
  * Les SHAS que l'origine porte pour `refs` (noms COMPLETS, `refs/heads/<branche>`), en UN
@@ -2041,13 +2041,16 @@ export function poserDansIndex(depot, { index, entrees }) {
   return ecrire(depot, ['update-index', '--index-info'], { index, entree: lignes.join('') })
 }
 
+/** Borne d'un `read-tree -m -u` (`avancerArbre`), en millisecondes. */
+export const TIMEOUT_READ_TREE_MS = 600_000
+
 /**
  * L'ARBRE DE TRAVAIL et l'index `index` avancés de l'arbre `de` à l'arbre `vers` (`read-tree -m -u`,
  * `git help read-tree`, « Two Tree Merge ») ; `index` est le `GIT_INDEX_FILE` de CETTE commande seule.
  * @param {Depot} depot @param {{ index: string, de: string, vers: string }} p
  */
 export const avancerArbre = (depot, { index, de, vers }) =>
-  ecrire(depot, ['read-tree', '-m', '-u', ...revisionsDe([de, vers])], { index, timeout: 600_000 })
+  ecrire(depot, ['read-tree', '-m', '-u', ...revisionsDe([de, vers])], { index, timeout: TIMEOUT_READ_TREE_MS })
 
 /**
  * Les entrées de l'index `index` dont seules les stats ont bougé, RAFRAÎCHIES (`update-index -q --refresh`,
@@ -2057,9 +2060,12 @@ export const avancerArbre = (depot, { index, de, vers }) =>
  */
 export const rafraichirIndex = (depot, { index }) => ecrire(depot, ['update-index', '-q', '--refresh'], { index })
 
+/** Borne d'un hook joué par `lancerHook`, en millisecondes. */
+export const TIMEOUT_DU_HOOK_MS = 3_600_000
+
 /** Le hook `nom` du dépôt joué sur `args` (`hook run --ignore-missing`, `git help hook`) ; son code
  *  de sortie est le `status` de l'union. @param {Depot} depot @param {string} nom @param {readonly string[]} args */
-export const lancerHook = (depot, nom, args) => ecrire(depot, ['hook', 'run', '--ignore-missing', ...revisionsDe([nom]), '--', ...args], { timeout: 3_600_000 })
+export const lancerHook = (depot, nom, args) => ecrire(depot, ['hook', 'run', '--ignore-missing', ...revisionsDe([nom]), '--', ...args], { timeout: TIMEOUT_DU_HOOK_MS })
 
 /**
  * Une TRANSACTION de refs gardée OUVERTE (`update-ref --stdin`, `git help update-ref` : `start`,

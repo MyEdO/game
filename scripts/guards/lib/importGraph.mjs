@@ -9,6 +9,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { analyserTexte, analyserCorpus, typescript } from './dialecte.mjs';
 import { correspondGlob } from './lister.mjs';
 import { createRequire } from 'node:module';
+import { URL as NodeURL, fileURLToPath, pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 
 const EXTS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.cjs', '.js'];
@@ -211,11 +212,13 @@ const fichierExiste = (chemin) => {
  * @param {readonly { prefixe: string, vers: string }[]} [alias]
  * @returns {string|null}
  */
-export function resolveImport(fromFile, spec, existe = fichierExiste, alias = aliasDuDepot()) {
+export function resolveImport(fromFile, spec, existe = fichierExiste, alias = aliasDuDepot(), nature = 'statique') {
   const a = spec.startsWith('.') ? null : alias.find(({ prefixe }) => spec.startsWith(prefixe));
   if (!spec.startsWith('.') && !a) return null;
-  const base = a ? `${a.vers}${spec.slice(a.prefixe.length)}` : resolve(dirname(fromFile), spec).split('\\').join('/');
-  if (/\.[^./]+$/.test(spec)) {
+  const base = (nature === 'require'
+    ? a ? `${a.vers}${spec.slice(a.prefixe.length)}` : resolve(dirname(fromFile), spec)
+    : resolve(fileURLToPath(new NodeURL(a ? pathToFileURL(a.vers).href + spec.slice(a.prefixe.length) : spec, pathToFileURL(fromFile))))).split('\\').join('/');
+  if (/\.[^./]+$/.test(base)) {
     if (existe(base)) return base;
     const [, radical, ext] = /^(.*)(\.[^./]+)$/.exec(base);
     const source = (EXTS_TS_DE[ext] ?? []).map((e) => radical + e).find((f) => existe(f));
@@ -239,7 +242,7 @@ export function resolveImport(fromFile, spec, existe = fichierExiste, alias = al
 export function arcsDe(abs, texte, { existe = fichierExiste, alias = aliasDuDepot(), diagnostics } = {}) {
   const arcs = [];
   for (const site of specificateursDe(abs, texte, diagnostics)) {
-    const cible = resolveImport(abs, site.spec, existe, alias);
+    const cible = resolveImport(abs, site.spec, existe, alias, site.nature);
     if (cible) arcs.push({ ...site, cible });
   }
   return arcs;
@@ -303,7 +306,7 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
   const existeResolu = arbre === ARBRE_DU_DISQUE ? fichierExiste : arbre.existe;
   const resoudre = (abs, sites) => sites.flatMap((site) => site.nature === 'glob'
     ? arcsDeGlob(abs, site, arbre.fichiers, base)
-    : [resolveImport(abs, site.spec, existeResolu, alias)].filter(Boolean).map((cible) => ({ ...site, cible })));
+    : [resolveImport(abs, site.spec, existeResolu, alias, site.nature)].filter(Boolean).map((cible) => ({ ...site, cible })));
   const seen = new Set();
   let frontiere = roots.map(r => ({ abs: resolve(base, r).split(sep).join('/') }));
   while (frontiere.length) {

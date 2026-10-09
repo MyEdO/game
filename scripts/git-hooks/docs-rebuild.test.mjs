@@ -15,47 +15,52 @@ import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 test('#2285 callback docs : refus complet et commit ordinaire silencieux', () => {
-  assert.equal(statSync(join(RACINE, 'package-lock.json')).isFile(), true)
-  const stderr = 'note parents\n'.repeat(45) + 'cause parents tardive\n'
-  const stdout = 'stdout parents distinct'
-  assert.ok(stderr.indexOf('cause parents tardive') > 400)
-  assert.ok(stderr.endsWith('\n'))
-  const annonces = []
-  let npm = 0
-  let code = 0
-  let docs = 0
-  const options = {
-    cwd: RACINE, hook: 'post-commit', generateurs: [],
-    annoncer: (texte) => annonces.push(texte),
-    npm: () => { npm++; return { status: 1 } },
-    code: () => { code++; assert.fail('code interdit') },
-    docs: () => { docs++; assert.fail('docs interdits') },
+  const { racine } = instanceDeDepot({ fichiers: { 'package-lock.json': '{}\n' } })
+  try {
+    assert.equal(statSync(join(racine, 'package-lock.json')).isFile(), true)
+    const stderr = 'note parents\n'.repeat(45) + 'cause parents tardive\n'
+    const stdout = 'stdout parents distinct'
+    assert.ok(stderr.indexOf('cause parents tardive') > 400)
+    assert.ok(stderr.endsWith('\n'))
+    const annonces = []
+    let npm = 0
+    let code = 0
+    let docs = 0
+    const options = {
+      cwd: racine, hook: 'post-commit', generateurs: [],
+      annoncer: (texte) => annonces.push(texte),
+      npm: () => { npm++; return { status: 1 } },
+      code: () => { code++; assert.fail('code interdit') },
+      docs: () => { docs++; assert.fail('docs interdits') },
+    }
+    const resultat = sousGitFeint([
+      { si: ['rev-parse', 'HEAD^@'], status: 29, stdout, stderr },
+      { si: ['rev-parse', '--verify', '--quiet', 'HEAD'], status: 1, stdout: '', stderr: '' },
+      { si: ['HEAD^{commit}'], status: 0, stdout: 'a'.repeat(40) },
+      { si: ['reflog', 'exists', 'HEAD'], status: 1, stdout: '', stderr: '' },
+      { si: [], status: 97, stderr: 'GARDE callback docs : lecture interdite\n' },
+    ], () => reconstruireApresGit(options))
+    assert.equal(resultat, 1)
+    assert.equal(npm, 1)
+    assert.equal(code, 0)
+    assert.equal(docs, 0)
+    const lectures = annonces.filter((texte) => texte.startsWith('[post-commit] lecture Git indisponible : '))
+    assert.deepEqual(lectures, ['[post-commit] lecture Git indisponible : refus (status 29) — ' + stderr + '\n' + stdout + '\n'])
+    assert.equal(annonces.some((texte) => texte.includes('GARDE callback docs')), false)
+    annonces.length = 0
+    npm = 0
+    const ordinaire = sousGitFeint([
+      { si: ['rev-parse', 'HEAD^@'], status: 0, stdout: 'b'.repeat(40) + '\n' },
+      { si: [], status: 97, stderr: 'GARDE callback docs : lecture interdite\n' },
+    ], () => reconstruireApresGit(options))
+    assert.equal(ordinaire, 0)
+    assert.equal(npm, 0)
+    assert.equal(code, 0)
+    assert.equal(docs, 0)
+    assert.deepEqual(annonces, [])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
-  const resultat = sousGitFeint([
-    { si: ['rev-parse', 'HEAD^@'], status: 29, stdout, stderr },
-    { si: ['rev-parse', '--verify', '--quiet', 'HEAD'], status: 1, stdout: '', stderr: '' },
-    { si: ['HEAD^{commit}'], status: 0, stdout: 'a'.repeat(40) },
-    { si: ['reflog', 'exists', 'HEAD'], status: 1, stdout: '', stderr: '' },
-    { si: [], status: 97, stderr: 'GARDE callback docs : lecture interdite\n' },
-  ], () => reconstruireApresGit(options))
-  assert.equal(resultat, 1)
-  assert.equal(npm, 1)
-  assert.equal(code, 0)
-  assert.equal(docs, 0)
-  const lectures = annonces.filter((texte) => texte.startsWith('[post-commit] lecture Git indisponible : '))
-  assert.deepEqual(lectures, ['[post-commit] lecture Git indisponible : refus (status 29) — ' + stderr + '\n' + stdout + '\n'])
-  assert.equal(annonces.some((texte) => texte.includes('GARDE callback docs')), false)
-  annonces.length = 0
-  npm = 0
-  const ordinaire = sousGitFeint([
-    { si: ['rev-parse', 'HEAD^@'], status: 0, stdout: 'b'.repeat(40) + '\n' },
-    { si: [], status: 97, stderr: 'GARDE callback docs : lecture interdite\n' },
-  ], () => reconstruireApresGit(options))
-  assert.equal(ordinaire, 0)
-  assert.equal(npm, 0)
-  assert.equal(code, 0)
-  assert.equal(docs, 0)
-  assert.deepEqual(annonces, [])
 })
 
 /** Une mesure FORGÉE : un fichier lu, un dossier LISTÉ, une cible signée. */

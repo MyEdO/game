@@ -6,7 +6,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import { z } from 'zod'
 import { prendreVerrou } from '../test/verrou.mjs'
 import { depotDe, arbrePrincipal, brancheDe, shaDe } from '../guards/lib/gitPorte.mjs'
-import { citerArgv } from './publier.mjs'
+import { citerArgv } from '../guards/lib/lancerDetache.mjs'
 import { BORNE_RAISON } from '../guards/lib/ticketsGh.mjs'
 
 export const PRODUCTEUR = 'ops:session'

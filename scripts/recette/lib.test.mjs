@@ -5,7 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { isAbsolute, join as joinPath, resolve as resolvePath } from 'node:path'
-import { existsSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import os from 'node:os'
 import {
   ALT,
@@ -1213,8 +1213,13 @@ test('capturerPion : cadre centré sur la case projetée du combattant, agrandi 
       throw new Error('capture interceptée')
     },
   }
-  await assert.rejects(() => capturerPion(session, 'h1', { zoom: 4, cote: 100 }), /capture interceptée/)
-  assert.deepEqual(demandes, [{ m: 'Page.captureScreenshot', p: { format: 'png', clip: { x: 350, y: 225, width: 100, height: 100, scale: 4 } } }])
+  const dir = mkdtempSync(joinPath(os.tmpdir(), 'recette-capturer-pion-'))
+  try {
+    await assert.rejects(() => capturerPion(session, 'h1', { zoom: 4, cote: 100, dir }), /capture interceptée/)
+    assert.deepEqual(demandes, [{ m: 'Page.captureScreenshot', p: { format: 'png', clip: { x: 350, y: 225, width: 100, height: 100, scale: 4 } } }])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
 
 test('capturerPion : un combattant sans case projetée est REFUSÉ en le nommant', async () => {

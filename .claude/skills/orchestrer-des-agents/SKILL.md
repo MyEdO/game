@@ -170,8 +170,10 @@ push de branche, attendre son run EN FOND** par `npm run ops:ci -- --attendre` (
 un `gh run` ni un `sleep` à la main. Un rouge de branche ne bloque que cette branche, et se rejoue
 localement gate par gate (`npm run gates -- --gates <noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche
 (étapes `pr` puis `file`), et le ruleset serveur refuse tout le reste. Un train `--detache` se suit par la
-commande `veille=` qu'il imprime (`Monitor`, ré-armé par `--depuis <dernier #seq>`), jamais par un
-filtre de son log. Migrations : le job `migrations` de `ci.yml`
+commande `veille=` qu'il imprime (`Monitor`), jamais par un filtre de son log : COMPOSITE, la veille puis
+son constat (`… --veiller <run>; … --veiller <run> --constat`), elle sort sur un code de verdict (0, 1, 3, 4,
+5), jamais 127 ; ré-armée, `… --veiller <run> --depuis <dernier #seq>; … --veiller <run> --constat`.
+Migrations : le job `migrations` de `ci.yml`
 les joue sur la branche, aucun rejeu local. Au retour de chaque agent, vérifier qu'il ne laisse aucun
 processus derrière lui.
 
