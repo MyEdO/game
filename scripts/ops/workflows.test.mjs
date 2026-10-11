@@ -74,7 +74,7 @@ const TYPES_MECANIQUES = ['lecteur', 'verif-mecanique'];
 const EXCEPTIONS_MECANIQUES = [
   { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'joueur', raison: 'joueurs cloisonnés : un seul outil, ni lecture, ni shell, ni web (`.claude/agents/joueur.md`)' },
 ];
-const MODELES_MECANIQUES = ['sonnet', 'haiku'];
+const MODELES_MECANIQUES = ['sonnet', 'claude-haiku-5-5'];
 const RUNNERS_INTERDITS = ['npm test', 'npm run gates', 'vitest run'];
 
 const TABLES = {
@@ -695,7 +695,7 @@ function verifyPrompt(f) {
 }
 
 const scout = await agent('Liste les fichiers et les docs.',
-  { label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' })
+  { label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })
 
 const STATS_VIDES = { lots: 0 }
 if (!scout) return { verdict: 'ARRÊT', stats: STATS_VIDES }
@@ -707,7 +707,7 @@ const trouvees = await parallel(lots.map((files) => () => agent('Lis ' + files.j
 const verdicts = await parallel(trouvees.filter(Boolean).flatMap((r) => r.findings).map((f) => async () => {
   const etiquette = 'verify:' + f.file
   const lue = f.quote
-    ? await agent(verifyPrompt(f), { label: etiquette, phase: 'Verify', schema: LECTURE, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' })
+    ? await agent(verifyPrompt(f), { label: etiquette, phase: 'Verify', schema: LECTURE, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })
     : null
   return lue && lue.citationPresente
     ? agent('Réfute : ' + f.claim, { label: etiquette, phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'high' })
@@ -853,7 +853,7 @@ test('a20 — BOM, `export const meta` indenté et `agent (` : reconnu, sans dé
 });
 
 test('a21 — `arguments`, lié à l’enveloppe, est un alias de `agent` : portée non statique', () => {
-  const site = "await lire('p', { label: 'x', phase: 'Scout', schema: { type: 'object', additionalProperties: false, properties: { t: { type: 'string' } }, required: ['t'] }, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' })";
+  const site = "await lire('p', { label: 'x', phase: 'Scout', schema: { type: 'object', additionalProperties: false, properties: { t: { type: 'string' } }, required: ['t'] }, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })";
   assert.deepEqual(vus(muter(TEMOIN, STATS, `const lire = arguments[0]\n${site}\n${STATS}`)), [
     'portee : `arguments` — alias des doublures du harnais, que la forme ne lit pas',
   ]);
@@ -942,7 +942,7 @@ test('défaut 28 — l’effort est LITTÉRAL et présent à chaque site, et vau
     ["agent : phase de JUGEMENT `Jugement` : `effort: 'high'` exigé AUSSI (lu : `low`)"],
   );
   assert.deepEqual(
-    vus(muter(TEMOIN, "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' }", "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'haiku' }")),
+    vus(muter(TEMOIN, "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' }", "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'claude-haiku-5-5' }")),
     ['agent : phase MÉCANIQUE `Scout` : `effort` littéral exigé (lu : absent)'],
   );
 });

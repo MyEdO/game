@@ -801,7 +801,7 @@ const ARGS_ATLAS = {
 };
 /** Un atlas qui répond à chaque phase ; `fidele: false` ouvre la correction de fidélité et la re-vérification. */
 const repondreALAtlas = (fidele) => (prompt, opts) => ({
-  Cadrage: { coverageRefs: [{ ab: 'BKA', nn: '05' }], sonnetBooks: [] },
+  Cadrage: { coverageRefs: [{ ab: 'BKA', nn: '05' }] },
   Cartographie: { items: [{ item: 'Une règle', kind: 'table', ref: 'BKA 05 l.1', gist: 'g' }] },
   Taxonomie: { topics: [{ id: 'topic-un', t: 'Topic Un', hint: 'h', covers: ['Une règle'] }] },
   Survey: { hits: [{ topicId: 'topic-un', ref: 'BKA 05 l.1', gist: 'g' }] },

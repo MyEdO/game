@@ -230,7 +230,7 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Étage | Type (`.claude/agents/`) | Modèle | Effort |
 |---|---|---|---|
 | Lecture / comparaison de masse | `lecteur` | sonnet | medium |
-| Vérification mécanique (existence, famille) | `verif-mecanique` | haiku | low |
+| Vérification mécanique (existence, famille) | `verif-mecanique` | claude-haiku-5-5 | low |
 | Code sous spec précise | `codeur` | opus | medium |
 | Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | high |
 | Rédaction fidèle au Source (fiches, synthèses de règles) | `lecteur` | opus | medium |
