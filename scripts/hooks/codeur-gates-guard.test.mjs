@@ -43,6 +43,10 @@ const pourCodeur = (commande) => evaluate({ agentType: 'codeur', commande, gates
 const REFUSEES = [
   'npm run lint',
   'npm test',
+  // Les alias de `npm test` (`npm help test`) sont la même suite entière ; `npm exec` est `npx`.
+  'npm t',
+  'npm tst',
+  'npm exec vitest run',
   'npm run deps:unused',
   // Gate dont la RÉSOLUTION n'est refusée par aucune autre règle
   // (`node scripts/docs/build-all.mjs`) : seul son NOM, clé d'`ECRIT_LU`, la refuse.
@@ -81,6 +85,8 @@ const PASSANTES = [
   'npx eslint scripts/ops/board.mjs',
   'npm run ops:board -- --liste',
   'npm test -- src/a.test.ts',
+  'npm t -- src/a.test.ts',
+  'npm exec vitest run src/a.test.ts',
   'npm run test:perimetre',
   'npm run test:perimetre -- --liste',
   // Le sous-projet `server/` a son propre tsconfig et ses propres scripts : les gates de la RACINE
@@ -120,8 +126,7 @@ test('la raison NOMME la commande refusée et le geste de remplacement', () => {
   const { reason } = pourCodeur('npm run lint')
   assert.match(reason, /« npm run lint »/)
   assert.match(reason, /pousser la branche/)
-  assert.match(reason, /Avant de rendre ou de committer : `npm run test:perimetre`/)
-  assert.match(reason, /typecheck:fast/)
+  assert.match(reason, /puce « Auto-contrôle » de `\.claude\/agents\/codeur\.md`/)
   assert.doesNotMatch(reason, /\b(?:te|tu|joue)\b/, 'la raison vaut pour tout appelant, jamais adressée au seul codeur')
 })
 
@@ -359,4 +364,58 @@ test('REPERTOIRE SONDE : après cd, seules les adresses indépendantes du cwd ce
     writeFileSync(config, `export default {root:'${dir.replaceAll('\\', '/')}',test:{include:['unique.test.ts']}}`)
     assert.equal(evaluate({ commande: `cd docs; npx vitest run --config "${config}"`, contexte }), null)
   } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+/** #2568 : `test:perimetre` enchaîné à un autre runner dans un même appel. */
+const CHAINES = [
+  'npm run typecheck:fast && npm run test:perimetre',
+  'npm run test:perimetre; node --test scripts/ops/board.test.mjs',
+  'npm test -- src/a.test.ts && npm run test:perimetre',
+  'npx vitest run src/a.test.ts; npm run test:perimetre',
+  'npx eslint scripts/ops/board.mjs && npm run test:perimetre -- --budget 60',
+  'sh -c "npm run test:perimetre && npm run typecheck:fast"',
+  'node scripts/test/perimetre.mjs && node --test scripts/ops/board.test.mjs',
+  // Drapeau de node à valeur séparée, des deux côtés.
+  'node --import tsx --test scripts/a.test.mjs && npm run test:perimetre',
+  'node --import tsx scripts/test/perimetre.mjs; npx vitest run src/a.test.ts',
+  // Alias et lanceurs : `npm t`, `npm exec`, `scripts/lancer-local.mjs` (corps de `test:map`), `playwright test`.
+  'npm t -- src/a.test.ts && npm run test:perimetre',
+  'npm exec vitest run src/a.test.ts && npm run test:perimetre',
+  'node scripts/lancer-local.mjs vitest -- vitest run scripts/map && npm run test:perimetre',
+  'npx playwright test && npm run test:perimetre',
+]
+
+test('SOUS-AGENT : `test:perimetre` enchaîné à un autre runner est refusé, la raison porte la consigne', () => {
+  for (const commande of CHAINES) {
+    const decision = pourCodeur(commande)
+    assert.equal(decision?.decision, 'deny', commande)
+    assert.match(decision.reason, /enchaîne `npm run test:perimetre` à un autre runner/, commande)
+    assert.match(decision.reason, /puce « Auto-contrôle » de `\.claude\/agents\/codeur\.md`/, commande)
+    assert.doesNotMatch(decision.reason, /\b(?:te|tu|joue)\b/, commande)
+  }
+})
+
+test('SESSION PRINCIPALE (sans agent_type) : le même enchaînement passe', () => {
+  for (const commande of CHAINES) assert.equal(evaluate({ commande, gates: GATES }), null, commande)
+})
+
+test('SOUS-AGENT : `test:perimetre` seul, un runner seul, ou une mention, passent', () => {
+  for (const commande of [
+    'npm run test:perimetre',
+    'npm run typecheck:fast && npm test -- src/a.test.ts',
+    'grep "npm run typecheck:fast" x.md && npm run test:perimetre',
+    'git status --short && npm run test:perimetre',
+    // `--liste` dérive et liste sans rien lancer (`scripts/test/perimetre.mjs`, `lireArguments`).
+    'npm run test:perimetre -- --liste && npm run typecheck:fast',
+    'node scripts/test/perimetre.mjs --liste; node --test scripts/ops/board.test.mjs',
+    'node scripts/lancer-local.mjs vite -- vite build && npm run test:perimetre',
+  ]) assert.equal(pourCodeur(commande), null, commande)
+})
+
+test('DRIVER : l’`agent_type` de la charge atteint la garde — refus pour un sous-agent, silence sans lui', () => {
+  const commande = 'npm run typecheck:fast && npm run test:perimetre'
+  const { hookSpecificOutput } = JSON.parse(sortieDriver(payload(commande, 'codeur')))
+  assert.equal(hookSpecificOutput.permissionDecision, 'deny')
+  assert.match(hookSpecificOutput.permissionDecisionReason, /enchaîne `npm run test:perimetre`/)
+  assert.equal(sortieDriver(payload(commande)).trim(), '')
 })

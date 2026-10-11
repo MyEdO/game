@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
 import { PORTEE_LOT_S, regimeDeArgv } from './partition.mjs'
 import DureesVitest from './dureesVitest.mjs'
@@ -524,7 +524,7 @@ test('lireArguments : --tete exige --base, --budget exige un entier de secondes'
 })
 
 /** Un module Vitest de durée `ms` (`TestModule.diagnostic()`), pour `DureesVitest`. */
-const moduleVitest = (moduleId, ms) => ({ moduleId, diagnostic: () => ({ environmentSetupDuration: 0, prepareDuration: 0, collectDuration: 0, setupDuration: 0, duration: ms }) })
+const moduleVitest = (moduleId, ms, etat = 'passed') => ({ moduleId, state: () => etat, diagnostic: () => ({ environmentSetupDuration: 0, prepareDuration: 0, collectDuration: 0, setupDuration: 0, duration: ms }) })
 
 /** Le reporter Vitest réel d'un lancement sous `maxWorkers` résolus : il écrit le rapport `sortie` des modules `modules`. */
 const lancerVitest = (sortie, modules, maxWorkers = 2) => {
@@ -533,14 +533,14 @@ const lancerVitest = (sortie, modules, maxWorkers = 2) => {
   reporter.onTestRunEnd(modules)
 }
 
-test('dureesVitest : le rapport porte les workers résolus de la config (`maxWorkers`), `null` sans eux', (t) => {
+test('dureesVitest : le rapport porte les workers résolus de la config (`maxWorkers`), `null` sans eux, et les modules en échec', (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'perimetre-reporter-'))
   t.after(() => rmSync(dossier, { recursive: true, force: true }))
   const sortie = join(dossier, 'rapport.json')
   lancerVitest(sortie, [moduleVitest('/r/a.test.ts', 12)], 3)
-  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8')), { workers: 3, durees: { '/r/a.test.ts': 12 } })
-  lancerVitest(sortie, [moduleVitest('/r/a.test.ts', 12)], null)
-  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8')), { workers: null, durees: { '/r/a.test.ts': 12 } })
+  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8')), { workers: 3, durees: { '/r/a.test.ts': 12 }, echecs: [] })
+  lancerVitest(sortie, [moduleVitest('/r/a.test.ts', 12), moduleVitest('/r/b.test.ts', 3, 'failed')], null)
+  assert.deepEqual(JSON.parse(readFileSync(sortie, 'utf8')), { workers: null, durees: { '/r/a.test.ts': 12, '/r/b.test.ts': 3 }, echecs: ['/r/b.test.ts'] })
 })
 
 test('apprendre : un rapport vitest SANS workers valides apprend ses durées, et aucun workers servis', (t) => {
@@ -551,9 +551,41 @@ test('apprendre : un rapport vitest SANS workers valides apprend ses durées, et
   const mesures = { lire: () => ({}), ecrire: (nom, e) => { ecrits.push([nom, e]) } }
   for (const [i, workers] of [[0, null], [1, 0], [2, 2.5], [3, '4']]) {
     writeFileSync(rapport('vitest', i), JSON.stringify({ workers, durees: { [join(racine, 'src', 'a.test.ts')]: 10 } }))
-    assert.deepEqual(apprendre(racine, rapport('vitest', i), mesures, 'vitest', 3), { appris: { 'src/a.test.ts': 10 }, workers: null }, JSON.stringify(workers))
+    assert.deepEqual(apprendre(racine, rapport('vitest', i), mesures, 'vitest', 3), { appris: { 'src/a.test.ts': 10 }, workers: null, echecs: [] }, JSON.stringify(workers))
   }
   assert.equal(ecrits.length, 4)
+})
+
+test('ligneDeRelance : un run rouge nomme la commande qui ne relance QUE ses fichiers en échec, par famille, lint compris ; rien sur un run vert', () => {
+  const vert = { code: 0, defauts: [] }
+  const tete = 'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : '
+  assert.equal(ligneDeRelance({ code: 0, echecs: ['src/a.test.ts'], lint: vert }), null)
+  assert.equal(ligneDeRelance({ code: 1, echecs: ['src/b.test.ts', 'scripts/n.test.mjs', 'src/a.test.ts', 'src/b.test.ts'], lint: vert }),
+    `${tete}npm test -- src/a.test.ts src/b.test.ts ; node --test scripts/n.test.mjs`)
+  assert.equal(ligneDeRelance({ code: 1, echecs: ['scripts/un dossier/n.test.mjs'], lint: vert }),
+    `${tete}node --test "scripts/un dossier/n.test.mjs"`)
+  const lint = { code: 1, defauts: [
+    { site: 'src/b.ts:3:1', gravite: 'erreur', regle: 'r', message: 'm' },
+    { site: 'src/a.ts:1:2', gravite: 'avertissement', regle: 'r', message: 'm' },
+    { site: 'src/b.ts:9:4', gravite: 'erreur', regle: 'r', message: 'm' },
+  ] }
+  assert.equal(ligneDeRelance({ code: 1, echecs: [], lint }),
+    `${tete}node scripts/lancer-local.mjs oxlint -- oxlint --config oxlint.config.mjs --disable-nested-config --max-warnings 0 src/a.ts src/b.ts`)
+  const panne = { code: 1, defauts: [{ site: '(lint)', gravite: 'erreur', regle: '(outillage)', message: 'm' }] }
+  assert.equal(ligneDeRelance({ code: 1, echecs: ['src/a.test.ts'], lint: panne }),
+    `${tete}npm test -- src/a.test.ts ; lint rouge, son rapport ne nomme aucun fichier`)
+  assert.equal(ligneDeRelance({ code: 1, echecs: [], lint: vert }), 'rouge — aucun rapport ne nomme de fichier en échec')
+})
+
+test('apprendre : un rapport aux échecs mal formés n’en rapporte aucun', (t) => {
+  const racine = mkdtempSync(join(tmpdir(), 'perimetre-apprendre-echecs-'))
+  t.after(() => rmSync(racine, { recursive: true, force: true }))
+  const rapport = rapportDuLancement(racine, 9)
+  const mesures = { lire: () => ({}), ecrire: () => {} }
+  for (const [i, echecs] of [[0, null], [1, 'src/a.test.ts'], [2, [3]]]) {
+    writeFileSync(rapport('node', i), JSON.stringify({ durees: {}, echecs }))
+    assert.deepEqual(apprendre(racine, rapport('node', i), mesures, 'node', 2).echecs, [], JSON.stringify(echecs))
+  }
 })
 
 test('bilanDuLancement : le surcoût se simule sur les workers SERVIS, pas ceux du plan ; sans servis, aucun surcoût', () => {
@@ -576,11 +608,11 @@ test('apprendre : le rapport d’UN lancement (arrondi) se fusionne dans les mes
   mkdirSync(cache)
   const rapport = rapportDuLancement(cache, 1)
   mesuresDe(commun).ecrire('durees.json', { 'src/ancien.test.ts': 7, 'src/v.test.ts': 1 })
-  writeFileSync(rapport('vitest', 0), JSON.stringify({ workers: 3, durees: { [join(racine, 'src', 'v.test.ts')]: 250.2 } }))
-  writeFileSync(rapport('node', 1), JSON.stringify({ [join(racine, 'scripts', 'n.test.mjs')]: 41.6 }))
-  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesuresDe(commun), 'vitest', 4), { appris: { 'src/v.test.ts': 250 }, workers: 3 })
+  writeFileSync(rapport('vitest', 0), JSON.stringify({ workers: 3, durees: { [join(racine, 'src', 'v.test.ts')]: 250.2 }, echecs: [join(racine, 'src', 'v.test.ts')] }))
+  writeFileSync(rapport('node', 1), JSON.stringify({ durees: { [join(racine, 'scripts', 'n.test.mjs')]: 41.6 }, echecs: [] }))
+  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesuresDe(commun), 'vitest', 4), { appris: { 'src/v.test.ts': 250 }, workers: 3, echecs: ['src/v.test.ts'] })
   assert.deepEqual([existsSync(rapport('vitest', 0)), existsSync(rapport('node', 1))], [false, true])
-  assert.deepEqual(apprendre(racine, rapport('node', 1), mesuresDe(commun), 'node', 15), { appris: { 'scripts/n.test.mjs': 42 }, workers: 15 })
+  assert.deepEqual(apprendre(racine, rapport('node', 1), mesuresDe(commun), 'node', 15), { appris: { 'scripts/n.test.mjs': 42 }, workers: 15, echecs: [] })
   assert.deepEqual(mesuresDe(commun).lire('durees.json'), { 'src/ancien.test.ts': 7, 'src/v.test.ts': 250, 'scripts/n.test.mjs': 42 })
   assert.equal(existsSync(rapport('node', 1)), false)
 })
@@ -595,9 +627,9 @@ test('apprendre : le rapport du paquet 1 n’est JAMAIS attribué au paquet 2, m
   const ecrits = []
   const mesures = { lire: () => ({}), ecrire: (nom, e) => { if (echecs-- > 0) throw new Error('verrou tenu'); ecrits.push([nom, e]) } }
   lancerVitest(rapport('vitest', 0), [moduleVitest(join(racine, 'src', 'a.test.ts'), 60000)])
-  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesures, 'vitest', 2), { appris: { 'src/a.test.ts': 60000 }, workers: 2 })
+  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesures, 'vitest', 2), { appris: { 'src/a.test.ts': 60000 }, workers: 2, echecs: [] })
   lancerVitest(rapport('vitest', 1), [moduleVitest(join(racine, 'src', 'b.test.ts'), 1000)])
-  assert.deepEqual(apprendre(racine, rapport('vitest', 1), mesures, 'vitest', 2), { appris: { 'src/b.test.ts': 1000 }, workers: 2 })
+  assert.deepEqual(apprendre(racine, rapport('vitest', 1), mesures, 'vitest', 2), { appris: { 'src/b.test.ts': 1000 }, workers: 2, echecs: [] })
   assert.deepEqual(ecrits, [['durees.json', { 'src/b.test.ts': 1000 }]])
 })
 
@@ -608,9 +640,9 @@ test('apprendre : un paquet SANS rapport apprend {} — le rapport du paquet pr�
   const rapport = rapportDuLancement(racine, 4242)
   const mesures = { lire: () => ({}), ecrire: () => { throw new Error('verrou tenu') } }
   lancerVitest(rapport('vitest', 0), [moduleVitest(join(racine, 'src', 'a.test.ts'), 60000)])
-  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesures, 'vitest', 2), { appris: { 'src/a.test.ts': 60000 }, workers: 2 })
+  assert.deepEqual(apprendre(racine, rapport('vitest', 0), mesures, 'vitest', 2), { appris: { 'src/a.test.ts': 60000 }, workers: 2, echecs: [] })
   assert.equal(existsSync(rapport('vitest', 0)), false, 'le rapport ne survit pas à son lancement')
-  assert.deepEqual(apprendre(racine, rapport('vitest', 1), mesures, 'vitest', 2), { appris: {}, workers: null })
+  assert.deepEqual(apprendre(racine, rapport('vitest', 1), mesures, 'vitest', 2), { appris: {}, workers: null, echecs: [] })
 })
 
 test('mesures : sous le répertoire git COMMUN, le même depuis un worktree lié', (t) => {
@@ -638,11 +670,11 @@ test('apprendre : une écriture des mesures qui échoue s’imprime avec sa caus
   const racine = mkdtempSync(join(tmpdir(), 'perimetre-apprendre-echec-'))
   t.after(() => rmSync(racine, { recursive: true, force: true }))
   const rapport = rapportDuLancement(racine, 1)
-  writeFileSync(rapport('node', 0), JSON.stringify({ [join(racine, 'scripts', 'n.test.mjs')]: 41.6 }))
+  writeFileSync(rapport('node', 0), JSON.stringify({ durees: { [join(racine, 'scripts', 'n.test.mjs')]: 41.6 }, echecs: [] }))
   const imprime = []
   t.mock.method(console, 'log', (texte) => { imprime.push(texte) })
   const enPanne = { lire: () => ({}), ecrire: () => { throw new Error('verrou tenu') } }
-  assert.deepEqual(apprendre(racine, rapport('node', 0), enPanne, 'node', 15), { appris: { 'scripts/n.test.mjs': 42 }, workers: 15 })
+  assert.deepEqual(apprendre(racine, rapport('node', 0), enPanne, 'node', 15), { appris: { 'scripts/n.test.mjs': 42 }, workers: 15, echecs: [] })
   assert.deepEqual(imprime, ['[perimetre] mesures non écrites — verrou tenu'])
   assert.equal(existsSync(rapport('node', 0)), false, 'le rapport ne survit pas à son lancement')
   assert.equal(ecrireLesMesures(enPanne, 'surcouts.json', { node: 1 }), false)

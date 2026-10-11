@@ -31,9 +31,12 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
 - **Auto-contrôle = `npm run test:perimetre`** avant le rendu, après `npm run typecheck:fast` si du `.ts`
   bouge, plus l'exécution réelle de l'outil livré en lecture seule. Il DÉRIVE les tests du périmètre des
   fichiers touchés et les lance, lint des fichiers touchés compris (politique et options :
-  `scripts/test/perimetre.mjs`) ; aucune liste écrite à la main, la tienne comme celle du brief. Pendant
-  l'itération, `node --test <fichier>` et `npm test -- <chemins>` sur le fichier en cours restent admis.
-  Ton rendu colle les lignes `[perimetre]` du rapport (rangs, budget, ce qui part à la CI).
+  `scripts/test/perimetre.mjs`) ; aucune liste écrite à la main, la tienne comme celle du brief.
+  **`test:perimetre` tourne SEUL dans son appel** (jamais enchaîné au typecheck) et **une fois au vert, en
+  fin de travail** : un rouge s'itère sur le SEUL fichier rouge (`node --test <fichier>`,
+  `npm test -- <chemins>`), puis un dernier `test:perimetre`. Ton cache vit 5 min : un appel plus long
+  réécrit tout ton contexte (#2568). Ton rendu colle les lignes `[perimetre]` du rapport (rangs, budget,
+  ce qui part à la CI).
   Les GATES du train (lint, deps:unused, docs:build, suites entières, `npm run gates`, tsc/vitest nus)
   appartiennent au run CI de la branche, qui les joue UNE fois : un brief qui te les impose se
   REFUSE (« BRIEF REFUSÉ : gates hors périmètre ») — et `scripts/hooks/codeur-gates-guard.mjs` les

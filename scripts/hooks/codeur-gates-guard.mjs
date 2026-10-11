@@ -1,5 +1,6 @@
 // #2436 ; verbatims utilisateur du 2026-09-17 et du 2026-10-06.
-// Garde PreToolUse : les gates de ECRIT_LU sont refusées à tous les appelants des canaux shell.
+// Garde PreToolUse : les gates de ECRIT_LU sont refusées à tous les appelants des canaux shell ; à un
+// sous-agent, `test:perimetre` enchaîné à un autre runner dans le même appel (#2568).
 // POURQUOI — verbatims utilisateur du 2026-09-15 :
 //   « C'est absurde ... on a dépêché un agent pour créer un fichier (+ son test, + le lien pour
 //     l'appeler) et ça va nous prendre 25 min ? »
@@ -20,7 +21,7 @@
 // - la sous-expression `$x = ( … )` (#2172) ;
 // - le contenu d'un script lancé par son chemin (`bash f.sh`), fût-il écrit par un heredoc de la même commande (#2172).
 import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { APPEL_VITEST, appelDe, appelleTscNu, appelleVitestNu, LECTEURS } from '../guards/lib/appelsRunners.mjs'
+import { APPEL_ESLINT, APPEL_VITEST, DRAPEAUX_NODE, appelDe, appelleTscNu, appelleUnRunner, appelleVitestNu, LECTEURS } from '../guards/lib/appelsRunners.mjs'
 import {
   CHANGEMENTS_DE_REPERTOIRE, REFUS_SATURE, basenameExecutable, jetonNu, nouveauBudget, pipelinesDeJetons, sansRedirections,
 } from '../guards/lib/commandeShell.mjs'
@@ -42,14 +43,25 @@ const SUITE_ENTIERE_NPM = new Set(['test'])
 /** Dossiers dont l'analyse entière EST la gate (par opposition à une liste de fichiers). */
 const CIBLES_DE_GATE = new Set(['.', 'src', 'scripts', 'server', 'docs'])
 
-/** Sous-commandes de `npm` qui nomment leur script, et raccourcis qui portent leur nom pour nom. */
-const SOUS_COMMANDES_RUN = new Set(['run', 'run-script'])
-const RACCOURCIS_NPM = new Set(['test', 'start', 'stop', 'restart'])
+/** Sous-commandes de `npm` qui nomment leur script (alias de `npm help run-script` compris), et raccourcis qui lancent
+ *  le script de leur nom, alias de `npm help test` compris. */
+const SOUS_COMMANDES_RUN = new Set(['run', 'run-script', 'rum', 'urn'])
+const RACCOURCIS_NPM = new Map([['test', 'test'], ['t', 'test'], ['tst', 'test'], ['start', 'start'], ['stop', 'stop'], ['restart', 'restart']])
 const APPEL_KNIP = appelDe('knip')
-const APPEL_ESLINT = appelDe('eslint')
 /** Le lanceur d'une gate entière : `node scripts/gates/…`, `node scripts/test/node-tests.mjs <gate>`. */
 const LANCEUR_DE_GATE = /^node\s+(?:\S*[\\/])?scripts[\\/]gates[\\/]/
 const LANCEUR_NODE_TESTS = /^node\s+(?:\S*[\\/])?scripts[\\/]test[\\/]node-tests\.mjs(?=\s|$)/
+
+// #2568 : le cache d'un sous-agent vit 5 min ; `test:perimetre` enchaîné à un autre runner dans un même appel
+// le dépasse, et tout le contexte se réécrit. Pour un SOUS-AGENT (`agent_type` de la charge du hook), le
+// périmètre tourne SEUL dans son appel.
+const PERIMETRE = 'test:perimetre'
+/** Le lanceur que `npm run test:perimetre` résout, ou qu'un appelant lance par son chemin. */
+const LANCEUR_PERIMETRE = new RegExp(`^node\\s+${DRAPEAUX_NODE}(?:\\S*[\\\\/])?scripts[\\\\/]test[\\\\/]perimetre\\.mjs(?=\\s|$)`)
+/** Le drapeau de `scripts/test/perimetre.mjs` (`lireArguments`) sous lequel il liste sans rien lancer. */
+const LISTE_SEULE = '--liste'
+/** Scripts npm qui lancent un runner : la suite, ses tranches, le typecheck, le lint. */
+const SCRIPT_RUNNER = /^(?:test|typecheck|lint)(?::|$)/
 
 // Le sous-projet `server/` a son propre tsconfig et ses propres scripts : le train de la racine n'y répond pas.
 // Les deux façons d'y entrer n'ont PAS la même portée. `cd server` change le répertoire de SON shell (`shell` des
@@ -117,7 +129,7 @@ function nomScriptNpm(tokens) {
   const iSub = apresFlags(debut + 1)
   const sub = tokens[iSub]
   if (SOUS_COMMANDES_RUN.has(sub)) return tokens[apresFlags(iSub + 1)] ?? null
-  return RACCOURCIS_NPM.has(sub) ? sub : null
+  return RACCOURCIS_NPM.get(sub) ?? null
 }
 
 /** Noms de scripts npm que la CI joue, tirés de la table `ECRIT_LU` du dépôt. */
@@ -134,6 +146,9 @@ export const gatesDeLaCi = (ecritLu = ECRIT_LU) =>
  */
 const gesteNomme = (segment, commande) => (commande.includes(segment) ? segment : commande.trim())
 
+/** Le renvoi au geste d'auto-contrôle, que chaque refus nomme : sa règle vit à sa puce, jamais recopiée ici. */
+const CONSIGNE = `Le geste d'auto-contrôle : puce « Auto-contrôle » de \`.claude/agents/codeur.md\`.`
+
 /**
  * La raison du refus, en une phrase : ce qui est refusé, qui le porte, et ce que l'appelant joue
  * à la place — y compris le geste à faire quand c'est un BRIEF qui impose la gate.
@@ -142,18 +157,26 @@ const gesteNomme = (segment, commande) => (commande.includes(segment) ? segment 
  */
 const raisonDuRefus = (geste) =>
   `[gates-ci] « ${geste} » est une gate de la CI : pousser la branche, puis \`gh run watch\` ` +
-  `ou \`gh run view --log-failed\`. Avant de rendre ou de committer : \`npm run test:perimetre\` (après ` +
-  `\`npm run typecheck:fast\` si du \`.ts\` bouge) ; pendant l'itération, \`node --test <fichier>\` et ` +
-  `\`npm test -- <chemins>\` restent admis. Un brief qui impose une gate de la CI se refuse : ` +
+  `ou \`gh run view --log-failed\`. ${CONSIGNE} Un brief qui impose une gate de la CI se refuse : ` +
   `« BRIEF REFUSÉ : gates hors périmètre ». Une sonde dont la configuration ne peut être vérifiée exige un filtre de fichier explicite.`
 
 /**
+ * La raison du refus d'un appel de sous-agent qui enchaîne `test:perimetre` à un autre runner (#2568).
+ * @param {string} geste la commande refusée, telle qu'écrite
+ * @returns {string}
+ */
+const raisonDuChainage = (geste) =>
+  `[gates-ci] « ${geste} » enchaîne \`npm run test:perimetre\` à un autre runner dans un même appel de sous-agent : ` +
+  `le cache d'un sous-agent vit 5 min, un appel plus long réécrit tout son contexte. ${CONSIGNE}`
+
+/**
  * Décision PURE du hook.
- * @param {{ commande?: string, gates?: string[], options?: object, contexte?: object }} entree
- *   `gates` = les noms de scripts npm que la CI joue (défaut : lus dans `ECRIT_LU`).
+ * @param {{ agentType?: string, commande?: string, gates?: string[], options?: object, contexte?: object }} entree
+ *   `gates` = les noms de scripts npm que la CI joue (défaut : lus dans `ECRIT_LU`) ; `agentType` = l'`agent_type`
+ *   de la charge du hook, présent pour un sous-agent seulement.
  * @returns {{ decision: 'deny', reason: string }|null} `null` = rien à dire.
  */
-export function evaluate({ commande = '', gates = gatesDeLaCi(), options, contexte } = {}) {
+export function evaluate({ agentType, commande = '', gates = gatesDeLaCi(), options, contexte } = {}) {
   const deLaCi = new Set(gates)
   const brute = String(commande)
 
@@ -167,6 +190,8 @@ export function evaluate({ commande = '', gates = gatesDeLaCi(), options, contex
   const repertoireChange = pipelines.flat().some(({ jetons }) => CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(sansRedirections(jetons)[0]?.text ?? '')))
   const repertoires = new Map() // shell → `true` dans `server/`, `false` à la racine, après son dernier `cd`
   const dansServer = (shell) => (shell ? repertoires.get(shell) ?? dansServer(shell.parent) : false)
+  let perimetre = false
+  let autreRunner = false
   for (const { jetons, shell, enTete } of pipelines.flat()) {
     // Une redirection n'est pas un argument : `npx tsc >x.txt --noEmit` reste la gate.
     const lus = sansRedirections(jetons)
@@ -180,6 +205,8 @@ export function evaluate({ commande = '', gates = gatesDeLaCi(), options, contex
     const script = nomScriptNpm(tokens)
     const remonte = [...enTete, ...lus].some((j) => REMONTE_RE.test(j.text))
     if (LECTEURS.test(segment)) continue
+    if (script === PERIMETRE || LANCEUR_PERIMETRE.test(segment)) perimetre ||= !tokens.includes(LISTE_SEULE)
+    else if (script ? SCRIPT_RUNNER.test(script) : appelleUnRunner(segment)) autreRunner = true
 
     const site = fileURLToPath(new URL('../gates/sur-demande-utilisateur.mjs', import.meta.url))
     if (basenameExecutable(tokens[0]) === 'node' && tokens[1] &&
@@ -230,6 +257,7 @@ export function evaluate({ commande = '', gates = gatesDeLaCi(), options, contex
     if (appelleTscNu(segment)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
   }
 
+  if (agentType && perimetre && autreRunner) return { decision: 'deny', reason: raisonDuChainage(brute.trim()) }
   return null
 }
 
@@ -237,6 +265,7 @@ export const garde = {
   nom: 'codeur-gates',
   outils: OUTILS_SHELL,
   evaluer: (entree, contexte) => verdictDe(evaluate({
+    agentType: entree?.agent_type,
     commande: commandeDe(entree),
     contexte: contexteSonde(contexte),
   })),

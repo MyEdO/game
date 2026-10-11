@@ -130,6 +130,10 @@ committé » et « fait dans un autre worktree » ; le brief de relance porte l'
 « si le livrable existe déjà, PIVOTE en revue ». Tout geste POSTÉRIEUR à une mesure la périme : le
 rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIMÉS, je rejoue
 `npm run test:perimetre` avant de committer.
+- **Agent rendu depuis plus de 5 min = agent NEUF, jamais `SendMessage`**, quel que soit son type. Le
+  cache d'un sous-agent vit 5 min (la session, 1 h) : une reprise plus tardive RÉÉCRIT tout son
+  contexte (#2568). La suite part dans un agent NEUF au brief COURT (corrections d'un verdict : sha
+  commité, verdict, périmètre).
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** Typecheck complet et `npm run test:perimetre`
 avant commit — la suite complète est jouée UNE fois par le run CI de la branche, jamais en local avant

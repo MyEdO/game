@@ -30,6 +30,7 @@ import { APPEL_DE_LECTURE, evaluateurDuDepot, evaluer, lecteurDExpressions, lect
 import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { paquetsDArgv } from '../guards/lib/porteSpawn.mjs'
+import { citeArgument } from '../guards/lib/commandeShell.mjs'
 import { arbrePrincipal, baseCommune, ceQuiChange, depotDe, lireEnLot, listerImage, racineDe, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
 import { ancetresDe, LECTURES_DES_DEPENDANCES, selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/docs-rebuild.mjs'
 import { DRAPEAU_REGIME, EMPREINTES_WORKER_MO, PORTEE_LOT_S, capaciteDuLanceur, codeEnfant, environnementDe, maxWorkersMono } from './partition.mjs'
@@ -881,6 +882,29 @@ export function bilanDuLancement(famille, murMs, { appris, workers: servis }, pl
   return { surcout, texte: `${tete}${servis === planifies ? '' : `, servis ${servis}, plan ${planifies}`} ; surcoût observé ${secondes(surcout)}` }
 }
 
+/** Le lint d'une liste de fichiers, sous la configuration du script `lint` de `package.json`. */
+const LANCEUR_LINT = 'node scripts/lancer-local.mjs oxlint -- oxlint --config oxlint.config.mjs --disable-nested-config --max-warnings 0'
+/** Le fichier d'un site de défaut de lint `<chemin>:<ligne>:<colonne>` (`defautsDeRapport`), `null` sans fichier. */
+const fichierDuSite = (site) => /^(.+):\d+:\d+$/.exec(site)?.[1] ?? null
+
+/** La ligne de fin d'un run ROUGE (`code` non nul) : la commande qui ne relance QUE les fichiers en échec `echecs`
+ *  (chemins POSIX relatifs, rapportés par `apprendre`), `npm test -- <vitest>` puis `node --test <node>`, et le lint des
+ *  seuls fichiers que nomment les défauts du lint `lint` (`lintDesTouches`) — ou, lint rouge dont le rapport n'en nomme
+ *  aucun, ce constat ; sur un run rouge sans fichier nommé, ce constat ; `null` sur un run vert. PURE. */
+export function ligneDeRelance({ code, echecs, lint }) {
+  if (code === 0) return null
+  const liste = (fichiers) => [...new Set(fichiers)].sort().map(citeArgument).join(' ')
+  const commandes = [['npm test --', 'vitest'], ['node --test', 'node']]
+    .map(([lanceur, famille]) => [lanceur, echecs.filter((t) => familleDe(t) === famille)])
+    .filter(([, fichiers]) => fichiers.length)
+    .map(([lanceur, fichiers]) => `${lanceur} ${liste(fichiers)}`)
+  const lintes = lint.defauts.map(({ site }) => fichierDuSite(site)).filter((f) => f !== null)
+  if (lintes.length) commandes.push(`${LANCEUR_LINT} ${liste(lintes)}`)
+  else if (lint.code !== 0) commandes.push('lint rouge, son rapport ne nomme aucun fichier')
+  return commandes.length ? `rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : ${commandes.join(' ; ')}`
+    : 'rouge — aucun rapport ne nomme de fichier en échec'
+}
+
 /** Le libellé d'une durée en secondes. */
 const secondes = (ms) => `${(ms / 1000).toFixed(1)} s`
 /** L'estimation d'un test en texte (`estimationsDe`) : apprise ici, de la CI calibrée (sa course, son facteur — de
@@ -1001,6 +1025,7 @@ function principal() {
     ...(jouerDocs ? [{ famille: null, sortie: null, args: ['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts] }] : []),
   ]
   const reels = {}
+  const echecs = []
   for (const { famille, sortie, args } of lancements) {
     if (sortie) rmSync(sortie, { force: true })
     const debutDuLancement = performance.now()
@@ -1010,6 +1035,7 @@ function principal() {
     if (!famille) continue
     reels[famille] = (reels[famille] ?? 0) + murMs
     const lecture = apprendre(racine, sortie, mesures, famille, workers[famille])
+    echecs.push(...lecture.echecs)
     if (!Object.keys(lecture.appris).length) continue
     const { surcout, texte } = bilanDuLancement(famille, murMs, lecture, workers[famille])
     journal(texte)
@@ -1018,31 +1044,36 @@ function principal() {
   for (const [famille, murMs] of Object.entries(reels))
     journal(`${famille} au plan : ${texteDuReel(murMs, plan.murParFamille[famille], plan.sansDureeParFamille[famille])}`)
   journal(`total : ${texteDuReel(Object.values(reels).reduce((a, b) => a + b, 0), plan.murMs, plan.sansDuree)}`)
+  const relance = ligneDeRelance({ code, echecs, lint })
+  if (relance) journal(relance)
   return code
 }
 
-/** La lecture du rapport de durées `lu` d'UN lancement de chaque famille : ses durées `{ [chemin absolu]: ms }` et ses
- *  workers SERVIS, `null` s'ils ne sont pas un entier ≥ 1. vitest : `{ workers, durees }` de `dureesVitest.mjs` ; node :
- *  `{ [chemin absolu]: ms }` de `dureesNodeTest.mjs`, workers du plan `planifies` (`workersDuLancement`, doc Node
- *  `--test-concurrency`). PURE. */
+/** Les fichiers en échec `echecs` d'un rapport, `[]` s'ils ne sont pas une liste de chaînes. PURE. */
+const echecsDuRapport = (echecs) => (Array.isArray(echecs) && echecs.every((f) => typeof f === 'string') ? echecs : [])
+
+/** La lecture du rapport de durées `lu` d'UN lancement de chaque famille : ses durées `{ [chemin absolu]: ms }`, ses
+ *  fichiers en échec (`echecsDuRapport`) et ses workers SERVIS, `null` s'ils ne sont pas un entier ≥ 1. vitest :
+ *  `{ workers, durees, echecs }` de `dureesVitest.mjs` ; node : `{ durees, echecs }` de `dureesNodeTest.mjs`, workers du
+ *  plan `planifies` (`workersDuLancement`, doc Node `--test-concurrency`). PURE. */
 const LECTURES_DE_RAPPORT = Object.freeze({
-  vitest: (lu) => ({ durees: lu?.durees ?? {}, workers: Number.isInteger(lu?.workers) && lu.workers >= 1 ? lu.workers : null }),
-  node: (lu, planifies) => ({ durees: lu ?? {}, workers: planifies }),
+  vitest: (lu) => ({ durees: lu?.durees ?? {}, echecs: echecsDuRapport(lu?.echecs), workers: Number.isInteger(lu?.workers) && lu.workers >= 1 ? lu.workers : null }),
+  node: (lu, planifies) => ({ durees: lu?.durees ?? {}, echecs: echecsDuRapport(lu?.echecs), workers: planifies }),
 })
 
 /** Fusionne dans les `DUREES` de `mesures` (`mesuresDe`) les durées du rapport `rapport` d'UN lancement de la famille
  *  `famille` (`rapportDuLancement`, `LECTURES_DE_RAPPORT` ; chemins rendus relatifs), puis l'efface, que l'écriture
- *  (`ecrireLesMesures`) réussisse ou échoue. Rend les durées apprises et les workers servis ; `{ appris: {}, workers: null }`
- *  sans rapport. */
+ *  (`ecrireLesMesures`) réussisse ou échoue. Rend les durées apprises, les workers servis et les fichiers en échec, chemins
+ *  relatifs ; `{ appris: {}, workers: null, echecs: [] }` sans rapport. */
 export function apprendre(racine, rapport, mesures, famille, planifies) {
   const base = resolve(racine).split(sep).join('/')
   const relDe = (a) => a.split(sep).join('/').replace(`${base}/`, '')
   let lu
-  try { lu = JSON.parse(readFileSync(rapport, 'utf8')) } catch { return { appris: {}, workers: null } } finally { rmSync(rapport, { force: true }) }
-  const { durees, workers } = LECTURES_DE_RAPPORT[famille](lu, planifies)
+  try { lu = JSON.parse(readFileSync(rapport, 'utf8')) } catch { return { appris: {}, workers: null, echecs: [] } } finally { rmSync(rapport, { force: true }) }
+  const { durees, echecs, workers } = LECTURES_DE_RAPPORT[famille](lu, planifies)
   const appris = Object.fromEntries(Object.entries(durees).map(([f, ms]) => [relDe(f), Math.round(ms)]))
   if (Object.keys(appris).length) ecrireLesMesures(mesures, DUREES, appris)
-  return { appris, workers }
+  return { appris, workers, echecs: echecs.map(relDe) }
 }
 
 if (import.meta.main) {
