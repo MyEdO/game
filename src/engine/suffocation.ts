@@ -107,7 +107,7 @@ export function suffocationTick(c: Combatant): string[] {
       : t('suff.noAir', { name: c.label })];
   }
   const lines: string[] = [];
-  const be = Math.max(1, bonus(effectiveChar(c, 'endurance')));
+  const be = bonus(effectiveChar(c, 'endurance'));
   if (c.wounds.current > 0) {
     loseWounds(c, 1);
     lines.push(t('suff.lose', { name: c.label }));

@@ -743,7 +743,7 @@ export interface RollLineParts {
  *  `testStatePenaltyParts`, `engine/skills.ts`) — un Test de COMBAT leur substitue `conditionModLines`.
  *  Le découpage positionnel est VÉRIFIÉ par l'oracle du canal (`rawCombatTestBase`), jamais supposé. */
 function partsHorsEtats(actor: Combatant, t: RollLineBase['test'] = {}): ModLine[] {
-  const etats = testStatePenaltyParts(actor, t.skill).filter((p) => p.value !== 0).length;
+  const etats = testStatePenaltyParts(actor, t.skill, { sense: t.sense }).filter((p) => p.value !== 0).length;
   return testValueParts(actor, t.skill, t.char, t.spec, t.sense).slice(etats);
 }
 
@@ -766,7 +766,7 @@ function combatValueSplit(
     ? skillBaseValue(actor, t?.skill, t?.spec, t?.char)
     : combatBaseValue(actor, canal.kind, canal.weapon) - charLines.reduce((s, l) => s + l.value, 0);
   const parts = canal.kind === 'test'
-    ? [...partsHorsEtats(actor, t), ...conditionModLines(actor)]
+    ? [...partsHorsEtats(actor, t), ...conditionModLines(actor, { skill: t?.skill, sense: t?.sense })]
     : [...charLines, ...combatValueModParts(actor, canal.kind, canal.weapon)];
   const sum = parts.reduce((s, p) => s + p.value, 0);
   if (nue + sum + fused !== sup.base) return { ...sup, exact: false };
@@ -781,8 +781,8 @@ function combatChannelValue(actor: Combatant | undefined, canal: RollLineCombat,
   // de la pénalité d'États hors combat). Sans cela, un Test de combat sense-scopé (Surdité, LDB 18)
   // verrait sa valeur et ses composantes diverger, et l'oracle THROW sur un site pourtant correct.
   return canal.kind === 'test'
-    ? testValue(actor, t?.skill, t?.char, t?.spec, t?.sense) - testStatePenalty(actor, t?.skill)
-      + conditionModLines(actor).reduce((s, m) => s + m.value, 0)
+    ? testValue(actor, t?.skill, t?.char, t?.spec, t?.sense) - testStatePenalty(actor, t?.skill, { sense: t?.sense })
+      + conditionModLines(actor, { skill: t?.skill, sense: t?.sense }).reduce((s, m) => s + m.value, 0)
     : combatBaseValue(actor, canal.kind, canal.weapon) + combatValueModParts(actor, canal.kind, canal.weapon).reduce((s, m) => s + m.value, 0);
 }
 

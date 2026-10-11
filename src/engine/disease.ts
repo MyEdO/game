@@ -190,7 +190,7 @@ export function contractDisease(
   const def = diseaseDefs()[id];
   if (!def) return null;
   const incub = Math.max(0, opts?.incubation != null ? opts.incubation * MINUTES_PER_DAY : rollDiseaseTime(def.incubation, rng));
-  const dur = Math.max(1, opts?.duration != null ? opts.duration * MINUTES_PER_DAY : rollDiseaseTime(def.duration, rng));
+  const dur = opts?.duration != null ? opts.duration * MINUTES_PER_DAY : rollDiseaseTime(def.duration, rng);
   const persist = def.symptoms.find((s) => symptomHasCapability(s.symptomId, 'endTest'))?.difficulty;
   return {
     id,
@@ -207,10 +207,9 @@ export function contractDisease(
 
 /** GameOp PASSIFS d'une instance de symptôme : `passive` PLUS la liste de CHAQUE palier ATTEINT
  *  (échelle `SYMPTOM_SEVERITIES`, moderee → grave). Lookup PAR CLÉ, zéro branche par palier.
- *  Les listes s'AJOUTENT ; la MAGNITUDE portée par un palier est ABSOLUE (LDB 20 l.157), et c'est le
- *  pool « pire pénalité » d'`effectiveChar` (`engine/characteristics.ts`) qui la fait l'emporter sur
- *  celle de base — les deux ops coexistent, aucune ne s'efface. Un palier n'a donc à déclarer que ce
- *  qu'il change : l.170 n'ajoute qu'un État, les −10 de base tiennent sans être recopiés.
+ *  Les listes s'AJOUTENT, sauf qu'une MAGNITUDE portée par un palier est ABSOLUE (LDB 20 l.157) : elle
+ *  REMPLACE l'op de même cible (même op, même Caractéristique) déjà présente. Un palier n'a donc à
+ *  déclarer que ce qu'il change : l.170 n'ajoute qu'un État, les −10 de base tiennent sans être recopiés.
  *  `severity` explicite = la sévérité EFFECTIVE (atténuation l.159) ; défaut = celle de l'instance.
  *  Lus par `passiveMods` (pénalités) et `syncDerivedConditions` (États portés). */
 export function symptomPassive(inst: DiseaseSymptom, severity: 'moderee' | 'grave' | undefined = inst.severity): GameOp[] {
@@ -219,10 +218,19 @@ export function symptomPassive(inst: DiseaseSymptom, severity: 'moderee' | 'grav
   const out: GameOp[] = [...(s.passive ?? [])];
   if (!severity) return out;
   for (const palier of SYMPTOM_SEVERITIES) {
-    out.push(...(s.passiveBySeverity?.[palier] ?? []));
+    for (const op of s.passiveBySeverity?.[palier] ?? []) {
+      const i = out.findIndex((o) => memeCible(o, op));
+      if (i >= 0) out[i] = op;
+      else out.push(op);
+    }
     if (palier === severity) break;
   }
   return out;
+}
+
+/** Deux ops de magnitude visent-elles la MÊME Caractéristique (palier ABSOLU, `symptomPassive`) ? */
+function memeCible(a: GameOp, b: GameOp): boolean {
+  return (a.op === 'testMod' || a.op === 'charMod') && a.op === b.op && a.char != null && a.char === (b as typeof a).char;
 }
 /** Identité Codex d'un symptôme — forme SOURCE du mécanisme général de suspension. */
 const srcSymptome = (symptomId: string): CodexTarget => ({ category: 'symptoms', id: symptomId });

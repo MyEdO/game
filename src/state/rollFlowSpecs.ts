@@ -26,7 +26,7 @@ import { FLOW_VERBS, type RollVerb, type FlowVerbs } from './flowVerbs';
 import type { ForcedPick, RollFlowSpec } from './rollFlowFactory';
 import { makeRollFlow, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
 import { TestOutcome } from '../engine/testOutcome';
-import type { RollBreakdown } from '../engine/combat';
+import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
 import { actorIn, garanti, inBattleId } from './combatants';
@@ -35,13 +35,12 @@ import {
   disengageOutcome, castContextMods,
   rollManeuverAttacker, maneuverAttackerDifficulty, distraireAttackValue,
   counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor,
-  clearApproachMoves,
+  clearApproachMoves, defenseDodgeMods,
 } from './combatFlow';
 import { bus, EVT } from './bus';
 import { campSpend } from './combat/advantagePool';
 import { creatureAttacks } from '../engine/creatureAttacks';
-import { mountMovement, mountedDodgePenalty } from './mount';
-import { sceneCombatModifiers } from './sceneRules';
+import { mountMovement } from './mount';
 import { sceneMetresPerTile } from './scene';
 import { metresRetenus, phaseDeChute } from './fallMove';
 import { REDERIVATIONS, resolveTrample, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
@@ -91,7 +90,7 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
     // d'esquive du contexte de la résolution — jamais un défaut forgé.
     // p.withhold (Retenir ses coups, AA) propagé : la re-dérivation Chance/Résilience garde le coup non létal.
     const mode = dd.mode ?? bestDefenseMode(target);
-    const dodge = p.dodgeMod ?? 0;
+    const dodge = p.dodgeMods ?? [];
     // Substitution sociale (Intimidation/Dressage, LDB 09 l.207/287) : base et libelle viennent du jet
     // de defense FIGE. Sans eux, la rangee defenseur repartait sur une Parade a base 0.
     const sub = mode === 'social' ? { base: dd.base, label: dd.label } : undefined;
@@ -105,14 +104,14 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
 /** Résout le résultat d'une défense réactive : TIR DÉFENDU (`finishRanged`, opposition RAW à distance —
  *  Protectrice 2+/Bout Portant/tireur Engagé) OU mêlée (`finishMelee`), selon le type d'arme FIGÉE de
  *  l'attaquant. `p.distanceTiles` sert au breakdown Projectiles ; `parry` = arme de parade choisie. */
-function finishDefenseResult(attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMod = 0, parry?: Weapon, metresPerTile = 2): AttackResult {
+function finishDefenseResult(attacker: Combatant, defender: Combatant, p: PendingDefense, def: TestResult, dodgeMods: ModLine[] = [], parry?: Weapon, metresPerTile = 2): AttackResult {
   const sub = defenseSubOf(defender, p);
   const atk = forcedOpposedAtk(p, def);
   // La Difficulté de l'attaque a été FIGÉE à l'ouverture de la fenêtre (`atkCompo`) : le jet est
   // antérieur, et son contexte (flanc/dos notamment) ne voyage pas jusqu'ici.
   return p.weapon.type === 'ranged'
-    ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMod, metresPerTile, p.atkCompo)
-    : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, p.location ?? undefined, p.env ?? [], dodgeMod, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo);
+    ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo)
+    : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, p.location ?? undefined, p.env ?? [], dodgeMods, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo);
 }
 
 /**
@@ -374,7 +373,7 @@ const resultRollLens = <P extends import('./rollFlowFactory').PendingBase & { re
 function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & { result?: unknown }>(cfg: {
   key: keyof GameState & string;
   actorId: (p: P) => string;
-  rollActor: (actor: Combatant) => TestResult;
+  rollActor: (s: GameState, actor: Combatant) => TestResult;
   /** Jet de l'ACTEUR : lecture (`p.def` — Désengagement/Au Contact/Empoignade ; `p.atk` — Distraire) et pose. */
   actorTR: (p: P) => TestResult | null | undefined;
   putActorTR: (tr: TestResult) => Partial<P>;
@@ -392,7 +391,7 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
     rolled: cfg.rolled ?? ((p) => cfg.actorTR(p) != null),
     actor: (s, p) => actorIn(s, cfg.actorId(p)),
     caps: { forced: true },
-    resolve: (_s, p, actor) => (actor && cfg.foeTR(p) != null ? opposedPatch(p, cfg.rollActor(actor)) : null),
+    resolve: (s, p, actor) => (actor && cfg.foeTR(p) != null ? opposedPatch(p, cfg.rollActor(s, actor)) : null),
     outcome: (p) => testOutcome(cfg.actorTR(p)),
     lens: {
       actorTR: (p) => cfg.actorTR(p) ?? null,
@@ -635,7 +634,7 @@ export const FLOWS = {
       read: (p) => (p.def ? { roll: p.def.roll, target: p.def.target, base: p.def.base } : null),
       write: (s, p, actor, _g, tr) => {
         const att = actorIn(s, p.attackerId);
-        return att && actor ? { def: tr, result: finishDefenseResult(att, actor, p, tr, 0, undefined, sceneMetresPerTile(s.scene)) } : null;
+        return att && actor ? { def: tr, result: finishDefenseResult(att, actor, p, tr, defenseDodgeMods(s, actor), undefined, sceneMetresPerTile(s.scene)) } : null;
       },
       // Test opposé : le défenseur forcé l'emporte avec au moins DR +1 (LDB 17 l.68) — sauf annulation
       // mutuelle (#1000 : `opposedForcingCancelled`), le dé CHOISI restant posé.
@@ -658,13 +657,13 @@ export const FLOWS = {
         // garantie (LDB 17 l.68) si elle vit encore, RIEN si elle est annulée (#1000).
         const dDie = bestForcedRoll(p.def.target);
         const def2 = forcedTR(dDie, p.def.target, Math.max(evaluateTest(dDie, p.def.target).sl, opposedForcedFloor(p.atk.sl, cancelled)), p.def.base);
-        return { def: def2, result: finishDefenseResult(attacker, actor, pForced, def2, 0, undefined, mpt) };
+        return { def: def2, result: finishDefenseResult(attacker, actor, pForced, def2, defenseDodgeMods(s, actor), undefined, mpt) };
       }
-      // Neige −30 (LDB 14 l.82) + cavalier −20 (l.184) ; Rapide : −10 à la parade d'une arme non-Rapide (LDB 62 l.298-302).
-      const dodgeMod = (s.scene ? sceneCombatModifiers(s.scene, s.gameTime).dodgeMod : 0) + mountedDodgePenalty(actor);
+      // Rapide : −10 à la parade d'une arme non-Rapide (LDB 62 l.298-302).
+      const dodgeMods = defenseDodgeMods(s, actor);
       const parry = p.parryWeaponUid ? actor.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
-      const def = rollMeleeDefender(actor, p.mode, battleRng(), dodgeMod, parry, p.weapon, defenseSubOf(actor, p));
-      return { def, result: finishDefenseResult(attacker, actor, p, def, dodgeMod, parry, mpt) };
+      const def = rollMeleeDefender(actor, p.mode, battleRng(), dodgeMods, parry, p.weapon, defenseSubOf(actor, p));
+      return { def, result: finishDefenseResult(attacker, actor, p, def, dodgeMods, parry, mpt) };
     },
     outcome: (p) => testOutcome(p.def),
     bonus: {
@@ -675,7 +674,7 @@ export const FLOWS = {
         const dd = p.result!.defenderDetail!;
         const def2 = bumpSL(hydrateTR(dd));
         const parry = p.parryWeaponUid ? actor.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
-        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, 0, parry, sceneMetresPerTile(s.scene)) };
+        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), parry, sceneMetresPerTile(s.scene)) };
       },
     },
     // Inversion de Test (LDB 23 l.209 « Entraînement au Combat » : Corps à corps/Projectiles — CHOIX
@@ -691,7 +690,7 @@ export const FLOWS = {
         // `tr.success` = issue RÉELLE du dé renversé (voir attack.reverse.applyRoll — jamais forcé).
         const def2 = hydrateTR({ roll: tr.roll, target: p.def!.target, base: p.def!.base, success: tr.success, sl: tr.sl });
         const parry = p.parryWeaponUid ? actor.weapons.find((w) => w.uid === p.parryWeaponUid) : undefined;
-        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, 0, parry, sceneMetresPerTile(s.scene)) };
+        return { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), parry, sceneMetresPerTile(s.scene)) };
       },
     },
   }),
@@ -1153,7 +1152,7 @@ export const FLOWS = {
     key: 'pendingDisengage',
     rolled: (p) => !!p.result,
     actorId: (p) => p.moverId,
-    rollActor: (actor) => rollMeleeDefender(actor, 'esquive', battleRng()), // Esquive du mover (= « attaquant »)
+    rollActor: (s, actor) => rollMeleeDefender(actor, 'esquive', battleRng(), defenseDodgeMods(s, actor)), // Esquive du mover (= « attaquant »)
     actorTR: (p) => p.def, putActorTR: (tr) => ({ def: tr }),
     foeTR: (p) => p.atk, // jet du foe FIGÉ (LDB 15 l.43-68)
   }),
@@ -1168,7 +1167,7 @@ export const FLOWS = {
     key: 'pendingAuContact',
     rolled: (p) => !!p.result,
     actorId: (p) => p.moverId,
-    rollActor: (actor) => rollDisengageAttack(actor, battleRng()), // Corps à corps du mover (LDB 62 l.176)
+    rollActor: (_s, actor) => rollDisengageAttack(actor, battleRng()), // Corps à corps du mover (LDB 62 l.176)
     actorTR: (p) => p.def, putActorTR: (tr) => ({ def: tr }),
     foeTR: (p) => p.atk,
   }),
@@ -1182,7 +1181,7 @@ export const FLOWS = {
     key: 'pendingGrapple',
     rolled: (p) => !!p.result,
     actorId: (p) => p.actorId,
-    rollActor: (actor) => rollGrappleForce(actor, battleRng()), // Force de l'acteur (LDB 14 l.161)
+    rollActor: (_s, actor) => rollGrappleForce(actor, battleRng()), // Force de l'acteur (LDB 14 l.161)
     actorTR: (p) => p.def, putActorTR: (tr) => ({ def: tr }),
     foeTR: (p) => p.atk,
   }),
@@ -1340,7 +1339,7 @@ export const FLOWS = {
     actorId: (p) => p.moverId,
     // Athlétisme du mover (LDB 10 l.364) : la valeur EST nue (carac effective + avances, LDB 09 l.17)
     // — elle se pose en grandeur de départage (LDB 12 l.160), comme le Calme figé du foe.
-    rollActor: (actor) => { const v = distraireAttackValue(actor); return { ...rollTest(v, 'intermediaire', battleRng()), base: v }; },
+    rollActor: (_s, actor) => { const v = distraireAttackValue(actor); return { ...rollTest(v, 'intermediaire', battleRng()), base: v }; },
     actorTR: (p) => p.atk, putActorTR: (tr) => ({ atk: tr }), // mover = « attaquant » : son jet = `p.atk`
     foeTR: (p) => p.defRoll, // Calme du foe FIGÉ
   }),

@@ -594,7 +594,8 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
 - **Passifs unifiés + corruption data-driven** (réf. **`docs/systeme-passifs.md`**) : tout modificateur
   PASSIF continu (trait/mutation/qualité/trauma/maladie/faim/sort) = une liste de `GameOp` lue par UN
   collecteur `passiveMods(c)` (`engine/trauma.ts`), emballée en `PassiveMod{op, kind}` — le `kind` porte
-  l'annulation ET la combinaison (`intrinsèque` = Σ dans la base / autres = pool non-cumul). `charMod` =
+  l'annulation ; la combinaison suit la SOURCE (`intrinsèque` = Σ dans la base ; États = pool LDB 16 l.13 ;
+  Sorts = pool LDB 46 l.119 ; même Prière = pool LDB 40 l.19 ; le reste = Σ, LDB 14 l.95). `charMod` =
   SEUL op de modif de carac (passif ET sort) ; `moveMod` pour le Mouvement (≠ carac : `M` ∉ `CharKey`).
   Traits de profil appliqués `spawn→live` (`Combatant.liveTraits` + `baseWithTraits`, sans double-compte
   du profil bestiaire imprimé FINAL). **Édité en DONNÉES au Codex** : `TraitData`/`QualityData`/`Mutation`

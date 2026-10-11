@@ -31,8 +31,8 @@ describe('rollMeleeDefender : pénalité de main secondaire APPLIQUÉE au jet de
   const off: Weapon = { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: 'off', hands: 1, uid: 'o' };
   it('parer avec l’arme de main secondaire (non Parade) → cible du jet -20 vs main principale', () => {
     const d = mk({ weapons: [main, off] });
-    const withMain = rollMeleeDefender(d, 'parade', makeRNG(1), 0, main).target;
-    const withOff = rollMeleeDefender(d, 'parade', makeRNG(1), 0, off).target;
+    const withMain = rollMeleeDefender(d, 'parade', makeRNG(1), [], main).target;
+    const withOff = rollMeleeDefender(d, 'parade', makeRNG(1), [], off).target;
     expect(withMain - withOff).toBe(20);
   });
 });
@@ -58,15 +58,15 @@ describe('parade : pénalité de main secondaire + exception Parade/Défensive (
   const parrySpec = { id: 'corps-a-corps', spec: 'parade', characteristic: 'capacite-de-combat', advances: 0 } as any;
   const offShield: Weapon = { label: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'defensive' }], hand: 'off', hands: 1 };
   it('parade main secondaire : bouclier Défensive + spé Parade → AUCUNE pénalité', () => {
-    const mods = defenseModifiers(mk({ skills: [parrySpec] }), 'parade', 0, offShield);
+    const mods = defenseModifiers(mk({ skills: [parrySpec] }), 'parade', [], offShield);
     expect(mods.some((m) => m.label === 'Main secondaire')).toBe(false);
   });
   it('parade main secondaire SANS spé Parade → -20', () => {
-    const mods = defenseModifiers(mk({ skills: [] }), 'parade', 0, offShield);
+    const mods = defenseModifiers(mk({ skills: [] }), 'parade', [], offShield);
     expect(mods.find((m) => m.label === 'Main secondaire')?.value).toBe(-20);
   });
   it('parade main principale → aucune pénalité', () => {
-    const mods = defenseModifiers(mk(), 'parade', 0, { ...offShield, hand: 'main' });
+    const mods = defenseModifiers(mk(), 'parade', [], { ...offShield, hand: 'main' });
     expect(mods.some((m) => m.label === 'Main secondaire')).toBe(false);
   });
 });
@@ -115,13 +115,13 @@ describe('Taille en combat (T1) + env injecté — attackModifiers (LDB 14 l.118
 
 describe('Esquive dans une haute épaisseur de neige −30 (LDB 14 l.82)', () => {
   it('defenseModifiers : −30 en esquive seulement (pas en parade)', () => {
-    expect(defenseModifiers(mk(), 'esquive', -30).some((m) => m.value === -30)).toBe(true);
-    expect(defenseModifiers(mk(), 'parade', -30).some((m) => m.value === -30)).toBe(false);
+    expect(defenseModifiers(mk(), 'esquive', [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]).some((m) => m.value === -30)).toBe(true);
+    expect(defenseModifiers(mk(), 'parade', [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]).some((m) => m.value === -30)).toBe(false);
   });
   it('rollMeleeDefender : la neige abaisse la cible de l’esquive, pas de la parade', () => {
     const d = mk();
-    expect(rollMeleeDefender(d, 'esquive', makeRNG(1), -30).target).toBe(rollMeleeDefender(d, 'esquive', makeRNG(1)).target - 30);
-    expect(rollMeleeDefender(d, 'parade', makeRNG(1), -30).target).toBe(rollMeleeDefender(d, 'parade', makeRNG(1)).target);
+    expect(rollMeleeDefender(d, 'esquive', makeRNG(1), [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]).target).toBe(rollMeleeDefender(d, 'esquive', makeRNG(1)).target - 30);
+    expect(rollMeleeDefender(d, 'parade', makeRNG(1), [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]).target).toBe(rollMeleeDefender(d, 'parade', makeRNG(1)).target);
   });
 });
 
@@ -441,7 +441,7 @@ describe('MÊLÉE + Chance : le surnombre survit au re-jet (#1153 L4)', () => {
     expect(inexplique(origine)).toBe(0);
     const re = finishMelee(
       a, b, sword, bumpSL(hydrateTR(origine)), hydrateTR(r.defenderDetail!), 'parade',
-      undefined, [], 0, undefined, undefined, false, undefined, frozenDifficulty(origine),
+      undefined, [], [], undefined, undefined, false, undefined, frozenDifficulty(origine),
     );
     expect(dit(re.attackerDetail!)).toEqual(dit(origine));
     expect(inexplique(re.attackerDetail!)).toBe(0);

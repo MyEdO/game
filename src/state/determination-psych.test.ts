@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { isPsychImmune, clearPsychOf } from '../engine/psychology';
 import { psychDRAdjust } from '../engine/combat';
-import { traumaCharPenalties, traumaMovementHalved, traumaDodgePenalty } from '../engine/trauma';
+import { traumaCharPenalties, traumaMovementHalved, traumaDodgePenalty, passiveTestMod } from '../engine/trauma';
 import type { Combatant } from '../engine/types';
 
 const C = (o: Partial<Combatant>): Combatant => o as unknown as Combatant;
@@ -71,13 +71,14 @@ describe('Détermination « ignorer modifs de critique » (LDB 17 l.60) annule l
 describe('la Détermination ne lève AUCUNE pénalité de MALADIE (LDB 17 l.59-61)', () => {
   // Fièvre (LDB 20 l.170) = −10 aux Tests Physiques/Sociaux ; `characteristics` requis (le collecteur itère ses clés).
   const sick = () => C({ characteristics: { force: 30, sociabilite: 30 } as never, diseases: [{ phase: 'active', symptoms: [{ symptomId: 'fievre' }] } as never] });
-  it('actif : fièvre = −10 (via le pool passif non-cumul)', () => {
-    expect(traumaCharPenalties(sick(), 'force')).toEqual([-10]);
+  it('actif : fièvre = −10 aux Tests de Force, la Force elle-même intacte', () => {
+    expect(passiveTestMod(sick(), 'force')).toBe(-10);
+    expect(traumaCharPenalties(sick(), 'force')).toEqual([]);
   });
   it('ignoreCritMods (l.60) : la fièvre garde ses −10 — seul le CRITIQUE est ignoré', () => {
     const c = sick();
     c.activeEffects = [{ label: 'D', bonus: 0, duration: { scale: 'rounds', left: 1 }, ignoreCritMods: true } as never];
-    expect(traumaCharPenalties(c, 'force')).toEqual([-10]);
+    expect(passiveTestMod(c, 'force')).toBe(-10);
   });
 });
 

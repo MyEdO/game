@@ -80,9 +80,9 @@ describe('Rapide — −10 à la parade adverse non-Rapide + pré-emption (LDB 6
   it('rollMeleeDefender : la pénalité s’applique en parade, pas en esquive', () => {
     const d = fighter();
     const rng = makeRNG(7);
-    const parade = rollMeleeDefender(d, 'parade', rng, 0, w([]), w(['Rapide']));
+    const parade = rollMeleeDefender(d, 'parade', rng, [], w([]), w(['Rapide']));
     expect(parade.target).toBe(30); // CC 40 − 10 (Rapide)
-    const esq = rollMeleeDefender(d, 'esquive', makeRNG(7), 0, w([]), w(['Rapide']));
+    const esq = rollMeleeDefender(d, 'esquive', makeRNG(7), [], w([]), w(['Rapide']));
     expect(esq.target).toBe(30); // Agilité 30, aucune pénalité Rapide
   });
   it('canStrikeFirst avec une arme Rapide', () => {
@@ -159,9 +159,9 @@ describe('finishMelee — parryWeapon exposé pour les Critiques opposés (LDB 1
     const parry = w(['Piège-lame']);
     const atk = rollTest(40, 'intermediaire', makeRNG(1));
     const def = rollTest(40, 'intermediaire', makeRNG(2));
-    const res = finishMelee(a, d, w([]), atk, def, 'parade', undefined, [], 0, undefined, parry);
+    const res = finishMelee(a, d, w([]), atk, def, 'parade', undefined, [], [], undefined, parry);
     expect(res.parryWeapon).toBe(parry);
-    const resEsq = finishMelee(a, d, w([]), atk, def, 'esquive', undefined, [], 0, undefined, parry);
+    const resEsq = finishMelee(a, d, w([]), atk, def, 'esquive', undefined, [], [], undefined, parry);
     expect(resEsq.parryWeapon).toBeUndefined();
   });
 });

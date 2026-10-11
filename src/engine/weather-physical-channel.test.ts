@@ -37,7 +37,7 @@ describe('#341 — canal météo « Tests physiques » : les 4 familles traverse
 
   it('pluie diluvienne → −10 à la DÉFENSE, Parade (CC) ET Esquive (Agilité)', () => {
     const d = mk({ envWeather: DELUGE, weapons: [sword] });
-    expect(METEO(defenseModifiers(d, 'parade', 0, sword)).map((m) => m.value)).toEqual([-10]);
+    expect(METEO(defenseModifiers(d, 'parade', [], sword)).map((m) => m.value)).toEqual([-10]);
     expect(METEO(defenseModifiers(d, 'esquive')).map((m) => m.value)).toEqual([-10]);
   });
 
