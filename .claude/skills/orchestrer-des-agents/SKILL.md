@@ -131,9 +131,9 @@ committé » et « fait dans un autre worktree » ; le brief de relance porte l'
 rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIMÉS, je rejoue
 `npm run test:perimetre` avant de committer.
 
-**6. Vérification — par MOI, jamais sur la foi du rapport.** Typecheck complet et `npm run test:perimetre`
-avant commit — la suite complète est jouée UNE fois par le run CI de la branche, jamais en local avant
-commit ; revue du diff, UI → skill `recette-navigateur`. Deux suites complètes simultanées sur la
+**6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et
+`npm run test:perimetre` avant commit — le typecheck complet et la suite complète sont joués UNE fois par
+le run CI de la branche, la garde `codeur-gates` les refuse en local à tout appelant ; revue du diff, UI → skill `recette-navigateur`. Deux suites complètes simultanées sur la
 machine = effondrement de contention : les suites lourdes se SÉRIALISENT, ping inter-session avant
 lancement.
 - ⚠ **Les portes machine sont un PLANCHER, jamais un signal de correction** : sur une session mesurée,
@@ -155,8 +155,8 @@ lancement.
   (le message le dit) ou saute les gros fichiers — une absence se recoupe par `git grep` ;
   `Measure-Object -Line` (PowerShell) ne compte pas les lignes vides — `wc -l` ou `git grep -c ""` ;
   `npm run typecheck:fast` est incrémental sur un tsbuildinfo PARTAGÉ entre sessions
-  (`scripts/typecheck-fast.mjs:37-38`) — au doute, la porte complète `npm run typecheck`
-  (script `typecheck` de `package.json`, `--incremental false`) ;
+  (`scripts/typecheck-fast.mjs:37-38`) — au doute, pousser la branche : son run CI joue le typecheck
+  complet ;
   le hook `read-dedup` rend un faux « unchanged since last read » sur un
   fichier JAMAIS lu (`ctx_read(mode=raw, fresh=true)`) ; un agent d'art à qui `Read` d'une image est
   refusé relance `node C:/Users/gauch/.claude/fix-leanctx-settings.mjs`.
