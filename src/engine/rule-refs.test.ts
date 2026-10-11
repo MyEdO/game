@@ -175,7 +175,7 @@ function refLessProducers(): string[] {
  *  - RENVOIS légitimes — la ligne PORTE déjà l'identité de sa donnée dans son libellé : les quatre
  *    lignes volatiles de Caractéristique (`characteristics.ts` — la carac EST la fiche du libellé)
  *    et les trois modificateurs de MÉTÉO de scène (`sc.label`, poussés par `state/combatFlow.ts` :
- *    la donnée de scène ne porte aucune identité Codex à ce jour, seule la branche `sc.concealed`
+ *    la donnée de scène ne porte aucune identité Codex (#1173), seule la branche `sc.concealed`
  *    en a une, celle de la Cible dissimulée).
  *  - lignes dont la RÈGLE n'a pas encore de fiche au catalogue (`regles.json`) : couvert de tir,
  *    allure forcée d'attelage, « Rounds tenus » de la bataille de masse, écrêtage « Combiner les

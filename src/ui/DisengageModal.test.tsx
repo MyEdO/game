@@ -36,9 +36,9 @@ afterEach(() => {
 
 const texte = (e: Element) => (e.textContent ?? '').replace(/\s+/g, ' ').trim();
 
-function menu(canSacrifice: boolean, canEsquive: boolean) {
+function menu(canSacrifice: boolean, canEsquive: boolean, mountId?: string) {
   useGame.setState({
-    battle: { combatants: [mk('Héros', 'hero'), mk('Brute', 'enemy')] } as never,
+    battle: { combatants: [{ ...mk('Héros', 'hero'), ...(mountId ? { mountId } : {}) }, mk('Brute', 'enemy')] } as never,
     pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice, canEsquive, phase: 'choice', atk: null, def: null, result: null },
   } as never);
   act(() => root.render(<DisengageModal />));
@@ -86,5 +86,18 @@ describe('Désengagement — une RANGÉE par option', () => {
     menu(true, true);
     expect(host.querySelector('.rm-loc-grid')?.hasAttribute('data-notes')).toBe(true);
     expect([...host.querySelectorAll('.rm-loc-grid > *')].every((c) => c.matches('.rm-option'))).toBe(true);
+  });
+});
+
+// #1097 — LDB 14 l.184 : la valeur du choix « Esquiver » est la cible que lance `disengageRoll`.
+describe('Désengagement — valeur d’Esquive du choix = cible lancée', () => {
+  it('cavalier monté : le choix affiche la cible du Test d’Esquive, −20 compris', () => {
+    const { cases } = menu(false, true, 'monture-sonde');
+    const affichee = Number(/\((\d+)\)$/.exec(cases[0].option)![1]);
+    const atk = { roll: 50, target: 45, success: false, sl: -1, isDouble: false, base: 45 };
+    useGame.setState({ pendingDisengage: { ...useGame.getState().pendingDisengage!, atk } } as never);
+    useGame.getState().disengageRoll();
+    expect(affichee).toBe(useGame.getState().pendingDisengage!.def!.target);
+    expect(affichee).toBe(chars.agilite - 20);
   });
 });

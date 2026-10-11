@@ -95,6 +95,12 @@ describe('Fièvre : pénalité aux TESTS, jamais une baisse de Caractéristique 
   it('le Test de Force porte le −10', () => {
     expect(testValue(fievreux(), undefined, 'force')).toBe(30);
   });
+  it('faim + fièvre : la Force effective porte la Faim seule, le Test de Force la Faim et la Fièvre (LDB 18 l.342, LDB 20 l.170)', () => {
+    const affame = mk([], 40, { hunger: { days: 4, tests: 1, failures: 1 }, diseases: [{ phase: 'active', symptoms: [{ symptomId: 'fievre' }] }] as never });
+    expect(volatileCharLines(affame, 'force').map((l) => [l.label, l.value])).toEqual([['Faim/Soif', -10]]);
+    expect(effectiveChar(affame, 'force')).toBe(30);
+    expect(testValue(affame, undefined, 'force')).toBe(20);
+  });
 });
 
 describe('ActiveEffect.passive : le pool suit l’entité SOURCE, pas le canal (LDB 46 l.119, LDB 14 l.95)', () => {

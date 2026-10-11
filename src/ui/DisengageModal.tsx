@@ -18,7 +18,7 @@ import { fleeBackstab, fleeCalme, fleeNeedCalme, type PendingDisengage } from '.
 import { Modal } from './Modal';
 import { Stack } from './Layout';
 import { Icon } from './Icon';
-import { opposedLines, testBreakdown } from './breakdown';
+import { optionValue, opposedLines, testBreakdown } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 
@@ -74,7 +74,7 @@ export function DisengageModal() {
       { stake: groupMode ? flowStakeRef('disengage-retraite', { values: { cout: retreatCost } }) : flowStakeRef('disengage-sacrifice'),
         option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: sacrifice, title: sacrificeTitle } },
       { stake: flowStakeRef('disengage-esquive'),
-        option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: defenseValue(mover, 'esquive'), hidden: pd.canEsquive === false, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
+        option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: optionValue(defenseValue(mover, 'esquive'), defenseModifiers(mover, 'esquive', defenseDodgeMods(useGame.getState(), mover))), hidden: pd.canEsquive === false, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
       { stake: flowStakeRef('disengage-fuir'),
         option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canEsquive === false, onSelect: flee, title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours' } },
     ].filter((o) => !o.option.hidden);

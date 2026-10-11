@@ -749,8 +749,7 @@ export interface EffectSource {
 
 /**
  * Effet magique actif et temporisé (Bénédiction, Sort de bonus…).
- * Les bonus ne se cumulent pas : le meilleur l'emporte par caractéristique
- * (Livre de base p.238 / p.220).
+ * LDB 46 l.119, LDB 40 l.19, LDB 14 l.95.
  */
 export interface ActiveEffect {
   label: string;

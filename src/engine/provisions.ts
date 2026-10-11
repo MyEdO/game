@@ -118,8 +118,7 @@ export function isDeprived(c: Combatant): boolean {
   return isStarving(c) || isThirsty(c);
 }
 
-/** Pénalités de Caractéristique dues à la SOIF (LDB 18 l.340), injectées dans
- *  `effectiveChar` (kind `faim`, même privation) : 1ᵉʳ échec → −10 Int/FM/Soc ; dès le 2ᵉ → −10 le reste. */
+/** Pénalités de Caractéristique dues à la SOIF, injectées dans `effectiveChar` (kind `faim`) : LDB 18 l.340. */
 export function thirstCharPenalties(c: Combatant, key: CharKey): number[] {
   const f = c.thirst?.failures ?? 0;
   const first = key === 'intelligence' || key === 'force-mentale' || key === 'sociabilite';
