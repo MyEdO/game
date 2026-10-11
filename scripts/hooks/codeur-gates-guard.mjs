@@ -20,8 +20,9 @@
 // - la commande qui suit un commentaire `#` porteur d'une apostrophe, sous PowerShell : l'apostrophe ouvre une quote (#2172) ;
 // - la sous-expression `$x = ( … )` (#2172) ;
 // - le contenu d'un script lancé par son chemin (`bash f.sh`), fût-il écrit par un heredoc de la même commande (#2172).
-import { OUTILS_SHELL, commandeDe, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_SHELL, commandeDe, sousAgent, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { APPEL_ESLINT, APPEL_VITEST, DRAPEAUX_NODE, appelDe, appelleTscNu, appelleUnRunner, appelleVitestNu, LECTEURS } from '../guards/lib/appelsRunners.mjs'
+import { lireArguments } from '../test/argumentsPerimetre.mjs'
 import {
   CHANGEMENTS_DE_REPERTOIRE, REFUS_SATURE, basenameExecutable, jetonNu, nouveauBudget, pipelinesDeJetons, sansRedirections,
 } from '../guards/lib/commandeShell.mjs'
@@ -52,14 +53,29 @@ const APPEL_KNIP = appelDe('knip')
 const LANCEUR_DE_GATE = /^node\s+(?:\S*[\\/])?scripts[\\/]gates[\\/]/
 const LANCEUR_NODE_TESTS = /^node\s+(?:\S*[\\/])?scripts[\\/]test[\\/]node-tests\.mjs(?=\s|$)/
 
-// #2568 : le cache d'un sous-agent vit 5 min ; `test:perimetre` enchaîné à un autre runner dans un même appel
-// le dépasse, et tout le contexte se réécrit. Pour un SOUS-AGENT (`agent_type` de la charge du hook), le
-// périmètre tourne SEUL dans son appel.
+// #2568 ; puce « Auto-contrôle » de `.claude/agents/codeur.md`.
 const PERIMETRE = 'test:perimetre'
 /** Le lanceur que `npm run test:perimetre` résout, ou qu'un appelant lance par son chemin. */
 const LANCEUR_PERIMETRE = new RegExp(`^node\\s+${DRAPEAUX_NODE}(?:\\S*[\\\\/])?scripts[\\\\/]test[\\\\/]perimetre\\.mjs(?=\\s|$)`)
-/** Le drapeau de `scripts/test/perimetre.mjs` (`lireArguments`) sous lequel il liste sans rien lancer. */
-const LISTE_SEULE = '--liste'
+/** Le chemin de `scripts/test/perimetre.mjs`, en jeton. */
+const SCRIPT_PERIMETRE = /(?:^|[\\/])scripts[\\/]test[\\/]perimetre\.mjs$/
+/** Les arguments que `scripts/test/perimetre.mjs` reçoit d'un segment (`tokens`) : sous npm, ceux qui suivent `--`
+ *  (npm consomme les drapeaux qui le précèdent, `npm help run-script`) ; sous node, ceux qui suivent le script. PURE. */
+const argumentsDuPerimetre = (tokens, parNpm) => {
+  const debut = parNpm ? tokens.indexOf('--') : tokens.findIndex((t) => SCRIPT_PERIMETRE.test(t))
+  return debut < 0 ? [] : tokens.slice(debut + 1)
+}
+/** `true` si ces arguments font LISTER `scripts/test/perimetre.mjs` sans rien lancer (`lireArguments`) ; un usage
+ *  invalide n'est pas une liste. PURE. */
+const listeSeule = (args) => {
+  try { return lireArguments(args).liste } catch { return false }
+}
+/** Les exécutables dont un segment se juge sous leur nom nu, chemin et extension (`node.exe`, `C:/x/npx.cmd`) retirés. */
+const EXECUTABLES_NOMMES = new Set(['node', 'npx', 'npm', 'tsx'])
+/** Le segment `tokens` en texte, son exécutable de tête sous son nom nu (`basenameExecutable`) quand c'est l'un de
+ *  `EXECUTABLES_NOMMES` : la forme sur laquelle se jugent les motifs ancrés (`^node\s+`, `appelDe`). PURE. */
+const appelDuSegment = ([tete = '', ...reste]) =>
+  [EXECUTABLES_NOMMES.has(basenameExecutable(tete)) ? basenameExecutable(tete) : tete, ...reste].join(' ')
 /** Scripts npm qui lancent un runner : la suite, ses tranches, le typecheck, le lint. */
 const SCRIPT_RUNNER = /^(?:test|typecheck|lint)(?::|$)/
 
@@ -166,17 +182,16 @@ const raisonDuRefus = (geste) =>
  * @returns {string}
  */
 const raisonDuChainage = (geste) =>
-  `[gates-ci] « ${geste} » enchaîne \`npm run test:perimetre\` à un autre runner dans un même appel de sous-agent : ` +
-  `le cache d'un sous-agent vit 5 min, un appel plus long réécrit tout son contexte. ${CONSIGNE}`
+  `[gates-ci] « ${geste} » enchaîne \`npm run test:perimetre\` à un autre runner dans un même appel de sous-agent. ${CONSIGNE}`
 
 /**
  * Décision PURE du hook.
- * @param {{ agentType?: string, commande?: string, gates?: string[], options?: object, contexte?: object }} entree
- *   `gates` = les noms de scripts npm que la CI joue (défaut : lus dans `ECRIT_LU`) ; `agentType` = l'`agent_type`
- *   de la charge du hook, présent pour un sous-agent seulement.
+ * @param {{ sousAgent?: boolean, commande?: string, gates?: string[], options?: object, contexte?: object }} entree
+ *   `gates` = les noms de scripts npm que la CI joue (défaut : lus dans `ECRIT_LU`) ; `sousAgent` = l'appel vient
+ *   d'un sous-agent (`sousAgent` de `contratGarde.mjs`).
  * @returns {{ decision: 'deny', reason: string }|null} `null` = rien à dire.
  */
-export function evaluate({ agentType, commande = '', gates = gatesDeLaCi(), options, contexte } = {}) {
+export function evaluate({ sousAgent: deSousAgent = false, commande = '', gates = gatesDeLaCi(), options, contexte } = {}) {
   const deLaCi = new Set(gates)
   const brute = String(commande)
 
@@ -201,11 +216,12 @@ export function evaluate({ agentType, commande = '', gates = gatesDeLaCi(), opti
       repertoires.set(shell, entreDansServer(lus))
       continue
     }
-    const segment = tokens.join(' ')
+    const ecrit = tokens.join(' ')
+    const segment = appelDuSegment(tokens)
     const script = nomScriptNpm(tokens)
     const remonte = [...enTete, ...lus].some((j) => REMONTE_RE.test(j.text))
     if (LECTEURS.test(segment)) continue
-    if (script === PERIMETRE || LANCEUR_PERIMETRE.test(segment)) perimetre ||= !tokens.includes(LISTE_SEULE)
+    if (script === PERIMETRE || LANCEUR_PERIMETRE.test(segment)) perimetre ||= !listeSeule(argumentsDuPerimetre(tokens, script === PERIMETRE))
     else if (script ? SCRIPT_RUNNER.test(script) : appelleUnRunner(segment)) autreRunner = true
 
     const site = fileURLToPath(new URL('../gates/sur-demande-utilisateur.mjs', import.meta.url))
@@ -213,13 +229,13 @@ export function evaluate({ agentType, commande = '', gates = gatesDeLaCi(), opti
       (!repertoireChange || isAbsolute(tokens[1])) &&
       canoniser(resolve(contexte?.dir ?? process.cwd(), tokens[1])) === canoniser(site)) {
       if (lus.some(j => j.substitutions?.length) || !demandeDe(tokens.slice(2))) {
-        return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+        return { decision: 'deny', reason: raisonDuRefus(gesteNomme(ecrit, brute)) }
       }
       continue
     }
 
     if (LANCEUR_DE_GATE.test(segment) || LANCEUR_NODE_TESTS.test(segment)) {
-      return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+      return { decision: 'deny', reason: raisonDuRefus(gesteNomme(ecrit, brute)) }
     }
     const expliciteRacine = deLaCi.has(script) && !['typecheck', 'lint', 'test'].includes(script)
     if (!expliciteRacine && ((dansServer(shell) && !remonte) || PREFIX_SERVER.test(segment))) continue
@@ -230,18 +246,18 @@ export function evaluate({ agentType, commande = '', gates = gatesDeLaCi(), opti
       const restreintAUnPerimetre =
         SUITE_ENTIERE_NPM.has(script) && argumentsPositionnels(segment, /^\S+/).some(designeUnChemin)
       if (estUneGate && !restreintAUnPerimetre) {
-        return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+        return { decision: 'deny', reason: raisonDuRefus(gesteNomme(ecrit, brute)) }
       }
     }
 
     // 3. `knip` : il n'y a pas de knip « de périmètre », il balaie le graphe entier.
-    if (APPEL_KNIP.test(segment)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+    if (APPEL_KNIP.test(segment)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(ecrit, brute)) }
 
     // 4. `eslint` sur un DOSSIER (ou sans cible) = la gate `lint` ; sur des FICHIERS = le périmètre.
     if (APPEL_ESLINT.test(segment)) {
       const cibles = argumentsPositionnels(segment, APPEL_ESLINT)
       if (cibles.length === 0 || cibles.every(estCibleDeGate)) {
-        return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+        return { decision: 'deny', reason: raisonDuRefus(gesteNomme(ecrit, brute)) }
       }
     }
 
@@ -250,14 +266,14 @@ export function evaluate({ agentType, commande = '', gates = gatesDeLaCi(), opti
       const cibles = argumentsPositionnels(segment, APPEL_VITEST)
         .filter((cible) => cible !== 'run')
       const contexteDuShell = contexte && { ...contexte, repertoireChange }
-      if (!cibles.some(designeUnChemin) && !estSondeVitest(lus, contexteDuShell)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+      if (!cibles.some(designeUnChemin) && !estSondeVitest(lus, contexteDuShell)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(ecrit, brute)) }
     }
 
     // 6. `tsc --noEmit` nu : la porte de vérité full, ~42 s, portée par le train.
-    if (appelleTscNu(segment)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(segment, brute)) }
+    if (appelleTscNu(segment)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(ecrit, brute)) }
   }
 
-  if (agentType && perimetre && autreRunner) return { decision: 'deny', reason: raisonDuChainage(brute.trim()) }
+  if (deSousAgent && perimetre && autreRunner) return { decision: 'deny', reason: raisonDuChainage(brute.trim()) }
   return null
 }
 
@@ -265,7 +281,7 @@ export const garde = {
   nom: 'codeur-gates',
   outils: OUTILS_SHELL,
   evaluer: (entree, contexte) => verdictDe(evaluate({
-    agentType: entree?.agent_type,
+    sousAgent: sousAgent(entree),
     commande: commandeDe(entree),
     contexte: contexteSonde(contexte),
   })),

@@ -5,7 +5,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gitDe } from './gitDeBanc.mjs'
-import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, lireArguments, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
+import { lireArguments } from './argumentsPerimetre.mjs'
 import { memoCiDe } from './dureesCi.mjs'
 import { PORTEE_LOT_S, regimeDeArgv } from './partition.mjs'
 import DureesVitest from './dureesVitest.mjs'
@@ -558,23 +559,42 @@ test('apprendre : un rapport vitest SANS workers valides apprend ses durées, et
 
 test('ligneDeRelance : un run rouge nomme la commande qui ne relance QUE ses fichiers en échec, par famille, lint compris ; rien sur un run vert', () => {
   const vert = { code: 0, defauts: [] }
+  const appelLint = () => ['node', 'lanceur.mjs', 'oxlint', '--', 'oxlint', '--config', 'c.mjs']
   const tete = 'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : '
-  assert.equal(ligneDeRelance({ code: 0, echecs: ['src/a.test.ts'], lint: vert }), null)
-  assert.equal(ligneDeRelance({ code: 1, echecs: ['src/b.test.ts', 'scripts/n.test.mjs', 'src/a.test.ts', 'src/b.test.ts'], lint: vert }),
+  const rouge = (famille, ...echecs) => ({ famille, code: 1, echecs, args: [] })
+  assert.equal(ligneDeRelance({ code: 0, lancements: [{ famille: 'vitest', code: 0, echecs: [], args: [] }], lint: vert, appelLint }), null)
+  assert.equal(ligneDeRelance({ code: 1, lancements: [rouge('vitest', 'src/b.test.ts', 'src/a.test.ts'), rouge('node', 'scripts/n.test.mjs'), rouge('vitest', 'src/b.test.ts')], lint: vert, appelLint }),
     `${tete}npm test -- src/a.test.ts src/b.test.ts ; node --test scripts/n.test.mjs`)
-  assert.equal(ligneDeRelance({ code: 1, echecs: ['scripts/un dossier/n.test.mjs'], lint: vert }),
+  assert.equal(ligneDeRelance({ code: 1, lancements: [rouge('node', 'scripts/un dossier/n.test.mjs')], lint: vert, appelLint }),
     `${tete}node --test "scripts/un dossier/n.test.mjs"`)
   const lint = { code: 1, defauts: [
     { site: 'src/b.ts:3:1', gravite: 'erreur', regle: 'r', message: 'm' },
     { site: 'src/a.ts:1:2', gravite: 'avertissement', regle: 'r', message: 'm' },
     { site: 'src/b.ts:9:4', gravite: 'erreur', regle: 'r', message: 'm' },
   ] }
-  assert.equal(ligneDeRelance({ code: 1, echecs: [], lint }),
-    `${tete}node scripts/lancer-local.mjs oxlint -- oxlint --config oxlint.config.mjs --disable-nested-config --max-warnings 0 src/a.ts src/b.ts`)
-  const panne = { code: 1, defauts: [{ site: '(lint)', gravite: 'erreur', regle: '(outillage)', message: 'm' }] }
-  assert.equal(ligneDeRelance({ code: 1, echecs: ['src/a.test.ts'], lint: panne }),
-    `${tete}npm test -- src/a.test.ts ; lint rouge, son rapport ne nomme aucun fichier`)
-  assert.equal(ligneDeRelance({ code: 1, echecs: [], lint: vert }), 'rouge — aucun rapport ne nomme de fichier en échec')
+  assert.equal(ligneDeRelance({ code: 1, lancements: [], lint, appelLint }), `${tete}node lanceur.mjs oxlint -- oxlint --config c.mjs src/a.ts src/b.ts`)
+  assert.equal(ligneDeRelance({ code: 1, lancements: [], lint: vert, appelLint }), 'rouge — aucun rapport ne nomme de fichier en échec')
+})
+
+test('ligneDeRelance : chaque rouge SANS fichier nommé est nommé, à côté des fichiers d’une autre famille ou d’un autre lot', () => {
+  const vert = { code: 0, defauts: [] }
+  const appelLint = () => ['oxlint']
+  const lintMixte = { code: 1, defauts: [
+    { site: 'src/a.ts:1:1', gravite: 'erreur', regle: 'r', message: 'm' },
+    { site: '(lint)', gravite: 'erreur', regle: '(outillage)', message: 'oxlint a échoué sans rapport : boum' },
+  ] }
+  assert.equal(ligneDeRelance({ code: 1, lancements: [{ famille: 'vitest', code: 1, echecs: ['src/a.test.ts'], args: [] }], lint: lintMixte, appelLint }),
+    'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : npm test -- src/a.test.ts ; oxlint src/a.ts'
+    + ' — rouge sans fichier nommé : lint (lint) : oxlint a échoué sans rapport : boum')
+  assert.equal(ligneDeRelance({ code: 1, lancements: [], lint: { code: 1, defauts: [] }, appelLint }),
+    'rouge — rouge sans fichier nommé : lint rouge, son rapport ne nomme aucun défaut')
+  const docs = { famille: 'docs', code: 1, echecs: [], args: ['scripts/docs/build-all.mjs', '--check', '--only', 'docs:x'] }
+  assert.equal(ligneDeRelance({ code: 1, lancements: [{ famille: 'node', code: 1, echecs: ['scripts/n.test.mjs'], args: [] }, docs], lint: vert, appelLint }),
+    'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : node --test scripts/n.test.mjs'
+    + ' — rouge sans fichier nommé : docs dérivés rouges : node scripts/docs/build-all.mjs --check --only docs:x')
+  assert.equal(ligneDeRelance({ code: 1, lancements: [{ famille: 'vitest', code: 1, echecs: ['src/a.test.ts'], args: [] }, { famille: 'vitest', code: 1, echecs: [], args: [] }], lint: vert, appelLint }),
+    'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : npm test -- src/a.test.ts'
+    + ' — rouge sans fichier nommé : vitest : 1 lancement(s) rouge(s) sans fichier en échec rapporté')
 })
 
 test('apprendre : un rapport aux échecs mal formés n’en rapporte aucun', (t) => {

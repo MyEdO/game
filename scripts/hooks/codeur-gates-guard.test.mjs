@@ -24,12 +24,12 @@ function sortieDriver(payload) {
   return run.out
 }
 
-/** Payload PreToolUse d'un sous-agent (`agent_type` absent = session principale). */
-const payload = (command, agentType) =>
+/** Payload PreToolUse, champs d'agent `agent` compris (`SOUS_AGENT`, `SESSION_AGENT`, aucun = session principale). */
+const payload = (command, agent = {}) =>
   JSON.stringify({
     session_id: 'test',
     hook_event_name: 'PreToolUse',
-    ...(agentType === undefined ? {} : { agent_type: agentType }),
+    ...agent,
     tool_name: 'Bash',
     tool_input: { command },
   })
@@ -37,7 +37,11 @@ const payload = (command, agentType) =>
 const GATES = ['lint', 'deps:unused', 'docs:build', 'test:ops', 'typecheck']
 
 /** La décision du hook pour un `codeur` (la liste de gates est injectée, jamais lue du dépôt). */
-const pourCodeur = (commande) => evaluate({ agentType: 'codeur', commande, gates: GATES })
+const pourCodeur = (commande) => evaluate({ sousAgent: true, commande, gates: GATES })
+/** Les champs d'agent d'un sous-agent, et ceux d'une session principale lancée sous `--agent` (doc des hooks Claude Code,
+ *  « Common input fields » : `agent_id` « for the subagent », `agent_type` « Present when the session uses --agent »). */
+const SOUS_AGENT = { agent_id: 'a1', agent_type: 'codeur' }
+const SESSION_AGENT = { agent_type: 'codeur' }
 
 /** Commandes REFUSÉES : la gate est jouée une fois par le run CI de la branche. */
 const REFUSEES = [
@@ -115,9 +119,9 @@ for (const commande of PASSANTES) {
 }
 
 test('tous les appelants refusent toutes les gates ECRIT_LU', () => {
-  for (const agentType of [undefined, null, 'codeur', 'juge', 'lecteur', 'artiste', 'recetteur']) {
+  for (const sousAgent of [false, true]) {
     for (const nom of Object.keys(ECRIT_LU)) {
-      assert.equal(evaluate({ agentType, commande: `npm run ${nom}` })?.decision, 'deny', `${agentType}: ${nom}`)
+      assert.equal(evaluate({ sousAgent, commande: `npm run ${nom}` })?.decision, 'deny', `${sousAgent}: ${nom}`)
     }
   }
 })
@@ -131,7 +135,7 @@ test('la raison NOMME la commande refusée et le geste de remplacement', () => {
 })
 
 test('DRIVER : un refus rend le JSON exact attendu par le hook (deny + raison)', () => {
-  const { hookSpecificOutput } = JSON.parse(sortieDriver(payload('npm run lint', 'codeur')))
+  const { hookSpecificOutput } = JSON.parse(sortieDriver(payload('npm run lint', SOUS_AGENT)))
   assert.equal(hookSpecificOutput.hookEventName, 'PreToolUse')
   assert.equal(hookSpecificOutput.permissionDecision, 'deny')
   assert.match(hookSpecificOutput.permissionDecisionReason, /\[gates-ci\]/)
@@ -142,8 +146,8 @@ test('DRIVER : un refus rend le JSON exact attendu par le hook (deny + raison)',
 })
 
 test('DRIVER : silence (aucune sortie) hors du cas visé, et jamais une sortie non nulle', () => {
-  for (const agentType of [undefined, 'juge']) {
-    assert.equal(JSON.parse(sortieDriver(payload('npm run lint', agentType))).hookSpecificOutput.permissionDecision, 'deny')
+  for (const agent of [{}, SESSION_AGENT]) {
+    assert.equal(JSON.parse(sortieDriver(payload('npm run lint', agent))).hookSpecificOutput.permissionDecision, 'deny')
   }
   assert.equal(sortieDriver(payload('node --test scripts/ops/board.test.mjs')).trim(), '')
   assert.equal(sortieDriver('').trim(), '', 'stdin vide')
@@ -181,7 +185,7 @@ test('la liste est LUE dans ECRIT_LU (une gate ajoutée là est couverte sans to
     assert.ok(gate in ECRIT_LU, `« ${gate} » a quitté ECRIT_LU : le verrou perd sa source`)
   }
   assert.equal(
-    evaluate({ agentType: 'codeur', commande: 'npm run docs:build' })?.decision,
+    evaluate({ sousAgent: true, commande: 'npm run docs:build' })?.decision,
     'deny',
     'sans liste injectée, le hook doit refuser en lisant la table réelle',
   )
@@ -395,7 +399,7 @@ test('SOUS-AGENT : `test:perimetre` enchaîné à un autre runner est refusé, l
   }
 })
 
-test('SESSION PRINCIPALE (sans agent_type) : le même enchaînement passe', () => {
+test('SESSION PRINCIPALE : le même enchaînement passe', () => {
   for (const commande of CHAINES) assert.equal(evaluate({ commande, gates: GATES }), null, commande)
 })
 
@@ -412,10 +416,139 @@ test('SOUS-AGENT : `test:perimetre` seul, un runner seul, ou une mention, passen
   ]) assert.equal(pourCodeur(commande), null, commande)
 })
 
-test('DRIVER : l’`agent_type` de la charge atteint la garde — refus pour un sous-agent, silence sans lui', () => {
+test('DRIVER : l’`agent_id` de la charge désigne le sous-agent — refus pour lui, silence pour une session principale, sous `--agent` comprise', () => {
   const commande = 'npm run typecheck:fast && npm run test:perimetre'
-  const { hookSpecificOutput } = JSON.parse(sortieDriver(payload(commande, 'codeur')))
+  const { hookSpecificOutput } = JSON.parse(sortieDriver(payload(commande, SOUS_AGENT)))
   assert.equal(hookSpecificOutput.permissionDecision, 'deny')
   assert.match(hookSpecificOutput.permissionDecisionReason, /enchaîne `npm run test:perimetre`/)
   assert.equal(sortieDriver(payload(commande)).trim(), '')
+  assert.equal(sortieDriver(payload(commande, SESSION_AGENT)).trim(), '', 'session lancée sous --agent : agent_type sans agent_id')
+})
+
+/** Sonde du 2e juge de #2568 (2026-10-11) : verdict attendu pour un sous-agent — `null` passe, `'chaîne'` refuse
+ *  l'enchaînement, `'gate'` refuse une gate de la CI. */
+const SONDE_DU_JUGE = [
+  [null, "npm run test:perimetre"],
+  [null, "npm run test:perimetre -- --liste"],
+  [null, "npm run test:perimetre > p.txt 2>&1; echo $?"],
+  [null, "npm run test:perimetre 2>&1 | tail -40"],
+  [null, "cd /srv/x && npm run test:perimetre"],
+  [null, "git -C /srv/x status --short && npm run test:perimetre"],
+  [null, "npx tsx scripts/qc/x.mts && npm run test:perimetre"],
+  [null, "node scripts/ops/board.mjs --liste && npm run test:perimetre"],
+  [null, "npm run test:perimetre -- --liste && npm run test:perimetre"],
+  [null, "npm run test:perimetre -- --budget 60 --liste; npm run typecheck:fast"],
+  [null, "npm run typecheck:fast && npm test -- src/a.test.ts"],
+  [null, "node scripts/lancer-local.mjs oxlint -- oxlint --config oxlint.config.mjs --disable-nested-config --max-warnings 0 src/a.ts"],
+  [null, "npm test -- src/a.test.ts src/b.test.ts"],
+  [null, "node --test scripts/n.test.mjs"],
+  [null, "node --test \"scripts/un dossier/n.test.mjs\""],
+  [null, "npm run test:perimetre; Write-Output $LASTEXITCODE"],
+  [null, "npm run test:perimetre -- --base origin/main"],
+  ["chaîne", "npx --yes vitest run src/a.test.ts && npm run test:perimetre"],
+  ["gate", "npx -y tsc -p server --noEmit; npm run test:perimetre"],
+  ["chaîne", "& npx vitest run src/a.test.ts; npm run test:perimetre"],
+  ["chaîne", "& node --test scripts/a.test.mjs; npm run test:perimetre"],
+  ["chaîne", "npm run test:perimetre; & npm run typecheck:fast"],
+  ["chaîne", "npm.cmd run test:perimetre; npm.cmd run typecheck:fast"],
+  ["chaîne", "npx.cmd vitest run src/a.test.ts; npm run test:perimetre"],
+  ["chaîne", "node.exe --test scripts/a.test.mjs; npm run test:perimetre"],
+  ["chaîne", "timeout 600 npm run test:perimetre && npm run typecheck:fast"],
+  ["chaîne", "time npm run test:perimetre && npm run typecheck:fast"],
+  ["chaîne", "env CI=1 npm run test:perimetre && npm run typecheck:fast"],
+  ["chaîne", "CI=1 npm run test:perimetre && npm run typecheck:fast"],
+  ["chaîne", "bash -c 'npm run test:perimetre' && npm run typecheck:fast"],
+  ["chaîne", "cmd /c \"npm run test:perimetre && npm run typecheck:fast\""],
+  ["chaîne", "pwsh -Command \"npm run test:perimetre; npm run typecheck:fast\""],
+  ["chaîne", "npm run test:perimetre; if ($?) { npm run typecheck:fast }"],
+  ["chaîne", "npm run test:perimetre || npm test -- src/a.test.ts"],
+  ["chaîne", "npm run test:perimetre && npx tsx --test scripts/a.test.mts"],
+  ["chaîne", "npm run test:perimetre && node --experimental-strip-types --test scripts/a.test.mjs"],
+  ["chaîne", "npm run test:perimetre && node --test-reporter spec --test scripts/a.test.mjs"],
+  ["chaîne", "npm run test:perimetre && node -r tsx/cjs --test scripts/a.test.mjs"],
+  ["chaîne", "npm run test:perimetre && npm --prefix server test"],
+  ["chaîne", "npm run test:perimetre && npm -s run typecheck:fast"],
+  ["chaîne", "npm run test:perimetre && npm run-script typecheck:fast"],
+  ["chaîne", "npm run test:perimetre && npm rum typecheck:fast"],
+  ["chaîne", "npm run test:perimetre && npm x -- vitest run src/a.test.ts"],
+  ["chaîne", "npm run test:perimetre && npm exec --yes -- vitest run src/a.test.ts"],
+  ["chaîne", "npm run test:perimetre && node node_modules/vitest/vitest.mjs run src/a.test.ts"],
+  ["chaîne", "npm run test:perimetre && node scripts/test/run.mjs src/a.test.ts"],
+  ["chaîne", "npm run test:perimetre && node ./scripts/typecheck-fast.mjs"],
+  ["chaîne", "npm run test:perimetre && npx playwright test e2e/a.spec.ts"],
+  ["chaîne", "npm run test:perimetre && node scripts/lancer-local.mjs typescript -- tsc -p server"],
+  ["chaîne", "npm run test:perimetre && node scripts/lancer-local.mjs vitest --cwd server -- vitest run src/a.test.ts"],
+  ["chaîne", "npm run test:perimetre && npm run test:map"],
+  ["chaîne", "npm run test:perimetre && npm run bench"],
+  ["chaîne", "npm run test:perimetre && npm run test:watch"],
+  ["chaîne", "node --import=./scripts/guards/lib/perimetreSansEcriture.mjs scripts/test/perimetre.mjs && npm run typecheck:fast"],
+  ["chaîne", "node ./scripts/test/perimetre.mjs; npm run typecheck:fast"],
+  ["chaîne", "node /srv/x/.wt-2568/scripts/test/perimetre.mjs; npm run typecheck:fast"],
+  ["chaîne", "npm run test:perimetre -- --docs && npm run typecheck:fast"],
+  ["chaîne", "npm run test:perimetre && npm run typecheck:fast -- --liste"],
+  ["chaîne", "npm run typecheck:fast && npm run test:perimetre -- --base main --liste-x"],
+  ["chaîne", "npm run typecheck:fast; npm run test:perimetre -- --base --liste"],
+  ["chaîne", "npm run test:perimetre && cd server && npx vitest run src/a.test.ts"],
+  ["chaîne", "cd server; npm test -- src/a.test.ts; cd ..; npm run test:perimetre"],
+  ["chaîne", "npm run test:perimetre && npx oxlint src/a.ts"],
+  ["chaîne", "npm run test:perimetre && npx eslint src/a.ts"],
+  [null, "gh issue comment 2568 -R MyEdO/game --body \"npm run test:perimetre && npm run typecheck:fast\""],
+  [null, "git commit -m \"npm run test:perimetre; npm run typecheck:fast\" -- scripts/a.mjs"],
+  [null, "node -e \"console.log('npm run test:perimetre')\" && npm run typecheck:fast"],
+  [null, "Select-String -Path x.md -Pattern 'test:perimetre'; npm run typecheck:fast"],
+  [null, "npm run test:perimetre -- --liste 2>&1 | Select-String rang; npm run typecheck:fast"],
+  [null, "npx vitest --version && npm run test:perimetre"],
+  [null, "npx tsc --version; npm run test:perimetre"],
+  [null, "node --version && npm run test:perimetre"],
+  [null, "npm run typecheck:fast -- --help; npm run test:perimetre -- --liste"],
+  [null, "git hash-object scripts/a.mjs && npm run test:perimetre"],
+  [null, "npm run test:perimetre && git hash-object scripts/a.mjs"],
+  [null, "npm run test:perimetre -- --liste && npm run test:perimetre -- --liste"],
+  [null, "npm run docs:sorts && npm run test:perimetre"],
+  [null, "npx tsx scripts/qc/mesure-volume.mts t1 && npm run test:perimetre"],
+  [null, "node scripts/lancer-local.mjs tsx -- tsx scripts/map/check.mts; npm run test:perimetre"],
+  ["chaîne", "npm run test:perimetre --liste && npm run typecheck:fast"],
+  ["chaîne", "npm --liste run test:perimetre && npm run typecheck:fast"],
+  ["chaîne", "npm run test:perimetre -- --base --liste && npm run typecheck:fast"],
+]
+
+test('SONDE DU JUGE : chaque commande rend, pour un sous-agent, le verdict attendu', () => {
+  const verdict = (d) => (d === null ? null : d.reason.includes('enchaîne') ? 'chaîne' : 'gate')
+  for (const [attendu, commande] of SONDE_DU_JUGE) assert.equal(verdict(evaluate({ sousAgent: true, commande })), attendu, commande)
+})
+
+test('`--liste` ne vaut que reçu par `scripts/test/perimetre.mjs` : après `--` sous npm, valeur d’un autre drapeau exclue', () => {
+  for (const commande of [
+    'npm run test:perimetre --liste && npm run typecheck:fast',
+    'npm --liste run test:perimetre && npm run typecheck:fast',
+    'npm run test:perimetre -- --base --liste && npm run typecheck:fast',
+    'npm run typecheck:fast && npm run test:perimetre -- --liste-x',
+  ]) assert.equal(pourCodeur(commande)?.decision, 'deny', commande)
+  for (const commande of [
+    'npm run test:perimetre -- --liste && npm run typecheck:fast',
+    'npm run test:perimetre -- --budget 60 --liste; npm run typecheck:fast',
+    'node scripts/test/perimetre.mjs --base main --liste && npm run typecheck:fast',
+  ]) assert.equal(pourCodeur(commande), null, commande)
+})
+
+test('un drapeau d’INFORMATION (`--version`, `-v`, `--help`, `-h`) ne lance aucun runner', () => {
+  for (const commande of ['npx vitest --version && npm run test:perimetre', 'npx tsc --version; npm run test:perimetre',
+    'npx oxlint -h; npm run test:perimetre', 'npx playwright test --help && npm run test:perimetre', 'node --test --help && npm run test:perimetre'])
+    assert.equal(pourCodeur(commande), null, commande)
+  assert.equal(pourCodeur('npx vitest --watch && npm run test:perimetre')?.decision, 'deny', 'un mode interactif reste un runner')
+})
+
+test('l’exécutable de tête se juge sous son nom nu : `node.exe`, chemin absolu, `tsx`', () => {
+  for (const commande of ['node.exe --test scripts/a.test.mjs; npm run test:perimetre',
+    '/opt/nodejs/node.exe scripts/test/run.mjs src/a.test.ts && npm run test:perimetre',
+    'node.exe /srv/x/scripts/test/perimetre.mjs; npm run typecheck:fast',
+    'npm run test:perimetre && npx tsx --test scripts/a.test.mts'])
+    assert.equal(pourCodeur(commande)?.decision, 'deny', commande)
+  assert.equal(pourCodeur('node.exe scripts/gates/toutes.mjs')?.decision, 'deny', 'lanceur de gate sous node.exe')
+})
+
+test('la raison d’un enchaînement RENVOIE à la puce « Auto-contrôle », sans recopier sa règle', () => {
+  const { reason } = pourCodeur('npm run test:perimetre && npm run typecheck:fast')
+  assert.match(reason, /puce « Auto-contrôle » de `\.claude\/agents\/codeur\.md`/)
+  assert.doesNotMatch(reason, /cache|5 min|contexte/)
 })
