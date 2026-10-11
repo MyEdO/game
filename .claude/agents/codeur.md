@@ -41,5 +41,9 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
   redirection fichier + `$?` immédiat, et joins le code tel que rendu.
 - **Tout test NEUF se livre avec sa preuve par MUTATION** : dans ton rendu, le test ROUGE câblage
   débranché (édition temporaire, remise à l'identique À LA MAIN) puis VERT rebranché, avec
-  l'empreinte `git hash-object` du fichier muté avant et après.
+  l'empreinte `git hash-object` du fichier muté avant et après. Le test entre par le CHEMIN DE
+  PRODUCTION : son état se pose par la couture que le jeu appelle (`applyOps` avec le ctx de son
+  appelant réel, flux du store, ids du catalogue), jamais par une fixture qui renseigne un champ que la
+  production ne pose pas : des effets construits à la main avec `kind: 'prayer'` ont passé, mutation
+  comprise, alors que `runCastFlow` frappe `kind: 'spell'` pour toute Prière (2026-10-11).
 - Rendu final = données brutes : fichiers touchés, diff résumé, écarts, `fichier:ligne`.
