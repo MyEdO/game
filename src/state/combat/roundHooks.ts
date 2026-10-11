@@ -130,7 +130,7 @@ registerCombatHook({
 registerCombatHook({
   // Auras de combat — machinerie GÉOMÉTRIQUE GÉNÉRIQUE : projette les `passive` de toute `TraitData.aura`
   // (Perturbant : −20 aux Tests à BE mètres, LDB 85 l.260-262) sur les combattants à portée, accumulés dans
-  // `auraMods` (lus par `combatTestPenaltyParts` — pool non-cumul, LDB 16 l.13 — et par `skillDRBonus`/
+  // `auraMods` (lus par `combatTestPenaltyParts` — pool des auras, LDB 85 l.262 — et par `skillDRBonus`/
   // `charDRBonusOf`, qui les SOMMENT). Aucun trait nommé en dur ; recalcul/Round.
   id: 'recompute-auras',
   phase: 'onRoundEnd',

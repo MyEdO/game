@@ -1074,8 +1074,7 @@ export interface Trauma {
    *  (`needsSurgery`, nez cassé LDB 18 l.72) ne re-décompte donc AUCUNE Blessure critique. */
   cosmetic?: boolean;
   /** Surcharge du `kind` passif de la séquelle (défaut : dérivé du type d'op par `traumaOpKind`). Une cicatrice
-   *  est un TRAIT DE CORPS permanent (`intrinseque` : additif, non annulable) et non une douleur — c'est ce qui
-   *  fait sommer son `skillMod` social (+/−) par `passiveSkillSum`, hors du pool non-cumul des pénalités de crit. */
+   *  est un TRAIT DE CORPS permanent (`intrinseque` : non annulable), sommé par `passiveSkillSum` (LDB 14 l.95). */
   passiveKind?: import('./ops').PassiveKind;
 }
 
@@ -1774,8 +1773,8 @@ export interface Combatant {
   pushbackMode?: boolean;
   /** `passive` des AURAS de combat à portée desquelles ce combattant se trouve (Perturbant :
    *  −20 aux Tests, LDB 85 l.262) — recalculé chaque Round par le hook `recompute-auras` à partir des
-   *  `TraitData.aura` voisines, lu par `combatTestPenaltyParts` (pool non-cumul des pénalités de Test,
-   *  LDB 16 l.13) et par `skillDRBonus`/`charDRBonusOf`. Générique (toute aura). Chaque op voyage
+   *  `TraitData.aura` voisines, lu par `combatTestPenaltyParts` (pool des auras,
+   *  LDB 85 l.262) et par `skillDRBonus`/`charDRBonusOf`. Générique (toute aura). Chaque op voyage
    *  emballée en `PassiveMod` : son `src` porte le TRAIT émetteur, ce qui NOMME la chip du jet. */
   auraMods?: import('./ops').PassiveMod[];
   // Avancement par Points d'Expérience (héros uniquement, LDB Carrières)

@@ -11,6 +11,8 @@ import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
 import { recomputeLoadout, isUnarmed, itemFromTrappingById } from './items';
 import { effectiveChar } from './characteristics';
+import { spellOps } from './flowCore';
+import { findSpellById } from '../data';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -516,17 +518,29 @@ describe('applyOps — opérations unitaires', () => {
 
 describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveChar', () => {
   const sort = (id: string, casterId = 'm') => ({ source: { kind: 'spell' as const, id }, sourceSpell: { spellId: id, ni: 5, casterId, label: id } });
-  const priere = (id: string) => ({ source: { kind: 'prayer' as const, id }, sourceSpellId: id });
+  /** ctx de `runCastFlow` (`src/state/combatFlow.ts`) : `source.kind` vaut `spell` pour TOUT lancement. */
+  const priere = (id: string) => ({ source: { kind: 'spell' as const, id }, sourceSpellId: id });
   const pose = (c: Combatant, mod: number, ctx: object) => applyOps(c, [{ op: 'charMod', char: 'force', mod }], { label: 'Effet', defaultDurationRounds: 6, ...ctx });
   it('deux Prières DIFFÉRENTES se somment ; la MÊME Prière ne se cumule pas (LDB 40 l.19)', () => {
-    const c = hero(); pose(c, 10, priere('a')); pose(c, 10, priere('b'));
+    const c = hero(); pose(c, 10, priere('benediction-de-bataille')); pose(c, 10, priere('prouesses-martiales'));
     expect(effectiveChar(c, 'force')).toBe(50);
-    const d = hero(); pose(d, 10, priere('a')); pose(d, 10, priere('a'));
+    const d = hero(); pose(d, 10, priere('benediction-de-bataille')); pose(d, 10, priere('benediction-de-bataille'));
     expect(effectiveChar(d, 'force')).toBe(40);
   });
   it('Prière + Sort se somment (pools distincts)', () => {
-    const c = hero(); pose(c, 10, priere('a')); pose(c, 20, sort('s'));
+    const c = hero(); pose(c, 10, priere('benediction-de-bataille')); pose(c, 20, sort('malediction-d-anraheir'));
     expect(effectiveChar(c, 'force')).toBe(60);
+  });
+  it('ops du catalogue posées avec le ctx de runCastFlow : Bénédiction de bataille + Prouesses martiales se somment (LDB 40 l.19)', () => {
+    const caster = hero({ id: 'pretre' });
+    const lancer = (t: Combatant, id: string) => {
+      const sp = findSpellById(id)!;
+      applyOps(t, spellOps(sp.effects, 'target'), { caster, label: sp.label, sourceSpellId: id, source: { kind: 'spell', id }, defaultDurationRounds: 6 });
+    };
+    const t = hero(); lancer(t, 'benediction-de-bataille'); lancer(t, 'prouesses-martiales');
+    expect(effectiveChar(t, 'capacite-de-combat')).toBe(t.characteristics['capacite-de-combat'] + 20);
+    const u = hero(); lancer(u, 'benediction-de-bataille'); lancer(u, 'benediction-de-bataille');
+    expect(effectiveChar(u, 'capacite-de-combat')).toBe(u.characteristics['capacite-de-combat'] + 10);
   });
   it('Sorts entre eux : meilleur bonus et pire pénalité (LDB 46 l.119)', () => {
     const c = hero(); pose(c, 10, sort('s1')); pose(c, 20, sort('s2')); pose(c, -10, sort('s3'));

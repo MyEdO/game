@@ -16,8 +16,9 @@ function mk(activeEffects: { char: CharKey; bonus: number; label?: string; sourc
   } as Combatant;
 }
 
+/** Source frappée par tout lancement, Prières comprises (`runCastFlow`, `src/state/combatFlow.ts`) :
+ *  le pool se lit à l'id du catalogue, jamais au `kind`. */
 const SORT = (id: string): EffectSource => ({ kind: 'spell', id });
-const PRIERE = (id: string): EffectSource => ({ kind: 'prayer', id });
 
 describe('effectiveChar — pools de non-cumul (LDB 46 l.119, LDB 40 l.19) ; le reste se somme (LDB 14 l.95)', () => {
   it('aucun effet actif → valeur de base', () => {
@@ -32,9 +33,10 @@ describe('effectiveChar — pools de non-cumul (LDB 46 l.119, LDB 40 l.19) ; le 
   it('Sorts : meilleur bonus + pire pénalité (+20, +10, −10 → +10 net)', () => {
     expect(effectiveChar(mk([{ char: 'force', bonus: 20, source: SORT('a') }, { char: 'force', bonus: 10, source: SORT('b') }, { char: 'force', bonus: -10, source: SORT('c') }]), 'force')).toBe(50);
   });
-  it('la MÊME Prière ne se cumule pas ; deux Prières différentes se somment', () => {
-    expect(effectiveChar(mk([{ char: 'force', bonus: 10, source: PRIERE('p') }, { char: 'force', bonus: 10, source: PRIERE('p') }]), 'force')).toBe(50);
-    expect(effectiveChar(mk([{ char: 'force', bonus: 10, source: PRIERE('p') }, { char: 'force', bonus: 10, source: PRIERE('q') }]), 'force')).toBe(60);
+  it('la MÊME Prière ne se cumule pas ; deux Prières différentes se somment ; Prière + Sort se somment', () => {
+    expect(effectiveChar(mk([{ char: 'force', bonus: 10, source: SORT('benediction-de-bataille') }, { char: 'force', bonus: 10, source: SORT('benediction-de-bataille') }]), 'force')).toBe(50);
+    expect(effectiveChar(mk([{ char: 'force', bonus: 10, source: SORT('benediction-de-bataille') }, { char: 'force', bonus: 10, source: SORT('prouesses-martiales') }]), 'force')).toBe(60);
+    expect(effectiveChar(mk([{ char: 'force', bonus: 10, source: SORT('benediction-de-bataille') }, { char: 'force', bonus: -20, source: SORT('malediction-d-anraheir') }]), 'force')).toBe(30);
   });
   it('effets hors pool (non magiques) : sommés', () => {
     expect(effectiveChar(mk([{ char: 'force', bonus: -10 }, { char: 'force', bonus: -20 }]), 'force')).toBe(10);

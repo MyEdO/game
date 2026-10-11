@@ -1,7 +1,7 @@
 /**
  * Calculs dérivés des Caractéristiques — Livre de base, chapitre Personnage.
  */
-import { CharKey, Characteristics, Combatant, effectRef, type ActiveEffect, type EffectSourceKind } from './types';
+import { CharKey, Characteristics, Combatant, effectRef, type ActiveEffect } from './types';
 import { isPrayerFamily } from './combatFeatures/types';
 import type { CodexTarget } from './ruleRefs';
 import { traumaCharPenaltiesLabeled, passiveCharSum } from './trauma';
@@ -27,18 +27,17 @@ export function baseWithTraits(c: Combatant, key: CharKey): number {
   return c.characteristics[key] + (traitCharMods(c.liveTraits)[key] ?? 0);
 }
 
-/** Pool de NON-CUMUL d'une contribution, déduit de son entité SOURCE — les Sorts entre eux (LDB 46
- *  l.119), une même Prière avec elle-même (LDB 40 l.19). Hors pool (`undefined`) : la contribution se
- *  SOMME (LDB 14 l.95). `kind` (nature déclarée de la source) prime sur la famille lue au catalogue. */
-export function poolDeNonCumul(ref: CodexTarget | undefined, kind?: EffectSourceKind): string | undefined {
+/** Pool de NON-CUMUL d'une contribution, déduit de l'id STABLE de son entité source lu au catalogue :
+ *  Prière → `priere:<id>` (LDB 40 l.19), Sort → `sort` (LDB 46 l.119), autre catégorie → hors pool,
+ *  sommée (LDB 14 l.95). */
+export function poolDeNonCumul(ref: CodexTarget | undefined): string | undefined {
   if (ref?.category !== 'spells') return undefined;
-  const priere = kind ? kind === 'prayer' : isPrayerFamily(findSpellById(ref.id)?.family);
-  return priere ? `priere:${ref.id}` : 'sort';
+  return isPrayerFamily(findSpellById(ref.id)?.family) ? `priere:${ref.id}` : 'sort';
 }
 
 /** Pool d'un effet actif (`poolDeNonCumul` de son entité source). */
 export function effectPool(e: ActiveEffect): string | undefined {
-  return poolDeNonCumul(effectRef(e) ?? (e.spell ? { category: 'spells', id: e.spell.spellId } : undefined), e.source?.kind);
+  return poolDeNonCumul(effectRef(e) ?? (e.spell ? { category: 'spells', id: e.spell.spellId } : undefined));
 }
 
 interface VolatileEntry { label: string; value: number; ref?: CodexTarget; pool?: string }

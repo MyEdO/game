@@ -498,8 +498,8 @@ export type GameOp =
    *  dernier Test). Champ absent = INCHANGÉ sur une entrée existante. Journalisé via `t()` ; une
    *  entrée `active:false` est un marqueur inerte (aucune ligne). */
   | { op: 'beginPsych'; type: string; cible?: string; sourceId?: string; indice?: Formula; calmeDR?: Formula; active?: boolean; lastTestRound?: number; fromTest?: boolean }
-  /** Modificateur de caractéristique temporisé (ActiveEffect — meilleur bonus +
-   *  pire pénalité sans cumul, LDB 16 l.13). `durationRounds` absent = durée du
+  /** Modificateur de caractéristique temporisé (ActiveEffect, pool `poolDeNonCumul`).
+   *  `durationRounds` absent = durée du
    *  contexte (sort : Rounds, horloge, ou permanent — cf. `durationFromCtx`).
    *  `durationHours`/`durationMinutes` : durée d'HORLOGE intrinsèque (Aux Armes « −10 Agilité pendant
    *  1d10 jours », `durationHours` = jours×24) — même patron que `condition.durationHours`, résolue

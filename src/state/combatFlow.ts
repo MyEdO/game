@@ -6587,11 +6587,10 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
       pousseSi(monos, step);
     }
     if (decided.corruption && corr) {
-      const res = testValue(c, 'resistance');
       const step = monoStep({
         id: `combatEndCorruption-${c.id}`, kind: 'combatEndCorruption', actor: c, icon: 'nav/mutation',
         rollLabel: 'Résistance', difficulty: 'intermediaire',
-        ligne: { test: { skill: 'resistance' }, valeur: res, surLaCible: conditionModLines(c, { skill: 'resistance' }) },
+        ligne: { test: { skill: 'resistance' }, combat: { kind: 'test' } },
         label: stepPrecision(tr('step.expoCorruption'), dataLabel(corr.label)), meta: { level: corr.level, exposureLabel: corr.label },
         // L'enjeu DIT le coût de l'échec, lu à l'applier : `corruptionGain(niveau, false, …)` est constant
         // par niveau (1/2/3) — la valeur interpolée vient donc du MÊME calcul que la conséquence.

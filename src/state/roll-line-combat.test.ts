@@ -183,13 +183,8 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     }
     const corruption = steps.find((s) => s.kind === 'combatEndCorruption')?.participants?.find((r) => r.id === 'sv');
     if (corruption) {
-      const res = testValue(survivant, 'resistance');
       expect(corruption.base, 'base = Niveau de Compétence NU (l’État sort en chip)').toBe(skillBaseValue(survivant, 'resistance'));
-      // ⚠ CIBLE = la formule de HEAD, DOUBLE-COMPTE CONNU : l'État pèse une fois DANS `testValue`
-      // (pénalité hors combat) et une fois de plus via `combatTestPenalty`. Ce lot est à INVARIANCE
-      // STRICTE : il rend le double-compte VISIBLE (deux chips nommées au lieu d'un écart muet) sans
-      // le corriger. Correction et choix du canal → L3, dossier au ticket #1153.
-      expect(corruption.target).toBe(clampTarget(res + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
+      expect(corruption.target, 'pénalité de combat comptée UNE fois').toBe(clampTarget(rawCombatTestBase(survivant, 'resistance') + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
       expect(inexplique(corruption)).toBe(0);
     }
     // Les DEUX familles de BANDE doivent être produites, chacune avec la rangée du survivant (#1117 L4).

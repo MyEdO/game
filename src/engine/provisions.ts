@@ -118,8 +118,8 @@ export function isDeprived(c: Combatant): boolean {
   return isStarving(c) || isThirsty(c);
 }
 
-/** Pénalités de Caractéristique dues à la SOIF (LDB 18 l.340), injectées dans le pool non-cumul
- *  d'`effectiveChar` (kind `faim`, même privation) : 1ᵉʳ échec → −10 Int/FM/Soc ; dès le 2ᵉ → −10 le reste. */
+/** Pénalités de Caractéristique dues à la SOIF (LDB 18 l.340), injectées dans
+ *  `effectiveChar` (kind `faim`, même privation) : 1ᵉʳ échec → −10 Int/FM/Soc ; dès le 2ᵉ → −10 le reste. */
 export function thirstCharPenalties(c: Combatant, key: CharKey): number[] {
   const f = c.thirst?.failures ?? 0;
   const first = key === 'intelligence' || key === 'force-mentale' || key === 'sociabilite';
@@ -134,8 +134,8 @@ export function feedFromMeal(c: Combatant): void {
   c.hunger = { days: 0, tests: 0, failures: 0, coveredDay: true };
 }
 
-/** Pénalités de Caractéristique dues à la faim (LDB 18 l.342), injectées dans le pool non-cumul
- *  d'`effectiveChar` : 1ᵉʳ échec → −10 Force et Endurance ; dès le 2ᵉ → −10 toutes les autres. */
+/** Pénalités de Caractéristique dues à la faim (LDB 18 l.342), injectées dans
+ *  `effectiveChar` : 1ᵉʳ échec → −10 Force et Endurance ; dès le 2ᵉ → −10 toutes les autres. */
 export function hungerCharPenalties(c: Combatant, key: CharKey): number[] {
   const f = c.hunger?.failures ?? 0;
   if (f >= 1 && (key === 'force' || key === 'endurance')) return [-10];

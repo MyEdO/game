@@ -1977,9 +1977,9 @@ export interface SymptomCapabilities {
   persistentActive?: boolean; // Vers de carie : la phase active NE guérit JAMAIS naturellement (dégénérescence quotidienne jusqu'à la Mort, MSRC 16 l.90-101)
 }
 /** Symptôme de maladie (LDB 20) — entité de DONNÉE éditable au Codex, mécaniques en GameOp / 3 canaux
- *  (comme un trait/qualité). `passive` = pénalités continues (charMod) ; `passiveBySeverity` S'AJOUTE à
- *  `passive` pour chaque palier ATTEINT par l'instance, en magnitude ABSOLUE — la pire pénalité l'emporte
- *  (LDB 20 l.157/l.170) ; `onTick` = Test de cycle quotidien +
+ *  (comme un trait/qualité). `passive` = pénalités continues (charMod) ; `passiveBySeverity` = ops de
+ *  chaque palier ATTEINT par l'instance, l'op de même cible REMPLACÉE (`symptomPassive`,
+ *  LDB 20 l.157/l.170) ; `onTick` = Test de cycle quotidien +
  *  conséquence GameOp appliquée par la cascade (différée/influençable) ; `capabilities` = règles
  *  irréductibles lues par la machinerie de maladie. */
 export interface SymptomData {
