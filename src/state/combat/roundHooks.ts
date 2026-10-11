@@ -312,11 +312,10 @@ registerCombatHook({
   order: 79.5,
   run: ({ battle, sink }) => { purgeExpiredSummons(battle, battle.round + 1).forEach((l) => sink(l)); },
 });
-/** Règle optionnelle « Se fatiguer » (LDB 16 l.97). Inerte tant que `combat-se-fatiguer` est inactive
- *  (aucun tirage RNG consommé → franchissement de Round iso-comportement). */
-/** Seuil de « se-fatiguer » : Bonus d'Endurance Rounds d'effort cumulés (min 1) avant un Test (LDB 16 l.97). */
+/** Seuil de la règle optionnelle « Se fatiguer » (LDB 16 l.97). Inerte tant que `combat-se-fatiguer` est
+ *  inactive (aucun tirage RNG consommé → franchissement de Round iso-comportement). */
 function fatigueThreshold(c: Combatant): number {
-  return Math.max(1, bonus(effectiveChar(c, 'endurance')));
+  return bonus(effectiveChar(c, 'endurance'));
 }
 /** Conséquence d'un Test de Résistance « se-fatiguer » (LDB 16 l.97) — partagée par le hook (ENNEMIS)
  *  et l'applier (HÉROS). */

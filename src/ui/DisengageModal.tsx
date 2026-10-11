@@ -1,7 +1,8 @@
 import { useGame } from '../state/store';
+import { defenseDodgeMods } from '../state/combatFlow';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
-import { defenseValue, combatValue, defenseModifiers, baseTestModLines } from '../engine/combat';
+import { defenseValue, defenseBaseValue, defenseValueModParts, combatValue, defenseModifiers, baseTestModLines, weaponSkillId } from '../engine/combat';
 import { calmeValue } from '../engine/psychology';
 import { groupAdvantage } from '../engine/advantagePool';
 import { retreatAdvantageCost } from '../engine/combatFeatures/dispatch';
@@ -179,8 +180,8 @@ export function DisengageModal() {
   // le Corps à corps « brut » du foe (`rollDisengageAttack`), `defenseModifiers` pour l'Esquive du mover
   // (`rollMeleeDefender`) — jamais un +N anonyme dans la cible.
   const [foeLine, moverLine] = opposedLines([
-    { label: 'Corps à corps', base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat') },
-    { label: 'Esquive', base: defenseValue(mover, 'esquive'), r: pd.def, mods: defenseModifiers(mover, 'esquive') },
+    { label: 'Corps à corps', base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
+    { label: 'Esquive', base: defenseBaseValue(mover, 'esquive'), r: pd.def, mods: [...defenseValueModParts(mover, 'esquive'), ...defenseModifiers(mover, 'esquive', defenseDodgeMods(useGame.getState(), mover))] },
   ]);
   // Rangée [0] = TÉMOIN : Corps à corps du foe, figé à l'ouverture (jamais relancé, aucun bouton) —
   // même calendrier de découverte que les autres jets figés (#990 : `pd.def` = la réponse du mover).

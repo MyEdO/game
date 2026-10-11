@@ -5,6 +5,11 @@ import type { RefDesignee } from '../../data/schemas/grammaire/ref';
  *  des sorts (grimoire.ts). Source UNIQUE du type, partagée avec `CasterTalent`. */
 export type CastingKind = 'mineure' | 'arcane' | 'invocation' | 'beni' | 'chaos';
 
+/** La famille d'incantation est-elle une Prière (Bénédiction/Miracle) ? Discriminant UNIQUE. `LDB 40 l.13` */
+export function isPrayerFamily(family: string | undefined): boolean {
+  return family === 'beni' || family === 'invocation';
+}
+
 /** Contexte lecture seule d'un hook de capacité (level = times du talent / Indice du trait). */
 export interface CombatFeatureCtx {
   combatant: Combatant;

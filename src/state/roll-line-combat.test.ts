@@ -143,20 +143,20 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
 });
 
 describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
-  it('Contraction hors combat (`openContractionCascade`) : base NUE, cible = Résistance + Difficulté', () => {
+  it('Contraction hors combat (`openContractionCascade`) : base NUE, Hémorragique −10 à résister à l’Infection mineure (LDB 16 l.105)', () => {
     const patient = hero({
-      id: 'pa', label: 'Patient', conditions: ETAT,
+      id: 'pa', label: 'Patient', conditions: [{ id: 'hemorragique', value: 1 }] as never,
       skills: [{ id: 'resistance', advances: 10, characteristic: 'endurance' }] as never,
     });
     useGame.setState({ party: [patient], battle: null, pendingCascade: null } as never);
     const resVal = effectiveChar(patient, 'endurance') + 10; // `combatEndResistVal` : E effective + avances
-    const diff: Difficulty = 'tresFacile';
+    const diff: Difficulty = 'difficile';
 
-    openContractionCascade(get, set, patient, 'courante-galopante', diff, 'Infection');
+    openContractionCascade(get, set, patient, 'infection-mineure', diff, 'Infection');
     // #1117 L4 : bande d'UN porteur — l'arithmétique du jet vit sur la RANGÉE.
     const row = get().pendingCascade!.participants[0].participants![0];
     expect(row.base).toBe(resVal);
-    expect(row.target).toBe(clampTarget(resVal + DIFFICULTY_MODIFIERS[diff]).target);
+    expect(row.target).toBe(clampTarget(resVal + DIFFICULTY_MODIFIERS[diff] - 10).target);
     expect(inexplique(row), 'aucune chip « autres »').toBe(0);
   });
 

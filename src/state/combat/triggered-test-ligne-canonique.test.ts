@@ -44,9 +44,8 @@ function actor(p: Partial<Combatant> & { id: string }): Combatant {
   } as unknown as Combatant;
 }
 
-/** Les postures d'État de la sonde : sain, États NON `combatOnly` (Sonné, Exténué, Brisé), État
- *  `combatOnly` (Aveuglé — c'est LUI qui distingue le canal combat de la convention hors combat), et
- *  un cumul qui exerce le pool de non-cumul (`LDB 16 l.13`). */
+/** Les postures d'État de la sonde : sain, États généraux (Sonné, Exténué, Brisé), État restreint à
+ *  un sens (Aveuglé, LDB 16 l.45), et un cumul qui exerce le pool de non-cumul (`LDB 16 l.13`). */
 const POSTURES: { nom: string; conditions: unknown[] }[] = [
   { nom: 'sain', conditions: [] },
   { nom: 'Sonné', conditions: [{ id: 'sonne', value: 1 }] },
@@ -131,9 +130,9 @@ describe('G1 — non-dérive de cible : chaque producteur rend la cible des jume
 });
 
 describe('G2 — anti-piège de canal : la voie OPPOSÉE n’emprunte pas `combat:{kind:test}`', () => {
-  it('porteur Aveuglé SEUL : la cible opposée reste celle de `testValue`, pas celle du canal combat', () => {
-    const c = actor({ id: 'aveugle-seul', conditions: [{ id: 'aveugle', value: 1 }] as never });
-    // Aveuglé est `combatOnly` : il PÈSE dans le canal combat et PAS dans `testValue` — c'est ce qui
+  it('porteur sous AURA seule : la cible opposée reste celle de `testValue`, pas celle du canal combat', () => {
+    const c = actor({ id: 'aura-seule', auraMods: [{ op: { op: 'testMod', amount: -20 } }] } as never);
+    // L'aura de combat (LDB 85 l.262) PÈSE dans le canal combat et PAS dans `testValue` — c'est ce qui
     // rend les deux conventions distinguables sur ce porteur, et donc la garde capable de mordre.
     const combat = rawCombatTestBase(c, 'resistance') + combatTestPenalty(c);
     const horsCombat = testValue(c, 'resistance');
@@ -142,7 +141,7 @@ describe('G2 — anti-piège de canal : la voie OPPOSÉE n’emprunte pas `comba
     const att = actor({ id: 'att-aveugle' });
     const aT = rollFrozenOpposedAttacker(att, FT_OPP.opposed!, 'intermediaire');
     const row = frozenOpposedBatchStep([c], FT_OPP, BRANCHES, EMPTY_FLOW, 'intermediaire', att, aT)!.participants![0];
-    expect(row.target, 'la rangée opposée jette sur `testValue` (Aveuglé n’y pèse pas)').toBe(horsCombat);
+    expect(row.target, 'la rangée opposée jette sur `testValue` (l’aura n’y pèse pas)').toBe(horsCombat);
     expect(row.target).not.toBe(combat);
   });
 });
@@ -267,8 +266,8 @@ describe('SONDE PROMUE — la matrice complète des postures × crans de Difficu
 });
 
 describe('SONDE — le monteur canonique rend bien ce que les producteurs en attendent', () => {
-  it('`rollStep` canal combat/test et `rollStep` hors canal diffèrent sur un porteur `combatOnly`', () => {
-    const c = actor({ id: 'sonde', conditions: [{ id: 'aveugle', value: 1 }] as never });
+  it('`rollStep` canal combat/test et `rollStep` hors canal diffèrent sur un porteur sous aura de combat', () => {
+    const c = actor({ id: 'sonde', auraMods: [{ op: { op: 'testMod', amount: -20 } }] } as never);
     const combat = rollStep({ actor: c, test: { skill: 'resistance' }, difficulty: 'intermediaire', combat: { kind: 'test' } });
     const hors = rollStep({ actor: c, test: { skill: 'resistance' }, difficulty: 'intermediaire' });
     expect(combat.base, 'les deux canaux partent de la MÊME nue').toBe(hors.base);

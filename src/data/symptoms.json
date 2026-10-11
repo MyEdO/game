@@ -6,39 +6,39 @@
     "desc": "Votre température est haute, vous transpirez abondamment et vous n'avez vraiment pas l'air en forme. Subissez une pénalité de -10 à tous vos Tests Physiques et de Sociabilité. Si la fièvre dont vous souffrez est indiquée comme (Grave), vous vous retrouvez dans un état de faiblesse totale vous obligeant à rester alité. Gagnez l'État *Inconscient*, même si la dépense de Points de Détermination peut vous ramener à la conscience pendant quelques minutes.",
     "passive": [
       {
-        "op": "charMod",
-        "char": "capacite-de-combat",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "capacite-de-combat"
       },
       {
-        "op": "charMod",
-        "char": "capacite-de-tir",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "capacite-de-tir"
       },
       {
-        "op": "charMod",
-        "char": "force",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "force"
       },
       {
-        "op": "charMod",
-        "char": "endurance",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "endurance"
       },
       {
-        "op": "charMod",
-        "char": "agilite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "agilite"
       },
       {
-        "op": "charMod",
-        "char": "dexterite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "dexterite"
       },
       {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "sociabilite"
       }
     ],
     "passiveBySeverity": {
@@ -67,39 +67,39 @@
     "desc": "Vous êtes victime d'une inflammation des ganglions lymphatiques de l'aine, du cou ou des aisselles. Outre le fait que c'est extrêmement douloureux, cela peut causer des saignements ou des épanchements de pus. Leur aspect est dégoûtant, l'odeur répugnante et certains vont penser qu'il s'agit là de signes de faveurs de la part du Seigneur des Épidémies et vont supposer qu'ils renferment de minuscules démons en pleine croissance. Pour se défaire de ces horreurs et de ce qui peut s'y nicher, la pratique la plus courante consiste à les percer, même si cela aboutit souvent à une *Blessure Purulente*. Subissez une pénalité de -10 à tous vos Tests Physiques ainsi qu'à tous vos Tests de Sociabilité si ces bubons sont apparents (ou peuvent être sentis) !",
     "passive": [
       {
-        "op": "charMod",
-        "char": "capacite-de-combat",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "capacite-de-combat"
       },
       {
-        "op": "charMod",
-        "char": "capacite-de-tir",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "capacite-de-tir"
       },
       {
-        "op": "charMod",
-        "char": "force",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "force"
       },
       {
-        "op": "charMod",
-        "char": "endurance",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "endurance"
       },
       {
-        "op": "charMod",
-        "char": "agilite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "agilite"
       },
       {
-        "op": "charMod",
-        "char": "dexterite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "dexterite"
       },
       {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "sociabilite"
       }
     ],
     "source": {
@@ -114,67 +114,67 @@
     "desc": "Votre corps est la proie de spasmes ou de tremblements alors que l'infection vous transforme petit à petit en pantin. Subissez une pénalité de -10 à tous vos Tests Physiques alors que votre corps convulse sans que vous ne puissiez le contrôler. Si le symptôme est indiqué (Modéré), cette pénalité passe à -20. Si le symptôme est indiqué comme (Grave), vous devez être attaché sous peine de risquer de vous blesser tout seul, ce qui vous laisse dans un état d'incapacité totale.",
     "passive": [
       {
-        "op": "charMod",
-        "char": "capacite-de-combat",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "capacite-de-combat"
       },
       {
-        "op": "charMod",
-        "char": "capacite-de-tir",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "capacite-de-tir"
       },
       {
-        "op": "charMod",
-        "char": "force",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "force"
       },
       {
-        "op": "charMod",
-        "char": "endurance",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "endurance"
       },
       {
-        "op": "charMod",
-        "char": "agilite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "agilite"
       },
       {
-        "op": "charMod",
-        "char": "dexterite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "dexterite"
       }
     ],
     "passiveBySeverity": {
       "moderee": [
         {
-          "op": "charMod",
-          "char": "capacite-de-combat",
-          "mod": -20
+          "op": "testMod",
+          "amount": -20,
+          "char": "capacite-de-combat"
         },
         {
-          "op": "charMod",
-          "char": "capacite-de-tir",
-          "mod": -20
+          "op": "testMod",
+          "amount": -20,
+          "char": "capacite-de-tir"
         },
         {
-          "op": "charMod",
-          "char": "force",
-          "mod": -20
+          "op": "testMod",
+          "amount": -20,
+          "char": "force"
         },
         {
-          "op": "charMod",
-          "char": "endurance",
-          "mod": -20
+          "op": "testMod",
+          "amount": -20,
+          "char": "endurance"
         },
         {
-          "op": "charMod",
-          "char": "agilite",
-          "mod": -20
+          "op": "testMod",
+          "amount": -20,
+          "char": "agilite"
         },
         {
-          "op": "charMod",
-          "char": "dexterite",
-          "mod": -20
+          "op": "testMod",
+          "amount": -20,
+          "char": "dexterite"
         }
       ]
     },
@@ -191,9 +191,9 @@
     "desc": "Vous êtes recouvert de pustules, de gonflements, d'éruptions cutanées ou de boutons qui vous démangent, et c'est loin de vous rendre attirant. Les démangeaisons constituent surtout un problème esthétique, et impliquent une pénalité de -10 à tous les Tests de Sociabilité. De plus, n'oubliez pas d'interpréter ces démangeaisons en cours de jeu. Si vous voulez vous retenir un tant soi peu, réussissez un Test de **Calme Accessible (+20)**.",
     "passive": [
       {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "sociabilite"
       }
     ],
     "source": {
@@ -307,9 +307,9 @@
     "desc": "Votre chair noircit et pourrit, infectée par quelque chose d'horrible. Et cela ne semble pas s'arranger. Effectuez un lancer de pourcentage pour déterminer une Localisation (voir **Combat**). Si vous obtenez Corps, vous avez de la chance, la *Gangrène* ne s'est pas propagée au cours de l'infection. Si vous obtenez la Tête, c'est votre nez qui est touché. Si vous obtenez Bras, ce sont vos doigts. Si c'est la jambe, c'est votre pied qui est atteint. Chaque jour, effectuez un Test de **Résistance Accessible (+20)**. Sur un succès, la *Gangrène* est contenue. Sur un échec, elle empire. Si vous obtenez plus d'échecs que votre Bonus d'Endurance, la Localisation devient totalement inutilisable. Si cela se produit, utilisez les mêmes règles que pour l'Amputation (voir Blessures critiques). Tant que vous souffrez de la *Gangrène*, subissez une pénalité de -10 à tous vos Tests de Sociabilité, et vous subissez le symptôme Blessé. De plus, comme si ce n'était pas suffisant, vous souffrez également de *Toxine* tant que le tissu affecté ne sera pas amputé. Et cela perdurera même après que vous avez été guéri de la maladie à l'origine de la *Gangrène*.",
     "passive": [
       {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "sociabilite"
       }
     ],
     "capabilities": {
@@ -669,16 +669,16 @@
     "desc": "Pour chaque période complète de 30 jours d'infection, le Personnage subit une pénalité de –5 à tous les Tests de **Résistance** permettant de résister aux maladies. Cette pénalité est réduite de 1 point par jour après la mort du ver.\n\nPour déterminer où le ver fait surface, effectuez un lancer de Localisation comme lors d'un combat normal. Lorsque l'ampoule se forme, le patient subit une pénalité de –5 % à tous les Tests d'Agilité en raison de l'irritation constante. De plus, si l'ampoule se trouve à un endroit visible, le Personnage subit également une pénalité de –10 aux Tests de Sociabilité.\n\nLe septième jour suivant l'apparition de la cloque, la personne atteinte doit effectuer un Test de Résistance toutes les heures. Au premier échec, ou à la dernière heure du jour si tous les Tests sont réussis, la cloque éclate, infligeant 1 Blessure et provoquant un État *Sonné* en raison de la sensation de brûlure presque insupportable qui en résulte.",
     "passive": [
       {
-        "op": "charMod",
-        "char": "agilite",
-        "mod": -5
+        "op": "testMod",
+        "amount": -5,
+        "char": "agilite"
       }
     ],
     "visiblePassive": [
       {
-        "op": "charMod",
-        "char": "sociabilite",
-        "mod": -10
+        "op": "testMod",
+        "amount": -10,
+        "char": "sociabilite"
       }
     ],
     "visibleLocations": [

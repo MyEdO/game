@@ -7,7 +7,7 @@ import { crowdMod, bestRangedDefense, locationLabel, weaponInflictsFlames, attac
 import { isUnarmed } from '../../engine/items';
 import { isInanimate } from '../../engine/structures';
 import { combatDistance } from '../../state/footprint';
-import { attackWeaponOf, crowdEligible, previewAttack, previewDefense, defenseDodgeMod, surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock } from '../../state/combatFlow';
+import { attackWeaponOf, crowdEligible, previewAttack, previewDefense, defenseDodgeMods, surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock } from '../../state/combatFlow';
 import { t } from '../../i18n';
 import { itemCapability } from '../../engine/capabilities';
 import { objetSourceDeLArme } from '../../engine/weaponLoad';
@@ -117,13 +117,13 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   // LDB 13 l.135
   const rangedDef = !res && weapon?.type === 'ranged' ? bestRangedDefense(attacker, target, weapon, combatDistance(attacker, target)) : undefined;
   // La rangée adverse annonce la Difficulté que le jet de défense subira VRAIMENT : même pénalité
-  // d'esquive que la résolution (`defenseDodgeMod`) et même arme attaquante (Rapide, LDB 62 l.298-302).
-  const dodge = defenseDodgeMod(useGame.getState, target);
+  // d'esquive que la résolution (`defenseDodgeMods`) et même arme attaquante (Rapide, LDB 62 l.298-302).
+  const dodge = defenseDodgeMods(useGame.getState(), target);
   const defenderPending = res
     ? undefined
     : weapon?.type === 'ranged'
-      ? (rangedDef ? previewDefense(target, { mode: rangedDef.mode, parryWeapon: rangedDef.parryWeapon, vsWeapon: weapon, dodgeMod: dodge }) : undefined)
-      : isInanimate(target) ? undefined : previewDefense(target, { vsWeapon: weapon, dodgeMod: dodge });
+      ? (rangedDef ? previewDefense(target, { mode: rangedDef.mode, parryWeapon: rangedDef.parryWeapon, vsWeapon: weapon, dodgeMods: dodge }) : undefined)
+      : isInanimate(target) ? undefined : previewDefense(target, { vsWeapon: weapon, dodgeMods: dodge });
   // LDB 16 l.113 ; LDB 17 l.68
   const helplessForced = isHelplessTarget(target);
   // LDB 23 l.209 ; LDB 10

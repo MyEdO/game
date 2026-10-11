@@ -155,7 +155,7 @@ Règle d'application des Traits Facultatifs modificateurs de profil (**Élite, C
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 76` (l.11-13, l.45) → `SPECIES_BODY_SHAPE`, `bodyShapeForSpecies`, `fr`, `bodyShapeOf`, `BODY_SHAPE_LOC_LABELS`, `locationLabel`, `doc`, `baseDEntiteSchema`, `critTableKeyFor`, `SceneEntity`, +7 — `src/data/criticals.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/criticals.ts`, `src/data/schemas/defs/localisation.ts`, `src/engine/bodyForm.ts`, `src/engine/critical.ts`, +6 fichiers
-- `LDB 85` (l.339-340) → `TraitDef`, `doc`, `SIZE_LABEL`, `structureTaille`, `resizeBySteps`, `StructureData`, `isStupid`, `regard-petrifiant`, `souffle-feu`, `createHero`, +25 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +8 fichiers
+- `LDB 85` (l.339-340) → `TraitDef`, `doc`, `SIZE_LABEL`, `structureTaille`, `resizeBySteps`, `StructureData`, `isStupid`, `regard-petrifiant`, `souffle-feu`, `createHero`, +26 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +9 fichiers
 
 ---
 
@@ -222,7 +222,7 @@ Ces modificateurs s'appliquent **par catégorie d'écart**. Ils sont cumulatifs 
 - `LDB 85 l.339-340` — règle d'agrandissement/réduction.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 85` (l.339-340) → `TraitDef`, `doc`, `SIZE_LABEL`, `structureTaille`, `resizeBySteps`, `StructureData`, `isStupid`, `regard-petrifiant`, `souffle-feu`, `createHero`, +25 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +8 fichiers
+- `LDB 85` (l.339-340) → `TraitDef`, `doc`, `SIZE_LABEL`, `structureTaille`, `resizeBySteps`, `StructureData`, `isStupid`, `regard-petrifiant`, `souffle-feu`, `createHero`, +26 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/structures.ts`, `src/data/structures.json`, `src/data/traits.json`, +9 fichiers
 
 ---
 

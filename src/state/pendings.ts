@@ -365,10 +365,10 @@ export interface PendingAttack {
   weapon?: Weapon;
   /** Contexte du jet FIGÉ à la résolution (#1153), pour que toute re-dérivation retrouve la même
    *  opposition : distance de tir (bande de portée) et pénalité d'ESQUIVE du contexte
-   *  (`defenseDodgeMod` — neige `LDB 14 l.82`, défenseur monté `l.184`). Un défaut forgé (0, ou une
+   *  (`defenseDodgeMods` — neige `LDB 14 l.82`, défenseur monté `l.184`). Un défaut forgé (0, ou une
    *  distance recalculée) ferait dire au résultat une autre Difficulté que le jet d'origine. */
   distanceTiles?: number;
-  dodgeMod?: number;
+  dodgeMods?: ModLine[];
   result: AttackResult | null; // null = pas encore lancé
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;

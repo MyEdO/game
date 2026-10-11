@@ -1,12 +1,13 @@
 /**
  * Calculs dérivés des Caractéristiques — Livre de base, chapitre Personnage.
  */
-import { CharKey, Characteristics, Combatant, effectRef } from './types';
+import { CharKey, Characteristics, Combatant, effectRef, type ActiveEffect, type EffectSourceKind } from './types';
+import { isPrayerFamily } from './combatFeatures/types';
 import type { CodexTarget } from './ruleRefs';
 import { traumaCharPenaltiesLabeled, passiveCharSum } from './trauma';
 import { traitCharMods, traitCapability } from './traits/dispatch';
 import { SizeCategory, woundsForSize, effectiveSize } from './size';
-import { findTalentById } from '../data';
+import { findTalentById, findSpellById } from '../data';
 import type { ModLine } from './combat';
 import type { TraitList } from './statEntry';
 
@@ -26,55 +27,66 @@ export function baseWithTraits(c: Combatant, key: CharKey): number {
   return c.characteristics[key] + (traitCharMods(c.liveTraits)[key] ?? 0);
 }
 
-/** Pool des contributions VOLATILES étiquetées à une Caractéristique (effets actifs + pénalités passives
- *  non-cumul) — source UNIQUE pour `effectiveChar` (Σ meilleur bonus + pire pénalité) et `volatileCharLines`
- *  (affichage, issue #202). Sépare la BASE (permanente : `characteristics` + `passiveCharSum`) du pool. */
-function volatileCharEntries(c: Combatant, key: CharKey): { label: string; value: number; ref?: CodexTarget }[] {
+/** Pool de NON-CUMUL d'une contribution, déduit de son entité SOURCE — les Sorts entre eux (LDB 46
+ *  l.119), une même Prière avec elle-même (LDB 40 l.19). Hors pool (`undefined`) : la contribution se
+ *  SOMME (LDB 14 l.95). `kind` (nature déclarée de la source) prime sur la famille lue au catalogue. */
+export function poolDeNonCumul(ref: CodexTarget | undefined, kind?: EffectSourceKind): string | undefined {
+  if (ref?.category !== 'spells') return undefined;
+  const priere = kind ? kind === 'prayer' : isPrayerFamily(findSpellById(ref.id)?.family);
+  return priere ? `priere:${ref.id}` : 'sort';
+}
+
+/** Pool d'un effet actif (`poolDeNonCumul` de son entité source). */
+export function effectPool(e: ActiveEffect): string | undefined {
+  return poolDeNonCumul(effectRef(e) ?? (e.spell ? { category: 'spells', id: e.spell.spellId } : undefined), e.source?.kind);
+}
+
+interface VolatileEntry { label: string; value: number; ref?: CodexTarget; pool?: string }
+
+/** Contributions VOLATILES étiquetées RETENUES pour une Caractéristique — source UNIQUE de
+ *  `effectiveChar` (leur Σ) et de `volatileCharLines` (leur affichage, issue #202). Un pool ne garde que
+ *  son meilleur bonus et sa pire pénalité (`effectPool`) ; le reste — effets hors pool, réductions
+ *  passives (traumatisme, faim…, `traumaCharPenaltiesLabeled`) — est retenu en entier. Sépare la BASE
+ *  (permanente : `characteristics` + `passiveCharSum`) des contributions volatiles. */
+function volatileCharEntries(c: Combatant, key: CharKey): VolatileEntry[] {
   // Effet actif : son `label` propre + son renvoi (`effectRef`) — MÊME règle que les passifs (#1153).
-  const entries = (c.activeEffects ?? []).filter((e) => e.char === key).map((e) => ({ label: e.label, value: e.bonus, famille: 'jet' as const, ref: effectRef(e) }));
-  entries.push(...traumaCharPenaltiesLabeled(c, key).map((p) => ({ label: p.label, value: p.mod, famille: 'jet' as const, ref: p.ref })));
-  return entries;
+  const entries: VolatileEntry[] = (c.activeEffects ?? []).filter((e) => e.char === key).map((e) => ({ label: e.label, value: e.bonus, ref: effectRef(e), pool: effectPool(e) }));
+  entries.push(...traumaCharPenaltiesLabeled(c, key).map((p) => ({ label: p.label, value: p.mod, ref: p.ref, pool: poolDeNonCumul(p.src) })));
+  return retenirParPool(entries);
 }
 
-/**
- * Valeur effective d'une Caractéristique, modifiée par les effets magiques
- * actifs. Les bonus/pénalités ne se cumulent pas : seuls le MEILLEUR bonus et la
- * PIRE pénalité s'appliquent, et tous deux sont sommés (Livre de base l.168 /
- * p.220). Ex. +20, +10 et -10 sur la même Caractéristique → +20 - 10 = +10 net.
- */
+/** Contributions RETENUES d'une liste à pools de non-cumul : chaque pool garde son meilleur bonus et sa
+ *  pire pénalité (`poolDeNonCumul`) ; hors pool, tout est retenu (LDB 14 l.95). Les nulles tombent. */
+export function retenirParPool<T extends { value: number; pool?: string }>(entries: readonly T[]): T[] {
+  const retained: T[] = [];
+  const pools = new Map<string, T[]>();
+  for (const e of entries) {
+    if (!e.value) continue;
+    if (e.pool == null) retained.push(e);
+    else pools.set(e.pool, [...(pools.get(e.pool) ?? []), e]);
+  }
+  for (const members of pools.values()) {
+    const bonuses = members.filter((e) => e.value > 0);
+    const penalties = members.filter((e) => e.value < 0);
+    if (bonuses.length) retained.push(bonuses.reduce((a, b) => (b.value > a.value ? b : a)));
+    if (penalties.length) retained.push(penalties.reduce((a, b) => (b.value < a.value ? b : a)));
+  }
+  return retained;
+}
+
+/** Valeur effective d'une Caractéristique : BASE + contributions volatiles retenues (`volatileCharEntries`). */
 export function effectiveChar(c: Combatant, key: CharKey): number {
-  let base = c.characteristics[key];
   // Mutations de Corruption (LDB 19) : modifs PERMANENTES de la caractéristique (« +5 Force », « -10
-  // Sociabilité »…) — s'ajoutent à la BASE (hors pool non-cumul : un corps transformé n'est pas un bonus
-  // magique), via le collecteur passif unifié (kind `intrinseque`, sommé).
-  base += passiveCharSum(c, key);
-  // Pénalités PASSIVES non-cumul (pool « pire pénalité », LDB 16 l.13) du collecteur unifié : traumatisme
-  // (LDB 18), maladie (LDB 20 : fièvre −10 Physique/Social) et faim (LDB 18 l.342 : −10 F/E puis −10 ailleurs)
-  // — toutes en charMod non-`intrinseque`, gating (Détermination…) déjà appliqué par le collecteur.
-  const mods = volatileCharEntries(c, key).map((e) => e.value);
-  if (mods.length === 0) return base;
-  const bestBonus = Math.max(0, ...mods.filter((m) => m > 0));
-  const worstPenalty = Math.min(0, ...mods.filter((m) => m < 0));
-  return base + bestBonus + worstPenalty;
+  // Sociabilité »…) — s'ajoutent à la BASE via le collecteur passif unifié (kind `intrinseque`, sommé).
+  const base = c.characteristics[key] + passiveCharSum(c, key);
+  return volatileCharEntries(c, key).reduce((s, e) => s + e.value, base);
 }
 
-/** Lignes ÉTIQUETÉES (≤2) du MEILLEUR bonus et de la PIRE pénalité volatiles gagnants du pool non-cumul
- *  (issue #202 — affichage dans la modale d'attaque). `famille: 'jet'` : hors table des Difficultés de
- *  Combat (`LDB 14 l.48`) — ces valeurs vivent dans `effectiveChar`, aucun plafond de combinaison. */
+/** Lignes ÉTIQUETÉES des contributions volatiles retenues (issue #202 — affichage dans la modale
+ *  d'attaque). `famille: 'jet'` : hors table des Difficultés de Combat (`LDB 14 l.48`) — ces valeurs
+ *  vivent dans `effectiveChar`, aucun plafond de combinaison. */
 export function volatileCharLines(c: Combatant, key: CharKey): ModLine[] {
-  const entries = volatileCharEntries(c, key);
-  const bonuses = entries.filter((e) => e.value > 0);
-  const penalties = entries.filter((e) => e.value < 0);
-  const lines: ModLine[] = [];
-  if (bonuses.length) {
-    const best = bonuses.reduce((a, b) => (b.value > a.value ? b : a));
-    lines.push({ label: best.label, value: best.value, famille: 'jet', ref: best.ref });
-  }
-  if (penalties.length) {
-    const worst = penalties.reduce((a, b) => (b.value < a.value ? b : a));
-    lines.push({ label: worst.label, value: worst.value, famille: 'jet', ref: worst.ref });
-  }
-  return lines;
+  return volatileCharEntries(c, key).map((e) => ({ label: e.label, value: e.value, famille: 'jet', ref: e.ref }));
 }
 
 /**

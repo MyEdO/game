@@ -156,11 +156,13 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     // cible (forme `casc.autoRowTrace` : « Nom — Résistance : 99/42 → échec (DR -5). »). Une par Test.
     const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+[ ]→[ ]/.test(l));
     expect(lignesDeJet.length, `aucune ligne de dé dans le journal : ${journal.join(' | ')}`).toBeGreaterThanOrEqual(3);
-    const [roll, target] = lignesDeJet[0].match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
+    const [roll] = lignesDeJet[0].match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
     expect(roll, 'le dé rendu est un d100').toBeGreaterThanOrEqual(1);
     expect(roll).toBeLessThanOrEqual(100);
     // La cible est celle de la PORTE : la Résistance du héros à Intermédiaire (+0), jamais 0 ni une
-    // valeur maison. (Le héros n'a aucun État ici : nue === jetée.)
+    // valeur maison. L'état du héros ÉVOLUE d'une nuit à l'autre (Malaise → Exténué, LDB 20 l.188 ; Faim,
+    // LDB 18 l.342) : seul le DERNIER Test est roulé dans l'état observé ici.
+    const target = Number(lignesDeJet[lignesDeJet.length - 1].match(/(\d+)\/(\d+)/)![2]);
     const h = useGame.getState().party[0];
     expect(target, 'la cible rendue est celle que la porte a montée')
       .toBe(clampTarget(testValue(h, 'resistance') + DIFFICULTY_MODIFIERS.intermediaire).target);
