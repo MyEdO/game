@@ -16,6 +16,7 @@ import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue } from './skills';
 import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, CHAR_LABELS, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine } from './types';
 import { weatherTestMods } from './weatherTestMod';
+import { precipitationTestMods } from './seaWeather';
 import { findTableEntry } from './tables';
 import { maxBy } from './pick';
 import locJson from '../data/localisation.json';
@@ -151,6 +152,12 @@ function acceptableSpecs(weapon: Weapon, kind: 'melee' | 'ranged'): SpecAcceptan
   if (kind === 'ranged' && (gid === 'arbalete' || gid === 'lancer'))
     return [{ spec: gid, mode: 'full' }, { spec: ANY_RANGED_SPEC, mode: 'degraded' }]; // LDB 62 l.184
   return [{ spec: gid, mode: 'full' }];
+}
+
+/** Spécialisation du Test d'attaque avec `weapon` : celle du combattant qui couvre le Groupe, sinon celle du
+ *  Groupe lui-même (LDB 62 l.180). */
+function attackTestSpec(c: Combatant, weapon: Weapon, kind: 'melee' | 'ranged'): string | undefined {
+  return matchGroupSpec(c, weapon, kind)?.spec ?? acceptableSpecs(weapon, kind).find((w) => w.spec !== ANY_RANGED_SPEC)?.spec;
 }
 
 /**
@@ -815,6 +822,8 @@ export function attackModifiers(
   // (Corps à corps = CC, Projectiles = CT). Lu depuis `attacker.envWeather` (posé à l'ouverture du combat),
   // jamais recâblé côté state (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
   out.push(...weatherTestMods(attacker.envWeather, opts.kind === 'ranged' ? 'capacite-de-tir' : 'capacite-de-combat'));
+  // Précipitations sur le pont (MDG 13 l.185, #1936) : canal `precipitationTestMods`, lu depuis `attacker.envPrecipitation`.
+  out.push(...precipitationTestMods(attacker.envPrecipitation, opts.kind === 'ranged' ? 'projectiles' : 'corps-a-corps', attackTestSpec(attacker, weapon, opts.kind)));
   // Modificateurs WEAPON-CONTEXTUELS dérivés de la SCÈNE (couvert / obscurité / météo au TIR (rangedMod/
   // poudre) / mouvement / tir-mêlée), calculés côté state (combatFlow) et injectés ici — la table de
   // Difficultés de Combat n'est pas exhaustive. La pénalité « Tests physiques » n'y est PLUS (canal ci-dessus).
@@ -882,7 +891,14 @@ export function defenseModifiers(defender: Combatant, mode: DefenseMode, dodgeMo
   // (posé à l'ouverture du combat), scopé par la carac RÉELLE du mode (Parade = CC, Esquive = Agilité) — jamais
   // recâblé par surface (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
   out.push(...weatherTestMods(defender.envWeather, defenseTestChar(mode)));
+  out.push(...precipitationTestMods(defender.envPrecipitation, defenseTestSkill(mode))); // MDG 13 l.185, #1936
   return out;
+}
+
+/** Compétence RÉELLE d'un mode de défense (Parade = Corps à corps, Esquive = Esquive) — clé du canal de
+ *  Précipitations (MDG 13 l.187-200). La substitution sociale n'en désigne aucune. */
+function defenseTestSkill(mode: DefenseMode): string | undefined {
+  return mode === 'parade' ? 'corps-a-corps' : mode === 'esquive' ? 'esquive' : undefined;
 }
 
 /** Caractéristique RÉELLE d'un mode de défense (Parade = Test de CC, Esquive = Agilité) — pour le canal météo
@@ -914,6 +930,7 @@ export function baseTestModLines(c: Combatant, ck?: CharKey): ModLine[] {
   if (adv) out.push(adv);
   out.push(...conditionModLines(c));
   out.push(...weatherTestMods(c.envWeather, ck ?? null));
+  out.push(...precipitationTestMods(c.envPrecipitation)); // MDG 13 l.185, #1936
   return out;
 }
 

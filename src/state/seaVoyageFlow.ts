@@ -55,7 +55,9 @@ import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, find
 import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, vesselPropulsion, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
-import { rollTest, isDoubleRoll, extendedTestStep, difficultyFromModifier } from '../engine/tests';
+import { rollTest, isDoubleRoll, extendedTestStep } from '../engine/tests';
+import type { ModLine } from '../engine/combat';
+import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest } from '../engine/skills';
 import { buildWeapon } from '../engine/items';
 import { applyOps, type PairedSense } from '../engine/ops';
@@ -67,8 +69,8 @@ import { seasonOfMonth } from '../engine/travelStages';
 import {
   rollSeaWeather, rollWindDirection, windAspect, tickWindForceDay, windEffect, windAdjustedM,
   seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
-  precipitationSkillMod, precipitationDef,
-  type SeaWeather, type WindDirection, type WindAspect,
+  precipitationTestMods,
+  type SeaWeather, type WindDirection, type WindAspect, type SeaPrecipitationId,
 } from '../engine/seaWeather';
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, foulingEffects, rollWeeklyFouling,
@@ -195,7 +197,7 @@ export interface SeaVoyageState {
   infestation?: { label: string; difficulty: Difficulty; need: number; progress: number; spoilPerNight: string };
   /** ÉCHOUÉ sur un péril (Rocher/Bas-fonds, MDG 13 l.471-473/497/499, #444) : le navire s'arrête net,
    *  aucune Progression tant qu'un Test de Force (pénalité = `strandingPenalty`) ne l'a pas dégagé. */
-  stranded?: { hazardId: string; label: string; difficulty: Difficulty };
+  stranded?: { hazardId: string; label: string };
   /** EMPÊTRÉ dans des Débris marins (MDG 13 l.485-491, #444) : pénalité de Man/M tant que le Test
    *  étendu de Force (`hazard.freeTest`) n'a pas dégagé le navire — n'arrête PAS la Progression. */
   entangled?: { hazardId: string; label: string; need: number; progress: number; manDR: number; mMod: number; difficulty: Difficulty };
@@ -246,14 +248,11 @@ export interface SeaRecapChrome {
  *  voyage rapide (l.28) et des Activités en mer (`daysAtSea % 8`, `continueSeaDayAfterCascade`). */
 const SEA_WEEK_DAYS = 8;
 
-/** Malus d'ENVIRONNEMENT (Précipitations, MDG 13 l.187-201) sur le Test de compétence `skillId` en
- *  cours, quand un voyage en mer est ACTIF — POINT UNIQUE consommé par `openSkillTest` (aucun écran
- *  ne relit `sea.weather` pour son propre Test : la modale générique porte le malus). `undefined` =
- *  rien à afficher (mod nul, hors voyage maritime, ou Test de Caractéristique sans `skillId`). */
-export function seaWeatherTestMod(sea: SeaVoyageState | undefined, skillId?: string, spec?: string): { mod: number; label: string } | undefined {
-  if (!sea || !skillId) return undefined;
-  const mod = precipitationSkillMod(sea.weather.precipitations, skillId, spec);
-  return mod ? { mod, label: precipitationDef(sea.weather.precipitations).label } : undefined;
+/** Précipitations du jour de mer ACTIF (MDG 13 l.185) — l'entrée du canal `precipitationTestMods` hors
+ *  combat, et la source de `Combatant.envPrecipitation` à l'ouverture d'un combat. `undefined` hors
+ *  voyage maritime. */
+export function activeSeaPrecipitation(get: Get): SeaPrecipitationId | undefined {
+  return get().travelPlan?.sea?.weather.precipitations;
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
@@ -477,6 +476,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
   if (!contributors.length) return undefined;
   const testType = findCrewTestTypeById(testTypeId);
   const essentialRoleId = testType?.essential;
+  const precip = activeSeaPrecipitation(get); // MDG 13 l.185 : l'équipage est sur le pont
   // Le flux propriétaire (naval) RÉSOUT la présentation (rôle tenu) et DÉCLARE le jet de chaque
   // contributeur au MONTEUR CANONIQUE (`rollStep`) — le séquenceur/modale génériques n'y liront QUE
   // des champs neutres (`BatchParticipant`), base NUE et composantes NOMMÉES comprises.
@@ -501,8 +501,9 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
           actor: a.crew, test: { skill: rv.used.id, spec: rv.used.spec, sense: opts.sense },
           valeur: rv.value, difficulty: 'intermediaire',
           ...(crewTestModParts(a.crew).length ? { dansLaValeur: crewTestModParts(a.crew) } : {}),
+          surLaCible: precipitationTestMods(precip, rv.used.id, rv.used.spec),
         }
-        : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty: 'intermediaire' }),
+        : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty: 'intermediaire', surLaCible: precipitationTestMods(precip) }),
       bonusSlOnSuccess: role ? crewTalentDR(a.crew, role) : 0,
       result: null,
     };
@@ -564,7 +565,7 @@ function buildForcePaceStep(get: Get): BuiltCascadeStep | undefined {
     // Le Soutien est un bonus AU TEST (LDB 12, fiche `soutien`) : la valeur SOUTENUE (`best.value`,
     // Soutien fondu par `partyAssisted`) donne la CIBLE — sans elle, la cible se recalculerait depuis
     // la carac NUE et les soutiens ne changeraient rien au jet (recette #1117).
-    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support },
+    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support, surLaCible: precipitationTestMods(activeSeaPrecipitation(get), skillId) },
     stake: voyageStakeRef('sea-force-pace', { paceM: sea.forcePace ?? 0 }),
     meta: { forcePace: sea.forcePace },
   });
@@ -587,7 +588,7 @@ function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
     id: 'sea-progression-nav', kind: 'sea-progression-nav', actor: best.actor, icon: 'travel/anchor',
     label: composeRollLabel(best.actor, t('sv.progression'), test),
     difficulty: diff,
-    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support },
+    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support, surLaCible: precipitationTestMods(activeSeaPrecipitation(get), skillId) },
     stake: voyageStakeRef('sea-progression-nav'),
   });
 }
@@ -613,18 +614,28 @@ function buildProgressionChoiceStep(get: Get): BuiltCascadeStep | undefined {
   });
 }
 
+/** Pénalité du Test de Force de dégagement d'un ÉCHOUAGE (MDG 13 l.473), dérivée au jet de
+ *  `strandingPenalty` : Encombrement du navire + de sa cargaison. */
+function seaStrandingPenalty(get: Get): ModLine[] {
+  const vessel = get().vessel;
+  const shipEnc = findVehicleById(vessel?.vehicleId ?? '')?.enc ?? 0;
+  const cargoEnc = cargoTotalEnc(vessel?.cargo ?? []);
+  const value = strandingPenalty(shipEnc, cargoEnc);
+  return value ? [{ label: t('sv.strandingPenalty'), value, famille: 'circonstance', ref: RULE_REF['echouer-en-mer'] }] : [];
+}
+
 /** Étape MONO « Dégagement » (Test de Force, #444) — partagée par l'Échouage (`sea-degagement`, MDG
- *  ch.13 l.471-473 : « N'importe quel nombre de Personnages… peut aider ») et l'empêtrement dans des
- *  Débris marins (`sea-degagement-debris`, l.491, Test étendu). `undefined` = aucun PJ éligible à la Force. */
-function buildStrandedOrEntangledStep(get: Get, label: string, difficulty: Difficulty, kind: string): BuiltCascadeStep | undefined {
+ *  ch.13 l.471-473) et l'empêtrement dans des Débris marins (`sea-degagement-debris`, l.491, Test
+ *  étendu). `penalite` = les malus sur la cible (l.473). `undefined` = aucun PJ éligible à la Force. */
+function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: string, penalite: ModLine[] = []): BuiltCascadeStep | undefined {
   const force = partyAssisted(get().party, undefined, 'force');
   if (!force) return undefined;
   const test = { char: 'force' as const };
   return monoStep({
     id: kind, kind, actor: force.actor, icon: 'travel/repair',
-    label: composeRollLabel(force.actor, t('sv.degagement', { label }), test),
+    label: composeRollLabel(force.actor, t('sv.degagement'), test),
     difficulty,
-    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support },
+    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, surLaCible: [...penalite, ...precipitationTestMods(activeSeaPrecipitation(get))] },
     // Les deux `kind` de dégagement (échouage / débris) mettent la MÊME chose en jeu : la progression
     // du jour tant que le navire n'est pas dégagé.
     stake: voyageStakeRef('sea-degagement'),
@@ -714,7 +725,7 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   // EMPÊTRÉ dans des Débris marins (MDG 13 l.491, #444) : Test étendu de Force pour se dégager —
   // n'arrête PAS la Progression (contrairement à l'Échouage, `sea.stranded`).
   if (sea.entangled) {
-    const st = buildStrandedOrEntangledStep(get, sea.entangled.label, sea.entangled.difficulty, 'sea-degagement-debris');
+    const st = buildStrandedOrEntangledStep(get, sea.entangled.difficulty, 'sea-degagement-debris');
     pousseSi(out, st);
   }
   // « ÇA VA LÂCHER, CAPITAINE ! » (MDG 13 l.121-142, #443) : la Progression du jour a dépassé M+4
@@ -784,7 +795,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   if (strandedSea.stranded) {
     tell(get, set, [t('sv.stranded', { hazard: strandedSea.stranded.label })]);
     patchSea(get, set, { milesToday: 0 });
-    const st = buildStrandedOrEntangledStep(get, strandedSea.stranded.label, strandedSea.stranded.difficulty, 'sea-degagement');
+    const st = buildStrandedOrEntangledStep(get, 'intermediaire', 'sea-degagement', seaStrandingPenalty(get));
     pousseSi(steps, st);
     steps.push(...buildPostProgressionSteps(get, set));
     return { steps, log: [] };
@@ -1358,8 +1369,7 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
       pousseSi(out, monoStep({
         id: `sea-tonneau-expose-${h.id}`, kind: 'sea-tonneau-expose', actor: h,
         label: composeRollLabel(h, t('sv.waterBarrelTainted'), test), difficulty: diff,
-        // Z5 : SITUATION en `rollLabel` (Compétence lancée = Résistance) — stock du cliquet, #1109.
-        rollLabel: t('sv.waterBarrelTaintedShort'),
+        rollLabel: refLabel('skills', { id: 'resistance' }),
         ligne: { test: { skill: 'resistance', char: 'endurance' } },
         stake: voyageStakeRef('sea-tonneau-expose', { disease: diseaseLabel(diseaseId) }), meta: { diseaseId },
       }));
@@ -1372,8 +1382,7 @@ function buildBarrelSteps(get: Get, sea: SeaVoyageState, vessel: CampaignVessel 
       pousseSi(out, monoStep({
         id: `sea-tonneau-contamine-${h.id}`, kind: 'sea-tonneau-contamine', actor: h,
         label: composeRollLabel(h, t('sv.waterBarrel'), test), difficulty: 'intermediaire',
-        // Z5 : SITUATION en `rollLabel` (Compétence lancée = Résistance) — stock du cliquet, #1109.
-        rollLabel: t('sv.waterBarrelRoll'),
+        rollLabel: refLabel('skills', { id: 'resistance' }),
         ligne: { test: { skill: 'resistance', char: 'endurance' } },
         stake: voyageStakeRef('sea-tonneau-contamine', { disease: diseaseLabel(dz.id) }), meta: { diseaseId: dz.id },
       }));
@@ -2526,12 +2535,8 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
           tell(get, set, [t('sv.entangledOn', { hazard: hazard.label })]);
         }
       } else if (hazard.strandChancePct != null && strandingOccurs(hazard, deMonde(rng))) {
-        // Échouage (l.471-473/497/499) : Test de Force, pénalité = Encombrement navire + cargaison.
-        const vessel = get().vessel;
-        const shipEnc = findVehicleById(vessel?.vehicleId ?? '')?.enc ?? 0;
-        const cargoEnc = (vessel?.cargo ?? []).reduce((s, c) => s + (c.enc ?? 0), 0);
-        const difficulty = difficultyFromModifier(strandingPenalty(shipEnc, cargoEnc));
-        patchSea(get, set, { stranded: { hazardId: hazard.id, label: hazard.label, difficulty } });
+        // Échouage (l.471-473/497/499) : la pénalité se dérive au jet (`seaStrandingPenalty`).
+        patchSea(get, set, { stranded: { hazardId: hazard.id, label: hazard.label } });
         tell(get, set, [t('sv.strandedOn', { hazard: hazard.label })]);
       }
       break;

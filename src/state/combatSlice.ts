@@ -2933,8 +2933,8 @@ export function createCombatSlice(get: Get, set: Set) {
         audience: battle.combatants.filter((c) => !isOutOfAction(c)),
         triggerCtx: { rng: battleRng() },
       });
-      // Météo du JOUR estampillée sur chaque combattant (#341) : SOURCE du canal « Tests physiques »
-      // (`weatherTestMods`, lu par attack/defenseModifiers/baseTestMods) — AVANT tout jet de ce combat.
+      // Météo du JOUR estampillée sur chaque combattant (#341 ; Précipitations MDG 13 l.185) : SOURCE des
+      // canaux `weatherTestMods` et `precipitationTestMods` — AVANT tout jet de ce combat.
       stampEnvWeatherAtCombatStart(get, set);
       // Option « Vents Tourbillonnants » (LDB 46 l.179-190, #491) : tirage 1d10 de la force des Vents
       // + Test de Perception (Seconde vue) des porteurs — AVANT tout jet d'Incantation/Focalisation.

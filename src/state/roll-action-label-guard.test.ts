@@ -12,9 +12,10 @@ import { fr } from '../i18n/messages/fr';
  * lui-même l'un de ces deux signes rend la même ligne ambiguë : « Ilsa — Mal de mer — mauvais temps
  * (Résistance) », « Ilsa — Tonneau d'eau (boire) (Résistance) ».
  *
- * COUVERTURE (un détecteur ne mesure que la sienne) : les deux entrées du slot ACTION, en LITTÉRAL —
+ * COUVERTURE (un détecteur ne mesure que la sienne) : les deux entrées du slot ACTION —
  * `actionLabel:` (`RollRequest`/`openPartyTest`/`openWorldTest`) et le 2ᵉ argument de
- * `composeRollLabel(`. Ce que ce scan ne voit PAS : un libellé venu de la DONNÉE (`def.label` d'une
+ * `composeRollLabel(` —, en LITTÉRAL et en CLÉ de catalogue (`t('cle')`/`tr('cle')`, résolue au
+ * catalogue FR : c'est le texte rendu qui compte). Ce que ce scan ne voit PAS : un libellé venu de la DONNÉE (`def.label` d'une
  * Activité, `game.label` d'un jeu de taverne, `hazard.label` d'un péril) — mesuré à la main au
  * 2026-08-05, conforme côté `activities.json` (contexte `mer`) et `tavernGames.json` ; les deux
  * libellés à tiret d'`activities.json` (`semer-dissension-*`) sont de contexte `interlude`, qui
@@ -31,6 +32,9 @@ const RESERVED = /[()—]/;
  *  (« Évaluer ${offer.label} » est conforme), seuls les signes ÉCRITS comptent. */
 const ACTION_LABEL_RX = /(?:actionLabel:\s*|composeRollLabel\(\s*[^,()]+,\s*)(['"`])((?:\\.|(?!\1)[\s\S])*?)\1/g;
 
+/** Le MÊME slot en CLÉ de catalogue, paramétrée ou non, alias `tr(` compris (forme de `ROLL_LABEL_KEY_RX`). */
+const ACTION_LABEL_KEY_RX = /(?:actionLabel:\s*|composeRollLabel\(\s*[^,()]+,\s*)t\s*r?\(\s*'([^']+)'\s*[,)]/g;
+
 export interface ActionLabelHit { line: number; text: string }
 
 /** Scanne un source et rend les libellés d'action porteurs d'un signe réservé (exporté pour la
@@ -42,28 +46,19 @@ export function scanActionLabels(src: string): ActionLabelHit[] {
     if (!RESERVED.test(m[2])) continue;
     hits.push({ line: src.slice(0, m.index).split('\n').length, text: m[2] });
   }
+  for (const m of src.matchAll(ACTION_LABEL_KEY_RX)) {
+    const text = (fr as Record<string, string>)[m[1]];
+    if (text == null || !RESERVED.test(text)) continue;
+    hits.push({ line: src.slice(0, m.index).split('\n').length, text });
+  }
   return hits;
 }
 
-/**
- * EXEMPTION AU SITE (jamais au fichier) — un seul site, motivé : le péril à dégager est une DONNÉE
- * (`sea-perils.json` : Iceberg / Débris marins / Rocher / Bas-fonds) sans article, et aucune
- * composition nominale ne le recolle sans en inventer un. Le libellé reste tel quel tant que
- * l'arbitrage n'est pas rendu ; l'entrée porte le FICHIER et le TEXTE exact (pas une ligne, qui
- * dérive, ni un fichier entier, qui blanchirait tout ce qu'il contiendra).
- */
-const ACTION_LABEL_STOCK: { file: string; text: string }[] = [
-  { file: 'src/state/seaVoyageFlow.ts', text: 'Dégagement — ${label}' },
-];
-
 describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse ni tiret long (#1078)', () => {
-  it('aucun libellé d’action hors stock ne porte un signe réservé', () => {
+  it('aucun libellé d’action ne porte un signe réservé', () => {
     const offenders: string[] = [];
     for (const { rel, text } of readCorpus(['src'])) {
-      for (const h of scanActionLabels(text)) {
-        if (ACTION_LABEL_STOCK.some((s) => s.file === rel && s.text === h.text)) continue;
-        offenders.push(`${rel}:${h.line} — « ${h.text} »`);
-      }
+      for (const h of scanActionLabels(text)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
     }
     expect(
       offenders,
@@ -74,6 +69,12 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
   it('fail-closed : une parenthèse d’usage SYNTHÉTIQUE est détectée', () => {
     expect(scanActionLabels(`label: composeRollLabel(h, "Tonneau d'eau (boire)", test),`)).toHaveLength(1);
     expect(scanActionLabels(`  actionLabel: 'Recherche active (au port)',`)).toHaveLength(1);
+  });
+
+  it('fail-closed : une CLÉ de catalogue dont le texte porte un signe réservé est détectée, dans les deux entrées du slot', () => {
+    expect(scanActionLabels("label: composeRollLabel(force.actor, t('difficulty.intermediaire', { label }), test),")).toHaveLength(1);
+    expect(scanActionLabels("  actionLabel: tr('difficulty.intermediaire'),")).toHaveLength(1);
+    expect(scanActionLabels("label: composeRollLabel(force.actor, t('sv.degagement'), test),")).toEqual([]);
   });
 
   it('fail-closed : un tiret long de situation SYNTHÉTIQUE est détecté', () => {
@@ -97,7 +98,7 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
  * BOUTON « Lancer », `RollRowProps` — autre champ, hors périmètre) doit être un libellé du CATALOGUE
  * — compétence (`skills`), caractéristique (`CHAR_LABELS`), ou compétence + spécialisation entre
  * parenthèses (« Métier (Cartographe) ») — apostrophes normalisées (le catalogue écrit `'`, les sites
- * écrivent parfois `’`). Sinon : entrée NOMINATIVE au stock ci-dessous, plafond COLLÉ et décroissant.
+ * écrivent parfois `’`).
  *
  * ANGLE MORT assumé du volet : un `rollLabel` CALCULÉ (`refLabel(…)`, ternaire, variable) n'est pas lu
  * par ce scan lexical. Il n'est PAS pour autant sûr : un libellé calculé peut venir d'un AUTRE
@@ -142,20 +143,6 @@ export function scanRollLabels(src: string): ActionLabelHit[] {
   return hits;
 }
 
-/** STOCK NOMINATIF (#1109) — les six sites mesurés le 2026-08-05, chacun nommé par son fichier et son
- *  TEXTE exact. Plafond COLLÉ (longueur exacte) : un site assaini l'abaisse, un site neuf rougit nominativement.
- *  #1318 V8c₃ : le stock est passé au catalogue (`sv.*`) SANS changer un octet de son texte — il est
- *  donc TOUJOURS LÀ, et le scan le suit désormais jusqu'à sa clé. */
-const ROLL_LABEL_SITUATION_STOCK: { file: string; text: string }[] = [
-  { file: 'src/state/seaVoyageFlow.ts', text: 'Tonneau contaminé' },
-  { file: 'src/state/seaVoyageFlow.ts', text: "Tonneau d'eau" },
-];
-// Sortis du stock, MÊME RAISON à chaque fois : « Mal de mer » (premier voyage / mauvais temps), puis
-// « Scorbut » et « Épuisement » (#1479) — le Test est devenu une BANDE (une fenêtre, une rangée par
-// porteur) et la SITUATION y est portée par le libellé de la bande, la rangée nommant la Compétence,
-// comme le veut Z5.
-const ROLL_LABEL_SITUATION_PLAFOND = 2;
-
 describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#1109)', () => {
   const situationSites = (): string[] => {
     const out: string[] = [];
@@ -165,18 +152,12 @@ describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#11
     return out;
   };
 
-  it('aucun site NEUF : tout `rollLabel`-situation est au stock nominatif', () => {
-    const inconnus = situationSites().filter(
-      (s) => !ROLL_LABEL_SITUATION_STOCK.some((k) => s.startsWith(`${k.file}:`) && s.endsWith(`— « ${k.text} »`)),
-    );
+  it('aucun `rollLabel` ne nomme une situation', () => {
+    const sites = situationSites();
     expect(
-      inconnus,
-      '`rollLabel` qui nomme une SITUATION hors stock — la ligne du jet dit la Compétence lancée (Z5, docs/charte-ui.md ; dette #1109) :\n' + inconnus.join('\n'),
+      sites,
+      '`rollLabel` qui nomme une SITUATION — la ligne du jet dit la Compétence lancée (Z5, docs/charte-ui.md) :\n' + sites.join('\n'),
     ).toEqual([]);
-  });
-
-  it('plafond COLLÉ et décroissant (#1109)', () => {
-    expect(situationSites(), 'Stock #1109 : assainir un site ABAISSE ce plafond, jamais l’inverse.').toHaveLength(ROLL_LABEL_SITUATION_PLAFOND);
   });
 
   it('fail-closed : un `rollLabel`-situation SYNTHÉTIQUE est détecté, une Compétence passe', () => {

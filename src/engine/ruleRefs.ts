@@ -86,7 +86,9 @@ export type RuleId =
   /** Modificateurs d'exposition aux maladies transmises par l'eau (`MSRC 16`). */
   | 'exposition-hydrique'
   /** Précipitations de la Mer des Griffes, qui modulent les Tests en mer (`MDG 13`). */
-  | 'meteo-maritime';
+  | 'meteo-maritime'
+  | 'echouer-en-mer'
+  | 'navigation-echouage';
 
 /** La fiche Codex de chaque règle, en ids STABLES. Les producteurs de `ModLine` la consomment
  *  (`RULE_REF.viser`), l'affichage la résout en chip cliquable — jamais un `{category, id}` recopié
@@ -140,4 +142,6 @@ export const RULE_REF: Record<RuleId, CodexTarget> = gelerLaConstante({
   statut: { category: 'regles', id: 'statut' },
   'exposition-hydrique': { category: 'regles', id: 'exposition-hydrique' },
   'meteo-maritime': { category: 'seaWeather', id: 'seaWeather' },
+  'echouer-en-mer': { category: 'seaPerils', id: 'seaPerils' },
+  'navigation-echouage': { category: 'regles', id: 'navigation-echouage' },
 }); // #2097

@@ -37,6 +37,9 @@ import type { Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Season } from './travelStages';
 import { rule } from './policy';
+import { RULE_REF } from './ruleRefs';
+import type { ModLine } from './combat';
+import { t } from '../i18n';
 
 export type SeaPrecipitationId = 'aucune' | 'legeres' | 'abondantes' | 'tres-abondantes';
 export type SeaTemperatureId = 'caniculaire' | 'chaude' | 'mediane' | 'froide' | 'glaciale';
@@ -181,13 +184,24 @@ export function visibilityDRPenalty(vis: SeaVisibilityId, distanceM: number): nu
   return def.drPenalty != null && def.beyondM != null && distanceM > def.beyondM ? def.drPenalty : 0;
 }
 
-/** Modificateur de Précipitations sur un Test de Compétence `skillId` (spécialisation `spec`), l.187-201.
- *  Une référence SANS `spec` couvre toute spécialisation ; une référence AVEC `spec` ne couvre que
- *  celle-là. Hors liste : `otherMod`, sinon 0. PUR. */
-export function precipitationSkillMod(precip: SeaPrecipitationId, skillId: string, spec?: string): number {
+/** MDG 13 l.187-200. Une référence SANS `spec` couvre toute spécialisation ; une référence AVEC `spec`
+ *  ne couvre que celle-là. `skillId` absent = Test de Caractéristique. PUR. */
+function precipitationMod(precip: SeaPrecipitationId, skillId: string | undefined, spec: string | undefined): number {
   const def = precipitationDef(precip);
   const couvre = (r: RefDesignee): boolean => r.id === skillId && (r.spec == null || r.spec === spec);
   return def.skillMods?.find((m) => m.skills.some(couvre))?.mod ?? def.otherMod ?? 0;
+}
+
+/** CANAL UNIQUE des Précipitations sur le Test d'un Personnage sur le pont (MDG 13 l.185) : la ligne
+ *  « Météo : … » d'un Test de Compétence `skillId` (spécialisation `spec`) ou de Caractéristique
+ *  (`skillId` absent), sous la Précipitation `precip` — vide hors mer ou sans malus. Même forme que
+ *  `weatherTestMods` (`weatherTestMod.ts`). PUR. */
+export function precipitationTestMods(precip: SeaPrecipitationId | undefined, skillId?: string, spec?: string): ModLine[] {
+  if (!precip) return [];
+  const value = precipitationMod(precip, skillId, spec);
+  return value
+    ? [{ label: t('tp.modWeather', { weather: precipitationDef(precip).label }), value, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }]
+    : [];
 }
 
 /** Litres d'eau à boire PAR JOUR et par membre d'équipage : la bande de Température (Caniculaire 4 L,

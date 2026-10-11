@@ -411,9 +411,9 @@ const V8C2: Site[] = [
   },
   {
     site: 'riverVoyageFlow.ts:962 — échouage + renflouage (suite optionnelle à trois clés imbriquées)',
-    avant: `Le bateau s'échoue (coque −${12} Dégâts, l.99)${` — renflouage (Force ${'Difficile (−20)'}${' (malus −24 Enc : 20 bateau + 4 cargaison, l.99)'}) : ${55}/${40} → ${"il faudra s'y reprendre."}`}`,
+    avant: `Le bateau s'échoue (coque −${12} Dégâts, l.99)${` — renflouage (Force ${'Intermédiaire (+0)'}${' (malus −24 Enc : 20 bateau + 4 cargaison, l.99)'}) : ${55}/${40} → ${"il faudra s'y reprendre."}`}`,
     apres: t('rv.grounded', { dmg: 12, suite: t('rv.fragRefloat', {
-      diff: 'Difficile (−20)', enc: t('rv.encMalus', { total: 24, boat: 20, cargo: 4 }),
+      diff: 'Intermédiaire (+0)', enc: t('rv.encMalus', { total: 24, boat: 20, cargo: 4 }),
       roll: 55, target: 40, issue: t('rv.refloatKo'),
     }) }),
   },

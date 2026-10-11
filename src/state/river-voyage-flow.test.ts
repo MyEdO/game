@@ -274,8 +274,9 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     expect(j).not.toMatch(/malus −/);
   });
 
-  it('CHARGÉE lourdement → malus = Enc totale (bateau + cargaison), l.99', () => {
-    expect(strand(80)).toMatch(/malus −80 Enc : 0 bateau \+ 80 cargaison/);
+  it('CHARGÉE lourdement → Force Intermédiaire, malus = Enc totale (bateau + cargaison), l.99', () => {
+    const j = strand(80);
+    expect(j).toMatch(/Force Intermédiaire \(\+0\) \(malus −80 Enc : 0 bateau \+ 80 cargaison/);
   });
 
   it('cargaison légère ≠ cargaison lourde → malus DIFFÉRENT (l\'Enc suivie)', () => {
@@ -624,7 +625,7 @@ describe('Navigation du jour — Difficulté déclarée, malus NOMMÉS (#1112)',
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
     const nav = built.steps.find((s) => s.kind === 'riverNav')!;
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est PAS une Difficulté
-    expect(malus(nav)).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'jet', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     // Le malus est compris dans la cible, et la ligne explique TOUT l'écart (cliquet).
     expect(inexplique(nav)).toBe(0);
   });
@@ -646,7 +647,7 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
     seedBattleRng(2);
     const out = cascadeAppliers['riverPerilCheck'].apply(get, set, check, undefined, { steps: [check], index: 0 });
     const nav = (out?.insert ?? []).find((s) => s.kind === 'riverPerilNav')!;
-    expect(malus(nav)).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'jet', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est pas une Difficulté
     expect(inexplique(nav), 'le malus est compris dans la cible, et TOUT l’écart est nommé').toBe(0);
     // Le Test de Navigation du JOUR et l'évitement voient le MÊME modificateur (une seule règle).

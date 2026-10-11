@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
   rollSeaWeather, rollWindDirection, windAspect, tickWindForce, tickWindForceDay, windEffect, windAdjustedM,
-  visibilityDRPenalty, precipitationSkillMod, dailyWaterLitres, windForces, temperatureDef,
+  visibilityDRPenalty, precipitationTestMods, dailyWaterLitres, windForces, temperatureDef,
   seaExposureTestsPerDay,
 } from './seaWeather';
 import type { RNG } from './dice';
 import { setRule, resetRule } from './policy';
+
+/** Somme des lignes du canal Précipitations (MDG 13 l.185-200). */
+const precipMod = (...a: Parameters<typeof precipitationTestMods>): number => precipitationTestMods(...a).reduce((s, m) => s + m.value, 0);
 
 /** RNG scripté : rend la file de valeurs (clampée au domaine demandé). */
 const seq = (...vals: number[]): RNG => {
@@ -146,21 +149,29 @@ describe('effets d’ambiance — Précipitations / Température / Visibilité (
   });
 
   it('Précipitations : Abondantes = −20 Athlétisme, −10 Voile ; Très abondantes = −10 « tous les autres Tests »', () => {
-    expect(precipitationSkillMod('abondantes', 'athletisme')).toBe(-20);
-    expect(precipitationSkillMod('abondantes', 'voile')).toBe(-10);
-    expect(precipitationSkillMod('abondantes', 'charme')).toBe(0);
-    expect(precipitationSkillMod('tres-abondantes', 'charme')).toBe(-10);
-    expect(precipitationSkillMod('aucune', 'voile')).toBe(0);
+    expect(precipMod('abondantes', 'athletisme')).toBe(-20);
+    expect(precipMod('abondantes', 'voile')).toBe(-10);
+    expect(precipMod('abondantes', 'charme')).toBe(0);
+    expect(precipMod('tres-abondantes', 'charme')).toBe(-10);
+    expect(precipMod('aucune', 'voile')).toBe(0);
+  });
+
+  it('Précipitations : le canal rend UNE ligne « Météo » de famille circonstance, et frappe le Test de Caractéristique en Très abondantes', () => {
+    expect(precipitationTestMods('tres-abondantes', 'voile')).toEqual([expect.objectContaining({ label: 'Météo : Très abondantes', value: -20, famille: 'circonstance' })]);
+    expect(precipMod('tres-abondantes')).toBe(-10);
+    expect(precipMod('abondantes')).toBe(0);
+    expect(precipitationTestMods(undefined, 'voile')).toEqual([]);
+    expect(precipitationTestMods('aucune', 'voile')).toEqual([]);
   });
 
   it('Précipitations : Projectiles ne subit le malus QUE pour Poudre noire (#162)', () => {
-    expect(precipitationSkillMod('legeres', 'projectiles', 'arc')).toBe(0);
-    expect(precipitationSkillMod('legeres', 'projectiles', 'poudre-noire')).toBe(-10);
-    expect(precipitationSkillMod('legeres', 'projectiles')).toBe(0);
-    expect(precipitationSkillMod('abondantes', 'projectiles', 'arc')).toBe(0);
-    expect(precipitationSkillMod('abondantes', 'projectiles', 'poudre-noire')).toBe(-20);
-    expect(precipitationSkillMod('tres-abondantes', 'projectiles', 'arc')).toBe(-10);
-    expect(precipitationSkillMod('tres-abondantes', 'projectiles', 'poudre-noire')).toBe(-30);
+    expect(precipMod('legeres', 'projectiles', 'arc')).toBe(0);
+    expect(precipMod('legeres', 'projectiles', 'poudre-noire')).toBe(-10);
+    expect(precipMod('legeres', 'projectiles')).toBe(0);
+    expect(precipMod('abondantes', 'projectiles', 'arc')).toBe(0);
+    expect(precipMod('abondantes', 'projectiles', 'poudre-noire')).toBe(-20);
+    expect(precipMod('tres-abondantes', 'projectiles', 'arc')).toBe(-10);
+    expect(precipMod('tres-abondantes', 'projectiles', 'poudre-noire')).toBe(-30);
   });
 
   it('Température : Caniculaire = Test toutes les 2 h Intermédiaire (+0), 4 L/jour ; Glaciale = 2 h, froid', () => {

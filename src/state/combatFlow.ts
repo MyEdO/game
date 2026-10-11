@@ -19,7 +19,7 @@ import { beatHold, approachMs, afterApproach } from './combatDirector';
 import { scheduleCombatTimer } from './combatTimers';
 import { facingToward, DIR8_ORDER, type Dir8 } from './dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
-import { setVesselHull } from './seaVoyageFlow';
+import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
 import {
   resolveMelee,
   resolveRanged,
@@ -587,16 +587,18 @@ export function activeDayWeather(get: Get): Weather | undefined {
   return w?.id;
 }
 
-/** Estampille la météo du JOUR (`activeDayWeather`) sur CHAQUE combattant à l'ouverture du combat (#341) —
- *  SOURCE de `Combatant.envWeather`, seule entrée du canal « Tests physiques » (`weatherTestMods`, lu par
- *  attack/defenseModifiers/baseTestMods). Un combat hors voyage (pas de météo de jour) laisse le champ vide
- *  (aucune pénalité). No-op si pas de combat. */
+/** Estampille la météo du JOUR sur CHAQUE combattant à l'ouverture du combat — SOURCE de
+ *  `Combatant.envWeather` (`activeDayWeather`, canal `weatherTestMods`, #341) et de
+ *  `Combatant.envPrecipitation` (`activeSeaPrecipitation`, canal `precipitationTestMods`, MDG 13 l.185),
+ *  lus par attack/defenseModifiers/baseTestMods et les Tests d'équipage. Un combat hors voyage laisse les
+ *  champs vides (aucune pénalité). No-op si pas de combat. */
 export function stampEnvWeatherAtCombatStart(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle) return;
   const w = activeDayWeather(get);
-  if (!w) return;
-  set({ battle: { ...battle, combatants: battle.combatants.map((c) => (c.envWeather === w ? c : { ...c, envWeather: w })) } });
+  const p = activeSeaPrecipitation(get);
+  if (!w && !p) return;
+  set({ battle: { ...battle, combatants: battle.combatants.map((c) => ({ ...c, ...(w ? { envWeather: w } : {}), ...(p ? { envPrecipitation: p } : {}) })) } });
 }
 
 /**

@@ -38,7 +38,8 @@ import { contractDisease, applyContraction, diseaseDefs } from '../engine/diseas
 import { memoParVersion } from '../data/versionDataset';
 import { hasHealSkill, HEAL_SKILL, type HealMode } from '../engine/healing';
 import { openMedic } from './medicFlow';
-import { seaWeatherTestMod, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
+import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
+import { precipitationTestMods } from '../engine/seaWeather';
 import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoyage';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
@@ -981,16 +982,9 @@ export function openSkillTest(
       ? refLabel('skills', { id: spec.easierIf!.hasSkill.id, spec: spec.easierIf!.hasSkill.spec })
       : refLabel('talents', { id: spec.easierIf!.hasTalent! }))
     : undefined;
-  // Météo maritime ACTIVE (Précipitations, MDG 13 l.187-201) — POINT UNIQUE d'injection des mods
-  // d'environnement dans un Test : même malus pour tout le monde (indépendant du candidat), au même
-  // titre que le mod social ou le Soutien. `undefined` hors voyage en mer / Test de Caractéristique.
-  const env = seaWeatherTestMod(get().travelPlan?.sea, spec.skill?.id, spec.skill?.spec);
-  // Canal `surLaCible` du monteur : le malus pèse sur la CIBLE, pas sur la valeur (le pending le porte
-  // toujours à part, `envMod`/`envLabel`). Même mod pour tous les candidats — monté une fois. La ligne
-  // porte sa fiche : la table de météo maritime (MDG 13) d'où sort la Précipitation.
-  const envLines: ModLine[] = env
-    ? [{ label: env.label, value: env.mod, famille: 'jet', ref: RULE_REF['meteo-maritime'] }]
-    : [];
+  // Précipitations du jour de mer (MDG 13 l.185) : canal `precipitationTestMods`, sur la CIBLE, même
+  // ligne pour tous les candidats.
+  const envLines = precipitationTestMods(activeSeaPrecipitation(get), spec.skill?.id, spec.skill?.spec);
   // Pool des héros AVEC leur position à jour si un combat est en cours (`battle.combatants` — `party` seule
   // ne porte pas `pos`, LDB 12 l.196 « adjacent »). Même patron que `effectTargets` ci-dessus.
   const battle = get().battle;
@@ -1056,7 +1050,6 @@ export function openSkillTest(
       requireSL: spec.requireSL ?? 0, target: def.target, clamped: def.clamped, base: def.base, mods: def.mods, psychMod: def.psychMod, psychDetail: def.psychDetail,
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,
       support: def.support, easedBy,
-      envMod: env?.mod, envLabel: env?.label,
       capriciousRoll, capriciousDR: capDR || undefined,
       ...structuredClone({ onSuccess, onFailure, after }), // #2097
       candidates: candidates.length > 1 ? candidates : undefined,

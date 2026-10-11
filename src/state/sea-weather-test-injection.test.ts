@@ -6,11 +6,10 @@ import type { Combatant } from '../engine/types';
 import type { TravelPlan } from './travelFlow';
 
 /**
- * INTÉGRATION scène → jet : le malus de Précipitations (MDG 13 l.187-201, `precipitationSkillMod`)
- * atteint RÉELLEMENT un Test joué, via le POINT UNIQUE d'injection des mods d'environnement dans
- * `openSkillTest` (`seaWeatherTestMod`, src/state/seaVoyageFlow.ts) — #183. Avant ce câblage, la
- * fonction pure n'avait aucun appelant hors de son test unitaire (`sea-weather.test.ts`).
+ * INTÉGRATION scène → jet : le malus de Précipitations (MDG 13 l.185-200, canal `precipitationTestMods`)
+ * atteint RÉELLEMENT un Test joué par `openSkillTest` (#183).
  */
+const meteo = (): unknown[] => (useGame.getState().pendingTest!.mods ?? []).filter((m) => m.label.startsWith('Météo'));
 describe('Météo maritime — Précipitations injectées au Test réel (#183, MDG 13 l.187-201)', () => {
   beforeEach(() => { useGame.setState({ battle: null, pendingTest: null, travelPlan: null }); });
 
@@ -39,7 +38,7 @@ describe('Météo maritime — Précipitations injectées au Test réel (#183, M
     useGame.setState({ party: [sailor()] });
     runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'athletisme' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     expect(useGame.getState().pendingTest!.target).toBe(40); // Ag 40, aucun mod
-    expect(useGame.getState().pendingTest!.envMod).toBeUndefined();
+    expect(meteo()).toEqual([]);
   });
 
   it('Athlétisme sous Précipitations Abondantes (−20) : le breakdown porte le malus', () => {
@@ -48,8 +47,7 @@ describe('Météo maritime — Précipitations injectées au Test réel (#183, M
     const pt = useGame.getState().pendingTest!;
     expect(pt.skillValue).toBe(40); // base INCHANGÉE (le mod reste une ligne à part, pas fondu)
     expect(pt.target).toBe(20); // 40 − 20
-    expect(pt.envMod).toBe(-20);
-    expect(pt.envLabel).toBe('Abondantes');
+    expect(meteo()).toEqual([expect.objectContaining({ label: 'Météo : Abondantes', value: -20, famille: 'circonstance' })]);
   });
 
   it('Escalade sous Précipitations Légères (−10)', () => {
@@ -69,6 +67,6 @@ describe('Météo maritime — Précipitations injectées au Test réel (#183, M
     runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'projectiles', spec: 'arc' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const pt = useGame.getState().pendingTest!;
     expect(pt.target).toBe(40); // Dex 40, inchangé (le −10 « tous les autres Tests » n'existe qu'en Très abondantes)
-    expect(pt.envMod).toBeUndefined();
+    expect(meteo()).toEqual([]);
   });
 });

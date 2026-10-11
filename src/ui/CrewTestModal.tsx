@@ -3,7 +3,7 @@ import { useOwns } from './ownership';
 import { easeDifficulty } from '../engine/tests';
 import { findCrewRoleById, findCrewTestTypeById, flowStakeRef } from '../data';
 import { crewRoleValue, rudeEpreuveMoraleDelta, crewTestSuccess } from '../engine/crewMorale';
-import { maneuverCrewTotal } from '../state/shipManeuver';
+import { crewRoleTestMods, maneuverCrewTotal } from '../state/shipManeuver';
 import type { PendingCrewTest } from '../state/pendings';
 import type { Combatant } from '../engine/types';
 import { RollShell, type RollAction } from './RollShell';
@@ -78,12 +78,13 @@ export function CrewTestModalView({ p, battle, party, owns, roll, reroll, bonus,
     row: (part, actor, res) => {
       const role = findCrewRoleById(part.roleId);
       const val = role ? crewRoleValue(actor, role, part.sense).value : 0;
+      const mods = role ? crewRoleTestMods(actor, role, part.sense) : [];
       const label = `${role?.label ?? part.roleId}${part.essential ? ' ★' : ''}`;
       // Manque de bras (MDG 14 l.53) : marin déjà engagé ce Round → +2 crans de Difficulté (−20), itemisé.
       const difficulty = part.cumul ? easeDifficulty('intermediaire', -2) : undefined;
       return res
-        ? { combatant: actor, d: testBreakdown(label, val, { roll: res.roll, target: res.target, sl: res.sl }, difficulty) }
-        : { combatant: actor, pending: testPending(label, val, undefined, difficulty) };
+        ? { combatant: actor, d: testBreakdown(label, val, { roll: res.roll, target: res.target, sl: res.sl }, difficulty, mods) }
+        : { combatant: actor, pending: testPending(label, val, undefined, difficulty, mods) };
     },
     note: (part, _actor, res) => <div className="cs-outcome ok-text">{resultLine(freeCons([part.essential ? `${sign(res.sl)} DR ×2` : `${sign(res.sl)} DR`]))}</div>,
   });

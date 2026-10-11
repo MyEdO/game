@@ -43,7 +43,7 @@ import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue } from '../engine/skills';
 import { deMonde, rollExpr, type RNG } from '../engine/dice';
-import { difficultyFromModifier } from '../engine/tests';
+import { strandingPenalty } from '../engine/seaPerils';
 import { effectiveChar } from '../engine/characteristics';
 import {
   rollRiverWind, tickRiverWindDay, riverWindEffect, riverPilotSkill, savoirVoiesFluvialesBonus,
@@ -980,34 +980,32 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
   return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
 }
 
-/** S'ÉCHOUER (l.97-99) : le bateau s'arrête, sa coque subit 12 Dégâts ; on le renfloue par un Test de Force
- *  « avec un malus égal au nombre total de Points d'Encombrement du bateau et de sa cargaison » (l.99). Le
- *  malus = Enc PROPRE du bateau (`VehicleData.enc`) + Enc de la CARGAISON des porteurs réels du groupe
- *  (`partyCargoTotalEnc` : bêtes/véhicules/navire, la cale fluviale du commerce MSRC 13), converti en
- *  difficulté (chaque 10 Enc ≈ un cran de −10 via
- *  `difficultyFromModifier`) ; degrade sur Intermédiaire si aucun Enc n'est connu (barge LDB `enc` null +
- *  convoi vide). Le RAW ne prévoit AUCUN délestage pour se renflouer (l.97-105 muets) → non modélisé. */
+/** S'ÉCHOUER (MSRC 7 l.97-99) : 12 Dégâts de coque, puis le Test de Force de renflouage. L'Enc PROPRE du
+ *  bateau (`VehicleData.enc`) et celle de la CARGAISON des porteurs réels du groupe (`partyCargoTotalEnc`)
+ *  font la pénalité. */
 export function applyEchouage(get: Get, set: Set, tell: (l: string[]) => void): void {
   const coque = get().travelPlan!.vehicle!;
   damageVesselHull(get, set, coque, echouageDamage());
-  const { difficulty, encTxt } = echouageDifficulty(get);
+  const { penalite, encTxt } = echouagePenalty(get);
   // Chemin IA/synchrone (`riverEchouageForce` gate l'acteur JOUEUR ci-dessus) : aucune rangée nulle
   // part pour ce jet — le journal est la SEULE surface, il PORTE le jet (#295 Lot 5, gardé nominativement).
   const force = partyAssisted(get().party, undefined, 'force');
-  const res = force ? rollTest(force.value, difficulty, battleRng()) : null;
-  tell([t('rv.grounded', { dmg: echouageDamage(), suite: res ? t('rv.fragRefloat', { diff: DIFFICULTY_LABELS[difficulty], enc: encTxt, roll: res.roll, target: res.target, issue: t(res.success ? 'rv.refloatOk' : 'rv.refloatKo') }) : t('rv.fragDot') })]);
+  const res = force ? rollTest(force.value + penalite.value, ECHOUAGE_DIFFICULTY, battleRng()) : null;
+  tell([t('rv.grounded', { dmg: echouageDamage(), suite: res ? t('rv.fragRefloat', { diff: DIFFICULTY_LABELS[ECHOUAGE_DIFFICULTY], enc: encTxt, roll: res.roll, target: res.target, issue: t(res.success ? 'rv.refloatOk' : 'rv.refloatKo') }) : t('rv.fragDot') })]);
 }
 
-/** Malus/difficulté du renflouage (l.99, Enc du bateau + de la cargaison) — SOURCE UNIQUE, partagée par
- *  le renflouage IA/synchrone (`applyEchouage`) et l'étape-jet JOUEUR (`riverEchouageForce`, #270). */
-function echouageDifficulty(get: Get): { difficulty: Difficulty; encTxt: string } {
+/** MSRC 7 l.99 ; LDB 12 l.148. */
+const ECHOUAGE_DIFFICULTY: Difficulty = 'intermediaire';
+
+/** Pénalité du renflouage (MSRC 7 l.99), dérivée au jet de `strandingPenalty` — partagée par le renflouage
+ *  IA/synchrone (`applyEchouage`) et l'étape-jet JOUEUR (`riverEchouageForce`, #270). */
+function echouagePenalty(get: Get): { penalite: ModLine; encTxt: string } {
   const coque = get().travelPlan!.vehicle!;
   const boatEnc = findVehicleById(coque.creatureId ?? '')?.enc ?? 0;
   const cargoEnc = partyCargoTotalEnc(get());
-  const totalEnc = boatEnc + cargoEnc;
-  const difficulty = totalEnc > 0 ? difficultyFromModifier(-totalEnc) : 'intermediaire';
-  const encTxt: string = totalEnc > 0 ? t('rv.encMalus', { total: totalEnc, boat: boatEnc, cargo: cargoEnc }) : '';
-  return { difficulty, encTxt };
+  const value = strandingPenalty(boatEnc, cargoEnc);
+  const encTxt: string = value ? t('rv.encMalus', { total: -value, boat: boatEnc, cargo: cargoEnc }) : '';
+  return { penalite: { label: t('sv.strandingPenalty'), value, famille: 'circonstance', ref: RULE_REF['navigation-echouage'] }, encTxt };
 }
 
 /** ÉCHOUAGE (#270) : Dégâts fixes appliqués immédiatement (non-jetés) ; le renflouage (Test de Force)
@@ -1021,14 +1019,13 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
   }
   const coque = get().travelPlan!.vehicle!;
   damageVesselHull(get, set, coque, echouageDamage());
-  const { difficulty, encTxt } = echouageDifficulty(get);
+  const { penalite } = echouagePenalty(get);
   j.push(t('rv.grounded', { dmg: echouageDamage(), suite: t('rv.fragDot') }));
   const st = monoStep({
     id: `${idPrefix}-echouage`, kind: 'riverEchouageForce', actor: force.actor, icon: 'travel/repair',
-    label: t('step.riverEchouage'), rollLabel: t('char.force'), difficulty,
-    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support },
+    label: t('step.riverEchouage'), rollLabel: t('char.force'), difficulty: ECHOUAGE_DIFFICULTY,
+    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, ...(penalite.value ? { surLaCible: [penalite] } : {}) },
     stake: voyageStakeRef('riverEchouageForce'),
-    meta: { encTxt },
   });
   return st ? [st] : [];
 }

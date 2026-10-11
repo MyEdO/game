@@ -1725,14 +1725,14 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
 
   it('sea-degagement : succès → `sea.stranded` levé', () => {
     const plan = planWithSea();
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher', difficulty: 'difficile' } } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher' } } } });
     apply('sea-degagement', 3, true);
     expect(get().travelPlan!.sea!.stranded).toBeUndefined();
   });
 
   it('sea-degagement : échec → `sea.stranded` PERSISTE (à retenter)', () => {
     const plan = planWithSea();
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher', difficulty: 'difficile' } } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher' } } } });
     apply('sea-degagement', -2, false);
     expect(get().travelPlan!.sea!.stranded).toBeTruthy();
   });
@@ -1753,10 +1753,51 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
 
   it('ÉCHOUÉ : aucune Progression le temps du dégagement (`buildSeaDayCascade` route un Test de Force, milesToday reste à 0)', () => {
     const plan = planWithSea();
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher', difficulty: 'intermediaire' } } } });
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher' } } } });
     runSeaDay(get, set);
     expect(get().travelPlan!.sea!.milesToday).toBe(0);
     expect(get().journal.some((l) => l.includes('ÉCHOUÉ'))).toBe(true);
+  });
+
+  it('ÉCHOUÉ, cargaison de 18 Enc : le Test de Force de dégagement reste Intermédiaire et porte −18 sur la cible (MDG 13 l.473)', () => {
+    set({ vessel: { ...get().vessel!, cargo: [{ cargoId: 'vin', enc: 18, basePriceGold: 0 }] } });
+    const plan = planWithSea();
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher' } } } });
+    runSeaDay(get, set);
+    const st = get().pendingCascade?.participants.find((x) => x.kind === 'sea-degagement');
+    expect(st?.difficulty).toBe('intermediaire');
+    expect(st?.mods).toContainEqual(expect.objectContaining({ label: 'Encombrement du navire et de sa cargaison', value: -18, famille: 'circonstance' }));
+  });
+});
+
+describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MDG 13 l.185-200, #1936)', () => {
+  beforeEach(freshState);
+
+  const MALUS_TRES_ABONDANTES: Record<string, number> = {
+    athletisme: -30, escalade: -30, commandement: -20, orientation: -20, perception: -20, ramer: -20, voile: -20,
+  };
+
+  it('un jour Très abondantes : chaque marin du Test d’Orientation porte la ligne « Météo : Très abondantes » sur la cible', () => {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, weather: { ...plan.sea!.weather, precipitations: 'tres-abondantes', vent: 'brise-fraiche' } } } });
+    runSeaDay(get, set);
+    let orientation: CascadeStep | undefined;
+    for (let i = 0; i < 30 && !orientation; i++) {
+      const p = get().pendingCascade;
+      if (!p) break;
+      const cur = p.participants[p.cursor];
+      if (cur?.kind === 'orientation') { orientation = cur; break; }
+      if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
+      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().cascadeBatchRoll(part.id); }
+      else if (cur && !cur.result) get().cascadeRoll(cur.id);
+      get().cascadeNext();
+    }
+    expect(orientation?.participants?.length).toBeGreaterThan(0);
+    for (const part of orientation!.participants!) {
+      expect(part.mods).toContainEqual(expect.objectContaining({
+        label: 'Météo : Très abondantes', value: MALUS_TRES_ABONDANTES[part.skillId ?? ''] ?? -10, famille: 'circonstance',
+      }));
+    }
   });
 });
 
@@ -2053,7 +2094,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
   });
 
   it('« Dégagement » (échouage) : la cible porte le Soutien (aucun résidu)', () => {
-    seaDay({ stranded: { label: 'un banc de sable', difficulty: 'intermediaire' } });
+    seaDay({ stranded: { hazardId: 'bas-fonds', label: 'un banc de sable' } });
     runSeaDay(get, set);
     const st = soutenues().find((x) => x.kind === 'sea-degagement');
     expect(st, 'l’étape de Dégagement est posée ET soutenue').toBeTruthy();

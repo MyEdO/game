@@ -1819,6 +1819,10 @@ export interface Combatant {
    *  survenant un jour de voyage (`activeDayWeather`). SEULE source du canal « Tests physiques » (`weatherTestMods`,
    *  lu par attack/defenseModifiers) — jamais recâblée par surface. Transitoire (non persistée hors combat). */
   envWeather?: import('./travelStages').Weather;
+  /** Précipitations du jour de mer sous lesquelles ce combattant agit (MDG 13 l.185, #1936) : posées à
+   *  l'ouverture d'un combat survenant pendant un voyage maritime. SEULE source du canal
+   *  `precipitationTestMods` en combat. Transitoire (non persistée hors combat). */
+  envPrecipitation?: import('./seaWeather').SeaPrecipitationId;
   /** Adversaires avec qui ce combattant est Engagé en mêlée (LDB 13 l.169-171).
    *  Relationnel et symétrique ; purgé par paire en fin de Round si aucune attaque échangée. */
   engagedWith?: string[];

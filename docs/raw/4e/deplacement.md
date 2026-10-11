@@ -815,7 +815,15 @@ Les petits navires peuvent être nettoyés par Compétences/Sorts/Miracles ou en
 
 Lancer 1d10 pour chaque aspect (Précipitations, Température, Visibilité, Vents) au tableau *Météo de la Mer des Griffes*. Scores de base = été ; **+2** en automne/printemps, **+4** en hiver. Mer plus chaude : –2 (min 1) sur Température et Visibilité.
 
-**Effets des Précipitations** (pont) : Légères → –10 Athlétisme/Escalade/Projectiles (Poudre noire) ; Abondantes → –20 à ces Tests + –10 Commandement/Orientation/Perception/Ramer/Voile ; Très abondantes → –30 / –20 / –10 sur tous les autres Tests. `MDG 13 l.189-200`
+**Effets des Précipitations** — périmètre :
+
+> « La présence de pluie et de neige a les effets suivants pour les Personnages sur le pont d'un navire : » — `MDG 13 l.185`
+
+| Précipitations | Effets (`MDG 13 l.187-200`, verbatim) |
+|---|---|
+| Légères | –10 sur les Tests d'Athlétisme, d'Escalade et de Projectiles (Poudre noire) |
+| Abondantes | –20 sur les Tests d'Athlétisme, d'Escalade et de Projectiles (Poudre noire), –10 sur les Tests de Commandement, d'Orientation, de Perception, de Ramer et de Voile |
+| Très abondantes | –30 sur les Tests d'Athlétisme, d'Escalade et de Projectiles (Poudre noire), –20 sur les Tests de Commandement, d'Orientation, de Perception, de Ramer et de Voile, –10 sur tous les autres Tests |
 
 **Température** : Caniculaire → Test **Résistance Intermédiaire (+0)** toutes les 2 h (échec = Exposition à la Chaleur), 4 L d'eau/jour sinon Soif ; Chaude → **Résistance Accessible (+20)** toutes les 4 h, 3 L/jour ; Médiane → aucun effet ; Froide → **Accessible (+20)** toutes les 4 h (Exposition au Froid) ; Glaciale → **Intermédiaire (+0)** toutes les 2 h. `MDG 13 l.207-225`
 
@@ -919,7 +927,13 @@ La vigie a **trois chances** de repérer une trajectoire de collision ; ensuite 
 
 **Source :** MDG 13 l.467-499
 
-**Échouer** : le navire s'arrête net et ne bouge plus jusqu'à dégagement ; **Test de Force** avec pénalité = total d'Encombrement du navire + cargaison ; aides possibles avec assez de cordes. `MDG 13 l.471-473`
+**Échouer** :
+
+> « Certains périls peuvent pousser un bateau à s'*Échouer.* Quand un navire s'est *Échoué*, il s'arrête net. Le vaisseau ne peut plus bouger jusqu'à ce qu'il soit dégagé du péril. Cette tâche nécessite un Test de Force avec une pénalité égale au total de points d'Encombrement du navire et de sa cargaison. N'importe quel nombre de Personnages, de bêtes de somme, etc. peut aider s'ils ont tous assez de cordes pour tirer. » — `MDG 13 l.473`
+
+Même règle en navigation fluviale, avec 12 Dégâts de coque :
+
+> « Pour un bateau chargé, cette tâche nécessite un Test de **Force** avec un malus égal au nombre total de Points d'Encombrement du bateau et de sa cargaison. » — `MSRC 7 l.99`
 
 **Icebergs** : M1, Indice de Collision moyen **25**. `MDG 13 l.475-479`
 

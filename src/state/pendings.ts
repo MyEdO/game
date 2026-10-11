@@ -137,12 +137,6 @@ export interface PendingTest {
   psychMod?: number;
   /** Libellé lisible du malus psy social (« Animosité −20 envers Elfe ») pour la modale de Test. */
   psychDetail?: string;
-  /** Mod d'ENVIRONNEMENT (météo maritime — Précipitations, MDG 13 l.187-201) — déjà intégré à
-   *  `target` (PAS à `skillValue`, comme la Difficulté : `seaWeatherTestMod`, POINT UNIQUE dans
-   *  `openSkillTest`) ; conservé À PART pour l'afficher comme une ligne de mod dédiée dans la modale. */
-  envMod?: number;
-  /** Libellé de la source du mod d'environnement (« Abondantes ») pour la modale de Test. */
-  envLabel?: string;
   /** d10 de Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
    *  porté pour l'affichage (la table est celle de la créature, pas un mod de l'acteur). */
   capriciousRoll?: number;
