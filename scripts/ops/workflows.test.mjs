@@ -74,7 +74,16 @@ const TYPES_MECANIQUES = ['lecteur', 'verif-mecanique'];
 const EXCEPTIONS_MECANIQUES = [
   { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'joueur', raison: 'joueurs cloisonnés : un seul outil, ni lecture, ni shell, ni web (`.claude/agents/joueur.md`)' },
 ];
-const MODELES_MECANIQUES = ['sonnet', 'claude-haiku-5-5'];
+/** Les couples (type, modèle) de la table « Calibrage » de `.claude/skills/orchestrer-des-agents/SKILL.md`, seule source
+ *  du modèle d'un type (#2537). PUR.
+ *  @param {string} skill @returns {{ type: string, modele: string }[]} */
+const couplesDuCalibrage = (skill) => {
+  const section = skill.split(/^## /m).find((s) => s.startsWith('Calibrage\n')) ?? '';
+  return [...section.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
+};
+/** Les couples du calibrage permis en phase MÉCANIQUE : tous, sauf ceux d'un étage de `ETAGES`. */
+const COUPLES_MECANIQUES = couplesDuCalibrage(readFileSync(join(RACINE, '.claude/skills/orchestrer-des-agents/SKILL.md'), 'utf8'))
+  .filter((c) => !Object.values(ETAGES).some((e) => e.type === c.type && e.modele === c.modele));
 const RUNNERS_INTERDITS = ['npm test', 'npm run gates', 'vitest run'];
 
 const TABLES = {
@@ -433,15 +442,17 @@ function analyser(source, fichier, tables = TABLES) {
       }
       return;
     }
-    if (lisible(modele) && !MODELES_MECANIQUES.includes(modele.valeur)) {
-      dire('agent', modele.noeud, `phase MÉCANIQUE \`${phase.valeur}\` : \`model\` littéral parmi ${MODELES_MECANIQUES.join('/')} exigé (lu : ${vu(modele)})`);
-    }
     if (!effort.present) {
       dire('agent', options, `phase MÉCANIQUE \`${phase.valeur}\` : \`effort\` littéral exigé (lu : absent)`);
     }
     const exceptions = tables.exceptions.filter((e) => e.fichier === fichier && e.phase === phase.valeur);
     const permis = [...TYPES_MECANIQUES, ...exceptions.filter((e) => e.type !== null).map((e) => e.type)];
     const absencePermise = exceptions.some((e) => e.type === null);
+    const types = lisible(agentType) && agentType.present && permis.includes(agentType.valeur) ? [agentType.valeur] : permis;
+    const modeles = [...new Set(COUPLES_MECANIQUES.filter((c) => types.includes(c.type)).map((c) => c.modele))];
+    if (lisible(modele) && !modeles.includes(modele.valeur)) {
+      dire('agent', modele.noeud, `phase MÉCANIQUE \`${phase.valeur}\` : \`model\` littéral parmi ${modeles.join('/')} exigé pour ${types.join('/')} (lu : ${vu(modele)})`);
+    }
     if (lisible(agentType) && (agentType.present ? !permis.includes(agentType.valeur) : !absencePermise)) {
       dire('agent', agentType.noeud, `phase MÉCANIQUE \`${phase.valeur}\` : \`agentType\` littéral parmi ${permis.join('/')} exigé (lu : ${vu(agentType)})`);
     }
@@ -999,6 +1010,17 @@ test('un type d’EXCEPTION ne vaut que dans la phase qui le déclare', () => {
   const fichier = '.claude/workflows/table-simulee.js';
   const mute = muter(fichier, "phase: 'Préparation', schema: PREPARATION_PJ, agentType: 'lecteur'", "phase: 'Préparation', schema: PREPARATION_PJ, agentType: 'joueur'");
   assert.deepEqual(vus(mute, fichier), ['agent : phase MÉCANIQUE `Préparation` : `agentType` littéral parmi lecteur/verif-mecanique exigé (lu : `joueur`)']);
+});
+
+test('#2537 — en phase MÉCANIQUE, le modèle se lit au couple (type, modèle) du Calibrage, jamais à une liste plate', () => {
+  assert.deepEqual(
+    vus(muter(TEMOIN, "agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })\n\nconst STATS_VIDES", "agentType: 'verif-mecanique', model: 'sonnet', effort: 'low' })\n\nconst STATS_VIDES")),
+    ["agent : phase MÉCANIQUE `Scout` : `model` littéral parmi claude-haiku-5-5 exigé pour verif-mecanique (lu : `sonnet`)"],
+  );
+  assert.deepEqual(
+    vus(muter(TEMOIN, "phase: 'Find', schema: FINDINGS, agentType: 'lecteur', model: 'sonnet'", "phase: 'Find', schema: FINDINGS, agentType: 'lecteur', model: 'claude-haiku-5-5'")),
+    ["agent : phase MÉCANIQUE `Find` : `model` littéral parmi sonnet exigé pour lecteur (lu : `claude-haiku-5-5`)"],
+  );
 });
 
 test('B9 — retirer d’un banc le littéral qui nomme un script le laisse SANS banc', () => {

@@ -21,7 +21,9 @@
 // - la sous-expression `$x = ( … )` (#2172) ;
 // - le contenu d'un script lancé par son chemin (`bash f.sh`), fût-il écrit par un heredoc de la même commande (#2172).
 import { OUTILS_SHELL, commandeDe, sousAgent, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { APPEL_ESLINT, APPEL_VITEST, DRAPEAUX_NODE, appelDe, appelleTscNu, appelleUnRunner, appelleVitestNu, LECTEURS } from '../guards/lib/appelsRunners.mjs'
+import {
+  APPEL_ESLINT, APPEL_VITEST, DRAPEAUX_D_INFORMATION, DRAPEAUX_NODE, appelDe, appelleTscNu, appelleUnRunner, appelleVitestNu, LECTEURS, sousNode,
+} from '../guards/lib/appelsRunners.mjs'
 import { lireArguments } from '../test/argumentsPerimetre.mjs'
 import {
   CHANGEMENTS_DE_REPERTOIRE, REFUS_SATURE, basenameExecutable, jetonNu, nouveauBudget, pipelinesDeJetons, sansRedirections,
@@ -59,10 +61,17 @@ const PERIMETRE = 'test:perimetre'
 const LANCEUR_PERIMETRE = new RegExp(`^node\\s+${DRAPEAUX_NODE}(?:\\S*[\\\\/])?scripts[\\\\/]test[\\\\/]perimetre\\.mjs(?=\\s|$)`)
 /** Le chemin de `scripts/test/perimetre.mjs`, en jeton. */
 const SCRIPT_PERIMETRE = /(?:^|[\\/])scripts[\\/]test[\\/]perimetre\.mjs$/
-/** Les arguments que `scripts/test/perimetre.mjs` reçoit d'un segment (`tokens`) : sous npm, ceux qui suivent `--`
- *  (npm consomme les drapeaux qui le précèdent, `npm help run-script`) ; sous node, ceux qui suivent le script. PURE. */
+/** Les arguments qu'un script npm reçoit d'un segment (`tokens`) : ceux qui suivent `--` (npm consomme les drapeaux
+ *  qui le précèdent, `npm help run-script`). PURE. */
+const argumentsDuScript = (tokens) => {
+  const debut = tokens.indexOf('--')
+  return debut < 0 ? [] : tokens.slice(debut + 1)
+}
+/** Les arguments que `scripts/test/perimetre.mjs` reçoit d'un segment (`tokens`) : sous npm, `argumentsDuScript` ; sous
+ *  node, ceux qui suivent le script. PURE. */
 const argumentsDuPerimetre = (tokens, parNpm) => {
-  const debut = parNpm ? tokens.indexOf('--') : tokens.findIndex((t) => SCRIPT_PERIMETRE.test(t))
+  if (parNpm) return argumentsDuScript(tokens)
+  const debut = tokens.findIndex((t) => SCRIPT_PERIMETRE.test(t))
   return debut < 0 ? [] : tokens.slice(debut + 1)
 }
 /** `true` si ces arguments font LISTER `scripts/test/perimetre.mjs` sans rien lancer (`lireArguments`) ; un usage
@@ -73,9 +82,10 @@ const listeSeule = (args) => {
 /** Les exécutables dont un segment se juge sous leur nom nu, chemin et extension (`node.exe`, `C:/x/npx.cmd`) retirés. */
 const EXECUTABLES_NOMMES = new Set(['node', 'npx', 'npm', 'tsx'])
 /** Le segment `tokens` en texte, son exécutable de tête sous son nom nu (`basenameExecutable`) quand c'est l'un de
- *  `EXECUTABLES_NOMMES` : la forme sur laquelle se jugent les motifs ancrés (`^node\s+`, `appelDe`). PURE. */
+ *  `EXECUTABLES_NOMMES`, `tsx` écrit `node` (`sousNode`) : la forme sur laquelle se jugent les motifs ancrés (`^node\s+`,
+ *  `appelDe`). PURE. */
 const appelDuSegment = ([tete = '', ...reste]) =>
-  [EXECUTABLES_NOMMES.has(basenameExecutable(tete)) ? basenameExecutable(tete) : tete, ...reste].join(' ')
+  sousNode([EXECUTABLES_NOMMES.has(basenameExecutable(tete)) ? basenameExecutable(tete) : tete, ...reste].join(' '))
 /** Scripts npm qui lancent un runner : la suite, ses tranches, le typecheck, le lint. */
 const SCRIPT_RUNNER = /^(?:test|typecheck|lint)(?::|$)/
 
@@ -129,7 +139,7 @@ const designeUnChemin = (mot) =>
   !estCibleDeGate(mot) && (/[\\/]/.test(mot) || /\.(?:ts|tsx|mts|mjs|cjs|js|jsx|json)$/.test(mot))
 
 /**
- * Nom du script npm qu'un segment lance (`npm run <x>`, `npm <raccourci>`), ou `null`. Le segment
+ * Nom du script npm qu'un segment lance (`npm run <x>`, `npm <raccourci>`, `node --run <x>`), ou `null`. Le segment
  * arrive TOKENISÉ par le socle : l'exécutable se juge sur son basename (`npm.cmd`, `& npm`) et les
  * drapeaux propres à npm (`--silent`, `-s`) se sautent aux deux crans, comme npm lui-même le fait.
  * @param {string[]} tokens
@@ -137,6 +147,10 @@ const designeUnChemin = (mot) =>
  */
 function nomScriptNpm(tokens) {
   const debut = tokens[0] === '&' ? 1 : 0
+  if (basenameExecutable(tokens[debut] ?? '') === 'node') {
+    const run = tokens[debut + 1] ?? ''
+    return run === '--run' ? tokens[debut + 2] ?? null : run.startsWith('--run=') ? run.slice('--run='.length) : null
+  }
   if (basenameExecutable(tokens[debut] ?? '') !== 'npm') return null
   const apresFlags = (i) => {
     while (tokens[i] !== undefined && tokens[i].startsWith('-') && tokens[i] !== '--') i += tokens[i] === '--prefix' ? 2 : 1
@@ -205,9 +219,9 @@ export function evaluate({ sousAgent: deSousAgent = false, commande = '', gates 
   const repertoireChange = pipelines.flat().some(({ jetons }) => CHANGEMENTS_DE_REPERTOIRE.has(basenameExecutable(sansRedirections(jetons)[0]?.text ?? '')))
   const repertoires = new Map() // shell → `true` dans `server/`, `false` à la racine, après son dernier `cd`
   const dansServer = (shell) => (shell ? repertoires.get(shell) ?? dansServer(shell.parent) : false)
-  let perimetre = false
+  let perimetres = 0
   let autreRunner = false
-  for (const { jetons, shell, enTete } of pipelines.flat()) {
+  for (const { jetons, shell, enTete, deploye } of pipelines.flat()) {
     // Une redirection n'est pas un argument : `npx tsc >x.txt --noEmit` reste la gate.
     const lus = sansRedirections(jetons)
     const tokens = lus.map((j) => j.text)
@@ -221,8 +235,13 @@ export function evaluate({ sousAgent: deSousAgent = false, commande = '', gates 
     const script = nomScriptNpm(tokens)
     const remonte = [...enTete, ...lus].some((j) => REMONTE_RE.test(j.text))
     if (LECTEURS.test(segment)) continue
-    if (script === PERIMETRE || LANCEUR_PERIMETRE.test(segment)) perimetre ||= !listeSeule(argumentsDuPerimetre(tokens, script === PERIMETRE))
-    else if (script ? SCRIPT_RUNNER.test(script) : appelleUnRunner(segment)) autreRunner = true
+    // Un `npm run` `deploye` est rendu à part par son corps résolu, qui compte le lancement ; ce corps reçoit aussi
+    // les drapeaux que npm consomme (`commandeScriptNpm`) : quand ils le font lister seul, le lancement compte ici.
+    if (script === PERIMETRE || LANCEUR_PERIMETRE.test(segment)) {
+      const corpsCompte = deploye && script === PERIMETRE && !listeSeule(tokens.slice(tokens.indexOf(PERIMETRE) + 1).filter((t) => t !== '--'))
+      if (!corpsCompte && !listeSeule(argumentsDuPerimetre(tokens, script === PERIMETRE))) perimetres += 1
+    } else if (script ? SCRIPT_RUNNER.test(script) && !argumentsDuScript(tokens).some((t) => DRAPEAUX_D_INFORMATION.includes(t))
+      : appelleUnRunner(segment)) autreRunner = true
 
     const site = fileURLToPath(new URL('../gates/sur-demande-utilisateur.mjs', import.meta.url))
     if (basenameExecutable(tokens[0]) === 'node' && tokens[1] &&
@@ -273,7 +292,7 @@ export function evaluate({ sousAgent: deSousAgent = false, commande = '', gates 
     if (appelleTscNu(segment)) return { decision: 'deny', reason: raisonDuRefus(gesteNomme(ecrit, brute)) }
   }
 
-  if (deSousAgent && perimetre && autreRunner) return { decision: 'deny', reason: raisonDuChainage(brute.trim()) }
+  if (deSousAgent && (perimetres > 1 || (perimetres === 1 && autreRunner))) return { decision: 'deny', reason: raisonDuChainage(brute.trim()) }
   return null
 }
 

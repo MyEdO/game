@@ -512,9 +512,24 @@ const SONDE_DU_JUGE = [
   ["chaîne", "npm run test:perimetre -- --base --liste && npm run typecheck:fast"],
 ]
 
+/** Sonde du juge de fermeture de #2568 (2026-10-12), même lecture que `SONDE_DU_JUGE`. */
+const SONDE_DE_FERMETURE = [
+  ["chaîne", "npm run test:perimetre && node --run typecheck:fast"],
+  ["chaîne", "npm run test:perimetre && node --run=typecheck:fast"],
+  ["chaîne", "npm run test:perimetre && npx tsx node_modules/vitest/vitest.mjs run src/a.test.ts"],
+  ["chaîne", "npm run test:perimetre && tsx scripts/test/run.mjs src/a.test.ts"],
+  ["chaîne", "npm run test:perimetre && npm run test:perimetre"],
+  ["chaîne", "node scripts/test/perimetre.mjs; npm run test:perimetre -- --base main"],
+  ["chaîne", "npm run test:perimetre && npm run docs:check"],
+  ["chaîne", "npm run test:perimetre && node scripts/docs/build-all.mjs --check"],
+  [null, "npm run typecheck:fast -- --help && npm run test:perimetre"],
+  [null, "node --run typecheck:fast -- --version; npm run test:perimetre"],
+  [null, "npm run test:perimetre && npm run docs:check -- --help"],
+]
+
 test('SONDE DU JUGE : chaque commande rend, pour un sous-agent, le verdict attendu', () => {
   const verdict = (d) => (d === null ? null : d.reason.includes('enchaîne') ? 'chaîne' : 'gate')
-  for (const [attendu, commande] of SONDE_DU_JUGE) assert.equal(verdict(evaluate({ sousAgent: true, commande })), attendu, commande)
+  for (const [attendu, commande] of [...SONDE_DU_JUGE, ...SONDE_DE_FERMETURE]) assert.equal(verdict(evaluate({ sousAgent: true, commande })), attendu, commande)
 })
 
 test('`--liste` ne vaut que reçu par `scripts/test/perimetre.mjs` : après `--` sous npm, valeur d’un autre drapeau exclue', () => {

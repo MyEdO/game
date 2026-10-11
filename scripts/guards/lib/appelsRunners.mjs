@@ -16,7 +16,7 @@ export const appelDe = (outil, sousCommande) =>
 const APPEL_TSC = appelDe('tsc')
 export const APPEL_VITEST = appelDe('vitest')
 /** Drapeaux d'INFORMATION : l'outil rend sa version ou son aide, il ne lance rien. */
-const DRAPEAUX_D_INFORMATION = ['--version', '-v', '--help', '-h']
+export const DRAPEAUX_D_INFORMATION = ['--version', '-v', '--help', '-h']
 /** `true` si le segment porte l'un des `drapeaux`, en mot entier. PURE. */
 const porteUnDrapeau = (segment, drapeaux) => segment.split(/\s+/).some((mot) => drapeaux.includes(mot))
 /** Modes où la capture en fichier n'a pas de sens : run interactif, sortie non composée d'un bilan. */
@@ -58,23 +58,28 @@ const DRAPEAUX_NODE_A_VALEUR = ['--import', '--require', '-r', '--loader', '--ex
   '--test-skip-pattern', '--test-concurrency', '--test-timeout', '--test-shard']
 /** Les drapeaux de node qui précèdent le script ou `--test`, valeur séparée comprise (source de motif). */
 export const DRAPEAUX_NODE = `(?:(?:${DRAPEAUX_NODE_A_VALEUR.join('|')})\\s+\\S+\\s+|-\\S+\\s+)*`
-/** `node --test`, ou `tsx --test` qui le relaie, drapeaux de node avant `--test` compris. */
-const APPEL_NODE_TEST = new RegExp(`^(?:node|tsx)\\s+${DRAPEAUX_NODE}--test(?=[\\s=]|$)`)
+/** `node --test`, drapeaux de node avant `--test` compris. */
+const APPEL_NODE_TEST = new RegExp(`^node\\s+${DRAPEAUX_NODE}--test(?=[\\s=]|$)`)
+/** Le segment, un `tsx` de tête écrit `node` : tsx relaie node, ce qu'il lance se juge comme lancé par node. PURE.
+ *  @param {string} segment @returns {string} */
+export const sousNode = (segment) => segment.replace(/^tsx(?=\s|$)/, 'node')
 /** Les lanceurs du dépôt que `npm run typecheck:fast` et `npm test` résolvent. */
 const LANCEUR_DE_RUNNER = /^node\s+(?:\S*[\\/])?scripts[\\/](?:typecheck-fast\.mjs|test[\\/]run\.mjs)(?=\s|$)/
+/** Le corps de `docs:check` (`package.json`), que `scripts/test/perimetre.mjs --docs` lance lui-même (`jouerDocs`). */
+const LANCEUR_DOCS_CHECK = /^node\s+(?:\S*[\\/])?scripts[\\/]docs[\\/]build-all\.mjs\s(?:.*\s)?--check(?=\s|$)/
 /** `scripts/lancer-local.mjs <paquet> [--cwd <dossier>] -- ` : le lanceur d'un outil de cet arbre, qui joue ce qui suit `--`. */
 const LANCEUR_LOCAL = /^node\s+(?:\S*[\\/])?scripts[\\/]lancer-local\.mjs\s+.*?\s--\s+/
 
 /**
  * `true` si le segment lance un runner hors de `npm run` : tsc, vitest, eslint, oxlint, `playwright test`, `node --test`,
- * le lanceur de `typecheck:fast` et de `npm test`, ou l'un d'eux sous `scripts/lancer-local.mjs` ; jamais sous un drapeau
+ * le lanceur de `typecheck:fast` et de `npm test`, celui de `docs:check`, ou l'un d'eux sous `scripts/lancer-local.mjs` ou derrière `tsx` (`sousNode`) ; jamais sous un drapeau
  * d'information (`DRAPEAUX_D_INFORMATION`). Un segment `npm run <x>` se juge sur le nom de son script.
  * @param {string} segment
  * @returns {boolean}
  */
 export function appelleUnRunner(segment) {
   if (LECTEURS.test(segment)) return false
-  const joue = segment.replace(LANCEUR_LOCAL, '')
+  const joue = sousNode(segment.replace(LANCEUR_LOCAL, ''))
   if (porteUnDrapeau(joue, DRAPEAUX_D_INFORMATION)) return false
-  return [LANCEUR_DE_RUNNER, APPEL_TSC, APPEL_VITEST, APPEL_ESLINT, APPEL_OXLINT, APPEL_PLAYWRIGHT, APPEL_NODE_TEST].some((motif) => motif.test(joue))
+  return [LANCEUR_DE_RUNNER, LANCEUR_DOCS_CHECK, APPEL_TSC, APPEL_VITEST, APPEL_ESLINT, APPEL_OXLINT, APPEL_PLAYWRIGHT, APPEL_NODE_TEST].some((motif) => motif.test(joue))
 }

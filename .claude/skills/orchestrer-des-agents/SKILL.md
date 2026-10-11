@@ -117,6 +117,8 @@ travaux DIFFÉRENTS aux entrées différentes, jamais pour multiplier les regard
 **Un train = 4 ou 5 gestes au plus** : le codeur rend le diff → je committe sur la branche du worktree
 → je pousse la branche, dont le run CI joue les gates → juge de diff en parallèle → corrections en
 train court.
+Un type dont le frontmatter épingle un `model` ne reçoit pas de `model` à l'appel de l'outil Agent :
+l'alias `haiku` sert 4.5 (#2537).
 
 **4. Isolation.** Agent qui MUTE des fichiers pendant qu'une session // est active →
 `isolation: "worktree"` (créé sur `origin/main`, `npm ci` + `npm --prefix server ci`) ; à défaut
