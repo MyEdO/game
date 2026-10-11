@@ -1,6 +1,6 @@
 /**
  * Modificateurs de combat dérivés de la SCÈNE (obscurité / météo) et empreinte des décors.
- * Source : LDB `14 - _GoBack.md` l.76 (tempête) / l.82 (neige) / l.75 (obscurité, bande Complexe). Vit en `state` (lit la Scène) ;
+ * Source : LDB `14 - _GoBack.md` l.75, l.76, l.82. Vit en `state` (lit la Scène) ;
  * les valeurs sont injectées dans `attackModifiers`/`defenseModifiers` via `env` (cf. combatFlow).
  */
 import type { Scene, SceneEntity } from './scene';
@@ -12,11 +12,11 @@ import { memoByRefDeps } from './sceneMemo';
 import { actionsAuthorees } from './usable';
 
 export interface SceneCombatMods {
-  /** Cible dissimulée (obscurité de nuit ou brouillard) → −20 au tir, bande Difficile (LDB 14 l.75). */
+  /** Cible dissimulée (LDB 14 l.75). */
   concealed: boolean;
-  /** Pénalité météo à l'attaque (tempête l.76 / neige l.82). */
+  /** Pénalité météo à l'attaque (LDB 14 l.76, l.82). */
   attackMod: number;
-  /** Pénalité météo à l'esquive (neige épaisse, LDB 14 l.82 — « Attaquer ou esquiver »). */
+  /** Pénalité météo à l'esquive (LDB 14 l.82). */
   dodgeMod: number;
   /** Libellé court pour l'affichage. */
   label: string;
@@ -34,15 +34,15 @@ export function sceneCombatModifiers(scene: Pick<Scene, 'ambiance' | 'weather'>,
   // ABSENCE de météo authored : aucune branche ci-dessous ne tire — mesuré identique au repli de ciel
   // clair qui vivait ici, qui n'était donc pas un défaut mais un id récité sans effet (#1789).
   const weather = scene.weather;
-  const concealed = night || weather === 'brouillard'; // cible dissimulée : Difficile −20 au tir (LDB 14 l.75)
+  const concealed = night || weather === 'brouillard'; // LDB 14 l.75
   let attackMod = 0;
   let dodgeMod = 0;
   let label = '';
   if (weather === 'tempete') {
-    attackMod = -20; // mousson / ouragan / blizzard (LDB 14 l.76)
+    attackMod = -20; // LDB 14 l.76
     label = 'Tempête';
   } else if (weather === 'neige') {
-    attackMod = -30; // haute épaisseur de neige : attaque ET esquive (LDB 14 l.82)
+    attackMod = -30; // LDB 14 l.82
     dodgeMod = -30;
     label = 'Neige épaisse';
   } else if (weather === 'brouillard') {
