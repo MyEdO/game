@@ -372,7 +372,7 @@ Lorsque plusieurs personnages travaillent ensemble à la même tâche, ceux qui 
 
 **Voir aussi** : [Modificateurs de test](#modificateurs-de-test)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.187-200) → `useExtendedTestJetProps`, `porteADecouvrir`, `fr`, `testBreakdown`, `soutien`, `BargainModalView`, `ActivityModal`, `SequenceParams`, `RollRowCore`, `runSceneConsumableFlow`, +58 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +33 fichiers
+- `LDB 12` (l.187-200) → `useExtendedTestJetProps`, `porteADecouvrir`, `fr`, `testBreakdown`, `soutien`, `BargainModalView`, `ActivityModal`, `SequenceParams`, `RollRowCore`, `runSceneConsumableFlow`, +59 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, +34 fichiers
 
 ---
 
@@ -393,7 +393,7 @@ Parfois, une situation requiert qu'un personnage réussisse deux Compétences di
 
 **Voir aussi** : [Tests spectaculaires](#types-de-tests--simple-vs-spectaculaire)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.202-208) → `fr`, `testBreakdown`, `soutien`, `BargainModalView`, `ActivityModal`, `RollRowCore`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `PendingTest`, +36 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +23 fichiers
+- `LDB 12` (l.202-208) → `fr`, `testBreakdown`, `soutien`, `BargainModalView`, `ActivityModal`, `RollRowCore`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `PendingTest`, +37 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +24 fichiers
 
 ---
 
