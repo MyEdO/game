@@ -5,7 +5,8 @@
  * Hors combat (entretien/faim, exposition, maladie, cascade de nuit, damnation, effets de scène), rien
  * ne constatait la non-viabilité du groupe : un groupe entier mort de faim en mer laissait le voyage
  * continuer. `checkPartyWiped` est le pendant hors-combat, appelé aux carrefours de mort hors combat
- * (`advanceTime` après l'entretien, la fin de cascade de nuit/voyage, la damnation) — il présente le
+ * (`advanceTime` après l'entretien, la clôture de toute séquence hors combat — modale ou pilote
+ * immédiat, `clotureHorsCombat` —, la damnation) — il présente le
  * MÊME écran de défaite (drapeau `partyWiped`, lu par `CampaignView`) et purge les flux SUSPENDUS.
  *
  * Prédicat IDENTIQUE à la victoire de combat : « aucun héros hors d'action » (`isOutOfAction` couvre
@@ -45,4 +46,16 @@ export function checkPartyWiped(get: Get, set: Set): boolean {
     pendingManannPriest: null,
   });
   return true;
+}
+
+/**
+ * CLÔTURE D'UNE SÉQUENCE HORS COMBAT par le pilote IMMÉDIAT (`runCascadeImmediate`) — pendant de
+ * `dispatchCascadeDone`, qui constate au slot déjà rendu. Vrai = la séquence n'a PAS de dénouement
+ * à enchaîner : un combat ou un slot de cascade a pris la main (la reprise appartient à leur clôture),
+ * ou le groupe est anéanti (`checkPartyWiped`). La garde de slot PRÉCÈDE le constat : purger sous un
+ * slot vivant laisserait sa réconciliation le ressusciter sous l'écran de défaite.
+ */
+export function clotureHorsCombat(get: Get, set: Set): boolean {
+  if (get().battle || get().pendingCascade) return true;
+  return checkPartyWiped(get, set);
 }

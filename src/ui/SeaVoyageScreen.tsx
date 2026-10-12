@@ -6,12 +6,14 @@ import { RecapLineList } from './RecapLine';
 import { ParchmentCard } from './ParchmentCard';
 import { Icon } from './Icon';
 import type { Dir8 } from '../state/dir8';
-import { type SeaWindForceId } from '../engine/seaWeather';
+import { type SeaWindForceId, windAspect } from '../engine/seaWeather';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { windDirectionSchema } from '../data/schemas/defs-scenes/worldmap';
+import { windAspectSchema } from '../data/schemas/defs/sea-weather';
 import type { TravelRecapDay } from '../state/travelFlow';
 import { vesselHullGauge } from './VoyageScreen';
 import { Row } from './Layout';
+import { t } from '../i18n';
 
 /** Cap de mer (`WindDirection` : nord/sud/est/ouest) → `Dir8` (vocabulaire rose des vents du projet). */
 const HEADING_TO_DIR8: Record<string, Dir8> = { nord: 'N', sud: 'S', est: 'E', ouest: 'O' };
@@ -38,26 +40,26 @@ export function SeaVoyageBody({ day }: { day: TravelRecapDay }) {
         <WindRose dir={HEADING_TO_DIR8[chrome.windFrom] ?? 'N'} force={chrome.windForce as SeaWindForceId} heading={HEADING_TO_DIR8[chrome.heading] ?? 'N'} size="md" />
         <div className="sea-voyage-gauges">
           {hullGauge && (
-            <NotchGauge label="Coque" icon={<Icon id="scenario/port" size="sm" />} value={hullGauge.current} max={hullGauge.max}
+            <NotchGauge label={t('sv.coque')} icon={<Icon id="scenario/port" size="sm" />} value={hullGauge.current} max={hullGauge.max}
               tone={(v, m) => hullGauge.tone(v, m)} stacked />
           )}
-          <NotchGauge label="Moral" value={chrome.morale} max={100}
+          <NotchGauge label={t('sv.moral')} value={chrome.morale} max={100}
             tone={(v) => (v <= 25 ? 'danger' : v <= 50 ? 'warn' : 'ok')} stacked />
           {chrome.waterLitres != null && (
-            <NotchGauge label="Eau (autonomie)" value={chrome.waterLitres} max={Math.max(chrome.waterLitres, 1)}
-              format={(v) => `${v} L`} tone={(v) => (v <= 0 ? 'danger' : 'neutral')} stacked />
+            <NotchGauge label={t('sv.eauAutonomie')} value={chrome.waterLitres} max={Math.max(chrome.waterLitres, 1)}
+              format={(v) => t('sv.litres', { litres: v })} tone={(v) => (v <= 0 ? 'danger' : 'neutral')} stacked />
           )}
         </div>
       </div>
-      {/* Méta du jour en CARTOUCHES label+valeur (primitive `.stat-chip`, §charte-ui) — plus de phrase
-          concaténée ni d'ids bruts (vent/cap en libellés, arbitrage user 2026-07-11). */}
       <Row className="sea-voyage-meta">
         <span className="sv-weather">{chrome.weatherLabel}</span>
-        <span className="stat-chip"><span className="sc-label">Vent</span><span className="sc-value">{libelleDeValeur(windDirectionSchema, chrome.windFrom)}</span></span>
-        <span className="stat-chip"><span className="sc-label">Cap</span><span className="sc-value">{libelleDeValeur(windDirectionSchema, chrome.heading)}</span></span>
-        <span className="stat-chip"><span className="sc-label">Distance</span><span className="sc-value">{chrome.milesLeft} milles{chrome.daysLeft > 0 ? ` · ~${chrome.daysLeft} j` : ''}</span></span>
-        {chrome.manann !== 0 && <span className="stat-chip"><span className="sc-label">Manann</span><span className="sc-value">{chrome.manann >= 0 ? `+${chrome.manann}` : chrome.manann}</span></span>}
-        {chrome.hullDelta !== 0 && <span className="stat-chip"><span className="sc-label">Coque</span><span className="sc-value">{chrome.hullDelta > 0 ? `+${chrome.hullDelta}` : chrome.hullDelta}</span></span>}
+        <span className="stat-chip"><span className="sc-label">{t('sv.vent')}</span><span className="sc-value">{libelleDeValeur(windDirectionSchema, chrome.windFrom)}</span></span>
+        <span className="stat-chip"><span className="sc-label">{t('sv.cap')}</span><span className="sc-value">{libelleDeValeur(windDirectionSchema, chrome.heading)}</span></span>
+        {/* MDG 13 l.262-270 */}
+        <span className="stat-chip"><span className="sc-label">{t('sv.ventRelatif')}</span><span className="sc-value">{libelleDeValeur(windAspectSchema, windAspect(chrome.heading, chrome.windFrom))}</span></span>
+        <span className="stat-chip"><span className="sc-label">{t('sv.distance')}</span><span className="sc-value">{chrome.daysLeft > 0 ? t('sv.daysLeft', { miles: chrome.milesLeft, days: chrome.daysLeft }) : t('sv.milesLeft', { miles: chrome.milesLeft })}</span></span>
+        {chrome.manann !== 0 && <span className="stat-chip"><span className="sc-label">{t('sv.manann')}</span><span className="sc-value">{chrome.manann >= 0 ? `+${chrome.manann}` : chrome.manann}</span></span>}
+        {chrome.hullDelta !== 0 && <span className="stat-chip"><span className="sc-label">{t('sv.coque')}</span><span className="sc-value">{chrome.hullDelta > 0 ? `+${chrome.hullDelta}` : chrome.hullDelta}</span></span>}
       </Row>
       {/* Événements de bord RACONTÉS (un récit → une carte-parchemin) — AVANT le procès-verbal, ils
           en sont la cause narrative du jour. */}
@@ -80,8 +82,8 @@ export function SeaVoyageBody({ day }: { day: TravelRecapDay }) {
       {active && (
         <div className="sea-voyage-orders">
           {cadence === 'commande'
-            ? <button type="button" className="btn small" onClick={() => setCadence('jour-par-jour')} title="Reprendre la main : chaque Test d'équipage ouvrira sa modale.">Passer en jour-par-jour</button>
-            : <button type="button" className="btn small" onClick={() => setCadence('commande')} title="Rendre la barre à l'équipage : les Tests de routine s'auto-résolvent au procès-verbal.">Repasser en traversée commandée</button>}
+            ? <button type="button" className="btn small" onClick={() => setCadence('jour-par-jour')} title={t('sv.passerJourParJourTitre')}>{t('sv.passerJourParJour')}</button>
+            : <button type="button" className="btn small" onClick={() => setCadence('commande')} title={t('sv.repasserCommandeeTitre')}>{t('sv.repasserCommandee')}</button>}
         </div>
       )}
     </div>

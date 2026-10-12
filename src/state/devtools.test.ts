@@ -688,7 +688,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('advanceSeaDay() fait avancer d’UN jour (cascade + halte de nuit résolues), s’arrête sur la cascade FRAÎCHE du jour suivant', async () => {
-    useGame.getState().startTravel('r1', 'mer');
+    useGame.getState().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
     const p = buildApi().advanceSeaDay();
     await vi.runAllTimersAsync();
     const msg = await p;

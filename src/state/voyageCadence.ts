@@ -15,7 +15,7 @@ import type { CascadeStep } from './pendings';
 import type { StakeRef } from '../data';
 
 /** COMMANDÉE : les Tests d'équipage de ROUTINE s'auto-résolvent (leurs lignes au PV) ; seules les
- *  décisions interrompent. JOUR-PAR-JOUR : chaque jet ouvre sa modale (cadence manuelle historique). */
+ *  décisions interrompent. JOUR-PAR-JOUR : chaque jet ouvre sa modale. */
 export type VoyageCadence = 'commande' | 'jour-par-jour';
 
 /** Ordres permanents d'une traversée, fixés au départ et persistés avec le `TravelPlan`. */
@@ -24,8 +24,8 @@ export interface VoyageOrders {
 }
 
 /** Ordres par DÉFAUT d'un `TravelPlan` construit sans cadence explicite — SOURCE UNIQUE, consommée par
- *  `buildSeaPlan`, `buildRiverPlan` et `setVoyageCadence` (aucune copie en dur du littéral ailleurs). */
-export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'jour-par-jour' };
+ *  `buildSeaPlan`, `buildRiverPlan`, `setVoyageCadence` et le sélecteur de départ de `WorldMapView` (aucune copie en dur du littéral ailleurs). */
+export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
 
 /**
  * Tests de mer que des ORDRES COMMANDÉS résolvent d'office — LISTE FERMÉE (par `voyage.kind`).

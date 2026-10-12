@@ -100,7 +100,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
 describe('LDB 12 l.160 — seam de CASCADE opposée : la nue de l’étape, jamais sa cible (#1150)', () => {
   /** Étape opposée : Compétence NUE 45, Difficulté Difficile (−20) → cible 25. L'attaquant figé porte
    *  une nue de 40 et le MÊME DR : seul le départage par la Compétence peut trancher. */
-  const step = (over: Partial<CascadeRollStep> = {}): CascadeStep => ({
+  const step = (over: Partial<Extract<CascadeRollStep, { evaluation?: 'test' }>> = {}): CascadeStep => ({
     id: 's1', kind: 'test', actorId: 'A', rollLabel: 'Force Mentale',
     base: 45, target: 25, difficulty: 'difficile',
     meta: { opposed: { aT: { roll: 13, target: 40, base: 40, sl: 1, success: true, isDouble: false }, attackerId: 'E', attackerName: 'E', attackerLabel: 'Force' } },

@@ -52,7 +52,9 @@ const REGLES = reglesOptionnelles as Regle[];
  *  de la croisée (#700 issuecomment-5984719806). */
 /** Puis 91 = 54 + 37 (#700, 2026-10-05) : `fouille-piece-minutes` — LDB 12 l.200 ne chiffre pas la durée
  *  de la fouille d'une pièce : MAISON. */
-const PARTITION = { total: 91, source: 54, maison: 37 };
+/** Puis 92 = 54 + 38 (#1595, 2026-10-12) : `sea-salissures-difficulty` — MDG 13 l.148 ne chiffre pas la
+ *  Difficulté du Test de Résistance du navire : MAISON. */
+const PARTITION = { total: 92, source: 54, maison: 38 };
 
 /**
  * COEXISTENCE `source` + `maison` (chaîne non vide) sur les entrées de PREMIER niveau de `src/data`,

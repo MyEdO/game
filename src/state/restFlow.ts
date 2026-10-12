@@ -179,7 +179,7 @@ export function sleepParty(
       entries.push({ actorId: get().party.find((h) => text.startsWith(h.label))?.id, icon: 'time/calendar', label: 'Entretien quotidien', text, tone: 'info' });
     }
     const steps = nightBands(deferredUpkeepSteps(get().party, deferred));
-    if (steps.length) runCascadeImmediate(get, set, steps);
+    if (steps.length && !runCascadeImmediate(get, set, steps)) return entries;
   }
 
   // Récupération + cauchemars, héros par héros (jets structurés pour le bilan).

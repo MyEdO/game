@@ -82,7 +82,6 @@ export const FOLIO_LINE_ALIGN_RATCHET = [
   { fichier: 'src/data/voyage-stakes.json', ref: 'sea-epuisement', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'sea-force-pace', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'sea-mal-de-mer', occurrence: 1 },
-  { fichier: 'src/data/voyage-stakes.json', ref: 'sea-overspeed', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'sea-scorbut', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'sea-tonneau-contamine', occurrence: 1 },
   { fichier: 'src/data/voyage-stakes.json', ref: 'sea-tonneau-expose', occurrence: 1 },

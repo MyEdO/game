@@ -11,7 +11,7 @@ import type { Combatant } from '../engine/types';
  * MJ (l'état disait « surfacé », l'écran ne montrait rien). `jetStepPresentable` est le prédicat
  * extrait qui remplace ce garde — testé ici en isolation (pas de harnais de rendu React dans ce repo).
  */
-function baseStep(overrides: Partial<CascadeStep> = {}): CascadeStep {
+function baseStep(overrides: Partial<Extract<CascadeStep, { evaluation?: 'test' }>> = {}): CascadeStep {
   return { id: 's1', kind: 'sea-desertion', label: fixtureText('Désertion'), rollLabel: 'Désertion', target: 50, result: null, ...overrides };
 }
 

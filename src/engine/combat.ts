@@ -391,9 +391,9 @@ export interface SecondReadLine {
 export interface RollBreakdown {
   /** Intitulé du jet : 'Corps à corps' / 'Parade' / 'Esquive' / 'Projectiles'. */
   label: string;
-  /** SEUIL PUR (#1426) : le jet décrit est un POURCENTAGE (`dé ≤ nombre visé`), pas un Test — la ligne
-   *  rend son verdict en clair, sans ✓±DR (un pourcentage n'a pas de Degré de Réussite). Absent = Test. */
-  evaluation?: 'seuil';
+  /** SEUIL PUR (#1426) : le jet décrit est un POURCENTAGE (`dé ≤ nombre visé`), pas un Test — présent,
+   *  il PORTE le verdict que la ligne rend, sans ✓±DR (#2389, `state/pendings.LectureDuDe`). Absent = Test. */
+  seuil?: { reussite: string; echec: string };
   /** Difficulté du Test — NATURE du jet, pas un modificateur circonstanciel : elle se lit
    *  sur la LIGNE (texte + valeur, `ui/RollLine.tsx`) et n'entre JAMAIS dans `mods` (#1072). Sa
    *  valeur reste comprise dans `modifier`/`target`. */

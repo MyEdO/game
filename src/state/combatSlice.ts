@@ -438,10 +438,7 @@ export function createCombatSlice(get: Get, set: Set) {
     else if (done?.purpose === 'travelDay') {
       handled = true;
       if (get().travelPlan?.river) continueRiverDayAfterCascade(get, set);
-      // Mer : une « Fuite de vapeur » (pendingSteamSave) peut avoir suspendu la clôture DEPUIS l'applier
-      // 'progression' (cascade fermée sans insert du reste du jour) — `resolveSteamSave` reprend la
-      // journée lui-même à sa résolution ; ne pas clôturer prématurément ici.
-      else if (get().travelPlan?.sea) { if (!get().pendingSteamSave) continueSeaDayAfterCascade(get, set); }
+      else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set);
       else travelFlow.continueTravelDayAfterCascade(get, set, done);
     }
     // Exposition hydrique fluviale (MSRC 16) surfacée APRÈS le jour (#344) : la clôture reprend la fin du

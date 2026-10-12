@@ -175,9 +175,6 @@ export function buildRiverPlan(get: Get, routeId: string, fromPlaceId: string, t
   if (!hull || hull.coque.wounds.current <= 0) return null;
   if (!hasBatelier(get().party)) return null;
   const wind = rollRiverWind(battleRng());
-  // ORDRES permanents (couche `voyageCadence`) : `DEFAULT_VOYAGE_ORDERS` faute de cadence passée. AUCUN
-  // appelant ne renseigne `opts.cadence` en fluvial (l'écran de départ ne l'envoie qu'en mer) : la
-  // descente joue donc toujours le défaut, `riverAutoResolves` ne rend jamais `true` sur ce chemin.
   const orders: VoyageOrders = { cadence: opts.cadence ?? DEFAULT_VOYAGE_ORDERS.cadence };
   return {
     routeId, fromPlaceId, toPlaceId, mode: 'barge', hoursPerDay: 24, km: route.km, kmDone: 0, interrupted: false,
@@ -237,8 +234,7 @@ function resolveRiverDay(get: Get, set: Set, route: MapRoute, to: { scene: strin
   // (mêmes appliers, mêmes conséquences), SANS modale par jet ; les lignes tombent au PV du jour
   // (journal → recap de la halte). En coop, la conduite reste manuelle (modale).
   if (get().net.mode === 'local' && riverAutoResolves(get().travelPlan?.orders, steps)) {
-    runCascadeImmediate(get, set, steps);
-    if (get().battle || get().pendingCascade) return; // combat en plein vol OU choix sans défaut : surfacé, jamais résolu en silence
+    if (!runCascadeImmediate(get, set, steps)) return;
     continueRiverDayAfterCascade(get, set);
     return;
   }
@@ -513,11 +509,9 @@ function openRiverExposureChance(get: Get, set: Set, route: MapRoute, sunk: bool
   if (!ex || sunk) return;
   openWorldTest(get, set, {
     actionLabel: t('rv.exposureLabel'),
-    difficulty: 'intermediaire',
-  }, RIVER_EXPOSURE_KIND, {
-    baseValue: Math.max(0, Math.min(100, ex.chancePct)),
-    exposureMode: ex.mode, exposureSource: ex.source,
-  });
+    cible: Math.max(0, Math.min(100, ex.chancePct)),
+    verdict: { reussite: t('seuil.expose'), echec: t('seuil.nonExpose') },
+  }, RIVER_EXPOSURE_KIND, { exposureMode: ex.mode, exposureSource: ex.source });
 }
 
 const RIVER_EXPOSURE_KIND = 'riverExposureChance';

@@ -284,8 +284,8 @@ export function RollLine({ d }: { d: RollBreakdown }) {
           <Icon id="nav/dice" size="sm" /> <b>{masked ? '?' : <Dice roll={d.roll} />}</b>
         </span>
         <span className="rm-roll-sl" title={masked ? MASK_HINT.roll : undefined} aria-label={masked ? MASK_HINT.roll : undefined}>
-          {masked ? '?' : d.evaluation === 'seuil'
-            ? <>{d.success ? 'trouvé' : 'pas trouvé'}</>
+          {masked ? '?' : d.seuil
+            ? <>{d.success ? d.seuil.reussite : d.seuil.echec}</>
             : <>{d.success ? '✓' : '✗'} {d.sl >= 0 ? '+' : '−'}{Math.abs(d.sl)} DR</>}
         </span>
       </div>

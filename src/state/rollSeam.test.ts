@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { type CascadeApplier } from './cascade';
 import { spyApplier } from './cascadeTestKit';
 import { setGmSeat } from './netFlow';
-import { openRoll, rollTitle, composeRollLabel, testSkillLabel, resultLine, freeCons, type RollRequest, type Consequence } from './rollSeam';
+import { openRoll, openSequence, monoStep, rollTitle, composeRollLabel, testSkillLabel, resultLine, freeCons, type RollRequest, type Consequence } from './rollSeam';
 import { modalOwnerOf } from './modalArbiter';
 import { seatOwns } from './netOwnership';
 import type { Combatant } from '../engine/types';
@@ -42,9 +42,18 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
       id: 'E', label: 'Ennemi', kind: 'enemy',
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
       skills: [{ id: 'perception', characteristic: 'initiative', advances: 20 }],
-      conditions: [], talents: [],
+      conditions: [], talents: [], wounds: { current: 10, max: 10 },
       ...over,
     }) as unknown as Combatant;
+
+  /** Un dé de MONDE (`monoStep`, porteur `monde`) ouvert par la porte des séquences. */
+  const ouvreDeMonde = () => openSequence(useGame.getState, useGame.setState, {
+    title: 'Désertion', purpose: 'test',
+    steps: [monoStep({
+      id: 'seam-subi', kind: 'seam-subi', monde: true, label: composeRollLabel(undefined, 'Désertion', {}), difficulty: 'intermediaire',
+      ligne: { valeur: 40 }, stake: { key: { dataset: 'combat', kind: 'mutation' } },
+    })!],
+  });
 
   it('héros tenu par son joueur, cadence MANUELLE → M (modale influençable)', () => {
     useGame.setState({ party: [hero()] });
@@ -97,17 +106,15 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   it('dé du MONDE sous siège MJ → V (le MJ voit/lance)', () => {
     useGame.setState({ party: [] });
     setGmSeat(useGame.getState, useGame.setState, 0);
-    const req: RollRequest = { side: { worldSide: 'world' }, actionLabel: 'Désertion', test: {}, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, 'seam-subi');
+    ouvreDeMonde();
     expect(useGame.getState().pendingCascade).toBeTruthy();
     expect(applied).toHaveLength(0);
   });
 
-  it('worldSide sans acteur, en COOP avec gmSeat ≠ hôte → l’étape est OWNÉE par le MJ (delta 1)', () => {
+  it('porteur MONDE sans acteur, en COOP avec gmSeat ≠ hôte → l’étape est OWNÉE par le MJ (delta 1)', () => {
     useGame.setState({ party: [] });
     setGmSeat(useGame.getState, useGame.setState, 1); // gmSeat ≠ hôte (0)
-    const req: RollRequest = { side: { worldSide: 'world' }, actionLabel: 'Désertion', test: {}, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, 'seam-subi');
+    ouvreDeMonde();
     const owner = modalOwnerOf(useGame.getState());
     expect(seatOwns(useGame.getState(), 1, owner ?? undefined)).toBe(true); // le MJ possède l'étape
     expect(seatOwns(useGame.getState(), 0, owner ?? undefined)).toBe(false); // l'hôte ne la possède plus
@@ -151,12 +158,6 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     useGame.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Résistance', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
     expect(rollTitle(useGame.getState, req)).toBe('Résistance');
-  });
-
-  it('rollTitle : côté worldSide (aucun acteur) — actionLabel nu', () => {
-    useGame.setState({ party: [] });
-    const req: RollRequest = { side: { worldSide: 'world' }, actionLabel: 'Désertion', test: {}, difficulty: 'intermediaire' };
-    expect(rollTitle(useGame.getState, req)).toBe('Désertion');
   });
 
   it('mono : startCascade pose pending.title = rollTitle(...) = actionLabel — DISTINCT de step.label composé (#352, régression double-rendu)', () => {

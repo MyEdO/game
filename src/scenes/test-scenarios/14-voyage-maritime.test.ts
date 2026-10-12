@@ -124,7 +124,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
   it('appareille, enchaîne des jours de mer (Tests d’équipage + haltes) et ACCOSTE au Grand Port', () => {
     const t0 = get().gameTime;
     expect(get().scene?.id).toBe('test-mer-depart');
-    get().startTravel('route-marienburg', 'mer'); // mode MER : appareillage sur le navire de campagne
+    get().startTravel('route-marienburg', 'mer', { cadence: 'jour-par-jour' }); // mode MER : appareillage sur le navire de campagne
     expect(get().travelPlan?.mode).toBe('mer');
     expect(get().travelPlan?.sea).toBeTruthy();
 

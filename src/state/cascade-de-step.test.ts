@@ -98,7 +98,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
 
   it('(iv) `runCascadeImmediate` résout un `de` d’office ET le JOURNALISE (dé + total avec son unité)', () => {
     useGame.getState().seedRng(9);
-    const out = runCascadeImmediate(useGame.getState, useGame.setState, [chute('d3', { forcedRoll: 13 })]);
+    const out = runCascadeImmediate(useGame.getState, useGame.setState, [chute('d3', { forcedRoll: 13 })])!;
     expect(out[0].de!.result).toEqual({ roll: 13, total: 13 });
     expect(tombes).toEqual([{ roll: 13, total: 13 }]);
     const lignes = useGame.getState().journal.filter((l) => /Hauteur de chute/.test(l));

@@ -38,8 +38,9 @@ for (const [classe, casser] of classes) {
   });
 }
 
-test('trois chiffres, +10 DR, pas trouvé, masque et seconde lecture restent confinés', () => {
-  for (const texte of ['✓ +10 DR', 'pas trouvé', '?']) {
+test('trois chiffres, +10 DR, verdicts de seuil longs, masque et seconde lecture restent confinés', () => {
+  // Verdicts les plus longs du catalogue `seuil.*` (`src/i18n/messages/fr.ts`).
+  for (const texte of ['✓ +10 DR', 'au-dessus du seuil', 'pas d’exposition', '?']) {
     const m = mesure();
     m.rangees[0].dr.texte = texte;
     m.rangees[0].pending = false;

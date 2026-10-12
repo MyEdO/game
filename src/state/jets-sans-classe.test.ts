@@ -5,7 +5,7 @@
  * face a un adversaire ou face a ... une maladie ».
  *
  * La surface d'un jet se DÉRIVE donc de trois choses, et de rien d'autre :
- *  1. la cadence déférée à un automate (`cadenceAuto`) — pour la porte d'un JET (`resolveSurface`) ;
+ *  1. la cadence déférée à un automate (`cadenceAuto`) — pour la porte d'un JET (`surfaceDeLEtape`) ;
  *  2. la politique d'ORDRES d'une traversée (`seaAutoResolves`) — « Traversée commandée sans fenêtre » ;
  *  3. la TENUE des porteurs (`netOwnership.tenuParUnHumain`), le prédicat de #1426.
  *
@@ -16,7 +16,7 @@ import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { buildBand, bandStep, monoStep, surfaceDesEtapes, resolveSurface, type RollRequest, type BuiltCascadeStep } from './rollSeam';
+import { buildBand, bandStep, monoStep, surfaceDesEtapes, surfaceDeLEtape, type BuiltCascadeStep } from './rollSeam';
 import { startCascade, registerCascadeApplier } from './cascade';
 import { draineCascade } from './cascadeTestKit';
 import { setCadence, resetCadence } from '../engine/cadence';
@@ -95,16 +95,19 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
     for (const k of KINDS_DE_MER) {
       expect(surfaceDesEtapes(get, [bandeDe(k, get().party)]), `« ${k} » : le porteur est un héros, son joueur le tient`).toBe('M');
     }
-    const requeteMonde: RollRequest = { side: { worldSide: 'world' }, actionLabel: 'Désertion', test: {}, difficulty: 'intermediaire' };
-    expect(resolveSurface(get, requeteMonde, 'x'), 'le dé du MONDE, lui, revient au siège qui le tient').toBe('V');
+    const deMonde = monoStep({
+      id: 'x', kind: 'x', monde: true, label: fixtureText('Désertion'), difficulty: 'intermediaire',
+      ligne: { valeur: 40 }, stake: voyageStakeRef('sea-salissures'),
+    })!;
+    expect(surfaceDesEtapes(get, [deMonde]), 'le dé du MONDE, lui, revient au siège qui le tient').toBe('V');
   });
 
   it('cadence DÉFÉRÉE : la porte d’un JET rend I ; la fenêtre d’une SÉQUENCE, elle, reste (le pilote la déroule)', () => {
     traversee('jour-par-jour');
     setCadence('rapide');
     const h = get().party[0];
-    const req: RollRequest = { side: { actorId: h.id }, actionLabel: 'Scorbut', test: {}, difficulty: 'intermediaire' };
-    expect(resolveSurface(get, req, 'sea-scorbut'), 'un dé isolé se résout inline en cadence déférée').toBe('I');
+    const jet = monoStep({ id: 'sea-scorbut', kind: 'sea-scorbut', label: fixtureText('Scorbut'), actor: h, difficulty: 'intermediaire', ligne: { valeur: 40 }, stake: voyageStakeRef('sea-scorbut') })!;
+    expect(surfaceDeLEtape(get, jet), 'un dé isolé se résout inline en cadence déférée').toBe('I');
     expect(surfaceDesEtapes(get, [bandeDe('sea-scorbut', get().party)]), 'la bande garde son bilan — `combatAuto` la déroule').toBe('M');
   });
 });

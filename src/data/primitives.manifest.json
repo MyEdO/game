@@ -122,7 +122,7 @@
   {
     "id": "rollSeam",
     "type": "primitives.manifest",
-    "label": "openRoll/resolveSurface",
+    "label": "openRoll/surfaceDeLEtape",
     "fichier": "src/state/rollSeam.ts",
     "concept": "surface DÉRIVÉE des porteurs : tenue × cadence × ordres de traversée → Modale/Visible-MJ/Interne, un seul site",
     "perimetre": "porte de résolution de tout Test influençable",

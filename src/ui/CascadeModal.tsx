@@ -203,7 +203,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // le NOMME (« plafond 99 ») au lieu de l'avouer « autres » (#1117).
     // La SECONDE LECTURE (Test combiné) est ÉVALUÉE par le socle (`secondReadOf`) : la modale la
     // transmet, elle ne recompare pas le dé.
-    return testBreakdown(l.label, l.base, { roll: r.roll, target: s.target, sl: r.sl, success: r.success, ...(s.clamped ? { clamped: s.clamped } : {}), ...(s.evaluation ? { evaluation: s.evaluation } : {}) }, s.difficulty, l.mods, s.easedBy, secondReadOf(s.second, r));
+    return testBreakdown(l.label, l.base, { roll: r.roll, target: s.target, sl: r.sl, success: r.success, ...(s.clamped ? { clamped: s.clamped } : {}), ...(s.evaluation === 'seuil' ? { seuil: s.verdict } : {}) }, s.difficulty, l.mods, s.easedBy, secondReadOf(s.second, r));
   };
   const pendingOf = (s: CascadeRollStep) => {
     const l = stepLine(s);

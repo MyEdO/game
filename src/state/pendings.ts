@@ -1903,10 +1903,23 @@ export type CascadeTableDone = CascadeTableDecl & { result: CascadeTableResult }
  * Les RANGÉES gardent le leur (`BatchParticipant`, homonyme mais autre champ : il dit qui JOUE, et
  * c'est `surfaceRow` qui le pose).
  */
-/** Les deux LECTURES d'un dé d'étape (#1426) — cf. `CascadeStep.evaluation`. */
+/** Les deux LECTURES d'un dé d'étape (#1426) — cf. `LectureDuDe`. */
 export type StepEvaluation = 'test' | 'seuil';
 
-export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
+/** VERDICT d'un dé lu en `'seuil'` (#2389) : ce que dit la rangée selon que `dé ≤ cible` ou non. */
+export interface SeuilVerdict { reussite: PlayerText; echec: PlayerText }
+
+/**
+ * COMMENT le dé d'une étape se LIT (#1426). Absente = `'test'` : la lecture WFRP complète (LDB 12 l.28).
+ *
+ * `'seuil'` = POURCENTAGE PUR (`dé ≤ nombre visé`, MSRC 13 l.146, MDG 15 l.362) : aucune bande, aucun
+ * DR, aucun écrêtage, aucune Difficulté — et un VERDICT exigé ici (#2389), que la rangée rend tel quel.
+ */
+export type LectureDuDe =
+  | { evaluation?: 'test'; verdict?: undefined }
+  | { evaluation: 'seuil'; verdict: SeuilVerdict; difficulty?: undefined };
+
+interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Sous-titre de l'étape — CHAMP PILOTE du murage du texte joueur (#1318 V8a₀). RESSERRÉ ici et non
    *  sur `RollParticipant` : la marque entre par l'ÉTAPE de cascade, pas par toutes les rangées de tous
    *  les flux multi d'un coup.
@@ -1939,8 +1952,8 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
    *  l'owner '*' (chacun pilote ses héros) au lieu de `actorId` (une étape forceDoor n'a pas d'acteur
    *  unique). Absent sur les autres `kind` → repli sur `actorId` (identique à aujourd'hui). */
   groupOwner?: boolean;
-  /** Étape SUBIE par le siège MONDE (côté `worldSide` du seam de jet, #275 Décision 3 — désertion,
-   *  Moral, périls sans acteur unique) : aucun `actorId`, l'arbitre route l'owner au siège MJ (`gmSeat`)
+  /** Étape tenue par le siège MONDE (#275 Décision 3 — désertion, Moral, périls sans acteur unique, Test
+   *  d'un navire ; posée par `worldStep`, `monoStep` porteur `monde`, `displayStep`, `tableStep`) : aucun `actorId`, l'arbitre route l'owner au siège MJ (`gmSeat`)
    *  quand il existe, à l'hôte sinon (`netOwnership.seatOwns` via le sentinel `WORLD_STEP_OWNER`). */
   worldOwner?: boolean;
   /** Libellé du Test affiché (« Résistance », « Calme », « Survie en extérieur »…) — la COMPÉTENCE
@@ -1968,20 +1981,6 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
   mods?: ModLine[];
   /** Cible EFFECTIVE (difficulté déjà appliquée → Test « +0 » sur `target`). Absent → étape sans jet. */
   target?: number;
-  /**
-   * COMMENT le dé se LIT (#1426). Absent = `'test'` : la lecture WFRP complète — bandes automatiques
-   * (LDB 12 l.28), Degrés de Réussite, écrêtage de la cible aux bornes de `TestPolicy`.
-   *
-   * `'seuil'` = POURCENTAGE PUR : `dé ≤ nombre visé`, RIEN d'autre. Aucune bande, aucun DR, aucun
-   * écrêtage. C'est ce que le RAW décrit quand il écrit « Lancez un d100 : si le résultat est
-   * inférieur ou égal au chiffre final, un acheteur est trouvé » (MSRC 13 l.146) ou « Lancez 1d100 et
-   * si le résultat est inférieur ou égal au nombre visé, vous trouvez un acheteur » (MDG 15 l.362) —
-   * les mêmes pages écrivent « Test de Ragot Complexe (–10) » trois lignes plus haut quand elles
-   * veulent un Test. Un nombre visé de 100 vaut donc 100 %, et un 03 ne réussit pas d'office.
-   *
-   * Le champ est ABSENT partout où le comportement ne change pas : aucune étape existante à migrer.
-   */
-  evaluation?: StepEvaluation;
   /** ÉCRÊTAGE réellement subi par `target` aux bornes de `TestPolicy` (`engine/tests.clampTarget`) —
    *  une base SOUTENUE peut dépasser le plafond, et l'écart doit se NOMMER (« plafond 99 ») au lieu
    *  d'être avoué « autres » par le réconciliateur de `RollLine`. Mesuré à la construction. */
@@ -2115,6 +2114,8 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
    *  survit au snapshot JSON (sauvegarde, coop) comme le reste de l'étape. */
   foldMemo?: Record<string, CascadeStep>;
 }
+
+export type CascadeStepBase = CascadeStepCore & LectureDuDe;
 
 /** Étape qui LANCE un dé : `target` (cible effective) et `rollLabel` (compétence lancée) vont
  *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/charte-ui.md`). */

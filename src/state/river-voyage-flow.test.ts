@@ -111,7 +111,7 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
   beforeEach(() => launch());
 
   it('startTravel(barge) OUVRE une cascade travelDay dont les étapes-jet sont influençables', () => {
-    get().startTravel('r-reik', 'barge');
+    get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
     const pc = get().pendingCascade;
     expect(pc?.purpose).toBe('travelDay'); // le jour ne s'auto-résout plus : il ouvre la cascade
     // Au moins une étape-jet influençable (Agilité, Navigation) est présente dans les participants.
@@ -295,7 +295,7 @@ describe('influence effective — Résilience sur un jet du jour fluvial', () =>
     // Un héros doté de points de Résilience à dépenser sur son jet du jour.
     set({ party: get().party.map((h) => (h.id === 'r-gunnar' ? { ...h, resilience: 2 } : h)) });
     seedBattleRng(7);
-    get().startTravel('r-reik', 'barge');
+    get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
     const pc = get().pendingCascade!;
     expect(pc.purpose).toBe('travelDay');
     // La 1ʳᵉ étape-jet est bien un participant influençable de la cascade.
@@ -336,7 +336,7 @@ describe('exposition hydrique de la descente (MSRC 16) — l\'Effet waterExposur
     // 24 km (1 jour ne suffit pas : ~plusieurs étapes de descente) avec exposition GARANTIE chaque jour.
     launch(false, 24, { riverExposure: { source: 'grande-ville-marais', mode: 'ingestion', chancePct: 100 } });
     seedBattleRng(4);
-    get().startTravel('r-reik', 'barge');
+    get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     // Draine la cascade du JOUR puis, ENCHAÎNÉE, la cascade d'Exposition (purpose riverExposure).
     drainCascade();
@@ -898,7 +898,7 @@ describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse 
   it('cadence JOUR-PAR-JOUR (la fenêtre s’ouvre) : AUCUNE ligne de dé au journal — la rangée les montre', () => {
     launch();
     seedBattleRng(7);
-    get().startTravel('r-reik', 'barge'); // défaut = jour-par-jour → cascade interactive
+    get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     drainCascade(); // le joueur roule chaque étape DANS la fenêtre
     expect(traceLines(), 'la fenêtre a montré les dés : le journal ne les redit pas').toEqual([]);
