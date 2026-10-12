@@ -61,7 +61,9 @@ jamais écrites. Fermer sur « déjà implémenté » ou « documenté » appell
 **1. Grounding.** Sweep de 3+ fichiers → `lecteur` ; 1-2 lectures ciblées inline = OK. La décision
 d'archi reste dans mon fil, **primitives cibles NOMMÉES avant tout code**. Mon grounding est fort en
 LARGEUR et faible en PROFONDEUR sur le `Source/` : l'ouvrir moi-même est ma pratique au meilleur
-rendement. Tout ticket de plus de 30 jours est RÉ-INSTRUIT par un `lecteur` avant dispatch. Vague
+rendement. Tout ticket de plus de 30 jours est RÉ-INSTRUIT par un `lecteur` avant dispatch. Les
+COMMENTAIRES d'un ticket se lisent à la composition et vont au juge de design (trame #1561, 2026-10-12 :
+lus après le premier code, 79 min reprises). Vague
 transversale → paragraphe de DESIGN (invariant, qui possède quoi, critère « N+1 = une ligne ») attaqué
 par un juge AVANT le premier codeur ; deux passes sur la même classe = défaut de design, remonter d'un
 niveau.
@@ -192,6 +194,11 @@ ABSTENTIONS (« bloqué / dépendance externe » → question inversée « prouv
 pas », une sonde d'existence suffit, étage `verif-mecanique`) et MES PROPRES COMMITS (gates, hooks,
 glue : le canal « trivial » est le seul que personne ne relit). Ces règles se DURCISSENT sous pression
 de temps, elles ne s'y suspendent pas.
+- **Le juge de fermeture est NEUF** : sans l'historique du design ni des corrections, avec pour brief le
+  DoD, le diff et les tests. Le `verdict:` d'un solde est SA sortie, jamais un gabarit pré-rempli. Un DoD
+  ou un solde QUANTIFIÉ (« tout helper », « jamais », « chaque ») porte l'ÉNUMÉRATION de sa classe :
+  commande et sortie qui listent les sites. Une liste de noms écrite de mémoire n'en est pas une (trame
+  #1561, 2026-10-12 : 2 soldes sur 11 réfutés, `survoler`/`molette` jamais lus).
 - **Chaque clôture de phase : passe de juge « ARCHITECTURE À REBOURS »** — si on partait de zéro avec
   la cible d'aujourd'hui, cette couture existerait-elle ?
 - **C'est le TRAVAIL qui se ferme, pas le ticket.** Une fermeture qui émettrait PLUS D'UN ticket de
