@@ -66,6 +66,14 @@ describe('shipDefaultRoles — défaut GLOBAL : essentiel rempli en 1er + PJ ét
     expect(roles.has('ko'), 'l’Inconscient n’est pas posté Mousse').toBe(false);
   });
 
+  it('Voile sans Augmentation n’est pas une formation : ni Timonier ni Mousse par défaut (MDG 14 l.25, LDB 09 l.30)', () => {
+    const cap = mk('cap', 50, [{ id: 'commandement', advances: 30 }]);
+    const profane = mk('profane', 60, [{ id: 'voile', advances: 0 }]);
+    const roles = shipDefaultRoles([cap, profane], 'progression');
+    expect(roles.get('cap')).toBe('capitaine');
+    expect(roles.has('profane'), 'il ne peut pas tenter le Test de Voile').toBe(false);
+  });
+
   it('un rôle ÉPINGLÉ est respecté et peut être MULTI (l.9)', () => {
     const a = mk('a', 50, [{ id: 'voile', advances: 20 }], 'timonier');
     const b = mk('b', 60, [{ id: 'voile', advances: 20 }], 'timonier');

@@ -17,6 +17,7 @@ import { partyAssisted, skillBaseValue, refusPersonneNePeutTenter, type SupportD
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
+import { hasTalent } from '../engine/magic';
 import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
@@ -25,7 +26,6 @@ import { bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse } fr
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
-import { slugId } from '../data/slug';
 import { MERCHANTS } from './merchants/index';
 import type { UniteAchetable } from './merchants/types';
 import { FLOWS } from './rollFlowSpecs';
@@ -838,9 +838,8 @@ export function bargainConfirm(get: Get, set: Set): void {
   }));
 }
 
-/** Talent « Détection d'artefact » (LDB 10 l.336) : Test d'Intuition au toucher — succès =
- *  l'objet est senti magique, chaque DR apprend une règle spéciale ; UNE tentative par artefact. */
-export const DETECT_TALENT = "Détection d'artefact";
+/** Talent « Détection d'artefact », id stable — LDB 10 l.336. */
+const DETECT_TALENT = 'detection-d-artefact';
 
 /** Compétence testée par CHAQUE mode de la fenêtre Évaluation/Détection, par id STABLE — SOURCE
  *  UNIQUE lue par l'ouverture du jet (`bestDetector`/`openAppraise`) ET par la modale qui décompose
@@ -853,8 +852,8 @@ export const APPRAISE_SKILL = {
 
 /** Meilleur détecteur du groupe : meilleure Intuition PARMI les porteurs du Talent (c'est LUI qui
  *  touche l'objet — pas un partyBest global comme l'Évaluation). null si personne ne l'a. */
-export function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
-  const holders = party.filter((h) => h.talents.some((t) => t.talentId === slugId(DETECT_TALENT) && (t.times ?? 1) >= 1));
+function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
+  const holders = party.filter((h) => hasTalent(h, DETECT_TALENT));
   const best = partyAssisted(holders, APPRAISE_SKILL.detect.skill, APPRAISE_SKILL.detect.characteristic); // Soutien (LDB 12)
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
 }
@@ -864,7 +863,10 @@ function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect'): { acto
   return mode === 'detect' ? bestDetector(party) : partyAssisted(party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic);
 }
 
-const appraiseNobody = (mode: 'evaluate' | 'detect'): string => refusPersonneNePeutTenter({ skill: APPRAISE_SKILL[mode].skill });
+/** Détection : le refus nomme le Talent, pas la Compétence — LDB 10 l.336. */
+const appraiseNobody = (mode: 'evaluate' | 'detect'): string => refusPersonneNePeutTenter(
+  mode === 'detect' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
+);
 
 /** Refus NOMMÉ d'une Évaluation/Détection que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste
  *  de l'UI en dérive. */

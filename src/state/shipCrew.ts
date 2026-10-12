@@ -35,10 +35,12 @@ import type { Get, Set as SetFn } from './flowTypes';
  *  `shipDefaultRoles` — donc exclue de tout Test d'équipage. */
 export const BENCHED = 'repos';
 
-/** Un marin est-il FORMÉ pour un rôle (possède une de ses compétences) ? PUR. */
+/** Un marin est-il FORMÉ pour un rôle : il porte une de ses Compétences ET peut en tenter le Test
+ *  (`peutTenter`) — LDB 09 l.30. PUR. */
 function trainedForRole(c: Combatant, roleId: string): boolean {
   const role = findCrewRoleById(roleId);
-  return !!role && role.skills.some((s) => (c.skills ?? []).some((k) => k.id === s.id && (s.spec == null || k.spec === s.spec)));
+  return !!role && role.skills.some((s) =>
+    (c.skills ?? []).some((k) => k.id === s.id && (s.spec == null || k.spec === s.spec)) && peutTenter(c, s.id, s.spec));
 }
 
 /**

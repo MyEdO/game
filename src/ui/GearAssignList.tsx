@@ -1,6 +1,6 @@
 import { useGame, type LootGear } from '../state/store';
 import { giveTrappingQualities } from '../engine/items';
-import { appraiseRefus, bestDetector } from '../state/merchantFlow';
+import { appraiseRefus } from '../state/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { PortraitPicker } from './PortraitPicker';
 import { QualityChips } from './EntityChip';
@@ -11,7 +11,7 @@ import { Icon } from './Icon';
 /**
  * Liste de butin ATTRIBUABLE — brique partagée écran de victoire / fenêtre de loot : chaque ligne
  * porte son nom (magique, qualités une fois révélées), ses actions de révélation — Évaluer
- * (LDB 09 l.241) / Détecter (Talent Détection d'artefact, LDB 10 l.336, si un héros l'a) —
+ * (LDB 09 l.241) / Détecter (Talent Détection d'artefact, LDB 10 l.336) —
  * et l'attribution par portrait (montrer, pas écrire).
  */
 export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
@@ -23,8 +23,8 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
 }) {
   const party = useGame((s) => s.party);
   const today = useGame((s) => Math.floor(s.gameTime / MINUTES_PER_DAY));
-  const canDetect = !!bestDetector(party);
   const refusEval = appraiseRefus(party);
+  const refusDetect = appraiseRefus(party, 'detect');
   return (
     <ul className="gear-list">
       {gear.map((g, i) => {
@@ -62,8 +62,17 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
                     btnClassName="gear-act"
                   />
                 )}
-                {canDetect && !fx.detectTried && (
-                  <button className="btn gear-act" onClick={() => onAppraise(i, 'detect')} title="Détection d'artefact (Intuition, au toucher) : sentir l'aura — une seule tentative par objet">Détecter</button>
+                {!fx.detectTried && (
+                  <GatedAction
+                    id={`gear-detect-${i}`}
+                    label="Détecter"
+                    enabled={!refusDetect}
+                    {...raisonSi(refusDetect)}
+                    descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura — une seule tentative par objet"
+                    onClick={() => onAppraise(i, 'detect')}
+                    primary={false}
+                    btnClassName="gear-act"
+                  />
                 )}
               </span>
             )}

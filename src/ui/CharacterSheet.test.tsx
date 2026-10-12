@@ -346,21 +346,36 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
       activeLoadoutId: 'lo1',
     }) as unknown as Combatant;
 
-  it('« Évaluer » suit qui peut tenter le Test (LDB 09 l.30) : offert avec une Augmentation, fermé et NOMMÉ sans', () => {
+  describe('Évaluer / Détecter suivent qui peut tenter le Test (LDB 09 l.30) : offerts, ou fermés et NOMMÉS', () => {
     const inconnu = { uid: 'u1', label: 'Épée', kind: 'melee', qualities: [], enc: 1, equipped: false, identified: false };
-    const etat = (h: Combatant) => {
+    const etat = (h: Combatant, label: 'Évaluer' | 'Détecter', id: string) => {
       useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
       const el = mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
       // Le geste du joueur : élire la rangée de l’objet déplie sa barre d’actions.
       act(() => { ([...el.querySelectorAll('.plaque-row')].find((r) => r.textContent?.includes('Épée')) as HTMLButtonElement).click(); });
-      const bouton = [...el.querySelectorAll('button')].find((b) => b.textContent === 'Évaluer');
-      return { rendu: !!bouton, ferme: bouton?.getAttribute('aria-disabled') ?? null, raison: el.querySelector('#sheet-eval-u1-reason')?.textContent ?? null };
+      const bouton = [...el.querySelectorAll('button')].find((b) => b.textContent === label);
+      return { rendu: !!bouton, ferme: bouton?.getAttribute('aria-disabled') ?? null, raison: el.querySelector(`#${id}-reason`)?.textContent ?? null };
     };
-    const evaluateur = { ...hero(), id: 'e', items: [inconnu], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as unknown as Combatant;
-    expect(etat(evaluateur)).toEqual({ rendu: true, ferme: null, raison: null });
-    demonterRacines();
-    const profane = { ...hero(), id: 'p', items: [inconnu] } as unknown as Combatant;
-    expect(etat(profane)).toEqual({ rendu: true, ferme: 'true', raison: 'Personne dans le groupe ne peut tenter le Test d’Évaluation.' });
+
+    it('« Évaluer » : offert avec une Augmentation en Évaluation', () => {
+      const evaluateur = { ...hero(), id: 'e', items: [inconnu], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as unknown as Combatant;
+      expect(etat(evaluateur, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: null, raison: null });
+    });
+
+    it('« Évaluer » : fermé et NOMMÉ sans Augmentation', () => {
+      const profane = { ...hero(), id: 'p', items: [inconnu] } as unknown as Combatant;
+      expect(etat(profane, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: 'Personne dans le groupe ne peut tenter le Test d’Évaluation.' });
+    });
+
+    it('« Détecter » : offert quand un héros porte le Talent Détection d’artefact (LDB 10 l.336)', () => {
+      const detecteur = { ...hero(), id: 'd', items: [inconnu], talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as unknown as Combatant;
+      expect(etat(detecteur, 'Détecter', 'sheet-detect-u1')).toEqual({ rendu: true, ferme: null, raison: null });
+    });
+
+    it('« Détecter » : fermé, sa raison nomme le Talent, quand personne ne le porte', () => {
+      const profane = { ...hero(), id: 'p', items: [inconnu] } as unknown as Combatant;
+      expect(etat(profane, 'Détecter', 'sheet-detect-u1')).toEqual({ rendu: true, ferme: 'true', raison: "Personne dans le groupe ne peut tenter « Détection d'artefact »." });
+    });
   });
 
   it('la plaque ENC. de tête MEURT (arbitrage en vol 2026-07-17) — aucun remplaçant dans ce geste', () => {

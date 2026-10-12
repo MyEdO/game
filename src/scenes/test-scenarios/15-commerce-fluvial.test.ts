@@ -77,6 +77,15 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
     expect(barre?.actorId).toBe('com-gunnar');
   });
+
+  it('la barre se lit à la Voile de Gunnar, sa seule instance : Agilité + 40 (LDB 09 l.40)', () => {
+    drainCascade();
+    const gunnar = get().party.find((h) => h.id === 'com-gunnar')!;
+    expect(gunnar.skills.filter((k) => k.id === 'voile').map((k) => [k.spec, k.advances])).toEqual([['caravelle', 40]]);
+    get().startTravel('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
+    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
+    expect(barre?.base).toBe(gunnar.characteristics.agilite + 40);
+  });
 });
 
 describe('Scénario Commerce fluvial — boucle acheter → barge → revendre avec PROFIT', () => {

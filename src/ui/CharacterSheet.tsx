@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useGame, type SheetTab } from '../state/store';
-import { appraiseRefus, bestDetector } from '../state/merchantFlow';
+import { appraiseRefus } from '../state/merchantFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
@@ -563,9 +563,8 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
   const appraiseItem = useGame((s) => s.appraiseItem);
   const items = hero.items ?? [];
   const party = useGame((s) => s.party);
-  // Détection d'artefact (LDB 10) : visible seulement si un héros du groupe possède le Talent.
-  const canDetect = !!bestDetector(party);
   const refusEval = appraiseRefus(party);
+  const refusDetect = appraiseRefus(party, 'detect');
   // Verrou d'Évaluation : un échec bloque la re-tentative jusqu'au lendemain (LDB 12 l.94).
   const today = useGame((s) => Math.floor(s.gameTime / MINUTES_PER_DAY));
 
@@ -607,8 +606,17 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                         btnClassName="small"
                       />
                     )}
-                    {canDetect && !it.detectTried && (
-                      <button className="btn small" title="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet" onClick={() => appraiseItem(it.uid, hero.id, 'detect')}>Détecter</button>
+                    {!it.detectTried && (
+                      <GatedAction
+                        id={`sheet-detect-${it.uid}`}
+                        label="Détecter"
+                        enabled={!refusDetect}
+                        {...raisonSi(refusDetect)}
+                        descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet"
+                        onClick={() => appraiseItem(it.uid, hero.id, 'detect')}
+                        primary={false}
+                        btnClassName="small"
+                      />
                     )}
                   </>
                 )}
