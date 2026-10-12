@@ -16,6 +16,7 @@ import { modalOwnerOf, seatOwns, ownsLocally } from './netOwnership';
 import type { Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { CascadeStep } from './pendings';
+import { OPS_DIFFEREES } from './combatEffects';
 
 /**
  * LES TABLES, CHOIX et AFFICHAGES de combat PAR LA PORTE (#1262 V1 lot 5b) — Déviation, Piège-lame,
@@ -147,7 +148,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
     hero.armour = { ...SANS_PA }; // aucune PA → aucune voie de Déviation : on isole le seul tirage
     setDesFixes(true);
     const suspendu = applyAttackResult(useGame.getState, useGame.setState, E[0], hero, hache, critHit('corps'));
-    expect(suspendu).toBe(true);
+    expect(suspendu).toBe(OPS_DIFFEREES);
 
     const st = parKind('deviation')!;
     expect(stepInteraction(st), 'le dé n’est PAS tombé : c’est la fenêtre qui le pose').toBe('table');

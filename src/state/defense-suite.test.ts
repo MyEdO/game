@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, openAttackCascade } from './combatFlow';
+import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, jouerLApresCoup, openAttackCascade } from './combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import { OPS_DIFFEREES } from './combatEffects';
 
 /**
  * CE QUE LA FENÊTRE DE DÉFENSE FERA APRÈS LE COUP — la donnée portée par `pendingDefense.suite`,
@@ -89,7 +90,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   // K1 — chaque producteur déclare EXACTEMENT ce que la fenêtre porte.
   it('K1 attaque principale de la machine : coup NU', () => {
     const { enemy, hero } = setup(false);
-    expect(doAttack(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
+    expect(doAttack(useGame.getState, useGame.setState, enemy, hero)).toBe(OPS_DIFFEREES);
     expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: {} });
   });
 
@@ -107,14 +108,14 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
     const { enemy } = setup(true);
     enemy.traits = [{ id: 'morsure', value: 14 }]; enemy.advantage = 1;
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, enemy);
-    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { freeAttack: { kind: 'morsure', prevActed: true } } });
+    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { restitution: { prevActed: true }, manoeuvre: { kind: 'morsure' } } });
   });
 
   it('K1 gratuite d’Arme (Frénésie LDB 21 l.33) : clé `arme`', () => {
     const { enemy } = setup(false);
     (enemy.psychState ??= []).push({ type: 'frenesie' });
     aiAvailableFreeAttack(useGame.getState, useGame.setState, enemy);
-    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { freeAttack: { kind: 'arme', prevActed: false } } });
+    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { restitution: { prevActed: false }, manoeuvre: { kind: 'arme' } } });
   });
 
   it('K1 attaque PILOTÉE : l’attaque figée, marquée défendue', () => {
@@ -130,7 +131,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   });
 
   // K4 — ISOLATION : une fenêtre ne porte QUE ce que sa frappe a déclaré.
-  it('K4 la fenêtre d’une gratuite ne porte AUCUN balayage, celle d’un maillon AUCUNE gratuite', () => {
+  it('K4 la fenêtre d’une gratuite ne porte AUCUN balayage, celle d’un maillon d’Action AUCUNE gratuite', () => {
     const { enemy } = setup(false, 2);
     enemy.traits = [{ id: 'morsure', value: 14 }]; enemy.advantage = 1;
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, enemy);
@@ -139,7 +140,23 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
     const { enemy: e2, heros } = setup(false, 2);
     autoCleave(useGame.getState, useGame.setState, e2, heros[0], toucheQuiBalaie());
     const maillon = suiteDeLaFenetre();
-    expect(maillon.mode === 'machine' && maillon.coup.freeAttack).toBeUndefined();
+    expect(maillon.mode === 'machine' && maillon.coup.restitution).toBeUndefined();
+    expect(maillon.mode === 'machine' && maillon.coup.manoeuvre).toBeUndefined();
+  });
+
+  // K4 — le maillon d'une GRATUITE (LDB 85 l.43) porte la restitution de SON Action, jamais les effets
+  // de la manœuvre, propres au coup principal.
+  it('K4 le maillon d’une gratuite porte la restitution et AUCUN effet de manœuvre', () => {
+    const { enemy, heros } = setup(false, 2);
+    heros[0].aiControlled = true; // la Morsure s'applique sans fenêtre ; le maillon s'ouvre sur h2
+    enemy.traits = [{ id: 'morsure', value: 14 }]; enemy.advantage = 1;
+    enemy.pendingFreeAttacks = ['morsure']; // file réduite à la Morsure : ce qui suit vient de SA chaîne
+    expect(aiCreatureFreeAttacks(useGame.getState, useGame.setState, enemy), 'le maillon tient la main : la file s’arrête').toBe(true);
+    expect(useGame.getState().pendingDefense!.defenderId).toBe(heros[1].id);
+    const maillon = suiteDeLaFenetre();
+    expect(maillon.mode === 'machine' && maillon.coup.enchainement && maillon.coup.enchainement.mode).toBe('chaine');
+    expect(maillon.mode === 'machine' && maillon.coup.restitution).toEqual({ prevActed: false });
+    expect(maillon.mode === 'machine' && maillon.coup.manoeuvre).toBeUndefined();
   });
 
   // K2 — la suite est FIGÉE à l'ouverture : les gestes de la fenêtre ne la touchent pas.
@@ -190,7 +207,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   // fenêtre du défenseur comprise), et la suite portée par la fenêtre reste celle de SA frappe.
   it('K7 balayage lancé par-dessus une fenêtre vivante : la porte REFUSE, la suite de la fenêtre ne bouge pas', () => {
     const { enemy, heros } = setup(false, 3);
-    expect(doAttack(useGame.getState, useGame.setState, enemy, heros[0])).toBe(true);
+    expect(doAttack(useGame.getState, useGame.setState, enemy, heros[0])).toBe(OPS_DIFFEREES);
     const vivante = useGame.getState().pendingDefense!;
     const suiteAvant = JSON.parse(JSON.stringify(vivante.suite));
     expect(() => autoCleave(useGame.getState, useGame.setState, enemy, heros[0], toucheQuiBalaie())).toThrow(/défense/i);
@@ -228,5 +245,112 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
     const st = useGame.getState();
     expect(st.pendingDefense).toBeNull();
     expect(st.battle!.combatants.find((c) => c.id === hero.id)!.wounds.current).toBe(200);
+  });
+});
+
+/** Une gratuite qui BALAIE (#1749) : l'Action d'avant la gratuite (LDB 85 l.43) est celle que la chaîne
+ *  ENTIÈRE laisse — les maillons du balayage (LDB 85 l.362) appartiennent au même coup. */
+describe('Gratuite qui balaie : l’Action d’origine au bout de la chaîne (#1749)', () => {
+  it('chaîne sans fenêtre : l’Action est rendue après le dernier maillon', () => {
+    const { enemy, heros } = setup(false, 2);
+    for (const h of heros) h.aiControlled = true; // aucune fenêtre : la chaîne se joue d'un trait
+    enemy.traits = [{ id: 'morsure', value: 14 }]; enemy.advantage = 1;
+    enemy.pendingFreeAttacks = ['morsure']; // file réduite à la Morsure : ce qui suit vient de SA chaîne
+    expect(aiCreatureFreeAttacks(useGame.getState, useGame.setState, enemy)).toBe(false);
+    const st = useGame.getState();
+    expect(st.battle!.combatants.find((c) => c.id === heros[1].id)!.wounds.current, 'le maillon a frappé h2').toBeLessThan(200);
+    expect(st.battle!.acted, 'gratuite : l’Action d’avant, maillons compris').toBe(false);
+  });
+
+  it('maillon suspendu sur une fenêtre de défense : l’Action est rendue à sa fermeture', () => {
+    const { enemy, heros } = setup(false, 2);
+    heros[0].aiControlled = true;
+    enemy.traits = [{ id: 'morsure', value: 14 }]; enemy.advantage = 1;
+    enemy.pendingFreeAttacks = ['morsure']; // file réduite à la Morsure : ce qui suit vient de SA chaîne
+    expect(aiCreatureFreeAttacks(useGame.getState, useGame.setState, enemy)).toBe(true);
+    expect(useGame.getState().pendingDefense!.defenderId).toBe(heros[1].id);
+    useGame.getState().defenseRoll();
+    useGame.getState().defenseConfirm();
+    const st = useGame.getState();
+    expect(st.pendingDefense).toBeNull();
+    expect(st.battle!.combatants.find((c) => c.id === heros[1].id)!.wounds.current, 'le maillon a frappé h2').toBeLessThan(200);
+    expect(st.battle!.acted, 'gratuite : l’Action d’avant, maillon suspendu compris').toBe(false);
+  });
+});
+
+/** Un attaquant mis HORS DE COMBAT pendant son propre coup n'enchaîne rien : ni balayage (LDB 14
+ *  l.9, LDB 85 l.362), ni 2ᵉ frappe (LDB 10 l.767-773). */
+describe('Suite d’un coup dont l’attaquant est hors de combat', () => {
+  const horsDeCombat = (enemy: Combatant) => { enemy.wounds.current = 0; (enemy as { dead?: boolean }).dead = true; };
+
+  it('aucun maillon de balayage ne s’ouvre', () => {
+    const { enemy, heros } = setup(false, 2);
+    horsDeCombat(enemy);
+    jouerLApresCoup(useGame.getState, useGame.setState, { attackerId: enemy.id, targetId: heros[0].id, weapon: sword, res: toucheQuiBalaie(), depuis: 'oupsAttaquant' });
+    expect(useGame.getState().pendingDefense, 'un mort n’ouvre aucun maillon').toBeNull();
+  });
+
+  it('aucune 2ᵉ frappe du Maniement de deux armes ne s’ouvre', () => {
+    const { enemy, heros } = setup(false, 1);
+    horsDeCombat(enemy);
+    useGame.setState({ pendingDualStrike: null });
+    jouerLApresCoup(useGame.getState, useGame.setState, { attackerId: enemy.id, targetId: heros[0].id, weapon: sword, res: toucheQuiBalaie(),
+      suite: { dualMain: { offWeaponUid: 'sw', mainRoll: 34 }, enchainement: { mode: 'aucun' } }, depuis: 'oupsAttaquant' });
+    expect(useGame.getState().pendingDualStrike, 'un mort n’ouvre aucune 2ᵉ frappe').toBeNull();
+  });
+});
+
+/** La chaîne d'un HÉROS (`pendingCleave`, LDB 14 l.9 / LDB 85 l.362) : la gratuite qui l'ouvre (Frénésie,
+ *  LDB 21 l.33) n'use pas l'Action de tour (LDB 85 l.43), maillons compris. */
+describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de sa chaîne (#1749)', () => {
+  const toucheDuHeros = (cleave: boolean): AttackResult => ({ ...toucheQuiBalaie(), cleave, damage: 1, woundsLost: 1 } as unknown as AttackResult);
+  function setupHeros() {
+    seedBattleRng(7);
+    const h = mk('h', 'hero', { x: 1, y: 1 });
+    (h as unknown as { psychState: unknown[] }).psychState = [{ type: 'frenesie' }];
+    const e1 = mk('e1', 'enemy', { x: 2, y: 1 });
+    const e2 = mk('e2', 'enemy', { x: 1, y: 2 });
+    const combatants = [h, e1, e2];
+    const battle = { combatants, order: combatants.map((c) => c.id), baseOrder: combatants.map((c) => c.id),
+      turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
+      movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState;
+    useGame.setState({ battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingCleave: null, pendingDualStrike: null,
+      net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } });
+    return { h, e1, e2 };
+  }
+
+  it('Frénésie qui balaie : la chaîne porte la restitution, l’Action est rendue après le maillon', () => {
+    setupHeros();
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'e1', location: null, result: toucheDuHeros(true) } as never });
+    useGame.getState().attackConfirm();
+    expect(useGame.getState().pendingCleave?.restitution, 'la chaîne ouverte emporte la restitution').toEqual({ prevActed: false });
+    useGame.getState().cleaveAttack('e2');
+    const pa = useGame.getState().pendingAttack!;
+    useGame.setState({ pendingAttack: { ...pa, result: toucheDuHeros(false) } as never });
+    useGame.getState().attackConfirm();
+    const st = useGame.getState();
+    expect(st.pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
+    expect(st.battle!.acted, 'gratuite : l’Action d’avant, maillon compris').toBe(false);
+  });
+
+  it('Frénésie qui balaie puis renonce : `cleaveEnd` rend l’Action', () => {
+    setupHeros();
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'e1', location: null, result: toucheDuHeros(true) } as never });
+    useGame.getState().attackConfirm();
+    expect(useGame.getState().pendingCleave).not.toBeNull();
+    useGame.getState().cleaveEnd();
+    expect(useGame.getState().battle!.acted, 'gratuite : l’Action d’avant à la fermeture de la chaîne').toBe(false);
+  });
+
+  it('héros HORS DE COMBAT pendant un maillon : la chaîne se ferme et rend l’Action', () => {
+    const { h, e2 } = setupHeros();
+    useGame.setState({ pendingCleave: { attackerId: 'h', hitIds: ['e1'], count: 0, fm: false, restitution: { prevActed: false } } });
+    useGame.setState({ battle: { ...useGame.getState().battle!, acted: true } });
+    h.wounds.current = 0; (h as { dead?: boolean }).dead = true;
+    jouerLApresCoup(useGame.getState, useGame.setState, { attackerId: 'h', targetId: e2.id, weapon: sword, res: toucheDuHeros(false),
+      suite: { restitution: { prevActed: false }, enchainement: { mode: 'hero', wasChain: true } }, depuis: 'oupsAttaquant' });
+    const st = useGame.getState();
+    expect(st.pendingCleave, 'un mort ne garde aucune chaîne ouverte').toBeNull();
+    expect(st.battle!.acted).toBe(false);
   });
 });

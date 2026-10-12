@@ -73,7 +73,7 @@ import { startCascade, stepInteraction, stepReady } from './cascade';
 import { routeDistanceLabel } from '../engine/travel';
 import { actorIn, ecrireActeur, inBattleId } from './combatants';
 import { touchActors } from './combatOrParty';
-import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, type PlacingZone } from './combatFlow';
+import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
 import { defenseSurfaced } from './netOwnership';
 import { combatDistance } from './footprint';
 import { reachTiles } from '../engine/engagement';
@@ -118,7 +118,8 @@ import { willAutoResolve } from './combatAuto';
 import { aiDriven, combatAdvanceBlocked } from './combatGate';
 import { endTurnArmed } from './endTurnGuard';
 import { activeLoadout, isShieldItem, loadoutLabel, formeResolue } from '../engine/items';
-import { bestDefenseMode } from './combatManeuvers';
+import { bestDefenseMode, trampleTarget } from './combatManeuvers';
+import { creatureAttacks } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
 import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
@@ -275,6 +276,8 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.aiLog(n)       → DIAGNOSTIC IA : action choisie + classement des candidats (intention) par tour
  *   __wfrp.turn('id')     → TRICHE : donne le tour à un combattant ; __wfrp.place('id',{x,y}) → téléporte
  *   __wfrp.attaque(a, d)  → SETUP : pose l'attaque de l'IA `a` sur `d` et OUVRE la modale de Défense de `d`
+ *   __wfrp.attaqueGratuite(a, d, type?) → SETUP : l'ennemi `a` déclare une attaque GRATUITE de créature sur `d`
+ *                           (file de production `aiCreatureFreeAttacks`) et OUVRE la modale de Défense de `d`
  *   __wfrp.turnShip('id', 'tribord'|'babord'|crans) → vire le cap d'un NAVIRE (manœuvre) → re-mappe ses bordées
  *   __wfrp.modal()        → modale(s) ouvertes ; __wfrp.roll()/confirm()/cancel() → pilote LA modale
  *                           (convention <flux>Roll/Confirm/Cancel ; reveals/Round ont leur verbe propre)
@@ -1401,6 +1404,56 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
     },
 
+    /** SETUP de recette : l'ennemi `attaquantId` (piloté par l'IA) déclare une ATTAQUE GRATUITE de créature
+     *  (`type` : morsure, caudale, tentacules, cornes, pietinement ; défaut = la première disponible) sur
+     *  `defenseurId`, par la file de PRODUCTION (`combatFlow.ts:aiCreatureFreeAttacks`, reprise d'une file
+     *  DÉFINIE) posée à cette seule unité, au tour de l'attaquant, qui lui est donné AVANT (Action et
+     *  Mouvement du tour lus par la file). La fenêtre de Défense surfacée est celle du jeu ; sa fermeture
+     *  reprend ce tour comme après une gratuite d'IA. Refus NOMMÉS, sans rien toucher : les refus de
+     *  `attaque`, attaquant non ennemi, aucune gratuite disponible (ou `type` absent de ses gratuites),
+     *  défenseur hors de portée, non surfacé, incapable de se défendre ; puis, si la file écarte l'unité, le
+     *  tour est rendu et la raison nommée (Avantage sous le coût). */
+    attaqueGratuite: (attaquantId: string, defenseurId: string, type?: string | null) => {
+      const b = g().battle;
+      if (!b || b.over) return '✗ pas de combat en cours';
+      if (g().pendingRoundStart) return '✗ pause de début de Round : ouvrir le Round d\'abord (__wfrp.confirm())';
+      const actif = inBattleId(b, b.order[b.turn]);
+      if (actif && aiDriven(g(), actif)) return `✗ tour de ${actif.label}, piloté par l'IA (minuteurs en vol) : attendre la main d'un joueur (__wfrp.fastForward())`;
+      const att = inBattleId(b, attaquantId);
+      const def = inBattleId(b, defenseurId);
+      if (!att || !def) return `✗ attaquant/défenseur introuvable (${attaquantId}/${defenseurId}) — voir __wfrp.battle()`;
+      const horsDeCombat = [att, def].find(isOutOfAction);
+      if (horsDeCombat) return `✗ ${horsDeCombat.label} est hors de combat`;
+      const idx = b.order.indexOf(att.id);
+      if (idx < 0) return `✗ ${att.label} est absent de l'ordre d'initiative`;
+      if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : ses gratuites passent par la barre d'actions`;
+      if (att.kind !== 'enemy') return `✗ ${att.label} n'est pas un ennemi : la file des gratuites de créature ne joue que les ennemis`;
+      if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
+      const atks = creatureAttacks(att.traits ?? []);
+      const disponibles = [
+        ...(att.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes'] : []),
+        ...atks.filter((a) => a.trigger === 'free' && ['morsure', 'caudale', 'tentacules'].includes(a.kind)).map((a) => a.kind),
+        ...(trampleTarget(b, att, def.id) ? ['pietinement'] : []),
+      ];
+      if (!disponibles.length) return `✗ ${att.label} n'a aucune attaque gratuite disponible contre ${def.label} (Morsure, Attaque caudale, Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact) — __wfrp.trait() d'abord`;
+      const kind = type ?? disponibles[0];
+      if (!disponibles.includes(kind)) return `✗ « ${kind} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
+      if (combatDistance(att, def) > 1) return `✗ ${def.label} est hors de portée de ${att.label} (distance ${combatDistance(att, def)} > 1) — __wfrp.place() d'abord`;
+      if (!defenseSurfaced(g(), def)) return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
+      if (cannotDefend(def)) return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
+      donnerLeTour(b, idx);
+      const auTour = g().battle!;
+      const porteur = inBattleId(auTour, att.id)!;
+      porteur.pendingFreeAttacks = [kind];
+      aiCreatureFreeAttacks(() => useGame.getState(), useGame.setState, porteur);
+      const ouverte = g().pendingDefense;
+      if (ouverte?.defenderId === def.id) return `✓ ${att.label} déclare ${kind} sur ${def.label} — modale de Défense ouverte`;
+      if (ouverte) return `✗ la file a visé ${inBattleId(g().battle, ouverte.defenderId)?.label ?? ouverte.defenderId} (premier adversaire au contact) : sa modale de Défense est ouverte — isoler ${def.label} par __wfrp.place()`;
+      if (g().battle === auTour) useGame.setState({ battle: b });
+      const cout = atks.find((a) => a.kind === kind)?.avantage ?? 1;
+      return `✗ la file a écarté ${kind} de ${att.label} : ${att.advantage} Avantage pour un coût de ${cout} — __wfrp.quality('${att.id}', null, ${cout}) d'abord`;
+    },
+
     /** TRICHE de recette : téléporte un COMBATTANT (mise en place de situations LdV/portée). Cible une
      *  COQUE à postes (`postes` non vide) ou un membre d'ÉQUIPAGE de poste (`ShipPoste.crewIds`) →
      *  déplace la FORMATION SOLIDAIRE (coque + tout l'équipage des postes de la coque, MÊME delta —
@@ -1882,8 +1935,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE : ajoute un Atout/Défaut (par libellé OU id de qualité) à l'arme ACTIVE d'un combattant
      *  et, optionnellement, lui crédite des Avantages — ex. `quality('hero-1','Déstabilisante',2)` pour
-     *  tester le renversement onHit influençable. La qualité est reconnue label/id/casse (resolveQualities). */
-    quality: (id: string, label = 'Déstabilisante', advantage?: number) => {
+     *  tester le renversement onHit influençable. La qualité est reconnue label/id/casse (resolveQualities).
+     *  `null` vaut absent (un `undefined` passé par CDP arrive `null`) : qualité par défaut, aucun Avantage. */
+    quality: (id: string, qualite?: string | null, advantage?: number | null) => {
+      const label = qualite ?? 'Déstabilisante';
       const tweak = (c: Combatant): Combatant => {
         const weapons = (c.weapons ?? []).map((w, i) => (i === 0 ? { ...w, qualities: [...(w.qualities ?? []), parseQualityInstance(label) ?? { id: label }] } : w));
         return { ...c, weapons, ...(advantage != null ? { advantage } : {}) };

@@ -111,7 +111,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // NATURE de l'attaque figée, telle que la frappe l'a DÉCLARÉE en ouvrant la fenêtre (#1858) : une
   // gratuite de créature s'annonce par la sienne (Morsure, Attaque caudale… LDB 85), le reste est une
   // Attaque. L'affichage ne devine rien — il lit la suite portée par la fenêtre.
-  const kindGratuit = pd.suite.mode === 'machine' ? pd.suite.coup.freeAttack?.kind : undefined;
+  const kindGratuit = pd.suite.mode === 'machine' ? pd.suite.coup.manoeuvre?.kind : undefined;
   // Attaque et défense sont les DEUX lignes d'un même Test opposé : la Difficulté est déclarée UNE
   // fois à la fabrique (LDB 12 l.166 ; jet de Combat, LDB 13 l.118).
   const [attackLine, defenseLine] = opposedLines([

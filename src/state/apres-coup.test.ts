@@ -239,7 +239,7 @@ describe('mise hors de combat automatique (`autoKill`, LDB 16 l.113) : l’aprè
     (h as { fate?: number }).fate = 0;
     const res = { hit: true, autoKill: true, attackerRoll: 20, netSL: 2, location: 'corps', damage: 5, woundsLost: 3, critical: false,
       advantageTo: null, defenderDefeated: false, log: 'achève.' } as unknown as AttackResult;
-    applyAttackResult(g, useGame.setState, e, h, e.weapons[0], res, { sousAttaque: true, suite: { freeAttack: { kind: 'morsure', prevActed: false }, enchainement: { mode: 'aucun' } } });
+    applyAttackResult(g, useGame.setState, e, h, e.weapons[0], res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'morsure' }, enchainement: { mode: 'aucun' } } });
     expect(g().battle!.combatants.find((c) => c.id === 'h')!.wounds.current, 'la cible est mise hors de combat').toBe(0);
     expect(g().battle!.acted, 'frappe GRATUITE : la suite rend l’Action consommée par la mort-auto').toBe(false);
   });

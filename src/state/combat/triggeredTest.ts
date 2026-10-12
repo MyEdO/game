@@ -101,7 +101,7 @@ export interface ExecCtx {
 type FreeAttackHook = (
   get: Get, set: SetFn, actor: Combatant, op: Extract<import('../../engine/ops').GameOp, { op: 'grantFreeAttack' }>,
   fa: FreeAttackFreeze,
-) => boolean;
+) => Applique;
 let freeAttackHook: FreeAttackHook | undefined;
 export function setFreeAttackHook(fn: FreeAttackHook): void { freeAttackHook = fn; }
 

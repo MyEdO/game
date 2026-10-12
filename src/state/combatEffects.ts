@@ -411,6 +411,9 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * la fin de sa fonction. Une déférance laisse simplement la cascade OUVERTE — le dé se joue, sa
  * conséquence se dit, et il n'y a aucune suite à confier.
  *
+ * Exception nommée : `advanceCombatJet` après l'appel (`trampleConfirm`, `attackConfirm`). Il n'avance
+ * pas le curseur tant qu'une fenêtre est ouverte (`combatSlice.ts` `advanceCombatJet`).
+ *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
  * c'est une `Cloture`, différée avec la continuation.
  *

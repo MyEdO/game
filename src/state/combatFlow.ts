@@ -248,7 +248,7 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 
 // --- Effets de scène/campagne extraits → combatEffects.ts (baril) ---
 export * from './combatEffects';
-import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, registerSuiteCombat, ouvrirChute, cloturer, registerCloture, revealPurpose, nePeutPasDifferer, OPS_DIFFEREES, type Applique } from './combatEffects';
+import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, registerSuiteCombat, ouvrirChute, cloturer, registerCloture, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './commandTeam';
 // --- Manœuvres de créature (énumération + résolveurs roll/apply) extraites → combatManeuvers.ts (baril) ---
 export * from './combatManeuvers';
@@ -2328,9 +2328,10 @@ export interface ApplicationDuCoup {
 
 /**
  * UN COUP (#1508 T3b-4) = son application (`appliquerLaTouche`) PUIS son après-coup (`jouerLApresCoup`),
- * une seule fonction. Rend `true` quand une fenêtre tient la main (sauvegarde, Déviation, Maladresse,
- * dé de casse) : c'est sa reprise qui rejouera la suite, jamais l'appelant. L'appelant DÉCLARE ce qui
- * suit le coup (`suite`) ; il ne joue rien après l'appel qui dépende de l'issue.
+ * une seule fonction. Rend `OPS_DIFFEREES` quand une fenêtre tient la main (sauvegarde, Déviation,
+ * Maladresse, dé de casse, fenêtre de défense d'un maillon ou d'une gratuite de la suite) : c'est sa
+ * reprise qui rejouera la suite, jamais l'appelant. L'appelant DÉCLARE ce qui suit le coup (`suite`) ;
+ * il ne joue rien après l'appel qui dépende de l'issue.
  */
 export function applyAttackResult(
   get: Get,
@@ -2340,10 +2341,10 @@ export function applyAttackResult(
   weapon: Weapon,
   res: AttackResult,
   coup: ApplicationDuCoup = {},
-): boolean {
-  if (appliquerLaTouche(get, set, attacker, target, weapon, res, coup)) return true;
+): Applique {
+  if (appliquerLaTouche(get, set, attacker, target, weapon, res, coup)) return OPS_DIFFEREES;
   const { suite } = coup;
-  return jouerLApresCoup(get, set, { attackerId: attacker.id, targetId: target.id, weapon, res, ...(suite ? { suite } : {}), depuis: APRES_COUP[0] });
+  return jouerLApresCoup(get, set, { attackerId: attacker.id, targetId: target.id, weapon, res, ...(suite ? { suite } : {}), depuis: APRES_COUP[0] }) ? OPS_DIFFEREES : undefined;
 }
 
 /** L'APPLICATION du coup, sans son après-coup. Rend `true` quand elle a SUSPENDU (sauvegarde,
@@ -2847,7 +2848,8 @@ function appliquerLaTouche(
  * TOUTE reprise d'une fenêtre ouverte par un de ses temps (dé de casse d'arme, Maladresse du défenseur).
  * Les temps (`APRES_COUP`) se jouent dans l'ordre à partir de `q.depuis` ; un temps qui ouvre une fenêtre
  * lui confie la queue au temps SUIVANT (le curseur) et rend `true`. Le temps `suite` est le dernier : ce
- * qu'il ouvre (fenêtre de défense du maillon suivant) porte sa PROPRE reprise (`PendingDefense.suite`).
+ * qu'il ouvre (fenêtre de défense du maillon suivant) porte sa PROPRE reprise (`PendingDefense.suite`),
+ * et sa suspension remonte de même.
  */
 export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
   const battle = get().battle;
@@ -2871,7 +2873,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
         if (q.suite?.reaction && q.res.parryWeapon) applyShieldReaction(get, set, target, attacker, q.suite.reaction, q.res.parryWeapon);
         break;
       case 'suite':
-        jouerLaSuiteDuCoup(get, set, attacker, target, q.res, q.suite);
+        if (jouerLaSuiteDuCoup(get, set, attacker, target, q.res, q.suite)) return true;
         break;
     }
   }
@@ -3686,17 +3688,17 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   return true;
 }
 
-export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant): boolean {
+export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant): Applique {
   // Bénédiction de Protection (LDB 41 — L13) : Test de FM Accessible (+20) pour oser attaquer le
   // béni ; échec → l'IA renonce à CE coup (simplification : pas de re-ciblage, documentée).
   const ward = attackWardGate(attacker, target);
   const b0 = get().battle;
   if (ward.lines.length && b0) set({ battle: { ...b0, log: [...b0.log, ...evLines(ward.lines, 'info', attacker.id)] } });
-  if (!ward.allowed) return false;
+  if (!ward.allowed) return undefined;
   // Main ensanglantée (AA 07 l.117) : l'attaquant gaté joue le Test de Dextérité (+20) sur l'arme EMPLOYÉE contre
   // cette cible ; Échec → l'arme glisse et il renonce à CE coup (une pièce servie hors loadout n'est jamais gatée).
-  if (!aiHandGate(get, set, attacker, firedWeapon(attacker, target).uid)) return false;
-  if (maybeOpenDefense(get, set, attacker, target, undefined, undefined, attacker.chargedThisTurn)) return true; // suspendu : reprise via defenseConfirm/Cancel ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
+  if (!aiHandGate(get, set, attacker, firedWeapon(attacker, target).uid)) return undefined;
+  if (maybeOpenDefense(get, set, attacker, target, undefined, undefined, attacker.chargedThisTurn)) return OPS_DIFFEREES; // suspendu : reprise via defenseConfirm/Cancel ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
   // Tir ennemi : l'annoncer dans le journal de COMBAT (battle.log → fil + tiroir) DÈS la décision — un tir
   // n'ouvre pas de modale de défense, donc « on ne savait jamais sur qui il tirait » (#12d). Avant, l'annonce
   // partait dans le journal du GROUPE (invisible en combat).
@@ -3710,7 +3712,7 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   const r = resolveAttack(get, attacker, target, undefined, attacker.chargedThisTurn);
   if (!r) {
     get().log(firedWeapon(attacker, target).type === 'ranged' ? tr('cf.noLoSMasked') : tr('cs.meleeOutOfRange'));
-    return false;
+    return undefined;
   }
   // r.victim = allié touché par un tir dévié (LDB 14 l.116) ; l'enchaînement non déclaré est le balayage
   // de la machine (`autoCleave`), joué par l'après-coup.
@@ -3735,8 +3737,9 @@ export function cleaveTargets(battle: BattleState, attacker: Combatant, hitIds: 
 /** Poursuit la chaîne de balayage. Chaque enchaînement passe par la MÊME couture d'ouverture que l'attaque
  *  principale (`maybeOpenDefense`, patron `applyFreeAttack`) : le maillon SUIVANT est la suite que le coup
  *  emporte, que la fenêtre du défenseur SURFACÉ s'interpose (`defenseConfirm` la joue) ou non — la chaîne
- *  n'est jamais roulée en silence. */
-function runCleaveChain(get: Get, set: SetFn, attacker: Combatant, chain: ChaineDeBalayage): void {
+ *  n'est jamais roulée en silence. La `restitution` du coup voyage dans chaque maillon. Rend `true` quand
+ *  un maillon tient la main (fenêtre de défense, ou suspension de son propre coup). */
+function runCleaveChain(get: Get, set: SetFn, attacker: Combatant, chain: ChaineDeBalayage, restitution?: SuiteDeCoup['restitution']): boolean {
   let hitIds = chain.hitIds;
   for (let n = chain.n; n < chain.bcc; n++) {
     const battle = get().battle;
@@ -3747,21 +3750,21 @@ function runCleaveChain(get: Get, set: SetFn, attacker: Combatant, chain: Chaine
     // Le maillon SUIVANT entre AVEC le coup, par le HAUT : la MÊME valeur va à la fenêtre du défenseur
     // surfacé (qui la joue à sa fermeture) et à l'application instantanée ; la case libérée ne se lit
     // qu'APRÈS l'application (`resumeCleaveChain`).
-    const suite: SuiteDeCoup = { enchainement: { mode: 'chaine', hitIds, n: n + 1, bcc: chain.bcc, fm: chain.fm } };
-    if (maybeOpenDefense(get, set, attacker, next, undefined, suite)) return; // chaîne suspendue : la reprise part de `defenseConfirm`
+    const suite: SuiteDeCoup = { enchainement: { mode: 'chaine', hitIds, n: n + 1, bcc: chain.bcc, fm: chain.fm }, ...(restitution ? { restitution } : {}) };
+    if (maybeOpenDefense(get, set, attacker, next, undefined, suite)) return true; // chaîne suspendue : la reprise part de `defenseConfirm`
     const r = resolveAttack(get, attacker, next);
     if (!r) continue; // hors de portée (ne devrait pas : déjà filtré adjacent) — borne consommée tout de même
     // Le maillon suivant est la SUITE de ce coup : son après-coup la joue (`resumeCleaveChain`).
-    applyAttackResult(get, set, attacker, r.victim ?? next, r.weapon, r.res, { sousAttaque: true, suite });
-    return;
+    return applyAttackResult(get, set, attacker, r.victim ?? next, r.weapon, r.res, { sousAttaque: true, suite }) === OPS_DIFFEREES;
   }
   set({ battle: { ...get().battle! } });
   bus.emit(EVT.SCENE_DIRTY);
+  return false;
 }
 
 /** REPREND une chaîne de balayage que le coup portait dans sa suite (`enchainement: 'chaine'`), une fois
  *  l'enchaînement appliqué : recalage sur la case d'une cible tuée (LDB 14 l.9) puis suite de la chaîne. */
-export function resumeCleaveChain(get: Get, set: SetFn, attacker: Combatant, defender: Combatant, chain: ChaineDeBalayage): void {
+export function resumeCleaveChain(get: Get, set: SetFn, attacker: Combatant, defender: Combatant, chain: ChaineDeBalayage, restitution?: SuiteDeCoup['restitution']): boolean {
   const killed = isOutOfAction(defender);
   if (killed && defender.pos) {
     placeCombatant(attacker, get().scene, defender.pos);
@@ -3770,9 +3773,9 @@ export function resumeCleaveChain(get: Get, set: SetFn, attacker: Combatant, def
   if (chain.fm && !killed) { // Frappe Mortelle : on ne poursuit qu'en TUANT (LDB 14 l.9)
     set({ battle: { ...get().battle! } });
     bus.emit(EVT.SCENE_DIRTY);
-    return;
+    return false;
   }
-  runCleaveChain(get, set, attacker, chain);
+  return runCleaveChain(get, set, attacker, chain, restitution);
 }
 
 /** Balayage AUTOMATIQUE d'un attaquant conduit par l'IA après une touche de mêlée d'un plus grand
@@ -3782,43 +3785,45 @@ export function resumeCleaveChain(get: Get, set: SetFn, attacker: Combatant, def
  *  dérivé GÉNÉRIQUEMENT (combat.ts : `attacker.swarm` ∨ `sizeGap ≥ 1`) et la Frappe Mortelle est une
  *  RÈGLE OPTIONNELLE (`combat-frappe-mortelle`) ; le ciblage est l'adjacence pure (`cleaveTargets`). Aucun
  *  trait/talent n'est nommé — règle universelle de l'arène pour les attaquants surdimensionnés/Nuée. */
-export function autoCleave(get: Get, set: SetFn, attacker: Combatant, primaryTarget: Combatant, res: AttackResult): void {
-  if (!aiDriven(get(), attacker)) return;
+export function autoCleave(get: Get, set: SetFn, attacker: Combatant, primaryTarget: Combatant, res: AttackResult, restitution?: SuiteDeCoup['restitution']): boolean {
+  if (!aiDriven(get(), attacker)) return false;
   const sizeCleave = !!res.cleave; // Taille/Nuée : enchaîne sur une simple TOUCHE (LDB 85 l.362)
   // Frappe Mortelle (option, hors Taille) : enchaîner seulement après avoir TUÉ en un coup (LDB 14 l.9).
   const fm = !sizeCleave && !!rule('combat-frappe-mortelle') && isOutOfAction(primaryTarget);
-  if (!sizeCleave && !fm) return;
+  if (!sizeCleave && !fm) return false;
   const bcc = bonus(effectiveChar(attacker, 'capacite-de-combat'));
-  if (bcc < 1) return;
+  if (bcc < 1) return false;
   // Cible primaire tuée → l'attaquant se déplace sur sa case avant d'enchaîner (l.10).
   if (isOutOfAction(primaryTarget) && primaryTarget.pos) {
     placeCombatant(attacker, get().scene, primaryTarget.pos);
     displaceSmaller(get, attacker); // en se recalant, un grand dégage les plus petits sous son empreinte (85 l.373-374)
   }
-  runCleaveChain(get, set, attacker, { hitIds: [primaryTarget.id], n: 0, bcc, fm });
+  return runCleaveChain(get, set, attacker, { hitIds: [primaryTarget.id], n: 0, bcc, fm }, restitution);
 }
 
 /** Balayage d'un HÉROS (interactif) : appelé après l'application d'une attaque. Démarre le balayage
  *  sur une touche d'un plus grand (`res.cleave`), ou le poursuit si `wasChain` (un enchaînement vient
  *  d'être résolu). Ouvre/maintient `pendingCleave` tant qu'il reste des cibles adjacentes ET que le
  *  nombre d'enchaînements reste < BCC (LDB 14 l.9) ; sinon le ferme. Déplacement sur la case d'une
- *  cible tuée (l.9). */
-export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, target: Combatant, res: AttackResult, wasChain: boolean): void {
+ *  cible tuée (l.9). Un attaquant hors de combat la ferme. Rend `true` quand la chaîne reste ouverte :
+ *  elle emporte alors la `restitution`. */
+export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, target: Combatant, res: AttackResult, wasChain: boolean, restitution?: SuiteDeCoup['restitution']): boolean {
   // SURFACE (#1426), jamais l'affordance LOCALE : le balayage d'un héros possédé par un siège DISTANT
   // est une FENÊTRE qui appartient à ce siège (`pendingCleave` → `modalArbiter`). Les deux chemins du
   // balayage se PARTAGENT tous les porteurs sans trou : ici ceux qu'un siège humain tient, `autoCleave`
   // (gaté `aiDriven`) ceux qu'un automate conduit — un prédicat seat-local laisserait un porteur entre
   // les deux, donc un enchaînement dû (LDB 14 l.9 / 85 l.362) jamais offert ni résolu.
-  if (!tenuParUnHumain(get(), attacker.id)) return;
+  const enAction = !isOutOfAction(attacker);
+  if (enAction && !tenuParUnHumain(get(), attacker.id)) return false;
   const pc = get().pendingCleave;
   const sizeCleave = !!res.cleave; // Taille : enchaîne sur une simple TOUCHE (LDB 85 l.362)
   // Démarrage Frappe Mortelle (option, hors Taille) : la cible doit être TUÉE en un coup (LDB 14 l.9).
   const fmStart = !pc && !sizeCleave && !!rule('combat-frappe-mortelle') && isOutOfAction(target);
-  if (!pc && !sizeCleave && !fmStart) return; // ni balayage en cours, ni déclenché par cette touche
+  if (!pc && !sizeCleave && !fmStart) return false; // ni balayage en cours, ni déclenché par cette touche
   const fm = pc ? !!pc.fm : fmStart; // mode porté par le pending (Taille vs Frappe Mortelle)
   const count = wasChain ? (pc?.count ?? 0) + 1 : pc?.count ?? 0; // un enchaînement résolu consomme une attaque
   const hitIds = pc ? [...new Set([...pc.hitIds, target.id])] : [target.id];
-  if (isOutOfAction(target) && target.pos) {
+  if (enAction && isOutOfAction(target) && target.pos) {
     placeCombatant(attacker, get().scene, target.pos); // case libérée (l.10)
     displaceSmaller(get, attacker); // dégage les plus petits sous l'empreinte (85 l.373-374)
   }
@@ -3827,11 +3832,12 @@ export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, targe
   const remaining = cleaveTargets(battle, attacker, hitIds);
   // Frappe Mortelle : la poursuite EXIGE d'avoir tué la cible enchaînée (LDB 14 l.9) ; la Taille enchaîne sur une touche.
   const fmStop = fm && wasChain && !isOutOfAction(target);
-  if (!battle.over && count < bcc && remaining.length && !fmStop) {
-    set({ pendingCleave: { attackerId: attacker.id, hitIds, count, fm }, battle: { ...battle } });
-  } else {
-    set({ pendingCleave: null, battle: { ...battle } });
+  if (enAction && !battle.over && count < bcc && remaining.length && !fmStop) {
+    set({ pendingCleave: { attackerId: attacker.id, hitIds, count, fm, ...(restitution ? { restitution } : {}) }, battle: { ...battle } });
+    return true;
   }
+  set({ pendingCleave: null, battle: { ...battle } });
+  return false;
 }
 
 /**
@@ -3844,22 +3850,24 @@ export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, targe
  * (LDB 13 l.123), seul son effet est ignoré.
  *
  * Les deux premières branches sont MUTUELLEMENT EXCLUSIVES par construction du site d'origine
- * (`dualMain` exige la main directrice ; `freeAttack` exige une manœuvre) — leur ordre interne n'a donc
+ * (`dualMain` exige la main directrice ; `manoeuvre` exige une manœuvre) — leur ordre interne n'a donc
  * aucun effet observable, et l'enchaînement `hero` exige de n'être ni l'une ni l'autre.
  * L'ENCHAÎNEMENT est une DÉCLARATION du site d'origine (`SuiteDeCoup.enchainement`), jamais un défaut
  * muet : les deux portes du balayage ne sont PAS exclusives pour un héros conduit par l'Auto-combat
  * (`tenuParUnHumain` vrai ET `aiDriven` vrai), et un fall-through en aurait ouvert une que le site
  * d'origine avait écartée. Un coup qui ne déclare RIEN est un coup de la machine : il enchaîne comme
  * `autoCleave` l'a toujours fait à la reprise (gardé par `aiDriven`).
+ * Un attaquant HORS DE COMBAT n'enchaîne rien : ni balayage, ni 2ᵉ frappe.
+ * La RESTITUTION de l'Action (LDB 85 l.43) se joue APRÈS l'enchaînement, qui la porte dans ses maillons :
+ * un maillon qui suspend l'emporte, et cette fonction rend alors `true` sans la jouer ; la chaîne d'un
+ * héros (`pendingCleave`) l'emporte de même, jusqu'à sa fermeture.
  */
-function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: Combatant, res: AttackResult, suite?: SuiteDeCoup): void {
+function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: Combatant, res: AttackResult, suite?: SuiteDeCoup): boolean {
   const touche = res.sauvegarde?.sauve ? toucheSauvee(res) : res;
-  if (suite?.freeAttack) {
-    applyFreeAttackEffects(get, attacker, target, suite.freeAttack.kind, touche);
-    set({ battle: { ...get().battle!, acted: suite.freeAttack.prevActed } }); // gratuite : l'Action rendue APRÈS le `markActed` de l'application
-  }
+  if (suite?.manoeuvre) applyFreeAttackEffects(get, attacker, target, suite.manoeuvre.kind, touche);
+  const enAction = !isOutOfAction(attacker);
   // Maniement de deux armes (LDB 10 l.767-773) : la main directrice a touché → sélection de la 2ᵉ cible.
-  if (suite?.dualMain && touche.hit) {
+  if (enAction && suite?.dualMain && touche.hit) {
     // Exception Critique : la 2ᵉ frappe utilise la valeur du tableau des Critiques — lue sur l'ÉTAPE de
     // Critique que l'application vient d'appender à la séquence (elle n'existe qu'après le coup). Jouée
     // depuis un APPLIER (reprise d'une sauvegarde), cette poussée vit encore dans la FENÊTRE d'insertion
@@ -3869,13 +3877,22 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
       : undefined;
     set({ pendingDualStrike: { attackerId: attacker.id, offWeaponUid: suite.dualMain.offWeaponUid, mainRoll: suite.dualMain.mainRoll, critValue } });
   }
-  const enchainement: EnchainementDuCoup = suite?.enchainement ?? { mode: 'auto' };
+  // La chaîne d'un héros est une fenêtre (`pendingCleave`) : hors de combat, `maybeHeroCleave` la FERME.
+  const declare: EnchainementDuCoup = suite?.enchainement ?? { mode: 'auto' };
+  const enchainement: EnchainementDuCoup = enAction || declare.mode === 'hero' ? declare : { mode: 'aucun' };
+  const restitution = suite?.restitution;
+  let suspendu = false;
+  let portee = false;
   switch (enchainement.mode) {
-    case 'hero': maybeHeroCleave(get, set, attacker, target, touche, enchainement.wasChain); break;
-    case 'chaine': resumeCleaveChain(get, set, attacker, target, enchainement); break; // la chaîne reprend où elle s'est arrêtée
-    case 'auto': autoCleave(get, set, attacker, target, touche); break; // balayage d'un attaquant conduit par l'IA
+    case 'hero': portee = maybeHeroCleave(get, set, attacker, target, touche, enchainement.wasChain, restitution); break;
+    case 'chaine': suspendu = resumeCleaveChain(get, set, attacker, target, enchainement, restitution); break; // la chaîne reprend où elle s'est arrêtée
+    case 'auto': suspendu = autoCleave(get, set, attacker, target, touche, restitution); break; // balayage d'un attaquant conduit par l'IA
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
   }
+  if (suspendu) return true;
+  if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
+  // Gratuites `onHit` du héros (LDB 10 l.72) : sur la touche RÉELLE, Action déjà rendue.
+  return !!suite?.gratuitesALaTouche && touche.hit && resolveFreeAttacks(get, set, attacker, 'onHit', target);
 }
 
 // ---------------------------------------------------------------------------
@@ -3950,29 +3967,29 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant, opts
  *  tenue, Action préservée. Le plafond borne aussi la récursion (un onHit qui touche → +1 attaque, recomptée
  *  → s'arrête au niveau). Appelée par le hook `freeAttack` quand `runCombatFlow` exécute le `do`/`grantFreeAttack`
  *  (le Test préalable a déjà réussi en amont, c'est un nœud Flow). */
-function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): boolean {
+function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
   const target = inBattleId(get().battle, fa.targetId);
-  if (!target || isOutOfAction(actor) || isOutOfAction(target) || !actor.pos || !target.pos) return false;
-  if ((actor.weapons[0]?.type ?? 'melee') !== 'melee') return false; // attaque d'arme de mêlée (l'arme tenue)
+  if (!target || isOutOfAction(actor) || isOutOfAction(target) || !actor.pos || !target.pos) return undefined;
+  if ((actor.weapons[0]?.type ?? 'melee') !== 'melee') return undefined; // attaque d'arme de mêlée (l'arme tenue)
   const uses = actor.freeAttacksThisTurn ?? {};
-  if ((uses[fa.key] ?? 0) >= fa.cap) return false; // plafond /Round atteint (= niveau du talent)
+  if ((uses[fa.key] ?? 0) >= fa.cap) return undefined; // plafond /Round atteint (= niveau du talent)
   const ck = `${fa.key}:${target.id}`;
-  if (op.perChargerOncePerRound && (uses[ck] ?? 0) >= 1) return false; // 1 riposte par chargeur (Frappe réactive)
-  if (op.advantageCost != null && actor.advantage < op.advantageCost) return false; // Avantage insuffisant
-  if (op.advantageOrMovement && actor.advantage <= 0) return false; // simplifié : Avantage requis (« ou Mouvement » = raffinement)
+  if (op.perChargerOncePerRound && (uses[ck] ?? 0) >= 1) return undefined; // 1 riposte par chargeur (Frappe réactive)
+  if (op.advantageCost != null && actor.advantage < op.advantageCost) return undefined; // Avantage insuffisant
+  if (op.advantageOrMovement && actor.advantage <= 0) return undefined; // simplifié : Avantage requis (« ou Mouvement » = raffinement)
   if (op.advantageCost != null) campSpend(get, actor, op.advantageCost); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
   else if (op.advantageOrMovement) campSpend(get, actor, 1);
   actor.freeAttacksThisTurn = { ...uses, [fa.key]: (uses[fa.key] ?? 0) + 1, ...(op.perChargerOncePerRound ? { [ck]: 1 } : {}) };
   const prevActed = get().battle?.acted ?? false; // gratuite : Action préservée
   // L'Action entre AVEC le coup : la MÊME suite va à la fenêtre du défenseur SURFACÉ et à l'application
   // instantanée, et la reprise rend l'Action APRÈS son `markActed`.
-  const suite: SuiteDeCoup = { freeAttack: { kind: fa.key, prevActed } };
+  const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind: fa.key } };
   // Défenseur SURFACÉ : la frappe passe par la MÊME couture d'ouverture que les autres gratuites
   // (patron `applyFreeAttack`) — suspendue ici, appliquée à `defenseConfirm` (Action restaurée).
   // REND sa suspension (#1852) : l'appelant s'arrête, la frappe suivante attend la fermeture.
-  if (maybeOpenDefense(get, set, actor, target, actor.weapons[0], suite)) return true;
+  if (maybeOpenDefense(get, set, actor, target, actor.weapons[0], suite)) return OPS_DIFFEREES;
   const r = resolveAttack(get, actor, target);
-  if (!r) return false;
+  if (!r) return undefined;
   // Enchaînement absent = `auto` (LDB 85 l.362), joué par l'après-coup.
   return applyAttackResult(get, set, actor, r.victim ?? target, r.weapon, r.res, { sousAttaque: true, suite });
 }
@@ -3980,7 +3997,7 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
 /** HOOK `freeAttack` (injecté dans la brique `combat/triggeredTest` par `createCombatSlice`) : pont
  *  exécuteur de Flow → vraie frappe. Appelé par `runCombatFlow` sur un `do`/`grantFreeAttack`. REND la
  *  suspension de la frappe (#1852) — le dispatcher d'ops s'arrête à la première fenêtre ouverte. */
-export function freeAttackHookImpl(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): boolean {
+export function freeAttackHookImpl(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
   return applyTalentFreeAttack(get, set, actor, op, fa);
 }
 
@@ -4067,18 +4084,18 @@ function freeAttackTarget(battle: BattleState, c: Combatant, kind: string): Comb
 }
 
 /** Résout UNE attaque gratuite de `kind` contre `target`, OPPOSÉE et GRATUITE : ouvre la modale de
- *  défense (héros) → suspendu (true) ; sinon résout instantanément (opposé auto, ou passif si Surpris),
+ *  défense (héros) → suspendu (`OPS_DIFFEREES`) ; sinon résout instantanément (opposé auto, ou passif si Surpris),
  *  restaure l'Action et applique les effets. Dépense `cost` Avantage (coût RAW par type :
  *  Cornes/Tentacules 0, Morsure/Caudale/Piétinement 1). */
-function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, kind: string, bonus: number, cost = 1): boolean {
+function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, kind: string, bonus: number, cost = 1): Applique {
   const prevActed = get().battle?.acted ?? false;
   campSpend(get, attacker, cost); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
   const weapon = freeAttackWeapon(kind, bonus);
   // La manœuvre entre AVEC sa suite (#1508) : ses effets authored attendent la touche RÉELLE et se jouent
   // à la reprise sur la touche telle qu'elle a survécu (`toucheSauvee`) — le coup a bien eu lieu (LDB 13
   // l.123), seul son EFFET est ignoré (LDB 85 l.98) ; l'Action, gratuite, est rendue par la reprise.
-  const suite: SuiteDeCoup = { freeAttack: { kind, prevActed } };
-  if (maybeOpenDefense(get, set, attacker, target, weapon, suite)) return true; // suspendu : resolve via défense
+  const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind } };
+  if (maybeOpenDefense(get, set, attacker, target, weapon, suite)) return OPS_DIFFEREES; // suspendu : resolve via défense
   const res = resolveMelee(attacker, target, weapon, battleRng(), { defense: cannotDefend(target) ? 'none' : bestDefenseMode(target) });
   // Enchaînement absent = `auto` (LDB 85 l.362), joué par l'après-coup.
   return applyAttackResult(get, set, attacker, target, weapon, res, { sousAttaque: true, suite });
@@ -4255,7 +4272,7 @@ function resumeMeleeAfterSuspension(
   if (!attacker || !target) return;
   // RE-SUSPENDU par la fenêtre SUIVANTE (sauvegarde ratée → Critique à dévier) : la suite lui est
   // REPASSÉE, elle voyage dans SA charge, et c'est la DERNIÈRE reprise qui la joue — une fois.
-  applyAttackResult(get, set, attacker, target, weapon, res, coup);
+  jouerFlowEntier(applyAttackResult(get, set, attacker, target, weapon, res, coup));
 }
 
 /** Résout une Déviation Critique — invoquée par l'applier de l'étape de séquence 'deviation' (la reprise

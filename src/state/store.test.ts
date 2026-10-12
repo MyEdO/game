@@ -32,6 +32,7 @@ import { toBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, creditBourse, ensureBourse, bourseInstanceOf } from './bourseFlow';
 import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
+import { OPS_DIFFEREES } from './combatEffects';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -207,7 +208,7 @@ describe('Boucle de jeu (store)', () => {
 
   it('Blessure critique (héros) : applyAttackResult SUSPEND sur UNE étape — tirage puis décision, sans effet de bord', () => {
     const { suspended } = mkDeviationSetup();
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     const avant = useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(avant).toHaveLength(1);
     expect(avant[0].table, 'la sévérité se tire DANS cette fenêtre').toBeTruthy();

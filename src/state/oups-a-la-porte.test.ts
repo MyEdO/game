@@ -425,7 +425,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
   });
 
   it('la SUITE portée par la fenêtre (Action gratuite) est rendue par la reprise, une seule fois', () => {
-    monteDefense(bacle(true), { freeAttack: { kind: 'frappe-reactive', prevActed: false }, enchainement: { mode: 'aucun' } });
+    monteDefense(bacle(true), { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } });
     useGame.getState().defenseConfirm();
     expect(useGame.getState().battle!.acted, 'l’Action du coup est consommée ; la suite n’a PAS joué').toBe(true);
     poser(9);
@@ -461,8 +461,8 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
       critical: false, advantageTo: null, defenderDefeated: false, log: 'touche.',
       defenderDetail: { roll: 33, success: false, sl: -3 },
     } as unknown as AttackResult;
-    const suspendu = applyAttackResult(useGame.getState, useGame.setState, hero, brute, hero.weapons[0], res, { sousAttaque: true, suite: { freeAttack: { kind: 'frappe-reactive', prevActed: false } } });
-    expect(suspendu, 'le site rend « suspendu » parce que la casse est partie à la porte').toBe(true);
+    const suspendu = applyAttackResult(useGame.getState, useGame.setState, hero, brute, hero.weapons[0], res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' } } });
+    expect(suspendu, 'le site rend « suspendu » parce que la casse est partie à la porte').toBe(OPS_DIFFEREES);
     expect(etapeCourante()!.kind).toBe('casseDArme');
     expect(brisee(arme), 'l’arme du défenseur n’a pas encore cassé').toBeFalsy();
     expect(useGame.getState().battle!.acted, 'l’Action du coup est consommée ; la suite (Action rendue) n’a PAS joué').toBe(true);
@@ -491,8 +491,8 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     const sauvegardes = (label: string): number =>
       (useGame.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${label} — Sauvegarde Solide`)).length;
 
-    const suspendu = applyAttackResult(useGame.getState, useGame.setState, frappeur, rival, armeAttaquant, res, { sousAttaque: true, suite: { freeAttack: { kind: 'frappe-reactive', prevActed: false }, enchainement: { mode: 'aucun' } } });
-    expect(suspendu, 'la casse de l’attaquant est partie à la porte : le coup est suspendu').toBe(true);
+    const suspendu = applyAttackResult(useGame.getState, useGame.setState, frappeur, rival, armeAttaquant, res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } } });
+    expect(suspendu, 'la casse de l’attaquant est partie à la porte : le coup est suspendu').toBe(OPS_DIFFEREES);
     // Ce que la suspension a figé : rien de la queue n'a joué devant le dé.
     expect(etapeCourante()!.kind).toBe('casseDArme');
     expect(etapeCourante()!.actorId, 'le dé en vol est celui de l’ATTAQUANT').toBe(frappeur.id);

@@ -485,6 +485,9 @@ export interface PendingCleave {
   /** Mode Frappe Mortelle (option, hors Taille) : la poursuite EXIGE de tuer chaque cible (LDB 14
    *  l.9). Absent/false = balayage de Taille (enchaîne sur une simple touche, LDB 85 l.362). */
   fm?: boolean;
+  /** La restitution du coup qui a ouvert la chaîne (`SuiteDeCoup.restitution`, LDB 85 l.43, LDB 21
+   *  l.33) : versée dans la suite de chaque maillon, jouée à la fermeture de la chaîne. */
+  restitution?: SuiteDeCoup['restitution'];
 }
 /** Sélection de la 2ᵉ cible du Maniement de deux armes (LDB 10 l.767-773), après une 1ʳᵉ frappe RÉUSSIE.
  *  Calqué sur PendingCleave : le joueur clique une cible (ou renonce via `dualStrikeSkip`). `mainRoll` = jet
@@ -955,14 +958,22 @@ export interface ChaineDeBalayage { hitIds: string[]; n: number; bcc: number; fm
  *
  * Les champs sont ceux que la reprise lit déjà : deux DRAPEAUX DU COUP (l'Avantage différé du
  * Maniement de deux armes LDB 10 l.767-773, l'Empoignade LDB 14 l.159 — un coup repris sans eux ne
- * serait plus le même coup), l'attaque GRATUITE dont les effets attendent la touche et dont l'Action
- * doit être rendue (même donnée `{kind, prevActed}` que la fenêtre de défense), l'ouverture de la 2ᵉ
- * frappe du HÉROS, et l'ENCHAÎNEMENT (ci-dessous). Tous JSON-sérialisables : la suite voyage sur l'étape.
+ * serait plus le même coup), la RESTITUTION de l'Action d'une gratuite, les EFFETS de sa manœuvre,
+ * les gratuites « à la touche » du héros, l'ouverture de la 2ᵉ frappe du HÉROS, et l'ENCHAÎNEMENT
+ * (ci-dessous). Tous JSON-sérialisables : la suite voyage sur l'étape.
  */
 export interface SuiteDeCoup {
   deferAttackerAdvantage?: boolean;
   grapple?: boolean;
-  freeAttack?: { kind: string; prevActed: boolean };
+  /** L'Action d'AVANT une gratuite (LDB 85 l.43, LDB 21 l.33), rendue au bout du coup ENTIER : chaque
+   *  maillon de son enchaînement la porte, et seule la fin de la chaîne la joue — une fenêtre qui
+   *  suspend un maillon l'emporte avec lui. */
+  restitution?: { prevActed: boolean };
+  /** La NATURE de la gratuite (clé de `maneuverEffectsOf`) dont les effets attendent la touche — propre
+   *  au coup principal, jamais portée par un maillon. */
+  manoeuvre?: { kind: string };
+  /** Les gratuites `onHit` du héros (Assaut féroce, LDB 10 l.72), jouées sur la touche RÉELLE. */
+  gratuitesALaTouche?: boolean;
   /** L'enchaînement d'après CE coup — DÉCLARÉ par le site d'origine, jamais déduit à la reprise. */
   enchainement?: EnchainementDuCoup;
   /** Ouverture de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773) : posée seulement pour la

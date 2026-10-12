@@ -586,6 +586,39 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(useGame.getState().pendingDefense).toBeNull();
   });
 
+  it('attaqueGratuite : la file de production des gratuites d’IA OUVRE la modale de Défense du héros, refus nommés sinon', () => {
+    const api = buildApi();
+    ouvrirLeRoundAuHeros(api);
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(api.attaqueGratuite(mutant.id, heroId), 'aucun trait d’attaque gratuite').toMatch(/^✗ .*aucune attaque gratuite disponible/);
+    expect(api.trait(mutant.id, 'morsure', { value: 7 })).toMatch(/^✓/);
+    expect(api.attaqueGratuite(mutant.id, heroId, 'caudale')).toMatch(/^✗ « caudale » .*disponibles : morsure/);
+    expect(api.attaqueGratuite(mutant.id, heroId), 'mutant loin du héros').toMatch(/^✗ .*hors de portée/);
+    const h = combattant().pos!;
+    api.place(mutant.id, { x: h.x + 1, y: h.y });
+    expect(api.quality(mutant.id, null, 0)).toMatch(/^✓/);
+    expect(api.attaqueGratuite(mutant.id, heroId), 'Avantage sous le coût').toMatch(/^✗ la file a écarté morsure .*0 Avantage pour un coût de 1/);
+    let s = useGame.getState();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.battle!.order[s.battle!.turn], 'le tour est rendu au héros').toBe(heroId);
+    expect(api.quality(mutant.id, null, 1)).toMatch(/^✓/);
+    expect(api.attaqueGratuite(mutant.id, heroId)).toMatch(/^✓ .*morsure/);
+    s = useGame.getState();
+    expect(s.pendingDefense).toMatchObject({ attackerId: mutant.id, defenderId: heroId, weapon: { attackKind: 'morsure' } });
+    expect(s.battle!.order[s.battle!.turn], 'le tour est celui de l’attaquant').toBe(mutant.id);
+    expect(s.battle!.combatants.find((c) => c.id === mutant.id)!.advantage, 'coût payé').toBe(0);
+    expect(api.attaqueGratuite(mutant.id, heroId)).toMatch(/^✗ /);
+  });
+
+  it('quality : `null` (un `undefined` passé par CDP) vaut absent — qualité par défaut, Avantage inchangé', () => {
+    const api = buildApi();
+    const avant = combattant().advantage;
+    expect(api.quality(heroId, null, null)).toMatch(/^✓ .*Déstabilisante/);
+    expect(combattant().advantage).toBe(avant);
+    expect(api.quality(heroId, null, 3)).toMatch(/^✓ .*Déstabilisante · 3 Av/);
+    expect(combattant().advantage).toBe(3);
+  });
+
   it('gesteCarteAttendu : pose de zone, pilonnage, choix de cibles — lus aux prédicats du jeu', () => {
     const api = buildApi();
     expect(api.gesteCarteAttendu()).toBeNull();
