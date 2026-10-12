@@ -1,4 +1,9 @@
 // Hook pre-commit (#2327) : la porte LÉGÈRE du commit, jugée sur le contenu de l'INDEX.
+// PRODUIT, en PREMIER, les miroirs d'agents (#2578) : `runCompat` (`scripts/agents/compat-cli.mjs`) lit
+// ses sources dans l'INDEX et y pose ses sorties, disque compris (`dependancesDeLIndex`). Un miroir
+// édité à la main (`unsafe-*`) bloque la production, AVERTI ; la gate `agents:check` de la CI juge. La
+// famille `hook` n'est produite que si `scripts/hooks/`, d'où ses registres s'importent, est identique
+// sur le disque et dans l'index.
 // REFUSE (exit 1) au nom de l'INTÉGRITÉ du dépôt seule (#2327 A8) : arbre de travail imbriqué
 // (`arbreImbrique.mjs`), lock npm amputé (`npmLockHoisted.mjs`), fins de ligne (`eolStage.mjs`) — et
 // la lecture de l'index en panne, sans laquelle aucune des trois ne juge.
@@ -26,7 +31,8 @@ import { lintDeLIndex } from '../guards/lib/lintStage.mjs';
 import { codeDePanne, paquetsDArgv } from '../guards/lib/porteSpawn.mjs';
 import { cheminsMalNormalises, raisonDeRefusEol } from '../guards/lib/eolStage.mjs';
 import { defautsDeForme, familleDe, raisonDeRefusDeForme } from '../guards/memoire-forme.mjs';
-import { INDEX, ceQuApporteLeCommit, depotDe, eolsDe, lireEnLot, racineDe, raisonCourte } from '../guards/lib/gitPorte.mjs';
+import { INDEX, TRAVAIL, ceQuApporteLeCommit, depotDe, entreesDe, eolsDe, lireEnLot, listerImage, racineDe, raisonCourte, shasDuTravail } from '../guards/lib/gitPorte.mjs';
+import { chargerRegistres, dependancesDeLIndex, runCompat } from '../agents/compat-cli.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
 import { journaliserLeHook } from './journal.mjs';
 
@@ -60,6 +66,30 @@ const estJsonDeDonnee = (rel) => /^src\/scenes\/.*\.json$/.test(rel) || /^src\/d
 const BASELINE = relative(fileURLToPath(new URL('../..', import.meta.url)), DECISIONS_BASELINE_PATH).split(sep).join('/');
 
 const offenders = [];
+
+/** Les registres de la famille `hook`, importés de `scripts/hooks/` de ROOT ; une Map VIDE (famille non
+ *  produite) si l'index n'en porte pas, ou si le disque s'en écarte (`saut` le dit). */
+async function registresDuCommit() {
+  const dossier = 'scripts/hooks';
+  const suivis = listerImage(depot, INDEX, dossier);
+  if (!suivis.length) return { registres: new Map() };
+  const travail = listerImage(depot, TRAVAIL, dossier);
+  const indexes = entreesDe(depot, INDEX, suivis);
+  const shas = shasDuTravail(depot, travail);
+  if (travail.length !== suivis.length || travail.some((rel) => indexes.get(rel)?.sha !== shas.get(rel)))
+    return { registres: new Map(), saut: `${dossier}/ diffère entre le disque et l'index` };
+  return { registres: await chargerRegistres(resolve(ROOT, dossier)) };
+}
+try {
+  const { registres, saut } = await registresDuCommit();
+  if (saut) process.stderr.write(`pre-commit — miroirs d'agents : famille \`hook\` NON produite, ${saut} ; la gate \`agents:check\` de la CI la juge.\n`);
+  const restes = await runCompat({ root: ROOT, mode: 'sync' }, { ...dependancesDeLIndex(depot), registres });
+  const manuels = restes.filter((d) => d.safe === false || d.type.startsWith('unsafe-'));
+  if (manuels.length)
+    process.stderr.write(`pre-commit — AVERTISSEMENT [miroir d'agents édité à la main] : RIEN n'est produit ; la gate \`agents:check\` de la CI refuse\n${manuels.map((d) => `  ${d.family}:${d.type}:${d.destination}: ${d.message}`).join('\n')}\n`);
+} catch (e) {
+  process.stderr.write(`pre-commit — miroirs d'agents NON produits : ${raisonCourte(e?.message ?? e)} ; la gate \`agents:check\` de la CI les juge.\n`);
+}
 /** Avertissements de forme : famille de `FORMES` → lignes. */
 const formes = new Map();
 const avertir = (famille, ligne) => formes.set(famille, [...(formes.get(famille) ?? []), ligne]);

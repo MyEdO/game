@@ -335,9 +335,8 @@ export function remplacerCleJson(texte, cle, valeur) {
   return `${avant}${separateur}\n${unite}${JSON.stringify(cle)}: ${serialise}\n${texte.slice(fin)}`;
 }
 
-/** Les racines que `agents:sync` POSSÈDE — source unique, lue ici (`managedRoots`) et par le train
- *  de publication (`scripts/ops/publier.mjs`, `estDocDerive`) : ces chemins sont DÉRIVÉS de
- *  `CLAUDE.md` et des fiches, donc committables avec les docs. */
+/** Les racines que `agents:sync` POSSÈDE — source unique, lue ici (`managedRoots`) et par le
+ *  réalignement de l'index après commit (`realignerIndexDuDepot`, `scripts/agents/compat-cli.mjs`). */
 export const MANAGED_ROOTS = ['AGENTS.md', '.agents/skills', '.codex/credo.md'];
 
 /**

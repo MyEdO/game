@@ -7,13 +7,15 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { CHEMIN_DU_JOURNAL } from './journal.mjs'
-import { lancerGit } from '../test/gitDeBanc.mjs'
+import { lancerGit, resultatDeGit } from '../test/gitDeBanc.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { transformSkillTree } from '../agents/compat-core.mjs'
 
 const HOOK = fileURLToPath(new URL('./pre-commit.mjs', import.meta.url))
 
@@ -257,5 +259,108 @@ test('#2328 A7 — sous une fusion en cours, le hook ne juge que l’APPORT : le
     assert.ok(!r.stderr.includes('scripts/main.mjs'), r.stderr)
   } finally {
     rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// ── #2578 : le pre-commit PRODUIT les miroirs d'agents, lus dans l'index ──────────────────────────────
+const SOURCE = '.claude/skills/x/SKILL.md'
+const MIROIR = '.agents/skills/x/SKILL.md'
+const skill = (corps) => `---\nname: x\ndescription: "d"\n---\n\n${corps}\n`
+/** Le miroir que `runCompat` dérive du texte `source` de SOURCE (`transformSkillTree`, son producteur). */
+const derive = (source) => transformSkillTree(new Map([[SOURCE, Buffer.from(source)]])).get(MIROIR).toString('utf8')
+
+/** Le réalignement de l'index que joue le hook `post-commit` (#2578). */
+const POST_COMMIT = fileURLToPath(new URL('./miroirs-post-commit.mjs', import.meta.url))
+
+/** Un dépôt forgé dont SEULS `pre-commit` et le réalignement `post-commit` sont posés (`core.hooksPath` hors de l'arbre), le skill
+ *  `x` commis à travers lui ; `git(...)` y joue git. */
+function depotAuSkill() {
+  const env = envDeDepotForge()
+  const { racine } = instanceDeDepot({ fichiers: { '.gitattributes': '* text=auto eol=lf\n', '.gitignore': 'node_modules/\n', 'notes.txt': 'n\n' }, message: 'socle' })
+  const crochets = mkdtempSync(join(tmpdir(), 'crochets-'))
+  for (const [nom, script] of [['pre-commit', HOOK], ['post-commit', POST_COMMIT]]) {
+    writeFileSync(join(crochets, nom), `#!/bin/sh\nexec node "${script.replaceAll(sep, '/')}"\n`)
+    chmodSync(join(crochets, nom), 0o755)
+  }
+  const git = (...args) => lancerGit(args, { cwd: racine, env })
+  git('config', '--local', 'core.hooksPath', crochets.replaceAll(sep, '/'))
+  mkdirSync(join(racine, '.claude', 'skills', 'x'), { recursive: true })
+  writeFileSync(join(racine, SOURCE), skill('v1'))
+  git('add', '--', SOURCE); git('commit', '-q', '-m', 'skill')
+  const ecrire = (rel, texte) => writeFileSync(join(racine, rel), texte)
+  const fin = () => { rmSync(racine, { recursive: true, force: true }); rmSync(crochets, { recursive: true, force: true }) }
+  return { racine, git, ecrire, fin, statut: () => git('status', '--porcelain', '--untracked-files=all') }
+}
+
+test('#2578 (a) — un commit qui modifie un skill commet son miroir dérivé de la source de HEAD, statut vide', () => {
+  const d = depotAuSkill()
+  try {
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('v1')), 'socle : le miroir naît avec le skill')
+    d.ecrire(SOURCE, skill('v2')); d.git('add', '--', SOURCE); d.git('commit', '-q', '-m', 'v2')
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(d.git('show', `HEAD:${SOURCE}`)))
+    assert.ok(d.git('show', `HEAD:${MIROIR}`).includes('v2'))
+    assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (b) — sous un staging PARTIEL, le miroir commis dérive de la version STAGÉE, pas du disque', () => {
+  const d = depotAuSkill()
+  try {
+    d.ecrire(SOURCE, skill('stagee')); d.git('add', '--', SOURCE)
+    d.ecrire(SOURCE, skill('disque'))
+    d.git('commit', '-q', '-m', 'partiel')
+    assert.equal(d.git('show', `HEAD:${SOURCE}`), skill('stagee'))
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('stagee')))
+    assert.equal(d.statut(), ` M ${SOURCE}\n`)
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (c) — `git commit -- <chemin>` : le miroir de HEAD dérive de la source commise, et l’index réel égale HEAD', () => {
+  const d = depotAuSkill()
+  try {
+    d.ecrire(SOURCE, skill('seul'))
+    d.git('commit', '-q', '-m', 'seul', '--', SOURCE)
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('seul')))
+    assert.equal(d.git('diff', '--cached', '--name-only'), '')
+    assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (d) — un miroir édité à la main est AVERTI, le commit passe (sortie 0) et le miroir n’est pas écrasé', () => {
+  const d = depotAuSkill()
+  try {
+    const main = '---\nname: x\ndescription: "d"\n---\n\nà la main\n'
+    d.ecrire(MIROIR, main); d.ecrire(SOURCE, skill('v3')); d.git('add', '--', MIROIR, SOURCE)
+    const r = resultatDeGit(['commit', '-q', '-m', 'main'], { cwd: d.racine })
+    assert.equal(r.status, 0, r.stderr)
+    assert.ok(lignes(r).some((l) => l.startsWith("pre-commit — AVERTISSEMENT [miroir d'agents édité à la main]")), r.stderr)
+    assert.ok(lignes(r).includes(`skill:unsafe-overwrite:${MIROIR}: contenu divergent`), r.stderr)
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), main)
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (e) — une fusion SANS conflit qui touche un skill laisse HEAD cohérent', () => {
+  const d = depotAuSkill()
+  try {
+    d.ecrire(SOURCE, skill('l1\n\nl2\n\nl3')); d.git('add', '--', SOURCE); d.git('commit', '-q', '-m', 'trois')
+    const courante = d.git('rev-parse', '--abbrev-ref', 'HEAD').trim()
+    d.git('checkout', '-q', '-b', 'amont')
+    d.ecrire(SOURCE, skill('L1\n\nl2\n\nl3')); d.git('add', '--', SOURCE); d.git('commit', '-q', '-m', 'amont')
+    d.git('checkout', '-q', courante)
+    d.ecrire(SOURCE, skill('l1\n\nl2\n\nL3')); d.git('add', '--', SOURCE); d.git('commit', '-q', '-m', 'chantier')
+    d.git('merge', '-q', '--no-edit', 'amont')
+    assert.equal(d.git('show', `HEAD:${SOURCE}`), skill('L1\n\nl2\n\nL3'))
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(d.git('show', `HEAD:${SOURCE}`)))
+    assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
   }
 })

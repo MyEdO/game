@@ -22,7 +22,6 @@ import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
 import { estCiblePure, perimetreDesMixtes } from '../docs/build-all.mjs'
-import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
 import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
 import { resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
@@ -120,15 +119,13 @@ export function etatDeLaPr(pr, tete) {
 }
 
 /**
- * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
- * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
- * train, `ctx.generators`) hors cibles PURES (`estCiblePure`) — les MIXTES, seuls dérivés de docs
- * commités (#2203) —, et les sorties de `npm run agents:sync` (`synchroniserAgents`). PURE.
+ * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Les `injecte` des `generators`
+ * (`GENERATORS` de `build-all.mjs`, porté par le contexte du train, `ctx.generators`) hors cibles PURES
+ * (`estCiblePure`) — les MIXTES, seuls dérivés de docs commités (#2203). PURE.
  */
-export function estDocDerive(chemin, generators, { racinesAgents = MANAGED_ROOTS } = {}) {
+export function estDocDerive(chemin, generators) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
   if (!c) return false
-  if (racinesAgents.some((r) => c === r || c.startsWith(`${r}/`))) return true
   return !estCiblePure(c, generators) && generators.some((g) => (g.injecte ?? []).some((motif) => correspondGlob(c, motif)))
 }
 
@@ -245,24 +242,6 @@ function commettreDerives(ctx, { chemins, numeros, journal }) {
   return { ok: true, detail: { chemins, numeros }, dit: `${chemins.length} doc(s) dérivé(s) commis — tête ${journal.tete.slice(0, 9)}` }
 }
 
-
-/**
- * Remet les miroirs d'agents en phase AVANT le commit des dérivés, par la porte `ctx.npm`.
- * `agents:sync` se déclenche sur un `agents:check` ROUGE, jamais sur la saleté de `CLAUDE.md` : un
- * commit de la plage qui touche `.claude/skills/**` ou `.claude/credo.md` sans resynchroniser laisse
- * `agents:check` rouge, et la gate `agents:check` de la CI refuserait la plage sans nommer la cause.
- * @param {{npm: Function, journaliser: Function}} ctx
- * @returns {{ok: true} | {ok: false, raison: string}}
- */
-export function synchroniserAgents(ctx) {
-  const verif = ctx.npm('agents:check')
-  if (verif.status === 0) return { ok: true }
-  ctx.journaliser(`[publier] docs — \`agents:check\` rendu ${verif.status} : \`npm run agents:sync\`\n`)
-  const sync = ctx.npm('agents:sync')
-  if (sync.status !== 0)
-    return { ok: false, raison: `\`npm run agents:sync\` a rendu ${sync.status} : la gate \`agents:check\` de la CI refuserait la plage` }
-  return { ok: true }
-}
 
 /**
  * Régénère les stocks de sites au point fixe (`npm run stocks:regen`, `regenStock.mts --tous`) quand la
@@ -453,7 +432,7 @@ export const ETAPES = [
     },
   },
   {
-    // Les MIXTES (`injecte` des `generators`) et les miroirs d'agents : régénérés, puis commis. Une
+    // Les MIXTES (`injecte` des `generators`) : régénérés, puis commis. Une
     // saleté de dérivés laissée par un hook (post-merge, post-rewrite) est commise ici aussi. Le train
     // ne régénère que ce qu'il commet : `--mixtes`, si la plage touche une source de `perimetreDesMixtes`
     // (#2193) ; les stocks de sites, si la branche a absorbé le tronc pendant le lot (`regenererStocks`,
@@ -483,8 +462,6 @@ export const ETAPES = [
             raison: `\`build-all --mixtes\` a rendu ${passe.status ?? passe.signal} : dérivés possiblement incohérents (rien n'a été staged ni commité)${passe.stderr ? `\n${finDeSortie(passe.stderr)}` : ''}`,
           }
       }
-      const agents = synchroniserAgents(ctx)
-      if (!agents.ok) return agents
       if (fusionDuTronc) {
         const stocks = regenererStocks(ctx, journal)
         if (!stocks.ok) return stocks
