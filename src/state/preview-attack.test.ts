@@ -5,7 +5,7 @@ import { attackWeaponOf } from './combatFlow';
 import type { PendingAttack } from './pendings';
 import type { RollBreakdown } from '../engine/combat';
 import { useGame } from './store';
-import { previewAttack, previewDefense, defenseDodgeMod, resolveAttack, eligibleAttackTargetIds, outOfSightTargetIds, attackPlan, resolveDualSecond } from './combatFlow';
+import { previewAttack, previewDefense, defenseDodgeMods, resolveAttack, eligibleAttackTargetIds, outOfSightTargetIds, attackPlan, resolveDualSecond } from './combatFlow';
 import { attackModifiers, bestRangedDefense, combatBaseValue, combatValue, combineMods, type ModLine } from '../engine/combat';
 import { clampTarget } from '../engine/tests';
 import { setRule, resetRule } from '../engine/policy';
@@ -408,7 +408,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
    * VRAIMENT. Sous la neige épaisse (`LDB 14 l.82`), la résolution passe la pénalité d'esquive au
    * jet ; l'aperçu l'ignorait et disait « Intermédiaire (+0) » quand le résultat dirait « Très
    * difficile (−30) ». Les deux lisent désormais la même liste (`defenseTargetMods`) et la même
-   * pénalité de contexte (`defenseDodgeMod`).
+   * pénalité de contexte (`defenseDodgeMods`).
    */
   it('la rangée DÉFENSE dit la même Difficulté avant et après le jet (neige épaisse)', () => {
     const a = combatant({ id: 'A' });
@@ -419,10 +419,10 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
       characteristics: { 'capacite-de-combat': 25, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 70, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     });
     const neige = (): GameState => ({ ...mkGet([a, b])(), scene: { ...scene(), weather: 'neige' } }) as unknown as GameState;
-    const dodge = defenseDodgeMod(neige, b);
-    expect(dodge, 'la fixture doit VRAIMENT porter la pénalité de neige').toBe(-30);
+    const dodge = defenseDodgeMods(neige(), b);
+    expect(dodge.map((m) => m.value), 'la fixture doit VRAIMENT porter la pénalité de neige').toEqual([-30]);
 
-    const pending = previewDefense(b, { vsWeapon: a.weapons[0], dodgeMod: dodge });
+    const pending = previewDefense(b, { vsWeapon: a.weapons[0], dodgeMods: dodge });
     expect(pending.label).toBe('Esquive');
     expect(pending.difficulty, 'la circonstance compose le palier').toBe('tresDifficile');
 
@@ -451,12 +451,12 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
       characteristics: { 'capacite-de-combat': 25, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 70, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     });
     const neige = (): GameState => ({ ...mkGet([archer, b])(), scene: { ...scene(), weather: 'neige' } }) as unknown as GameState;
-    const dodge = defenseDodgeMod(neige, b);
-    expect(dodge, 'la fixture doit VRAIMENT porter la pénalité de neige').toBe(-30);
+    const dodge = defenseDodgeMods(neige(), b);
+    expect(dodge.map((m) => m.value), 'la fixture doit VRAIMENT porter la pénalité de neige').toEqual([-30]);
 
     const rd = bestRangedDefense(archer, b, archer.weapons[0], 1, true, 2);
     expect(rd?.mode, 'la fixture doit VRAIMENT ouvrir une défense au tir').toBe('esquive');
-    const pending = previewDefense(b, { mode: rd!.mode, parryWeapon: rd!.parryWeapon, vsWeapon: archer.weapons[0], dodgeMod: dodge });
+    const pending = previewDefense(b, { mode: rd!.mode, parryWeapon: rd!.parryWeapon, vsWeapon: archer.weapons[0], dodgeMods: dodge });
     expect(pending.difficulty).toBe('tresDifficile');
 
     seedBattleRng(8);

@@ -224,7 +224,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "raceAppearance.json", champ: "head", occurrences: 7, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "raceAppearance.json", champ: "tenue", occurrences: 14, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "reglesOptionnelles.json", champ: "default", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "reglesOptionnelles.json", champ: "options", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "reglesOptionnelles.json", champ: "options", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" }, // 3 → 4 : Difficultés de `sea-salissures-difficulty` (MDG 13 l.148, #1595)
   { dataset: "river-criticals.json", champ: "ops", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "sea-events.json", champ: "escalation", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "sea-events.json", champ: "params", occurrences: 9, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -316,11 +316,11 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "trappings.json", champ: "weaponGroup", occurrences: 22, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "byProsthesis", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "escalade", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "traumas.json", champ: "ops", occurrences: 16, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "traumas.json", champ: "ops", occurrences: 17, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "prosthesis", occurrences: 9, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "rig", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "vehicles.json", champ: "draft", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "voyage-stakes.json", champ: "kind", occurrences: 16, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "voyage-stakes.json", champ: "kind", occurrences: 17, lot: "L2/L3 #1473", date: "2026-08-26" }, // 15 → 17 : enjeux `sea-degagement-debris` (MDG 13 l.487-491) et `sea-salissures` (MDG 13 l.148), #1595
   { dataset: "voyage-stakes.json", champ: "rule", occurrences: 33, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "water-exposure.json", champ: "auto", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "weaponGroups.json", champ: "qualities", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },

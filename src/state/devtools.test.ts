@@ -117,6 +117,19 @@ describe('__wfrp — autres commandes de recette', () => {
     expect(buildApi().trait(hero.id, 'trait-inexistant')).toContain('✗');
   });
 
+  it('trait (#555) : EN COMBAT, pose le Trait en un appel sur un ennemi puis sur le héros, relu au combattant', () => {
+    const hero = useGame.getState().party[0];
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const relu = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
+    const ennemi = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(buildApi().trait(ennemi.id, 'creature-marine')).toMatch(/^✓/);
+    expect(relu(ennemi.id).traits?.some((t) => t.id === 'creature-marine')).toBe(true);
+    expect(buildApi().trait(hero.id, 'creature-marine')).toMatch(/^✓/);
+    expect(relu(hero.id).traits?.some((t) => t.id === 'creature-marine')).toBe(true);
+  });
+
   it('spell : chaque raison se rend DISTINCTEMENT, au verdict `verdictApprentissage` (LDB 46 l.14, #2312)', () => {
     const hero = useGame.getState().party[0];
     useGame.setState({ party: [{ ...hero, spells: [] }] });
@@ -675,7 +688,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('advanceSeaDay() fait avancer d’UN jour (cascade + halte de nuit résolues), s’arrête sur la cascade FRAÎCHE du jour suivant', async () => {
-    useGame.getState().startTravel('r1', 'mer');
+    useGame.getState().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
     const p = buildApi().advanceSeaDay();
     await vi.runAllTimersAsync();
     const msg = await p;

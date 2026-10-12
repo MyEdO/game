@@ -74,7 +74,8 @@ const CLES: Record<string, string> = {
   "miscastWrath": '3da49a322927f1e7',
   "nightStakes": '54a15ad6883f8c31',
   // #1595 (2026-10-12) : +1 item `sea-degagement-debris` (MDG 13 l.487-491), l’empêtrement dans des Débris marins.
-  "voyageStakes": '696a09f1bed2494d',
+  // #1595 (2026-10-12) : +1 item `sea-salissures` (MDG 13 l.148) ; `sea-overspeed` resourcé (MDG 13 l.121-142, p.105).
+  "voyageStakes": '077c65ba8c111491',
   // #1920 B14 (2026-09-24) : −2 items (`recover-*` sur l'État), `sub` retiré.
   // #700 (2026-10-05) : +1 item `perception-detect` (LDB 09 l.399), la découverte d'une porte secrète.
   "flowStakes": '92b8c08cdf35308e',
@@ -216,7 +217,8 @@ const CLES: Record<string, string> = {
   // d'être surpris, amende des gardes) — LDB 09 l.97/l.99 n'en chiffre aucune.
   // #700 (2026-10-05) : +4 règles maison — `porte-secrete-rayon-m`, `chute-tombant-non-debout`,
   // `fenetre-suspension`, `fouille-piece-minutes`.
-  "reglesOptionnelles": 'd62556c15e62cf7f',
+  // #1595 (2026-10-12) : +1 item `sea-salissures-difficulty` (maison, MDG 13 l.148).
+  "reglesOptionnelles": 'd5b53dfc895d9d77',
   "surincantation": '561218369ab9cdfd',
   "structureCriticals": '84e0df29c1ae4e21',
   "artilleryMisfire": 'aa3ad3238b5356f8',
@@ -412,7 +414,8 @@ const T3_DELTAS: Record<string, Record<string, number>> = {
   // MAISON : `LDB 09 l.97/l.99` ne chiffre aucune de leurs valeurs (partition XOR de
   // `regles-optionnelles-partition.test.ts`), leur folio se lit dans `ref` et n'ancre rien.
   // #700 (2026-10-05) : 87 → 91 items, `source` INCHANGÉ à 54 — les 4 règles maison de #700, cf. `CLES`.
-  "reglesOptionnelles": { desc: 91, source: 54 },
+  // #1595 (2026-10-12) : 91 → 92 items, `source` INCHANGÉ à 54 — `sea-salissures-difficulty` MAISON (MDG 13 l.148).
+  "reglesOptionnelles": { desc: 92, source: 54 },
   "landCargo": { source: 7 }, // 7 items — T3 : source +7
   "seaCargo": { source: 11 }, // 11 items — T3 : source +11
   "riverPerils": { source: 4 }, // 4 items — T3 : source +4

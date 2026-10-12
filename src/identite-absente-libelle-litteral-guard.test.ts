@@ -45,7 +45,6 @@ const EXEMPTES = new Map<string, string>([
   ['src/state/combat/triggeredTest.ts|step.label ?? \'\'', AUTHORE],
   ['src/state/combat/triggeredTest.ts|step.label ?? \'Réaction\'', AUTHORE],
   ['src/state/combatEffects.ts|step.label ?? \'\'', AUTHORE],
-  ['src/state/combatFlow.ts|sc.label || \'Obscurité\'', AUTHORE],
   ['src/state/combatFlow.ts|step.label ?? \'\'', AUTHORE],
   ['src/state/combatFlow.ts|parryWeaponObj?.label ?? \'arme\'', SANS_ARME],
   ['src/state/combatSlice.ts|w?.label ?? \'pièce\'', SANS_ARME],

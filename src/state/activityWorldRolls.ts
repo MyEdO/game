@@ -20,6 +20,7 @@ import { battleRng } from './battleRng';
 import { worldStep, freeCons } from './rollSeam';
 import { registerCascadeApplier } from './cascade';
 import { dataLabel } from '../data';
+import { t } from '../i18n';
 
 export const ACTIVITY_WORLD_ROLL_KIND = 'activityWorldRoll';
 
@@ -41,6 +42,7 @@ export function buildActivityWorldRollSteps(def: ActivityDef, actor: Combatant):
       // `{rule}`, les deux seules formes qu'un pourcentage prend (aucun rng vivant ne descend ici).
       cible: Math.max(0, Math.min(100, Math.round(formulaExpectation(wr.cible, actor)))),
       rollLabel: wr.label,
+      verdict: { reussite: t('seuil.survient'), echec: t('seuil.evite') },
       meta: { activityId: def.id, rollId: wr.id, heroId: actor.id },
     }));
 }
@@ -52,7 +54,7 @@ registerCascadeApplier(ACTIVITY_WORLD_ROLL_KIND, (get, set, step) => {
   const h = get().party.find((x) => x.id === String(step.meta?.heroId ?? ''));
   if (!def || !wr || !h) return {};
   // ÉVITÉ : le dé garde sa ligne et la conséquence DIT l'issue (patron `authorPerils`).
-  if (!step.result.success) return { consequences: freeCons([{ text: `${wr.label} : rien n’advient.`, tone: 'info' }]) };
+  if (!step.result.success) return { consequences: freeCons([{ text: t('out.rienNAdvient', { label: wr.label }), tone: 'info' }]) };
   const lignes = applyOps(h, wr.ops, {
     rng: battleRng(), label: wr.label, now: get().gameTime, source: { kind: 'activity', id: def.id },
   });

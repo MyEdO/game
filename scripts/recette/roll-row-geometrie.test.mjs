@@ -38,8 +38,10 @@ for (const [classe, casser] of classes) {
   });
 }
 
-test('trois chiffres, +10 DR, pas trouvé, masque et seconde lecture restent confinés', () => {
-  for (const texte of ['✓ +10 DR', 'pas trouvé', '?']) {
+test('le juge lit la géométrie, jamais le texte : rangée résolue et seconde lecture sans défaut quel que soit le texte du DR, un DR plié en est un', () => {
+  // Rectangles figés par `cellule()` : seul `dr.texte` varie, le verdict ne doit pas bouger. La largeur
+  // RÉELLE d'un verdict se mesure au navigateur (`mesurerRollRows`), pas ici.
+  for (const texte of ['', 'x'.repeat(200)]) {
     const m = mesure();
     m.rangees[0].dr.texte = texte;
     m.rangees[0].pending = false;

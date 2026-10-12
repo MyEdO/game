@@ -187,7 +187,7 @@ Avant chaque test, le MJ consulte le Tableau de Difficulté pour déterminer le 
 | Difficile       | −20                 |
 | Très Difficile  | −30                 |
 
-Si aucune Difficulté n'est indiquée pour un test (notamment pour un test opposé), on considère qu'il est **Intermédiaire** (+0).
+Si aucune Difficulté n'est indiquée pour un **Test opposé**, on considère qu'il est **Intermédiaire** (+0) (`LDB 12 l.166`). Ce défaut ne vaut que pour le Test opposé : pour tout autre Test, « le MJ doit décider de la Difficulté » (`LDB 12 l.137`).
 
 **Exemple** (extrait des règles) : Valentyn a une Compétence de Pistage de 41. Le MJ impose Très Difficile (−30) à cause de la pluie. La valeur cible devient 11 (41 − 30 = 11). Un résultat de 35 est un échec.
 

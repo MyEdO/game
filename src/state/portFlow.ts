@@ -13,9 +13,9 @@
  *
  * VENTE (`portSellCargo`, dernier reliquat #275/#274) : CASCADE (`state/rollSeam.ts` `openRoll` +
  * `state/cascade.ts`) — Ragot (hero-test), recherche d'acheteur (dé de MONDE par `openWorldTest`,
- * côté `worldSide`), Marchandage opposé (hero-test pour le héros, le marchand roule via
+ * porteur `WORLD_STEP_OWNER`), Marchandage opposé (hero-test pour le héros, le marchand roule via
  * `engine/seaVoyage.rollMerchantOpposition`, moteur pur) sont chacun une étape routée par la policy
- * M/V/I (`resolveSurface`) — chaque continuation ENCHAÎNE l'étape suivante depuis l'applier de la
+ * M/V/I (`surfaceDeLEtape`) — chaque continuation ENCHAÎNE l'étape suivante depuis l'applier de la
  * précédente (patron `merchantFlow.ts` Ragot→réassort ; défère via `setTimeout` si la cascade est
  * encore EN COURS de commit, patron `seaVoyageFlow.ts` `sea-desertion`). ACHAT (`portBuyCargo`, #266)
  * suit le MÊME patron : le Marchandage d'achat s'ouvre par `openRoll` (hero-test) — SURFACÉ comme la
@@ -325,11 +325,8 @@ registerCascadeApplier(PORT_SELL_BARGAIN_KIND, (get, set, step) => {
   return { consequences: freeCons([finalizePortSale(get, set, cargoIndex, sellEnc, offerPct, bargainPctVal, bargainLine)]) };
 });
 
-/** 2. Trouver un acheteur (dé de MONDE par `openWorldTest`, côté `worldSide` — l.362) : cible = `chance.target`
- *  (posé en `meta.baseValue`, difficulté Intermédiaire = modificateur nul, la cible passe telle
- *  quelle). Échec sur la 1ʳᵉ tentative SANS Ragot préalable → 2ᵉ tentative sur la moitié du lot
- *  (`attempt:2`) ; le message « la moitié trouve preneur » ne s'affiche QUE si cette 2ᵉ tentative
- *  réussit (parité stricte avec l'ancienne résolution synchrone). */
+/** 2. Trouver un acheteur (dé de MONDE par `openWorldTest`, MDG 15 l.362) : cible = `chance.target`.
+ *  Échec sur la 1ʳᵉ tentative SANS Ragot préalable → 2ᵉ tentative sur la moitié du lot (`attempt:2`). */
 function openPortSellBuyerStep(get: Get, set: Set, cargoIndex: number, sellEnc: number, allowHalfRetry: boolean, attempt: 1 | 2): void {
   const st = get().port;
   const vessel = get().vessel;
@@ -339,8 +336,9 @@ function openPortSellBuyerStep(get: Get, set: Set, cargoIndex: number, sellEnc: 
   const chance = sellChance(st.port, lot.cargoId, milles);
   openWorldTest(get, set, {
     actionLabel: t('port.buyerSearch'),
-    difficulty: 'intermediaire',
-  }, PORT_SELL_BUYER_KIND, { cargoIndex, sellEnc, retryHalf: allowHalfRetry, attempt, baseValue: chance.target });
+    cible: chance.target,
+    verdict: { reussite: t('seuil.acheteurTrouve'), echec: t('seuil.aucunAcheteur') },
+  }, PORT_SELL_BUYER_KIND, { cargoIndex, sellEnc, retryHalf: allowHalfRetry, attempt });
 }
 
 const PORT_SELL_BUYER_KIND = 'port-sell-buyer';

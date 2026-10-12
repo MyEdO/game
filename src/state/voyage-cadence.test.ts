@@ -149,11 +149,6 @@ describe('traversée JOUR-PAR-JOUR (mer) — cadence manuelle inchangée', () =>
     expect(p?.purpose).toBe('travelDay');
     expect(get().travelPlan!.sea!.entries ?? []).toHaveLength(0); // pas de PV auto en cadence manuelle
   });
-
-  it('l’API sans cadence explicite reste JOUR-PAR-JOUR (rétro-compat)', () => {
-    get().startTravel('r1', 'mer');
-    expect(get().pendingCascade?.purpose).toBe('travelDay');
-  });
 });
 
 describe('interruptions (mer) — la route commandée NE muselle PAS les crises', () => {

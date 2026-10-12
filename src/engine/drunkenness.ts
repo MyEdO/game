@@ -4,7 +4,7 @@
  *  - « Après chaque boisson alcoolisée, faites un Test de Résistance à l'alcool, modifié par la
  *    puissance de la boisson. Pour chaque Test auquel vous échouez, vous subissez une pénalité de −10
  *    à vos CC, CT, Ag, Dex et Int, jusqu'à un maximum de −30 par Caractéristique. » → `drunkCharPenalties`
- *    (−10 × min(3, échecs), pool non-cumul, kind `ivresse`).
+ *    (−10 × min(3, échecs), kind `ivresse`, sommé LDB 14 l.95).
  *  - « Si vous échouez à un nombre de Tests égal à votre Bonus d'Endurance, vous êtes Ivre. » → seuil
  *    `alcoholFailures(c) >= BE` ⇒ 1d10 sur le Tableau d'Ivresse (`drunkenness.json`).
  *  - « Après une heure passée sans boire, effectuez un Test de Résistance à l'alcool Intermédiaire (+0).
@@ -69,7 +69,7 @@ export function drunkPenalty(c: Combatant): number {
   return f > 0 ? -10 * Math.min(3, f) : 0;
 }
 
-/** Pénalités de Caractéristique dues à l'Ivresse (injectées dans le pool non-cumul via `passiveMods`).
+/** Pénalités de Caractéristique dues à l'Ivresse (injectées dans `effectiveChar` via `passiveMods`).
  *  Seules CC/CT/Ag/Dex/Int sont touchées (l.475). Retourne [] pour les autres. */
 export function drunkCharPenalties(c: Combatant, key: CharKey): number[] {
   const p = drunkPenalty(c);

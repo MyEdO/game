@@ -194,7 +194,7 @@ import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollaps
 import { STEP_MAX_M } from './relief';
 import { placeCombatant } from './spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
-import { sweepDismountDeaths, mountedAttackMods, mountedDodgePenalty, mountMovement, mountOf, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
+import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mountOf, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './lineOfSight';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './shipPostes';
@@ -727,8 +727,9 @@ export function attackEnv(
     const cover = posteCover ? couvertLePlusProtecteur(los.cover, posteCover) : los.cover;
     if (cover !== 'none') env.push({ label: tr('cf.coverLabel', { cover }), value: coverModifier(cover), famille: 'circonstance' });
     // Vision nocturne / Infravision (LDB 85) ou Talent Vision nocturne : annule la pénalité d'obscurité.
-    if (sc.concealed && !seesInDark(attacker)) env.push({ label: sc.label || 'Obscurité', value: -20, famille: 'circonstance', ref: RULE_REF['cible-dissimulee'] }); // cible dissimulée (LDB 14 l.75)
-    else if (sc.attackMod) env.push({ label: sc.label, value: sc.attackMod, famille: 'circonstance' }); // tempête (LDB 14 l.76) / neige (l.82)
+    // Cible dissimulée (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le plafond de `combineMods` (LDB 14 l.95).
+    if (sc.concealed && !seesInDark(attacker)) env.push({ label: sc.concealedLabel, value: -20, famille: 'circonstance', ref: RULE_REF['cible-dissimulee'] });
+    if (sc.attackMod) env.push({ label: sc.label, value: sc.attackMod, famille: 'circonstance' });
     // Tir en bougeant (LDB 14 l.70) : −10 si l'on bouge ET tire au même Round. Le Mouvement étant
     // DÉCOMPOSABLE (on peut bouger APRÈS le tir), un HÉROS qui garde sa mobilité encaisse le −10 par défaut ;
     // il ne l'évite qu'en décidant de tirer IMMOBILE (heldGround → consomme son Mouvement, cf. attackConfirm)
@@ -753,7 +754,7 @@ export function attackEnv(
     if (cm) env.push(cm);
     return { env, blocked: false, inMelee, crowd, cm, sc };
   }
-  // Mêlée : la météo (tempête/neige) pénalise l'attaque ; la neige pénalise aussi l'esquive (dodgeMod).
+  // Mêlée : la météo (tempête/neige) pénalise l'attaque ; la neige pénalise aussi l'esquive (dodgeMods).
   if (sc.attackMod) env.push({ label: sc.label, value: sc.attackMod, famille: 'circonstance' });
   // La pénalité météo « Tests physiques » (EDOC 8 l.82) n'est PLUS ajoutée ici : le CANAL UNIQUE
   // `weatherTestMods` (attackModifiers, lu depuis `attacker.envWeather`) la porte pour l'attaque ET la défense
@@ -826,7 +827,7 @@ export function resolveAttack(
       ? undefined
       : (() => {
         const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
-        return best && { ...best, dodgeMod: defenseDodgeMod(get, target) };
+        return best && { ...best, dodgeMods: defenseDodgeMods(get(), target) };
       })();
     const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, rd, mpt);
     // Tir dans la mêlée (LDB 14 l.116) : si le −20 a transformé une réussite en échec, le tir dévie
@@ -838,14 +839,14 @@ export function resolveAttack(
     return { res, weapon };
   }
   // Charge montée (LDB 14 l.183) : pour les DÉGÂTS, on substitue la Force (Bonus) et la Taille de la monture.
-  // Combat monté (l.184) : un défenseur à cheval subit −20 à l'Esquive (sauf Acrobaties équestres) → dodgeMod.
+  // Combat monté (l.184) : un défenseur à cheval subit −20 à l'Esquive (sauf Acrobaties équestres) → dodgeMods.
   const chargeMount = fromCharge ? mountOf(battle, attacker) : undefined;
   const dmgProxy = chargeMount ? { sb: bonus(effectiveChar(chargeMount, 'force')), size: chargeMount.size } : undefined;
   // Défenseur SURFACÉ (`defenseSurfaced`) : sa défense se joue dans SA fenêtre, jamais ici — on résout le
   // seul jet d'ATTAQUANT (`defense:'none'`) et l'interposition (`openSurfacedDefense`, chemin piloté) ou la
   // fenêtre réactive (`maybeOpenDefense`, chemin IA) opposera le jet de défense au jet figé.
   const surfaced = defenseSurfaced(get(), target);
-  return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'none' : bestDefenseMode(target), location, env, dodgeMod: defenseDodgeMod(get, target), dmgProxy, withhold, flankRear }), weapon };
+  return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'none' : bestDefenseMode(target), location, env, dodgeMods: defenseDodgeMods(get(), target), dmgProxy, withhold, flankRear }), weapon };
 }
 
 /** 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773). Jet d'attaquant IMPOSÉ : `reverseRoll(mainRoll)`,
@@ -880,8 +881,8 @@ export function resolveDualSecond(
   const compo = composeAttack(mods);
   const mode = (cannotDefend(target) || isInanimate(target)) ? 'none' : bestDefenseMode(target); // OBJET INANIMÉ (structure/véhicule/affût) : jamais de défense
   if (mode === 'none') return resolveMeleePassive(attacker, target, offWeapon, atk, opts?.location, env, undefined, false, compo);
-  const def = rollMeleeDefender(target, mode, battleRng(), 0, target.weapons[0], offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
-  return finishMelee(attacker, target, offWeapon, atk, def, mode, opts?.location, env, 0, undefined, target.weapons[0], false, undefined, compo);
+  const def = rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), target.weapons[0], offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
+  return finishMelee(attacker, target, offWeapon, atk, def, mode, opts?.location, env, defenseDodgeMods(get(), target), undefined, target.weapons[0], false, undefined, compo);
 }
 
 /** Cibles VALIDES de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773 : « un adversaire disponible de
@@ -983,20 +984,21 @@ export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
   return { difficulty: p.difficulty, ...(p.difficultyCombined != null ? { difficultyCombined: p.difficultyCombined } : {}) };
 }
 
-/** Pénalité d'ESQUIVE que le contexte impose au défenseur — SOURCE UNIQUE du jet résolu (`attackAt`
- *  → `resolveMelee({ dodgeMod })`) et du pré-jet (`previewDefense`) : météo de la scène (neige
- *  épaisse, `LDB 14 l.82`) + défenseur monté (`LDB 14 l.184`). Deux lecteurs, un calcul — sinon la
- *  rangée adverse annonce une Difficulté que le jet contredit (#1153 L4). */
-export function defenseDodgeMod(get: Get, defender: Combatant): number {
-  const scene = get().scene;
-  return (scene ? sceneCombatModifiers(scene, get().gameTime).dodgeMod : 0) + mountedDodgePenalty(defender);
+/** Lignes d'ESQUIVE que le contexte impose au défenseur — SOURCE UNIQUE du jet résolu (`attackAt`
+ *  → `resolveMelee({ dodgeMods })`), de la défense réactive et du pré-jet (`previewDefense`) : météo de
+ *  la scène (neige épaisse, `LDB 14 l.82`) + défenseur monté (`LDB 14 l.184`), chacune sa ligne. Un
+ *  calcul pour tous les lecteurs — sinon la rangée adverse annonce une Difficulté que le jet contredit (#1153 L4). */
+export function defenseDodgeMods(s: Pick<GameState, 'scene' | 'gameTime'>, defender: Combatant): ModLine[] {
+  const sc = s.scene ? sceneCombatModifiers(s.scene, s.gameTime) : null;
+  const weather: ModLine[] = sc?.dodgeMod ? [{ label: sc.label, value: sc.dodgeMod, famille: 'circonstance' }] : [];
+  return [...weather, ...mountedDodgeMods(defender)];
 }
 /** Ligne ADVERSE du panneau de jet pré-rempli (modale d'attaque) : ce que le joueur est en droit
  *  de savoir de la défense à venir — la compétence probable (« Parade » / « Esquive ») et ses
  *  bonus/malus visibles (Avantage, États, Sur la défensive…), SANS la valeur de compétence ni
  *  l'encaissé. Compétence = meilleure défense (`bestDefenseMode`) par défaut ; Bestial → Esquive
  *  seule. `forcee` : la défense que le contexte IMPOSE (tir défendu, `bestRangedDefense` — LDB 13 l.135),
- *  `dodgeMod` la pénalité d'esquive du contexte (neige épaisse, monté) — celle-là même que la
+ *  `dodgeMods` la pénalité d'esquive du contexte (neige épaisse, monté) — celle-là même que la
  *  résolution passera au jet.
  *
  *  Montée par le MONTEUR CANONIQUE en mode plafonné, comme l'attaque, sur les modificateurs QUI FONT
@@ -1005,14 +1007,14 @@ export function defenseDodgeMod(get: Get, defender: Combatant): number {
  *  Compétence — la rangée la masque de toute façon. */
 export function previewDefense(
   defender: Combatant,
-  ctx?: { mode?: 'parade' | 'esquive'; parryWeapon?: Weapon; vsWeapon?: Weapon; dodgeMod?: number },
+  ctx?: { mode?: 'parade' | 'esquive'; parryWeapon?: Weapon; vsWeapon?: Weapon; dodgeMods?: ModLine[] },
 ): { label: string; mods: ModLine[]; difficulty: Difficulty; difficultyCombined?: number; difficultyParts?: ModLine[] } {
   const mode = ctx?.mode ?? bestDefenseMode(defender);
   const arme = ctx && 'parryWeapon' in ctx ? ctx.parryWeapon : defender.weapons[0];
   const line = rollLine({
     difficulty: 'intermediaire', // LDB 13 l.118
     valeur: defenseValue(defender, mode, arme), valeurEtrangere: true,
-    surLaCible: defenseTargetMods(defender, mode, ctx?.dodgeMod ?? 0, arme, ctx?.vsWeapon), plafond: 'difficultes',
+    surLaCible: defenseTargetMods(defender, mode, ctx?.dodgeMods ?? [], arme, ctx?.vsWeapon), plafond: 'difficultes',
   });
   return {
     label: DEFENSE_LABEL[mode], mods: line.mods, difficulty: line.difficulty,
@@ -6579,7 +6581,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
       const step = monoStep({
         id: `combatEndDisease-${c.id}-${d.entry}-${d.disease}`, kind: 'combatEndDisease', actor: c, icon: 'medical/infection',
         rollLabel: 'Résistance', difficulty: d.difficulty,
-        ligne: { valeur: resVal, surLaCible: conditionModLines(c) },
+        ligne: { valeur: resVal, surLaCible: conditionModLines(c, { skill: 'resistance', disease: d.disease }) },
         label: d.label, meta: { entry: d.entry, disease: d.disease, ...(d.instant ? { instant: true } : {}) },
         stake: combatStakeRef('combatEndDisease', { entryId: d.disease }),
         menace: 'maladie', // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
@@ -6587,11 +6589,10 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
       pousseSi(monos, step);
     }
     if (decided.corruption && corr) {
-      const res = testValue(c, 'resistance');
       const step = monoStep({
         id: `combatEndCorruption-${c.id}`, kind: 'combatEndCorruption', actor: c, icon: 'nav/mutation',
         rollLabel: 'Résistance', difficulty: 'intermediaire',
-        ligne: { test: { skill: 'resistance' }, valeur: res, surLaCible: conditionModLines(c) },
+        ligne: { test: { skill: 'resistance' }, combat: { kind: 'test' } },
         label: stepPrecision(tr('step.expoCorruption'), dataLabel(corr.label)), meta: { level: corr.level, exposureLabel: corr.label },
         // L'enjeu DIT le coût de l'échec, lu à l'applier : `corruptionGain(niveau, false, …)` est constant
         // par niveau (1/2/3) — la valeur interpolée vient donc du MÊME calcul que la conséquence.
@@ -6693,7 +6694,7 @@ export function openContractionCascade(get: Get, set: SetFn, patient: Combatant,
     label: dataLabel(title), menace: 'maladie', meta: { entry: 'chirurgie', disease },
     stake: combatStakeRef('combatEndDisease', { entryId: disease }),
     difficulty,
-    porteurs: [{ actor: patient, ligne: { valeur: combatEndResistVal(patient) }, label: 'Résistance', menace: 'maladie' }],
+    porteurs: [{ actor: patient, ligne: { valeur: combatEndResistVal(patient), surLaCible: conditionModLines(patient, { skill: 'resistance', disease }) }, label: 'Résistance', menace: 'maladie' }],
     title, purpose: 'test',
   });
 }

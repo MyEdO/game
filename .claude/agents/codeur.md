@@ -41,5 +41,6 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
   redirection fichier + `$?` immédiat, et joins le code tel que rendu.
 - **Tout test NEUF se livre avec sa preuve par MUTATION** : dans ton rendu, le test ROUGE câblage
   débranché (édition temporaire, remise à l'identique À LA MAIN) puis VERT rebranché, avec
-  l'empreinte `git hash-object` du fichier muté avant et après.
+  l'empreinte `git hash-object` du fichier muté avant et après. L'état du test se pose par la couture
+  que le jeu appelle, jamais par une fixture qui renseigne un champ que la production ne pose pas.
 - Rendu final = données brutes : fichiers touchés, diff résumé, écarts, `fichier:ligne`.

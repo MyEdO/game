@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { traumaById, dechirureFractureFicheId, traumaMovementHalved, traumaDodgePenalty, traumaCharPenalties, traumaSkillPenalty, consolidateAmputations, treatTrauma } from './trauma';
+import { traumaById, dechirureFractureFicheId, traumaMovementHalved, traumaDodgePenalty, traumaCharPenalties, traumaSkillPenalty, consolidateAmputations, treatTrauma, passiveTestMod } from './trauma';
 import { effectiveChar } from './characteristics';
 import { effectiveMovement } from './encumbrance';
 import { defenseValue } from './combat';
@@ -70,6 +70,10 @@ describe('Prothèses — annulation de la séquelle d’amputation de jambe (LDB
     const c = fullCombatant({ traumas: [legSequela], items: [] });
     expect(traumaMovementHalved(c)).toBe(true);
     expect(traumaDodgePenalty(c)).toBe(-20);
+  });
+  it('jambe amputée + Cécité : les pénalités d’Esquive se SOMMENT (LDB 14 l.95, #1827)', () => {
+    const c = fullCombatant({ traumas: [legSequela, traumaById('cecite', undefined, 'tete')], items: [] });
+    expect(traumaDodgePenalty(c)).toBe(-50);
   });
   it('Fausse jambe portée (non entraînée) : le ÷2 SURVIT — le port de base ignore seulement 1 PM (l.23), pas tout le ÷2 ; l’Esquive reste pénalisée (LDB 73)', () => {
     const c = fullCombatant({ traumas: [legSequela], items: [item('fausse-jambe')] });
@@ -177,18 +181,18 @@ describe('consolidateAmputations — escalade `ajoute` des organes pairés (LDB 
     const c = fullCombatant({ traumas: [eye()] });
     expect(consolidateAmputations(c)).toHaveLength(0);
     expect((c.traumas ?? []).some((t) => t.traumaId === 'cecite')).toBe(false);
-    expect((c.traumas ?? []).find((t) => t.traumaId === 'oeil-perdu')!.ops).toContainEqual({ op: 'charMod', char: 'sociabilite', mod: -5 });
+    expect((c.traumas ?? []).find((t) => t.traumaId === 'oeil-perdu')!.ops).toContainEqual({ op: 'testMod', amount: -5, char: 'sociabilite' });
   });
   it('deux yeux : Cécité EN PLUS de la séquelle comptée (−10 Soc pour 2 orbites) ; idempotent', () => {
     const c = fullCombatant({ traumas: [eye(), eye()] });
     consolidateAmputations(c);
     const cec = (c.traumas ?? []).find((t) => t.traumaId === 'cecite')!;
     expect(cec.ops).toContainEqual({ op: 'skillMod', skill: { id: 'esquive' }, mod: -30 });
-    expect(cec.ops).toContainEqual({ op: 'charMod', char: 'capacite-de-combat', mod: -30 });
-    expect(cec.ops).toContainEqual({ op: 'charMod', char: 'capacite-de-tir', mod: -30 });
+    expect(cec.ops).toContainEqual({ op: 'testMod', amount: -30, char: 'capacite-de-combat' });
+    expect(cec.ops).toContainEqual({ op: 'testMod', amount: -30, char: 'capacite-de-tir' });
     const yeux = (c.traumas ?? []).find((t) => t.traumaId === 'oeil-perdu')!;
     expect(yeux.count).toBe(2);
-    expect(yeux.ops).toContainEqual({ op: 'charMod', char: 'sociabilite', mod: -10 });
+    expect(yeux.ops).toContainEqual({ op: 'testMod', amount: -10, char: 'sociabilite' });
     expect(consolidateAmputations(c)).toHaveLength(0); // pas de doublon
     expect((c.traumas ?? []).filter((t) => t.traumaId === 'cecite')).toHaveLength(1);
   });
@@ -246,10 +250,15 @@ describe('traumaSkillPenalty — Surdité restreinte aux Tests auditifs (LDB 18 
   it('Test de Perception basé sur la VUE : exempté — le RAW ne vise QUE les Tests basés sur l’ouïe', () => {
     expect(traumaSkillPenalty(deaf(), 'perception', 'vue')).toBe(0);
   });
-  it('Cécité reste inconditionnelle (compétences nommées CC/CT/Esquive/Chevaucher, pas de restriction de sens)', () => {
+  it('Cécité : −30 aux Tests d’Arme, d’Esquive, de Chevaucher et de Perception par la vue, sans toucher la Caractéristique (LDB 18 l.273)', () => {
     const c = fullCombatant({ traumas: [traumaById('cecite', undefined, 'tete')] });
-    expect(traumaCharPenalties(c, 'capacite-de-combat')).toEqual([-30]);
+    expect(traumaCharPenalties(c, 'capacite-de-combat')).toEqual([]);
+    expect(passiveTestMod(c, 'capacite-de-combat')).toBe(-30);
+    expect(passiveTestMod(c, 'capacite-de-tir')).toBe(-30);
     expect(traumaDodgePenalty(c)).toBe(-30);
+    expect(traumaSkillPenalty(c, 'chevaucher')).toBe(-30);
+    expect(traumaSkillPenalty(c, 'perception', 'vue')).toBe(-30);
+    expect(traumaSkillPenalty(c, 'perception', 'ouie')).toBe(0);
   });
 });
 

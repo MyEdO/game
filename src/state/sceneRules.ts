@@ -18,8 +18,10 @@ export interface SceneCombatMods {
   attackMod: number;
   /** Pénalité météo à l'esquive (LDB 14 l.82). */
   dodgeMod: number;
-  /** Libellé court pour l'affichage. */
+  /** Libellé de la ligne météo (`attackMod`/`dodgeMod`). */
   label: string;
+  /** Libellé de la ligne de cible dissimulée (`concealed`). */
+  concealedLabel: string;
 }
 
 /** Obscurité de la scène (combat + rendu) : extérieur de nuit uniquement (l'intérieur reste éclairé).
@@ -45,12 +47,8 @@ export function sceneCombatModifiers(scene: Pick<Scene, 'ambiance' | 'weather'>,
     attackMod = -30; // LDB 14 l.82
     dodgeMod = -30;
     label = 'Neige épaisse';
-  } else if (weather === 'brouillard') {
-    label = 'Brouillard';
-  } else if (night) {
-    label = 'Obscurité';
   }
-  return { concealed, attackMod, dodgeMod, label };
+  return { concealed, attackMod, dodgeMod, label, concealedLabel: weather === 'brouillard' ? 'Brouillard' : 'Obscurité' };
 }
 
 /** Un décor est SOLIDE (objet plein infranchissable : on ne se tient pas DESSUS) si son TYPE le déclare

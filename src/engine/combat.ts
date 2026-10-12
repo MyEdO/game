@@ -20,9 +20,10 @@ import { precipitationTestMods } from './seaWeather';
 import { findTableEntry } from './tables';
 import { maxBy } from './pick';
 import locJson from '../data/localisation.json';
-import { combatTestPenaltyParts, meleeAttackerBonusLines, cannotDefend, hasCondition, COND, activeCharTestMod, activeCharTestModParts } from './conditions';
+import { combatTestPenaltyParts, meleeAttackerBonusLines, cannotDefend, hasCondition, COND, activeCharTestModParts, type EtatTestCtx } from './conditions';
 import { effectiveWeaponDamage, effectiveWeapon, effectiveWeaponRange } from './weaponDamage';
-import { traumaDodgePenalty, damageSBBonus, amputationCombatPenalty } from './trauma';
+import { traumaDodgePenaltyParts, damageSBBonus, amputationCombatPenalty, passiveTestModParts, passivePartLine } from './trauma';
+import type { GameOp } from './ops';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { groupMatch } from './groups';
 import { ignoredArmourAP, impenetrableAt, loadedAmmo, activeLoadout, unarmedWeapon } from './items';
@@ -161,8 +162,13 @@ function acceptableSpecs(weapon: Weapon, kind: 'melee' | 'ranged'): SpecAcceptan
  * entrées EXPLICITES (`spec` réel) priment sur la sentinelle `ANY_RANGED_SPEC`, essayée en dernier
  * (meilleure Spé de Tir disponible, dégradée). `null` si aucune Spé du `skillId` de `kind` ne matche.
  */
+/** Compétence d'un Test d'Arme selon le mode d'attaque (Corps à corps / Projectiles). */
+export function weaponSkillId(kind: 'melee' | 'ranged'): 'corps-a-corps' | 'projectiles' {
+  return kind === 'melee' ? 'corps-a-corps' : 'projectiles';
+}
+
 function matchGroupSpec(c: Combatant, weapon: Weapon, kind: 'melee' | 'ranged'): { advances: number; mode: 'full' | 'degraded'; spec?: string } | null {
-  const skillId = kind === 'melee' ? 'corps-a-corps' : 'projectiles';
+  const skillId = weaponSkillId(kind);
   const matching = c.skills.filter((s) => s.id === skillId);
   if (!matching.length) return null;
   const wanted = acceptableSpecs(weapon, kind);
@@ -197,7 +203,7 @@ function combatSkillPick(c: Combatant, kind: 'melee' | 'ranged', weapon?: Weapon
   if (weapon?.resolveChar) return { charKey: weapon.resolveChar, advances: 0 };
   const charKey = combatCharKey(kind, weapon);
   if (weapon && weaponUnmastered(c, weapon)) return { charKey, advances: 0 }; // arme inhabituelle non maîtrisée : carac brute (ACE 12 l.17-21)
-  const skillId = kind === 'melee' ? 'corps-a-corps' : 'projectiles';
+  const skillId = weaponSkillId(kind);
   const matching = c.skills.filter((s) => s.id === skillId);
   if (matching.length === 0) return { charKey, advances: 0 };
   if (!weapon || !weapon.subType) return { charKey, skillId, advances: Math.max(0, ...matching.map((s) => s.advances)) };
@@ -228,7 +234,7 @@ export function combatBaseValue(c: Combatant, kind: 'melee' | 'ranged', weapon?:
 
 /**
  * Modificateurs FONDUS dans la valeur de combat, en SOMME : mods de Test char-QUALIFIÉS d'effets
- * ACTIFS (`activeCharTestMod`). Ils vivent DANS la valeur et ne transitent JAMAIS par `combineMods`
+ * ACTIFS (`activeCharTestModParts`). Ils vivent DANS la valeur et ne transitent JAMAIS par `combineMods`
  * (plafond « Combiner les Difficultés », LDB 14 l.91-96) — les y verser les amputerait à −30.
  * #193 : pénalité de récupération « Tests effectués avec ce bras » (Épaule luxée, LDB/AA) — scopée à
  * l'arme tenue dans CETTE main (`weaponHand`), jamais l'autre. Inerte si `weapon` absent (créature sans
@@ -244,7 +250,10 @@ export function combatValueMods(c: Combatant, kind: 'melee' | 'ranged', weapon?:
 export function combatValueModParts(c: Combatant, kind: 'melee' | 'ranged', weapon?: Weapon): ModLine[] {
   if (weapon?.resolveChar) return []; // carac BRUTE (ADE II 8 l.233) : aucun mod de Test char-qualifié
   const charKey = kind === 'melee' ? 'capacite-de-combat' : 'capacite-de-tir';
-  return activeCharTestModParts(c, charKey, { weaponHand: weapon?.hand });
+  return [
+    ...passiveTestModParts(c, charKey).map((m) => passivePartLine(m, (m.op as Extract<GameOp, { op: 'testMod' }>).amount)),
+    ...activeCharTestModParts(c, charKey, { weaponHand: weapon?.hand }),
+  ];
 }
 
 /** Valeur de combat FONDUE = valeur NUE + ses modificateurs (identité `base + modificateurs`). */
@@ -326,20 +335,27 @@ export function defenseBaseValue(c: Combatant, mode: DefenseMode, weapon?: Weapo
 }
 
 /**
- * Modificateurs FONDUS dans la valeur de défense, en SOMME : pénalité de mobilité + mods de Test
- * char-QUALIFIÉS d'effets ACTIFS. Ils vivent DANS la valeur et ne transitent JAMAIS par `combineMods`
- * (plafond « Combiner les Difficultés », LDB 14 l.91-96) — les y verser les amputerait à −30.
- * L'Esquive subit la pénalité d'Agilité d'Encombrement (Surchargé, LDB 61 l.35-40).
+ * Modificateurs FONDUS dans la valeur de défense, en SOMME. Ils vivent DANS la valeur et ne transitent
+ * JAMAIS par `combineMods` (plafond « Combiner les Difficultés », LDB 14 l.91-96).
  */
 export function defenseValueMods(c: Combatant, mode: DefenseMode, weapon?: Weapon): number {
-  if (mode === 'social') return 0; // valeur fournie clé en main par la couche état
-  if (mode === 'parade') return combatValueMods(c, 'melee', weapon ?? c.weapons[0]);
-  // Pénalité de mobilité : pire pénalité (non-cumul, LDB 16 l.13) entre Encombrement et traumatisme
-  // de jambe (Déchirure −10/−20, Fracture −20 « règle du Pied », LDB 18 l.220/229/285).
-  const mobilityPenalty = Math.min(agilityTestPenalty(c), traumaDodgePenalty(c));
-  // #193 : pénalité de récupération « Tests impliquant cette jambe » (Genou démis, LDB/AA) — Esquive EST
-  // classée « déplacement » (SkillData.movement), même catégorie que l'État À Terre/Empêtré.
-  return mobilityPenalty + activeCharTestMod(c, 'agilite', { movement: true });
+  return defenseValueModParts(c, mode, weapon).reduce((s, p) => s + p.value, 0);
+}
+
+/** Les MÊMES modificateurs, en composantes NOMMÉES — SOURCE UNIQUE dont `defenseValueMods` est la Σ,
+ *  sur le patron de `combatValueModParts`. Parade : ceux de la valeur de Corps à corps. Esquive :
+ *  Encombrement (LDB 61 l.35-40), séquelles de jambe (LDB 18 l.220/229/285), `testMod` passifs
+ *  d'Agilité, effets actifs d'Agilité (Esquive = Test de déplacement, #193) — sommés (LDB 14 l.95). */
+export function defenseValueModParts(c: Combatant, mode: DefenseMode, weapon?: Weapon): ModLine[] {
+  if (mode === 'social') return []; // valeur fournie clé en main par la couche état
+  if (mode === 'parade') return combatValueModParts(c, 'melee', weapon ?? c.weapons[0]);
+  const enc = agilityTestPenalty(c);
+  return [
+    ...(enc ? [{ label: 'Encombrement', value: enc, famille: 'jet' as const, ref: RULE_REF.encombrement }] : []),
+    ...traumaDodgePenaltyParts(c).map((m) => passivePartLine(m, (m.op as Extract<GameOp, { op: 'skillMod' }>).mod)),
+    ...passiveTestModParts(c, 'agilite').map((m) => passivePartLine(m, (m.op as Extract<GameOp, { op: 'testMod' }>).amount)),
+    ...activeCharTestModParts(c, 'agilite', { movement: true }),
+  ].filter((l) => l.value !== 0);
 }
 
 /** Valeur de défense FONDUE = valeur NUE + ses modificateurs (identité `base + modificateurs`). */
@@ -376,9 +392,9 @@ export interface SecondReadLine {
 export interface RollBreakdown {
   /** Intitulé du jet : 'Corps à corps' / 'Parade' / 'Esquive' / 'Projectiles'. */
   label: string;
-  /** SEUIL PUR (#1426) : le jet décrit est un POURCENTAGE (`dé ≤ nombre visé`), pas un Test — la ligne
-   *  rend son verdict en clair, sans ✓±DR (un pourcentage n'a pas de Degré de Réussite). Absent = Test. */
-  evaluation?: 'seuil';
+  /** SEUIL PUR (#1426) : le jet décrit est un POURCENTAGE (`dé ≤ nombre visé`), pas un Test — présent,
+   *  il PORTE le verdict que la ligne rend, sans ✓±DR (#2389, `state/pendings.LectureDuDe`). Absent = Test. */
+  seuil?: { reussite: string; echec: string };
   /** Difficulté du Test — NATURE du jet, pas un modificateur circonstanciel : elle se lit
    *  sur la LIGNE (texte + valeur, `ui/RollLine.tsx`) et n'entre JAMAIS dans `mods` (#1072). Sa
    *  valeur reste comprise dans `modifier`/`target`. */
@@ -653,11 +669,11 @@ export function frozenDifficulty(d: RollBreakdown | undefined): DifficultyCompos
 export function defenseTargetMods(
   defender: Combatant,
   mode: DefenseMode,
-  dodgeMod = 0,
+  dodgeMods: ModLine[] = [],
   parryWeapon?: Weapon,
   vsWeapon?: Weapon,
 ): ModLine[] {
-  const mods = defenseModifiers(defender, mode, dodgeMod, parryWeapon);
+  const mods = defenseModifiers(defender, mode, dodgeMods, parryWeapon);
   const rapide = mode === 'parade' ? rapideParryMod(vsWeapon, parryWeapon) : 0;
   if (rapide) mods.push({ label: 'Rapide', value: rapide, famille: 'jet', ref: RULE_REF.rapide });
   return mods;
@@ -716,9 +732,10 @@ export function psychDRAdjust(attacker: Combatant, target: Combatant | null): nu
 /** Lignes de mod des ÉTATS d'un combattant — SOURCE UNIQUE des trois producteurs (attaque, défense,
  *  Test de combat « brut »). Chaque composante de la pénalité arrive NOMMÉE et liée au Codex
  *  (`combatTestPenaltyParts`) : le gagnant du pool non-cumul porte le nom de SON État (« −30 Brisé »),
- *  le sort et le symptôme qui stackent gardent chacun leur ligne. `[]` si rien ne pèse. */
-export function conditionModLines(c: Combatant): ModLine[] {
-  return combatTestPenaltyParts(c);
+ *  le sort et le symptôme qui stackent gardent chacun leur ligne. `[]` si rien ne pèse. `ctx` = le Test
+ *  courant (Compétence, sens, maladie), contre lequel se lisent les pénalités restreintes. */
+export function conditionModLines(c: Combatant, ctx: EtatTestCtx = {}): ModLine[] {
+  return combatTestPenaltyParts(c, ctx);
 }
 
 export function attackModifiers(
@@ -730,7 +747,7 @@ export function attackModifiers(
   const out: ModLine[] = [];
   const adv = attacker.advantage * 10;
   if (adv) out.push({ label: 'Avantage', value: adv, famille: 'jet', ref: RULE_REF.avantage });
-  out.push(...conditionModLines(attacker));
+  out.push(...conditionModLines(attacker, { skill: weapon.resolveChar ? undefined : weaponSkillId(opts.kind) }));
   if (attacker.nextActionPenalty) out.push({ label: 'Maladresse (Round précédent)', value: -attacker.nextActionPenalty, famille: 'jet', ref: RULE_REF['maladresse-tableau-des-oups'] });
   // Amputation (LDB 18 l.251/263) : pénalité CONTEXTUELLE à l'arme — s'applique ssi l'arme implique la main blessée.
   const amp = amputationCombatPenalty(attacker, weapon);
@@ -860,18 +877,19 @@ export function parryPenalty(defender: Combatant, weapon: Weapon | undefined): n
   return offHandPenalty(defender);
 }
 
-/** Modificateurs étiquetés d'un Test de DÉFENSE (Parade/Esquive). `dodgeMod` = pénalité météo
- *  (neige épaisse −30) appliquée à l'esquive uniquement (LDB 14 l.82). `weapon` = arme de parade
+/** Modificateurs étiquetés d'un Test de DÉFENSE (Parade/Esquive). `dodgeMods` = lignes d'Esquive du
+ *  contexte, chacune sourcée par son producteur (neige `LDB 14 l.82`, monté `LDB 14 l.184`), appliquées à
+ *  l'esquive uniquement. `weapon` = arme de parade
  *  (pénalité de main secondaire en Parade, sauf exception Parade+Défensive). */
-export function defenseModifiers(defender: Combatant, mode: DefenseMode, dodgeMod = 0, weapon?: Weapon): ModLine[] {
+export function defenseModifiers(defender: Combatant, mode: DefenseMode, dodgeMods: ModLine[] = [], weapon?: Weapon): ModLine[] {
   const out: ModLine[] = [];
   const adv = defender.advantage * 10;
   // Avantage HORS table de Difficulté (`LDB 14 l.48`, comme `attackModifiers`) → `famille: 'jet'` : ne
   // compte pas dans le plafond ±30/+60 de `combineMods`, qui ne combine que les circonstances.
   if (adv) out.push({ label: 'Avantage', value: adv, famille: 'jet', ref: RULE_REF.avantage });
-  out.push(...conditionModLines(defender));
+  out.push(...conditionModLines(defender, { skill: mode === 'parade' ? weaponSkillId('melee') : mode === 'esquive' ? 'esquive' : undefined }));
   if (defender.defensiveStance) out.push({ label: 'Sur la défensive', value: 20, famille: 'jet', ref: RULE_REF['sur-la-defensive'] });
-  if (mode === 'esquive' && dodgeMod) out.push({ label: 'Neige épaisse', value: dodgeMod, famille: 'circonstance' });
+  if (mode === 'esquive') out.push(...dodgeMods);
   if (mode === 'parade') {
     const pp = parryPenalty(defender, weapon);
     if (pp) out.push({ label: 'Main secondaire', value: pp, famille: 'circonstance', ref: RULE_REF['main-secondaire'] });
@@ -920,11 +938,11 @@ export function advantageModLine(c: Combatant): ModLine | null {
  *  (Empoignade, Au Contact, Désengagement) affiche ainsi ses modificateurs au lieu d'un +N anonyme.
  *  `ck` = la Caractéristique RÉELLE du Test brut (Empoignade → Force, Désengagement/coup dans le dos →
  *  CC) : la météo n'arrive que si elle est physique (LISTE maison `physicalTestChars`). */
-export function baseTestModLines(c: Combatant, ck?: CharKey): ModLine[] {
+export function baseTestModLines(c: Combatant, ck?: CharKey, ctx: EtatTestCtx = {}): ModLine[] {
   const out: ModLine[] = [];
   const adv = advantageModLine(c);
   if (adv) out.push(adv);
-  out.push(...conditionModLines(c));
+  out.push(...conditionModLines(c, ctx));
   out.push(...weatherTestMods(c.envWeather, ck ?? null));
   out.push(...precipitationTestMods(c.envPrecipitation)); // MDG 13 l.185, #1936
   return out;
@@ -933,8 +951,8 @@ export function baseTestModLines(c: Combatant, ck?: CharKey): ModLine[] {
 /** Somme des modificateurs de base d'un Test de combat « brut » — la VALEUR que roule le résolveur.
  *  SOURCE UNIQUE partagée avec `baseTestModLines` (l'affichage et le jet ne peuvent pas diverger).
  *  Réutiliser ; ne pas réécrire `c.advantage * 10 + …`. */
-export function baseTestMods(c: Combatant, ck?: CharKey): number {
-  return baseTestModLines(c, ck).reduce((s, l) => s + l.value, 0);
+export function baseTestMods(c: Combatant, ck?: CharKey, ctx: EtatTestCtx = {}): number {
+  return baseTestModLines(c, ck, ctx).reduce((s, l) => s + l.value, 0);
 }
 
 export interface AttackOptions {
@@ -943,8 +961,8 @@ export interface AttackOptions {
   location?: HitLocation;
   /** Modificateurs dérivés de la scène (couvert/obscurité/météo/mouvement/tir-mêlée), injectés par combatFlow. */
   env?: ModLine[];
-  /** Pénalité météo à l'esquive (neige épaisse −30, LDB 14 l.82), injectée par combatFlow. */
-  dodgeMod?: number;
+  /** Lignes d'Esquive du contexte (neige `LDB 14 l.82`, monté `LDB 14 l.184`), injectées par combatFlow. */
+  dodgeMods?: ModLine[];
   /** Combat monté — CHARGE (LDB 14 l.183) : pour le calcul des DÉGÂTS seulement, on substitue la Force
    *  (Bonus `sb`) et la Taille de la MONTURE à celles du cavalier (le toucher reste la CC du cavalier). */
   dmgProxy?: { sb: number; size: Combatant['size'] };
@@ -1014,13 +1032,13 @@ export function rollMeleeDefender(
   defender: Combatant,
   mode: DefenseMode,
   rng: RNG = defaultRNG,
-  dodgeMod = 0, // neige épaisse : −30 à l'esquive (LDB 14 l.82) ; n'affecte pas la parade
+  dodgeMods: ModLine[] = [], // lignes d'Esquive du contexte (LDB 14 l.82, l.184) ; n'affectent pas la parade
   parryWeapon: Weapon | undefined = defender.weapons[0], // arme de parade choisie (spé + pénalité main 2nde)
   vsWeapon?: Weapon, // arme de l'ATTAQUANT (Rapide : −10 à la parade d'une arme non-Rapide, LDB 62 l.298-302)
   sub?: DefenseSub, // substitution sociale (mode 'social') : base = Test de la Compétence substituée
 ): TestResult {
   const defVal = defenseValue(defender, mode, parryWeapon, sub?.base);
-  const t = rollTest(defVal, 'intermediaire', rng, combineMods(defenseTargetMods(defender, mode, dodgeMod, parryWeapon, vsWeapon)));
+  const t = rollTest(defVal, 'intermediaire', rng, combineMods(defenseTargetMods(defender, mode, dodgeMods, parryWeapon, vsWeapon)));
   return { ...t, base: defenseBaseValue(defender, mode, parryWeapon, sub?.base) }; // LDB 12 l.160
 }
 
@@ -1028,16 +1046,19 @@ export function rollMeleeDefender(
  *  (LDB 15 l.49 « Esquive/Corps à corps »). Inclut l'Avantage×10 et les pénalités
  *  d'États, mais PAS les Atouts d'arme ni les bonus de cible (ce n'est pas une attaque portée). */
 export function rollDisengageAttack(foe: Combatant, rng: RNG = defaultRNG): TestResult {
-  const t = rollTest(combatValue(foe, 'melee', foe.weapons[0]), 'intermediaire', rng, baseTestMods(foe, 'capacite-de-combat'));
+  const t = rollTest(combatValue(foe, 'melee', foe.weapons[0]), 'intermediaire', rng, baseTestMods(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }));
   return { ...t, base: combatBaseValue(foe, 'melee', foe.weapons[0]) }; // LDB 12 l.160
 }
 
 /** Jet de FORCE « brut » pour le Test opposé d'Empoignade (LDB 14 l.161 : « un Test opposé de Force »).
  *  Valeur = caractéristique de Force + Avantage×10 + pénalités d'États (`baseTestMods`), sans Atout
  *  d'arme (c'est une lutte au corps à corps, pas une frappe portée). Partagé flux joueur + IA. */
+/** Contexte du Test de Force d'Empoignade : il implique un déplacement (LDB 16 l.64). */
+export const GRAPPLE_TEST_CTX: EtatTestCtx = { movement: true };
+
 export function rollGrappleForce(c: Combatant, rng: RNG = defaultRNG): TestResult {
   const force = effectiveChar(c, 'force'); // valeur NUE : `baseTestMods` voyage dans le modificateur (LDB 12 l.160)
-  return { ...rollTest(force, 'intermediaire', rng, baseTestMods(c, 'force')), base: force };
+  return { ...rollTest(force, 'intermediaire', rng, baseTestMods(c, 'force', GRAPPLE_TEST_CTX)), base: force };
 }
 
 /** Arme du coup dans le dos d'une Fuite : c'est un **Test de Corps à corps** (LDB 15 l.63) → l'arme de
@@ -1057,7 +1078,7 @@ export function resolveBackstabAttack(foe: Combatant, target: Combatant, rng: RN
   // circonstance venue. Classement `circonstance` : l'entrée `LDB 14 l.62` (cf. `LDB 13 l.171` et
   // `LDB 15 l.68` ; rappel `LDB 15 l.66`).
   const mods: ModLine[] = [
-    ...baseTestModLines(foe, 'capacite-de-combat'),
+    ...baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }),
     { label: 'Dos tourné (adversaire en fuite)', value: 20, famille: 'circonstance', ref: RULE_REF['attaque-de-flanc-ou-de-dos'] },
   ];
   const atk = rollTest(combatValue(foe, 'melee', weapon), 'intermediaire', rng, mods.reduce((s, m) => s + m.value, 0));
@@ -1076,7 +1097,7 @@ export function finishMelee(
   defenseMode: DefenseMode,
   location?: HitLocation,
   env: ModLine[] = [],
-  dodgeMod = 0,
+  dodgeMods: ModLine[] = [],
   dmgProxy?: AttackOptions['dmgProxy'], // Charge montée : Force+Taille de la monture pour les dégâts (LDB 14 l.183)
   parryWeapon: Weapon | undefined = defender.weapons[0], // arme de parade choisie (spé + Atouts + pénalité main 2nde)
   withhold = false, // « Retenir ses coups » (Aux Armes 07 l.59-61)
@@ -1084,7 +1105,7 @@ export function finishMelee(
   compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4) ; absente = composée ici
 ): AttackResult {
   const atkBd = bd(attackTestLabel(weapon, 'melee'), combatValue(attacker, 'melee', weapon), atk, compo ?? composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env })));
-  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, dmgProxy, parryWeapon, dodgeMod, withhold, sub });
+  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, dmgProxy, parryWeapon, dodgeMods, withhold, sub });
 }
 
 /**
@@ -1103,11 +1124,11 @@ function combineOpposed(
   def: TestResult,
   defenseMode: DefenseMode,
   atkBd: ReturnType<typeof bd>,
-  opts: { location?: HitLocation; dmgProxy?: AttackOptions['dmgProxy']; parryWeapon?: Weapon; dodgeMod?: number; withhold?: boolean; sub?: DefenseSub } = {},
+  opts: { location?: HitLocation; dmgProxy?: AttackOptions['dmgProxy']; parryWeapon?: Weapon; dodgeMods?: ModLine[]; withhold?: boolean; sub?: DefenseSub } = {},
 ): AttackResult {
   const { location, dmgProxy } = opts;
   const parryWeapon = opts.parryWeapon ?? defender.weapons[0];
-  const dodgeMod = opts.dodgeMod ?? 0;
+  const dodgeMods = opts.dodgeMods ?? [];
   const noSize = !!attacker.swarm || !!defender.swarm; // Nuée : ignore toutes les règles de Taille (LDB 85 l.253)
   const parrySizePenalty = defenseMode === 'parade' && !noSize ? 2 * Math.max(0, sizeGap(attacker.size, defender.size)) : 0;
   // +DR d'effet actif/trait sur un Test d'ATTAQUE RÉUSSI (chanson « Jacques Bret » : +1 DR Corps à corps,
@@ -1122,7 +1143,7 @@ function combineOpposed(
   const defLabel = defenseMode === 'social' ? (opts.sub?.label ?? DEFENSE_LABEL.parade) : DEFENSE_LABEL[defenseMode];
   // Difficulté de la DÉFENSE : mêmes modificateurs que le jet réellement roulé (`defenseTargetMods`,
   // Rapide compris) — sans lui, la ligne résolue annoncerait une Difficulté que la cible contredit.
-  const defBd = bd(defLabel, defenseValue(defender, defenseMode, parryWeapon, opts.sub?.base), def, composeAttack(defenseTargetMods(defender, defenseMode, dodgeMod, parryWeapon, weapon)), defenseMode);
+  const defBd = bd(defLabel, defenseValue(defender, defenseMode, parryWeapon, opts.sub?.base), def, composeAttack(defenseTargetMods(defender, defenseMode, dodgeMods, parryWeapon, weapon)), defenseMode);
   const usedParry = defenseMode === 'parade' ? parryWeapon : undefined; // arme de parade (Critiques opposés / Piège-lame)
   // Z5c — la RAISON du départage (LDB 12 l.160) va sur la LIGNE du camp qu'elle explique : le
   // résolveur la dit une fois, l'affichage n'a plus rien à déduire ni à recomparer.
@@ -1237,8 +1258,8 @@ export function resolveMelee(
   if (defenseMode === 'none') {
     res = resolveMeleePassive(attacker, defender, weapon, atk, opts.location, opts.env, opts.dmgProxy, opts.withhold, compo);
   } else {
-    const def = rollMeleeDefender(defender, defenseMode, rng, opts.dodgeMod, defender.weapons[0], weapon);
-    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, opts.location, opts.env, opts.dodgeMod, opts.dmgProxy, defender.weapons[0], opts.withhold, undefined, compo);
+    const def = rollMeleeDefender(defender, defenseMode, rng, opts.dodgeMods, defender.weapons[0], weapon);
+    res = finishMelee(attacker, defender, weapon, atk, def, defenseMode, opts.location, opts.env, opts.dodgeMods, opts.dmgProxy, defender.weapons[0], opts.withhold, undefined, compo);
   }
   if (autoKill && res.hit) res.autoKill = true;
   return res;
@@ -1350,7 +1371,7 @@ export function resolveRanged(
   distanceTiles?: number,
   location?: HitLocation,
   env: ModLine[] = [],
-  defense?: { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; dodgeMod?: number },
+  defense?: { mode: 'parade' | 'esquive'; parryWeapon?: Weapon; dodgeMods?: ModLine[] },
   metresPerTile = 2,
 ): AttackResult {
   const atkVal = combatValue(attacker, 'ranged', weapon);
@@ -1364,8 +1385,8 @@ export function resolveRanged(
   // Tir DÉFENDU (RAW : Protectrice 2+ LDB 62 l.296 / Bout Portant 14 l.62 / tireur Engagé 14 l.70) →
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.
   if (defense && !isHelplessTarget(defender)) {
-    const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMod ?? 0, defense.parryWeapon ?? defender.weapons[0], weapon);
-    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { location, parryWeapon: defense.parryWeapon, dodgeMod: defense.dodgeMod });
+    const def = rollMeleeDefender(defender, defense.mode, rng, defense.dodgeMods ?? [], defense.parryWeapon ?? defender.weapons[0], weapon);
+    return combineOpposed(attacker, defender, weapon, atk, def, defense.mode, atkBd, { location, parryWeapon: defense.parryWeapon, dodgeMods: defense.dodgeMods });
   }
   if (!atk.success) {
     return {
@@ -1413,13 +1434,13 @@ export function finishRanged(
   location?: HitLocation,
   env: ModLine[] = [],
   parryWeapon?: Weapon,
-  dodgeMod = 0,
+  dodgeMods: ModLine[] = [],
   metresPerTile = 2,
   compo?: DifficultyComposition, // Difficulté FIGÉE par le jet d'origine (#1153 L4) ; absente = composée ici
 ): AttackResult {
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'ranged', location, distanceTiles, env, metresPerTile });
   const atkBd = bd(attackTestLabel(weapon, 'ranged'), combatValue(attacker, 'ranged', weapon), atk, compo ?? composeAttack(mods));
-  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, parryWeapon, dodgeMod });
+  return combineOpposed(attacker, defender, weapon, atk, def, defenseMode, atkBd, { location, parryWeapon, dodgeMods });
 }
 
 /**

@@ -128,7 +128,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
             <Icon id="travel/anchor" size="sm" /> Route maritime (navire de campagne ; distance en milles)
           </label>
           {route.sea && (
-            <label className="ed-field">Cap dominant (aspect du vent, MDG 13 l.262-270)
+            <label className="ed-field">Cap dominant (fixe le vent relatif, MDG 13 l.262-270)
               <select
                 value={route.seaHeading ?? 'est'}
                 onChange={(e) => updRoute(route.id, { seaHeading: e.target.value as MapRoute['seaHeading'] })}

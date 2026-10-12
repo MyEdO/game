@@ -149,3 +149,22 @@ describe('Défense — l’attaque annoncée, et son voyage jusqu’à l’invit
     });
   }
 });
+
+describe('Défense : les modificateurs de la VALEUR sont des lignes NOMMÉES', () => {
+  const rangeeDefenseur = () => host!.querySelectorAll('.rr-row')[1]?.textContent ?? '';
+  const poser = (char: 'capacite-de-combat' | 'agilite') => {
+    const h = useGame.getState().battle!.combatants.find((c) => c.id === 'h')!;
+    h.activeEffects = [{ label: 'Sonde de valeur', bonus: 0, duration: { scale: 'rounds', left: 3 }, testModChar: char, testMod: -10 }];
+    act(() => root!.render(<Probe />));
+  };
+  it('Parade : l’effet actif de CC apparaît sous son nom', () => {
+    openDefense(); poser('capacite-de-combat');
+    expect(rangeeDefenseur()).toContain('Sonde de valeur');
+  });
+  it('Esquive : l’effet actif d’Agilité apparaît sous son nom', () => {
+    openDefense();
+    act(() => { useGame.getState().defenseSetMode('esquive'); });
+    poser('agilite');
+    expect(rangeeDefenseur()).toContain('Sonde de valeur');
+  });
+});

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { combatTestPenalty, combatTestPenaltyParts, testStatePenalty, meleeAttackerBonus, addCondition, COND } from './conditions';
-import { conditionModLines, baseTestModLines, defenseModifiers } from './combat';
+import { conditionModLines, baseTestModLines, baseTestMods, defenseModifiers, GRAPPLE_TEST_CTX } from './combat';
 import type { Combatant } from './types';
 import { etats, findConditionById } from '../data';
 import { setDataset } from '../data/overrides';
@@ -11,6 +11,22 @@ const mk = (): Combatant => ({
   wounds: { current: 10, max: 10, base: 10 }, advantage: 0,
 }) as unknown as Combatant;
 
+describe('Hémorragique : −10 par pion aux Tests de résistance aux infections (LDB 16 l.105, l.11, #1138)', () => {
+  const saignant = (pions: number) => { const c = mk(); for (let i = 0; i < pions; i++) addCondition(c, COND.hemorragique); return c; };
+  it('Blessure Purulente, Infection Mineure, Infection du Sang : −10 × pions', () => {
+    for (const disease of ['blessure-purulente', 'infection-mineure', 'infection-du-sang']) {
+      expect(combatTestPenalty(saignant(1), { skill: 'resistance', disease })).toBe(-10);
+      expect(combatTestPenalty(saignant(3), { skill: 'resistance', disease })).toBe(-30);
+      expect(testStatePenalty(saignant(2), 'resistance', { disease })).toBe(-20);
+    }
+  });
+  it('aucune pénalité hors de ces maladies, ni sans maladie au contexte', () => {
+    expect(combatTestPenalty(saignant(2), { skill: 'resistance', disease: 'pneumonie' })).toBe(0);
+    expect(combatTestPenalty(saignant(2), { skill: 'corps-a-corps' })).toBe(0);
+    expect(testStatePenalty(saignant(2), 'resistance')).toBe(0);
+  });
+});
+
 describe('pénalités de Test d’État lues en DONNÉES (etats.json passive testMod)', () => {
   describe('combat (combatTestPenalty)', () => {
     it('Sonné → −10', () => { const c = mk(); addCondition(c, COND.sonne); expect(combatTestPenalty(c)).toBe(-10); });
@@ -19,12 +35,24 @@ describe('pénalités de Test d’État lues en DONNÉES (etats.json passive tes
       const c = mk(); addCondition(c, COND.sonne); addCondition(c, COND.extenue); addCondition(c, COND.extenue); addCondition(c, COND.extenue);
       expect(combatTestPenalty(c)).toBe(-30);
     });
-    it('Aveuglé → −10 (combatOnly s’applique EN combat)', () => { const c = mk(); addCondition(c, COND.aveugle); expect(combatTestPenalty(c)).toBe(-10); });
+    it('Aveuglé → −10 aux Tests d’Arme et d’Esquive, 0 à un Test sans la vue (LDB 16 l.45)', () => {
+      const c = mk(); addCondition(c, COND.aveugle);
+      expect(combatTestPenalty(c, { skill: 'corps-a-corps' })).toBe(-10);
+      expect(combatTestPenalty(c, { skill: 'esquive' })).toBe(-10);
+      expect(combatTestPenalty(c, { skill: 'resistance' })).toBe(0);
+    });
     it('À Terre → 0 (pénalité de DÉPLACEMENT, pas un Test de combat)', () => { const c = mk(); addCondition(c, COND.aTerre); expect(combatTestPenalty(c)).toBe(0); });
     it('Assourdi → 0 en combat (pénalité d’AUDITION, pas un Test de combat — LDB 16 l.29)', () => { const c = mk(); addCondition(c, COND.assourdi); expect(combatTestPenalty(c)).toBe(0); });
   });
   describe('hors combat (testStatePenalty)', () => {
-    it('Aveuglé → 0 (combatOnly : non classé hors combat)', () => { const c = mk(); addCondition(c, COND.aveugle); expect(testStatePenalty(c, 'perception')).toBe(0); });
+    it('Aveuglé → −10 à la Perception par la vue, 0 par l’ouïe (LDB 16 l.45)', () => {
+      const c = mk(); addCondition(c, COND.aveugle);
+      expect(testStatePenalty(c, 'perception')).toBe(-10);
+      expect(testStatePenalty(c, 'perception', { sense: 'vue' })).toBe(-10);
+      expect(testStatePenalty(c, 'perception', { sense: 'ouie' })).toBe(0);
+      expect(testStatePenalty(c, 'charme')).toBe(0);
+    });
+    it('Assourdi → 0 à la Perception par la vue (LDB 16 l.29)', () => { const c = mk(); addCondition(c, COND.assourdi); expect(testStatePenalty(c, 'perception', { sense: 'vue' })).toBe(0); });
     it('À Terre → −20 sur un Test de DÉPLACEMENT (Athlétisme)', () => { const c = mk(); addCondition(c, COND.aTerre); expect(testStatePenalty(c, 'athletisme')).toBe(-20); });
     it('À Terre → 0 sur un Test NON-déplacement (Perception)', () => { const c = mk(); addCondition(c, COND.aTerre); expect(testStatePenalty(c, 'perception')).toBe(0); });
     it('Brisé → −10 sauf course/dissimulation', () => {
@@ -62,9 +90,9 @@ describe('pénalités de Test d’État lues en DONNÉES (etats.json passive tes
       const c = mk(); addCondition(c, COND.empoisonne); addCondition(c, COND.empoisonne); addCondition(c, COND.empoisonne);
       expect(combatTestPenalty(c)).toBe(-30);
     });
-    it('Aveuglé ×2 → −20 en combat', () => {
+    it('Aveuglé ×2 → −20 à un Test d’Arme', () => {
       const c = mk(); addCondition(c, COND.aveugle); addCondition(c, COND.aveugle);
-      expect(combatTestPenalty(c)).toBe(-20);
+      expect(combatTestPenalty(c, { skill: 'corps-a-corps' })).toBe(-20);
     });
     it('Assourdi ×2 → −20 sur un Test d’audition', () => {
       const c = mk(); addCondition(c, COND.assourdi); addCondition(c, COND.assourdi);
@@ -137,10 +165,13 @@ describe('composantes NOMMÉES de la pénalité de Test (combatTestPenaltyParts)
     expect(combatTestPenaltyParts(c2).map((p) => p.label)).toEqual(['Empoisonné']);
   });
 
-  it('AURA de trait gagnante (Perturbant −20 projeté dans auraMods) : nommée par SON trait', () => {
-    const c = mk(); addCondition(c, COND.sonne); // −10, battu par l'aura
+  it('AURA de trait (Perturbant −20 projeté dans auraMods) : nommée par SON trait, à côté de l’État (pools distincts, LDB 85 l.262)', () => {
+    const c = mk(); addCondition(c, COND.sonne);
     c.auraMods = [{ op: { op: 'testMod', amount: -20 }, src: { category: 'traits', id: 'perturbant' } }];
-    expect(combatTestPenaltyParts(c)).toEqual([{ label: 'Perturbant', value: -20, famille: 'jet', ref: { category: 'traits', id: 'perturbant' } }]);
+    expect(combatTestPenaltyParts(c)).toEqual([
+      { label: 'Sonné', value: -10, famille: 'jet', ref: { category: 'etats', id: 'sonne' } },
+      { label: 'Perturbant', value: -20, famille: 'jet', ref: { category: 'traits', id: 'perturbant' } },
+    ]);
   });
 
   it('ce qui STACKE garde SA ligne : l’effet actif n’est pas fondu dans celle de l’État', () => {
@@ -167,9 +198,40 @@ describe('composantes NOMMÉES de la pénalité de Test (combatTestPenaltyParts)
     // Une aura est un TRAIT : dégradée, elle ne s'annonce pas « État » (le gate `ignoreStatePenalties`
     // ne l'annule d'ailleurs pas, LDB 42) — le joueur lirait une règle qui ne la gouverne pas.
     expect(combatTestPenaltyParts(aura)).toEqual([{ label: 'Aura', value: -20, famille: 'jet', ref: undefined }]);
-    // Et une aura IDENTIFIÉE bat un État à magnitude égale de nom : chacun garde le sien.
+    // Et une aura IDENTIFIÉE à côté d'un État : chacun garde son nom.
     const mixte = mk(); addCondition(mixte, COND.sonne);
     mixte.auraMods = [{ op: { op: 'testMod', amount: -20 }, src: { category: 'traits', id: 'perturbant' } }];
-    expect(combatTestPenaltyParts(mixte).map((p) => p.label)).toEqual(['Perturbant']);
+    expect(combatTestPenaltyParts(mixte).map((p) => p.label)).toEqual(['Sonné', 'Perturbant']);
+  });
+});
+
+describe('pools distincts, sommés entre eux (LDB 14 l.95)', () => {
+  const effet = (id: string, kind: 'spell' | 'trapping', testMod: number) => ({ label: id, bonus: 0, duration: { scale: 'rounds', left: 3 }, source: { kind, id }, testMod });
+  it('testMod global de Sorts : la pire pénalité seule (LDB 46 l.119)', () => {
+    const c = mk(); c.activeEffects = [effet('s1', 'spell', -10), effet('s2', 'spell', -20)] as never;
+    expect(combatTestPenalty(c)).toBe(-20);
+    expect(testStatePenalty(c, 'charme')).toBe(-20);
+  });
+  it('testMod global d’un objet et d’un Sort : sommés', () => {
+    const c = mk(); c.activeEffects = [effet('o', 'trapping', -10), effet('s', 'spell', -10)] as never;
+    expect(combatTestPenalty(c)).toBe(-20);
+  });
+  it('aura : son propre pool (« une seule fois », LDB 85 l.262), sommé avec le pool des États (LDB 16 l.13)', () => {
+    const c = mk(); addCondition(c, COND.sonne);
+    c.auraMods = [{ op: { op: 'testMod', amount: -20 } }, { op: { op: 'testMod', amount: -20 } }] as never;
+    expect(combatTestPenalty(c)).toBe(-30);
+  });
+});
+
+describe('pénalités de déplacement en combat (LDB 16 l.35, l.64 ; LDB 14 l.77)', () => {
+  it('À Terre : −20 à l’Esquive, 0 à un Test d’Arme', () => {
+    const c = mk(); addCondition(c, COND.aTerre);
+    expect(combatTestPenalty(c, { skill: 'esquive' })).toBe(-20);
+    expect(combatTestPenalty(c, { skill: 'corps-a-corps' })).toBe(0);
+  });
+  it('Empêtré : −10 au Test de Force d’Empoignade', () => {
+    const c = mk(); addCondition(c, COND.empetre);
+    expect(baseTestMods(c, 'force', GRAPPLE_TEST_CTX)).toBe(-10);
+    expect(baseTestMods(c, 'force')).toBe(0);
   });
 });

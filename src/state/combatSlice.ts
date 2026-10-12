@@ -22,7 +22,7 @@ import { Combatant, HitLocation, CHAR_LABELS, type FireArc, type Weapon } from '
 import { rollLine, hostStep, openSequence, pushDisplay } from './rollSeam';
 import { creatureAttacks, type AttackKind } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMod, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, applyCriticalToTarget, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, resolveFreeAttacks, trampleTarget, TRAMPLE_WEAPON, trampleFreeMove, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, openRoundStartPsych, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, fireTurnStartTriggers, resolveActGates, finishCombatEnd, resolveWeaponArea, areaTargets, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, applyCriticalToTarget, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, resolveFreeAttacks, trampleTarget, TRAMPLE_WEAPON, trampleFreeMove, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, openRoundStartPsych, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, fireTurnStartTriggers, resolveActGates, finishCombatEnd, resolveWeaponArea, areaTargets, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { losClear } from './lineOfSight';
 import { smokeOf, captureMoveSnapshot, formationDeCombat } from './combatGeometry';
@@ -437,10 +437,7 @@ export function createCombatSlice(get: Get, set: Set) {
     else if (done?.purpose === 'travelDay') {
       handled = true;
       if (get().travelPlan?.river) continueRiverDayAfterCascade(get, set);
-      // Mer : une « Fuite de vapeur » (pendingSteamSave) peut avoir suspendu la clôture DEPUIS l'applier
-      // 'progression' (cascade fermée sans insert du reste du jour) — `resolveSteamSave` reprend la
-      // journée lui-même à sa résolution ; ne pas clôturer prématurément ici.
-      else if (get().travelPlan?.sea) { if (!get().pendingSteamSave) continueSeaDayAfterCascade(get, set); }
+      else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set);
       else travelFlow.continueTravelDayAfterCascade(get, set, done);
     }
     // Exposition hydrique fluviale (MSRC 16) surfacée APRÈS le jour (#344) : la clôture reprend la fin du
@@ -458,8 +455,8 @@ export function createCombatSlice(get: Get, set: Set) {
     // du jour. Couture GÉNÉRIQUE (toute la classe, pas seulement « fuir ») : ici `pendingCascade` est DÉJÀ
     // null (post-`advanceCascade`), sans garde de synchronisation. Gaté sur `travelPlan.sea` : à
     // l'accostage `travelPlan` est nul (la désertion `purpose:'test'`
-    // a sa propre reprise `resolvePortArrival`) ; `runSeaDay` re-garde de son côté combat/steamSave.
-    else if (done?.purpose === 'test' && get().travelPlan?.sea && !get().pendingSteamSave) { runSeaDay(get, set); handled = true; }
+    // a sa propre reprise `resolvePortArrival`) ; `runSeaDay` garde de son côté combat/steamSave.
+    else if (done?.purpose === 'test' && get().travelPlan?.sea) { runSeaDay(get, set); handled = true; }
     // ── Étage 2 : BORNES portées par la séquence — plus une chaîne EXCLUSIVE (#942 L1) ──
     // Accostage à FINALISER à la clôture (désertion à la relâche surfacée, #387) : `travelPlan` est déjà nul
     // ici (l'arrivée l'a annulé) — la séquence porte sa continuation dans `portArrival`. Couture GÉNÉRALE
@@ -624,7 +621,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || !pd || pd.phase !== 'choice') return;
       const mover = inBattleId(battle, pd.moverId);
       if (!mover) return;
-      const def = rollMeleeDefender(mover, 'esquive', battleRng());
+      const def = rollMeleeDefender(mover, 'esquive', battleRng(), defenseDodgeMods(get(), mover));
       const opp = resolveOpposed(def, pd.atk!); // mover = « attaquant » du Test opposé
       set({ pendingDisengage: { ...pd, phase: 'esquive', def, result: disengageOutcome(opp.winner) } });
     },
@@ -2395,7 +2392,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // qui reprend la mêlée dès qu'elle est à portée. `weaponUid` n'est JAMAIS réécrit : il porte le
       // choix du JOUEUR, et son absence discrimine l'attaque naturelle (`attackWeaponOf`, #1026).
       set({ pendingAttack: { ...pa, result: r.res, victimId: r.victim?.id, weapon: r.weapon,
-        distanceTiles: combatDistance(attacker, target), dodgeMod: defenseDodgeMod(get, target) } });
+        distanceTiles: combatDistance(attacker, target), dodgeMods: defenseDodgeMods(get(), target) } });
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `attack`) — Résilience (forceSuccess/setForcedRoll) plus bas.
     // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attack.onCancel`) — regénère `attackCancel`.

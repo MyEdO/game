@@ -493,19 +493,20 @@ export function openSequenceRound(get: Get, set: Set): void {
   if (!manche || !manche.steps.length) { clearSequence(set); return; }
   if (manche.payload !== undefined) next.payload = manche.payload;
   set({ sequence: next });
-  if (manche.immediate) {
-    const resolues = runCascadeImmediate(get, set, [...manche.steps], { title: manche.title, purpose: SEQUENCE_PURPOSE, log: manche.log });
-    for (const l of manche.log ?? []) get().log(l);
-    closeSequenceRound(get, set, { participants: resolues });
-    return;
-  }
-  openSequence(get, set, {
-    title: manche.title,
-    ...(manche.icon ? { icon: manche.icon } : {}),
-    purpose: SEQUENCE_PURPOSE,
-    steps: manche.steps,
-    ...(manche.log ? { log: manche.log } : {}),
-  });
+  // Résolue sur place (manche `immediate`, ou porte rendue en branche I) : la manche se CLÔT ici ; une
+  // fenêtre ouverte ou un pilote interrompu (`undefined`) laisse la clôture à `dispatchCascadeDone`.
+  const resolues = manche.immediate
+    ? runCascadeImmediate(get, set, [...manche.steps], { title: manche.title, purpose: SEQUENCE_PURPOSE, log: manche.log })
+    : openSequence(get, set, {
+      title: manche.title,
+      ...(manche.icon ? { icon: manche.icon } : {}),
+      purpose: SEQUENCE_PURPOSE,
+      steps: manche.steps,
+      ...(manche.log ? { log: manche.log } : {}),
+    });
+  if (!resolues) return;
+  for (const l of manche.log ?? []) get().log(l);
+  closeSequenceRound(get, set, { participants: resolues });
 }
 
 /**

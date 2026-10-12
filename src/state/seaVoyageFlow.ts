@@ -73,7 +73,7 @@ import {
   type SeaWeather, type WindDirection, type WindAspect, type SeaPrecipitationId,
 } from '../engine/seaWeather';
 import {
-  seaMilesPerDay, orientationOutcome, rollCourseChange, foulingEffects, rollWeeklyFouling,
+  seaMilesPerDay, orientationOutcome, rollCourseChange, foulingEffects, weeklyFoulingLevel,
   lighthouseSpotDifficulty, lighthouseOrientationDR, savoirOceansBonus, pursuitDistanceGain,
   pursuitLowMPenalty, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage,
 } from '../engine/seaNavigation';
@@ -145,7 +145,7 @@ export type SeaCrisis =
  *  (`runSeaDay`) est UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3), sans FSM
  *  `step` persistée : le point de reprise EST `pendingCascade`/`suspendedCascades` (state/cascade.ts). */
 export interface SeaVoyageState {
-  /** Cap dominant du trajet (aspect du vent) — d'auteur (`MapRoute.seaHeading`), requis (#416). */
+  /** Cap dominant du trajet (fixe le vent relatif, MDG 13 l.262-270) — d'auteur (`MapRoute.seaHeading`), requis (#416). */
   heading: WindDirection;
   weather: SeaWeather;
   windFrom: WindDirection;
@@ -640,17 +640,19 @@ function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: st
   });
 }
 
-/** Étape MONO « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, `sea-overspeed`, applier ci-dessous) : le
- *  navire a progressé ce jour au-delà de M+4 (M de conception, `overspeedRow`) → Test de Résistance sous
- *  peine de Dégâts de coque. MDG 13 l.125 met le NAVIRE en sujet du « Test d'Endurance » et ne nomme
- *  aucun acteur : celui de l'étape est le meilleur PJ soutenu (LDB 12) en Résistance — patron « Test de
- *  parti » du Dégagement #444 (`buildStrandedOrEntangledStep`). `null` = pas de survitesse ce jour, ou
- *  aucun PJ éligible. */
+/** Ligne du Test du VAISSEAU (MDG 12 l.58, MDG 13 l.125, l.148) : l'Endurance de la coque, tenue par le
+ *  porteur MONDE de `monoStep`. */
+function ligneDuVaisseau(hull: Combatant) {
+  return { test: { char: 'endurance' as const }, valeur: effectiveChar(hull, 'endurance') };
+}
+
+/** Étape MONO « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, `sea-overspeed`, applier ci-dessous),
+ *  Test du vaisseau. `undefined` = pas de survitesse ce jour. */
 function buildOverspeedStep(get: Get, index: number): BuiltCascadeStep | undefined {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   if (!sea.milesToday || sea.effMToday == null) return undefined; // aucune Progression ce jour → rien à sanctionner (Encalminé/Affalé/Échoué)
-  const hull = plan.vehicle!;
+  const hull = garanti(plan.vehicle, plan.routeId, 'navire du voyage');
   const vd = findVehicleById(hull.creatureId ?? '')?.ship;
   // Référent M = le mode PERSISTÉ du jour (`modeToday`, navire mixte) ; repli sur la politique
   // `vesselPropulsion` si absent (vieux plan en cours, #524).
@@ -659,14 +661,11 @@ function buildOverspeedStep(get: Get, index: number): BuiltCascadeStep | undefin
     : vesselPropulsion(vd)?.m ?? 0;
   const row = overspeedRow(baseM, sea.effMToday);
   if (!row) return undefined;
-  const best = partyAssisted(get().party, 'resistance', 'endurance');
-  if (!best) return undefined;
-  const test: RollRequest['test'] = { skill: 'resistance', char: 'endurance' };
   return monoStep({
-    id: `sea-overspeed-${index}`, kind: 'sea-overspeed', actor: best.actor, icon: 'travel/sail-ship',
-    label: composeRollLabel(best.actor, t('sv.overspeed'), test),
+    id: `sea-overspeed-${index}`, kind: 'sea-overspeed', monde: true, icon: 'travel/sail-ship',
+    label: composeRollLabel(hull, t('sv.overspeed'), { char: 'endurance' }),
     difficulty: row.difficulty,
-    ligne: { test: { skill: 'resistance', char: 'endurance' }, valeur: best.value, soutien: best.support },
+    ligne: ligneDuVaisseau(hull),
     // SURPLUS de M du jour (`effMToday − M de conception`) : c'est ce qui choisit la bande du tableau
     // (l.121-142). Il se LIT sur l'étape par sa NOTE d'enjeu (`stake`, zone d'accueil de ce que le jet
     // met en jeu) — le libellé d'action reste le NOM de l'action (docs/charte-ui.md).
@@ -690,6 +689,27 @@ export function buildOverspeedSteps(get: Get): BuiltCascadeStep[] {
     out.push(st);
   }
   return out;
+}
+
+/** Étape MONO « Salissures » (MDG 13 l.144-159, `sea-salissures`, applier ci-dessous), Test du
+ *  vaisseau ; Difficulté : règle maison `sea-salissures-difficulty` (LDB 12 l.137). `undefined` =
+ *  semaine déjà testée, ou moins de 7 jours en mer. */
+function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
+  const vessel = get().vessel;
+  const sea = get().travelPlan?.sea;
+  if (!vessel || !sea) return undefined;
+  const week = Math.floor(dayIndex(get().gameTime) / 7);
+  if (week <= (vessel.fouling?.lastWeek ?? -1) || sea.daysAtSea + 1 < 7) return undefined;
+  const plan = get().travelPlan!;
+  const hull = garanti(plan.vehicle, plan.routeId, 'navire du voyage');
+  return monoStep({
+    id: 'sea-salissures', kind: 'sea-salissures', monde: true, icon: 'travel/sail-ship',
+    label: composeRollLabel(hull, t('sv.foulingTest'), { char: 'endurance' }),
+    difficulty: rule('sea-salissures-difficulty') as Difficulty,
+    ligne: ligneDuVaisseau(hull),
+    stake: voyageStakeRef('sea-salissures'),
+    meta: { week },
+  });
 }
 
 /**
@@ -727,8 +747,10 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
     pousseSi(out, st);
   }
   // « ÇA VA LÂCHER, CAPITAINE ! » (MDG 13 l.121-142, #443) : la Progression du jour a dépassé M+4
-  // (M de conception) → Test(s) de Résistance sous peine de Dégâts de coque (`sea-overspeed`).
+  // (M de conception) → `sea-overspeed`.
   out.push(...buildOverspeedSteps(get));
+  // SALISSURES (MDG 13 l.148, #1105) : le Test de la semaine.
+  pousseSi(out, buildFoulingStep(get));
   // #212. Embuscade AUTHORÉE à ancrage déterministe : franchissement de l'ancrage ce jour → Test de
   // Perception PUIS abordage (applier `embuscade`, déjà enregistré).
   if (route?.ambush?.scene && route.ambush.encounter && !sea.ambushFired) {
@@ -846,7 +868,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   return { steps, log: [] };
 }
 
-/** Sens de la dérive sous le vent le long du trajet, par aspect du vent (MDG 13 l.262-270, l.294). */
+/** Sens de la dérive sous le vent le long du trajet, par vent relatif (MDG 13 l.262-270, l.294). */
 const DRIFT_ALONG_ROUTE: Record<WindAspect, -1 | 0 | 1> = { arriere: 1, lateral: 0, face: -1 };
 const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.driftBack' } as const;
 
@@ -1205,7 +1227,7 @@ export function runSeaDay(get: Get, set: Set): void {
     // `rowSurface: 'pv'` : les rangées des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries`
     // ci-dessous) — le journal ne redit pas leurs dés (#1291). Les monos du tableau y gardent leur ligne.
     const resolved = runCascadeImmediate(get, set, steps, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
-    if (get().battle || get().pendingCascade) return; // combat en plein vol OU choix sans défaut : surfacé, jamais résolu en silence
+    if (!resolved) return;
     pushDayEntries(get, set, resolved);
     continueSeaDayAfterCascade(get, set);
     return;
@@ -1467,7 +1489,9 @@ function lignesResolues(steps: readonly CascadeStep[]): string[] {
  */
 export function continueSeaDayAfterCascade(get: Get, set: Set): void {
   const plan = get().travelPlan;
-  if (!plan?.sea) return;
+  // Une « Fuite de vapeur » (MDG 12 l.326-328) suspend le jour depuis l'applier `progression` : sa
+  // reprise est `resolveSteamSave`, quel que soit le pilote qui a clos le fragment.
+  if (!plan?.sea || get().pendingSteamSave) return;
   const rng = battleRng();
   const sea = plan.sea;
 
@@ -1513,8 +1537,7 @@ export function continueSeaDayAfterCascade(get: Get, set: Set): void {
 }
 
 /**
- * PHASE 2/3 (#272 résiduel) : Salissures hebdo (ch.13 l.148), horloge +24 h, Exposition (ch.13 l.203-225),
- * puis Épuisement (ch.13 l.109-111) — même patron MJ-surfaçable que Scorbut (Phase 1). `doneSteps` : la
+ * PHASE 2/3 (#272 résiduel) : horloge +24 h, Exposition (ch.13 l.203-225), puis Épuisement (ch.13 l.109-111) — même patron MJ-surfaçable que Scorbut (Phase 1). `doneSteps` : la
  * cascade Scorbut VIENT de se clôturer côté MJ (`dispatchCascadeDone`) → ses lignes de résultat (déjà
  * journalisées par `commitStep`) sont reversées dans `sea.lines` pour que le recap de la halte les porte
  * (parité avec le chemin inline, qui les `tell()` lui-même avant d'enchaîner). Absent en chaînage direct
@@ -1524,20 +1547,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   const plan = get().travelPlan;
   if (!plan?.sea) return;
   if (doneSteps) noteSeaLine(get, set, lignesResolues(doneSteps));
-  const rng = battleRng();
   const sea = plan.sea;
-  const daysAtSea = sea.daysAtSea + 1;
-
-  // Salissures hebdomadaires (ch.13 l.148) : « chaque semaine qu'un navire passe en mer sans
-  // l'entretien approprié » — Test de Résistance du vaisseau, raté → +1 niveau.
-  const week = Math.floor(dayIndex(get().gameTime) / 7);
-  const vessel1 = get().vessel;
-  if (vessel1 && week > (vessel1.fouling?.lastWeek ?? -1) && daysAtSea >= 7) {
-    const hullE = findVehicleById(vessel1.vehicleId)?.hull?.char.endurance ?? 40;
-    const r = rollWeeklyFouling(hullE, vessel1.fouling?.level ?? 0, rng);
-    set({ vessel: { ...get().vessel!, fouling: { level: r.level, lastWeek: week } } });
-    if (r.gained) tell(get, set, [t('sv.fouling', { level: r.level, desc: foulingEffects(r.level).desc })]);
-  }
 
   // Horloge : à l'ARRIVÉE au port, la journée entière passe (+24 h) — l'entretien du jour est rattrapé
   // par le prochain `runDailyUpkeep` (garde `lastUpkeepDay`). Sinon (HALTE de nuit / activités en mer)
@@ -1760,8 +1770,8 @@ registerCascadeApplier('progression', (get, set, step) => {
   return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
 });
 
-/** « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, #443) : échec du Test de Résistance de survitesse →
- *  Dégâts de coque (`overspeedDamage`, X = DR négatifs) routés par `damageVesselHull` (SOURCE UNIQUE). */
+/** « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, #443) : Dégâts de coque (`overspeedDamage`)
+ *  routés par `damageVesselHull`. */
 registerCascadeApplier('sea-overspeed', (get, set, step) => {
   if (!step.result) return;
   if (step.result.success) {
@@ -1775,6 +1785,21 @@ registerCascadeApplier('sea-overspeed', (get, set, step) => {
   const line = [t('sv.hullTakes', { label: String(step.label), n: dmg }), ...j];
   noteSeaLine(get, set, line);
   return { consequences: freeCons(line) };
+});
+
+/** Salissures (MDG 13 l.148, #1105) : la semaine est notée sur TOUT résultat ; échec → +1 niveau,
+ *  plafonné (`weeklyFoulingLevel`). */
+registerCascadeApplier('sea-salissures', (get, set, step) => {
+  const vessel = get().vessel;
+  if (!step.result || !vessel) return;
+  const before = vessel.fouling?.level ?? 0;
+  const r = weeklyFoulingLevel(before, step.result.success);
+  set({ vessel: { ...vessel, fouling: { level: r.level, lastWeek: Number(step.meta?.week) } } });
+  const line = step.result.success ? t('sv.foulingHolds')
+    : r.gained ? t('sv.fouling', { level: r.level, desc: foulingEffects(r.level).desc })
+    : t('sv.foulingMax', { level: r.level });
+  noteSeaLine(get, set, [line]);
+  return { consequences: freeCons([line]) };
 });
 
 /** Conséquence PARTAGÉE d'Affaler (ch.13 l.288-294) : échec → Critique au Gréement (MDG 14 l.92-96).
@@ -2142,7 +2167,7 @@ function continueSeaDayFromPostProgression(get: Get, set: Set): void {
   if (!insert.length) { continueSeaDayAfterCascade(get, set); return; }
   if (get().net.mode === 'local' && seaAutoResolves(get().travelPlan?.orders, 'progression') && seaDayAllRoutine(get)) {
     const resolved = runCascadeImmediate(get, set, insert, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
-    if (get().battle || get().pendingCascade) return; // combat en plein vol OU choix sans défaut : surfacé, jamais résolu en silence
+    if (!resolved) return;
     pushDayEntries(get, set, resolved);
     continueSeaDayAfterCascade(get, set);
     return;
@@ -2800,25 +2825,22 @@ export function resolveShoreLeave(get: Get, set: Set, allow: boolean): void {
   log(get, set, [allow
     ? t('sv.shoreLeaveGranted')
     : t('sv.shoreLeaveDenied')]);
-  // Désertion à la relâche ACCORDÉE (MDG 14 l.192-202) — retour de permission = moment du tirage. Seam
-  // de jet (#275 Ronde 1, delta « désertion ») : dé de MONDE par `openWorldTest` (côté `worldSide`,
-  // aucun `actorId` — un marin PNJ n'est pas un `Combatant`) ; `meta.baseValue` = le SEUIL d100 posé par la bande de Moral
-  // (obligation `rollSeam.ts` : un côté sans acteur DOIT le fournir, sinon `buildMonoStep` poserait
-  // `base=0`). Le RÉSULTAT MÉCANIQUE (nombre de déserteurs) reste la boucle d100/marin INCHANGÉE,
-  // exécutée dans l'applier `sea-desertion` — même patron que `rollShipCritical` dans les appliers
-  // d'Affaler/Ouragan (une conséquence peut tirer SES PROPRES dés, indépendants du jet d'étape qui l'a
-  // déclenchée) : l'étape n'est que le VECTEUR de visibilité MJ (owner MJ, delta 1), pas la source des
-  // départs — sans quoi UN d100 représentatif ne pourrait jamais rejouer N tirages indépendants.
+  // Désertion à la relâche ACCORDÉE (MDG 14 l.192-202) : dé de MONDE par `openWorldTest`, cible = le
+  // seuil de la bande de Moral. Il ne décide pas des départs : l'applier `sea-desertion` les tire, un
+  // d100 par marin (#1508). Son verdict ne dit donc que la comparaison du dé au seuil.
   const vessel = get().vessel;
   const threshold = allow && vessel ? moraleBand(vessel.morale.score).desertionRoll : 0;
   if (threshold) {
-    openWorldTest(get, set, {
+    const resolue = openWorldTest(get, set, {
       actionLabel: t('sv.desertion'),
-      difficulty: 'intermediaire',
-    }, 'sea-desertion', { baseValue: threshold });
+      cible: threshold,
+      verdict: { reussite: t('seuil.sousLeSeuil'), echec: t('seuil.auDessus') },
+    }, 'sea-desertion');
+    if (resolue) { finalizePortArrivalTo(get, set, p.to, true); return; } // résolue sur place (I) : l'applier a joué la désertion → accoster maintenant
+    // Fenêtre ouverte (M/V), ou pilote arrêté sur un choix : la clôture du slot finalise l'accostage
+    // (`dispatchCascadeDone` → `finalizePortArrival`). Interrompu par la défaite : aucun slot, rien à enchaîner.
     const casc = get().pendingCascade;
-    if (casc) { set({ pendingCascade: { ...casc, portArrival: { toPlaceId: p.to.id, allow: true } } }); return; } // surfacé (V) → la clôture finalise l'accostage (`dispatchCascadeDone` → `finalizePortArrival`)
-    finalizePortArrivalTo(get, set, p.to, true); // inline : le test s'est auto-résolu (l'applier a joué la désertion) → accoster maintenant
+    if (casc) set({ pendingCascade: { ...casc, portArrival: { toPlaceId: p.to.id, allow: true } } });
     return;
   }
   finalizePortArrivalTo(get, set, p.to, allow);

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  forcePaceDifficulty, exhaustionDifficulty, overspeedRow, rollOverspeedDamage, foulingEffects,
-  rollWeeklyFouling, orientationOutcome, rollCourseChange, lighthouseSpotDifficulty,
+  forcePaceDifficulty, exhaustionDifficulty, overspeedRow, foulingEffects,
+  weeklyFoulingLevel, orientationOutcome, rollCourseChange, lighthouseSpotDifficulty,
   lighthouseOrientationDR, seaMilesPerDay, pursuitDistanceGain, pursuitLowMPenalty, savoirOceansBonus,
 } from './seaNavigation';
 import type { RNG } from './dice';
@@ -41,15 +41,6 @@ describe('« Ça va lâcher, capitaine ! » (MDG 13 l.121-142)', () => {
     expect(overspeedRow(5, 14)).toMatchObject({ difficulty: 'tresDifficile', per: 'round', damage: 8 });
     expect(overspeedRow(5, 20)).toMatchObject({ damage: 8 }); // « M+9 ou plus »
   });
-
-  it('échec du Test d’Endurance → Dégâts = base + X (X = DR négatifs du Test raté, l.142)', () => {
-    // E 40, Intermédiaire (+0) : jet 90 → échec, DR −5 → Dégâts 2 + 5 = 7.
-    const r = rollOverspeedDamage(hull(40), { difficulty: 'intermediaire', per: 'heure', damage: 2 }, seq(90));
-    expect(r.success).toBe(false);
-    expect(r.damage).toBe(7);
-    // Jet 10 → réussite → 0 Dégât.
-    expect(rollOverspeedDamage(hull(40), { difficulty: 'intermediaire', per: 'heure', damage: 2 }, seq(10)).damage).toBe(0);
-  });
 });
 
 describe('Salissures (MDG 13 l.144-159)', () => {
@@ -61,10 +52,10 @@ describe('Salissures (MDG 13 l.144-159)', () => {
     expect(foulingEffects(9)).toMatchObject({ level: 5 });
   });
 
-  it('Test hebdomadaire : Résistance du vaisseau ratée → +1 niveau (plafonné à 5)', () => {
-    expect(rollWeeklyFouling(45, 0, seq(90))).toMatchObject({ level: 1, gained: true });
-    expect(rollWeeklyFouling(45, 2, seq(10))).toMatchObject({ level: 2, gained: false });
-    expect(rollWeeklyFouling(45, 5, seq(90))).toMatchObject({ level: 5, gained: false });
+  it('Test hebdomadaire raté → +1 niveau (plafonné à 5) ; réussi → inchangé', () => {
+    expect(weeklyFoulingLevel(0, false)).toEqual({ level: 1, gained: true });
+    expect(weeklyFoulingLevel(2, true)).toEqual({ level: 2, gained: false });
+    expect(weeklyFoulingLevel(5, false)).toEqual({ level: 5, gained: false });
   });
 });
 

@@ -746,7 +746,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     });
     useGame.getState().seedRng(7);
     const joues = runCascadeImmediate(useGame.getState, useGame.setState,
-      buildAuthorPerilSteps(r, 'Ubersreik', 'terre') as never, { title: 'Périls', purpose: 'sequence' });
+      buildAuthorPerilSteps(r, 'Ubersreik', 'terre') as never, { title: 'Périls', purpose: 'sequence' })!;
     expect(joues.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
     const j = useGame.getState().journal;
     expect(j.findIndex((l) => l.includes('PERIL-2')))

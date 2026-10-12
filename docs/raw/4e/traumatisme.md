@@ -258,7 +258,7 @@ Toute amputation nécessite une **Chirurgie** pour être traitée. La blessure n
 **Voir aussi** : [Chirurgie](#11-guérison-des-blessures-critiques--aide-médicale-et-chirurgie) ; États → [etats.md](etats.md).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.233-285) → `cumulSchema`, `faim`, `soif`, `dechirure-jambe-mineure`, `isFumble`, `recovery`, `CritEntry`, `amputationWoundDesc`, `TraumaCumul`, `dechirure-jambe-majeure`, +62 — `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, +13 fichiers
+- `LDB 18` (l.233-285) → `cumulSchema`, `faim`, `soif`, `dechirure-jambe-mineure`, `isFumble`, `recovery`, `CritEntry`, `amputationWoundDesc`, `TraumaCumul`, `dechirure-jambe-majeure`, +64 — `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +14 fichiers
 
 ---
 
@@ -345,7 +345,7 @@ Se débarrasser d'une Possession lourde annule 1 Test échoué.
 **Voir aussi** : Possessions accordant bonus/malus aux Tests d'Exposition (LDB 65 l.44 / LDB 74 p.309).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.327-334) → `faim`, `soif`, `bandEntry`, `recovery`, `SEA_KINDS_SOUS_ORDRES`, `hungerThirstPenalty`, `effectiveChar`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, +43 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/characteristics.ts`, +14 fichiers
+- `LDB 18` (l.327-334) → `faim`, `soif`, `bandEntry`, `recovery`, `SEA_KINDS_SOUS_ORDRES`, `hungerThirstPenalty`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `exposure`, +42 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/exposure.ts`, +13 fichiers
 - `LDB 65` (l.44) → `exposureTarget`, `vetements-et-accessoires`, `ItemCapabilities`, `amulette`, `bijoux`, `bottes`, `canne-de-marche`, `cape`, `capuchon`, `masque`, +29 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, `src/engine/exposure.ts`
 
 ---
@@ -379,7 +379,7 @@ Test de Résistance tous les **deux jours** sans nourriture.
 **Voir aussi** : Provisions / rations → [deplacement.md](deplacement.md#provisions-en-voyage) (consommation par jour), [maladies.md](maladies.md#provisions-et-privations-en-mer--eau-rations-faim-mdg) (eau, rations, faim en mer) ; [Guérison des PB](#10-guérison-des-points-de-blessure) (sans provisions : pas de récupération).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.337-343) → `faim`, `soif`, `bandEntry`, `recovery`, `SEA_KINDS_SOUS_ORDRES`, `hungerThirstPenalty`, `effectiveChar`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, +51 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/characteristics.ts`, +19 fichiers
+- `LDB 18` (l.337-343) → `faim`, `soif`, `bandEntry`, `recovery`, `SEA_KINDS_SOUS_ORDRES`, `hungerThirstPenalty`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `REPORT_DE_COMBATTANT`, +50 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/conditions.ts`, +18 fichiers
 
 ---
 
@@ -398,4 +398,4 @@ Source : `LDB 18 l.346`.
 **Voir aussi** : États → [etats.md](etats.md) ; sorts infligeant Suffocation (Ombres étrangleuses, Transmutation de Chamon).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.346) → `faim`, `soif`, `recovery`, `hungerThirstPenalty`, `effectiveChar`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `REPORT_DE_COMBATTANT`, `breathHoldSeconds`, +39 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/characteristics.ts`, +15 fichiers
+- `LDB 18` (l.346) → `faim`, `soif`, `recovery`, `hungerThirstPenalty`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `REPORT_DE_COMBATTANT`, `breathHoldSeconds`, `exposure`, +38 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/conditions.ts`, +14 fichiers

@@ -148,7 +148,7 @@ export interface MapRouteTrace {
   /** Route MARITIME (MDG 13-15) : se voyage sur le NAVIRE DE CAMPAGNE (`state.vessel`) ; `km` est
    *  alors en MILLES (les tables RAW — 18 milles/jour par M, distances ch.15 l.40-47 — sont en milles). */
   sea?: boolean;
-  /** Cap DOMINANT du trajet (aspect du vent, MDG 13 l.262-270) — défaut 'ouest'. */
+  /** Cap DOMINANT du trajet (vent relatif, MDG 13 l.262-270) — défaut 'ouest'. */
   seaHeading?: import('../engine/seaWeather').WindDirection;
   /** Route FLUVIALE JOUÉE (MSRC 7 « Navigation fluviale ») : en mode `barge`, la descente se joue jour par
    *  jour (Test de Navigation, table des vents, périls, chavirage) au lieu d'un transport payant. Repli

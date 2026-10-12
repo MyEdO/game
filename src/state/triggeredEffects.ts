@@ -322,7 +322,7 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   const difficulty: Difficulty = resolveTestDifficulty(ft, cc);
   const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
   const rng = ctx.rng ?? defaultRNG;
-  const res = rollTest(base, difficulty, rng, combatTestPenalty(c));
+  const res = rollTest(base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
   const branch = res.success ? flow.success : flow.fail;
   const lines = [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
   // SEAM `onOwnTestFailed` (voie inline) : un Test déclenché RATÉ par le porteur émet le trigger (Crampes

@@ -505,3 +505,20 @@ describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16
     expect(hasCondition(useGame.getState().battle!.combatants.find((c) => c.id === H.id)!, 'sonne')).toBe(true);
   });
 });
+
+describe('Test déclenché INLINE : la pénalité d’État lit la Compétence testée (LDB 16 l.35)', () => {
+  const de20 = { int: () => 20 };
+  const issue = (victimeATerre: boolean) => {
+    const porteur = mk({ id: 'po' });
+    const victime = mk({ id: 'vi' });
+    if (victimeATerre) victime.conditions = [{ id: 'a-terre', value: 1 }] as never;
+    const sur = (id: string) => ({ kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id }] } });
+    const flow = { kind: 'test', test: { characteristic: 'agilite', skill: { id: 'athletisme' } }, success: sur('sonne'), fail: sur('aveugle') } as unknown as Flow;
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: de20 });
+    return porteur.conditions.map((c) => c.id);
+  };
+  it('Athlétisme (déplacement) À Terre : 20 contre 30 réussit debout, rate à −20', () => {
+    expect(issue(false)).toEqual(['sonne']);
+    expect(issue(true)).toEqual(['aveugle']);
+  });
+});

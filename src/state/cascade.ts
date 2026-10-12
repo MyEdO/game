@@ -33,6 +33,7 @@ import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './combatants';
 import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, type TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
+import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
 import { dataLabel } from '../data';
 import { scheduleFlowTimer } from './combatTimers';
@@ -726,6 +727,18 @@ function rollBatchParticipants(step: CascadeStep, autoResolved = false) {
   }));
 }
 
+/** Ce que la TRACE dit d'un dé selon sa LECTURE (`LectureDuDe`, #2389) : un seuil pur ne porte aucun
+ *  DR, et son issue est le VERDICT de l'étape. Lecture `'test'` : rien à surcharger. */
+function lectureDeTrace(step: CascadeStep, result: { success: boolean }): { sl?: undefined; issue?: string } {
+  return step.evaluation === 'seuil' ? { sl: undefined, issue: step.verdict[result.success ? 'reussite' : 'echec'] } : {};
+}
+
+/** Le QUOI d'une trace mono : derrière un porteur nommé (`who`), l'intitulé du jet ; sans acteur (siège
+ *  MONDE, `worldOwner`), le libellé de l'étape, seul à nommer QUI lance et QUOI (#1595). */
+function libelleDeTraceMono(step: CascadeStep): string | undefined {
+  return (step.actorId ? step.rollLabel ?? step.label : step.label ?? step.rollLabel) ?? undefined;
+}
+
 /**
  * TRACES des jets d'une étape qu'AUCUNE SURFACE n'a montrés — une ligne par jet, DÉRIVÉE par le socle
  * (`traceLineOf`) : porteur — libellé : dé/cible → issue (DR). Deux formes, un seul dériveur :
@@ -752,16 +765,15 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
       who: actorIn(get(), row.id)?.label ?? row.id,
       label: row.label ?? step.rollLabel ?? undefined,
       ...row.result,
-      // SEUIL PUR : le dériveur omet le DR quand le jet n'en porte pas — un pourcentage n'en a pas.
-      ...(step.evaluation === 'seuil' ? { sl: undefined } : {}),
+      ...lectureDeTrace(step, row.result),
     }));
   }
   if (unwitnessed && !step.participants && step.result && stepInteraction(step) === 'jet') {
     out.push(traceLineOf({
       ...(step.actorId ? { who: actorIn(get(), step.actorId)?.label ?? step.actorId } : {}),
-      label: step.rollLabel ?? step.label ?? undefined,
+      label: libelleDeTraceMono(step),
       ...step.result,
-      ...(step.evaluation === 'seuil' ? { sl: undefined } : {}),
+      ...lectureDeTrace(step, step.result),
     }));
   }
   // DÉ NU (#1508) : même règle, même déclaration du pilote — le dé qu'aucune fenêtre n'a montré a le
@@ -769,7 +781,7 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
   if (unwitnessed && !step.participants && step.de?.result) {
     out.push(traceDieLineOf({
       ...(step.actorId ? { who: actorIn(get(), step.actorId)?.label ?? step.actorId } : {}),
-      label: step.rollLabel ?? step.label ?? undefined,
+      label: libelleDeTraceMono(step),
       ...step.de.result,
       ...(step.de.unite ? { unite: step.de.unite } : {}),
     }));
@@ -1747,9 +1759,11 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
 /**
  * Pilote IMMÉDIAT (sans modale) : lance chaque étape (RNG) et applique sa conséquence dans l'ordre,
  * insertions comprises. Pour les repos de plusieurs jours, la reprise automatique et la triche de
- * recette. Renvoie les étapes RÉSOLUES (pour un éventuel bilan en lecture seule) — PEUT être un
- * PRÉFIXE du tableau d'entrée (combat ouvert en plein vol, OU choix sans défaut authoré, cf. ci-dessous) :
- * l'appelant DOIT vérifier `get().battle` / `get().pendingCascade` avant d'enchaîner une finalisation.
+ * recette. Renvoie les étapes RÉSOLUES (pour un éventuel bilan en lecture seule), ou `undefined` quand
+ * le pilote est INTERROMPU — combat ouvert en plein vol, choix sans défaut authoré (cf. ci-dessous),
+ * slot de cascade que CE pilote a écrit (un slot déjà vivant à l'entrée n'en est pas un), groupe anéanti :
+ * sa sortie est la clôture hors combat (`clotureHorsCombat`), qui constate la non-viabilité du groupe
+ * AVANT tout dénouement. `undefined` : l'appelant n'enchaîne rien.
  *
  * `ctx` (optionnel) : titre/`purpose` du fragment — SEULEMENT nécessaire pour un appelant qui résout
  * un tableau DE PLUSIEURS étapes dont l'une peut ouvrir un combat en plein vol (`startCombat`, ex. la
@@ -1765,10 +1779,11 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291). Les
  * étapes MONO du même tableau gardent leur ligne : elles n'ont pas de rangée au PV.
  */
-export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface }): CascadeStep[] {
+export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface }): CascadeStep[] | undefined {
   let cur = steps;
   let seq = steps.length; // ce pilote résout un tableau à LUI : son compteur part de sa longueur
   let bornes: BornesDuFragment = { log: ctx?.log ?? [] }; // + celles des fragments collectés par les appliers
+  const slotALEntree = get().pendingCascade; // un slot DÉJÀ vivant n'est pas une interruption de CE pilote
 
   for (let i = 0; i < cur.length; i++) {
     const st = cur[i];
@@ -1807,7 +1822,7 @@ export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ct
         set({
           pendingCascade: { title: ctx?.title ?? choix.label ?? 'Choix', purpose: ctx?.purpose ?? 'test', ...bornes, participants: cur, seq, cursor: i },
         });
-        return cur;
+        return undefined;
       }
       cur = cur.map((x, k) => (k === i ? { ...x, chosen: choix.defaultChoice! } : x));
     } // affichage / quantité : rien à résoudre avant la conséquence — une étape de quantité naît avec
@@ -1821,11 +1836,12 @@ export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ct
     // ne doit PAS continuer à se résoudre en silence pendant que le combat tourne — on le préserve.
     if (get().battle && i + 1 < cur.length) {
       if (ctx) set({ suspendedCascades: [...get().suspendedCascades, { title: ctx.title, purpose: ctx.purpose, ...bornes, participants: cur.slice(i + 1), seq, cursor: 0 }] });
-      return cur;
+      return undefined;
     }
+    if (get().partyWiped) return undefined; // l'applier a constaté l'anéantissement : plus personne à qui appliquer la suite
   }
   assertBornesPortees(bornes);
-  return cur;
+  return clotureHorsCombat(get, set, slotALEntree) ? undefined : cur;
 }
 
 /**

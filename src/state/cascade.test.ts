@@ -185,7 +185,7 @@ describe('Cascade séquentielle influençable', () => {
     ];
     const resolved = runCascadeImmediate(useGame.getState, useGame.setState, steps);
     expect(applied.map((a) => a.kind)).toEqual(['tally']); // seul le jet est résolu
-    expect(resolved.map((s) => s.id)).toEqual(['s1', 'c', 'd']); // renvoyé tel quel (préfixe committé + reste)
+    expect(resolved, 'pilote INTERROMPU : aucune étape rendue, l’appelant n’enchaîne rien (#1595)').toBeUndefined();
     // La cascade est SURFACÉE (pas résolue en aveugle) — le joueur/l'appelant la reprend.
     const p = useGame.getState().pendingCascade!;
     expect(p).toBeTruthy();
@@ -200,7 +200,7 @@ describe('Cascade séquentielle influençable', () => {
     const steps: CascadeStep[] = [
       { id: 'c', kind: 'pick', actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }], defaultChoice: 'a'},
     ];
-    const resolved = runCascadeImmediate(useGame.getState, useGame.setState, steps);
+    const resolved = runCascadeImmediate(useGame.getState, useGame.setState, steps)!;
     expect(applied).toEqual([{ kind: 'pick', success: true }]); // défaut authoré appliqué
     expect(resolved[0].chosen).toBe('a');
     expect(useGame.getState().pendingCascade).toBeNull(); // rien à surfacer

@@ -420,8 +420,9 @@ const V8C2: Site[] = [
   {
     // CORRIGÉ (#1318 V8c₂, micro-passe) : la FORCE était l'id capitalisé à la main (« Modere », sans
     // accent) — elle vient désormais de la donnée (`riverForceLabel`), qui dit « Modéré ».
+    // CORRIGÉ (#1595) : la direction se nomme « vent relatif », le terme de l'écran de la mer.
     site: 'riverVoyageFlow.ts:293 — vent du jour (force lue à la DONNÉE + direction en 2ᵉ clé)',
-    avant: `Vent du jour : ${'Modéré'}, ${'vent contraire'} (MSRC 7 l.21).`,
+    avant: `Vent du jour : ${'Modéré'} ; vent relatif : ${'vent contraire'} (MSRC 7 l.21).`,
     apres: t('rv.windOfDay', { force: riverForceLabel('modere'), dir: t('rv.windContraire') }),
   },
   {
