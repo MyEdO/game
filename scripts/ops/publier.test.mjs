@@ -11,6 +11,7 @@ import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
 import { REFUS_DE_FILE } from './fixtures/github-refus-file.mjs'
 import { ENTREE_2495, JEUNE_2495, PR_2495 } from './fixtures/github-2495-file.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { remplacerCleJson } from '../agents/compat-core.mjs'
 import test, { after, describe, mock } from 'node:test'
 import childProcess from 'node:child_process'
 import { syncBuiltinESMExports } from 'node:module'
@@ -95,7 +96,6 @@ import {
   prDeLaBranche,
   prDeRest,
   refusDeBranche,
-  synchroniserAgents,
   titreDeCommit,
   titreDePr,
 } from './etapesDuTrain.mjs'
@@ -381,10 +381,18 @@ describe('estDocDerive', () => {
       assert.equal(estDocDerive(pure, GEN), false, pure)
   })
 
-  test('estDocDerive : les sorties d’agents:sync sont DÉRIVÉES', () => {
+  test('estDocDerive : les destinations des miroirs d’agents (#2578), hooks compris, que `post-merge` et `post-rewrite` produisent sans les committer, sont DÉRIVÉES', () => {
     assert.equal(estDocDerive('AGENTS.md', GEN), true)
     assert.equal(estDocDerive('.agents/skills/ajouter-une-donnee/SKILL.md', GEN), true)
     assert.equal(estDocDerive('.codex/credo.md', GEN), true)
+    assert.equal(estDocDerive('.codex/hooks.json', GEN), true)
+    assert.equal(estDocDerive('.claude/settings.local.json', GEN), false)
+    assert.equal(estDocDerive('.agents/skillsx/SKILL.md', GEN), false)
+    assert.equal(estDocDerive('.claude/skills/ajouter-une-donnee/SKILL.md', GEN), false)
+  })
+
+  test('estDocDerive : la sortie PAR CLÉ `.claude/settings.json` sans lecture de HEAD et du disque est MANUSCRITE', () => {
+    assert.equal(estDocDerive('.claude/settings.json', GEN), false)
   })
 
   test('estDocDerive : un MANUSCRIT n’est pas dérivé', () => {
@@ -408,8 +416,8 @@ describe('estDocDerive', () => {
   })
 
   test('partitionSales : MIXTE — chaque chemin dans son tas, l’ordre conservé', () => {
-    const vu = partitionSales(['docs/raw/4e/00-index.md', 'src/state/cascade.ts', 'AGENTS.md', 'docs/raw/coverage.md', 'docs/architecture.md'], GEN)
-    assert.deepEqual(vu.derives, ['docs/raw/4e/00-index.md', 'AGENTS.md'])
+    const vu = partitionSales(['docs/raw/4e/00-index.md', 'src/state/cascade.ts', 'docs/raw/4e/activites.md', 'docs/raw/coverage.md', 'docs/architecture.md'], GEN)
+    assert.deepEqual(vu.derives, ['docs/raw/4e/00-index.md', 'docs/raw/4e/activites.md'])
     assert.deepEqual(vu.manuscrits, ['src/state/cascade.ts', 'docs/raw/coverage.md', 'docs/architecture.md'])
   })
 
@@ -425,7 +433,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
   assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
-  assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'textesDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
@@ -564,6 +572,24 @@ test('`pousser` refuse tout push vers `main`, sous ses deux noms, bail ou non, A
   for (const vers of ['main', 'refs/heads/main'])
     for (const bail of [true, false])
       assert.throws(() => ctx.pousser({ vers, bail }), /main n’avance que par la file de fusion/, vers)
+})
+
+test('#2578 — préflight du train sur un `.claude/settings.json` sale : seule la clé `hooks` changée, elle passe ; des `permissions` changées, arbre NON COMMITÉ', () => {
+  const tete = `${JSON.stringify({ permissions: { allow: ['Bash(git status)'] }, hooks: { PreToolUse: [] } }, null, 2)}
+`
+  const { racine } = instanceDeDepot({ fichiers: { '.claude/settings.json': tete }, message: 'socle' })
+  try {
+    const preflight = ETAPES.find((e) => e.nom === 'preflight')
+    const reel = contexteDe({ racine, branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+    const ORIGINE = 'https://exemple.invalid/autre.git'
+    const ctx = { racine, branche: 'chantier/x', filtresDePush: ['chantier/**'], generators: reel.generators, questions: { ...reel.questions, origineDe: () => ORIGINE } }
+    writeFileSync(join(racine, '.claude', 'settings.json'), remplacerCleJson(tete, 'hooks', { PreToolUse: [{ matcher: 'Bash', hooks: [] }] }))
+    assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), { ok: false, raison: `origin étranger au dépôt : ${ORIGINE}` }, 'la saleté dérivée passe la porte de l’arbre')
+    writeFileSync(join(racine, '.claude', 'settings.json'), tete.replace('Bash(git status)', 'Bash(git push)'))
+    assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), { ok: false, raison: 'arbre NON COMMITÉ (1) — on ne publie que du committé :\n    .claude/settings.json' })
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })
 
 test('ÉCRIVAIN sous config HOSTILE : le commit du train est signé par l’identité de l’UTILISATRICE', () => {
@@ -1010,13 +1036,13 @@ describe('étape `docs` : stocks de sites régénérés après une fusion du tro
     return { ctx, gestes, lignes }
   }
 
-  test('base AU TRONC changée pendant le lot : `stocks:regen` après `agents:check`, puis commit `chore(stocks)` des seuls stocks écrits', () => {
+  test('base AU TRONC changée pendant le lot : `stocks:regen`, puis commit `chore(stocks)` des seuls stocks écrits', () => {
     const { ctx, gestes, lignes } = ctxStocks()
     const j = journal()
     const vu = docs.jouer(ctx, j)
     assert.equal(vu.ok, true, vu.raison)
-    assert.deepEqual(gestes.map((g) => g[0] === 'npm' ? g[1] : g[0]), ['agents:check', 'stocks:regen', 'commit'])
-    const { message, chemins } = gestes[2][1]
+    assert.deepEqual(gestes.map((g) => g[0] === 'npm' ? g[1] : g[0]), ['stocks:regen', 'commit'])
+    const { message, chemins } = gestes[1][1]
     assert.deepEqual(chemins, [STOCK])
     assert.ok(message.startsWith('chore(stocks): refs #2525 — stocks de sites\n'), message)
     assert.ok(message.includes(MOTIF_STOCKS))
@@ -1055,48 +1081,6 @@ describe('étape `docs` : stocks de sites régénérés après une fusion du tro
     assert.equal(vu.ok, false)
     assert.equal(vu.raison, `fichier MANUSCRIT sale après la régénération :\n    ${STOCK}\n    src/a.ts`)
     assert.ok(!gestes.some((g) => g[0] === 'commit'))
-  })
-})
-
-// ── synchroniserAgents ─────────────────────────────────────────────────────────────────
-// La décision passe par la porte `ctx.npm` du contexte : ce qui est joué, et dans quel ordre, se
-// mesure sans lancer npm.
-
-describe('synchroniserAgents', () => {
-  const ctxFactice = (codes) => {
-    const joues = []
-    const dits = []
-    return {
-      joues,
-      dits,
-      npm(script) {
-        joues.push(script)
-        return { status: codes[script] ?? 0 }
-      },
-      journaliser: (t) => dits.push(t),
-    }
-  }
-
-  test('`agents:check` VERT : `agents:check` est le seul script joué, et l’étape continue', () => {
-    const ctx = ctxFactice({})
-    assert.deepEqual(synchroniserAgents(ctx), { ok: true })
-    assert.deepEqual(ctx.joues, ['agents:check'])
-    assert.deepEqual(ctx.dits, [])
-  })
-
-  test('`agents:check` ROUGE : `agents:sync` est joué APRÈS lui, et l’étape continue', () => {
-    const ctx = ctxFactice({ 'agents:check': 1 })
-    assert.deepEqual(synchroniserAgents(ctx), { ok: true })
-    assert.deepEqual(ctx.joues, ['agents:check', 'agents:sync'])
-    assert.match(ctx.dits.join(''), /agents:check` rendu 1 : `npm run agents:sync`/)
-  })
-
-  test('`agents:sync` ROUGE : refus qui NOMME le script, son code et ce que la CI ferait', () => {
-    const ctx = ctxFactice({ 'agents:check': 1, 'agents:sync': 7 })
-    const vu = synchroniserAgents(ctx)
-    assert.equal(vu.ok, false)
-    assert.equal(vu.raison, '`npm run agents:sync` a rendu 7 : la gate `agents:check` de la CI refuserait la plage')
-    assert.deepEqual(ctx.joues, ['agents:check', 'agents:sync'])
   })
 })
 

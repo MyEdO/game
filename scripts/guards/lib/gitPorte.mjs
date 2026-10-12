@@ -1342,6 +1342,13 @@ export function eolsDe(depot, chemins) {
 }
 
 /**
+ * Les chemins SUIVIS dont l'arbre de travail s'écarte de l'index (`diff --name-only`, `git help diff`,
+ * « git diff [<options>] [--] [<path>...] »), suppressions comprises, sous `pathspecs` (tout l'arbre sans).
+ * @param {Depot} depot @param {...string} pathspecs @returns {string[]}
+ */
+export const ecartsDuTravail = (depot, ...pathspecs) => enregistrementsDe(depot, ['diff', '--name-only', '--no-renames', '--', ...pathspecs])
+
+/**
  * Les FICHIERS qu'une IMAGE git porte sous `dossiers` (tout l'arbre sans dossier), chemins POSIX complets — l'unique listeur
  * d'image des portes : `arbre` = une ref (`ls-tree -r`), `INDEX` (`ls-files --cached`, ce que le
  * commit emporte), `SUIVI` (les mêmes chemins privés de ceux que le disque a perdus, `ls-files

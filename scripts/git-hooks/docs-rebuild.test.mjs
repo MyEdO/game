@@ -316,6 +316,10 @@ test('post-commit réel : fusion automatique unique, conflit résolu, amend lock
       const ancien = git('rev-parse', 'HEAD')
       mkdirSync(join(racine, 'hooks-fixture'))
       for (const hook of ['post-merge', 'post-commit', 'post-rewrite']) writeFileSync(join(racine, 'hooks-fixture', hook), readFileSync(join(RACINE, 'scripts/git-hooks', hook)), { mode: 0o755 })
+      writeFileSync(join(racine, 'hooks-fixture', 'miroirs-d-agents.mjs'), [
+        "import { spawnSync } from 'node:child_process'",
+        `process.exitCode = spawnSync(process.execPath, [${JSON.stringify(join(RACINE, 'scripts/git-hooks/miroirs-d-agents.mjs'))}, ...process.argv.slice(2)], { stdio: 'inherit' }).status ?? 1`,
+      ].join('\n'))
       const harnais = join(racine, 'hooks-fixture', 'docs-rebuild.mjs')
       writeFileSync(harnais, [
         `import { reconstruireApresGit } from ${JSON.stringify(module)}`,
@@ -331,6 +335,7 @@ test('post-commit réel : fusion automatique unique, conflit résolu, amend lock
       vider()
       const merge = resultatDeGit(['merge', '--no-ff', 'cote', '-m', 'fusion'], { cwd: racine })
       assert.equal(merge.status, conflit ? 1 : 0, `${merge.stdout}${merge.stderr}`)
+      assert.deepEqual(merge.stderr.split(/\r?\n/).filter((l) => l && (!l.startsWith('[post-') || /NON produit|édité à la main/.test(l))), [], 'toute ligne de stderr est celle d’un post-hook, et aucune n’est un échec des miroirs')
       if (conflit) {
         assert.deepEqual(lire(), [])
         ecrireCommit('commun.txt', 'resolu\n', 'fusion manuelle')
