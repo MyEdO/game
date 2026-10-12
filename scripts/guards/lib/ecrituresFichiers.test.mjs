@@ -23,6 +23,18 @@ test('#2537 — chemins constants repliés : `const`, `+`, gabarit, `path`, `pro
   assert.deepEqual(plie(`${fs}fs.writeFileSync(join(process.env.HOME, 'x'), 'a')`, { env: { HOME: 'h' } }), [null])
 })
 
+test('#2537 — un pli de chemin est celui du module importé, jamais un homonyme local', () => {
+  const plie = (text, contexte) => ciblesDEcritureJS(text, contexte).map(c => (c.inconnue ? null : c.chemin.split('\\').join('/')))
+  const fs = "import fs from 'node:fs'\n"
+  assert.deepEqual(plie(`${fs}const join = (...a) => 'x'\nfs.writeFileSync(join('a', 'b'), 'a')`), [null])
+  assert.deepEqual(plie(`${fs}const tmpdir = () => 'x'\nfs.writeFileSync(tmpdir() + '/b', 'a')`, { env: { TEMP: 'T' }, platform: 'win32' }), [null])
+  assert.deepEqual(plie(`${fs}import * as P from 'node:path'\nfs.writeFileSync(P.join('a', 'b'), 'a')`), ['a/b'])
+  assert.deepEqual(plie(`${fs}const { join: j } = require('node:path')\nfs.writeFileSync(j('a', 'b'), 'a')`), ['a/b'])
+  assert.deepEqual(plie(`${fs}fs.writeFileSync(['a', 'b'].join('/'), 'a')`), ['a/b'])
+  assert.deepEqual(plie(`${fs}import { fileURLToPath as u } from 'node:url'\nfs.writeFileSync(u(import.meta.url), 'a')`, { fichier: 'd/s.mjs' }), ['d/s.mjs'])
+  assert.deepEqual(plie(`${fs}const fileURLToPath = () => 'x'\nfs.writeFileSync(fileURLToPath(import.meta.url), 'a')`, { fichier: 'd/s.mjs' }), [null])
+})
+
 test('#2537 — `import()` de `fs` attendu lu comme l’import statique ; non attendu ou non constant : cible inconnue', () => {
   const cibles = (text) => ciblesDEcritureJS(text).map(c => (c.inconnue ? `?${c.operation}` : c.chemin))
   assert.deepEqual(cibles("const fs = await import('node:fs')\nfs.writeFileSync('x', 'a')"), ['x'])

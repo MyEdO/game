@@ -22,7 +22,7 @@ const CONSIGNE = 'chaque `agent(prompt, { … })` porte un objet d’options lit
 const refus = (raison) => ({ decision: 'deny', raison: `⛔ Workflow : ${raison} — ${CONSIGNE}.` })
 
 /** Le script désigné par l'entrée : `{ texte, lieu }`, ou `{ nonJugeable }`. */
-function scriptDe(input, base, projet) {
+function scriptDe(input, base, projet, platform) {
   const lire = (chemin, quoi) => {
     try {
       return { texte: readFileSync(chemin, 'utf8'), lieu: chemin }
@@ -31,7 +31,7 @@ function scriptDe(input, base, projet) {
     }
   }
   if (typeof input.script === 'string') return { texte: input.script, lieu: 'script' }
-  if (typeof input.scriptPath === 'string' && input.scriptPath) return lire(resolve(base, versCheminNatif(input.scriptPath)), '`scriptPath`')
+  if (typeof input.scriptPath === 'string' && input.scriptPath) return lire(resolve(base, versCheminNatif(input.scriptPath, platform)), '`scriptPath`')
   if (typeof input.name === 'string' && input.name) {
     if (!projet) return { nonJugeable: `nom « ${input.name} » sans \`CLAUDE_PROJECT_DIR\` : aucun projet où le résoudre ; passer \`scriptPath\` ou \`script\`` }
     const chemin = join(projet, '.claude', 'workflows', `${input.name}.js`)
@@ -42,10 +42,10 @@ function scriptDe(input, base, projet) {
   return { nonJugeable: 'ni `script`, ni `scriptPath`, ni `name`' }
 }
 
-function evaluer(entree, { baseDeLAppel, env = {} }) {
+function evaluer(entree, { baseDeLAppel, env = {}, platform = process.platform }) {
   const input = entreeDOutil(entree)
   if (input === null) return refus('entrée sans objet `tool_input`, non jugeable')
-  const lu = scriptDe(input, baseDeLAppel ?? process.cwd(), env.CLAUDE_PROJECT_DIR)
+  const lu = scriptDe(input, baseDeLAppel ?? process.cwd(), env.CLAUDE_PROJECT_DIR, platform)
   if (lu.nonJugeable) return refus(`script non jugeable : ${lu.nonJugeable}`)
   const { sourceFile: sf, diagnostics } = analyserTexte({ rel: 'workflow.js', text: lu.texte })
   if (diagnostics.length) return refus(`script non jugeable : ${lu.lieu} ne parse pas`)

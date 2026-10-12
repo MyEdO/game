@@ -97,4 +97,8 @@ test('forme : une option qui produit des chemins, où qu’elle soit écrite hor
   assert.deepEqual(formes("eolsDe(git, ['ls-files', '--eol', '--cached'])"), [[1, 'forme']], 'une question qui fixe sa commande ne reçoit pas de forme')
   assert.deepEqual(formes("const LECTURES = new Set(['log', 'ls-files', 'ls-tree'])\nLECTURES.has(sub)"), [], 'une table se consulte, elle ne se passe pas à git')
   assert.deepEqual(formes("const t = new Set(['log'])\ngit(['ls-files', '-z'])"), [[2, 'forme'], [2, 'forme']], 'hors de la table, la forme reste un site')
+  assert.deepEqual(formes("const A = new Set(['ls-files', '-z'])\ngit([...A])"), [[1, 'forme'], [1, 'forme']], 'une table étalée se passe à git')
+  assert.deepEqual(formes("const A = new Set(['--name-only'])\nquestion(Array.from(A))"), [[1, 'forme']], 'une table convertie se passe à git')
+  assert.deepEqual(formes("question([...new Set(['ls-tree', '-z'])])"), [[1, 'forme'], [1, 'forme']], 'un Set sans nom n’est pas une table')
+  assert.deepEqual(formes("class Set { constructor(a) { return a } }\nconst A = new Set(['ls-files'])\nA.has(x)"), [[2, 'forme']], 'un Set local n’est pas le global')
 })

@@ -41,6 +41,11 @@ test('#2537 — `Workflow` : script, scriptPath, name (résolu contre `CLAUDE_PR
     [{ resumeFromRunId: 'r1' }, 'deny', /`resumeFromRunId` sans `scriptPath` ni `name` : aucun script à juger/],
     [{}, 'deny', /ni `script`, ni `scriptPath`, ni `name`/],
   ]
+  const msys = join(racine, '.claude', 'workflows', 'sans-type.js').replace(/^([A-Za-z]):/, (_, d) => `/${d.toLowerCase()}`).split('\\').join('/')
+  if (process.platform === 'win32') cas.push(
+    [{ scriptPath: msys }, 'deny', /sans-type\.js : l\.2 — `agentType` absent/, { platform: 'win32' }],
+    [{ scriptPath: msys }, 'deny', /script non jugeable : `scriptPath` illisible/, { platform: 'linux' }],
+  )
   try {
     for (const [tool_input, attendu, motif, hook] of cas) {
       const { sortie } = await repartir({ PreToolUse: REGISTRE.PreToolUse.filter((g) => g === garde) }, JSON.stringify({

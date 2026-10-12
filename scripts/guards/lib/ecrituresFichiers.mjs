@@ -9,7 +9,7 @@ export { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
 const LANCEURS = { exec: 'chaine', execSync: 'chaine', spawn: 'tableau', spawnSync: 'tableau', execFile: 'tableau', execFileSync: 'tableau', fork: 'module' }
 /** Les modules dont un `import()` dynamique rend des écritures que la provenance ne suit pas. */
 const MODULES_QUI_ECRIVENT = /^(?:node:)?(?:fs|fs\/promises|child_process)$/
-const PLIS_DE_CHEMIN = { join, resolve: (...p) => (p.some(isAbsolute) ? resolve(...p) : join(...p)), dirname, basename }
+const PLIS_DE_CHEMIN = { 'path#join': join, 'path#resolve': (...p) => (p.some(isAbsolute) ? resolve(...p) : join(...p)), 'path#dirname': dirname, 'path#basename': basename }
 
 /** Les variables d'environnement que le hook connaît du processus qu'il juge : le répertoire temporaire. */
 export const VARIABLES_AMORCEES = ['TEMP', 'TMP', 'TMPDIR']
@@ -25,9 +25,10 @@ export function repertoireTemporaire(env, platform) {
 /**
  * Les écritures de fichier que DÉCLARE un texte JS/TS, parsé au dialecte de `rel` ; `[]` s'il ne se parse pas.
  * Un chemin se REPLIE quand il est constant : littéral, `const` chaîne, `+`, gabarit, `join`/`resolve`/
- * `dirname`/`basename` de `node:path`, `import.meta.dirname`/`filename`, `fileURLToPath(import.meta.url)`
- * (`fichier` = le chemin du script), `process.argv[k]` (`argv` = le `process.argv` du lancement), `tmpdir()` et
- * `process.env.<VARIABLES_AMORCEES>` (lus à `env`, `platform`). Un lancement `node:child_process` rend
+ * `dirname`/`basename` de `node:path`, `[…].join(sep)`, `import.meta.dirname`/`filename`, `fileURLToPath(import.meta.url)`
+ * de `node:url` (`fichier` = le chemin du script), `process.argv[k]` (`argv` = le `process.argv` du lancement),
+ * `tmpdir()` de `node:os` et `process.env.<VARIABLES_AMORCEES>` (lus à `env`, `platform`) ; une fonction se
+ * reconnaît à l'import qui la lie (`exportAppele`), jamais à son nom. Un lancement `node:child_process` rend
  * `{ operation, commande }` (la commande littérale, que l'appelant juge) ou une cible inconnue ; un `import()`
  * dynamique de `fs`/`child_process` se lit comme l'import statique quand il est attendu (`await import('…')`),
  * sinon il rend une cible inconnue, comme un `import()` à spécificateur non constant.
@@ -44,6 +45,44 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
     const importeChildProcess = /['"](?:node:)?child_process['"]/.test(texte)
     const enCours = new Set()
     const nomAppele = (n) => (ts.isIdentifier(n.expression) ? n.expression.text : ts.isPropertyAccessExpression(n.expression) ? n.expression.name.text : null)
+    const moduleDe = (specificateur) => (specificateur && (ts.isStringLiteral(specificateur) || ts.isNoSubstitutionTemplateLiteral(specificateur)) ? specificateur.text.replace(/^node:/, '') : null)
+    /** Le module que charge `init` : `require('<m>')` du global, `await import('<m>')` ; `null` sinon. */
+    const moduleCharge = (init) => {
+      if (init && ts.isAwaitExpression(init)) init = init.expression
+      if (!init || !ts.isCallExpression(init)) return null
+      if (init.expression.kind === ts.SyntaxKind.ImportKeyword) return moduleDe(init.arguments[0])
+      const local = checker.getSymbolAtLocation(init.expression)?.declarations?.some((d) => !d.resolve().getSourceFile().isDeclarationFile)
+      return ts.isIdentifier(init.expression) && init.expression.text === 'require' && !local ? moduleDe(init.arguments[0]) : null
+    }
+    /** La liaison de `id` à un module : `{ module, nom }`, `nom` = l'export lié (`membre` d'un espace de noms
+     *  ou d'un défaut) ; `null` pour une déclaration locale. */
+    const liaison = (id, membre) => {
+      const d = checker.getSymbolAtLocation(id)?.declarations?.[0]?.resolve()
+      if (!d) return null
+      if (ts.isImportSpecifier(d) || ts.isNamespaceImport(d) || ts.isImportClause(d)) {
+        let p = d
+        while (p && !ts.isImportDeclaration(p)) p = p.parent
+        const module = p ? moduleDe(p.moduleSpecifier) : null
+        if (ts.isImportSpecifier(d)) return membre === null && module ? { module, nom: (d.propertyName ?? d.name).text } : null
+        return membre !== null && module ? { module, nom: membre } : null
+      }
+      if (ts.isBindingElement(d) && ts.isVariableDeclaration(d.parent.parent) && /^const\b/.test(d.parent.parent.parent.getText(sourceFile))) {
+        const module = moduleCharge(d.parent.parent.initializer)
+        return membre === null && module && !d.dotDotDotToken ? { module, nom: (d.propertyName ?? d.name).text } : null
+      }
+      if (ts.isVariableDeclaration(d) && /^const\b/.test(d.parent.getText(sourceFile))) {
+        const module = moduleCharge(d.initializer)
+        return membre !== null && module ? { module, nom: membre } : null
+      }
+      return null
+    }
+    /** L'export appelé par `n` : `<module>#<nom>` (`path#join`), lu à l'import qui lie l'appelé ; `null` sinon. */
+    const exportAppele = (n) => {
+      const appele = ts.isIdentifier(n.expression) ? liaison(n.expression, null)
+        : ts.isPropertyAccessExpression(n.expression) && ts.isIdentifier(n.expression.expression) ? liaison(n.expression.expression, n.expression.name.text)
+          : null
+      return appele && `${appele.module}#${appele.nom}`
+    }
     const plier = (n) => {
       if (!n) return null
       if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isNonNullExpression(n)) return plier(n.expression)
@@ -82,12 +121,17 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
         return VARIABLES_AMORCEES.includes(nom) && typeof env[nom] === 'string' ? env[nom] : null
       }
       if (ts.isCallExpression(n)) {
-        const nom = nomAppele(n)
-        if (nom === 'fileURLToPath' && n.arguments[0]?.getText(sourceFile) === 'import.meta.url') return fichier ?? null
-        if (nom === 'tmpdir' && n.arguments.length === 0) return repertoireTemporaire(env, platform)
-        if (nom !== null && Object.hasOwn(PLIS_DE_CHEMIN, nom)) {
+        if (ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'join' && ts.isArrayLiteralExpression(n.expression.expression)) {
+          const morceaux = n.expression.expression.elements.map(plier)
+          const separateur = n.arguments.length ? plier(n.arguments[0]) : ','
+          return separateur !== null && morceaux.every((v) => v !== null) ? morceaux.join(separateur) : null
+        }
+        const appele = exportAppele(n)
+        if (appele === 'url#fileURLToPath' && n.arguments[0]?.getText(sourceFile) === 'import.meta.url') return fichier ?? null
+        if (appele === 'os#tmpdir' && n.arguments.length === 0) return repertoireTemporaire(env, platform)
+        if (appele !== null && Object.hasOwn(PLIS_DE_CHEMIN, appele)) {
           const valeurs = n.arguments.map(plier)
-          return valeurs.length && valeurs.every((v) => v !== null) ? PLIS_DE_CHEMIN[nom](...valeurs) : null
+          return valeurs.length && valeurs.every((v) => v !== null) ? PLIS_DE_CHEMIN[appele](...valeurs) : null
         }
       }
       return null

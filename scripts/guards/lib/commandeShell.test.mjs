@@ -14,6 +14,13 @@ test('redirections : provenance de la cible séparée ou collée', () => {
   assert.ok(cibles[0].quote)
 })
 
+test('#2537 — un opérateur échappé hors quote reste dans le mot, un `\\` de chemin Windows reste littéral', () => {
+  const textes = (commande) => pipelinesDeJetons(commande).flat().map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(textes('find . -exec rm {} \\; -print'), [['find', '.', '-exec', 'rm', '{}', ';', '-print']])
+  assert.deepEqual(textes('echo a\\|b \\> c'), [['echo', 'a|b', '>', 'c']])
+  assert.deepEqual(textes('dir depot\\src\\x'), [['dir', 'depot\\src\\x']])
+})
+
 test('cibleDeLaCommande : paramètres de cwd, base inconnue et restauration absolue', () => {
   const cwd = resolve('depart')
   const cible = resolve(cwd, 'avec espace')

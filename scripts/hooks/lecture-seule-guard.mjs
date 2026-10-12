@@ -1,7 +1,10 @@
 // #2537 — garde des types en LECTURE SEULE (`enLectureSeule`, scripts/guards/lib/typesDAgent.mjs) : leurs
 // écritures shell DÉCLARÉES (`ciblesDEcritureDeCommande`) ne visent que le scratchpad de leur session.
-// Trous (#2537) : `awk system()`, `sed e`, `rg --pre`, `git -c core.pager=`, `gh pr checkout`, script SUIVI qui
-// écrit, module importé par un script du scratchpad, `wget`, écritures `.git/` de `git status`.
+// Trous (#2537) : `awk system()`, `sed e`, `rg --pre`, `gh pr checkout`, script SUIVI qui écrit, module importé
+// par un script du scratchpad, `wget`, écritures `.git/` de `git status`.
+// Évasion intentionnelle, hors de la classe que la garde ferme (#2537) : programme lancé par git (`GIT_PAGER`,
+// `GIT_EXTERNAL_DIFF`, `git -c core.pager=`, `grep -O`), interpréteur hors liste (`bun`, `deno`, `ruby`, `php`),
+// `fs['write'+…]`, `createRequire`, `getBuiltinModule`, global masqué (`const process = …`), classe locale.
 import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -61,7 +64,7 @@ function lireSurDisque(chemin) {
 
 /**
  * Les défauts d'une commande d'un type en lecture seule, contre son `scratchpad`. Un script lancé passe s'il
- * est suivi (`suivi`) ; dans le scratchpad, un script JS se juge à ses écritures déclarées
+ * est suivi (`suivi`), un filtre de `vitest` hors du scratchpad aussi ; dans le scratchpad, un script JS se juge à ses écritures déclarées
  * (`ciblesDEcritureJS`), au texte que la commande y écrit AVANT de le lancer (`contenu`), sinon au disque
  * (`lire`) ; tout autre script, et tout langage non lu, se refuse.
  * @param {string} commande
@@ -86,10 +89,12 @@ export function defautsDeCommande(commande, contexte) {
     if (cible.inconnue) return [`cible d'écriture non résolue (${cible.operation} dans « ${cible.segment?.source ?? commande} »)`]
     if (cible.operation === 'script') {
       const dansLeScratchpad = scratchpad !== null && sous(cible.chemin, scratchpad, platform)
+      if (!dansLeScratchpad && cible.filtre) return []
       if (!dansLeScratchpad) return suivi(cible.chemin) ? [] : [`script ${cible.chemin} ni dans le scratchpad, ni suivi par le dépôt`]
       if (cible.langage !== 'js') return suivi(cible.chemin) ? [] : [`script ${cible.chemin} : langage ${cible.langage} non lu`]
       const ecrit = ecrits.get(cle(cible.chemin))
-      const lu = ecrit === undefined ? lire(cible.chemin) : ecrit === null ? { raison: "modifié par la commande qui le lance : son texte ne se lit qu’après exécution — l’écrire par `cat > <script> <<'MOT'` dans cette commande, ou le modifier dans un appel séparé" } : { texte: ecrit }
+      if (ecrit === null) return [`cible d'écriture non résolue (script ${cible.chemin} écrit par la commande qui le lance, hors d'un heredoc ou d'une here-string dont le texte se lit — l’écrire par \`cat > <script> <<'MOT'\`, ou dans un appel séparé)`]
+      const lu = ecrit === undefined ? lire(cible.chemin) : { texte: ecrit }
       return lu.raison ? [`script ${cible.chemin} ${lu.raison}`] : defautsDuScript(cible.chemin, lu.texte, cible.base ?? base, cible.argv)
     }
     ecrits.set(cle(cible.chemin), cible.contenu ?? null)

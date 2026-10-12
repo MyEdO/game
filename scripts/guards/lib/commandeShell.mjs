@@ -45,13 +45,13 @@ const ferme = (ligne, { mot, tabs }) => (tabs ? ligne.replace(/^\t+/, '') : lign
 /** Index de la fin du CORPS des heredocs ouverts (`{ mot, tabs, jeton }`), `pos` étant le début de la
  *  première ligne de corps. Un mot jamais refermé consomme le reste de la commande, comme le shell.
  *  Le corps LITTÉRAL d'un heredoc va au `corps` de son jeton : mot QUOTÉ (`<<'EOF'`, sans expansion), ou
- *  mot nu dont le corps n'a ni `$`, ni `` ` ``, ni `\` (rien à développer) ; après `<<-`, sans les
- *  tabulations de tête de ses lignes (`man bash`, Here Documents). */
+ *  mot nu dont le corps n'a ni `$`, ni `` ` ``, ni `\` (rien à développer) ; le corps d'un mot nu à développer
+ *  va à son `corpsADevelopper` ; après `<<-`, sans les tabulations de tête de ses lignes (`man bash`, Here
+ *  Documents). */
 function finDesCorpsHeredoc(command, pos, ouverts) {
   let i = pos
   const poser = (ouvert, corps) => {
-    if (!ouvert.litteral && /[$`\\]/.test(corps)) return
-    ouvert.jeton.corps = ouvert.tabs ? corps.replace(/^\t+/gm, '') : corps
+    ouvert.jeton[!ouvert.litteral && /[$`\\]/.test(corps) ? 'corpsADevelopper' : 'corps'] = ouvert.tabs ? corps.replace(/^\t+/gm, '') : corps
   }
   for (const ouvert of ouverts) {
     const debut = i
@@ -158,6 +158,8 @@ function tokenizeCommand(command) {
       // CONTINUATION DE LIGNE (`\` POSIX, backtick PowerShell suivi du saut de ligne) : la commande
       // se POURSUIT — les deux caractères disparaissent, et le saut n'est pas la fin d'une commande.
       if ((c === '\\' || c === '`') && command[j + 1] === '\n') { j += 2; continue }
+      // Opérateur échappé hors quote (`find … -exec rm {} \;`) : le caractère reste dans le mot (XCU 2.2.1).
+      if (c === '\\' && j + 1 < n && ';|&<>()'.includes(command[j + 1])) { buf += command[j + 1]; nu = true; j += 2; continue }
       // Substitution de commande `$(…)`, sous-expression `@(…)`, substitution de processus `<(…)`, `>(…)`.
       if ('$@<>'.includes(c) && command[j + 1] === '(') {
         const fermante = parentheseFermante(command, j + 1)

@@ -105,56 +105,144 @@ const LECTURES_GIT = new Set([
   'range-diff', 'rev-list', 'rev-parse', 'shortlog', 'show', 'show-branch', 'show-index', 'show-ref', 'status', 'stripspace',
   'var', 'verify-commit', 'verify-pack', 'verify-tag', 'version', 'whatchanged', 'archive',
 ])
-/** Les sous-commandes git qui lisent sous une forme seulement : le prédicat reçoit leurs arguments. */
+/** Les positionnels des arguments `a` d'une sous-commande git dont chaque option est ADMISE (`admises`, son
+ *  nom avant `=`) ; une option de `valeurs` consomme l'argument qui la suit, s'il n'est pas une option.
+ *  `null` dès qu'une option n'est pas admise : la table est fermée, une abréviation (`--del`) n'y entre pas. */
+function positionnelsAdmis(a, admises, valeurs = []) {
+  const positionnels = []
+  for (let k = 0; k < a.length; k++) {
+    const x = a[k]
+    if (x === '--') return [...positionnels, ...a.slice(k + 1)]
+    if (!x.startsWith('-') || x === '-') { positionnels.push(x); continue }
+    if (!admises.test(x.replace(/=.*$/s, ''))) return null
+    if (valeurs.includes(x) && a[k + 1] !== undefined && !a[k + 1].startsWith('-')) k++
+  }
+  return positionnels
+}
+const LISTE_IMPLIQUEE = ['--contains', '--no-contains', '--merged', '--no-merged', '--points-at']
+/** Les sous-commandes git qui lisent sous une forme seulement : le prédicat reçoit leurs arguments ; une forme
+ *  à options se lit sur une table d'options ADMISES (`positionnelsAdmis`), une forme à sous-commande sur son
+ *  premier mot (`git help <sous-commande>`). `--list` est impliquée par `LISTE_IMPLIQUEE` (`git help branch`,
+ *  `git help tag`). */
 const LECTURES_GIT_SOUS_CONDITION = {
-  branch: (a) => a.every((x) => x.startsWith('-') && !/^-(?:[dDmMcCfu]|-delete|-move|-copy|-force|-set-upstream|-unset-upstream|-edit-description|-track)/.test(x)),
-  tag: (a) => a.length === 0 || a.some((x) => ['-l', '--list', '-v', '--verify'].includes(x)),
-  config: (a) => a.some((x) => /^(?:--get|--get-all|--get-regexp|--get-urlmatch|-l|--list|get|list)$/.test(x)),
+  branch: (a) => {
+    const p = positionnelsAdmis(a, /^(?:-[arlvqi]+|--(?:all|remotes|list|verbose|quiet|ignore-case|show-current|no-color|color|column|no-column|abbrev|no-abbrev|sort|format|omit-empty|contains|no-contains|merged|no-merged|points-at))$/, [...LISTE_IMPLIQUEE, '--sort', '--format'])
+    return p !== null && (p.length === 0 || a.some((x) => /^-[arvqi]*l[arlvqi]*$|^--list$/.test(x) || LISTE_IMPLIQUEE.includes(x.replace(/=.*$/s, ''))))
+  },
+  tag: (a) => {
+    const p = positionnelsAdmis(a, /^(?:-[lvi]+|-n\d*|--(?:list|verify|ignore-case|sort|format|color|column|no-column|omit-empty|contains|no-contains|merged|no-merged|points-at))$/, [...LISTE_IMPLIQUEE, '--sort', '--format'])
+    return p !== null && (p.length === 0 || a.some((x) => /^-[ilv]*[lv][ilv]*$|^-n\d*$|^--(?:list|verify)$/.test(x) || LISTE_IMPLIQUEE.includes(x.replace(/=.*$/s, ''))))
+  },
+  config: (a) => {
+    const valeurs = ['-f', '--file', '--blob', '--type', '--default', '--value', '--url']
+    const p = positionnelsAdmis(a, /^(?:-[lz]+|-f|--(?:global|system|local|worktree|file|blob|show-origin|show-scope|null|name-only|type|bool|int|bool-or-int|path|expiry-date|no-type|default|includes|no-includes|all|regexp|value|url|fixed-value|get|get-all|get-regexp|get-urlmatch|get-color|get-colorbool|list))$/, valeurs)
+    if (p === null) return false
+    if (p[0] === 'list' || p[0] === 'get') return p.length === (p[0] === 'list' ? 1 : 2)
+    if (a.some((x) => /^-z*lz*$|^--list$/.test(x))) return p.length === 0
+    if (a.some((x) => /^--get(?:-all|-regexp|-urlmatch|-color|-colorbool)?$/.test(x))) return p.length >= 1 && p.length <= 2
+    return p.length === 1 && p[0].includes('.')
+  },
   stash: (a) => ['list', 'show'].includes(a[0]),
   worktree: (a) => a[0] === 'list',
-  remote: (a) => a.length === 0 || ['-v', '--verbose', 'show', 'get-url'].includes(a[0]),
+  remote: (a) => {
+    const k = a.findIndex((x) => !x.startsWith('-'))
+    return a.slice(0, k < 0 ? a.length : k).every((x) => x === '-v' || x === '--verbose') && (k < 0 || ['show', 'get-url'].includes(a[k]))
+  },
   notes: (a) => a.length === 0 || ['list', 'show'].includes(a[0]),
-  reflog: (a) => !['expire', 'delete', 'drop', 'write'].includes(a[0]),
-  'symbolic-ref': (a) => a.filter((x) => !x.startsWith('-')).length <= 1,
-  'hash-object': (a) => !a.includes('-w'),
+  reflog: (a) => [undefined, 'show', 'list', 'exists'].includes(a.find((x) => !x.startsWith('-'))),
+  'symbolic-ref': (a) => positionnelsAdmis(a, /^(?:-q+|--(?:quiet|short|no-recurse|recurse))$/)?.length === 1,
+  'hash-object': (a) => positionnelsAdmis(a, /^(?:-t.*|--(?:stdin|stdin-paths|path|no-filters|literally))$/, ['-t', '--path']) !== null,
   'sparse-checkout': (a) => a[0] === 'list',
   submodule: (a) => ['status', 'summary'].includes(a[0]),
   bundle: (a) => ['verify', 'list-heads'].includes(a[0]),
 }
 
-/** Les lancements d'un INTERPRÉTEUR : `{ scripts, langage, enLigne, nonLu, argv }` — les fichiers qu'il lance,
- *  le langage de son code, le code en ligne JS (`-e`, `-p`), `nonLu` = un code qu'il exécute sans que la
- *  commande le nomme (stdin, code en ligne non JS, module), `argv` = le `process.argv` d'un script JS seul
- *  (un argument non développé vaut `null`) ; `null` hors interpréteur. Les options se lisent sur
- *  `bruts` (le texte des jetons) quand leur développement échoue. */
+/** Les options de `vitest` qui prennent la valeur suivante (`vitest --help`), et ses sous-commandes. */
+const VALEURS_VITEST = ['-t', '--testNamePattern', '--reporter', '--outputFile', '--project', '--environment', '--pool', '--testTimeout', '--mode', '--shard', '--exclude', '--retry', '--bail', '--maxWorkers', '--minWorkers']
+const SOUS_COMMANDES_VITEST = ['run', 'watch', 'dev', 'bench', 'related', 'list']
+/** Les options de `node` qui chargent un module avant le script (`node --help`). */
+const PRECHARGEMENTS_NODE = ['-r', '--require', '--import', '--loader', '--experimental-loader']
+/** Le fichier que désigne le spécificateur `valeur` d'un préchargement : chemin ou URL `file:` ; `null` pour un
+ *  paquet (`tsx`, `@scope/x`), résolu dans `node_modules`. */
+const cheminDeModule = (valeur) =>
+  /^file:/i.test(valeur) ? decodeURIComponent(valeur.replace(/^file:\/\/(?:localhost)?/i, '')).replace(/^\/(?=[A-Za-z]:)/, '')
+    : /^(?:\.{1,2}(?:[\\/]|$)|[\\/]|[A-Za-z]:)/.test(valeur) ? valeur : null
+
+/** Les lancements d'un INTERPRÉTEUR : `{ scripts, filtres, langage, enLigne, nonLu, argv }` — les fichiers qu'il
+ *  lance (préchargements de `node` et `--config` de `vitest` compris), les positionnels de `vitest` (`filtres` :
+ *  un fichier de test, ou un motif), le langage de son code, le code en ligne JS (`-e`, `-p`), `nonLu` = un code
+ *  qu'il exécute sans que la commande le nomme (stdin, code en ligne non JS, module, `node --test` sans fichier,
+ *  `vitest --root`/`--dir`), `argv` = le `process.argv` d'un script JS seul (un argument non développé vaut
+ *  `null`) ; `null` hors interpréteur. `source`/`.` lancent un script `sh` ; `npm test -- <args>` et `npx
+ *  vitest` lancent `vitest`. Les options se lisent sur `bruts` (le texte des jetons) quand leur développement échoue. */
 function lancementDInterpreteur(textes, segment, bruts = textes) {
   let nom = basenameExecutable(textes[0])
   let k = 1
   if (nom === 'npx') {
     while (k < textes.length && textes[k].startsWith('-')) k++
-    if (basenameExecutable(textes[k]) !== 'tsx') return null
-    nom = 'tsx'
+    nom = basenameExecutable(textes[k])
+    if (nom !== 'tsx' && nom !== 'vitest') return null
     k++
   }
+  if (nom === 'npm') {
+    const tiret = textes.indexOf('--')
+    if (!['test', 't', 'tst'].includes(textes.find((t, i) => i > 0 && !t.startsWith('-'))) || tiret < 0) return null
+    nom = 'vitest'
+    k = tiret + 1
+  }
   const stdin = segment.jetons.some((j) => jetonNu(j) && /^</.test(j.text)) || (segment.tube?.indexOf(segment) ?? 0) > 0
-  const rendu = { scripts: [], langage: nom, enLigne: undefined, nonLu: false }
+  const rendu = { scripts: [], filtres: [], langage: nom, enLigne: undefined, nonLu: false }
+  if (nom === 'vitest') {
+    rendu.langage = 'js'
+    for (let premier = true; k < textes.length; k++) {
+      const texte = textes[k]
+      if (texte === '-c' || texte === '--config') { rendu.scripts.push(textes[++k] ?? null); continue }
+      if (texte.startsWith('--config=')) { rendu.scripts.push(texte.slice(9)); continue }
+      if (/^(?:-r|--root|--dir)(?:=|$)/.test(texte)) { rendu.nonLu = true; if (!texte.includes('=')) k++; continue }
+      if (VALEURS_VITEST.includes(texte)) { k++; continue }
+      if (texte.startsWith('-')) continue
+      if (!(premier && SOUS_COMMANDES_VITEST.includes(texte))) rendu.filtres.push(texte)
+      premier = false
+    }
+    return rendu
+  }
   if (nom === 'node' || nom === 'tsx') {
     rendu.langage = 'js'
     const test = textes.includes('--test')
+    let lances = 0
+    const precharger = (valeur) => {
+      if (typeof valeur !== 'string' || valeur.includes('\0')) rendu.scripts.push(null)
+      else if (cheminDeModule(valeur) !== null) rendu.scripts.push(cheminDeModule(valeur))
+    }
     for (; k < textes.length; k++) {
       const texte = textes[k].includes('\0') ? bruts[k] : textes[k]
       if (/^-[a-zA-Z]*[ep]$|^--(?:eval|print)$/.test(texte)) { rendu.enLigne = k + 1; return rendu }
       if (/^--eval=/.test(texte)) { rendu.enLigne = k; return rendu }
-      if (texte === '--') { rendu.scripts.push(...(test ? textes.slice(k + 1) : textes.slice(k + 1, k + 2))); return rendu }
-      if (['-r', '--require', '--import', '--input-type', '--loader', '--experimental-loader', '--test-reporter', '--test-reporter-destination', '--test-name-pattern', '--test-concurrency'].includes(texte)) { k++; continue }
+      if (texte === '--') {
+        const suite = test ? textes.slice(k + 1) : textes.slice(k + 1, k + 2)
+        rendu.scripts.push(...suite)
+        lances += suite.length
+        break
+      }
+      if (PRECHARGEMENTS_NODE.includes(texte)) { precharger(textes[++k]); continue }
+      const colle = PRECHARGEMENTS_NODE.find((option) => option.startsWith('--') && texte.startsWith(`${option}=`))
+      if (colle) { precharger(textes[k].slice(colle.length + 1)); continue }
+      if (['--input-type', '--test-reporter', '--test-reporter-destination', '--test-name-pattern', '--test-concurrency'].includes(texte)) { k++; continue }
       if (texte.startsWith('-')) continue
       rendu.scripts.push(texte)
+      lances++
       if (!test) {
         rendu.argv = [textes[0], texte, ...textes.slice(k + 1)].map((a) => (a.includes('\0') ? null : a))
         return rendu
       }
     }
-    if (!rendu.scripts.length && !test && stdin) rendu.nonLu = true
+    if (lances === 0 && (test || stdin)) rendu.nonLu = true
+    return rendu
+  }
+  if (nom === 'source' || nom === '.') {
+    if (textes[1] === undefined) return null
+    rendu.langage = 'sh'
+    rendu.scripts.push(textes[1])
     return rendu
   }
   if (['python', 'python3', 'py', 'perl', 'sh', 'bash', 'zsh', 'dash'].includes(nom)) {
@@ -183,7 +271,11 @@ function lancementDInterpreteur(textes, segment, bruts = textes) {
   return null
 }
 
-/** Les écritures que déclarent les commandes d'archivage, de recherche et de transfert : `{ chemins, inconnue }`. */
+/** Les options courtes de `curl` qui prennent une valeur (`curl --help all`) : collée (`-ofichier`) ou suivante. */
+const VALEURS_COURTES_CURL = 'AbcCdDeEFHKmoPQrtTuUwxXyYz'
+
+/** Les écritures que déclarent les commandes d'archivage, de recherche et de transfert : `{ chemins, inconnue,
+ *  racines }`, `racines` = les points de départ de `find`. */
 function ecrituresDOutils(nom, args) {
   const valeurDe = (courtes, longues) => {
     const sorties = []
@@ -198,8 +290,23 @@ function ecrituresDOutils(nom, args) {
     return sorties
   }
   if (nom === 'curl') {
-    const inconnue = args.some((a) => /^-[a-zA-Z]*O$|^--remote-name(?:-all)?$|^-J$/.test(a))
-    return { chemins: valeurDe(['-o', '-D', '-c'], ['--output', '--dump-header', '--cookie-jar']), inconnue }
+    const longues = ['--output', '--dump-header', '--cookie-jar']
+    const chemins = valeurDe([], longues)
+    let inconnue = false
+    for (let k = 0; k < args.length; k++) {
+      const a = args[k]
+      if (/^--(?:remote-name(?:-all)?|remote-header-name)$/.test(a)) inconnue = true
+      if (longues.includes(a)) { k++; continue }
+      if (!/^-[^-]/.test(a)) continue
+      for (let i = 1; i < a.length; i++) {
+        if (a[i] === 'O' || a[i] === 'J') { inconnue = true; continue }
+        if (!VALEURS_COURTES_CURL.includes(a[i])) continue
+        const valeur = i + 1 < a.length ? a.slice(i + 1) : args[++k]
+        if ('oDc'.includes(a[i])) chemins.push(valeur)
+        break
+      }
+    }
+    return { chemins, inconnue }
   }
   if (nom === 'tar') {
     const premier = args[0] ?? ''
@@ -225,7 +332,7 @@ function ecrituresDOutils(nom, args) {
     const racines = []
     for (const a of args) { if (/^[-(!]/.test(a)) break; racines.push(a) }
     const lieux = racines.length ? racines : ['.']
-    return { chemins: [...(args.includes('-delete') ? lieux : []), ...valeurDe(['-fprint', '-fprint0', '-fprintf', '-fls'], [])], inconnue: false }
+    return { chemins: [...(args.includes('-delete') ? lieux : []), ...valeurDe(['-fprint', '-fprint0', '-fprintf', '-fls'], [])], inconnue: false, racines: lieux }
   }
   return { chemins: [], inconnue: false }
 }
@@ -243,8 +350,10 @@ function commandesDeFind(args, racines) {
   return commandes
 }
 
-/** `npm`/`npx` qui écrivent : `npm` hors `test`/`t` et des commandes d'interrogation, `npx <outil>` avec
- *  `--write`/`-w`/`-u`/`--update`. `juge.md:17-18` prescrit `npm test -- <chemins>` et `npx vitest run`. */
+/** `npm`/`npx` qui écrivent : `npm` hors `test`/`t` et des commandes d'interrogation, `npm test` avec
+ *  `MISE_A_JOUR_VITEST`, `npx <outil>` avec `--write`/`-w`/`-u`/`--update`. `juge.md:17-18` prescrit
+ *  `npm test -- <chemins>` et `npx vitest run`. */
+const MISE_A_JOUR_VITEST = /^(?:-u|--update(?:Snapshot)?)(?:=.*)?$/s
 const LECTURES_NPM = new Set(['test', 't', 'tst', 'ls', 'list', 'view', 'v', 'info', 'show', 'outdated', 'help', 'explain', 'why', 'query', 'search', 'doctor', 'prefix', 'root', 'bin', 'whoami', 'ping', '--version', '-v', 'version'])
 function ecritureDeNpm(nom, args) {
   if (nom === 'npm') {
@@ -252,18 +361,33 @@ function ecritureDeNpm(nom, args) {
     if (sous === undefined) return false
     if (sous === 'version') return args.length > 1
     if (sous === 'config' || sous === 'c') return !['get', 'list', 'ls'].includes(args[args.indexOf(sous) + 1])
+    if (['test', 't', 'tst'].includes(sous)) return args.some((a) => MISE_A_JOUR_VITEST.test(a))
     return !LECTURES_NPM.has(sous)
   }
-  if (nom === 'npx') return args.some((a) => /^(?:--write|-w|-u|--update|--updateSnapshot|--fix)$/.test(a))
+  if (nom === 'npx') return args.some((a) => MISE_A_JOUR_VITEST.test(a) || /^(?:--write|-w|--fix)$/.test(a))
   return false
 }
 
+
+/** Le corps d'un heredoc à mot nu, développé (`man bash`, Here Documents) : `\` échappe `\`, `$`, `` ` `` et le saut
+ *  de ligne, `$NOM`/`${NOM}` prennent leur valeur dans `variables` ; `undefined` dès qu'un développement n'est pas
+ *  connu (variable sans valeur, `$(`, `` ` ``, `$1`, `${NOM:-…}`). */
+function developperHeredoc(corps, variables) {
+  let inconnu = false
+  const rendu = corps.replace(/\\([\\$`\n])|\$\{(\w+)\}|\$([A-Za-z_]\w*)|\$[({\d@*#?$!-]|`/g, (m, echappe, entre, nu) => {
+    if (echappe !== undefined) return echappe === '\n' ? '' : echappe
+    const valeur = entre ?? nu ? variables.get(entre ?? nu) : undefined
+    if (typeof valeur !== 'string') inconnu = true
+    return valeur ?? m
+  })
+  return inconnu ? undefined : rendu
+}
 
 /**
  * Les cibles d'écriture qu'une commande DÉCLARE, `{ chemin, inconnue, operation, segment, base, puits, contenu, langage }` :
  * `base` = le répertoire courant du segment (`null` inconnu) ; `puits` = une écriture qui n'atteint aucun
  * fichier (`estPuits`) ; `contenu` = le texte écrit, connu pour une redirection de `cat` qu'alimente un heredoc
- * littéral, et pour `Set-Content`/`Out-File` alimentés par une chaîne littérale, `undefined` sinon. Une
+ * littéral ou développé (`developperHeredoc`), et pour `Set-Content`/`Out-File` alimentés par une chaîne littérale, `undefined` sinon. Une
  * sous-commande git hors de `LECTURES_GIT`, un `npm`/`npx` qui écrit : cible inconnue ; une commande que `xargs`
  * alimente reçoit un argument inconnu. Une `for <v> in <mots>` littérale se déroule. `env` amorce `VARIABLES_AMORCEES`
  * (`$TEMP`, `$env:TEMP`). Avec `scripts`, s'y ajoutent les LANCEMENTS d'interpréteur
@@ -317,7 +441,8 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       sorties.push({ chemin: resolu, inconnue: !puits && resolu === null, operation, segment, base: etat.base, puits: puits || (typeof chemin === 'string' && estPuits(chemin, platform)) })
       return sorties.at(-1)
     }
-    const corps = nom === 'cat' && textes.length === 1 ? segment.jetons.find((j) => typeof j.corps === 'string')?.corps : undefined
+    const heredoc = nom === 'cat' && textes.length === 1 ? segment.jetons.find((j) => typeof j.corps === 'string' || typeof j.corpsADevelopper === 'string') : undefined
+    const corps = heredoc?.corps ?? (heredoc ? developperHeredoc(heredoc.corpsADevelopper, etat.variables) : undefined)
     for (const cible of ciblesDeRedirectionAvecProvenance(segment.jetons)) {
       if (cible.quote === undefined && PUITS_POWERSHELL.test(cible.text ?? '')) ajouter(null, 'redirection', true)
       else ajouter(developper(cible.text, etat.variables, cible), 'redirection').contenu = corps
@@ -335,11 +460,11 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       const outils = ecrituresDOutils(nom, developpes.slice(1))
       for (const chemin of outils.chemins) ajouter(chemin ?? null, nom)
       if (outils.inconnue) ajouter(null, nom)
-      if (nom === 'find') for (const c of commandesDeFind(developpes.slice(1), outils.racines ?? ['.'])) sousCommande(c, etat)
+      if (nom === 'find') for (const c of commandesDeFind(developpes.slice(1), outils.racines)) sousCommande(c, etat)
       if (nom === 'git') {
         const git = gitSubcommand(developpes)
         if (git !== null) {
-          const sorte = developpes.flatMap((a, k) => (a === '--output' ? [developpes[k + 1]] : a.startsWith('--output=') ? [a.slice(9)] : git.sub === 'archive' && a === '-o' ? [developpes[k + 1]] : []))
+          const sorte = developpes.flatMap((a, k) => (a === '--output' ? [developpes[k + 1]] : a.startsWith('--output=') ? [a.slice(9)] : git.sub === 'archive' && a === '-o' ? [developpes[k + 1]] : git.sub === 'archive' && /^-o./s.test(a) ? [a.slice(2)] : []))
           for (const chemin of sorte) ajouter(chemin ?? null, `git ${git.sub}`)
           const lit = LECTURES_GIT.has(git.sub) || LECTURES_GIT_SOUS_CONDITION[git.sub]?.(git.args)
           if (!lit) ajouter(null, `git ${git.sub}`)
@@ -359,10 +484,14 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       }
       if (scripts && lancement) {
         for (const script of lancement.scripts) Object.assign(ajouter(script, 'script'), { langage: lancement.langage, argv: lancement.argv })
+        for (const filtre of lancement.filtres) Object.assign(ajouter(filtre, 'script'), { langage: lancement.langage, filtre: true })
         if (lancement.nonLu) ajouter(null, `${lancement.langage} (code non lu)`)
       }
     }
-    for (const valeur of segment.valeurs ?? []) etat.variables.set(valeur.nom, developper(valeur.valeur, etat.variables, valeur.jeton))
+    for (const valeur of segment.valeurs ?? []) {
+      const brut = valeur.jeton.raw ?? valeur.jeton.text
+      etat.variables.set(valeur.nom, developper(valeur.valeur, etat.variables, { ...valeur.jeton, raw: brut.slice(brut.indexOf('=') + 1) }))
+    }
     const affectation = affectationPowerShell(segment.jetons)
     if (affectation) etat.variables.set(affectation.nom, affectation.valeur.length === 1 ? developper(affectation.valeur[0].text, etat.variables, affectation.valeur[0]) : null)
     if (CHANGEMENTS_DE_REPERTOIRE.has(nom)) {

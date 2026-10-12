@@ -347,11 +347,16 @@ export const remplaceResoluble = (ecrit) =>
   texteRemplace(ecrit) !== undefined || ecritLeFichierEntier(ecrit) || ecrit?.op === 'insert_after' || OPS_DE_LIGNES.has(ecrit?.op)
   || (estCellule(ecrit) && typeof ecrit.cell_id === 'string')
 
-/** La source de la cellule `cell_id` du carnet `contenu` (JSON nbformat) ; `undefined` sans elle. */
+/** La source de la cellule `cell_id` du carnet `contenu` (JSON nbformat) : la cellule d'`id` `cell_id`, sinon
+ *  `cell-<N>` vise la N-ième cellule si elle n'a pas d'`id` (la graphie `<cell id="cell-<N>">` du `Read`, que la
+ *  description de `NotebookEdit` donne pour `cell_id`) ; `undefined` sans elle. */
 function celluleVisee(ecrit, contenu) {
+  if (typeof ecrit.cell_id !== 'string') return undefined
   let carnet
   try { carnet = JSON.parse(String(contenu ?? '')) } catch { return undefined }
-  const cellule = Array.isArray(carnet?.cells) ? carnet.cells.find((c) => c?.id === ecrit.cell_id) : undefined
+  const cellules = Array.isArray(carnet?.cells) ? carnet.cells : []
+  const rang = /^cell-(\d+)$/.exec(ecrit.cell_id)?.[1]
+  const cellule = cellules.find((c) => c?.id === ecrit.cell_id) ?? (rang === undefined || cellules[Number(rang)]?.id !== undefined ? undefined : cellules[Number(rang)])
   const source = cellule?.source
   return Array.isArray(source) ? source.join('') : typeof source === 'string' ? source : undefined
 }
