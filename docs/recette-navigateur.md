@@ -115,12 +115,12 @@ compile à froid ou la machine est chargée — mesuré de 35 s à 8 min, fricti
 ### CLI — `scripts/recette/shot-screen.mjs`
 
 ```
-node scripts/recette/shot-screen.mjs --screen gallery --out mon-dossier
+node scripts/recette/shot-screen.mjs --screen gallery --out C:/temp/recette
 node scripts/recette/shot-screen.mjs --screen menu --mobile
 ```
 
 Options : `--screen <id>` (obligatoire, un id de `SCREENS`, `src/state/store.ts`), `--out <dir>`
-(défaut CWD), `--url <url>` (défaut : le port de CET arbre, cf. `scripts/port-dev.mjs`), `--mobile` (vue `mobile` de `vues-recette.json`),
+(absolu obligatoire s’il est explicite ; défaut `DOSSIER_CAPTURES` temporaire canonique hors arbre), `--url <url>` (défaut : le port de CET arbre, cf. `scripts/port-dev.mjs`), `--mobile` (vue `mobile` de `vues-recette.json`),
 `--width`/`--height`, `--settle <ms>`. Exit ≠ 0 si la console a remonté une erreur/exception après
 l'ouverture de l'écran.
 
@@ -277,33 +277,34 @@ ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré 
 | Fonction | Rôle |
 |---|---|
 | `openApp` + `MARQUEUR_MENU` | `openApp(url = DEFAULT_URL, { timeoutMs = 45000, console, ...opts })` — l'URL est le PREMIER argument, `opts` sont ceux de `launchSession`. Attend le serveur (`checkServer`), lance Chrome headless, navigue, puis attend l'app PRÊTE : `__wfrp.screen` posé (chargement async, cf. `src/main.tsx`) ET, sur l'écran `menu`, le menu principal MONTÉ — `MARQUEUR_MENU` = `.menu-tools`, la section « Atelier » qui porte « Scénarios de test », rendue en dernier (friction #2415 : `__wfrp` prêt rendait la main avant le montage, et le premier clic de menu échouait). `timeoutMs` est la borne UNIQUE de l'amorçage : attente du serveur, URL CDP de Chrome (`launchSession`) et app prête — un premier chargement à froid a été mesuré à 21 s sur un worktree neuf. Le refus DISTINGUE « `__wfrp` absent » (mauvaise URL, build cassé, serveur non-DEV), « app trop lente à s'installer » et « app installée, menu non monté » |
-| `gotoScreen` | navigue vers un écran via `__wfrp.screen` |
-| `shot` | capture PNG nommée (`session, nom, dossier, { ancre, neutraliser = false }`), dossier créé si absent ; rend le chemin écrit. `{ancre}` fait DÉFILER un sélecteur en vue avant la capture — à 360 px les écrans s'empilent et le sujet passe sous le pli. Par DÉFAUT la capture ne change RIEN à l'état qu'elle capture (#2001 E : un `blur` d'office fermait le tiroir du journal avant la photo). `{neutraliser:true}` se DEMANDE : `Escape` si le focus est sur un `<select>` (son popup est NATIF et reste ouvert après `selectOption`), puis `blur` du focus. ⚠ Ce retrait MUTE l'écran : tout ce qui se ferme à la perte du focus se ferme avec lui, et une mesure clavier est cassée — jamais de `shot` neutralisant entre le focus posé et la frappe qui le consomme |
+| `gotoScreen` | `session, id, { timeoutMs = 45000, intervalMs = 200, settleMs = 600 }` : attend l’API, le screen demandé au store, `.app.app-<id>` montée, aucune `.lazy-fallback`, et `APP_READY` pour le menu. Échéance nommant API, store, classe et chargement ; `settleMs` est un confort après cette preuve. Ne prépare pas un interlude sans état ni un overlay à fallback nul : ajouter `waitFor` sur leur prédicat de résultat. |
+| `shot` | capture PNG nommée (`session, nom, dossier, { ancre, neutraliser = false }`), dossier absolu créé si absent ; défaut `DOSSIER_CAPTURES` hors arbre (`os.tmpdir()/recette-captures/<hash racine>`), partagé par les trois CLI. Un dossier relatif explicite lève avant CDP/écriture ; rend le chemin écrit. Le même nom dans ce dossier stable remplace volontairement la capture précédente. `{ancre}` fait DÉFILER un sélecteur en vue avant la capture — à 360 px les écrans s'empilent et le sujet passe sous le pli. Par DÉFAUT la capture ne change RIEN à l'état qu'elle capture (#2001 E : un `blur` d'office fermait le tiroir du journal avant la photo). `{neutraliser:true}` se DEMANDE : `Escape` si le focus est sur un `<select>` (son popup est NATIF et reste ouvert après `selectOption`), puis `blur` du focus. ⚠ Ce retrait MUTE l'écran : tout ce qui se ferme à la perte du focus se ferme avec lui, et une mesure clavier est cassée — jamais de `shot` neutralisant entre le focus posé et la frappe qui le consomme |
 | `dernierTelechargement` | le DERNIER fichier téléchargé par la page (`session, { timeoutMs = 15000 }`) → `{ chemin, nom, contenu }`, contenu lu en UTF-8 : le plus récent du dossier `telechargements` du profil jetable (`DOSSIER_TELECHARGEMENTS`, posé par `launchSession`) que la session n'a pas encore rendu. Attend un fichier COMPLET (aucun `.crdownload`) ; à l'échéance, LÈVE en nommant le dossier et les téléchargements en cours. Geste : cliquer le VRAI bouton d'export (« Exporter JSON », « Exporter forme dépôt (dev) » de l'éditeur), puis lire. Le dossier est purgé avec le profil |
 | `consoleGuard` | collecte la console de LA session courante (piège du buffer partagé, § « Pièges vécus » ci-dessous), TOUS niveaux avec leur niveau (`log`, `info`, `warning`, `error`), les exceptions et les entrées `Log` (réseau, 404, CSP, avertissements du navigateur). `errors()` JUGE (erreurs `Runtime` et `Log`, exceptions) ; `warnings()` se LISTE au rendu — une absence d'export n'est jamais un « zéro » ; `log`/`info` sont enregistrés sans juger. « Console à 0 erreur » = `errors()` vide DEPUIS L'AMORÇAGE : `openApp(url, { console: true })` pose le garde AVANT `Page.navigate` (`session.console`), `Log.enable` compris |
 | `ouvrirRound` | OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») au vrai bouton de phase — `cliquerAction(session, 'round-start', { racine: '.cc-phase' })`. C'est le premier geste après `__wfrp.fight(id)` |
 | `finDuTour` | FINIT le tour du héros actif à la PLAQUE `end-turn` : si l'Action n'est pas dépensée, le premier clic ARME le garde-fou (`endTurnArmed`, lu par `__wfrp.battle()`) et un SECOND clic passe la main. Rend le nombre de clics. Le texte de la plaque (« Fin du tourAction non dépensée ») ne se vise pas : c'est son `data-action` |
-| `prochainGeste` / `piloterCombat` / `avancerDeRounds` | le PILOTE de combat, au geste du joueur : `prochainGeste(lecture)` (PURE, lecture `LECTURE_COMBAT` = `__wfrp.battle()` + `__wfrp.auto()` + fenêtre au DOM) rend `fini`, `resoudre`, `ouvrirRound`, `finirTour` ou `attendre` ; `piloterCombat(session, { arret, budget = 300 })` boucle observer → geste jusqu'à `arret(lecture)` ou la fin du combat, lève en nommant la dernière lecture, et rend `{ lecture, choix }` (lecture finale ; choix de chaque `resoudreModales`, cumulés). `LECTURE_COMBAT.fenetre` porte l'IDENTITÉ de la fenêtre ouverte (`IDENTITE_FENETRE`, rangée `resoudreModales`), et `arret` est consulté à chaque lecture du pilote ET de `resoudreModales` : la recette s'ARRÊTE sur la modale qu'elle vise, laissée ouverte — arrêt sur la Défense : `piloterCombat(session, { arret: (e) => e.fenetre?.jet === 'defense' })`. `avancerDeRounds(session, n, { arret })` s'arrête au Round courant + n, ou plus tôt sur l'`arret` de l'appelant, même retour |
-| `capturerPion` | CAPTURE d'un pion : PNG recadré autour de la case du combattant (`tileScreenPos` de sa position), agrandi `zoom` fois (`Page.captureScreenshot`, `clip.scale`) |
+| `prochainGeste` / `piloterCombat` / `avancerDeRounds` | le PILOTE de combat, au geste du joueur : `prochainGeste(lecture)` (PURE, lecture `LECTURE_COMBAT` = `__wfrp.battle()` + `__wfrp.auto()` + fenêtre au DOM) rend `fini`, `resoudre`, `ouvrirRound`, `finirTour` ou `attendre` ; `piloterCombat(session, { arret, budget = 300 })` boucle observer → geste jusqu'à `arret(lecture)` ou la fin du combat, lève en nommant la dernière lecture, et rend `{ lecture }` (lecture finale). `LECTURE_COMBAT.fenetre` porte l'IDENTITÉ de la fenêtre ouverte (`IDENTITE_FENETRE`, rangée `resoudreModales`), et `arret` est consulté à chaque lecture du pilote ET de `resoudreModales` : la recette s'ARRÊTE sur la modale qu'elle vise, laissée ouverte — arrêt sur la Défense : `piloterCombat(session, { arret: (e) => e.fenetre?.jet === 'defense' })`. `avancerDeRounds(session, n, { arret })` s'arrête au Round courant + n, ou plus tôt sur l'`arret` de l'appelant, même retour |
+| `capturerPion` | PNG recadré autour de la case du combattant (`tileScreenPos`), agrandi `zoom` fois. `{dir}` suit la validation absolue et le défaut `DOSSIER_CAPTURES` de `shot` ; rend le chemin écrit. |
 | `espionReseau` ⚠ à POSER AVANT le geste mesuré | les URL que la page DEMANDE : patch `fetch`/`XMLHttpRequest` DANS la page **et** `Network.requestWillBeSent` (CDP), réunis. `await esp.urls()` rend tout, `await esp.correspondant('/source/')` filtre. C'est la preuve d'une requête ABSENTE (« la fiche du Codex ne charge aucun chapitre »). **Jamais l'inventaire de ressources de l'API `performance`** : son tampon est BORNÉ (250 entrées) et l'app le sature à l'amorçage — il a rendu un faux « aucune requête » en recette C5 |
-| `freezeTimeout` / `unfreezeTimeout` | monkey-patch `setTimeout` pour figer/dégeler une durée d'animation avant capture |
+| `freezeTimeout` / `unfreezeTimeout` | Remplace les délais des FUTURS timeouts par une séquence, dernier délai répété : `[0]` accélère, `[60000]` retarde, `[]` garde les délais demandés. Noyau unique partagé avec `__wfrp.freezeTimeout([60000])` / `__wfrp.unfreezeTimeout()` en navigateur interactif, sans app nécessaire au wrapper. Aucun callback perdu. La restauration ne reprogramme pas les timeouts déjà armés ; intervalles, CSS et `requestAnimationFrame` continuent : aucune pause globale. |
 | `emulateReducedMotion` | force `prefers-reduced-motion: reduce` (CDP `Emulation.setEmulatedMedia`) |
 | `setViewport` / `setMobileViewport` | viewport explicite / vue `mobile` de `vues-recette.json` (charte-ui.md — testable dès 360px) |
-| `clickButtonByText` | trouve un contrôle (`SELECTEUR_CONTROLES` : `<button>`, `[role="button"]`, `<summary>` — source unique, partagée avec `survoler` et `infobulleDe`) par son NOM ACCESSIBLE (`session, texte, { exact = true, dans, rangee, modifiers, attendreChangement = false, attenteMs = ATTENTE_CIBLE }` — correspondance EXACTE par défaut) : son texte, sinon `aria-label`, sinon `title` (`CORPS_NOM_ACCESSIBLE`, partagé avec `survoler` et `infobulleDe`) — un portrait `button.ptile` ou un bouton du dock d'exploration (`.worldmap-btn`) n'a aucun texte ; `scrollIntoView`, PUIS lit son rect et clique via un VRAI clic CDP (`Input.dispatchMouseEvent` pressed+released) — SCROLL-AWARE : lire le rect AVANT le scroll fait rater le clic SILENCIEUSEMENT (aucune erreur, aucun effet). Correspondance EXACTE par défaut (texte ENTIER, espaces et apostrophes normalisés) — une sous-chaîne trouvait cinq cibles pour « Atelier » ; `{exact:false}` DEMANDE la sous-chaîne, pour un libellé à partie variable ; `{dans}` = sélecteur RACINE où chercher, quand le même libellé vit dans deux zones de l'écran — racine d'une modale : `.modal-overlay` ; racine d'un ÉCRAN PLEIN (`ScreenShell`, `src/ui/ScreenShell.tsx` : bibliothèque de campagnes, carte du monde, port, marché, dossier de navire, carnet, possessions, voyage, hub de ville, sélection du groupe…) : `.worldmap-overlay` — `{ dans: '.modal-overlay' }` n'y trouve RIEN ; `{rangee}` = texte d'une RANGÉE quand chaque rangée d'une liste porte le même bouton (les « Choisir » de la modale « Choisir la campagne » : `{ rangee: 'La Diligence' }`) — seuls comptent les boutons de l'ancêtre le plus proche de ce texte qui en contient un, et une rangée introuvable est un refus qui la nomme (friction mesurée en recette E7, #1343) ; si PLUSIEURS boutons matchent, le premier est cliqué et l'ambiguïté est AVERTIE sur `stderr` avec les textes concurrents ; `{attendreChangement}` (`true` = `DELAI_CHANGEMENT`, 2 s, ou un délai en ms) LÈVE si ni le DOM ni l'état du store n'ont bougé après le clic — un clic sans effet ne passe plus en silence (friction #2290) ; l'empreinte ignore les attributs de RENDU réécrits à chaque image (`ATTRIBUTS_VOLATILS` : `data-rendus`, `data-file` du canevas, `src/gameIso/stage/GameStage3D.tsx`), sans quoi l'écran de jeu « bougerait » sans clic ; `{attenteMs}` borne l'attente d'un recouvrement TRANSITOIRE (rangée `clicReel`) |
+| `clickButtonByText` | trouve un contrôle (`SELECTEUR_CONTROLES` : `<button>`, `[role="button"]`, `<summary>` — source unique, partagée avec `survoler` et `infobulleDe`) par son NOM ACCESSIBLE (`session, texte, { exact = true, dans, rangee, modifiers, attendreChangement = false, attenteMs = ATTENTE_CIBLE }` — correspondance EXACTE par défaut) : son `aria-label` explicite, sinon son texte ; `title` si le nom obtenu est vide (`CORPS_NOM_ACCESSIBLE`, partagé avec `survoler` et `infobulleDe`) — un portrait `button.ptile` peut porter ses Blessures (`14/14`) en texte : l'ARIA nommant le héros et son geste prime ; un bouton du dock d'exploration (`.worldmap-btn`) peut se nommer par son `title` ; `scrollIntoView`, PUIS lit son rect et clique via un VRAI clic CDP (`Input.dispatchMouseEvent` pressed+released) — SCROLL-AWARE : lire le rect AVANT le scroll fait rater le clic SILENCIEUSEMENT (aucune erreur, aucun effet). Correspondance EXACTE par défaut (texte ENTIER, espaces et apostrophes normalisés) — une sous-chaîne trouvait cinq cibles pour « Atelier » ; `{exact:false}` DEMANDE la sous-chaîne, pour un libellé à partie variable ; `{dans}` = sélecteur RACINE où chercher, quand le même libellé vit dans deux zones de l'écran — racine d'une modale : `.modal-overlay` ; racine d'un ÉCRAN PLEIN (`ScreenShell`, `src/ui/ScreenShell.tsx` : bibliothèque de campagnes, carte du monde, port, marché, dossier de navire, carnet, possessions, voyage, hub de ville, sélection du groupe…) : `.worldmap-overlay` — `{ dans: '.modal-overlay' }` n'y trouve RIEN ; `{rangee}` = texte d'une RANGÉE quand chaque rangée d'une liste porte le même bouton (les « Choisir » de la modale « Choisir la campagne » : `{ rangee: 'La Diligence' }`) — seuls comptent les boutons de l'ancêtre le plus proche de ce texte qui en contient un, et une rangée introuvable est un refus qui la nomme (friction mesurée en recette E7, #1343) ; si PLUSIEURS boutons matchent, le clic LÈVE avant tout événement ; préciser `{ dans }` ou `{ rangee }` ; `{attendreChangement}` (`true` = `DELAI_CHANGEMENT`, 2 s, ou un délai en ms) LÈVE si ni le DOM ni l'état du store n'ont bougé après le clic — un clic sans effet ne passe plus en silence (friction #2290) ; l'empreinte ignore les attributs de RENDU réécrits à chaque image (`ATTRIBUTS_VOLATILS` : `data-rendus`, `data-file` du canevas, `src/gameIso/stage/GameStage3D.tsx`), sans quoi l'écran de jeu « bougerait » sans clic ; `{attenteMs}` borne l’apparition du bouton puis le recouvrement transitoire ; une ambiguïté lève immédiatement. L’empreinte d’effet se prend après apparition et ignore la marque de localisation `data-recette-cible` |
 | `cliquerSelecteur` | CLIC RÉEL d'un contrôle désigné par un SÉLECTEUR (`session, selecteur, { modifiers, attendreChangement, attenteMs = ATTENTE_CIBLE }`) — le pendant de `clickButtonByText` quand le contrôle n'a PAS de texte (bouton à glyphe : tiroir du journal `.ld-btn`, ouvreur d'écran). SCROLL-AWARE, et il REFUSE en le nommant : cible absente, boîte 0×0 (non rendue), contrôle FERMÉ (refus de `clicReel`, raison citée) — jamais un clic silencieux qui n'a rien fait ; `{attendreChangement}` : même contrôle d'effet que `clickButtonByText`. Il ATTEND l'apparition du sélecteur (`attendreSelecteur`, `attenteMs`, 8 s) : juste après « Scénarios de test », `[data-testid="scenario-launch-embuscade"]` n'est pas monté ; à l'échéance, « cliquerSelecteur : « sel » absent du DOM après N ms » |
 | `clicReel` | `clicReel(session, x, y, modifiers = 0, { cible, libelle, bouton = 'left', dureeMs = 0, attenteMs = ATTENTE_CIBLE })` : la triade CDP `mouseMoved`/`mousePressed`/`mouseReleased` — geste de clic UNIQUE du module : tout helper qui clique passe par là, aucun ne la réécrit. Le localisateur MARQUE sa cible (`data-recette-cible`) ; AVANT d'émettre, `clicReel` vérifie que la cible est OUVERTE — sinon il LÈVE en nommant le mécanisme (`disabled`, ou `aria-disabled` de `GatedAction`) et la raison affichée (`aria-describedby`, `[data-gate]`) — puis que `elementFromPoint` au point est la cible ou un de ses descendants, et sinon RELIT jusqu'à `attenteMs` (`ATTENTE_CIBLE`, 8 s) — un recouvrement TRANSITOIRE passe : la scène de dés `div.rm-scene` couvre la fenêtre de Défense le temps du roulis —, puis LÈVE à l'échéance en nommant le DERNIER élément qui recouvre et sa boîte (« … RECOUVRE la cible, toujours après N ms » ; #2220 : une barre de groupe recouvrait l'onglet visé, et le clic partait sur elle). `bouton` (`left`, `right`, `middle`) choisit le bouton pressé, `dureeMs` le temps TENU entre l'appui et le relâchement |
+| `tournerCamera` | `tournerCamera(session, degres, {attenteMs=8000})` : glisser réel du bouton milieu, par `clicReel`, puis observation `camera()` ; rend `{avant,apres,delta}`. Refuse degré non fini, rotation active, stage absent ou recouvert, résultat divergent. Zéro n’émet aucun événement. Les déplacements restent dans le stage visible ; relâchement tenté une fois si un mouvement échoue, les deux erreurs sont conservées si le relâchement échoue aussi. `attenteMs`, fini et positif ou nul, est un budget commun dès la première observation ; chaque portion et l’observation finale consomment ce même budget. Un angle dont la soustraction ne progresse pas est refusé avant toute entrée. Relire les positions de cases après ce geste. |
 | `clicDroit` | CLIC DROIT réel (`session, cible, { defiler = true, modifiers }`) — `cible` = un SÉLECTEUR, sinon le TEXTE exact d'un contrôle (même résolution pour `appuiLong`, `toucher`, `molette`, `survoler`) —, contrôlé comme `clicReel` (cible ouverte, non recouverte) : le navigateur en tire le `contextmenu`. Rend le point |
 | `appuiLong` | APPUI LONG à la souris (`session, cible, ms = 800, { defiler, modifiers }`) : bouton gauche TENU `ms` millisecondes (`clicReel` à `dureeMs`), cible contrôlée comme lui. Rend le point |
 | `toucher` | TOUCHER réel (`session, cible, { dureeMs = 0, defiler }`, `Input.dispatchTouchEvent` : `touchStart`, puis `touchEnd` après `dureeMs`), cible contrôlée comme `clicReel`. Rend le point. ⚠ LIMITE CONNUE (#1822) : l'émulation tactile du CDP n'émet ni `contextmenu` ni `pointercancel` pendant un appui long — l'ordre de ces événements sur Android NE SE RECETTE PAS en navigateur ; seul le test unitaire le couvre |
 | `molette` | MOLETTE RÉELLE (`session, cible, deltaY, { deltaX = 0 }`, `mouseWheel`) au centre de la partie VISIBLE de la cible — sans `scrollIntoView` : c'est la molette qui fait défiler, comme celle d'un joueur. LÈVE si la cible ne montre rien dans la fenêtre. Rend le point |
 | `deplierVers` | AMÈNE un champ à l'écran comme un joueur (`session, selecteur, { pasPx = 240, maxPas = 40 }`) : chaque `<details>` FERMÉ qui l'enveloppe s'ouvre, du plus extérieur au plus intérieur, par un CLIC RÉEL sur son `<summary>`, puis le champ vient par la molette — `scrollIntoView` ne ramène PAS un champ d'un `<details>` replié (#1853 L3, cinq scripts perdus). LÈVE en le nommant : élément absent, `<details>` sans `<summary>`, clic qui n'ouvre pas, boîte nulle, molette qui ne fait plus défiler, crans épuisés. Rend le centre du champ. Les ops d'effet (`details.eff-row`) et les groupes repliés du Codex s'atteignent ainsi ; un geste qui vise une boîte nulle le suggère dans sa levée |
 | `ouvrirFiche` | OUVRE la fiche d'une entrée du Compendium AUX GESTES (`session, { groupe, categorie, entree }`) : bouton « Compendium » du menu si `.screen.codex` n'est pas monté, onglet du `groupe` (`[role=tab]` de `.codex-groups`), pastille de la `categorie` (`button.codex-cat`, texte sans son compteur, dépliée de son `details.fold` par `deplierVers`), frappe de l'`entree` dans `.codex-search`, clic de la rangée dont le `.lr-name` vaut `entree`. Rend `{ entree }` | l'entrée se désigne par ses LIBELLÉS visibles : le Codex ne publie aucun id au DOM. LÈVE en nommant les offertes (catégories, dix premières rangées), et si la rangée cliquée n'est pas retenue (`aria-current="true"`). Chemins des niches : § « Chemins canoniques du Codex » |
-| `resoudreModales` + `CASCADE_LABELS` + `IDENTITE_FENETRE` | RÉSOUT (`session, etape = 'resoudreModales', { labels, max = 40, pauseMs, attenteMs = 30000, arret }`) toute fenêtre ouverte (`.modal-overlay`) jusqu'à ce qu'il n'y en ait plus — DÉFINITION UNIQUE partagée par les sondes. Deux gestes, dans cet ordre : (1) un bouton d'AVANCEMENT ouvert (`CASCADE_LABELS` : Lancer, Appliquer, Conclure, Poser la zone, Continuer… — aucun nom de RÈGLE n'y figure), cliqué par `cliquerPremierOffert` ; un libellé de SORTIE (`LABELS_DE_SORTIE` : « Fermer ») n'avance jamais une fenêtre à choix. L'avancement PRIME : un groupe d'options FACULTATIF sans défaut — la réaction Porte-Bouclier de la Défense (Avantages à dépenser, aucune option retenue, `useDefenseJetProps`) — n'est JAMAIS tranché à la place du joueur quand « Lancer » est ouvert ; (2) sinon, la **première option OUVERTE** d'un groupe d'options (`OptionChooser` : `.seg`, `.rm-loc-grid`) dont aucune option n'est retenue (`aria-pressed`) — une fenêtre qui ne peut avancer qu'une fois TRANCHÉE, par la FORME du contrôle, jamais par le nom d'une règle. CHOISIR N'EST PAS AVANCER (#2306 B) : après le clic d'une option, la fenêtre est RELUE ; un bouton d'avancement ouvert est pris, même si l'option reste offerte sans être retenue (« Dévier (−1 PA) » d'une Blessure critique). Contrôles lus par `SELECTEUR_CONTROLES`. RENVOIE la liste des CHOIX faits à la place du joueur, `[{ fenetre, option, offertes }]` (fenêtre = nom accessible du dialogue), et imprime chacun une fois son clic ÉMIS (un clic refusé n'est ni compté ni imprimé). Une LEVÉE porte les choix faits jusque-là (`erreur.choix`, `porterChoix`) ; `piloterCombat`, `avancerDeRounds` et `demarrer` les cumulent aussi à la levée. `piloterCombat`/`avancerDeRounds` et `demarrer` les CUMULENT et les rendent (`choix`) ; les recettes committées (`intentions-portee`, `hauteur-reelle`, `hud-clickables`, `console-pont-formes`) les impriment à leur rapport de sortie (`decrireChoix`). Une recette qui attend une option précise l'asserte sur cette liste. `{ arret(identite) }` est consulté à CHAQUE lecture avec l'IDENTITÉ de la fenêtre ouverte — `IDENTITE_FENETRE` : `{ cle, jet, etape, nom }`, où `cle` = l'entrée élue par l'arbitre des modales (`__wfrp.auto().activeModal`, registre `src/state/modalArbiter.ts`), `jet`/`etape` = le `jet` et le `kind` de l'étape de cascade courante (`defense`/`defenseJet` pour une Défense), `nom` = le nom accessible du dialogue — ; vrai = rendre la main, fenêtre laissée OUVERTE : `resoudreModales(session, 'défense', { arret: (f) => f.jet === 'defense' })`. Un GESTE SUR LA CARTE attendu (#2306 A), lu par l'observation du jeu `__wfrp.gesteCarteAttendu()`, LÈVE en le NOMMANT (`GESTES_CARTE`) : « pose de zone en cours, cliquer une case » (après « Poser la zone », la fenêtre se masque), « visée de siège en cours, cliquer une case », « choix de cibles en cours, cliquer les cibles » — le résolveur ne rend JAMAIS la main tant que la carte attend, et `piloterCombat` lui passe la main dès qu'un geste carte est attendu ; le geste est un clic réel sur la case (`__wfrp.tileScreenPos` puis `clicReel`), puis relancer `resoudreModales` (piège « Sort de ZONE » ci-dessous). La fin se juge au STORE. UNE SEULE HORLOGE D'ATTENTE : une lecture qui n'offre rien à résoudre — étape de cascade (`pendingCascade`) sans fenêtre au DOM, OU fenêtre sans option à choisir ni bouton d'avancement ouvert (roulis de 750 ms, cascade Surprise entre « Tout lancer » et « Terminer ») — est RELUE pendant `attenteMs` (30 s) — le même délai borne un bouton RECOUVERT le temps du roulis (`div.rm-scene`, rangée `clicReel`) ; à l'échéance la levée nomme la DERNIÈRE lecture : étape, fenêtre, chaque bouton et son état (désactivés compris). Lève « l'option « X » ne fait pas avancer la fenêtre » quand l'option ELLE-MÊME n'a rien changé : deux clics dont l'empreinte (état des options, longueur du journal, `pendingCascade`) est restée identique — jamais sur des boutons identiques. ⚠ `max` (40) est un BUDGET TOTAL de clics pour fermer la cascade ENTIÈRE, **pas un pas unitaire** : l'helper lève si une fenêtre reste ouverte au bout du budget, donc `{ max: 1 }` ne sert PAS à « avancer d'un cran » — il lève aussitôt. Pour avancer d'UN pas, cliquer soi-même — `cliquerPremierOffert` avec le libellé voulu, ou `cliquerSelecteur` sur l'option visée (friction mesurée en recette #1852, 2026-09-21) |
+| `resoudreModales` + `CASCADE_LABELS` + `IDENTITE_FENETRE` | `session, etape, { labels, max = 40, pauseMs = 600, attenteMs = 30000, arret, dans }` : observe la boîte supérieure (`dialogueDuDessus`) et avance par ses vrais contrôles. Sans portée explicite, exige pendingCascade ET modale élue ET coquille RollShell (`data-champ`, `data-plein`). Les fiches restent refusées, même avec `{dans}`. `arret(identite)` rend avant tout geste ; identité = `{cle,jet,etape,nom}` enrichie de `auto().cascade` (`id,kind,interaction,ready,chosen,amount`). Une étape présente avec observation canonique absente ou incohérente (id/kind divergent, interaction vide, ready non booléen) lève avant tout geste, même avec `{dans}`. `arret` reste consulté avant ce refus. **Choix et quantité lèvent avant tout clic, même ready**. Une valeur initiale n’est pas un consentement. Un groupe obligatoire sans avancement lève en nommant les options offertes ; choisir puis confirmer au vrai clic scopé, avant de drainer la suite. Un groupe facultatif laisse Lancer ouvert : seul Lancer est pris. Aucun choix automatique ; retour void. Un geste carte lève en le nommant (`tileScreenPos` puis `clicReel`, ensuite relancer). Une lecture transitoire sans avancement attend `attenteMs`, puis nomme la dernière lecture. `max` borne toute la cascade ; pour un seul pas, cliquer explicitement. |
 | `cliquerPremierOffert` | CLIQUE le premier des libellés (`session, libelles, { dans?, offerts?, attenteMs = ATTENTE_CIBLE }`, ordre de préférence, sous-chaîne) qu'offre un contrôle OUVERT de `dans` (`.modal-overlay` par défaut) — la primitive UNIQUE des issues de fenêtre : avancer (`resoudreModales`), quitter un jet (« Renoncer », « Annuler », « Fermer »), fermer un briefing. Rend le texte cliqué ; sans libellé offert, LÈVE en nommant les contrôles ouverts, aucun clic émis |
-| `realKey` | frappe RÉELLE (`session, touche`, `Input.dispatchKeyEvent` : `rawKeyDown`/`char`/`keyUp`) — traverse les MÊMES handlers que le clavier physique (`keybindings.ts`), contrairement à un `KeyboardEvent` JS synthétique souvent ignoré. UNE forme d'argument pour toute la famille `realKey*` : la TOUCHE `{ key, code?, windowsVirtualKeyCode?, modifiers? }` — pour Échap, `session` puis `{ key: 'Escape' }` ; seul `key` est requis, `code` et le code virtuel se déduisent de lui (`scripts/recette/lib.mjs`). Un chiffre se déduit en `DigitN` (code virtuel 48-57) : `{ key: '1' }` répond au dialogue. Alias français : `frapperTouche` (même geste, même forme). ⚠ Observé en recette #1752 le 2026-09-17 : `Enter` envoyé sur un `<button>` FOCALISÉ n'a pas activé le bouton (`keydown` reçu, `defaultPrevented:false`, aucun `click`) ; `Space` l'a activé. Une frappe d'activation se mesure donc, elle ne se suppose pas |
+| `realKey` | frappe RÉELLE (`session, { key, code?, windowsVirtualKeyCode?, modifiers? }`, `Input.dispatchKeyEvent` : `rawKeyDown`/`char`/`keyUp`) — traverse les MÊMES handlers que le clavier physique (`keybindings.ts`), contrairement à un `KeyboardEvent` JS synthétique souvent ignoré. UNE forme d'argument pour toute la famille `realKey*` : la TOUCHE `{ key, code?, windowsVirtualKeyCode?, modifiers? }` — pour Échap, `session` puis `{ key: 'Escape' }` ; seul `key` est requis, `code` et le code virtuel se déduisent de lui (`scripts/recette/lib.mjs`). Un chiffre se déduit en `DigitN` (code virtuel 48-57) : `{ key: '1' }` répond au dialogue. Alias français : `frapperTouche` (même geste, même forme). ⚠ Observé en recette #1752 le 2026-09-17 : `Enter` envoyé sur un `<button>` FOCALISÉ n'a pas activé le bouton (`keydown` reçu, `defaultPrevented:false`, aucun `click`) ; `Space` l'a activé. Une frappe d'activation se mesure donc, elle ne se suppose pas |
 | `realKeyDown` / `realKeyUp` + `ALT` / `MOD_ALT` | geste MAINTENU (`session, ALT` — la même TOUCHE que `realKey`, `ALT` imposant `code`/code virtuel) : l'appui et le relâchement sont deux appels, et ce qui se joue ENTRE les deux porte `{ modifiers: MOD_ALT }` (`survoler`, `clickButtonByText`) — sinon l'événement déclare la touche relâchée. C'est le pilotage d'**Alt maintenu** (`decor.reveler`) : halo + plaque de nom sur chaque utilisable visible, le survolé agrandi ; relâché, le champ redevient muet. ⚠ `__wfrp.screen('editor')` charge la scène-FIXTURE, pas la scène active — pour ouvrir un document précis, `editorOpen(id)` ; et un `querySelector` de pastille reste vrai SOUS la modale d'intro (mesurer la scène, pas le seul DOM) |
 | `typeInField` | SAISIE réelle dans un champ (`session, selecteur, texte, { clear = true, attendu }`) : focus par VRAI clic CDP — et LÈVE si le champ n'a pas le focus après ce clic, aucune frappe émise (#1853 L3 : un `<input type=number>` hors focus recevait une insertion perdue) —, puis `Input.insertText` — l'insertion passe par le pipeline d'édition, donc le `onChange` React s'exécute (mesuré : `ab12cd` frappé dans `.coop-code-input` se lit `AB12CD`, la casse venant du handler React de `CoopCodeInput`). Rend la valeur relue APRÈS la frappe ; un écart AVERTIT sur `stderr` (transformation du `onChange`, ou frappe additive), `{attendu}` (chaîne ou prédicat) le durcit en ERREUR. C'est la sortie du piège « Champ CONTRÔLÉ React » ci-dessous |
-| `selectOption` | CHOISIT une option d'un `<select>` AU GESTE (`session, selecteur, libelle`) — par son LIBELLÉ VISIBLE ; `{ par: 'valeur' }` vise la valeur interne : focus par VRAI clic CDP, `value` posée par le SETTER NATIF puis `input`+`change` dispatchés — un `<select>` ne s'ouvre pas en headless (popup natif, hors DOM), le geste rejouable est celui du clavier. Plusieurs options de même libellé : la PREMIÈRE, et l'ambiguïté AVERTIE sur `stderr` (`avertirAmbiguite`, comme `clickButtonByText`). Refus explicites : liste absente, aucune option ne correspond (les libellés, ou les valeurs, offerts sont remontés), option FERMÉE (`disabled`) — aucun choix émis. Rend `{valeur, libelle}` RELUS après le geste |
+| `selectOption` | CHOISIT une option d'un `<select>` AU GESTE (`session, selecteur, libelle`) — par son LIBELLÉ VISIBLE ; `{ par: 'valeur' }` vise la valeur interne : focus par VRAI clic CDP, `value` posée par le SETTER NATIF puis `input`+`change` dispatchés — le popup natif est hors DOM et peut rester ouvert en headless. `shot(..., {neutraliser:true})` demande explicitement Échap puis blur ; cette neutralisation modifie le focus et l’état affiché. La capture par défaut préserve cet état. Plusieurs options correspondantes : refus avant tout clic, focus, `input` ou `change` ; préciser `{ par: 'valeur' }` pour des libellés identiques à valeurs distinctes. Refus explicites : liste absente, aucune option ne correspond (les libellés, ou les valeurs, offerts sont remontés), option FERMÉE (`disabled`) — aucun choix émis. Rend `{valeur, libelle}` RELUS après le geste |
 | `champParLibelle` | SÉLECTEUR CSS d'un champ visé par son LIBELLÉ VISIBLE (`session, 'dernier bloc'`) : il pose un `data-recette` inerte sur le champ trouvé et rend `[data-recette=…]`. Nécessaire parce que les `id` de `NumberField`/`useId` (`:r5:`, `:ra:`) ne sont PAS des sélecteurs CSS valides — `querySelector('#:r5:')` jette. `{dans}` = sélecteur RACINE où chercher, même option que `clickButtonByText` : sans elle, le PREMIER champ du document qui porte ce libellé est pris — à l'éditeur, le « Nom » de l'inspecteur passe avant celui de la modale « Enregistrer » (`{ dans: '.modal-overlay' }`) |
 | `poserFichier` | PEUPLE un `input[type=file]` (`session, selecteur, chemin, {dans?}`) par les appels CDP `DOM.enable` / `DOM.getDocument` / `DOM.querySelector` / `DOM.setFileInputFiles` : l'`input` reçoit son `change` sans aucun dialogue — cliquer son `<label>` ouvrirait le sélecteur de fichier de l'OS, qu'aucun pilote ne ferme. `chemin` est résolu en absolu (et rendu). REFUSE en le nommant : racine `dans` absente, `input` absent |
 | `verdictDebordement` | MESURE de la règle stricte 4 à la largeur courante (`session, { dans = 'body', marge = 1 }`) : `{ vw, docSW, debordants:[{tag, aria, droite}] }`. `{dans}` borne la mesure au CALQUE visé (même nom d'option que `clickButtonByText` ; un `{ racine }` est ignoré et la mesure retombe sur `body`) : l'éditeur monté SOUS le calque Narratif n'entre plus au verdict de ce calque (#2001, faux positifs à droite 682) ; calque absent = refus NOMMÉ, jamais un verdict vide. `docSW > vw` = la page pousse latéralement ; `debordants` nomme les contrôles clippés. Un débordement ne se voit pas sur une capture, il se mesure |
@@ -325,7 +326,7 @@ import { openApp, gotoScreen, shot, consoleGuard } from './scripts/recette/lib.m
 const session = await openApp();
 const guard = consoleGuard(session);
 await gotoScreen(session, 'compendium');
-await shot(session, 'compendium-01', 'mon-dossier');
+await shot(session, 'compendium-01', 'C:/temp/recette');
 console.log(guard.errors());
 await session.close();
 ```
@@ -343,7 +344,7 @@ const session = await openApp('http://localhost:5182/', { width: largeur, height
 await gotoScreen(session, 'compendium');
 await selectOption(session, 'select[aria-label="Chapitre du passage"]', '21', { par: 'valeur' });
 await clickButtonByText(session, '+ Fragment');
-await shot(session, 'adresse-01', 'mon-dossier');
+await shot(session, 'adresse-01', 'C:/temp/recette');
 await session.close();
 ```
 
@@ -377,12 +378,16 @@ lancé par un script `.mjs` n'est pas soumis à l'allowlist du shell de l'agent)
 
 **Figer une animation le temps d'une capture** :
 ```js
-import { openApp, evaluate, freezeTimeout, shot } from './scripts/recette/lib.mjs';
+import { openApp, clickButtonByText, freezeTimeout, unfreezeTimeout, shot } from './scripts/recette/lib.mjs';
 const session = await openApp();
-await freezeTimeout(session, [0]); // AVANT de déclencher l'animation
-await evaluate(session, "document.querySelector('.dice-roll-btn').click()");
-await shot(session, 'des-figes', 'mon-dossier');
-await session.close();
+try {
+  await freezeTimeout(session, [60000]);
+  await clickButtonByText(session, 'Lancer', { dans: '.modal-overlay' });
+  await shot(session, 'des-figes', 'C:/temp/recette');
+} finally {
+  await unfreezeTimeout(session);
+  await session.close();
+}
 ```
 
 **Cliquer le VRAI bouton « Lancer » fait lire un `roll` NULL le temps du roulis** : le clic déclenche
@@ -390,8 +395,9 @@ await session.close();
 AVANT d'exécuter le résolveur réel et de committer le jet au store — lire l'état (`pendingTest.roll`,
 `__wfrp.modal()`…) tout de suite après un `Input.dispatchMouseEvent` sur « Lancer » lit donc encore
 `roll: null`. Deux parades : attendre le roulis (`waitFor`, ~800 ms) avant de lire, OU `freezeTimeout`
-(exemple ci-dessus) AVANT le clic — `setTimeout` patché à 0 ms collapse le tumble ET l'atterrissage
-(`LAND_MS`), le résolveur s'exécute quasi immédiatement. **`__wfrp.roll()` n'a PAS ce piège** : il
+AVANT le clic avec `[0]` pour accélérer le roulis et l'atterrissage, puis attendre le résultat.
+L'exemple `[60000]` ci-dessus retarde les callbacks pour photographier l'animation ; restaurer
+`setTimeout` ne réduit pas l'attente des callbacks déjà armés. **`__wfrp.roll()` n'a PAS ce piège** : il
 appelle l'action du store DIRECTEMENT (`devDriveModal`, `src/state/devtools.ts`), sans passer par le
 bouton ni l'animation — réservé au SETUP/observation (doctrine ci-dessous), jamais pour valider le
 flux visuel que le joueur vit.
@@ -400,6 +406,39 @@ Pièges déjà documentés (renvois, pas de doublon) : le buffer console **parta
 sessions/onglets, le **closure-sync** (lire le DOM dans le même `evaluate` que l'action qui change
 l'état React), le **HMR silencieux** qui ramène au menu en pleine recette — voir « Pièges vécus » et
 « Piège du *closure-sync* » plus bas dans ce document.
+
+Les items sans rôle se visent explicitement : `clickItemByText(session, 'Dague', {
+selecteur: '.codex-rows .listrow', nom: '.lr-name' })`. Le localisateur refuse plusieurs
+items avant tout événement et passe par le contrôle de cible de `clicReel`. Les `summary`
+d'AddMenu restent des contrôles natifs : `clickButtonByText(session, '+ Op mécanique', { dans })`.
+Pour le Codex courant, `ouvrirFiche` fournit déjà le parcours complet.
+
+`champParLibelle` exclut les contrôles et leurs options du texte du label : « Espèce (rig) »
+retrouve le `select` enveloppé. `choisirCouleur(session, selecteur, '#aabbcc')` contrôle la
+cible ouverte et atteignable, focalise puis utilise le setter natif avec `input` et `change`.
+Aucun clic sur la pastille : le sélecteur OS ne s'ouvre pas. Dans le créateur, étape `details`,
+Peau se vise par `.appear-panel label.color-chip[title="Peau"] input[type="color"]` ;
+observer `__wfrpCreator.get().apparence.colors.peau` après le geste.
+
+`resoudreModales` résout une coquille RollShell seulement si la boîte supérieure appartient à
+un overlay portant `data-champ` et `data-plein`, avec cascade présente ET modale élue au store ; aucun de ces témoins ne suffit seul.
+Une fiche `fiche-perso` ou `codex` est refusée immédiatement et reste ouverte, même avec
+`{ dans }`. Pour une cérémonie préparée et connue (introduction de scène, bilan), fournir
+une portée explicite, par exemple `{ dans: '.modal-overlay' }` ; sans cette portée, la levée
+« cérémonie indéterminée » préserve la fenêtre. Le résolveur clique toujours DANS la boîte
+marquée, jamais dans une fenêtre inférieure. La portée doit être resserrée quand plusieurs
+cérémonies différentes sont possibles.
+
+`killChromeTree` observe les PID et parents avant l'arrêt, puis attend l’extinction par observations
+successives, en cumulant les descendants identifiés. L’échéance synchrone démarre avant l’arrêt :
+`attenteMs = 2000`, fini et positif ou nul ; le coût de chaque observation consomme ce budget.
+Les pauses utilisent `attendreSync` et sont tronquées au temps restant. Une horloge sans progression
+ou non finie refuse. Chaque instantané est validé intégralement : PID entiers positifs uniques, parents entiers
+positifs ou nuls ; sous Windows, CIM exclut explicitement Idle (PID 0) par `ProcessId > 0`. Le code 255 de `taskkill` seul ne décide rien : arbre observé mort → succès ;
+survivant → refus avec PID. Observation impossible → refus. Un descendant déjà réaffilié avant
+la première observation n'est pas retrouvable par son ancien parent : la preuve porte les
+identités sondées. Le verdict HUD du rail exige un ouvreur seulement quand un navire est présent ;
+sans navire, l'accès au dossier de navire est non mesuré.
 
 ### Session tenue — `scripts/recette/session.mjs`
 
@@ -435,13 +474,69 @@ node scripts/recette/session.mjs purger                                         
   un chemin de `sansPreuve` le retire en une commande : `rm -rf "<chemin>"` (Bash), ou
   `Remove-Item -Recurse -Force "<chemin>"` (PowerShell).
 
+Le 2026-10-12, le transport `node_repl` observé n'acceptait que les imports JavaScript
+(`.js`/`.mjs`) : importer le kit qui dépend de `devtoolsTimers.ts` y échouait.
+Le transport canonique est alors un client `.mjs` exécuté par Node natif depuis CET arbre,
+attaché à la même session tenue. `attacherSession` n'ouvre ni nouveau Chrome ni nouvel onglet ;
+`close` détache seulement le client. Aucun helper générique d'évaluation supplémentaire.
+
+Exemple de client sous `scratchpad/client-timer.mjs`, lancé par
+`node scratchpad/client-timer.mjs` dans l'arbre :
+
+```js
+import { resolve } from 'node:path';
+import { attacherSession, freezeTimeout, unfreezeTimeout, shot } from '../scripts/recette/lib.mjs';
+const session = await attacherSession();
+try {
+  await freezeTimeout(session, [60000]);
+  await shot(session, 'timer-retarde', resolve('scratchpad/recette'));
+} finally {
+  await unfreezeTimeout(session);
+  await session.close();
+}
+```
+
+### Observations et gestes ciblés — complément du 2026-10-12
+
+Les `textarea` React se saisissent par `typeInField(session, selecteur, texte, {clear:true,attendu:texte})` : clic de focus, sélection du contenu, `Input.insertText`, puis valeur relue. Une affectation DOM seule ne prouve pas le changement React.
+
+La sauvegarde du Codex peut offrir `showDirectoryPicker` (File System Access) : ce choix de dossier demande un geste et un dialogue du système, hors pilotage CDP. Le téléchargement observé et son contenu (84 181 caractères en recette du 2026-10-12) prouvent la sortie téléchargée ; ils ne prouvent aucune écriture dans le dossier source.
+
+Pour une erreur Vite, conserver la stack et sa frame, puis inspecter le module demandé et la réponse réseau. Une `ReferenceError` d’import sur disque ou un échec de chunk/HMR appelle un redémarrage à froid et un rechargement complet avant diagnostic ; cela ne garantit pas que l’erreur disparaisse. Une erreur DOM sur null/undefined n’est pas assimilée à un rechargement.
+
+`capturerPion` exige un combat et la case projetée du combattant ; hors combat, le refus est nommé.
+
+`controlesVisibles(session, {dans:'body'})` observe les affordances `button`, `[role=button]`, `summary`, sans clic ni défilement : nom accessible (ARIA non vide, texte, title), tag, ARIA, rect visible après viewport/clip, `ouvert`. Les ancêtres inert et les contenus de details fermés sont exclus ; leur summary reste visible. Disabled/aria-disabled restent inventoriés avec `ouvert:false`. Les champs se lisent via `champParLibelle` et leur valeur : cet inventaire ne les inclut pas. Une ambiguïté `rangee` nomme les rangées retenues ; préciser la portée du tableau évite qu’un texte « Lance » extérieur englobe toutes ses lignes.
+
+```js
+const sel = await champParLibelle(session, 'Actif', { dans: '.bloc-cible' });
+const checked = await evaluate(session, `document.querySelector(${JSON.stringify(sel)}).checked`);
+if (!checked) await cliquerSelecteur(session, sel);
+await clickButtonByText(session, '+ Op mécanique', { dans: '.codex-detail details.eff-add' });
+await setAtelier(session, true, { dans: '.codex-top' });
+await typeInField(session, '.codex-search', 'Lance', { clear: true, attendu: 'Lance' });
+const valeur = await typeInField(session, '.codex-search', ' courte', { clear: false, attendu: 'Lance courte' });
+```
+
+La saisie utilise `Input.insertText` et relit la valeur ; aucune boucle lettre par lettre nécessaire. Les chips à compteur se visent par préfixe demandé (`exact:false`) dans leur groupe ; plusieurs correspondances restent refusées. Les chemins Windows des recettes peuvent utiliser `/`.
+
+Pour le créateur, attendre le résultat voulu dans la page avec `waitFor(session, "window.__wfrpCreator.get().apparence.colors.peau === '#123456'", {timeoutMs:20000})`, en adaptant le prédicat à l’étape visée ; une attente client répétée n’est pas nécessaire. `gotoScreen` prouve le montage, pas la fin d’une opération du créateur.
+
+Une capture avec ancre se mesure : relever `document.scrollingElement.scrollTop` et le `scrollTop` du conteneur interne avant/après, conserver `shot` avant puis `shot(...,{ancre:selecteur})` après, et observer le sujet ainsi que les deux offsets. Un saut de page ou un scroll interne ne se diagnostique pas sur la seule image. `neutraliser` reste opt-in et mute le focus.
+
+`installDevtools` active `AI_TRACE` : observer `__wfrp.auto()` (état/action), `__wfrp.log()` (journal) et la frise montée, puis exercer un vrai geste. Le scénario `entrainement` couvre un combat court ; `dome` prépare ses quatre combattants ; `magie-hors-combat` observe la magie sans ennemis, en exploration sans rounds de combat. Les POI existants se préparent avec `__wfrp.campaign('loup-et-saumure',11,'ls-quai-salzenmund')` puis `ready`.
+
+Limites #557 : `focus` prépare la Focalisation sans fixer le résultat d’un jet. L’étape courante se lit par `pendingCascade.participants[pendingCascade.cursor]`, son interaction par `auto().cascade` ; elle se choisit au vrai geste. `fear` couvre l’approche d’une source en combat, pas une rencontre générale (aucun helper `encounterPsych`). `giveTrapping` vise un héros du groupe, pas un ennemi. `spell` passe par `verdictApprentissage` et ne prépare pas tous les prérequis du lanceur : préférer `dome`/`magie-hors-combat` prééquipés. `grantTrait` ne rejoue pas le spawn. `openApp` reçoit une URL string en premier argument.
+
+Surfaces navales distinctes : le geste secondaire d’inspection de la frise ouvre `InspectPanel`, Modal `inspection` nommé « Inspection — … », dont `ShipInspectBody` rend `PosteDetail` en lecture seule. Le clic primaire de frise est une action/cible. Le dock hors ciblage ouvre `PosteSheet`, Planche `feuille-postes` (Postes/Manœuvre), qui embarque `StationSheet` ; ce corps n’est pas une modale indépendante. Le dossier de campagne `ShipDossier` est une autre porte ScreenShell. Ne pas confondre ces scopes ni supposer des commandes de munitions dans l’inspection.
+
 ### Mise en place — `scripts/recette/setup.mjs`
 
 `demarrer({ scenario, graine, combat, attacher, session })` ouvre l'app (ou s'attache à la session
 tenue, ou reprend la `session` donnée), lance le scénario par `__wfrp.scenario`, attend l'entrée en
 scène, résout les fenêtres d'ouverture, puis, si `combat` est donné, pose la rencontre (`__wfrp.fight`)
-et OUVRE le premier Round au geste du joueur (`ouvrirRound`). Rend `{ session, choix }` (`choix` : ceux
-des résolutions d'ouverture). Sur échec, il ne ferme que la session qu'il a ouverte ou attachée,
+et OUVRE le premier Round au geste du joueur (`ouvrirRound`). Rend `{ session }`. Un choix interactif
+d’ouverture lève en laissant sa fenêtre ouverte. Sur échec, il ne ferme que la session qu'il a ouverte ou attachée,
 jamais celle qu'on lui a donnée. La console depuis l'amorçage est `session.console`. `url` et
 `timeoutMs` (120 s) passent à `openApp` quand il ouvre son propre Chrome.
 
@@ -451,10 +546,9 @@ jamais celle qu'on lui a donnée. La console depuis l'amorçage est `session.con
 le gabarit et le kit de CET arbre par leur URL `file:///` (exigée sous Windows pour un script hors de
 l'arbre, encadré ci-dessus), et son corps appelle `recette(corps, { attacher = true, scenario, graine,
 combat, url })`. `recette` déroule `demarrer` (session TENUE par défaut, `attacher`), puis
-`corps({ session, choix })`, puis le VERDICT de console — toute erreur depuis l'amorçage (ou depuis
+`corps({ session })`, puis le VERDICT de console — toute erreur depuis l'amorçage (ou depuis
 l'attache) fait LEVER en la citant —, puis `session.close()` (détache une session tenue, ferme un Chrome
-ouvert ici) ; elle imprime les choix faits à la place du joueur et les avertissements de console, et
-rend `{ choix, avertissements }`.
+ouvert ici) ; elle imprime les avertissements de console et rend `{ avertissements }`.
 
 Le script s'écrit avec l'outil d'ÉCRITURE de fichier (`Write`), au scratchpad — jamais par heredoc, `sed`
 ou `node -e` : Git Bash y casse les antislashs, les regex et l'accentué (frictions #2001, 2026-10-06).
@@ -468,9 +562,9 @@ ou `node -e` : Git Bash y casse les antislashs, les regex et l'accentué (fricti
 | Compendium | `.screen.codex` ; onglets `[role=tab]` de `.codex-groups` ; pastilles `button.codex-cat` (compteur en `span.count`, certaines sous un `details.fold` replié) ; recherche `input.codex-search` ; rangées `.codex-rows button.listrow` (libellé `.lr-name`, retenue = `aria-current="true"`) — `ouvrirFiche` | `src/ui/compendium/CompendiumScreen.tsx` |
 | Barre de l'éditeur | « ← Menu », « Fichier ▾ » (`aria-haspopup=menu`) ; items `.menu-item` : « Nouveau projet », « Ouvrir… », « Enregistrer… », « Importer JSON… » (un `<label>` sur un `<input type=file>`), « Exporter JSON », « Exporter ASCII (grilles carte) », « Exporter forme dépôt (dev) », « Avancé — JSON (dialogues, triggers, rencontres) » | `src/ui/editor/EditorToolbar.tsx` |
 | Exploration (dock) | carte du monde : `.worldmap-btn[title^="Carte du monde"]` (« Carte du monde — voyager », ou « … voyage interrompu (reprendre) ») — monté SEULEMENT quand la scène est un lieu de la carte du monde ou qu'un voyage est en cours ; `clickButtonByText(session, 'Carte du monde', { exact: false })` le vise par son `title` | `src/ui/ExplorationDock.tsx`, condition dans `src/ui/CampaignView.tsx` |
-| Portraits du groupe | fiche d'un héros : `button.ptile[aria-label^="<héros>"]` (`aria-label` = nom, suivi de « — geste secondaire (clic droit, appui long, touche Menu) : inspecter » quand le geste d'inspection est offert) ; `clickButtonByText(session, '<héros>', { exact: false })` | `src/ui/PortraitTile.tsx` |
+| Portraits du groupe | fiche d'un héros : `button.ptile[aria-label^="<héros>"]` (`aria-label` = nom, suivi de « — geste secondaire (clic droit, appui long, touche Menu) : inspecter » quand le geste d'inspection est offert) ; `clickButtonByText(session, '<héros>', { exact: false, dans: '.party-dock' })` ; la valeur des Blessures en texte ne remplace pas ce nom ARIA | `src/ui/PortraitTile.tsx` |
 | Carte de scène (marche) | marcher vers un déclencheur : clic RÉEL sur sa case, `__wfrp.tileScreenPos({x, y})` puis `clicReel` au centre de la boîte rendue — ZQSD/WASD bute contre les décors et n'arrive pas fiablement | `__wfrp` (`tileScreenPos`) |
-| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId)` | `src/ui/CombatConsole.tsx` |
+| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })`, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/CombatConsole.tsx` |
 
 ### Gabarit — Journal adressé dans un projet à copie adressée
 
@@ -502,6 +596,68 @@ y mettre un texte non vide. Le projet se pose par `__wfrp.projectMinimal()`, s'�
 - Une forme de donnée (schéma zod) se sonde par un script `npx tsx <sonde.ts>` au scratchpad qui importe
   le schéma par son URL `file:///` et imprime `safeParse(v).success` — c'est ainsi que le gabarit
   ci-dessus a été validé.
+
+## Préparation et observation du lot de recette (2026-10-12)
+
+`__wfrp.entree(dataset, id)` lit le registre de datasets runtime et sa clé de schéma ; retourne
+une copie détachée. Dataset inconnu, forme sans collection adressable et entrée absente sont des
+refus nommés. Ce lecteur permet de vérifier une édition du Codex sans ouvrir une autre fiche.
+« Enregistrer » au Codex télécharge un fichier quand aucun accès FS n'est connecté : le kit CDP
+autorise les téléchargements dès sa connexion, `dernierTelechargement(session)` en lit nom et contenu.
+Parcours d'une entrée vivante : `setAtelier(session, true)` → bouton « Éditer » de la fiche →
+saisie → `clickButtonByText(session, 'Enregistrer', { exact: false, dans: '.codex-edit-bar' })`.
+Le bouton rendu peut être « Enregistrer • » ; la portée de sa barre départage les autres sauvegardes.
+La sauvegarde ferme l'éditeur : pour remettre la valeur initiale, rouvrir « Éditer », saisir cette
+valeur puis enregistrer à nouveau. Observer l'entrée par `__wfrp.entree(dataset, id)` après
+chaque enregistrement, et lire le fichier téléchargé avec `dernierTelechargement`.
+La perte de session de Playwright MCP pendant ce téléchargement a été constatée le 2026-09-28
+(#2136) ; utiliser le kit CDP pour ce parcours.
+
+`__wfrp.panTo({ x, y, z? })` centre une case par projection et CTM réelle du stage ; observation,
+aucun déplacement de personnage. À chaque image, le helper mesure le centre rendu et corrige depuis
+le pan vivant si l'écart dépasse 2 pixels, avec la projection, le groupe caméra et le rectangle SVG
+courants. Le retour garantit un écart mesuré d'au plus 2 pixels à cet instant ; il ne garantit pas
+la fin du lissage de caméra. Refus nommé après 120 images sans convergence, si le stage/projection
+est absent ou démonté, si la scène change, si une valeur de projection est non finie, si le stage
+est encore transparent ou si une rotation active empêche un contrôle rendu stable. Pour Q/E, un outil qui frappe puis relâche immédiatement ne
+maintient pas la rotation : utiliser `realKeyDown(session, { key: 'q' })`, laisser tourner,
+puis `realKeyUp(session, { key: 'q' })`. Cela vaut aussi pour le toolset Browser.
+Les captures de ce toolset ne garantissent pas un fichier disque : pour livrer des PNG,
+utiliser `shot(session, nom, dossier)` ou `scripts/recette/shot-screen.mjs`.
+
+`__wfrp.trauma(actorId, traumaId, { be?, d10? }, location?)` prépare un trauma via sa factory,
+sur un acteur résolu par id ; options propres au type de trauma. `location` est une
+`HitLocation` explicite si nécessaire.
+`__wfrp.testCompetence(actorId, { stake, skill: { id, spec? }, ... })` ouvre le Test différé,
+sans lancer : `skill` ou `characteristic` exclusivement, `stake` obligatoire.
+`stake` est une référence canonique ou `{ authored: 'Recette de compétence.' }`, jamais une chaîne.
+Exemple : `__wfrp.testCompetence(id, { stake: { authored: 'Recette de compétence.' }, skill: { id: 'athletisme' } })`.
+La recette clique ensuite « Lancer » puis les gestes de résultat ; ces helpers préparent,
+ils ne remplacent pas le chemin joueur.
+
+Une règle optionnelle se prépare par `__wfrp.rules('tavern-games', true)`, jamais
+`flag('tavern-games')` : `flag` refuse désormais les identifiants de règles en renvoyant à
+`rules`. À l'ouverture d'un interlude, résoudre les cérémonies successives avec une portée
+explicite avant de mesurer ses affordances.
+
+Limites explicites #557 : `focus(id, spell, dr)` prépare la Focalisation ; il ne garantit ni le
+DR ni le résultat du vrai jet d'incantation. Aucun `forceRollResult` n'est exposé : fixer la
+mise en place et observer le vrai jet, ou utiliser le contrôle de dé proposé par la fenêtre.
+Un combat direct suit `fight(encounterId)` → `resoudreModales` (portée de cérémonie connue) →
+`ouvrirRound` (« Commencer le combat ») → `resoudreModales` à nouveau ; la pause de Round
+bloque les capacités tant qu'elle est ouverte. Le drain canonique est `resoudreModales`.
+Surincantation après résultat : `QtyStepper` porte `.cart-step` / `.btn-step`, pas
+`.rm-stepper`. Viser le bouton accessible « Allouer un pas de Durée (+N DR) » ou
+« Rendre un pas de Durée » dans la boîte supérieure ; il faut un budget disponible et un sort
+dont la durée offre cet axe. Le scénario `dome` fournit quatre combattants avec lanceuse
+pré-équipée ; voir § Dôme pour les gestes de carte.
+
+Parure d'objet : groupe → portrait HUD → onglet « Possessions » → ligne de l'objet →
+bouton « Parure ». Le bouton apparaît après sélection de l'objet.
+Limite datée du 2026-09-23 (#1925) : sur Chrome headless Linux/SwiftShader, la recette observait
+les anneaux sans jetons 3D, pareil sur main. Ce constat ne vaut pas
+garantie générale pour les machines actuelles ; juger le rendu 3D sur un environnement
+qui rend effectivement les jetons, en conservant cette limite dans le rapport.
 
 ## Doctrine : piloter COMME UN JOUEUR, pas à la main
 
@@ -574,7 +730,7 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | ouvrir un document à l'éditeur, y préparer une entité | `__wfrp.editorOpen(id)` · `editorPatchEntity(id, patch)` |
 | lire le brouillon de l'éditeur | `__wfrp.editorEntities()` · `editorWorldMap()` |
 | poser un projet en bibliothèque | `__wfrp.projectMinimal()` puis `projectSave(entree)` |
-| cliquer un contrôle (texte, sélecteur, case de console) | `clickButtonByText` · `cliquerSelecteur` · `cliquerAction(session, actionId)` |
+| cliquer un contrôle (texte, sélecteur, case de console) | `clickButtonByText` · `cliquerSelecteur` · `cliquerAction(session, actionId, { cell? })` |
 | clic droit, appui long, toucher, molette, survol | `clicDroit` · `appuiLong` · `toucher` · `molette` · `survoler` |
 | atteindre un champ dans un `<details>` replié | `deplierVers` |
 | frapper une touche, saisir un champ, choisir une option | `realKey` · `typeInField` · `selectOption` |
@@ -593,8 +749,9 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | `state()` | instantané `{screen, sceneId, partyPos, inDialogue, inCombat, party, money…}` | lecture seule ; PROJECTION CURATÉE, pas le store : **`state().battle` n'existe PAS** (`devtools.ts` n'expose que `inCombat: !!s.battle`) — pour le combat, lire `battle()` ou `store.getState().battle` ; `party` est une PROJECTION allégée (`{id, name}` seulement, `devtools.ts`) — ni `.skills` ni `.activeEffects` ; pour inspecter le détail d'un héros, lire `store.getState().party` |
 | `net()` | vue RÉSEAU du siège local `{mode, mySeat, roomCode, gmSeat, ownership, seatNames, presence}` (`state()` n'expose rien de `net`) | lecture seule (copies) ; `gmSeat` `undefined` = camp ennemi à l'IA ; `presence` n'est peuplée QUE côté hôte. Pour AGIR sur le réseau (héberger, rejoindre, attribuer), passer par `store.getState()` — `net()` n'a aucun effet de bord |
 | `entities()` | cartographie des entités de la scène `{id,label,kind,pos,access}` | exclut les entités `hiddenUntilCombat` |
-| `screenPos('id')` | bounding box ÉCRAN (`{x,y,width,height}`) du nœud `[data-cid="id"]` | lecture seule. ⚠ **CADUC pour les JETONS depuis le monde volumique** (#1176, C5a ; mesuré en recette 2026-08-14, cf. #1296) : les corps sont peints dans le canevas WebGL et ne portent plus AUCUN `data-cid` (`stage/spritePicker.ts`, `stage/GameStage3D.tsx`) — `screenPos` y rend `null` pour un combattant ou une entité. Restent adressables par ce canal : les STRUCTURES de siège, dont l'arête porte le `data-cid` du Combattant-mur (`stage/AreteOverlay.tsx`, peuplement `state/aretes.ts`) — l'arête est ancrée sur la case du MUR (sa prise suit le lift du mur), et n'est offerte que PENDANT mon tour : hors tour, aucun contrôleur, donc `screenPos` rend `null`. Pour armer le siège d'un coup de main, `quality('id', 'Siège')` pose l'Atout sur l'arme active (table des tricheurs ci-dessous) ; pour vérifier ce qu'un 1er clic a ARMÉ, lire `battle().preview`. En **vue du DESSUS** (#1176, P3-5c), les pions redeviennent du SVG : chaque jeton y porte un groupe `[data-pion-cid="id"]` (et, dans les deux vues, son chrome porte `[data-chrome-cid="id"]`) — ces nœuds-là sont mesurables, et le pion est CENTRÉ sur sa case (viser le centre de la bbox, pas son bas). **Replis** : (a) agir par les BOUTONS réels de l'UI (HUD, ordre de tour, panneaux) ; (b) pour les raccourcis liés à `e.code`, passer par la voie CDP `realKey` (§ manette/clavier) ; (c) pour viser une CASE, `tileScreenPos` (ci-dessous), qui ne dépend d'aucun `data-cid`. Le repère de clic historique reste valable là où un `data-cid` existe : **viser `{x: x+width/2, y: y+height}` (le BAS de la bbox, pied du token)** plutôt que le centre géométrique — une bbox de créature haute est étirée vers le haut, le centre tombe hors silhouette (résidu #199). Port du serveur de dev : celui de `.claude/launch.json` (5191), pas le défaut Vite |
-| `tileScreenPos({x,y,z?})` | **un SEUL argument, un OBJET** (`tileScreenPos(tile: { x, y, z? })`, `state/devtools.ts`) — ex. `__wfrp.tileScreenPos({ x: 2, y: 5 })`, ou `{ x: 2, y: 5, z: 1 }` pour un étage. ⚠ **piège mesuré** : `tileScreenPos(2, 5)` (deux nombres) ne lève RIEN — le second argument est ignoré, `tile.x`/`tile.y` sont `undefined` et la bbox rendue est un rectangle de `NaN`, que `browser_evaluate` sérialise en `{"x":null,"y":null,"width":null,"height":null}` : un `null` de forme, pas un « hors scène ». Même bounding box ÉCRAN pour une CASE, vide comprise — projetée par `diamondCorners` (`src/geometry/iso.ts`, la géométrie du rendu) puis passée par la CTM du groupe caméra, donc zoom/panoramique/rotation viennent du DOM | lecture seule ; `null` hors scène ou tant que le stage n'est pas monté. Pour un clic, viser le CENTRE (`{x: x+width/2, y: y+height/2}`) : contrairement à un token, une case n'a pas de pied. Vérifié aux 8 crans de caméra contre `screenPos` du jeton du groupe (écart ≤ 6px sur une tuile de 93px = l'ancrage propre du sprite) |
+| `camera()` | observation `{deg, active, sensibilite}` de la rotation courante ; sensibilité du glisser en degrés par pixel | lecture seule ; `active` interdit une nouvelle rotation pendant celle en cours |
+| `codexLocate(categoryId)` | routage canonique d’une catégorie du Codex `{tab,group,cluster}` ; `cluster` vaut null sans regroupement | lecture seule ; catégorie inconnue : refus nommé |
+| `tileScreenPos({x,y,z?})` | un seul argument objet ; x, y et z fourni doivent être finis, sinon refus nommé. Boîte écran `{x,y,width,height}` de la CASE, vide comprise, projetée par `diamondCorners` et la CTM du groupe caméra | lecture seule ; null hors scène ou stage non monté. Clic au centre `{x:x+width/2,y:y+height/2}`. La boîte ne décrit pas un corps 3D ; relire après chaque geste de caméra |
 | `areteScreenPos(x, y, z, dir)` | centre ÉCRAN du trait de CHAQUE geste d'arête offert sur ce côté de case → `[{ x, y, libelle, capacite }]` (`libelle` = l'`aria-label` du trait, `capacite` = son `data-arete-cible`), du plus proche au plus éloigné de l'étage `z` — l'arête est ramenée à sa forme canonique (`canonEdge`) et projetée par la géométrie du peintre (`tileEdge`, `src/geometry/iso.ts`) sur la projection de `tileScreenPos`. C'est la visée d'un geste d'arête au clic réel (sauter par une fenêtre : le trait `[aria-label="Sauter en bas (4 m)"]`, friction #700) au lieu d'un balayage `pickTileAt` | lecture seule ; JEU seulement, aucune variante éditeur. Refus NOMMÉS (`✗`) : hors scène, stage non monté, aucune arête utilisable à cet endroit dans l'état courant (brouillard, contrôleur, étage actif). Cliquer par `cliquerSelecteur` sur l'`aria-label` rendu quand il est unique, sinon `clicReel` au point rendu ; position à relire après tout geste de caméra |
 | `gesteCarteAttendu()` | le geste que la CARTE attend, ou `null` : `{ kind: 'zone' \| 'siege', label, casterId, radius, rangeTiles }` (pose de zone d'un sort ou d'un pilonnage, rayon et portée en cases depuis l'ancre `casterId`) ou `{ kind: 'cibles', label, casterId, cibles }` (cibles supplémentaires d'une incantation, `cibles` = ids déjà retenus) — type `GesteCarteAttendu`, `src/state/devtools.ts` | lecture seule, lue aux prédicats du jeu (`placingZoneOf`, `pendingCast.pickingTargets`). La fenêtre est masquée pendant ce geste : `resoudreModales` LÈVE en le nommant (`GESTES_CARTE`), le geste se fait par `tileScreenPos` puis `clicReel` |
 | `pickTileAt({x,y})` | l'INVERSE de `tileScreenPos` : ce que le PICKING RÉEL résoudrait sous ce PIXEL D'ÉCRAN — `{tile:{x,y,z}|null, cid, via:'sprite'|'decor'|'meuble'|'pas-etage'|'sol'|'aucune', nature:'case'|'combattant'|'entite', geste:{entId?}}`, plus `entId` quand `nature` vaut `'entite'`. **`geste.entId` = l'entité qu'un CLIC à ce pixel traiterait vraiment** (dialogue, marchand, place à s'asseoir) : le verdict dit ce que le pixel FRAPPE, `geste` dit ce que le geste SERT — un PNJ ancré sur la case rend `nature:'case'` (aucun rayon ne nomme un personnage hors combat) et ouvre pourtant son dialogue. Les deux sortent de la fonction que le hook appelle (`stage/geste.ts:entiteDuGeste`), jamais d'une copie : `geste.entId` absent = le clic ne traite aucune entité. La CHAÎNE ENTIÈRE est PARTAGÉE par construction avec le geste (`stage/pickResolve.ts:resoudrePixel`, appelé par `stage/useStagePointer` comme par `stage/pickProbe`) : inversion du pixel (`stage/pickResolve.ts:pointStageSousPixel`) → rayon → meuble dessiné → pas inter-étages → case marchable → sol cross-couche ; la sonde n'a AUCUN étage propre, et la pose qu'elle inverse (projection, caméra du rendu, zoom) est celle que l'hôte a publiée (`stage/spritePicker.ts:CadreRendu`), jamais le store | lecture seule, ne clique RIEN. **L'outil du clic « qui ne fait rien »** : le `via` NOMME l'étage qui a tranché : `'decor'` = le rayon a touché un décor volumique, le clic part sur SA case d'ancrage ; `'meuble'` = aucun rayon ne l'a touché (plateau fin) mais c'est bien la case du meuble DESSINÉE sous le pixel ; `'pas-etage'` = un franchissement vertical voisin du groupe ; `via:'sprite'` avec un `cid` inattendu = un CORPS couvre la case visée (engin 2×2, créature haute) et le clic part sur l'ENTITÉ, pas sur le sol ; `tile:null` = aucune surface résolue à ce pixel (hors carte, ou étage sans surface). Vérifier AVANT de conclure à un bouton/overlay mort, et TOUJOURS relire après un geste de caméra. **Ne rend QUE la bbox de la CASE** : pour viser un CORPS dressé, voir « Cibler un sprite HAUT » (Pièges vécus) |
@@ -658,8 +815,9 @@ vues : canevas remonté, rechargement). Réarmer `echantillonner` avant la desce
 
 **La grille de capacités est PLAFONNÉE** à `RIGHT_CELLS = 12` (`src/ui/CombatConsole.tsx`), sans
 défilement : un gros grimoire déborde et ses derniers sorts n'ont aucune alvéole. Pour recetter un
-sort précis, réordonner `combatants[].spells` au SETUP (ou passer par le scénario court quand il
-existera).
+sort précis, réordonner `combatants[].spells` au SETUP ou utiliser le scénario court existant
+`__wfrp.scenario('dome', 11)` : quatre combattants, une sorcière, sorts `dome`,
+`bouclier-anti-fleches`, `flechette`, `lumiere` ; parcours détaillé § Dôme.
 
 **Flux HORS convention `<flux>Roll/Confirm/Cancel`** (`devDriveModal`/`roll()`/`confirm()`/`cancel()` ne
 les couvrent PAS — cliquer les VRAIS boutons) : `pendingCorruption` (Exposition/Seuil de Corruption,
@@ -732,7 +890,7 @@ pas la cible d'UX.
 | `chance(id, n?)` | points de CHANCE d'un combattant (`Combatant.fortune`), lus avec son Destin : `chance(id)` OBSERVE → `{ id, label, fortune, fate }` ; `chance(id, n)` POSE d'abord n points par `ecrireActeur` (en combat comme hors combat), puis lit | MISE EN PLACE ; `✗` si le combattant est introuvable, ou si `n` n'est pas un entier positif ou nul |
 | `loadout(heroId)` | OBSERVATION du set d'armes, lu là où le jeu lit : `set` (libellé), `principale` et `seconde` (`{ uid, trappingId, label, bouclier }`), `tenues` (armes dérivées), `armeDeParade` (la première tenue, celle que la défense prend par défaut) et `defense` (`bestDefenseMode` : `parade` ou `esquive`) | lecture seule ; `✗` si le combattant est inconnu |
 | `giveTrapping(heroId, trappingId, qty?)` | donne un objet de CATALOGUE à un héros (défaut : le 1er), par le VRAI pipeline `giveTrapping` du store (`applyEffects` → `itemFromGive` : item bien formé, qualités du catalogue, rangement/Encombrement recalculés) | `trappingId` inconnu → message `✗` ; `qty` fixe la quantité de l'instance (ex. `giveTrapping('hero-1','boulet-et-poudre',6)` charge le coffre d'un canon) — ⚠ munitions ≠ rations (achat au marchand : la munition d'artillerie/à distance est un article SÉPARÉ des vivres, jamais suggéré à la place) |
-| `flags()` / `flag('id', value=true)` | lit/force un drapeau de scénario | — |
+| `flags()` / `flag('id', value=true)` | lit/force un drapeau de scénario | id de règle optionnelle refusé avec renvoi à `rules(id, value)` |
 | `setMorale(n)` | pose directement `vessel.morale.score` (setup, MÊME patron que `flag()`) | pas le pipeline hebdomadaire (`recalcMorale`) — sert à rendre la désertion à quai (bande ≤75, `moraleBand(score).desertionRoll`) observable sans dérouler des semaines de facteurs ; `✗` sans `state.vessel` |
 | `gmSeat(bool?)` | flip du siège MJ SOLO (`setGmSeat`, siège 0) — sans argument : BASCULE | ⚠ **`scenario()` ne RÉINITIALISE PAS le siège MJ** (mesuré #1028 : `net.gmSeat` survit à `setParty`/`startScene`/`loadProject` — seuls `setGmSeat` et la fermeture d'un siège `netSeatClosed` y touchent) : appeler `gmSeat(false)` EXPLICITEMENT entre deux scénarios, sinon le 2ᵉ hérite du siège MJ (ennemis conduits à la main, jets surfacés qu'on croyait auto). La VALIDATION du flux MJ reste la checkbox RÉELLE de l'UI (§ Pièges vécus ci-dessous), ce helper économise seulement la mise en place |
 | `time(minutes=60)` / `rest(days=1)` | avance l'horloge / dort N jours par le chemin EAGER | ⚠ **`rest()` n'ouvre AUCUNE modale de nuit** : il route `restParty` → `restFlow.sleepParty`, qui résout la nuit ENTIÈRE d'un coup (triche d'avancement). Le VRAI chemin joueur — la cascade influençable, une étape à la fois — est le bouton « Dormir » de l'auberge/du camp (`restSleep` → `openRestNight` → `pendingRest`) : pour recetter un jet de nuit (Faim, Récupération, Exposition, maladie…), passer par CE bouton, jamais par `rest()`. ⚠ **NE PILOTE PAS non plus une traversée EN MER** : découplé de `travelPlan.sea` (`state/seaVoyageFlow.ts`), il avance l'horloge SANS faire progresser le navire sur sa route (désynchronise `gameTime` du voyage). Pour accélérer une traversée COMMANDÉE, voir « Voyage en mer » ci-dessous |
@@ -747,7 +905,7 @@ pas la cible d'UX.
 | `seed(n)` | re-ensemence le RNG de bataille EN COURS de combat | même action que `scenario(id, seed)` au lancement |
 | `previewRoll(seed, count=1)` | lecture PURE des `count` premiers d100 d'un seed — `makeRNG(seed)` À PART, ZÉRO mutation d'état (jamais le `battleRng` du store) | fidèle au PROCHAIN jet réel du store UNIQUEMENT depuis un `seed(n)`/`scenario(id, seed)` FRAIS, avant toute autre consommation — `battleRng` est PARTAGÉ (initiative/dégâts/IA s'intercalent, désynchronisent la prédiction) ; deux previews du même seed renvoient TOUJOURS la même séquence |
 | `fastForward(maxIters=400)` | avance les tours IA jusqu'au prochain tour PILOTÉ HUMAIN, à une FENÊTRE à répondre, ou à la fin du combat — MÊME machinerie que la partie réelle, juste sans les délais du Réalisateur | CONTRAT (#1852) : il n'AMORCE un tour d'IA que si personne ne tient la main (aucune fenêtre ouverte, aucune pause de Round) et ne joue JAMAIS deux fois le même tour (jeton de tour dans la machinerie) ; il rend la main en NOMMANT la fenêtre ouverte — `✓ fenêtre « defense » ouverte (à répondre)` : c'est au scénario d'y répondre comme un joueur (clics réels), `fastForward` ne la valide pas. `maxIters` = garde-fou anti-boucle (scrutations, pas des tours) — `✗ borne atteinte…` = soft-lock probable, à diagnostiquer via `auto()` ; retourne une `Promise` (`await`) |
-| `fillCreatorDefaults(uptoStep?)` ⚠ résout INTÉGRALEMENT chaque étape traversée — pour observer un état « non soldé », viser l'étape N−1 puis dérouler le dernier cran à la main. ⚠ `browser_take_screenshot` écrit au cwd du process Playwright (racine du repo) même avec un filename relatif : déplacer chaque capture vers le scratchpad JUSTE après la prise, jamais en fin de recette | remplit le brouillon du CRÉATEUR de personnage OUVERT avec des défauts VALIDES (`fillDraftDefaults`, `ui/creator/creatorDefaults.ts`) jusqu'à `uptoStep` incluse (défaut : dernière étape), puis avance l'étape affichée | SETUP UNIQUEMENT (couture `window.__wfrpCreator`, requiert `CharacterCreator` monté sinon `✗ créateur non monté`) — sert à SAUTER jusqu'à une étape sans dérouler tirages/choix un par un ; le flux joueur réel (tirages, choix, allocations) reste testé aux clics, jamais via ce raccourci |
+| `fillCreatorDefaults(uptoStep?)` ⚠ résout INTÉGRALEMENT chaque étape traversée — pour observer un état « non soldé », viser l'étape N−1 puis dérouler le dernier cran à la main. ⚠ `browser_take_screenshot` écrit au cwd du process Playwright (racine du repo) même avec un filename relatif : déplacer chaque capture vers le scratchpad JUSTE après la prise, jamais en fin de recette | remplit le brouillon du CRÉATEUR de personnage OUVERT avec des défauts VALIDES (`fillDraftDefaults`, `ui/creator/creatorDefaults.ts`) jusqu'à `uptoStep: string` incluse, ID d'étape et jamais numéro (`fillCreatorDefaults('trappings')`, défaut : dernière étape), puis avance l'étape affichée | SETUP UNIQUEMENT (couture `window.__wfrpCreator`, requiert `CharacterCreator` monté sinon `✗ créateur non monté`) — sert à SAUTER jusqu'à une étape sans dérouler tirages/choix un par un ; le flux joueur réel (tirages, choix, allocations) reste testé aux clics, jamais via ce raccourci |
 
 **Doctrine `seed`/`fastForward`** : SETUP et OBSERVATION seulement (même doctrine que le reste de
 `__wfrp`, § ci-dessus) — `seed` fige l'aléatoire pour REJOUER une recette à l'identique, il ne
@@ -773,9 +931,9 @@ le jet réel reste celui du flux joueur. Contrainte à respecter sinon la prédi
 est PARTAGÉ (initiative, IA, dégâts s'intercalent) — re-`seed()` juste avant le jet visé, et vérifier
 après coup par `lastRoll()`/`log()`, jamais par une capture.
 
-Les tokens portent `data-cid="<id de l'entité/combattant>"` dans le SVG — COMBAT ET EXPLORATION
-(#226) → survol/clic ciblé par sélecteur DOM (vrais clics
-Playwright, cf. piège ci-dessous), ou lecture de position via `screenPos('id')`.
+Les corps volumétriques ne portent pas de nœud DOM individuel. Pour viser une case,
+lire `tileScreenPos({x,y,z?})`, puis cliquer au centre de la boîte avec `clicReel`.
+Pour une arête de siège, lire `areteScreenPos` et viser son `data-arete-cible`.
 
 ### Contenu gaté par une règle optionnelle
 
@@ -930,7 +1088,8 @@ loin, ARMÉ d'un arc par la scène (hors du dôme, c'est la condition « provena
 ```js
 __wfrp.scenario('dome', 11)              // lancement (combat direct)
 // 1. Ilyanwe a un arsenal COURT (4 sorts, en donnée de la scène) : chaque sort est SA PROPRE alvéole
-//    de la console (`sort-<id>`, libellé = le nom du sort) — il n'existe aucune entrée « Sorts ».
+//    de la console (data-action='cast-spell', data-cell='sort-<id>') ; le libellé est le nom du sort.
+//    Kit : cliquerAction(session, 'cast-spell', { cell: 'sort-dome' }).
 //    Cliquer l'alvéole « Dôme » ouvre DIRECTEMENT la modale d'Incantation (aucun ciblage préalable) ;
 //    après « Lancer », le bouton devient « Poser la zone » → CLIQUER SA PROPRE CASE (Portée « Vous »,
 //    gabarit 3×3 annoncé par la modale). Le sort est NI 7 : un jet moyen rend DR 4 (« Réussite trop
@@ -961,6 +1120,15 @@ __wfrp.scenario('dome', 11)              // lancement (combat direct)
 //    Puis laisser l'ORC frapper au contact : AUCUNE ÉTAPE de sauvegarde et AUCUNE ligne (le dôme ne
 //    couvre pas la mêlée).
 ```
+
+Pour viser exactement le Dôme dans le kit, l'action est `cast-spell` et la cellule est
+`sort-dome` : `cliquerAction(session, 'cast-spell', { cell: 'sort-dome' })`.
+Équivalent par sélecteur :
+`cliquerSelecteur(session, '.combat-console [data-action="cast-spell"][data-cell="sort-dome"]')`.
+`sort-dome` est une identité de cellule, pas un id d'action.
+Après le vrai lancer, le dé d'incantation se lit dans
+`__wfrp.store.getState().pendingCast?.result?.roll` ; avant résultat, `result` est nul.
+Il n'existe pas de champ `pendingCast.roll`.
 
 Ce qui se lit à l'écran : le Trait qui a **réellement** sauvé est nommé (jamais un
 « Démoniaque/Protection » à deviner). **Deux graphies RAW cohabitent, et c'est le livre qui les
@@ -1023,7 +1191,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **Une position d'écran se relit JUSTE AVANT le clic, après tout geste de caméra** (vécu 2026-08-23,
   recette des pastilles d'entité) : `turn()` (et tout recentrage : ouverture de combat, focale sur
   l'actif, cran de molette) fait PANNER la caméra, et le pan converge hors React — une bbox lue avant
-  le geste vise une case qui a bougé depuis. RÈGLE : `tileScreenPos`/`screenPos` se rappellent
+  le geste vise une case qui a bougé depuis. RÈGLE : `tileScreenPos` se rappelle
   entre le geste de caméra et le clic, jamais mémorisés d'une étape sur l'autre. Corollaire pour les
   pastilles d'entité : leur panneau-paramètre se FERME dès que la caméra bouge (l'ancre glisserait
   sous lui) — rouvrir la pastille après un `turn()`, ce n'est pas un bug.
@@ -1282,13 +1450,13 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **Les tokens de combat SVG ne sont JAMAIS « stable » pour Playwright** : ils oscillent en
   permanence (idle-bob des billboards) → `browser_click` attend une stabilité qui ne
   vient pas et expire. Cibler par le **roster du HUD** (portraits/frise, éléments DOM stables) ou lire
-  `screenPos('id')` puis un VRAI clic souris (`page.mouse.click`) aux coordonnées — jamais un
+  `tileScreenPos({x,y,z?})` pour la case puis un VRAI clic souris aux coordonnées — jamais un
   `browser_click` qui attend la fin de l'animation du token.
 - **Roster du HUD : viser un DOUBLON de libellé par son ID, pas par son nom** — deux héros (ou deux
   marins d'équipage) peuvent porter le MÊME libellé à l'écran ; un sélecteur par texte en attrape un
   au hasard, et la capture « prouve » alors l'autre. Résoudre l'id d'abord (`__wfrp.battle()` liste
-  les combattants une ligne chacun, id compris), puis `screenPos(id)` → VRAI clic souris. Le canal
-  `data-cid` est unique par entité, le texte ne l'est pas.
+  les combattants une ligne chacun, id compris), puis viser le contrôle du HUD portant cet id
+  ou la case observée par `tileScreenPos({x,y,z?})` → VRAI clic souris.
 - **Cliquer une ROUTE de la carte du monde** : le tracé SVG n'a de hit-test QUE sur son trait
   (`pointer-events: stroke`) — jamais la bbox, jamais son label (`pointer-events: none`). Un clic au
   centre du bbox (ce que fait `browser_click` sur l'élément) tombe hors du trait et est intercepté par
@@ -1305,7 +1473,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   alors `browser_run_code_unsafe` (chargé via ToolSearch, ABSENT du set d'outils de démarrage).
 - **Cliquer une CASE du monde volumique : aucun outil MCP ne clique des COORDONNÉES** (mesuré en
   recette 2026-08-16, #1335). Les corps et le sol sont peints dans le canevas WebGL — ni ref de
-  snapshot, ni `data-cid` (cf. `screenPos` ci-dessus). Chemin canonique : lire le point ÉCRAN par
+  snapshot, ni `data-cid`. Chemin canonique : lire le point ÉCRAN par
   `__wfrp.tileScreenPos({x,y})` (centre : `x + width/2`, `y + height/2`), puis cliquer via
   `browser_run_code_unsafe` → `await page.mouse.click(x, y)` — le SEUL canal qui accepte des
   coordonnées (outil chargé par ToolSearch, ABSENT du set de démarrage : le charger AVANT d'ouvrir la
@@ -1324,10 +1492,9 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   étape Caractéristiques).
 
 - **Occlusion par la console de combat (`.combat-console`)** : le pont occupe la bande BASSE de
-  l'écran. La visée canonique du token (« bas de la bbox », `screenPos` ci-dessus) peut tomber DANS le
-  pont, pas sur le token — clic mort ou action parasite. Viser le HAUT du token
-  (`{x: x+width/2, y: y+8}`) et VÉRIFIER par `elementFromPoint` avant le clic ; si une surface de la
-  console répond, remonter encore (vécu recette #1004, incantation sur un token en combat).
+  l'écran. Le centre d'une case projetée par `tileScreenPos` peut tomber dans le pont :
+  contrôler `elementFromPoint` avant le clic. Si la console recouvre la case, déplacer la caméra
+  par un geste réel puis relire sa position ; une boîte de case ne décrit pas la silhouette 3D.
 
 - **Sélecteur TEXTE ambigu pour un sort** : viser un sort par son seul NOM (getByText de Playwright)
   matche AUSSI les lignes de journal de combat qui le citent → plusieurs nœuds, ou le mauvais. Cibler
@@ -1920,4 +2087,6 @@ soient posés (seuil `adresseUnPassage` / `MIN_FRAGMENTS`, `src/data/schemas/gra
 bouton `.btn small` à `aria-pressed` dans l'en-tête — pas un onglet). Tant qu'elle est éteinte, les
 boutons « Éditer » et « Nouveau » du volet de détail ne sont PAS RENDUS (`:258`), et une recette qui
 les cherche conclut à tort qu'un champ d'édition n'existe pas. La désactiver referme toute édition en
-cours. Elle n'apparaît que sur une catégorie éditable (`isEditableCategory`).
+cours. Utiliser `setAtelier(session, true)` ou `setAtelier(session, false)` : la bascule persiste entre
+navigations, le setter lit `aria-pressed` et ne clique que si l'état diffère. Une catégorie
+non éditable masque « Éditer » et « Nouveau ».

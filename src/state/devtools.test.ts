@@ -27,6 +27,147 @@ import { __setFabriqueIdbForTest } from '../lib/indexedDb';
 import { brancherBasesSimulees } from '../lib/indexedDb.testkit';
 import { parseProject } from './worldMap';
 import { cascadeDeTest } from './cascadeTestKit';
+import { t } from '../i18n';
+import { OPTIONAL_RULES } from '../engine/policy';
+import { collectionDuDataset } from '../data/overrides';
+import { trappingsInstanciables } from '../data';
+import { traumaById } from '../engine/trauma';
+import { browserUnfreezeTimeout } from './devtoolsTimers';
+
+describe('__wfrp — setup #1561', () => {
+  beforeEach(() => {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    useGame.setState({ battle: null, party: [hero], pendingTest: null, pendingCascade: null, flags: {} });
+  });
+
+  it('flag refuse une règle optionnelle en nommant rules et ne modifie pas les drapeaux', () => {
+    const api = buildApi();
+    expect(() => api.flag(OPTIONAL_RULES[0].id)).toThrow(/rules/);
+    expect(useGame.getState().flags).toEqual({});
+    expect(api.flag('porte-recette')).toEqual({ 'porte-recette': true });
+  });
+
+  it('entree lit les clés de schéma, les catégories nichées et refuse les datasets/ids/formes inconnus, en copie détachée', () => {
+    const api = buildApi();
+    const skills = collectionDuDataset('skills') as { id: string; label: string }[];
+    const first = skills[0];
+    const copy = api.entree('skills', first.id) as typeof first;
+    expect(copy).toEqual(first);
+    copy.label = 'copie';
+    expect(first.label).not.toBe('copie');
+    const crits = collectionDuDataset('aaCriticalsBras') as { id: string }[];
+    expect(api.entree('aaCriticalsBras', crits[0].id)).toEqual(crits[0]);
+    expect(() => api.entree('absent', 'id')).toThrow(/dataset.*absent.*inconnu/);
+    expect(() => api.entree('skills', 'absent')).toThrow(/introuvable/);
+    expect(() => api.entree('details', 'absent')).toThrow(/collection|forme/);
+  });
+
+  it('entree observe aussi un trapping non instanciable en copie détachée sans créer de possession', () => {
+    const instanciables = new Set(trappingsInstanciables().map((v) => v.id));
+    const brut = collectionDuDataset('trappings') as { id: string; label: string }[];
+    const concept = brut.find((v) => !instanciables.has(v.id))!;
+    expect(concept).toBeDefined();
+    const avant = useGame.getState().party[0].items;
+    const copie = buildApi().entree('trappings', concept.id) as typeof concept;
+    expect(copie).toEqual(concept);
+    expect(copie).not.toBe(concept);
+    copie.label = 'copie';
+    expect(concept.label).not.toBe('copie');
+    expect(useGame.getState().party[0].items).toBe(avant);
+  });
+
+  it('trauma instancie la factory et écrit le même acteur dans le groupe et le combat', () => {
+    const hero = useGame.getState().party[0];
+    useGame.getState().startScene(testScene());
+    useGame.getState().startCombat('enc-mutants');
+    const traumaId = 'dechirure-autre-mineure';
+    const opts = { be: 3 };
+    const expected = traumaById(traumaId, opts, 'brasG');
+    const out = buildApi().trauma(hero.id, traumaId, opts, 'brasG');
+    expect(out).toEqual(expected);
+    expect(useGame.getState().party[0].traumas).toContainEqual(expected);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!.traumas).toContainEqual(expected);
+    out.label = 'copie';
+    expect(useGame.getState().party[0].traumas![0].label).toBe(expected.label);
+    expect(() => buildApi().trauma('absent', traumaId)).toThrow(/combattant.*absent/);
+    expect(() => buildApi().trauma(hero.id, 'absent')).toThrow();
+    useGame.setState({ battle: null });
+  });
+
+  it('testCompetence ouvre le Test canonique pour l’acteur imposé sans le lancer', () => {
+    const hero = useGame.getState().party[0];
+    const api = buildApi();
+    expect(api.testCompetence(hero.id, { skill: { id: 'calme' }, stake: { authored: 'Setup de recette.' } })).toContain('ouvert');
+    const pending = useGame.getState().pendingTest!;
+    expect(pending.actorId).toBe(hero.id);
+    expect(pending.skillId).toBe('calme');
+    expect(pending.roll).toBeNull();
+    expect(() => api.testCompetence(hero.id, { skill: { id: 'calme' }, stake: { authored: 'Setup de recette.' } })).toThrow(/déjà ouvert/);
+    useGame.setState({ pendingTest: null });
+    expect(() => api.testCompetence('absent', { skill: { id: 'calme' } })).toThrow(/combattant/);
+    expect(() => api.testCompetence(hero.id, { skill: { id: 'calme' } })).toThrow(/enjeu/);
+  });
+
+  it('les wrappers timer retardent chaque callback à 60000 ms par défaut puis restaurent sans le perdre', () => {
+    vi.useFakeTimers();
+    const api = buildApi();
+    const call = vi.fn();
+    try {
+      api.freezeTimeout();
+      setTimeout(call, 0);
+      vi.advanceTimersByTime(25);
+      expect(call).not.toHaveBeenCalled();
+      api.unfreezeTimeout();
+      setTimeout(call, 5);
+      vi.advanceTimersByTime(5);
+      expect(call).toHaveBeenCalledOnce();
+      vi.advanceTimersByTime(59970);
+      expect(call).toHaveBeenCalledTimes(2);
+    } finally {
+      browserUnfreezeTimeout();
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('__wfrp.auto — observation des interactions de cascade', () => {
+  afterEach(() => { useGame.setState({ pendingCascade: null }); });
+
+  it('classe un kind inconnu par ses options sans choisir ni changer aucun état', () => {
+    const pendingCascade = cascadeDeTest([{ id: 'choix-inconnu', kind: 'recette-kind-neuf', options: [{ key: 'a', label: t('opt.piegerLame') }] }]);
+    useGame.setState({ battle: null, pendingCascade });
+    const avant = useGame.getState();
+    const copie = structuredClone(pendingCascade);
+    expect(buildApi().auto().cascade).toEqual({ id: 'choix-inconnu', kind: 'recette-kind-neuf', interaction: 'choix', ready: false, chosen: null, amount: null });
+    expect(useGame.getState()).toBe(avant);
+    expect(useGame.getState().pendingCascade).toEqual(copie);
+    useGame.setState({ pendingCascade: cascadeDeTest([{ ...pendingCascade.participants[0], chosen: 'a' }]) });
+    expect(buildApi().auto().cascade).toMatchObject({ interaction: 'choix', ready: true, chosen: 'a' });
+  });
+
+  it('observe une quantité prête avec sa valeur zéro sans la valider', () => {
+    useGame.setState({ battle: null, pendingCascade: cascadeDeTest([{ id: 'quantite', kind: 'autre-kind-neuf', quantity: { min: 0, max: 10 }, amount: 0 }]) });
+    const avant = useGame.getState();
+    expect(buildApi().auto().cascade).toEqual({ id: 'quantite', kind: 'autre-kind-neuf', interaction: 'quantite', ready: true, chosen: null, amount: 0 });
+    expect(useGame.getState()).toBe(avant);
+  });
+
+  it('observe le jet courant à son curseur sans le lancer', () => {
+    useGame.setState({ battle: null, pendingCascade: cascadeDeTest([{ id: 'avant', kind: 'autre' }, { id: 'jet', kind: 'jet-neuf', target: 40, rollLabel: t('step.paradePiegerLame') }], { cursor: 1 }) });
+    const avant = useGame.getState();
+    expect(buildApi().auto().cascade).toEqual({ id: 'jet', kind: 'jet-neuf', interaction: 'jet', ready: false, chosen: null, amount: null });
+    expect(useGame.getState()).toBe(avant);
+  });
+
+  it('rend null sans cascade ou sans étape courante', () => {
+    useGame.setState({ battle: null, pendingCascade: null });
+    expect(buildApi().auto().cascade).toBeNull();
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'termine', kind: 'autre' }], { cursor: 1 }) });
+    const avant = useGame.getState();
+    expect(buildApi().auto().cascade).toBeNull();
+    expect(useGame.getState()).toBe(avant);
+  });
+});
 
 describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, victoire normale)', () => {
   beforeEach(() => {
@@ -741,7 +882,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   // `clickRoute` accède au DOM (`document.querySelectorAll`) au-delà de la validation route/carte —
-  // comme `screenPos`/`hover`, non couvert en environnement 'node' (vitest) : recette navigateur seule.
+  // comme `hover`, non couvert en environnement 'node' (vitest) : recette navigateur seule.
   it('clickRoute() : route invalide → refus explicite (validation AVANT tout accès DOM)', () => {
     expect(buildApi().clickRoute('r-inconnue')).toContain('✗');
   });

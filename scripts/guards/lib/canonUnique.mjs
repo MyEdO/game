@@ -889,9 +889,12 @@ export function comparaisonDAppel({ nom, fonctions }) {
 export function scanConstructionsReservees(fichier, constructions, sourceFile, checker) {
   const retenues = constructions.filter((c) => sAppliqueA(fichier, c) && (!c.indice || c.indice(fichier.text)));
   if (!retenues.length) return [];
-  if (!sourceFile) {
-    for (const analyse of analyserCorpus([fichier])) return scanConstructionsReservees(fichier, constructions, analyse.sourceFile, analyse.checker);
-  }
+  if (sourceFile) return constructionsReserveesDansArbre(retenues, sourceFile, checker);
+  for (const analyse of analyserCorpus([fichier]))
+    return constructionsReserveesDansArbre(retenues, analyse.sourceFile, analyse.checker);
+}
+
+function constructionsReserveesDansArbre(retenues, sourceFile, checker) {
   const sf = sourceFile;
   const contexte = contexteImports(sf, checker);
   /** @type {{ line: number, construction: string, detail: string }[]} */

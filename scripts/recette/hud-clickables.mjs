@@ -63,10 +63,7 @@
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, decrireChoix, ouvrirRound, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
-
-/** Les CHOIX faits à la place du joueur par les résolutions de fenêtres : imprimés au rapport. */
-const choixFaits = [];
+import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
 // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder
@@ -157,6 +154,7 @@ const PROBE = `(() => {
   // d'écran doit se poser lui-même (sinon il retombe dans le flux du stage).
   const rail = document.querySelector('.hud-rail');
   const rails = rail ? {
+    attendu: !!window.__wfrp.store.getState().vessel,
     dissous: getComputedStyle(rail).display === 'contents',
     ouvreurs: [...document.querySelectorAll('.hud-rail > .worldmap-btn')].map((b, i) => ({
       i, label: (b.getAttribute('title') || '').trim(), position: getComputedStyle(b).position, ...reaches(b),
@@ -432,6 +430,7 @@ const PROBE = `(() => {
     grossier,
     cibles,
     combat: !!strip,
+    navire: !!window.__wfrp.store.getState().vessel,
     rail: rails,
     frise,
     groupe,
@@ -495,7 +494,7 @@ async function monterLeDock(session) {
     if (await evaluate(session, `!!document.querySelector(".cc-phase [data-action='round-start']:not(:disabled)")`)) {
       await ouvrirRound(session);
       await sleep(900);
-      choixFaits.push(...(await resoudreModales(session, 'ouverture de Round')));
+      await resoudreModales(session, 'ouverture de Round', { dans: '.modal-overlay' });
       continue;
     }
     const verdict = await evaluate(session, `(() => {
@@ -506,7 +505,7 @@ async function monterLeDock(session) {
     })()`);
     console.log(`  (mise en place : premier tour tenu par un héros — ${verdict})`);
     await sleep(900);
-    choixFaits.push(...(await resoudreModales(session, 'mise en place du tour')));
+    await resoudreModales(session, 'mise en place du tour', { dans: '.modal-overlay' });
   }
   throw new Error('la console (.combat-console .cc-cell) ne monte pas : le combat ne parvient pas au tour d’un héros');
 }
@@ -598,10 +597,10 @@ export function defauts(m, phase) {
   } else for (const p of m.tiroir.points) {
     if (!p.ok) out.push(`${phase} ${m.largeur}px : le panneau du journal à ${p.hauteur * 100} % ne reçoit pas son clic (${p.x}, ${p.y}) — recouvert par ${p.hitBy}`);
   }
+  if (m.navire && (!m.rail || (!m.rail.dissous && !m.rail.ouvreurs.length))) out.push(`${phase} ${m.largeur}px : ouvreur attendu du navire absent — sonde aveugle sur l'accès au navire`);
   // Rail DISSOUS : son ouvreur d'écran porte son propre ancrage, ou il retombe dans le flux.
   if (m.rail?.dissous) {
-    // Un rail dissous SANS ouvreur ne rendait aucun verdict : la mesure était verte par VACUITÉ.
-    if (!m.rail.ouvreurs.length) out.push(`${phase} ${m.largeur}px : le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle sur l'accès à la carte`);
+    if (m.rail.attendu && !m.rail.ouvreurs.length) out.push(`${phase} ${m.largeur}px : le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle sur l'accès à la carte`);
     for (const b of m.rail.ouvreurs) {
       if (b.position === 'static') out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » du rail dissous est en flux (position: static) — il retombe dans le stage`);
     }
@@ -831,12 +830,12 @@ async function main() {
     // AVANT elle, et toute l'exploration se mesurait sans groupe, puis sous cette fenêtre.
     await attendreSelecteur(session, '.stage .party-dock', { timeoutMs: 20000 });
     await sleep(400);
-    choixFaits.push(...(await resoudreModales(session, 'ouverture')));
+    await resoudreModales(session, 'ouverture', { dans: '.modal-overlay' });
     // Un objectif courant : c'est ce qu'un effet de scène pose (`combatEffects.ts`, op `objective`).
     // Le scénario de test n'en porte pas — sans lui la zone morte du bandeau n'est pas sondable.
     await evaluate(session, `window.__wfrp.store.setState({ objectives: [{ id: 'recette-hud', text: 'Retrouver la piste des mutants dans les collines' }] })`);
     await sleep(400);
-    choixFaits.push(...(await resoudreModales(session, 'pose objectif')));
+    await resoudreModales(session, 'pose objectif', { dans: '.modal-overlay' });
     await cliquerSelecteur(session, '.log-drawer .ld-btn');
     await sleep(400);
 
@@ -845,6 +844,7 @@ async function main() {
       await sleep(500);
       const m = await evaluate(session, PROBE);
       if (m.combat) throw new Error(`exploration ${w}px : la frise d'initiative est montée — l'app n'est pas en exploration`);
+      if (!m.navire) console.log(`exploration ${w}px — accès au navire NON MESURÉ (aucun navire attendu)`);
       const d = [...defauts(m, 'exploration'), ...defautsMatrice(m, 'exploration')];
       serieExploration.push(m);
       const bande = !m.groupe ? 'aucune bande de groupe'
@@ -864,7 +864,7 @@ async function main() {
     await sleep(300);
     await evaluate(session, `window.__wfrp.fight('enc-mutants')`);
     await sleep(1500);
-    choixFaits.push(...(await resoudreModales(session, 'ouverture de combat')));
+    await resoudreModales(session, 'ouverture de combat', { dans: '.modal-overlay' });
 
     // ── Combat, PAUSE D'INITIATIVE ─────────────────────────────────────────────────────────────
     // Le combat s'ouvre sur cette pause, et c'est le SEUL état où chaque entrée porte son badge de
@@ -966,7 +966,6 @@ async function main() {
       }
     }
   } finally {
-    console.log(`\n${decrireChoix(choixFaits)}`);
     await session.close();
   }
 

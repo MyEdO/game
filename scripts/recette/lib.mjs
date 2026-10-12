@@ -4,9 +4,11 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { writeFileSync, appendFileSync, mkdirSync, existsSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { join, resolve } from 'node:path';
+import { join, resolve, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
+import { attendreSync } from '../guards/lib/spawnResilient.mjs';
+import { browserFreezeTimeout, browserUnfreezeTimeout } from '../../src/state/devtoolsTimers.ts';
 import { ENTETE_RACINE, RACINE, normaliserRacine, racineDepuisEntete, urlDev } from '../port-dev.mjs';
 
 /** URL de l'app servie par CET arbre (#1679 L1c) : le port est propre à l'arbre, jamais une
@@ -16,6 +18,13 @@ export const DEFAULT_URL = process.env.WFRP_DEV_URL || urlDev();
 
 /** Racine de l'arbre depuis lequel CETTE recette tourne. */
 export const RACINE_COURANTE = normaliserRacine(RACINE);
+
+export const DOSSIER_CAPTURES = join(os.tmpdir(), 'recette-captures', createHash('sha256').update(RACINE_COURANTE).digest('hex').slice(0, 12));
+
+export function validerDossierCaptures(dir = DOSSIER_CAPTURES) {
+  if (typeof dir !== 'string' || !isAbsolute(dir)) throw new Error('capture : dossier absolu requis — reçu « ' + dir + ' »');
+  return dir;
+}
 
 /**
  * VERDICT sur l'arbre SERVI (#1679 L1c) — `null` si le serveur sert bien `racineCourante`, sinon le
@@ -152,7 +161,7 @@ const NAV_MESSAGES = [
 ];
 
 /** Sondes d'app évaporée : un helper `window.__x` posé au chargement redevient `undefined`. */
-const CLEARED_GLOBALS = /Cannot read properties of (?:undefined|null) \(reading '[^']+'\)|window\.__\w+ is (?:not a function|undefined)/;
+const CLEARED_GLOBALS = /window\.__\w+ is (?:not a function|undefined)/;
 
 /**
  * Vrai si l'erreur vient d'un rechargement de page (Vite full-reload déclenché par une écriture
@@ -175,24 +184,77 @@ function cdpError(message) {
   return e;
 }
 
-/**
- * Tue TOUT l'arbre de process Chrome (`chrome.kill()` ne tue que le PID racine — Chrome se
- * découpe en crashpad-handler/gpu-process/renderer×N/utility×N, tous ENFANTS survivants qui
- * gardent le profil temp verrouillé sous Windows, vécu 2026-07-16 sur le ticket #424 : la fuite
- * de handles persistait malgré `chrome.kill()` + retries de `rmSync`). `taskkill /T` (arbre) est
- * la seule primitive Windows fiable ici ; `proc.kill()` reste le filet hors Windows.
- */
-export function killChromeTree(chrome, { plateforme = process.platform, executer = spawnSync } = {}) {
-  if (plateforme === 'win32' && chrome.pid) {
-    const r = executer('taskkill', ['/PID', String(chrome.pid), '/T', '/F'], { encoding: 'utf8' });
-    // 128 : aucun process de ce PID — l'arbre est déjà mort.
-    if (r.error) throw r.error;
-    if (r.status !== 0 && r.status !== 128) {
-      throw new Error(`killChromeTree : taskkill /PID ${chrome.pid} a échoué (code ${r.status}) — ${String(r.stderr || r.stdout || '').trim()}`);
+function validerProcessus(processus) {
+  if (!Array.isArray(processus)) throw new Error('killChromeTree : instantané des processus malformé, tableau attendu');
+  const vus = new Set();
+  for (const [i, p] of processus.entries()) {
+    if (!Number.isSafeInteger(p?.pid) || p.pid <= 0 || !Number.isSafeInteger(p?.parent) || p.parent < 0 || vus.has(p.pid)) {
+      throw new Error('killChromeTree : instantané des processus malformé, entrée ' + i + ' — PID positif unique et parent entier positif ou nul attendus');
     }
-  } else {
-    chrome.kill();
+    vus.add(p.pid);
   }
+  return processus;
+}
+
+/** Instantané PID/parent via CIM sous Windows, ps ailleurs ; toute observation illisible refuse. */
+export function lireProcessus({ plateforme = process.platform, executer = spawnSync } = {}) {
+  const r = plateforme === 'win32'
+    ? executer('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process -Filter "ProcessId > 0" | Select-Object ProcessId,ParentProcessId)'], { encoding: 'utf8' })
+    : executer('ps', ['-eo', 'pid=,ppid='], { encoding: 'utf8' });
+  if (r.error) throw r.error;
+  if (r.status !== 0) throw new Error(`killChromeTree : observation des processus impossible (code ${r.status}) — ${r.stderr || ''}`);
+  if (plateforme === 'win32') {
+    const lignes = JSON.parse(r.stdout);
+    if (!Array.isArray(lignes)) throw new Error('killChromeTree : instantané des processus malformé, tableau attendu');
+    return validerProcessus(lignes.map((p) => ({ pid: p?.ProcessId, parent: p?.ParentProcessId })));
+  }
+  const lignes = r.stdout.trim().split('\n').filter(Boolean).map((s) => {
+    const ligne = /^\s*(\d+)\s+(\d+)\s*$/.exec(s);
+    if (!ligne) throw new Error('killChromeTree : ligne de processus malformée « ' + s + ' »');
+    return { pid: Number(ligne[1]), parent: Number(ligne[2]) };
+  });
+  return validerProcessus(lignes);
+}
+
+/** Arrête l’arbre puis observe son extinction sous une échéance synchrone, indépendamment du code taskkill. */
+export function killChromeTree(chrome, { plateforme = process.platform, executer = spawnSync, observer = () => lireProcessus({ plateforme, executer }), tuerPid = (pid) => process.kill(pid, 'SIGKILL'), attenteMs = 2000, horloge = Date.now, patienter = attendreSync } = {}) {
+  if (!Number.isInteger(chrome.pid) || chrome.pid <= 0) throw new Error('killChromeTree : PID racine absent, arbre non observable');
+  if (!Number.isFinite(attenteMs) || attenteMs < 0) throw new Error('killChromeTree : délai non fini ou négatif');
+  const avant = validerProcessus(observer());
+  const suivis = new Set([chrome.pid]);
+  const suivre = (instantane) => {
+    for (let n = -1; n !== suivis.size;) {
+      n = suivis.size;
+      for (const p of instantane) if (suivis.has(p.parent)) suivis.add(p.pid);
+    }
+  };
+  suivre(avant);
+  const lireHeure = () => {
+    const t = horloge();
+    if (!Number.isFinite(t)) throw new Error('killChromeTree : horloge non finie');
+    return t;
+  };
+  const fin = lireHeure() + attenteMs;
+  let r;
+  if (plateforme === 'win32') {
+    r = executer('taskkill', ['/PID', String(chrome.pid), '/T', '/F'], { encoding: 'utf8' });
+  } else {
+    for (const pid of [...suivis].reverse()) {
+      try { tuerPid(pid); } catch (e) { if (e.code !== 'ESRCH') throw e; }
+    }
+  }
+  let survivants;
+  for (;;) {
+    const apres = validerProcessus(observer());
+    const maintenant = lireHeure();
+    suivre(apres);
+    survivants = apres.filter((p) => suivis.has(p.pid));
+    if (!survivants.length) return { racine: chrome.pid, observes: [...suivis], survivants: [] };
+    if (maintenant >= fin) break;
+    patienter(Math.min(50, fin - maintenant));
+    if (lireHeure() <= maintenant) throw new Error('killChromeTree : horloge sans progression après attente');
+  }
+  throw new Error(`killChromeTree : processus survivants ${survivants.map((p) => p.pid).join(', ')} après arrêt de ${chrome.pid} (code ${r?.status ?? 'signal'}) et ${attenteMs} ms d’attente — ${r?.stderr || r?.stdout || ''}`);
 }
 
 /**
@@ -502,7 +564,6 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
 function joindre(principale, nettoyage) {
   const e = new AggregateError([principale, nettoyage], `${principale.message} — et le nettoyage a échoué : ${nettoyage.message}`, { cause: principale });
   if (principale.code) e.code = principale.code;
-  if (principale.choix) e.choix = principale.choix;
   return e;
 }
 
@@ -715,8 +776,7 @@ export async function withReloadRetry(session, fn, { tries = 3, resettle, onRetr
     }
   }
   throw new Error(
-    `Rechargement de page pendant la recette : ${tries} tentatives épuisées (dernier échec : ${last?.message ?? last}). ` +
-    `arbre src/ en écriture par une autre session ? relancer en fenêtre calme (#1196)`,
+    `Rechargement de page pendant la recette : ${tries} tentatives épuisées (dernier échec : ${last?.stack ?? last?.message ?? last}).`,
     { cause: last },
   );
 }
@@ -801,9 +861,27 @@ export async function rechargerEtAttendreMenu(session, { timeoutMs = 45000, pasM
 }
 
 /** Navigue vers un écran via `__wfrp.screen(name)` — id validé côté app (throw si invalide). */
-export async function gotoScreen(session, name, { settleMs = 600 } = {}) {
-  await evaluate(session, `window.__wfrp.screen(${JSON.stringify(name)})`);
-  await sleep(settleMs);
+export async function gotoScreen(session, name, { settleMs = 600, timeoutMs = 45000, intervalMs = 200 } = {}) {
+  const fin = Date.now() + timeoutMs;
+  let lecture;
+  let demande = false;
+  for (;;) {
+    lecture = await evaluerFn(session, () => ({
+      api: typeof window.__wfrp?.screen === 'function',
+      ecran: window.__game?.getState().screen ?? null,
+      app: document.querySelector('.app')?.className ?? null,
+      chargement: !!document.querySelector('.lazy-fallback'),
+    }));
+    if (!demande && lecture.api) {
+      await appelerWfrp(session, 'screen', name);
+      demande = true;
+    } else if (demande && lecture.ecran === name && await evaluate(session, `!!document.querySelector(${JSON.stringify('.app.app-' + name)}) && !document.querySelector('.lazy-fallback') && (${APP_READY})`)) {
+      if (settleMs > 0) await sleep(settleMs);
+      return lecture;
+    }
+    if (Date.now() >= fin) throw new Error(`gotoScreen « ${name} » : écran non prêt après ${timeoutMs} ms — écran ${lecture.ecran ?? '(aucun)'}, app ${lecture.app ?? '(absente)'}, chargement ${lecture.chargement}, API ${lecture.api}`);
+    await sleep(intervalMs);
+  }
 }
 
 /**
@@ -819,7 +897,8 @@ export async function gotoScreen(session, name, { settleMs = 600 } = {}) {
  * modale capturée se fermerait sous elle) — puis le focus est retiré, dont l'anneau signe la capture.
  * Ce retrait MUTE l'écran : tout ce qui se ferme à la perte du focus se ferme avec lui.
  */
-export async function shot(session, name, dir = process.cwd(), { ancre, neutraliser = false } = {}) {
+export async function shot(session, name, dir = DOSSIER_CAPTURES, { ancre, neutraliser = false } = {}) {
+  dir = validerDossierCaptures(dir);
   if (neutraliser) {
     const surSelect = await evaluate(session, `!!document.activeElement && document.activeElement.tagName === 'SELECT'`);
     if (surSelect) await realKey(session, { key: 'Escape' });
@@ -951,29 +1030,16 @@ export async function espionReseau(session, { filtre } = {}) {
 }
 
 /**
- * Monkey-patch `setTimeout` pour figer une animation le temps d'une capture : les délais fournis
- * (`delays`, dans l'ordre d'appel) remplacent ceux demandés par l'app, le dernier de la liste étant
- * réutilisé pour tout appel excédentaire — passer `[0]` fige tout à l'instantané.
+ * Remplace les délais des nouveaux timeouts par la séquence demandée, dernier répété.
+ * [] garde les délais originaux ; [0] accélère, [60000] retarde. Aucun callback perdu.
  */
 export async function freezeTimeout(session, delays = [0]) {
-  await evaluate(session, `(() => {
-    if (window.__recetteOrigSetTimeout) return;
-    window.__recetteOrigSetTimeout = window.setTimeout.bind(window);
-    const forced = ${JSON.stringify(delays)};
-    let i = 0;
-    window.setTimeout = (fn, ms, ...args) =>
-      window.__recetteOrigSetTimeout(fn, forced.length ? forced[Math.min(i++, forced.length - 1)] : ms, ...args);
-  })()`);
+  return evaluerFn(session, browserFreezeTimeout, delays);
 }
 
 /** Annule `freezeTimeout` — restaure le vrai `setTimeout`. */
 export async function unfreezeTimeout(session) {
-  await evaluate(session, `(() => {
-    if (window.__recetteOrigSetTimeout) {
-      window.setTimeout = window.__recetteOrigSetTimeout;
-      delete window.__recetteOrigSetTimeout;
-    }
-  })()`);
+  return evaluerFn(session, browserUnfreezeTimeout);
 }
 
 /** Force `prefers-reduced-motion: reduce` côté page (CDP `Emulation.setEmulatedMedia`). */
@@ -1010,10 +1076,7 @@ export async function setMobileViewport(session) {
  * une sous-chaîne trouvait cinq cibles pour « Atelier » et cliquait la première. `{ exact: false }`
  * DEMANDE la sous-chaîne, quand le libellé porte une partie variable (« Fin du tourAction non
  * dépensée »).
- * Quand PLUSIEURS boutons matchent, le premier est cliqué (comportement inchangé) mais l'ambiguïté
- * est AVERTIE sur `stderr` avec les textes concurrents : une recette qui vise le mauvais bouton
- * échoue plus loin, sur un symptôme qui ne désigne plus sa cause. Avertissement, jamais exception —
- * l'appelant peut légitimement viser le premier.
+ * Plusieurs boutons correspondants sont refusés avant tout événement : préciser `dans` ou `rangee`.
  *
  * `dans` = sélecteur RACINE où chercher (même patron que `{ racine }` de `cliquerAction`) : c'est la
  * sortie propre quand le même libellé vit dans deux zones de l'écran (un « Fermer » de modale et
@@ -1030,26 +1093,28 @@ export async function setMobileViewport(session) {
  * du store n'ont bougé dans le délai qui suit le clic (`avecEffet`) — un clic sans effet ne passe
  * plus en silence (friction #2290).
  *
- * Le texte cherché est confronté au NOM ACCESSIBLE du contrôle (`CORPS_NOM_ACCESSIBLE` : son texte,
- * sinon `aria-label`, sinon `title`) — un portrait `button.ptile` ou le bouton de carte du monde
- * n'ont aucun texte. `attenteMs` : l'attente d'un recouvrement transitoire (`controlerCible`).
+ * Le texte cherché est confronté au NOM ACCESSIBLE du contrôle (`CORPS_NOM_ACCESSIBLE` : `aria-label`
+ * explicite, sinon texte ; `title` si le nom obtenu est vide). Un portrait `button.ptile` peut
+ * porter ses Blessures en texte ; son `aria-label` nomme le héros et le geste. `attenteMs` : l'attente d'un recouvrement transitoire (`controlerCible`).
  */
 export async function clickButtonByText(session, texte, { exact = true, dans, rangee, modifiers = 0, attendreChangement = false, attenteMs = ATTENTE_CIBLE } = {}) {
-  return avecEffet(session, `clickButtonByText « ${texte} »`, attendreChangement, () => cliquerParTexte(session, texte, { exact, dans, rangee, modifiers, attenteMs }));
+  return cliquerParTexte(session, texte, { exact, dans, rangee, modifiers, attenteMs, attendreChangement });
 }
 
 /** Délai par défaut de `attendreChangement` (`clickButtonByText`, `cliquerSelecteur`). */
 export const DELAI_CHANGEMENT = 2000;
 
 /** Hachage (PURE, expression-fonction de page) d'une chaîne en court jeton base 36 — djb2 : les
- *  empreintes de page (`EMPREINTE_PAGE`, `expressionLectureModales`) se comparent, jamais se lisent. */
+ *  empreintes de page (`EMPREINTE_PAGE`) se comparent, jamais se lisent. */
 const FN_HACHER = `(s) => { let x = 5381; for (let i = 0; i < s.length; i++) x = ((x * 33) ^ s.charCodeAt(i)) >>> 0; return x.toString(36); }`;
 
 /** Attributs de RENDU réécrits à chaque image, hors de tout geste : le compteur d'images et la file du
  *  cuiseur du canevas (`src/gameIso/stage/GameStage3D.tsx`, `canvas.dataset.rendus` / `.file`). Une
  *  empreinte qui les compterait bougerait sans clic. */
 export const ATTRIBUTS_VOLATILS = Object.freeze(['data-rendus', 'data-file']);
-const MOTIF_VOLATILS = `\\s(?:${ATTRIBUTS_VOLATILS.join('|')})="[^"]*"`;
+/** Marque de localisation, exclue de l’empreinte de page ; le contrôle de cible la retire. */
+const ATTR_CIBLE = 'data-recette-cible';
+const MOTIF_VOLATILS = `\\s(?:${[...ATTRIBUTS_VOLATILS, ATTR_CIBLE].join('|')})="[^"]*"`;
 
 /** EMPREINTE de la page (PURE, chaîne) : hachage du DOM (`body.innerHTML`, sans `ATTRIBUTS_VOLATILS`) et de l'état du store
  *  (`__game`, sérialisé) — deux empreintes égales = rien n'a bougé. Un état non sérialisable entre à
@@ -1078,10 +1143,13 @@ async function avecEffet(session, qui, attendre, geste) {
   }
 }
 
-/** Le localisateur par TEXTE et son clic (`clickButtonByText`, sans l'attente d'effet). */
-async function cliquerParTexte(session, texte, { exact, dans, rangee, modifiers, attenteMs }) {
+/** Localise le bouton, puis observe l'effet autour du clic réel si demandé. */
+async function cliquerParTexte(session, texte, { exact, dans, rangee, modifiers, attenteMs, attendreChangement }) {
   const jeton = nouveauJeton();
-  const rect = await evaluate(session, `(() => {
+  const fin = Date.now() + attenteMs;
+  let rect;
+  do {
+    rect = await evaluate(session, `(() => {
     const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
     ${CORPS_NOM_ACCESSIBLE}
     const target = norm(${JSON.stringify(texte)});
@@ -1092,15 +1160,20 @@ async function cliquerParTexte(session, texte, { exact, dans, rangee, modifiers,
     const rangee = ${rangee === undefined ? 'null' : `norm(${JSON.stringify(rangee)})`};
     const porte = (e) => norm(e.textContent).includes(rangee);
     const deLaRangee = new Set();
+    const rangeesRetenues = new Set();
     if (rangee !== null) {
       const porteurs = Array.from(racine.querySelectorAll('*')).filter((e) => porte(e) && !Array.from(e.children).some(porte));
       for (const p of porteurs) {
         let a = p;
         while (a && !libelles.some((b) => a.contains(b))) a = a === racine ? null : a.parentElement;
-        if (a) for (const b of libelles) if (a.contains(b)) deLaRangee.add(b);
+        if (a) {
+          rangeesRetenues.add(a);
+          for (const b of libelles) if (a.contains(b)) deLaRangee.add(b);
+        }
       }
     }
     const matches = rangee === null ? libelles : libelles.filter((b) => deLaRangee.has(b));
+    if (matches.length > 1) throw new Error('clickButtonByText : ' + matches.length + ' cibles ambiguës « ' + target + ' »' + (rangee === null ? '' : ' — rangées retenues : ' + [...rangeesRetenues].map((a) => a.tagName.toLowerCase() + (a.id ? '#' + a.id : '') + ' « ' + norm(a.textContent) + ' »').join(' | ')) + ' — préciser { dans } ou { rangee }');
     const el = matches[0];
     if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
@@ -1108,18 +1181,51 @@ async function cliquerParTexte(session, texte, { exact, dans, rangee, modifiers,
     const r = el.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2, textes: matches.slice(0, 5).map(nomAccessible) };
   })()`);
-  if (!rect) throw new Error(`clickButtonByText : aucun bouton ne matche « ${texte} »${exact ? ' (texte EXACT)' : ''}${dans ? ` dans « ${dans} »` : ''}${rangee !== undefined ? ` dans la rangée « ${rangee} »` : ''}`);
-  avertirAmbiguite(`clickButtonByText « ${texte} »`, rect.textes, 'Préciser avec { dans } ou { rangee } si ce n\'est pas celui-là.');
-  await clicReel(session, rect.x, rect.y, modifiers, { cible: jeton, libelle: texte, attenteMs });
+    if (rect || Date.now() >= fin) break;
+    await sleep(Math.min(50, Math.max(0, fin - Date.now())));
+  } while (true);
+  if (!rect) throw new Error(`clickButtonByText : aucun bouton ne matche « ${texte} »${exact ? ' (texte EXACT)' : ''}${dans ? ` dans « ${dans} »` : ''}${rangee !== undefined ? ` dans la rangée « ${rangee} »` : ''} après ${attenteMs} ms`);
+  await avecEffet(session, `clickButtonByText « ${texte} »`, attendreChangement, () => clicReel(session, rect.x, rect.y, modifiers, { cible: jeton, libelle: texte, attenteMs }));
   return rect;
 }
 
-/** AVERTIT (`stderr`) qu'une désignation par TEXTE en vise plusieurs : le PREMIER est retenu, et les
- *  textes concurrents sont nommés — avertissement, jamais exception. Rend `true` s'il a averti. */
-function avertirAmbiguite(qui, textes, precision) {
-  if (!textes || textes.length < 2) return false;
-  console.warn(`${qui} : ${textes.length} cibles matchent (${textes.join(' | ')}) — la PREMIÈRE est retenue. ${precision}`);
-  return true;
+/** Item de liste sans rôle interactif : `selecteur` délimite les items, `nom` leur texte propre. */
+export async function clickItemByText(session, texte, { selecteur, nom, dans, exact = true, modifiers = 0, attenteMs = ATTENTE_CIBLE } = {}) {
+  if (!selecteur) throw new Error('clickItemByText : { selecteur } des items obligatoire');
+  const jeton = nouveauJeton();
+  const r = await evaluerFn(session, (texte, selecteur, nom, dans, exact, jeton, attr) => {
+    const racine = dans ? document.querySelector(dans) : document;
+    if (!racine) return null;
+    const norm = (s) => (s || '').replace(/\s+/g, ' ').replace(/[\u2019']/g, "'").trim();
+    const cible = norm(texte);
+    const items = [...racine.querySelectorAll(selecteur)].filter((e) => {
+      const label = norm((nom ? e.querySelector(nom) : e)?.textContent);
+      return exact ? label === cible : label.includes(cible);
+    });
+    if (items.length > 1) throw new Error('clickItemByText : ' + items.length + ' items ambigus « ' + cible + ' » — préciser { dans } ou { selecteur }');
+    const el = items[0];
+    if (!el) return null;
+    el.scrollIntoView({ block: 'center', inline: 'center' });
+    el.setAttribute(attr, jeton);
+    const r = el.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  }, texte, selecteur, nom, dans, exact, jeton, ATTR_CIBLE);
+  if (!r) throw new Error(`clickItemByText : aucun item « ${texte} » dans « ${dans ?? 'document'} » (${selecteur})`);
+  await clicReel(session, r.x, r.y, modifiers, { cible: jeton, libelle: texte, attenteMs });
+  return r;
+}
+
+/** Pose la bascule Atelier du Codex dans l'état demandé, par clic réel seulement si nécessaire. */
+export async function setAtelier(session, actif = true, { dans = '.codex-top' } = {}) {
+  const lire = () => evaluerFn(session, (dans) => {
+    const boutons = [...(document.querySelector(dans)?.querySelectorAll('button') ?? [])].filter((b) => b.textContent.trim() === 'Atelier');
+    if (boutons.length !== 1 || !boutons[0].hasAttribute('aria-pressed')) throw new Error('setAtelier : bascule Atelier unique avec aria-pressed attendue dans « ' + dans + ' »');
+    return boutons[0].getAttribute('aria-pressed') === 'true';
+  }, dans);
+  if (await lire() !== actif) await clickButtonByText(session, 'Atelier', { dans });
+  const obtenu = await lire();
+  if (obtenu !== actif) throw new Error(`setAtelier : état demandé ${actif}, obtenu ${obtenu}`);
+  return obtenu;
 }
 
 /**
@@ -1133,11 +1239,11 @@ function avertirAmbiguite(qui, textes, precision) {
  * @returns {Promise<{ x: number, y: number, label: string }>}
  */
 export async function cliquerSelecteur(session, selecteur, { modifiers = 0, attendreChangement = false, attenteMs = ATTENTE_CIBLE } = {}) {
-  return avecEffet(session, `cliquerSelecteur « ${selecteur} »`, attendreChangement, () => cliquerParSelecteur(session, selecteur, { modifiers, attenteMs }));
+  return cliquerParSelecteur(session, selecteur, { modifiers, attenteMs, attendreChangement });
 }
 
-/** Le localisateur par SÉLECTEUR et son clic (`cliquerSelecteur`, sans l'attente d'effet). */
-async function cliquerParSelecteur(session, selecteur, { modifiers, attenteMs }) {
+/** Attend et localise le sélecteur, puis observe l'effet autour du clic réel si demandé. */
+async function cliquerParSelecteur(session, selecteur, { modifiers, attenteMs, attendreChangement }) {
   await attendreSelecteur(session, selecteur, { timeoutMs: attenteMs, qui: 'cliquerSelecteur' });
   const jeton = nouveauJeton();
   const cible = await evaluate(session, `(() => {
@@ -1154,7 +1260,7 @@ async function cliquerParSelecteur(session, selecteur, { modifiers, attenteMs })
   })()`);
   if (!cible) throw new Error(`cliquerSelecteur « ${selecteur} » : aucun élément`);
   if (cible.vide) throw new Error(`cliquerSelecteur « ${selecteur} » : boîte de taille nulle (non rendu)`);
-  await clicReel(session, cible.x, cible.y, modifiers, { cible: jeton, libelle: selecteur, attenteMs });
+  await avecEffet(session, `cliquerSelecteur « ${selecteur} »`, attendreChangement, () => clicReel(session, cible.x, cible.y, modifiers, { cible: jeton, libelle: selecteur, attenteMs }));
   return cible;
 }
 
@@ -1163,11 +1269,9 @@ async function cliquerParSelecteur(session, selecteur, { modifiers, attenteMs })
 export const SELECTEUR_CONTROLES = 'button, [role="button"], summary';
 
 /** Corps (PURE, `norm` en portée) : `nomAccessible(el)`, le NOM d'un contrôle désigné par texte — son
- *  texte, sinon `aria-label`, sinon `title` — SOURCE UNIQUE des localisateurs par TEXTE. */
-const CORPS_NOM_ACCESSIBLE = "const nomAccessible = (b) => norm(b.textContent) || norm(b.getAttribute('aria-label')) || norm(b.getAttribute('title'));";
+ *  `aria-label` explicite, sinon texte ; `title` si le nom est vide — SOURCE UNIQUE des localisateurs par TEXTE. */
+const CORPS_NOM_ACCESSIBLE = "const nomAccessible = (b) => norm(b.getAttribute('aria-label')) || norm(b.textContent) || norm(b.getAttribute('title'));";
 
-/** Attribut posé sur la CIBLE d'un clic par le helper qui l'a trouvée — `clicReel` le relit au point. */
-const ATTR_CIBLE = 'data-recette-cible';
 let compteurJetons = 0;
 /** Jeton UNIQUE d'une cible de clic (marque posée par le localisateur, vérifiée par `clicReel`). */
 const nouveauJeton = () => `c${process.pid}-${++compteurJetons}`;
@@ -1233,13 +1337,72 @@ async function controlerCible(session, x, y, { cible, libelle = cible, qui = 'cl
  *  la cible ou un de ses descendants — sinon le clic LÈVE en nommant ce qui recouvre (#2220 : une barre
  *  de groupe recouvrait l'onglet visé, et le clic partait en silence sur elle).
  *  `bouton` (`left`, `right`, `middle`) : le bouton pressé ; `dureeMs` : le temps TENU entre l'appui
- *  et le relâchement (appui long) ; `attenteMs` : l'attente d'un recouvrement transitoire (`controlerCible`). */
-export async function clicReel(session, x, y, modifiers = 0, { cible, libelle = cible, bouton = 'left', dureeMs = 0, attenteMs = ATTENTE_CIBLE } = {}) {
+ *  et le relâchement (appui long) ; `attenteMs` : l'attente d'un recouvrement transitoire (`controlerCible`).
+ *  `trajet` : points relatifs au départ sous bouton tenu ; le relâchement conserve l'erreur primaire s'il échoue aussi. */
+export async function clicReel(session, x, y, modifiers = 0, { cible, libelle = cible, bouton = 'left', dureeMs = 0, attenteMs = ATTENTE_CIBLE, trajet = [] } = {}) {
   if (cible) await controlerCible(session, x, y, { cible, libelle, attenteMs });
   await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y, modifiers });
   await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: bouton, clickCount: 1, modifiers });
-  if (dureeMs > 0) await sleep(dureeMs);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: bouton, clickCount: 1, modifiers });
+  let fin = { x, y };
+  const relacher = () => session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', ...fin, button: bouton, clickCount: 1, modifiers });
+  try {
+    for (const point of trajet) {
+      fin = { x: x + point.x, y: y + point.y };
+      await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', ...fin, button: bouton, buttons: bouton === 'middle' ? 4 : bouton === 'right' ? 2 : 1, modifiers });
+    }
+    if (dureeMs > 0) await sleep(dureeMs);
+  } catch (e) {
+    await leverApresNettoyage(e, relacher);
+  }
+  await relacher();
+}
+
+export async function tournerCamera(session, degres, { attenteMs = ATTENTE_CIBLE } = {}) {
+  if (!Number.isFinite(degres)) throw new Error('tournerCamera : degrés non finis');
+  if (!Number.isFinite(attenteMs) || attenteMs < 0) throw new Error('tournerCamera : délai non fini ou négatif');
+  const fin = Date.now() + attenteMs;
+  let observee;
+  const tempsRestant = () => {
+    const restant = fin - Date.now();
+    if (restant <= 0) throw new Error(`tournerCamera : budget de ${attenteMs} ms épuisé — rotation demandée ${degres}°, observée ${observee ?? 'non mesurée'}`);
+    return restant;
+  };
+  const lire = () => evaluate(session, 'window.__wfrp.camera()');
+  const avant = await lire();
+  if (!avant || !Number.isFinite(avant.deg) || !Number.isFinite(avant.sensibilite) || avant.sensibilite <= 0) throw new Error('tournerCamera : observation caméra invalide');
+  if (avant.active) throw new Error('tournerCamera : rotation déjà active');
+  if (degres === 0) return { avant, apres: avant, delta: 0 };
+  let restant = degres / avant.sensibilite;
+  while (Math.abs(restant) > 1e-9) {
+    tempsRestant();
+    const jeton = nouveauJeton();
+    const point = await evaluate(session, `(() => {
+      const el = document.querySelector('svg.iso-stage');
+      if (!el) throw new Error('tournerCamera : stage absent');
+      const r = el.getBoundingClientRect();
+      const gauche = Math.max(0, r.left ?? r.x), droite = Math.min(innerWidth, (r.right ?? r.x + r.width));
+      const haut = Math.max(0, r.top ?? r.y), bas = Math.min(innerHeight, (r.bottom ?? r.y + r.height));
+      if (droite - gauche < 32 || bas - haut < 32) throw new Error('tournerCamera : stage sans place visible');
+      el.setAttribute('${ATTR_CIBLE}', ${JSON.stringify(jeton)});
+      return { x:(gauche+droite)/2, y:(haut+bas)/2, marge:(droite-gauche)/2-12 };
+    })()`);
+    const dx = Math.sign(restant) * Math.min(Math.abs(restant), point.marge);
+    if (!Number.isFinite(restant) || restant - dx === restant) throw new Error('tournerCamera : imprécision de l’angle, aucun déplacement possible');
+    await clicReel(session, point.x, point.y, 0, { cible: jeton, libelle: 'tournerCamera', bouton: 'middle', attenteMs: tempsRestant(), trajet: [{x:0,y:8},{x:dx,y:0}] });
+    restant -= dx;
+  }
+  let apres, delta;
+  do {
+    tempsRestant();
+    apres = await lire();
+    tempsRestant();
+    delta = apres?.deg - avant.deg;
+    observee = delta;
+    if (apres && !apres.active && Number.isFinite(delta) && Math.abs(delta - degres) <= Math.min(0.1, Math.abs(degres) / 100)) return { avant, apres, delta };
+    if (Date.now() >= fin) break;
+    await sleep(Math.min(20, tempsRestant()));
+  } while (true);
+  throw new Error(`tournerCamera : rotation demandée ${degres}°, observée ${delta}° (active=${apres?.active}) après ${attenteMs} ms`);
 }
 
 /** Corps (PURE) qui RÉSOUT la cible d'un geste dans la page en `el` : un SÉLECTEUR CSS, sinon le NOM
@@ -1414,13 +1577,59 @@ const LABELS_DE_SORTIE = Object.freeze(['Fermer']);
 /** Le PREMIER des `libelles` (ordre de préférence) que porte un des `offerts` (sous-chaîne), ou `null`. */
 const premierLibelleOffert = (libelles, offerts) => libelles.map((l) => offerts.find((t) => t.includes(l))).find(Boolean) ?? null;
 
-/** Expression (PURE) : textes des contrôles OUVERTS (`SELECTEUR_CONTROLES`) sous `dans`. */
-const expressionControlesOuverts = (dans) => `(() => {
+function browserControlesVisibles(racine, selecteur, nomAccessible) {
+  const controles = [];
+  for (const el of racine.querySelectorAll(selecteur)) {
+    const r = el.getBoundingClientRect();
+    let gauche = Math.max(0, r.left ?? r.x), haut = Math.max(0, r.top ?? r.y);
+    let droite = Math.min(window.innerWidth, r.right ?? r.x + r.width), bas = Math.min(window.innerHeight, r.bottom ?? r.y + r.height);
+    let visible = r.width > 0 && r.height > 0;
+    for (let a = el; visible && a; a = a.parentElement) {
+      const style = getComputedStyle(a);
+      if (a.hidden || a.hasAttribute('inert') || style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse' || (style.opacity !== '' && Number(style.opacity) === 0)) visible = false;
+      if (a.tagName === 'DETAILS' && !a.open) {
+        const summary = a.querySelector(':scope > summary');
+        if (!summary || (summary !== el && !summary.contains(el))) visible = false;
+      }
+      if (a !== el) {
+        const clipX = /^(auto|scroll|hidden|clip)$/.test(style.overflowX || style.overflow);
+        const clipY = /^(auto|scroll|hidden|clip)$/.test(style.overflowY || style.overflow);
+        if (clipX || clipY) {
+          const p = a.getBoundingClientRect();
+          const sx = a.offsetWidth ? p.width / a.offsetWidth : 1, sy = a.offsetHeight ? p.height / a.offsetHeight : 1;
+          const x = (p.left ?? p.x) + a.clientLeft * sx, y = (p.top ?? p.y) + a.clientTop * sy;
+          if (clipX) { gauche = Math.max(gauche, x); droite = Math.min(droite, x + (a.offsetWidth ? a.clientWidth * sx : p.width)); }
+          if (clipY) { haut = Math.max(haut, y); bas = Math.min(bas, y + (a.offsetHeight ? a.clientHeight * sy : p.height)); }
+        }
+      }
+    }
+    if (!visible || droite <= gauche || bas <= haut) continue;
+    controles.push({
+      el, nom: nomAccessible(el), tag: el.tagName.toLowerCase(),
+      aria: { label: el.getAttribute('aria-label'), disabled: el.getAttribute('aria-disabled'), pressed: el.getAttribute('aria-pressed'), expanded: el.getAttribute('aria-expanded') },
+      rect: { x: gauche, y: haut, width: droite - gauche, height: bas - haut },
+      ouvert: !el.disabled && el.getAttribute('aria-disabled') !== 'true',
+    });
+  }
+  return controles;
+}
+
+const CORPS_CONTROLES_VISIBLES = `const observerControles = (racine) => (${browserControlesVisibles.toString()})(racine, ${JSON.stringify(SELECTEUR_CONTROLES)}, nomAccessible);`;
+
+const expressionInventaireControles = (dans) => `(() => {
   const racine = document.querySelector(${JSON.stringify(dans)});
-  if (!racine) return [];
-  const ouvert = (b) => !b.disabled && b.getAttribute('aria-disabled') !== 'true';
-  return [...racine.querySelectorAll(${JSON.stringify(SELECTEUR_CONTROLES)})].filter(ouvert).map((b) => (b.textContent || '').replace(/\\s+/g, ' ').trim()).filter(Boolean);
+  if (!racine) throw new Error('controlesVisibles : racine absente « ' + ${JSON.stringify(dans)} + ' »');
+  const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
+  ${CORPS_NOM_ACCESSIBLE}
+  ${CORPS_CONTROLES_VISIBLES}
+  return observerControles(racine).map((c) => ({ nom: c.nom, tag: c.tag, aria: c.aria, rect: c.rect, ouvert: c.ouvert }));
 })()`;
+
+export async function controlesVisibles(session, { dans = 'body' } = {}) {
+  return evaluate(session, expressionInventaireControles(dans));
+}
+
+const expressionControlesOuverts = (dans) => `(${expressionInventaireControles(dans)}).filter((c) => c.ouvert && c.nom).map((c) => c.nom)`;
 
 /**
  * CLIQUE le premier des `libelles` (ordre de préférence) qu'offre un contrôle OUVERT de `dans` — le
@@ -1439,107 +1648,32 @@ export async function cliquerPremierOffert(session, libelles, { dans = '.modal-o
   return texte;
 }
 
-/**
- * RÉSOUT toute fenêtre ouverte (`.modal-overlay`) par ses VRAIS boutons, jusqu'à ce qu'il n'y en ait
- * plus — DÉFINITION UNIQUE, partagée par les sondes de recette.
- * Deux gestes, dans cet ordre :
- *  1. un bouton d'AVANCEMENT ouvert (`labels`, `cliquerPremierOffert`) — jamais un libellé de sortie
- *     (`LABELS_DE_SORTIE`) dans une fenêtre à choix. L'avancement PRIME : un groupe d'options
- *     FACULTATIF sans défaut (réaction Porte-Bouclier de la Défense, `useDefenseJetProps`) n'est jamais
- *     tranché à la place du joueur quand la fenêtre peut avancer sans lui ;
- *  2. sinon, la PREMIÈRE option OUVERTE d'un groupe d'options (`OptionChooser` : `.seg`,
- *     `.rm-loc-grid`) dont aucune option n'est retenue (`aria-pressed`) — une fenêtre qui ne peut
- *     avancer qu'une fois TRANCHÉE. La recette tranche par la FORME du contrôle, jamais par le nom
- *     d'une règle.
- * CHOISIR N'EST PAS AVANCER (#2306 B) : après le clic d'une option, la fenêtre est RELUE ; un bouton
- * d'avancement ouvert est pris, même si l'option reste offerte (« Dévier (−1 PA) » d'une Blessure
- * critique). La levée « l'option ne fait pas avancer » ne juge que l'option ELLE-MÊME : deux clics dont
- * l'empreinte (état des options, longueur du journal, `pendingCascade`) est restée IDENTIQUE — jamais
- * des boutons identiques.
- * Rend la liste des CHOIX faits à la place du joueur, `[{ fenetre, option, offertes }]` (fenêtre =
- * nom accessible du dialogue), pour qu'une recette les asserte ; chacun est imprimé une fois son clic
- * émis. Une LEVÉE porte les choix faits jusque-là (`erreur.choix`, `porterChoix`).
- * Lève, en nommant les boutons offerts, si aucun des deux gestes ne s'applique.
- * Lève tant qu'un GESTE SUR LA CARTE est attendu (`__wfrp.gesteCarteAttendu`, #2306 A) : pose de zone,
- * visée de siège, choix de cibles — la fenêtre est masquée, la levée NOMME le geste
- * (`GESTES_CARTE`), et le résolveur ne rend jamais la main tant que la carte attend.
- *
- * `arret(identite)` : consulté à CHAQUE lecture avec l'identité de la fenêtre ouverte
- * (`IDENTITE_FENETRE` : `{ cle, jet, etape, nom }`) ; vrai = rendre la main, fenêtre laissée OUVERTE —
- * une recette s'arrête ainsi sur la modale qu'elle vise (Défense : `jet === 'defense'`).
- *
- * La fin se juge au STORE, pas au DOM : tant qu'une étape de cascade est en cours (`pendingCascade`),
- * sa fenêtre va monter — la carte d'entrée de scène (`startScene`, `store.ts`) attend le montage du
- * monde.
- *
- * UNE SEULE HORLOGE D'ATTENTE : une lecture qui n'offre RIEN à résoudre — étape au store sans fenêtre,
- * OU fenêtre au DOM sans bouton d'avancement ni option ouverte (état transitoire : un roulis de dés
- * désactive ses boutons ~750 ms, une cascade Surprise passe de « Tout lancer » à « Terminer ») — est
- * RELUE pendant `attenteMs`. À l'échéance, la levée nomme la DERNIÈRE lecture : étape, fenêtre, et
- * chaque bouton avec son état (désactivés compris). Le même `attenteMs` borne l'attente d'un bouton
- * RECOUVERT le temps du roulis (`controlerCible`).
- */
-export async function resoudreModales(session, etape = 'resoudreModales', options = {}) {
-  const choix = [];
-  try {
-    return await resoudreEnCumulant(session, etape, options, choix);
-  } catch (e) {
-    throw porterChoix(e, choix);
-  }
-}
-
-/** Attache à la levée `e` les CHOIX faits jusque-là (`e.choix`, copie) et la rend. */
-export function porterChoix(e, choix) {
-  if (e instanceof Error) e.choix = [...choix];
-  return e;
-}
-
-/** Le corps de `resoudreModales` : CUMULE ses choix dans `choix`, que l'appelant garde à la levée. */
-async function resoudreEnCumulant(session, etape, { labels = CASCADE_LABELS, max = 40, pauseMs = 600, attenteMs = 30000, arret } = {}, choix) {
-  let apresOption = null;
-  let immobile = 0;
+export async function resoudreModales(session, etape = 'resoudreModales', { labels = CASCADE_LABELS, max = 40, pauseMs = 600, attenteMs = 30000, arret, dans } = {}) {
   let attenteDepuis = null;
   for (let i = 0; i < max; ) {
-    const jeton = nouveauJeton();
-    const lecture = await evaluate(session, expressionLectureModales(jeton));
-    if (!lecture) return choix;
-    if (arret && lecture.identite && arret(lecture.identite)) return choix;
+    const lecture = await evaluate(session, expressionLectureModales(dans));
+    if (!lecture) return;
+    if (arret && lecture.identite && arret(lecture.identite)) return;
+    if (lecture.refus) throw new Error(`[${etape}] ${lecture.refus} — fenêtre « ${lecture.fenetre ?? '?'} » laissée ouverte`);
     if (lecture.gesteCarte) {
       const g = lecture.gesteCarte;
       throw new Error(`[${etape}] ${GESTES_CARTE[g.kind] ?? `geste carte « ${g.kind} » en cours`} — « ${g.label} » (lanceur ${g.casterId}) : la fenêtre est masquée, la carte attend son geste (\`__wfrp.tileScreenPos\` puis \`clicReel\`), puis relancer`);
     }
     const ouverts = lecture.boutons.filter((b) => b.ouvert).map((b) => b.texte);
-    const option = lecture.modale ? lecture.option : null;
+    const interaction = lecture.identite?.interaction;
+    if (interaction === 'choix' || interaction === 'quantite') throw new Error(`[${etape}] interaction joueur « ${interaction} » — fenêtre « ${lecture.fenetre ?? '?'} » laissée ouverte ; offerts : ${ouverts.join(' | ') || '(aucun)'}`);
     const permis = lecture.aChoix ? labels.filter((l) => !LABELS_DE_SORTIE.includes(l)) : labels;
     const avancement = lecture.modale ? premierLibelleOffert(permis, ouverts) : null;
-    const geste = avancement ? 'avancer' : option ? 'choisir' : null;
-    if (!geste) {
+    if (!avancement && lecture.optionsOffertes?.length) throw new Error(`[${etape}] choix joueur requis — fenêtre « ${lecture.fenetre ?? '?'} » laissée ouverte ; offerts : ${lecture.optionsOffertes.join(' | ')}`);
+    if (!avancement) {
       attenteDepuis ??= Date.now();
-      if (Date.now() - attenteDepuis > attenteMs) {
-        throw new Error(`[${etape}] rien à résoudre après ${attenteMs} ms — dernière lecture : ${decrireLectureModales(lecture)}`);
-      }
+      if (Date.now() - attenteDepuis > attenteMs) throw new Error(`[${etape}] rien à résoudre après ${attenteMs} ms — dernière lecture : ${decrireLectureModales(lecture)}`);
       await sleep(pauseMs);
       continue;
     }
     attenteDepuis = null;
     i += 1;
-    if (geste === 'avancer') {
-      apresOption = null;
-      immobile = 0;
-      // L'option marquée par la lecture n'est pas le geste : sa marque est retirée avant le clic.
-      if (option) await evaluate(session, `document.querySelector('[${ATTR_CIBLE}=${JSON.stringify(jeton)}]')?.removeAttribute('${ATTR_CIBLE}')`);
-      await cliquerPremierOffert(session, permis, { offerts: ouverts, attenteMs });
-    } else {
-      immobile = apresOption && option.texte === apresOption.texte && lecture.empreinte === apresOption.empreinte ? immobile + 1 : 0;
-      if (immobile >= 2) {
-        throw new Error(`[${etape}] l'option « ${option.texte} » ne fait pas avancer la fenêtre `
-          + `(${immobile} clics sans rien changer : options, journal, étape de cascade) — dernière lecture : ${decrireLectureModales(lecture)}`);
-      }
-      apresOption = { texte: option.texte, empreinte: lecture.empreinte };
-      await clicReel(session, option.x, option.y, 0, { cible: jeton, libelle: option.texte, attenteMs });
-      choix.push({ fenetre: lecture.fenetre, option: option.texte, offertes: option.offertes });
-      console.log(`[${etape}] fenêtre de CHOIX « ${lecture.fenetre ?? '?'} » : première option ouverte — « ${option.texte} » (offertes : ${option.offertes.join(' | ')})`);
-    }
+    await cliquerPremierOffert(session, permis, { dans: lecture.selecteur, offerts: ouverts, attenteMs });
     await sleep(pauseMs);
   }
   throw new Error(`[${etape}] les fenêtres ne se referment pas après ${max} avancements`);
@@ -1552,71 +1686,55 @@ export const GESTES_CARTE = Object.freeze({
   cibles: 'choix de cibles en cours, cliquer les cibles',
 });
 
-/**
- * IDENTITÉ de la fenêtre ouverte (PURE, expression-fonction de l'état du store) — `null` sans modale
- * élue, sans étape de cascade ni fenêtre au DOM, sinon `{ cle, jet, etape, nom }` : `cle` = l'entrée
- * élue par l'arbitre des modales (`__wfrp.auto().activeModal`, registre `src/state/modalArbiter.ts`),
- * `jet` et `etape` = le `jet` et le `kind` de l'étape de cascade courante (`defense`/`defenseJet`
- * pour une Défense), `nom` = le nom accessible du dialogue.
- */
+/** Observation : `{ cle, jet, etape, nom }` et métadonnées de `auto().cascade`
+ * (`id, kind, interaction, ready, chosen, amount`). La classification vient de la sonde DEV ;
+ * `expressionLectureModales` vérifie sa cohérence avec l’étape courante avant avancement.
+ * `arret` reçoit cette identité avant le refus et peut laisser la fenêtre ouverte. */
 export const IDENTITE_FENETRE = `((st) => {
   const pc = st.pendingCascade;
   const cur = pc ? pc.participants[pc.cursor] : null;
   const auto = window.__wfrp && typeof window.__wfrp.auto === 'function' ? window.__wfrp.auto() : null;
   const cle = auto && auto.activeModal ? auto.activeModal : null;
-  const modale = document.querySelector('.modal-overlay');
+  const dessus = window.__wfrp.dialogueDuDessus();
+  const modale = dessus ? document.querySelector(dessus.selecteur) : null;
   if (!cle && !cur && !modale) return null;
-  const dialogue = modale ? modale.querySelector('[role="dialog"]') : null;
-  const titre = dialogue && dialogue.getAttribute('aria-labelledby') ? document.getElementById(dialogue.getAttribute('aria-labelledby')) : null;
-  const nom = ((dialogue ? dialogue.getAttribute('aria-label') || (titre && titre.textContent) : '') || '').replace(/\\s+/g, ' ').trim() || null;
-  return { cle, jet: cur && cur.jet ? cur.jet : null, etape: cur && cur.kind ? cur.kind : null, nom };
+  const nom = dessus?.nom ?? null;
+  return { cle, jet: cur && cur.jet ? cur.jet : null, etape: cur && cur.kind ? cur.kind : null, nom, ...(auto?.cascade ?? {}) };
 })`;
 
-/** Expression de LECTURE des fenêtres (PURE) : `null` s'il n'y a ni fenêtre ni étape au store, sinon
- *  `{ modale, fenetre, enCours, gesteCarte, boutons: [{ texte, ouvert }], option, aChoix, identite,
- *  empreinte }` — contrôles lus par `SELECTEUR_CONTROLES` ; l'option à choisir est MARQUÉE `jeton`, avec
- *  ses `offertes` (les options ouvertes de son groupe) ; `identite` = `IDENTITE_FENETRE` ; `empreinte` =
- *  hachage de l'état des options, de la longueur du journal et de `pendingCascade` (`resoudreModales`). */
-function expressionLectureModales(jeton) {
+function expressionLectureModales(dans) {
   return `(() => {
     const st = window.__game.getState();
     const pc = st.pendingCascade;
+    const cur = pc ? pc.participants[pc.cursor] : null;
+    const auto = window.__wfrp.auto?.();
+    const observation = auto?.cascade;
+    const refusObservation = cur ? !observation ? 'observation canonique absente' : typeof cur.id !== 'string' || !cur.id || observation.id !== cur.id || observation.kind !== cur.kind || typeof observation.interaction !== 'string' || !observation.interaction.trim() || typeof observation.ready !== 'boolean' ? 'observation canonique incohérente pour étape « ' + cur.id + ' »' : null : null;
     const enCours = pc ? String(pc.participants[pc.cursor]?.reveal?.kind ?? pc.participants[pc.cursor]?.kind ?? pc.purpose ?? '?') : null;
     const gesteCarte = window.__wfrp.gesteCarteAttendu();
     const identite = (${IDENTITE_FENETRE})(st);
-    const modale = document.querySelector('.modal-overlay');
-    if (!modale) return pc || gesteCarte ? { modale: false, fenetre: null, enCours, gesteCarte, boutons: [], option: null, aChoix: false, identite, empreinte: null } : null;
+    const dessus = window.__wfrp.dialogueDuDessus();
+    const modale = dessus ? document.querySelector(dessus.selecteur) : null;
+    if (refusObservation) return { modale: !!modale, fenetre: dessus?.nom ?? null, enCours, gesteCarte, boutons: [], aChoix: false, identite, refus: refusObservation };
+    if (!modale) return pc || gesteCarte ? { modale: false, fenetre: null, enCours, gesteCarte, boutons: [], aChoix: false, identite } : null;
+    const portee = ${JSON.stringify(dans ?? null)};
+    const overlay = modale.closest('.modal-overlay');
+    const flux = !!pc && !!auto?.activeModal && !!overlay?.hasAttribute('data-champ') && !!overlay?.hasAttribute('data-plein');
+    const fiche = dessus.kind === 'fiche-perso' || dessus.kind === 'codex';
+    const explicite = portee && !!modale.closest(portee);
+    if (fiche || (!flux && !explicite)) return { modale: true, fenetre: dessus.nom, enCours, gesteCarte, boutons: [], aChoix: false, identite, refus: fiche ? 'fiche hors flux' : 'cérémonie indéterminée : préciser { dans }' };
     const norm = (s) => (s || '').replace(/\\s+/g, ' ').trim();
     const ouvert = (b) => !b.disabled && b.getAttribute('aria-disabled') !== 'true';
-    const controles = (racine) => [...racine.querySelectorAll(${JSON.stringify(SELECTEUR_CONTROLES)})];
-    const boutons = controles(modale).map((b) => ({ texte: norm(b.textContent), ouvert: ouvert(b) })).filter((b) => b.texte);
+    ${CORPS_NOM_ACCESSIBLE}
+    ${CORPS_CONTROLES_VISIBLES}
+    const controles = (racine) => observerControles(racine).map((c) => c.el);
+    const boutons = observerControles(modale).map((c) => ({ texte: c.nom, ouvert: c.ouvert })).filter((b) => b.texte);
     const groupes = [...modale.querySelectorAll('.seg, .rm-loc-grid')];
     const aChoix = groupes.some((g) => controles(g).some(ouvert));
     const sansChoix = groupes.find((g) => controles(g).some(ouvert) && !controles(g).some((b) => b.getAttribute('aria-pressed') === 'true'));
     const ouvertes = sansChoix ? controles(sansChoix).filter(ouvert) : [];
-    const option = ouvertes[0] ?? null;
-    let point = null;
-    if (option) {
-      option.scrollIntoView({ block: 'center', inline: 'center' });
-      option.setAttribute('${ATTR_CIBLE}', ${JSON.stringify(jeton)});
-      const r = option.getBoundingClientRect();
-      point = { x: r.x + r.width / 2, y: r.y + r.height / 2, texte: norm(option.textContent), offertes: ouvertes.map((b) => norm(b.textContent)) };
-    }
-    const hacher = ${FN_HACHER};
-    const etatOptions = groupes.map((g) => controles(g).map((b) => norm(b.textContent) + (b.getAttribute('aria-pressed') === 'true' ? '*' : '') + (ouvert(b) ? '' : '-')).join(',')).join('/');
-    let cascade;
-    try { cascade = pc ? JSON.stringify(pc) : ''; } catch (e) { cascade = '(cascade illisible : ' + e.message + ')'; }
-    const empreinte = hacher(etatOptions + '#' + (st.journal || []).length + '#' + cascade);
-    return { modale: true, fenetre: identite ? identite.nom : null, enCours, gesteCarte, boutons, option: point, aChoix, identite, empreinte };
+    return { modale: true, selecteur: dessus.selecteur, fenetre: dessus.nom, enCours, gesteCarte, boutons, optionsOffertes: ouvertes.map(nomAccessible), aChoix, identite };
   })()`;
-}
-
-/** Les CHOIX faits à la place du joueur (`resoudreModales`), en clair pour le rapport de sortie
- *  d'une recette (PURE). */
-export function decrireChoix(choix) {
-  if (!choix.length) return 'Choix faits à la place du joueur : aucun.';
-  return [`Choix faits à la place du joueur : ${choix.length}`,
-    ...choix.map((c) => `  · « ${c.fenetre ?? '?'} » : « ${c.option} » (offertes : ${c.offertes.join(' | ')})`)].join('\n');
 }
 
 /** Une lecture de fenêtres en clair (PURE) : étape au store, fenêtre, boutons et leur état. */
@@ -1677,43 +1795,23 @@ export function prochainGeste(etat, { arret } = {}) {
   return 'finirTour';
 }
 
-/**
- * PILOTE le combat comme un joueur — `observer → prochainGeste → geste` — jusqu'à `arret(etat)` ou la
- * fin du combat, en `budget` gestes au plus ; lève en nommant la DERNIÈRE lecture. Rend
- * `{ lecture, choix }` : la lecture finale, et les CHOIX faits à la place du joueur par chaque
- * `resoudreModales`, cumulés — une levée les porte aussi (`erreur.choix`, `porterChoix`).
- * `arret(etat)` lit aussi `etat.fenetre`, l'IDENTITÉ de la fenêtre ouverte (`IDENTITE_FENETRE`) : il est
- * consulté à chaque lecture du pilote ET à chaque lecture de `resoudreModales`, de sorte qu'une recette
- * s'ARRÊTE sur la modale qu'elle vise, laissée ouverte (`(e) => e.fenetre?.jet === 'defense'`).
- */
 export async function piloterCombat(session, { arret, budget = 300, pauseMs = 400 } = {}) {
   let derniere = null;
-  const choix = [];
-  try {
-    for (let k = 0; k < budget; k++) {
-      derniere = await evaluate(session, LECTURE_COMBAT);
-      const geste = prochainGeste(derniere, { arret });
-      if (geste === 'fini') return { lecture: derniere, choix };
-      const lue = derniere;
-      if (geste === 'resoudre') {
-        try {
-          choix.push(...(await resoudreModales(session, 'piloterCombat', arret ? { arret: (fenetre) => arret({ ...lue, modale: true, fenetre }) } : {})));
-        } catch (e) {
-          choix.push(...(e.choix ?? []));
-          throw e;
-        }
-      } else if (geste === 'ouvrirRound') await ouvrirRound(session);
-      else if (geste === 'finirTour') await finDuTour(session);
-      await sleep(pauseMs);
-    }
-    throw new Error(`piloterCombat : ${budget} gestes sans atteindre l'arrêt — dernière lecture : ${JSON.stringify(derniere)}`);
-  } catch (e) {
-    throw porterChoix(e, choix);
+  for (let k = 0; k < budget; k++) {
+    derniere = await evaluate(session, LECTURE_COMBAT);
+    const geste = prochainGeste(derniere, { arret });
+    if (geste === 'fini') return { lecture: derniere };
+    const lue = derniere;
+    if (geste === 'resoudre') await resoudreModales(session, 'piloterCombat', arret ? { arret: (fenetre) => arret({ ...lue, modale: true, fenetre }) } : {});
+    else if (geste === 'ouvrirRound') await ouvrirRound(session);
+    else if (geste === 'finirTour') await finDuTour(session);
+    await sleep(pauseMs);
   }
+  throw new Error(`piloterCombat : ${budget} gestes sans atteindre l'arrêt — dernière lecture : ${JSON.stringify(derniere)}`);
 }
 
 /** Avance le combat de `n` Rounds (ou jusqu'à sa fin, ou jusqu'à l'`arret` de l'appelant), au geste du
- *  joueur. Rend `{ lecture, choix }` ; une levée porte les choix (`piloterCombat`). */
+ *  joueur. Rend `{ lecture }`. */
 export async function avancerDeRounds(session, n, { arret, ...opts } = {}) {
   const depart = await evaluate(session, LECTURE_COMBAT);
   if (!depart.battle) throw new Error('avancerDeRounds : aucun combat en cours');
@@ -1726,7 +1824,8 @@ export async function avancerDeRounds(session, n, { arret, ...opts } = {}) {
  * position), agrandi `zoom` fois (`Page.captureScreenshot` + `clip.scale`). `cote` = côté du cadre en
  * px CSS. Lève si le combattant n'a pas de position projetée. Rend le chemin écrit.
  */
-export async function capturerPion(session, id, { zoom = 3, cote = 160, dir = process.cwd(), nom = `pion-${id}` } = {}) {
+export async function capturerPion(session, id, { zoom = 3, cote = 160, dir = DOSSIER_CAPTURES, nom = `pion-${id}` } = {}) {
+  dir = validerDossierCaptures(dir);
   const centre = await evaluate(session, `(() => {
     const b = window.__wfrp.store.getState().battle;
     const c = b ? b.combatants.find((x) => x.id === ${JSON.stringify(id)}) : null;
@@ -1793,18 +1892,18 @@ export async function infobulleDe(session, cible) {
  * CHOISIT une option d'un `<select>` AU GESTE (`session, selecteur, valeur`) — le pendant « liste
  * déroulante » de `clickButtonByText`/`typeInField`.
  *
- * Un `<select>` ne s'ouvre pas en headless (le popup est natif, hors DOM) : le geste réel qu'on peut
- * rejouer est celui du CLAVIER — focaliser la liste, poser `selectedIndex`, puis laisser partir les
- * événements `input` et `change` que le navigateur émet à la validation. Trois étages, tous DOM :
+ * La popup native d'un `<select>` est hors DOM et peut rester ouverte en headless. Le helper
+ * focalise la liste par un clic CDP, pose sa valeur par le setter natif, puis dispatche `input`
+ * et `change`, sans émettre de frappe clavier. Trois étages :
  *  1. FOCUS par un vrai clic CDP (comme `typeInField`) — la liste reçoit le geste, pas le `<body>` ;
- *  2. `selectedIndex` posé par le SETTER NATIF (`HTMLSelectElement.prototype.value`), jamais par un
+ *  2. `value` posé par le SETTER NATIF (`HTMLSelectElement.prototype.value`), jamais par un
  *     `setState` React : c'est ce qui fait voir la nouvelle valeur au `onChange` d'un champ CONTRÔLÉ
  *     (même piège que `.value = …` documenté dans `docs/recette-navigateur.md`) ;
  *  3. `input` puis `change` dispatchés `{ bubbles: true }` — React écoute `change` sur la racine.
  *
  * L'option se désigne par son LIBELLÉ VISIBLE (défaut) ; `{ par: 'valeur' }` vise la valeur interne.
- * Plusieurs options de même libellé : la PREMIÈRE est retenue et l'ambiguïté AVERTIE
- * (`avertirAmbiguite`, comme `clickButtonByText`). Refus EXPLICITES : liste absente, aucune option ne
+ * Plusieurs options correspondantes sont refusées AVANT le focus et tout événement.
+ * Refus EXPLICITES : liste absente, aucune option ne
  * correspond (les libellés, ou les valeurs, offerts sont remontés dans le message), ou option FERMÉE
  * (`disabled`, comme un contrôle fermé de `clicReel`). Rend `{ valeur, libelle }` LUS après le geste —
  * un `onChange` qui refuse la valeur se voit donc au retour, jamais en silence.
@@ -1814,36 +1913,53 @@ export async function selectOption(session, selecteur, valeur, { par = 'libelle'
   const rect = await evaluate(session, `(() => {
     const el = document.querySelector(${JSON.stringify(selecteur)});
     if (!el) return null;
-    el.scrollIntoView({ block: 'center', inline: 'center' });
-    el.setAttribute('${ATTR_CIBLE}', ${JSON.stringify(jeton)});
-    const r = el.getBoundingClientRect();
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  })()`);
-  if (!rect) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} »`);
-  await clicReel(session, rect.x, rect.y, 0, { cible: jeton, libelle: selecteur });
-  const res = await evaluate(session, `(() => {
-    const el = document.querySelector(${JSON.stringify(selecteur)});
-    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\u2019']/g, "'").trim();
+    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
     const demande = ${JSON.stringify(String(valeur))};
     const options = Array.from(el.options);
     const candidates = ${JSON.stringify(par)} === 'valeur' ? options.filter((o) => o.value === demande) : options.filter((o) => norm(o.textContent) === norm(demande));
+    if (candidates.length > 1) throw new Error('selectOption : ' + candidates.length + ' options ambiguës « ' + demande + ' » — préciser { par: "valeur" }');
     const choisie = candidates[0];
     if (!choisie) return { absente: true, offertes: options.map((o) => (${JSON.stringify(par)} === 'valeur' ? o.value : norm(o.textContent))) };
-    const doublons = candidates.map((o) => norm(o.textContent) + ' [' + o.value + ']');
-    if (choisie.disabled) return { fermee: true, doublons };
+    if (choisie.disabled) return { fermee: true };
+    el.scrollIntoView({ block: 'center', inline: 'center' });
+    el.setAttribute('${ATTR_CIBLE}', ${JSON.stringify(jeton)});
+    const r = el.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2, valeur: choisie.value };
+  })()`);
+  if (!rect) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} »`);
+  if (rect.absente) throw new Error(`selectOption « ${selecteur} » : aucune option ${par === 'valeur' ? 'de VALEUR' : 'de LIBELLÉ'} « ${valeur} » — ${par === 'valeur' ? 'valeurs' : 'libellés'} offerts : ${rect.offertes.join(' | ')}`);
+  if (rect.fermee) throw new Error(`selectOption « ${selecteur} » : option « ${valeur} » FERMÉE (disabled) — aucun choix émis`);
+  await clicReel(session, rect.x, rect.y, 0, { cible: jeton, libelle: selecteur });
+  return evaluate(session, `(() => {
+    const el = document.querySelector(${JSON.stringify(selecteur)});
+    const choisie = Array.from(el.options).filter((o) => o.value === ${JSON.stringify(rect.valeur)});
+    if (choisie.length !== 1 || choisie[0].disabled) throw new Error('selectOption : option préparée disparue, ambiguë ou fermée après le focus');
     el.focus();
     const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
-    setter.call(el, choisie.value);
+    setter.call(el, ${JSON.stringify(rect.valeur)});
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
-    return { valeur: el.value, libelle: (el.selectedOptions[0] || {}).textContent || '', doublons };
+    return { valeur: el.value, libelle: (el.selectedOptions[0] || {}).textContent || '' };
   })()`);
-  if (res && res.absente) {
-    throw new Error(`selectOption « ${selecteur} » : aucune option ${par === 'valeur' ? 'de VALEUR' : 'de LIBELLÉ'} « ${valeur} » — ${par === 'valeur' ? 'valeurs' : 'libellés'} offerts : ${res.offertes.join(' | ')}`);
-  }
-  avertirAmbiguite(`selectOption « ${selecteur} » « ${valeur} »`, res.doublons, 'Préciser avec { par: \'valeur\' } si ce n\'est pas celle-là.');
-  if (res.fermee) throw new Error(`selectOption « ${selecteur} » : option « ${valeur} » FERMÉE (disabled) — aucun choix émis`);
-  return { valeur: res.valeur, libelle: res.libelle };
+}
+
+/** Pose une couleur par setter natif sur une cible contrôlée, sans ouvrir le sélecteur OS. */
+export async function choisirCouleur(session, selecteur, couleur) {
+  if (!/^#[\da-f]{6}$/i.test(couleur)) throw new Error(`choisirCouleur : couleur invalide « ${couleur} », #rrggbb attendu`);
+  const jeton = nouveauJeton();
+  const point = await localiserCible(session, selecteur, { jeton, qui: 'choisirCouleur' });
+  await controlerCible(session, point.x, point.y, { cible: jeton, libelle: selecteur });
+  const r = await evaluerFn(session, (selecteur, couleur) => {
+    const el = document.querySelector(selecteur);
+    if (!(el instanceof HTMLInputElement) || el.type !== 'color') throw new Error('choisirCouleur : input[type=color] attendu « ' + selecteur + ' »');
+    el.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, couleur);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return el.value;
+  }, selecteur, couleur);
+  if (r !== couleur.toLowerCase()) throw new Error(`choisirCouleur : demandé ${couleur}, obtenu ${r}`);
+  return r;
 }
 
 /**
@@ -1873,7 +1989,9 @@ export async function champParLibelle(session, libelle, { exact = true, dans } =
     if (!racine) return null;
     const champs = Array.from(racine.querySelectorAll('input, select, textarea'));
     const el = champs.find((c) => {
-      const nom = norm((c.labels && c.labels[0] ? c.labels[0].textContent : '') || c.getAttribute('aria-label') || '');
+      const label = c.labels?.[0]?.cloneNode(true);
+      label?.querySelectorAll('input, select, textarea').forEach((el) => el.remove());
+      const nom = norm(c.getAttribute('aria-label')) || norm(label?.textContent);
       return ${exact} ? nom === target : nom.includes(target);
     });
     if (!el) return null;
@@ -2259,32 +2377,34 @@ export async function typeInField(session, selecteur, texte, { clear = true, att
  * Le DOM de la console publie l'identité de chaque alvéole : la recette n'a donc plus à viser un
  * libellé (qui bouge avec la donnée) ni une position (qui bouge avec le set au poing).
  *
- * Trois refus EXPLICITES, jamais un clic silencieux qui « n'a rien fait » :
+ * `cell` distingue les capacités paramétrées partageant `data-action` par leur `data-cell` stable.
+ * Une action ambiguë est refusée avant tout événement. Autres refus explicites :
  *  - case ABSENTE (l'action n'est pas offerte dans cette situation) ;
  *  - case INERTE (`.cc-inert`, action `blocked` du registre) — dite comme telle ;
  *  - case FERMÉE (`disabled`/`aria-disabled`) — refus de `clicReel`, sa RAISON affichée remontée telle
  *    quelle : un gate qui se déclenche est un RÉSULTAT de recette, pas un obstacle.
  * Rend `{ actionId, label, rect }` au succès. Même dispatch souris réel que `clickButtonByText`.
  */
-export async function cliquerAction(session, actionId, { racine = '.combat-console' } = {}) {
+export async function cliquerAction(session, actionId, { racine = '.combat-console', cell } = {}) {
   const jeton = nouveauJeton();
-  const etat = await evaluate(session, `(() => {
-    const el = document.querySelector(${JSON.stringify('%RACINE% [data-action="%ID%"]')});
-    if (!el) {
-      const offertes = Array.from(document.querySelectorAll(${JSON.stringify('%RACINE% [data-action]')})).map((b) => b.getAttribute('data-action'));
-      return { absente: true, offertes };
-    }
+  const etat = await evaluerFn(session, (racine, actionId, cell, jeton, attr) => {
+    const hote = document.querySelector(racine);
+    const cases = [...(hote?.querySelectorAll('[data-action]') ?? [])];
+    const matches = cases.filter((b) => b.getAttribute('data-action') === actionId && (cell === null || b.getAttribute('data-cell') === cell));
+    if (matches.length > 1) throw new Error('cliquerAction « ' + actionId + ' » : ' + matches.length + ' cases ambiguës — préciser { cell } ou { racine }');
+    const el = matches[0];
+    if (!el) return { absente: true, offertes: cases.map((b) => b.getAttribute('data-action')) };
     el.scrollIntoView({ block: 'center', inline: 'center' });
-    el.setAttribute('${ATTR_CIBLE}', ${JSON.stringify(jeton)});
+    el.setAttribute(attr, jeton);
     const r = el.getBoundingClientRect();
     return {
       inerte: el.classList.contains('cc-inert'),
-      label: (el.getAttribute('aria-label') || el.textContent || '').trim(),
+      label: (el.getAttribute('aria-label') ?? el.textContent ?? '').trim(),
       x: r.x + r.width / 2, y: r.y + r.height / 2,
     };
-  })()`.replace(/%RACINE%/g, racine).replace(/%ID%/g, actionId));
+  }, racine, actionId, cell ?? null, jeton, ATTR_CIBLE);
   if (!etat || etat.absente) {
-    throw new Error(`cliquerAction « ${actionId} » : aucune case de console ne porte cet id — offertes : ${((etat && etat.offertes) || []).join(', ') || '(aucune)'}`);
+    throw new Error(`cliquerAction « ${actionId} »${cell === undefined ? '' : ` (cellule « ${cell} »)`} : aucune case de console ne porte cet id — offertes : ${((etat && etat.offertes) || []).join(', ') || '(aucune)'}`);
   }
   if (etat.inerte) throw new Error(`cliquerAction « ${actionId} » : case INERTE (action déclarée sans dispatcher au registre) — rien à cliquer`);
   await clicReel(session, etat.x, etat.y, 0, { cible: jeton, libelle: actionId });

@@ -34,15 +34,12 @@
 // Résidu mesuré sur l'arbre : Codex à 360×740, page 3007/740 — #1860. Aucune liste d'exemption ici :
 // la sonde reste rouge tant qu'il vit.
 import {
-  openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, decrireChoix, realKey, clickButtonByText, cliquerSelecteur, VUES_RECETTE,
+  openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, realKey, clickButtonByText, cliquerSelecteur, VUES_RECETTE,
 } from './lib.mjs';
 import {
   scrollportDePage, commandesInatteignables, corpsDeModaleEcrase, courantHorsChamp, piedHorsChamp,
   contenuSousLeBord, ecranNomme, enfantsQuiSeChevauchent, ongletHorsDeVue, nomRecouvert,
 } from './detecteurs-hauteur.mjs';
-
-/** Les CHOIX faits à la place du joueur par les résolutions de fenêtres : imprimés au rapport. */
-const choixFaits = [];
 
 function parseArgs(argv) {
   const out = { url: undefined, vues: VUES_RECETTE, mesures: false };
@@ -382,7 +379,7 @@ async function main() {
       await gotoScreen(session, 'menu', { settleMs: 300 });
       await evaluate(session, `window.__wfrp.scenario('embuscade', 7)`);
       await sleep(1600);
-      choixFaits.push(...(await resoudreModales(session, `${vue.nom} · ouverture`)));
+      await resoudreModales(session, `${vue.nom} · ouverture`, { dans: '.modal-overlay' });
       await sleep(400);
       const restante = await evaluate(session, FENETRE_RESTANTE);
       if (restante) echecs.push(`${vue.largeur}×${vue.hauteur} (${vue.nom}) · campagne (exploration) : fenêtre restée ouverte après l'ouverture — « ${restante} », les écrans suivants seraient jugés dessous`);
@@ -448,7 +445,7 @@ async function main() {
       // sonde aveugle sur la seule modale de jet que le combat ouvre sans geste de joueur.
       juger(await evaluate(session, PROBE), 'fenêtre de jet (combat)');
 
-      choixFaits.push(...(await resoudreModales(session, `${vue.nom} · ouverture de combat`)));
+      await resoudreModales(session, `${vue.nom} · ouverture de combat`, { dans: '.modal-overlay' });
       await sleep(800);
       juger(await evaluate(session, PROBE), 'campagne (combat)');
 
@@ -472,7 +469,7 @@ async function main() {
       await sleep(1600);
       await evaluate(session, `window.__wfrp.fight('duel')`);
       await sleep(1800);
-      choixFaits.push(...(await resoudreModales(session, `${vue.nom} · ouverture du duel naval`)));
+      await resoudreModales(session, `${vue.nom} · ouverture du duel naval`, { dans: '.modal-overlay' });
       await sleep(600);
       const navire = await evaluate(session, `(window.__game.getState().battle?.combatants || []).find((c) => c.bodyShape === 'vehicule')?.label ?? '(aucun navire)'`);
       await cadrePose(
@@ -485,7 +482,6 @@ async function main() {
       await sleep(400);
     }
   } finally {
-    console.log(`\n${decrireChoix(choixFaits)}`);
     await session.close();
   }
 
