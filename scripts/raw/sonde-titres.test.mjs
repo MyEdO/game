@@ -1,18 +1,26 @@
-// SONDE des TITRES (#1739) : `classer` sur une page forgée et un `.md` forgé qui portent chaque forme.
-// Le corps est l'ancre : chaque titre se juge par la ligne qui précède la 1re ligne de SON corps.
 import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
+
 import { spawnSync } from 'node:child_process'
+
 import { existsSync, readFileSync } from 'node:fs'
+
 import { fileURLToPath } from 'node:url'
-import { boitesDuPdf, classer, glypheFuite, grasDeTete, plusLongueCroissante, regenerations, sansGlyphe } from './sonde-titres.mjs'
+
+import { classer, glypheFuite, grasDeTete, plusLongueCroissante, regenerations, sansGlyphe } from './sonde-titres.mjs'
+
 import { infidelite, reparerLivre } from './reparer-titres.mjs'
-import { decoupeDe, gabaritTitreDe, livreExtraitDe, nomsDeLaListe, pdfDe, readText } from './_lib.mjs'
+
+import { gabaritTitreDe } from './_lib.mjs'
+
 import { ecartDeRegeneration, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
+
 import { lignes } from './lib/colonnes.mjs'
+
 import { echapperRegex } from '../../src/lib/regex.ts'
+
 import { pageCrb } from './lib/fixtures/page-crb.mjs'
-import { gitDeLArbreReel, resultatDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const GABARIT = {
   titre: { police: 'ACaslonPro-Bold', taille: 12 },
@@ -23,7 +31,9 @@ const GABARIT = {
   exclusions: [{ police: 'CaslonAntique-Bold', taille: 12 }],
   glyphes: [{ police: 'crossbatstfb', role: 'titre', caracteres: ['h', 'H'] }, { police: 'onlyskulls', role: 'puce', caracteres: ['0'] }],
 }
+
 const L = (colonne, y0, texte, police = 'ACaslonPro-Regular', taille = 9) => ({ colonne, x0: 58 + 244 * colonne, y0, texte, spans: [{ texte, police, taille }] })
+
 const T = (colonne, y0, texte) => L(colonne, y0, texte, 'ACaslonPro-Bold', 12)
 
 const PAGES = [
@@ -107,10 +117,13 @@ const MD = [
   '# <span id="page-10-0"></span>**Rho**',
   'Rho corps words sit here',
 ]
+
 const FICHIERS = [{ nom: '001 - Forge.md', page: 10, pageFin: 10, lignes: MD.flatMap((l, i) => (i ? ['', l] : [l])) }]
 
 const { sites, titres } = classer(PAGES, FICHIERS, GABARIT)
+
 const titre = (t) => titres.find((x) => x.texte === t)
+
 const site = (f, t) => sites.find((s) => s.forme === f && s.titre === t)
 
 test('#1739 : titre à sa place, familles entrée et tableau, exclusion typographique', () => {
@@ -256,13 +269,12 @@ test('#1739 : un titre imprimé sur DEUX lignes (même gabarit, même colonne, i
   assert.deepEqual(r.sites, [])
 })
 
-/** Ligne du PDF forgée : morceaux `[texte, gras]`, `x1` à 4,5 pt par caractère ; `marge` (bord droit de
- *  la boîte) = `x1` par défaut — la ligne remplit sa boîte. */
 const G = (colonne, y0, morceaux, { x0 = 58, marge = null, police = 'ACaslonPro' } = {}) => {
   const texte = morceaux.map(([t]) => t).join(' ')
   const x1 = x0 + 4.5 * texte.length
   return { colonne, x0, x1, y0, marge: marge ?? x1, texte, spans: morceaux.map(([t, gras]) => ({ texte: t, police: `${police}-${gras === 'i' ? 'Italic' : gras === 'bi' ? 'BoldItalic' : gras ? 'Bold' : 'Regular'}`, taille: 9 })) }
 }
+
 const formesDe = (lignes, md, formes, cercles = []) =>
   classer([{ page: 10, lignes, cercles }], [{ nom: '001 - Forge.md', page: 10, pageFin: 10, lignes: md }], GABARIT).sites.filter((s) => formes.includes(s.forme))
 
@@ -586,9 +598,8 @@ test('#1739 : une ligne de titre de la clé du titre n’est jamais son propre c
   assert.deepEqual([repare.titres[0].forme, repare.sites], ['ok', []], 'réparée en légende `**X**`, la sonde la voit à sa place : la légende n’est pas non plus son propre corps')
 })
 
-/** Une page de CARRIÈRE forgée (CRB p.45) : « Career Path » en capitales, puis les niveaux (glyphe de tête +
- *  intertitre), chacun suivi de ses libellés. */
 const NIVEAU = (y0, texte) => ({ colonne: 1, x0: 302, y0, texte: `h ${texte}`, spans: [{ texte: 'h', police: 'crossbatstfb', taille: 7 }, { texte: ` ${texte}`, police: 'ACaslonPro-Bold', taille: 10 }] })
+
 const CARRIERE = [{
   page: 10,
   lignes: [
@@ -597,11 +608,15 @@ const CARRIERE = [{
     NIVEAU(300, 'Adviser — Silver 3'), L(1, 285, 'Skills: Consume Alcohol, Cool, Gossip'),
   ],
 }]
+
 const carriere = (md) => classer(CARRIERE, [{ nom: '018 - Forge.md', page: 10, pageFin: 10, lignes: md }], GABARIT)
-/** L'exemple légendé d'une autre page porte le même « ## **Career Path** », LIBRE : un leurre, loin. */
+
 const LEURRE = ['## **Career Path**', '', 'Example prose one.', '', 'Example prose two.', '', 'Example prose three.', '', 'Example prose four.', '']
+
 const AIDE = ['**Skills:** Bribery, Charm, Evaluate, Gossip', '', '**Talents:** Beneath Notice, Etiquette', '']
+
 const ADVISER = ['#### **Adviser — Silver 3**', '', '**Skills:** Consume Alcohol, Cool, Gossip']
+
 const lieu = (r, t) => { const x = r.titres.find((u) => u.texte === t); return [x.forme, x.titreMd ? `018:${x.titreMd.l + 1}` : null, x.corps ? `018:${x.corps.l + 1}` : null] }
 
 test('#1739 : un titre MIGRÉ se lit à son occurrence LIBRE la plus PROCHE de son corps, jamais à la première du fichier (CRB 018 : 98↔100, paire Career Path + Aide déplacée, occurrence après le corps)', () => {
@@ -677,22 +692,6 @@ test('#1739 : titre SUIVI d’un titre — une ligne SANS LETTRE entre eux (chif
   assert.deepEqual([lieu(r, 'Career Path'), lieu(r, 'Aide — Silver 1')[0]], [['ok', '018:1', '018:3'], 'ok'])
 })
 
-/** Le PDF du CRB, ou `null` là où il n'est pas (aucun dépôt ne suit un PDF : la CI ne l'a pas). */
-const PDF_CRB = (() => { try { return pdfDe('core-rulebook-5e') } catch { return null } })()
-/** Les boîtes du PDF du CRB, lues UNE fois pour les tests qui en ont besoin. */
-let boitesCrb = null
-const boitesDuCrb = () => (boitesCrb ??= boitesDuPdf('core-rulebook-5e'))
-
-test('#1820 stock COMMITTÉ de la sonde (CRB) : chaque site émis hors `colonne` y a son entrée, aucune entrée n’est soldée', (t) => {
-  for (const r of regenerations()) {
-    if (r.manque.length > 0) {
-      t.skip(r.manque.join(' ; '))
-      return
-    }
-    assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
-  }
-})
-
 test('une mesure incomplète refuse, rien n’est écrit', () => {
   const phrase = 'core-rulebook-5e — NON SONDABLE (PDF absent)'
   for (const r of regenerations({ mesures: [], manque: [phrase] })) {
@@ -734,29 +733,4 @@ test('#1739 : titre SUIVI d’un titre — les lignes SANS LETTRE se sautent des
   const { titres: ts, sites: ss } = classer(pages, [{ nom: '001 - Forge.md', page: 10, pageFin: 10, lignes: md }], GABARIT)
   assert.deepEqual(ts.map((t) => [t.texte, t.forme, t.titreMd ? t.titreMd.l + 1 : null]), [['Alpha', 'ok', 1], ['Beta', 'ok', 5]])
   assert.deepEqual(ss, [])
-})
-
-/** Le lot qui a restauré Dog, Griffon, Varghulf et Skeleton : ses `.md` d'AVANT, lus dans l'historique git. */
-const AVANT_AF2A = 'af2a08ab1^'
-const historique = resultatDeLArbreReel(['cat-file', '-e', AVANT_AF2A]).status === 0
-
-test('#1739 la RÉPARATION ne contredit pas la SONDE : rejouée depuis les `.md` d’af2a08ab1^ (CRB 105, 106, 108), les S′ prouvés par COMPTAGE à côté de l’en-tête de profil (Dog, Griffon, Varghulf) et le F de Skeleton sont APPLIQUÉS, sans aucun refus', { skip: !PDF_CRB ? 'PDF du CRB absent de cet arbre' : !historique ? `${AVANT_AF2A} absent de l’historique` : false }, () => {
-  const id = 'core-rulebook-5e'
-  const dir = String(livreExtraitDe(id).dir).split('\\').join('/').replace(/\/$/, '')
-  const liste = decoupeDe(id)
-  const texte = (nom) => (/^10[568] /.test(nom)
-    ? gitDeLArbreReel(undefined)('show', `${AVANT_AF2A}:${dir}/${nom}`)
-    : readText(`${dir}/${nom}`))
-  const textes = new Map(nomsDeLaListe(liste).map((nom) => [nom.slice(0, 3), texte(nom)]))
-  const fichiers = nomsDeLaListe(liste).map((nom, i) => ({ nom, page: liste[i].page, pageFin: liste[i].pageFin, lignes: textes.get(nom.slice(0, 3)).split('\n') }))
-  const pages = boitesDuCrb().map((p) => ({ page: p.page, lignes: lignes(p.boites), cercles: p.cercles ?? [] }))
-  const { sites } = classer(pages, fichiers, gabaritTitreDe(id))
-  const r = reparerLivre(textes, sites)
-  assert.deepEqual(r.refus, [])
-  assert.deepEqual(r.appliques.filter((a) => /« (dog|griffon|varghUlf|skeleTon) »/.test(a)), [
-    "S' --- → 105:43 « dog » = « # **Dog** »",
-    "S' --- → 106:251 « griffon » = « # **Griffon** »",
-    'F 108:93 → 108:43 « skeleTon » = « # **Skeleton** »',
-    "S' --- → 108:363 « varghUlf » = « # **Varghulf** »",
-  ])
 })

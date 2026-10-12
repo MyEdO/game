@@ -1,30 +1,35 @@
-// Banc des FORMATS et de la RÉGÉNÉRATION des stocks de sites (node --test) : lecture sur disque, les
-// deux formats (`FORMAT_JSON`, `FORMAT_MJS`), les entrées régénérées, les trois politiques de
-// croissance, `texteRegenere`, `ecartDeRegeneration`, et la commande `regenStock.mts`. Le CONTRAT de
-// la clé et de l'écart vit avec la primitive (`stock.test.mjs`). Fixtures sous un `mkdtempSync` de
-// `os.tmpdir()`, retirées par `rmSync` ; l'arbre du dépôt n'est jamais écrit. Lancé par
-// `npm run test:hooks`.
 import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
+
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+
 import { tmpdir } from 'node:os'
+
 import { join } from 'node:path'
+
 import { spawnSync } from 'node:child_process'
+
 import { fileURLToPath } from 'node:url'
+
 import { inspect } from 'node:util'
+
 import { CHAMPS_DE_CLE, CHAMPS_D_ECHEANCE, SEPARATEUR_DE_REMEDE, cleDeSite, sitesEnEntrees } from './stock.mjs'
-import {
-  DECROISSANT, FORMAT_JSON, FORMAT_MJS, REMESURE, SOUS_LOT, comptesParFamille, ecartDeRegeneration,
-  entreesRegenerees, formatDe, lireEntreesDeSite, lireStockJson, texteDeStock, texteEnPlace, texteRegenere,
-} from './stockDeSites.mjs'
+
+import { DECROISSANT, FORMAT_JSON, FORMAT_MJS, REMESURE, SOUS_LOT, comptesParFamille, ecartDeRegeneration, entreesRegenerees, formatDe, lireEntreesDeSite, lireStockJson, texteDeStock, texteEnPlace, texteRegenere } from './stockDeSites.mjs'
+
 import { jouerModules, lotDeLaLigne, modulesQuiMesurent, regenererStock } from './regenStock.mts'
-import { constructionsReserveesDuCorpus, scanConstructionsReservees, ECRITURE_DE_STOCK_JSON } from './canonUnique.mjs'
+
+import { scanConstructionsReservees, ECRITURE_DE_STOCK_JSON } from './canonUnique.mjs'
+
 import { listerDossier } from './lister.mjs'
-import { corpusDesGardes } from './commentPoison.mjs'
+
 import { RACINE } from './bindingsVivants.mjs'
+
 import { envGitFeint } from './depotGabarit.mjs'
 
-const ICI = fileURLToPath(new URL('.', import.meta.url))
+const ICI = fileURLToPath(new URL('./', import.meta.url))
+
 const REGEN = join(ICI, 'regenStock.mts')
 
 function withTempDir(fn) {
@@ -32,11 +37,8 @@ function withTempDir(fn) {
   try { return fn(dir) } finally { rmSync(dir, { recursive: true, force: true }) }
 }
 
-/** Une déclaration à une collection. */
 const decl = (chemin, politique, sites, { motif, ...reste } = {}) =>
   ({ chemin, politique, collections: [{ nom: chemin.endsWith('.json') ? 'entrees' : 'A_STOCK', sites, motif }], ...reste })
-
-// ── Lecture sur disque ─────────────────────────────────────────────────────────────────────────────
 
 const ENTREE = { fichier: 'src/a.ts', ref: 'LDB 6 l.2', occurrence: 1 }
 
@@ -59,13 +61,7 @@ test('lireStockJson : un stock absent rend un document VIDE, un stock présent r
   })
 })
 
-// ── L'écriture du format JSON a UN écrivain ────────────────────────────────────────────────────────
-
 const ECRITURE = { ...ECRITURE_DE_STOCK_JSON, foyer: 'scripts/guards/lib/stockDeSites.mjs' }
-
-test('ECRITURE_DE_STOCK_JSON : aucune écriture du format JSON des stocks hors de `texteDeStock`', () => {
-  assert.deepEqual(constructionsReserveesDuCorpus(corpusDesGardes(), [ECRITURE]), [])
-})
 
 test('ECRITURE_DE_STOCK_JSON : une recopie neuve hors du foyer est un site, la même dans le foyer ne l’est pas', () => {
   const vu = (text, rel = 'scripts/fixture.mjs') => scanConstructionsReservees({ rel, text }, [ECRITURE]).map((t) => t.construction)
@@ -74,8 +70,6 @@ test('ECRITURE_DE_STOCK_JSON : une recopie neuve hors du foyer est un site, la m
   assert.deepEqual(vu('const t = JSON.stringify({ quoi, n: 1 })'), [])
   assert.deepEqual(vu('const t = JSON.stringify({ quoi, entrees }, null, 2)', 'scripts/guards/lib/stockDeSites.mjs'), [])
 })
-
-// ── Entrées régénérées, comptes par famille ────────────────────────────────────────────────────────
 
 test('entreesRegenerees : les entrées sont RANGÉES par clé, quel que soit l’ordre du balayage', () => {
   const sites = [{ file: 'src/b.ts', ref: 'r' }, { file: 'src/a.ts', ref: 'r' }, { file: 'src/a.ts', ref: 'q' }]
@@ -92,16 +86,19 @@ test('sitesEnEntrees : le reste d’un site (`line`, `pdfChars`) suit l’entré
   assert.deepEqual(Object.keys(e), [...CHAMPS_DE_CLE, 'line', 'pdfChars'])
 })
 
-// ── Régénération sous lot (JSON) ───────────────────────────────────────────────────────────────────
-
 const ANCIEN = [{ famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'a', occurrence: 1, lot: '#1 X', date: '2026-01-01' }]
+
 const CONNUE = { famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'a', occurrence: 1 }
+
 const NEUVE = { famille: 'f', fichier: 'Source/L/01 - A.md', ref: 'b', occurrence: 1 }
+
 const site = (e, reste = {}) => ({ famille: e.famille, file: e.fichier, ref: e.ref, ...reste })
+
 const regenerer = (args, sites, { ancien = ANCIEN, date = '2026-09-23' } = {}) => texteRegenere(
   decl('x-stock.json', SOUS_LOT, sites),
   { enPlace: texteDeStock('q', ancien), lot: lotDeLaLigne(args), date, amorce: args.includes('--amorce') },
 )
+
 const entreesDe = (r) => JSON.parse(r.texte).entrees
 
 test('régénération sous lot : une entrée NEUVE sans `--lot` REFUSE l’écriture, nommée — rien n’est écrit', () => {
@@ -139,13 +136,16 @@ test('SOUS_LOT : une entrée qui porte une `preuve`, régénérée sans `--lot`,
   assert.deepEqual(Object.keys(entreesDe(r)[0]), [...CHAMPS_DE_CLE, ...CHAMPS_D_ECHEANCE, 'preuve'])
 })
 
-// ── Politiques ─────────────────────────────────────────────────────────────────────────────────────
-
 const MJS = (corps) => `// fixture\nexport const A_STOCK = ${corps}\n\nexport const HORS = 1\n`
+
 const LIGNES = (...e) => `[\n${e.map((x) => `  { fichier: '${x.fichier}', ref: '${x.ref}', occurrence: ${x.occurrence} },`).join('\n')}\n]`
+
 const A1 = { fichier: 'src/a.ts', ref: 'r1', occurrence: 1 }
+
 const B1 = { fichier: 'src/b.ts', ref: 'r2', occurrence: 1 }
+
 const Z1 = { fichier: 'src/z.ts', ref: 'r9', occurrence: 1 }
+
 const s = (e, reste = {}) => ({ file: e.fichier, ref: e.ref, ...reste })
 
 test('DECROISSANT : un échange à somme nulle est refusé ; le même sous l’amorce est écrit', () => {
@@ -191,8 +191,6 @@ test('SOUS_LOT sur un stock `.mjs` : sans `--lot`, refus ; avec, l’entrée neu
   assert.ok(date.includes(`  { fichier: 'src/b.ts', ref: 'r2', occurrence: 1, lot: '#1903', date: '2026-09-27' },`))
   assert.equal(texteRegenere(r, { enPlace: date, lot: null, date: '2026-09-28' }).texte, date)
 })
-
-// ── Formats ────────────────────────────────────────────────────────────────────────────────────────
 
 test('FORMAT_MJS : un champ hors clé (`pdfChars: 12`) s’écrit et se relit à l’identique ; un booléen lève', () => {
   const r = decl('x.mjs', REMESURE, [s(A1, { pdfChars: 12 })])
@@ -273,8 +271,6 @@ test('les stocks `*Stock.mjs` du dépôt sont des POINTS FIXES de `FORMAT_MJS`',
   }
 })
 
-// ── Entrées-sorties : `regenererStock` et la commande ──────────────────────────────────────────────
-
 test('regenererStock --check : une liste dont la seconde déclaration est périmée rend 1 ; à jour, 0', () => withTempDir((dir) => {
   const [a, b] = [join(dir, 'a-stock.json'), join(dir, 'b-stock.json')]
   writeFileSync(a, texteDeStock('q', [A1]))
@@ -315,7 +311,6 @@ test('regenererStock --amorce : l’avertissement nomme chaque stock et sa polit
   assert.match(avertissements[0], /^AMORÇAGE : .*a-stock\.json, politique DECROISSANT/)
 }))
 
-/** La commande sur `args`, par le même `tsx` que `npx tsx`. */
 const commande = (args, env = {}) => spawnSync(process.execPath, ['--import', 'tsx', REGEN, ...args], { cwd: RACINE, encoding: 'utf8', env: { ...process.env, ...env }, timeout: 10000 })
 
 test('#2285 famille regen callback : CLI refuse avant écriture', () => withTempDir((dir) => {
@@ -363,7 +358,6 @@ test('la commande refuse, code 2, un module sans `regenerations`, une valeur qui
   assert.equal(existsSync(join(RACINE, nonSuivi)), false)
 }))
 
-// #2525
 test('modulesQuiMesurent : les modules qui EXPORTENT `regenerations` (const, function, async function), lus sur l’arbre syntaxique', () => {
   const f = (rel, text) => ({ rel, text })
   const vus = modulesQuiMesurent([

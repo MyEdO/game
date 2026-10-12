@@ -1,15 +1,23 @@
-// #1773, #2329, #2475
 import test from 'node:test'
+
 import assert from 'node:assert/strict'
+
 import { dirname, join } from 'node:path'
+
 import { fileURLToPath, pathToFileURL } from 'node:url'
+
 import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+
 import { spawnSync } from 'node:child_process'
+
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { ciblesSurDisque, executer, genererCode, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
+
+import { ciblesSurDisque, executer, genererCode, SOURCES_LUES } from '../docs/build-all.mjs'
+
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
-import { tableTotale } from '../../src/lib/tableTotale.ts'
+
 import { lotDuPostMerge, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
+
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -63,7 +71,6 @@ test('#2285 callback docs : refus complet et commit ordinaire silencieux', () =>
   }
 })
 
-/** Une mesure FORGÉE : un fichier lu, un dossier LISTÉ, une cible signée. */
 const MESURE = {
   'g/a.mjs': { cibles: ['docs/a.md'], fichiers: ['src/ui/Prose.tsx', 'notes/lue.md'], dossiers: ['.github/workflows'] },
 }
@@ -100,7 +107,6 @@ test('un fichier dans un dossier NEUF sous un dossier LISTÉ fait régénérer :
   assert.equal(touchesDocSources(['src/nouveau/plus/bas/x.ts'], mesure), true)
 })
 
-/** Une mesure FORGÉE à deux générateurs : `g/m.mjs` (le périmètre restreint) et `g/p.mjs` (hors). */
 const MESURE_DEUX = {
   'g/m.mjs': { cibles: [], fichiers: ['src/m.ts', 'scripts/m.mjs'], dossiers: ['data'] },
   'g/p.mjs': { cibles: [], fichiers: ['notes/p.md', 'scripts/p.mjs'], dossiers: ['.github/workflows'] },
@@ -122,31 +128,6 @@ test('`seulement` : un chemin hors de toute source du périmètre ne fait pas r�
   assert.equal(touchesDocSources(['public/x.svg'], MESURE_DEUX, { seulement: ['g/m.mjs'] }), false)
 })
 
-/** Les générateurs dont le rendu lit chaque classe jugée ci-dessous — mémoire, workflows, fiches de
- *  l'Atlas et `scripts/raw/`, `src/`, tsconfig —, les moins coûteux à mesurer. */
-const MESURES = [
-  'scripts/docs/build-doctrines.mjs', 'scripts/docs/build-reprise.mjs', 'scripts/raw/build-atlas-index.mjs',
-  'scripts/docs/build-usages-jets.mjs', 'scripts/docs/build-donnees.mjs',
-]
-
-test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur la mesure RENDUE par les générateurs', () => {
-  const rendues = mesurerEnRendu(MESURES, { cwd: RACINE })
-  const mesure = tableTotale(MESURES, (script) => rendues.get(script).entree)
-  for (const [script, { fichiers }] of Object.entries(mesure)) assert.ok(fichiers.length > 1, `${script} : mesure aveugle`)
-  // `.claude/memory/user-*.md` alimente `docs/doctrines.md` : une fiche NEUVE compte (frère d'une
-  // source lue), et `.github/workflows` est un dossier mesuré — deux classes hors des préfixes.
-  assert.equal(touchesDocSources(['.claude/memory/user-x.md'], mesure), true)
-  assert.equal(touchesDocSources(['.github/workflows/ci.yml'], mesure), true)
-  assert.equal(touchesDocSources(['tsconfig.json'], mesure), true)
-  // Ce qu'aucun générateur ne lit ne périme aucun dérivé, quel que soit son dossier.
-  assert.equal(touchesDocSources(['README.md'], mesure), false)
-  assert.equal(touchesDocSources(['public/galeries.html'], mesure), false)
-  // Et les classes que la liste voyait déjà restent vues.
-  assert.equal(touchesDocSources(['src/ui/Prose.tsx'], mesure), true)
-  assert.equal(touchesDocSources(['scripts\\raw\\build-implemente.mjs'], mesure), true)
-  assert.equal(touchesDocSources(['docs/raw/4e/combat.md'], mesure), true)
-})
-
 test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (`null`, on régénère), jamais vide', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
   const g = gitDe(racine)
@@ -160,7 +141,6 @@ test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (
   }
 })
 
-// #2327
 test('post-merge pendant `merge --no-commit` : le lot est ce qu’emporte l’index, conflits et lockfile compris ; hors fusion, ORIG_HEAD..HEAD', () => {
   const { racine } = instanceDeDepot({ fichiers: {
     'commun.txt': 'base\n', 'notes/a.txt': 'a\n', 'docs/a.md': 'a\n', 'package-lock.json': '{}\n',
@@ -206,7 +186,6 @@ test('post-merge pendant `merge --no-commit` : le lot est ce qu’emporte l’in
   }
 })
 
-// #2327
 test('post-merge après `merge --squash` (argument 1) : le lot est ce qu’emporte l’index ; argument 0 : ORIG_HEAD..HEAD', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'notes/a.txt': 'a\n', 'docs/a.md': 'a\n', 'package-lock.json': '{}\n' } })
   const git = gitDe(racine, { net: true })
@@ -411,7 +390,6 @@ test('fusion Git réelle : lockfile modifié → npm ci réel rouge nommé, aucu
   }
 })
 
-/** Les modules qu'un point d'entrée d'outil charge avant ses gardes : la barrière, le verrou, la porte. */
 const CHAINE_DE_LA_BARRIERE = ['scripts/hooks/repartiteur.mjs', 'scripts/hooks/barriere-outil.mjs', 'scripts/test/verrou.mjs', 'scripts/guards/lib/spawnResilient.mjs', 'scripts/node-requis.mjs']
 
 test('#2187 matrice 16 : `package-lock` changé — un hook d’outil lancé pendant le `npm ci` sort en 2, jamais en 1', () => {

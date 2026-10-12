@@ -131,13 +131,7 @@ async function deroulerAsync(etapes, dormir) {
 
 /** Un essai de prise : le tenant écrit dans un temporaire voisin, puis lié à `chemin`. */
 function prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, estVivant, maintenant }) {
-  const liberer = () => {
-    try {
-      fs.rmSync(chemin, { force: true })
-    } catch {
-      /* verrou déjà retiré : rien à libérer */
-    }
-  }
+  const liberer = () => fs.rmSync(chemin, { force: true })
   const temporaire = `${chemin}.${pid}.${randomUUID()}`
   fs.writeFileSync(temporaire, JSON.stringify({ pid, commande, cwd, date: maintenant() }), { flag: 'wx' })
   try {

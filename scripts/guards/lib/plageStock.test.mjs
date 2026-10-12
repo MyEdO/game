@@ -14,7 +14,7 @@ import { bilanDesStocks } from './stocksNominatifs.mjs'
 import { texteDeStock } from './stockDeSites.mjs'
 import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs'
-import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
+import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
 import { fileURLToPath } from 'node:url'
 
 /** La racine du dépôt réel. */
@@ -43,7 +43,7 @@ test('#2285 famille plage catch : lecteur strict complet', async () => {
     const stderr = 'note strict\n'.repeat(45) + 'cause strict tardive\n'
     const stdout = 'stdout strict distinct'
     assert.ok(stderr.indexOf('cause strict tardive') > 400)
-    const vu = await sousGitFeint([{ si: ['rev-list', '--no-commit-header'], status: 33, stdout, stderr }], () => croissancesDeLaPlage({ cwd, debut: '0'.repeat(40), fin: sha }))
+    const vu = await sousGitFeint([{ si: ['diff-tree'], status: 33, stdout, stderr }], () => croissancesDeLaPlage({ cwd, debut: '0'.repeat(40), fin: sha }))
     assert.equal(vu.indisponible, 'refus (status 33) — ' + stderr + '\n' + stdout)
   } finally { rmSync(cwd, { recursive: true, force: true }) }
 })
@@ -167,6 +167,21 @@ function depotJetable(commits) {
 }
 
 const sourceStock = (entrees) => `export const STOCK = [\n${entrees.join('\n')}\n]\n`
+
+test('#2302 lectureDeLaPlage : une ascendance pour un ou cinq commits, différences croissantes', (t) => {
+  for (const nombre of [1, 5]) {
+    const { repo, shas } = depotJetable(Array.from({ length: nombre + 1 }, (_, i) => ({ contenu: sourceStock(Array.from({ length: i }, (_, n) => `  'src/f${n}.ts',`)), message: `commit ${i}` })))
+    try {
+      const { valeur, lances } = lancesDeGit(() => lectureDeLaPlage({ cwd: repo, debut: shas[0], fin: shas.at(-1) }))
+      const ascendances = lances.filter((args) => sousCommande(args) === 'rev-list' && args.includes('--format=%H %T %P'))
+      assert.equal(ascendances.length, 1)
+      assert.equal(lances.some((args) => args.includes('-n') || args.includes('-n1') || args.some((a) => a.endsWith('^@'))), false)
+      assert.deepEqual(valeur.commits.map((c) => [c.sha, c.message]), shas.slice(1).map((sha, i) => [sha, `commit ${i + 1}\n`]))
+      assert.ok(lances.filter((args) => sousCommande(args) === 'diff-tree').length >= nombre)
+      t.diagnostic(JSON.stringify({ nombre, processus: lances.length, ascendances: ascendances.length, diffs: lances.filter((args) => sousCommande(args) === 'diff-tree').length }))
+    } finally { rmSync(repo, { recursive: true, force: true }) }
+  }
+})
 
 test('C : sur un dépôt réel, la plage voit le commit du MILIEU que `git show HEAD` ne voit pas', async () => {
   const { repo, shas } = depotJetable([

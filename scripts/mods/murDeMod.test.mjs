@@ -1,25 +1,31 @@
-// #2278
 import test from 'node:test'
+
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
+
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+
 import { dirname, join } from 'node:path'
+
 import { tmpdir } from 'node:os'
+
 import { fileURLToPath } from 'node:url'
+
 import { creerBancLint } from '../guards/lib/lint.testkit.mjs'
+
 import { lancerLint } from '../guards/lib/lintStage.mjs'
-import { listerDossier } from '../guards/lib/lister.mjs'
-import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
+
 const MUR = 'murs/mod-sans-regle'
+
 const lint = creerBancLint()
+
 const HORS_COUTURE = join(RACINE, '.claude', 'skills', 'banc', 'hooks', 'module.ts')
+
 const COUTURE = join(RACINE, '.claude', 'skills', 'banc', 'hooks', 'ops.ts')
 
-// #2278
 const module = (corps) => `import type { EngineInterface } from 'claude-code'\nimport { appel } from './ops'\nexport async function f($: EngineInterface, n: number, m: number, t: string, re: RegExp, q: unknown, lignes: string[], ids: string[], id: string, ms: number, i: number, nom: string, e: { at: string, test: string }) {\n${corps}\n}\n`
 
-// #2278
 async function messagesDuMur(source, chemin) {
   const [r] = await lint.lintText(source, { filePath: chemin })
   const fatals = r.messages.filter((m) => m.fatal)
@@ -250,26 +256,5 @@ test('PÉRIMÈTRE natif : modules et workflows lus, bancs TS et reste de `.claud
     }
   } finally {
     rmSync(cwd, { recursive: true, force: true })
-  }
-})
-
-test('les modules RÉELS du mod `harnais` et les workflows passent le lint natif', async () => {
-  const hooks = join(RACINE, '.claude', 'skills', 'harnais', 'hooks')
-  const modules = listerDossier(hooks).filter((nom) => nom.endsWith('.ts') && !estSuiteVitest(nom))
-  assert.ok(['suivi.ts', 'vigie.ts', 'ops.ts', 'register.ts'].every((nom) => modules.includes(nom)), 'le corpus réel est lu')
-  const types = join(RACINE, '.claude', 'skills', 'harnais', 'types')
-  const workflows = join(RACINE, '.claude', 'workflows')
-  const declarations = listerDossier(types).filter((nom) => nom.endsWith('.d.ts'))
-  const scripts = listerDossier(workflows).filter((nom) => nom.endsWith('.js'))
-  assert.ok(declarations.includes('index.d.ts'), 'le contrat réel du mod est lu')
-  assert.ok(scripts.includes('dossier-de-chapitre.js') && scripts.includes('table-simulee.js'), 'les workflows réels sont lus')
-  const chemins = [
-    ...modules.map((nom) => join(hooks, nom)),
-    ...declarations.map((nom) => join(types, nom)),
-    ...scripts.map((nom) => join(workflows, nom)),
-  ]
-  for (const chemin of chemins) {
-    const [r] = await lint.lintText(readFileSync(chemin, 'utf8'), { filePath: chemin })
-    assert.deepEqual(r.messages, [], chemin)
   }
 })

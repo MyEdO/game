@@ -794,12 +794,14 @@ function numeroDeTicket(geste, numero) {
  * `estDocDerive` ; `filtresDePush`, les
  * filtres `push.branches` de `ci.yml` (`branchesDePush`).
  */
-export function contexteDe({ racine, branche, options, journaliser, fdLog, maintenant = Date.now }) {
+export function contexteDe({ racine, branche, options, journaliser, fdLog, maintenant = Date.now, dormir = attendreSync }) {
   const depot = depotDuTrain(racine)
   const stdio = ['ignore', fdLog, fdLog]
   const parentsVus = new Map()
   return {
     racine,
+    maintenant,
+    dormir,
     questions: questionsDuTrain(depot),
     branche,
     options,

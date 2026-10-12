@@ -1,24 +1,23 @@
-// Le PARSEUR des trois couches CSS (#1800, `node --test` — joué par `npm run test:hooks`) : ce qu'il
-// rend, et ce qu'il refuse d'abriter ; puis la FRONTIÈRE (#1806 L1), le FRANCHISSEMENT (D1″), la
-// VENTILATION d'un commit contre son parent (D6″) et l'ADMISSION du RETOURNÉ par la régénération (C). Chaque cas est
-// une fixture de texte, sauf les trois commits cibles, lus dans l'HISTOIRE du dépôt par le vrai chemin
-// (`ventilationDeGit`) : la CI les porte (`fetch-depth: 0` du checkout de chaque job de
-// .github/workflows/ci.yml). La MESURE sur le corpus réel se prouve ailleurs
-// (`src/ui/ui-ratchets.test.ts`, cliquets (xxi)/(xxii)).
 import { test } from 'node:test'
+
 import assert from 'node:assert/strict'
+
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import {
-  admisAuRetour, CHEMIN_COUCHES, declarations, decoupeSelecteurs, estPlacement, FEUILLE_LAYOUT,
-  FEUILLES_PARTAGEES, feuillesPartageesDe, fichiersReutilises, ligneDeVentilation, manifesteDe,
-  moduleHorsCouche, modulesExemptes, partitionCss, physique, reglesCss, valeurHorsEchelle, ventiler,
-} from './cssCouches.mjs'
+
+import { admisAuRetour, CHEMIN_COUCHES, declarations, decoupeSelecteurs, estPlacement, FEUILLE_LAYOUT, FEUILLES_PARTAGEES, feuillesPartageesDe, fichiersReutilises, ligneDeVentilation, manifesteDe, moduleHorsCouche, modulesExemptes, partitionCss, physique, reglesCss, valeurHorsEchelle, ventiler } from './cssCouches.mjs'
+
 import { regenerations } from './cssCouchesAudit.ts'
-import { CHEMIN_STOCK_CSS, COLLECTIONS_VENTILEES, ventilationDeGit } from './cssImages.mjs'
+
+import { CHEMIN_STOCK_CSS, COLLECTIONS_VENTILEES } from './cssImages.mjs'
+
 import { croissanceDesStocks } from './stocksNominatifs.mjs'
+
 import { refusDeCroissance, sitesEnEntrees } from './stock.mjs'
+
 import { FORMAT_MJS, texteRegenere } from './stockDeSites.mjs'
+
+import { banccssCouchestestmjs } from './bancCssCouches.mjs'
+const { six, invariants, volet } = banccssCouchestestmjs
 
 test('reglesCss : règle de premier niveau — sélecteurs séparés, corps rendu, media nul', () => {
   assert.deepEqual(reglesCss('.a, .b > .c { color: red; gap: 4px }'), [
@@ -151,13 +150,10 @@ test('moduleHorsCouche : `src/ui/styles/`, ou la zone du `fichier` hors de `src/
   assert.equal(moduleHorsCouche('src/gameIso/stage/GameStage3D.tsx', 'src/gameIso/anim.ts'), true)
 })
 
-// ── Partition et ventilation (#1806) ─────────────────────────────────────────────────────────────
-
 const ECRAN = 'src/ui/styles/ecran.css'
+
 const PRIMITIVE = 'src/ui/styles/prim.css'
 
-/** Image fixture : `feuilles` = `{ chemin: texte }` (`null` = absent), `exemptes` = les modules d'une
- *  primitive RÉUTILISÉE. */
 const image = (feuilles, ...exemptes) => ({
   fichiers: Object.entries(feuilles).filter(([, t]) => t != null).map(([rel, text]) => ({ rel, text })),
   manifeste: [{ id: 'sans-css' }, ...exemptes.map((css) => ({ id: css, fichier: `${css}.tsx`, css }))],
@@ -207,28 +203,26 @@ test('L1 : réutilisée = ≥ 2 importeurs de `src/` hors suites et galerie, ou 
   )
 })
 
-/** Un volet ventilé, réduit à ses six nombres. */
-const six = ({ SORTI, RECLASSE, PRIMITIVISE, DISPARU, APPARU, RETOURNE }) => ({ SORTI, RECLASSE, PRIMITIVISE, DISPARU, APPARU, RETOURNE })
-/** Les deux invariants de D6″, sur un volet. */
-const invariants = (nom, v) => {
-  assert.equal(v.stock[1] - v.stock[0], v.APPARU + v.RETOURNE - v.SORTI, `${nom} : Δstock = APPARU + RETOURNÉ − SORTI`)
-  assert.equal(v.SORTI, v.RECLASSE + v.PRIMITIVISE + v.DISPARU, `${nom} : SORTI = RECLASSÉ + PRIMITIVISÉ + DISPARU`)
-  for (const [k, n] of Object.entries(six(v))) assert.ok(n >= 0, `${nom} : ${k} ≥ 0`)
-}
-
 const Q = 'src/ui/styles/ecran-q.css'
+
 const X = 'src/ui/styles/ecran-x.css'
+
 const P = 'src/ui/styles/prim-p.css'
+
 const E = 'src/ui/styles/prim-e.css'
+
 const Y = 'src/ui/styles/ecran-y.css'
+
 const S = 'src/ui/styles/stub.css'
+
 const CSS = '.e { color: red; border: 0; font-size: 3px; gap: 3px }'
+
 const CSS2 = `${CSS}\n.f { color: blue; border: 1px; font-size: 4px; gap: 4px }`
+
 const REINDENTE = CSS2.split('\n').map((l) => `\t${l}`).join('\n')
+
 const STUB = '.s { color: blue }'
 
-/** S1-S12 (sonde `j6-final.mjs` du juge, 2026-09-23) : `[nom, parent, commit, franchis, identité, espacement]`,
- *  un volet = `[SORTI, RECLASSÉ, PRIMITIVISÉ, DISPARU, APPARU, RETOURNÉ]`, RETOURNÉ nul s'il est omis. */
 const CAS = [
   ['S1 Q franchit, X +4', image({ [Q]: CSS, [X]: CSS }), image({ [Q]: CSS, [X]: CSS2 }, Q), [[Q, 4]], [3, 3, 0, 0, 3], [1, 1, 0, 0, 1]],
   ['S2 P fraîche + Q franchit', image({ [Q]: CSS }), image({ [Q]: CSS, [P]: CSS }, Q, P), [[Q, 4]], [3, 3, 0, 0, 0], [1, 1, 0, 0, 0]],
@@ -245,7 +239,6 @@ const CAS = [
   ['S11 composant gagne son 2e importeur', image({ [P]: CSS }), image({ [P]: CSS }, P), [[P, 4]], [3, 3, 0, 0, 0], [1, 1, 0, 0, 0]],
   ['S12 composant perd son 2e importeur', image({ [P]: CSS }, P), image({ [P]: CSS }), [], [0, 0, 0, 0, 0, 3], [0, 0, 0, 0, 0, 1]],
 ]
-const volet = ([SORTI, RECLASSE, PRIMITIVISE, DISPARU, APPARU, RETOURNE = 0]) => ({ SORTI, RECLASSE, PRIMITIVISE, DISPARU, APPARU, RETOURNE })
 
 for (const [nom, parent, commit, franchis, identite, espacement] of CAS) {
   test(`D1″/D6″ ${nom}`, () => {
@@ -275,31 +268,11 @@ test('D5″ : un renommage entre deux modules AU STOCK reporte les clés du pare
   assert.deepEqual(six(versLaZone.identite), volet([6, 0, 6, 0, 0]))
 })
 
-const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
-/** Les chiffres signés du juge (commentaire #1806 5803399612, 2026-09-23) ; RETOURNÉ mesuré sur le
- *  stock ÉCRIT au parent, que la règle de réutilisation (L1) rend en partie au stock. */
-const ATTENDU = {
-  '41aa406d5': [[19, 0, 0, 19, 3, 227], [0, 0, 0, 0, 0, 77]],
-  'd25652e73': [[21, 0, 0, 21, 0, 450], [3, 0, 0, 3, 0, 133]],
-  'c251f46af': [[352, 0, 158, 194, 111, 0], [122, 0, 48, 74, 38, 0]],
-}
-for (const [sha, [identite, espacement]] of Object.entries(ATTENDU)) {
-  test(`D6″ commit cible ${sha}, lu dans l'histoire : aucun franchissement, la ventilation signée`, () => {
-    const v = ventilationDeGit({ cwd: RACINE, base: `${sha}^`, tete: sha })
-    assert.deepEqual(v.franchis.filter((f) => f.n > 0), [])
-    assert.deepEqual(six(v.identite), volet(identite))
-    assert.deepEqual(six(v.espacement), volet(espacement))
-    invariants('identité', v.identite)
-    invariants('espacement', v.espacement)
-  })
-}
-
-/** Les entrées que compte le stock d'une image (ce que son régénérateur écrirait). */
 const stockDe = (img) => {
   const { stock } = partitionCss(img)
   return { identite: sitesEnEntrees(stock.identite), espacement: sitesEnEntrees(stock.espacement) }
 }
-/** Le texte d'un stock écrit par son format (`FORMAT_MJS`, `stockDeSites.mjs`), une collection par volet. */
+
 const texteDeStock = ({ identite, espacement }) => FORMAT_MJS.ecrire({
   chemin: CHEMIN_STOCK_CSS,
   horsCollections: ['export const I = ', '\nexport const E = ', '\n'],
@@ -395,4 +368,3 @@ test('manifesteDe : UN lecteur — absent → [], JSON invalide ou non-tableau �
   assert.throws(() => manifesteDe('[{"id":'), /primitives\.manifest\.json/)
   assert.throws(() => manifesteDe('{"id":"a"}'), /primitives\.manifest\.json/)
 })
-

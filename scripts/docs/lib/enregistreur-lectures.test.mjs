@@ -1,26 +1,33 @@
-// Contrat de la MESURE DES SOURCES (#1679 L1b) : ce qu'un générateur lit se MESURE, et part dans le
-// dérivé local `docs/.sources-lues.json` (#2203).
-//   node --test scripts/docs/lib/enregistreur-lectures.test.mjs
-//
-// Chaque mesure de générateur ci-dessous est une MORSURE : elle rougit si l'une des trois mécaniques
-// est débranchée — `module.syncBuiltinESMExports()` (les liaisons ESM figées rendent l'enveloppe de
-// `fs` invisible), la propagation par `NODE_OPTIONS` (les dumpers lancés en sous-processus), et
-// l'entrée `tsx/esm` (l'exécutable `tsx` re-spawne un processus qui perd le préchargeur).
 import test from 'node:test'
+
 import assert from 'node:assert/strict'
+
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
+
 import { installer } from './enregistreur-lectures.mjs'
+
 import { listerDossier } from '../../guards/lib/lister.mjs'
+
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
+
 import { tmpdir } from 'node:os'
+
 import path from 'node:path'
+
 import { fileURLToPath, pathToFileURL } from 'node:url'
+
 import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
+
 import { ignoresGit } from './chemin-mesure.mjs'
-import { mesurerEnRendu, refusSourcesInsuffisantes } from '../build-all.mjs'
+
+import { refusSourcesInsuffisantes } from '../build-all.mjs'
+
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
+
 import fs from 'node:fs'
+
 import childProcess, { spawnSync } from 'node:child_process'
+
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
 
 test('admission collecteur : glob ignoré propre et autre, FILE DIR LINK', () => {
@@ -46,9 +53,8 @@ test('admission collecteur : glob ignoré propre et autre, FILE DIR LINK', () =>
 })
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
+
 const RACINE = path.resolve(ICI, '..', '..', '..')
-/** Les lectures de `script` (un générateur de `GENERATORS`) par LA mesure rendue (`mesurerEnRendu`). */
-const mesurer = (script) => mesurerEnRendu([script], { cwd: RACINE }).get(script).lues
 
 test('mesure 2456 : un module applicatif préchauffé reste source de son consommateur', () => {
   const dossier = mkdtempSync(path.join(tmpdir(), 'prechauffage-'))
@@ -176,41 +182,6 @@ test('collecteur froid : glob futur propre absent puis créé, sondes exclues et
   } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('témoin : build-index-moteur mesure plus de 100 sources (liaisons ESM synchronisées)', () => {
-  const lues = mesurer('scripts/docs/build-index-moteur.mjs')
-  assert.ok(lues.fichiers.length > 100, `sources mesurées : ${lues.fichiers.length}`)
-  assert.ok(lues.fichiers.includes('src/engine/combat.ts'), 'src/engine/combat.ts absent du set')
-  assert.ok(!lues.fichiers.includes('docs/index-moteur.md'), 'le doc CIBLE ne peut pas être sa propre source')
-})
-
-test('sous-processus : build-donnees mesure les schémas lus par son dumper tsx (NODE_OPTIONS)', () => {
-  const lues = mesurer('scripts/docs/build-donnees.mjs')
-  const schemas = lues.fichiers.filter((f) => f.startsWith('src/data/schemas/'))
-  assert.ok(schemas.length > 100, `schémas mesurés : ${schemas.length} (le dumper est un sous-processus)`)
-  assert.ok(lues.fichiers.includes('tsconfig.json'), 'tsconfig.json absent : le thread des hooks du dumper n\'est pas mesuré')
-})
-
-test('runner tsx : build-structures mesure src/data ET src/scenes (entrée tsx/esm)', () => {
-  const lues = mesurer('scripts/docs/build-structures.mts')
-  assert.ok(lues.fichiers.some((f) => f.startsWith('src/data/')), 'aucune source src/data')
-  assert.ok(lues.fichiers.some((f) => f.startsWith('src/scenes/')), 'aucune source src/scenes')
-})
-
-// Le chargement du TypeScript par tsx LIT `tsconfig.json` depuis le thread des hooks, sur les deux
-// OS. Sans l'enveloppe de `fs` de `enregistreur-hooks.mjs`, ce chemin ne rentre que sous Linux (la
-// CI ubuntu 33791873905 le rendait en +1 par générateur tsx) et le dérivé cesse d'être cross-OS.
-test('thread des hooks : un générateur chargé par tsx mesure tsconfig.json (dérivé cross-OS)', () => {
-  const lues = mesurer('scripts/docs/build-structures.mts')
-  assert.ok(
-    lues.fichiers.includes('tsconfig.json'),
-    `tsconfig.json absent du set (${lues.fichiers.length} sources) : les lectures du thread des hooks ne sont pas enregistrées`,
-  )
-  assert.ok(lues.sondes.some((s) => s.chemin === 'tsconfig.json'), 'les sondes du thread tsx doivent voyager avec ses lectures')
-  // Le hook `load` voit aussi des spécificateurs sans chemin sur le disque : un `node:child_process`
-  // pris pour un chemin relatif fait échouer la lecture (ENOENT sur `<racine>/node:…`).
-  assert.deepEqual(lues.fichiers.filter((f) => /^[a-z]+:/.test(f)), [], 'un spécificateur non-fichier est entré dans le set')
-})
-
 test('un set vide ou minuscule ARRÊTE la génération, en nommant le générateur', () => {
   assert.match(refusSourcesInsuffisantes('scripts/docs/build-x.mjs', 0), /build-x\.mjs.*0 source\(s\).*AVEUGLE/)
   assert.match(refusSourcesInsuffisantes('scripts/docs/build-x.mjs', 1), /1 source\(s\)/)
@@ -246,9 +217,6 @@ test('`ecrireDoc` écrit le rendu, et n’écrit RIEN à rendu identique (la mti
   }
 })
 
-// #1721 : NTFS est INSENSIBLE à la casse. Tant que la décision « sous la racine » se prenait sur des
-// octets (`abs.startsWith(base + sep)`), une lecture dont le disque ou un segment ne portait pas la
-// casse de la racine sortait de la mesure, et rien ne le disait.
 test('casse : une lecture par un chemin à casse différente est COMPTÉE, une lecture hors racine est REJETÉE', (t) => {
   const racine = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'casse-')))
   const dehors = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'dehors-')))
@@ -294,7 +262,6 @@ test('casse : une lecture par un chemin à casse différente est COMPTÉE, une l
   }
 })
 
-// #1769
 test('un dossier IGNORÉ par git, posé dans un dossier lu, ne change ni le listing ni les dossiers', () => {
   const { racine: brute } = instanceDeDepot({
     fichiers: { '.gitignore': '__pycache__/\n*.log\n', 'lib/geometrie.py': 'x = 1\n' },

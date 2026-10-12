@@ -1,18 +1,21 @@
-// CLIQUET de la garde des MODULES FEUILLES (node --test, sans réseau) : l'arbre est fabriqué sous
-// `os.tmpdir()`, et les cas portent les graphies qu'un prédicat écrit à la main rate.
-// Lancé par `npm run test:hooks`.
 import { test, mock } from 'node:test'
+
 import { API } from 'typescript/unstable/sync'
+
 import assert from 'node:assert/strict'
+
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+
 import { tmpdir } from 'node:os'
+
 import { dirname, join } from 'node:path'
-import { FEUILLES, importsResolus, manquementsDeFeuilles, sourcesSuivies } from './modulesFeuilles.mjs'
+
+import { importsResolus, manquementsDeFeuilles } from './modulesFeuilles.mjs'
 
 const FEUILLE = 'scripts/ops/geste.mjs'
+
 const FEUILLES_FIXTURE = [{ module: FEUILLE, bancs: ['scripts/ops/geste.test.mjs'], pourquoi: 'porte LE geste' }]
 
-/** Un arbre jetable : la feuille, son banc, et les sources que le cas veut éprouver. */
 function arbre(fichiers) {
   const racine = mkdtempSync(join(tmpdir(), 'wfrp-feuilles-'))
   const tout = { [FEUILLE]: 'export const geste = () => {}\n', 'scripts/ops/geste.test.mjs': '', ...fichiers }
@@ -32,10 +35,6 @@ const mesurer = (fichiers) => {
   }
 }
 
-// Les graphies d'ACQUISITION qui atteignent une feuille. Un prédicat écrit à la main ne voit que
-// celles qu'il a imaginées : mesuré, une regex `import … from '…'` mono-ligne rend `true` sur le
-// premier cas et `false` sur tous les autres, alors que le dépôt écrit ses imports en multi-ligne
-// partout. La table est donc la MESURE, et elle s'étend d'une ligne.
 const GRAPHIES = [
   ['mono-ligne', "import { geste } from './geste.mjs'\n"],
   ['multi-ligne', "import {\n  geste,\n} from './geste.mjs'\n"],
@@ -69,8 +68,6 @@ for (const [graphie, code, extension] of GRAPHIES) if (extension === 'ts') {
   })
 }
 
-// Ce que la garde ne DOIT pas compter — et, pour les deux derniers, ce qu'aucune lecture statique ne
-// peut compter : le spécificateur n'est pas un littéral, ou le callee n'est plus un jeton connu.
 const NEGATIFS = [
   ['un require d’un AUTRE module', "const { autre } = require('./autre.mjs')\n"],
   ['un require de PAQUET npm', "const ts = createRequire(import.meta.url)('typescript')\n"],
@@ -170,24 +167,5 @@ test('des lectures différentes du même chemin sont refusées avant toute ouver
   } finally {
     spy.mock.restore()
     rmSync(racine, { recursive: true, force: true })
-  }
-})
-
-// ── l'arbre RÉEL ──────────────────────────────────────────────────────────────
-
-test('le dépôt n’a AUCUN importeur de feuille, et la garde lit bien ses sources', () => {
-  const vu = manquementsDeFeuilles()
-  assert.deepEqual(vu.manquements, [])
-  // Sans cette borne, une lecture cassée rendrait la garde verte en ne lisant plus rien.
-  assert.ok(vu.sourcesLues > 1000, `la garde ne lit plus les sources du dépôt (${vu.sourcesLues})`)
-})
-
-test('les feuilles DÉCLARÉES sont une donnée, et chacune dit son invariant', () => {
-  assert.ok(FEUILLES.length >= 1)
-  const suivies = sourcesSuivies()
-  for (const f of FEUILLES) {
-    assert.ok(suivies.includes(f.module), `${f.module} n’est pas une source suivie`)
-    assert.ok(f.pourquoi.trim(), `${f.module} sans invariant dit`)
-    for (const banc of f.bancs) assert.ok(suivies.includes(banc), `${banc} n’est pas une source suivie`)
   }
 })

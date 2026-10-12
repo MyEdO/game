@@ -1,18 +1,13 @@
-// `gen-formats.mjs` (#2404) : le format d'une donnée persistée est STABLE (entre processus, entre ordres
-// de chargement, indépendant des ids internes), SENSIBLE (un champ optionnel ajouté, un type de champ
-// changé le changent) et TOTAL (any/unknown et drapeau non traité échouent, chemin nommé).
 import { test } from 'node:test'
-import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { createRequire } from 'node:module'
-import { RACINES, calculerFormats, defsDeSequence, couleurs, serialisation, grapheDeForme, FormatNonDerivable } from './gen-formats.mjs'
-import { readCorpus } from './guards/lib/sourceCorpus.mjs'
 
-const RACINE = fileURLToPath(new URL('..', import.meta.url))
-const parConstante = (formats) => Object.fromEntries(formats.map((e) => [e.constante, e.format]))
-const BASE = parConstante(calculerFormats())
+import assert from 'node:assert/strict'
+
+import { createRequire } from 'node:module'
+
+import { calculerFormats, couleurs, serialisation, grapheDeForme, FormatNonDerivable } from './gen-formats.mjs'
+
+import { bancgenformatstestmjs } from './bancFormats.mjs'
+const { parConstante } = bancgenformatstestmjs
 
 test('canonique : deux graphes isomorphes numérotés autrement, cycles compris, sérialisent pareil', () => {
   // A = { a: string, suite?: A } ; U = A | null — le même graphe, nœuds dans deux ordres.
@@ -33,38 +28,6 @@ test('canonique : deux graphes isomorphes numérotés autrement, cycles compris,
   assert.notEqual(serialisation(g1, couleurs(g1)), serialisation(g3, couleurs(g3)))
 })
 
-test('stable entre deux processus', () => {
-  const r = spawnSync(process.execPath, ['--input-type=module', '-e',
-    "import { calculerFormats } from './scripts/gen-formats.mjs'; process.stdout.write(JSON.stringify(calculerFormats()))"], { cwd: RACINE, encoding: 'utf8' })
-  assert.equal(r.status, 0, r.stderr)
-  assert.deepEqual(parConstante(JSON.parse(r.stdout)), BASE)
-})
-
-test('stable entre deux racines de programme qui chargent les fichiers dans des ordres différents', () => {
-  const autreOrdre = calculerFormats({
-    racines: [...RACINES].reverse(),
-    avant: ['src/state/traceLayer.ts', 'src/ui/creator/draft.ts', 'src/engine/types.ts', 'src/state/store.ts'],
-  })
-  assert.deepEqual(parConstante(autreOrdre), BASE)
-})
-
-test('sensible : un champ optionnel ajouté, un type de champ changé', () => {
-  const types = readFileSync(new URL('../src/engine/types.ts', import.meta.url), 'utf8')
-  assert.ok(types.includes('export interface Combatant {'))
-  const avecChamp = parConstante(calculerFormats({
-    recouvrement: { 'src/engine/types.ts': types.replace('export interface Combatant {', 'export interface Combatant {\n  zzNouveau?: number;') },
-  }))
-  for (const c of ['FORMAT_SAVE', 'FORMAT_ROSTER', 'FORMAT_EXPORT_HEROS']) assert.notEqual(avecChamp[c], BASE[c], c)
-  assert.equal(avecChamp.FORMAT_CALQUE, BASE.FORMAT_CALQUE)
-
-  const calque = readFileSync(new URL('../src/state/traceLayer.ts', import.meta.url), 'utf8')
-  assert.ok(calque.includes('  opacity: number;'))
-  const autreType = parConstante(calculerFormats({ recouvrement: { 'src/state/traceLayer.ts': calque.replace('  opacity: number;', '  opacity: string;') } }))
-  assert.notEqual(autreType.FORMAT_CALQUE, BASE.FORMAT_CALQUE)
-  assert.equal(autreType.FORMAT_SAVE, BASE.FORMAT_SAVE)
-})
-
-/** Le format de chaque cas `nom → source du type T`, chacun dans son module virtuel. */
 const formatsDe = (cas) => {
   const racines = Object.keys(cas).map((k) => ({ constante: k, module: `src/__cas_${k}.ts`, type: 'T' }))
   const recouvrement = Object.fromEntries(Object.entries(cas).map(([k, v]) => [`src/__cas_${k}.ts`, v]))
@@ -102,13 +65,4 @@ test('un drapeau de type non traité échoue en nommant le chemin, sans retomber
   const type = { id: 1, flags: TypeFlags.Index, isUnionType: () => false, isIntersectionType: () => false }
   const checker = { typeToString: () => 'keyof X', getSignaturesOfType: () => [], getPropertiesOfType: () => [], getIndexInfosOfType: () => [] }
   assert.throws(() => grapheDeForme(checker, type, null), /drapeau de type non traité \(\d+\) en \$ : keyof X/)
-})
-
-test('FORMAT_SAVE couvre CHAQUE famille de séquence de production : les `def` vus par le générateur sont les ids des `registerSequence(` de src hors tests', () => {
-  const corpus = readCorpus(['src'])
-  const constantes = new Map(corpus.flatMap((f) => [...f.text.matchAll(/export const (\w+) = '([^']+)'/g)].map((m) => [m[1], m[2]])))
-  const ids = corpus.flatMap((f) => [...f.text.matchAll(/registerSequence\(\s*(?:'([^']+)'|(\w+))/g)]
-    .map((m) => m[1] ?? constantes.get(m[2]) ?? `${f.rel} : ${m[2]} non résolu`))
-  assert.ok(ids.length > 0, 'aucun site `registerSequence(` lu : la garde ne mesurerait rien')
-  assert.deepEqual(defsDeSequence(), [...new Set(ids)].sort())
 })

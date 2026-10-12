@@ -28,17 +28,17 @@ const LANCEUR_TESTS = 'scripts/gates/testsSansEcriture.mjs'
 /** Chemins de script d'une commande npm dépliée, tels que la racine les porte. Une gate qui passe
  *  par le lanceur des tests prend ses graines à `testsParGate` — la table qui décide, par
  *  répertoire, des tests de cette gate — puisque la commande ne nomme plus un seul fichier. */
-function fichiersDe(commande, racine, gate) {
+function fichiersDe(commande, racine, gate, lister) {
   const out = []
   for (const jeton of commande.split(/\s+/))
     if (/^[\w./-]+\.(?:mjs|mts|js|ts)$/.test(jeton) && existsSync(join(racine, jeton))) out.push(jeton)
-  if (out.includes(LANCEUR_TESTS) && GATES.includes(gate)) out.push('scripts/test/node-tests.mjs', ...testsDe(gate, () => listerTests(racine)))
+  if (out.includes(LANCEUR_TESTS) && GATES.includes(gate)) out.push('scripts/test/node-tests.mjs', ...testsDe(gate, lister))
   return out
 }
 
 /** Fermeture transitive des imports locaux, depuis des graines relatives à la racine. */
-export function transitif(graines, racine) {
-  return [...clotureDImports(graines, { racine, typesEffaces: true })]
+export function transitif(graines, racine, mesure = {}) {
+  return [...clotureDImports(graines, { racine, typesEffaces: true, ...mesure })]
 }
 
 /** `true` si ce script porte au moins un appel d'écriture hors commentaire et hors import. */
@@ -57,19 +57,36 @@ export function porteUneEcriture(chemin, racine) {
 export function corpusParGate(racine = process.cwd()) {
   const scripts = JSON.parse(readFileSync(join(racine, 'package.json'), 'utf8')).scripts ?? {}
   const par = {}
+  let tests
+  const lister = () => (tests ??= listerTests(racine))
+  const textes = new Map()
+  const existants = new Map()
+  const mesure = {
+    cache: new Map(),
+    arbre: {
+      existe: (abs) => {
+        if (!existants.has(abs)) existants.set(abs, existsSync(abs))
+        return existants.get(abs)
+      },
+      lire: (abss) => new Map(abss.map((abs) => {
+        if (!textes.has(abs)) textes.set(abs, readFileSync(abs, 'utf8'))
+        return [abs, textes.get(abs)]
+      })),
+    },
+  }
   for (const gate of gatesDeCi({ cwd: racine })) {
     let commande = scripts[gate.nom] || gate.commande
     for (let i = 0; i < 4; i += 1)
       commande = commande.replace(/npm run ([A-Za-z0-9:_.-]+)/g, (tel, nom) => (scripts[nom] ? `(${scripts[nom]})` : tel))
-    par[gate.nom] = transitif(fichiersDe(commande, racine, gate.nom), racine).sort()
+    par[gate.nom] = transitif(fichiersDe(commande, racine, gate.nom, lister), racine, mesure).sort()
   }
   return par
 }
 
 /** `{ [gate]: [scripts écrivains atteints, triés] }` pour toutes les gates de `ci.yml`. */
-export function ecrivainsParGate(racine = process.cwd()) {
+export function ecrivainsParGate(racine = process.cwd(), corpusMesure = corpusParGate(racine)) {
   const par = {}
-  for (const [gate, corpus] of Object.entries(corpusParGate(racine)))
+  for (const [gate, corpus] of Object.entries(corpusMesure))
     par[gate] = corpus.filter((f) => porteUneEcriture(f, racine))
   return par
 }

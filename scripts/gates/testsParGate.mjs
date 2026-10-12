@@ -41,6 +41,7 @@ export const RACINES = Object.freeze({
   'test:recette': Object.freeze(['scripts/recette']),
   'test:raw': Object.freeze(['scripts/raw', 'scripts/source']),
   'test:ops': Object.freeze(['scripts/ops']),
+  'test:corpus': Object.freeze(['scripts/corpus']),
 })
 
 /** Les gates qui jouent des tests `scripts/**`, dans l'ordre de la table. */

@@ -95,6 +95,10 @@ test('verrou libre : pris, le tenant s’inscrit, et `liberer` rend la place', (
   })
   pris.liberer()
   assert.equal(fs.boite.contenu, null)
+  pris.liberer()
+  const erreur = Object.assign(new Error('suppression refusée'), { code: 'EACCES' })
+  fs.rmSync = () => { throw erreur }
+  assert.throws(() => pris.liberer(), (e) => e === erreur)
 })
 
 test('verrou tenu par un PID VIVANT : refus qui NOMME le libellé, le PID, la commande et l’arbre', () => {

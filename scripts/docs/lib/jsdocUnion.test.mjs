@@ -1,21 +1,33 @@
 import test, { mock } from 'node:test'
+
 import assert from 'node:assert/strict'
+
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs'
+
 import { tmpdir } from 'node:os'
+
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+
 import * as ts from 'typescript/unstable/ast'
+
 import { libererCache } from '../../guards/lib/fieldConsumers.mjs'
+
 import { loadSource, findAlias, aliasDoc, readUnionMembers, indexerConstantes, readZodUnionMembers, noyauZod, estOptionnel, proprietesZod } from './jsdocUnion.mjs'
+
 import { fileExports } from './engineExports.mjs'
+
 import { shellZones, rowZones } from './rollShellUsage.mjs'
-import { spawnSync } from 'node:child_process'
+
 import { fileURLToPath } from 'node:url'
+
 import { API } from 'typescript/unstable/sync'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
+
 const ZOD = JSON.stringify('zod')
+
 const DOSSIER_ZOD = dirname(fileURLToPath(import.meta.resolve('zod')))
-// #2001
+
 const dossierTemporaire = (prefixe) => {
   const dossier = mkdtempSync(join(tmpdir(), prefixe))
   try {
@@ -219,18 +231,6 @@ test('optionalité native : zones shell et row distinguent propriété optionnel
   ]
   assert.deepEqual(shellZones(`export function RollShell(p: { ${membres} }) {}`, 'test'), attendu)
   assert.deepEqual(rowZones(`export interface RollRowProps { ${membres} }`, 'test'), attendu)
-})
-
-test('optionalité native : générateur MapSpec conserve desc optionnel et son démarrage compilable', () => {
-  const enfant = spawnSync(process.execPath, ['scripts/docs/lib/rendre-seul.mjs', 'scripts/docs/build-map-authoring.mjs'], {
-    cwd: fileURLToPath(new URL('../../../', import.meta.url)), encoding: 'utf8',
-  })
-  assert.equal(enfant.status, 0, enfant.stderr)
-  assert.match(enfant.stdout, /\| `desc\?` \| `string` \|/)
-  assert.match(enfant.stdout, /Champs REQUIS de `MapSpec` : `size`, `id`, `label`\./)
-  assert.match(enfant.stdout, /`startMessage\.texte`/)
-  assert.match(enfant.stdout, /`startMessage\.source\?`/)
-  assert.match(enfant.stdout, /`startMessage\.adapteDe\?`/)
 })
 
 test('décorateurs canoniques : formes, champs, optionalité et JSDoc préservés par imports nommés, renommés et namespace imbriqués', () => {
