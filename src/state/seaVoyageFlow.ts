@@ -90,7 +90,7 @@ import {
 import { navalMoveMod, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
 import { groupsFor } from '../engine/groups';
-import { seaAutoResolves, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
+import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import { crewRoleValue, crewTestModParts, moraleBand, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import { beginShipwreck } from './shipwreck';
 import type { NightEntry } from './restFlow';
@@ -462,7 +462,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
  *  utile (aucun jet à jouer ce Test-là, l'appelant applique son chemin sans-jet). `kind` = la clé du
  *  registre `registerCascadeApplier` (#275 Ronde 2 cran 2/3) — les 10 Tests canoniques partagent leur
  *  `testTypeId`, un ÉVÉNEMENT peut réutiliser un `testTypeId` sous un AUTRE `kind` (Ouragan → Affaler,
- *  cf. `sea-ouragan-affaler`) pour ne jamais retomber dans la routine auto-résolue (`SEA_KINDS_SOUS_ORDRES`
+ *  cf. `sea-ouragan-affaler`) pour ne jamais retomber dans la routine auto-résolue (`KINDS_SOUS_ORDRES`
  *  est indexée par `kind`, pas `testTypeId`). */
 
 function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: { sense?: PairedSense; extraDR?: number; icon?: string } = {}): BuiltCascadeStep | undefined {
@@ -1223,7 +1223,7 @@ export function runSeaDay(get: Get, set: Set): void {
   // cascade d'un bloc (mêmes appliers, mêmes conséquences), sans modale — lignes au journal. En coop,
   // la conduite reste manuelle. Un combat ouvert EN PLEIN VOL (rarissime : le build ne pouvait pas
   // prévoir un franchissement d'ancrage exact) suspend le fragment restant (`runCascadeImmediate` `ctx`).
-  if (get().net.mode === 'local' && seaAutoResolves(plan.orders, 'progression') && seaDayAllRoutine(get)) {
+  if (get().net.mode === 'local' && traverseeCommandee(plan.orders) && seaDayAllRoutine(get)) {
     // `rowSurface: 'pv'` : les rangées des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries`
     // ci-dessous) — le journal ne redit pas leurs dés (#1291). Les monos du tableau y gardent leur ligne.
     const resolved = runCascadeImmediate(get, set, steps, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
@@ -2165,7 +2165,7 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
 function continueSeaDayFromPostProgression(get: Get, set: Set): void {
   const insert = buildPostProgressionSteps(get, set);
   if (!insert.length) { continueSeaDayAfterCascade(get, set); return; }
-  if (get().net.mode === 'local' && seaAutoResolves(get().travelPlan?.orders, 'progression') && seaDayAllRoutine(get)) {
+  if (get().net.mode === 'local' && traverseeCommandee(get().travelPlan?.orders) && seaDayAllRoutine(get)) {
     const resolved = runCascadeImmediate(get, set, insert, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
     if (!resolved) return;
     pushDayEntries(get, set, resolved);
@@ -2431,7 +2431,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
     }
     case 'ouragan': {
       // Test d'équipage d'Affaler Difficile (−20 → −2 DR plats) sinon 3 Critiques au Gréement. Kind
-      // DISTINCT `sea-ouragan-affaler` (jamais `SEA_KINDS_SOUS_ORDRES` — une URGENCE interrompt TOUJOURS,
+      // DISTINCT `sea-ouragan-affaler` (jamais `KINDS_SOUS_ORDRES` — une URGENCE interrompt TOUJOURS,
       // `voyageCadence.ts`), toujours en cascade INTERACTIVE (jamais l'auto-pilote).
       const st = buildVoyageCrewStep(get, 'affaler', 'sea-ouragan-affaler', { extraDR: -2, icon: 'nautical/wind' });
       if (st) startCascade(get, set, { title: 'Ouragan — Affaler !', icon: 'nautical/wind', purpose: 'test', steps: [st] });

@@ -11,7 +11,6 @@
  */
 import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
-import type { CascadeStep } from './pendings';
 import type { StakeRef } from '../data';
 
 /** COMMANDÉE : les Tests d'équipage de ROUTINE s'auto-résolvent (leurs lignes au PV) ; seules les
@@ -28,47 +27,35 @@ export interface VoyageOrders {
 export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
 
 /**
- * Tests de mer que des ORDRES COMMANDÉS résolvent d'office — LISTE FERMÉE (par `voyage.kind`).
- * Deux familles, un seul régime : les jets d'ÉQUIPAGE quotidiens sans décision (Progression / Affaler
- * (météo) / Phare / Orientation / Entretien) et les Tests PERSONNELS de l'entretien-survie du bord
- * (tonneau d'eau, mal de mer, scorbut, exposition, épuisement — MDG 13 l.111/203-225, 14 l.206-234).
- * L'Exposition de MER y entre par SON kind (`sea-exposition`, patron `sea-ouragan-affaler`) : la règle
- * est celle de la nuit (LDB 18 l.326-334, même applier), la ROUTE ne l'est pas — un ordre de traversée
- * ne commande pas l'Exposition d'une nuit de camp ni celle d'un effet de scène (`exposure`).
- * Ces derniers n'ont rien d'une « routine d'équipage » : ce qui les réunit ici est l'ORDRE donné au
- * départ (« cap tenu, ne me réveillez pas »), attendu validé en recette #1426 « Traversée commandée
- * sans fenêtre » — d'où le nom de la politique, qui dit l'ordre et non la nature du jet (#1479).
+ * Tests de ROUTE que des ORDRES COMMANDÉS résolvent d'office à la porte (`rollSeam.surfaceDesTenus`) —
+ * LISTE FERMÉE (par `voyage.kind`), UNE pour les deux routes (mer, fleuve). Le jour commandé, lui, se joue
+ * d'un bloc par `runCascadeImmediate` (`traverseeCommandee`) : seule une décision l'interrompt.
+ * Mer : jets d'ÉQUIPAGE quotidiens (MDG 13 l.111) et Tests PERSONNELS de l'entretien-survie du bord
+ * (MDG 13 l.203-225, 14 l.206-234). Fleuve : dé d'Exposition hydrique et son Test (MSRC 16 l.5-13).
+ * L'Exposition y entre par le `kind` PROPRE à sa route (`sea-exposition`, `river-exposition`) : un ordre
+ * de traversée ne commande ni la nuit de camp (`exposure`) ni un Effet de scène (`waterExposure`).
+ * Ce qui réunit ces jets est l'ORDRE donné au départ, attendu validé en recette #1426 « Traversée
+ * commandée sans fenêtre » (#1479).
  *
  * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`poursuite`, `tourbillon`), l'`ouragan`
- * et l'`extermination` (conséquences d'un événement de bord), l'`embuscade` ancrée, le `voyage-rapide`,
- * et tout Test dont l'échec ouvre une DÉCISION. Les urgences (voie d'eau / feu = Fuite de vapeur →
- * `pendingSteamSave`), les événements de bord à choix, le conseil de bord, l'atterrage (événement de
- * port) et le combat (abordage) sont des surfaces PROPRES : ils suspendent la boucle par eux-mêmes.
+ * et l'`extermination`, l'`embuscade` ancrée, le `voyage-rapide`, et tout Test dont l'échec ouvre une
+ * DÉCISION. Les urgences (`pendingSteamSave`), les événements de bord à choix, le conseil de bord,
+ * l'atterrage et le combat sont des surfaces PROPRES : ils suspendent la boucle par eux-mêmes.
  */
-export const SEA_KINDS_SOUS_ORDRES: ReadonlySet<string> = new Set([
+export const KINDS_SOUS_ORDRES: ReadonlySet<string> = new Set([
   'progression', 'affaler', 'phare', 'orientation', 'entretien',
   'sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement',
+  'riverExposureChance', 'river-exposition',
 ]);
 
-/** Un Test de mer de `kind` se résout-il d'office sous ces ordres ? (route COMMANDÉE + `kind` couvert). */
-export function seaAutoResolves(orders: VoyageOrders | undefined, kind: string): boolean {
-  return orders?.cadence === 'commande' && SEA_KINDS_SOUS_ORDRES.has(kind);
+/** La traversée est-elle COMMANDÉE ? Régit le jour d'un bloc (`runCascadeImmediate`), mer comme fleuve. */
+export function traverseeCommandee(orders: VoyageOrders | undefined): boolean {
+  return orders?.cadence === 'commande';
 }
 
-/** Étapes du jour FLUVIAL de ROUTINE (patron `SEA_KINDS_SOUS_ORDRES`) — LISTE FERMÉE : Réparation de
- *  gréement/Agilité de rame/Navigation/Louvoyage/sauvegardes de vent, jets déterministes SANS décision.
- *  `riverPerilCheck` (péril de rivière) en est exclu : sa CONSÉQUENCE peut ESCALADER en CHOIX joueur
- *  (Barrage — `riverObstacleChoice`, l.128), inconnu tant que le péril n'a pas été vérifié (chance
- *  d'auteur tirée à l'application) — une journée qui en porte un force l'INTERACTIF (#351, patron
- *  `seaDayAllRoutine` : toute décision potentielle bascule le jour ENTIER en cascade interactive). */
-export const RIVER_ROUTINE_KINDS: ReadonlySet<string> = new Set([
-  'riverControlRepair', 'riverAgility', 'riverNav', 'riverTack', 'riverCapsize', 'riverRigging',
-]);
-
-/** Une journée FLUVIALE de ROUTINE s'auto-résout-elle ? (route COMMANDÉE + AUCUNE étape hors
- *  `RIVER_ROUTINE_KINDS` — la cascade du jour se joue d'un bloc, sans modale par jet ; #91, filtre #351). */
-export function riverAutoResolves(orders: VoyageOrders | undefined, steps: readonly CascadeStep[]): boolean {
-  return orders?.cadence === 'commande' && steps.every((s) => RIVER_ROUTINE_KINDS.has(s.kind));
+/** Un Test de route de `kind` se résout-il d'office sous ces ordres ? (route COMMANDÉE + `kind` couvert). */
+export function resoluSousOrdres(orders: VoyageOrders | undefined, kind: string): boolean {
+  return traverseeCommandee(orders) && KINDS_SOUS_ORDRES.has(kind);
 }
 
 /** Brique d'ENTRÉE du PV du jour (une ligne du procès-verbal, rendue par `MultiRollList`). Source unique

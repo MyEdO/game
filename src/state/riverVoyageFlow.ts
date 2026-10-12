@@ -18,14 +18,14 @@
  * de rame, le chavirage et les Critiques de bateau sont propres au fleuve (`engine/riverNavigation.ts`).
  *
  * EXPOSITION HYDRIQUE (MSRC 16) : la descente EXERCE l'Effet EXISTANT `waterExposure` — un tirage d'auteur
- * par étape (`MapRoute.riverExposure`) qui, via `applyEffects`, ouvre la cascade de Test de Résistance →
+ * par étape (`MapRoute.riverExposure`) qui, via `openWaterExposure` (kind `river-exposition`), ouvre le Test de Résistance →
  * maladie. RÉUTILISE le canal d'Effet (aucune mécanique neuve) : le moteur de tables hydriques et l'Effet
  * étaient déjà là (`engine/waterExposure.ts`), seule leur MISE EN SCÈNE dans le voyage manquait.
  */
 import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute } from '../engine/clock';
-import { applyEffects, nePeutPasDifferer } from './combatEffects';
+import { effectTargets, openWaterExposure } from './combatEffects';
 import { openRest, placesOfKind } from './restFlow';
 import { placeById, type MapRoute, type WorldMap } from './worldMap';
 import { damageVesselHull, healVesselHull, syncHullWoundsFromVessel, spoilVesselCargoOnLeak } from './seaVoyageFlow';
@@ -59,7 +59,7 @@ import { startCascade, registerCascadeApplier, runCascadeImmediate } from './cas
 import { composeRollLabel, freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { actorIn, garanti } from './combatants';
-import { riverAutoResolves, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
+import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import { dataLabel } from '../data';
@@ -229,12 +229,11 @@ function resolveRiverDay(get: Get, set: Set, route: MapRoute, to: { scene: strin
     continueRiverDayAfterCascade(get, set);
     return;
   }
-  // Route COMMANDÉE (couche `voyageCadence`, résidu #91) : la journée de descente est de la ROUTINE
-  // influençable — l'auto-pilote pilote LE MÊME plan d'étapes via le pilote IMMÉDIAT de la cascade
-  // (mêmes appliers, mêmes conséquences), SANS modale par jet ; les lignes tombent au PV du jour
-  // (journal → recap de la halte). En coop, la conduite reste manuelle (modale).
-  if (get().net.mode === 'local' && riverAutoResolves(get().travelPlan?.orders, steps)) {
-    if (!runCascadeImmediate(get, set, steps)) return;
+  // Route COMMANDÉE (`voyageCadence`, #91, #2545) : le jour se joue d'un bloc par le pilote IMMÉDIAT ;
+  // un choix sans défaut l'interrompt en `travelDay` (`cascade.runCascadeImmediate`), que la clôture
+  // reprend (`combatSlice.dispatchCascadeDone`). En coop, la conduite reste manuelle (modale).
+  if (get().net.mode === 'local' && traverseeCommandee(get().travelPlan?.orders)) {
+    if (!runCascadeImmediate(get, set, steps, { title: t('rv.dayTitle'), purpose: 'travelDay' })) return;
     continueRiverDayAfterCascade(get, set);
     return;
   }
@@ -495,7 +494,8 @@ export function continueRiverDayAfterExposure(get: Get, set: Set): void {
 
 /**
  * EXPOSITION HYDRIQUE d'une étape (MSRC 16, l.5-13) : tirage d'auteur (`MapRoute.riverExposure`) qui
- * déclenche l'Effet EXISTANT `waterExposure` sur TOUT le groupe — aucune mécanique neuve. Sautée si le
+ * ouvre le Test de l'Effet EXISTANT `waterExposure` (`openWaterExposure`, kind `river-exposition`) sur TOUT
+ * le groupe — aucune mécanique neuve. Sautée si le
  * bateau a coulé (plus de fleuve sous les pieds).
  *
  * Le d100 d'auteur est un dé de MONDE : il DÉCIDE si l'Exposition a lieu, et se pose donc comme les
@@ -520,9 +520,7 @@ registerCascadeApplier(RIVER_EXPOSURE_KIND, (get, set, step) => {
   if (!step.result.success) return { consequences: freeCons([{ text: t('rv.exposureNone'), tone: 'info' }]) };
   const mode = step.meta?.exposureMode as import('../data').WaterExposureMode;
   const source = step.meta?.exposureSource as string | undefined;
-  // Une feuille `waterExposure` LITTÉRALE ne porte aucun canal de dés (#1508) : le marquage du jour
-  // qui suit ne peut donc pas passer devant un dé — et si ça changeait, ça lèverait ici.
-  nePeutPasDifferer(applyEffects(get, set, [{ type: 'waterExposure', mode, source, target: 'party' }]), 'riverVoyage.exposition');
+  openWaterExposure(get, set, effectTargets(get, 'party'), { mode, source }, 'river-exposition');
   marqueExpositionDuJour(get, set);
   return {};
 });
@@ -743,8 +741,7 @@ registerCascadeApplier('riverPerilCheck', (get, set, step) => {
         { key: 'deblayer', label: t('opt.deblayer'), detail: t('rv.obstacleClearDetail') },
         { key: 'forcer', label: t('opt.forcerBelier'), detail: t('rv.obstacleRamDetail', { dmg: peril.obstacle.ramDamage }) },
       ],
-      // Cadence commandée : défaut = le MOINS destructif (déblayer, coque intacte) — MSRC 7 l.128.
-      defaultChoice: 'deblayer', meta: { perilId },
+      meta: { perilId },
     });
     return st ? { insert: [st] } : undefined;
   }

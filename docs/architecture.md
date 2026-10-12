@@ -550,9 +550,10 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
 (lever = travail coop futur, hors #254 qui ferme sur DOCUMENTATION seule) :
 
-- **Cadence COMMANDÉE désactivée hors mode local** — `src/state/seaVoyageFlow.ts` l.876 et l.1541
-  gatent la résolution immédiate/headless d'une journée de routine (`runCascadeImmediate`) par
-  `get().net.mode === 'local'` (en plus de `seaAutoResolves`/`seaDayAllRoutine`) ; en coop la cadence
+- **Cadence COMMANDÉE désactivée hors mode local** — `src/state/seaVoyageFlow.ts` (`runSeaDay`,
+  `continueSeaDayFromPostProgression`) et `src/state/riverVoyageFlow.ts` (`resolveRiverDay`) gatent la
+  résolution immédiate/headless d'une journée (`runCascadeImmediate`) par `get().net.mode === 'local'`
+  (en plus de `traverseeCommandee`, et de `seaDayAllRoutine` en mer) ; en coop la cadence
   reste JOUR-PAR-JOUR quels que soient les ordres (commentaire au site : « coop = cadence manuelle,
   pas d'auto-pilote des postes d'autrui »). Raison technique : la résolution immédiate est un bloc
   synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales (`modalArbiter.ts`)

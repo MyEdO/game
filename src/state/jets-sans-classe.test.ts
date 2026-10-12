@@ -6,7 +6,7 @@
  *
  * La surface d'un jet se DÉRIVE donc de trois choses, et de rien d'autre :
  *  1. la cadence déférée à un automate (`cadenceAuto`) — pour la porte d'un JET (`surfaceDeLEtape`) ;
- *  2. la politique d'ORDRES d'une traversée (`seaAutoResolves`) — « Traversée commandée sans fenêtre » ;
+ *  2. la politique d'ORDRES d'une traversée (`resoluSousOrdres`) — « Traversée commandée sans fenêtre » ;
  *  3. la TENUE des porteurs (`netOwnership.tenuParUnHumain`), le prédicat de #1426.
  *
  * Ce fichier PROMEUT en contrat les sondes du juge du lot : la matrice des Tests de mer, le mono

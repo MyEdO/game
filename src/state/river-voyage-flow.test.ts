@@ -196,7 +196,7 @@ describe('GOLDEN — km / Dégâts de coque figés à graine égale', () => {
 
 /**
  * BARRAGE de débris (MSRC 7 l.128) — CHOIX joueur : forcer au bélier (+10 Dégâts à la coque) ou déblayer
- * à la main (3d10 objets × 4d10 Enc, coque intacte, temps perdu). Défaut de cadence commandée = déblayer.
+ * à la main (3d10 objets × 4d10 Enc, coque intacte, temps perdu). Aucun défaut : la décision revient au joueur.
  */
 describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main', () => {
   /** Déroule la cascade, tranchant chaque étape « choix » avec `key`. */
@@ -212,23 +212,19 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     }
   }
 
-  it('le péril obstacle OUVRE une étape « choix » (forcer / déblayer), pas une résolution muette', () => {
+  it('cadence COMMANDÉE (#2545) : le choix sans défaut rouvre la fenêtre du JOUR, et le jour reprend après lui', () => {
     launch(false, 45, { riverPerils: [{ perilId: 'barrage', chancePct: 100 }] });
     seedBattleRng(7);
     get().startTravel('r-reik', 'barge');
-    // Déroule les jets du jour jusqu'à l'étape de choix du barrage.
-    let g = 0;
-    while (get().pendingCascade && g++ < 200) {
-      const p = get().pendingCascade!;
-      const cur = p.participants[p.cursor];
-      if (cur?.options) break; // étape de choix atteinte
-      if (cur?.target != null && !cur.result) get().cascadeRoll(cur.id);
-      else get().cascadeNext();
-    }
-    const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
+    const pc = get().pendingCascade!;
+    expect(pc.purpose, 'le pilote du jour s’arrête sur la décision, en fenêtre de JOUR').toBe('travelDay');
+    const cur = pc.participants[pc.cursor];
     expect(cur.kind).toBe('riverObstacleChoice');
     expect(cur.options!.map((o) => o.key).sort()).toEqual(['deblayer', 'forcer']);
-    expect(cur.defaultChoice).toBe('deblayer'); // cadence commandée : le moins destructif
+    expect(cur.defaultChoice, 'MSRC 7 l.128 : le choix revient aux Personnages').toBeUndefined();
+    expect(get().journal.some((l) => /^Progression du jour/.test(l)), 'le jour est suspendu au choix').toBe(false);
+    drainChoosing('forcer');
+    expect(get().journal.some((l) => /^Progression du jour/.test(l)), `journal :\n${get().journal.join('\n')}`).toBe(true);
   });
 
   it('FORCER au bélier → +10 Dégâts à la coque (l.128), journal explicite', () => {
@@ -334,10 +330,10 @@ describe('influence effective — Résilience sur un jet du jour fluvial', () =>
 });
 
 describe('exposition hydrique de la descente (MSRC 16) — l\'Effet waterExposure EXERCÉ après le jour', () => {
-  it('un tirage garanti (chance 100 %) ouvre la cascade de Test de Résistance (Exposition) à la clôture du jour', () => {
+  it('JOUR-PAR-JOUR : un tirage garanti (chance 100 %) ouvre la cascade de Test de Résistance (Exposition) à la clôture du jour', () => {
     launch(false, 45, { riverExposure: { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 100 } });
     seedBattleRng(4);
-    get().startTravel('r-reik', 'barge');
+    get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
     // On draine d'abord la cascade du JOUR (travelDay) ; sa clôture ouvre la cascade d'Exposition (test).
     let g = 0;
     // Pilote PARTAGÉ (`cascadeTestKit.avanceEtapeCascade`) : il joue CHAQUE forme d'étape — jet, table
@@ -353,7 +349,7 @@ describe('exposition hydrique de la descente (MSRC 16) — l\'Effet waterExposur
     // Purpose DÉDIÉ (#344) : la clôture de l'Exposition reprend la fin du jour (halte différée), au lieu du
     // purpose générique `test` qui n'a aucune continuation (→ soft-lock quand le Repos la court-circuite).
     expect(pc?.purpose).toBe('riverExposure');
-    expect(pc?.participants.every((s) => s.kind === 'waterExposure')).toBe(true);
+    expect(pc?.participants.every((s) => s.kind === 'river-exposition')).toBe(true);
     expect(pc?.participants.length).toBe(get().party.filter((h) => !h.dead).length);
   });
 
@@ -898,7 +894,7 @@ describe('Navigation du jour — base NUE + Soutien NOMMÉ, cible invariante (#1
 
 /**
  * VOLET MONO du journal-projection (#1262 V3 Lj) sur le CHEMIN RÉEL : une journée de descente en
- * route COMMANDÉE se joue d'un bloc par le pilote IMMÉDIAT (`riverAutoResolves` → `runCascadeImmediate`),
+ * route COMMANDÉE se joue d'un bloc par le pilote IMMÉDIAT (`traverseeCommandee` → `runCascadeImmediate`),
  * donc AUCUNE fenêtre ne montre les dés. Avant ce lot, ces jets mono étaient MUETS au journal (seule
  * une bande en laissait trace, #1281). Le dériveur les rend, une fois chacun.
  *

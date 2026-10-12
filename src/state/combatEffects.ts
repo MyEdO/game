@@ -77,7 +77,7 @@ import { possessionLabel, type Possession, type LivingRef } from '../engine/poss
 import { ev } from './combatLog';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
-import { dataLabel } from '../data';
+import { dataLabel, type WaterExposureMode } from '../data';
 import { actionsAuthorees, type Drapeaux } from './usable';
 import type { SceneEntity } from './scene';
 
@@ -1905,39 +1905,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   waterExposure: {
     group: 'Afflictions', label: libelleEffet('waterExposure'), icon: 'travel/wave',
     make: () => ({ type: 'waterExposure', mode: 'ingestion', target: 'hero' }),
-    apply: (e, env) => {
-      // « Maladies transmises par l'eau » (MSRC 16 l.13) : UN Test de Résistance Intermédiaire (+0) modifié
-      // PAR HÉROS exposé — étape de cascade influençable (jamais de jet silencieux). Modificateurs
-      // cumulés : tableau 1 « Source d'eau » (choix d'auteur `e.source`, ingestion ET immersion) +
-      // tableau 2 « Blessures et États » (DÉRIVÉ du héros, immersion seule). La conséquence (d100
-      // « +10/DR négatif » → contraction DIRECTE) vit dans l'applier `waterExposure`.
-      const heroes = env.targets(e.target ?? 'hero', e.heroId);
-      if (!heroes.length) return;
-      const src = sourceExposureMod(e.source);
-      const steps = heroes.flatMap((h) => {
-        const auto = autoExposureMods(h, e.mode); // tableau 2 (gate `appliesTo` interne : immersion seule)
-        const parts = [...(src ? [src] : []), ...auto]; // tableau 1 : « à l'ingestion et à l'immersion »
-        const detail = parts.map((m) => `${m.label} ${m.mod > 0 ? '+' : ''}${m.mod}`).join(' · ');
-        // Ligne montée par le MONTEUR CANONIQUE (dans le mint) : la base est le Niveau de Résistance NU,
-        // et les deux tableaux d'exposition sont des lignes NOMMÉES sur la cible, chacune liée à la
-        // fiche qui les octroie (MSRC 16).
-        const step = monoStep({
-          id: `waterExposure-${h.id}`, kind: 'waterExposure', actor: h, icon: 'travel/wave',
-          rollLabel: refLabel('skills', WATER_EXPOSURE.test.skill),
-          label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
-          difficulty: WATER_EXPOSURE.test.difficulty,
-          ligne: {
-            test: { skill: WATER_EXPOSURE.test.skill.id, spec: WATER_EXPOSURE.test.skill.spec },
-            surLaCible: parts.map((m): ModLine => ({
-              label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
-            })),
-          },
-          stake: combatStakeRef('waterExposure'),
-        });
-        return step ? [step] : [];
-      });
-      if (steps.length) openSequence(env.get, env.set, { title: t('eff.waterTitle'), icon: 'travel/wave', purpose: 'test', steps });
-    },
+    apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'hero', e.heroId), e, 'waterExposure'),
   },
 
   // ── Temps & repos ──────────────────────────────────────────────────────
@@ -2257,11 +2225,48 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
 };
 
+/** Les `kind` de l'étape de Test d'Exposition HYDRIQUE (MSRC 16 l.13) — MÊME règle, MÊME applier, DEUX
+ *  routes qui la posent : l'Effet de scène (`waterExposure`) et la descente (`river-exposition`, seule
+ *  couverte par les ORDRES d'une traversée, cf. `voyageCadence.KINDS_SOUS_ORDRES`). */
+export const WATER_EXPOSURE_KINDS = ['waterExposure', 'river-exposition'] as const;
+export type WaterExposureKind = (typeof WATER_EXPOSURE_KINDS)[number];
+
+/** Ouvre le Test d'Exposition HYDRIQUE (MSRC 16 l.5-13) des `heroes`, sous le `kind` de la route qui le pose. */
+export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combatant[], e: { mode: WaterExposureMode; source?: string }, kind: WaterExposureKind): void {
+  // MSRC 16 l.13 : une étape par héros exposé ; tableau 1 (`e.source`) et tableau 2 (`autoExposureMods`).
+  // Conséquence : l'applier de `WATER_EXPOSURE_KINDS`.
+  if (!heroes.length) return;
+  const src = sourceExposureMod(e.source);
+  const steps = heroes.flatMap((h) => {
+    const auto = autoExposureMods(h, e.mode); // tableau 2 (gate `appliesTo` interne : immersion seule)
+    const parts = [...(src ? [src] : []), ...auto]; // tableau 1 : « à l'ingestion et à l'immersion »
+    const detail = parts.map((m) => `${m.label} ${m.mod > 0 ? '+' : ''}${m.mod}`).join(' · ');
+    // Ligne montée par le MONTEUR CANONIQUE (dans le mint) : la base est le Niveau de Résistance NU,
+    // et les deux tableaux d'exposition sont des lignes NOMMÉES sur la cible, chacune liée à la
+    // fiche qui les octroie (MSRC 16).
+    const step = monoStep({
+      id: `${kind}-${h.id}`, kind, actor: h, icon: 'travel/wave',
+      rollLabel: refLabel('skills', WATER_EXPOSURE.test.skill),
+      label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
+      difficulty: WATER_EXPOSURE.test.difficulty,
+      ligne: {
+        test: { skill: WATER_EXPOSURE.test.skill.id, spec: WATER_EXPOSURE.test.skill.spec },
+        surLaCible: parts.map((m): ModLine => ({
+          label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
+        })),
+      },
+      stake: combatStakeRef('waterExposure'),
+    });
+    return step ? [step] : [];
+  });
+  if (steps.length) openSequence(get, set, { title: t('eff.waterTitle'), icon: 'travel/wave', purpose: 'test', steps });
+}
+
 /** Étape de cascade `waterExposure` (MSRC 16 l.49) : Test raté → d100 « avec un modificateur de +10
  *  pour chaque DR négatif » → maladie CONTRACTÉE directement (`applyContraction`, incubation normale —
  *  le Test d'exposition EST le test, jamais un second Test de Contraction). « Relancez si le Personnage
  *  n'est pas blessé » honoré par `drawWaterDisease`. Déjà porteur → rien de neuf (dédoublonnée). */
-registerCascadeApplier('waterExposure', (_get, _set, step, hero) => {
+for (const kindExposition of WATER_EXPOSURE_KINDS) registerCascadeApplier(kindExposition, (_get, _set, step, hero) => {
   if (!hero || !step.result) return;
   if (step.result.success) return { consequences: freeCons([t('eff.waterSafe', { name: hero.label })]) };
   const draw = drawWaterDisease(Math.max(0, -step.result.sl), isWounded(hero), battleRng());

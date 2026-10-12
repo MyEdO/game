@@ -5,7 +5,7 @@
  *
  * `openRoll` DÉCRIT un jet (`RollRequest`) et une CONTINUATION enregistrée par `kind`
  * (`registerCascadeApplier`, `cascade.ts:57`) ; la porte DÉRIVE la surface des PORTEURS RÉELS du jet
- * (#1479) via les prédicats EXISTANTS (`surfaceOf`/`cadenceAuto`/`seaAutoResolves`) :
+ * (#1479) via les prédicats EXISTANTS (`surfaceOf`/`cadenceAuto`/`resoluSousOrdres`) :
  *   M = modale influençable (`startCascade`, propriétaire = l'acteur humain) ;
  *   V = étape visible-lançable MJ (`startCascade`, propriétaire = le siège `gmSeat` — un `actorId`
  *       d'ennemi EN BATAILLE via `seatOwns` (`netOwnership.ts:19`), une étape MONDE sans acteur via
@@ -55,7 +55,7 @@ import { testValue, partyBest, partyAssisted, testValueSplit, testValueParts, sk
 import { testStatePenaltyParts, testStatePenalty } from '../engine/conditions';
 import { tenuParUnHumain, porteurParId, seatOwns, conduitParLeSiegeDuMonde, WORLD_STEP_OWNER } from './netOwnership';
 import { cadenceAuto } from '../engine/cadence';
-import { seaAutoResolves } from './voyageCadence';
+import { resoluSousOrdres } from './voyageCadence';
 import { byId, conditionLabel, dataLabel, type StakeRef } from '../data';
 import { t, type OutKey, type OutVars } from '../i18n';
 import { rollTest, clampTarget } from '../engine/tests';
@@ -321,7 +321,7 @@ function resolveMonoSide(get: Get, req: RollRequest): { actorId?: string; actor?
  * prédicats EXISTANTS :
  *  1. cadence déférée à un automate (`cadenceAuto`, GLOBALE) → I — posée par l'appelant qui la subit
  *     (`surfaceDesPorteurs` ; une SÉQUENCE ne la subit pas, cf. `surfaceDesEtapes`) ;
- *  2. politique d'ORDRES d'une traversée (`seaAutoResolves` sur CHAQUE `kind` poussé — commandée =
+ *  2. politique d'ORDRES d'une traversée (`resoluSousOrdres` sur CHAQUE `kind` poussé — commandée =
  *     « sans fenêtre », attendu validé en recette #1426) → I ;
  *  3. sinon la TENUE des porteurs (`surfaceOf`, donc `netOwnership.tenuParUnHumain`) : aucun porteur
  *     tenu par un humain → I (le socle résout d'office, le bilan le montre) ; sinon la fenêtre s'ouvre
@@ -333,8 +333,8 @@ function resolveMonoSide(get: Get, req: RollRequest): { actorId?: string; actor?
 function surfaceDesTenus(s: GameState, tenus: readonly (string | undefined)[], kinds: readonly string[], partage = false): Surface {
   // Politique d'ORDRES d'une traversée : COMMANDÉE, les `kind` qu'elle couvre se résolvent d'office
   // (attendu validé en recette #1426 « Traversée commandée sans fenêtre »). Une séquence MIXTE garde
-  // sa fenêtre — un seul jet hors des ordres suffit à la rouvrir (patron `riverAutoResolves`).
-  if (kinds.length > 0 && kinds.every((k) => seaAutoResolves(s.travelPlan?.orders, k))) return 'I';
+  // sa fenêtre — un seul jet hors des ordres suffit à la rouvrir.
+  if (kinds.length > 0 && kinds.every((k) => resoluSousOrdres(s.travelPlan?.orders, k))) return 'I';
   // MOMENT PARTAGÉ (cf. `surfaceDesEtapes`) : la possession DÉCLARÉE est « tous les sièges » — la
   // fenêtre est à la table entière, donc jamais celle du seul MJ.
   if (partage) return 'M';

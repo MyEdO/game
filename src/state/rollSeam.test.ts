@@ -132,7 +132,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     // pas la conséquence métier réelle → double localement le kind pour ne pas dépendre de `seaVoyageFlow`.
     spyApplier('progression', applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 }));
     openRoll(useGame.getState, useGame.setState, req, 'progression');
-    // 'progression' ∈ SEA_KINDS_SOUS_ORDRES + cadence COMMANDÉE ⇒ autoV ⇒ I : résolu et appliqué d'office
+    // 'progression' ∈ KINDS_SOUS_ORDRES + cadence COMMANDÉE ⇒ autoV ⇒ I : résolu et appliqué d'office
     // (`cascade.rollBatchParticipants` auto-roule le contributeur, `aggregateBatchStep` agrège au commit).
     expect(useGame.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);

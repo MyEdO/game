@@ -263,7 +263,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
 
   /**
    * PARITÉ SUR L'AXE « CADENCE DE VOYAGE » — la route COMMANDÉE auto-résout les Tests de ROUTINE
-   * (`voyageCadence.seaAutoResolves`, liste fermée `SEA_KINDS_SOUS_ORDRES`). C'est une politique du JET,
+   * (`voyageCadence.resoluSousOrdres`, liste fermée `KINDS_SOUS_ORDRES`). C'est une politique du JET,
    * pas une propriété du porteur : un dé de MONDE d'un `kind` de routine se tait comme celui d'un
    * héros, et un `kind` HORS routine garde sa fenêtre des deux côtés. Un côté monde qui ignorerait
    * `autoV` ouvrirait une fenêtre par jour de traversal commandée là où le héros se tait — la branche
@@ -272,7 +272,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
   it('MONO/CADENCE DE VOYAGE — `autoV` (route commandée × kind de routine) traite le MONDE comme un HÉROS', () => {
     const heroId = montage();
     set({ travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'sea', hoursPerDay: 8, km: 0, kmDone: 0, interrupted: false, orders: { cadence: 'commande' } } as never });
-    // `progression` ∈ SEA_KINDS_SOUS_ORDRES ; `tourbillon` n'y est pas (une CRISE interrompt toujours).
+    // `progression` ∈ KINDS_SOUS_ORDRES ; `tourbillon` n'y est pas (une CRISE interrompt toujours).
     const serie = (porteur: Porteur) => ['progression', 'tourbillon'].map((kind) => surfaceMono(etapeMono(porteur, heroId, kind)));
     const monde = serie('monde');
     expect(monde, 'une surface qui diverge par le PORTEUR est une branche « spéciale monde »').toEqual(serie('heros'));

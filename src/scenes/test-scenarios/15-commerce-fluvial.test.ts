@@ -118,3 +118,47 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     expect(primaryCargoCarrier(get())!.cargo.length ?? 0).toBe(0); // lot vendu en entier
   });
 });
+
+/**
+ * #2545 — la descente COMMANDÉE (ordres par défaut, `DEFAULT_VOYAGE_ORDERS`) se résout sans fenêtre par
+ * jet : le jour se joue d'un bloc (`runCascadeImmediate`) et le dé d'Exposition hydrique comme son Test
+ * (MSRC 16 l.5-13) sont des Tests de route sous ordres (`voyageCadence.KINDS_SOUS_ORDRES`). Aucune
+ * fenêtre n'en montre les dés : chacun laisse sa ligne au journal.
+ */
+describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#2545)', () => {
+  beforeEach(launch);
+
+  /** Descend jusqu'à l'arrivée en dormant aux haltes ; rend chaque fenêtre de jet rencontrée. */
+  function descendre(cadence?: 'jour-par-jour'): string[] {
+    drainCascade(); // l'entrée de scène du lanceur (affichage, aucun jet)
+    const fenetres: string[] = [];
+    get().startTravel('r-grunburg-altdorf', 'barge', cadence ? { cadence } : undefined);
+    for (let i = 0; i < 20 && get().travelPlan; i++) {
+      const p = get().pendingCascade;
+      if (p) { fenetres.push(p.purpose); break; }
+      if (get().pendingRest) get().restSleep();
+    }
+    return fenetres;
+  }
+
+  it('graine 7, cadence par défaut : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
+    seedBattleRng(7);
+    const j0 = get().journal.length;
+    expect(descendre(), 'aucune fenêtre de jet sur la descente').toEqual([]);
+    expect(get().scene?.id).toBe('quai-altdorf');
+    const journal = get().journal.slice(j0);
+    const jours = journal.filter((l) => /^Progression du jour/.test(l)).length;
+    expect(jours, `journal :\n${journal.join('\n')}`).toBeGreaterThan(1);
+    // Un dé d'Exposition par jour, et un Test de Résistance par héros pour chaque exposition.
+    expect(journal.filter((l) => /^Exposition hydrique : \d+\/\d+ → /.test(l)).length).toBe(jours);
+    const expositions = journal.filter((l) => /^Exposition hydrique : \d+\/\d+ → exposition\.$/.test(l)).length;
+    expect(expositions).toBeGreaterThan(0);
+    expect(journal.filter((l) => / — Résistance : \d+\/\d+ → /.test(l)).length).toBe(expositions * get().party.length);
+    expect(journal.filter((l) => / — Agilité : \d+\/\d+ → /.test(l)).length).toBe(jours);
+  });
+
+  it('graine 7, JOUR-PAR-JOUR : le même jour ouvre sa fenêtre', () => {
+    seedBattleRng(7);
+    expect(descendre('jour-par-jour')).toEqual(['travelDay']);
+  });
+});
