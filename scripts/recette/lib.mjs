@@ -1580,7 +1580,7 @@ export function clic({ modifiers = 0, bouton = 'left', dureeMs = 0, trajet = [] 
  *  (`{ surface: SURFACE_CARTE, x, y }` vise une case, `tournerCamera` y glisse). */
 export const SURFACE_CARTE = 'svg.iso-stage';
 
-export async function tournerCamera(session, degres, { attenteMs = ATTENTE_CIBLE } = {}) {
+export async function tournerCamera(session, degres, { attenteMs = ATTENTE_CIBLE, delaiEntreeMs = DELAI_ENTREE } = {}) {
   if (!Number.isFinite(degres)) throw new Error('tournerCamera : degrés non finis');
   if (!Number.isFinite(attenteMs) || attenteMs < 0) throw new Error('tournerCamera : délai non fini ou négatif');
   const fin = Date.now() + attenteMs;
@@ -1598,7 +1598,7 @@ export async function tournerCamera(session, degres, { attenteMs = ATTENTE_CIBLE
   let restant = degres / avant.sensibilite;
   while (Math.abs(restant) > 1e-9) {
     tempsRestant();
-    await geste(session, { selecteur: SURFACE_CARTE }, { qui: 'tournerCamera', point: 'visible', defiler: false, attenteMs: tempsRestant() }, async (loc, emettre) => {
+    await geste(session, { selecteur: SURFACE_CARTE }, { qui: 'tournerCamera', point: 'visible', defiler: false, attenteMs: tempsRestant(), delaiEntreeMs }, async (loc, emettre) => {
       const { g, d, h, b } = loc.zone;
       if (d - g < 32 || b - h < 32) throw new Error('tournerCamera : stage sans place visible');
       const dx = Math.sign(restant) * Math.min(Math.abs(restant), (d - g) / 2 - 12);
@@ -1663,10 +1663,10 @@ export async function molette(session, cible, deltaY, { deltaX = 0, intention = 
  * nommant : élément absent, boîte nulle, hors fenêtre, autre couche, molette FIGÉE, ou `maxPas`
  * crans épuisés. Rend le centre de l'élément.
  */
-async function amenerParMolette(session, selecteur, { pasPx = 240, maxPas = 40, pauseMs = 80, attenteMs = ATTENTE_CIBLE } = {}) {
+async function amenerParMolette(session, selecteur, { pasPx = 240, maxPas = 40, pauseMs = 80, attenteMs = ATTENTE_CIBLE, delaiEntreeMs = DELAI_ENTREE } = {}) {
   let ecartPrecedent = null;
   for (let k = 0; ; k++) {
-    const loc = await geste(session, { selecteur }, { qui: 'deplierVers', intention: 'lire', defiler: false, point: 'defilant', controle: 'couche', attenteMs }, async (l, emettre) => {
+    const loc = await geste(session, { selecteur }, { qui: 'deplierVers', intention: 'lire', defiler: false, point: 'defilant', controle: 'couche', attenteMs, delaiEntreeMs }, async (l, emettre) => {
       if (l.visible) return;
       if (ecartPrecedent !== null && Math.abs(l.ecart - ecartPrecedent) < 1) {
         throw new Error(`deplierVers : FIGÉ — la molette ne fait plus défiler vers « ${selecteur} » (écart figé à ${Math.round(l.ecart)} px)`);
@@ -1715,7 +1715,7 @@ export async function deplierVers(session, selecteur, options = {}) {
     precedent = r.sommaire;
     const sommaire = `[${ATTR_DEPLIER}=${JSON.stringify(jeton)}]`;
     await amenerParMolette(session, sommaire, options);
-    await geste(session, { selecteur: sommaire }, { qui: 'deplierVers', defiler: false }, clic());
+    await geste(session, { selecteur: sommaire }, { qui: 'deplierVers', defiler: false, attenteMs: options.attenteMs, delaiEntreeMs: options.delaiEntreeMs }, clic());
     await sleep(options.pauseMs ?? 80);
   }
 }
@@ -2076,7 +2076,7 @@ export async function infobulleDe(session, cible) {
  * (`disabled`, comme un contrôle fermé de `geste`). Rend `{ valeur, libelle }` LUS après le geste —
  * un `onChange` qui refuse la valeur se voit donc au retour, jamais en silence.
  */
-export async function selectOption(session, selecteur, valeur, { par = 'libelle' } = {}) {
+export async function selectOption(session, selecteur, valeur, { par = 'libelle', delaiEntreeMs = DELAI_ENTREE } = {}) {
   const liste = await marquer(session, { selecteur }, 'selectOption');
   if (!liste) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} »`);
   let option;
@@ -2099,7 +2099,7 @@ export async function selectOption(session, selecteur, valeur, { par = 'libelle'
   }, marqueDe(liste), option && marqueDe(option), ATTR_CIBLE, par);
   if (rect.absente) throw new Error(`selectOption « ${selecteur} » : aucune option ${par === 'valeur' ? 'de VALEUR' : 'de LIBELLÉ'} « ${valeur} » — ${par === 'valeur' ? 'valeurs' : 'libellés'} offerts : ${rect.offertes.join(' | ')}`);
   if (rect.fermee) throw new Error(`selectOption « ${selecteur} » : option « ${valeur} » FERMÉE (disabled) — aucun choix émis`);
-  await geste(session, { selecteur }, { qui: 'selectOption' }, clic());
+  await geste(session, { selecteur }, { qui: 'selectOption', delaiEntreeMs }, clic());
   const focalisee = await marquer(session, { selecteur }, 'selectOption');
   if (!focalisee) throw new Error(`selectOption « ${selecteur} » : la liste a quitté le DOM après le focus — aucun choix émis`);
   return evaluate(session, `(() => {
@@ -2121,7 +2121,7 @@ export async function selectOption(session, selecteur, valeur, { par = 'libelle'
  *  LÈVE avant tout événement si la cible n'est pas un `input[type=color]`, et avant la pose si le clic
  *  ne lui a pas donné le focus. MESURÉ (Chrome headless du kit, 2026-10-12, #1925) : le clic rend
  *  `focus` puis `click`, aucun sélecteur ne bloque la page, le clic suivant est reçu. */
-export async function choisirCouleur(session, selecteur, couleur) {
+export async function choisirCouleur(session, selecteur, couleur, { delaiEntreeMs = DELAI_ENTREE } = {}) {
   if (!/^#[\da-f]{6}$/i.test(couleur)) throw new Error(`choisirCouleur : couleur invalide « ${couleur} », #rrggbb attendu`);
   const avant = await marquer(session, { selecteur }, 'choisirCouleur');
   const autre = avant && await evaluerFn(session, (marque, attr, fnNommer) => {
@@ -2130,7 +2130,7 @@ export async function choisirCouleur(session, selecteur, couleur) {
     return el instanceof HTMLInputElement && el.type === 'color' ? null : new Function('return ' + fnNommer)()(el);
   }, marqueDe(avant), ATTR_CIBLE, FN_NOMMER_ELEMENT);
   if (autre) throw new Error(`choisirCouleur : input[type=color] attendu « ${selecteur} », trouvé ${autre} — aucun événement émis`);
-  await geste(session, { selecteur }, { qui: 'choisirCouleur' }, clic());
+  await geste(session, { selecteur }, { qui: 'choisirCouleur', delaiEntreeMs }, clic());
   const apres = await marquer(session, { selecteur }, 'choisirCouleur');
   if (!apres) throw new Error(`choisirCouleur « ${selecteur} » : le champ a quitté le DOM après le clic — aucune couleur posée`);
   const r = await evaluerFn(session, (marque, attr, couleur, fnNommer) => {
@@ -2372,12 +2372,12 @@ const ATTR_CATEGORIE = 'data-recette-categorie';
  * la rangée (`LIVRE_CODEX`), au localiseur. LÈVE en nommant ce qui manque (catégorie, rangée), et si la
  * rangée cliquée n'est pas retenue (`aria-current`). Rend `{ entree }`.
  */
-export async function ouvrirFiche(session, { groupe, categorie, entree, livre }) {
+export async function ouvrirFiche(session, { groupe, categorie, entree, livre }, { delaiEntreeMs = DELAI_ENTREE } = {}) {
   if (!(await evaluate(session, `!!document.querySelector('.screen.codex')`))) {
-    await clickButtonByText(session, 'Compendium');
+    await clickButtonByText(session, 'Compendium', { delaiEntreeMs });
     await attendreSelecteur(session, '.screen.codex');
   }
-  if (groupe) await clickButtonByText(session, groupe, { dans: '.codex-groups' });
+  if (groupe) await clickButtonByText(session, groupe, { dans: '.codex-groups', delaiEntreeMs });
   if (categorie) {
     const pastille = await marquer(session, { nom: categorie, selecteur: CATEGORIES_CODEX, propre: true }, 'ouvrirFiche', ATTR_CATEGORIE);
     if (!pastille) {
@@ -2385,13 +2385,13 @@ export async function ouvrirFiche(session, { groupe, categorie, entree, livre })
       throw new Error(`ouvrirFiche : aucune catégorie « ${categorie} » — offertes : ${offertes.join(' | ') || '(aucune)'}`);
     }
     try {
-      await deplierVers(session, marqueDe(pastille, ATTR_CATEGORIE));
-      await cliquerSelecteur(session, marqueDe(pastille, ATTR_CATEGORIE));
+      await deplierVers(session, marqueDe(pastille, ATTR_CATEGORIE), { delaiEntreeMs });
+      await cliquerSelecteur(session, marqueDe(pastille, ATTR_CATEGORIE), { delaiEntreeMs });
     } finally {
       await retirerJeton(session, pastille, ATTR_CATEGORIE);
     }
   }
-  await typeInField(session, '.codex-search', entree, { attendu: entree });
+  await typeInField(session, '.codex-search', entree, { attendu: entree, delaiEntreeMs });
   const lire = () => evaluerFn(session, (rangees, src) => {
     const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
     const toutes = Array.from(document.querySelectorAll(rangees));
@@ -2404,7 +2404,7 @@ export async function ouvrirFiche(session, { groupe, categorie, entree, livre })
   const presente = await marquer(session, rangee, 'ouvrirFiche');
   if (!presente) throw new Error(`ouvrirFiche : aucune rangée « ${entree} »${livre === undefined ? '' : ` du livre « ${livre} »`} — offertes : ${(await lire()).offertes.join(' | ') || '(aucune)'}`);
   await retirerJeton(session, presente);
-  await geste(session, rangee, { qui: 'ouvrirFiche' }, clic());
+  await geste(session, rangee, { qui: 'ouvrirFiche', delaiEntreeMs }, clic());
   const apres = await lire();
   if (!apres.retenue.some((r) => r.nom === entree && (livre === undefined || r.livre === livre))) {
     throw new Error(`ouvrirFiche : la rangée « ${entree} »${livre === undefined ? '' : ` (${livre})`} cliquée n'est pas retenue (aria-current)`);
@@ -2629,7 +2629,7 @@ export async function typeInField(session, selecteur, texte, { clear = true, att
  *    quelle : un gate qui se déclenche est un RÉSULTAT de recette, pas un obstacle.
  * Rend `{ actionId, label, rect }` au succès. Même dispatch souris réel que `clickButtonByText`.
  */
-export async function cliquerAction(session, actionId, { racine = '.combat-console', cell } = {}) {
+export async function cliquerAction(session, actionId, { racine = '.combat-console', cell, delaiEntreeMs = DELAI_ENTREE } = {}) {
   const selecteur = `[data-action=${JSON.stringify(actionId)}]${cell === undefined ? '' : `[data-cell=${JSON.stringify(cell)}]`}`;
   const etat = await evaluerFn(session, (racine, selecteur) => {
     const hote = document.querySelector(racine);
@@ -2643,7 +2643,7 @@ export async function cliquerAction(session, actionId, { racine = '.combat-conso
     throw new Error(`cliquerAction « ${actionId} »${cell === undefined ? '' : ` (cellule « ${cell} »)`} : aucune case de console ne porte cet id — offertes : ${etat.offertes.join(', ') || '(aucune)'}`);
   }
   if (etat.inerte) throw new Error(`cliquerAction « ${actionId} » : case INERTE (action déclarée sans dispatcher au registre) — rien à cliquer`);
-  const r = await geste(session, { selecteur, dans: racine }, { qui: 'cliquerAction' }, clic());
+  const r = await geste(session, { selecteur, dans: racine }, { qui: 'cliquerAction', delaiEntreeMs }, clic());
   return { actionId, label: etat.label, rect: { x: r.x, y: r.y } };
 }
 

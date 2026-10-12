@@ -62,12 +62,10 @@ function parseArgs(argv) {
  *  boîte qui couvre le viewport EST un scrollport de page, et une boîte qui commence sous la
  *  fenêtre ne montre rien de ce qu'elle tient. De chaque CARTE DE MENU on relève ce qu'aucun
  *  défilement ne peut ramener en vue. */
-const PROBE = `(() => {
+export const PROBE = `(() => {
   const page = document.scrollingElement || document.documentElement;
   const bord = (e) => { const r = e.getBoundingClientRect(); return { left: +r.left.toFixed(1), right: +r.right.toFixed(1), top: +r.top.toFixed(1), bottom: +r.bottom.toFixed(1) }; };
-  const nomDe = (e) => (e.className && typeof e.className === 'string'
-    ? '.' + e.className.trim().split(/\\s+/).join('.')
-    : e.tagName.toLowerCase()).slice(0, 60);
+  const nomDe = ${FN_NOMMER_ELEMENT};
 
   const defileurs = [];
   for (const e of document.querySelectorAll('*')) {
@@ -89,7 +87,7 @@ const PROBE = `(() => {
     const cs = getComputedStyle(voile);
     const px = (nom) => { const v = parseFloat(cs.getPropertyValue(nom)); return Number.isFinite(v) ? v : null; };
     modales.push({
-      quoi: (boite ? nomDe(boite) : '.modal'),
+      quoi: nomDe(boite),
       corps: { clientH: corps.clientHeight, scrollH: corps.scrollHeight },
       place: Math.round(voile.getBoundingClientRect().height),
       boite: boite ? Math.round(boite.getBoundingClientRect().height) : null,

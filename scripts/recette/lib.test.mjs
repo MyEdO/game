@@ -5,7 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { isAbsolute, join as joinPath, resolve as resolvePath } from 'node:path'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import os from 'node:os'
 import { spawnSync } from 'node:child_process'
 import {
@@ -99,7 +99,7 @@ import * as kitRecette from './lib.mjs'
 import { demarrer } from './setup.mjs'
 import { recette, squelette } from './gabarit.mjs'
 import { PROBE } from './console-pont-formes.mjs'
-import { NOMME, NOM_PLANCHE } from './hauteur-reelle.mjs'
+import { NOMME, NOM_PLANCHE, PROBE as SONDE_HAUTEUR } from './hauteur-reelle.mjs'
 
 /** La socket factice d'une session de test : la session ne l'expose pas (`brancherCdp`), le test la
  *  garde. */
@@ -2278,6 +2278,13 @@ test('deplierVers : le <summary> du <details> replié est amené par la MOLETTE 
   assert.ok(point.y >= 0 && point.y <= 768, `champ à l’écran : ${point.y}`)
 })
 
+test('deplierVers : le clic du <summary> attend son recouvrement pendant `attenteMs`, pas le défaut', async () => {
+  const { doc, etat, session } = pageDefilante('<details><summary data-y="100">Près</summary><input id="champ"></details><div id="voile" data-y="100">voile</div>')
+  doc.elementFromPoint = () => doc.querySelector('#voile')
+  await assert.rejects(() => deplierVers(session, '#champ', { pauseMs: 0, attenteMs: 30 }), /^Error: deplierVers .* RECOUVRE la cible, toujours après 30 ms — aucun événement émis$/)
+  assert.deepEqual(etat.cliques, [])
+})
+
 test('deplierVers : une molette qui ne fait plus défiler LÈVE en le nommant', async () => {
   const { session } = pageDefilante('<p id="loin" data-y="5000">loin</p>')
   socketDe(session).gerer = ((rpc) => async (m, p) => (m === 'Input.dispatchMouseEvent' && p.type === 'mouseWheel' ? {} : rpc(m, p)))(socketDe(session).gerer)
@@ -2990,13 +2997,17 @@ test('geste : `evenements` qui échoue avec un refus EN VOL lève les DEUX, join
   })
 })
 
-/** Page pilotée dont les émissions `Input` que `muet(methode, params)` désigne (toutes par défaut) ne
- *  reçoivent JAMAIS d'accusé de réception (la socket reste ouverte). */
-function pageInputMuet(html, muet = (methode) => methode.startsWith('Input.')) {
-  const page = pagePilotee(html)
+/** Rend MUETTES les émissions `Input` de `page` que `muet(methode, params)` désigne (toutes par défaut) :
+ *  elles ne reçoivent JAMAIS d'accusé de réception (la socket reste ouverte). */
+function rendreMuet(page, muet = (methode) => methode.startsWith('Input.')) {
   const servir = socketDe(page.session).gerer
   socketDe(page.session).gerer = (methode, params) => muet(methode, params) ? new Promise(() => {}) : servir(methode, params)
   return page
+}
+
+/** Page pilotée dont les émissions `Input` que `muet` désigne sont muettes (`rendreMuet`). */
+function pageInputMuet(html, muet) {
+  return rendreMuet(pagePilotee(html), muet)
 }
 
 test('clic : un `mousePressed` sans accusé de réception est suivi de son `mouseReleased`', async () => {
@@ -3006,32 +3017,57 @@ test('clic : un `mousePressed` sans accusé de réception est suivi de son `mous
   assert.deepEqual(socketDe(session).envoyes.filter((m) => m.method === 'Input.dispatchMouseEvent').map((m) => m.params.type), ['mouseMoved', 'mousePressed', 'mouseReleased'])
 })
 
+/** Les helpers EXPORTÉS de `lib.mjs` dont le corps appelle `geste` ou `frappe`, lus dans la source. */
+function helpersDEntree() {
+  const source = readFileSync(new URL('./lib.mjs', import.meta.url), 'utf8')
+  return [...source.matchAll(/^export (?:async )?function (\w+)\(([\s\S]*?)^\}$/gm)]
+    .filter(([, nom, corps]) => nom !== 'geste' && nom !== 'frappe' && /\b(?:geste|frappe)\(session\b/.test(corps))
+    .map(([, nom]) => nom)
+    .sort()
+}
+
 test('helpers de geste et de frappe : chacun transmet `delaiEntreeMs` à son émetteur', async () => {
   const court = { delaiEntreeMs: 40, attenteMs: 0 }
-  const souris = {
-    clickButtonByText: (s) => clickButtonByText(s, 'A', court),
-    cliquerSelecteur: (s) => cliquerSelecteur(s, '#a', court),
-    clickItemByText: (s) => clickItemByText(s, 'A', { selecteur: '#a', ...court }),
-    clicDroit: (s) => clicDroit(s, { selecteur: '#a' }, court),
-    appuiLong: (s) => appuiLong(s, { selecteur: '#a' }, 0, court),
-    toucher: (s) => toucher(s, { selecteur: '#a' }, court),
-    molette: (s) => molette(s, { selecteur: '#a' }, 120, court),
-    survoler: (s) => survoler(s, { selecteur: '#a' }, court),
-    typeInField: (s) => typeInField(s, '#a', 'x', court),
+  const bouton = () => pageInputMuet('<button id="a">A</button>')
+  const touche = () => pageInputMuet('')
+  const saisie = () => {
+    const p = pageInputMuet('<input id="a">', (methode) => methode === 'Input.insertText')
+    p.doc.querySelector('#a').focus()
+    return p
   }
-  for (const [qui, jouer] of Object.entries(souris)) {
-    await assert.rejects(() => jouer(pageInputMuet('<button id="a">A</button>').session), new RegExp(`^Error: ${qui} : Input\\.dispatch(Mouse|Touch)Event : accusé de réception absent après 40 ms`), qui)
+  const codexMuetSurRangee = () => {
+    const p = pageCodex()
+    return rendreMuet(p, (methode) => methode.startsWith('Input.') && p.etat.marque?.classList.contains('listrow'))
   }
-  const saisie = pageInputMuet('<input id="a">', (methode) => methode === 'Input.insertText')
-  saisie.doc.querySelector('#a').focus()
-  await assert.rejects(() => typeInField(saisie.session, '#a', 'x', court), /^Error: typeInField : Input\.insertText : accusé de réception absent après 40 ms/)
-  const clavier = {
-    realKey: (s) => realKey(s, { key: 'a' }, court),
-    realKeyDown: (s) => realKeyDown(s, ALT, court),
-    realKeyUp: (s) => realKeyUp(s, ALT, court),
-  }
-  for (const [qui, jouer] of Object.entries(clavier)) {
-    await assert.rejects(() => jouer(pageInputMuet('').session), new RegExp(`^Error: ${qui} : Input\\.dispatchKeyEvent : accusé de réception absent après 40 ms`), qui)
+  const souris = 'dispatch(Mouse|Touch)Event'
+  /** [helper, page, jeu, émetteur nommé par l'erreur, méthode `Input`] : un helper COMPOSÉ a un cas par
+   *  geste propre et un par helper qu'il appelle. */
+  const cas = [
+    ['clickButtonByText', bouton, (s) => clickButtonByText(s, 'A', court)],
+    ['cliquerSelecteur', bouton, (s) => cliquerSelecteur(s, '#a', court)],
+    ['clickItemByText', bouton, (s) => clickItemByText(s, 'A', { selecteur: '#a', ...court })],
+    ['clicDroit', bouton, (s) => clicDroit(s, { selecteur: '#a' }, court)],
+    ['appuiLong', bouton, (s) => appuiLong(s, { selecteur: '#a' }, 0, court)],
+    ['toucher', bouton, (s) => toucher(s, { selecteur: '#a' }, court)],
+    ['molette', bouton, (s) => molette(s, { selecteur: '#a' }, 120, court)],
+    ['survoler', bouton, (s) => survoler(s, { selecteur: '#a' }, court)],
+    ['typeInField', bouton, (s) => typeInField(s, '#a', 'x', court)],
+    ['typeInField', saisie, (s) => typeInField(s, '#a', 'x', court), 'typeInField', 'insertText'],
+    ['tournerCamera', () => rendreMuet(sessionCamera()), (s) => kitRecette.tournerCamera(s, 90, { delaiEntreeMs: 40, attenteMs: 1000 })],
+    ['deplierVers', () => rendreMuet(pageDefilante('<details><summary data-y="1500">Loin</summary><input id="champ"></details>')), (s) => deplierVers(s, '#champ', { pauseMs: 0, ...court })],
+    ['deplierVers', () => rendreMuet(pageDefilante('<details><summary data-y="100">Près</summary><input id="champ"></details>')), (s) => deplierVers(s, '#champ', { pauseMs: 0, ...court })],
+    ['selectOption', () => pageInputMuet(LISTE), (s) => selectOption(s, '#ch', 'Chapitre 20 — Le Bac', court)],
+    ['choisirCouleur', () => pageInputMuet('<input id="c" type="color">'), (s) => choisirCouleur(s, '#c', '#aabbcc', court)],
+    ['ouvrirFiche', () => rendreMuet(pageCodex()), (s) => ouvrirFiche(s, { entree: 'Pourriture' }, court), 'clickButtonByText'],
+    ['ouvrirFiche', codexMuetSurRangee, (s) => ouvrirFiche(s, { groupe: 'Règles', categorie: 'Maladies', entree: 'Pourriture' }, court)],
+    ['cliquerAction', () => pageInputMuet('<div class="combat-console"><button data-action="tir">Tir</button></div>'), (s) => cliquerAction(s, 'tir', court)],
+    ['realKey', touche, (s) => realKey(s, { key: 'a' }, court), 'realKey', 'dispatchKeyEvent'],
+    ['realKeyDown', touche, (s) => realKeyDown(s, ALT, court), 'realKeyDown', 'dispatchKeyEvent'],
+    ['realKeyUp', touche, (s) => realKeyUp(s, ALT, court), 'realKeyUp', 'dispatchKeyEvent'],
+  ]
+  assert.deepEqual([...new Set(cas.map(([helper]) => helper))].sort(), helpersDEntree())
+  for (const [helper, page, jouer, qui = helper, methode = souris] of cas) {
+    await assert.rejects(() => jouer(page().session), new RegExp(`^Error: ${qui} : Input\\.${methode} : accusé de réception absent après 40 ms`), helper)
   }
 })
 
@@ -3068,6 +3104,11 @@ test('nom d’élément (`FN_NOMMER_ELEMENT`) : ambiguïté, focus manquant et s
   hauteur.window.document.elementFromPoint = () => hauteur.window.document.querySelector('svg.voile')
   assert.equal(hauteur.window.eval(NOMME('Fiche')).dialogue.cible, 'svg.voile.plein')
   assert.deepEqual([...new Set(hauteur.window.eval(NOM_PLANCHE).couverts)], ['svg.voile.plein'])
+  const cadre = new JSDOM('<div class="modal-overlay"><div class="modal fiche"><div class="modal-body"><svg class="cadre-pied ico"></svg></div></div></div>', { runScripts: 'outside-only' })
+  cadre.window.Element.prototype.getClientRects = () => [{}]
+  const releve = JSON.parse(JSON.stringify(cadre.window.eval(SONDE_HAUTEUR)))
+  assert.deepEqual(releve.pieds.map((p) => p.sel), ['svg.cadre-pied.ico'])
+  assert.deepEqual(releve.cadres.map((c) => c.sel), ['div.modal.fiche'])
 })
 
 test('ouvrirFiche : `{ livre }` filtre EXACT sur le livre de la rangée — préfixe d’id et livre cité hors rangées', async () => {
