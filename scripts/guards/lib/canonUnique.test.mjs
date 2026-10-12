@@ -135,6 +135,30 @@ test('contexte du scan reste paresseux et partagé dans ce seul appel', () => {
   assert.equal(first.liaisons(), first.liaisons());
 });
 
+test('scan : mêmes sites en fallback et AST/checker, alias et namespace sans ombres ni module étranger', () => {
+  const fichier = { rel: 'scripts/probe.ts', text: [
+    "import { createProgram as build } from 'typescript';",
+    "import * as compiler from 'typescript';",
+    'build({});',
+    'compiler.createProgram({});',
+    'function local(build, compiler) { build({}); compiler.createProgram({}); }',
+    "import { createProgram as foreign } from 'other';",
+    'foreign({});',
+  ].join('\n') };
+  const constructions = [canon.CONSTRUCTION_DE_PROGRAMME];
+  const fallback = canon.scanConstructionsReservees(fichier, constructions);
+  assert.deepEqual(fallback.map(({ line }) => line), [3, 4]);
+  avecAnalyse(fichier, (sourceFile, checker) => {
+    assert.deepEqual(canon.scanConstructionsReservees(fichier, constructions, sourceFile, checker), fallback);
+  });
+  const erreur = new Error('prédicat interrompu');
+  const interrompre = [{ nom: 'INTERRUPTION', reconnait: () => { throw erreur; } }];
+  assert.throws(() => canon.scanConstructionsReservees(fichier, interrompre), (e) => e === erreur);
+  avecAnalyse(fichier, (sourceFile, checker) => {
+    assert.throws(() => canon.scanConstructionsReservees(fichier, interrompre, sourceFile, checker), (e) => e === erreur);
+  });
+});
+
 test('index local : ordre, doublons, imports de tête et tableaux stables', () => {
   const sf = ast({ rel: 'scripts/probe.ts', text: "import { a as same, b as same } from 'one'; import same from 'two'; import * as ns from 'three'; import type { T as type } from 'four'; export { a as same } from 'five'; namespace N { import { a as inner } from 'six'; } import eq = require('seven');" });
   const contexte = canon.contexteImports(sf);
