@@ -3806,7 +3806,7 @@ export function autoCleave(get: Get, set: SetFn, attacker: Combatant, primaryTar
  *  d'être résolu). Ouvre/maintient `pendingCleave` tant qu'il reste des cibles adjacentes ET que le
  *  nombre d'enchaînements reste < BCC (LDB 14 l.9) ; sinon le ferme. Déplacement sur la case d'une
  *  cible tuée (l.9). Un attaquant hors de combat la ferme. Rend `true` quand la chaîne reste ouverte :
- *  elle emporte alors la `restitution`. */
+ *  elle emporte alors la `restitution` du coup qui l'a ouverte. */
 export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, target: Combatant, res: AttackResult, wasChain: boolean, restitution?: SuiteDeCoup['restitution']): boolean {
   // SURFACE (#1426), jamais l'affordance LOCALE : le balayage d'un héros possédé par un siège DISTANT
   // est une FENÊTRE qui appartient à ce siège (`pendingCleave` → `modalArbiter`). Les deux chemins du
@@ -3833,7 +3833,10 @@ export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, targe
   // Frappe Mortelle : la poursuite EXIGE d'avoir tué la cible enchaînée (LDB 14 l.9) ; la Taille enchaîne sur une touche.
   const fmStop = fm && wasChain && !isOutOfAction(target);
   if (enAction && !battle.over && count < bcc && remaining.length && !fmStop) {
-    set({ pendingCleave: { attackerId: attacker.id, hitIds, count, fm, ...(restitution ? { restitution } : {}) }, battle: { ...battle } });
+    // La chaîne garde la restitution du coup qui l'a ouverte : une gratuite qui la rejoint en cours
+    // (Assaut féroce sur la cible primaire) ne la remplace pas.
+    const portee = pc?.restitution ?? restitution;
+    set({ pendingCleave: { attackerId: attacker.id, hitIds, count, fm, ...(portee ? { restitution: portee } : {}) }, battle: { ...battle } });
     return true;
   }
   set({ pendingCleave: null, battle: { ...battle } });
@@ -3891,7 +3894,8 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   }
   if (suspendu) return true;
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
-  // Gratuites `onHit` du héros (LDB 10 l.72) : sur la touche RÉELLE, Action déjà rendue.
+  // Gratuites `onHit` du héros (LDB 10 l.72), sur la touche RÉELLE : après la restitution, sauf chaîne
+  // ouverte (`portee`), qui la garde jusqu'à sa fermeture.
   return !!suite?.gratuitesALaTouche && touche.hit && resolveFreeAttacks(get, set, attacker, 'onHit', target);
 }
 
@@ -3976,21 +3980,23 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   const ck = `${fa.key}:${target.id}`;
   if (op.perChargerOncePerRound && (uses[ck] ?? 0) >= 1) return undefined; // 1 riposte par chargeur (Frappe réactive)
   if (op.advantageCost != null && actor.advantage < op.advantageCost) return undefined; // Avantage insuffisant
-  if (op.advantageOrMovement && actor.advantage <= 0) return undefined; // simplifié : Avantage requis (« ou Mouvement » = raffinement)
+  if (op.advantageOrMovement && actor.advantage <= 0) return undefined; // LDB 10 l.78 : seule la dépense d'Avantage est jouée
   if (op.advantageCost != null) campSpend(get, actor, op.advantageCost); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
   else if (op.advantageOrMovement) campSpend(get, actor, 1);
   actor.freeAttacksThisTurn = { ...uses, [fa.key]: (uses[fa.key] ?? 0) + 1, ...(op.perChargerOncePerRound ? { [ck]: 1 } : {}) };
   const prevActed = get().battle?.acted ?? false; // gratuite : Action préservée
   // L'Action entre AVEC le coup : la MÊME suite va à la fenêtre du défenseur SURFACÉ et à l'application
   // instantanée, et la reprise rend l'Action APRÈS son `markActed`.
-  const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind: fa.key } };
+  // L'ENCHAÎNEMENT se DÉCLARE comme l'attaque principale : son conducteur la porte au siège humain
+  // (`attackConfirm` → `hero`) ou à l'automate (`aiAttack` → `auto`), partition de `aiDriven`.
+  const enchainement: EnchainementDuCoup = aiDriven(get(), actor) ? { mode: 'auto' } : { mode: 'hero', wasChain: false };
+  const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind: fa.key }, enchainement };
   // Défenseur SURFACÉ : la frappe passe par la MÊME couture d'ouverture que les autres gratuites
   // (patron `applyFreeAttack`) — suspendue ici, appliquée à `defenseConfirm` (Action restaurée).
   // REND sa suspension (#1852) : l'appelant s'arrête, la frappe suivante attend la fermeture.
   if (maybeOpenDefense(get, set, actor, target, actor.weapons[0], suite)) return OPS_DIFFEREES;
   const r = resolveAttack(get, actor, target);
   if (!r) return undefined;
-  // Enchaînement absent = `auto` (LDB 85 l.362), joué par l'après-coup.
   return applyAttackResult(get, set, actor, r.victim ?? target, r.weapon, r.res, { sousAttaque: true, suite });
 }
 

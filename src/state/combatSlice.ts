@@ -2468,7 +2468,7 @@ export function createCombatSlice(get: Get, set: Set) {
           advanceCombatJet(get);
           return;
         }
-        const prevActed = battle.acted; // pour la Frénésie : la 1re attaque du Round est GRATUITE
+        const prevActed = battle.acted; // restitution de la Frénésie (LDB 21 l.33)
         const isDualMain = !!pa.dualMode && !pa.dualSecond && attacker.kind === 'hero'; // main directrice d'un dual
         const isDualSecond = !!pa.dualSecond; // 2ᵉ frappe (off-hand)
         // Maladresse de l'attaquant (LDB 14 l.19) : ÉCRITE par le temps `oupsAttaquant` de l'après-coup ;
@@ -2477,19 +2477,17 @@ export function createCombatSlice(get: Get, set: Set) {
         const off = attacker.weapons.find((w) => w.hand === 'off' && w.type === 'melee' && (w.hands ?? 1) === 1);
         const mainRoll = pa.result.attackerDetail?.roll;
         const coupPrincipal = attacker.kind === 'hero' && !wasChain && !isDualSecond && !pa.freeKind;
-        // Attaque d'Arme GRATUITE accordée par un talent (Frénésie : `grantFreeAttack{available}`, LDB 21 l.33) :
-        // la 1ʳᵉ attaque d'arme du Round ne consomme PAS l'Action (rendue par la suite) ; plafond /Round =
-        // niveau, via `freeAttacksThisTurn['arme']`.
+        // Frénésie (LDB 21 l.33), `grantFreeAttack{available}` : la suite rend l'Action (`restitution`) ;
+        // plafond /Round via `freeAttacksThisTurn['arme']`.
         const frenesie = coupPrincipal && hasFreeWeaponAttack(attacker);
         // LES PRIX DE LA DÉCLARATION, dus quelle que soit l'issue du coup : payés AVANT lui.
         if (fumbled) set({ pendingCleave: null }); // la Maladresse interrompt le balayage
-        // Action « des deux armes » (LDB 10 l.767-773) : −10 à toutes ses défenses jusqu'à son prochain Tour.
+        // Maniement de deux armes, pénalité de défense (LDB 10 l.773) : `dualStrikeDefensePenalty`.
         if (isDualMain) {
           attacker.dualStrikeDefensePenalty = true;
           set({ battle: { ...get().battle! } });
         }
-        // 2ᵉ frappe (LDB 10 l.767-773) : +1 Avantage UNIQUE si LES DEUX frappes touchent, gagné au jet (LDB 13
-        // l.123). `dualBefore` n'existe que si la 1ʳᵉ a touché ; `pa.result.hit` = la 2ᵉ touche.
+        // 2ᵉ frappe, Avantage du Maniement de deux armes (LDB 10 l.773), gagné au jet (LDB 13 l.123). `dualBefore` n'existe que si la 1ʳᵉ a touché ; `pa.result.hit` = la 2ᵉ touche.
         if (isDualSecond) {
           if (dualBefore && pa.result.hit) { campGain(get, attacker); attacker.gainedAdvThisRound = true; }
           set({ pendingDualStrike: null, battle: { ...get().battle! } });

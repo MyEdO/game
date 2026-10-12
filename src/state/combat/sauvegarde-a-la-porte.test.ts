@@ -588,6 +588,28 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne reprend tout de même sur h2 — ${coups.join(' | ')}`).toBe(1);
   });
 
+  it('(ix) MAILLON d’un héros suspendu sur une sauvegarde : l’Action de la gratuite est rendue à la fermeture', () => {
+    // Frénésie (LDB 21 l.33) qui balaie (LDB 85 l.362) ; le maillon frappe un démon (LDB 85 l.98) : la
+    // restitution (LDB 85 l.43) traverse l'étape de sauvegarde.
+    const heros = mk('hero', 'furieux', { pos: { x: 0, y: 0 }, weapons: [epee], psychState: [{ type: 'frenesie' }] } as never);
+    const e1 = mk('enemy', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 0, y: 1 }, characteristics: nul(), traits: demoniaque } as never);
+    setBattle([heros, e1, demon]);
+    useGame.setState({ pendingCleave: null, pendingDualStrike: null, pendingDefense: null });
+    useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', result: { ...touche(), cleave: true } } as never });
+    useGame.getState().attackConfirm();
+    expect(useGame.getState().pendingCleave?.restitution, 'la chaîne de la gratuite emporte sa restitution').toEqual({ prevActed: false });
+    useGame.getState().cleaveAttack(demon.id);
+    const pa = useGame.getState().pendingAttack!;
+    useGame.setState({ pendingAttack: { ...pa, result: touche() } as never });
+    useGame.getState().attackConfirm();
+    sauvegardeEnCours(demon);
+    poser(5); // < 8 : le coup porte, puis la suite du maillon se joue
+    expect(demon.wounds.current, 'le maillon a porté à la reprise').toBeLessThan(30);
+    expect(useGame.getState().pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
+    expect(useGame.getState().battle!.acted, 'gratuite : l’Action d’avant, maillon suspendu compris').toBe(false);
+  });
+
   it('(viii) TIR RAPIDE d’INTERRUPTION sur un porteur de sauvegarde : la cascade-hôte n’est pas détruite, et le tour n’avance pas', () => {
     const arcTireur = { uid: 'a', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], loaded: true } as unknown as Weapon;
     const tireur = mk('hero', 'tireur', { pos: { x: 0, y: 0 }, weapons: [arcTireur], talents: [{ talentId: 'tir-rapide', times: 1 }] } as never);

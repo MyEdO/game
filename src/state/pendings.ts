@@ -927,9 +927,10 @@ export interface ToucheDeProjectile {
 /**
  * L'ENCHAÎNEMENT qui suit un coup appliqué (#1508) — une DÉCLARATION du site d'origine, jamais un
  * défaut muet : chaque site dit LEQUEL des balayages il a tranché, y compris « aucun ». Qui pose quoi :
- *  - `hero` : Frappe Mortelle du héros interactif (LDB 14 l.9), posée par `attackConfirm` SEUL, et
- *    seulement quand ce site l'aurait appelée (ni Maniement de deux armes, ni manœuvre gratuite, ni
- *    Maladresse de l'attaquant). `wasChain` = ce coup était-il déjà un maillon d'un balayage en cours.
+ *  - `hero` : Frappe Mortelle du héros interactif (LDB 14 l.9), posée par `attackConfirm` quand ce
+ *    site l'aurait appelée (ni Maniement de deux armes, ni manœuvre gratuite, ni Maladresse de
+ *    l'attaquant), et par la gratuite de talent (`applyTalentFreeAttack`) d'un porteur que l'IA ne
+ *    conduit pas. `wasChain` = ce coup était-il déjà un maillon d'un balayage en cours.
  *    Jugée sur la touche RÉELLE : l'enchaînement EXIGE une cible TUÉE, donc il se décide APRÈS le dé
  *    de sauvegarde, qui décide de la mort ;
  *  - `chaine` : maillon de balayage encore à jouer (`ChaineDeBalayage`), posé par `runCleaveChain` — y

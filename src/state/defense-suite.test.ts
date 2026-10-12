@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, jouerLApresCoup, openAttackCascade } from './combatFlow';
+import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, freeAttackHookImpl, jouerLApresCoup, openAttackCascade } from './combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
@@ -115,7 +115,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
     const { enemy } = setup(false);
     (enemy.psychState ??= []).push({ type: 'frenesie' });
     aiAvailableFreeAttack(useGame.getState, useGame.setState, enemy);
-    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { restitution: { prevActed: false }, manoeuvre: { kind: 'arme' } } });
+    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { restitution: { prevActed: false }, manoeuvre: { kind: 'arme' }, enchainement: { mode: 'auto' } } });
   });
 
   it('K1 attaque PILOTÉE : l’attaque figée, marquée défendue', () => {
@@ -352,5 +352,41 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     const st = useGame.getState();
     expect(st.pendingCleave, 'un mort ne garde aucune chaîne ouverte').toBeNull();
     expect(st.battle!.acted).toBe(false);
+  });
+
+  // Assaut féroce (LDB 10 l.78) : la gratuite de TALENT d'un héros que l'IA ne conduit pas ouvre SA chaîne
+  // (`pendingCleave`, LDB 85 l.362), et l'Action d'avant revient à sa fermeture (LDB 85 l.43).
+  it('Assaut féroce qui balaie : la chaîne est offerte au héros, l’Action rendue à sa fermeture', () => {
+    const { h, e1 } = setupHeros();
+    h.size = 'enorme'; // Taille SUPÉRIEURE : la touche balaie
+    h.characteristics['capacite-de-combat'] = 95; h.advantage = 1;
+    e1.characteristics['capacite-de-combat'] = 5; e1.characteristics.agilite = 5;
+    freeAttackHookImpl(useGame.getState, useGame.setState, h,
+      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === e1.id)!.wounds.current, 'la gratuite a touché e1').toBeLessThan(200);
+    expect(useGame.getState().pendingCleave?.attackerId, 'la chaîne est offerte au héros').toBe('h');
+    expect(useGame.getState().pendingCleave?.restitution, 'la chaîne emporte la restitution de la gratuite').toEqual({ prevActed: false });
+    useGame.getState().cleaveAttack('e2');
+    const pa = useGame.getState().pendingAttack!;
+    useGame.setState({ pendingAttack: { ...pa, result: toucheDuHeros(false) } as never });
+    useGame.getState().attackConfirm();
+    const st = useGame.getState();
+    expect(st.pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
+    expect(st.battle!.acted, 'gratuite : l’Action d’avant, maillon compris').toBe(false);
+  });
+
+  // La chaîne garde la restitution du coup qui l'a OUVERTE : une gratuite qui la rejoint en cours ne la
+  // remplace pas par l'Action qu'elle trouve, déjà dépensée.
+  it('Assaut féroce dans une chaîne déjà ouverte : la restitution d’origine est gardée', () => {
+    const { h, e1 } = setupHeros();
+    h.size = 'enorme';
+    h.characteristics['capacite-de-combat'] = 95; h.advantage = 1;
+    e1.characteristics['capacite-de-combat'] = 5; e1.characteristics.agilite = 5;
+    useGame.setState({ pendingCleave: { attackerId: 'h', hitIds: ['e1'], count: 0, fm: false, restitution: { prevActed: false } } });
+    useGame.setState({ battle: { ...useGame.getState().battle!, acted: true } });
+    freeAttackHookImpl(useGame.getState, useGame.setState, h,
+      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === e1.id)!.wounds.current, 'la gratuite a touché e1').toBeLessThan(200);
+    expect(useGame.getState().pendingCleave?.restitution, 'la restitution d’ouverture reste celle de la chaîne').toEqual({ prevActed: false });
   });
 });
