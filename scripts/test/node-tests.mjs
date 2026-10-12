@@ -66,9 +66,9 @@ export function lancerGate({ gate, tests, drapeaux = [], racine = RACINE, tempor
       cwd: racine,
       stdio: 'inherit',
     })
-    let durees = null
-    try { durees = JSON.parse(readFileSync(sortie, 'utf8')) } catch { durees = null }
-    if (durees) imprimer(ligneDeDurees(gate, durees, racine))
+    let lu = null
+    try { lu = JSON.parse(readFileSync(sortie, 'utf8')) } catch { lu = null }
+    if (lu?.durees) imprimer(ligneDeDurees(gate, lu.durees, racine))
     return codeEnfant(status, signal)
   } finally {
     rmSync(dossier, { recursive: true, force: true })

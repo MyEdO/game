@@ -30,11 +30,13 @@ import { APPEL_DE_LECTURE, evaluateurDuDepot, evaluer, lecteurDExpressions, lect
 import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { paquetsDArgv } from '../guards/lib/porteSpawn.mjs'
+import { citeArgument } from '../guards/lib/commandeShell.mjs'
 import { arbrePrincipal, baseCommune, ceQuiChange, depotDe, lireEnLot, listerImage, racineDe, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
 import { ancetresDe, LECTURES_DES_DEPENDANCES, selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/docs-rebuild.mjs'
 import { DRAPEAU_REGIME, EMPREINTES_WORKER_MO, PORTEE_LOT_S, capaciteDuLanceur, codeEnfant, environnementDe, maxWorkersMono } from './partition.mjs'
 import { DUREES_CI, dureesValides, memoCiDe, rapatrierDureesCi } from './dureesCi.mjs'
-import { EXTS_LINT, lancerLint } from '../guards/lib/lintStage.mjs'
+import { EXTS_LINT, appelDuLint, lancerLint } from '../guards/lib/lintStage.mjs'
+import { lireArguments } from './argumentsPerimetre.mjs'
 import { prendreVerrou } from './verrou.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
@@ -723,25 +725,6 @@ function texteDuLien(lien) {
   return `${lien.nature} : ${lien.touche}`
 }
 
-/** Les arguments de la CLI. */
-export function lireArguments(args) {
-  const options = { liste: false }
-  for (let i = 0; i < args.length; i += 1) {
-    const a = args[i]
-    if (a === '--liste' || a === '--docs') { options[a.slice(2)] = true; continue }
-    const valeur = args[i + 1]
-    if (!['--base', '--tete', '--budget'].includes(a) || valeur === undefined || valeur.startsWith('--'))
-      throw new Error('usage : test:perimetre -- [--base <ref>] [--tete <ref>] [--liste] [--budget <s>] [--docs]')
-    i += 1
-    if (a === '--budget') {
-      if (!/^\d+$/.test(valeur)) throw new Error(`--budget attend un entier de secondes, reçu « ${valeur} »`)
-      options.budget = Number(valeur)
-    } else options[a.slice(2)] = valeur
-  }
-  if (options.tete && !options.base) throw new Error('--tete exige --base')
-  return options
-}
-
 /**
  * Le périmètre du dépôt de `racine` : images du diff (`imagesDuDiff`), post-image lue sur le disque
  * (arbre de travail) ou dans `tete`, mémos sous `dossierDesMemos`.
@@ -881,6 +864,37 @@ export function bilanDuLancement(famille, murMs, { appris, workers: servis }, pl
   return { surcout, texte: `${tete}${servis === planifies ? '' : `, servis ${servis}, plan ${planifies}`} ; surcoût observé ${secondes(surcout)}` }
 }
 
+/** Le fichier d'un site de défaut de lint `<chemin>:<ligne>:<colonne>` (`defautsDeRapport`), `null` sans fichier. */
+const fichierDuSite = (site) => /^(.+):\d+:\d+$/.exec(site)?.[1] ?? null
+
+/** La ligne de fin d'un run ROUGE (`code` non nul), `null` sur un run vert. Elle nomme la commande qui ne relance QUE
+ *  les fichiers en échec des `lancements` (`{ famille: 'vitest' | 'node' | 'docs', code, echecs, args }`, chemins POSIX
+ *  relatifs rapportés par `apprendre`) — `npm test -- <vitest>`, `node --test <node>` —, et l'appel du lint (`appelLint()`,
+ *  `appelDuLint`) sur les seuls fichiers que nomment les défauts du lint `lint` (`lintDesTouches`) ; et elle NOMME chaque
+ *  rouge sans fichier : lancement rouge muet, défaut de lint sans site (panne d'outillage), lint rouge sans défaut, docs
+ *  dérivés rouges (leur commande). PURE. */
+export function ligneDeRelance({ code, lancements, lint, appelLint }) {
+  if (code === 0) return null
+  const liste = (fichiers) => [...new Set(fichiers)].sort().map(citeArgument).join(' ')
+  const commandes = []
+  const muets = []
+  for (const [lanceur, famille] of [['npm test --', 'vitest'], ['node --test', 'node']]) {
+    const deLaFamille = lancements.filter((l) => l.famille === famille)
+    const fichiers = deLaFamille.flatMap((l) => l.echecs)
+    if (fichiers.length) commandes.push(`${lanceur} ${liste(fichiers)}`)
+    const sansFichier = deLaFamille.filter((l) => l.code !== 0 && !l.echecs.length).length
+    if (sansFichier) muets.push(`${famille} : ${sansFichier} lancement(s) rouge(s) sans fichier en échec rapporté`)
+  }
+  const lintes = lint.defauts.map(({ site }) => fichierDuSite(site)).filter((f) => f !== null)
+  if (lintes.length) commandes.push(`${appelLint().join(' ')} ${liste(lintes)}`)
+  for (const { site, message } of lint.defauts) if (fichierDuSite(site) === null) muets.push(`lint ${site} : ${message}`)
+  if (lint.code !== 0 && !lint.defauts.length) muets.push('lint rouge, son rapport ne nomme aucun défaut')
+  for (const { args } of lancements.filter((l) => l.famille === 'docs' && l.code !== 0)) muets.push(`docs dérivés rouges : node ${args.map(citeArgument).join(' ')}`)
+  const relancer = commandes.length ? [`relancer les SEULS fichiers en échec, puis un dernier test:perimetre : ${commandes.join(' ; ')}`] : []
+  const nommer = muets.length ? [`rouge sans fichier nommé : ${muets.join(' ; ')}`] : []
+  return `rouge — ${[...relancer, ...nommer].join(' — ') || 'aucun rapport ne nomme de fichier en échec'}`
+}
+
 /** Le libellé d'une durée en secondes. */
 const secondes = (ms) => `${(ms / 1000).toFixed(1)} s`
 /** L'estimation d'un test en texte (`estimationsDe`) : apprise ici, de la CI calibrée (sa course, son facteur — de
@@ -937,10 +951,11 @@ export function planDuPerimetre(retenus, { mesures, lire, budget, signaux, worke
   return { ci, facteurs, estimations, surcouts, plan: planDExecution(retenus, { budget, estimations, signaux, workers, surcouts }) }
 }
 
-function principal() {
-  const options = lireArguments(process.argv.slice(2))
+/** Le LANCEMENT du périmètre du dépôt de `racine` sous les arguments `args` (`lireArguments`) : dérivation, journal, lint,
+ *  tests au plan, ligne de relance (`ligneDeRelance`) ; rend le code de sortie. */
+export function principal(args, racine) {
+  const options = lireArguments(args)
   const debut = performance.now()
-  const racine = racineDe(depotDe(RACINE)) ?? RACINE
   const { base, tete, touches, post, retenus, toolchain, nonResolus, vitest, node, modules, signaux, lire } = perimetreDuDepot(racine, options)
   const duree = Math.round(performance.now() - debut)
   const docs = selectionDesGenerateurs({ lot: touches, mesure: sourcesMesurees(racine), cwd: racine })
@@ -1001,15 +1016,18 @@ function principal() {
     ...(jouerDocs ? [{ famille: null, sortie: null, args: ['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts] }] : []),
   ]
   const reels = {}
+  const joues = []
   for (const { famille, sortie, args } of lancements) {
     if (sortie) rmSync(sortie, { force: true })
     const debutDuLancement = performance.now()
     const r = spawnSync(process.execPath, args, { cwd: racine, stdio: 'inherit' })
     const murMs = performance.now() - debutDuLancement
-    if (code === 0) code = codeEnfant(r.status, r.signal)
-    if (!famille) continue
+    const codeDuLancement = codeEnfant(r.status, r.signal)
+    if (code === 0) code = codeDuLancement
+    if (!famille) { joues.push({ famille: 'docs', code: codeDuLancement, echecs: [], args }); continue }
     reels[famille] = (reels[famille] ?? 0) + murMs
     const lecture = apprendre(racine, sortie, mesures, famille, workers[famille])
+    joues.push({ famille, code: codeDuLancement, echecs: lecture.echecs, args })
     if (!Object.keys(lecture.appris).length) continue
     const { surcout, texte } = bilanDuLancement(famille, murMs, lecture, workers[famille])
     journal(texte)
@@ -1018,36 +1036,41 @@ function principal() {
   for (const [famille, murMs] of Object.entries(reels))
     journal(`${famille} au plan : ${texteDuReel(murMs, plan.murParFamille[famille], plan.sansDureeParFamille[famille])}`)
   journal(`total : ${texteDuReel(Object.values(reels).reduce((a, b) => a + b, 0), plan.murMs, plan.sansDuree)}`)
+  const relance = ligneDeRelance({ code, lancements: joues, lint, appelLint: () => appelDuLint(racine) })
+  if (relance) journal(relance)
   return code
 }
 
-/** La lecture du rapport de durées `lu` d'UN lancement de chaque famille : ses durées `{ [chemin absolu]: ms }` et ses
- *  workers SERVIS, `null` s'ils ne sont pas un entier ≥ 1. vitest : `{ workers, durees }` de `dureesVitest.mjs` ; node :
- *  `{ [chemin absolu]: ms }` de `dureesNodeTest.mjs`, workers du plan `planifies` (`workersDuLancement`, doc Node
- *  `--test-concurrency`). PURE. */
+/** Les fichiers en échec `echecs` d'un rapport, `[]` s'ils ne sont pas une liste de chaînes. PURE. */
+const echecsDuRapport = (echecs) => (Array.isArray(echecs) && echecs.every((f) => typeof f === 'string') ? echecs : [])
+
+/** La lecture du rapport de durées `lu` d'UN lancement de chaque famille : ses durées `{ [chemin absolu]: ms }`, ses
+ *  fichiers en échec (`echecsDuRapport`) et ses workers SERVIS, `null` s'ils ne sont pas un entier ≥ 1. vitest :
+ *  `{ workers, durees, echecs }` de `dureesVitest.mjs` ; node : `{ durees, echecs }` de `dureesNodeTest.mjs`, workers du
+ *  plan `planifies` (`workersDuLancement`, doc Node `--test-concurrency`). PURE. */
 const LECTURES_DE_RAPPORT = Object.freeze({
-  vitest: (lu) => ({ durees: lu?.durees ?? {}, workers: Number.isInteger(lu?.workers) && lu.workers >= 1 ? lu.workers : null }),
-  node: (lu, planifies) => ({ durees: lu ?? {}, workers: planifies }),
+  vitest: (lu) => ({ durees: lu?.durees ?? {}, echecs: echecsDuRapport(lu?.echecs), workers: Number.isInteger(lu?.workers) && lu.workers >= 1 ? lu.workers : null }),
+  node: (lu, planifies) => ({ durees: lu?.durees ?? {}, echecs: echecsDuRapport(lu?.echecs), workers: planifies }),
 })
 
 /** Fusionne dans les `DUREES` de `mesures` (`mesuresDe`) les durées du rapport `rapport` d'UN lancement de la famille
  *  `famille` (`rapportDuLancement`, `LECTURES_DE_RAPPORT` ; chemins rendus relatifs), puis l'efface, que l'écriture
- *  (`ecrireLesMesures`) réussisse ou échoue. Rend les durées apprises et les workers servis ; `{ appris: {}, workers: null }`
- *  sans rapport. */
+ *  (`ecrireLesMesures`) réussisse ou échoue. Rend les durées apprises, les workers servis et les fichiers en échec, chemins
+ *  relatifs ; `{ appris: {}, workers: null, echecs: [] }` sans rapport. */
 export function apprendre(racine, rapport, mesures, famille, planifies) {
   const base = resolve(racine).split(sep).join('/')
   const relDe = (a) => a.split(sep).join('/').replace(`${base}/`, '')
   let lu
-  try { lu = JSON.parse(readFileSync(rapport, 'utf8')) } catch { return { appris: {}, workers: null } } finally { rmSync(rapport, { force: true }) }
-  const { durees, workers } = LECTURES_DE_RAPPORT[famille](lu, planifies)
+  try { lu = JSON.parse(readFileSync(rapport, 'utf8')) } catch { return { appris: {}, workers: null, echecs: [] } } finally { rmSync(rapport, { force: true }) }
+  const { durees, echecs, workers } = LECTURES_DE_RAPPORT[famille](lu, planifies)
   const appris = Object.fromEntries(Object.entries(durees).map(([f, ms]) => [relDe(f), Math.round(ms)]))
   if (Object.keys(appris).length) ecrireLesMesures(mesures, DUREES, appris)
-  return { appris, workers }
+  return { appris, workers, echecs: echecs.map(relDe) }
 }
 
 if (import.meta.main) {
   try {
-    process.exitCode = principal()
+    process.exitCode = principal(process.argv.slice(2), racineDe(depotDe(RACINE)) ?? RACINE)
   } catch (erreur) {
     console.error(`[perimetre] ${erreur.message}`)
     process.exitCode = 2

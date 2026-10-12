@@ -118,6 +118,8 @@ travaux DIFFÉRENTS aux entrées différentes, jamais pour multiplier les regard
 **Un train = 4 ou 5 gestes au plus** : le codeur rend le diff → je committe sur la branche du worktree
 → je pousse la branche, dont le run CI joue les gates → juge de diff en parallèle → corrections en
 train court.
+Un type dont le frontmatter épingle un `model` ne reçoit pas de `model` à l'appel de l'outil Agent :
+l'alias `haiku` sert 4.5 (#2537).
 
 **4. Isolation.** Agent qui MUTE des fichiers pendant qu'une session // est active →
 `isolation: "worktree"` (créé sur `origin/main`, `npm ci` + `npm --prefix server ci`) ; à défaut
@@ -131,6 +133,10 @@ committé » et « fait dans un autre worktree » ; le brief de relance porte l'
 « si le livrable existe déjà, PIVOTE en revue ». Tout geste POSTÉRIEUR à une mesure la périme : le
 rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIMÉS, je rejoue
 `npm run test:perimetre` avant de committer.
+- **Agent rendu depuis plus de 5 min = agent NEUF, jamais `SendMessage`**, quel que soit son type. Le
+  cache d'un sous-agent vit 5 min (la session, 1 h) : une reprise plus tardive RÉÉCRIT tout son
+  contexte (#2568). La suite part dans un agent NEUF au brief COURT (corrections d'un verdict : sha
+  commité, verdict, périmètre).
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et
 `npm run test:perimetre` avant commit — le typecheck complet et la suite complète sont joués UNE fois par
@@ -227,7 +233,7 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Étage | Type (`.claude/agents/`) | Modèle | Effort |
 |---|---|---|---|
 | Lecture / comparaison de masse | `lecteur` | sonnet | medium |
-| Vérification mécanique (existence, famille) | `verif-mecanique` | haiku | low |
+| Vérification mécanique (existence, famille) | `verif-mecanique` | claude-haiku-5-5 | low |
 | Code sous spec précise | `codeur` | opus | medium |
 | Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | high |
 | Rédaction fidèle au Source (fiches, synthèses de règles) | `lecteur` | opus | medium |
