@@ -69,7 +69,7 @@ import { findVehicleById } from '../data';
 import { estAbsent } from './terrain';
 import { sceneToAscii } from './sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
-import { startCascade } from './cascade';
+import { startCascade, stepInteraction, stepReady } from './cascade';
 import { routeDistanceLabel } from '../engine/travel';
 import { actorIn, ecrireActeur, inBattleId } from './combatants';
 import { touchActors } from './combatOrParty';
@@ -131,6 +131,79 @@ import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene
 import { scheduleFlowTimer } from './combatTimers';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../lib/stockageWeb';
+import { browserFreezeTimeout, browserUnfreezeTimeout } from './devtoolsTimers';
+import { modaleDuDessus, type LayerPlan } from './dismissStack';
+import { getStagePan } from './stagePan';
+import { lacetActif, SENSIBILITE_DRAG_DEG_PX } from './stageYaw';
+import { CLES_DE_DATASET, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
+import { collectionDuDataset, datasetSerializeRoot, datasetObjectSerializeRoot, OBJECT_DATASET_KEYS, type DatasetKey, type ObjectDatasetKey } from '../data/overrides';
+import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../data/schemas/exposition-derivee';
+import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
+import { collectionALaCle } from '../data/schemas/grammaire/collection-cle';
+import { traumaById } from '../engine/trauma';
+import type { HitLocation } from '../engine/types';
+import { openSkillTest } from './combatEffects';
+import { EMPTY_FLOW, type FlowTest } from './flow';
+
+function entreeDeRecette(dataset: string, id: string): unknown {
+  if (!(CLES_DE_DATASET as readonly string[]).includes(dataset))
+    throw new Error(`__wfrp.entree : dataset « ${dataset} » inconnu — clés : ${CLES_DE_DATASET.join(', ')}`);
+  const cle = dataset as CleDeDataset;
+  const valeur = collectionDuDataset(cle);
+  const schema = SCHEMA_DEFS.find((d) => d.file === DATASET_FICHIER_DERIVE[cle])?.schema;
+  const racine = (OBJECT_DATASET_KEYS as readonly string[]).includes(cle)
+    ? datasetObjectSerializeRoot(cle as ObjectDatasetKey)
+    : datasetSerializeRoot(cle as DatasetKey);
+  let marque;
+  try { marque = collectionALaCle(schema, racine, DATASET_SUITE_DERIVE[cle] ?? '').marque; }
+  catch { throw new Error(`__wfrp.entree : « ${dataset} » ne porte pas de collection à clé déclarée`); }
+  let entree: unknown;
+  if (marque.forme === 'liste' && Array.isArray(valeur)) {
+    const matches = valeur.filter((v) => marque.de(v) === id);
+    if (matches.length > 1) throw new Error(`__wfrp.entree : « ${dataset}/${id} » ambigu (${matches.length} entrées)`);
+    entree = matches[0];
+  } else if (marque.forme === 'record' && !marque.sous && valeur && typeof valeur === 'object' && !Array.isArray(valeur)) {
+    entree = Object.prototype.hasOwnProperty.call(valeur, id) ? (valeur as Record<string, unknown>)[id] : undefined;
+  } else throw new Error(`__wfrp.entree : forme de « ${dataset} » non prise en charge`);
+  if (entree === undefined) throw new Error(`__wfrp.entree : « ${dataset}/${id} » introuvable`);
+  return structuredClone(entree);
+}
+
+function coordonneesFinies(tile: unknown): tile is { x: number; y: number; z?: number } {
+  if (tile === null || typeof tile !== 'object') return false;
+  const point = tile as Record<string, unknown>;
+  return Number.isFinite(point.x) && Number.isFinite(point.y) && (point.z === undefined || Number.isFinite(point.z));
+}
+
+export type CodexLocation = { tab: string; group: string; cluster: string | null };
+export type CodexProbe = (categoryId: string) => CodexLocation | null;
+let lireCodex: CodexProbe | null = null;
+
+export function setCodexProbe(probe: CodexProbe | null): void {
+  lireCodex = probe;
+}
+
+let lireDialogue: (() => HTMLElement | null) | null = null;
+let dialogueMarque: HTMLElement | null = null;
+
+export function setDialogueProbe(probe: (() => HTMLElement | null) | null): void {
+  dialogueMarque?.removeAttribute('data-wfrp-dialogue-dessus');
+  dialogueMarque = null;
+  lireDialogue = probe;
+}
+
+function observerDialogueDuDessus(): { kind: string; plan: LayerPlan; nom: string; selecteur: string } | null {
+  dialogueMarque?.removeAttribute('data-wfrp-dialogue-dessus');
+  dialogueMarque = null;
+  const couche = modaleDuDessus();
+  const boite = couche && lireDialogue?.();
+  if (!couche || !boite?.isConnected) return null;
+  boite.setAttribute('data-wfrp-dialogue-dessus', '');
+  dialogueMarque = boite;
+  const nom = boite.getAttribute('aria-label') ?? (boite.getAttribute('aria-labelledby') ?? '')
+    .split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? '').join(' ').trim();
+  return { kind: couche.kind, plan: couche.plan, nom, selecteur: '[data-wfrp-dialogue-dessus]' };
+}
 
 /** Trace du DERNIER Test résolu (`resolveTest`, `EVT.TEST_RESOLVED`) — observation pure pour la
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
@@ -165,10 +238,8 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.entities()     → liste des entités de la scène + leur mode d'accès
  *   __wfrp.routes()       → liste les routes CLIQUABLES de la carte du monde courante (id/from/to/
  *                           distanceLabel) — cibler `clickRoute(id)` sans deviner parmi des chips ambigus
- *   __wfrp.screenPos('id') → bounding box ÉCRAN du token (combat ET exploration, `data-cid`) — LECTURE
- *                           seule (`getBoundingClientRect`), `null` si absent du DOM
- *   __wfrp.tileScreenPos({x,y,z?}) → même bounding box ÉCRAN pour une CASE (vide comprise), là où
- *                           `screenPos` exige un token `data-cid` — viser un déplacement au clic réel
+ *   __wfrp.tileScreenPos({x,y,z?}) → bounding box ÉCRAN projetée d'une CASE (vide comprise)
+ *                           — viser un déplacement au clic réel
  *   __wfrp.areteScreenPos(x,y,z,dir) → centre ÉCRAN du trait de chaque geste d'arête offert sur ce côté
  *                           de case (`[{x,y,libelle,capacite}]`) — viser un geste d'arête au clic réel
  *   __wfrp.pickTileAt({x,y}) → l'INVERSE : ce que le PICKING RÉEL résoudrait sous ce pixel écran
@@ -591,6 +662,78 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     return `✓ scénario « ${sc.title} » lancé${sc.autoCombat ? ' (combat direct, prêt à jouer)' : ''}`;
   };
   return {
+    dialogueDuDessus: observerDialogueDuDessus,
+    codexLocate: (categoryId: string): CodexLocation => {
+      const location = lireCodex?.(categoryId);
+      if (!location) throw new Error(`__wfrp.codexLocate : catégorie « ${categoryId} » inconnue`);
+      return { ...location };
+    },
+    camera: () => {
+      const s = g();
+      return { deg: viewYawDeg(s.camRot, s.camEdge), active: lacetActif(), sensibilite: SENSIBILITE_DRAG_DEG_PX };
+    },
+    freezeTimeout: (delays = [60000]) => {
+      const forced = browserFreezeTimeout(delays);
+      return forced.delays.length ? `✓ délais des nouveaux setTimeout forcés : ${forced.delays.join(', ')} ms (dernier réutilisé)` : '✓ délais des nouveaux setTimeout inchangés';
+    },
+    unfreezeTimeout: () => browserUnfreezeTimeout() ? '✓ setTimeout rétabli' : '✓ aucun délai de setTimeout forcé',
+
+    entree: entreeDeRecette,
+
+    trauma: (id: string, traumaId: string, opts?: { be?: number; d10?: number }, location?: HitLocation) => {
+      if (!actorIn(g(), id)) throw new Error(`__wfrp.trauma : combattant « ${id} » introuvable`);
+      const trauma = traumaById(traumaId, opts, location);
+      useGame.setState((s) => ecrireActeur(s, id, (c) => ({ ...c, traumas: [...(c.traumas ?? []), trauma] })));
+      return structuredClone(trauma);
+    },
+
+    testCompetence: (actorId: string, spec: FlowTest) => {
+      if (!actorIn(g(), actorId)) throw new Error(`__wfrp.testCompetence : combattant « ${actorId} » introuvable`);
+      if (!!spec.skill === !!spec.characteristic) throw new Error('__wfrp.testCompetence : fournir une compétence ou une caractéristique');
+      if (!spec.stake) throw new Error('__wfrp.testCompetence : fournir l’enjeu du Test (stake)');
+      if (g().pendingTest || g().pendingCascade) throw new Error('__wfrp.testCompetence : un Test est déjà ouvert');
+      if (!openSkillTest(g, useGame.setState, structuredClone(spec), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId }))
+        throw new Error(`__wfrp.testCompetence : ouverture refusée pour « ${actorId} »`);
+      return '✓ Test ouvert';
+    },
+
+    panTo: async (idOrXY: string | { x: number; y: number; z?: number }) => {
+      const tile: { x: number; y: number; z?: number } | undefined = typeof idOrXY === 'string' ? actorIn(g(), idOrXY)?.pos ?? find(idOrXY)?.pos : idOrXY;
+      if (!coordonneesFinies(tile)) throw new Error('__wfrp.panTo : cible introuvable ou coordonnées invalides');
+      if (lacetActif()) throw new Error('__wfrp.panTo : rotation en cours');
+      if (!projectionDuStage()) throw new Error('__wfrp.panTo : stage non monté');
+      const sceneId = g().scene?.id;
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      for (let frame = 0; frame < 120; frame++) {
+        const current = projectionDuStage();
+        const matrix = current?.camGroup.getScreenCTM();
+        const svg = current?.camGroup.ownerSVGElement;
+        if (!current || !matrix || !svg || g().scene?.id !== sceneId) throw new Error('__wfrp.panTo : stage démonté');
+        const opacity = Number.parseFloat(getComputedStyle(current.camGroup).opacity);
+        if (lacetActif() || opacity < 1) throw new Error('__wfrp.panTo : rotation en cours pendant le cadrage');
+        const b = svg.getBoundingClientRect();
+        if (b.width <= 0 || b.height <= 0) throw new Error('__wfrp.panTo : stage sans dimensions');
+        if (![opacity, b.x, b.y, b.width, b.height, matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].every(Number.isFinite))
+          throw new Error('__wfrp.panTo : projection non finie');
+        const d = diamondCorners(tile.x, tile.y, current.dims, tile.z ?? 0);
+        const target = { x: (d.top[0] + d.bot[0]) / 2, y: (d.top[1] + d.bot[1]) / 2 };
+        const point = new DOMPoint(target.x, target.y).matrixTransform(matrix);
+        if (!coordonneesFinies(point)) throw new Error('__wfrp.panTo : projection non finie');
+        const centre = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+        if (Math.hypot(point.x - centre.x, point.y - centre.y) <= 2)
+          return { tile: { ...tile }, pan: { ...g().camPan }, centre: { x: point.x, y: point.y } };
+        const local = new DOMPoint(centre.x, centre.y).matrixTransform(matrix.inverse());
+        const pan = getStagePan();
+        const next = { x: pan.x + local.x - target.x, y: pan.y + local.y - target.y };
+        if (!coordonneesFinies(local) || !coordonneesFinies(pan) || !coordonneesFinies(next))
+          throw new Error('__wfrp.panTo : projection non finie');
+        g().setCamPan(next.x, next.y);
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      }
+      throw new Error('__wfrp.panTo : centre non atteint après 120 images');
+    },
+
     /** Le store brut (sélecteurs, getState, setState) — pour les cas non couverts par les helpers. */
     store: useGame,
 
@@ -657,23 +800,13 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }));
     },
 
-    /** OBSERVATION seule : bounding box ÉCRAN du token `id` (combat ET exploration — même canal
-     *  `data-cid`, #226) via `getBoundingClientRect`. `null` si le token n'est pas dans le DOM
-     *  (hors vue, scène/combat sans ce token). Zéro action — ne pilote rien. */
-    screenPos: (id: string): { x: number; y: number; width: number; height: number } | null => {
-      const el = document.querySelector(`[data-cid="${id}"]`);
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { x: r.x, y: r.y, width: r.width, height: r.height };
-    },
-
-    /** OBSERVATION seule : bounding box ÉCRAN d'une CASE — le symétrique de `screenPos`, qui ne sait
-     *  servir qu'un token porteur de `data-cid`. Une case VIDE n'a pas de nœud DOM propre : elle est
+    /** OBSERVATION seule : bounding box ÉCRAN d'une CASE. Une case VIDE n'a pas de nœud DOM propre : elle est
      *  projetée par `diamondCorners` (`geometry/iso`, la géométrie du RENDU lui-même), puis la
      *  transformée caméra est lue sur la CTM du groupe qui la porte — zoom, panoramique et rotation
      *  viennent donc du DOM, pas d'un second calcul à tenir à jour. `z` = étage visé (défaut 0).
      *  `null` hors scène ou tant que le stage n'est pas monté. Zéro action — ne pilote rien. */
     tileScreenPos: (tile: { x: number; y: number; z?: number }): { x: number; y: number; width: number; height: number } | null => {
+      if (!coordonneesFinies(tile)) throw new Error('__wfrp.tileScreenPos : coordonnées invalides — fournir un objet {x, y, z?} fini');
       const proj = projectionDuStage();
       const ctm = proj?.camGroup.getScreenCTM();
       if (!proj || !ctm) return null;
@@ -1642,6 +1775,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** RECETTE : drapeaux de scénario (portes de l'arène, etc.). */
     flags: () => g().flags,
     flag: (id: string, value = true) => {
+      if (ruleDef(id)) throw new Error(`__wfrp.flag : « ${id} » est une règle optionnelle — utiliser __wfrp.rules('${id}', ${value})`);
       useGame.setState((s) => ({ flags: { ...s.flags, [id]: value } }));
       return g().flags;
     },
@@ -1847,9 +1981,6 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ Piège-lame : ${defender.label} pare ${attacker.label} (${weapon.label}, +${defSL} DR) → choix Piéger/Critique`;
     },
 
-    /** RECETTE : met un combattant en FOCALISATION (DR cumulé sur un sort) — `focus('hero-1')` →
-     *  Armure Aethyrique DR 3. Frapper ensuite le focaliseur (attaque ennemie / `__wfrp.condition` +
-     *  dégâts) déclenche `checkFocusInterruption` : Test de Calme Difficile INFLUENÇABLE (héros manuel). */
     focus: (id: string, spell = 'armure-aethyrique', dr = 3) => {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
@@ -1857,10 +1988,6 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ ${c.label} : Focalisation ${spell} (DR ${dr})`;
     },
 
-    /** RECETTE : pose une Peur active de `heroId` envers `enemyId` (Indice) puis simule l'APPROCHE de la
-     *  source (LDB 21 l.27) — `fear('hero-1','enemy-1', 2)`. C'est le MÊME appel que le mouvement d'IA quand
-     *  une source de Peur se rapproche (`approachFearTrigger`) : le héros doit réussir un Test de Calme
-     *  Intermédiaire (héros manuel → étape de cascade INFLUENÇABLE) ou gagner un État Brisé. */
     fear: (heroId: string, enemyId: string, indice = 2) => {
       const b = g().battle;
       if (!b || b.over) return '✗ pas de combat en cours';
@@ -1870,7 +1997,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!hero.pos || !enemy.pos) return '✗ positions inconnues';
       hero.psychState = [
         ...(hero.psychState ?? []).filter((p) => !(p.type === 'peur' && p.sourceId === enemyId)),
-        { type: 'peur', sourceId: enemyId, indice, calmeDR: 0 }, // Peur active (non vaincue) envers la source
+        { type: 'peur', sourceId: enemyId, indice, calmeDR: 0 },
       ];
       // `fromPos` plus loin que la position actuelle → l'approche est mesurée comme un rapprochement réel.
       const fromPos = { x: enemy.pos.x + Math.sign(enemy.pos.x - hero.pos.x || 1) * 5, y: enemy.pos.y };
@@ -1974,9 +2101,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const b = s.battle;
       const act = b && !b.over ? inBattleId(b, b.order[b.turn]) : undefined;
       const key = pickActiveModalKey(s);
+      const cur = s.pendingCascade?.participants[s.pendingCascade.cursor];
       return {
         cadence: cadence(),
         activeModal: key,
+        cascade: cur ? { id: cur.id, kind: cur.kind, interaction: stepInteraction(cur), ready: stepReady(cur), chosen: cur.chosen ?? null, amount: cur.amount ?? null } : null,
         policy: autoPolicyOf(s)?.mode ?? null,
         willAutoResolve: willAutoResolve(s),
         openPendings: open,

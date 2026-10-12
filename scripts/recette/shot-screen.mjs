@@ -3,22 +3,22 @@
 // plus écrire AUCUN script ad hoc — voir docs/recette-navigateur.md § « Preuve headless (agents) ».
 //
 // Usage :
-//   node scripts/recette/shot-screen.mjs --screen gallery --out mon-dossier
+//   node scripts/recette/shot-screen.mjs --screen gallery --out C:/temp/recette
 //   node scripts/recette/shot-screen.mjs --screen menu --mobile
 //
 // Options :
 //   --screen <id>   id d'écran __wfrp (obligatoire, ex. gallery, menu, party, compendium…)
-//   --out <dir>     dossier de sortie des captures (défaut : CWD)
+//   --out <dir>     dossier ABSOLU de sortie (défaut : DOSSIER_CAPTURES hors arbre)
 //   --url <url>     URL de l'app (défaut : le port de CET arbre, cf. scripts/port-dev.mjs)
 //   --mobile        viewport 360x740 (charte-ui.md, testable dès 360px)
 //   --width/--height  viewport explicite (ignoré si --mobile)
 //   --settle <ms>   attente après navigation avant capture (défaut 600ms)
 //
 // Sortie : exit 1 si la console a remonté une erreur/exception après l'ouverture de l'écran.
-import { openApp, gotoScreen, shot, consoleGuard, setMobileViewport, setViewport } from './lib.mjs';
+import { DOSSIER_CAPTURES, validerDossierCaptures, openApp, gotoScreen, shot, consoleGuard, setMobileViewport, setViewport } from './lib.mjs';
 
-function parseArgs(argv) {
-  const out = { out: process.cwd(), url: undefined, mobile: false, settle: 600 };
+export function parseArgs(argv) {
+  const out = { out: DOSSIER_CAPTURES, url: undefined, mobile: false, settle: 600 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--screen') out.screen = argv[++i];
@@ -31,6 +31,7 @@ function parseArgs(argv) {
     else throw new Error(`Option inconnue : ${a}`);
   }
   if (!out.screen) throw new Error('--screen <id> est obligatoire (ex. --screen gallery).');
+  out.out = validerDossierCaptures(out.out);
   return out;
 }
 
@@ -61,7 +62,7 @@ async function main() {
   }
 }
 
-main().catch((e) => {
+if (import.meta.main) main().catch((e) => {
   console.error(`ERR ${e.message}`);
   process.exit(1);
 });

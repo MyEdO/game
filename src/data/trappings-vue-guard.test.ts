@@ -24,6 +24,8 @@ const FOYER = [
 
 /** Sites où un appel au seam est ADMIS, chacun avec sa raison. */
 const SITES_ADMIS: readonly (SiteAdmis & { readonly raison: string })[] = [
+  { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'collectionDuDataset', raison: 'observation DEV du catalogue par id, en copie détachée ; aucun objet instancié' },
+  { rel: 'src/state/devtools.ts', englobante: 'entreeDeRecette', appele: 'datasetSerializeRoot', raison: 'lecture du schéma de la collection observée en copie détachée DEV ; aucune instanciation ni écriture' },
   { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'validateEntry', appele: 'datasetArray', raison: 'existence d’une référence dans le dataset de SON champ (`REF_LIST_DATASET`, `NESTED_REF_FIELDS`) : comparaison, rien n’est instancié' },
   { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'editableEntries', appele: 'datasetArray', raison: 'les entrées ÉDITÉES au Codex, qui montre tout le catalogue' },
   { rel: 'src/ui/compendium/CodexEdit.tsx', englobante: 'CodexEdit › save', appele: 'datasetArray', raison: 'l’écriture au seam du dataset édité' },
@@ -77,6 +79,12 @@ describe('lecture brute des trappings hors de la vue', () => {
   it('un site admis ne l’est qu’à SA déclaration englobante, jamais au fichier', () => {
     const texte = "import { datasetArray } from '../../data/overrides';\nfunction ProsthesisField() { return datasetArray('trappings'); }\nfunction Autre() { return datasetArray('trappings'); }";
     expect(lignes(texte, 'src/ui/compendium/CodexEdit.tsx')).toEqual([3]);
+  });
+
+  it('admet les deux lectures de recette seulement dans leur fonction d’observation nommée', () => {
+    const texte = "import { collectionDuDataset, datasetSerializeRoot } from '../data/overrides';\nfunction entreeDeRecette() {\ncollectionDuDataset(cle);\ndatasetSerializeRoot(cle);\n}\nfunction autre() {\ncollectionDuDataset(cle);\ndatasetSerializeRoot(cle);\n}";
+    expect(lignes(texte, 'src/state/devtools.ts')).toEqual([7, 8]);
+    expect(lignes(texte, 'src/state/autre.ts')).toEqual([3, 4, 7, 8]);
   });
 
   it('le FOYER seul est hors de la garde : son texte, sous un autre chemin, est vu', () => {

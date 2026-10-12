@@ -20,23 +20,22 @@
 //   4. Échap annule ; re-clic de la case annule ;
 //   5. un clic-ennemi SANS intention reste une attaque normale (non-régression).
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, sleep, shot, cliquerPremierOffert, consoleGuard, frapperTouche, cliquerAction, resoudreModales, decrireChoix, piloterCombat, finDuTour } from './lib.mjs';
+import { DOSSIER_CAPTURES, validerDossierCaptures, appelerWfrp, clicReel, openApp, evaluate, sleep, shot, cliquerPremierOffert, consoleGuard, frapperTouche, cliquerAction, resoudreModales, piloterCombat, finDuTour } from './lib.mjs';
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs';
+import { demarrer } from './setup.mjs';
 import { chebyshev } from '../../src/engine/grid.ts';
-
-/** Les CHOIX faits à la place du joueur par les résolutions de fenêtres : imprimés au rapport. */
-const choixFaits = [];
 
 /** FILIGRANE : l'arbre RÉELLEMENT joué (une recette sans son arbre ne prouve rien). */
 const filigrane = () => enteteArbre(process.cwd());
 
-function parseArgs(argv) {
-  const out = { url: undefined, out: process.cwd() };
+export function parseArgs(argv) {
+  const out = { url: undefined, out: DOSSIER_CAPTURES };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--url') out.url = argv[++i];
     else if (argv[i] === '--out') out.out = argv[++i];
     else throw new Error(`Option inconnue : ${argv[i]}`);
   }
+  out.out = validerDossierCaptures(out.out);
   return out;
 }
 
@@ -45,7 +44,7 @@ const herosIntact = (l) => !!l.auto.active && l.auto.active.kind === 'hero' && !
 
 /** Pilote le combat (`piloterCombat`, au geste du joueur) jusqu'au tour d'un héros intact, puis lit l'état. */
 async function jusquAuHeros(session) {
-  choixFaits.push(...(await piloterCombat(session, { arret: herosIntact })).choix);
+  await piloterCombat(session, { arret: herosIntact });
   return etat(session);
 }
 
@@ -65,10 +64,7 @@ async function cliquerCase(session, pt) {
   const c = await centreVisible(session, pt);
   if (!c) throw new Error(`cliquerCase (${pt.x},${pt.y}) : case hors écran`);
   const { x, y } = c;
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
-  await sleep(120);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
+  await clicReel(session, x, y);
   await sleep(350);
   return { x, y };
 }
@@ -103,7 +99,7 @@ async function main() {
   try {
     await evaluate(session, `window.__wfrp.scenario('embuscade', 7)`);
     await sleep(1500);
-    choixFaits.push(...(await resoudreModales(session, 'ouverture')));
+    await resoudreModales(session, 'ouverture', { dans: '.modal-overlay' });
     await evaluate(session, `window.__wfrp.fight('enc-mutants')`);
     await sleep(1600);
     let e = await jusquAuHeros(session);
@@ -177,7 +173,7 @@ async function main() {
     //    — c'est LE terrain de la Charge (cf. docs/test-scenarios.md).
     await evaluate(session, `window.__wfrp.scenario('entrainement', 4)`);
     await sleep(1600);
-    choixFaits.push(...(await resoudreModales(session, 'ouverture entraînement')));
+    await resoudreModales(session, 'ouverture entraînement', { dans: '.modal-overlay' });
     console.log('goto lice :', await evaluate(session, `window.__wfrp.goto({ x: 7, y: 9 })`));
     await sleep(1600);
     e = await jusquAuHeros(session);
@@ -203,32 +199,35 @@ async function main() {
     e = await etat(session);
     dire(armePour(e, 'charge'), 'la case Charger ARME l’intention');
     await shot(session, 'intention-charge-overlay', args.out);
+    await appelerWfrp(session, 'panTo', cible.pos);
     await cliquerCase(session, cible.pos);
     await sleep(900);
     e = await etat(session);
     dire(!!e.pendingAttack && e.pendingAttack.charge, 'le clic-ennemi sous intention lance la CHARGE réelle');
     dire(e.intent === null, 'l’intention de Charge se dissout au commit');
     await shot(session, 'intention-charge-commit', args.out);
-    await cliquerPremierOffert(session, SORTIES_DU_JET);
-    await sleep(600);
 
     // ── 6. NON-RÉGRESSION : clic-ennemi SANS intention = attaque normale ─────────────────────────
     //    Combat FRAIS : aucune intention n'a jamais été armée dans ce tour-là.
-    await evaluate(session, `window.__wfrp.fight('enc-entrainement')`);
-    await sleep(1600);
+    await demarrer({ session, scenario: 'entrainement', graine: 7, combat: 'enc-entrainement' });
     e = await jusquAuHeros(session);
     dire(e.intent === null, 'aucune intention armée au début du tour');
     const proche = e.ennemis.map((en) => ({ ...en, d: chebyshev(en.pos, e.actif.pos) })).sort((a, b) => a.d - b.d)[0];
     console.log(`Clic-ennemi nu : ${proche.id} à ${proche.d} case(s) de ${e.actif.id}.`);
+    await appelerWfrp(session, 'panTo', proche.pos);
     await cliquerCase(session, proche.pos);
     await sleep(900);
     e = await etat(session);
-    if (!e.pendingAttack) { await cliquerCase(session, proche.pos); await sleep(900); e = await etat(session); }
+    if (!e.pendingAttack) {
+      await appelerWfrp(session, 'panTo', proche.pos);
+      await cliquerCase(session, proche.pos);
+      await sleep(900);
+      e = await etat(session);
+    }
     dire(!!e.pendingAttack, `un clic-ennemi SANS intention ouvre l’attaque, comme avant (état : ${JSON.stringify(e.pendingAttack)})`);
     await shot(session, 'sans-intention-attaque', args.out);
   } finally {
     const err = journal.errors();
-    console.log(`\n${decrireChoix(choixFaits)}`);
     if (err.length) {
       console.error(`\nCONSOLE — ${err.length} erreur(s) :`);
       for (const x of err) console.error(`  · ${x.text}`);
@@ -246,4 +245,4 @@ async function main() {
   console.log('\nPatron d’intention : conforme à l’écran.');
 }
 
-main().catch((e) => { console.error(`ERR ${e.message}`); process.exit(1); });
+if (import.meta.main) main().catch((e) => { console.error(`ERR ${e.message}`); process.exit(1); });
