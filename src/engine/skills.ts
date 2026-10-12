@@ -78,7 +78,7 @@ export function testValue(c: Combatant, skill?: string, characteristic?: CharKey
   // Caractéristique : POINT UNIQUE partagé avec castingValue (carac d'instance data-driven + carac alternative).
   const ck = effectiveSkillCharKey(c, skill, { explicit: characteristic, spec });
   const base = effectiveChar(c, ck);
-  const states = testStatePenalty(c, skill);
+  const states = testStatePenalty(c, skill, { sense });
   const enc = ck === 'agilite' ? agilityTestPenalty(c) : 0; // charge : couche d'ÉTAT orthogonale (≠ passif d'élément)
   const traumaSkill = traumaSkillPenalty(c, skill, sense); // séquelle permanente (fracture Langue l.300 ; Surdité l.363)
   // Passifs INTRINSÈQUES d'élément (Σ), tous via le collecteur unifié : compétence nommée + port d'armure
@@ -109,7 +109,7 @@ export function testValueParts(c: Combatant, skill?: string, characteristic?: Ch
   if (!skill && !characteristic) return []; // ni compétence ni caractéristique : `testValue` rend 0
   const ck = effectiveSkillCharKey(c, skill, { explicit: characteristic, spec });
   const out: ModLine[] = [];
-  out.push(...testStatePenaltyParts(c, skill)); // États + Sort global + symptôme global (LDB 16 / MSRC 16)
+  out.push(...testStatePenaltyParts(c, skill, { sense })); // États + Sort global + symptôme global (LDB 16 / MSRC 16)
   // Encombrement (LDB 61 « Surchargé ») : ne pèse QUE sur un Test d'Agilité — aucune source d'entité à
   // nommer (la charge est un état du sac, pas un élément), d'où la règle elle-même en renvoi Codex.
   const enc = ck === 'agilite' ? agilityTestPenalty(c) : 0;

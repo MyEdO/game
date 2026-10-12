@@ -85,11 +85,11 @@ describe('Détermination et État porté par un passif (LDB 20 l.170)', () => {
     expect(fenetre.suppressedSource, 'la fenêtre ne suspend pas la Fièvre').toEqual({ category: 'symptoms', id: 'fievre' });
     expect(fenetre.suppressedCondition, 'la fenêtre n’écarte pas QUE l’Inconscient').toBe('inconscient');
     expect(symptomSuppressed(c0, 'fievre'), 'la Fièvre entière a été suspendue — LDB 20 l.170 ne lève que l’État').toBe(false);
-    // Le −10 de la Fièvre est porté par 7 `charMod` (`symptoms.json › fievre.passive`) : ils restent.
-    expect(diseasePassiveOps(c0).filter((m) => m.src?.id === 'fievre' && m.op.op === 'charMod').length, 'le −10 de la Fièvre a sauté avec la conscience').toBe(7);
+    // Le −10 de la Fièvre est porté par 7 `testMod` (`symptoms.json › fievre.passive`) : ils restent.
+    expect(diseasePassiveOps(c0).filter((m) => m.src?.id === 'fievre' && m.op.op === 'testMod').length, 'le −10 de la Fièvre a sauté avec la conscience').toBe(7);
     // Seul l'État tombe, au collecteur unique : plus aucune op `condition` de la Fièvre n'est émise.
     expect(passiveMods(c0).some((m) => m.op.op === 'condition' && m.src?.id === 'fievre'), 'la Fièvre porte encore son Inconscient').toBe(false);
-    expect(passiveMods(c0).filter((m) => m.op.op === 'charMod' && m.src?.id === 'fievre').length, 'le −10 de la Fièvre n’est plus émis').toBe(7);
+    expect(passiveMods(c0).filter((m) => m.op.op === 'testMod' && m.src?.id === 'fievre').length, 'le −10 de la Fièvre n’est plus émis').toBe(7);
   });
 
   it('à l’ÉCHÉANCE de la fenêtre, la fièvre le rendort (la réconciliation repose l’État)', () => {

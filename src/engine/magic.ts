@@ -31,6 +31,7 @@ import type { SpellRange, SpellTarget } from './spellRange';
 import type { SpellDuration } from './spellDuration';
 import { type OvercastSource, effectiveRangeMetres, missileOvercastDamageBonus, overcastSourceOf } from './overcast';
 import { arcaneDomainIdOf, castingKindOf, featuresOf, chaosDomainOf } from './combatFeatures/dispatch';
+import { isPrayerFamily } from './combatFeatures/types';
 import { domainMissileMods, domainSeaFocalisationDR, domainSeaFocalisationDoubled, domainSeaIncantationDR, domainSeaWidensCritFumble, domainWindDR } from './domainAttributes';
 import type { WindContext } from './domainAttributes';
 import { environmentTestDR, environmentWidensCrit, environmentNIMods } from './magicEnvironment';
@@ -96,7 +97,7 @@ export interface CastInfo {
 /** Le sort relève-t-il d'une Prière (Bénédiction/Miracle) ? Discriminant UNIQUE : la `family`
  *  (id stable, multilangue), requise au schéma de `spells.json`. `LDB 40 l.13` */
 export function castInfoIsPrayer(spell: SpellLike): boolean {
-  return spell.family === 'beni' || spell.family === 'invocation';
+  return isPrayerFamily(spell.family);
 }
 
 /** Détermine la branche (et donc la Compétence) selon le sort : Prière vs Sort. `LDB 40 l.13` */

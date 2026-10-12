@@ -2382,6 +2382,7 @@ export const fr = {
   // Modificateurs d'attaque du Combat monté (LDB 14 l.180/181) — composantes NOMMÉES de la modale d'attaque.
   'mount.modSmallerTarget': 'Combat monté (cible plus petite)',
   'mount.modTargetRider': 'Cibler le cavalier (plus petit que la monture)',
+  'mount.modDodge': 'Esquive à cheval',
 
   // ── #1318 V8c₅ — INVOCATIONS (`state/summonFlow.ts`) : placement, arrivée, dissipation.
   'summon.noRoom': '{name} ne trouve aucune case libre pour invoquer {ref}.',

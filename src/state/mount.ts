@@ -293,9 +293,9 @@ export function mountedAttackMods(battle: BattleState, attacker: Combatant, targ
   return out;
 }
 
-/** Pénalité d'Esquive d'un cavalier (LDB 14 l.184) : −20, sauf Talent Acrobaties équestres. 0 à pied. */
-export function mountedDodgePenalty(defender: Combatant): number {
-  return defender.mountId && !hasAcrobatiesEquestres(defender) ? -20 : 0;
+/** Ligne d'Esquive d'un cavalier (LDB 14 l.184), sauf Talent Acrobaties équestres ; aucune à pied. */
+export function mountedDodgeMods(defender: Combatant): ModLine[] {
+  return defender.mountId && !hasAcrobatiesEquestres(defender) ? [{ label: t('mount.modDodge'), value: -20, famille: 'circonstance', ref: RULE_REF['combat-monte'] }] : [];
 }
 
 /** Montures LIBRES que `rider` (à pied) peut enfourcher, de la plus proche à la plus lointaine :

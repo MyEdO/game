@@ -665,37 +665,37 @@ describe('Magie — Focalisation', () => {
 });
 
 describe('Magie — effets actifs (buffs temporisés)', () => {
-  it('effectiveChar applique le meilleur bonus, sans cumul', () => {
+  it('effectiveChar applique le meilleur bonus, sans cumul entre Sorts (LDB 46 l.119)', () => {
     const c = caster({ 'capacite-de-combat': 35 });
     c.activeEffects = [
-      { label: 'A', char: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 6 } },
-      { label: 'B', char: 'capacite-de-combat', bonus: 20, duration: { scale: 'rounds', left: 6 } },
+      { label: 'A', source: { kind: 'spell', id: 's-A' }, char: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'B', source: { kind: 'spell', id: 's-B' }, char: 'capacite-de-combat', bonus: 20, duration: { scale: 'rounds', left: 6 } },
     ];
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(55); // 35 + max(10,20)
   });
   it('endOfRound décrémente et dissipe les effets expirés', () => {
     const c = caster({ 'capacite-de-combat': 35 });
-    const eff: ActiveEffect = { label: 'Bénédiction de Bataille', char: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 1 } };
+    const eff: ActiveEffect = { label: 'Bénédiction de Bataille', source: { kind: 'spell', id: 's-Bénédiction de Bataille' }, char: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 1 } };
     c.activeEffects = [eff];
     endOfRound(c);
     expect(c.activeEffects.length).toBe(0);
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(35);
   });
   // Pénalités (omission-majeure corrigée) : meilleur bonus + pire pénalité, sommés.
-  it('effectiveChar applique le meilleur bonus ET la pire pénalité (l.168)', () => {
+  it('effectiveChar applique le meilleur bonus ET la pire pénalité des Sorts (LDB 46 l.119)', () => {
     const c = caster({ agilite: 40 });
     c.activeEffects = [
-      { label: 'buff', char: 'agilite', bonus: 10, duration: { scale: 'rounds', left: 6 } },
-      { label: 'autre buff', char: 'agilite', bonus: 20, duration: { scale: 'rounds', left: 6 } },
-      { label: 'Écorce', char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'buff', source: { kind: 'spell', id: 's-buff' }, char: 'agilite', bonus: 10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'autre buff', source: { kind: 'spell', id: 's-autre buff' }, char: 'agilite', bonus: 20, duration: { scale: 'rounds', left: 6 } },
+      { label: 'Écorce', source: { kind: 'spell', id: 's-Écorce' }, char: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
     ];
     expect(effectiveChar(c, 'agilite')).toBe(50); // 40 + max(10,20) + min(-10) = 40+20-10
   });
-  it('effectiveChar garde la pénalité la PIRE entre deux malus', () => {
+  it('effectiveChar garde la pénalité la PIRE entre deux Sorts (LDB 46 l.119)', () => {
     const c = caster({ dexterite: 45 });
     c.activeEffects = [
-      { label: 'a', char: 'dexterite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
-      { label: 'b', char: 'dexterite', bonus: -20, duration: { scale: 'rounds', left: 6 } },
+      { label: 'a', source: { kind: 'spell', id: 's-a' }, char: 'dexterite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'b', source: { kind: 'spell', id: 's-b' }, char: 'dexterite', bonus: -20, duration: { scale: 'rounds', left: 6 } },
     ];
     expect(effectiveChar(c, 'dexterite')).toBe(25); // 45 + 0 - 20
   });

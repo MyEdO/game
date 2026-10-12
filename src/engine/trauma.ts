@@ -168,6 +168,7 @@ export function dechirureFractureFicheId(kind: TraumaKind, severity: TraumaSever
 /** Amplitude d'une op de palier multipliée par le nombre de paliers atteints (`mod` : `charMod`,
  *  `skillMod`, `moveMod`…). Une op sans amplitude chiffrée est émise TELLE QUELLE dès le 1ᵉʳ palier. */
 function scalePalierOp(o: GameOp, paliers: number): GameOp {
+  if (o.op === 'testMod') return { ...o, amount: o.amount * paliers };
   return 'mod' in o && typeof o.mod === 'number' ? { ...o, mod: o.mod * paliers } : { ...o };
 }
 
@@ -887,9 +888,9 @@ const PASSIVE_CANCELLERS: Record<PassiveKind, ('determination' | 'painless' | 'p
   sensoriel: [],
   maladie: [], // LDB 17 l.59-61 n'ouvre la Détermination QUE sur Psychologie / modificateurs de Critique / retrait d'UN État — la fenêtre de conscience de LDB 20 l.170 suspend la SOURCE qui porte l'État (`suspendSource`), pas le canal
   faim: [], // annulé par `noHunger` (flag de sort) — géré à la source Faim (P2), pas par une prothèse de séquelle
-  magique: [], // sort actif : rien ne l'annule (il expire), mais il se combine en POOL non-cumul (≠ `intrinseque` additif)
-  etat: [], // État (LDB 16) : annulé NON PAS ici mais par le flag de combat `ignoreStatePenalties` (au consommateur) ; pool non-cumul
-  ivresse: [], // Ivresse (LDB 09) : gaté à la SOURCE par le flag `drunkIgnore` (Détermination, 1 Round) ; pool non-cumul
+  magique: [], // effet actif : rien ne l'annule (il expire) ; pool selon sa source (`poolDeNonCumul`)
+  etat: [], // État (LDB 16) : annulé NON PAS ici mais par le flag de combat `ignoreStatePenalties` (au consommateur) ; pool des États (LDB 16 l.13)
+  ivresse: [], // Ivresse (LDB 09) : gaté à la SOURCE par le flag `drunkIgnore` (Détermination, 1 Round)
   intrinseque: [],
 };
 
@@ -905,8 +906,9 @@ export function poseDeterminationCanceller(c: Combatant, duration: Duration, lab
   ];
 }
 
-/** Le `kind` est-il ADDITIF (sommé dans la base : mutation/qualité, corps/équipement permanent) plutôt que
- *  combiné en POOL non-cumul (trauma/maladie/faim/sort) ? Seuls les `charMod`/`skillMod` distinguent les deux. */
+/** Le `kind` est-il ADDITIF (sommé dans la BASE : mutation/qualité, corps/équipement permanent) plutôt que
+ *  VOLATIL (trauma/maladie/faim/sort, lu par `effectiveChar`/`traumaSkillPenalty`) ? Seuls les
+ *  `charMod`/`skillMod` distinguent les deux. */
 function isAdditiveKind(kind: PassiveKind | undefined): boolean {
   return (kind ?? 'intrinseque') === 'intrinseque';
 }
@@ -976,7 +978,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   out.push(...traumaPassiveMods(c));
   // Maladies (kind `maladie`, annulée par Détermination ; passifs des symptômes via `diseasePassiveOps`) +
   // Faim (kind `faim`, non annulée : `noHunger` purge l'état à l'entretien, pas ici). Pénalités de
-  // Caractéristique → pool non-cumul. Producteurs SANS cycle (disease/provisions n'importent ni trauma ni
+  // Caractéristique → contributions volatiles (`effectiveChar`). Producteurs SANS cycle (disease/provisions n'importent ni trauma ni
   // characteristics). Gating UNIFORME sans `t` ; sauté en bloc si annulé (perf : pas de boucle par clé).
   if (c.diseases?.length && modSurvives(c, 'maladie')) {
     out.push(...diseasePassiveOps(c)); // déjà kind `maladie` + `src` = le symptôme émetteur
@@ -987,7 +989,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   if (c.thirst && modSurvives(c, 'faim')) { // Soif (LDB 18 l.340) : même privation (kind `faim` — « Plus besoin de manger/boire »)
     for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of thirstCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, kind: 'faim' });
   }
-  // Ivresse (LDB 09 l.475) : −10/échec aux CC/CT/Ag/Dex/Int (pool non-cumul, kind `ivresse`). Gaté à la
+  // Ivresse (LDB 09 l.475) : kind `ivresse`. Gaté à la
   // SOURCE par la Détermination : « ignorer les modificateurs négatifs de l'ivresse » (flag `drunkIgnore`).
   if (c.drunk && !hasActiveFlag(c, 'drunkIgnore')) {
     for (const key of Object.keys(c.characteristics) as CharKey[]) for (const mod of drunkCharPenalties(c, key)) out.push({ op: { op: 'charMod', char: key, mod }, kind: 'ivresse' });
@@ -1036,7 +1038,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   out.push(...talentPassiveMods(c));
   for (const e of c.activeEffects ?? []) {
     // `src`/`label` = L'EFFET émetteur : un `skillMod` de SORT doit s'annoncer au nom de son sort, pas
-    // au repli de famille de son seau (`kind:'magique'` tombe côté pool non-cumul, donc « Séquelle » —
+    // au repli de famille de son seau (`kind:'magique'` tombe côté volatil, donc « Séquelle » —
     // un sort temporaire s'y annonçait comme une mutilation permanente).
     // Canal UNIQUE des passifs d'effet (#1695, `ActiveEffect.passive`) : toute op qu'un effet porte
     // s'annonce ICI au nom de l'effet, donc suspendable (`sourceSuspended`). Une op `condition` y devient
@@ -1052,7 +1054,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
 }
 
 /** Ops PASSIVES de type `op` collectées (kind aplati), filtrées par mode de combinaison quand il importe :
- *  `additive===false` → POOL non-cumul (trauma/maladie/sort) ; `additive===true` → Σ (mutation/qualité) ;
+ *  `additive===false` → volatil (trauma/maladie/sort) ; `additive===true` → Σ dans la base (mutation/qualité) ;
  *  absent → toutes (pour les op-types dont la combinaison ne dépend pas du kind : moveScale/maxWeaponHands). */
 function pmodsFull(c: Combatant, op: GameOp['op'], additive?: boolean): PassiveMod[] {
   return passiveMods(c).filter((m) => m.op.op === op && (additive == null || isAdditiveKind(m.kind) === additive));
@@ -1076,7 +1078,7 @@ export function damageSBBonus(c: Combatant): number {
 }
 
 /** Σ des `charMod` ADDITIFS (mutation/qualité, kind `intrinseque`) pour la Caractéristique `key` — sommés
- *  dans la BASE par `effectiveChar` (un corps transformé n'est pas un bonus magique : hors pool non-cumul). */
+ *  dans la BASE par `effectiveChar` (un corps transformé n'est pas un bonus magique : hors pool des Sorts). */
 export function passiveCharSum(c: Combatant, key: CharKey): number {
   return pmods(c, 'charMod', true).filter((o) => o.char === key).reduce((s, o) => s + o.mod, 0);
 }
@@ -1088,7 +1090,7 @@ export function passiveMoveMod(c: Combatant): number {
 }
 
 /** Σ des `skillMod` ADDITIFS (mutation/qualité/port d'armure, kind `intrinseque`) s'appliquant au Test `skill`
- *  (skillId STABLE) — match EXACT par id. Lu par `testValue` ; distinct du POOL non-cumul des séquelles
+ *  (skillId STABLE) — match EXACT par id. Lu par `testValue` ; distinct des pénalités de séquelles
  *  (`traumaSkillPenalty`). */
 export function passiveSkillParts(c: Combatant, skill?: string): PassiveMod[] {
   if (!skill) return [];
@@ -1100,11 +1102,13 @@ export function passiveSkillSum(c: Combatant, skill?: string): number {
   return passiveSkillParts(c, skill).reduce((s, m) => s + (m.op as Extract<GameOp, { op: 'skillMod' }>).mod, 0);
 }
 
-/** Σ des modificateurs de TEST char-qualifiés (`testMod{char}`, kind `intrinseque`) pour la Caractéristique
- *  `charKey` — mutation (Visage inversé −20 Soc) + objet équipé (Laid). N'altère PAS la Caractéristique
- *  (≠ charMod, donc hors stats dérivées) : s'ajoute au seul Test. Lu par `testValue`. */
+/** Modificateurs de TEST char-qualifiés PASSIFS (`testMod{char}`) pour la Caractéristique `charKey` — mutation
+ *  (Visage inversé −20 Soc), objet (Laid), symptôme (Fièvre, LDB 20 l.170), séquelle (Cécité, LDB 18 l.273).
+ *  N'altèrent PAS la Caractéristique (≠ charMod, donc hors stats dérivées) : sommés au seul Test
+ *  (LDB 14 l.95). Hors les pools États (LDB 16 l.13) et Sorts (LDB 46 l.119). Lus par `testValue` et
+ *  `combatValueModParts`. */
 export function passiveTestModParts(c: Combatant, charKey: CharKey): PassiveMod[] {
-  return pmodsFull(c, 'testMod', true).filter((m) => (m.op as Extract<GameOp, { op: 'testMod' }>).char === charKey);
+  return passiveMods(c).filter((m) => m.op.op === 'testMod' && m.op.char === charKey && m.kind !== 'etat' && m.kind !== 'magique');
 }
 
 /** Σ de `passiveTestModParts` — SOURCE UNIQUE (l'affichage et le jet lisent les mêmes composantes). */
@@ -1162,33 +1166,38 @@ const CHAR_PENALTY_KIND_LABEL: Partial<Record<PassiveKind, string>> = {
  *  convertisseur UNIQUE `passivePartLine` (une séquelle s'appelle « Fracture », pas « Séquelle » — le
  *  canal `charMod` dit désormais la MÊME chose que le canal `skillMod`, #1153). `ref` accompagne le nom
  *  jusqu'à la modale d'attaque (`volatileCharLines`). Source UNIQUE : `traumaCharPenalties` en dérive. */
-export function traumaCharPenaltiesLabeled(c: Combatant, key: CharKey): { kind: PassiveKind; label: string; mod: number; ref?: CodexTarget }[] {
+export function traumaCharPenaltiesLabeled(c: Combatant, key: CharKey): { kind: PassiveKind; label: string; mod: number; ref?: CodexTarget; src?: CodexTarget }[] {
   return passiveMods(c)
     .filter((m) => m.op.op === 'charMod' && !isAdditiveKind(m.kind) && m.op.char === key && m.op.mod < 0)
     .map((m) => {
       const kind = m.kind ?? 'intrinseque';
       const mod = (m.op as Extract<GameOp, { op: 'charMod' }>).mod;
       const part = passivePartLine(m, mod);
-      return { kind, label: part.label || (CHAR_PENALTY_KIND_LABEL[kind] ?? kind), mod, ref: part.ref };
+      return { kind, label: part.label || (CHAR_PENALTY_KIND_LABEL[kind] ?? kind), mod, ref: part.ref, src: m.src };
     });
 }
 
-/** Pénalités de Caractéristique PASSIVES non-`intrinseque` (valeurs négatives, pour le pool « pire pénalité ») :
+/** Pénalités de Caractéristique PASSIVES non-`intrinseque` (valeurs négatives, lues par `effectiveChar`) :
  *  traumatismes (LDB 18), maladies (LDB 20) et faim (LDB 18 l.342), toutes sources confondues via le collecteur.
  *  Le gating (Détermination/Insensible/prothèse selon le `kind`) est déjà appliqué par `passiveMods`. */
 export function traumaCharPenalties(c: Combatant, key: CharKey): number[] {
   return traumaCharPenaltiesLabeled(c, key).map((p) => p.mod);
 }
 
-/** Pire pénalité de mobilité/Esquive due aux traumatismes de jambe (≤ 0 ; non-cumul, LDB 16 l.13). Une prothèse
+/** Pénalité de mobilité/Esquive due aux traumatismes de jambe (≤ 0 ; sommée, LDB 14 l.95). Une prothèse
  *  qui annule TOUT (Merveille d'ingénierie, LDB 73) lève aussi l'Esquive ; la Fausse jambe SEULE laisse le
  *  −20 subsister tant qu'elle n'est pas ENTRAÎNÉE (200 PX, `ItemInstance.prosthesisTrained` — `trainProsthesis`,
  *  state/partyFlow.ts) : entraînée, `prosthesisCancels` l'élève à `'all'` et lève aussi l'Esquive. */
+export function traumaDodgePenaltyParts(c: Combatant): PassiveMod[] {
+  return pmodsFull(c, 'skillMod', false).filter((m) => {
+    const o = m.op as Extract<GameOp, { op: 'skillMod' }>;
+    return o.skill.id === 'esquive' && o.mod < 0;
+  });
+}
+
+/** Σ de `traumaDodgePenaltyParts` — SOURCE UNIQUE. */
 export function traumaDodgePenalty(c: Combatant): number {
-  const pens = pmods(c, 'skillMod', false)
-    .filter((o) => o.skill.id === 'esquive' && o.mod < 0)
-    .map((o) => o.mod);
-  return pens.length ? Math.min(...pens) : 0;
+  return traumaDodgePenaltyParts(c).reduce((s, m) => s + (m.op as Extract<GameOp, { op: 'skillMod' }>).mod, 0);
 }
 
 /** Un `skillMod` restreint à un `sense` (Surdité : « Tests de Perception basés sur l'ouïe », LDB 18)
@@ -1201,25 +1210,20 @@ function senseMatches(opSense: PairedSense | undefined, testSense: PairedSense |
   return opSense == null || testSense == null || opSense === testSense;
 }
 
-/** Pire pénalité permanente à une Compétence nommée due aux traumatismes (séquelle de fracture, LDB 18
+/** Pénalités permanentes à une Compétence nommée dues aux traumatismes (séquelle de fracture, LDB 18
  *  l.202/212 — ex. −5/−10 « Langue » après une fracture à la Tête). `testSense` restreint les `skillMod`
  *  qui portent un `sense` (Surdité, LDB 18 : Perception auditive seulement — `senseMatches`) au Test COURANT ;
- *  transmis par `testValue`. Non-cumul (LDB 16 l.13) ; ≤ 0. */
+ *  transmis par `testValue`. Sommées (LDB 14 l.95) ; ≤ 0. */
 export function traumaSkillPenaltyParts(c: Combatant, skill?: string, testSense?: PairedSense): PassiveMod[] {
   if (!skill) return [];
   // Esquive est porté par traumaDodgePenalty (defenseValue) → EXCLU ici pour préserver la séparation historique.
-  const cand = pmodsFull(c, 'skillMod', false).filter((m) => {
+  return pmodsFull(c, 'skillMod', false).filter((m) => {
     const o = m.op as Extract<GameOp, { op: 'skillMod' }>;
     return o.skill.id !== 'esquive' && o.skill.id === skill && o.mod < 0 && senseMatches(o.sense, testSense);
   });
-  // Non-cumul (LDB 16 l.13) : la PIRE seule — comparaison STRICTE, un ex æquo ne détrône pas le tenant
-  // (même arbitrage déterministe que `poolWinner`, conditions.ts).
-  const worst = cand.reduce<PassiveMod | undefined>((best, m) => (
-    best == null || (m.op as Extract<GameOp, { op: 'skillMod' }>).mod < (best.op as Extract<GameOp, { op: 'skillMod' }>).mod ? m : best), undefined);
-  return worst ? [worst] : [];
 }
 
-/** Σ de `traumaSkillPenaltyParts` (0 ou 1 entrée : pool non-cumul) — SOURCE UNIQUE. */
+/** Σ de `traumaSkillPenaltyParts` — SOURCE UNIQUE. */
 export function traumaSkillPenalty(c: Combatant, skill?: string, testSense?: PairedSense): number {
   return traumaSkillPenaltyParts(c, skill, testSense).reduce((s, m) => s + (m.op as Extract<GameOp, { op: 'skillMod' }>).mod, 0);
 }

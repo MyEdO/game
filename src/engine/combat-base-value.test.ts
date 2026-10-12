@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { combatBaseValue, combatValueMods, combatValue, defenseBaseValue, defenseValueMods, defenseValue, combineMods } from './combat';
+import { combatBaseValue, combatValueMods, combatValue, defenseBaseValue, defenseValueMods, defenseValueModParts, defenseValue, combineMods } from './combat';
+import { traumaById, dechirureFractureFicheId } from './trauma';
 import { skillBaseValue } from './skills';
 import { COND } from './conditions';
 import type { Characteristics, Combatant, ItemInstance, Weapon } from './types';
@@ -18,6 +19,7 @@ function hero(opts: {
   activeEffects?: Combatant['activeEffects'];
   skills?: Combatant['skills'];
   enc?: number;
+  traumas?: Combatant['traumas'];
 } = {}): Combatant {
   const enc = opts.enc ?? 0;
   const items: ItemInstance[] = enc > 0 ? [{ uid: 'x', label: 'charge', kind: 'misc', qualities: [], enc, equipped: false }] : [];
@@ -30,7 +32,7 @@ function hero(opts: {
     activeEffects: opts.activeEffects,
     weapons: [epee],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    items, skills: opts.skills ?? [], talents: [], movement: 4,
+    items, skills: opts.skills ?? [], talents: [], movement: 4, traumas: opts.traumas ?? [],
   } as unknown as Combatant;
 }
 
@@ -108,6 +110,13 @@ describe('defenseBaseValue / defenseValueMods — Esquive, Parade, substitution 
     expect(defenseValueMods(c, 'esquive')).toBe(-40);
     expect(defenseValue(c, 'esquive')).toBe(defenseBaseValue(c, 'esquive') + defenseValueMods(c, 'esquive'));
     expect(defenseValue(c, 'esquive')).toBe(5); // 45 − 40, PAS 45 − 30
+  });
+
+  it('Esquive : Encombrement + Déchirure musculaire majeure de jambe = deux lignes nommées, sommées (LDB 14 l.95, #1827)', () => {
+    const jambe = traumaById(dechirureFractureFicheId('dechirure', 'majeur', 'jambeD'), undefined, 'jambeD');
+    const c = hero({ enc: 14, traumas: [jambe] });
+    expect(defenseValueModParts(c, 'esquive').map((l) => [l.label, l.value])).toEqual([['Encombrement', -20], [jambe.label, -20]]);
+    expect(defenseValue(c, 'esquive')).toBe(defenseBaseValue(c, 'esquive') - 40);
   });
 
   it('Parade : nue = celle du Corps à corps avec l’arme parante ; Social : la base fournie, sans modificateur', () => {

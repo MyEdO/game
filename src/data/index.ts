@@ -23,6 +23,7 @@ import { parLibelle } from '../lib/ordre.mjs';
 import { tableTotale } from '../lib/tableTotale';
 import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource } from '../engine/types';
+import type { PairedSense } from '../engine/ops';
 import characteristicsJson from './characteristics.json';
 import speciesJson from './species.json';
 import speciesRaceJson from './speciesRace.json';
@@ -982,11 +983,10 @@ export interface SkillData {
    *  Empêtré (`movementOnly`). Classification de COMPÉTENCE portée par la DONNÉE (éditable au Codex),
    *  lue par `engine/conditions.testStatePenalty`, jamais par une liste d'ids en dur. */
   movement?: boolean;
-  /** Test « impliquant l'audition » (LDB 16 l.29) : ciblé par la pénalité d'État Assourdi (`hearingOnly`).
-   *  Classification de COMPÉTENCE portée par la DONNÉE (Perception — l'ouïe est un de ses sens), lue par
-   *  `engine/conditions.testStatePenalty`. Approximation assumée : le −10 d'Assourdi ne s'applique qu'aux
-   *  Tests des Compétences marquées `hearing` (faute d'un tag « ce Test précis fait appel à l'ouïe »). */
-  hearing?: boolean;
+  /** Sens qu'implique un Test de cette Compétence (LDB 16 l.29, l.45 ; LDB 18 l.273) : ciblé par les
+   *  pénalités restreintes à un sens (`testMod.sense`). Classification portée par la DONNÉE, lue par
+   *  `engine/conditions`. LDB 18 l.273 « et autres » : seules les Compétences qu'il nomme sont classées. */
+  senses?: PairedSense[];
   /** Caractéristique ALTERNATIVE de cette Compétence sous RÈGLE OPTIONNELLE (Métier comme Savoir → Int,
    *  `LDB 09 l.358` ; Intimidation → FM/Int, `LDB 09 l.294`) : `gatedByRule` = id d'`OptionalRule`
    *  (FK anti-fantôme `data/variants-integrity.test.ts`), `from` = Caractéristique de base à laquelle la
@@ -1977,9 +1977,9 @@ export interface SymptomCapabilities {
   persistentActive?: boolean; // Vers de carie : la phase active NE guérit JAMAIS naturellement (dégénérescence quotidienne jusqu'à la Mort, MSRC 16 l.90-101)
 }
 /** Symptôme de maladie (LDB 20) — entité de DONNÉE éditable au Codex, mécaniques en GameOp / 3 canaux
- *  (comme un trait/qualité). `passive` = pénalités continues (charMod) ; `passiveBySeverity` S'AJOUTE à
- *  `passive` pour chaque palier ATTEINT par l'instance, en magnitude ABSOLUE — la pire pénalité l'emporte
- *  (LDB 20 l.157/l.170) ; `onTick` = Test de cycle quotidien +
+ *  (comme un trait/qualité). `passive` = pénalités continues (charMod) ; `passiveBySeverity` = ops de
+ *  chaque palier ATTEINT par l'instance, l'op de même cible REMPLACÉE (`symptomPassive`,
+ *  LDB 20 l.157/l.170) ; `onTick` = Test de cycle quotidien +
  *  conséquence GameOp appliquée par la cascade (différée/influençable) ; `capabilities` = règles
  *  irréductibles lues par la machinerie de maladie. */
 export interface SymptomData {

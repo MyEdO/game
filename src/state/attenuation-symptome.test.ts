@@ -98,9 +98,9 @@ describe('l’atténuation dure une JOURNÉE, puis l’échelon revient (LDB 20 
 
   it('les pénalités de BASE tiennent sous l’atténuation (l.170 : le palier s’AJOUTE, il ne remplace pas)', () => {
     const h = fievreux();
-    const base = diseasePassiveOps(h).filter((m) => m.src?.id === 'fievre' && m.op.op === 'charMod').length;
+    const base = diseasePassiveOps(h).filter((m) => m.src?.id === 'fievre' && m.op.op === 'testMod').length;
     applyOps(h, [{ op: 'attenuateSymptom', disease: 'pneumonie', symptomId: 'fievre' }], { rng: seq([]), defaultUntilTime: MINUTES_PER_DAY, label: 'Mélange alchimique' });
-    const apres = diseasePassiveOps(h).filter((m) => m.src?.id === 'fievre' && m.op.op === 'charMod').length;
+    const apres = diseasePassiveOps(h).filter((m) => m.src?.id === 'fievre' && m.op.op === 'testMod').length;
     expect(apres, 'les −10 de la Fièvre ont sauté avec le palier').toBe(base);
     expect(base).toBeGreaterThan(0);
   });

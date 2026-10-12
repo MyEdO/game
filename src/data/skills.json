@@ -116,6 +116,9 @@
     "label": "Chevaucher",
     "characteristic": "agilite",
     "acces": "base",
+    "senses": [
+      "vue"
+    ],
     "specs": [
       {
         "id": "blaireau",
@@ -205,6 +208,9 @@
     "label": "Corps à corps",
     "characteristic": "capacite-de-combat",
     "acces": "base",
+    "senses": [
+      "vue"
+    ],
     "specsSource": "weaponGroupsMelee",
     "desc": "La Compétence Corps à corps représente l'entraînement spécifique que vous avez reçu avec un seul type d'armes de combat rapproché. Chaque Spécialisation de Corps à corps indique un entraînement à une classe d'arme spécifique. Si vous n'avez pas la Spécialisation appropriée pour une arme que vous souhaitez utiliser, référez-vous au Chapitre 11 : Guide de l'équipement pour consulter les statistiques de l'arme et savoir quelles pénalités vous subirez. Voir Chapitre 5 : Règles pour plus d'informations sur les combats et l'utilisation de la Compétence Corps à corps.",
     "source": {
@@ -527,6 +533,9 @@
     "label": "Esquive",
     "characteristic": "agilite",
     "acces": "base",
+    "senses": [
+      "vue"
+    ],
     "specs": [],
     "desc": "L'Esquive est votre capacité à éviter les objets, en esquivant, plongeant ou en vous déplaçant rapidement. Elle est beaucoup utilisée pour éviter les chutes de pierre, les coups portés, les pièges inattendus, etc.\n\nEn combat, l'Esquive est généralement utilisée pour résister aux attaques ou éviter les Dégâts. Référez-vous au Chapitre 5 : Règles pour plus d'informations à ce sujet.",
     "source": {
@@ -1105,7 +1114,10 @@
     "label": "Perception",
     "characteristic": "initiative",
     "acces": "base",
-    "hearing": true,
+    "senses": [
+      "vue",
+      "ouie"
+    ],
     "specs": [],
     "desc": "Il s'agit de votre capacité à percevoir des choses avec vos sens – la vue, l'odorat, l'ouïe, le toucher et le goût, et tout autre sens comme des sens magiques ou non humains. Votre MJ peut vous demander d'effectuer un Test de Perception pour détecter quelque chose, comme un mouvement derrière la ligne des arbres, la présence d'un piège ou quelqu'un qui vous suit, modifié par la facilité à le remarquer. La Perception est aussi utilisée pour résister aux tentatives pour dissimuler des choses par le biais de Compétences telles qu'Escamotage ou Discrétion.\n\nLa Perception a de nombreuses utilités en combat, le plus souvent pour remarquer des détails importants, au-delà de ce qui est évident dans l'environnement alentour et vos adversaires, comme déterminé par le MJ.",
     "source": {
@@ -1161,6 +1173,9 @@
     "label": "Projectiles",
     "characteristic": "capacite-de-tir",
     "acces": "avancee",
+    "senses": [
+      "vue"
+    ],
     "specsSource": "weaponGroupsRanged",
     "desc": "Bien que tout le monde puisse lancer une simple pierre en utilisant la Capacité de Tir, il faut de l'entraînement et de la pratique pour utiliser des armes comme des arcs et des pistolets. Chaque Spécialisation de Projectiles représente un groupe particulier d'armes à distance. Si vous ne possédez pas la Spécialisation Projectiles pour une arme dont vous souhaitez user, référez-vous au Chapitre 11 : Guide de l'équipement pour voir quelles pénalités vous subirez en l'utilisant. Voir le Chapitre 5 : Règles pour plus de détails sur le combat à distance.",
     "source": {

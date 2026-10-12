@@ -18,7 +18,7 @@
       {
         "op": "testMod",
         "amount": -10,
-        "hearingOnly": true
+        "sense": "ouie"
       }
     ],
     "perStack": true,
@@ -103,7 +103,7 @@
       {
         "op": "testMod",
         "amount": -10,
-        "combatOnly": true
+        "sense": "vue"
       }
     ],
     "perStack": true,
@@ -553,6 +553,18 @@
       "page": 169
     },
     "persistsAfterCombat": true,
+    "passive": [
+      {
+        "op": "testMod",
+        "amount": -10,
+        "diseases": [
+          "blessure-purulente",
+          "infection-mineure",
+          "infection-du-sang"
+        ]
+      }
+    ],
+    "perStack": true,
     "effects": [
       {
         "trigger": "onRoundEnd",

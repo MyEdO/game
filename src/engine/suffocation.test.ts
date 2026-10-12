@@ -51,6 +51,13 @@ describe('suffocationTick — Noyade et Suffocation (LDB 18 l.346)', () => {
     suffocationTick(c); // 0 → mort
     expect(inDeathCondition(c)).toBe(true);
   });
+  it('BE 0 : la mort suit l’Inconscient sans Round de grâce (LDB 18 l.346, #1817)', () => {
+    const c = mk({ wounds: { current: 1, max: 12 }, characteristics: { ...mk().characteristics, endurance: 9 } });
+    suffocationTick(c);
+    expect(hasCondition(c, 'inconscient')).toBe(true);
+    expect(c.suffocationCountdown).toBe(0);
+    expect(inDeathCondition(c)).toBe(true);
+  });
   it('Bénédiction de Souffle : « ignore les règles de suffocation » — aucun effet', () => {
     const c = mk();
     c.activeEffects!.push({ label: 'Bénédiction de Souffle', bonus: 0, duration: { scale: 'rounds', left: 6 }, noBreath: true });

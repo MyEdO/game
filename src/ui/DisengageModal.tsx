@@ -1,7 +1,8 @@
 import { useGame } from '../state/store';
+import { defenseDodgeMods } from '../state/combatFlow';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
-import { defenseValue, combatValue, defenseModifiers, baseTestModLines } from '../engine/combat';
+import { defenseValue, defenseBaseValue, defenseValueModParts, combatValue, defenseModifiers, baseTestModLines, weaponSkillId } from '../engine/combat';
 import { calmeValue } from '../engine/psychology';
 import { groupAdvantage } from '../engine/advantagePool';
 import { retreatAdvantageCost } from '../engine/combatFeatures/dispatch';
@@ -17,7 +18,7 @@ import { fleeBackstab, fleeCalme, fleeNeedCalme, type PendingDisengage } from '.
 import { Modal } from './Modal';
 import { Stack } from './Layout';
 import { Icon } from './Icon';
-import { opposedLines, testBreakdown } from './breakdown';
+import { optionValue, opposedLines, testBreakdown } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 
@@ -73,7 +74,7 @@ export function DisengageModal() {
       { stake: groupMode ? flowStakeRef('disengage-retraite', { values: { cout: retreatCost } }) : flowStakeRef('disengage-sacrifice'),
         option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: sacrifice, title: sacrificeTitle } },
       { stake: flowStakeRef('disengage-esquive'),
-        option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: defenseValue(mover, 'esquive'), hidden: pd.canEsquive === false, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
+        option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: optionValue(defenseValue(mover, 'esquive'), defenseModifiers(mover, 'esquive', defenseDodgeMods(useGame.getState(), mover))), hidden: pd.canEsquive === false, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
       { stake: flowStakeRef('disengage-fuir'),
         option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canEsquive === false, onSelect: flee, title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours' } },
     ].filter((o) => !o.option.hidden);
@@ -179,8 +180,8 @@ export function DisengageModal() {
   // le Corps à corps « brut » du foe (`rollDisengageAttack`), `defenseModifiers` pour l'Esquive du mover
   // (`rollMeleeDefender`) — jamais un +N anonyme dans la cible.
   const [foeLine, moverLine] = opposedLines([
-    { label: 'Corps à corps', base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat') },
-    { label: 'Esquive', base: defenseValue(mover, 'esquive'), r: pd.def, mods: defenseModifiers(mover, 'esquive') },
+    { label: 'Corps à corps', base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
+    { label: 'Esquive', base: defenseBaseValue(mover, 'esquive'), r: pd.def, mods: [...defenseValueModParts(mover, 'esquive'), ...defenseModifiers(mover, 'esquive', defenseDodgeMods(useGame.getState(), mover))] },
   ]);
   // Rangée [0] = TÉMOIN : Corps à corps du foe, figé à l'ouverture (jamais relancé, aucun bouton) —
   // même calendrier de découverte que les autres jets figés (#990 : `pd.def` = la réponse du mover).

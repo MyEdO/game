@@ -1,6 +1,6 @@
 /**
  * engine/ops — vocabulaire d'effets partagé (sorts / tables de contrecoup /
- * mutations) : formules, applicateur, non-cumul des modificateurs (LDB 16 l.13).
+ * mutations) : formules, applicateur, pose des effets actifs (LDB 46 l.119, LDB 40 l.19, LDB 14 l.95).
  */
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
@@ -10,6 +10,9 @@ import { hasTraitKey } from './traits/dispatch';
 import { woundsFromHit } from './combat';
 import type { Weapon } from './types';
 import { recomputeLoadout, isUnarmed, itemFromTrappingById } from './items';
+import { effectiveChar } from './characteristics';
+import { spellOps } from './flowCore';
+import { findSpellById } from '../data';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -513,17 +516,43 @@ describe('applyOps — opérations unitaires', () => {
   });
 });
 
-describe('applyActiveEffect — non-cumul (LDB 16 l.13)', () => {
-  it('meilleur bonus conservé, pire pénalité conservée, bonus+pénalité coexistent', () => {
-    const c = hero();
-    applyActiveEffect(c, { label: 'A', char: 'force-mentale', bonus: 10, duration: { scale: 'rounds', left: 3 } });
-    applyActiveEffect(c, { label: 'B', char: 'force-mentale', bonus: 20, duration: { scale: 'rounds', left: 2 } });
-    applyActiveEffect(c, { label: 'C', char: 'force-mentale', bonus: 5, duration: { scale: 'rounds', left: 9 } });
-    applyActiveEffect(c, { label: 'D', char: 'force-mentale', bonus: -10, duration: { scale: 'rounds', left: 1 } });
-    const fm = c.activeEffects!.filter((e) => e.char === 'force-mentale');
-    expect(fm).toHaveLength(2); // un bonus (le meilleur : B +20) + une pénalité (D -10)
-    expect(fm.find((e) => e.bonus > 0)).toMatchObject({ label: 'B', bonus: 20 });
-    expect(fm.find((e) => e.bonus < 0)).toMatchObject({ label: 'D', bonus: -10 });
+describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveChar', () => {
+  const sort = (id: string, casterId = 'm') => ({ source: { kind: 'spell' as const, id }, sourceSpell: { spellId: id, ni: 5, casterId, label: id } });
+  /** ctx de `runCastFlow` (`src/state/combatFlow.ts`) : `source.kind` vaut `spell` pour TOUT lancement. */
+  const priere = (id: string) => ({ source: { kind: 'spell' as const, id }, sourceSpellId: id });
+  const pose = (c: Combatant, mod: number, ctx: object) => applyOps(c, [{ op: 'charMod', char: 'force', mod }], { label: 'Effet', defaultDurationRounds: 6, ...ctx });
+  it('deux Prières DIFFÉRENTES se somment ; la MÊME Prière ne se cumule pas (LDB 40 l.19)', () => {
+    const c = hero(); pose(c, 10, priere('benediction-de-bataille')); pose(c, 10, priere('prouesses-martiales'));
+    expect(effectiveChar(c, 'force')).toBe(50);
+    const d = hero(); pose(d, 10, priere('benediction-de-bataille')); pose(d, 10, priere('benediction-de-bataille'));
+    expect(effectiveChar(d, 'force')).toBe(40);
+  });
+  it('Prière + Sort se somment (pools distincts)', () => {
+    const c = hero(); pose(c, 10, priere('benediction-de-bataille')); pose(c, 20, sort('malediction-d-anraheir'));
+    expect(effectiveChar(c, 'force')).toBe(60);
+  });
+  it('ops du catalogue posées avec le ctx de runCastFlow : Bénédiction de bataille + Prouesses martiales se somment (LDB 40 l.19)', () => {
+    const caster = hero({ id: 'pretre' });
+    const lancer = (t: Combatant, id: string) => {
+      const sp = findSpellById(id)!;
+      applyOps(t, spellOps(sp.effects, 'target'), { caster, label: sp.label, sourceSpellId: id, source: { kind: 'spell', id }, defaultDurationRounds: 6 });
+    };
+    const t = hero(); lancer(t, 'benediction-de-bataille'); lancer(t, 'prouesses-martiales');
+    expect(effectiveChar(t, 'capacite-de-combat')).toBe(t.characteristics['capacite-de-combat'] + 20);
+    const u = hero(); lancer(u, 'benediction-de-bataille'); lancer(u, 'benediction-de-bataille');
+    expect(effectiveChar(u, 'capacite-de-combat')).toBe(u.characteristics['capacite-de-combat'] + 10);
+  });
+  it('Sorts entre eux : meilleur bonus et pire pénalité (LDB 46 l.119)', () => {
+    const c = hero(); pose(c, 10, sort('s1')); pose(c, 20, sort('s2')); pose(c, -10, sort('s3'));
+    expect(effectiveChar(c, 'force')).toBe(40);
+  });
+  it('objet −10 + Sort −10 se somment (LDB 14 l.95)', () => {
+    const c = hero(); pose(c, -10, { source: { kind: 'trapping', id: 'o' } }); pose(c, -10, sort('s'));
+    expect(effectiveChar(c, 'force')).toBe(10);
+  });
+  it('un même Sort d’un même lanceur n’est actif qu’une fois : la nouvelle pose remplace (LDB 46 l.119)', () => {
+    const c = hero(); pose(c, 10, sort('s')); pose(c, 20, sort('s'));
+    expect(c.activeEffects!.filter((e) => e.char === 'force').map((e) => e.bonus)).toEqual([20]);
   });
 
   it('buff de F/E/FM recale les Blessures max (LDB 85)', () => {

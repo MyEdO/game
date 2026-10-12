@@ -10,7 +10,9 @@
  *  1. le TEXTE EXACT rendu (signe typographique compris) ;
  *  2. la chip EST l'affordance Codex, et son infobulle s'OUVRE ;
  *  3. CHAQUE catégorie émise (`etats`, `spells`, `symptoms`, `traits`) résout au registre Codex —
- *     une catégorie mal orthographiée rendrait la pastille muette à l'écran.
+ *     une catégorie mal orthographiée rendrait la pastille muette à l'écran. Les quatre coexistent
+ *     sur un même Combatant : pool des États (LDB 16 l.13) et pool des auras de trait (LDB 85
+ *     l.262) sont distincts et se somment (LDB 14 l.95), à côté des Sorts et des symptômes.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
@@ -109,19 +111,14 @@ describe('Chips de pénalité — texte EXACT et infobulle, du Combatant à l’
     addCondition(c, COND.sonne);
     c.diseases = [activeDisease('crampes-abdominales')];
     c.activeEffects = [CURSE];
-    // Aura IDENTIFIÉE, plus forte que l'État → c'est elle qui gagne le pool et donne la catégorie `traits`.
+    // État (LDB 16 l.13) et aura de trait (LDB 85 l.262) : deux pools distincts, chacun émet son gagnant.
     c.auraMods = [{ op: { op: 'testMod', amount: -20 }, src: { category: 'traits', id: 'perturbant' } }];
     const refs = conditionModLines(c).map((m) => m.ref);
     expect(refs.every((r) => r != null), 'aucune ligne sans renvoi').toBe(true);
-    expect(new Set(refs.map((r) => r!.category))).toEqual(new Set(['traits', 'spells', 'symptoms']));
+    expect(new Set(refs.map((r) => r!.category))).toEqual(new Set(['etats', 'traits', 'spells', 'symptoms']));
     for (const r of refs) {
       expect(codexLookupById(r!.category, r!.id), `${r!.category}/${r!.id} introuvable au Codex`).toBeTruthy();
     }
-    // Et la catégorie `etats` (pool gagné par un État) résout au même registre.
-    const e = mk(); addCondition(e, COND.sonne);
-    const etatRef = conditionModLines(e)[0].ref!;
-    expect(etatRef.category).toBe('etats');
-    expect(codexLookupById(etatRef.category, etatRef.id)).toBeTruthy();
   });
 
   // ── Bonus à l'ATTAQUANT : la chip vit côté ATTAQUANT (`attackModifiers`, mêlée), pas sur la ligne
