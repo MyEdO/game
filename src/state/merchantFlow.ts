@@ -13,13 +13,13 @@ import { SL_ASTOUNDING } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
 import type { SceneEntity } from './scene';
-import { partyAssisted, skillBaseValue, type SupportDetail } from '../engine/skills';
+import { partyAssisted, skillBaseValue, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
 import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
 import type { Availability } from '../engine/types';
-import { t, t as msg, deElide } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
+import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type StatusTier, type Money } from '../engine/money';
 import { bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse } from './bourseFlow';
 import { actorStatus } from '../engine/social';
@@ -864,8 +864,7 @@ function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect'): { acto
   return mode === 'detect' ? bestDetector(party) : partyAssisted(party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic);
 }
 
-const appraiseNobody = (mode: 'evaluate' | 'detect'): string =>
-  msg('mf.appraiseNobody', { de: deElide(refLabel('skills', { id: APPRAISE_SKILL[mode].skill })) });
+const appraiseNobody = (mode: 'evaluate' | 'detect'): string => refusPersonneNePeutTenter({ skill: APPRAISE_SKILL[mode].skill });
 
 /** Refus NOMMÉ d'une Évaluation/Détection que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste
  *  de l'UI en dérive. */

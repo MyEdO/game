@@ -24,7 +24,7 @@ import { mdToText } from './Prose';
 import { rule } from '../engine/policy';
 import { forcePaceDifficulty } from '../engine/seaNavigation';
 import { shipHasNavalTrait, vesselNavalTraits, navalTraitsDe } from '../engine/navalTraits';
-import { vesselPropulsion } from '../engine/shipBuild';
+import { vesselPropulsion, propulsionSkill } from '../engine/shipBuild';
 import { DIFFICULTY_LABELS, type NavalTraitRef } from '../engine/types';
 import { TravelRolesPanel } from './TravelRolesPanel';
 import { ShipRolesPanel } from './ShipRolesPanel';
@@ -574,7 +574,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                     enabled={!refus}
                     {...raisonSi(refus)}
                     descOfferte={b && diff
-                      ? t('wm.rythmeForceTitre', { de: deElide(skillInstanceLabel({ id: seaRig === 'voile' ? 'voile' : 'ramer' })), difficulte: DIFFICULTY_LABELS[diff], bonus: b })
+                      ? t('wm.rythmeForceTitre', { de: deElide(skillInstanceLabel({ id: propulsionSkill(seaRig) })), difficulte: DIFFICULTY_LABELS[diff], bonus: b })
                       : t('wm.rythmeConception')}
                     onClick={() => setSeaPace(b)}
                     primary={false}

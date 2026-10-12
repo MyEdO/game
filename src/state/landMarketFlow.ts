@@ -37,6 +37,7 @@ import {
 import { type CargoLot, loadCargo, carrierCanLoad, carrierFreeEnc, transferCargo } from '../engine/cargo';
 import { findLieuServiceById, combatStakeRef } from '../data/index';
 import { primaryCargoCarrier, carrierById, persistCarriersCargo } from './carriers';
+import { appraiseRefus, APPRAISE_SKILL } from './merchantFlow';
 import { seasonOfMonth } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
 import type { Get, Set } from './flowTypes';
@@ -187,8 +188,9 @@ export function landEvalWine(get: Get, set: Set, cargoId: string): void {
   if (!st) return;
   const offer = st.offers.find((o) => o.cargoId === cargoId);
   if (!offer || !offer.wine || offer.wineTier) return; // pas du vin, ou déjà évalué
-  const best = partyBest(get().party, 'evaluation');
-  if (!best) { log(get, set, ['Personne dans le groupe ne sait évaluer un vin.']); return; }
+  const refus = appraiseRefus(get().party);
+  if (refus) { log(get, set, [refus]); return; }
+  const best = partyBest(get().party, APPRAISE_SKILL.evaluate.skill)!;
   const diff = wineEvalDifficulty(testValue(best.actor, 'resistance-a-l-alcool'));
   // #274 sweep : `rollTest` inline silencieux — migré sur `openRoll`.
   openPartyTest(get, set, {

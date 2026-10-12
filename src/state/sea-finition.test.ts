@@ -65,12 +65,14 @@ function freshState() {
  *  (Ouragan/Prière — `seaVoyageFlow.ts`), comme un vrai clic UI l'espacerait. */
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 
-async function runOneSeaDay() {
+async function runOneSeaDay(): Promise<string[]> {
+  const kinds: string[] = [];
   for (let i = 0; i < 40; i++) {
     if (get().pendingRest || get().pendingSeaActivities) break;
     const casc = get().pendingCascade;
     if (casc) {
       const cur = casc.participants[casc.cursor];
+      if (cur) kinds.push(cur.kind);
       // Choix de Progression (MDG 14 l.63) : le pilote répond par défaut, comme la cadence commandée.
       if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
       else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().cascadeBatchRoll(part.id); }
@@ -81,6 +83,7 @@ async function runOneSeaDay() {
     }
     break;
   }
+  return kinds;
 }
 
 /** Déroule la cascade des Activités en mer (#273 Étape 2, `purpose:'seaActivities'`) + un éventuel
@@ -134,15 +137,16 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     expect(day).toMatch(/Épuisement.*rythme forcé/);
   });
 
-  it('personne qui puisse tenter la Voile (LDB 09 l.30) : refus NOMMÉ au recap, rythme non forcé, aucun Épuisement', async () => {
+  it('personne qui puisse tenter la Voile (LDB 09 l.30) : refus NOMMÉ au recap, aucune étape forcée, aucun Épuisement du rythme forcé', async () => {
     seedBattleRng(1);
     // Aucun prétiré n'a d'Augmentation en Voile : le rythme demandé ne peut pas être tenté.
     expect(get().party.some((h) => h.skills.some((sk) => sk.id === 'voile' && (sk.advances ?? 0) > 0))).toBe(false);
     get().startTravel('r1', 'mer', { seaPace: 1 });
-    await runOneSeaDay();
+    const kinds = await runOneSeaDay();
     const day = get().pendingRest!.travelDay!.lines.map((l) => l.text).join('\n');
-    expect(day).toContain('Forcer le rythme : personne dans le groupe ne peut tenter le Test de Voile — le navire garde son allure.');
-    expect(day).not.toMatch(/Épuisement/);
+    expect(day).toContain('Forcer le rythme : Personne dans le groupe ne peut tenter le Test de Voile. Le navire garde son allure.');
+    expect(kinds).not.toContain('sea-force-pace');
+    expect(day).not.toMatch(/Épuisement.*rythme forcé/);
   });
 });
 

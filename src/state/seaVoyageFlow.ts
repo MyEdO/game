@@ -52,13 +52,13 @@ import { registerScene } from './store';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence } from '../data';
-import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, vesselPropulsion, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
+import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, vesselPropulsion, propulsionSkill, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { rollTest, isDoubleRoll, extendedTestStep } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
-import { testValue, partyAssisted, partyBest } from '../engine/skills';
+import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter } from '../engine/skills';
 import { buildWeapon } from '../engine/items';
 import { applyOps, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './shipDamage';
@@ -542,20 +542,17 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
   }, participants);
 }
 
-/** Compétence du Test de Forcer le rythme selon la propulsion (MDG 13 l.95). */
-const forcePaceSkill = (rig: PropulsionKind): string => (rig === 'voile' ? 'voile' : 'ramer');
-
-/** Refus NOMMÉ de Forcer le rythme quand personne ne peut tenter son Test (MDG 13 l.95, LDB 09 l.30) ; `null`
+/** Refus NOMMÉ de Forcer le rythme quand personne ne peut tenter son Test (MDG 13 l.97, LDB 09 l.30) ; `null`
  *  sinon. Le geste de départ (`WorldMapView`) et l'étape du jour en dérivent. */
 export function forcePaceRefus(party: Combatant[], rig: PropulsionKind): string | null {
-  const skillId = forcePaceSkill(rig);
-  return partyBest(party, skillId) ? null : t('sv.paceNobody', { skill: refLabel('skills', { id: skillId }) });
+  const skillId = propulsionSkill(rig);
+  return partyBest(party, skillId) ? null : refusPersonneNePeutTenter({ skill: skillId });
 }
 
 /** Étape MONO « Forcer le rythme » (MDG 13 l.95-107, `sea-force-pace`, applier ci-dessous) : le meilleur
  *  PJ soutenu (LDB 12) tente le Test de Voile/Ramer du jour. `undefined` = pas demandé, déjà tranché
  *  aujourd'hui, vapeur (ni voiles ni avirons à forcer), ou personne qui puisse tenter (refus nommé au
- *  journal ; MDG 13 l.95, LDB 09 l.30). */
+ *  journal ; MDG 13 l.97, LDB 09 l.30). */
 function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
@@ -567,8 +564,8 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
   const diff = forcePaceDifficulty(sea.forcePace, rig);
   if (!diff) return undefined;
   const refus = forcePaceRefus(get().party, rig);
-  if (refus) { tell(get, set, [refus]); return undefined; }
-  const skillId = forcePaceSkill(rig);
+  if (refus) { tell(get, set, [t('sv.paceRefus', { refus })]); return undefined; }
+  const skillId = propulsionSkill(rig);
   const best = partyAssisted(get().party, skillId)!;
   const test = { skill: skillId, label: t('sv.forcePace') };
   return monoStep({
@@ -584,15 +581,17 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
   });
 }
 
+/** Compétence de Navigation du navire du voyage (MDG 13 l.18-19). */
+function helmSkill(get: Get): 'voile' | 'ramer' {
+  const vd = findVehicleById(get().travelPlan?.vehicle?.creatureId ?? '')?.ship;
+  return propulsionSkill(vesselPropulsion(vd)?.mode ?? 'voile');
+}
+
 /** Étape MONO « Test de Navigation » de PROGRESSION (MDG 13 l.64-66) : le meilleur PJ soutenu lance
  *  Voile/Ramer selon la propulsion, et son DR se lit au MÊME tableau de progression que le Test
  *  d'équipage (`applySeaProgress` → `seaMilesPerDay`). `undefined` = aucun PJ éligible. */
 function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
-  const plan = get().travelPlan!;
-  const hull = plan.vehicle!;
-  const vd = findVehicleById(hull.creatureId ?? '')?.ship;
-  const rig: PropulsionKind = vesselPropulsion(vd)?.mode ?? 'voile';
-  const skillId = rig === 'avirons' ? 'ramer' : 'voile';
+  const skillId = helmSkill(get);
   const best = partyAssisted(get().party, skillId);
   if (!best) return undefined;
   const test = { skill: skillId, label: t('sv.navigation') };
@@ -608,19 +607,20 @@ function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
 
 /** La Progression du jour laisse au joueur le choix ouvert par MDG 14 l.63 (« vous POUVEZ effectuer un
  *  Test d'équipage AU LIEU d'un Test de Navigation ») : aucune des deux voies ne se prend en silence.
+ *  La voie Navigation que personne ne peut tenter reste OFFERTE, fermée avec son refus (LDB 09 l.30).
  *  `defaultChoice` = l'équipage, la voie du grand vaisseau — c'est elle qui s'applique en cadence
  *  COMMANDÉE (`runCascadeImmediate`), où le joueur n'est pas à la manœuvre. Le PORTEUR est le barreur
- *  que la voie Navigation ferait jouer : c'est lui que la décision engage. */
+ *  (`seaDecider`) : c'est lui que la décision engage. */
 function buildProgressionChoiceStep(get: Get): BuiltCascadeStep | undefined {
-  const nav = buildNavProgressionStep(get);
-  if (!buildVoyageCrewStep(get, 'progression', 'progression') || !nav) return undefined;
+  if (!buildVoyageCrewStep(get, 'progression', 'progression')) return undefined;
+  const navRefus = buildNavProgressionStep(get) ? undefined : refusPersonneNePeutTenter({ skill: helmSkill(get) });
   return choiceStep({
     id: 'sea-progression-choice', kind: 'sea-progression-choice', icon: 'travel/anchor',
-    actorId: nav.actorId ?? '',
+    actorId: seaDecider(get),
     label: t('step.seaProgression'),
     options: [
       { key: 'crew', label: t('opt.testEquipage'), detail: t('sv.detailCrew') },
-      { key: 'nav', label: t('opt.testNavigation'), detail: t('sv.detailNav') },
+      { key: 'nav', label: t('opt.testNavigation'), detail: t('sv.detailNav'), ...(navRefus ? { refus: navRefus } : {}) },
     ],
     defaultChoice: 'crew',
     stakeRule: { category: 'regles', id: 'test-equipage-progression' },
@@ -2282,10 +2282,8 @@ function seaBoardingFromEvent(event: SeaEventDef): SeaBoarding | undefined {
  *  le meilleur à la barre (Voile/Ramer soutenu), à défaut le premier vivant. La porte de choix exige un
  *  porteur : sans lui, la fenêtre échoit à l'hôte, qui trancherait pour le siège d'un autre. */
 function seaDecider(get: Get): string {
-  const vd = findVehicleById(get().travelPlan?.vehicle?.creatureId ?? '')?.ship;
-  const skillId = vesselPropulsion(vd)?.mode === 'avirons' ? 'ramer' : 'voile';
   const party = get().party;
-  return partyAssisted(party, skillId)?.actor.id ?? party.find((h) => !h.dead)?.id ?? '';
+  return partyAssisted(party, helmSkill(get))?.actor.id ?? party.find((h) => !h.dead)?.id ?? '';
 }
 
 /** `meta` de l'étape `sea-pirate-hail` : l'événement de mer qui nomme le pirate. */

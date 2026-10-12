@@ -182,6 +182,17 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     expect(typeof after.wineEvalOk).toBe('boolean');
   });
 
+  it('personne qui puisse tenter l’Évaluation (LDB 09 l.30) : landEvalWine journalise le refus NOMMÉ, aucun Test ouvert', () => {
+    seedBattleRng(3);
+    get().openLandMarket();
+    const wine = get().landMarket!.offers.find((o) => o.wine)!;
+    set({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((sk) => sk.id !== 'evaluation') })) });
+    get().landEvalWine(wine.cargoId);
+    expect(get().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
+    expect(get().pendingCascade).toBeNull();
+    expect(get().landMarket!.offers.find((o) => o.cargoId === wine.cargoId)!.wineTier).toBeUndefined();
+  });
+
   it('rumeur commerciale (l.180) : le bien se vend au DOUBLE au Lieu DÉSIGNÉ par la rumeur du board (#99)', () => {
     const mkt = { taille: 4, richesse: 3, produits: ['vivres', 'commerce'] };
     const lot: CargoLot = { cargoId: 'vivres', enc: 100, basePriceGold: 1 };

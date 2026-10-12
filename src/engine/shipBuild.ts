@@ -52,6 +52,11 @@ export function vesselPropulsion(vd: { sail?: { m: number }; oars?: { m: number 
   return null;
 }
 
+/** Compétence d'un mode de propulsion (MDG 13 l.18-19, l.97). PUR. */
+export function propulsionSkill(rig: PropulsionKind): 'voile' | 'ramer' {
+  return rig === 'voile' ? 'voile' : 'ramer';
+}
+
 export interface StandardShipRow {
   size: ShipSize;
   costGold: number;

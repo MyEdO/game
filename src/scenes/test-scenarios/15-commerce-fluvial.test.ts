@@ -162,8 +162,16 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     return fenetres;
   }
 
-  it('graine 2, cadence par défaut : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
+  /** Le barrage de la descente (MSRC 7 l.128) POSÉ : sa chance d'auteur sur la route, donnée éditable, passe à 100 %. */
+  function barragePose(): void {
+    const wm = get().worldMap!;
+    useGame.setState({ worldMap: { ...wm, routes: wm.routes.map((r) => (r.id !== 'r-grunburg-altdorf' ? r
+      : { ...r, riverPerils: (r.riverPerils ?? []).map((pe) => (pe.perilId === 'barrage' ? { ...pe, chancePct: 100 } : pe)) })) } });
+  }
+
+  it('graine 2, cadence par défaut, barrage posé : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
     seedBattleRng(2);
+    barragePose();
     // Le journal du store est plafonné : chaque ligne se capte à son puits (`log`), le temps de la descente.
     const journal: string[] = [];
     const puits = get().log;
@@ -174,7 +182,8 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     } finally {
       useGame.setState({ log: puits });
     }
-    expect(decisions, 'le barrage du scénario (MSRC 7 l.128) est la seule décision du jour').toEqual(['riverObstacleChoice']);
+    expect(decisions.length, 'le barrage posé est rencontré').toBeGreaterThan(0);
+    expect(new Set(decisions), 'le barrage (MSRC 7 l.128) est la seule décision de la descente').toEqual(new Set(['riverObstacleChoice']));
     expect(get().scene?.id).toBe('quai-altdorf');
     const jours = journal.filter((l) => /^Progression du jour/.test(l)).length;
     expect(jours, `journal :\n${journal.join('\n')}`).toBeGreaterThan(1);

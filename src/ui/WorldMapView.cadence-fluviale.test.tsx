@@ -173,7 +173,7 @@ describe('Forcer le rythme au départ (MDG 13 l.95, LDB 09 l.30) : le geste suit
     act(() => { set({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((s) => s.id !== 'voile') })) }); });
     expect(forcer()!.getAttribute('aria-disabled')).toBe('true');
     expect(host.querySelector('#wm-sea-pace-1-reason')?.textContent)
-      .toBe('Forcer le rythme : personne dans le groupe ne peut tenter le Test de Voile — le navire garde son allure.');
+      .toBe('Personne dans le groupe ne peut tenter le Test de Voile.');
     expect(bouton(String(t('wm.rythmeNormal')))!.getAttribute('aria-disabled'), 'le rythme normal reste offert').toBeNull();
   });
 });

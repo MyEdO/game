@@ -4,7 +4,9 @@
  */
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { Combatant, CharKey, Difficulty } from './types';
-import { byId, psychologies } from '../data';
+import { byId, psychologies, refLabel } from '../data';
+import { t, deElide } from '../i18n';
+import type { PlayerText } from '../i18n/playerText';
 import { itemCapability } from './capabilities';
 import { groupMatch } from './groups';
 import { effectiveChar, bonus } from './characteristics';
@@ -185,6 +187,16 @@ export function possesses(c: Combatant, skillId: string, spec?: string): boolean
  *  Caractéristique), seule la mise hors d'action compte. */
 export function peutTenter(c: Combatant, skill?: string, spec?: string): boolean {
   return !isOutOfAction(c) && (!skill || possesses(c, skill, spec));
+}
+
+/** Refus NOMMÉ du Test (par Compétence) ou de l'action que personne dans le groupe ne peut tenter
+ *  (`peutTenter`). LDB 09 l.30. */
+export function refusPersonneNePeutTenter(quoi: { skill: string } | { action: string }): PlayerText {
+  return t('refus.personneNePeutTenter', {
+    quoi: 'skill' in quoi
+      ? t('refus.quoiTest', { de: deElide(refLabel('skills', { id: quoi.skill })) })
+      : t('refus.quoiAction', { action: quoi.action }),
+  });
 }
 
 /** Le personnage a-t-il AU MOINS UNE Augmentation dans `skillId` (spécialisation ciblée si `spec`) ?

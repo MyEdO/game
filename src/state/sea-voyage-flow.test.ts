@@ -2323,12 +2323,16 @@ describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Pro
     expect(['Voile', 'Ramer']).toContain(nav!.rollLabel);
   });
 
-  it('personne qui puisse tenter la Voile (LDB 09 l.30) : la voie Navigation n’est pas offerte, l’équipage mène la Progression', () => {
+  it('personne qui puisse tenter la Voile (LDB 09 l.30) : la voie Navigation reste OFFERTE, fermée avec son refus nommé', () => {
     useGame.setState({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((sk) => sk.id !== 'voile') })) });
     get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
-    const kinds = get().pendingCascade!.participants.map((s) => s.kind);
-    expect(kinds, 'la Progression du jour passe par le Test d’équipage').toContain('progression');
-    expect(kinds, 'aucun choix vers une voie que personne ne peut mener').not.toContain('sea-progression-choice');
+    const choix = get().pendingCascade!.participants.find((s) => s.kind === 'sea-progression-choice');
+    expect(choix, 'le choix MDG 14 l.63 reste posé').toBeTruthy();
+    const nav = choix!.options!.find((o) => o.key === 'nav');
+    expect(nav, 'la voie Navigation est présente').toBeTruthy();
+    expect(nav!.refus).toBe('Personne dans le groupe ne peut tenter le Test de Voile.');
+    expect(choix!.options!.find((o) => o.key === 'crew')!.refus, 'la voie d’équipage reste ouverte').toBeUndefined();
+    expect(choix!.defaultChoice).toBe('crew');
   });
 
   it('l’enjeu d’une étape d’équipage dit son EFFET, jamais la règle-cadre de substitution', () => {

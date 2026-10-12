@@ -26,7 +26,7 @@ import { placementPenalty } from './shipPostes';
 import { inBattleId } from './combatants';
 import { t } from '../i18n';
 import { findVehicleById, findCrewRoleById } from '../data';
-import { vesselPropulsion } from '../engine/shipBuild';
+import { vesselPropulsion, propulsionSkill } from '../engine/shipBuild';
 import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { PairedSense } from '../engine/ops';
@@ -156,7 +156,7 @@ export function shipManeuverParams(ship: Combatant): ManeuverParams {
   const vd = ship.creatureId ? findVehicleById(ship.creatureId)?.ship : undefined;
   const propulsion = vesselPropulsion(vd);
   const baseM = propulsion?.m ?? 0;
-  const skillId = propulsion?.mode === 'voile' ? 'voile' : 'ramer'; // à voile → Voile ; aux avirons → Ramer (MDG 13)
+  const skillId = propulsionSkill(propulsion?.mode ?? 'avirons');
   // Répartition des pièces (MDG 12 l.432-433) : un bord surchargé pénalise −1/−2 M, Man ET DR de Navigation
   // (trois colonnes RAW DISTINCTES → cumulées). Sans Contenance connue → aucune pénalité.
   const place = vd?.capacity

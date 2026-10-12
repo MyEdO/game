@@ -1202,8 +1202,9 @@ export interface ChoiceSpec {
    *  plus la voie d'un objet ÉLARGI passé par variable ou épandage. */
   groupOwner?: never;
   /** Les VOIES offertes. `label` est du TEXTE JOUEUR marqué (#1318 V8a₁) : un bouton de choix est lu
-   *  par le joueur au même titre que le titre de l'étape — le murage vaut donc aussi pour lui. */
-  options: readonly { key: string; label: PlayerText; detail?: string }[];
+   *  par le joueur au même titre que le titre de l'étape — le murage vaut donc aussi pour lui. `refus` =
+   *  la cause qui FERME cette voie, recopiée sur l'étape (`CascadeStep.options`). */
+  options: readonly { key: string; label: PlayerText; detail?: string; refus?: string }[];
   /** Clé retenue d'office par une résolution IMMÉDIATE (`runCascadeImmediate`) — l'une des `options`. */
   defaultChoice?: string;
   /** Fiche de RÈGLE qui encadre le choix (une étape sans jet n'a pas d'enjeu à dériver). */

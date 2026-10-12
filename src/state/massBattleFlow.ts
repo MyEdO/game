@@ -23,7 +23,7 @@ import type { Combatant, CharKey, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './combatants';
 import { d10, d100, type RNG } from '../engine/dice';
-import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssistedOption, peutTenter, type SupportDetail } from '../engine/skills';
+import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssistedOption, peutTenter, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
@@ -463,7 +463,7 @@ export function peutTenterAction(c: Combatant, def: ActivityDef): boolean {
 export function refusTenterAction(posted: Combatant[], def: ActivityDef): string {
   return posted.length
     ? t('mbf.postedCannot', { names: posted.map((h) => h.label).join(', '), action: def.label })
-    : t('mbf.nobodyCan', { action: def.label });
+    : refusPersonneNePeutTenter({ action: def.label });
 }
 
 /** Refus NOMMÉ de l'action quand ni ses postés ni, à défaut, `party` ne peuvent la tenter ; `null` sinon. */
