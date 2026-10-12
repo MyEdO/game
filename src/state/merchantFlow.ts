@@ -854,8 +854,7 @@ export const APPRAISE_SKILL = {
 /** Meilleur détecteur du groupe : meilleure Intuition PARMI les porteurs du Talent (c'est LUI qui
  *  touche l'objet — pas un partyBest global comme l'Évaluation). null si personne ne l'a. */
 export function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
-  const holders = party.filter((h) => !h.dead && h.talents.some((t) => t.talentId === slugId(DETECT_TALENT) && (t.times ?? 1) >= 1));
-  if (!holders.length) return null;
+  const holders = party.filter((h) => h.talents.some((t) => t.talentId === slugId(DETECT_TALENT) && (t.times ?? 1) >= 1));
   const best = partyAssisted(holders, APPRAISE_SKILL.detect.skill, APPRAISE_SKILL.detect.characteristic); // Soutien (LDB 12)
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
 }

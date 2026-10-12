@@ -1613,6 +1613,7 @@ export const fr = {
   'tf.controlLost': 'ACCIDENT',
   'tf.controlHeldDot': 'l’attelage est maîtrisé.',
   'tf.controlLostBang': 'ACCIDENT !',
+  'tf.noDriverControl': 'Personne ne peut tenir les rênes : ACCIDENT !',
   'tf.mountCared': "{mount}{owner} est {soin} à l'étape.",
   'tf.fragMountOwner': ' ({name})',
   'tf.mountHealed': 'soignée',

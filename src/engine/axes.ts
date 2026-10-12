@@ -18,7 +18,7 @@
  *
  *   `score = clamp01( skillPart + talentPart × TALENT_BONUS_WEIGHT )`
  *   - skillPart = la MEILLEURE (`Math.max`, un pic de spécialisation) valeur normalisée parmi les
- *     `skills` GATÉES par `possesses` (`skillCombatApps.ts` — SOURCE UNIQUE de la distinction
+ *     `skills` GATÉES par `possesses` (`skills.ts` — SOURCE UNIQUE de la distinction
  *     Base/Avancée, réutilisée telle quelle, jamais réimplémentée) : Compétence de Base → toujours
  *     testable (Caractéristique nue + avances éventuelles) ; Compétence Avancée SANS Augmentation →
  *     EXCLUE (contribution 0, jamais un repli sur la Caractéristique). La valeur RETENUE est
@@ -46,7 +46,7 @@
 import type { Combatant } from './types';
 import { skillBaseValue } from './skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import { possesses } from './skillCombatApps';
+import { possesses } from './skills';
 import type { AxisData } from '../data';
 
 const SKILL_VALUE_MIN = 15;

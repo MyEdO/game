@@ -9,7 +9,7 @@ import { itemCapability } from './capabilities';
 import { groupMatch } from './groups';
 import { effectiveChar, bonus } from './characteristics';
 import { assistBonus } from './tests';
-import { testStatePenalty, testStatePenaltyParts, activeCharTestMod, activeCharTestModParts, passivePartLine, isMovementSkill } from './conditions';
+import { testStatePenalty, testStatePenaltyParts, activeCharTestMod, activeCharTestModParts, passivePartLine, isMovementSkill, isOutOfAction } from './conditions';
 import { agilityTestPenalty } from './encumbrance';
 import { traumaSkillPenalty, traumaSkillPenaltyParts, passiveSkillSum, passiveSkillParts, passiveTestMod, passiveTestModParts } from './trauma';
 import type { GameOp, PairedSense } from './ops';
@@ -170,6 +170,23 @@ export function actorHasSkill(c: Combatant, skillId: string, spec?: string): boo
   return c.skills.some((s) => s.id === skillId && (spec == null || s.spec === spec));
 }
 
+/** Le personnage POSSÈDE-t-il la Compétence (Base = toujours ; Avancée = au moins une Augmentation) ?
+ *  LDB 09 l.25, LDB 09 l.30. `spec` cible une spécialisation précise (sinon la première instance de l'id,
+ *  comme `skillBaseValue`). */
+export function possesses(c: Combatant, skillId: string, spec?: string): boolean {
+  const sd = byId('skill', skillId);
+  if (!sd) return false;
+  const inst = c.skills?.find((s) => s.id === skillId && (spec == null || s.spec === spec));
+  return sd.acces === 'base' || (inst?.advances ?? 0) > 0;
+}
+
+/** Qui peut TENTER un Test ACTIF — le mener, le soutenir, s'y porter candidat. LDB 09 l.30, LDB 16 l.113.
+ *  Contrat : Test ACTIF seulement ; un Test SUBI (LDB 16 l.74) ne le lit pas. Sans `skill` (Test de
+ *  Caractéristique), seule la mise hors d'action compte. */
+export function peutTenter(c: Combatant, skill?: string, spec?: string): boolean {
+  return !isOutOfAction(c) && (!skill || possesses(c, skill, spec));
+}
+
 /** Le personnage a-t-il AU MOINS UNE Augmentation dans `skillId` (spécialisation ciblée si `spec`) ?
  *  Prédicat d'éligibilité au SOUTIEN — LDB 12 l.195. Plus strict que `actorHasSkill` (simple présence). */
 function hasSkillAdvance(c: Combatant, skillId: string, spec?: string): boolean {
@@ -270,7 +287,7 @@ export function resolveSkillBest(
   return { value, roll: res.roll, target: res.target, sl: res.sl, success: res.success, used };
 }
 
-/** Meilleur membre du groupe pour un test donné. `extraMod` ajoute un modificateur PAR acteur (ex. malus
+/** Meilleur membre du groupe pour un test donné, parmi ceux qui peuvent le tenter (`peutTenter`). `extraMod` ajoute un modificateur PAR acteur (ex. malus
  *  psy de Sociabilité, qui dépend du personnage) — la valeur effective sert au choix ET au résultat.
  *  `sense` (optionnel) : transmis tel quel à `testValue` (sens NARRATIVEMENT sollicité par CE Test précis). */
 export function partyBest(
@@ -281,7 +298,7 @@ export function partyBest(
   spec?: string, // spécialisation ciblée (Métier (Serrurier)…) — transmise à `testValue` pour la bonne instance
   sense?: PairedSense,
 ): { actor: Combatant; value: number } | null {
-  const r = maxBy(party, (c) => testValue(c, skill, characteristic, spec, sense) + (extraMod?.(c) ?? 0));
+  const r = maxBy(party.filter((c) => peutTenter(c, skill, spec)), (c) => testValue(c, skill, characteristic, spec, sense) + (extraMod?.(c) ?? 0));
   return r ? { actor: r.item, value: r.value } : null;
 }
 
@@ -312,7 +329,8 @@ export function bestForCombined(
   sk2: RefDesignee,
   char: CharKey | undefined,
 ): { actor: Combatant; value1: number; value2: number } | null {
-  const r = maxBy(party, (c) => Math.min(testValue(c, sk1.id, char, sk1.spec), testValue(c, sk2.id, char, sk2.spec)));
+  const able = party.filter((c) => peutTenter(c, sk1.id, sk1.spec) && peutTenter(c, sk2.id, sk2.spec));
+  const r = maxBy(able, (c) => Math.min(testValue(c, sk1.id, char, sk1.spec), testValue(c, sk2.id, char, sk2.spec)));
   if (!r) return null;
   return { actor: r.item, value1: testValue(r.item, sk1.id, char, sk1.spec), value2: testValue(r.item, sk2.id, char, sk2.spec) };
 }
@@ -436,7 +454,7 @@ export function partyAssisted(
 /** DÉTAIL de SOUTIEN (LDB 12 l.187-200) pour un meneur DONNÉ — SOURCE UNIQUE : combien de membres
  *  soutiennent, le bonus total, et QUI (`ids`). Brique partagée par `partyAssisted` ET les Tests à
  *  sélecteur de candidat (Tests de scène) où le meneur n'est pas le « meilleur » mais le candidat
- *  considéré : +10 par AUTRE membre VIVANT et ÉLIGIBLE (`hasSkillAdvance`, l.195 ; Test de pure
+ *  considéré : +10 par AUTRE membre qui peut tenter (`peutTenter`) et ÉLIGIBLE (`hasSkillAdvance`, l.195 ; Test de pure
  *  Caractéristique → tous), plafonné au Bonus de la Caractéristique testée du meneur (l.198). `eligible` (l.196, « doit
  *  normalement être adjacent ») : prédicat GÉOMÉTRIQUE optionnel fourni par l'appelant (moteur PUR — la
  *  position/adjacence vit côté état) ; absent = comportement inchangé (aucune géométrie, ex. hors combat).
@@ -449,7 +467,7 @@ export function soutienDetail(
   spec?: string,
   eligible?: (c: Combatant) => boolean,
 ): SupportDetail {
-  const elig = party.filter((c) => c.id !== leader.id && !c.dead
+  const elig = party.filter((c) => c.id !== leader.id && peutTenter(c)
     && (skill ? hasSkillAdvance(c, skill, spec) : true) // LDB 12 l.195
     && (eligible ? eligible(c) : true));
   const ck = effectiveSkillCharKey(leader, skill, { explicit: characteristic, spec });

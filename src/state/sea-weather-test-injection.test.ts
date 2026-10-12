@@ -21,8 +21,8 @@ describe('Météo maritime — Précipitations injectées au Test réel (#183, M
     skills: [
       { id: 'athletisme', characteristic: 'agilite', advances: 0 },
       { id: 'escalade', characteristic: 'agilite', advances: 0 },
-      { id: 'projectiles', spec: 'arc', characteristic: 'dexterite', advances: 0 },
-      { id: 'projectiles', spec: 'poudre-noire', characteristic: 'dexterite', advances: 0 },
+      { id: 'projectiles', spec: 'arc', characteristic: 'dexterite', advances: 5 }, // Avancée : sans Augmentation, pas de Test (LDB 09 l.30)
+      { id: 'projectiles', spec: 'poudre-noire', characteristic: 'dexterite', advances: 5 },
     ],
     talents: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
   } as unknown as Combatant);
@@ -60,14 +60,14 @@ describe('Météo maritime — Précipitations injectées au Test réel (#183, M
   it('Projectiles (Poudre noire) sous Précipitations Très abondantes (−30) : la spécialisation gate le mod', () => {
     useGame.setState({ party: [sailor()], travelPlan: seaPlan('tres-abondantes') });
     runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'projectiles', spec: 'poudre-noire' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
-    expect(useGame.getState().pendingTest!.target).toBe(10); // Dex 40 − 30
+    expect(useGame.getState().pendingTest!.target).toBe(15); // Dex 40 + 5 − 30
   });
 
   it('Projectiles (Arc) sous la MÊME météo (Abondantes) : AUCUN malus (spécialisation non ciblée par la Précipitation)', () => {
     useGame.setState({ party: [sailor()], travelPlan: seaPlan('abondantes') });
     runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'projectiles', spec: 'arc' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const pt = useGame.getState().pendingTest!;
-    expect(pt.target).toBe(40); // Dex 40, inchangé (le −10 « tous les autres Tests » n'existe qu'en Très abondantes)
+    expect(pt.target).toBe(45); // Dex 40 + 5, inchangé (le −10 « tous les autres Tests » n'existe qu'en Très abondantes)
     expect(meteo()).toEqual([]);
   });
 });

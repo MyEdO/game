@@ -90,6 +90,8 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
   beforeEach(fraisMer);
 
   it('Progression : le CHOIX porte le barreur, et la bande d’équipage est PARTAGÉE (plus de fenêtre hôte-seul)', () => {
+    // Un barreur qui peut tenter la Voile (LDB 09 l.30) : aucun prétiré ne l'a.
+    useGame.setState({ party: get().party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'voile', characteristic: 'agilite' as const, advances: 10 }] } : h)) });
     const equipage = get().party;
     deuxSieges(equipage[0].id, equipage[1].id, equipage[2].id); // TOUT l'équipage est à l'invité
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])! });

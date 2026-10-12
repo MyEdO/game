@@ -2272,8 +2272,8 @@ function seaBoardingFromEvent(event: SeaEventDef): SeaBoarding | undefined {
 function seaDecider(get: Get): string {
   const vd = findVehicleById(get().travelPlan?.vehicle?.creatureId ?? '')?.ship;
   const skillId = vesselPropulsion(vd)?.mode === 'avirons' ? 'ramer' : 'voile';
-  const party = get().party.filter((h) => !h.dead);
-  return partyAssisted(party, skillId)?.actor.id ?? party[0]?.id ?? '';
+  const party = get().party;
+  return partyAssisted(party, skillId)?.actor.id ?? party.find((h) => !h.dead)?.id ?? '';
 }
 
 /** `meta` de l'étape `sea-pirate-hail` : l'événement de mer qui nomme le pirate. */

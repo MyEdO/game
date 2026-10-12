@@ -16,7 +16,7 @@ import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
 import { findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
 import { exposedCrew } from '../engine/shipCritical';
-import { partyBest } from '../engine/skills';
+import { partyBest, peutTenter } from '../engine/skills';
 import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
 import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
@@ -67,7 +67,10 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string): Map<str
     if (winner) { out.set(winner.id, roleId); free.delete(winner.id); }
   }
   // Le reste → Mousse (rôle par défaut, l.15) s'il sait Voile/Ramer.
-  if (testType.roles.includes('mousse')) for (const id of free) if (trainedForRole(apte.find((x) => x.id === id)!, 'mousse')) out.set(id, 'mousse');
+  if (testType.roles.includes('mousse')) for (const id of free) {
+    const c = apte.find((x) => x.id === id)!;
+    if (peutTenter(c) && trainedForRole(c, 'mousse')) out.set(id, 'mousse');
+  }
   return out;
 }
 

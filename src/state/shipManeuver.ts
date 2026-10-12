@@ -16,7 +16,7 @@
 import { battleRng } from './battleRng';
 import { rollTest, evaluateTest, easeDifficulty, bestForcedRoll } from '../engine/tests';
 import { rollLine } from './rollSeam';
-import { testValue, partyBest } from '../engine/skills';
+import { testValue, partyBest, peutTenter } from '../engine/skills';
 import { resolveShipManeuver, type ShipManeuverOutcome } from '../engine/shipNavigation';
 import { navalMoveMod, navalMoveMult, navalSkillTestDR, navalTestTypeDR, navalNavTestDR, hullNavalTraits } from '../engine/navalTraits';
 import { cargoOverload } from '../engine/seaVoyage';
@@ -104,11 +104,12 @@ export function deriveManeuverFromCrew(ship: Combatant, crewTotal: number): Mane
   return { ...out, success: crewTestSuccess(out.dr), navDR: crewTotal, advanced: 0 };
 }
 
-/** Le barreur : parmi l'équipage APTE (vivant + conscient — même prédicat que `exposedCrew`), celui qui a la
- *  MEILLEURE valeur de Test de `skillId` (Voile/Ramer). Un marin à terre / inconscient ne tient pas la barre. */
+/** Le barreur : parmi l'équipage présent (`exposedCrew` : vivant, Blessures > 0) qui peut tenter le Test
+ *  (`peutTenter`, lu par `partyBest` — un Inconscient ne tient pas la barre, LDB 16 l.113), celui qui a la
+ *  MEILLEURE valeur de Test de `skillId` (Voile/Ramer). */
 function bestHelmsman(crew: Combatant[], skillId: string): Combatant | undefined {
   // Argmax sur l'axe ACTEUR (`partyBest` = maxBy sur `testValue`) : first-max strict, identique au tri desc stable
-  // qui rendait le PREMIER max en `[0]`. Filtre `exposedCrew` conservé (marins présents + conscients).
+  // qui rendait le PREMIER max en `[0]`.
   return partyBest(exposedCrew(crew), skillId)?.actor;
 }
 
@@ -208,7 +209,8 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const crew = (ship.crewIds ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c);
-  const helm = helmsmanId ? inBattleId(battle, helmsmanId) : bestHelmsman(crew, skillId);
+  const imposed = helmsmanId ? inBattleId(battle, helmsmanId) : undefined;
+  const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId) ? imposed : undefined) : bestHelmsman(crew, skillId);
   const nav = helm ? rollTest(testValue(helm, skillId), 'intermediaire', battleRng()) : undefined;
   return deriveManeuver(ship, { sl: nav?.sl ?? 0, roll: nav?.roll, target: nav?.target, success: nav?.success }, helm?.label);
 }

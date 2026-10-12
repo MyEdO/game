@@ -730,7 +730,7 @@ registerCascadeApplier('riverPerilCheck', (get, set, step) => {
     // (Force soutenue — bélier comme déblaiement), sinon le premier vivant. La porte de choix exige un
     // porteur : sans lui la fenêtre échoit à l'hôte, qui trancherait pour un autre siège.
     const decideur = step.actorId
-      ?? partyAssisted(get().party.filter((h) => !h.dead), undefined, 'force')?.actor.id
+      ?? partyAssisted(get().party, undefined, 'force')?.actor.id
       ?? get().party.find((h) => !h.dead)?.id ?? '';
     const st = choiceStep({
       id: `${step.id}-obstacle`, kind: 'riverObstacleChoice', actorId: decideur, icon: 'ui/warning',

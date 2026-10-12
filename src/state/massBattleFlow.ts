@@ -485,11 +485,11 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string): 
   const modLabel = mod ? t('mbf.modPrep') : undefined;
   const difficulty = battleActivityDifficulty(def, mb);
   if (def.combined && def.skills && def.skills.length >= 2) {
-    // Test COMBINÉ (l.75/102) : l'acteur posté décide (à défaut, SUGGESTION = celui maximisant le PLUS FAIBLE
-    // des deux). Les DEUX valeurs de l'acteur retenu sont dérivées via une passe SINGLETON.
-    const chosen = assignedHeroesFor(mb, party, activityId)[0] ?? bestForCombined(party, def.skills[0], def.skills[1], def.char)?.actor;
-    if (!chosen) return;
-    const picked = bestForCombined([chosen], def.skills[0], def.skills[1], def.char);
+    // Test COMBINÉ (l.75/102) : le premier acteur posté qui peut le tenter décide (à défaut, SUGGESTION = celui
+    // maximisant le PLUS FAIBLE des deux). Les DEUX valeurs de l'acteur retenu sont dérivées via une passe SINGLETON.
+    const [sk1, sk2] = def.skills;
+    const picked = assignedHeroesFor(mb, party, activityId).map((h) => bestForCombined([h], sk1, sk2, def.char)).find((p) => p !== null)
+      ?? bestForCombined(party, sk1, sk2, def.char);
     if (!picked) return;
     openBattlePending(get, set, {
       actor: picked.actor, battle: 'prep', def, skillValue: picked.value1, skillId: def.skills[0].id, spec: def.skills[0].spec, char: def.char,
@@ -511,10 +511,10 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string): 
     });
     return;
   }
-  // Activité SOLO (RAW l.75/102/106 « un Personnage », sans aide) : acteur = PJ posté (à défaut, SUGGESTION).
-  const chosen = assignedHeroesFor(mb, party, activityId)[0] ?? bestForSkills(party, def.skills, def.char)?.actor;
-  if (!chosen) return;
-  const picked = bestForSkills([chosen], def.skills, def.char);
+  // Activité SOLO (RAW l.75/102/106 « un Personnage », sans aide) : acteur = premier PJ posté qui peut la tenter
+  // (à défaut, SUGGESTION).
+  const picked = assignedHeroesFor(mb, party, activityId).map((h) => bestForSkills([h], def.skills, def.char)).find((p) => p !== null)
+    ?? bestForSkills(party, def.skills, def.char);
   if (!picked) return;
   openBattlePending(get, set, {
     actor: picked.actor, battle: 'prep', def, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: def.char,

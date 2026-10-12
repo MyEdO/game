@@ -19,7 +19,7 @@ import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './sceneNpc';
 import { buildActorView } from './combat/flowEval';
-import { partyBest, partyAssisted, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
+import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { parseStatus } from '../engine/creation';
 import { easeDifficulty } from '../engine/tests';
@@ -36,7 +36,7 @@ import { harvestSizeOf, harvestYield } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
-import { hasHealSkill, HEAL_SKILL, type HealMode } from '../engine/healing';
+import { HEAL_SKILL, type HealMode } from '../engine/healing';
 import { openMedic } from './medicFlow';
 import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
 import { precipitationTestMods } from '../engine/seaWeather';
@@ -995,7 +995,7 @@ export function openSkillTest(
   // `opts.actorId`). Un Test qu'on ne peut pas soutenir se déclare `noSupport` (l.197), il ne se
   // dérive pas de la restriction du lanceur.
   const allies = (a: Combatant): Combatant[] => pool.filter((c) => c.kind === a.kind && !c.dead);
-  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && !c.dead);
+  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && peutTenter(c, spec.skill?.id, spec.skill?.spec));
   const candidates = runners.map((actor) => {
     const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
@@ -2150,7 +2150,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!ctx.entityIds.has(e.entityId)) return [{ level: 'error', message: `Soins payants → PNJ soigneur inexistant « ${e.entityId || '(aucun)'} »` }];
       const npc = ctx.npcSheet(e.entityId);
       if (!npc) return [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » n'a aucune fiche (ni réf de bestiaire, ni profil, ni preset)` }];
-      return hasHealSkill(npc) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
+      return possesses(npc, HEAL_SKILL) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
     },
   },
   castSpell: {
@@ -2321,7 +2321,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
   const npc = sceneNpc(get().scene, e.entityId);
   if (!npc) { get().log(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
-  if (!hasHealSkill(npc)) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
+  if (!possesses(npc, HEAL_SKILL)) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
   openMedic(get, set, {
     npc: {
       id: e.entityId,

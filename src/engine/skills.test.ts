@@ -5,6 +5,7 @@ import { Combatant, SkillInstance } from './types';
 
 const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advances: number; spec?: string }[] = []): Combatant =>
   ({
+    kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
   }) as unknown as Combatant;

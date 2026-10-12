@@ -66,6 +66,19 @@ describe('Scénario Commerce fluvial — carte fidèle à l’Index géographiqu
   });
 });
 
+describe('Scénario Commerce fluvial — qui tient la barre', () => {
+  beforeEach(launch);
+
+  it('Gunnar (Voile 40) mène la Navigation de la barge ; Otto, sans Voile, ne la tente pas (LDB 09 l.30)', () => {
+    // Otto devient le plus agile du groupe : sans la porte `peutTenter`, sa Voile non augmentée l'élirait.
+    useGame.setState({ party: get().party.map((h) => (h.id === 'com-otto' ? { ...h, characteristics: { ...h.characteristics, agilite: 95 } } : h)) });
+    drainCascade();
+    get().startTravel('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
+    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverAgility');
+    expect(barre?.actorId).toBe('com-gunnar');
+  });
+});
+
 describe('Scénario Commerce fluvial — boucle acheter → barge → revendre avec PROFIT', () => {
   beforeEach(launch);
 
@@ -149,8 +162,8 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     return fenetres;
   }
 
-  it('graine 7, cadence par défaut : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
-    seedBattleRng(7);
+  it('graine 2, cadence par défaut : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
+    seedBattleRng(2);
     // Le journal du store est plafonné : chaque ligne se capte à son puits (`log`), le temps de la descente.
     const journal: string[] = [];
     const puits = get().log;

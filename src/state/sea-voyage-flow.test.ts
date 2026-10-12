@@ -2294,7 +2294,11 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
  * (« vous pouvez effectuer un Test d'équipage au lieu d'un Test de Navigation ») est POSÉ au joueur.
  */
 describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Progression (#1117)', () => {
-  beforeEach(freshState);
+  beforeEach(() => {
+    freshState();
+    // Un barreur qui peut tenter la Voile (LDB 09 l.30) : aucun prétiré ne l'a.
+    useGame.setState({ party: get().party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'voile', characteristic: 'agilite' as const, advances: 10 }] } : h)) });
+  });
 
   it('la Progression PROPOSE les deux voies RAW, équipage par défaut', () => {
     get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
@@ -2427,12 +2431,12 @@ describe('#1341 (site maritime) — `engineerOf` demande la spec Métier par ID,
     expect(parLabel, 'par libellé : la compétence est réputée absente').toBe(testValue(h, 'metier', undefined, 'inconnue-xyz'));
   });
 
-  it('LE SITE — `engineerOf` élit bien l’INGÉNIEUR, là où la demande par libellé élisait le premier venu', () => {
+  it('LE SITE — `engineerOf` élit bien l’INGÉNIEUR, là où la demande par libellé n’élit personne', () => {
     const b = badaud(), i = ingenieur();
     // Le SITE de production, pas son mécanisme : débrancher l'id au call-site rougit ICI.
     expect(engineerOf([b, i])?.id, 'le mécano de la chaudière est celui qui sait réparer').toBe(i.id);
-    // Contre-preuve du mécanisme sous-jacent : la MÊME élection demandée par LIBELLÉ prend le badaud.
-    expect(partyBest([b, i], 'metier', undefined, undefined, 'Ingénieur')?.actor.id, 'par libellé : le premier venu').toBe(b.id);
+    // Contre-preuve du mécanisme sous-jacent : la MÊME élection demandée par LIBELLÉ ne trouve aucun porteur.
+    expect(partyBest([b, i], 'metier', undefined, undefined, 'Ingénieur'), 'par libellé : personne ne possède la spécialisation').toBeNull();
   });
 });
 

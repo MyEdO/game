@@ -152,6 +152,8 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
   it('bande à surface PV : son dé est AU PV et PLUS au journal ; le MONO du même tableau garde SA ligne', () => {
     // Rythme FORCÉ à +1 M (MDG 13 l.95-107 : à la voile, seul +1 est jouable) → un mono `sea-force-pace`
     // rejoint le tableau du jour, aux côtés des bandes Progression/Orientation.
+    // Un barreur qui peut tenter la Voile (LDB 09 l.30) : aucun prétiré ne l'a.
+    useGame.setState({ party: get().party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'voile', characteristic: 'agilite' as const, advances: 10 }] } : h)) });
     get().startTravel('r1', 'mer', { cadence: 'commande', seaPace: 1 });
     const day = get().pendingRest!.travelDay!;
     const journal = get().journal;

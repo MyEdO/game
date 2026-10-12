@@ -495,13 +495,15 @@ function runTravelDays(get: Get, set: Set): void {
     // (Tests de Conduite d'attelage) — sinon, progression linéaire à la vitesse du mode.
     const kmLeft = plan.km - plan.kmDone;
     const forcedEligible = plan.allure === 'galop' && plan.mode !== 'monture' && !plan.vehicleLame && !!vehicleTravel(plan.mode)?.draft;
-    const forcedDriver = forcedEligible ? garanti(partyAssisted(party, 'conduite-d-attelage'), 'conduite-d-attelage', 'conducteur') : null;
+    // Sans conducteur qui puisse tenter la Conduite d'attelage (`peutTenter`, lu par `partyAssisted`),
+    // l'attelage ne part pas au pas de course : la journée suit la cadence de base.
+    const forcedDriver = forcedEligible ? partyAssisted(party, 'conduite-d-attelage') : null;
     // Conducteur dont le jet se SURFACE (#1262) : chaque Test de Conduite d'attelage au km devient une
     // ÉTAPE de la cascade `travelDay` (Chance/Pacte/Résilience possibles), chaînée par insertions
     // successives jusqu'au premier échec (`buildForcedPaceDaySteps`) — gameTime/kmDone sont alors
     // DIFFÉRÉS à la clôture (`continueTravelDayAfterCascade`), comme la progression fluviale.
     // Repli : allure forcée non éligible, ou aucun siège humain ne tient le conducteur → chemin SYNCHRONE (`forcedPaceDay`).
-    const premierKm = forcedEligible && forcedDriver && surfaceOf(get, forcedDriver.actor.id)
+    const premierKm = forcedDriver && surfaceOf(get, forcedDriver.actor.id)
       ? buildForcedPaceStep(forcedDriver, kmLeft)
       : undefined;
     if (premierKm) {
@@ -512,7 +514,7 @@ function runTravelDays(get: Get, set: Set): void {
       startCascade(get, set, { title: t('tf.dayTitleForced'), icon: 'travel/cart', purpose: 'travelDay', steps: [premierKm, ...daySteps] });
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
-    const forced = forcedEligible ? forcedPaceDay(get, set, kmLeft) : null;
+    const forced = forcedDriver ? forcedPaceDay(get, set, kmLeft, forcedDriver) : null;
     // BUDGET D'HEURES PAR JOUR CALENDAIRE (#340) : le RAW compte 6 h/JOUR sans Test (LDB 51 l.195), pas
     // par trajet — les heures déjà parcourues aujourd'hui (`hoursTravelledToday`) grèvent le budget
     // du jour. À pied, le plafond DUR maison (`forcedMaxHours`, défaut 10 h) borne la journée ; en
@@ -1047,14 +1049,13 @@ function forcedPaceBeastLines(animaux: ForcedPaceAnimalOutcome[]): string[] {
  * meilleur héros en Conduite d'attelage, soutenu (LDB 12). Après un échec, le reste de la journée se fait
  * à la cadence de base du transport (les bêtes soufflent — le galop ne reprend pas le même jour).
  */
-function forcedPaceDay(get: Get, set: Set, kmLeft: number): ForcedPaceDayResult {
+function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<ReturnType<typeof forcedPaceDriver>>): ForcedPaceDayResult {
   const plan = get().travelPlan!;
   const veh = vehicleTravel(plan.mode)!;
   const draft = mountProfileById(veh.draft!.montureId)!;
   const gallopKmh = draft.m * ALLURE_KMH_PER_M.galop; // vitesse au pas de course = M de l'attelage × 3 (l.140)
   const walkKmh = veh.movement;
   const out: ForcedPaceDayResult = { km: 0, hours: 0, lines: [], entries: [], vehicleOut: false, vehicleLame: false };
-  const driver = garanti(partyAssisted(get().party, 'conduite-d-attelage'), 'conduite-d-attelage', 'conducteur');
   const driverLine = supportSplit(driver.value, driver.support); // base RÉELLE du conducteur + sa ligne de Soutien
   let galloped = 0;
   while (out.hours < plan.hoursPerDay - 1e-9 && out.km < kmLeft - 1e-9) {
@@ -1120,17 +1121,21 @@ function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDay
     // « S'il ne prend pas des mesures pour l'arrêter, le véhicule peut entrer en collision ! … S'il se
     // déplaçait plus vite que la vitesse de marche, il subit un Accident à la place » (l.284) — la
     // maîtrise = Test de Conduite d'attelage Intermédiaire (+0) du conducteur.
-    const driver = garanti(partyAssisted(get().party, 'conduite-d-attelage'), 'conduite-d-attelage', 'conducteur');
-    const rt = rollTest(driver.value, 'intermediaire', battleRng());
-    // Repli IA/synchrone (`forcedPaceDay`) : aucune rangée nulle part pour ce jet — le journal est
-    // la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`), porteur fondu dans le libellé (la phrase
-    // NOMME déjà le conducteur).
-    out.lines.push(t('tf.vehicleProblem', { label: entry.label }), traceLineOf({
-      label: t('tf.retakeControl', { name: driver.actor.label }),
-      roll: rt.roll, target: rt.target, success: rt.success,
-      issue: rt.success ? t('tf.controlHeld') : t('tf.controlLost'),
-    }));
-    if (rt.success) return { vehicleOut: false, vehicleLame: false };
+    // Sans conducteur qui puisse tenter le Test, personne ne prend de mesures : Accident (l.284).
+    const driver = forcedPaceDriver(get);
+    out.lines.push(t('tf.vehicleProblem', { label: entry.label }));
+    if (driver) {
+      const rt = rollTest(driver.value, 'intermediaire', battleRng());
+      // Repli IA/synchrone (`forcedPaceDay`) : aucune rangée nulle part pour ce jet — le journal est
+      // la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`), porteur fondu dans le libellé (la phrase
+      // NOMME déjà le conducteur).
+      out.lines.push(traceLineOf({
+        label: t('tf.retakeControl', { name: driver.actor.label }),
+        roll: rt.roll, target: rt.target, success: rt.success,
+        issue: rt.success ? t('tf.controlHeld') : t('tf.controlLost'),
+      }));
+      if (rt.success) return { vehicleOut: false, vehicleLame: false };
+    } else out.lines.push(t('tf.noDriverControl'));
     entry = rollVehicleProblem(96); // 96-00 = Accident (table verbatim)
   } else if (entry.id === 'casse') {
     // « Si le véhicule se déplaçait plus vite que la marche, traitez ce résultat comme un Accident » (l.276).
@@ -1211,7 +1216,8 @@ registerCascadeApplier('landForcedPace', (get, set, step, hero) => {
   const kmLeft = Number(m.kmLeft), galloped = Number(m.galloped);
   // Conducteur RE-RÉSOLU (acteur + Soutien du moment) : le km suivant et la reprise de contrôle
   // testent la MÊME chose que le km courant, ils ne rejouent pas une valeur figée (LDB 12 l.189).
-  const driver = garanti(forcedPaceDriver(get), 'conduite-d-attelage', 'conducteur');
+  // `null` : plus personne ne peut tenter la Conduite d'attelage — pas de km suivant, pas de reprise de contrôle.
+  const driver = forcedPaceDriver(get);
   let km = Number(m.km), hours = Number(m.hours);
   const name = garanti(hero, step.actorId, 'conducteur').label;
   const plan = get().travelPlan!;
@@ -1268,13 +1274,15 @@ registerCascadeApplier('landForcedPace', (get, set, step, hero) => {
     // Repli SANS acteur joueur (pas d'étape insérée ci-dessus) : aucune rangée nulle part pour ce jet
     // — le journal est la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`). MÊME valeur que la
     // surface influençable : le conducteur soutenu (`forcedPaceDriver`), jamais une grandeur seconde.
-    const rt = rollSansPilote(get, driver.actor, driver.value, 'intermediaire', battleRng());
-    j.push(traceLineOf({
-      label: t('tf.retakeControl', { name }),
-      roll: rt.roll, target: rt.target, success: rt.success,
-      issue: rt.success ? t('tf.controlHeld') : t('tf.controlLost'),
-    }));
-    if (rt.success) { finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }); return { consequences: freeCons(j) }; }
+    if (driver) {
+      const rt = rollSansPilote(get, driver.actor, driver.value, 'intermediaire', battleRng());
+      j.push(traceLineOf({
+        label: t('tf.retakeControl', { name }),
+        roll: rt.roll, target: rt.target, success: rt.success,
+        issue: rt.success ? t('tf.controlHeld') : t('tf.controlLost'),
+      }));
+      if (rt.success) { finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }); return { consequences: freeCons(j) }; }
+    } else j.push(t('tf.noDriverControl'));
     entry = rollVehicleProblem(96);
   } else if (entry.id === 'casse') {
     j.push(t('tf.vehicleProblemAccident', { label: entry.label }));

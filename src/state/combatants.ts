@@ -98,8 +98,9 @@ export function estDebout(h: Combatant): boolean {
 }
 
 /**
- * ÉQUIPAGE APTE : les héros qui peuvent tenir un poste de bord (barre, rame, rôle d'équipage, moteur) —
- * le canonique `isOutOfAction` (LDB 16 l.113). Couture UNIQUE des postes de voyage, mer comme fleuve.
+ * ÉQUIPAGE APTE : la POPULATION des postes de bord (barre, rame, rôle d'équipage, moteur), hors
+ * d'action exclus (`isOutOfAction`, LDB 16 l.113 ; MDG 14 l.39). Population, pas élection : qui MÈNE
+ * un Test se choisit par `partyBest` (`peutTenter`, `engine/skills.ts`).
  */
 export function equipageApte(party: readonly Combatant[]): Combatant[] {
   return party.filter((h) => !isOutOfAction(h));

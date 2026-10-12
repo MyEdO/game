@@ -12,14 +12,14 @@ import { effectiveChar, bonus } from '../engine/characteristics';
 import { baseWithTalents } from '../engine/talentEffects';
 import { refKey, parseRefKey } from '../engine/careerSlots';
 import { buildAdvancementView } from '../state/advancement';
-import { hasHealSkill, isHealable } from '../engine/healing';
+import { HEAL_SKILL, isHealable } from '../engine/healing';
 import { isConsumable } from '../engine/consumables';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
 import { effectiveSpellOf } from '../state/combatFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { refusDepensePx } from '../state/partyFlow';
 import { t, type MsgKey } from '../i18n';
-import { actorHasSkill } from '../engine/skills';
+import { actorHasSkill, peutTenter } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { rule } from '../engine/policy';
@@ -142,7 +142,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
 
   // Guérison hors-combat : un soigneur du groupe peut panser ce héros (sans avancer le temps, pour
   // stopper une hémorragie AVANT que l'horloge ne la fasse ticker — LDB 09-Compétences).
-  const canSoigner = !inBattle && isHealable(hero) && party.some(hasHealSkill);
+  const canSoigner = !inBattle && isHealable(hero) && party.some((h) => peutTenter(h, HEAL_SKILL));
 
   // GATE CORRIGÉ (#492 bug 2) : un lanceur de Bénédictions sans sort mémorisé encore (Bienheureux
   // avant sa 1re Bénédiction) garde son onglet Magie & Foi — `spells.length` seul le privait à tort.
