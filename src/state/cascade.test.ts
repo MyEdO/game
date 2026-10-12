@@ -526,6 +526,21 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
     expect(erreurs).not.toHaveBeenCalled();
   });
 
+  it('immédiat REPRIS après une décision : la borne, le `log` et le compteur que la reprise collecte arrivent à la séquence finalisée', () => {
+    const steps: CascadeStep[] = [
+      { id: 'decision', kind: 'fenF', label: fixtureText('d'), options: [{ key: 'o', label: fixtureText('o') }] },
+      { id: 'x', kind: 'fenB', label: fixtureText('x') },
+    ];
+    expect(runCascadeImmediate(g, s, steps, { title: 'T', purpose: 'test' })).toBeUndefined();
+    g().cascadeChoose('decision', 'o');
+    const done = advanceCascade(g, s)!;
+    expect(done.participants.map((x) => x.id)).toEqual(['decision', 'x', 'borne']);
+    expect(done.roundBoundary, 'la borne collectée à la reprise n’arrive pas au dénouement').toBe(true);
+    expect(done.log).toContain('ligne du fragment');
+    expect(done.seq, 'le compteur rendu ignore l’étape ouverte à la reprise').toBe(3);
+    expect(erreurs).not.toHaveBeenCalled();
+  });
+
   it('immédiat ALLÉ AU BOUT avec une borne collectée : aucun slot ne la porte, la levée la NOMME', () => {
     const seul = (): CascadeStep[] => [{ id: 'x', kind: 'fenB', label: fixtureText('x') }];
     expect(() => runCascadeImmediate(g, s, seul(), { title: 'T', purpose: 'test' })).toThrow(/bornes collectées \(roundBoundary\)/);

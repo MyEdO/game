@@ -653,7 +653,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
 
   it('franchissement de l’ancrage (kmDone ≥ at × km) → Test de Perception PUIS abordage, une seule fois — la cascade-jour SURVIT au combat (#284/#275)', () => {
     freshAmbush();
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', abordageMap.routes[0])!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', abordageMap.routes[0], { cadence: 'jour-par-jour' })!;
     // Ancrage = 0.5 × 550 = 275 milles. On force `sea.crisis`-like via une progression déjà proche de l'ancrage :
     // kmDone 270, une progression du jour d'~20 milles franchit l'ancrage (290 ≥ 275).
     set({ travelPlan: { ...plan, kmDone: 270 } } as never);
@@ -679,7 +679,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
 
   it('reprise après COMBAT ne double PAS l\'écran de victoire (décision ii, #275 Ronde 2 cran 3) : victoire d\'abord, cascade-jour ENSUITE', () => {
     freshAmbush();
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', abordageMap.routes[0])!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', abordageMap.routes[0], { cadence: 'jour-par-jour' })!;
     set({ travelPlan: { ...plan, kmDone: 270 } } as never);
     runSeaDay(get, set);
     let guard = 0;
@@ -708,6 +708,47 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().suspendedCascades.length).toBe(0);
     expect(get().pendingCascade).toBeTruthy();
     expect(get().pendingCascade!.purpose).toBe('travelDay');
+  });
+
+  /**
+   * TRAVERSÉE SOUS ORDRES (#1595) : l'embuscade ancrée n'exclut pas le jour du pilote immédiat. Le combat
+   * qu'elle ouvre en plein vol parque la journée ENTIÈRE derrière lui ; le combat clos, le même pilote
+   * reprend, et la clôture du jour se joue une fois, PV compris des dés résolus AVANT l'embuscade.
+   */
+  it('traversée COMMANDÉE : routine sans fenêtre ; au franchissement, l’abordage parque le jour, qui reprend après la victoire et se clôt une fois, PV complet', () => {
+    freshAmbush();
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', abordageMap.routes[0], { cadence: 'commande' })! } as never);
+    runSeaDay(get, set);
+    expect(get().pendingCascade, 'le jour de routine a ouvert une fenêtre').toBeNull();
+    expect(get().battle).toBeNull();
+    expect(get().travelPlan!.sea!.daysAtSea, 'le jour de routine ne s’est pas clos').toBe(1);
+
+    freshAmbush();
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', abordageMap.routes[0], { cadence: 'commande' })!;
+    set({ travelPlan: { ...plan, kmDone: 270 } } as never);
+    runSeaDay(get, set);
+    expect(get().battle, 'l’embuscade n’a pas ouvert son combat').toBeTruthy();
+    expect(get().pendingCascade, 'le jour s’est ouvert en fenêtre').toBeNull();
+    const [parque] = get().suspendedCascades;
+    expect(parque?.piloteImmediat, 'le jour parqué a perdu son contexte de lancement').toEqual({ rowSurface: 'pv' });
+    const joues = parque.participants.slice(0, parque.cursor);
+    expect(joues.map((x) => x.kind)).toEqual(expect.arrayContaining(['progression', 'embuscade']));
+    const progression = joues.find((x) => x.kind === 'progression')!;
+
+    const battle = get().battle!;
+    for (const c of battle.combatants) if (c.kind === 'enemy') c.wounds.current = 0;
+    set({ battle: { ...battle } });
+    checkBattleOver(get, set);
+    get().dismissVictory();
+    draineCascade(get, 40);
+
+    expect(get().pendingCascade).toBeNull();
+    expect(get().suspendedCascades).toEqual([]);
+    expect(get().travelPlan!.sea!.daysAtSea, 'la clôture du jour ne s’est pas jouée une fois').toBe(1);
+    expect(get().travelPlan!.log, 'la clôture du jour ne s’est pas jouée une fois').toHaveLength(1);
+    const ids = get().pendingRest!.travelDay!.entries!.map((e) => e.id ?? '');
+    expect(ids.filter((i) => i.startsWith('sea-progression')), 'les dés résolus avant l’embuscade manquent au PV').toHaveLength(progression.participants!.length);
+    expect(ids.some((i) => i.startsWith('sea-orientation')), 'le reste du jour ne s’est pas joué').toBe(true);
   });
 
   it('route SANS embuscade authorée → le franchissement ne déclenche rien', () => {

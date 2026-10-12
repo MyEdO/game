@@ -1647,7 +1647,8 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
   // fois tiré il n'est plus `'de'` (son `result` est là), donc c'est le PORTEUR DE DÉ qui le dit.
   const dOffice = !!cur && (stepInteraction(cur) === 'jet' || !!cur.de?.result) && !surfaceOf(get, porteurDe(cur));
   if (cur) {
-    const r = commitStep(get, set, steps, p.cursor, { seq, purpose: p.purpose, liveMerge: true, unwitnessed: dOffice }); // liveMerge : préserve les appends d'une conséquence foldée
+    // Une séquence que le pilote immédiat a parquée garde la surface de rangées DÉCLARÉE à son lancement.
+    const r = commitStep(get, set, steps, p.cursor, { seq, purpose: p.purpose, liveMerge: true, unwitnessed: dOffice, rowSurface: p.piloteImmediat?.rowSurface }); // liveMerge : préserve les appends d'une conséquence foldée
     steps = r.steps; suspended = r.suspended; seq = r.seq;
     if (r.bornes) fondu = { ...p, ...fusionnerLesBornes(p, r.bornes) };
   }
@@ -1665,16 +1666,20 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
     reconcileSuspended(get, set, p, { ...fondu, participants: steps, seq, cursor: Math.min(next, steps.length) });
     return null;
   }
-  // Séquence parquée par le pilote IMMÉDIAT sur une décision : la décision validée, la suite revient à
-  // CE pilote, avec le contexte de son lancement — l'appelant l'avait lancée sans fenêtre, la décision
-  // seule l'a rouverte.
+  // Séquence parquée par le pilote IMMÉDIAT sur une décision ou derrière un combat : la décision
+  // validée ou le combat clos, la suite revient à CE pilote, avec le contexte de son lancement —
+  // l'appelant l'avait lancée sans fenêtre.
   const reprise = next < steps.length ? p.piloteImmediat : undefined;
   if (next >= steps.length || reprise) {
     set({ pendingCascade: null });
     if (!reprise) return { ...fondu, participants: steps, seq };
-    const ctx = reprise.sansContexte ? undefined : { title: p.title, purpose: p.purpose, log: fondu.log, rowSurface: reprise.rowSurface };
-    const fini = piloteImmediat(get, set, steps, ctx, next, seq);
-    return fini ? { ...fondu, participants: fini, cursor: fini.length } : null;
+    const ctx = reprise.sansContexte ? undefined : { title: p.title, purpose: p.purpose, rowSurface: reprise.rowSurface };
+    // Le pilote repart des bornes de la séquence ; ce qu'il collecte, la séquence finalisée le porte au
+    // dénouement (`dispatchCascadeDone`) — c'est le porteur qu'un pilote LANCÉ n'a pas.
+    const r = piloteImmediat(get, set, steps, ctx, next, seq, fusionnerLesBornes({ log: [] }, fondu));
+    if (!r) return null;
+    if (!r.clos) { assertBornesPortees(r.collectees); return null; }
+    return { ...fondu, ...fusionnerLesBornes(fondu, r.collectees), participants: r.steps, seq: r.seq, cursor: r.steps.length };
   }
   const suite = poserLeCurseur(get, { ...fondu, participants: steps, seq, cursor: next });
   set({ pendingCascade: suite });
@@ -1767,10 +1772,11 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  *
  * `ctx` (optionnel) : titre/`purpose` du fragment — SEULEMENT nécessaire pour un appelant qui résout
  * un tableau DE PLUSIEURS étapes dont l'une peut ouvrir un combat en plein vol (`startCombat`, ex. la
- * cascade auto-pilotée d'un jour de voyage routine) : si le combat s'ouvre AVANT la fin du tableau, les
- * étapes RESTANTES (non encore committées) sont poussées en pile (`suspendedCascades`) — jamais perdues
- * ni résolues À L'AVEUGLE pendant que le combat tourne. Sans `ctx` (mono-étape, l'immense majorité des
- * appels), rien à préserver : la boucle s'arrête simplement (comportement historique).
+ * cascade auto-pilotée d'un jour de voyage routine) : si le combat s'ouvre, la séquence ENTIÈRE est
+ * poussée en pile (`suspendedCascades`), curseur derrière l'étape qui l'a ouvert, marquée `piloteImmediat`
+ * — jamais perdue ni résolue À L'AVEUGLE pendant que le combat tourne ; le combat clos, CE pilote reprend
+ * (`avanceUnPas`) et le dénouement de la séquence (`dispatchCascadeDone`) joue la clôture de l'appelant.
+ * Sans `ctx` (mono-étape, l'immense majorité des appels), rien à préserver : la boucle s'arrête.
  *
  * CHOIX sans `defaultChoice` authoré : jamais tranché en silence (`options[0]`) — la cascade s'arrête
  * PENDANTE, surfacée via `pendingCascade` (patron `resolveRemainingCascade`, #351), marquée
@@ -1782,7 +1788,10 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * étapes MONO du même tableau gardent leur ligne : elles n'ont pas de rangée au PV.
  */
 export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: ContexteDuPilote): CascadeStep[] | undefined {
-  return piloteImmediat(get, set, steps, ctx, 0, steps.length); // un tableau à LUI : son compteur part de sa longueur
+  const r = piloteImmediat(get, set, steps, ctx, 0, steps.length, { log: ctx?.log ?? [] }); // un tableau à LUI : son compteur part de sa longueur
+  if (!r) return undefined;
+  assertBornesPortees(r.collectees);
+  return r.clos ? r.steps : undefined;
 }
 
 type ContexteDuPilote = { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface };
@@ -1793,13 +1802,24 @@ function repriseDe(ctx: ContexteDuPilote | undefined): ReprisePilote {
   return ctx.rowSurface ? { rowSurface: ctx.rowSurface } : {};
 }
 
+/** Le pilote immédiat ALLÉ AU BOUT de son tableau : ses étapes, son compteur, les bornes que SES appliers
+ *  ont collectées, et `clos` — faux quand la clôture hors combat l'a interrompu (`clotureHorsCombat`). */
+interface PiloteFini { steps: CascadeStep[]; seq: number; collectees: BornesDuFragment; clos: boolean }
+
 /** Le pilote immédiat, à partir de l'étape `depuis` — `0` à son lancement, l'étape qui suit la décision
- *  à sa reprise (`avanceUnPas`, séquence `piloteImmediat`). */
-function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteDuPilote | undefined, depuis: number, seqInitial: number): CascadeStep[] | undefined {
+ *  ou le combat à sa reprise (`avanceUnPas`, séquence `piloteImmediat`). `bornesInitiales` : celles de
+ *  la séquence qu'il prolonge, portées par toute séquence qu'il parque. `undefined` : il l'a parquée,
+ *  ou le groupe est anéanti en vol. */
+function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteDuPilote | undefined, depuis: number, seqInitial: number, bornesInitiales: BornesDuFragment): PiloteFini | undefined {
   let cur = steps;
   let seq = seqInitial;
-  let bornes: BornesDuFragment = { log: ctx?.log ?? [] }; // + celles des fragments collectés par les appliers
+  let collectees: BornesDuFragment = { log: [] }; // celles des fragments collectés par les appliers
+  const parquee = (cursor: number): PendingCascade => ({
+    title: ctx?.title ?? cur[cursor]?.label ?? 'Choix', purpose: ctx?.purpose ?? 'test', ...fusionnerLesBornes(bornesInitiales, collectees),
+    participants: cur, seq, cursor, piloteImmediat: repriseDe(ctx),
+  });
   const slotALEntree = get().pendingCascade; // un slot DÉJÀ vivant n'est pas une interruption de CE pilote
+  const combatALEntree = get().battle; // un combat DÉJÀ ouvert n'est pas une interruption de CE pilote
 
   for (let i = depuis; i < cur.length; i++) {
     const st = cur[i];
@@ -1835,9 +1855,7 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
         // silence — la cascade s'arrête PENDANTE, surfacée (`pendingCascade`) pour que l'appelant/la
         // modale la reprenne (devtools `advanceRiverDay`/`skipToArrival`, cadence commandée, tout
         // futur appelant immédiat).
-        set({
-          pendingCascade: { title: ctx?.title ?? choix.label ?? 'Choix', purpose: ctx?.purpose ?? 'test', ...bornes, participants: cur, seq, cursor: i, piloteImmediat: repriseDe(ctx) },
-        });
+        set({ pendingCascade: parquee(i) });
         return undefined;
       }
       cur = cur.map((x, k) => (k === i ? { ...x, chosen: choix.defaultChoice! } : x));
@@ -1846,18 +1864,20 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     const r = commitStep(get, set, cur, i, { seq, purpose: ctx?.purpose, unwitnessed, rowSurface: ctx?.rowSurface });
     cur = r.steps;
     seq = r.seq;
-    if (r.bornes) bornes = fusionnerLesBornes(bornes, r.bornes);
+    if (r.bornes) collectees = fusionnerLesBornes(collectees, r.bornes);
     // Un combat s'est ouvert PENDANT cette résolution immédiate (l'applier a appelé `startCombat` —
     // no-op de suspension ici puisque CE tableau n'était PAS dans le slot actif) : le reste du tableau
-    // ne doit PAS continuer à se résoudre en silence pendant que le combat tourne — on le préserve.
-    if (get().battle && i + 1 < cur.length) {
-      if (ctx) set({ suspendedCascades: [...get().suspendedCascades, { title: ctx.title, purpose: ctx.purpose, ...bornes, participants: cur.slice(i + 1), seq, cursor: 0 }] });
+    // ne se résout pas pendant que le combat tourne. Avec un contexte, la séquence ENTIÈRE est parquée
+    // derrière le combat (`suspendedCascades`) — étapes déjà jouées comprises, que son dénouement
+    // (`rowSurface`) relit — et sa reprise revient à CE pilote, dernière étape comprise : la clôture
+    // de l'appelant se joue alors au dénouement de la séquence.
+    if (!combatALEntree && get().battle) {
+      if (ctx) set({ suspendedCascades: [...get().suspendedCascades, parquee(i + 1)] });
       return undefined;
     }
     if (get().partyWiped) return undefined; // l'applier a constaté l'anéantissement : plus personne à qui appliquer la suite
   }
-  assertBornesPortees(bornes);
-  return clotureHorsCombat(get, set, slotALEntree) ? undefined : cur;
+  return { steps: cur, seq, collectees, clos: !clotureHorsCombat(get, set, slotALEntree) };
 }
 
 /**

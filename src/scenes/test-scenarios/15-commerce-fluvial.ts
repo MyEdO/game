@@ -150,6 +150,8 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
   // persiste pendant la descente.
   const grunburgAltdorf = bargeRoute(START_ID, SELL_ID, 45, 'r-grunburg-altdorf');
   grunburgAltdorf.river = true;
+  // Débris à 55 % : valeur d'ADAPTATION du scénario, la chance du péril sur cette route n'est pas au
+  // Source. MSRC 7 l.125
   // Barrage à 35 % : valeur d'ADAPTATION du scénario, la chance du péril sur cette route n'est pas au
   // Source. MSRC 7 l.128
   grunburgAltdorf.riverPerils = [{ perilId: 'debris', chancePct: 55 }, { perilId: 'barrage', chancePct: 35 }];

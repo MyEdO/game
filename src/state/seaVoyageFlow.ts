@@ -874,16 +874,10 @@ const DRIFT_ALONG_ROUTE: Record<WindAspect, -1 | 0 | 1> = { arriere: 1, lateral:
 const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.driftBack' } as const;
 
 /** Journée de PURE ROUTINE, seule résolue d'un bloc sous ordres (`runCascadeImmediate`) : ni crise, ni
- *  infestation, ni embuscade ancrée non déclenchée. L'embuscade ouvre son combat en plein vol (applier
- *  `embuscade`), où le pilote immédiat ne rend ni la clôture du jour (`clotureHorsCombat`) ni les rangées
- *  déjà résolues au PV (`pushDayEntries`). #275 */
+ *  infestation. #275 */
 function seaDayAllRoutine(get: Get): boolean {
-  const plan = get().travelPlan!;
-  const sea = plan.sea!;
-  if (sea.crisis || sea.infestation) return false;
-  const route = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === plan.routeId);
-  if (route?.ambush?.scene && route.ambush.encounter && !sea.ambushFired) return false;
-  return true;
+  const sea = get().travelPlan!.sea!;
+  return !sea.crisis && !sea.infestation;
 }
 
 /** PV structuré (couche `voyageCadence` — « aucun jet silencieux ») : une entrée de JET par contributeur
@@ -1213,6 +1207,12 @@ export function runSeaDay(get: Get, set: Set): void {
   if (resolveSeaDayEvent(get, set, rng)) return;
   const { steps, log: lines } = buildSeaDayCascade(get, set);
   for (const l of lines) log(get, set, [l]);
+  jouerLesEtapesDuJour(get, set, steps);
+}
+
+/** Joue les étapes du jour qu'un build vient de rendre (`buildSeaDayCascade`, ou le reste du jour
+ *  `buildPostProgressionSteps`) — UNE décision immédiat/interactif pour les deux entrées du jour. */
+function jouerLesEtapesDuJour(get: Get, set: Set, steps: BuiltCascadeStep[]): void {
   // La construction du jour a pu ouvrir un ABORDAGE en plein vol (crise « caught » / embuscade ancrée
   // sans équipage à tester → `startChaseBoarding`/`openAuthoredSeaAmbush` posent `interrupted` + combat) :
   // la traversée s'arrête là (reprise par `resumeTravel` après le combat), jamais de fin-de-jour en plein combat.
@@ -1221,8 +1221,8 @@ export function runSeaDay(get: Get, set: Set): void {
   if (!steps.length) { if (!checkPartyWiped(get, set)) continueSeaDayAfterCascade(get, set); return; }
   // Traversée sous ordres (`voyageCadence.traverseeCommandee`) + journée de PURE routine (#275 Ronde 2
   // cran 3) : l'auto-pilote résout la cascade d'un bloc (mêmes appliers, mêmes conséquences), sans
-  // modale — lignes au journal. Un combat ouvert EN PLEIN VOL (rarissime : le build ne pouvait pas
-  // prévoir un franchissement d'ancrage exact) suspend le fragment restant (`runCascadeImmediate` `ctx`).
+  // modale — lignes au journal. Un combat ouvert EN PLEIN VOL (embuscade ancrée) parque la journée derrière
+  // lui (`runCascadeImmediate` `ctx`) : sa reprise et son dénouement (`dispatchCascadeDone`) jouent la clôture.
   if (traverseeCommandee(get()) && seaDayAllRoutine(get)) {
     // `rowSurface: 'pv'` : les rangées des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries`
     // à la clôture) — le journal ne redit pas leurs dés (#1291). Les monos du tableau y gardent leur ligne.
@@ -2161,17 +2161,9 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
 
 /** Reprend le RESTE du jour (crise/embuscade/phare/orientation/extermination/entretien,
  *  `buildPostProgressionSteps`) — utilisé par `resolveSteamSave` quand la cascade `'progression'` s'est
- *  fermée SANS insérer la suite (Fuite de vapeur suspendue entre-temps). Même décision immédiat/interactif
- *  que `runSeaDay`. */
+ *  fermée SANS insérer la suite (Fuite de vapeur suspendue entre-temps). */
 function continueSeaDayFromPostProgression(get: Get, set: Set): void {
-  const insert = buildPostProgressionSteps(get, set);
-  if (!insert.length) { continueSeaDayAfterCascade(get, set); return; }
-  if (traverseeCommandee(get()) && seaDayAllRoutine(get)) {
-    const resolved = runCascadeImmediate(get, set, insert, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
-    if (resolved) continueSeaDayAfterCascade(get, set, resolved);
-    return;
-  }
-  startCascade(get, set, { title: t('sv.dayTitle'), icon: 'travel/wave', purpose: 'travelDay', steps: insert });
+  jouerLesEtapesDuJour(get, set, buildPostProgressionSteps(get, set));
 }
 
 /** Ouvre l'embuscade AUTHORÉE d'une route de mer (couture UNIQUE, #212) — même pipeline que l'embuscade

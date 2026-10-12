@@ -89,6 +89,25 @@ describe('#1595 — un groupe à terre est vaincu, quel que soit le pilote de sa
   }
 });
 
+describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet : un groupe à terre est vaincu', () => {
+  it('sauvegarde confirmée, aucun Test de reste du jour : défaite, voyage et halte purgés', () => {
+    seedBattleRng(1);
+    set({
+      party: makePregens().slice(0, 3),
+      scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
+      pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
+      vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [], partyWiped: false,
+    } as never);
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0] as never, { cadence: 'commande' })!, party: aTerre(get().party) });
+    const h = get().party[0];
+    set({ pendingSteamSave: { actorId: h.id, actorName: h.label, skillValue: 40, target: 40, difficulty: 'intermediaire', scaldOps: [], roll: 5, success: true, sl: 3 } });
+    get().steamSaveConfirm();
+    expect(issue()).toEqual(DEFAITE);
+    expect(get().party.flatMap((x) => x.diseases ?? []), 'la clôture du jour s’est jouée avant la défaite').toEqual([]);
+  });
+});
+
 describe('#1595 — le pilote immédiat s’arrête sur un groupe anéanti EN VOL', () => {
   it('l’étape 1 anéantit le groupe : l’étape 2 n’est jamais appliquée, retour `undefined`', () => {
     set({ battle: null, pendingCascade: null, suspendedCascades: [], partyWiped: false, journal: [], party: makePregens().slice(0, 2) } as never);
