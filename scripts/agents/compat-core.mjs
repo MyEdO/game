@@ -335,9 +335,16 @@ export function remplacerCleJson(texte, cle, valeur) {
   return `${avant}${separateur}\n${unite}${JSON.stringify(cle)}: ${serialise}\n${texte.slice(fin)}`;
 }
 
-/** Les racines que `agents:sync` POSSÈDE : lues ici (`managedRoots`) et par l'étape `docs` du train
- *  (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`). */
+/** Les racines que `agents:sync` POSSÈDE en entier : ce qui y vit hors des sorties attendues est
+ *  orphelin (`managedRoots`, `collectDiffs`). */
 export const MANAGED_ROOTS = ['AGENTS.md', '.agents/skills', '.codex/credo.md'];
+
+/** Les surfaces dont `buildExpectedOutputs` dérive les déclarations de hooks (`hooksAttendus`). */
+export const SURFACES_DE_HOOKS = [SURFACE_CLAUDE, SURFACE_CODEX];
+
+/** Les DESTINATIONS de `buildExpectedOutputs` : tout chemin qu'il écrit ou retire est l'une d'elles ou
+ *  vit sous l'une d'elles. Lues par l'étape `docs` du train (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`). */
+export const DESTINATIONS = [...MANAGED_ROOTS, ...SURFACES_DE_HOOKS];
 
 /**
  * Les sorties attendues de `snapshot`. `registres` (script de `ENTREES_OUTIL` → registre) dérive les
@@ -360,7 +367,7 @@ export function buildExpectedOutputs(snapshot, registres) {
   for (const [destination, bytes] of transformSkillTree(snapshot)) files.set(destination, bytes);
   const credo = snapshot.get('.claude/credo.md');
   if (credo) files.set('.codex/credo.md', Buffer.from(`${GENERATED_PREFIX}.claude/credo.md -->\n${adapt(utf8.decode(credo))}`));
-  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+  for (const surface of SURFACES_DE_HOOKS) {
     try {
       const valeur = hooksAttendus(registres, surface);
       const cle = SORTIES_PAR_CLE.get(surface);

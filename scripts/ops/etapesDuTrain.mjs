@@ -26,7 +26,7 @@ import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mj
 import { resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
-import { MANAGED_ROOTS } from '../agents/compat-core.mjs'
+import { DESTINATIONS } from '../agents/compat-core.mjs'
 
 /** Période des sondes de la PR et des courses, en millisecondes. */
 export const PERIODE_SONDE_MS = 30_000
@@ -123,13 +123,14 @@ export function etatDeLaPr(pr, tete) {
  * Ce chemin est-il DÉRIVÉ, donc committable par l'étape `docs` ? Deux familles, toutes deux déclarées
  * ailleurs : les `injecte` des `generators` (`GENERATORS` de `build-all.mjs`, porté par le contexte du
  * train, `ctx.generators`) hors cibles PURES (`estCiblePure`) — les MIXTES, seuls dérivés de docs
- * commités (#2203) —, et les racines des miroirs d'agents (`MANAGED_ROOTS`, `compat-core.mjs`), que
- * les post-hooks `post-merge` et `post-rewrite` produisent sans les committer (#2578). PURE.
+ * commités (#2203) —, et les destinations des miroirs d'agents (`DESTINATIONS` de `buildExpectedOutputs`,
+ * `compat-core.mjs`), que les post-hooks `post-merge` et `post-rewrite` produisent sans les committer
+ * (#2578). PURE.
  */
 export function estDocDerive(chemin, generators) {
   const c = String(chemin ?? '').replace(/\\/g, '/')
   if (!c) return false
-  if (MANAGED_ROOTS.some((r) => c === r || c.startsWith(`${r}/`))) return true
+  if (DESTINATIONS.some((r) => c === r || c.startsWith(`${r}/`))) return true
   return !estCiblePure(c, generators) && generators.some((g) => (g.injecte ?? []).some((motif) => correspondGlob(c, motif)))
 }
 
