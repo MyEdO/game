@@ -1756,7 +1756,7 @@ export function createCombatSlice(get: Get, set: Set) {
       };
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
-        { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: 'Commandant d’équipe', stake: combatStakeRef('teamCommand') },
+        { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: t('cs.teamCommandTest'), stake: combatStakeRef('teamCommand') },
         onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: active.id });
       bus.emit(EVT.SCENE_DIRTY);
     },

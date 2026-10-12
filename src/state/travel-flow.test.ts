@@ -430,8 +430,8 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
     const batch = steps.find((s) => s.kind === 'stagePosteBatch')!;
     const outPart = batch.participants!.find((p) => p.id === 'hOut')!;
     const cartoPart = batch.participants!.find((p) => p.id === 'hCarto')!;
-    expect(outPart.mods?.some((m) => typeof m.label === 'string' && m.label.startsWith('Météo'))).toBe(true); // Plein air -20 (l.106)
-    expect(cartoPart.mods?.some((m) => m.label === 'Tests physiques' && m.value === -10)).toBe(true); // pluie diluvienne l.82, carac Dex
+    expect(outPart.mods?.filter((m) => m.ref?.category === 'weatherConditions').map((m) => m.value)).toEqual([-20]); // Plein air -20 (l.106)
+    expect(cartoPart.mods?.filter((m) => m.ref?.category === 'weatherConditions' && m.ref.id === 'pluie-diluvienne').map((m) => m.value)).toEqual([-10]); // EDOC 8 l.82, carac Dex
     resetRule('travel-etapes');
   });
 

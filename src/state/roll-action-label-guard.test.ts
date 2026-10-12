@@ -87,7 +87,7 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
     expect(scanActionLabels("openSkillTest(get, set,\n  { skill: { id: skillId }, difficulty: 'intermediaire', label: `Avantage — ${skillLabel}`, stake: combatStakeRef('x', { values: { capChar } }) },\n  EMPTY_FLOW)")).toHaveLength(1);
     expect(scanActionLabels("openSkillTest(get, set, { stake: combatStakeRef('x', { values: { a: 1 } }), label: 'Recherche (au port)' }, EMPTY_FLOW)"), 'après deux niveaux imbriqués').toHaveLength(1);
     expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'x' }, label: t('difficulty.intermediaire') }, EMPTY_FLOW)"), 'clé de catalogue').toHaveLength(1);
-    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'commandement' }, label: 'Commandant d’équipe' }, EMPTY_FLOW)")).toEqual([]);
+    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'commandement' }, label: t('step.contagion') }, EMPTY_FLOW)")).toEqual([]);
     expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'x', label: 'Voile (Chaland)' } }, EMPTY_FLOW)"), 'un `label:` imbriqué n’est pas le slot').toEqual([]);
   });
 

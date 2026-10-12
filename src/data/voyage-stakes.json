@@ -254,7 +254,7 @@
     "type": "voyage-stakes",
     "label": "Dégagement des Débris marins",
     "kind": "sea-degagement-debris",
-    "template": "Test étendu : tant que le total de DR n'est pas atteint, le navire reste empêtré.",
+    "template": "Test étendu : tant que le total de {totalDR} DR n'est pas atteint, le navire reste empêtré.",
     "source": {
       "book": "mer-des-griffes",
       "page": 112,

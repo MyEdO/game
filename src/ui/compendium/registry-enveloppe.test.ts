@@ -73,6 +73,7 @@ const CLES: Record<string, string> = {
   "miscastMajor": '416a3aa0219e8f4e',
   "miscastWrath": '3da49a322927f1e7',
   "nightStakes": '54a15ad6883f8c31',
+  // #1595 (2026-10-12) : +1 item `sea-degagement-debris` (MDG 13 l.487-491), l’empêtrement dans des Débris marins.
   "voyageStakes": '696a09f1bed2494d',
   // #1920 B14 (2026-09-24) : −2 items (`recover-*` sur l'État), `sub` retiré.
   // #700 (2026-10-05) : +1 item `perception-detect` (LDB 09 l.399), la découverte d'une porte secrète.

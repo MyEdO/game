@@ -627,7 +627,7 @@ function seaStrandingPenalty(get: Get): ModLine[] {
 /** Étape MONO « Dégagement » (Test de Force, #444) — partagée par l'Échouage (`sea-degagement`, MDG
  *  ch.13 l.471-473) et l'empêtrement dans des Débris marins (`sea-degagement-debris`, l.491, Test
  *  étendu). `penalite` = les malus sur la cible (l.473). `undefined` = aucun PJ éligible à la Force. */
-function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: string, penalite: ModLine[] = []): BuiltCascadeStep | undefined {
+function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: string, { penalite = [], stakeValues }: { penalite?: ModLine[]; stakeValues?: Record<string, number> } = {}): BuiltCascadeStep | undefined {
   const force = partyAssisted(get().party, undefined, 'force');
   if (!force) return undefined;
   const test = { char: 'force' as const };
@@ -636,7 +636,7 @@ function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: st
     label: composeRollLabel(force.actor, t('sv.degagement'), test),
     difficulty,
     ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, surLaCible: [...penalite, ...precipitationTestMods(activeSeaPrecipitation(get))] },
-    stake: voyageStakeRef(kind),
+    stake: voyageStakeRef(kind, stakeValues),
   });
 }
 
@@ -723,7 +723,7 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   // EMPÊTRÉ dans des Débris marins (MDG 13 l.491, #444) : Test étendu de Force pour se dégager —
   // n'arrête PAS la Progression (contrairement à l'Échouage, `sea.stranded`).
   if (sea.entangled) {
-    const st = buildStrandedOrEntangledStep(get, sea.entangled.difficulty, 'sea-degagement-debris');
+    const st = buildStrandedOrEntangledStep(get, sea.entangled.difficulty, 'sea-degagement-debris', { stakeValues: { totalDR: sea.entangled.need } });
     pousseSi(out, st);
   }
   // « ÇA VA LÂCHER, CAPITAINE ! » (MDG 13 l.121-142, #443) : la Progression du jour a dépassé M+4
@@ -793,7 +793,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   if (strandedSea.stranded) {
     tell(get, set, [t('sv.stranded', { hazard: strandedSea.stranded.label })]);
     patchSea(get, set, { milesToday: 0 });
-    const st = buildStrandedOrEntangledStep(get, 'intermediaire', 'sea-degagement', seaStrandingPenalty(get));
+    const st = buildStrandedOrEntangledStep(get, 'intermediaire', 'sea-degagement', { penalite: seaStrandingPenalty(get) });
     pousseSi(steps, st);
     steps.push(...buildPostProgressionSteps(get, set));
     return { steps, log: [] };

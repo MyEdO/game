@@ -144,7 +144,7 @@ import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, type StructureCriticalResolved } from '../engine/structureCritical';
-import { STRUCTURE_CRITICALS } from '../data/structureCriticals';
+import { STRUCTURE_CRITICALS, STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
 import { actorIn, inBattleId, garanti } from './combatants';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
@@ -286,7 +286,7 @@ import {
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
 import { dataLabel } from '../data';
-import { stepPrecision, stepPsych } from './rollSeam';
+import { stepDetail, stepPrecision, stepPsych } from './rollSeam';
 
 /** L'État du défenseur accorde-t-il un Avantage à l'assaillant en mêlée ? Lu en DONNÉES
  *  (`incomingMeleeAdvantage` → `passive` `incomingAdvantage`, kind `etat`). Sonné : « +1 Avantage avant
@@ -1665,7 +1665,7 @@ const CRIT_TABLE_CATEGORIES: Record<CritTableKey, string> = {
 for (const key of Object.keys(CRIT_TABLE_IDS) as CritTableKey[]) {
   const rows = critTableRows('ldb', key);
   registerTableStep(CRIT_TABLE_IDS[key], {
-    label: `Blessures critiques — ${libelleDeValeur(critTableSchema, key)}`,
+    label: stepDetail(tr('step.blessuresCritiques'), dataLabel(libelleDeValeur(critTableSchema, key))),
     die: 100,
     rows,
     lines: (die) => [findTableEntry(rows, die).label],
@@ -1913,7 +1913,7 @@ export function applyHullCriticalToTarget(
  *  lignes reste au moteur (`rollStructureCritical`, appelé avec le dé déjà tiré : aucun dé consommé). */
 export const STRUCTURE_CRIT_TABLE = 'structure-criticals';
 registerTableStep(STRUCTURE_CRIT_TABLE, {
-  label: 'Blessures critiques sur une Structure',
+  label: dataLabel(STRUCTURE_CRITICALS_LABEL),
   die: 100,
   rows: STRUCTURE_CRITICALS,
   lines: (die) => { const o = rollStructureCritical(battleRng(), die); return o.note ? [...o.log, o.note] : [...o.log]; },
@@ -6451,7 +6451,7 @@ export type ContractionEntry = 'infection' | 'contagion' | 'chirurgie';
  *  l'appelle, la maladie, sa difficulté de Résistance (les crans de l'exposition — Contagieux : 2 plus
  *  difficile — DÉJÀ appliqués) et le libellé d'exposition. `instant` (Contagieux, EDO App.2 l.230) :
  *  contractée → incubation « Instantanée ». Le `resistVal` (Résistance effective) est figé à la décision. */
-interface CombatEndDiseaseTest { entry: ContractionEntry; disease: string; difficulty: Difficulty; label: string; instant?: boolean }
+interface CombatEndDiseaseTest { entry: ContractionEntry; disease: string; difficulty: Difficulty; label: PlayerText; instant?: boolean }
 
 /** Valeur de Résistance d'un héros pour les Tests de Contraction (E + avances de Résistance) — figée à la
  *  décision pour rester stable entre la pose de l'étape et sa résolution. */
@@ -6477,7 +6477,7 @@ function decideCombatEndHeroTests(
   if (c.tookCriticalThisFight) {
     const dressed = c.woundDressed;
     if (!c.dead && !dressed && dm === 'full' && contractionDue(c, 'infection-mineure'))
-      diseases.push({ entry: 'infection', disease: 'infection-mineure', difficulty: 'tresFacile', label: 'Infection (Blessure critique)' });
+      diseases.push({ entry: 'infection', disease: 'infection-mineure', difficulty: 'tresFacile', label: stepPrecision(diseaseLabel('infection-mineure'), tr('step.blessureCritique')) });
   }
   c.tookCriticalThisFight = false; // consommé (idempotent)
   c.woundDressed = false;
@@ -6493,7 +6493,7 @@ function decideCombatEndHeroTests(
         entry: 'contagion',
         disease: def.id,
         difficulty: easeDifficulty(def.contractDifficulty, exp.difficultyShift ?? 0),
-        label: `Contagion (${diseaseLabel(def.id)})`,
+        label: stepPrecision(tr('step.contagion'), diseaseLabel(def.id)),
         ...(exp.instant ? { instant: true } : {}),
       });
     }
@@ -6580,7 +6580,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
         id: `combatEndDisease-${c.id}-${d.entry}-${d.disease}`, kind: 'combatEndDisease', actor: c, icon: 'medical/infection',
         rollLabel: 'Résistance', difficulty: d.difficulty,
         ligne: { valeur: resVal, surLaCible: conditionModLines(c) },
-        label: dataLabel(d.label), meta: { entry: d.entry, disease: d.disease, ...(d.instant ? { instant: true } : {}) },
+        label: d.label, meta: { entry: d.entry, disease: d.disease, ...(d.instant ? { instant: true } : {}) },
         stake: combatStakeRef('combatEndDisease', { entryId: d.disease }),
         menace: 'maladie', // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
       });

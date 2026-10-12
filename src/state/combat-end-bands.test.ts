@@ -111,6 +111,11 @@ describe('#1117 L4 — une bande par ENTRÉE DE RÈGLE (LDB 20 l.90 ≠ l.25/l.5
     }
     expect(vues.map((b) => b.meta?.entry).sort()).toEqual(['contagion', 'infection']);
     expect(vues.map((b) => b.meta?.disease)).toEqual(['infection-mineure', 'infection-mineure']);
+    // Titres composés par `stepPrecision` : sujet et parenthèse au catalogue, maladie lue à la donnée.
+    expect(Object.fromEntries(vues.map((b) => [b.meta?.entry, b.label]))).toEqual({
+      infection: 'Infection Mineure (Blessure critique)',
+      contagion: 'Contagion (Infection Mineure)',
+    });
     expect(c.diseases ?? [], 'rien n’a été contracté en silence').toHaveLength(0);
   });
 

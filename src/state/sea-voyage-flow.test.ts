@@ -1725,10 +1725,12 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
 
   it('Débris marins : l’étape de dégagement met en jeu SON enjeu (MDG 13 l.487-491), pas la progression bloquée de l’Échouage', () => {
     const plan = planWithSea();
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, entangled: { hazardId: 'debris-marins', label: 'Débris marins', need: 10, progress: 0, manDR: -1, mMod: 0, difficulty: 'accessible' } } } });
+    const need = findSeaHazard('debris-marins')!.freeTest!.totalDR;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, entangled: { hazardId: 'debris-marins', label: 'Débris marins', need, progress: 0, manDR: -1, mMod: 0, difficulty: 'accessible' } } } });
     const st = apply('progression', 2, true)?.insert?.find((s) => s.kind === 'sea-degagement-debris');
     expect(st).toBeTruthy();
     expect(st?.stake?.key?.kind).toBe('sea-degagement-debris');
+    expect(resolveStake(st!.stake!).text).toContain(`total de ${need} DR`); // MDG 13 l.491
   });
 
   it('sea-degagement : succès → `sea.stranded` levé', () => {
