@@ -592,6 +592,11 @@ function joindre(principale, nettoyage) {
   return e;
 }
 
+/** `erreur` PORTE-t-elle déjà `r` : elle-même, sa `cause` ou ses `errors` (`joindre`), en profondeur. */
+function porteErreur(erreur, r) {
+  return erreur === r || (erreur instanceof Error && ((erreur.cause !== undefined && porteErreur(erreur.cause, r)) || (erreur instanceof AggregateError && erreur.errors.some((x) => porteErreur(x, r)))));
+}
+
 /** Après l'échec `principale`, joue `nettoyage()` puis LÈVE la principale — jointe (`joindre`) à
  *  l'échec du nettoyage s'il y en a un. */
 export async function leverApresNettoyage(principale, nettoyage) {
@@ -662,7 +667,8 @@ export function brancherCdp(ws, champs = {}) {
   const brut = (method, params = {}) => envoyer(method, params, session.sessionId);
   session.rpc = verrouille(brut);
   session.rpcNavigateur = verrouille((method, params) => envoyer(method, params, null));
-  emetteursBruts.set(session, brut);
+  emetteursBruts.set(session, (qui, delaiMs) => (method, params) =>
+    courseContreMontre(brut(method, params), delaiMs, `${qui} : ${method} sans réponse après ${delaiMs} ms`));
   return session;
 }
 
@@ -1188,8 +1194,12 @@ async function avecEffet(session, qui, attendre, geste) {
 // clavier : l'émetteur BRUT du CDP (`emetteursBruts`, posé par `brancherCdp`) n'est lu que par eux, et
 // `session.rpc` refuse le domaine `Input` (garde `scripts/guards/lib/emetteurEntreeExclusivity.mjs`).
 
-/** Émetteur BRUT du CDP par session, posé par `brancherCdp` : lu par `geste` et `frappe` seulement. */
+/** Émetteur BRUT du CDP par session, posé par `brancherCdp` : lu par `geste` et `frappe` seulement.
+ *  `(qui, delaiMs)` le rend BORNÉ : une émission sans réponse en `delaiMs` LÈVE au nom de `qui`. */
 const emetteursBruts = new WeakMap();
+
+/** Plafond par défaut d'une émission `Input.*` (`geste`, `frappe` : option `delaiEntreeMs`). */
+export const DELAI_ENTREE = 10000;
 
 /** Domaine CDP des événements d'ENTRÉE : `session.rpc` le refuse, `geste` et `frappe` l'émettent. */
 export const DOMAINE_ENTREE = /^Input\./;
@@ -1263,7 +1273,8 @@ const FN_NOM_ACCESSIBLE = `(b) => norm(b.getAttribute('aria-label')) || norm(b.m
 const CORPS_NOM_ACCESSIBLE = `const nomAccessible = ${FN_NOM_ACCESSIBLE};`;
 
 /** `nommer(el)` (fonction de PAGE) : le NOM d'un élément, `tag#id.classe…` (classe SVG comprise), lisible
- *  même sans texte. SOURCE UNIQUE (`pageControler`, `hud-clickables.mjs`). */
+ *  même sans texte. SOURCE UNIQUE (`pageLocaliser`, `pageControler`, `frappe`,
+ *  `hud-clickables.mjs`, `console-pont-formes.mjs`). */
 export const FN_NOMMER_ELEMENT = `(e) => { const c = e.className && e.className.baseVal !== undefined ? e.className.baseVal : String(e.className || ''); return e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (c.trim() ? '.' + c.trim().split(/\\s+/).join('.') : ''); }`;
 
 /** `couche(el)` (fonction de PAGE) : la COUCHE de défilement d'un élément — son premier ancêtre
@@ -1316,11 +1327,12 @@ const decrireCible = (c) => c.surface !== undefined
  * est-elle visible dans cette couche). Rend `{ absente }`, `{ vide }`, `{ hors }` ou le point, avec le
  * `label` de la cible (son nom accessible, 60 caractères).
  */
-function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom, fnCouche) {
+function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom, fnCouche, fnNommer) {
   const norm = (s) => (s || '').replace(/\s+/g, ' ').replace(/[’']/g, "'").trim();
   const nomAccessible = new Function('norm', 'return ' + fnNom)(norm);
   const couche = new Function('return ' + fnCouche)();
-  const decrire = (e) => e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + ' « ' + norm(e.textContent).slice(0, 60) + ' »';
+  const nommer = new Function('return ' + fnNommer)();
+  const decrire = (e) => { const t = norm(e.textContent).slice(0, 60); return nommer(e) + (t ? ' « ' + t + ' »' : ''); };
   const rangeeDe = new Map();
   const etiquetteDe = (e) => norm(e.querySelector(cible.etiquette.selecteur)?.textContent);
   const ambigu = (quoi, liste, conseil) => new Error(qui + ' : ' + liste.length + ' ' + quoi + ' — '
@@ -1426,7 +1438,7 @@ function pageControler(jeton, attr, x, y, mode, intention, fnCouche, fnNommer) {
  *  DISTINCTE de celle des gestes, qui survit à leurs localisations (à retirer par `retirerJeton`). */
 async function marquer(session, cible, qui, attr = ATTR_CIBLE) {
   const jeton = nouveauJeton();
-  const loc = await evaluerFn(session, pageLocaliser, formeDeCible(cible, qui), jeton, attr, qui, false, 'aucun', SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE);
+  const loc = await evaluerFn(session, pageLocaliser, formeDeCible(cible, qui), jeton, attr, qui, false, 'aucun', SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE, FN_NOMMER_ELEMENT);
   return loc.absente ? null : jeton;
 }
 
@@ -1442,7 +1454,7 @@ async function localiser(session, cible, { jeton, qui, defiler = true, point = '
   const fin = Date.now() + attenteMs;
   let loc;
   for (;;) {
-    loc = await evaluerFn(session, pageLocaliser, cible, jeton, ATTR_CIBLE, qui, defiler, point, SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE);
+    loc = await evaluerFn(session, pageLocaliser, cible, jeton, ATTR_CIBLE, qui, defiler, point, SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE, FN_NOMMER_ELEMENT);
     if (!loc.absente || Date.now() >= fin) break;
     await sleep(Math.min(50, Math.max(0, fin - Date.now())));
   }
@@ -1491,15 +1503,16 @@ const EMISSIONS = Object.freeze({ souris: 'Input.dispatchMouseEvent', tactile: '
  * un `mousePressed` et son relâchement), BORNÉ à la fenêtre, dont le relâchement bouton gauche hors du
  * point est un DÉPÔT recontrôlé (`pageControler`, mode `couche`) ; un relâchement refusé relâche AU
  * POINT CONTRÔLÉ, puis lève. `emettre` est RÉVOQUÉ au retour d'`evenements`, et `geste` ne rend qu'après
- * les émissions EN VOL. Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
+ * les émissions EN VOL : un refus en vol LÈVE, joint (`joindre`) à l'échec d'`evenements` s'il y en a un ; une
+ * émission sans réponse en `delaiEntreeMs` (`DELAI_ENTREE`) LÈVE. Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
  * `defiler`, `attenteMs`, `point` (`centre`, `visible`, `defilant`), `controle` (`cible`, ou
  * `couche` pour un cran de molette). Rend la localisation, avec `ferme` (`null`, ou
  * `{ mecanisme, raison }` sous `lire`).
  */
-export async function geste(session, cible, { intention = 'agir', qui = 'geste', defiler = true, attenteMs = ATTENTE_CIBLE, point = 'centre', controle = 'cible' } = {}, evenements) {
+export async function geste(session, cible, { intention = 'agir', qui = 'geste', defiler = true, attenteMs = ATTENTE_CIBLE, point = 'centre', controle = 'cible', delaiEntreeMs = DELAI_ENTREE } = {}, evenements) {
   if (!INTENTIONS.includes(intention)) throw new Error(`${qui} : intention « ${intention} » — admises : ${INTENTIONS.join(', ')}`);
   if (typeof evenements !== 'function') throw new Error(`${qui} : les événements à émettre manquent — aucun événement émis`);
-  const brut = emetteursBruts.get(session);
+  const brut = emetteursBruts.get(session)?.(qui, delaiEntreeMs);
   if (!brut) throw new Error(`${qui} : session sans émetteur d'entrée (non branchée par \`brancherCdp\`) — aucun événement émis`);
   const forme = formeDeCible(cible, qui);
   const jeton = nouveauJeton();
@@ -1507,7 +1520,7 @@ export async function geste(session, cible, { intention = 'agir', qui = 'geste',
   const { ferme, fenetre } = await controler(session, loc.x, loc.y, { jeton, libelle: decrireCible(forme), qui, intention, attenteMs, mode: controle });
   let tenu = false;
   let revoque = false;
-  const enVol = new Set();
+  const emissions = [];
   const emettreBorne = async (domaine, params) => {
     if (!EMISSIONS[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS).join(', ')}`);
     const glisse = domaine === 'souris' && tenu && (params.type === 'mouseMoved' || params.type === 'mouseReleased');
@@ -1537,18 +1550,23 @@ export async function geste(session, cible, { intention = 'agir', qui = 'geste',
     if (domaine === 'souris' && params.type === 'mouseReleased') tenu = false;
     return brut(EMISSIONS[domaine], params);
   };
+  let echec = null;
   try {
     await evenements(loc, (domaine, params) => {
       if (revoque) return Promise.reject(new Error(`${qui} : « emettre » RÉVOQUÉ — le geste est rendu — aucun événement émis`));
       const emission = emettreBorne(domaine, params);
-      const suivie = emission.catch(() => {}).finally(() => enVol.delete(suivie));
-      enVol.add(suivie);
+      emission.catch(() => {});
+      emissions.push(emission);
       return emission;
     });
-  } finally {
-    revoque = true;
-    await Promise.all(enVol);
+  } catch (e) {
+    echec = { e };
   }
+  revoque = true;
+  const refus = (await Promise.allSettled(emissions))
+    .find((r) => r.status === 'rejected' && !(echec && porteErreur(echec.e, r.reason)))?.reason;
+  if (echec) throw refus ? joindre(echec.e, refus) : echec.e;
+  if (refus) throw refus;
   return { ...loc, ferme };
 }
 
@@ -2469,17 +2487,17 @@ const EMISSIONS_CLAVIER = Object.freeze({ touche: 'Input.dispatchKeyEvent', text
  * frappe est une touche GLOBALE, sans cible contrôlée. Puis appelle `evenements(emettre)`, où
  * `emettre('touche' | 'texte', params)` émet `Input.dispatchKeyEvent` ou `Input.insertText`.
  */
-export async function frappe(session, { focus, qui = 'frappe' } = {}, evenements) {
-  const brut = emetteursBruts.get(session);
+export async function frappe(session, { focus, qui = 'frappe', delaiEntreeMs = DELAI_ENTREE } = {}, evenements) {
+  const brut = emetteursBruts.get(session)?.(qui, delaiEntreeMs);
   if (!brut) throw new Error(`${qui} : session sans émetteur d'entrée (non branchée par \`brancherCdp\`) — aucune frappe émise`);
   if (focus !== undefined) {
     const jeton = await marquer(session, { selecteur: focus }, qui);
-    const manque = jeton ? await evaluerFn(session, (marque, attr) => {
+    const manque = jeton ? await evaluerFn(session, (marque, attr, fnNommer) => {
       const el = document.querySelector(marque);
       el.removeAttribute(attr);
       const a = document.activeElement;
-      return a === el ? null : 'focus sur ' + (a ? a.tagName.toLowerCase() + (a.id ? '#' + a.id : '') : '(aucun)');
-    }, marqueDe(jeton), ATTR_CIBLE) : 'aucun élément désigné';
+      return a === el ? null : 'focus sur ' + (a ? new Function('return ' + fnNommer)()(a) : '(aucun)');
+    }, marqueDe(jeton), ATTR_CIBLE, FN_NOMMER_ELEMENT) : 'aucun élément désigné';
     if (manque) throw new Error(`${qui} « ${focus} » : la cible n'a pas le focus (${manque}) — aucune frappe émise`);
   }
   let revoque = false;

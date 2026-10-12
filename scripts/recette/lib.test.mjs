@@ -98,6 +98,7 @@ import { JSDOM } from 'jsdom'
 import * as kitRecette from './lib.mjs'
 import { demarrer } from './setup.mjs'
 import { recette, squelette } from './gabarit.mjs'
+import { PROBE } from './console-pont-formes.mjs'
 
 /** La socket factice d'une session de test : la session ne l'expose pas (`brancherCdp`), le test la
  *  garde. */
@@ -670,7 +671,7 @@ const DEUX_NOMS = `
 
 test('champParLibelle : deux champs porteurs du libellé dans la portée LÈVENT en les comptant, aucune marque posée', async () => {
   const { dom, session } = sessionSurDom(DEUX_NOMS)
-  await assert.rejects(() => champParLibelle(session, 'Nom'), /champParLibelle : 2 cibles ambiguës « Nom » — input#nom-scene « +» \| input#nom-projet « +» — préciser \{ dans \}/)
+  await assert.rejects(() => champParLibelle(session, 'Nom'), /champParLibelle : 2 cibles ambiguës « Nom » — input#nom-scene \| input#nom-projet — préciser \{ dans \}/)
   assert.equal(dom.window.document.querySelector('[data-recette]'), null)
 })
 
@@ -2788,9 +2789,9 @@ test('verrou : `rpc` et `rpcNavigateur` refusent le domaine Input, rien ne part 
 test('homonymes : chaque forme de cible LÈVE en nommant les candidats, aucun événement émis', async () => {
   const { etat, session } = pagePilotee('<svg class="iso-stage"></svg><svg class="iso-stage"></svg><button class="pion" id="nain1">Nain</button><button class="pion" id="nain2">Nain</button>')
   for (const [cible, motif] of [
-    [{ nom: 'Nain' }, /2 cibles ambiguës « Nain » — button#nain1 « Nain » \| button#nain2 « Nain »/],
-    [{ selecteur: '.pion' }, /2 cibles ambiguës « \.pion » — button#nain1 « Nain » \| button#nain2 « Nain »/],
-    [{ surface: 'svg.iso-stage', x: 5, y: 5 }, /2 cibles ambiguës « svg\.iso-stage »/],
+    [{ nom: 'Nain' }, /2 cibles ambiguës « Nain » — button#nain1\.pion « Nain » \| button#nain2\.pion « Nain »/],
+    [{ selecteur: '.pion' }, /2 cibles ambiguës « \.pion » — button#nain1\.pion « Nain » \| button#nain2\.pion « Nain »/],
+    [{ surface: 'svg.iso-stage', x: 5, y: 5 }, /2 cibles ambiguës « svg\.iso-stage » — svg\.iso-stage \| svg\.iso-stage —/],
   ]) {
     for (const faire of [() => survoler(session, cible, { attenteMs: 0 }), () => toucher(session, cible), () => geste(session, cible, {}, clic())]) {
       await assert.rejects(faire, motif)
@@ -2873,7 +2874,7 @@ function pageCodexHomonymes(lignes) {
 
 test('ouvrirFiche : des HOMONYMES lèvent en nommant les livres offerts ; `{ livre }` départage', async () => {
   const { etat, session } = pageCodexHomonymes([['Épée', 'LDB'], ['Épée', 'ADE I']])
-  await assert.rejects(() => ouvrirFiche(session, { entree: 'Épée' }), /ouvrirFiche : 2 cibles ambiguës « Épée » — button#r0 « ÉpéeLDB » \| button#r1 « ÉpéeADE I » — préciser \{ livre \} — offerts : LDB \| ADE I ; aucun événement émis/)
+  await assert.rejects(() => ouvrirFiche(session, { entree: 'Épée' }), /ouvrirFiche : 2 cibles ambiguës « Épée » — button#r0\.listrow « ÉpéeLDB » \| button#r1\.listrow « ÉpéeADE I » — préciser \{ livre \} — offerts : LDB \| ADE I ; aucun événement émis/)
   assert.deepEqual(etat.cliques.filter((c) => c.startsWith('Épée')), [])
   assert.deepEqual(await ouvrirFiche(session, { entree: 'Épée', livre: 'ADE I' }), { entree: 'Épée', livre: 'ADE I' })
   assert.equal(etat.cliques.at(-1), 'ÉpéeADE I')
@@ -2947,6 +2948,64 @@ test('geste : un glissé HORS FENÊTRE lève ; son relâchement gauche est un D�
   assert.deepEqual(socketDe(voile.session).envoyes.filter((m) => m.method === 'Input.dispatchMouseEvent').at(-1).params, { type: 'mouseReleased', x: 5, y: 5, button: 'left', clickCount: 1 })
 })
 
+test('geste : un relâchement-dépôt NON ATTENDU refusé sous un voile fait LEVER le geste, le recouvrant nommé', async () => {
+  const { doc, etat, session } = pagePilotee('<button id="a">A</button><div class="voile" style="position:fixed">Modale</div>')
+  await assert.rejects(() => geste(session, { selecteur: '#a' }, { attenteMs: 30 }, async (loc, emettre) => {
+    await emettre('souris', { type: 'mousePressed', x: loc.x, y: loc.y, button: 'left', clickCount: 1 })
+    doc.elementFromPoint = () => doc.querySelector('.voile')
+    emettre('souris', { type: 'mouseReleased', x: 8, y: 8, button: 'left', clickCount: 1 })
+  }), /AUTRE COUCHE — au point \(8, 8\), div\.voile « Modale ».* ; bouton relâché au point contrôlé \(5, 5\)$/)
+  assert.deepEqual(etat.emis, ['Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseReleased'])
+})
+
+test('geste : `evenements` qui échoue avec un refus EN VOL lève les DEUX, jointes', async () => {
+  const { doc, session } = pagePilotee('<button id="a">A</button><div class="voile" style="position:fixed">Modale</div>')
+  await assert.rejects(() => geste(session, { selecteur: '#a' }, { attenteMs: 30 }, async (loc, emettre) => {
+    await emettre('souris', { type: 'mousePressed', x: loc.x, y: loc.y, button: 'left', clickCount: 1 })
+    doc.elementFromPoint = () => doc.querySelector('.voile')
+    emettre('souris', { type: 'mouseReleased', x: 8, y: 8, button: 'left', clickCount: 1 })
+    throw new Error('scénario cassé')
+  }), (e) => {
+    assert.ok(e instanceof AggregateError)
+    assert.equal(e.errors[0].message, 'scénario cassé')
+    assert.match(e.errors[1].message, /AUTRE COUCHE.* ; bouton relâché au point contrôlé \(5, 5\)$/)
+    return true
+  })
+})
+
+/** Page pilotée dont le domaine `Input` ne répond JAMAIS (la socket reste ouverte). */
+function pageInputMuet(html) {
+  const page = pagePilotee(html)
+  const servir = socketDe(page.session).gerer
+  socketDe(page.session).gerer = (methode, params) => methode.startsWith('Input.') ? new Promise(() => {}) : servir(methode, params)
+  return page
+}
+
+test('geste et frappe : une émission `Input` sans réponse LÈVE après `delaiEntreeMs`, attendue ou non', async () => {
+  const presse = (loc) => ({ type: 'mousePressed', x: loc.x, y: loc.y, button: 'left', clickCount: 1 })
+  await assert.rejects(() => geste(pageInputMuet('<button id="a">A</button>').session, { selecteur: '#a' }, { attenteMs: 0, delaiEntreeMs: 40 }, async (loc, emettre) => { emettre('souris', presse(loc)) }),
+    /^Error: geste : Input\.dispatchMouseEvent sans réponse après 40 ms$/)
+  await assert.rejects(() => geste(pageInputMuet('<button id="a">A</button>').session, { selecteur: '#a' }, { qui: 'cliquer', attenteMs: 0, delaiEntreeMs: 40 }, clic()),
+    /^Error: cliquer : Input\.dispatchMouseEvent sans réponse après 40 ms$/)
+  await assert.rejects(() => frappe(pageInputMuet('').session, { qui: 'taper', delaiEntreeMs: 40 }, (emettre) => emettre('texte', { text: 'x' })),
+    /^Error: taper : Input\.insertText sans réponse après 40 ms$/)
+})
+
+test('nom d’élément (`FN_NOMMER_ELEMENT`) : ambiguïté, focus manquant et sonde du pont nomment classe et SVG', async () => {
+  const icones = pagePilotee('<button class="icone fermer"></button><button class="icone ouvrir">Ouvrir</button><svg class="ico a"></svg><svg class="ico b"></svg>')
+  await assert.rejects(() => geste(icones.session, { selecteur: '.icone' }, {}, clic()), /2 cibles ambiguës « \.icone » — button\.icone\.fermer \| button\.icone\.ouvrir « Ouvrir » —/)
+  await assert.rejects(() => geste(icones.session, { selecteur: '.ico' }, {}, clic()), /2 cibles ambiguës « \.ico » — svg\.ico\.a \| svg\.ico\.b —/)
+  const focus = pagePilotee('<input id="champ"><button class="icone fermer"></button>')
+  focus.doc.querySelector('button').focus()
+  await assert.rejects(() => frappe(focus.session, { focus: '#champ' }, (emettre) => emettre('texte', { text: 'x' })), /frappe « #champ » : la cible n'a pas le focus \(focus sur button\.icone\.fermer\)/)
+  const pont = new JSDOM('<div class="stage"></div><div class="combat-console"><div class="cc-dock"><div class="cc-arch"><svg class="cc-arch-name ico"></svg></div></div></div><svg class="voile plein"></svg>', { runScripts: 'outside-only' })
+  pont.window.document.elementFromPoint = () => pont.window.document.querySelector('svg.voile')
+  const m = JSON.parse(JSON.stringify(pont.window.eval(PROBE)))
+  assert.deepEqual(m.flancs.map((f) => f.quoi), ['svg.voile.plein', 'svg.voile.plein'])
+  assert.deepEqual(m.controles.map((c) => c.quoi), ['svg.cc-arch-name.ico'])
+  assert.deepEqual(m.arche.enfants.map((e) => e.q), ['svg.cc-arch-name.ico'])
+})
+
 test('ouvrirFiche : `{ livre }` filtre EXACT sur le livre de la rangée — préfixe d’id et livre cité hors rangées', async () => {
   const prefixes = [['Épée', 'tome'], ['Épée', 'tome-compagnon']]
   for (const livre of ['tome', 'tome-compagnon']) {
@@ -2985,7 +3044,7 @@ test('localiseur : un refus « vide » ou « hors fenêtre » ne laisse aucune m
 
 test('champParLibelle : une racine `dans` AMBIGUË lève, jamais la première', async () => {
   const { dom, session } = sessionSurDom('<div class="modal" id="m1"><label>Nom <input id="i1"></label></div><div class="modal" id="m2"><label>Nom <input id="i2"></label></div>')
-  await assert.rejects(() => champParLibelle(session, 'Nom', { dans: '.modal' }), /champParLibelle : 2 racines ambiguës « \.modal » — div#m1 « Nom » \| div#m2 « Nom » — préciser \{ dans \}/)
+  await assert.rejects(() => champParLibelle(session, 'Nom', { dans: '.modal' }), /champParLibelle : 2 racines ambiguës « \.modal » — div#m1\.modal « Nom » \| div#m2\.modal « Nom » — préciser \{ dans \}/)
   assert.equal(dom.window.document.querySelector('[data-recette]'), null)
 })
 
@@ -3000,7 +3059,7 @@ test('poserFichier : deux inputs dans la portée LÈVENT, rien de posé ; la mar
 
 test('selectOption : deux listes LÈVENT au localiseur unique, aucun événement émis', async () => {
   const { etat, session } = pagePilotee('<select class="l" id="l1"><option>a</option></select><select class="l" id="l2"><option>a</option></select>')
-  await assert.rejects(() => selectOption(session, '.l', 'a'), /selectOption : 2 cibles ambiguës « \.l » — select#l1 « a » \| select#l2 « a » — préciser \{ selecteur \} ou \{ dans \}/)
+  await assert.rejects(() => selectOption(session, '.l', 'a'), /selectOption : 2 cibles ambiguës « \.l » — select#l1\.l « a » \| select#l2\.l « a » — préciser \{ selecteur \} ou \{ dans \}/)
   assert.deepEqual(etat.emis, [])
 })
 
