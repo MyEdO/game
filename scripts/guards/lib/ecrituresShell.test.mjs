@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { resolve } from 'node:path'
+import path, { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { ciblesDEcritureDeCommande } from './ecrituresShell.mjs'
 import { ciblesDEcritureJS, OPERATIONS_FS } from './ecrituresFichiers.mjs'
@@ -121,8 +121,10 @@ test('puits, base du segment et lancements de scripts (#2537)', () => {
   assert.deepEqual(lances('tsx d.ts'), [['script', resolve(base, 'd.ts'), false]])
   assert.deepEqual(lances('node -e "1" e.mjs'), [])
   assert.deepEqual(lances('node -pe 1'), [])
-  assert.deepEqual(lances('npx vitest run'), [])
-  assert.deepEqual(lances('python3 -c "print(1)"'), [['python3 (code non lu)', null, true]])
+  assert.deepEqual(ciblesDEcritureDeCommande('npx vitest run', { base, scripts: true }).map(c => [c.chemin, c.dossier]), [[base, true]])
+  assert.deepEqual(ciblesDEcritureDeCommande('npx vitest run sous -c v.config.mjs', { base, scripts: true }).map(c => [c.chemin, c.config ?? c.filtre]), [[resolve(base, 'v.config.mjs'), true], [resolve(base, 'sous'), true]])
+  assert.deepEqual(lances('python3 -c "print(1)"'), [])
+  assert.deepEqual(lances('sh x.sh'), [])
 })
 test('#2537 — la table FERMÉE des écrivains : `ecrivain` sur leur cible inconnue, jamais sur une redirection', () => {
   const ecrivains = (commande, options = {}) => ciblesDEcritureDeCommande(commande, { base, ...options }).filter((c) => c.inconnue && c.ecrivain).map((c) => c.operation)
@@ -139,7 +141,13 @@ test('#2537 — la table FERMÉE des écrivains : `ecrivain` sur leur cible inco
   assert.deepEqual(ecrivains('git reflog drop --all'), ['git reflog'])
   assert.deepEqual(ecrivains('gh -R o/r issue view 1'), [])
   assert.deepEqual(ecrivains('gh api repos/o/r --method=GET -f a=b'), [])
-  assert.deepEqual(ecrivains('gh api graphql -f query=x'), ['gh api graphql -f query=x'])
+  assert.deepEqual(ecrivains('gh api graphql -f query=x'), [])
+  assert.deepEqual(ecrivains('gh api graphql -f "query=mutation { x }"').length, 1)
+  assert.deepEqual(ecrivains('gh api graphql -f query=@q.graphql').length, 1)
+  for (const aide of ['gh pr merge --help', 'git commit --help', 'git push -h', 'npm install --help', 'npx tsc --help']) assert.deepEqual(ecrivains(aide), [], aide)
+  assert.deepEqual(ecrivains('npm test -- --help'), [])
+  assert.deepEqual(ecrivains('npx knip'), [])
+  assert.deepEqual(ecrivains('npx knip --fix').length, 1)
   assert.deepEqual(ecrivains('gh release download v1'), ['gh release download v1'])
   assert.deepEqual(ecrivains('npx tsc --noEmit --incremental false'), [])
   assert.deepEqual(ecrivains('npx tsc --noEmit --incremental'), ['npx tsc --noEmit --incremental'])
@@ -155,6 +163,10 @@ test('#2537 — la table FERMÉE des écrivains : `ecrivain` sur leur cible inco
   assert.deepEqual(chemins('node --test --test-reporter-destination=stderr a.test.mjs'), [])
   assert.deepEqual(ciblesDEcritureDeCommande(`cd sous\\; echo x > y`, { base, powershell: true }).map((c) => c.chemin), [resolve(base, 'sous', 'y')])
   assert.deepEqual(ciblesDEcritureDeCommande(`cd sous\\; echo x > y`, { base }).map((c) => c.chemin), [resolve(base, 'y')])
+  for (const [platform, racine, P] of [['linux', '/b', path.posix], ['win32', path.win32.join('C:', '/b'), path.win32]]) {
+    assert.deepEqual(ciblesDEcritureDeCommande(`cd sous\\; echo x > y`, { base: racine, platform, powershell: true }).map((c) => c.chemin), [P.resolve(racine, 'sous', 'y')], platform)
+    assert.deepEqual(ciblesDEcritureDeCommande('echo x > sous\\y', { base: racine, platform, powershell: true }).map((c) => c.chemin), [P.resolve(racine, 'sous', 'y')], platform)
+  }
 })
 test('le texte écrit par `cat > f <<\'MOT\'` : le corps du heredoc à mot quoté, jamais celui d’un mot nu (#2537)', () => {
   const contenus = commande => ciblesDEcritureDeCommande(commande, { base }).map(c => c.contenu)

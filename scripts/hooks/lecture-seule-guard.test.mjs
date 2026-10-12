@@ -46,10 +46,14 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
   FS.mkdirSync(join(SP, 'dir-lit'), { recursive: true })
   FS.writeFileSync(join(SP, 'dir-ecrit', SUITE_ECRIT), "import fs from 'node:fs'\nfs.writeFileSync('../hors.txt', 'x')\n")
   FS.writeFileSync(join(SP, 'dir-lit', 'y.test.mjs'), "import fs from 'node:fs'\nfs.readFileSync('package.json')\n")
+  FS.writeFileSync(join(SP, 'vitest.config.mjs'), "export default { root: 'dir-ecrit' }\n")
+  FS.mkdirSync(join(SP, 'dir-abs'), { recursive: true })
+  FS.writeFileSync(join(SP, 'dir-abs', 'z.test.mjs'), `import fs from 'node:fs'\nfs.writeFileSync('${HORS}/r.txt', 'x')\n`)
   const TMP = { TEMP: tmpdir(), TMP: tmpdir(), TMPDIR: tmpdir() }
   const R = RACINE.split('\\').join('/').replace(/\/$/, '')
   /** Chaque cas : l'outil, la commande, le type, la décision attendue, un motif de la raison, et les plateformes
-   *  jouées (les deux par défaut : les chemins du banc sont forgés par `resolve`/`tmpdir`, natifs de l'hôte). */
+   *  où il se joue (les deux par défaut), jouées sur l'HÔTE seulement : les chemins du banc sont forgés par
+   *  `resolve`/`tmpdir`, natifs de l'hôte, et la garde résout par le `node:path` de sa `platform`. */
   const cas = [
     ['Bash', 'gh api repos/MyEdO/game/issues/comments/1 --jq .body > "$TMP/plan.md" 2>&1', 'juge', 'deny', /redirection hors du scratchpad/, { env: TMP }],
     ['Bash', 'gh api repos/MyEdO/game/issues/comments/1 --jq .body > "$INCONNUE/plan.md"', 'juge', null],
@@ -151,6 +155,17 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['Bash', `node -r "${P}/ecrit-hors.mjs" -e 1`, 'juge', 'deny', /ecrit-hors\.mjs : writeFileSync hors du scratchpad/],
     ['Bash', `node --import=file:///${P.replace(/^\//, '')}/ecrit-hors.mjs -e 1`, 'juge', 'deny', /ecrit-hors\.mjs : writeFileSync hors du scratchpad/],
     ['Bash', 'node --test', 'juge', null],
+    ['Bash', `cp src/gameIso/stage/GameStage3D.tsx "${P}/GameStage3D.bak" && perl -i -pe 's/x/y/' src/gameIso/stage/GameStage3D.tsx`, 'juge', 'deny', /perl hors du scratchpad/],
+    ['Bash', `perl -i -pe 's/x/y/' "${P}/a.txt"`, 'juge', null],
+    ['Bash', 'tsc', 'juge', 'deny', /tsc : écrivain .* — canal : un outil de la table de lecture de `npx`/],
+    ['Bash', 'gh pr merge --help', 'juge', null],
+    ['Bash', 'echo x > ~/x.txt', 'juge', 'deny', /redirection hors du scratchpad/, { env: { HOME: HORS, USERPROFILE: HORS } }],
+    ['PowerShell', 'iwr https://x -OutFile o.txt', 'juge', 'deny', /iwr hors du scratchpad/],
+    ['PowerShell', `Expand-Archive a.zip -DestinationPath "${P}/d"`, 'juge', null],
+    ['Bash', `cd "${P}" && npx vitest run dir-ecrit`, 'juge', 'deny', /writeFileSync hors du scratchpad/],
+    ['Bash', `npx vitest run "${P}/dir-ecrit"`, 'juge', 'deny', /writeFileSync hors du scratchpad/],
+    ['Bash', `cd "${P}/dir-abs" && npx vitest run`, 'juge', 'deny', /z.test.mjs : writeFileSync hors du scratchpad/],
+    ['Bash', `npx vitest run --config "${P}/vitest.config.mjs"`, 'juge', 'deny', /writeFileSync hors du scratchpad/],
     ['Bash', `source "${P}/lit.mts"`, 'juge', null],
     ['Bash', 'find .. -name x -exec rm {} \\;', 'lecteur', 'deny', /rm hors du scratchpad/],
     ['Bash', `find "${P}" -name x -exec rm {} +`, 'lecteur', null],
@@ -159,7 +174,7 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['Bash', `cd "${P}"\\; echo x > out.txt`, 'juge', 'deny', /redirection hors du scratchpad/],
   ]
   try {
-    for (const [tool_name, command, agent_type, attendu, motif, { env = {}, platforms = ['win32', 'linux'] } = {}] of cas) for (const platform of platforms) {
+    for (const [tool_name, command, agent_type, attendu, motif, { env = {}, platforms = ['win32', 'linux'] } = {}] of cas) for (const platform of platforms.filter((p) => (p === 'win32') === (process.platform === 'win32'))) {
       const { sortie } = await repartir({ PreToolUse: REGISTRE.PreToolUse.filter((g) => g === garde) }, JSON.stringify({
         hook_event_name: 'PreToolUse', tool_name, tool_input: { command }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_id: 'a1', agent_type,
       }), { env, cwd: RACINE, platform })

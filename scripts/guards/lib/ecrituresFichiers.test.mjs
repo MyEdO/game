@@ -20,7 +20,8 @@ test('#2537 — chemins constants repliés : `const`, `+`, gabarit, `path`, `pro
   assert.deepEqual(plie(`${fs}fs.writeFileSync(join(tmpdir(), 'x'), 'a')`, { env: { TEMP: 'T' }, platform: 'win32' }), ['T/x'])
   assert.deepEqual(plie(`${fs}fs.writeFileSync(join(tmpdir(), 'x'), 'a')`, { env: {}, platform: 'win32' }), [null])
   assert.deepEqual(plie(`${fs}fs.writeFileSync(join(process.env.TMP, 'x'), 'a')`, { env: { TMP: 't' }, platform: 'linux' }), ['t/x'])
-  assert.deepEqual(plie(`${fs}fs.writeFileSync(join(process.env.HOME, 'x'), 'a')`, { env: { HOME: 'h' } }), [null])
+  assert.deepEqual(plie(`${fs}fs.writeFileSync(join(process.env.HOME, 'x'), 'a')`, { env: { HOME: 'h' } }), ['h/x'])
+  assert.deepEqual(plie(`${fs}fs.writeFileSync(join(process.env.AUTRE, 'x'), 'a')`, { env: { AUTRE: 'h' } }), [null])
 })
 
 test('#2537 — un pli de chemin est celui du module importé, jamais un homonyme local', () => {

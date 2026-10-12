@@ -18,7 +18,7 @@ const MODULES_QUI_ECRIVENT = /^(?:node:)?(?:fs|fs\/promises|child_process)$/
 const PLIS_DE_CHEMIN = { 'path#join': join, 'path#resolve': (...p) => (p.some(isAbsolute) ? resolve(...p) : join(...p)), 'path#dirname': dirname, 'path#basename': basename }
 
 /** Les variables d'environnement que le hook connaît du processus qu'il juge : le répertoire temporaire. */
-export const VARIABLES_AMORCEES = ['TEMP', 'TMP', 'TMPDIR']
+export const VARIABLES_AMORCEES = ['TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE']
 
 /** `os.tmpdir()` du processus d'environnement `env` sous `platform` (Node, `lib/os.js`, `tmpdir`) ; `null` si
  *  `env` ne le porte pas. PURE. */

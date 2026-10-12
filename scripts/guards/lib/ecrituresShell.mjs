@@ -1,26 +1,63 @@
-import { dirname, isAbsolute, join, resolve } from 'node:path'
-import { affectationPowerShell, basenameExecutable, CHANGEMENTS_DE_REPERTOIRE, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, gitSubcommand, jetonNu, pipelinesDeJetons, sansRedirections, texteDuSegment, versCheminNatif } from './commandeShell.mjs'
+import { affectationPowerShell, basenameExecutable, CHANGEMENTS_DE_REPERTOIRE, cheminsDe, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, gitSubcommand, jetonNu, pipelinesDeJetons, sansRedirections, texteDuSegment, versCheminNatif } from './commandeShell.mjs'
 import { VARIABLES_AMORCEES, ciblesDEcritureJS } from './ecrituresFichiers.mjs'
 
+/** Un mot développé NON CONSTANT (variable inconnue, `MOT_INCONNU` d'un lancement JS, argument qu'alimente `xargs`) :
+ *  il porte `\0`. En position de sous-commande de git, npm, npx ou gh, l'écrivain n'est pas prouvé, donc non jugé (#2537). */
+const nonConstant = (mot) => typeof mot === 'string' && mot.includes('\0')
+
+/**
+ * La table FERMÉE des écrivains de fichiers, DÉRIVÉE de deux règles de complétude (#2537) :
+ * - POSIX : les utilitaires de XCU (POSIX.1-2024, Shell & Utilities, liste des utilitaires) qui créent, modifient ou
+ *   suppriment un fichier qu'ils nomment — ar, c99, chgrp, chmod, chown, compress, cp, csplit, ctags, dd, ed, ex, lex,
+ *   link, ln, mkdir, mkfifo, mv, patch, pax, rm, rmdir, sort -o, split, strip, tee, touch, uncompress, uniq, unlink,
+ *   uudecode, yacc —, et les écrivains hors POSIX attestés au corpus de 14 jours : install, rsync, truncate, shred,
+ *   sed -i, perl -i, ruby -i, gzip, gunzip, bzip2, bunzip2, xz, unxz, zstd, zip, tar, unzip, wget, curl -o/-O ;
+ * - PowerShell : les cmdlets des verbes qui modifient (`Get-Verb` : Add, Clear, Compress, Copy, Expand, Export, Move,
+ *   New, Out, Remove, Rename, Save, Set, Unblock, Update, Start-Transcript) qui prennent un chemin (`Get-Command -Verb …
+ *   -Module Microsoft.PowerShell.*`, paramètres Path, LiteralPath, Destination, DestinationPath, FilePath,
+ *   CatalogFilePath), hors lecteurs de chemin (Join-Path, Split-Path, Convert-Path, Set-Location, Invoke-Item, Add-Type,
+ *   Start-Process, Start-Job, Invoke-Command) et WMI ; `-OutFile` de toute cmdlet ; `[IO.File]::`/`[IO.Directory]::`.
+ * Une cmdlet lie ses positionnels aux emplacements (`positionnels`, `Position` de `Get-Command`) que ses paramètres
+ * nommés laissent libres ; `cibles` = ceux qu'elle écrit.
+ */
+const cmdlet = (noms, positionnels, cibles = positionnels, extra = {}) => ({ noms, role: 'cmdlet', powerShell: true, positionnels, cibles, ...extra })
 const ROLES = [
   { noms: ['cp', 'ln'], role: 'destination', valeurs: ['-S', '--suffix'], destination: ['-t', '--target-directory'] },
   { noms: ['install'], role: 'destination', valeurs: ['-m', '--mode', '-o', '--owner', '-g', '--group', '-S', '--suffix'], destination: ['-t', '--target-directory'] },
+  { noms: ['rsync'], role: 'destination', valeurs: ['-e', '--rsh', '-f', '--filter', '-T', '--temp-dir', '-B', '--block-size', '-M', '--remote-option'] },
   { noms: ['mv'], role: 'deplacement', valeurs: ['-S', '--suffix'], destination: ['-t', '--target-directory'] },
-  { noms: ['tee', 'rm', 'rmdir'], role: 'chemins' },
+  { noms: ['tee', 'rm', 'rmdir', 'unlink', 'strip', 'ed', 'ex'], role: 'chemins' },
+  { noms: ['shred'], role: 'chemins', valeurs: ['-n', '--iterations', '-s', '--size'] },
   { noms: ['touch'], role: 'chemins', valeurs: ['-d', '--date', '-r', '--reference', '-t'] },
-  { noms: ['mkdir'], role: 'chemins', valeurs: ['-m', '--mode'] },
+  { noms: ['mkdir', 'mkfifo'], role: 'chemins', valeurs: ['-m', '--mode'] },
   { noms: ['truncate'], role: 'chemins', valeurs: ['-s', '--size', '-r', '--reference'] },
-  { noms: ['uniq'], role: 'second', valeurs: ['-f', '-s', '-w', '--skip-fields', '--skip-chars', '--check-chars'] },
-  { noms: ['copy-item', 'cpi', 'copy'], role: 'destination', powerShell: true },
-  { noms: ['move-item', 'mi', 'move'], role: 'deplacement', powerShell: true },
-  { noms: ['rename-item', 'rni'], role: 'renommage', powerShell: true },
-  { noms: ['tee-object', 'remove-item', 'ri', 'del', 'erase'], role: 'chemins', powerShell: true },
-  { noms: ['set-content', 'sc', 'add-content', 'ac', 'out-file'], role: 'premier', powerShell: true },
+  { noms: ['chmod', 'chown', 'chgrp'], role: 'apresPremier' },
+  { noms: ['uniq', 'link'], role: 'second', valeurs: ['-f', '-s', '-w', '--skip-fields', '--skip-chars', '--check-chars'] },
+  { noms: ['split'], role: 'prefixe', defaut: 'x', valeurs: ['-l', '-b', '-a', '-n', '-C', '-t', '--lines', '--bytes', '--suffix-length', '--number', '--line-bytes', '--separator', '--additional-suffix'] },
+  { noms: ['gzip', 'gunzip', 'bzip2', 'bunzip2', 'xz', 'unxz', 'zstd', 'compress', 'uncompress'], role: 'compression', valeurs: ['-S', '--suffix', '-T', '--threads', '-b'] },
+  { noms: ['zip'], role: 'premier', valeurs: ['-b', '-n', '-t', '-tt', '-x', '-i'] },
+  cmdlet(['copy-item', 'cpi', 'copy', 'copy-itemproperty', 'cpp'], ['-path', '-destination'], ['-destination']),
+  cmdlet(['move-item', 'mi', 'move', 'move-itemproperty', 'mp'], ['-path', '-destination']),
+  cmdlet(['compress-archive', 'compress-psresource'], ['-path', '-destinationpath'], ['-destinationpath']),
+  cmdlet(['expand-archive'], ['-path', '-destinationpath'], ['-destinationpath'], { defaut: '.' }),
+  cmdlet(['remove-item', 'ri', 'del', 'erase', 'rd', 'clear-content', 'clc', 'clear-item', 'cli', 'clear-itemproperty', 'clp',
+    'remove-itemproperty', 'rp', 'rename-itemproperty', 'rnp', 'new-itemproperty', 'set-item', 'si', 'set-itemproperty', 'sp',
+    'set-acl', 'unblock-file', 'export-csv', 'epcsv', 'export-clixml', 'export-alias', 'epal', 'export-formatdata', 'start-transcript',
+    'new-modulemanifest', 'new-psrolecapabilityfile', 'new-psscriptfileinfo', 'new-pssessionconfigurationfile', 'update-psmodulemanifest',
+    'update-psscriptfileinfo'], ['-path']),
+  cmdlet(['set-content', 'sc', 'add-content', 'ac'], ['-path'], ['-path'], { contenu: true }),
+  cmdlet(['out-file'], ['-filepath'], ['-filepath'], { contenu: true }),
+  cmdlet(['tee-object', 'set-authenticodesignature'], ['-filepath']),
+  cmdlet(['save-help'], ['-destinationpath']),
+  cmdlet(['new-filecatalog'], ['-catalogfilepath']),
+  { noms: ['rename-item', 'rni', 'ren'], role: 'renommage', powerShell: true },
   { noms: ['new-item', 'ni'], role: 'creation', powerShell: true },
 ]
 const ROLES_PAR_NOM = new Map(ROLES.flatMap((r) => r.noms.map((nom) => [nom, r])))
 const OPTIONS_CHEMIN = new Set(['-path', '-literalpath', '-filepath', '-destination', '-newname'])
-const OPTIONS_VALEUR_POWERSHELL = new Set(['-value', '-encoding', '-filter', '-include', '-exclude', '-itemtype', '-name', '-width', '-inputobject', '-stream', '-credential', '-erroraction'])
+/** Les alias du paramètre `LiteralPath` (`Get-Command`) : il lie le premier emplacement de la cmdlet. */
+const LITTERAUX_POWERSHELL = new Set(['-literalpath', '-lp', '-pspath'])
+const OPTIONS_VALEUR_POWERSHELL = new Set(['-value', '-encoding', '-filter', '-include', '-exclude', '-itemtype', '-name', '-width', '-inputobject', '-stream', '-credential', '-erroraction', '-delimiter', '-compressionlevel', '-variable'])
 
 function argumentsDeChemins(args, contrat) {
   const positions = [], nommes = new Map()
@@ -38,9 +75,87 @@ function argumentsDeChemins(args, contrat) {
   return { positions, nommes }
 }
 
-function ciblesDuWriter(textes) {
+/** Les cibles d'une cmdlet de la table : ses paramètres nommés (`-Path x`, `-Path:x`), puis ses positionnels liés, dans
+ *  l'ordre, aux emplacements restés libres ; `defaut` si elle n'en nomme aucune. */
+function ciblesDeCmdlet(args, contrat) {
+  const lies = new Map(), positions = []
+  for (let k = 0; k < args.length; k++) {
+    const a = args[k]
+    if (a === '--') { positions.push(...args.slice(k + 1)); break }
+    const deuxPoints = /^(-[\w-]+):(.+)$/s.exec(a)
+    const cle = (deuxPoints?.[1] ?? a).toLowerCase(), nom = LITTERAUX_POWERSHELL.has(cle) ? contrat.positionnels[0] : cle
+    if (contrat.positionnels.includes(nom) || contrat.cibles.includes(nom)) { lies.set(nom, deuxPoints ? deuxPoints[2] : args[++k] ?? null); continue }
+    if (OPTIONS_VALEUR_POWERSHELL.has(cle) && !deuxPoints) { k++; continue }
+    if (a.startsWith('-')) continue
+    positions.push(a)
+  }
+  contrat.positionnels.filter((p) => !lies.has(p)).forEach((p, i) => { if (positions[i] !== undefined) lies.set(p, positions[i]) })
+  const cibles = contrat.cibles.filter((c) => lies.has(c)).map((c) => lies.get(c))
+  return cibles.length || !contrat.defaut ? cibles : [contrat.defaut]
+}
+
+/** La valeur des options `courtes` (collée ou suivante) et `longues` (`=` ou suivante) d'`args`. */
+function valeursDOptions(args, courtes, longues = []) {
+  const sorties = []
+  for (let k = 0; k < args.length; k++) {
+    const a = args[k]
+    if (courtes.includes(a) || longues.includes(a)) sorties.push(args[++k] ?? null)
+    else if (longues.some((l) => a.startsWith(`${l}=`))) sorties.push(a.slice(a.indexOf('=') + 1))
+    else if (courtes.some((c) => c.length === 2 && a.startsWith(c) && a.length > 2)) sorties.push(a.slice(2))
+  }
+  return sorties
+}
+
+/** Les fichiers que `perl`/`ruby -i[ext]` réécrivent (`perlrun`, `ruby --help`) : les positionnels qui suivent le code
+ *  (`-e`/`-E` en ligne, sinon le premier positionnel, le script) ; `[]` sans `-i`. `valeursSuivantes` = les lettres
+ *  dont la valeur, absente du groupe, est le mot suivant. */
+function ciblesEnPlace(args, valeursSuivantes) {
+  let enPlace = false, code = false
+  const positions = []
+  for (let k = 0; k < args.length; k++) {
+    const a = args[k]
+    if (a === '--') { positions.push(...args.slice(k + 1)); break }
+    if (!/^-[^-]/.test(a)) { positions.push(a); continue }
+    for (let i = 1; i < a.length; i++) {
+      if (a[i] === 'i') { enPlace = true; break }
+      if ('eE'.includes(a[i])) { code = true; if (i === a.length - 1) k++; break }
+      if (valeursSuivantes.includes(a[i])) { if (i === a.length - 1) k++; break }
+    }
+  }
+  return enPlace ? (code ? positions : positions.slice(1)) : []
+}
+
+/** Les méthodes de `System.IO.File`/`System.IO.Directory` qui écrivent, et les rangs de leurs arguments écrits. */
+const ECRITURES_DOTNET = {
+  file: { copy: [1], move: [0, 1], replace: [0, 1, 2], createsymboliclink: [0], open: [0], openwrite: [0], create: [0], createtext: [0], delete: [0], encrypt: [0], decrypt: [0], setattributes: [0], setunixfilemode: [0], appendalllines: [0], appendalltext: [0], appendallbytes: [0], appendtext: [0], writeallbytes: [0], writealllines: [0], writealltext: [0], setcreationtime: [0], setcreationtimeutc: [0], setlastaccesstime: [0], setlastaccesstimeutc: [0], setlastwritetime: [0], setlastwritetimeutc: [0] },
+  directory: { createdirectory: [0], delete: [0], move: [0, 1], createsymboliclink: [0], setcreationtime: [0], setcreationtimeutc: [0], setlastaccesstime: [0], setlastaccesstimeutc: [0], setlastwritetime: [0], setlastwritetimeutc: [0] },
+}
+/** Les arguments écrits des appels `[System.IO.File]::<méthode>(…)` du texte `source` : `{ texte, quote }` par argument,
+ *  `texte: null` pour une expression autre qu'une chaîne ou une variable. */
+function ecrituresDotnet(source) {
+  const sorties = []
+  for (const [, classe, methode, liste] of source.matchAll(/\[(?:System\.)?IO\.(File|Directory)\]::(\w+)\s*\(([^)]*)\)/gi)) {
+    const rangs = ECRITURES_DOTNET[classe.toLowerCase()][methode.toLowerCase()]
+    if (!rangs) continue
+    const args = [...liste.matchAll(/\s*('[^']*'|"[^"]*"|[^,]+)\s*(?:,|$)/g)].map((m) => m[1].trim())
+    for (const r of rangs) {
+      const a = args[r] ?? ''
+      sorties.push(/^'.*'$/s.test(a) ? { texte: a.slice(1, -1), quote: 'simple' } : /^".*"$/s.test(a) ? { texte: a.slice(1, -1), quote: 'double' } : /^\$[\w:]+$/.test(a) ? { texte: a } : { texte: null })
+    }
+  }
+  return sorties
+}
+
+/** Les options de `patch` qui prennent une valeur (POSIX XCU, `patch` ; GNU patch `--help`). */
+const VALEURS_PATCH = new Set(['-p', '-i', '--input', '-d', '--directory', '-D', '-F', '-z', '-V', '-Y', '-B', '-o', '--output', '-r', '--reject-file'])
+
+/** Les cibles d'écriture de la commande `textes` selon la table des écrivains (`null` = cible que l'écrivain ne nomme
+ *  pas), `P` = le `node:path` de la plateforme. */
+function ciblesDuWriter(textes, P) {
   const nom = basenameExecutable(textes[0]), args = textes.slice(1)
   const contrat = ROLES_PAR_NOM.get(nom), role = contrat?.role
+  const sortie = args.flatMap((a, k) => (/^-outfile$/i.test(a) ? [args[k + 1] ?? null] : /^-outfile:/i.test(a) ? [a.slice(9)] : []))
+  if (role === 'cmdlet') return [...ciblesDeCmdlet(args, contrat), ...sortie]
   if (contrat) {
     const { positions, nommes } = argumentsDeChemins(args, contrat)
     const sources = [nommes.get('-path'), nommes.get('-literalpath')].filter(Boolean)
@@ -51,28 +166,48 @@ function ciblesDuWriter(textes) {
     }
     if (role === 'deplacement') return [...sources, ...positions, ...(destination ? [destination] : [])]
     if (role === 'second') return positions.slice(1, 2)
+    if (role === 'apresPremier') return positions.slice(1)
+    if (role === 'premier') return positions.slice(0, 1)
+    if (role === 'prefixe') return [positions[1] ?? contrat.defaut]
+    if (role === 'compression') return args.some((a) => /^-[a-zA-Z]*[clt]|^--(?:stdout|to-stdout|list|test)$/.test(a)) ? [] : positions
     if (role === 'renommage') {
       const source = sources[0] ?? positions[0], neuf = destination ?? positions[sources.length ? 0 : 1]
-      return source ? [source, ...(neuf ? [join(dirname(source), neuf)] : [])] : []
+      return source ? [source, ...(neuf ? [P.join(P.dirname(source), neuf)] : [])] : []
     }
     if (role === 'creation') {
       const k = args.findIndex(a => a.toLowerCase() === '-name'), nomNeuf = k < 0 ? null : args[k + 1]
       const parents = sources.length ? sources : positions.length ? positions.slice(0, 1) : ['.']
-      return parents.map(p => nomNeuf ? join(p, nomNeuf) : p)
+      return parents.map(p => nomNeuf ? P.join(p, nomNeuf) : p)
     }
-    const sansValeurPositionnelle = role === 'premier' ? sources.length || nommes.has('-filepath') ? [] : positions.slice(0, 1) : positions
-    return [...sources, nommes.get('-filepath'), ...sansValeurPositionnelle].filter(Boolean)
+    return positions
   }
+  if (sortie.length) return sortie
   if (nom === 'dd') return args.filter(a => a.startsWith('of=')).map(a => a.slice(3))
-  if (nom === 'sort') {
-    const resultats = []
-    for (let k = 0; k < args.length; k++) {
-      if (args[k] === '-o' || args[k] === '--output') resultats.push(args[++k])
-      else if (args[k].startsWith('--output=')) resultats.push(args[k].slice(9))
-      else if (/^-o.+/.test(args[k])) resultats.push(args[k].slice(2))
-    }
-    return resultats.filter(Boolean)
+  if (nom === 'sort') return valeursDOptions(args, ['-o'], ['--output'])
+  if (nom === 'csplit') return [valeursDOptions(args, ['-f'], ['--prefix']).at(-1) ?? 'xx']
+  if (nom === 'uudecode') return [valeursDOptions(args, ['-o']).at(-1) ?? null]
+  if (nom === 'c99') return [valeursDOptions(args, ['-o']).at(-1) ?? 'a.out']
+  if (nom === 'ctags') return [valeursDOptions(args, ['-f']).at(-1) ?? 'tags']
+  if (nom === 'lex') return args.includes('-t') ? [] : ['lex.yy.c']
+  if (nom === 'yacc') return [`${valeursDOptions(args, ['-b']).at(-1) ?? 'y'}.tab.c`]
+  if (nom === 'perl') return ciblesEnPlace(args, 'IMmlx0C')
+  if (nom === 'ruby') return ciblesEnPlace(args, 'IrCx0')
+  if (nom === 'patch') {
+    if (args.includes('--dry-run')) return []
+    const positions = []
+    for (let k = 0; k < args.length; k++) { if (VALEURS_PATCH.has(args[k])) k++; else if (!args[k].startsWith('-')) positions.push(args[k]) }
+    const sorties = valeursDOptions(args, ['-o', '-r'], ['--output', '--reject-file'])
+    return sorties.length || positions.length ? [...sorties, ...positions.slice(0, 1)] : [null]
   }
+  if (nom === 'pax') {
+    if (args.some((a) => /^-[a-zA-Z]*r/.test(a))) return ['.']
+    return args.some((a) => /^-[a-zA-Z]*w/.test(a)) ? valeursDOptions(args, ['-f']) : []
+  }
+  if (nom === 'ar') {
+    const k = args.findIndex((a) => !a.startsWith('-') || /^-[a-zA-Z]+$/.test(a)), cle = args[k] ?? ''
+    return /x/.test(cle) ? ['.'] : /[dmqrs]/.test(cle) ? [args[k + 1] ?? null] : []
+  }
+  if (nom === 'crontab') return args.some((a) => /^-[a-zA-Z]*l/.test(a)) ? [] : [null]
   if (nom === 'sed') {
     const inplace = args.some(a => /^-[a-zA-Z]*i/.test(a) || a.startsWith('--in-place'))
     const scripts = [], fichiers = []
@@ -169,15 +304,15 @@ const cheminDeModule = (valeur) =>
   /^file:/i.test(valeur) ? decodeURIComponent(valeur.replace(/^file:\/\/(?:localhost)?/i, '')).replace(/^\/(?=[A-Za-z]:)/, '')
     : /^(?:\.{1,2}(?:[\\/]|$)|[\\/]|[A-Za-z]:)/.test(valeur) ? valeur : null
 
-/** Les lancements d'un INTERPRÉTEUR : `{ scripts, filtres, dossiers, ecritures, langage, enLigne, nonLu, argv }` — les
- *  fichiers qu'il lance (préchargements de `node` et `--config` de `vitest` compris), les positionnels de `vitest`
- *  (`filtres` : un fichier de test, ou un motif), ses `--root`/`--dir` (`dossiers`), les fichiers qu'il DÉCLARE écrire
- *  (`ecritures` : `--outputFile`, `--coverage` → `coverage` du cwd, `--test-reporter-destination` hors `stdout`/`stderr`),
- *  le langage de son code, le code en ligne JS (`-e`, `-p`), `nonLu` = un code qu'il exécute sans que la commande le
- *  nomme (stdin, code en ligne non JS, module, `node --test` sans fichier), `argv` = le `process.argv` d'un script JS seul (un argument non développé vaut
- *  `null`) ; `null` hors interpréteur. `source`/`.` lancent un script `sh` ; `npm test -- <args>` et `npx
- *  vitest` lancent `vitest`. Les options se lisent sur `bruts` (le texte des jetons) quand leur développement échoue. */
-function lancementDInterpreteur(textes, segment, bruts = textes) {
+/** Les lancements d'un interpréteur JS : `{ scripts, configs, filtres, dossiers, ecritures, enLigne, argv }` — les
+ *  fichiers qu'il lance (préchargements de `node` compris), les `--config` de `vitest` (`configs`, lancés aussi), les
+ *  positionnels de `vitest` (`filtres` : un fichier de test, un dossier ou un motif), les dossiers qu'il balaie
+ *  (`dossiers` : ses `--root`/`--dir`, sinon le cwd, racine de `vitest` sans `--config`), les fichiers qu'il DÉCLARE
+ *  écrire (`ecritures` : `--outputFile`, `--coverage` → `coverage` du cwd, `--test-reporter-destination` hors
+ *  `stdout`/`stderr`), le code en ligne (`-e`, `-p`), `argv` = le `process.argv` d'un script seul (un argument non
+ *  développé vaut `null`) ; `null` hors `node`, `tsx` et `vitest`. `npm test -- <args>` et `npx vitest` lancent
+ *  `vitest`. Les options se lisent sur `bruts` (le texte des jetons) quand leur développement échoue. */
+function lancementDInterpreteur(textes, bruts = textes) {
   let nom = basenameExecutable(textes[0])
   let k = 1
   if (nom === 'npx') {
@@ -192,14 +327,12 @@ function lancementDInterpreteur(textes, segment, bruts = textes) {
     nom = 'vitest'
     k = tiret + 1
   }
-  const stdin = segment.jetons.some((j) => jetonNu(j) && /^</.test(j.text)) || (segment.tube?.indexOf(segment) ?? 0) > 0
-  const rendu = { scripts: [], filtres: [], dossiers: [], ecritures: [], langage: nom, enLigne: undefined, nonLu: false }
+  const rendu = { scripts: [], configs: [], filtres: [], dossiers: [], ecritures: [], enLigne: undefined }
   if (nom === 'vitest') {
-    rendu.langage = 'js'
     for (let premier = true; k < textes.length; k++) {
       const texte = textes[k]
-      if (texte === '-c' || texte === '--config') { rendu.scripts.push(textes[++k] ?? null); continue }
-      if (texte.startsWith('--config=')) { rendu.scripts.push(texte.slice(9)); continue }
+      if (texte === '-c' || texte === '--config') { rendu.configs.push(textes[++k] ?? null); continue }
+      if (texte.startsWith('--config=')) { rendu.configs.push(texte.slice(9)); continue }
       const egal = texte.indexOf('=')
       const option = egal < 0 ? texte : texte.slice(0, egal)
       const valeur = () => (egal < 0 ? textes[++k] ?? null : texte.slice(egal + 1))
@@ -211,73 +344,37 @@ function lancementDInterpreteur(textes, segment, bruts = textes) {
       if (!(premier && SOUS_COMMANDES_VITEST.includes(texte))) rendu.filtres.push(texte)
       premier = false
     }
+    if (rendu.dossiers.length === 0 && rendu.configs.length === 0 && rendu.filtres.length === 0) rendu.dossiers.push('.')
     return rendu
   }
-  if (nom === 'node' || nom === 'tsx') {
-    rendu.langage = 'js'
-    const test = textes.includes('--test')
-    let lances = 0
-    const precharger = (valeur) => {
-      if (typeof valeur !== 'string' || valeur.includes('\0')) rendu.scripts.push(null)
-      else if (cheminDeModule(valeur) !== null) rendu.scripts.push(cheminDeModule(valeur))
+  if (nom !== 'node' && nom !== 'tsx') return null
+  const test = textes.includes('--test')
+  const precharger = (valeur) => {
+    if (typeof valeur !== 'string' || nonConstant(valeur)) rendu.scripts.push(null)
+    else if (cheminDeModule(valeur) !== null) rendu.scripts.push(cheminDeModule(valeur))
+  }
+  for (; k < textes.length; k++) {
+    const texte = nonConstant(textes[k]) ? bruts[k] : textes[k]
+    if (/^-[a-zA-Z]*[ep]$|^--(?:eval|print)$/.test(texte)) { rendu.enLigne = k + 1; return rendu }
+    if (/^--eval=/.test(texte)) { rendu.enLigne = k; return rendu }
+    if (texte === '--') {
+      rendu.scripts.push(...(test ? textes.slice(k + 1) : textes.slice(k + 1, k + 2)))
+      break
     }
-    for (; k < textes.length; k++) {
-      const texte = textes[k].includes('\0') ? bruts[k] : textes[k]
-      if (/^-[a-zA-Z]*[ep]$|^--(?:eval|print)$/.test(texte)) { rendu.enLigne = k + 1; return rendu }
-      if (/^--eval=/.test(texte)) { rendu.enLigne = k; return rendu }
-      if (texte === '--') {
-        const suite = test ? textes.slice(k + 1) : textes.slice(k + 1, k + 2)
-        rendu.scripts.push(...suite)
-        lances += suite.length
-        break
-      }
-      if (PRECHARGEMENTS_NODE.includes(texte)) { precharger(textes[++k]); continue }
-      const colle = PRECHARGEMENTS_NODE.find((option) => option.startsWith('--') && texte.startsWith(`${option}=`))
-      if (colle) { precharger(textes[k].slice(colle.length + 1)); continue }
-      const destination = texte === '--test-reporter-destination' ? textes[++k] ?? null : texte.startsWith('--test-reporter-destination=') ? texte.slice(28) : undefined
-      if (destination !== undefined) { if (!['stdout', 'stderr'].includes(destination)) rendu.ecritures.push(destination); continue }
-      if (['--input-type', '--test-reporter', '--test-name-pattern', '--test-concurrency'].includes(texte)) { k++; continue }
-      if (texte.startsWith('-')) continue
-      rendu.scripts.push(texte)
-      lances++
-      if (!test) {
-        rendu.argv = [textes[0], texte, ...textes.slice(k + 1)].map((a) => (a.includes('\0') ? null : a))
-        return rendu
-      }
-    }
-    if (lances === 0 && (test || stdin)) rendu.nonLu = true
-    return rendu
-  }
-  if (nom === 'source' || nom === '.') {
-    if (textes[1] === undefined) return null
-    rendu.langage = 'sh'
-    rendu.scripts.push(textes[1])
-    return rendu
-  }
-  if (['python', 'python3', 'py', 'perl', 'sh', 'bash', 'zsh', 'dash'].includes(nom)) {
-    for (; k < textes.length; k++) {
-      const texte = textes[k]
-      if (['-c', '-e', '-E', '-m', '-i', '-n', '-p', '-'].includes(texte) || /^-[a-zA-Z]*[eEipn]$/.test(texte) && nom === 'perl') {
-        if (texte === '-c' && ['sh', 'bash', 'zsh', 'dash'].includes(nom)) return null
-        rendu.nonLu = true
-        return rendu
-      }
-      if (texte.startsWith('-')) continue
-      rendu.scripts.push(texte)
+    if (PRECHARGEMENTS_NODE.includes(texte)) { precharger(textes[++k]); continue }
+    const colle = PRECHARGEMENTS_NODE.find((option) => option.startsWith('--') && texte.startsWith(`${option}=`))
+    if (colle) { precharger(textes[k].slice(colle.length + 1)); continue }
+    const destination = texte === '--test-reporter-destination' ? textes[++k] ?? null : texte.startsWith('--test-reporter-destination=') ? texte.slice(28) : undefined
+    if (destination !== undefined) { if (!['stdout', 'stderr'].includes(destination)) rendu.ecritures.push(destination); continue }
+    if (['--input-type', '--test-reporter', '--test-name-pattern', '--test-concurrency'].includes(texte)) { k++; continue }
+    if (texte.startsWith('-')) continue
+    rendu.scripts.push(texte)
+    if (!test) {
+      rendu.argv = [textes[0], texte, ...textes.slice(k + 1)].map((a) => (nonConstant(a) ? null : a))
       return rendu
     }
-    if (stdin) rendu.nonLu = true
-    return rendu.nonLu ? rendu : null
   }
-  if (nom === 'pwsh' || nom === 'powershell') {
-    rendu.langage = 'powershell'
-    const f = textes.findIndex((t) => /^-f(?:ile)?$/i.test(t))
-    if (f > 0 && textes[f + 1]) { rendu.scripts.push(textes[f + 1]); return rendu }
-    const ps1 = textes.slice(1).find((t) => /\.ps1$/i.test(t) && !t.startsWith('-'))
-    if (ps1) { rendu.scripts.push(ps1); return rendu }
-    return null
-  }
-  return null
+  return rendu
 }
 
 /** Les options courtes de `curl` qui prennent une valeur (`curl --help all`) : collée (`-ofichier`) ou suivante. */
@@ -368,9 +465,9 @@ function commandesDeFind(args, racines) {
   return commandes
 }
 
-/** Un mot développé NON CONSTANT (variable inconnue, `MOT_INCONNU` d'un lancement JS) : en position de sous-commande
- *  de git, npm, npx ou gh, l'écrivain n'est pas prouvé, donc non jugé (#2537). */
-const nonConstant = (mot) => typeof mot === 'string' && mot.includes('\0')
+/** Une demande d'aide (`--help`, `-h`) : une lecture dans toutes les familles (git, gh, npm, npx). */
+const AIDE = /^(?:--help|-h)$/
+const aide = (args) => args.some((a) => AIDE.test(a))
 
 /** `npm` qui écrit : hors des commandes d'interrogation, `npm test` avec `MISE_A_JOUR_VITEST`. `npm run <x>` (et
  *  `start`/`stop`/`restart`) se juge au corps de `scripts.<x>`, que `pipelinesDeJetons` déplie (`commandeScriptNpm`) ;
@@ -380,27 +477,31 @@ const LECTURES_NPM = new Set(['test', 't', 'tst', 'ls', 'list', 'view', 'v', 'in
   'run', 'run-script', 'rum', 'urn', 'start', 'stop', 'restart'])
 function ecritureDeNpm(args) {
   const sous = args.find((a) => !a.startsWith('-')) ?? args[0]
-  if (sous === undefined || nonConstant(sous)) return false
+  const tiret = args.indexOf('--')
+  if (sous === undefined || nonConstant(sous) || aide(tiret < 0 ? args : args.slice(0, tiret))) return false
   if (sous === 'version') return args.length > 1
   if (sous === 'config' || sous === 'c') return !['get', 'list', 'ls'].includes(args[args.indexOf(sous) + 1])
   if (['test', 't', 'tst'].includes(sous)) return args.some((a) => MISE_A_JOUR_VITEST.test(a))
   return !LECTURES_NPM.has(sous)
 }
 
-/** `npx <outil>` : la table FERMÉE des outils et de leurs formes de lecture (`<outil> --help`) ; tout autre outil écrit. */
+/** Les outils de `node_modules/.bin` et leurs formes de lecture (`<outil> --help`), jugés par OUTIL quel que soit le
+ *  lanceur (`npx`, `node_modules/.bin/<outil>`, corps d'un script npm) ; sous `npx`, tout autre outil écrit. */
 const actif = (a, option) => a.some((x, k) => (x === option && !/^(?:false|0)$/.test(a[k + 1] ?? '')) || x === `${option}=true`)
 const LECTURES_NPX = {
   vitest: (a) => !a.some((x) => MISE_A_JOUR_VITEST.test(x)),
   tsx: () => true,
-  tsc: (a) => a.every((x) => /^(?:-v|--version|-h|--help|--all|--showConfig)$/.test(x))
+  tsc: (a) => (a.length > 0 && a.every((x) => /^(?:-v|--version|-h|--help|--all|--showConfig)$/.test(x)))
     || (actif(a, '--noEmit') && !actif(a, '--incremental') && !actif(a, '-i') && !a.some((x) => /^(?:-b|--build|--generateTrace)(?:=|$)/.test(x))),
   eslint: (a) => !a.some((x) => /^(?:--fix|--cache|-o|--output-file|--init)(?:=|$)/.test(x)),
   oxlint: (a) => !a.some((x) => /^(?:--fix\S*|--init)$/.test(x)),
   prettier: (a) => !a.some((x) => /^(?:-w|--write|--cache)(?:=|$)/.test(x)),
+  knip: (a) => !a.some((x) => /^(?:--fix|--fix-type|--allow-remove-files|--cache)(?:=|$)/.test(x)),
 }
 
 /** `gh` : ses sous-commandes de LECTURE (`gh <groupe> --help`) ; `api` lit en GET — méthode `GET` dite, ou ni
- *  méthode ni champ (`-f`, `-F`, `--input` passent la méthode à POST, `gh api --help`). Toute autre forme écrit,
+ *  méthode ni champ (`-f`, `-F`, `--input` passent la méthode à POST, `gh api --help`) ; `api graphql` lit quand
+ *  sa requête (`-f query=`, `-F query=`) est une chaîne qui ne porte pas `mutation`. Toute autre forme écrit,
  *  dont `pr checkout`, `run download`, `release download` et `repo clone`. */
 const LECTURES_GH = {
   issue: ['view', 'list', 'status'], pr: ['view', 'list', 'status', 'diff', 'checks'], run: ['view', 'list', 'watch'],
@@ -415,8 +516,14 @@ function lectureGh(args) {
     if (!args[k].startsWith('-')) mots.push(args[k])
   }
   const [groupe, sous] = mots
-  if (groupe === undefined) return args.every((a) => /^(?:--version|--help|-h)$/.test(a))
+  if (aide(args)) return true
+  if (groupe === undefined) return args.every((a) => a === '--version')
   if (nonConstant(groupe)) return true
+  if (groupe === 'api' && sous === 'graphql') {
+    const requetes = args.flatMap((a, k) => (/^(?:-[fF]|--field|--raw-field)$/.test(a) ? [args[k + 1] ?? ''] : /^-[fF]./s.test(a) ? [a.slice(2)] : /^--(?:raw-)?field=/.test(a) ? [a.slice(a.indexOf('=') + 1)] : []))
+      .filter((c) => /^query=/.test(c)).map((c) => c.slice(6))
+    return requetes.length > 0 && requetes.every((q) => nonConstant(q) || (!q.startsWith('@') && !/\bmutation\b/.test(q)))
+  }
   if (groupe === 'api') {
     const methodes = args.flatMap((a, k) => (/^(?:-X|--method)$/.test(a) ? [args[k + 1]] : /^--method=/.test(a) ? [a.slice(9)] : /^-X./s.test(a) ? [a.slice(2)] : []))
     if (methodes.length) return methodes.every((m) => /^get$/i.test(m ?? ''))
@@ -442,22 +549,29 @@ function developperHeredoc(corps, variables) {
 }
 
 /**
- * Les cibles d'écriture qu'une commande DÉCLARE, `{ chemin, inconnue, ecrivain, operation, segment, base, puits, contenu, langage }` :
+ * Les cibles d'écriture qu'une commande DÉCLARE, `{ chemin, inconnue, ecrivain, famille, operation, segment, base, puits, contenu }` :
  * `base` = le répertoire courant du segment (`null` inconnu) ; `puits` = une écriture qui n'atteint aucun
- * fichier (`estPuits`) ; `contenu` = le texte écrit, connu pour une redirection de `cat` qu'alimente un heredoc
- * littéral ou développé (`developperHeredoc`), et pour `Set-Content`/`Out-File` alimentés par une chaîne littérale, `undefined` sinon.
- * `ecrivain` = la cible vient d'une commande de la table FERMÉE des écrivains (rôles de chemins, outils d'archive et de
- * transfert, sorties déclarées d'un interpréteur) : une sous-commande git hors de `LECTURES_GIT`, un `npm` qui écrit
- * (`ecritureDeNpm`), un `npx` hors `LECTURES_NPX`, un `gh` hors `LECTURES_GH` y sont une cible inconnue ; une redirection,
- * un code JS ou un script ne l'est jamais. Une commande que `xargs` alimente reçoit un argument inconnu. Une
- * `for <v> in <mots>` littérale se déroule. `env` amorce `VARIABLES_AMORCEES` (`$TEMP`, `$env:TEMP`) ; `powershell` :
- * la commande est du dialecte PowerShell (`tokenizeCommand`). Avec `scripts`, s'y ajoutent les LANCEMENTS
- * d'interpréteur (`lancementDInterpreteur`) : `{ operation: 'script', langage }` par fichier lancé (`filtre`, `dossier`
- * pour un positionnel et un `--dir` de `vitest`), une cible inconnue pour un code qu'il exécute sans que la commande le nomme.
+ * fichier (`estPuits`, lecteur PowerShell non fichier) ; `contenu` = le texte écrit, connu pour une redirection de `cat`
+ * qu'alimente un heredoc littéral ou développé (`developperHeredoc`), et pour `Set-Content`/`Out-File` alimentés par une
+ * chaîne littérale, `undefined` sinon. `ecrivain` = la cible vient d'une commande de la table FERMÉE des écrivains
+ * (`ROLES`, outils d'archive et de transfert, sorties déclarées d'un interpréteur, `[IO.File]::`) ; une sous-commande git
+ * hors de `LECTURES_GIT`, un `npm` qui écrit (`ecritureDeNpm`), un outil hors de sa forme de lecture (`LECTURES_NPX`, et
+ * tout outil sous `npx`), un `gh` hors `LECTURES_GH` y sont une cible inconnue de `famille` git, npm, npx ou gh ; une
+ * redirection, un code JS ou un script ne l'est jamais. Une commande que `xargs` alimente reçoit un argument inconnu. Une
+ * `for <v> in <mots>` littérale se déroule. `env` amorce `VARIABLES_AMORCEES` (`$TEMP`, `$env:TEMP`, `$env:USERPROFILE`, `$HOME`, `~`) ;
+ * `powershell` : la commande est du dialecte PowerShell (`tokenizeCommand`), où `\` sépare les chemins sur toute
+ * plateforme. Les chemins se résolvent par le `node:path` de `platform` (`cheminsDe`). Avec `scripts`, s'y ajoutent les
+ * LANCEMENTS JS (`lancementDInterpreteur`) : `{ operation: 'script' }` par fichier lancé (`config` pour un `--config` de
+ * `vitest`, `filtre` pour un positionnel, `dossier` pour un dossier balayé).
  */
 export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), platform = process.platform, env = {}, exclureArguments = () => false, powershell = false, segments = pipelinesDeJetons(commande, 0, { powershell }).flat(), scripts = false } = {}) {
+  const P = cheminsDe(platform)
   const etats = new Map(), sorties = []
-  const amorce = new Map(VARIABLES_AMORCEES.filter((nom) => typeof env[nom] === 'string').flatMap((nom) => [[nom, env[nom]], [`env:${nom}`, env[nom]]]))
+  const accueil = powershell ? env.USERPROFILE ?? env.HOME : env.HOME ?? (platform === 'win32' ? env.USERPROFILE : undefined)
+  const amorce = new Map([
+    ...VARIABLES_AMORCEES.filter((nom) => typeof env[nom] === 'string').flatMap((nom) => [[nom, env[nom]], [`env:${nom}`, env[nom]]]),
+    ...(typeof accueil === 'string' ? [['HOME', accueil]] : []),
+  ])
   const etatDe = (shell) => {
     if (!etats.has(shell)) {
       const parent = shell?.parent ? etatDe(shell.parent) : { base, variables: amorce }
@@ -467,6 +581,11 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
   }
   const developper = (texte, variables, jeton = {}) => {
     if (jeton.quote === 'simple') return texte
+    if (jeton.quote == null && typeof texte === 'string' && /^~(?=[\\/]|$)/.test(texte) && !/^['"]/.test(jeton.raw ?? '')) {
+      const maison = variables.get('HOME')
+      if (typeof maison !== 'string') return null
+      texte = maison + texte.slice(1)
+    }
     if (jeton.quote == null && /['"]/.test(jeton.raw ?? '') && /[$%]/.test(texte ?? '')) {
       const morceaux = []
       for (const [, simple, double, nu] of jeton.raw.matchAll(/'([^']*)'|"((?:[^"\\]|\\.)*)"|((?:[^'"\\]|\\.)+)/g)) {
@@ -487,6 +606,8 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
     })
     return inconnue ? null : rendu
   }
+  /** `\` sépare les chemins en PowerShell sur toute plateforme ; `path.posix` ne le lit pas. */
+  const separateurs = (chemin) => (powershell && platform !== 'win32' && typeof chemin === 'string' ? chemin.replaceAll('\\', '/') : chemin)
   const sousCommande = (texte, etat) => {
     for (const cible of ciblesDEcritureDeCommande(texte, { base: etat.base ?? base, platform, env, scripts })) sorties.push(cible)
   }
@@ -495,11 +616,12 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
     const jetons = sansRedirections(segment.jetons), textes = jetons.map(j => j.text)
     const nom = basenameExecutable(textes[0])
     const developpes = jetons.map((j, k) => developper(j.text, etat.variables, j) ?? `\0inconnue:${k}\0`)
-    const ajouter = (chemin, operation, { puits = false, ecrivain = false } = {}) => {
-      if (typeof chemin === 'string' && chemin.includes('\0')) chemin = null
-      const natif = chemin === null ? null : versCheminNatif(chemin, platform)
-      const resolu = natif === null || (!etat.base && !isAbsolute(natif)) || /^[A-Za-z]:[\\/].*[A-Za-z]:[\\/]|^\(/.test(natif) ? null : resolve(etat.base ?? base, natif)
-      sorties.push({ chemin: resolu, inconnue: !puits && resolu === null, ecrivain, operation, segment, base: etat.base, puits: puits || (typeof chemin === 'string' && estPuits(chemin, platform)) })
+    const ajouter = (chemin, operation, { puits = false, ecrivain = false, famille } = {}) => {
+      if (chemin === undefined || nonConstant(chemin)) chemin = null
+      const natif = chemin === null ? null : versCheminNatif(separateurs(chemin), platform)
+      const resolu = natif === null || (!etat.base && !P.isAbsolute(natif)) || /^[A-Za-z]:[\\/].*[A-Za-z]:[\\/]|^\(/.test(natif) ? null : P.resolve(etat.base ?? base, natif)
+      const lecteurPowerShell = (powershell || ROLES_PAR_NOM.get(nom)?.powerShell) && typeof chemin === 'string' && /^(?!temp:)[A-Za-z][\w-]+::?(?![\\/]{2})/i.test(chemin)
+      sorties.push({ chemin: resolu, inconnue: !puits && !lecteurPowerShell && resolu === null, ecrivain, famille, operation, segment, base: etat.base, puits: puits || lecteurPowerShell || (typeof chemin === 'string' && estPuits(chemin, platform)) })
       return sorties.at(-1)
     }
     const heredoc = nom === 'cat' && textes.length === 1 ? segment.jetons.find((j) => typeof j.corps === 'string' || typeof j.corpsADevelopper === 'string') : undefined
@@ -511,12 +633,15 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
     if (!exclureArguments(segment)) {
       const contrat = ROLES_PAR_NOM.get(nom)
       const enTete = (segment.enTete ?? []).map((j) => basenameExecutable(j.text))
-      const ecrits = ciblesDuWriter(enTete.includes('xargs') ? [...developpes, '\0xargs\0'] : developpes).map((cible) => ajouter(cible, nom, { ecrivain: true }))
-      if (contrat?.role === 'premier' && ecrits.length) {
+      const ecrits = ciblesDuWriter(enTete.includes('xargs') ? [...developpes, '\0xargs\0'] : developpes, P).map((cible) => ajouter(cible, nom, { ecrivain: true }))
+      if (contrat?.contenu && ecrits.length) {
         const k = developpes.findIndex((t) => t.toLowerCase() === '-value')
         const amont = segment.tube?.[segment.tube.indexOf(segment) - 1]?.jetons
         const valeur = k > 0 ? developpes[k + 1] : amont?.length === 1 && amont[0].quote ? developper(amont[0].text, etat.variables, amont[0]) : undefined
-        if (typeof valeur === 'string' && !valeur.includes('\0')) for (const e of ecrits) e.contenu = valeur.replace(/^\r?\n|\r?\n$/g, '')
+        if (typeof valeur === 'string' && !nonConstant(valeur)) for (const e of ecrits) e.contenu = valeur.replace(/^\r?\n|\r?\n$/g, '')
+      }
+      for (const argument of ecrituresDotnet(segment.jetons.map((j) => j.raw ?? j.text).join(' '))) {
+        ajouter(argument.texte === null ? null : developper(argument.texte, etat.variables, { quote: argument.quote === 'simple' ? 'simple' : undefined }), 'dotnet', { ecrivain: true })
       }
       const outils = ecrituresDOutils(nom, developpes.slice(1))
       for (const chemin of outils.chemins) ajouter(chemin ?? null, nom, { ecrivain: true })
@@ -526,17 +651,19 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
         const git = gitSubcommand(developpes)
         if (git !== null) {
           const sorte = developpes.flatMap((a, k) => (a === '--output' ? [developpes[k + 1]] : a.startsWith('--output=') ? [a.slice(9)] : git.sub === 'archive' && a === '-o' ? [developpes[k + 1]] : git.sub === 'archive' && /^-o./s.test(a) ? [a.slice(2)] : []))
-          const operation = `git ${git.sub.includes('\0') ? '<sous-commande non constante>' : git.sub}`
+          const operation = `git ${nonConstant(git.sub) ? '<sous-commande non constante>' : git.sub}`
           for (const chemin of sorte) ajouter(chemin ?? null, operation, { ecrivain: true })
-          const lit = nonConstant(git.sub) || LECTURES_GIT.has(git.sub) || LECTURES_GIT_SOUS_CONDITION[git.sub]?.(git.args)
-          if (!lit) ajouter(null, operation, { ecrivain: true })
+          const lit = nonConstant(git.sub) || aide(git.args) || LECTURES_GIT.has(git.sub) || LECTURES_GIT_SOUS_CONDITION[git.sub]?.(git.args)
+          if (!lit) ajouter(null, operation, { ecrivain: true, famille: 'git' })
         }
       }
       const args = developpes.slice(1)
-      if (enTete.includes('npx') && !nonConstant(developpes[0]) && !(Object.hasOwn(LECTURES_NPX, nom) && LECTURES_NPX[nom](args))) ajouter(null, `npx ${textes.join(' ')}`, { ecrivain: true })
-      if (nom === 'npm' && ecritureDeNpm(args)) ajouter(null, `npm ${textes.slice(1).join(' ')}`.trim(), { ecrivain: true })
-      if (nom === 'gh' && !lectureGh(args)) ajouter(null, `gh ${textes.slice(1).join(' ')}`.trim(), { ecrivain: true })
-      const lancement = lancementDInterpreteur(developpes, segment, textes)
+      const sousNpx = enTete.includes('npx')
+      const lectureDOutil = Object.hasOwn(LECTURES_NPX, nom) ? aide(args) || LECTURES_NPX[nom](args) : !sousNpx || aide(args)
+      if (!nonConstant(developpes[0]) && !lectureDOutil) ajouter(null, `${sousNpx ? 'npx ' : ''}${textes.join(' ')}`, { ecrivain: true, famille: 'npx' })
+      if (nom === 'npm' && ecritureDeNpm(args)) ajouter(null, `npm ${textes.slice(1).join(' ')}`.trim(), { ecrivain: true, famille: 'npm' })
+      if (nom === 'gh' && !lectureGh(args)) ajouter(null, `gh ${textes.slice(1).join(' ')}`.trim(), { ecrivain: true, famille: 'gh' })
+      const lancement = lancementDInterpreteur(developpes, textes)
       if (lancement?.enLigne !== undefined) {
         const jeton = jetons[lancement.enLigne]
         const developpe = jeton === undefined ? null : developper(jeton.text, etat.variables, jeton)
@@ -549,10 +676,10 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       }
       for (const sortie of lancement?.ecritures ?? []) ajouter(sortie, nom, { ecrivain: true })
       if (scripts && lancement) {
-        for (const script of lancement.scripts) Object.assign(ajouter(script, 'script'), { langage: lancement.langage, argv: lancement.argv })
-        for (const filtre of lancement.filtres) Object.assign(ajouter(filtre, 'script'), { langage: lancement.langage, filtre: true })
-        for (const dossier of lancement.dossiers) Object.assign(ajouter(dossier, 'script'), { langage: lancement.langage, dossier: true })
-        if (lancement.nonLu) ajouter(null, `${lancement.langage} (code non lu)`)
+        for (const script of lancement.scripts) Object.assign(ajouter(script, 'script'), { argv: lancement.argv })
+        for (const config of lancement.configs) Object.assign(ajouter(config, 'script'), { config: true })
+        for (const filtre of lancement.filtres) Object.assign(ajouter(filtre, 'script'), { filtre: true })
+        for (const dossier of lancement.dossiers) Object.assign(ajouter(dossier, 'script'), { dossier: true })
       }
     }
     for (const valeur of segment.valeurs ?? []) {
@@ -564,7 +691,7 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
     if (CHANGEMENTS_DE_REPERTOIRE.has(nom)) {
       let inconnue = false
       const remplace = { ...segment, jetons: jetons.map(j => {
-        const texte = developper(j.text, etat.variables, j)
+        const texte = separateurs(developper(j.text, etat.variables, j))
         if (texte === null) { inconnue = true; return j }
         return texte === j.text ? j : { ...j, text: texte, raw: JSON.stringify(texte) }
       }) }

@@ -22,7 +22,7 @@ import { Buffer } from 'node:buffer'
 import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import path, { dirname, join, resolve } from 'node:path'
 import { estRepertoire } from './gitPorte.mjs'
 import { LECTEURS } from './appelsRunners.mjs'
 import { racineNpmCourante } from './racineNpm.mjs'
@@ -1397,6 +1397,10 @@ export function ciblesDeRedirectionAvecProvenance(jetons, depart = 0) {
 // absolu — aucune conversion.
 const DISQUE_POSIX_RE = /^\/([A-Za-z])\/(.*)$/
 
+/** Le module `node:path` de `platform` (`path.win32` ou `path.posix`), jamais celui de l'hôte : un juge qui reçoit
+ *  sa plateforme en paramètre résout comme elle. */
+export const cheminsDe = (platform) => (platform === 'win32' ? path.win32 : path.posix)
+
 /** Chemin de commande rendu natif pour la plateforme (`/c/Users/x` → `C:/Users/x` sur win32) ; `/tmp` de Git
  *  Bash est le répertoire temporaire `tmp` (montage MSYS de `%TEMP%`). */
 export function versCheminNatif(chemin, platform = process.platform, tmp = tmpdir()) {
@@ -1438,6 +1442,7 @@ const VARIABLE_NON_EXPANSEE_RE = /[$%]/
  *  depuis le répertoire où tourne SON segment, sinon le dernier `cd`/`Set-Location`. `null` si aucun.
  *  Les `cd` se PLIENT dans l'ordre : chacun se résout contre le répertoire où le précédent a mené. */
 function cheminNommeParLaCommande(command, cwd, platform) {
+  const { isAbsolute, resolve } = cheminsDe(platform)
   const pas = (depuis, brut) => {
     if (brut === null) return { brut: '', resolu: null }
     const natif = versCheminNatif(brut, platform)

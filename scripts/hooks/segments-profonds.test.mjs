@@ -15,7 +15,7 @@ import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
 import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, posix, resolve, win32 } from 'node:path'
+import { join, posix, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   segmentsProfonds,
@@ -294,10 +294,10 @@ const TOUT_EXISTE = { existe: () => true }
 
 test('cibleDeLaCommande : un chemin POSIX de disque (`/c/…`) devient natif sur win32, inchangé ailleurs', () => {
   const cmd = 'cd ' + PROFIL_WIN + '/dépôt && git commit -m "corrige #42"'
-  const base = resolve('/base')
-  assert.equal(lieuDuCommit(cmd, base, 'win32', TOUT_EXISTE), resolve(base, PROFIL_NATIF + '/dépôt'))
-  assert.equal(lieuDuCommit(cmd, base, 'linux', TOUT_EXISTE), resolve(base, PROFIL_WIN + '/dépôt'))
-  assert.notEqual(lieuDuCommit(cmd, base, 'linux', TOUT_EXISTE), lieuDuCommit(cmd, base, 'win32', TOUT_EXISTE))
+  const baseWin = win32.join(LECTEUR_C, '/base')
+  assert.equal(lieuDuCommit(cmd, baseWin, 'win32', TOUT_EXISTE), win32.resolve(baseWin, PROFIL_NATIF + '/dépôt'))
+  assert.equal(lieuDuCommit(cmd, '/base', 'linux', TOUT_EXISTE), PROFIL_WIN + '/dépôt')
+  assert.notEqual(lieuDuCommit(cmd, '/base', 'linux', TOUT_EXISTE), lieuDuCommit(cmd, baseWin, 'win32', TOUT_EXISTE))
 })
 
 test('cibleDeLaCommande : l\'attendu s\'ancre sur la base FOURNIE, jamais sur le cwd du process', () => {
@@ -323,21 +323,21 @@ test('versCheminNatif : ne convertit QUE la graphie `/<lettre>/…`', () => {
 })
 
 test('cibleDeLaCommande : un `cd` ou un `git -C` DANS un sous-shell désigne le même répertoire réel', () => {
-  const base = resolve('/base')
-  assert.equal(lieuDuCommit('sh -c "cd wt && git commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
-  assert.equal(lieuDuCommit('sh -c "git -C wt commit -m x"', base, 'linux', TOUT_EXISTE), resolve(base, 'wt'))
+  const base = '/base'
+  assert.equal(lieuDuCommit('sh -c "cd wt && git commit -m x"', base, 'linux', TOUT_EXISTE), posix.resolve(base, 'wt'))
+  assert.equal(lieuDuCommit('sh -c "git -C wt commit -m x"', base, 'linux', TOUT_EXISTE), posix.resolve(base, 'wt'))
 })
 
 test('cibleDeLaCommande : `git -C` se résout là où tourne son segment, après les `cd` ; ses `-C` se composent comme git', () => {
-  const base = resolve('/base')
+  const base = '/base'
   const lieu = (command) => lieuDuCommit(command, base, 'linux', TOUT_EXISTE)
-  assert.equal(lieu('cd a && git -C b commit -m x'), resolve(base, 'a', 'b'))
-  assert.equal(lieu('git -C b commit -m x && cd a'), resolve(base, 'b'))
-  assert.equal(lieu('git -C a -C b commit -m x'), resolve(base, 'a', 'b'))
-  assert.equal(lieu('cd a && git -C b -C ' + resolve('/abs') + ' commit -m x'), resolve('/abs'))
-  assert.equal(lieu('cd a && git -C "" commit -m x'), resolve(base, 'a'))
+  assert.equal(lieu('cd a && git -C b commit -m x'), posix.resolve(base, 'a', 'b'))
+  assert.equal(lieu('git -C b commit -m x && cd a'), posix.resolve(base, 'b'))
+  assert.equal(lieu('git -C a -C b commit -m x'), posix.resolve(base, 'a', 'b'))
+  assert.equal(lieu('cd a && git -C b -C /abs commit -m x'), '/abs')
+  assert.equal(lieu('cd a && git -C "" commit -m x'), posix.resolve(base, 'a'))
   assert.equal(lieu('git -Cb commit -m x'), base, '`-Cb` : git le refuse, ce n’est pas un lieu')
-  assert.equal(lieu('git.exe -C b commit -m x'), resolve(base, 'b'), 'tête lue par `estGit`')
+  assert.equal(lieu('git.exe -C b commit -m x'), posix.resolve(base, 'b'), 'tête lue par `estGit`')
   assert.equal(lieu('git commit -m x'), base)
 })
 
