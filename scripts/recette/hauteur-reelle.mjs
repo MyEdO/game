@@ -38,7 +38,7 @@ import {
 } from './lib.mjs';
 import {
   scrollportDePage, commandesInatteignables, corpsDeModaleEcrase, courantHorsChamp, piedHorsChamp,
-  contenuSousLeBord, ecranNomme, enfantsQuiSeChevauchent, ongletHorsDeVue, nomRecouvert,
+  contenuSousLeBord, ecranNomme, enfantsQuiSeChevauchent, ongletHorsDeVue, nomRecouvert, ongletClicAVide,
 } from './detecteurs-hauteur.mjs';
 
 function parseArgs(argv) {
@@ -247,6 +247,7 @@ const RELEVE_ONGLET = `(() => {
   const c = l.getBoundingClientRect(), b = barre.getBoundingClientRect();
   return {
     actif: document.querySelector('.sheet-main [role=tab][aria-selected=true]')?.textContent.trim() ?? null,
+    onglets: [...document.querySelectorAll('.sheet-main [role=tab]')].map((o) => o.textContent.trim()),
     finDeCourse: l.scrollTop >= l.scrollHeight - l.clientHeight - 1,
     cadre: { top: Math.round(c.top), bottom: Math.round(c.bottom) },
     barre: { top: Math.round(b.top), bottom: Math.round(b.bottom) },
@@ -349,21 +350,32 @@ async function main() {
         console.log(`  ${`${ecran} › nom`.padEnd(26)} ${nom ? `« ${nom.texte} » [${nom.rect.join(',')}]` : 'absent'} → ${d.length ? `${d.length} défaut(s)` : 'OK'}`);
         if (!args.mesures) echecs.push(...d);
       };
-      /** Un VRAI clic d'onglet de la planche montée : ce que le joueur vient d'ouvrir est en vue. */
-      const clicDOnglet = async (ecran, nom) => {
+      /** Un VRAI clic sur un onglet INACTIF de la planche montée (le premier, lu avant le clic) : ce
+       *  que le joueur vient d'ouvrir est en vue. */
+      const clicDOnglet = async (ecran) => {
         const ici = `${vue.largeur}×${vue.hauteur} (${vue.nom})`;
-        let onglet;
+        const avant = await evaluate(session, RELEVE_ONGLET);
+        if (!avant) {
+          echecs.push(`${ici} · ${ecran} : planche absente avant le clic d'onglet`);
+          return;
+        }
+        const voulu = avant.onglets.find((o) => o !== avant.actif) ?? null;
+        if (!voulu) {
+          echecs.push(...ongletClicAVide({ vue: ici, ecran, avant: avant.actif, voulu, actif: null }));
+          return;
+        }
         try {
-          onglet = await clickItemByText(session, nom, { selecteur: ONGLETS_PLANCHE });
+          await clickItemByText(session, voulu, { selecteur: ONGLETS_PLANCHE });
         } catch (e) {
           echecs.push(`${ici} · ${ecran} : clic d'onglet refusé — ${e.message}`);
           return;
         }
         await sleep(600);
         const r = await evaluate(session, RELEVE_ONGLET);
+        const clicAVide = r && ongletClicAVide({ vue: ici, ecran, avant: avant.actif, voulu, actif: r.actif });
         const d = !r ? [`${ici} · ${ecran} : planche absente après le clic d'onglet`]
-          : r.actif !== onglet.label ? [`${ici} · ${ecran} : le clic sur « ${onglet.label} » n'a pas activé l'onglet (actif : « ${r.actif} »)`]
-          : ongletHorsDeVue({ vue: ici, ecran, onglet: onglet.label, ...r });
+          : clicAVide.length ? clicAVide
+          : ongletHorsDeVue({ vue: ici, ecran, onglet: voulu, ...r });
         console.log(`  ${`${ecran} › clic d’onglet`.padEnd(26)} ${r ? `barre ${r.barre.top - r.cadre.top}px sous le haut, corps à ${r.corps.top}/${r.cadre.bottom}` : 'absente'} → ${d.length ? `${d.length} défaut(s)` : 'OK'}`);
         if (!args.mesures) echecs.push(...d);
       };
@@ -404,7 +416,7 @@ async function main() {
       const heros = await evaluate(session, `(window.__game.getState().party || [])[0]?.label ?? '(aucun héros)'`);
       await cadrePose(`{ sheetId: (window.__game.getState().party || [])[0]?.id ?? null }`, heros, 'fiche de personnage', { cadre: true });
       await nomDePlanche('fiche de personnage');
-      await clicDOnglet('fiche de personnage', 'État');
+      await clicDOnglet('fiche de personnage');
       await evaluate(session, `window.__game.setState({ sheetId: null })`);
       await sleep(400);
 

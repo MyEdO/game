@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   scrollportDePage, commandesInatteignables, corpsDeModaleEcrase, courantHorsChamp, piedHorsChamp,
-  contenuSousLeBord, ecranNomme, enfantsQuiSeChevauchent, ongletHorsDeVue, nomRecouvert,
+  contenuSousLeBord, ecranNomme, enfantsQuiSeChevauchent, ongletHorsDeVue, nomRecouvert, ongletClicAVide,
 } from './detecteurs-hauteur.mjs'
 
 // ── SCROLLPORT DE PAGE — mesure du ticket #1847 : à 1366×650, la carte du menu principal fait 782px
@@ -411,4 +411,20 @@ test('nom de planche dans son dialogue : aucun défaut', () => {
 
 test('aucun nom relevé : sonde aveugle, défaut nommé — jamais un vert', () => {
   assert.match(nomRecouvert({ vue: '360×740 (mobile)', ecran: 'fiche de personnage (combat)', nom: null })[0], /sonde aveugle/)
+})
+
+// ── CLIC D'ONGLET À VIDE — juge de fermeture #1953 sur `077f6be1c` : « État » visé alors qu'il est
+//    déjà l'onglet actif, dès la 2e vue. ──────────────────────────────────────────────────────────
+test('ongletClicAVide : un onglet visé déjà actif, absent ou resté inactif est un défaut ; un onglet inactif activé passe', () => {
+  const ici = { vue: '360×740 (téléphone)', ecran: 'fiche de personnage' }
+  assert.deepEqual(ongletClicAVide({ ...ici, avant: 'État', voulu: 'État', actif: 'État' }), [
+    "360×740 (téléphone) · fiche de personnage : l'onglet visé « État » était déjà actif — contrôle à vide",
+  ])
+  assert.deepEqual(ongletClicAVide({ ...ici, avant: 'État', voulu: null, actif: 'État' }), [
+    '360×740 (téléphone) · fiche de personnage : aucun onglet INACTIF à cliquer (actif : « État ») — contrôle à vide',
+  ])
+  assert.deepEqual(ongletClicAVide({ ...ici, avant: 'État', voulu: 'Compétences', actif: 'État' }), [
+    '360×740 (téléphone) · fiche de personnage : le clic sur « Compétences » n\'a pas activé l\'onglet (actif : « État »)',
+  ])
+  assert.deepEqual(ongletClicAVide({ ...ici, avant: 'État', voulu: 'Compétences', actif: 'Compétences' }), [])
 })

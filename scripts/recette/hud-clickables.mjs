@@ -83,6 +83,23 @@ function parseArgs(argv) {
   return out;
 }
 
+/** ATTEINTE d'un élément (fonction de PAGE, source) : son centre, s'il est RENDU et DANS la fenêtre,
+ *  reçoit-il le clic (`elementFromPoint`) ? `cn` nomme, `box` arrondit (ceux de `PROBE`). Rend
+ *  `{ rendu, horsFenetre, ok, hitBy, rect }` ; hors fenêtre, `hitBy` vaut `null`. */
+export const FN_REACHES = `(el, cn, box) => {
+    const r = el.getBoundingClientRect();
+    const rendu = r.width > 0 && r.height > 0;
+    const x = r.x + r.width / 2, y = r.y + r.height / 2;
+    const horsFenetre = rendu && !(x >= 0 && y >= 0 && x < innerWidth && y < innerHeight);
+    const top = rendu && !horsFenetre ? document.elementFromPoint(x, y) : null;
+    return { rendu, horsFenetre, ok: !!(top && (top === el || el.contains(top))), hitBy: horsFenetre ? null : cn(top), rect: box(r) };
+  }`;
+
+/** Verdict d'un élément NON ATTEINT (`FN_REACHES`) : HORS FENÊTRE, ou recouvert par ce qui reçoit le clic. */
+const nonAtteint = (b, recouvert = 'recouvert') => b.horsFenetre
+  ? `est HORS FENÊTRE ${JSON.stringify(b.rect)} — aucun clic n'y arrive`
+  : `${JSON.stringify(b.rect)} ne reçoit pas son clic — ${recouvert} par ${b.hitBy}`;
+
 /** Sonde DOM : mesures + verdicts d'atteignabilité, en UN aller-retour par largeur. */
 const PROBE = `(() => {
   const cn = (e) => e ? ((e.className && e.className.baseVal !== undefined ? e.className.baseVal : String(e.className || '')) + ' <' + e.tagName + '>') : 'rien';
@@ -91,12 +108,7 @@ const PROBE = `(() => {
   // Une boîte NON RENDUE (repliée, écran d'un parent en display:none) a un rect 0×0 : elle n'a aucun
   // clic à recevoir, et le point (0,0) rend le décor — la juger « recouverte » est un FAUX POSITIF
   // (mesuré : à 560 et 360 la bande de groupe est repliée sur sa poignée, piste en display none).
-  const reaches = (el) => {
-    const r = el.getBoundingClientRect();
-    const rendu = r.width > 0 && r.height > 0;
-    const top = rendu ? document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) : null;
-    return { rendu, ok: !!(top && (top === el || el.contains(top))), hitBy: cn(top), rect: box(r) };
-  };
+  const reaches = (el) => (${FN_REACHES})(el, cn, box);
   const overlap = (a, b) => {
     if (!a || !b) return null;
     const ox = Math.min(a.right, b.right) - Math.max(a.x, b.x);
@@ -612,7 +624,7 @@ export function defauts(m, phase) {
     }
   }
   for (const b of m.rail?.ouvreurs ?? []) {
-    if (!b.ok) out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — recouvert par ${b.hitBy}`);
+    if (!b.ok) out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » ${nonAtteint(b)}`);
   }
   out.push(...defautsGroupe(m, phase));
   if (m.combat) {
@@ -622,7 +634,7 @@ export function defauts(m, phase) {
     if (!m.dock) out.push(`${phase} ${m.largeur}px : aucune console (.combat-console) — sonde aveugle sur le pont de tour`);
     else if (!m.dockBtns.length) out.push(`${phase} ${m.largeur}px : la console ne porte aucune case — sonde aveugle`);
     for (const b of m.dockBtns) {
-      if (!b.ok) out.push(`${phase} ${m.largeur}px : la case « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — recouverte par ${b.hitBy}`);
+      if (!b.ok) out.push(`${phase} ${m.largeur}px : la case « ${b.label} » ${nonAtteint(b, 'recouverte')}`);
     }
     if (m.feedXfrise) out.push(`${phase} ${m.largeur}px : le fil d'événements recouvre la frise d'initiative de ${m.feedXfrise.ox}×${m.feedXfrise.oy}px`);
     // TIROIR DU JOURNAL : c'est ici que se mesure sa réserve du bas — un panneau qui passe SOUS la
@@ -661,14 +673,14 @@ export function defautsGroupe(m, phase) {
   if (m.groupe && m.groupe.cartes === 0) {
     if (!m.groupe.poignee) out.push(`${phase} ${m.largeur}px : le groupe ne rend aucune carte ET n'offre aucune poignée — il est hors d'atteinte`);
     else if (!m.groupe.poignee.rendu) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié n'est pas rendue — le groupe est hors d'atteinte`);
-    else if (!m.groupe.poignee.ok) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ${JSON.stringify(m.groupe.poignee.rect)} ne reçoit pas son clic — recouverte par ${m.groupe.poignee.hitBy}`);
+    else if (!m.groupe.poignee.ok) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ${nonAtteint(m.groupe.poignee, 'recouverte')}`);
   }
   // Portraits du groupe, aux DEUX phases (en combat, la bande dépliée ≤560 doit passer devant le fil
   // d'événements). RENDUS seulement : une tuile de bande repliée n'est pas recouverte, elle n'est pas
   // montée à l'écran — c'est le verdict de POIGNÉE (ci-dessus) qui garde ce cas-là.
   if (!m.portraits.length) out.push(`${phase} ${m.largeur}px : aucun portrait de groupe — sonde aveugle`);
   for (const p of m.portraits.filter((x) => x.rendu)) {
-    if (!p.ok) out.push(`${phase} ${m.largeur}px : le portrait ${p.i} du groupe ne reçoit pas son clic — recouvert par ${p.hitBy}`);
+    if (!p.ok) out.push(`${phase} ${m.largeur}px : le portrait ${p.i} du groupe ${nonAtteint(p)}`);
   }
   return out;
 }

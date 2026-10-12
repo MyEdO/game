@@ -5,7 +5,8 @@
 // rouge ne mesure rien, un détecteur sans cas vert crie sur tout.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { defauts, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
+import { JSDOM } from 'jsdom'
+import { defauts, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice, FN_REACHES } from './hud-clickables.mjs'
 
 /** Mesure de COMBAT sans aucun défaut (le cas vert de référence). */
 const combat = () => ({
@@ -108,6 +109,32 @@ test('point de sonde du journal HORS FENÊTRE : verdict nommé, jamais « recouv
   const m = combat()
   m.tiroir.points[0] = { ...m.tiroir.points[0], x: 527, y: -6.7, horsFenetre: true, ok: false, hitBy: 'rien' }
   rouge(m, 'combat', /le panneau du journal à 10 % est HORS FENÊTRE \(527, -6\.7\)/)
+})
+
+test('`reaches` HORS FENÊTRE : portrait, case, ouvreur et poignée disent HORS FENÊTRE, jamais « recouvert par rien »', () => {
+  const dom = new JSDOM('<button class="ptile">Ulrika</button>', { runScripts: 'outside-only' })
+  const doc = dom.window.document
+  doc.querySelector('.ptile').getBoundingClientRect = () => ({ x: 520, y: -40, width: 40, height: 20 })
+  doc.elementFromPoint = (x, y) => (x >= 0 && y >= 0 && x < dom.window.innerWidth && y < dom.window.innerHeight ? doc.body : null)
+  const cn = (e) => (e ? e.tagName : 'rien')
+  const box = (r) => ({ x: r.x, y: r.y, w: r.width, h: r.height })
+  const hors = { ...dom.window.eval(`(${FN_REACHES})`)(doc.querySelector('.ptile'), cn, box) }
+  assert.deepEqual(hors, { rendu: true, horsFenetre: true, ok: false, hitBy: null, rect: { x: 520, y: -40, w: 40, h: 20 } })
+  const motif = / est HORS FENÊTRE \{"x":520,"y":-40,"w":40,"h":20\} — aucun clic n'y arrive$/
+  const portrait = combat()
+  portrait.portraits[0] = { i: 0, ...hors }
+  rouge(portrait, 'combat', motif)
+  const kase = combat()
+  kase.dockBtns[0] = { ...kase.dockBtns[0], ...hors }
+  rouge(kase, 'combat', motif)
+  const ouvreur = combat()
+  ouvreur.rail.ouvreurs[0] = { ...ouvreur.rail.ouvreurs[0], ...hors }
+  rouge(ouvreur, 'combat', motif)
+  const poignee = exploration()
+  poignee.groupe = { cartes: 0, lignes: 0, poignee: hors }
+  poignee.portraits = []
+  const d = defauts(poignee, 'exploration')
+  assert.ok(d.some((l) => motif.test(l)), d.join(' | '))
 })
 
 test('navire présent et rail absent : refus nommé, aucun vert par vacuité', () => {
@@ -446,14 +473,14 @@ test('portrait de groupe RECOUVERT EN COMBAT (volet déplié sous le fil) : déf
   const m = combat()
   m.portraits[0].ok = false
   m.portraits[0].hitBy = 'combat-feed <DIV>'
-  rouge(m, 'combat', /le portrait 0 du groupe ne reçoit pas son clic — recouvert par combat-feed/)
+  rouge(m, 'combat', /le portrait 0 du groupe {"x":10,"y":140,"w":44,"h":44} ne reçoit pas son clic — recouvert par combat-feed/)
 })
 
 test('portrait de groupe RECOUVERT : défaut nommé', () => {
   const m = exploration()
   m.portraits[0].ok = false
   m.portraits[0].hitBy = 'objective-banner <DIV>'
-  rouge(m, 'exploration', /le portrait 0 du groupe ne reçoit pas son clic/)
+  rouge(m, 'exploration', /le portrait 0 du groupe {"x":10,"y":10,"w":44,"h":44} ne reçoit pas son clic — recouvert par objective-banner/)
 })
 
 // ══ MATRICE RESPONSIVE §12 (docs/superpowers/specs/2026-07-31-hud-combat-exploration-design.md) ══

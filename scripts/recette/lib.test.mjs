@@ -1240,17 +1240,17 @@ for (const [nom, pc, election, coquille, permis] of [
 }
 
 test('instantanés processus : Windows et ps complets, formes malformées refusées avant arrêt', () => {
-  const lire = (plateforme, stdout) => lireProcessus({ plateforme, executer: () => ({ status: 0, stdout }) })
-  assert.deepEqual(lire('win32', '[{"ProcessId":42,"ParentProcessId":0}]'), [{ pid: 42, parent: 0 }])
+  const lire = (plateforme, stdout) => lireProcessus({ plateforme, executer: () => ({ status: 0, stdout }), horloge: () => 100000 })
+  assert.deepEqual(lire('win32', '[{"ProcessId":42,"ParentProcessId":0,"Cree":5000}]'), [{ pid: 42, parent: 0, cree: 5000 }])
   lireProcessus({ plateforme: 'win32', executer: (_commande, args) => {
-    assert.ok(args.at(-1).includes('Get-CimInstance Win32_Process -Filter "ProcessId > 0"'))
+    assert.ok(args.at(-1).includes('Get-CimInstance Win32_Process -Filter "ProcessId > 0"') && args.at(-1).includes('CreationDate'))
     return { status: 0, stdout: '[]' }
   } })
-  assert.deepEqual(lire('linux', ' 42 0\n43 42\n'), [{ pid: 42, parent: 0 }, { pid: 43, parent: 42 }])
-  for (const stdout of ['{}', '[{}]', '[null]', '[{"ProcessId":42}]', '[{"ProcessId":0,"ParentProcessId":1}]', '[{"ProcessId":"42","ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":-1}]', '[{"ProcessId":42.1,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1},{"ProcessId":42,"ParentProcessId":1}]']) {
+  assert.deepEqual(lire('linux', ' 42 0 30\n43 42 2\n'), [{ pid: 42, parent: 0, cree: 70000 }, { pid: 43, parent: 42, cree: 98000 }])
+  for (const stdout of ['{}', '[{}]', '[null]', '[{"ProcessId":42}]', '[{"ProcessId":0,"ParentProcessId":1}]', '[{"ProcessId":"42","ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":-1}]', '[{"ProcessId":42.1,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1},{"ProcessId":42,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":-1}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":"hier"}]']) {
     assert.throws(() => lire('win32', stdout), /malformé/)
   }
-  for (const stdout of ['42', '42 nope', '42 1 surplus', '0 1', '42 -1', '42.1 1', '42 1\n43', '42 1\n42 1']) {
+  for (const stdout of ['42 1', '42 nope 3', '42 1 3 surplus', '0 1 3', '42 -1 3', '42.1 1 3', '42 1 3\n43', '42 1 3\n42 1 3']) {
     assert.throws(() => lire('linux', stdout), /malformé/)
   }
   let arrets = 0
@@ -1915,7 +1915,8 @@ test('selectOption : libellé ambigu refusé avant clic, focus, input et change 
   const { doc, etat, session } = pagePilotee('<select id="d"><option value="a">Dague</option><option value="b">Dague</option></select>')
   const evenements = []
   for (const nom of ['focus', 'input', 'change']) doc.querySelector('select').addEventListener(nom, () => evenements.push(nom))
-  await assert.rejects(() => selectOption(session, '#d', 'Dague'), /options ambiguës/)
+  await assert.rejects(() => selectOption(session, '#d', 'Dague'), /selectOption : 2 cibles ambiguës « Dague » — option « Dague » \| option « Dague » — préciser/)
+  assert.equal(doc.querySelector('[data-recette-cible]'), null)
   assert.deepEqual(etat.emis, [])
   assert.deepEqual(evenements, [])
   assert.equal(doc.querySelector('select').value, 'a')
@@ -2010,9 +2011,35 @@ test('waitForWsUrl : à l’échéance, le DERNIER échec est nommé', async () 
 test('purgerProfil : un handle TENU (EBUSY) se réessaie, une autre erreur LÈVE', async () => {
   let essais = 0
   const tenu = { existe: () => essais < 2, supprimer: () => { essais += 1; if (essais === 1) throw erreurDeCode('EBUSY') } }
-  assert.equal(await purgerProfil('/p', { disque: tenu, pasMs: 1 }), true)
+  assert.equal(purgerProfil('/p', { disque: tenu, pasMs: 1 }), true)
   const refuse = { existe: () => true, supprimer: () => { throw erreurDeCode('EACCES') } }
-  await assert.rejects(() => purgerProfil('/p', { disque: refuse, pasMs: 1 }), /EACCES/)
+  assert.throws(() => purgerProfil('/p', { disque: refuse, pasMs: 1 }), /EACCES/)
+})
+
+test('purgerProfil : EBUSY se réessaie jusqu’à l’ÉCHÉANCE, pas un nombre fixe d’essais ; au-delà, `false`', () => {
+  let now = 0, essais = 0
+  const tenuLongtemps = { existe: () => now < 12000, supprimer: () => { essais += 1; now += 1000; if (now < 12000) throw erreurDeCode('EBUSY') } }
+  assert.equal(purgerProfil('/p', { disque: tenuLongtemps, horloge: () => now, patienter: (ms) => { now += ms } }), true)
+  assert.ok(now >= 12000 && now <= 15000, `libéré à ${now} ms après ${essais} essais`)
+  now = 0
+  const tenuToujours = { existe: () => true, supprimer: () => { throw erreurDeCode('EBUSY') } }
+  assert.equal(purgerProfil('/p', { disque: tenuToujours, echeanceMs: 500, horloge: () => now, patienter: (ms) => { now += ms } }), false)
+  assert.equal(now, 500)
+})
+
+test('killChromeTree : un PID RÉUTILISÉ (créé après l’arrêt, ou recréé sous un PID suivi) est écarté ; l’échéance part APRÈS l’arrêt', () => {
+  let now = 10000
+  const avant = [{ pid: 42, parent: 1, cree: 1000 }, { pid: 43, parent: 42, cree: 2000 }]
+  const observer = (apres) => { let n = 0; return () => n++ ? apres : avant }
+  const options = { plateforme: 'win32', executer: () => ({ status: 255 }), horloge: () => now, patienter: (ms) => { now += ms }, attenteMs: 100 }
+  const reutilises = [{ pid: 43, parent: 7, cree: 11700 }, { pid: 44, parent: 43, cree: 11800 }, { pid: 45, parent: 42, cree: 12000 }]
+  assert.deepEqual(killChromeTree({ pid: 42 }, { ...options, observer: observer(reutilises) }).survivants, [])
+  now = 10000
+  assert.throws(() => killChromeTree({ pid: 42 }, { ...options, observer: observer([{ pid: 43, parent: 1, cree: 2000 }, { pid: 46, parent: 43, cree: 9000 }]) }), /survivants 43, 46/)
+  now = 10000
+  let lectures = 0
+  const lent = { ...options, attenteMs: 3000, executer: () => { now += 5000; return { status: 255 } }, observer: () => (lectures++ < 3 ? avant : []) }
+  assert.deepEqual(killChromeTree({ pid: 42 }, lent).survivants, [])
 })
 
 test('leverApresNettoyage : la principale sort ; un nettoyage qui échoue lui est JOINT, jamais substitué', async () => {
@@ -2714,6 +2741,17 @@ test('ouvrirFiche : catégorie ou rangée absente — refus NOMMANT les offertes
   await assert.rejects(() => ouvrirFiche(session, { entree: 'Peste' }), /ouvrirFiche : aucune rangée « Peste » — offertes : Pourriture de Nurgle \| Pourriture/)
 })
 
+test('localiseur unique : la marque de catégorie est retirée, une racine en double LÈVE au lieu de prendre la première', async () => {
+  const codex = pageCodex()
+  await ouvrirFiche(codex.session, { groupe: 'Règles', categorie: 'Maladies', entree: 'Pourriture' })
+  assert.equal(codex.doc.querySelector('[data-recette-categorie], [data-recette]'), null)
+  const atelier = pagePilotee('<header class="codex-top"><button aria-pressed="false">Atelier</button></header><header class="codex-top"><button aria-pressed="true">Atelier</button></header>')
+  await assert.rejects(() => setAtelier(atelier.session, true), /setAtelier : 2 racines ambiguës « \.codex-top »/)
+  assert.deepEqual(atelier.etat.emis, [])
+  const { session } = sessionSurDom(`<div class="texte">${provenance('du PNJ', { retenue: 'Copie' })}</div><div class="texte">${provenance('du stade 1', { retenue: 'Maison' })}</div>`)
+  await assert.rejects(() => mesurerProvenance(session, '.texte'), /mesurerProvenance : 2 cibles ambiguës « \.texte »/)
+})
+
 test('ATTRIBUTS_VOLATILS : le compteur d’images et la file du cuiseur (`GameStage3D.tsx`)', () => {
   assert.deepEqual([...ATTRIBUTS_VOLATILS], ['data-rendus', 'data-file'])
 })
@@ -2845,6 +2883,36 @@ test('geste : `emettre` à un autre point que le point contrôlé LÈVE ; le gli
   assert.deepEqual(etat.emis, [])
   await geste(session, { selecteur: '#a' }, {}, clic({ trajet: [{ x: 30, y: 0 }] }))
   assert.deepEqual(etat.emis, ['Input.dispatchMouseEvent:mouseMoved', 'Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseMoved', 'Input.dispatchMouseEvent:mouseReleased'])
+})
+
+test('geste et frappe : `emettre` est RÉVOQUÉ au retour du geste — rien ne part après, même au point contrôlé', async () => {
+  const { etat, session } = pagePilotee('<button id="a">A</button>')
+  let garde
+  await geste(session, { selecteur: '#a' }, {}, async (loc, emettre) => { garde = emettre; await emettre('souris', { type: 'mousePressed', x: loc.x, y: loc.y, button: 'left', clickCount: 1 }) })
+  const avant = [...etat.emis]
+  await assert.rejects(() => garde('souris', { type: 'mouseReleased', x: 5, y: 5, button: 'left', clickCount: 1 }), /geste : « emettre » RÉVOQUÉ — le geste est rendu — aucun événement émis/)
+  await assert.rejects(() => garde('souris', { type: 'mouseMoved', x: 400, y: 400, buttons: 1 }), /RÉVOQUÉ/)
+  let gardeClavier
+  await frappe(session, {}, (emettre) => { gardeClavier = emettre })
+  assert.throws(() => gardeClavier('touche', { type: 'keyDown', key: 'a' }), /frappe : « emettre » RÉVOQUÉ — la frappe est rendue — aucune frappe émise/)
+  assert.deepEqual(etat.emis, avant)
+})
+
+test('geste : un glissé HORS FENÊTRE lève ; son relâchement gauche est un DÉPÔT recontrôlé, qui nomme le voile', async () => {
+  const appuyer = (loc, emettre) => emettre('souris', { type: 'mousePressed', x: loc.x, y: loc.y, button: 'left', clickCount: 1 })
+  const horsFenetre = pagePilotee('<button id="a">A</button>')
+  await assert.rejects(() => geste(horsFenetre.session, { selecteur: '#a' }, {}, async (loc, emettre) => {
+    await appuyer(loc, emettre)
+    await emettre('souris', { type: 'mouseReleased', x: 9999, y: -50, button: 'left', clickCount: 1 })
+  }), /geste : glissé « mouseReleased » au point \(9999, -50\) HORS FENÊTRE \(1024×768\) — aucun événement émis/)
+  assert.deepEqual(horsFenetre.etat.emis, ['Input.dispatchMouseEvent:mousePressed'])
+  const voile = pagePilotee('<button id="a">A</button><div class="voile" style="position:fixed">Modale</div>')
+  await assert.rejects(() => geste(voile.session, { selecteur: '#a' }, { attenteMs: 50 }, async (loc, emettre) => {
+    await appuyer(loc, emettre)
+    voile.doc.elementFromPoint = () => voile.doc.querySelector('.voile')
+    await emettre('souris', { type: 'mouseReleased', x: 40, y: 40, button: 'left', clickCount: 1 })
+  }), /geste « #a » \(dépôt\) : AUTRE COUCHE — au point \(40, 40\), div\.voile « Modale »/)
+  assert.deepEqual(voile.etat.emis, ['Input.dispatchMouseEvent:mousePressed'])
 })
 
 test('ouvrirFiche : `{ livre }` filtre EXACT sur le livre de la rangée — préfixe d’id et livre cité hors rangées', async () => {

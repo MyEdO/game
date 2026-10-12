@@ -188,36 +188,48 @@ function validerProcessus(processus) {
   if (!Array.isArray(processus)) throw new Error('killChromeTree : instantané des processus malformé, tableau attendu');
   const vus = new Set();
   for (const [i, p] of processus.entries()) {
-    if (!Number.isSafeInteger(p?.pid) || p.pid <= 0 || !Number.isSafeInteger(p?.parent) || p.parent < 0 || vus.has(p.pid)) {
-      throw new Error('killChromeTree : instantané des processus malformé, entrée ' + i + ' — PID positif unique et parent entier positif ou nul attendus');
+    if (!Number.isSafeInteger(p?.pid) || p.pid <= 0 || !Number.isSafeInteger(p?.parent) || p.parent < 0 || vus.has(p.pid) || (p.cree !== undefined && !(Number.isFinite(p.cree) && p.cree >= 0))) {
+      throw new Error('killChromeTree : instantané des processus malformé, entrée ' + i + ' — PID positif unique, parent entier positif ou nul et création finie attendus');
     }
     vus.add(p.pid);
   }
   return processus;
 }
 
-/** Instantané PID/parent via CIM sous Windows, ps ailleurs ; toute observation illisible refuse. */
-export function lireProcessus({ plateforme = process.platform, executer = spawnSync } = {}) {
+/** Instantané PID/parent/création (`cree`, ms epoch) via CIM sous Windows, ps ailleurs (`etimes`, à
+ *  la seconde, d'où `TOLERANCE_CREATION_MS`) ; toute observation illisible refuse. */
+export function lireProcessus({ plateforme = process.platform, executer = spawnSync, horloge = Date.now } = {}) {
   const r = plateforme === 'win32'
-    ? executer('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process -Filter "ProcessId > 0" | Select-Object ProcessId,ParentProcessId)'], { encoding: 'utf8' })
-    : executer('ps', ['-eo', 'pid=,ppid='], { encoding: 'utf8' });
+    ? executer('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process -Filter "ProcessId > 0" | Select-Object ProcessId,ParentProcessId,@{n=\'Cree\';e={if ($_.CreationDate) { [int64]($_.CreationDate.ToUniversalTime() - [datetime]\'1970-01-01\').TotalMilliseconds } else { 0 }}})'], { encoding: 'utf8' })
+    : executer('ps', ['-eo', 'pid=,ppid=,etimes='], { encoding: 'utf8' });
   if (r.error) throw r.error;
   if (r.status !== 0) throw new Error(`killChromeTree : observation des processus impossible (code ${r.status}) — ${r.stderr || ''}`);
   if (plateforme === 'win32') {
     const lignes = JSON.parse(r.stdout);
     if (!Array.isArray(lignes)) throw new Error('killChromeTree : instantané des processus malformé, tableau attendu');
-    return validerProcessus(lignes.map((p) => ({ pid: p?.ProcessId, parent: p?.ParentProcessId })));
+    return validerProcessus(lignes.map((p) => ({ pid: p?.ProcessId, parent: p?.ParentProcessId, cree: p?.Cree })));
   }
+  const maintenant = horloge();
   const lignes = r.stdout.trim().split('\n').filter(Boolean).map((s) => {
-    const ligne = /^\s*(\d+)\s+(\d+)\s*$/.exec(s);
+    const ligne = /^\s*(\d+)\s+(\d+)\s+(\d+)\s*$/.exec(s);
     if (!ligne) throw new Error('killChromeTree : ligne de processus malformée « ' + s + ' »');
-    return { pid: Number(ligne[1]), parent: Number(ligne[2]) };
+    return { pid: Number(ligne[1]), parent: Number(ligne[2]), cree: Math.max(0, maintenant - Number(ligne[3]) * 1000) };
   });
   return validerProcessus(lignes);
 }
 
-/** Arrête l’arbre puis observe son extinction sous une échéance synchrone, indépendamment du code taskkill. */
-export function killChromeTree(chrome, { plateforme = process.platform, executer = spawnSync, observer = () => lireProcessus({ plateforme, executer }), tuerPid = (pid) => process.kill(pid, 'SIGKILL'), attenteMs = 2000, horloge = Date.now, patienter = attendreSync } = {}) {
+/** ÉCHÉANCE d'extinction d'un Chrome et de libération de son profil, qui tient la CHARGE : #2540, une
+ *  observation CIM coûte 600 à 800 ms sur une machine chargée, et l'extinction y dépassait 2000 ms. */
+export const ATTENTE_EXTINCTION_MS = 15000;
+
+/** Précision d'une date de création (`etimes` de ps est à la seconde). */
+const TOLERANCE_CREATION_MS = 1500;
+
+/** Arrête l’arbre puis observe son extinction jusqu'à une échéance synchrone prise APRÈS l'arrêt,
+ *  indépendamment du code taskkill. Un processus de l'instantané n'est de l'arbre que s'il est le MÊME
+ *  (même date de création qu'avant l'arrêt), ou, apparu depuis, créé AVANT l'arrêt : sinon son PID
+ *  est RÉUTILISÉ, il est écarté avec ses descendants. */
+export function killChromeTree(chrome, { plateforme = process.platform, executer = spawnSync, observer = () => lireProcessus({ plateforme, executer }), tuerPid = (pid) => process.kill(pid, 'SIGKILL'), attenteMs = ATTENTE_EXTINCTION_MS, horloge = Date.now, patienter = attendreSync } = {}) {
   if (!Number.isInteger(chrome.pid) || chrome.pid <= 0) throw new Error('killChromeTree : PID racine absent, arbre non observable');
   if (!Number.isFinite(attenteMs) || attenteMs < 0) throw new Error('killChromeTree : délai non fini ou négatif');
   const avant = validerProcessus(observer());
@@ -234,7 +246,11 @@ export function killChromeTree(chrome, { plateforme = process.platform, executer
     if (!Number.isFinite(t)) throw new Error('killChromeTree : horloge non finie');
     return t;
   };
-  const fin = lireHeure() + attenteMs;
+  const creation = new Map(avant.filter((p) => suivis.has(p.pid)).map((p) => [p.pid, p.cree]));
+  const debut = lireHeure();
+  const memeProcessus = (p) => p.cree === undefined || (creation.has(p.pid)
+    ? creation.get(p.pid) === undefined || Math.abs(p.cree - creation.get(p.pid)) <= TOLERANCE_CREATION_MS
+    : p.cree <= debut + TOLERANCE_CREATION_MS);
   let r;
   if (plateforme === 'win32') {
     r = executer('taskkill', ['/PID', String(chrome.pid), '/T', '/F'], { encoding: 'utf8' });
@@ -243,9 +259,10 @@ export function killChromeTree(chrome, { plateforme = process.platform, executer
       try { tuerPid(pid); } catch (e) { if (e.code !== 'ESRCH') throw e; }
     }
   }
+  const fin = lireHeure() + attenteMs;
   let survivants;
   for (;;) {
-    const apres = validerProcessus(observer());
+    const apres = validerProcessus(observer()).filter(memeProcessus);
     const maintenant = lireHeure();
     suivre(apres);
     survivants = apres.filter((p) => suivis.has(p.pid));
@@ -267,7 +284,7 @@ const activeChildren = new Set();
 
 /** Le filet de sortie sur `enfants` : chaque Chrome tué, chaque profil supprimé ; un échec est NOMMÉ
  *  (`signaler`) et n'arrête pas les suivants. Rend la liste des échecs. */
-export function nettoyerALaSortie(enfants, { tuer = killChromeTree, supprimer = (p) => rmSync(p, { recursive: true, force: true }), signaler = (m) => console.error(m) } = {}) {
+export function nettoyerALaSortie(enfants, { tuer = killChromeTree, supprimer = (p) => { if (!purgerProfil(p)) throw new Error(`toujours présent après ${ATTENTE_EXTINCTION_MS} ms`); }, signaler = (m) => console.error(m) } = {}) {
   const echecs = [];
   for (const { chrome, profile } of enfants) {
     for (const [quoi, geste] of [[`Chrome ${chrome.pid}`, () => tuer(chrome)], [`profil ${profile}`, () => supprimer(profile)]]) {
@@ -425,20 +442,23 @@ const CODES_HANDLE_TENU = Object.freeze(['EBUSY', 'EPERM', 'ENOTEMPTY']);
 
 /**
  * Supprime un profil temporaire CDP et VÉRIFIE qu'il n'existe plus : Windows retient des handles
- * quelques instants après la mort de Chrome (EBUSY/EPERM), on réessaie à pas croissants. Rend `true`
- * si le dossier est absent à la fin, `false` sinon — jamais une purge supposée.
+ * quelques instants après la mort de Chrome (EBUSY/EPERM), on réessaie à pas croissants jusqu'à
+ * l'échéance `echeanceMs`. SYNCHRONE : le filet de sortie (`process.on('exit')`) la joue aussi. Rend
+ * `true` si le dossier est absent à la fin, `false` sinon — jamais une purge supposée.
  */
-export async function purgerProfil(profil, { tentatives = 20, pasMs = 100, disque = DISQUE } = {}) {
-  for (let i = 0; i < tentatives; i++) {
+export function purgerProfil(profil, { echeanceMs = ATTENTE_EXTINCTION_MS, pasMs = 100, disque = DISQUE, horloge = Date.now, patienter = attendreSync } = {}) {
+  const fin = horloge() + echeanceMs;
+  for (let i = 1; ; i++) {
     try {
       disque.supprimer(profil);
     } catch (e) {
       if (!CODES_HANDLE_TENU.includes(e.code)) throw e;
     }
     if (!disque.existe(profil)) return true;
-    await sleep(pasMs * (i + 1));
+    const reste = fin - horloge();
+    if (reste <= 0) return false;
+    patienter(Math.min(pasMs * i, reste));
   }
-  return !disque.existe(profil);
 }
 
 /** Attend la SORTIE du process Chrome (`exit`), `delaiMs` au plus : le profil se libère après elle. */
@@ -543,7 +563,7 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
       ws.close();
       killChromeTree(chrome);
       await attendreSortie(chrome);
-      const profilPurge = await purgerProfil(profile);
+      const profilPurge = purgerProfil(profile);
       activeChildren.delete(childEntry);
       return { profilPurge };
     };
@@ -553,7 +573,7 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
     await leverApresNettoyage(e, async () => {
       killChromeTree(chrome);
       await attendreSortie(chrome);
-      await purgerProfil(profile);
+      purgerProfil(profile);
       activeChildren.delete(childEntry);
     });
   }
@@ -1189,11 +1209,16 @@ export const INTENTIONS = Object.freeze(['agir', 'lire']);
 
 /** Pose la bascule Atelier du Codex dans l'état demandé, par clic réel seulement si nécessaire. */
 export async function setAtelier(session, actif = true, { dans = '.codex-top' } = {}) {
-  const lire = () => evaluerFn(session, (dans) => {
-    const boutons = [...(document.querySelector(dans)?.querySelectorAll('button') ?? [])].filter((b) => b.textContent.trim() === 'Atelier');
-    if (boutons.length !== 1 || !boutons[0].hasAttribute('aria-pressed')) throw new Error('setAtelier : bascule Atelier unique avec aria-pressed attendue dans « ' + dans + ' »');
-    return boutons[0].getAttribute('aria-pressed') === 'true';
-  }, dans);
+  const lire = async () => {
+    const jeton = await marquer(session, { nom: 'Atelier', selecteur: 'button', dans }, 'setAtelier');
+    const presse = jeton && await evaluerFn(session, (marque, attr) => {
+      const b = document.querySelector(marque);
+      b.removeAttribute(attr);
+      return b.getAttribute('aria-pressed');
+    }, marqueDe(jeton), ATTR_CIBLE);
+    if (presse !== 'true' && presse !== 'false') throw new Error(`setAtelier : bascule Atelier unique avec aria-pressed attendue dans « ${dans} »`);
+    return presse === 'true';
+  };
   if (await lire() !== actif) await clickButtonByText(session, 'Atelier', { dans });
   const obtenu = await lire();
   if (obtenu !== actif) throw new Error(`setAtelier : état demandé ${actif}, obtenu ${obtenu}`);
@@ -1258,7 +1283,7 @@ function formeDeCible(cible, qui) {
   const ok = o && (o.surface !== undefined
     ? typeof o.surface === 'string' && Number.isFinite(o.x) && Number.isFinite(o.y)
     : o.nom !== undefined ? typeof o.nom === 'string' && o.nom !== '' : typeof o.selecteur === 'string' && o.selecteur !== '');
-  if (!ok) throw new Error(`${qui} : cible ${JSON.stringify(cible)} — formes admises : { nom, selecteur?, libelle?, dans?, rangee?, exact? } · { selecteur, dans? } · { surface, x, y } — aucun événement émis`);
+  if (!ok) throw new Error(`${qui} : cible ${JSON.stringify(cible)} — formes admises : { nom, selecteur?, libelle? | propre?, dans?, rangee?, exact? } · { selecteur, dans? } · { surface, x, y } — aucun événement émis`);
   return o;
 }
 
@@ -1272,7 +1297,7 @@ const decrireCible = (c) => c.surface !== undefined
 /**
  * LOCALISEUR (fonction de PAGE, `evaluerFn`) : résout la cible par `querySelectorAll` et LÈVE dès
  * qu'il y a plus d'un candidat, en les nommant. Formes : `{ nom }` (nom accessible exact, ou texte
- * de `libelle` dans chaque candidat ; `rangee` retient les candidats de la rangée qui porte ce
+ * de `libelle` dans chaque candidat, ou, sous `propre`, ses seuls nœuds texte directs ; `rangee` retient les candidats de la rangée qui porte ce
  * texte ; `etiquette: { selecteur, texte, option }` retient les candidats dont l'élément `selecteur`
  * porte EXACTEMENT `texte`, et l'ambiguïté nomme leurs étiquettes et propose `{ option }`),
  * `{ selecteur }`, `{ surface, x, y }`. La cible retenue est MARQUÉE du `jeton`. `point` : `aucun`
@@ -1304,7 +1329,7 @@ function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom
   else if (cible.nom === undefined) candidats = [...hote.querySelectorAll(cible.selecteur)];
   else {
     const voulu = norm(cible.nom);
-    const nomDe = (e) => cible.libelle ? norm(e.querySelector(cible.libelle)?.textContent) : nomAccessible(e);
+    const nomDe = (e) => cible.libelle ? norm(e.querySelector(cible.libelle)?.textContent) : cible.propre ? norm([...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('')) : nomAccessible(e);
     const libelles = [...hote.querySelectorAll(cible.selecteur || controles)].filter((e) => cible.exact === false ? nomDe(e).includes(voulu) : nomDe(e) === voulu);
     candidats = libelles;
     if (cible.rangee !== undefined && cible.rangee !== null) {
@@ -1356,7 +1381,7 @@ function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom
  * point est dans la fenêtre ; l'élément au point est la cible ou un de ses descendants (`mode`
  * `cible`), ou appartient à la même COUCHE qu'elle (`mode` `couche`, cran de molette : premier
  * ancêtre défilant, ou ancêtre `position: fixed`, à défaut `document.scrollingElement`). Rend
- * `{ ferme }` si oui ; la marque est retirée, sauf sur un recouvrement (relu jusqu'à l'échéance).
+ * `{ ferme, fenetre }` si oui (`fenetre` : `{ l, h }`, la taille de la fenêtre) ; la marque est retirée, sauf sur un recouvrement (relu jusqu'à l'échéance).
  */
 function pageControler(jeton, attr, x, y, mode, intention, fnCouche) {
   const c = document.querySelector('[' + attr + '="' + jeton + '"]');
@@ -1375,7 +1400,7 @@ function pageControler(jeton, attr, x, y, mode, intention, fnCouche) {
   }
   if (!(x >= 0 && y >= 0 && x < innerWidth && y < innerHeight)) return fin({ ferme, horsFenetre: true });
   const el = document.elementFromPoint(x, y);
-  if (el && (mode === 'couche' ? couche(el) === couche(c) : el === c || c.contains(el))) return fin({ ferme });
+  if (el && (mode === 'couche' ? couche(el) === couche(c) : el === c || c.contains(el))) return fin({ ferme, fenetre: { l: innerWidth, h: innerHeight } });
   if (!el) return { ferme, recouvre: '(rien)', boite: null, couches: null };
   const r = el.getBoundingClientRect();
   const texte = norm(el.textContent).slice(0, 40);
@@ -1388,18 +1413,19 @@ function pageControler(jeton, attr, x, y, mode, intention, fnCouche) {
 }
 
 /** MARQUE la cible (`pageLocaliser`, point `aucun`) sans geste, pour une lecture ou un appel CDP :
- *  rend le `jeton` posé, `null` si elle est absente ; LÈVE sur plus d'un candidat. */
-async function marquer(session, cible, qui) {
+ *  rend le `jeton` posé, `null` si elle est absente ; LÈVE sur plus d'un candidat. `attr` : une marque
+ *  DISTINCTE de celle des gestes, qui survit à leurs localisations (à retirer par `retirerJeton`). */
+async function marquer(session, cible, qui, attr = ATTR_CIBLE) {
   const jeton = nouveauJeton();
-  const loc = await evaluerFn(session, pageLocaliser, formeDeCible(cible, qui), jeton, ATTR_CIBLE, qui, false, 'aucun', SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE);
+  const loc = await evaluerFn(session, pageLocaliser, formeDeCible(cible, qui), jeton, attr, qui, false, 'aucun', SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE);
   return loc.absente ? null : jeton;
 }
 
 /** Sélecteur de l'élément marqué `jeton`. */
-const marqueDe = (jeton) => `[${ATTR_CIBLE}="${jeton}"]`;
+const marqueDe = (jeton, attr = ATTR_CIBLE) => `[${attr}="${jeton}"]`;
 
 /** Retire la marque `jeton` d'une cible dont le geste n'aura pas lieu. */
-const retirerJeton = (session, jeton) => evaluerFn(session, (jeton, attr) => { for (const v of document.querySelectorAll('[' + attr + '="' + jeton + '"]')) v.removeAttribute(attr); }, jeton, ATTR_CIBLE);
+const retirerJeton = (session, jeton, attr = ATTR_CIBLE) => evaluerFn(session, (jeton, attr) => { for (const v of document.querySelectorAll('[' + attr + '="' + jeton + '"]')) v.removeAttribute(attr); }, jeton, attr);
 
 /** LOCALISE la cible (`pageLocaliser`), en attendant son APPARITION jusqu'à `attenteMs` ; LÈVE au nom
  *  du geste `qui` si elle reste absente, ou si elle n'a ni boîte ni partie visible. */
@@ -1442,7 +1468,7 @@ async function controler(session, x, y, { jeton, libelle, qui, intention, attent
     if (v.couches) throw new Error(`${ici} : AUTRE COUCHE — au point ${point}, ${v.recouvre}${boite} est de la couche ${v.couches.atteinte}, la cible de la couche ${v.couches.visee}, toujours après ${attenteMs} ms — aucun cran émis`);
     throw new Error(`${ici} : au point ${point}, ${v.recouvre}${boite} RECOUVRE la cible, toujours après ${attenteMs} ms — aucun événement émis`);
   }
-  return { ferme: v.ferme ?? null };
+  return { ferme: v.ferme ?? null, fenetre: v.fenetre };
 }
 
 /** Méthodes CDP que `geste` émet, par domaine. */
@@ -1453,7 +1479,9 @@ const EMISSIONS = Object.freeze({ souris: 'Input.dispatchMouseEvent', tactile: '
  * explicite, `pageLocaliser`), la CONTRÔLE au point d'émission (`pageControler`), puis appelle
  * `evenements(localisation, emettre)`, où `emettre('souris' | 'tactile', params)` émet l'événement
  * CDP AU POINT CONTRÔLÉ : un autre point LÈVE, sauf le glissé (`mouseMoved`, `mouseReleased` entre
- * un `mousePressed` et son relâchement). Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
+ * un `mousePressed` et son relâchement), BORNÉ à la fenêtre, dont le relâchement bouton gauche hors du
+ * point est un DÉPÔT recontrôlé (`pageControler`, mode `couche`). `emettre` est RÉVOQUÉ au retour
+ * d'`evenements`. Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
  * `defiler`, `attenteMs`, `point` (`centre`, `visible`, `defilant`), `controle` (`cible`, ou
  * `couche` pour un cran de molette). Rend la localisation, avec `ferme` (`null`, ou
  * `{ mecanisme, raison }` sous `lire`).
@@ -1466,19 +1494,35 @@ export async function geste(session, cible, { intention = 'agir', qui = 'geste',
   const forme = formeDeCible(cible, qui);
   const jeton = nouveauJeton();
   const loc = await localiser(session, forme, { jeton, qui, defiler, point, attenteMs });
-  const { ferme } = await controler(session, loc.x, loc.y, { jeton, libelle: decrireCible(forme), qui, intention, attenteMs, mode: controle });
+  const { ferme, fenetre } = await controler(session, loc.x, loc.y, { jeton, libelle: decrireCible(forme), qui, intention, attenteMs, mode: controle });
   let tenu = false;
-  await evenements(loc, (domaine, params) => {
-    if (!EMISSIONS[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS).join(', ')}`);
-    const glisse = domaine === 'souris' && tenu && (params.type === 'mouseMoved' || params.type === 'mouseReleased');
-    const ecart = (domaine === 'souris' ? [params] : params.touchPoints ?? []).find((p) => p.x !== loc.x || p.y !== loc.y);
-    if (ecart && !glisse) {
-      throw new Error(`${qui} : « ${params.type} » au point (${ecart.x}, ${ecart.y}), le point contrôlé est (${loc.x}, ${loc.y}) — seul un glissé bouton tenu quitte le point contrôlé — aucun événement émis`);
-    }
-    if (domaine === 'souris' && params.type === 'mousePressed') tenu = true;
-    if (domaine === 'souris' && params.type === 'mouseReleased') tenu = false;
-    return brut(EMISSIONS[domaine], params);
-  });
+  let revoque = false;
+  try {
+    await evenements(loc, async (domaine, params) => {
+      if (revoque) throw new Error(`${qui} : « emettre » RÉVOQUÉ — le geste est rendu — aucun événement émis`);
+      if (!EMISSIONS[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS).join(', ')}`);
+      const glisse = domaine === 'souris' && tenu && (params.type === 'mouseMoved' || params.type === 'mouseReleased');
+      const ecart = (domaine === 'souris' ? [params] : params.touchPoints ?? []).find((p) => p.x !== loc.x || p.y !== loc.y);
+      if (ecart && !glisse) {
+        throw new Error(`${qui} : « ${params.type} » au point (${ecart.x}, ${ecart.y}), le point contrôlé est (${loc.x}, ${loc.y}) — seul un glissé bouton tenu quitte le point contrôlé — aucun événement émis`);
+      }
+      if (ecart) {
+        if (!(ecart.x >= 0 && ecart.y >= 0 && ecart.x < fenetre.l && ecart.y < fenetre.h)) {
+          throw new Error(`${qui} : glissé « ${params.type} » au point (${ecart.x}, ${ecart.y}) HORS FENÊTRE (${fenetre.l}×${fenetre.h}) — aucun événement émis`);
+        }
+        if (params.type === 'mouseReleased' && params.button === 'left') {
+          const depot = await marquer(session, forme, qui);
+          if (!depot) throw new Error(`${qui} ${decrireCible(forme)} : la cible a quitté le DOM avant le DÉPÔT — aucun événement émis`);
+          await controler(session, ecart.x, ecart.y, { jeton: depot, libelle: `${decrireCible(forme)} (dépôt)`, qui, intention, attenteMs, mode: 'couche' });
+        }
+      }
+      if (domaine === 'souris' && params.type === 'mousePressed') tenu = true;
+      if (domaine === 'souris' && params.type === 'mouseReleased') tenu = false;
+      return brut(EMISSIONS[domaine], params);
+    });
+  } finally {
+    revoque = true;
+  }
   return { ...loc, ferme };
 }
 
@@ -1624,11 +1668,10 @@ export async function deplierVers(session, selecteur, options = {}) {
   let precedent = null;
   for (;;) {
     const jeton = nouveauJeton();
-    const r = await evaluerFn(session, (selecteur, jeton, attr) => {
-      const els = document.querySelectorAll(selecteur);
-      if (els.length > 1) throw new Error('deplierVers : ' + els.length + ' cibles ambiguës « ' + selecteur + ' » — aucun événement émis');
-      const el = els[0];
-      if (!el) return { absente: true };
+    const cible = await marquer(session, { selecteur }, 'deplierVers');
+    const r = !cible ? { absente: true } : await evaluerFn(session, (marque, attrCible, jeton, attr) => {
+      const el = document.querySelector(marque);
+      el.removeAttribute(attrCible);
       let ferme = null;
       for (let a = el.parentElement; a; a = a.parentElement) if (a.tagName === 'DETAILS' && !a.open) ferme = a;
       if (!ferme) return { deplie: true };
@@ -1637,7 +1680,7 @@ export async function deplierVers(session, selecteur, options = {}) {
       for (const v of document.querySelectorAll('[' + attr + ']')) v.removeAttribute(attr);
       s.setAttribute(attr, jeton);
       return { sommaire: (s.textContent || '').replace(/\s+/g, ' ').trim() };
-    }, selecteur, jeton, ATTR_DEPLIER);
+    }, marqueDe(cible), ATTR_CIBLE, jeton, ATTR_DEPLIER);
     if (r.absente) throw new Error(`deplierVers : « ${selecteur} » absent du DOM`);
     if (r.deplie) return amenerParMolette(session, selecteur, options);
     if (r.sansSommaire) throw new Error(`deplierVers « ${selecteur} » : un <details> fermé qui l'enveloppe n'a aucun <summary> à cliquer`);
@@ -2009,18 +2052,24 @@ export async function infobulleDe(session, cible) {
 export async function selectOption(session, selecteur, valeur, { par = 'libelle' } = {}) {
   const liste = await marquer(session, { selecteur }, 'selectOption');
   if (!liste) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} »`);
-  const rect = await evaluerFn(session, (marque, attr, demande, par) => {
+  let option;
+  try {
+    option = await marquer(session, par === 'valeur'
+      ? { selecteur: `option[value=${JSON.stringify(String(valeur))}]`, dans: marqueDe(liste) }
+      : { nom: String(valeur), selecteur: 'option', dans: marqueDe(liste) }, 'selectOption');
+  } catch (e) {
+    await retirerJeton(session, liste);
+    throw e;
+  }
+  const rect = await evaluerFn(session, (marque, marqueOption, attr, par) => {
     const el = document.querySelector(marque);
     el.removeAttribute(attr);
-    const norm = (s) => (s || '').replace(/\s+/g, ' ').replace(/[’']/g, "'").trim();
-    const options = Array.from(el.options);
-    const candidates = par === 'valeur' ? options.filter((o) => o.value === demande) : options.filter((o) => norm(o.textContent) === norm(demande));
-    if (candidates.length > 1) throw new Error('selectOption : ' + candidates.length + ' options ambiguës « ' + demande + ' » — préciser { par: "valeur" }');
-    const choisie = candidates[0];
-    if (!choisie) return { absente: true, offertes: options.map((o) => (par === 'valeur' ? o.value : norm(o.textContent))) };
+    const choisie = marqueOption && document.querySelector(marqueOption);
+    if (!choisie) return { absente: true, offertes: Array.from(el.options).map((o) => (par === 'valeur' ? o.value : (o.textContent || '').replace(/\s+/g, ' ').trim())) };
+    choisie.removeAttribute(attr);
     if (choisie.disabled) return { fermee: true };
     return { valeur: choisie.value };
-  }, marqueDe(liste), ATTR_CIBLE, String(valeur), par);
+  }, marqueDe(liste), option && marqueDe(option), ATTR_CIBLE, par);
   if (rect.absente) throw new Error(`selectOption « ${selecteur} » : aucune option ${par === 'valeur' ? 'de VALEUR' : 'de LIBELLÉ'} « ${valeur} » — ${par === 'valeur' ? 'valeurs' : 'libellés'} offerts : ${rect.offertes.join(' | ')}`);
   if (rect.fermee) throw new Error(`selectOption « ${selecteur} » : option « ${valeur} » FERMÉE (disabled) — aucun choix émis`);
   await geste(session, { selecteur }, { qui: 'selectOption' }, clic());
@@ -2240,9 +2289,10 @@ export async function lireIndexedDB(session, base, magasin) {
  * LÈVE si `selecteur` est absent, ne porte aucune provenance, ou en porte plusieurs (sujets nommés).
  */
 export async function mesurerProvenance(session, selecteur) {
-  const r = await evaluerFn(session, (selecteur) => {
-    const racine = document.querySelector(selecteur)
-    if (!racine) return { refus: 'absent du DOM' }
+  const jeton = await marquer(session, { selecteur }, 'mesurerProvenance')
+  const r = !jeton ? { refus: 'absent du DOM' } : await evaluerFn(session, (marque, attr) => {
+    const racine = document.querySelector(marque)
+    racine.removeAttribute(attr)
     const norm = (s) => (s || '').replace(/\s+/g, ' ').trim()
     const motif = /^(.+) — provenance (.+)$/
     const options = Array.from(racine.querySelectorAll('[aria-label]')).filter((b) => motif.test(b.getAttribute('aria-label')))
@@ -2272,7 +2322,7 @@ export async function mesurerProvenance(session, selecteur) {
       detacher: detacher ? { ouvert: ouvert(detacher) } : null,
       reference: sousChamp ? norm(sousChamp.textContent) : null,
     }
-  }, selecteur)
+  }, marqueDe(jeton), ATTR_CIBLE)
   if (r.refus) throw new Error(`mesurerProvenance « ${selecteur} » : ${r.refus}`)
   return r
 }
@@ -2280,6 +2330,10 @@ export async function mesurerProvenance(session, selecteur) {
 /** Les RANGÉES du Codex (`ListRow`), et le livre que chacune cite (`ouvrirFiche` filtre dessus, exact). */
 const RANGEES_CODEX = '.codex-rows button.listrow';
 const LIVRE_CODEX = '.codex-row-src';
+/** Les PASTILLES de catégorie du Codex, nommées par leur texte propre (sans leur compte), et la marque
+ *  de celle que `ouvrirFiche` déplie puis clique. */
+const CATEGORIES_CODEX = 'button.codex-cat';
+const ATTR_CATEGORIE = 'data-recette-categorie';
 
 /**
  * OUVRE la fiche d'une entrée du Compendium AUX GESTES (`src/ui/compendium/CompendiumScreen.tsx`) : le
@@ -2298,20 +2352,17 @@ export async function ouvrirFiche(session, { groupe, categorie, entree, livre })
   }
   if (groupe) await clickButtonByText(session, groupe, { dans: '.codex-groups' });
   if (categorie) {
-    const pastille = await evaluerFn(session, (categorie) => {
-      const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
-      const nom = (b) => norm(Array.from(b.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join(''));
-      for (const v of document.querySelectorAll('[data-recette="codex-categorie"]')) v.removeAttribute('data-recette');
-      const toutes = Array.from(document.querySelectorAll('button.codex-cat'));
-      const els = toutes.filter((b) => nom(b) === norm(categorie));
-      if (els.length > 1) throw new Error('ouvrirFiche : ' + els.length + ' catégories « ' + categorie + ' » — aucun événement émis');
-      if (!els.length) return { offertes: toutes.map(nom) };
-      els[0].setAttribute('data-recette', 'codex-categorie');
-      return { trouvee: true };
-    }, categorie);
-    if (!pastille.trouvee) throw new Error(`ouvrirFiche : aucune catégorie « ${categorie} » — offertes : ${pastille.offertes.join(' | ') || '(aucune)'}`);
-    await deplierVers(session, '[data-recette="codex-categorie"]');
-    await cliquerSelecteur(session, '[data-recette="codex-categorie"]');
+    const pastille = await marquer(session, { nom: categorie, selecteur: CATEGORIES_CODEX, propre: true }, 'ouvrirFiche', ATTR_CATEGORIE);
+    if (!pastille) {
+      const offertes = await evaluerFn(session, (cats) => Array.from(document.querySelectorAll(cats)).map((b) => Array.from(b.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').replace(/\s+/g, ' ').trim()), CATEGORIES_CODEX);
+      throw new Error(`ouvrirFiche : aucune catégorie « ${categorie} » — offertes : ${offertes.join(' | ') || '(aucune)'}`);
+    }
+    try {
+      await deplierVers(session, marqueDe(pastille, ATTR_CATEGORIE));
+      await cliquerSelecteur(session, marqueDe(pastille, ATTR_CATEGORIE));
+    } finally {
+      await retirerJeton(session, pastille, ATTR_CATEGORIE);
+    }
   }
   await typeInField(session, '.codex-search', entree, { attendu: entree });
   const lire = () => evaluerFn(session, (rangees, src) => {
@@ -2405,10 +2456,16 @@ export async function frappe(session, { focus, qui = 'frappe' } = {}, evenements
     }, marqueDe(jeton), ATTR_CIBLE) : 'aucun élément désigné';
     if (manque) throw new Error(`${qui} « ${focus} » : la cible n'a pas le focus (${manque}) — aucune frappe émise`);
   }
-  await evenements((domaine, params) => {
-    if (!EMISSIONS_CLAVIER[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS_CLAVIER).join(', ')}`);
-    return brut(EMISSIONS_CLAVIER[domaine], params);
-  });
+  let revoque = false;
+  try {
+    await evenements((domaine, params) => {
+      if (revoque) throw new Error(`${qui} : « emettre » RÉVOQUÉ — la frappe est rendue — aucune frappe émise`);
+      if (!EMISSIONS_CLAVIER[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS_CLAVIER).join(', ')}`);
+      return brut(EMISSIONS_CLAVIER[domaine], params);
+    });
+  } finally {
+    revoque = true;
+  }
 }
 
 /**
@@ -2724,7 +2781,7 @@ export async function fermerSession(fichier = fichierDeSession(), {
     }
     return { etat: 'fermee' };
   }
-  const profilPurge = d.profil ? await purgerProfil(d.profil, { disque }) : true;
+  const profilPurge = d.profil ? purgerProfil(d.profil, { disque }) : true;
   for (const f of [fichier, d.journal, ...SIGNAUX.map((q) => signalDe(fichier, q))]) if (f) disque.supprimer(f);
   return { etat: 'gardien-mort', profilPurge, profil: d.profil };
 }
@@ -2770,7 +2827,7 @@ export async function purgerProfilsOrphelins({
       if (!verrou.absent && (verrou.pid === undefined || verrou.hote !== hote)) { bilan.sansPreuve.push(profil); continue; }
       if (!verrou.absent && vivant(verrou.pid)) { bilan.vivants += 1; continue; }
     }
-    if (await purgerProfil(profil, { disque, tentatives: 5 })) bilan.purges += 1;
+    if (purgerProfil(profil, { disque, echeanceMs: 1500 })) bilan.purges += 1;
     else bilan.echecs.push(profil);
   }
   return bilan;
