@@ -14,7 +14,8 @@ const combat = () => ({
   grossier: false,
   cibles: null,
   combat: true,
-  rail: { attendu: true, dissous: true, ouvreurs: [{ i: 0, label: 'Dossier du navire', position: 'absolute', ok: true, hitBy: 'rien', rect: { x: 300, y: 400, w: 44, h: 44 } }] },
+  navire: true,
+  rail: { dissous: true, ouvreurs: [{ i: 0, label: 'Dossier du navire', position: 'absolute', ok: true, hitBy: 'rien', rect: { x: 300, y: 400, w: 44, h: 44 } }] },
   frise: { rect: { x: 58, y: 34, w: 298, h: 52 }, roundPremier: true, roundDansColonne: true, courantEntier: true,
     defilable: true, suivants: { attendus: 3, entiers: 3 },
     bande: true, margeDroite: 4, roundVisible: true, teteMesuree: true, teteDecouverte: null,
@@ -39,6 +40,7 @@ const exploration = () => ({
   grossier: false,
   cibles: null,
   combat: false,
+  navire: false,
   rail: null,
   frise: null,
   groupe: { cartes: 4, lignes: 1, poignee: null, total: 4, defilementSecours: true, defile: false, bas: 30, replie: false,
@@ -86,16 +88,15 @@ test('rail dissous SANS aucun ouvreur : la sonde se déclare AVEUGLE, elle ne se
   rouge(m, 'combat', /le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle/)
 })
 
-test('rail sans navire : accès au navire non mesuré, aucun défaut inventé', () => {
-  const m = combat()
-  m.rail.attendu = false
-  m.rail.ouvreurs = []
-  assert.deepEqual(defauts(m, 'combat'), [])
+test('exploration sans navire : rail non monté, accès au navire non mesuré, aucun défaut inventé', () => {
+  const m = exploration()
+  assert.equal(m.navire, false)
+  assert.equal(m.rail, null)
+  assert.deepEqual(defauts(m, 'exploration'), [])
 })
 
 test('navire présent et rail absent : refus nommé, aucun vert par vacuité', () => {
   const m = combat()
-  m.navire = true
   m.rail = null
   rouge(m, 'combat', /ouvreur attendu du navire absent/)
 })

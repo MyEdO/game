@@ -154,7 +154,6 @@ const PROBE = `(() => {
   // d'écran doit se poser lui-même (sinon il retombe dans le flux du stage).
   const rail = document.querySelector('.hud-rail');
   const rails = rail ? {
-    attendu: !!window.__wfrp.store.getState().vessel,
     dissous: getComputedStyle(rail).display === 'contents',
     ouvreurs: [...document.querySelectorAll('.hud-rail > .worldmap-btn')].map((b, i) => ({
       i, label: (b.getAttribute('title') || '').trim(), position: getComputedStyle(b).position, ...reaches(b),
@@ -597,10 +596,13 @@ export function defauts(m, phase) {
   } else for (const p of m.tiroir.points) {
     if (!p.ok) out.push(`${phase} ${m.largeur}px : le panneau du journal à ${p.hauteur * 100} % ne reçoit pas son clic (${p.x}, ${p.y}) — recouvert par ${p.hitBy}`);
   }
-  if (m.navire && (!m.rail || (!m.rail.dissous && !m.rail.ouvreurs.length))) out.push(`${phase} ${m.largeur}px : ouvreur attendu du navire absent — sonde aveugle sur l'accès au navire`);
+  if (m.navire && !m.rail?.ouvreurs.length) {
+    out.push(m.rail?.dissous
+      ? `${phase} ${m.largeur}px : le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle sur l'accès à la carte`
+      : `${phase} ${m.largeur}px : ouvreur attendu du navire absent — sonde aveugle sur l'accès au navire`);
+  }
   // Rail DISSOUS : son ouvreur d'écran porte son propre ancrage, ou il retombe dans le flux.
   if (m.rail?.dissous) {
-    if (m.rail.attendu && !m.rail.ouvreurs.length) out.push(`${phase} ${m.largeur}px : le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle sur l'accès à la carte`);
     for (const b of m.rail.ouvreurs) {
       if (b.position === 'static') out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » du rail dissous est en flux (position: static) — il retombe dans le stage`);
     }

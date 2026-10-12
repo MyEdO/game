@@ -1313,6 +1313,9 @@ export const ATTENTE_CIBLE = 8000;
  *  cible marquée par le jeton est absente du DOM ou FERMÉE. Un RECOUVREMENT est relu jusqu'à
  *  `attenteMs` (la scène de dés `div.rm-scene` couvre la fenêtre le temps du roulis) ; à l'échéance,
  *  la levée nomme le DERNIER recouvreur — aucun événement émis. */
+/** Retire la marque `jeton` d'une cible dont le geste n'aura pas lieu. */
+const retirerJeton = (session, jeton) => evaluate(session, `document.querySelector('[${ATTR_CIBLE}=${JSON.stringify(jeton)}]')?.removeAttribute('${ATTR_CIBLE}')`);
+
 async function controlerCible(session, x, y, { cible, libelle = cible, qui = 'clicReel', attenteMs = ATTENTE_CIBLE }) {
   const echeance = Date.now() + attenteMs;
   let manque = await evaluate(session, expressionControleCible(cible, x, y));
@@ -1320,7 +1323,7 @@ async function controlerCible(session, x, y, { cible, libelle = cible, qui = 'cl
     await sleep(100);
     manque = await evaluate(session, expressionControleCible(cible, x, y));
   }
-  if (manque?.recouvre) await evaluate(session, `document.querySelector('[${ATTR_CIBLE}=${JSON.stringify(cible)}]')?.removeAttribute('${ATTR_CIBLE}')`);
+  if (manque?.recouvre) await retirerJeton(session, cible);
   if (manque?.absente) throw new Error(`${qui} « ${libelle} » : la cible a quitté le DOM avant le geste — aucun événement émis`);
   if (manque?.ferme) {
     throw new Error(`${qui} « ${libelle} » : contrôle FERMÉ (${manque.ferme})${manque.raison ? ` — raison affichée : « ${manque.raison} »` : ' — aucune raison affichée'} — aucun événement émis`);
@@ -1477,15 +1480,19 @@ const corpsPointVisible = `
 /**
  * MOLETTE RÉELLE (`Input.dispatchMouseEvent mouseWheel`) de `deltaY` px sur une cible (sélecteur ou
  * texte de contrôle), au centre de sa partie VISIBLE — sans `scrollIntoView` : c'est la molette qui
- * fait défiler, comme celle d'un joueur. LÈVE si la cible ne montre rien dans la fenêtre. Rend le point.
+ * fait défiler, comme celle d'un joueur. LÈVE si la cible ne montre rien dans la fenêtre, ou si le
+ * point est recouvert (`controlerCible`). Rend le point.
  */
 export async function molette(session, cible, deltaY, { deltaX = 0 } = {}) {
+  const jeton = nouveauJeton();
   const point = await evaluate(session, `(() => {${corpsResoudreCible(cible)}
     if (!el) return { absente: true };${corpsPointVisible}
+    if (visible) el.setAttribute('${ATTR_CIBLE}', ${JSON.stringify(jeton)});
     return visible ?? { hors: true };
   })()`);
   if (point.absente) throw new Error(`molette : aucune cible « ${cible} » (sélecteur ni texte de contrôle)`);
   if (point.hors) throw new Error(`molette « ${cible} » : la cible ne montre rien dans la fenêtre — aucun cran émis`);
+  await controlerCible(session, point.x, point.y, { cible: jeton, libelle: cible, qui: 'molette' });
   await session.rpc('Input.dispatchMouseEvent', { type: 'mouseWheel', x: point.x, y: point.y, deltaX, deltaY });
   return point;
 }
@@ -1493,12 +1500,15 @@ export async function molette(session, cible, deltaY, { deltaX = 0 } = {}) {
 /**
  * AMÈNE `selecteur` à l'écran par la MOLETTE : chaque cran (`pasPx` au plus) tourne au-dessus de son
  * conteneur défilant le plus proche (la fenêtre à défaut), vers lui, jusqu'à ce qu'il tienne dans la
- * partie visible du conteneur. LÈVE en le nommant : élément absent, boîte nulle (non rendu), molette
- * qui ne fait plus défiler, ou `maxPas` crans épuisés. Rend le centre de l'élément.
+ * partie visible du conteneur. Chaque cran est contrôlé (`controlerCible`) : son point doit atteindre
+ * le conteneur défilant (la racine du document pour la fenêtre). LÈVE en le nommant : élément absent,
+ * boîte nulle (non rendu), point recouvert, molette qui ne fait plus défiler, ou `maxPas` crans
+ * épuisés. Rend le centre de l'élément.
  */
 async function amenerParMolette(session, selecteur, { pasPx = 240, maxPas = 40, pauseMs = 80 } = {}) {
   let ecartPrecedent = null;
   for (let k = 0; ; k++) {
+    const jeton = nouveauJeton();
     const m = await evaluate(session, `(() => {
       const el = document.querySelector(${JSON.stringify(selecteur)});
       if (!el) return null;
@@ -1510,21 +1520,27 @@ async function amenerParMolette(session, selecteur, { pasPx = 240, maxPas = 40, 
         if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && c.scrollHeight > c.clientHeight) break;
         c = c.parentElement;
       }
-      const conteneur = c && c !== document.body && c !== document.documentElement ? c.getBoundingClientRect() : null;
+      const defilant = c && c !== document.body && c !== document.documentElement ? c : null;
+      const conteneur = defilant ? defilant.getBoundingClientRect() : null;
       const haut = Math.max(conteneur ? conteneur.top : 0, 0), bas = Math.min(conteneur ? conteneur.bottom : window.innerHeight, window.innerHeight);
       const gauche = Math.max(conteneur ? conteneur.left : 0, 0), droite = Math.min(conteneur ? conteneur.right : window.innerWidth, window.innerWidth);
       const cy = r.top + r.height / 2;
       const visible = r.height <= bas - haut ? r.top >= haut && r.bottom <= bas : cy >= haut && cy <= bas;
+      if (!visible) (defilant || document.documentElement).setAttribute('${ATTR_CIBLE}', ${JSON.stringify(jeton)});
       return { visible, x: r.x + r.width / 2, y: cy, ecart: cy - (haut + bas) / 2, molette: { x: Math.round((gauche + droite) / 2), y: Math.round((haut + bas) / 2) } };
     })()`);
     if (!m) throw new Error(`deplierVers : « ${selecteur} » absent du DOM`);
     if (m.vide) throw new Error(`deplierVers : « ${selecteur} » a une boîte nulle (non rendu) — aucun cran émis`);
     if (m.visible) return { x: m.x, y: m.y };
-    if (ecartPrecedent !== null && Math.abs(m.ecart - ecartPrecedent) < 1) {
-      throw new Error(`deplierVers : la molette ne fait plus défiler vers « ${selecteur} » (écart figé à ${Math.round(m.ecart)} px)`);
+    const fige = ecartPrecedent !== null && Math.abs(m.ecart - ecartPrecedent) < 1;
+    if (fige || k >= maxPas) {
+      await retirerJeton(session, jeton);
+      throw new Error(fige
+        ? `deplierVers : la molette ne fait plus défiler vers « ${selecteur} » (écart figé à ${Math.round(m.ecart)} px)`
+        : `deplierVers : « ${selecteur} » toujours hors de vue après ${maxPas} crans de molette`);
     }
-    if (k >= maxPas) throw new Error(`deplierVers : « ${selecteur} » toujours hors de vue après ${maxPas} crans de molette`);
     ecartPrecedent = m.ecart;
+    await controlerCible(session, m.molette.x, m.molette.y, { cible: jeton, libelle: selecteur, qui: 'deplierVers' });
     await session.rpc('Input.dispatchMouseEvent', { type: 'mouseWheel', x: m.molette.x, y: m.molette.y, deltaX: 0, deltaY: Math.sign(m.ecart) * Math.min(pasPx, Math.abs(m.ecart)) });
     await sleep(pauseMs);
   }
@@ -1853,10 +1869,14 @@ export async function capturerPion(session, id, { zoom = 3, cote = 160, dir = DO
  * l'événement dirait au navigateur que la touche vient d'être relâchée.
  * `defiler: false` survole SANS `scrollIntoView` (friction #700 : le défilement du helper faussait un
  * test « le survol ne fait pas défiler ») — la cible doit alors être déjà à l'écran.
+ * Le point est contrôlé comme `clicReel` (`controlerCible`) : une cible recouverte LÈVE en nommant
+ * le recouvreur, au lieu d'une infobulle nulle qui se lirait comme un refus muet (#1953).
  * Rend le point survolé `{ x, y }` ; lève si la cible est absente ou sans boîte.
  */
 export async function survoler(session, cible, { attenteMs = 500, modifiers = 0, defiler = true } = {}) {
-  const point = await localiserCible(session, cible, { defiler, qui: 'survoler' });
+  const jeton = nouveauJeton();
+  const point = await localiserCible(session, cible, { defiler, jeton, qui: 'survoler' });
+  await controlerCible(session, point.x, point.y, { cible: jeton, libelle: cible, qui: 'survoler' });
   await session.rpc('Input.dispatchMouseEvent', { type: 'mouseMoved', x: point.x, y: point.y, buttons: 0, modifiers });
   await sleep(attenteMs);
   return point;
@@ -1943,21 +1963,30 @@ export async function selectOption(session, selecteur, valeur, { par = 'libelle'
   })()`);
 }
 
-/** Pose une couleur par setter natif sur une cible contrôlée, sans ouvrir le sélecteur OS. */
+/** CHOISIT une couleur d'un `input[type=color]` AU GESTE, comme `selectOption` : FOCUS par un vrai clic
+ *  CDP (`clicReel`, cible contrôlée), puis valeur posée par le SETTER NATIF avec `input` et `change`.
+ *  LÈVE avant tout événement si la cible n'est pas un `input[type=color]`, et avant la pose si le clic
+ *  ne lui a pas donné le focus. MESURÉ (Chrome headless du kit, 2026-10-12, #1925) : le clic rend
+ *  `focus` puis `click`, aucun sélecteur ne bloque la page, le clic suivant est reçu. */
 export async function choisirCouleur(session, selecteur, couleur) {
   if (!/^#[\da-f]{6}$/i.test(couleur)) throw new Error(`choisirCouleur : couleur invalide « ${couleur} », #rrggbb attendu`);
+  const autre = await evaluerFn(session, (selecteur) => {
+    const el = document.querySelector(selecteur);
+    return el && !(el instanceof HTMLInputElement && el.type === 'color') ? el.tagName.toLowerCase() : null;
+  }, selecteur);
+  if (autre) throw new Error(`choisirCouleur : input[type=color] attendu « ${selecteur} », trouvé ${autre} — aucun événement émis`);
   const jeton = nouveauJeton();
   const point = await localiserCible(session, selecteur, { jeton, qui: 'choisirCouleur' });
-  await controlerCible(session, point.x, point.y, { cible: jeton, libelle: selecteur });
+  await clicReel(session, point.x, point.y, 0, { cible: jeton, libelle: selecteur });
   const r = await evaluerFn(session, (selecteur, couleur) => {
     const el = document.querySelector(selecteur);
-    if (!(el instanceof HTMLInputElement) || el.type !== 'color') throw new Error('choisirCouleur : input[type=color] attendu « ' + selecteur + ' »');
-    el.focus();
+    if (document.activeElement !== el) return { sansFocus: document.activeElement?.tagName.toLowerCase() ?? 'rien' };
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, couleur);
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
     return el.value;
   }, selecteur, couleur);
+  if (r?.sansFocus) throw new Error(`choisirCouleur « ${selecteur} » : le champ n'a pas le focus après le clic (focus sur ${r.sansFocus}) — aucune couleur posée`);
   if (r !== couleur.toLowerCase()) throw new Error(`choisirCouleur : demandé ${couleur}, obtenu ${r}`);
   return r;
 }
@@ -1978,7 +2007,8 @@ export async function choisirCouleur(session, selecteur, couleur) {
  *
  * `dans` = sélecteur RACINE où chercher, même option que `clickButtonByText` : quand le même libellé
  * vit dans deux zones de l'écran (le « Nom » de l'inspecteur et celui de la modale « Enregistrer »).
- * Racine absente = `null`, comme un libellé introuvable.
+ * Racine absente = `null`, comme un libellé introuvable. Plusieurs champs porteurs du libellé dans la
+ * portée : LÈVE en les comptant, aucune marque posée — jamais le premier (#1969).
  */
 export async function champParLibelle(session, libelle, { exact = true, dans } = {}) {
   const marque = `recette-champ-${Math.random().toString(36).slice(2, 8)}`
@@ -1988,16 +2018,18 @@ export async function champParLibelle(session, libelle, { exact = true, dans } =
     const racine = ${dans ? `document.querySelector(${JSON.stringify(dans)})` : 'document'};
     if (!racine) return null;
     const champs = Array.from(racine.querySelectorAll('input, select, textarea'));
-    const el = champs.find((c) => {
+    const porteurs = champs.filter((c) => {
       const label = c.labels?.[0]?.cloneNode(true);
       label?.querySelectorAll('input, select, textarea').forEach((el) => el.remove());
       const nom = norm(c.getAttribute('aria-label')) || norm(label?.textContent);
       return ${exact} ? nom === target : nom.includes(target);
     });
-    if (!el) return null;
-    el.setAttribute('data-recette', ${JSON.stringify(marque)});
+    if (porteurs.length > 1) return { ambigus: porteurs.length };
+    if (!porteurs.length) return null;
+    porteurs[0].setAttribute('data-recette', ${JSON.stringify(marque)});
     return true;
   })()`)
+  if (trouve?.ambigus) throw new Error(`champParLibelle « ${libelle} » : ${trouve.ambigus} champs portent ce libellé${dans ? ` dans « ${dans} »` : ''} — préciser { dans }`)
   return trouve ? `[data-recette="${marque}"]` : null
 }
 

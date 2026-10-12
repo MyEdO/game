@@ -632,10 +632,10 @@ const DEUX_NOMS = `
   <aside class="inspecteur"><label class="field"><span>Nom</span><input id="nom-scene"></label></aside>
   <div class="modal-overlay"><label class="field"><span>Nom</span><input id="nom-projet"></label></div>`
 
-test('champParLibelle : sans racine, le PREMIER champ du document porteur du libellé', async () => {
+test('champParLibelle : deux champs porteurs du libellé dans la portée LÈVENT en les comptant, aucune marque posée', async () => {
   const { dom, session } = sessionSurDom(DEUX_NOMS)
-  const sel = await champParLibelle(session, 'Nom')
-  assert.equal(dom.window.document.querySelector(sel).id, 'nom-scene')
+  await assert.rejects(() => champParLibelle(session, 'Nom'), /champParLibelle « Nom » : 2 champs portent ce libellé — préciser \{ dans \}/)
+  assert.equal(dom.window.document.querySelector('[data-recette]'), null)
 })
 
 test('champParLibelle : `dans` vise le champ de CETTE racine quand le libellé vit deux fois', async () => {
@@ -1129,18 +1129,41 @@ test('libellé de select enveloppé : options exclues, champ intact', async () =
   assert.equal(dom.window.document.querySelectorAll('option').length, 2)
 })
 
-test('couleur : setter natif input/change, focus sans clic OS, refus invalides', async () => {
-  const { dom, doc, etat, session } = pagePilotee('<input id="c" type="color" value="#000000">')
-  dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 20, height: 20 })
+/** Pastille de couleur dont le clic réel (`mousePressed`) donne le focus, comme Chrome (mesuré #1925). */
+function pageCouleur(html = '<input id="c" type="color" value="#000000">') {
+  const p = pagePilotee(html)
+  p.dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 20, height: 20 })
+  const rpc = p.session.rpc
+  p.session.rpc = async (m, params) => {
+    if (m === 'Input.dispatchMouseEvent' && params.type === 'mousePressed') p.etat.marque?.focus()
+    return rpc(m, params)
+  }
+  return p
+}
+
+test('couleur : focus par CLIC RÉEL, puis setter natif input/change', async () => {
+  const { doc, etat, session } = pageCouleur()
   const evenements = []
-  for (const nom of ['input', 'change']) doc.querySelector('input').addEventListener(nom, () => evenements.push(nom))
+  for (const nom of ['focus', 'input', 'change']) doc.querySelector('input').addEventListener(nom, () => evenements.push(nom))
   assert.equal(await choisirCouleur(session, '#c', '#AABBCC'), '#aabbcc')
-  assert.deepEqual(evenements, ['input', 'change'])
-  assert.deepEqual(etat.emis, [])
+  assert.deepEqual(etat.emis, ['Input.dispatchMouseEvent:mouseMoved', 'Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseReleased'])
+  assert.deepEqual(evenements, ['focus', 'input', 'change'])
   assert.equal(doc.activeElement.id, 'c')
+})
+
+test('couleur : un clic qui ne donne pas le focus LÈVE, aucune couleur posée', async () => {
+  const { doc, session } = pagePilotee('<input id="c" type="color" value="#000000">')
+  await assert.rejects(() => choisirCouleur(session, '#c', '#aabbcc'), /choisirCouleur « #c » : le champ n'a pas le focus après le clic \(focus sur body\) — aucune couleur posée/)
+  assert.equal(doc.querySelector('#c').value, '#000000')
+})
+
+test('couleur : couleur invalide, cible d’un autre type et pastille FERMÉE refusées avant tout événement', async () => {
+  const { doc, etat, session } = pageCouleur('<input id="c" type="color" value="#000000"><input id="t">')
   await assert.rejects(() => choisirCouleur(session, '#c', 'red'), /couleur invalide/)
-  doc.querySelector('input').disabled = true
+  await assert.rejects(() => choisirCouleur(session, '#t', '#ffffff'), /input\[type=color\] attendu « #t », trouvé input — aucun événement émis/)
+  doc.querySelector('#c').disabled = true
   await assert.rejects(() => choisirCouleur(session, '#c', '#ffffff'), /FERMÉ/)
+  assert.deepEqual(etat.emis, [])
 })
 
 test('dialogue supérieur : seule boîte marquée résolue, fiche et cérémonie inconnue préservées', async () => {
@@ -2254,6 +2277,41 @@ test('toucher : touchStart au point de la cible, puis touchEnd sans point', asyn
     { m: 'Input.dispatchTouchEvent', type: 'touchStart', points: [{ x: 20, y: 20 }] },
     { m: 'Input.dispatchTouchEvent', type: 'touchEnd', points: [] },
   ])
+})
+
+/** Rend l'échéance de `controlerCible` immédiate : chaque lecture de l'horloge avance de 10⁷ ms. */
+function horlogeEmballee(t) {
+  const vrai = Date.now
+  let k = 0
+  t.mock.method(Date, 'now', () => vrai.call(Date) + k++ * 1e7)
+}
+
+for (const [geste, qui, faire] of [
+  ['clicDroit', 'clicReel', (session) => clicDroit(session, '#cible')],
+  ['toucher', 'toucher', (session) => toucher(session, '#cible')],
+  ['survoler', 'survoler', (session) => survoler(session, '#cible', { attenteMs: 0 })],
+  ['molette', 'molette', (session) => molette(session, '#cible', 120)],
+]) {
+  test(`${geste} : une cible RECOUVERTE lève en nommant le recouvreur, aucun événement émis (#1953)`, async (t) => {
+    const { dom, etat, session } = pagePilotee('<button id="cible">Retirer</button><div class="voile">Modale du dessus</div>', { recouvrir: '.voile' })
+    dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, left: 0, top: 0, right: 10, bottom: 10, width: 10, height: 10 })
+    horlogeEmballee(t)
+    await assert.rejects(() => faire(session), (e) => {
+      assert.match(e.message, new RegExp(`^${qui} « #cible » : .*div\\.voile « Modale du dessus ».* RECOUVRE la cible`))
+      return true
+    })
+    assert.deepEqual(etat.emis, [])
+  })
+}
+
+test('deplierVers : un cran de molette dont le point est RECOUVERT lève, aucun cran émis (#1953)', async (t) => {
+  const { doc, etat, session } = pageDefilante('<div id="liste" data-y="0" style="overflow-y: auto"><p id="loin" data-y="5000">loin</p></div><div class="voile">Modale du dessus</div>')
+  Object.defineProperties(doc.querySelector('#liste'), { scrollHeight: { value: 6000 }, clientHeight: { value: 20 } })
+  doc.elementFromPoint = () => doc.querySelector('.voile')
+  horlogeEmballee(t)
+  await assert.rejects(() => deplierVers(session, '#loin', { pauseMs: 0 }), /^Error: deplierVers « #loin » : .*div\.voile « Modale du dessus ».* RECOUVRE la cible/)
+  assert.deepEqual(etat.crans, [])
+  assert.equal(doc.querySelector('[data-recette-cible]'), null)
 })
 
 test('gestes : une cible SANS boîte (non rendue) est refusée avant tout événement', async () => {
