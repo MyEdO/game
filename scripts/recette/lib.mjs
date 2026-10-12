@@ -1519,8 +1519,6 @@ export async function geste(session, cible, { intention = 'agir', qui = 'geste',
   const loc = await localiser(session, forme, { jeton, qui, defiler, point, attenteMs });
   const { ferme, fenetre } = await controler(session, loc.x, loc.y, { jeton, libelle: decrireCible(forme), qui, intention, attenteMs, mode: controle });
   let tenu = false;
-  let revoque = false;
-  const emissions = [];
   const emettreBorne = async (domaine, params) => {
     if (!EMISSIONS[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS).join(', ')}`);
     const glisse = domaine === 'souris' && tenu && (params.type === 'mouseMoved' || params.type === 'mouseReleased');
@@ -1550,23 +1548,7 @@ export async function geste(session, cible, { intention = 'agir', qui = 'geste',
     if (domaine === 'souris' && params.type === 'mouseReleased') tenu = false;
     return brut(EMISSIONS[domaine], params);
   };
-  let echec = null;
-  try {
-    await evenements(loc, (domaine, params) => {
-      if (revoque) return Promise.reject(new Error(`${qui} : « emettre » RÉVOQUÉ — le geste est rendu — aucun événement émis`));
-      const emission = emettreBorne(domaine, params);
-      emission.catch(() => {});
-      emissions.push(emission);
-      return emission;
-    });
-  } catch (e) {
-    echec = { e };
-  }
-  revoque = true;
-  const refus = (await Promise.allSettled(emissions))
-    .find((r) => r.status === 'rejected' && !(echec && porteErreur(echec.e, r.reason)))?.reason;
-  if (echec) throw refus ? joindre(echec.e, refus) : echec.e;
-  if (refus) throw refus;
+  await emettreSous((emettre) => evenements(loc, emettre), emettreBorne, `${qui} : « emettre » RÉVOQUÉ — le geste est rendu — aucun événement émis`);
   return { ...loc, ferme };
 }
 
@@ -2481,11 +2463,41 @@ function champsCDP(touche) {
 const EMISSIONS_CLAVIER = Object.freeze({ touche: 'Input.dispatchKeyEvent', texte: 'Input.insertText' });
 
 /**
+ * Joue `jouer(emettre)`, où `emettre(domaine, params)` délègue à `emettreBorne` — SOCLE de `geste` et
+ * `frappe`. `emettre` est RÉVOQUÉ au retour de `jouer` (rejet `revoque`), puis attend TOUTES ses
+ * émissions : rien ne part après le retour. Un refus d'émission LÈVE, joint (`joindre`) à l'échec de
+ * `jouer` s'il y en a un et qu'il ne le porte pas déjà (`porteErreur`).
+ */
+async function emettreSous(jouer, emettreBorne, revoque) {
+  let ouvert = true;
+  const emissions = [];
+  let echec = null;
+  try {
+    await jouer((domaine, params) => {
+      if (!ouvert) return Promise.reject(new Error(revoque));
+      const emission = emettreBorne(domaine, params);
+      emission.catch(() => {});
+      emissions.push(emission);
+      return emission;
+    });
+  } catch (e) {
+    echec = { e };
+  }
+  ouvert = false;
+  const refus = (await Promise.allSettled(emissions))
+    .find((r) => r.status === 'rejected' && !(echec && porteErreur(echec.e, r.reason)))?.reason;
+  if (echec) throw refus ? joindre(echec.e, refus) : echec.e;
+  if (refus) throw refus;
+}
+
+/**
  * FRAPPE RÉELLE — le SEUL émetteur CLAVIER du kit, second émetteur à côté de `geste` : la cible d'une
  * frappe est l'élément FOCALISÉ. `focus` (un sélecteur, résolu par le localiseur) : il doit désigner
  * UN élément, et cet élément doit avoir le focus, sinon LÈVE — aucune frappe émise. Sans `focus`, la
  * frappe est une touche GLOBALE, sans cible contrôlée. Puis appelle `evenements(emettre)`, où
- * `emettre('touche' | 'texte', params)` émet `Input.dispatchKeyEvent` ou `Input.insertText`.
+ * `emettre('touche' | 'texte', params)` émet `Input.dispatchKeyEvent` ou `Input.insertText`, RÉVOQUÉ au
+ * retour d'`evenements` ; `frappe` ne rend qu'après ses émissions EN VOL, et un refus en vol LÈVE
+ * (`emettreSous`, comme `geste`).
  */
 export async function frappe(session, { focus, qui = 'frappe', delaiEntreeMs = DELAI_ENTREE } = {}, evenements) {
   const brut = emetteursBruts.get(session)?.(qui, delaiEntreeMs);
@@ -2500,16 +2512,10 @@ export async function frappe(session, { focus, qui = 'frappe', delaiEntreeMs = D
     }, marqueDe(jeton), ATTR_CIBLE, FN_NOMMER_ELEMENT) : 'aucun élément désigné';
     if (manque) throw new Error(`${qui} « ${focus} » : la cible n'a pas le focus (${manque}) — aucune frappe émise`);
   }
-  let revoque = false;
-  try {
-    await evenements((domaine, params) => {
-      if (revoque) throw new Error(`${qui} : « emettre » RÉVOQUÉ — la frappe est rendue — aucune frappe émise`);
-      if (!EMISSIONS_CLAVIER[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS_CLAVIER).join(', ')}`);
-      return brut(EMISSIONS_CLAVIER[domaine], params);
-    });
-  } finally {
-    revoque = true;
-  }
+  await emettreSous(evenements, async (domaine, params) => {
+    if (!EMISSIONS_CLAVIER[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS_CLAVIER).join(', ')}`);
+    return brut(EMISSIONS_CLAVIER[domaine], params);
+  }, `${qui} : « emettre » RÉVOQUÉ — la frappe est rendue — aucune frappe émise`);
 }
 
 /**

@@ -2913,7 +2913,7 @@ test('geste et frappe : `emettre` est RÉVOQUÉ au retour du geste — rien ne p
   await assert.rejects(() => garde('souris', { type: 'mouseMoved', x: 400, y: 400, buttons: 1 }), /RÉVOQUÉ/)
   let gardeClavier
   await frappe(session, {}, (emettre) => { gardeClavier = emettre })
-  assert.throws(() => gardeClavier('touche', { type: 'keyDown', key: 'a' }), /frappe : « emettre » RÉVOQUÉ — la frappe est rendue — aucune frappe émise/)
+  await assert.rejects(() => gardeClavier('touche', { type: 'keyDown', key: 'a' }), /frappe : « emettre » RÉVOQUÉ — la frappe est rendue — aucune frappe émise/)
   assert.deepEqual(etat.emis, avant)
 })
 
@@ -2926,6 +2926,22 @@ test('geste : une émission EN VOL non attendue (relâchement-dépôt) part AVAN
   const auRetour = [...etat.emis]
   await new Promise((r) => setTimeout(r, 50))
   assert.deepEqual(auRetour, ['Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseReleased'])
+  assert.deepEqual(etat.emis, auRetour)
+})
+
+test('frappe : une frappe NON ATTENDUE refusée fait LEVER la frappe, et rien ne part après son retour', async () => {
+  const { etat, session } = pagePilotee('')
+  const servir = socketDe(session).gerer
+  socketDe(session).gerer = async (methode, params) => {
+    if (methode !== 'Input.insertText') return servir(methode, params)
+    await new Promise((r) => setTimeout(r, 20))
+    await servir(methode, params)
+    throw new Error('insertion refusée')
+  }
+  await assert.rejects(() => frappe(session, { qui: 'taper' }, (emettre) => { emettre('texte', { text: 'x' }) }), /insertion refusée/)
+  const auRetour = [...etat.emis]
+  await new Promise((r) => setTimeout(r, 50))
+  assert.deepEqual(auRetour, ['Input.insertText:'])
   assert.deepEqual(etat.emis, auRetour)
 })
 
