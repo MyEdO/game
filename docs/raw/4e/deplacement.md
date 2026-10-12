@@ -832,7 +832,7 @@ Lancer 1d10 pour chaque aspect (Précipitations, Température, Visibilité, Vent
 **Voir aussi :** [Vents (MDG)](#vents-mdg), [Orientation et phares (MDG)](#orientation-et-phares-mdg), [`etats.md`](etats.md) (Exposition).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `KINDS_SOUS_ORDRES`, `champs`, `REPORT_DE_COMBATTANT`, `FoulingLevel`, `construireCarte`, `sea-overspeed`, `aucune`, `applyExposureFailure`, +46 — `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, +15 fichiers
+- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `KINDS_SOUS_ORDRES`, `champs`, `REPORT_DE_COMBATTANT`, `construireCarte`, `FoulingLevel`, `sea-overspeed`, `aucune`, `applyExposureFailure`, +46 — `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, +15 fichiers
 
 ---
 
@@ -883,7 +883,7 @@ Un **Test d'Orientation** par jour de voyage (règle de base). Tableau *Repères
 **Voir aussi :** [Provisions et équipement de navigation (MDG)](#provisions-et-équipement-de-navigation-mdg) (Boussole +1 DR), [Tests d'équipage (MDG)](#tests-déquipage-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.307-351) → `portProfileSchema`, `MapPlace`, `rollCrewRole`, `crew`, `construireCarte`, `OrientationOutcome`, `OrientationResult`, `orientationOutcome`, `rollCourseChange`, `lighthouseSpotDifficulty`, +26 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +10 fichiers
+- `MDG 13` (l.307-351) → `portProfileSchema`, `MapPlace`, `crew`, `rollCrewRole`, `construireCarte`, `OrientationOutcome`, `OrientationResult`, `orientationOutcome`, `rollCourseChange`, `lighthouseSpotDifficulty`, +26 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +10 fichiers
 
 ---
 
@@ -1002,7 +1002,7 @@ Un Personnage tenant un rôle lance pour tous ceux du même rôle ; si les PJ ti
 **Voir aussi :** [Moral de l'équipage (MDG)](#moral-de-léquipage-mdg), [Réparer un navire (MDG)](#réparer-un-navire-mdg), [Course-poursuite navale (MDG)](#course-poursuite-navale-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.7-55, l.61-130) → `ship-criticals`, `paie-genereuse`, `ShipBatteryModal`, `skill`, `progression`, `capitaine-competent`, `doc`, `faveur-de-manann`, `progression-poursuite`, `un-officier-pour-10`, +110 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/localisation.json`, +28 fichiers
+- `MDG 14` (l.7-55, l.61-130) → `ship-criticals`, `paie-genereuse`, `ShipBatteryModal`, `crew`, `progression`, `capitaine-competent`, `doc`, `faveur-de-manann`, `progression-poursuite`, `un-officier-pour-10`, +110 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/localisation.json`, +28 fichiers
 
 ---
 
