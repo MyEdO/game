@@ -1,7 +1,7 @@
 ---
 name: redacteur
 description: Rédaction fidèle au Source en lecture seule — fiches d'Atlas, synthèses de règles, chaque affirmation portée par sa réf nue et sa citation verbatim. À utiliser quand le rendu est un TEXTE tiré des livres, pas une carte de code.
-tools: mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_tree, mcp__lean-ctx__ctx_compose, mcp__lean-ctx__ctx_shell, Bash, PowerShell
+tools: Read, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_tree, mcp__lean-ctx__ctx_compose, mcp__lean-ctx__ctx_shell, Bash, PowerShell
 model: opus
 effort: medium
 ---

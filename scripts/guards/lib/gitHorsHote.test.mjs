@@ -95,4 +95,6 @@ test('forme : une option qui produit des chemins, où qu’elle soit écrite hor
   assert.deepEqual(formes("const args = ['ls-files', '-z']"), [[1, 'forme'], [1, 'forme']])
   assert.deepEqual(formes("git(['show', '--numstat', sha])"), [[1, 'forme']])
   assert.deepEqual(formes("eolsDe(git, ['ls-files', '--eol', '--cached'])"), [[1, 'forme']], 'une question qui fixe sa commande ne reçoit pas de forme')
+  assert.deepEqual(formes("const LECTURES = new Set(['log', 'ls-files', 'ls-tree'])\nLECTURES.has(sub)"), [], 'une table se consulte, elle ne se passe pas à git')
+  assert.deepEqual(formes("const t = new Set(['log'])\ngit(['ls-files', '-z'])"), [[2, 'forme'], [2, 'forme']], 'hors de la table, la forme reste un site')
 })

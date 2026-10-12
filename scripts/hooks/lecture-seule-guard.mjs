@@ -75,7 +75,7 @@ export function defautsDeCommande(commande, contexte) {
   const defautsDuScript = (chemin, texte, depuis, argv) => {
     const rel = scriptKindDe(chemin, { inconnu: 'refus' }) === null ? 'script.mjs' : `script${extname(chemin)}`
     if (analyserTexte({ rel, text: texte }).diagnostics.length) return [`script ${chemin} non jugeable : il ne se parse pas (${rel})`]
-    return ciblesDEcritureJS(texte, { rel, fichier: chemin, argv }).flatMap((cible) => {
+    return ciblesDEcritureJS(texte, { rel, fichier: chemin, argv, env, platform }).flatMap((cible) => {
       if (cible.commande !== undefined) return defautsDeCommande(cible.commande, { ...contexte, base: depuis ?? base }).map((d) => `script ${chemin} : ${cible.operation} « ${cible.commande} » : ${d}`)
       if (cible.inconnue || depuis === null) return [`script ${chemin} : écriture ${cible.operation} à chemin non littéral`]
       return sous(resolve(depuis, versCheminNatif(cible.chemin, platform)), scratchpad, platform) ? [] : [`script ${chemin} : ${cible.operation} hors du scratchpad (${cible.chemin})`]
@@ -108,7 +108,7 @@ function evaluer(entree, { baseDeLAppel, platform = process.platform, env = {} }
   return {
     decision: 'deny',
     raison: `⛔ Type \`${fiche.name}\` en lecture seule (\`.claude/agents/${fiche.name}.md\`) : ${defauts.join(' ; ')} — `
-      + `seul le scratchpad de la session s'écrit (${scratchpad ?? 'non dérivable'}).`,
+      + `canal : écrire sous le scratchpad de la session (${scratchpad ?? 'non dérivable'}), par la commande ou par un script JS, que la garde lit.`,
   }
 }
 

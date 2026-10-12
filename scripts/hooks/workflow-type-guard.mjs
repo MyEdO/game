@@ -4,7 +4,7 @@
 // `.claude/skills/orchestrer-des-agents/SKILL.md`.
 //
 // Le script jugé, dans cet ordre : `tool_input.script` ; le fichier `tool_input.scriptPath` ;
-// `tool_input.name`, résolu en `<cwd>/.claude/workflows/<name>.js`. `resumeFromRunId` accompagne
+// `tool_input.name`, résolu en `<CLAUDE_PROJECT_DIR>/.claude/workflows/<name>.js`. `resumeFromRunId` accompagne
 // `scriptPath` ou `name` : le script se juge comme eux ; seul, il ne désigne aucun script jugeable et
 // se refuse. Un script introuvable, illisible ou qui ne parse pas se refuse, non jugeable.
 import { readFileSync } from 'node:fs'
@@ -22,7 +22,7 @@ const CONSIGNE = 'chaque `agent(prompt, { … })` porte un objet d’options lit
 const refus = (raison) => ({ decision: 'deny', raison: `⛔ Workflow : ${raison} — ${CONSIGNE}.` })
 
 /** Le script désigné par l'entrée : `{ texte, lieu }`, ou `{ nonJugeable }`. */
-function scriptDe(input, base) {
+function scriptDe(input, base, projet) {
   const lire = (chemin, quoi) => {
     try {
       return { texte: readFileSync(chemin, 'utf8'), lieu: chemin }
@@ -33,18 +33,19 @@ function scriptDe(input, base) {
   if (typeof input.script === 'string') return { texte: input.script, lieu: 'script' }
   if (typeof input.scriptPath === 'string' && input.scriptPath) return lire(resolve(base, versCheminNatif(input.scriptPath)), '`scriptPath`')
   if (typeof input.name === 'string' && input.name) {
-    const chemin = join(base, '.claude', 'workflows', `${input.name}.js`)
+    if (!projet) return { nonJugeable: `nom « ${input.name} » sans \`CLAUDE_PROJECT_DIR\` : aucun projet où le résoudre ; passer \`scriptPath\` ou \`script\`` }
+    const chemin = join(projet, '.claude', 'workflows', `${input.name}.js`)
     const lu = lire(chemin, '`name`')
-    return lu.nonJugeable ? { nonJugeable: `nom « ${input.name} » non résolu dans ${join(base, '.claude', 'workflows')} — un script hors du dépôt ne se juge pas ; passer \`scriptPath\` ou \`script\`` } : lu
+    return lu.nonJugeable ? { nonJugeable: `nom « ${input.name} » non résolu dans ${join(projet, '.claude', 'workflows')} — un script hors du dépôt ne se juge pas ; passer \`scriptPath\` ou \`script\`` } : lu
   }
   if (input.resumeFromRunId !== undefined) return { nonJugeable: '`resumeFromRunId` sans `scriptPath` ni `name` : aucun script à juger' }
   return { nonJugeable: 'ni `script`, ni `scriptPath`, ni `name`' }
 }
 
-function evaluer(entree, { baseDeLAppel }) {
+function evaluer(entree, { baseDeLAppel, env = {} }) {
   const input = entreeDOutil(entree)
   if (input === null) return refus('entrée sans objet `tool_input`, non jugeable')
-  const lu = scriptDe(input, baseDeLAppel ?? process.cwd())
+  const lu = scriptDe(input, baseDeLAppel ?? process.cwd(), env.CLAUDE_PROJECT_DIR)
   if (lu.nonJugeable) return refus(`script non jugeable : ${lu.nonJugeable}`)
   const { sourceFile: sf, diagnostics } = analyserTexte({ rel: 'workflow.js', text: lu.texte })
   if (diagnostics.length) return refus(`script non jugeable : ${lu.lieu} ne parse pas`)

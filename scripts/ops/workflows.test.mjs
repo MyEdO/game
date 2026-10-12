@@ -42,7 +42,7 @@ import {
   apercu, declarationsDuFichier, defautsDeRacine, defautsDesSitesDAgent, estReference, estTexte, exportDeMeta, fermer, lireWorkflow,
   optionDuSite, sitesDAgent,
 } from '../guards/lib/formeDeWorkflow.mjs';
-import { typesDeclares } from '../guards/lib/typesDAgent.mjs';
+import { fichesDAgent } from '../guards/lib/typesDAgent.mjs';
 import { bancsDeWorkflowDuDepot, reconnaissanceDuDepot } from '../guards/lib/jouer-workflow.mjs';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
@@ -50,8 +50,8 @@ const CE_FICHIER = fileURLToPath(import.meta.url);
 const ts = typescript();
 
 /** RÉGIMES des phases, déclarés par script et par phase ; une phase absente est MÉCANIQUE. Un
- *  régime porte son type, son modèle et son effort (table de calibrage de
- *  `.claude/skills/orchestrer-des-agents/SKILL.md`). Le type porte les outils (et, pour `juge`, le
+ *  régime porte son type ; son modèle et son effort se lisent au frontmatter de ce type (`fichesDAgent`,
+ *  aucun étage ne les surcharge). Le type porte les outils (et, pour `juge`, le
  *  prompt adversarial de `.claude/agents/juge.md`) ; le modèle ÉCRIT empêche un sous-agent
  *  d'hériter du modèle de session et fait coïncider l'affichage avec le fait — des agents EN ATTENTE
  *  s'affichaient « Fable » là où les transcripts disaient `claude-opus-5` (observation utilisateur
@@ -59,9 +59,16 @@ const ts = typescript();
  *  phase est déclarée ET portée par un SITE `agent(` (`defautsDesTables`) — un `phase(…)` de
  *  progression n'en est pas un : une phase de jugement renommée ou rétrogradée ne retombe pas en
  *  silence dans le régime MÉCANIQUE. */
+const FICHES = fichesDAgent(RACINE);
+/** L'étage `nom` du type `type`, au `model`/`effort` de sa fiche ; une fiche sans eux casse le chargement. */
+const etage = (nom, type) => {
+  const { model, effort } = FICHES.get(type) ?? {};
+  if (!model || !effort) throw new Error(`étage ${nom} : \`.claude/agents/${type}.md\` sans \`model\` ou \`effort\` au frontmatter`);
+  return { nom, type, modele: model, effort };
+};
 const ETAGES = {
-  jugement: { nom: 'JUGEMENT', type: 'juge', modele: 'opus', effort: 'high' },
-  redaction: { nom: 'RÉDACTION', type: 'redacteur', modele: 'opus', effort: 'medium' },
+  jugement: etage('JUGEMENT', 'juge'),
+  redaction: etage('RÉDACTION', 'redacteur'),
 };
 const REGIMES = {
   '.claude/workflows/dossier-de-chapitre.js': { Complétude: 'jugement' },
@@ -84,7 +91,7 @@ const couplesDuCalibrage = (skill) => {
   return [...section.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
 };
 /** Les types déclarés sous `.claude/agents/` (`name:` du frontmatter). */
-const TYPES_DECLARES = typesDeclares(RACINE);
+const TYPES_DECLARES = new Set(FICHES.keys());
 /** Les couples du calibrage permis en phase MÉCANIQUE : tous, sauf ceux d'un étage de `ETAGES`. */
 const COUPLES_MECANIQUES = couplesDuCalibrage(readFileSync(join(RACINE, '.claude/skills/orchestrer-des-agents/SKILL.md'), 'utf8'))
   .filter((c) => !Object.values(ETAGES).some((e) => e.type === c.type && e.modele === c.modele));

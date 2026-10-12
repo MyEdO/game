@@ -17,13 +17,14 @@ const couvre = (motif, outil) => (motif.endsWith('*') ? outil.startsWith(motif.s
 
 /**
  * La fiche d'un type, lue à son frontmatter (`readFrontmatter`). PURE.
- * `tools` vaut `null` quand le champ est absent : le type hérite alors de TOUS les outils.
+ * `tools` vaut `null` quand le champ est absent : le type hérite alors de TOUS les outils ; `model` et
+ * `effort` valent `null` sans leur champ.
  * @param {string} texte @param {string} [fichier]
- * @returns {{ name: string, tools: string[] | null, disallowedTools: string[] }}
+ * @returns {{ name: string, tools: string[] | null, disallowedTools: string[], model: string | null, effort: string | null }}
  */
 export function ficheDAgent(texte, fichier) {
   const { attributes } = readFrontmatter(texte, fichier)
-  return { name: attributes.get('name') ?? '', tools: liste(attributes.get('tools')), disallowedTools: liste(attributes.get('disallowedTools')) ?? [] }
+  return { name: attributes.get('name') ?? '', tools: liste(attributes.get('tools')), disallowedTools: liste(attributes.get('disallowedTools')) ?? [], model: attributes.get('model') ?? null, effort: attributes.get('effort') ?? null }
 }
 
 /** Les fiches de `<racine>/.claude/agents/*.md`, par `name:`. @param {string} racine @returns {Map<string, ReturnType<typeof ficheDAgent>>} */

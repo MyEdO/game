@@ -31,6 +31,8 @@
 //     une origine inconnue est refusée ;
 //   · `forme`    — une option qui produit des CHEMINS (`--name-only`, `--name-status`, `--numstat`,
 //     `ls-files`, `ls-tree`, `-z`) : une QUESTION de l'hôte la fixe elle-même, aucun appelant ne l'écrit.
+//     Un élément d'une TABLE `new Set([…])` n'est pas une forme écrite pour git : une table se CONSULTE
+//     (`has`), elle ne se passe pas en arguments.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -101,8 +103,27 @@ export function sitesHorsHote(chemin, texte) {
       if (!donneeFichier(n.expression.expression)) noter('decoupe', n.expression.name.getStart(sourceFile))
     })
   }
-  for (const m of code.matchAll(FORME)) noter('forme', m.index)
+  const formes = [...code.matchAll(FORME)]
+  const tables = formes.length ? elementsDeTables(chemin, texte) : new Set()
+  for (const m of formes) if (!tables.has(m.index)) noter('forme', m.index)
   return sites.sort((a, b) => a.ligne - b.ligne)
+}
+
+/** Les positions des littéraux chaîne éléments d'un `new Set([…])` de la source. */
+function elementsDeTables(chemin, texte) {
+  const ts = typescript()
+  const positions = new Set()
+  for (const { sourceFile, diagnostics } of analyserCorpus([{ rel: chemin, text: texte }])) {
+    if (!sourceFile || diagnostics.length) throw new Error(`sitesHorsHote : syntaxe indéterminée pour ${chemin} : ${diagnostics.map(d => d.text).join('; ')}`)
+    const parcourir = (n) => {
+      if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Set' && n.arguments?.[0] && ts.isArrayLiteralExpression(n.arguments[0])) {
+        for (const e of n.arguments[0].elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) positions.add(e.getStart(sourceFile))
+      }
+      n.forEachChild(parcourir)
+    }
+    parcourir(sourceFile)
+  }
+  return positions
 }
 
 /** Le module de banc : le lanceur git des tests de `scripts/`, hors du périmètre des portes. */

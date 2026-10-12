@@ -1,6 +1,6 @@
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { affectationPowerShell, basenameExecutable, CHANGEMENTS_DE_REPERTOIRE, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, gitSubcommand, jetonNu, pipelinesDeJetons, sansRedirections, texteDuSegment, versCheminNatif } from './commandeShell.mjs'
-import { ciblesDEcritureJS } from './ecrituresFichiers.mjs'
+import { VARIABLES_AMORCEES, ciblesDEcritureJS } from './ecrituresFichiers.mjs'
 
 const ROLES = [
   { noms: ['cp', 'ln'], role: 'destination', valeurs: ['-S', '--suffix'], destination: ['-t', '--target-directory'] },
@@ -95,17 +95,16 @@ function ciblesDuWriter(textes) {
 const estPuits = (texte, platform) => /^\/dev\/(?:null|stdout|stderr|stdin)$/.test(texte) || (platform === 'win32' && /^nul$/i.test(texte))
 const PUITS_POWERSHELL = /^\$null$/i
 
-/** Les variables d'environnement que le hook connaît du shell qu'il juge : le répertoire temporaire. */
-const VARIABLES_AMORCEES = ['TEMP', 'TMP', 'TMPDIR']
-
 /** Les sous-commandes git qui ne font que LIRE (`git help -a` : « Interrogators », et les porcelaines de
  *  lecture) ; toute autre sous-commande est une écriture inconnue, sauf les formes de lecture de
  *  `LECTURES_GIT_SOUS_CONDITION`. */
-const LECTURES_GIT = new Set(`
-  annotate blame cat-file check-attr check-ignore check-mailmap check-ref-format cherry column count-objects describe diff
-  diff-files diff-index diff-pairs diff-tree for-each-ref get-tar-commit-id grep help log ls-files ls-remote ls-tree merge-base
-  name-rev patch-id range-diff rev-list rev-parse shortlog show show-branch show-index show-ref status stripspace var
-  verify-commit verify-pack verify-tag version whatchanged archive`.trim().split(/\s+/))
+const LECTURES_GIT = new Set([
+  'annotate', 'blame', 'cat-file', 'check-attr', 'check-ignore', 'check-mailmap', 'check-ref-format', 'cherry', 'column',
+  'count-objects', 'describe', 'diff', 'diff-files', 'diff-index', 'diff-pairs', 'diff-tree', 'for-each-ref',
+  'get-tar-commit-id', 'grep', 'help', 'log', 'ls-files', 'ls-remote', 'ls-tree', 'merge-base', 'name-rev', 'patch-id',
+  'range-diff', 'rev-list', 'rev-parse', 'shortlog', 'show', 'show-branch', 'show-index', 'show-ref', 'status', 'stripspace',
+  'var', 'verify-commit', 'verify-pack', 'verify-tag', 'version', 'whatchanged', 'archive',
+])
 /** Les sous-commandes git qui lisent sous une forme seulement : le prédicat reçoit leurs arguments. */
 const LECTURES_GIT_SOUS_CONDITION = {
   branch: (a) => a.every((x) => x.startsWith('-') && !/^-(?:[dDmMcCfu]|-delete|-move|-copy|-force|-set-upstream|-unset-upstream|-edit-description|-track)/.test(x)),
@@ -117,6 +116,7 @@ const LECTURES_GIT_SOUS_CONDITION = {
   notes: (a) => a.length === 0 || ['list', 'show'].includes(a[0]),
   reflog: (a) => !['expire', 'delete', 'drop', 'write'].includes(a[0]),
   'symbolic-ref': (a) => a.filter((x) => !x.startsWith('-')).length <= 1,
+  'hash-object': (a) => !a.includes('-w'),
   'sparse-checkout': (a) => a[0] === 'list',
   submodule: (a) => ['status', 'summary'].includes(a[0]),
   bundle: (a) => ['verify', 'list-heads'].includes(a[0]),
@@ -352,7 +352,7 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
         const developpe = jeton === undefined ? null : developper(jeton.text, etat.variables, jeton)
         const code = developpe?.startsWith('--eval=') ? developpe.slice(7) : developpe
         if (code === null) ajouter(null, `${nom}-inline`)
-        else for (const cible of ciblesDEcritureJS(code)) {
+        else for (const cible of ciblesDEcritureJS(code, { env, platform })) {
           if (cible.commande !== undefined) sousCommande(cible.commande, etat)
           else ajouter(cible.chemin, cible.operation)
         }

@@ -11,18 +11,31 @@ const LANCEURS = { exec: 'chaine', execSync: 'chaine', spawn: 'tableau', spawnSy
 const MODULES_QUI_ECRIVENT = /^(?:node:)?(?:fs|fs\/promises|child_process)$/
 const PLIS_DE_CHEMIN = { join, resolve: (...p) => (p.some(isAbsolute) ? resolve(...p) : join(...p)), dirname, basename }
 
+/** Les variables d'environnement que le hook connaît du processus qu'il juge : le répertoire temporaire. */
+export const VARIABLES_AMORCEES = ['TEMP', 'TMP', 'TMPDIR']
+
+/** `os.tmpdir()` du processus d'environnement `env` sous `platform` (Node, `lib/os.js`, `tmpdir`) ; `null` si
+ *  `env` ne le porte pas. PURE. */
+export function repertoireTemporaire(env, platform) {
+  const valeur = platform === 'win32' ? env.TEMP || env.TMP : env.TMPDIR || env.TMP || env.TEMP || '/tmp'
+  if (typeof valeur !== 'string' || valeur === '') return null
+  return valeur.length > 1 && /[\\/]$/.test(valeur) && !/:[\\/]$/.test(valeur) ? valeur.slice(0, -1) : valeur
+}
+
 /**
  * Les écritures de fichier que DÉCLARE un texte JS/TS, parsé au dialecte de `rel` ; `[]` s'il ne se parse pas.
  * Un chemin se REPLIE quand il est constant : littéral, `const` chaîne, `+`, gabarit, `join`/`resolve`/
  * `dirname`/`basename` de `node:path`, `import.meta.dirname`/`filename`, `fileURLToPath(import.meta.url)`
- * (`fichier` = le chemin du script), `process.argv[k]` (`argv` = le `process.argv` du lancement). Un lancement
- * `node:child_process` rend `{ operation, commande }` (la commande littérale, que l'appelant juge) ou une
- * cible inconnue ; un `import()` dynamique de `fs`/`child_process`, une cible inconnue.
+ * (`fichier` = le chemin du script), `process.argv[k]` (`argv` = le `process.argv` du lancement), `tmpdir()` et
+ * `process.env.<VARIABLES_AMORCEES>` (lus à `env`, `platform`). Un lancement `node:child_process` rend
+ * `{ operation, commande }` (la commande littérale, que l'appelant juge) ou une cible inconnue ; un `import()`
+ * dynamique de `fs`/`child_process` se lit comme l'import statique quand il est attendu (`await import('…')`),
+ * sinon il rend une cible inconnue, comme un `import()` à spécificateur non constant.
  * @param {string} texte
- * @param {{ rel?: string, fichier?: string, argv?: (string | null)[] }} [contexte]
+ * @param {{ rel?: string, fichier?: string, argv?: (string | null)[], env?: Record<string, string | undefined>, platform?: NodeJS.Platform }} [contexte]
  * @returns {{ chemin: string | null, inconnue: boolean, operation: string, commande?: string }[]}
  */
-export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [] } = {}) {
+export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [], env = {}, platform = process.platform } = {}) {
   const ts = typescript()
   const sorties = []
   for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel, text: texte }])) {
@@ -64,9 +77,14 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
       if (ts.isElementAccessExpression(n) && n.expression.getText(sourceFile) === 'process.argv' && ts.isNumericLiteral(n.argumentExpression)) {
         return argv[Number(n.argumentExpression.text)] ?? null
       }
+      if ((ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n)) && n.expression.getText(sourceFile) === 'process.env') {
+        const nom = ts.isPropertyAccessExpression(n) ? n.name.text : plier(n.argumentExpression)
+        return VARIABLES_AMORCEES.includes(nom) && typeof env[nom] === 'string' ? env[nom] : null
+      }
       if (ts.isCallExpression(n)) {
         const nom = nomAppele(n)
         if (nom === 'fileURLToPath' && n.arguments[0]?.getText(sourceFile) === 'import.meta.url') return fichier ?? null
+        if (nom === 'tmpdir' && n.arguments.length === 0) return repertoireTemporaire(env, platform)
         if (nom !== null && Object.hasOwn(PLIS_DE_CHEMIN, nom)) {
           const valeurs = n.arguments.map(plier)
           return valeurs.length && valeurs.every((v) => v !== null) ? PLIS_DE_CHEMIN[nom](...valeurs) : null
@@ -79,7 +97,9 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
       if (!ts.isCallExpression(n)) return
       if (n.expression.kind === ts.SyntaxKind.ImportKeyword) {
         const module = plier(n.arguments[0])
-        if (module === null || MODULES_QUI_ECRIVENT.test(module)) sorties.push({ chemin: null, inconnue: true, operation: 'import-dynamique' })
+        let haut = n.parent
+        while (ts.isParenthesizedExpression(haut)) haut = haut.parent
+        if (module === null || (MODULES_QUI_ECRIVENT.test(module) && !ts.isAwaitExpression(haut))) sorties.push({ chemin: null, inconnue: true, operation: 'import-dynamique' })
         return
       }
       const nom = nomAppele(n)
