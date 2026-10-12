@@ -275,22 +275,27 @@ const derive = (source) => transformSkillTree(new Map([[SOURCE, Buffer.from(sour
 const registre = (...outils) => `export const REGISTRE = { PreToolUse: [${outils.map((o) => `{ outils: ['${o}'] }`).join(', ')}] }\n`
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
-/** Les post-hooks de production (#2578). */
-const MIROIRS = fileURLToPath(new URL('./miroirs-d-agents.mjs', import.meta.url))
+/** Le dossier des hooks RÉELS (`core.hooksPath` du dépôt). */
+const CROCHETS = fileURLToPath(new URL('.', import.meta.url))
+/** Les hooks RÉELS que #2578 câble, posés dans un dépôt forgé : leur texte, `$(dirname "$0")` résolu vers
+ *  `CROCHETS`, sans `docs-rebuild.mjs` (ses cibles et ses docs, hors de ce dépôt). */
+const HOOKS_DES_MIROIRS = ['pre-commit', 'post-commit', 'post-merge', 'post-rewrite']
+const hookForge = (nom) => readFileSync(join(CROCHETS, nom), 'utf8').split('\n')
+  .filter((ligne) => !ligne.includes('docs-rebuild.mjs'))
+  .join('\n').replaceAll('"$(dirname "$0")/', `"${CROCHETS.replaceAll(sep, '/')}`)
 /** Le producteur (clôture d'imports de `compat-cli.mjs`), commis dans chaque dépôt forgé : le hook charge
  *  celui du dépôt qui commet. */
 const PRODUCTEUR = tableTotale([...clotureDImports(['scripts/agents/compat-cli.mjs'], { racine: RACINE })], (rel) => readFileSync(join(RACINE, rel), 'utf8'))
 
-/** Un dépôt forgé qui porte le producteur (`PRODUCTEUR`) et `fichiers`, dont les hooks de #2578 sont
- *  posés (`core.hooksPath` hors de l'arbre), le skill `x` commis à travers eux ; `git(...)` y joue git. */
+/** Un dépôt forgé qui porte le producteur (`PRODUCTEUR`) et `fichiers`, dont les hooks réels de #2578
+ *  (`hookForge`) sont posés (`core.hooksPath` hors de l'arbre), le skill `x` commis à travers eux ;
+ *  `git(...)` y joue git. */
 function depotAuSkill(fichiers = {}) {
   const env = envDeDepotForge()
   const { racine } = instanceDeDepot({ fichiers: { '.gitattributes': '* text=auto eol=lf\n', '.gitignore': 'node_modules/\n', 'notes.txt': 'n\n', ...PRODUCTEUR, ...fichiers }, message: 'socle' })
   const crochets = mkdtempSync(join(tmpdir(), 'crochets-'))
-  const node = (script, ...args) => `exec node "${script.replaceAll(sep, '/')}" ${args.join(' ')}`
-  for (const [nom, corps] of [['pre-commit', node(HOOK)], ['pre-merge-commit', node(HOOK)], ['post-commit', node(MIROIRS, 'post-commit')],
-    ['post-rewrite', `[ "$1" = rebase ] || exit 0\n${node(MIROIRS, 'post-rewrite')}`]]) {
-    writeFileSync(join(crochets, nom), `#!/bin/sh\n${corps}\n`)
+  for (const nom of HOOKS_DES_MIROIRS) {
+    writeFileSync(join(crochets, nom), hookForge(nom))
     chmodSync(join(crochets, nom), 0o755)
   }
   const git = (...args) => lancerGit(args, { cwd: racine, env })
@@ -490,7 +495,7 @@ test('#2578 (e) — une fusion SANS conflit qui touche un skill laisse HEAD coh�
   }
 })
 
-test('#2578 (e\') — fusion NON LOCALE sans conflit : le générateur change d’un côté, un skill de l’autre ; HEAD porte le miroir du générateur fusionné', () => {
+test('#2578 (e\') — fusion NON LOCALE sans conflit : le générateur change d’un côté, un skill de l’autre ; le post-merge produit le miroir du générateur fusionné dans l’index et le SIGNALE À COMMETTRE', () => {
   const d = depotAuSkill()
   try {
     const courante = d.git('rev-parse', '--abbrev-ref', 'HEAD').trim()
@@ -504,7 +509,14 @@ test('#2578 (e\') — fusion NON LOCALE sans conflit : le générateur change d�
     const fusion = d.jouer('merge', '--no-edit', 'amont')
     assert.equal(fusion.status, 0, fusion.stderr)
     assert.ok(d.git('rev-parse', '--verify', 'HEAD^2'), 'témoin : un commit de fusion')
-    assert.ok(d.git('show', `HEAD:${MIROIR}`).includes('YY'), `HEAD :\n${d.git('show', `HEAD:${MIROIR}`)}\nindex :\n${d.git('show', `:${MIROIR}`)}\nstatut :\n${d.statut()}`)
+    assert.ok(d.git('show', `HEAD:${MIROIR}`).includes('ZZ'), 'témoin : la fusion commise ne joue pas le pre-commit')
+    assert.ok(lignes(fusion).some((l) => l.startsWith("[post-merge] miroirs d'agents produits dans l'index, HEAD ne les porte pas — À COMMETTRE : ") && l.includes(MIROIR)), fusion.stderr)
+    const produit = d.git('show', `:${MIROIR}`)
+    assert.ok(produit.includes('YY') && !produit.includes('ZZ'), produit)
+    assert.equal(d.lire(MIROIR), produit)
+    assert.equal(d.statut(), `M  ${MIROIR}\n`)
+    d.git('commit', '-q', '-m', 'miroirs')
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), produit)
     assert.equal(d.statut(), '')
   } finally {
     d.fin()

@@ -380,6 +380,14 @@ describe('estDocDerive', () => {
       assert.equal(estDocDerive(pure, GEN), false, pure)
   })
 
+  test('estDocDerive : les miroirs d’agents (#2578), que `post-merge` et `post-rewrite` produisent sans les committer, sont DÉRIVÉS', () => {
+    assert.equal(estDocDerive('AGENTS.md', GEN), true)
+    assert.equal(estDocDerive('.agents/skills/ajouter-une-donnee/SKILL.md', GEN), true)
+    assert.equal(estDocDerive('.codex/credo.md', GEN), true)
+    assert.equal(estDocDerive('.agents/skillsx/SKILL.md', GEN), false)
+    assert.equal(estDocDerive('.claude/skills/ajouter-une-donnee/SKILL.md', GEN), false)
+  })
+
   test('estDocDerive : un MANUSCRIT n’est pas dérivé', () => {
     assert.equal(estDocDerive('docs/architecture.md', GEN), false)
     assert.equal(estDocDerive('src/state/cascade.ts', GEN), false)

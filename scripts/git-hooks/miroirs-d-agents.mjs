@@ -1,8 +1,8 @@
 // Les miroirs d'agents (#2578) produits sur un INDEX par `runCompat`, unique producteur
 // (`scripts/agents/compat-cli.mjs`), chargé depuis le dépôt qui commet. Le CODE du producteur est
 // dans l'état de l'index, ou la famille saute, AVERTIE ; la gate `agents:check` de la CI juge.
-// Point d'entrée des post-hooks : `post-commit`, `post-rewrite` (`git help githooks`) ; le
-// `pre-commit` et le `pre-merge-commit` importent `produireLesMiroirs`.
+// Point d'entrée des post-hooks : `post-commit`, `post-merge`, `post-rewrite` (`git help githooks`) ;
+// le `pre-commit` importe `produireLesMiroirs`.
 import '../node-requis.mjs'
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'

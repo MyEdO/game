@@ -335,8 +335,9 @@ export function remplacerCleJson(texte, cle, valeur) {
   return `${avant}${separateur}\n${unite}${JSON.stringify(cle)}: ${serialise}\n${texte.slice(fin)}`;
 }
 
-/** Les racines que `agents:sync` POSSÈDE (`managedRoots`). */
-const MANAGED_ROOTS = ['AGENTS.md', '.agents/skills', '.codex/credo.md'];
+/** Les racines que `agents:sync` POSSÈDE : lues ici (`managedRoots`) et par l'étape `docs` du train
+ *  (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`). */
+export const MANAGED_ROOTS = ['AGENTS.md', '.agents/skills', '.codex/credo.md'];
 
 /**
  * Les sorties attendues de `snapshot`. `registres` (script de `ENTREES_OUTIL` → registre) dérive les
