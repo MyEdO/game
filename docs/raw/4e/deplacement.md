@@ -832,7 +832,7 @@ Lancer 1d10 pour chaque aspect (Précipitations, Température, Visibilité, Vent
 **Voir aussi :** [Vents (MDG)](#vents-mdg), [Orientation et phares (MDG)](#orientation-et-phares-mdg), [`etats.md`](etats.md) (Exposition).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `champs`, `construireCarte`, `FoulingLevel`, `PendingTest`, `aucune`, `applyExposureFailure`, `legeres`, +32 — `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, `src/engine/exposure.ts`, +8 fichiers
+- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `champs`, `REPORT_DE_COMBATTANT`, `construireCarte`, `FoulingLevel`, `aucune`, `applyExposureFailure`, `legeres`, +42 — `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, `src/engine/combat.ts`, +13 fichiers
 
 ---
 
@@ -919,7 +919,7 @@ La vigie a **trois chances** de repérer une trajectoire de collision ; ensuite 
 **Voir aussi :** [Manœuvres et vitesses maximum (MDG)](#manœuvres-et-vitesses-maximum-mdg), [Périls en mer (MDG)](#périls-en-mer-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.423-464) → `sea-perils`, `collisionIndex`, `iceberg`, `debris-marins`, `resolveCollision`, `rocher`, `bas-fonds`, `perilManagement` ⚠sans-appelant, `strandingPenalty`, `faible`, +10 — `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaNavigation.ts`, `src/engine/seaPerils.ts`, +4 fichiers
+- `MDG 13` (l.423-464) → `sea-perils`, `collisionIndex`, `iceberg`, `debris-marins`, `resolveCollision`, `rocher`, `bas-fonds`, `perilManagement` ⚠sans-appelant, `faible`, `strandingPenalty`, +14 — `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaNavigation.ts`, `src/engine/seaPerils.ts`, +4 fichiers
 
 ---
 
@@ -944,7 +944,8 @@ Même règle en navigation fluviale, avec 12 Dégâts de coque :
 **Voir aussi :** [Collisions de navires (MDG)](#collisions-de-navires-mdg), [Détroits et tourbillons (MDG)](#détroits-et-tourbillons-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.467-499) → `sea-perils`, `iceberg`, `SeaHazardDef`, `debris-marins`, `resolveCollision`, `rocher`, `pickSeaHazard`, `bas-fonds`, `strandingPenalty`, `faible`, +11 — `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaPerils.ts`, `src/i18n/messages/fr.ts`, +2 fichiers
+- `MDG 13` (l.467-499) → `sea-perils`, `iceberg`, `SeaHazardDef`, `debris-marins`, `resolveCollision`, `rocher`, `pickSeaHazard`, `bas-fonds`, `faible`, `strandingPenalty`, +15 — `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaPerils.ts`, `src/i18n/messages/fr.ts`, +2 fichiers
+- `MSRC 7` (l.99) → `river-criticals`, `cale`, `river-control-repair`, `calme`, `debris`, `leger`, `modere`, `river-nav`, `fort`, `river-tack`, +28 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/regles.json`, `src/data/river-criticals.json`, +11 fichiers
 
 ---
 
@@ -967,7 +968,7 @@ Même règle en navigation fluviale, avec 12 Dégâts de coque :
 **Voir aussi :** [Vents (MDG)](#vents-mdg) (Encalminé/courant), [Périls en mer (MDG)](#périls-en-mer-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.501-564) → `sea-perils`, `iceberg`, `SeaHazardDef`, `debris-marins`, `rocher`, `pickSeaHazard`, `bas-fonds`, `faible`, `strandingOccurs`, `resolveVolley`, +29 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/vehicles.json`, `src/data/voyage-stakes.json`, `src/engine/seaPerils.ts`, +4 fichiers
+- `MDG 13` (l.501-564) → `sea-perils`, `iceberg`, `SeaHazardDef`, `debris-marins`, `rocher`, `pickSeaHazard`, `bas-fonds`, `faible`, `resolveVolley`, `moyen`, +31 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/vehicles.json`, `src/data/voyage-stakes.json`, `src/engine/seaPerils.ts`, +4 fichiers
 
 ---
 
@@ -1037,7 +1038,7 @@ Modificateurs (extrait) : paie généreuse / capitaine compétent → **+2d10** 
 **Voir aussi :** [Provisions et équipement de navigation (MDG)](#provisions-et-équipement-de-navigation-mdg), [`traumatisme.md`](traumatisme.md#13-faim-et-soif) (Faim et Soif), [`maladies.md`](maladies.md#provisions-et-privations-en-mer--eau-rations-faim-mdg) (rations en mer).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.204-283) → `doc`, `MoraleBand`, `sealskinDR`, `mousse`, `DiseaseDef`, `shipboardSouls`, `SeaVoyageState`, `scenario`, `exposureNight`, `dailyWaterLitres`, +32 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/crew-roles.ts`, +17 fichiers
+- `MDG 14` (l.204-283) → `doc`, `MoraleBand`, `sealskinDR`, `mousse`, `DiseaseDef`, `shipboardSouls`, `SeaVoyageState`, `scenario`, `exposureNight`, `genuineExposureFail`, +32 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/crew-roles.ts`, +17 fichiers
 
 ---
 
@@ -1088,7 +1089,7 @@ Chaque jour en mer, on tient un **total cumulé d'Humeur de Manann** (chaque mod
 **Voir aussi :** [Longs voyages : résolution et vitesse (MDG)](#longs-voyages--résolution-et-vitesse-mdg), [Moral de l'équipage (MDG)](#moral-de-léquipage-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.81-263) → `ShoreLeaveBody`, `ManannBody`, `vaincre-stromfels`, `SeaActivitiesModal`, `grand-sacrifice`, `portProfileSchema`, `openEmbrigadementRecovery`, `coiffe-de-naissance`, `EscaleTab`, `sacrifice-moyen`, +127 — `src/data/activities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs-scenes/worldmap.ts`, +20 fichiers
+- `MDG 15` (l.81-263) → `ShoreLeaveBody`, `ManannBody`, `vaincre-stromfels`, `SeaActivitiesModal`, `grand-sacrifice`, `portProfileSchema`, `openEmbrigadementRecovery`, `coiffe-de-naissance`, `EscaleTab`, `sacrifice-moyen`, +126 — `src/data/activities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs-scenes/worldmap.ts`, +20 fichiers
 
 ---
 

@@ -198,7 +198,7 @@ Si aucune Difficulté n'est indiquée pour un test (notamment pour un test oppos
 
 **Voir aussi** : [Modificateurs de test](#modificateurs-de-test), [Tests opposés](#tests-opposés)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.133-139, l.141-150, l.166) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `GrappleModal`, `BargainModalView`, `TraceOpposed`, `AuContactModal`, `amazingTestLabel`, `MedicState`, +88 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/combat.ts`, +47 fichiers
+- `LDB 12` (l.133-139, l.141-150, l.166) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `GrappleModal`, `BargainModalView`, `TraceOpposed`, `AuContactModal`, `amazingTestLabel`, `MedicState`, +89 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/combat.ts`, +47 fichiers
 
 ---
 
@@ -318,7 +318,7 @@ Un test opposé est utilisé lorsqu'un personnage doit confronter ses capacités
 **Voir aussi** : [Tests spectaculaires](#types-de-tests--simple-vs-spectaculaire), [Degrés de Réussite (DR)](#degrés-de-réussite-dr)
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 9` (l.17) → `doc`, `possesses`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, `useHealJetProps`, `TestResult`, +29 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/engine/axes.ts`, `src/engine/combat.ts`, `src/engine/magic.ts`, `src/engine/skillCombatApps.ts`, +20 fichiers
-- `LDB 12` (l.152-169) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `GrappleModal`, `BargainModalView`, `TraceOpposed`, `soutien`, `AuContactModal`, `MedicState`, +85 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +42 fichiers
+- `LDB 12` (l.152-169) → `useExtendedTestJetProps`, `RecoverOpposition`, `test-critiques-doubles`, `RecoverResolution`, `GrappleModal`, `BargainModalView`, `TraceOpposed`, `soutien`, `AuContactModal`, `MedicState`, +86 — `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +42 fichiers
 
 ---
 
@@ -393,7 +393,7 @@ Parfois, une situation requiert qu'un personnage réussisse deux Compétences di
 
 **Voir aussi** : [Tests spectaculaires](#types-de-tests--simple-vs-spectaculaire)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.202-208) → `fr`, `testBreakdown`, `soutien`, `BargainModalView`, `ActivityModal`, `RollRowCore`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `CombinedTestResult`, +36 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +23 fichiers
+- `LDB 12` (l.202-208) → `fr`, `testBreakdown`, `soutien`, `BargainModalView`, `ActivityModal`, `RollRowCore`, `runSceneConsumableFlow`, `test-extended-min-sl`, `RollRequest`, `PendingTest`, +36 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/grammaire/mecanique.ts`, `src/engine/activities.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, +23 fichiers
 
 ---
 
