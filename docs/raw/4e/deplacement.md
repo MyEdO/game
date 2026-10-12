@@ -1038,7 +1038,7 @@ Modificateurs (extrait) : paie généreuse / capitaine compétent → **+2d10** 
 **Voir aussi :** [Provisions et équipement de navigation (MDG)](#provisions-et-équipement-de-navigation-mdg), [`traumatisme.md`](traumatisme.md#13-faim-et-soif) (Faim et Soif), [`maladies.md`](maladies.md#provisions-et-privations-en-mer--eau-rations-faim-mdg) (rations en mer).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.204-283) → `doc`, `MoraleBand`, `sealskinDR`, `mousse`, `DiseaseDef`, `shipboardSouls`, `SeaVoyageState`, `scenario`, `exposureNight`, `genuineExposureFail`, +32 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/crew-roles.ts`, +17 fichiers
+- `MDG 14` (l.204-283) → `doc`, `MoraleBand`, `sealskinDR`, `mousse`, `DiseaseDef`, `shipboardSouls`, `scenario`, `SeaVoyageState`, `exposureNight`, `genuineExposureFail`, +32 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/crew-roles.ts`, +17 fichiers
 
 ---
 
