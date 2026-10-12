@@ -16,6 +16,7 @@ import { CHEMIN_DU_JOURNAL } from './journal.mjs'
 import { lancerGit, resultatDeGit } from '../test/gitDeBanc.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { transformSkillTree } from '../agents/compat-core.mjs'
+import { clotureDImports } from '../guards/lib/importGraph.mjs'
 
 const HOOK = fileURLToPath(new URL('./pre-commit.mjs', import.meta.url))
 
@@ -265,21 +266,31 @@ test('#2328 A7 — sous une fusion en cours, le hook ne juge que l’APPORT : le
 // ── #2578 : le pre-commit PRODUIT les miroirs d'agents, lus dans l'index ──────────────────────────────
 const SOURCE = '.claude/skills/x/SKILL.md'
 const MIROIR = '.agents/skills/x/SKILL.md'
+const REGISTRE = 'scripts/hooks/registre.mjs'
+const NOYAU = 'scripts/agents/compat-core.mjs'
 const skill = (corps) => `---\nname: x\ndescription: "d"\n---\n\n${corps}\n`
 /** Le miroir que `runCompat` dérive du texte `source` de SOURCE (`transformSkillTree`, son producteur). */
 const derive = (source) => transformSkillTree(new Map([[SOURCE, Buffer.from(source)]])).get(MIROIR).toString('utf8')
+/** Un registre forgé (`ENTREES_OUTIL`, `registre.mjs` → `REGISTRE`) dont les gardes portent `outils`. */
+const registre = (...outils) => `export const REGISTRE = { PreToolUse: [${outils.map((o) => `{ outils: ['${o}'] }`).join(', ')}] }\n`
 
-/** Le réalignement de l'index que joue le hook `post-commit` (#2578). */
-const POST_COMMIT = fileURLToPath(new URL('./miroirs-post-commit.mjs', import.meta.url))
+const RACINE = fileURLToPath(new URL('../..', import.meta.url))
+/** Les post-hooks de production (#2578). */
+const MIROIRS = fileURLToPath(new URL('./miroirs-d-agents.mjs', import.meta.url))
+/** Le producteur (clôture d'imports de `compat-cli.mjs`), commis dans chaque dépôt forgé : le hook charge
+ *  celui du dépôt qui commet. */
+const PRODUCTEUR = tableTotale([...clotureDImports(['scripts/agents/compat-cli.mjs'], { racine: RACINE })], (rel) => readFileSync(join(RACINE, rel), 'utf8'))
 
-/** Un dépôt forgé dont SEULS `pre-commit` et le réalignement `post-commit` sont posés (`core.hooksPath` hors de l'arbre), le skill
- *  `x` commis à travers lui ; `git(...)` y joue git. */
-function depotAuSkill() {
+/** Un dépôt forgé qui porte le producteur (`PRODUCTEUR`) et `fichiers`, dont les hooks de #2578 sont
+ *  posés (`core.hooksPath` hors de l'arbre), le skill `x` commis à travers eux ; `git(...)` y joue git. */
+function depotAuSkill(fichiers = {}) {
   const env = envDeDepotForge()
-  const { racine } = instanceDeDepot({ fichiers: { '.gitattributes': '* text=auto eol=lf\n', '.gitignore': 'node_modules/\n', 'notes.txt': 'n\n' }, message: 'socle' })
+  const { racine } = instanceDeDepot({ fichiers: { '.gitattributes': '* text=auto eol=lf\n', '.gitignore': 'node_modules/\n', 'notes.txt': 'n\n', ...PRODUCTEUR, ...fichiers }, message: 'socle' })
   const crochets = mkdtempSync(join(tmpdir(), 'crochets-'))
-  for (const [nom, script] of [['pre-commit', HOOK], ['post-commit', POST_COMMIT]]) {
-    writeFileSync(join(crochets, nom), `#!/bin/sh\nexec node "${script.replaceAll(sep, '/')}"\n`)
+  const node = (script, ...args) => `exec node "${script.replaceAll(sep, '/')}" ${args.join(' ')}`
+  for (const [nom, corps] of [['pre-commit', node(HOOK)], ['pre-merge-commit', node(HOOK)], ['post-commit', node(MIROIRS, 'post-commit')],
+    ['post-rewrite', `[ "$1" = rebase ] || exit 0\n${node(MIROIRS, 'post-rewrite')}`]]) {
+    writeFileSync(join(crochets, nom), `#!/bin/sh\n${corps}\n`)
     chmodSync(join(crochets, nom), 0o755)
   }
   const git = (...args) => lancerGit(args, { cwd: racine, env })
@@ -287,9 +298,10 @@ function depotAuSkill() {
   mkdirSync(join(racine, '.claude', 'skills', 'x'), { recursive: true })
   writeFileSync(join(racine, SOURCE), skill('v1'))
   git('add', '--', SOURCE); git('commit', '-q', '-m', 'skill')
-  const ecrire = (rel, texte) => writeFileSync(join(racine, rel), texte)
+  const ecrire = (rel, texte) => { mkdirSync(join(racine, rel, '..'), { recursive: true }); writeFileSync(join(racine, rel), texte) }
   const fin = () => { rmSync(racine, { recursive: true, force: true }); rmSync(crochets, { recursive: true, force: true }) }
-  return { racine, git, ecrire, fin, statut: () => git('status', '--porcelain', '--untracked-files=all') }
+  const jouer = (...args) => resultatDeGit(args, { cwd: racine, env })
+  return { racine, git, ecrire, jouer, fin, lire: (rel) => readFileSync(join(racine, rel), 'utf8'), statut: () => git('status', '--porcelain', '--untracked-files=all') }
 }
 
 test('#2578 (a) — un commit qui modifie un skill commet son miroir dérivé de la source de HEAD, statut vide', () => {
@@ -332,16 +344,129 @@ test('#2578 (c) — `git commit -- <chemin>` : le miroir de HEAD dérive de la s
   }
 })
 
+test('#2578 (c-i) — miroir déjà stagé à une version INTERMÉDIAIRE, puis `commit -- <source>` : le post-commit le reproduit, index réel = HEAD', () => {
+  const d = depotAuSkill()
+  try {
+    d.ecrire(SOURCE, skill('v2')); d.ecrire(MIROIR, derive(skill('v2'))); d.git('add', '--', SOURCE, MIROIR)
+    d.ecrire(SOURCE, skill('v3'))
+    d.git('commit', '-q', '-m', 'v3', '--', SOURCE)
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('v3')))
+    assert.equal(d.git('diff', '--cached', '--name-only'), '')
+    assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (c-ii) — `commit -- .claude/settings.json` : clé `hooks` dérivée du registre de l’index, `permissions` préservées, index réel = HEAD', () => {
+  const d = depotAuSkill({ [REGISTRE]: registre('Bash') })
+  try {
+    const avant = JSON.parse(d.git('show', 'HEAD:.claude/settings.json'))
+    d.ecrire('.claude/settings.json', `${JSON.stringify({ permissions: { allow: ['X'] }, hooks: {} }, null, 2)}\n`)
+    d.git('commit', '-q', '-m', 'permissions', '--', '.claude/settings.json')
+    const tete = JSON.parse(d.git('show', 'HEAD:.claude/settings.json'))
+    assert.deepEqual(tete.permissions, { allow: ['X'] })
+    assert.deepEqual(tete.hooks, avant.hooks)
+    assert.equal(d.git('diff', '--cached', '--name-only'), '')
+    assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (c-iii) — `commit --amend` qui ramène un skill au parent : le miroir revient au parent, index réel = HEAD', () => {
+  const d = depotAuSkill()
+  try {
+    d.ecrire(SOURCE, skill('v2')); d.git('add', '--', SOURCE); d.git('commit', '-q', '-m', 'v2')
+    d.ecrire(SOURCE, skill('v1')); d.git('add', '--', SOURCE)
+    d.git('commit', '-q', '--amend', '--allow-empty', '-m', 'retour')
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('v1')))
+    assert.equal(d.git('diff', '--cached', '--name-only'), '')
+    assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})
+
 test('#2578 (d) — un miroir édité à la main est AVERTI, le commit passe (sortie 0) et le miroir n’est pas écrasé', () => {
   const d = depotAuSkill()
   try {
     const main = '---\nname: x\ndescription: "d"\n---\n\nà la main\n'
     d.ecrire(MIROIR, main); d.ecrire(SOURCE, skill('v3')); d.git('add', '--', MIROIR, SOURCE)
-    const r = resultatDeGit(['commit', '-q', '-m', 'main'], { cwd: d.racine })
+    const r = d.jouer('commit', '-q', '-m', 'main')
     assert.equal(r.status, 0, r.stderr)
     assert.ok(lignes(r).some((l) => l.startsWith("pre-commit — AVERTISSEMENT [miroir d'agents édité à la main]")), r.stderr)
     assert.ok(lignes(r).includes(`skill:unsafe-overwrite:${MIROIR}: contenu divergent`), r.stderr)
     assert.equal(d.git('show', `HEAD:${MIROIR}`), main)
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (D2) — un travail NON STAGÉ sur une sortie reste sur le disque ; l’index reçoit la sortie produite', () => {
+  const d = depotAuSkill()
+  try {
+    const travail = `${derive(skill('v1'))}travail en cours\n`
+    d.ecrire(MIROIR, travail)
+    d.ecrire(SOURCE, skill('v2')); d.git('add', '--', SOURCE); d.git('commit', '-q', '-m', 'v2')
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('v2')))
+    assert.equal(d.lire(MIROIR), travail)
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (D2) — famille `hook` : `.claude/settings.json` mixte, le registre forgé de l’index fait la clé `hooks`, les `permissions` restent', () => {
+  const d = depotAuSkill({ [REGISTRE]: registre('Bash'), '.claude/settings.json': `${JSON.stringify({ permissions: { allow: ['Y'] } }, null, 2)}\n` })
+  try {
+    d.ecrire(REGISTRE, registre('Bash', 'Read')); d.git('add', '--', REGISTRE); d.git('commit', '-q', '-m', 'Read')
+    const claude = JSON.parse(d.git('show', 'HEAD:.claude/settings.json'))
+    assert.deepEqual(claude.permissions, { allow: ['Y'] })
+    assert.equal(claude.hooks.PreToolUse[0].matcher, 'Bash|Read')
+    assert.ok(JSON.parse(d.git('show', 'HEAD:.codex/hooks.json')).hooks.PreToolUse[0].matcher.includes('Read'))
+    assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (D1) — producteur SALE (compat-core) : aucune famille produite, avertissement nommé', () => {
+  const d = depotAuSkill({ [REGISTRE]: registre('Bash') })
+  try {
+    d.ecrire(NOYAU, `${PRODUCTEUR[NOYAU]}// sale\n`)
+    d.ecrire(SOURCE, skill('v2')); d.git('add', '--', SOURCE)
+    const r = d.jouer('commit', '-q', '-m', 'v2')
+    assert.equal(r.status, 0, r.stderr)
+    assert.ok(lignes(r).some((l) => l.startsWith("pre-commit — miroirs d'agents NON produits : le producteur (compat-cli, compat-core)") && l.includes(NOYAU)), r.stderr)
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('v1')))
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (D1) — registre SALE : la famille `hook` saute, nommée ; les skills sont produits', () => {
+  const d = depotAuSkill({ [REGISTRE]: registre('Bash') })
+  try {
+    d.ecrire(REGISTRE, registre('Bash', 'Read'))
+    d.ecrire(SOURCE, skill('v2')); d.git('add', '--', SOURCE)
+    const r = d.jouer('commit', '-q', '-m', 'v2')
+    assert.equal(r.status, 0, r.stderr)
+    assert.ok(lignes(r).some((l) => l.startsWith('pre-commit — famille `hook` NON produite') && l.includes(REGISTRE)), r.stderr)
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('v2')))
+    assert.equal(JSON.parse(d.git('show', 'HEAD:.claude/settings.json')).hooks.PreToolUse[0].matcher, 'Bash')
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (D3) — import des registres en ÉCHEC : seule la famille `hook` saute, les skills sont produits', () => {
+  const d = depotAuSkill({ [REGISTRE]: "throw new Error('registre cassé')\n" })
+  try {
+    d.ecrire(SOURCE, skill('v2')); d.git('add', '--', SOURCE)
+    const r = d.jouer('commit', '-q', '-m', 'v2')
+    assert.equal(r.status, 0, r.stderr)
+    assert.ok(lignes(r).some((l) => l.startsWith('pre-commit — famille `hook` NON produite : import des registres') && l.includes('registre cassé')), r.stderr)
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('v2')))
   } finally {
     d.fin()
   }
@@ -360,6 +485,49 @@ test('#2578 (e) — une fusion SANS conflit qui touche un skill laisse HEAD coh�
     assert.equal(d.git('show', `HEAD:${SOURCE}`), skill('L1\n\nl2\n\nL3'))
     assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(d.git('show', `HEAD:${SOURCE}`)))
     assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (e\') — fusion NON LOCALE sans conflit : le générateur change d’un côté, un skill de l’autre ; HEAD porte le miroir du générateur fusionné', () => {
+  const d = depotAuSkill()
+  try {
+    const courante = d.git('rev-parse', '--abbrev-ref', 'HEAD').trim()
+    d.git('checkout', '-q', '-b', 'amont')
+    const noyau = PRODUCTEUR[NOYAU].replace('function adapt(text) {\n', "function adapt(text) {\n  text = text.replaceAll('ZZ', 'YY');\n")
+    assert.notEqual(noyau, PRODUCTEUR[NOYAU], 'témoin : le générateur forgé change')
+    d.ecrire(NOYAU, noyau); d.git('add', '--', NOYAU); d.git('commit', '-q', '-m', 'générateur')
+    d.git('checkout', '-q', courante)
+    d.ecrire(SOURCE, skill('v1\n\nZZ')); d.git('add', '--', SOURCE); d.git('commit', '-q', '-m', 'skill')
+    assert.ok(d.git('show', `HEAD:${MIROIR}`).includes('ZZ'), 'témoin : le miroir du chantier dérive de l’ancien générateur')
+    const fusion = d.jouer('merge', '--no-edit', 'amont')
+    assert.equal(fusion.status, 0, fusion.stderr)
+    assert.ok(d.git('rev-parse', '--verify', 'HEAD^2'), 'témoin : un commit de fusion')
+    assert.ok(d.git('show', `HEAD:${MIROIR}`).includes('YY'), `HEAD :\n${d.git('show', `HEAD:${MIROIR}`)}\nindex :\n${d.git('show', `:${MIROIR}`)}\nstatut :\n${d.statut()}`)
+    assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (f) — `rebase --continue` sur un conflit de skill ne joue pas le pre-commit : le post-rewrite produit dans l’index et le SIGNALE', () => {
+  const d = depotAuSkill()
+  try {
+    const courante = d.git('rev-parse', '--abbrev-ref', 'HEAD').trim()
+    d.git('checkout', '-q', '-b', 'sujet')
+    d.ecrire(SOURCE, skill('sujet')); d.git('add', '--', SOURCE); d.git('commit', '-q', '-m', 'sujet')
+    d.git('checkout', '-q', courante)
+    d.ecrire(SOURCE, skill('tronc')); d.git('add', '--', SOURCE); d.git('commit', '-q', '-m', 'tronc')
+    d.git('checkout', '-q', 'sujet')
+    assert.notEqual(d.jouer('rebase', courante).status, 0, 'témoin : conflit')
+    d.ecrire(SOURCE, skill('resolu')); d.ecrire(MIROIR, derive(skill('sujet'))); d.git('add', '--', SOURCE, MIROIR)
+    const r = resultatDeGit(['-c', 'core.editor=true', 'rebase', '--continue'], { cwd: d.racine, env: { ...envDeDepotForge(), GIT_EDITOR: 'true' } })
+    assert.equal(r.status, 0, r.stderr)
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('sujet')), 'le pre-commit n’a pas produit')
+    assert.ok(lignes(r).some((l) => l.startsWith("[post-rewrite] miroirs d'agents produits dans l'index, HEAD ne les porte pas — À COMMETTRE") && l.includes(MIROIR)), r.stderr)
+    assert.equal(d.git('show', `:${MIROIR}`), derive(skill('resolu')))
+    assert.equal(d.lire(MIROIR), derive(skill('resolu')))
   } finally {
     d.fin()
   }

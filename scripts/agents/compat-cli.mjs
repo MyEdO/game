@@ -2,8 +2,8 @@ import { readdir, readFile, mkdir, rename, rm, writeFile } from 'node:fs/promise
 import { randomUUID } from 'node:crypto';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ENTREES_OUTIL, MANAGED_ROOTS, SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateRolePairs } from './compat-core.mjs';
-import { INDEX, INDEX_DU_DEPOT, ecrireBlob, entreesDe, lireEnLot, listerImage, parentsDe, poserDansIndex, refusDeGit, reussi } from '../guards/lib/gitPorte.mjs';
+import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateRolePairs } from './compat-core.mjs';
+import { INDEX, depotDe, ecrireBlob, lireEnLot, listerImage, poserDansIndex, refusDeGit, reussi } from '../guards/lib/gitPorte.mjs';
 
 const CE_MODULE = fileURLToPath(import.meta.url);
 const RACINE_DU_DEPOT = join(dirname(CE_MODULE), '..', '..');
@@ -39,12 +39,13 @@ async function snapshot(root) {
 }
 
 /**
- * Les dépendances de `runCompat` qui jouent la production sur l'INDEX du dépôt `depot` (celui que lit
- * la commande en cours, `GIT_INDEX_FILE` compris) : `snapshot` lit les blobs de l'index, `atomicWrite`
- * et `rm` posent (retirent) l'entrée dans l'index, puis sur le disque.
- * @param {import('../guards/lib/gitPorte.mjs').Depot} depot
+ * Les dépendances de `runCompat` qui jouent la production sur l'INDEX du dépôt de `cwd` (celui que lit
+ * git sous `env`, `GIT_INDEX_FILE` compris) : `snapshot` lit les blobs de l'index, `atomicWrite` et
+ * `rm` posent (retirent) l'entrée dans l'index, puis sur le disque si le disque suivait l'index.
+ * @param {{ cwd: string, env?: NodeJS.ProcessEnv }} lieu
  */
-export function dependancesDeLIndex(depot) {
+export function dependancesDeLIndex({ cwd, env }) {
+  const depot = depotDe(cwd, { env });
   let lu = new Map();
   /** Le disque de `rel` porte-t-il le blob de l'index lu ? Sinon, un travail non stagé y vit : il reste. */
   const disqueSuitLIndex = async (rel) => {
@@ -78,29 +79,6 @@ export function dependancesDeLIndex(depot) {
 function exiger(union, quoi) {
   if (!reussi(union)) throw new Error(`${quoi} : ${refusDeGit(union)}`);
   return union.valeur.stdout;
-}
-
-/** Les sorties de `runCompat` : celles de `MANAGED_ROOTS` et les deux surfaces de hooks. */
-const SORTIES = [...MANAGED_ROOTS, SURFACE_CLAUDE, SURFACE_CODEX];
-
-/**
- * Après un commit, l'index DU DÉPÔT aligné sur HEAD pour chaque sortie que ce commit a changée et dont
- * il porte encore la version du parent : `git commit -- <chemins>` commet un index EMPRUNTÉ, où le
- * pre-commit a produit (`git help commit`, « --only »). Les chemins réalignés.
- * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @returns {string[]}
- */
-export function realignerIndexDuDepot(depot) {
-  const [parent] = parentsDe(depot, 'HEAD') ?? [];
-  const chemins = [...new Set([...listerImage(depot, 'HEAD', ...SORTIES), ...(parent ? listerImage(depot, parent, ...SORTIES) : [])])];
-  if (!chemins.length) return [];
-  const tete = entreesDe(depot, 'HEAD', chemins);
-  const avant = parent ? entreesDe(depot, parent, chemins) : new Map();
-  const index = entreesDe(depot, INDEX, chemins, { index: INDEX_DU_DEPOT });
-  const meme = (a, b) => a?.sha === b?.sha && a?.mode === b?.mode;
-  const entrees = chemins.filter((c) => !meme(tete.get(c), avant.get(c)) && meme(index.get(c), avant.get(c)))
-    .map((c) => (tete.has(c) ? { chemin: c, ...tete.get(c) } : { chemin: c, retirer: true }));
-  if (entrees.length) exiger(poserDansIndex(depot, { index: INDEX_DU_DEPOT, entrees }), 'index du dépôt');
-  return entrees.map((e) => e.chemin);
 }
 
 function validationDiagnostics(files) {
