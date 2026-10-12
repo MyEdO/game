@@ -579,7 +579,7 @@ Les objets personnels portés ne comptent pas, sauf très volumineux/lourds : ta
 **Voir aussi :** [`catalogue-equipement.md`](catalogue-equipement.md) § [MDG 12] (tables *Exemples de bateaux* et *Caractéristiques de bateau standard*) · § Construction navale (MDG) · § Traits de navire (MDG) · § Améliorations de navire (MDG) · [`deplacement.md`](deplacement.md) (voyage, vitesses).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.5-81) → `cargoTone`, `SIZE_SHIPBOARD_ENC`, `OverloadPalier`, `PortState`, `ShipDossierView`, `vesselMaxLoadEnc`, `OVERLOAD_HARD_CAP_PCT`, `CargoOverload`, `shipboardSouls`, `cargoOverload`, +12 — `src/data/schemas/defs/sizes.ts`, `src/data/sea-cargo.json`, `src/engine/possession.ts`, `src/engine/seaVoyage.ts`, `src/engine/size.ts`, `src/engine/types.ts`, +9 fichiers
+- `MDG 12` (l.5-81) → `cargoTone`, `SIZE_SHIPBOARD_ENC`, `OverloadPalier`, `PortState`, `ShipDossierView`, `vesselMaxLoadEnc`, `OVERLOAD_HARD_CAP_PCT`, `CargoOverload`, `shipboardSouls`, `cargoOverload`, +14 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sizes.ts`, `src/data/sea-cargo.json`, `src/engine/possession.ts`, `src/engine/seaVoyage.ts`, `src/engine/size.ts`, +11 fichiers
 - sans code : `MDG 12` (l.5)
 
 ---
@@ -692,7 +692,7 @@ Modifications ajoutables après coup à un vaisseau ; d'autres figurent dans le 
 **Voir aussi :** [`catalogue-equipement.md`](catalogue-equipement.md) § [MDG 12] (Coûts/Poids des Améliorations, table *Panne de Vapeur*) · § Navires — profil et Caractéristiques (MDG) · § Pièces d'artillerie navale (MDG) (Sabords & tir).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 12` (l.195-364) → `SteamSaveModal`, `moteur-broute`, `fuite-de-vapeur`, `CollisionShip`, `nid-de-pie`, `doc`, `peu-maniable`, `perte-de-pression`, `renforce`, `resolveCollision`, +46 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/schemas/defs/naval-traits.ts`, `src/data/schemas/defs/ship-construction.ts`, `src/data/schemas/defs/ship-stations.ts`, +20 fichiers
+- `MDG 12` (l.195-364) → `SteamSaveModal`, `moteur-broute`, `fuite-de-vapeur`, `CollisionShip`, `nid-de-pie`, `doc`, `peu-maniable`, `perte-de-pression`, `renforce`, `resolveCollision`, +47 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/schemas/defs/naval-traits.ts`, `src/data/schemas/defs/ship-construction.ts`, `src/data/schemas/defs/ship-stations.ts`, +20 fichiers
 
 ---
 

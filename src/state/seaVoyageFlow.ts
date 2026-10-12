@@ -143,7 +143,7 @@ export type SeaCrisis =
  *  (`runSeaDay`) est UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3), sans FSM
  *  `step` persistée : le point de reprise EST `pendingCascade`/`suspendedCascades` (state/cascade.ts). */
 export interface SeaVoyageState {
-  /** Cap dominant du trajet (aspect du vent) — d'auteur (`MapRoute.seaHeading`), requis (#416). */
+  /** Cap dominant du trajet (fixe le vent relatif, MDG 13 l.262-270) — d'auteur (`MapRoute.seaHeading`), requis (#416). */
   heading: WindDirection;
   weather: SeaWeather;
   windFrom: WindDirection;
@@ -859,7 +859,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   return { steps, log: [] };
 }
 
-/** Sens de la dérive sous le vent le long du trajet, par aspect du vent (MDG 13 l.262-270, l.294). */
+/** Sens de la dérive sous le vent le long du trajet, par vent relatif (MDG 13 l.262-270, l.294). */
 const DRIFT_ALONG_ROUTE: Record<WindAspect, -1 | 0 | 1> = { arriere: 1, lateral: 0, face: -1 };
 const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.driftBack' } as const;
 
@@ -2828,14 +2828,16 @@ export function resolveShoreLeave(get: Get, set: Set, allow: boolean): void {
   const vessel = get().vessel;
   const threshold = allow && vessel ? moraleBand(vessel.morale.score).desertionRoll : 0;
   if (threshold) {
-    openWorldTest(get, set, {
+    const resolue = openWorldTest(get, set, {
       actionLabel: t('sv.desertion'),
       cible: threshold,
       verdict: { reussite: t('seuil.sousLeSeuil'), echec: t('seuil.auDessus') },
     }, 'sea-desertion');
+    if (resolue) { finalizePortArrivalTo(get, set, p.to, true); return; } // résolue sur place (I) : l'applier a joué la désertion → accoster maintenant
+    // Fenêtre ouverte (M/V), ou pilote arrêté sur un choix : la clôture du slot finalise l'accostage
+    // (`dispatchCascadeDone` → `finalizePortArrival`). Interrompu par la défaite : aucun slot, rien à enchaîner.
     const casc = get().pendingCascade;
-    if (casc) { set({ pendingCascade: { ...casc, portArrival: { toPlaceId: p.to.id, allow: true } } }); return; } // surfacé (V) → la clôture finalise l'accostage (`dispatchCascadeDone` → `finalizePortArrival`)
-    finalizePortArrivalTo(get, set, p.to, true); // inline : le test s'est auto-résolu (l'applier a joué la désertion) → accoster maintenant
+    if (casc) set({ pendingCascade: { ...casc, portArrival: { toPlaceId: p.to.id, allow: true } } });
     return;
   }
   finalizePortArrivalTo(get, set, p.to, allow);

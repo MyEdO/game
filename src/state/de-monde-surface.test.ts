@@ -316,7 +316,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
     expect(step.worldOwner, 'étape de MONDE : aucun acteur ne la porte, le sentinel la route au siège').toBe(true);
     expect(step.actorId).toBeUndefined();
     // La cible EST la Demande du Lieu (Taille 4 × 10 + 30 Commerce) — posée par le call-site en
-    // `meta.baseValue`, jamais recalculée par la porte.
+    // `cible` (`openWorldTest`), jamais recalculée par la porte.
     expect(step.target).toBe(70);
   });
 

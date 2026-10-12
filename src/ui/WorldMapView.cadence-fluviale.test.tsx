@@ -100,7 +100,7 @@ describe('#2545 — départ fluvial : la cadence se choisit au clic et part avec
   it('le sélecteur s’affiche au fleuve avec Commandée et Jour par jour — jamais la traversée rapide', () => {
     expect(bouton(commandee)).toBeTruthy();
     expect(bouton(jourParJour)).toBeTruthy();
-    expect(boutons().some((b) => /rapide/i.test(b.textContent ?? '')), 'traversée rapide = mer seulement').toBe(false);
+    expect(bouton(String(t('wm.traverseeRapideAction'))), 'traversée rapide = mer seulement').toBeUndefined();
     expect(bouton(commandee)!.title).toBe(String(t('wm.cadenceCommandeFleuve')));
     expect(bouton(jourParJour)!.title).toBe(String(t('wm.cadenceJourParJourFleuve')));
   });

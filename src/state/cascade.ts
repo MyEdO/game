@@ -1761,8 +1761,9 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * insertions comprises. Pour les repos de plusieurs jours, la reprise automatique et la triche de
  * recette. Renvoie les étapes RÉSOLUES (pour un éventuel bilan en lecture seule), ou `undefined` quand
  * le pilote est INTERROMPU — combat ouvert en plein vol, choix sans défaut authoré (cf. ci-dessous),
- * slot de cascade vivant, groupe anéanti : sa sortie est la clôture hors combat (`clotureHorsCombat`),
- * qui constate la non-viabilité du groupe AVANT tout dénouement. `undefined` : l'appelant n'enchaîne rien.
+ * slot de cascade que CE pilote a écrit (un slot déjà vivant à l'entrée n'en est pas un), groupe anéanti :
+ * sa sortie est la clôture hors combat (`clotureHorsCombat`), qui constate la non-viabilité du groupe
+ * AVANT tout dénouement. `undefined` : l'appelant n'enchaîne rien.
  *
  * `ctx` (optionnel) : titre/`purpose` du fragment — SEULEMENT nécessaire pour un appelant qui résout
  * un tableau DE PLUSIEURS étapes dont l'une peut ouvrir un combat en plein vol (`startCombat`, ex. la
@@ -1782,6 +1783,7 @@ export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ct
   let cur = steps;
   let seq = steps.length; // ce pilote résout un tableau à LUI : son compteur part de sa longueur
   let bornes: BornesDuFragment = { log: ctx?.log ?? [] }; // + celles des fragments collectés par les appliers
+  const slotALEntree = get().pendingCascade; // un slot DÉJÀ vivant n'est pas une interruption de CE pilote
 
   for (let i = 0; i < cur.length; i++) {
     const st = cur[i];
@@ -1839,7 +1841,7 @@ export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ct
     if (get().partyWiped) return undefined; // l'applier a constaté l'anéantissement : plus personne à qui appliquer la suite
   }
   assertBornesPortees(bornes);
-  return clotureHorsCombat(get, set) ? undefined : cur;
+  return clotureHorsCombat(get, set, slotALEntree) ? undefined : cur;
 }
 
 /**

@@ -960,25 +960,27 @@ function buildBatchStep(get: Get, req: RollRequest, kind: string, meta?: Cascade
  *    déjà câblé par `commitStep`/`cascadeAppliers`, `cascade.ts:107-110`) ;
  *  - I (inline) : `runCascadeImmediate` — MÊME registre, appelé d'office (mirror `runSkillTest`).
  * `meta` = paramètres SÉRIALISABLES de la conséquence (jamais de closure — coop, `CascadeStepMeta`).
- * Ne renvoie rien : le call-site est un one-liner déclaratif + son applier enregistré au préalable
- * (`registerCascadeApplier(kind, applier)`, `cascade.ts:57`).
+ * Rend le retour de `ouvrirLEtape` : l'étape résolue sur place, ou `undefined` (fenêtre ouverte, pilote
+ * interrompu, aucun candidat) — l'appelant qui ENCHAÎNE lit CE retour, jamais le slot.
  */
-export function openRoll(get: Get, set: Set, req: RollRequest, kind: string, meta?: CascadeStepMeta): void {
+export function openRoll(get: Get, set: Set, req: RollRequest, kind: string, meta?: CascadeStepMeta): CascadeStep[] | undefined {
   // Côté `partyBest` sans candidat (aucun PJ éligible à la compétence/carac visée) : rien à ouvrir —
   // même garde que l'ancien `if (best)` des call-sites (mandat coordinateur : la porte résout, donc
   // c'est ICI que le silence se décide, plus au call-site).
-  if ('partyBest' in req.side && !resolveMonoSide(get, req).actor) return;
+  if ('partyBest' in req.side && !resolveMonoSide(get, req).actor) return undefined;
   // BANDE ou MONO : le NOMBRE de porteurs déclarés, jamais une classe (#1479) — le mono EST la bande à
   // N=1, et une requête qui déclare ses contributeurs monte ses rangées.
   const step = 'participants' in req.side ? buildBatchStep(get, req, kind, meta) : buildMonoStep(get, req, kind, meta);
-  ouvrirLEtape(get, set, step, rollTitle(get, req));
+  return ouvrirLEtape(get, set, step, rollTitle(get, req));
 }
 
 /** LA QUEUE UNIQUE d'une étape ouverte SEULE : sa surface se dérive des porteurs de l'ÉTAPE
- *  (`porteursDeLEtape`) — I : pilote immédiat ; M/V : la fenêtre. */
-function ouvrirLEtape(get: Get, set: Set, step: CascadeStep, title: string): void {
-  if (surfaceDeLEtape(get, step) === 'I') runCascadeImmediate(get, set, [step]);
-  else startCascade(get, set, { title, purpose: 'test', steps: [step] });
+ *  (`porteursDeLEtape`) — I : pilote immédiat, dont le retour est rendu tel quel (contrat de
+ *  `runCascadeImmediate`) ; M/V : la fenêtre, `undefined`. */
+function ouvrirLEtape(get: Get, set: Set, step: CascadeStep, title: string): CascadeStep[] | undefined {
+  if (surfaceDeLEtape(get, step) === 'I') return runCascadeImmediate(get, set, [step]);
+  startCascade(get, set, { title, purpose: 'test', steps: [step] });
+  return undefined;
 }
 
 /**
@@ -1018,7 +1020,7 @@ export function openWorldTest(
   spec: { actionLabel: string; cible: number; verdict: SeuilVerdict; stake?: StakeRef },
   kind: string,
   meta?: CascadeStepMeta,
-): void {
+): CascadeStep[] | undefined {
   const step = worldStep({
     id: kind, kind,
     label: composeRollLabel(undefined, spec.actionLabel, {}),
@@ -1028,7 +1030,7 @@ export function openWorldTest(
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(meta ? { meta } : {}),
   });
-  ouvrirLEtape(get, set, step, spec.actionLabel);
+  return ouvrirLEtape(get, set, step, spec.actionLabel);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -1478,8 +1480,7 @@ export interface TableSpec {
    *  requis, compter les sites de PRODUCTION qui ne compilent plus) — aucune ne tombe à 0, donc aucune
    *  ne se mure :
    *   · `RollRequest` : les 2 RELAIS génériques ici même (`openPartyTest`/`openWorldTest` transmettent
-   *     l'enjeu de leur appelant) ; les 4 SONDES DE SURFACE `resolveSurface` (`seaActivities`,
-   *     `seaVoyageFlow` ×3) ont disparu avec la dérivation par PORTEURS (#1479). Compte VIVANT :
+   *     l'enjeu de leur appelant). Compte VIVANT :
    *     `BASELINE_REQ` de `cascade-step-stake-guard.test.ts`, seul chiffre qui se re-mesure ;
    *   · `BandSpec` : 9 sites (dont 4 FABRIQUES de bande génériques — `nightBands`, `combatEndBands`,
    *     `pursuitFlow`, les 2 batch de `combat/triggeredTest` — qui transmettent l'enjeu de l'étape) ;
@@ -1962,7 +1963,7 @@ export function pushHost(get: Get, set: Set, spec: Declaree<HostSpec>): void {
  * Les flux bricolaient chacun le même invariant au call-site, donc rien n'empêchait qu'un chemin
  * voisin y amène un acteur piloté. L'invariant vit ICI, une fois.
  *
- * Prédicat : `surfaceOf` — LA définition de surface, la MÊME que `resolveSurface` (surface M), donc
+ * Prédicat : `surfaceOf` — LA définition de surface, la MÊME que `surfaceDeLEtape` (surface M), donc
  * SEAT-AGNOSTIQUE (le héros d'un AUTRE siège a un pilote : son jet n'a rien à faire ici) et
  * CADENCE-AWARE (en Rapide/Auto les jets se lancent sans influence, ce repli est alors la voie
  * normale d'un héros). `actor` absent (côté monde, conducteur sans acteur joueur) : aucun pilote

@@ -141,6 +141,8 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
   });
 
   it('sommeil MULTI-JOURS : chaque Test résolu d’office LAISSE SA LIGNE — dé, cible et issue', () => {
+    // Un second héros valide : la Fièvre peut mettre Hilda à terre, le groupe reste viable (`checkPartyWiped`).
+    useGame.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
     const journal: string[] = [];
     const vraiLog = useGame.getState().log;
@@ -166,6 +168,26 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     const h = useGame.getState().party[0];
     expect(target, 'la cible rendue est celle que la porte a montée')
       .toBe(clampTarget(testValue(h, 'resistance') + DIFFICULTY_MODIFIERS.intermediaire).target);
+  });
+
+  it('sommeil MULTI-JOURS sous un slot DÉJÀ vivant : chaque nuit se déroule — le pilote n’est interrompu que par un slot qu’IL a écrit', () => {
+    // Un second héros valide : la défaite (`checkPartyWiped`) ne peut pas être ce qui interrompt.
+    useGame.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
+    rendMalade('h1', 'pneumonie', 0);
+    useGame.getState().openRest({ places: { auberge: true } });
+    useGame.getState().restSleep();
+    const vivant = useGame.getState().pendingCascade;
+    expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();
+
+    const journal: string[] = [];
+    const vraiLog = useGame.getState().log;
+    useGame.setState({ log: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
+
+    useGame.getState().restParty(2);
+
+    const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+[ ]→[ ]/.test(l));
+    expect(lignesDeJet.length, `les DEUX nuits roulent leur Test : ${journal.join(' | ')}`).toBeGreaterThanOrEqual(2);
+    expect(useGame.getState().pendingCascade, 'le slot vivant à l’entrée reste le sien').toBe(vivant);
   });
 
   it('B2 — le HARNAIS de test et la NUIT réelle appliquent la MÊME guérison (Exténué collant compris)', () => {

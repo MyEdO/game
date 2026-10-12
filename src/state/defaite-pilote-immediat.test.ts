@@ -5,10 +5,13 @@
  * groupe entièrement à terre n'ouvre pas son campement : l'écran de défaite prend la main, le voyage et
  * la halte sont purgés.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
+import { buildSeaPlan, runSeaDay, continueSeaDayAfterCascade, resolveShoreLeave } from './seaVoyageFlow';
+import { runCascadeImmediate, registerCascadeApplier } from './cascade';
+import { checkPartyWiped } from './partyWipe';
+import { setCadence, resetCadence } from '../engine/cadence';
 import { buildRiverPlan, runRiverDays } from './riverVoyageFlow';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
@@ -18,6 +21,7 @@ import { createHero, skillCharacteristicById } from '../engine/character';
 import { draineCascade } from './cascadeTestKit';
 import type { WorldMap } from './worldMap';
 import type { Combatant } from '../engine/types';
+import type { CascadeStep } from './pendings';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -82,4 +86,49 @@ describe('#1595 — un groupe à terre est vaincu, quel que soit le pilote de sa
       expect(issue()).toEqual(DEFAITE);
     });
   }
+});
+
+describe('#1595 — le pilote immédiat s’arrête sur un groupe anéanti EN VOL', () => {
+  it('l’étape 1 anéantit le groupe : l’étape 2 n’est jamais appliquée, retour `undefined`', () => {
+    set({ battle: null, pendingCascade: null, suspendedCascades: [], partyWiped: false, journal: [], party: makePregens().slice(0, 2) } as never);
+    const vus: string[] = [];
+    registerCascadeApplier('sondeWipe', (g, s, step) => {
+      vus.push(step.id);
+      if (step.id === 'a') { s({ party: aTerre(g().party) }); checkPartyWiped(g, s); }
+      return undefined;
+    });
+    const steps = [{ id: 'a', kind: 'sondeWipe', label: 'A' }, { id: 'b', kind: 'sondeWipe', label: 'B' }] as unknown as CascadeStep[];
+    const r = runCascadeImmediate(get, set, steps, { title: 'T', purpose: 'test' });
+    expect(get().partyWiped).toBe(true);
+    expect(r).toBeUndefined();
+    expect(vus).toEqual(['a']);
+  });
+});
+
+describe('#1595 — relâche à terre résolue sur place : un groupe à terre n’accoste pas', () => {
+  afterEach(() => resetCadence());
+
+  it('désertion en surface I, groupe à terre : défaite, et l’accostage n’est jamais finalisé', () => {
+    seedBattleRng(1);
+    set({
+      party: makePregens().slice(0, 3),
+      scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+      battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null, pendingShoreLeave: null,
+      pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
+      vessel: { vehicleId: 'cogue', morale: { score: 30, lastMoraleWeek: 0, factors: [] } }, journal: [], partyWiped: false,
+    } as never);
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0] as never)!;
+    set({ travelPlan: { ...plan, kmDone: plan.km - 5, sea: { ...plan.sea!, daysAtSea: 5, milesToday: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
+    continueSeaDayAfterCascade(get, set);
+    draineCascade(get, 80);
+    expect(get().pendingShoreLeave, 'l’accostage attend le choix de relâche').toBeTruthy();
+
+    set({ party: aTerre(get().party) });
+    setCadence('rapide');
+    resolveShoreLeave(get, set, true);
+
+    expect(get().partyWiped).toBe(true);
+    expect(get().journal.some((l) => l.includes('Événement de port')), 'aucun événement de port sous l’écran de défaite').toBe(false);
+    expect(get().scene?.id, 'aucune transition vers le port').toBe('port-a');
+  });
 });

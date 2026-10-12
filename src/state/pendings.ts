@@ -2121,6 +2121,9 @@ export type CascadeStepBase = CascadeStepCore & LectureDuDe;
  *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/charte-ui.md`). */
 export type CascadeRollStep = CascadeStepBase & { target: number; rollLabel: string };
 
+/** Étape qui lance un dé LU EN TEST (`LectureDuDe` `'test'`, LDB 12 l.28). */
+export type CascadeTestStep = Extract<CascadeRollStep, { evaluation?: 'test' }>;
+
 /**
  * UNE étape de cascade : elle LANCE (cible + libellé de ligne) ou elle ne lance pas (affichage, choix,
  * table, batch — ni l'un ni l'autre). Le lien est porté par le TYPE, pas par un repli d'affichage :
