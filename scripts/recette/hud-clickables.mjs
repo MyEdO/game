@@ -850,7 +850,7 @@ async function main() {
       await sleep(500);
       const m = await evaluate(session, PROBE);
       if (m.combat) throw new Error(`exploration ${w}px : la frise d'initiative est montée — l'app n'est pas en exploration`);
-      if (!m.navire) console.log(`exploration ${w}px — accès au navire NON MESURÉ (aucun navire attendu)`);
+      console.log(`exploration ${w}px — accès au navire NON MESURÉ (${m.navire ? "navire présent, mais le rail qui porte son ouvreur n'existe qu'en combat" : 'aucun navire'})`);
       const d = [...defauts(m, 'exploration'), ...defautsMatrice(m, 'exploration')];
       serieExploration.push(m);
       const bande = !m.groupe ? 'aucune bande de groupe'

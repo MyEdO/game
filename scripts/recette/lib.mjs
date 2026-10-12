@@ -588,7 +588,7 @@ export function brancherCdp(ws, champs = {}) {
   let id = 0;
   const pending = new Map();
   const listeners = new Set();
-  const session = { ws, chrome: null, listeners, sessionId: null, targetId: null, profile: null, contextCleared: false, ...champs };
+  const session = { chrome: null, listeners, sessionId: null, targetId: null, profile: null, contextCleared: false, ...champs };
   ws.addEventListener('message', (ev) => {
     const m = JSON.parse(typeof ev.data === 'string' ? ev.data : ev.data.toString());
     if (m.method === 'Runtime.executionContextsCleared' && (!m.sessionId || m.sessionId === session.sessionId)) {
@@ -625,10 +625,15 @@ export function brancherCdp(ws, champs = {}) {
     ws.send(JSON.stringify(msg));
   });
   // Le domaine `Input` n'est émis que par `geste` et `frappe` : l'émetteur BRUT leur est remis par
-  // `emetteursBruts`, `rpc` et `rpcNavigateur` le refusent.
-  const verrouille = (envoi) => (method, params = {}) => (DOMAINE_ENTREE.test(method)
-    ? Promise.reject(new Error(`rpc « ${method} » : le domaine Input n'est émis que par \`geste\` (souris, toucher) ou \`frappe\` (clavier) — aucun événement émis`))
-    : envoi(method, params));
+  // `emetteursBruts`, `rpc` et `rpcNavigateur` le refusent, relayé par `Target.sendMessageToTarget`
+  // compris. La socket reste dans cette fermeture : la session ne l'expose pas.
+  const verrouille = (envoi) => (method, params = {}) => {
+    const visee = method === RELAIS_CIBLE ? methodeRelayee(params.message) : method;
+    if (visee === null) return Promise.reject(new Error(`rpc « ${method} » : message relayé illisible (JSON portant \`method\` attendu) — aucun événement émis`));
+    return DOMAINE_ENTREE.test(visee)
+      ? Promise.reject(new Error(`rpc « ${method === RELAIS_CIBLE ? `${method} » relayant « ${visee}` : method} » : le domaine Input n'est émis que par \`geste\` (souris, toucher) ou \`frappe\` (clavier) — aucun événement émis`))
+      : envoi(method, params);
+  };
   const brut = (method, params = {}) => envoyer(method, params, session.sessionId);
   session.rpc = verrouille(brut);
   session.rpcNavigateur = verrouille((method, params) => envoyer(method, params, null));
@@ -1164,6 +1169,19 @@ const emetteursBruts = new WeakMap();
 /** Domaine CDP des événements d'ENTRÉE : `session.rpc` le refuse, `geste` et `frappe` l'émettent. */
 export const DOMAINE_ENTREE = /^Input\./;
 
+/** Méthode CDP qui RELAIE un message à une cible : le verrou lit la méthode relayée. */
+const RELAIS_CIBLE = 'Target.sendMessageToTarget';
+
+/** La méthode d'un message relayé (`RELAIS_CIBLE`), `null` s'il est illisible. */
+function methodeRelayee(message) {
+  try {
+    const m = JSON.parse(message);
+    return typeof m?.method === 'string' ? m.method : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Les INTENTIONS d'un geste : `agir` LÈVE sur un contrôle fermé (`aria-disabled`) ; `lire` le
  *  touche quand même et rend sa fermeture — le refus est ce qu'on vient lire (`GatedAction`). Un
  *  `disabled` natif lève dans les deux. */
@@ -1187,7 +1205,7 @@ export async function setAtelier(session, actif = true, { dans = '.codex-top' } 
  * contrôle n'a pas de texte (un bouton à GLYPHE : tiroir du journal, menu ☰, ouvreur d'écran).
  * `geste` sur `{ selecteur }` : la cible attendue jusqu'à `attenteMs`, unique, ouverte, atteinte au
  * point. `attendreChangement` : même option que `clickButtonByText` (`avecEffet`).
- * @returns {Promise<{ x: number, y: number, ferme: null }>}
+ * @returns {Promise<{ x: number, y: number, label: string, ferme: null }>}
  */
 export async function cliquerSelecteur(session, selecteur, { modifiers = 0, attendreChangement = false, attenteMs = ATTENTE_CIBLE } = {}) {
   return geste(session, { selecteur }, { qui: 'cliquerSelecteur', attenteMs },
@@ -1204,10 +1222,14 @@ export async function clickItemByText(session, texte, { selecteur, nom, dans, ex
  *  `selecteur`) : un `<summary>` de `<details>` est un contrôle (« + Op mécanique », `AddMenu`). */
 export const SELECTEUR_CONTROLES = 'button, [role="button"], summary';
 
+/** Les CHAMPS d'un formulaire : leur nom accessible vient de leur `<label>` (`champParLibelle`). */
+const SELECTEUR_CHAMPS = 'input, select, textarea';
+
 /** `nomAccessible(el)` (fonction de PAGE, `norm` en portée) : le NOM d'un contrôle désigné par texte —
- *  son `aria-label` explicite, sinon texte ; `title` si le nom est vide. SOURCE UNIQUE des
- *  localisateurs par TEXTE (`CORPS_NOM_ACCESSIBLE` dans une expression, `pageLocaliser`). */
-const FN_NOM_ACCESSIBLE = "(b) => norm(b.getAttribute('aria-label')) || norm(b.textContent) || norm(b.getAttribute('title'))";
+ *  son `aria-label` explicite, sinon texte (pour un CHAMP, le texte de son premier `<label>`, champs
+ *  imbriqués retirés) ; `title` si le nom est vide. SOURCE UNIQUE des localisateurs par TEXTE
+ *  (`CORPS_NOM_ACCESSIBLE` dans une expression, `pageLocaliser`). */
+const FN_NOM_ACCESSIBLE = `(b) => norm(b.getAttribute('aria-label')) || norm(b.matches('${SELECTEUR_CHAMPS}') ? (() => { const l = b.labels && b.labels[0] ? b.labels[0].cloneNode(true) : null; if (l) l.querySelectorAll('${SELECTEUR_CHAMPS}').forEach((c) => c.remove()); return l ? l.textContent : ''; })() : b.textContent) || norm(b.getAttribute('title'))`;
 const CORPS_NOM_ACCESSIBLE = `const nomAccessible = ${FN_NOM_ACCESSIBLE};`;
 
 /** `couche(el)` (fonction de PAGE) : la COUCHE de défilement d'un élément — son premier ancêtre
@@ -1244,17 +1266,21 @@ function formeDeCible(cible, qui) {
 const decrireCible = (c) => c.surface !== undefined
   ? `« ${c.surface} » au point (${Math.round(c.x)}, ${Math.round(c.y)})`
   : c.nom !== undefined
-    ? `« ${c.nom} »${c.exact === false ? '' : ' (texte EXACT)'}${c.selecteur ? ` parmi « ${c.selecteur} »` : ''}${c.dans ? ` dans « ${c.dans} »` : ''}${c.rangee !== undefined ? ` dans la rangée « ${c.rangee} »` : ''}`
+    ? `« ${c.nom} »${c.exact === false ? '' : ' (texte EXACT)'}${c.selecteur ? ` parmi « ${c.selecteur} »` : ''}${c.dans ? ` dans « ${c.dans} »` : ''}${c.rangee !== undefined ? ` dans la rangée « ${c.rangee} »` : ''}${c.etiquette?.texte !== undefined ? ` de ${c.etiquette.option} « ${c.etiquette.texte} »` : ''}`
     : `« ${c.selecteur} »${c.dans ? ` dans « ${c.dans} »` : ''}`;
 
 /**
  * LOCALISEUR (fonction de PAGE, `evaluerFn`) : résout la cible par `querySelectorAll` et LÈVE dès
  * qu'il y a plus d'un candidat, en les nommant. Formes : `{ nom }` (nom accessible exact, ou texte
  * de `libelle` dans chaque candidat ; `rangee` retient les candidats de la rangée qui porte ce
- * texte), `{ selecteur }`, `{ surface, x, y }`. La cible retenue est MARQUÉE du `jeton`. `point` :
+ * texte ; `etiquette: { selecteur, texte, option }` retient les candidats dont l'élément `selecteur`
+ * porte EXACTEMENT `texte`, et l'ambiguïté nomme leurs étiquettes et propose `{ option }`),
+ * `{ selecteur }`, `{ surface, x, y }`. La cible retenue est MARQUÉE du `jeton`. `point` : `aucun`
+ * (la marque seule, sans boîte),
  * `centre` (boîte, après `scrollIntoView` si `defiler`), `visible` (centre de la partie visible,
  * sans défiler), `defilant` (centre de la partie visible de la COUCHE de la cible, et la cible
- * est-elle visible dans cette couche). Rend `{ absente }`, `{ vide }`, `{ hors }` ou le point.
+ * est-elle visible dans cette couche). Rend `{ absente }`, `{ vide }`, `{ hors }` ou le point, avec le
+ * `label` de la cible (son nom accessible, 60 caractères).
  */
 function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom, fnCouche) {
   const norm = (s) => (s || '').replace(/\s+/g, ' ').replace(/[’']/g, "'").trim();
@@ -1262,6 +1288,7 @@ function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom
   const couche = new Function('return ' + fnCouche)();
   const decrire = (e) => e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + ' « ' + norm(e.textContent).slice(0, 60) + ' »';
   const rangeeDe = new Map();
+  const etiquetteDe = (e) => norm(e.querySelector(cible.etiquette.selecteur)?.textContent);
   const ambigu = (quoi, liste, conseil) => new Error(qui + ' : ' + liste.length + ' ' + quoi + ' — '
     + (rangeeDe.size ? 'rangées retenues : ' + liste.slice(0, 6).map((e) => decrire(rangeeDe.get(e))).join(' | ') : liste.slice(0, 6).map(decrire).join(' | '))
     + ' — ' + conseil + ' ; aucun événement émis');
@@ -1291,31 +1318,36 @@ function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom
       }
       candidats = libelles.filter((b) => retenus.has(b));
     }
+    if (cible.etiquette && cible.etiquette.texte !== undefined) candidats = candidats.filter((e) => etiquetteDe(e) === norm(cible.etiquette.texte));
   }
   const quoi = cible.surface !== undefined ? '« ' + cible.surface + ' »' : cible.nom !== undefined ? '« ' + norm(cible.nom) + ' »' : '« ' + cible.selecteur + ' »';
   if (candidats.length > 1) {
-    throw ambigu('cibles ambiguës ' + quoi, candidats, cible.surface !== undefined ? 'préciser { surface }' : cible.nom !== undefined ? 'préciser { dans }, { rangee } ou { selecteur }' : 'préciser { selecteur } ou { dans }');
+    throw ambigu('cibles ambiguës ' + quoi, candidats, cible.surface !== undefined ? 'préciser { surface }'
+      : cible.etiquette ? 'préciser { ' + cible.etiquette.option + ' } — offerts : ' + candidats.map(etiquetteDe).join(' | ')
+        : cible.nom !== undefined ? 'préciser { dans }, { rangee } ou { selecteur }' : 'préciser { selecteur } ou { dans }');
   }
   const el = candidats[0];
   if (!el) return { absente: true };
   for (const v of document.querySelectorAll('[' + attr + '="' + jeton + '"]')) v.removeAttribute(attr);
   el.setAttribute(attr, jeton);
-  if (cible.surface !== undefined) return { x: cible.x, y: cible.y };
+  if (point === 'aucun') return {};
+  const label = nomAccessible(el).slice(0, 60);
+  if (cible.surface !== undefined) return { x: cible.x, y: cible.y, label };
   if (point === 'centre' && defiler) el.scrollIntoView({ block: 'center', inline: 'center' });
   const boite = (e) => { const q = e.getBoundingClientRect(); return { x: q.x, y: q.y, w: q.width, h: q.height }; };
   const r = boite(el);
-  if (r.w === 0 || r.h === 0) return { vide: true };
-  if (point === 'centre') return { x: Math.round(r.x + r.w / 2), y: Math.round(r.y + r.h / 2) };
+  if (r.w === 0 || r.h === 0) { el.removeAttribute(attr); return { vide: true }; }
+  if (point === 'centre') return { x: Math.round(r.x + r.w / 2), y: Math.round(r.y + r.h / 2), label };
   const c = couche(el);
   const zone = point === 'visible' ? r : c === document.scrollingElement || c === document.documentElement ? null : boite(c);
   const g = Math.max(zone ? zone.x : 0, 0), d = Math.min(zone ? zone.x + zone.w : innerWidth, innerWidth);
   const h = Math.max(zone ? zone.y : 0, 0), b = Math.min(zone ? zone.y + zone.h : innerHeight, innerHeight);
-  if (!(d > g && b > h)) return { hors: true };
+  if (!(d > g && b > h)) { el.removeAttribute(attr); return { hors: true }; }
   const centre = { x: Math.round((g + d) / 2), y: Math.round((h + b) / 2) };
-  if (point === 'visible') return { ...centre, zone: { g, d, h, b } };
+  if (point === 'visible') return { ...centre, label, zone: { g, d, h, b } };
   const cy = r.y + r.h / 2;
   const visible = r.h <= b - h ? r.y >= h && r.y + r.h <= b : cy >= h && cy <= b;
-  return { ...centre, visible, ecart: cy - (h + b) / 2, centre: { x: r.x + r.w / 2, y: cy } };
+  return { ...centre, label, visible, ecart: cy - (h + b) / 2, centre: { x: r.x + r.w / 2, y: cy } };
 }
 
 /**
@@ -1354,6 +1386,17 @@ function pageControler(jeton, attr, x, y, mode, intention, fnCouche) {
     couches: mode === 'couche' ? { visee: nommer(couche(c)), atteinte: nommer(couche(el)) } : null,
   };
 }
+
+/** MARQUE la cible (`pageLocaliser`, point `aucun`) sans geste, pour une lecture ou un appel CDP :
+ *  rend le `jeton` posé, `null` si elle est absente ; LÈVE sur plus d'un candidat. */
+async function marquer(session, cible, qui) {
+  const jeton = nouveauJeton();
+  const loc = await evaluerFn(session, pageLocaliser, formeDeCible(cible, qui), jeton, ATTR_CIBLE, qui, false, 'aucun', SELECTEUR_CONTROLES, FN_NOM_ACCESSIBLE, FN_COUCHE);
+  return loc.absente ? null : jeton;
+}
+
+/** Sélecteur de l'élément marqué `jeton`. */
+const marqueDe = (jeton) => `[${ATTR_CIBLE}="${jeton}"]`;
 
 /** Retire la marque `jeton` d'une cible dont le geste n'aura pas lieu. */
 const retirerJeton = (session, jeton) => evaluerFn(session, (jeton, attr) => { for (const v of document.querySelectorAll('[' + attr + '="' + jeton + '"]')) v.removeAttribute(attr); }, jeton, ATTR_CIBLE);
@@ -1409,7 +1452,8 @@ const EMISSIONS = Object.freeze({ souris: 'Input.dispatchMouseEvent', tactile: '
  * GESTE RÉEL — le SEUL émetteur d'événements souris et tactiles du kit : RÉSOUT `cible` (une forme
  * explicite, `pageLocaliser`), la CONTRÔLE au point d'émission (`pageControler`), puis appelle
  * `evenements(localisation, emettre)`, où `emettre('souris' | 'tactile', params)` émet l'événement
- * CDP. Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
+ * CDP AU POINT CONTRÔLÉ : un autre point LÈVE, sauf le glissé (`mouseMoved`, `mouseReleased` entre
+ * un `mousePressed` et son relâchement). Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
  * `defiler`, `attenteMs`, `point` (`centre`, `visible`, `defilant`), `controle` (`cible`, ou
  * `couche` pour un cran de molette). Rend la localisation, avec `ferme` (`null`, ou
  * `{ mecanisme, raison }` sous `lire`).
@@ -1423,8 +1467,16 @@ export async function geste(session, cible, { intention = 'agir', qui = 'geste',
   const jeton = nouveauJeton();
   const loc = await localiser(session, forme, { jeton, qui, defiler, point, attenteMs });
   const { ferme } = await controler(session, loc.x, loc.y, { jeton, libelle: decrireCible(forme), qui, intention, attenteMs, mode: controle });
+  let tenu = false;
   await evenements(loc, (domaine, params) => {
     if (!EMISSIONS[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS).join(', ')}`);
+    const glisse = domaine === 'souris' && tenu && (params.type === 'mouseMoved' || params.type === 'mouseReleased');
+    const ecart = (domaine === 'souris' ? [params] : params.touchPoints ?? []).find((p) => p.x !== loc.x || p.y !== loc.y);
+    if (ecart && !glisse) {
+      throw new Error(`${qui} : « ${params.type} » au point (${ecart.x}, ${ecart.y}), le point contrôlé est (${loc.x}, ${loc.y}) — seul un glissé bouton tenu quitte le point contrôlé — aucun événement émis`);
+    }
+    if (domaine === 'souris' && params.type === 'mousePressed') tenu = true;
+    if (domaine === 'souris' && params.type === 'mouseReleased') tenu = false;
     return brut(EMISSIONS[domaine], params);
   });
   return { ...loc, ferme };
@@ -1903,16 +1955,24 @@ export async function survoler(session, cible, { attenteMs = 500, modifiers = 0,
  * écarts entre les deux boîtes (0 quand elles se touchent ou se recouvrent sur cet axe). Une bulle
  * posée loin de sa cible est le symptôme d'un rect mesuré à 0×0 (piège vécu : `display: contents`
  * sur l'enveloppe → bulle au coin haut-gauche, (8, 6) pour un contrôle à (1050, 258)).
- * `{ texte: null }` = aucune infobulle ouverte — un refus muet, pas une erreur de recette.
+ * `{ texte: null }` = aucune infobulle ouverte — un refus muet, pas une erreur de recette. Deux
+ * bulles ouvertes LÈVENT (localiseur unique) : une bulle périmée ne se lit pas pour la bonne.
  */
 export async function infobulleDe(session, cible) {
   const jeton = nouveauJeton();
   await localiser(session, formeDeCible(cible, 'infobulleDe'), { jeton, qui: 'infobulleDe', defiler: false, attenteMs: 0 });
-  return evaluerFn(session, (jeton, attr) => {
+  let jetonBulle;
+  try {
+    jetonBulle = await marquer(session, { selecteur: '[role="tooltip"]' }, 'infobulleDe');
+  } catch (e) {
+    await leverApresNettoyage(e, () => retirerJeton(session, jeton));
+  }
+  return evaluerFn(session, (jeton, jetonBulle, attr) => {
     const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
     const el = document.querySelector('[' + attr + '="' + jeton + '"]');
     el.removeAttribute(attr);
-    const bulle = document.querySelector('[role="tooltip"]');
+    const bulle = jetonBulle && document.querySelector('[' + attr + '="' + jetonBulle + '"]');
+    if (bulle) bulle.removeAttribute(attr);
     const b = el.getBoundingClientRect();
     if (!bulle) return { texte: null, cible: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) } };
     const p = bulle.getBoundingClientRect();
@@ -1923,7 +1983,7 @@ export async function infobulleDe(session, cible) {
       cible: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
       bulle: { x: Math.round(p.x), y: Math.round(p.y), w: Math.round(p.width), h: Math.round(p.height) },
     };
-  }, jeton, ATTR_CIBLE);
+  }, jeton, jetonBulle, ATTR_CIBLE);
 }
 
 /**
@@ -1947,11 +2007,11 @@ export async function infobulleDe(session, cible) {
  * un `onChange` qui refuse la valeur se voit donc au retour, jamais en silence.
  */
 export async function selectOption(session, selecteur, valeur, { par = 'libelle' } = {}) {
-  const rect = await evaluerFn(session, (selecteur, demande, par) => {
-    const listes = document.querySelectorAll(selecteur);
-    if (listes.length > 1) throw new Error('selectOption : ' + listes.length + ' listes ambiguës « ' + selecteur + ' » — aucun événement émis');
-    const el = listes[0];
-    if (!el) return null;
+  const liste = await marquer(session, { selecteur }, 'selectOption');
+  if (!liste) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} »`);
+  const rect = await evaluerFn(session, (marque, attr, demande, par) => {
+    const el = document.querySelector(marque);
+    el.removeAttribute(attr);
     const norm = (s) => (s || '').replace(/\s+/g, ' ').replace(/[’']/g, "'").trim();
     const options = Array.from(el.options);
     const candidates = par === 'valeur' ? options.filter((o) => o.value === demande) : options.filter((o) => norm(o.textContent) === norm(demande));
@@ -1960,13 +2020,15 @@ export async function selectOption(session, selecteur, valeur, { par = 'libelle'
     if (!choisie) return { absente: true, offertes: options.map((o) => (par === 'valeur' ? o.value : norm(o.textContent))) };
     if (choisie.disabled) return { fermee: true };
     return { valeur: choisie.value };
-  }, selecteur, String(valeur), par);
-  if (!rect) throw new Error(`selectOption : aucune liste ne matche « ${selecteur} »`);
+  }, marqueDe(liste), ATTR_CIBLE, String(valeur), par);
   if (rect.absente) throw new Error(`selectOption « ${selecteur} » : aucune option ${par === 'valeur' ? 'de VALEUR' : 'de LIBELLÉ'} « ${valeur} » — ${par === 'valeur' ? 'valeurs' : 'libellés'} offerts : ${rect.offertes.join(' | ')}`);
   if (rect.fermee) throw new Error(`selectOption « ${selecteur} » : option « ${valeur} » FERMÉE (disabled) — aucun choix émis`);
   await geste(session, { selecteur }, { qui: 'selectOption' }, clic());
+  const focalisee = await marquer(session, { selecteur }, 'selectOption');
+  if (!focalisee) throw new Error(`selectOption « ${selecteur} » : la liste a quitté le DOM après le focus — aucun choix émis`);
   return evaluate(session, `(() => {
-    const el = document.querySelector(${JSON.stringify(selecteur)});
+    const el = document.querySelector(${JSON.stringify(marqueDe(focalisee))});
+    el.removeAttribute(${JSON.stringify(ATTR_CIBLE)});
     const choisie = Array.from(el.options).filter((o) => o.value === ${JSON.stringify(rect.valeur)});
     if (choisie.length !== 1 || choisie[0].disabled) throw new Error('selectOption : option préparée disparue, ambiguë ou fermée après le focus');
     el.focus();
@@ -1985,20 +2047,25 @@ export async function selectOption(session, selecteur, valeur, { par = 'libelle'
  *  `focus` puis `click`, aucun sélecteur ne bloque la page, le clic suivant est reçu. */
 export async function choisirCouleur(session, selecteur, couleur) {
   if (!/^#[\da-f]{6}$/i.test(couleur)) throw new Error(`choisirCouleur : couleur invalide « ${couleur} », #rrggbb attendu`);
-  const autre = await evaluerFn(session, (selecteur) => {
-    const el = document.querySelector(selecteur);
-    return el && !(el instanceof HTMLInputElement && el.type === 'color') ? el.tagName.toLowerCase() : null;
-  }, selecteur);
+  const avant = await marquer(session, { selecteur }, 'choisirCouleur');
+  const autre = avant && await evaluerFn(session, (marque, attr) => {
+    const el = document.querySelector(marque);
+    el.removeAttribute(attr);
+    return el instanceof HTMLInputElement && el.type === 'color' ? null : el.tagName.toLowerCase();
+  }, marqueDe(avant), ATTR_CIBLE);
   if (autre) throw new Error(`choisirCouleur : input[type=color] attendu « ${selecteur} », trouvé ${autre} — aucun événement émis`);
   await geste(session, { selecteur }, { qui: 'choisirCouleur' }, clic());
-  const r = await evaluerFn(session, (selecteur, couleur) => {
-    const el = document.querySelector(selecteur);
+  const apres = await marquer(session, { selecteur }, 'choisirCouleur');
+  if (!apres) throw new Error(`choisirCouleur « ${selecteur} » : le champ a quitté le DOM après le clic — aucune couleur posée`);
+  const r = await evaluerFn(session, (marque, attr, couleur) => {
+    const el = document.querySelector(marque);
+    el.removeAttribute(attr);
     if (document.activeElement !== el) return { sansFocus: document.activeElement?.tagName.toLowerCase() ?? 'rien' };
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, couleur);
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
     return el.value;
-  }, selecteur, couleur);
+  }, marqueDe(apres), ATTR_CIBLE, couleur);
   if (r?.sansFocus) throw new Error(`choisirCouleur « ${selecteur} » : le champ n'a pas le focus après le clic (focus sur ${r.sansFocus}) — aucune couleur posée`);
   if (r !== couleur.toLowerCase()) throw new Error(`choisirCouleur : demandé ${couleur}, obtenu ${r}`);
   return r;
@@ -2024,27 +2091,17 @@ export async function choisirCouleur(session, selecteur, couleur) {
  * portée : LÈVE en les comptant, aucune marque posée — jamais le premier (#1969).
  */
 export async function champParLibelle(session, libelle, { exact = true, dans } = {}) {
+  const jeton = await marquer(session, { nom: libelle, selecteur: SELECTEUR_CHAMPS, exact, ...(dans ? { dans } : {}) }, 'champParLibelle')
+  if (!jeton) return null
   const marque = `recette-champ-${Math.random().toString(36).slice(2, 8)}`
-  const trouve = await evaluate(session, `(() => {
-    const norm = (s) => (s || '').replace(/\\s+/g, ' ').replace(/[\\u2019']/g, "'").trim();
-    const target = norm(${JSON.stringify(libelle)});
-    const racine = ${dans ? `document.querySelector(${JSON.stringify(dans)})` : 'document'};
-    if (!racine) return null;
-    const champs = Array.from(racine.querySelectorAll('input, select, textarea'));
-    const porteurs = champs.filter((c) => {
-      const label = c.labels?.[0]?.cloneNode(true);
-      label?.querySelectorAll('input, select, textarea').forEach((el) => el.remove());
-      const nom = norm(c.getAttribute('aria-label')) || norm(label?.textContent);
-      return ${exact} ? nom === target : nom.includes(target);
-    });
-    if (porteurs.length > 1) return { ambigus: porteurs.length };
-    if (!porteurs.length) return null;
-    porteurs[0].setAttribute('data-recette', ${JSON.stringify(marque)});
-    return true;
-  })()`)
-  if (trouve?.ambigus) throw new Error(`champParLibelle « ${libelle} » : ${trouve.ambigus} champs portent ce libellé${dans ? ` dans « ${dans} »` : ''} — préciser { dans }`)
-  return trouve ? `[data-recette="${marque}"]` : null
+  await evaluerFn(session, (jeton, attr, marque) => {
+    const el = document.querySelector('[' + attr + '="' + jeton + '"]')
+    el.removeAttribute(attr)
+    el.setAttribute('data-recette', marque)
+  }, jeton, ATTR_CIBLE, marque)
+  return `[data-recette="${marque}"]`
 }
+
 
 /**
  * PEUPLE un `input[type=file]` désigné par un SÉLECTEUR avec le fichier `chemin` (résolu en absolu),
@@ -2055,17 +2112,19 @@ export async function champParLibelle(session, libelle, { exact = true, dans } =
  * racine absente, `input` absent — jamais un geste silencieux qui n'a rien posé.
  */
 export async function poserFichier(session, selecteur, chemin, { dans } = {}) {
-  await session.rpc('DOM.enable');
-  const { root } = await session.rpc('DOM.getDocument', { depth: 0 });
-  let racine = root.nodeId;
-  if (dans) {
-    racine = (await session.rpc('DOM.querySelector', { nodeId: racine, selector: dans })).nodeId;
-    if (!racine) throw new Error(`poserFichier : racine « ${dans} » absente`);
-  }
-  const { nodeId } = await session.rpc('DOM.querySelector', { nodeId: racine, selector: selecteur });
-  if (!nodeId) throw new Error(`poserFichier « ${selecteur} » : aucun input${dans ? ` dans « ${dans} »` : ''}`);
+  const jeton = await marquer(session, { selecteur, ...(dans ? { dans } : {}) }, 'poserFichier');
+  if (!jeton) throw new Error(`poserFichier « ${selecteur} » : aucun input${dans ? ` dans « ${dans} » (racine absente, ou input absent de la racine)` : ''}`);
   const absolu = resolve(chemin);
-  await session.rpc('DOM.setFileInputFiles', { nodeId, files: [absolu] });
+  try {
+    await session.rpc('DOM.enable');
+    const { root } = await session.rpc('DOM.getDocument', { depth: 0 });
+    const { nodeId } = await session.rpc('DOM.querySelector', { nodeId: root.nodeId, selector: marqueDe(jeton) });
+    if (!nodeId) throw new Error(`poserFichier « ${selecteur} » : l'input a quitté le DOM avant la pose`);
+    await session.rpc('DOM.setFileInputFiles', { nodeId, files: [absolu] });
+  } catch (e) {
+    await leverApresNettoyage(e, () => retirerJeton(session, jeton));
+  }
+  await retirerJeton(session, jeton);
   return absolu;
 }
 
@@ -2218,14 +2277,19 @@ export async function mesurerProvenance(session, selecteur) {
   return r
 }
 
+/** Les RANGÉES du Codex (`ListRow`), et le livre que chacune cite (`ouvrirFiche` filtre dessus, exact). */
+const RANGEES_CODEX = '.codex-rows button.listrow';
+const LIVRE_CODEX = '.codex-row-src';
+
 /**
  * OUVRE la fiche d'une entrée du Compendium AUX GESTES (`src/ui/compendium/CompendiumScreen.tsx`) : le
  * bouton « Compendium » du menu si l'écran n'est pas monté, l'onglet du `groupe` (`[role=tab]` de
  * « Groupes du Codex »), la pastille de la `categorie` (`button.codex-cat`, dépliée de son sous-groupe
  * replié par `deplierVers`), la frappe de l'`entree` dans `.codex-search`, puis le clic de sa rangée.
  * L'entrée se désigne par ses LIBELLÉS visibles, comme un joueur : le Codex ne publie aucun id au DOM.
- * LÈVE en nommant ce qui manque (catégorie, rangée), et si la rangée cliquée n'est pas retenue
- * (`aria-current`). Rend `{ entree }`.
+ * Des HOMONYMES lèvent en nommant les livres offerts ; `{ livre }` les départage par le livre EXACT de
+ * la rangée (`LIVRE_CODEX`), au localiseur. LÈVE en nommant ce qui manque (catégorie, rangée), et si la
+ * rangée cliquée n'est pas retenue (`aria-current`). Rend `{ entree }`.
  */
 export async function ouvrirFiche(session, { groupe, categorie, entree, livre }) {
   if (!(await evaluate(session, `!!document.querySelector('.screen.codex')`))) {
@@ -2250,21 +2314,19 @@ export async function ouvrirFiche(session, { groupe, categorie, entree, livre })
     await cliquerSelecteur(session, '[data-recette="codex-categorie"]');
   }
   await typeInField(session, '.codex-search', entree, { attendu: entree });
-  const lire = () => evaluerFn(session, (entree) => {
+  const lire = () => evaluerFn(session, (rangees, src) => {
     const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
-    const rangees = Array.from(document.querySelectorAll('.codex-rows button.listrow'));
-    const livre = (b) => norm(b.querySelector('.codex-row-src')?.textContent) || '(sans livre)';
+    const toutes = Array.from(document.querySelectorAll(rangees));
     return {
-      livres: rangees.filter((b) => norm(b.querySelector('.lr-name')?.textContent) === norm(entree)).map(livre),
-      offertes: rangees.map((b) => norm(b.querySelector('.lr-name')?.textContent)).slice(0, 10),
-      retenue: rangees.filter((b) => b.getAttribute('aria-current') === 'true').map((b) => ({ nom: norm(b.querySelector('.lr-name')?.textContent), livre: livre(b) })),
+      offertes: toutes.map((b) => norm(b.querySelector('.lr-name')?.textContent)).slice(0, 10),
+      retenue: toutes.filter((b) => b.getAttribute('aria-current') === 'true').map((b) => ({ nom: norm(b.querySelector('.lr-name')?.textContent), livre: norm(b.querySelector(src)?.textContent) })),
     };
-  }, entree);
-  const avant = await lire();
-  if (!avant.livres.length) throw new Error(`ouvrirFiche : aucune rangée « ${entree} » — offertes : ${avant.offertes.join(' | ') || '(aucune)'}`);
-  if (livre === undefined && avant.livres.length > 1) throw new Error(`ouvrirFiche : ${avant.livres.length} rangées « ${entree} » — livres offerts : ${avant.livres.join(' | ')} — préciser { livre } ; aucun événement émis`);
-  if (livre !== undefined && !avant.livres.includes(livre)) throw new Error(`ouvrirFiche : aucune rangée « ${entree} » du livre « ${livre} » — livres offerts : ${avant.livres.join(' | ')}`);
-  await geste(session, { nom: entree, selecteur: '.codex-rows button.listrow', libelle: '.lr-name', ...(livre === undefined ? {} : { rangee: livre }) }, { qui: 'ouvrirFiche' }, clic());
+  }, RANGEES_CODEX, LIVRE_CODEX);
+  const rangee = { nom: entree, selecteur: RANGEES_CODEX, libelle: '.lr-name', etiquette: { selecteur: LIVRE_CODEX, texte: livre, option: 'livre' } };
+  const presente = await marquer(session, rangee, 'ouvrirFiche');
+  if (!presente) throw new Error(`ouvrirFiche : aucune rangée « ${entree} »${livre === undefined ? '' : ` du livre « ${livre} »`} — offertes : ${(await lire()).offertes.join(' | ') || '(aucune)'}`);
+  await retirerJeton(session, presente);
+  await geste(session, rangee, { qui: 'ouvrirFiche' }, clic());
   const apres = await lire();
   if (!apres.retenue.some((r) => r.nom === entree && (livre === undefined || r.livre === livre))) {
     throw new Error(`ouvrirFiche : la rangée « ${entree} »${livre === undefined ? '' : ` (${livre})`} cliquée n'est pas retenue (aria-current)`);
@@ -2325,20 +2387,22 @@ const EMISSIONS_CLAVIER = Object.freeze({ touche: 'Input.dispatchKeyEvent', text
 
 /**
  * FRAPPE RÉELLE — le SEUL émetteur CLAVIER du kit, second émetteur à côté de `geste` : la cible d'une
- * frappe est l'élément FOCALISÉ. `focus` (un sélecteur) : il doit désigner UN élément, et cet élément
- * doit avoir le focus, sinon LÈVE — aucune frappe émise. Puis appelle `evenements(emettre)`, où
+ * frappe est l'élément FOCALISÉ. `focus` (un sélecteur, résolu par le localiseur) : il doit désigner
+ * UN élément, et cet élément doit avoir le focus, sinon LÈVE — aucune frappe émise. Sans `focus`, la
+ * frappe est une touche GLOBALE, sans cible contrôlée. Puis appelle `evenements(emettre)`, où
  * `emettre('touche' | 'texte', params)` émet `Input.dispatchKeyEvent` ou `Input.insertText`.
  */
 export async function frappe(session, { focus, qui = 'frappe' } = {}, evenements) {
   const brut = emetteursBruts.get(session);
   if (!brut) throw new Error(`${qui} : session sans émetteur d'entrée (non branchée par \`brancherCdp\`) — aucune frappe émise`);
   if (focus !== undefined) {
-    const manque = await evaluerFn(session, (selecteur) => {
-      const els = document.querySelectorAll(selecteur);
-      if (els.length !== 1) return els.length + ' éléments désignés';
+    const jeton = await marquer(session, { selecteur: focus }, qui);
+    const manque = jeton ? await evaluerFn(session, (marque, attr) => {
+      const el = document.querySelector(marque);
+      el.removeAttribute(attr);
       const a = document.activeElement;
-      return a === els[0] ? null : 'focus sur ' + (a ? a.tagName.toLowerCase() + (a.id ? '#' + a.id : '') : '(aucun)');
-    }, focus);
+      return a === el ? null : 'focus sur ' + (a ? a.tagName.toLowerCase() + (a.id ? '#' + a.id : '') : '(aucun)');
+    }, marqueDe(jeton), ATTR_CIBLE) : 'aucun élément désigné';
     if (manque) throw new Error(`${qui} « ${focus} » : la cible n'a pas le focus (${manque}) — aucune frappe émise`);
   }
   await evenements((domaine, params) => {
@@ -2351,11 +2415,14 @@ export async function frappe(session, { focus, qui = 'frappe' } = {}, evenements
  * Envoie une frappe RÉELLE (`frappe` : `rawKeyDown`, `char` s'il y a un texte, `keyUp`) — traverse
  * les mêmes handlers que le clavier physique (`keybindings.ts`), contrairement à un `KeyboardEvent`
  * JS synthétique (souvent ignoré par les listeners posés en natif sur `window`).
+ * `focus` (un sélecteur) : la cible de la frappe, qui doit avoir le focus (`frappe`) ; sans lui, la
+ * touche est GLOBALE (Échap, raccourci du jeu), sans cible contrôlée.
  * @param {{ key: string, code?: string, windowsVirtualKeyCode?: number, modifiers?: number }} touche
+ * @param {{ focus?: string }} [options]
  */
-export async function realKey(session, touche) {
+export async function realKey(session, touche, { focus } = {}) {
   const common = champsCDP(touche);
-  await frappe(session, { qui: 'realKey' }, async (emettre) => {
+  await frappe(session, { focus, qui: 'realKey' }, async (emettre) => {
     await emettre('touche', { type: 'rawKeyDown', ...common });
     const texte = texteDeTouche(touche.key);
     if (texte !== null) await emettre('touche', { type: 'char', text: texte, ...common });
@@ -2380,17 +2447,18 @@ export const MOD_ALT = 1;
  * APPUI et RELÂCHEMENT SÉPARÉS (`realKeyDown` / `realKeyUp`) — ce que `realKey` ne sait pas faire :
  * un geste MAINTENU (Alt tenu qui révèle les utilisables) dure entre les deux, et tout ce que la
  * recette fait dans l'intervalle doit porter le modificateur (`modifiers`), sans quoi les événements
- * émis déclareraient la touche relâchée et l'état tenu ne serait plus celui de l'écran.
+ * émis déclareraient la touche relâchée et l'état tenu ne serait plus celui de l'écran. `{ focus }` :
+ * même option que `realKey`.
  */
-export async function realKeyDown(session, touche) {
+export async function realKeyDown(session, touche, { focus } = {}) {
   const champs = champsCDP(touche);
-  await frappe(session, { qui: 'realKeyDown' }, (emettre) => emettre('touche', { type: 'rawKeyDown', ...champs }));
+  await frappe(session, { focus, qui: 'realKeyDown' }, (emettre) => emettre('touche', { type: 'rawKeyDown', ...champs }));
 }
 
-export async function realKeyUp(session, touche) {
+export async function realKeyUp(session, touche, { focus } = {}) {
   // Le relâchement ne porte aucun modificateur : c'est l'événement qui déclare la touche relâchée.
   const champs = champsCDP({ ...touche, modifiers: undefined });
-  await frappe(session, { qui: 'realKeyUp' }, (emettre) => emettre('touche', { type: 'keyUp', ...champs }));
+  await frappe(session, { focus, qui: 'realKeyUp' }, (emettre) => emettre('touche', { type: 'keyUp', ...champs }));
 }
 
 /**

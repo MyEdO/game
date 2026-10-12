@@ -76,6 +76,7 @@ import {
   clicDroit,
   appuiLong,
   toucher,
+  infobulleDe,
   dernierTelechargement,
   DOSSIER_TELECHARGEMENTS,
   lireIndexedDB,
@@ -97,24 +98,33 @@ import * as kitRecette from './lib.mjs'
 import { demarrer } from './setup.mjs'
 import { recette, squelette } from './gabarit.mjs'
 
+/** La socket factice d'une session de test : la session ne l'expose pas (`brancherCdp`), le test la
+ *  garde. */
+const sockets = new WeakMap()
+const socketDe = (session) => sockets.get(session)
+
 /** Session BRANCHÉE (`brancherCdp`) sur une socket factice : chaque appel CDP, `Input` compris (émis
- *  par `geste` et `frappe`), est servi par `session.ws.gerer(methode, params)`, qu'un test peut
- *  envelopper. */
+ *  par `geste` et `frappe`), est servi par `socketDe(session).gerer(methode, params)`, qu'un test peut
+ *  envelopper. `envoyes` garde chaque message parti sur la socket. */
 function brancherFactice(gerer) {
   const ecoutes = { message: [], close: [] }
   const ws = {
     gerer,
+    envoyes: [],
     readyState: WebSocket.OPEN,
     addEventListener: (t, fn) => ecoutes[t].push(fn),
     send(brut) {
       const m = JSON.parse(brut)
+      ws.envoyes.push(m)
       Promise.resolve()
         .then(() => ws.gerer(m.method, m.params ?? {}))
         .then((result) => ({ id: m.id, result: result ?? {} }), (e) => ({ id: m.id, error: { message: e.message } }))
         .then((r) => ecoutes.message.forEach((fn) => fn({ data: JSON.stringify(r) })))
     },
   }
-  return brancherCdp(ws)
+  const session = brancherCdp(ws)
+  sockets.set(session, ws)
+  return session
 }
 
 /** Session factice : `evaluate` (via `rpc`) répond « app prête » immédiatement, aucun réseau. */
@@ -659,7 +669,7 @@ const DEUX_NOMS = `
 
 test('champParLibelle : deux champs porteurs du libellé dans la portée LÈVENT en les comptant, aucune marque posée', async () => {
   const { dom, session } = sessionSurDom(DEUX_NOMS)
-  await assert.rejects(() => champParLibelle(session, 'Nom'), /champParLibelle « Nom » : 2 champs portent ce libellé — préciser \{ dans \}/)
+  await assert.rejects(() => champParLibelle(session, 'Nom'), /champParLibelle : 2 cibles ambiguës « Nom » — input#nom-scene « +» \| input#nom-projet « +» — préciser \{ dans \}/)
   assert.equal(dom.window.document.querySelector('[data-recette]'), null)
 })
 
@@ -745,10 +755,11 @@ test('clickButtonByText : `rangee` introuvable = refus NOMMANT la rangée, aucun
 /** Session dont le domaine `DOM` du CDP est servi par un document jsdom : `nodeId` = rang dans
  *  `noeuds`, 0 = introuvable (la convention du CDP) ; `poses` collectionne les `setFileInputFiles`. */
 function sessionDomCdp(html) {
-  const dom = new JSDOM(html)
+  const dom = new JSDOM(html, { runScripts: 'outside-only' })
   const noeuds = [null, dom.window.document]
   const poses = []
   const rpc = async (methode, params) => {
+    if (methode === 'Runtime.evaluate') return { result: { value: await dom.window.eval(params.expression) } }
     if (methode === 'DOM.getDocument') return { root: { nodeId: 1 } }
     if (methode === 'DOM.querySelector') {
       const el = noeuds[params.nodeId].querySelector(params.selector)
@@ -759,7 +770,7 @@ function sessionDomCdp(html) {
     if (methode === 'DOM.setFileInputFiles') poses.push({ id: noeuds[params.nodeId].id, files: params.files })
     return {}
   }
-  return { poses, session: { rpc } }
+  return { dom, poses, session: brancherFactice(rpc) }
 }
 const DEUX_IMPORTS = `
   <div class="editor-toolbar"><input type="file" id="import-editeur"></div>
@@ -913,10 +924,10 @@ function sessionCamera({ deg = 0, active = false, sensibilite = 0.5, mauvais = f
   const rect = () => ({ x: 10, y: 10, width: 800, height: 500 })
   page.doc.querySelector('canvas.iso-stage').getBoundingClientRect = rect
   page.doc.querySelector('svg.iso-stage').getBoundingClientRect = rect
-  const rpc = page.session.ws.gerer
+  const rpc = socketDe(page.session).gerer
   let sx, sy, panned = false
   page.etat.souris = []
-  page.session.ws.gerer = async (m, p) => {
+  socketDe(page.session).gerer = async (m, p) => {
     if (m === 'Input.dispatchMouseEvent') {
       page.etat.souris.push(p)
       if (p.type === 'mousePressed') { assert.equal(p.button, 'middle'); sx = p.x; sy = p.y; panned = false; camera.active = true }
@@ -963,9 +974,9 @@ test('tournerCamera : mauvais résultat refusé et release garanti si move écho
 test('tournerCamera : angle immense et délai invalide refusés sans entrée', async () => {
   for (const [angle, attenteMs] of [[1e300, 100], [90, Infinity], [90, -1]]) {
     const { session, etat } = sessionCamera()
-    const rpc = session.ws.gerer
+    const rpc = socketDe(session).gerer
     let moves = 0
-    session.ws.gerer = async (m, p) => {
+    socketDe(session).gerer = async (m, p) => {
       if (m === 'Input.dispatchMouseEvent' && ++moves > 2) throw new Error('sentinelle boucle')
       return rpc(m, p)
     }
@@ -977,8 +988,8 @@ test('tournerCamera : angle immense et délai invalide refusés sans entrée', a
 
 test('tournerCamera : budget commun aux chunks et observation finale', async () => {
   const { session, etat } = sessionCamera()
-  const rpc = session.ws.gerer
-  session.ws.gerer = async (m, p) => {
+  const rpc = socketDe(session).gerer
+  socketDe(session).gerer = async (m, p) => {
     const result = await rpc(m, p)
     if (m === 'Input.dispatchMouseEvent' && p.type === 'mouseReleased') await new Promise(r => setTimeout(r, 150))
     return result
@@ -991,8 +1002,8 @@ test('tournerCamera : budget commun aux chunks et observation finale', async () 
 test('clic : mouvement et relâchement échouent, cause et code primaires conservés', async () => {
   const { session } = pagePilotee('<div id="surface"></div>')
   let releases = 0
-  const gerer = session.ws.gerer
-  session.ws.gerer = async (m, p) => {
+  const gerer = socketDe(session).gerer
+  socketDe(session).gerer = async (m, p) => {
     if (p.type === 'mouseMoved' && p.buttons === 4) throw new Error('Inspected target navigated or closed')
     if (p.type === 'mouseReleased') { releases++; throw new Error('release secondaire') }
     return gerer(m, p)
@@ -1159,8 +1170,8 @@ test('libellé de select enveloppé : options exclues, champ intact', async () =
 function pageCouleur(html = '<input id="c" type="color" value="#000000">') {
   const p = pagePilotee(html)
   p.dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 20, height: 20 })
-  const rpc = p.session.ws.gerer
-  p.session.ws.gerer = async (m, params) => {
+  const rpc = socketDe(p.session).gerer
+  socketDe(p.session).gerer = async (m, params) => {
     if (m === 'Input.dispatchMouseEvent' && params.type === 'mousePressed') p.etat.marque?.focus()
     return rpc(m, params)
   }
@@ -1347,11 +1358,11 @@ test('finDuTour : plaque armée au premier clic → un SECOND clic passe la main
   const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="end-turn">Fin du tour<span>Action non dépensée</span></button></div>', {
     battle: () => ({ endTurnArmed: arme }),
   })
-  session.ws.gerer = ((rpc) => async (m, p) => {
+  socketDe(session).gerer = ((rpc) => async (m, p) => {
     const r = await rpc(m, p)
     if (m === 'Input.dispatchMouseEvent' && p.type === 'mouseReleased') arme = !arme && etat.cliques.length === 1
     return r
-  })(session.ws.gerer)
+  })(socketDe(session).gerer)
   assert.equal(await finDuTour(session, { pauseMs: 1 }), 2)
   assert.equal(etat.cliques.length, 2)
 })
@@ -2038,7 +2049,7 @@ test('gestes : une cible en CHAÎNE nue est refusée en nommant les trois formes
   dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 20, width: 40, height: 10 })
   await assert.rejects(() => survoler(session, '+ Op', { attenteMs: 0 }), /survoler : cible "\+ Op" — formes admises : \{ nom.*\{ selecteur.*\{ surface, x, y \}/)
   assert.deepEqual(etat.emis, [])
-  assert.deepEqual({ ...(await survoler(session, { nom: '+ Op' }, { attenteMs: 0 })) }, { x: 30, y: 25, ferme: null })
+  assert.deepEqual({ ...(await survoler(session, { nom: '+ Op' }, { attenteMs: 0 })) }, { x: 30, y: 25, label: '+ Op', ferme: null })
 })
 
 test('processusVivant : ESRCH = mort, EPERM = vivant, toute autre erreur remonte', () => {
@@ -2203,8 +2214,8 @@ function pageDefilante(html) {
     const y = Number(porteur ? porteur.getAttribute('data-y') : 0) - p.etat.defilement
     return { x: 10, y, top: y, bottom: y + 20, left: 10, right: 110, width: 100, height: 20 }
   }
-  const rpc = p.session.ws.gerer
-  p.session.ws.gerer = async (m, params) => {
+  const rpc = socketDe(p.session).gerer
+  socketDe(p.session).gerer = async (m, params) => {
     if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseWheel') { p.etat.crans.push(params.deltaY); p.etat.defilement += params.deltaY }
     return rpc(m, params)
   }
@@ -2222,7 +2233,7 @@ test('deplierVers : le <summary> du <details> replié est amené par la MOLETTE 
 
 test('deplierVers : une molette qui ne fait plus défiler LÈVE en le nommant', async () => {
   const { session } = pageDefilante('<p id="loin" data-y="5000">loin</p>')
-  session.ws.gerer = ((rpc) => async (m, p) => (m === 'Input.dispatchMouseEvent' && p.type === 'mouseWheel' ? {} : rpc(m, p)))(session.ws.gerer)
+  socketDe(session).gerer = ((rpc) => async (m, p) => (m === 'Input.dispatchMouseEvent' && p.type === 'mouseWheel' ? {} : rpc(m, p)))(socketDe(session).gerer)
   await assert.rejects(() => deplierVers(session, '#loin', { pauseMs: 0 }), /la molette ne fait plus défiler vers « #loin »/)
 })
 
@@ -2246,8 +2257,8 @@ test('typeInField : focalisé par le clic, un <input type=number> pré-rempli es
   const { doc, etat, session } = pagePilotee('<input id="n" type="number" value="5">')
   let toutSelectionne = false
   doc.defaultView.HTMLInputElement.prototype.select = function () { toutSelectionne = true }
-  const rpc = session.ws.gerer
-  session.ws.gerer = async (m, p) => {
+  const rpc = socketDe(session).gerer
+  socketDe(session).gerer = async (m, p) => {
     const r = await rpc(m, p)
     if (m === 'Input.dispatchMouseEvent' && p.type === 'mouseReleased') etat.marque.focus()
     if (m === 'Input.insertText') { const a = doc.activeElement; a.value = (toutSelectionne ? '' : a.value) + p.text }
@@ -2276,8 +2287,8 @@ function pageGestes(html) {
   const p = pagePilotee(html)
   p.dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 10, width: 20, height: 20 })
   p.etat.params = []
-  const rpc = p.session.ws.gerer
-  p.session.ws.gerer = async (m, params) => {
+  const rpc = socketDe(p.session).gerer
+  socketDe(p.session).gerer = async (m, params) => {
     if (m !== 'Runtime.evaluate') p.etat.params.push({ m, t: Date.now(), ...params })
     return rpc(m, params)
   }
@@ -2309,7 +2320,7 @@ test('toucher : touchStart au point de la cible, puis touchEnd sans point', asyn
   ])
 })
 
-/** Rend l'échéance de `controlerCible` immédiate : chaque lecture de l'horloge avance de 10⁷ ms. */
+/** Rend l'échéance de `controler` immédiate : chaque lecture de l'horloge avance de 10⁷ ms. */
 function horlogeEmballee(t) {
   const vrai = Date.now
   let k = 0
@@ -2679,8 +2690,8 @@ function pageCodex() {
     doc.body.innerHTML = CODEX
     for (const r of doc.querySelectorAll('.listrow')) r.onclick = () => { for (const x of doc.querySelectorAll('.listrow')) x.removeAttribute('aria-current'); r.setAttribute('aria-current', 'true') }
   }
-  const rpc = p.session.ws.gerer
-  p.session.ws.gerer = async (m, params) => {
+  const rpc = socketDe(p.session).gerer
+  socketDe(p.session).gerer = async (m, params) => {
     const r = await rpc(m, params)
     if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseReleased' && p.etat.marque?.tagName === 'INPUT') p.etat.marque.focus()
     if (m === 'Input.insertText') doc.activeElement.value = params.text
@@ -2790,8 +2801,8 @@ function pageCodexHomonymes(lignes) {
   const p = pagePilotee(`<div class="screen codex"><input class="codex-search"><div class="codex-rows">${lignes.map(([nom, livre], i) =>
     `<button class="listrow" id="r${i}"><span class="lr-name">${nom}</span><span class="codex-row-src">${livre}</span></button>`).join('')}</div></div>`)
   p.dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 10, width: 20, height: 20 })
-  const gerer = p.session.ws.gerer
-  p.session.ws.gerer = async (m, params) => {
+  const gerer = socketDe(p.session).gerer
+  socketDe(p.session).gerer = async (m, params) => {
     if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseReleased' && p.etat.marque?.tagName === 'INPUT') p.etat.marque.focus()
     if (m === 'Input.insertText') p.doc.activeElement.value = params.text
     const r = await gerer(m, params)
@@ -2806,8 +2817,108 @@ function pageCodexHomonymes(lignes) {
 
 test('ouvrirFiche : des HOMONYMES lèvent en nommant les livres offerts ; `{ livre }` départage', async () => {
   const { etat, session } = pageCodexHomonymes([['Épée', 'LDB'], ['Épée', 'ADE I']])
-  await assert.rejects(() => ouvrirFiche(session, { entree: 'Épée' }), /ouvrirFiche : 2 rangées « Épée » — livres offerts : LDB \| ADE I — préciser \{ livre \}/)
+  await assert.rejects(() => ouvrirFiche(session, { entree: 'Épée' }), /ouvrirFiche : 2 cibles ambiguës « Épée » — button#r0 « ÉpéeLDB » \| button#r1 « ÉpéeADE I » — préciser \{ livre \} — offerts : LDB \| ADE I ; aucun événement émis/)
   assert.deepEqual(etat.cliques.filter((c) => c.startsWith('Épée')), [])
   assert.deepEqual(await ouvrirFiche(session, { entree: 'Épée', livre: 'ADE I' }), { entree: 'Épée', livre: 'ADE I' })
   assert.equal(etat.cliques.at(-1), 'ÉpéeADE I')
+})
+
+// ------------------------------------------------- #1953, quatrième passage : verrou, point, localiseur unique
+
+test('verrou : un `Target.sendMessageToTarget` relayant Input est refusé, la socket n’est pas exposée', async () => {
+  const session = brancherFactice(async () => ({}))
+  const relais = (method) => session.rpcNavigateur('Target.sendMessageToTarget', { sessionId: 'S1', message: JSON.stringify({ id: 1, method, params: {} }) })
+  await assert.rejects(() => relais('Input.dispatchMouseEvent'), /rpc « Target\.sendMessageToTarget » relayant « Input\.dispatchMouseEvent » : le domaine Input n'est émis que par `geste`/)
+  await assert.rejects(() => session.rpc('Target.sendMessageToTarget', { message: '{pas du json' }), /message relayé illisible/)
+  await relais('Runtime.evaluate')
+  assert.deepEqual(socketDe(session).envoyes.map((m) => m.method), ['Target.sendMessageToTarget'])
+  assert.ok(!socketDe(session).envoyes.some((m) => /Input\./.test(JSON.stringify(m))), 'aucun Input sur la socket')
+  assert.ok(!Object.values(session).some((v) => v === socketDe(session)), 'la session n’expose pas sa socket')
+})
+
+test('geste : `emettre` à un autre point que le point contrôlé LÈVE ; le glissé bouton tenu le quitte', async () => {
+  const { etat, session } = pagePilotee('<button id="a">A</button><button id="b">B</button>')
+  await assert.rejects(() => geste(session, { selecteur: '#a' }, {}, (loc, emettre) => emettre('souris', { type: 'mousePressed', x: 9999, y: -50, button: 'left', clickCount: 1 })),
+    /geste : « mousePressed » au point \(9999, -50\), le point contrôlé est \(5, 5\) — seul un glissé bouton tenu quitte le point contrôlé — aucun événement émis/)
+  await assert.rejects(() => geste(session, { selecteur: '#a' }, {}, (loc, emettre) => emettre('tactile', { type: 'touchStart', touchPoints: [{ x: 1, y: 1 }] })), /« touchStart » au point \(1, 1\)/)
+  await assert.rejects(() => geste(session, { selecteur: '#a' }, {}, (loc, emettre) => emettre('souris', { type: 'mouseReleased', x: 40, y: 40, button: 'left', clickCount: 1 })), /« mouseReleased » au point \(40, 40\)/)
+  assert.deepEqual(etat.emis, [])
+  await geste(session, { selecteur: '#a' }, {}, clic({ trajet: [{ x: 30, y: 0 }] }))
+  assert.deepEqual(etat.emis, ['Input.dispatchMouseEvent:mouseMoved', 'Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseMoved', 'Input.dispatchMouseEvent:mouseReleased'])
+})
+
+test('ouvrirFiche : `{ livre }` filtre EXACT sur le livre de la rangée — préfixe d’id et livre cité hors rangées', async () => {
+  const prefixes = [['Épée', 'tome'], ['Épée', 'tome-compagnon']]
+  for (const livre of ['tome', 'tome-compagnon']) {
+    const { etat, session } = pageCodexHomonymes(prefixes)
+    assert.deepEqual(await ouvrirFiche(session, { entree: 'Épée', livre }), { entree: 'Épée', livre })
+    assert.equal(etat.cliques.at(-1), 'Épée' + livre)
+  }
+  const { doc, etat, session } = pageCodexHomonymes([['Épée', 'LDB'], ['Épée', 'ADE I']])
+  doc.querySelector('.screen.codex').insertAdjacentHTML('afterbegin', '<aside class="codex-detail"><p>Source : LDB</p></aside>')
+  assert.deepEqual(await ouvrirFiche(session, { entree: 'Épée', livre: 'LDB' }), { entree: 'Épée', livre: 'LDB' })
+  assert.equal(etat.cliques.at(-1), 'ÉpéeLDB')
+  await assert.rejects(() => ouvrirFiche(session, { entree: 'Épée', livre: 'MDG' }), /ouvrirFiche : aucune rangée « Épée » du livre « MDG » — offertes : Épée \| Épée/)
+})
+
+test('infobulleDe : deux bulles ouvertes LÈVENT, une seule se lit, aucune rend `texte: null` ; aucune marque ne reste', async () => {
+  const { doc, session } = pagePilotee('<button id="a">Tir</button><div role="tooltip">périmée</div><div role="tooltip">Aucune munition</div>')
+  await assert.rejects(() => infobulleDe(session, { nom: 'Tir' }), /infobulleDe : 2 cibles ambiguës « \[role="tooltip"\] » — div « périmée » \| div « Aucune munition »/)
+  assert.equal(doc.querySelector('[data-recette-cible]'), null)
+  doc.querySelector('[role="tooltip"]').remove()
+  assert.equal((await infobulleDe(session, { nom: 'Tir' })).texte, 'Aucune munition')
+  doc.querySelector('[role="tooltip"]').remove()
+  assert.equal((await infobulleDe(session, { nom: 'Tir' })).texte, null)
+  assert.equal(doc.querySelector('[data-recette-cible]'), null)
+})
+
+test('localiseur : un refus « vide » ou « hors fenêtre » ne laisse aucune marque', async () => {
+  const { dom, doc, etat, session } = pagePilotee('<button id="v">Viser</button>')
+  dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 0, height: 0 })
+  await assert.rejects(() => toucher(session, { nom: 'Viser' }), /boîte de taille nulle/)
+  assert.equal(doc.querySelector('#v').getAttribute('data-recette-cible'), null)
+  dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 5000, y: 10, width: 20, height: 20 })
+  await assert.rejects(() => molette(session, { selecteur: '#v' }, 120), /HORS FENÊTRE/)
+  assert.equal(doc.querySelector('#v').getAttribute('data-recette-cible'), null)
+  assert.deepEqual(etat.emis, [])
+})
+
+test('champParLibelle : une racine `dans` AMBIGUË lève, jamais la première', async () => {
+  const { dom, session } = sessionSurDom('<div class="modal" id="m1"><label>Nom <input id="i1"></label></div><div class="modal" id="m2"><label>Nom <input id="i2"></label></div>')
+  await assert.rejects(() => champParLibelle(session, 'Nom', { dans: '.modal' }), /champParLibelle : 2 racines ambiguës « \.modal » — div#m1 « Nom » \| div#m2 « Nom » — préciser \{ dans \}/)
+  assert.equal(dom.window.document.querySelector('[data-recette]'), null)
+})
+
+test('poserFichier : deux inputs dans la portée LÈVENT, rien de posé ; la marque est retirée après la pose', async () => {
+  const { dom, poses, session } = sessionDomCdp(DEUX_IMPORTS)
+  await assert.rejects(() => poserFichier(session, 'input[type=file]', 'x.json'), /poserFichier : 2 cibles ambiguës « input\[type=file\] » — input#import-editeur/)
+  assert.deepEqual(poses, [])
+  await poserFichier(session, 'input[type=file]', 'x.json', { dans: '.editor-toolbar' })
+  assert.deepEqual(poses.map((p) => p.id), ['import-editeur'])
+  assert.equal(dom.window.document.querySelector('[data-recette-cible]'), null)
+})
+
+test('selectOption : deux listes LÈVENT au localiseur unique, aucun événement émis', async () => {
+  const { etat, session } = pagePilotee('<select class="l" id="l1"><option>a</option></select><select class="l" id="l2"><option>a</option></select>')
+  await assert.rejects(() => selectOption(session, '.l', 'a'), /selectOption : 2 cibles ambiguës « \.l » — select#l1 « a » \| select#l2 « a » — préciser \{ selecteur \} ou \{ dans \}/)
+  assert.deepEqual(etat.emis, [])
+})
+
+test('realKey* : `{ focus }` exige la cible focalisée ; sans lui, la touche est globale', async () => {
+  const { doc, etat, session } = pagePilotee('<input id="champ"><button id="autre">x</button>')
+  for (const faire of [() => realKey(session, { key: 'a' }, { focus: '#champ' }), () => realKeyDown(session, { key: 'a' }, { focus: '#champ' }), () => realKeyUp(session, { key: 'a' }, { focus: '#champ' })]) {
+    await assert.rejects(faire, /« #champ » : la cible n'a pas le focus/)
+  }
+  assert.deepEqual(etat.emis, [])
+  doc.querySelector('#champ').focus()
+  await realKey(session, { key: 'a' }, { focus: '#champ' })
+  await realKey(session, { key: 'Escape' })
+  assert.deepEqual(etat.emis, ['Input.dispatchKeyEvent:rawKeyDown', 'Input.dispatchKeyEvent:char', 'Input.dispatchKeyEvent:keyUp', 'Input.dispatchKeyEvent:rawKeyDown', 'Input.dispatchKeyEvent:keyUp'])
+})
+
+test('cliquerSelecteur : rend le `label` (nom accessible) de la cible cliquée', async () => {
+  const { session } = pagePilotee('<div class="sheet-main"><button role="tab" aria-selected="true">Compétences</button><button role="tab" title="ignoré">État</button></div>')
+  const r = await cliquerSelecteur(session, '.sheet-main [role=tab]:not([aria-selected="true"])')
+  assert.equal(r.label, 'État')
+  assert.equal((await clickItemByText(session, 'Compétences', { selecteur: '.sheet-main [role=tab]' })).label, 'Compétences')
 })

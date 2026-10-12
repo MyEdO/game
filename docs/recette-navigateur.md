@@ -166,7 +166,10 @@ largeurs (cartes et colonne d'initiative plus étroites à 701–900 qu'au-delà
 561–700) ; **cibles tactiles** : le pointeur grossier est ÉMULÉ (`Emulation.setTouchEmulationEnabled`
 fait répondre `(pointer: coarse)`) et chaque commande vissée rendue offre 44px à ≤560. L'ouvreur
 d'écran du rail n'est monté qu'avec un navire (`src/ui/CampaignView.tsx`) : la mise en place du combat
-pose un `vessel` de campagne.
+pose un `vessel` de campagne. Le verdict du rail exige un ouvreur seulement EN COMBAT et quand un navire
+est présent : le rail n'existe qu'en combat, et « avec navire » est une PHASE du même run, pas un run à
+part. En exploration, l'accès au dossier de navire se DIT non mesuré, navire présent ou non. Un point de
+sonde hors de la fenêtre reçoit le verdict « HORS FENÊTRE », jamais « recouvert par rien ».
 Cellules NON MESURÉES, et pourquoi :
 - **Caméra** `>900`, `701–900`, `561–700` : ces cellules décrivent `ViewControls`, la plaque de
   l'ÉDITEUR — `grep -rn ViewControls src` ne la trouve qu'à `src/ui/editor/EditorCanvas.tsx` et
@@ -191,8 +194,7 @@ En combat, elle refuse aussi un panneau qui recouvre la console (« recouvre la 
 Chaque situation où la mesure serait verte par VACUITÉ (rail dissous sans ouvreur, bande de groupe
 sans carte ni poignée, tiroir qui ne s'ouvre pas, console sans case) se DIT « sonde aveugle ».
 La caméra n'a plus de plaque sur l'écran de jeu (`src/ui/camera-sans-plaque.test.ts`) : `.vc-btn`
-n'est plus sondée. ANGLE MORT DÉCLARÉ : l'ouvreur de dossier de navire n'est monté qu'en combat
-NAVAL — le scénario `enc-mutants` sondé par défaut ne le porte pas.
+n'est plus sondée.
 Le DÉTECTEUR est fait de DEUX fonctions pures exportées par `scripts/recette/hud-clickables.mjs` —
 `defauts` pour la mesure entière, `defautsFrise` pour les seuls verdicts de frise (les passes qui ne
 montent pas le pont l'appellent directement) — testées à fixtures par `scripts/recette/hud-clickables.test.mjs` (gate
@@ -440,10 +442,7 @@ ou non finie refuse. Chaque instantané est validé intégralement : PID entiers
 positifs ou nuls ; sous Windows, CIM exclut explicitement Idle (PID 0) par `ProcessId > 0`. Le code 255 de `taskkill` seul ne décide rien : arbre observé mort → succès ;
 survivant → refus avec PID. Observation impossible → refus. Un descendant déjà réaffilié avant
 la première observation n'est pas retrouvable par son ancien parent : la preuve porte les
-identités sondées. Le verdict HUD du rail exige un ouvreur seulement EN COMBAT et quand un navire est présent :
-le rail n'existe qu'en combat, et « avec navire » est une PHASE du même run, pas un run à part ;
-sans navire, l'accès au dossier de navire est non mesuré. Un point de sonde hors de la fenêtre
-reçoit le verdict « HORS FENÊTRE », jamais « recouvert par rien ».
+identités sondées.
 
 ### Session tenue — `scripts/recette/session.mjs`
 

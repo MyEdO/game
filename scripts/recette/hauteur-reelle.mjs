@@ -34,7 +34,7 @@
 // Résidu mesuré sur l'arbre : Codex à 360×740, page 3007/740 — #1860. Aucune liste d'exemption ici :
 // la sonde reste rouge tant qu'il vit.
 import {
-  openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, realKey, clickButtonByText, cliquerSelecteur, VUES_RECETTE,
+  openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, realKey, clickButtonByText, clickItemByText, VUES_RECETTE,
 } from './lib.mjs';
 import {
   scrollportDePage, commandesInatteignables, corpsDeModaleEcrase, courantHorsChamp, piedHorsChamp,
@@ -221,8 +221,8 @@ const NOMME = (nom) => `(() => {
   return { dialogues: dialogues.map(nomDe), dialogue: { nom: nomDe(d), dessus: !!el && d.contains(el), cible: hote ? cls + ' dans « ' + nomDe(hote) + ' »' : cls } };
 })()`;
 
-/** Onglet NON actif de la planche : la cible du clic d'onglet (`cliquerSelecteur`). */
-const ONGLET_NON_ACTIF = '.sheet-main [role=tab]:not([aria-selected="true"])';
+/** Les ONGLETS de la planche montée : le clic d'onglet en NOMME un (`clickItemByText`). */
+const ONGLETS_PLANCHE = '.sheet-main [role=tab]';
 
 /** Nom de la planche montée (`.planche-nom`) : 5 points (centre, 4 coins rentrés de 3px), et ce qui
  *  tombe sur chacun quand ce n'est pas le dialogue de la planche (le nom lui-même, hors dialogue). */
@@ -350,11 +350,11 @@ async function main() {
         if (!args.mesures) echecs.push(...d);
       };
       /** Un VRAI clic d'onglet de la planche montée : ce que le joueur vient d'ouvrir est en vue. */
-      const clicDOnglet = async (ecran) => {
+      const clicDOnglet = async (ecran, nom) => {
         const ici = `${vue.largeur}×${vue.hauteur} (${vue.nom})`;
         let onglet;
         try {
-          onglet = await cliquerSelecteur(session, ONGLET_NON_ACTIF);
+          onglet = await clickItemByText(session, nom, { selecteur: ONGLETS_PLANCHE });
         } catch (e) {
           echecs.push(`${ici} · ${ecran} : clic d'onglet refusé — ${e.message}`);
           return;
@@ -404,7 +404,7 @@ async function main() {
       const heros = await evaluate(session, `(window.__game.getState().party || [])[0]?.label ?? '(aucun héros)'`);
       await cadrePose(`{ sheetId: (window.__game.getState().party || [])[0]?.id ?? null }`, heros, 'fiche de personnage', { cadre: true });
       await nomDePlanche('fiche de personnage');
-      await clicDOnglet('fiche de personnage');
+      await clicDOnglet('fiche de personnage', 'État');
       await evaluate(session, `window.__game.setState({ sheetId: null })`);
       await sleep(400);
 
@@ -477,7 +477,7 @@ async function main() {
         navire, 'planche de navire', { cadre: true },
       );
       await nomDePlanche('planche de navire');
-      await clicDOnglet('planche de navire');
+      await clicDOnglet('planche de navire', 'Manœuvre');
       await evaluate(session, `window.__game.setState({ sheetId: null })`);
       await sleep(400);
     }
