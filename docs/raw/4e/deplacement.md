@@ -919,7 +919,7 @@ La vigie a **trois chances** de repérer une trajectoire de collision ; ensuite 
 **Voir aussi :** [Manœuvres et vitesses maximum (MDG)](#manœuvres-et-vitesses-maximum-mdg), [Périls en mer (MDG)](#périls-en-mer-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.423-464) → `sea-perils`, `collisionIndex`, `iceberg`, `debris-marins`, `resolveCollision`, `rocher`, `bas-fonds`, `perilManagement` ⚠sans-appelant, `faible`, `strandingPenalty`, +14 — `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaNavigation.ts`, `src/engine/seaPerils.ts`, +4 fichiers
+- `MDG 13` (l.423-464) → `sea-perils`, `collisionIndex`, `iceberg`, `debris-marins`, `resolveCollision`, `rocher`, `bas-fonds`, `perilManagement` ⚠sans-appelant, `faible`, `strandingPenalty`, +15 — `src/data/regles.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaNavigation.ts`, +5 fichiers
 
 ---
 
@@ -944,7 +944,7 @@ Même règle en navigation fluviale, avec 12 Dégâts de coque :
 **Voir aussi :** [Collisions de navires (MDG)](#collisions-de-navires-mdg), [Détroits et tourbillons (MDG)](#détroits-et-tourbillons-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.467-499) → `sea-perils`, `iceberg`, `SeaHazardDef`, `debris-marins`, `resolveCollision`, `rocher`, `pickSeaHazard`, `bas-fonds`, `faible`, `strandingPenalty`, +15 — `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaPerils.ts`, `src/i18n/messages/fr.ts`, +2 fichiers
+- `MDG 13` (l.467-499) → `sea-perils`, `iceberg`, `SeaHazardDef`, `debris-marins`, `resolveCollision`, `rocher`, `pickSeaHazard`, `bas-fonds`, `faible`, `strandingPenalty`, +16 — `src/data/regles.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaPerils.ts`, +3 fichiers
 - `MSRC 7` (l.99) → `river-criticals`, `cale`, `river-control-repair`, `calme`, `debris`, `leger`, `modere`, `river-nav`, `fort`, `river-tack`, +28 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/regles.json`, `src/data/river-criticals.json`, +11 fichiers
 
 ---
@@ -968,7 +968,7 @@ Même règle en navigation fluviale, avec 12 Dégâts de coque :
 **Voir aussi :** [Vents (MDG)](#vents-mdg) (Encalminé/courant), [Périls en mer (MDG)](#périls-en-mer-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.501-564) → `sea-perils`, `iceberg`, `SeaHazardDef`, `debris-marins`, `rocher`, `pickSeaHazard`, `bas-fonds`, `faible`, `resolveVolley`, `moyen`, +31 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/vehicles.json`, `src/data/voyage-stakes.json`, `src/engine/seaPerils.ts`, +4 fichiers
+- `MDG 13` (l.501-564) → `sea-perils`, `iceberg`, `SeaHazardDef`, `debris-marins`, `rocher`, `pickSeaHazard`, `bas-fonds`, `faible`, `resolveVolley`, `moyen`, +32 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/vehicles.json`, `src/data/voyage-stakes.json`, +5 fichiers
 
 ---
 

@@ -387,7 +387,7 @@ Manœuvre / frontale = IC adverse + M total des deux). Sauf précision, **les co
 **Sources RAW** : `MDG 13 l.446-464`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.446-464) → `sea-perils`, `collisionIndex`, `iceberg`, `debris-marins`, `resolveCollision`, `rocher`, `bas-fonds`, `perilManagement` ⚠sans-appelant, `faible`, `strandingPenalty`, +10 — `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaPerils.ts`, `src/i18n/messages/fr.ts`, +2 fichiers
+- `MDG 13` (l.446-464) → `sea-perils`, `collisionIndex`, `iceberg`, `debris-marins`, `resolveCollision`, `rocher`, `bas-fonds`, `perilManagement` ⚠sans-appelant, `faible`, `strandingPenalty`, +11 — `src/data/regles.json`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-perils.json`, `src/data/voyage-stakes.json`, `src/engine/collision.ts`, `src/engine/seaPerils.ts`, +3 fichiers
 
 **État du code.** ✅ `resolveCollision` (frontal/milieu/poupe/s'éloigne/manœuvre), localisation Coque.
 
