@@ -205,7 +205,7 @@ Apprendre un Talent **en dehors de sa Carrière**, avec un tuteur. Nécessite un
 - Échec → peut réessayer à une future Activité ; gagne **+10 par tentative ratée**.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.5, l.59-250) → `FavorLevel`, `ReverseButton`, `Duration`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `tokenReverseAvailable`, `useTestJetProps`, `useDefenseJetProps`, `FavorRow`, `InterludeHeroState`, +44 — `src/data/activities.json`, `src/data/gods.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/activities.ts`, `src/engine/duration.ts`, +19 fichiers
+- `LDB 23` (l.5, l.59-250) → `FavorLevel`, `ReverseButton`, `Duration`, `favorLevelSchema`, `resetInterruptedFavorProgress`, `tokenReverseAvailable`, `useTestJetProps`, `FavorRow`, `useDefenseJetProps`, `InterludeHeroState`, +44 — `src/data/activities.json`, `src/data/gods.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/activities.ts`, `src/engine/duration.ts`, +19 fichiers
 
 ---
 
@@ -665,7 +665,7 @@ Le détail : chaque Personnage dispose d'**une Activité par semaine de 8 jours*
 **Voir aussi** : [Activités Répandues (LDB 23)](#activités-répandues-ldb-23) (Apprentissage particulier, Artisanat, Entraînement, Invention !), [Activités de Classe (LDB 23)](#activités-de-classe-ldb-23) (Recherche de savoir, Semer la dissension, Entraînement au combat), [Activités de Guerrier — AA Annexe II](#activités-de-guerrier--aa-annexe-ii), [Commerce d'opportunité (en mer)](#commerce-dopportunité-en-mer), [Cartographie (Activité en mer)](#cartographie-activité-en-mer), [Entraînement d'équipage](#entraînement-déquipage), [Entretien du navire](#entretien-du-navire).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.17, l.266-272) → `SeaActivitiesModal`, `WorldMapView`, `SeaVoyageState`, `SEA_WEEK_DAYS`, `startTravel`, `sea-embrigadement-ragot`, `sea-embrigadement-discretion`, `sea-cargo`, `cruiseM`, `embrigadement`, +25 — `src/data/regles.json`, `src/data/sea-cargo.json`, `src/data/sea-events.json`, `src/data/voyage-stakes.json`, `src/state/pendings.ts`, `src/state/seaActivities.ts`, +5 fichiers
+- `MDG 15` (l.17, l.266-272) → `SeaActivitiesModal`, `WorldMapView`, `SeaVoyageState`, `SEA_WEEK_DAYS`, `startTravel`, `sea-embrigadement-ragot`, `sea-cargo`, `sea-embrigadement-discretion`, `cruiseM`, `embrigadement`, +25 — `src/data/regles.json`, `src/data/sea-cargo.json`, `src/data/sea-events.json`, `src/data/voyage-stakes.json`, `src/state/pendings.ts`, `src/state/seaActivities.ts`, +5 fichiers
 
 ---
 
@@ -689,7 +689,7 @@ Activité de spéculation rapide lors d'une escale appropriée. Le Personnage **
 **Voir aussi** : [Activités en mer — MDG 15](#activités-en-mer--mdg-15), [`economie.md`](economie.md) (Marchandage, couronnes d'or, Encombrement).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.274-286) → `SeaActivitiesModal`, `BankDeposit`, `doc`, `SEA_WEEK_DAYS`, `sea-embrigadement-ragot`, `sea-embrigadement-discretion`, `sea-cargo`, `sellRefusal`, `buildPostProgressionSteps`, `bankWithdrawOutcome`, +26 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, `src/data/sea-events.json`, `src/data/voyage-stakes.json`, +9 fichiers
+- `MDG 15` (l.274-286) → `SeaActivitiesModal`, `BankDeposit`, `doc`, `SEA_WEEK_DAYS`, `sea-embrigadement-ragot`, `sea-cargo`, `sea-embrigadement-discretion`, `sellRefusal`, `buildPostProgressionSteps`, `bankWithdrawOutcome`, +26 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, `src/data/sea-events.json`, `src/data/voyage-stakes.json`, +9 fichiers
 
 ---
 
