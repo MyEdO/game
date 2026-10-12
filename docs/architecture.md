@@ -43,8 +43,9 @@ l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). L
 produit dans le commit ; les post-hooks (`scripts/git-hooks/miroirs-d-agents.mjs`) rattrapent ce que
 le `pre-commit` ne joue pas (fusion, rebase, `--no-verify`) — le `post-commit` seulement si l'index
 s'écarte de HEAD sur une destination, ou si le commit a touché une destination, une entrée non-JS du
-producteur (`ENTREES_DU_PRODUCTEUR`) ou un module de la clôture d'imports de son code
-(`RACINES_DU_PRODUCTEUR`, `clotureDImports`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. L'étape
+producteur (`ENTREES_DU_PRODUCTEUR`) ou un membre, données JSON comprises, de la clôture d'imports de
+son code (`RACINES_DU_PRODUCTEUR`, `clotureDImports`, spécificateurs mémoïsés par contenu :
+`specificateursMemoises` de `scripts/test/perimetre.mjs`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. L'étape
 `docs` du train les commet ; un `.claude/settings.json` sale n'y est dérivé que si seule sa clé
 `hooks` s'écarte de HEAD (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`).
 

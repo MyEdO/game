@@ -12,33 +12,53 @@ import { INDEX, ceQuiChange, cheminGit, depotDe, ecartsDuTravail, entreesDe, nat
 const GENERATEUR = 'scripts/agents/compat-cli.mjs'
 const NOYAU = 'scripts/agents/compat-core.mjs'
 
+/** @typedef {{ memos: { sauver: () => void }, specificateurs: NonNullable<Parameters<typeof import('../guards/lib/importGraph.mjs').clotureDImports>[1]>['specificateurs'] }} Marches */
+
 /**
- * Les modules de la clôture d'imports de `racines` (`clotureDImports`, lue sur le disque, ce que Node
- * charge) qui diffèrent entre le disque et l'index de `depot` : écartés du travail (`ecartsDuTravail`)
- * ou absents de l'index. Aucun écart de module suivi : rien à marcher.
+ * Les mémos du dépôt de `racine` (`memosDuDepot`) et l'option `specificateurs` de `clotureDImports` qu'ils
+ * portent, sous le régime de typage (`specificateursMemoises`).
+ * @param {string} racine @returns {Promise<Marches>}
+ */
+async function marchesMemoisees(racine) {
+  const { memosDuDepot, specificateursMemoises } = await import('../test/perimetre.mjs')
+  const memos = memosDuDepot(racine)
+  return { memos, specificateurs: specificateursMemoises(memos, { typesEffaces: false }) }
+}
+
+/**
+ * Les membres de la clôture d'imports de `racines` (`clotureDImports`, lue sur le disque, ce que Node
+ * charge, données comprises) qui diffèrent entre le disque et l'index de `depot` : écartés du travail
+ * (`ecartsDuTravail`) ou absents de l'index.
  * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @param {string} racine @param {string[]} racines
- * @param {{ ecarts: Set<string>, cache: Map<string, unknown> }} etat
+ * @param {{ ecarts: Set<string>, cache: Map<string, unknown>, specificateurs: Marches['specificateurs'] }} etat
  */
 async function modulesSales(depot, racine, racines, etat) {
-  const { clotureDImports, estModule } = await import('../guards/lib/importGraph.mjs')
-  if (![...etat.ecarts].some((rel) => estModule(rel)) && racines.every((r) => entreesDe(depot, INDEX, [r]).size)) return []
-  const membres = [...clotureDImports(racines, { racine, cache: etat.cache })]
+  const { clotureDImports } = await import('../guards/lib/importGraph.mjs')
+  const membres = [...clotureDImports(racines, { racine, cache: etat.cache, specificateurs: etat.specificateurs })]
   const suivis = entreesDe(depot, INDEX, membres)
   return membres.filter((rel) => etat.ecarts.has(rel) || !suivis.has(rel))
 }
 
 /**
  * Joue `runCompat` (mode `sync`) sur l'INDEX de `depot` (`dependancesDeLIndex`), dans le dépôt `racine`,
- * git sous `env` (celui de `depot`). Un producteur absent du disque comme de l'index : rien. Rend les
- * avertissements et les chemins écrits.
- * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @param {string} racine @param {{ env?: NodeJS.ProcessEnv }} [opts]
+ * git sous `env` (celui de `depot`), ses marches sous `marches` (à défaut, `marchesMemoisees` de `racine`,
+ * sauvées). Un producteur absent du disque comme de l'index : rien. Rend les avertissements et les chemins écrits.
+ * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @param {string} racine @param {{ env?: NodeJS.ProcessEnv, marches?: Marches }} [opts]
  * @returns {Promise<{ avertissements: string[], ecrits: string[] }>}
  */
-export async function produireLesMiroirs(depot, racine, { env } = {}) {
+export async function produireLesMiroirs(depot, racine, { env, marches } = {}) {
   const avertissements = []
   const ecrits = []
   if (!existsSync(join(racine, GENERATEUR)) && !entreesDe(depot, INDEX, [GENERATEUR]).size) return { avertissements, ecrits }
-  const etat = { ecarts: new Set(ecartsDuTravail(depot)), cache: new Map() }
+  if (!marches) {
+    const propres = await marchesMemoisees(racine)
+    try {
+      return await produireLesMiroirs(depot, racine, { env, marches: propres })
+    } finally {
+      propres.memos.sauver()
+    }
+  }
+  const etat = { ecarts: new Set(ecartsDuTravail(depot)), cache: new Map(), specificateurs: marches.specificateurs }
   const generateur = await modulesSales(depot, racine, [GENERATEUR], etat)
   if (generateur.length) {
     avertissements.push(`miroirs d'agents NON produits : le producteur (compat-cli, compat-core) diffère entre le disque et l'index — ${generateur.join(', ')}`)
@@ -82,12 +102,12 @@ export function ecrireAvertissements(prefixe, avertissements) {
 /**
  * Le post-commit produit-il ? Oui si l'index de `depot` s'écarte de HEAD sur une destination
  * (`DESTINATIONS`), si le commit a touché une destination, une entrée non-JS du producteur
- * (`ENTREES_DU_PRODUCTEUR`) ou un module de la clôture d'imports de son code (`RACINES_DU_PRODUCTEUR`,
- * `clotureDImports`, lue sur le disque), si HEAD n'a pas de parent, ou si le producteur manque au disque
- * (`produireLesMiroirs` tranche).
- * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @param {string} racine
+ * (`ENTREES_DU_PRODUCTEUR`) ou un membre de la clôture d'imports de son code (`RACINES_DU_PRODUCTEUR`,
+ * `clotureDImports`, lue sur le disque, données comprises, sous `marches`), si HEAD n'a pas de parent, ou
+ * si le producteur manque au disque (`produireLesMiroirs` tranche).
+ * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @param {string} racine @param {Marches} marches
  */
-async function commitAProduire(depot, racine) {
+async function commitAProduire(depot, racine, marches) {
   if (![GENERATEUR, NOYAU].every((rel) => existsSync(join(racine, rel)))) return true
   const url = (rel) => pathToFileURL(join(racine, rel)).href
   const { DESTINATIONS } = await import(url(NOYAU))
@@ -97,9 +117,8 @@ async function commitAProduire(depot, racine) {
   const touches = ceQuiChange(depot, 'HEAD^', 'HEAD').chemins('')
   const sous = (rel) => (r) => rel === r || rel.startsWith(`${r}/`)
   if (touches.some((rel) => [...DESTINATIONS, ...ENTREES_DU_PRODUCTEUR].some(sous(rel)))) return true
-  const { clotureDImports, estModule } = await import('../guards/lib/importGraph.mjs')
-  if (!touches.some(estModule)) return false
-  const code = clotureDImports(RACINES_DU_PRODUCTEUR, { racine })
+  const { clotureDImports } = await import('../guards/lib/importGraph.mjs')
+  const code = clotureDImports(RACINES_DU_PRODUCTEUR, { racine, specificateurs: marches.specificateurs })
   return touches.some((rel) => code.has(rel))
 }
 
@@ -116,16 +135,22 @@ if (import.meta.main) {
     const racine = resolve(racineDe(depotDe(process.cwd(), { env })) ?? process.cwd())
     const depot = depotDe(racine, { env })
     if (hook === 'post-commit' && (rebaseEntame(depot) || sequenceEnCours(depot))) process.exit(0)
-    if (hook === 'post-commit' && !(await commitAProduire(depot, racine))) process.exit(0)
-    const { avertissements, ecrits } = await produireLesMiroirs(depot, racine, { env })
-    ecrireAvertissements(`[${hook}]`, avertissements)
-    if (ecrits.length) {
-      const tete = entreesDe(depot, 'HEAD', ecrits)
-      const index = entreesDe(depot, INDEX, ecrits)
-      const aCommettre = ecrits.filter((rel) => tete.get(rel)?.sha !== index.get(rel)?.sha)
-      process.stderr.write(aCommettre.length
-        ? `[${hook}] miroirs d'agents produits dans l'index, HEAD ne les porte pas — À COMMETTRE : ${aCommettre.join(', ')}\n`
-        : `[${hook}] miroirs d'agents de l'index réalignés sur HEAD : ${ecrits.join(', ')}\n`)
+    const marches = await marchesMemoisees(racine)
+    try {
+      if (hook !== 'post-commit' || await commitAProduire(depot, racine, marches)) {
+        const { avertissements, ecrits } = await produireLesMiroirs(depot, racine, { env, marches })
+        ecrireAvertissements(`[${hook}]`, avertissements)
+        if (ecrits.length) {
+          const tete = entreesDe(depot, 'HEAD', ecrits)
+          const index = entreesDe(depot, INDEX, ecrits)
+          const aCommettre = ecrits.filter((rel) => tete.get(rel)?.sha !== index.get(rel)?.sha)
+          process.stderr.write(aCommettre.length
+            ? `[${hook}] miroirs d'agents produits dans l'index, HEAD ne les porte pas — À COMMETTRE : ${aCommettre.join(', ')}\n`
+            : `[${hook}] miroirs d'agents de l'index réalignés sur HEAD : ${ecrits.join(', ')}\n`)
+        }
+      }
+    } finally {
+      marches.memos.sauver()
     }
   } catch (e) {
     process.stderr.write(`[${hook}] miroirs d'agents NON produits : ${raisonCourte(e?.message ?? e)}\n`)

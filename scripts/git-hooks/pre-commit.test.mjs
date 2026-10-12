@@ -273,6 +273,9 @@ const skill = (corps) => `---\nname: x\ndescription: "d"\n---\n\n${corps}\n`
 const derive = (source) => transformSkillTree(new Map([[SOURCE, Buffer.from(source)]])).get(MIROIR).toString('utf8')
 /** Un registre forgé (`ENTREES_OUTIL`, `registre.mjs` → `REGISTRE`) dont les gardes portent `outils`. */
 const registre = (...outils) => `export const REGISTRE = { PreToolUse: [${outils.map((o) => `{ outils: ['${o}'] }`).join(', ')}] }\n`
+/** Une donnée JSON de la clôture du producteur : les `outils` que lit le registre `REGISTRE_LECTEUR`. */
+const DONNEE = 'scripts/hooks/outils.json'
+const REGISTRE_LECTEUR = "import outils from './outils.json' with { type: 'json' }\nexport const REGISTRE = { PreToolUse: [{ outils }] }\n"
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Le dossier des hooks RÉELS (`core.hooksPath` du dépôt). */
@@ -464,6 +467,21 @@ test('#2578 (D1) — registre SALE : la famille `hook` saute, nommée ; les skil
   }
 })
 
+test('#2578 (D1) — donnée JSON du registre SALE : la famille `hook` saute, nommée ; les skills sont produits', () => {
+  const d = depotAuSkill({ [REGISTRE]: REGISTRE_LECTEUR, [DONNEE]: '["Bash"]\n' })
+  try {
+    d.ecrire(DONNEE, '["Bash", "Read"]\n')
+    d.ecrire(SOURCE, skill('v2')); d.git('add', '--', SOURCE)
+    const r = d.jouer('commit', '-q', '-m', 'v2')
+    assert.equal(r.status, 0, r.stderr)
+    assert.ok(lignes(r).some((l) => l.startsWith('pre-commit — famille `hook` NON produite') && l.includes(DONNEE)), r.stderr)
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), derive(skill('v2')))
+    assert.equal(JSON.parse(d.git('show', 'HEAD:.claude/settings.json')).hooks.PreToolUse[0].matcher, 'Bash')
+  } finally {
+    d.fin()
+  }
+})
+
 test('#2578 (D3) — import des registres en ÉCHEC : seule la famille `hook` saute, les skills sont produits', () => {
   const d = depotAuSkill({ [REGISTRE]: "throw new Error('registre cassé')\n" })
   try {
@@ -574,14 +592,34 @@ test('#2578 (h) — un miroir retouché à la main et commis sans le pre-commit 
   }
 })
 
-test('#2578 (h\') — un commit qui ne touche ni destination ni source du producteur (`notes.txt`) : le post-commit ne produit pas', () => {
+test('#2578 (h\') — miroir PÉRIMÉ dans HEAD et l’index : un commit qui ne touche ni destination ni membre du producteur (`notes.txt`, `scripts/autre.mjs` hors de la clôture) ne produit pas, le miroir reste périmé', () => {
   const d = depotAuSkill()
   try {
-    d.ecrire('notes.txt', 'n2\n'); d.git('add', '--', 'notes.txt')
-    const r = d.jouer('commit', '--no-verify', '-q', '-m', 'notes')
+    const perime = d.lire(MIROIR).replace('v1', 'v1 périmé')
+    d.ecrire(MIROIR, perime); d.git('add', '--', MIROIR)
+    d.git('-c', 'core.hooksPath=', 'commit', '-q', '-m', 'miroir périmé, hooks coupés')
+    for (const [rel, texte] of [['notes.txt', 'n2\n'], ['scripts/autre.mjs', 'export const autre = 1\n']]) {
+      d.ecrire(rel, texte); d.git('add', '--', rel)
+      const r = d.jouer('commit', '--no-verify', '-q', '-m', rel)
+      assert.equal(r.status, 0, r.stderr)
+      assert.deepEqual(lignes(r).filter((l) => l.startsWith('[post-commit]')), [], `${rel} : ${r.stderr}`)
+      assert.equal(d.git('show', `HEAD:${MIROIR}`), perime, rel)
+      assert.equal(d.git('show', `:${MIROIR}`), perime, rel)
+    }
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (h\'\'\') — une donnée JSON de la clôture du producteur (importée par le registre) commise sans le pre-commit : le post-commit produit la famille `hook` et la SIGNALE À COMMETTRE', () => {
+  const d = depotAuSkill({ [REGISTRE]: REGISTRE_LECTEUR, [DONNEE]: '["Bash"]\n' })
+  try {
+    assert.ok(JSON.parse(d.git('show', 'HEAD:.claude/settings.json')).hooks.PreToolUse[0].matcher.includes('Bash'), 'témoin : le registre lit la donnée')
+    d.ecrire(DONNEE, '["Bash", "Zed"]\n'); d.git('add', '--', DONNEE)
+    const r = d.jouer('commit', '--no-verify', '-q', '-m', 'donnée sans hook')
     assert.equal(r.status, 0, r.stderr)
-    assert.deepEqual(lignes(r).filter((l) => l.startsWith('[post-commit]')), [], r.stderr)
-    assert.equal(d.statut(), '')
+    assert.ok(lignes(r).some((l) => l.startsWith("[post-commit] miroirs d'agents produits dans l'index, HEAD ne les porte pas — À COMMETTRE : ") && l.includes('.claude/settings.json')), r.stderr)
+    assert.ok(JSON.parse(d.git('show', ':.claude/settings.json')).hooks.PreToolUse[0].matcher.includes('Zed'))
   } finally {
     d.fin()
   }

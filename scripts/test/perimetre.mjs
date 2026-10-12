@@ -199,6 +199,23 @@ export function memosDe(dossier, version) {
   }
 }
 
+/** Les mémos du dépôt de `racine` sous `dossier` (`CACHE` par défaut), signés par `versionDesMemos`. */
+export const memosDuDepot = (racine, dossier = join(racine, CACHE)) => memosDe(dossier, versionDesMemos(racine))
+
+/**
+ * L'option `specificateurs` de `clotureDImports` sur `memos`, adressée par contenu (extension, `blobDe`) :
+ * une famille par régime de marche (`typesEffaces`), les sites n'étant valables que sous le leur.
+ * @param {ReturnType<typeof memosDe>} memos @param {{ typesEffaces: boolean }} regime
+ */
+export function specificateursMemoises(memos, { typesEffaces }) {
+  const famille = typesEffaces ? 'specificateurs' : 'specificateurs-typage'
+  const cle = (a, t) => `${posix.extname(a)}:${blobDe(t)}`
+  return {
+    lire: (a, t) => memos.lire(famille, cle(a, t)),
+    ecrire: (a, t, sites) => memos.ecrire(famille, cle(a, t), sites.map(({ spec, motifs, nature, ligne }) => ({ spec, motifs, nature, ligne }))),
+  }
+}
+
 /** Les `setupFiles` de la config Vitest (`CONFIG_VITEST`), lus sur son arbre syntaxique. */
 function setupFilesDe(texte) {
   if (texte === null) return []
@@ -245,10 +262,7 @@ function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant, memos
   clotureDImports([...vitest, ...node, ...setup], {
     racine, typesEffaces: true, cache,
     arbre: { existe: (a) => ensemble.has(rel(a)), lire: lireAbs, fichiers: [...ensemble].map(abs) },
-    specificateurs: memos && {
-      lire: (a, t) => memos.lire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`),
-      ecrire: (a, t, sites) => memos.ecrire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`, sites.map(({ spec, motifs, nature, ligne }) => ({ spec, motifs, nature, ligne }))),
-    },
+    specificateurs: memos && specificateursMemoises(memos, { typesEffaces: true }),
   })
   /** @type {Map<string, { importeur: string, spec: string }[]>} */
   const inverse = new Map()
@@ -750,7 +764,7 @@ export function perimetreDuDepot(racine, { base, tete } = {}, { dossierDesMemos 
   const depot = depotDe(racine)
   const images = imagesDuDiff(depot, { base, tete })
   const lire = images.tete ? (rels) => lireEnLot(depot, images.tete, rels) : lireDuDisque(racine)
-  const memos = memosDe(dossierDesMemos, versionDesMemos(racine))
+  const memos = memosDuDepot(racine, dossierDesMemos)
   const lireAvant = (rels) => lireEnLot(depot, images.base, rels)
   const derive = deriverPerimetre({ racine, touches: images.touches, post: images.post, avant: images.avant, lire, lireAvant, memos })
   memos.sauver()
@@ -769,7 +783,7 @@ const lireDuDisque = (racine) => (rels) => new Map(rels.map((r) => {
  * @returns {NonResolu[]}
  */
 export function balayagesNonResolus(racine, { dossierDesMemos = join(racine, CACHE) } = {}) {
-  const memos = memosDe(dossierDesMemos, versionDesMemos(racine))
+  const memos = memosDuDepot(racine, dossierDesMemos)
   const { nonResolus } = deriverPerimetre({ racine, touches: [], post: listerImage(depotDe(racine), TRAVAIL), avant: [], lire: lireDuDisque(racine), memos })
   memos.sauver()
   return nonResolus
