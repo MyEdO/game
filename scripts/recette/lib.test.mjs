@@ -99,6 +99,7 @@ import * as kitRecette from './lib.mjs'
 import { demarrer } from './setup.mjs'
 import { recette, squelette } from './gabarit.mjs'
 import { PROBE } from './console-pont-formes.mjs'
+import { NOMME, NOM_PLANCHE } from './hauteur-reelle.mjs'
 
 /** La socket factice d'une session de test : la session ne l'expose pas (`brancherCdp`), le test la
  *  garde. */
@@ -1199,7 +1200,7 @@ test('couleur : un clic qui ne donne pas le focus LÈVE, aucune couleur posée',
 test('couleur : couleur invalide, cible d’un autre type et pastille FERMÉE refusées avant tout événement', async () => {
   const { doc, etat, session } = pageCouleur('<input id="c" type="color" value="#000000"><input id="t">')
   await assert.rejects(() => choisirCouleur(session, '#c', 'red'), /couleur invalide/)
-  await assert.rejects(() => choisirCouleur(session, '#t', '#ffffff'), /input\[type=color\] attendu « #t », trouvé input — aucun événement émis/)
+  await assert.rejects(() => choisirCouleur(session, '#t', '#ffffff'), /input\[type=color\] attendu « #t », trouvé input#t — aucun événement émis/)
   doc.querySelector('#c').disabled = true
   await assert.rejects(() => choisirCouleur(session, '#c', '#ffffff'), /FERMÉ/)
   assert.deepEqual(etat.emis, [])
@@ -2989,22 +2990,59 @@ test('geste : `evenements` qui échoue avec un refus EN VOL lève les DEUX, join
   })
 })
 
-/** Page pilotée dont le domaine `Input` ne répond JAMAIS (la socket reste ouverte). */
-function pageInputMuet(html) {
+/** Page pilotée dont les émissions `Input` que `muet(methode, params)` désigne (toutes par défaut) ne
+ *  reçoivent JAMAIS d'accusé de réception (la socket reste ouverte). */
+function pageInputMuet(html, muet = (methode) => methode.startsWith('Input.')) {
   const page = pagePilotee(html)
   const servir = socketDe(page.session).gerer
-  socketDe(page.session).gerer = (methode, params) => methode.startsWith('Input.') ? new Promise(() => {}) : servir(methode, params)
+  socketDe(page.session).gerer = (methode, params) => muet(methode, params) ? new Promise(() => {}) : servir(methode, params)
   return page
 }
 
-test('geste et frappe : une émission `Input` sans réponse LÈVE après `delaiEntreeMs`, attendue ou non', async () => {
+test('clic : un `mousePressed` sans accusé de réception est suivi de son `mouseReleased`', async () => {
+  const { session } = pageInputMuet('<button id="a">A</button>', (methode, params) => methode === 'Input.dispatchMouseEvent' && params.type === 'mousePressed')
+  await assert.rejects(() => geste(session, { selecteur: '#a' }, { attenteMs: 0, delaiEntreeMs: 40 }, clic()),
+    /^Error: geste : Input\.dispatchMouseEvent : accusé de réception absent après 40 ms/)
+  assert.deepEqual(socketDe(session).envoyes.filter((m) => m.method === 'Input.dispatchMouseEvent').map((m) => m.params.type), ['mouseMoved', 'mousePressed', 'mouseReleased'])
+})
+
+test('helpers de geste et de frappe : chacun transmet `delaiEntreeMs` à son émetteur', async () => {
+  const court = { delaiEntreeMs: 40, attenteMs: 0 }
+  const souris = {
+    clickButtonByText: (s) => clickButtonByText(s, 'A', court),
+    cliquerSelecteur: (s) => cliquerSelecteur(s, '#a', court),
+    clickItemByText: (s) => clickItemByText(s, 'A', { selecteur: '#a', ...court }),
+    clicDroit: (s) => clicDroit(s, { selecteur: '#a' }, court),
+    appuiLong: (s) => appuiLong(s, { selecteur: '#a' }, 0, court),
+    toucher: (s) => toucher(s, { selecteur: '#a' }, court),
+    molette: (s) => molette(s, { selecteur: '#a' }, 120, court),
+    survoler: (s) => survoler(s, { selecteur: '#a' }, court),
+    typeInField: (s) => typeInField(s, '#a', 'x', court),
+  }
+  for (const [qui, jouer] of Object.entries(souris)) {
+    await assert.rejects(() => jouer(pageInputMuet('<button id="a">A</button>').session), new RegExp(`^Error: ${qui} : Input\\.dispatch(Mouse|Touch)Event : accusé de réception absent après 40 ms`), qui)
+  }
+  const saisie = pageInputMuet('<input id="a">', (methode) => methode === 'Input.insertText')
+  saisie.doc.querySelector('#a').focus()
+  await assert.rejects(() => typeInField(saisie.session, '#a', 'x', court), /^Error: typeInField : Input\.insertText : accusé de réception absent après 40 ms/)
+  const clavier = {
+    realKey: (s) => realKey(s, { key: 'a' }, court),
+    realKeyDown: (s) => realKeyDown(s, ALT, court),
+    realKeyUp: (s) => realKeyUp(s, ALT, court),
+  }
+  for (const [qui, jouer] of Object.entries(clavier)) {
+    await assert.rejects(() => jouer(pageInputMuet('').session), new RegExp(`^Error: ${qui} : Input\\.dispatchKeyEvent : accusé de réception absent après 40 ms`), qui)
+  }
+})
+
+test('geste et frappe : une émission `Input` sans accusé de réception LÈVE après `delaiEntreeMs`, attendue ou non', async () => {
   const presse = (loc) => ({ type: 'mousePressed', x: loc.x, y: loc.y, button: 'left', clickCount: 1 })
   await assert.rejects(() => geste(pageInputMuet('<button id="a">A</button>').session, { selecteur: '#a' }, { attenteMs: 0, delaiEntreeMs: 40 }, async (loc, emettre) => { emettre('souris', presse(loc)) }),
-    /^Error: geste : Input\.dispatchMouseEvent sans réponse après 40 ms$/)
+    /^Error: geste : Input\.dispatchMouseEvent : accusé de réception absent après 40 ms \(la page peut avoir reçu l'événement\)$/)
   await assert.rejects(() => geste(pageInputMuet('<button id="a">A</button>').session, { selecteur: '#a' }, { qui: 'cliquer', attenteMs: 0, delaiEntreeMs: 40 }, clic()),
-    /^Error: cliquer : Input\.dispatchMouseEvent sans réponse après 40 ms$/)
+    /^Error: cliquer : Input\.dispatchMouseEvent : accusé de réception absent après 40 ms \(la page peut avoir reçu l'événement\)$/)
   await assert.rejects(() => frappe(pageInputMuet('').session, { qui: 'taper', delaiEntreeMs: 40 }, (emettre) => emettre('texte', { text: 'x' })),
-    /^Error: taper : Input\.insertText sans réponse après 40 ms$/)
+    /^Error: taper : Input\.insertText : accusé de réception absent après 40 ms \(la page peut avoir reçu l'événement\)$/)
 })
 
 test('nom d’élément (`FN_NOMMER_ELEMENT`) : ambiguïté, focus manquant et sonde du pont nomment classe et SVG', async () => {
@@ -3020,6 +3058,16 @@ test('nom d’élément (`FN_NOMMER_ELEMENT`) : ambiguïté, focus manquant et s
   assert.deepEqual(m.flancs.map((f) => f.quoi), ['svg.voile.plein', 'svg.voile.plein'])
   assert.deepEqual(m.controles.map((c) => c.quoi), ['svg.cc-arch-name.ico'])
   assert.deepEqual(m.arche.enfants.map((e) => e.q), ['svg.cc-arch-name.ico'])
+  const pastille = pagePilotee('<svg class="pastille a"></svg>')
+  await assert.rejects(() => choisirCouleur(pastille.session, '.pastille', '#112233'), /choisirCouleur : input\[type=color\] attendu « \.pastille », trouvé svg\.pastille\.a — aucun événement émis/)
+  const couleur = pagePilotee('<input type="color" id="c"><button class="icone fermer"></button>')
+  couleur.doc.querySelector('button').focus()
+  await assert.rejects(() => choisirCouleur(couleur.session, '#c', '#112233'), /choisirCouleur « #c » : le champ n'a pas le focus après le clic \(focus sur button\.icone\.fermer\)/)
+  const hauteur = new JSDOM('<div role="dialog" aria-label="Fiche"><div class="cadre-pied"><button class="btn-primary">OK</button></div><span class="planche-nom">Navire</span></div><svg class="voile plein"></svg>', { runScripts: 'outside-only' })
+  hauteur.window.Element.prototype.getClientRects = () => [{}]
+  hauteur.window.document.elementFromPoint = () => hauteur.window.document.querySelector('svg.voile')
+  assert.equal(hauteur.window.eval(NOMME('Fiche')).dialogue.cible, 'svg.voile.plein')
+  assert.deepEqual([...new Set(hauteur.window.eval(NOM_PLANCHE).couverts)], ['svg.voile.plein'])
 })
 
 test('ouvrirFiche : `{ livre }` filtre EXACT sur le livre de la rangée — préfixe d’id et livre cité hors rangées', async () => {

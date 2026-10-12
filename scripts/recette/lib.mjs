@@ -668,7 +668,7 @@ export function brancherCdp(ws, champs = {}) {
   session.rpc = verrouille(brut);
   session.rpcNavigateur = verrouille((method, params) => envoyer(method, params, null));
   emetteursBruts.set(session, (qui, delaiMs) => (method, params) =>
-    courseContreMontre(brut(method, params), delaiMs, `${qui} : ${method} sans réponse après ${delaiMs} ms`));
+    courseContreMontre(brut(method, params), delaiMs, `${qui} : ${method} : accusé de réception absent après ${delaiMs} ms (la page peut avoir reçu l'événement)`));
   return session;
 }
 
@@ -1141,8 +1141,8 @@ export async function setMobileViewport(session) {
  * porter ses Blessures en texte ; son `aria-label` nomme le héros et le geste. `attenteMs` : l'attente de la
  * cible et d'un recouvrement transitoire. C'est `geste` sur `{ nom, dans, rangee, exact }`.
  */
-export async function clickButtonByText(session, texte, { exact = true, dans, rangee, modifiers = 0, attendreChangement = false, attenteMs = ATTENTE_CIBLE } = {}) {
-  return geste(session, { nom: texte, exact, dans, rangee }, { qui: 'clickButtonByText', attenteMs },
+export async function clickButtonByText(session, texte, { exact = true, dans, rangee, modifiers = 0, attendreChangement = false, attenteMs = ATTENTE_CIBLE, delaiEntreeMs = DELAI_ENTREE } = {}) {
+  return geste(session, { nom: texte, exact, dans, rangee }, { qui: 'clickButtonByText', attenteMs, delaiEntreeMs },
     (loc, emettre) => avecEffet(session, `clickButtonByText « ${texte} »`, attendreChangement, () => clic({ modifiers })(loc, emettre)));
 }
 
@@ -1195,10 +1195,11 @@ async function avecEffet(session, qui, attendre, geste) {
 // `session.rpc` refuse le domaine `Input` (garde `scripts/guards/lib/emetteurEntreeExclusivity.mjs`).
 
 /** Émetteur BRUT du CDP par session, posé par `brancherCdp` : lu par `geste` et `frappe` seulement.
- *  `(qui, delaiMs)` le rend BORNÉ : une émission sans réponse en `delaiMs` LÈVE au nom de `qui`. */
+ *  `(qui, delaiMs)` le rend BORNÉ : une émission sans accusé de réception en `delaiMs` LÈVE au nom de `qui`. */
 const emetteursBruts = new WeakMap();
 
-/** Plafond par défaut d'une émission `Input.*` (`geste`, `frappe` : option `delaiEntreeMs`). */
+/** Plafond par défaut d'une émission `Input.*` (`geste`, `frappe` et les helpers qui les appellent : option
+ *  `delaiEntreeMs`). */
 export const DELAI_ENTREE = 10000;
 
 /** Domaine CDP des événements d'ENTRÉE : `session.rpc` le refuse, `geste` et `frappe` l'émettent. */
@@ -1247,15 +1248,15 @@ export async function setAtelier(session, actif = true, { dans = '.codex-top' } 
  * point. `attendreChangement` : même option que `clickButtonByText` (`avecEffet`).
  * @returns {Promise<{ x: number, y: number, label: string, ferme: null }>}
  */
-export async function cliquerSelecteur(session, selecteur, { modifiers = 0, attendreChangement = false, attenteMs = ATTENTE_CIBLE } = {}) {
-  return geste(session, { selecteur }, { qui: 'cliquerSelecteur', attenteMs },
+export async function cliquerSelecteur(session, selecteur, { modifiers = 0, attendreChangement = false, attenteMs = ATTENTE_CIBLE, delaiEntreeMs = DELAI_ENTREE } = {}) {
+  return geste(session, { selecteur }, { qui: 'cliquerSelecteur', attenteMs, delaiEntreeMs },
     (loc, emettre) => avecEffet(session, `cliquerSelecteur « ${selecteur} »`, attendreChangement, () => clic({ modifiers })(loc, emettre)));
 }
 
 /** Item de liste sans rôle interactif : `selecteur` délimite les items, `nom` leur texte propre. */
-export async function clickItemByText(session, texte, { selecteur, nom, dans, exact = true, modifiers = 0, attenteMs = ATTENTE_CIBLE } = {}) {
+export async function clickItemByText(session, texte, { selecteur, nom, dans, exact = true, modifiers = 0, attenteMs = ATTENTE_CIBLE, delaiEntreeMs = DELAI_ENTREE } = {}) {
   if (!selecteur) throw new Error('clickItemByText : { selecteur } des items obligatoire');
-  return geste(session, { nom: texte, selecteur, libelle: nom, dans, exact }, { qui: 'clickItemByText', attenteMs }, clic({ modifiers }));
+  return geste(session, { nom: texte, selecteur, libelle: nom, dans, exact }, { qui: 'clickItemByText', attenteMs, delaiEntreeMs }, clic({ modifiers }));
 }
 
 /** Les contrôles qu'un localisateur par TEXTE vise — SOURCE UNIQUE (`geste` sur `{ nom }` sans
@@ -1273,8 +1274,8 @@ const FN_NOM_ACCESSIBLE = `(b) => norm(b.getAttribute('aria-label')) || norm(b.m
 const CORPS_NOM_ACCESSIBLE = `const nomAccessible = ${FN_NOM_ACCESSIBLE};`;
 
 /** `nommer(el)` (fonction de PAGE) : le NOM d'un élément, `tag#id.classe…` (classe SVG comprise), lisible
- *  même sans texte. SOURCE UNIQUE (`pageLocaliser`, `pageControler`, `frappe`,
- *  `hud-clickables.mjs`, `console-pont-formes.mjs`). */
+ *  même sans texte. SOURCE UNIQUE (`pageLocaliser`, `pageControler`, `frappe`, `choisirCouleur`,
+ *  `hud-clickables.mjs`, `console-pont-formes.mjs`, `hauteur-reelle.mjs`). */
 export const FN_NOMMER_ELEMENT = `(e) => { const c = e.className && e.className.baseVal !== undefined ? e.className.baseVal : String(e.className || ''); return e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (c.trim() ? '.' + c.trim().split(/\\s+/).join('.') : ''); }`;
 
 /** `couche(el)` (fonction de PAGE) : la COUCHE de défilement d'un élément — son premier ancêtre
@@ -1504,7 +1505,7 @@ const EMISSIONS = Object.freeze({ souris: 'Input.dispatchMouseEvent', tactile: '
  * point est un DÉPÔT recontrôlé (`pageControler`, mode `couche`) ; un relâchement refusé relâche AU
  * POINT CONTRÔLÉ, puis lève. `emettre` est RÉVOQUÉ au retour d'`evenements`, et `geste` ne rend qu'après
  * les émissions EN VOL : un refus en vol LÈVE, joint (`joindre`) à l'échec d'`evenements` s'il y en a un ; une
- * émission sans réponse en `delaiEntreeMs` (`DELAI_ENTREE`) LÈVE. Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
+ * émission sans accusé de réception en `delaiEntreeMs` (`DELAI_ENTREE`) LÈVE. Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
  * `defiler`, `attenteMs`, `point` (`centre`, `visible`, `defilant`), `controle` (`cible`, ou
  * `couche` pour un cran de molette). Rend la localisation, avec `ferme` (`null`, ou
  * `{ mecanisme, raison }` sous `lire`).
@@ -1554,15 +1555,15 @@ export async function geste(session, cible, { intention = 'agir', qui = 'geste',
 
 /** ÉVÉNEMENTS d'un CLIC réel pour `geste` : la triade `mouseMoved`/`mousePressed`/`mouseReleased`.
  *  `bouton` (`left`, `right`, `middle`) ; `dureeMs` : le temps TENU (appui long) ; `trajet` : points
- *  relatifs au départ sous bouton tenu ; le relâchement est garanti, et conserve l'erreur primaire
+ *  relatifs au départ sous bouton tenu ; le relâchement est garanti, appui sans accusé compris, et conserve l'erreur primaire
  *  s'il échoue aussi. `modifiers` : les touches TENUES (`MOD_ALT`). */
 export function clic({ modifiers = 0, bouton = 'left', dureeMs = 0, trajet = [] } = {}) {
   return async ({ x, y }, emettre) => {
     await emettre('souris', { type: 'mouseMoved', x, y, modifiers });
-    await emettre('souris', { type: 'mousePressed', x, y, button: bouton, clickCount: 1, modifiers });
     let fin = { x, y };
     const relacher = () => emettre('souris', { type: 'mouseReleased', ...fin, button: bouton, clickCount: 1, modifiers });
     try {
+      await emettre('souris', { type: 'mousePressed', x, y, button: bouton, clickCount: 1, modifiers });
       for (const p of trajet) {
         fin = { x: x + p.x, y: y + p.y };
         await emettre('souris', { type: 'mouseMoved', ...fin, button: bouton, buttons: bouton === 'middle' ? 4 : bouton === 'right' ? 2 : 1, modifiers });
@@ -1621,13 +1622,13 @@ export async function tournerCamera(session, degres, { attenteMs = ATTENTE_CIBLE
 }
 
 /** CLIC DROIT réel sur une `cible` (`geste`) : le navigateur en tire le `contextmenu`. */
-export async function clicDroit(session, cible, { defiler = true, modifiers = 0, intention = 'agir' } = {}) {
-  return geste(session, cible, { qui: 'clicDroit', intention, defiler }, clic({ bouton: 'right', modifiers }));
+export async function clicDroit(session, cible, { defiler = true, modifiers = 0, intention = 'agir', delaiEntreeMs = DELAI_ENTREE } = {}) {
+  return geste(session, cible, { qui: 'clicDroit', intention, defiler, delaiEntreeMs }, clic({ bouton: 'right', modifiers }));
 }
 
 /** APPUI LONG réel à la souris : bouton gauche TENU `ms` millisecondes sur la `cible` (`geste`). */
-export async function appuiLong(session, cible, ms = 800, { defiler = true, modifiers = 0, intention = 'agir' } = {}) {
-  return geste(session, cible, { qui: 'appuiLong', intention, defiler }, clic({ dureeMs: ms, modifiers }));
+export async function appuiLong(session, cible, ms = 800, { defiler = true, modifiers = 0, intention = 'agir', delaiEntreeMs = DELAI_ENTREE } = {}) {
+  return geste(session, cible, { qui: 'appuiLong', intention, defiler, delaiEntreeMs }, clic({ dureeMs: ms, modifiers }));
 }
 
 /**
@@ -1636,8 +1637,8 @@ export async function appuiLong(session, cible, ms = 800, { defiler = true, modi
  * (`GatedAction` : le refus se lit au doigt). LIMITE mesurée (#1822) : l'émulation tactile du CDP
  * n'émet ni `contextmenu` ni `pointercancel` pendant un appui long.
  */
-export async function toucher(session, cible, { dureeMs = 0, defiler = true, intention = 'agir' } = {}) {
-  return geste(session, cible, { qui: 'toucher', intention, defiler }, async ({ x, y }, emettre) => {
+export async function toucher(session, cible, { dureeMs = 0, defiler = true, intention = 'agir', delaiEntreeMs = DELAI_ENTREE } = {}) {
+  return geste(session, cible, { qui: 'toucher', intention, defiler, delaiEntreeMs }, async ({ x, y }, emettre) => {
     await emettre('tactile', { type: 'touchStart', touchPoints: [{ x, y }] });
     if (dureeMs > 0) await sleep(dureeMs);
     await emettre('tactile', { type: 'touchEnd', touchPoints: [] });
@@ -1650,8 +1651,8 @@ export async function toucher(session, cible, { dureeMs = 0, defiler = true, int
  * COUCHE : l'élément au point doit être de la même couche défilante que la cible. Intention `lire`
  * par défaut. Rend la localisation.
  */
-export async function molette(session, cible, deltaY, { deltaX = 0, intention = 'lire' } = {}) {
-  return geste(session, cible, { qui: 'molette', intention, defiler: false, point: 'visible', controle: 'couche' }, ({ x, y }, emettre) =>
+export async function molette(session, cible, deltaY, { deltaX = 0, intention = 'lire', delaiEntreeMs = DELAI_ENTREE } = {}) {
+  return geste(session, cible, { qui: 'molette', intention, defiler: false, point: 'visible', controle: 'couche', delaiEntreeMs }, ({ x, y }, emettre) =>
     emettre('souris', { type: 'mouseWheel', x, y, deltaX, deltaY }));
 }
 
@@ -2012,8 +2013,8 @@ export async function capturerPion(session, id, { zoom = 3, cote = 160, dir = DO
  * Une cible recouverte LÈVE en nommant le recouvreur, au lieu d'une infobulle nulle qui se lirait
  * comme un refus muet (#1953). Rend la localisation `{ x, y, ferme }`.
  */
-export async function survoler(session, cible, { attenteMs = 500, modifiers = 0, defiler = true, intention = 'lire' } = {}) {
-  const r = await geste(session, cible, { qui: 'survoler', intention, defiler }, ({ x, y }, emettre) =>
+export async function survoler(session, cible, { attenteMs = 500, modifiers = 0, defiler = true, intention = 'lire', delaiEntreeMs = DELAI_ENTREE } = {}) {
+  const r = await geste(session, cible, { qui: 'survoler', intention, defiler, delaiEntreeMs }, ({ x, y }, emettre) =>
     emettre('souris', { type: 'mouseMoved', x, y, buttons: 0, modifiers }));
   await sleep(attenteMs);
   return r;
@@ -2123,24 +2124,24 @@ export async function selectOption(session, selecteur, valeur, { par = 'libelle'
 export async function choisirCouleur(session, selecteur, couleur) {
   if (!/^#[\da-f]{6}$/i.test(couleur)) throw new Error(`choisirCouleur : couleur invalide « ${couleur} », #rrggbb attendu`);
   const avant = await marquer(session, { selecteur }, 'choisirCouleur');
-  const autre = avant && await evaluerFn(session, (marque, attr) => {
+  const autre = avant && await evaluerFn(session, (marque, attr, fnNommer) => {
     const el = document.querySelector(marque);
     el.removeAttribute(attr);
-    return el instanceof HTMLInputElement && el.type === 'color' ? null : el.tagName.toLowerCase();
-  }, marqueDe(avant), ATTR_CIBLE);
+    return el instanceof HTMLInputElement && el.type === 'color' ? null : new Function('return ' + fnNommer)()(el);
+  }, marqueDe(avant), ATTR_CIBLE, FN_NOMMER_ELEMENT);
   if (autre) throw new Error(`choisirCouleur : input[type=color] attendu « ${selecteur} », trouvé ${autre} — aucun événement émis`);
   await geste(session, { selecteur }, { qui: 'choisirCouleur' }, clic());
   const apres = await marquer(session, { selecteur }, 'choisirCouleur');
   if (!apres) throw new Error(`choisirCouleur « ${selecteur} » : le champ a quitté le DOM après le clic — aucune couleur posée`);
-  const r = await evaluerFn(session, (marque, attr, couleur) => {
+  const r = await evaluerFn(session, (marque, attr, couleur, fnNommer) => {
     const el = document.querySelector(marque);
     el.removeAttribute(attr);
-    if (document.activeElement !== el) return { sansFocus: document.activeElement?.tagName.toLowerCase() ?? 'rien' };
+    if (document.activeElement !== el) return { sansFocus: document.activeElement ? new Function('return ' + fnNommer)()(document.activeElement) : 'rien' };
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, couleur);
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
     return el.value;
-  }, marqueDe(apres), ATTR_CIBLE, couleur);
+  }, marqueDe(apres), ATTR_CIBLE, couleur, FN_NOMMER_ELEMENT);
   if (r?.sansFocus) throw new Error(`choisirCouleur « ${selecteur} » : le champ n'a pas le focus après le clic (focus sur ${r.sansFocus}) — aucune couleur posée`);
   if (r !== couleur.toLowerCase()) throw new Error(`choisirCouleur : demandé ${couleur}, obtenu ${r}`);
   return r;
@@ -2525,11 +2526,11 @@ export async function frappe(session, { focus, qui = 'frappe', delaiEntreeMs = D
  * `focus` (un sélecteur) : la cible de la frappe, qui doit avoir le focus (`frappe`) ; sans lui, la
  * touche est GLOBALE (Échap, raccourci du jeu), sans cible contrôlée.
  * @param {{ key: string, code?: string, windowsVirtualKeyCode?: number, modifiers?: number }} touche
- * @param {{ focus?: string }} [options]
+ * @param {{ focus?: string, delaiEntreeMs?: number }} [options]
  */
-export async function realKey(session, touche, { focus } = {}) {
+export async function realKey(session, touche, { focus, delaiEntreeMs = DELAI_ENTREE } = {}) {
   const common = champsCDP(touche);
-  await frappe(session, { focus, qui: 'realKey' }, async (emettre) => {
+  await frappe(session, { focus, qui: 'realKey', delaiEntreeMs }, async (emettre) => {
     await emettre('touche', { type: 'rawKeyDown', ...common });
     const texte = texteDeTouche(touche.key);
     if (texte !== null) await emettre('touche', { type: 'char', text: texte, ...common });
@@ -2557,15 +2558,15 @@ export const MOD_ALT = 1;
  * émis déclareraient la touche relâchée et l'état tenu ne serait plus celui de l'écran. `{ focus }` :
  * même option que `realKey`.
  */
-export async function realKeyDown(session, touche, { focus } = {}) {
+export async function realKeyDown(session, touche, { focus, delaiEntreeMs = DELAI_ENTREE } = {}) {
   const champs = champsCDP(touche);
-  await frappe(session, { focus, qui: 'realKeyDown' }, (emettre) => emettre('touche', { type: 'rawKeyDown', ...champs }));
+  await frappe(session, { focus, qui: 'realKeyDown', delaiEntreeMs }, (emettre) => emettre('touche', { type: 'rawKeyDown', ...champs }));
 }
 
-export async function realKeyUp(session, touche, { focus } = {}) {
+export async function realKeyUp(session, touche, { focus, delaiEntreeMs = DELAI_ENTREE } = {}) {
   // Le relâchement ne porte aucun modificateur : c'est l'événement qui déclare la touche relâchée.
   const champs = champsCDP({ ...touche, modifiers: undefined });
-  await frappe(session, { focus, qui: 'realKeyUp' }, (emettre) => emettre('touche', { type: 'keyUp', ...champs }));
+  await frappe(session, { focus, qui: 'realKeyUp', delaiEntreeMs }, (emettre) => emettre('touche', { type: 'keyUp', ...champs }));
 }
 
 /**
@@ -2599,12 +2600,12 @@ export async function realKeyUp(session, touche, { focus } = {}) {
  * s'en apercevrait. `attendu` (chaîne ou prédicat) durcit le contrôle en ERREUR quand le site connaît
  * la valeur exacte à obtenir.
  */
-export async function typeInField(session, selecteur, texte, { clear = true, attendu } = {}) {
-  await geste(session, { selecteur }, { qui: 'typeInField' }, clic());
+export async function typeInField(session, selecteur, texte, { clear = true, attendu, delaiEntreeMs = DELAI_ENTREE } = {}) {
+  await geste(session, { selecteur }, { qui: 'typeInField', delaiEntreeMs }, clic());
   // La frappe va à l'élément FOCALISÉ : un champ qui n'a pas le focus après le clic (#1853 L3,
   // `<input type=number>`) recevrait une insertion perdue, que la relecture dirait « inchangée ».
   if (clear) await evaluerFn(session, (selecteur) => { const el = document.querySelector(selecteur); if (document.activeElement === el) el.select(); }, selecteur);
-  await frappe(session, { focus: selecteur, qui: 'typeInField' }, (emettre) => emettre('texte', { text: texte }));
+  await frappe(session, { focus: selecteur, qui: 'typeInField', delaiEntreeMs }, (emettre) => emettre('texte', { text: texte }));
   const lu = await evaluate(session, `document.querySelector(${JSON.stringify(selecteur)}).value`);
   if (attendu !== undefined) {
     const ok = typeof attendu === 'function' ? attendu(lu) : lu === attendu;

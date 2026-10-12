@@ -34,7 +34,7 @@
 // Résidu mesuré sur l'arbre : Codex à 360×740, page 3007/740 — #1860. Aucune liste d'exemption ici :
 // la sonde reste rouge tant qu'il vit.
 import {
-  openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, realKey, clickButtonByText, clickItemByText, VUES_RECETTE,
+  openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, realKey, clickButtonByText, clickItemByText, VUES_RECETTE, FN_NOMMER_ELEMENT,
 } from './lib.mjs';
 import {
   scrollportDePage, commandesInatteignables, corpsDeModaleEcrase, courantHorsChamp, piedHorsChamp,
@@ -207,7 +207,8 @@ const PROBE = `(() => {
 
 /** Sonde de l'ÉCRAN NOMMÉ : les dialogues montés (nom accessible), celui dont le nom contient \`nom\`, et
  *  si le point de son geste primaire — sinon de sa tête — tombe sur lui (\`elementFromPoint\`). */
-const NOMME = (nom) => `(() => {
+export const NOMME = (nom) => `(() => {
+  const nommer = ${FN_NOMMER_ELEMENT};
   const norm = (t) => (t || '').replace(/\\s+/g, ' ').trim();
   const nomDe = (d) => norm(d.getAttribute('aria-label') || (d.getAttribute('aria-labelledby') && document.getElementById(d.getAttribute('aria-labelledby'))?.textContent));
   const dialogues = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.getClientRects().length);
@@ -217,7 +218,7 @@ const NOMME = (nom) => `(() => {
   const r = geste.getBoundingClientRect();
   const el = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, 12));
   const hote = el && el.closest('[role="dialog"]');
-  const cls = el ? (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : el.tagName.toLowerCase()) : '(rien)';
+  const cls = el ? nommer(el) : '(rien)';
   return { dialogues: dialogues.map(nomDe), dialogue: { nom: nomDe(d), dessus: !!el && d.contains(el), cible: hote ? cls + ' dans « ' + nomDe(hote) + ' »' : cls } };
 })()`;
 
@@ -226,7 +227,8 @@ const ONGLETS_PLANCHE = '.sheet-main [role=tab]';
 
 /** Nom de la planche montée (`.planche-nom`) : 5 points (centre, 4 coins rentrés de 3px), et ce qui
  *  tombe sur chacun quand ce n'est pas le dialogue de la planche (le nom lui-même, hors dialogue). */
-const NOM_PLANCHE = `(() => {
+export const NOM_PLANCHE = `(() => {
+  const nommer = ${FN_NOMMER_ELEMENT};
   const e = [...document.querySelectorAll('.planche-nom')].find((x) => x.getClientRects().length);
   if (!e) return null;
   const cadre = e.closest('[role="dialog"]') ?? e;
@@ -234,7 +236,7 @@ const NOM_PLANCHE = `(() => {
   const pts = [[r.x + r.width / 2, r.y + r.height / 2], [r.x + 3, r.y + 3], [r.right - 3, r.y + 3], [r.x + 3, r.bottom - 3], [r.right - 3, r.bottom - 3]];
   const couverts = pts.map(([x, y]) => document.elementFromPoint(x, y))
     .filter((h) => !h || !cadre.contains(h))
-    .map((h) => (!h ? '(hors écran)' : h.closest('.party-dock') ? 'party-dock' : (typeof h.className === 'string' && h.className ? '.' + h.className.trim().split(/\\s+/).join('.') : h.tagName.toLowerCase())));
+    .map((h) => (!h ? '(hors écran)' : h.closest('.party-dock') ? 'party-dock' : nommer(h)));
   return { texte: e.textContent.trim(), rect: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)], couverts };
 })()`;
 
@@ -505,7 +507,9 @@ async function main() {
   console.log('\nHauteur réelle : aucun scrollport de page, aucun corps de modale écrasé, acteur au trait en vue, aucun pied de cadre hors champ, aucun contenu coupé sous le bord d\'un cadre, aucun chevauchement dans un cadre — aux trois vues.');
 }
 
-main().catch((e) => {
-  console.error(`ERR ${e.message}`);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((e) => {
+    console.error(`ERR ${e.message}`);
+    process.exit(1);
+  });
+}
