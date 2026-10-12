@@ -14,13 +14,13 @@ const DOSSIER_DES_REGISTRES = posix(relative(RACINE_DU_DEPOT, join(dirname(CE_MO
 /** Ce que `snapshot` lit : des fichiers, et des dossiers parcourus en entier. */
 const FICHIERS_LUS = ['CLAUDE.md', 'AGENTS.md', '.claude/credo.md', '.codex/credo.md', SURFACE_CLAUDE, SURFACE_CODEX];
 const DOSSIERS_LUS = ['.claude/skills', '.agents/skills', '.claude/agents', '.codex/agents'];
-/** Ce dont dépend une production : ce que `snapshot` lit hors des `DESTINATIONS`, les registres et le
- *  code du producteur (`commitAProduire`, `scripts/git-hooks/miroirs-d-agents.mjs`). */
-export const SOURCES_DU_PRODUCTEUR = [
-  ...[...FICHIERS_LUS, ...DOSSIERS_LUS].filter((rel) => !DESTINATIONS.some((r) => rel === r || rel.startsWith(`${r}/`))),
-  DOSSIER_DES_REGISTRES,
-  posix(relative(RACINE_DU_DEPOT, dirname(CE_MODULE))),
-];
+/** Les entrées NON-JS d'une production : ce que `snapshot` lit hors des `DESTINATIONS`. */
+export const ENTREES_DU_PRODUCTEUR = [...FICHIERS_LUS, ...DOSSIERS_LUS].filter((rel) => !DESTINATIONS.some((r) => rel === r || rel.startsWith(`${r}/`)));
+/** Les modules des registres (`chargerRegistres`), relatifs à la racine du dépôt. */
+export const MODULES_DES_REGISTRES = ENTREES_OUTIL.map(({ module }) => `${DOSSIER_DES_REGISTRES}/${module}`);
+/** Les racines du CODE d'une production : leur clôture d'imports (`clotureDImports`) en est la source ;
+ *  les registres y sont nommés, chargés par un import calculé (`chargerRegistres`). */
+export const RACINES_DU_PRODUCTEUR = [posix(relative(RACINE_DU_DEPOT, CE_MODULE)), ...MODULES_DES_REGISTRES];
 
 /** Les registres des points d'entrée (`ENTREES_OUTIL`), lus dans les modules de `scripts/hooks/`. */
 export async function chargerRegistres(dossierHooks = join(RACINE_DU_DEPOT, DOSSIER_DES_REGISTRES)) {

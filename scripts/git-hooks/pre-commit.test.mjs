@@ -559,16 +559,45 @@ test('#2578 (g) — une source RETIRÉE sans le pre-commit : le post-commit reti
   }
 })
 
-test('#2578 (h) — un commit sans source du producteur, index = HEAD sur les destinations : le post-commit ne produit pas', () => {
+test('#2578 (h) — un miroir retouché à la main et commis sans le pre-commit : le post-commit le reproduit dans l’index et le SIGNALE À COMMETTRE', () => {
   const d = depotAuSkill()
   try {
     const edite = d.lire(MIROIR).replace('v1', 'v1 retouché')
     d.ecrire(MIROIR, edite); d.git('add', '--', MIROIR)
     const r = d.jouer('commit', '--no-verify', '-q', '-m', 'miroir retouché sans hook')
     assert.equal(r.status, 0, r.stderr)
+    assert.ok(lignes(r).some((l) => l.startsWith("[post-commit] miroirs d'agents produits dans l'index, HEAD ne les porte pas — À COMMETTRE : ") && l.includes(MIROIR)), r.stderr)
+    assert.equal(d.git('show', `HEAD:${MIROIR}`), edite)
+    assert.equal(d.git('show', `:${MIROIR}`), derive(skill('v1')))
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (h\') — un commit qui ne touche ni destination ni source du producteur (`notes.txt`) : le post-commit ne produit pas', () => {
+  const d = depotAuSkill()
+  try {
+    d.ecrire('notes.txt', 'n2\n'); d.git('add', '--', 'notes.txt')
+    const r = d.jouer('commit', '--no-verify', '-q', '-m', 'notes')
+    assert.equal(r.status, 0, r.stderr)
     assert.deepEqual(lignes(r).filter((l) => l.startsWith('[post-commit]')), [], r.stderr)
-    assert.equal(d.git('show', `:${MIROIR}`), edite)
     assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (h\'\') — une DÉPENDANCE du producteur hors de `scripts/agents` (`contratGarde.mjs`) commise sans le pre-commit : le post-commit produit la famille `hook` et la SIGNALE À COMMETTRE', () => {
+  const CONTRAT = 'scripts/guards/lib/contratGarde.mjs'
+  const tete = "export function matcherDOutils(outils, { lookaround, listeExacte, surface = 'claude' }) {\n"
+  const d = depotAuSkill({ [REGISTRE]: registre('Bash') })
+  try {
+    assert.ok(PRODUCTEUR[CONTRAT].includes(tete), 'témoin : la dépendance forgée porte `matcherDOutils`')
+    d.ecrire(CONTRAT, PRODUCTEUR[CONTRAT].replace(tete, `${tete}  outils = [...outils, 'Zed']\n`)); d.git('add', '--', CONTRAT)
+    const r = d.jouer('commit', '--no-verify', '-q', '-m', 'dépendance sans hook')
+    assert.equal(r.status, 0, r.stderr)
+    assert.ok(lignes(r).some((l) => l.startsWith("[post-commit] miroirs d'agents produits dans l'index, HEAD ne les porte pas — À COMMETTRE : ") && l.includes('.claude/settings.json')), r.stderr)
+    assert.ok(JSON.parse(d.git('show', ':.claude/settings.json')).hooks.PreToolUse[0].matcher.includes('Zed'))
   } finally {
     d.fin()
   }

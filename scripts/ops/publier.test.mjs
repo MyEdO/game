@@ -574,17 +574,19 @@ test('`pousser` refuse tout push vers `main`, sous ses deux noms, bail ou non, A
       assert.throws(() => ctx.pousser({ vers, bail }), /main n’avance que par la file de fusion/, vers)
 })
 
-test('#2578 — `.claude/settings.json` sale, par les questions du train : DÉRIVÉ si seule la clé `hooks` change, MANUSCRIT si les `permissions` changent', () => {
+test('#2578 — préflight du train sur un `.claude/settings.json` sale : seule la clé `hooks` changée, elle passe ; des `permissions` changées, arbre NON COMMITÉ', () => {
   const tete = `${JSON.stringify({ permissions: { allow: ['Bash(git status)'] }, hooks: { PreToolUse: [] } }, null, 2)}
 `
   const { racine } = instanceDeDepot({ fichiers: { '.claude/settings.json': tete }, message: 'socle' })
   try {
-    const ctx = contexteDe({ racine, branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
-    const partage = () => partitionSales(ctx.questions.cheminsSales(), ctx.generators, ctx.questions.textesDe)
+    const preflight = ETAPES.find((e) => e.nom === 'preflight')
+    const reel = contexteDe({ racine, branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+    const ORIGINE = 'https://exemple.invalid/autre.git'
+    const ctx = { racine, branche: 'chantier/x', filtresDePush: ['chantier/**'], generators: reel.generators, questions: { ...reel.questions, origineDe: () => ORIGINE } }
     writeFileSync(join(racine, '.claude', 'settings.json'), remplacerCleJson(tete, 'hooks', { PreToolUse: [{ matcher: 'Bash', hooks: [] }] }))
-    assert.deepEqual(partage(), { derives: ['.claude/settings.json'], manuscrits: [] })
+    assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), { ok: false, raison: `origin étranger au dépôt : ${ORIGINE}` }, 'la saleté dérivée passe la porte de l’arbre')
     writeFileSync(join(racine, '.claude', 'settings.json'), tete.replace('Bash(git status)', 'Bash(git push)'))
-    assert.deepEqual(partage(), { derives: [], manuscrits: ['.claude/settings.json'] })
+    assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), { ok: false, raison: 'arbre NON COMMITÉ (1) — on ne publie que du committé :\n    .claude/settings.json' })
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

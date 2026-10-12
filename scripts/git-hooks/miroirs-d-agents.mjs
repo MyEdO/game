@@ -11,7 +11,6 @@ import { INDEX, ceQuiChange, cheminGit, depotDe, ecartsDuTravail, entreesDe, nat
 
 const GENERATEUR = 'scripts/agents/compat-cli.mjs'
 const NOYAU = 'scripts/agents/compat-core.mjs'
-const DOSSIER_DES_REGISTRES = 'scripts/hooks'
 
 /**
  * Les modules de la clôture d'imports de `racines` (`clotureDImports`, lue sur le disque, ce que Node
@@ -46,16 +45,14 @@ export async function produireLesMiroirs(depot, racine, { env } = {}) {
     return { avertissements, ecrits }
   }
   const url = (rel) => pathToFileURL(join(racine, rel)).href
-  const { chargerRegistres, dependancesDeLIndex, runCompat } = await import(url(GENERATEUR))
-  const { ENTREES_OUTIL } = await import(url(NOYAU))
-  const modules = ENTREES_OUTIL.map(({ module }) => `${DOSSIER_DES_REGISTRES}/${module}`)
+  const { MODULES_DES_REGISTRES: modules, chargerRegistres, dependancesDeLIndex, runCompat } = await import(url(GENERATEUR))
   let registres = new Map()
   if (modules.some((rel) => existsSync(join(racine, rel)) || entreesDe(depot, INDEX, [rel]).size)) {
     const sales = await modulesSales(depot, racine, modules, etat)
     if (sales.length) avertissements.push(`famille \`hook\` NON produite : ses registres (${modules.join(', ')}) diffèrent entre le disque et l'index — ${sales.join(', ')}`)
     else {
       try {
-        registres = await chargerRegistres(join(racine, DOSSIER_DES_REGISTRES))
+        registres = await chargerRegistres()
       } catch (e) {
         avertissements.push(`famille \`hook\` NON produite : import des registres (${modules.join(', ')}) en échec — ${raisonCourte(e?.message ?? e)}`)
       }
@@ -84,8 +81,10 @@ export function ecrireAvertissements(prefixe, avertissements) {
 
 /**
  * Le post-commit produit-il ? Oui si l'index de `depot` s'écarte de HEAD sur une destination
- * (`DESTINATIONS`), si le commit a touché une source du producteur (`SOURCES_DU_PRODUCTEUR`), si HEAD
- * n'a pas de parent, ou si le producteur manque au disque (`produireLesMiroirs` tranche).
+ * (`DESTINATIONS`), si le commit a touché une destination, une entrée non-JS du producteur
+ * (`ENTREES_DU_PRODUCTEUR`) ou un module de la clôture d'imports de son code (`RACINES_DU_PRODUCTEUR`,
+ * `clotureDImports`, lue sur le disque), si HEAD n'a pas de parent, ou si le producteur manque au disque
+ * (`produireLesMiroirs` tranche).
  * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @param {string} racine
  */
 async function commitAProduire(depot, racine) {
@@ -94,8 +93,14 @@ async function commitAProduire(depot, racine) {
   const { DESTINATIONS } = await import(url(NOYAU))
   if (ceQuiChange(depot, 'HEAD', INDEX).chemins('', DESTINATIONS).length) return true
   if (!shaDe(depot, 'HEAD^')) return true
-  const { SOURCES_DU_PRODUCTEUR } = await import(url(GENERATEUR))
-  return ceQuiChange(depot, 'HEAD^', 'HEAD').chemins('', SOURCES_DU_PRODUCTEUR).length > 0
+  const { ENTREES_DU_PRODUCTEUR, RACINES_DU_PRODUCTEUR } = await import(url(GENERATEUR))
+  const touches = ceQuiChange(depot, 'HEAD^', 'HEAD').chemins('')
+  const sous = (rel) => (r) => rel === r || rel.startsWith(`${r}/`)
+  if (touches.some((rel) => [...DESTINATIONS, ...ENTREES_DU_PRODUCTEUR].some(sous(rel)))) return true
+  const { clotureDImports, estModule } = await import('../guards/lib/importGraph.mjs')
+  if (!touches.some(estModule)) return false
+  const code = clotureDImports(RACINES_DU_PRODUCTEUR, { racine })
+  return touches.some((rel) => code.has(rel))
 }
 
 /** Une opération de séquenceur (`cherry-pick`, `revert` à plusieurs commits) en cours ? */
@@ -113,7 +118,7 @@ if (import.meta.main) {
     if (hook === 'post-commit' && (rebaseEntame(depot) || sequenceEnCours(depot))) process.exit(0)
     if (hook === 'post-commit' && !(await commitAProduire(depot, racine))) process.exit(0)
     const { avertissements, ecrits } = await produireLesMiroirs(depot, racine, { env })
-    for (const a of avertissements) process.stderr.write(`[${hook}] ${a} ; la gate \`agents:check\` de la CI juge.\n`)
+    ecrireAvertissements(`[${hook}]`, avertissements)
     if (ecrits.length) {
       const tete = entreesDe(depot, 'HEAD', ecrits)
       const index = entreesDe(depot, INDEX, ecrits)
