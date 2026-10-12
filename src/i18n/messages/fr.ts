@@ -641,6 +641,7 @@ export const fr = {
   'cs.crewTest': '{label} — Test d’équipage de {ship} : DR total {dr} ({outcome}).',
   'cs.crewTestOk': 'succès',
   'cs.crewTestKo': 'échec',
+  'cs.skillAdvantageTest': 'Cumuler l’Avantage',
   'cs.shantyFail': '{name} chante faux — l’équipage n’y croit pas (Test de Divertissement (Chant) raté).',
   'cf.sinLock': '{cult} retire à {name} l’usage du Talent {talent} ({sin} Points de Péché ≥ {threshold}).',
   'cs.disengageSacrifice': '{name} se désengage en sacrifiant son Avantage.',

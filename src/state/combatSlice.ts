@@ -85,7 +85,7 @@ import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
-import { findCrewTestTypeById, findCrewRoleById, findVehicleById, findStructureById, combatStakeRef } from '../data';
+import { findCrewTestTypeById, findVehicleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './fireArc';
 import { facingToward } from './dir8';
@@ -170,7 +170,6 @@ function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
   const essentialRoleId = findCrewTestTypeById(testTypeId)?.essential;
   const participants: ShipManeuverParticipant[] = contributors.map((a) => ({
     id: a.crew.id,
-    label: `${findCrewRoleById(a.roleId)?.label ?? a.roleId} — ${a.crew.label}${(battle.crewActed?.[ship.id] ?? []).includes(a.crew.id) ? ' −2 (cumul)' : ''}`,
     interactive: partyIds.has(a.crew.id),
     roleId: a.roleId,
     essential: a.roleId === essentialRoleId,
@@ -3750,7 +3749,6 @@ export function createCombatSlice(get: Get, set: Set) {
       const cap = skillAdvantageCap(active, skillId);
       if (cap <= 0 || (active.advantage ?? 0) >= cap) return; // pas d'application « Avantage », ou déjà au plafond de la méthode
       const sd = byId('skill', skillId);
-      const skillLabel = sd?.label ?? skillId;
       // Le plafond est une DONNÉE PAR COMPÉTENCE (`SkillData.combatAdvantage.cap`, appliquée par
       // `skillAdvantageCap`) : Intuition relève de l'Initiative mais plafonne au Bonus d'Intelligence
       // (LDB 09 l.305+308). L'enjeu nomme donc CETTE Caractéristique — id en donnée, label à l'affichage.
@@ -3759,7 +3757,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // COUTURE UNIQUE (`openSkillTest`) : l'observateur reste l'acteur imposé (`actorId`), et son
       // Test est PERSONNEL — `noSupport` (LDB 09 l.308, LDB 12 l.197).
       openSkillTest(get, set,
-        { skill: { id: skillId }, difficulty: 'intermediaire', label: `Avantage — ${skillLabel}`, noSupport: true, stake: combatStakeRef('skillAdvantage', { entryId: skillId, values: { capChar } }) },
+        { skill: { id: skillId }, difficulty: 'intermediaire', label: t('cs.skillAdvantageTest'), noSupport: true, stake: combatStakeRef('skillAdvantage', { entryId: skillId, values: { capChar } }) },
         EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW,
         { actorId: active.id, combatAdvantage: { combatantId: active.id, cap }, cancellable: true });
     },

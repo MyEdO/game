@@ -12,9 +12,10 @@ import { fr } from '../i18n/messages/fr';
  * lui-même l'un de ces deux signes rend la même ligne ambiguë : « Ilsa — Mal de mer — mauvais temps
  * (Résistance) », « Ilsa — Tonneau d'eau (boire) (Résistance) ».
  *
- * COUVERTURE (un détecteur ne mesure que la sienne) : les deux entrées du slot ACTION —
- * `actionLabel:` (`RollRequest`/`openPartyTest`/`openWorldTest`) et le 2ᵉ argument de
- * `composeRollLabel(` —, en LITTÉRAL et en CLÉ de catalogue (`t('cle')`/`tr('cle')`, résolue au
+ * COUVERTURE (un détecteur ne mesure que la sienne) : les trois entrées du slot ACTION —
+ * `actionLabel:` (`RollRequest`/`openPartyTest`/`openWorldTest`), le 2ᵉ argument de
+ * `composeRollLabel(` et le `label:` du `FlowTest` littéral passé à `openSkillTest(` (titre Z0 de la
+ * modale de Test : `useTestJetProps`, `title: pt.label`) —, en LITTÉRAL et en CLÉ de catalogue (`t('cle')`/`tr('cle')`, résolue au
  * catalogue FR : c'est le texte rendu qui compte). Ce que ce scan ne voit PAS : un libellé venu de la DONNÉE (`def.label` d'une
  * Activité, `game.label` d'un jeu de taverne, `hazard.label` d'un péril) — mesuré à la main au
  * 2026-08-05, conforme côté `activities.json` (contexte `mer`) et `tavernGames.json` ; les deux
@@ -27,13 +28,18 @@ import { fr } from '../i18n/messages/fr';
  *  au Source en porte (« Ça va lâcher, capitaine ! », MDG 13 l.121). */
 const RESERVED = /[()—]/;
 
-/** Littéraux en position de LIBELLÉ D'ACTION : `actionLabel: '…'` et `composeRollLabel(x, '…', …)`.
- *  Les trois formes de chaîne sont couvertes ; une interpolation `${…}` n'est PAS un signe réservé
- *  (« Évaluer ${offer.label} » est conforme), seuls les signes ÉCRITS comptent. */
-const ACTION_LABEL_RX = /(?:actionLabel:\s*|composeRollLabel\(\s*[^,()]+,\s*)(['"`])((?:\\.|(?!\1)[\s\S])*?)\1/g;
+/** Les trois ANCRES du slot ACTION. Celle d'`openSkillTest(get, set, { … label: … })` lit le `label:` de
+ *  PREMIER niveau du `FlowTest` littéral (deux niveaux d'objets imbriqués franchis : `skill: { id }`,
+ *  `stake: combatStakeRef(…, { values: { … } })`) ; un `FlowTest` passé par variable n'est pas lu ici. */
+const ACTION_SLOT = String.raw`(?:actionLabel:\s*|composeRollLabel\(\s*[^,()]+,\s*|openSkillTest\(\s*[^,()]+,\s*[^,()]+,\s*\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*?\blabel:\s*)`;
+
+/** Littéraux en position de LIBELLÉ D'ACTION (`ACTION_SLOT`). Les trois formes de chaîne sont
+ *  couvertes ; une interpolation `${…}` n'est PAS un signe réservé (« Évaluer ${offer.label} » est
+ *  conforme), seuls les signes ÉCRITS comptent. */
+const ACTION_LABEL_RX = new RegExp(ACTION_SLOT + String.raw`(['"${'`'}])((?:\\.|(?!\1)[\s\S])*?)\1`, 'g');
 
 /** Le MÊME slot en CLÉ de catalogue, paramétrée ou non, alias `tr(` compris (forme de `ROLL_LABEL_KEY_RX`). */
-const ACTION_LABEL_KEY_RX = /(?:actionLabel:\s*|composeRollLabel\(\s*[^,()]+,\s*)t\s*r?\(\s*'([^']+)'\s*[,)]/g;
+const ACTION_LABEL_KEY_RX = new RegExp(ACTION_SLOT + String.raw`t\s*r?\(\s*'([^']+)'\s*[,)]`, 'g');
 
 export interface ActionLabelHit { line: number; text: string }
 
@@ -75,6 +81,14 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
     expect(scanActionLabels("label: composeRollLabel(force.actor, t('difficulty.intermediaire', { label }), test),")).toHaveLength(1);
     expect(scanActionLabels("  actionLabel: tr('difficulty.intermediaire'),")).toHaveLength(1);
     expect(scanActionLabels("label: composeRollLabel(force.actor, t('sv.degagement'), test),")).toEqual([]);
+  });
+
+  it('fail-closed : le `label` du FlowTest littéral d’`openSkillTest` est le slot ACTION', () => {
+    expect(scanActionLabels("openSkillTest(get, set,\n  { skill: { id: skillId }, difficulty: 'intermediaire', label: `Avantage — ${skillLabel}`, stake: combatStakeRef('x', { values: { capChar } }) },\n  EMPTY_FLOW)")).toHaveLength(1);
+    expect(scanActionLabels("openSkillTest(get, set, { stake: combatStakeRef('x', { values: { a: 1 } }), label: 'Recherche (au port)' }, EMPTY_FLOW)"), 'après deux niveaux imbriqués').toHaveLength(1);
+    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'x' }, label: t('difficulty.intermediaire') }, EMPTY_FLOW)"), 'clé de catalogue').toHaveLength(1);
+    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'commandement' }, label: 'Commandant d’équipe' }, EMPTY_FLOW)")).toEqual([]);
+    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'x', label: 'Voile (Chaland)' } }, EMPTY_FLOW)"), 'un `label:` imbriqué n’est pas le slot').toEqual([]);
   });
 
   it('fail-closed : un tiret long de situation SYNTHÉTIQUE est détecté', () => {
