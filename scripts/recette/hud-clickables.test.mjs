@@ -95,6 +95,21 @@ test('exploration sans navire : rail non monté, accès au navire non mesuré, a
   assert.deepEqual(defauts(m, 'exploration'), [])
 })
 
+test('exploration AVEC navire : le rail n’existe qu’en combat, l’ouvreur du navire n’y est pas attendu (#1868)', () => {
+  const m = exploration()
+  m.navire = true
+  assert.deepEqual(defauts(m, 'exploration'), [])
+  const c = combat()
+  c.rail = null
+  rouge(c, 'combat', /ouvreur attendu du navire absent/)
+})
+
+test('point de sonde du journal HORS FENÊTRE : verdict nommé, jamais « recouvert par rien » (#1868)', () => {
+  const m = combat()
+  m.tiroir.points[0] = { ...m.tiroir.points[0], x: 527, y: -6.7, horsFenetre: true, ok: false, hitBy: 'rien' }
+  rouge(m, 'combat', /le panneau du journal à 10 % est HORS FENÊTRE \(527, -6\.7\)/)
+})
+
 test('navire présent et rail absent : refus nommé, aucun vert par vacuité', () => {
   const m = combat()
   m.rail = null

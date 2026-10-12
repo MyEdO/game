@@ -126,8 +126,9 @@ const PROBE = `(() => {
     rect: box(rp),
     points: rp && rp.width > 0 && rp.height > 0 ? [0.1, 0.5, 0.9].map((hauteur) => {
       const x = rp.x + rp.width / 2, y = rp.y + rp.height * hauteur;
-      const top = document.elementFromPoint(x, y);
-      return { hauteur, x: +x.toFixed(1), y: +y.toFixed(1), ok: !!(top && panneau.contains(top)), hitBy: cn(top) };
+      const horsFenetre = !(x >= 0 && y >= 0 && x < innerWidth && y < innerHeight);
+      const top = horsFenetre ? null : document.elementFromPoint(x, y);
+      return { hauteur, x: +x.toFixed(1), y: +y.toFixed(1), horsFenetre, ok: !!(top && panneau.contains(top)), hitBy: cn(top) };
     }) : [],
     surPont: overlap(rp, pont ? pont.getBoundingClientRect() : null),
   } : null;
@@ -594,9 +595,12 @@ export function defauts(m, phase) {
   else if (m.tiroir.points?.length !== 3 || [0.1, 0.5, 0.9].some((hauteur) => !m.tiroir.points.some((p) => p.hauteur === hauteur))) {
     out.push(`${phase} ${m.largeur}px : les trois points du journal ouvert ne sont pas mesurés — sonde aveugle`);
   } else for (const p of m.tiroir.points) {
-    if (!p.ok) out.push(`${phase} ${m.largeur}px : le panneau du journal à ${p.hauteur * 100} % ne reçoit pas son clic (${p.x}, ${p.y}) — recouvert par ${p.hitBy}`);
+    if (p.horsFenetre) out.push(`${phase} ${m.largeur}px : le panneau du journal à ${p.hauteur * 100} % est HORS FENÊTRE (${p.x}, ${p.y}) — aucun clic n'y arrive`);
+    else if (!p.ok) out.push(`${phase} ${m.largeur}px : le panneau du journal à ${p.hauteur * 100} % ne reçoit pas son clic (${p.x}, ${p.y}) — recouvert par ${p.hitBy}`);
   }
-  if (m.navire && !m.rail?.ouvreurs.length) {
+  // Le rail d'outils, et l'ouvreur du navire qu'il porte, n'existent qu'en combat (`CampaignView.tsx`,
+  // `mode === 'battle'`) : « avec navire » est une phase du même run, l'ouvreur n'est attendu qu'en combat.
+  if (phase === 'combat' && m.navire && !m.rail?.ouvreurs.length) {
     out.push(m.rail?.dissous
       ? `${phase} ${m.largeur}px : le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle sur l'accès à la carte`
       : `${phase} ${m.largeur}px : ouvreur attendu du navire absent — sonde aveugle sur l'accès au navire`);

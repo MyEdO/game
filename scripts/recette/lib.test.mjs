@@ -87,12 +87,35 @@ import {
   mesurerProvenance,
   ouvrirFiche,
   ATTRIBUTS_VOLATILS,
+  geste,
+  clic,
+  frappe,
 } from './lib.mjs'
 import { ENTETE_RACINE } from '../port-dev.mjs'
 import { JSDOM } from 'jsdom'
 import * as kitRecette from './lib.mjs'
 import { demarrer } from './setup.mjs'
 import { recette, squelette } from './gabarit.mjs'
+
+/** Session BRANCHÉE (`brancherCdp`) sur une socket factice : chaque appel CDP, `Input` compris (émis
+ *  par `geste` et `frappe`), est servi par `session.ws.gerer(methode, params)`, qu'un test peut
+ *  envelopper. */
+function brancherFactice(gerer) {
+  const ecoutes = { message: [], close: [] }
+  const ws = {
+    gerer,
+    readyState: WebSocket.OPEN,
+    addEventListener: (t, fn) => ecoutes[t].push(fn),
+    send(brut) {
+      const m = JSON.parse(brut)
+      Promise.resolve()
+        .then(() => ws.gerer(m.method, m.params ?? {}))
+        .then((result) => ({ id: m.id, result: result ?? {} }), (e) => ({ id: m.id, error: { message: e.message } }))
+        .then((r) => ecoutes.message.forEach((fn) => fn({ data: JSON.stringify(r) })))
+    },
+  }
+  return brancherCdp(ws)
+}
 
 /** Session factice : `evaluate` (via `rpc`) répond « app prête » immédiatement, aucun réseau. */
 function fakeSession() {
@@ -561,7 +584,9 @@ test('evaluate : une erreur de scénario AVANT le plafond remonte telle quelle',
 /** Session factice qui COLLECTIONNE les payloads `Input.dispatchKeyEvent` émis. */
 function sessionClavier() {
   const emis = []
-  return { emis, rpc: async (methode, params) => { if (methode === 'Input.dispatchKeyEvent') emis.push(params); return { result: { value: true } } } }
+  const session = brancherFactice(async (methode, params) => { if (methode === 'Input.dispatchKeyEvent') emis.push(params); return { result: { value: true } } })
+  session.emis = emis
+  return session
 }
 
 test('realKey* : UNE forme d’argument — la TOUCHE, la même pour les trois helpers', async () => {
@@ -626,7 +651,7 @@ test('frapperTouche : l’alias français EST `realKey` (même geste, même form
 /** Session dont la page est un DOM jsdom : l'expression est évaluée DANS ce document. */
 function sessionSurDom(html) {
   const dom = new JSDOM(html, { runScripts: 'outside-only' })
-  return { dom, session: { rpc: async (_m, p) => ({ result: { value: dom.window.eval(p.expression) } }) } }
+  return { dom, session: brancherFactice(async (_m, p) => ({ result: { value: await dom.window.eval(p.expression) } })) }
 }
 const DEUX_NOMS = `
   <aside class="inspecteur"><label class="field"><span>Nom</span><input id="nom-scene"></label></aside>
@@ -691,6 +716,7 @@ function sessionRangees(arene = 'L’Arène') {
     </ul>`)
   dom.window.Element.prototype.scrollIntoView = function () { dom.window.vise = this.id }
   dom.window.document.elementFromPoint = () => dom.window.document.getElementById(dom.window.vise) // le bouton visé est au point
+  dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 10, width: 20, height: 20 })
   return { dom, session }
 }
 
@@ -710,7 +736,7 @@ for (const [dansLeDom, demandee] of [['L’Arène', "L'Arène"], ["L'Arène", 'L
 
 test('clickButtonByText : `rangee` introuvable = refus NOMMANT la rangée, aucun clic', async () => {
   const { dom, session } = sessionRangees()
-  await assert.rejects(() => clickButtonByText(session, 'Choisir', { rangee: 'Middenheim' }), /rangée « Middenheim »/)
+  await assert.rejects(() => clickButtonByText(session, 'Choisir', { rangee: 'Middenheim', attenteMs: 0 }), /rangée « Middenheim »/)
   assert.equal(dom.window.vise, undefined)
 })
 
@@ -864,7 +890,7 @@ function pagePilotee(html, { auxLectures, recouvrir, battle, jeu = {}, cascade =
   const rpc = async (methode, p) => {
     if (methode === 'Runtime.evaluate') {
       if (p.expression.includes('aChoix')) { etat.lectures += 1; auxLectures?.(etat.lectures, doc) }
-      const valeur = dom.window.eval(p.expression)
+      const valeur = await dom.window.eval(p.expression)
       etat.marque = doc.querySelector('[data-recette-cible]') ?? etat.marque
       return { result: { value: valeur } }
     }
@@ -875,7 +901,7 @@ function pagePilotee(html, { auxLectures, recouvrir, battle, jeu = {}, cascade =
     }
     return {}
   }
-  return { dom, doc, etat, session: { rpc } }
+  return { dom, doc, etat, session: brancherFactice(rpc) }
 }
 
 
@@ -887,10 +913,10 @@ function sessionCamera({ deg = 0, active = false, sensibilite = 0.5, mauvais = f
   const rect = () => ({ x: 10, y: 10, width: 800, height: 500 })
   page.doc.querySelector('canvas.iso-stage').getBoundingClientRect = rect
   page.doc.querySelector('svg.iso-stage').getBoundingClientRect = rect
-  const rpc = page.session.rpc
+  const rpc = page.session.ws.gerer
   let sx, sy, panned = false
   page.etat.souris = []
-  page.session.rpc = async (m, p) => {
+  page.session.ws.gerer = async (m, p) => {
     if (m === 'Input.dispatchMouseEvent') {
       page.etat.souris.push(p)
       if (p.type === 'mousePressed') { assert.equal(p.button, 'middle'); sx = p.x; sy = p.y; panned = false; camera.active = true }
@@ -937,9 +963,9 @@ test('tournerCamera : mauvais résultat refusé et release garanti si move écho
 test('tournerCamera : angle immense et délai invalide refusés sans entrée', async () => {
   for (const [angle, attenteMs] of [[1e300, 100], [90, Infinity], [90, -1]]) {
     const { session, etat } = sessionCamera()
-    const rpc = session.rpc
+    const rpc = session.ws.gerer
     let moves = 0
-    session.rpc = async (m, p) => {
+    session.ws.gerer = async (m, p) => {
       if (m === 'Input.dispatchMouseEvent' && ++moves > 2) throw new Error('sentinelle boucle')
       return rpc(m, p)
     }
@@ -951,8 +977,8 @@ test('tournerCamera : angle immense et délai invalide refusés sans entrée', a
 
 test('tournerCamera : budget commun aux chunks et observation finale', async () => {
   const { session, etat } = sessionCamera()
-  const rpc = session.rpc
-  session.rpc = async (m, p) => {
+  const rpc = session.ws.gerer
+  session.ws.gerer = async (m, p) => {
     const result = await rpc(m, p)
     if (m === 'Input.dispatchMouseEvent' && p.type === 'mouseReleased') await new Promise(r => setTimeout(r, 150))
     return result
@@ -962,20 +988,20 @@ test('tournerCamera : budget commun aux chunks et observation finale', async () 
   assert.equal(etat.souris.filter(p => p.type === 'mouseReleased').length, 1)
 })
 
-test('clicReel : mouvement et relâchement échouent, cause et code primaires conservés', async () => {
-  const primaire = Object.assign(new Error('move primaire'), { code: 'TARGET' })
-  const nettoyage = new Error('release secondaire')
+test('clic : mouvement et relâchement échouent, cause et code primaires conservés', async () => {
+  const { session } = pagePilotee('<div id="surface"></div>')
   let releases = 0
-  const session = { rpc: async (_m, p) => {
-    if (p.type === 'mouseMoved' && p.buttons === 4) throw primaire
-    if (p.type === 'mouseReleased') { releases++; throw nettoyage }
-    return {}
-  } }
-  await assert.rejects(() => kitRecette.clicReel(session, 20, 20, 0, { bouton: 'middle', trajet: [{x:10,y:0}] }), e => {
-    assert.equal(e.cause, primaire)
-    assert.equal(e.code, 'TARGET')
-    assert.deepEqual(e.errors, [primaire, nettoyage])
-    assert.match(e.message, /move primaire.*release secondaire/)
+  const gerer = session.ws.gerer
+  session.ws.gerer = async (m, p) => {
+    if (p.type === 'mouseMoved' && p.buttons === 4) throw new Error('Inspected target navigated or closed')
+    if (p.type === 'mouseReleased') { releases++; throw new Error('release secondaire') }
+    return gerer(m, p)
+  }
+  await assert.rejects(() => geste(session, { surface: '#surface', x: 20, y: 20 }, {}, clic({ bouton: 'middle', trajet: [{ x: 10, y: 0 }] })), e => {
+    assert.match(e.cause.message, /Inspected target navigated/)
+    assert.equal(e.code, TARGET_NAVIGATED)
+    assert.equal(e.errors.length, 2)
+    assert.match(e.message, /Inspected target navigated.*release secondaire/)
     return true
   })
   assert.equal(releases, 1)
@@ -983,7 +1009,7 @@ test('clicReel : mouvement et relâchement échouent, cause et code primaires co
 
 // ------------------------------------------------- K14 : un clic qui manque sa cible LÈVE
 
-test('clicReel : un élément qui RECOUVRE la cible jusqu’à l’échéance fait lever en NOMMANT le dernier recouvreur, et aucun clic n’est émis', async () => {
+test('geste : un élément qui RECOUVRE la cible jusqu’à l’échéance fait lever en NOMMANT le dernier recouvreur, et aucun clic n’est émis', async () => {
   const { etat, session } = pagePilotee('<button id="onglet">Avancement</button><div class="barre-groupe">Groupe</div>', { recouvrir: '.barre-groupe' })
   await assert.rejects(() => clickButtonByText(session, 'Avancement', { attenteMs: 150 }), (e) => {
     assert.match(e.message, /div\.barre-groupe « Groupe »/)
@@ -993,7 +1019,7 @@ test('clicReel : un élément qui RECOUVRE la cible jusqu’à l’échéance fa
   assert.deepEqual(etat.emis, [])
 })
 
-test('clicReel : un recouvrement TRANSITOIRE (scène de dés du roulis) est attendu — le clic part dès qu’il disparaît', async () => {
+test('geste : un recouvrement TRANSITOIRE (scène de dés du roulis) est attendu — le clic part dès qu’il disparaît', async () => {
   const { doc, etat, session } = pagePilotee('<button id="appliquer">Appliquer</button><div class="rm-scene">53</div>', { recouvrir: '.rm-scene' })
   setTimeout(() => doc.querySelector('.rm-scene').remove(), 120)
   await clickButtonByText(session, 'Appliquer', { attenteMs: 2000 })
@@ -1016,7 +1042,7 @@ test('clickButtonByText : le NOM ACCESSIBLE d’un bouton sans texte — `aria-l
   await clickButtonByText(session, 'Sigmund Reikhardt', { exact: false })
   await clickButtonByText(session, 'Carte du monde (M)')
   assert.deepEqual(clics, ['portrait', 'carte'])
-  await assert.rejects(() => clickButtonByText(session, 'Sigmund Reikhardt'), /aucun bouton ne matche « Sigmund Reikhardt » \(texte EXACT\)/)
+  await assert.rejects(() => clickButtonByText(session, 'Sigmund Reikhardt', { attenteMs: 0 }), /aucune cible « Sigmund Reikhardt » \(texte EXACT\)/)
 })
 
 test('cliquerSelecteur : un sélecteur qui APPARAÎT après le clic qui ouvre son écran est attendu, puis cliqué', async () => {
@@ -1029,7 +1055,7 @@ test('cliquerSelecteur : un sélecteur qui APPARAÎT après le clic qui ouvre so
 
 test('cliquerSelecteur : un sélecteur jamais apparu LÈVE à l’échéance en le nommant — aucun clic émis', async () => {
   const { etat, session } = pagePilotee('<div></div>')
-  await assert.rejects(() => cliquerSelecteur(session, '#absent', { attenteMs: 80 }), /^Error: cliquerSelecteur : « #absent » absent du DOM après 80 ms/)
+  await assert.rejects(() => cliquerSelecteur(session, '#absent', { attenteMs: 80 }), /^Error: cliquerSelecteur : aucune cible « #absent » après 80 ms/)
   assert.deepEqual(etat.emis, [])
 })
 
@@ -1063,7 +1089,7 @@ test('piloterCombat / avancerDeRounds : le choix explicite laisse le geste carte
   })
 })
 
-test('clicReel : la cible atteinte au point est cliquée — la triade souris complète', async () => {
+test('geste : la cible atteinte au point est cliquée — la triade souris complète', async () => {
   const { etat, session } = pagePilotee('<button id="onglet">Avancement</button>')
   await clickButtonByText(session, 'Avancement')
   assert.deepEqual(etat.emis, ['Input.dispatchMouseEvent:mouseMoved', 'Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseReleased'])
@@ -1096,7 +1122,7 @@ test('items explicites : libellé sans badge, vrais clics, ambiguïté et recouv
   await assert.rejects(() => clickItemByText(session, 'Épée'), /selecteur.*obligatoire/)
   dom.window.document.querySelector('ul').insertAdjacentHTML('beforeend', '<li><span class="nom">Épée</span></li>')
   const n = etat.emis.length
-  await assert.rejects(() => clickItemByText(session, 'Épée', { selecteur: 'li', nom: '.nom' }), /items ambigus/)
+  await assert.rejects(() => clickItemByText(session, 'Épée', { selecteur: 'li', nom: '.nom' }), /2 cibles ambiguës « Épée » — li « Épée1 » \| li « Épée »/)
   assert.equal(etat.emis.length, n)
   const couverte = pagePilotee('<li>Dague</li><div class="voile"></div>', { recouvrir: '.voile' })
   await assert.rejects(() => clickItemByText(couverte.session, 'Dague', { selecteur: 'li', attenteMs: 0 }), /RECOUVRE/)
@@ -1133,8 +1159,8 @@ test('libellé de select enveloppé : options exclues, champ intact', async () =
 function pageCouleur(html = '<input id="c" type="color" value="#000000">') {
   const p = pagePilotee(html)
   p.dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 20, height: 20 })
-  const rpc = p.session.rpc
-  p.session.rpc = async (m, params) => {
+  const rpc = p.session.ws.gerer
+  p.session.ws.gerer = async (m, params) => {
     if (m === 'Input.dispatchMouseEvent' && params.type === 'mousePressed') p.etat.marque?.focus()
     return rpc(m, params)
   }
@@ -1321,11 +1347,11 @@ test('finDuTour : plaque armée au premier clic → un SECOND clic passe la main
   const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="end-turn">Fin du tour<span>Action non dépensée</span></button></div>', {
     battle: () => ({ endTurnArmed: arme }),
   })
-  session.rpc = ((rpc) => async (m, p) => {
+  session.ws.gerer = ((rpc) => async (m, p) => {
     const r = await rpc(m, p)
     if (m === 'Input.dispatchMouseEvent' && p.type === 'mouseReleased') arme = !arme && etat.cliques.length === 1
     return r
-  })(session.rpc)
+  })(session.ws.gerer)
   assert.equal(await finDuTour(session, { pauseMs: 1 }), 2)
   assert.equal(etat.cliques.length, 2)
 })
@@ -1840,29 +1866,29 @@ test('nom accessible explicite : aria-label prime sur les Blessures rendues du p
   dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 20, width: 40, height: 10 })
   await clickButtonByText(session, 'Tireur (entraînement)', { exact: false, dans: '.party-dock' })
   assert.deepEqual(etat.cliques, ['14/14'])
-  await assert.rejects(() => clickButtonByText(session, '14/14'), /aucun bouton/)
+  await assert.rejects(() => clickButtonByText(session, '14/14', { attenteMs: 0 }), /aucune cible « 14\/14 »/)
   await clickButtonByText(session, 'Inspecter')
   assert.equal(etat.cliques.at(-1), 'Autre texte')
-  await survoler(session, 'Tireur (entraînement) — fiche du personnage', { attenteMs: 0 })
+  await survoler(session, { nom: 'Tireur (entraînement) — fiche du personnage' }, { attenteMs: 0 })
   assert.equal(doc.querySelector('.ptile').textContent, '14/14')
 })
 
 test('action paramétrée : ambiguïté refusée avant événement, cellule stable sélectionnée', async () => {
   const { etat, session } = pagePilotee('<div class="combat-console"><button data-action="cast-spell" data-cell="sort-lumiere">Lumière</button><button data-action="cast-spell" data-cell="sort-dome">Dôme</button></div>')
-  await assert.rejects(() => cliquerAction(session, 'cast-spell'), /cases ambiguës.*cell/)
+  await assert.rejects(() => cliquerAction(session, 'cast-spell'), /2 cibles ambiguës.*Lumière.*Dôme/)
   assert.deepEqual(etat.emis, [])
   await cliquerAction(session, 'cast-spell', { cell: 'sort-dome' })
   assert.deepEqual(etat.cliques, ['Dôme'])
   await assert.rejects(() => cliquerAction(session, 'cast-spell', { cell: 'sort-inconnu' }), /cellule « sort-inconnu ».*aucune case/)
 })
 
-// ------------------------------------------------- `cliquerAction` : le contrôle fermé est celui de `clicReel`
+// ------------------------------------------------- `cliquerAction` : le contrôle fermé est celui de `geste`
 
 const CASE = (attrs, raison = '') => `<div class="combat-console"><button data-action="tir" ${attrs}>Tir${raison}</button></div>`
 
-test('cliquerAction : une case FERMÉE qui porte sa raison lève par `clicReel`, raison citée, aucun clic', async () => {
+test('cliquerAction : une case FERMÉE qui porte sa raison lève par `geste`, raison citée, aucun clic', async () => {
   const { etat, session } = pagePilotee(CASE('data-gated aria-disabled="true" aria-describedby="g"', '<span data-gate id="g">Aucune munition</span>'))
-  await assert.rejects(() => cliquerAction(session, 'tir'), /clicReel « tir » : contrôle FERMÉ \(aria-disabled\) — raison affichée : « Aucune munition »/)
+  await assert.rejects(() => cliquerAction(session, 'tir'), /cliquerAction « \[data-action="tir"\] » dans « \.combat-console » : contrôle FERMÉ \(aria-disabled\) — raison affichée : « Aucune munition »/)
   assert.deepEqual(etat.emis, [])
 })
 
@@ -2007,10 +2033,12 @@ test('espionReseau : une URL illisible est NOTÉE comme telle, jamais perdue', a
   assert.deepEqual(await espion.urls(), ['(URL illisible : getter cassé)'])
 })
 
-test('survoler : un texte qui n’est pas un sélecteur valide retombe sur le texte du contrôle', async () => {
-  const { dom, session } = pagePilotee('<button>+ Op</button>')
+test('gestes : une cible en CHAÎNE nue est refusée en nommant les trois formes, aucun événement émis', async () => {
+  const { dom, etat, session } = pagePilotee('<button>+ Op</button>')
   dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 20, width: 40, height: 10 })
-  assert.deepEqual({ ...(await survoler(session, '+ Op', { attenteMs: 0 })) }, { x: 30, y: 25 })
+  await assert.rejects(() => survoler(session, '+ Op', { attenteMs: 0 }), /survoler : cible "\+ Op" — formes admises : \{ nom.*\{ selecteur.*\{ surface, x, y \}/)
+  assert.deepEqual(etat.emis, [])
+  assert.deepEqual({ ...(await survoler(session, { nom: '+ Op' }, { attenteMs: 0 })) }, { x: 30, y: 25, ferme: null })
 })
 
 test('processusVivant : ESRCH = mort, EPERM = vivant, toute autre erreur remonte', () => {
@@ -2175,8 +2203,8 @@ function pageDefilante(html) {
     const y = Number(porteur ? porteur.getAttribute('data-y') : 0) - p.etat.defilement
     return { x: 10, y, top: y, bottom: y + 20, left: 10, right: 110, width: 100, height: 20 }
   }
-  const rpc = p.session.rpc
-  p.session.rpc = async (m, params) => {
+  const rpc = p.session.ws.gerer
+  p.session.ws.gerer = async (m, params) => {
     if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseWheel') { p.etat.crans.push(params.deltaY); p.etat.defilement += params.deltaY }
     return rpc(m, params)
   }
@@ -2194,22 +2222,23 @@ test('deplierVers : le <summary> du <details> replié est amené par la MOLETTE 
 
 test('deplierVers : une molette qui ne fait plus défiler LÈVE en le nommant', async () => {
   const { session } = pageDefilante('<p id="loin" data-y="5000">loin</p>')
-  session.rpc = ((rpc) => async (m, p) => (m === 'Input.dispatchMouseEvent' && p.type === 'mouseWheel' ? {} : rpc(m, p)))(session.rpc)
+  session.ws.gerer = ((rpc) => async (m, p) => (m === 'Input.dispatchMouseEvent' && p.type === 'mouseWheel' ? {} : rpc(m, p)))(session.ws.gerer)
   await assert.rejects(() => deplierVers(session, '#loin', { pauseMs: 0 }), /la molette ne fait plus défiler vers « #loin »/)
 })
 
 test('molette : un cran CDP `mouseWheel` au centre de la partie visible de la cible, sans scrollIntoView', async () => {
   const { etat, session } = pageDefilante('<div id="liste" data-y="100">liste</div>')
-  assert.deepEqual({ ...(await molette(session, '#liste', 120)) }, { x: 60, y: 110 })
+  const point = await molette(session, { selecteur: '#liste' }, 120)
+  assert.deepEqual({ x: point.x, y: point.y }, { x: 60, y: 110 })
   assert.deepEqual(etat.crans, [120])
-  await assert.rejects(() => molette(session, '#absente', 120), /molette : aucune cible « #absente »/)
+  await assert.rejects(() => molette(session, { selecteur: '#absente' }, 120), /molette : aucune cible « #absente »/)
 })
 
 // ------------------------------------------------- typeInField : la frappe exige le focus
 
 test('typeInField : un <input type=number> qui n’a pas le focus après le clic LÈVE — aucune frappe émise', async () => {
   const { etat, session } = pagePilotee('<input id="n" type="number" value="5">')
-  await assert.rejects(() => typeInField(session, '#n', '12'), /typeInField « #n » : le champ n'a pas le focus après le clic \(focus sur body\) — aucune frappe émise/)
+  await assert.rejects(() => typeInField(session, '#n', '12'), /typeInField « #n » : la cible n'a pas le focus \(focus sur body\) — aucune frappe émise/)
   assert.ok(!etat.emis.includes('Input.insertText:'), `émis : ${etat.emis}`)
 })
 
@@ -2217,8 +2246,8 @@ test('typeInField : focalisé par le clic, un <input type=number> pré-rempli es
   const { doc, etat, session } = pagePilotee('<input id="n" type="number" value="5">')
   let toutSelectionne = false
   doc.defaultView.HTMLInputElement.prototype.select = function () { toutSelectionne = true }
-  const rpc = session.rpc
-  session.rpc = async (m, p) => {
+  const rpc = session.ws.gerer
+  session.ws.gerer = async (m, p) => {
     const r = await rpc(m, p)
     if (m === 'Input.dispatchMouseEvent' && p.type === 'mouseReleased') etat.marque.focus()
     if (m === 'Input.insertText') { const a = doc.activeElement; a.value = (toutSelectionne ? '' : a.value) + p.text }
@@ -2234,9 +2263,9 @@ test('survoler : `defiler: false` survole SANS scrollIntoView ; le défaut fait 
   let defilements = 0
   dom.window.Element.prototype.scrollIntoView = () => { defilements += 1 }
   dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 20, height: 20 })
-  await survoler(session, '#b', { attenteMs: 0, defiler: false })
+  await survoler(session, { selecteur: '#b' }, { attenteMs: 0, defiler: false })
   assert.equal(defilements, 0)
-  await survoler(session, '#b', { attenteMs: 0 })
+  await survoler(session, { selecteur: '#b' }, { attenteMs: 0 })
   assert.equal(defilements, 1)
 })
 
@@ -2247,8 +2276,8 @@ function pageGestes(html) {
   const p = pagePilotee(html)
   p.dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 10, width: 20, height: 20 })
   p.etat.params = []
-  const rpc = p.session.rpc
-  p.session.rpc = async (m, params) => {
+  const rpc = p.session.ws.gerer
+  p.session.ws.gerer = async (m, params) => {
     if (m !== 'Runtime.evaluate') p.etat.params.push({ m, t: Date.now(), ...params })
     return rpc(m, params)
   }
@@ -2257,13 +2286,14 @@ function pageGestes(html) {
 
 test('clicDroit : la triade souris au bouton DROIT, contrôlée comme un clic', async () => {
   const { etat, session } = pageGestes('<div class="pion" role="button">Gobelin</div>')
-  assert.deepEqual({ ...(await clicDroit(session, 'Gobelin')) }, { x: 20, y: 20 })
+  const point = await clicDroit(session, { nom: 'Gobelin' })
+  assert.deepEqual({ x: point.x, y: point.y }, { x: 20, y: 20 })
   assert.deepEqual(etat.params.map((e) => `${e.type}:${e.button ?? ''}`), ['mouseMoved:', 'mousePressed:right', 'mouseReleased:right'])
 })
 
 test('appuiLong : le bouton est TENU `ms` entre appui et relâchement', async () => {
   const { etat, session } = pageGestes('<button>Fouiller</button>')
-  await appuiLong(session, 'Fouiller', 60)
+  await appuiLong(session, { nom: 'Fouiller' }, 60)
   const appui = etat.params.find((e) => e.type === 'mousePressed')
   const relache = etat.params.find((e) => e.type === 'mouseReleased')
   assert.equal(appui.button, 'left')
@@ -2272,7 +2302,7 @@ test('appuiLong : le bouton est TENU `ms` entre appui et relâchement', async ()
 
 test('toucher : touchStart au point de la cible, puis touchEnd sans point', async () => {
   const { etat, session } = pageGestes('<button>Viser</button>')
-  await toucher(session, 'Viser')
+  await toucher(session, { nom: 'Viser' })
   assert.deepEqual(etat.params.map((e) => ({ m: e.m, type: e.type, points: e.touchPoints })), [
     { m: 'Input.dispatchTouchEvent', type: 'touchStart', points: [{ x: 20, y: 20 }] },
     { m: 'Input.dispatchTouchEvent', type: 'touchEnd', points: [] },
@@ -2287,10 +2317,9 @@ function horlogeEmballee(t) {
 }
 
 for (const [geste, qui, faire] of [
-  ['clicDroit', 'clicReel', (session) => clicDroit(session, '#cible')],
-  ['toucher', 'toucher', (session) => toucher(session, '#cible')],
-  ['survoler', 'survoler', (session) => survoler(session, '#cible', { attenteMs: 0 })],
-  ['molette', 'molette', (session) => molette(session, '#cible', 120)],
+  ['clicDroit', 'clicDroit', (session) => clicDroit(session, { selecteur: '#cible' })],
+  ['toucher', 'toucher', (session) => toucher(session, { selecteur: '#cible' })],
+  ['survoler', 'survoler', (session) => survoler(session, { selecteur: '#cible' }, { attenteMs: 0 })],
 ]) {
   test(`${geste} : une cible RECOUVERTE lève en nommant le recouvreur, aucun événement émis (#1953)`, async (t) => {
     const { dom, etat, session } = pagePilotee('<button id="cible">Retirer</button><div class="voile">Modale du dessus</div>', { recouvrir: '.voile' })
@@ -2309,7 +2338,7 @@ test('deplierVers : un cran de molette dont le point est RECOUVERT lève, aucun 
   Object.defineProperties(doc.querySelector('#liste'), { scrollHeight: { value: 6000 }, clientHeight: { value: 20 } })
   doc.elementFromPoint = () => doc.querySelector('.voile')
   horlogeEmballee(t)
-  await assert.rejects(() => deplierVers(session, '#loin', { pauseMs: 0 }), /^Error: deplierVers « #loin » : .*div\.voile « Modale du dessus ».* RECOUVRE la cible/)
+  await assert.rejects(() => deplierVers(session, '#loin', { pauseMs: 0 }), /^Error: deplierVers « #loin » : AUTRE COUCHE — .*div\.voile « Modale du dessus ».* est de la couche html, la cible de la couche div#liste/)
   assert.deepEqual(etat.crans, [])
   assert.equal(doc.querySelector('[data-recette-cible]'), null)
 })
@@ -2317,8 +2346,8 @@ test('deplierVers : un cran de molette dont le point est RECOUVERT lève, aucun 
 test('gestes : une cible SANS boîte (non rendue) est refusée avant tout événement', async () => {
   const { dom, etat, session } = pagePilotee('<button>Viser</button>')
   dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 0, height: 0 })
-  await assert.rejects(() => toucher(session, 'Viser'), /toucher « Viser » : boîte de taille nulle/)
-  await assert.rejects(() => clicDroit(session, 'Viser'), /clicDroit « Viser » : boîte de taille nulle/)
+  await assert.rejects(() => toucher(session, { nom: 'Viser' }), /toucher « Viser » \(texte EXACT\) : boîte de taille nulle/)
+  await assert.rejects(() => clicDroit(session, { nom: 'Viser' }), /clicDroit « Viser » \(texte EXACT\) : boîte de taille nulle/)
   assert.deepEqual(etat.emis, [])
 })
 
@@ -2650,8 +2679,8 @@ function pageCodex() {
     doc.body.innerHTML = CODEX
     for (const r of doc.querySelectorAll('.listrow')) r.onclick = () => { for (const x of doc.querySelectorAll('.listrow')) x.removeAttribute('aria-current'); r.setAttribute('aria-current', 'true') }
   }
-  const rpc = p.session.rpc
-  p.session.rpc = async (m, params) => {
+  const rpc = p.session.ws.gerer
+  p.session.ws.gerer = async (m, params) => {
     const r = await rpc(m, params)
     if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseReleased' && p.etat.marque?.tagName === 'INPUT') p.etat.marque.focus()
     if (m === 'Input.insertText') doc.activeElement.value = params.text
@@ -2676,4 +2705,109 @@ test('ouvrirFiche : catégorie ou rangée absente — refus NOMMANT les offertes
 
 test('ATTRIBUTS_VOLATILS : le compteur d’images et la file du cuiseur (`GameStage3D.tsx`)', () => {
   assert.deepEqual([...ATTRIBUTS_VOLATILS], ['data-rendus', 'data-file'])
+})
+
+// ------------------------------------------------- #1953 : un émetteur, une cible — tests de contrat
+
+test('verrou : `rpc` et `rpcNavigateur` refusent le domaine Input, rien ne part sur la socket', async () => {
+  const vus = []
+  const session = brancherFactice(async (m) => { vus.push(m); return {} })
+  await assert.rejects(() => session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: 1, y: 1 }), /rpc « Input\.dispatchMouseEvent » : le domaine Input n'est émis que par `geste`/)
+  await assert.rejects(() => session.rpcNavigateur('Input.dispatchKeyEvent', { type: 'keyUp' }), /domaine Input/)
+  await session.rpc('Runtime.evaluate', { expression: '1' })
+  assert.deepEqual(vus, ['Runtime.evaluate'])
+})
+
+test('homonymes : chaque forme de cible LÈVE en nommant les candidats, aucun événement émis', async () => {
+  const { etat, session } = pagePilotee('<svg class="iso-stage"></svg><svg class="iso-stage"></svg><button class="pion" id="nain1">Nain</button><button class="pion" id="nain2">Nain</button>')
+  for (const [cible, motif] of [
+    [{ nom: 'Nain' }, /2 cibles ambiguës « Nain » — button#nain1 « Nain » \| button#nain2 « Nain »/],
+    [{ selecteur: '.pion' }, /2 cibles ambiguës « \.pion » — button#nain1 « Nain » \| button#nain2 « Nain »/],
+    [{ surface: 'svg.iso-stage', x: 5, y: 5 }, /2 cibles ambiguës « svg\.iso-stage »/],
+  ]) {
+    for (const faire of [() => survoler(session, cible, { attenteMs: 0 }), () => toucher(session, cible), () => geste(session, cible, {}, clic())]) {
+      await assert.rejects(faire, motif)
+    }
+  }
+  assert.deepEqual(etat.emis, [])
+})
+
+test('molette : un cran sous un VOILE FIXE lève « autre couche », aucun cran émis', async (t) => {
+  const { doc, etat, session } = pageDefilante('<div id="liste" data-y="100">liste</div><div class="voile" style="position: fixed">Modale</div>')
+  doc.elementFromPoint = () => doc.querySelector('.voile')
+  horlogeEmballee(t)
+  await assert.rejects(() => molette(session, { selecteur: '#liste' }, 120), /^Error: molette « #liste » : AUTRE COUCHE — .*div\.voile « Modale ».* est de la couche div\.voile, la cible de la couche html/)
+  assert.deepEqual(etat.crans, [])
+})
+
+test('molette : un cran dont le point tombe dans un DÉFILANT IMBRIQUÉ lève « autre couche »', async (t) => {
+  const { doc, etat, session } = pageDefilante('<div id="liste" data-y="100">liste<div id="interne" style="overflow-y: auto"><p id="ligne">ligne</p></div></div>')
+  Object.defineProperties(doc.querySelector('#interne'), { scrollHeight: { value: 600 }, clientHeight: { value: 20 } })
+  doc.elementFromPoint = () => doc.querySelector('#ligne')
+  horlogeEmballee(t)
+  await assert.rejects(() => molette(session, { selecteur: '#liste' }, 120), /AUTRE COUCHE — .*p#ligne.* est de la couche div#interne, la cible de la couche html/)
+  assert.deepEqual(etat.crans, [])
+  doc.elementFromPoint = () => doc.querySelector('#liste')
+  await molette(session, { selecteur: '#liste' }, 120)
+  assert.deepEqual(etat.crans, [120])
+})
+
+test('survoler : un contrôle `aria-disabled` est SURVOLÉ et sa raison rendue ; `agir` le refuse', async () => {
+  const { dom, etat, session } = pagePilotee('<button id="tir" aria-disabled="true" aria-describedby="g">Tir</button><span id="g">Aucune munition</span>')
+  dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 10, width: 20, height: 20 })
+  const r = await survoler(session, { nom: 'Tir' }, { attenteMs: 0 })
+  assert.deepEqual(r.ferme, { mecanisme: 'aria-disabled', raison: 'Aucune munition' })
+  assert.deepEqual(etat.emis, ['Input.dispatchMouseEvent:mouseMoved'])
+  await assert.rejects(() => survoler(session, { nom: 'Tir' }, { attenteMs: 0, intention: 'agir' }), /contrôle FERMÉ \(aria-disabled\) — raison affichée : « Aucune munition »/)
+  assert.equal(etat.emis.length, 1)
+})
+
+test('`disabled` natif LÈVE dans toutes les intentions, aucun événement émis', async () => {
+  const { dom, etat, session } = pagePilotee('<button id="go" disabled>Continuer</button>')
+  dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 10, width: 20, height: 20 })
+  for (const intention of ['agir', 'lire']) {
+    for (const faire of [() => survoler(session, { selecteur: '#go' }, { attenteMs: 0, intention }), () => toucher(session, { selecteur: '#go' }, { intention }), () => geste(session, { selecteur: '#go' }, { intention }, clic())]) {
+      await assert.rejects(faire, /contrôle FERMÉ \(disabled\)/)
+    }
+  }
+  assert.deepEqual(etat.emis, [])
+})
+
+test('gestes : un point HORS FENÊTRE est un verdict nommé, jamais un « recouvert par rien »', async () => {
+  const { etat, session } = pagePilotee('<svg class="iso-stage"></svg>')
+  await assert.rejects(() => geste(session, { surface: 'svg.iso-stage', x: 527, y: -6.7 }, {}, clic()), /HORS FENÊTRE — le point \(527, -7\) sort de la fenêtre/)
+  assert.deepEqual(etat.emis, [])
+})
+
+test('frappe : une session non branchée n’a aucun émetteur ; `focus` exige l’élément focalisé', async () => {
+  await assert.rejects(() => realKey({ rpc: async () => ({}) }, { key: 'a' }), /session sans émetteur d'entrée/)
+  const s = sessionClavier()
+  await assert.rejects(() => frappe(s, { focus: '#champ', qui: 'essai' }, (emettre) => emettre('texte', { text: 'x' })), /essai « #champ » : la cible n'a pas le focus/)
+  assert.deepEqual(s.emis, [])
+})
+
+function pageCodexHomonymes(lignes) {
+  const p = pagePilotee(`<div class="screen codex"><input class="codex-search"><div class="codex-rows">${lignes.map(([nom, livre], i) =>
+    `<button class="listrow" id="r${i}"><span class="lr-name">${nom}</span><span class="codex-row-src">${livre}</span></button>`).join('')}</div></div>`)
+  p.dom.window.Element.prototype.getBoundingClientRect = () => ({ x: 10, y: 10, width: 20, height: 20 })
+  const gerer = p.session.ws.gerer
+  p.session.ws.gerer = async (m, params) => {
+    if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseReleased' && p.etat.marque?.tagName === 'INPUT') p.etat.marque.focus()
+    if (m === 'Input.insertText') p.doc.activeElement.value = params.text
+    const r = await gerer(m, params)
+    if (m === 'Input.dispatchMouseEvent' && params.type === 'mouseReleased' && p.etat.marque?.classList.contains('listrow')) {
+      for (const b of p.doc.querySelectorAll('.listrow')) b.removeAttribute('aria-current')
+      p.etat.marque.setAttribute('aria-current', 'true')
+    }
+    return r
+  }
+  return p
+}
+
+test('ouvrirFiche : des HOMONYMES lèvent en nommant les livres offerts ; `{ livre }` départage', async () => {
+  const { etat, session } = pageCodexHomonymes([['Épée', 'LDB'], ['Épée', 'ADE I']])
+  await assert.rejects(() => ouvrirFiche(session, { entree: 'Épée' }), /ouvrirFiche : 2 rangées « Épée » — livres offerts : LDB \| ADE I — préciser \{ livre \}/)
+  assert.deepEqual(etat.cliques.filter((c) => c.startsWith('Épée')), [])
+  assert.deepEqual(await ouvrirFiche(session, { entree: 'Épée', livre: 'ADE I' }), { entree: 'Épée', livre: 'ADE I' })
+  assert.equal(etat.cliques.at(-1), 'ÉpéeADE I')
 })

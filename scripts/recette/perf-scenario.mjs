@@ -20,7 +20,10 @@
 //   --sampling-interval   µs entre échantillons du profileur CDP (mode profile, défaut 200)
 //
 // Sortie : statistiques imprimées sur stdout, exit 1 si la console a remonté une erreur.
-import { openApp, evaluate, sleep, consoleGuard, realKey } from './lib.mjs';
+import { openApp, evaluate, sleep, consoleGuard, realKey, geste, clic, SURFACE_CARTE } from './lib.mjs';
+
+/** Clic RÉEL de marche au point demandé, sur la surface de carte (`geste`). */
+const clicDeMarche = (session, args) => geste(session, { surface: SURFACE_CARTE, x: args.clickX, y: args.clickY }, { qui: 'perf-scenario' }, clic());
 
 function parseArgs(argv) {
   const out = { scenario: 'diligence', mode: 'cadence', seed: 42, url: undefined, clickX: 700, clickY: 620, samplingInterval: 200 };
@@ -68,8 +71,7 @@ async function runCadence(session, args) {
 
   const walk = evaluate(session, SAMPLER(3000));
   await sleep(150);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: args.clickX, y: args.clickY, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: args.clickX, y: args.clickY, button: 'left', clickCount: 1 });
+  await clicDeMarche(session, args);
   console.log(stats('MARCHE  ', await walk));
 
   console.log('objets SVG dans le stage :', await evaluate(session,
@@ -81,8 +83,7 @@ async function runProfile(session, args) {
   await session.rpc('Profiler.setSamplingInterval', { interval: args.samplingInterval });
   await session.rpc('Profiler.start');
 
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: args.clickX, y: args.clickY, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: args.clickX, y: args.clickY, button: 'left', clickCount: 1 });
+  await clicDeMarche(session, args);
   await sleep(6000);
 
   const { profile } = await session.rpc('Profiler.stop');
