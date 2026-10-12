@@ -212,7 +212,8 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const imposed = helmsmanId ? inBattleId(battle, helmsmanId) : undefined;
   const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId) ? imposed : undefined) : bestHelmsman(crew, skillId);
   const nav = helm ? rollTest(testValue(helm, skillId), 'intermediaire', battleRng()) : undefined;
-  return deriveManeuver(ship, { sl: nav?.sl ?? 0, roll: nav?.roll, target: nav?.target, success: nav?.success }, helm?.label);
+  // Personne à la barre qui puisse tenter le Test : ÉCHEC, sans jet (#2588 Q1).
+  return deriveManeuver(ship, { sl: nav?.sl ?? 0, roll: nav?.roll, target: nav?.target, success: nav?.success ?? false }, helm?.label);
 }
 
 /** Résilience « Je ne faillirai pas ! » (LDB 17 l.68) : force le Test à RÉUSSIR (le virage a lieu) au DR

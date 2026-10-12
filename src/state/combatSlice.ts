@@ -118,7 +118,7 @@ import { combatDistance } from './footprint';
 import { combatOrder } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, setOwnTestFailedEmitter, poserCurseurCascade } from './cascade';
+import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, setOwnTestFailedEmitter, setClotureDeCascade, poserCurseurCascade } from './cascade';
 import { pursuitAbandon } from './pursuitFlow';
 import { closeSequenceRound } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
@@ -500,6 +500,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // propriété du teardown, cf. `dismissVictory`/`dismissDefeat`).
     if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
   };
+  setClotureDeCascade(dispatchCascadeDone);
 
   /** Dissout l'INTENTION LOCALE armée et dit s'il y en avait une (spec zone 4) : le clic du champ qui
    *  la consomme reste, lui, le geste par défaut. */

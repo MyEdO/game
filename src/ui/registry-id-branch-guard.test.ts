@@ -146,7 +146,9 @@ const CEILING = Object.values(KNOWN).reduce((s, n) => s + n, 0);
  * (anneau ami en donnée : le MODE de ciblage déclare son anneau de candidats sur son entrée — `tmode.anneauCandidats`, plus de
  * `tmode.id === 'heal'` : `highlightLayer.tsx` sort de la liste), puis 108 (#1479 : la
  * conséquence d'une collision en mer lit la DONNÉE qui ouvre l'issue — `entangleChancePct`, symétrique
- * de `strandChancePct` — au lieu de l'id du péril : `seaVoyageFlow.ts` passe de 4 à 3).
+ * de `strandChancePct` — au lieu de l'id du péril : `seaVoyageFlow.ts` passe de 4 à 3), puis 107
+ * (#2588 : la possession de Guérison se lit par `possesses`, `hasHealSkill` supprimé : `healing.ts` sort
+ * de la liste).
  *
  * MONTÉE DE COUVERTURE (L2 #1548), la seule qui fasse MONTER ce plafond sans qu'un site soit né : la
  * mesure brute résout les CONSTANTES DE MODULE (`const X = 'lit'` → `=== X`). Quatre sites
@@ -161,8 +163,8 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/activities.ts': 1,
   // SAIN (#1612) : `bourseInstanceOf` RETROUVE l'instance de la Bourse dans l'inventaire par l'id
   // STABLE de son trapping (`BOURSE_TRAPPING_ID`, `trappings.json`) — un LOOKUP par référence, pas un
-  // branchement de comportement : aucune conduite ne diffère selon l'id. Même patron que les jumeaux
-  // `careerSlots` ('focalisation') et `healing` (`HEAL_SKILL`) ci-dessous ; la constante de module est
+  // branchement de comportement : aucune conduite ne diffère selon l'id. Même patron que le jumeau
+  // `careerSlots` ('focalisation') ci-dessous ; la constante de module est
   // résolue par le scan brut (L2 #1548), donc la factorisation ne l'assainit pas et ne le prétend pas.
   'src/engine/bourse.ts': 1,
   'src/engine/careerSlots.ts': 1, // reste `s.id === 'focalisation'` (lookup par id stable)
@@ -171,11 +173,6 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/drunkenness.ts': 1,
   'src/engine/engagement.ts': 2,
   'src/engine/equipCompare.ts': 1,
-  // SAIN : lookup par id stable de la Compétence de soin, patron des jumeaux `careerSlots` ('focalisation')
-  // et `critical` ('resistance') ci-dessus. Le littéral est factorisé en `HEAL_SKILL` (source unique des
-  // sites qui la testent) : la comparaison reste la MÊME et reste COMPTÉE — le scanner brut résout
-  // les constantes de module (L2 #1548), une factorisation n'assainit rien.
-  'src/engine/healing.ts': 1,
   'src/engine/magic.ts': 3,
   'src/engine/menace.ts': 1,
   'src/engine/provisions.ts': 1,

@@ -12,7 +12,7 @@ const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advanc
   ({
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
-    conditions: [], talents: [],
+    kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], talents: [],
   }) as unknown as Combatant;
 
 /** RNG déterministe : renvoie la séquence de d100 fournie. */
@@ -93,7 +93,7 @@ describe('crewRoleValue — sens transmis au Test (Surdité, LDB 18 : « Tests d
 describe('resolveCrewTestByRoles — Test d’équipage piloté par rôles (MDG 14)', () => {
   it('le rôle ESSENTIEL (Artilleur pour Tir de batterie) voit son DR compté DOUBLE', () => {
     const artilleur = mk({ dexterite: 70 }, [{ id: 'projectiles', advances: 10, spec: 'poudre-noire' }]); // 80
-    const mousse = mk({ dexterite: 50 }, [{ id: 'voile', advances: 0 }]); // 50
+    const mousse = mk({ dexterite: 40 }, [{ id: 'voile', advances: 10 }]); // 50
     const r = resolveCrewTestByRoles(
       [{ crew: artilleur, roleId: 'artilleur' }, { crew: mousse, roleId: 'mousse' }],
       'batterie', 'intermediaire', 80, seq([30, 30]),
@@ -117,8 +117,8 @@ describe('resolveCrewTestByRoles — Test d’équipage piloté par rôles (MDG 
   // « 0 ou 1 | Succès Minime ») : le plafond est le HAUT de la bande, 1 DR — un équipage sous-nombré
   // peut encore réussir de justesse (arbitrage utilisateur [entériné 2026-08-03], #1019).
   it('Manque de bras (MDG 14 l.55) : −2 DR ET plafond au Succès Minime — 1 DR au mieux', () => {
-    const cap = mk({ dexterite: 80 }, [{ id: 'voile', advances: 0 }]); // Timonier 80
-    const moussse = mk({ dexterite: 80 }, [{ id: 'voile', advances: 0 }]); // Mousse 80
+    const cap = mk({ dexterite: 70 }, [{ id: 'voile', advances: 10 }]); // Timonier 80
+    const moussse = mk({ dexterite: 70 }, [{ id: 'voile', advances: 10 }]); // Mousse 80
     const crew = [{ crew: cap, roleId: 'timonier' }, { crew: moussse, roleId: 'mousse' }];
     const full = resolveCrewTestByRoles(crew, 'manoeuvre', 'intermediaire', 80, seq([10, 10]));
     expect(full.total).toBeGreaterThan(1); // équipage complet : bien au-dessus du Succès Minime
@@ -129,7 +129,7 @@ describe('resolveCrewTestByRoles — Test d’équipage piloté par rôles (MDG 
   });
 
   it('Manque de bras : un total DÉJÀ nul n’est pas remonté par le plafond — 0 reste un échec (MDG 14 l.13)', () => {
-    const faible = mk({ dexterite: 30 }, [{ id: 'voile', advances: 0 }]); // Timonier 30
+    const faible = mk({ dexterite: 20 }, [{ id: 'voile', advances: 10 }]); // Timonier 30
     // Jets à 30 (DR 0 pile) : total brut 0 essentiel compris, −2 de Manque de bras → négatif, puis plafond
     // (Math.min(1, …)) qui ne REMONTE jamais un total. Aucun succès n'est fabriqué par le plafond.
     const short = resolveCrewTestByRoles([{ crew: faible, roleId: 'timonier' }], 'manoeuvre', 'intermediaire', 80, seq([30]), { understaffed: true });

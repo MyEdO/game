@@ -713,7 +713,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
   /**
    * TRAVERSÉE SOUS ORDRES (#1595) : l'embuscade ancrée n'exclut pas le jour du pilote immédiat. Le combat
    * qu'elle ouvre en plein vol parque la journée ENTIÈRE derrière lui ; le combat clos, le même pilote
-   * reprend, et la clôture du jour se joue une fois, PV compris des dés résolus AVANT l'embuscade.
+   * reprend SANS fenêtre, et la clôture du jour se joue une fois, PV compris des dés résolus AVANT l'embuscade.
    */
   it('traversée COMMANDÉE : routine sans fenêtre ; au franchissement, l’abordage parque le jour, qui reprend après la victoire et se clôt une fois, PV complet', () => {
     freshAmbush();
@@ -740,9 +740,8 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     set({ battle: { ...battle } });
     checkBattleOver(get, set);
     get().dismissVictory();
-    draineCascade(get, 40);
 
-    expect(get().pendingCascade).toBeNull();
+    expect(get().pendingCascade, 'la reprise après la victoire a rouvert une fenêtre').toBeNull();
     expect(get().suspendedCascades).toEqual([]);
     expect(get().travelPlan!.sea!.daysAtSea, 'la clôture du jour ne s’est pas jouée une fois').toBe(1);
     expect(get().travelPlan!.log, 'la clôture du jour ne s’est pas jouée une fois').toHaveLength(1);

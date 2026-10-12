@@ -30,6 +30,14 @@ function start(
   useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3, ...spec });
 }
 
+/** Le groupe doté de Savoir (Guerre) — Compétence Avancée que la Planification exige (LDB 09 l.30). */
+function partyWithWarLore(party = pregenParty(PREGEN.soldat, PREGEN.chasseur)): Combatant[] {
+  return party.map((h) =>
+    h.skills.some((s) => s.id === 'savoir' && s.spec === 'guerre' && (s.advances ?? 0) > 0)
+      ? h
+      : { ...h, skills: [...h.skills, { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: 5 }] });
+}
+
 /** Budget d'Activités d'interlude restant d'un héros. */
 const leftOf = (heroId: string) => useGame.getState().interlude?.perHero[heroId]?.left ?? 0;
 
@@ -127,7 +135,7 @@ describe('Discours inspirant (l.71)', () => {
 
 describe('Activités de bataille pré-combat (l.79-106)', () => {
   it('Planification réussie : +10 permanent aux Tests de Puissance ; débloque l\'Infiltration', () => {
-    start();
+    start({}, partyWithWarLore());
     useGame.getState().massBattleActivity('planification');
     expect(pending()?.activityId).toBe('planification');
     resolveBattleTest({ roll: 10, success: true, sl: 3 });
@@ -138,7 +146,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
   });
 
   it('Planification Stupéfiante (DR ≥ 6) : +20 (l.89)', () => {
-    start();
+    start({}, partyWithWarLore());
     useGame.getState().massBattleActivity('planification');
     resolveBattleTest({ roll: 3, success: true, sl: 6 });
     expect(mbState().allyMod).toBe(20);
@@ -169,7 +177,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
   });
 
   it('budget UNIQUE : sans interlude ouvert, AUCUNE préparation possible (Round 1 direct)', () => {
-    start({}, pregenParty(PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({}, partyWithWarLore(), { interludeLeft: 0 });
     expect(useGame.getState().interlude).toBeNull();
     useGame.getState().massBattleActivity('inspire');
     expect(pending()).toBeNull();
@@ -191,7 +199,7 @@ describe('Test combiné d\'Activité (l.75/102) — un jet vs deux compétences'
   });
 
   it('Infiltration combinée : partial (une seule) NE réussit PAS l\'Activité', () => {
-    start();
+    start({}, partyWithWarLore());
     useGame.getState().massBattleActivity('planification');
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
     useGame.getState().massBattleActivity('infiltration');
@@ -632,13 +640,6 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
 });
 
 describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test »)', () => {
-  function partyWithWarLore(): Combatant[] {
-    return pregenParty(PREGEN.soldat, PREGEN.chasseur).map((h) =>
-      h.skills.some((s) => s.id === 'savoir' && s.spec === 'guerre')
-        ? h
-        : { ...h, skills: [...h.skills, { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: 5 }] });
-  }
-
   it('deux PJ postés → SOUTIEN (heroIds=2, support.count ≥ 1)', () => {
     start({}, partyWithWarLore());
     const [a, b] = useGame.getState().party.map((h) => h.id);
@@ -653,7 +654,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
   });
 
   it('un seul PJ posté → meneur SEUL', () => {
-    start();
+    start({}, partyWithWarLore());
     const [a] = useGame.getState().party.map((h) => h.id);
     useGame.getState().setMassBattleHero('planification', [a]);
     useGame.getState().massBattleActivity('planification');
@@ -746,7 +747,7 @@ describe('Rassemblement (ADE II 8 l.122)', () => {
 
 describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, ils ne peuvent participer qu\'à un maximum de trois Activités »', () => {
   it('une préparation de bataille DÉCRÉMENTE `interlude.perHero.left` (budget UNIQUE)', () => {
-    start();
+    start({}, partyWithWarLore());
     const hero = useGame.getState().party[0].id;
     useGame.getState().setMassBattleHero('planification', [hero]);
     expect(leftOf(hero)).toBe(3);
@@ -758,7 +759,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
   it('un héros ne peut faire que 3 Activités AU TOTAL (mix prépa bataille + interlude normale) — la 4ᵉ est REFUSÉE', () => {
     // GROUPE À UN SEUL HÉROS : son budget d'interlude (3) est le SEUL budget de préparation → l'épuiser
     // épuise toute la préparation (le budget est UNIQUE, l.65). Repérage réussi débloque le Sabotage.
-    start({}, pregenParty(PREGEN.soldat));
+    start({}, partyWithWarLore(pregenParty(PREGEN.soldat)));
     const [hero] = useGame.getState().party.map((h) => h.id);
     expect(leftOf(hero)).toBe(3);
 

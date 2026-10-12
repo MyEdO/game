@@ -48,13 +48,22 @@ describe('shipDefaultRoles — défaut GLOBAL : essentiel rempli en 1er + PJ ét
   it('remplit l’ESSENTIEL d’abord puis étale (pas 2 sur le même poste spécifique)', () => {
     const cap = mk('cap', 50, [{ id: 'commandement', advances: 30 }]); // → Capitaine
     const nav = mk('nav', 50, [{ id: 'orientation', advances: 30 }]);   // → Navigateur
-    const helm = mk('helm', 40, [{ id: 'voile', advances: 0 }]);        // seul à la Voile → Timonier (essentiel)
+    const helm = mk('helm', 30, [{ id: 'voile', advances: 10 }]);       // seul à la Voile → Timonier (essentiel)
     const m2 = mk('m2', 40, [{ id: 'ramer', advances: 0 }]);            // Ramer → Mousse (catch-all)
     const roles = shipDefaultRoles([cap, nav, helm, m2], 'manoeuvre');
     expect(roles.get('helm')).toBe('timonier');  // essentiel rempli EN PREMIER
     expect(roles.get('cap')).toBe('capitaine');
     expect(roles.get('nav')).toBe('navigateur'); // étalé — PAS un 2e Capitaine
     expect(roles.get('m2')).toBe('mousse');
+  });
+
+  it('un Mousse Inconscient ne compte pas : il ne peut pas tenter le Test (LDB 16 l.113)', () => {
+    const cap = mk('cap', 50, [{ id: 'commandement', advances: 30 }]);
+    const helm = mk('helm', 30, [{ id: 'voile', advances: 10 }]);
+    const ko = { ...mk('ko', 40, [{ id: 'ramer', advances: 0 }]), conditions: [{ id: 'inconscient', value: 1 }] } as unknown as Combatant;
+    const roles = shipDefaultRoles([cap, helm, ko], 'manoeuvre');
+    expect(roles.get('helm')).toBe('timonier');
+    expect(roles.has('ko'), 'l’Inconscient n’est pas posté Mousse').toBe(false);
   });
 
   it('un rôle ÉPINGLÉ est respecté et peut être MULTI (l.9)', () => {

@@ -122,6 +122,9 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
 
   it('une journée à rythme forcé → Test de Voile puis Test d’Épuisement (Complexe −10) par PJ', async () => {
     seedBattleRng(1); // jour 1 navigable (ni Encalminé ni Affaler) → la Voile/le rythme se joue
+    // Voile est une Compétence Avancée (LDB 09 l.30) : un PJ formé tente le Test du rythme forcé.
+    const [marin, ...reste] = get().party;
+    set({ party: [{ ...marin, skills: [...marin.skills, { id: 'voile', characteristic: 'agilite', advances: 10 }] }, ...reste] } as never);
     get().startTravel('r1', 'mer', { seaPace: 1 });
     await runOneSeaDay();
     // Le recap du jour (halte de nuit) porte la journée ENTIÈRE — le journal, capé à 40 lignes,

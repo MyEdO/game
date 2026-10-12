@@ -371,6 +371,20 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     if (pc) expect(pc.participants.some((s) => s.kind === 'landForcedPace')).toBe(false);
     expect(get().journal.join('\n')).toMatch(/Conduite d'attelage \(allure forcée\)/);
   });
+
+  it('aucun conducteur ne peut tenter la Conduite d’attelage (Inconscient) → la journée suit la cadence de base (LDB 16 l.113)', () => {
+    setRule('travel-allures', true);
+    seedBattleRng(1);
+    const h = hero({ id: 'h', aiControlled: true, conditions: [{ id: 'inconscient', value: 1 }] as never, skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
+    useGame.setState({ party: [h], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
+    get().loadProject([sceneA(), sceneB()], 'lieu-a-scene', forcedRoute(20));
+    useGame.setState({ gameTime: campaignStart() });
+    creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
+    get().startTravel('r1', 'diligence', { allure: 'galop' });
+    const pc = get().pendingCascade;
+    if (pc) expect(pc.participants.some((s) => s.kind === 'landForcedPace'), 'aucun km au pas de course').toBe(false);
+    expect(get().journal.join('\n'), 'aucun Test de Conduite d’attelage au pas de course').not.toMatch(/Conduite d'attelage \(allure forcée\)/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -603,6 +617,28 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     const n = Number(/(\d+) Blessures/.exec(blessee!)![1]);
     expect(n).toBeGreaterThanOrEqual(1);
     expect(n).toBeLessThanOrEqual(6);
+  });
+
+  it('EDOC 07 l.284 — plus personne ne peut tenir les rênes : l’attelage Incontrôlable devient un Accident, sans jet', () => {
+    ouvreJournee();
+    const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
+    // Le conducteur et son aide tombent Inconscients pendant le km (LDB 16 l.113).
+    useGame.setState({ party: get().party.map((h) => ({ ...h, conditions: [...h.conditions, { id: 'inconscient', value: 1 }] })) });
+    const avant = useGame.getState();
+    let lignes: string[] = [];
+    let insert: readonly unknown[] = [];
+    for (let seed = 1; seed <= 200 && !lignes.some((l) => l.includes('Incontrôlable')); seed++) {
+      useGame.setState(avant, true);
+      seedBattleRng(seed);
+      const rate = { ...st, result: { roll: 99, target: st.target!, sl: -6, success: false } } as typeof st;
+      const out = cascadeAppliers.landForcedPace.apply(get, set, rate, get().party[0], { steps: [rate], index: 0 });
+      lignes = (out?.consequences ?? []).map((c) => String((c as { vars?: { text?: string } }).vars?.text ?? ''));
+      insert = out?.insert ?? [];
+    }
+    expect(lignes.some((l) => l.includes('Incontrôlable')), 'le cas « Incontrôlable » est atteignable').toBe(true);
+    expect(insert, 'aucune reprise de contrôle à jouer').toEqual([]);
+    expect(lignes.some((l) => l.includes('tente de reprendre le contrôle')), 'aucun jet de reprise').toBe(false);
+    expect(lignes).toContain('Personne ne peut tenir les rênes : ACCIDENT !');
   });
 
   it('reprise de contrôle : MÊME conducteur soutenu que le km, sur les DEUX surfaces (B4)', () => {

@@ -270,6 +270,19 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
     expect(useGame.getState().battle!.combatants.find((c) => c.id === 'ship')!.pos).toEqual({ x: 5, y: 5 }); // position INCHANGÉE
   });
 
+  it('barre qui ne peut pas tenter le Test (sans Voile, Inconsciente, aucun barreur) : pas de barreur, ÉCHEC sans jet (LDB 09 l.30, LDB 16 l.113, #2588 Q1)', () => {
+    const sansVoile = { ...helm2(), skills: [] } as unknown as Combatant;
+    const ko = { ...helm2(), conditions: [{ id: 'inconscient', value: 1 }] } as unknown as Combatant;
+    for (const [nom, h, imposee] of [['sans Voile', sansVoile, 'helm'], ['Inconsciente', ko, 'helm'], ['aucun barreur', ko, undefined]] as const) {
+      seedBattleRng(7);
+      useGame.setState({ battle: { combatants: [ship2(), h], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
+      const res = rollShipManeuver(() => useGame.getState(), 'ship', imposee)!;
+      expect(res.helmsman, `${nom} : personne ne tient la barre`).toBeUndefined();
+      expect(res.roll, `${nom} : aucun jet`).toBeUndefined();
+      expect(res.success, `${nom} : le Test exigé est un ÉCHEC`).toBe(false);
+    }
+  });
+
   it('applyShipManeuver vire (si succès) + avance le long du cap', () => {
     seedBattleRng(7);
     useGame.setState({ battle: { combatants: [ship2(), helm2()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
