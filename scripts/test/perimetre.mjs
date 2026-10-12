@@ -951,10 +951,11 @@ export function planDuPerimetre(retenus, { mesures, lire, budget, signaux, worke
   return { ci, facteurs, estimations, surcouts, plan: planDExecution(retenus, { budget, estimations, signaux, workers, surcouts }) }
 }
 
-function principal() {
-  const options = lireArguments(process.argv.slice(2))
+/** Le LANCEMENT du périmètre du dépôt de `racine` sous les arguments `args` (`lireArguments`) : dérivation, journal, lint,
+ *  tests au plan, ligne de relance (`ligneDeRelance`) ; rend le code de sortie. */
+export function principal(args, racine) {
+  const options = lireArguments(args)
   const debut = performance.now()
-  const racine = racineDe(depotDe(RACINE)) ?? RACINE
   const { base, tete, touches, post, retenus, toolchain, nonResolus, vitest, node, modules, signaux, lire } = perimetreDuDepot(racine, options)
   const duree = Math.round(performance.now() - debut)
   const docs = selectionDesGenerateurs({ lot: touches, mesure: sourcesMesurees(racine), cwd: racine })
@@ -1069,7 +1070,7 @@ export function apprendre(racine, rapport, mesures, famille, planifies) {
 
 if (import.meta.main) {
   try {
-    process.exitCode = principal()
+    process.exitCode = principal(process.argv.slice(2), racineDe(depotDe(RACINE)) ?? RACINE)
   } catch (erreur) {
     console.error(`[perimetre] ${erreur.message}`)
     process.exitCode = 2

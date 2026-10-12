@@ -1,9 +1,11 @@
 // Banc du périmètre de tests (#2400) : un dépôt git FORGÉ par classe de lien, sous mkdtempSync.
 import { test } from 'node:test'
+import { spawnSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { gitDe } from './gitDeBanc.mjs'
 import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, dossierDesMesures, ecrireLesMesures, estimationsDe, exportsTouches, facteursCi, lintDesTouches, memosDe, mesuresDe, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, signalDe, surcoutObserve, texteDeLEstimation, texteDuMur, versionDesMemos } from './perimetre.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
@@ -595,6 +597,33 @@ test('ligneDeRelance : chaque rouge SANS fichier nommé est nommé, à côté de
   assert.equal(ligneDeRelance({ code: 1, lancements: [{ famille: 'vitest', code: 1, echecs: ['src/a.test.ts'], args: [] }, { famille: 'vitest', code: 1, echecs: [], args: [] }], lint: vert, appelLint }),
     'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : npm test -- src/a.test.ts'
     + ' — rouge sans fichier nommé : vitest : 1 lancement(s) rouge(s) sans fichier en échec rapporté')
+})
+
+/** Le lancement `principal` du dépôt `racine` sur son dernier commit, en sous-processus HORS du contexte de ce test
+ *  (`NODE_TEST_CONTEXT` retiré : ses `node --test` lancent leurs fichiers) : sa sortie et son code. */
+const lancerPrincipal = (racine) => {
+  const module = pathToFileURL(join(import.meta.dirname, 'perimetre.mjs')).href
+  const code = `import { principal } from ${JSON.stringify(module)}; process.exitCode = principal(['--base', 'HEAD~1', '--tete', 'HEAD'], ${JSON.stringify(racine)})`
+  return spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: racine, encoding: 'utf8', env: { ...process.env, NODE_TEST_CONTEXT: undefined } })
+}
+
+/** Le lint d'un dépôt forgé : le script `lint` de son `package.json` (`appelDuLint`), un lanceur au rapport vide. */
+const LINT_FORGE = {
+  'package.json': JSON.stringify({ scripts: { lint: 'node scripts/lint-forge.mjs oxlint -- oxlint --config oxlint.config.mjs .' } }),
+  'scripts/lint-forge.mjs': 'process.stdout.write(JSON.stringify({ diagnostics: [], number_of_files: 0 }))\n',
+}
+
+test('principal : un test node touché ROUGE → code non nul et ligne de relance de ce seul fichier ; vert → code 0, aucune ligne rouge', (t) => {
+  const forgerAvec = (attendu) => forger(t, LINT_FORGE, { 'scripts/n.test.mjs':
+    `import { test } from 'node:test'\nimport assert from 'node:assert/strict'\ntest('n', () => assert.equal(1, ${attendu}))\n` })
+  const lignes = (sortie) => sortie.split(/\r?\n/)
+  const rouge = lancerPrincipal(forgerAvec(2))
+  assert.notEqual(rouge.status, 0, rouge.stdout + rouge.stderr)
+  assert.ok(lignes(rouge.stdout).includes('[perimetre] rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : node --test scripts/n.test.mjs'),
+    rouge.stdout + rouge.stderr)
+  const vert = lancerPrincipal(forgerAvec(1))
+  assert.equal(vert.status, 0, vert.stdout + vert.stderr)
+  assert.deepEqual(lignes(vert.stdout).filter((l) => l.startsWith('[perimetre] rouge')), [], vert.stdout)
 })
 
 test('apprendre : un rapport aux échecs mal formés n’en rapporte aucun', (t) => {
