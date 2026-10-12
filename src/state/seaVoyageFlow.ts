@@ -542,10 +542,21 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
   }, participants);
 }
 
+/** Compétence du Test de Forcer le rythme selon la propulsion (MDG 13 l.95). */
+const forcePaceSkill = (rig: PropulsionKind): string => (rig === 'voile' ? 'voile' : 'ramer');
+
+/** Refus NOMMÉ de Forcer le rythme quand personne ne peut tenter son Test (MDG 13 l.95, LDB 09 l.30) ; `null`
+ *  sinon. Le geste de départ (`WorldMapView`) et l'étape du jour en dérivent. */
+export function forcePaceRefus(party: Combatant[], rig: PropulsionKind): string | null {
+  const skillId = forcePaceSkill(rig);
+  return partyBest(party, skillId) ? null : t('sv.paceNobody', { skill: refLabel('skills', { id: skillId }) });
+}
+
 /** Étape MONO « Forcer le rythme » (MDG 13 l.95-107, `sea-force-pace`, applier ci-dessous) : le meilleur
- *  PJ soutenu (LDB 12) tente le Test de Voile/Ramer du jour. `null` = pas demandé, déjà tranché
- *  aujourd'hui, vapeur (ni voiles ni avirons à forcer), ou aucun PJ éligible. */
-function buildForcePaceStep(get: Get): BuiltCascadeStep | undefined {
+ *  PJ soutenu (LDB 12) tente le Test de Voile/Ramer du jour. `undefined` = pas demandé, déjà tranché
+ *  aujourd'hui, vapeur (ni voiles ni avirons à forcer), ou personne qui puisse tenter (refus nommé au
+ *  journal ; MDG 13 l.95, LDB 09 l.30). */
+function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   if (!sea.forcePace || sea.paceToday != null) return undefined;
@@ -555,9 +566,10 @@ function buildForcePaceStep(get: Get): BuiltCascadeStep | undefined {
   const rig: PropulsionKind = vesselPropulsion(vd)!.mode;
   const diff = forcePaceDifficulty(sea.forcePace, rig);
   if (!diff) return undefined;
-  const skillId = rig === 'voile' ? 'voile' : 'ramer';
-  const best = partyAssisted(get().party, skillId);
-  if (!best) return undefined;
+  const refus = forcePaceRefus(get().party, rig);
+  if (refus) { tell(get, set, [refus]); return undefined; }
+  const skillId = forcePaceSkill(rig);
+  const best = partyAssisted(get().party, skillId)!;
   const test = { skill: skillId, label: t('sv.forcePace') };
   return monoStep({
     id: 'sea-force-pace', kind: 'sea-force-pace', actor: best.actor, icon: 'travel/sail-ship',
@@ -854,7 +866,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   }
   // FORCER LE RYTHME (MDG 13 l.95-107) : AVANT la Progression — « pour bénéficier du bonus de
   // Mouvement, un Test de Voile ou de Ramer doit être réussi ».
-  const paceStep = buildForcePaceStep(get);
+  const paceStep = buildForcePaceStep(get, set);
   if (paceStep) steps.push(paceStep);
   // L'applier `'progression'` insère le reste de la journée une fois la Progression posée.
   const choiceStep = buildProgressionChoiceStep(get);

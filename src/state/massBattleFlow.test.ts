@@ -10,6 +10,7 @@ import type { MassBattleSpec } from '../engine/massBattle';
 import type { PendingActivity } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
+import { addCondition } from '../engine/conditions';
 
 /** Amorce une bataille avec un vrai groupe (pré-tirés) et le RNG seedé. Par défaut ouvre AUSSI un
  *  interlude doté du budget d'Activités (3 par héros) : c'est le budget UNIQUE dans lequel puise la
@@ -183,6 +184,54 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
     expect(pending()).toBeNull();
     useGame.getState().massBattleActivity('planification');
     expect(pending()).toBeNull();
+  });
+});
+
+describe('Personne qui puisse tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : refus NOMMÉ, jamais un remplaçant', () => {
+  const lastLine = () => useGame.getState().journal.slice(-1)[0];
+  /** Met un héros hors d'action par la couture des États (LDB 16 l.113). */
+  const ko = (h: Combatant): Combatant => { const c = structuredClone(h); addCondition(c, 'inconscient'); return c; };
+
+  it('Planification (soutenable) sans Savoir (Guerre) dans le groupe : refus nommé, budget intact', () => {
+    start(); // soldat + chasseur, aucun n'a d'Augmentation en Savoir (Guerre)
+    const [a, b] = useGame.getState().party;
+    useGame.getState().massBattleActivity('planification');
+    expect(pending()).toBeNull();
+    expect(lastLine()).toBe('Personne dans le groupe ne peut tenter « Planification ».');
+    expect([leftOf(a.id), leftOf(b.id)]).toEqual([3, 3]);
+  });
+
+  it('Planification : le héros DÉSIGNÉ sans Savoir (Guerre) n’est pas remplacé par celui qui l’a', () => {
+    const [soldat, chasseur] = pregenParty(PREGEN.soldat, PREGEN.chasseur);
+    start({}, [partyWithWarLore([soldat])[0], chasseur]);
+    useGame.getState().setMassBattleHero('planification', [chasseur.id]);
+    useGame.getState().massBattleActivity('planification');
+    expect(pending()).toBeNull();
+    expect(lastLine()).toBe(`Aucun Personnage désigné (${chasseur.label}) ne peut tenter « Planification ».`);
+  });
+
+  it('Activité SOLO : le héros désigné Inconscient n’est pas remplacé (Discours inspirant)', () => {
+    const [soldat, chasseur] = pregenParty(PREGEN.soldat, PREGEN.chasseur);
+    start({}, [ko(soldat), chasseur]);
+    useGame.getState().setMassBattleHero('inspire', [soldat.id]);
+    useGame.getState().massBattleActivity('inspire');
+    expect(pending()).toBeNull();
+    expect(lastLine()).toBe(`Aucun Personnage désigné (${soldat.label}) ne peut tenter « Discours inspirant ».`);
+  });
+
+  it('Activité COMBINÉE : personne en état de la tenter → refus nommé (Repérage)', () => {
+    start({}, pregenParty(PREGEN.soldat, PREGEN.chasseur).map(ko));
+    useGame.getState().massBattleActivity('reperage');
+    expect(pending()).toBeNull();
+    expect(lastLine()).toBe('Personne dans le groupe ne peut tenter « Repérage ».');
+  });
+
+  it('Scène de Round : personne en état de la tenter → refus nommé (Motivation)', () => {
+    start({ situations: [['motivation']] }, pregenParty(PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    useGame.setState({ party: useGame.getState().party.map(ko) });
+    useGame.getState().massBattleScene('motivation');
+    expect(pending()).toBeNull();
+    expect(lastLine()).toBe('Personne dans le groupe ne peut tenter « Motivation ».');
   });
 });
 

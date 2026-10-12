@@ -74,7 +74,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     useGame.setState({ party: get().party.map((h) => (h.id === 'com-otto' ? { ...h, characteristics: { ...h.characteristics, agilite: 95 } } : h)) });
     drainCascade();
     get().startTravel('r-grunburg-altdorf', 'barge', { cadence: 'jour-par-jour' });
-    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverAgility');
+    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
     expect(barre?.actorId).toBe('com-gunnar');
   });
 });

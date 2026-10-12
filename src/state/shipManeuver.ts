@@ -212,7 +212,7 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const imposed = helmsmanId ? inBattleId(battle, helmsmanId) : undefined;
   const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId) ? imposed : undefined) : bestHelmsman(crew, skillId);
   const nav = helm ? rollTest(testValue(helm, skillId), 'intermediaire', battleRng()) : undefined;
-  // Personne à la barre qui puisse tenter le Test : ÉCHEC, sans jet (#2588 Q1).
+  // LDB 09 l.30, MSRC 7 l.17 ; #2588 Q1.
   return deriveManeuver(ship, { sl: nav?.sl ?? 0, roll: nav?.roll, target: nav?.target, success: nav?.success ?? false }, helm?.label);
 }
 

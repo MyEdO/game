@@ -1,6 +1,7 @@
 import { useGame, type LootGear } from '../state/store';
 import { giveTrappingQualities } from '../engine/items';
-import { bestDetector } from '../state/merchantFlow';
+import { appraiseRefus, bestDetector } from '../state/merchantFlow';
+import { GatedAction, raisonSi } from './GatedAction';
 import { PortraitPicker } from './PortraitPicker';
 import { QualityChips } from './EntityChip';
 import type { Combatant } from '../engine/types';
@@ -23,6 +24,7 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
   const party = useGame((s) => s.party);
   const today = useGame((s) => Math.floor(s.gameTime / MINUTES_PER_DAY));
   const canDetect = !!bestDetector(party);
+  const refusEval = appraiseRefus(party);
   return (
     <ul className="gear-list">
       {gear.map((g, i) => {
@@ -49,7 +51,16 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
             {onAppraise && unidentified && (
               <span className="gear-acts">
                 {fx.appraiseTriedDay !== today && (
-                  <button className="btn gear-act" onClick={() => onAppraise(i, 'evaluate')} title="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain">Évaluer</button>
+                  <GatedAction
+                    id={`gear-eval-${i}`}
+                    label="Évaluer"
+                    enabled={!refusEval}
+                    {...raisonSi(refusEval)}
+                    descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
+                    onClick={() => onAppraise(i, 'evaluate')}
+                    primary={false}
+                    btnClassName="gear-act"
+                  />
                 )}
                 {canDetect && !fx.detectTried && (
                   <button className="btn gear-act" onClick={() => onAppraise(i, 'detect')} title="Détection d'artefact (Intuition, au toucher) : sentir l'aura — une seule tentative par objet">Détecter</button>

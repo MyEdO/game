@@ -395,3 +395,37 @@ describe('InterludeScreen — Punchausen (AA 12 l.45-49) : le volet et le flux J
     expect(pa.difficulty).toBe('intermediaire');
   });
 });
+
+describe('InterludeScreen — préparation de bataille : « Entreprendre » suit `peutTenter` (LDB 09 l.30)', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Volet Planification du Vétéran, bataille en attente de préparation (budget de l'interlude). */
+  function voletPlanification(savoirGuerre: number): string {
+    const seam = buildSeam();
+    const party = seam.party.map((h, i) => (i === 0
+      ? { ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: savoirGuerre }] }
+      : h));
+    useGame.setState({ party });
+    useGame.getState().startMassBattle({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    const s = useGame.getState();
+    const catalog = interludeCatalog(s);
+    return renderToStaticMarkup(
+      <InterludeScreen seam={{ ...seam, party, phase: 'activities', catalog, massBattle: s.massBattle, openPane: { heroId: party[0].id, pane: 'planification' } }} />,
+    );
+  }
+
+  it('sans Augmentation en Savoir (Guerre) : le volet DIT pourquoi, l’action est fermée, aucun pré-jet', () => {
+    const html = voletPlanification(0);
+    expect(mdToPlain(html)).toContain('Aucun Personnage désigné (Vétéran) ne peut tenter « Planification ».');
+    expect(html).toMatch(/aria-label="Entreprendre Planification"[^>]*aria-disabled="true"|aria-disabled="true"[^>]*aria-label="Entreprendre Planification"/);
+    expect(html).not.toContain('rm-roll pending');
+  });
+
+  it('avec Savoir (Guerre) : l’action est offerte, avec son pré-jet', () => {
+    const html = voletPlanification(5);
+    expect(mdToPlain(html)).not.toContain('ne peut tenter');
+    expect(html).not.toMatch(/aria-label="Entreprendre Planification"[^>]*aria-disabled="true"|aria-disabled="true"[^>]*aria-label="Entreprendre Planification"/);
+    expect(html).toContain('rm-roll pending');
+  });
+});

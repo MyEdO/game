@@ -346,6 +346,23 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
       activeLoadoutId: 'lo1',
     }) as unknown as Combatant;
 
+  it('« Évaluer » suit qui peut tenter le Test (LDB 09 l.30) : offert avec une Augmentation, fermé et NOMMÉ sans', () => {
+    const inconnu = { uid: 'u1', label: 'Épée', kind: 'melee', qualities: [], enc: 1, equipped: false, identified: false };
+    const etat = (h: Combatant) => {
+      useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
+      const el = mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
+      // Le geste du joueur : élire la rangée de l’objet déplie sa barre d’actions.
+      act(() => { ([...el.querySelectorAll('.plaque-row')].find((r) => r.textContent?.includes('Épée')) as HTMLButtonElement).click(); });
+      const bouton = [...el.querySelectorAll('button')].find((b) => b.textContent === 'Évaluer');
+      return { rendu: !!bouton, ferme: bouton?.getAttribute('aria-disabled') ?? null, raison: el.querySelector('#sheet-eval-u1-reason')?.textContent ?? null };
+    };
+    const evaluateur = { ...hero(), id: 'e', items: [inconnu], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as unknown as Combatant;
+    expect(etat(evaluateur)).toEqual({ rendu: true, ferme: null, raison: null });
+    demonterRacines();
+    const profane = { ...hero(), id: 'p', items: [inconnu] } as unknown as Combatant;
+    expect(etat(profane)).toEqual({ rendu: true, ferme: 'true', raison: 'Personne dans le groupe ne peut tenter le Test d’Évaluation.' });
+  });
+
   it('la plaque ENC. de tête MEURT (arbitrage en vol 2026-07-17) — aucun remplaçant dans ce geste', () => {
     const h = heroWithItems();
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });

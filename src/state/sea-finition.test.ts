@@ -133,6 +133,17 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     expect(day).toMatch(/Forcer le rythme/);
     expect(day).toMatch(/Épuisement.*rythme forcé/);
   });
+
+  it('personne qui puisse tenter la Voile (LDB 09 l.30) : refus NOMMÉ au recap, rythme non forcé, aucun Épuisement', async () => {
+    seedBattleRng(1);
+    // Aucun prétiré n'a d'Augmentation en Voile : le rythme demandé ne peut pas être tenté.
+    expect(get().party.some((h) => h.skills.some((sk) => sk.id === 'voile' && (sk.advances ?? 0) > 0))).toBe(false);
+    get().startTravel('r1', 'mer', { seaPace: 1 });
+    await runOneSeaDay();
+    const day = get().pendingRest!.travelDay!.lines.map((l) => l.text).join('\n');
+    expect(day).toContain('Forcer le rythme : personne dans le groupe ne peut tenter le Test de Voile — le navire garde son allure.');
+    expect(day).not.toMatch(/Épuisement/);
+  });
 });
 
 describe('#28 Température en mer (MDG 13 l.203-225) — câblée au jour', () => {

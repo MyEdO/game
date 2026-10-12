@@ -3618,6 +3618,15 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     expect(pa.target).toBe(40); // Int 30 + Évaluation 10, Intermédiaire +0
   });
 
+  it('appraiseItem : personne qui puisse tenter l’Évaluation (LDB 09 l.30) → refus NOMMÉ, aucune fenêtre', () => {
+    const profane = { ...appraiser(), skills: [] } as Combatant;
+    useGame.setState({ party: [profane], scene: merchantScene() });
+    useGame.getState().openMerchant('pnj');
+    useGame.getState().appraiseItem('m', 'h');
+    expect(useGame.getState().pendingAppraise).toBeNull();
+    expect(useGame.getState().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
+  });
+
   it('resolveAppraise : succès → identified=true (révèle l’objet) (#2e)', () => {
     useGame.setState({ party: [appraiser()], scene: merchantScene() });
     useGame.getState().openMerchant('pnj');

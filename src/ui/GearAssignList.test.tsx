@@ -1,8 +1,12 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { GearAssignList } from './GearAssignList';
 import type { LootGear } from '../state/store';
 import type { Combatant } from '../engine/types';
+import { useGame } from '../state/store';
 
 const hero = (id: string, name: string) =>
   ({ id, name, kind: 'hero', wounds: { current: 10, max: 12 }, conditions: [], advantage: 0, weapons: [], skills: [], talents: [], items: [], movement: 4,
@@ -39,5 +43,31 @@ describe('GearAssignList (butin attribuable)', () => {
     const html = render([{ label: 'Hallebarde', magic: true, effect: { type: 'giveTrapping', trappingId: 'hallebarde', qualities: ['empaleuse'], identified: false } }]);
     expect(html).toContain('non identifié');
     expect(html).not.toContain('entity-chip'); // ni def ni magiques tant que non révélé
+  });
+});
+
+describe('GearAssignList — « Évaluer » suit qui peut tenter le Test (LDB 09 l.30)', () => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  const inconnu: LootGear = { label: 'Hallebarde', magic: true, effect: { type: 'giveTrapping', trappingId: 'hallebarde', qualities: ['empaleuse'], identified: false } };
+  /** Monté au client : le groupe se lit au store (`useGame`), comme à l'écran de victoire. */
+  const evaluer = (party: Combatant[]) => {
+    useGame.setState({ party });
+    const hote = document.createElement('div');
+    const root = createRoot(hote);
+    act(() => root.render(<GearAssignList gear={[inconnu]} assignable={party} onAssign={() => {}} onAppraise={() => {}} />));
+    const bouton = [...hote.querySelectorAll('button')].find((b) => b.textContent === 'Évaluer');
+    const etat = { rendu: !!bouton, ferme: bouton?.getAttribute('aria-disabled') ?? null, raison: hote.querySelector('#gear-eval-0-reason')?.textContent ?? null };
+    act(() => root.unmount());
+    return etat;
+  };
+
+  it('un héros avec une Augmentation en Évaluation : le geste est offert', () => {
+    const base = hero('h', 'Hans');
+    const h = { ...base, characteristics: { ...base.characteristics, intelligence: 30 }, skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as Combatant;
+    expect(evaluer([h])).toEqual({ rendu: true, ferme: null, raison: null });
+  });
+
+  it('personne qui l’ait : le geste est fermé, sa raison NOMMÉE', () => {
+    expect(evaluer([hero('h', 'Hans')])).toEqual({ rendu: true, ferme: 'true', raison: 'Personne dans le groupe ne peut tenter le Test d’Évaluation.' });
   });
 });

@@ -1118,10 +1118,7 @@ function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDay
   const roll = d100(battleRng());
   let entry = rollVehicleProblem(roll);
   if (entry.id === 'incontrolable') {
-    // « S'il ne prend pas des mesures pour l'arrêter, le véhicule peut entrer en collision ! … S'il se
-    // déplaçait plus vite que la vitesse de marche, il subit un Accident à la place » (l.284) — la
-    // maîtrise = Test de Conduite d'attelage Intermédiaire (+0) du conducteur.
-    // Sans conducteur qui puisse tenter le Test, personne ne prend de mesures : Accident (l.284).
+    // EDOC 07 l.284, l.286 ; LDB 09 l.30.
     const driver = forcedPaceDriver(get);
     out.lines.push(t('tf.vehicleProblem', { label: entry.label }));
     if (driver) {

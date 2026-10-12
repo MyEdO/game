@@ -19,7 +19,7 @@ import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
 import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
 import type { Availability } from '../engine/types';
-import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
+import { t, t as msg, deElide } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type StatusTier, type Money } from '../engine/money';
 import { bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse } from './bourseFlow';
 import { actorStatus } from '../engine/social';
@@ -859,6 +859,20 @@ export function bestDetector(party: Combatant[]): { actor: Combatant; value: num
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
 }
 
+/** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection (`bestDetector`) ; `null` = personne qui puisse tenter. */
+function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect'): { actor: Combatant; value: number; support: SupportDetail } | null {
+  return mode === 'detect' ? bestDetector(party) : partyAssisted(party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic);
+}
+
+const appraiseNobody = (mode: 'evaluate' | 'detect'): string =>
+  msg('mf.appraiseNobody', { de: deElide(refLabel('skills', { id: APPRAISE_SKILL[mode].skill })) });
+
+/** Refus NOMMÉ d'une Évaluation/Détection que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste
+ *  de l'UI en dérive. */
+export function appraiseRefus(party: Combatant[], mode: 'evaluate' | 'detect' = 'evaluate'): string | null {
+  return appraiseLeader(party, mode) ? null : appraiseNobody(mode);
+}
+
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
  *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (rollFlows.appraise). */
 function openAppraise(
@@ -866,8 +880,8 @@ function openAppraise(
   target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; index: number } },
   itemName: string, mode: 'evaluate' | 'detect', trappingId?: string,
 ): void {
-  const best = mode === 'detect' ? bestDetector(get().party) : partyAssisted(get().party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic); // Soutien (LDB 12)
-  if (!best) return;
+  const best = appraiseLeader(get().party, mode);
+  if (!best) { get().log(appraiseNobody(mode)); return; }
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   set({ pendingAppraise: {
     actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,

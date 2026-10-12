@@ -161,3 +161,19 @@ describe('#2545 — mer puis fleuve : le bouton pressé est la cadence transmise
     expect(get().travelPlan?.orders?.cadence).toBe('commande');
   });
 });
+
+describe('Forcer le rythme au départ (MDG 13 l.95, LDB 09 l.30) : le geste suit qui peut tenter le Test', () => {
+  const forcer = () => bouton(String(t('wm.forcerRythme', { bonus: 1 })));
+
+  it('Gunnar a Voile : « Forcer +1 M » offert ; plus personne qui l’ait : fermé, sa raison NOMMÉE', () => {
+    act(() => { cogue(); });
+    choisirDestination('Marienburg');
+    expect(forcer(), 'le sélecteur de rythme est rendu').toBeTruthy();
+    expect(forcer()!.getAttribute('aria-disabled'), 'un barreur qui peut tenter : geste offert').toBeNull();
+    act(() => { set({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((s) => s.id !== 'voile') })) }); });
+    expect(forcer()!.getAttribute('aria-disabled')).toBe('true');
+    expect(host.querySelector('#wm-sea-pace-1-reason')?.textContent)
+      .toBe('Forcer le rythme : personne dans le groupe ne peut tenter le Test de Voile — le navire garde son allure.');
+    expect(bouton(String(t('wm.rythmeNormal')))!.getAttribute('aria-disabled'), 'le rythme normal reste offert').toBeNull();
+  });
+});

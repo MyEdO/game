@@ -5,6 +5,7 @@ import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../state/voyageCadenc
 import { t, deElide } from '../i18n';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../state/worldMap';
 import { baseHoursPerDay, maxHoursPerDay } from '../state/travelFlow';
+import { forcePaceRefus } from '../state/seaVoyageFlow';
 import {
   TravelMode, travelModeLabels, vehicleTravel, travelModeIcon, travelSpeed, travelPlanCalc, transportCost,
   routeDistanceLabel,
@@ -18,7 +19,7 @@ import { findVehicleById, skillInstanceLabel } from '../data';
 import { formatMoney, canAfford } from '../engine/money';
 import { partyMoneyTotal, condCtx } from '../state/bourseFlow';
 import { Coins } from './Coins';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
 import { mdToText } from './Prose';
 import { rule } from '../engine/policy';
 import { forcePaceDifficulty } from '../engine/seaNavigation';
@@ -223,6 +224,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
    *  sélecteur de cadence et des ordres passés à `startTravel`. */
   const fastJoue = mode === 'mer' && seaFast;
   const seaPaceChoices = seaSteam || !(vesselData?.ship?.sail || vesselData?.ship?.oars) ? [0] : [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig) != null);
+  const seaPaceRefus = forcePaceRefus(party, seaRig);
   // Surcharge de la cale (MDG 12 l.70-75) : >150 % = « Impossible de prendre la mer » → appareillage bloqué.
   const seaOverload = vessel && vesselData?.ship ? cargoOverload(cargoTotalEnc(vessel.cargo ?? []), vesselData.ship.capacity) : null;
   // Population embarquée pour le manifeste d'avitaillement (#245) : héros + effectif PNJ nominal présent.
@@ -562,19 +564,22 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
             <div className="wm-modes">
               {seaPaceChoices.map((b) => {
                 const diff = b ? forcePaceDifficulty(b, seaRig) : null;
+                const refus = b ? seaPaceRefus : null;
                 return (
-                  <button
+                  <GatedAction
                     key={b}
-                    type="button"
-                    className="btn small"
-                    aria-pressed={seaPace === b}
-                    onClick={() => setSeaPace(b)}
-                    title={b && diff
+                    id={`wm-sea-pace-${b}`}
+                    label={b === 0 ? t('wm.rythmeNormal') : t('wm.forcerRythme', { bonus: b })}
+                    ariaPressed={seaPace === b}
+                    enabled={!refus}
+                    {...raisonSi(refus)}
+                    descOfferte={b && diff
                       ? t('wm.rythmeForceTitre', { de: deElide(skillInstanceLabel({ id: seaRig === 'voile' ? 'voile' : 'ramer' })), difficulte: DIFFICULTY_LABELS[diff], bonus: b })
                       : t('wm.rythmeConception')}
-                  >
-                    {b === 0 ? t('wm.rythmeNormal') : t('wm.forcerRythme', { bonus: b })}
-                  </button>
+                    onClick={() => setSeaPace(b)}
+                    primary={false}
+                    btnClassName="small"
+                  />
                 );
               })}
             </div>
