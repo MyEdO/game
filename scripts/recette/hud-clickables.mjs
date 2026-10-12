@@ -63,7 +63,7 @@
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
+import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, attendreSelecteur, VUE_REFERENCE, FN_NOMMER_ELEMENT } from './lib.mjs';
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
 // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder
@@ -100,9 +100,12 @@ const nonAtteint = (b, recouvert = 'recouvert') => b.horsFenetre
   ? `est HORS FENÊTRE ${JSON.stringify(b.rect)} — aucun clic n'y arrive`
   : `${JSON.stringify(b.rect)} ne reçoit pas son clic — ${recouvert} par ${b.hitBy}`;
 
+/** Ce qui reçoit le clic au point (fonction de PAGE) : son nom (`FN_NOMMER_ELEMENT`), ou `rien`. */
+export const FN_NOM_ATTEINT = `(e) => e ? (${FN_NOMMER_ELEMENT})(e) : 'rien'`;
+
 /** Sonde DOM : mesures + verdicts d'atteignabilité, en UN aller-retour par largeur. */
 const PROBE = `(() => {
-  const cn = (e) => e ? ((e.className && e.className.baseVal !== undefined ? e.className.baseVal : String(e.className || '')) + ' <' + e.tagName + '>') : 'rien';
+  const cn = ${FN_NOM_ATTEINT};
   const rectOf = (sel) => { const e = document.querySelector(sel); return e ? e.getBoundingClientRect() : null; };
   const box = (r) => r ? { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1) } : null;
   // Une boîte NON RENDUE (repliée, écran d'un parent en display:none) a un rect 0×0 : elle n'a aucun

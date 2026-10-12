@@ -1,12 +1,13 @@
 // Sonde de la LOGIQUE de survie au rechargement du pipeline de capture (#1196, promue en test
 // committé sous #1211) : classification des erreurs CDP (`isNavigationError`) et politique de
-// rejeu (`withReloadRetry`). Tests PURS — aucun Chrome, aucun serveur, aucun process : la session
-// est un faux objet local. Lancé par `npm run test:recette`.
+// rejeu (`withReloadRetry`). Tests PURS — aucun Chrome, aucun serveur : la session est un faux objet
+// local ; seul process, PowerShell sous Windows, pour la commande CIM de `lireProcessus`. Lancé par `npm run test:recette`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { isAbsolute, join as joinPath, resolve as resolvePath } from 'node:path'
 import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import os from 'node:os'
+import { spawnSync } from 'node:child_process'
 import {
   ALT,
   DELAI_EVALUATE,
@@ -1247,14 +1248,14 @@ test('instantanés processus : Windows et ps complets, formes malformées refus�
     return { status: 0, stdout: '[]' }
   } })
   assert.deepEqual(lire('linux', ' 42 0 30\n43 42 2\n'), [{ pid: 42, parent: 0, cree: 70000 }, { pid: 43, parent: 42, cree: 98000 }])
-  for (const stdout of ['{}', '[{}]', '[null]', '[{"ProcessId":42}]', '[{"ProcessId":0,"ParentProcessId":1}]', '[{"ProcessId":"42","ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":-1}]', '[{"ProcessId":42.1,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1},{"ProcessId":42,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":-1}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":"hier"}]']) {
+  for (const stdout of ['{}', '[{}]', '[null]', '[{"ProcessId":42}]', '[{"ProcessId":0,"ParentProcessId":1}]', '[{"ProcessId":"42","ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":-1}]', '[{"ProcessId":42.1,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1},{"ProcessId":42,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":-1}]', '[{"ProcessId":42,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":null}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":"hier"}]']) {
     assert.throws(() => lire('win32', stdout), /malformé/)
   }
   for (const stdout of ['42 1', '42 nope 3', '42 1 3 surplus', '0 1 3', '42 -1 3', '42.1 1 3', '42 1 3\n43', '42 1 3\n42 1 3']) {
     assert.throws(() => lire('linux', stdout), /malformé/)
   }
   let arrets = 0
-  for (const instantane of [null, [{}], [{ pid: NaN, parent: 0 }], [{ pid: 42, parent: undefined }], [{ pid: 42, parent: 0 }, { pid: 42, parent: 1 }]]) {
+  for (const instantane of [null, [{}], [{ pid: NaN, parent: 0 }], [{ pid: 42, parent: undefined, cree: 0 }], [{ pid: 42, parent: 0 }], [{ pid: 42, parent: 0, cree: 0 }, { pid: 42, parent: 1, cree: 0 }]]) {
     assert.throws(() => killChromeTree({ pid: 42 }, { plateforme: 'win32', observer: () => instantane, executer: () => { arrets++; return { status: 0 } } }), /malformé/)
   }
   assert.equal(arrets, 0)
@@ -1941,10 +1942,10 @@ test('fichiersSurveilles : un chemin ABSENT se saute, toute autre erreur de lect
 
 test('killChromeTree : le verdict vient des descendants observés avant et après, y compris code 255', () => {
   const chrome = { pid: 42 }
-  const avant = [{ pid: 42, parent: 1 }, { pid: 43, parent: 42 }, { pid: 44, parent: 43 }]
+  const avant = [{ pid: 42, parent: 1, cree: 1 }, { pid: 43, parent: 42, cree: 2 }, { pid: 44, parent: 43, cree: 3 }]
   const observer = (apres) => { let n = 0; return () => n++ ? apres : avant }
   for (const status of [0, 128, 255, 1]) killChromeTree(chrome, { plateforme: 'win32', observer: observer([]), executer: () => ({ status }) })
-  assert.throws(() => killChromeTree(chrome, { plateforme: 'win32', observer: observer([{ pid: 44, parent: 1 }]), executer: () => ({ status: 255 }) }), /survivants 44/)
+  assert.throws(() => killChromeTree(chrome, { plateforme: 'win32', observer: observer([{ pid: 44, parent: 1, cree: 3 }]), executer: () => ({ status: 255 }) }), /survivants 44/)
   assert.throws(() => killChromeTree(chrome, { observer: () => { throw new Error('observation refusée') } }), /observation refusée/)
   const tues = []
   killChromeTree(chrome, { plateforme: 'linux', observer: observer([]), tuerPid: (pid) => tues.push(pid) })
@@ -1955,7 +1956,7 @@ test('killChromeTree : le verdict vient des descendants observés avant et aprè
 test('killChromeTree : extinction différée observée, descendants cumulés et pause bornée', () => {
   let now = 0, lectures = 0
   const pauses = []
-  const snapshots = [[{pid:42,parent:1},{pid:43,parent:42}], [{pid:43,parent:1},{pid:44,parent:43}], [{pid:44,parent:1}], []]
+  const snapshots = [[{pid:42,parent:1,cree:0},{pid:43,parent:42,cree:0}], [{pid:43,parent:1,cree:0},{pid:44,parent:43,cree:0}], [{pid:44,parent:1,cree:0}], []]
   const result = killChromeTree({pid:42}, {
     plateforme:'win32', executer:()=>({status:128}),
     observer:()=>snapshots[Math.min(lectures++, snapshots.length-1)],
@@ -1968,12 +1969,12 @@ test('killChromeTree : extinction différée observée, descendants cumulés et 
 
 test('killChromeTree : survivant persistant, observation coûteuse et horloge immobile refusés', () => {
   let now = 0, lectures = 0, pauses = 0
-  const options = {plateforme:'win32',executer:()=>({status:0}),observer:()=>[{pid:42,parent:1}],horloge:()=>now,patienter:ms=>{pauses++;now+=ms},attenteMs:75}
+  const options = {plateforme:'win32',executer:()=>({status:0}),observer:()=>[{pid:42,parent:1,cree:0}],horloge:()=>now,patienter:ms=>{pauses++;now+=ms},attenteMs:75}
   assert.throws(()=>killChromeTree({pid:42}, options), /survivants 42/)
   assert.equal(now,75)
   assert.equal(pauses,2)
   now=0;pauses=0
-  assert.throws(()=>killChromeTree({pid:42},{...options,observer:()=>{if(lectures++)now+=100;return [{pid:42,parent:1}]}}), /survivants 42/)
+  assert.throws(()=>killChromeTree({pid:42},{...options,observer:()=>{if(lectures++)now+=100;return [{pid:42,parent:1,cree:0}]}}), /survivants 42/)
   assert.equal(pauses,0)
   now=0
   assert.throws(()=>killChromeTree({pid:42},{...options,patienter:()=>{}}), /horloge.*progression/)
@@ -2040,6 +2041,23 @@ test('killChromeTree : un PID RÉUTILISÉ (créé après l’arrêt, ou recréé
   let lectures = 0
   const lent = { ...options, attenteMs: 3000, executer: () => { now += 5000; return { status: 255 } }, observer: () => (lectures++ < 3 ? avant : []) }
   assert.deepEqual(killChromeTree({ pid: 42 }, lent).survivants, [])
+})
+
+test('killChromeTree : sous CIM (milliseconde), une date de création qui diffère d’1 ms est un AUTRE processus ; sous ps, la seconde tolère', () => {
+  const avant = [{ pid: 42, parent: 1, cree: 1000 }, { pid: 43, parent: 42, cree: 2000 }]
+  const observer = (apres) => { let n = 0; return () => n++ ? apres : avant }
+  const recree = [{ pid: 43, parent: 42, cree: 2001 }]
+  assert.deepEqual(killChromeTree({ pid: 42 }, { plateforme: 'win32', executer: () => ({ status: 0 }), observer: observer(recree), attenteMs: 0 }).survivants, [])
+  assert.throws(() => killChromeTree({ pid: 42 }, { plateforme: 'linux', tuerPid: () => {}, observer: observer(recree), attenteMs: 0 }), /survivants 43/)
+})
+
+test('lireProcessus : sous CIM, un processus SANS date de création fait échouer la lecture, jamais une date 0', { skip: process.platform !== 'win32' && 'PowerShell absent' }, () => {
+  const executer = (commande, args, options) => {
+    const cim = 'Get-CimInstance Win32_Process -Filter "ProcessId > 0"'
+    assert.ok(args.at(-1).includes(cim))
+    return spawnSync(commande, [...args.slice(0, -1), args.at(-1).replace(cim, '@([pscustomobject]@{ ProcessId = 42; ParentProcessId = 1; CreationDate = $null })')], options)
+  }
+  assert.throws(() => lireProcessus({ plateforme: 'win32', executer }), /observation des processus impossible \(code 1\) — .*date de creation absente, PID 42/s)
 })
 
 test('leverApresNettoyage : la principale sort ; un nettoyage qui échoue lui est JOINT, jamais substitué', async () => {
@@ -2898,21 +2916,35 @@ test('geste et frappe : `emettre` est RÉVOQUÉ au retour du geste — rien ne p
   assert.deepEqual(etat.emis, avant)
 })
 
+test('geste : une émission EN VOL non attendue (relâchement-dépôt) part AVANT le retour du geste, jamais après', async () => {
+  const { etat, session } = pagePilotee('<button id="a">A</button>')
+  await geste(session, { selecteur: '#a' }, { attenteMs: 0 }, async (loc, emettre) => {
+    await emettre('souris', { type: 'mousePressed', x: loc.x, y: loc.y, button: 'left', clickCount: 1 })
+    emettre('souris', { type: 'mouseReleased', x: 8, y: 8, button: 'left', clickCount: 1 })
+  })
+  const auRetour = [...etat.emis]
+  await new Promise((r) => setTimeout(r, 50))
+  assert.deepEqual(auRetour, ['Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseReleased'])
+  assert.deepEqual(etat.emis, auRetour)
+})
+
 test('geste : un glissé HORS FENÊTRE lève ; son relâchement gauche est un DÉPÔT recontrôlé, qui nomme le voile', async () => {
   const appuyer = (loc, emettre) => emettre('souris', { type: 'mousePressed', x: loc.x, y: loc.y, button: 'left', clickCount: 1 })
   const horsFenetre = pagePilotee('<button id="a">A</button>')
   await assert.rejects(() => geste(horsFenetre.session, { selecteur: '#a' }, {}, async (loc, emettre) => {
     await appuyer(loc, emettre)
     await emettre('souris', { type: 'mouseReleased', x: 9999, y: -50, button: 'left', clickCount: 1 })
-  }), /geste : glissé « mouseReleased » au point \(9999, -50\) HORS FENÊTRE \(1024×768\) — aucun événement émis/)
-  assert.deepEqual(horsFenetre.etat.emis, ['Input.dispatchMouseEvent:mousePressed'])
+  }), /geste : glissé « mouseReleased » au point \(9999, -50\) HORS FENÊTRE \(1024×768\) — aucun événement émis ; bouton relâché au point contrôlé \(5, 5\)$/)
+  assert.deepEqual(horsFenetre.etat.emis, ['Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseReleased'])
+  assert.deepEqual(socketDe(horsFenetre.session).envoyes.filter((m) => m.method === 'Input.dispatchMouseEvent').at(-1).params, { type: 'mouseReleased', x: 5, y: 5, button: 'left', clickCount: 1 })
   const voile = pagePilotee('<button id="a">A</button><div class="voile" style="position:fixed">Modale</div>')
   await assert.rejects(() => geste(voile.session, { selecteur: '#a' }, { attenteMs: 50 }, async (loc, emettre) => {
     await appuyer(loc, emettre)
     voile.doc.elementFromPoint = () => voile.doc.querySelector('.voile')
     await emettre('souris', { type: 'mouseReleased', x: 40, y: 40, button: 'left', clickCount: 1 })
-  }), /geste « #a » \(dépôt\) : AUTRE COUCHE — au point \(40, 40\), div\.voile « Modale »/)
-  assert.deepEqual(voile.etat.emis, ['Input.dispatchMouseEvent:mousePressed'])
+  }), /geste « #a » \(dépôt\) : AUTRE COUCHE — au point \(40, 40\), div\.voile « Modale ».* ; bouton relâché au point contrôlé \(5, 5\)$/)
+  assert.deepEqual(voile.etat.emis, ['Input.dispatchMouseEvent:mousePressed', 'Input.dispatchMouseEvent:mouseReleased'])
+  assert.deepEqual(socketDe(voile.session).envoyes.filter((m) => m.method === 'Input.dispatchMouseEvent').at(-1).params, { type: 'mouseReleased', x: 5, y: 5, button: 'left', clickCount: 1 })
 })
 
 test('ouvrirFiche : `{ livre }` filtre EXACT sur le livre de la rangée — préfixe d’id et livre cité hors rangées', async () => {

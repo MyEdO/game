@@ -188,19 +188,22 @@ function validerProcessus(processus) {
   if (!Array.isArray(processus)) throw new Error('killChromeTree : instantané des processus malformé, tableau attendu');
   const vus = new Set();
   for (const [i, p] of processus.entries()) {
-    if (!Number.isSafeInteger(p?.pid) || p.pid <= 0 || !Number.isSafeInteger(p?.parent) || p.parent < 0 || vus.has(p.pid) || (p.cree !== undefined && !(Number.isFinite(p.cree) && p.cree >= 0))) {
-      throw new Error('killChromeTree : instantané des processus malformé, entrée ' + i + ' — PID positif unique, parent entier positif ou nul et création finie attendus');
+    if (!Number.isSafeInteger(p?.pid) || p.pid <= 0 || !Number.isSafeInteger(p?.parent) || p.parent < 0 || vus.has(p.pid) || !Number.isFinite(p.cree) || p.cree < 0) {
+      throw new Error('killChromeTree : instantané des processus malformé, entrée ' + i + ' — PID positif unique, parent entier positif ou nul et date de création finie, positive ou nulle, attendus');
     }
     vus.add(p.pid);
   }
   return processus;
 }
 
-/** Instantané PID/parent/création (`cree`, ms epoch) via CIM sous Windows, ps ailleurs (`etimes`, à
- *  la seconde, d'où `TOLERANCE_CREATION_MS`) ; toute observation illisible refuse. */
+/** Instantané CIM des processus : un processus sans date de création LÈVE, la lecture échoue. */
+export const COMMANDE_PROCESSUS_CIM = 'ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process -Filter "ProcessId > 0" | ForEach-Object { if (-not $_.CreationDate) { throw "date de creation absente, PID $($_.ProcessId)" }; [pscustomobject]@{ ProcessId = $_.ProcessId; ParentProcessId = $_.ParentProcessId; Cree = [int64]($_.CreationDate.ToUniversalTime() - [datetime]\'1970-01-01\').TotalMilliseconds } })';
+
+/** Instantané PID/parent/création (`cree`, ms epoch, EXIGÉE) via CIM sous Windows, à la milliseconde,
+ *  ps ailleurs (`etimes`, à la seconde, d'où `TOLERANCE_CREATION_MS`) ; toute observation illisible refuse. */
 export function lireProcessus({ plateforme = process.platform, executer = spawnSync, horloge = Date.now } = {}) {
   const r = plateforme === 'win32'
-    ? executer('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process -Filter "ProcessId > 0" | Select-Object ProcessId,ParentProcessId,@{n=\'Cree\';e={if ($_.CreationDate) { [int64]($_.CreationDate.ToUniversalTime() - [datetime]\'1970-01-01\').TotalMilliseconds } else { 0 }}})'], { encoding: 'utf8' })
+    ? executer('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', COMMANDE_PROCESSUS_CIM], { encoding: 'utf8' })
     : executer('ps', ['-eo', 'pid=,ppid=,etimes='], { encoding: 'utf8' });
   if (r.error) throw r.error;
   if (r.status !== 0) throw new Error(`killChromeTree : observation des processus impossible (code ${r.status}) — ${r.stderr || ''}`);
@@ -222,8 +225,8 @@ export function lireProcessus({ plateforme = process.platform, executer = spawnS
  *  observation CIM coûte 600 à 800 ms sur une machine chargée, et l'extinction y dépassait 2000 ms. */
 export const ATTENTE_EXTINCTION_MS = 15000;
 
-/** Précision d'une date de création (`etimes` de ps est à la seconde). */
-const TOLERANCE_CREATION_MS = 1500;
+/** Précision d'une date de création : `etimes` de ps est à la seconde, CIM à la milliseconde. */
+const TOLERANCE_CREATION_MS = Object.freeze({ ps: 1500, cim: 0 });
 
 /** Arrête l’arbre puis observe son extinction jusqu'à une échéance synchrone prise APRÈS l'arrêt,
  *  indépendamment du code taskkill. Un processus de l'instantané n'est de l'arbre que s'il est le MÊME
@@ -248,9 +251,10 @@ export function killChromeTree(chrome, { plateforme = process.platform, executer
   };
   const creation = new Map(avant.filter((p) => suivis.has(p.pid)).map((p) => [p.pid, p.cree]));
   const debut = lireHeure();
-  const memeProcessus = (p) => p.cree === undefined || (creation.has(p.pid)
-    ? creation.get(p.pid) === undefined || Math.abs(p.cree - creation.get(p.pid)) <= TOLERANCE_CREATION_MS
-    : p.cree <= debut + TOLERANCE_CREATION_MS);
+  const tolerance = TOLERANCE_CREATION_MS[plateforme === 'win32' ? 'cim' : 'ps'];
+  const memeProcessus = (p) => (creation.has(p.pid)
+    ? Math.abs(p.cree - creation.get(p.pid)) <= tolerance
+    : p.cree <= debut + tolerance);
   let r;
   if (plateforme === 'win32') {
     r = executer('taskkill', ['/PID', String(chrome.pid), '/T', '/F'], { encoding: 'utf8' });
@@ -277,8 +281,9 @@ export function killChromeTree(chrome, { plateforme = process.platform, executer
 /**
  * Filet de sécurité process-wide : tout Chrome spawné par ce module qui survivrait à un chemin
  * d'échec non couvert (SIGINT, script tiers oubliant son try/finally) est tué + son profil purgé
- * à la sortie du process — jamais de fuite silencieuse. `process.on('exit')` est SYNCHRONE : on
- * ne peut pas y `await`, `rmSync` reste best-effort en une passe (pas de retry possible ici).
+ * à la sortie du process — jamais de fuite silencieuse. `process.on('exit')` est SYNCHRONE : l'arrêt
+ * (`killChromeTree`) et la purge (`purgerProfil`, retentée jusqu'à `ATTENTE_EXTINCTION_MS`) y attendent
+ * en synchrone (`attendreSync`).
  */
 const activeChildren = new Set();
 
@@ -1257,6 +1262,10 @@ const SELECTEUR_CHAMPS = 'input, select, textarea';
 const FN_NOM_ACCESSIBLE = `(b) => norm(b.getAttribute('aria-label')) || norm(b.matches('${SELECTEUR_CHAMPS}') ? (() => { const l = b.labels && b.labels[0] ? b.labels[0].cloneNode(true) : null; if (l) l.querySelectorAll('${SELECTEUR_CHAMPS}').forEach((c) => c.remove()); return l ? l.textContent : ''; })() : b.textContent) || norm(b.getAttribute('title'))`;
 const CORPS_NOM_ACCESSIBLE = `const nomAccessible = ${FN_NOM_ACCESSIBLE};`;
 
+/** `nommer(el)` (fonction de PAGE) : le NOM d'un élément, `tag#id.classe…` (classe SVG comprise), lisible
+ *  même sans texte. SOURCE UNIQUE (`pageControler`, `hud-clickables.mjs`). */
+export const FN_NOMMER_ELEMENT = `(e) => { const c = e.className && e.className.baseVal !== undefined ? e.className.baseVal : String(e.className || ''); return e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (c.trim() ? '.' + c.trim().split(/\\s+/).join('.') : ''); }`;
+
 /** `couche(el)` (fonction de PAGE) : la COUCHE de défilement d'un élément — son premier ancêtre
  *  défilant (lui compris), un ancêtre `position: fixed` formant sa propre couche, à défaut
  *  `document.scrollingElement`. Un cran de molette est valide si l'élément au point est de la couche
@@ -1383,11 +1392,11 @@ function pageLocaliser(cible, jeton, attr, qui, defiler, point, controles, fnNom
  * ancêtre défilant, ou ancêtre `position: fixed`, à défaut `document.scrollingElement`). Rend
  * `{ ferme, fenetre }` si oui (`fenetre` : `{ l, h }`, la taille de la fenêtre) ; la marque est retirée, sauf sur un recouvrement (relu jusqu'à l'échéance).
  */
-function pageControler(jeton, attr, x, y, mode, intention, fnCouche) {
+function pageControler(jeton, attr, x, y, mode, intention, fnCouche, fnNommer) {
   const c = document.querySelector('[' + attr + '="' + jeton + '"]');
   if (!c) return { absente: true };
   const norm = (s) => (s || '').replace(/\s+/g, ' ').trim();
-  const nommer = (e) => e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\s+/).join('.') : '');
+  const nommer = new Function('return ' + fnNommer)();
   const couche = new Function('return ' + fnCouche)();
   const fin = (v) => { c.removeAttribute(attr); return v; };
   const mecanisme = c.disabled ? 'disabled' : c.getAttribute('aria-disabled') === 'true' ? 'aria-disabled' : null;
@@ -1447,7 +1456,7 @@ async function localiser(session, cible, { jeton, qui, defiler = true, point = '
  *  `attenteMs` (la scène de dés `div.rm-scene` couvre la fenêtre le temps du roulis) ; à l'échéance,
  *  la levée nomme le DERNIER recouvreur. Rend `{ ferme }` (`null`, ou ce que `lire` a touché). */
 async function controler(session, x, y, { jeton, libelle, qui, intention, attenteMs, mode }) {
-  const lire = () => evaluerFn(session, pageControler, jeton, ATTR_CIBLE, x, y, mode, intention, FN_COUCHE);
+  const lire = () => evaluerFn(session, pageControler, jeton, ATTR_CIBLE, x, y, mode, intention, FN_COUCHE, FN_NOMMER_ELEMENT);
   const echeance = Date.now() + attenteMs;
   let v = await lire();
   while (v.recouvre && Date.now() < echeance) {
@@ -1480,8 +1489,9 @@ const EMISSIONS = Object.freeze({ souris: 'Input.dispatchMouseEvent', tactile: '
  * `evenements(localisation, emettre)`, où `emettre('souris' | 'tactile', params)` émet l'événement
  * CDP AU POINT CONTRÔLÉ : un autre point LÈVE, sauf le glissé (`mouseMoved`, `mouseReleased` entre
  * un `mousePressed` et son relâchement), BORNÉ à la fenêtre, dont le relâchement bouton gauche hors du
- * point est un DÉPÔT recontrôlé (`pageControler`, mode `couche`). `emettre` est RÉVOQUÉ au retour
- * d'`evenements`. Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
+ * point est un DÉPÔT recontrôlé (`pageControler`, mode `couche`) ; un relâchement refusé relâche AU
+ * POINT CONTRÔLÉ, puis lève. `emettre` est RÉVOQUÉ au retour d'`evenements`, et `geste` ne rend qu'après
+ * les émissions EN VOL. Options : `intention` (`agir` défaut, ou `lire`), `qui` (le nom du geste dans les levées),
  * `defiler`, `attenteMs`, `point` (`centre`, `visible`, `defilant`), `controle` (`cible`, ou
  * `couche` pour un cran de molette). Rend la localisation, avec `ferme` (`null`, ou
  * `{ mecanisme, raison }` sous `lire`).
@@ -1497,16 +1507,16 @@ export async function geste(session, cible, { intention = 'agir', qui = 'geste',
   const { ferme, fenetre } = await controler(session, loc.x, loc.y, { jeton, libelle: decrireCible(forme), qui, intention, attenteMs, mode: controle });
   let tenu = false;
   let revoque = false;
-  try {
-    await evenements(loc, async (domaine, params) => {
-      if (revoque) throw new Error(`${qui} : « emettre » RÉVOQUÉ — le geste est rendu — aucun événement émis`);
-      if (!EMISSIONS[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS).join(', ')}`);
-      const glisse = domaine === 'souris' && tenu && (params.type === 'mouseMoved' || params.type === 'mouseReleased');
-      const ecart = (domaine === 'souris' ? [params] : params.touchPoints ?? []).find((p) => p.x !== loc.x || p.y !== loc.y);
-      if (ecart && !glisse) {
-        throw new Error(`${qui} : « ${params.type} » au point (${ecart.x}, ${ecart.y}), le point contrôlé est (${loc.x}, ${loc.y}) — seul un glissé bouton tenu quitte le point contrôlé — aucun événement émis`);
-      }
-      if (ecart) {
+  const enVol = new Set();
+  const emettreBorne = async (domaine, params) => {
+    if (!EMISSIONS[domaine]) throw new Error(`${qui} : domaine d'émission « ${domaine} » — admis : ${Object.keys(EMISSIONS).join(', ')}`);
+    const glisse = domaine === 'souris' && tenu && (params.type === 'mouseMoved' || params.type === 'mouseReleased');
+    const ecart = (domaine === 'souris' ? [params] : params.touchPoints ?? []).find((p) => p.x !== loc.x || p.y !== loc.y);
+    if (ecart && !glisse) {
+      throw new Error(`${qui} : « ${params.type} » au point (${ecart.x}, ${ecart.y}), le point contrôlé est (${loc.x}, ${loc.y}) — seul un glissé bouton tenu quitte le point contrôlé — aucun événement émis`);
+    }
+    if (ecart) {
+      try {
         if (!(ecart.x >= 0 && ecart.y >= 0 && ecart.x < fenetre.l && ecart.y < fenetre.h)) {
           throw new Error(`${qui} : glissé « ${params.type} » au point (${ecart.x}, ${ecart.y}) HORS FENÊTRE (${fenetre.l}×${fenetre.h}) — aucun événement émis`);
         }
@@ -1515,13 +1525,29 @@ export async function geste(session, cible, { intention = 'agir', qui = 'geste',
           if (!depot) throw new Error(`${qui} ${decrireCible(forme)} : la cible a quitté le DOM avant le DÉPÔT — aucun événement émis`);
           await controler(session, ecart.x, ecart.y, { jeton: depot, libelle: `${decrireCible(forme)} (dépôt)`, qui, intention, attenteMs, mode: 'couche' });
         }
+      } catch (e) {
+        if (params.type !== 'mouseReleased') throw e;
+        tenu = false;
+        const refus = new Error(`${e.message} ; bouton relâché au point contrôlé (${loc.x}, ${loc.y})`, { cause: e });
+        if (e.code) refus.code = e.code;
+        await leverApresNettoyage(refus, () => brut(EMISSIONS.souris, { ...params, x: loc.x, y: loc.y }));
       }
-      if (domaine === 'souris' && params.type === 'mousePressed') tenu = true;
-      if (domaine === 'souris' && params.type === 'mouseReleased') tenu = false;
-      return brut(EMISSIONS[domaine], params);
+    }
+    if (domaine === 'souris' && params.type === 'mousePressed') tenu = true;
+    if (domaine === 'souris' && params.type === 'mouseReleased') tenu = false;
+    return brut(EMISSIONS[domaine], params);
+  };
+  try {
+    await evenements(loc, (domaine, params) => {
+      if (revoque) return Promise.reject(new Error(`${qui} : « emettre » RÉVOQUÉ — le geste est rendu — aucun événement émis`));
+      const emission = emettreBorne(domaine, params);
+      const suivie = emission.catch(() => {}).finally(() => enVol.delete(suivie));
+      enVol.add(suivie);
+      return emission;
     });
   } finally {
     revoque = true;
+    await Promise.all(enVol);
   }
   return { ...loc, ferme };
 }
