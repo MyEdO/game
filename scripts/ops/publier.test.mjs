@@ -11,6 +11,7 @@ import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
 import { REFUS_DE_FILE } from './fixtures/github-refus-file.mjs'
 import { ENTREE_2495, JEUNE_2495, PR_2495 } from './fixtures/github-2495-file.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { remplacerCleJson } from '../agents/compat-core.mjs'
 import test, { after, describe, mock } from 'node:test'
 import childProcess from 'node:child_process'
 import { syncBuiltinESMExports } from 'node:module'
@@ -385,10 +386,13 @@ describe('estDocDerive', () => {
     assert.equal(estDocDerive('.agents/skills/ajouter-une-donnee/SKILL.md', GEN), true)
     assert.equal(estDocDerive('.codex/credo.md', GEN), true)
     assert.equal(estDocDerive('.codex/hooks.json', GEN), true)
-    assert.equal(estDocDerive('.claude/settings.json', GEN), true)
     assert.equal(estDocDerive('.claude/settings.local.json', GEN), false)
     assert.equal(estDocDerive('.agents/skillsx/SKILL.md', GEN), false)
     assert.equal(estDocDerive('.claude/skills/ajouter-une-donnee/SKILL.md', GEN), false)
+  })
+
+  test('estDocDerive : la sortie PAR CLÉ `.claude/settings.json` sans lecture de HEAD et du disque est MANUSCRITE', () => {
+    assert.equal(estDocDerive('.claude/settings.json', GEN), false)
   })
 
   test('estDocDerive : un MANUSCRIT n’est pas dérivé', () => {
@@ -429,7 +433,7 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
   assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
-  assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'verdictDesFusions'])
+  assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'textesDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
   for (const script of ['x; git add -A', 'x && git commit -m libre', 'a b', '$(git add -A)', '', 7])
@@ -568,6 +572,22 @@ test('`pousser` refuse tout push vers `main`, sous ses deux noms, bail ou non, A
   for (const vers of ['main', 'refs/heads/main'])
     for (const bail of [true, false])
       assert.throws(() => ctx.pousser({ vers, bail }), /main n’avance que par la file de fusion/, vers)
+})
+
+test('#2578 — `.claude/settings.json` sale, par les questions du train : DÉRIVÉ si seule la clé `hooks` change, MANUSCRIT si les `permissions` changent', () => {
+  const tete = `${JSON.stringify({ permissions: { allow: ['Bash(git status)'] }, hooks: { PreToolUse: [] } }, null, 2)}
+`
+  const { racine } = instanceDeDepot({ fichiers: { '.claude/settings.json': tete }, message: 'socle' })
+  try {
+    const ctx = contexteDe({ racine, branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
+    const partage = () => partitionSales(ctx.questions.cheminsSales(), ctx.generators, ctx.questions.textesDe)
+    writeFileSync(join(racine, '.claude', 'settings.json'), remplacerCleJson(tete, 'hooks', { PreToolUse: [{ matcher: 'Bash', hooks: [] }] }))
+    assert.deepEqual(partage(), { derives: ['.claude/settings.json'], manuscrits: [] })
+    writeFileSync(join(racine, '.claude', 'settings.json'), tete.replace('Bash(git status)', 'Bash(git push)'))
+    assert.deepEqual(partage(), { derives: [], manuscrits: ['.claude/settings.json'] })
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })
 
 test('ÉCRIVAIN sous config HOSTILE : le commit du train est signé par l’identité de l’UTILISATRICE', () => {

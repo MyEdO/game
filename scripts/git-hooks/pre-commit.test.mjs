@@ -544,3 +544,32 @@ test('#2578 (f) — `rebase --continue` sur un conflit de skill ne joue pas le p
     d.fin()
   }
 })
+
+test('#2578 (g) — une source RETIRÉE sans le pre-commit : le post-commit retire le miroir ORPHELIN de l’index et le SIGNALE À COMMETTRE', () => {
+  const d = depotAuSkill()
+  try {
+    assert.ok(d.git('ls-tree', '-r', '--name-only', 'HEAD').split('\n').includes(MIROIR), 'témoin : le miroir est né')
+    d.git('rm', '-q', '--', SOURCE)
+    const r = d.jouer('commit', '--no-verify', '-q', '-m', 'retrait sans hook')
+    assert.equal(r.status, 0, r.stderr)
+    assert.ok(lignes(r).some((l) => l.startsWith("[post-commit] miroirs d'agents produits dans l'index, HEAD ne les porte pas — À COMMETTRE : ") && l.includes(MIROIR)), r.stderr)
+    assert.equal(d.git('diff', '--cached', '--name-status').trim(), `D\t${MIROIR}`)
+  } finally {
+    d.fin()
+  }
+})
+
+test('#2578 (h) — un commit sans source du producteur, index = HEAD sur les destinations : le post-commit ne produit pas', () => {
+  const d = depotAuSkill()
+  try {
+    const edite = d.lire(MIROIR).replace('v1', 'v1 retouché')
+    d.ecrire(MIROIR, edite); d.git('add', '--', MIROIR)
+    const r = d.jouer('commit', '--no-verify', '-q', '-m', 'miroir retouché sans hook')
+    assert.equal(r.status, 0, r.stderr)
+    assert.deepEqual(lignes(r).filter((l) => l.startsWith('[post-commit]')), [], r.stderr)
+    assert.equal(d.git('show', `:${MIROIR}`), edite)
+    assert.equal(d.statut(), '')
+  } finally {
+    d.fin()
+  }
+})

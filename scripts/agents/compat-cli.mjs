@@ -2,7 +2,7 @@ import { readdir, readFile, mkdir, rename, rm, writeFile } from 'node:fs/promise
 import { randomUUID } from 'node:crypto';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateRolePairs } from './compat-core.mjs';
+import { DESTINATIONS, ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateRolePairs } from './compat-core.mjs';
 import { INDEX, depotDe, ecrireBlob, lireEnLot, listerImage, poserDansIndex, refusDeGit, reussi } from '../guards/lib/gitPorte.mjs';
 
 const CE_MODULE = fileURLToPath(import.meta.url);
@@ -14,6 +14,13 @@ const DOSSIER_DES_REGISTRES = posix(relative(RACINE_DU_DEPOT, join(dirname(CE_MO
 /** Ce que `snapshot` lit : des fichiers, et des dossiers parcourus en entier. */
 const FICHIERS_LUS = ['CLAUDE.md', 'AGENTS.md', '.claude/credo.md', '.codex/credo.md', SURFACE_CLAUDE, SURFACE_CODEX];
 const DOSSIERS_LUS = ['.claude/skills', '.agents/skills', '.claude/agents', '.codex/agents'];
+/** Ce dont dépend une production : ce que `snapshot` lit hors des `DESTINATIONS`, les registres et le
+ *  code du producteur (`commitAProduire`, `scripts/git-hooks/miroirs-d-agents.mjs`). */
+export const SOURCES_DU_PRODUCTEUR = [
+  ...[...FICHIERS_LUS, ...DOSSIERS_LUS].filter((rel) => !DESTINATIONS.some((r) => rel === r || rel.startsWith(`${r}/`))),
+  DOSSIER_DES_REGISTRES,
+  posix(relative(RACINE_DU_DEPOT, dirname(CE_MODULE))),
+];
 
 /** Les registres des points d'entrée (`ENTREES_OUTIL`), lus dans les modules de `scripts/hooks/`. */
 export async function chargerRegistres(dossierHooks = join(RACINE_DU_DEPOT, DOSSIER_DES_REGISTRES)) {

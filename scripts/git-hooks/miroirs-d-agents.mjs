@@ -5,9 +5,9 @@
 // le `pre-commit` importe `produireLesMiroirs`.
 import '../node-requis.mjs'
 import { existsSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { INDEX, cheminGit, depotDe, ecartsDuTravail, entreesDe, natureDuChemin, racineDe, raisonCourte, rebaseEntame } from '../guards/lib/gitPorte.mjs'
+import { INDEX, ceQuiChange, cheminGit, depotDe, ecartsDuTravail, entreesDe, natureDuChemin, racineDe, raisonCourte, rebaseEntame, shaDe } from '../guards/lib/gitPorte.mjs'
 
 const GENERATEUR = 'scripts/agents/compat-cli.mjs'
 const NOYAU = 'scripts/agents/compat-core.mjs'
@@ -66,7 +66,7 @@ export async function produireLesMiroirs(depot, racine, { env } = {}) {
     ...dependances,
     registres,
     atomicWrite: async (root, rel, data) => { await dependances.atomicWrite(root, rel, data); ecrits.push(rel) },
-    rm: async (chemin, options) => { await dependances.rm(chemin, options); ecrits.push(chemin) },
+    rm: async (chemin, options) => { await dependances.rm(chemin, options); ecrits.push(relative(racine, chemin).replaceAll('\\', '/')) },
   })
   const manuels = restes.filter((d) => d.safe === false || d.type.startsWith('unsafe-'))
   if (manuels.length)
@@ -82,6 +82,22 @@ export function ecrireAvertissements(prefixe, avertissements) {
   }
 }
 
+/**
+ * Le post-commit produit-il ? Oui si l'index de `depot` s'écarte de HEAD sur une destination
+ * (`DESTINATIONS`), si le commit a touché une source du producteur (`SOURCES_DU_PRODUCTEUR`), si HEAD
+ * n'a pas de parent, ou si le producteur manque au disque (`produireLesMiroirs` tranche).
+ * @param {import('../guards/lib/gitPorte.mjs').Depot} depot @param {string} racine
+ */
+async function commitAProduire(depot, racine) {
+  if (![GENERATEUR, NOYAU].every((rel) => existsSync(join(racine, rel)))) return true
+  const url = (rel) => pathToFileURL(join(racine, rel)).href
+  const { DESTINATIONS } = await import(url(NOYAU))
+  if (ceQuiChange(depot, 'HEAD', INDEX).chemins('', DESTINATIONS).length) return true
+  if (!shaDe(depot, 'HEAD^')) return true
+  const { SOURCES_DU_PRODUCTEUR } = await import(url(GENERATEUR))
+  return ceQuiChange(depot, 'HEAD^', 'HEAD').chemins('', SOURCES_DU_PRODUCTEUR).length > 0
+}
+
 /** Une opération de séquenceur (`cherry-pick`, `revert` à plusieurs commits) en cours ? */
 const sequenceEnCours = (depot) => {
   const chemin = cheminGit(depot, 'sequencer')
@@ -95,6 +111,7 @@ if (import.meta.main) {
     const racine = resolve(racineDe(depotDe(process.cwd(), { env })) ?? process.cwd())
     const depot = depotDe(racine, { env })
     if (hook === 'post-commit' && (rebaseEntame(depot) || sequenceEnCours(depot))) process.exit(0)
+    if (hook === 'post-commit' && !(await commitAProduire(depot, racine))) process.exit(0)
     const { avertissements, ecrits } = await produireLesMiroirs(depot, racine, { env })
     for (const a of avertissements) process.stderr.write(`[${hook}] ${a} ; la gate \`agents:check\` de la CI juge.\n`)
     if (ecrits.length) {

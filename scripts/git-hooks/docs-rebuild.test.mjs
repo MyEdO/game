@@ -335,7 +335,7 @@ test('post-commit réel : fusion automatique unique, conflit résolu, amend lock
       vider()
       const merge = resultatDeGit(['merge', '--no-ff', 'cote', '-m', 'fusion'], { cwd: racine })
       assert.equal(merge.status, conflit ? 1 : 0, `${merge.stdout}${merge.stderr}`)
-      assert.deepEqual(merge.stderr.split(/\r?\n/).filter((l) => l && !l.startsWith('[post-')), [], 'toute ligne de stderr est celle d’un post-hook')
+      assert.deepEqual(merge.stderr.split(/\r?\n/).filter((l) => l && (!l.startsWith('[post-') || l.includes('NON produits'))), [], 'toute ligne de stderr est celle d’un post-hook, et aucune n’est un échec des miroirs')
       if (conflit) {
         assert.deepEqual(lire(), [])
         ecrireCommit('commun.txt', 'resolu\n', 'fusion manuelle')

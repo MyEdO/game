@@ -38,6 +38,15 @@ Après toute fusion ou tout rebase : les hooks `post-merge`/`post-rewrite` rég�
 code et les docs dont une source a bougé (`scripts/git-hooks/docs-rebuild.mjs`) ; un MIXTE réécrit
 reste à committer.
 
+**Miroirs d'agents** (#2578, `DESTINATIONS` de `scripts/agents/compat-core.mjs`) : produits sur
+l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). Le `pre-commit` les
+produit dans le commit ; les post-hooks (`scripts/git-hooks/miroirs-d-agents.mjs`) rattrapent ce que
+le `pre-commit` ne joue pas (fusion, rebase, `--no-verify`) — le `post-commit` seulement si l'index
+s'écarte de HEAD sur une destination ou si le commit a touché une source du producteur
+(`SOURCES_DU_PRODUCTEUR`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. L'étape
+`docs` du train les commet ; un `.claude/settings.json` sale n'y est dérivé que si seule sa clé
+`hooks` s'écarte de HEAD (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`).
+
 **Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
 pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :
 chaque version est lue par le format de son extension (`FORMATS`, `scripts/guards/lib/stockDeSites.mjs`)
