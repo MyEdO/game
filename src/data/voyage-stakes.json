@@ -158,6 +158,7 @@
     "label": "Salissures",
     "kind": "sea-salissures",
     "template": "Échec : la coque gagne un niveau de Salissures.",
+    "rule": "salissures-navire",
     "source": {
       "book": "mer-des-griffes",
       "page": 105,

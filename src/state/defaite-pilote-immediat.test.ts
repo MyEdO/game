@@ -19,6 +19,7 @@ import { emptyScene } from './scene';
 import { buildScene } from './mapSpec';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { draineCascade } from './cascadeTestKit';
+import { fixtureText } from '../i18n/fixtureText';
 import type { WorldMap } from './worldMap';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
@@ -97,7 +98,7 @@ describe('#1595 — le pilote immédiat s’arrête sur un groupe anéanti EN VO
       if (step.id === 'a') { s({ party: aTerre(g().party) }); checkPartyWiped(g, s); }
       return undefined;
     });
-    const steps = [{ id: 'a', kind: 'sondeWipe', label: 'A' }, { id: 'b', kind: 'sondeWipe', label: 'B' }] as unknown as CascadeStep[];
+    const steps: CascadeStep[] = [{ id: 'a', kind: 'sondeWipe', label: fixtureText('A') }, { id: 'b', kind: 'sondeWipe', label: fixtureText('B') }];
     const r = runCascadeImmediate(get, set, steps, { title: 'T', purpose: 'test' });
     expect(get().partyWiped).toBe(true);
     expect(r).toBeUndefined();
