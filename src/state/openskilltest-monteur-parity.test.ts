@@ -146,7 +146,7 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
     useGame.setState({ party: [h], travelPlan: seaPlan('abondantes') });
     runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'athletisme' }, difficulty: 'intermediaire', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const pt = useGame.getState().pendingTest!;
-    const meteo = (pt.mods ?? []).filter((m) => m.label.startsWith('Météo'));
+    const meteo = (pt.mods ?? []).filter((m) => m.ref === RULE_REF['meteo-maritime']);
     expect(meteo.map((m) => m.value)).toEqual([-20]);
     expect(pt.skillValue).toBe(40); // la météo n'entre PAS dans la valeur
     const vieux = cibleHistorique(pt.skillValue, 'intermediaire', -20);

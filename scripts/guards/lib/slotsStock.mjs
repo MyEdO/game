@@ -320,7 +320,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "traumas.json", champ: "prosthesis", occurrences: 9, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "rig", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "vehicles.json", champ: "draft", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "voyage-stakes.json", champ: "kind", occurrences: 15, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "voyage-stakes.json", champ: "kind", occurrences: 16, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "voyage-stakes.json", champ: "rule", occurrences: 32, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "water-exposure.json", champ: "auto", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "weaponGroups.json", champ: "qualities", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },

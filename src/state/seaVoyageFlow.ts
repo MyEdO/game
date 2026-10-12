@@ -81,7 +81,7 @@ import { expireOnRespite, exposureTarget, exposureCoatMods, exposureFirstFailCha
 import { pursuitOutcome } from '../engine/pursuit';
 import { addCondition, isOutOfAction } from '../engine/conditions';
 import { effectiveChar } from '../engine/characteristics';
-import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenalty, debrisEntangleFor } from '../engine/seaPerils';
+import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
   BOARD_EVENTS, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, resolveFastVoyage, FAST_VOYAGE_PALIERS,
@@ -620,8 +620,8 @@ function seaStrandingPenalty(get: Get): ModLine[] {
   const vessel = get().vessel;
   const shipEnc = findVehicleById(vessel?.vehicleId ?? '')?.enc ?? 0;
   const cargoEnc = cargoTotalEnc(vessel?.cargo ?? []);
-  const value = strandingPenalty(shipEnc, cargoEnc);
-  return value ? [{ label: t('sv.strandingPenalty'), value, famille: 'circonstance', ref: RULE_REF['echouer-en-mer'] }] : [];
+  const line = strandingPenaltyLine(shipEnc, cargoEnc, RULE_REF['echouer-en-mer']);
+  return line ? [line] : [];
 }
 
 /** Étape MONO « Dégagement » (Test de Force, #444) — partagée par l'Échouage (`sea-degagement`, MDG
@@ -636,9 +636,7 @@ function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: st
     label: composeRollLabel(force.actor, t('sv.degagement'), test),
     difficulty,
     ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, surLaCible: [...penalite, ...precipitationTestMods(activeSeaPrecipitation(get))] },
-    // Les deux `kind` de dégagement (échouage / débris) mettent la MÊME chose en jeu : la progression
-    // du jour tant que le navire n'est pas dégagé.
-    stake: voyageStakeRef('sea-degagement'),
+    stake: voyageStakeRef(kind),
   });
 }
 

@@ -245,8 +245,20 @@
     "template": "Échec : le navire reste bloqué (aucune progression ce jour).",
     "source": {
       "book": "mer-des-griffes",
-      "page": 132,
+      "page": 112,
       "note": "MDG 13 l.471-499"
+    }
+  },
+  {
+    "id": "sea-degagement-debris",
+    "type": "voyage-stakes",
+    "label": "Dégagement des Débris marins",
+    "kind": "sea-degagement-debris",
+    "template": "Test étendu : tant que le total de DR n'est pas atteint, le navire reste empêtré.",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 112,
+      "note": "MDG 13 l.487-491"
     }
   },
   {

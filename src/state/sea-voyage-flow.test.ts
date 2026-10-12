@@ -1723,6 +1723,14 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
   const apply = (kind: string, sl: number, success = sl >= 1) =>
     cascadeAppliers[kind].apply(get, set, step(kind, sl, success), undefined, { steps: [], index: 0 });
 
+  it('Débris marins : l’étape de dégagement met en jeu SON enjeu (MDG 13 l.487-491), pas la progression bloquée de l’Échouage', () => {
+    const plan = planWithSea();
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, entangled: { hazardId: 'debris-marins', label: 'Débris marins', need: 10, progress: 0, manDR: -1, mMod: 0, difficulty: 'accessible' } } } });
+    const st = apply('progression', 2, true)?.insert?.find((s) => s.kind === 'sea-degagement-debris');
+    expect(st).toBeTruthy();
+    expect(st?.stake?.key?.kind).toBe('sea-degagement-debris');
+  });
+
   it('sea-degagement : succès → `sea.stranded` levé', () => {
     const plan = planWithSea();
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher' } } } });

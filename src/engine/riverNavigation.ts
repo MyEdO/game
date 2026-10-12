@@ -36,6 +36,7 @@ import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
 import { RULE_REF } from './ruleRefs';
 import type { ModLine } from './combat';
+import { t } from '../i18n';
 
 // ── Types de la table des vents (l.21-41) ────────────────────────────────────────────────────────
 
@@ -166,8 +167,8 @@ export function riverDriftKm(baseKmPerDay: number): number {
  *  Difficulté — le défaut Intermédiaire +0 est celui de la table, LDB 12 l.148). PUR. */
 export function navPenaltyMods(state: { drift?: boolean; outOfControl?: boolean }): ModLine[] {
   const mods: ModLine[] = [];
-  if (state.drift) mods.push({ label: 'Dérive', value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
-  if (state.outOfControl) mods.push({ label: 'Hors de contrôle', value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
+  if (state.drift) mods.push({ label: t('rv.modDrift'), value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
+  if (state.outOfControl) mods.push({ label: t('rv.modOutOfControl'), value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
   return mods;
 }
 

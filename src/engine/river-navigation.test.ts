@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import type { RNG } from './dice';
 import { createHero } from './character';
 import { makeRNG } from './dice';
-import { difficultyFromModifier } from './tests';
 import { RULE_REF } from './ruleRefs';
 import { strandingPenalty } from './seaPerils';
 import {
@@ -89,7 +88,6 @@ describe('Navigation & rame (l.11-17)', () => {
     expect(navPenaltyMods({ drift: true })).toEqual([{ label: 'Dérive', value: -10, famille: 'circonstance', ref: RULE_REF['navigation-derive'] }]);
     expect(navPenaltyMods({ outOfControl: true })).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(navPenaltyMods({ drift: true, outOfControl: true }).reduce((s, m) => s + m.value, 0)).toBe(-30);
-    expect(difficultyFromModifier(20)).toBe('accessible');
   });
 
   it('renflouage à l\'échouage (MSRC 7 l.99) : le malus = −(Enc du bateau + Enc de la cargaison), point par point', () => {

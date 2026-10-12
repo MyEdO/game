@@ -288,6 +288,28 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     strand(50);
     expect(get().travelPlan!.vehicle!.wounds.current).toBe(48); // 60 − 12
   });
+
+  it('étape JOUEUR `riverEchouageForce` (péril Eaux peu profondes, l.142-144) : Force Intermédiaire, −Enc en circonstance (l.99)', () => {
+    launch();
+    const ownerId = get().party[0].id;
+    const possessions: Possession[] = [
+      { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ cargoId: 'vin', enc: 30, basePriceGold: 10 }] },
+    ];
+    const detect = {
+      id: 'river-peril-0', kind: 'riverPerilDetect', actorId: ownerId, icon: 'nautical/tack', label: fixtureText('Détection'),
+      result: { roll: 99, target: 30, sl: -6, success: false }, meta: { perilId: 'eaux-peu-profondes' },
+    };
+    const echouage = Array.from({ length: 40 }, (_, seed) => {
+      set({ possessions, travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!, journal: [] });
+      seedBattleRng(seed);
+      return cascadeAppliers['riverPerilDetect'].apply(get, set, detect, undefined, { steps: [detect], index: 0 })?.insert?.find((s) => s.kind === 'riverEchouageForce');
+    }).find(Boolean);
+    expect(echouage, 'un échouage (40 %) sur 40 graines').toBeTruthy();
+    expect(echouage!.difficulty).toBe('intermediaire');
+    expect((echouage!.mods ?? [])).toContainEqual(
+      expect.objectContaining({ value: -30, famille: 'circonstance', ref: RULE_REF['navigation-echouage'] }),
+    );
+  });
 });
 
 describe('influence effective — Résilience sur un jet du jour fluvial', () => {
@@ -570,7 +592,9 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     const out0 = cascadeAppliers['riverRighting'].apply(get, set, round0, undefined, { steps: [round0], index: 0 });
     const round1 = out0?.insert?.find((s) => s.kind === 'riverRighting');
     expect(round1, 'le Round 2 s’insère tant qu’il reste des Rounds (BE)').toBeTruthy();
-    expect(malus(round1!)).toEqual([{ label: '−5 cumulatif (Round 2)', value: -5, famille: 'jet', ref: RULE_REF['navigation-chavirage'] }]);
+    // MSRC 7 l.40
+    expect((round1!.mods ?? []).filter((m) => m.ref?.id === RULE_REF['navigation-chavirage'].id))
+      .toEqual([{ label: '−5 cumulatif (Round 2)', value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
     const pilote2 = partyAssisted(get().party, 'voile')!;
     expect(round1!.target).toBe(pilote2.value + DIFFICULTY_MODIFIERS.accessible - 5);
     expect(inexplique(round1!)).toBe(0);

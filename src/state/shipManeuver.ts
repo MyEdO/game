@@ -21,16 +21,14 @@ import { resolveShipManeuver, type ShipManeuverOutcome } from '../engine/shipNav
 import { navalMoveMod, navalMoveMult, navalSkillTestDR, navalTestTypeDR, navalNavTestDR, hullNavalTraits } from '../engine/navalTraits';
 import { cargoOverload } from '../engine/seaVoyage';
 import { exposedCrew } from '../engine/shipCritical';
-import { crewRoleValue, crewTalentDR, moraleBand, capToSuccesMinime, crewTestSuccess } from '../engine/crewMorale';
+import { crewRoleValue, crewRoleTestMods, crewTalentDR, moraleBand, capToSuccesMinime, crewTestSuccess } from '../engine/crewMorale';
 import { placementPenalty } from './shipPostes';
 import { inBattleId } from './combatants';
 import { t } from '../i18n';
-import { findVehicleById, findCrewRoleById, type CrewRoleData } from '../data';
+import { findVehicleById, findCrewRoleById } from '../data';
 import { vesselPropulsion } from '../engine/shipBuild';
 import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
-import type { ModLine } from '../engine/combat';
-import { precipitationTestMods } from '../engine/seaWeather';
 import type { PairedSense } from '../engine/ops';
 import type { Get } from './flowTypes';
 
@@ -47,16 +45,8 @@ export function rollCrewRole(crew: Combatant, roleId: string, rng: RNG, cumul = 
   // Cumul de 2 rôles (un marin déjà engagé dans un autre Test d'équipage ce Round) → +2 crans de Difficulté
   // (Manque de bras, MDG 14 l.53).
   const surCible = crewRoleTestMods(crew, role, sense).reduce((s, m) => s + m.value, 0);
-  const t = rollTest(crewRoleValue(crew, role, sense).value + surCible, cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire', rng);
+  const t = rollTest(crewRoleValue(crew, role, sense).value, cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire', rng, surCible);
   return { roll: t.roll, target: t.target, sl: t.sl + (t.success ? crewTalentDR(crew, role) : 0) };
-}
-
-/** Modificateurs SUR LA CIBLE du jet d'un rôle d'équipage en combat : Précipitations sur le pont (MDG 13
- *  l.185, `Combatant.envPrecipitation`), keyées par la Compétence que le rôle tient. SOURCE UNIQUE du jet
- *  (`rollCrewRole`/`forceCrewRole`) et de l'affichage des modales d'équipage. PUR. */
-export function crewRoleTestMods(crew: Combatant, role: CrewRoleData, sense?: PairedSense): ModLine[] {
-  const used = crewRoleValue(crew, role, sense).used;
-  return precipitationTestMods(crew.envPrecipitation, used?.id, used?.spec);
 }
 
 /** Résilience « Je ne faillirai pas ! » pour UN contributeur (PJ) : DR MAXIMAL à son rôle (LDB 17 l.68). PUR. */

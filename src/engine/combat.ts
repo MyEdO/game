@@ -154,12 +154,6 @@ function acceptableSpecs(weapon: Weapon, kind: 'melee' | 'ranged'): SpecAcceptan
   return [{ spec: gid, mode: 'full' }];
 }
 
-/** Spécialisation du Test d'attaque avec `weapon` : celle du combattant qui couvre le Groupe, sinon celle du
- *  Groupe lui-même (LDB 62 l.180). */
-function attackTestSpec(c: Combatant, weapon: Weapon, kind: 'melee' | 'ranged'): string | undefined {
-  return matchGroupSpec(c, weapon, kind)?.spec ?? acceptableSpecs(weapon, kind).find((w) => w.spec !== ANY_RANGED_SPEC)?.spec;
-}
-
 /**
  * Spé du combattant qui couvre le Groupe de l'arme, avec son MODE (`SpecAcceptance`) — SOURCE UNIQUE
  * consommée par `combatValue` (le bonus de Test est TOUJOURS intégral, cf. LDB 62 l.184 « votre
@@ -823,7 +817,8 @@ export function attackModifiers(
   // jamais recâblé côté state (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
   out.push(...weatherTestMods(attacker.envWeather, opts.kind === 'ranged' ? 'capacite-de-tir' : 'capacite-de-combat'));
   // Précipitations sur le pont (MDG 13 l.185, #1936) : canal `precipitationTestMods`, lu depuis `attacker.envPrecipitation`.
-  out.push(...precipitationTestMods(attacker.envPrecipitation, opts.kind === 'ranged' ? 'projectiles' : 'corps-a-corps', attackTestSpec(attacker, weapon, opts.kind)));
+  const tested = combatSkillPick(attacker, opts.kind, weapon); // LDB 62 l.180
+  out.push(...precipitationTestMods(attacker.envPrecipitation, tested.skillId, tested.spec));
   // Modificateurs WEAPON-CONTEXTUELS dérivés de la SCÈNE (couvert / obscurité / météo au TIR (rangedMod/
   // poudre) / mouvement / tir-mêlée), calculés côté state (combatFlow) et injectés ici — la table de
   // Difficultés de Combat n'est pas exhaustive. La pénalité « Tests physiques » n'y est PLUS (canal ci-dessus).
@@ -907,12 +902,6 @@ function defenseTestChar(mode: DefenseMode): CharKey | null {
   return mode === 'parade' ? 'capacite-de-combat' : mode === 'esquive' ? 'agilite' : null;
 }
 
-/** Modificateurs de BASE d'un Test de combat « brut » (hors Atouts d'arme et bonus de cible), en lignes
- *  NOMMÉES : Avantage ×10 + pénalité d'États + météo « Tests physiques » (canal `weatherTestMods`, #341).
- *  MÊME nomenclature que `attackModifiers`/`defenseModifiers` — une modale de Test opposé « brut »
- *  (Empoignade, Au Contact, Désengagement) affiche ainsi ses modificateurs au lieu d'un +N anonyme.
- *  `ck` = la Caractéristique RÉELLE du Test brut (Empoignade → Force, Désengagement/coup dans le dos →
- *  CC) : la météo n'arrive que si elle est physique (LISTE maison `physicalTestChars`). */
 /** LA ligne d'AVANTAGE d'un porteur (`LDB 14 l.215` : +10 par point à un Test approprié), ou `null`
  *  sans Avantage — SOURCE UNIQUE de sa mise en ligne, partagée par les Tests de combat « bruts »
  *  (`baseTestModLines`, ci-dessous) et par tout Test HORS arène que la règle dit « approprié »
@@ -924,6 +913,13 @@ export function advantageModLine(c: Combatant): ModLine | null {
   return adv ? { label: 'Avantage', value: adv, famille: 'jet', ref: RULE_REF.avantage } : null;
 }
 
+/** Modificateurs de BASE d'un Test de combat « brut » (hors Atouts d'arme et bonus de cible), en lignes
+ *  NOMMÉES : Avantage ×10 + pénalité d'États + météo « Tests physiques » (canal `weatherTestMods`, #341)
+ *  + Précipitations sur le pont (canal `precipitationTestMods`, MDG 13 l.185).
+ *  MÊME nomenclature que `attackModifiers`/`defenseModifiers` — une modale de Test opposé « brut »
+ *  (Empoignade, Au Contact, Désengagement) affiche ainsi ses modificateurs au lieu d'un +N anonyme.
+ *  `ck` = la Caractéristique RÉELLE du Test brut (Empoignade → Force, Désengagement/coup dans le dos →
+ *  CC) : la météo n'arrive que si elle est physique (LISTE maison `physicalTestChars`). */
 export function baseTestModLines(c: Combatant, ck?: CharKey): ModLine[] {
   const out: ModLine[] = [];
   const adv = advantageModLine(c);

@@ -28,6 +28,7 @@ import { priceToMoney, toBrass } from './money';
 import { effectRef, type Combatant, type Difficulty } from './types';
 import type { ModLine } from './combat';
 import type { PairedSense } from './ops';
+import { precipitationTestMods } from './seaWeather';
 
 /** Facteur de Moral (MODIFICATEURS DE MORAL, MDG 14) — `effect` = dés signés (« +2d10 », « -3d10 »). */
 export interface MoraleFactor {
@@ -165,6 +166,8 @@ export interface CrewContributor {
   label: string;
   /** Difficulté PROPRE à ce contributeur (sinon celle du Test) — sert au double-rôle « Manque de bras » (+2 crans). */
   difficulty?: Difficulty;
+  /** Modificateurs SUR LA CIBLE de SON jet (`crewRoleTestMods`). */
+  modifier?: number;
   /** +DR de Talent sur SON jet RÉUSSI (règle LDB 10 l.19, contexte Test d'équipage — Commandant émérite,
    *  MDG 09 l.54 : « Ce bonus s'applique aux Tests d'équipage »). Ajouté AVANT le doublement essentiel. */
   successDR?: number;
@@ -196,7 +199,7 @@ export function resolveCrewTest(
   extraDR = 0,
 ): CrewTestResult {
   const contributions = contributors.map((c) => {
-    const t = rollTest(c.value, c.difficulty ?? difficulty, rng);
+    const t = rollTest(c.value, c.difficulty ?? difficulty, rng, c.modifier ?? 0);
     const sl = t.sl + (t.success ? (c.successDR ?? 0) : 0); // +DR de Talent sur un jet RÉUSSI (Commandant émérite)
     const counted = c.essential ? sl * 2 : sl;
     return { label: c.label, sl, essential: !!c.essential, counted };
@@ -330,6 +333,14 @@ export function crewRoleValue(crew: Combatant, role: CrewRoleData, sense?: Paire
   return { value: (b?.value ?? 0) + crewTestModOf(crew), used: b?.skillId ? { id: b.skillId, spec: b.spec } : undefined };
 }
 
+/** Modificateurs SUR LA CIBLE du jet d'un rôle d'équipage en combat : Précipitations sur le pont (MDG 13
+ *  l.185, `Combatant.envPrecipitation`), keyées par la Compétence que le rôle tient. SOURCE UNIQUE du jet
+ *  (`rollCrewRole`/`forceCrewRole`, `resolveCrewTestByRoles`) et de l'affichage des modales d'équipage. PUR. */
+export function crewRoleTestMods(crew: Combatant, role: CrewRoleData, sense?: PairedSense): ModLine[] {
+  const used = crewRoleValue(crew, role, sense).used;
+  return precipitationTestMods(crew.envPrecipitation, used?.id, used?.spec);
+}
+
 /** +DR de TALENT d'un membre sur SON jet de rôle RÉUSSI, en contexte TEST D'ÉQUIPAGE — règle UNIVERSELLE
  *  `talentTestSLBonus` (LDB 10 l.19) évaluée avec le contexte `crewTest` VRAI : Commandant émérite
  *  (MDG 09 l.50-54, `when {crewTest}`) s'applique « aux Tests d'équipage comme aux Tests de Commandement
@@ -368,6 +379,7 @@ export function resolveCrewTestByRoles(
     const role = findCrewRoleById(a.roleId);
     return {
       value: role ? crewRoleValue(a.crew, role).value : 0,
+      modifier: role ? crewRoleTestMods(a.crew, role).reduce((s, m) => s + m.value, 0) : 0,
       essential: a.roleId === essentialRole,
       label: role?.label ?? a.roleId,
       difficulty: a.doubleRole ? easeDifficulty(difficulty, -2) : undefined,

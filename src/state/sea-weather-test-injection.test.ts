@@ -4,12 +4,13 @@ import { runFlow } from './combatFlow';
 import { testFlow, EMPTY_FLOW } from './flow';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan } from './travelFlow';
+import { RULE_REF } from '../engine/ruleRefs';
 
 /**
  * INTÉGRATION scène → jet : le malus de Précipitations (MDG 13 l.185-200, canal `precipitationTestMods`)
  * atteint RÉELLEMENT un Test joué par `openSkillTest` (#183).
  */
-const meteo = (): unknown[] => (useGame.getState().pendingTest!.mods ?? []).filter((m) => m.label.startsWith('Météo'));
+const meteo = (): unknown[] => (useGame.getState().pendingTest!.mods ?? []).filter((m) => m.ref === RULE_REF['meteo-maritime']);
 describe('Météo maritime — Précipitations injectées au Test réel (#183, MDG 13 l.187-201)', () => {
   beforeEach(() => { useGame.setState({ battle: null, pendingTest: null, travelPlan: null }); });
 

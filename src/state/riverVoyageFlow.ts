@@ -43,7 +43,7 @@ import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue } from '../engine/skills';
 import { deMonde, rollExpr, type RNG } from '../engine/dice';
-import { strandingPenalty } from '../engine/seaPerils';
+import { strandingPenaltyLine } from '../engine/seaPerils';
 import { effectiveChar } from '../engine/characteristics';
 import {
   rollRiverWind, tickRiverWindDay, riverWindEffect, riverPilotSkill, savoirVoiesFluvialesBonus,
@@ -611,7 +611,7 @@ function rightingStep(get: Get, source: CascadeStep, round: number, be: number):
   const pilot = riverPilot(get, skillId);
   const savoir = pilot ? savoirVoiesFluvialesBonus(pilot.actor) : Number(source.meta?.savoir ?? 0);
   const cumul = penalty
-    ? [{ label: t('rv.rightingCumul', { n: round + 1 }), value: penalty, famille: 'jet' as const, ref: RULE_REF['navigation-chavirage'] }]
+    ? [{ label: t('rv.rightingCumul', { n: round + 1 }), value: penalty, famille: 'circonstance' as const, ref: RULE_REF['navigation-chavirage'] }]
     : undefined;
   // PORTEUR de l'étape : le barreur DU MOMENT quand il en reste un — le Test est le sien, donc la
   // fenêtre aussi. C'est un CHANGEMENT assumé : l'étape reprenait jusqu'ici l'`actorId` du chavirage,
@@ -990,7 +990,7 @@ export function applyEchouage(get: Get, set: Set, tell: (l: string[]) => void): 
   // Chemin IA/synchrone (`riverEchouageForce` gate l'acteur JOUEUR ci-dessus) : aucune rangée nulle
   // part pour ce jet — le journal est la SEULE surface, il PORTE le jet (#295 Lot 5, gardé nominativement).
   const force = partyAssisted(get().party, undefined, 'force');
-  const res = force ? rollTest(force.value + penalite.value, ECHOUAGE_DIFFICULTY, battleRng()) : null;
+  const res = force ? rollTest(force.value, ECHOUAGE_DIFFICULTY, battleRng(), penalite?.value ?? 0) : null;
   tell([t('rv.grounded', { dmg: echouageDamage(), suite: res ? t('rv.fragRefloat', { diff: DIFFICULTY_LABELS[ECHOUAGE_DIFFICULTY], enc: encTxt, roll: res.roll, target: res.target, issue: t(res.success ? 'rv.refloatOk' : 'rv.refloatKo') }) : t('rv.fragDot') })]);
 }
 
@@ -999,13 +999,13 @@ const ECHOUAGE_DIFFICULTY: Difficulty = 'intermediaire';
 
 /** Pénalité du renflouage (MSRC 7 l.99), dérivée au jet de `strandingPenalty` — partagée par le renflouage
  *  IA/synchrone (`applyEchouage`) et l'étape-jet JOUEUR (`riverEchouageForce`, #270). */
-function echouagePenalty(get: Get): { penalite: ModLine; encTxt: string } {
+function echouagePenalty(get: Get): { penalite: ModLine | null; encTxt: string } {
   const coque = get().travelPlan!.vehicle!;
   const boatEnc = findVehicleById(coque.creatureId ?? '')?.enc ?? 0;
   const cargoEnc = partyCargoTotalEnc(get());
-  const value = strandingPenalty(boatEnc, cargoEnc);
-  const encTxt: string = value ? t('rv.encMalus', { total: -value, boat: boatEnc, cargo: cargoEnc }) : '';
-  return { penalite: { label: t('sv.strandingPenalty'), value, famille: 'circonstance', ref: RULE_REF['navigation-echouage'] }, encTxt };
+  const penalite = strandingPenaltyLine(boatEnc, cargoEnc, RULE_REF['navigation-echouage']);
+  const encTxt: string = penalite ? t('rv.encMalus', { total: -penalite.value, boat: boatEnc, cargo: cargoEnc }) : '';
+  return { penalite, encTxt };
 }
 
 /** ÉCHOUAGE (#270) : Dégâts fixes appliqués immédiatement (non-jetés) ; le renflouage (Test de Force)
@@ -1024,7 +1024,7 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
   const st = monoStep({
     id: `${idPrefix}-echouage`, kind: 'riverEchouageForce', actor: force.actor, icon: 'travel/repair',
     label: t('step.riverEchouage'), rollLabel: t('char.force'), difficulty: ECHOUAGE_DIFFICULTY,
-    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, ...(penalite.value ? { surLaCible: [penalite] } : {}) },
+    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, ...(penalite ? { surLaCible: [penalite] } : {}) },
     stake: voyageStakeRef('riverEchouageForce'),
   });
   return st ? [st] : [];
