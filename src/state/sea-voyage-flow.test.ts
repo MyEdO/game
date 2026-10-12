@@ -25,7 +25,8 @@ import type { WorldMap } from './worldMap';
 import type { RNG } from '../engine/dice';
 import type { CascadeStep } from './pendings';
 import { resumeTravel } from './travelFlow';
-import { applyEffects } from './combatEffects';
+import { applyEffects, runFlow } from './combatEffects';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import { cascadeAppliers } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 import { crewRoleValue } from '../engine/crewMorale';
@@ -1813,6 +1814,45 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
         label: 'Météo : Très abondantes', value: MALUS_TRES_ABONDANTES[part.skillId ?? ''] ?? -10, famille: 'circonstance',
       }));
     }
+  });
+
+  /** Le plan du jour sous Précipitations `precip`, à la cadence `cadence` (ordres permanents). */
+  const sousLaPluie = (precip: 'aucune' | 'tres-abondantes', cadence: 'jour-par-jour' | 'commande', sea: Record<string, unknown> = {}) => {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, ...sea, weather: { ...plan.sea!.weather, precipitations: precip, vent: 'brise-fraiche' } } } });
+  };
+  const METEO_CARAC = { label: 'Météo : Très abondantes', value: -10, famille: 'circonstance' };
+
+  it('ÉCHOUÉ un jour Très abondantes : le Test de Force de dégagement porte « Météo » (Test de Caractéristique, −10) sur la cible', () => {
+    sousLaPluie('tres-abondantes', 'jour-par-jour', { stranded: { hazardId: 'rocher', label: 'Rocher' } });
+    runSeaDay(get, set);
+    const st = get().pendingCascade?.participants.find((x) => x.kind === 'sea-degagement');
+    expect(st?.mods).toContainEqual(expect.objectContaining(METEO_CARAC));
+    expect(inexplique(st!)).toBe(0);
+  });
+
+  it('un Test de Caractéristique SANS Compétence ouvert en mer (`runFlow` → `openSkillTest`) porte « Météo » (−10) sur la cible', () => {
+    sousLaPluie('tres-abondantes', 'jour-par-jour');
+    runFlow(get, set, { kind: 'test', test: { characteristic: 'force', difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: EMPTY_FLOW });
+    const pt = get().pendingTest!;
+    expect(pt.skillId).toBeUndefined();
+    expect(pt.mods).toContainEqual(expect.objectContaining(METEO_CARAC));
+  });
+
+  it('cadence COMMANDÉE (résolution sur place) : au procès-verbal, la cible du Test d’Orientation inclut le −20 des Précipitations', () => {
+    const lignesOrientation = (precip: 'aucune' | 'tres-abondantes') => {
+      freshState();
+      seedBattleRng(7);
+      sousLaPluie(precip, 'commande');
+      runSeaDay(get, set);
+      expect(get().pendingCascade?.purpose ?? null, 'aucune fenêtre de jour en cadence commandée').not.toBe('travelDay');
+      return (get().pendingRest?.travelDay?.entries ?? []).filter((e) => e.id?.startsWith('sea-orientation-')).map((e) => e.d!);
+    };
+    const seche = lignesOrientation('aucune');
+    const mouille = lignesOrientation('tres-abondantes');
+    expect(seche.length).toBeGreaterThan(0);
+    expect(mouille.map((d) => d.base)).toEqual(seche.map((d) => d.base));
+    expect(mouille.map((d) => d.target)).toEqual(seche.map((d) => d.target - 20));
   });
 });
 

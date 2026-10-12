@@ -114,11 +114,10 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
  * parenthèses (« Métier (Cartographe) ») — apostrophes normalisées (le catalogue écrit `'`, les sites
  * écrivent parfois `’`).
  *
- * ANGLE MORT assumé du volet : un `rollLabel` CALCULÉ (`refLabel(…)`, ternaire, variable) n'est pas lu
- * par ce scan lexical. Il n'est PAS pour autant sûr : un libellé calculé peut venir d'un AUTRE
- * catalogue que les compétences — précédent MESURÉ, les rôles d'équipage (`findCrewRoleById(…).label`
- * servait de libellé de LIGNE au procès-verbal de mer, #1112). Le volet 3 ci-dessous couvre cette
- * famille du côté des lignes de jet fabriquées dans `src/state`.
+ * Hors de ce scan lexical : un `rollLabel` CALCULÉ (`refLabel(…)`, ternaire, variable). Sonde du
+ * 2026-10-12 (#1595, D1 point 3) : les lignes de `src/` hors tests où `rollLabel` côtoie `refLabel(`
+ * nomment toutes le catalogue `skills`. Précédent d'un autre catalogue : les rôles d'équipage
+ * (`findCrewRoleById(…).label`, #1112), couverts par le volet 3 ci-dessous.
  */
 const norm = (s: string): string => s.replace(/[’‘]/g, "'").trim();
 const CATALOGUE_LABELS = new Set<string>([...skills.map((s) => norm(s.label)), ...Object.values(CHAR_LABELS).map(norm)]);
@@ -268,5 +267,109 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
     expect(scanRollLineLabels(roleLine).filter((h) => !h.computed && !isCompetenceLabel(h.text))).toHaveLength(1);
     expect(scanRollLineLabels(skillLine).filter((h) => !h.computed && !isCompetenceLabel(h.text))).toEqual([]);
     expect(scanRollLineLabels(computedRole).filter((h) => h.computed && CREW_CATALOGUE_RX.test(h.text))).toHaveLength(1);
+  });
+});
+
+/**
+ * VOLET 4 (#1111) — la forme « Action (Compétence) » du sous-titre Z1 (`docs/charte-ui.md`, « Contrat
+ * d'affichage d'un jet ») n'a qu'un composeur, `composeRollLabel` (`src/state/rollSeam.ts`). Une
+ * PARENTHÈSE remplie d'un libellé de Compétence ou de Caractéristique hors de lui est une seconde
+ * source de la même forme (précédent : `riverVoyageFlow.ts`, étape `river-nav`, #1111).
+ *
+ * MESURE : les deux portes d'une parenthèse de libellé — la fabrique `stepPrecision(sujet, precision)`
+ * et tout gabarit de LIBELLÉ D'ÉTAPE du catalogue FR (`step.*`, `i18n/messages/fr.ts`) dont un
+ * paramètre est écrit entre parenthèses (`'{sujet} ({precision})'`), appelé par `t(`/`tr(` —, dont l'argument de la parenthèse
+ * est un libellé du catalogue des Compétences/Caractéristiques : appel `refLabel('skills', …)`,
+ * `testSkillLabel(…)`, `skillRefLabel(…)`, `CHAR_LABELS[…]`, littéral, ou clé de catalogue dont le
+ * texte en est un (`isCompetenceLabel`). Une variable nue n'est PAS lue.
+ */
+const SKILL_LABEL_CALL_RX = /^(?:refLabel\(\s*['"]skills['"]|testSkillLabel\(|skillRefLabel\(|CHAR_LABELS\[)/;
+
+/** L'expression ÉCRITE nomme-t-elle une Compétence/Caractéristique du catalogue ? */
+function isSkillLabelExpr(expr: string): boolean {
+  const e = expr.trim();
+  if (SKILL_LABEL_CALL_RX.test(e)) return true;
+  const literal = /^(['"`])((?:\.|(?!\1)[\s\S])*)\1$/.exec(e);
+  if (literal) return !literal[2].includes('${') && isCompetenceLabel(literal[2]);
+  const key = /^t\s*r?\(\s*'([^']+)'\s*\)$/.exec(e);
+  if (key) {
+    const text = (fr as Record<string, string>)[key[1]];
+    return text != null && isCompetenceLabel(text);
+  }
+  return false;
+}
+
+/** Arguments de PREMIER niveau d'un appel dont `open` indexe la parenthèse ouvrante (chaînes et
+ *  imbrications `()[]{}` franchies). `undefined` si l'appel ne se ferme pas. */
+function topLevelArgs(src: string, open: number): string[] | undefined {
+  const args: string[] = [];
+  let depth = 0;
+  let from = open + 1;
+  for (let j = open; j < src.length; j++) {
+    const ch = src[j];
+    if (ch === "'" || ch === '"' || ch === '`') {
+      const end = src.indexOf(ch, j + 1);
+      if (end < 0) return undefined;
+      j = end;
+    } else if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      depth--;
+      if (depth === 0) { args.push(src.slice(from, j)); return args; }
+    } else if (ch === ',' && depth === 1) { args.push(src.slice(from, j)); from = j + 1; }
+  }
+  return undefined;
+}
+
+/** Les paramètres que le texte FR d'une clé de libellé d'étape (`step.*`) écrit ENTRE PARENTHÈSES. */
+const PARENTHESIZED_PARAMS = new Map<string, string[]>(
+  Object.entries(fr as Record<string, string>)
+    .filter(([k]) => k.startsWith('step.'))
+    .map(([k, v]): [string, string[]] => [k, [...v.matchAll(/\(\{(\w+)\}\)/g)].map((m) => m[1])])
+    .filter(([, ps]) => ps.length > 0),
+);
+
+/** Rend les parenthèses de libellé remplies d'une Compétence/Caractéristique hors `composeRollLabel`
+ *  (exporté pour la preuve fail-closed). */
+export function scanManualSkillParenthesis(src: string): ActionLabelHit[] {
+  const hits: ActionLabelHit[] = [];
+  const at = (i: number): number => src.slice(0, i).split('\n').length;
+  for (const m of src.matchAll(/\bstepPrecision\(/g)) {
+    const args = topLevelArgs(src, m.index! + m[0].length - 1);
+    if (args?.[1] != null && isSkillLabelExpr(args[1])) hits.push({ line: at(m.index!), text: args[1].trim() });
+  }
+  for (const m of src.matchAll(/\bt\s*r?\(\s*'([^']+)'\s*,/g)) {
+    const params = PARENTHESIZED_PARAMS.get(m[1]);
+    if (!params) continue;
+    const args = topLevelArgs(src, src.indexOf('(', m.index!));
+    const obj = args?.[1]?.trim();
+    if (!obj?.startsWith('{')) continue;
+    const fields = topLevelArgs(obj, 0) ?? [];
+    for (const field of fields) {
+      const kv = /^\s*(\w+)\s*:\s*([\s\S]+)$/.exec(field);
+      if (kv && params.includes(kv[1]) && isSkillLabelExpr(kv[2])) hits.push({ line: at(m.index!), text: `${m[1]} ← ${kv[2].trim()}` });
+    }
+  }
+  return hits;
+}
+
+describe('CLIQUET — « Action (Compétence) » n’est composé que par `composeRollLabel` (#1111)', () => {
+  it('aucune parenthèse de libellé remplie d’une Compétence hors du composeur', () => {
+    const bad: string[] = [];
+    for (const { rel, text } of readCorpus(['src'])) {
+      for (const h of scanManualSkillParenthesis(text)) bad.push(`${rel}:${h.line} — ${h.text}`);
+    }
+    expect(bad, ['« Action (Compétence) » composé hors de `composeRollLabel` (Z1, docs/charte-ui.md) :', ...bad].join('\n')).toEqual([]);
+  });
+
+  it('fail-closed : chaque porte SYNTHÉTIQUE est détectée, une parenthèse qui n’est pas une Compétence passe', () => {
+    expect(scanManualSkillParenthesis("label: stepPrecision(t('step.navigation'), refLabel('skills', { id: skillId })),")).toHaveLength(1);
+    expect(scanManualSkillParenthesis('label: stepPrecision(t(\'step.navigation\'), testSkillLabel({ skill: "voile" })),')).toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: stepPrecision(t('step.navigation'), 'Voile'),"), 'littéral du catalogue').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: stepPrecision(t('step.navigation'), t('char.force')),"), 'clé de caractéristique').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: t('step.sujetPrecision', { sujet: t('step.navigation'), precision: refLabel('skills', { id: 'voile' }) }),"), 'gabarit du catalogue').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: tr('step.sujetPrecision', { sujet: x, precision: CHAR_LABELS[c] }),"), 'alias `tr(`').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: stepPrecision(tr('step.blessureCritique'), locationLabel(cloc, target.bodyShape)),"), 'localisation').toEqual([]);
+    expect(scanManualSkillParenthesis("t('step.sujetPrecision', { sujet: refLabel('skills', { id: 'natation' }), precision: DIFFICULTY_LABELS[diff] })"), 'la Compétence en SUJET n’est pas la parenthèse').toEqual([]);
+    expect(scanManualSkillParenthesis("label: composeRollLabel(undefined, t('step.navigation'), { skill: skillId }),"), 'le composeur').toEqual([]);
   });
 });

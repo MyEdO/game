@@ -5,6 +5,8 @@ import {
   seaExposureTestsPerDay,
 } from './seaWeather';
 import type { RNG } from './dice';
+import { baseTestModLines } from './combat';
+import type { Combatant } from './types';
 import { setRule, resetRule } from './policy';
 
 /** Somme des lignes du canal Précipitations (MDG 13 l.185-200). */
@@ -197,5 +199,22 @@ describe('effets d’ambiance — Précipitations / Température / Visibilité (
     expect(seaExposureTestsPerDay('chaude')).toBe(2); // 8 ÷ 4
     expect(seaExposureTestsPerDay('froide')).toBe(2); // 8 ÷ 4
     expect(seaExposureTestsPerDay('mediane')).toBe(0); // tolérable (l.217)
+  });
+});
+
+describe('`baseTestModLines` — les Précipitations lisent la Compétence que l’appelant déclare (MDG 13 l.185, #1936)', () => {
+  const surLePont = (): Combatant => ({
+    id: 'x', label: 'X', kind: 'hero', characteristics: {}, skills: [], talents: [], traits: [],
+    conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
+    wounds: { current: 10, max: 10, base: 10 }, advantage: 0, envPrecipitation: 'tres-abondantes',
+  }) as unknown as Combatant;
+  const meteo = (lines: ReturnType<typeof baseTestModLines>) => lines.filter((l) => l.label === 'Météo : Très abondantes').map((l) => l.value);
+
+  it('un Test d’Athlétisme porte le −30 de sa Compétence, pas le −10 du Test de Caractéristique', () => {
+    expect(meteo(baseTestModLines(surLePont(), 'agilite', { skill: 'athletisme' }))).toEqual([-30]);
+  });
+
+  it('sans Compétence déclarée (Empoignade, Test de Force) : le −10 de « tous les autres Tests »', () => {
+    expect(meteo(baseTestModLines(surLePont(), 'force', { movement: true }))).toEqual([-10]);
   });
 });

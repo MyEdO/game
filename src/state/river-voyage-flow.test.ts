@@ -5,6 +5,8 @@ import { buildRiverPlan, buildRiverDayCascade, runRiverDays, hasBatelier, applyE
 import { buildApi } from './devtools';
 import { cascadeAppliers } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
+import { composeRollLabel } from './rollSeam';
+import { t } from '../i18n';
 import { byId, resolveStake, voyageStakeRef, VOYAGE_STAKES, regles, skills, etats } from '../data';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
@@ -927,6 +929,17 @@ describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse 
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     drainCascade(); // le joueur roule chaque étape DANS la fenêtre
     expect(traceLines(), 'la fenêtre a montré les dés : le journal ne les redit pas').toEqual([]);
+  });
+});
+
+describe('#1111 — le libellé de l’étape de Navigation est celui de `composeRollLabel` (Z1)', () => {
+  it('startTravel → jour de fleuve : l’étape `riverNav` porte « Navigation (<Compétence du barreur>) » du composeur', () => {
+    launch();
+    get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    const nav = get().pendingCascade!.participants.find((s) => s.kind === 'riverNav')!;
+    const skillId = riverPilotSkill(findVehicleById(get().travelPlan!.vehicle!.creatureId ?? '')?.ship?.sail != null);
+    expect(nav.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: skillId }));
+    expect(nav.label).toBe(`Navigation (${byId('skill', skillId)!.label})`);
   });
 });
 

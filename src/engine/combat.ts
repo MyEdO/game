@@ -937,14 +937,17 @@ export function advantageModLine(c: Combatant): ModLine | null {
  *  MÊME nomenclature que `attackModifiers`/`defenseModifiers` — une modale de Test opposé « brut »
  *  (Empoignade, Au Contact, Désengagement) affiche ainsi ses modificateurs au lieu d'un +N anonyme.
  *  `ck` = la Caractéristique RÉELLE du Test brut (Empoignade → Force, Désengagement/coup dans le dos →
- *  CC) : la météo n'arrive que si elle est physique (LISTE maison `physicalTestChars`). */
+ *  CC) : la météo n'arrive que si elle est physique (LISTE maison `physicalTestChars`). `ctx` = le Test
+ *  tel que l'appelant le déclare : `ctx.skill`, la Compétence lancée (Au Contact, Désengagement :
+ *  `weaponSkillId('melee')`), absente pour un Test de Caractéristique (Empoignade, `GRAPPLE_TEST_CTX`) —
+ *  lue par les États (`conditionModLines`) ET par les Précipitations, comme `attackModifiers`/`defenseModifiers`. */
 export function baseTestModLines(c: Combatant, ck?: CharKey, ctx: EtatTestCtx = {}): ModLine[] {
   const out: ModLine[] = [];
   const adv = advantageModLine(c);
   if (adv) out.push(adv);
   out.push(...conditionModLines(c, ctx));
   out.push(...weatherTestMods(c.envWeather, ck ?? null));
-  out.push(...precipitationTestMods(c.envPrecipitation)); // MDG 13 l.185, #1936
+  out.push(...precipitationTestMods(c.envPrecipitation, ctx.skill)); // MDG 13 l.185, #1936
   return out;
 }
 
