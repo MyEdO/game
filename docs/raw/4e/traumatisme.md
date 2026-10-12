@@ -48,7 +48,7 @@ BE et PA réduisent les Dégâts **sauf indication contraire** (certaines règle
 **Voir aussi** : États À Terre / Inconscient → [etats.md](etats.md) (LDB 16) ; [Guérison des PB](#10-guérison-des-points-de-blessure).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.12-19) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
+- `LDB 18` (l.12-19) → `isHealable`, `followsCharacterRules`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `applyHealWounds`, `needsRecoveryRoll`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
 
@@ -110,7 +110,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 **Voir aussi** : tables complètes → [combat.md § Critiques](combat.md#critiques-et-frappe-mortelle) ; Fractures → [§ 7](#7-fractures-mineure--majeure) ; Déchirures → [§ 8](#8-déchirures-musculaires-mineure--majeure) ; Amputations → [§ 9](#9-amputation--choc-traitement-et-séquelles-permanentes).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.53-55, l.56-187) → `criticals-ldb-tete`, `CritEntry`, `dechirure-jambe-mineure`, `critEscalationSchema`, `blessure-spectaculaire`, `HealMode`, `actBlockReason`, `MedicState`, `availableHealModes`, `dechirure-autre-mineure`, +137 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/night-stakes.json`, `src/data/regles.json`, +19 fichiers
+- `LDB 18` (l.53-55, l.56-187) → `criticals-ldb-tete`, `CritEntry`, `dechirure-jambe-mineure`, `HealMode`, `critEscalationSchema`, `blessure-spectaculaire`, `availableHealModes`, `actBlockReason`, `MedicState`, `dechirure-autre-mineure`, +137 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/flow-stakes.json`, `src/data/night-stakes.json`, `src/data/regles.json`, +19 fichiers
 
 ---
 

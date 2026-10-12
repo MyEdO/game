@@ -45,7 +45,7 @@ Augmentations** dans cette Compétence inscrites sur la Feuille de Personnage.
 **Sources RAW :** LDB 09 l.12-18
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.12-18) → `doc`, `possesses`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, `useHealJetProps`, `TestResult`, +29 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/engine/axes.ts`, `src/engine/combat.ts`, `src/engine/magic.ts`, `src/engine/skillCombatApps.ts`, +20 fichiers
+- `LDB 9` (l.12-18) → `doc`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, `useHealJetProps`, `TestResult`, `rollTest`, +29 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/engine/axes.ts`, `src/engine/combat.ts`, `src/engine/magic.ts`, `src/engine/skills.ts`, +19 fichiers
 
 **Voir aussi :** [Tests & Degrés de Réussite](tests.md) pour l'utilisation de ce niveau en test.
 
@@ -73,7 +73,7 @@ Nécessitent un entraînement. **Impossible de tenter le Test sans au moins une 
 **Sources RAW :** LDB 09 l.22-32
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.22-32) → `doc`, `hasHealSkill`, `possesses`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, +57 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +40 fichiers
+- `LDB 9` (l.22-32) → `doc`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, `useHealJetProps`, `art`, +58 — `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, +39 fichiers
 
 ---
 
@@ -98,7 +98,7 @@ la description, ou en crée une avec l'accord du MJ.
 **Sources RAW :** LDB 09 l.34-46
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.34-46) → `doc`, `hasHealSkill`, `possesses`, `specIdOf`, `art`, `buySkillAdvance`, `athletisme`, `buildAdvancementView`, `slotCovers`, `designateSpec`, +23 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +20 fichiers
+- `LDB 9` (l.34-46) → `doc`, `specIdOf`, `art`, `buySkillAdvance`, `athletisme`, `PREGEN`, `buildAdvancementView`, `slotCovers`, `designateSpec`, `possesses`, +24 — `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, +20 fichiers
 
 ---
 
@@ -183,7 +183,7 @@ Soin aux animaux, Voile**
 **Sources RAW :** LDB 09 l.65-574 (descriptions individuelles).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.65-574) → `mendier-ennuis`, `GearAssignList`, `porteADecouvrir`, `SOURCES_DE_SPECS`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `drivingAccidentDamage` ⚠sans-appelant, `DRUNK_CARACS`, `accidents-conduite-attelage`, `actBlockReason`, +106 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/drunkenness.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, +42 fichiers
+- `LDB 9` (l.65-574) → `mendier-ennuis`, `GearAssignList`, `porteADecouvrir`, `SOURCES_DE_SPECS`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `skillAdvantageCap`, `drivingAccidentDamage` ⚠sans-appelant, `DRUNK_CARACS`, `accidents-conduite-attelage`, +106 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/drunkenness.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, +42 fichiers
 
 ---
 
