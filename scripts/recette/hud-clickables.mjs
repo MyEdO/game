@@ -63,7 +63,7 @@
 //   · Dock >900 « disposition de référence » : aucun contrat propre hors bord à bord et hauteur.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, attendreSelecteur, VUE_REFERENCE } from './lib.mjs';
+import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, attendreSelecteur, VUE_REFERENCE, FN_NOMMER_ELEMENT } from './lib.mjs';
 
 // Les trois largeurs étroites (700/560/360) portent les recouvrements ; les deux larges portent la
 // zone morte du bandeau d'objectif, dont la boîte n'excède sa tête qu'au-delà de 900px — sonder
@@ -83,20 +83,35 @@ function parseArgs(argv) {
   return out;
 }
 
+/** ATTEINTE d'un élément (fonction de PAGE, source) : son centre, s'il est RENDU et DANS la fenêtre,
+ *  reçoit-il le clic (`elementFromPoint`) ? `cn` nomme, `box` arrondit (ceux de `PROBE`). Rend
+ *  `{ rendu, horsFenetre, ok, hitBy, rect }` ; hors fenêtre, `hitBy` vaut `null`. */
+export const FN_REACHES = `(el, cn, box) => {
+    const r = el.getBoundingClientRect();
+    const rendu = r.width > 0 && r.height > 0;
+    const x = r.x + r.width / 2, y = r.y + r.height / 2;
+    const horsFenetre = rendu && !(x >= 0 && y >= 0 && x < innerWidth && y < innerHeight);
+    const top = rendu && !horsFenetre ? document.elementFromPoint(x, y) : null;
+    return { rendu, horsFenetre, ok: !!(top && (top === el || el.contains(top))), hitBy: horsFenetre ? null : cn(top), rect: box(r) };
+  }`;
+
+/** Verdict d'un élément NON ATTEINT (`FN_REACHES`) : HORS FENÊTRE, ou recouvert par ce qui reçoit le clic. */
+const nonAtteint = (b, recouvert = 'recouvert') => b.horsFenetre
+  ? `est HORS FENÊTRE ${JSON.stringify(b.rect)} — aucun clic n'y arrive`
+  : `${JSON.stringify(b.rect)} ne reçoit pas son clic — ${recouvert} par ${b.hitBy}`;
+
+/** Ce qui reçoit le clic au point (fonction de PAGE) : son nom (`FN_NOMMER_ELEMENT`), ou `rien`. */
+export const FN_NOM_ATTEINT = `(e) => e ? (${FN_NOMMER_ELEMENT})(e) : 'rien'`;
+
 /** Sonde DOM : mesures + verdicts d'atteignabilité, en UN aller-retour par largeur. */
 const PROBE = `(() => {
-  const cn = (e) => e ? ((e.className && e.className.baseVal !== undefined ? e.className.baseVal : String(e.className || '')) + ' <' + e.tagName + '>') : 'rien';
+  const cn = ${FN_NOM_ATTEINT};
   const rectOf = (sel) => { const e = document.querySelector(sel); return e ? e.getBoundingClientRect() : null; };
   const box = (r) => r ? { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1) } : null;
   // Une boîte NON RENDUE (repliée, écran d'un parent en display:none) a un rect 0×0 : elle n'a aucun
   // clic à recevoir, et le point (0,0) rend le décor — la juger « recouverte » est un FAUX POSITIF
   // (mesuré : à 560 et 360 la bande de groupe est repliée sur sa poignée, piste en display none).
-  const reaches = (el) => {
-    const r = el.getBoundingClientRect();
-    const rendu = r.width > 0 && r.height > 0;
-    const top = rendu ? document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) : null;
-    return { rendu, ok: !!(top && (top === el || el.contains(top))), hitBy: cn(top), rect: box(r) };
-  };
+  const reaches = (el) => (${FN_REACHES})(el, cn, box);
   const overlap = (a, b) => {
     if (!a || !b) return null;
     const ox = Math.min(a.right, b.right) - Math.max(a.x, b.x);
@@ -126,8 +141,9 @@ const PROBE = `(() => {
     rect: box(rp),
     points: rp && rp.width > 0 && rp.height > 0 ? [0.1, 0.5, 0.9].map((hauteur) => {
       const x = rp.x + rp.width / 2, y = rp.y + rp.height * hauteur;
-      const top = document.elementFromPoint(x, y);
-      return { hauteur, x: +x.toFixed(1), y: +y.toFixed(1), ok: !!(top && panneau.contains(top)), hitBy: cn(top) };
+      const horsFenetre = !(x >= 0 && y >= 0 && x < innerWidth && y < innerHeight);
+      const top = horsFenetre ? null : document.elementFromPoint(x, y);
+      return { hauteur, x: +x.toFixed(1), y: +y.toFixed(1), horsFenetre, ok: !!(top && panneau.contains(top)), hitBy: cn(top) };
     }) : [],
     surPont: overlap(rp, pont ? pont.getBoundingClientRect() : null),
   } : null;
@@ -154,7 +170,6 @@ const PROBE = `(() => {
   // d'écran doit se poser lui-même (sinon il retombe dans le flux du stage).
   const rail = document.querySelector('.hud-rail');
   const rails = rail ? {
-    attendu: !!window.__wfrp.store.getState().vessel,
     dissous: getComputedStyle(rail).display === 'contents',
     ouvreurs: [...document.querySelectorAll('.hud-rail > .worldmap-btn')].map((b, i) => ({
       i, label: (b.getAttribute('title') || '').trim(), position: getComputedStyle(b).position, ...reaches(b),
@@ -595,18 +610,24 @@ export function defauts(m, phase) {
   else if (m.tiroir.points?.length !== 3 || [0.1, 0.5, 0.9].some((hauteur) => !m.tiroir.points.some((p) => p.hauteur === hauteur))) {
     out.push(`${phase} ${m.largeur}px : les trois points du journal ouvert ne sont pas mesurés — sonde aveugle`);
   } else for (const p of m.tiroir.points) {
-    if (!p.ok) out.push(`${phase} ${m.largeur}px : le panneau du journal à ${p.hauteur * 100} % ne reçoit pas son clic (${p.x}, ${p.y}) — recouvert par ${p.hitBy}`);
+    if (p.horsFenetre) out.push(`${phase} ${m.largeur}px : le panneau du journal à ${p.hauteur * 100} % est HORS FENÊTRE (${p.x}, ${p.y}) — aucun clic n'y arrive`);
+    else if (!p.ok) out.push(`${phase} ${m.largeur}px : le panneau du journal à ${p.hauteur * 100} % ne reçoit pas son clic (${p.x}, ${p.y}) — recouvert par ${p.hitBy}`);
   }
-  if (m.navire && (!m.rail || (!m.rail.dissous && !m.rail.ouvreurs.length))) out.push(`${phase} ${m.largeur}px : ouvreur attendu du navire absent — sonde aveugle sur l'accès au navire`);
+  // Le rail d'outils, et l'ouvreur du navire qu'il porte, n'existent qu'en combat (`CampaignView.tsx`,
+  // `mode === 'battle'`) : « avec navire » est une phase du même run, l'ouvreur n'est attendu qu'en combat.
+  if (phase === 'combat' && m.navire && !m.rail?.ouvreurs.length) {
+    out.push(m.rail?.dissous
+      ? `${phase} ${m.largeur}px : le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle sur l'accès à la carte`
+      : `${phase} ${m.largeur}px : ouvreur attendu du navire absent — sonde aveugle sur l'accès au navire`);
+  }
   // Rail DISSOUS : son ouvreur d'écran porte son propre ancrage, ou il retombe dans le flux.
   if (m.rail?.dissous) {
-    if (m.rail.attendu && !m.rail.ouvreurs.length) out.push(`${phase} ${m.largeur}px : le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle sur l'accès à la carte`);
     for (const b of m.rail.ouvreurs) {
       if (b.position === 'static') out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » du rail dissous est en flux (position: static) — il retombe dans le stage`);
     }
   }
   for (const b of m.rail?.ouvreurs ?? []) {
-    if (!b.ok) out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — recouvert par ${b.hitBy}`);
+    if (!b.ok) out.push(`${phase} ${m.largeur}px : l'ouvreur « ${b.label} » ${nonAtteint(b)}`);
   }
   out.push(...defautsGroupe(m, phase));
   if (m.combat) {
@@ -616,7 +637,7 @@ export function defauts(m, phase) {
     if (!m.dock) out.push(`${phase} ${m.largeur}px : aucune console (.combat-console) — sonde aveugle sur le pont de tour`);
     else if (!m.dockBtns.length) out.push(`${phase} ${m.largeur}px : la console ne porte aucune case — sonde aveugle`);
     for (const b of m.dockBtns) {
-      if (!b.ok) out.push(`${phase} ${m.largeur}px : la case « ${b.label} » ${JSON.stringify(b.rect)} ne reçoit pas son clic — recouverte par ${b.hitBy}`);
+      if (!b.ok) out.push(`${phase} ${m.largeur}px : la case « ${b.label} » ${nonAtteint(b, 'recouverte')}`);
     }
     if (m.feedXfrise) out.push(`${phase} ${m.largeur}px : le fil d'événements recouvre la frise d'initiative de ${m.feedXfrise.ox}×${m.feedXfrise.oy}px`);
     // TIROIR DU JOURNAL : c'est ici que se mesure sa réserve du bas — un panneau qui passe SOUS la
@@ -655,14 +676,14 @@ export function defautsGroupe(m, phase) {
   if (m.groupe && m.groupe.cartes === 0) {
     if (!m.groupe.poignee) out.push(`${phase} ${m.largeur}px : le groupe ne rend aucune carte ET n'offre aucune poignée — il est hors d'atteinte`);
     else if (!m.groupe.poignee.rendu) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié n'est pas rendue — le groupe est hors d'atteinte`);
-    else if (!m.groupe.poignee.ok) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ${JSON.stringify(m.groupe.poignee.rect)} ne reçoit pas son clic — recouverte par ${m.groupe.poignee.hitBy}`);
+    else if (!m.groupe.poignee.ok) out.push(`${phase} ${m.largeur}px : la poignée du groupe replié ${nonAtteint(m.groupe.poignee, 'recouverte')}`);
   }
   // Portraits du groupe, aux DEUX phases (en combat, la bande dépliée ≤560 doit passer devant le fil
   // d'événements). RENDUS seulement : une tuile de bande repliée n'est pas recouverte, elle n'est pas
   // montée à l'écran — c'est le verdict de POIGNÉE (ci-dessus) qui garde ce cas-là.
   if (!m.portraits.length) out.push(`${phase} ${m.largeur}px : aucun portrait de groupe — sonde aveugle`);
   for (const p of m.portraits.filter((x) => x.rendu)) {
-    if (!p.ok) out.push(`${phase} ${m.largeur}px : le portrait ${p.i} du groupe ne reçoit pas son clic — recouvert par ${p.hitBy}`);
+    if (!p.ok) out.push(`${phase} ${m.largeur}px : le portrait ${p.i} du groupe ${nonAtteint(p)}`);
   }
   return out;
 }
@@ -844,7 +865,7 @@ async function main() {
       await sleep(500);
       const m = await evaluate(session, PROBE);
       if (m.combat) throw new Error(`exploration ${w}px : la frise d'initiative est montée — l'app n'est pas en exploration`);
-      if (!m.navire) console.log(`exploration ${w}px — accès au navire NON MESURÉ (aucun navire attendu)`);
+      console.log(`exploration ${w}px — accès au navire NON MESURÉ (${m.navire ? "navire présent, mais le rail qui porte son ouvreur n'existe qu'en combat" : 'aucun navire'})`);
       const d = [...defauts(m, 'exploration'), ...defautsMatrice(m, 'exploration')];
       serieExploration.push(m);
       const bande = !m.groupe ? 'aucune bande de groupe'
