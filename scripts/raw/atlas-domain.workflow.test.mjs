@@ -60,7 +60,7 @@ const repondreAvec = (trous) => {
   let audits = 0
   return (_prompt, opts) => {
     switch (opts.phase) {
-      case 'Cadrage': return { coverageRefs: [{ ab: 'BKA', nn: '05' }], sonnetBooks: ['SPG'] }
+      case 'Cadrage': return { coverageRefs: [{ ab: 'BKA', nn: '05' }] }
       case 'Cartographie': return { items: [{ item: 'Une regle de fixture', kind: 'table', ref: 'BKA 05 l.1-2', gist: 'un gist' }] }
       case 'Taxonomie': return { topics: [{ id: 'topic-un', t: 'Topic Un', hint: 'un hint', covers: ['Une regle de fixture'] }] }
       case 'Survey': return { hits: [{ topicId: 'topic-un', ref: 'BKA 05 l.1', gist: 'un gist' }] }

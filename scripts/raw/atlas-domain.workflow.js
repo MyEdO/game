@@ -5,7 +5,7 @@ export const meta = {
     { title: 'Cadrage', detail: 'auto-decouverte des chapitres du domaine (index)', model: 'sonnet' },
     { title: 'Cartographie', detail: 'inventaire exhaustif a couvrir', model: 'sonnet' },
     { title: 'Taxonomie', detail: 'topics couvrant tout l inventaire', model: 'opus' },
-    { title: 'Survey', detail: 'consolidation de tous les livres du perimetre', model: 'haiku/sonnet' },
+    { title: 'Survey', detail: 'consolidation de tous les livres du perimetre', model: 'sonnet' },
     { title: 'Synthese', detail: 'entrees autosuffisantes, tables verbatim', model: 'opus' },
     { title: 'Audit', detail: 'completude+dedup en boucle (loop-until-dry)', model: 'opus' },
     { title: 'Correction', detail: 'augmentation des entrees : trous d audit, infidelites', model: 'opus' },
@@ -127,7 +127,7 @@ const slug = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().rep
 // Le SIGNALEMENT d une source abimee : le champ que la clause de lecture seule promet a l agent.
 // Hors `required` — la plupart des passages vont bien, et un champ exige ferait inventer un constat.
 const ABIMEE = { type: 'array', items: { type: 'object', properties: { ref: { type: 'string' }, constat: { type: 'string' } }, required: ['ref', 'constat'] } }
-const CADRAGE_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, coverageRefs: { type: 'array', items: { type: 'object', properties: { ab: { type: 'string' }, nn: { type: 'string' } }, required: ['ab', 'nn'] } }, sonnetBooks: { type: 'array', items: { type: 'string' } } }, required: ['coverageRefs', 'sonnetBooks'] }
+const CADRAGE_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, coverageRefs: { type: 'array', items: { type: 'object', properties: { ab: { type: 'string' }, nn: { type: 'string' } }, required: ['ab', 'nn'] } } }, required: ['coverageRefs'] }
 const INVENTORY_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, items: { type: 'array', items: { type: 'object', properties: { item: { type: 'string' }, kind: { type: 'string' }, ref: { type: 'string' }, gist: { type: 'string' } }, required: ['item', 'ref'] } } }, required: ['items'] }
 const TAXO_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, topics: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, t: { type: 'string' }, hint: { type: 'string' }, covers: { type: 'array', items: { type: 'string' } } }, required: ['id', 't', 'hint'] } } }, required: ['topics'] }
 const SURVEY_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, hits: { type: 'array', items: { type: 'object', properties: { topicId: { type: 'string' }, ref: { type: 'string' }, gist: { type: 'string' } }, required: ['topicId', 'ref', 'gist'] } } }, required: ['hits'] }
@@ -156,8 +156,8 @@ function cadragePrompt(dom) {
     + '\n' + MAPPING_LIVRES
     + '\n\n' + 'Les domaines de l Atlas — le TIEN est "' + dom.domain + '" ; les chapitres-FOYERS de tout AUTRE domaine sont HORS de ton perimetre :'
     + '\n' + CARTE_DOMAINES
-    + '\n\n' + 'Renvoie coverageRefs = SEULEMENT le(s) chapitre(s) DEDIE(s) au domaine (1 a 3 MAXIMUM, nn = prefixe du fichier). EXCLUS imperativement tout chapitre qui est le FOYER d un AUTRE domaine de la liste ci-dessus : ces regles voisines seront cross-referencees en « Voir aussi », jamais re-couvertes ici. Ajoute uniquement un chapitre de SUPPLEMENT vraiment dedie au domaine (p. ex. un systeme alternatif). Le but est un domaine ETROIT, sans chevauchement. sonnetBooks = livres DENSES pour CE domaine.'
-    + '\n' + 'Renvoie { coverageRefs, sonnetBooks }.'
+    + '\n\n' + 'Renvoie coverageRefs = SEULEMENT le(s) chapitre(s) DEDIE(s) au domaine (1 a 3 MAXIMUM, nn = prefixe du fichier). EXCLUS imperativement tout chapitre qui est le FOYER d un AUTRE domaine de la liste ci-dessus : ces regles voisines seront cross-referencees en « Voir aussi », jamais re-couvertes ici. Ajoute uniquement un chapitre de SUPPLEMENT vraiment dedie au domaine (p. ex. un systeme alternatif). Le but est un domaine ETROIT, sans chevauchement.'
+    + '\n' + 'Renvoie { coverageRefs }.'
     + '\n' + LECTURE_SEULE
 }
 
@@ -375,8 +375,7 @@ async function runDomain(domain) {
   recolter(cad, 'Cadrage')
   const COVERAGE = (cad && cad.coverageRefs) || []
   if (!COVERAGE.length) return { saute: 'cadrage VIDE : aucun chapitre dedie rendu par l agent de cadrage' }
-  const SONNET = new Set([REFERENCE.ab, ...((cad && cad.sonnetBooks) || [])])
-  log(dom.title + ' — cadrage : ' + COVERAGE.map((r) => r.ab + r.nn).join(',') + ' ; denses=' + [...SONNET].join(','))
+  log(dom.title + ' — cadrage : ' + COVERAGE.map((r) => r.ab + r.nn).join(','))
 
   phase('Cartographie')
   const invRes = await parallel(COVERAGE.map((r) => () => agent(cartoPrompt(dom, r), { label: dom.domain + ':carto:' + r.ab + '-' + r.nn, phase: 'Cartographie', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: INVENTORY_SCHEMA })
@@ -394,16 +393,8 @@ async function runDomain(domain) {
   log(dom.title + ' — ' + TOPICS.length + ' topics')
 
   phase('Survey')
-  const surveyRes = await parallel(BOOKS.map((b) => () => {
-    // Livre DENSE pour ce domaine (cadrage) : sonnet ; les autres, haiku.
-    if (SONNET.has(b.ab)) {
-      return agent(surveyPrompt(dom, b, TOPICS), { label: dom.domain + ':survey:' + b.ab, phase: 'Survey', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: SURVEY_SCHEMA })
-        .then((rendu) => recolter(rendu, 'Survey'))
-    } else {
-      return agent(surveyPrompt(dom, b, TOPICS), { label: dom.domain + ':survey:' + b.ab, phase: 'Survey', agentType: 'lecteur', model: 'haiku', effort: 'medium', schema: SURVEY_SCHEMA })
-        .then((rendu) => recolter(rendu, 'Survey'))
-    }
-  }))
+  const surveyRes = await parallel(BOOKS.map((b) => () => agent(surveyPrompt(dom, b, TOPICS), { label: dom.domain + ':survey:' + b.ab, phase: 'Survey', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: SURVEY_SCHEMA })
+    .then((rendu) => recolter(rendu, 'Survey'))))
   const byTopic = {}
   TOPICS.forEach((t) => { byTopic[t.id] = [] })
   const autre = []

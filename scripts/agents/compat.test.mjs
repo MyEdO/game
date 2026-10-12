@@ -4,7 +4,7 @@ import { Buffer } from 'node:buffer';
 import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
-  transformSkillTree, validateRolePairs, buildExpectedOutputs as sortiesAttendues, collectDiffs,
+  transformSkillTree, validateRolePairs, OUTILS_NON_RESOLUS, buildExpectedOutputs as sortiesAttendues, collectDiffs,
   DESTINATIONS, HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, compilerMatcher, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
@@ -134,6 +134,17 @@ test('valide noms, descriptions et références des rôles', () => {
   const codex = new Map([['codeur', 'name = "codeur"\ndescription = "Exécute"\ndeveloper_instructions = """\nLire AGENTS.md et .agents/skills/demo/SKILL.md.\n"""']]);
   assert.deepEqual(validateRolePairs(claude, codex), []);
   assert.equal(validateRolePairs(claude, new Map())[0].type, 'missing');
+});
+
+test('refuse une entrée `tools:` hors du pool des sous-agents, accepte un outil résolu', () => {
+  const paire = (tools) => [
+    new Map([['joueur', `---\nname: joueur\ndescription: Joue\ntools: ${tools}\n---\nCorps.\n`]]),
+    new Map([['joueur', 'name = "joueur"\ndescription = "Joue"\ndeveloper_instructions = """\nCorps.\n"""']]),
+  ];
+  assert.deepEqual(validateRolePairs(...paire('CronList')), []);
+  for (const outil of OUTILS_NON_RESOLUS) {
+    assert.deepEqual(validateRolePairs(...paire(`Read, ${outil}`)).map((d) => [d.type, d.message]), [['tools', `outil « ${outil} » hors du pool des sous-agents`]]);
+  }
 });
 
 test('génère seulement le credo Codex et partage la mémoire Claude', () => {

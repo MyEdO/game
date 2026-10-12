@@ -60,7 +60,9 @@ jamais écrites. Fermer sur « déjà implémenté » ou « documenté » appell
 **1. Grounding.** Sweep de 3+ fichiers → `lecteur` ; 1-2 lectures ciblées inline = OK. La décision
 d'archi reste dans mon fil, **primitives cibles NOMMÉES avant tout code**. Mon grounding est fort en
 LARGEUR et faible en PROFONDEUR sur le `Source/` : l'ouvrir moi-même est ma pratique au meilleur
-rendement. Tout ticket de plus de 30 jours est RÉ-INSTRUIT par un `lecteur` avant dispatch. Vague
+rendement. Tout ticket de plus de 30 jours est RÉ-INSTRUIT par un `lecteur` avant dispatch. Les
+COMMENTAIRES d'un ticket se lisent à la composition et vont au juge de design (trame #1561, 2026-10-12 :
+lus après le premier code, 79 min reprises). Vague
 transversale → paragraphe de DESIGN (invariant, qui possède quoi, critère « N+1 = une ligne ») attaqué
 par un juge AVANT le premier codeur ; deux passes sur la même classe = défaut de design, remonter d'un
 niveau.
@@ -117,6 +119,8 @@ travaux DIFFÉRENTS aux entrées différentes, jamais pour multiplier les regard
 **Un train = 4 ou 5 gestes au plus** : le codeur rend le diff → je committe sur la branche du worktree
 → je pousse la branche, dont le run CI joue les gates → juge de diff en parallèle → corrections en
 train court.
+Un type dont le frontmatter épingle un `model` ne reçoit pas de `model` à l'appel de l'outil Agent :
+l'alias `haiku` sert 4.5 (#2537).
 
 **4. Isolation.** Agent qui MUTE des fichiers pendant qu'une session // est active →
 `isolation: "worktree"` (créé sur `origin/main`, `npm ci` + `npm --prefix server ci`) ; à défaut
@@ -130,10 +134,14 @@ committé » et « fait dans un autre worktree » ; le brief de relance porte l'
 « si le livrable existe déjà, PIVOTE en revue ». Tout geste POSTÉRIEUR à une mesure la périme : le
 rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIMÉS, je rejoue
 `npm run test:perimetre` avant de committer.
+- **Agent rendu depuis plus de 5 min = agent NEUF, jamais `SendMessage`**, quel que soit son type. Le
+  cache d'un sous-agent vit 5 min (la session, 1 h) : une reprise plus tardive RÉÉCRIT tout son
+  contexte (#2568). La suite part dans un agent NEUF au brief COURT (corrections d'un verdict : sha
+  commité, verdict, périmètre).
 
-**6. Vérification — par MOI, jamais sur la foi du rapport.** Typecheck complet et `npm run test:perimetre`
-avant commit — la suite complète est jouée UNE fois par le run CI de la branche, jamais en local avant
-commit ; revue du diff, UI → skill `recette-navigateur`. Deux suites complètes simultanées sur la
+**6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et
+`npm run test:perimetre` avant commit — le typecheck complet et la suite complète sont joués UNE fois par
+le run CI de la branche, la garde `codeur-gates` les refuse en local à tout appelant ; revue du diff, UI → skill `recette-navigateur`. Deux suites complètes simultanées sur la
 machine = effondrement de contention : les suites lourdes se SÉRIALISENT, ping inter-session avant
 lancement.
 - ⚠ **Les portes machine sont un PLANCHER, jamais un signal de correction** : sur une session mesurée,
@@ -155,8 +163,8 @@ lancement.
   (le message le dit) ou saute les gros fichiers — une absence se recoupe par `git grep` ;
   `Measure-Object -Line` (PowerShell) ne compte pas les lignes vides — `wc -l` ou `git grep -c ""` ;
   `npm run typecheck:fast` est incrémental sur un tsbuildinfo PARTAGÉ entre sessions
-  (`scripts/typecheck-fast.mjs:37-38`) — au doute, la porte complète `npm run typecheck`
-  (script `typecheck` de `package.json`, `--incremental false`) ;
+  (`scripts/typecheck-fast.mjs:37-38`) — au doute, pousser la branche : son run CI joue le typecheck
+  complet ;
   le hook `read-dedup` rend un faux « unchanged since last read » sur un
   fichier JAMAIS lu (`ctx_read(mode=raw, fresh=true)`) ; un agent d'art à qui `Read` d'une image est
   refusé relance `node C:/Users/gauch/.claude/fix-leanctx-settings.mjs`.
@@ -185,6 +193,11 @@ ABSTENTIONS (« bloqué / dépendance externe » → question inversée « prouv
 pas », une sonde d'existence suffit, étage `verif-mecanique`) et MES PROPRES COMMITS (gates, hooks,
 glue : le canal « trivial » est le seul que personne ne relit). Ces règles se DURCISSENT sous pression
 de temps, elles ne s'y suspendent pas.
+- **Le juge de fermeture est NEUF** : sans l'historique du design ni des corrections, avec pour brief le
+  DoD, le diff et les tests. Le `verdict:` d'un solde est SA sortie, jamais un gabarit pré-rempli. Un DoD
+  ou un solde QUANTIFIÉ (« tout helper », « jamais », « chaque ») porte l'ÉNUMÉRATION de sa classe :
+  commande et sortie qui listent les sites. Une liste de noms écrite de mémoire n'en est pas une (trame
+  #1561, 2026-10-12 : 2 soldes sur 11 réfutés, `survoler`/`molette` jamais lus).
 - **Chaque clôture de phase : passe de juge « ARCHITECTURE À REBOURS »** — si on partait de zéro avec
   la cible d'aujourd'hui, cette couture existerait-elle ?
 - **C'est le TRAVAIL qui se ferme, pas le ticket.** Une fermeture qui émettrait PLUS D'UN ticket de
@@ -226,7 +239,7 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Étage | Type (`.claude/agents/`) | Modèle | Effort |
 |---|---|---|---|
 | Lecture / comparaison de masse | `lecteur` | sonnet | medium |
-| Vérification mécanique (existence, famille) | `verif-mecanique` | haiku | low |
+| Vérification mécanique (existence, famille) | `verif-mecanique` | claude-haiku-5-5 | low |
 | Code sous spec précise | `codeur` | opus | medium |
 | Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | high |
 | Rédaction fidèle au Source (fiches, synthèses de règles) | `lecteur` | opus | medium |

@@ -126,6 +126,9 @@ export function transformSkillTree(sourceFiles) {
   return outputs;
 }
 
+// #2537
+export const OUTILS_NON_RESOLUS = Object.freeze(['StructuredOutput', 'TodoWrite', 'TaskCreate', 'TaskGet', 'TaskUpdate', 'TaskList', 'SendFeedback', 'ScheduleWakeup', 'EnterPlanMode', 'ExitPlanMode', 'AskUserQuestion']);
+
 export function validateRolePairs(claudeProfiles, codexProfiles) {
   const diagnostics = [];
   for (const role of new Set([...claudeProfiles.keys(), ...codexProfiles.keys()])) {
@@ -142,6 +145,9 @@ export function validateRolePairs(claudeProfiles, codexProfiles) {
       const instructions = readTomlStringField(toml, 'developer_instructions', `${role}.toml`);
       if (frontmatter.attributes.get('name') !== role || name !== role)
         diagnostics.push({ family: 'agent', destination: role, type: 'parse', message: 'name différent du nom de fichier' });
+      for (const outil of (frontmatter.attributes.get('tools') ?? '').split(',').map((entree) => entree.trim()))
+        if (OUTILS_NON_RESOLUS.includes(outil))
+          diagnostics.push({ family: 'agent', destination: role, type: 'tools', message: `outil « ${outil} » hors du pool des sous-agents` });
       if (frontmatter.attributes.get('description') !== description)
         diagnostics.push({ family: 'agent', destination: role, type: 'content', message: 'description fonctionnelle divergente' });
       const expected = referencesIn(adapt(frontmatter.body).split('.claude/skills/').join('.agents/skills/'));

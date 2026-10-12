@@ -19,6 +19,8 @@ import { transformSkillTree } from '../agents/compat-core.mjs'
 import { clotureDImports } from '../guards/lib/importGraph.mjs'
 
 const HOOK = fileURLToPath(new URL('./pre-commit.mjs', import.meta.url))
+/** Le script `lint` du dépôt : le lint du hook en lit l'appel (`appelDuLint`). */
+const SCRIPT_LINT = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).scripts.lint
 
 /** Le module ESM qui dépose le TÉMOIN `nom` dans le cwd quand il est lancé. */
 const temoin = (nom) => `import { writeFileSync } from 'node:fs'\nwriteFileSync('temoin-${nom}', '')\n`
@@ -54,7 +56,7 @@ function depotDuHook(stages) {
   const { racine } = instanceDeDepot({
     fichiers: {
       '.gitattributes': '* text=auto eol=lf\n',
-      'package.json': JSON.stringify({ scripts }),
+      'package.json': JSON.stringify({ scripts: { ...scripts, lint: SCRIPT_LINT } }),
       ...tableTotale(SCRIPTS_PAR_CHEMIN, (c) => temoin(c.split('/').pop())),
     },
     message: 'socle',

@@ -14,6 +14,10 @@ import { versCheminNatif } from './commandeShell.mjs'
 /** La commande shell d'une entrée de hook (`''` sans commande). */
 export const commandeDe = (entree) => entree?.tool_name === 'apply_patch' ? '' : String(entree?.tool_input?.command ?? '')
 
+/** `true` si l'entrée de hook vient d'un SOUS-AGENT : son `agent_id`, jamais son `agent_type`, que porte aussi une
+ *  session lancée sous `--agent` (doc des hooks Claude Code, « Common input fields »). PURE. */
+export const sousAgent = (entree) => Boolean(entree?.agent_id)
+
 /** Le `tool_input` d'une entrée de hook, `null` s'il n'est pas un objet. */
 export const entreeDOutil = (entree) => (entree?.tool_input && typeof entree.tool_input === 'object' ? entree.tool_input : null)
 
