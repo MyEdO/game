@@ -150,6 +150,8 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
   // persiste pendant la descente.
   const grunburgAltdorf = bargeRoute(START_ID, SELL_ID, 45, 'r-grunburg-altdorf');
   grunburgAltdorf.river = true;
+  // Barrage à 35 % : valeur d'ADAPTATION du scénario, la chance du péril sur cette route n'est pas au
+  // Source. MSRC 7 l.128
   grunburgAltdorf.riverPerils = [{ perilId: 'debris', chancePct: 55 }, { perilId: 'barrage', chancePct: 35 }];
   // Exposition hydrique de la descente (MSRC 16, l.5) : l'équipage boit l'eau du Reik non bouillie en
   // approchant d'Altdorf (grande ville en aval → tableau 1 « Source d'eau », −20, l.23-33). Chaque étape à

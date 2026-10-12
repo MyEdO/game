@@ -27,11 +27,11 @@ import type { CascadeStep } from './pendings';
 import { resumeTravel } from './travelFlow';
 import { applyEffects, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import { cascadeAppliers } from './cascade';
+import { cascadeAppliers, registerCascadeApplier, runCascadeImmediate } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, resolveStake } from '../data';
-import { resultLine, testSkillLabel } from './rollSeam';
+import { resultLine, testSkillLabel, buildBand } from './rollSeam';
 import { t } from '../i18n';
 import { voyageTiles, vesselHullGauge } from '../ui/VoyageScreen';
 import { checkBattleOver } from './combatFlow';
@@ -2429,6 +2429,46 @@ describe('aucun PJ apte : la journée se joue au plancher de Manque de bras (MDG
     draineCascade(get, 80);
     expect(get().partyWiped, 'le groupe entièrement à terre n’est pas constaté non viable').toBe(true);
     expect(get().travelPlan, 'le voyage a survécu à la défaite').toBeNull();
+  });
+
+  it('journée SANS JET (aucune étape bâtie) : le départ constate la défaite lui-même, aucune cascade à drainer', () => {
+    set({
+      party: get().party.map((h) => ({ ...h, conditions: [{ id: 'inconscient', value: 1 }] })),
+      journal: [],
+      partyWiped: false,
+    });
+    get().startTravel('r1', 'mer');
+
+    expect(get().pendingCascade, 'la journée a bâti une étape : ce n’est pas le raccourci sans jet').toBeNull();
+    expect(get().suspendedCascades, 'une séquence attend derrière').toEqual([]);
+    expect(get().partyWiped, 'le raccourci « journée sans jet » n’a pas constaté le groupe non viable').toBe(true);
+    expect(get().travelPlan, 'le voyage a survécu à la défaite').toBeNull();
+    // La défaite PRÉCÈDE le dénouement du jour, comme à la clôture d'une cascade (`dispatchCascadeDone`) :
+    // l'entretien du bord (`continueSeaDayAfterCascade`) n'est pas joué par un groupe qui n'est plus viable.
+    expect(get().journal.join(' | '), 'l’entretien du jour s’est joué après la défaite').not.toMatch(/Résistance/);
+  });
+});
+
+/**
+ * Journée sous ordres PARQUÉE sur un choix sans défaut (`cascade.runCascadeImmediate`, #1595) : la
+ * décision prise, la clôture du jour verse au PV les bandes que le pilote a résolues sous `rowSurface`.
+ */
+describe('journée commandée parquée sur une décision : le PV du jour est versé à la clôture', () => {
+  beforeEach(freshState);
+  registerCascadeApplier('progression-choix-test', () => {});
+
+  it('la bande résolue à la reprise arrive au PV de la halte', () => {
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'commande' })! });
+    const h = get().party[0];
+    const bande = buildBand(get, { id: 'bande-pv', kind: 'orientation', label: fixtureText('Orientation'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne: { test: { skill: 'orientation', char: 'intelligence' } } }] })!;
+    const decision: CascadeStep = { id: 'decision', kind: 'progression-choix-test', label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
+    expect(runCascadeImmediate(get, set, [decision, bande], { title: 'Jour', purpose: 'travelDay', rowSurface: 'pv' })).toBeUndefined();
+
+    get().cascadeChoose('decision', 'a');
+    get().cascadeNext();
+    for (let i = 0; i < 30 && get().pendingCascade && !get().pendingRest; i++) stepCascade();
+    const entrees = get().pendingRest?.travelDay?.entries ?? [];
+    expect(entrees.length, 'la bande résolue à la reprise n’est pas au PV du jour').toBeGreaterThan(0);
   });
 });
 

@@ -22,11 +22,15 @@ import { draineCascade } from './cascadeTestKit';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
 import { voyageStakeRef } from '../data';
+import { KINDS_SOUS_ORDRES } from './voyageCadence';
 import type { Combatant } from '../engine/types';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 const NET0 = get().net;
+
+/** Les `kind` que couvrent les ORDRES d'une traversée, lus à leur source. */
+const SOUS_ORDRES = [...KINDS_SOUS_ORDRES];
 
 /** Les `kind` de l'entretien-survie maritime, tels que les émettent les trois phases du jour. */
 const KINDS_DE_MER = ['sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement'];
@@ -72,16 +76,19 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   it('COOP × COMMANDÉE : le héros d’un invité garde sa fenêtre (M) pour chaque kind sous ordres, mer comme fleuve', () => {
     const invite = get().party[0];
     set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
-    for (const [mode, kinds] of [['sea', KINDS_DE_MER], ['river', ['river-exposition']]] as const) {
+    for (const mode of ['sea', 'river'] as const) {
       traversee('commande', mode);
-      const mesure = kinds.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, [invite])])] as const);
-      expect(Object.fromEntries(mesure), mode).toEqual(tableTotale(kinds, () => 'M'));
+      const mesure = SOUS_ORDRES.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, [invite])])] as const);
+      expect(Object.fromEntries(mesure), mode).toEqual(tableTotale(SOUS_ORDRES, () => 'M'));
     }
   });
 
-  it('LOCAL × COMMANDÉE, CONTRÔLE POSITIF : la même bande de fleuve se résout d’office (I)', () => {
-    traversee('commande', 'river');
-    expect(surfaceDesEtapes(get, [bandeDe('river-exposition', get().party)])).toBe('I');
+  it('LOCAL × COMMANDÉE, CONTRÔLE POSITIF : les mêmes kinds se résolvent d’office (I), mer comme fleuve', () => {
+    for (const mode of ['sea', 'river'] as const) {
+      traversee('commande', mode);
+      const mesure = SOUS_ORDRES.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, get().party)])] as const);
+      expect(Object.fromEntries(mesure), mode).toEqual(tableTotale(SOUS_ORDRES, () => 'I'));
+    }
   });
 
   /**

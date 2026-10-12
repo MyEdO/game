@@ -873,12 +873,10 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
 const DRIFT_ALONG_ROUTE: Record<WindAspect, -1 | 0 | 1> = { arriere: 1, lateral: 0, face: -1 };
 const DRIFT_EFFECT_KEY = { 1: 'sv.driftAhead', 0: 'sv.driftAbeam', [-1]: 'sv.driftBack' } as const;
 
-/** Un jour de voyage maritime est-il de PURE ROUTINE (aucune décision susceptible de survenir) ? Une
- *  crise en cours, une infestation active, ou une route à embuscade NON ENCORE déclenchée forcent
- *  l'INTERACTIF pour la journée ENTIÈRE (simplification #275 Ronde 2 cran 3 assumée : l'ancre exacte
- *  n'est connue qu'après la Progression du jour — on ne peut pas savoir en amont si CE jour précis la
- *  franchira ; plutôt que risquer de résoudre une décision en silence, toute route à embuscade non
- *  déclenchée bascule la traversée entière en cascade interactive jusqu'à l'ancrage). */
+/** Journée de PURE ROUTINE, seule résolue d'un bloc sous ordres (`runCascadeImmediate`) : ni crise, ni
+ *  infestation, ni embuscade ancrée non déclenchée. L'embuscade ouvre son combat en plein vol (applier
+ *  `embuscade`), où le pilote immédiat ne rend ni la clôture du jour (`clotureHorsCombat`) ni les rangées
+ *  déjà résolues au PV (`pushDayEntries`). #275 */
 function seaDayAllRoutine(get: Get): boolean {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
@@ -1227,11 +1225,9 @@ export function runSeaDay(get: Get, set: Set): void {
   // prévoir un franchissement d'ancrage exact) suspend le fragment restant (`runCascadeImmediate` `ctx`).
   if (traverseeCommandee(get()) && seaDayAllRoutine(get)) {
     // `rowSurface: 'pv'` : les rangées des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries`
-    // ci-dessous) — le journal ne redit pas leurs dés (#1291). Les monos du tableau y gardent leur ligne.
+    // à la clôture) — le journal ne redit pas leurs dés (#1291). Les monos du tableau y gardent leur ligne.
     const resolved = runCascadeImmediate(get, set, steps, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
-    if (!resolved) return;
-    pushDayEntries(get, set, resolved);
-    continueSeaDayAfterCascade(get, set);
+    if (resolved) continueSeaDayAfterCascade(get, set, resolved);
     return;
   }
   startCascade(get, set, { title: t('sv.dayTitle'), icon: 'travel/wave', purpose: 'travelDay', steps });
@@ -1488,8 +1484,11 @@ function lignesResolues(steps: readonly CascadeStep[]): string[] {
  * ligne générée ICI passe par `tell()` (journal + `sea.lines`, durable) plutôt qu'un tableau local — une
  * cascade surfacée PAUSE l'exécution (reprise asynchrone par un clic), un accumulateur JS ne survivrait
  * pas la pause.
+ * `auPv` : les étapes qu'un pilote immédiat a résolues sous `rowSurface: 'pv'` — en direct, ou à la
+ * reprise d'une séquence parquée (`PendingCascade.piloteImmediat`) — versées au PV (`pushDayEntries`).
  */
-export function continueSeaDayAfterCascade(get: Get, set: Set): void {
+export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep[] = []): void {
+  if (get().travelPlan?.sea) pushDayEntries(get, set, auPv);
   const plan = get().travelPlan;
   // Une « Fuite de vapeur » (MDG 12 l.326-328) suspend le jour depuis l'applier `progression` : sa
   // reprise est `resolveSteamSave`, quel que soit le pilote qui a clos le fragment.
@@ -2169,9 +2168,7 @@ function continueSeaDayFromPostProgression(get: Get, set: Set): void {
   if (!insert.length) { continueSeaDayAfterCascade(get, set); return; }
   if (traverseeCommandee(get()) && seaDayAllRoutine(get)) {
     const resolved = runCascadeImmediate(get, set, insert, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
-    if (!resolved) return;
-    pushDayEntries(get, set, resolved);
-    continueSeaDayAfterCascade(get, set);
+    if (resolved) continueSeaDayAfterCascade(get, set, resolved);
     return;
   }
   startCascade(get, set, { title: t('sv.dayTitle'), icon: 'travel/wave', purpose: 'travelDay', steps: insert });

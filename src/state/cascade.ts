@@ -20,7 +20,7 @@ import type { GameState } from './store';
 import type { Combatant, Difficulty } from '../engine/types';
 import { roll, d100, type RNG, type DiceSpec } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
-import type { CascadeStep, CascadeStepMeta, PendingCascade, CascadeRoll, BatchParticipant, CascadeAggregate, CascadeSecondRead, CascadeDeDecl, CascadeDeTirage, CascadeDeResult, CascadeTableDecl, CascadeTableResult, OpposedRowFreeze, StepEvaluation, SeuilDeSauvegarde } from './pendings';
+import type { CascadeStep, CascadeStepMeta, PendingCascade, ReprisePilote, RowSurface, CascadeRoll, BatchParticipant, CascadeAggregate, CascadeSecondRead, CascadeDeDecl, CascadeDeTirage, CascadeDeResult, CascadeTableDecl, CascadeTableResult, OpposedRowFreeze, StepEvaluation, SeuilDeSauvegarde } from './pendings';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
 import type { StakeRef } from '../data';
@@ -700,13 +700,6 @@ export function stepOpposedFreeze(step: CascadeStep | undefined): OpposedRowFree
     ...(opp.defenderMustWin ? { defenderMustWin: true } : {}),
   };
 }
-
-/** SURFACE des rangées d'une bande résolue par un pilote sans fenêtre, DÉCLARÉE par ce pilote : le
- *  procès-verbal structuré d'une traversée (`dayEntriesFromStep`, `seaVoyageFlow.ts`) montre déjà
- *  chaque dé, ligne par ligne — le journal ne les redit pas (#1291). Absente = le journal est la seule
- *  surface, il porte les dés. Déclaration d'APPEL (rien n'entre dans la sauvegarde), patron du mono
- *  `unwitnessed`. */
-export type RowSurface = 'pv';
 
 /**
  * Lance d'office les participants SANS influence (pilotes automatiques — `resolveRemainingCascade`/
@@ -1672,15 +1665,15 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
     reconcileSuspended(get, set, p, { ...fondu, participants: steps, seq, cursor: Math.min(next, steps.length) });
     return null;
   }
-  if (next >= steps.length) {
-    set({ pendingCascade: null });
-    return { ...fondu, participants: steps, seq };
-  }
   // Séquence parquée par le pilote IMMÉDIAT sur une décision : la décision validée, la suite revient à
-  // CE pilote — l'appelant l'avait lancée sans fenêtre, la décision seule l'a rouverte.
-  if (p.piloteImmediat) {
+  // CE pilote, avec le contexte de son lancement — l'appelant l'avait lancée sans fenêtre, la décision
+  // seule l'a rouverte.
+  const reprise = next < steps.length ? p.piloteImmediat : undefined;
+  if (next >= steps.length || reprise) {
     set({ pendingCascade: null });
-    const fini = piloteImmediat(get, set, steps, { title: p.title, purpose: p.purpose, log: fondu.log }, next, seq);
+    if (!reprise) return { ...fondu, participants: steps, seq };
+    const ctx = reprise.sansContexte ? undefined : { title: p.title, purpose: p.purpose, log: fondu.log, rowSurface: reprise.rowSurface };
+    const fini = piloteImmediat(get, set, steps, ctx, next, seq);
     return fini ? { ...fondu, participants: fini, cursor: fini.length } : null;
   }
   const suite = poserLeCurseur(get, { ...fondu, participants: steps, seq, cursor: next });
@@ -1781,8 +1774,8 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  *
  * CHOIX sans `defaultChoice` authoré : jamais tranché en silence (`options[0]`) — la cascade s'arrête
  * PENDANTE, surfacée via `pendingCascade` (patron `resolveRemainingCascade`, #351), marquée
- * `piloteImmediat` : la décision validée, la suite reprend par CE pilote (`avanceUnPas`). La reprise ne
- * porte pas `ctx.rowSurface` (l'appelant qui collectait le PV a rendu la main) : ses rangées vont au journal.
+ * `piloteImmediat` du contexte de lancement (`ReprisePilote`) : la décision validée, la suite reprend par CE
+ * pilote (`avanceUnPas`) avec CE contexte, et le dénouement de la séquence honore sa `rowSurface`.
  *
  * `ctx.rowSurface` : l'appelant DÉCLARE que les rangées de ses BANDES se montrent ailleurs qu'au
  * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291). Les
@@ -1793,6 +1786,12 @@ export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ct
 }
 
 type ContexteDuPilote = { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface };
+
+/** Le contexte de lancement que la séquence parquée emporte (`ReprisePilote`). */
+function repriseDe(ctx: ContexteDuPilote | undefined): ReprisePilote {
+  if (!ctx) return { sansContexte: true };
+  return ctx.rowSurface ? { rowSurface: ctx.rowSurface } : {};
+}
 
 /** Le pilote immédiat, à partir de l'étape `depuis` — `0` à son lancement, l'étape qui suit la décision
  *  à sa reprise (`avanceUnPas`, séquence `piloteImmediat`). */
@@ -1837,7 +1836,7 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
         // modale la reprenne (devtools `advanceRiverDay`/`skipToArrival`, cadence commandée, tout
         // futur appelant immédiat).
         set({
-          pendingCascade: { title: ctx?.title ?? choix.label ?? 'Choix', purpose: ctx?.purpose ?? 'test', ...bornes, participants: cur, seq, cursor: i, piloteImmediat: true },
+          pendingCascade: { title: ctx?.title ?? choix.label ?? 'Choix', purpose: ctx?.purpose ?? 'test', ...bornes, participants: cur, seq, cursor: i, piloteImmediat: repriseDe(ctx) },
         });
         return undefined;
       }
