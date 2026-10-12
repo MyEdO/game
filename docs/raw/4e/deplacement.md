@@ -502,7 +502,7 @@ Complexe (−10) ; les deux manquants → Difficile (−20). Hiver ou printemps 
 commun** (EDOC 08 l.110-122).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.326-334) → `faim`, `soif`, `bandEntry`, `recovery`, `SEA_KINDS_SOUS_ORDRES`, `hungerThirstPenalty`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `exposure`, +42 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/exposure.ts`, +13 fichiers
+- `LDB 18` (l.326-334) → `faim`, `soif`, `bandEntry`, `recovery`, `hungerThirstPenalty`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `exposure`, `ExposureKind`, +41 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/exposure.ts`, +12 fichiers
 - `EDOC 8` (l.21-40, l.50-59, l.62, l.88-92, l.110-122) → `plein-air`, `weatherIdSchema`, `Season`, `doc`, `printemps`, `approvisionnement`, `Weather`, `dessin`, `ete`, `recueillir-informations`, +55 — `src/data/activities.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/maladies.ts`, +20 fichiers
 - dette : #674
 
@@ -757,7 +757,7 @@ Le bonus dure jusqu'à la prochaine Période de travail (8 h voiles, 2 h avirons
 **Voir aussi :** [Progression d'un navire (MDG)](#progression-dun-navire-mdg), [`etats.md`](etats.md) (Exténué).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.95-111) → `sea-navigation`, `plus2`, `plus1`, `SEA_KINDS_SOUS_ORDRES`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, `exhaustionDifficulty`, +20 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +7 fichiers
+- `MDG 13` (l.95-111) → `sea-navigation`, `plus2`, `plus1`, `KINDS_SOUS_ORDRES`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, `exhaustionDifficulty`, +20 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +7 fichiers
 
 ---
 
@@ -782,7 +782,7 @@ X = nombre de DR négatifs du Test de Résistance raté. `MDG 13 l.142`
 **Voir aussi :** [Progression d'un navire (MDG)](#progression-dun-navire-mdg), [Collisions de navires (MDG)](#collisions-de-navires-mdg), [`tests.md`](tests.md) (DR).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.113-142) → `sea-navigation`, `SEA_KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `forcePaceDifficulty`, `exhaustionDifficulty`, `OverspeedRow`, `WorldMapView`, `overspeedRow`, `overspeedDamage`, `FoulingLevel`, +22 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, +8 fichiers
+- `MDG 13` (l.113-142) → `sea-navigation`, `KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `forcePaceDifficulty`, `exhaustionDifficulty`, `OverspeedRow`, `WorldMapView`, `overspeedRow`, `overspeedDamage`, `FoulingLevel`, +22 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, +8 fichiers
 
 ---
 
@@ -805,7 +805,7 @@ Les petits navires peuvent être nettoyés par Compétences/Sorts/Miracles ou en
 **Voir aussi :** [Réparer un navire (MDG)](#réparer-un-navire-mdg), [Entretien du navire (Activité en mer) (MDG)](#entretien-du-navire-activité-en-mer-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.144-159) → `sea-navigation`, `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `OverspeedRow`, `overspeedDamage`, `FoulingLevel`, `weeklyFoulingLevel`, `sea-overspeed`, `aucune`, `sea-salissures`, +25 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +8 fichiers
+- `MDG 13` (l.144-159) → `sea-navigation`, `sea-weather`, `OverspeedRow`, `overspeedDamage`, `FoulingLevel`, `weeklyFoulingLevel`, `sea-overspeed`, `aucune`, `sea-salissures`, `legeres`, +24 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +7 fichiers
 
 ---
 
@@ -832,7 +832,7 @@ Lancer 1d10 pour chaque aspect (Précipitations, Température, Visibilité, Vent
 **Voir aussi :** [Vents (MDG)](#vents-mdg), [Orientation et phares (MDG)](#orientation-et-phares-mdg), [`etats.md`](etats.md) (Exposition).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `SEA_KINDS_SOUS_ORDRES`, `champs`, `REPORT_DE_COMBATTANT`, `FoulingLevel`, `construireCarte`, `sea-overspeed`, `aucune`, `applyExposureFailure`, +46 — `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, +15 fichiers
+- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `KINDS_SOUS_ORDRES`, `champs`, `REPORT_DE_COMBATTANT`, `FoulingLevel`, `construireCarte`, `sea-overspeed`, `aucune`, `applyExposureFailure`, +46 — `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, +15 fichiers
 
 ---
 
