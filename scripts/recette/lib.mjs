@@ -1892,11 +1892,11 @@ export async function infobulleDe(session, cible) {
  * CHOISIT une option d'un `<select>` AU GESTE (`session, selecteur, valeur`) — le pendant « liste
  * déroulante » de `clickButtonByText`/`typeInField`.
  *
- * Un `<select>` ne s'ouvre pas en headless (le popup est natif, hors DOM) : le geste réel qu'on peut
- * rejouer est celui du CLAVIER — focaliser la liste, poser `selectedIndex`, puis laisser partir les
- * événements `input` et `change` que le navigateur émet à la validation. Trois étages, tous DOM :
+ * La popup native d'un `<select>` est hors DOM et peut rester ouverte en headless. Le helper
+ * focalise la liste par un clic CDP, pose sa valeur par le setter natif, puis dispatche `input`
+ * et `change`, sans émettre de frappe clavier. Trois étages :
  *  1. FOCUS par un vrai clic CDP (comme `typeInField`) — la liste reçoit le geste, pas le `<body>` ;
- *  2. `selectedIndex` posé par le SETTER NATIF (`HTMLSelectElement.prototype.value`), jamais par un
+ *  2. `value` posé par le SETTER NATIF (`HTMLSelectElement.prototype.value`), jamais par un
  *     `setState` React : c'est ce qui fait voir la nouvelle valeur au `onChange` d'un champ CONTRÔLÉ
  *     (même piège que `.value = …` documenté dans `docs/recette-navigateur.md`) ;
  *  3. `input` puis `change` dispatchés `{ bubbles: true }` — React écoute `change` sur la racine.
