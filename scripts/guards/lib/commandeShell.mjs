@@ -20,6 +20,7 @@
 //     refusent la commande (`REFUS_SATURE`).
 import { Buffer } from 'node:buffer'
 import { readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { estRepertoire } from './gitPorte.mjs'
@@ -43,14 +44,20 @@ const ferme = (ligne, { mot, tabs }) => (tabs ? ligne.replace(/^\t+/, '') : lign
 
 /** Index de la fin du CORPS des heredocs ouverts (`{ mot, tabs, jeton }`), `pos` étant le début de la
  *  première ligne de corps. Un mot jamais refermé consomme le reste de la commande, comme le shell.
- *  Le corps d'un heredoc à mot QUOTÉ (`<<'EOF'`, sans expansion) va au `corps` de son jeton. */
+ *  Le corps LITTÉRAL d'un heredoc va au `corps` de son jeton : mot QUOTÉ (`<<'EOF'`, sans expansion), ou
+ *  mot nu dont le corps n'a ni `$`, ni `` ` ``, ni `\` (rien à développer) ; après `<<-`, sans les
+ *  tabulations de tête de ses lignes (`man bash`, Here Documents). */
 function finDesCorpsHeredoc(command, pos, ouverts) {
   let i = pos
+  const poser = (ouvert, corps) => {
+    if (!ouvert.litteral && /[$`\\]/.test(corps)) return
+    ouvert.jeton.corps = ouvert.tabs ? corps.replace(/^\t+/gm, '') : corps
+  }
   for (const ouvert of ouverts) {
     const debut = i
     for (;;) {
       if (i >= command.length) {
-        if (ouvert.litteral) ouvert.jeton.corps = command.slice(debut)
+        poser(ouvert, command.slice(debut))
         return command.length
       }
       const finLigne = command.indexOf('\n', i)
@@ -58,7 +65,7 @@ function finDesCorpsHeredoc(command, pos, ouverts) {
       const debutLigne = i
       i = finLigne === -1 ? command.length : finLigne + 1
       if (ferme(ligne, ouvert)) {
-        if (ouvert.litteral) ouvert.jeton.corps = command.slice(debut, debutLigne)
+        poser(ouvert, command.slice(debut, debutLigne))
         break
       }
     }
@@ -1232,10 +1239,15 @@ export function gitSubcommand(segment) {
 }
 
 /** Affectation PowerShell `$nom = …` en tête d'un segment (ses jetons) : `{ nom, valeur }`, `valeur` = les
- *  jetons qui suivent le `=`, ou `null`. */
+ *  jetons qui suivent le `=`, ou `null`. Collée (`$nom='…'`, un seul jeton), la valeur est le reste du jeton
+ *  brut, relu comme un jeton. */
 export function affectationPowerShell(jetons) {
   const nom = /^\$(\w+)$/.exec(jetons[0]?.text ?? '')?.[1]
-  return nom && jetonNu(jetons[0]) && jetons[1]?.text === '=' ? { nom, valeur: jetons.slice(2) } : null
+  if (nom && jetonNu(jetons[0]) && jetons[1]?.text === '=') return { nom, valeur: jetons.slice(2) }
+  const colle = /^\$(\w+)=(.+)$/s.exec(jetons[0]?.raw ?? '')
+  if (!colle) return null
+  const relus = tokenizeCommand(colle[2]).filter((j) => j.op === null)
+  return { nom: colle[1], valeur: [...relus, ...jetons.slice(1)] }
 }
 
 const SOUS_COMMANDES_GIT_DE_LECTURE = new Set(['grep', 'log', 'show', 'diff', 'blame'])
@@ -1381,11 +1393,14 @@ export function ciblesDeRedirectionAvecProvenance(jetons, depart = 0) {
 // absolu — aucune conversion.
 const DISQUE_POSIX_RE = /^\/([A-Za-z])\/(.*)$/
 
-/** Chemin de commande rendu natif pour la plateforme (`/c/Users/x` → `C:/Users/x` sur win32). */
-export function versCheminNatif(chemin, platform = process.platform) {
+/** Chemin de commande rendu natif pour la plateforme (`/c/Users/x` → `C:/Users/x` sur win32) ; `/tmp` de Git
+ *  Bash est le répertoire temporaire `tmp` (montage MSYS de `%TEMP%`). */
+export function versCheminNatif(chemin, platform = process.platform, tmp = tmpdir()) {
   if (platform !== 'win32') return chemin
   const m = DISQUE_POSIX_RE.exec(chemin)
-  return m ? `${m[1].toUpperCase()}:/${m[2]}` : chemin
+  if (m) return `${m[1].toUpperCase()}:/${m[2]}`
+  const t = /^\/tmp(?=\/|$)(.*)$/s.exec(chemin)
+  return t ? `${tmp}${t[1]}` : chemin
 }
 
 /** Les valeurs des flags globaux `git -C <path>` d'un segment, dans l'ordre ; `[]` hors git. Git les

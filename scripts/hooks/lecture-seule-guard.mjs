@@ -1,7 +1,7 @@
 // #2537 — garde des types en LECTURE SEULE (`enLectureSeule`, scripts/guards/lib/typesDAgent.mjs) : leurs
 // écritures shell DÉCLARÉES (`ciblesDEcritureDeCommande`) ne visent que le scratchpad de leur session.
-// Trous (#2537) : `awk system()`, `sed e`, `rg --pre`, sous-expression PowerShell, `git -c core.pager=`,
-// module importé par un script du scratchpad.
+// Trous (#2537) : `awk system()`, `sed e`, `rg --pre`, `git -c core.pager=`, `gh pr checkout`, script SUIVI qui
+// écrit, module importé par un script du scratchpad, `wget`, écritures `.git/` de `git status`.
 import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -34,8 +34,8 @@ export function scratchpadDeSession(entree, tmp = tmpdir()) {
 }
 
 /** `chemin` est-il `dossier` ou sous lui ? Chemins canonisés, casse ignorée sous win32. */
-function sous(chemin, dossier) {
-  const pli = (p) => (process.platform === 'win32' ? canoniser(p).toLowerCase() : canoniser(p))
+function sous(chemin, dossier, platform) {
+  const pli = (p) => (platform === 'win32' ? canoniser(p).toLowerCase() : canoniser(p))
   const rel = relative(pli(dossier), pli(chemin))
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
 }
@@ -59,48 +59,51 @@ function lireSurDisque(chemin) {
   }
 }
 
-/** Les écritures que DÉCLARE le `texte` du script `chemin` du scratchpad, lancé depuis `base`, parsé au
- *  dialecte de son extension (module JavaScript sans extension connue) : un défaut par cible inconnue ou
- *  hors du scratchpad, ou si le texte ne se parse pas. */
-function defautsDuScript(chemin, texte, base, scratchpad) {
-  const rel = scriptKindDe(chemin, { inconnu: 'refus' }) === null ? 'script.mjs' : `script${extname(chemin)}`
-  if (analyserTexte({ rel, text: texte }).diagnostics.length) return [`script ${chemin} non jugeable : il ne se parse pas (${rel})`]
-  return ciblesDEcritureJS(texte, { rel }).flatMap((cible) => {
-    if (cible.inconnue || base === null) return [`script ${chemin} : écriture ${cible.operation} à chemin non littéral`]
-    return sous(resolve(base, versCheminNatif(cible.chemin)), scratchpad) ? [] : [`script ${chemin} : ${cible.operation} hors du scratchpad (${cible.chemin})`]
-  })
-}
-
 /**
- * Les défauts d'une commande d'un type en lecture seule, contre son `scratchpad`. Un script du scratchpad
- * se juge au texte que la commande y écrit AVANT de le lancer (`contenu` de `ciblesDEcritureDeCommande`),
- * sinon au disque (`lire`) ; un script hors du scratchpad passe s'il est suivi (`suivi`).
+ * Les défauts d'une commande d'un type en lecture seule, contre son `scratchpad`. Un script lancé passe s'il
+ * est suivi (`suivi`) ; dans le scratchpad, un script JS se juge à ses écritures déclarées
+ * (`ciblesDEcritureJS`), au texte que la commande y écrit AVANT de le lancer (`contenu`), sinon au disque
+ * (`lire`) ; tout autre script, et tout langage non lu, se refuse.
  * @param {string} commande
- * @param {{ base: string, scratchpad: string | null, platform?: NodeJS.Platform, lire?: typeof lireSurDisque, suivi?: (chemin: string) => boolean }} contexte
+ * @param {{ base: string, scratchpad: string | null, platform?: NodeJS.Platform, env?: Record<string, string | undefined>, lire?: typeof lireSurDisque, suivi?: (chemin: string) => boolean }} contexte
  */
-export function defautsDeCommande(commande, { base, scratchpad, platform = process.platform, lire = lireSurDisque, suivi = suiviParGit }) {
+export function defautsDeCommande(commande, contexte) {
+  const { base, scratchpad, platform = process.platform, env = {}, lire = lireSurDisque, suivi = suiviParGit } = contexte
   const cle = (chemin) => (platform === 'win32' ? chemin.toLowerCase() : chemin)
   const ecrits = new Map()
-  return ciblesDEcritureDeCommande(commande, { base, platform, scripts: true }).flatMap((cible) => {
+  /** Les défauts du script JS `chemin` du scratchpad, de texte `texte`, lancé depuis `depuis` avec `argv`. */
+  const defautsDuScript = (chemin, texte, depuis, argv) => {
+    const rel = scriptKindDe(chemin, { inconnu: 'refus' }) === null ? 'script.mjs' : `script${extname(chemin)}`
+    if (analyserTexte({ rel, text: texte }).diagnostics.length) return [`script ${chemin} non jugeable : il ne se parse pas (${rel})`]
+    return ciblesDEcritureJS(texte, { rel, fichier: chemin, argv }).flatMap((cible) => {
+      if (cible.commande !== undefined) return defautsDeCommande(cible.commande, { ...contexte, base: depuis ?? base }).map((d) => `script ${chemin} : ${cible.operation} « ${cible.commande} » : ${d}`)
+      if (cible.inconnue || depuis === null) return [`script ${chemin} : écriture ${cible.operation} à chemin non littéral`]
+      return sous(resolve(depuis, versCheminNatif(cible.chemin, platform)), scratchpad, platform) ? [] : [`script ${chemin} : ${cible.operation} hors du scratchpad (${cible.chemin})`]
+    })
+  }
+  return ciblesDEcritureDeCommande(commande, { base, platform, env, scripts: true }).flatMap((cible) => {
     if (cible.puits) return []
     if (cible.inconnue) return [`cible d'écriture non résolue (${cible.operation} dans « ${cible.segment?.source ?? commande} »)`]
     if (cible.operation === 'script') {
-      if (scratchpad === null || !sous(cible.chemin, scratchpad)) return suivi(cible.chemin) ? [] : [`script ${cible.chemin} ni dans le scratchpad, ni suivi par le dépôt`]
+      const dansLeScratchpad = scratchpad !== null && sous(cible.chemin, scratchpad, platform)
+      if (!dansLeScratchpad) return suivi(cible.chemin) ? [] : [`script ${cible.chemin} ni dans le scratchpad, ni suivi par le dépôt`]
+      if (cible.langage !== 'js') return suivi(cible.chemin) ? [] : [`script ${cible.chemin} : langage ${cible.langage} non lu`]
       const ecrit = ecrits.get(cle(cible.chemin))
       const lu = ecrit === undefined ? lire(cible.chemin) : ecrit === null ? { raison: "modifié par la commande qui le lance : son texte ne se lit qu’après exécution — l’écrire par `cat > <script> <<'MOT'` dans cette commande, ou le modifier dans un appel séparé" } : { texte: ecrit }
-      return lu.raison ? [`script ${cible.chemin} ${lu.raison}`] : defautsDuScript(cible.chemin, lu.texte, cible.base ?? base, scratchpad)
+      return lu.raison ? [`script ${cible.chemin} ${lu.raison}`] : defautsDuScript(cible.chemin, lu.texte, cible.base ?? base, cible.argv)
     }
     ecrits.set(cle(cible.chemin), cible.contenu ?? null)
     if (scratchpad === null) return [`écriture ${cible.operation} (${cible.chemin}) : scratchpad de session non dérivable (\`transcript_path\`, \`session_id\`)`]
-    return sous(cible.chemin, scratchpad) ? [] : [`${cible.operation} hors du scratchpad (${cible.chemin})`]
+    return sous(cible.chemin, scratchpad, platform) ? [] : [`${cible.operation} hors du scratchpad (${cible.chemin})`]
   })
 }
 
-function evaluer(entree, { baseDeLAppel }) {
-  const fiche = fichesDAgent(RACINE).get(entree?.agent_type)
+function evaluer(entree, { baseDeLAppel, platform = process.platform, env = {} }) {
+  if (typeof entree?.agent_type !== 'string') return null
+  const fiche = fichesDAgent(RACINE).get(entree.agent_type)
   if (!fiche || !enLectureSeule(fiche)) return null
   const scratchpad = scratchpadDeSession(entree)
-  const defauts = defautsDeCommande(commandeDe(entree), { base: baseDeLAppel ?? process.cwd(), scratchpad })
+  const defauts = defautsDeCommande(commandeDe(entree), { base: baseDeLAppel ?? process.cwd(), scratchpad, platform, env })
   if (defauts.length === 0) return null
   return {
     decision: 'deny',

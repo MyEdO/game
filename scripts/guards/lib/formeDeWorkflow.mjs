@@ -248,24 +248,45 @@ export function optionDuSite(site, champ) {
  * Défauts PAR APPEL des sites `agent(…)` d'un script de workflow. PUR.
  * Universel : options littérales et FERMÉES ; `agentType` présent, littéral, et nom d'un type de
  * `typesDeclares` (le `name:` du frontmatter d'une fiche de `.claude/agents/`) — Calibrage de
- * `.claude/skills/orchestrer-des-agents/SKILL.md`.
+ * `.claude/skills/orchestrer-des-agents/SKILL.md` ; portée STATIQUE : ni `with`, ni `eval` libre, ni
+ * `arguments` de l'enveloppe, ni déclaration qui lie `agent`, ni référence à `agent` hors d'un appel
+ * direct `agent(…)` — sinon un appel échappe aux sites lus.
  * Dépôt (`regimes`, absent hors de la porte) : `phase`, `model` et `effort` littéraux ; étage de la
  * phase (`regimes.phases[phase]`, `null` = régime inconnu, nommé par la porte) ; sinon phase
  * MÉCANIQUE (`regimes.mecanique` : types permis, couples (type, modèle), exceptions par phase).
  * @param {any} sf
- * @param {{ typesDeclares: Set<string>, regimes?: {
+ * `sites` : ceux de `sitesDAgent(sf)`, passés par l'appelant qui les lit aussi.
+ * @param {{ typesDeclares: Set<string>, sites?: ReturnType<typeof sitesDAgent>, regimes?: {
  *   phases: Record<string, { nom: string, type: string, modele: string, effort: string } | null>,
  *   mecanique: { types: string[], couples: { type: string, modele: string }[], exceptions: { phase: string, type: string }[] },
  * } }} contexte
  * @returns {{ regle: string, message: string }[]}
  */
-export function defautsDesSitesDAgent(sf, { typesDeclares, regimes }) {
+export function defautsDesSitesDAgent(sf, { typesDeclares, regimes, sites = sitesDAgent(sf) }) {
+  const ts = typescript()
   const defauts = []
   const ligne = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1
   const dire = (regle, n, message) => defauts.push({ regle, message: `${sf.fileName}:${ligne(n)} — ${message}` })
   const vu = (x) => (x.present ? `\`${x.valeur}\`` : 'absent')
   const declares = [...typesDeclares].join('/')
-  for (const site of sitesDAgent(sf)) {
+  const evalsLibres = new Set(referencesLibres(sf, 'eval'))
+  /** `arguments` que seule l'enveloppe lie : aucune fonction NON fléchée ne l'englobe (une flèche n'en a pas). */
+  const argumentsDeLEnveloppe = new Set(referencesLibres(sf, 'arguments').filter((id) => {
+    for (let a = id.parent; a; a = a.parent) if (ts.isFunctionLikeDeclaration(a) && !ts.isArrowFunction(a)) return false
+    return true
+  }))
+  for (const id of declarationsDuFichier(sf).get('agent') ?? []) dire('agent-direct', id, 'déclaration qui lie le nom `agent` — l’identifiant du harnais ne se masque pas')
+  const portee = (n) => {
+    if (ts.isWithStatement(n)) dire('portee', n, 'instruction `with` — la liaison des noms ne se lit plus à la forme')
+    if (ts.isIdentifier(n) && evalsLibres.has(n)) dire('portee', n, '`eval` — du code que la forme ne lit pas')
+    if (ts.isIdentifier(n) && argumentsDeLEnveloppe.has(n)) dire('portee', n, '`arguments` — alias des doublures du harnais, que la forme ne lit pas')
+    if (ts.isIdentifier(n) && n.text === 'agent' && estReference(n) && !(ts.isCallExpression(n.parent) && n.parent.expression === n)) {
+      dire('agent-direct', n, `\`agent\` non appelé directement (${ts.SyntaxKind[n.parent.kind]}) — seul un appel \`agent(…)\` est un site que la porte lit`)
+    }
+    n.forEachChild(portee)
+  }
+  sf.forEachChild(portee)
+  for (const site of sites) {
     if (site.membres === null) {
       dire('options', site.options ?? site.appel, "options de l'agent non littérales — la porte ne peut pas lire son étage")
       continue

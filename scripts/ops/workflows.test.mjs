@@ -40,7 +40,7 @@ import { fileURLToPath } from 'node:url';
 import { typescript } from '../guards/lib/dialecte.mjs';
 import {
   apercu, declarationsDuFichier, defautsDeRacine, defautsDesSitesDAgent, estReference, estTexte, exportDeMeta, fermer, lireWorkflow,
-  optionDuSite, referencesLibres, sitesDAgent,
+  optionDuSite, sitesDAgent,
 } from '../guards/lib/formeDeWorkflow.mjs';
 import { typesDeclares } from '../guards/lib/typesDAgent.mjs';
 import { bancsDeWorkflowDuDepot, reconnaissanceDuDepot } from '../guards/lib/jouer-workflow.mjs';
@@ -139,8 +139,9 @@ function analyser(source, fichier, tables = TABLES) {
   for (const message of lireWorkflow(source, fichier).defauts) defauts.push({ regle: 'reconnaissance', message });
 
   // ── PAR APPEL : options fermées, type déclaré, étage (`defautsDesSitesDAgent`) ─────────────────────
-  defauts.push(...defautsDesSitesDAgent(sf, { typesDeclares: TYPES_DECLARES, regimes: regimesDe(fichier, tables) }));
-  const sitesParAppel = new Map(sitesDAgent(sf).map((site) => [site.appel, site]));
+  const sitesDuScript = sitesDAgent(sf);
+  defauts.push(...defautsDesSitesDAgent(sf, { typesDeclares: TYPES_DECLARES, regimes: regimesDe(fichier, tables), sites: sitesDuScript }));
+  const sitesParAppel = new Map(sitesDuScript.map((site) => [site.appel, site]));
 
   // ── `export const meta`, LITTÉRAL ────────────────────────────────────────────────────────────
   const meta = exportDeMeta(sf)?.parent.declarationList.declarations
@@ -393,28 +394,11 @@ function analyser(source, fichier, tables = TABLES) {
     }
   };
 
-  // ── Portée STATIQUE (B1) et identifiant `agent` (B2) ────────────────────────────────────────
-  const evalsLibres = new Set(referencesLibres(sf, 'eval'));
-  /** `arguments` que seule l'enveloppe lie : aucune fonction NON fléchée ne l'englobe (une flèche n'en a pas). */
-  const argumentsDeLEnveloppe = new Set(referencesLibres(sf, 'arguments').filter((id) => {
-    for (let a = id.parent; a; a = a.parent) if (ts.isFunctionLikeDeclaration(a) && !ts.isArrowFunction(a)) return false;
-    return true;
-  }));
-  for (const id of declarations.get('agent') ?? []) {
-    dire('agent-direct', id, 'déclaration qui lie le nom `agent` — l’identifiant du harnais ne se masque pas');
-  }
-
   const visiter = (n) => {
     // Tout TEXTE du fichier, à n'importe quelle profondeur : une consigne portée par un tableau et
     // le corps d'une fonction qui rend un prompt ne passent par aucun site d'appel littéral.
     if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) alerterRunner(n, n.text, 'un texte du script');
     if (ts.isTemplateHead(n) || ts.isTemplateMiddle(n) || ts.isTemplateTail(n)) alerterRunner(n, n.text, 'un texte du script');
-    if (ts.isWithStatement(n)) dire('portee', n, 'instruction `with` — la liaison des noms ne se lit plus à la forme');
-    if (ts.isIdentifier(n) && evalsLibres.has(n)) dire('portee', n, '`eval` — du code que la forme ne lit pas');
-    if (ts.isIdentifier(n) && argumentsDeLEnveloppe.has(n)) dire('portee', n, '`arguments` — alias des doublures du harnais, que la forme ne lit pas');
-    if (ts.isIdentifier(n) && n.text === 'agent' && estReference(n) && !(ts.isCallExpression(n.parent) && n.parent.expression === n)) {
-      dire('agent-direct', n, `\`agent\` non appelé directement (${ts.SyntaxKind[n.parent.kind]}) — seul un appel \`agent(…)\` est un site que la porte lit`);
-    }
     // Horloge et aléa : ils cassent la reprise (`resumeFromRunId`).
     if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Date' && !(n.arguments ?? []).length) {
       dire('horloge', n, '`new Date()` sans argument — la date vient de `args`, sinon la reprise ne rend pas le même run');
