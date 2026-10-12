@@ -19,6 +19,10 @@ test('#2537 — un opérateur échappé hors quote reste dans le mot, un `\\` de
   assert.deepEqual(textes('find . -exec rm {} \\; -print'), [['find', '.', '-exec', 'rm', '{}', ';', '-print']])
   assert.deepEqual(textes('echo a\\|b \\> c'), [['echo', 'a|b', '>', 'c']])
   assert.deepEqual(textes('dir depot\\src\\x'), [['dir', 'depot\\src\\x']])
+  const powershell = (commande) => pipelinesDeJetons(commande, 0, { powershell: true }).flat().map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(powershell('cd depot\\; echo a \\> c'), [['cd', 'depot\\'], ['echo', 'a', '\\', '>', 'c']], 'sous PowerShell, `\\` est littéral (about_Special_Characters)')
+  assert.deepEqual(powershell('echo "a\\" b'), [['echo', 'a\\', 'b']])
+  assert.deepEqual(powershell('Get-Date `\n-Format o'), [['Get-Date', '-Format', 'o']])
 })
 
 test('cibleDeLaCommande : paramètres de cwd, base inconnue et restauration absolue', () => {

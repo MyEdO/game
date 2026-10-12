@@ -31,8 +31,9 @@
 //     une origine inconnue est refusée ;
 //   · `forme`    — une option qui produit des CHEMINS (`--name-only`, `--name-status`, `--numstat`,
 //     `ls-files`, `ls-tree`, `-z`) : une QUESTION de l'hôte la fixe elle-même, aucun appelant ne l'écrit.
-//     Un élément d'une TABLE n'est pas un site : `const <nom> = new Set([…])`, `Set` global, chaque référence
-//     à `<nom>` étant un appel `<nom>.has(…)` (`elementsDeTables`).
+//     Un élément d'une TABLE n'est pas un site : `const <nom> = new Set([…])` non exportée, `Set` global, chaque
+//     référence à `<nom>` — un `export { <nom> }` et une propriété raccourcie `{ <nom> }` compris — étant un appel
+//     `<nom>.has(…)` (`elementsDeTables`).
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -109,8 +110,10 @@ export function sitesHorsHote(chemin, texte) {
   return sites.sort((a, b) => a.ligne - b.ligne)
 }
 
-/** Les positions des littéraux chaîne éléments d'une TABLE : `const <nom> = new Set([…])`, `Set` n'ayant aucune déclaration hors d'un `.d.ts`,
- *  dont chaque référence est un appel `<nom>.has(…)`. */
+/** Les positions des littéraux chaîne éléments d'une TABLE : `const <nom> = new Set([…])` non exportée, `Set` n'ayant aucune
+ *  déclaration hors d'un `.d.ts`, dont chaque référence est un appel `<nom>.has(…)` ; la valeur d'une propriété raccourcie
+ *  (`getShorthandAssignmentValueSymbol`) et la cible locale d'un `export { <nom> }` (`getExportSpecifierLocalTargetSymbol`)
+ *  sont des références. */
 function elementsDeTables(chemin, texte) {
   const ts = typescript()
   const positions = new Set()
@@ -121,13 +124,16 @@ function elementsDeTables(chemin, texte) {
     const parcourir = (n, visiter) => { visiter(n); n.forEachChild((c) => parcourir(c, visiter)) }
     parcourir(sourceFile, (n) => {
       if (!ts.isIdentifier(n)) return
-      const symbole = checker.getSymbolAtLocation(n)
+      const symbole = ts.isShorthandPropertyAssignment(n.parent) && n.parent.name === n ? checker.getShorthandAssignmentValueSymbol(n.parent)
+        : ts.isExportSpecifier(n.parent) ? checker.getExportSpecifierLocalTargetSymbol(n.parent)
+          : checker.getSymbolAtLocation(n)
       if (symbole) references.set(symbole, [...(references.get(symbole) ?? []), n])
     })
     const consulteeSeulement = (nom) => (references.get(checker.getSymbolAtLocation(nom)) ?? []).every((r) => r === nom
       || (ts.isPropertyAccessExpression(r.parent) && r.parent.expression === r && r.parent.name.text === 'has' && ts.isCallExpression(r.parent.parent) && r.parent.parent.expression === r.parent))
     parcourir(sourceFile, (n) => {
       if (!ts.isVariableDeclaration(n) || !ts.isIdentifier(n.name) || !/^const\b/.test(n.parent.getText(sourceFile))) return
+      if ((n.parent.parent.modifiers ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) return
       const table = n.initializer
       if (!table || !ts.isNewExpression(table) || !ts.isIdentifier(table.expression) || table.expression.text !== 'Set' || !global(table.expression)) return
       if (!table.arguments?.[0] || !ts.isArrayLiteralExpression(table.arguments[0]) || !consulteeSeulement(n.name)) return

@@ -4,9 +4,15 @@ import { creerProvenanceFs } from './provenanceFs.mjs'
 import { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
 export { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
 
-/** Les fonctions de `node:child_process` qui lancent une commande : `exec*` la reçoivent en une chaîne,
- *  `spawn*`/`execFile*` en un exécutable et un tableau d'arguments ; `fork` lance un module. */
-const LANCEURS = { exec: 'chaine', execSync: 'chaine', spawn: 'tableau', spawnSync: 'tableau', execFile: 'tableau', execFileSync: 'tableau', fork: 'module' }
+/** Les fonctions de `node:child_process` qui lancent une commande, par export (`exportAppele`) : `exec*` la
+ *  reçoivent en une chaîne, `spawn*`/`execFile*` en un exécutable et un tableau d'arguments ; `fork` lance un module. */
+const LANCEURS = {
+  'child_process#exec': 'chaine', 'child_process#execSync': 'chaine', 'child_process#spawn': 'tableau', 'child_process#spawnSync': 'tableau',
+  'child_process#execFile': 'tableau', 'child_process#execFileSync': 'tableau', 'child_process#fork': 'module',
+}
+/** Le mot qu'un argument non constant d'un lancement devient : une variable que le juge shell ne connaît pas
+ *  (`ciblesDEcritureDeCommande`), comme l'argument qu'alimente `xargs`. */
+export const MOT_INCONNU = '$argument_non_constant'
 /** Les modules dont un `import()` dynamique rend des écritures que la provenance ne suit pas. */
 const MODULES_QUI_ECRIVENT = /^(?:node:)?(?:fs|fs\/promises|child_process)$/
 const PLIS_DE_CHEMIN = { 'path#join': join, 'path#resolve': (...p) => (p.some(isAbsolute) ? resolve(...p) : join(...p)), 'path#dirname': dirname, 'path#basename': basename }
@@ -28,8 +34,9 @@ export function repertoireTemporaire(env, platform) {
  * `dirname`/`basename` de `node:path`, `[…].join(sep)`, `import.meta.dirname`/`filename`, `fileURLToPath(import.meta.url)`
  * de `node:url` (`fichier` = le chemin du script), `process.argv[k]` (`argv` = le `process.argv` du lancement),
  * `tmpdir()` de `node:os` et `process.env.<VARIABLES_AMORCEES>` (lus à `env`, `platform`) ; une fonction se
- * reconnaît à l'import qui la lie (`exportAppele`), jamais à son nom. Un lancement `node:child_process` rend
- * `{ operation, commande }` (la commande littérale, que l'appelant juge) ou une cible inconnue ; un `import()`
+ * reconnaît à l'import qui la lie (`exportAppele`), jamais à son nom ; `process.execPath` se plie en `node`. Un
+ * lancement `node:child_process` rend `{ operation, commande }` (la commande, que l'appelant juge, un argument non
+ * constant y valant `MOT_INCONNU`) ou, à exécutable non constant, une cible inconnue ; un `import()`
  * dynamique de `fs`/`child_process` se lit comme l'import statique quand il est attendu (`await import('…')`),
  * sinon il rend une cible inconnue, comme un `import()` à spécificateur non constant.
  * @param {string} texte
@@ -42,9 +49,7 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
   for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel, text: texte }])) {
     if (diagnostics.length || !sourceFile) return []
     const provenance = creerProvenanceFs({ sourceFile, checker, ts })
-    const importeChildProcess = /['"](?:node:)?child_process['"]/.test(texte)
     const enCours = new Set()
-    const nomAppele = (n) => (ts.isIdentifier(n.expression) ? n.expression.text : ts.isPropertyAccessExpression(n.expression) ? n.expression.name.text : null)
     const moduleDe = (specificateur) => (specificateur && (ts.isStringLiteral(specificateur) || ts.isNoSubstitutionTemplateLiteral(specificateur)) ? specificateur.text.replace(/^node:/, '') : null)
     /** Le module que charge `init` : `require('<m>')` du global, `await import('<m>')` ; `null` sinon. */
     const moduleCharge = (init) => {
@@ -113,6 +118,7 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
         if (!fichier) return null
         return n.name.text === 'dirname' ? dirname(fichier) : n.name.text === 'filename' ? fichier : null
       }
+      if (ts.isPropertyAccessExpression(n) && n.getText(sourceFile) === 'process.execPath') return 'node'
       if (ts.isElementAccessExpression(n) && n.expression.getText(sourceFile) === 'process.argv' && ts.isNumericLiteral(n.argumentExpression)) {
         return argv[Number(n.argumentExpression.text)] ?? null
       }
@@ -146,13 +152,13 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
         if (module === null || (MODULES_QUI_ECRIVENT.test(module) && !ts.isAwaitExpression(haut))) sorties.push({ chemin: null, inconnue: true, operation: 'import-dynamique' })
         return
       }
-      const nom = nomAppele(n)
-      if (importeChildProcess && nom !== null && Object.hasOwn(LANCEURS, nom)) {
-        const forme = LANCEURS[nom]
+      const lanceur = exportAppele(n)
+      if (lanceur !== null && Object.hasOwn(LANCEURS, lanceur)) {
+        const forme = LANCEURS[lanceur], operation = lanceur.slice(lanceur.indexOf('#') + 1)
         const commande = forme === 'chaine' ? plier(n.arguments[0])
           : forme === 'tableau' ? commandeDeTableau(plier(n.arguments[0]), n.arguments[1], plier, ts)
             : null
-        sorties.push(commande === null ? { chemin: null, inconnue: true, operation: nom } : { chemin: null, inconnue: false, operation: nom, commande })
+        sorties.push(commande === null ? { chemin: null, inconnue: true, operation } : { chemin: null, inconnue: false, operation, commande })
         return
       }
       const operation = provenance(n.expression)?.operation
@@ -171,11 +177,10 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
   return sorties
 }
 
-/** `spawn(fichier, [args])` rendu en une commande shell aux arguments sous quote simple ; `null` si un
- *  morceau n'est pas constant. */
+/** `spawn(fichier, [args])` rendu en une commande shell aux arguments sous quote simple, un argument non constant
+ *  (ou une liste non littérale) valant `MOT_INCONNU` ; `null` si l'exécutable n'est pas constant. */
 function commandeDeTableau(fichier, args, plier, ts) {
   if (fichier === null) return null
-  const valeurs = args === undefined ? [] : ts.isArrayLiteralExpression(args) ? args.elements.map(plier) : [null]
-  if (valeurs.some((v) => v === null)) return null
-  return [fichier, ...valeurs].map((v) => `'${v.split("'").join("'\\''")}'`).join(' ')
+  const valeurs = args === undefined ? [] : ts.isArrayLiteralExpression(args) ? args.elements.map((e) => (ts.isSpreadElement(e) ? null : plier(e))) : [null]
+  return [fichier, ...valeurs].map((v) => (v === null ? MOT_INCONNU : `'${v.split("'").join("'\\''")}'`)).join(' ')
 }

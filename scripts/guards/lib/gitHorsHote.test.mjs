@@ -101,4 +101,7 @@ test('forme : une option qui produit des chemins, où qu’elle soit écrite hor
   assert.deepEqual(formes("const A = new Set(['--name-only'])\nquestion(Array.from(A))"), [[1, 'forme']], 'une table convertie se passe à git')
   assert.deepEqual(formes("question([...new Set(['ls-tree', '-z'])])"), [[1, 'forme'], [1, 'forme']], 'un Set sans nom n’est pas une table')
   assert.deepEqual(formes("class Set { constructor(a) { return a } }\nconst A = new Set(['ls-files'])\nA.has(x)"), [[2, 'forme']], 'un Set local n’est pas le global')
+  assert.deepEqual(formes("export const A = new Set(['ls-files', '-z'])\nA.has(x)"), [[1, 'forme'], [1, 'forme']], 'une table exportée se passe hors du module')
+  assert.deepEqual(formes("const A = new Set(['ls-files'])\nA.has(x)\nexport { A as B }"), [[1, 'forme']], 'un `export { A }` n’est pas une consultation')
+  assert.deepEqual(formes("const A = new Set(['ls-files'])\nA.has(x)\nconst o = { A }"), [[1, 'forme']], 'une propriété raccourcie n’est pas une consultation')
 })

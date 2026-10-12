@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { ciblesDEcritureJS } from './ecrituresFichiers.mjs'
+import { MOT_INCONNU, ciblesDEcritureJS } from './ecrituresFichiers.mjs'
 test('provenance fs sous alias sans fabriquer les homonymes', () => {
   const cibles = text => ciblesDEcritureJS(text).map(c => c.chemin)
   assert.deepEqual(cibles("require('fs').writeFileSync('x','a')"), ['x'])
@@ -51,4 +51,15 @@ test('#2537 — `node:child_process` : la commande littérale se rend à juger, 
   assert.deepEqual(cibles(`${cp}spawnSync('npm', ['run', 'build'])`), ["'npm' 'run' 'build'"])
   assert.deepEqual(cibles(`${cp}execSync(process.argv[2])`), ['?execSync'])
   assert.deepEqual(cibles("execSync('echo x > y')"), [])
+})
+
+test('#2537 — un lanceur se reconnaît à son import ; `process.execPath` est `node` ; un argument non constant est `MOT_INCONNU`', () => {
+  const cibles = (text) => ciblesDEcritureJS(text).map(c => c.commande ?? (c.inconnue ? `?${c.operation}` : c.chemin))
+  const cp = "import { spawnSync } from 'node:child_process'\n"
+  assert.deepEqual(cibles(`${cp}const s = String(spawnSync('cat', ['x']).stdout)\nconst m = /x(\\d+)/.exec(s)`), ["'cat' 'x'"])
+  assert.deepEqual(cibles(`${cp}spawnSync(process.execPath, ['--test', 'a.test.mjs'])`), ["'node' '--test' 'a.test.mjs'"])
+  assert.deepEqual(cibles(`${cp}spawnSync('cat', ['-n', process.argv[2]])`), [`'cat' '-n' ${MOT_INCONNU}`])
+  assert.deepEqual(cibles(`${cp}const a = ['x']\nspawnSync('rm', [...a])`), [`'rm' ${MOT_INCONNU}`])
+  assert.deepEqual(cibles(`${cp}spawnSync(process.argv[2], ['x'])`), ['?spawnSync'])
+  assert.deepEqual(cibles("const exec = (s) => s\nexec('rm -rf x')"), [])
 })

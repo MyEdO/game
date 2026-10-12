@@ -77,7 +77,7 @@ function finDesCorpsHeredoc(command, pos, ouverts) {
  *  `|`) ; `quote` est la PROVENANCE du mot — `'simple'` s'il est ENTIÈREMENT sous quote simple
  *  (`'…'`, `$'…'`, here-string `@'…'@`), `'double'` s'il l'est sous quote double (`"…"`,
  *  `@"…"@`), absente sinon (mot nu, ou mêlant nu et quoté, ou deux sortes de quote). */
-function tokenizeCommand(command) {
+function tokenizeCommand(command, { powershell = false } = {}) {
   const tokens = []
   let i = 0
   const n = command.length
@@ -157,9 +157,10 @@ function tokenizeCommand(command) {
       const c = command[j]
       // CONTINUATION DE LIGNE (`\` POSIX, backtick PowerShell suivi du saut de ligne) : la commande
       // se POURSUIT — les deux caractères disparaissent, et le saut n'est pas la fin d'une commande.
-      if ((c === '\\' || c === '`') && command[j + 1] === '\n') { j += 2; continue }
-      // Opérateur échappé hors quote (`find … -exec rm {} \;`) : le caractère reste dans le mot (XCU 2.2.1).
-      if (c === '\\' && j + 1 < n && ';|&<>()'.includes(command[j + 1])) { buf += command[j + 1]; nu = true; j += 2; continue }
+      if ((c === '`' || (!powershell && c === '\\')) && command[j + 1] === '\n') { j += 2; continue }
+      // Opérateur échappé hors quote (`find … -exec rm {} \;`) : le caractère reste dans le mot (XCU 2.2.1) ;
+      // sous PowerShell, `\` est littéral (about_Special_Characters).
+      if (!powershell && c === '\\' && j + 1 < n && ';|&<>()'.includes(command[j + 1])) { buf += command[j + 1]; nu = true; j += 2; continue }
       // Substitution de commande `$(…)`, sous-expression `@(…)`, substitution de processus `<(…)`, `>(…)`.
       if ('$@<>'.includes(c) && command[j + 1] === '(') {
         const fermante = parentheseFermante(command, j + 1)
@@ -204,7 +205,7 @@ function tokenizeCommand(command) {
           // Échappement réel `\"`, `\\`, `` \` `` et `\$` seulement (XCU 2.2.3) — un backslash de chemin
           // Windows (`C:\Program…`) n'est PAS un échappement shell et reste LITTÉRAL (sinon les chemins
           // perdent leurs séparateurs, cassant la reconnaissance de `git.exe` au bout d'un chemin absolu, #591 suite).
-          if (quote === '"' && command[j] === '\\' && j + 1 < n && '"\\`$'.includes(command[j + 1])) {
+          if (!powershell && quote === '"' && command[j] === '\\' && j + 1 < n && '"\\`$'.includes(command[j + 1])) {
             buf += command[j + 1]; j += 2; continue
           }
           if (quote === '"' && ouverte === -1 && command.startsWith('$(', j)) { ouverte = j; ouverteBuf = buf.length; solde = 0 }
@@ -906,7 +907,7 @@ export function pipelinesDeJetons(command, profondeur = 0, options = {}) {
   const budget = options.budget ?? nouveauBudget()
   if (!command) return []
   if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return [] }
-  return pipelinesDuFlux(tokenizeCommand(command), profondeur, { ...options, budget, shell: options.shell ?? { parent: options.hote ?? null } })
+  return pipelinesDuFlux(tokenizeCommand(command, options), profondeur, { ...options, budget, shell: options.shell ?? { parent: options.hote ?? null } })
 }
 
 export function texteDuSegment(segment) {
@@ -931,7 +932,7 @@ function declarationsDuSegment(jetons) {
 /** `pipelinesDeJetons` sur un FLUX de jetons : la commande tokenisée, ou le corps d'un bloc, lu sans être
  *  re-tokenisé ni relu (`relu` : ses jetons sortent déjà de `jetonsDeBloc`). `expression` : le flux d'une
  *  sous-expression `@(…)`, où un énoncé quoté est une chaîne, comme dans un bloc. */
-function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, shell, relu = false, expression = false }) {
+function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, shell, relu = false, expression = false, powershell = false }) {
   const pipelines = []
   const lus = segmentsAvecOperateur(flux)
   const avecSuite = (k) => (lus[k].op === null ? [...lus[k].jetons, ...suite] : lus[k].jetons)
@@ -966,7 +967,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
     const deplie = (j) => {
       if (!j.substitutions?.length) return
       const rendus = j.substitutions.flatMap(({ interne, expression: sousExpression }) =>
-        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, expression: sousExpression }))
+        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, expression: sousExpression, powershell }))
       for (const p of rendus) pipelines.push(p)
       deplies.set(j, rendus)
     }
@@ -986,11 +987,12 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
           const debutSuite = porteur?.suite ?? null
           const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
           const rattache = porteur?.memeShell ? { shell: ici } : { hote: ici }
-          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, ...rattache })) pipelines.push(p)
+          const dialecte = porteur === null ? false : porteur.memeShell ? powershell : Boolean(ENROBEURS_ARGUMENT.get(basenameExecutable(textes[0]))?.hote)
+          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, ...rattache, powershell: dialecte })) pipelines.push(p)
         }
         const { corps } = lecture
         for (const c of corps) {
-          for (const p of pipelinesDuFlux(c.map(versFlux), profondeur, { scripts, budget, affectations, bloc: lu, shell: ici, relu: true })) pipelines.push(p)
+          for (const p of pipelinesDuFlux(c.map(versFlux), profondeur, { scripts, budget, affectations, bloc: lu, shell: ici, relu: true, powershell })) pipelines.push(p)
         }
         lu.deploye = inner !== null || corps.length > 0
       }

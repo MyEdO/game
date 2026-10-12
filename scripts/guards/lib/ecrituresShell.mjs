@@ -149,7 +149,8 @@ const LECTURES_GIT_SOUS_CONDITION = {
     return a.slice(0, k < 0 ? a.length : k).every((x) => x === '-v' || x === '--verbose') && (k < 0 || ['show', 'get-url'].includes(a[k]))
   },
   notes: (a) => a.length === 0 || ['list', 'show'].includes(a[0]),
-  reflog: (a) => [undefined, 'show', 'list', 'exists'].includes(a.find((x) => !x.startsWith('-'))),
+  // `git reflog -h` (git 2.51), l.1-10 : un premier positionnel hors des sous-commandes est la `<ref>` de `show`.
+  reflog: (a) => !['write', 'delete', 'drop', 'expire'].includes(a.find((x) => !x.startsWith('-'))),
   'symbolic-ref': (a) => positionnelsAdmis(a, /^(?:-q+|--(?:quiet|short|no-recurse|recurse))$/)?.length === 1,
   'hash-object': (a) => positionnelsAdmis(a, /^(?:-t.*|--(?:stdin|stdin-paths|path|no-filters|literally))$/, ['-t', '--path']) !== null,
   'sparse-checkout': (a) => a[0] === 'list',
@@ -168,11 +169,12 @@ const cheminDeModule = (valeur) =>
   /^file:/i.test(valeur) ? decodeURIComponent(valeur.replace(/^file:\/\/(?:localhost)?/i, '')).replace(/^\/(?=[A-Za-z]:)/, '')
     : /^(?:\.{1,2}(?:[\\/]|$)|[\\/]|[A-Za-z]:)/.test(valeur) ? valeur : null
 
-/** Les lancements d'un INTERPRÉTEUR : `{ scripts, filtres, langage, enLigne, nonLu, argv }` — les fichiers qu'il
- *  lance (préchargements de `node` et `--config` de `vitest` compris), les positionnels de `vitest` (`filtres` :
- *  un fichier de test, ou un motif), le langage de son code, le code en ligne JS (`-e`, `-p`), `nonLu` = un code
- *  qu'il exécute sans que la commande le nomme (stdin, code en ligne non JS, module, `node --test` sans fichier,
- *  `vitest --root`/`--dir`), `argv` = le `process.argv` d'un script JS seul (un argument non développé vaut
+/** Les lancements d'un INTERPRÉTEUR : `{ scripts, filtres, dossiers, ecritures, langage, enLigne, nonLu, argv }` — les
+ *  fichiers qu'il lance (préchargements de `node` et `--config` de `vitest` compris), les positionnels de `vitest`
+ *  (`filtres` : un fichier de test, ou un motif), ses `--root`/`--dir` (`dossiers`), les fichiers qu'il DÉCLARE écrire
+ *  (`ecritures` : `--outputFile`, `--coverage` → `coverage` du cwd, `--test-reporter-destination` hors `stdout`/`stderr`),
+ *  le langage de son code, le code en ligne JS (`-e`, `-p`), `nonLu` = un code qu'il exécute sans que la commande le
+ *  nomme (stdin, code en ligne non JS, module, `node --test` sans fichier), `argv` = le `process.argv` d'un script JS seul (un argument non développé vaut
  *  `null`) ; `null` hors interpréteur. `source`/`.` lancent un script `sh` ; `npm test -- <args>` et `npx
  *  vitest` lancent `vitest`. Les options se lisent sur `bruts` (le texte des jetons) quand leur développement échoue. */
 function lancementDInterpreteur(textes, segment, bruts = textes) {
@@ -191,14 +193,19 @@ function lancementDInterpreteur(textes, segment, bruts = textes) {
     k = tiret + 1
   }
   const stdin = segment.jetons.some((j) => jetonNu(j) && /^</.test(j.text)) || (segment.tube?.indexOf(segment) ?? 0) > 0
-  const rendu = { scripts: [], filtres: [], langage: nom, enLigne: undefined, nonLu: false }
+  const rendu = { scripts: [], filtres: [], dossiers: [], ecritures: [], langage: nom, enLigne: undefined, nonLu: false }
   if (nom === 'vitest') {
     rendu.langage = 'js'
     for (let premier = true; k < textes.length; k++) {
       const texte = textes[k]
       if (texte === '-c' || texte === '--config') { rendu.scripts.push(textes[++k] ?? null); continue }
       if (texte.startsWith('--config=')) { rendu.scripts.push(texte.slice(9)); continue }
-      if (/^(?:-r|--root|--dir)(?:=|$)/.test(texte)) { rendu.nonLu = true; if (!texte.includes('=')) k++; continue }
+      const egal = texte.indexOf('=')
+      const option = egal < 0 ? texte : texte.slice(0, egal)
+      const valeur = () => (egal < 0 ? textes[++k] ?? null : texte.slice(egal + 1))
+      if (['-r', '--root', '--dir'].includes(option)) { rendu.dossiers.push(valeur()); continue }
+      if (/^--outputFile(?:\.\w+)?$/.test(option) || option === '--coverage.reportsDirectory') { rendu.ecritures.push(valeur()); continue }
+      if (/^--coverage(?:\.enabled)?$/.test(option) && !/^(?:false|0)$/.test(egal < 0 ? '' : texte.slice(egal + 1))) { rendu.ecritures.push('coverage'); continue }
       if (VALEURS_VITEST.includes(texte)) { k++; continue }
       if (texte.startsWith('-')) continue
       if (!(premier && SOUS_COMMANDES_VITEST.includes(texte))) rendu.filtres.push(texte)
@@ -227,7 +234,9 @@ function lancementDInterpreteur(textes, segment, bruts = textes) {
       if (PRECHARGEMENTS_NODE.includes(texte)) { precharger(textes[++k]); continue }
       const colle = PRECHARGEMENTS_NODE.find((option) => option.startsWith('--') && texte.startsWith(`${option}=`))
       if (colle) { precharger(textes[k].slice(colle.length + 1)); continue }
-      if (['--input-type', '--test-reporter', '--test-reporter-destination', '--test-name-pattern', '--test-concurrency'].includes(texte)) { k++; continue }
+      const destination = texte === '--test-reporter-destination' ? textes[++k] ?? null : texte.startsWith('--test-reporter-destination=') ? texte.slice(28) : undefined
+      if (destination !== undefined) { if (!['stdout', 'stderr'].includes(destination)) rendu.ecritures.push(destination); continue }
+      if (['--input-type', '--test-reporter', '--test-name-pattern', '--test-concurrency'].includes(texte)) { k++; continue }
       if (texte.startsWith('-')) continue
       rendu.scripts.push(texte)
       lances++
@@ -292,21 +301,30 @@ function ecrituresDOutils(nom, args) {
   if (nom === 'curl') {
     const longues = ['--output', '--dump-header', '--cookie-jar']
     const chemins = valeurDe([], longues)
-    let inconnue = false
+    let distant = false
     for (let k = 0; k < args.length; k++) {
       const a = args[k]
-      if (/^--(?:remote-name(?:-all)?|remote-header-name)$/.test(a)) inconnue = true
+      if (/^--(?:remote-name(?:-all)?|remote-header-name)$/.test(a)) distant = true
       if (longues.includes(a)) { k++; continue }
       if (!/^-[^-]/.test(a)) continue
       for (let i = 1; i < a.length; i++) {
-        if (a[i] === 'O' || a[i] === 'J') { inconnue = true; continue }
+        if (a[i] === 'O' || a[i] === 'J') { distant = true; continue }
         if (!VALEURS_COURTES_CURL.includes(a[i])) continue
         const valeur = i + 1 < a.length ? a.slice(i + 1) : args[++k]
         if ('oDc'.includes(a[i])) chemins.push(valeur)
         break
       }
     }
-    return { chemins, inconnue }
+    if (distant) chemins.push(valeurDe([], ['--output-dir']).at(-1) ?? '.')
+    return { chemins, inconnue: false }
+  }
+  if (nom === 'wget') {
+    const colles = (lettres) => args.filter((a) => new RegExp(`^-[${lettres}].`, 's').test(a)).map((a) => a.slice(2))
+    const journaux = [...valeurDe(['-o', '-a'], ['--output-file', '--append-output']), ...colles('oa')]
+    if (args.includes('--spider')) return { chemins: journaux, inconnue: false }
+    const documents = [...valeurDe(['-O'], ['--output-document']), ...colles('O')]
+    const dossier = [...valeurDe(['-P'], ['--directory-prefix']), ...colles('P')].at(-1) ?? '.'
+    return { chemins: [...(documents.length ? documents.filter((d) => d !== '-') : [dossier]), ...journaux], inconnue: false }
   }
   if (nom === 'tar') {
     const premier = args[0] ?? ''
@@ -350,22 +368,62 @@ function commandesDeFind(args, racines) {
   return commandes
 }
 
-/** `npm`/`npx` qui écrivent : `npm` hors `test`/`t` et des commandes d'interrogation, `npm test` avec
- *  `MISE_A_JOUR_VITEST`, `npx <outil>` avec `--write`/`-w`/`-u`/`--update`. `juge.md:17-18` prescrit
- *  `npm test -- <chemins>` et `npx vitest run`. */
+/** Un mot développé NON CONSTANT (variable inconnue, `MOT_INCONNU` d'un lancement JS) : en position de sous-commande
+ *  de git, npm, npx ou gh, l'écrivain n'est pas prouvé, donc non jugé (#2537). */
+const nonConstant = (mot) => typeof mot === 'string' && mot.includes('\0')
+
+/** `npm` qui écrit : hors des commandes d'interrogation, `npm test` avec `MISE_A_JOUR_VITEST`. `npm run <x>` (et
+ *  `start`/`stop`/`restart`) se juge au corps de `scripts.<x>`, que `pipelinesDeJetons` déplie (`commandeScriptNpm`) ;
+ *  un script absent n'est pas lancé. `juge.md:17-18` prescrit `npm test -- <chemins>` et `npx vitest run`. */
 const MISE_A_JOUR_VITEST = /^(?:-u|--update(?:Snapshot)?)(?:=.*)?$/s
-const LECTURES_NPM = new Set(['test', 't', 'tst', 'ls', 'list', 'view', 'v', 'info', 'show', 'outdated', 'help', 'explain', 'why', 'query', 'search', 'doctor', 'prefix', 'root', 'bin', 'whoami', 'ping', '--version', '-v', 'version'])
-function ecritureDeNpm(nom, args) {
-  if (nom === 'npm') {
-    const sous = args.find((a) => !a.startsWith('-')) ?? args[0]
-    if (sous === undefined) return false
-    if (sous === 'version') return args.length > 1
-    if (sous === 'config' || sous === 'c') return !['get', 'list', 'ls'].includes(args[args.indexOf(sous) + 1])
-    if (['test', 't', 'tst'].includes(sous)) return args.some((a) => MISE_A_JOUR_VITEST.test(a))
-    return !LECTURES_NPM.has(sous)
+const LECTURES_NPM = new Set(['test', 't', 'tst', 'ls', 'list', 'view', 'v', 'info', 'show', 'outdated', 'help', 'explain', 'why', 'query', 'search', 'doctor', 'prefix', 'root', 'bin', 'whoami', 'ping', '--version', '-v', 'version',
+  'run', 'run-script', 'rum', 'urn', 'start', 'stop', 'restart'])
+function ecritureDeNpm(args) {
+  const sous = args.find((a) => !a.startsWith('-')) ?? args[0]
+  if (sous === undefined || nonConstant(sous)) return false
+  if (sous === 'version') return args.length > 1
+  if (sous === 'config' || sous === 'c') return !['get', 'list', 'ls'].includes(args[args.indexOf(sous) + 1])
+  if (['test', 't', 'tst'].includes(sous)) return args.some((a) => MISE_A_JOUR_VITEST.test(a))
+  return !LECTURES_NPM.has(sous)
+}
+
+/** `npx <outil>` : la table FERMÉE des outils et de leurs formes de lecture (`<outil> --help`) ; tout autre outil écrit. */
+const actif = (a, option) => a.some((x, k) => (x === option && !/^(?:false|0)$/.test(a[k + 1] ?? '')) || x === `${option}=true`)
+const LECTURES_NPX = {
+  vitest: (a) => !a.some((x) => MISE_A_JOUR_VITEST.test(x)),
+  tsx: () => true,
+  tsc: (a) => a.every((x) => /^(?:-v|--version|-h|--help|--all|--showConfig)$/.test(x))
+    || (actif(a, '--noEmit') && !actif(a, '--incremental') && !actif(a, '-i') && !a.some((x) => /^(?:-b|--build|--generateTrace)(?:=|$)/.test(x))),
+  eslint: (a) => !a.some((x) => /^(?:--fix|--cache|-o|--output-file|--init)(?:=|$)/.test(x)),
+  oxlint: (a) => !a.some((x) => /^(?:--fix\S*|--init)$/.test(x)),
+  prettier: (a) => !a.some((x) => /^(?:-w|--write|--cache)(?:=|$)/.test(x)),
+}
+
+/** `gh` : ses sous-commandes de LECTURE (`gh <groupe> --help`) ; `api` lit en GET — méthode `GET` dite, ou ni
+ *  méthode ni champ (`-f`, `-F`, `--input` passent la méthode à POST, `gh api --help`). Toute autre forme écrit,
+ *  dont `pr checkout`, `run download`, `release download` et `repo clone`. */
+const LECTURES_GH = {
+  issue: ['view', 'list', 'status'], pr: ['view', 'list', 'status', 'diff', 'checks'], run: ['view', 'list', 'watch'],
+  workflow: ['view', 'list'], repo: ['view', 'list'], release: ['view', 'list'], label: ['list'], gist: ['view', 'list'],
+  project: ['view', 'list', 'item-list', 'field-list'], cache: ['list'], variable: ['list', 'get'], secret: ['list'],
+  ruleset: ['list', 'view', 'check'], auth: ['status'], org: ['list'], search: null, status: null, help: null, version: null,
+}
+function lectureGh(args) {
+  const mots = []
+  for (let k = 0; k < args.length && mots.length < 2; k++) {
+    if (/^(?:-R|--repo|--hostname)$/.test(args[k])) { k++; continue }
+    if (!args[k].startsWith('-')) mots.push(args[k])
   }
-  if (nom === 'npx') return args.some((a) => MISE_A_JOUR_VITEST.test(a) || /^(?:--write|-w|--fix)$/.test(a))
-  return false
+  const [groupe, sous] = mots
+  if (groupe === undefined) return args.every((a) => /^(?:--version|--help|-h)$/.test(a))
+  if (nonConstant(groupe)) return true
+  if (groupe === 'api') {
+    const methodes = args.flatMap((a, k) => (/^(?:-X|--method)$/.test(a) ? [args[k + 1]] : /^--method=/.test(a) ? [a.slice(9)] : /^-X./s.test(a) ? [a.slice(2)] : []))
+    if (methodes.length) return methodes.every((m) => /^get$/i.test(m ?? ''))
+    return !args.some((a) => /^(?:-[fF]|--field|--raw-field|--input)(?:=|$)|^-[fF]./s.test(a))
+  }
+  if (!Object.hasOwn(LECTURES_GH, groupe)) return false
+  return LECTURES_GH[groupe] === null || nonConstant(sous) || LECTURES_GH[groupe].includes(sous)
 }
 
 
@@ -384,17 +442,20 @@ function developperHeredoc(corps, variables) {
 }
 
 /**
- * Les cibles d'écriture qu'une commande DÉCLARE, `{ chemin, inconnue, operation, segment, base, puits, contenu, langage }` :
+ * Les cibles d'écriture qu'une commande DÉCLARE, `{ chemin, inconnue, ecrivain, operation, segment, base, puits, contenu, langage }` :
  * `base` = le répertoire courant du segment (`null` inconnu) ; `puits` = une écriture qui n'atteint aucun
  * fichier (`estPuits`) ; `contenu` = le texte écrit, connu pour une redirection de `cat` qu'alimente un heredoc
- * littéral ou développé (`developperHeredoc`), et pour `Set-Content`/`Out-File` alimentés par une chaîne littérale, `undefined` sinon. Une
- * sous-commande git hors de `LECTURES_GIT`, un `npm`/`npx` qui écrit : cible inconnue ; une commande que `xargs`
- * alimente reçoit un argument inconnu. Une `for <v> in <mots>` littérale se déroule. `env` amorce `VARIABLES_AMORCEES`
- * (`$TEMP`, `$env:TEMP`). Avec `scripts`, s'y ajoutent les LANCEMENTS d'interpréteur
- * (`lancementDInterpreteur`) : `{ operation: 'script', langage }` par fichier lancé, une cible inconnue pour un
- * code qu'il exécute sans que la commande le nomme.
+ * littéral ou développé (`developperHeredoc`), et pour `Set-Content`/`Out-File` alimentés par une chaîne littérale, `undefined` sinon.
+ * `ecrivain` = la cible vient d'une commande de la table FERMÉE des écrivains (rôles de chemins, outils d'archive et de
+ * transfert, sorties déclarées d'un interpréteur) : une sous-commande git hors de `LECTURES_GIT`, un `npm` qui écrit
+ * (`ecritureDeNpm`), un `npx` hors `LECTURES_NPX`, un `gh` hors `LECTURES_GH` y sont une cible inconnue ; une redirection,
+ * un code JS ou un script ne l'est jamais. Une commande que `xargs` alimente reçoit un argument inconnu. Une
+ * `for <v> in <mots>` littérale se déroule. `env` amorce `VARIABLES_AMORCEES` (`$TEMP`, `$env:TEMP`) ; `powershell` :
+ * la commande est du dialecte PowerShell (`tokenizeCommand`). Avec `scripts`, s'y ajoutent les LANCEMENTS
+ * d'interpréteur (`lancementDInterpreteur`) : `{ operation: 'script', langage }` par fichier lancé (`filtre`, `dossier`
+ * pour un positionnel et un `--dir` de `vitest`), une cible inconnue pour un code qu'il exécute sans que la commande le nomme.
  */
-export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), platform = process.platform, env = {}, exclureArguments = () => false, segments = pipelinesDeJetons(commande).flat(), scripts = false } = {}) {
+export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), platform = process.platform, env = {}, exclureArguments = () => false, powershell = false, segments = pipelinesDeJetons(commande, 0, { powershell }).flat(), scripts = false } = {}) {
   const etats = new Map(), sorties = []
   const amorce = new Map(VARIABLES_AMORCEES.filter((nom) => typeof env[nom] === 'string').flatMap((nom) => [[nom, env[nom]], [`env:${nom}`, env[nom]]]))
   const etatDe = (shell) => {
@@ -434,23 +495,23 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
     const jetons = sansRedirections(segment.jetons), textes = jetons.map(j => j.text)
     const nom = basenameExecutable(textes[0])
     const developpes = jetons.map((j, k) => developper(j.text, etat.variables, j) ?? `\0inconnue:${k}\0`)
-    const ajouter = (chemin, operation, puits = false) => {
+    const ajouter = (chemin, operation, { puits = false, ecrivain = false } = {}) => {
       if (typeof chemin === 'string' && chemin.includes('\0')) chemin = null
       const natif = chemin === null ? null : versCheminNatif(chemin, platform)
       const resolu = natif === null || (!etat.base && !isAbsolute(natif)) || /^[A-Za-z]:[\\/].*[A-Za-z]:[\\/]|^\(/.test(natif) ? null : resolve(etat.base ?? base, natif)
-      sorties.push({ chemin: resolu, inconnue: !puits && resolu === null, operation, segment, base: etat.base, puits: puits || (typeof chemin === 'string' && estPuits(chemin, platform)) })
+      sorties.push({ chemin: resolu, inconnue: !puits && resolu === null, ecrivain, operation, segment, base: etat.base, puits: puits || (typeof chemin === 'string' && estPuits(chemin, platform)) })
       return sorties.at(-1)
     }
     const heredoc = nom === 'cat' && textes.length === 1 ? segment.jetons.find((j) => typeof j.corps === 'string' || typeof j.corpsADevelopper === 'string') : undefined
     const corps = heredoc?.corps ?? (heredoc ? developperHeredoc(heredoc.corpsADevelopper, etat.variables) : undefined)
     for (const cible of ciblesDeRedirectionAvecProvenance(segment.jetons)) {
-      if (cible.quote === undefined && PUITS_POWERSHELL.test(cible.text ?? '')) ajouter(null, 'redirection', true)
+      if (cible.quote === undefined && PUITS_POWERSHELL.test(cible.text ?? '')) ajouter(null, 'redirection', { puits: true })
       else ajouter(developper(cible.text, etat.variables, cible), 'redirection').contenu = corps
     }
     if (!exclureArguments(segment)) {
       const contrat = ROLES_PAR_NOM.get(nom)
       const enTete = (segment.enTete ?? []).map((j) => basenameExecutable(j.text))
-      const ecrits = ciblesDuWriter(enTete.includes('xargs') ? [...developpes, '\0xargs\0'] : developpes).map((cible) => ajouter(cible, nom))
+      const ecrits = ciblesDuWriter(enTete.includes('xargs') ? [...developpes, '\0xargs\0'] : developpes).map((cible) => ajouter(cible, nom, { ecrivain: true }))
       if (contrat?.role === 'premier' && ecrits.length) {
         const k = developpes.findIndex((t) => t.toLowerCase() === '-value')
         const amont = segment.tube?.[segment.tube.indexOf(segment) - 1]?.jetons
@@ -458,19 +519,23 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
         if (typeof valeur === 'string' && !valeur.includes('\0')) for (const e of ecrits) e.contenu = valeur.replace(/^\r?\n|\r?\n$/g, '')
       }
       const outils = ecrituresDOutils(nom, developpes.slice(1))
-      for (const chemin of outils.chemins) ajouter(chemin ?? null, nom)
-      if (outils.inconnue) ajouter(null, nom)
+      for (const chemin of outils.chemins) ajouter(chemin ?? null, nom, { ecrivain: true })
+      if (outils.inconnue) ajouter(null, nom, { ecrivain: true })
       if (nom === 'find') for (const c of commandesDeFind(developpes.slice(1), outils.racines)) sousCommande(c, etat)
       if (nom === 'git') {
         const git = gitSubcommand(developpes)
         if (git !== null) {
           const sorte = developpes.flatMap((a, k) => (a === '--output' ? [developpes[k + 1]] : a.startsWith('--output=') ? [a.slice(9)] : git.sub === 'archive' && a === '-o' ? [developpes[k + 1]] : git.sub === 'archive' && /^-o./s.test(a) ? [a.slice(2)] : []))
-          for (const chemin of sorte) ajouter(chemin ?? null, `git ${git.sub}`)
-          const lit = LECTURES_GIT.has(git.sub) || LECTURES_GIT_SOUS_CONDITION[git.sub]?.(git.args)
-          if (!lit) ajouter(null, `git ${git.sub}`)
+          const operation = `git ${git.sub.includes('\0') ? '<sous-commande non constante>' : git.sub}`
+          for (const chemin of sorte) ajouter(chemin ?? null, operation, { ecrivain: true })
+          const lit = nonConstant(git.sub) || LECTURES_GIT.has(git.sub) || LECTURES_GIT_SOUS_CONDITION[git.sub]?.(git.args)
+          if (!lit) ajouter(null, operation, { ecrivain: true })
         }
       }
-      if (ecritureDeNpm(enTete.includes('npx') ? 'npx' : nom, developpes.slice(1))) ajouter(null, `${nom} ${developpes.slice(1).join(' ')}`.trim())
+      const args = developpes.slice(1)
+      if (enTete.includes('npx') && !nonConstant(developpes[0]) && !(Object.hasOwn(LECTURES_NPX, nom) && LECTURES_NPX[nom](args))) ajouter(null, `npx ${textes.join(' ')}`, { ecrivain: true })
+      if (nom === 'npm' && ecritureDeNpm(args)) ajouter(null, `npm ${textes.slice(1).join(' ')}`.trim(), { ecrivain: true })
+      if (nom === 'gh' && !lectureGh(args)) ajouter(null, `gh ${textes.slice(1).join(' ')}`.trim(), { ecrivain: true })
       const lancement = lancementDInterpreteur(developpes, segment, textes)
       if (lancement?.enLigne !== undefined) {
         const jeton = jetons[lancement.enLigne]
@@ -482,9 +547,11 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
           else ajouter(cible.chemin, cible.operation)
         }
       }
+      for (const sortie of lancement?.ecritures ?? []) ajouter(sortie, nom, { ecrivain: true })
       if (scripts && lancement) {
         for (const script of lancement.scripts) Object.assign(ajouter(script, 'script'), { langage: lancement.langage, argv: lancement.argv })
         for (const filtre of lancement.filtres) Object.assign(ajouter(filtre, 'script'), { langage: lancement.langage, filtre: true })
+        for (const dossier of lancement.dossiers) Object.assign(ajouter(dossier, 'script'), { langage: lancement.langage, dossier: true })
         if (lancement.nonLu) ajouter(null, `${lancement.langage} (code non lu)`)
       }
     }
