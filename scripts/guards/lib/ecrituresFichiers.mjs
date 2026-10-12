@@ -3,10 +3,11 @@ import { creerProvenanceFs } from './provenanceFs.mjs'
 import { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
 export { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
 
-export function ciblesDEcritureJS(texte) {
+/** Les écritures de fichier que DÉCLARE un texte JS/TS, parsé au dialecte de `rel` ; `[]` s'il ne se parse pas. */
+export function ciblesDEcritureJS(texte, { rel = 'inline.mjs' } = {}) {
   const ts = typescript()
   const sorties = []
-  for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel: 'inline.mjs', text: texte }])) {
+  for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel, text: texte }])) {
     if (diagnostics.length || !sourceFile) return []
     const provenance = creerProvenanceFs({ sourceFile, checker, ts })
     const litteral = (n) => n && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) ? n.text : null

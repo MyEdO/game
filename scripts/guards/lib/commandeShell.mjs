@@ -41,17 +41,26 @@ const HEREDOC_OUVERTURE_RE = /^<<(-?)\s*(['"]?)([A-Za-z_][\w.-]*)\2/
  *  ligne de PROSE qui cite le mot, et la suite du texte redeviendrait des commandes. PUR. */
 const ferme = (ligne, { mot, tabs }) => (tabs ? ligne.replace(/^\t+/, '') : ligne).replace(/\r$/, '') === mot
 
-/** Index de la fin du CORPS des heredocs ouverts (`{ mot, tabs }`), `pos` étant le début de la
- *  première ligne de corps. Un mot jamais refermé consomme le reste de la commande, comme le shell. */
+/** Index de la fin du CORPS des heredocs ouverts (`{ mot, tabs, jeton }`), `pos` étant le début de la
+ *  première ligne de corps. Un mot jamais refermé consomme le reste de la commande, comme le shell.
+ *  Le corps d'un heredoc à mot QUOTÉ (`<<'EOF'`, sans expansion) va au `corps` de son jeton. */
 function finDesCorpsHeredoc(command, pos, ouverts) {
   let i = pos
   for (const ouvert of ouverts) {
+    const debut = i
     for (;;) {
-      if (i >= command.length) return command.length
+      if (i >= command.length) {
+        if (ouvert.litteral) ouvert.jeton.corps = command.slice(debut)
+        return command.length
+      }
       const finLigne = command.indexOf('\n', i)
       const ligne = command.slice(i, finLigne === -1 ? command.length : finLigne)
+      const debutLigne = i
       i = finLigne === -1 ? command.length : finLigne + 1
-      if (ferme(ligne, ouvert)) break
+      if (ferme(ligne, ouvert)) {
+        if (ouvert.litteral) ouvert.jeton.corps = command.slice(debut, debutLigne)
+        break
+      }
     }
   }
   return i
@@ -89,8 +98,9 @@ function tokenizeCommand(command) {
     if (ouverture) {
       // Le marqueur reste un token (`OPERATEUR_SHELL_RE` le lit comme une redirection : rien après
       // lui n'est un pathspec) ; son corps, lui, ne sera jamais tokenisé.
-      heredocs.push({ mot: ouverture[3], tabs: ouverture[1] === '-' })
-      tokens.push({ text: `<<${ouverture[3]}`, op: null })
+      const jeton = { text: `<<${ouverture[3]}`, op: null }
+      heredocs.push({ mot: ouverture[3], tabs: ouverture[1] === '-', litteral: ouverture[2] !== '', jeton })
+      tokens.push(jeton)
       i += ouverture[0].length
       continue
     }

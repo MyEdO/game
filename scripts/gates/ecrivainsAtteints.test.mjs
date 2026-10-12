@@ -218,6 +218,9 @@ const ATTENDU = {
     // n'écrit que derrière sa porte `import.meta.main`. Mesuré le 2026-09-30 : `git status --porcelain --ignored`
     // identique avant et après, sur ce worktree et sur l'arbre principal.
     'scripts/hooks/inject-suivi.test.mjs',
+    // +1 le 2026-10-12 (#2537) : le banc de la garde des types en lecture seule pose ses scripts sous le
+    // scratchpad FORGÉ de sa session, sous os.tmpdir() (`rmSync` en finally) ; la garde juge, rien n'est exécuté.
+    'scripts/hooks/lecture-seule-guard.test.mjs',
     'scripts/hooks/memoire-tombale-guard.test.mjs',
     'scripts/hooks/new-src-file-guard.test.mjs',
     'scripts/hooks/poison-postcheck.test.mjs',
@@ -233,6 +236,9 @@ const ATTENDU = {
     'scripts/hooks/suivi-ecriture-guard.test.mjs',
     'scripts/hooks/suivi-lien-guard.test.mjs',
     'scripts/hooks/typecheck-fast-wrapper.test.mjs',
+    // +1 le 2026-10-12 (#2537) : le banc de la garde du type d'agent des workflows forge un dépôt JETABLE
+    // (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally) ; la garde lit les scripts, rien n'est écrit.
+    'scripts/hooks/workflow-type-guard.test.mjs',
     // +2 le 2026-09-14 (#1699) : la migration des chemins de `Source/` en ASCII et son banc. La
     // migration ÉCRIT (git mv, réécritures) UNIQUEMENT sous `--apply`, que le banc ne lui donne que
     // sur des dépôts JETABLES (`instanceDeDepot`, sous `os.tmpdir()`) ; jouée sans argument — ce que

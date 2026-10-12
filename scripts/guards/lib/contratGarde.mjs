@@ -111,9 +111,9 @@ const outilsDeFamille = (famille) => Object.keys(FAMILLES_LEAN_CTX).filter((nu) 
 /** Les canaux shell : Bash, PowerShell, et la famille SHELL de lean-ctx. */
 export const OUTILS_SHELL = ['Bash', 'PowerShell', ...outilsDeFamille(SHELL)]
 
-/** Les canaux d'écriture de fichier : Write, Edit, apply_patch, et la famille ÉDITION de lean-ctx (`ctx_patch`, le
- *  canal prescrit par `~/.claude/CLAUDE.md`). */
-export const OUTILS_ECRITURE = ['Write', 'Edit', 'apply_patch', ...outilsDeFamille(EDITION)]
+/** Les canaux d'écriture de fichier : Write, Edit, NotebookEdit, apply_patch, et la famille ÉDITION de lean-ctx
+ *  (`ctx_patch`, le canal prescrit par `~/.claude/CLAUDE.md`). */
+export const OUTILS_ECRITURE = ['Write', 'Edit', 'NotebookEdit', 'apply_patch', ...outilsDeFamille(EDITION)]
 
 /** Les canaux d'écriture qui CRÉENT un fichier : `Edit` n'en crée pas. */
 export const OUTILS_CREATION = OUTILS_ECRITURE.filter((outil) => outil !== 'Edit')
@@ -270,10 +270,10 @@ const texteDeLOp = (ecrit, role) => {
   return cle ? ecrit[cle] : undefined
 }
 
-/** Le chemin visé : `file_path` (`Write`, `Edit`), `path` (`ctx_patch`) ; `undefined` sans chemin, ou
- *  fait de blancs. */
+/** Le chemin visé : `file_path` (`Write`, `Edit`), `notebook_path` (`NotebookEdit`), `path` (`ctx_patch`) ;
+ *  `undefined` sans chemin, ou fait de blancs. */
 export const cheminVise = (ecrit) => {
-  const chemin = ecrit?.file_path ?? ecrit?.path
+  const chemin = ecrit?.file_path ?? ecrit?.notebook_path ?? ecrit?.path
   return typeof chemin === 'string' && chemin.trim() !== '' ? chemin : undefined
 }
 

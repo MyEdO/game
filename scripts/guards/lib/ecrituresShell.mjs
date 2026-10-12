@@ -90,7 +90,43 @@ function ciblesDuWriter(textes) {
   return []
 }
 
-export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), platform = process.platform, exclureArguments = () => false, segments = pipelinesDeJetons(commande).flat() } = {}) {
+/** Les PUITS : une écriture qui n'atteint aucun fichier — `/dev/null`, `NUL` sous win32, `$null` de PowerShell. */
+const estPuits = (texte, platform) => texte === '/dev/null' || (platform === 'win32' && /^nul$/i.test(texte))
+const PUITS_POWERSHELL = /^\$null$/i
+
+/** Les interpréteurs dont le script n'est pas lu : un lancement est une écriture INCONNUE. */
+const INTERPRETEURS_NON_LUS = new Set(['python', 'python3', 'py'])
+
+/** Le script que lance `node <script>`, `tsx <script>` ou `npx tsx <script>` : le premier argument
+ *  positionnel, les valeurs de `-r`/`--require`/`--import`/`--input-type` sautées ; `undefined` pour un
+ *  code en ligne (`-e`, `-p`) ou sans script. */
+function scriptLance(textes) {
+  let k = 1
+  const nom = basenameExecutable(textes[0])
+  if (nom === 'npx') {
+    while (k < textes.length && textes[k].startsWith('-')) k++
+    if (basenameExecutable(textes[k]) !== 'tsx') return undefined
+    k++
+  } else if (nom !== 'node' && nom !== 'tsx') return undefined
+  for (; k < textes.length; k++) {
+    const texte = textes[k]
+    if (/^-[ep]|^--(eval|print)(=|$)/.test(texte)) return undefined
+    if (texte === '--') return textes[k + 1]
+    if (['-r', '--require', '--import', '--input-type'].includes(texte)) { k++; continue }
+    if (!texte.startsWith('-')) return texte
+  }
+  return undefined
+}
+
+/**
+ * Les cibles d'écriture qu'une commande DÉCLARE, `{ chemin, inconnue, operation, segment, base, puits, contenu }` :
+ * `base` = le répertoire courant du segment (`null` inconnu) ; `puits` = une écriture qui n'atteint aucun
+ * fichier (`estPuits`) ; `contenu` = le texte écrit, connu pour `cat > f <<'MOT'` (le `corps` du heredoc
+ * à mot quoté), `undefined` sinon. Avec `scripts`, s'y ajoutent les LANCEMENTS : `{ operation: 'script' }` pour le
+ * fichier que lance `node`/`tsx`/`npx tsx` (`scriptLance`), et une cible inconnue `python` pour un
+ * interpréteur dont le script n'est pas lu (`INTERPRETEURS_NON_LUS`).
+ */
+export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), platform = process.platform, exclureArguments = () => false, segments = pipelinesDeJetons(commande).flat(), scripts = false } = {}) {
   const etats = new Map(), sorties = []
   const etatDe = (shell) => {
     if (!etats.has(shell)) {
@@ -118,15 +154,27 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
     const jetons = sansRedirections(segment.jetons), textes = jetons.map(j => j.text)
     const nom = basenameExecutable(textes[0])
     const developpes = jetons.map((j, k) => developper(j.text, etat.variables, j) ?? `\0inconnue:${k}\0`)
-    const ajouter = (chemin, operation) => {
+    const ajouter = (chemin, operation, puits = false) => {
       if (typeof chemin === 'string' && chemin.includes('\0')) chemin = null
       const natif = chemin === null ? null : versCheminNatif(chemin, platform)
       const resolu = natif === null || (!etat.base && !isAbsolute(natif)) ? null : resolve(etat.base ?? base, natif)
-      sorties.push({ chemin: resolu, inconnue: resolu === null, operation, segment })
+      sorties.push({ chemin: resolu, inconnue: !puits && resolu === null, operation, segment, base: etat.base, puits: puits || (typeof chemin === 'string' && estPuits(chemin, platform)) })
     }
-    for (const cible of ciblesDeRedirectionAvecProvenance(segment.jetons)) ajouter(developper(cible.text, etat.variables, cible), 'redirection')
+    const corps = nom === 'cat' && textes.length === 1 ? segment.jetons.find((j) => typeof j.corps === 'string')?.corps : undefined
+    for (const cible of ciblesDeRedirectionAvecProvenance(segment.jetons)) {
+      if (cible.quote === undefined && PUITS_POWERSHELL.test(cible.text ?? '')) ajouter(null, 'redirection', true)
+      else {
+        ajouter(developper(cible.text, etat.variables, cible), 'redirection')
+        if (corps !== undefined) sorties.at(-1).contenu = corps
+      }
+    }
     if (!exclureArguments(segment)) {
       for (const cible of ciblesDuWriter(developpes)) ajouter(cible, nom)
+      if (scripts) {
+        const lance = scriptLance(developpes)
+        if (lance !== undefined) ajouter(lance, 'script')
+        if (INTERPRETEURS_NON_LUS.has(nom)) ajouter(null, nom)
+      }
       if (nom === 'node') {
         let argument
         for (let k = 1; k < jetons.length; k++) {

@@ -16,11 +16,14 @@ import { garde as suiviEcriture } from './suivi-ecriture-guard.mjs'
 import { garde as suiviLien } from './suivi-lien-guard.mjs'
 import { garde as fermetureHorsCommit } from './fermeture-hors-commit-guard.mjs'
 import { garde as hooksGitContournes } from './hooks-git-contournes-guard.mjs'
+import { garde as lectureSeule } from './lecture-seule-guard.mjs'
+import { garde as workflowType } from './workflow-type-guard.mjs'
 
 export const REGISTRE = {
   PreToolUse: [
     canalOutil, nouveauFichierSrc, donneeEditee, exceptionAjoutee, memoireTombale,
     commandePiege, issueLabel, codeurGates, runnerCapture, superpowersEcriture, suiviEcriture, suiviLien, fermetureHorsCommit, hooksGitContournes,
+    lectureSeule, workflowType,
   ],
   PostToolUse: [poison],
 }
