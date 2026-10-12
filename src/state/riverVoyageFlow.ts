@@ -17,10 +17,9 @@
  * la halte de nuit — la même présentation que les jets de bord du voyage maritime. La table des vents, l'Agilité
  * de rame, le chavirage et les Critiques de bateau sont propres au fleuve (`engine/riverNavigation.ts`).
  *
- * EXPOSITION HYDRIQUE (MSRC 16) : la descente EXERCE l'Effet EXISTANT `waterExposure` — un tirage d'auteur
- * par étape (`MapRoute.riverExposure`) qui, via `openWaterExposure` (kind `river-exposition`), ouvre le Test de Résistance →
- * maladie. RÉUTILISE le canal d'Effet (aucune mécanique neuve) : le moteur de tables hydriques et l'Effet
- * étaient déjà là (`engine/waterExposure.ts`), seule leur MISE EN SCÈNE dans le voyage manquait.
+ * EXPOSITION HYDRIQUE (MSRC 16 l.5-13) : un tirage d'auteur par étape (`MapRoute.riverExposure`) pose le
+ * Test d'Exposition par la couture de l'Effet de scène (`combatEffects.openWaterExposure`), sous le `kind`
+ * propre à la descente (`river-exposition`) ; tables hydriques : `engine/waterExposure.ts`.
  */
 import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
@@ -56,9 +55,10 @@ import {
 } from '../engine/riverNavigation';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { startCascade, registerCascadeApplier, runCascadeImmediate } from './cascade';
+import { checkPartyWiped } from './partyWipe';
 import { composeRollLabel, freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
-import { actorIn, garanti } from './combatants';
+import { actorIn, equipageApte, garanti } from './combatants';
 import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
@@ -205,9 +205,9 @@ function arriveRiver(get: Get, set: Set, to: { scene: string; entry?: string; la
   get().transitionTo(to.scene, to.entry);
 }
 
-/** Meilleur pilote (barreur/rameur) du groupe avec Soutien (LDB 12) pour la Compétence de Navigation. */
+/** Meilleur pilote (barreur/rameur) de l'équipage apte avec Soutien (LDB 12) pour la Compétence de Navigation. */
 function riverPilot(get: Get, skillId: 'voile' | 'ramer') {
-  return partyAssisted(get().party, skillId);
+  return partyAssisted(equipageApte(get().party), skillId);
 }
 
 /**
@@ -224,15 +224,14 @@ function resolveRiverDay(get: Get, set: Set, route: MapRoute, to: { scene: strin
   const { steps, log: lines } = buildRiverDayCascade(get, set, route, to);
   for (const l of lines) log(get, set, [l]);
   if (!steps.length) {
-    // Aucun jet influençable (bateau coulé d'entrée, ou aucune entrée de vitesse à tester) : on
-    // finalise directement, comme la cascade le ferait à la clôture.
-    continueRiverDayAfterCascade(get, set);
+    // Aucun jet influençable (bateau coulé d'entrée, personne à la barre) : on finalise directement,
+    // comme la cascade le ferait à sa clôture — défaite hors combat comprise (`checkPartyWiped`).
+    if (!checkPartyWiped(get, set)) continueRiverDayAfterCascade(get, set);
     return;
   }
-  // Route COMMANDÉE (`voyageCadence`, #91, #2545) : le jour se joue d'un bloc par le pilote IMMÉDIAT ;
-  // un choix sans défaut l'interrompt en `travelDay` (`cascade.runCascadeImmediate`), que la clôture
-  // reprend (`combatSlice.dispatchCascadeDone`). En coop, la conduite reste manuelle (modale).
-  if (get().net.mode === 'local' && traverseeCommandee(get().travelPlan?.orders)) {
+  // Traversée sous ordres (`voyageCadence.traverseeCommandee`, #91, #2545) : le jour se joue d'un bloc
+  // par le pilote IMMÉDIAT ; un choix sans défaut l'interrompt en `travelDay` (`cascade.runCascadeImmediate`).
+  if (traverseeCommandee(get())) {
     if (!runCascadeImmediate(get, set, steps, { title: t('rv.dayTitle'), purpose: 'travelDay' })) return;
     continueRiverDayAfterCascade(get, set);
     return;
@@ -445,7 +444,7 @@ export function continueRiverDayAfterCascade(get: Get, set: Set): void {
   // Efface le contexte transitoire du jour (jamais persisté au-delà de la journée).
   set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: undefined, dayAgilityFactor: undefined } } });
 
-  // Exposition hydrique du jour (MSRC 16) — ouvre l'Effet EXISTANT `waterExposure` (cascade influençable).
+  // Exposition hydrique du jour (MSRC 16) — dé d'auteur puis Test (`openWaterExposure`, `river-exposition`).
   // Si elle SURFACE, on DIFFÈRE la halte de nuit à sa clôture : sinon la cascade d'Exposition et la modale
   // de Repos coexistent, le Repos reprend la route AVANT la résolution de l'Exposition, et celle-ci
   // (purpose générique `test`) n'a plus de continuation → la journée suivante ne se ré-arme jamais (#344).
@@ -494,9 +493,8 @@ export function continueRiverDayAfterExposure(get: Get, set: Set): void {
 
 /**
  * EXPOSITION HYDRIQUE d'une étape (MSRC 16, l.5-13) : tirage d'auteur (`MapRoute.riverExposure`) qui
- * ouvre le Test de l'Effet EXISTANT `waterExposure` (`openWaterExposure`, kind `river-exposition`) sur TOUT
- * le groupe — aucune mécanique neuve. Sautée si le
- * bateau a coulé (plus de fleuve sous les pieds).
+ * pose le Test d'Exposition (`openWaterExposure`, kind `river-exposition`) sur TOUT le groupe. Sautée si
+ * le bateau a coulé.
  *
  * Le d100 d'auteur est un dé de MONDE : il DÉCIDE si l'Exposition a lieu, et se pose donc comme les
  * autres (`worldStep`, évaluation `'seuil'` : `dé ≤ chancePct`, ni bande ni DR). Il est poussé EN FIN
@@ -514,7 +512,7 @@ function openRiverExposureChance(get: Get, set: Set, route: MapRoute, sunk: bool
   }, RIVER_EXPOSURE_KIND, { exposureMode: ex.mode, exposureSource: ex.source });
 }
 
-const RIVER_EXPOSURE_KIND = 'riverExposureChance';
+const RIVER_EXPOSURE_KIND = 'river-exposition-tirage';
 registerCascadeApplier(RIVER_EXPOSURE_KIND, (get, set, step) => {
   if (!step.result) return {};
   if (!step.result.success) return { consequences: freeCons([{ text: t('rv.exposureNone'), tone: 'info' }]) };

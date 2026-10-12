@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { emptyScene } from './scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
@@ -6,7 +6,8 @@ import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
 import { buildRiverPlan, runRiverDays } from './riverVoyageFlow';
 import { seedBattleRng } from './battleRng';
 import { skills as SKILLS, crewRoles as CREW_ROLES, refLabel } from '../data';
-import { resoluSousOrdres, traverseeCommandee, KINDS_SOUS_ORDRES, DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
+import { KINDS_SOUS_ORDRES, DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from './voyageCadence';
+import { creditBourse } from './bourseFlow';
 import { createHero } from '../engine/character';
 import { buildScene } from './mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
@@ -19,6 +20,7 @@ import type { WorldMap } from './worldMap';
  */
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
+const NET0 = useGame.getState().net;
 
 const seaMap: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
@@ -42,21 +44,50 @@ function freshSea() {
   } as never);
 }
 
-describe('couche voyageCadence — prédicats de routine', () => {
-  it('KINDS_SOUS_ORDRES est UNE liste FERMÉE pour les deux routes ; crises/embuscade/rapide restent hors liste', () => {
-    for (const k of ['progression', 'affaler', 'phare', 'orientation', 'entretien', 'riverExposureChance', 'river-exposition']) expect(KINDS_SOUS_ORDRES.has(k)).toBe(true);
-    for (const k of ['poursuite', 'tourbillon', 'embuscade', 'extermination', 'ouragan', 'voyage-rapide', 'exposure', 'waterExposure']) expect(KINDS_SOUS_ORDRES.has(k)).toBe(false);
-    expect(resoluSousOrdres({ cadence: 'commande' }, 'progression')).toBe(true);
-    expect(resoluSousOrdres({ cadence: 'commande' }, 'river-exposition')).toBe(true);
-    expect(resoluSousOrdres({ cadence: 'commande' }, 'poursuite')).toBe(false);
-    expect(resoluSousOrdres({ cadence: 'jour-par-jour' }, 'progression')).toBe(false);
+describe('couche voyageCadence — la liste FERMÉE des Tests sous ordres', () => {
+  it('KINDS_SOUS_ORDRES : une liste pour les deux routes ; crises, embuscade, voyage rapide et Expositions hors route restent dehors', () => {
+    for (const k of ['progression', 'affaler', 'phare', 'orientation', 'entretien', 'river-exposition-tirage', 'river-exposition']) expect(KINDS_SOUS_ORDRES.has(k), k).toBe(true);
+    for (const k of ['poursuite', 'tourbillon', 'embuscade', 'extermination', 'ouragan', 'voyage-rapide', 'exposure', 'waterExposure']) expect(KINDS_SOUS_ORDRES.has(k), k).toBe(false);
   });
+});
 
-  it('le jour commandé se joue d’un bloc, quelle que soit la route : seule la cadence en décide', () => {
-    expect(traverseeCommandee({ cadence: 'commande' })).toBe(true);
-    expect(traverseeCommandee(DEFAULT_VOYAGE_ORDERS)).toBe(true);
-    expect(traverseeCommandee({ cadence: 'jour-par-jour' })).toBe(false);
-  });
+/**
+ * Le jour SOUS ORDRES (`voyageCadence.traverseeCommandee`) se joue d'un bloc — un jour de routine, sur
+ * chaque route — seulement en mode LOCAL : la résolution sans fenêtre est hôte-seule
+ * (`docs/architecture.md`, « Coop en ligne — limitations connues »). Mesuré par `startTravel`, la porte
+ * que le joueur clique.
+ */
+describe('jour SOUS ORDRES — d’un bloc en local ; en coop ou jour par jour, la fenêtre du jour s’ouvre (fleuve comme mer)', () => {
+  const departs = {
+    fleuve: (cadence: VoyageCadence) => {
+      seedBattleRng(7);
+      get().setParty(riverCrew());
+      get().loadProject([quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], 'quai-a', riverMap(45));
+      set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] } as never);
+      creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 });
+      return () => get().startTravel('r-reik', 'barge', { cadence });
+    },
+    mer: (cadence: VoyageCadence) => {
+      freshSea();
+      return () => get().startTravel('r1', 'mer', { cadence });
+    },
+  };
+  const cas: { mode: 'local' | 'host'; cadence: VoyageCadence; fenetre: boolean }[] = [
+    { mode: 'local', cadence: 'commande', fenetre: false },
+    { mode: 'host', cadence: 'commande', fenetre: true },
+    { mode: 'local', cadence: 'jour-par-jour', fenetre: true },
+  ];
+  afterEach(() => set({ net: NET0 } as never));
+  for (const [route, depart] of Object.entries(departs)) {
+    for (const { mode, cadence, fenetre } of cas) {
+      it(`${route}, ${mode}, ${cadence} : ${fenetre ? 'fenêtre du jour' : 'jour joué d’un bloc'}`, () => {
+        const partir = depart(cadence);
+        set({ net: { ...NET0, mode, mySeat: 0 } } as never);
+        partir();
+        expect(get().pendingCascade?.purpose ?? null).toBe(fenetre ? 'travelDay' : null);
+      });
+    }
+  }
 });
 
 describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, aucun jet silencieux', () => {
@@ -223,8 +254,8 @@ describe('descente FLUVIALE COMMANDÉE (#91) — routine sans modale par jet', (
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', routeWithPeril, { cadence: 'commande' })!;
     set({ travelPlan: plan, worldMap: { ...get().worldMap!, routes: [routeWithPeril] } } as never);
     runRiverDays(get, set);
-    // Le jour n'est PLUS de pure routine (route.riverPerils non vide) : la cascade s'ouvre et ATTEND,
-    // au lieu de se dérouler d'un bloc (aucun jet/choix silencieux).
+    // Le pilote du jour s'arrête sur le choix sans défaut (`cascade.runCascadeImmediate`) : la fenêtre
+    // s'ouvre sur la décision, jamais tranchée en silence.
     expect(get().pendingCascade).toBeTruthy();
     expect(get().pendingCascade!.purpose).toBe('travelDay');
   });

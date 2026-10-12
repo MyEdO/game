@@ -1676,6 +1676,13 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
     set({ pendingCascade: null });
     return { ...fondu, participants: steps, seq };
   }
+  // Séquence parquée par le pilote IMMÉDIAT sur une décision : la décision validée, la suite revient à
+  // CE pilote — l'appelant l'avait lancée sans fenêtre, la décision seule l'a rouverte.
+  if (p.piloteImmediat) {
+    set({ pendingCascade: null });
+    const fini = piloteImmediat(get, set, steps, { title: p.title, purpose: p.purpose, log: fondu.log }, next, seq);
+    return fini ? { ...fondu, participants: fini, cursor: fini.length } : null;
+  }
   const suite = poserLeCurseur(get, { ...fondu, participants: steps, seq, cursor: next });
   set({ pendingCascade: suite });
   // Tirage résolu D'OFFICE par le seam — aucun siège humain ne le tient (`tirageSansSiege` : cadence
@@ -1773,19 +1780,29 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * appels), rien à préserver : la boucle s'arrête simplement (comportement historique).
  *
  * CHOIX sans `defaultChoice` authoré : jamais tranché en silence (`options[0]`) — la cascade s'arrête
- * PENDANTE, surfacée via `pendingCascade` (patron `resolveRemainingCascade`, #351).
+ * PENDANTE, surfacée via `pendingCascade` (patron `resolveRemainingCascade`, #351), marquée
+ * `piloteImmediat` : la décision validée, la suite reprend par CE pilote (`avanceUnPas`). La reprise ne
+ * porte pas `ctx.rowSurface` (l'appelant qui collectait le PV a rendu la main) : ses rangées vont au journal.
  *
  * `ctx.rowSurface` : l'appelant DÉCLARE que les rangées de ses BANDES se montrent ailleurs qu'au
  * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291). Les
  * étapes MONO du même tableau gardent leur ligne : elles n'ont pas de rangée au PV.
  */
-export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface }): CascadeStep[] | undefined {
+export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: ContexteDuPilote): CascadeStep[] | undefined {
+  return piloteImmediat(get, set, steps, ctx, 0, steps.length); // un tableau à LUI : son compteur part de sa longueur
+}
+
+type ContexteDuPilote = { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface };
+
+/** Le pilote immédiat, à partir de l'étape `depuis` — `0` à son lancement, l'étape qui suit la décision
+ *  à sa reprise (`avanceUnPas`, séquence `piloteImmediat`). */
+function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteDuPilote | undefined, depuis: number, seqInitial: number): CascadeStep[] | undefined {
   let cur = steps;
-  let seq = steps.length; // ce pilote résout un tableau à LUI : son compteur part de sa longueur
+  let seq = seqInitial;
   let bornes: BornesDuFragment = { log: ctx?.log ?? [] }; // + celles des fragments collectés par les appliers
   const slotALEntree = get().pendingCascade; // un slot DÉJÀ vivant n'est pas une interruption de CE pilote
 
-  for (let i = 0; i < cur.length; i++) {
+  for (let i = depuis; i < cur.length; i++) {
     const st = cur[i];
     // Jet POSÉ PAR CE PILOTE : aucune fenêtre ne s'ouvrira dessus — le goulot (`commitStep`) en dérive
     // sa ligne de dé. Une étape qui ARRIVE déjà résolue (jet montré ailleurs) n'en reçoit pas.
@@ -1820,7 +1837,7 @@ export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ct
         // modale la reprenne (devtools `advanceRiverDay`/`skipToArrival`, cadence commandée, tout
         // futur appelant immédiat).
         set({
-          pendingCascade: { title: ctx?.title ?? choix.label ?? 'Choix', purpose: ctx?.purpose ?? 'test', ...bornes, participants: cur, seq, cursor: i },
+          pendingCascade: { title: ctx?.title ?? choix.label ?? 'Choix', purpose: ctx?.purpose ?? 'test', ...bornes, participants: cur, seq, cursor: i, piloteImmediat: true },
         });
         return undefined;
       }

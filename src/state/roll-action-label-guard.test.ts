@@ -114,10 +114,9 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
  * parenthèses (« Métier (Cartographe) ») — apostrophes normalisées (le catalogue écrit `'`, les sites
  * écrivent parfois `’`).
  *
- * Hors de ce scan lexical : un `rollLabel` CALCULÉ (`refLabel(…)`, ternaire, variable). Sonde du
- * 2026-10-12 (#1595, D1 point 3) : les lignes de `src/` hors tests où `rollLabel` côtoie `refLabel(`
- * nomment toutes le catalogue `skills`. Précédent d'un autre catalogue : les rôles d'équipage
- * (`findCrewRoleById(…).label`, #1112), couverts par le volet 3 ci-dessous.
+ * Un `rollLabel` CALCULÉ par `refLabel(…)` se mesure à part : il doit nommer le catalogue `skills`
+ * (assertion ci-dessous). Ternaire et variable restent hors de ce scan lexical. Précédent d'un autre
+ * catalogue : les rôles d'équipage (`findCrewRoleById(…).label`, #1112), couverts par le volet 3.
  */
 const norm = (s: string): string => s.replace(/[’‘]/g, "'").trim();
 const CATALOGUE_LABELS = new Set<string>([...skills.map((s) => norm(s.label)), ...Object.values(CHAR_LABELS).map(norm)]);
@@ -171,6 +170,17 @@ describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#11
       sites,
       '`rollLabel` qui nomme une SITUATION — la ligne du jet dit la Compétence lancée (Z5, docs/charte-ui.md) :\n' + sites.join('\n'),
     ).toEqual([]);
+  });
+
+  it('un `rollLabel` calculé par `refLabel(` nomme le catalogue `skills`', () => {
+    const autres: string[] = [];
+    for (const { rel, text } of readCorpus(['src'])) {
+      for (const [i, ligne] of text.split('\n').entries()) {
+        if (!/\brollLabel:/.test(ligne)) continue;
+        for (const m of ligne.matchAll(/\brefLabel\(\s*(['"])([^'"]+)\1/g)) if (m[2] !== 'skills') autres.push(`${rel}:${i + 1} — ${m[2]}`);
+      }
+    }
+    expect(autres, '`rollLabel` résolu hors du catalogue des Compétences :\n' + autres.join('\n')).toEqual([]);
   });
 
   it('fail-closed : un `rollLabel`-situation SYNTHÉTIQUE est détecté, une Compétence passe', () => {
@@ -276,9 +286,10 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
  * PARENTHÈSE remplie d'un libellé de Compétence ou de Caractéristique hors de lui est une seconde
  * source de la même forme (précédent : `riverVoyageFlow.ts`, étape `river-nav`, #1111).
  *
- * MESURE : les deux portes d'une parenthèse de libellé — la fabrique `stepPrecision(sujet, precision)`
- * et tout gabarit de LIBELLÉ D'ÉTAPE du catalogue FR (`step.*`, `i18n/messages/fr.ts`) dont un
- * paramètre est écrit entre parenthèses (`'{sujet} ({precision})'`), appelé par `t(`/`tr(` —, dont l'argument de la parenthèse
+ * MESURE : les quatre portes d'une parenthèse de libellé — la fabrique `stepPrecision(sujet, precision)`,
+ * tout gabarit de LIBELLÉ D'ÉTAPE du catalogue FR (`step.*`, `i18n/messages/fr.ts`) dont un
+ * paramètre est écrit entre parenthèses (`'{sujet} ({precision})'`), appelé par `t(`/`tr(`, le gabarit
+ * LITTÉRAL (`` `… (${…})` ``) et la CONCATÉNATION (`' (' + … + ')'`) —, dont l'argument de la parenthèse
  * est un libellé du catalogue des Compétences/Caractéristiques : appel `refLabel('skills', …)`,
  * `testSkillLabel(…)`, `skillRefLabel(…)`, `CHAR_LABELS[…]`, littéral, ou clé de catalogue dont le
  * texte en est un (`isCompetenceLabel`). Une variable nue n'est PAS lue.
@@ -349,15 +360,64 @@ export function scanManualSkillParenthesis(src: string): ActionLabelHit[] {
       if (kv && params.includes(kv[1]) && isSkillLabelExpr(kv[2])) hits.push({ line: at(m.index!), text: `${m[1]} ← ${kv[2].trim()}` });
     }
   }
+  // Gabarit LITTÉRAL : `(${expr})`, l'interpolation seule entre les parenthèses.
+  for (const m of src.matchAll(/\(\$\{/g)) {
+    const open = m.index! + 2;
+    const close = closingBrace(src, open);
+    if (close < 0 || src[close + 1] !== ')') continue;
+    const expr = src.slice(open + 1, close);
+    if (isSkillLabelExpr(expr)) hits.push({ line: at(m.index!), text: expr.trim() });
+  }
+  // CONCATÉNATION : une chaîne qui finit par `(`, puis `+ expr`.
+  for (const m of src.matchAll(/\((['"`])\s*\+\s*/g)) {
+    const expr = concatOperand(src, m.index! + m[0].length);
+    if (isSkillLabelExpr(expr)) hits.push({ line: at(m.index!), text: expr.trim() });
+  }
   return hits;
 }
+
+/** Index de l'accolade qui ferme celle ouverte à `open` (chaînes franchies), `-1` sinon. */
+function closingBrace(src: string, open: number): number {
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    const ch = src[j];
+    if (ch === "'" || ch === '"') { const end = src.indexOf(ch, j + 1); if (end < 0) return -1; j = end; }
+    else if (ch === '{') depth++;
+    else if (ch === '}') { depth--; if (depth === 0) return j; }
+  }
+  return -1;
+}
+
+/** L'opérande d'une concaténation qui commence à `from` : jusqu'au `+`, `)`, `,` ou `;` de PREMIER niveau. */
+function concatOperand(src: string, from: number): string {
+  let depth = 0;
+  for (let j = from; j < src.length; j++) {
+    const ch = src[j];
+    if (ch === "'" || ch === '"' || ch === '`') { const end = src.indexOf(ch, j + 1); if (end < 0) return src.slice(from); j = end; }
+    else if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if ((ch === ')' || ch === ']' || ch === '}') && depth > 0) depth--;
+    else if (depth === 0 && (ch === '+' || ch === ')' || ch === ',' || ch === ';' || ch === '\n')) return src.slice(from, j);
+  }
+  return src.slice(from);
+}
+
+/** Sites où la parenthèse précise un MODIFICATEUR, pas une Action : clé `fichier — expression`. */
+const PARENTHESE_HORS_ACTION = new Map<string, string>([
+  ['src/engine/ops.ts — CHAR_LABELS[o.char]', 'op.testMod : « +10 (Force) » nomme la Caractéristique du modificateur, aucun jet n’est libellé'],
+]);
 
 describe('CLIQUET — « Action (Compétence) » n’est composé que par `composeRollLabel` (#1111)', () => {
   it('aucune parenthèse de libellé remplie d’une Compétence hors du composeur', () => {
     const bad: string[] = [];
+    const exemptions = new Set<string>();
     for (const { rel, text } of readCorpus(['src'])) {
-      for (const h of scanManualSkillParenthesis(text)) bad.push(`${rel}:${h.line} — ${h.text}`);
+      for (const h of scanManualSkillParenthesis(text)) {
+        const site = `${rel} — ${h.text}`;
+        if (PARENTHESE_HORS_ACTION.has(site)) exemptions.add(site);
+        else bad.push(`${rel}:${h.line} — ${h.text}`);
+      }
     }
+    expect([...PARENTHESE_HORS_ACTION.keys()].filter((k) => !exemptions.has(k)), 'exemption sans site vivant').toEqual([]);
     expect(bad, ['« Action (Compétence) » composé hors de `composeRollLabel` (Z1, docs/charte-ui.md) :', ...bad].join('\n')).toEqual([]);
   });
 
@@ -371,5 +431,10 @@ describe('CLIQUET — « Action (Compétence) » n’est composé que par `compo
     expect(scanManualSkillParenthesis("label: stepPrecision(tr('step.blessureCritique'), locationLabel(cloc, target.bodyShape)),"), 'localisation').toEqual([]);
     expect(scanManualSkillParenthesis("t('step.sujetPrecision', { sujet: refLabel('skills', { id: 'natation' }), precision: DIFFICULTY_LABELS[diff] })"), 'la Compétence en SUJET n’est pas la parenthèse').toEqual([]);
     expect(scanManualSkillParenthesis("label: composeRollLabel(undefined, t('step.navigation'), { skill: skillId }),"), 'le composeur').toEqual([]);
+    expect(scanManualSkillParenthesis("descOfferte={npc ? `${npc.label} (${skillRefLabel(npc.skill)})` : undefined}"), 'gabarit littéral').toHaveLength(1);
+    expect(scanManualSkillParenthesis("const l = `${action} (${CHAR_LABELS[c]})`;"), 'gabarit littéral, caractéristique').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: h.label + ' (' + refLabel('skills', { id: 'voile' }) + ')',"), 'concaténation').toHaveLength(1);
+    expect(scanManualSkillParenthesis("const l = `${sujet} (${locationLabel(loc)})`;"), 'gabarit littéral, localisation').toEqual([]);
+    expect(scanManualSkillParenthesis("label: h.label + ' (' + h.role + ')',"), 'concaténation, variable nue').toEqual([]);
   });
 });

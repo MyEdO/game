@@ -227,6 +227,21 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     expect(get().journal.some((l) => /^Progression du jour/.test(l)), `journal :\n${get().journal.join('\n')}`).toBe(true);
   });
 
+  it('cadence COMMANDÉE (#2545) : après la décision, la suite du jour (Débris) se résout d’un bloc — aucun jet n’attend le joueur', () => {
+    launch(false, 45, { riverPerils: [{ perilId: 'barrage', chancePct: 100 }, { perilId: 'debris', chancePct: 100 }] });
+    seedBattleRng(7);
+    get().startTravel('r-reik', 'barge');
+    const pc = get().pendingCascade!;
+    const choix = pc.participants[pc.cursor];
+    expect(choix.kind, 'le jour s’arrête sur la décision').toBe('riverObstacleChoice');
+    expect(pc.participants.slice(pc.cursor + 1).some((s) => s.kind === 'riverPerilCheck'), 'le péril de Débris suit la décision').toBe(true);
+    get().cascadeChoose(choix.id, 'forcer');
+    get().cascadeNext(); // « Valider » : le geste du joueur qui tranche
+    const apres = get().pendingCascade;
+    expect(apres?.purpose ?? null, `la fenêtre du JOUR s’est refermée — journal :\n${get().journal.join('\n')}`).not.toBe('travelDay');
+    expect(get().journal.some((l) => /^Progression du jour/.test(l)), 'le jour est allé à son terme').toBe(true);
+  });
+
   it('FORCER au bélier → +10 Dégâts à la coque (l.128), journal explicite', () => {
     launch(false, 45, { riverPerils: [{ perilId: 'barrage', chancePct: 100 }] });
     seedBattleRng(7);
@@ -329,28 +344,35 @@ describe('influence effective — Résilience sur un jet du jour fluvial', () =>
   });
 });
 
-describe('exposition hydrique de la descente (MSRC 16) — l\'Effet waterExposure EXERCÉ après le jour', () => {
-  it('JOUR-PAR-JOUR : un tirage garanti (chance 100 %) ouvre la cascade de Test de Résistance (Exposition) à la clôture du jour', () => {
+describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur puis Test de Résistance par héros', () => {
+  /** Lignes de dé du journal portées par le Test d'Exposition (`{qui} — Résistance : dé/cible → issue`). */
+  const lignesDeResistance = () => get().journal.filter((l) => new RegExp(` — ${byId('skill', 'resistance')!.label} : \\d+/\\d+ → `).test(l));
+
+  it('route COMMANDÉE : tirage garanti → aucune fenêtre, une ligne de Résistance au journal par héros exposé', () => {
+    launch(false, 45, { riverExposure: { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 100 } });
+    seedBattleRng(4);
+    get().startTravel('r-reik', 'barge');
+    expect(get().pendingCascade, 'ni la fenêtre du jour, ni celle du dé, ni celle des Tests').toBeNull();
+    const exposes = get().party.filter((h) => !h.dead);
+    const lignes = lignesDeResistance();
+    expect(lignes.length, `journal :\n${get().journal.join('\n')}`).toBe(exposes.length);
+    for (const h of exposes) expect(lignes.filter((l) => l.startsWith(`${h.label} — `)), h.label).toHaveLength(1);
+  });
+
+  it('cadence JOUR-PAR-JOUR (déclarée au départ) : le dé de MONDE puis les Tests s’ouvrent en fenêtre, sans ligne de dé au journal', () => {
     launch(false, 45, { riverExposure: { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 100 } });
     seedBattleRng(4);
     get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
-    // On draine d'abord la cascade du JOUR (travelDay) ; sa clôture ouvre la cascade d'Exposition (test).
     let g = 0;
-    // Pilote PARTAGÉ (`cascadeTestKit.avanceEtapeCascade`) : il joue CHAQUE forme d'étape — jet, table
-    // de monde (Météo d'Étape), choix — comme la fenêtre le ferait ; un drainage qui ne saurait lancer
-    // que les jets resterait planté sur la première table.
     while (get().pendingCascade?.purpose === 'travelDay' && g++ < 200) avanceEtapeCascade(get);
-    // Le d100 d'auteur est un dé de MONDE : le siège qui possède le monde le JOUE (#1426), il ne se
-    // tire pas en silence — c'est SA conséquence qui ouvre l'Exposition du groupe.
     const chance = get().pendingCascade!;
-    expect(chance.participants[chance.cursor].kind).toBe('riverExposureChance');
+    expect(chance.participants[chance.cursor].kind, 'le dé d’auteur est joué par le siège du monde (#1426)').toBe('river-exposition-tirage');
     avanceEtapeCascade(get);
     const pc = get().pendingCascade;
-    // Purpose DÉDIÉ (#344) : la clôture de l'Exposition reprend la fin du jour (halte différée), au lieu du
-    // purpose générique `test` qui n'a aucune continuation (→ soft-lock quand le Repos la court-circuite).
-    expect(pc?.purpose).toBe('riverExposure');
+    expect(pc?.purpose, 'purpose dédié : sa clôture reprend la fin du jour (#344)').toBe('riverExposure');
     expect(pc?.participants.every((s) => s.kind === 'river-exposition')).toBe(true);
     expect(pc?.participants.length).toBe(get().party.filter((h) => !h.dead).length);
+    expect(lignesDeResistance(), 'la fenêtre montre les dés : le journal ne les redit pas').toEqual([]);
   });
 
   it('#344 : jour → Exposition → halte de nuit DIFFÉRÉE → jour suivant se ré-arme (aucun soft-lock)', () => {

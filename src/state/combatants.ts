@@ -98,6 +98,14 @@ export function estDebout(h: Combatant): boolean {
 }
 
 /**
+ * ÉQUIPAGE APTE : les héros qui peuvent tenir un poste de bord (barre, rame, rôle d'équipage, moteur) —
+ * le canonique `isOutOfAction` (LDB 16 l.113). Couture UNIQUE des postes de voyage, mer comme fleuve.
+ */
+export function equipageApte(party: readonly Combatant[]): Combatant[] {
+  return party.filter((h) => !isOutOfAction(h));
+}
+
+/**
  * NI MORT NI À TERRE (0 Blessure, LDB 18 l.15) — la population que mesure la PORTÉE DE SAUT du groupe
  * hors combat. Distincte d'`estDebout`, qui exclut en plus l'Inconscient : là, c'est l'élection du
  * meneur qui refuse un corps incapable de mener. Ici, un Inconscient porté compte encore : population

@@ -334,7 +334,7 @@ function surfaceDesTenus(s: GameState, tenus: readonly (string | undefined)[], k
   // Politique d'ORDRES d'une traversée : COMMANDÉE, les `kind` qu'elle couvre se résolvent d'office
   // (attendu validé en recette #1426 « Traversée commandée sans fenêtre »). Une séquence MIXTE garde
   // sa fenêtre — un seul jet hors des ordres suffit à la rouvrir.
-  if (kinds.length > 0 && kinds.every((k) => resoluSousOrdres(s.travelPlan?.orders, k))) return 'I';
+  if (kinds.length > 0 && kinds.every((k) => resoluSousOrdres(s, k))) return 'I';
   // MOMENT PARTAGÉ (cf. `surfaceDesEtapes`) : la possession DÉCLARÉE est « tous les sièges » — la
   // fenêtre est à la table entière, donc jamais celle du seul MJ.
   if (partage) return 'M';

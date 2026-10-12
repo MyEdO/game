@@ -423,8 +423,8 @@ export function jouerFlowEntier(_applique: Applique): void {
 
 /**
  * CONSOMME le signal d'un lot qui NE PEUT PAS ouvrir de dé (#1508) — le site applique une donnée
- * LITTÉRALE dont le type d'Effet n'a pas de canal de dés (`giveMoney`, `giveTrapping`,
- * `waterExposure`), et ce qui le suit ne pourrait donc jamais passer devant un dé.
+ * LITTÉRALE dont le type d'Effet n'a pas de canal de dés (`giveMoney`, `giveTrapping`, `giveXp`…), et
+ * ce qui le suit ne pourrait donc jamais passer devant un dé.
  *
  * Ce n'est pas une exemption, c'est un FAIL-FAST : si un jour ce lot atteint la porte, il lève ICI,
  * nommément, au lieu d'inverser l'ordre en silence. Un site qui « ne devrait pas » différer et le

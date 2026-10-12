@@ -79,7 +79,7 @@ import {
 } from '../engine/seaNavigation';
 import { expireOnRespite, exposureTarget, exposureCoatMods, exposureFirstFailChars, isWeatherWarded } from '../engine/exposure';
 import { pursuitOutcome } from '../engine/pursuit';
-import { addCondition, isOutOfAction } from '../engine/conditions';
+import { addCondition } from '../engine/conditions';
 import { effectiveChar } from '../engine/characteristics';
 import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
@@ -107,6 +107,7 @@ import type { Get, Set } from './flowTypes';
 import type { CampaignVessel } from './store';
 import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine, type BuiltCascadeStep } from './rollSeam';
 import { registerCascadeApplier, registerCascadeSuccessRule, registerTableStepFamily, startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
+import { checkPartyWiped } from './partyWipe';
 import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
 import { dataLabel } from '../data';
@@ -116,7 +117,7 @@ import { defautsDeCompilation } from '../data';
 import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
 
 import { stepPrecision, idDansLaSequence } from './rollSeam';
-import { actorIn, garanti } from './combatants';
+import { actorIn, equipageApte, garanti } from './combatants';
 import type { PlayerText } from '../i18n/playerText';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
@@ -469,7 +470,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
   const plan = get().travelPlan;
   const ship = plan?.vehicle;
   if (!ship) return undefined;
-  const party = get().party.filter((h) => !isOutOfAction(h)); // LDB 16 (Inconscient) : un KO ne tient pas de rôle
+  const party = equipageApte(get().party);
   if (!party.length) return undefined;
   ship.crewIds = party.map((h) => h.id); // les PJ tiennent les rôles (MDG 14 l.39)
   const contributors = crewTestContributors(ship, party, testTypeId, new Set(party.map((h) => h.id)), opts.sense);
@@ -1218,12 +1219,13 @@ export function runSeaDay(get: Get, set: Set): void {
   // sans équipage à tester → `startChaseBoarding`/`openAuthoredSeaAmbush` posent `interrupted` + combat) :
   // la traversée s'arrête là (reprise par `resumeTravel` après le combat), jamais de fin-de-jour en plein combat.
   if (get().battle || get().travelPlan?.interrupted) return;
-  if (!steps.length) { continueSeaDayAfterCascade(get, set); return; }
-  // Route COMMANDÉE + journée de PURE routine (#275 Ronde 2 cran 3) : l'auto-pilote local résout la
-  // cascade d'un bloc (mêmes appliers, mêmes conséquences), sans modale — lignes au journal. En coop,
-  // la conduite reste manuelle. Un combat ouvert EN PLEIN VOL (rarissime : le build ne pouvait pas
+  // Journée sans jet : finalisée comme la cascade le ferait à sa clôture, défaite hors combat comprise.
+  if (!steps.length) { if (!checkPartyWiped(get, set)) continueSeaDayAfterCascade(get, set); return; }
+  // Traversée sous ordres (`voyageCadence.traverseeCommandee`) + journée de PURE routine (#275 Ronde 2
+  // cran 3) : l'auto-pilote résout la cascade d'un bloc (mêmes appliers, mêmes conséquences), sans
+  // modale — lignes au journal. Un combat ouvert EN PLEIN VOL (rarissime : le build ne pouvait pas
   // prévoir un franchissement d'ancrage exact) suspend le fragment restant (`runCascadeImmediate` `ctx`).
-  if (get().net.mode === 'local' && traverseeCommandee(plan.orders) && seaDayAllRoutine(get)) {
+  if (traverseeCommandee(get()) && seaDayAllRoutine(get)) {
     // `rowSurface: 'pv'` : les rangées des bandes du jour se montrent au PROCÈS-VERBAL (`pushDayEntries`
     // ci-dessous) — le journal ne redit pas leurs dés (#1291). Les monos du tableau y gardent leur ligne.
     const resolved = runCascadeImmediate(get, set, steps, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
@@ -2038,7 +2040,7 @@ registerCascadeApplier('entretien', (get, set, step) => {
 /** La personne qui « s'occupe du moteur » (MDG 12 l.326) à l'échelle voyage (équipage = les PJ, MDG 14
  *  l.39) : le meilleur au Métier (Ingénieur), sinon le premier PJ en état. */
 export function engineerOf(party: Combatant[]): Combatant | undefined {
-  const apt = party.filter((h) => !isOutOfAction(h)); // LDB 16 (Inconscient)
+  const apt = equipageApte(party);
   return partyBest(apt, 'metier', undefined, undefined, 'ingenieur')?.actor ?? apt[0];
 }
 
@@ -2165,7 +2167,7 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
 function continueSeaDayFromPostProgression(get: Get, set: Set): void {
   const insert = buildPostProgressionSteps(get, set);
   if (!insert.length) { continueSeaDayAfterCascade(get, set); return; }
-  if (get().net.mode === 'local' && traverseeCommandee(get().travelPlan?.orders) && seaDayAllRoutine(get)) {
+  if (traverseeCommandee(get()) && seaDayAllRoutine(get)) {
     const resolved = runCascadeImmediate(get, set, insert, { title: t('sv.dayTitle'), purpose: 'travelDay', rowSurface: 'pv' });
     if (!resolved) return;
     pushDayEntries(get, set, resolved);

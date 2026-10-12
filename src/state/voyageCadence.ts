@@ -12,6 +12,7 @@
 import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
 import type { StakeRef } from '../data';
+import type { GameState } from './store';
 
 /** COMMANDÉE : les Tests d'équipage de ROUTINE s'auto-résolvent (leurs lignes au PV) ; seules les
  *  décisions interrompent. JOUR-PAR-JOUR : chaque jet ouvre sa modale. */
@@ -28,8 +29,11 @@ export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
 
 /**
  * Tests de ROUTE que des ORDRES COMMANDÉS résolvent d'office à la porte (`rollSeam.surfaceDesTenus`) —
- * LISTE FERMÉE (par `voyage.kind`), UNE pour les deux routes (mer, fleuve). Le jour commandé, lui, se joue
- * d'un bloc par `runCascadeImmediate` (`traverseeCommandee`) : seule une décision l'interrompt.
+ * LISTE FERMÉE (par `voyage.kind`, en kebab français préfixé de sa route), UNE pour les deux routes. Le jour
+ * sous ordres (`traverseeCommandee`) se joue d'un bloc par `runCascadeImmediate`, qu'un choix sans défaut
+ * interrompt : au fleuve, chaque jour (`riverVoyageFlow.resolveRiverDay`) ; en mer, les seuls jours de pure
+ * routine (`seaVoyageFlow.seaDayAllRoutine`) — un jour de crise, d'infestation ou d'embuscade à venir se
+ * joue entier en fenêtre.
  * Mer : jets d'ÉQUIPAGE quotidiens (MDG 13 l.111) et Tests PERSONNELS de l'entretien-survie du bord
  * (MDG 13 l.203-225, 14 l.206-234). Fleuve : dé d'Exposition hydrique et son Test (MSRC 16 l.5-13).
  * L'Exposition y entre par le `kind` PROPRE à sa route (`sea-exposition`, `river-exposition`) : un ordre
@@ -45,17 +49,26 @@ export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
 export const KINDS_SOUS_ORDRES: ReadonlySet<string> = new Set([
   'progression', 'affaler', 'phare', 'orientation', 'entretien',
   'sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement',
-  'riverExposureChance', 'river-exposition',
+  'river-exposition-tirage', 'river-exposition',
 ]);
 
-/** La traversée est-elle COMMANDÉE ? Régit le jour d'un bloc (`runCascadeImmediate`), mer comme fleuve. */
-export function traverseeCommandee(orders: VoyageOrders | undefined): boolean {
-  return orders?.cadence === 'commande';
+/** Ce que la politique d'ordres lit de l'état — sa signature la plus ÉTROITE. */
+export type EtatDeTraversee = Pick<GameState, 'net' | 'travelPlan'>;
+
+/**
+ * La traversée se résout-elle SOUS ORDRES ? — SOURCE UNIQUE de « commandée ET locale », lue par la porte
+ * d'un jet (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`) ET par les gardes du jour d'un bloc
+ * (`riverVoyageFlow.resolveRiverDay`, `seaVoyageFlow`). La résolution sans fenêtre est un bloc HÔTE-SEUL
+ * (`docs/architecture.md`, « Coop en ligne — limitations connues ») : hors mode local, la traversée se
+ * joue jour par jour quels que soient ses ordres.
+ */
+export function traverseeCommandee(s: EtatDeTraversee): boolean {
+  return s.net.mode === 'local' && s.travelPlan?.orders?.cadence === 'commande';
 }
 
-/** Un Test de route de `kind` se résout-il d'office sous ces ordres ? (route COMMANDÉE + `kind` couvert). */
-export function resoluSousOrdres(orders: VoyageOrders | undefined, kind: string): boolean {
-  return traverseeCommandee(orders) && KINDS_SOUS_ORDRES.has(kind);
+/** Un Test de route de `kind` se résout-il d'office ? (traversée sous ordres + `kind` couvert). */
+export function resoluSousOrdres(s: EtatDeTraversee, kind: string): boolean {
+  return traverseeCommandee(s) && KINDS_SOUS_ORDRES.has(kind);
 }
 
 /** Brique d'ENTRÉE du PV du jour (une ligne du procès-verbal, rendue par `MultiRollList`). Source unique

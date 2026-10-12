@@ -65,6 +65,26 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   });
 
   /**
+   * COOP × COMMANDÉE : la résolution sans fenêtre est hôte-seule (`docs/architecture.md`, « Coop en ligne —
+   * limitations connues ») ; la porte lit la MÊME source que les gardes du jour (`traverseeCommandee`).
+   * Le héros d'un invité garde sa fenêtre sous des ordres commandés, sur chaque route.
+   */
+  it('COOP × COMMANDÉE : le héros d’un invité garde sa fenêtre (M) pour chaque kind sous ordres, mer comme fleuve', () => {
+    const invite = get().party[0];
+    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
+    for (const [mode, kinds] of [['sea', KINDS_DE_MER], ['river', ['river-exposition']]] as const) {
+      traversee('commande', mode);
+      const mesure = kinds.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, [invite])])] as const);
+      expect(Object.fromEntries(mesure), mode).toEqual(tableTotale(kinds, () => 'M'));
+    }
+  });
+
+  it('LOCAL × COMMANDÉE, CONTRÔLE POSITIF : la même bande de fleuve se résout d’office (I)', () => {
+    traversee('commande', 'river');
+    expect(surfaceDesEtapes(get, [bandeDe('river-exposition', get().party)])).toBe('I');
+  });
+
+  /**
    * L'EXPOSITION DE NUIT/SCÈNE N'EST PAS SOUS LES ORDRES D'UNE TRAVERSÉE (#1479) — même RÈGLE
    * (LDB 18 l.326-334, même applier), autre ROUTE : « cap tenu, ne me réveillez pas » ne commande
    * que l'entretien du BORD (`sea-exposition`). Un ordre de traversée qui éteindrait aussi

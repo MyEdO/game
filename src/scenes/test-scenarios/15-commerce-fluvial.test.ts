@@ -128,13 +128,21 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
 describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#2545)', () => {
   beforeEach(launch);
 
-  /** Descend jusqu'à l'arrivée en dormant aux haltes ; rend chaque fenêtre de jet rencontrée. */
-  function descendre(cadence?: 'jour-par-jour'): string[] {
+  /** Descend jusqu'à l'arrivée en dormant aux haltes et en FORÇANT chaque barrage (MSRC 7 l.128) :
+   *  rend chaque fenêtre de JET rencontrée ; les décisions tranchées s'accumulent dans `decisions`. */
+  function descendre(cadence?: 'jour-par-jour', decisions: string[] = []): string[] {
     drainCascade(); // l'entrée de scène du lanceur (affichage, aucun jet)
     const fenetres: string[] = [];
     get().startTravel('r-grunburg-altdorf', 'barge', cadence ? { cadence } : undefined);
-    for (let i = 0; i < 20 && get().travelPlan; i++) {
+    for (let i = 0; i < 40 && get().travelPlan; i++) {
       const p = get().pendingCascade;
+      const cur = p?.participants[p.cursor];
+      if (p && cur?.options && cur.chosen == null) {
+        decisions.push(cur.kind);
+        get().cascadeChoose(cur.id, 'forcer');
+        get().cascadeNext();
+        continue;
+      }
       if (p) { fenetres.push(p.purpose); break; }
       if (get().pendingRest) get().restSleep();
     }
@@ -143,10 +151,18 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
 
   it('graine 7, cadence par défaut : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
     seedBattleRng(7);
-    const j0 = get().journal.length;
-    expect(descendre(), 'aucune fenêtre de jet sur la descente').toEqual([]);
+    // Le journal du store est plafonné : chaque ligne se capte à son puits (`log`), le temps de la descente.
+    const journal: string[] = [];
+    const puits = get().log;
+    useGame.setState({ log: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
+    const decisions: string[] = [];
+    try {
+      expect(descendre(undefined, decisions), 'aucune fenêtre de jet sur la descente').toEqual([]);
+    } finally {
+      useGame.setState({ log: puits });
+    }
+    expect(decisions, 'le barrage du scénario (MSRC 7 l.128) est la seule décision du jour').toEqual(['riverObstacleChoice']);
     expect(get().scene?.id).toBe('quai-altdorf');
-    const journal = get().journal.slice(j0);
     const jours = journal.filter((l) => /^Progression du jour/.test(l)).length;
     expect(jours, `journal :\n${journal.join('\n')}`).toBeGreaterThan(1);
     // Un dé d'Exposition par jour, et un Test de Résistance par héros pour chaque exposition.

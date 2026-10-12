@@ -146,13 +146,14 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
   // Route DIRECTE Grünburg → Altdorf (le grand axe du Reik) : ~45 km, une journée de barge (M8 × 6 h = 48 km) —
   // permet la boucle d'arbitrage en un seul saut (achat à Grünburg → vente à Altdorf, l.150-156). Cette descente
   // est JOUÉE (MSRC 7 « Navigation fluviale ») : Test de Navigation par étape, table des vents, et un péril
-  // atteignable (débris flottants, l.123-125). Le chariot de convoi (porteur réel) persiste pendant la descente.
+  // atteignable : débris flottants (l.123-125) et barrage de débris (l.128). Le chariot de convoi (porteur réel)
+  // persiste pendant la descente.
   const grunburgAltdorf = bargeRoute(START_ID, SELL_ID, 45, 'r-grunburg-altdorf');
   grunburgAltdorf.river = true;
-  grunburgAltdorf.riverPerils = [{ perilId: 'debris', chancePct: 55 }];
+  grunburgAltdorf.riverPerils = [{ perilId: 'debris', chancePct: 55 }, { perilId: 'barrage', chancePct: 35 }];
   // Exposition hydrique de la descente (MSRC 16, l.5) : l'équipage boit l'eau du Reik non bouillie en
   // approchant d'Altdorf (grande ville en aval → tableau 1 « Source d'eau », −20, l.23-33). Chaque étape à
-  // flot, un tirage déclenche l'Effet EXISTANT `waterExposure` (Test de Résistance → maladie) — data-driven.
+  // flot, un tirage pose le Test d'Exposition de la descente (`MapRoute.riverExposure`).
   grunburgAltdorf.riverExposure = { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 60 };
   routes.push(grunburgAltdorf);
 
@@ -177,8 +178,9 @@ export const scenario: TestScenario = {
     'géographique l.185-270, indices Taille/Richesse/Produits verbatim), reliées par des routes de BARGE. ' +
     'Boucle du marchand : acheter une cargaison à Grünburg (R 2), descendre le fleuve en barge (le convoi ' +
     'persiste sur le chariot de convoi), revendre à Altdorf (Florissant R 5, Mise à prix +10 %, l.156) — profit. ' +
-    'Marché à chaque ville, Marchandage/Évaluation du vin/rumeurs (Berta). La descente EXERCE aussi ' +
-    'l’exposition hydrique (MSRC 16) : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
+    'Marché à chaque ville, Marchandage/Évaluation du vin/rumeurs (Berta). La descente Grünburg → Altdorf ' +
+    'EXERCE les périls du fleuve (MSRC 7 : débris, barrage de débris à forcer ou dégager) et l’exposition ' +
+    'hydrique (MSRC 16) : en approchant d’Altdorf, l’équipage risque une maladie de l’eau.',
   partyNote: 'Berta (Marchande — Marchandage/Ragot/Évaluation) · Gunnar (batelier) · Otto (garde) · Lise (scribe)',
   construire: () => {
     const { scenes, carte } = construireReik();
