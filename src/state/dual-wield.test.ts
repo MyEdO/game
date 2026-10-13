@@ -3,6 +3,7 @@ import { useGame } from './store';
 import { initialFields } from './stateFields';
 import { resolveDualSecond, applyAttackResult } from './combatFlow';
 import { reverseRoll, rollMeleeDefender, type AttackResult } from '../engine/combat';
+import { isOutOfAction } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './scene';
@@ -157,6 +158,16 @@ describe('chaînage de l’Action « des deux armes »', () => {
     useGame.getState().attackConfirm();
     expect(useGame.getState().pendingDualStrike).toBeNull();
     expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(true);
+  });
+
+  it('main touche et TUE la seule cible à portée → aucun « adversaire disponible » (LDB 10 l.773) : pas de 2ᵉ frappe', () => {
+    const { f1, f2 } = setupBattle();
+    f2.pos = { x: 7, y: 3 }; // hors d'Allonge de la main secondaire
+    f1.wounds.current = 8; // tombe à 0 PB sans excédent : Mort Subite du figurant, sans Critique
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ damage: 8, woundsLost: 8 }), dualMode: true } as any });
+    useGame.getState().attackConfirm();
+    expect(isOutOfAction(useGame.getState().battle!.combatants.find((c) => c.id === 'f1')!), 'pré-requis : la 1re frappe a tué').toBe(true);
+    expect(useGame.getState().pendingDualStrike).toBeNull();
   });
 });
 

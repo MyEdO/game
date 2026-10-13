@@ -469,7 +469,12 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // écrite par `commitStep`) et par le BILAN de fin de séquence, qui rend TOUTES les étapes.
   // Action « Continuer » / « Terminer » (dernière étape) — bouton primaire d'enchaînement, partagé par
   // les étapes AFFICHAGE et CHOIX (conséquences pures, aucun jet à attendre) : `when:'always'`.
-  const continueAction: RollAction = { key: 'next', label: isLast ? 'Terminer' : 'Continuer', onClick: () => next(), when: 'always' };
+  // Un CHOIX non tranché ne se valide pas (`stepReady`) : l'action est REFUSÉE et dit pourquoi
+  // (`RollAction.refus` → `GatedAction`), jamais un primaire actif qui ne fait rien.
+  const continueAction: RollAction = {
+    key: 'next', label: isLast ? 'Terminer' : 'Continuer', onClick: () => next(), when: 'always',
+    ...(curReady ? {} : { refus: 'Choisis une option pour continuer.' }),
+  };
   // Poursuite terrestre (séquence `pursuit`) : renoncer coûte la manche — le groupe qui FUIT se
   // laisse rattraper (combat si une rencontre est fournie, LDB 15 l.94) ; côté poursuivant, la
   // proie s'échappe (state/pursuitFlow.pursuitAbandon porte la vraie conséquence). Une manche est

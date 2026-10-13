@@ -343,7 +343,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     forcedExtra: res?.critical && pa.forced ? <CritLocationPicker current={res.critLocation} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
     actions: [
       { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' } as RollAction,
-      { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+      { key: 'confirm', label: awaitingDefense ? t('defense.passerLaMain') : 'Appliquer', onClick: confirm, when: 'post' },
     ],
   };
 }

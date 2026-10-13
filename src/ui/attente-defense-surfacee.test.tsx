@@ -150,6 +150,20 @@ describe('#1004 modale d’attaque — attente neutre au lieu du verdict', () =>
     expect(host.textContent).not.toContain('En attente de la Défense');
   });
 
+  it('l’action dit ce qu’elle fait (#1765) : sous attente, « Passer à la Défense » ; verdict final, « Appliquer »', () => {
+    const boutons = () => [...host.querySelectorAll('button')].map((b) => b.textContent?.trim());
+    playAttack(HIT_SEED);
+    act(() => { root.render(<AttackModal />); });
+    expect(boutons()).toContain('Passer à la Défense');
+    expect(boutons(), 'le clic n’applique rien : il passe la main à la Défense').not.toContain('Appliquer');
+    act(() => root.unmount());
+    root = createRoot(host);
+    playAttack(HIT_SEED, { heroAi: true });
+    act(() => { root.render(<AttackModal />); });
+    expect(boutons()).toContain('Appliquer');
+    expect(boutons()).not.toContain('Passer à la Défense');
+  });
+
   it('SOURCE UNIQUE — cas DIVERGENT : défenseur surfacé mais SURPRIS (il ne se défendra pas) → verdict immédiat', () => {
     // `defenseSurfaced` est VRAI ici ; seul le prédicat COMPLET du moteur (`cannotDefend`, LDB 16
     // l.135) sait qu'aucune fenêtre ne s'ouvrira. Une re-dérivation UI sur `defenseSurfaced` seul

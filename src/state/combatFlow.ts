@@ -3913,7 +3913,11 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   if (suite?.manoeuvre) applyFreeAttackEffects(get, attacker, target, suite.manoeuvre.kind, touche);
   const enAction = !isOutOfAction(attacker);
   // Maniement de deux armes (LDB 10 l.767-773) : la main directrice a touché → sélection de la 2ᵉ cible.
-  if (enAction && suite?.dualMain && touche.hit) {
+  // Sans « adversaire disponible » (LDB 10 l.773), l'interlude ne s'ouvre pas — patron de la chaîne de
+  // balayage sans cible restante (`maybeHeroCleave`).
+  const offDual = suite?.dualMain ? attacker.weapons.find((w) => w.uid === suite.dualMain!.offWeaponUid) : undefined;
+  const battleDual = get().battle;
+  if (enAction && suite?.dualMain && touche.hit && offDual && battleDual && dualStrikeTargets(battleDual, attacker, offDual).length) {
     // Exception Critique : la 2ᵉ frappe utilise la valeur du tableau des Critiques — lue sur l'ÉTAPE de
     // Critique que l'application vient d'appender à la séquence (elle n'existe qu'après le coup). Jouée
     // depuis un APPLIER (reprise d'une sauvegarde), cette poussée vit encore dans la FENÊTRE d'insertion

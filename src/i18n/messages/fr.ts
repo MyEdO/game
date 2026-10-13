@@ -47,6 +47,8 @@ export const fr = {
   // Attente d'une Défense qui va s'interposer (#1004, libellé validé 2026-07-31) — la modale d'attaque
   // tait sa résolution `defense:'none'` tant que le défenseur surfacé n'a pas joué.
   'defense.awaiting': 'En attente de la Défense de {cible}.',
+  // Action de la modale d'attaque quand la Défense s'interpose : elle passe la main, n'applique rien (#1765).
+  'defense.passerLaMain': 'Passer à la Défense',
   // Attaques gratuites de créature (LDB 85) — lu par `FREE_ATTACK_LABEL` (`engine/combat.ts`).
   'freeAttack.morsure': 'Morsure',
   'freeAttack.caudale': 'Attaque caudale',
