@@ -79,6 +79,11 @@ borne, la borne est un `Monitor` sur l'horloge + `TaskStop`.
   `## Design jugé :` (un agent `juge` dépêché juge le design, son rendu est cité au brief).
 - **Le brief ne liste PLUS les tests du périmètre** : il prescrit `npm run test:perimetre`, qui les
   dérive des fichiers touchés (#2400).
+- **Aucun appel d'outil d'un agent ne dure plus de 270 s** (#2596, commentaire 6142833266, 2026-10-13 :
+  « Short tool calls (A2) (Recommended) ») : la garde `scripts/hooks/appel-borne-guard.mjs` refuse à un
+  sous-agent tout appel Bash/PowerShell au premier plan borné au-delà, avec le remède à copier. Le brief
+  ne prescrit jamais un appel long : une commande longue, `test:perimetre` compris, part en fond et se
+  SONDE par `node scripts/ops/sonde.mjs <base>.code` (Bash, `timeout: 260000`), qui rend dès la fin.
 - **Un brief POSE les questions, il ne les pré-répond pas** : toute classification que l'agent peut
   établir (provenance d'une règle, existence d'un consommateur, état d'un fichier) se demande en
   SORTIE, citation exigée. Le banni est l'affirmation NON citée ; citation verbatim, réf RAW nue, ligne
@@ -139,6 +144,12 @@ rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIM�
   cache d'un sous-agent vit 5 min (la session, 1 h) : une reprise plus tardive RÉÉCRIT tout son
   contexte (#2568). La suite part dans un agent NEUF au brief COURT (corrections d'un verdict : sha
   commité, verdict, périmètre).
+- **Tant qu'un agent ou une commande est en vol, j'arme une HORLOGE de fond ≤ 55 min** : `sleep 3300`
+  en `run_in_background`, ré-armée à sa notification tant que l'attente dure. Mon cache vit 1 h : sa
+  notification me réveille au chaud. Mesuré sur #2596 : 55 min d'attente puis reprise au chaud
+  (`lu 132661`), une réécriture complète au-delà de 60 min ; une requête de maintien ≈ 0,05 $, une
+  réécriture ≈ 1,6 $. `ScheduleWakeup` ne sert qu'en `/loop`. La garde `appel-borne` ne juge que les
+  sous-agents et les appels au premier plan : cette horloge, au fil principal et en fond, y passe.
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et
 `npm run test:perimetre` avant commit — le typecheck complet et la suite complète sont joués UNE fois par

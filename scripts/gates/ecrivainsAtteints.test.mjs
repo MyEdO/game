@@ -86,6 +86,9 @@ const ATTENDU = {
     // fichiers de test sous un `mkdtempSync` d'os.tmpdir(), retirés par `rmSync` en finally ; l'arbre
     // n'est jamais écrit.
     'scripts/hooks/codeur-gates-guard.test.mjs',
+    // +1 le 2026-10-13 (#2596) : le banc de `appel-borne` joue la forme PowerShell sous pwsh, qui écrit `<base>.code`
+    // et `<base>.log` sous os.tmpdir() (base de la garde), `rmSync` en finally — l'arbre n'est jamais écrit.
+    'scripts/hooks/appel-borne-guard.test.mjs',
     // +1 le 2026-10-07 (#2187) : le banc de la barrière des hooks d'outil forge ses arbres (`.git` dossier
     // ou fichier `gitdir:`) et son verrou d'outillage sous un `mkdtempSync` de os.tmpdir() (`rmSync` en
     // finally) — un `gitdir:` et un verrou tenu ne se fabriquent pas autrement ; l'arbre n'est jamais écrit.
@@ -405,6 +408,9 @@ const ATTENDU = {
     // +1 le 2026-10-08 (#2493) : `renommageResilient.mjs`, le renommage que `ecritureJsonAtomique.mjs` et
     // `synchroniser.mjs` délèguent, sur les chemins de leurs appelants — l'arbre n'est jamais écrit.
     'scripts/guards/lib/renommageResilient.mjs',
+    // +1 le 2026-10-13 (#2596) : le banc de la sonde pose `<base>.code` et `<base>.log` sous `mkdtempSync` d'os.tmpdir(),
+    // `rmSync` en finally ; `sonde.mjs` ne fait que LIRE — l'arbre n'est jamais écrit.
+    'scripts/ops/sonde.test.mjs',
   ],
   'test:runner': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : le banc du lanceur des gates node forge un dépôt JETABLE (`mkdtempSync` +
