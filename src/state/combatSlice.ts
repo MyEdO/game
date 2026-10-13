@@ -12,7 +12,7 @@ import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { GameState, BattleState, ShootingStanceKey } from './store';
 import type { BattleActionMode } from './actionRegistry';
-import type { CounterParticipant, CounterDeclaration, SuiteDeCoup } from './pendings';
+import type { CounterParticipant, CounterDeclaration, SuiteDeCoup, PendingAttack } from './pendings';
 import { fleeBackstab, fleeCalme, fleeNeedCalme } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './scene';
 import * as travelFlow from './travelFlow';
@@ -22,7 +22,7 @@ import { Combatant, HitLocation, CHAR_LABELS, type FireArc, type Weapon } from '
 import { rollLine, hostStep, openSequence, pushDisplay } from './rollSeam';
 import { creatureAttacks, type AttackKind } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, applyCriticalToTarget, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, trampleTarget, TRAMPLE_WEAPON, trampleFreeMove, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, openRoundStartPsych, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, fireTurnStartTriggers, resolveActGates, finishCombatEnd, resolveWeaponArea, areaTargets, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, applyCriticalToTarget, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, trampleTarget, TRAMPLE_WEAPON, trampleFreeMove, aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, areaTargets, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { losClear } from './lineOfSight';
 import { smokeOf, captureMoveSnapshot, formationDeCombat } from './combatGeometry';
@@ -292,6 +292,16 @@ function advanceCombatJet(get: () => GameState): void {
   const jet = seq?.purpose === 'combat' ? seq.participants[seq.cursor]?.jet : undefined;
   if ((jet === 'attack' || jet === 'trample' || jet === 'defense')
     && !get().pendingAttack && !get().pendingTrample && !get().pendingCleave && !get().pendingDualStrike && !get().pendingDefense) get().cascadeNext();
+}
+
+/** FRAPPE SUIVANTE d'un enchaînement (balayage, 2ᵉ frappe du Maniement de deux armes) : elle se rend dans
+ *  l'étape `attack` courante ; quand l'étape courante a déjà rendu sa donnée (`committed` — la défense
+ *  surfacée de la frappe précédente, #998), elle reçoit SA propre étape, sur laquelle passe le curseur. */
+function poserLaFrappeSuivante(get: Get, set: Set, pa: PendingAttack): void {
+  const seq = get().pendingCascade;
+  const cur = seq?.purpose === 'combat' ? seq.participants[seq.cursor] : undefined;
+  if (!cur?.committed) { set({ pendingAttack: pa }); return; }
+  if (poserLEtapeDAttaque(get, set, pa, seq!.title, seq!.icon)) get().cascadeNext();
 }
 
 /** Applique l'issue d'« Au Contact » (LDB 62 l.176) : pose/retire l'état au contact selon le choix du
@@ -1838,42 +1848,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     confirmRoundStart: () => {
       set({ pendingRoundStart: null, preemptAiming: null }); // la pause se ferme → toute visée Tir rapide armée retombe
-      runPreemptShots(get, set); // Tir rapide de l'IA (LDB 11 l.97-103) : tirs d'interruption AVANT les tours du Round — tous Rounds, tous modes
-      const battle = get().battle;
-      if (!battle || battle.over) return; // un tir d'interruption a pu clore le combat
-      // Premier combattant valide de l'ordre (réordonné) à partir de l'index 0.
-      let turn = 0;
-      for (let i = 0; i < battle.order.length; i++) {
-        const c = inBattleId(battle, battle.order[i]);
-        if (c && !isOutOfAction(c)) {
-          turn = i;
-          break;
-        }
-      }
-      const active = inBattleId(battle, battle.order[turn]);
-      let movementUsed = 0;
-      let acted = false;
-      if (active) {
-        active.defensiveStance = false;
-        // Le tour peut s'ouvrir avec Action/Mouvement DÉJÀ dus (Maladresse Oups! 61-80 ; Tir rapide : le tour
-        // NORMAL du tireur est épuisé, LDB 11 l.97-103) — le tour a bien lieu (effets début/fin) mais sans pouvoir agir.
-        if (active.loseNextMovement) { movementUsed = mountMovement(battle, active); active.loseNextMovement = false; battle.log.push(ev('detail', t('cf.loseMovement', { name: active.label }), active.id)); }
-        if (active.loseNextAction) { acted = true; active.loseNextAction = false; battle.log.push(ev('detail', t('cf.loseAction', { name: active.label }), active.id)); }
-      }
-      fireTurnStartTriggers(get, set, active); // effets de bord « début de tour » du 1ᵉʳ combattant du Round (inerte sans donnée)
-      // Gate d'action par Round (op `actGate` — Mandragore) du 1ᵉʳ combattant du Round : même couture
-      // que dans advanceTurn (héros manuel → étape influençable ; IA/auto → inline foldé au budget).
-      const gate = active ? resolveActGates(get, set, active) : { loseMovement: false, lines: [] };
-      if (active) for (const line of gate.lines) battle.log.push(ev('detail', line, active.id));
-      if (gate.loseMovement && movementUsed === 0 && active) movementUsed = mountMovement(battle, active);
-      set({ battle: { ...battle, turn, action: null, movementUsed, movedPreAction: false, acted, reachable: new Map() } });
-      if (checkBattleOver(get, set)) return;
-      bus.emit(EVT.SCENE_DIRTY);
-      // Psychologie de DÉBUT de Round (LDB 21 l.9) : Traits ciblés (Animosité/Haine/…) + nouvelles
-      // Terreurs → UNE cascade (un héros par étape) qui suspend l'IA jusqu'à résolution.
-      openRoundStartPsych(get, set);
-      if (get().pendingCascade) return; // la cascade tient la main ; sa fermeture reprendra l'IA
-      maybeRunEnemyTurn(get, set);
+      runPreemptShots(get, set); // LDB 11 l.97-103 : les tirs d'interruption, puis `ouvrirLeRound` au bout de leur boucle
     },
 
     /** Reprise après un CHANGEMENT DE CADENCE en plein combat. La cadence vit dans le registre de RÈGLES
@@ -2412,17 +2387,31 @@ export function createCombatSlice(get: Get, set: Set) {
       const restitutionDeChaine = wasChain ? get().pendingCleave?.restitution : undefined;
       const dualBefore = get().pendingDualStrike; // données de la 1ʳᵉ frappe (présentes quand on confirme la 2ᵉ)
       set({ pendingAttack: null });
-      if (attacker && target && victim && pa.interrupt) {
+      // Arme RÉELLEMENT employée (arme naturelle d'une manœuvre de trait comprise) : primitive
+      // PARTAGÉE avec la modale d'attaque (#1026) — deux résolutions divergentes rendraient deux
+      // verdicts d'interposition opposés pour le même `pa`.
+      const weapon = attacker && target ? attackWeaponOf(battle, attacker, target, pa) : undefined;
+      // Défense SURFACÉE du défenseur (#989) : le jet d'attaquant est FINAL (influence jouée) — on interpose
+      // SA fenêtre de défense AVANT toute application, dans la cascade d'attaque EN COURS (le curseur passe
+      // sur l'étape 'defense'). `defenseConfirm` rend la main ICI avec le résultat opposé (`pa.defended`) →
+      // un seul chemin d'application, l'interruption Tir rapide comprise (#997). Un tir DÉVIÉ (victime ≠
+      // cible) et le pilonnage de zone n'opposent personne (LDB 14 l.116) : gardes portées par
+      // `surfacedDefensePending`, prédicat PARTAGÉ avec l'affichage de la modale d'attaque (#1004).
+      if (attacker && target && victim && weapon && openSurfacedDefense(get, set, attacker, target, weapon, pa)) {
+        // Curseur : étape 'attack' (résolue) → étape 'defense' que la fenêtre vient d'appendre. Sans
+        // cascade d'attaque en cours, la fenêtre a ouvert la sienne (curseur DÉJÀ sur la défense).
+        const seq = get().pendingCascade;
+        if (seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attack') get().cascadeNext();
+        return;
+      }
+      if (attacker && target && victim && weapon && pa.interrupt) {
         // Tir rapide (INTERRUPTION, LDB 11 l.97-103) : le tireur n'est PAS actif (on est à pendingRoundStart). On
         // applique le tir puis on N'AVANCE PAS le tour ; on épuise son tour NORMAL — l'Action (= ce tir) et
         // le Mouvement, consommés à l'ouverture de son slot normal (loseNext*). Aucun effet début/fin de tour
-        // n'est déplacé (ils vivent dans advanceTurn/confirmRoundStart, non touchés). Ce chemin
-        // n'interpose AUCUNE fenêtre de Défense (#997) : `surfacedDefensePending` porte la même
-        // exclusion (`pa.interrupt`), pour que la modale n'annonce pas une attente qui ne viendra pas.
-        // La couture de Défense posée par #997 retire cette exclusion des DEUX côtés.
-        const weapon = attackWeaponOf(battle, attacker, target, pa);
+        // n'est déplacé (ils vivent dans advanceTurn/confirmRoundStart, non touchés). La fenêtre du
+        // défenseur surfacé s'est interposée plus haut (#997) : on arrive ici avec le résultat opposé.
+        attacker.loseNextAction = true; attacker.loseNextMovement = true; // PRIX du tir, payé AVANT le coup (LDB 11 l.97-103)
         const suspendu = applyAttackResult(get, set, attacker, victim, weapon, pa.result, { suite: { enchainement: { mode: 'aucun' } } });
-        attacker.loseNextAction = true; attacker.loseNextMovement = true; // PRIX du tir, dû quelle que soit l'issue du coup
         // Le coup SUSPENDU (sauvegarde « 1d10 ≥ Indice » LDB 85 l.98, Déviation) a poussé SON étape DANS
         // cette cascade-hôte : la refermer détruirait l'étape et le coup avec elle. On avance alors le
         // curseur dessus (MÊME couture que toute chaîne d'attaque, `advanceCombatJet`) et c'est la
@@ -2434,24 +2423,7 @@ export function createCombatSlice(get: Get, set: Set) {
         checkBattleOver(get, set);
         return;
       }
-      if (attacker && target && victim) {
-        // Arme RÉELLEMENT employée (arme naturelle d'une manœuvre de trait comprise) : primitive
-        // PARTAGÉE avec la modale d'attaque (#1026) — deux résolutions divergentes rendraient deux
-        // verdicts d'interposition opposés pour le même `pa`.
-        const weapon = attackWeaponOf(battle, attacker, target, pa);
-        // Défense SURFACÉE du défenseur (#989) : le jet d'attaquant est FINAL (influence jouée) — on interpose
-        // SA fenêtre de défense AVANT toute application, dans la cascade d'attaque EN COURS (le curseur passe
-        // sur l'étape 'defense' ci-dessous). `defenseConfirm` rend la main ICI avec le résultat opposé
-        // (`pa.defended`) → un seul chemin d'application. Un tir DÉVIÉ (victime ≠ cible) et le pilonnage de
-        // zone n'opposent personne (LDB 14 l.116) : gardes portées par `surfacedDefensePending`, prédicat
-        // PARTAGÉ avec l'affichage de la modale d'attaque (#1004) — jamais une 2ᵉ dérivation ici.
-        if (openSurfacedDefense(get, set, attacker, target, weapon, pa)) {
-          // Curseur : étape 'attack' (résolue) → étape 'defense' que la fenêtre vient d'appendre. Sans
-          // cascade d'attaque en cours, la fenêtre a ouvert la sienne (curseur DÉJÀ sur la défense).
-          const seq = get().pendingCascade;
-          if (seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attack') get().cascadeNext();
-          return;
-        }
+      if (attacker && target && victim && weapon) {
         // PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : la touche DÉTONE sur la CASE choisie
         // (`pa.center`). L'Atout Explosion/Tir de zone frappe UNIFORMÉMENT le rayon (RAW LDB 62 l.254) — AUCUNE
         // touche directe « primaire » ni Critique par victime (l'aire ne re-teste pas) ; `target` (l'ennemi le
@@ -2579,7 +2551,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!attacker || !target) return;
       if (pc.count >= bonus(effectiveChar(attacker, 'capacite-de-combat'))) return; // borné à BCC enchaînements (LDB 14 l.9)
       if (!cleaveTargets(battle, attacker, pc.hitIds).some((t) => t.id === targetId)) return; // cible invalide (non adjacente / déjà frappée)
-      set({ pendingAttack: { attackerId: attacker.id, targetId, location: null, result: null, cleave: true } });
+      poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: null, result: null, cleave: true });
     },
     cleaveEnd: () => { // fin du balayage → la restitution que la chaîne portait, puis clore l'étape-jet de la cascade (reprise)
       const { battle, pendingCleave: pc } = get();
@@ -2614,7 +2586,7 @@ export function createCombatSlice(get: Get, set: Set) {
       }
       // 2ᵉ frappe : jet IMPOSÉ (inversé / valeur du Critique) + pénalité main 2nde + nouveau jet de défense (LDB 10 l.767-773).
       const res = resolveDualSecond(get, attacker, target, off, ds.mainRoll, { critValue: ds.critValue });
-      set({ pendingAttack: { attackerId: attacker.id, targetId, location: res.location ?? null, result: res, dualSecond: true, weaponUid: off.uid } });
+      poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: res.location ?? null, result: res, dualSecond: true, weaponUid: off.uid });
     },
     dualStrikeSkip: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); }, // « peut viser » = optionnel : pas de 2ᵉ → pas d'Avantage (LDB 10 l.767-773)
     // Maladresse : la donnée vit SUR l'étape COURANTE de la cascade (`step.fumble`) — source unique.
@@ -2730,7 +2702,9 @@ export function createCombatSlice(get: Get, set: Set) {
       // qui S'ARRÊTE à la première fenêtre ouverte : la fenêtre qui suit est celle de la gratuite
       // SUIVANTE, sur SA propre étape (LDB 85 l.41-43 — chaque gratuite est un Test d'attaque complet).
       const gratuite = suite.mode === 'machine' && !!suite.coup.restitution;
-      if (!tient && attacker && drainerLesGratuites(get, set, attacker, { disponibles: !gratuite })) { quitterLaDefense(); return; }
+      // LDB 11 l.103 : la suite DÉCLARÉE par `runPreemptShots` tranche.
+      const tirRapide = suite.mode === 'machine' && suite.coup.enchainement?.mode === 'tirRapide';
+      if (!tient && !tirRapide && attacker && drainerLesGratuites(get, set, attacker, { disponibles: !gratuite })) { quitterLaDefense(); return; }
       // La défense est l'étape de SA cascade combat → enchaîner le curseur (les conséquences empilées —
       // Critique/Maladresse — s'affichent inline ; la clôture reprend l'IA). Rien derrière elle : reprise.
       if (!quitterLaDefense()) resumeEnemyTurn(get, set);

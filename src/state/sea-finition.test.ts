@@ -91,18 +91,19 @@ async function runSeaActivities() {
     if (get().pendingRest) break;
     const casc = get().pendingCascade;
     const ext = get().pendingExtendedTest;
+    // La fenêtre `extended` d'abord : son étape hôte n'est prête que quand elle a rendu sa donnée (#1765).
+    if (ext) {
+      const cur = ext.rounds[ext.rounds.length - 1];
+      if (!cur.result) get().extendedTestRoll(cur.id);
+      get().extendedTestNext();
+      await tick();
+      continue;
+    }
     if (casc) {
       const cur = casc.participants[casc.cursor];
       if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
       else if (cur && !cur.result) get().cascadeRoll(cur.id);
       get().cascadeNext();
-      await tick();
-      continue;
-    }
-    if (ext) {
-      const cur = ext.rounds[ext.rounds.length - 1];
-      if (!cur.result) get().extendedTestRoll(cur.id);
-      get().extendedTestNext();
       await tick();
       continue;
     }

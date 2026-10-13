@@ -277,3 +277,30 @@ describe('purge du −10 au début du prochain Tour du porteur', () => {
     expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(false);
   });
 });
+
+describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par SA fenêtre (LDB 10 l.773)', () => {
+  it('siège MJ : 2ᵉ frappe résolue en attaquant seul, la fenêtre s’interpose, la fermeture l’applique', () => {
+    setupBattle();
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
+    // La 1ʳᵉ frappe revient de SA fenêtre (`pa.defended`, posé par `defenseConfirm`) : elle touche.
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true, defended: true } as any });
+    useGame.getState().attackConfirm();
+    expect(useGame.getState().pendingDualStrike).not.toBeNull();
+    useGame.getState().dualStrikeAttack('f2');
+    expect(useGame.getState().pendingAttack?.result?.defenderDetail, 'aucun jet de défense roulé en silence').toBeUndefined();
+    useGame.getState().attackConfirm();
+    const pd = useGame.getState().pendingDefense;
+    expect(pd?.defenderId, 'la fenêtre de f2 s’interpose').toBe('f2');
+    expect(pd?.suite.mode === 'pilotee' && pd.suite.pa.dualSecond, 'la 2ᵉ frappe voyage sur la fenêtre').toBe(true);
+    useGame.getState().defenseRoll();
+    useGame.getState().defenseConfirm();
+    expect(useGame.getState().pendingDefense).toBeNull();
+    expect(useGame.getState().pendingDualStrike, 'la 2ᵉ frappe est appliquée').toBeNull();
+  });
+
+  it('défenseur non surfacé : la 2ᵉ frappe garde son jet de défense neuf', () => {
+    const { h, f2 } = setupBattle();
+    const res = resolveDualSecond(useGame.getState, h, f2, h.weapons[1], 34);
+    expect(res.defenderDetail).toBeDefined();
+  });
+});

@@ -137,7 +137,7 @@ function mesure(trace: number[]): Observation {
   get().cascadeNext();
   const obs: Observation = {
     interaction: st ? stepInteraction(st) : 'aucune',
-    prete: !!st && stepReady(st),
+    prete: !!st && stepReady(st, useGame.getState()),
     tiree: !!st?.table?.result,
     pose,
     curseurAvant: avant,

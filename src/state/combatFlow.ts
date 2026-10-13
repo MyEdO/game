@@ -850,7 +850,9 @@ export function resolveAttack(
 /** 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773). Jet d'attaquant IMPOSÉ : `reverseRoll(mainRoll)`,
  *  ou `critValue` (valeur du tableau des Critiques) si la 1ʳᵉ frappe était un Critique. Le `target` (valeur à
  *  toucher) inclut déjà la pénalité de main secondaire (l'arme `off` porte `hand:'off'`, cf. plan #1). Le
- *  défenseur fait un NOUVEAU jet de défense (l.638 « opposée à un nouveau lancer de défense »). */
+ *  défenseur fait un NOUVEAU jet de défense (LDB 10 l.773) : un défenseur SURFACÉ le joue dans SA fenêtre
+ *  (#998) — on ne résout alors que le jet d'ATTAQUANT, et `attackConfirm` interpose la fenêtre
+ *  (`openSurfacedDefense`), comme pour la 1ʳᵉ frappe (`resolveAttack`). */
 export function resolveDualSecond(
   get: Get,
   attacker: Combatant,
@@ -877,7 +879,7 @@ export function resolveDualSecond(
   // MÊME composition que la cible montée ci-dessus (`mods`, plafond compris) : les deux branches la
   // reçoivent FIGÉE — la 2ᵉ frappe annonce la Difficulté qui a fait sa cible.
   const compo = composeAttack(mods);
-  const mode = (cannotDefend(target) || isInanimate(target)) ? 'none' : bestDefenseMode(target); // OBJET INANIMÉ (structure/véhicule/affût) : jamais de défense
+  const mode = (cannotDefend(target) || isInanimate(target) || defenseSurfaced(get(), target)) ? 'none' : bestDefenseMode(target); // OBJET INANIMÉ (structure/véhicule/affût) : jamais de défense
   if (mode === 'none') return resolveMeleePassive(attacker, target, offWeapon, atk, opts?.location, env, undefined, false, compo);
   const def = rollMeleeDefender(target, mode, battleRng(), defenseDodgeMods(get(), target), target.weapons[0], offWeapon); // NOUVEAU jet de défense (LDB 10 l.767-773)
   return finishMelee(attacker, target, offWeapon, atk, def, mode, opts?.location, env, defenseDodgeMods(get(), target), undefined, target.weapons[0], false, undefined, compo);
@@ -2992,50 +2994,85 @@ function alliesAtRange(battle: BattleState, c: Combatant, weapon: Weapon, metres
 }
 
 /**
- * Tir rapide (talent, LDB 10) — chemin IA. À l'ouverture d'un Round (sommet de `confirmRoundStart`, choke
- * commun à tous les Rounds et tous les modes), chaque combattant PILOTÉ PAR L'IA capable d'interrompre à
- * distance tire UNE fois, hors de l'ordre d'Initiative, sur l'ennemi valide le plus proche (Ligne de Vue +
- * bande de portée). Le tir ÉPUISE son tour normal — Action + Mouvement dus, consommés à l'ouverture de son
- * slot (loseNext*, mêmes champs que la Maladresse Oups! 61-80). Plusieurs tireurs : celui qui a pris le
- * talent le plus de fois agit d'abord (LDB 10). Les tirs de l'HUMAIN passent, eux, par `preemptRangedShot`
- * pendant la pause de début de Round (avant ce choke).
+ * Tir rapide de l'IA, `LDB 11 l.97-103`. Boucle reprenable (#997) : suite `enchainement: 'tirRapide'`
+ * (patron `runCleaveChain`), `faits` = tireurs déjà passés. Rend `true` quand un tir tient la main.
  */
-export function runPreemptShots(get: Get, set: SetFn): void {
+export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boolean {
   const battle = get().battle;
-  if (!battle || battle.over) return;
+  if (!battle || battle.over) return false;
+  if (faits.length && checkBattleOver(get, set)) return false;
   const tirRapideTimes = (c: Combatant) => c.talents?.find((tl) => tl.talentId === 'tir-rapide')?.times ?? 1;
   const shooters = battle.combatants
-    .filter((s) => aiDriven(get(), s) && canPreemptRanged(s) && canTakeAction(s) && !s.loseNextAction && !isOutOfAction(s) && !!s.pos)
-    .sort((a, b) => tirRapideTimes(b) - tirRapideTimes(a)); // le plus « entraîné » tire d'abord (LDB 10)
+    .filter((s) => !faits.includes(s.id) && aiDriven(get(), s) && canPreemptRanged(s) && canTakeAction(s) && !s.loseNextAction && !isOutOfAction(s) && !!s.pos)
+    .sort((a, b) => tirRapideTimes(b) - tirRapideTimes(a)); // LDB 11 l.103
   const scene = get().scene!;
   const mpt = sceneMetresPerTile(scene);
   const smoke = smokeOf(battle);
-  let changed = false;
+  let vus = faits;
   for (const shooter of shooters) {
-    if (isOutOfAction(shooter) || shooter.loseNextAction) continue; // tué / déjà tiré par un tir précédent de ce Round
-    // Cible = ennemi valide le plus proche AVEC Ligne de Vue (LDB 10). La LdV se tranche ici (`losClear`,
-    // même `losTo` que `resolveAttack`) AVANT le gate : un candidat plus proche mais masqué ne
-    // consomme aucun Test — le gate ne joue qu'UNE fois, sur la cible réellement tirée.
+    vus = [...vus, shooter.id];
+    // Cible = ennemi valide le plus proche AVEC Ligne de Vue. La LdV se tranche ici (`losClear`, même
+    // `losTo` que `resolveAttack`) AVANT le gate : un candidat masqué ne consomme aucun Test.
     const t0 = battle.combatants
       .filter((f) => f.kind !== shooter.kind && !isOutOfAction(f) && !!f.pos)
       .map((f) => ({ f, weapon: firedWeapon(shooter, f, undefined, battle.combatants) }))
       .filter((x) => x.weapon.type === 'ranged' && inFiringBand(shooter, x.f, x.weapon, mpt))
       .sort((a, b) => combatDistance(shooter, a.f) - combatDistance(shooter, b.f))
       .find((x) => losClear(scene, shooter.pos!, isStructure(x.f) ? structureAimCell(shooter.pos!, x.f) : x.f.pos!, smoke))?.f;
-    if (!t0) continue; // aucune cible en Ligne de Vue → pas d'interruption
-    // Main ensanglantée (AA 07 l.117) : le tireur gaté joue le MÊME Test de Dextérité (+20) AVANT son Tir rapide
-    // (point IA UNIQUE `aiHandGate`) ; Échec → l'arme lui glisse (`disarm`) et il renonce à l'interruption.
-    if (!aiHandGate(get, set, shooter, firedWeapon(shooter, t0, undefined, battle.combatants).uid)) { changed = true; continue; }
+    if (!t0) continue;
+    const weapon = firedWeapon(shooter, t0, undefined, battle.combatants);
+    // Main ensanglantée (AA 07 l.117) : point IA UNIQUE `aiHandGate` ; Échec → l'arme glisse, pas de tir.
+    if (!aiHandGate(get, set, shooter, weapon.uid)) continue;
+    shooter.loseNextAction = true; shooter.loseNextMovement = true; // LDB 11 l.97-103
+    get().battle!.log.push(ev('shoot', tr('cf.tirRapide', { name: shooter.label }), shooter.id)); // marqueur AVANT le résultat (applyAttackResult recopie battle.log)
+    set({ battle: { ...get().battle! } });
+    bus.emit(EVT.SCENE_DIRTY);
+    const suite: SuiteDeCoup = { enchainement: { mode: 'tirRapide', faits: vus } };
+    if (maybeOpenDefense(get, set, shooter, t0, weapon, suite)) return true;
     const r = resolveAttack(get, shooter, t0);
-    if (r) {
-      get().battle!.log.push(ev('shoot', tr('cf.tirRapide', { name: shooter.label }), shooter.id)); // marqueur AVANT le résultat (applyAttackResult recopie battle.log)
-      applyAttackResult(get, set, shooter, r.victim ?? t0, r.weapon, r.res, { suite: { enchainement: { mode: 'aucun' } } });
-      shooter.loseNextAction = true; shooter.loseNextMovement = true; // tour normal épuisé (LDB 10)
-      changed = true;
-    }
-    if (changed && checkBattleOver(get, set)) return;
+    if (!r) continue;
+    return applyAttackResult(get, set, shooter, r.victim ?? t0, r.weapon, r.res, { suite }) === OPS_DIFFEREES;
   }
-  if (changed) { set({ battle: { ...get().battle! } }); bus.emit(EVT.SCENE_DIRTY); }
+  ouvrirLeRound(get, set);
+  return false;
+}
+
+/**
+ * OUVRE LES TOURS du Round, une fois les tirs d'interruption joués (`runPreemptShots`) : premier combattant
+ * valide de l'ordre, son tour ouvert avec ses dus (`loseNext*` : Oups! 61-80, Tir rapide LDB 11 l.97-103),
+ * ses effets de début de tour et son gate d'action, puis la Psychologie de début de Round (LDB 21 l.9) et
+ * l'IA.
+ */
+function ouvrirLeRound(get: Get, set: SetFn): void {
+  const battle = get().battle;
+  if (!battle || battle.over) return;
+  let turn = 0;
+  for (let i = 0; i < battle.order.length; i++) {
+    const c = inBattleId(battle, battle.order[i]);
+    if (c && !isOutOfAction(c)) {
+      turn = i;
+      break;
+    }
+  }
+  const active = inBattleId(battle, battle.order[turn]);
+  let movementUsed = 0;
+  let acted = false;
+  if (active) {
+    active.defensiveStance = false;
+    if (active.loseNextMovement) { movementUsed = mountMovement(battle, active); active.loseNextMovement = false; battle.log.push(ev('detail', tr('cf.loseMovement', { name: active.label }), active.id)); }
+    if (active.loseNextAction) { acted = true; active.loseNextAction = false; battle.log.push(ev('detail', tr('cf.loseAction', { name: active.label }), active.id)); }
+  }
+  fireTurnStartTriggers(get, set, active);
+  // Gate d'action par Round (op `actGate` — Mandragore) : même couture que dans `advanceTurn`.
+  const gate = active ? resolveActGates(get, set, active) : { loseMovement: false, lines: [] };
+  if (active) for (const line of gate.lines) battle.log.push(ev('detail', line, active.id));
+  if (gate.loseMovement && movementUsed === 0 && active) movementUsed = mountMovement(battle, active);
+  set({ battle: { ...battle, turn, action: null, movementUsed, movedPreAction: false, acted, reachable: new Map() } });
+  if (checkBattleOver(get, set)) return;
+  bus.emit(EVT.SCENE_DIRTY);
+  openRoundStartPsych(get, set);
+  if (get().pendingCascade) return; // la cascade tient la main ; sa fermeture reprendra l'IA
+  maybeRunEnemyTurn(get, set);
 }
 
 /** CE QUE L'USURE A FAIT DE L'ARME (patron `IssueDeTouche`) : `intacte` (Incassable), `sauvee` (la
@@ -3518,9 +3555,8 @@ export function maybeOpenDefense(
  * contre PERSONNE, #1004). Deux dérivations séparées divergeraient au premier changement de garde.
  *
  * Gardes : jet d'attaquant posé, sans jet de défense au résultat ; défenseur SURFACÉ (`defenseSurfaced`), capable
- * de défendre (`cannotDefend`) et animé ; tir DÉVIÉ (LDB 14 l.116), pilonnage de zone (AA 10
- * l.122-123) et Tir rapide en INTERRUPTION (`pa.interrupt`, chemin d'application sans couture de
- * Défense — #997 ; la couture posée par #997 retire cette exclusion) n'ouvrent aucune fenêtre ;
+ * de défendre (`cannotDefend`) et animé ; tir DÉVIÉ (LDB 14 l.116) et pilonnage de zone (AA 10
+ * l.122-123) n'ouvrent aucune fenêtre ;
  * gardes RAW de mode (portée de mêlée Allonge comprise —
  * RAW-3 ; `rangedDefenseModes` : un tir sans mode reste NON OPPOSÉ, LDB 13 l.125).
  *
@@ -3529,7 +3565,7 @@ export function maybeOpenDefense(
  */
 export function surfacedDefensePending(s: GameState, attacker: Combatant, target: Combatant, weapon: Weapon, pa: PendingAttack): boolean {
   if (pa.defended || !pa.result?.attackerDetail || pa.result.defenderDetail) return false;
-  if (pa.siege || pa.interrupt) return false;
+  if (pa.siege) return false;
   const victimId = (pa.victimId && s.battle ? inBattleId(s.battle, pa.victimId)?.id : undefined) ?? target.id;
   if (victimId !== target.id) return false;
   if (!defenseSurfaced(s, target) || cannotDefend(target) || isInanimate(target)) return false;
@@ -3659,6 +3695,13 @@ export function openAttackCascade(get: Get, set: SetFn, pa0: PendingAttack, titl
     } });
     return true; // la fenêtre ouverte est celle du GATE ; l'attaque s'ouvrira à sa réussite
   }
+  return poserLEtapeDAttaque(get, set, pa, title, icon);
+}
+
+/** Pose `pa` dans son slot et l'étape `attack` qui le rend, appendue à la séquence de combat ouverte ou
+ *  dans une séquence neuve. Mint UNIQUE de l'étape d'attaque : `openAttackCascade` et la frappe suivante
+ *  d'un enchaînement (`combatSlice.poserLaFrappeSuivante`). */
+export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, title: string, icon?: string): boolean {
   set({ pendingAttack: pa });
   // Une chaîne d'attaques (balayage, deux armes, gratuite) rejoint la séquence déjà ouverte : l'id se
   // distingue par le compteur de la séquence d'accueil (#1852).
@@ -3882,7 +3925,9 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   }
   // La chaîne d'un héros est une fenêtre (`pendingCleave`) : hors de combat, `maybeHeroCleave` la FERME.
   const declare: EnchainementDuCoup = suite?.enchainement ?? { mode: 'auto' };
-  const enchainement: EnchainementDuCoup = enAction || declare.mode === 'hero' ? declare : { mode: 'aucun' };
+  // Seul un BALAYAGE exige l'attaquant en action ; la boucle des Tirs rapides est celle des AUTRES tireurs.
+  const balaie = declare.mode === 'chaine' || declare.mode === 'auto';
+  const enchainement: EnchainementDuCoup = enAction || !balaie ? declare : { mode: 'aucun' };
   const restitution = suite?.restitution;
   let suspendu = false;
   let portee = false;
@@ -3890,6 +3935,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
     case 'hero': portee = maybeHeroCleave(get, set, attacker, target, touche, enchainement.wasChain, restitution); break;
     case 'chaine': suspendu = resumeCleaveChain(get, set, attacker, target, enchainement, restitution); break; // la chaîne reprend où elle s'est arrêtée
     case 'auto': suspendu = autoCleave(get, set, attacker, target, touche, restitution); break; // balayage d'un attaquant conduit par l'IA
+    case 'tirRapide': suspendu = runPreemptShots(get, set, enchainement.faits); break; // la boucle des tireurs reprend (#997)
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
   }
   if (suspendu) return true;

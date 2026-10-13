@@ -16,7 +16,7 @@
  */
 import type { GameState } from './store';
 import { WORLD_STEP_OWNER } from './pendings';
-import type { PendingKey } from './stateFields';
+import { sansCorps, type PendingKey } from './stateFields';
 
 /** État partiel accepté par l'arbitre (les tests passent des objets minces). */
 export type ArbiterState = Partial<GameState>;
@@ -145,6 +145,7 @@ export const MODAL_DEFS = [
   { key: 'cascade', when: (s) => {
     if (!s.pendingCascade) return false;
     const cur = s.pendingCascade.participants[s.pendingCascade.cursor];
+    if (sansCorps(s, cur)) return false;
     if (cur?.jet !== 'cast') return true;
     return !s.pendingCast?.pickingTargets && !s.pendingCast?.zone?.placing;
   }, tientLaMain: (s) => !!s.pendingCascade, owner: (s) => {

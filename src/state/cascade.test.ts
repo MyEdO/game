@@ -116,11 +116,18 @@ describe('Cascade séquentielle influençable', () => {
     expect(stepInteraction(jet)).toBe('jet');
     expect(stepInteraction(choix)).toBe('choix');
     expect(stepInteraction(aff)).toBe('affichage');
-    expect(stepReady(jet)).toBe(false);
-    expect(stepReady({ ...jet, result: { roll: 10, target: 30, sl: 2, success: true } })).toBe(true);
-    expect(stepReady(choix)).toBe(false);
-    expect(stepReady({ ...choix, chosen: 'a' })).toBe(true);
-    expect(stepReady(aff)).toBe(true);
+    expect(stepReady(jet, useGame.getState())).toBe(false);
+    expect(stepReady({ ...jet, result: { roll: 10, target: 30, sl: 2, success: true } }, useGame.getState())).toBe(true);
+    expect(stepReady(choix, useGame.getState())).toBe(false);
+    expect(stepReady({ ...choix, chosen: 'a' }, useGame.getState())).toBe(true);
+    expect(stepReady(aff, useGame.getState())).toBe(true);
+    // Étape HÔTE (#1765) : prête une fois sa fenêtre validée (`committed`) ou son slot rendu.
+    const hote: CascadeStep = { id: 'h', kind: 'defenseJet', jet: 'defense', actorId: 'x' };
+    const vivante = { pendingDefense: {} } as unknown as Parameters<typeof stepReady>[1];
+    expect(stepInteraction(hote)).toBe('affichage');
+    expect(stepReady(hote, vivante), 'la défense attend sa fenêtre').toBe(false);
+    expect(stepReady({ ...hote, committed: true }, vivante), 'validée : le slot vivant est celui de la frappe suivante').toBe(true);
+    expect(stepReady(hote, { pendingDefense: null }), 'slot rendu').toBe(true);
   });
 
   it('étape « choix » : no-op sans choix, puis l’option pilote la conséquence + insertion', () => {
@@ -237,13 +244,13 @@ describe('Cascade séquentielle influençable', () => {
     const batch: CascadeStep = { id: 'progression', kind: 'crew-batch', label: fixtureText('Progression'), groupOwner: true, participants, result: null};
     startCascade(useGame.getState, useGame.setState, { title: 'Voyage', purpose: 'test', steps: [batch] });
     expect(stepInteraction(useGame.getState().pendingCascade!.participants[0])).toBe('batch');
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(false); // aucun participant lancé
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(false); // aucun participant lancé
     useGame.getState().cascadeNext(); // batch pas prêt → no-op (aucun participant lancé)
     expect(applied).toHaveLength(0);
     useGame.getState().cascadeBatchRoll(h1.id);
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(false); // h2 pas encore lancé
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(false); // h2 pas encore lancé
     useGame.getState().cascadeBatchRoll(h2.id);
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(true);
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(true);
     useGame.getState().cascadeNext(); // agrège (essentiel ×2, MDG 14 l.19) puis applique
     expect(applied).toHaveLength(1);
     expect(useGame.getState().pendingCascade).toBeNull();

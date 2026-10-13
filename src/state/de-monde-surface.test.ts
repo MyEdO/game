@@ -908,7 +908,7 @@ describe('#1426 — les portes du curseur', () => {
     const apres = get().pendingCascade!;
     expect(apres.cursor).toBe(1);
     expect(apres.participants[1].table!.result, 'posé le curseur, le socle a tiré au RANG de l’étape').toBeTruthy();
-    expect(stepReady(apres.participants[1]), 'et l’étape est franchissable : « Suivant » n’est pas un no-op').toBe(true);
+    expect(stepReady(apres.participants[1], useGame.getState()), 'et l’étape est franchissable : « Suivant » n’est pas un no-op').toBe(true);
   });
 
   /**

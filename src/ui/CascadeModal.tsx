@@ -159,6 +159,11 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // le siège PROPRIÉTAIRE de l'étape l'arme (`actorId` absent ⇒ l'hôte, cf. `ui/ownership`) — deux
   // sièges qui tirent `cascadeNext` avanceraient de deux crans.
   const autoStep = p ? p.participants[p.cursor] : undefined;
+  // Prêt-à-valider de l'étape COURANTE, abonné : une étape hôte dépend de son slot (`stepReady`, #1765).
+  const curReady = useGame((s) => {
+    const st = s.pendingCascade?.participants[s.pendingCascade.cursor];
+    return !!st && stepReady(st, s);
+  });
   const autoCloseMs = autoStep?.autoCloseMs;
   const autoStepId = autoStep?.id;
   const autoOwned = autoStep ? owns(autoStep.actorId) : false;
@@ -834,7 +839,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         ...(determineOk ? { determination: { resolve: a!.resolve ?? 0, onResolve: () => batchDetermine(part!.id) } } : {}),
       };
     });
-    const ready = stepReady(cur);
+    const ready = curReady;
     // Deux « Tout lancer » (#328) : PAR RANGÉES (lance d'un coup les contributeurs restants de CETTE
     // étape, ≥2 non lancés — mutualisé) et CASCADE (résout d'office tout le reste de la cascade, sans
     // influence — `cascadeResolveAll`, comme la branche jet).

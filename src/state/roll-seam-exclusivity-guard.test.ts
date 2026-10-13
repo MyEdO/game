@@ -1172,9 +1172,16 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
 /** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects` ; et
  *  les deux points d'application de COMBAT dont la grappe de dés part à la porte — `state/combatFlow`
  *  `applyOups`/`applyBladeTrap`, #1508 T3b-4). */
-const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow', 'applyOups', 'applyBladeTrap'];
+/** Les points d'application d'un COUP (#1765) : `applyAttackResult` et ses enveloppes, qui rendent
+ *  `Applique` — leur suspension porte la suite du coup (`SuiteDeCoup`, `pendings.ts`). */
+const POINTS_DU_COUP = ['applyAttackResult', 'doAttack', 'applyFreeAttack', 'applyTalentFreeAttack'];
+const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow', 'applyOups', 'applyBladeTrap', ...POINTS_DU_COUP];
 /** Les CONSOMMATEURS nommés — recevoir le retour en argument de l'un d'eux EST le consommer. */
 const CONSOMMATEURS = ['jouerFlowEntier', 'nePeutPasDifferer', 'cloturer'];
+/** Un coup suspendu ne se clôt pas (`cloturer`) et ne se déclare pas indifférable (`nePeutPasDifferer`) :
+ *  sa suite voyage sur la fenêtre (#1765). Seul `jouerFlowEntier` (rien ne suit) le consomme. */
+const CONSOMMATEURS_DU_COUP = ['jouerFlowEntier'];
+const consommateursDe = (point: string): string[] => (POINTS_DU_COUP.includes(point) ? CONSOMMATEURS_DU_COUP : CONSOMMATEURS);
 
 /** La FORME d'un appel dont le retour se perd, ou `null` s'il est consommé. Purement syntaxique : les
  *  formes que le scan ne SAIT PAS trancher sont déclarées en angles morts mesurés, plus bas. */
@@ -1191,7 +1198,8 @@ function formePerdue(n: ts.CallExpression, sf: ts.SourceFile): string | null {
   // C — argument d'un appel qui n'est pas un consommateur nommé.
   if (ts.isCallExpression(p) && p.arguments.includes(n)) {
     const nom = ts.isIdentifier(p.expression) ? p.expression.text : '(appel non nommé)';
-    return CONSOMMATEURS.includes(nom) ? null : `retour passé en ARGUMENT de « ${nom} »`;
+    const point = ts.isIdentifier(n.expression) ? n.expression.text : '';
+    return consommateursDe(point).includes(nom) ? null : `retour passé en ARGUMENT de « ${nom} »`;
   }
   // B — capturé dans une variable JAMAIS RELUE : la capture ne consomme rien, seule la lecture le fait.
   if (ts.isVariableDeclaration(p) && p.initializer === n && ('name' in p && ts.isIdentifier(p.name))) {
@@ -1273,6 +1281,11 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
     expect(sonde('cloturer(g, s, runFlow(g, s, f), []);'), 'consommateur nommé').toEqual([]);
     expect(sonde('nePeutPasDifferer(applyEffects(g, s, e), "site");'), 'consommateur nommé').toEqual([]);
     expect(sonde('return runFlow(g, s, f);'), 'retour propagé : consommé').toEqual([]);
+    expect(sonde('applyAttackResult(g, s, a, d, w, r);'), 'coup : instruction nue').toHaveLength(1);
+    expect(sonde('cloturer(g, s, applyAttackResult(g, s, a, d, w, r), []);'), 'coup : `cloturer` refusé').toHaveLength(1);
+    expect(sonde('nePeutPasDifferer(doAttack(g, s, a, d), "site");'), 'coup : `nePeutPasDifferer` refusé').toHaveLength(1);
+    expect(sonde('jouerFlowEntier(applyFreeAttack(g, s, a, d, k, 0));'), 'coup : rien ne suit').toEqual([]);
+    expect(sonde('if (applyTalentFreeAttack(g, s, a, op, fa)) return true;'), 'coup : retour lu').toEqual([]);
   });
 
   it('aucun appel ne PERD son retour — le signal « différé » ne peut pas mourir en silence', () => {
@@ -1328,6 +1341,27 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     };
     walk(sf);
     expect(perdus, 'le scan voit un retour CONSOMMÉ — il ne peut pas savoir que l’appelant poursuit').toEqual([]);
+  });
+
+  it('angle mort : le RELAIS d’un point du coup passé en valeur (hook) échappe au scan — déclaré', () => {
+    // Une fonction qui REND le retour d'un point du coup le propage (consommé) ; son propre appelant,
+    // lui, n'est vu que si son nom est au scan. Le relais passé en VALEUR (`setFreeAttackHook`) est
+    // appelé par le dispatcher d'ops, qui s'arrête à la première fenêtre ouverte (`combatFlow` #1852).
+    expect(sondeVoit('function relais() { return applyFreeAttack(g, s, a, d, k, 0); } relais();'), 'le scan voit le point, pas le relais').toBe(1);
+    const relais: string[] = [];
+    for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && POINTS_DU_COUP.some((n) => text.includes(`return ${n}(`))))) {
+      if (!sf) continue;
+      const walk = (x: ts.Node): void => {
+        if (ts.isFunctionDeclaration(x) && x.name && !POINTS_DU_COUP.includes(x.name.text)) {
+          const rend = (y: ts.Node): boolean => (ts.isReturnStatement(y) && !!y.expression && ts.isCallExpression(y.expression)
+            && ts.isIdentifier(y.expression.expression) && POINTS_DU_COUP.includes(y.expression.expression.text)) || !!y.forEachChild((z) => (rend(z) ? true : undefined));
+          if (rend(x)) relais.push(`${rel} ${x.name.text}`);
+        }
+        x.forEachChild(walk);
+      };
+      walk(sf);
+    }
+    expect(relais, 'un relais NEUF d’un point du coup : déclarer qui consomme son retour').toEqual(['src/state/combatFlow.ts freeAttackHookImpl']);
   });
 
   it('angle mort : un appel PAR OBJET échappe au scan — et le corpus n’en porte aucun', () => {

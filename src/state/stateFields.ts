@@ -194,7 +194,18 @@ export const PENDING_BY_JET: Record<HostJet, PendingKey | null> = {
  * Prédicat PUR (aucun runtime importé) et TOTAL sur les neuf `HostJet`.
  */
 export function hoteOrphelin(s: Partial<GameState>, step: CascadeStep | undefined): boolean {
-  if (!step?.jet || step.committed) return false;
+  return !!step && !step.committed && sansCorps(s, step);
+}
+
+/**
+ * SANS CORPS (#1765) — « cette étape-jet n'a rien à rendre », validée ou non : le corps d'un jet hôte ne
+ * tient qu'à son slot, à ses acteurs ou à la donnée de l'étape. Lu par `hoteOrphelin` (porte du curseur)
+ * et par l'ÉLECTION de la cascade (`modalArbiter`) : une étape-jet dont le slot s'est vidé pendant
+ * qu'un enchaînement hors modale tient la main (`pendingDualStrike`, `pendingCleave`) n'élit aucune
+ * fenêtre.
+ */
+export function sansCorps(s: Partial<GameState>, step: CascadeStep | undefined): boolean {
+  if (!step?.jet) return false;
   const slot = PENDING_BY_JET[step.jet];
   if (slot && s[slot] == null) return true;
   const present = (id: string | undefined): boolean => !!id && !!s.battle?.combatants.some((c) => c.id === id);
@@ -211,6 +222,18 @@ export function hoteOrphelin(s: Partial<GameState>, step: CascadeStep | undefine
     }
     default: return false; // cast / test / disengage / forceDoor : leur corps ne tient qu'au slot
   }
+}
+
+/**
+ * HÔTE EN ATTENTE (#1765) — « cette étape-jet attend que sa fenêtre rende sa donnée » : son slot vit et elle
+ * n'est pas validée (`committed`). Le curseur ne la franchit pas — ni par un « Suivant », ni par « Tout
+ * lancer » : c'est sa fenêtre qui la rend (`defenseConfirm` pose `committed`, `attackConfirm` vide son
+ * slot). Prédicat PUR et TOTAL sur les neuf `HostJet`, lu par `cascade.stepReady`.
+ */
+export function hoteEnAttente(s: Partial<GameState>, step: CascadeStep): boolean {
+  if (!step.jet || step.committed) return false;
+  const slot = PENDING_BY_JET[step.jet];
+  return slot != null && s[slot] != null;
 }
 
 /** Bloc complet `{ champ: init }` des champs transitoires — assemblé dans l'état initial du store. */

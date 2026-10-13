@@ -937,6 +937,9 @@ export interface ToucheDeProjectile {
  *    compris quand une fenêtre de défense s'interpose, qui le porte dans SA suite ;
  *  - `auto` : balayage de la MACHINE (LDB 85 l.362 : « Toutes les frappes réussies activent la règle
  *    optionnelle Frappe Mortelle »), gardé par `aiDriven` dans `autoCleave` ;
+ *  - `tirRapide` : la BOUCLE des Tirs rapides de l'IA (LDB 11 l.97-103), posée par `runPreemptShots` —
+ *    les tireurs suivants passent après ce tir, fenêtre de défense comprise (#997). `faits` = les
+ *    tireurs déjà passés ce Round ;
  *  - `aucun` : le site d'origine a tranché qu'AUCUN balayage ne suit ce coup — Maladresse de
  *    l'attaquant, frappe du Maniement de deux armes, manœuvre gratuite d'un héros.
  */
@@ -944,6 +947,7 @@ export type EnchainementDuCoup =
   | { mode: 'hero'; wasChain: boolean }
   | ({ mode: 'chaine' } & ChaineDeBalayage)
   | { mode: 'auto' }
+  | { mode: 'tirRapide'; faits: string[] }
   | { mode: 'aucun' };
 
 /** État d'une chaîne de BALAYAGE en cours (Frappe Mortelle/Taille, LDB 14 l.9 / 85 l.299) : cibles

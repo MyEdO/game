@@ -89,6 +89,7 @@ const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
   { file: 'combatFlow', fn: 'maybeOpenDefense', pred: /defenseSurfaced/ },
   { file: 'combatFlow', fn: 'surfacedDefensePending', pred: /defenseSurfaced/ },
   { file: 'combatFlow', fn: 'openSurfacedDefense', pred: /surfacedDefensePending/ },
+  { file: 'combatFlow', fn: 'resolveDualSecond', pred: /defenseSurfaced/ }, // #998 : la 2ᵉ frappe d'un défenseur surfacé passe par SA fenêtre
   { file: 'combatFlow', fn: 'resolveAttack', pred: /defenseSurfaced/ },
   { file: 'combatFlow', fn: 'autoCleave', pred: /aiDriven/ },
   { file: 'combatFlow', fn: 'maybeHeroCleave', pred: /tenuParUnHumain/ }, // #1426 : la SURFACE, pas l'affordance locale
@@ -114,11 +115,11 @@ const DEFENDER_ROLL_SITES = new Set([
   'resolveAttack',        // repli non surfacé seulement (`defenseSurfaced` → undefined / defense:'none')
   'maybeOpenDefense',     // OUVRE la fenêtre (chemin instantané : IA, gratuites, balayage)
   'openSurfacedDefense',  // OUVRE la fenêtre (chemin piloté : attackConfirm)
-  'resolveDualSecond',    // 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773) — jet de défense NEUF, non surfacé
+  'resolveDualSecond',    // repli non surfacé seulement (2ᵉ frappe, LDB 10 l.773 ; surfacé → `attackConfirm` interpose, #998)
 ]);
 /** Ouvertures de fenêtre attendues sur les chemins d'attaque INSTANTANÉS (le brief #989 : le balayage
  *  et les attaques gratuites ne roulent plus de défense en silence). */
-const DEFENSE_OPENERS = ['runCleaveChain', 'applyFreeAttack', 'applyTalentFreeAttack', 'doAttack'];
+const DEFENSE_OPENERS = ['runCleaveChain', 'applyFreeAttack', 'applyTalentFreeAttack', 'doAttack', 'runPreemptShots'];
 
 /** Nom de la fonction top-level ENGLOBANTE d'un index de caractère (déclarations `function`). */
 function enclosingFn(src: string, at: number): string {

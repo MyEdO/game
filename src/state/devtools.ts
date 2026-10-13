@@ -2160,7 +2160,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return {
         cadence: cadence(),
         activeModal: key,
-        cascade: cur ? { id: cur.id, kind: cur.kind, interaction: stepInteraction(cur), ready: stepReady(cur), chosen: cur.chosen ?? null, amount: cur.amount ?? null } : null,
+        cascade: cur ? { id: cur.id, kind: cur.kind, interaction: stepInteraction(cur), ready: stepReady(cur, s), chosen: cur.chosen ?? null, amount: cur.amount ?? null } : null,
         policy: autoPolicyOf(s)?.mode ?? null,
         willAutoResolve: willAutoResolve(s),
         openPendings: open,
