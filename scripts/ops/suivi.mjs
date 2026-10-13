@@ -23,7 +23,7 @@
 // PÉRIMÉE ou portée changée, `.md` abandonné —, item actif, prochain geste numéroté, anomalies, ouverts).
 // `digestDuSuivi` : titre, anomalies, items et étapes ouvertes NUMÉROTÉES, file, arbitrages, signalements,
 // mesure datée, coupé à `PLAFOND_INJECTION`. `etatDeSession` : pour les suivis liés à une session au JOURNAL
-// `<dossier>/.journal`, le `contexte`, les lignes du bandeau, la situation datée à `ajouter`, sa `cle` et
+// `<dossier>/.journal`, le `contexte`, les lignes du bandeau, la situation datée (`ajout`) et
 // `aMesurer` — ce que rendent le hook de session (`scripts/hooks/inject-suivi.mjs`, surface Codex) et le mod
 // `harnais` (`.claude/skills/harnais/hooks/suivi.ts`). Le lecteur ne mesure JAMAIS (#2279) : il DIT les
 // épiques à re-mesurer, et le mod lance `--mesurer --sans-fetch`, sous le verrou de mesure sans attente.
@@ -31,7 +31,6 @@
 //
 // Usage : `USAGE`, dérivé de `FORMES_DU_CLI` (la table des gestes, scripts/ops/suiviDonnee.mjs).
 import * as FS from 'node:fs'
-import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { dossierDesSuivis } from '../guards/lib/gitPorte.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
@@ -279,25 +278,21 @@ function contexteDeSession({ lus, dossier, maintenant, fs = FS }) {
 /**
  * L'ÉTAT d'une session, prêt à rendre, sans rien mesurer ni écrire : par suivi lié, ses `lignes` de
  * bandeau (`lignesDeSituation`, âge de la mesure) ; le `contexte` (`contexteDeSession`) ; l'`ajout`, l'état
- * daté des suivis liés (`''` sans lien, ou quand la `cle` vaut `depuis`) ; la `cle`, condensé de cet état et
- * des (genre, clé) de ses anomalies, hors de leur âge et de la date de relecture ; `aMesurer`, les épiques
- * dont la confrontation demande une mesure (absente, illisible, PÉRIMÉE, portée changée).
- * @param {{session: string, dossier: string, maintenant: Date, depuis?: string|null, fs?: typeof FS}} params
+ * daté des suivis liés (`''` sans lien), que rend l'outil du mod ; `aMesurer`, les épiques dont la
+ * confrontation demande une mesure (absente, illisible, PÉRIMÉE, portée changée).
+ * @param {{session: string, dossier: string, maintenant: Date, fs?: typeof FS}} params
  * @returns {{session: string, suivis: {epique: number, chemin: string, lignes: string[]}[], contexte: string, ajout: string,
- *   cle: string, aMesurer: number[]}}
+ *   aMesurer: number[]}}
  */
-export function etatDeSession({ session, dossier, maintenant, depuis = null, fs = FS }) {
+export function etatDeSession({ session, dossier, maintenant, fs = FS }) {
   const lus = suivisLies({ session, dossier, fs })
   const confrontes = lus.map((lu) => confrontation(lu, maintenant))
   const situation = lus.flatMap((lu) => lignesDeSituation(lu, { maintenant, age: false }))
-  const anomalies = confrontes.flatMap((c) => (c ? [...c.alertes, ...c.anomalies].map((a) => `${a.genre}\t${a.cle}`) : []))
-  const cle = createHash('sha256').update([...situation, ...anomalies].join('\n')).digest('hex').slice(0, 16)
   return {
     session,
     suivis: lus.map((lu) => ({ epique: lu.epique, chemin: lu.chemin, lignes: lignesDeSituation(lu, { maintenant, age: true }) })),
     contexte: contexteDeSession({ lus, dossier, maintenant, fs }),
-    ajout: situation.length && cle !== depuis ? [`[suivi] situation relue le ${horodatage(maintenant)}`, ...situation].join('\n') : '',
-    cle,
+    ajout: situation.length ? [`[suivi] situation relue le ${horodatage(maintenant)}`, ...situation].join('\n') : '',
     aMesurer: lus.filter((_, k) => confrontes[k]?.aMesurer).map((lu) => lu.epique),
   }
 }
@@ -351,34 +346,34 @@ export function editer({ numero, dossier, session = null, json = false, mutation
 
 /** Les options hors gestes : `valeur` si elles prennent UN argument. */
 const OPTIONS = {
-  '--session': { cle: 'session', valeur: true }, '--depuis': { cle: 'depuis', valeur: true }, '--lot': { cle: 'lot', valeur: true },
+  '--session': { cle: 'session', valeur: true }, '--lot': { cle: 'lot', valeur: true },
   '--json': { cle: 'json' }, '--rendu': { cle: 'rendu' }, '--outil': { cle: 'outil' }, '--mesurer': { cle: 'mesurer' }, '--sans-fetch': { cle: 'sansFetch' },
 }
 
 /** Les options interdites dans chaque mode. */
 const HORS_DE_PROPOS = {
-  liste: ['session', 'depuis', 'json', 'sansFetch'], session: ['sansFetch'], outil: ['session', 'depuis', 'sansFetch'],
-  situation: ['session', 'depuis', 'json', 'sansFetch'], rendu: ['session', 'depuis', 'json', 'sansFetch'],
-  mesurer: ['session', 'depuis'], lot: ['depuis', 'sansFetch'],
+  liste: ['session', 'json', 'sansFetch'], session: ['sansFetch'], outil: ['session', 'sansFetch'],
+  situation: ['session', 'json', 'sansFetch'], rendu: ['session', 'json', 'sansFetch'],
+  mesurer: ['session'], lot: ['sansFetch'],
 }
 
 /** L'usage, DÉRIVÉ de `FORMES_DU_CLI`. */
 const USAGE = '`npm run ops:suivi -- <N> [--<geste> <args>…] [--lot <json>|-] [--session <id> --json]`, gestes : '
   + `${Object.entries(FORMES_DU_CLI).map(([nom, { args }]) => `--${nom} ${args.map((a) => `<${a}>`).join(' ')}`).join(' · ')} ; `
   + '`<N>` (la situation) · `<N> --rendu` · `<N> --mesurer [--sans-fetch] [--json]` · sans argument (la liste) · '
-  + '`--session <id> --json [--depuis <cle>]` · `--outil --json`'
+  + '`--session <id> --json` · `--outil --json`'
 
 /**
  * Les arguments de ce script, ou `{ refus }` qui nomme le défaut. `<N>` vient en PREMIER ; chaque geste
  * (`FORMES_DU_CLI`) consomme EXACTEMENT son arité, et un mot qui n'est ni une option ni un geste est refusé
- * (« argument en trop »). Modes : `liste` (rien), `session` (`--session <id> --json [--depuis <cle>]`),
+ * (« argument en trop »). Modes : `liste` (rien), `session` (`--session <id> --json`),
  * `outil` (`--outil --json`), `situation` (`<N>`), `rendu` (`<N> --rendu`), `mesurer` (`<N> --mesurer
  * [--sans-fetch] [--json]`), `lot` (`<N>` et des gestes ou `--lot`, `[--session <id>] [--json]`, `--json`
  * exigeant `--session`). PURE.
  * @param {string[]} argv
  */
 export function argumentsDuSuivi(argv) {
-  const lus = { numero: null, session: null, depuis: null, lot: null, json: false, rendu: false, outil: false, mesurer: false, sansFetch: false, gestes: [] }
+  const lus = { numero: null, session: null, lot: null, json: false, rendu: false, outil: false, mesurer: false, sansFetch: false, gestes: [] }
   const refus = (motif) => ({ refus: motif })
   let i = 0
   if (/^\d+$/.test(argv[0] ?? '')) {
@@ -466,7 +461,7 @@ async function executer({ argv, cwd, stdin, maintenant = new Date() }) {
   const dossier = vuDossier.valeur
   const lu = () => lireLeSuivi({ dossier, epique: lus.numero })
   switch (lus.mode) {
-    case 'session': return sortie(`${JSON.stringify(etatDeSession({ session: lus.session, dossier, maintenant, depuis: lus.depuis }))}\n`)
+    case 'session': return sortie(`${JSON.stringify(etatDeSession({ session: lus.session, dossier, maintenant }))}\n`)
     case 'liste': return sortie(texteDeLaListe({ dossier, ...listerSuivis({ dossier }) }))
     case 'situation': return sortie(`${lignesDeSituation(lu(), { maintenant, age: true }).join('\n')}\n`)
     case 'rendu': return sortie(renduDuSuivi(lu(), { maintenant }))

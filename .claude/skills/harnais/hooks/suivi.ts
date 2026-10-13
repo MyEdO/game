@@ -1,11 +1,13 @@
 // Fonction `suivi` du mod `harnais` (#2279) : le suivi de vague `.git/suivi/<N>.json` sous les yeux pendant
 // toute la session ; au démarrage, elle synchronise d'abord le principal (`synchroniser.mjs --json`, #2187).
 // Elle REND l'état de session que calcule le lecteur `scripts/ops/suivi.mjs --session
-// <id> --json [--depuis <cle>]` (`etatDeSession`), enregistre l'outil que décrit `suivi.mjs --outil --json`
+// <id> --json` (`etatDeSession`), enregistre l'outil que décrit `suivi.mjs --outil --json`
 // (son schéma est dérivé de la donnée, #2460) et lui confie chaque lot par `suivi.mjs <N> --session <id>
 // --json --lot <json>` (`editer`). Le lecteur ne mesure jamais : pour chaque épique de son `aMesurer`, la
 // relecture lance `suivi.mjs <N> --mesurer --sans-fetch --json` ; le verrou de mesure de
 // `scripts/ops/suiviMesure.mjs`, pris sans attente, dédoublonne — le mod n'en décide rien (#2460, design §5).
+// Le mod n'écrit jamais dans l'historique de la session (#2596) : la situation se lit au bandeau, au résultat
+// de l'outil et au bloc `suivi` du `prompt.context`.
 // Porteurs :
 // https://github.com/MyEdO/game/issues/2278#issuecomment-5983942497
 import { atom, read, update } from 'claude-code'
@@ -14,7 +16,7 @@ import type { HarnaisEtatDeSession, HarnaisOutil, HarnaisSuivi, HarnaisSynchro, 
 import { appel, lire } from './ops'
 import type { Lu } from './ops'
 
-const DEPART: HarnaisSuivi = { etat: null, cle: null, enAttente: null, generation: '' }
+const DEPART: HarnaisSuivi = { etat: null, generation: '' }
 const atome = atom({ plugin: 'harnais', key: 'suivi' } as const, DEPART)
 
 /**
@@ -37,19 +39,14 @@ async function suiviMjs<T>($: EngineInterface, args: readonly string[]): Promise
 }
 
 /**
- * Relit l'état de session depuis la clé retenue. Ignorée si une transition qui retient une clé a eu lieu
- * depuis son lancement ; un échec garde le dernier état valide. Chaque épique de son `aMesurer` est mesurée
- * (`mesurer`), sans attendre.
+ * Relit l'état de session. Ignorée si l'outil a édité le suivi depuis son lancement ; un échec garde le dernier
+ * état valide. Chaque épique de son `aMesurer` est mesurée (`mesurer`), sans attendre.
  */
 async function relire($: EngineInterface) {
   const lancee = await read($, atome)
-  const lu = await suiviMjs<HarnaisEtatDeSession>($, ['--session', await $.session.id(), '--json', ...(lancee.cle ? ['--depuis', lancee.cle] : [])])
+  const lu = await suiviMjs<HarnaisEtatDeSession>($, ['--session', await $.session.id(), '--json'])
   if (!lu.ok) return
-  await update($, atome, (s) => (s.generation !== lancee.generation ? s : {
-    ...s,
-    etat: lu.valeur,
-    enAttente: lu.valeur.ajout ? { ajout: lu.valeur.ajout, cle: lu.valeur.cle } : s.enAttente,
-  }))
+  await update($, atome, (s) => (s.generation !== lancee.generation ? s : { ...s, etat: lu.valeur }))
   for (const epique of lu.valeur.aMesurer) void mesurer($, epique)
 }
 
@@ -103,10 +100,6 @@ async function synchroniser($: EngineInterface) {
   await update($, atomeSynchro, () => ({ texte }))
 }
 
-/** La transition qui retient la clé `cle` : l'attente est vidée, une génération neuve est tirée. */
-const retenir = (s: HarnaisSuivi, cle: string, etat: HarnaisEtatDeSession | null = s.etat): HarnaisSuivi =>
-  ({ etat, cle, enAttente: null, generation: crypto.randomUUID() })
-
 export function suivi(on: On) {
   on('session.start', async ($, e, next) => {
     await synchroniser($)
@@ -123,41 +116,22 @@ export function suivi(on: On) {
     const lot = JSON.stringify({ epique: e.epique, mutations: e.mutations })
     const lu = await suiviMjs<HarnaisEtatDeSession>($, [String(e.epique), '--session', await $.session.id(), '--json', '--lot', lot])
     if (!lu.ok) return { deny: lu.motif }
-    await update($, atome, (s) => retenir(s, lu.valeur.cle, lu.valeur))
+    await update($, atome, () => ({ etat: lu.valeur, generation: crypto.randomUUID() }))
     return { result: lu.valeur.ajout }
   })
 
   on('prompt.context', async ($, e, next) => {
-    const porte: { etat: HarnaisEtatDeSession | null } = { etat: null }
-    await update($, atome, (s) => {
-      porte.etat = s.etat?.contexte ? s.etat : null
-      return porte.etat ? retenir(s, porte.etat.cle) : s
-    })
+    const { etat } = await read($, atome)
     const synchro: { texte: string | null } = { texte: null }
     await update($, atomeSynchro, (s) => {
       synchro.texte = s.texte
       return s.texte ? { texte: null } : s
     })
-    const { etat } = porte
     const blocs = [
       ...(synchro.texte ? [{ name: 'synchroniser', text: synchro.texte }] : []),
-      ...(etat ? [{ name: 'suivi', text: etat.contexte }] : []),
+      ...(etat?.contexte ? [{ name: 'suivi', text: etat.contexte }] : []),
     ]
     return blocs.length ? next({ ...e, blocks: [...e.blocks, ...blocs] }) : next(e)
-  })
-
-  on('turn.start', async ($, e, next) => {
-    const lu = await read($, atome)
-    const { enAttente } = lu
-    if (!enAttente) return next(e)
-    try {
-      await $.session.append({ message: { type: 'user', content: [{ type: 'text', text: enAttente.ajout }] } })
-    } catch (erreur) {
-      $.ui.log(`harnais, ajout du suivi non fait, reporté au tour suivant : ${String(erreur)}`, { to: 'debug' })
-      return next(e)
-    }
-    await update($, atome, (s) => (s.generation !== lu.generation ? s : retenir(s, enAttente.cle)))
-    return next(e)
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
