@@ -3011,7 +3011,7 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
   let vus = faits;
   for (const shooter of shooters) {
     vus = [...vus, shooter.id];
-    // Cible = ennemi le plus proche, à portée et en Ligne de Vue (LDB 13 l.114). La LdV se tranche ici (`losClear`, même
+    // Cible à portée et en Ligne de Vue : LDB 13 l.114 ; le plus proche d'abord est un choix de code. La LdV se tranche ici (`losClear`, même
     // `losTo` que `resolveAttack`) AVANT le gate : un candidat masqué ne consomme aucun Test.
     const t0 = battle.combatants
       .filter((f) => f.kind !== shooter.kind && !isOutOfAction(f) && !!f.pos)
@@ -3897,7 +3897,7 @@ export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, targe
  *
  * Les deux premières branches sont MUTUELLEMENT EXCLUSIVES par construction du site d'origine
  * (`dualMain` exige la main directrice ; `manoeuvre` exige une manœuvre) — leur ordre interne n'a donc
- * aucun effet observable, et l'enchaînement `hero` exige de n'être ni l'une ni l'autre.
+ * aucun effet observable ; l'enchaînement `hero` exclut `dualMain`, jamais `manoeuvre` (LDB 14 l.9).
  * L'ENCHAÎNEMENT est une DÉCLARATION du site d'origine (`SuiteDeCoup.enchainement`), jamais un défaut
  * muet : les deux portes du balayage ne sont PAS exclusives pour un héros conduit par l'Auto-combat
  * (`tenuParUnHumain` vrai ET `aiDriven` vrai), et un fall-through en aurait ouvert une que le site
@@ -4025,8 +4025,9 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   if ((uses[fa.key] ?? 0) >= fa.cap) return undefined; // plafond /Round atteint (= niveau du talent)
   const ck = `${fa.key}:${target.id}`;
   if (op.perChargerOncePerRound && (uses[ck] ?? 0) >= 1) return undefined; // 1 riposte par chargeur (Frappe réactive)
-  if (op.advantageCost != null && actor.advantage < op.advantageCost) return undefined; // Avantage insuffisant
-  if (op.advantageOrMovement && actor.advantage <= 0) return undefined; // LDB 10 l.78 : seule la dépense d'Avantage est jouée
+  const solde = spendableAdvantage(get, actor); // ce que `campSpend` débite (AA 11 l.30-38)
+  if (op.advantageCost != null && solde < op.advantageCost) return undefined; // Avantage insuffisant
+  if (op.advantageOrMovement && solde <= 0) return undefined; // LDB 10 l.78 : seule la dépense d'Avantage est jouée
   if (op.advantageCost != null) campSpend(get, actor, op.advantageCost); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
   else if (op.advantageOrMovement) campSpend(get, actor, 1);
   actor.freeAttacksThisTurn = { ...uses, [fa.key]: (uses[fa.key] ?? 0) + 1, ...(op.perChargerOncePerRound ? { [ck]: 1 } : {}) };

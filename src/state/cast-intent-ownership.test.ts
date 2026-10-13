@@ -92,13 +92,13 @@ const H_HOST = 'h1'; // héros du siège 0 (hôte)
 const H_GUEST = 'h2'; // héros du siège 1
 const ENEMY = 'e1';
 
-/** Fenêtre du flux `jet` OUVERTE sur `ownerId` (son pending posé selon `jetOwner`), étape de cascade
- *  PARTAGÉE (owner de modale '*'). Le pending est POSÉ PAR LA TABLE : ajouter un `jetOwner` à un flux
- *  l'amène dans la garde sans une ligne de fixture. */
 /** L'étape-hôte qui rend le jet porté par `pending` (`PENDING_BY_JET`) : une cascade PARTAGÉE dont le
  *  corps est ce slot. Un pending hors cascade garde l'étape d'incantation. */
 const jetHote = (pending: string): HostJet =>
   (Object.entries(PENDING_BY_JET) as [HostJet, string | null][]).find(([, slot]) => slot === pending)?.[0] ?? 'cast';
+/** Fenêtre du flux `jet` OUVERTE sur `ownerId` (son pending posé selon `jetOwner`), étape de cascade
+ *  PARTAGÉE (owner de modale '*'). Le pending est POSÉ PAR LA TABLE : ajouter un `jetOwner` à un flux
+ *  l'amène dans la garde sans une ligne de fixture. */
 const state = (jet: JetOwnerRef, ownerId: string, over: Partial<GameState> = {}): GameState =>
   ({
     net: { mode: 'host', mySeat: 0, gmSeat: 2, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] },

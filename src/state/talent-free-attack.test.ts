@@ -12,6 +12,9 @@ import { testScene } from '../scenes/test-fixture';
 
 import type { AttackResult } from '../engine/combat';
 import { resetCadence, setCadence } from '../engine/cadence';
+import { setRule, resetRule } from '../engine/policy';
+import { applySummon } from './summonFlow';
+import { campGain } from './combat/advantagePool';
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
@@ -46,6 +49,27 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     useGame.getState().attackConfirm();
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.['assaut-feroce']).toBe(1); // le talent a tiré son attaque supplémentaire, 1× ce Round
+  });
+
+  // Mode « Avantage de groupe » (AA 11 l.11-13, l.30-38) : une invocation alliée naît projetée sur la
+  // réserve de son camp, et sa porte lit le solde que `campSpend` débite.
+  it('Assaut féroce (mode groupe) : une invocation alliée paie sur la réserve du camp', () => {
+    setRule('combat-aa-avantage-groupe', true);
+    try {
+      useGame.getState().seedRng(2);
+      const { H, E } = setup();
+      campGain(useGame.getState, H, 2);
+      applySummon(useGame.getState, useGame.setState, H, { ref: 'loup' } as never, {});
+      const loup = () => useGame.getState().battle!.combatants.find((c) => c.summon)!;
+      expect(loup().kind).toBe('hero');
+      expect(loup().advantage).toBe(2);
+      loup().talents = [...(loup().talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
+      loup().pos = { x: 11, y: 11 };
+      resolveFreeAttacks(useGame.getState, useGame.setState, loup(), 'onHit', E);
+      expect(loup().freeAttacksThisTurn?.['assaut-feroce']).toBe(1);
+    } finally {
+      resetRule('combat-aa-avantage-groupe');
+    }
   });
 
   it('sans le talent : une touche ne déclenche AUCUNE attaque supplémentaire', () => {

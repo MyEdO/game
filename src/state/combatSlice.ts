@@ -298,6 +298,13 @@ function advanceCombatJet(get: () => GameState): void {
     && ((!get().pendingCleave && !get().pendingDualStrike) || !coupFerme(get()))) get().cascadeNext();
 }
 
+/** Le curseur de la séquence de COMBAT est-il posé sur une étape de défense ? Porte d'entrée de
+ *  `defenseConfirm`, et verdict de sa sortie (`quitterLaDefense`). */
+function surLEtapeDeDefense(s: GameState): boolean {
+  const casc = s.pendingCascade;
+  return casc?.purpose === 'combat' && casc.participants[casc.cursor]?.jet === 'defense';
+}
+
 /** FRAPPE SUIVANTE d'un enchaînement (balayage, 2ᵉ frappe du Maniement de deux armes) : elle se rend dans
  *  l'étape `attack` courante encore ouverte ; sinon (étape validée — la défense surfacée de la frappe
  *  précédente, #998 —, autre jet au curseur, ou aucune séquence de combat) elle reçoit SA propre étape,
@@ -2504,10 +2511,10 @@ export function createCombatSlice(get: Get, set: Set) {
           ...(pa.freeKind ? { manoeuvre: { kind: pa.freeKind } } : {}),
           // Talents d'attaque DÉCLENCHÉE (Assaut féroce, LDB 10 l.72) : `grantFreeAttack{onHit, immediate}`.
           ...(coupPrincipal ? { gratuitesALaTouche: true } : {}),
-          // L'ENCHAÎNEMENT se DÉCLARE, toujours : une Maladresse de l'attaquant, une frappe du Maniement
-          // de deux armes ou une manœuvre gratuite n'en ouvrent AUCUN (`aucun`) — sans déclaration, la
-          // queue partagée tomberait dans le balayage de la machine (LDB 85 l.362), que ce site écarte.
-          enchainement: !fumbled && !isDualMain && !isDualSecond && !pa.freeKind ? { mode: 'hero', wasChain } : { mode: 'aucun' },
+          // L'ENCHAÎNEMENT se DÉCLARE, toujours : une Maladresse de l'attaquant ou une frappe du Maniement
+          // de deux armes n'en ouvrent AUCUN (`aucun`) — sans déclaration, la queue partagée tomberait dans
+          // le balayage de la machine (LDB 85 l.362), que ce site écarte. Manœuvre gratuite : LDB 14 l.9.
+          enchainement: !fumbled && !isDualMain && !isDualSecond ? { mode: 'hero', wasChain } : { mode: 'aucun' },
           ...(isDualMain && off?.uid && mainRoll != null ? { dualMain: { offWeaponUid: off.uid, mainRoll } } : {}),
           ...(pa.reaction ? { reaction: pa.reaction } : {}),
         };
@@ -2654,6 +2661,8 @@ export function createCombatSlice(get: Get, set: Set) {
       // « Appliquer » : applique le résultat puis REPREND le tour de l'IA suspendu.
       const { battle, pendingDefense: pd } = get();
       if (!battle || !pd || !pd.result) return;
+      // La fenêtre ne se ferme que depuis SON étape : le curseur posé sur la défense de la séquence de combat.
+      if (!surLEtapeDeDefense(get())) return;
       const attacker = inBattleId(battle, pd.attackerId);
       const defender = inBattleId(battle, pd.defenderId);
       // LE SLOT SE VIDE ET L'ÉTAPE SE FERME DANS LE MÊME ÉTAT (#1852) : `committed` DIT à l'état que
@@ -2662,13 +2671,10 @@ export function createCombatSlice(get: Get, set: Set) {
       // et seul le batching React le masquait. Le curseur, lui, quitte l'étape plus bas (`quitterLaDefense`),
       // une fois les conséquences du coup appliquées.
       set((s) => {
-        const casc = s.pendingCascade;
-        const cur = casc?.participants[casc.cursor];
+        const casc = s.pendingCascade!;
         return {
           pendingDefense: null, // null AVANT la reprise → ré-entrance/double-advance impossibles
-          ...(cur?.jet === 'defense'
-            ? { pendingCascade: { ...casc!, participants: casc!.participants.map((st, i) => (i === casc!.cursor ? { ...st, committed: true } : st)) } }
-            : {}),
+          pendingCascade: { ...casc, participants: casc.participants.map((st, i) => (i === casc.cursor ? { ...st, committed: true } : st)) },
         };
       });
       /**
@@ -2679,8 +2685,7 @@ export function createCombatSlice(get: Get, set: Set) {
        * Rend `false` quand l'étape courante n'est plus la défense (la Maladresse a ouvert SA séquence).
        */
       const quitterLaDefense = (): boolean => {
-        const casc = get().pendingCascade;
-        if (casc?.purpose !== 'combat' || casc.participants[casc.cursor]?.jet !== 'defense') return false;
+        if (!surLEtapeDeDefense(get())) return false;
         get().cascadeNext();
         return true;
       };

@@ -778,6 +778,7 @@ describe('Boucle de jeu (store)', () => {
         result: null,
         suite: { mode: 'machine', coup: {} },
       },
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H.id }], { title: 'Défense', purpose: 'combat' }),
     });
     useGame.getState().defenseRoll(); // « Défendre » : roule la défense + résout
     let pd = useGame.getState().pendingDefense!;

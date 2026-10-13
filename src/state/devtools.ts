@@ -71,6 +71,7 @@ import { sceneToAscii } from './sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from './cascade';
 import { routeDistanceLabel } from '../engine/travel';
+import { mirrorPools } from '../engine/advantagePool';
 import { actorIn, ecrireActeur, inBattleId } from './combatants';
 import { touchActors } from './combatOrParty';
 import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
@@ -2006,6 +2007,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const side = opts?.side ?? 'enemy';
       if (side === 'hero') { c.kind = 'hero'; c.aiControlled = true; }
       else if (side === 'npc') c.kind = 'npc';
+      if (b.advantagePools) mirrorPools(b.advantagePools, [c]); // AA 11 l.11-13
       useGame.setState({ battle: { ...b, combatants: [...b.combatants, c], order: [...b.order, id] } });
       bus.emit(EVT.SCENE_DIRTY);
       return `✓ ${c.label} (${creatureId}) apparu — ${side}, (${basePos.x},${basePos.y})`;

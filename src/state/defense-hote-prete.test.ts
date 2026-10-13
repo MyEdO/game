@@ -99,6 +99,25 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
     expect(mesures, 'aucune graine ne mesure la chaîne déstabilisée').toBeGreaterThan(0);
   });
 
+  it('« Appliquer » hors de l’étape de défense est refusé : la fenêtre ne se ferme que depuis son étape', () => {
+    let mesures = 0;
+    for (let seed = 1; seed <= 6; seed++) {
+      if (!jusquALaChaineDestabilisee(seed)) continue;
+      const avant = etapeCourante();
+      if (avant?.jet === 'defense') continue;
+      g().defenseRoll();
+      const pd = g().pendingDefense;
+      if (!pd?.result) continue;
+      mesures++;
+      g().defenseConfirm();
+      expect(g().pendingDefense, `graine ${seed} : la défense du maillon vit encore`).toBe(pd);
+      expect(etapeCourante(), `graine ${seed} : le curseur n’a pas bougé`).toBe(avant);
+      const c = g().pendingCascade!;
+      expect(c.participants.slice(c.cursor).find((p) => p.jet === 'defense')?.committed, `graine ${seed} : l’étape du maillon reste à valider`).toBeFalsy();
+    }
+    expect(mesures, 'aucune graine ne mesure une défense résolue hors de son étape').toBeGreaterThan(0);
+  });
+
   it('une `pendingDefense` vivante bloque l’avancée du combat, même sans séquence ouverte', () => {
     for (let seed = 1; seed <= 6; seed++) {
       if (!jusquALaChaineDestabilisee(seed)) continue;
