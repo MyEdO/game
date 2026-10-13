@@ -292,7 +292,8 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
  * LITTÉRAL (`` `… (${…})` ``) et la CONCATÉNATION (`' (' + … + ')'`) —, dont l'argument de la parenthèse
  * est un libellé du catalogue des Compétences/Caractéristiques : appel `refLabel('skills', …)`,
  * `testSkillLabel(…)`, `skillRefLabel(…)`, `CHAR_LABELS[…]`, littéral, ou clé de catalogue dont le
- * texte en est un (`isCompetenceLabel`). Une variable nue n'est PAS lue.
+ * texte en est un (`isCompetenceLabel`). Une variable nue n'est PAS lue. Cinquième porte : toute VALEUR du
+ * catalogue FR qui ÉCRIT la parenthèse en dur (« manœuvre d'évitement (Navigation) », #1111).
  */
 const SKILL_LABEL_CALL_RX = /^(?:refLabel\(\s*['"]skills['"]|testSkillLabel\(|skillRefLabel\(|CHAR_LABELS\[)/;
 
@@ -406,7 +407,35 @@ const PARENTHESE_HORS_ACTION = new Map<string, string>([
   ['src/engine/ops.ts — CHAR_LABELS[o.char]', 'op.testMod : « +10 (Force) » nomme la Caractéristique du modificateur, aucun jet n’est libellé'],
 ]);
 
+/** Le Test de Navigation (MDG 13 l.18-19) : nom de famille du Test de Voile/Ramer, qu'une parenthèse
+ *  écrite en dur substitue à la Compétence réellement lancée. */
+const TEST_DE_NAVIGATION = norm((fr as Record<string, string>)['sv.navigation']);
+
+/** Les parenthèses ÉCRITES EN DUR dans une valeur du catalogue (`cle → texte`) dont le contenu est un libellé
+ *  de Compétence/Caractéristique, ou le Test de Navigation (exporté pour la preuve fail-closed). */
+export function scanCatalogueSkillParenthesis(catalogue: Record<string, string>): string[] {
+  const hits: string[] = [];
+  for (const [cle, texte] of Object.entries(catalogue)) {
+    for (const m of texte.matchAll(/\(([^(){}]+)\)/g)) {
+      if (isCompetenceLabel(m[1]) || norm(m[1]) === TEST_DE_NAVIGATION) hits.push(`${cle} — « ${texte} »`);
+    }
+  }
+  return hits;
+}
+
 describe('CLIQUET — « Action (Compétence) » n’est composé que par `composeRollLabel` (#1111)', () => {
+  it('aucune valeur du catalogue FR n’écrit « (Compétence) » en dur', () => {
+    const bad = scanCatalogueSkillParenthesis(fr as Record<string, string>);
+    expect(bad, ['« (Compétence) » écrit en dur au catalogue — la Compétence se DÉRIVE (`composeRollLabel`, Z1, docs/charte-ui.md) :', ...bad].join('\n')).toEqual([]);
+  });
+
+  it('fail-closed : une valeur SYNTHÉTIQUE à « (Compétence) » en dur est détectée, une parenthèse d’autre nature passe', () => {
+    expect(scanCatalogueSkillParenthesis({ x: "{peril} — manœuvre d'évitement (Navigation) : {issue}" })).toHaveLength(1);
+    expect(scanCatalogueSkillParenthesis({ x: 'Test (Force Mentale)' }), 'caractéristique').toHaveLength(1);
+    expect(scanCatalogueSkillParenthesis({ x: '{sujet} ({precision})' }), 'paramètre').toEqual([]);
+    expect(scanCatalogueSkillParenthesis({ x: 'Rocher (2 coups)' }), 'parenthèse d’autre nature').toEqual([]);
+  });
+
   it('aucune parenthèse de libellé remplie d’une Compétence hors du composeur', () => {
     const bad: string[] = [];
     const exemptions = new Set<string>();

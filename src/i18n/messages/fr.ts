@@ -1069,7 +1069,7 @@ export const fr = {
   'mbf.postedCannot': 'Aucun Personnage désigné ({names}) ne peut tenter « {action} ».',
   'mbf.holdAlreadyBroken': 'Scène « {scene} » : la position a déjà cédé (déroute).',
   'mbf.rallyNobody': 'Aucun Personnage à soigner au Rassemblement.',
-  'mbf.rallyLabel': 'Rassemblement (Résistance)',
+  'mbf.rallyLabel': 'Rassemblement',
   'mbf.testFallback': 'Test',
   'mbf.nounScene': 'Scène',
   'mbf.nounActivity': 'Activité',
@@ -1406,7 +1406,7 @@ export const fr = {
   'opt.subir': 'Subir',
   'opt.piegerLame': 'Piéger la lame',
   'opt.coupCritique': 'Coup Critique',
-  'opt.tenterProlonger': 'Tenter (Force Mentale) — {quoi}',
+  'opt.tenterProlonger': 'Tenter un Test de Force Mentale pour prolonger {quoi}',
   'opt.tenterRecuperation': 'Tenter la récupération',
   'opt.payerCO': 'Payer {n} CO',
   'opt.discretionDiff': 'Discrétion ({diff})',
@@ -1692,7 +1692,7 @@ export const fr = {
   'rv.perilImpact': '{peril} — impact !',
   'rv.hullHit': '{peril} : la coque subit {dmg} Dégâts{note} (reste {cur}/{max}).',
   'rv.fragCollision': ' (collision)',
-  'rv.avoidManeuver': "{peril} en aval — manœuvre d'évitement (Navigation) : {issue}",
+  'rv.avoidManeuver': "{peril} en aval — manœuvre d'évitement : {issue}",
   'rv.avoided': 'évités.',
   'rv.collided': 'collision !',
   'rv.noPilotCollision': 'aucun barreur — collision.',
@@ -1810,7 +1810,7 @@ export const fr = {
   // vivent déjà en `step.*` (V8a₁) ; ici, le procès-verbal de nuit, les conséquences de bande et les
   // titres de journal. La MALADIE de la ligne de Contagion vient de la donnée (`diseaseLabel`) : le
   // procès-verbal affichait son id (« Contagion (peste-noire) »). ──
-  'rf.nightmaresLabel': 'Cauchemars (Calme)',
+  'rf.nightmaresLabel': 'Cauchemars',
   'rf.nuit': 'Nuit',
   'rf.contagionLabel': 'Contagion ({disease})',
   'rf.titleDays': '— Le groupe se repose {n} jours —',

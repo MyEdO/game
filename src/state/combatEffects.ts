@@ -39,7 +39,6 @@ import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL, type HealMode } from '../engine/healing';
 import { openMedic } from './medicFlow';
 import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
-import { precipitationTestMods } from '../engine/seaWeather';
 import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoyage';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
@@ -982,9 +981,7 @@ export function openSkillTest(
       ? refLabel('skills', { id: spec.easierIf!.hasSkill.id, spec: spec.easierIf!.hasSkill.spec })
       : refLabel('talents', { id: spec.easierIf!.hasTalent! }))
     : undefined;
-  // Précipitations du jour de mer (MDG 13 l.185) : canal `precipitationTestMods`, sur la CIBLE, même
-  // ligne pour tous les candidats.
-  const envLines = precipitationTestMods(activeSeaPrecipitation(get), spec.skill?.id, spec.skill?.spec);
+  const pont = activeSeaPrecipitation(get); // MDG 13 l.185
   // Pool des héros AVEC leur position à jour si un combat est en cours (`battle.combatants` — `party` seule
   // ne porte pas `pos`, LDB 12 l.196 « adjacent »). Même patron que `effectTargets` ci-dessus.
   const battle = get().battle;
@@ -1022,7 +1019,7 @@ export function openSkillTest(
       valeur: value,
       ...(soutD ? { soutien: soutD } : {}),
       ...(social ? { dansLaValeur: socialLines(actor) } : {}),
-      ...(envLines.length ? { surLaCible: envLines } : {}),
+      pont,
     });
     return {
       id: actor.id, label: actor.label, value,

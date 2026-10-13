@@ -31,7 +31,7 @@ import { cascadeAppliers, registerCascadeApplier, runCascadeImmediate } from './
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, resolveStake } from '../data';
-import { resultLine, testSkillLabel, buildBand } from './rollSeam';
+import { resultLine, testSkillLabel, buildBand, rollLine } from './rollSeam';
 import { t } from '../i18n';
 import { voyageTiles, vesselHullGauge } from '../ui/VoyageScreen';
 import { checkBattleOver } from './combatFlow';
@@ -1948,6 +1948,44 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
     expect(seche.length).toBeGreaterThan(0);
     expect(mouille.map((d) => d.base)).toEqual(seche.map((d) => d.base));
     expect(mouille.map((d) => d.target)).toEqual(seche.map((d) => d.target - 20));
+  });
+
+  it('EXPOSITION par le chemin joueur (`runSeaDay`) : sous Très abondantes, chaque cible de Résistance vaut celle du temps sec − 10', () => {
+    const ciblesExposition = (precip: 'aucune' | 'tres-abondantes') => {
+      freshState();
+      seedBattleRng(7);
+      const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 1, weather: { ...plan.sea!.weather, temperature: 'glaciale', precipitations: precip, vent: 'brise-fraiche' } } } });
+      runSeaDay(get, set);
+      let guard = 0;
+      while (get().pendingCascade && get().pendingCascade!.purpose !== 'seaExposure' && guard++ < 80) stepCascade();
+      const casc = get().pendingCascade;
+      expect(casc?.purpose, 'la journée atteint les Tests d’Exposition').toBe('seaExposure');
+      return casc!.participants[0].participants!.map((r) => ({ id: r.id, target: r.target!, mods: r.mods ?? [] }));
+    };
+    const sec = ciblesExposition('aucune');
+    const mouille = ciblesExposition('tres-abondantes');
+    expect(sec.length).toBeGreaterThan(0);
+    expect(mouille.map((r) => r.id)).toEqual(sec.map((r) => r.id));
+    expect(mouille.map((r) => r.target)).toEqual(sec.map((r) => r.target - 10));
+    for (const r of mouille) expect(r.mods).toContainEqual(expect.objectContaining(METEO_CARAC));
+  });
+
+  /** MDG 13 l.187-200 : écart de cible imposé par chaque palier à un Test de chacune des trois familles. */
+  const PALIERS = [
+    { precip: 'legeres', physique: -10, manoeuvre: 0, autre: 0 },
+    { precip: 'abondantes', physique: -20, manoeuvre: -10, autre: 0 },
+    { precip: 'tres-abondantes', physique: -30, manoeuvre: -20, autre: -10 },
+  ] as const;
+  it.each(PALIERS)('palier « $precip » au monteur canonique : Athlétisme $physique, Perception $manoeuvre, Résistance $autre', ({ precip, physique, manoeuvre, autre }) => {
+    const h = get().party[0];
+    const ecart = (skill: string, char: 'agilite' | 'initiative' | 'endurance') => {
+      const sec = rollLine({ actor: h, test: { skill, char }, difficulty: 'intermediaire' }).target;
+      return rollLine({ actor: h, test: { skill, char }, difficulty: 'intermediaire', pont: precip }).target - sec;
+    };
+    expect(ecart('athletisme', 'agilite')).toBe(physique);
+    expect(ecart('perception', 'initiative')).toBe(manoeuvre);
+    expect(ecart('resistance', 'endurance')).toBe(autre);
   });
 });
 

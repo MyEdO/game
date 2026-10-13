@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   scanNamedImport,
-  RAW_SYMBOL, RAW_ALLOWED, CHANNEL_SYMBOL, CHANNEL_ALLOWED,
+  RAW_SYMBOL, RAW_ALLOWED, CHANNEL_SYMBOL, CHANNEL_ALLOWED, PRECIP_SYMBOL, PRECIP_ALLOWED,
 } from '../../scripts/guards/lib/weatherTestModQuarantine.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
@@ -35,7 +35,7 @@ describe('quarantaine d’import — canal météo « Tests physiques » (#341)'
   it('PEUPLEMENT : chaque surface AUTORISÉE est dans le corpus, et le scanner y voit son import', () => {
     const parRel = new Map(readCorpus(['src']).map((f) => [f.rel, f.text]));
     expect(parRel.size, 'corpus vide : la garde serait verte sans rien scanner').toBeGreaterThan(0);
-    for (const [symbol, allowed] of [[RAW_SYMBOL, RAW_ALLOWED], [CHANNEL_SYMBOL, CHANNEL_ALLOWED]] as const) {
+    for (const [symbol, allowed] of [[RAW_SYMBOL, RAW_ALLOWED], [CHANNEL_SYMBOL, CHANNEL_ALLOWED], [PRECIP_SYMBOL, PRECIP_ALLOWED]] as const) {
       for (const rel of allowed) {
         const text = parRel.get(rel);
         expect(text, `${rel} absent du corpus — le scan ne couvre plus la surface qu’il autorise`).toBeDefined();
@@ -58,6 +58,13 @@ describe('quarantaine d’import — canal météo « Tests physiques » (#341)'
     expect(
       offendersFor(CHANNEL_SYMBOL, CHANNEL_ALLOWED),
       'Canal météo câblé dans une surface non canonique — router le Test par combatModifiers/baseTestMods ou par une rangée d’Activité, ou ÉDITER la whitelist (revue).',
+    ).toEqual([]);
+  });
+
+  it(`'${PRECIP_SYMBOL}' n’est importé QUE par le monteur canonique et le moteur de combat (${PRECIP_ALLOWED.join(', ')})`, () => {
+    expect(
+      offendersFor(PRECIP_SYMBOL, PRECIP_ALLOWED),
+      'Précipitations câblées site par site — déclarer `pont` sur la ligne de jet (`rollSeam.rollLine`, MDG 13 l.185), ou ÉDITER la whitelist (revue).',
     ).toEqual([]);
   });
 

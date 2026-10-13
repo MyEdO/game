@@ -32,3 +32,8 @@ export const RAW_ALLOWED = ['src/engine/weatherTestMod.ts'];
 /** Le LECTEUR du canal : seuls les étages de Test canoniques peuvent l'importer. */
 export const CHANNEL_SYMBOL = 'weatherTestMods';
 export const CHANNEL_ALLOWED = ['src/engine/combat.ts', 'src/state/travelPostes.ts'];
+
+/** Le LECTEUR des Précipitations sur le pont (MDG 13 l.185, #1936) : le monteur canonique d'une ligne de
+ *  jet (déclaration `pont`) et les étages du moteur de combat (`Combatant.envPrecipitation`). */
+export const PRECIP_SYMBOL = 'precipitationTestMods';
+export const PRECIP_ALLOWED = ['src/engine/combat.ts', 'src/engine/crewMorale.ts', 'src/state/rollSeam.ts'];

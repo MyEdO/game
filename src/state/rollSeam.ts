@@ -50,6 +50,7 @@ import type { RecapLine, RecapTone } from './recapLine';
 import type { ModLine } from '../engine/combat';
 import { combatBaseValue, combatValueModParts, conditionModLines, combatCharKey, combineMods, composeDifficulty } from '../engine/combat';
 import { volatileCharLines } from '../engine/characteristics';
+import { precipitationTestMods, type SeaPrecipitationId } from '../engine/seaWeather';
 import { startCascade, runCascadeImmediate, rollBatchParticipant, pushStep, tableStepPosee, cascadeTableFolds, clampStepAmount, porteursDeLEtape, compteurDeSequence } from './cascade';
 import { testValue, partyBest, partyAssisted, testValueSplit, testValueParts, skillBaseValue, supportSplit, type SupportDetail } from '../engine/skills';
 import { testStatePenaltyParts, testStatePenalty } from '../engine/conditions';
@@ -640,6 +641,10 @@ interface RollLineBase {
    *  jets de COMBAT : valeur MAISON (`LDB 12` silencieux sur le cumul ; `l.137`
    *  est permissif hors combat ; la combinaison vit au chapitre Combat, `LDB 14 l.48` et `l.95`). */
   plafond?: 'difficultes';
+  /** Le Test est celui d'un Personnage SUR LE PONT d'un navire, sous ces Précipitations (MDG 13 l.185) :
+   *  le monteur en tire la ligne « Météo : … », keyée par la Compétence du Test (`test.skill`/`test.spec`),
+   *  SEUL lecteur des Précipitations hors du moteur de combat. Absent ou `undefined` : rien sur le pont. */
+  pont?: SeaPrecipitationId;
   /** LIGNE NON TENTABLE (`peutTenter` faux, LDB 09 l.30 ; #2588 Q1) : le refus NOMMÉ du porteur. Le
    *  monteur (`rollStep`) rend alors la ligne RÉSOLUE — `ECHEC_SANS_JET`, aucun dé — avec ce refus. */
   refus?: PlayerText;
@@ -862,7 +867,9 @@ export function rollLine(spec: RollLineSpec): RollLineParts {
     console.error(msg);
     if (import.meta.env?.DEV) throw new Error(msg);
   }
-  const surLaCible = spec.surLaCible ?? [];
+  // Canal COMBAT : la valeur dérive du moteur, qui lit déjà `Combatant.envPrecipitation` (`engine/combat.ts`).
+  if (spec.combat && spec.pont) throw new Error('rollLine : `pont` sur un canal de combat — le moteur de combat lit `Combatant.envPrecipitation`, la ligne serait comptée deux fois.');
+  const surLaCible = [...(spec.surLaCible ?? []), ...precipitationTestMods(spec.pont, t.skill, t.spec)];
   const brut = surLaCible.reduce((s, m) => s + m.value, 0);
   // Mode plafonné (`LDB 14 l.91-96`) : la combinaison est celle du moteur, et la Difficulté AFFICHÉE
   // est celle que les circonstances composent — MÊME primitive que le post-jet (`bd`, `engine/combat.ts`).

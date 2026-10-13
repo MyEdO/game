@@ -69,7 +69,6 @@ import { seasonOfMonth } from '../engine/travelStages';
 import {
   rollSeaWeather, rollWindDirection, windAspect, tickWindForceDay, windEffect, windAdjustedM,
   seaWeatherLabel, dailyWaterLitres, temperatureDef, seaExposureTestsPerDay, AFFALER_RULES, windForces,
-  precipitationTestMods,
   type SeaWeather, type WindDirection, type WindAspect, type SeaPrecipitationId,
 } from '../engine/seaWeather';
 import {
@@ -249,8 +248,8 @@ export interface SeaRecapChrome {
  *  voyage rapide (l.28) et des Activités en mer (`daysAtSea % 8`, `continueSeaDayAfterCascade`). */
 const SEA_WEEK_DAYS = 8;
 
-/** Précipitations du jour de mer ACTIF (MDG 13 l.185) — l'entrée du canal `precipitationTestMods` hors
- *  combat, et la source de `Combatant.envPrecipitation` à l'ouverture d'un combat. `undefined` hors
+/** Précipitations du jour de mer ACTIF (MDG 13 l.185) — la déclaration `pont` d'une ligne de jet
+ *  (`rollSeam.rollLine`) hors combat, et la source de `Combatant.envPrecipitation` à l'ouverture d'un combat. `undefined` hors
  *  voyage maritime. */
 export function activeSeaPrecipitation(get: Get): SeaPrecipitationId | undefined {
   return get().travelPlan?.sea?.weather.precipitations;
@@ -477,7 +476,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
   if (!contributors.length) return undefined;
   const testType = findCrewTestTypeById(testTypeId);
   const essentialRoleId = testType?.essential;
-  const precip = activeSeaPrecipitation(get); // MDG 13 l.185 : l'équipage est sur le pont
+  const pont = activeSeaPrecipitation(get); // MDG 13 l.185
   // Le flux propriétaire (naval) RÉSOUT la présentation (rôle tenu) et DÉCLARE le jet de chaque
   // contributeur au MONTEUR CANONIQUE (`rollStep`) — le séquenceur/modale génériques n'y liront QUE
   // des champs neutres (`BatchParticipant`), base NUE et composantes NOMMÉES comprises.
@@ -508,9 +507,9 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
             actor: a.crew, test: { skill: rv.used.id, spec: rv.used.spec, sense: opts.sense },
             valeur: rv.value, difficulty: 'intermediaire',
             ...(crewTestModParts(a.crew).length ? { dansLaValeur: crewTestModParts(a.crew) } : {}),
-            surLaCible: precipitationTestMods(precip, rv.used.id, rv.used.spec),
+            pont,
           }
-          : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty: 'intermediaire', surLaCible: precipitationTestMods(precip) }),
+          : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty: 'intermediaire', pont }),
     };
   });
   const saboteur = shipSaboteurDR(ship); // MDG 14 l.45-47 : −1..−5 DR plats, aussi en voyage (#214)
@@ -579,7 +578,7 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
     // Le Soutien est un bonus AU TEST (LDB 12, fiche `soutien`) : la valeur SOUTENUE (`best.value`,
     // Soutien fondu par `partyAssisted`) donne la CIBLE — sans elle, la cible se recalculerait depuis
     // la carac NUE et les soutiens ne changeraient rien au jet (recette #1117).
-    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support, surLaCible: precipitationTestMods(activeSeaPrecipitation(get), skillId) },
+    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
     stake: voyageStakeRef('sea-force-pace', { paceM: sea.forcePace ?? 0 }),
     meta: { forcePace: sea.forcePace },
   });
@@ -604,7 +603,7 @@ function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
     id: 'sea-progression-nav', kind: 'sea-progression-nav', actor: best.actor, icon: 'travel/anchor',
     label: composeRollLabel(best.actor, t('sv.progression'), test),
     difficulty: diff,
-    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support, surLaCible: precipitationTestMods(activeSeaPrecipitation(get), skillId) },
+    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
     stake: voyageStakeRef('sea-progression-nav'),
   });
 }
@@ -652,7 +651,7 @@ function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: st
     id: kind, kind, actor: force.actor, icon: 'travel/repair',
     label: composeRollLabel(force.actor, t('sv.degagement'), test),
     difficulty,
-    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, surLaCible: [...penalite, ...precipitationTestMods(activeSeaPrecipitation(get))] },
+    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, surLaCible: penalite, pont: activeSeaPrecipitation(get) },
     stake: voyageStakeRef(kind, stakeValues),
   });
 }
@@ -1587,6 +1586,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   const expCount = seaExposureTestsPerDay(sea.weather.temperature);
   if (tdef.exposure && expCount > 0) {
     const expDiff = tdef.difficulty ?? 'intermediaire';
+    const pont = activeSeaPrecipitation(get); // MDG 13 l.185 ; MDG 13 l.107
     const steps: BuiltCascadeStep[] = [];
     for (const h of get().party) {
       if (h.dead) continue;
@@ -1616,9 +1616,9 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
           ? {
             actor: h, test: { skill: 'resistance', char: 'endurance' }, valeur,
             ...(coat.length ? { dansLaValeur: coat } : {}),
-            difficulty: expDiff,
+            difficulty: expDiff, pont,
           }
-          : { valeur, valeurEtrangere: true, difficulty: expDiff }),
+          : { valeur, valeurEtrangere: true, difficulty: expDiff, pont }),
         stake: voyageStakeRef('exposure', { chars: exposureFirstFailChars(tdef.exposure) }),
         meta: { kind: tdef.exposure },
       });
