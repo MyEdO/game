@@ -167,21 +167,19 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
       // héros (`effectiveSkillCharKey`) — le −10 s'ajoute au mod météo (recalcul de la cible, dont les
       // bornes viennent de `getTestPolicy` via `clampTarget`, jamais d'un plafond écrit ici).
       const wMod = weatherModOf(def, weather);
-      const char = spec.used ? effectiveSkillCharKey(hero, spec.used.id, { spec: spec.used.spec }) : undefined;
-      const pMod = weatherTestMods(weather, char ?? null).reduce((s, l) => s + l.value, 0); // CANAL UNIQUE (#341)
+      const char = effectiveSkillCharKey(hero, spec.used.id, { spec: spec.used.spec });
+      const pMod = weatherTestMods(weather, char).reduce((s, l) => s + l.value, 0); // CANAL UNIQUE (#341)
       const mods = stageActivityMods(weather, wMod, pMod);
       const difficulty = def.difficulty ?? 'intermediaire';
       batchParts.push({
         id: hero.id,
-        label: spec.used ? refLabel('skills', { id: spec.used.id, spec: spec.used.spec }) : def.label,
+        label: refLabel('skills', { id: spec.used.id, spec: spec.used.spec }),
         interactive: true,
         difficulty,
         result: null,
         // Les mods de MÉTÉO (`wMod`/`pMod`) s'ajoutent à la CIBLE, ils ne sont pas dans la valeur. Poste
         // qu'il ne peut pas tenter (`spec.refus`) : la ligne naît `ECHEC_SANS_JET` (LDB 09 l.30 ; #2588 Q1).
-        ...rollStep(spec.used
-          ? { actor: hero, test: { skill: spec.used.id, spec: spec.used.spec }, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }
-          : { valeur: spec.value, valeurEtrangere: true, difficulty, surLaCible: mods }),
+        ...rollStep({ actor: hero, test: { skill: spec.used.id, spec: spec.used.spec }, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }),
         ...(spec.drTarget != null ? { extendedDrDone: Math.min(plan.extendedProgress ?? 0, spec.drTarget), extendedDrTarget: spec.drTarget } : {}),
       });
     }

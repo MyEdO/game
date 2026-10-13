@@ -24,7 +24,7 @@ import { resolveFormula, type Formula, type GameOp } from './ops';
 import { evalCondition, type Condition, type ConditionCtx } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
-import { resolveSkillBest, bestSkilledOption, bestForSkills, refusNePeutTenter, testValue, type TestSpec } from './skills';
+import { bestSkilledOption, bestForSkills, refusNePeutTenter, testValue, type TestSpec } from './skills';
 import type { PlayerText } from '../i18n/playerText';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
@@ -523,10 +523,8 @@ export function activitiesFor(context: ActivityContext): ActivityDef[] {
   return ACTIVITIES.filter((a) => a.contexts.includes(context) && !a.blocked);
 }
 
-/** Issue STRUCTURÉE d'une Activité de voyage résolue — PURE (l'appelant applique `ops`/`stageOutcome`/
- *  `extenue` au state). Le résolveur ne mute rien : pour l'acteur DÉSIGNÉ au poste, il lance le Test et
- *  déclare l'effet. RAW EDOC 8 l.131 : « chaque Personnage bénéficie d'une Activité par Étape » →
- *  un héros par poste ; la boucle appelle ce résolveur PAR héros. */
+/** Issue STRUCTURÉE d'une Activité de voyage tenue par l'acteur DÉSIGNÉ au poste (`applyTravelActivityResult`)
+ *  — PURE : l'appelant applique `ops`/`stageOutcome`/`extenue` au state. EDOC 8 l.131. */
 export interface TravelActivityResult {
   activityId: string;
   /** Héros qui tient le poste (toujours l'acteur désigné). */
@@ -549,61 +547,29 @@ export interface TravelActivityResult {
   drTarget?: number;
 }
 
-/**
- * Résout l'Activité tenue par l'acteur DÉSIGNÉ au poste (EDOC 8 : un héros par Activité/Étape).
- * Parmi les compétences « au choix » (Cartographe/Dessin ; plus tard Voile/Ramer), prend la MEILLEURE
- * de CET acteur (spec-aware), lance le Test (modifié par `skillMod` — ex. météo) et déclare l'effet :
- * `ops` (GameOp de `onSuccess`) sur réussite, `stageOutcome`, et `extenue` sur échec (l.133). PUR / seedé.
- * `freeSkill` fournit la compétence pour les Activités à compétence libre (Pratiquer une Compétence) ;
- * la DÉSIGNATION de l'acteur (assignation joueur, ou `partyBest` par défaut pour un poste de groupe)
- * est faite par l'appelant, jamais ici.
- */
-export function resolveTravelActivity(
-  actor: Combatant,
-  def: ActivityDef,
-  rng: RNG = defaultRNG,
-  opts: { skillMod?: number; stages?: number; freeSkill?: RefDesignee } = {},
-): TravelActivityResult {
-  const out: TravelActivityResult = {
-    activityId: def.id, actorId: actor.id, sl: 0, success: true, ops: [], extenue: false,
-    stageOutcome: def.stageOutcome, resolver: def.resolver,
-  };
-  if (def.extended && opts.stages != null) out.drTarget = def.extended.drPerStage * opts.stages;
-
-  const skillRefs = def.freeSkill ? (opts.freeSkill ? [opts.freeSkill] : []) : (def.skills ?? []);
-  // Activité SANS Test (Récupérer) : l'issue s'applique directement à l'acteur.
-  if (!skillRefs.length) { out.ops = def.onSuccess ?? []; return out; }
-
-  // « Au choix » : la MEILLEURE compétence de l'acteur (spec-aware) l'emporte — primitive NEUTRE partagée.
-  const res = resolveSkillBest(actor, skillRefs, def.difficulty ?? 'intermediaire', rng, opts.skillMod ?? 0);
-  out.value = res.value;
-  out.roll = res.roll;
-  out.target = res.target;
-  out.sl = res.sl;
-  out.success = res.success;
-  out.ops = res.success ? (def.onSuccess ?? []) : [];
-  out.extenue = !res.success && !!def.failExtenue;
-  return out;
-}
-
 /** SPEC influençable d'une Activité de voyage tenue par un acteur, SANS lancer le dé : la compétence
  *  retenue (meilleure TENTABLE de l'acteur, `bestForSkills`), sa valeur brute et la CIBLE effective (Difficulté + `skillMod` déjà
  *  appliqués, bornée 1..99 — comme `rollTest`). Sert à bâtir une ÉTAPE de cascade influençable ; la
  *  résolution du dé (RNG ou influence) vit dans la cascade, l'issue s'obtient ensuite par
- *  `applyTravelActivityResult`. Une Activité SANS Test (Récupérer) renvoie `target: null`. PUR. */
-export interface TravelActivitySpec {
+ *  `applyTravelActivityResult`. Une Activité SANS Test (Récupérer) renvoie `target: null`, sans compétence. PUR. */
+export type TravelActivitySpec = {
   activityId: string;
   actorId: string;
-  used?: RefDesignee;
   value: number;
-  /** Cible effective (Difficulté + mod, bornée) — `null` pour une Activité sans Test. */
-  target: number | null;
   skillMod: number;
   drTarget?: number;
-  /** L'acteur ne peut tenter AUCUNE compétence de l'Activité (`peutTenter`, LDB 09 l.30 ; LDB 16 l.113) :
-   *  refus NOMMÉ de la compétence du poste — la ligne naît `ECHEC_SANS_JET` (#2588 Q1). */
-  refus?: PlayerText;
-}
+} & (
+  | { target: null; used?: never; refus?: never }
+  | {
+    /** Compétence du Test : la meilleure tentable de l'acteur, sinon celle du poste. */
+    used: RefDesignee;
+    /** Cible effective (Difficulté + mod, bornée). */
+    target: number;
+    /** L'acteur ne peut tenter AUCUNE compétence de l'Activité (`peutTenter`, LDB 09 l.30 ; LDB 16 l.113) :
+     *  refus NOMMÉ de la compétence du poste — la ligne naît `ECHEC_SANS_JET` (#2588 Q1). */
+    refus?: PlayerText;
+  }
+);
 
 export function travelActivitySpec(
   actor: Combatant,
@@ -627,11 +593,10 @@ export function travelActivitySpec(
   };
 }
 
-/** Issue d'une Activité de voyage à partir d'un JET DÉJÀ résolu (cascade influençable) — jumeau PUR de
- *  `resolveTravelActivity` mais sans RNG : `success`/`sl` viennent de l'étape. `roll==null` (Activité sans
- *  Test) → issue directe (Récupérer). Un Test que le héros ne peut pas tenter (`EchecSansJet`) est un
- *  échec : ni dé ni cible, conséquence d'échec (LDB 09 l.30 ; #2588 Q1). Même déclaration d'effets
- *  (`ops`/`stageOutcome`/`extenue`). PUR. */
+/** Issue d'une Activité de voyage à partir d'un JET DÉJÀ résolu par la cascade : `success`/`sl` viennent
+ *  de l'étape. `roll==null` (Activité sans Test) → issue directe (Récupérer). Un Test que le héros ne
+ *  peut pas tenter (`EchecSansJet`) est un échec : ni dé ni cible, conséquence d'échec (LDB 09 l.30 ;
+ *  #2588 Q1). PUR. */
 export function applyTravelActivityResult(
   spec: TravelActivitySpec,
   def: ActivityDef,
@@ -678,27 +643,6 @@ export const STAGE_OUTCOME_AGG: Partial<Record<StageOutcome, StageOutcomeAgg>> =
 /** Poste tenu par un héros pour une Étape : l'Activité + (pour Pratiquer une Compétence) la compétence libre. */
 export interface StagePosting { activityId: string; freeSkill?: RefDesignee }
 
-/** Résout TOUS les postes d'une Étape : itère les héros ASSIGNÉS (un poste max chacun) et résout
- *  l'Activité de chacun via `resolveTravelActivity`. PUR / seedé ; ordre = ordre du groupe. Un héros
- *  sans poste (ou un poste d'`activityId` inconnu) est ignoré. */
-export function resolveStageActivities(
-  party: Combatant[],
-  assignment: Record<string, StagePosting>,
-  rng: RNG = defaultRNG,
-  opts: { skillMod?: (def: ActivityDef) => number; stages?: number } = {},
-): TravelActivityResult[] {
-  const results: TravelActivityResult[] = [];
-  for (const hero of party) {
-    const posting = assignment[hero.id];
-    if (!posting) continue;
-    const def = activityById(posting.activityId);
-    if (!def) continue;
-    // Le modificateur (météo) est PAR activité (Plein air / Approvisionnement modifiés, les autres non).
-    results.push(resolveTravelActivity(hero, def, rng, { skillMod: opts.skillMod?.(def), stages: opts.stages, freeSkill: posting.freeSkill }));
-  }
-  return results;
-}
-
 /** Issues d'Étape agrégées (l'appelant APPLIQUE : portes au groupe, cumuls répartis, individuels par héros). */
 export interface StageAggregation {
   /** Portes OUVERTES (≥ 1 succès) — ex. `suppressExposure`, `noSurprise`. */
@@ -729,11 +673,9 @@ export function aggregateActivityOutcomes(results: TravelActivityResult[]): Stag
 // ── Rôle de marche PERSISTANT : « les mêmes tiennent toujours le même poste » ────────────────────
 
 /** Rôle de marche INFÉRÉ d'un héros : parmi les Activités de voyage à Test fixe (hors compétence libre
- *  / sans Test), celle où SA meilleure compétence pertinente est la plus haute. Défaut quand le joueur
- *  n'a pas épinglé de `travelRole`. `null` si aucune Activité testable (catalogue vide). PUR. */
+ *  / sans Test), la meilleure qu'il peut TENTER (`bestSkilledOption`, first-max). Défaut quand le joueur
+ *  n'a pas épinglé de `travelRole`. `null` si aucune n'est tentable. EDOC 8 l.131 ; LDB 09 l.30. PUR. */
 export function defaultTravelRole(hero: Combatant): string | null {
-  // Activités de voyage à Test fixe seulement (hors compétence libre / sans Test) → celle où la meilleure
-  // compétence du héros est la plus haute (`bestSkilledOption`, first-max sur le catalogue). PUR.
   return bestSkilledOption(hero, activitiesFor('voyage').filter((d) => !d.freeSkill && d.skills?.length))?.option.id ?? null;
 }
 

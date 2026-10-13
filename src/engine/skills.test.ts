@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { testValue, partyBest, partyAssisted, skillCharKeyById, resolveSkillBest, bestForSkills, bestForCombined, bestAssistedOption } from './skills';
-import { makeRNG } from './dice';
+import { testValue, partyBest, partyAssisted, skillCharKeyById, bestForSkills, bestForCombined, bestAssistedOption } from './skills';
 import { Combatant, SkillInstance } from './types';
 
 const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advances: number; spec?: string }[] = []): Combatant =>
@@ -108,31 +107,6 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
   });
   it('skillCharKeyById : compétence inconnue → undefined', () => {
     expect(skillCharKeyById('competence-totalement-imaginaire')).toBeUndefined();
-  });
-});
-
-describe('resolveSkillBest — Test du meilleur parmi N compétences (primitive NEUTRE poste/voyage/naval)', () => {
-  it('prend la compétence où l’acteur est le meilleur (spec-aware) + cible = sa valeur', () => {
-    const hero = mk({ dexterite: 30 }, [
-      { id: 'metier', spec: 'Cartographe', advances: 60 },
-      { id: 'art', spec: 'Dessin', advances: 10 },
-    ]);
-    const r = resolveSkillBest(hero, [
-      { id: 'metier', spec: 'Cartographe' },
-      { id: 'art', spec: 'Dessin' },
-    ], 'intermediaire', makeRNG(5));
-    expect(r.used).toEqual({ id: 'metier', spec: 'Cartographe' }); // 30+60 > 30+10
-    expect(r.value).toBe(testValue(hero, 'metier', undefined, 'Cartographe'));
-    expect(r.target).toBe(r.value); // Difficulté Intermédiaire (+0), pas de mod
-    expect(r.success).toBe(r.roll <= r.target);
-  });
-
-  it('le modificateur décale la cible ; option unique = cette compétence', () => {
-    const hero = mk({ initiative: 40 }, [{ id: 'perception', advances: 20 }]);
-    const a = resolveSkillBest(hero, [{ id: 'perception' }], 'intermediaire', makeRNG(7), 0);
-    const b = resolveSkillBest(hero, [{ id: 'perception' }], 'intermediaire', makeRNG(7), -30);
-    expect(a.target - b.target).toBe(30);
-    expect(a.used).toEqual({ id: 'perception' });
   });
 });
 

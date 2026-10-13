@@ -18,8 +18,6 @@ import type { GameOp, PairedSense } from './ops';
 import type { ModLine } from './combat';
 import { RULE_REF } from './ruleRefs';
 import { rule } from './policy';
-import { rollTest } from './tests';
-import { RNG, defaultRNG } from './dice';
 import { effectivePsychTraits, isPsychImmune } from './psychology';
 import { maxBy } from './pick';
 
@@ -275,39 +273,6 @@ export function isSocialTest(skill?: string, characteristic?: CharKey): boolean 
  *  partagés tels quels par les données JSON — vocabulaire commun, sans logique de résolution attachée. */
 export interface TestSpec { skills?: RefDesignee[]; char?: CharKey; difficulty?: Difficulty; combined?: boolean }
 
-/** Résultat d'un « Test du meilleur parmi N compétences » pour UN acteur (la compétence retenue + le jet). */
-export interface SkillBestResult {
-  value: number;
-  roll: number;
-  target: number;
-  sl: number;
-  success: boolean;
-  /** Compétence effectivement utilisée (la meilleure de l'acteur parmi les options). */
-  used?: RefDesignee;
-}
-
-/** Pour l'acteur donné, prend SA meilleure compétence (spec-aware) parmi `options`, puis lance le Test
- *  (Difficulté + `mod`). Primitive NEUTRE et seedée — « cette personne tente une tâche qui accepte
- *  plusieurs compétences → on utilise celle où elle est la meilleure ». Partagée voyage (Cartographe/
- *  Dessin, Survie/Guérison…) et, à venir, équipage naval (Voile/Ramer…). `options` vide ⇒ Test sur 0. */
-export function resolveSkillBest(
-  actor: Combatant,
-  options: readonly RefDesignee[],
-  difficulty: Difficulty = 'intermediaire',
-  rng: RNG = defaultRNG,
-  mod = 0,
-): SkillBestResult {
-  let bestVal = -Infinity;
-  let used: RefDesignee | undefined;
-  for (const ref of options) {
-    const v = testValue(actor, ref.id, undefined, ref.spec);
-    if (v > bestVal) { bestVal = v; used = ref; }
-  }
-  const value = Number.isFinite(bestVal) ? bestVal : 0;
-  const res = rollTest(value, difficulty, rng, mod);
-  return { value, roll: res.roll, target: res.target, sl: res.sl, success: res.success, used };
-}
-
 /** Meilleur membre du groupe pour un test donné, parmi ceux qui peuvent le tenter (`peutTenter`). `extraMod` ajoute un modificateur PAR acteur (ex. malus
  *  psy de Sociabilité, qui dépend du personnage) — la valeur effective sert au choix ET au résultat.
  *  `sense` (optionnel) : transmis tel quel à `testValue` (sens NARRATIVEMENT sollicité par CE Test précis). */
@@ -356,16 +321,19 @@ export function bestForCombined(
   return { actor: r.item, value1: testValue(r.item, sk1.id, char, sk1.spec), value2: testValue(r.item, sk2.id, char, sk2.spec) };
 }
 
-/** Meilleure OPTION pour un acteur parmi un catalogue d'options portant des `skills` : score d'une option =
- *  la MEILLEURE compétence de l'acteur dedans (`bestForSkills([actor], opt.skills).value`), par `testValue`
- *  (= compétence RAW). Argmax via `maxBy`. Le filtrage des options (possession, activités sans Test…) et les
- *  replis restent à la charge de l'appelant. */
+/** Meilleure OPTION TENTABLE pour un acteur parmi un catalogue d'options portant des `skills` : score d'une
+ *  option = la meilleure compétence que l'acteur peut tenter dedans (`bestForSkills([actor], opt.skills)`,
+ *  `peutTenter`) ; une option qu'il ne peut pas tenter ne concourt pas. Argmax via `maxBy` ; `null` si
+ *  aucune option n'est tentable. LDB 09 l.30. */
 export function bestSkilledOption<T extends { skills?: RefDesignee[] }>(
   actor: Combatant,
   options: readonly T[],
 ): { option: T; value: number } | null {
-  const r = maxBy(options, (opt) => bestForSkills([actor], opt.skills ?? [], undefined)?.value ?? -Infinity);
-  return r ? { option: r.item, value: r.value } : null;
+  const tentables = options.flatMap((option) => {
+    const b = bestForSkills([actor], option.skills ?? [], undefined);
+    return b ? [{ option, value: b.value }] : [];
+  });
+  return maxBy(tentables, (x) => x.value)?.item ?? null;
 }
 
 /** DÉTAIL d'un Soutien (LDB 12 l.187-200) tel qu'il s'AFFICHE : combien de membres soutiennent et le

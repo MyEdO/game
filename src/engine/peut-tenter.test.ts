@@ -54,6 +54,6 @@ describe('peutTenter — consommateurs sur un groupe d\'UN seul acteur', () => {
   it('bestSkilledOption (skills) : un acteur Inconscient n\'obtient aucune option tentable', () => {
     const opts = [{ id: 'a', skills: [{ id: 'ragot' }] }];
     expect(bestSkilledOption(hero('h', 40, { ragot: 5 }), opts)?.value).toBeGreaterThan(0);
-    expect(bestSkilledOption(hero('h', 40, { ragot: 5, inconscient: true }), opts)?.value).toBe(-Infinity);
+    expect(bestSkilledOption(hero('h', 40, { ragot: 5, inconscient: true }), opts)).toBeNull();
   });
 });

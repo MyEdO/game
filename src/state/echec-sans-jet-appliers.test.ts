@@ -6,7 +6,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { buildStageSteps } from './travelPostes';
-import { buildSeaGenericStep } from './seaActivities';
+import { buildSeaGenericStep, seaActivityRefus } from './seaActivities';
+import { bourseOf, creditBourse } from './bourseFlow';
+import { toBrass } from '../engine/money';
 import { cascadeAppliers, startCascade, setOwnTestFailedEmitter } from './cascade';
 import { spyApplier } from './cascadeTestKit';
 import { fireOwnTestFailed } from './triggeredEffects';
@@ -16,7 +18,7 @@ import { activityById, applyTravelActivityResult, travelActivitySpec } from '../
 import { refusNePeutTenter } from '../engine/skills';
 import { hasCondition } from '../engine/conditions';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { combatStakeRef, activityStakeRef } from '../data';
+import { combatStakeRef } from '../data';
 import { t } from '../i18n';
 import { bandStep, monoStep, resultLine, rollStep } from './rollSeam';
 import type { PortProfile } from '../engine/seaVoyage';
@@ -108,18 +110,43 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
 describe('Activités en mer non tentables', () => {
   beforeEach(() => useGame.setState({ party: [heros()], journal: [] }));
 
-  it('sea-activity-chart : la ligne sans jet donne des relevés inutilisables, aucune Carte marine', () => {
+  const semaine = () => useGame.setState({
+    pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } },
+    pendingCascade: null, pendingExtendedTest: null, pendingRest: null,
+    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [], lastVoyageMilles: 0 },
+    travelPlan: { routeId: 'r', km: 40, sea: { lines: [] } },
+  } as never);
+
+  it('seaActivityRefus : Métier (Cartographe), compétence avancée, ferme la Cartographie au seul héros qui ne l’a pas (MDG 15 l.290)', () => {
+    const sans = heros();
+    const avec = heros({ id: 'c', skills: [{ id: 'metier', spec: 'cartographe', advances: 10 }] as Combatant['skills'] });
+    const carto = activityById('cartographie')!;
+    expect(seaActivityRefus(sans, carto)).toBe(refusNePeutTenter(sans, { skill: 'metier', spec: 'cartographe' }));
+    expect(seaActivityRefus(avec, carto)).toBeUndefined();
+  });
+
+  it('sea-activity-chart : buildSeaChartStep monte la ligne du héros sans Métier (Cartographe) sans jet, refus nommé ; appliquée, aucune Carte marine', () => {
+    semaine();
     const hero = useGame.getState().party[0];
-    const step = monoStep({
-      id: 'sea-activity-chart-h', kind: 'sea-activity-chart', actor: hero, label: t('step.stagePostes'), difficulty: 'complexe',
-      stake: activityStakeRef('cartographie'),
-      ligne: { test: { skill: 'metier', spec: 'cartographe' }, refus: refusNePeutTenter(hero, { skill: 'metier', spec: 'cartographe' }) },
-      meta: { stashGold: 0 },
-    })!;
+    useGame.getState().seaActivitiesConfirm({ h: { activityId: 'cartographie' } });
+    const step = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'sea-activity-chart')!;
     expect(step.result).toBe(ECHEC_SANS_JET);
+    expect(step.refus).toBe(refusNePeutTenter(hero, { skill: 'metier', spec: 'cartographe' }));
     const out = appliquer(step, hero);
     expect(ligneDe(out)).toBe(t('sact.chartKo', { name: 'Hilda' }));
     expect(hero.items).toEqual([]);
+  });
+
+  it('Commerce d’opportunité d’un héros Inconscient : ni mise ni Test étendu, son refus nommé au bilan (MDG 15 l.274-286)', () => {
+    useGame.setState({ party: [heros(INCONSCIENT)] });
+    semaine();
+    creditBourse(useGame.getState, useGame.setState, 'h', { gold: 100, silver: 0, brass: 0 });
+    const hero = useGame.getState().party[0];
+    const avant = toBrass(bourseOf(hero));
+    useGame.getState().seaActivitiesConfirm({ h: { activityId: 'commerce-opportunite', investGold: 10 } });
+    expect(useGame.getState().pendingExtendedTest).toBeNull();
+    expect(toBrass(bourseOf(useGame.getState().party[0]))).toBe(avant);
+    expect(useGame.getState().pendingRest!.travelDay!.lines.map((l) => l.text)).toContain(refusNePeutTenter(hero, { skill: 'marchandage' }));
   });
 
   it('sea-activity-generic : buildSeaGenericStep monte la ligne d’un héros Inconscient sans jet, refus nommé', () => {
