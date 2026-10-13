@@ -1971,6 +1971,36 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
     for (const r of mouille) expect(r.mods).toContainEqual(expect.objectContaining(METEO_CARAC));
   });
 
+  it('ÉPUISEMENT par le chemin joueur (`runSeaDay`) : sous Très abondantes, la cible vaut celle du temps sec − 10, et le même dé fait l’Exténué (MDG 13 l.111, l.185, l.200)', () => {
+    const extenue = (id: string): number => get().party.find((h) => h.id === id)?.conditions.find((c) => c.id === 'extenue')?.value ?? 0;
+    /** Joue la journée de rythme forcé jusqu'à la bande d'Épuisement, puis la draine au dé `de(rangée)`. */
+    const journee = (precip: 'aucune' | 'tres-abondantes', de: (id: string, target: number) => number) => {
+      freshState();
+      seedBattleRng(7);
+      // Forcer le rythme est un Test de Voile (MDG 13 l.95-107) : un marin au moins doit pouvoir le tenter.
+      set({ party: get().party.map((h) => ({ ...h, skills: [...h.skills.filter((sk) => sk.id !== 'voile'), { id: 'voile', characteristic: 'agilite', advances: 10 }] })) } as never);
+      const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { pace: 1, cadence: 'jour-par-jour' })!;
+      set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 1, forcePace: 1, paceToday: undefined, weather: { ...plan.sea!.weather, temperature: 'mediane', precipitations: precip, vent: 'brise-fraiche' } } } });
+      runSeaDay(get, set);
+      let guard = 0;
+      while (get().pendingCascade && get().pendingCascade!.purpose !== 'seaExhaustion' && guard++ < 80) stepCascade();
+      const casc = get().pendingCascade;
+      expect(casc?.purpose, 'la journée atteint le Test d’Épuisement').toBe('seaExhaustion');
+      const rangees = casc!.participants[0].participants!.map((r) => ({ id: r.id, target: r.target!, mods: r.mods ?? [], avant: extenue(r.id) }));
+      draineCascade(get, 200, (etape, rangee) => (etape.kind === 'sea-epuisement' && rangee ? de(rangee.id, rangee.target!) : undefined));
+      return rangees.map((r) => ({ ...r, gagne: extenue(r.id) - r.avant }));
+    };
+    const sec = journee('aucune', (_id, target) => target);
+    const cibleSeche = new Map(sec.map((r) => [r.id, r.target]));
+    const mouille = journee('tres-abondantes', (id) => cibleSeche.get(id)!);
+    expect(sec.length).toBeGreaterThan(0);
+    expect(mouille.map((r) => r.id)).toEqual(sec.map((r) => r.id));
+    expect(mouille.map((r) => r.target)).toEqual(sec.map((r) => r.target - 10));
+    for (const r of mouille) expect(r.mods).toContainEqual(expect.objectContaining(METEO_CARAC));
+    expect(sec.map((r) => r.gagne), 'temps sec : le dé égal à la cible réussit').toEqual(sec.map(() => 0));
+    expect(mouille.map((r) => r.gagne), 'sous la pluie : le même dé échoue, l’applier pose l’Exténué').toEqual(mouille.map(() => 1));
+  });
+
   /** MDG 13 l.187-200 : écart de cible imposé par chaque palier à un Test de chacune des trois familles. */
   const PALIERS = [
     { precip: 'legeres', physique: -10, manoeuvre: 0, autre: 0 },

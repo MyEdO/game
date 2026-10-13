@@ -136,7 +136,8 @@ const CLES: Record<string, string> = {
   // #1612 : l'Activité Mendier entre au dataset, et la section « Issues par Degrés de Réussite » REND
   // désormais les ops de chaque bande (primitive `opRows` — chips codex-liées + `rollTable` expansé)
   // là où elle n'en imprimait que le COMPTE (« N op(s) sur le Personnage »).
-  "activities": 'a872f5a4c467d4d7',
+  // #1595 S8 : `pratiquer-competence` porte un `maison` (liste `freeSkill` par défaut, EDOC 8 l.172) — recalée à la MESURE.
+  "activities": 'd1cb50d1c3cd514a',
   "massBattlePowerEstimate": '82674e9e4786f386',
   "massBattleMightModifiers": '8b5e85f5fa1f537a',
   "massBattleWarMachines": 'b77e9b7bc67a8d5b',

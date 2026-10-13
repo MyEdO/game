@@ -154,7 +154,7 @@ describe('TravelRolesPanel — un poste non tenu (`postingTenu`) ne s’affiche 
     expect(affecteARecuperer(), 'contrôle : le poste tenu s’affiche affecté').toBe(true);
     const avant = [...ACTIVITIES];
     try {
-      setDataset('activities', avant.map((a) => (a.id === 'recuperer' ? { ...a, freeSkill: true } : a)));
+      setDataset('activities', avant.map((a) => (a.id === 'recuperer' ? { ...a, freeSkill: [{ id: 'escalade' }] } : a)));
       expect(affecteARecuperer()).toBe(false);
     } finally {
       setDataset('activities', avant);

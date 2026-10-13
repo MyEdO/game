@@ -133,7 +133,7 @@ const doc = document(
     difficulty: difficultySchema.optional(),
     combined: z.boolean().optional(),
     // ── ActivityDef propre ──
-    freeSkill: z.boolean().optional(),
+    freeSkill: z.array(refOuSpec('skill')).min(1).optional(),
     extended: nommerChamps(z.strictObject({ drPerStage: z.number() }), { drPerStage: { label: "DR par étape" } }).optional(),
     failExtenue: z.boolean().optional(),
     /** Modificateurs de SITUATION du Test (miroir de `ActivityDef.testMods`) : quantité `Formula` — donc
@@ -214,7 +214,10 @@ const doc = document(
       label: 'Test combiné',
       hint: 'UN jet confronté aux deux premières Compétences listées ; réussi seulement si les deux cibles sont atteintes',
     },
-    freeSkill: { label: 'Compétence libre', hint: 'Le joueur choisit lui-même la Compétence pratiquée' },
+    freeSkill: {
+      label: 'Compétence libre',
+      hint: 'Compétences parmi lesquelles le joueur choisit celle pratiquée ; une Compétence sans Spécialisation les couvre toutes',
+    },
     extended: { label: 'Test étendu', hint: 'DR requis = un montant par Étape' },
     failExtenue: { label: 'Échec inflige Exténué' },
     weatherMod: { label: 'Modificateur météo', hint: 'Modificateur au Test, par météo' },
@@ -292,9 +295,12 @@ const doc = document(
     exiges: ['source', 'icon'],
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const a = v as { id: string; contexts: string[]; freeSkill?: boolean; stake?: string; stakeForm?: string; rule?: string; ruleCategory?: string };
+        const a = v as { id: string; contexts: string[]; freeSkill?: unknown[]; failExtenue?: boolean; stake?: string; stakeForm?: string; rule?: string; ruleCategory?: string };
         if (a.freeSkill && a.contexts.includes('mer')) {
           ctx.addIssue({ code: 'custom', path: ['freeSkill'], message: `${a.id} : une Activité de contexte mer ne déclare pas de Compétence libre — le choix d’Activité en mer ne nomme aucune Compétence (MDG 15 l.266-300)` });
+        }
+        if (a.failExtenue && a.contexts.includes('mer')) {
+          ctx.addIssue({ code: 'custom', path: ['failExtenue'], message: `${a.id} : une Activité de contexte mer ne déclare pas « Échec inflige Exténué » — l’Exténué d’échec est celui des Activités de voyage (EDOC 8 l.133), absent des Activités en mer (MDG 15 l.266-300)` });
         }
         if (a.stake && !a.stakeForm) {
           ctx.addIssue({ code: 'custom', message: `${a.id} : enjeu sans forme déclarée (stakeForm)` });

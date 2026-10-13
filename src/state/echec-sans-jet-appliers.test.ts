@@ -14,7 +14,7 @@ import { spyApplier } from './cascadeTestKit';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { battleRng } from './battleRng';
 import { ECHEC_SANS_JET } from '../engine/tests';
-import { activityById, activitiesFor, applyTravelActivityResult, travelActivitySpec } from '../engine/activities';
+import { activityById, applyTravelActivityResult, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from './activiteMer.testkit';
 import { refusNePeutTenter } from '../engine/skills';
 import { datasetFile, datasetSerializeRoot } from '../data/overrides';
@@ -152,18 +152,20 @@ describe('Activités en mer non tentables', () => {
     expect(useGame.getState().pendingRest!.travelDay!.lines.map((l) => l.text)).toContain(refusNePeutTenter(hero, { skill: 'marchandage' }));
   });
 
-  it('garde de donnée : aucune Activité de contexte mer ne déclare `failExtenue` (MDG 15 l.266-300)', () => {
-    expect(activitiesFor('mer').length).toBeGreaterThan(0);
-    expect(activitiesFor('mer').filter((a) => a.failExtenue).map((a) => a.id)).toEqual([]);
-  });
+  // Porte de `CodexEdit.save` : la racine sérialisée du dataset, validée contre le schéma de son fichier.
+  const enregistrement = () => validateDataset(datasetFile('activities'), datasetSerializeRoot('activities'));
 
   it('Compendium : l’enregistrement refuse une Activité de contexte mer à Compétence libre — `SeaActivityPick` ne porte aucune Compétence choisie (MDG 15 l.266-300)', () => {
-    // Porte de `CodexEdit.save` : la racine sérialisée du dataset, validée contre le schéma de son fichier.
-    const enregistrement = () => validateDataset(datasetFile('activities'), datasetSerializeRoot('activities'));
     const { skills: _skills, ...sansCompetence } = activiteMer();
     expect(avecActivite(activiteMer(), enregistrement)).toBeNull();
-    expect(avecActivite({ ...sansCompetence, freeSkill: true }, enregistrement))
+    expect(avecActivite({ ...sansCompetence, freeSkill: [{ id: 'orientation' }] }, enregistrement))
       .toMatch(/veille-en-mer : une Activité de contexte mer ne déclare pas de Compétence libre/);
+  });
+
+  it('Compendium : l’enregistrement refuse une Activité de contexte mer qui déclare « Échec inflige Exténué » (EDOC 8 l.133 ; MDG 15 l.266-300)', () => {
+    expect(avecActivite(activiteMer(), enregistrement)).toBeNull();
+    expect(avecActivite(activiteMer({ failExtenue: true }), enregistrement))
+      .toMatch(/veille-en-mer : une Activité de contexte mer ne déclare pas « Échec inflige Exténué »/);
   });
 
   describe('sea-activity-generic : une Activité de contexte mer sans résolveur', () => {

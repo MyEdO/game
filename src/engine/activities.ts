@@ -335,8 +335,9 @@ export interface ActivityDef extends TestSpec {
   contexts: ActivityContext[];
   source: { book: string; page: number };
   /** `skills?` (au choix), `char?`, `difficulty?` viennent de `TestSpec`. Absent = Activité SANS Test. */
-  /** Compétence LIBRE choisie par le joueur (Pratiquer une Compétence, EDOC 8 l.172). */
-  freeSkill?: boolean;
+  /** Compétence LIBRE choisie par le joueur parmi ces Compétences ; une référence sans `spec` couvre
+   *  toutes ses Spécialisations (EDOC 8 l.172). */
+  freeSkill?: RefDesignee[];
   /** Test ÉTENDU (LDB 12) : DR requis = `drPerStage` × nombre d'Étapes (Établir des cartes, EDOC 8 l.161). */
   extended?: { drPerStage: number };
   /** RAW EDOC 8 l.133 : échouer le Test d'une Activité octroie un État Exténué. */
@@ -596,12 +597,17 @@ export function travelActivitySpec(
   };
 }
 
+/** La Compétence `ref` est-elle offerte par la liste `freeSkill` de l'Activité (EDOC 8 l.172) ? PUR. */
+function competenceOfferte(def: Pick<ActivityDef, 'freeSkill'>, ref: RefDesignee): boolean {
+  return (def.freeSkill ?? []).some((r) => r.id === ref.id && (r.spec == null || r.spec === ref.spec));
+}
+
 /** Compétences offertes au choix d'une Activité à compétence LIBRE (Pratiquer une Compétence, EDOC 8
- *  l.172) : celles de la fiche de l'acteur, puis les Compétences de BASE du catalogue absentes de sa fiche
- *  — une Compétence GROUPÉE par chacune de ses Spécialisations (`specPoolOf`), jamais nue (LDB 09 l.25,
- *  l.30, l.36, l.44, l.46) —, chacune FERMÉE avec son refus nommé s'il ne peut pas la tenter
- *  (`peutTenter` ; #2588). PUR. */
-export function competencesAPratiquer(actor: Combatant): { ref: RefDesignee; refus?: PlayerText }[] {
+ *  l.172), dans sa liste `freeSkill` : celles de la fiche de l'acteur, puis les Compétences de BASE du
+ *  catalogue absentes de sa fiche — une Compétence GROUPÉE par chacune de ses Spécialisations
+ *  (`specPoolOf`), jamais nue (LDB 09 l.25, l.30, l.36, l.44, l.46) —, chacune FERMÉE avec son refus
+ *  nommé s'il ne peut pas la tenter (`peutTenter` ; #2588). PUR. */
+export function competencesAPratiquer(actor: Combatant, def: Pick<ActivityDef, 'freeSkill'>): { ref: RefDesignee; refus?: PlayerText }[] {
   const surFiche = (id: string, spec?: string): boolean => actor.skills.some((s) => s.id === id && (spec === undefined || s.spec === spec));
   const refs: RefDesignee[] = [
     ...actor.skills.map((s) => ({ id: s.id, ...(s.spec ? { spec: s.spec } : {}) })),
@@ -611,7 +617,7 @@ export function competencesAPratiquer(actor: Combatant): { ref: RefDesignee; ref
       return specs.filter((spec) => !surFiche(sd.id, spec)).map((spec) => ({ id: sd.id, spec }));
     }),
   ];
-  return refs.map((ref) => (peutTenter(actor, ref.id, ref.spec) ? { ref } : { ref, refus: refusNePeutTenter(actor, { skill: ref.id, ...(ref.spec ? { spec: ref.spec } : {}) }) }));
+  return refs.filter((ref) => competenceOfferte(def, ref)).map((ref) => (peutTenter(actor, ref.id, ref.spec) ? { ref } : { ref, refus: refusNePeutTenter(actor, { skill: ref.id, ...(ref.spec ? { spec: ref.spec } : {}) }) }));
 }
 
 /** Refus d'un candidat à une Activité de voyage, au PREMIER niveau du choix : la meilleure compétence du
@@ -619,7 +625,7 @@ export function competencesAPratiquer(actor: Combatant): { ref: RefDesignee; ref
  *  tenter (LDB 09 l.30 ; #2588). `undefined` = candidat ouvert. PUR. */
 export function refusCandidatActivite(actor: Combatant, def: ActivityDef): PlayerText | undefined {
   if (!def.freeSkill) return travelActivitySpec(actor, def)?.refus;
-  return competencesAPratiquer(actor).some((c) => !c.refus) ? undefined : refusNePeutTenter(actor, { action: def.label });
+  return competencesAPratiquer(actor, def).some((c) => !c.refus) ? undefined : refusNePeutTenter(actor, { action: def.label });
 }
 
 /** Issue d'une Activité de voyage à partir d'un JET DÉJÀ résolu par la cascade : `success`/`sl` viennent
@@ -710,10 +716,11 @@ export function defaultTravelRole(hero: Combatant): string | null {
   return bestSkilledOption(hero, activitiesFor('voyage').filter((d) => !d.freeSkill && d.skills?.length))?.option.id ?? null;
 }
 
-/** Une Activité est TENUE quand, à compétence LIBRE, la Compétence pratiquée est nommée (EDOC 8 l.172) —
- *  sinon ni Test, ni issue. SOURCE UNIQUE du prédicat, lue par `travelActivitySpec` et `postingTenu`. PUR. */
+/** Une Activité est TENUE quand, à compétence LIBRE, la Compétence pratiquée est nommée et offerte par
+ *  sa liste (`competenceOfferte`, EDOC 8 l.172) — sinon ni Test, ni issue. SOURCE UNIQUE du prédicat, lue
+ *  par `travelActivitySpec` et `postingTenu`. PUR. */
 function activiteTenue(def: Pick<ActivityDef, 'freeSkill'>, freeSkill: RefDesignee | undefined): boolean {
-  return !def.freeSkill || !!freeSkill;
+  return !def.freeSkill || (!!freeSkill && competenceOfferte(def, freeSkill));
 }
 
 /** Un poste est TENU s'il nomme une Activité connue, tenue (`activiteTenue`). PUR. */

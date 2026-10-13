@@ -100,9 +100,8 @@ export function maneuverCrewTotal(
   return total;
 }
 
-/** `ManeuverResult` d'un Test d'ÉQUIPAGE : le total d'équipage tient lieu de DR de Navigation ; le virage RÉUSSIT
- *  selon le seuil de succès d'un Test d'équipage (`crewTestSuccess`, MDG 14 l.13 — règle d'équipage, distincte du
- *  `dr ≥ 0` du barreur unique ch.13). Le déplacement suit la Progression. PUR. */
+/** `ManeuverResult` d'un Test d'ÉQUIPAGE : le total d'équipage tient lieu de DR de Navigation ; `success` =
+ *  `crewTestSuccess` du DR final, Man compris (MDG 14 l.13, l.76). Le déplacement suit la Progression. PUR. */
 export function deriveManeuverFromCrew(ship: Combatant, crewTotal: number): ManeuverResult {
   const { baseM, manoeuvre, extraDR } = shipManeuverParams(ship);
   const out = resolveShipManeuver(crewTotal, baseM, manoeuvre, extraDR);
@@ -181,11 +180,8 @@ export function shipManeuverParams(ship: Combatant): ManeuverParams {
   };
 }
 
-/** Construit le `ManeuverResult` pour un Test de Navigation donné (PUR, aucune mutation, aucun RNG).
- *  Le VIRAGE réussit si le Test de Manœuvre réussit (d100 ≤ cible) ; le Man est appliqué en **DR**, PAS
- *  en difficulté → il échelonne le DR (mouvement via la Progression + l'IC de collision), il ne BASCULE
- *  PAS la réussite. MDG 13 l.119 ; MDG 12 l.50. On prend donc `nav.success` (le d100),
- *  jamais `dr ≥ 0` (qui conflaterait un d100 raté à DR 0 en faux succès, ou un d100 réussi à DR<0 en faux échec). */
+/** `ManeuverResult` du Test de Navigation d'un barreur SOLO (PUR, aucune mutation, aucun RNG) : `success`
+ *  = `nav.success` (LDB 12 l.11) ; le Man entre au DR (MDG 13 l.119 ; MDG 12 l.50). */
 function deriveManeuver(ship: Combatant, nav: { sl: number; roll: number; target: number; success: boolean }, helmsman: string): ManeuverResult {
   const { baseM, manoeuvre, extraDR } = shipManeuverParams(ship);
   const out = resolveShipManeuver(nav.sl, baseM, manoeuvre, extraDR + maneuverTestTypeDR(ship)); // barreur SOLO, hors Test d'équipage

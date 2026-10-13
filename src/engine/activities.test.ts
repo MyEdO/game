@@ -219,7 +219,7 @@ describe('catalogue d’Activités data-driven (activities.json)', () => {
 
   it('chaque Activité a un mode de Test cohérent (skills, freeSkill, ou sans Test)', () => {
     for (const a of activitiesFor('voyage')) {
-      const hasTest = (a.skills?.length ?? 0) > 0 || a.freeSkill === true;
+      const hasTest = (a.skills?.length ?? 0) > 0 || (a.freeSkill?.length ?? 0) > 0;
       // Une Activité sans Test (Récupérer) ne déclare pas failExtenue (pas de jet à rater).
       if (!hasTest) expect(a.failExtenue, a.id).toBeUndefined();
       else expect(a.failExtenue, a.id).toBe(true);

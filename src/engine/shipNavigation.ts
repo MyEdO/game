@@ -34,7 +34,8 @@ export function progressionMovement(baseM: number, dr: number): number {
 export interface ShipManeuverOutcome {
   /** DR final = DR du Test de Navigation + Man du bateau + `extraDR`. */
   dr: number;
-  /** Réussite (DR final ≥ 0) → la manœuvre (virage / évitement) est exécutée. */
+  /** DR final ≥ 0. L'issue du virage est celle du Test qui le porte, posée par l'appelant :
+   *  `deriveManeuver` (LDB 12 l.11), `deriveManeuverFromCrew` (MDG 14 l.13, l.76). */
   success: boolean;
   /** Déplacement effectif (cases) via la table de Progression. */
   movement: number;
@@ -43,10 +44,10 @@ export interface ShipManeuverOutcome {
 }
 
 /**
- * Test de Manœuvre (MDG 13 l.117-119) = Test de Navigation (Voile / Ramer du Personnage à la barre)
- * MODIFIÉ par la Caractéristique Man du bateau, plus tout modificateur situationnel (`extraDR` : Salissures,
- * météo, Détroit…). Réussite (DR final ≥ 0) → la manœuvre est exécutée ; le déplacement suit la table de
- * Progression. `navTestDR` est le DR brut du Test de Navigation déjà résolu (RNG en amont). PUR.
+ * Test de Manœuvre (MDG 13 l.119 ; MDG 12 l.50) : DR du Test de Navigation déjà résolu (`navTestDR`, RNG en
+ * amont) + Man du bateau + `extraDR` (Salissures, météo, Détroit…) ; le déplacement suit la table de
+ * Progression. `success` n'est pas l'issue du virage : LDB 12 l.11 (Test individuel), MDG 14 l.13, l.76
+ * (Test d'équipage). PUR.
  */
 export function resolveShipManeuver(navTestDR: number, baseM: number, manoeuvre: number, extraDR = 0): ShipManeuverOutcome {
   const dr = navTestDR + manoeuvre + extraDR;

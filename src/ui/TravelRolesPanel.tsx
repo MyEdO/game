@@ -41,9 +41,9 @@ export function TravelRolesPanel() {
       pinnedOf={(h) => posteEpingle(h)?.activityId}
       onSet={(heroId, posteId, parametre) => setTravelRole(heroId, posteId ? { activityId: posteId, ...(parametre ? { freeSkill: refDe(parametre) } : {}) } : null)}
       refusCandidat={(p, h) => { const def = activityById(p.id); return def ? refusCandidatActivite(h, def) : undefined; }}
-      parametreDe={(p, h) => (activityById(p.id)?.freeSkill
-        ? { intitule: `${p.label} — ${h.label} : quelle Compétence ?`, valeurs: competencesAPratiquer(h).map((v) => ({ key: cleDe(v.ref), label: refLabel('skills', v.ref), ...(v.refus ? { refus: v.refus } : {}) })) }
-        : undefined)}
+      parametreDe={(p, h) => { const def = activityById(p.id); return def?.freeSkill
+        ? { intitule: `${p.label} — ${h.label} : quelle Compétence ?`, valeurs: competencesAPratiquer(h, def).map((v) => ({ key: cleDe(v.ref), label: refLabel('skills', v.ref), ...(v.refus ? { refus: v.refus } : {}) })) }
+        : undefined; }}
       precisionDe={(h) => { const libre = posteEpingle(h)?.freeSkill; return libre ? { label: refLabel('skills', libre), category: 'skills', id: libre.id } : undefined; }}
       codexCategory="activities"
     />

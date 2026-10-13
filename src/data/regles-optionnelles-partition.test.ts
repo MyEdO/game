@@ -66,7 +66,9 @@ const COEXISTENCE: Record<string, number> = {
   'actions.json': 1,
   // 8 → 9 (#1612) : l'Activité `mendier` cite son folio (LDB 119) ET porte en clair les cinq points
   // que le livre laisse ouverts (durée, discours, apparence, ennuis, gate de lieu).
-  'activities.json': 9,
+  // 9 → 10 (#1595 S8) : `pratiquer-competence` cite son folio (EDOC 35) ET porte en clair la liste
+  // `freeSkill` par défaut, que le livre laisse ouverte (« etc. », EDOC 8 l.172).
+  'activities.json': 10,
   'creatures.json': 1,
   'etats.json': 1,
   // 0 → 2 (#680, 2026-09-29) : les 2 Groupes d'EDO 02 cités à leur folio ET portant la raison de leur appartenance hors canon

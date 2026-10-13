@@ -1666,7 +1666,7 @@ export function continueSeaDayAfterExposure(get: Get, set: Set, doneSteps?: Casc
       id: 'sea-epuisement', kind: 'sea-epuisement', label: t('sv.exhaustion'),
       stake: voyageStakeRef('sea-epuisement', { condition: conditionLabel('extenue') }),
       difficulty: exhaustionDifficulty(true),
-      porteurs: patients.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', char: 'endurance' } } })),
+      porteurs: patients.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', char: 'endurance' }, pont: activeSeaPrecipitation(get) } })), // MDG 13 l.111, l.185, l.200
     });
     if (bande) {
       const resolues = openSequence(get, set, { title: t('sv.exhaustionTitle'), icon: 'medical/infection', purpose: 'seaExhaustion', steps: [bande] });

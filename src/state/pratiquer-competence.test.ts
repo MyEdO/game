@@ -1,7 +1,8 @@
 /**
  * Pratiquer une Compétence (EDOC 8 l.172 ; `activities.json › pratiquer-competence`) : le poste porte la
  * Compétence CHOISIE, de l'épinglage (`setTravelRole`) au départ (`startTravel`, qui pose les postes
- * depuis les rôles) jusqu'à la rangée de l'Étape. Compétences offertes : LDB 09 l.30, l.36, l.44, l.46.
+ * depuis les rôles) jusqu'à la rangée de l'Étape. Compétences offertes, dans la liste `freeSkill` de
+ * l'Activité : LDB 09 l.30, l.36, l.44, l.46.
  * Sans Compétence choisie, le poste n'est pas tenu (EDOC 8 l.133).
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -17,6 +18,7 @@ import { refLabel, skills, specPoolOf } from '../data';
 import { setDataset } from '../data/overrides';
 import type { Combatant } from '../engine/types';
 import type { BatchParticipant } from './pendings';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 
 const heros = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -58,17 +60,31 @@ function rangeeAuDepart(posting: Parameters<ReturnType<typeof useGame.getState>[
   return bande()?.participants?.find((p) => p.id === 'h');
 }
 
+/** L'Activité du catalogue, relue à chaque appel : `setDataset` la remplace. */
+const pratiquer = () => activityById('pratiquer-competence')!;
+
+/** Exécute `fn` avec la liste `freeSkill` de Pratiquer éditée, posée par le seam `setDataset` du Compendium. */
+function avecListe<T>(liste: RefDesignee[], fn: () => T): T {
+  const avant = [...ACTIVITIES];
+  try {
+    setDataset('activities', avant.map((a) => (a.id === 'pratiquer-competence' ? { ...a, freeSkill: liste } : a)));
+    return fn();
+  } finally {
+    setDataset('activities', avant);
+  }
+}
+
 describe('Pratiquer une Compétence : les Compétences offertes', () => {
   it('celles de sa fiche d’abord, une Avancée sans Augmentation fermée avec son refus', () => {
     const h = heros();
-    expect(competencesAPratiquer(h).slice(0, 2)).toEqual([
+    expect(competencesAPratiquer(h, pratiquer()).slice(0, 2)).toEqual([
       { ref: { id: 'escalade' } },
       { ref: { id: 'evaluation' }, refus: refusNePeutTenter(h, { skill: 'evaluation' }) },
     ]);
   });
 
   it('les Compétences de base hors fiche sont offertes ouvertes, aucune Avancée hors fiche (LDB 09 l.30)', () => {
-    const offertes = competencesAPratiquer(heros());
+    const offertes = competencesAPratiquer(heros(), pratiquer());
     expect(offertes).toContainEqual({ ref: { id: 'orientation' } });
     const horsFiche = offertes.slice(2);
     expect(horsFiche.every((o) => skills.find((sd) => sd.id === o.ref.id)?.acces === 'base' && !o.refus)).toBe(true);
@@ -76,7 +92,7 @@ describe('Pratiquer une Compétence : les Compétences offertes', () => {
   });
 
   it('une Compétence de base GROUPÉE s’offre par chacune de ses Spécialisations, jamais nue (LDB 09 l.36, l.44)', () => {
-    const offertes = competencesAPratiquer(heros({ skills: [] }));
+    const offertes = competencesAPratiquer(heros({ skills: [] }), pratiquer());
     const groupees = skills.filter((sd) => sd.acces === 'base' && specPoolOf(sd).length > 0);
     expect(groupees.map((sd) => sd.id).sort()).toEqual(['art', 'chevaucher', 'corps-a-corps', 'discretion', 'divertissement']);
     for (const sd of groupees) {
@@ -86,7 +102,7 @@ describe('Pratiquer une Compétence : les Compétences offertes', () => {
   });
 
   it('Sigrid : Divertissement (Chant) acquise, Divertissement (Comédie) reste offerte, ouverte, et Chant une seule fois (LDB 09 l.46)', () => {
-    const offertes = competencesAPratiquer(heros({ skills: [{ id: 'divertissement', spec: 'chant', advances: 8 }] as Combatant['skills'] }));
+    const offertes = competencesAPratiquer(heros({ skills: [{ id: 'divertissement', spec: 'chant', advances: 8 }] as Combatant['skills'] }), pratiquer());
     expect(offertes).toContainEqual({ ref: { id: 'divertissement', spec: 'comedie' } });
     expect(offertes.filter((o) => o.ref.id === 'divertissement' && o.ref.spec === 'chant')).toEqual([{ ref: { id: 'divertissement', spec: 'chant' } }]);
   });
@@ -95,8 +111,33 @@ describe('Pratiquer une Compétence : les Compétences offertes', () => {
     const def = activityById('pratiquer-competence')!;
     expect(refusCandidatActivite(heros(), def)).toBeUndefined();
     const ko = heros({ conditions: [{ id: 'inconscient', value: 1 }] } as Partial<Combatant>);
-    expect(competencesAPratiquer(ko).every((o) => o.refus)).toBe(true);
+    expect(competencesAPratiquer(ko, def).every((o) => o.refus)).toBe(true);
     expect(refusCandidatActivite(ko, def)).toBe(refusNePeutTenter(ko, { action: def.label }));
+  });
+});
+
+describe('Pratiquer une Compétence : la liste `freeSkill` éditée au Compendium (EDOC 8 l.172)', () => {
+  it('une Compétence retirée de la liste n’est plus offerte, sur la fiche comme hors fiche', () => {
+    const sansElles = pratiquer().freeSkill!.filter((r) => r.id !== 'orientation' && r.id !== 'escalade');
+    const offertes = avecListe(sansElles, () => competencesAPratiquer(heros(), pratiquer()));
+    expect(offertes.some((o) => o.ref.id === 'orientation')).toBe(false);
+    expect(offertes.some((o) => o.ref.id === 'escalade')).toBe(false);
+    expect(offertes).toContainEqual({ ref: { id: 'athletisme' } });
+  });
+
+  it('une Spécialisation listée ne couvre qu’elle ; la Compétence listée sans Spécialisation les couvre toutes', () => {
+    const offertes = avecListe([{ id: 'divertissement', spec: 'chant' }, { id: 'art' }], () => competencesAPratiquer(heros({ skills: [] }), pratiquer()));
+    const art = skills.find((sd) => sd.id === 'art')!;
+    expect(offertes.map((o) => o.ref)).toEqual([...specPoolOf(art).map((spec) => ({ id: 'art', spec })), { id: 'divertissement', spec: 'chant' }]);
+  });
+
+  it('un rôle épinglé sur une Compétence retirée de la liste n’est plus tenu, et la liste vidée de ce qu’il peut tenter le ferme', () => {
+    const h = heros();
+    expect(postingTenu({ activityId: 'pratiquer-competence', freeSkill: { id: 'escalade' } })).toBe(true);
+    avecListe([{ id: 'evaluation' }], () => {
+      expect(postingTenu({ activityId: 'pratiquer-competence', freeSkill: { id: 'escalade' } })).toBe(false);
+      expect(refusCandidatActivite(h, pratiquer())).toBe(refusNePeutTenter(h, { action: pratiquer().label }));
+    });
   });
 });
 
@@ -130,7 +171,7 @@ describe('Poste tenu : une seule source (`postingTenu`)', () => {
     useGame.getState().setTravelRole('h', { activityId: 'recuperer' });
     const avant = [...ACTIVITIES];
     try {
-      setDataset('activities', avant.map((a) => (a.id === 'recuperer' ? { ...a, freeSkill: true } : a)));
+      setDataset('activities', avant.map((a) => (a.id === 'recuperer' ? { ...a, freeSkill: [{ id: 'escalade' }] } : a)));
       const h = useGame.getState().party[0];
       expect(postingTenu(h.travelRole!)).toBe(false);
       expect(stageAssignmentFromRoles([h]).h?.activityId).not.toBe('recuperer');
