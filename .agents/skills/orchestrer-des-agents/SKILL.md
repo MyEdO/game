@@ -1,6 +1,6 @@
 ---
 name: orchestrer-des-agents
-description: À utiliser dès qu'une tâche implique d'écrire ou modifier du code, de dispatcher un agent ou un workflow — ou dès qu'on est tenté de coder soi-même « parce que c'est petit ». Aussi au retour d'un agent (avant de vérifier/committer son travail) et avant tout agent() sans modèle/effort explicites.
+description: À utiliser pour écrire du code (même « petit »), dispatcher un agent ou un workflow, au retour d'un agent, et avant tout agent() sans modèle/effort.
 ---
 <!-- GENERATED: agents:sync; source=.claude/skills/orchestrer-des-agents/SKILL.md -->
 
@@ -257,6 +257,7 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Code sous spec précise | `codeur` | opus | medium |
 | Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | high |
 | Rédaction fidèle au Source (fiches, synthèses de règles) | `redacteur` | opus | medium |
+| Question de règle de jeu, avant l'utilisateur | `arbitre-raw` | opus | medium |
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
 | Joueur cloisonné de table simulée | `joueur` | sonnet | low |
@@ -270,5 +271,5 @@ Préférer ces types (modèle + effort épinglés) à `general-purpose`, qui hé
 taille et au risque RÉELS, pas au flag ultracode : petite feature testée → 1 codeur + gates, sans
 fan-out ni reviewer dédié ; tâche large ou incertaine (audit moteur, migration, extraction massive) →
 workflow ; reviewer adversarial réservé aux régressions silencieuses possibles et à l'art. Un arbitrage
-utilisateur nécessaire → couper la boucle et poser les questions GROUPÉES, jamais les parquer dans une
-spec.
+utilisateur nécessaire → d'abord `arbitre-raw` (#2601), puis couper la boucle et poser les questions
+GROUPÉES, jamais les parquer dans une spec.
