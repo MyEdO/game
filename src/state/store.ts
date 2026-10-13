@@ -141,6 +141,7 @@ import type {
 } from './pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { toMoney } from '../engine/money';
+import { postingTenu } from '../engine/activities';
 import { payFromGroup } from './bourseFlow';
 import * as medicFlow from './medicFlow';
 import type { MedicState, MedicNpc } from './medicFlow';
@@ -3151,7 +3152,7 @@ export const useGame = create<GameState>((set, get) => ({
   seaActivitiesConfirm: (picks) => seaActivities.seaActivitiesConfirm(get, set, picks),
   resolveManannPriest: (pay) => seaVoyageFlow.resolveManannPriest(get, set, pay),
   resolveShoreLeave: (allow) => seaVoyageFlow.resolveShoreLeave(get, set, allow),
-  setTravelRole: (heroId, role) => set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))),
+  setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
   setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
   setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
   setPosteAmmo: (shipId, posteUid, ammoUid) => {

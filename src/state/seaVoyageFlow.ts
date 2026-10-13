@@ -1576,17 +1576,14 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   set({ gameTime: get().gameTime + dayMinutes });
   bus.emit(EVT.TIME_ADVANCED, { minutes: dayMinutes });
 
-  // TEMPÉRATURE (MDG 13 l.203-225) : Tests d'Exposition du jour à la cadence de la bande. Le jour de
-  // voyage ne se simule pas heure par heure — la période EXPOSÉE = une Période de travail sur le pont
-  // (8 h, l.107) → `seaExposureTestsPerDay` (bandes 4 h → 2 Tests, 2 h → 4), Résistance à la
-  // Difficulté RAW de la bande. Froid : cascade UNIQUE d'`engine/exposure` (manteau −10, peau de
-  // phoque +1 DR — MDG 14 l.277) ; chaleur : cascade LDB 18 l.330. La DISSIPATION des pénalités subies
-  // (horloge 24 h) se fait APRÈS l'application des échecs, à chaque jour de mer — `continueSeaDayAfterExposure`.
+  // TEMPÉRATURE (MDG 13 l.203-225) : Tests d'Exposition du jour, `seaExposureTestsPerDay`. Froid : cascade
+  // UNIQUE d'`engine/exposure` (MDG 14 l.277) ; chaleur : LDB 18 l.330. La dissipation des pénalités
+  // subies suit l'application des échecs, à chaque jour de mer — `continueSeaDayAfterExposure`.
   const tdef = temperatureDef(sea.weather.temperature);
   const expCount = seaExposureTestsPerDay(sea.weather.temperature);
   if (tdef.exposure && expCount > 0) {
     const expDiff = tdef.difficulty ?? 'intermediaire';
-    const pont = activeSeaPrecipitation(get); // MDG 13 l.185 ; MDG 13 l.107
+    const pont = activeSeaPrecipitation(get); // MDG 13 l.185
     const steps: BuiltCascadeStep[] = [];
     for (const h of get().party) {
       if (h.dead) continue;

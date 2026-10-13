@@ -155,6 +155,11 @@ describe('Activités en mer non tentables', () => {
     expect(activitiesFor('mer').filter((a) => a.failExtenue).map((a) => a.id)).toEqual([]);
   });
 
+  it('garde de donnée : aucune Activité de contexte mer ne déclare `freeSkill` — `SeaActivityPick` ne porte aucune Compétence choisie (MDG 15 l.266-300)', () => {
+    expect(activitiesFor('mer').length).toBeGreaterThan(0);
+    expect(activitiesFor('mer').filter((a) => a.freeSkill).map((a) => a.id)).toEqual([]);
+  });
+
   describe('sea-activity-generic : une Activité de contexte mer sans résolveur', () => {
     beforeEach(() => useGame.setState({ party: [heros(INCONSCIENT)] }));
 
@@ -165,19 +170,10 @@ describe('Activités en mer non tentables', () => {
         const step = buildSeaGenericStep(useGame.getState, useGame.setState, hero, mer)!;
         expect(step.kind).toBe('sea-activity-generic');
         expect(step.result).toBe(ECHEC_SANS_JET);
-        expect(step.refus).toBe(refusNePeutTenter(hero, { skill: 'perception' }));
+        expect(step.refus).toBe(refusNePeutTenter(hero, { skill: mer.skills![0].id, spec: mer.skills![0].spec }));
         expect(appliquer(step, hero)).toEqual({ consequences: [] });
       });
       expect(hasCondition(hero, 'extenue')).toBe(false);
-    });
-
-    it('compétence LIBRE sans compétence choisie : poste non tenu — aucune étape, aucun Exténué ; le choix est offert fermé', () => {
-      const libre = activiteMer({ skills: undefined, freeSkill: true, failExtenue: true });
-      useGame.setState({ party: [heros()], journal: [] });
-      const hero = useGame.getState().party[0];
-      expect(avecActivite(libre, () => buildSeaGenericStep(useGame.getState, useGame.setState, hero, libre))).toBeUndefined();
-      expect(hasCondition(useGame.getState().party[0], 'extenue')).toBe(false);
-      expect(seaActivityRefus(hero, libre)).toBe(t('refus.competenceNonChoisie', { qui: 'Hilda' }));
     });
   });
 });

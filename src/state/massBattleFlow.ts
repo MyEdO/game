@@ -609,10 +609,10 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   });
 }
 
-// ── Rassemblement (l.122) ────────────────────────────────────────────────────────────────────────
+// ── Rassemblement (ADE II 08 l.122) ──────────────────────────────────────────────────────────────
 
-/** Ouvre le Test de Résistance de guérison du Rassemblement (l.122, `ActivityDef` sceneKind 'rally') pour
- *  le prochain PJ vivant n'ayant pas récupéré ce Round. Disponible entre les Rounds (post-clash). */
+/** Ouvre le Rassemblement (ADE II 08 l.122 ; `activities.json › rassemblement`) pour le prochain PJ vivant
+ *  blessé qui ne l'a pas tenté ce Round, entre les Rounds. */
 export function openMassBattleRally(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round' || !mb.awaitingNext) return;

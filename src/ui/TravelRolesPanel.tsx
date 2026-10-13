@@ -1,5 +1,5 @@
 import { useGame } from '../state/store';
-import { activitiesFor, activityById, competencesAPratiquer, refusCandidatActivite } from '../engine/activities';
+import { activitiesFor, activityById, competencesAPratiquer, posteEpingle, refusCandidatActivite } from '../engine/activities';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel } from '../data';
 import { activityAsPoste } from '../state/poste';
@@ -38,13 +38,13 @@ export function TravelRolesPanel() {
       banc="À la discrétion de l’Étape"
       heroes={heroes}
       postes={activitiesFor('voyage').map(activityAsPoste)}
-      pinnedOf={(h) => h.travelRole?.activityId}
+      pinnedOf={(h) => posteEpingle(h)?.activityId}
       onSet={(heroId, posteId, parametre) => setTravelRole(heroId, posteId ? { activityId: posteId, ...(parametre ? { freeSkill: refDe(parametre) } : {}) } : null)}
       refusCandidat={(p, h) => { const def = activityById(p.id); return def ? refusCandidatActivite(h, def) : undefined; }}
       parametreDe={(p, h) => (activityById(p.id)?.freeSkill
         ? { intitule: `${p.label} — ${h.label} : quelle Compétence ?`, valeurs: competencesAPratiquer(h).map((v) => ({ key: cleDe(v.ref), label: refLabel('skills', v.ref), ...(v.refus ? { refus: v.refus } : {}) })) }
         : undefined)}
-      precisionDe={(h) => (h.travelRole?.freeSkill ? { label: refLabel('skills', h.travelRole.freeSkill), category: 'skills', id: h.travelRole.freeSkill.id } : undefined)}
+      precisionDe={(h) => { const libre = posteEpingle(h)?.freeSkill; return libre ? { label: refLabel('skills', libre), category: 'skills', id: libre.id } : undefined; }}
       codexCategory="activities"
     />
   );

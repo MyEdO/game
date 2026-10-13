@@ -13,7 +13,8 @@ import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { useGame } from '../state/store';
 import { refusNePeutTenter } from '../engine/skills';
 import { TravelRolesPanel } from './TravelRolesPanel';
-import { activityById } from '../engine/activities';
+import { ACTIVITIES, activityById } from '../engine/activities';
+import { setDataset } from '../data/overrides';
 import { refLabel } from '../data';
 import type { Combatant } from '../engine/types';
 
@@ -134,5 +135,29 @@ describe('TravelRolesPanel — Pratiquer une Compétence : jamais épinglé sans
     const precision = ligne.querySelector('.pr-precision') as HTMLElement;
     expect(precision.textContent).toBe(refLabel('skills', { id: 'escalade' }));
     expect(precision.tabIndex).toBe(0);
+  });
+});
+
+describe('TravelRolesPanel — un poste non tenu (`postingTenu`) ne s’affiche jamais comme affecté', () => {
+  it('un rôle épinglé que l’édition du catalogue rend non tenu quitte sa case', () => {
+    useGame.setState({ party: [hero('h4', 'Aldric')] });
+    useGame.getState().setTravelRole('h4', { activityId: 'recuperer' });
+    const affecteARecuperer = (): boolean => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      root = createRoot(container);
+      act(() => { root!.render(<TravelRolesPanel />); });
+      const noms = [...container.querySelectorAll('.pr-ligne[data-poste="recuperer"] [aria-label]')].map((b) => b.getAttribute('aria-label') ?? '');
+      act(() => root?.unmount()); container.remove(); root = null; container = null;
+      return noms.some((n) => n.includes('Retirer Aldric'));
+    };
+    expect(affecteARecuperer(), 'contrôle : le poste tenu s’affiche affecté').toBe(true);
+    const avant = [...ACTIVITIES];
+    try {
+      setDataset('activities', avant.map((a) => (a.id === 'recuperer' ? { ...a, freeSkill: true } : a)));
+      expect(affecteARecuperer()).toBe(false);
+    } finally {
+      setDataset('activities', avant);
+    }
   });
 });

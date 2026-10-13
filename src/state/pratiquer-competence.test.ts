@@ -1,18 +1,22 @@
 /**
  * Pratiquer une Compétence (EDOC 8 l.172 ; `activities.json › pratiquer-competence`) : le poste porte la
- * Compétence CHOISIE, de l'épinglage (`setTravelRole`) jusqu'à l'applier. Les Compétences offertes sont
- * celles que le héros peut tenter (LDB 09 l.30) ; sans Compétence choisie, il n'y a pas de Test, donc ni
- * échec ni Exténué (EDOC 8 l.133) : le poste n'est pas tenu.
+ * Compétence CHOISIE, de l'épinglage (`setTravelRole`) au départ (`startTravel`, qui pose les postes
+ * depuis les rôles) jusqu'à la rangée de l'Étape. Compétences offertes : LDB 09 l.30, l.36, l.44, l.46.
+ * Sans Compétence choisie, le poste n'est pas tenu (EDOC 8 l.133).
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { buildStageSteps } from './travelPostes';
-import { activityById, competencesAPratiquer, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
+import { emptyScene, type Scene } from './scene';
+import type { WorldMap } from './worldMap';
+import { seedBattleRng } from './battleRng';
+import { setRule, resetRule } from '../engine/policy';
+import { ACTIVITIES, activityById, competencesAPratiquer, postingTenu, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
 import { refusNePeutTenter } from '../engine/skills';
-import { hasCondition } from '../engine/conditions';
 import { ECHEC_SANS_JET } from '../engine/tests';
-import { refLabel, skills } from '../data';
+import { refLabel, skills, specPoolOf } from '../data';
+import { setDataset } from '../data/overrides';
 import type { Combatant } from '../engine/types';
+import type { BatchParticipant } from './pendings';
 
 const heros = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -25,32 +29,66 @@ const heros = (over: Partial<Combatant> = {}): Combatant =>
     ...over,
   } as Combatant);
 
-/** Étape montée par le producteur réel : le poste épinglé (`setTravelRole`) → `stageAssignmentFromRoles`. */
-function etape(posting: Parameters<ReturnType<typeof useGame.getState>['setTravelRole']>[1]) {
-  useGame.setState({ party: [heros()], journal: [], pendingCascade: null });
+const scene = (id: string, label: string): Scene => Object.assign(emptyScene(10, 10), { id, label });
+const CARTE: WorldMap = {
+  id: 'carte-test', label: 'Carte de test',
+  places: [
+    { id: 'pa', label: 'Village A', pos: { x: 20, y: 50 }, scene: 'lieu-a-scene' },
+    { id: 'pb', label: 'Bourg B', pos: { x: 70, y: 40 }, scene: 'lieu-b-scene' },
+  ],
+  routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 24, modes: ['pied'], perilDie: 0 }],
+};
+
+/** Rangée du héros dans la bande des postes de l'Étape, montée par le producteur réel : rôle épinglé
+ *  (`setTravelRole`), départ (`startTravel`), qui ouvre la cascade du jour, puis la Météo d'Étape jouée. */
+function rangeeAuDepart(posting: Parameters<ReturnType<typeof useGame.getState>['setTravelRole']>[1]): BatchParticipant | undefined {
+  useGame.setState({ party: [heros()], journal: [], pendingCascade: null, travelPlan: null });
+  useGame.getState().loadProject([scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], 'lieu-a-scene', CARTE);
   useGame.getState().setTravelRole('h', posting);
-  useGame.setState({ travelPlan: { routeId: 'r', km: 24, postes: stageAssignmentFromRoles(useGame.getState().party), stage: { results: [] } } as never });
-  return buildStageSteps(useGame.getState, useGame.setState, 'beau', 'ete');
+  useGame.getState().startTravel('r1', 'pied');
+  const bande = () => useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'stagePosteBatch');
+  // La Météo d'Étape ouvre la cascade du jour ; la bande des postes la suit.
+  for (let garde = 0; !bande() && garde < 10; garde++) {
+    const p = useGame.getState().pendingCascade;
+    const cur = p?.participants[p.cursor];
+    if (!cur) break;
+    if (cur.table && !cur.table.result) useGame.getState().cascadeTableRoll(cur.id);
+    else useGame.getState().cascadeNext();
+  }
+  return bande()?.participants?.find((p) => p.id === 'h');
 }
 
-describe('Pratiquer une Compétence : le poste porte sa Compétence choisie', () => {
-  beforeEach(() => useGame.setState({ party: [heros()], journal: [] }));
-
-  it('les candidats sont les Compétences de sa fiche, une Avancée sans Augmentation fermée avec son refus', () => {
+describe('Pratiquer une Compétence : les Compétences offertes', () => {
+  it('celles de sa fiche d’abord, une Avancée sans Augmentation fermée avec son refus', () => {
     const h = heros();
-    const offertes = competencesAPratiquer(h);
-    expect(offertes.slice(0, 2)).toEqual([
+    expect(competencesAPratiquer(h).slice(0, 2)).toEqual([
       { ref: { id: 'escalade' } },
       { ref: { id: 'evaluation' }, refus: refusNePeutTenter(h, { skill: 'evaluation' }) },
     ]);
   });
 
-  it('les Compétences de base hors fiche sont offertes, ouvertes (LDB 09 l.30) ; aucune Avancée hors fiche', () => {
+  it('les Compétences de base hors fiche sont offertes ouvertes, aucune Avancée hors fiche (LDB 09 l.30)', () => {
     const offertes = competencesAPratiquer(heros());
     expect(offertes).toContainEqual({ ref: { id: 'orientation' } });
-    const horsFiche = offertes.filter((o) => o.ref.id !== 'escalade' && o.ref.id !== 'evaluation');
+    const horsFiche = offertes.slice(2);
     expect(horsFiche.every((o) => skills.find((sd) => sd.id === o.ref.id)?.acces === 'base' && !o.refus)).toBe(true);
     expect(offertes.some((o) => o.ref.id === 'metier')).toBe(false);
+  });
+
+  it('une Compétence de base GROUPÉE s’offre par chacune de ses Spécialisations, jamais nue (LDB 09 l.36, l.44)', () => {
+    const offertes = competencesAPratiquer(heros({ skills: [] }));
+    const groupees = skills.filter((sd) => sd.acces === 'base' && specPoolOf(sd).length > 0);
+    expect(groupees.map((sd) => sd.id).sort()).toEqual(['art', 'chevaucher', 'corps-a-corps', 'discretion', 'divertissement']);
+    for (const sd of groupees) {
+      expect(offertes.filter((o) => o.ref.id === sd.id && !o.ref.spec), sd.id).toEqual([]);
+      expect(offertes.filter((o) => o.ref.id === sd.id).map((o) => o.ref.spec), sd.id).toEqual(specPoolOf(sd));
+    }
+  });
+
+  it('Sigrid : Divertissement (Chant) acquise, Divertissement (Comédie) reste offerte, ouverte, et Chant une seule fois (LDB 09 l.46)', () => {
+    const offertes = competencesAPratiquer(heros({ skills: [{ id: 'divertissement', spec: 'chant', advances: 8 }] as Combatant['skills'] }));
+    expect(offertes).toContainEqual({ ref: { id: 'divertissement', spec: 'comedie' } });
+    expect(offertes.filter((o) => o.ref.id === 'divertissement' && o.ref.spec === 'chant')).toEqual([{ ref: { id: 'divertissement', spec: 'chant' } }]);
   });
 
   it('candidat : ouvert s’il peut tenter une Compétence ; Inconscient, fermé dès le premier niveau avec sa raison', () => {
@@ -60,32 +98,45 @@ describe('Pratiquer une Compétence : le poste porte sa Compétence choisie', ()
     expect(competencesAPratiquer(ko).every((o) => o.refus)).toBe(true);
     expect(refusCandidatActivite(ko, def)).toBe(refusNePeutTenter(ko, { action: def.label }));
   });
+});
+
+describe('Pratiquer une Compétence : du rôle épinglé à la rangée de l’Étape', () => {
+  beforeEach(() => { seedBattleRng(1); setRule('travel-etapes', true); });
+  afterEach(() => resetRule('travel-etapes'));
 
   it('Compétence choisie : la rangée de la bande la teste, elle', () => {
-    const batch = etape({ activityId: 'pratiquer-competence', freeSkill: { id: 'escalade' } }).find((s) => s.kind === 'stagePosteBatch')!;
-    const part = batch.participants!.find((p) => p.id === 'h')!;
-    expect(part.label).toBe(refLabel('skills', { id: 'escalade' }));
-    expect(part.result).toBeNull();
+    const rangee = rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'escalade' } })!;
+    expect(rangee.label).toBe(refLabel('skills', { id: 'escalade' }));
+    expect(rangee.result).toBeNull();
   });
 
   it('Compétence choisie que le héros ne peut pas tenter : la rangée naît sans jet, refus nommé', () => {
-    const batch = etape({ activityId: 'pratiquer-competence', freeSkill: { id: 'evaluation' } }).find((s) => s.kind === 'stagePosteBatch')!;
-    const part = batch.participants!.find((p) => p.id === 'h')!;
-    expect(part.result).toBe(ECHEC_SANS_JET);
-    expect(part.refus).toBe(refusNePeutTenter(useGame.getState().party[0], { skill: 'evaluation' }));
+    const rangee = rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'evaluation' } })!;
+    expect(rangee.result).toBe(ECHEC_SANS_JET);
+    expect(rangee.refus).toBe(refusNePeutTenter(useGame.getState().party[0], { skill: 'evaluation' }));
+  });
+});
+
+describe('Poste tenu : une seule source (`postingTenu`)', () => {
+  beforeEach(() => useGame.setState({ party: [heros()], journal: [] }));
+
+  it('`setTravelRole` refuse Pratiquer une Compétence sans Compétence : le rôle épinglé ne bouge pas', () => {
+    useGame.getState().setTravelRole('h', { activityId: 'recuperer' });
+    useGame.getState().setTravelRole('h', { activityId: 'pratiquer-competence' });
+    expect(useGame.getState().party[0].travelRole).toEqual({ activityId: 'recuperer' });
   });
 
-  it('sans Compétence choisie (état hérité) : poste non tenu — aucune étape, aucune issue, aucun Exténué', () => {
-    expect(etape({ activityId: 'pratiquer-competence' })).toEqual([]);
-    expect(useGame.getState().travelPlan!.postes).toEqual({});
-    expect(hasCondition(useGame.getState().party[0], 'extenue')).toBe(false);
-  });
-
-  it('sans Compétence choisie dans un plan déjà posé : l’Étape ne monte ni rangée ni pas de poste pour lui', () => {
-    useGame.setState({ party: [heros()], journal: [], pendingCascade: null, travelPlan: { routeId: 'r', km: 24, postes: { h: { activityId: 'pratiquer-competence' } }, stage: { results: [] } } as never });
-    const steps = buildStageSteps(useGame.getState, useGame.setState, 'beau', 'ete');
-    expect(steps.map((s) => s.kind)).toEqual(['stageAggregate']);
-    expect(useGame.getState().travelPlan!.stage!.results).toEqual([]);
-    expect(hasCondition(useGame.getState().party[0], 'extenue')).toBe(false);
+  it('un rôle épinglé que l’édition du catalogue rend non tenu n’est plus épinglé : l’Étape retombe sur le rôle inféré', () => {
+    useGame.getState().setTravelRole('h', { activityId: 'recuperer' });
+    const avant = [...ACTIVITIES];
+    try {
+      setDataset('activities', avant.map((a) => (a.id === 'recuperer' ? { ...a, freeSkill: true } : a)));
+      const h = useGame.getState().party[0];
+      expect(postingTenu(h.travelRole!)).toBe(false);
+      expect(stageAssignmentFromRoles([h]).h?.activityId).not.toBe('recuperer');
+      expect(stageAssignmentFromRoles([h])).toEqual(stageAssignmentFromRoles([{ ...h, travelRole: undefined }]));
+    } finally {
+      setDataset('activities', avant);
+    }
   });
 });

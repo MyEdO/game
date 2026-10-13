@@ -1,24 +1,24 @@
-import { ACTIVITIES, type ActivityDef } from '../engine/activities';
+import { ACTIVITIES, activityById, type ActivityDef } from '../engine/activities';
+import { setDataset } from '../data/overrides';
 
 /**
- * Activité de contexte 'mer' SANS résolveur, fabriquée à la forme d'`activities.json` : la donnée est
- * éditable au Compendium, et le chemin réel qu'une telle entrée emprunte est `sea-activity-generic`
- * (`buildSeaGenericStep`). `over` surcharge ses champs (compétences, compétence libre…).
+ * Activité de contexte 'mer' SANS résolveur, dérivée de l'entrée réelle `cartographie` d'`activities.json`
+ * (résolveur retiré, id propre) : la donnée est éditable au Compendium, et le chemin réel qu'une telle
+ * entrée emprunte est `sea-activity-generic` (`buildSeaGenericStep`). `over` surcharge ses champs.
  */
-export const activiteMer = (over: Partial<ActivityDef> = {}): ActivityDef => ({
-  id: 'veille-en-mer', type: 'activities', label: 'Veille en mer', icon: 'ui/eye', contexts: ['mer'],
-  source: { book: 'mer-des-griffes', page: 130 }, skills: [{ id: 'perception' }], difficulty: 'intermediaire',
-  stake: 'Réussite : la veille tient.', stakeForm: 'descripteur',
-  ...over,
-} as ActivityDef);
+export const activiteMer = (over: Partial<ActivityDef> = {}): ActivityDef => {
+  const { resolver: _resolver, ...reelle } = structuredClone(activityById('cartographie')!);
+  return { ...reelle, id: 'veille-en-mer', label: 'Veille en mer', ...over };
+};
 
-/** Exécute `fn` avec `def` présente au CATALOGUE partagé (`ACTIVITIES`, même tableau que celui des
- *  enjeux), retirée ensuite quoi qu'il arrive : rien ne fuit vers les autres tests (`isolate: false`). */
+/** Exécute `fn` avec `def` présente au catalogue, posée et retirée par le seam `setDataset` quoi qu'il
+ *  arrive : rien ne fuit vers les autres tests (`isolate: false`). */
 export function avecActivite<T>(def: ActivityDef, fn: () => T): T {
-  ACTIVITIES.push(def);
+  const avant = [...ACTIVITIES];
+  setDataset('activities', [...avant, def]);
   try {
     return fn();
   } finally {
-    ACTIVITIES.splice(ACTIVITIES.indexOf(def), 1);
+    setDataset('activities', avant);
   }
 }

@@ -146,9 +146,9 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
    * aujourd'hui (`activities.json` : les trois entrées 'mer' sont `seaChart`, `opportunityTrade` et
    * `crewTraining` — cette dernière bloquée par `seaActivityBlocked`), mais la donnée est éditable au
    * Compendium. Le `def` étant un ARGUMENT du mint, il s'exerce avec une Activité 'mer' SANS résolveur
-   * fabriquée à la forme d'`activities.json`, à DEUX compétences (le choix de la meilleure est exercé).
+   * dérivée d'une entrée réelle d'`activities.json`, à DEUX compétences (le choix de la meilleure est exercé).
    */
-  const MER = activiteMer({ id: 'releve-des-cotes', label: 'Relevé des côtes', skills: [{ id: 'metier', spec: 'cartographe' }, { id: 'art', spec: 'cartographie' }] });
+  const MER = activiteMer({ id: 'releve-des-cotes', label: 'Relevé des côtes', difficulty: 'intermediaire', skills: [{ id: 'metier', spec: 'cartographe' }, { id: 'art', spec: 'cartographie' }] });
 
   it('chemin GÉNÉRIQUE — le MINT rend la MÊME cible et la MÊME valeur que `travelActivitySpec`, et possède le héros', () => {
     const hero = get().party[0];

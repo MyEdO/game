@@ -107,7 +107,7 @@ function seaActivityTest(def: ActivityDef): { skill: string; spec?: string } | u
 export function seaActivityRefus(hero: Combatant, def: ActivityDef): PlayerText | undefined {
   if (def.resolver === 'crewTraining') return undefined;
   const test = seaActivityTest(def);
-  if (!test) { const spec = travelActivitySpec(hero, def); return spec ? spec.refus : t('refus.competenceNonChoisie', { qui: hero.label }); }
+  if (!test) return travelActivitySpec(hero, def)?.refus;
   return peutTenter(hero, test.skill, test.spec) ? undefined : refusNePeutTenter(hero, { skill: test.skill, ...(test.spec ? { spec: test.spec } : {}) });
 }
 
@@ -141,14 +141,13 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
 
 /** Étape MONO chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : `travelActivitySpec` choisit la
  *  meilleure compétence TENTABLE de l'acteur, la porte lance le Test.
- *  `undefined` = Activité SANS Test (Récupérer…), appliquée d'office ici, ou poste NON TENU (compétence
- *  libre sans compétence choisie, `travelActivitySpec` → `null`) : aucune étape à jouer.
+ *  `undefined` = Activité SANS Test (Récupérer…), appliquée d'office ici : aucune étape à jouer. Aucune
+ *  Activité de contexte 'mer' ne déclare `freeSkill` (garde de donnée, `echec-sans-jet-appliers.test.ts`).
  *
  *  EXPORTÉE pour être mesurée SEULE : aucune entrée de contexte 'mer' d'`activities.json` n'emprunte
  *  ce résolveur aujourd'hui (les trois sont `seaChart`, `opportunityTrade`, `crewTraining`), mais la
- *  donnée est éditable au Compendium ; le catalogue est un module partagé qu'un test ne peut pas peupler
- *  sans fuir (`isolate: false`). Le `def` étant un ARGUMENT, la fonction s'exerce avec une Activité 'mer'
- *  fabriquée à la forme d'`activities.json`. */
+ *  donnée est éditable au Compendium. Ses tests posent une Activité 'mer' dérivée d'une entrée réelle au
+ *  catalogue par le seam `setDataset` (`activiteMer.testkit.ts`). */
 export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: ActivityDef): BuiltCascadeStep | undefined {
   const spec = travelActivitySpec(hero, def);
   if (!spec) return undefined;

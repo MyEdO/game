@@ -579,7 +579,7 @@ export function travelActivitySpec(
   opts: { skillMod?: number; stages?: number; freeSkill?: RefDesignee } = {},
 ): TravelActivitySpec | null {
   const drTarget = def.extended && opts.stages != null ? def.extended.drPerStage * opts.stages : undefined;
-  if (def.freeSkill && !opts.freeSkill) return null;
+  if (!activiteTenue(def, opts.freeSkill)) return null;
   const skillRefs = def.freeSkill ? [opts.freeSkill!] : (def.skills ?? []);
   // Activité SANS Test (Récupérer) : pas d'étape-jet.
   if (!skillRefs.length) return { activityId: def.id, actorId: actor.id, value: 0, target: null, skillMod: opts.skillMod ?? 0, drTarget };
@@ -598,12 +598,18 @@ export function travelActivitySpec(
 
 /** Compétences offertes au choix d'une Activité à compétence LIBRE (Pratiquer une Compétence, EDOC 8
  *  l.172) : celles de la fiche de l'acteur, puis les Compétences de BASE du catalogue absentes de sa fiche
- *  (LDB 09 l.25, LDB 09 l.30), chacune FERMÉE avec son refus nommé s'il ne peut pas la tenter
+ *  — une Compétence GROUPÉE par chacune de ses Spécialisations (`specPoolOf`), jamais nue (LDB 09 l.25,
+ *  l.30, l.36, l.44, l.46) —, chacune FERMÉE avec son refus nommé s'il ne peut pas la tenter
  *  (`peutTenter` ; #2588). PUR. */
 export function competencesAPratiquer(actor: Combatant): { ref: RefDesignee; refus?: PlayerText }[] {
+  const surFiche = (id: string, spec?: string): boolean => actor.skills.some((s) => s.id === id && (spec === undefined || s.spec === spec));
   const refs: RefDesignee[] = [
     ...actor.skills.map((s) => ({ id: s.id, ...(s.spec ? { spec: s.spec } : {}) })),
-    ...skills.filter((sd) => sd.acces === 'base' && !actor.skills.some((s) => s.id === sd.id)).map((sd) => ({ id: sd.id })),
+    ...skills.filter((sd) => sd.acces === 'base').flatMap((sd): RefDesignee[] => {
+      const specs = specPoolOf(sd);
+      if (!specs.length) return surFiche(sd.id) ? [] : [{ id: sd.id }];
+      return specs.filter((spec) => !surFiche(sd.id, spec)).map((spec) => ({ id: sd.id, spec }));
+    }),
   ];
   return refs.map((ref) => (peutTenter(actor, ref.id, ref.spec) ? { ref } : { ref, refus: refusNePeutTenter(actor, { skill: ref.id, ...(ref.spec ? { spec: ref.spec } : {}) }) }));
 }
@@ -704,11 +710,22 @@ export function defaultTravelRole(hero: Combatant): string | null {
   return bestSkilledOption(hero, activitiesFor('voyage').filter((d) => !d.freeSkill && d.skills?.length))?.option.id ?? null;
 }
 
-/** Un poste est TENU s'il nomme une Activité connue et, pour une Activité à compétence LIBRE, la
- *  Compétence pratiquée (EDOC 8 l.172) — sinon il n'est pas tenu : ni Test, ni issue. PUR. */
+/** Une Activité est TENUE quand, à compétence LIBRE, la Compétence pratiquée est nommée (EDOC 8 l.172) —
+ *  sinon ni Test, ni issue. SOURCE UNIQUE du prédicat, lue par `travelActivitySpec` et `postingTenu`. PUR. */
+function activiteTenue(def: Pick<ActivityDef, 'freeSkill'>, freeSkill: RefDesignee | undefined): boolean {
+  return !def.freeSkill || !!freeSkill;
+}
+
+/** Un poste est TENU s'il nomme une Activité connue, tenue (`activiteTenue`). PUR. */
 export function postingTenu(posting: StagePosting): boolean {
   const def = activityById(posting.activityId);
-  return !!def && (!def.freeSkill || !!posting.freeSkill);
+  return !!def && activiteTenue(def, posting.freeSkill);
+}
+
+/** Poste ÉPINGLÉ d'un héros (`Combatant.travelRole`) s'il est tenu (`postingTenu`) : un épinglage non tenu
+ *  n'en est pas un, ni au roster ni à l'Étape. PUR. */
+export function posteEpingle(hero: Pick<Combatant, 'travelRole'>): StagePosting | undefined {
+  return hero.travelRole && postingTenu(hero.travelRole) ? hero.travelRole : undefined;
 }
 
 /** Assignation d'Étape initialisée depuis les RÔLES persistants : chaque héros tient son `travelRole`
@@ -717,8 +734,9 @@ export function postingTenu(posting: StagePosting): boolean {
 export function stageAssignmentFromRoles(party: Combatant[]): Record<string, StagePosting> {
   const out: Record<string, StagePosting> = {};
   for (const hero of party) {
-    const inferred = hero.travelRole ? null : defaultTravelRole(hero);
-    const posting = hero.travelRole ?? (inferred ? { activityId: inferred } : null);
+    const pin = posteEpingle(hero);
+    const inferred = pin ? null : defaultTravelRole(hero);
+    const posting = pin ?? (inferred ? { activityId: inferred } : null);
     if (posting && postingTenu(posting)) out[hero.id] = posting;
   }
   return out;
