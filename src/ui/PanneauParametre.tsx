@@ -23,7 +23,7 @@
  * couche du dessus (`coucheDuDessus`).
  */
 import { useCallback, useEffect, useRef, type ReactNode } from 'react';
-import { OptionChooser, type RollOption } from './OptionChooser';
+import { OptionChooser, type RollOption, type RollGridOption } from './OptionChooser';
 import { useModalA11y } from './Modal';
 import { BoiteAncree, usePlacementAncre, type PlacementAncre } from './BoiteAncree';
 
@@ -31,8 +31,9 @@ import { BoiteAncree, usePlacementAncre, type PlacementAncre } from './BoiteAncr
 const PANNEAU_W = 280;
 
 /** Un candidat-PARAMÈTRE : ce qu'`OptionChooser` sait rendre, plus la MÉTA qui fait décider (« NI 3 »,
- *  « ×12 », « progression 2/3 ») et la CONSÉQUENCE éventuelle du choix (« consomme l'Action »). */
-export interface ParamOption extends RollOption {
+ *  « ×12 », « progression 2/3 ») et la CONSÉQUENCE éventuelle du choix (« consomme l'Action »). Un
+ *  candidat FERMÉ porte sa raison (`refus`, contrat de la grille d'`OptionChooser`) : offert, éteint. */
+export interface ParamOption extends RollOption, Pick<RollGridOption, 'refus'> {
   meta?: ReactNode;
   consequence?: ReactNode;
   /** VISUEL du candidat, à sa GAUCHE : un portrait quand le paramètre est une PERSONNE (affecter
@@ -95,7 +96,7 @@ function PanneauBoite({ anchor, intitule, options, onClose, placement }: Omit<Pa
   // (sonde du juge vision). Le mot vient de la primitive, donc de la même source que la classe.
   // Un candidat peut porter un VISUEL (portrait) : la rangée est alors `[visuel] [nom] [méta]`, et
   // c'est la primitive qui la range — le seul choix borné de PERSONNES du jeu reste sur CE mécanisme.
-  const rendues: RollOption[] = options.map((o) => ({
+  const rendues: RollGridOption[] = options.map((o) => ({
     ...o,
     content: (
       <>

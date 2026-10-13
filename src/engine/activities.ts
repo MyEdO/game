@@ -24,7 +24,8 @@ import { resolveFormula, type Formula, type GameOp } from './ops';
 import { evalCondition, type Condition, type ConditionCtx } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
-import { resolveSkillBest, bestSkilledOption, testValue, type TestSpec } from './skills';
+import { resolveSkillBest, bestSkilledOption, bestForSkills, refusNePeutTenter, testValue, type TestSpec } from './skills';
+import type { PlayerText } from '../i18n/playerText';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty, estJete, type EchecSansJet } from './tests';
@@ -586,7 +587,7 @@ export function resolveTravelActivity(
 }
 
 /** SPEC influençable d'une Activité de voyage tenue par un acteur, SANS lancer le dé : la compétence
- *  retenue (meilleure de l'acteur), sa valeur brute et la CIBLE effective (Difficulté + `skillMod` déjà
+ *  retenue (meilleure TENTABLE de l'acteur, `bestForSkills`), sa valeur brute et la CIBLE effective (Difficulté + `skillMod` déjà
  *  appliqués, bornée 1..99 — comme `rollTest`). Sert à bâtir une ÉTAPE de cascade influençable ; la
  *  résolution du dé (RNG ou influence) vit dans la cascade, l'issue s'obtient ensuite par
  *  `applyTravelActivityResult`. Une Activité SANS Test (Récupérer) renvoie `target: null`. PUR. */
@@ -599,6 +600,9 @@ export interface TravelActivitySpec {
   target: number | null;
   skillMod: number;
   drTarget?: number;
+  /** L'acteur ne peut tenter AUCUNE compétence de l'Activité (`peutTenter`, LDB 09 l.30 ; LDB 16 l.113) :
+   *  refus NOMMÉ de la compétence du poste — la ligne naît `ECHEC_SANS_JET` (#2588 Q1). */
+  refus?: PlayerText;
 }
 
 export function travelActivitySpec(
@@ -610,16 +614,17 @@ export function travelActivitySpec(
   const drTarget = def.extended && opts.stages != null ? def.extended.drPerStage * opts.stages : undefined;
   // Activité SANS Test (Récupérer) : pas d'étape-jet.
   if (!skillRefs.length) return { activityId: def.id, actorId: actor.id, value: 0, target: null, skillMod: opts.skillMod ?? 0, drTarget };
-  // MÊME choix que `resolveSkillBest` : meilleure valeur de l'acteur (first-max), Difficulté + mod bornés.
-  let bestVal = -Infinity;
-  let used: RefDesignee | undefined;
-  for (const ref of skillRefs) {
-    const v = testValue(actor, ref.id, undefined, ref.spec);
-    if (v > bestVal) { bestVal = v; used = ref; }
-  }
-  const value = Number.isFinite(bestVal) ? bestVal : 0;
+  // Meilleure compétence TENTABLE de l'acteur (`bestForSkills`, first-max) ; aucune → la compétence du
+  // poste et son refus nommé, patron `crewRoleValue` (LDB 09 l.30 ; LDB 16 l.113).
+  const b = bestForSkills([actor], skillRefs, undefined);
+  const sk = skillRefs[0];
+  const used: RefDesignee = b ? { id: b.skillId!, ...(b.spec ? { spec: b.spec } : {}) } : sk;
+  const value = b ? b.value : testValue(actor, sk.id, undefined, sk.spec);
   const target = Math.max(1, Math.min(99, value + DIFFICULTY_MODIFIERS[def.difficulty ?? 'intermediaire'] + (opts.skillMod ?? 0)));
-  return { activityId: def.id, actorId: actor.id, used, value, target, skillMod: opts.skillMod ?? 0, drTarget };
+  return {
+    activityId: def.id, actorId: actor.id, used, value, target, skillMod: opts.skillMod ?? 0, drTarget,
+    ...(b ? {} : { refus: refusNePeutTenter(actor, { skill: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) }) }),
+  };
 }
 
 /** Issue d'une Activité de voyage à partir d'un JET DÉJÀ résolu (cascade influençable) — jumeau PUR de

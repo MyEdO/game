@@ -1,5 +1,5 @@
 import { useGame } from '../state/store';
-import { activitiesFor } from '../engine/activities';
+import { activitiesFor, activityById, travelActivitySpec } from '../engine/activities';
 import { activityAsPoste } from '../state/poste';
 import { PostesRoster } from './PostesRoster';
 
@@ -12,6 +12,9 @@ import { PostesRoster } from './PostesRoster';
  * Comme les deux rosters navals, il n'affiche QUE l'ÉPINGLAGE : `defaultTravelRole` n'est pas mort —
  * il EST la résolution (`stageAssignmentFromRoles`, `engine/activities`, lu par `travelFlow`), et c'est
  * l'Étape qui montre l'Activité réellement tenue. Le banc dit donc qui la laisse décider.
+ *
+ * Le poste est un Test CHOISI (EDOC 8 l.131) : un héros qui n'en peut tenter aucune compétence y reste
+ * candidat, FERMÉ avec le refus que l'Étape poserait (`travelActivitySpec`, LDB 09 l.30 ; #2588).
  */
 export function TravelRolesPanel() {
   const party = useGame((s) => s.party);
@@ -25,6 +28,7 @@ export function TravelRolesPanel() {
       postes={activitiesFor('voyage').map(activityAsPoste)}
       pinnedOf={(h) => h.travelRole}
       onSet={setTravelRole}
+      refusCandidat={(p, h) => { const def = activityById(p.id); return def ? travelActivitySpec(h, def).refus : undefined; }}
       codexCategory="activities"
     />
   );

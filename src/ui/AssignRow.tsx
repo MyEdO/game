@@ -21,9 +21,13 @@ import type { Combatant } from '../engine/types';
  * Case FERMÉE (`refus`) : l'affordance d'ajout reste VISIBLE — le MÊME glyphe, simplement ÉTEINT
  * (`aria-disabled`, jamais `disabled` : il garde le clavier et la manette) — et dit POURQUOI au
  * survol/focus/tap via `GatedAction`. Jamais un filtrage silencieux, jamais un refus inline.
+ *
+ * Candidat FERMÉ (`refusDe`) : la case est tenable, mais pas par CE candidat (un Test CHOISI qu'il ne
+ * peut pas tenter, LDB 09 l.30 ; #2588). Il reste OFFERT au panneau, éteint, avec sa raison — le refus
+ * PAR OPTION que `RollOption.refus` porte déjà (`OptionChooser`).
  */
 export function AssignRow({
-  assigned, candidates, onAssign, onRemove, intitule, canPick = true, retirable = true, nomRetirer, metaDe, refus,
+  assigned, candidates, onAssign, onRemove, intitule, canPick = true, retirable = true, nomRetirer, metaDe, refus, refusDe,
 }: {
   /** Personnes actuellement affectées à CETTE case. */
   assigned: Combatant[];
@@ -48,6 +52,8 @@ export function AssignRow({
   metaDe?: (c: Combatant) => ReactNode;
   /** RAISON pour laquelle cette case n'est pas tenable ici — rendue au survol/focus/tap. */
   refus?: string;
+  /** RAISON pour laquelle CE candidat ne peut pas tenir la case — son option est éteinte et le dit. */
+  refusDe?: (c: Combatant) => string | undefined;
 }) {
   // Le BOUTON (ancre potentielle) et l'OUVERTURE sont deux choses : une `ref` callback est appelée au
   // MONTAGE, donc s'en servir d'état d'ouverture rendrait tous les panneaux du roster ouverts d'emblée.
@@ -62,6 +68,7 @@ export function AssignRow({
     // (portrait, nom, méta) est rangée par `PanneauParametre`, jamais ici.
     visuel: <CharFrame c={c} variant="identity" size="sm" decoratif />,
     ...(metaDe?.(c) != null ? { meta: metaDe(c) } : {}),
+    ...(refusDe?.(c) != null ? { refus: refusDe(c) } : {}),
     onSelect: () => onAssign(c.id),
   }));
   return (

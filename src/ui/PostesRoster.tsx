@@ -30,7 +30,7 @@ export function nextPinned(pinned: string | undefined, clickedPosteId: string): 
  * `CodexRef` (le ⓘ qui remplace l'infobulle native), `GatedAction` via `AssignRow` (poste fermé).
  */
 export function PostesRoster({
-  title, banc, heroes, postes, pinnedOf, onSet, refusOf, codexCategory,
+  title, banc, heroes, postes, pinnedOf, onSet, refusOf, refusCandidat, codexCategory,
 }: {
   title: string;
   /** Libellé de la ligne de BANC (« À la discrétion du Test », « Sans station ») — il dit ce qui
@@ -46,6 +46,9 @@ export function PostesRoster({
    *  reste OFFERT, éteint, et dit pourquoi au survol/focus/tap. Jamais un filtrage silencieux : un
    *  poste qui disparaît ne s'explique pas. */
   refusOf?: (poste: Poste) => string | undefined;
+  /** RAISON pour laquelle CE héros ne peut pas tenir CE poste (un Test CHOISI qu'il ne peut pas tenter,
+   *  LDB 09 l.30) : le candidat reste offert au panneau, éteint, et dit pourquoi. */
+  refusCandidat?: (poste: Poste, h: Combatant) => string | undefined;
   /** Catégorie Codex des postes de ce roster (`crewRoles`, `shipStations`, `activities`) : le LIBELLÉ
    *  de chaque ligne ouvre SA fiche. Une ligne sans entrée (Repos, banc) reste du texte simple. */
   codexCategory: string;
@@ -77,6 +80,7 @@ export function PostesRoster({
           retirable={p != null}
           metaDe={(c) => { const cur = pinnedOf(c); const cp = cur ? postes.find((x) => x.id === cur) : undefined; return cp ? `(${cp.label})` : undefined; }}
           {...(refus ? { refus } : {})}
+          {...(p && refusCandidat ? { refusDe: (c: Combatant) => refusCandidat(p, c) } : {})}
         />
       </div>
     );

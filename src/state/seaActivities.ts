@@ -148,7 +148,7 @@ export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: Ac
     label: composeRollLabel(hero, def.label, test), difficulty, rollLabel: def.label,
     // Idem : l'enjeu descend à l'Activité jouée, quelle qu'elle soit (fail-closed si elle n'en a pas).
     stake: activityStakeRef(def.id),
-    ligne: { test },
+    ligne: { test, refus: spec.refus },
     meta: { activityId: def.id },
   });
 }

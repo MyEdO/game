@@ -182,10 +182,9 @@ export function shipManeuverParams(ship: Combatant): ManeuverParams {
 }
 
 /** Construit le `ManeuverResult` pour un Test de Navigation donné (PUR, aucune mutation, aucun RNG).
- *  RAW (MDG 13) : le VIRAGE réussit si le **Test réussit** (d100 ≤ cible — l.304 « virement de bord =
- *  Test réussi… en cas d'échec, le bateau se déplace normalement, sans bonus »). Le Man est un modificateur
- *  de **DR** (ch.12 l.48-50, stat-bloc « −1 DR »), PAS de difficulté → il échelonne le DR (mouvement via la
- *  Progression + l'IC de collision), il ne BASCULE PAS la réussite. On prend donc `nav.success` (le d100),
+ *  Le VIRAGE réussit si le Test de Manœuvre réussit (d100 ≤ cible) ; le Man est appliqué en **DR**, PAS
+ *  en difficulté → il échelonne le DR (mouvement via la Progression + l'IC de collision), il ne BASCULE
+ *  PAS la réussite. MDG 13 l.119 ; MDG 12 l.50. On prend donc `nav.success` (le d100),
  *  jamais `dr ≥ 0` (qui conflaterait un d100 raté à DR 0 en faux succès, ou un d100 réussi à DR<0 en faux échec). */
 function deriveManeuver(ship: Combatant, nav: { sl: number; roll: number; target: number; success: boolean }, helmsman: string): ManeuverResult {
   const { baseM, manoeuvre, extraDR } = shipManeuverParams(ship);

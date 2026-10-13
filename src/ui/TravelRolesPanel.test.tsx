@@ -1,0 +1,62 @@
+// @vitest-environment jsdom
+/**
+ * Rôles de marche : le poste est un Test CHOISI (EDOC 8 l.131). Un héros qui ne peut tenter aucune
+ * compétence du poste (LDB 09 l.30 ; Inconscient, LDB 16 l.113) reste candidat au panneau, FERMÉ avec
+ * le refus que l'Étape poserait (#2588).
+ */
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { useGame } from '../state/store';
+import { refusNePeutTenter } from '../engine/skills';
+import { TravelRolesPanel } from './TravelRolesPanel';
+import type { Combatant } from '../engine/types';
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+let root: Root | null = null;
+let container: HTMLDivElement | null = null;
+afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; container = null; });
+
+const hero = (id: string, label: string, over: Partial<Combatant> = {}): Combatant => ({
+  id, label, kind: 'hero',
+  characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
+  wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], skills: [], talents: [],
+  weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
+  items: [], movement: 4, ...over,
+} as Combatant);
+
+const HILDA = hero('h1', 'Hilda');
+const GUNNAR = hero('h2', 'Gunnar', { conditions: [{ id: 'inconscient', value: 1 }] } as Partial<Combatant>);
+
+function ouvrirPanneau(poste: string): HTMLElement {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  act(() => { root!.render(<TravelRolesPanel />); });
+  const ajout = container.querySelector(`.pr-ligne[data-poste="${poste}"] .pr-add`) as HTMLButtonElement;
+  act(() => { ajout.click(); });
+  return document.querySelector('[data-panneau-parametre]') as HTMLElement;
+}
+const candidat = (panneau: HTMLElement, nom: string) =>
+  [...panneau.querySelectorAll('button')].find((b) => b.textContent?.includes(nom)) as HTMLButtonElement;
+
+describe('TravelRolesPanel — un poste que le héros ne peut pas tenter est FERMÉ par candidat', () => {
+  beforeEach(() => useGame.setState({ party: [HILDA, GUNNAR] }));
+
+  it('le candidat Inconscient reste offert, éteint, et dit pourquoi ; l’autre reste ouvert', () => {
+    const panneau = ouvrirPanneau('rester-aux-aguets');
+    const ferme = candidat(panneau, 'Gunnar');
+    expect(ferme.getAttribute('aria-disabled')).toBe('true');
+    expect(ferme.hasAttribute('disabled'), 'atteignable, jamais disabled').toBe(false);
+    const raison = document.getElementById(ferme.getAttribute('aria-describedby')!);
+    expect(raison?.textContent).toContain(refusNePeutTenter(GUNNAR, { skill: 'perception' }));
+    expect(candidat(panneau, 'Hilda').getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it('cliquer le candidat fermé n’épingle rien', () => {
+    const panneau = ouvrirPanneau('rester-aux-aguets');
+    act(() => { candidat(panneau, 'Gunnar').click(); });
+    expect(useGame.getState().party.find((h) => h.id === 'h2')!.travelRole).toBeUndefined();
+  });
+});
