@@ -33,6 +33,8 @@ test('#2537 — un pli de chemin est celui du module importé, jamais un homonym
   assert.deepEqual(plie(`${fs}const { join: j } = require('node:path')\nfs.writeFileSync(j('a', 'b'), 'a')`), ['a/b'])
   assert.deepEqual(plie(`${fs}fs.writeFileSync(['a', 'b'].join('/'), 'a')`), ['a/b'])
   assert.deepEqual(plie(`${fs}import { fileURLToPath as u } from 'node:url'\nfs.writeFileSync(u(import.meta.url), 'a')`, { fichier: 'd/s.mjs' }), ['d/s.mjs'])
+  for (const platform of ['win32', 'linux']) assert.deepEqual(plie(`${fs}import { join } from 'node:path'
+fs.writeFileSync(join(import.meta.dirname, 'x'), 'a')`, { fichier: 'd/s.mjs', platform }), ['d/x'], platform)
   assert.deepEqual(plie(`${fs}const fileURLToPath = () => 'x'\nfs.writeFileSync(fileURLToPath(import.meta.url), 'a')`, { fichier: 'd/s.mjs' }), [null])
 })
 

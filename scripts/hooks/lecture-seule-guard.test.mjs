@@ -1,23 +1,24 @@
-// Garde des types en lecture seule (#2537) : la garde RÉELLE par le répartiteur (`repartir`), sur un
-// échantillon FIXE tiré du rejeu des commandes shell de lecteur, juge et verif-mecanique (14 jours au
-// 2026-10-12), chemins ramenés au scratchpad forgé de la session du banc. Rien ne s'exécute.
+// Garde des types en lecture seule (#2537) : la garde RÉELLE, sur un échantillon FIXE tiré du rejeu des commandes
+// shell de lecteur, juge et verif-mecanique (14 jours au 2026-10-12), chemins ramenés au scratchpad forgé de la session
+// du banc, jouée sous win32 ET linux sur tout hôte : la plateforme de l'hôte par le répartiteur (`repartir`), l'autre par
+// `garde.evaluer` sur une racine et un répertoire temporaire forgés, son disque lu sur celui de l'hôte. Rien ne s'exécute.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import * as FS from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { repartir } from './repartition.mjs'
 import { garde, scratchpadDeSession } from './lecture-seule-guard.mjs'
 import { REGISTRE } from './registre.mjs'
+import { cheminsDe } from '../guards/lib/commandeShell.mjs'
+import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const SLUG = 'banc-lecture-seule'
 const SESSION = `banc-2537-${process.pid}`
 const TRANSCRIPT = join(RACINE, '.claude', 'projects', SLUG, `${SESSION}.jsonl`)
 const SP = join(tmpdir(), 'claude', SLUG, SESSION, 'scratchpad')
-const P = SP.split('\\').join('/')
-const HORS = resolve(RACINE, '..', 'hors-banc-2537').split('\\').join('/')
 /** `texte` en motif littéral d'une regex. */
 const echapper = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** La suite du banc que `vitest run --dir` lance et qui écrit hors du scratchpad. */
@@ -48,13 +49,29 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
   FS.writeFileSync(join(SP, 'dir-lit', 'y.test.mjs'), "import fs from 'node:fs'\nfs.readFileSync('package.json')\n")
   FS.writeFileSync(join(SP, 'vitest.config.mjs'), "export default { root: 'dir-ecrit' }\n")
   FS.mkdirSync(join(SP, 'dir-abs'), { recursive: true })
-  FS.writeFileSync(join(SP, 'dir-abs', 'z.test.mjs'), `import fs from 'node:fs'\nfs.writeFileSync('${HORS}/r.txt', 'x')\n`)
-  const TMP = { TEMP: tmpdir(), TMP: tmpdir(), TMPDIR: tmpdir() }
-  const R = RACINE.split('\\').join('/').replace(/\/$/, '')
+  FS.writeFileSync(join(SP, 'dir-abs', 'z.test.mjs'), "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n")
+  /** Le monde du banc sous `platform` : celui de l'hôte, ou une racine et un répertoire temporaire forgés pour la
+   *  plateforme étrangère, son disque (`lire`, `lister`) ramené à celui de l'hôte. */
+  const mondeDe = (platform) => {
+    const chemins = cheminsDe(platform), hote = (platform === 'win32') === (process.platform === 'win32')
+    const volume = platform === 'win32' ? 'C:' : '/'
+    const racine = hote ? RACINE : chemins.join(volume, '/banc/depot'), tmp = hote ? tmpdir() : chemins.join(volume, '/banc/tmp')
+    const oblique = (chemin) => chemin.split('\\').join('/')
+    const paires = [[oblique(tmp), oblique(tmpdir())], [oblique(racine).replace(/\/$/, ''), oblique(RACINE).replace(/\/$/, '')]]
+    const traduire = (chemin, [de, vers]) => { const o = oblique(chemin), [a, b] = [de, vers]; return o.startsWith(a) ? b + o.slice(a.length) : null }
+    const versHote = (chemin) => paires.map((paire) => traduire(chemin, paire)).find(Boolean) ?? chemin
+    const versMonde = (chemin) => chemins.normalize(paires.map(([a, b]) => traduire(chemin, [b, a])).find(Boolean) ?? chemin)
+    const sp = chemins.join(tmp, 'claude', SLUG, SESSION, 'scratchpad')
+    return {
+      hote, racine, tmp, transcript: chemins.join(racine, '.claude', 'projects', SLUG, `${SESSION}.jsonl`), SP: sp, P: oblique(sp),
+      HORS: oblique(chemins.resolve(racine, '..', 'hors-banc-2537')), R: oblique(racine).replace(/\/$/, ''), TMP: { TEMP: tmp, TMP: tmp, TMPDIR: tmp },
+      lire: (chemin) => { try { return { texte: FS.readFileSync(versHote(chemin), 'utf8') } } catch (e) { return { raison: `illisible (${e?.code})` } } },
+      lister: (dossier) => { try { return FS.readdirSync(versHote(dossier), { recursive: true, withFileTypes: true }).filter((e) => e.isFile() && estSuiteVitest(e.name)).map((e) => versMonde(join(e.parentPath, e.name))) } catch { return [] } },
+    }
+  }
   /** Chaque cas : l'outil, la commande, le type, la décision attendue, un motif de la raison, et les plateformes
-   *  où il se joue (les deux par défaut), jouées sur l'HÔTE seulement : les chemins du banc sont forgés par
-   *  `resolve`/`tmpdir`, natifs de l'hôte, et la garde résout par le `node:path` de sa `platform`. */
-  const cas = [
+   *  où il se joue (les deux par défaut), forgées par le monde de la plateforme (`mondeDe`). */
+  const casDe = ({ P, HORS, R, SP, TMP }) => [
     ['Bash', 'gh api repos/MyEdO/game/issues/comments/1 --jq .body > "$TMP/plan.md" 2>&1', 'juge', 'deny', /redirection hors du scratchpad/, { env: TMP }],
     ['Bash', 'gh api repos/MyEdO/game/issues/comments/1 --jq .body > "$INCONNUE/plan.md"', 'juge', null],
     ['Bash', 'git grep -nE "x" origin/main -- src > ../.wt-tmp.txt', 'juge', 'deny', /redirection hors du scratchpad/],
@@ -125,7 +142,8 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['Bash', 'git tag -d v1', 'juge', 'deny', /git tag : écrivain/],
     ['Bash', 'npm test -- -u', 'juge', 'deny', /npm test -- -u : écrivain/],
     ['Bash', 'npx vitest run --update', 'juge', 'deny', /npx vitest run --update : écrivain/],
-    ['Bash', 'npx tsc -p .', 'juge', 'deny', /npx tsc -p \. : écrivain .* — canal : un outil de la table de lecture de `npx`/],
+    ['Bash', 'npx tsc -p .', 'juge', null],
+    ['Bash', 'npx tsc -p . --outDir sortie', 'juge', 'deny', /npx tsc -p \. --outDir sortie : écrivain .* — canal : un outil de la table de lecture de `npx`/],
     ['Bash', 'npx tsc --noEmit', 'juge', null],
     ['Bash', 'npx eslint src/engine', 'juge', null],
     ['Bash', 'npx eslint --fix src/engine', 'juge', 'deny', /npx eslint --fix src\/engine : écrivain/],
@@ -157,7 +175,12 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['Bash', 'node --test', 'juge', null],
     ['Bash', `cp src/gameIso/stage/GameStage3D.tsx "${P}/GameStage3D.bak" && perl -i -pe 's/x/y/' src/gameIso/stage/GameStage3D.tsx`, 'juge', 'deny', /perl hors du scratchpad/],
     ['Bash', `perl -i -pe 's/x/y/' "${P}/a.txt"`, 'juge', null],
-    ['Bash', 'tsc', 'juge', 'deny', /tsc : écrivain .* — canal : un outil de la table de lecture de `npx`/],
+    ['Bash', 'tsc', 'juge', null],
+    ['Bash', 'tsc -b', 'juge', 'deny', /tsc -b : écrivain .* — canal : un outil de la table de lecture de `npx`/],
+    ['Bash', 'npm run build', 'juge', 'deny', /vite build : écrivain/],
+    ['Bash', 'node scripts/lancer-local.mjs vite -- vite build', 'juge', 'deny', /vite build : écrivain/],
+    ['Bash', 'split --help', 'juge', null],
+    ['Bash', 'exec rm -f ../x', 'lecteur', 'deny', /rm hors du scratchpad/],
     ['Bash', 'gh pr merge --help', 'juge', null],
     ['Bash', 'echo x > ~/x.txt', 'juge', 'deny', /redirection hors du scratchpad/, { env: { HOME: HORS, USERPROFILE: HORS } }],
     ['PowerShell', 'iwr https://x -OutFile o.txt', 'juge', 'deny', /iwr hors du scratchpad/],
@@ -174,16 +197,22 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['Bash', `cd "${P}"\\; echo x > out.txt`, 'juge', 'deny', /redirection hors du scratchpad/],
   ]
   try {
-    for (const [tool_name, command, agent_type, attendu, motif, { env = {}, platforms = ['win32', 'linux'] } = {}] of cas) for (const platform of platforms.filter((p) => (p === 'win32') === (process.platform === 'win32'))) {
-      const { sortie } = await repartir({ PreToolUse: REGISTRE.PreToolUse.filter((g) => g === garde) }, JSON.stringify({
-        hook_event_name: 'PreToolUse', tool_name, tool_input: { command }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_id: 'a1', agent_type,
-      }), { env, cwd: RACINE, platform })
-      const quoi = `${platform} ${agent_type} ${tool_name} ${command}`
-      assert.equal(sortie?.hookSpecificOutput?.permissionDecision ?? null, attendu, quoi)
-      if (motif) assert.match(sortie.hookSpecificOutput.permissionDecisionReason.split('\\').join('/'), motif, quoi)
+    for (const platform of ['win32', 'linux']) {
+      const monde = mondeDe(platform)
+      for (const [tool_name, command, agent_type, attendu, motif, { env = {}, platforms = ['win32', 'linux'] } = {}] of casDe(monde)) {
+        if (!platforms.includes(platform)) continue
+        const entree = { hook_event_name: 'PreToolUse', tool_name, tool_input: { command }, session_id: SESSION, transcript_path: monde.transcript, agent_id: 'a1', agent_type }
+        const { decision, raison } = monde.hote
+          ? await repartir({ PreToolUse: REGISTRE.PreToolUse.filter((g) => g === garde) }, JSON.stringify(entree), { env, cwd: RACINE, platform })
+            .then(({ sortie }) => ({ decision: sortie?.hookSpecificOutput?.permissionDecision ?? null, raison: sortie?.hookSpecificOutput?.permissionDecisionReason }))
+          : garde.evaluer(entree, { baseDeLAppel: monde.racine, platform, env, tmp: monde.tmp, lire: monde.lire, lister: monde.lister }) ?? { decision: null }
+        const quoi = `${platform} ${monde.hote ? 'hôte' : 'forgé'} ${agent_type} ${tool_name} ${command}`
+        assert.equal(decision, attendu, quoi)
+        if (motif) assert.match(raison.split('\\').join('/'), motif, quoi)
+      }
     }
     const sansTranscript = await repartir({ PreToolUse: REGISTRE.PreToolUse.filter((g) => g === garde) }, JSON.stringify({
-      hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `echo x > "${P}/x.txt"` }, session_id: SESSION, agent_type: 'lecteur',
+      hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `echo x > "${mondeDe(process.platform).P}/x.txt"` }, session_id: SESSION, agent_type: 'lecteur',
     }), { env: {}, cwd: RACINE })
     assert.match(sansTranscript.sortie.hookSpecificOutput.permissionDecisionReason, /scratchpad de session non dérivable/)
   } finally {

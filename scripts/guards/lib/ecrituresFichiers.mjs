@@ -1,11 +1,12 @@
-import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
+import { cheminsDe } from './commandeShell.mjs'
 import { analyserCorpus, typescript } from './dialecte.mjs'
 import { creerProvenanceFs } from './provenanceFs.mjs'
 import { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
 export { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
 
 /** Les fonctions de `node:child_process` qui lancent une commande, par export (`exportAppele`) : `exec*` la
- *  reçoivent en une chaîne, `spawn*`/`execFile*` en un exécutable et un tableau d'arguments ; `fork` lance un module. */
+ *  reçoivent en une chaîne, `spawn*`/`execFile*` en un exécutable, un tableau d'arguments facultatif et des options
+ *  (`shell: true` : la commande et ses arguments joints par une espace, lus par le shell) ; `fork` lance un module. */
 const LANCEURS = {
   'child_process#exec': 'chaine', 'child_process#execSync': 'chaine', 'child_process#spawn': 'tableau', 'child_process#spawnSync': 'tableau',
   'child_process#execFile': 'tableau', 'child_process#execFileSync': 'tableau', 'child_process#fork': 'module',
@@ -15,7 +16,8 @@ const LANCEURS = {
 export const MOT_INCONNU = '$argument_non_constant'
 /** Les modules dont un `import()` dynamique rend des écritures que la provenance ne suit pas. */
 const MODULES_QUI_ECRIVENT = /^(?:node:)?(?:fs|fs\/promises|child_process)$/
-const PLIS_DE_CHEMIN = { 'path#join': join, 'path#resolve': (...p) => (p.some(isAbsolute) ? resolve(...p) : join(...p)), 'path#dirname': dirname, 'path#basename': basename }
+/** Les plis de `node:path` sous le `node:path` `P` de la plateforme jugée. */
+const plisDeChemin = (P) => ({ 'path#join': P.join, 'path#resolve': (...p) => (p.some(P.isAbsolute) ? P.resolve(...p) : P.join(...p)), 'path#dirname': P.dirname, 'path#basename': P.basename })
 
 /** Les variables d'environnement que le hook connaît du processus qu'il juge : le répertoire temporaire. */
 export const VARIABLES_AMORCEES = ['TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE']
@@ -45,7 +47,7 @@ export function repertoireTemporaire(env, platform) {
  */
 export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [], env = {}, platform = process.platform } = {}) {
   const ts = typescript()
-  const sorties = []
+  const P = cheminsDe(platform), sorties = [], plis = plisDeChemin(P)
   for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel, text: texte }])) {
     if (diagnostics.length || !sourceFile) return []
     const provenance = creerProvenanceFs({ sourceFile, checker, ts })
@@ -116,7 +118,7 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
       }
       if (ts.isPropertyAccessExpression(n) && ts.isMetaProperty(n.expression)) {
         if (!fichier) return null
-        return n.name.text === 'dirname' ? dirname(fichier) : n.name.text === 'filename' ? fichier : null
+        return n.name.text === 'dirname' ? P.dirname(fichier) : n.name.text === 'filename' ? fichier : null
       }
       if (ts.isPropertyAccessExpression(n) && n.getText(sourceFile) === 'process.execPath') return 'node'
       if (ts.isElementAccessExpression(n) && n.expression.getText(sourceFile) === 'process.argv' && ts.isNumericLiteral(n.argumentExpression)) {
@@ -135,14 +137,29 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
         const appele = exportAppele(n)
         if (appele === 'url#fileURLToPath' && n.arguments[0]?.getText(sourceFile) === 'import.meta.url') return fichier ?? null
         if (appele === 'os#tmpdir' && n.arguments.length === 0) return repertoireTemporaire(env, platform)
-        if (appele !== null && Object.hasOwn(PLIS_DE_CHEMIN, appele)) {
+        if (appele !== null && Object.hasOwn(plis, appele)) {
           const valeurs = n.arguments.map(plier)
-          return valeurs.length && valeurs.every((v) => v !== null) ? PLIS_DE_CHEMIN[appele](...valeurs) : null
+          return valeurs.length && valeurs.every((v) => v !== null) ? plis[appele](...valeurs) : null
         }
       }
       return null
     }
     const parcours = (n, fn) => { fn(n); n.forEachChild((c) => parcours(c, fn)) }
+    /** Les éléments de la liste d'arguments `n` d'un lancement : un tableau littéral, ou l'identifiant d'un `const`
+     *  tableau littéral que le texte ne fait que passer en argument d'appel ; `[]` sans liste, `null` sinon. */
+    const elementsDe = (n) => {
+      if (n === undefined) return []
+      if (ts.isArrayLiteralExpression(n)) return n.elements
+      const declarationDe = (id) => checker.getSymbolAtLocation(id)?.declarations?.[0]?.resolve()
+      const declaration = ts.isIdentifier(n) ? declarationDe(n) : undefined
+      if (!declaration || !ts.isVariableDeclaration(declaration) || !/^const\b/.test(declaration.parent.getText(sourceFile))) return null
+      if (!declaration.initializer || !ts.isArrayLiteralExpression(declaration.initializer)) return null
+      let passe = true
+      parcours(sourceFile, (id) => {
+        if (passe && ts.isIdentifier(id) && id.pos !== declaration.name.pos && declarationDe(id)?.pos === declaration.pos) passe = ts.isCallExpression(id.parent) && id.parent.arguments.includes(id)
+      })
+      return passe ? declaration.initializer.elements : null
+    }
     parcours(sourceFile, (n) => {
       if (!ts.isCallExpression(n)) return
       if (n.expression.kind === ts.SyntaxKind.ImportKeyword) {
@@ -155,8 +172,13 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
       const lanceur = exportAppele(n)
       if (lanceur !== null && Object.hasOwn(LANCEURS, lanceur)) {
         const forme = LANCEURS[lanceur], operation = lanceur.slice(lanceur.indexOf('#') + 1)
+        const [, second, troisieme] = n.arguments
+        const sansOptions = second === undefined || !ts.isObjectLiteralExpression(second)
+        const options = sansOptions ? troisieme : second
+        const shell = options !== undefined && ts.isObjectLiteralExpression(options) && options.properties.some((p) =>
+          ts.isPropertyAssignment(p) && p.name.getText(sourceFile) === 'shell' && p.initializer.kind === ts.SyntaxKind.TrueKeyword)
         const commande = forme === 'chaine' ? plier(n.arguments[0])
-          : forme === 'tableau' ? commandeDeTableau(plier(n.arguments[0]), n.arguments[1], plier, ts)
+          : forme === 'tableau' ? commandeDeTableau(plier(n.arguments[0]), elementsDe(sansOptions ? second : undefined), plier, ts, shell)
             : null
         sorties.push(commande === null ? { chemin: null, inconnue: true, operation } : { chemin: null, inconnue: false, operation, commande })
         return
@@ -177,10 +199,11 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
   return sorties
 }
 
-/** `spawn(fichier, [args])` rendu en une commande shell aux arguments sous quote simple, un argument non constant
- *  (ou une liste non littérale) valant `MOT_INCONNU` ; `null` si l'exécutable n'est pas constant. */
-function commandeDeTableau(fichier, args, plier, ts) {
+/** `spawn(fichier, [args])` rendu en une commande shell, `elements` = les nœuds de ses arguments (`null` : une liste non
+ *  lue) : sous quote simple, ou nus avec `shell` ; un argument non constant (ou une liste non lue) vaut `MOT_INCONNU` ;
+ *  `null` si l'exécutable n'est pas constant. */
+function commandeDeTableau(fichier, elements, plier, ts, shell) {
   if (fichier === null) return null
-  const valeurs = args === undefined ? [] : ts.isArrayLiteralExpression(args) ? args.elements.map((e) => (ts.isSpreadElement(e) ? null : plier(e))) : [null]
-  return [fichier, ...valeurs].map((v) => (v === null ? MOT_INCONNU : `'${v.split("'").join("'\\''")}'`)).join(' ')
+  const valeurs = elements === null ? [null] : elements.map((e) => (ts.isSpreadElement(e) ? null : plier(e)))
+  return [fichier, ...valeurs].map((v) => (v === null ? MOT_INCONNU : shell ? v : `'${v.split("'").join("'\\''")}'`)).join(' ')
 }

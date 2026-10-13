@@ -1,54 +1,67 @@
 import { affectationPowerShell, basenameExecutable, CHANGEMENTS_DE_REPERTOIRE, cheminsDe, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, gitSubcommand, jetonNu, pipelinesDeJetons, sansRedirections, texteDuSegment, versCheminNatif } from './commandeShell.mjs'
-import { VARIABLES_AMORCEES, ciblesDEcritureJS } from './ecrituresFichiers.mjs'
+import { readFileSync } from 'node:fs'
+import { VARIABLES_AMORCEES, ciblesDEcritureJS, repertoireTemporaire } from './ecrituresFichiers.mjs'
 
 /** Un mot développé NON CONSTANT (variable inconnue, `MOT_INCONNU` d'un lancement JS, argument qu'alimente `xargs`) :
  *  il porte `\0`. En position de sous-commande de git, npm, npx ou gh, l'écrivain n'est pas prouvé, donc non jugé (#2537). */
 const nonConstant = (mot) => typeof mot === 'string' && mot.includes('\0')
 
 /**
- * La table FERMÉE des écrivains de fichiers, DÉRIVÉE de deux règles de complétude (#2537) :
- * - POSIX : les utilitaires de XCU (POSIX.1-2024, Shell & Utilities, liste des utilitaires) qui créent, modifient ou
- *   suppriment un fichier qu'ils nomment — ar, c99, chgrp, chmod, chown, compress, cp, csplit, ctags, dd, ed, ex, lex,
- *   link, ln, mkdir, mkfifo, mv, patch, pax, rm, rmdir, sort -o, split, strip, tee, touch, uncompress, uniq, unlink,
- *   uudecode, yacc —, et les écrivains hors POSIX attestés au corpus de 14 jours : install, rsync, truncate, shred,
- *   sed -i, perl -i, ruby -i, gzip, gunzip, bzip2, bunzip2, xz, unxz, zstd, zip, tar, unzip, wget, curl -o/-O ;
- * - PowerShell : les cmdlets des verbes qui modifient (`Get-Verb` : Add, Clear, Compress, Copy, Expand, Export, Move,
- *   New, Out, Remove, Rename, Save, Set, Unblock, Update, Start-Transcript) qui prennent un chemin (`Get-Command -Verb …
- *   -Module Microsoft.PowerShell.*`, paramètres Path, LiteralPath, Destination, DestinationPath, FilePath,
- *   CatalogFilePath), hors lecteurs de chemin (Join-Path, Split-Path, Convert-Path, Set-Location, Invoke-Item, Add-Type,
- *   Start-Process, Start-Job, Invoke-Command) et WMI ; `-OutFile` de toute cmdlet ; `[IO.File]::`/`[IO.Directory]::`.
+ * La table FERMÉE des écrivains de fichiers (#2537), bornée par trois sources figées, données de son test
+ * (`fixtures/ecrivains-sources.json`, concordance dans `ecrituresShell.test.mjs`) :
+ * - POSIX : les utilitaires de XCU (POSIX.1-2024, Issue 8, `idx/utilities.html`) qui créent, modifient ou suppriment
+ *   un fichier ; tout autre utilitaire de XCU y porte sa raison d'exclusion ;
+ * - hors POSIX : les écrivains des commandes shell des agents (14 jours), chacun avec son compte d'attestations au
+ *   corpus ;
+ * - PowerShell : `Get-Command -Verb <verbes qui modifient> -Module Microsoft.PowerShell.*` et ses alias ; toute autre
+ *   cmdlet y porte sa raison d'exclusion.
+ * Les écrivains, par source (`ECRIVAINS`) :
+ * POSIX : admin, ar, at, awk, batch, c17, chgrp, chmod, chown, compress, cp, crontab, csplit, ctags, cxref, dd, delta, ed, ex, find, gencat, get, iconv, lex, link, ln, localedef, make, mkdir, mkfifo, msgfmt, mv, patch, pax, rm, rmdel, rmdir, sccs, sed, sort, split, strip, tee, touch, uncompress, unget, uniq, unlink, uucp, uudecode, vi, xgettext, yacc
+ * hors POSIX : bunzip2, bzip2, curl, gawk, gh, git, gunzip, gzip, install, md, mklink, mktemp, npm, npx, perl, rsync, ruby, shred, tar, truncate, unxz, unzip, wget, xz, zip, zstd
  * Une cmdlet lie ses positionnels aux emplacements (`positionnels`, `Position` de `Get-Command`) que ses paramètres
- * nommés laissent libres ; `cibles` = ceux qu'elle écrit.
+ * nommés laissent libres ; `cibles` = ceux qu'elle écrit ; `defaut` = sa cible quand elle n'en nomme aucune (`null` :
+ * une cible qu'elle ne nomme pas, hors de la session).
  */
 const cmdlet = (noms, positionnels, cibles = positionnels, extra = {}) => ({ noms, role: 'cmdlet', powerShell: true, positionnels, cibles, ...extra })
 const ROLES = [
   { noms: ['cp', 'ln'], role: 'destination', valeurs: ['-S', '--suffix'], destination: ['-t', '--target-directory'] },
   { noms: ['install'], role: 'destination', valeurs: ['-m', '--mode', '-o', '--owner', '-g', '--group', '-S', '--suffix'], destination: ['-t', '--target-directory'] },
   { noms: ['rsync'], role: 'destination', valeurs: ['-e', '--rsh', '-f', '--filter', '-T', '--temp-dir', '-B', '--block-size', '-M', '--remote-option'] },
+  { noms: ['uucp'], role: 'destination', valeurs: ['-g', '-n', '-x'] },
   { noms: ['mv'], role: 'deplacement', valeurs: ['-S', '--suffix'], destination: ['-t', '--target-directory'] },
-  { noms: ['tee', 'rm', 'rmdir', 'unlink', 'strip', 'ed', 'ex'], role: 'chemins' },
+  { noms: ['tee', 'rm', 'rmdir', 'unlink', 'strip', 'ed', 'ex', 'vi', 'admin', 'delta', 'rmdel', 'unget'], role: 'chemins' },
   { noms: ['shred'], role: 'chemins', valeurs: ['-n', '--iterations', '-s', '--size'] },
   { noms: ['touch'], role: 'chemins', valeurs: ['-d', '--date', '-r', '--reference', '-t'] },
-  { noms: ['mkdir', 'mkfifo'], role: 'chemins', valeurs: ['-m', '--mode'] },
+  { noms: ['mkdir', 'mkfifo', 'md'], role: 'chemins', valeurs: ['-m', '--mode'] },
   { noms: ['truncate'], role: 'chemins', valeurs: ['-s', '--size', '-r', '--reference'] },
   { noms: ['chmod', 'chown', 'chgrp'], role: 'apresPremier' },
   { noms: ['uniq', 'link'], role: 'second', valeurs: ['-f', '-s', '-w', '--skip-fields', '--skip-chars', '--check-chars'] },
+  { noms: ['gencat'], role: 'premier' },
   { noms: ['split'], role: 'prefixe', defaut: 'x', valeurs: ['-l', '-b', '-a', '-n', '-C', '-t', '--lines', '--bytes', '--suffix-length', '--number', '--line-bytes', '--separator', '--additional-suffix'] },
   { noms: ['gzip', 'gunzip', 'bzip2', 'bunzip2', 'xz', 'unxz', 'zstd', 'compress', 'uncompress'], role: 'compression', valeurs: ['-S', '--suffix', '-T', '--threads', '-b'] },
   { noms: ['zip'], role: 'premier', valeurs: ['-b', '-n', '-t', '-tt', '-x', '-i'] },
   cmdlet(['copy-item', 'cpi', 'copy', 'copy-itemproperty', 'cpp'], ['-path', '-destination'], ['-destination']),
   cmdlet(['move-item', 'mi', 'move', 'move-itemproperty', 'mp'], ['-path', '-destination']),
-  cmdlet(['compress-archive', 'compress-psresource'], ['-path', '-destinationpath'], ['-destinationpath']),
+  cmdlet(['compress-archive', 'compress-psresource', 'cmres'], ['-path', '-destinationpath'], ['-destinationpath']),
   cmdlet(['expand-archive'], ['-path', '-destinationpath'], ['-destinationpath'], { defaut: '.' }),
   cmdlet(['remove-item', 'ri', 'del', 'erase', 'rd', 'clear-content', 'clc', 'clear-item', 'cli', 'clear-itemproperty', 'clp',
     'remove-itemproperty', 'rp', 'rename-itemproperty', 'rnp', 'new-itemproperty', 'set-item', 'si', 'set-itemproperty', 'sp',
-    'set-acl', 'unblock-file', 'export-csv', 'epcsv', 'export-clixml', 'export-alias', 'epal', 'export-formatdata', 'start-transcript',
+    'set-acl', 'unblock-file', 'export-csv', 'epcsv', 'export-clixml', 'export-alias', 'epal', 'export-formatdata',
     'new-modulemanifest', 'new-psrolecapabilityfile', 'new-psscriptfileinfo', 'new-pssessionconfigurationfile', 'update-psmodulemanifest',
     'update-psscriptfileinfo'], ['-path']),
-  cmdlet(['set-content', 'sc', 'add-content', 'ac'], ['-path'], ['-path'], { contenu: true }),
+  cmdlet(['set-content', 'add-content', 'ac'], ['-path'], ['-path'], { contenu: true }),
   cmdlet(['out-file'], ['-filepath'], ['-filepath'], { contenu: true }),
   cmdlet(['tee-object', 'set-authenticodesignature'], ['-filepath']),
+  cmdlet(['set-tracesource'], [], ['-filepath']),
+  cmdlet(['start-transcript'], ['-path'], ['-path', '-outputdirectory'], { defaut: null }),
   cmdlet(['save-help'], ['-destinationpath']),
+  cmdlet(['save-psresource'], [], ['-path'], { defaut: '.' }),
+  cmdlet(['publish-psresource', 'pbres'], [], ['-destinationpath'], { defaut: null }),
+  cmdlet(['install-psresource', 'isres', 'uninstall-psresource', 'update-psresource', 'udres', 'register-psresourcerepository',
+    'unregister-psresourcerepository', 'set-psresourcerepository', 'update-help', 'clear-recyclebin'], [], [], { defaut: null }),
+  cmdlet(['export-pssession', 'export-odataendpointproxy'], ['-outputmodule']),
+  cmdlet(['add-type'], [], ['-outputassembly']),
+  cmdlet(['start-process', 'saps', 'start'], [], ['-redirectstandardoutput', '-redirectstandarderror']),
   cmdlet(['new-filecatalog'], ['-catalogfilepath']),
   { noms: ['rename-item', 'rni', 'ren'], role: 'renommage', powerShell: true },
   { noms: ['new-item', 'ni'], role: 'creation', powerShell: true },
@@ -57,7 +70,7 @@ const ROLES_PAR_NOM = new Map(ROLES.flatMap((r) => r.noms.map((nom) => [nom, r])
 const OPTIONS_CHEMIN = new Set(['-path', '-literalpath', '-filepath', '-destination', '-newname'])
 /** Les alias du paramètre `LiteralPath` (`Get-Command`) : il lie le premier emplacement de la cmdlet. */
 const LITTERAUX_POWERSHELL = new Set(['-literalpath', '-lp', '-pspath'])
-const OPTIONS_VALEUR_POWERSHELL = new Set(['-value', '-encoding', '-filter', '-include', '-exclude', '-itemtype', '-name', '-width', '-inputobject', '-stream', '-credential', '-erroraction', '-delimiter', '-compressionlevel', '-variable'])
+const OPTIONS_VALEUR_POWERSHELL = new Set(['-session', '-value', '-encoding', '-filter', '-include', '-exclude', '-itemtype', '-name', '-width', '-inputobject', '-stream', '-credential', '-erroraction', '-delimiter', '-compressionlevel', '-variable'])
 
 function argumentsDeChemins(args, contrat) {
   const positions = [], nommes = new Map()
@@ -91,7 +104,7 @@ function ciblesDeCmdlet(args, contrat) {
   }
   contrat.positionnels.filter((p) => !lies.has(p)).forEach((p, i) => { if (positions[i] !== undefined) lies.set(p, positions[i]) })
   const cibles = contrat.cibles.filter((c) => lies.has(c)).map((c) => lies.get(c))
-  return cibles.length || !contrat.defaut ? cibles : [contrat.defaut]
+  return cibles.length || !Object.hasOwn(contrat, 'defaut') ? cibles : [contrat.defaut]
 }
 
 /** La valeur des options `courtes` (collée ou suivante) et `longues` (`=` ou suivante) d'`args`. */
@@ -149,9 +162,81 @@ function ecrituresDotnet(source) {
 /** Les options de `patch` qui prennent une valeur (POSIX XCU, `patch` ; GNU patch `--help`). */
 const VALEURS_PATCH = new Set(['-p', '-i', '--input', '-d', '--directory', '-D', '-F', '-z', '-V', '-Y', '-B', '-o', '--output', '-r', '--reject-file'])
 
+/** Les écrivains hors de `ROLES` : `nom` → les cibles de ses arguments `args` (`null` = une cible qu'il ne nomme pas),
+ *  `temp` = le répertoire temporaire de la session (`repertoireTemporaire`). */
+const SPECIAUX = {
+  dd: (args) => args.filter((a) => a.startsWith('of=')).map((a) => a.slice(3)),
+  sort: (args) => valeursDOptions(args, ['-o'], ['--output']),
+  iconv: (args) => valeursDOptions(args, ['-o'], ['--output']),
+  cxref: (args) => valeursDOptions(args, ['-o']),
+  csplit: (args) => [valeursDOptions(args, ['-f'], ['--prefix']).at(-1) ?? 'xx'],
+  uudecode: (args) => [valeursDOptions(args, ['-o']).at(-1) ?? null],
+  c17: (args) => (args.includes('-c') ? args.filter((a) => /\.c$/.test(a)).map((a) => a.replace(/^.*[\\/]/, '').replace(/\.c$/, '.o')) : [valeursDOptions(args, ['-o']).at(-1) ?? 'a.out']),
+  ctags: (args) => [valeursDOptions(args, ['-f']).at(-1) ?? 'tags'],
+  lex: (args) => (args.includes('-t') ? [] : ['lex.yy.c']),
+  yacc: (args) => [`${valeursDOptions(args, ['-b']).at(-1) ?? 'y'}.tab.c`],
+  msgfmt: (args) => [valeursDOptions(args, ['-o'], ['--output-file']).at(-1) ?? 'messages.mo'].filter((c) => c !== '-'),
+  xgettext: (args, { P }) => {
+    const sortie = valeursDOptions(args, ['-o'], ['--output']).at(-1) ?? `${valeursDOptions(args, ['-d'], ['--default-domain']).at(-1) ?? 'messages'}.po`
+    const dossier = valeursDOptions(args, ['-p'], ['--output-dir']).at(-1)
+    return sortie === '-' ? [] : [dossier === undefined ? sortie : P.join(dossier, sortie)]
+  },
+  localedef: (args) => {
+    const nom = args.filter((a, k) => !a.startsWith('-') && !['-f', '-i', '-u'].includes(args[k - 1])).at(-1)
+    return [nom !== undefined && /[\\/]/.test(nom) ? nom : null]
+  },
+  get: (args) => (args.some((a) => /^-[pg]/.test(a)) ? [] : ['.']),
+  sccs: () => [null],
+  perl: (args) => ciblesEnPlace(args, 'IMmlx0C'),
+  ruby: (args) => ciblesEnPlace(args, 'IrCx0'),
+  patch: (args) => {
+    if (args.includes('--dry-run')) return []
+    const positions = []
+    for (let k = 0; k < args.length; k++) { if (VALEURS_PATCH.has(args[k])) k++; else if (!args[k].startsWith('-')) positions.push(args[k]) }
+    const sorties = valeursDOptions(args, ['-o', '-r'], ['--output', '--reject-file'])
+    return sorties.length || positions.length ? [...sorties, ...positions.slice(0, 1)] : [null]
+  },
+  pax: (args) => (args.some((a) => /^-[a-zA-Z]*r/.test(a)) ? ['.'] : args.some((a) => /^-[a-zA-Z]*w/.test(a)) ? valeursDOptions(args, ['-f']) : []),
+  ar: (args) => {
+    const k = args.findIndex((a) => !a.startsWith('-') || /^-[a-zA-Z]+$/.test(a)), cle = args[k] ?? ''
+    return /x/.test(cle) ? ['.'] : /[dmqrs]/.test(cle) ? [args[k + 1] ?? null] : []
+  },
+  crontab: (args) => (args.some((a) => /^-[a-zA-Z]*l/.test(a)) ? [] : [null]),
+  at: (args) => (args.some((a) => /^-[a-zA-Z]*l/.test(a)) ? [] : [null]),
+  batch: () => [null],
+  sed: (args) => {
+    const inplace = args.some((a) => /^-[a-zA-Z]*i/.test(a) || a.startsWith('--in-place'))
+    const scripts = [], fichiers = []
+    let scriptPos = false
+    for (let k = 0; k < args.length; k++) {
+      if (args[k] === '-e' || args[k] === '--expression') { scripts.push(args[++k]); scriptPos = true }
+      else if (args[k] === '-f' || args[k] === '--file') { k++; scriptPos = true }
+      else if (!args[k].startsWith('-')) {
+        if (!scriptPos) { scripts.push(args[k]); scriptPos = true } else fichiers.push(args[k])
+      }
+    }
+    return [...(inplace ? fichiers : []), ...scripts.flatMap((s) => [...s.matchAll(/(?:^|[;\n])\s*w\s+([^;\n]+)/g)].map((m) => m[1].trim()))]
+  },
+  awk: (args) => args.flatMap((a) => [...a.matchAll(/\bprintf?\b[^;}]*?>{1,2}\s*["']([^"']+)["']/g)].map((m) => m[1])),
+  'new-temporaryfile': (_args, { temp }) => [temp],
+  make: (args) => (args.some((a) => /^-[a-zA-Z]*[nq]|^--(?:dry-run|just-print|recon|question)$/.test(a)) ? [] : [null]),
+  mklink: (args) => args.filter((a) => !/^\/[dhj]$/i.test(a)).slice(0, 1),
+  mktemp: (args, { P, temp }) => {
+    if (args.some((a) => /^-[a-zA-Z]*u/.test(a) || a === '--dry-run')) return []
+    const dossier = valeursDOptions(args, ['-p'], ['--tmpdir']).at(-1)
+    const gabarit = args.find((a, k) => !a.startsWith('-') && args[k - 1] !== '-p')
+    if (dossier !== undefined) return [dossier]
+    return gabarit === undefined || args.some((a) => /^-[a-zA-Z]*t/.test(a)) ? [temp] : [P.dirname(gabarit)]
+  },
+}
+SPECIAUX.gawk = SPECIAUX.awk
+/** Les noms de la table des écrivains de fichiers nommés (`ROLES`, `SPECIAUX`, `ecrituresDOutils`) et des familles à
+ *  sous-commandes (git, npm, npx, gh) : la table que le test confronte aux sources figées. */
+export const ECRIVAINS = new Set([...ROLES.flatMap((r) => r.noms), ...Object.keys(SPECIAUX), 'curl', 'wget', 'tar', 'unzip', 'find', 'git', 'npm', 'npx', 'gh'])
+
 /** Les cibles d'écriture de la commande `textes` selon la table des écrivains (`null` = cible que l'écrivain ne nomme
- *  pas), `P` = le `node:path` de la plateforme. */
-function ciblesDuWriter(textes, P) {
+ *  pas), `P` = le `node:path` de la plateforme, `temp` = le répertoire temporaire de la session. */
+function ciblesDuWriter(textes, P, temp) {
   const nom = basenameExecutable(textes[0]), args = textes.slice(1)
   const contrat = ROLES_PAR_NOM.get(nom), role = contrat?.role
   const sortie = args.flatMap((a, k) => (/^-outfile$/i.test(a) ? [args[k + 1] ?? null] : /^-outfile:/i.test(a) ? [a.slice(9)] : []))
@@ -182,47 +267,7 @@ function ciblesDuWriter(textes, P) {
     return positions
   }
   if (sortie.length) return sortie
-  if (nom === 'dd') return args.filter(a => a.startsWith('of=')).map(a => a.slice(3))
-  if (nom === 'sort') return valeursDOptions(args, ['-o'], ['--output'])
-  if (nom === 'csplit') return [valeursDOptions(args, ['-f'], ['--prefix']).at(-1) ?? 'xx']
-  if (nom === 'uudecode') return [valeursDOptions(args, ['-o']).at(-1) ?? null]
-  if (nom === 'c99') return [valeursDOptions(args, ['-o']).at(-1) ?? 'a.out']
-  if (nom === 'ctags') return [valeursDOptions(args, ['-f']).at(-1) ?? 'tags']
-  if (nom === 'lex') return args.includes('-t') ? [] : ['lex.yy.c']
-  if (nom === 'yacc') return [`${valeursDOptions(args, ['-b']).at(-1) ?? 'y'}.tab.c`]
-  if (nom === 'perl') return ciblesEnPlace(args, 'IMmlx0C')
-  if (nom === 'ruby') return ciblesEnPlace(args, 'IrCx0')
-  if (nom === 'patch') {
-    if (args.includes('--dry-run')) return []
-    const positions = []
-    for (let k = 0; k < args.length; k++) { if (VALEURS_PATCH.has(args[k])) k++; else if (!args[k].startsWith('-')) positions.push(args[k]) }
-    const sorties = valeursDOptions(args, ['-o', '-r'], ['--output', '--reject-file'])
-    return sorties.length || positions.length ? [...sorties, ...positions.slice(0, 1)] : [null]
-  }
-  if (nom === 'pax') {
-    if (args.some((a) => /^-[a-zA-Z]*r/.test(a))) return ['.']
-    return args.some((a) => /^-[a-zA-Z]*w/.test(a)) ? valeursDOptions(args, ['-f']) : []
-  }
-  if (nom === 'ar') {
-    const k = args.findIndex((a) => !a.startsWith('-') || /^-[a-zA-Z]+$/.test(a)), cle = args[k] ?? ''
-    return /x/.test(cle) ? ['.'] : /[dmqrs]/.test(cle) ? [args[k + 1] ?? null] : []
-  }
-  if (nom === 'crontab') return args.some((a) => /^-[a-zA-Z]*l/.test(a)) ? [] : [null]
-  if (nom === 'sed') {
-    const inplace = args.some(a => /^-[a-zA-Z]*i/.test(a) || a.startsWith('--in-place'))
-    const scripts = [], fichiers = []
-    let scriptPos = false
-    for (let k = 0; k < args.length; k++) {
-      if (args[k] === '-e' || args[k] === '--expression') { scripts.push(args[++k]); scriptPos = true }
-      else if (args[k] === '-f' || args[k] === '--file') { k++; scriptPos = true }
-      else if (!args[k].startsWith('-')) {
-        if (!scriptPos) { scripts.push(args[k]); scriptPos = true } else fichiers.push(args[k])
-      }
-    }
-    return [...(inplace ? fichiers : []), ...scripts.flatMap(s => [...s.matchAll(/(?:^|[;\n])\s*w\s+([^;\n]+)/g)].map(m => m[1].trim()))]
-  }
-  if (nom === 'awk' || nom === 'gawk') return args.flatMap(a => [...a.matchAll(/\bprintf?\b[^;}]*?>{1,2}\s*["']([^"']+)["']/g)].map(m => m[1]))
-  return []
+  return Object.hasOwn(SPECIAUX, nom) ? SPECIAUX[nom](args, { P, temp }) : []
 }
 
 /** Les PUITS : une écriture qui n'atteint aucun fichier — `/dev/null`, `/dev/stdout`, `/dev/stderr`, `/dev/stdin`,
@@ -465,9 +510,10 @@ function commandesDeFind(args, racines) {
   return commandes
 }
 
-/** Une demande d'aide (`--help`, `-h`) : une lecture dans toutes les familles (git, gh, npm, npx). */
-const AIDE = /^(?:--help|-h)$/
-const aide = (args) => args.some((a) => AIDE.test(a))
+/** Une demande d'aide (`--help`, `-h`) : une lecture dans toute la table, sauf `-h` des écrivains où il est une option
+ *  (`H_OPTION` : POSIX XCU `chown`, `chgrp` ; GNU `touch`, `sort`, `tar`, `rsync` `--help` ; BSD `chmod`, `ln`). */
+const H_OPTION = new Set(['chown', 'chgrp', 'chmod', 'touch', 'sort', 'tar', 'rsync', 'ln'])
+const aide = (args, nom) => args.some((a) => a === '--help' || (a === '-h' && !H_OPTION.has(nom)))
 
 /** `npm` qui écrit : hors des commandes d'interrogation, `npm test` avec `MISE_A_JOUR_VITEST`. `npm run <x>` (et
  *  `start`/`stop`/`restart`) se juge au corps de `scripts.<x>`, que `pipelinesDeJetons` déplie (`commandeScriptNpm`) ;
@@ -486,13 +532,26 @@ function ecritureDeNpm(args) {
 }
 
 /** Les outils de `node_modules/.bin` et leurs formes de lecture (`<outil> --help`), jugés par OUTIL quel que soit le
- *  lanceur (`npx`, `node_modules/.bin/<outil>`, corps d'un script npm) ; sous `npx`, tout autre outil écrit. */
+ *  lanceur (`npx`, `node_modules/.bin/<outil>`, nu, corps d'un script npm, `scripts/lancer-local.mjs`) ; sous `npx`, tout
+ *  autre outil écrit. `lire(chemin)` = le texte d'un fichier relatif au cwd, `undefined` illisible. `tsc` n'écrit que
+ *  PROUVÉ (`tsc --help`) : `-b`, `--incremental`, une sortie nommée, un fichier compilé, ou sans `--noEmit` un tsconfig
+ *  lu sans `"noEmit": true` et sans `extends` ; sinon non jugé. `vite` lit sous `preview` (`vite --help`). */
 const actif = (a, option) => a.some((x, k) => (x === option && !/^(?:false|0)$/.test(a[k + 1] ?? '')) || x === `${option}=true`)
 const LECTURES_NPX = {
   vitest: (a) => !a.some((x) => MISE_A_JOUR_VITEST.test(x)),
   tsx: () => true,
-  tsc: (a) => (a.length > 0 && a.every((x) => /^(?:-v|--version|-h|--help|--all|--showConfig)$/.test(x)))
-    || (actif(a, '--noEmit') && !actif(a, '--incremental') && !actif(a, '-i') && !a.some((x) => /^(?:-b|--build|--generateTrace)(?:=|$)/.test(x))),
+  tsc: (a, { lire }) => {
+    if (a.length > 0 && a.every((x) => /^(?:-v|--version|--all|--showConfig|--listFilesOnly)$/.test(x))) return true
+    if (actif(a, '--incremental') || actif(a, '-i') || actif(a, '--composite') || actif(a, '--declaration') || actif(a, '-d')) return false
+    if (a.some((x) => /^(?:-b|--build|--outDir|--outFile|--declarationDir|--tsBuildInfoFile|--generateTrace)(?:=|$)/.test(x))) return false
+    if (actif(a, '--noEmit')) return true
+    if (a.some((x) => /\.[cm]?tsx?$/.test(x) && !/\.d\.[cm]?ts$/.test(x) && !/^-/.test(x))) return false
+    const projet = valeursDOptions(a, ['-p'], ['--project']).at(-1) ?? '.'
+    const texte = /\.json$/i.test(projet) ? lire(projet) : lire(`${projet}/tsconfig.json`)
+    if (texte === undefined || /"noEmit"\s*:\s*true/.test(texte)) return true
+    return /"noEmit"\s*:\s*false/.test(texte) || !/"extends"\s*:/.test(texte) ? false : true
+  },
+  vite: (a) => a[0] === 'preview' || (a.length > 0 && a.every((x) => /^(?:-v|--version)$/.test(x))),
   eslint: (a) => !a.some((x) => /^(?:--fix|--cache|-o|--output-file|--init)(?:=|$)/.test(x)),
   oxlint: (a) => !a.some((x) => /^(?:--fix\S*|--init)$/.test(x)),
   prettier: (a) => !a.some((x) => /^(?:-w|--write|--cache)(?:=|$)/.test(x)),
@@ -548,6 +607,15 @@ function developperHeredoc(corps, variables) {
   return inconnu ? undefined : rendu
 }
 
+/** Le texte du fichier `chemin`, `undefined` s'il ne se lit pas. */
+function lireTexteSurDisque(chemin) {
+  try {
+    return readFileSync(chemin, 'utf8')
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * Les cibles d'écriture qu'une commande DÉCLARE, `{ chemin, inconnue, ecrivain, famille, operation, segment, base, puits, contenu }` :
  * `base` = le répertoire courant du segment (`null` inconnu) ; `puits` = une écriture qui n'atteint aucun
@@ -562,10 +630,10 @@ function developperHeredoc(corps, variables) {
  * `powershell` : la commande est du dialecte PowerShell (`tokenizeCommand`), où `\` sépare les chemins sur toute
  * plateforme. Les chemins se résolvent par le `node:path` de `platform` (`cheminsDe`). Avec `scripts`, s'y ajoutent les
  * LANCEMENTS JS (`lancementDInterpreteur`) : `{ operation: 'script' }` par fichier lancé (`config` pour un `--config` de
- * `vitest`, `filtre` pour un positionnel, `dossier` pour un dossier balayé).
+ * `vitest`, `filtre` pour un positionnel, `dossier` pour un dossier balayé). `lireTexte` lit le tsconfig de `tsc` (`LECTURES_NPX`).
  */
-export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), platform = process.platform, env = {}, exclureArguments = () => false, powershell = false, segments = pipelinesDeJetons(commande, 0, { powershell }).flat(), scripts = false } = {}) {
-  const P = cheminsDe(platform)
+export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), platform = process.platform, env = {}, exclureArguments = () => false, powershell = false, segments = pipelinesDeJetons(commande, 0, { powershell }).flat(), scripts = false, lireTexte = lireTexteSurDisque } = {}) {
+  const P = cheminsDe(platform), temp = repertoireTemporaire(env, platform)
   const etats = new Map(), sorties = []
   const accueil = powershell ? env.USERPROFILE ?? env.HOME : env.HOME ?? (platform === 'win32' ? env.USERPROFILE : undefined)
   const amorce = new Map([
@@ -609,7 +677,7 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
   /** `\` sépare les chemins en PowerShell sur toute plateforme ; `path.posix` ne le lit pas. */
   const separateurs = (chemin) => (powershell && platform !== 'win32' && typeof chemin === 'string' ? chemin.replaceAll('\\', '/') : chemin)
   const sousCommande = (texte, etat) => {
-    for (const cible of ciblesDEcritureDeCommande(texte, { base: etat.base ?? base, platform, env, scripts })) sorties.push(cible)
+    for (const cible of ciblesDEcritureDeCommande(texte, { base: etat.base ?? base, platform, env, scripts, lireTexte })) sorties.push(cible)
   }
   const traiter = (segment) => {
     const etat = etatDe(segment.shell)
@@ -633,7 +701,8 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
     if (!exclureArguments(segment)) {
       const contrat = ROLES_PAR_NOM.get(nom)
       const enTete = (segment.enTete ?? []).map((j) => basenameExecutable(j.text))
-      const ecrits = ciblesDuWriter(enTete.includes('xargs') ? [...developpes, '\0xargs\0'] : developpes, P).map((cible) => ajouter(cible, nom, { ecrivain: true }))
+      const demandeAide = aide(developpes.slice(1), nom)
+      const ecrits = demandeAide ? [] : ciblesDuWriter(enTete.includes('xargs') ? [...developpes, '\0xargs\0'] : developpes, P, temp).map((cible) => ajouter(cible, nom, { ecrivain: true }))
       if (contrat?.contenu && ecrits.length) {
         const k = developpes.findIndex((t) => t.toLowerCase() === '-value')
         const amont = segment.tube?.[segment.tube.indexOf(segment) - 1]?.jetons
@@ -643,7 +712,7 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       for (const argument of ecrituresDotnet(segment.jetons.map((j) => j.raw ?? j.text).join(' '))) {
         ajouter(argument.texte === null ? null : developper(argument.texte, etat.variables, { quote: argument.quote === 'simple' ? 'simple' : undefined }), 'dotnet', { ecrivain: true })
       }
-      const outils = ecrituresDOutils(nom, developpes.slice(1))
+      const outils = demandeAide ? { chemins: [], inconnue: false, racines: [] } : ecrituresDOutils(nom, developpes.slice(1))
       for (const chemin of outils.chemins) ajouter(chemin ?? null, nom, { ecrivain: true })
       if (outils.inconnue) ajouter(null, nom, { ecrivain: true })
       if (nom === 'find') for (const c of commandesDeFind(developpes.slice(1), outils.racines)) sousCommande(c, etat)
@@ -659,7 +728,8 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       }
       const args = developpes.slice(1)
       const sousNpx = enTete.includes('npx')
-      const lectureDOutil = Object.hasOwn(LECTURES_NPX, nom) ? aide(args) || LECTURES_NPX[nom](args) : !sousNpx || aide(args)
+      const lire = (chemin) => (etat.base === null ? undefined : lireTexte(P.resolve(etat.base ?? base, versCheminNatif(chemin, platform))))
+      const lectureDOutil = Object.hasOwn(LECTURES_NPX, nom) ? demandeAide || LECTURES_NPX[nom](args, { lire }) : !sousNpx || demandeAide
       if (!nonConstant(developpes[0]) && !lectureDOutil) ajouter(null, `${sousNpx ? 'npx ' : ''}${textes.join(' ')}`, { ecrivain: true, famille: 'npx' })
       if (nom === 'npm' && ecritureDeNpm(args)) ajouter(null, `npm ${textes.slice(1).join(' ')}`.trim(), { ecrivain: true, famille: 'npm' })
       if (nom === 'gh' && !lectureGh(args)) ajouter(null, `gh ${textes.slice(1).join(' ')}`.trim(), { ecrivain: true, famille: 'gh' })

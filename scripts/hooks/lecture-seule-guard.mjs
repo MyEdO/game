@@ -8,11 +8,10 @@
 // Trous (#2537) : `awk system()`, `sed e`, `rg --pre`, script SUIVI qui écrit, module importé par un script du
 // scratchpad, écritures `.git/` de `git status`.
 // Évasion intentionnelle, hors de la classe que la garde ferme (#2537) : programme lancé par git (`GIT_PAGER`,
-// `GIT_EXTERNAL_DIFF`, `git -c core.pager=`, `grep -O`), interpréteur hors liste (`bun`, `deno`, `ruby`, `php`),
+// `GIT_EXTERNAL_DIFF`, `git -c core.pager=`, `grep -O`), interpréteur hors liste (`bun`, `deno`, `php`), code en ligne de `ruby`,
 // `fs['write'+…]`, `createRequire`, `getBuiltinModule`, global masqué (`const process = …`), classe locale.
 import { readFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { OUTILS_SHELL, commandeDe } from '../guards/lib/contratGarde.mjs'
 import { analyserTexte, scriptKindDe } from '../guards/lib/dialecte.mjs'
@@ -28,17 +27,18 @@ const SEGMENT = /^[A-Za-z0-9._-]+$/
 
 /**
  * Le scratchpad de la session : `<tmpdir>/claude/<slug>/<session_id>/scratchpad`, `<slug>` étant le
- * segment qui suit `.claude/projects/` dans `transcript_path` ; `null` s'il ne se dérive pas. PURE.
- * @param {{ transcript_path?: unknown, session_id?: unknown }} entree @param {string} [tmp]
+ * segment qui suit `.claude/projects/` dans `transcript_path`, joint par le `node:path` de `platform` ; `null` s'il ne
+ * se dérive pas. PURE.
+ * @param {{ transcript_path?: unknown, session_id?: unknown }} entree @param {string} [tmp] @param {NodeJS.Platform} [platform]
  */
-export function scratchpadDeSession(entree, tmp = tmpdir()) {
+export function scratchpadDeSession(entree, tmp = tmpdir(), platform = process.platform) {
   const { transcript_path: transcript, session_id: session } = entree ?? {}
   if (typeof transcript !== 'string' || typeof session !== 'string' || !SEGMENT.test(session) || /^\.+$/.test(session)) return null
   const parties = transcript.split(/[\\/]+/)
   const k = parties.findIndex((p, i) => p === 'projects' && parties[i - 1] === '.claude')
   const slug = k < 0 ? undefined : parties[k + 1]
   if (!slug || !SEGMENT.test(slug) || /^\.+$/.test(slug)) return null
-  return join(tmp, 'claude', slug, session, 'scratchpad')
+  return cheminsDe(platform).join(tmp, 'claude', slug, session, 'scratchpad')
 }
 
 /** `chemin` est-il `dossier` ou sous lui ? Chemins du `node:path` de `platform`, canonisés sur l'hôte de même
@@ -68,7 +68,7 @@ function testsSurDisque(dossier) {
   try {
     return readdirSync(dossier, { recursive: true, withFileTypes: true })
       .filter((e) => e.isFile() && estSuiteVitest(e.name) && !/[\\/]node_modules(?:[\\/]|$)/.test(e.parentPath))
-      .map((e) => join(e.parentPath, e.name))
+      .map((e) => cheminsDe(process.platform).join(e.parentPath, e.name))
   } catch {
     return []
   }
@@ -131,7 +131,7 @@ export function defautsDeCommande(commande, contexte) {
     const racine = lu.raison ? undefined : racineDeConfig(lu.texte)
     return [...defautsDuLancement(chemin, cible), ...defautsDuDossier(racine === undefined ? cible.base ?? base : resolve(dirname(chemin), racine), cible)]
   }
-  return ciblesDEcritureDeCommande(commande, { base, platform, env, powershell, scripts: true }).flatMap((cible) => {
+  return ciblesDEcritureDeCommande(commande, { base, platform, env, powershell, scripts: true, lireTexte: (chemin) => lire(chemin).texte }).flatMap((cible) => {
     if (cible.puits) return []
     if (cible.inconnue) {
       return cible.ecrivain ? [{ texte: `${cible.operation} : écrivain à cible non résolue (« ${cible.segment?.source ?? commande} »)`, canal: cible.famille ?? 'inconnue' }] : []
@@ -147,12 +147,13 @@ export function defautsDeCommande(commande, contexte) {
   })
 }
 
-function evaluer(entree, { baseDeLAppel, platform = process.platform, env = {} }) {
+/** `tmp`, `lire`, `lister` : le répertoire temporaire et le disque de l'hôte, que le banc forge pour la plateforme jouée. */
+function evaluer(entree, { baseDeLAppel, platform = process.platform, env = {}, tmp = tmpdir(), lire, lister }) {
   if (typeof entree?.agent_type !== 'string') return null
   const fiche = fichesDAgent(RACINE).get(entree.agent_type)
   if (!fiche || !enLectureSeule(fiche)) return null
-  const scratchpad = scratchpadDeSession(entree)
-  const defauts = defautsDeCommande(commandeDe(entree), { base: baseDeLAppel ?? process.cwd(), scratchpad, platform, env, powershell: entree.tool_name === 'PowerShell' })
+  const scratchpad = scratchpadDeSession(entree, tmp, platform)
+  const defauts = defautsDeCommande(commandeDe(entree), { base: baseDeLAppel ?? process.cwd(), scratchpad, platform, env, powershell: entree.tool_name === 'PowerShell', lire, lister })
   if (defauts.length === 0) return null
   const canaux = [...new Set(defauts.map((d) => d.canal))].map((canal) => CANAUX[canal](scratchpad ?? 'non dérivable'))
   return {

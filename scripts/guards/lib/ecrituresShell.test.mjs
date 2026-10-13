@@ -2,7 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import path, { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
-import { ciblesDEcritureDeCommande } from './ecrituresShell.mjs'
+import { readFileSync } from 'node:fs'
+import { cheminsDe } from './commandeShell.mjs'
+import { ciblesDEcritureDeCommande, ECRIVAINS } from './ecrituresShell.mjs'
 import { ciblesDEcritureJS, OPERATIONS_FS } from './ecrituresFichiers.mjs'
 
 const base = resolve('fixture-ecritures')
@@ -104,21 +106,25 @@ test('Node inline collé : CLI réel, provenance des quotes et frontière script
   assert.deepEqual(cibles(`node script.mjs --eval='require("fs").writeFileSync(".superpowers/x", "a")'`), [])
   assert.deepEqual(cibles(`node -- --eval='require("fs").writeFileSync(".superpowers/x", "a")'`), [])
 })
+/** Une base forgée par plateforme, ses attendus par le `node:path` de la plateforme jouée, sur tout hôte. */
+const BASES = { win32: cheminsDe('win32').join('C:', '/banc'), linux: '/banc' }
 test('puits, base du segment et lancements de scripts (#2537)', () => {
-  const brut = (commande, options = {}) => ciblesDEcritureDeCommande(commande, { base, platform: 'win32', ...options })
+  const W = cheminsDe('win32'), baseW = BASES.win32
+  const brut = (commande, options = {}) => ciblesDEcritureDeCommande(commande, { base: baseW, platform: 'win32', ...options })
     .map(({ chemin, inconnue, operation, puits }) => ({ chemin, inconnue, operation, puits }))
-  assert.deepEqual(brut('echo x > /dev/null'), [{ chemin: resolve(base, '/dev/null'), inconnue: false, operation: 'redirection', puits: true }])
-  assert.deepEqual(brut('dir 2>NUL'), [{ chemin: resolve(base, 'NUL'), inconnue: false, operation: 'redirection', puits: true }])
-  assert.deepEqual(brut('dir 2>NUL', { platform: 'linux' }).map(c => c.puits), [false])
+  assert.deepEqual(brut('echo x > /dev/null'), [{ chemin: W.resolve(baseW, '/dev/null'), inconnue: false, operation: 'redirection', puits: true }])
+  assert.deepEqual(brut('dir 2>NUL'), [{ chemin: W.resolve(baseW, 'NUL'), inconnue: false, operation: 'redirection', puits: true }])
+  assert.deepEqual(brut('echo x > /dev/null', { base: BASES.linux, platform: 'linux' }), [{ chemin: '/dev/null', inconnue: false, operation: 'redirection', puits: true }])
+  assert.deepEqual(brut('dir 2>NUL', { base: BASES.linux, platform: 'linux' }).map(c => c.puits), [false])
   assert.deepEqual(brut('Get-ChildItem 2>$null'), [{ chemin: null, inconnue: false, operation: 'redirection', puits: true }])
   assert.deepEqual(brut("Get-ChildItem 2>'$null'").map(c => c.puits), [false])
   assert.equal(ciblesDEcritureDeCommande('cd sous && echo x > y', { base })[0].base, resolve(base, 'sous'))
   assert.deepEqual(brut('node a.mjs'), [])
   const lances = (commande) => brut(commande, { scripts: true }).map(c => [c.operation, c.chemin, c.inconnue])
-  assert.deepEqual(lances('node a.mjs --x'), [['script', resolve(base, 'a.mjs'), false]])
-  assert.deepEqual(lances('node -r dotenv/config --import tsx b.mjs'), [['script', resolve(base, 'b.mjs'), false]])
-  assert.deepEqual(lances('npx --yes tsx c.ts'), [['script', resolve(base, 'c.ts'), false]])
-  assert.deepEqual(lances('tsx d.ts'), [['script', resolve(base, 'd.ts'), false]])
+  assert.deepEqual(lances('node a.mjs --x'), [['script', W.resolve(baseW, 'a.mjs'), false]])
+  assert.deepEqual(lances('node -r dotenv/config --import tsx b.mjs'), [['script', W.resolve(baseW, 'b.mjs'), false]])
+  assert.deepEqual(lances('npx --yes tsx c.ts'), [['script', W.resolve(baseW, 'c.ts'), false]])
+  assert.deepEqual(lances('tsx d.ts'), [['script', W.resolve(baseW, 'd.ts'), false]])
   assert.deepEqual(lances('node -e "1" e.mjs'), [])
   assert.deepEqual(lances('node -pe 1'), [])
   assert.deepEqual(ciblesDEcritureDeCommande('npx vitest run', { base, scripts: true }).map(c => [c.chemin, c.dossier]), [[base, true]])
@@ -177,4 +183,64 @@ test('le texte écrit par `cat > f <<\'MOT\'` : le corps du heredoc à mot quot�
   assert.deepEqual(contenus('cat > a.mjs <<EOF\n$X\nEOF'), [undefined])
   assert.deepEqual(contenus("cat b.mjs > a.mjs <<'EOF'\nx\nEOF"), [undefined])
   assert.deepEqual(contenus("tee a.mjs <<'EOF'\nx\nEOF"), [undefined])
+})
+
+test('#2537 — la table des écrivains concorde avec ses trois sources figées, et l’en-tête avec la table', () => {
+  const sources = JSON.parse(readFileSync(new URL('./fixtures/ecrivains-sources.json', import.meta.url), 'utf8'))
+  const nomsDeCmdlet = (c) => [c.nom, ...c.alias].map((n) => n.toLowerCase())
+  const posix = Object.entries(sources.posix.utilitaires)
+  const ecrivainsPosix = posix.filter(([, verdict]) => verdict === 'ecrivain').map(([nom]) => nom)
+  const horsPosix = Object.keys(sources.horsPosix.commandes)
+  const ecrivains = new Set([...ecrivainsPosix, ...horsPosix, ...sources.powershell.cmdlets.filter((c) => c.verdict === 'ecrivain').flatMap(nomsDeCmdlet)])
+  const exclus = [...posix.filter(([, verdict]) => verdict !== 'ecrivain').map(([nom]) => nom), ...sources.powershell.cmdlets.filter((c) => c.verdict !== 'ecrivain').flatMap(nomsDeCmdlet)]
+  assert.deepEqual([...ECRIVAINS].filter((nom) => !ecrivains.has(nom)), [], 'écrivain de la table hors des sources')
+  assert.deepEqual([...ecrivains].filter((nom) => !ECRIVAINS.has(nom)), [], 'écrivain des sources hors de la table')
+  assert.deepEqual(exclus.filter((nom) => ECRIVAINS.has(nom)), [], 'exclusion des sources dans la table')
+  assert.equal(posix.length, 155)
+  const entete = readFileSync(new URL('./ecrituresShell.mjs', import.meta.url), 'utf8')
+  const ligne = (etiquette) => entete.match(new RegExp(`^ \\* ${etiquette} : (.*)$`, 'm'))[1].split(', ')
+  assert.deepEqual(ligne('POSIX'), [...ecrivainsPosix].sort())
+  assert.deepEqual(ligne('hors POSIX'), [...horsPosix].sort())
+})
+test('#2537 palier 6 — écrivains complétés, enveloppes, aide et `tsc` prouvé', () => {
+  const W = cheminsDe('win32'), baseW = BASES.win32
+  const vus = (commande, options = {}) => ciblesDEcritureDeCommande(commande, { base: baseW, platform: 'win32', ...options }).map((c) => [c.operation, c.chemin, c.inconnue])
+  assert.deepEqual(vus('exec rm -f x'), [['rm', W.resolve(baseW, 'x'), false]])
+  assert.deepEqual(vus('exec -a nom rm x'), [['rm', W.resolve(baseW, 'x'), false]])
+  assert.deepEqual(vus('node scripts/lancer-local.mjs vite -- vite build'), [['vite build', null, true]])
+  assert.deepEqual(vus('node scripts/lancer-local.mjs vite --cwd sous -- vite preview'), [])
+  for (const lanceur of ['vite build', 'npx vite build']) assert.deepEqual(vus(lanceur), [[lanceur, null, true]], lanceur)
+  const tsconfigs = { 'tsconfig.json': '{ "compilerOptions": { "noEmit": true } }', 'emet.json': '{ "compilerOptions": { "outDir": "d" } }', 'herite.json': '{ "extends": "./tsconfig.json" }' }
+  const lireTexte = (chemin) => tsconfigs[W.relative(baseW, chemin)]
+  for (const lit of ['tsc', 'npx tsc -p .', 'tsc -p herite.json', 'tsc -p absent.json', 'tsc --noEmit -p emet.json']) assert.deepEqual(vus(lit, { lireTexte }), [], lit)
+  for (const ecrit of ['tsc -p emet.json', 'tsc --outDir x', 'tsc -b', 'tsc --declaration', 'tsc a.ts']) assert.deepEqual(vus(ecrit, { lireTexte }), [[ecrit, null, true]], ecrit)
+  for (const aide of ['split --help', 'split -h', 'rm --help']) assert.deepEqual(vus(aide), [], aide)
+  assert.deepEqual(vus('chown -h u x'), [['chown', W.resolve(baseW, 'x'), false]])
+  assert.deepEqual(vus('sc stop service', { powershell: true }), [])
+  assert.deepEqual(vus('md x', { powershell: true }), [['md', W.resolve(baseW, 'x'), false]])
+  assert.deepEqual(vus('Save-PSResource Az', { powershell: true }), [['save-psresource', baseW, false]])
+  assert.deepEqual(vus('Add-Type -TypeDefinition $c -OutputAssembly a.dll', { powershell: true }), [['add-type', W.resolve(baseW, 'a.dll'), false]])
+  assert.deepEqual(vus('Start-Transcript', { powershell: true }), [['start-transcript', null, true]])
+  assert.deepEqual(vus('start -RedirectStandardOutput o.txt x.exe', { powershell: true }), [['start', W.resolve(baseW, 'o.txt'), false]])
+  assert.deepEqual(vus('c17 -c a.c'), [['c17', W.resolve(baseW, 'a.o'), false]])
+  assert.deepEqual(vus('msgfmt -o x.mo x.po'), [['msgfmt', W.resolve(baseW, 'x.mo'), false]])
+  assert.deepEqual(vus('xgettext -o x.pot a.c'), [['xgettext', W.resolve(baseW, 'x.pot'), false]])
+  assert.deepEqual(vus('gencat cat.cat msg'), [['gencat', W.resolve(baseW, 'cat.cat'), false]])
+  assert.deepEqual(vus('localedef -f UTF-8 fr_FR'), [['localedef', null, true]])
+  for (const lien of ['mklink /J lien cible', 'cmd //c mklink /J lien cible']) assert.deepEqual(vus(lien), [['mklink', W.resolve(baseW, 'lien'), false]], lien)
+  assert.deepEqual(vus('make'), [['make', null, true]])
+  assert.deepEqual(vus('make -n'), [])
+  const temp = W.join('C:', '/banc-tmp')
+  assert.deepEqual(vus('mktemp -d', { env: { TEMP: temp } }), [['mktemp', temp, false]])
+  assert.deepEqual(vus('mktemp -p sous'), [['mktemp', W.resolve(baseW, 'sous'), false]])
+  assert.deepEqual(vus('mktemp sous/x.XXXX'), [['mktemp', W.resolve(baseW, 'sous'), false]])
+  assert.deepEqual(vus('mktemp -u'), [])
+})
+test('#2537 G8 — `execFile`/`spawn` : options en 2e argument, `shell: true`, tableau `const` littéral', () => {
+  const lancees = (texte) => ciblesDEcritureJS(`import { execFileSync, spawnSync } from 'node:child_process'\n${texte}`).map((c) => c.commande)
+  assert.deepEqual(lancees("execFileSync('rm', { stdio: 'inherit' })"), ["'rm'"])
+  assert.deepEqual(lancees("spawnSync('rm -f x', { shell: true })"), ['rm -f x'])
+  assert.deepEqual(lancees("spawnSync('rm', ['-f', 'x y'], { shell: true })"), ['rm -f x y'])
+  assert.deepEqual(lancees("const a = ['-f', 'x']\nexecFileSync('rm', a)"), ["'rm' '-f' 'x'"])
+  assert.deepEqual(lancees("const a = ['-f', 'x']\na.push('y')\nexecFileSync('rm', a)"), ["'rm' $argument_non_constant"])
 })

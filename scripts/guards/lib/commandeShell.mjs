@@ -26,6 +26,7 @@ import path, { dirname, join, resolve } from 'node:path'
 import { estRepertoire } from './gitPorte.mjs'
 import { LECTEURS } from './appelsRunners.mjs'
 import { racineNpmCourante } from './racineNpm.mjs'
+import { separerInvocation } from './invocation.mjs'
 
 // ── Parsing STRUCTUREL de la ligne de commande (#591 défaut 3) ───────────────────────────────────
 // La commande se TOKENISE (quotes simples/doubles + here-strings PowerShell `@'…'@`/`@"…"@`), se
@@ -618,6 +619,7 @@ function lecturePorteur(segment, jetons) {
 const ENROBEURS_TETE = new Map([
   ['env', { flags: ['-u', '--unset'], affectations: true }],
   ['nohup', {}],
+  ['exec', { flags: ['-a'] }],
   ['command', { citeSous: ['-v', '-V'] }],
   ['builtin', {}],
   ['winpty', {}],
@@ -630,6 +632,16 @@ const ENROBEURS_TETE = new Map([
   ['stdbuf', { flags: ['-i', '-o', '-e', '--input', '--output', '--error'] }],
   ['nice', { flags: ['-n', '--adjustment'] }],
 ])
+
+/** Le lanceur d'un outil de cet arbre, `node scripts/lancer-local.mjs <paquet> [--cwd <dossier>] -- <cmd>` (`separerInvocation`) :
+ *  il ne fait qu'exécuter `<cmd>`, comme un enrobeur de tête. */
+const LANCEUR_LOCAL = /(?:^|[\\/])scripts[\\/]lancer-local\.mjs$/
+/** L'index de la commande que lance le lanceur local en `segment[i]`, `null` s'il n'en est pas un. */
+function apresLanceurLocal(segment, i) {
+  if (basenameExecutable(segment[i]) !== 'node' || !LANCEUR_LOCAL.test(segment[i + 1] ?? '')) return null
+  const suite = segment.slice(i + 2)
+  return separerInvocation(suite, { options: ['--cwd'] }) === null ? null : i + 3 + suite.indexOf('--')
+}
 
 /** Tokens de tête sans exécutable propre : call-operator PowerShell, accolades de bloc `& { … }`,
  *  parenthèse ouvrante de sous-shell `( … )`, et les mots réservés POSIX qui précèdent une commande
@@ -784,6 +796,8 @@ function epluchageTete(jetons) {
     if (TOKENS_TETE_NUS.has(t)) { i += 1; continue }
     // Un enrobeur qui porte ICI un argument-chaîne rend la main : la récursion le déploiera.
     if (argumentChaine(segment.slice(i)) !== null) return { debut: i, affectations, valeurs }
+    const lance = apresLanceurLocal(segment, i)
+    if (lance !== null) { i = lance; continue }
     const enrobeur = ENROBEURS_TETE.get(basenameExecutable(t))
     if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, affectations, valeurs }
     i += 1
