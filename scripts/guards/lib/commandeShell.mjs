@@ -942,7 +942,8 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
 export function pipelinesDeJetons(command, profondeur = 0, options = {}) {
   if (!command) return []
   const shell = options.shell ?? { parent: options.hote ?? null, fonctions: new Map(options.fonctions) }
-  return pipelinesDuFluxBorne(tokenizeCommand(command, options), profondeur, { ...options, budget: options.budget ?? nouveauBudget(), shell })
+  const jetons = tokenizeCommand(command, options)
+  return pipelinesDuFluxBorne(options.powershell ? jetons : lierPositionnels(jetons, options.positionnels ?? null), profondeur, { ...options, budget: options.budget ?? nouveauBudget(), shell })
 }
 
 /** `pipelinesDuFlux` au-delà de `PROFONDEUR_MAX_ENROBEURS` : rien, et `budget.sature`. */
@@ -1004,40 +1005,162 @@ function soldeDuCorps(jetons, powershell) {
   return solde
 }
 
-/** Un positionnel SEUL dans son mot : `$1`…`$9`, `${n}`, `$@`, `$*`. */
-const POSITIONNEL_RE = /^\$(?:([1-9])|\{([1-9]\d*)\}|([@*]))$/
-/** Un positionnel DANS un mot. */
-const POSITIONNELS_RE = /\$(?:([1-9])|\{([1-9]\d*)\}|([@*]))/g
+/** Une référence de paramètre positionnel (XCU 2.5.1, 2.5.2, 2.6.2) : `$n`, `$@`, `$*`, `$#`, et leurs formes accolées
+ *  `${n}`, `${#n}`, `${#}`, `${n<op>mot}` (`-`, `:-`, `+`, `:+`, `=`, `:=`, `?`, `:?`, `#`, `##`, `%`, `%%`). */
+const POSITIONNEL_RE = /\$(?:([1-9#@*])|\{(#?)([1-9]\d*|[#@*])(?:(:?[-+=?]|##?|%%?)([^}]*))?\})/g
 /** Un argument d'appel CONSTANT : ni substitution, ni `$` à développer hors quote simple. */
 const constant = (j) => !j.substitutions?.length && (j.quote === 'simple' || !j.text.includes('$'))
 /** L'argument d'appel qui remplace un positionnel : le jeton de l'appel, déjà développé à son site (ses substitutions
  *  s'y sont dépliées). */
 const argumentLie = (j) => ({ ...j, substitutions: [] })
+/** Ce qui change un développement non quoté (XCU 2.6.5 IFS par défaut, 2.6.6). */
+const DECOUPE_OU_MOTIF_RE = /[ \t\n*?[]/
+const MOTIF_RE = /[*?[\\]/
+/** Les têtes après lesquelles la liaison des positionnels n'est plus certaine (XCU 2.14 `eval`, `.`, `exec`). */
+const TETES_OPAQUES = new Set(['eval', '.', 'source', 'exec', 'builtin', 'command'])
 
-/** Le corps de fonction `flux`, ses positionnels liés aux mots `args` de l'appel (XCU 2.5.2, 2.9.5) : `$n` seul dans
- *  son mot devient le n-ième mot, ou rien (zéro champ nu, mot vide sous quote double) ; `$@` et `$*` nu, et `"$@"`,
- *  autant de mots que d'arguments ; `"$*"` un seul mot, joints par une espace. Dans un mot plus long, un positionnel
- *  se remplace par le texte de son argument. Un mot dont un argument n'est pas constant reste tel quel : un `$` non
- *  résolu. PUR. */
-function lierPositionnels(flux, args) {
-  const texte = (n) => args[n - 1]?.text ?? ''
-  return flux.flatMap((j) => {
-    if (j.op || j.quote === 'simple' || !j.text.includes('$')) return [j]
-    const seul = j.substitutions?.length ? null : POSITIONNEL_RE.exec(j.text)
-    if (seul) {
-      const n = Number(seul[1] ?? seul[2] ?? 0)
-      if (n > 0) return args[n - 1] ? [argumentLie(args[n - 1])] : j.quote === 'double' ? [{ ...j, text: '', raw: '""' }] : []
-      if (seul[3] === '@' || j.quote !== 'double') return args.map(argumentLie)
-      if (!args.every(constant)) return [j]
-      const joint = args.map((a) => a.text).join(' ')
-      return [{ ...j, text: joint, raw: citeArgument(joint), quote: 'double' }]
+/** La valeur d'une référence `m` (`POSITIONNEL_RE`) sous la liaison `args`, ou `null` : non liée de façon certaine. PUR. */
+function valeurPositionnelle(m, args) {
+  const [, court, longueur, long, op, mot] = m
+  const nom = court ?? long
+  if (nom === '#') return op !== undefined ? null : longueur ? String(String(args.length).length) : String(args.length)
+  if (nom === '@' || nom === '*') {
+    if (longueur && op === undefined) return String(args.length)
+    if (op !== undefined || !args.every(constant)) return null
+    return args.map((a) => a.text).join(' ')
+  }
+  const arg = args[Number(nom) - 1]
+  if (arg !== undefined && !constant(arg)) return null
+  const valeur = arg?.text ?? ''
+  if (longueur) return op === undefined ? String(valeur.length) : null
+  if (op === undefined) return valeur
+  if (mot.includes('$') || mot.includes('`')) return null
+  const pose = op.startsWith(':') ? valeur !== '' : arg !== undefined
+  switch (op.replace(':', '')) {
+    case '-': return pose ? valeur : mot
+    case '+': return pose ? mot : ''
+    case '=': case '?': return pose ? valeur : null
+    default: {
+      if (MOTIF_RE.test(mot)) return null
+      if (op.startsWith('#')) return valeur.startsWith(mot) ? valeur.slice(mot.length) : valeur
+      return valeur.endsWith(mot) ? valeur.slice(0, valeur.length - mot.length) : valeur
     }
-    const references = [...j.text.matchAll(POSITIONNELS_RE)]
-    if (references.length === 0) return [j]
-    if (references.some((m) => (m[3] ? args : [args[Number(m[1] ?? m[2]) - 1]]).some((a) => a !== undefined && !constant(a)))) return [j]
-    const remplace = (s) => s.replace(POSITIONNELS_RE, (_, court, long, tous) => (tous ? args.map((a) => a.text).join(' ') : texte(Number(court ?? long))))
-    return [{ ...j, text: remplace(j.text), raw: remplace(j.raw ?? j.text) }]
-  })
+  }
+}
+
+/** Le mot `j` sous la liaison `args` : les mots qu'il devient, ou `[j]` tel quel (un `$` non résolu) dès qu'une de ses
+ *  références n'est pas liée de façon CERTAINE. `$n` seul dans son mot devient le n-ième mot, ou rien nu (zéro champ),
+ *  un mot vide sous quote double ; `"$@"` autant de mots que d'arguments ; `"$*"` un seul, joints par une espace. Hors
+ *  quote, un développement découpé en champs ou porteur de motif (XCU 2.6.5, 2.6.6) n'est pas lié. Les substitutions
+ *  du mot reçoivent la liaison (`positionnels`) : elles s'exécutent dans ce shell. PUR. */
+function lierMot(j, args) {
+  if (j.op || j.quote === 'simple' || !j.text.includes('$')) return [j]
+  if (j.substitutions?.length) return [{ ...j, substitutions: j.substitutions.map((s) => ({ ...s, positionnels: args })) }]
+  const references = [...j.text.matchAll(POSITIONNEL_RE)]
+  if (references.length === 0) return [j]
+  const nu = j.quote !== 'double'
+  const [seule] = references
+  if (references.length === 1 && seule[0] === j.text && seule[4] === undefined && !seule[2]) {
+    const nom = seule[1] ?? seule[3]
+    if (nom === '@' || (nom === '*' && nu)) {
+      if (!args.every(constant) || (nu && args.some((a) => a.text === '' || DECOUPE_OU_MOTIF_RE.test(a.text)))) return [j]
+      return args.map(argumentLie)
+    }
+    const arg = /^\d+$/.test(nom) ? args[Number(nom) - 1] : undefined
+    if (arg !== undefined && constant(arg) && !(nu && (arg.text === '' || DECOUPE_OU_MOTIF_RE.test(arg.text)))) return [argumentLie(arg)]
+  }
+  if (references.some((m) => (m[1] ?? m[3]) === '@' && !m[2] && m[4] === undefined) && args.length > 1) return [j]
+  const valeurs = references.map((m) => valeurPositionnelle(m, args))
+  if (valeurs.some((v) => v === null || (nu && DECOUPE_OU_MOTIF_RE.test(v)))) return [j]
+  let k = 0
+  const texte = j.text.replace(POSITIONNEL_RE, () => valeurs[k++])
+  if (nu && texte === '') return []
+  return [{ ...j, text: texte, raw: citeArgument(texte), quote: nu ? undefined : 'double' }]
+}
+
+/** La liaison après `shift [n]` (XCU 2.14 shift) ou `set [options] [--] [mot…]` (XCU 2.14 set), `mots` = ses arguments
+ *  liés : la nouvelle liaison, ou `null` quand elle n'est pas certaine. PUR. */
+function liaisonApres(commande, mots, args) {
+  if (commande === 'shift') {
+    const n = mots.length === 0 ? 1 : mots.length === 1 && /^\d+$/.test(mots[0].text) && constant(mots[0]) ? Number(mots[0].text) : null
+    return n === null || n > args.length ? null : args.slice(n)
+  }
+  for (let k = 0; k < mots.length; k++) {
+    const t = mots[k].text
+    if (!constant(mots[k])) return null
+    if (t === '--' || t === '-') return mots.slice(k + 1).every(constant) ? mots.slice(k + 1) : null
+    if (/^[-+][A-Za-z]*o$/.test(t)) k += 1
+    else if (!/^[-+][A-Za-z]+$/.test(t)) return mots.slice(k).every(constant) ? mots.slice(k) : null
+  }
+  return args
+}
+
+/** Le flux `flux`, ses paramètres positionnels liés à `args` (les mots de l'appel d'une fonction, XCU 2.9.5 ; `null` :
+ *  inconnus), mot par mot (`lierMot`) dans l'ordre d'exécution : un `shift` ou un `set` exécuté à coup sûr (niveau 0 du
+ *  flux, ni membre d'une liste `&&`/`||`, ni d'un tube, ni en fond) change la liaison des mots qui le suivent ; ailleurs
+ *  (branche, boucle, sous-shell, groupe, tête de `TETES_OPAQUES`) la liaison devient inconnue dès l'ouverture du composé
+ *  qui le porte. Le corps d'une fonction définie dans le flux garde ses positionnels, liés à son propre appel ; un `case`
+ *  rend la liaison inconnue jusqu'au bout du flux. PUR. */
+function lierPositionnels(flux, args) {
+  if (args === null && !flux.some((j) => !j.op && jetonNu(j) && j.text === 'set')) return flux
+  const morceaux = flux.flatMap((j, i) => (j.op ? [{ j, i }] : jetonsDeBloc([j]).map((p) => ({ j: p, i }))))
+  const nu = (k) => !morceaux[k].j.op && jetonNu(morceaux[k].j)
+  const enCommande = (k) => k === 0 || Boolean(morceaux[k - 1].j.op) || (jetonNu(morceaux[k - 1].j) && TOKENS_TETE_NUS.has(morceaux[k - 1].j.text))
+  const variation = (k, ouvreDefinition) => {
+    const { j } = morceaux[k]
+    if (j.op) return j.op === ')' ? -1 : 0
+    if (!jetonNu(j)) return 0
+    if (j.sousShell || ((enCommande(k) || ouvreDefinition) && (j.text === '{' || OUVRANTS_COMPOSES.has(j.text)))) return 1
+    return enCommande(k) && (j.text === '}' || FERMANTS_COMPOSES.has(j.text)) ? -1 : 0
+  }
+  const changeLaLiaison = (k) => nu(k) && (morceaux[k].j.text === 'shift' || morceaux[k].j.text === 'set' || TETES_OPAQUES.has(morceaux[k].j.text))
+  const liaisons = new Array(flux.length)
+  let liaison = args
+  let profondeur = 0
+  let fige = false
+  let saut = null
+  let commande = null
+  let opPrecedent = null
+  const appliquer = (opSuivant) => {
+    if (commande !== null) {
+      const certaine = commande.profondeur === 0 && !['&&', '||', '|'].includes(commande.opPrecedent) && !['|', '&'].includes(opSuivant)
+      if (certaine && (commande.nom === 'set' || (commande.nom === 'shift' && liaison !== null))) {
+        const mots = flux.slice(commande.i + 1, commande.fin).flatMap((j) => (liaison === null ? [j] : lierMot(j, liaison)))
+        liaison = liaisonApres(commande.nom, lireRedirections([morceaux[commande.k].j, ...mots], 1).arguments, liaison)
+      } else liaison = null
+    }
+    commande = null
+  }
+  for (let k = 0; k < morceaux.length; k++) {
+    const { j, i } = morceaux[k]
+    if (liaisons[i] === undefined) liaisons[i] = saut === null && !fige ? liaison : null
+    if (j.op) {
+      if (commande !== null) commande.fin = i
+      appliquer(j.op)
+      opPrecedent = j.op
+    } else if (nu(k) && j.text === 'case') {
+      fige = true
+      liaison = null
+    } else if (saut === null && enCommande(k) && nu(k) && (j.text === 'function' || j.text.endsWith('()') || morceaux[k + 1]?.j.text === '()')) {
+      saut = { profondeur, ouvert: false }
+    } else if (saut === null && commande === null && enCommande(k) && changeLaLiaison(k)) {
+      commande = { nom: j.text, k, i, fin: flux.length, profondeur, opPrecedent }
+    }
+    const delta = variation(k, saut !== null && !saut.ouvert)
+    if (saut !== null && delta > 0) saut.ouvert = true
+    if (profondeur === 0 && delta > 0 && saut === null) {
+      let p = 0
+      for (let r = k; r < morceaux.length && (r === k || p > 0); r++) {
+        p += variation(r, false)
+        if (changeLaLiaison(r)) liaison = null
+      }
+    }
+    profondeur += delta
+    if (profondeur < 0) { fige = true; liaison = null }
+    if (saut !== null && saut.ouvert && profondeur <= saut.profondeur) saut = null
+  }
+  appliquer(null)
+  return flux.flatMap((j, i) => (liaisons[i] ? lierMot(j, liaisons[i]) : [j]))
 }
 
 /** `true` si l'appel que ces jetons épluchés précèdent atteint une fonction : affectations, mots réservés et `time`
@@ -1140,8 +1263,8 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
     const deplies = new Map()
     const deplie = (j) => {
       if (!j.substitutions?.length) return
-      const rendus = j.substitutions.flatMap(({ interne, expression: sousExpression }) =>
-        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, fonctions: ici.fonctions, expression: sousExpression, powershell }))
+      const rendus = j.substitutions.flatMap(({ interne, expression: sousExpression, positionnels }) =>
+        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, fonctions: ici.fonctions, expression: sousExpression, powershell, positionnels }))
       for (const p of rendus) pipelines.push(p)
       deplies.set(j, rendus)
     }

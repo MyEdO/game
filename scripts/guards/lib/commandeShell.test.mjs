@@ -168,12 +168,37 @@ test('#2537 — fonction shell : `{`/`}` réservés en position de commande seul
 test('#2537 — fonction shell : `$1…$n`, `$@`, `$*` liés aux mots de l’appel (XCU 2.5.2)', () => {
   const executes = (commande) => pipelinesDeJetons(commande).flat().filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text))
   assert.deepEqual(executes('git(){ command git "$@"; }; git commit --no-verify -m x'), [['git', 'commit', '--no-verify', '-m', 'x']])
-  assert.deepEqual(executes('f(){ rm $@ $*; }; f a "b c"'), [['rm', 'a', 'b c', 'a', 'b c']])
+  assert.deepEqual(executes('f(){ rm $@ $*; }; f a b'), [['rm', 'a', 'b', 'a', 'b']])
+  assert.deepEqual(executes('f(){ rm $@ $1; }; f "b c"'), [['rm', '$@', '$1']], 'hors quote, un argument découpé en champs n’est pas lié (XCU 2.6.5)')
   assert.deepEqual(executes('f(){ echo "$*" "${2}" x$1y "$3" $3; }; f a b'), [['echo', 'a b', 'b', 'xay', '']], '`"$*"` un mot ; un positionnel absent : mot vide sous quote, rien nu')
   assert.deepEqual(executes('f(){ rm "$@"; }; f'), [['rm']], '`"$@"` sans argument : zéro mot')
-  assert.deepEqual(executes('f(){ rm "$1" "a$1"; }; f "$X"'), [['rm', '$X', 'a$1']], 'argument non constant : non résolu')
+  assert.deepEqual(executes('f(){ rm "$1" "a$1"; }; f "$X"'), [['rm', '$1', 'a$1']], 'argument non constant : non lié, le corps peut changer `X`')
+  assert.deepEqual(executes('f(){ X=ok; rm "$1"; }; X=/hors; f "$X"'), [['rm', '$1']], 'jamais un lien littéral faux')
   assert.deepEqual(executes('f(){ g "$@"; }; g(){ rm "$2"; }; f a b'), [['rm', 'b']], 'liaison à travers deux appels')
   assert.deepEqual(executes("f(){ echo '$1'; }; f a"), [['echo', '$1']], 'sous quote simple, rien ne se développe')
+})
+
+test('#2537 — positionnels : formes accolées et à opérateur, `shift` et `set` (XCU 2.5.1, 2.5.2, 2.6.2, 2.14)', () => {
+  const executes = (commande) => pipelinesDeJetons(commande).flat().filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(executes('f(){ shift; git commit "$1" -m x; }; f y --no-verify'), [['shift'], ['git', 'commit', '--no-verify', '-m', 'x']])
+  assert.deepEqual(executes('f(){ shift 2; rm "$@"; }; f a b c'), [['shift', '2'], ['rm', 'c']])
+  assert.deepEqual(executes('f(){ git "${@}" "${*}"; }; f a b'), [['git', 'a', 'b', 'a b']])
+  assert.deepEqual(executes('f(){ rm "${1:-d}" "${2-e}" "${1:+p}" "${#}" "${#1}" "${1#a}" "${1%c}"; }; f abc'), [['rm', 'abc', 'e', 'p', '1', '3', 'bc', 'ab']])
+  assert.deepEqual(executes('f(){ rm "${1#*}" "${1:-$X}"; }; f a'), [['rm', '${1#*}', '${1:-$X}']], 'motif ou mot non constant : non lié')
+  assert.deepEqual(executes('set -- --no-verify; git commit "$@" -m x'), [['set', '--', '--no-verify'], ['git', 'commit', '--no-verify', '-m', 'x']])
+  assert.deepEqual(executes('f(){ set -- "$2" "$1"; rm "$1"; }; f a b'), [['set', '--', 'b', 'a'], ['rm', 'b']])
+  assert.deepEqual(executes('set -e; git "$@"'), [['set', '-e'], ['git', '$@']], 'des options seules ne lient rien')
+  for (const [commande, sens] of [
+    ['f(){ [ x ] && shift; rm "$1"; }; f a b', 'shift conditionnel'],
+    ['f(){ while true; do rm "$1"; shift; done; }; f a b', 'shift dans une boucle, dès son ouverture'],
+    ['f(){ case x in a) shift;; esac; rm "$1"; }; f a b', 'case'],
+    ['f(){ eval shift; rm "$1"; }; f a b', 'eval'],
+    ['f(){ set -- "$X"; rm "$1"; }; f a', 'set non constant'],
+    ['f(){ shift 3; rm "$1"; }; f a', 'shift au-delà de $#'],
+    ['x && set -- a; rm "$1"', 'set conditionnel au niveau 0'],
+  ]) assert.deepEqual(executes(commande).find(([tete]) => tete === 'rm'), ['rm', '$1'], sens)
+  assert.deepEqual(executes('f(){ g(){ rm "$1"; }; }; f a; rm x'), [['rm', 'x']], 'le corps d’une fonction définie dans un corps garde ses positionnels')
+  assert.deepEqual(executes('f(){ echo $(rm "$1"); }; f a').at(0), ['rm', 'a'], 'une substitution hérite de la liaison')
 })
 
 test('#2537 — parenthèses : une seule pile, la `)` d’une parenthèse de mot reste dans son mot', () => {

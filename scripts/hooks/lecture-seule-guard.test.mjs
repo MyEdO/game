@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { repartir } from './repartition.mjs'
-import { BUDGET_ANALYSE_MS, COUT_SESSION_MS, DEBIT_ANALYSE_JS, MARGE_BUDGET, choisieParVitest, garde, scratchpadDeSession } from './lecture-seule-guard.mjs'
+import { BUDGET_ANALYSE_MS, COUT_SCRIPT_MS, COUT_SESSION_MS, DEBIT_ANALYSE_JS, MARGE_BUDGET, choisieParVitest, garde, scratchpadDeSession } from './lecture-seule-guard.mjs'
 import { ATTENTE_BARRIERE } from './barriere-outil.mjs'
 import { SURFACE_CLAUDE, aplatirHooks } from '../agents/compat-core.mjs'
 import { REGISTRE } from './registre.mjs'
@@ -273,15 +273,52 @@ test('#2537 — au-delà de la borne, une suite n’est PAS jugée, donc admise,
   const gros = juger([join(dossier, 'g.test.mjs')])
   assert.equal(gros.decision, undefined)
   assert.match(gros.contexte, /NON JUGÉS, au-delà du budget d'analyse de \d+ ms par appel .* : /)
-  assert.ok(gros.contexte.endsWith('g.test.mjs.'), gros.contexte)
+  assert.ok(gros.contexte.endsWith(`${dossier} (1/1 suites).`), gros.contexte)
   const mixte = juger([join(dossier, 'g.test.mjs'), join(dossier, 'p.test.mjs')])
   assert.equal(mixte.decision, 'deny')
   assert.ok(mixte.raison.includes('p.test.mjs : writeFileSync hors du scratchpad'), mixte.raison)
   assert.ok(!mixte.raison.includes('g.test.mjs'), mixte.raison)
-  assert.ok(mixte.contexte.endsWith('g.test.mjs.'), mixte.contexte)
+  assert.ok(mixte.contexte.endsWith(`${dossier} (1/2 suites).`), mixte.contexte)
   const vaste = garde.evaluer(entree, { baseDeLAppel: RACINE, lire: (chemin) => ({ texte: disque.get(chemin) }), lister: () => null })
   assert.equal(vaste.decision, undefined)
   assert.ok(vaste.contexte.endsWith(`${dossier} (entrées).`), vaste.contexte)
+})
+
+test('#2537 — chaque script coûte `COUT_SCRIPT_MS` AVANT sa lecture : N suites minuscules débordent le budget, nommées par leur compte', () => {
+  const dossier = join(SP, 'petits'), n = Math.ceil(BUDGET_ANALYSE_MS / COUT_SCRIPT_MS) + 1
+  const suites = [...Array.from({ length: n }, (_, k) => join(dossier, `a${k}.test.mjs`)), join(dossier, 'zzzz.test.mjs')]
+  const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `npx vitest run --dir "${dossier}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
+  const lues = []
+  const juger = (liste) => garde.evaluer(entree, {
+    baseDeLAppel: RACINE, lister: () => ({ suites: liste, parcourues: liste.length }),
+    lire: (chemin) => (lues.push(chemin), { texte: chemin.endsWith('zzzz.test.mjs') ? "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n" : 'let a = 1\n' }),
+  })
+  const verdict = juger(suites)
+  const [, horsBudget, choisies] = /\((\d+)\/(\d+) suites\)\.$/.exec(verdict.contexte ?? '') ?? []
+  assert.equal(verdict.decision, undefined, verdict.raison)
+  assert.ok(verdict.contexte.includes(`NON JUGÉS, au-delà du budget d'analyse de ${BUDGET_ANALYSE_MS} ms par appel (#2537) : ${dossier} (`), verdict.contexte)
+  assert.equal(Number(choisies), n + 1)
+  assert.equal(Number(horsBudget), n + 1 - lues.length)
+  assert.ok(lues.length * COUT_SCRIPT_MS <= BUDGET_ANALYSE_MS, `${lues.length} suites lues`)
+  const temoin = juger([...suites.slice(0, 10), suites.at(-1)])
+  assert.equal(temoin.decision, 'deny')
+  assert.ok(temoin.raison.includes('zzzz.test.mjs : writeFileSync hors du scratchpad'), temoin.raison)
+  assert.equal(temoin.contexte, undefined)
+})
+
+test('#2537 — le tsconfig de `tsc -p` se lit sous le plafond et le budget : au-delà, non jugé, nommé ; en deçà, jugé', () => {
+  const tsconfig = join(SP, 'tsconfig.emet.json'), emet = '{ "compilerOptions": { "strict": true } }\n'
+  const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `npx tsc -p "${tsconfig}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
+  const juger = (texte) => garde.evaluer(entree, {
+    baseDeLAppel: RACINE, lister: () => ({ suites: [], parcourues: 0 }),
+    lire: (chemin, plafond) => (chemin === tsconfig && Buffer.byteLength(texte) > plafond ? { raison: 'au-delà du budget', trop: true } : { texte }),
+  })
+  const petit = juger(emet)
+  assert.equal(petit.decision, 'deny')
+  assert.equal(petit.contexte, undefined)
+  const geant = juger(emet + ' '.repeat(BUDGET_ANALYSE_MS * DEBIT_ANALYSE_JS))
+  assert.equal(geant.decision, undefined, geant.raison)
+  assert.ok(geant.contexte.endsWith(`${tsconfig}.`), geant.contexte)
 })
 
 test('#2537 — les scripts d’une commande s’analysent en UN corpus : 121 lancements tiennent le budget, le dernier se juge', () => {

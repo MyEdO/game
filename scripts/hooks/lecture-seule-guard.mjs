@@ -4,7 +4,7 @@
 // Non jugé, donc admis (#2537) : cible non résolue hors de la table des écrivains (variable inconnue, chemin JS non
 // littéral, `import()` calculé, lanceur à exécutable non constant), git, npm, npx ou gh à sous-commande non
 // constante, script non lu (lancé par un interpréteur autre que `node`, `tsx`, `vitest` ; hors du scratchpad,
-// illisible, non parsable, écrit par la commande qui le lance, au-delà de `BUDGET_ANALYSE_MS`), dossier balayé au-delà de
+// illisible, non parsable, écrit par la commande qui le lance, au-delà de `BUDGET_ANALYSE_MS`), tsconfig de `tsc` ou dossier balayé au-delà de
 // ce budget, code en ligne d'un langage
 // autre que JS, suite de `vitest` choisie par un filtre non constant.
 // Trous (#2537) : suites de `vitest` lues à `estSuiteVitest`, jamais aux `include`/`exclude` de sa config ;
@@ -59,13 +59,16 @@ function sous(chemin, dossier, platform) {
 export const DEBIT_ANALYSE_JS = 400
 /** Coût fixe d'une session d'analyse, en ms (#2537, 2026-10-13 : médiane 92 ms sur 40 sessions d'un script). */
 export const COUT_SESSION_MS = 100
+/** Coût fixe d'un script mis au corpus, en ms : stat, lecture, `canoniser`, filtre de `vitest` et part d'analyse par
+ *  fichier, hors octets (#2537, 2026-10-13 : 1,22 à 2,00 ms par suite, 3 001 et 6 001 suites d'une ligne). */
+export const COUT_SCRIPT_MS = 2
 /** Coût d'une entrée de dossier parcourue, en ms (#2537, 2026-10-13 : 24 µs, 21 519 entrées). */
 export const COUT_ENTREE_MS = 0.025
 /** Facteur de marge du budget : une machine deux fois plus lente, et les autres gardes du répartiteur en série. */
 export const MARGE_BUDGET = 4
 /** Le temps d'analyse qu'un appel s'accorde : le `timeout` du répartiteur (`.claude/settings.json:34`, 10 s),
- *  barrière (`ATTENTE_BARRIERE`) déduite, divisé par `MARGE_BUDGET`. Sessions, octets de JS et entrées parcourues s'y
- *  décomptent ; au-delà, un script ou un dossier n'est pas jugé. */
+ *  barrière (`ATTENTE_BARRIERE`) déduite, divisé par `MARGE_BUDGET`. Sessions, scripts, octets de JS et entrées parcourues
+ *  s'y décomptent ; au-delà, un script, un tsconfig ou un dossier n'est pas jugé. */
 export const BUDGET_ANALYSE_MS = 2125
 
 /**
@@ -166,19 +169,29 @@ function defautsSousBudget(commande, contexte, budget) {
   const ecrits = new Map()
   /** Le corpus de la commande : `{ chemin, texte, depuis, argv, env }` par script lancé. */
   const lances = []
+  /** Décompte `ms` du budget s'il les a : vrai, sinon faux sans rien décompter. */
+  const paye = (ms) => budget.ms >= ms && ((budget.ms -= ms), true)
+  /** Le tsconfig `chemin` de `tsc`, lu comme un script : `COUT_SCRIPT_MS` décompté avant la lecture, plafonnée au budget, ses
+   *  octets après ; `undefined` illisible, ou au-delà du budget, nommé. */
+  const lireTsconfig = (chemin) => {
+    const lu = paye(COUT_SCRIPT_MS) ? lire(chemin, budget.ms * DEBIT_ANALYSE_JS) : { trop: true }
+    if (lu.trop) return void budget.nonJuges.push(chemin)
+    if (lu.texte !== undefined) budget.ms -= Buffer.byteLength(lu.texte) / DEBIT_ANALYSE_JS
+    return lu.texte
+  }
   /** Met au corpus le script `chemin` que lance `cible` (ou son code en ligne `enLigne`), s'il est un JS lisible du scratchpad dans le budget : la marque
-   *  `{ script }` de son rang, que ses défauts remplacent ; `[]` sinon. */
-  const lance = (chemin, cible, enLigne) => {
+   *  `{ script }` de son rang, que ses défauts remplacent ; `[]` sinon. `COUT_SCRIPT_MS` se décompte AVANT tout accès au
+   *  disque ; au-delà du budget, `horsBudget` nomme le script. */
+  const lance = (chemin, cible, enLigne, horsBudget = () => budget.nonJuges.push(chemin)) => {
+    if (!paye(COUT_SCRIPT_MS)) return horsBudget(), []
     if (enLigne === undefined && !dansLeScratchpad(chemin)) return []
     const ecrit = enLigne ?? ecrits.get(cle(chemin))
     if (ecrit === null) return []
     const session = lances.length ? 0 : COUT_SESSION_MS
     const lu = ecrit === undefined ? lire(chemin, Math.max(0, (budget.ms - session) * DEBIT_ANALYSE_JS)) : { texte: ecrit }
-    if (lu.raison && !lu.trop) return []
-    const cout = lu.texte === undefined ? Infinity : session + Buffer.byteLength(lu.texte) / DEBIT_ANALYSE_JS
-    if (lu.trop || cout > budget.ms) budget.nonJuges.push(chemin)
-    if (cout > budget.ms) return []
-    budget.ms -= cout
+    if (lu.trop) return horsBudget(), []
+    if (lu.texte === undefined) return []
+    if (!paye(session + Buffer.byteLength(lu.texte) / DEBIT_ANALYSE_JS)) return horsBudget(), []
     lances.push({ chemin, texte: lu.texte, depuis: cible.base ?? base, argv: cible.argv, env: cible.env ?? env })
     return [{ script: lances.length - 1 }]
   }
@@ -195,13 +208,18 @@ function defautsSousBudget(commande, contexte, budget) {
     return [{ texte: `script ${chemin} : ${cible.operation} hors du scratchpad (${cible.chemin})`, canal: temporaire ? 'temporaire' : 'scratchpad' }]
   })
   /** Les suites du dossier `dossier` mises au corpus, quand il est du scratchpad, que choisissent les filtres de `cible` ;
-   *  au-delà des entrées que le budget permet de parcourir, le dossier n'est pas jugé. */
+   *  au-delà des entrées que le budget permet de parcourir, le dossier n'est pas jugé ; les suites au-delà du budget se
+   *  nomment par leur compte. */
   const defautsDuDossier = (dossier, cible) => {
     if (!dansLeScratchpad(dossier)) return []
     const liste = lister(dossier, Math.floor(budget.ms / COUT_ENTREE_MS))
     if (liste === null) return !budget.nonJuges.push(`${dossier} (entrées)`) || []
     budget.ms -= liste.parcourues * COUT_ENTREE_MS
-    return liste.suites.filter((suite) => choisieParVitest(suite, cible.filtres, dossier, cible.base ?? base, platform)).flatMap((suite) => lance(suite, cible))
+    const choisies = liste.suites.filter((suite) => choisieParVitest(suite, cible.filtres, dossier, cible.base ?? base, platform))
+    let horsBudget = 0
+    const marques = choisies.flatMap((suite) => lance(suite, cible, undefined, () => horsBudget++))
+    if (horsBudget) budget.nonJuges.push(`${dossier} (${horsBudget}/${choisies.length} suites)`)
+    return marques
   }
   /** Les défauts du `--config` `chemin` : le config lancé, puis les suites de sa `root` littérale (cwd sans elle). */
   const defautsDeLaConfig = (chemin, cible) => {
@@ -209,7 +227,7 @@ function defautsSousBudget(commande, contexte, budget) {
     const racine = lancee.length ? racineDeConfig(lances[lancee[0].script].texte) : undefined
     return [...lancee, ...defautsDuDossier(racine === undefined ? cible.base ?? base : resolve(dirname(chemin), racine), cible)]
   }
-  const morceaux = ciblesDEcritureDeCommande(commande, { base, platform, env, powershell, scripts: true, lireTexte: (chemin) => lire(chemin).texte }).flatMap((cible) => {
+  const morceaux = ciblesDEcritureDeCommande(commande, { base, platform, env, powershell, scripts: true, lireTexte: lireTsconfig }).flatMap((cible) => {
     if (cible.puits) return []
     if (cible.inconnue) {
       return cible.ecrivain ? [{ texte: `${cible.operation} : écrivain à cible non résolue (« ${cible.segment?.source ?? commande} »)`, canal: cible.famille ?? 'inconnue' }] : []
