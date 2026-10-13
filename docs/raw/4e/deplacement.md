@@ -503,7 +503,7 @@ commun** (EDOC 08 l.110-122).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 18` (l.326-334) → `faim`, `soif`, `bandEntry`, `recovery`, `hungerThirstPenalty`, `RESISTANCE_TEST`, `HungerState`, `ThirstState`, `exposure`, `ExposureKind`, +41 — `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/voyage-stakes.json`, `src/engine/exposure.ts`, +12 fichiers
-- `EDOC 8` (l.21-40, l.50-59, l.62, l.88-92, l.110-122) → `plein-air`, `weatherIdSchema`, `TravelRolesPanel`, `Season`, `doc`, `printemps`, `approvisionnement`, `Weather`, `dessin`, `ete`, +57 — `src/data/activities.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/maladies.ts`, +21 fichiers
+- `EDOC 8` (l.21-40, l.50-59, l.62, l.88-92, l.110-122) → `plein-air`, `weatherIdSchema`, `cleDe`, `Season`, `doc`, `printemps`, `approvisionnement`, `Weather`, `dessin`, `ete`, +58 — `src/data/activities.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/maladies.ts`, +21 fichiers
 - dette : #674
 
 ### Activités de Voyage (1 par Étape)
@@ -757,7 +757,7 @@ Le bonus dure jusqu'à la prochaine Période de travail (8 h voiles, 2 h avirons
 **Voir aussi :** [Progression d'un navire (MDG)](#progression-dun-navire-mdg), [`etats.md`](etats.md) (Exténué).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.95-111) → `sea-navigation`, `plus2`, `plus1`, `KINDS_SOUS_ORDRES`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, `exhaustionDifficulty`, +23 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +8 fichiers
+- `MDG 13` (l.95-111) → `sea-navigation`, `plus2`, `plus1`, `KINDS_SOUS_ORDRES`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, `exhaustionDifficulty`, +24 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +8 fichiers
 
 ---
 
@@ -782,7 +782,7 @@ X = nombre de DR négatifs du Test de Résistance raté. `MDG 13 l.142`
 **Voir aussi :** [Progression d'un navire (MDG)](#progression-dun-navire-mdg), [Collisions de navires (MDG)](#collisions-de-navires-mdg), [`tests.md`](tests.md) (DR).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.113-142) → `sea-navigation`, `KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `forcePaceDifficulty`, `exhaustionDifficulty`, `OverspeedRow`, `WorldMapView`, `overspeedRow`, `overspeedDamage`, `FoulingLevel`, +24 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, +9 fichiers
+- `MDG 13` (l.113-142) → `sea-navigation`, `KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `forcePaceDifficulty`, `exhaustionDifficulty`, `OverspeedRow`, `WorldMapView`, `overspeedRow`, `overspeedDamage`, `FoulingLevel`, +25 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, +9 fichiers
 
 ---
 
@@ -832,7 +832,7 @@ Lancer 1d10 pour chaque aspect (Précipitations, Température, Visibilité, Vent
 **Voir aussi :** [Vents (MDG)](#vents-mdg), [Orientation et phares (MDG)](#orientation-et-phares-mdg), [`etats.md`](etats.md) (Exposition).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `KINDS_SOUS_ORDRES`, `champs`, `REPORT_DE_COMBATTANT`, `construireCarte`, `FoulingLevel`, `sea-overspeed`, `aucune`, `applyExposureFailure`, +46 — `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, +15 fichiers
+- `MDG 13` (l.162-243) → `sea-navigation`, `sea-weather`, `KINDS_SOUS_ORDRES`, `champs`, `REPORT_DE_COMBATTANT`, `construireCarte`, `FoulingLevel`, `sea-overspeed`, `aucune`, `applyExposureFailure`, +47 — `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, `src/data/trappings.json`, +16 fichiers
 
 ---
 
@@ -1089,7 +1089,7 @@ Chaque jour en mer, on tient un **total cumulé d'Humeur de Manann** (chaque mod
 **Voir aussi :** [Longs voyages : résolution et vitesse (MDG)](#longs-voyages--résolution-et-vitesse-mdg), [Moral de l'équipage (MDG)](#moral-de-léquipage-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.81-263) → `ShoreLeaveBody`, `ManannBody`, `vaincre-stromfels`, `SeaActivitiesModal`, `grand-sacrifice`, `portProfileSchema`, `openEmbrigadementRecovery`, `coiffe-de-naissance`, `EscaleTab`, `sacrifice-moyen`, +127 — `src/data/activities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs-scenes/worldmap.ts`, +20 fichiers
+- `MDG 15` (l.81-263) → `ShoreLeaveBody`, `ManannBody`, `vaincre-stromfels`, `SeaActivitiesModal`, `grand-sacrifice`, `portProfileSchema`, `openEmbrigadementRecovery`, `coiffe-de-naissance`, `EscaleTab`, `sacrifice-moyen`, +127 — `src/data/activities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs-scenes/worldmap.ts`, +21 fichiers
 
 ---
 
@@ -1108,7 +1108,7 @@ Pour chaque **semaine (8 jours)** en mer, chaque Personnage peut faire une Activ
 **Voir aussi :** [Entretien du navire (Activité en mer) (MDG)](#entretien-du-navire-activité-en-mer-mdg), [Commerce maritime (MDG)](#commerce-maritime-mdg), [`deplacement.md`](deplacement.md#activités-de-voyage-1-par-étape) (Activités de Voyage EDOC).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.266-306) → `SeaActivitiesModal`, `seaActivityTest`, `seaActivityRefus`, `PortView`, `BankDeposit`, `doc`, `SEA_WEEK_DAYS`, `commerce`, `minimum-vital`, `sea-cargo`, +33 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-cargo.ts`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, +12 fichiers
+- `MDG 15` (l.266-306) → `SeaActivitiesModal`, `seaActivityTest`, `seaActivityRefus`, `PortView`, `BankDeposit`, `doc`, `SEA_WEEK_DAYS`, `commerce`, `minimum-vital`, `sea-cargo`, +33 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-cargo.ts`, `src/data/schemas/defs/trappings.ts`, `src/data/sea-cargo.json`, +13 fichiers
 
 ---
 
@@ -1121,7 +1121,7 @@ Activité de réparation/usure, de préférence au port. En mer : **–20** supp
 **Voir aussi :** [Réparer un navire (MDG)](#réparer-un-navire-mdg), [Salissures de coque (MDG)](#salissures-de-coque-mdg), [Tests d'équipage (MDG)](#tests-déquipage-mdg) (Entretien).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.302-306) → `SeaActivitiesModal`, `PortView`, `BankDeposit`, `commerce`, `minimum-vital`, `sea-cargo`, `port-buy-bargain`, `bankWithdrawOutcome`, `bankWithdrawInner`, `GameState`, +3 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-cargo.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, +6 fichiers
+- `MDG 15` (l.302-306) → `SeaActivitiesModal`, `PortView`, `BankDeposit`, `commerce`, `minimum-vital`, `sea-cargo`, `port-buy-bargain`, `bankWithdrawOutcome`, `bankWithdrawInner`, `GameState`, +3 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-cargo.ts`, `src/data/sea-cargo.json`, `src/engine/activities.ts`, `src/i18n/messages/fr.ts`, +7 fichiers
 
 ---
 
@@ -1142,5 +1142,5 @@ Deux actes : **acheter** une cargaison, la **vendre** ailleurs. Chaque port a un
 **Voir aussi :** [Longs voyages : résolution et vitesse (MDG)](#longs-voyages--résolution-et-vitesse-mdg), [Activités en mer (MDG)](#activités-en-mer-mdg) (Commerce d'opportunité), [`merchantFlow.ts`](../../../src/state/merchantFlow.ts) (Marchandage).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 15` (l.40-47, l.309-436) → `BandeOuverte`, `SeaActivitiesModal`, `l-anguille`, `doc`, `cereales`, `PortHeader`, `MapPlace`, `portProfileSchema`, `CargoMarkerDef`, `marienburg`, +72 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/naval-ports.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/naval-ports.ts`, +25 fichiers
+- `MDG 15` (l.40-47, l.309-436) → `BandeOuverte`, `SeaActivitiesModal`, `l-anguille`, `doc`, `cereales`, `PortHeader`, `MapPlace`, `portProfileSchema`, `CargoMarkerDef`, `marienburg`, +72 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/naval-ports.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/naval-ports.ts`, +26 fichiers
 
