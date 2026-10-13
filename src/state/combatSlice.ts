@@ -32,6 +32,7 @@ import { emitCombatEvent } from './combatEvents';
 import { turnEconomyStamp } from './endTurnGuard';
 import { EMPTY_FLOW, flowEffects, type Flow } from './flow';
 import { pickActiveModalKey } from './modalArbiter';
+import { coupFerme } from './targetingHolder';
 import { mountMovement, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
@@ -286,22 +287,28 @@ function applyNavalSurprisePosition(get: Get, set: Set, surprisedSide: 'party' |
  *  foldé) ou reprise. La cascade reste ouverte pendant la chaîne ; on n'avance qu'au bout. Partagé par
  *  attackConfirm / trampleConfirm / cleaveEnd / dualStrikeSkip (zéro duplication).
  *  L'étape 'defense' est admise pour l'INTERPOSITION de défense surfacée (#989) : le curseur y passe à
- *  l'ouverture de la fenêtre, et l'application de l'attaque (reprise d'`attackConfirm`) l'enchaîne au bout. */
+ *  l'ouverture de la fenêtre, et l'application de l'attaque (reprise d'`attackConfirm`) l'enchaîne au bout.
+ *  Un enchaînement en cours ne retient pas le curseur quand le coup est SUSPENDU (`coupFerme`) : il passe
+ *  sur l'étape que la suspension a poussée, et la chaîne attend qu'elle soit jouée. */
 function advanceCombatJet(get: () => GameState): void {
   const seq = get().pendingCascade;
   const jet = seq?.purpose === 'combat' ? seq.participants[seq.cursor]?.jet : undefined;
   if ((jet === 'attack' || jet === 'trample' || jet === 'defense')
-    && !get().pendingAttack && !get().pendingTrample && !get().pendingCleave && !get().pendingDualStrike && !get().pendingDefense) get().cascadeNext();
+    && !get().pendingAttack && !get().pendingTrample && !get().pendingDefense
+    && ((!get().pendingCleave && !get().pendingDualStrike) || !coupFerme(get()))) get().cascadeNext();
 }
 
 /** FRAPPE SUIVANTE d'un enchaînement (balayage, 2ᵉ frappe du Maniement de deux armes) : elle se rend dans
- *  l'étape `attack` courante ; quand l'étape courante a déjà rendu sa donnée (`committed` — la défense
- *  surfacée de la frappe précédente, #998), elle reçoit SA propre étape, sur laquelle passe le curseur. */
+ *  l'étape `attack` courante encore ouverte ; sinon (étape validée — la défense surfacée de la frappe
+ *  précédente, #998 —, autre jet au curseur, ou aucune séquence de combat) elle reçoit SA propre étape,
+ *  sur laquelle passe le curseur. */
 function poserLaFrappeSuivante(get: Get, set: Set, pa: PendingAttack): void {
   const seq = get().pendingCascade;
   const cur = seq?.purpose === 'combat' ? seq.participants[seq.cursor] : undefined;
-  if (!cur?.committed) { set({ pendingAttack: pa }); return; }
-  if (poserLEtapeDAttaque(get, set, pa, seq!.title, seq!.icon)) get().cascadeNext();
+  if (cur?.jet === 'attack' && !cur.committed) { set({ pendingAttack: pa }); return; }
+  if (!poserLEtapeDAttaque(get, set, pa, seq?.title ?? 'Attaque', seq?.icon ?? 'action/attack')) return;
+  const apres = get().pendingCascade!;
+  if (apres.cursor !== apres.participants.length - 1) get().cascadeNext();
 }
 
 /** Applique l'issue d'« Au Contact » (LDB 62 l.176) : pose/retire l'état au contact selon le choix du
@@ -2408,7 +2415,7 @@ export function createCombatSlice(get: Get, set: Set) {
         // Tir rapide (INTERRUPTION, LDB 11 l.97-103) : le tireur n'est PAS actif (on est à pendingRoundStart). On
         // applique le tir puis on N'AVANCE PAS le tour ; on épuise son tour NORMAL — l'Action (= ce tir) et
         // le Mouvement, consommés à l'ouverture de son slot normal (loseNext*). Aucun effet début/fin de tour
-        // n'est déplacé (ils vivent dans advanceTurn/confirmRoundStart, non touchés). La fenêtre du
+        // n'est déplacé (ils vivent dans `advanceTurn` et `ouvrirLeRound`). La fenêtre du
         // défenseur surfacé s'est interposée plus haut (#997) : on arrive ici avec le résultat opposé.
         attacker.loseNextAction = true; attacker.loseNextMovement = true; // PRIX du tir, payé AVANT le coup (LDB 11 l.97-103)
         const suspendu = applyAttackResult(get, set, attacker, victim, weapon, pa.result, { suite: { enchainement: { mode: 'aucun' } } });

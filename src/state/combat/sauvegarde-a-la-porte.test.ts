@@ -595,6 +595,10 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const e1 = mk('enemy', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
     const demon = mk('enemy', 'demon', { pos: { x: 0, y: 1 }, characteristics: nul(), traits: demoniaque } as never);
     setBattle([heros, e1, demon]);
+    // Le siège MJ tient le démon : son dé de sauvegarde est un geste de siège, jamais posé d'office
+    // (`cascade.tirageSansSiege`) quand le curseur du maillon arrive dessus.
+    const net = useGame.getState().net;
+    useGame.setState({ net: { ...net, gmSeat: 0 } });
     useGame.setState({ pendingCleave: null, pendingDualStrike: null, pendingDefense: null });
     useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', result: { ...touche(), cleave: true } } as never });
     useGame.getState().attackConfirm();
@@ -608,6 +612,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     expect(demon.wounds.current, 'le maillon a porté à la reprise').toBeLessThan(30);
     expect(useGame.getState().pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
     expect(useGame.getState().battle!.acted, 'gratuite : l’Action d’avant, maillon suspendu compris').toBe(false);
+    useGame.setState({ net });
   });
 
   it('(viii) TIR RAPIDE d’INTERRUPTION sur un porteur de sauvegarde : la cascade-hôte n’est pas détruite, et le tour n’avance pas', () => {

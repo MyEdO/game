@@ -3011,7 +3011,7 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
   let vus = faits;
   for (const shooter of shooters) {
     vus = [...vus, shooter.id];
-    // Cible = ennemi valide le plus proche AVEC Ligne de Vue. La LdV se tranche ici (`losClear`, même
+    // Cible = ennemi le plus proche, à portée et en Ligne de Vue (LDB 13 l.114). La LdV se tranche ici (`losClear`, même
     // `losTo` que `resolveAttack`) AVANT le gate : un candidat masqué ne consomme aucun Test.
     const t0 = battle.combatants
       .filter((f) => f.kind !== shooter.kind && !isOutOfAction(f) && !!f.pos)

@@ -200,6 +200,19 @@ describe('Cascade séquentielle influençable', () => {
     expect(p.participants.map((s) => s.id)).toEqual(['s1', 'c', 'd']);
   });
 
+  it('runCascadeImmediate : étape HÔTE dont la fenêtre vit (`pendingExtendedTest`) → S’ARRÊTE PENDANTE, non validée (#1765)', () => {
+    const h = hero();
+    useGame.getState().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+    const hote = useGame.getState().pendingCascade!.participants[0];
+    useGame.setState({ pendingCascade: null });
+    const resolved = runCascadeImmediate(useGame.getState, useGame.setState, [hote]);
+    expect(resolved[0].committed).toBeFalsy();
+    const p = useGame.getState().pendingCascade!;
+    expect(p.cursor).toBe(0);
+    expect(p.participants[0].committed).toBeFalsy();
+    expect(useGame.getState().pendingExtendedTest).not.toBeNull();
+  });
+
   it('runCascadeImmediate : CHOIX avec `defaultChoice` authoré → tranché sans surfacer (comportement inchangé)', () => {
     useGame.getState().seedRng(7);
     const h = hero();
