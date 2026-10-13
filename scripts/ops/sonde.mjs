@@ -7,7 +7,6 @@
 // Usage : node scripts/ops/sonde.mjs <base>.code [--borne <secondes>]
 // Sortie : terminée → le code de la commande, la fin de `<base>.log` ; en cours à la borne → `CODE_EN_COURS`.
 import { existsSync, readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 /** La borne d'un appel de sonde, en secondes : défaut et maximum. */
@@ -59,6 +58,9 @@ export function sonder({ fichier, borneMs, lire = lireCode, dormir = attendreSyn
 /** Le code du fichier sur disque, `null` absent ou incomplet. */
 const lireCode = (fichier) => (existsSync(fichier) ? codeDe(readFileSync(fichier, 'utf8')) : null)
 
+/** Le journal sur disque, `null` absent. */
+const lireJournalSurDisque = (chemin) => (existsSync(chemin) ? readFileSync(chemin, 'utf8') : null)
+
 /** Le journal frère d'un fichier de code : `<base>.log`. PURE. */
 const journalDe = (fichier) => fichier.replace(/\.code$/, '') + '.log'
 
@@ -71,7 +73,7 @@ export const commandeDeSonde = (fichier) => `node scripts/ops/sonde.mjs ${JSON.s
  */
 export function executer({
   argv, ecrire = (ligne) => process.stdout.write(ligne + '\n'), sonde = sonder,
-  lireJournal = (chemin) => (existsSync(chemin) ? readFileSync(chemin, 'utf8') : null),
+  lireJournal = lireJournalSurDisque,
 }) {
   const options = optionsDe(argv)
   if (!options) {
@@ -92,6 +94,6 @@ export function executer({
   return vu.code
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (import.meta.main) {
   process.exitCode = executer({ argv: process.argv.slice(2) })
 }

@@ -133,6 +133,33 @@ test('verdict de test:perimetre par codeur : code du résultat, de la notificati
   assert.deepEqual(v.parFil.map((f) => [f.fil, f.runs, f.rouges, f.verdict]), [['a1', 2, 1, 'vert'], ['a2', 1, 1, 'rouge'], ['a3', 1, 0, 'inconnu']])
 })
 
+test('verdict en fond sous la forme à `.code` (#2596) : la SONDE terminée fait le code, jamais la notification de l’enveloppe', () => {
+  const bash = (b) => `rm -f "${b}.code"; ( npm run test:perimetre ) > "${b}.log" 2>&1; echo $? > "${b}.code"`
+  const ps = (b) => `Remove-Item -ErrorAction Ignore '${b}.code'; $global:LASTEXITCODE = 0; $Error.Clear(); try { & { npm run test:perimetre } *> '${b}.log'; $c = 0 } catch { $c = 1 }; Set-Content '${b}.code' $c`
+  const fond = (fil, min, id, command) => ev('s', fil, min, { type: 'tool_use', nom: fil === 'a4' ? 'PowerShell' : 'Bash', id, resume: { command, run_in_background: true } })
+  const notif = (fil, min, id) => ev('s', fil, min, { type: 'prompt', debut: `<task-notification><tool-use-id>${id}`, sommaire: 'Background command "p" completed (exit code 0)', code: 0 })
+  const sonde = (fil, min, id, b) => ev('s', fil, min, { type: 'tool_use', nom: 'Bash', id, resume: { command: `node scripts/ops/sonde.mjs "${b}.code"` } })
+  const rendu = (fil, min, id, fin, code) => ev('s', fil, min, { type: 'tool_result', outil: 'Bash', id, taille: 1, fin, code })
+  const evenements = [
+    fond('a1', 0, 'toolu_A1aaaaaaaaaaaaaaaa', bash('/tmp/appel-a1')),
+    notif('a1', 9, 'toolu_A1aaaaaaaaaaaa'),
+    sonde('a1', 1, 's1', '/tmp/appel-a1'), rendu('a1', 5, 's1', '[sonde] EN COURS après 240 s', 124),
+    sonde('a1', 6, 's2', '/tmp/appel-a1'), rendu('a1', 9, 's2', '[perimetre] tests : 2 rouges\n[sonde] TERMINÉE — code 1', 1),
+    fond('a2', 0, 'toolu_A2aaaaaaaaaaaaaaaa', bash('/tmp/appel-a2')),
+    notif('a2', 9, 'toolu_A2aaaaaaaaaaaa'),
+    sonde('a2', 1, 's3', '/tmp/appel-autre'), rendu('a2', 2, 's3', '[sonde] TERMINÉE — code 7', 7),
+    fond('a3', 0, 'toolu_A3aaaaaaaaaaaaaaaa', bash('/tmp/appel-a3')),
+    sonde('a3', 1, 's4', '/tmp/appel-a3'), rendu('a3', 4, 's4', '[perimetre] vert\n[sonde] TERMINÉE — code 0', 0),
+    fond('a4', 0, 'toolu_A4aaaaaaaaaaaaaaaa', ps('/tmp/appel-a4')),
+    sonde('a4', 1, 's5', '/tmp/appel-a4'), rendu('a4', 4, 's5', '[sonde] TERMINÉE — code 2', 2),
+    fond('a5', 0, 'toolu_A5aaaaaaaaaaaaaaaa', 'npm run test:perimetre'),
+    notif('a5', 9, 'toolu_A5aaaaaaaaaaaa'),
+  ]
+  const v = verdictPerimetre({ evenements })
+  assert.deepEqual(v.runs.map((r) => [r.fil, r.code, r.verdict]), [['a1', 1, 'rouge'], ['a2', null, 'inconnu'], ['a3', 0, 'vert'], ['a4', 2, 'rouge'], ['a5', 0, 'vert']])
+  assert.match(v.parFil.find((f) => f.fil === 'a1').fin, /\[perimetre\] tests : 2 rouges/)
+})
+
 test('SendMessage : livraison sur agent rendu, et rendu depuis plus de 5 min', () => {
   const h = (fil, min) => ev('s', fil, min, { type: 'tool_use', nom: 'SubagentHandback', id: `h${fil}${min}`, resume: {} })
   const m = (fil, min) => ev('s', fil, min, { type: 'prompt', debut: 'The coordinator sent a message: x' })
@@ -184,4 +211,5 @@ test('delta des comptes et rapport rendu sur un jeu vide', () => {
   assert.deepEqual(delta({ a: 3, b: 'x' }, { a: 5, c: 1 }), { a: { avant: 3, apres: 5, delta: 2 }, b: { avant: 'x', apres: null, delta: null }, c: { avant: null, apres: 1, delta: null } })
   const a = analyser(vide)
   assert.match(rendreRapport({ depuis: T0, jusqua: at(60), exclues: ['moi'], fichiers: 0 }, a, comptesCles(a)), /## 16\. thinking_drop/)
+  assert.match(rendreRapport({ depuis: T0, jusqua: at(60), exclues: [], fichiers: 0 }, a, comptesCles(a)), /sous-agents sont un PLANCHER/)
 })

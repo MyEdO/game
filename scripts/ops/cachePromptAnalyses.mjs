@@ -9,8 +9,9 @@ export const SEUIL_FROID = 20000
 /** TTL servi, en minutes : 1 h au fil principal, 5 min aux sous-agents (#2596) ; `ttlEmpirique` le re-mesure. */
 export const TTL_MIN = { principal: 60, agent: 5 }
 
-/** $ par million de tokens, par modèle : catalogue `pricing_tiers` + `models[].pricing` de claude.exe 2.1.296,
- *  vérifié contre les lignes `cost-state` (#2596). `long` : tarif au-delà de `above` tokens de prompt. */
+/** $ par million de tokens, par modèle : catalogue `pricing_tiers` + `models[].pricing` de claude.exe 2.1.296.
+ *  Vérifié au cent contre les lignes `cost-state` d'un fil principal sans sous-agent (866ffc9c) ; transcripts de
+ *  sous-agents sous-comptés : #2596, commentaire 6143427125. `long` : tarif au-delà de `above` tokens de prompt. */
 export const PRIX = {
   'claude-opus-5-5': { in: 4, out: 20, w5: 5, w1: 8, rd: 0.2 },
   'claude-sonnet-5-5': { in: 2, out: 10, w5: 2.5, w1: 4, rd: 0.1 },
@@ -19,7 +20,7 @@ export const PRIX = {
 }
 
 /** Invocation de `npm run test:perimetre` (hors `-- --liste`). */
-export const PERIM = /(^|[;&|(]\s*|&&\s*)(timeout \d+ )?([A-Z_]+= )?npm run (-s |--silent )?test:perimetre\b(?!\s*--\s*--liste)/
+export const PERIM = /(^|[;&|({]\s*|&&\s*)(timeout \d+ )?([A-Z_]+= )?npm run (-s |--silent )?test:perimetre\b(?!\s*--\s*--liste)/
 
 const SHELL = /^(Bash|PowerShell|bash)$|ctx_shell/
 
@@ -519,15 +520,37 @@ export function simuPlafond({ requetes }) {
 
 // ── Verdict de test:perimetre, conformité SendMessage ─────────────────────────────────────────────
 
-/** Chaque run de `test:perimetre` d'un sous-agent codeur, son code (résultat au premier plan, notification en fond)
- *  et son verdict : vert (0), rouge (≠ 0), inconnu ; par fil, le verdict de son DERNIER run. */
+/** La base `<base>.code` qu'écrit une commande de fond sous la forme de `scripts/hooks/appel-borne-guard.mjs`,
+ *  `null` hors de cette forme. PUR. */
+const baseDeFond = (commande) => /["']([^"']+)\.code["']/.exec(commande)?.[1] ?? null
+
+/** Le résultat de sonde (`scripts/ops/sonde.mjs`) TERMINÉ de `base` dans le fil de `u`, après `u` : `{ code, fin }`,
+ *  `null` sans sonde terminée. */
+function sondeTerminee(evenements, finDe, u, base) {
+  for (const e of evenements.filter((x) => x.type === 'tool_use' && cleFil(x) === cleFil(u) && x.t > u.t && SHELL.test(x.nom)).sort((a, b) => a.t - b.t)) {
+    const c = e.resume?.command ?? ''
+    if (!c.includes('sonde.mjs') || !c.includes(`${base}.code`)) continue
+    const fin = finDe(e)?.fin ?? ''
+    const code = /\[sonde\] TERMINÉE — code (-?\d+)/.exec(fin)?.[1]
+    if (code !== undefined) return { code: Number(code), fin }
+  }
+  return null
+}
+
+/** Chaque run de `test:perimetre` d'un sous-agent codeur, son code et son verdict : vert (0), rouge (≠ 0), inconnu ;
+ *  par fil, le verdict de son DERNIER run. Le code : au premier plan, le résultat ; en fond sous la forme à `.code`
+ *  de `appel-borne-guard.mjs`, la SONDE terminée (la notification n'y porte que le code de l'enveloppe) ; en fond
+ *  hors de cette forme, la notification. */
 export function verdictPerimetre({ evenements }) {
   const finDe = finsDesOutils(evenements)
   const runs = evenements.filter((e) => e.type === 'tool_use' && e.agentType === 'codeur' && SHELL.test(e.nom) && PERIM.test(e.resume?.command ?? ''))
     .sort((a, b) => a.t - b.t).map((u) => {
       const fond = !!u.resume?.run_in_background, f = finDe(u)
-      const code = f?.code ?? null
-      return { session: u.session, fil: u.fil, t: u.t, fond, code, verdict: code === 0 ? 'vert' : code == null ? 'inconnu' : 'rouge', fin: fond ? f?.sommaire ?? null : f?.fin ?? null }
+      const base = fond ? baseDeFond(u.resume?.command ?? '') : null
+      const sonde = base ? sondeTerminee(evenements, finDe, u, base) : null
+      const code = base ? sonde?.code ?? null : f?.code ?? null
+      const fin = base ? sonde?.fin ?? null : fond ? f?.sommaire ?? null : f?.fin ?? null
+      return { session: u.session, fil: u.fil, t: u.t, fond, code, verdict: code === 0 ? 'vert' : code == null ? 'inconnu' : 'rouge', fin }
     })
   const parFil = [...par(runs, cleFil)].map(([, v]) => ({ session: v[0].session, fil: v[0].fil, runs: v.length, rouges: v.filter((x) => x.verdict === 'rouge').length, verdict: v.at(-1).verdict, fin: v.at(-1).fin }))
   return { runs, parFil }

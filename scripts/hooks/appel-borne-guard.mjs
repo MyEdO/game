@@ -10,6 +10,8 @@
 //   the background » (mesuré 2026-10-13, Bash et PowerShell) ;
 // - `mcp__lean-ctx__ctx_shell` : « timeout_ms: Job lifetime in ms (max 3600000) — NOT the inline wait. A command
 //   still running at the ~110s foreground cap detaches to a pollable shell_* job » : hors garde.
+// Limite : un agent qui ATTEND une notification (Monitor, commande de fond sans sonde) reste inactif au-delà de
+// 5 min sans qu'aucun appel ne le porte ; la garde ne le juge pas, `.claude/agents/codeur.md` prescrit la sonde.
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -28,26 +30,40 @@ const TIMEOUT_DE_SONDE_MS = BORNE_DE_SONDE_S * 1000 + 20_000
 /** Les outils dont un champ `timeout` borne l'attente au premier plan. */
 const OUTILS_BORNES = ['Bash', 'PowerShell']
 
+/** Le `timeout` d'un `tool_input` en ms, nombre ou chaîne numérique ; `null` sinon. PURE. */
+function timeoutDe(input) {
+  const brut = input?.timeout
+  if (typeof brut === 'number') return brut
+  return typeof brut === 'string' && brut.trim() !== '' && Number.isFinite(Number(brut)) ? Number(brut) : null
+}
+
 /** La borne de l'attente au premier plan d'un `tool_input`, `null` en fond. PURE. */
 function borneDe(input) {
   if (input?.run_in_background === true) return null
-  return typeof input?.timeout === 'number' ? input.timeout : BORNE_PAR_DEFAUT_MS
+  return timeoutDe(input) ?? BORNE_PAR_DEFAUT_MS
 }
 
-/** La base des fichiers `.log` et `.code` d'une commande : hors de l'arbre (#2585), nommée par son empreinte. */
-const baseDe = (commande) => join(tmpdir(), `appel-${createHash('sha1').update(commande).digest('hex').slice(0, 10)}`).replaceAll('\\', '/')
+/**
+ * La base des fichiers `.log` et `.code` d'une commande : hors de l'arbre (#2585), nommée par l'empreinte de
+ * l'appelant (session, agent, répertoire) et de la commande. PURE.
+ */
+function baseDe({ session, agent, cwd, commande }) {
+  const empreinte = createHash('sha1').update(JSON.stringify([session, agent, cwd, commande])).digest('hex').slice(0, 12)
+  return join(tmpdir(), `appel-${empreinte}`).replaceAll('\\', '/')
+}
 
 /** La commande de fond à copier, pour l'outil `outil`. PURE. */
 function commandeDeFond(outil, commande, base) {
   if (outil === 'PowerShell') {
-    return `Remove-Item -ErrorAction Ignore '${base}.code'; & { ${commande} } *> '${base}.log'; Set-Content '${base}.code' $LASTEXITCODE`
+    return `Remove-Item -ErrorAction Ignore '${base}.code'; $global:LASTEXITCODE = 0; $Error.Clear(); `
+      + `try { & { ${commande} } *> '${base}.log'; $c = if ($LASTEXITCODE) { $LASTEXITCODE } elseif ($Error.Count) { 1 } else { 0 } } `
+      + `catch { $_ *>> '${base}.log'; $c = 1 }; Set-Content '${base}.code' $c`
   }
   return `rm -f "${base}.code"; ( ${commande} ) > "${base}.log" 2>&1; echo $? > "${base}.code"`
 }
 
 /** Le refus d'un appel de `outil` borné à `borne` ms, avec son remède à copier. PURE. */
-function refus(outil, commande, borne) {
-  const base = baseDe(commande)
+function refus(outil, commande, borne, base) {
   return {
     decision: 'deny',
     raison: `⛔ Appel ${outil} au premier plan borné à ${borne} ms : un sous-agent ne tient pas un appel plus de `
@@ -59,10 +75,13 @@ function refus(outil, commande, borne) {
   }
 }
 
-function evaluer(entree) {
+function evaluer(entree, contexte) {
   if (!sousAgent(entree)) return null
   const borne = borneDe(entreeDOutil(entree))
-  return borne !== null && borne > BORNE_D_APPEL_MS ? refus(entree.tool_name, commandeDe(entree), borne) : null
+  if (borne === null || borne <= BORNE_D_APPEL_MS) return null
+  const commande = commandeDe(entree)
+  const base = baseDe({ session: entree.session_id, agent: entree.agent_id, cwd: entree.cwd ?? contexte?.cwd, commande })
+  return refus(entree.tool_name, commande, borne, base)
 }
 
 export const garde = { nom: 'appel-borne', outils: OUTILS_BORNES, evaluer }

@@ -20,7 +20,8 @@ export function rendreRapport(cadre, a, comptes) {
   const w = (...l) => o.push(...l, '')
   w(`# Rapport cache de prompt, contexte et coût (#2596)`,
     `Fenêtre ${new Date(cadre.depuis).toISOString()} → ${new Date(cadre.jusqua).toISOString()} (UTC). ${cadre.fichiers} transcripts lus, ${T.req} requêtes dédoublonnées, ${a.sessions.length} sessions. Sessions exclues : ${cadre.exclues.length ? cadre.exclues.join(', ') : 'aucune'}.`,
-    `Froide = plus de ${M(SEUIL_FROID)} tokens écrits ET plus de la moitié du prompt écrit. Coûts en $ à la grille \`PRIX\` de chaque modèle (§7) ; surcoût = écriture − lecture des mêmes tokens. TTL attendus : principal ${TTL_MIN.principal} min, sous-agents ${TTL_MIN.agent} min (re-mesurés en §11).`)
+    `Froide = plus de ${M(SEUIL_FROID)} tokens écrits ET plus de la moitié du prompt écrit. Coûts en $ à la grille \`PRIX\` de chaque modèle (§7) ; surcoût = écriture − lecture des mêmes tokens. TTL attendus : principal ${TTL_MIN.principal} min, sous-agents ${TTL_MIN.agent} min (re-mesurés en §11).`,
+    `Montants : exacts au cent contre les lignes \`cost-state\` sur un fil principal sans sous-agent ; ceux des sous-agents sont un PLANCHER, leurs transcripts sous-comptent (#2596, commentaire 6143427125).`)
 
   w('## 0. Comptes clés', table(['Compte', 'Valeur'], Object.entries(comptes).map(([k, v]) => [k, typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(4) : v])))
 
