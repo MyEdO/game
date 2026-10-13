@@ -983,7 +983,7 @@ function tavernSides(ctx: SequenceCloseCtx<TavernPayload>): {
       playerActor: tavernActor(get, p.challengerId), opponentActor: tavernActor(get, p.opponentId),
     };
   }
-  if (!step.result) return undefined;
+  if (!estJete(step.result)) return undefined;
   return {
     player: asTest(step.result, step.base),
     opponent: step.meta?.opposed?.aT ?? rollTavernTest(p.opponentValue, ctx.rng),

@@ -83,7 +83,7 @@ describe('Précipitations Très abondantes au combat ouvert pendant un voyage en
     tireur(H, PISTOLET, 'poudre-noire');
     const role = findCrewRoleById('artilleur')!;
     expect(meteo(crewRoleTestMods(H, role))).toEqual([-30]);
-    const joueur = rollCrewRole(H, 'artilleur', seq([45]))!;
+    const joueur = rollCrewRole(H, 'artilleur', seq([45]))!.result;
     const headless = resolveCrewTestByRoles([{ crew: H, roleId: 'artilleur' }], 'batterie', 'intermediaire', 80, seq([45]));
     expect(headless.contributions[0].sl).toBe(joueur.sl);
   });

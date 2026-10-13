@@ -183,9 +183,9 @@ describe('Commandant émérite (MDG 09 l.50-54) — +niveau DR aux Tests d’éq
     // valeur 80 : succès quasi garanti avec ce seed ; on vérifie sl = DR de base + niveau.
     const c = cap(3);
     c.characteristics.sociabilite = 80;
-    const withTalent = jete(rollCrewRole(c, 'capitaine', makeRNG(11)));
+    const withTalent = jete(rollCrewRole(c, 'capitaine', makeRNG(11))!.result);
     const sans = { ...c, talents: [] } as Combatant;
-    const without = jete(rollCrewRole(sans, 'capitaine', makeRNG(11)));
+    const without = jete(rollCrewRole(sans, 'capitaine', makeRNG(11))!.result);
     expect(withTalent.roll).toBe(without.roll); // même dé (même seed)
     if (withTalent.roll <= withTalent.target) expect(withTalent.sl).toBe(without.sl + 3);
     else expect(withTalent.sl).toBe(without.sl); // raté → pas de bonus

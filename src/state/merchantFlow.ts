@@ -9,7 +9,7 @@ import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor } from '../engine/bargain';
-import { SL_ASTOUNDING } from '../engine/tests';
+import { SL_ASTOUNDING, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
 import type { SceneEntity } from './scene';
@@ -356,7 +356,7 @@ export function openPlaceMerchant(get: Get, set: Set, entityId: string, archetyp
  *  journée + réassort visible/inline) vit ICI, keyée par `kind`. */
 const MERCHANT_RAGOT_KIND = 'merchant-ragot';
 registerCascadeApplier(MERCHANT_RAGOT_KIND, (get, set, step) => {
-  if (!step.result) return {};
+  if (!estJete(step.result)) return {};
   const meta = step.meta ?? {};
   const entityId = String(meta.entityId ?? '');
   const m = get().merchant;

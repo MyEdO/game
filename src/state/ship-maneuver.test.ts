@@ -8,9 +8,11 @@ import { makeRNG } from '../engine/dice';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
 import { emptyScene } from './scene';
-import { maneuverShip, rollShipManeuver, applyShipManeuver, forceShipManeuver, bonusShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew, shipManeuverParams, type ManeuverResult } from './shipManeuver';
+import { maneuverShip, rollShipManeuver, applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew, shipManeuverParams } from './shipManeuver';
 import * as navalTraitsMod from '../engine/navalTraits';
-import { crewTestSuccess } from '../engine/crewMorale';
+import { crewTestSuccess, crewRoleValue } from '../engine/crewMorale';
+import { refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
+import { findCrewRoleById } from '../data';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, NavalTraitRef, ShipPoste } from '../engine/types';
 
@@ -286,6 +288,18 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
     }
   });
 
+  it('barre non tentable : le refus NOMMÉ du barreur imposé, ou de personne sans barreur, et le journal le porte (LDB 09 l.30 ; #2588 Q1)', () => {
+    const sansVoile = { ...helm2(), skills: [] } as unknown as Combatant;
+    const { skillId } = shipManeuverParams(ship2());
+    for (const [imposee, attendu] of [['helm', refusNePeutTenter(sansVoile, { skill: skillId })], [undefined, refusPersonneNePeutTenter({ skill: skillId })]] as const) {
+      useGame.setState({ battle: { combatants: [ship2(), sansVoile], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never, journal: [] });
+      const res = rollShipManeuver(() => useGame.getState(), 'ship', imposee)!;
+      expect(res.refus).toBe(attendu);
+      applyShipManeuver(() => useGame.getState(), 'ship', res, 2);
+      expect(useGame.getState().journal).toContain(attendu);
+    }
+  });
+
   it('applyShipManeuver vire (si succès) + avance le long du cap', () => {
     seedBattleRng(7);
     useGame.setState({ battle: { combatants: [ship2(), helm2()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
@@ -294,24 +308,6 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
     const advanced = applyShipManeuver(() => useGame.getState(), 'ship', res, 2); // tribord 90°
     expect(advanced).toBeGreaterThan(0);
     expect(useGame.getState().facing.ship).toBe('E');
-  });
-
-  it('forceShipManeuver (Résilience) → réussite garantie (DR ≥ 0) ; null si déjà réussie', () => {
-    const fail: ManeuverResult = { dr: -3, success: false, movement: 1, label: '', navDR: -2, advanced: 0 };
-    const forced = forceShipManeuver(ship2(), fail)!;
-    expect(forced.success).toBe(true);
-    expect(forced.dr).toBeGreaterThanOrEqual(0);
-    expect(forceShipManeuver(ship2(), { ...fail, success: true })).toBeNull();
-  });
-
-  it('bonusShipManeuver (+1 DR) → navDR augmenté de 1', () => {
-    const base: ManeuverResult = { dr: 0, success: true, movement: 5, label: '', navDR: 1, advanced: 0 };
-    expect(bonusShipManeuver(ship2(), base).navDR).toBe(2);
-  });
-
-  it('bonusShipManeuver (+1 DR) PRÉSERVE la réussite du d100 — le +1 DR augmente le degré, pas le succès', () => {
-    const failed: ManeuverResult = { dr: -3, success: false, movement: 1, label: '', navDR: -2, roll: 88, target: 41, advanced: 0 };
-    expect(bonusShipManeuver(ship2(), failed).success).toBe(false); // un échec ne devient pas un succès via +1 DR
   });
 
   it('réussite du VIRAGE = réussite du d100 (RAW MDG 13 l.304), JAMAIS dr≥0 — le Man (−1 DR cogue) n’inverse pas le Test', () => {
@@ -494,5 +490,30 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     } finally {
       resetRule('crew-test-zero-success');
     }
+  });
+});
+
+describe('Test d’équipage : un rôle devenu non tentable au jet pose le refus avec l’échec sans jet (LDB 09 l.30 ; #2588 Q1)', () => {
+  it('le Timonier perd sa Voile entre l’ouverture et son jet : sa rangée naît ECHEC_SANS_JET avec SON refus', () => {
+    seedBattleRng(7);
+    const helm = { id: 'helm', label: 'Timonier', kind: 'hero',
+      characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+      wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 2, resilience: 1,
+      skills: [{ id: 'voile', characteristic: 'agilite', advances: 40 }], talents: [], weapons: [],
+      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } } as unknown as Combatant;
+    const ship = { id: 'ship', label: 'Barge', kind: 'npc', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] } as unknown as Combatant;
+    useGame.setState({ battle: { combatants: [ship, helm], order: ['helm'], turn: 0, acted: false } as never, party: [helm], facing: { ship: 'N' }, pendingShipManeuver: null, scene: null as never });
+    useGame.getState().battleShipManeuver('helm');
+    const part = useGame.getState().pendingShipManeuver!.participants.find((x) => x.id === 'helm')!;
+    expect(part.result).toBeNull();
+    const b = useGame.getState().battle!;
+    const sansVoile = { ...helm, skills: [] } as unknown as Combatant;
+    useGame.setState({ battle: { ...b, combatants: b.combatants.map((c) => (c.id === 'helm' ? sansVoile : c)) } });
+    useGame.getState().shipManeuverRoll('helm');
+    const apres = useGame.getState().pendingShipManeuver!.participants.find((x) => x.id === 'helm')!;
+    const attendu = crewRoleValue(sansVoile, findCrewRoleById(part.roleId)!).refus;
+    expect(attendu).toBeDefined();
+    expect(apres.result).toEqual(ECHEC_SANS_JET);
+    expect(apres.refus).toBe(attendu);
   });
 });

@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react';
 import { Stack } from './Layout';
 import type { Combatant } from '../engine/types';
-import { refLabel } from '../data';
+import { refLabel, findCrewRoleById } from '../data';
 import type { PanelRowData } from './RollPanel';
 import { participantRow, type BuiltRollRow } from './rollRowBuild';
-import { estJete, type EchecSansJet } from '../engine/tests';
+import { refusSansJet, easeDifficulty, type EchecSansJet } from '../engine/tests';
 import type { PlayerText } from '../i18n/playerText';
+import type { ShipManeuverParticipant } from '../state/pendings';
+import { crewRoleValue, crewRoleTestMods } from '../engine/crewMorale';
+import { testBreakdown, testPending } from './breakdown';
 
 /**
  * SOURCE UNIQUE des rangées-participants d'une modale MULTI (#328) : `CascadeModal` batch,
@@ -69,6 +72,13 @@ export function rollAllUnrolledRows<P extends ParticipantRow>(
   return unrolled.length >= 2 ? () => unrolled.forEach((p) => roll(p.id)) : null;
 }
 
+/** Rangée TÉMOIN d'une ligne née sans jet (`refusSansJet`) : ni dé ni influence, son refus NOMMÉ en note.
+ *  `undefined` pour une ligne tentable. Rendu UNIQUE des rangées multi et de l'étape mono (`CascadeModal`). */
+export function rangeeSansJet(key: string, actor: Combatant | undefined, ligne: { result?: object | null; refus?: PlayerText }): BuiltRollRow | undefined {
+  const refus = refusSansJet(ligne);
+  return refus == null ? undefined : participantRow({ key, actor, row: { combatant: actor, note: refus }, interactive: false });
+}
+
 export function buildParticipantRows<P extends ParticipantRow>(
   participants: P[],
   pool: Combatant[],
@@ -77,10 +87,8 @@ export function buildParticipantRows<P extends ParticipantRow>(
   return participants.flatMap((part) => {
     const actor = pool.find((c) => c.id === part.id);
     if (!actor) return [];
-    if (part.result && !estJete(part.result)) {
-      // Ligne non tentable (LDB 09 l.30) : TÉMOIN sans dé, son refus nommé pour toute ligne.
-      return [participantRow({ key: part.id, actor, row: { combatant: actor, note: part.refus }, interactive: false })];
-    }
+    const temoin = rangeeSansJet(part.id, actor, part);
+    if (temoin) return [temoin];
     const res = part.result as ResultatJete<P>;
     const extendedDr = bundle.extendedDrOf?.(part, actor);
     // Z5 (docs/charte-ui.md) — SOURCE UNIQUE du libellé de LIGNE d'une rangée-participant : la
@@ -119,4 +127,20 @@ export function buildParticipantRows<P extends ParticipantRow>(
       ...(extendedDr ? { extendedDr } : {}),
     })];
   });
+}
+
+/** PRÉSENTATION d'une rangée de Test d'équipage par rôle (MDG 14) — les trois modales navales
+ *  (`CrewTestModal`, `ShipBatteryModal`, `ShipManeuverModal`). Un rôle que le marin ne peut pas tenir rend son
+ *  refus NOMMÉ, jamais une valeur 0 (LDB 09 l.30 ; #2588 Q1). Manque de bras : MDG 14 l.53. */
+export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res: { roll: number; target: number; sl: number } | null): PanelRowData {
+  const role = findCrewRoleById(part.roleId);
+  if (!role) return { combatant: actor };
+  const rv = crewRoleValue(actor, role, part.sense);
+  if (rv.refus != null) return { combatant: actor, note: rv.refus };
+  const mods = crewRoleTestMods(actor, role, part.sense);
+  const label = `${role.label}${part.essential ? ' ★' : ''}`;
+  const difficulty = part.cumul ? easeDifficulty('intermediaire', -2) : undefined;
+  return res
+    ? { combatant: actor, d: testBreakdown(label, rv.value, { roll: res.roll, target: res.target, sl: res.sl }, difficulty, mods) }
+    : { combatant: actor, pending: testPending(label, rv.value, undefined, difficulty, mods) };
 }

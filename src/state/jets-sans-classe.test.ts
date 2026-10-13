@@ -24,6 +24,10 @@ import { fixtureText } from '../i18n/fixtureText';
 import { voyageStakeRef } from '../data';
 import { KINDS_SOUS_ORDRES } from './voyageCadence';
 import type { Combatant } from '../engine/types';
+import { ECHEC_SANS_JET } from '../engine/tests';
+import { refusNePeutTenter } from '../engine/skills';
+import { seedBattleRng, battleRng } from './battleRng';
+import { makeRNG } from '../engine/dice';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -177,6 +181,24 @@ describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade
     expect(bande.participants![0].interactive, 'c’est SON joueur qui la roulera').toBe(true);
     expect(bande.participants![0].result).toBeNull();
     expect(surfaceDesEtapes(get, [bande])).toBe('M');
+  });
+});
+
+describe('mono non tentable = cas N=0 de la bande (LDB 09 l.30 ; #2588 Q1)', () => {
+  it('`monoStep` à ligne refusée naît ÉCHEC SANS JET avec son refus, et la séquence n’y tire aucun dé', () => {
+    const h = get().party[0];
+    const refus = refusNePeutTenter(h, { skill: 'resistance' });
+    const step = monoStep({
+      id: 'muet', kind: 'sonde-1479', actor: h, label: fixtureText('muet'), difficulty: 'intermediaire', ligne: { ...ligne, refus },
+      stake: voyageStakeRef('sea-epuisement', { condition: 'Exténué' }),
+    })!;
+    expect(step.result).toEqual(ECHEC_SANS_JET);
+    expect(step.refus).toBe(refus);
+    seedBattleRng(9);
+    startCascade(get, set, { title: 'Sonde', purpose: 'test', steps: [step] });
+    get().cascadeRoll('muet');
+    expect(get().pendingCascade!.participants[0].result).toEqual(ECHEC_SANS_JET);
+    expect(battleRng().int(1, 1_000_000)).toBe(makeRNG(9).int(1, 1_000_000));
   });
 });
 

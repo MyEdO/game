@@ -58,7 +58,7 @@ import { cadenceAuto } from '../engine/cadence';
 import { resoluSousOrdres } from './voyageCadence';
 import { byId, conditionLabel, dataLabel, type StakeRef } from '../data';
 import { t, type OutKey, type OutVars } from '../i18n';
-import { rollTest, clampTarget, ECHEC_SANS_JET, estJete, type EchecSansJet } from '../engine/tests';
+import { rollTest, clampTarget, ligneSansJet, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { defaultRNG, type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
@@ -480,8 +480,7 @@ export function bandStep(spec: BandSpec, rows: readonly BatchParticipant[]): Bui
     ...(spec.icon ? { icon: spec.icon } : {}),
     ...(porteurs.size > 1 ? { groupOwner: true } : { actorId: rows[0].id }),
     aggregate: spec.aggregate ?? 'none',
-    // Une rangée née RÉSOLUE sans dé (ligne non tentable, `rollStep` + `refus`) est un TÉMOIN : ni Lancer ni influence.
-    participants: rows.map((r) => (r.result && !estJete(r.result) ? { ...r, interactive: false } : r)),
+    participants: rows.map(temoinSiSansJet),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.menace ? { menace: spec.menace } : {}),
     ...(spec.combatPsych ? { combatPsych: spec.combatPsych } : {}),
@@ -489,6 +488,12 @@ export function bandStep(spec: BandSpec, rows: readonly BatchParticipant[]): Bui
     ...(spec.meta ? { meta: spec.meta } : {}),
   // eslint-disable-next-line murs/marques -- #1262 : porte `bandStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
+}
+
+/** Une rangée née RÉSOLUE sans dé (ligne non tentable, `ligneSansJet`) est un TÉMOIN : ni Lancer ni
+ *  influence. Source UNIQUE de « non tentable ⇒ témoin » (bandes du seam, Test d'équipage de combat). */
+export function temoinSiSansJet<R extends { result?: object | null; refus?: unknown; interactive?: boolean }>(r: R): R {
+  return refusSansJet(r) != null ? { ...r, interactive: false } : r;
 }
 
 /**
@@ -896,7 +901,7 @@ export function rollStep(spec: RollLineSpec): LigneMontee {
     ...(line.mods.length ? { mods: line.mods } : {}),
     target: line.target,
     ...(line.clamped ? { clamped: line.clamped } : {}),
-    ...(spec.refus != null ? { refus: spec.refus, result: ECHEC_SANS_JET } : {}),
+    ...(spec.refus != null ? ligneSansJet(spec.refus) : {}),
   };
 }
 
@@ -1449,7 +1454,7 @@ export function monoStep(spec: MonoSpec): BuiltCascadeStep | undefined {
     difficulty: spec.difficulty,
     rollLabel: spec.rollLabel ?? testSkillLabel(spec.ligne?.test ?? {}) ?? spec.label,
     ...parts,
-    result: null,
+    result: parts.result ?? null,
     ...(spec.menace ? { menace: spec.menace } : {}),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.second ? { second: spec.second } : {}),

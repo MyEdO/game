@@ -45,7 +45,7 @@ import { sceneMetresPerTile } from './scene';
 import { metresRetenus, phaseDeChute } from './fallMove';
 import { REDERIVATIONS, resolveTrample, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
-import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, estJete, type EchecSansJet } from '../engine/tests';
+import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import { d100, defaultRNG, type RNG } from '../engine/dice';
 import { resolveRun, resolveDeliberateFall, runFromTest, fallFromTest } from '../engine/movement';
@@ -252,8 +252,9 @@ function crewRoleFlowSpec<P extends import('./rollFlowFactory').PendingBase & { 
     actor: (s, r) => actorIn(s, r.id),
     caps: { forced: true },
     resolve: (_s, r, actor, _get, forced) => {
-      if (!actor || (r.result && !estJete(r.result))) return null; // ligne non tentable : rien à jeter ni à forcer (LDB 09 l.30 ; #2588 Q1)
-      const rr = forced ? forceCrewRole(actor, r.roleId, r.cumul, r.sense) : rollCrewRole(actor, r.roleId, battleRng(), r.cumul, r.sense);
+      if (!actor || refusSansJet(r) != null) return null; // LDB 09 l.30 ; #2588 Q1
+      if (!forced) return rollCrewRole(actor, r.roleId, battleRng(), r.cumul, r.sense);
+      const rr = forceCrewRole(actor, r.roleId, r.cumul, r.sense);
       return rr ? { result: rr } : null;
     },
     outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (roll ≤ cible)
@@ -995,7 +996,7 @@ export const FLOWS = {
     // Niveau de Compétence du défenseur est imposé au SEUL point d'opposition (`opposedCascadeRoll`,
     // depuis `st.base`) — l'accesseur n'en est pas une seconde source (LDB 12 l.160).
     die: {
-      read: (st) => (st.target != null && st.result ? { roll: st.result.roll, target: st.target, critable: false } : null),
+      read: (st) => (st.target != null && estJete(st.result) ? { roll: st.result.roll, target: st.target, critable: false } : null),
       write: (_s, st, _a, _g, tr) => {
         if (st.target == null) return null;
         const opp = stepOpposedFreeze(st);
@@ -1050,7 +1051,7 @@ export const FLOWS = {
     },
     bonus: {
       derive: (_s, st) => {
-        if (!st.result) return null;
+        if (!estJete(st.result)) return null;
         const opp = stepOpposedFreeze(st);
         // Chance « +1 DR » (LDB 17 l.24) sur un Test OPPOSÉ : on RE-OPPOSE le jet défenseur amélioré (+1 DR)
         // à l'attaquant FIGÉ (1ʳᵉ position) — le +1 peut FAIRE BASCULER l'issue (calque `disengage.bonus.derive`).

@@ -231,7 +231,7 @@ function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeS
 registerCascadeApplier('stagePoste', (get, set, step, hero) => {
   const def = activityById(String(step.meta?.activityId ?? ''));
   if (!def || !hero) return;
-  const cons = applyPoste(get, set, hero, def, freeSkillFromMeta(step.meta), step.result ?? null);
+  const cons = applyPoste(get, set, hero, def, freeSkillFromMeta(step.meta), estJete(step.result) ? step.result : null);
   set({ party: [...get().party] });
   return { consequences: cons };
 });

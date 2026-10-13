@@ -7,6 +7,7 @@ import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../battleRng';
 import { hasCondition } from '../../engine/conditions';
 import { resolveOpposed } from '../../engine/tests';
+import { jete } from '../../engine/tests.testkit';
 import { testValue, skillBaseValue } from '../../engine/skills';
 
 import { testScene } from '../../scenes/test-fixture';
@@ -96,7 +97,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     useGame.getState().cascadeRoll(step.id);
     // Le jet du défenseur (Résistance) est posé sur l’étape ; l’issue doit être COHÉRENTE avec resolveOpposed
     // (ATTAQUANT figé en 1ʳᵉ position, comme la production) : la victime résiste si l’attaquant ne l’emporte pas.
-    const rolled = useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result!;
+    const rolled = jete(useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     const expectedResist = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner !== 'attacker';
     useGame.getState().cascadeNext();
 
@@ -132,7 +133,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(step.base, 'l’étape du défenseur porte sa Résistance NUE').toBe(fNue);
 
     useGame.getState().cascadeRoll(step.id);
-    const rolled = useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result!;
+    const rolled = jete(useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     // Le cœur de la preuve : jet défenseur == jet attaquant (même roll/cible/DR) → ÉGALITÉ stricte.
     expect(rolled.roll).toBe(aT.roll);
     expect(rolled.target).toBe(aT.target);

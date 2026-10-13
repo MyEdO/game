@@ -201,7 +201,7 @@ import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, ser
 import { isVehicle } from '../engine/vehicle';
 import { targetArc, headingToBear } from './fireArc';
 import { bearingPostes, mostArmedSide } from './shipBattery';
-import { shipHelmsman, maneuverShip } from './shipManeuver';
+import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
 import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType } from '../engine/psychology';
@@ -7922,8 +7922,8 @@ function endShipTurn(get: Get, set: SetFn, delay?: number): void {
  *     d'équipage des Artilleurs résolu sans modale, mêmes fns pures que le joueur) ;
  *  2. sinon MANŒUVRE (`maneuverShip`, barreur = meilleur de l'équipage APTE) : virer pour amener le bord le plus
  *     armé en batterie quand la cible est déjà à portée, sinon fermer la distance cap sur elle (la coque avance
- *     TOUJOURS le long du cap, MDG 13) — l'approche se joue donc sur plusieurs Rounds ;
- *  3. à défaut de barreur apte → la coque dérive le long de son cap (`shipAdvance`).
+ *     TOUJOURS le long du cap, MDG 13) — l'approche se joue donc sur plusieurs Rounds. Sans barreur apte, le
+ *     Test est un échec sans jet (LDB 09 l.30 ; MDG 13 l.304).
  * Les Tests d'équipage adverses sont auto-résolus par ces mêmes flux ; tout est journalisé (aucun jet silencieux).
  */
 function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
@@ -7946,16 +7946,10 @@ function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
     return endShipTurn(get, set, TEMPO.aimTelegraph);
   }
   // 2) MANŒUVRE : aligner le bord le plus armé (si à portée) ou fermer la distance (hors portée).
-  const helm = shipHelmsman(battle.combatants, ship);
-  if (helm) {
-    const primary = mostArmedSide(ship);
-    const inRange = shipMaxPosteRange(ship) > 0 && distMetres <= shipMaxPosteRange(ship);
-    const desired = inRange && primary ? headingToBear(primary, bearing) : bearing;
-    maneuverShip(get, ship.id, shipTurnToward(heading, desired), helm.id); // vire (si Test réussi) + avance ; journalise
-    return endShipTurn(get, set);
-  }
-  // 3) Aucun barreur apte : la coque dérive le long de son cap (approche minimale, MDG 13 M÷2 plancher).
-  get().shipAdvance(ship.id, Math.max(1, Math.round(shipMaxPosteRange(ship) / mpt) || 1));
+  const primary = mostArmedSide(ship);
+  const inRange = shipMaxPosteRange(ship) > 0 && distMetres <= shipMaxPosteRange(ship);
+  const desired = inRange && primary ? headingToBear(primary, bearing) : bearing;
+  maneuverShip(get, ship.id, shipTurnToward(heading, desired)); // vire (si Test réussi) + avance ; journalise
   endShipTurn(get, set);
 }
 

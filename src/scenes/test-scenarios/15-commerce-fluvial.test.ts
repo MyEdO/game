@@ -78,7 +78,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     expect(barre?.actorId).toBe('com-gunnar');
   });
 
-  it('la barre se lit à la Voile (Chaland) de Gunnar, sa seule instance : Agilité + 40 (LDB 09 l.40, EDO 03 l.309)', () => {
+  it('la barre se lit à la Voile (Chaland) de Gunnar, sa seule instance : Agilité + 40 (LDB 09 l.40)', () => {
     drainCascade();
     const gunnar = get().party.find((h) => h.id === 'com-gunnar')!;
     expect(gunnar.skills.filter((k) => k.id === 'voile').map((k) => [k.spec, k.advances])).toEqual([['chaland', 40]]);

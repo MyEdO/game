@@ -226,8 +226,8 @@ describe('rollCrewRole — cumul de rôles (Manque de bras, MDG 14 l.53)', () =>
       kind: 'hero', wounds: { current: 10, max: 10 }, skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }], conditions: [], talents: [] }) as unknown as Combatant;
 
   it('cumul → +2 crans de Difficulté : cible PLUS DURE (−20) qu\'un jet normal, même dé', () => {
-    const normal = jete(rollCrewRole(cap(), 'capitaine', makeRNG(5)));
-    const cumul = jete(rollCrewRole(cap(), 'capitaine', makeRNG(5), true));
+    const normal = jete(rollCrewRole(cap(), 'capitaine', makeRNG(5))!.result);
+    const cumul = jete(rollCrewRole(cap(), 'capitaine', makeRNG(5), true)!.result);
     expect(cumul.target).toBe(normal.target - 20); // Intermédiaire (+0) → +2 crans = Difficile (−20)
   });
 });

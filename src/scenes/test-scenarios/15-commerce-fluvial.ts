@@ -40,7 +40,7 @@ function traders(): Combatant[] {
   berta.items = [...(berta.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, convoi];
   berta.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.5 };
 
-  // Voile (Au choix) du Batelier, désignée Chaland à la création — EDO 03 l.309.
+  // Spécialisation Chaland de la Voile (Au choix) du Batelier : valeur d'ADAPTATION du scénario. LDB 09 l.40
   const voileDeCarriere = adresseDeCreation.carriereCompetence(firstLevel('batelier')!.skills.findIndex((r) => 'id' in r && r.id === 'voile'));
   const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar', specChoices: { [voileDeCarriere]: 'chaland' } });
   renforcerCompetence(gunnar, 'ramer', 50);

@@ -31,7 +31,7 @@ import { WORLD_STEP_OWNER } from './netOwnership';
 import { hoteOrphelin, PENDING_BY_JET } from './stateFields';
 import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './combatants';
-import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, estJete, type TestResult } from '../engine/tests';
+import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, estJete, refusSansJet, type TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
 import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
@@ -775,7 +775,9 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
       ...lectureDeTrace(step, row.result),
     }));
   }
-  if (unwitnessed && !step.participants && step.result && stepInteraction(step) === 'jet') {
+  const refusMono = refusSansJet(step);
+  if (unwitnessed && !step.participants && refusMono != null) out.push(refusMono);
+  if (unwitnessed && !step.participants && estJete(step.result) && stepInteraction(step) === 'jet') {
     out.push(traceLineOf({
       ...(step.actorId ? { who: actorIn(get(), step.actorId)?.label ?? step.actorId } : {}),
       label: libelleDeTraceMono(step),
@@ -1369,7 +1371,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   const interaction = stepInteraction(step);
   const ownTestFailedLines = interaction === 'batch'
     ? batchOwnTestFailedLines(get, step)
-    : ((interaction === 'jet' && step.result && !step.result.success && !step.result.statuQuo && hero && !step.meta?.noOwnTestFailed)
+    : ((interaction === 'jet' && estJete(step.result) && !step.result.success && !step.result.statuQuo && hero && !step.meta?.noOwnTestFailed)
       ? (ownTestFailedEmitter?.(get, hero, step.result.sl) ?? []) : []);
   journaliser(get, set, ownTestFailedLines, 'info', { actorId: step.actorId });
   // L'étape VALIDÉE garde sa conséquence (`outcome`) pour rester LISIBLE dans la pile à l'écran. Une

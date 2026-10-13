@@ -1,15 +1,10 @@
 import { useGame } from '../state/store';
 import { useOwns } from './ownership';
-import { easeDifficulty } from '../engine/tests';
-import { findCrewRoleById } from '../data';
-import { crewRoleValue } from '../engine/crewMorale';
 import { maneuverCrewTotal } from '../state/shipManeuver';
-import { crewRoleTestMods } from '../engine/crewMorale';
 import { RollShell, type RollAction } from './RollShell';
 import type { BuiltRollRow } from './rollRowBuild';
-import { buildParticipantRows, rollAllUnrolledRows } from './buildParticipantRows';
+import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
 import { Icon } from './Icon';
-import { testBreakdown, testPending } from './breakdown';
 
 /**
  * Modale du TIR DE BATTERIE (« bordée », MDG 14 l.128) — JUMEAU de `ShipManeuverModal` (flux MULTI,
@@ -44,17 +39,7 @@ export function ShipBatteryModal() {
   const rows: BuiltRollRow[] = buildParticipantRows(p.participants, battle.combatants, {
     onRoll: roll, onReroll: reroll, onBonusSL: bonus, onDarkPact: darkPact, onForce: force,
     interactiveOf: (part) => !!part.interactive && owns(part.id),
-    row: (part, actor, res) => {
-      const role = findCrewRoleById(part.roleId);
-      const val = role ? crewRoleValue(actor, role).value ?? 0 : 0;
-      const mods = role ? crewRoleTestMods(actor, role) : [];
-      const label = `${role?.label ?? part.roleId}${part.essential ? ' ★' : ''}`;
-      // Manque de bras (MDG 14 l.53) : marin déjà engagé ce Round → +2 crans de Difficulté (−20), itemisé.
-      const difficulty = part.cumul ? easeDifficulty('intermediaire', -2) : undefined;
-      return res
-        ? { combatant: actor, d: testBreakdown(label, val, { roll: res.roll, target: res.target, sl: res.sl }, difficulty, mods) }
-        : { combatant: actor, pending: testPending(label, val, undefined, difficulty, mods) };
-    },
+    row: crewRoleRow,
     note: (part, _actor, res) => <div className="cs-outcome ok-text">{part.essential ? `${sign(res.sl)} DR ×2` : `${sign(res.sl)} DR`}</div>,
   });
 

@@ -1986,7 +1986,11 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  une base SOUTENUE peut dépasser le plafond, et l'écart doit se NOMMER (« plafond 99 ») au lieu
    *  d'être avoué « autres » par le réconciliateur de `RollLine`. Mesuré à la construction. */
   clamped?: number;
-  result?: CascadeRoll | null;
+  /** Le dé de l'étape, ou l'issue CONSTANTE d'une ligne que son porteur ne peut pas tenter (`EchecSansJet`,
+   *  posée par `monoStep` depuis `rollStep` avec `refus`) : l'étape mono est le cas N=0 d'une bande. */
+  result?: CascadeRoll | EchecSansJet | null;
+  /** Refus NOMMÉ d'une ligne non tentable (LDB 09 l.30) — présent ssi `result` est `EchecSansJet`. */
+  refus?: PlayerText;
   /** Étape à TABLE (#942 L2) : un TIRAGE SUR TABLEAU est l'interaction `'table'` — le dé de l'étape se
    *  jette sur `table.tableId` (registre `tableStepDef`), `rollTableStep` pose `table.result` (dé
    *  naturel + dé effectif + id de ligne + lignes). Résolue → l'étape s'affiche comme les autres
