@@ -16,6 +16,7 @@ import { BATTLE_HAZARDS } from '../engine/massBattle';
 import type { Combatant } from '../engine/types';
 import { GatedAction, raisonSi } from './GatedAction';
 import { Grid } from './Layout';
+import { t } from '../i18n';
 
 /**
  * Écran de Combat de masse / Puissance de Bataille (ADE II 08). Il ne gère QUE les Rounds ('round') et
@@ -152,7 +153,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
       {mb.awaitingNext ? (
         <div className="bar mb-actions mb-clash-actions">
           {woundedRally && (
-            <button className="btn small" onClick={rally} title="Test de Résistance de guérison (l.122)">Rassemblement (Résistance)</button>
+            <button className="btn small" onClick={rally} title="Test de Résistance de guérison (l.122)">{t('mbf.rallyLabel')}</button>
           )}
           <button className="btn btn-primary" onClick={advance}>Round suivant</button>
         </div>

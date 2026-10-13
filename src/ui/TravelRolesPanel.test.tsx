@@ -2,8 +2,10 @@
 /**
  * Rôles de marche : le poste est un Test CHOISI (EDOC 8 l.131). Un héros qui ne peut tenter aucune
  * compétence du poste (LDB 09 l.30 ; Inconscient, LDB 16 l.113) reste candidat au panneau, FERMÉ avec
- * le refus que l'Étape poserait (#2588). Pratiquer une Compétence demande la Compétence (EDOC 8 l.131) :
- * celles du héros, chacune fermée avec son refus s'il ne peut pas la tenter.
+ * le refus que l'Étape poserait (#2588). Pratiquer une Compétence demande la Compétence (EDOC 8 l.172) :
+ * celles de sa fiche et les Compétences de base hors fiche (LDB 09 l.30), chacune fermée avec son refus
+ * s'il ne peut pas la tenter ; un héros qui n'en peut tenter aucune est fermé dès le premier panneau, et
+ * la case affiche la Compétence épinglée.
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -11,6 +13,7 @@ import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { useGame } from '../state/store';
 import { refusNePeutTenter } from '../engine/skills';
 import { TravelRolesPanel } from './TravelRolesPanel';
+import { activityById } from '../engine/activities';
 import { refLabel } from '../data';
 import type { Combatant } from '../engine/types';
 
@@ -91,5 +94,45 @@ describe('TravelRolesPanel — Pratiquer une Compétence demande la Compétence'
     act(() => { candidat(panneau, refLabel('skills', { id: 'escalade' })).click(); });
     expect(useGame.getState().party[0].travelRole).toEqual({ activityId: 'pratiquer-competence', freeSkill: { id: 'escalade' } });
     expect(document.querySelector('[data-panneau-parametre]')).toBeNull();
+  });
+});
+
+describe('TravelRolesPanel — Pratiquer une Compétence : jamais épinglé sans Compétence', () => {
+  const panneaux = () => [...document.querySelectorAll('[data-panneau-parametre]')] as HTMLElement[];
+
+  it('héros sans Compétence à sa fiche : ouvert, il demande une Compétence de base, il n’épingle rien seul', () => {
+    useGame.setState({ party: [hero('h0', 'Nu')] });
+    const personnes = ouvrirPanneau('pratiquer-competence');
+    expect(candidat(personnes, 'Nu').getAttribute('aria-disabled')).toBeNull();
+    act(() => { candidat(personnes, 'Nu').click(); });
+    expect(useGame.getState().party[0].travelRole).toBeUndefined();
+    const [competences] = panneaux();
+    expect(competences.getAttribute('aria-label')).toContain('quelle Compétence');
+    expect(candidat(competences, refLabel('skills', { id: 'orientation' })).getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it('héros Inconscient : FERMÉ dès le premier panneau, avec sa raison ; cliqué, rien ne s’épingle ni ne s’ouvre', () => {
+    const ko = hero('h1', 'Ko', { conditions: [{ id: 'inconscient', value: 1 }], skills: [{ id: 'escalade', advances: 10 }] } as Partial<Combatant>);
+    useGame.setState({ party: [ko] });
+    const personnes = ouvrirPanneau('pratiquer-competence');
+    const ferme = candidat(personnes, 'Ko');
+    expect(ferme.getAttribute('aria-disabled')).toBe('true');
+    expect(document.getElementById(ferme.getAttribute('aria-describedby')!)?.textContent)
+      .toContain(refusNePeutTenter(ko, { action: activityById('pratiquer-competence')!.label }));
+    act(() => { ferme.click(); });
+    expect(useGame.getState().party[0].travelRole).toBeUndefined();
+    expect(panneaux().some((p) => p.getAttribute('aria-label')?.includes('quelle Compétence'))).toBe(false);
+  });
+
+  it('la case affiche la Compétence épinglée en texte visible, sur un élément focalisable', () => {
+    useGame.setState({ party: [hero('h2', 'Aldric', { skills: [{ id: 'escalade', advances: 10 }], travelRole: { activityId: 'pratiquer-competence', freeSkill: { id: 'escalade' } } } as Partial<Combatant>)] });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => { root!.render(<TravelRolesPanel />); });
+    const ligne = container.querySelector('.pr-ligne[data-poste="pratiquer-competence"]') as HTMLElement;
+    const precision = ligne.querySelector('.pr-precision') as HTMLElement;
+    expect(precision.textContent).toBe(refLabel('skills', { id: 'escalade' }));
+    expect(precision.tabIndex).toBe(0);
   });
 });

@@ -1,20 +1,17 @@
 /**
- * Pratiquer une Compétence (EDOC 8 l.131 ; `activities.json › pratiquer-competence`) : le poste porte la
- * Compétence CHOISIE, de l'épinglage (`setTravelRole`) jusqu'à l'applier. Sans Compétence choisie, le poste
- * échoue sans jet avec son refus nommé (#2588) ; une Compétence que le héros ne peut pas tenter est fermée
- * (LDB 09 l.30).
+ * Pratiquer une Compétence (EDOC 8 l.172 ; `activities.json › pratiquer-competence`) : le poste porte la
+ * Compétence CHOISIE, de l'épinglage (`setTravelRole`) jusqu'à l'applier. Les Compétences offertes sont
+ * celles que le héros peut tenter (LDB 09 l.30) ; sans Compétence choisie, il n'y a pas de Test, donc ni
+ * échec ni Exténué (EDOC 8 l.133) : le poste n'est pas tenu.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { buildStageSteps } from './travelPostes';
-import { cascadeAppliers } from './cascade';
-import { resultLine } from './rollSeam';
-import { competencesAPratiquer, stageAssignmentFromRoles } from '../engine/activities';
+import { activityById, competencesAPratiquer, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
 import { refusNePeutTenter } from '../engine/skills';
 import { hasCondition } from '../engine/conditions';
 import { ECHEC_SANS_JET } from '../engine/tests';
-import { refLabel } from '../data';
-import { t } from '../i18n';
+import { refLabel, skills } from '../data';
 import type { Combatant } from '../engine/types';
 
 const heros = (over: Partial<Combatant> = {}): Combatant =>
@@ -39,12 +36,29 @@ function etape(posting: Parameters<ReturnType<typeof useGame.getState>['setTrave
 describe('Pratiquer une Compétence : le poste porte sa Compétence choisie', () => {
   beforeEach(() => useGame.setState({ party: [heros()], journal: [] }));
 
-  it('les candidats sont les Compétences du héros ; une Avancée sans Augmentation est fermée avec son refus', () => {
+  it('les candidats sont les Compétences de sa fiche, une Avancée sans Augmentation fermée avec son refus', () => {
     const h = heros();
-    expect(competencesAPratiquer(h)).toEqual([
+    const offertes = competencesAPratiquer(h);
+    expect(offertes.slice(0, 2)).toEqual([
       { ref: { id: 'escalade' } },
       { ref: { id: 'evaluation' }, refus: refusNePeutTenter(h, { skill: 'evaluation' }) },
     ]);
+  });
+
+  it('les Compétences de base hors fiche sont offertes, ouvertes (LDB 09 l.30) ; aucune Avancée hors fiche', () => {
+    const offertes = competencesAPratiquer(heros());
+    expect(offertes).toContainEqual({ ref: { id: 'orientation' } });
+    const horsFiche = offertes.filter((o) => o.ref.id !== 'escalade' && o.ref.id !== 'evaluation');
+    expect(horsFiche.every((o) => skills.find((sd) => sd.id === o.ref.id)?.acces === 'base' && !o.refus)).toBe(true);
+    expect(offertes.some((o) => o.ref.id === 'metier')).toBe(false);
+  });
+
+  it('candidat : ouvert s’il peut tenter une Compétence ; Inconscient, fermé dès le premier niveau avec sa raison', () => {
+    const def = activityById('pratiquer-competence')!;
+    expect(refusCandidatActivite(heros(), def)).toBeUndefined();
+    const ko = heros({ conditions: [{ id: 'inconscient', value: 1 }] } as Partial<Combatant>);
+    expect(competencesAPratiquer(ko).every((o) => o.refus)).toBe(true);
+    expect(refusCandidatActivite(ko, def)).toBe(refusNePeutTenter(ko, { action: def.label }));
   });
 
   it('Compétence choisie : la rangée de la bande la teste, elle', () => {
@@ -61,16 +75,17 @@ describe('Pratiquer une Compétence : le poste porte sa Compétence choisie', ()
     expect(part.refus).toBe(refusNePeutTenter(useGame.getState().party[0], { skill: 'evaluation' }));
   });
 
-  it('sans Compétence choisie : jamais une réussite — échec sans jet, refus nommé, Exténué de la donnée', () => {
-    const steps = etape({ activityId: 'pratiquer-competence' });
-    expect(steps.some((s) => s.kind === 'stagePosteBatch')).toBe(false);
-    const poste = steps.find((s) => s.kind === 'stagePoste')!;
-    const hero = useGame.getState().party[0];
-    const out = cascadeAppliers[poste.kind].apply(useGame.getState, useGame.setState, poste, hero, { steps: [poste], index: 0 });
-    expect(resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? [])).toContain(t('refus.competenceNonChoisie', { qui: 'Hilda' }));
-    const [r] = useGame.getState().travelPlan!.stage!.results;
-    expect(r.success).toBe(false);
-    expect(r.stageOutcome).toBe('rerollToken');
-    expect(hasCondition(useGame.getState().party[0], 'extenue')).toBe(true);
+  it('sans Compétence choisie (état hérité) : poste non tenu — aucune étape, aucune issue, aucun Exténué', () => {
+    expect(etape({ activityId: 'pratiquer-competence' })).toEqual([]);
+    expect(useGame.getState().travelPlan!.postes).toEqual({});
+    expect(hasCondition(useGame.getState().party[0], 'extenue')).toBe(false);
+  });
+
+  it('sans Compétence choisie dans un plan déjà posé : l’Étape ne monte ni rangée ni pas de poste pour lui', () => {
+    useGame.setState({ party: [heros()], journal: [], pendingCascade: null, travelPlan: { routeId: 'r', km: 24, postes: { h: { activityId: 'pratiquer-competence' } }, stage: { results: [] } } as never });
+    const steps = buildStageSteps(useGame.getState, useGame.setState, 'beau', 'ete');
+    expect(steps.map((s) => s.kind)).toEqual(['stageAggregate']);
+    expect(useGame.getState().travelPlan!.stage!.results).toEqual([]);
+    expect(hasCondition(useGame.getState().party[0], 'extenue')).toBe(false);
   });
 });

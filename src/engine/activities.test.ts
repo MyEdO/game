@@ -189,7 +189,7 @@ describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.
   });
   it('metierOf : Compétence Métier avec avances seulement', () => {
     expect(metierOf(hero)).toBeUndefined();
-    hero.skills.push({ id: 'metier', spec: 'Forgeron', characteristic: 'dexterite', advances: 5 });
+    hero.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 5 });
     expect(skillInstanceLabel(metierOf(hero)!)).toBe('Métier (Forgeron)');
   });
 });

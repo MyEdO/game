@@ -26,10 +26,10 @@ const bundle = {
 describe('buildParticipantRows — le libellé de ligne vient de {skillId, spec} (#1117)', () => {
   it('la spécialisation est rendue : « Voile (Chaland) », jamais le rôle', () => {
     const rows = buildParticipantRows(
-      [{ id: 'h1', interactive: true, result: null, skillId: 'voile', spec: 'Chaland', label: 'Timonier' } as never],
+      [{ id: 'h1', interactive: true, result: null, skillId: 'voile', spec: 'chaland', label: 'Timonier' } as never],
       [actor], bundle as never,
     );
-    expect(rows[0].row.pending!.label).toBe(refLabel('skills', { id: 'voile', spec: 'Chaland' }));
+    expect(rows[0].row.pending!.label).toBe(refLabel('skills', { id: 'voile', spec: 'chaland' }));
     expect(rows[0].row.pending!.label).not.toBe('Timonier');
   });
 

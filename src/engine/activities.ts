@@ -29,7 +29,6 @@ import type { PlayerText } from '../i18n/playerText';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty, estJete, ECHEC_SANS_JET, type EchecSansJet } from './tests';
-import { t } from '../i18n';
 import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
@@ -552,9 +551,9 @@ export interface TravelActivityResult {
  *  retenue (meilleure TENTABLE de l'acteur, `bestForSkills`), sa valeur brute et la CIBLE effective (Difficulté + `skillMod` déjà
  *  appliqués, bornée 1..99 — comme `rollTest`). Sert à bâtir une ÉTAPE de cascade influençable ; la
  *  résolution du dé (RNG ou influence) vit dans la cascade, l'issue s'obtient ensuite par
- *  `applyTravelActivityResult`. Une Activité SANS Test (Récupérer) renvoie `target: null`, sans compétence. Une
- *  Activité à compétence LIBRE sans compétence choisie renvoie `target: null` ET son `refus` : elle échoue sans
- *  jet (EDOC 8 l.131 ; #2588). PUR. */
+ *  `applyTravelActivityResult`. Une Activité SANS Test (Récupérer) renvoie `target: null`, sans compétence.
+ *  Une Activité à compétence LIBRE sans compétence choisie n'est PAS TENUE (`null`) : ni Test, ni issue,
+ *  ni Exténué (EDOC 8 l.133). PUR. */
 export type TravelActivitySpec = {
   activityId: string;
   actorId: string;
@@ -562,7 +561,7 @@ export type TravelActivitySpec = {
   skillMod: number;
   drTarget?: number;
 } & (
-  | { target: null; used?: never; refus?: PlayerText }
+  | { target: null; used?: never; refus?: never }
   | {
     /** Compétence du Test : la meilleure tentable de l'acteur, sinon celle du poste. */
     used: RefDesignee;
@@ -578,11 +577,9 @@ export function travelActivitySpec(
   actor: Combatant,
   def: ActivityDef,
   opts: { skillMod?: number; stages?: number; freeSkill?: RefDesignee } = {},
-): TravelActivitySpec {
+): TravelActivitySpec | null {
   const drTarget = def.extended && opts.stages != null ? def.extended.drPerStage * opts.stages : undefined;
-  if (def.freeSkill && !opts.freeSkill) {
-    return { activityId: def.id, actorId: actor.id, value: 0, target: null, skillMod: opts.skillMod ?? 0, drTarget, refus: t('refus.competenceNonChoisie', { qui: actor.label }) };
-  }
+  if (def.freeSkill && !opts.freeSkill) return null;
   const skillRefs = def.freeSkill ? [opts.freeSkill!] : (def.skills ?? []);
   // Activité SANS Test (Récupérer) : pas d'étape-jet.
   if (!skillRefs.length) return { activityId: def.id, actorId: actor.id, value: 0, target: null, skillMod: opts.skillMod ?? 0, drTarget };
@@ -599,14 +596,24 @@ export function travelActivitySpec(
   };
 }
 
-/** Compétences offertes au choix d'une Activité à compétence LIBRE (Pratiquer une Compétence, EDOC 8) :
- *  celles de l'acteur, chacune FERMÉE avec son refus nommé s'il ne peut pas la tenter (`peutTenter`,
- *  LDB 09 l.30 ; #2588). PUR. */
+/** Compétences offertes au choix d'une Activité à compétence LIBRE (Pratiquer une Compétence, EDOC 8
+ *  l.172) : celles de la fiche de l'acteur, puis les Compétences de BASE du catalogue absentes de sa fiche
+ *  (LDB 09 l.25, LDB 09 l.30), chacune FERMÉE avec son refus nommé s'il ne peut pas la tenter
+ *  (`peutTenter` ; #2588). PUR. */
 export function competencesAPratiquer(actor: Combatant): { ref: RefDesignee; refus?: PlayerText }[] {
-  return actor.skills.map((s) => {
-    const ref: RefDesignee = { id: s.id, ...(s.spec ? { spec: s.spec } : {}) };
-    return peutTenter(actor, s.id, s.spec) ? { ref } : { ref, refus: refusNePeutTenter(actor, { skill: s.id, ...(s.spec ? { spec: s.spec } : {}) }) };
-  });
+  const refs: RefDesignee[] = [
+    ...actor.skills.map((s) => ({ id: s.id, ...(s.spec ? { spec: s.spec } : {}) })),
+    ...skills.filter((sd) => sd.acces === 'base' && !actor.skills.some((s) => s.id === sd.id)).map((sd) => ({ id: sd.id })),
+  ];
+  return refs.map((ref) => (peutTenter(actor, ref.id, ref.spec) ? { ref } : { ref, refus: refusNePeutTenter(actor, { skill: ref.id, ...(ref.spec ? { spec: ref.spec } : {}) }) }));
+}
+
+/** Refus d'un candidat à une Activité de voyage, au PREMIER niveau du choix : la meilleure compétence du
+ *  poste qu'il ne peut pas tenter, ou — compétence LIBRE — aucune compétence à pratiquer qu'il puisse
+ *  tenter (LDB 09 l.30 ; #2588). `undefined` = candidat ouvert. PUR. */
+export function refusCandidatActivite(actor: Combatant, def: ActivityDef): PlayerText | undefined {
+  if (!def.freeSkill) return travelActivitySpec(actor, def)?.refus;
+  return competencesAPratiquer(actor).some((c) => !c.refus) ? undefined : refusNePeutTenter(actor, { action: def.label });
 }
 
 /** Issue d'une Activité de voyage à partir d'un JET DÉJÀ résolu par la cascade : `success`/`sl` viennent
@@ -697,6 +704,13 @@ export function defaultTravelRole(hero: Combatant): string | null {
   return bestSkilledOption(hero, activitiesFor('voyage').filter((d) => !d.freeSkill && d.skills?.length))?.option.id ?? null;
 }
 
+/** Un poste est TENU s'il nomme une Activité connue et, pour une Activité à compétence LIBRE, la
+ *  Compétence pratiquée (EDOC 8 l.172) — sinon il n'est pas tenu : ni Test, ni issue. PUR. */
+export function postingTenu(posting: StagePosting): boolean {
+  const def = activityById(posting.activityId);
+  return !!def && (!def.freeSkill || !!posting.freeSkill);
+}
+
 /** Assignation d'Étape initialisée depuis les RÔLES persistants : chaque héros tient son `travelRole`
  *  (ou son rôle inféré). C'est la copie de départ d'un trajet (surchargeable par poste/par Étape) —
  *  un voyage normal = 0 clic d'assignation. PUR. */
@@ -705,7 +719,7 @@ export function stageAssignmentFromRoles(party: Combatant[]): Record<string, Sta
   for (const hero of party) {
     const inferred = hero.travelRole ? null : defaultTravelRole(hero);
     const posting = hero.travelRole ?? (inferred ? { activityId: inferred } : null);
-    if (posting) out[hero.id] = posting;
+    if (posting && postingTenu(posting)) out[hero.id] = posting;
   }
   return out;
 }

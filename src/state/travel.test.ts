@@ -509,7 +509,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
 
   it('poste Établir des cartes : Test ÉTENDU de cartographie cumulé via extendedTestStep (EDOC 8 l.161)', () => {
     setRule('travel-etapes', true);
-    const h = hero({ travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'Cartographe', advances: 80 } as any] });
+    const h = hero({ travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 80 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     useGame.getState().startTravel('r1', 'pied');
     drainCascade(); // cascade travelDay (poste Établir des cartes, Test étendu) → drainer

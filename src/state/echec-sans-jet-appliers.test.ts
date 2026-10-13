@@ -14,7 +14,8 @@ import { spyApplier } from './cascadeTestKit';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { battleRng } from './battleRng';
 import { ECHEC_SANS_JET } from '../engine/tests';
-import { activityById, applyTravelActivityResult, travelActivitySpec } from '../engine/activities';
+import { activityById, activitiesFor, applyTravelActivityResult, travelActivitySpec } from '../engine/activities';
+import { activiteMer, avecActivite } from './activiteMer.testkit';
 import { refusNePeutTenter } from '../engine/skills';
 import { hasCondition } from '../engine/conditions';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -51,27 +52,27 @@ const ragotSansJet = (kind: string, hero: Combatant, label: PlayerText, meta: Re
 
 describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec sans jet (EDOC 8 l.131-133)', () => {
   it('travelActivitySpec : sans Métier (Cartographe), Art (Dessin), compétence de base groupée, est retenue (LDB 09 l.64)', () => {
-    const spec = travelActivitySpec(heros(), activityById('etablir-cartes')!);
+    const spec = travelActivitySpec(heros(), activityById('etablir-cartes')!)!;
     expect(spec.used).toEqual({ id: 'art', spec: 'dessin' });
     expect(spec.refus).toBeUndefined();
   });
 
   it('travelActivitySpec : avec Métier (Cartographe), c’est lui qui est retenu', () => {
-    const spec = travelActivitySpec(heros({ skills: [{ id: 'metier', spec: 'cartographe', advances: 10 }] as Combatant['skills'] }), activityById('etablir-cartes')!);
+    const spec = travelActivitySpec(heros({ skills: [{ id: 'metier', spec: 'cartographe', advances: 10 }] as Combatant['skills'] }), activityById('etablir-cartes')!)!;
     expect(spec.used).toEqual({ id: 'metier', spec: 'cartographe' });
     expect(spec.refus).toBeUndefined();
   });
 
   it('travelActivitySpec : un héros Inconscient (LDB 16 l.113) ne peut tenter aucune compétence du poste — refus nommé', () => {
     const h = heros(INCONSCIENT);
-    const spec = travelActivitySpec(h, activityById('rester-aux-aguets')!);
+    const spec = travelActivitySpec(h, activityById('rester-aux-aguets')!)!;
     expect(spec.used).toEqual({ id: 'perception' });
     expect(spec.refus).toBe(refusNePeutTenter(h, { skill: 'perception' }));
   });
 
   it('applyTravelActivityResult : ECHEC_SANS_JET → échec, aucun effet de réussite, Exténué', () => {
     const def = activityById('plein-air')!;
-    const r = applyTravelActivityResult(travelActivitySpec(heros(), def), def, ECHEC_SANS_JET);
+    const r = applyTravelActivityResult(travelActivitySpec(heros(), def)!, def, ECHEC_SANS_JET);
     expect(r.success).toBe(false);
     expect(r.sl).toBe(ECHEC_SANS_JET.sl);
     expect(r.ops).toEqual([]);
@@ -149,29 +150,34 @@ describe('Activités en mer non tentables', () => {
     expect(useGame.getState().pendingRest!.travelDay!.lines.map((l) => l.text)).toContain(refusNePeutTenter(hero, { skill: 'marchandage' }));
   });
 
-  describe('sea-activity-generic : un héros Inconscient, l’issue suit ce que l’Activité DÉCLARE', () => {
+  it('garde de donnée : aucune Activité de contexte mer ne déclare `failExtenue` (MDG 15 l.266-300)', () => {
+    expect(activitiesFor('mer').length).toBeGreaterThan(0);
+    expect(activitiesFor('mer').filter((a) => a.failExtenue).map((a) => a.id)).toEqual([]);
+  });
+
+  describe('sea-activity-generic : une Activité de contexte mer sans résolveur', () => {
     beforeEach(() => useGame.setState({ party: [heros(INCONSCIENT)] }));
 
-    it('Activité qui déclare `failExtenue` : la ligne naît sans jet, refus nommé ; appliquée, Exténué', () => {
+    it('héros Inconscient : la ligne naît sans jet, refus nommé ; appliquée, aucun Exténué, aucune conséquence', () => {
       const hero = useGame.getState().party[0];
-      const def = activityById('rester-aux-aguets')!;
-      expect(def.failExtenue).toBe(true);
-      const step = buildSeaGenericStep(useGame.getState, useGame.setState, hero, def)!;
-      expect(step.result).toBe(ECHEC_SANS_JET);
-      expect(step.refus).toBe(refusNePeutTenter(hero, { skill: 'perception' }));
-      const out = appliquer(step, hero);
-      expect(hasCondition(hero, 'extenue')).toBe(true);
-      expect(out && 'consequences' in out ? out.consequences : []).toEqual([{ ops: [{ op: 'condition', id: 'extenue', value: 1 }] }]);
+      const mer = activiteMer();
+      avecActivite(mer, () => {
+        const step = buildSeaGenericStep(useGame.getState, useGame.setState, hero, mer)!;
+        expect(step.kind).toBe('sea-activity-generic');
+        expect(step.result).toBe(ECHEC_SANS_JET);
+        expect(step.refus).toBe(refusNePeutTenter(hero, { skill: 'perception' }));
+        expect(appliquer(step, hero)).toEqual({ consequences: [] });
+      });
+      expect(hasCondition(hero, 'extenue')).toBe(false);
     });
 
-    it('Activité qui ne le déclare pas (MDG 15 l.266-300) : appliquée, aucun Exténué, aucune conséquence', () => {
+    it('compétence LIBRE sans compétence choisie : poste non tenu — aucune étape, aucun Exténué ; le choix est offert fermé', () => {
+      const libre = activiteMer({ skills: undefined, freeSkill: true, failExtenue: true });
+      useGame.setState({ party: [heros()], journal: [] });
       const hero = useGame.getState().party[0];
-      const def = activityById('cartographie')!;
-      expect(def.failExtenue).toBeFalsy();
-      const step = buildSeaGenericStep(useGame.getState, useGame.setState, hero, def)!;
-      expect(step.result).toBe(ECHEC_SANS_JET);
-      expect(appliquer(step, hero)).toEqual({ consequences: [] });
-      expect(hasCondition(hero, 'extenue')).toBe(false);
+      expect(avecActivite(libre, () => buildSeaGenericStep(useGame.getState, useGame.setState, hero, libre))).toBeUndefined();
+      expect(hasCondition(useGame.getState().party[0], 'extenue')).toBe(false);
+      expect(seaActivityRefus(hero, libre)).toBe(t('refus.competenceNonChoisie', { qui: 'Hilda' }));
     });
   });
 });

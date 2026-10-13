@@ -130,11 +130,10 @@ export function buildParticipantRows<P extends ParticipantRow>(
 }
 
 /** PRÉSENTATION d'une rangée de Test d'équipage par rôle (MDG 14) — les trois modales navales
- *  (`CrewTestModal`, `ShipBatteryModal`, `ShipManeuverModal`). La ligne née sans jet a déjà rendu son refus
- *  (`rangeeSansJet`) : n'arrive ici qu'une ligne SANS refus. Un dé déjà JETÉ s'affiche tel qu'il est
- *  tombé, contre sa cible. Une rangée dont le rôle est non tentable annonce le refus que son jet pose —
- *  `crewRoleValue`, la source que lit `rollCrewRole` —, jamais une valeur 0 (LDB 09 l.30 ; #2588 Q1).
- *  Manque de bras : MDG 14 l.53. */
+ *  (`CrewTestModal`, `ShipBatteryModal`, `ShipManeuverModal`). Une rangée dont le rôle est non tentable
+ *  (`crewRoleValue`, la source que lit `rollCrewRole`) MONTRE son refus, dé jeté ou non : `CrewRoleValue`
+ *  interdit sa valeur, il n'y a donc ni valeur 0 ni dé contre une cible (LDB 09 l.30 ; #2588 Q1). Sinon,
+ *  un dé déjà JETÉ s'affiche tel qu'il est tombé, contre sa cible. Manque de bras : MDG 14 l.53. */
 export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res: { roll: number; target: number; sl: number } | null): PanelRowData {
   const role = findCrewRoleById(part.roleId);
   if (!role) return { combatant: actor };

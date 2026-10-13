@@ -6,7 +6,7 @@
  * du jour se clôt sur le calcul de la progression puis enchaîne la halte
  * de nuit / l'arrivée. La marche forcée reste une étape de la cascade de NUIT (inchangée).
  */
-import { resolveStake, weather } from '../data';
+import { refLabel, resolveStake, weather } from '../data';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
@@ -435,7 +435,7 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
   it('Pluie diluvienne : Plein air porte la ligne « Météo » ; carto (Métier=Dex) la ligne « Tests physiques »', () => {
     setRule('travel-etapes', true);
     const hOut = hero({ id: 'hOut', travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
-    const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'Cartographe', advances: 20 } as never] });
+    const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 20 } as never] });
     set({ party: [hOut, hCarto], travelPlan: {
       routeId: 'r1', fromPlaceId: 'pa', toPlaceId: 'pb', mode: 'pied', hoursPerDay: 6, km: 12, kmDone: 0, interrupted: false,
       postes: { hOut: { activityId: 'plein-air' }, hCarto: { activityId: 'etablir-cartes' } },
@@ -444,6 +444,7 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
     const batch = steps.find((s) => s.kind === 'stagePosteBatch')!;
     const outPart = batch.participants!.find((p) => p.id === 'hOut')!;
     const cartoPart = batch.participants!.find((p) => p.id === 'hCarto')!;
+    expect(cartoPart.label).toBe(refLabel('skills', { id: 'metier', spec: 'cartographe' }));
     expect(outPart.mods?.filter((m) => m.ref?.category === 'weatherConditions').map((m) => m.value)).toEqual([-20]); // Plein air -20 (l.106)
     expect(cartoPart.mods?.filter((m) => m.ref?.category === 'weatherConditions' && m.ref.id === 'pluie-diluvienne').map((m) => m.value)).toEqual([-10]); // EDOC 8 l.82, carac Dex
     resetRule('travel-etapes');
@@ -454,7 +455,7 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
   it('la rangée d’Étape n’a AUCUNE part anonyme : base nue, chips météo, cible et écrêtage du monteur', () => {
     setRule('travel-etapes', true);
     const hOut = hero({ id: 'hOut', travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
-    const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'Cartographe', advances: 20 } as never] });
+    const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 20 } as never] });
     set({ party: [hOut, hCarto], travelPlan: {
       routeId: 'r1', fromPlaceId: 'pa', toPlaceId: 'pb', mode: 'pied', hoursPerDay: 6, km: 12, kmDone: 0, interrupted: false,
       postes: { hOut: { activityId: 'plein-air' }, hCarto: { activityId: 'etablir-cartes' } },

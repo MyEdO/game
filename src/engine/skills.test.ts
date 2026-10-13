@@ -31,11 +31,11 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
   });
   it('partyBest transmet la spécialisation à testValue (bonne instance de Métier)', () => {
     const h = mk({}, [
-      { id: 'metier', advances: 10, spec: 'Forgeron' },
-      { id: 'metier', advances: 40, spec: 'Serrurier' },
+      { id: 'metier', advances: 10, spec: 'forgeron' },
+      { id: 'metier', advances: 40, spec: 'serrurier' },
     ]);
-    const forgeron = partyBest([h], 'metier', undefined, undefined, 'Forgeron')!;
-    const serrurier = partyBest([h], 'metier', undefined, undefined, 'Serrurier')!;
+    const forgeron = partyBest([h], 'metier', undefined, undefined, 'forgeron')!;
+    const serrurier = partyBest([h], 'metier', undefined, undefined, 'serrurier')!;
     expect(serrurier.value - forgeron.value).toBe(30); // 40 − 10 d'avances, même caractéristique de base
   });
   it('partyAssisted — carac pure : tous soutiennent ; meneur + n×10 plafonné au Bonus de Carac', () => {
@@ -84,9 +84,9 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
     expect(r.value).toBe(70); // aucun +10
   });
   it('partyAssisted — spec ciblée : l’Augmentation compte DANS cette spécialisation (l.195)', () => {
-    const lead = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 30, spec: 'Serrurier' }]), id: 'L' }; // 70
-    const autre = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 20, spec: 'Forgeron' }, { id: 'metier', advances: 0, spec: 'Serrurier' }]), id: 'a' };
-    const r = partyAssisted([lead, autre], 'metier', undefined, undefined, 'Serrurier')!;
+    const lead = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 30, spec: 'serrurier' }]), id: 'L' }; // 70
+    const autre = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 20, spec: 'forgeron' }, { id: 'metier', advances: 0, spec: 'serrurier' }]), id: 'a' };
+    const r = partyAssisted([lead, autre], 'metier', undefined, undefined, 'serrurier')!;
     expect(r.support).toEqual({ count: 0, bonus: 0, ids: [] });
   });
   it('soutienBonus/partyAssisted — filtre `eligible` (adjacence, LDB 12 l.196) exclut un membre capable écarté', () => {

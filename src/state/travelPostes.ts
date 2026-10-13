@@ -145,6 +145,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
     const def = activityById(posting.activityId);
     if (!def) continue;
     const spec = travelActivitySpec(hero, def, { skillMod: weatherModOf(def, weather), stages, freeSkill: posting.freeSkill });
+    if (!spec) continue; // poste non tenu (`postingTenu`, EDOC 8 l.172)
     // Test étendu DÉJÀ ACHEVÉ (LDB 12 l.170-186 : un Test étendu SE TERMINE à la cible — il ne se relance
     // PAS chaque jour, sinon le cumul déborde son plafond « 5/2 », « 6/2 » à chaque re-complétion) : le
     // poste n'a plus d'objet → un pas d'AFFICHAGE « achevée », aucun jet ni accumulation (F1).
@@ -203,7 +204,9 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
  *  contexte d'Étape (l'agrégation `stageAggregate` la relira). Partagé par le pas d'affichage
  *  (`stagePoste`, sans Test) et le pas BATCH (`stagePosteBatch`, avec Test). */
 function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: RefDesignee | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | EchecSansJet | null): Consequence[] {
-  const { result, consequences } = appliquerIssueActivite(get, hero, def, travelActivitySpec(hero, def, { freeSkill }), roll);
+  const spec = travelActivitySpec(hero, def, { freeSkill });
+  if (!spec) return [];
+  const { result, consequences } = appliquerIssueActivite(get, hero, def, spec, roll);
   const plan = get().travelPlan;
   if (plan?.stage) set({ travelPlan: { ...plan, stage: { ...plan.stage, results: [...plan.stage.results, result] } } });
   return consequences;

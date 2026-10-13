@@ -107,7 +107,7 @@ function seaActivityTest(def: ActivityDef): { skill: string; spec?: string } | u
 export function seaActivityRefus(hero: Combatant, def: ActivityDef): PlayerText | undefined {
   if (def.resolver === 'crewTraining') return undefined;
   const test = seaActivityTest(def);
-  if (!test) return travelActivitySpec(hero, def).refus;
+  if (!test) { const spec = travelActivitySpec(hero, def); return spec ? spec.refus : t('refus.competenceNonChoisie', { qui: hero.label }); }
   return peutTenter(hero, test.skill, test.spec) ? undefined : refusNePeutTenter(hero, { skill: test.skill, ...(test.spec ? { spec: test.spec } : {}) });
 }
 
@@ -141,14 +141,17 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
 
 /** Étape MONO chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : `travelActivitySpec` choisit la
  *  meilleure compétence TENTABLE de l'acteur, la porte lance le Test.
- *  `undefined` = Activité SANS Test (Récupérer…) — appliquée d'office ici, aucune étape à jouer.
+ *  `undefined` = Activité SANS Test (Récupérer…), appliquée d'office ici, ou poste NON TENU (compétence
+ *  libre sans compétence choisie, `travelActivitySpec` → `null`) : aucune étape à jouer.
  *
  *  EXPORTÉE pour être mesurée SEULE : aucune entrée de contexte 'mer' d'`activities.json` n'emprunte
- *  ce résolveur aujourd'hui (les trois sont `seaChart`, `opportunityTrade`, `crewTraining`), et le
- *  catalogue est un module partagé qu'un test ne peut pas peupler sans fuir (`isolate: false`). Le
- *  `def` étant un ARGUMENT, la fonction s'exerce telle quelle avec une Activité réelle. */
+ *  ce résolveur aujourd'hui (les trois sont `seaChart`, `opportunityTrade`, `crewTraining`), mais la
+ *  donnée est éditable au Compendium ; le catalogue est un module partagé qu'un test ne peut pas peupler
+ *  sans fuir (`isolate: false`). Le `def` étant un ARGUMENT, la fonction s'exerce avec une Activité 'mer'
+ *  fabriquée à la forme d'`activities.json`. */
 export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: ActivityDef): BuiltCascadeStep | undefined {
   const spec = travelActivitySpec(hero, def);
+  if (!spec) return undefined;
   if (spec.target == null) {
     const { consequences } = appliquerIssueActivite(get, hero, def, spec, null);
     set({ party: [...get().party] });
@@ -297,8 +300,9 @@ registerCascadeApplier('sea-activity-chart', (get, set, step, hero) => {
 registerCascadeApplier('sea-activity-generic', (get, set, step, hero) => {
   if (!step.result || !hero) return;
   const def = typeof step.meta?.activityId === 'string' ? activityById(step.meta.activityId) : undefined;
-  if (!def) return;
-  const { consequences } = appliquerIssueActivite(get, hero, def, travelActivitySpec(hero, def), step.result);
+  const spec = def ? travelActivitySpec(hero, def) : null;
+  if (!def || !spec) return;
+  const { consequences } = appliquerIssueActivite(get, hero, def, spec, step.result);
   set({ party: [...get().party] });
   return { consequences };
 });

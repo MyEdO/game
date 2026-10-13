@@ -53,8 +53,9 @@ export function PostesRoster({
   /** PARAMÈTRE que CE héros doit fixer pour tenir CE poste (la Compétence de Pratiquer une Compétence,
    *  EDOC 8) : un second panneau-paramètre, chaque valeur fermée avec sa raison. */
   parametreDe?: (poste: Poste, h: Combatant) => { intitule: string; valeurs: ParametreAffectation[] } | undefined;
-  /** PRÉCISION du poste épinglé d'un héros (sa Compétence pratiquée), ajoutée à sa méta et à son nom de retrait. */
-  precisionDe?: (h: Combatant) => string | undefined;
+  /** PRÉCISION du poste épinglé d'un héros (sa Compétence pratiquée) : son libellé, ajouté à sa méta et à
+   *  son nom de retrait, et son entrée Codex, AFFICHÉE dans la case à côté de son portrait. */
+  precisionDe?: (h: Combatant) => { label: string; category: string; id: string } | undefined;
   /** Catégorie Codex des postes de ce roster (`crewRoles`, `shipStations`, `activities`) : le LIBELLÉ
    *  de chaque ligne ouvre SA fiche. Une ligne sans entrée (Repos, banc) reste du texte simple. */
   codexCategory: string;
@@ -81,10 +82,11 @@ export function PostesRoster({
           onAssign={(id, parametre) => onSet(id, p ? nextPinned(pinnedOf(heroes.find((h) => h.id === id)!), p.id) : null, parametre)}
           onRemove={(id) => onSet(id, null)}
           intitule={`${title} — ${label} : affecter`}
-          nomRetirer={(c) => { const pr = precisionDe?.(c); return `Retirer ${c.label} de ${label}${pr ? ` (${pr})` : ''}`; }}
+          nomRetirer={(c) => { const pr = precisionDe?.(c); return `Retirer ${c.label} de ${label}${pr ? ` (${pr.label})` : ''}`; }}
           canPick={p != null}
           retirable={p != null}
-          metaDe={(c) => { const cur = pinnedOf(c); const cp = cur ? postes.find((x) => x.id === cur) : undefined; const pr = precisionDe?.(c); return cp ? `(${cp.label}${pr ? ` — ${pr}` : ''})` : undefined; }}
+          metaDe={(c) => { const cur = pinnedOf(c); const cp = cur ? postes.find((x) => x.id === cur) : undefined; const pr = precisionDe?.(c); return cp ? `(${cp.label}${pr ? ` — ${pr.label}` : ''})` : undefined; }}
+          precisionDe={(c) => { const pr = precisionDe?.(c); return pr ? <CodexRef category={pr.category} id={pr.id} label={pr.label} className="pr-precision" /> : undefined; }}
           {...(refus ? { refus } : {})}
           {...(p && refusCandidat ? { refusDe: (c: Combatant) => refusCandidat(p, c) } : {})}
           {...(p && parametreDe ? { parametreDe: (c: Combatant) => parametreDe(p, c) } : {})}

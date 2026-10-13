@@ -40,6 +40,10 @@
 
 .pr-add { line-height: 0; padding: 2px 6px; }
 
+/* PRÉCISION d'un portrait affecté (la Compétence pratiquée) : texte visible à côté de lui, coupé au mot
+   dans une colonne étroite. */
+.pr-precision { overflow-wrap: anywhere; min-width: 0; }
+
 /* ≤ 560 px : le libellé passe sur SA ligne (la colonne de 88px + 4 portraits + [+] déborde d'un
    panneau de 360 px — mesuré). Breakpoint canon de la charte. */
 @media (max-width: 560px) {

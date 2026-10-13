@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { CharFrame } from './CharFrame';
 import { PanneauParametre, type ParamOption } from './PanneauParametre';
 import { GatedAction } from './GatedAction';
@@ -33,7 +33,7 @@ import type { Combatant } from '../engine/types';
 /** Valeur d'un paramètre d'affectation : sa clé (rendue à `onAssign`), son nom, et sa raison s'il est fermé. */
 export interface ParametreAffectation { key: string; label: string; refus?: string }
 export function AssignRow({
-  assigned, candidates, onAssign, onRemove, intitule, canPick = true, retirable = true, nomRetirer, metaDe, refus, refusDe, parametreDe,
+  assigned, candidates, onAssign, onRemove, intitule, canPick = true, retirable = true, nomRetirer, metaDe, precisionDe, refus, refusDe, parametreDe,
 }: {
   /** Personnes actuellement affectées à CETTE case. */
   assigned: Combatant[];
@@ -57,6 +57,8 @@ export function AssignRow({
   /** MÉTA d'un candidat dans le panneau — ce qui fait DÉCIDER : son affectation actuelle (« Gréement »),
    *  qui rend le déplacement visible avant le clic. */
   metaDe?: (c: Combatant) => ReactNode;
+  /** PRÉCISION VISIBLE d'une personne affectée (la Compétence qu'elle pratique), rendue à côté de son portrait. */
+  precisionDe?: (c: Combatant) => ReactNode;
   /** RAISON pour laquelle cette case n'est pas tenable ici — rendue au survol/focus/tap. */
   refus?: string;
   /** RAISON pour laquelle CE candidat ne peut pas tenir la case — son option est éteinte et le dit. */
@@ -92,18 +94,16 @@ export function AssignRow({
     : [];
   return (
     <div className="pr-cases">
-      {assigned.map((h) => (retirable ? (
-        <CharFrame
-          key={h.id}
-          c={h}
-          variant="identity"
-          size="xs"
-          nom={nomRetirer?.(h) ?? `${h.label} — retirer`}
-          onClick={() => onRemove(h.id)}
-        />
-      ) : (
-        <CharFrame key={h.id} c={h} variant="identity" size="xs" decoratif />
-      )))}
+      {assigned.map((h) => (
+        <Fragment key={h.id}>
+          {retirable ? (
+            <CharFrame c={h} variant="identity" size="xs" nom={nomRetirer?.(h) ?? `${h.label} — retirer`} onClick={() => onRemove(h.id)} />
+          ) : (
+            <CharFrame c={h} variant="identity" size="xs" decoratif />
+          )}
+          {precisionDe?.(h)}
+        </Fragment>
+      ))}
       {ferme ? (
         <GatedAction
           id={`assign-${intitule.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`}
