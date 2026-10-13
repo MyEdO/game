@@ -33,7 +33,7 @@ import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
 import { travelSpeed } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
-import { estCompetenceDePropulsion } from '../engine/shipBuild';
+import { estCompetenceDePropulsion, propulsionSkill, vesselPropulsion } from '../engine/shipBuild';
 import { voyageStakeRef, findVehicleById, refLabel, specLabel } from '../data';
 import type { StakeRef } from '../data';
 import { partyCargoTotalEnc, nomDuNavire } from './carriers';
@@ -46,7 +46,7 @@ import { deMonde, rollExpr, type RNG } from '../engine/dice';
 import { strandingPenaltyLine } from '../engine/seaPerils';
 import { effectiveChar } from '../engine/characteristics';
 import {
-  rollRiverWind, tickRiverWindDay, riverWindEffect, riverPilotSkill, savoirVoiesFluvialesBonus,
+  rollRiverWind, tickRiverWindDay, riverWindEffect, savoirVoiesFluvialesBonus,
   rowingAgilityFactor, rowingAgilityDifficulty, riverDayKm, riverDriftKm, navPenaltyMods,
   driftNavPenalty, driftPctOfSpeed, OUT_OF_CONTROL,
   riverControlKept, capsizeRightDifficulty, capsizeRightCumulative, capsizeSinkTurns, holeSinkMinutes, riverCritical, findRiverPeril,
@@ -148,7 +148,7 @@ const log = (get: Get, _set: Set, lines: string[]) => {
 /** La COQUE de trajet fluviale : le navire de campagne si c'en est un, sinon le véhicule-bateau de la route
  *  (`vehicles.json`, facette `ship`+`hull`). Repart des Blessures persistées (#30) si c'est le navire de
  *  campagne. `null` si aucun bateau exploitable. */
-function riverHull(get: Get, route: MapRoute): { coque: Combatant; hasSail: boolean } | null {
+function riverHull(get: Get, route: MapRoute): { coque: Combatant } | null {
   const boatMode = route.modes.find((m) => findVehicleById(m)?.ship && findVehicleById(m)?.hull);
   const vessel = get().vessel;
   const vId = vessel && findVehicleById(vessel.vehicleId)?.ship ? vessel.vehicleId : boatMode;
@@ -160,7 +160,7 @@ function riverHull(get: Get, route: MapRoute): { coque: Combatant; hasSail: bool
     coque.label = nomDuNavire(vessel); // #230
     syncHullWoundsFromVessel(coque, vessel);
   }
-  return { coque, hasSail: !!v.ship.sail };
+  return { coque };
 }
 
 /** Un « batelier » : un PJ vivant AYANT des avances en Voile OU Ramer (l.11-17). Sans batelier, on paie un
@@ -270,8 +270,14 @@ function riverStep(
  *  donnée (`meta.navLabel`) et l'applier le RE-DÉRIVE pour une cascade PERSISTÉE (save reprise, siège
  *  coop) construite avant que la donnée n'existe — la ligne de jet n'est jamais sans nom (Z5). */
 function riverPilotSkillLabel(get: Get): string {
-  const vehicleId = get().travelPlan?.vehicle?.creatureId ?? '';
-  return refLabel('skills', { id: riverPilotSkill(findVehicleById(vehicleId)?.ship?.sail != null) });
+  return refLabel('skills', { id: riverNavSkill(get().travelPlan?.vehicle) });
+}
+
+/** Compétence de Navigation de la coque `hull` (MSRC 7 l.11-13), par la propulsion que le schéma de véhicule
+ *  garantit (`vesselPropulsion`, MDG 12 l.131). PUR. */
+function riverNavSkill(hull: Combatant | undefined): 'voile' | 'ramer' {
+  const id = hull?.creatureId;
+  return propulsionSkill(garanti(vesselPropulsion(findVehicleById(id ?? '')?.ship), id, 'propulsion de l’embarcation').mode);
 }
 
 /**
@@ -296,7 +302,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
   }));
 
   const baseKm = travelSpeed(get().party, get().possessions, plan.mode, route.speed?.[plan.mode]) * baseHoursPerDay(worldMap);
-  const skillId = riverPilotSkill(findVehicleById(coque.creatureId ?? '')?.ship?.sail != null);
+  const skillId = riverNavSkill(coque);
   const pilot = riverPilot(get, skillId);
 
   // CONTEXTE DE VITESSE du jour (relu à la clôture) : dérive déjà certaine (Calme/hors-contrôle/brisé),
@@ -599,7 +605,7 @@ function rightingStep(get: Get, source: CascadeStep, round: number, be: number):
   // Le barreur est RE-RÉSOLU ici (acteur + Soutien du moment) : la ligne se remonte par le monteur
   // canonique, jamais transportée d'étape en étape. Le −5 cumulatif du Round courant est un
   // modificateur DE CIBLE (l.40) : déclaré en `surLaCible`, il ne s'empile pas d'un Round à l'autre.
-  const skillId = riverPilotSkill(findVehicleById(get().travelPlan?.vehicle?.creatureId ?? '')?.ship?.sail != null);
+  const skillId = riverNavSkill(get().travelPlan?.vehicle);
   const pilot = riverPilot(get, skillId);
   const savoir = pilot ? savoirVoiesFluvialesBonus(pilot.actor) : Number(source.meta?.savoir ?? 0);
   const cumul = penalty
@@ -705,7 +711,7 @@ registerCascadeApplier('riverPerilCheck', (get, set, step) => {
     // Le barreur est RE-RÉSOLU au moment de l'insertion (acteur + Soutien du moment) et la ligne se
     // remonte par le monteur canonique : les malus de dérive/hors-contrôle, eux, voyagent en drapeaux
     // sérialisables et redeviennent des chips NOMMÉES (`navPenaltyMods`).
-    const skillId = String(step.meta?.navSkill ?? riverPilotSkill(findVehicleById(get().travelPlan?.vehicle?.creatureId ?? '')?.ship?.sail != null));
+    const skillId = String(step.meta?.navSkill ?? riverNavSkill(get().travelPlan?.vehicle));
     const pilot = riverPilot(get, skillId as 'voile' | 'ramer');
     if (!hasPilot || !pilot) return resolveRiverPerilConsequence(get, set, peril, { ...step, result: null }, rng);
     // Un péril à Test PORTE sa conséquence (`onFail`, exigée par le schéma de `river-perils`) : sans

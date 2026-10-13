@@ -51,6 +51,7 @@ export function recopieDeCanon(p: {
 export const FORMULE_DE_CHEBYSHEV: Construction;
 export const ECHAPPEUR_DE_LITTERAL: Construction;
 export const COUVERTURE_DE_SPEC: Construction;
+export const IDENTITE_D_INSTANCE: Construction;
 export const CONSTRUCTION_DE_PROGRAMME: Construction;
 export const ECRITURE_DE_STOCK_JSON: Construction;
 export const CONSTRUCTION_DE_TABLE_TOTALE: Construction;

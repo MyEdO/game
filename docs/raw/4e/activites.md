@@ -593,7 +593,7 @@ Les Activités de voyage durent toute une Étape de voyage et restent **fatigant
 Note sur les Revenus en voyage : l'Activité *Revenus* (LDB 23) n'est **pas adaptée** pour la plupart des Carrières en voyage — sauf juges/huissiers itinérants, chasseurs, éclaireurs, cochers (EDOC 8 l.167).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.558-565) → `shelter`, `ForageMethod`, `forageYield`, `survie-en-exterieur`, `voile` — `src/data/night-stakes.json`, `src/data/skills.json`, `src/engine/travelStages.ts`
+- `LDB 9` (l.558-565) → `doc`, `shelter`, `possesses`, `ForageMethod`, `forageYield`, `SkillData`, `survie-en-exterieur`, `voile` — `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/schemas/defs/skills.ts`, `src/data/skills.json`, `src/engine/skills.ts`, `src/engine/travelStages.ts`
 - `EDOC 8` (l.129-180) → `plein-air`, `cleDe`, `appliquerIssueActivite`, `printemps`, `approvisionnement`, `doc`, `gatherInnInfo`, `dessin`, `ete`, `recueillir-informations`, +35 — `src/data/activities.json`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/activities.ts`, `src/data/schemas/defs/maladies.ts`, `src/data/skills.json`, +14 fichiers
 
 ---

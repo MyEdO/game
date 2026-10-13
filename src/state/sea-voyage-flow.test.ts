@@ -1462,15 +1462,38 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
     return party;
   }
 
-  /** Joue UNE journée par `runSeaDay`, comme un joueur, jusqu'à la bande d'Épuisement ; `undefined` si
-   *  la journée se clôt sans elle. */
-  function bandeDuJour(opts: { pace?: number; poser?: PoseDe; sea?: Partial<SeaVoyageState>; cadence?: 'jour-par-jour' | 'commande' } = {}): CascadeStep | undefined {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: opts.cadence ?? 'jour-par-jour', ...(opts.pace ? { pace: opts.pace } : {}) })!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 1, daysToEvent: 99, ...opts.sea, weather: { ...plan.sea!.weather, temperature: 'mediane', precipitations: 'aucune', vent: 'brise-fraiche', ...opts.sea?.weather } } } });
-    runSeaDay(get, set);
-    for (let i = 0; i < 80 && get().pendingCascade && get().pendingCascade!.purpose !== 'seaExhaustion'; i++) avanceEtapeCascade(get, opts.poser);
+  /** Joue les étapes, comme un joueur, jusqu'à la bande d'Épuisement ; `voie` tranche le choix de
+   *  Progression (MDG 14 l.63), sinon son défaut. `undefined` si la journée se clôt sans la bande. */
+  function jusquaLaBande(opts: { poser?: PoseDe; voie?: 'nav' | 'crew' }): CascadeStep | undefined {
+    for (let i = 0; i < 120 && get().pendingCascade && get().pendingCascade!.purpose !== 'seaExhaustion'; i++) {
+      const p = get().pendingCascade!;
+      const cur = p.participants[p.cursor];
+      if (opts.voie && cur?.kind === 'sea-progression-choice' && cur.chosen == null) get().cascadeChoose(cur.id, opts.voie);
+      avanceEtapeCascade(get, opts.poser);
+    }
     const casc = get().pendingCascade;
     return casc?.purpose === 'seaExhaustion' ? casc.participants.find((st) => st.kind === 'sea-epuisement') : undefined;
+  }
+
+  /** Temps clément du jour en cours (setup : la météo du lendemain se tire à la clôture). */
+  const tempsClement = { temperature: 'mediane', precipitations: 'aucune', vent: 'brise-fraiche' } as const;
+
+  /** Joue UNE journée par `runSeaDay`, comme un joueur, jusqu'à la bande d'Épuisement ; `undefined` si
+   *  la journée se clôt sans elle. */
+  function bandeDuJour(opts: { pace?: number; poser?: PoseDe; voie?: 'nav' | 'crew'; sea?: Partial<SeaVoyageState>; cadence?: 'jour-par-jour' | 'commande' } = {}): CascadeStep | undefined {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: opts.cadence ?? 'jour-par-jour', ...(opts.pace ? { pace: opts.pace } : {}) })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 1, daysToEvent: 99, ...opts.sea, weather: { ...plan.sea!.weather, ...tempsClement, ...opts.sea?.weather } } } });
+    runSeaDay(get, set);
+    return jusquaLaBande(opts);
+  }
+
+  /** Clôt la journée en cours, dort (le bouton Repos), et joue le LENDEMAIN jusqu'à sa bande. */
+  function bandeDuLendemain(opts: { voie?: 'nav' | 'crew' } = {}): CascadeStep | undefined {
+    draineCascade(get);
+    const sea = get().travelPlan!.sea!;
+    set({ travelPlan: { ...get().travelPlan!, sea: { ...sea, daysToEvent: 99, weather: { ...sea.weather, ...tempsClement } } } });
+    get().restSleep();
+    return jusquaLaBande(opts);
   }
 
   it('un Timonier et un Mousse testent en Accessible ; la Vigie, le marin au repos et le passager ne testent pas', () => {
@@ -1479,6 +1502,28 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
     expect(bande, 'la Période de travail à la voile ouvre la bande').toBeTruthy();
     expect(bande!.participants!.map((r) => r.id)).toEqual([timonier.id, mousse.id]);
     expect(bande!.participants!.map((r) => r.difficulty), 'jour non forcé').toEqual(['accessible', 'accessible']);
+  });
+
+  it('voie Navigation retenue : le barreur et son soutien de Voile, sans poste de propulsion, testent', () => {
+    const [capitaine, navigateur] = equipage(['capitaine', 'navigateur', 'vigie'], [0, 1]);
+    const bande = bandeDuJour({ voie: 'nav' });
+    expect(bande, 'la Période de travail à la voile ouvre la bande').toBeTruthy();
+    expect(bande!.participants!.map((r) => r.id)).toEqual([capitaine.id, navigateur.id]);
+  });
+
+  it('jour forcé avec un soutien : le soutien teste lui aussi, en Complexe', () => {
+    const [capitaine, soutien] = equipage(['capitaine', 'repos', 'vigie'], [0, 1]);
+    const bande = bandeDuJour({ pace: 1 });
+    expect(bande!.participants!.map((r) => r.id)).toEqual([capitaine.id, soutien.id]);
+    expect(bande!.participants!.map((r) => r.difficulty)).toEqual(['complexe', 'complexe']);
+  });
+
+  it('le lendemain, en voie d’équipage, l’ex-barreur sans poste de propulsion ne teste plus', () => {
+    const [capitaine, navigateur] = equipage(['capitaine', 'navigateur', 'vigie'], [0, 1]);
+    expect(bandeDuJour({ voie: 'nav' })!.participants!.map((r) => r.id), 'jour 1 : voie Navigation').toEqual([capitaine.id, navigateur.id]);
+    expect(bandeDuLendemain({ voie: 'crew' }), 'jour 2 : personne n’a manié ni ne tient de poste de propulsion').toBeUndefined();
+    expect(get().travelPlan!.sea!.daysAtSea, 'le lendemain s’est bien joué').toBe(3);
+    expect(get().pendingRest).toBeTruthy();
   });
 
   it('un Mousse inconscient ne teste pas', () => {
@@ -2194,7 +2239,7 @@ describe('Survitesse — « Ça va lâcher, capitaine ! » (#443, MDG 13 l.121-1
     expect(st!.meta?.overspeedDamage).toBe(overspeedRow(4, 11)!.damage);
   });
 
-  it('navire à AVIRONS SEULS (Chaloupe, sail absent) → référent avirons même sans `modeToday` persisté (repli `vesselPropulsion`)', () => {
+  it('navire à AVIRONS SEULS (Chaloupe, sail absent) → référent avirons même sans `modeToday` persisté (propulsion du navire, `seaRig`)', () => {
     set({ vessel: { ...get().vessel!, vehicleId: 'chaloupe' } });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     const sea = { ...plan.sea!, milesToday: 1, effMToday: 9 }; // oars.m 3 → M+6, pas de modeToday

@@ -709,7 +709,7 @@ Autres formes de propulsion : Propulsion à vapeur → **Métier (Ingénieur)** 
 **Voir aussi :** [Progression d'un navire (MDG)](#progression-dun-navire-mdg), [Tests d'équipage (MDG)](#tests-déquipage-mdg), [`tests.md`](tests.md) (Soutien, Difficulté).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.17-20, l.30-36) → `plus2`, `plus1`, `normal`, `PROPULSION_KINDS`, `vesselPropulsion`, `minus1`, `propulsionSkill`, `half`, `estCompetenceDePropulsion`, `STEAM_SKILL`, +7 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, `src/engine/shipBuild.ts`, +2 fichiers
+- `MDG 13` (l.17-20, l.30-36) → `plus2`, `plus1`, `normal`, `PROPULSION_KINDS`, `vesselPropulsion`, `minus1`, `propulsionDuNavire`, `half`, `propulsionSkill`, `estCompetenceDePropulsion`, +8 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, `src/engine/shipBuild.ts`, +2 fichiers
 
 ---
 
@@ -736,7 +736,7 @@ Le MJ fixe la fréquence et la difficulté des Tests selon les conditions : Mer 
 **Voir aussi :** [Navigation maritime — Tests de Navigation (MDG)](#navigation-maritime--tests-de-navigation-mdg), [Forcer le rythme et épuisement (MDG)](#forcer-le-rythme-et-épuisement-mdg), [Manœuvres et vitesses maximum (MDG)](#manœuvres-et-vitesses-maximum-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.41-81, l.85-92) → `progressionModeSchema`, `sea-navigation`, `plus2`, `plus1`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `STEAM_SKILL`, `forcePaceDifficulty`, +19 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/naval-progression.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +7 fichiers
+- `MDG 13` (l.41-81, l.85-92) → `progressionModeSchema`, `sea-navigation`, `plus2`, `plus1`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `STEAM_SKILL`, `forcePaceDifficulty`, +18 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/naval-progression.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +7 fichiers
 
 ---
 
@@ -769,8 +769,8 @@ Le bonus dure jusqu'à la prochaine Période de travail (8 h voiles, 2 h avirons
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `MDG 12` (l.41) → `SIZE_SHIPBOARD_ENC`, `resolveShipManeuver`, `ownEnc`, `deriveManeuver`, `maneuverSansJet`, `possessionTotalEnc`, `sea-cargo`, `CODEX_SPECS` — `src/data/schemas/defs/sizes.ts`, `src/data/sea-cargo.json`, `src/engine/possession.ts`, `src/engine/shipNavigation.ts`, `src/engine/size.ts`, `src/state/shipManeuver.ts`, +1 fichiers
-- `MDG 13` (l.62, l.95-111) → `progressionModeSchema`, `sea-navigation`, `plus2`, `plus1`, `KINDS_SOUS_ORDRES`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, +31 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/naval-progression.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, +10 fichiers
-- `MDG 14` (l.24-32, l.69) → `crew`, `progression`, `progression-poursuite`, `manoeuvre`, `isPassengerInBattle`, `resolveVolley`, `perception`, `localisation`, `roleDePropulsion`, `orientation`, +38 — `src/data/crew-test-types.json`, `src/data/flow-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, +12 fichiers
+- `MDG 13` (l.62, l.95-111) → `progressionModeSchema`, `sea-navigation`, `plus2`, `plus1`, `KINDS_SOUS_ORDRES`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, +30 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/naval-progression.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, +10 fichiers
+- `MDG 14` (l.24-32, l.69) → `crew`, `progression`, `progression-poursuite`, `manoeuvre`, `isPassengerInBattle`, `resolveVolley`, `perception`, `localisation`, `roleDePropulsion`, `orientation`, +39 — `src/data/crew-test-types.json`, `src/data/flow-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, +12 fichiers
 - `MDG 15` (l.76) → `vaincre-stromfels`, `grand-sacrifice`, `coiffe-de-naissance`, `sacrifice-moyen`, `pretre-sans-peche`, `prieres-jouees`, `mannslieb-pleine`, `chat-heureux`, `petit-sacrifice`, `prieres-chaque-quart`, +32 — `src/data/activities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/sea-events.ts`, `src/data/sea-events.json`, +8 fichiers
 
 ---
@@ -1016,7 +1016,7 @@ Un Personnage tenant un rôle lance pour tous ceux du même rôle ; si les PJ ti
 **Voir aussi :** [Moral de l'équipage (MDG)](#moral-de-léquipage-mdg), [Réparer un navire (MDG)](#réparer-un-navire-mdg), [Course-poursuite navale (MDG)](#course-poursuite-navale-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.7-55, l.61-130) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `crew`, `progression`, `capitaine-competent`, `doc`, `faveur-de-manann`, `progression-poursuite`, `un-officier-pour-10`, +110 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/localisation.json`, +27 fichiers
+- `MDG 14` (l.7-55, l.61-130) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `crew`, `progression`, `capitaine-competent`, `doc`, `faveur-de-manann`, `progression-poursuite`, `un-officier-pour-10`, +111 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/localisation.json`, +27 fichiers
 
 ---
 

@@ -37,7 +37,8 @@ import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
 import type { ShipSize, NavalInstall, InstallBand } from '../data';
-import type { Combatant } from './types';
+import type { Combatant, NavalTraitRef } from './types';
+import { navalTraitsDe, shipHasNavalTrait } from './navalTraits';
 
 /** Modes de propulsion à Compétence de Navigation (MDG 13 l.18-19). */
 export const PROPULSION_KINDS = ['voile', 'avirons'] as const;
@@ -52,6 +53,13 @@ export function vesselPropulsion(vd: { sail?: { m: number }; oars?: { m: number 
   if (vd?.sail) return { mode: 'voile', m: vd.sail.m };
   if (vd?.oars) return { mode: 'avirons', m: vd.oars.m };
   return null;
+}
+
+/** Propulsion d'un navire, désigné par son couple (id de véhicule, améliorations) comme `navalTraitsDe` :
+ *  vapeur, M constant (MDG 12 l.311), sinon `vesselPropulsion` (MDG 13 l.18-19) ; `null` = aucune. PUR. */
+export function propulsionDuNavire(vehicleId: string | undefined, upgrades: NavalTraitRef[] | undefined): { mode: 'vapeur' | PropulsionKind; m: number } | null {
+  if (shipHasNavalTrait(navalTraitsDe(vehicleId, upgrades), 'propulsion-a-vapeur')) return { mode: 'vapeur', m: 4 };
+  return vesselPropulsion(findVehicleById(vehicleId ?? '')?.ship);
 }
 
 /** Compétence d'un mode de propulsion (MDG 13 l.18-19, l.97). PUR. */

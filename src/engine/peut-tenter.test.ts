@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
-import { partyAssisted, partyBest, bestSkilledOption } from './skills';
+import { partyAssisted, partyBest, bestSkilledOption, peutTenter } from './skills';
 import { crewRoleValue } from './crewMorale';
 import { findCrewRoleById } from '../data';
 
@@ -55,5 +55,28 @@ describe('peutTenter — consommateurs sur un groupe d\'UN seul acteur', () => {
     const opts = [{ id: 'a', skills: [{ id: 'ragot' }] }];
     expect(bestSkilledOption(hero('h', 40, { ragot: 5 }), opts)?.value).toBeGreaterThan(0);
     expect(bestSkilledOption(hero('h', 40, { ragot: 5, inconscient: true }), opts)).toBeNull();
+  });
+});
+
+describe('peutTenter — Compétence groupée aux Spécialisations sœurs de Base (LDB 09 l.571)', () => {
+  const avec = (h: Combatant, id: string, spec: string, advances: number): Combatant =>
+    ({ ...h, skills: [...h.skills, { id, spec, characteristic: 'agilite', advances }] }) as Combatant;
+
+  it('Voile (Caravelle) augmentée : Voile (Cogue) se tente, de Base — Caractéristique seule, sans les Augmentations de la sœur', () => {
+    const marin = avec(hero('marin', 30), 'voile', 'caravelle', 15);
+    expect(peutTenter(marin, 'voile', 'cogue')).toBe(true);
+    expect(partyBest([marin], 'voile', undefined, undefined, 'cogue')).toEqual({ actor: marin, value: 30 });
+    expect(partyBest([marin], 'voile', undefined, undefined, 'caravelle')?.value).toBe(45);
+  });
+
+  it('sans aucune Spécialisation de Voile augmentée, aucune ne se tente', () => {
+    expect(peutTenter(hero('terrien', 30), 'voile', 'cogue')).toBe(false);
+    expect(peutTenter(avec(hero('novice', 30), 'voile', 'caravelle', 0), 'voile', 'cogue')).toBe(false);
+  });
+
+  it('une Groupée Avancée SANS la clause garde ses Spécialisations étanches : Langue (Bretonnien) ne rend pas Langue (Bataille) tentable', () => {
+    const polyglotte = avec(hero('polyglotte', 30), 'langue', 'bretonnien', 10);
+    expect(peutTenter(polyglotte, 'langue', 'bretonnien')).toBe(true);
+    expect(peutTenter(polyglotte, 'langue', 'bataille')).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import { partyMoneyTotal, creditBourse, debitBourse, bourseOf } from './bourseFl
 import { advanceCost } from '../engine/advancement';
 import { entrainementOptions, type EntrainementOption } from '../engine/activities';
 import { testScene } from '../scenes/test-fixture';
+import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 
 function setup() {
   vi.useFakeTimers();
@@ -60,7 +61,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const expectedTutor = rollDice(1, 10, makeRNG(42));
     useGame.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
     const h = hero();
-    const owned = h.skills.find((s) => s.id === opt.id && (s.spec ?? '') === (opt.spec ?? ''));
+    const owned = h.skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec));
     expect(owned?.advances).toBe(opt.advances + 1);
     expect(h.xp).toBe(xpBefore - opt.xpCost);
     expect(opt.xpCost).toBe(advanceCost(opt.advances, 'skill', false));
@@ -78,7 +79,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const expectedTutor = rollDice(1, 10, makeRNG(42)) * 2;
     useGame.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
     const h = hero();
-    const owned = h.skills.find((s) => s.id === opt.id && (s.spec ?? '') === (opt.spec ?? ''));
+    const owned = h.skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec));
     expect(owned?.advances).toBe(opt.advances + 1);
     expect(h.xp).toBe(xpBefore - opt.xpCost);
     expect(opt.xpCost).toBe(advanceCost(opt.advances, 'skill', false)); // même coût PX que la Base
@@ -121,7 +122,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const moneyBefore = toBrass(partyMoneyTotal(useGame.getState));
     const leftBefore = st(heroId).left;
     useGame.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
-    expect(hero().skills.find((s) => s.id === opt.id && (s.spec ?? '') === (opt.spec ?? ''))).toBeUndefined();
+    expect(hero().skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec))).toBeUndefined();
     expect(hero().xp).toBe(opt.xpCost - 1);
     expect(toBrass(partyMoneyTotal(useGame.getState))).toBe(moneyBefore);
     expect(st(heroId).left).toBe(leftBefore);
@@ -134,7 +135,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     debitBourse(useGame.getState, useGame.setState, heroId, bourseOf(hero())); // vide la bourse : ne couvre même pas 1 sc
     const leftBefore = st(heroId).left;
     useGame.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
-    expect(hero().skills.find((s) => s.id === opt.id && (s.spec ?? '') === (opt.spec ?? ''))).toBeUndefined();
+    expect(hero().skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec))).toBeUndefined();
     expect(hero().xp).toBe(2000);
     expect(st(heroId).left).toBe(leftBefore);
   });
@@ -147,7 +148,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     itl.perHero[heroId] = { ...st(heroId), left: 0 };
     useGame.setState({ interlude: { ...itl } });
     useGame.getState().interludeEntrainement(heroId, 'skill', opt.id, opt.spec);
-    expect(hero().skills.find((s) => s.id === opt.id && (s.spec ?? '') === (opt.spec ?? ''))).toBeUndefined();
+    expect(hero().skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec))).toBeUndefined();
     expect(st(heroId).left).toBe(0);
   });
 });

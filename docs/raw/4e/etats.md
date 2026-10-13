@@ -105,7 +105,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Aveuglé (état analogue pour la vue)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.29) → `PRONE_POSE`, `combatTestPenaltyParts`, `competenceParId`, `impliqueDeplacement`, `etatScopeApplies`, `testStatePenaltyParts`, `meleeAttackerBonusLines`, `AttackOptions`, `SkillData`, `GameOp`, +3 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/gameIso/groundPose.ts`, `src/state/combatFlow.ts`, +2 fichiers
+- `LDB 16` (l.29) → `PRONE_POSE`, `combatTestPenaltyParts`, `competenceParId`, `impliqueDeplacement`, `etatScopeApplies`, `testStatePenaltyParts`, `meleeAttackerBonusLines`, `AttackOptions`, `GameOp`, `SkillData`, +3 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/gameIso/groundPose.ts`, `src/state/combatFlow.ts`, +2 fichiers
 
 ---
 

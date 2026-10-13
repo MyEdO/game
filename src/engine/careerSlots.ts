@@ -20,7 +20,7 @@
 import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
 import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, findSpeciesById, advancementLabel, refLabel, CareerLevelData, type AdvancementRef } from '../data';
-import { entreeOuverte, refusDeSpec, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { entreeOuverte, refusDeSpec, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';
 import { effectiveEntry } from './variants';
@@ -151,7 +151,7 @@ export function availableChars(levels: CareerLevelData[], level: number): CharKe
 export function slotCovers(slot: CareerSlot, optionId: string, spec?: string): boolean {
   return slot.options.some((o) => {
     if (o.optionId !== optionId) return false;
-    if (!o.wildcard) return (o.spec ?? '') === (spec ?? '');
+    if (!o.wildcard) return memeSpecialisation(o.spec, spec);
     if (spec == null || refusDeSpec(slot.kind, optionId, spec) !== null) return false;
     return (!o.specOptions && entreeOuverte(slot.kind, optionId)) || wildcardSpecs(o, slot.kind).includes(spec);
   });
@@ -310,7 +310,7 @@ export function talentMaxLabel(max: number | { bonusOf: CharKey } | null): strin
 export function talentAcquisitions(hero: Pick<PorteurDeTalents, 'talents'>, talentId: string, spec?: string): number {
   const parDomaine = findTalentById(talentId)?.grantsArcaneDomain === true;
   return (hero.talents ?? [])
-    .filter((t) => t.talentId === talentId && (!parDomaine || (t.spec ?? '') === (spec ?? '')))
+    .filter((t) => t.talentId === talentId && (!parDomaine || memeSpecialisation(t.spec, spec)))
     .reduce((n, t) => n + t.times, 0);
 }
 
@@ -324,7 +324,7 @@ export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?
 export type PorteurDeTalents = Pick<Combatant, 'characteristics'> & { talents?: TalentInstance[] };
 
 /** L'instance `x` est-elle le Talent `ref` (id et spécialisation) ? */
-export const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && (x.spec ?? '') === (ref.spec ?? '');
+export const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && memeSpecialisation(x.spec, ref.spec);
 
 /**
  * ACQUISITION d'une instance de Talent — seule couture qui écrit `talents` : le Maxi borne (`LDB 10

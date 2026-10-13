@@ -12,7 +12,7 @@ import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { RULE_REF } from '../engine/ruleRefs';
-import { riverPilotSkill } from '../engine/riverNavigation';
+import { propulsionSkill, vesselPropulsion } from '../engine/shipBuild';
 import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
 import { findVehicleById } from '../data';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -884,7 +884,7 @@ describe('Navigation du jour — base NUE + Soutien NOMMÉ, cible invariante (#1
   it('barreur EMPOISONNÉ soutenu : `base` = Compétence NUE, chip « Soutien », cible = valeur soutenue', () => {
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
-    const skillId = riverPilotSkill(findVehicleById(plan.vehicle!.creatureId ?? '')?.ship?.sail != null);
+    const skillId = propulsionSkill(vesselPropulsion(findVehicleById(plan.vehicle!.creatureId ?? '')?.ship)!.mode);
     // Tout l'équipage sait manœuvrer (chacun est donc ÉLIGIBLE au Soutien, l.195) et tout le monde
     // est EMPOISONNÉ (eau croupie du bord) : quel que soit le barreur retenu, l'État mord SA valeur
     // jetée sans toucher son Niveau de Compétence.
@@ -955,7 +955,7 @@ describe('#1111 — le libellé de l’étape de Navigation est celui de `compos
     launch();
     get().startTravel('r-reik', 'barge', { cadence: 'jour-par-jour' });
     const nav = get().pendingCascade!.participants.find((s) => s.kind === 'riverNav')!;
-    const skillId = riverPilotSkill(findVehicleById(get().travelPlan!.vehicle!.creatureId ?? '')?.ship?.sail != null);
+    const skillId = propulsionSkill(vesselPropulsion(findVehicleById(get().travelPlan!.vehicle!.creatureId ?? '')?.ship)!.mode);
     expect(nav.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: skillId }));
     expect(nav.label).toBe(`Navigation (${byId('skill', skillId)!.label})`);
   });

@@ -52,7 +52,7 @@ import { registerScene } from './store';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence } from '../data';
-import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, vesselPropulsion, propulsionSkill, estCompetenceDePropulsion, STEAM_SKILL, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
+import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, propulsionSkill, estCompetenceDePropulsion, STEAM_SKILL, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { rollTest, isDoubleRoll, extendedTestStep, estJete } from '../engine/tests';
@@ -176,7 +176,7 @@ export interface SeaVoyageState {
    *  consomme `eventMMod` de la journée) — SOURCE du Test de survitesse (#443, `buildOverspeedStep`) :
    *  un recalcul APRÈS coup manquerait le bonus d'un jour déjà consommé (« Vents favorables »). */
   effMToday?: number;
-  /** Mode de propulsion (`vesselPropulsion`) ayant mû le navire AUJOURD'HUI et servi à `effMToday` —
+  /** Mode de propulsion (`propulsionDuNavire`) ayant mû le navire AUJOURD'HUI et servi à `effMToday` —
    *  SOURCE du référent M de conception du Test de survitesse (#524, `buildOverspeedStep`) et de la
    *  Période de travail (MDG 13 l.62, l.111). Absent = navire non mû à la voile ni aux avirons. */
   modeToday?: PropulsionKind;
@@ -421,11 +421,9 @@ export function spoilVesselCargoOnLeak(get: Get, set: Set): string[] {
   return [t('sv.leakSpoils', { enc: r.removed })];
 }
 
-/** Propulsion du navire `hull` : vapeur (MDG 12 l.311), sinon `vesselPropulsion` (MDG 13 l.18-19) ;
- *  `null` = aucune. PUR. */
-function seaRig(hull: Combatant): { mode: 'vapeur' | PropulsionKind; m: number } | null {
-  if (shipHasNavalTrait(hullNavalTraits(hull), 'propulsion-a-vapeur')) return { mode: 'vapeur', m: 4 }; // MDG 12 l.311
-  return vesselPropulsion(findVehicleById(hull.creatureId ?? '')?.ship);
+/** `propulsionDuNavire` de la COQUE `hull`, que le schéma de véhicule garantit (MDG 12 l.131). PUR. */
+function seaRig(hull: Combatant): NonNullable<ReturnType<typeof propulsionDuNavire>> {
+  return garanti(propulsionDuNavire(hull.creatureId, hull.upgrades), hull.creatureId, 'propulsion du navire');
 }
 
 /** M de VOYAGE du jour (ch.13/15) : M du gréement + Lissage (`navalMoveMod`) + Salissures + événement,
@@ -439,8 +437,8 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const traits = hullNavalTraits(hull);
   const vessel = get().vessel;
   const propulsion = seaRig(hull);
-  if (propulsion?.mode === 'vapeur') return { m: propulsion.m, sail: false, mode: null, affaler: false };
-  const sail = propulsion?.mode === 'voile';
+  if (propulsion.mode === 'vapeur') return { m: propulsion.m, sail: false, mode: null, affaler: false };
+  const sail = propulsion.mode === 'voile';
   const fouling = foulingEffects(vessel?.fouling?.level ?? 0);
   // Forcer le rythme (MDG 13 l.95-107) : le bonus de M du jour n'est acquis que si le Test de
   // Voile/Ramer du jour a été RÉUSSI ('won' — posé par la boucle à l'étape Progression).
@@ -449,7 +447,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const overloadM = cargoOverload(cargoTotalEnc(vessel?.cargo ?? []), vd?.capacity ?? 0).mMod;
   // Empêtré dans des Débris marins (MDG 13 l.487-489, #444) : pénalité de M tant que non dégagé.
   const entangleM = sea.entangled?.mMod ?? 0;
-  const baseM = (propulsion?.m ?? 0) + navalMoveMod(traits) + fouling.mMod + (sea.eventMMod ?? 0) + (vessel?.crabs ? -1 : 0) + pace + overloadM + entangleM;
+  const baseM = propulsion.m + navalMoveMod(traits) + fouling.mMod + (sea.eventMMod ?? 0) + (vessel?.crabs ? -1 : 0) + pace + overloadM + entangleM;
   const aspect = windAspect(sea.heading, sea.windFrom);
   // Gréement de course (MSRC 12 l.137) « inclut un clinfoc … les avantages des deux ne sont pas cumulables »
   // → il PRIME sur le Clinfoc quand les deux sont présents.
@@ -457,13 +455,13 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const cell = windEffect(sea.weather.vent, aspect, rigging);
   const m = windAdjustedM(Math.max(0, baseM), cell, sail);
   const affaler = !!(cell.affaler && sail);
-  return { m, sail, mode: propulsion?.mode ?? null, affaler };
+  return { m, sail, mode: propulsion.mode, affaler };
 }
 
-// ── Test d'équipage de VOYAGE (hors combat — l'équipage = les PJ) ────────────────────────────────
+// ── Test d'équipage de VOYAGE (MDG 14 l.39) ────────────────────────────────
 
 /** Étape À PARTICIPANTS (batch, seam de jet #275 Décision 4 cran 1/2) d'un Test d'équipage de VOYAGE
- *  (MDG 14, hors combat — l'équipage = les PJ, l.39) — construit les contributeurs
+ *  (MDG 14 l.39) — construit les contributeurs
  *  (`crewTestContributors`) et pose Moral/sabotage/traits navals en `meta` (agrégés à la validation par
  *  `cascade.aggregateBatchStep`, MÊME formule que `maneuverCrewTotal`). `null` = aucun PJ n'a de rôle
  *  utile (aucun jet à jouer ce Test-là, l'appelant applique son chemin sans-jet). `kind` = la clé du
@@ -478,7 +476,7 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
   if (!ship) return undefined;
   const party = equipageApte(get().party);
   if (!party.length) return undefined;
-  ship.crewIds = party.map((h) => h.id); // les PJ tiennent les rôles (MDG 14 l.39)
+  ship.crewIds = party.map((h) => h.id); // MDG 14 l.39
   const contributors = crewTestContributors(ship, party, testTypeId, new Set(party.map((h) => h.id)), opts.sense);
   if (!contributors.length) return undefined;
   const testType = findCrewTestTypeById(testTypeId);
@@ -568,7 +566,7 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
   const sea = plan.sea!;
   if (!sea.forcePace || sea.paceToday != null) return undefined;
   const propulsion = seaRig(plan.vehicle!);
-  if (!propulsion || propulsion.mode === 'vapeur') return undefined;
+  if (propulsion.mode === 'vapeur') return undefined;
   const rig = propulsion.mode;
   const diff = forcePaceDifficulty(sea.forcePace, rig);
   if (!diff) return undefined;
@@ -593,13 +591,12 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
 /** Compétence des Tests de Navigation du navire du voyage (MDG 13 l.18-19, l.32). */
 function helmSkill(get: Get): { id: string; spec?: string } {
   const plan = get().travelPlan!;
-  const propulsion = garanti(seaRig(plan.vehicle!), plan.routeId, 'propulsion du navire du voyage');
+  const propulsion = seaRig(plan.vehicle!);
   return propulsion.mode === 'vapeur' ? STEAM_SKILL : { id: propulsionSkill(propulsion.mode) };
 }
 
-/** Étape MONO « Test de Navigation » de PROGRESSION (MDG 13 l.64-66) : le meilleur PJ soutenu lance
- *  Voile/Ramer selon la propulsion, et son DR se lit au MÊME tableau de progression que le Test
- *  d'équipage (`applySeaProgress` → `seaMilesPerDay`). `undefined` = aucun PJ éligible. */
+/** Étape MONO « Test de Navigation » de PROGRESSION (MDG 13 l.18-19, l.32, l.64-66 ; `helmSkill`), DR lu par
+ *  `applySeaProgress`. `undefined` = aucun PJ éligible. */
 function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
   const skill = helmSkill(get);
   const best = partyAssisted(get().party, skill.id, undefined, undefined, skill.spec);
@@ -679,11 +676,11 @@ function buildOverspeedStep(get: Get, index: number): BuiltCascadeStep | undefin
   if (!sea.milesToday || sea.effMToday == null) return undefined; // aucune Progression ce jour → rien à sanctionner (Encalminé/Affalé/Échoué)
   const hull = garanti(plan.vehicle, plan.routeId, 'navire du voyage');
   const vd = findVehicleById(hull.creatureId ?? '')?.ship;
-  // Référent M = le mode PERSISTÉ du jour (`modeToday`, navire mixte) ; repli sur la politique
-  // `vesselPropulsion` si absent (vieux plan en cours, #524).
+  // Référent M = le mode PERSISTÉ du jour (`modeToday`, navire mixte, #524) ; sans mode du jour (vapeur),
+  // la propulsion du navire (`seaRig`).
   const baseM = sea.modeToday === 'avirons' ? vd?.oars?.m ?? 0
     : sea.modeToday === 'voile' ? vd?.sail?.m ?? 0
-    : vesselPropulsion(vd)?.m ?? 0;
+    : seaRig(hull).m;
   const row = overspeedRow(baseM, sea.effMToday);
   if (!row) return undefined;
   return monoStep({
@@ -984,7 +981,7 @@ export function buildSeaPlan(
 /** M de CROISIÈRE (hors vent/événement) pour estimer la durée du voyage rapide (l.25) — mêmes milles
  *  que le détaillé (18 × M) : voiles/avirons du gréement, ou M 4 constant à la vapeur (ch.12 l.311). */
 function cruiseM(hull: Combatant): number {
-  return Math.max(1, seaRig(hull)?.m ?? 1);
+  return Math.max(1, seaRig(hull).m);
 }
 
 /** Appareille en TRAVERSÉE RAPIDE (l.21-37) : construit un plan `sea.fast` (jamais la boucle jour par
@@ -1780,7 +1777,7 @@ registerCascadeApplier('progression', (get, set, step) => {
   const plan = get().travelPlan;
   const hull = plan?.vehicle;
   const rng = battleRng();
-  if (hull && shipHasNavalTrait(hullNavalTraits(hull), 'propulsion-a-vapeur')) {
+  if (hull && seaRig(hull).mode === 'vapeur') {
     const triggered = (step.participants ?? []).some((x) => estJete(x.result)
       && steamBreakdownTriggered({ success: x.result.roll <= x.result.target, sl: x.result.sl, isDouble: isDoubleRoll(x.result.roll) }));
     if (triggered) {
@@ -2063,8 +2060,8 @@ registerCascadeApplier('entretien', (get, set, step) => {
 
 // ── PANNE DE VAPEUR (MDG 12 l.313-352) — résolution first-class au voyage ─────────────────────
 
-/** La personne qui « s'occupe du moteur » (MDG 12 l.326) à l'échelle voyage (équipage = les PJ, MDG 14
- *  l.39) : le meilleur au Métier (Ingénieur), sinon le premier PJ en état. */
+/** La personne qui « s'occupe du moteur » (MDG 12 l.326 ; MDG 14 l.39) : le meilleur au Métier (Ingénieur),
+ *  sinon le premier PJ en état. */
 export function engineerOf(party: Combatant[]): Combatant | undefined {
   const apt = equipageApte(party);
   return partyBest(apt, STEAM_SKILL.id, undefined, undefined, STEAM_SKILL.spec)?.actor ?? apt[0];

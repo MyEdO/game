@@ -26,7 +26,7 @@ import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
 import { bestSkilledOption, bestForSkills, peutTenter, refusNePeutTenter, testValue, type TestSpec } from './skills';
 import type { PlayerText } from '../i18n/playerText';
-import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty, estJete, ECHEC_SANS_JET, type EchecSansJet } from './tests';
 import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
@@ -835,7 +835,7 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
     const specs = specPoolOf(s); // options OFFERTES au joueur (Entraînement)
     for (const spec of specs.length ? specs : [undefined]) {
       if (competenceEnCarriere(hero, sSlots, designations, s.id, spec).statut != null) continue; // de carrière → Avancement normal
-      const known = hero.skills.find((k) => k.id === s.id && (k.spec ?? '') === (spec ?? ''));
+      const known = hero.skills.find((k) => k.id === s.id && memeSpecialisation(k.spec, spec));
       const advances = known?.advances ?? 0;
       const advanced = s.acces === 'avancee';
       const range = entrainementTutorRange(advanced);

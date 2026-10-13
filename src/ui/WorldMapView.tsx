@@ -23,8 +23,8 @@ import { GatedAction, raisonSi } from './GatedAction';
 import { mdToText } from './Prose';
 import { rule } from '../engine/policy';
 import { forcePaceDifficulty } from '../engine/seaNavigation';
-import { shipHasNavalTrait, vesselNavalTraits, navalTraitsDe } from '../engine/navalTraits';
-import { vesselPropulsion, propulsionSkill } from '../engine/shipBuild';
+import { vesselNavalTraits, navalTraitsDe } from '../engine/navalTraits';
+import { propulsionDuNavire, propulsionSkill } from '../engine/shipBuild';
 import { DIFFICULTY_LABELS, type NavalTraitRef } from '../engine/types';
 import { TravelRolesPanel } from './TravelRolesPanel';
 import { ShipRolesPanel } from './ShipRolesPanel';
@@ -215,16 +215,15 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const stationsTraits: NavalTraitRef[] | null = mode === 'mer'
     ? (vessel ? vesselNavalTraits(vessel) : null)
     : (fluvialJoue ? navalTraitsDe(mode, undefined) : null);
-  const seaPropulsion = vesselPropulsion(vesselData?.ship);
+  const seaPropulsion = vessel ? propulsionDuNavire(vessel.vehicleId, vessel.upgrades) : null;
   const seaM = (vessel?.wounds == null || vessel.wounds.current > 0) ? (seaPropulsion?.m ?? 0) : 0;
-  // Forcer le rythme (MDG 13 l.95-107) : +1 M voile/avirons, +2 M avirons seulement — rien à la vapeur (ch.12 l.311).
-  const seaRig: 'voile' | 'avirons' = seaPropulsion?.mode ?? 'avirons';
-  const seaSteam = !!vessel && shipHasNavalTrait(vesselNavalTraits(vessel), 'propulsion-a-vapeur');
+  // Forcer le rythme : MDG 13 l.95-107, MDG 12 l.311.
+  const seaRig = seaPropulsion && seaPropulsion.mode !== 'vapeur' ? seaPropulsion.mode : null;
   /** Traversée RAPIDE TRANSMISE au départ (MDG 15 l.21-37) : source unique de l'`aria-pressed` du
    *  sélecteur de cadence et des ordres passés à `startTravel`. */
   const fastJoue = mode === 'mer' && seaFast;
-  const seaPaceChoices = seaSteam || !(vesselData?.ship?.sail || vesselData?.ship?.oars) ? [0] : [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig) != null);
-  const seaPaceRefus = forcePaceRefus(party, seaRig);
+  const seaPaceChoices = seaRig ? [0, 1, 2].filter((b) => b === 0 || forcePaceDifficulty(b, seaRig) != null) : [0];
+  const seaPaceRefus = seaRig ? forcePaceRefus(party, seaRig) : null;
   // Surcharge de la cale (MDG 12 l.70-75) : >150 % = « Impossible de prendre la mer » → appareillage bloqué.
   const seaOverload = vessel && vesselData?.ship ? cargoOverload(cargoTotalEnc(vessel.cargo ?? []), vesselData.ship.capacity) : null;
   // Population embarquée pour le manifeste d'avitaillement (#245) : héros + effectif PNJ nominal présent.
@@ -560,7 +559,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               )}
             </div>
           )}
-          {mode === 'mer' && vessel && seaM > 0 && !fastJoue && seaPaceChoices.length > 1 && (
+          {mode === 'mer' && vessel && seaRig && seaM > 0 && !fastJoue && seaPaceChoices.length > 1 && (
             <div className="wm-modes">
               {seaPaceChoices.map((b) => {
                 const diff = b ? forcePaceDifficulty(b, seaRig) : null;

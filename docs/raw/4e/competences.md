@@ -98,7 +98,7 @@ la description, ou en crée une avec l'accord du MJ.
 **Sources RAW :** LDB 09 l.34-46
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.34-46) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `specIdOf`, `rollCrewRole`, `trainedForRole`, `traders`, `PostesRoster`, +75 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +49 fichiers
+- `LDB 9` (l.34-46) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `specIdOf`, `rollCrewRole`, `trainedForRole`, `traders`, `PostesRoster`, +76 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +49 fichiers
 
 ---
 
@@ -183,7 +183,7 @@ Soin aux animaux, Voile**
 **Sources RAW :** LDB 09 l.65-574 (descriptions individuelles).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.65-574) → `mendier-ennuis`, `porteADecouvrir`, `GearAssignList`, `SOURCES_DE_SPECS`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `skillAdvantageCap`, `drivingAccidentDamage` ⚠sans-appelant, `DRUNK_CARACS`, `accidents-conduite-attelage`, +106 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/drunkenness.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, +42 fichiers
+- `LDB 9` (l.65-574) → `mendier-ennuis`, `porteADecouvrir`, `GearAssignList`, `SOURCES_DE_SPECS`, `doc`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `skillAdvantageCap`, `drivingAccidentDamage` ⚠sans-appelant, `DRUNK_CARACS`, +108 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/drunkenness.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, +43 fichiers
 
 ---
 

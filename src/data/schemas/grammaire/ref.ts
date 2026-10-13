@@ -503,6 +503,12 @@ export function refCouvre(ref: { readonly id: string; readonly spec?: string | u
   return ref.id === cible.id && (ref.spec == null || ref.spec === cible.spec);
 }
 
+/** Deux Spécialisations désignent-elles la MÊME instance d'une entrée ? Absente et vide se confondent.
+ *  LDB 09 l.44 ; LDB 10 l.17. PUR. */
+export function memeSpecialisation(a: string | undefined, b: string | undefined): boolean {
+  return (a ?? '') === (b ?? '');
+}
+
 /**
  * Le littéral que le livre imprime à la place d'une spécialisation — Compétence : `LDB 09 l.40` ;
  * Talent : `LDB 10 l.17`. Ce n'est pas une

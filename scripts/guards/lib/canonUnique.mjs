@@ -10,7 +10,7 @@
 // exemption. Ce module exporte la MÉCANIQUE, sans foyer ; le consommateur la déclare en y joignant son
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
-//    `COUVERTURE_DE_SPEC`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et
+//    `COUVERTURE_DE_SPEC`, `IDENTITE_D_INSTANCE`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et
 //    `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
@@ -359,30 +359,57 @@ function testeLeVide(e) {
   return vide(x.right) ? sansEnveloppe(x.left) : vide(x.left) ? sansEnveloppe(x.right) : null;
 }
 
+/** L'opérande `X` d'un test de PRÉSENCE de `X` : `X` nu, `!!X`, `X != null`, `X !== undefined` (et commutés).
+ *  @param {ts.Expression} e @returns {ts.Expression | null} */
+function testeLePlein(e) {
+  const x = sansEnveloppe(e);
+  if (ts.isPrefixUnaryExpression(x) && x.operator === ts.SyntaxKind.ExclamationToken) {
+    const y = sansEnveloppe(x.operand);
+    return ts.isPrefixUnaryExpression(y) && y.operator === ts.SyntaxKind.ExclamationToken ? sansEnveloppe(y.operand) : null;
+  }
+  if (!ts.isBinaryExpression(x) || !INEGALITES.includes(x.operatorToken.kind)) return x;
+  const vide = (o) => o.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(o) && o.text === 'undefined');
+  return vide(x.right) ? sansEnveloppe(x.left) : vide(x.left) ? sansEnveloppe(x.right) : null;
+}
+
 /** `X` nommé `spec` (identifiant ou propriété), sinon `null`. @param {ts.Expression | null} x
  *  @returns {ts.Expression | null} */
 const specNomme = (x) => (x && ((ts.isIdentifier(x) && x.text === 'spec') || (ts.isPropertyAccessExpression(x) && x.name.text === 'spec')) ? x : null);
 
-/** `e` est-elle une égalité dont un opérande est `x` (même texte) ? @param {ts.Expression} e
- *  @param {ts.Expression} x @param {ts.SourceFile} sf @returns {boolean} */
-function egaliteAvec(e, x, sf) {
+const EGALITES_SEULES = [ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.EqualsEqualsEqualsToken];
+const INEGALITES = [ts.SyntaxKind.ExclamationEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken];
+
+/** `e` est-elle une comparaison `operateurs` (égalité par défaut) dont un opérande est `x` (même
+ *  texte) ? @param {ts.Expression} e @param {ts.Expression} x @param {ts.SourceFile} sf
+ *  @param {readonly ts.SyntaxKind[]} [operateurs] @returns {boolean} */
+function egaliteAvec(e, x, sf, operateurs = EGALITES_SEULES) {
   const egalite = sansEnveloppe(e);
-  if (!ts.isBinaryExpression(egalite) || ![ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.EqualsEqualsEqualsToken].includes(egalite.operatorToken.kind)) return false;
+  if (!ts.isBinaryExpression(egalite) || !operateurs.includes(egalite.operatorToken.kind)) return false;
   const texte = x.getText(sf);
   const memeX = (o) => sansEnveloppe(o).getText(sf) === texte;
   return memeX(egalite.left) || memeX(egalite.right);
 }
 
-/** Les opérandes d'une chaîne `a || b || …`, à plat. @param {ts.Expression} e @returns {ts.Expression[]} */
-function operandesOu(e) {
+/** Les opérandes d'une chaîne `a <op> b <op> …` (`||` par défaut), à plat. @param {ts.Expression} e
+ *  @param {ts.SyntaxKind} [op] @returns {ts.Expression[]} */
+function operandesOu(e, op = ts.SyntaxKind.BarBarToken) {
   const x = sansEnveloppe(e);
-  return ts.isBinaryExpression(x) && x.operatorToken.kind === ts.SyntaxKind.BarBarToken ? [...operandesOu(x.left), ...operandesOu(x.right)] : [x];
+  return ts.isBinaryExpression(x) && x.operatorToken.kind === op ? [...operandesOu(x.left, op), ...operandesOu(x.right, op)] : [x];
+}
+
+/** `n` est-il un MAILLON d'une chaîne `op` englobante (parenthèses traversées) ? La chaîne se juge à sa
+ *  racine, une fois. @param {ts.Node} n @param {ts.SyntaxKind} op @returns {boolean} */
+function maillonDeChaine(n, op) {
+  let p = n.parent;
+  while (p && ts.isParenthesizedExpression(p)) p = p.parent;
+  return !!p && ts.isBinaryExpression(p) && p.operatorToken.kind === op;
 }
 
 /** La COUVERTURE de Spécialisation recopiée, où `X` se nomme `spec` — la convention qu'écrit `refCouvre`
  *  (`src/data/schemas/grammaire/ref.ts`) : la chaîne `X == null || … || X === Y` à N opérandes (formes
- *  `=== undefined`, `!X`, égalité commutée), et le ternaire `X ? Y === X : true`, `!X ? true : Y === X`,
- *  `X == null ? true : Y === X`. */
+ *  `=== undefined`, `!X`, égalité commutée), sa forme NIÉE `X && … && Y !== X` (`X != null`,
+ *  `X !== undefined`, `!!X`, `!=`), et le ternaire `X ? Y === X : true` (`X != null`, `X !== undefined`),
+ *  `!X ? true : Y === X`, `X == null ? true : Y === X`. Une chaîne se compte une fois, à sa racine. */
 export const COUVERTURE_DE_SPEC = Object.freeze({
   nom: 'COUVERTURE_DE_SPEC',
   indice: (texte) => texte.includes('spec'),
@@ -393,15 +420,42 @@ export const COUVERTURE_DE_SPEC = Object.freeze({
       const vrai = (e) => sansEnveloppe(e).kind === ts.SyntaxKind.TrueKeyword;
       const vide = specNomme(testeLeVide(n.condition));
       if (vide) return vrai(n.whenTrue) && egaliteAvec(n.whenFalse, vide, sf) ? verdict : null;
-      const plein = specNomme(sansEnveloppe(n.condition));
+      const plein = specNomme(testeLePlein(n.condition));
       return plein && vrai(n.whenFalse) && egaliteAvec(n.whenTrue, plein, sf) ? verdict : null;
     }
-    if (!ts.isBinaryExpression(n) || n.operatorToken.kind !== ts.SyntaxKind.BarBarToken) return null;
-    const ops = operandesOu(n);
-    return ops.some((o) => {
-      const x = specNomme(testeLeVide(o));
-      return x != null && ops.some((e) => e !== o && egaliteAvec(e, x, sf));
-    }) ? verdict : null;
+    if (!ts.isBinaryExpression(n)) return null;
+    const chaine = n.operatorToken.kind;
+    if (chaine === ts.SyntaxKind.BarBarToken || chaine === ts.SyntaxKind.AmpersandAmpersandToken) {
+      if (maillonDeChaine(n, chaine)) return null;
+      const ou = chaine === ts.SyntaxKind.BarBarToken;
+      const ops = operandesOu(n, chaine);
+      return ops.some((o) => {
+        const x = specNomme(ou ? testeLeVide(o) : testeLePlein(o));
+        return x != null && ops.some((e) => e !== o && egaliteAvec(e, x, sf, ou ? EGALITES_SEULES : INEGALITES));
+      }) ? verdict : null;
+    }
+    return null;
+  },
+});
+
+/** L'IDENTITÉ d'instance recopiée, où `X` se nomme `spec` — la convention qu'écrit `memeSpecialisation`
+ *  (`src/data/schemas/grammaire/ref.ts`) : `(X ?? '') === (Y ?? '')`, ou `!==`, `==`, `!=`. */
+export const IDENTITE_D_INSTANCE = Object.freeze({
+  nom: 'IDENTITE_D_INSTANCE',
+  indice: (texte) => texte.includes('spec'),
+  /** @param {ts.Node} n @returns {string | null} */
+  reconnait: (n) => {
+    if (!ts.isBinaryExpression(n) || ![...EGALITES_SEULES, ...INEGALITES].includes(n.operatorToken.kind)) return null;
+    /** L'opérande `X` de `X ?? ''`, sinon `null`. @param {ts.Expression} e @returns {ts.Expression | null} */
+    const videParDefaut = (e) => {
+      const x = sansEnveloppe(e);
+      if (!ts.isBinaryExpression(x) || x.operatorToken.kind !== ts.SyntaxKind.QuestionQuestionToken) return null;
+      const defaut = sansEnveloppe(x.right);
+      return ts.isStringLiteral(defaut) && defaut.text === '' ? sansEnveloppe(x.left) : null;
+    };
+    const a = videParDefaut(n.left);
+    const b = videParDefaut(n.right);
+    return a && b && (specNomme(a) || specNomme(b)) ? 'identité d’instance recopiée (`memeSpecialisation`)' : null;
   },
 });
 
@@ -661,9 +715,14 @@ export function estAppelDeclare(appel, sf, fonctions, contexte) {
 
 export function sansDeclarationsDeMetadonnees(fichier, sourceFile, checker) {
   if (!/\bnommer(?:Champs|Noeud)\b/.test(fichier.text)) return fichier.text;
-  if (!sourceFile) {
-    for (const analyse of analyserCorpus([fichier])) return sansDeclarationsDeMetadonnees(fichier, analyse.sourceFile, analyse.checker);
-  }
+  if (sourceFile) return texteSansDeclarationsDeMetadonnees(fichier, sourceFile, checker);
+  for (const analyse of analyserCorpus([fichier])) return texteSansDeclarationsDeMetadonnees(fichier, analyse.sourceFile, analyse.checker);
+  return fichier.text;
+}
+
+/** @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} fichier @param {ts.SourceFile} sourceFile
+ * @param {ts.TypeChecker | undefined} checker @returns {string} */
+function texteSansDeclarationsDeMetadonnees(fichier, sourceFile, checker) {
   const contexte = contexteImports(sourceFile, checker);
   const fonctions = { 'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'] };
   const plages = [];
@@ -946,10 +1005,14 @@ export function comparaisonDAppel({ nom, fonctions }) {
 export function scanConstructionsReservees(fichier, constructions, sourceFile, checker) {
   const retenues = constructions.filter((c) => sAppliqueA(fichier, c) && (!c.indice || c.indice(fichier.text)));
   if (!retenues.length) return [];
-  if (!sourceFile) {
-    for (const analyse of analyserCorpus([fichier])) return scanConstructionsReservees(fichier, constructions, analyse.sourceFile, analyse.checker);
-  }
-  const sf = sourceFile;
+  if (sourceFile) return trouvaillesDuScan(retenues, sourceFile, checker);
+  for (const analyse of analyserCorpus([fichier])) return trouvaillesDuScan(retenues, analyse.sourceFile, analyse.checker);
+  return [];
+}
+
+/** @param {readonly import('./canonUnique.mjs').ConstructionGardee[]} retenues @param {ts.SourceFile} sf
+ * @param {ts.TypeChecker | undefined} checker @returns {{ line: number, construction: string, detail: string }[]} */
+function trouvaillesDuScan(retenues, sf, checker) {
   const contexte = contexteImports(sf, checker);
   /** @type {{ line: number, construction: string, detail: string }[]} */
   const trouvailles = [];

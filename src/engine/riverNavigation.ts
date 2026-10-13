@@ -126,13 +126,6 @@ export function savoirVoiesFluvialesBonus(c: Combatant): number {
   return adv > 0 ? DATA.savoirVoiesFluvialesDR : 0;
 }
 
-/** Compétence de Navigation d'une embarcation (l.11-13) : **Voile** si le bateau porte une voilure, sinon
- *  **Ramer** (barque). Décision de DONNÉE (facette `ship.sail` du véhicule), même règle que la manœuvre
- *  navale (`shipManeuverParams`). PUR. */
-export function riverPilotSkill(hasSail: boolean): 'voile' | 'ramer' {
-  return hasSail ? 'voile' : 'ramer';
-}
-
 /** Le barreur garde-t-il le CONTRÔLE à l'issue du Test de Navigation de l'étape (l.15) ? Une réussite garde
  *  toujours le cap ; un ÉCHEC de peu est rattrapé par le +1 DR de **Savoir (Voies fluviales)** (l.13 :
  *  `navSL + savoir ≥ 0`). Sinon le contrôle est perdu → le courant emporte le bateau (dérive, note 2 l.38). PUR. */

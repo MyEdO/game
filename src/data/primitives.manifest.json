@@ -524,6 +524,15 @@
     "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
   },
   {
+    "id": "memeSpecialisation",
+    "type": "primitives.manifest",
+    "label": "memeSpecialisation",
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "concept": "deux Spécialisations désignent la même instance d'une Compétence ou d'un Talent, absente et vide confondues — l'identité d'instance, la construction `IDENTITE_D_INSTANCE` en garde la recopie",
+    "perimetre": "recherche d'une instance possédée sur la fiche (Compétences, Talents), dédoublonnage des options d'avancement, d'entraînement et de Carrière",
+    "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
+  },
+  {
     "id": "trappingsInstanciables",
     "type": "primitives.manifest",
     "label": "trappingsInstanciables/trappingDesObjetsPuisDuCatalogue",
@@ -1732,7 +1741,7 @@
   {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/COUVERTURE_DE_SPEC/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports/sansDeclarationsDeMetadonnees",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/COUVERTURE_DE_SPEC/IDENTITE_D_INSTANCE/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports/sansDeclarationsDeMetadonnees",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
     "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker natif emprunté au parcours de la session",
     "perimetre": "toute garde de canon unique",

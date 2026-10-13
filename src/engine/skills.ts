@@ -172,12 +172,14 @@ export function actorHasSkill(c: Combatant, skillId: string, spec?: string): boo
 
 /** Le personnage POSSÈDE-t-il la Compétence (Base = toujours ; Avancée = au moins une Augmentation) ?
  *  LDB 09 l.25, LDB 09 l.30. `spec` cible une spécialisation précise (sinon la première instance de l'id,
- *  comme `skillBaseValue`). */
+ *  comme `skillBaseValue`). Une Compétence `specsSoeursDeBase` dont le porteur a augmenté UNE
+ *  Spécialisation est de Base dans toutes les autres : LDB 09 l.571. */
 export function possesses(c: Combatant, skillId: string, spec?: string): boolean {
   const sd = byId('skill', skillId);
   if (!sd) return false;
   const inst = c.skills?.find((s) => refCouvre({ id: skillId, spec }, s));
-  return sd.acces === 'base' || (inst?.advances ?? 0) > 0;
+  const soeurAugmentee = sd.specsSoeursDeBase === true && (c.skills ?? []).some((s) => refCouvre({ id: skillId }, s) && (s.advances ?? 0) > 0);
+  return sd.acces === 'base' || (inst?.advances ?? 0) > 0 || soeurAugmentee;
 }
 
 /** Qui peut TENTER un Test ACTIF — le mener, le soutenir, s'y porter candidat. LDB 09 l.30, LDB 16 l.113.

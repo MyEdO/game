@@ -173,7 +173,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/drunkenness.ts': 1,
   'src/engine/engagement.ts': 2,
   'src/engine/equipCompare.ts': 1,
-  'src/engine/magic.ts': 2, // 3 → 2 (#1595 : `focusSkillFor` passe par `refCouvre`)
+  'src/engine/magic.ts': 2,
   'src/engine/menace.ts': 1,
   'src/engine/provisions.ts': 1,
   'src/engine/psychology.ts': 3,
@@ -181,16 +181,11 @@ const RAW_KNOWN: Record<string, number> = {
   // (`crewTest.char === 'initiative'`), plus un id de registre de Compétence.
   'src/engine/riverNavigation.ts': 1,
   'src/engine/seaNavigation.ts': 1,
-  // 4 → 7 (L2 #1548, commit 3c) : AUCUNE comparaison neuve — les trois `o.skill === 'esquive'` de
-  // `downgradeTornMuscle`/`traumaDodgePenalty`/`traumaSkillPenalty` lisent la MÊME chose qu'avant, mais
-  // la référence de Compétence étant EMBOÎTÉE leur accès passe par `.id`, que ce cliquet BRUT compte.
-  // L'Esquive y est NOMMÉE par le RAW (LDB 18 : la mobilité d'un membre pèse sur l'Esquive).
-  // 7 → 8 (#1599) : le poseur UNIQUE de l'annulateur `determination` (`poseDeterminationCanceller`) vient
-  // de `combatSlice.ts` (3 → 2 → 1 ci-dessous) — un DÉPLACEMENT vers le module qui POSSÈDE la table
-  // `PASSIVE_CANCELLERS`, à somme nulle, jamais un site neuf. Le reste : pénalité de combat PAR MAIN
-  // (doigts/main) + crochet entraîné + Esquive nommée au RAW — axes NON couverts par `cumul`.
-  // 8 → 7 (#1692) : `FICHE_BY_ID`/`CUMUL_FICHES` figés à l'import deviennent des accesseurs vivants
-  // (`ficheById`/`cumulFiches`) — une comparaison d'id de la construction figée disparaît avec elle.
+  // Les trois `o.skill === 'esquive'` de `downgradeTornMuscle`/`traumaDodgePenalty`/`traumaSkillPenalty`
+  // (référence de Compétence EMBOÎTÉE, accès par `.id`) : l'Esquive y est NOMMÉE par le RAW (LDB 18).
+  // Le poseur UNIQUE de l'annulateur `determination` (`poseDeterminationCanceller`), dans le module qui
+  // POSSÈDE la table `PASSIVE_CANCELLERS`. Le reste : pénalité de combat PAR MAIN (doigts/main) + crochet
+  // entraîné — axes NON couverts par `cumul`.
   'src/engine/trauma.ts': 7,
   'src/engine/weaponDamage.ts': 1,
   'src/engine/windsOfMagic.ts': 1,
@@ -205,14 +200,14 @@ const RAW_KNOWN: Record<string, number> = {
   'src/state/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/state/combatGeometry.ts': 1,
   'src/state/combatManeuvers.ts': 4,
-  'src/state/combatSlice.ts': 1, // 2 → 1 (#1599) : la pose de l'annulateur `determination` part chez son propriétaire (`engine/trauma.ts`)
+  'src/state/combatSlice.ts': 1,
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `q.id === ARME_D_EQUIPE`
   // est un lookup par id stable d'une Qualité au registre — même patron que `healing`/`careerSlots`.
   'src/state/commandTeam.ts': 1,
   'src/state/devtools.ts': 1,
   'src/state/interludeFlow.ts': 4,
   'src/state/mount.ts': 1,
-  'src/state/seaVoyageFlow.ts': 3, // 4 → 3 (#1479 : la conséquence d'un péril lit sa DONNÉE `entangleChancePct`, plus `hazard.id === 'debris-marins'`)
+  'src/state/seaVoyageFlow.ts': 3,
   'src/state/store.ts': 1,
   'src/state/travelFlow.ts': 6,
   'src/state/travelPostes.ts': 2,

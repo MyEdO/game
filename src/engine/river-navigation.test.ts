@@ -5,7 +5,7 @@ import { makeRNG } from './dice';
 import { RULE_REF } from './ruleRefs';
 import { strandingPenalty } from './seaPerils';
 import {
-  rollRiverWind, tickRiverWind, riverWindEffect, savoirVoiesFluvialesBonus, riverPilotSkill,
+  rollRiverWind, tickRiverWind, riverWindEffect, savoirVoiesFluvialesBonus,
   riverControlKept, rowingAgilityFactor, riverDayKm, riverDriftKm, navPenaltyMods,
   capsizeRightDifficulty, capsizeRightCumulative, capsizeSinkTurns, holeSinkMinutes,
   riverCritical, resolveRiverImpact, rollBarrage, echouageDamage, findRiverPeril, RIVER_PERILS,
@@ -54,11 +54,6 @@ describe('Navigation & rame (l.11-17)', () => {
     expect(savoirVoiesFluvialesBonus(h)).toBe(0);
     h.skills.push({ id: 'savoir', spec: 'voies-fluviales', characteristic: 'intelligence', advances: 10 });
     expect(savoirVoiesFluvialesBonus(h)).toBe(1);
-  });
-
-  it('embarcation : Voile si voilure, sinon Ramer — barque (l.11-13)', () => {
-    expect(riverPilotSkill(true)).toBe('voile');
-    expect(riverPilotSkill(false)).toBe('ramer');
   });
 
   it('contrôle gardé : réussite TOUJOURS ; échec de peu rattrapé par Savoir +1 DR (l.13)', () => {
