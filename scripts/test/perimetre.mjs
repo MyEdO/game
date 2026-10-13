@@ -825,7 +825,6 @@ export function dossierDesMesures(racine) {
  */
 export function mesuresDe(dossier) {
   const sousVerrou = (nom, valeur) => {
-    mkdirSync(dossier, { recursive: true })
     const prise = prendreVerrou({ chemin: join(dossier, `${nom}.verrou`), libelle: `mesures ${nom} du périmètre`, attente: ATTENTE_DES_MESURES })
     if (prise.etat !== 'pris') throw new Error(prise.message)
     try { ecrireJsonAtomique(join(dossier, nom), valeur()) } finally { prise.liberer() }

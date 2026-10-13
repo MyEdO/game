@@ -150,6 +150,7 @@ rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIM�
   réécriture ≈ 1,6 $. `ScheduleWakeup` ne sert qu'en `/loop`. Au fil principal, la garde `commande-piege`
   refuse toute attente lancée en fond, et au premier plan celle sans borne sous l'échéance de l'appel
   (#2603) : le harnais tue les shells de fond d'une session inactive, le `Monitor` en est exclu.
+  `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP` à `1` dans l'environnement du hook désarme cette garde.
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et
 `npm run test:perimetre` avant commit — le typecheck complet et la suite complète sont joués UNE fois par
