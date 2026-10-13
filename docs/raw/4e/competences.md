@@ -73,7 +73,7 @@ Nécessitent un entraînement. **Impossible de tenter le Test sans au moins une 
 **Sources RAW :** LDB 09 l.22-32
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.22-32) → `renforcerCompetence`, `doc`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `trainedForRole`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, +70 — `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, +46 fichiers
+- `LDB 9` (l.22-32) → `renforcerCompetence`, `doc`, `ParticipantRow`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `trainedForRole`, `useTestJetProps`, `rollCrewRole`, +83 — `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, +51 fichiers
 
 ---
 
@@ -98,7 +98,7 @@ la description, ou en crée une avec l'accord du MJ.
 **Sources RAW :** LDB 09 l.34-46
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.34-46) → `renforcerCompetence`, `doc`, `specIdOf`, `trainedForRole`, `art`, `buySkillAdvance`, `athletisme`, `PREGEN`, `buildAdvancementView`, `slotCovers`, +36 — `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, +28 fichiers
+- `LDB 9` (l.34-46) → `renforcerCompetence`, `doc`, `ParticipantRow`, `specIdOf`, `trainedForRole`, `rollCrewRole`, `forceCrewRole`, `art`, `buySkillAdvance`, `buildParticipantRows`, +51 — `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, +37 fichiers
 
 ---
 

@@ -260,7 +260,7 @@ Autrement dit, on soustrait le **chiffre des dizaines du résultat obtenu** au *
 
 **Voir aussi** : [Table des Résultats](#table-des-résultats), [Tests opposés](#tests-opposés), [Succès et échec automatiques](#succès-et-échec-automatiques)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.90-94, l.96-99, l.100-102, l.119-121) → `bargainBuyFactor`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `test-over-100`, `forceCrewRole`, `useTestJetProps`, `evaluateTest`, `opposedForcedFloor`, `bestForcedRoll`, +12 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +7 fichiers
+- `LDB 12` (l.90-94, l.96-99, l.100-102, l.119-121) → `bargainBuyFactor`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `test-over-100`, `useTestJetProps`, `forceCrewRole`, `opposedForcedFloor`, `evaluateTest`, `bestForcedRoll`, +12 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +7 fichiers
 
 ---
 
@@ -287,7 +287,7 @@ Le niveau de succès ou d'échec est qualifié par la Table des Résultats, qui 
 
 **Voir aussi** : [Degrés de Réussite (DR)](#degrés-de-réussite-dr), [Doubles — Critique et Maladresse](#doubles--critique-et-maladresse)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.105-114, l.116-117) → `bargainBuyFactor`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `forceCrewRole`, `useTestJetProps`, `evaluateTest`, `bestForcedRoll`, `SUCCES_MINIME_CAP`, `double-critique-maladresse`, +6 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +3 fichiers
+- `LDB 12` (l.105-114, l.116-117) → `bargainBuyFactor`, `test-critiques-doubles`, `test-fast-sl`, `amazingTestLabel`, `useTestJetProps`, `forceCrewRole`, `evaluateTest`, `bestForcedRoll`, `SUCCES_MINIME_CAP`, `double-critique-maladresse`, +6 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/bargain.ts`, `src/engine/crewMorale.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, +3 fichiers
 
 ---
 
