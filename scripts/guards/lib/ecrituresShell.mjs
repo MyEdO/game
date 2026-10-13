@@ -351,7 +351,7 @@ const cheminDeModule = (valeur) =>
 
 /** Les lancements d'un interpréteur JS : `{ scripts, configs, filtres, dossiers, ecritures, enLigne, argv }` — les
  *  fichiers qu'il lance (préchargements de `node` compris), les `--config` de `vitest` (`configs`, lancés aussi), les
- *  positionnels de `vitest` (`filtres` : un fichier de test, un dossier ou un motif), les dossiers qu'il balaie
+ *  positionnels de `vitest` (`filtres`, qui trient les suites balayées), les dossiers qu'il balaie
  *  (`dossiers` : ses `--root`/`--dir`, sinon le cwd, racine de `vitest` sans `--config`), les fichiers qu'il DÉCLARE
  *  écrire (`ecritures` : `--outputFile`, `--coverage` → `coverage` du cwd, `--test-reporter-destination` hors
  *  `stdout`/`stderr`), le code en ligne (`-e`, `-p`), `argv` = le `process.argv` d'un script seul (un argument non
@@ -389,7 +389,7 @@ function lancementDInterpreteur(textes, bruts = textes) {
       if (!(premier && SOUS_COMMANDES_VITEST.includes(texte))) rendu.filtres.push(texte)
       premier = false
     }
-    if (rendu.dossiers.length === 0 && rendu.configs.length === 0 && rendu.filtres.length === 0) rendu.dossiers.push('.')
+    if (rendu.dossiers.length === 0 && rendu.configs.length === 0) rendu.dossiers.push('.')
     return rendu
   }
   if (nom !== 'node' && nom !== 'tsx') return null
@@ -626,11 +626,12 @@ function lireTexteSurDisque(chemin) {
  * hors de `LECTURES_GIT`, un `npm` qui écrit (`ecritureDeNpm`), un outil hors de sa forme de lecture (`LECTURES_NPX`, et
  * tout outil sous `npx`), un `gh` hors `LECTURES_GH` y sont une cible inconnue de `famille` git, npm, npx ou gh ; une
  * redirection, un code JS ou un script ne l'est jamais. Une commande que `xargs` alimente reçoit un argument inconnu. Une
- * `for <v> in <mots>` littérale se déroule. `env` amorce `VARIABLES_AMORCEES` (`$TEMP`, `$env:TEMP`, `$env:USERPROFILE`, `$HOME`, `~`) ;
+ * `for <v> in <mots>` littérale se déroule. `env` amorce `VARIABLES_AMORCEES` (`$TEMP`, `$env:TEMP`, `$env:LOCALAPPDATA`, `$HOME`, `~`) ;
  * `powershell` : la commande est du dialecte PowerShell (`tokenizeCommand`), où `\` sépare les chemins sur toute
  * plateforme. Les chemins se résolvent par le `node:path` de `platform` (`cheminsDe`). Avec `scripts`, s'y ajoutent les
  * LANCEMENTS JS (`lancementDInterpreteur`) : `{ operation: 'script' }` par fichier lancé (`config` pour un `--config` de
- * `vitest`, `filtre` pour un positionnel, `dossier` pour un dossier balayé). `lireTexte` lit le tsconfig de `tsc` (`LECTURES_NPX`).
+ * `vitest`, `dossier` pour un dossier balayé, tous deux porteurs des `filtres` positionnels de `vitest`, `null` pour un
+ * filtre non constant). `lireTexte` lit le tsconfig de `tsc` (`LECTURES_NPX`).
  */
 export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), platform = process.platform, env = {}, exclureArguments = () => false, powershell = false, segments = pipelinesDeJetons(commande, 0, { powershell }).flat(), scripts = false, lireTexte = lireTexteSurDisque } = {}) {
   const P = cheminsDe(platform), temp = repertoireTemporaire(env, platform)
@@ -739,7 +740,7 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
         const developpe = jeton === undefined ? null : developper(jeton.text, etat.variables, jeton)
         const code = developpe?.startsWith('--eval=') ? developpe.slice(7) : developpe
         if (code === null) ajouter(null, `${nom}-inline`)
-        else for (const cible of ciblesDEcritureJS(code, { env, platform })) {
+        else for (const cible of ciblesDEcritureJS([{ texte: code }], { env, platform })[0]) {
           if (cible.commande !== undefined) sousCommande(cible.commande, etat)
           else ajouter(cible.chemin, cible.operation)
         }
@@ -747,9 +748,9 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       for (const sortie of lancement?.ecritures ?? []) ajouter(sortie, nom, { ecrivain: true })
       if (scripts && lancement) {
         for (const script of lancement.scripts) Object.assign(ajouter(script, 'script'), { argv: lancement.argv })
-        for (const config of lancement.configs) Object.assign(ajouter(config, 'script'), { config: true })
-        for (const filtre of lancement.filtres) Object.assign(ajouter(filtre, 'script'), { filtre: true })
-        for (const dossier of lancement.dossiers) Object.assign(ajouter(dossier, 'script'), { dossier: true })
+        const filtres = lancement.filtres.map((f) => (nonConstant(f) ? null : f))
+        for (const config of lancement.configs) Object.assign(ajouter(config, 'script'), { config: true, filtres })
+        for (const dossier of lancement.dossiers) Object.assign(ajouter(dossier, 'script'), { dossier: true, filtres })
       }
     }
     for (const valeur of segment.valeurs ?? []) {

@@ -19,8 +19,10 @@ const MODULES_QUI_ECRIVENT = /^(?:node:)?(?:fs|fs\/promises|child_process)$/
 /** Les plis de `node:path` sous le `node:path` `P` de la plateforme jugée. */
 const plisDeChemin = (P) => ({ 'path#join': P.join, 'path#resolve': (...p) => (p.some(P.isAbsolute) ? P.resolve(...p) : P.join(...p)), 'path#dirname': P.dirname, 'path#basename': P.basename })
 
-/** Les variables d'environnement que le hook connaît du processus qu'il juge : le répertoire temporaire. */
-export const VARIABLES_AMORCEES = ['TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE']
+/** Les variables d'environnement que le hook connaît du processus qu'il juge. Critère d'appartenance : variables du
+ *  profil utilisateur que les shells d'outil héritent inchangées (#2537 ; `PROGRAMDATA`, de la machine, s'écrit
+ *  `ProgramData` sous bash). */
+export const VARIABLES_AMORCEES = ['TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA', 'HOMEDRIVE', 'HOMEPATH']
 
 /** `os.tmpdir()` du processus d'environnement `env` sous `platform` (Node, `lib/os.js`, `tmpdir`) ; `null` si
  *  `env` ne le porte pas. PURE. */
@@ -31,7 +33,8 @@ export function repertoireTemporaire(env, platform) {
 }
 
 /**
- * Les écritures de fichier que DÉCLARE un texte JS/TS, parsé au dialecte de `rel` ; `[]` s'il ne se parse pas.
+ * Les écritures de fichier que DÉCLARE chaque script JS/TS de `scripts`, dans leur ordre, parsés en UNE session, chacun
+ * en portée de module (`syntaxProgram`) au dialecte de son `rel` ; `[]` pour un script qui ne se parse pas.
  * Un chemin se REPLIE quand il est constant : littéral, `const` chaîne, `+`, gabarit, `join`/`resolve`/
  * `dirname`/`basename` de `node:path`, `[…].join(sep)`, `import.meta.dirname`/`filename`, `fileURLToPath(import.meta.url)`
  * de `node:url` (`fichier` = le chemin du script), `process.argv[k]` (`argv` = le `process.argv` du lancement),
@@ -41,15 +44,17 @@ export function repertoireTemporaire(env, platform) {
  * constant y valant `MOT_INCONNU`) ou, à exécutable non constant, une cible inconnue ; un `import()`
  * dynamique de `fs`/`child_process` se lit comme l'import statique quand il est attendu (`await import('…')`),
  * sinon il rend une cible inconnue, comme un `import()` à spécificateur non constant.
- * @param {string} texte
- * @param {{ rel?: string, fichier?: string, argv?: (string | null)[], env?: Record<string, string | undefined>, platform?: NodeJS.Platform }} [contexte]
- * @returns {{ chemin: string | null, inconnue: boolean, operation: string, commande?: string }[]}
+ * @param {{ texte: string, rel?: string, fichier?: string, argv?: (string | null)[] }[]} scripts
+ * @param {{ env?: Record<string, string | undefined>, platform?: NodeJS.Platform }} [contexte]
+ * @returns {{ chemin: string | null, inconnue: boolean, operation: string, commande?: string }[][]}
  */
-export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [], env = {}, platform = process.platform } = {}) {
+export function ciblesDEcritureJS(scripts, { env = {}, platform = process.platform } = {}) {
   const ts = typescript()
-  const P = cheminsDe(platform), sorties = [], plis = plisDeChemin(P)
-  for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel, text: texte }])) {
+  const P = cheminsDe(platform), plis = plisDeChemin(P)
+  const corpus = scripts.map((script, k) => ({ rel: `${k}/${script.rel ?? 'inline.mjs'}`, text: script.texte, script }))
+  return Array.from(analyserCorpus(corpus), ({ fichier: { script: { fichier, argv = [] } }, sourceFile, diagnostics, checker }) => {
     if (diagnostics.length || !sourceFile) return []
+    const sorties = []
     const provenance = creerProvenanceFs({ sourceFile, checker, ts })
     const enCours = new Set()
     const moduleDe = (specificateur) => (specificateur && (ts.isStringLiteral(specificateur) || ts.isNoSubstitutionTemplateLiteral(specificateur)) ? specificateur.text.replace(/^node:/, '') : null)
@@ -195,8 +200,8 @@ export function ciblesDEcritureJS(texte, { rel = 'inline.mjs', fichier, argv = [
         sorties.push({ chemin, inconnue: chemin === null, operation })
       }
     })
-  }
-  return sorties
+    return sorties
+  })
 }
 
 /** `spawn(fichier, [args])` rendu en une commande shell, `elements` = les nœuds de ses arguments (`null` : une liste non

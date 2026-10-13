@@ -5,7 +5,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { resolve } from 'node:path'
 import { CAS_HOTE_POWERSHELL, argumentsDuCas } from '../../hooks/hote-powershell-cas.mjs'
-import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine, valeurParametre, pipelinesDeJetons, texteDuSegment, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance } from './commandeShell.mjs'
+import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine, valeurParametre, pipelinesDeJetons, texteDuSegment, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, nouveauBudget } from './commandeShell.mjs'
+import { ciblesDEcritureDeCommande } from './ecrituresShell.mjs'
 
 test('redirections : provenance de la cible séparée ou collée', () => {
   const [segment] = pipelinesDeJetons('echo \'$P/x\' > "$P/x" 2>$P/y').flat()
@@ -114,4 +115,39 @@ test('argumentChaine : l\'hôte lit sa commande ENTIÈRE, jointe, après ses par
   assert.equal(argumentChaine(['powershell', '-NoProfile', '-zz;', 'Get-Date']), '-zz; Get-Date')
   assert.equal(argumentChaine(['pwsh', '-cwa', 'Write-Output $args', 'a', 'b']), 'Write-Output $args a b')
   assert.equal(argumentChaine(['pwsh', '-NoProfile', '-c']), null)
+})
+
+test('#2537 — fonction shell : la définition LIE son corps, l’appel l’exécute dans le shell de l’appel', () => {
+  const executes = (commande, options) => pipelinesDeJetons(commande, 0, options).flat().filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text))
+  const powershell = { powershell: true }
+  assert.deepEqual(executes('f(){ rm x; }'), [], 'définie, jamais appelée')
+  assert.deepEqual(executes('f(){ rm x; }; f'), [['rm', 'x']], '`nom()`')
+  assert.deepEqual(executes('f () { rm x; }; f'), [['rm', 'x']], '`nom ()`')
+  assert.deepEqual(executes('function f { rm x; }; f'), [['rm', 'x']], '`function nom`')
+  assert.deepEqual(executes('function f() { rm x; }; f > o.txt'), [['rm', 'x'], ['>', 'o.txt']], '`function nom()`, l’appel garde ses redirections')
+  assert.deepEqual(executes('f() ( rm x ); f'), [['rm', 'x']], 'corps `( … )`')
+  assert.deepEqual(executes('f() if true; then rm x; fi; f'), [['true'], ['rm', 'x'], ['fi']], 'corps `if`')
+  assert.deepEqual(executes('f() for i in a; do rm $i; done; f'), [['for', 'i', 'in', 'a'], ['rm', '$i'], ['done']], 'corps `for`')
+  assert.deepEqual(executes('function Nettoie { Remove-Item x }; nettoie', powershell), [['Remove-Item', 'x']], '`function` PowerShell, nom sans casse')
+  assert.deepEqual(executes('function f($a, $b) { Remove-Item $a }; f y z', powershell), [['Remove-Item', '$a']], 'paramètres PowerShell')
+  assert.deepEqual(executes('filter script:g { rm x }; & g', powershell), [['rm', 'x']], '`filter` à portée, opérateur d’appel')
+  assert.deepEqual(executes('f(){ rm x }; f', powershell), [['f(){', 'rm', 'x', '}'], ['f']], '`nom()` n’est pas une définition PowerShell')
+  assert.deepEqual(executes('f(){ rm x; }; command f; builtin f'), [['f'], ['f']], '`command`/`builtin` ne résolvent pas la fonction')
+  assert.deepEqual(executes('f(){ rm x; }; bash -c f'), [['f'], ['bash', '-c', 'f']], 'processus neuf : aucune fonction héritée')
+  assert.deepEqual(executes('( f(){ rm x; } ); f'), [['f']], 'définie dans un sous-shell : perdue à sa sortie')
+  assert.deepEqual(executes('f(){ rm x; }; (f); echo $(f)'), [['rm', 'x'], ['rm', 'x'], ['echo', '$(f)']], 'sous-shell et substitution héritent')
+  assert.deepEqual(executes('f(){ rm x; } | cat; f'), [['cat'], ['f']], 'définie dans un membre de tube : perdue')
+  assert.deepEqual(executes('( a(b) )'), [['a(b)']], 'la `)` d’un mot ferme sa propre parenthèse, pas le sous-shell')
+  const appel = pipelinesDeJetons('f(){ cd a; }; f').flat()
+  assert.equal(appel.find((s) => s.jetons[0]?.text === 'cd').shell, appel.at(-1).shell, 'le corps s’exécute dans le shell de l’appel')
+  const budget = nouveauBudget()
+  pipelinesDeJetons('f(){ f; }; f', 0, { budget })
+  assert.equal(budget.sature, true, 'récursion bornée par `PROFONDEUR_MAX_ENROBEURS`')
+})
+
+test('#2537 — fonction shell : son corps se juge au cwd de l’appel, sa tête n’est pas un exécutable', () => {
+  const volume = 'C:'
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: `${volume}/repo`, platform: 'win32' }).map((c) => [c.operation, c.chemin, c.inconnue])
+  assert.deepEqual(cibles(`f(){ rm x; }; cd ${volume}/hors; f`), [['rm', `${volume}\\hors\\x`, false]])
+  assert.deepEqual(cibles('strip(){ sed -i s/a/b/ "$1"; }; strip githooks.html'), [['sed', null, true]], '`$1` est un mot inconnu ; `strip` n’est plus l’écrivain binutils')
 })

@@ -39,6 +39,7 @@ import { lancerHook } from '../guards/lib/lancerHook.mjs'
 import { sousRacineNpm } from '../guards/lib/racineNpm.mjs'
 import { evaluate as evaluateLabel } from './issue-label-guard.mjs'
 import { evaluate as evaluateGates } from './codeur-gates-guard.mjs'
+import { evaluate as evaluatePiege } from './commande-piege-guard.mjs'
 
 // Lecteurs Windows et racines de profil ASSEMBLÉS à l'exécution : ce fichier ne porte aucun chemin
 // absolu littéral, il reste donc soumis à `src/portable-paths-guard.test.ts` comme `scripts/**`.
@@ -687,4 +688,11 @@ test('segmentsProfonds : un heredoc qui ÉCRIT un texte citant « git commit » 
   const indente = ['cat > note.md <<EOF', '  EOF', "git commit -m 'du texte, pas un geste'", 'EOF', 'echo fin'].join('\n')
   assert.equal(executeUnCommit(indente), false)
   assert.equal(executeUnCommit(['cat > note.md <<-EOF', '\tEOF', 'git commit -m "vrai"'].join('\n')), true, '`<<-` ferme sur une tabulation')
+})
+
+test('consommateur — commande-piege-guard juge le corps d’une fonction à son APPEL, et la fonction qui masque un exécutable', () => {
+  assert.equal(evaluatePiege('k(){ pkill node; }; k')?.decision, 'deny', 'le corps appelé est lu')
+  assert.equal(evaluatePiege('k(){ pkill node; }'), null, 'définie, jamais appelée')
+  assert.equal(evaluatePiege('k(){ pkill node; }; command k'), null, '`command` lance l’exécutable `k`, pas la fonction')
+  assert.equal(evaluatePiege('pkill(){ :; }; pkill node'), null, 'la fonction `pkill` masque l’exécutable')
 })

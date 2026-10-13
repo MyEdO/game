@@ -103,7 +103,7 @@ export function syntaxProgram(files) {
   });
   sources[entree] = references.join('\n');
   sources[config] = JSON.stringify({
-    compilerOptions: { ...OPTIONS_VIRTUELLES, noLib: true, noResolve: true, allowJs: true, resolveJsonModule: true, jsx: 'preserve' },
+    compilerOptions: { ...OPTIONS_VIRTUELLES, noLib: true, noResolve: true, moduleDetection: 'force', allowJs: true, resolveJsonModule: true, jsx: 'preserve' },
     files: Object.keys(sources),
   });
   return ouvrir(root, fichiersVirtuels(sources), () => ({ openProjects: [config], openFiles: [entree] }),

@@ -9,7 +9,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { repartir } from './repartition.mjs'
-import { garde, scratchpadDeSession } from './lecture-seule-guard.mjs'
+import { BORNE_OCTETS_JS, DEBIT_ANALYSE_JS, choisieParVitest, garde, scratchpadDeSession } from './lecture-seule-guard.mjs'
+import { ATTENTE_BARRIERE } from './barriere-outil.mjs'
+import { SURFACE_CLAUDE, aplatirHooks } from '../agents/compat-core.mjs'
 import { REGISTRE } from './registre.mjs'
 import { cheminsDe } from '../guards/lib/commandeShell.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
@@ -53,6 +55,10 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
   FS.writeFileSync(join(SP, 'vitest.config.mjs'), "export default { root: 'dir-ecrit' }\n")
   FS.mkdirSync(join(SP, 'dir-abs'), { recursive: true })
   FS.writeFileSync(join(SP, 'dir-abs', 'z.test.mjs'), "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n")
+  FS.mkdirSync(join(SP, 'fx', 'sous'), { recursive: true })
+  FS.writeFileSync(join(SP, 'fx', 'sous', 'a-sonde.test.mjs'), "import { writeFileSync } from 'node:fs'\nwriteFileSync('/hors-banc-2537/a.txt', 'a')\n")
+  FS.writeFileSync(join(SP, 'fx', 'sous', 'b-autre.test.mjs'), "import { writeFileSync } from 'node:fs'\nwriteFileSync('/hors-banc-2537/b.txt', 'a')\n")
+  FS.writeFileSync(join(SP, 'fx', 'sous', 'c-lit.test.mjs'), "import { readFileSync } from 'node:fs'\nreadFileSync('package.json')\n")
   /** Le monde du banc sous `platform` : celui de l'hôte, ou une racine et un répertoire temporaire forgés pour la
    *  plateforme étrangère, son disque (`lire`, `lister`) ramené à celui de l'hôte. */
   const mondeDe = (platform) => {
@@ -75,7 +81,7 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
   }
   /** Chaque cas : l'outil, la commande, le type, la décision attendue, un motif de la raison, et les plateformes
    *  où il se joue (les deux par défaut), forgées par le monde de la plateforme (`mondeDe`). */
-  const casDe = ({ P, HORS, R, SP, TMP }) => [
+  const casDe = ({ P, HORS, R, SP, TMP, tmp }) => [
     ['Bash', 'gh api repos/MyEdO/game/issues/comments/1 --jq .body > "$TMP/plan.md" 2>&1', 'juge', 'deny', /redirection hors du scratchpad/, { env: TMP }],
     ['Bash', 'gh api repos/MyEdO/game/issues/comments/1 --jq .body > "$INCONNUE/plan.md"', 'juge', null],
     ['Bash', 'git grep -nE "x" origin/main -- src > ../.wt-tmp.txt', 'juge', 'deny', /redirection hors du scratchpad/],
@@ -190,7 +196,16 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['PowerShell', 'iwr https://x -OutFile o.txt', 'juge', 'deny', /iwr hors du scratchpad/],
     ['PowerShell', `Expand-Archive a.zip -DestinationPath "${P}/d"`, 'juge', null],
     ['Bash', `cd "${P}" && npx vitest run dir-ecrit`, 'juge', 'deny', /writeFileSync hors du scratchpad/],
-    ['Bash', `npx vitest run "${P}/dir-ecrit"`, 'juge', 'deny', /writeFileSync hors du scratchpad/],
+    ['Bash', `npx vitest run "${P}/dir-ecrit"`, 'juge', null],
+    ['Bash', `cd "${P}/fx" && npx vitest run a-sonde`, 'juge', 'deny', 'a-sonde.test.mjs : writeFileSync hors du scratchpad (/hors-banc-2537/a.txt) — canal'],
+    ['Bash', `cd "${P}/fx" && npx vitest run A-SONDE`, 'juge', 'deny', 'a-sonde.test.mjs : writeFileSync'],
+    ['Bash', `cd "${P}/fx" && npx vitest run --config autre.config.mts a-sonde`, 'juge', 'deny', 'a-sonde.test.mjs : writeFileSync'],
+    ['Bash', `cd "${P}/fx" && npx vitest run lit`, 'juge', null],
+    ['Bash', `cd "${P}/fx" && npx vitest run "$INCONNUE"`, 'juge', null],
+    ['Bash', `cd "${P}" && npx vitest run "${P}/fx/sous/b-"`, 'juge', 'deny', 'b-autre.test.mjs : writeFileSync hors du scratchpad (/hors-banc-2537/b.txt) — canal'],
+    ['PowerShell', `$S="$env:LOCALAPPDATA\\claude\\${SLUG}\\${SESSION}\\scratchpad"; Get-Process | Export-Csv -NoTypeInformation -Encoding utf8 "$S\\durees.csv"`, 'juge', null, undefined, { env: { LOCALAPPDATA: tmp } }],
+    ['PowerShell', `$S="$env:LOCALAPPDATA\\claude\\${SLUG}\\${SESSION}\\scratchpad"; Get-Process | Export-Csv -NoTypeInformation -Encoding utf8 "$S\\durees.csv"`, 'juge', 'deny', /export-csv : écrivain à cible non résolue/],
+    ['Bash', 'echo x > "$APPDATA/x.txt"', 'lecteur', 'deny', /redirection hors du scratchpad/, { env: { APPDATA: HORS } }],
     ['Bash', `cd "${P}/dir-abs" && npx vitest run`, 'juge', 'deny', /z.test.mjs : writeFileSync hors du scratchpad/],
     ['Bash', `npx vitest run --config "${P}/vitest.config.mjs"`, 'juge', 'deny', /writeFileSync hors du scratchpad/],
     ['Bash', `source "${P}/lit.mts"`, 'juge', null],
@@ -212,7 +227,9 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
           : garde.evaluer(entree, { baseDeLAppel: monde.racine, platform, env, tmp: monde.tmp, lire: monde.lire, lister: monde.lister }) ?? { decision: null }
         const quoi = `${platform} ${monde.hote ? 'hôte' : 'forgé'} ${agent_type} ${tool_name} ${command}`
         assert.equal(decision, attendu, quoi)
-        if (motif) assert.match(raison.split('\\').join('/'), motif, quoi)
+        const raisonLue = raison?.split('\\').join('/')
+        if (typeof motif === 'string') assert.ok(raisonLue.includes(motif), `${quoi} — ${raisonLue}`)
+        else if (motif) assert.match(raisonLue, motif, quoi)
       }
     }
     const sansTranscript = await repartir({ PreToolUse: REGISTRE.PreToolUse.filter((g) => g === garde) }, JSON.stringify({
@@ -222,4 +239,47 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
   } finally {
     FS.rmSync(join(tmpdir(), 'claude', SLUG, SESSION), { recursive: true, force: true })
   }
+})
+
+test('#2537 — la borne d’analyse JS tient, au débit mesuré, sous la moitié du `timeout` du répartiteur, barrière déduite', () => {
+  const declares = aplatirHooks(JSON.parse(FS.readFileSync(join(RACINE, SURFACE_CLAUDE), 'utf8')), SURFACE_CLAUDE).filter((h) => h.script === 'repartiteur.mjs')
+  assert.ok(declares.length > 0, 'le répartiteur n’est pas déclaré : la déclaration est illisible')
+  for (const { timeout } of declares) {
+    assert.ok(BORNE_OCTETS_JS / DEBIT_ANALYSE_JS <= (timeout * 1000 - ATTENTE_BARRIERE.echeanceMs) / 2, `timeout ${timeout} s : ${BORNE_OCTETS_JS} o à ${DEBIT_ANALYSE_JS} o/ms`)
+  }
+})
+
+test('#2537 — au-delà de la borne, une suite n’est PAS jugée, donc admise, et se nomme en contexte ; en deçà, elle se juge', () => {
+  const sp = join(tmpdir(), 'claude', SLUG, SESSION, 'scratchpad'), dossier = join(sp, 'gros')
+  const ecrit = "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n"
+  const disque = new Map([[join(dossier, 'g.test.mjs'), ecrit + `// ${'x'.repeat(BORNE_OCTETS_JS)}\n`], [join(dossier, 'p.test.mjs'), ecrit]])
+  const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `npx vitest run --dir "${dossier}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
+  const juger = (suites) => garde.evaluer(entree, { baseDeLAppel: RACINE, lire: (chemin) => ({ texte: disque.get(chemin) }), lister: () => suites })
+  const gros = juger([join(dossier, 'g.test.mjs')])
+  assert.equal(gros.decision, undefined)
+  assert.match(gros.contexte, /NON JUGÉS, au-delà de \d+ octets .* : /)
+  assert.ok(gros.contexte.endsWith('g.test.mjs.'), gros.contexte)
+  const mixte = juger([join(dossier, 'g.test.mjs'), join(dossier, 'p.test.mjs')])
+  assert.equal(mixte.decision, 'deny')
+  assert.ok(mixte.raison.includes('p.test.mjs : writeFileSync hors du scratchpad'), mixte.raison)
+  assert.ok(!mixte.raison.includes('g.test.mjs'), mixte.raison)
+  assert.ok(mixte.contexte.endsWith('g.test.mjs.'), mixte.contexte)
+})
+
+test('#2537 — `choisieParVitest` : prédicat de `filterFiles` de vitest (sous-chaîne sans casse du relatif, préfixe absolu)', () => {
+  for (const platform of ['win32', 'linux']) {
+    const P = cheminsDe(platform), racine = platform === 'win32' ? P.join('C:', '/r') : '/r', suite = P.join(racine, 'fx', 'sous', 'A-Sonde.test.mjs')
+    const choisie = (filtres, depuis = racine) => choisieParVitest(suite, filtres, racine, depuis, platform)
+    assert.equal(choisie([]), true, platform)
+    assert.equal(choisie(['a-sonde']), true, platform)
+    assert.equal(choisie(['sous/a-']), true, platform)
+    assert.equal(choisie(['autre']), false, platform)
+    assert.equal(choisie([null]), false, platform)
+    assert.equal(choisie([null, 'sonde']), true, platform)
+    assert.equal(choisie(['a-sonde'], P.join(racine, 'ailleurs')), true, platform)
+    assert.equal(choisie([P.join(racine, 'fx')]), true, platform)
+    assert.equal(choisie([P.join(racine, 'gx')]), false, platform)
+  }
+  const W = cheminsDe('win32'), racineW = W.join('C:', '/r')
+  assert.equal(choisieParVitest(W.join(racineW, 'fx', 'a.test.mjs'), ['fx\\a'], racineW, racineW, 'win32'), true)
 })

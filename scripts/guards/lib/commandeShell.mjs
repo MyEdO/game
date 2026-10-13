@@ -13,6 +13,10 @@
 //     lu dans le `package.json` du dépôt de la portée (`racineNpmCourante`) ;
 //   - blocs PowerShell (`TETES_DE_BLOC` : `%`, `ForEach-Object`, `foreach`, `for`, `try`, `catch`,
 //     `finally`…) : le corps de chaque `{ … }` relu comme une commande (`lectureDesBlocs`) ;
+//   - fonctions (`nom()`, `nom ()`, `function nom`, `function nom()`, `function`/`filter` de PowerShell) : la
+//     définition LIE son corps (`{ … }`, `( … )`, composé POSIX) au shell, sans rien exécuter ; un segment dont la
+//     tête est une fonction liée, sans enrobeur de tête hors `time`, exécute ce corps dans le shell de l'appel
+//     (`definitionDeFonction`) ;
 //   - substitutions `$(…)`, `` `…` ``, `@(…)`, et de processus `<(…)`, `>(…)`, nues ou sous quote double
 //     (`$(…)` seule dans une here-string `@"…"@`) : leur contenu relu comme une commande exécutée, où
 //     qu'elles se trouvent dans le segment ;
@@ -121,8 +125,8 @@ function tokenizeCommand(command, { powershell = false } = {}) {
       continue
     }
     const precedent = tokens.at(-1)
-    if (command[i] === '(' && (!precedent || precedent.op || (precedent.quote === undefined && AVANT_SOUS_SHELL.has(precedent.text)))) {
-      tokens.push({ text: '(', op: null })
+    if (command[i] === '(' && (!precedent || precedent.op || (precedent.quote === undefined && (AVANT_SOUS_SHELL.has(precedent.text) || precedent.text.endsWith('()'))))) {
+      tokens.push({ text: '(', op: null, sousShell: true })
       sousShells += 1
       i += 1
       continue
@@ -154,6 +158,8 @@ function tokenizeCommand(command, { powershell = false } = {}) {
       buf += texte
     }
     let j = i
+    // Parenthèses ouvertes DANS le mot (`f(`, `foreach($x`) : la `)` qui les ferme reste dans le mot.
+    let parensDuMot = 0
     while (j < n) {
       const c = command[j]
       // CONTINUATION DE LIGNE (`\` POSIX, backtick PowerShell suivi du saut de ligne) : la commande
@@ -234,7 +240,9 @@ function tokenizeCommand(command, { powershell = false } = {}) {
         j++ // saute la quote fermante (si absente — quote non refermée — j a déjà atteint n)
         continue
       }
-      if (c === ')' && sousShells > 0) break
+      if (c === ')' && sousShells > 0 && parensDuMot === 0) break
+      if (c === '(') parensDuMot += 1
+      else if (c === ')') parensDuMot -= 1
       const fermant = c === '`' ? command.indexOf('`', j + 1) : -1
       if (fermant !== -1) {
         substitue(command.slice(j, fermant + 1), command.slice(j + 1, fermant))
@@ -905,7 +913,9 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
  *  `bloc` = le segment dont un bloc le contient, `tube` = son pipeline, `shell` = le shell qui l'exécute : un
  *  `{ parent }` par commande relue dans un processus neuf (argument-chaîne hors `eval`/`Invoke-Expression`, qui gardent
  *  celui de l'hôte, script npm, substitution), par sous-shell
- *  `( … )` et par membre d'un tube, `parent` étant celui de son hôte, partagé par les corps de bloc de cette commande.
+ *  `( … )` et par membre d'un tube, `parent` étant celui de son hôte, partagé par les corps de bloc de cette commande ;
+ *  ses `fonctions` = les corps liés par nom (`definitionDeFonction`), copiés dans un sous-shell, un membre de tube et une
+ *  substitution, vides dans un processus neuf (option `fonctions` : celles qu'il hérite).
  *  Un segment que l'épluchage VIDE y
  *  figure, `jetons` vide. Un bloc ouvert absorbe les segments qui le suivent, séparateurs compris, jusqu'à
  *  sa fermeture : un bloc est UNE commande. Dans un bloc, ou une sous-expression `@(…)`, un énoncé dont le
@@ -918,10 +928,81 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
  *  `affectations` reçoit les noms de variables d'environnement que chaque segment lu pose
  *  (`affectationsDuSegment`). Lecture PARTAGÉE avec `commande-piege-guard`. */
 export function pipelinesDeJetons(command, profondeur = 0, options = {}) {
-  const budget = options.budget ?? nouveauBudget()
   if (!command) return []
-  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return [] }
-  return pipelinesDuFlux(tokenizeCommand(command, options), profondeur, { ...options, budget, shell: options.shell ?? { parent: options.hote ?? null } })
+  const shell = options.shell ?? { parent: options.hote ?? null, fonctions: new Map(options.fonctions) }
+  return pipelinesDuFluxBorne(tokenizeCommand(command, options), profondeur, { ...options, budget: options.budget ?? nouveauBudget(), shell })
+}
+
+/** `pipelinesDuFlux` au-delà de `PROFONDEUR_MAX_ENROBEURS` : rien, et `budget.sature`. */
+function pipelinesDuFluxBorne(flux, profondeur, options) {
+  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { options.budget.sature = true; return [] }
+  return pipelinesDuFlux(flux, profondeur, options)
+}
+
+/** Un shell FOURCHÉ de `shell` (sous-shell, membre de tube, substitution) : il hérite d'une COPIE de ses fonctions. */
+const fourche = (shell) => ({ parent: shell, fonctions: new Map(shell.fonctions) })
+
+/** Nom de fonction tel que le shell le cherche : PowerShell l'ignore la casse (about_Functions). */
+const cleDeFonction = (nom, powershell) => (powershell ? nom.toLowerCase() : nom)
+const NOM_DE_FONCTION_RE = /^[A-Za-z_][\w.:-]*$/
+const PORTEE_POWERSHELL_RE = /^(?:global|script|local|private):/i
+/** Mots réservés qui ouvrent et ferment une commande composée POSIX (XCU 2.9.4). */
+const OUVRANTS_COMPOSES = new Set(['if', 'for', 'while', 'until', 'case', 'select'])
+const FERMANTS_COMPOSES = new Set(['fi', 'done', 'esac'])
+
+/** La définition de fonction que portent ces jetons relus (`jetonsDeBloc`) : `{ nom, debut }`, `debut` = l'index du
+ *  premier jeton de son corps, ou `null`. Formes : `nom()`, `nom ()`, `function nom`, `function nom()` (XCU 2.9.5,
+ *  `man bash` Shell Function Definitions) ; en PowerShell, `function`/`filter` seuls, nom à portée et paramètres
+ *  compris (about_Functions). Le corps s'ouvre par `{`, une `(` de sous-shell ou, hors PowerShell, un composé POSIX. PUR. */
+function definitionDeFonction(jetons, powershell) {
+  const nu = (k) => jetons[k] !== undefined && jetonNu(jetons[k])
+  if (!nu(0)) return null
+  const motCle = jetons[0].text === 'function' || (powershell && /^(?:function|filter)$/i.test(jetons[0].text))
+  let k = motCle ? 1 : 0
+  if (!nu(k)) return null
+  const brut = jetons[k].text
+  const nomBrut = brut.replace(/\(.*$/s, '')
+  const nom = powershell ? nomBrut.replace(PORTEE_POWERSHELL_RE, '') : nomBrut
+  if (!NOM_DE_FONCTION_RE.test(nom)) return null
+  let parametres = brut.slice(nomBrut.length)
+  let parens = soldeParentheses(parametres)
+  k += 1
+  if (parametres === '' && nu(k) && !jetons[k].sousShell && jetons[k].text.startsWith('(')) {
+    parametres = jetons[k].text
+    parens = soldeParentheses(parametres)
+    k += 1
+  }
+  while (parens > 0 && k < jetons.length) parens += soldeParentheses(jetons[k++].text)
+  if (!motCle && (powershell || parametres !== '()')) return null
+  const ouvre = nu(k) && (jetons[k].text === '{' || jetons[k].sousShell || (!powershell && OUVRANTS_COMPOSES.has(jetons[k].text)))
+  return ouvre ? { nom, debut: k } : null
+}
+
+/** Solde d'ouverture du corps de fonction que ces jetons relus prolongent : `{`/`}`, `(` de sous-shell, et hors
+ *  PowerShell les mots de `OUVRANTS_COMPOSES`/`FERMANTS_COMPOSES` en position de commande. Le `)` qui ferme un
+ *  sous-shell est un opérateur, compté par l'appelant. PUR. */
+function soldeDuCorps(jetons, powershell) {
+  let solde = 0
+  for (let k = 0; k < jetons.length; k++) {
+    const j = jetons[k]
+    if (!jetonNu(j)) continue
+    solde += accolade(j) + (j.sousShell ? 1 : 0)
+    const enTete = k === 0 || (jetonNu(jetons[k - 1]) && TOKENS_TETE_NUS.has(jetons[k - 1].text))
+    if (!powershell && enTete) solde += OUVRANTS_COMPOSES.has(j.text) ? 1 : FERMANTS_COMPOSES.has(j.text) ? -1 : 0
+  }
+  return solde
+}
+
+/** `true` si l'appel que ces jetons épluchés précèdent atteint une fonction : affectations, mots réservés et `time`
+ *  seulement. Un enrobeur de tête (`command`, `builtin`, `env`, `xargs`…) lance la commande, jamais la fonction. */
+const appelleUneFonction = (enTete) =>
+  enTete.every((j) => jetonNu(j) && (AFFECTATION_RE.test(j.text) || TOKENS_TETE_NUS.has(j.text) || j.text === 'time'))
+
+/** Les jetons de redirection d'un segment (opérateurs et cibles, `lireRedirections`) : ce qu'il garde quand sa tête
+ *  est une fonction, dont le corps exécute le reste. */
+function redirectionsDuSegment(jetons) {
+  const argumentsLus = new Set(lireRedirections(jetons, 0).arguments)
+  return jetons.filter((j) => !argumentsLus.has(j))
 }
 
 export function texteDuSegment(segment) {
@@ -953,13 +1034,42 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
   let courant = []
   const shells = [shell]
   let precedent = null
+  /** Ferme le segment que suit `op` : sortie de sous-shell, fin de pipeline. */
+  const cloture = (op) => {
+    if (op === ')' && shells.length > 1) shells.pop()
+    precedent = op
+    if (op !== '|' && op !== ')' && courant.length > 0) {
+      pipelines.push(courant)
+      courant = []
+    }
+  }
   for (let s = 0; s < lus.length; s++) {
     const jetons = avecSuite(s)
     let { op } = lus[s]
     const { debut, affectations: deTete, valeurs } = epluchageTete(jetons)
-    for (let k = 0; k < debut; k++) if (jetonNu(jetons[k]) && jetons[k].text === '(') shells.push({ parent: shells.at(-1) })
+    for (let k = 0; k < debut; k++) if (jetonNu(jetons[k]) && jetons[k].text === '(') shells.push(fourche(shells.at(-1)))
     const segment = jetons.slice(debut)
     const relus = relu ? [...segment] : jetonsDeBloc(segment)
+    // Une définition de fonction absorbe son corps jusqu'à sa fermeture, le lie au shell, et n'exécute rien.
+    const definition = definitionDeFonction(relus, powershell)
+    if (definition !== null) {
+      const corps = relus.slice(definition.debut)
+      let solde = soldeDuCorps(corps, powershell)
+      while (op !== null && solde > 0) {
+        corps.push(separateur(op))
+        if (op === ')') solde -= 1
+        s += 1
+        const ajout = relu ? avecSuite(s) : jetonsDeBloc(avecSuite(s))
+        corps.push(...ajout)
+        solde += soldeDuCorps(ajout, powershell)
+        op = lus[s].op
+      }
+      // Un corps `{ … }` est son contenu, comme celui d'un bloc ; `( … )` et un composé POSIX s'exécutent entiers.
+      const execute = corps[0].text === '{' ? corps.slice(1, finDuBloc(corps, 0)) : corps
+      if (op !== '|' && precedent !== '|') shells.at(-1).fonctions.set(cleDeFonction(definition.nom, powershell), execute.map(versFlux))
+      cloture(op)
+      continue
+    }
     let lecture = lectureDesBlocs(relus)
     while (op !== null && lecture.suspens) {
       let solde = relus.reduce((d, j) => d + accolade(j), 0)
@@ -974,14 +1084,14 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       lecture = lectureDesBlocs(relus)
     }
     const ouvreDesBlocs = lecture.corps.length > 0 && TETES_DE_BLOC.has(basenameExecutable(relus[0]?.text))
-    const ici = op === '|' || precedent === '|' ? { parent: shells.at(-1) } : shells.at(-1)
+    const ici = op === '|' || precedent === '|' ? fourche(shells.at(-1)) : shells.at(-1)
     // Les substitutions s'exécutent avant le segment, la chaîne citée comprise ; celles d'un corps de bloc se
     // déplient dans ce corps.
     const deplies = new Map()
     const deplie = (j) => {
       if (!j.substitutions?.length) return
       const rendus = j.substitutions.flatMap(({ interne, expression: sousExpression }) =>
-        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, expression: sousExpression, powershell }))
+        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, fonctions: ici.fonctions, expression: sousExpression, powershell }))
       for (const p of rendus) pipelines.push(p)
       deplies.set(j, rendus)
     }
@@ -994,7 +1104,15 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       affectations.push(...deTete, ...affectationsDuSegment(textes))
       const posees = segment.length === 0 ? valeurs : declarationsDuSegment(segment)
       const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
-      if (segment.length > 0) {
+      const fonction = segment.length === 0 || ouvreDesBlocs || !appelleUneFonction(lu.enTete) ? undefined : ici.fonctions.get(cleDeFonction(segment[0].text, powershell))
+      if (fonction !== undefined) {
+        // Appel : le corps s'exécute dans le shell de l'appel, comme la chaîne d'`eval` ; le segment ne garde que ses
+        // redirections, sa tête et ses arguments n'étant pas une commande.
+        for (const p of pipelinesDuFluxBorne(fonction, profondeur + 1, { scripts, budget, affectations, bloc, shell: ici, relu: powershell, powershell })) pipelines.push(p)
+        lu.jetons = redirectionsDuSegment(segment)
+        lu.relus = lu.jetons
+        lu.deploye = true
+      } else if (segment.length > 0) {
         const porteur = ouvreDesBlocs ? null : lecturePorteur(textes, segment)
         const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(segment, scripts))
         if (inner !== null) {
@@ -1012,12 +1130,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       }
       courant.push(lu)
     }
-    if (op === ')' && shells.length > 1) shells.pop()
-    precedent = op
-    if (op !== '|' && op !== ')' && courant.length > 0) {
-      pipelines.push(courant)
-      courant = []
-    }
+    cloture(op)
   }
   if (courant.length > 0) pipelines.push(courant)
   return pipelines
