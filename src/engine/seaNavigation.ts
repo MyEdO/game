@@ -89,8 +89,7 @@ export function forcePaceDifficulty(bonusM: number, rig: 'voile' | 'avirons'): D
   return row?.[rig] ?? null;
 }
 
-/** Test d'ÉPUISEMENT de fin de Période de travail (MDG 13 l.109-111) : Résistance Accessible (+20), Complexe
- *  (−10) si le rythme a été forcé ; échec → +1 Exténué (l'appelant pose l'État). PUR. */
+/** Difficulté du Test d'Épuisement, `forced` = rythme forcé (MDG 13 l.111). PUR. */
 export function exhaustionDifficulty(forced: boolean): Difficulty {
   return forced ? DATA.epuisement.forcedDifficulty : DATA.epuisement.difficulty;
 }

@@ -173,7 +173,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/engine/drunkenness.ts': 1,
   'src/engine/engagement.ts': 2,
   'src/engine/equipCompare.ts': 1,
-  'src/engine/magic.ts': 3,
+  'src/engine/magic.ts': 2, // 3 → 2 (#1595 : `focusSkillFor` passe par `refCouvre`)
   'src/engine/menace.ts': 1,
   'src/engine/provisions.ts': 1,
   'src/engine/psychology.ts': 3,
@@ -212,7 +212,6 @@ const RAW_KNOWN: Record<string, number> = {
   'src/state/devtools.ts': 1,
   'src/state/interludeFlow.ts': 4,
   'src/state/mount.ts': 1,
-  'src/state/riverVoyageFlow.ts': 4,
   'src/state/seaVoyageFlow.ts': 3, // 4 → 3 (#1479 : la conséquence d'un péril lit sa DONNÉE `entangleChancePct`, plus `hazard.id === 'debris-marins'`)
   'src/state/store.ts': 1,
   'src/state/travelFlow.ts': 6,

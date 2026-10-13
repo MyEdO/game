@@ -279,14 +279,12 @@ export function focusWindLabel(spell: SpellLike): string | undefined {
   return spec ? (findDomainById(spec)?.wind ?? findDomainById(spec)?.label ?? spec) : undefined;
 }
 
-/** Compétence Focalisation utilisable pour CE sort : spécialisation du Vent
- *  correspondante (LDB 46 — Focalisation est spécialisée par Domaine). Une
- *  compétence SANS spécialisation (données historiques) reste acceptée. */
+/** Compétence Focalisation utilisable pour CE sort (LDB 46 ; `refCouvre`, LDB 09 l.44). Sort sans
+ *  Domaine : toute Focalisation. Focalisation sans spécialisation portée par la donnée :
+ *  `creatures.json`, `careerLevels.json` (#1595). */
 export function focusSkillFor(c: Combatant, spell: SpellLike) {
   const spec = focusSpecOf(spell);
-  return c.skills.find(
-    (s) => s.id === 'focalisation' && s.advances >= 1 && (s.spec == null || spec == null || s.spec === spec),
-  );
+  return c.skills.find((s) => s.advances >= 1 && refCouvre(s, { id: 'focalisation', spec: spec ?? s.spec }));
 }
 
 /**

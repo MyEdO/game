@@ -363,7 +363,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     case 'visiblePassive': return (cond.who === 'caster' ? ctx.caster : ctx.target)?.visiblePassive === true;
     case 'skill':
       return matchParty(ctx, cond.who ?? 'any', (m) => (m.skills ?? []).some((s) =>
-        s.id === cond.id && (cond.spec ? s.spec === cond.spec : true) && (s.advances ?? 0) >= (cond.advances ?? 0)));
+        refCouvre({ id: cond.id, spec: cond.spec }, s) && (s.advances ?? 0) >= (cond.advances ?? 0)));
     case 'career': return matchParty(ctx, cond.who ?? 'any', (m) => m.career === cond.id);
     case 'species': return matchParty(ctx, cond.who ?? 'any', (m) => m.species === cond.id);
     case 'status': return matchParty(ctx, cond.who ?? 'any', (m) => statusMeets(statusOf(m.career, m.careerLevel), cond.atLeast));

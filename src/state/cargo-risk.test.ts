@@ -12,11 +12,16 @@ import { seedBattleRng } from './battleRng';
 import { rule, setRule, resetRule } from '../engine/policy';
 import type { CascadeStep } from './pendings';
 import type { Possession } from '../engine/possession';
+import { vehicleCombatant } from '../engine/vehicle';
+import { findVehicleById } from '../data';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 
 const lot = (cargoId: string, enc: number): CargoLot => ({ cargoId, enc, basePriceGold: 2 });
+
+/** Coque du voyage de mer en cours (`travelPlan.vehicle`, posée par `buildSeaPlan`). */
+const coque = (vehicleId: string) => vehicleCombatant(findVehicleById(vehicleId)!)!;
 
 /** Un héros du groupe (propriétaire du porteur véhicule ci-dessous, SOCLE POSSESSIONS #617/#618). */
 function cartHero() {
@@ -140,7 +145,8 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     useGame.setState({
       party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })],
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [lot('vin', 30), lot('sel', 20)] } as never,
-      worldMap: null, scene: null, battle: null, travelPlan: null, pendingCascade: null, suspendedCascades: [], journal: [],
+      worldMap: null, scene: null, battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
+      travelPlan: { interrupted: true, vehicle: coque('cogue'), sea: { lines: [], weather: { visibilite: 'degage' } } },
     } as never);
   });
 
@@ -164,7 +170,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     // route authorée requise). Coque de campagne = `vessel.vehicleId` (barge — coque distincte de l'ennemi).
     set({
       vessel: { vehicleId: 'barge-fluviale', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never,
-      travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'pirate-fluvial', chefRef: 'chef-pirate', label: 'Cogue pirate' } } } as never,
+      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'pirate-fluvial', chefRef: 'chef-pirate', label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().cascadeChoose('sea-pirate-hail', 'soumettre');
@@ -207,7 +213,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   it('combattre d’emblée → même abordage dérivé (deux coques, ennemis présents)', () => {
     set({
       vessel: { vehicleId: 'barge-fluviale', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never,
-      travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'pirate-fluvial', chefRef: 'chef-pirate', label: 'Cogue pirate' } } } as never,
+      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'pirate-fluvial', chefRef: 'chef-pirate', label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().cascadeChoose('sea-pirate-hail', 'combattre');

@@ -133,7 +133,8 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     // ARRIVÉE : la traversée est finie, on est à Marienburg, plusieurs jours ont passé.
     expect(get().travelPlan).toBeNull();
     expect(get().scene?.id).toBe('test-mer-arrivee');
-    expect(get().gameTime - t0).toBeGreaterThanOrEqual(2 * 24 * 60); // ≥ 2 jours de mer
+    expect(get().gameTime - t0).toBeGreaterThan(24 * 60); // plus d’un jour de mer
+    expect(kinds).toContain('sea-epuisement'); // la Timonière manie la voile chaque jour navigable (MDG 13 l.111)
     // Les Tests d’équipage de VOYAGE ont bien été joués (Progression quotidienne, Orientation).
     expect(kinds).toContain('progression');
     expect(kinds).toContain('orientation');

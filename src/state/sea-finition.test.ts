@@ -11,6 +11,7 @@ import { toBrass, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, bourseOf, creditBourse, debitBourse } from './bourseFlow';
 import type { WorldMap } from './worldMap';
 import type { Combatant } from '../engine/types';
+import type { CascadeStep } from './pendings';
 
 /** Remet la Bourse d'un héros à un montant EXACT (test) — vide puis crédite (SOCLE POSSESSIONS #531). */
 function fund(id: string, m: { gold: number; silver: number; brass: number }): void {
@@ -65,14 +66,14 @@ function freshState() {
  *  (Ouragan/Prière — `seaVoyageFlow.ts`), comme un vrai clic UI l'espacerait. */
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 
-async function runOneSeaDay(): Promise<string[]> {
+async function runOneSeaDay(vues: CascadeStep[] = []): Promise<string[]> {
   const kinds: string[] = [];
   for (let i = 0; i < 40; i++) {
     if (get().pendingRest || get().pendingSeaActivities) break;
     const casc = get().pendingCascade;
     if (casc) {
       const cur = casc.participants[casc.cursor];
-      if (cur) kinds.push(cur.kind);
+      if (cur) { kinds.push(cur.kind); vues.push(cur); }
       // Choix de Progression (MDG 14 l.63) : le pilote répond par défaut, comme la cadence commandée.
       if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
       else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().cascadeBatchRoll(part.id); }
@@ -123,30 +124,33 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     expect(plain.sea!.forcePace).toBeUndefined();
   });
 
-  it('une journée à rythme forcé → Test de Voile puis Test d’Épuisement (Complexe −10) par PJ', async () => {
+  it('une journée à rythme forcé → Test de Voile puis Test d’Épuisement Complexe de qui a forcé (MDG 13 l.111)', async () => {
     seedBattleRng(1); // jour 1 navigable (ni Encalminé ni Affaler) → la Voile/le rythme se joue
     // Voile est une Compétence Avancée (LDB 09 l.30) : un PJ formé tente le Test du rythme forcé.
     const [marin, ...reste] = get().party;
     set({ party: [{ ...marin, skills: [...marin.skills, { id: 'voile', characteristic: 'agilite', advances: 10 }] }, ...reste] } as never);
-    get().startTravel('r1', 'mer', { seaPace: 1 });
-    await runOneSeaDay();
+    get().startTravel('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
+    const vues: CascadeStep[] = [];
+    const kinds = await runOneSeaDay(vues);
     // Le recap du jour (halte de nuit) porte la journée ENTIÈRE — le journal, capé à 40 lignes,
     // évince les lignes précoces comme « Forcer le rythme ».
     const day = get().pendingRest!.travelDay!.lines.map((l) => l.text).join('\n');
     expect(day).toMatch(/Forcer le rythme/);
-    expect(day).toMatch(/Épuisement.*rythme forcé/);
+    expect(kinds.indexOf('sea-epuisement')).toBeGreaterThan(kinds.indexOf('sea-force-pace'));
+    const bande = vues.find((st) => st.kind === 'sea-epuisement')!;
+    expect(bande.participants!.find((r) => r.id === marin.id)?.difficulty, 'qui a forcé teste en Complexe').toBe('complexe');
   });
 
-  it('personne qui puisse tenter la Voile (LDB 09 l.30) : refus NOMMÉ au recap, aucune étape forcée, aucun Épuisement du rythme forcé', async () => {
+  it('personne qui puisse tenter la Voile (LDB 09 l.30) : refus NOMMÉ au recap, aucune étape forcée, aucun impliqué donc aucun Épuisement', async () => {
     seedBattleRng(1);
     // Aucun prétiré n'a d'Augmentation en Voile : le rythme demandé ne peut pas être tenté.
     expect(get().party.some((h) => h.skills.some((sk) => sk.id === 'voile' && (sk.advances ?? 0) > 0))).toBe(false);
-    get().startTravel('r1', 'mer', { seaPace: 1 });
+    get().startTravel('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
     const kinds = await runOneSeaDay();
     const day = get().pendingRest!.travelDay!.lines.map((l) => l.text).join('\n');
     expect(day).toContain('Forcer le rythme : Personne dans le groupe ne peut tenter le Test de Voile. Le navire garde son allure.');
     expect(kinds).not.toContain('sea-force-pace');
-    expect(day).not.toMatch(/Épuisement.*rythme forcé/);
+    expect(kinds).not.toContain('sea-epuisement');
   });
 });
 

@@ -36,4 +36,20 @@ describe('refCouvre — une référence couvre une entrée du même id (LDB 09 l
     expect(vu('const ok = (r.mode == null || r.mode === mode);'), 'autre champ que `spec`').toBe(0);
     expect(vu('const ok = (a.spec ?? \'\') === (b.spec ?? \'\');'), 'identité d’instance, autre prédicat').toBe(0);
   });
+
+  it('le scan lit la chaîne `||` à N opérandes, comptée UNE fois', () => {
+    const vu = (text: string) => scanConstructionsReservees(fixture(text), [COUVERTURE]).length;
+    expect(vu('const ok = s.id === id && (s.spec == null || spec == null || s.spec === spec);'), 'trois opérandes').toBe(1);
+    expect(vu('const ok = (a || spec == null || b || s.spec === spec);'), 'opérandes intercalés').toBe(1);
+    expect(vu('const ok = (s.spec == null || spec == null || q.spec === r.spec);'), 'aucune égalité avec l’opérande testé').toBe(0);
+  });
+
+  it('le scan lit le ternaire', () => {
+    const vu = (text: string) => scanConstructionsReservees(fixture(text), [COUVERTURE]).length;
+    expect(vu('const ok = cond.spec ? s.spec === cond.spec : true;'), '`X ? Y === X : true`').toBe(1);
+    expect(vu('const ok = !cond.spec ? true : s.spec === cond.spec;'), '`!X ? true : Y === X`').toBe(1);
+    expect(vu('const ok = cond.spec == null ? true : s.spec === cond.spec;'), '`X == null ? true : Y === X`').toBe(1);
+    expect(vu('const ok = cond.spec ? s.spec === cond.spec : false;'), 'branche fausse ≠ `true`').toBe(0);
+    expect(vu('const ok = cond.mode ? s.mode === cond.mode : true;'), 'autre champ que `spec`').toBe(0);
+  });
 });

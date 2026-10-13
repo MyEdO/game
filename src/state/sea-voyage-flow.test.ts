@@ -5,7 +5,7 @@ import { makePregens } from '../data/pregens';
 import {
   buildSeaPlan, portRepairVessel, portInstallUpgrade, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, resolveManannPriest, resolveShoreLeave, damageVesselHull, healVesselHull,
-  buildOverspeedSteps, engineerOf,
+  buildOverspeedSteps, engineerOf, type SeaVoyageState,
 } from './seaVoyageFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -28,7 +28,7 @@ import { resumeTravel } from './travelFlow';
 import { applyEffects, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { cascadeAppliers, registerCascadeApplier, runCascadeImmediate } from './cascade';
-import { inexplique, soutienDe, avanceEtapeCascade, draineCascade } from './cascadeTestKit';
+import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascadeTestKit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, resolveStake } from '../data';
 import { resultLine, testSkillLabel, buildBand, rollLine } from './rollSeam';
@@ -1444,40 +1444,92 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
     expect(get().pendingRest).toBeTruthy(); // jamais résolue en silence — la journée reprend malgré tout
     expect(get().journal.some((l) => l.toLowerCase().includes('scorbut'))).toBe(true); // parité recap/journal avec le chemin inline
   });
+});
 
-  it('Épuisement : en solo jour-par-jour, la BANDE s’ouvre (M) ; sous ordres commandés, aucune fenêtre', () => {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 1, paceToday: 'won', milesToday: 50 } } });
-    continueSeaDayAfterCascade(get, set);
-    const bande = get().pendingCascade!.participants.find((st) => st.kind === 'sea-epuisement')!;
-    expect(bande.participants).toHaveLength(get().party.filter((h) => !h.dead).length);
-    draineCascade(get);
-    expect(get().pendingRest).toBeTruthy();
-    expect(get().journal.some((l) => l.includes('Épuisement'))).toBe(true);
+/** ÉPUISEMENT : MDG 13 l.62, l.111 ; MDG 14 l.24-32, l.69 ; #1595 (issuecomment-6153321990). */
+describe('Épuisement — les impliqués testent à la fin de la Période de travail (MDG 13 l.111, #1595)', () => {
+  beforeEach(freshState);
 
-    freshState();
-    const plan2 = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
-    set({ travelPlan: { ...plan2, orders: { cadence: 'commande' }, sea: { ...plan2.sea!, daysAtSea: 1, paceToday: 'won', milesToday: 50 } } });
-    continueSeaDayAfterCascade(get, set);
-    expect(get().pendingCascade).toBeNull();
-    expect(get().pendingRest).toBeTruthy();
-    expect(get().journal.some((l) => l.includes('Épuisement'))).toBe(true);
+  /** Groupe de prétirés, poste ÉPINGLÉ par index (`shipRole`, le geste du roster) ; Voile aux index
+   *  `voile`, aucun autre porteur de Voile ni de Ramer. */
+  function equipage(postes: (string | undefined)[], voile: number[]): Combatant[] {
+    const party = makePregens().slice(0, postes.length).map((h, i) => ({
+      ...h,
+      ...(postes[i] ? { shipRole: postes[i] } : {}),
+      skills: [...h.skills.filter((sk) => sk.id !== 'voile' && sk.id !== 'ramer'), ...(voile.includes(i) ? [{ id: 'voile', characteristic: 'agilite' as const, advances: 10 }] : [])],
+    }));
+    set({ party } as never);
+    return party;
+  }
+
+  /** Joue UNE journée par `runSeaDay`, comme un joueur, jusqu'à la bande d'Épuisement ; `undefined` si
+   *  la journée se clôt sans elle. */
+  function bandeDuJour(opts: { pace?: number; poser?: PoseDe; sea?: Partial<SeaVoyageState>; cadence?: 'jour-par-jour' | 'commande' } = {}): CascadeStep | undefined {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: opts.cadence ?? 'jour-par-jour', ...(opts.pace ? { pace: opts.pace } : {}) })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 1, daysToEvent: 99, ...opts.sea, weather: { ...plan.sea!.weather, temperature: 'mediane', precipitations: 'aucune', vent: 'brise-fraiche', ...opts.sea?.weather } } } });
+    runSeaDay(get, set);
+    for (let i = 0; i < 80 && get().pendingCascade && get().pendingCascade!.purpose !== 'seaExhaustion'; i++) avanceEtapeCascade(get, opts.poser);
+    const casc = get().pendingCascade;
+    return casc?.purpose === 'seaExhaustion' ? casc.participants.find((st) => st.kind === 'sea-epuisement') : undefined;
+  }
+
+  it('un Timonier et un Mousse testent en Accessible ; la Vigie, le marin au repos et le passager ne testent pas', () => {
+    const [timonier, mousse] = equipage(['timonier', 'mousse', 'vigie', 'repos', undefined], [0, 1]);
+    const bande = bandeDuJour();
+    expect(bande, 'la Période de travail à la voile ouvre la bande').toBeTruthy();
+    expect(bande!.participants!.map((r) => r.id)).toEqual([timonier.id, mousse.id]);
+    expect(bande!.participants!.map((r) => r.difficulty), 'jour non forcé').toEqual(['accessible', 'accessible']);
   });
 
-  it('Épuisement : AVEC siège MJ, l’étape SURFACE (V) — la journée reprend après résolution', async () => {
-    const { setGmSeat } = await import('./netFlow');
-    setGmSeat(get, set, 1);
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jour-par-jour' })!;
-    // daysAtSea+1 = 2, non multiple de 30 → Scorbut ne se déclenche pas ce jour, seul Épuisement teste.
-    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 1, paceToday: 'won', milesToday: 50 } } });
-    continueSeaDayAfterCascade(get, set);
-    expect(get().pendingCascade).toBeTruthy();
-    expect(get().pendingCascade!.purpose).toBe('seaExhaustion');
-    expect(get().pendingCascade!.participants.every((s) => s.kind === 'sea-epuisement')).toBe(true);
-    let guard = 0;
-    while (get().pendingCascade?.purpose === 'seaExhaustion' && guard++ < 10) stepCascade();
+  it('un Mousse inconscient ne teste pas', () => {
+    const [timonier] = equipage(['timonier', 'mousse'], [0, 1]);
+    set({ party: get().party.map((h, i) => (i === 1 ? { ...h, conditions: [...h.conditions, { id: 'inconscient', value: 1 }] } : h)) } as never);
+    expect(bandeDuJour()!.participants!.map((r) => r.id)).toEqual([timonier.id]);
+  });
+
+  it('un Capitaine qui a Forcé le rythme teste, en Complexe, que le Test de Voile soit gagné ou perdu', () => {
+    for (const [de, issue] of [[1, 'won'], [100, 'lost']] as const) {
+      freshState();
+      const [capitaine] = equipage(['capitaine', 'vigie', 'repos'], [0]);
+      const bande = bandeDuJour({ pace: 1, poser: (etape) => (etape.kind === 'sea-force-pace' ? de : undefined) });
+      expect(get().travelPlan!.sea!.paceToday, `rythme forcé : ${issue}`).toBe(issue);
+      expect(bande!.participants!.map((r) => r.id), 'le Capitaine a manié les voiles en forçant').toEqual([capitaine.id]);
+      expect(bande!.participants!.map((r) => r.difficulty)).toEqual(['complexe']);
+    }
+  });
+
+  it('affalé, encalminé, échoué ou à vapeur : aucune Période de travail, aucune bande', () => {
+    const cas: [string, () => void, Partial<SeaVoyageState>][] = [
+      ['affalé', () => {}, { weather: { vent: 'violente-tempete' } as SeaVoyageState['weather'] }],
+      ['encalminé', () => {}, { weather: { vent: 'calme-plat' } as SeaVoyageState['weather'] }],
+      ['échoué', () => {}, { stranded: { hazardId: 'bas-fonds', label: 'un banc de sable' } }],
+      ['à vapeur', () => set({ vessel: { ...get().vessel!, upgrades: [{ id: 'propulsion-a-vapeur' }] } }), {}],
+    ];
+    for (const [nom, navire, sea] of cas) {
+      freshState();
+      equipage(['timonier', 'mousse'], [0, 1]);
+      navire();
+      expect(bandeDuJour({ sea }), nom).toBeUndefined();
+      expect(get().pendingRest, `${nom} : la journée s’est close`).toBeTruthy();
+    }
+  });
+
+  it('sous ordres COMMANDÉS, la bande se résout sans fenêtre et le journal trace le jet de chaque impliqué', () => {
+    const [timonier, mousse, vigie] = equipage(['timonier', 'mousse', 'vigie'], [0, 1]);
+    expect(bandeDuJour({ cadence: 'commande' })).toBeUndefined();
+    expect(get().pendingCascade).toBeNull();
     expect(get().pendingRest).toBeTruthy();
-    expect(get().journal.some((l) => l.includes('Épuisement'))).toBe(true);
+    const resistance = (h: Combatant) => get().journal.filter((l) => l.startsWith(`${h.label} — Résistance`)).length;
+    expect([timonier, mousse, vigie].map(resistance)).toEqual([1, 1, 0]);
+  });
+
+  it('avec siège MJ, la bande SURFACE et la journée reprend après résolution', async () => {
+    const { setGmSeat } = await import('./netFlow');
+    equipage(['timonier', 'mousse'], [0, 1]);
+    setGmSeat(get, set, 1);
+    expect(bandeDuJour(), 'la bande s’ouvre').toBeTruthy();
+    draineCascade(get);
+    expect(get().pendingRest).toBeTruthy();
   });
 });
 

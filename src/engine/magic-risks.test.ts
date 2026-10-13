@@ -42,8 +42,8 @@ describe('Focalisation — spécialisation par Vent (LDB 46)', () => {
   });
   it('un sort d\'Arcane commun accepte n\'importe quel Vent ; une compétence sans spec accepte tout', () => {
     expect(focusSkillFor(wiz(), SORT_COMMUN)).toBeTruthy();
-    const legacy = wiz({ skills: [{ id: 'focalisation', advances: 8 }] as never });
-    expect(focusSkillFor(legacy, SORT_FEU)).toBeTruthy();
+    const sansSpec = wiz({ skills: [{ id: 'focalisation', advances: 8 }] as never }); // creatures.json, careerLevels.json
+    expect(focusSkillFor(sansSpec, SORT_FEU)).toBeTruthy();
   });
 });
 

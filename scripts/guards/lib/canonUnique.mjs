@@ -359,24 +359,49 @@ function testeLeVide(e) {
   return vide(x.right) ? sansEnveloppe(x.left) : vide(x.left) ? sansEnveloppe(x.right) : null;
 }
 
-/** La COUVERTURE de Spécialisation recopiée : `X == null || X === Y` (et ses formes `=== undefined`,
- *  `!X`, égalité commutée), où `X` se nomme `spec` — la convention qu'écrit `refCouvre`
- *  (`src/data/schemas/grammaire/ref.ts`). */
+/** `X` nommé `spec` (identifiant ou propriété), sinon `null`. @param {ts.Expression | null} x
+ *  @returns {ts.Expression | null} */
+const specNomme = (x) => (x && ((ts.isIdentifier(x) && x.text === 'spec') || (ts.isPropertyAccessExpression(x) && x.name.text === 'spec')) ? x : null);
+
+/** `e` est-elle une égalité dont un opérande est `x` (même texte) ? @param {ts.Expression} e
+ *  @param {ts.Expression} x @param {ts.SourceFile} sf @returns {boolean} */
+function egaliteAvec(e, x, sf) {
+  const egalite = sansEnveloppe(e);
+  if (!ts.isBinaryExpression(egalite) || ![ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.EqualsEqualsEqualsToken].includes(egalite.operatorToken.kind)) return false;
+  const texte = x.getText(sf);
+  const memeX = (o) => sansEnveloppe(o).getText(sf) === texte;
+  return memeX(egalite.left) || memeX(egalite.right);
+}
+
+/** Les opérandes d'une chaîne `a || b || …`, à plat. @param {ts.Expression} e @returns {ts.Expression[]} */
+function operandesOu(e) {
+  const x = sansEnveloppe(e);
+  return ts.isBinaryExpression(x) && x.operatorToken.kind === ts.SyntaxKind.BarBarToken ? [...operandesOu(x.left), ...operandesOu(x.right)] : [x];
+}
+
+/** La COUVERTURE de Spécialisation recopiée, où `X` se nomme `spec` — la convention qu'écrit `refCouvre`
+ *  (`src/data/schemas/grammaire/ref.ts`) : la chaîne `X == null || … || X === Y` à N opérandes (formes
+ *  `=== undefined`, `!X`, égalité commutée), et le ternaire `X ? Y === X : true`, `!X ? true : Y === X`,
+ *  `X == null ? true : Y === X`. */
 export const COUVERTURE_DE_SPEC = Object.freeze({
   nom: 'COUVERTURE_DE_SPEC',
   indice: (texte) => texte.includes('spec'),
   /** @param {ts.Node} n @param {ts.SourceFile} sf @returns {string | null} */
   reconnait: (n, sf) => {
+    const verdict = 'couverture de Spécialisation recopiée (`refCouvre`)';
+    if (ts.isConditionalExpression(n)) {
+      const vrai = (e) => sansEnveloppe(e).kind === ts.SyntaxKind.TrueKeyword;
+      const vide = specNomme(testeLeVide(n.condition));
+      if (vide) return vrai(n.whenTrue) && egaliteAvec(n.whenFalse, vide, sf) ? verdict : null;
+      const plein = specNomme(sansEnveloppe(n.condition));
+      return plein && vrai(n.whenFalse) && egaliteAvec(n.whenTrue, plein, sf) ? verdict : null;
+    }
     if (!ts.isBinaryExpression(n) || n.operatorToken.kind !== ts.SyntaxKind.BarBarToken) return null;
-    const x = testeLeVide(n.left);
-    if (!x) return null;
-    const nom = ts.isIdentifier(x) ? x.text : ts.isPropertyAccessExpression(x) ? x.name.text : null;
-    if (nom !== 'spec') return null;
-    const egalite = sansEnveloppe(n.right);
-    if (!ts.isBinaryExpression(egalite) || ![ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.EqualsEqualsEqualsToken].includes(egalite.operatorToken.kind)) return null;
-    const texte = x.getText(sf);
-    const memeX = (o) => sansEnveloppe(o).getText(sf) === texte;
-    return memeX(egalite.left) || memeX(egalite.right) ? 'couverture de Spécialisation recopiée (`refCouvre`)' : null;
+    const ops = operandesOu(n);
+    return ops.some((o) => {
+      const x = specNomme(testeLeVide(o));
+      return x != null && ops.some((e) => e !== o && egaliteAvec(e, x, sf));
+    }) ? verdict : null;
   },
 });
 

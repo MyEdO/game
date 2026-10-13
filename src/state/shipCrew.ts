@@ -24,6 +24,8 @@ import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
 import { battleRng } from './battleRng';
 import { t } from '../i18n';
 import type { Get, Set as SetFn } from './flowTypes';
+import { equipageApte } from './combatants';
+import { estCompetenceDePropulsion } from '../engine/shipBuild';
 
 /**
  * Assignation de l'équipage APTE d'un navire aux rôles qui contribuent à `testTypeId` (MDG 14). Chaque marin tient
@@ -75,6 +77,21 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string): Map<str
     if (peutTenter(c) && trainedForRole(c, 'mousse')) out.set(id, 'mousse');
   }
   return out;
+}
+
+/** Rôle d'équipage à Compétence de propulsion (`crew-roles.json` ; MDG 14 l.24-32, l.69). PUR. */
+function roleDePropulsion(roleId: string | undefined): boolean {
+  const role = roleId ? findCrewRoleById(roleId) : undefined;
+  return !!role?.skills.some((s) => estCompetenceDePropulsion(s.id));
+}
+
+/** Membres d'équipage IMPLIQUÉS dans le maniement des voiles ou des avirons (MDG 13 l.111) : les aptes
+ *  dont le poste de Progression (`shipDefaultRoles`) est un rôle de propulsion, plus les `manieurs` du
+ *  jour (MDG 13 l.22-24, l.111). PUR. */
+export function equipageImplique(party: readonly Combatant[], manieurs: readonly string[]): Combatant[] {
+  const apte = equipageApte(party);
+  const postes = shipDefaultRoles(apte, 'progression');
+  return apte.filter((c) => manieurs.includes(c.id) || roleDePropulsion(postes.get(c.id)));
 }
 
 export function shipCrewAssignments(ship: Combatant, combatants: Combatant[], testTypeId: string): CrewAssignment[] {

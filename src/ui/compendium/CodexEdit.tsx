@@ -1484,6 +1484,8 @@ const BATTLE_TARGET_OPTIONS = optionsDuNoeud(battleOutcomeTargetSchema);
 const BATTLE_SCALE_OPTIONS = optionsDuNoeud(battleOutcomeScaleSchema);
 const BATTLE_SIDE_OPTIONS = optionsDuNoeud(battleSideSchema);
 
+const LIBRE = metaPourFichier('activities.json')!.freeSkill;
+
 /** Test « posté » d'une Activité (`TestSpec` — LDB 12) : contextes de proposition + compétence(s) « au
  *  choix » (la meilleure de l'acteur est retenue) + compétence libre (`freeSkill`, EDOC 8 l.172) +
  *  caractéristique de repli + Difficulté. Réutilise `SkillSpecListField` (mêmes `{id,spec?}[]` que les
@@ -1496,7 +1498,7 @@ function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, 
         facultatif={admetLAbsence(noeudDuChamp('activities.json', 'contexts')) ?? false} onChange={(next) => edit('contexts', next)} />
       <span>Test « posté » — compétence(s) « au choix » + caractéristique de repli + Difficulté (laisser vide = Activité SANS Test)</span>
       <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
-      <SkillSpecListField hint="compétence libre — liste parmi laquelle le joueur choisit (sans spécialisation : toutes)" value={entry.freeSkill as RefDesignee[] | undefined} onChange={(v) => edit('freeSkill', v.length ? v : undefined)} />
+      <SkillSpecListField hint={[LIBRE.label, LIBRE.hint].filter(Boolean).join(' — ')} value={entry.freeSkill as RefDesignee[] | undefined} onChange={(v) => edit('freeSkill', v.length ? v : undefined)} />
       <div className="tf-row">
         <label className="dr">Caractéristique (repli)
           <select value={(entry.char as string) ?? ''} onChange={(e) => edit('char', e.target.value || undefined)}>

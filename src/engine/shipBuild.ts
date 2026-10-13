@@ -39,7 +39,9 @@ import { findVehicleById } from '../data';
 import type { ShipSize, NavalInstall, InstallBand } from '../data';
 import type { Combatant } from './types';
 
-export type PropulsionKind = 'voile' | 'avirons';
+/** Modes de propulsion à Compétence de Navigation (MDG 13 l.18-19). */
+export const PROPULSION_KINDS = ['voile', 'avirons'] as const;
+export type PropulsionKind = typeof PROPULSION_KINDS[number];
 
 /** Politique UNIQUE « voile si gréée, sinon avirons » (Compétence de Navigation par mode de
  *  propulsion, MDG 13 l.17-24) — SOURCE UNIQUE du mode/M de conception d'un navire, consommée par
@@ -56,6 +58,14 @@ export function vesselPropulsion(vd: { sail?: { m: number }; oars?: { m: number 
 export function propulsionSkill(rig: PropulsionKind): 'voile' | 'ramer' {
   return rig === 'voile' ? 'voile' : 'ramer';
 }
+
+/** `skillId` est-elle la Compétence d'un mode de `PROPULSION_KINDS` (MDG 13 l.18-19, l.111) ? PUR. */
+export function estCompetenceDePropulsion(skillId: string): boolean {
+  return PROPULSION_KINDS.some((k) => propulsionSkill(k) === skillId);
+}
+
+/** Compétence de la propulsion à vapeur (MDG 12 l.311 ; MDG 13 l.32). */
+export const STEAM_SKILL = { id: 'metier', spec: 'ingenieur' } as const;
 
 export interface StandardShipRow {
   size: ShipSize;

@@ -33,6 +33,7 @@ import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
 import { travelSpeed } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
+import { estCompetenceDePropulsion } from '../engine/shipBuild';
 import { voyageStakeRef, findVehicleById, refLabel, specLabel } from '../data';
 import type { StakeRef } from '../data';
 import { partyCargoTotalEnc, nomDuNavire } from './carriers';
@@ -165,7 +166,7 @@ function riverHull(get: Get, route: MapRoute): { coque: Combatant; hasSail: bool
 /** Un « batelier » : un PJ vivant AYANT des avances en Voile OU Ramer (l.11-17). Sans batelier, on paie un
  *  passeur (repli transport payant côté `startTravel`). */
 export function hasBatelier(party: Combatant[]): boolean {
-  return party.some((h) => !h.dead && (h.skills ?? []).some((s) => (s.id === 'voile' || s.id === 'ramer') && s.advances > 0));
+  return party.some((h) => !h.dead && (h.skills ?? []).some((s) => estCompetenceDePropulsion(s.id) && s.advances > 0));
 }
 
 /** Construit le TravelPlan d'une DESCENTE fluviale (route `river`, mode barge) — `null` si aucun bateau ou
@@ -944,7 +945,7 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
     // INFLUENÇABLE (#270) si le jet se surface pour le barreur (`riverPerilDetect`).
     const pilotId = step.actorId;
     const pilot = pilotId ? get().party.find((h) => h.id === pilotId) : undefined;
-    const skilled = pilot && (pilot.skills ?? []).some((s) => (s.id === 'voile' || s.id === 'ramer') && s.advances > 0);
+    const skilled = pilot && (pilot.skills ?? []).some((s) => estCompetenceDePropulsion(s.id) && s.advances > 0);
     if (skilled) {
       j.push(t('rv.pilotKnows', { peril: peril.label }));
     } else if (pilot && surfaceOf(get, pilot.id)) {

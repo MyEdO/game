@@ -37,7 +37,7 @@ import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldM
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines, type RecapEvent } from './recapLine';
 import type { BatchParticipant } from './pendings';
-import { crewTestContributors, shipMoraleScore, applyShipMoraleDelta, shipSaboteurDR, applyVesselCrewLoss, resolveShoreLeaveDesertion, shipboardSouls, shipUndercrew } from './shipCrew';
+import { crewTestContributors, equipageImplique, shipMoraleScore, applyShipMoraleDelta, shipSaboteurDR, applyVesselCrewLoss, resolveShoreLeaveDesertion, shipboardSouls, shipUndercrew } from './shipCrew';
 import { buildAuthorPerilSteps, registerPerilInterrupt, applyPerilEffectsNow } from './authorPerils';
 
 /** Id du protocole de reprise MARITIME (effets appliqués SUR-LE-CHAMP, `resumeTravel` rejoue). */
@@ -52,13 +52,13 @@ import { registerScene } from './store';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence } from '../data';
-import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, vesselPropulsion, propulsionSkill, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
+import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, vesselPropulsion, propulsionSkill, estCompetenceDePropulsion, STEAM_SKILL, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { rollTest, isDoubleRoll, extendedTestStep, estJete } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
-import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter } from '../engine/skills';
+import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { buildWeapon } from '../engine/items';
 import { applyOps, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './shipDamage';
@@ -176,10 +176,9 @@ export interface SeaVoyageState {
    *  consomme `eventMMod` de la journée) — SOURCE du Test de survitesse (#443, `buildOverspeedStep`) :
    *  un recalcul APRÈS coup manquerait le bonus d'un jour déjà consommé (« Vents favorables »). */
   effMToday?: number;
-  /** Mode de propulsion (`vesselPropulsion`) ayant servi à `effMToday` — SOURCE du référent M de
-   *  conception du Test de survitesse (#524, `buildOverspeedStep`) : un navire MIXTE (voile ET
-   *  avirons) doit lire le M du mode RÉELLEMENT utilisé ce jour, jamais la voile par défaut. Absent
-   *  = vieux plan en cours (repli sur la politique `vesselPropulsion`). */
+  /** Mode de propulsion (`vesselPropulsion`) ayant mû le navire AUJOURD'HUI et servi à `effMToday` —
+   *  SOURCE du référent M de conception du Test de survitesse (#524, `buildOverspeedStep`) et de la
+   *  Période de travail (MDG 13 l.62, l.111). Absent = navire non mû à la voile ni aux avirons. */
   modeToday?: PropulsionKind;
   /** Dérive mineure déjà vue (Repères : « sans effet la première fois », ch.13 l.318). */
   minorDrift?: boolean;
@@ -210,8 +209,11 @@ export interface SeaVoyageState {
   /** FORCER LE RYTHME (MDG 13 l.95-107) : bonus de M demandé au départ (+1 voile/avirons, +2 avirons). */
   forcePace?: number;
   /** Issue du Test de Voile/Ramer du JOUR (l.97) : 'won' → le +M s'applique aux milles du jour. Présent
-   *  (won OU lost) = le rythme a été forcé → Test d'Épuisement Complexe (−10) au soir (l.111). */
+   *  (won OU lost) = le rythme a été forcé (l.111). */
   paceToday?: 'won' | 'lost';
+  /** Acteurs et soutiens des jets de Voile ou de Ramer du JOUR (`sea-force-pace`, `sea-progression-nav`),
+   *  en ids — MDG 13 l.111, `equipageImplique`. */
+  manieursToday?: string[];
   /** LONGS VOYAGES TRÈS RAPIDES (MDG 15 l.21-37) : présent = traversée RAPIDE (résolue en UN Test de
    *  Rude épreuve, JAMAIS la boucle jour par jour). `palierId`/`roll`/`result`/`crewDR`/`manannTens` : cran du
    *  d10 calculé (persisté pour narrer au moment RÉEL de l'application, jamais avant) ; `pendingFinalize` =
@@ -419,6 +421,13 @@ export function spoilVesselCargoOnLeak(get: Get, set: Set): string[] {
   return [t('sv.leakSpoils', { enc: r.removed })];
 }
 
+/** Propulsion du navire `hull` : vapeur (MDG 12 l.311), sinon `vesselPropulsion` (MDG 13 l.18-19) ;
+ *  `null` = aucune. PUR. */
+function seaRig(hull: Combatant): { mode: 'vapeur' | PropulsionKind; m: number } | null {
+  if (shipHasNavalTrait(hullNavalTraits(hull), 'propulsion-a-vapeur')) return { mode: 'vapeur', m: 4 }; // MDG 12 l.311
+  return vesselPropulsion(findVehicleById(hull.creatureId ?? '')?.ship);
+}
+
 /** M de VOYAGE du jour (ch.13/15) : M du gréement + Lissage (`navalMoveMod`) + Salissures + événement,
  *  puis EFFET DU VENT (%, Clinfoc — ch.13 l.274/ch.12 l.254). `null` = les voiles n'avancent pas
  *  (Encalminé / Affaler) — Propulsion à vapeur : M 4 constant, insensible au vent (ch.12 l.311). */
@@ -429,10 +438,8 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const vd = findVehicleById(hull.creatureId ?? '')?.ship;
   const traits = hullNavalTraits(hull);
   const vessel = get().vessel;
-  if (shipHasNavalTrait(traits, 'propulsion-a-vapeur')) {
-    return { m: 4, sail: false, mode: null, affaler: false }; // MDG 12 l.311
-  }
-  const propulsion = vesselPropulsion(vd);
+  const propulsion = seaRig(hull);
+  if (propulsion?.mode === 'vapeur') return { m: propulsion.m, sail: false, mode: null, affaler: false };
   const sail = propulsion?.mode === 'voile';
   const fouling = foulingEffects(vessel?.fouling?.level ?? 0);
   // Forcer le rythme (MDG 13 l.95-107) : le bonus de M du jour n'est acquis que si le Test de
@@ -560,10 +567,9 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   if (!sea.forcePace || sea.paceToday != null) return undefined;
-  const hull = plan.vehicle!;
-  const vd = findVehicleById(hull.creatureId ?? '')?.ship;
-  if (shipHasNavalTrait(hullNavalTraits(hull), 'propulsion-a-vapeur') || !(vd?.sail || vd?.oars)) return undefined;
-  const rig: PropulsionKind = vesselPropulsion(vd)!.mode;
+  const propulsion = seaRig(plan.vehicle!);
+  if (!propulsion || propulsion.mode === 'vapeur') return undefined;
+  const rig = propulsion.mode;
   const diff = forcePaceDifficulty(sea.forcePace, rig);
   if (!diff) return undefined;
   const refus = forcePaceRefus(get().party, rig);
@@ -580,31 +586,33 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
     // la carac NUE et les soutiens ne changeraient rien au jet (recette #1117).
     ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
     stake: voyageStakeRef('sea-force-pace', { paceM: sea.forcePace ?? 0 }),
-    meta: { forcePace: sea.forcePace },
+    meta: { forcePace: sea.forcePace, manieurs: manieursDe(best) },
   });
 }
 
-/** Compétence de Navigation du navire du voyage (MDG 13 l.18-19). */
-function helmSkill(get: Get): 'voile' | 'ramer' {
-  const vd = findVehicleById(get().travelPlan?.vehicle?.creatureId ?? '')?.ship;
-  return propulsionSkill(vesselPropulsion(vd)?.mode ?? 'voile');
+/** Compétence des Tests de Navigation du navire du voyage (MDG 13 l.18-19, l.32). */
+function helmSkill(get: Get): { id: string; spec?: string } {
+  const plan = get().travelPlan!;
+  const propulsion = garanti(seaRig(plan.vehicle!), plan.routeId, 'propulsion du navire du voyage');
+  return propulsion.mode === 'vapeur' ? STEAM_SKILL : { id: propulsionSkill(propulsion.mode) };
 }
 
 /** Étape MONO « Test de Navigation » de PROGRESSION (MDG 13 l.64-66) : le meilleur PJ soutenu lance
  *  Voile/Ramer selon la propulsion, et son DR se lit au MÊME tableau de progression que le Test
  *  d'équipage (`applySeaProgress` → `seaMilesPerDay`). `undefined` = aucun PJ éligible. */
 function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
-  const skillId = helmSkill(get);
-  const best = partyAssisted(get().party, skillId);
+  const skill = helmSkill(get);
+  const best = partyAssisted(get().party, skill.id, undefined, undefined, skill.spec);
   if (!best) return undefined;
-  const test = { skill: skillId, label: t('sv.navigation') };
+  const test = { skill: skill.id, spec: skill.spec, label: t('sv.navigation') };
   const diff: Difficulty = 'intermediaire';
   return monoStep({
     id: 'sea-progression-nav', kind: 'sea-progression-nav', actor: best.actor, icon: 'travel/anchor',
     label: composeRollLabel(best.actor, t('sv.progression'), test),
     difficulty: diff,
-    ligne: { test: { skill: skillId }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
+    ligne: { test: { skill: skill.id, spec: skill.spec }, valeur: best.value, soutien: best.support, pont: activeSeaPrecipitation(get) },
     stake: voyageStakeRef('sea-progression-nav'),
+    ...(estCompetenceDePropulsion(skill.id) ? { meta: { manieurs: manieursDe(best) } } : {}),
   });
 }
 
@@ -616,7 +624,8 @@ function buildNavProgressionStep(get: Get): BuiltCascadeStep | undefined {
  *  (`seaDecider`) : c'est lui que la décision engage. */
 function buildProgressionChoiceStep(get: Get): BuiltCascadeStep | undefined {
   if (!buildVoyageCrewStep(get, 'progression', 'progression')) return undefined;
-  const navRefus = buildNavProgressionStep(get) ? undefined : refusPersonneNePeutTenter({ skill: helmSkill(get) });
+  const helm = helmSkill(get);
+  const navRefus = buildNavProgressionStep(get) ? undefined : refusPersonneNePeutTenter({ skill: helm.id, spec: helm.spec });
   return choiceStep({
     id: 'sea-progression-choice', kind: 'sea-progression-choice', icon: 'travel/anchor',
     actorId: seaDecider(get),
@@ -975,9 +984,7 @@ export function buildSeaPlan(
 /** M de CROISIÈRE (hors vent/événement) pour estimer la durée du voyage rapide (l.25) — mêmes milles
  *  que le détaillé (18 × M) : voiles/avirons du gréement, ou M 4 constant à la vapeur (ch.12 l.311). */
 function cruiseM(hull: Combatant): number {
-  if (shipHasNavalTrait(hullNavalTraits(hull), 'propulsion-a-vapeur')) return 4;
-  const vd = findVehicleById(hull.creatureId ?? '')?.ship;
-  return Math.max(1, vesselPropulsion(vd)?.m ?? 1);
+  return Math.max(1, seaRig(hull)?.m ?? 1);
 }
 
 /** Appareille en TRAVERSÉE RAPIDE (l.21-37) : construit un plan `sea.fast` (jamais la boucle jour par
@@ -1258,11 +1265,24 @@ registerCascadeApplier('sea-force-pace', (get, set, step) => {
   const won = step.result.success;
   const forcePace = Number(step.meta?.forcePace ?? 0);
   patchSea(get, set, { paceToday: won ? 'won' : 'lost' });
+  noteManieurs(get, set, step);
   // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
   const j = [t('sv.stepIssue', { label: String(step.label), issue: won ? t('sv.paceWon', { m: forcePace }) : t('sv.paceLost') })];
   noteSeaLine(get, set, j);
   return { consequences: freeCons(j) };
 });
+
+/** Acteur et soutiens d'un jet de Voile ou de Ramer (MDG 13 l.22-24, l.111). */
+function manieursDe(best: { actor: Combatant; support: SupportDetail }): string[] {
+  return [best.actor.id, ...best.support.ids];
+}
+
+/** Persiste les `manieurs` d'une étape jouée dans `sea.manieursToday` (MDG 13 l.111). */
+function noteManieurs(get: Get, set: Set, step: CascadeStep): void {
+  const ids = step.meta?.manieurs;
+  if (!ids?.length) return;
+  patchSea(get, set, { manieursToday: [...new Set([...(get().travelPlan?.sea?.manieursToday ?? []), ...ids])] });
+}
 
 /** Compte SIGNÉ de d10 d'un présage, tel que le joueur le lit (« +2d10 » / « −1d10 ») — le signe EST
  *  le sens du présage (favorable / funeste), il ne se perd pas dans un texte d'enjeu. */
@@ -1350,8 +1370,7 @@ registerCascadeApplier('sea-tonneau-contamine', (get, set, step) => {
   return { consequences: freeCons([{ text: t('sv.waterContaminated', { disease: diseaseLabel(diseaseId) }), tone: 'bad' }]) };
 });
 
-/** Épuisement (MDG 13 l.109-111) : même patron de BANDE que Scorbut ci-dessus — un Éténué par rangée
- *  perdante, jamais N étapes qui défilent pour le MÊME Test. */
+/** Épuisement (MDG 13 l.111) : BANDE, verdict lu rangée par rangée (patron Scorbut ci-dessus). */
 registerCascadeApplier('sea-epuisement', (get, set, step) => {
   const lignes: FreeConsLine[] = [];
   for (const row of step.participants ?? []) {
@@ -1360,7 +1379,7 @@ registerCascadeApplier('sea-epuisement', (get, set, step) => {
     // Succès sans effet (rien à ajouter) → aucune conséquence.
     if (!hero || !row.result || row.result.success) continue;
     addCondition(hero, 'extenue');
-    lignes.push({ text: t('sv.exhaustionGot', { name: hero.label, diff: DIFFICULTY_LABELS[exhaustionDifficulty(true)] }), tone: 'bad' });
+    lignes.push({ text: t('sv.exhaustionGot', { name: hero.label, diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'bad' });
   }
   set({ party: [...get().party] });
   return { consequences: freeCons(lignes) };
@@ -1655,24 +1674,18 @@ export function continueSeaDayAfterExposure(get: Get, set: Set, doneSteps?: Casc
   }
   set({ party: [...get().party] });
 
-  // ÉPUISEMENT (MDG 13 l.109-111) : le rythme a été FORCÉ aujourd'hui (réussi OU non) → chaque PJ
-  // (l'équipage = les PJ, MDG 14 l.39) teste Résistance Complexe (−10) sous peine d'Exténué. Le Test
-  // de base des Périodes de travail (Accessible +20) est absorbé par l'abstraction d'équipage PNJ —
-  // il n'est joué que quand le joueur CHOISIT de forcer (décision documentée). UNE SITUATION = UNE
-  // BANDE (patron Mal de mer/Scorbut) poussée par la porte, qui en dérive la surface (#1479).
-  if (sea.paceToday) {
-    const patients = get().party.filter((h) => !h.dead);
-    const bande = buildBand(get, {
-      id: 'sea-epuisement', kind: 'sea-epuisement', label: t('sv.exhaustion'),
-      stake: voyageStakeRef('sea-epuisement', { condition: conditionLabel('extenue') }),
-      difficulty: exhaustionDifficulty(true),
-      porteurs: patients.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', char: 'endurance' }, pont: activeSeaPrecipitation(get) } })), // MDG 13 l.111, l.185, l.200
-    });
-    if (bande) {
-      const resolues = openSequence(get, set, { title: t('sv.exhaustionTitle'), icon: 'medical/infection', purpose: 'seaExhaustion', steps: [bande] });
-      if (!resolues) return; // fenêtre ouverte : clôture reprise par `dispatchCascadeDone` (`combatSlice.ts`) → `continueSeaDayAfterExhaustion`
-      noteSeaLine(get, set, lignesResolues(resolues));
-    }
+  // ÉPUISEMENT : MDG 13 l.62, l.111 ; #1595.
+  const patients = sea.modeToday ? equipageImplique(get().party, sea.manieursToday ?? []) : [];
+  const bande = buildBand(get, {
+    id: 'sea-epuisement', kind: 'sea-epuisement', label: t('sv.exhaustion'),
+    stake: voyageStakeRef('sea-epuisement', { condition: conditionLabel('extenue') }),
+    difficulty: exhaustionDifficulty(sea.paceToday != null),
+    porteurs: patients.map((h) => ({ actor: h, ligne: { test: { skill: 'resistance', char: 'endurance' }, pont: activeSeaPrecipitation(get) } })), // MDG 13 l.111, l.185, l.200
+  });
+  if (bande) {
+    const resolues = openSequence(get, set, { title: t('sv.exhaustionTitle'), icon: 'medical/infection', purpose: 'seaExhaustion', steps: [bande] });
+    if (!resolues) return; // fenêtre ouverte : clôture reprise par `dispatchCascadeDone` (`combatSlice.ts`) → `continueSeaDayAfterExhaustion`
+    noteSeaLine(get, set, lignesResolues(resolues));
   }
   continueSeaDayAfterExhaustion(get, set);
 }
@@ -1723,7 +1736,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
   patchSea(get, set, {
     daysAtSea, lines: [], entries: [], events: [],
     weather, windFrom, weatherLock: lock, reversedWinds: reversed,
-    milesToday: 0, effMToday: undefined, sailsDown: false, lighthouseDR: 0, eventMMod: sea.eventMMod, paceToday: undefined,
+    milesToday: 0, effMToday: undefined, modeToday: undefined, sailsDown: false, lighthouseDR: 0, eventMMod: sea.eventMMod, paceToday: undefined, manieursToday: undefined,
     hullAtDayStart: hull.wounds.current,
   });
   set({ travelPlan: { ...get().travelPlan!, kmDone } });
@@ -1947,6 +1960,7 @@ registerCascadeApplier('sea-progression-choice', (get, _set, step) => {
  *  d'équipage — même `applySeaProgress`, même suite de journée. */
 registerCascadeApplier('sea-progression-nav', (get, set, step) => {
   if (!step.result) return;
+  noteManieurs(get, set, step);
   const j = applySeaProgress(get, set, step.result.sl);
   noteSeaLine(get, set, j);
   const insert = buildPostProgressionSteps(get, set);
@@ -2053,7 +2067,7 @@ registerCascadeApplier('entretien', (get, set, step) => {
  *  l.39) : le meilleur au Métier (Ingénieur), sinon le premier PJ en état. */
 export function engineerOf(party: Combatant[]): Combatant | undefined {
   const apt = equipageApte(party);
-  return partyBest(apt, 'metier', undefined, undefined, 'ingenieur')?.actor ?? apt[0];
+  return partyBest(apt, STEAM_SKILL.id, undefined, undefined, STEAM_SKILL.spec)?.actor ?? apt[0];
 }
 
 /** Total d'une expression de dés « C+AdB » / « AdB » / « AdB-C » (params de la table Panne de Vapeur —
@@ -2280,11 +2294,12 @@ function seaBoardingFromEvent(event: SeaEventDef): SeaBoarding | undefined {
 }
 
 /** PORTEUR d'une décision de BORD (interpellation pirate, tribut) : celui qui mènerait la manœuvre —
- *  le meilleur à la barre (Voile/Ramer soutenu), à défaut le premier vivant. La porte de choix exige un
+ *  le meilleur à la barre (`helmSkill` soutenu), à défaut le premier vivant. La porte de choix exige un
  *  porteur : sans lui, la fenêtre échoit à l'hôte, qui trancherait pour le siège d'un autre. */
 function seaDecider(get: Get): string {
   const party = get().party;
-  return partyAssisted(party, helmSkill(get))?.actor.id ?? party.find((h) => !h.dead)?.id ?? '';
+  const helm = helmSkill(get);
+  return partyAssisted(party, helm.id, undefined, undefined, helm.spec)?.actor.id ?? party.find((h) => !h.dead)?.id ?? '';
 }
 
 /** `meta` de l'étape `sea-pirate-hail` : l'événement de mer qui nomme le pirate. */

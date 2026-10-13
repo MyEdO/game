@@ -1884,7 +1884,7 @@ export const fr = {
   'sv.seasickGot': '{name} — mal de mer : contracté.',
   'sv.waterDiseaseGot': "{name} — tonneau d'eau contaminé ({disease}) : contracté.",
   'sv.waterContaminated': "Le tonneau d'eau est CONTAMINÉ ({disease}) — quiconque y boit s'expose désormais (MDG 14 l.209).",
-  'sv.exhaustionGot': '{name} — Épuisement (rythme forcé, Résistance {diff}) : +1 Exténué.',
+  'sv.exhaustionGot': '{name} — Épuisement (Résistance {diff}) : +1 Exténué.',
   'sv.progressOfDay': "Progression du jour : {miles} milles (DR d'équipage {dr}).",
   'sv.waterBarrelTainted': 'Tonneau d’eau contaminé',
   'sv.waterBarrel': 'Tonneau d’eau',

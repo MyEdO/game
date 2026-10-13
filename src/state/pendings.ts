@@ -1583,6 +1583,8 @@ export interface CascadeStepMeta {
   opsDeCtx?: OpsCtxGele;
   /** ÉQUIPAGE (`OpsCtx.crew`) d'une feuille différée, en ids — résolus par `actorIn` à la reprise. */
   opsDeCrewIds?: string[];
+  /** Acteur et soutiens d'un jet de Voile ou de Ramer, en ids (MDG 13 l.111). */
+  manieurs?: string[];
   /** Modificateur PLAT au total d'une étape batch sommée — NEUTRE : le flux propriétaire y verse ses
    *  paramètres DÉJÀ chiffrés (le naval : bande de Moral + Manque de bras + sabotage, MDG 14). */
   aggregateFlatDR?: number;

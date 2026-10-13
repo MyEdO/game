@@ -709,7 +709,7 @@ Autres formes de propulsion : Propulsion à vapeur → **Métier (Ingénieur)** 
 **Voir aussi :** [Progression d'un navire (MDG)](#progression-dun-navire-mdg), [Tests d'équipage (MDG)](#tests-déquipage-mdg), [`tests.md`](tests.md) (Soutien, Difficulté).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.17-20, l.30-36) → `plus2`, `plus1`, `normal`, `vesselPropulsion`, `minus1`, `propulsionSkill`, `half`, `savoirOceansBonus`, `nav-progression`, `helmSkill`, +1 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, `src/engine/shipBuild.ts`, +1 fichiers
+- `MDG 13` (l.17-20, l.30-36) → `plus2`, `plus1`, `normal`, `PROPULSION_KINDS`, `vesselPropulsion`, `minus1`, `propulsionSkill`, `half`, `estCompetenceDePropulsion`, `STEAM_SKILL`, +7 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, `src/engine/shipBuild.ts`, +2 fichiers
 
 ---
 
@@ -736,7 +736,7 @@ Le MJ fixe la fréquence et la difficulté des Tests selon les conditions : Mer 
 **Voir aussi :** [Navigation maritime — Tests de Navigation (MDG)](#navigation-maritime--tests-de-navigation-mdg), [Forcer le rythme et épuisement (MDG)](#forcer-le-rythme-et-épuisement-mdg), [Manœuvres et vitesses maximum (MDG)](#manœuvres-et-vitesses-maximum-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.41-81, l.85-92) → `progressionModeSchema`, `sea-navigation`, `plus2`, `plus1`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, `WorldMapView`, +17 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/naval-progression.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +6 fichiers
+- `MDG 13` (l.41-81, l.85-92) → `progressionModeSchema`, `sea-navigation`, `plus2`, `plus1`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `STEAM_SKILL`, `forcePaceDifficulty`, +19 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/naval-progression.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +7 fichiers
 
 ---
 
@@ -754,10 +754,24 @@ Le bonus dure jusqu'à la prochaine Période de travail (8 h voiles, 2 h avirons
 
 > « À la fin d'une Période de travail, les membres d'équipage impliqués dans le maniement des voiles ou des avirons doivent réussir un Test de **Résistance Accessible (+20)** sous peine de recevoir un État *Exténué*. » — `MDG 13 l.111`
 
+**Qui est impliqué** : ceux qui manient voiles ou avirons, pas tout l'équipage.
+- « les rameurs travaillent 2 heures avant de devoir effectuer un Test contre l'épuisement tandis que ceux qui ajustent les voiles et dirigent la barre peuvent travailler 8 heures » — `MDG 13 l.62`.
+- Rôles d'équipage (MDG 14 l.24-32) : le **Timonier** (Voile) pilote, le **Mousse** (Voile ou Ramer) ; Capitaine (Commandement), Vigie (Perception), Navigateur (Orientation), Artilleur, Cuisinier, Chirurgien, Chansonnier ont une autre Compétence de poste.
+- « Ce sont les Mousses qui réduisent la voilure ou qui rament » — `MDG 14 l.69`.
+- Celui qui Force le rythme fait un Test de Voile ou de Ramer (MDG 13 l.95-111) : il manie voiles ou avirons.
+
+**Cadence** : une Période de travail dure 8 h aux voiles, 2 h aux avirons (`MDG 13 l.62`).
+- La distance d'un jour suppose un navire qui vogue de nuit (`MDG 15 l.76`).
+- La valeur **É** d'un navire est l'équipage minimal « pendant une durée relativement courte de navigation rigoureuse, par exemple une Période de travail de huit heures » — `MDG 12 l.41`.
+- Le jeu résout un Test par membre impliqué et par jour de voyage (décision #1595, issuecomment-6153021022).
+
 **Voir aussi :** [Progression d'un navire (MDG)](#progression-dun-navire-mdg), [`etats.md`](etats.md) (Exténué).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.95-111) → `sea-navigation`, `plus2`, `plus1`, `KINDS_SOUS_ORDRES`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, `exhaustionDifficulty`, +23 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +8 fichiers
+- `MDG 12` (l.41) → `SIZE_SHIPBOARD_ENC`, `resolveShipManeuver`, `ownEnc`, `deriveManeuver`, `maneuverSansJet`, `possessionTotalEnc`, `sea-cargo`, `CODEX_SPECS` — `src/data/schemas/defs/sizes.ts`, `src/data/sea-cargo.json`, `src/engine/possession.ts`, `src/engine/shipNavigation.ts`, `src/engine/size.ts`, `src/state/shipManeuver.ts`, +1 fichiers
+- `MDG 13` (l.62, l.95-111) → `progressionModeSchema`, `sea-navigation`, `plus2`, `plus1`, `KINDS_SOUS_ORDRES`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, +31 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/naval-progression.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, +10 fichiers
+- `MDG 14` (l.24-32, l.69) → `crew`, `progression`, `progression-poursuite`, `manoeuvre`, `isPassengerInBattle`, `resolveVolley`, `perception`, `localisation`, `roleDePropulsion`, `orientation`, +38 — `src/data/crew-test-types.json`, `src/data/flow-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, +12 fichiers
+- `MDG 15` (l.76) → `vaincre-stromfels`, `grand-sacrifice`, `coiffe-de-naissance`, `sacrifice-moyen`, `pretre-sans-peche`, `prieres-jouees`, `mannslieb-pleine`, `chat-heureux`, `petit-sacrifice`, `prieres-chaque-quart`, +32 — `src/data/activities.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/data/schemas/defs/sea-events.ts`, `src/data/sea-events.json`, +8 fichiers
 
 ---
 
@@ -782,7 +796,7 @@ X = nombre de DR négatifs du Test de Résistance raté. `MDG 13 l.142`
 **Voir aussi :** [Progression d'un navire (MDG)](#progression-dun-navire-mdg), [Collisions de navires (MDG)](#collisions-de-navires-mdg), [`tests.md`](tests.md) (DR).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.113-142) → `sea-navigation`, `KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `forcePaceDifficulty`, `exhaustionDifficulty`, `OverspeedRow`, `WorldMapView`, `overspeedRow`, `overspeedDamage`, `FoulingLevel`, +24 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, +9 fichiers
+- `MDG 13` (l.113-142) → `sea-navigation`, `KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `forcePaceDifficulty`, `equipageImplique`, `exhaustionDifficulty`, `OverspeedRow`, `WorldMapView`, `overspeedRow`, `overspeedDamage`, +27 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, `src/engine/seaNavigation.ts`, +9 fichiers
 
 ---
 
@@ -1038,7 +1052,7 @@ Modificateurs (extrait) : paie généreuse / capitaine compétent → **+2d10** 
 **Voir aussi :** [Provisions et équipement de navigation (MDG)](#provisions-et-équipement-de-navigation-mdg), [`traumatisme.md`](traumatisme.md#13-faim-et-soif) (Faim et Soif), [`maladies.md`](maladies.md#provisions-et-privations-en-mer--eau-rations-faim-mdg) (rations en mer).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.204-283) → `doc`, `MoraleBand`, `sealskinDR`, `mousse`, `DiseaseDef`, `shipboardSouls`, `scenario`, `SeaVoyageState`, `exposureNight`, `genuineExposureFail`, +32 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/crew-roles.ts`, +17 fichiers
+- `MDG 14` (l.204-283) → `doc`, `MoraleBand`, `sealskinDR`, `mousse`, `DiseaseDef`, `scenario`, `SeaVoyageState`, `shipboardSouls`, `exposureNight`, `genuineExposureFail`, +32 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/crew-roles.ts`, +17 fichiers
 
 ---
 

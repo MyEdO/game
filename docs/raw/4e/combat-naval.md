@@ -59,7 +59,7 @@ de 10 % d'équipage manquant**).
 comme ressource](#léquipage-comme-ressource--le-round-naval) · [`tests.md`](tests.md) (DR, Succès Minime).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.9, l.13, l.19, l.39, l.53) → `crew`, `progression`, `progression-poursuite`, `rollCrewRole`, `isPassengerInBattle`, `resolveVolley`, `maneuverCrewTotal`, `shipCrewAssignments`, `equipageApte`, `deriveManeuverFromCrew`, +42 — `src/data/crew-test-types.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, +18 fichiers
+- `MDG 14` (l.9, l.13, l.19, l.39, l.53) → `crew`, `progression`, `progression-poursuite`, `rollCrewRole`, `isPassengerInBattle`, `resolveVolley`, `maneuverCrewTotal`, `roleDePropulsion`, `equipageApte`, `shipCrewAssignments`, +42 — `src/data/crew-test-types.json`, `src/data/flow-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, +18 fichiers
 
 **État du code.** ✅ somme des DR, essentiel ×2, Moral, « un jet par poste » (PJ + 1 marin représentant).
 ✅ **Manque de bras** : cumul 2 rôles = +2 crans (`crewActed` + `easeDifficulty(-2)`) ET sous-effectif d'équipage
@@ -118,7 +118,7 @@ choisit**.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `MDG 13` (l.354-420) → `portProfileSchema`, `MapPlace`, `construireScene`, `perilManagement` ⚠sans-appelant, `lighthouseSpotDifficulty`, `lighthouseOrientationDR`, `sea-navigation`, `pursuitLowMPenalty`, `pursuitDistanceGain`, `WorldMapPlacePanel`, +12 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-perils.ts`, `src/data/sea-navigation.json`, `src/data/sea-perils.json`, +10 fichiers
-- `MDG 14` (l.37, l.53) → `crew`, `progression`, `progression-poursuite`, `rollCrewRole`, `isPassengerInBattle`, `resolveVolley`, `equipageApte`, `withCrewActed`, `shipboardSouls`, `buildTokens`, +27 — `src/data/crew-test-types.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, `src/engine/types.ts`, +14 fichiers
+- `MDG 14` (l.37, l.53) → `crew`, `progression`, `progression-poursuite`, `rollCrewRole`, `isPassengerInBattle`, `resolveVolley`, `roleDePropulsion`, `equipageApte`, `withCrewActed`, `buildTokens`, +27 — `src/data/crew-test-types.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, `src/engine/types.ts`, +14 fichiers
 
 **État du code.** ✅ (R3) `battle.crewActed` (par navire, reset au round-start `enterRoundStartPause`) recense les
 marins ayant contribué à un Test ce Round. Les rôles Capitaine/Chansonnier/Mousse/Timonier étant dans `manoeuvre`
@@ -148,7 +148,7 @@ décide) · `MDG 14 l.13`, `l.76` (Test d'équipage : total ≥ 1 DR, Man compri
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 12` (l.11) → `canReroll`, `RollInfluenceView`, `RollRowCore`, `RollRow`, `useTestJetProps`, `rollTest`, `ManeuverResult`, `RollFlowLens`, `deriveManeuver`, `bumpResultSL`, +2 — `src/engine/fortune.ts`, `src/engine/tests.ts`, `src/state/rollFlowFactory.ts`, `src/state/rollFlowSpecs.ts`, `src/state/shipManeuver.ts`, `src/ui/RollRow.tsx`, +2 fichiers
 - `MDG 12` (l.92-94) → `shipboardSouls`, `sea-cargo` — `src/data/sea-cargo.json`, `src/gameIso/rig/ship/defs/bateau-de-patrouille.ts`, `src/state/shipCrew.ts`
-- `MDG 13` (l.119, l.173, l.376, l.378-399) → `sea-navigation`, `sea-weather`, `KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `forcePaceDifficulty`, `exhaustionDifficulty`, `OverspeedRow`, `overspeedRow`, `sea-overspeed`, `aucune`, +39 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +11 fichiers
+- `MDG 13` (l.119, l.173, l.376, l.378-399) → `sea-navigation`, `sea-weather`, `KINDS_SOUS_ORDRES`, `resolveShipManeuver`, `forcePaceDifficulty`, `equipageImplique`, `exhaustionDifficulty`, `OverspeedRow`, `overspeedRow`, `sea-overspeed`, +43 — `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +11 fichiers
 - `MDG 14` (l.13) → `resolveVolley`, `maneuverCrewTotal`, `shipCrewAssignments`, `deriveManeuverFromCrew`, `CREW_TEST_SUCCESS_RULE`, `ManeuverResult`, `cascadeSuccessRules`, `applyBatteryVolley`, `crewTestSuccess`, `buildVoyageCrewStep`, +8 — `src/data/flow-stakes.json`, `src/data/reglesOptionnelles.json`, `src/engine/crewMorale.ts`, `src/engine/volley.ts`, `src/i18n/messages/fr.ts`, `src/state/cascade.ts`, +6 fichiers
 
 **État du code.** ✅ Test d'équipage (Timonier ★, total ≥ 1 DR Man compris), barreur seul (réussite du d100), Man en ±DR, Progression,
