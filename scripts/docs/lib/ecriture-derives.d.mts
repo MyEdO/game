@@ -7,7 +7,7 @@ export function fusionnerLectures(dossier: string): {
   ecrits: string[];
   /** Chemins LUS hors racine, refusés : distincts par processus, sommés entre PID. */
   cheminsRejetes: number;
-  git: import('../../guards/lib/gitPorte.mjs').RequeteMesuree[];
+  git: import('../../guards/lib/requeteMesuree.mjs').RequeteMesuree[];
   sondes: SondeMesuree[];
   incomplet: string[];
 };
@@ -15,7 +15,7 @@ export function fusionnerLectures(dossier: string): {
 export type SondeMesuree = { chemin: string; type: 'exists' | 'stat'; existe: boolean; nature: 'file' | 'directory' | 'other' | null; code?: string };
 
 export function serialiserSourcesLues(
-  parGenerateur: Record<string, { cibles: readonly string[]; fichiers: readonly string[]; dossiers: readonly string[]; git?: readonly import('../../guards/lib/gitPorte.mjs').RequeteMesuree[]; sondes?: readonly SondeMesuree[]; incomplet?: readonly string[] }>,
+  parGenerateur: Record<string, { cibles: readonly string[]; fichiers: readonly string[]; dossiers: readonly string[]; git?: readonly import('../../guards/lib/requeteMesuree.mjs').RequeteMesuree[]; sondes?: readonly SondeMesuree[]; incomplet?: readonly string[] }>,
 ): string;
 
 export function existeFichier(chemin: string): boolean;

@@ -26,7 +26,7 @@ import path from 'node:path'
 import { register, syncBuiltinESMExports } from 'node:module'
 import { isMainThread } from 'node:worker_threads'
 import { canoniser, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
-import { normaliserRequeteMesuree, verifierRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
+import { normaliserRequeteMesuree, verifierRequeteMesuree } from '../../guards/lib/requeteMesuree.mjs'
 import { correspondGlob, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 
 const MARQUE = Symbol.for('wfrp.enregistreur-lectures')

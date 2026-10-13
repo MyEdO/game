@@ -34,7 +34,7 @@ import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
-import { perimetreDeMesure } from './lib/chemin-mesure.mjs'
+import { perimetreDeMesure } from './lib/perimetre-mesure.mjs'
 import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
 import { avantGenerateur, certifierGenerateur, chargerPreuve, enregistrerPreuve, invaliderPreuve, nouvelleVue, preparerPreuves, recordValide } from './lib/fraicheur-docs.mjs'
 

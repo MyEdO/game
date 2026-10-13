@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { ciblesSurDisque, executer, genererCode, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesSurDisque, executer, genererCode, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { lotDuPostMerge, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
@@ -145,6 +145,20 @@ test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur
   assert.equal(touchesDocSources(['src/ui/Prose.tsx'], mesure), true)
   assert.equal(touchesDocSources(['scripts\\raw\\build-implemente.mjs'], mesure), true)
   assert.equal(touchesDocSources(['docs/raw/4e/combat.md'], mesure), true)
+})
+
+// #2603
+test('frontière d’outillage : un module importé par un générateur entre dans sa mesure, sélection partielle ; un module préchargé périme tout', () => {
+  const scripts = ['scripts/gen-formats.mjs', 'scripts/raw/build-catalogs.mjs']
+  const generateurs = GENERATORS.filter((g) => scripts.includes(g.script))
+  const rendues = mesurerEnRendu(scripts, { cwd: RACINE })
+  const mesure = tableTotale(scripts, (script) => rendues.get(script).entree)
+  assert.deepEqual(scripts.filter((script) => mesure[script].fichiers.includes('scripts/guards/lib/gitPorte.mjs')), ['scripts/raw/build-catalogs.mjs'])
+  const lecteurs = selectionDesGenerateurs({ lot: ['scripts/guards/lib/gitPorte.mjs'], mesure, cwd: RACINE, generateurs })
+  assert.deepEqual([lecteurs.complete, lecteurs.raison], [false, 'sources mesurées et préalables'])
+  assert.ok(lecteurs.scripts.includes('scripts/raw/build-catalogs.mjs'), lecteurs.scripts.join(', '))
+  assert.deepEqual(selectionDesGenerateurs({ lot: ['src/lib/ordre.mjs'], mesure, cwd: RACINE, generateurs }),
+    { scripts, complete: true, raison: 'graphe ou outil de mesure modifié' })
 })
 
 test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (`null`, on régénère), jamais vide', () => {

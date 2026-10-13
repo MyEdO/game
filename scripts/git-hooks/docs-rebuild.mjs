@@ -4,7 +4,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { ciblesSurDisque, GENERATORS, generateursDeCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
-import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
+import { fichiersDOutillage, preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import { ceQuEmporteLIndex, ceQuiChange, depotDe, estAncetre, etatDeLArbre, fusionnesEnCours, parentsDe, racineDe, refusDeGit, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
@@ -112,7 +112,8 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
   if (lot === null) return tous('plage Git inconnue')
   if (lot.some((f) => LECTURES_DES_DEPENDANCES.includes(f))) return tous('toolchain modifiée : lectures des dépendances non mesurées')
   if (!mesure || generateurs.some((g) => !Array.isArray(mesure[g.script]?.fichiers) || !Array.isArray(mesure[g.script]?.dossiers) || !Array.isArray(mesure[g.script]?.cibles))) return tous('mesure absente ou incomplète')
-  if (lot.some((f) => ['scripts/docs/build-all.mjs', 'scripts/git-hooks/docs-rebuild.mjs'].includes(f) || f.startsWith('scripts/docs/lib/'))) return tous('graphe ou outil de mesure modifié')
+  const outillage = fichiersDOutillage()
+  if (lot.some((f) => f === 'scripts/git-hooks/docs-rebuild.mjs' || outillage.has(f))) return tous('graphe ou outil de mesure modifié')
   if (generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||
     [...g.targets, ...(g.injecte ?? [])].some((c) => !c.includes('*') && !existsSync(join(cwd, c))))) return tous('cible absente')
   const selection = new Set(generateurs.filter((g) => touchesDocSources(lot, mesure, { seulement: [g.script] })).map((g) => g.script))

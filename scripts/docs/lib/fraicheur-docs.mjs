@@ -4,7 +4,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
 import { correspondGlob, listerArbre, listerDossier } from '../../guards/lib/lister.mjs'
-import { canoniser, dansLaMesure, perimetreDeMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { canoniser, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
 import { ecrireJsonAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
 import { clotureDImports } from '../../guards/lib/importGraph.mjs'
@@ -14,10 +15,20 @@ const empreinte = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const egaux = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const RACINE_OUTILLAGE = fileURLToPath(new URL('../../../', import.meta.url))
 
+const PRECHARGES = ['scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs']
+const LIB_DES_DOCS = 'scripts/docs/lib'
+const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => rel.endsWith('.mjs') && !rel.endsWith('.test.mjs') })
+  .map((rel) => `${LIB_DES_DOCS}/${rel}`)
+
+/** #2603 */
+export function fichiersDOutillage() {
+  return new Set([...clotureDImports(PRECHARGES, { racine: RACINE_OUTILLAGE }), 'scripts/docs/build-all.mjs', ...fichiersDeLaLib()])
+}
+
 function mesurerOutillage(ancien) {
-  if (ancien?.length && ancien.every(([rel, hash]) => hashFichier(RACINE_OUTILLAGE, rel) === hash)) return ancien
-  const fichiers = clotureDImports(['scripts/docs/build-all.mjs', 'scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs'], { racine: RACINE_OUTILLAGE })
-  return [...fichiers].sort().map((rel) => [rel, hashFichier(RACINE_OUTILLAGE, rel)])
+  const connus = new Set(ancien?.map(([rel]) => rel))
+  if (ancien?.length && fichiersDeLaLib().every((rel) => connus.has(rel)) && ancien.every(([rel, hash]) => hashFichier(RACINE_OUTILLAGE, rel) === hash)) return ancien
+  return [...fichiersDOutillage()].sort().map((rel) => [rel, hashFichier(RACINE_OUTILLAGE, rel)])
 }
 
 export function nouvelleVue(racine, options, preuve = chargerPreuve(racine), mesures = lireMesure(racine, options, true), outillagePrecedent) {
