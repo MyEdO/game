@@ -285,14 +285,14 @@ describe('rôle de marche persistant (travelRole) — « les mêmes au même pos
   it("l'assignation d'Étape est initialisée depuis les rôles (0 clic) ; travelRole épinglé prime", () => {
     const a = mk('A'), b = mk('B');
     a.skills.push({ id: 'perception', characteristic: 'initiative', advances: 80 });
-    b.travelRole = 'recuperer'; // épinglé par le joueur → prime sur l'inférence
+    b.travelRole = { activityId: 'recuperer' }; // épinglé par le joueur → prime sur l'inférence
     const asg = stageAssignmentFromRoles([a, b]);
     expect(asg[a.id].activityId).toBe('rester-aux-aguets'); // inféré
     expect(asg[b.id].activityId).toBe('recuperer');         // épinglé
   });
 
   it('le rôle persistant se répète : même assignation à chaque Étape sans ré-saisie', () => {
-    const a = mk('A'); a.travelRole = 'approvisionnement';
+    const a = mk('A'); a.travelRole = { activityId: 'approvisionnement' };
     const s1 = stageAssignmentFromRoles([a]);
     const s2 = stageAssignmentFromRoles([a]); // « étape suivante » : aucun nouveau choix
     expect(s2).toEqual(s1);

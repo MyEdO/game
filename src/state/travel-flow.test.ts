@@ -91,7 +91,7 @@ function passerLaMeteo(): void {
 
   it('la Météo d’Étape déclare la table de SA SAISON, SANS modificateur (#1426)', () => {
     seedBattleRng(1);
-    setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: 'approvisionnement', items: [] })]);
+    setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: { activityId: 'approvisionnement' }, items: [] })]);
     get().startTravel('r1', 'pied');
     const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'stageWeather')!;
     expect(meteo, 'la Météo est une étape à TABLE de monde').toBeTruthy();
@@ -136,7 +136,7 @@ function passerLaMeteo(): void {
 
   it('les postes AVEC Test = UN pas BATCH (arbitrage user : jets indépendants), une rangée par héros', () => {
     seedBattleRng(1);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     const pc0 = get().pendingCascade;
@@ -152,7 +152,7 @@ function passerLaMeteo(): void {
 
   it('la Résilience force la réussite d’une RANGÉE du batch (mécanisme UNIQUE de cascade)', () => {
     seedBattleRng(5); // seed où l'Approvisionnement échoue (parité : 78/70)
-    const h = hero({ id: 'h', travelRole: 'approvisionnement', resilience: 2, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ id: 'h', travelRole: { activityId: 'approvisionnement' }, resilience: 2, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     expect(get().pendingCascade!.purpose).toBe('travelDay');
@@ -173,7 +173,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Approvisionnement seed 1 : fourrage réussi (DR 7), 1 ration reçue', () => {
     setRule('travel-etapes', true);
     seedBattleRng(1);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -190,7 +190,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Approvisionnement seed 5 : échec 78/70 → Exténué, 0 ration', () => {
     setRule('travel-etapes', true);
     seedBattleRng(5);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -205,7 +205,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Exposition seed 2 : transi → escalade de froid (3 effets exposition-froid, rang 1)', () => {
     setRule('travel-etapes', true); setRule('travel-attraper-froid', true);
     seedBattleRng(2);
-    const h = hero({ travelRole: 'recuperer' });
+    const h = hero({ travelRole: { activityId: 'recuperer' } });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -257,7 +257,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Rencontre seed 7 : Succès Impressionnant → « fullRecovery », soigne toutes les Blessures (routé par applyHealWounds, #473)', () => {
     setRule('travel-etapes', true);
     seedBattleRng(7);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 } });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 } });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -269,7 +269,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Rencontre seed 7 : « fullRecovery » avec munition logée → soin plafonné (LDB 62 l.250)', () => {
     setRule('travel-etapes', true);
     seedBattleRng(7);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -280,7 +280,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Rencontre seed 2 : échec d’Approvisionnement → Rencontre dangereuse (texte verbatim)', () => {
     setRule('travel-etapes', true);
     seedBattleRng(2);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -296,7 +296,7 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
   it('trajet long (30 km) avec Étapes : le jour ouvre la cascade, sa clôture pose la halte de nuit', () => {
     setRule('travel-etapes', true);
     seedBattleRng(1);
-    const h = hero({ travelRole: 'approvisionnement', items: [ration('r1'), ration('r2')], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [ration('r1'), ration('r2')], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 30, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     // Le jour ouvre la cascade travelDay ; sa clôture pose la halte de nuit (30 km > 24 km/jour).
@@ -434,8 +434,8 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
 describe('#341 — breakdown de mods sur les rangées BATCH d’activité (source unique avec le mono)', () => {
   it('Pluie diluvienne : Plein air porte la ligne « Météo » ; carto (Métier=Dex) la ligne « Tests physiques »', () => {
     setRule('travel-etapes', true);
-    const hOut = hero({ id: 'hOut', travelRole: 'plein-air', skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
-    const hCarto = hero({ id: 'hCarto', travelRole: 'etablir-cartes', skills: [{ id: 'metier', spec: 'Cartographe', advances: 20 } as never] });
+    const hOut = hero({ id: 'hOut', travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
+    const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'Cartographe', advances: 20 } as never] });
     set({ party: [hOut, hCarto], travelPlan: {
       routeId: 'r1', fromPlaceId: 'pa', toPlaceId: 'pb', mode: 'pied', hoursPerDay: 6, km: 12, kmDone: 0, interrupted: false,
       postes: { hOut: { activityId: 'plein-air' }, hCarto: { activityId: 'etablir-cartes' } },
@@ -453,8 +453,8 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
    *  APRÈS l'étalement l'écrasait, et l'écart météo repartait en chip « autres ». */
   it('la rangée d’Étape n’a AUCUNE part anonyme : base nue, chips météo, cible et écrêtage du monteur', () => {
     setRule('travel-etapes', true);
-    const hOut = hero({ id: 'hOut', travelRole: 'plein-air', skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
-    const hCarto = hero({ id: 'hCarto', travelRole: 'etablir-cartes', skills: [{ id: 'metier', spec: 'Cartographe', advances: 20 } as never] });
+    const hOut = hero({ id: 'hOut', travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
+    const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'Cartographe', advances: 20 } as never] });
     set({ party: [hOut, hCarto], travelPlan: {
       routeId: 'r1', fromPlaceId: 'pa', toPlaceId: 'pb', mode: 'pied', hoursPerDay: 6, km: 12, kmDone: 0, interrupted: false,
       postes: { hOut: { activityId: 'plein-air' }, hCarto: { activityId: 'etablir-cartes' } },

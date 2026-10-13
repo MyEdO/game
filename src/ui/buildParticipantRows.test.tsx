@@ -130,10 +130,10 @@ describe('#1262 L0 — la rangée-participant vient du NOYAU (contrat mesuré su
 });
 
 /**
- * Rangée de Test d'équipage par rôle (MDG 14) dont le marin ne peut plus tenir son rôle (LDB 09 l.30 ;
- * #2588 Q1) : le refus annonce le jet À VENIR ; un dé déjà JETÉ s'affiche tel qu'il est tombé.
+ * Rangée de Test d'équipage par rôle (MDG 14) : un marin qui ne peut pas tenir son rôle (LDB 09 l.30 ;
+ * #2588 Q1) annonce son refus ; un dé JETÉ s'affiche tel qu'il est tombé, contre sa cible.
  */
-describe('crewRoleRow — le refus ne vaut que pour une rangée NON jetée', () => {
+describe('crewRoleRow — refus du rôle non tentable, dé jeté contre sa cible', () => {
   const marin = {
     id: 'm1', label: 'Gunnar', kind: 'hero', conditions: [{ id: 'inconscient', value: 1 }], skills: [], talents: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -148,8 +148,8 @@ describe('crewRoleRow — le refus ne vaut que pour une rangée NON jetée', () 
     expect(row.pending).toBeUndefined();
   });
 
-  it('déjà jetée : le dé s’affiche contre sa cible, sans refus', () => {
-    const row = crewRoleRow(part as never, marin, { roll: 23, target: 41, sl: 1 });
+  it('jetée : le dé s’affiche contre sa cible, sans refus', () => {
+    const row = crewRoleRow(part as never, { ...marin, conditions: [], skills: [{ id: 'voile', advances: 10 }] as Combatant['skills'] }, { roll: 23, target: 41, sl: 1 });
     expect(row.note).toBeUndefined();
     expect(row.d).toMatchObject({ roll: 23, target: 41, sl: 1 });
   });

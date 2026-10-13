@@ -2,7 +2,8 @@
 /**
  * Rôles de marche : le poste est un Test CHOISI (EDOC 8 l.131). Un héros qui ne peut tenter aucune
  * compétence du poste (LDB 09 l.30 ; Inconscient, LDB 16 l.113) reste candidat au panneau, FERMÉ avec
- * le refus que l'Étape poserait (#2588).
+ * le refus que l'Étape poserait (#2588). Pratiquer une Compétence demande la Compétence (EDOC 8 l.131) :
+ * celles du héros, chacune fermée avec son refus s'il ne peut pas la tenter.
  */
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -10,6 +11,7 @@ import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { useGame } from '../state/store';
 import { refusNePeutTenter } from '../engine/skills';
 import { TravelRolesPanel } from './TravelRolesPanel';
+import { refLabel } from '../data';
 import type { Combatant } from '../engine/types';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -58,5 +60,36 @@ describe('TravelRolesPanel — un poste que le héros ne peut pas tenter est FER
     const panneau = ouvrirPanneau('rester-aux-aguets');
     act(() => { candidat(panneau, 'Gunnar').click(); });
     expect(useGame.getState().party.find((h) => h.id === 'h2')!.travelRole).toBeUndefined();
+  });
+});
+
+describe('TravelRolesPanel — Pratiquer une Compétence demande la Compétence', () => {
+  const ERUDIT = hero('h3', 'Aldric', { skills: [{ id: 'escalade', advances: 10 }, { id: 'evaluation', advances: 0 }] as Combatant['skills'] });
+  beforeEach(() => useGame.setState({ party: [ERUDIT] }));
+
+  const panneauCompetence = (): HTMLElement => {
+    const personnes = ouvrirPanneau('pratiquer-competence');
+    act(() => { candidat(personnes, 'Aldric').click(); });
+    const panneaux = [...document.querySelectorAll('[data-panneau-parametre]')] as HTMLElement[];
+    expect(panneaux).toHaveLength(1);
+    expect(panneaux[0].getAttribute('aria-label')).toContain('quelle Compétence');
+    return panneaux[0];
+  };
+
+  it('choisir le héros n’épingle rien : le panneau demande la Compétence ; l’Avancée sans Augmentation est fermée et dit pourquoi', () => {
+    const panneau = panneauCompetence();
+    expect(useGame.getState().party[0].travelRole).toBeUndefined();
+    const fermee = candidat(panneau, refLabel('skills', { id: 'evaluation' }));
+    expect(fermee.getAttribute('aria-disabled')).toBe('true');
+    expect(document.getElementById(fermee.getAttribute('aria-describedby')!)?.textContent).toContain(refusNePeutTenter(ERUDIT, { skill: 'evaluation' }));
+    act(() => { fermee.click(); });
+    expect(useGame.getState().party[0].travelRole).toBeUndefined();
+  });
+
+  it('la Compétence choisie part avec le poste épinglé', () => {
+    const panneau = panneauCompetence();
+    act(() => { candidat(panneau, refLabel('skills', { id: 'escalade' })).click(); });
+    expect(useGame.getState().party[0].travelRole).toEqual({ activityId: 'pratiquer-competence', freeSkill: { id: 'escalade' } });
+    expect(document.querySelector('[data-panneau-parametre]')).toBeNull();
   });
 });

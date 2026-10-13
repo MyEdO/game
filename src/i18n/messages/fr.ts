@@ -706,6 +706,7 @@ export const fr = {
   'geste.refus.caseDuMobile': '{name} ne se tient pas sur la case d’où part ce geste.',
   'refus.personneNePeutTenter': 'Personne dans le groupe ne peut tenter {quoi}.',
   'refus.nePeutTenter': '{qui} ne peut pas tenter {quoi}.',
+  'refus.competenceNonChoisie': '{qui} n’a choisi aucune Compétence à pratiquer.',
   'refus.quoiTest': 'le Test {de}',
   'refus.quoiAction': '« {action} »',
   'geste.refus.monte': 'Monture et cavalier ne franchissent pas ce passage ensemble : mettez d’abord pied à terre (« {action} »).',

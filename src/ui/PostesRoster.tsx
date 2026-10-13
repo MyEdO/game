@@ -1,6 +1,6 @@
 import type { Combatant } from '../engine/types';
 import { type Poste, postesOccupes } from '../state/poste';
-import { AssignRow } from './AssignRow';
+import { AssignRow, type ParametreAffectation } from './AssignRow';
 import { CodexRef } from './compendium/CodexRef';
 
 /**
@@ -30,7 +30,7 @@ export function nextPinned(pinned: string | undefined, clickedPosteId: string): 
  * `CodexRef` (le ⓘ qui remplace l'infobulle native), `GatedAction` via `AssignRow` (poste fermé).
  */
 export function PostesRoster({
-  title, banc, heroes, postes, pinnedOf, onSet, refusOf, refusCandidat, codexCategory,
+  title, banc, heroes, postes, pinnedOf, onSet, refusOf, refusCandidat, parametreDe, precisionDe, codexCategory,
 }: {
   title: string;
   /** Libellé de la ligne de BANC (« À la discrétion du Test », « Sans station ») — il dit ce qui
@@ -40,8 +40,9 @@ export function PostesRoster({
   postes: Poste[];
   /** Poste ÉPINGLÉ par le joueur — la SEULE chose que le roster affiche. */
   pinnedOf: (h: Combatant) => string | undefined;
-  /** Épingle (`posteId`) ou déséping le (`null`) le poste d'un héros. */
-  onSet: (heroId: string, posteId: string | null) => void;
+  /** Épingle (`posteId`) ou déséping le (`null`) le poste d'un héros ; `parametre` = clé de la valeur
+   *  choisie quand le poste en demande une (`parametreDe`). */
+  onSet: (heroId: string, posteId: string | null, parametre?: string) => void;
   /** RAISON pour laquelle ce poste n'est pas tenable ICI (une station que la coque n'a pas) — le poste
    *  reste OFFERT, éteint, et dit pourquoi au survol/focus/tap. Jamais un filtrage silencieux : un
    *  poste qui disparaît ne s'explique pas. */
@@ -49,6 +50,11 @@ export function PostesRoster({
   /** RAISON pour laquelle CE héros ne peut pas tenir CE poste (un Test CHOISI qu'il ne peut pas tenter,
    *  LDB 09 l.30) : le candidat reste offert au panneau, éteint, et dit pourquoi. */
   refusCandidat?: (poste: Poste, h: Combatant) => string | undefined;
+  /** PARAMÈTRE que CE héros doit fixer pour tenir CE poste (la Compétence de Pratiquer une Compétence,
+   *  EDOC 8) : un second panneau-paramètre, chaque valeur fermée avec sa raison. */
+  parametreDe?: (poste: Poste, h: Combatant) => { intitule: string; valeurs: ParametreAffectation[] } | undefined;
+  /** PRÉCISION du poste épinglé d'un héros (sa Compétence pratiquée), ajoutée à sa méta et à son nom de retrait. */
+  precisionDe?: (h: Combatant) => string | undefined;
   /** Catégorie Codex des postes de ce roster (`crewRoles`, `shipStations`, `activities`) : le LIBELLÉ
    *  de chaque ligne ouvre SA fiche. Une ligne sans entrée (Repos, banc) reste du texte simple. */
   codexCategory: string;
@@ -72,15 +78,16 @@ export function PostesRoster({
         <AssignRow
           assigned={occupants}
           candidates={p ? heroes.filter((h) => pinnedOf(h) !== p.id) : []}
-          onAssign={(id) => onSet(id, p ? nextPinned(pinnedOf(heroes.find((h) => h.id === id)!), p.id) : null)}
+          onAssign={(id, parametre) => onSet(id, p ? nextPinned(pinnedOf(heroes.find((h) => h.id === id)!), p.id) : null, parametre)}
           onRemove={(id) => onSet(id, null)}
           intitule={`${title} — ${label} : affecter`}
-          nomRetirer={(c) => `Retirer ${c.label} de ${label}`}
+          nomRetirer={(c) => { const pr = precisionDe?.(c); return `Retirer ${c.label} de ${label}${pr ? ` (${pr})` : ''}`; }}
           canPick={p != null}
           retirable={p != null}
-          metaDe={(c) => { const cur = pinnedOf(c); const cp = cur ? postes.find((x) => x.id === cur) : undefined; return cp ? `(${cp.label})` : undefined; }}
+          metaDe={(c) => { const cur = pinnedOf(c); const cp = cur ? postes.find((x) => x.id === cur) : undefined; const pr = precisionDe?.(c); return cp ? `(${cp.label}${pr ? ` — ${pr}` : ''})` : undefined; }}
           {...(refus ? { refus } : {})}
           {...(p && refusCandidat ? { refusDe: (c: Combatant) => refusCandidat(p, c) } : {})}
+          {...(p && parametreDe ? { parametreDe: (c: Combatant) => parametreDe(p, c) } : {})}
         />
       </div>
     );

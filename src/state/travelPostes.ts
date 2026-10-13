@@ -17,7 +17,7 @@
 import { battleRng } from './battleRng';
 import { d100 } from '../engine/dice';
 import {
-  travelActivitySpec, applyTravelActivityResult, aggregateActivityOutcomes, activityById,
+  travelActivitySpec, aggregateActivityOutcomes, activityById,
   type ActivityDef, type TravelActivityResult,
 } from '../engine/activities';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -29,6 +29,7 @@ import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
 import { extendedTestStep, type EchecSansJet } from '../engine/tests';
 import { registerCascadeApplier } from './cascade';
+import { appliquerIssueActivite } from './activityIssue';
 import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, type Consequence, type BuiltCascadeStep } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { t, type MsgKey } from '../i18n';
@@ -198,31 +199,14 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
 
 // ── APPLIERS des étapes de l'Étape (purpose `travelDay`) : conséquence RAW par `kind`, moteur PUR ──
 
-/** UN poste RÉSOLU : issue du jet (ops/Exténué/portée Étape) via le jumeau PUR `applyTravelActivityResult`,
- *  enregistrée dans le contexte d'Étape (l'agrégation `stageAggregate` la relira), et RENDUE en
- *  `Consequence[]` STRUCTURÉES (#295) — jamais une chaîne composée à la main :
- *   - Activité SANS Test → `out.activityDone` (nom en var : la rangée batch peut n'avoir pas d'actorId) ;
- *   - Exténué (EDOC 8 l.133) → op `condition` APPLIQUÉ par `applyOps`, ligne DÉRIVÉE via `opConsequenceLine` ;
- *   - issues individuelles (Récupérer/Pratiquer/Recueillir infos) → notes narratives.
- *  Partagé par le pas d'affichage (`stagePoste`, sans Test) et le pas BATCH (`stagePosteBatch`, avec Test). */
+/** UN poste RÉSOLU : son issue (`appliquerIssueActivite`, source unique terre et mer) enregistrée dans le
+ *  contexte d'Étape (l'agrégation `stageAggregate` la relira). Partagé par le pas d'affichage
+ *  (`stagePoste`, sans Test) et le pas BATCH (`stagePosteBatch`, avec Test). */
 function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: RefDesignee | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | EchecSansJet | null): Consequence[] {
-  const spec = travelActivitySpec(hero, def, { freeSkill });
-  const r = applyTravelActivityResult({ ...spec, actorId: hero.id }, def, roll);
+  const { result, consequences } = appliquerIssueActivite(get, hero, def, travelActivitySpec(hero, def, { freeSkill }), roll);
   const plan = get().travelPlan;
-  if (plan?.stage) set({ travelPlan: { ...plan, stage: { ...plan.stage, results: [...plan.stage.results, r] } } });
-  const cons: Consequence[] = [];
-  if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });
-  if (r.ops.length) cons.push(...freeCons(applyOps(hero, r.ops, { source: { kind: 'activity', id: def.id } })));
-  if (r.extenue) {
-    const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.133
-    applyOps(hero, [op], { source: { kind: 'activity', id: def.id } });
-    cons.push({ ops: [op] });
-  }
-  // Issues INDIVIDUELLES (Récupérer / Pratiquer / Recueillir infos) : récit (systèmes dédiés câblés ailleurs).
-  if (r.success && r.stageOutcome === 'countsAsRest') cons.push(...freeCons([t('tp.countsAsRest', { name: hero.label })]));
-  else if (r.success && r.stageOutcome === 'rerollToken') cons.push(...freeCons([t('tp.practice', { name: hero.label })]));
-  else if (r.success && r.stageOutcome === 'gatherInfo') cons.push(...freeCons([t('tp.gatherInfo', { name: hero.label })]));
-  return cons;
+  if (plan?.stage) set({ travelPlan: { ...plan, stage: { ...plan.stage, results: [...plan.stage.results, result] } } });
+  return consequences;
 }
 
 /** Poste SANS Test (Récupérer) : pas d'affichage — l'issue s'applique d'office (le journal annonce

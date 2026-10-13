@@ -7,6 +7,7 @@ import type { ReachId } from './items';
 import type { CodexTarget, ModProvenance } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
+import type { StagePosting } from './activities';
 
 /** Libellés d'AFFICHAGE de l'axe d'Allonge, PAR id d'axe (`ReachId`, `engine/items.ts` — LDB 62
  *  l.156-164). Toute LOGIQUE d'Allonge passe par `reachIdOf`/`reachRankOf`, jamais par ce libellé. */
@@ -1536,10 +1537,11 @@ export interface Combatant {
   riderId?: string;
   /** Ce combattant est une MONTURE rideable (peut être enfourché par un allié à pied — LDB 14). */
   mountable?: boolean;
-  /** Rôle de marche PERSISTANT (`id` d'Activité de voyage EDOC 8) — « les mêmes tiennent toujours le
-   *  même poste ». Attaché au personnage (toutes parties de voyage) ; l'assignation d'un trajet en est
-   *  initialisée. Absent ⇒ inféré des compétences (`defaultTravelRole`). Le joueur l'épingle/le change. */
-  travelRole?: string;
+  /** Rôle de marche PERSISTANT (Activité de voyage EDOC 8, et sa compétence choisie pour Pratiquer une
+   *  Compétence) — « les mêmes tiennent toujours le même poste ». Attaché au personnage (toutes parties de
+   *  voyage) ; l'assignation d'un trajet en est initialisée. Absent ⇒ inféré des compétences
+   *  (`defaultTravelRole`). Le joueur l'épingle/le change. */
+  travelRole?: StagePosting;
   /** Rôle d'ÉQUIPAGE naval ÉPINGLÉ (`id` de `crew-roles.json` : timonier/artilleur/mousse…) — le poste que ce membre
    *  tient lors des Tests d'équipage du navire (MDG 14). ABSENT ⇒ le Test décide : `shipDefaultRoles`
    *  (`state/shipCrew`) affecte l'équipage au moment du jet, selon le TYPE de Test joué. Aucune surface

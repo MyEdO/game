@@ -32,7 +32,7 @@ const heros = (over: Partial<Combatant> = {}): Combatant =>
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 40, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: { current: 12, max: 12 }, advantage: 0, conditions: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    items: [], movement: 4, skills: [], ...over,
+    items: [], movement: 4, skills: [], ...structuredClone(over),
   } as Combatant);
 const INCONSCIENT = { conditions: [{ id: 'inconscient', value: 1 }] } as Partial<Combatant>;
 
@@ -149,13 +149,30 @@ describe('Activités en mer non tentables', () => {
     expect(useGame.getState().pendingRest!.travelDay!.lines.map((l) => l.text)).toContain(refusNePeutTenter(hero, { skill: 'marchandage' }));
   });
 
-  it('sea-activity-generic : buildSeaGenericStep monte la ligne d’un héros Inconscient sans jet, refus nommé', () => {
-    useGame.setState({ party: [heros(INCONSCIENT)] });
-    const hero = useGame.getState().party[0];
-    const step = buildSeaGenericStep(useGame.getState, useGame.setState, hero, activityById('rester-aux-aguets')!)!;
-    expect(step.result).toBe(ECHEC_SANS_JET);
-    expect(step.refus).toBe(refusNePeutTenter(hero, { skill: 'perception' }));
-    expect(appliquer(step, hero)).toEqual({ consequences: [] });
+  describe('sea-activity-generic : un héros Inconscient, l’issue suit ce que l’Activité DÉCLARE', () => {
+    beforeEach(() => useGame.setState({ party: [heros(INCONSCIENT)] }));
+
+    it('Activité qui déclare `failExtenue` : la ligne naît sans jet, refus nommé ; appliquée, Exténué', () => {
+      const hero = useGame.getState().party[0];
+      const def = activityById('rester-aux-aguets')!;
+      expect(def.failExtenue).toBe(true);
+      const step = buildSeaGenericStep(useGame.getState, useGame.setState, hero, def)!;
+      expect(step.result).toBe(ECHEC_SANS_JET);
+      expect(step.refus).toBe(refusNePeutTenter(hero, { skill: 'perception' }));
+      const out = appliquer(step, hero);
+      expect(hasCondition(hero, 'extenue')).toBe(true);
+      expect(out && 'consequences' in out ? out.consequences : []).toEqual([{ ops: [{ op: 'condition', id: 'extenue', value: 1 }] }]);
+    });
+
+    it('Activité qui ne le déclare pas (MDG 15 l.266-300) : appliquée, aucun Exténué, aucune conséquence', () => {
+      const hero = useGame.getState().party[0];
+      const def = activityById('cartographie')!;
+      expect(def.failExtenue).toBeFalsy();
+      const step = buildSeaGenericStep(useGame.getState, useGame.setState, hero, def)!;
+      expect(step.result).toBe(ECHEC_SANS_JET);
+      expect(appliquer(step, hero)).toEqual({ consequences: [] });
+      expect(hasCondition(hero, 'extenue')).toBe(false);
+    });
   });
 });
 

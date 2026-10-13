@@ -33,10 +33,9 @@
  * `pendingExtendedTest` actif) — `pendingSeaActivities.opportunityQueue` porte la file, vidée par
  * `continueSeaActivitiesAfterCascade` jusqu'à la halte de nuit.
  */
-import { battleRng } from './battleRng';
 import { openRest, placesOfKind } from './restFlow';
-import { activityById, activitiesFor, travelActivitySpec, applyTravelActivityResult, type ActivityDef } from '../engine/activities';
-import { applyOps } from '../engine/ops';
+import { activityById, activitiesFor, travelActivitySpec, type ActivityDef } from '../engine/activities';
+import { appliquerIssueActivite } from './activityIssue';
 import { peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { PlayerText } from '../i18n/playerText';
 import { itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
@@ -50,7 +49,7 @@ import type { TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
 import type { Get, Set } from './flowTypes';
 import type { BuiltCascadeStep } from './stepBrand';
-import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, type RollRequest } from './rollSeam';
+import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, resultLines, type RollRequest } from './rollSeam';
 import { registerCascadeApplier, registerExtendedTestOutcome } from './cascade';
 import { noteSeaLine, patchSea } from './seaVoyageFlow';
 import { actorIn, garanti } from './combatants';
@@ -151,12 +150,9 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
 export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: ActivityDef): BuiltCascadeStep | undefined {
   const spec = travelActivitySpec(hero, def);
   if (spec.target == null) {
-    const out = applyTravelActivityResult(spec, def, null);
-    if (out.ops.length) {
-      const opLines = applyOps(hero, out.ops, { label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activity', id: def.id } });
-      set({ party: [...get().party] });
-      noteSeaLine(get, set, opLines);
-    }
+    const { consequences } = appliquerIssueActivite(get, hero, def, spec, null);
+    set({ party: [...get().party] });
+    noteSeaLine(get, set, resultLines(consequences).map((l) => l.text));
     return undefined;
   }
   const difficulty = def.difficulty ?? 'intermediaire';
@@ -296,18 +292,15 @@ registerCascadeApplier('sea-activity-chart', (get, set, step, hero) => {
 });
 
 /** Chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : recompose `travelActivitySpec` (déterministe,
- *  pas de RNG) depuis `meta.activityId` pour appliquer `onSuccess` (GameOp, langue UNIQUE des effets)
- *  au jet DÉJÀ résolu (`applyTravelActivityResult`). */
+ *  pas de RNG) depuis `meta.activityId` et applique l'issue de l'Activité au jet DÉJÀ résolu
+ *  (`appliquerIssueActivite`, source unique terre et mer). */
 registerCascadeApplier('sea-activity-generic', (get, set, step, hero) => {
   if (!step.result || !hero) return;
   const def = typeof step.meta?.activityId === 'string' ? activityById(step.meta.activityId) : undefined;
   if (!def) return;
-  const spec = travelActivitySpec(hero, def);
-  const out = applyTravelActivityResult(spec, def, step.result);
-  if (!out.ops.length) return { consequences: freeCons([]) };
-  const opLines = applyOps(hero, out.ops, { label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activity', id: def.id } });
+  const { consequences } = appliquerIssueActivite(get, hero, def, travelActivitySpec(hero, def), step.result);
   set({ party: [...get().party] });
-  return { consequences: freeCons(opLines) };
+  return { consequences };
 });
 
 /** Issue de DOMAINE du Commerce d'opportunité (#273 Étape 1, Test étendu 3 tentatives max) : % récupéré

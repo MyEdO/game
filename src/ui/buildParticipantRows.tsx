@@ -132,20 +132,16 @@ export function buildParticipantRows<P extends ParticipantRow>(
 /** PRÉSENTATION d'une rangée de Test d'équipage par rôle (MDG 14) — les trois modales navales
  *  (`CrewTestModal`, `ShipBatteryModal`, `ShipManeuverModal`). La ligne née sans jet a déjà rendu son refus
  *  (`rangeeSansJet`) : n'arrive ici qu'une ligne SANS refus. Un dé déjà JETÉ s'affiche tel qu'il est
- *  tombé, contre sa cible. Une rangée NON jetée dont le rôle est devenu non tentable annonce le refus que
- *  son jet posera — `crewRoleValue`, la source que lit `rollCrewRole` —, jamais une valeur 0 (LDB 09
- *  l.30 ; #2588 Q1). Manque de bras : MDG 14 l.53. */
+ *  tombé, contre sa cible. Une rangée dont le rôle est non tentable annonce le refus que son jet pose —
+ *  `crewRoleValue`, la source que lit `rollCrewRole` —, jamais une valeur 0 (LDB 09 l.30 ; #2588 Q1).
+ *  Manque de bras : MDG 14 l.53. */
 export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res: { roll: number; target: number; sl: number } | null): PanelRowData {
   const role = findCrewRoleById(part.roleId);
   if (!role) return { combatant: actor };
   const rv = crewRoleValue(actor, role, part.sense);
   const label = `${role.label}${part.essential ? ' ★' : ''}`;
   const difficulty = part.cumul ? easeDifficulty('intermediaire', -2) : undefined;
-  if (rv.refus != null) {
-    return res
-      ? { combatant: actor, d: testBreakdown(label, res.target, { roll: res.roll, target: res.target, sl: res.sl }, difficulty) }
-      : { combatant: actor, note: rv.refus };
-  }
+  if (rv.refus != null) return { combatant: actor, note: rv.refus };
   const mods = crewRoleTestMods(actor, role, part.sense);
   return res
     ? { combatant: actor, d: testBreakdown(label, rv.value, { roll: res.roll, target: res.target, sl: res.sl }, difficulty, mods) }

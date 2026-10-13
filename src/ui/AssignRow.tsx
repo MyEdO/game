@@ -25,15 +25,22 @@ import type { Combatant } from '../engine/types';
  * Candidat FERMÉ (`refusDe`) : la case est tenable, mais pas par CE candidat (un Test CHOISI qu'il ne
  * peut pas tenter, LDB 09 l.30 ; #2588). Il reste OFFERT au panneau, éteint, avec sa raison — le refus
  * PAR OPTION que `RollOption.refus` porte déjà (`OptionChooser`).
+ *
+ * PARAMÈTRE de l'affectation (`parametreDe`) : la case demande, une fois la personne choisie, UN
+ * paramètre de plus (la Compétence de Pratiquer une Compétence, EDOC 8) — un SECOND panneau-paramètre
+ * ancré au MÊME `[ + ]`, dont chaque valeur fermée porte sa raison. L'affectation ne part qu'avec lui.
  */
+/** Valeur d'un paramètre d'affectation : sa clé (rendue à `onAssign`), son nom, et sa raison s'il est fermé. */
+export interface ParametreAffectation { key: string; label: string; refus?: string }
 export function AssignRow({
-  assigned, candidates, onAssign, onRemove, intitule, canPick = true, retirable = true, nomRetirer, metaDe, refus, refusDe,
+  assigned, candidates, onAssign, onRemove, intitule, canPick = true, retirable = true, nomRetirer, metaDe, refus, refusDe, parametreDe,
 }: {
   /** Personnes actuellement affectées à CETTE case. */
   assigned: Combatant[];
   /** Candidats à l'ajout (l'appelant filtre : jamais quelqu'un de déjà affecté ICI). */
   candidates: Combatant[];
-  onAssign: (heroId: string) => void;
+  /** Affecte `heroId` ; `parametre` = clé de la valeur choisie quand la case en demande une (`parametreDe`). */
+  onAssign: (heroId: string, parametre?: string) => void;
   onRemove: (heroId: string) => void;
   /** Ce que le panneau DEMANDE, en une ligne (« Postes d’équipage — Timonier : affecter ») — c'est aussi
    *  le nom accessible du `[ + ]`. */
@@ -54,11 +61,15 @@ export function AssignRow({
   refus?: string;
   /** RAISON pour laquelle CE candidat ne peut pas tenir la case — son option est éteinte et le dit. */
   refusDe?: (c: Combatant) => string | undefined;
+  /** PARAMÈTRE que CE candidat doit fixer pour tenir la case (sa question, ses valeurs) ; absent = aucun. */
+  parametreDe?: (c: Combatant) => { intitule: string; valeurs: ParametreAffectation[] } | undefined;
 }) {
   // Le BOUTON (ancre potentielle) et l'OUVERTURE sont deux choses : une `ref` callback est appelée au
   // MONTAGE, donc s'en servir d'état d'ouverture rendrait tous les panneaux du roster ouverts d'emblée.
   const [btnAjout, setBtnAjout] = useState<HTMLButtonElement | null>(null);
   const [ouvert, setOuvert] = useState(false);
+  const [parametrant, setParametrant] = useState<Combatant | null>(null);
+  const parametre = parametrant ? parametreDe?.(parametrant) : undefined;
   const ferme = refus != null;
   const options: ParamOption[] = candidates.map((c) => ({
     key: c.id,
@@ -69,8 +80,16 @@ export function AssignRow({
     visuel: <CharFrame c={c} variant="identity" size="sm" decoratif />,
     ...(metaDe?.(c) != null ? { meta: metaDe(c) } : {}),
     ...(refusDe?.(c) != null ? { refus: refusDe(c) } : {}),
-    onSelect: () => onAssign(c.id),
+    onSelect: () => (parametreDe?.(c) ? setParametrant(c) : onAssign(c.id)),
   }));
+  const valeurs: ParamOption[] = parametrant && parametre
+    ? parametre.valeurs.map((v) => ({
+      key: v.key,
+      label: v.label,
+      ...(v.refus != null ? { refus: v.refus } : {}),
+      onSelect: () => onAssign(parametrant.id, v.key),
+    }))
+    : [];
   return (
     <div className="pr-cases">
       {assigned.map((h) => (retirable ? (
@@ -110,6 +129,7 @@ export function AssignRow({
             <Icon id="ui/add" size="sm" />
           </button>
           <PanneauParametre anchor={ouvert ? btnAjout : null} intitule={intitule} options={options} onClose={() => setOuvert(false)} />
+          {parametre ? <PanneauParametre anchor={btnAjout} intitule={parametre.intitule} options={valeurs} onClose={() => setParametrant(null)} /> : null}
         </>
       ) : null}
     </div>
