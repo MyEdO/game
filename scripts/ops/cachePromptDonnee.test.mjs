@@ -2,7 +2,7 @@
 // ligne à ligne par `traiterLigne` comme la lit `scripts/ops/cache-prompt.mjs`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { AVANT_MAX, contexteDExtraction, etatDuFil, identiteDuFichier, racineDuCwd, traiterLigne } from './cachePromptDonnee.mjs'
+import { AVANT_MAX, codeDeSortie, contexteDExtraction, etatDuFil, identiteDuFichier, racineDuCwd, racinesDuDepot, traiterLigne } from './cachePromptDonnee.mjs'
 
 const T0 = Date.parse('2026-10-12T10:00:00Z')
 const iso = (min) => new Date(T0 + min * 60000).toISOString()
@@ -91,7 +91,7 @@ test('événements : outil résumé, résultat mesuré, compactage sans liste de
   const [use] = parType('tool_use')
   assert.equal(use.nom, 'Bash')
   assert.equal(use.resume.run_in_background, true)
-  assert.equal(use.resume.command.length, 301)
+  assert.equal(use.resume.command.length, 300)
   assert.deepEqual(parType('tool_result').map((e) => [e.outil, e.taille]), [['Bash', 1234]])
   assert.deepEqual(parType('system')[0].compactMetadata, { trigger: 'auto', preTokens: 400000, postTokens: 30000, preservedMessagesN: 2 })
   assert.deepEqual(parType('changement').map((e) => [e.champ, e.de, e.vers]), [['version', '2.1.1', '2.1.2']])
@@ -129,4 +129,73 @@ test('identité du fichier : principal, agent typé par sa méta, agent de workf
 
 test('racine dérivée du cwd comme Claude Code : deux-points, barres et points deviennent des tirets', () => {
   assert.equal(racineDuCwd('a:b\\c/d.e', 'maison\\'), 'maison/.claude/projects/a-b-c-d-e')
+})
+
+function jouerPrincipal(lignes, depuis = T0, jusqua = T0 + 3600e3) {
+  const ctx = contexteDExtraction(depuis, jusqua)
+  const etat = etatDuFil(identiteDuFichier(['s1.jsonl'], null), 's1.jsonl')
+  const requetes = [], evenements = []
+  for (const l of lignes.map((o) => JSON.stringify(o))) { const r = traiterLigne(ctx, etat, l); requetes.push(...r.requetes); evenements.push(...r.evenements) }
+  return { ctx, etat, requetes, evenements }
+}
+
+test('sortie et réflexion d\'un message lu sur plusieurs lignes : celles de la DERNIÈRE ligne', () => {
+  const ligne = (out, pense, stop) => assistant(1, 'm', usage(0, 30000, 0, { out, pense }), undefined, { message: { id: 'msg_m', model: 'claude-opus-5-5', usage: usage(0, 30000, 0, { out, pense }), content: [], stop_reason: stop } })
+  const [r] = jouer([ligne(3, 1, null), ligne(250, 40, 'end_turn')].map((o) => JSON.stringify(o))).requetes
+  assert.deepEqual([r.out, r.pense, r.stop_reason], [250, 40, 'end_turn'])
+  const [seule] = jouer([JSON.stringify(ligne(3, 1, null))]).requetes
+  assert.deepEqual([seule.out, seule.pense], [3, 1])
+})
+
+test('requête d\'avant la fenêtre : son coût, sortie de la dernière ligne comprise, va au cumul du fil', () => {
+  const ligne = (out) => assistant(-5, 'p', usage(0, 1e6, 0, { out }), undefined, { message: { id: 'msg_p', model: 'claude-opus-5-5', usage: usage(0, 1e6, 0, { out }), content: [] } })
+  const { etat, requetes } = jouerPrincipal([ligne(0), ligne(1e6), assistant(1, 'q', usage(0, 1e6, 0, { out: 0 }))])
+  assert.equal(requetes.length, 1)
+  assert.ok(Math.abs(etat.fil.dollarsAvantFenetre - (5 + 4e-6 + 20)) < 1e-9)
+  assert.equal(jouerPrincipal([ligne(0)], T0 - 3600e3).etat.fil.dollarsAvantFenetre, 0)
+})
+
+test('code de sortie : dernier exit=N écrit, en-tête Exit code N d\'une erreur, 0 hors erreur, null sinon', () => {
+  assert.equal(codeDeSortie('exit=0\n[perimetre] … exit=1', false), 1)
+  assert.equal(codeDeSortie('Exit code 2\nboom', true), 2)
+  assert.equal(codeDeSortie('ok', false), 0)
+  assert.equal(codeDeSortie('boom', true), null)
+})
+
+test('résultat Bash : fin bornée et code ; résultat d\'un autre outil : ni l\'un ni l\'autre', () => {
+  const ev = jouer([
+    assistant(1, 'u', usage(0, 30000, 0), [{ type: 'tool_use', id: 'b1', name: 'Bash', input: { command: 'npm run test:perimetre' } }, { type: 'tool_use', id: 'r1', name: 'Read', input: {} }]),
+    user(2, [{ type: 'tool_result', tool_use_id: 'b1', content: 'x'.repeat(500) + ' exit=1' }, { type: 'tool_result', tool_use_id: 'r1', content: 'exit=1' }]),
+  ].map((o) => JSON.stringify(o))).evenements.filter((e) => e.type === 'tool_result')
+  assert.deepEqual(ev.map((e) => [e.outil, e.code, e.fin?.length]), [['Bash', 1, 300], ['Read', undefined, undefined]])
+  assert.ok(ev[0].fin.endsWith('exit=1'))
+})
+
+test('notification : statut et code de sortie lus dans le <status> et le <summary>', () => {
+  const notif = (statut, sommaire) => ({ type: 'queue-operation', operation: 'enqueue', timestamp: iso(1), content: `<task-notification><status>${statut}</status><summary>${sommaire}</summary></task-notification>` })
+  const ev = jouer([notif('failed', 'Background command "t" failed with exit code 1'), notif('completed', 'Agent "c" finished')].map((o) => JSON.stringify(o))).evenements
+  assert.deepEqual(ev.map((e) => [e.statut, e.code]), [['failed', 1], ['completed', undefined]])
+})
+
+test('frontière de tour : 1re requête après turn_duration, ajout harnais du tour précédent, couverture précédente', () => {
+  const td = (min) => ({ type: 'system', subtype: 'turn_duration', timestamp: iso(min) })
+  const [a, b, c, d] = jouerPrincipal([
+    assistant(1, 'a', usage(0, 30000, 0)),
+    user(2, 'texte [suivi] situation relue'),
+    assistant(3, 'b', usage(30000, 100, 0)),
+    td(4),
+    assistant(5, 'c', usage(1000, 30000, 0)),
+    td(6), user(6, 'suite'),
+    assistant(7, 'd', usage(31000, 10, 0)),
+  ]).requetes
+  assert.deepEqual([a, b, c, d].map((r) => [r.finDeTour, r.ajoutTourPrecedent, r.couvertPrec]), [[false, null, null], [false, null, 30000], [true, true, 30100], [true, false, 31000]])
+})
+
+test('cost-state : sa position est le rang de la dernière requête lue', () => {
+  const e = jouerPrincipal([assistant(1, 'a', usage(0, 30000, 0)), { type: 'cost-state', totalCostUSD: 2 }]).evenements.find((x) => x.type === 'etat_cout')
+  assert.deepEqual([e.rang, e.totalCostUSD], [1, 2])
+})
+
+test('racines d\'un dépôt : l\'arbre principal puis ses frères <slug>-*, jamais un préfixe sans tiret', () => {
+  assert.deepEqual(racinesDuDepot('C--Game', ['C--Game--wt-2596', 'C--Gamebis', 'C--Game', 'C--Game-x', 'Autre']), ['C--Game', 'C--Game--wt-2596', 'C--Game-x'])
 })

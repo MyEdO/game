@@ -3,6 +3,8 @@
 // Aucune E/S ici : l'état d'un fil (`etatDuFil`) et le contexte partagé entre fils (`contexteDExtraction`,
 // dédoublonnage `message.id|requestId`) sont la seule mémoire, mutée par `traiterLigne`.
 // Rien n'est jeté en silence : un type de ligne hors `TYPES_CONNUS` devient un événement `inconnu`.
+import { coutDollars } from './cachePromptAnalyses.mjs'
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
 /** Résumé d'événement gardé dans `avant` d'une requête, au plus. */
 export const AVANT_MAX = 20
@@ -12,6 +14,13 @@ const COMMANDE_MAX = 300
 const SCALAIRE_MAX = 120
 const PROMPT_MAX = 80
 const PREMIER_PROMPT_MAX = 90
+const FIN_MAX = 300
+
+/** Marqueur de l'ajout de harnais en tête de tour (mod `turn.start`, `$.session.append`). */
+export const AJOUT_HARNAIS = /\[suivi\] situation relue/
+
+/** Outils dont le résultat garde sa fin et son code de sortie. */
+const SHELL_A_CODE = /^(Bash|PowerShell)$/
 
 /** Clés d'enveloppe communes à toutes les lignes, jamais recopiées dans un résumé. */
 const ENVELOPPE = new Set([
@@ -38,13 +47,24 @@ const CHANGEMENTS = [
   ['aiTitle', (o) => o.type === 'ai-title' ? o.aiTitle : undefined],
 ]
 
-const tronquer = (s, n) => s.length > n ? s.slice(0, n) + '…' : s
+/** Préfixe d'au plus `n` caractères d'un résumé machine (lu par motif, jamais ellipsé). */
+const couper = (s, n) => s.slice(0, n)
 const uneLigne = (s) => s.replace(/\s+/g, ' ').trim()
 
-/** Début d'un texte injecté, et le `<summary>` d'une notification s'il en porte un. PUR. */
+/** Début d'un texte injecté ; d'une notification, son `<summary>`, son `<status>` et le code de sortie que porte
+ *  son résumé (« (exit code N) », « failed with exit code N »). PUR. */
 function apercu(texte) {
-  const sommaire = /<summary>([^<]*)/.exec(texte)?.[1]
-  return { debut: tronquer(uneLigne(texte), PROMPT_MAX), ...(sommaire ? { sommaire: tronquer(uneLigne(sommaire), SCALAIRE_MAX) } : {}) }
+  const sommaire = /<summary>([^<]*)/.exec(texte)?.[1], statut = /<status>([^<]*)/.exec(texte)?.[1]
+  const code = sommaire && /exit code (\d+)/.exec(sommaire)?.[1]
+  return { debut: couper(uneLigne(texte), PROMPT_MAX), ...(sommaire ? { sommaire: coupeAuMot(uneLigne(sommaire), SCALAIRE_MAX) } : {}),
+    ...(statut ? { statut: statut.trim() } : {}), ...(code ? { code: Number(code) } : {}) }
+}
+
+/** Code de sortie d'un résultat de commande : le dernier `exit=N` écrit par la commande, sinon l'en-tête
+ *  `Exit code N` d'un résultat en erreur, sinon 0 hors erreur ; `null` si rien ne le dit. PUR. */
+export function codeDeSortie(texte, erreur) {
+  const ecrit = [...texte.matchAll(/\bexit=(\d+)/g)].at(-1)?.[1] ?? /^Exit code (\d+)/.exec(texte)?.[1]
+  return ecrit !== undefined ? Number(ecrit) : erreur ? null : 0
 }
 
 /** Texte d'un `content` de message (chaîne ou blocs). PUR. */
@@ -62,9 +82,9 @@ function scalaires(objet, max, exclues = new Set(), profondeur = 0, prefixe = ''
     if (exclues.has(k)) continue
     const cle = prefixe + k
     if (CONTENUS.has(k)) { r[`${cle}Long`] = typeof v === 'string' ? v.length : JSON.stringify(v ?? '').length; continue }
-    if (typeof v === 'string') r[cle] = tronquer(uneLigne(v), k === 'command' ? COMMANDE_MAX : max)
+    if (typeof v === 'string') r[cle] = couper(uneLigne(v), k === 'command' ? COMMANDE_MAX : max)
     else if (typeof v === 'number' || typeof v === 'boolean') r[cle] = v
-    else if (Array.isArray(v) && v.every((x) => typeof x === 'string')) r[cle] = tronquer(v.join(' '), max)
+    else if (Array.isArray(v) && v.every((x) => typeof x === 'string')) r[cle] = couper(v.join(' '), max)
     else if (profondeur > 0 && v && typeof v === 'object' && !Array.isArray(v)) Object.assign(r, scalaires(v, max, new Set(), profondeur - 1, `${cle}.`))
   }
   return r
@@ -78,6 +98,13 @@ export function resumeOutil(input) {
 /** Racine de transcripts que Claude Code dérive d'un cwd : `~/.claude/projects/<cwd, [:\\/.] → ->`. PUR. */
 export function racineDuCwd(cwd, maison) {
   return `${maison.replace(/[\\/]+$/, '')}/.claude/projects/${cwd.replace(/[:\\/.]/g, '-')}`
+}
+
+/** Les slugs de racines d'un dépôt dont l'arbre principal a le slug `slug` : lui, puis ses frères `<slug>-*`
+ *  (dont `<slug>--wt-*`, où écrivent les sessions lancées dans un worktree), parmi les `noms` de
+ *  `~/.claude/projects`, triés. PUR. */
+export function racinesDuDepot(slug, noms) {
+  return [slug, ...noms.filter((n) => n.startsWith(`${slug}-`)).sort()]
 }
 
 /** Identité d'un fichier de transcript depuis son chemin relatif à la racine (segments). PUR.
@@ -104,9 +131,10 @@ export function contexteDExtraction(depuis, jusqua) {
 export function etatDuFil(identite, fichier) {
   return {
     ...identite, fichier, tDernier: null, precedente: null, rang: 0, apresCompactage: false,
-    avant: [], avantN: 0, outils: new Map(), suivis: {}, requeteCourante: null,
+    avant: [], avantN: 0, outils: new Map(), suivis: {}, parId: new Map(), couvertPrec: null, finDeTour: false, ajoutTour: false, ajoutTourPrec: false,
     fil: { session: identite.session, fichier, fil: identite.fil, agentType: identite.agentType, workflow: identite.workflow, phase: identite.phase,
-      premierT: null, dernierT: null, requetes: 0, requetesFenetre: 0, maxCtx: 0, cwd: null, version: null, premierPrompt: null },
+      premierT: null, dernierT: null, requetes: 0, requetesFenetre: 0, maxCtx: 0, cwd: null, version: null, premierPrompt: null,
+      dollarsAvantFenetre: 0, horsGrilleAvantFenetre: 0 },
   }
 }
 
@@ -124,7 +152,7 @@ function resumeCourt(e) {
                 : e.type === 'erreur_api' ? e.texte
                   : e.type === 'etat_cout' ? `${e.totalCostUSD} $`
                     : e.type === 'inconnu' ? e.ligneType : ''
-  return { type: e.type, r: tronquer(uneLigne(String(d)), 100) }
+  return { type: e.type, r: couper(uneLigne(String(d)), 100) }
 }
 
 /** Nature d'un prompt utilisateur : `meta`, `balise:<nom>` (notification, commande injectée…) ou `texte`. PUR. */
@@ -185,7 +213,7 @@ export function traiterLigne(ctx, etat, ligne) {
   if (TYPES_DE_SUIVI.has(type)) return sortie
 
   const m = o.message
-  if (o.isApiErrorMessage) emettre({ type: 'erreur_api', texte: tronquer(uneLigne(texteDe(m?.content)), 200), erreur: o.error ?? null })
+  if (o.isApiErrorMessage) emettre({ type: 'erreur_api', texte: couper(uneLigne(texteDe(m?.content)), 200), erreur: o.error ?? null })
 
   if (type === 'assistant') {
     const u = m?.usage
@@ -193,10 +221,11 @@ export function traiterLigne(ctx, etat, ligne) {
       const id = `${m.id}|${o.requestId ?? ''}`
       if (ctx.vus.has(id)) {
         inv.doublons++
-        if (etat.requeteCourante?.requestId === (o.requestId ?? null) && m.stop_reason) etat.requeteCourante.stop_reason = m.stop_reason
+        const r = etat.parId.get(id)
+        if (r) completer(ctx, etat, r, m)
       } else {
         ctx.vus.add(id)
-        sortie.requetes.push(...requete(ctx, etat, o, t, dansFenetre))
+        sortie.requetes.push(...requete(ctx, etat, o, t, dansFenetre, id))
       }
     } else if (m?.model === '<synthetic>') inv.synthetiques++
     for (const b of Array.isArray(m?.content) ? m.content : []) {
@@ -215,7 +244,9 @@ export function traiterLigne(ctx, etat, ligne) {
       if (textes.length) prompt(etat, emettre, textes.join('\n'), o)
       for (const b of c) {
         if (b?.type !== 'tool_result') continue
-        emettre({ type: 'tool_result', outil: etat.outils.get(b.tool_use_id) ?? '?', id: b.tool_use_id, taille: texteDe(b.content).length, erreur: !!b.is_error })
+        const outil = etat.outils.get(b.tool_use_id) ?? '?', texte = texteDe(b.content)
+        emettre({ type: 'tool_result', outil, id: b.tool_use_id, taille: texte.length, erreur: !!b.is_error,
+          ...(SHELL_A_CODE.test(outil) ? { fin: texte.slice(-FIN_MAX), code: codeDeSortie(texte, !!b.is_error) } : {}) })
       }
     }
     return sortie
@@ -226,7 +257,10 @@ export function traiterLigne(ctx, etat, ligne) {
       etat.apresCompactage = true
       const { preservedMessages, ...meta } = o.compactMetadata ?? {}
       emettre({ type: 'system', subtype: o.subtype, compactMetadata: { ...meta, preservedMessagesN: preservedMessages?.uuids?.length ?? 0 } })
-    } else emettre({ type: 'system', subtype: o.subtype ?? null, meta: scalaires(o, SCALAIRE_MAX, ENVELOPPE), ...(Array.isArray(o.hookInfos) ? { hooks: o.hookInfos.map((h) => scalaires(h, SCALAIRE_MAX)) } : {}) })
+    } else {
+      if (o.subtype === 'turn_duration') { etat.finDeTour = true; etat.ajoutTourPrec = etat.ajoutTour; etat.ajoutTour = false }
+      emettre({ type: 'system', subtype: o.subtype ?? null, meta: scalaires(o, SCALAIRE_MAX, ENVELOPPE), ...(Array.isArray(o.hookInfos) ? { hooks: o.hookInfos.map((h) => scalaires(h, SCALAIRE_MAX)) } : {}) })
+    }
     return sortie
   }
 
@@ -245,7 +279,7 @@ export function traiterLigne(ctx, etat, ligne) {
   }
 
   if (type === 'cost-state') {
-    emettre({ type: 'etat_cout', totalCostUSD: o.totalCostUSD ?? null, modeles: Object.fromEntries(Object.entries(o.modelUsage ?? {}).map(([mo, u]) => [mo, scalaires(u, SCALAIRE_MAX)])) })
+    emettre({ type: 'etat_cout', rang: etat.rang, totalCostUSD: o.totalCostUSD ?? null, modeles: Object.fromEntries(Object.entries(o.modelUsage ?? {}).map(([mo, u]) => [mo, scalaires(u, SCALAIRE_MAX)])) })
     return sortie
   }
 
@@ -255,11 +289,29 @@ export function traiterLigne(ctx, etat, ligne) {
 
 function prompt(etat, emettre, texte, o) {
   const nature = natureDuPrompt(texte, !!o.isMeta)
-  if (nature === 'texte' && !etat.fil.premierPrompt) etat.fil.premierPrompt = tronquer(uneLigne(texte), PREMIER_PROMPT_MAX)
+  if (AJOUT_HARNAIS.test(texte)) etat.ajoutTour = true
+  if (nature === 'texte' && !etat.fil.premierPrompt) etat.fil.premierPrompt = coupeAuMot(uneLigne(texte), PREMIER_PROMPT_MAX)
   emettre({ type: 'prompt', nature, isMeta: !!o.isMeta, longueur: texte.length, ...apercu(texte), origin: o.origin?.kind ?? o.origin ?? null })
 }
 
-function requete(ctx, etat, o, t, dansFenetre) {
+/** Coût d'une requête d'avant la fenêtre, ajouté (`signe` 1) ou retiré (-1) du cumul de son fil. */
+function compterAvantFenetre(ctx, f, r, signe) {
+  if (r.t === null || r.t >= ctx.depuis) return
+  const c = coutDollars(r)
+  if (!c) f.horsGrilleAvantFenetre += signe
+  else f.dollarsAvantFenetre += signe * Object.values(c).reduce((a, x) => a + x, 0)
+}
+
+/** Ligne suivante d'un message déjà lu : sa sortie, sa réflexion et son `stop_reason` sont ceux de la DERNIÈRE ligne. */
+function completer(ctx, etat, r, m) {
+  compterAvantFenetre(ctx, etat.fil, r, -1)
+  r.out = m.usage.output_tokens ?? 0
+  r.pense = m.usage.output_tokens_details?.thinking_tokens ?? null
+  if (m.stop_reason) r.stop_reason = m.stop_reason
+  compterAvantFenetre(ctx, etat.fil, r, 1)
+}
+
+function requete(ctx, etat, o, t, dansFenetre, id) {
   const m = o.message, u = m.usage
   const lu = u.cache_read_input_tokens ?? 0, ecrit = u.cache_creation_input_tokens ?? 0, nu = u.input_tokens ?? 0
   const e5 = u.cache_creation?.ephemeral_5m_input_tokens ?? 0, e1 = u.cache_creation?.ephemeral_1h_input_tokens ?? 0
@@ -272,17 +324,21 @@ function requete(ctx, etat, o, t, dansFenetre) {
     ecartMin: etat.precedente === null || t === null ? null : (t - etat.precedente) / 60000,
     rang: etat.rang, premiere: etat.rang === 1, apresCompactage: etat.apresCompactage, version: o.version ?? null,
     stop_reason: m.stop_reason ?? null, avantN: etat.avantN, avant: etat.avant,
+    finDeTour: etat.finDeTour, ajoutTourPrecedent: etat.finDeTour ? etat.ajoutTourPrec : null, couvertPrec: etat.couvertPrec,
   }
+  etat.parId.set(id, r)
+  etat.couvertPrec = lu + ecrit
+  etat.finDeTour = false
   etat.precedente = t
   etat.apresCompactage = false
   etat.avant = []
   etat.avantN = 0
-  etat.requeteCourante = r
   const f = etat.fil
   f.requetes++
   f.premierT ??= t
   f.dernierT = t
   f.maxCtx = Math.max(f.maxCtx, ctxTokens)
+  compterAvantFenetre(ctx, f, r, 1)
   ctx.inventaire.requetes++
   if (!dansFenetre) return []
   f.requetesFenetre++

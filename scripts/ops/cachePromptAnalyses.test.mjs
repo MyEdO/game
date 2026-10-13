@@ -3,8 +3,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  basculesOrganisation, causeDEcriture, commandes, comptesCles, analyser, coutDollars, delta, frontieresDeTour, reecritures,
-  reprisesSousAgents, reveilsOrchestrateur, thinkingDrops, ttl,
+  AGENT_MORT, basculesOrganisation, causeDEcriture, causesDeReveil, commandes, comptesCles, analyser, conformiteSendMessage, coutDollars, delta, dollars,
+  frontieresDeTour, rapprochementCoutEtat, reecritures, reprisesSousAgents, reveilsOrchestrateur, simuPlafond, surcout, thinkingDrops, transcriptsLus, ttl, verdictPerimetre,
 } from './cachePromptAnalyses.mjs'
 import { rendreRapport } from './cachePromptRapport.mjs'
 
@@ -51,19 +51,23 @@ test('réveil de l’orchestrateur après plus d’1 h : cause lue dans les év�
   assert.deepEqual(reveilsOrchestrateur({ requetes, evenements: [], fils: [] }).longues.map((x) => x.cause), ['aucun événement'])
 })
 
-test('frontière de tour : l’ajout harnais du tour précédent et la cassure du préfixe ; réécriture attribuée', () => {
+test('frontière de tour : lue sur la segmentation de l’extraction ; couverture précédente hors fenêtre comprise ; réécriture attribuée', () => {
   rangs = {}
-  const fin = { type: 'system', r: 'turn_duration' }, ajout = { type: 'prompt', r: 'texte [suivi] situation relue' }
+  const f = (r, ajout, couvertPrec) => ({ ...r, finDeTour: true, ajoutTourPrecedent: ajout, couvertPrec })
   const requetes = [
     req('s', 'principal', 0, { e1: 100000 }),
-    req('s', 'principal', 1, { lu: 100000, e1: 500, avant: [ajout] }),
-    req('s', 'principal', 3, { lu: 32000, e1: 70000, avant: [fin] }),
+    req('s', 'principal', 1, { lu: 100000, e1: 500 }),
+    f(req('s', 'principal', 3, { lu: 32000, e1: 70000 }), true, 100500),
     req('s', 'principal', 4, { lu: 102000, e1: 300 }),
-    req('s', 'principal', 6, { lu: 102300, e1: 200, avant: [fin] }),
+    f(req('s', 'principal', 6, { lu: 102300, e1: 200 }), false, 102300),
+    f(req('s', 'principal', 90, { e1: 102000 }), false, 102500),
   ]
   assert.deepEqual(frontieresDeTour({ requetes }).map((b) => [b.ajout, b.casse]), [[true, true], [false, false]])
   const r = reecritures({ requetes })
   assert.deepEqual(r.sousTtl.map((x) => x.attribution), ['frontière, ajout harnais au tour précédent'])
+  const premiereDeFenetre = { ...f(req('t', 'principal', 0, { lu: 1000, e1: 60000 }), true, 61000), ecartMin: 2 }
+  assert.deepEqual(frontieresDeTour({ requetes: [premiereDeFenetre] }).map((b) => [b.ajout, b.casse]), [[true, true]])
+  assert.equal(frontieresDeTour({ requetes: [{ ...premiereDeFenetre, finDeTour: false }] }).length, 0)
 })
 
 test('coût en dollars par composante ; modèle hors grille = null', () => {
@@ -71,6 +75,75 @@ test('coût en dollars par composante ; modèle hors grille = null', () => {
   const r = req('s', 'principal', 0, { lu: 1e6, e5: 1e6, e1: 1e6, nu: 1e6, out: 1e6 })
   assert.deepEqual(coutDollars(r), { lu: 0.2, e5: 5, e1: 8, nu: 4, sortie: 20, pense: 0 })
   assert.equal(coutDollars({ ...r, model: 'inconnu' }), null)
+})
+
+test('grille : lecture ×0,05 de l’input à Opus, suffixe [1m] reconnu, modèle hors grille compté et nommé, part des écritures en $', () => {
+  rangs = {}
+  const r = req('s', 'principal', 0, { lu: 1e6, e5: 1e6, nu: 0, out: 0 })
+  assert.deepEqual(coutDollars({ ...r, model: 'claude-opus-5-5[1m]' }), coutDollars(r))
+  assert.ok(Math.abs(surcout(r) - 4.8) < 1e-9)
+  const c = comptesCles(analyser({ requetes: [r, { ...req('s', 'principal', 1, { e5: 10 }), model: 'claude-x-9' }], evenements: [], fils: [] }))
+  assert.deepEqual([c.requetesHorsGrille, c.modelesHorsGrille], [1, 'claude-x-9'])
+  assert.ok(Math.abs(c.partEcrituresCoutPrompt - 5 / 5.2) < 1e-9)
+  assert.equal(comptesCles(analyser({ requetes: [r], evenements: [], fils: [] })).modelesHorsGrille, '')
+})
+
+test('réveil : notification d’agent failed / killed / stopped = agent mort ; completed = agent rendu', () => {
+  const n = (statut, sommaire) => ({ type: 'prompt', origin: 'task-notification', nature: 'balise:task-notification', debut: '<task-notification>', statut, sommaire })
+  assert.deepEqual(causesDeReveil([n('failed', 'Agent "c" failed: Agent stalled: no progress for 600s (stream watchdog)')]), [AGENT_MORT])
+  assert.deepEqual(causesDeReveil([n('stopped', 'Background agent "c" didn’t finish before the previous session ended')]), [AGENT_MORT])
+  assert.deepEqual(causesDeReveil([n('completed', 'Agent "c" finished')]), ['agent rendu'])
+  assert.deepEqual(causesDeReveil([n('failed', 'Background command "x" failed with exit code 1')]), ['commande de fond'])
+})
+
+test('rapprochement cost-state : principal jusqu’à son rang, sous-agents jusqu’à son instant, cumuls d’avant la fenêtre', () => {
+  rangs = {}
+  const o = { e5: 1e6, nu: 0, out: 0 }
+  const requetes = [req('s', 'principal', 0, o), req('s', 'a1', 1, o), req('s', 'principal', 3, o), req('s', 'a1', 4, o)]
+  const etat = { ...ev('s', 'principal', 2, { type: 'etat_cout', totalCostUSD: 20, modeles: {} }), rang: 1 }
+  const fils = [{ session: 's', fil: 'principal', dollarsAvantFenetre: 4 }, { session: 's', fil: 'a1', dollarsAvantFenetre: 6 }]
+  const [c] = rapprochementCoutEtat({ requetes, evenements: [etat], fils })
+  assert.deepEqual([c.principal, c.sousAgents, c.calcule, c.ecart], [9, 11, 20, 0])
+  assert.equal(rapprochementCoutEtat({ requetes, evenements: [{ ...etat, rang: 2, totalCostUSD: 25 }], fils })[0].ecart, (25 - 25) / 25)
+})
+
+test('plafond simulé : sans dépassement, le coût réel (= dollars) ; au-dessous du contexte, des coupures', () => {
+  rangs = {}
+  const requetes = [req('s', 'principal', 0, { e1: 100000 }), req('s', 'principal', 1, { lu: 100000, e1: 100000 }), req('s', 'principal', 2, { lu: 150000, e1: 100000 })]
+  const [g] = simuPlafond({ requetes })
+  assert.ok(Math.abs(g.reel - dollars(requetes).total) < 1e-9)
+  const a300 = g.plafonds.find((x) => x.C === 300e3), a150 = g.plafonds.find((x) => x.C === 150e3)
+  assert.deepEqual([a300.compactage.coupures, a150.compactage.coupures > 0, a150.redemarrage.coupures > 0], [0, true, true])
+  assert.ok(Math.abs(a300.compactage.dollars - g.reel) < 1e-9)
+  assert.equal(a150.compactage.coupures, 2)
+  assert.ok(Math.abs(a150.compactage.dollars - 8.0706684) < 1e-9)
+})
+
+test('verdict de test:perimetre par codeur : code du résultat, de la notification en fond ; dernier run du fil', () => {
+  const evenements = [
+    ev('s', 'a1', 0, { type: 'tool_use', nom: 'Bash', id: 't1', resume: { command: 'npm run test:perimetre' } }),
+    ev('s', 'a1', 5, { type: 'tool_result', outil: 'Bash', id: 't1', taille: 1, code: 1, fin: 'exit=1' }),
+    ev('s', 'a1', 6, { type: 'tool_use', nom: 'Bash', id: 'toolu_0123456789abcdefZZ', resume: { command: 'npm run test:perimetre', run_in_background: true } }),
+    ev('s', 'a1', 9, { type: 'file', debut: '<task-notification><tool-use-id>toolu_0123456789abcdef', sommaire: 'Background command "p" completed (exit code 0)', code: 0 }),
+    ev('s', 'a2', 0, { type: 'tool_use', nom: 'Bash', id: 't3', resume: { command: 'npm run test:perimetre' } }),
+    ev('s', 'a2', 3, { type: 'tool_result', outil: 'Bash', id: 't3', taille: 1, code: 2 }),
+    ev('s', 'a3', 0, { type: 'tool_use', nom: 'Bash', id: 't4', resume: { command: 'npm run test:perimetre' } }),
+  ]
+  const v = verdictPerimetre({ evenements })
+  assert.deepEqual(v.parFil.map((f) => [f.fil, f.runs, f.rouges, f.verdict]), [['a1', 2, 1, 'vert'], ['a2', 1, 1, 'rouge'], ['a3', 1, 0, 'inconnu']])
+})
+
+test('SendMessage : livraison sur agent rendu, et rendu depuis plus de 5 min', () => {
+  const h = (fil, min) => ev('s', fil, min, { type: 'tool_use', nom: 'SubagentHandback', id: `h${fil}${min}`, resume: {} })
+  const m = (fil, min) => ev('s', fil, min, { type: 'prompt', debut: 'The coordinator sent a message: x' })
+  const r = conformiteSendMessage({ evenements: [h('a1', 0), m('a1', 10), h('a2', 0), m('a2', 3), m('a3', 1)] })
+  assert.deepEqual([r.livraisons.length, r.surAgentRendu, r.renduPlus5.map((x) => x.fil)], [3, 2, ['a1']])
+})
+
+test('transcripts lus : les fichiers qui portent une requête de la fenêtre, une fois chacun', () => {
+  rangs = {}
+  assert.equal(transcriptsLus([req('s', 'a1', 0), req('s', 'a1', 1), req('s', 'principal', 2)]), 2)
+  assert.equal(transcriptsLus([]), 0)
 })
 
 test('TTL servi et empirique : e5 / e1 par type, part froide par tranche', () => {

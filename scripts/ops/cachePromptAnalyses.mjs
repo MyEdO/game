@@ -9,9 +9,6 @@ export const SEUIL_FROID = 20000
 /** TTL servi, en minutes : 1 h au fil principal, 5 min aux sous-agents (#2596) ; `ttlEmpirique` le re-mesure. */
 export const TTL_MIN = { principal: 60, agent: 5 }
 
-/** Ratios en équivalent input : https://docs.claude.com/en/docs/build-with-claude/prompt-caching#pricing */
-export const RATIOS = { lu: 0.1, e5: 1.25, e1: 2, nu: 1 }
-
 /** $ par million de tokens, par modèle : catalogue `pricing_tiers` + `models[].pricing` de claude.exe 2.1.296,
  *  vérifié contre les lignes `cost-state` (#2596). `long` : tarif au-delà de `above` tokens de prompt. */
 export const PRIX = {
@@ -21,9 +18,6 @@ export const PRIX = {
   'claude-haiku-4-5-20251001': { in: 1, out: 5, w5: 1.25, w1: 2, rd: 0.1 },
 }
 
-/** Marqueur de l'ajout de harnais en tête de tour (mod `turn.start`, `$.session.append`). */
-export const AJOUT_HARNAIS = /\[suivi\] situation relue/
-
 /** Invocation de `npm run test:perimetre` (hors `-- --liste`). */
 export const PERIM = /(^|[;&|(]\s*|&&\s*)(timeout \d+ )?([A-Z_]+= )?npm run (-s |--silent )?test:perimetre\b(?!\s*--\s*--liste)/
 
@@ -31,10 +25,30 @@ const SHELL = /^(Bash|PowerShell|bash)$|ctx_shell/
 
 export const ecrit = (r) => r.e5 + r.e1 + r.ecritAutre
 export const froide = (r) => ecrit(r) > SEUIL_FROID && ecrit(r) > r.ctx / 2
-export const eqEcriture = (r) => (r.e5 + r.ecritAutre) * RATIOS.e5 + r.e1 * RATIOS.e1
-export const eqInput = (r) => r.lu * RATIOS.lu + eqEcriture(r) + r.nu * RATIOS.nu
-/** Ce que l'écriture a coûté de plus qu'une lecture des mêmes tokens. */
-export const surcout = (r) => eqEcriture(r) - ecrit(r) * RATIOS.lu
+
+/** Tarif d'une requête : `PRIX` de son modèle (suffixe `[1m]` reconnu), palier `long` au-delà de son seuil ;
+ *  `null` hors grille. */
+export function prixDe(r) {
+  let p = PRIX[String(r.model).replace(/\[1m\]$/, '')]
+  if (!p) return null
+  if (p.long && r.ctx > p.long.above) p = p.long
+  return p
+}
+
+/** Coût en $ d'une requête par composante, `null` si le modèle est hors `PRIX`. */
+export function coutDollars(r) {
+  const p = prixDe(r)
+  if (!p) return null
+  const M = 1e6, pense = r.pense ?? 0
+  return { lu: r.lu * p.rd / M, e5: (r.e5 + r.ecritAutre) * p.w5 / M, e1: r.e1 * p.w1 / M, nu: r.nu * p.in / M, sortie: (r.out - pense) * p.out / M, pense: pense * p.out / M }
+}
+const ZERO = { lu: 0, e5: 0, e1: 0, nu: 0, sortie: 0, pense: 0 }
+/** $ des écritures en cache d'une requête (0 hors grille). */
+export const coutEcriture = (r) => { const c = coutDollars(r) ?? ZERO; return c.e5 + c.e1 }
+/** $ du prompt d'une requête : lu, écrit, input hors cache (0 hors grille). */
+export const coutPrompt = (r) => { const c = coutDollars(r) ?? ZERO; return c.lu + c.e5 + c.e1 + c.nu }
+/** Ce que l'écriture a coûté de plus, en $, qu'une lecture de `tokens` (défaut : les tokens écrits). */
+export const surcout = (r, tokens = ecrit(r)) => { const p = prixDe(r); return p ? coutEcriture(r) - tokens * p.rd / 1e6 : 0 }
 export const estPrincipal = (x) => x.fil === 'principal'
 export const groupeDe = (x) => estPrincipal(x) ? 'principal' : 'sous-agents'
 const cleFil = (x) => `${x.session}|${x.fil}`
@@ -53,10 +67,10 @@ const sommeDe = (xs, f) => xs.reduce((a, x) => a + f(x), 0)
 
 /** Agrégat de tokens d'un lot de requêtes. */
 export function somme(rs) {
-  const a = { req: 0, lu: 0, ecrit: 0, e5: 0, e1: 0, nu: 0, out: 0, pense: 0, eq: 0, eqEcriture: 0, surcout: 0 }
+  const a = { req: 0, lu: 0, ecrit: 0, e5: 0, e1: 0, nu: 0, out: 0, pense: 0, dollarsPrompt: 0, dollarsEcriture: 0, surcout: 0 }
   for (const r of rs) {
     a.req++; a.lu += r.lu; a.ecrit += ecrit(r); a.e5 += r.e5; a.e1 += r.e1; a.nu += r.nu; a.out += r.out; a.pense += r.pense ?? 0
-    a.eq += eqInput(r); a.eqEcriture += eqEcriture(r); a.surcout += surcout(r)
+    a.dollarsPrompt += coutPrompt(r); a.dollarsEcriture += coutEcriture(r); a.surcout += surcout(r)
   }
   return a
 }
@@ -133,7 +147,7 @@ export function sessions({ requetes, fils, evenements }) {
     session: s, cwd: infos.get(s)?.cwd ?? null, premierPrompt: infos.get(s)?.premierPrompt ?? null, ...somme(rs),
     sousAgents: new Set(rs.filter((r) => !estPrincipal(r)).map((r) => r.fil)).size, compactages: nCompact.get(s)?.length ?? 0,
     ecritFroid: somme(rs.filter((r) => causeDEcriture(r) !== 'incrémental')).ecrit, dollars: dollars(rs).total,
-  })).sort((a, b) => b.eq - a.eq)
+  })).sort((a, b) => b.dollars - a.dollars)
 }
 
 export function typesAgents({ requetes }) {
@@ -143,17 +157,9 @@ export function typesAgents({ requetes }) {
     return { type, agents: fs_.length, ...somme(rs), modeles: [...new Set(rs.map((r) => r.model))], naissanceMoyenne: nais.length ? somme(nais).ecrit / nais.length : null,
       reprises: rep.length, reecrit: somme(rep).ecrit, ctxMaxMoyen: sommeDe(fs_, (f) => Math.max(...f.map((r) => r.ctx))) / fs_.length,
       dureeMediane: quantile(fs_.map((f) => (f.at(-1).t - f[0].t) / 60000), 0.5), dollars: dollars(rs).total }
-  }).sort((a, b) => b.eq - a.eq)
+  }).sort((a, b) => b.dollars - a.dollars)
 }
 
-/** Coût en $ d'une requête par composante, `null` si le modèle est hors `PRIX`. */
-export function coutDollars(r) {
-  let p = PRIX[r.model]
-  if (!p) return null
-  if (p.long && r.ctx > p.long.above) p = p.long
-  const M = 1e6, pense = r.pense ?? 0
-  return { lu: r.lu * p.rd / M, e5: (r.e5 + r.ecritAutre) * p.w5 / M, e1: r.e1 * p.w1 / M, nu: r.nu * p.in / M, sortie: (r.out - pense) * p.out / M, pense: pense * p.out / M }
-}
 export function dollars(rs) {
   const a = { lu: 0, e5: 0, e1: 0, nu: 0, sortie: 0, pense: 0, total: 0, horsGrille: 0 }
   for (const r of rs) {
@@ -169,14 +175,25 @@ export function coutParModele({ requetes }) {
     groupes: [...par(requetes, (r) => estPrincipal(r) ? 'principal' : `agent:${r.agentType}`)].map(([g, rs]) => ({ groupe: g, dollars: dollars(rs) })).sort((a, b) => b.dollars.total - a.dollars.total),
     jours: [...par(requetes, (r) => new Date(r.t).toISOString().slice(0, 10))].map(([j, rs]) => ({ jour: j, dollars: dollars(rs) })).sort((a, b) => a.jour.localeCompare(b.jour)),
     total: dollars(requetes),
+    modelesHorsGrille: [...new Set(requetes.filter((r) => !prixDe(r)).map((r) => r.model))].sort(),
   }
 }
 
-/** Rapprochement du coût recalculé avec le dernier `cost-state` de chaque session (cumul de la session entière). */
-export function rapprochementCoutEtat({ evenements }) {
-  const derniers = new Map()
-  for (const e of evenements) if (e.type === 'etat_cout' && estPrincipal(e)) derniers.set(e.session, e)
-  return [...derniers.values()].map((e) => ({ session: e.session, totalCostUSD: e.totalCostUSD, modeles: e.modeles }))
+/** Rapprochement de chaque ligne `cost-state` (cumul de session) avec le coût recalculé jusqu'à sa POSITION : fil
+ *  principal jusqu'à son rang, sous-agents jusqu'à son instant, cumuls d'avant la fenêtre (`dollarsAvantFenetre`)
+ *  compris. `ecart` = (calculé − totalCostUSD) / totalCostUSD. */
+export function rapprochementCoutEtat({ requetes, evenements, fils }) {
+  const filsDe = par(fils, (f) => f.session), rqs = par(requetes, (r) => r.session)
+  return evenements.filter((e) => e.type === 'etat_cout' && estPrincipal(e)).sort((a, b) => a.t - b.t).map((e) => {
+    const fs_ = filsDe.get(e.session) ?? [], rs = rqs.get(e.session) ?? []
+    const avant = (xs) => sommeDe(xs, (f) => f.dollarsAvantFenetre ?? 0)
+    const dp = dollars(rs.filter((r) => estPrincipal(r) && r.rang <= e.rang)), ds = dollars(rs.filter((r) => !estPrincipal(r) && r.t <= e.t))
+    const principal = avant(fs_.filter(estPrincipal)) + dp.total, sousAgents = avant(fs_.filter((f) => !estPrincipal(f))) + ds.total
+    const calcule = principal + sousAgents
+    return { session: e.session, t: e.t, rang: e.rang, totalCostUSD: e.totalCostUSD, principal, sousAgents, calcule,
+      ecart: e.totalCostUSD ? (calcule - e.totalCostUSD) / e.totalCostUSD : null,
+      horsGrille: dp.horsGrille + ds.horsGrille + sommeDe(fs_, (f) => f.horsGrilleAvantFenetre ?? 0), modeles: e.modeles }
+  })
 }
 
 export function chronologie({ requetes, evenements }) {
@@ -241,7 +258,7 @@ export function classerCommande(c = '') {
 
 /** Durée de chaque commande shell : premier plan tool_use → tool_result ; fond tool_use → notification qui porte
  *  son `<tool-use-id>` (préfixe de 17 caractères : la notification est tronquée à l'extraction). */
-export function commandes({ evenements }) {
+function finsDesOutils(evenements) {
   const res = new Map(evenements.filter((e) => e.type === 'tool_result').map((e) => [`${e.session}|${e.id}`, e]))
   const notifs = new Map()
   for (const e of evenements) {
@@ -249,9 +266,15 @@ export function commandes({ evenements }) {
     const m = /<tool-use-id>(toolu_[A-Za-z0-9]{6,})/.exec(e.debut ?? '')
     if (m) { const k = `${e.session}|${m[1].slice(0, 17)}`; if (!notifs.has(k)) notifs.set(k, e) }
   }
+  /** L'événement qui clôt l'appel `u` : son résultat au premier plan, sa notification en fond. */
+  return (u) => u.resume?.run_in_background ? notifs.get(`${u.session}|${u.id.slice(0, 17)}`) : res.get(`${u.session}|${u.id}`)
+}
+
+export function commandes({ evenements }) {
+  const finDe = finsDesOutils(evenements)
   return evenements.filter((e) => e.type === 'tool_use' && SHELL.test(e.nom)).map((u) => {
     const c = u.resume?.command ?? '', fond = !!u.resume?.run_in_background
-    const fin = fond ? notifs.get(`${u.session}|${u.id.slice(0, 17)}`)?.t : res.get(`${u.session}|${u.id}`)?.t
+    const fin = finDe(u)?.t
     return { session: u.session, fil: u.fil, type: u.agentType ?? 'principal', t: u.t, min: fin == null ? null : (fin - u.t) / 60000, fond, perim: PERIM.test(c), classe: classerCommande(c), commande: c.slice(0, 200) }
   }).sort((a, b) => a.t - b.t)
 }
@@ -314,7 +337,13 @@ export function naissances({ requetes }) {
 
 // ── B. Réveils de l'orchestrateur ─────────────────────────────────────────────────────────────────
 
-export const PRIORITE_REVEIL = ['utilisateur', 'message inter-session', 'agent rendu', 'commande de fond', 'monitor', 'réveil programmé', 'limite d’usage réinitialisée', 'reprise après compactage']
+export const AGENT_MORT = 'agent mort (watchdog / failed / stalled)'
+export const PRIORITE_REVEIL = ['utilisateur', 'message inter-session', 'agent rendu', AGENT_MORT, 'commande de fond', 'monitor', 'réveil programmé', 'limite d’usage réinitialisée', 'reprise après compactage']
+
+/** Notification d'agent : `<summary>` « Agent "…" … », « Background agent "… » ou « … background agent "… ». */
+const NOTIF_AGENT = /^(Background )?[Aa]gent "|background agent "|agent-message/
+/** Agent mort : `<status>` failed, killed ou stopped de sa notification. */
+const STATUT_MORT = /^(failed|killed|stopped)$/
 
 /** Causes de réveil lues dans les événements d'un écart. */
 export function causesDeReveil(es) {
@@ -325,7 +354,7 @@ export function causesDeReveil(es) {
     else if (e.type === 'prompt' && e.origin === 'peer') c.push(/agent-message/.test(s) ? 'agent rendu' : 'message inter-session')
     else if (e.type === 'prompt' && e.origin === 'auto-continuation') c.push('limite d’usage réinitialisée')
     else if ((e.type === 'prompt' && e.origin === 'task-notification') || (e.type === 'attachment' && e.sorte === 'queued_command'))
-      c.push(/^Agent "/.test(s) || /agent-message/.test(s) ? 'agent rendu' : /^Background command/i.test(s) ? 'commande de fond' : /^Monitor/.test(s) ? 'monitor' : /wakeup|scheduled/i.test(s) ? 'réveil programmé' : /cross-session-message/.test(s) ? 'message inter-session' : 'notification autre')
+      c.push(NOTIF_AGENT.test(s) ? (STATUT_MORT.test(e.statut ?? '') ? AGENT_MORT : 'agent rendu') : /^Background command/i.test(s) ? 'commande de fond' : /^Monitor/.test(s) ? 'monitor' : /wakeup|scheduled/i.test(s) ? 'réveil programmé' : /cross-session-message/.test(s) ? 'message inter-session' : 'notification autre')
     else if (e.type === 'system' && e.subtype === 'scheduled_task_fire') c.push('réveil programmé')
     else if (e.type === 'prompt' && /continued from a previous/.test(s)) c.push('reprise après compactage')
   }
@@ -336,7 +365,7 @@ export const TRANCHES_REVEIL = [[0, 5], [5, 15], [15, 30], [30, 55], [55, 60], [
 
 export function reveilsOrchestrateur({ requetes, evenements }) {
   const evs = par(evenements.filter(estPrincipal), (e) => e.session)
-  const dist = TRANCHES_REVEIL.map(([a, b]) => ({ a, b, n: 0, froides: 0, ecrit: 0, eqEcriture: 0 }))
+  const dist = TRANCHES_REVEIL.map(([a, b]) => ({ a, b, n: 0, froides: 0, ecrit: 0, dollarsEcriture: 0 }))
   const longues = []
   for (const [k, rs] of requetesParFil(requetes.filter(estPrincipal))) {
     const es = evs.get(k.split('|')[0]) ?? []
@@ -345,13 +374,13 @@ export function reveilsOrchestrateur({ requetes, evenements }) {
       if (r.premiere || p.rang !== r.rang - 1) continue
       const d = dist.find((x) => r.ecartMin >= x.a && r.ecartMin < x.b); d.n++
       if (!froide(r) || r.apresCompactage) continue
-      d.froides++; d.ecrit += ecrit(r); d.eqEcriture += eqEcriture(r)
+      d.froides++; d.ecrit += ecrit(r); d.dollarsEcriture += coutEcriture(r)
       if (r.ecartMin < TTL_MIN.principal) continue
       const cs = causesDeReveil(es.filter((e) => e.t > p.t && e.t <= r.t))
-      longues.push({ session: r.session, t: r.t, ecartMin: r.ecartMin, ecrit: ecrit(r), eqEcriture: eqEcriture(r), ctx: r.ctx, cause: PRIORITE_REVEIL.find((x) => cs.includes(x)) ?? cs[0] ?? 'aucun événement' })
+      longues.push({ session: r.session, t: r.t, ecartMin: r.ecartMin, ecrit: ecrit(r), dollarsEcriture: coutEcriture(r), ctx: r.ctx, cause: PRIORITE_REVEIL.find((x) => cs.includes(x)) ?? cs[0] ?? 'aucun événement' })
     }
   }
-  const parCause = [...par(longues, (x) => x.cause)].map(([c, v]) => ({ cause: c, n: v.length, ecrit: sommeDe(v, (x) => x.ecrit), eqEcriture: sommeDe(v, (x) => x.eqEcriture) })).sort((a, b) => b.eqEcriture - a.eqEcriture)
+  const parCause = [...par(longues, (x) => x.cause)].map(([c, v]) => ({ cause: c, n: v.length, ecrit: sommeDe(v, (x) => x.ecrit), dollarsEcriture: sommeDe(v, (x) => x.dollarsEcriture) })).sort((a, b) => b.dollarsEcriture - a.dollarsEcriture)
   return { distribution: dist, longues, parCause }
 }
 
@@ -387,26 +416,12 @@ export function pointsDeCache({ requetes }) {
   return Object.entries(cl).map(([cle, n]) => ({ cle, n })).sort((a, b) => a.cle.localeCompare(b.cle))
 }
 
-/** Frontières de tour du fil principal : 1re requête dont `avant` porte une fin de tour (`turn_duration`), avec
- *  l'ajout de harnais au tour précédent et la perte de préfixe. Écart < TTL et hors compactage. */
+/** Frontières de tour du fil principal : 1re requête après une fin de tour (`finDeTour`, segmentation par
+ *  `turn_duration` à l'extraction), avec l'ajout de harnais au tour précédent et la perte de préfixe contre la
+ *  requête précédente du fichier (`couvertPrec`, fenêtre ignorée). Écart < TTL et hors compactage. */
 export function frontieresDeTour({ requetes }) {
-  const out = []
-  for (const rs of requetesParFil(requetes.filter(estPrincipal)).values()) {
-    let ajoutTour = false
-    for (let i = 0; i < rs.length; i++) {
-      const r = rs[i], p = rs[i - 1]
-      const fin = r.avant.some((a) => a.type === 'system' && a.r === 'turn_duration')
-      const ajoutIci = r.avant.some((a) => a.type === 'prompt' && AJOUT_HARNAIS.test(a.r))
-      if (fin) {
-        const ajoutPrec = ajoutTour
-        ajoutTour = false
-        if (p && p.rang === r.rang - 1 && !r.apresCompactage && r.ecartMin < TTL_MIN.principal)
-          out.push({ session: r.session, t: r.t, ajout: ajoutPrec, perte: couvert(p) - r.lu, lu: r.lu, casse: couvert(p) - r.lu > SEUIL_FROID })
-      }
-      if (ajoutIci) ajoutTour = true
-    }
-  }
-  return out
+  return requetes.filter((r) => estPrincipal(r) && r.finDeTour && r.couvertPrec != null && !r.apresCompactage && r.ecartMin < TTL_MIN.principal)
+    .map((r) => ({ session: r.session, t: r.t, ajout: r.ajoutTourPrecedent, perte: r.couvertPrec - r.lu, lu: r.lu, casse: r.couvertPrec - r.lu > SEUIL_FROID }))
 }
 
 /** Réécritures complètes (lu ≤ 40k, perte > 20k) hors naissance et compactage, sous et au-delà du TTL du fil,
@@ -423,7 +438,7 @@ export function reecritures({ requetes }) {
     toutes.push({ ...r, perdu, sousTtl: r.ecartMin < ttlDe(r), modeleChange: r.model !== p.model, attribution: !estPrincipal(r) ? 'sous-agent' : !b ? 'milieu de tour' : b.ajout ? 'frontière, ajout harnais au tour précédent' : 'frontière, sans ajout' })
   }
   const sous = toutes.filter((x) => x.sousTtl)
-  const agreg = (xs, cle) => [...par(xs, cle)].map(([k, v]) => ({ cle: k, n: v.length, ecrit: somme(v).ecrit, surcout: sommeDe(v, (x) => eqEcriture(x) - x.perdu * RATIOS.lu) })).sort((a, b) => b.n - a.n)
+  const agreg = (xs, cle) => [...par(xs, cle)].map(([k, v]) => ({ cle: k, n: v.length, ecrit: somme(v).ecrit, surcout: sommeDe(v, (x) => surcout(x, x.perdu)) })).sort((a, b) => b.n - a.n)
   const tranche = (m) => m < 1 ? '<1' : m < 5 ? '1-5' : m < 15 ? '5-15' : m < 30 ? '15-30' : '30-60'
   return { toutes: toutes.length, sousTtl: sous, parAttribution: agreg(sous, (x) => x.attribution), parTranche: agreg(sous, (x) => `${groupeDe(x)} ${tranche(x.ecartMin)}`), parSession: agreg(sous, (x) => x.session), valeursLu: agreg(sous, (x) => String(x.lu)).slice(0, 10) }
 }
@@ -461,6 +476,82 @@ export function basculesOrganisation({ evenements }) {
   return out
 }
 
+// ── D/E. Plafond de contexte simulé ───────────────────────────────────────────────────────────────
+
+/** Plafonds de contexte simulés, en tokens. */
+export const PLAFONDS = [150e3, 200e3, 250e3, 300e3]
+
+/** Coût de chaque groupe (principal, sous-agents) si son contexte était plafonné à `C` : au-delà, `compactage`
+ *  (lecture du contexte, résumé de P tokens en sortie, réécriture de P) ou `redemarrage` (réécriture de B, sans
+ *  résumé). B = médiane des contextes de naissance, P = médiane des contextes après une chute réelle (< 70 %).
+ *  `reel` = la même formule sans plafond, égale au coût de `dollars` ; modèle hors grille ignoré. */
+export function simuPlafond({ requetes }) {
+  return ['principal', 'sous-agents'].map((groupe) => {
+    const fils = [...requetesParFil(requetes.filter((r) => groupeDe(r) === groupe)).values()]
+    const B = quantile(fils.map((a) => a[0].ctx), 0.5) ?? 0
+    const chutes = fils.flatMap((a) => a.filter((r, i) => i > 0 && r.ctx < 0.7 * a[i - 1].ctx).map((r) => r.ctx))
+    const P = quantile(chutes, 0.5) ?? B
+    const ecrit1h = (r) => r.e1 > 0 || groupe === 'principal'
+    const jouer = (C, mode) => {
+      let dollars_ = 0, coupures = 0
+      for (const a of fils) {
+        let O = 0
+        for (let i = 0; i < a.length; i++) {
+          const r = a[i], p = prixDe(r)
+          if (!p) continue
+          if (i > 0 && r.ctx < 0.7 * a[i - 1].ctx) O = 0
+          let ctx = r.ctx - O
+          if (C && ctx > C) {
+            const base = mode === 'redemarrage' ? B : P, resume = mode === 'redemarrage' ? 0 : P
+            dollars_ += (ctx * p.rd + resume * p.out + base * (ecrit1h(r) ? p.w1 : p.w5)) / 1e6
+            coupures++; O = r.ctx - base; ctx = base
+          }
+          const w = ecrit(r), ws = Math.min(w, ctx), f5 = w ? (r.e5 + r.ecritAutre) / w : ecrit1h(r) ? 0 : 1
+          dollars_ += (Math.max(0, ctx - ws - r.nu) * p.rd + ws * f5 * p.w5 + ws * (1 - f5) * p.w1 + r.nu * p.in + r.out * p.out) / 1e6
+        }
+      }
+      return { dollars: dollars_, coupures }
+    }
+    const reel = jouer(0).dollars
+    return { groupe, fils: fils.length, B, P, reel, plafonds: PLAFONDS.map((C) => ({ C, compactage: jouer(C, 'compactage'), redemarrage: jouer(C, 'redemarrage') })) }
+  })
+}
+
+// ── Verdict de test:perimetre, conformité SendMessage ─────────────────────────────────────────────
+
+/** Chaque run de `test:perimetre` d'un sous-agent codeur, son code (résultat au premier plan, notification en fond)
+ *  et son verdict : vert (0), rouge (≠ 0), inconnu ; par fil, le verdict de son DERNIER run. */
+export function verdictPerimetre({ evenements }) {
+  const finDe = finsDesOutils(evenements)
+  const runs = evenements.filter((e) => e.type === 'tool_use' && e.agentType === 'codeur' && SHELL.test(e.nom) && PERIM.test(e.resume?.command ?? ''))
+    .sort((a, b) => a.t - b.t).map((u) => {
+      const fond = !!u.resume?.run_in_background, f = finDe(u)
+      const code = f?.code ?? null
+      return { session: u.session, fil: u.fil, t: u.t, fond, code, verdict: code === 0 ? 'vert' : code == null ? 'inconnu' : 'rouge', fin: fond ? f?.sommaire ?? null : f?.fin ?? null }
+    })
+  const parFil = [...par(runs, cleFil)].map(([, v]) => ({ session: v[0].session, fil: v[0].fil, runs: v.length, rouges: v.filter((x) => x.verdict === 'rouge').length, verdict: v.at(-1).verdict, fin: v.at(-1).fin }))
+  return { runs, parFil }
+}
+
+/** Livraisons de SendMessage à un sous-agent (« The coordinator sent a message ») et l'écart à son dernier
+ *  `SubagentHandback` : une reprise d'agent rendu depuis plus de 5 min recharge son contexte à froid. */
+export function conformiteSendMessage({ evenements }) {
+  const es = evenements.filter((e) => !estPrincipal(e) && ((e.type === 'prompt' && /^The coordinator sent a message/.test(e.debut ?? '')) || (e.type === 'tool_use' && e.nom === 'SubagentHandback')))
+    .sort((a, b) => a.t - b.t)
+  const rendu = new Map(), livraisons = []
+  for (const e of es) {
+    const k = cleFil(e)
+    if (e.type === 'tool_use') { rendu.set(k, e.t); continue }
+    const h = rendu.get(k)
+    livraisons.push({ session: e.session, fil: e.fil, type: e.agentType, t: e.t, apresRendu: h != null, ecartMin: h != null ? (e.t - h) / 60000 : null })
+    rendu.delete(k)
+  }
+  return { livraisons, surAgentRendu: livraisons.filter((x) => x.apresRendu).length, renduPlus5: livraisons.filter((x) => x.ecartMin > 5) }
+}
+
+/** Transcripts lus : les fichiers qui portent au moins une requête de la fenêtre (stable d'un run à l'autre). */
+export const transcriptsLus = (requetes) => new Set(requetes.map((r) => r.fichier)).size
+
 // ── Comptes clés (DoD #2596) et delta ─────────────────────────────────────────────────────────────
 
 export function analyser(d) {
@@ -471,6 +562,7 @@ export function analyser(d) {
     cout: coutParModele(d), coutEtat: rapprochementCoutEtat(d), chronologie: chronologie(d), nourriture: nourriture(d), erreurs: erreursApi(d), ttl: ttl(d),
     commandes: synthesesCommandes(cmds), reprises: reprisesSousAgents(d), naissances: naissances(d), reveils: reveilsOrchestrateur(d), attente: outilsAttente(d),
     points: pointsDeCache(d), reecritures: ree, signature: signatureAvant(d, ree.sousTtl), frontieres: frontieresDeTour(d), drops: thinkingDrops(d), bascules: basculesOrganisation(d),
+    plafond: simuPlafond(d), perimetre: verdictPerimetre(d), sendMessage: conformiteSendMessage(d),
   }
 }
 
@@ -481,16 +573,23 @@ export function comptesCles(a) {
   const reveilsEnVol = a.reveils.longues.filter((x) => x.cause === 'agent rendu' || x.cause === 'commande de fond')
   const fr = a.frontieres
   return {
-    requetes: T.req, ecrit: T.ecrit, partEcrituresCoutPrompt: T.eq ? T.eqEcriture / T.eq : 0,
+    requetes: T.req, ecrit: T.ecrit, partEcrituresCoutPrompt: T.dollarsPrompt ? T.dollarsEcriture / T.dollarsPrompt : 0,
     partReprisesFroidesDansEcritures: T.ecrit ? (cause('inactivité 5 min – 1 h') + cause('inactivité > 1 h') + cause('sans cause visible (< 5 min)')) / T.ecrit : 0,
     reprisesFroidesCodeurApresPerimetre: repCodeur.length, ecritReprisesCodeurApresPerimetre: sommeDe(repCodeur, (x) => x.ecrit),
-    reprisesFroidesSousAgents: a.reprises.lignes.length, surcoutReprisesSousAgents: sommeDe(a.reprises.lignes, (x) => x.surcout),
+    reprisesFroidesSousAgents: a.reprises.lignes.length, surcoutReprisesSousAgentsUSD: sommeDe(a.reprises.lignes, (x) => x.surcout),
     reveilsOrchestrateurPlus1hSurAgentOuCommande: reveilsEnVol.length, ecritReveilsEnVol: sommeDe(reveilsEnVol, (x) => x.ecrit),
+    reveilsOrchestrateurPlus1hSurAgentMort: a.reveils.longues.filter((x) => x.cause === AGENT_MORT).length,
     reecrituresSansInactivite: a.reecritures.sousTtl.length, reecrituresSansInactivitePrincipal: a.reecritures.sousTtl.filter(estPrincipal).length,
     frontieresCasseesAvecAjout: fr.filter((b) => b.ajout && b.casse).length, frontieresAvecAjout: fr.filter((b) => b.ajout).length,
     frontieresCasseesSansAjout: fr.filter((b) => !b.ajout && b.casse).length, frontieresSansAjout: fr.filter((b) => !b.ajout).length,
     perimetreOrchestrateurApresCodeur: a.commandes.doublonsOrchestrateur, thinkingDrops: a.drops.n, compactages: a.compactages.n,
     dollarsTotal: a.cout.total.total, dollarsEcritures: a.cout.total.e5 + a.cout.total.e1, requetesHorsGrille: a.cout.total.horsGrille,
+    modelesHorsGrille: a.cout.modelesHorsGrille.join(', '),
+    ...Object.fromEntries(a.plafond.map((g) => [`plafond200k_${g.groupe === 'principal' ? 'principal' : 'sousAgents'}`, g.reel ? g.plafonds.find((x) => x.C === 200e3).compactage.dollars / g.reel - 1 : 0])),
+    perimetreCodeursVert: a.perimetre.parFil.filter((x) => x.verdict === 'vert').length, perimetreCodeursRouge: a.perimetre.parFil.filter((x) => x.verdict === 'rouge').length,
+    perimetreCodeursInconnu: a.perimetre.parFil.filter((x) => x.verdict === 'inconnu').length,
+    sendMessageSurAgentRenduPlus5min: a.sendMessage.renduPlus5.length,
+    coutEtatEcartMaxAbs: Math.max(0, ...a.coutEtat.map((c) => Math.abs(c.ecart ?? 0))),
   }
 }
 
