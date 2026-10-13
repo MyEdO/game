@@ -19,6 +19,7 @@
 import { RNG, defaultRNG } from './dice';
 import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, TestResult } from './tests';
 import { getTestPolicy } from './testPolicy';
+import { refCouvre } from '../data/schemas/grammaire/ref';
 import { rule } from './policy';
 import { traitCapability } from './traits/dispatch';
 import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
@@ -303,7 +304,7 @@ export function knowsCastingSkill(c: Combatant, skillName: string, spec?: string
   if (traitCapability(c.traits, 'spellcaster')) return true;
   // `skillName` EST déjà l'id stable de la Compétence (skills.json) — lookup direct.
   return c.skills.some(
-    (s) => s.id === skillName && (spec == null || s.spec === spec) && s.advances >= 1,
+    (s) => refCouvre({ id: skillName, spec }, s) && s.advances >= 1,
   );
 }
 

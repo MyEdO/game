@@ -98,7 +98,7 @@ la description, ou en crée une avec l'accord du MJ.
 **Sources RAW :** LDB 09 l.34-46
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.34-46) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `specIdOf`, `rollCrewRole`, `trainedForRole`, `traders`, `PostesRoster`, +73 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +48 fichiers
+- `LDB 9` (l.34-46) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `specIdOf`, `rollCrewRole`, `trainedForRole`, `traders`, `PostesRoster`, +74 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +48 fichiers
 
 ---
 

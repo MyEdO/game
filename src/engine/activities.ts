@@ -26,7 +26,7 @@ import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
 import { bestSkilledOption, bestForSkills, peutTenter, refusNePeutTenter, testValue, type TestSpec } from './skills';
 import type { PlayerText } from '../i18n/playerText';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { easeDifficulty, estJete, ECHEC_SANS_JET, type EchecSansJet } from './tests';
 import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
@@ -599,7 +599,7 @@ export function travelActivitySpec(
 
 /** La Compétence `ref` est-elle offerte par la liste `freeSkill` de l'Activité (EDOC 8 l.172) ? PUR. */
 function competenceOfferte(def: Pick<ActivityDef, 'freeSkill'>, ref: RefDesignee): boolean {
-  return (def.freeSkill ?? []).some((r) => r.id === ref.id && (r.spec == null || r.spec === ref.spec));
+  return (def.freeSkill ?? []).some((r) => refCouvre(r, ref));
 }
 
 /** Compétences offertes au choix d'une Activité à compétence LIBRE (Pratiquer une Compétence, EDOC 8
@@ -608,7 +608,7 @@ function competenceOfferte(def: Pick<ActivityDef, 'freeSkill'>, ref: RefDesignee
  *  (`specPoolOf`), jamais nue (LDB 09 l.25, l.30, l.36, l.44, l.46) —, chacune FERMÉE avec son refus
  *  nommé s'il ne peut pas la tenter (`peutTenter` ; #2588). PUR. */
 export function competencesAPratiquer(actor: Combatant, def: Pick<ActivityDef, 'freeSkill'>): { ref: RefDesignee; refus?: PlayerText }[] {
-  const surFiche = (id: string, spec?: string): boolean => actor.skills.some((s) => s.id === id && (spec === undefined || s.spec === spec));
+  const surFiche = (id: string, spec?: string): boolean => actor.skills.some((s) => refCouvre({ id, spec }, s));
   const refs: RefDesignee[] = [
     ...actor.skills.map((s) => ({ id: s.id, ...(s.spec ? { spec: s.spec } : {}) })),
     ...skills.filter((sd) => sd.acces === 'base').flatMap((sd): RefDesignee[] => {

@@ -1864,7 +1864,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sub: a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', '),
       meta: facts(
         fact('Contextes', a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', ')),
-        fact('Compétence(s)', a.skills?.length ? a.skills.map((s) => refLabel('skills', { id: s.id, spec: s.spec })).join(' / ') : (a.freeSkill ? 'Au choix (libre)' : null)),
+        fact('Compétence(s)', a.skills?.length ? a.skills.map((s) => refLabel('skills', { id: s.id, spec: s.spec })).join(' / ') : null),
         fact('Caractéristique', a.char ? CHAR_LABELS[a.char] : null),
         fact('Difficulté', a.difficulty ? DIFFICULTY_LABELS[a.difficulty] : null),
         fact('Test étendu', a.extended ? `${a.extended.drPerStage} DR / Étape` : null),
@@ -1872,6 +1872,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
       sections: sections(
         chips('Compétences (au choix)', (a.skills ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
+        chips('Compétence libre', (a.freeSkill ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, 'Effet de réussite'),
         outcomeBandsSection(a.outcomes),
       ),

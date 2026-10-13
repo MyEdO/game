@@ -1315,7 +1315,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** Recette : MANŒUVRE un navire (MDG 13) — le barreur (meilleur en Voile/Ramer de l'équipage, ou
-     *  `helmsmanId`) jette un Test de Navigation → `resolveShipManeuver` → vire SUR RÉUSSITE. `side` =
+     *  `helmsmanId`) jette un Test de Navigation → `maneuverShip` → vire sur réussite du Test. `side` =
      *  'tribord'/'babord' (90°) ou crans. Contrairement à `turnShip` (triche), ce virage PEUT échouer. */
     maneuver: (shipId: string, side: 'tribord' | 'babord' | number = 'tribord', helmsmanId?: string) => {
       const b = g().battle;

@@ -27,7 +27,7 @@ import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
 import { opDemandeUnDe, type GameOp, type PairedSense } from './ops';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 // Type SEUL (effacé à la compilation — aucun cycle runtime) : `StakeRef` est la forme canonique de la
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
@@ -355,7 +355,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
       const a = cond.who === 'caster' ? ctx.caster : ctx.target;
       if (!a) return false;
       if (cond.what === 'group') return groupMatch(cond.value, a.groups);
-      if (cond.what === 'talent') return a.talents.some((t) => t.id === cond.value && (!cond.spec || t.spec === cond.spec));
+      if (cond.what === 'talent') return a.talents.some((t) => refCouvre({ id: cond.value, spec: cond.spec }, t));
       if (cond.what === 'psych') return (a.psych ?? []).includes(cond.value);
       return a.traits.includes(cond.value);
     }

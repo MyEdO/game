@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { rotateDir8, DIR8_DELTA } from './dir8';
 import { inFireArc, targetArc } from './fireArc';
-import { resolveShipManeuver } from '../engine/shipNavigation';
 import { useGame } from './store';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
@@ -19,7 +18,7 @@ import type { Combatant, NavalTraitRef, ShipPoste } from '../engine/types';
 
 /**
  * Phase 2 « Manœuvre du navire » (MDG 13). Le cœur PUR : tourner le cap (`rotateDir8`) RE-MAPPE d'un coup
- * tous les arcs de bordée (la cible change de côté), et `resolveShipManeuver` dit si le virage réussit.
+ * tous les arcs de bordée (la cible change de côté) ; le virage suit l'issue du Test qui le porte.
  */
 describe('rotateDir8 — rotation du cap', () => {
   it('vire tribord (horaire, steps>0) / bâbord (anti-horaire, steps<0) par crans de 45°', () => {
@@ -54,14 +53,6 @@ describe('Manœuvre → re-mapping des bordées (aligner / désaligner sa bordé
 
   it('demi-tour (N → S) fait passer la cible de tribord à BÂBORD (bordée opposée)', () => {
     expect(targetArc(rotateDir8('N', 4), ship, east)).toBe('babord'); // 'S'
-  });
-});
-
-describe('resolveShipManeuver — réussite & DR final (MDG 13 l.117-119)', () => {
-  it('DR final = DR du Test de Navigation + Man + extra ; réussite si ≥ 0', () => {
-    expect(resolveShipManeuver(2, 5, -1).dr).toBe(1); // 2 + (-1) + 0
-    expect(resolveShipManeuver(2, 5, -1).success).toBe(true);
-    expect(resolveShipManeuver(0, 5, -1).success).toBe(false); // 0 - 1 = -1 < 0
   });
 });
 
@@ -325,16 +316,15 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
     expect(useGame.getState().facing.ship).toBe('E');
   });
 
-  it('réussite du VIRAGE = réussite du d100 (MDG 13 l.119 ; MDG 12 l.50), JAMAIS dr≥0 — le Man (−1 DR cogue) n’inverse pas le Test', () => {
-    // Sur la cogue (Man −1 + Peu maniable −1 = −2 au DR), un d100 réussi de justesse (DR bas) donne dr<0 :
-    // l’ancien `success = dr≥0` aurait raté le virage. Le RAW gate sur la RÉUSSITE du Test (roll ≤ cible).
+  it('barreur seul : réussite du virage = réussite du d100 (LDB 12 l.11), le Man ne déplace que le DR (MDG 13 l.119)', () => {
+    // Cogue : Man −1 + Peu maniable −1 = −2 au DR ; un d100 réussi de justesse donne un DR final négatif.
     let diverged = false;
     for (const seed of Array.from({ length: 30 }, (_, i) => i + 1)) {
       seedBattleRng(seed);
       useGame.setState({ battle: { combatants: [{ ...ship2(), creatureId: 'cogue' }, helm2()], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
       const r = rollShipManeuver(() => useGame.getState(), 'ship', 'helm')!;
       expect(r.success).toBe(r.roll! <= r.target!); // succès ⇔ d100 ≤ cible, indépendant du Man / du dr
-      if ((r.roll! <= r.target!) !== (r.dr >= 0)) diverged = true; // l'ancien `dr≥0` aurait donné un AUTRE verdict
+      if ((r.roll! <= r.target!) !== (r.dr >= 0)) diverged = true; // le signe du DR final et le d100 divergent
     }
     expect(diverged).toBe(true); // garde-fou : ce set de seeds EXERCE bien la divergence (test non vacant)
   });

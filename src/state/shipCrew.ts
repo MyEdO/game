@@ -5,6 +5,7 @@
  * batterie, perception…) — un seul endroit assigne les marins aux postes.
  */
 import type { Combatant } from '../engine/types';
+import { refCouvre } from '../data/schemas/grammaire/ref';
 import { crewRoleValue, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
@@ -40,7 +41,7 @@ export const BENCHED = 'repos';
 function trainedForRole(c: Combatant, roleId: string): boolean {
   const role = findCrewRoleById(roleId);
   return !!role && role.skills.some((s) =>
-    (c.skills ?? []).some((k) => k.id === s.id && (s.spec == null || k.spec === s.spec)) && peutTenter(c, s.id, s.spec));
+    (c.skills ?? []).some((k) => refCouvre(s, k)) && peutTenter(c, s.id, s.spec));
 }
 
 /**

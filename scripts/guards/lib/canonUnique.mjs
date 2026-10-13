@@ -10,7 +10,8 @@
 // exemption. Ce module exporte la MÉCANIQUE, sans foyer ; le consommateur la déclare en y joignant son
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
-//    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `COUVERTURE_DE_SPEC`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et
+//    `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
@@ -345,6 +346,37 @@ export const ECHAPPEUR_DE_LITTERAL = Object.freeze({
     const [motif, remplacement] = appel.args;
     if (!motif || !ts.isRegularExpressionLiteral(motif) || !/^\/'\/[a-z]*g[a-z]*$/.test(motif.text)) return null;
     return remplacement && ts.isStringLiteralLikeNode(remplacement) && remplacement.text === "\\'" ? 'échappeur de littéral JS recopié (`litteralJs`)' : null;
+  },
+});
+
+/** L'opérande `X` d'un test de nullité de `X` : `X == null`, `X === undefined` (et commutés), `!X`.
+ *  @param {ts.Expression} e @returns {ts.Expression | null} */
+function testeLeVide(e) {
+  const x = sansEnveloppe(e);
+  if (ts.isPrefixUnaryExpression(x) && x.operator === ts.SyntaxKind.ExclamationToken) return sansEnveloppe(x.operand);
+  if (!ts.isBinaryExpression(x) || ![ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.EqualsEqualsEqualsToken].includes(x.operatorToken.kind)) return null;
+  const vide = (o) => o.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(o) && o.text === 'undefined');
+  return vide(x.right) ? sansEnveloppe(x.left) : vide(x.left) ? sansEnveloppe(x.right) : null;
+}
+
+/** La COUVERTURE de Spécialisation recopiée : `X == null || X === Y` (et ses formes `=== undefined`,
+ *  `!X`, égalité commutée), où `X` se nomme `spec` — la convention qu'écrit `refCouvre`
+ *  (`src/data/schemas/grammaire/ref.ts`). */
+export const COUVERTURE_DE_SPEC = Object.freeze({
+  nom: 'COUVERTURE_DE_SPEC',
+  indice: (texte) => texte.includes('spec'),
+  /** @param {ts.Node} n @param {ts.SourceFile} sf @returns {string | null} */
+  reconnait: (n, sf) => {
+    if (!ts.isBinaryExpression(n) || n.operatorToken.kind !== ts.SyntaxKind.BarBarToken) return null;
+    const x = testeLeVide(n.left);
+    if (!x) return null;
+    const nom = ts.isIdentifier(x) ? x.text : ts.isPropertyAccessExpression(x) ? x.name.text : null;
+    if (nom !== 'spec') return null;
+    const egalite = sansEnveloppe(n.right);
+    if (!ts.isBinaryExpression(egalite) || ![ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.EqualsEqualsEqualsToken].includes(egalite.operatorToken.kind)) return null;
+    const texte = x.getText(sf);
+    const memeX = (o) => sansEnveloppe(o).getText(sf) === texte;
+    return memeX(egalite.left) || memeX(egalite.right) ? 'couverture de Spécialisation recopiée (`refCouvre`)' : null;
   },
 });
 

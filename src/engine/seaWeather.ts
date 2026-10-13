@@ -34,7 +34,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { d10, type RNG, defaultRNG } from './dice';
 import { WORK_PERIOD_HOURS } from './seaNavigation';
 import type { Difficulty } from './types';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Season } from './travelStages';
 import { rule } from './policy';
 import { RULE_REF } from './ruleRefs';
@@ -184,12 +184,10 @@ export function visibilityDRPenalty(vis: SeaVisibilityId, distanceM: number): nu
   return def.drPenalty != null && def.beyondM != null && distanceM > def.beyondM ? def.drPenalty : 0;
 }
 
-/** MDG 13 l.187-200. Une référence SANS `spec` couvre toute spécialisation ; une référence AVEC `spec`
- *  ne couvre que celle-là. `skillId` absent = Test de Caractéristique. PUR. */
+/** MDG 13 l.187-200. `skillId` absent = Test de Caractéristique. PUR. */
 function precipitationMod(precip: SeaPrecipitationId, skillId: string | undefined, spec: string | undefined): number {
   const def = precipitationDef(precip);
-  const couvre = (r: RefDesignee): boolean => r.id === skillId && (r.spec == null || r.spec === spec);
-  return def.skillMods?.find((m) => m.skills.some(couvre))?.mod ?? def.otherMod ?? 0;
+  return def.skillMods?.find((m) => m.skills.some((r) => refCouvre(r, { id: skillId, spec })))?.mod ?? def.otherMod ?? 0;
 }
 
 /** CANAL UNIQUE des Précipitations sur le Test d'un Personnage sur le pont (MDG 13 l.185) : la ligne

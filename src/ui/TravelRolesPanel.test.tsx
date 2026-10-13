@@ -13,8 +13,8 @@ import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { useGame } from '../state/store';
 import { refusNePeutTenter } from '../engine/skills';
 import { TravelRolesPanel } from './TravelRolesPanel';
-import { ACTIVITIES, activityById } from '../engine/activities';
-import { setDataset } from '../data/overrides';
+import { activityById } from '../engine/activities';
+import { avecActivite } from '../state/activiteMer.testkit';
 import { refLabel } from '../data';
 import type { Combatant } from '../engine/types';
 
@@ -152,12 +152,6 @@ describe('TravelRolesPanel — un poste non tenu (`postingTenu`) ne s’affiche 
       return noms.some((n) => n.includes('Retirer Aldric'));
     };
     expect(affecteARecuperer(), 'contrôle : le poste tenu s’affiche affecté').toBe(true);
-    const avant = [...ACTIVITIES];
-    try {
-      setDataset('activities', avant.map((a) => (a.id === 'recuperer' ? { ...a, freeSkill: [{ id: 'escalade' }] } : a)));
-      expect(affecteARecuperer()).toBe(false);
-    } finally {
-      setDataset('activities', avant);
-    }
+    avecActivite({ ...activityById('recuperer')!, freeSkill: [{ id: 'escalade' }] }, () => expect(affecteARecuperer()).toBe(false));
   });
 });

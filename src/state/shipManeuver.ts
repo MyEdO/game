@@ -2,8 +2,9 @@
  * MANŒUVRE NAVALE jouable (MDG 13 « Navigation maritime ») — couche STATE (dépend du cap/grille, comme
  * `fireArc`/`shipPostes` ; le moteur reste pur). Le « Personnage à la barre » jette un Test de Navigation —
  * **Voile** si le navire avance à la voile, **Ramer** s'il avance aux avirons — modifié par le **Man** du
- * navire (`resolveShipManeuver`, moteur pur). Sur réussite, le navire VIRE de `turnSteps` crans (`shipTurn`
- * re-mappe d'un coup ses arcs de bordée) ; il avance TOUJOURS le long du cap (`shipAdvance`).
+ * navire (`resolveShipManeuver`, moteur pur). Sur réussite du Test qui le porte (`ManeuverResult.success`), le
+ * navire VIRE de `turnSteps` crans (`shipTurn` re-mappe d'un coup ses arcs de bordée) ; il avance TOUJOURS le
+ * long du cap (`shipAdvance`).
  *
  * SÉPARATION jet ⟂ application (patron des flux différés, cf. `run`) : `rollShipManeuver` résout le Test
  * (RNG, AUCUNE mutation) → `ManeuverResult` ; `applyShipManeuver` exécute le virage + l'avance (mutation).
@@ -118,6 +119,9 @@ function bestHelmsman(crew: Combatant[], skillId: string): Combatant | undefined
 }
 
 export interface ManeuverResult extends ShipManeuverOutcome {
+  /** Issue du virage = issue du Test qui le porte : Test individuel (LDB 12 l.11), Test d'équipage
+   *  (MDG 14 l.13, l.76). */
+  success: boolean;
   /** DR du Test de Navigation du barreur (avant ajout du Man — `dr` final = `navDR` + Man + extra). */
   navDR: number;
   /** d100 du Test de Navigation (affichage de la RollLine). Synthétique (≈1) si réussite forcée. */

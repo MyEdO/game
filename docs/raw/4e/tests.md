@@ -51,7 +51,7 @@ Le chapitre ne pose pas d'arbre de décision : il énonce un critère de bascule
 
 **Voir aussi** : [Tests opposés](#tests-opposés), [Tests étendus](#tests-étendus)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.5-7, l.83-88) → `canReroll`, `ShipManeuverOutcome`, `getTestPolicy`, `test-fast-sl`, `resolveShipManeuver`, `test-over-100`, `RollInfluenceView`, `RollRowCore`, `RollRow`, `useTestJetProps`, +11 — `src/data/reglesOptionnelles.json`, `src/engine/fortune.ts`, `src/engine/shipNavigation.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, `src/engine/types.ts`, +8 fichiers
+- `LDB 12` (l.5-7, l.83-88) → `canReroll`, `getTestPolicy`, `test-fast-sl`, `test-over-100`, `RollInfluenceView`, `RollRowCore`, `RollRow`, `useTestJetProps`, `rollTest`, `ManeuverResult`, +10 — `src/data/reglesOptionnelles.json`, `src/engine/fortune.ts`, `src/engine/testPolicy.ts`, `src/engine/tests.ts`, `src/engine/types.ts`, `src/state/merchantFlow.ts`, +7 fichiers
 
 ---
 
@@ -73,7 +73,7 @@ La valeur cible est la Compétence ou la Caractéristique du personnage telle qu
 
 **Voir aussi** : [Difficulté](#difficulté--table-complète), [Degrés de Réussite (DR)](#degrés-de-réussite-dr)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 12` (l.7-13) → `canReroll`, `ShipManeuverOutcome`, `resolveShipManeuver`, `RollInfluenceView`, `RollRowCore`, `RollRow`, `useTestJetProps`, `rollTest`, `RollFlowLens`, `deriveManeuver`, +3 — `src/engine/fortune.ts`, `src/engine/shipNavigation.ts`, `src/engine/tests.ts`, `src/state/rollFlowFactory.ts`, `src/state/rollFlowSpecs.ts`, `src/state/shipManeuver.ts`, +3 fichiers
+- `LDB 12` (l.7-13) → `canReroll`, `RollInfluenceView`, `RollRowCore`, `RollRow`, `useTestJetProps`, `rollTest`, `ManeuverResult`, `RollFlowLens`, `deriveManeuver`, `bumpResultSL`, +2 — `src/engine/fortune.ts`, `src/engine/tests.ts`, `src/state/rollFlowFactory.ts`, `src/state/rollFlowSpecs.ts`, `src/state/shipManeuver.ts`, `src/ui/RollRow.tsx`, +2 fichiers
 
 ---
 

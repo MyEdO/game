@@ -736,7 +736,7 @@ Le MJ fixe la fréquence et la difficulté des Tests selon les conditions : Mer 
 **Voir aussi :** [Navigation maritime — Tests de Navigation (MDG)](#navigation-maritime--tests-de-navigation-mdg), [Forcer le rythme et épuisement (MDG)](#forcer-le-rythme-et-épuisement-mdg), [Manœuvres et vitesses maximum (MDG)](#manœuvres-et-vitesses-maximum-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.41-81, l.85-92) → `progressionModeSchema`, `sea-navigation`, `plus2`, `plus1`, `normal`, `minus1`, `half`, `forcePaceDifficulty`, `WorldMapView`, `sea-overspeed`, +16 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/naval-progression.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +5 fichiers
+- `MDG 13` (l.41-81, l.85-92) → `progressionModeSchema`, `sea-navigation`, `plus2`, `plus1`, `normal`, `resolveShipManeuver`, `minus1`, `half`, `forcePaceDifficulty`, `WorldMapView`, +17 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/naval-progression.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/sea-navigation.json`, `src/data/voyage-stakes.json`, +6 fichiers
 
 ---
 
@@ -1002,7 +1002,7 @@ Un Personnage tenant un rôle lance pour tous ceux du même rôle ; si les PJ ti
 **Voir aussi :** [Moral de l'équipage (MDG)](#moral-de-léquipage-mdg), [Réparer un navire (MDG)](#réparer-un-navire-mdg), [Course-poursuite navale (MDG)](#course-poursuite-navale-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.7-55, l.61-130) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `crew`, `progression`, `capitaine-competent`, `doc`, `faveur-de-manann`, `progression-poursuite`, `ShipManeuverOutcome`, +111 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/localisation.json`, +28 fichiers
+- `MDG 14` (l.7-55, l.61-130) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `crew`, `progression`, `capitaine-competent`, `doc`, `faveur-de-manann`, `progression-poursuite`, `un-officier-pour-10`, +110 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/localisation.json`, +27 fichiers
 
 ---
 
@@ -1053,7 +1053,7 @@ Modificateurs (extrait) : paie généreuse / capitaine compétent → **+2d10** 
 **Voir aussi :** [Orientation et phares (MDG)](#orientation-et-phares-mdg), [Maladies et provisions en mer (MDG)](#maladies-et-provisions-en-mer-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.273-302) → `doc`, `sealskinDR`, `mousse`, `exposureNight`, `genuineExposureFail`, `chirurgien`, `weeklyCrewWageBrass`, `skillDRBonus`, `buildExposureBand`, `crewTalentDR`, +14 — `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/schemas/defs/crew-roles.ts`, `src/data/trappings.json`, `src/engine/crewMorale.ts`, `src/engine/exposure.ts`, +7 fichiers
+- `MDG 14` (l.273-302) → `doc`, `sealskinDR`, `mousse`, `exposureNight`, `genuineExposureFail`, `chirurgien`, `skillDRBonus`, `weeklyCrewWageBrass`, `buildExposureBand`, `crewTalentDR`, +14 — `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/schemas/defs/crew-roles.ts`, `src/data/trappings.json`, `src/engine/crewMorale.ts`, `src/engine/exposure.ts`, +7 fichiers
 
 ---
 

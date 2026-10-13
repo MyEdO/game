@@ -377,7 +377,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // #168 : Activité — Test « posté » (contexts/skills « au choix »/char/difficulty) + table d'issues
   // `outcomes` (OutcomeBand[]) → éditeurs dédiés ; `onSuccess` couvert par opsFieldsOf ci-dessus.
   // `resolver` (#1318 V6) : vocabulaire FERMÉ → sélecteur dédié, jamais le champ texte générique.
-  if (categoryKey === 'activities') add('contexts', 'skills', 'char', 'difficulty', 'outcomes', 'resolver');
+  if (categoryKey === 'activities') add('contexts', 'skills', 'freeSkill', 'char', 'difficulty', 'outcomes', 'resolver');
   // #1612 : `testMods` (modificateurs de situation) et `worldRolls` (dés de MONDE après le Test) sont des
   // tableaux top-level d'objets HOMOGÈNES → éditeur GÉNÉRIQUE commun (`GenericArrayField`), MEME patron
   // que la rubrique de Vent et les options de jeu de taverne — jamais le repli JSON.
@@ -1485,8 +1485,9 @@ const BATTLE_SCALE_OPTIONS = optionsDuNoeud(battleOutcomeScaleSchema);
 const BATTLE_SIDE_OPTIONS = optionsDuNoeud(battleSideSchema);
 
 /** Test « posté » d'une Activité (`TestSpec` — LDB 12) : contextes de proposition + compétence(s) « au
- *  choix » (la meilleure de l'acteur est retenue) + caractéristique de repli + Difficulté. Réutilise
- *  `SkillSpecListField` (mêmes `{id,spec?}[]` que les Rôles d'équipage). Vide = Activité SANS Test. */
+ *  choix » (la meilleure de l'acteur est retenue) + compétence libre (`freeSkill`, EDOC 8 l.172) +
+ *  caractéristique de repli + Difficulté. Réutilise `SkillSpecListField` (mêmes `{id,spec?}[]` que les
+ *  Rôles d'équipage). Vide = Activité SANS Test. */
 function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, v: unknown) => void }) {
   return (
     <div className="ed-field">
@@ -1495,6 +1496,7 @@ function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, 
         facultatif={admetLAbsence(noeudDuChamp('activities.json', 'contexts')) ?? false} onChange={(next) => edit('contexts', next)} />
       <span>Test « posté » — compétence(s) « au choix » + caractéristique de repli + Difficulté (laisser vide = Activité SANS Test)</span>
       <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
+      <SkillSpecListField hint="compétence libre — liste parmi laquelle le joueur choisit (sans spécialisation : toutes)" value={entry.freeSkill as RefDesignee[] | undefined} onChange={(v) => edit('freeSkill', v.length ? v : undefined)} />
       <div className="tf-row">
         <label className="dr">Caractéristique (repli)
           <select value={(entry.char as string) ?? ''} onChange={(e) => edit('char', e.target.value || undefined)}>

@@ -11,11 +11,12 @@ export const activiteMer = (over: Partial<ActivityDef> = {}): ActivityDef => {
   return { ...reelle, id: 'veille-en-mer', label: 'Veille en mer', ...over };
 };
 
-/** Exécute `fn` avec `def` présente au catalogue, posée et retirée par le seam `setDataset` quoi qu'il
- *  arrive : rien ne fuit vers les autres tests (`isolate: false`). */
+/** Exécute `fn` avec `def` présente au catalogue — à la place de l'entrée de même id, sinon ajoutée —,
+ *  posée et retirée par le seam `setDataset` quoi qu'il arrive : rien ne fuit vers les autres tests
+ *  (`isolate: false`). */
 export function avecActivite<T>(def: ActivityDef, fn: () => T): T {
   const avant = [...ACTIVITIES];
-  setDataset('activities', [...avant, def]);
+  setDataset('activities', avant.some((a) => a.id === def.id) ? avant.map((a) => (a.id === def.id ? def : a)) : [...avant, def]);
   try {
     return fn();
   } finally {

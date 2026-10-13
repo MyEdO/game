@@ -11,11 +11,11 @@ import { emptyScene, type Scene } from './scene';
 import type { WorldMap } from './worldMap';
 import { seedBattleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
-import { ACTIVITIES, activityById, competencesAPratiquer, postingTenu, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
+import { activityById, competencesAPratiquer, postingTenu, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
 import { refusNePeutTenter } from '../engine/skills';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { refLabel, skills, specPoolOf } from '../data';
-import { setDataset } from '../data/overrides';
+import { avecActivite } from './activiteMer.testkit';
 import type { Combatant } from '../engine/types';
 import type { BatchParticipant } from './pendings';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -64,15 +64,7 @@ function rangeeAuDepart(posting: Parameters<ReturnType<typeof useGame.getState>[
 const pratiquer = () => activityById('pratiquer-competence')!;
 
 /** Exécute `fn` avec la liste `freeSkill` de Pratiquer éditée, posée par le seam `setDataset` du Compendium. */
-function avecListe<T>(liste: RefDesignee[], fn: () => T): T {
-  const avant = [...ACTIVITIES];
-  try {
-    setDataset('activities', avant.map((a) => (a.id === 'pratiquer-competence' ? { ...a, freeSkill: liste } : a)));
-    return fn();
-  } finally {
-    setDataset('activities', avant);
-  }
-}
+const avecListe = <T,>(liste: RefDesignee[], fn: () => T): T => avecActivite({ ...pratiquer(), freeSkill: liste }, fn);
 
 describe('Pratiquer une Compétence : les Compétences offertes', () => {
   it('celles de sa fiche d’abord, une Avancée sans Augmentation fermée avec son refus', () => {
@@ -169,15 +161,11 @@ describe('Poste tenu : une seule source (`postingTenu`)', () => {
 
   it('un rôle épinglé que l’édition du catalogue rend non tenu n’est plus épinglé : l’Étape retombe sur le rôle inféré', () => {
     useGame.getState().setTravelRole('h', { activityId: 'recuperer' });
-    const avant = [...ACTIVITIES];
-    try {
-      setDataset('activities', avant.map((a) => (a.id === 'recuperer' ? { ...a, freeSkill: [{ id: 'escalade' }] } : a)));
+    avecActivite({ ...activityById('recuperer')!, freeSkill: [{ id: 'escalade' }] }, () => {
       const h = useGame.getState().party[0];
       expect(postingTenu(h.travelRole!)).toBe(false);
       expect(stageAssignmentFromRoles([h]).h?.activityId).not.toBe('recuperer');
       expect(stageAssignmentFromRoles([h])).toEqual(stageAssignmentFromRoles([{ ...h, travelRole: undefined }]));
-    } finally {
-      setDataset('activities', avant);
-    }
+    });
   });
 });
