@@ -792,11 +792,11 @@ test('DENY : une commande trop imbriquée pour être jugée est refusée, en de�
 const SOUS_AGENT = { session_id: 's', agent_id: 'a1', agent_type: 'codeur' }
 const FIL_PRINCIPAL = { session_id: 's' }
 
-/** La décision du répartiteur sur l'appel `tool_name`/`tool_input` de `appelant`, `null` sans refus. */
-async function decision(appelant, tool_name, tool_input) {
+/** La décision du répartiteur sur l'appel `tool_name`/`tool_input` de `appelant` sous `env`, `null` sans refus. */
+async function decision(appelant, tool_name, tool_input, env = {}) {
   const { sortie } = await repartir({ PreToolUse: REGISTRE.PreToolUse.filter((g) => g === garde) }, JSON.stringify({
     hook_event_name: 'PreToolUse', tool_name, tool_input, ...appelant,
-  }), { env: {}, cwd: process.cwd() })
+  }), { env, cwd: process.cwd() })
   return sortie?.hookSpecificOutput ?? null
 }
 const enFond = (command) => ({ command, run_in_background: true })
@@ -822,7 +822,7 @@ test('#2603 — fil principal : une ATTENTE en fond est REFUSÉE, renvoyée vers
   for (const [outil, commande] of ATTENTES_EN_FOND) {
     const vu = await decision(FIL_PRINCIPAL, outil, enFond(commande))
     assert.equal(vu?.permissionDecision, 'deny', `${outil} ${commande}`)
-    assert.match(vu.permissionDecisionReason, /Attente en FOND REFUSÉE .*#2603.*Monitor.*ré-arme/s, commande)
+    assert.match(vu.permissionDecisionReason, /Attente en FOND REFUSÉE .*#2603.*Monitor.*ré-arme.*CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP à 1 .*désarme/s, commande)
   }
 })
 
@@ -830,10 +830,22 @@ test('#2603 — fil principal : au premier plan, une attente sans borne de vie s
   for (const commande of ['npm run ops:ci -- --attendre', 'sleep 300']) {
     const vu = await decision(FIL_PRINCIPAL, 'Bash', { command: commande })
     assert.equal(vu?.permissionDecision, 'deny', commande)
-    assert.match(vu.permissionDecisionReason, /PREMIER PLAN REFUSÉE .*120000 ms/s, commande)
+    assert.match(vu.permissionDecisionReason, /PREMIER PLAN REFUSÉE .*120000 ms.*CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP à 1 .*désarme/s, commande)
   }
   assert.equal((await decision(FIL_PRINCIPAL, 'Bash', { command: 'sleep 200', timeout: 200000 }))?.permissionDecision, 'deny')
   assert.equal((await decision(FIL_PRINCIPAL, 'PowerShell', { command: 'timeout 100 gh run watch 1' }))?.permissionDecision, 'deny')
+})
+
+test('#2603 — CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP à 1 désarme les deux refus ; absent ou à 0, ils tiennent', async () => {
+  const appels = [['Bash', enFond('sleep 5')], ['Bash', { command: 'gh run watch 1' }]]
+  for (const [outil, input] of appels) {
+    assert.equal(await decision(FIL_PRINCIPAL, outil, input, { CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP: '1' }), null, input.command)
+    for (const env of [{}, { CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP: '0' }]) {
+      const vu = await decision(FIL_PRINCIPAL, outil, input, env)
+      assert.equal(vu?.permissionDecision, 'deny', `${input.command} ${JSON.stringify(env)}`)
+      assert.match(vu.permissionDecisionReason, /REFUSÉE .*CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP à 1 .*désarme cette garde/s)
+    }
+  }
 })
 
 test('#2603 — acceptés : sous-agent, attente bornée au premier plan, ctx_shell, lecture de flux, commande qui CITE l\'attente', async () => {

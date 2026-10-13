@@ -4,13 +4,13 @@
 // Lancé par `npm run test:ops`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GitIndisponible, classer, depotDe, retirerWorktree, worktreesDe } from '../guards/lib/gitPorte.mjs'
 import {
-  CLASSES, GESTES_DE_L_INVENTAIRE, GESTES_DE_LA_PURGE, arbresTenus, classerWorktree, comptesParClasse, inventaire as inventaireReel, ligneDInventaire, purger as purgerReel,
+  CLASSES, GESTES_DE_L_INVENTAIRE, GESTES_DE_LA_PURGE, arbresTenus, classerWorktree, comptesParClasse, dossiersNonInscrits, inventaire as inventaireReel, ligneDInventaire, purger as purgerReel,
 } from './worktrees.mjs'
 import { mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
@@ -51,11 +51,17 @@ test('classerWorktree : l’ordre du RISQUE est total, une combinaison ne rend q
     [{ fusionne: null }, 'propre+hors-main'],
     [{}, 'propre+hors-main'],
     [{ fusionne: true }, 'propre+fusionné'],
+    [{ inscrit: false, vide: false, fusionne: true }, 'non-inscrit+peuplé'],
+    [{ inscrit: false, vide: false, protection: { ok: false, refus: ['PID vivant'] } }, 'non-inscrit+peuplé'],
+    [{ inscrit: false, vide: true, protection: { ok: false, refus: ['PID vivant'] } }, 'protégé'],
+    [{ inscrit: false, vide: true, sale: true }, 'sale'],
+    [{ inscrit: false, vide: true, fusionne: true }, 'non-inscrit+vide'],
+    [{ chemin: '/dep/.wt-tenu', inscrit: false, vide: true }, 'tenu'],
   ]
   for (const [etat, attendu] of cas) {
     assert.equal(classerWorktree(etat, { tenus: TENUS }), attendu, `${JSON.stringify(etat)} → ${attendu}`)
   }
-  assert.equal(CLASSES.length, 8, 'classes de risque, et le verdict vit à UN endroit')
+  assert.equal(CLASSES.length, 10, 'classes de risque, et le verdict vit à UN endroit')
   assert.deepEqual([...new Set(cas.map(([, c]) => c))].sort(), [...CLASSES].sort())
 })
 
@@ -181,6 +187,56 @@ test('purger : sans absent NI fusionné, aucun geste — la taille ne se joue pa
   const gestes = purger({ principal: '/dep', worktrees: [{ classe: 'sale', chemin: '/dep/.wt-sale' }, { classe: 'principal', chemin: '/dep' }], gestes: gestesFactices(vus) })
   assert.deepEqual(vus, [])
   assert.deepEqual(gestes, [])
+})
+
+// #2603 constat 26
+test('dossiersNonInscrits : seuls les `.wt-*` répertoires que git ne nomme pas, vides ou peuplés, illisibles compris', () => {
+  const disque = {
+    '/dep': ['.wt-inscrit', '.wt-vide', '.wt-peuple', '.wt-fichier', '.wt-illisible', 'autre', '.WT-casse'],
+    '/dep/.wt-vide': [],
+    '/dep/.wt-peuple': ['a.txt'],
+    '/dep/autre': [],
+  }
+  const lister = (chemin) => {
+    const cle = chemin.replace(/\\/g, '/')
+    if (cle === '/dep/.wt-illisible') throw Object.assign(new Error('refusé'), { code: 'EPERM' })
+    return disque[cle]
+  }
+  const nature = (chemin) => (chemin.replace(/\\/g, '/') === '/dep/.wt-fichier' ? 'fichier' : 'repertoire')
+  // L'inscrit est rendu par git sous une autre forme (`\`, casse) : la comparaison est normalisée.
+  const vus = dossiersNonInscrits({ principal: '/dep', inscrits: [{ chemin: '/dep' }, { chemin: '\\DEP\\.wt-inscrit' }], lister, nature })
+  assert.deepEqual(vus.map((d) => [d.chemin.replace(/\\/g, '/'), d.classe]), [
+    ['/dep/.wt-vide', 'non-inscrit+vide'],
+    ['/dep/.wt-peuple', 'non-inscrit+peuplé'],
+    ['/dep/.wt-illisible', 'non-inscrit+peuplé'],
+  ])
+  const [vide, peuple, illisible] = vus
+  assert.deepEqual(ligneDInventaire(vide).split('\t').slice(2), ['hors git', 'dossier non inscrit et vide — purgeable (rmdir)'])
+  assert.match(ligneDInventaire(peuple), /NON vide — jamais touché : il porte peut-être du travail/)
+  assert.match(ligneDInventaire(illisible), /illisible \(EPERM\) — jamais touché/)
+  assert.deepEqual(comptesParClasse([{ classe: 'principal' }, ...vus]), { principal: 1, 'non-inscrit+peuplé': 2, 'non-inscrit+vide': 1 })
+})
+
+test('purger : `rmdir` le non-inscrit VIDE, jamais le peuplé, et un rmdir ROUGE se rend ÉCHEC avec son code', () => {
+  const vus = []
+  const gestes = purger({
+    principal: '/dep',
+    worktrees: [
+      { classe: 'non-inscrit+vide', chemin: '/dep/.wt-vide', inscrit: false },
+      { classe: 'non-inscrit+peuplé', chemin: '/dep/.wt-peuple', inscrit: false },
+      { classe: 'non-inscrit+vide', chemin: '/dep/.wt-rempli-depuis', inscrit: false },
+    ],
+    gestes: {
+      ...gestesFactices(vus),
+      retirerDossierVide: (chemin) => {
+        vus.push(`rmdir ${chemin}`)
+        if (chemin === '/dep/.wt-rempli-depuis') throw Object.assign(new Error(`ENOTEMPTY: directory not empty, rmdir '${chemin}'`), { code: 'ENOTEMPTY' })
+      },
+    },
+  })
+  assert.deepEqual(vus, ['rmdir /dep/.wt-vide', 'rmdir /dep/.wt-rempli-depuis'], 'ni git ni le peuplé')
+  assert.deepEqual(gestes.map((g) => [g.geste, g.ok]), [['rmdir /dep/.wt-vide', true], ['rmdir /dep/.wt-rempli-depuis', false]])
+  assert.match(gestes[1].detail, /^ENOTEMPTY — /)
 })
 
 /** Dépôt jetable + son `origin` NU, avec `origin/main` réellement posé. */
@@ -367,7 +423,7 @@ test('purger : un remove VERT dont le dossier RESTE est nommé lui aussi', () =>
     ['git worktree remove /dep/.wt-reste', true],
     ['re-mesure /dep/.wt-reste', false],
   ])
-  assert.match(gestes[1].detail, /dossier présent.*branche chantier\/reste conservée/)
+  assert.match(gestes[1].detail, /dossier présent, désinscrit de git.*branche chantier\/reste conservée — l'inventaire suivant le classe non-inscrit/)
 })
 
 test('purger : un remove rouge dont le dossier a bel et bien DISPARU ne dit rien de plus', () => {
@@ -379,6 +435,53 @@ test('purger : un remove rouge dont le dossier a bel et bien DISPARU ne dit rien
   })
   assert.deepEqual(gestes.map((g) => g.geste), ['git worktree remove /dep/.wt-parti', 'git worktree prune'])
   assert.equal(gestes.some((g) => g.geste.startsWith('re-mesure')), false)
+})
+
+// #2603 constat 26
+test('inventaire RÉEL puis --purger : le `.wt-*` non inscrit VIDE part ; le caché, le peuplé, l’inscrit vidé et l’étranger restent', () => {
+  const { racine, git, jeter } = depotAvecOrigin()
+  try {
+    git('worktree', 'add', '-q', '-b', 'chantier/sale', join(racine, '.wt-sale'), 'origin/main')
+    writeFileSync(join(racine, '.wt-sale', 'a.txt'), 'modifié, non commité')
+    // Inscrit à git, puis vidé sur disque (son `.git` en fichier compris) : jamais un `rmdir` de cette voie.
+    git('worktree', 'add', '-q', '-b', 'chantier/vide-inscrit', join(racine, '.wt-vide-inscrit'), 'origin/main')
+    for (const nom of readdirSync(join(racine, '.wt-vide-inscrit'))) rmSync(join(racine, '.wt-vide-inscrit', nom), { recursive: true, force: true })
+    assert.deepEqual(readdirSync(join(racine, '.wt-vide-inscrit')), [])
+    mkdirSync(join(racine, '.wt-vide'))
+    mkdirSync(join(racine, '.wt-peuple'))
+    writeFileSync(join(racine, '.wt-peuple', 'travail.txt'), 'peut-être du travail')
+    mkdirSync(join(racine, '.wt-cache'))
+    writeFileSync(join(racine, '.wt-cache', '.gitkeep'), '')
+    mkdirSync(join(racine, 'etranger'))
+
+    const vu = inventaire({ racine })
+    assert.equal(vu.ok, true, vu.refus)
+    assert.deepEqual(vu.worktrees.map((w) => w.chemin.replace(/\\/g, '/').split('/').pop()).slice(1).sort(),
+      ['.wt-sale', '.wt-vide-inscrit'], 'worktrees = ce que git nomme')
+    assert.deepEqual(vu.nonInscrits.map((d) => [d.chemin.replace(/\\/g, '/').split('/').pop(), d.classe]),
+      [['.wt-cache', 'non-inscrit+peuplé'], ['.wt-peuple', 'non-inscrit+peuplé'], ['.wt-vide', 'non-inscrit+vide']],
+      'un fichier caché suffit à peupler ; l’inscrit vidé n’est pas un non-inscrit')
+
+    const gestes = purger({ principal: racine, worktrees: [...vu.worktrees, ...vu.nonInscrits] })
+    assert.deepEqual(gestes.filter((g) => g.geste.startsWith('rmdir')).map((g) => [g.geste.replace(/\\/g, '/').split('/').pop(), g.ok]),
+      [['.wt-vide', true]], JSON.stringify(gestes))
+    assert.equal(existsSync(join(racine, '.wt-vide')), false, 'le vide est retiré')
+    assert.equal(existsSync(join(racine, '.wt-vide-inscrit')), true, 'l’inscrit vidé reste')
+    assert.equal(existsSync(join(racine, '.wt-cache', '.gitkeep')), true, 'le caché est intact')
+    assert.equal(existsSync(join(racine, '.wt-peuple', 'travail.txt')), true, 'le peuplé est intact')
+    assert.equal(existsSync(join(racine, '.wt-sale', 'a.txt')), true, 'le sale est intact')
+    assert.equal(existsSync(join(racine, 'etranger')), true, 'hors préfixe : jamais vu')
+    assert.deepEqual(inventaire({ racine }).nonInscrits.map((d) => d.classe), ['non-inscrit+peuplé', 'non-inscrit+peuplé'])
+
+    // Un dossier rempli entre l'inventaire et la purge : `rmdir` refuse, rien n'est perdu.
+    mkdirSync(join(racine, '.wt-tardif'))
+    const avant = inventaire({ racine })
+    writeFileSync(join(racine, '.wt-tardif', 'venu-entre-temps.txt'), 'x')
+    const tardif = purger({ principal: racine, worktrees: [...avant.worktrees, ...avant.nonInscrits] }).filter((g) => g.geste.startsWith('rmdir'))
+    assert.deepEqual(tardif.map((g) => g.ok), [false])
+    assert.match(tardif[0].detail, /^ENOTEMPTY/)
+    assert.equal(existsSync(join(racine, '.wt-tardif', 'venu-entre-temps.txt')), true)
+  } finally { jeter() }
 })
 
 // La classe `tenu` sur un dépôt RÉEL : le `cwd` du processus vit dans un worktree fusionné, donc

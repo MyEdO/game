@@ -1658,8 +1658,24 @@ export const caractereDeCommentaire = (depot) => (lire(depot, ['config', '-z', '
  *  @param {Depot} depot @returns {string | null} */
 export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])?.trim() || null
 
-/** Borne d'un `ls-remote` (`shasDistants`), en millisecondes : celle de `fetchOrigin`. */
+/** Borne d'un `ls-remote` (`shasDistants`, `tetesDistantes`), en millisecondes : celle de `fetchOrigin`. */
 export const TIMEOUT_DU_DISTANT_MS = 60000
+
+/** Les refs de l'origine que `motifs` désignent (`git help ls-remote`, « <patterns> »), en UN `ls-remote
+ *  origin` : une `Map` ref → sha, `null` quand git ne répond pas 0. */
+function refsDistantes(depot, motifs) {
+  const brut = lire(depot, ['ls-remote', 'origin', ...revisionsDe(motifs)], { timeout: TIMEOUT_DU_DISTANT_MS })
+  if (brut === null) return null
+  return new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
+}
+
+/**
+ * TOUTES les têtes de l'origine (`refs/heads/*`), en UN `ls-remote origin` (`refsDistantes`), une
+ * LECTURE : une `Map` ref complète → sha, `null` quand git ne répond pas 0 ; une indisponibilité va à
+ * `confier`.
+ * @param {Depot} depot @returns {Map<string, string> | null}
+ */
+export const tetesDistantes = (depot) => refsDistantes(depot, ['refs/heads/*'])
 
 /**
  * Les SHAS que l'origine porte pour `refs` (noms COMPLETS, `refs/heads/<branche>`), en UN
@@ -1671,9 +1687,8 @@ export const TIMEOUT_DU_DISTANT_MS = 60000
  * @param {Depot} depot @param {readonly string[]} refs @returns {Map<string, string | null> | null}
  */
 export function shasDistants(depot, refs) {
-  const brut = lire(depot, ['ls-remote', 'origin', ...revisionsDe(refs)], { timeout: TIMEOUT_DU_DISTANT_MS })
-  if (brut === null) return null
-  const lus = new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
+  const lus = refsDistantes(depot, refs)
+  if (lus === null) return null
   return new Map(refs.map((ref) => [ref, lus.get(ref) ?? null]))
 }
 

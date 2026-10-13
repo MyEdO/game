@@ -44,7 +44,7 @@
 // sondage, veille d'un script de `scripts/ops/` qui exporte `estUneAttente`, `gh run watch`) lancée en fond, ou au
 // premier plan sans borne de vie sous l'échéance de l'appel. Ce que cette lecture ne voit pas : un dormeur écrit
 // dans un autre langage (`node -e setTimeout`), `timeout /t` et `ping -n` de Windows, et les lanceurs indirects
-// (#2172, ci-dessus).
+// (#2172, ci-dessus). `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP` à `1` dans `contexte.env` désarme cette lecture (#2603).
 import { ECHEANCE_PAR_DEFAUT_MS, OUTILS_SHELL, commandeDe, entreeDOutil, sousAgent, timeoutDe, verdictDe } from '../guards/lib/contratGarde.mjs'
 import { readFileSync } from 'node:fs'
 import {
@@ -695,8 +695,8 @@ async function attentesDe(P, enBash) {
 
 /** Le refus d'une attente du fil principal sur Bash ou PowerShell, ou `null`. Lue en fond, toute attente est refusée ;
  *  au premier plan, celle dont la borne de vie n'est pas strictement sous l'échéance de l'appel. */
-async function attenteRefusee(entree) {
-  if (sousAgent(entree) || !['Bash', 'PowerShell'].includes(entree?.tool_name)) return null
+async function attenteRefusee(entree, env) {
+  if (env.CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP === '1' || sousAgent(entree) || !['Bash', 'PowerShell'].includes(entree?.tool_name)) return null
   const commande = commandeDe(entree)
   if (!commande) return null
   const input = entreeDOutil(entree)
@@ -711,7 +711,8 @@ async function attenteRefusee(entree) {
       reason:
         `⛔ Attente en FOND REFUSÉE (${vue.graphie}, #2603) : Claude Code tue les shells de fond d'une session inactive sous ` +
         `pression mémoire ; le Monitor en est exclu. Lance la même commande par l'outil Monitor (plafond 30 min : à ` +
-        `« Monitor timed out », ré-arme ; une veille du train se ré-arme par --depuis <dernier #seq>).`,
+        `« Monitor timed out », ré-arme ; une veille du train se ré-arme par --depuis <dernier #seq>). ` +
+        `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP à 1 dans l'environnement du hook désarme cette garde.`,
     } : null
   }
   const echeance = timeoutDe(input) ?? ECHEANCE_PAR_DEFAUT_MS
@@ -721,7 +722,8 @@ async function attenteRefusee(entree) {
     reason:
       `⛔ Attente non bornée au PREMIER PLAN REFUSÉE (${vue.graphie}, #2603) : à l'échéance de l'appel (${echeance} ms), ` +
       `elle bascule en fond sans être tuée, puis tombe sous la même mise à mort. Monitor, ou une borne de vie sous ` +
-      `l'échéance (timeout N, outil Bash).`,
+      `l'échéance (timeout N, outil Bash). CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP à 1 dans ` +
+      `l'environnement du hook désarme cette garde.`,
   } : null
 }
 
@@ -795,5 +797,5 @@ export function evaluate(command) {
 export const garde = {
   nom: 'commande-piege',
   outils: OUTILS_SHELL,
-  evaluer: async (entree) => verdictDe(evaluate(commandeDe(entree)) ?? await attenteRefusee(entree)),
+  evaluer: async (entree, { env = process.env } = {}) => verdictDe(evaluate(commandeDe(entree)) ?? await attenteRefusee(entree, env)),
 }

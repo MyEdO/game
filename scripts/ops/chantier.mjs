@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import { GitIndisponible, TIMEOUT_DU_HOOK_MS, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, natureDuChemin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
+import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
 import { annonceEspacee, synchroniserPrincipal, verrouDuConsommateur } from './synchroniser.mjs'
 import { attendreLibre } from '../test/verrou.mjs'
 import { GENERATORS, NON_GENERATOR_CHECKS, SOURCES_LUES, ciblesPures, ciblesSurDisque, estCiblePure, generateurDe } from '../docs/build-all.mjs'
@@ -132,12 +133,6 @@ export function equipementsDesPrerequis(ecritLu) {
  * `server/node_modules` absent, après 881 s de gates en série).
  */
 export const EQUIPEMENTS = [EQUIPEMENT_RACINE, ...equipementsDesPrerequis(ECRIT_LU), EQUIPEMENT_DOCS]
-
-/** Nom de branche d'un chantier. PURE. */
-export const brancheDe = (nom) => `chantier/${nom}`
-
-/** Chemin du worktree d'un chantier dans `racine`. PURE (hors `join`). */
-export const cibleDe = (racine, nom) => join(racine, `.wt-${nom}`)
 
 /**
  * Ce que l'ouverture IMPRIME en fin : les quatre faits dont la session a besoin tout de suite. PURE.

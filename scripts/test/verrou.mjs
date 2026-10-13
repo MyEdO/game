@@ -3,6 +3,7 @@
 // second preneur en NOMMANT le premier, ou le fait attendre sous une échéance ; il ne tue personne.
 import { randomUUID } from 'node:crypto'
 import fsReel from 'node:fs'
+import { dirname } from 'node:path'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 /** Ce PID tourne-t-il ? `process.kill(pid, 0)` ne tue rien : il teste l'existence. */
@@ -129,7 +130,7 @@ async function deroulerAsync(etapes, dormir) {
   }
 }
 
-/** Un essai de prise : le tenant écrit dans un temporaire voisin, puis lié à `chemin`. */
+/** Un essai de prise : le dossier de `chemin` créé, le tenant écrit dans un temporaire voisin, puis lié à `chemin`. */
 function prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, estVivant, maintenant }) {
   const liberer = () => {
     try {
@@ -138,6 +139,7 @@ function prendreUneFois({ chemin, libelle, pid, commande, cwd, fs, estVivant, ma
       /* verrou déjà retiré : rien à libérer */
     }
   }
+  fs.mkdirSync(dirname(chemin), { recursive: true })
   const temporaire = `${chemin}.${pid}.${randomUUID()}`
   fs.writeFileSync(temporaire, JSON.stringify({ pid, commande, cwd, date: maintenant() }), { flag: 'wx' })
   try {
