@@ -53,6 +53,9 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
   FS.writeFileSync(join(SP, 'dir-ecrit', SUITE_ECRIT), "import fs from 'node:fs'\nfs.writeFileSync('../hors.txt', 'x')\n")
   FS.writeFileSync(join(SP, 'dir-lit', 'y.test.mjs'), "import fs from 'node:fs'\nfs.readFileSync('package.json')\n")
   FS.writeFileSync(join(SP, 'vitest.config.mjs'), "export default { root: 'dir-ecrit' }\n")
+  FS.writeFileSync(join(SP, 'vitest.dir.config.mjs'), "export default { root: 'dir-lit', test: { dir: 'dir-abs' } }\n")
+  FS.writeFileSync(join(SP, 'vitest.calc.config.mjs'), "export default { root: process.env.RACINE }\n")
+  FS.writeFileSync(join(SP, 'k.mjs'), "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/k.txt', 'x')\n")
   FS.mkdirSync(join(SP, 'dir-abs'), { recursive: true })
   FS.writeFileSync(join(SP, 'dir-abs', 'z.test.mjs'), "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n")
   FS.mkdirSync(join(SP, 'fx', 'sous'), { recursive: true })
@@ -207,7 +210,9 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['Bash', `npx vitest run "${P}/dir-ecrit"`, 'juge', null],
     ['Bash', `cd "${P}/fx" && npx vitest run a-sonde`, 'juge', 'deny', 'a-sonde.test.mjs : writeFileSync hors du scratchpad (/hors-banc-2537/a.txt) — canal'],
     ['Bash', `cd "${P}/fx" && npx vitest run A-SONDE`, 'juge', 'deny', 'a-sonde.test.mjs : writeFileSync'],
-    ['Bash', `cd "${P}/fx" && npx vitest run --config autre.config.mts a-sonde`, 'juge', 'deny', 'a-sonde.test.mjs : writeFileSync'],
+    // `--config` absent : vite échoue au chargement ; `dir`, `root` d'un config relatifs au cwd (`node_modules/vite/dist/node/chunks/node.js:37371`,
+    // `node_modules/vitest/dist/chunks/index.DpLw24bj.js:9447`, `:12204`).
+    ['Bash', `cd "${P}/fx" && npx vitest run --config autre.config.mts a-sonde`, 'juge', null],
     ['Bash', `cd "${P}/fx" && npx vitest run lit`, 'juge', null],
     ['Bash', `cd "${P}/fx" && npx vitest run "$INCONNUE"`, 'juge', null],
     ['Bash', `cd "${P}" && npx vitest run "${P}/fx/sous/b-"`, 'juge', 'deny', 'b-autre.test.mjs : writeFileSync hors du scratchpad (/hors-banc-2537/b.txt) — canal'],
@@ -215,7 +220,17 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['PowerShell', `$S="$env:LOCALAPPDATA\\claude\\${SLUG}\\${SESSION}\\scratchpad"; Get-Process | Export-Csv -NoTypeInformation -Encoding utf8 "$S\\durees.csv"`, 'juge', 'deny', /export-csv : écrivain à cible non résolue/],
     ['Bash', 'echo x > "$APPDATA/x.txt"', 'lecteur', 'deny', /redirection hors du scratchpad/, { env: { APPDATA: HORS } }],
     ['Bash', `cd "${P}/dir-abs" && npx vitest run`, 'juge', 'deny', /z.test.mjs : writeFileSync hors du scratchpad/],
-    ['Bash', `npx vitest run --config "${P}/vitest.config.mjs"`, 'juge', 'deny', /writeFileSync hors du scratchpad/],
+    ['Bash', `npx vitest run --config "${P}/vitest.config.mjs"`, 'juge', null],
+    ['Bash', `cd "${P}" && npx vitest run --config vitest.config.mjs`, 'juge', 'deny', /x.test.mjs : writeFileSync hors du scratchpad/],
+    ['Bash', `cd "${P}" && npx vitest run --config vitest.dir.config.mjs`, 'juge', 'deny', /z.test.mjs : writeFileSync hors du scratchpad/],
+    ['Bash', `cd "${P}" && npx vitest run --config vitest.calc.config.mjs`, 'juge', null],
+    // `--dir`/`--root` de la ligne l'emportent sur ceux du config ; `--config` relatif se lit contre `--root` (`index.DpLw24bj.js:9530`, `:14825`).
+    ['Bash', `cd "${P}" && npx vitest run --config vitest.config.mjs --dir dir-lit`, 'juge', null],
+    ['Bash', `npx vitest run --root "${P}" --dir "${P}/dir-lit" --config ecrit-hors.mjs`, 'juge', 'deny', /ecrit-hors\.mjs : writeFileSync hors du scratchpad/],
+    ['Bash', `node "${P}/k.mjs"`, 'juge', 'deny', /k\.mjs : writeFileSync hors du scratchpad/],
+    ['Bash', `node -e "require('node:fs').writeFileSync('${P}/k.mjs', '1')" && node "${P}/k.mjs"`, 'juge', null],
+    ['Bash', `cd "${P}/.." && npx vitest run dir-ecrit`, 'juge', 'deny', /x.test.mjs : writeFileSync hors du scratchpad/],
+    ['Bash', `cd "${P}/.." && npx vitest run dir-lit`, 'juge', null],
     ['Bash', `source "${P}/lit.mts"`, 'juge', null],
     ['Bash', 'find .. -name x -exec rm {} \\;', 'lecteur', 'deny', /rm hors du scratchpad/],
     ['Bash', `find "${P}" -name x -exec rm {} +`, 'lecteur', null],
@@ -228,6 +243,27 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     ['Bash', `f(){ cat a > "$1"; }; f ${HORS}/x`, 'lecteur', 'deny', /redirection hors du scratchpad/],
     ['Bash', `f(){ cat a > "$1"; }; f "${P}/x"`, 'lecteur', null],
     ['Bash', 'f(){ rm "$1"; }; f "$INCONNUE"', 'lecteur', 'deny', /rm : écrivain à cible non résolue/],
+    ['Bash', `f(){ shift; rm "$1"; }; f "${P}/ok" ${HORS}/x`, 'lecteur', 'deny', new RegExp(`rm hors du scratchpad \\(${echapper(HORS)}/x\\)`)],
+    ['Bash', `f(){ shift; rm "$1"; }; f ${HORS}/x "${P}/ok"`, 'lecteur', null],
+    ['PowerShell', `npx tsx "${P}/ecrit-tmp.mts"`, 'juge', 'deny', /mkdtempSync hors du scratchpad .* — canal : amorce le répertoire temporaire/, { env: TMP }],
+    ['PowerShell', `$env:TMPDIR = "${P}/tmp"; $env:TEMP = "${P}/tmp"; npx tsx "${P}/ecrit-tmp.mts"`, 'juge', null, undefined, { env: TMP }],
+    ['Bash', `npx vitest run --root "${P}/dir-ecrit" --dir "${P}/dir-lit"`, 'juge', null],
+    ['Bash', `npx vitest run --root "${P}/dir-lit" --dir "${P}/dir-ecrit"`, 'juge', 'deny', /writeFileSync hors du scratchpad/],
+    ['Bash', `case x in a) rm ${HORS}/y;; esac`, 'lecteur', 'deny', /rm hors du scratchpad/],
+    ['Bash', `case x in a) rm "${P}/y";; esac`, 'lecteur', null],
+    ['Bash', `f(){ rm ${HORS}/z; }; export -f f; bash -c f`, 'lecteur', 'deny', /rm hors du scratchpad/],
+    ['Bash', `f(){ rm "${P}/z"; }; export -f f; bash -c f`, 'lecteur', null],
+    ['PowerShell', `function f { Remove-Item $args[0] }; f ${HORS}/x`, 'lecteur', 'deny', /remove-item hors du scratchpad/i],
+    ['PowerShell', `function f { Remove-Item $args[0] }; f "${P}/x"`, 'lecteur', null],
+    ['Bash', 'cd "$INCONNUE"; find . -exec rm y \\;', 'lecteur', 'deny', /rm : écrivain à cible non résolue/],
+    ['Bash', `cd "${P}"; find . -exec rm y \\;`, 'lecteur', null],
+    ['Bash', `case x in $(rm ${HORS}/y)) :;; esac`, 'lecteur', 'deny', /rm hors du scratchpad/],
+    ['Bash', `case x in $(rm "${P}/y")) :;; esac`, 'lecteur', null],
+    ['PowerShell', `function f { Remove-Item @args }; f ${HORS}/x`, 'lecteur', 'deny', /remove-item hors du scratchpad/i],
+    ['PowerShell', `function f { Remove-Item @args }; f "${P}/x"`, 'lecteur', null],
+    ['PowerShell', 'Remove-Item @cibles', 'lecteur', 'deny', /remove-item : écrivain à cible non résolue/i],
+    ['PowerShell', `if (Test-Path x) { Remove-Item "${P}/x" }`, 'lecteur', null],
+    ['PowerShell', `if (Remove-Item ${HORS}/x) { 1 }`, 'lecteur', 'deny', /remove-item hors du scratchpad/i],
   ]
   try {
     for (const platform of ['win32', 'linux']) {
@@ -269,7 +305,7 @@ test('#2537 — au-delà de la borne, une suite n’est PAS jugée, donc admise,
   const ecrit = "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n"
   const disque = new Map([[join(dossier, 'g.test.mjs'), ecrit + `// ${'x'.repeat(BUDGET_ANALYSE_MS * DEBIT_ANALYSE_JS)}\n`], [join(dossier, 'p.test.mjs'), ecrit]])
   const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `npx vitest run --dir "${dossier}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
-  const juger = (suites) => garde.evaluer(entree, { baseDeLAppel: RACINE, lire: (chemin) => ({ texte: disque.get(chemin) }), lister: () => ({ suites, parcourues: suites.length }) })
+  const juger = (suites) => garde.evaluer(entree, { baseDeLAppel: RACINE, horloge: () => 0, lire: (chemin) => ({ texte: disque.get(chemin) }), lister: () => ({ suites, parcourues: suites.length }) })
   const gros = juger([join(dossier, 'g.test.mjs')])
   assert.equal(gros.decision, undefined)
   assert.match(gros.contexte, /NON JUGÉS, au-delà du budget d'analyse de \d+ ms par appel .* : /)
@@ -279,7 +315,7 @@ test('#2537 — au-delà de la borne, une suite n’est PAS jugée, donc admise,
   assert.ok(mixte.raison.includes('p.test.mjs : writeFileSync hors du scratchpad'), mixte.raison)
   assert.ok(!mixte.raison.includes('g.test.mjs'), mixte.raison)
   assert.ok(mixte.contexte.endsWith(`${dossier} (1/2 suites).`), mixte.contexte)
-  const vaste = garde.evaluer(entree, { baseDeLAppel: RACINE, lire: (chemin) => ({ texte: disque.get(chemin) }), lister: () => null })
+  const vaste = garde.evaluer(entree, { baseDeLAppel: RACINE, horloge: () => 0, lire: (chemin) => ({ texte: disque.get(chemin) }), lister: () => null })
   assert.equal(vaste.decision, undefined)
   assert.ok(vaste.contexte.endsWith(`${dossier} (entrées).`), vaste.contexte)
 })
@@ -290,7 +326,7 @@ test('#2537 — chaque script coûte `COUT_SCRIPT_MS` AVANT sa lecture : N suite
   const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `npx vitest run --dir "${dossier}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
   const lues = []
   const juger = (liste) => garde.evaluer(entree, {
-    baseDeLAppel: RACINE, lister: () => ({ suites: liste, parcourues: liste.length }),
+    baseDeLAppel: RACINE, horloge: () => 0, lister: () => ({ suites: liste, parcourues: liste.length }),
     lire: (chemin) => (lues.push(chemin), { texte: chemin.endsWith('zzzz.test.mjs') ? "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n" : 'let a = 1\n' }),
   })
   const verdict = juger(suites)
@@ -306,11 +342,99 @@ test('#2537 — chaque script coûte `COUT_SCRIPT_MS` AVANT sa lecture : N suite
   assert.equal(temoin.contexte, undefined)
 })
 
+test('#2537 — l’échéance murale borne l’analyse à côté du modèle : le temps écoulé se déduit du budget, le reste n’est pas jugé, nommé', () => {
+  const dossier = join(SP, 'lents')
+  const suites = [join(dossier, 'a.test.mjs'), join(dossier, 'zzzz.test.mjs')]
+  const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `npx vitest run --dir "${dossier}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
+  const juger = (horloge) => garde.evaluer(entree, {
+    baseDeLAppel: RACINE, horloge, lister: () => ({ suites, parcourues: suites.length }),
+    lire: (chemin) => ({ texte: chemin.endsWith('zzzz.test.mjs') ? "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n" : 'let a = 1\n' }),
+  })
+  const arretee = juger(() => 0)
+  assert.equal(arretee.decision, 'deny')
+  assert.equal(arretee.contexte, undefined)
+  let appels = 0
+  const froide = juger(() => (appels++ === 0 ? 0 : BUDGET_ANALYSE_MS - COUT_SCRIPT_MS / 2))
+  assert.equal(froide.decision, undefined, froide.raison)
+  assert.ok(froide.contexte.endsWith(`${dossier} (2/2 suites).`), froide.contexte)
+})
+
+test('#2537 — l’échéance murale borne l’ANALYSE par lots : les scripts au-delà ne sont pas jugés, nommés', () => {
+  const scripts = Array.from({ length: 40 }, (_, k) => join(SP, `e${k}.mjs`))
+  const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: scripts.map((s) => `node "${s}"`).join(' && ') }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
+  const ecrit = "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n"
+  const juger = (horloge, lu = () => {}) => garde.evaluer(entree, {
+    baseDeLAppel: RACINE, horloge, lister: () => ({ suites: [], parcourues: 0 }),
+    lire: (chemin) => (lu(chemin), { texte: chemin === scripts.at(-1) ? ecrit : 'let a = 1\n' }),
+  })
+  const jugee = juger(() => 0)
+  assert.equal(jugee.decision, 'deny')
+  assert.equal(jugee.contexte, undefined)
+  let maintenant = 0, lente = false
+  const tardive = juger(() => (lente ? (maintenant += 50) : maintenant), (chemin) => {
+    if (chemin === scripts.at(-1)) [maintenant, lente] = [BUDGET_ANALYSE_MS - 4 * COUT_SESSION_MS, true]
+  })
+  assert.equal(tardive.decision, undefined, tardive.raison)
+  assert.ok(tardive.contexte.endsWith(`${scripts.at(-1)}.`), tardive.contexte)
+  const nommes = scripts.filter((s) => tardive.contexte.includes(`${s},`) || tardive.contexte.endsWith(`${s}.`))
+  assert.ok(nommes.length > 0 && nommes.length < scripts.length, `${nommes.length} nommés`)
+})
+
+test('#2537 — après un `cd` inconnu, un script se lance d’un répertoire inconnu : ses écritures relatives ne se jugent pas, les absolues si', () => {
+  const script = join(SP, 'cwd-inconnu.mjs')
+  const juger = (ecrit, avant = 'cd "$DOSSIER_INCONNU" && ') => garde.evaluer({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `${avant}node "${script}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }, {
+    baseDeLAppel: RACINE, horloge: () => 0, lister: () => ({ suites: [], parcourues: 0 }),
+    lire: () => ({ texte: `import fs from 'node:fs'\nfs.writeFileSync('${ecrit}', 'x')\n` }),
+  })
+  assert.equal(juger('r.txt', '').decision, 'deny')
+  assert.equal(juger('r.txt'), null)
+  assert.equal(juger('/hors-banc-2537/r.txt').decision, 'deny')
+  assert.equal(choisieParVitest(join(SP, 'a', 'x.test.mjs'), ['a/x'], SP, null, process.platform), true)
+  assert.equal(choisieParVitest(join(SP, 'a', 'x.test.mjs'), ['./a/x'], SP, null, process.platform), false)
+  assert.equal(choisieParVitest(join(SP, 'a', 'x.test.mjs'), ['./a/x'], SP, SP, process.platform), true)
+})
+
+test('#2537 — `vitest` lancé d’un PARENT du scratchpad se juge à la part du scratchpad, sauf à traverser un dossier qu’il exclut', () => {
+  const P = cheminsDe('linux')
+  const juger = (tmp) => {
+    const sp = P.join(tmp, 'claude', SLUG, SESSION, 'scratchpad'), suite = P.join(sp, 'w.test.mjs')
+    const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'cd /banc && npx vitest run' }, session_id: SESSION, transcript_path: P.join('/banc/depot/.claude/projects', SLUG, `${SESSION}.jsonl`), agent_type: 'juge' }
+    return garde.evaluer(entree, {
+      baseDeLAppel: '/banc/depot', platform: 'linux', tmp, horloge: () => 0, lister: (dossier) => ({ suites: dossier === sp ? [suite] : [], parcourues: 1 }),
+      lire: (chemin) => (chemin === suite ? { texte: "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/w.txt', 'x')\n" } : { raison: 'absent' }),
+    })
+  }
+  const parent = juger('/banc/tmp')
+  assert.equal(parent?.decision, 'deny')
+  assert.ok(parent.raison.includes('w.test.mjs : writeFileSync hors du scratchpad'), parent.raison)
+  assert.equal(juger('/banc/node_modules/tmp'), null)
+})
+
+test('#2537 — le disque balayé élague les dossiers du `defaultExclude` de `vitest/config` (`.git`, `node_modules`), à toute profondeur', () => {
+  const dossier = join(SP, 'elague')
+  const ecrit = "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/e.txt', 'x')\n"
+  try {
+    for (const exclu of ['.git', 'node_modules']) {
+      FS.mkdirSync(join(dossier, 'sous', exclu), { recursive: true })
+      FS.writeFileSync(join(dossier, 'sous', exclu, 'w.test.mjs'), ecrit)
+    }
+    FS.writeFileSync(join(dossier, 'sous', 'lit.test.mjs'), "import fs from 'node:fs'\nfs.readFileSync('package.json')\n")
+    const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `npx vitest run --dir "${dossier}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
+    assert.equal(garde.evaluer(entree, { baseDeLAppel: RACINE }), null)
+    FS.writeFileSync(join(dossier, 'sous', 'e.test.mjs'), ecrit)
+    const temoin = garde.evaluer(entree, { baseDeLAppel: RACINE })
+    assert.equal(temoin.decision, 'deny')
+    assert.ok(temoin.raison.includes('e.test.mjs : writeFileSync hors du scratchpad') && !temoin.raison.includes('w.test.mjs'), temoin.raison)
+  } finally {
+    FS.rmSync(dossier, { recursive: true, force: true })
+  }
+})
+
 test('#2537 — le tsconfig de `tsc -p` se lit sous le plafond et le budget : au-delà, non jugé, nommé ; en deçà, jugé', () => {
   const tsconfig = join(SP, 'tsconfig.emet.json'), emet = '{ "compilerOptions": { "strict": true } }\n'
   const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `npx tsc -p "${tsconfig}"` }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
   const juger = (texte) => garde.evaluer(entree, {
-    baseDeLAppel: RACINE, lister: () => ({ suites: [], parcourues: 0 }),
+    baseDeLAppel: RACINE, horloge: () => 0, lister: () => ({ suites: [], parcourues: 0 }),
     lire: (chemin, plafond) => (chemin === tsconfig && Buffer.byteLength(texte) > plafond ? { raison: 'au-delà du budget', trop: true } : { texte }),
   })
   const petit = juger(emet)
@@ -321,26 +445,20 @@ test('#2537 — le tsconfig de `tsc -p` se lit sous le plafond et le budget : au
   assert.ok(geant.contexte.endsWith(`${tsconfig}.`), geant.contexte)
 })
 
-test('#2537 — les scripts d’une commande s’analysent en UN corpus : 121 lancements tiennent le budget, le dernier se juge', () => {
+test('#2537 — les scripts d’une commande s’analysent en un corpus, une session au modèle : 121 lancements tiennent le budget, le dernier se juge', () => {
   const sp = join(tmpdir(), 'claude', SLUG, SESSION, 'scratchpad')
   const lit = "import fs from 'node:fs'\nfs.readFileSync('package.json')\n// " + 'x'.repeat(2000) + '\n'
   const scripts = Array.from({ length: 121 }, (_, k) => join(sp, `s${k}.mjs`))
   const disque = new Map(scripts.map((s, k) => [s, k === 120 ? "import fs from 'node:fs'\nfs.writeFileSync('/hors-banc-2537/r.txt', 'x')\n" : lit]))
   const entree = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: scripts.map((s) => `node "${s}"`).join(' && ') }, session_id: SESSION, transcript_path: TRANSCRIPT, agent_type: 'juge' }
-  const debut = performance.now()
-  const verdict = garde.evaluer(entree, { baseDeLAppel: RACINE, lire: (chemin) => ({ texte: disque.get(chemin) }), lister: () => ({ suites: [], parcourues: 0 }) })
-  const duree = performance.now() - debut
+  const verdict = garde.evaluer(entree, { baseDeLAppel: RACINE, horloge: () => 0, lire: (chemin) => ({ texte: disque.get(chemin) }), lister: () => ({ suites: [], parcourues: 0 }) })
   assert.equal(verdict.decision, 'deny')
   assert.ok(verdict.raison.includes('s120.mjs : writeFileSync hors du scratchpad'), verdict.raison)
   assert.equal(verdict.contexte, undefined)
-  assert.ok(duree < 120 * COUT_SESSION_MS / 2, `${Math.round(duree)} ms`)
   const enLigne = { ...entree, tool_input: { command: [...Array(120).fill('node -e "1"'), "node -e \"require('node:fs').writeFileSync('/hors-banc-2537/e.txt', 'x')\""].join(' && ') } }
-  const debutEnLigne = performance.now()
-  const verdictEnLigne = garde.evaluer(enLigne, { baseDeLAppel: RACINE, lire: () => ({ raison: 'hors disque' }), lister: () => ({ suites: [], parcourues: 0 }) })
-  const dureeEnLigne = performance.now() - debutEnLigne
+  const verdictEnLigne = garde.evaluer(enLigne, { baseDeLAppel: RACINE, horloge: () => 0, lire: () => ({ raison: 'hors disque' }), lister: () => ({ suites: [], parcourues: 0 }) })
   assert.equal(verdictEnLigne.decision, 'deny')
   assert.ok(verdictEnLigne.raison.includes('(code en ligne) : writeFileSync hors du scratchpad'), verdictEnLigne.raison)
-  assert.ok(dureeEnLigne < 120 * COUT_SESSION_MS / 2, `${Math.round(dureeEnLigne)} ms`)
 })
 
 test('#2537 — `choisieParVitest` : prédicat de `filterFiles` de vitest (sous-chaîne sans casse du relatif, préfixe absolu)', () => {

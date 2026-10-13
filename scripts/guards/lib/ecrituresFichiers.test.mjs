@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { MOT_INCONNU, ciblesDEcritureJS } from './ecrituresFichiers.mjs'
+import { LOT_SONDE, MOT_INCONNU, ciblesDEcritureJS } from './ecrituresFichiers.mjs'
 
 /** Les cibles d'UN script de texte `texte` (`rel`, `fichier`, `argv`), sous `env` et `platform`. */
 const unScript = (texte, { env, platform, ...script } = {}) => ciblesDEcritureJS([{ texte, ...script }], { env, platform })[0]
@@ -88,4 +88,21 @@ test('#2537 — un lanceur se reconnaît à son import ; `process.execPath` est 
   assert.deepEqual(cibles(`${cp}const a = ['x']\nspawnSync('rm', [...a])`), [`'rm' ${MOT_INCONNU}`])
   assert.deepEqual(cibles(`${cp}spawnSync(process.argv[2], ['x'])`), ['?spawnSync'])
   assert.deepEqual(cibles("const exec = (s) => s\nexec('rm -rf x')"), [])
+})
+
+test('#2537 — sous échéance, le corpus s’analyse par lots, une session chacun : au-delà de l’échéance, un script rend `null`', () => {
+  const ecrit = "import fs from 'node:fs'\nfs.writeFileSync('/hors/x', 'a')\n"
+  const scripts = Array.from({ length: 3 * LOT_SONDE }, (_, k) => ({ texte: k % 2 ? ecrit : 'let a = 1\n', rel: 's.mjs' }))
+  const entier = ciblesDEcritureJS(scripts, { platform: 'linux' })
+  let lots = 0
+  const large = ciblesDEcritureJS(scripts, { platform: 'linux', echeance: { reste: () => 1000, cout: () => 1, get session() { return (lots++, 10) } } })
+  assert.deepEqual(large, entier)
+  assert.equal(lots, 2)
+  let restant = 200
+  const epuise = ciblesDEcritureJS(scripts, { platform: 'linux', echeance: { reste: () => (restant -= 10), cout: () => 1, session: 10 } })
+  const analyses = epuise.findIndex((c) => c === null)
+  assert.ok(analyses >= LOT_SONDE && analyses < scripts.length, `${analyses} analysés`)
+  assert.deepEqual(epuise.slice(0, analyses), entier.slice(0, analyses))
+  assert.ok(epuise.slice(analyses).every((c) => c === null))
+  assert.deepEqual(ciblesDEcritureJS(scripts, { platform: 'linux', echeance: { reste: () => 0, cout: () => 1, session: 10 } }), scripts.map(() => null))
 })

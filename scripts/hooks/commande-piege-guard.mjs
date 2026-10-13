@@ -471,20 +471,26 @@ function arretParElement(P) {
     return source && `foreach ($${entete.variable} in ${source})`
   }
   const lier = (nom, liaison) => (liaison ? lies.set(nom.toLowerCase(), liaison) : lies.delete(nom.toLowerCase()))
-  const ordre = P.flat()
-  /** Le `done` qui suit le segment `s` (la fin de sa boucle), ou `undefined`. */
-  const doneSuivant = (s) => ordre.slice(ordre.indexOf(s) + 1).find((t) => executableDe(textesDe(relus(t))).exe === 'done')
+  /** `true` si la boucle `b` contient le segment `s` (`boucle` de `pipelinesDeJetons`). */
+  const dansLaBoucle = (b, s) => {
+    for (let c = s.boucle; c; c = c.parent) if (c === b) return true
+    return false
+  }
   /** L'entrée du segment `s` redirigée depuis une substitution de processus qui liste par nom (`< <(pgrep node)`),
    *  libellée pour la tête `tete`, ou `null`. */
   const entreeRedirigee = (s, tete) => {
     const jetons = s ? relus(s) : []
-    const i = jetons.findIndex((j, k) => k > 0 && j.text === '<' && jetonNu(j) && s.deplies.has(jetons[k + 1]))
+    const i = jetons.findIndex((j, k) => j.text === '<' && jetonNu(j) && s.deplies.has(jetons[k + 1]))
     const listeur = i === -1 ? null : listeurDesPipelines(s.deplies.get(jetons[i + 1]))
     return listeur && `${tete} < <(${listeur} …) → read`
   }
 
   for (const pipeline of P) {
     for (const s of pipeline) {
+      for (const lecture of lectures.filter((l) => !dansLaBoucle(l.boucle, s))) {
+        lies.delete(lecture.nom.toLowerCase())
+        lectures.splice(lectures.indexOf(lecture), 1)
+      }
       const jetons = relus(s)
       const k = s.tube.indexOf(s)
       // Un segment qui ouvre des blocs se lit dans leurs corps ; l'en-tête d'un `foreach` y lie sa variable.
@@ -503,7 +509,6 @@ function arretParElement(P) {
       const textes = textesDe(jetons)
       if (textes.length === 0) continue
       const { exe, args, commande } = executableDe(textes)
-      if (exe === 'done') for (const nom of lectures.splice(0)) lies.delete(nom.toLowerCase())
       const affectation = k === 0 ? affectationPowerShell(jetons) : null
       if (affectation && !PIPELINE_RE.test(affectation.nom)) {
         const source = sourceDe(affectation.valeur, s)
@@ -515,12 +520,12 @@ function arretParElement(P) {
       }
       const source = k === 0 ? null : sources(s.tube)[k]
       if (exe === 'read' && k === s.tube.length - 1) {
-        const entree = source ? `${source} | while read` : entreeRedirigee(s, 'read') ?? entreeRedirigee(doneSuivant(s), 'done')
+        const entree = source ? `${source} | while read` : entreeRedirigee(s, 'read') ?? entreeRedirigee(s.boucle?.fin, 'done')
         const fin = args.findIndex((a) => /^\d*[<>]/.test(a))
         for (const [i, nom] of args.slice(0, fin === -1 ? args.length : fin).entries()) {
           if (nom.startsWith('-') || OPTIONS_READ_A_VALEUR.includes(args[i - 1])) continue
           lier(nom, entree && `${entree} ${nom}`)
-          lectures.push(nom)
+          if (s.boucle) lectures.push({ nom, boucle: s.boucle })
         }
       }
       for (const j of jetons) {

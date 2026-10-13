@@ -762,8 +762,12 @@ test('DENY : la substitution de processus `<(…)`, `>(…)` exécute sa command
   for (const cmd of [
     'cat <(pkill node)', 'diff <(pkill node) x', 'tee >(pkill node) < x',
     'while read p; do kill $p; done < <(pgrep node)', 'read p < <(pgrep node); kill $p',
+    'while read p; do for q in 1; do echo $q; done; kill $p; done < <(pgrep node)',
   ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
-  for (const cmd of ['while read p; do kill $p; done < pids.txt', 'diff <(sort a) <(sort b)', 'arr=(pkill node)']) {
+  for (const cmd of [
+    'while read p; do kill $p; done < pids.txt', 'diff <(sort a) <(sort b)', 'arr=(pkill node)',
+    'while read p; do echo $p; done < <(pgrep node); kill $p',
+  ]) {
     assert.equal(evaluate(cmd), null, cmd)
   }
 })

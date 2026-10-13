@@ -360,7 +360,9 @@ const cheminDeModule = (valeur) =>
 /** Les lancements d'un interpréteur JS : `{ scripts, configs, filtres, dossiers, ecritures, enLigne, argv }` — les
  *  fichiers qu'il lance (préchargements de `node` compris), les `--config` de `vitest` (`configs`, lancés aussi), les
  *  positionnels de `vitest` (`filtres`, qui trient les suites balayées), les dossiers qu'il balaie
- *  (`dossiers` : ses `--root`/`--dir`, sinon le cwd, racine de `vitest` sans `--config`), les fichiers qu'il DÉCLARE
+ *  (`dossiers` : ses `--dir`, sinon ses `--root`, sinon le cwd, racine de `vitest` sans `--config` ; un `--config` relatif
+ *  se résout contre le dernier `--root`, et `dossierFixeParLaLigne` dit qu'un `--dir` ou `--root` l'emporte sur le
+ *  config), les fichiers qu'il DÉCLARE
  *  écrire (`ecritures` : `--outputFile`, `--coverage` → `coverage` du cwd, `--test-reporter-destination` hors
  *  `stdout`/`stderr`), le code en ligne (`-e`, `-p`), `argv` = le `process.argv` d'un script seul (un argument non
  *  développé vaut `null`) ; `null` hors `node`, `tsx` et `vitest`. `npm test -- <args>` et `npx vitest` lancent
@@ -382,6 +384,8 @@ function lancementDInterpreteur(textes, bruts = textes) {
   }
   const rendu = { scripts: [], configs: [], filtres: [], dossiers: [], ecritures: [], enLigne: undefined }
   if (nom === 'vitest') {
+    // `config.dir || config.root` (vitest 5.0.3, `dist/chunks/index.DpLw24bj.js:12204`) : un `--dir` remplace la racine.
+    const balayes = { racines: [], dirs: [] }
     for (let premier = true; k < textes.length; k++) {
       const texte = textes[k]
       if (texte === '-c' || texte === '--config') { rendu.configs.push(textes[++k] ?? null); continue }
@@ -389,7 +393,7 @@ function lancementDInterpreteur(textes, bruts = textes) {
       const egal = texte.indexOf('=')
       const option = egal < 0 ? texte : texte.slice(0, egal)
       const valeur = () => (egal < 0 ? textes[++k] ?? null : texte.slice(egal + 1))
-      if (['-r', '--root', '--dir'].includes(option)) { rendu.dossiers.push(valeur()); continue }
+      if (['-r', '--root', '--dir'].includes(option)) { balayes[option === '--dir' ? 'dirs' : 'racines'].push(valeur()); continue }
       if (/^--outputFile(?:\.\w+)?$/.test(option) || option === '--coverage.reportsDirectory') { rendu.ecritures.push(valeur()); continue }
       if (/^--coverage(?:\.enabled)?$/.test(option) && !/^(?:false|0)$/.test(egal < 0 ? '' : texte.slice(egal + 1))) { rendu.ecritures.push('coverage'); continue }
       if (VALEURS_VITEST.includes(texte)) { k++; continue }
@@ -397,6 +401,10 @@ function lancementDInterpreteur(textes, bruts = textes) {
       if (!(premier && SOUS_COMMANDES_VITEST.includes(texte))) rendu.filtres.push(texte)
       premier = false
     }
+    rendu.dossiers.push(...(balayes.dirs.length > 0 ? balayes.dirs : balayes.racines))
+    rendu.dossierFixeParLaLigne = rendu.dossiers.length > 0
+    const racine = balayes.racines.at(-1)
+    if (typeof racine === 'string') rendu.configs = rendu.configs.map((c) => (typeof c === 'string' && !/^(?:[\\/]|[A-Za-z]:)/.test(c) ? racine + '/' + c : c))
     if (rendu.dossiers.length === 0 && rendu.configs.length === 0) rendu.dossiers.push('.')
     return rendu
   }
@@ -659,6 +667,11 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
   }
   const developper = (texte, variables, jeton = {}) => {
     if (jeton.quote === 'simple') return texte
+    if (powershell && jeton.quote == null && /^@[A-Za-z_]\w*$/.test(texte ?? '')) return null // about_Splatting
+    if (powershell && jeton.quote == null && typeof texte === 'string' && texte.includes('`') && !/['"]/.test(jeton.raw ?? '')) {
+      if (/`[$%]|`$/.test(texte)) return null
+      texte = texte.replace(/`(.)/gs, '$1') // about_Special_Characters
+    }
     if (jeton.quote == null && typeof texte === 'string' && /^~(?=[\\/]|$)/.test(texte) && !/^['"]/.test(jeton.raw ?? '')) {
       const maison = variables.get('HOME')
       if (typeof maison !== 'string') return null
@@ -684,24 +697,62 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
     })
     return inconnue ? null : rendu
   }
+  /** Les arguments PowerShell de `jetons`, ses tableaux regroupés (`a,b`, `a, b` : une virgule hors quote et hors
+   *  expression, about_Arrays, about_Parsing) : `{ k, prefixe, elements }` par argument, `k` = l'index de son premier
+   *  jeton, `prefixe` = son `-Param:` collé, `elements` développés (`\0inconnue\0` s'ils ne le sont pas), `null` hors
+   *  tableau. */
+  const argumentsPowerShell = (jetons, variables) => {
+    const morceauxDe = (jeton) => {
+      if (jeton.op || jeton.substitutions?.length) return null
+      const brut = jeton.raw ?? jeton.text
+      if (jeton.quote != null) return [brut]
+      const morceaux = []
+      let debut = 0, quote = null, profondeur = 0
+      for (let i = 0; i < brut.length; i++) {
+        const car = brut[i]
+        if (car === '`') i++
+        else if (quote) { if (car === quote) quote = null }
+        else if (car === "'" || car === '"') quote = car
+        else if ('({['.includes(car)) profondeur++
+        else if (')}]'.includes(car)) profondeur--
+        else if (car === ',' && profondeur === 0) { morceaux.push(brut.slice(debut, i)); debut = i + 1 }
+      }
+      return [...morceaux, brut.slice(debut)]
+    }
+    const groupes = []
+    jetons.forEach((jeton, k) => {
+      const morceaux = morceauxDe(jeton), precedent = groupes.at(-1)
+      if (k > 1 && morceaux && precedent?.morceaux && (precedent.morceaux.at(-1) === '' || morceaux[0] === '')) precedent.morceaux.push(...morceaux)
+      else groupes.push({ k, morceaux })
+    })
+    return groupes.map(({ k, morceaux }) => {
+      if (k === 0 || !morceaux || morceaux.length < 2) return { k, prefixe: '', elements: null }
+      const prefixe = /^-[\w-]+:/.exec(morceaux[0])?.[0] ?? ''
+      const elements = [morceaux[0].slice(prefixe.length), ...morceaux.slice(1)].filter((m) => m !== '')
+        .map((m) => developper(m.replace(/'([^']*)'|"((?:[^"\\]|\\.)*)"/g, (_m, s, d) => s ?? d), variables, { raw: m }) ?? '\0inconnue\0')
+      return { k, prefixe, elements }
+    })
+  }
   /** `\` sépare les chemins en PowerShell sur toute plateforme ; `path.posix` ne le lit pas. */
   const separateurs = (chemin) => (powershell && platform !== 'win32' && typeof chemin === 'string' ? chemin.replaceAll('\\', '/') : chemin)
   const sousCommande = (texte, etat) => {
-    for (const cible of ciblesDEcritureDeCommande(texte, { base: etat.base ?? base, platform, env, scripts, lireTexte })) sorties.push(cible)
+    for (const cible of ciblesDEcritureDeCommande(texte, { base: etat.base, platform, env, scripts, lireTexte })) sorties.push(cible)
+  }
+  /** `variables` après `nom` ← `valeur` (`null` : non constante) ; `ajout` (`+=`) la colle à la valeur connue, `null` sinon. */
+  const poser = (variables, nom, valeur, ajout) => {
+    const avant = variables.get(nom)
+    variables.set(nom, !ajout ? valeur : valeur === null || typeof avant !== 'string' ? null : avant + valeur)
+  }
+  /** L'affectation POSIX `valeur` (`valeurDAffectation`) dans `variables`, sa valeur développée depuis son texte brut. */
+  const affecter = (variables, { nom, valeur, jeton, ajout }) => {
+    const brut = jeton.raw ?? jeton.text
+    poser(variables, nom, developper(valeur, variables, { ...jeton, raw: brut.slice(brut.indexOf('=') + 1) }), ajout)
   }
   /** L'environnement du processus que `segment` lance : `env`, ses `VARIABLES_AMORCEES` telles que la commande les a
-   *  posées avant lui (`etat`) et par ses affectations de tête ; `null` pour une valeur non constante. */
+   *  posées avant lui (`etat`) et par ses affectations de tête (`valeursDeTete`) ; `null` pour une valeur non constante. */
   const environnementDe = (segment, etat) => {
     const variables = new Map(etat.variables)
-    for (const valeur of segment.valeurs ?? []) {
-      const brut = valeur.jeton.raw ?? valeur.jeton.text
-      variables.set(valeur.nom, developper(valeur.valeur, variables, { ...valeur.jeton, raw: brut.slice(brut.indexOf('=') + 1) }))
-    }
-    for (const jeton of segment.enTete ?? []) {
-      const affectation = jetonNu(jeton) ? /^([A-Za-z_]\w*)=(.*)$/s.exec(jeton.text) : null
-      const brut = jeton.raw ?? jeton.text
-      if (affectation) variables.set(affectation[1], developper(affectation[2], variables, { ...jeton, raw: brut.slice(brut.indexOf('=') + 1) }))
-    }
+    for (const valeur of segment.valeursDeTete ?? []) affecter(variables, valeur)
     return { ...env, ...Object.fromEntries(VARIABLES_AMORCEES.flatMap((nom) => {
       const cle = powershell ? `env:${nom}` : nom
       return variables.has(cle) ? [[nom, variables.get(cle)]] : []
@@ -731,7 +782,11 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       const contrat = ROLES_PAR_NOM.get(nom)
       const enTete = (segment.enTete ?? []).map((j) => basenameExecutable(j.text))
       const demandeAide = aide(developpes.slice(1), nom)
-      const ecrits = demandeAide ? [] : ciblesDuWriter(enTete.includes('xargs') ? [...developpes, '\0xargs\0'] : developpes, P, temp).map((cible) => ajouter(cible, nom, { ecrivain: true }))
+      const parArgument = powershell ? argumentsPowerShell(jetons, etat.variables) : developpes.map((_d, k) => ({ k, elements: null }))
+      const pourWriter = parArgument.map(({ k, prefixe, elements }, i) => (elements ? prefixe + '\0tableau:' + i + '\0' : developpes[k]))
+      const ecrits = demandeAide ? [] : ciblesDuWriter(enTete.includes('xargs') ? [...pourWriter, '\0xargs\0'] : pourWriter, P, temp)
+        .flatMap((cible) => { const i = /^\0tableau:(\d+)\0$/.exec(cible ?? '')?.[1]; return i === undefined ? [cible] : parArgument[i].elements })
+        .map((cible) => ajouter(cible, nom, { ecrivain: true }))
       if (contrat?.contenu && ecrits.length) {
         const k = developpes.findIndex((t) => t.toLowerCase() === '-value')
         const amont = segment.tube?.[segment.tube.indexOf(segment) - 1]?.jetons
@@ -757,7 +812,7 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       }
       const args = developpes.slice(1)
       const sousNpx = enTete.includes('npx')
-      const lire = (chemin) => (etat.base === null ? undefined : lireTexte(P.resolve(etat.base ?? base, versCheminNatif(chemin, platform))))
+      const lire = (chemin) => (etat.base === null ? undefined : lireTexte(P.resolve(etat.base, versCheminNatif(chemin, platform))))
       const lectureDOutil = Object.hasOwn(LECTURES_NPX, nom) ? demandeAide || LECTURES_NPX[nom](args, { lire }) : !sousNpx || demandeAide
       if (!nonConstant(developpes[0]) && !lectureDOutil) ajouter(null, `${sousNpx ? 'npx ' : ''}${textes.join(' ')}`, { ecrivain: true, famille: 'npx' })
       if (nom === 'npm' && ecritureDeNpm(args)) ajouter(null, `npm ${textes.slice(1).join(' ')}`.trim(), { ecrivain: true, famille: 'npm' })
@@ -778,16 +833,13 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
       if (scripts && lancement) {
         for (const script of lancement.scripts) Object.assign(ajouter(script, 'script'), { argv: lancement.argv, env: environnement })
         const filtres = lancement.filtres.map((f) => (nonConstant(f) ? null : f))
-        for (const config of lancement.configs) Object.assign(ajouter(config, 'script'), { config: true, filtres, env: environnement })
+        for (const config of lancement.configs) Object.assign(ajouter(config, 'script'), { config: true, filtres, env: environnement, dossierFixeParLaLigne: lancement.dossierFixeParLaLigne })
         for (const dossier of lancement.dossiers) Object.assign(ajouter(dossier, 'script'), { dossier: true, filtres, env: environnement })
       }
     }
-    for (const valeur of segment.valeurs ?? []) {
-      const brut = valeur.jeton.raw ?? valeur.jeton.text
-      etat.variables.set(valeur.nom, developper(valeur.valeur, etat.variables, { ...valeur.jeton, raw: brut.slice(brut.indexOf('=') + 1) }))
-    }
+    for (const valeur of segment.valeurs ?? []) affecter(etat.variables, valeur)
     const affectation = affectationPowerShell(segment.jetons)
-    if (affectation) etat.variables.set(affectation.nom, affectation.valeur.length === 1 ? developper(affectation.valeur[0].text, etat.variables, affectation.valeur[0]) : null)
+    if (affectation) poser(etat.variables, affectation.nom, affectation.valeur.length === 1 ? developper(affectation.valeur[0].text, etat.variables, affectation.valeur[0]) : null, affectation.ajout)
     if (CHANGEMENTS_DE_REPERTOIRE.has(nom)) {
       let inconnue = false
       const remplace = { ...segment, jetons: jetons.map(j => {

@@ -16,6 +16,8 @@ const LANCEURS = {
 export const MOT_INCONNU = '$argument_non_constant'
 /** Les modules dont un `import()` dynamique rend des écritures que la provenance ne suit pas. */
 const MODULES_QUI_ECRIVENT = /^(?:node:)?(?:fs|fs\/promises|child_process)$/
+/** Le nombre de scripts du premier lot d'une analyse sous échéance (`ciblesDEcritureJS`), qui mesure la machine. */
+export const LOT_SONDE = 16
 /** Les plis de `node:path` sous le `node:path` `P` de la plateforme jugée. */
 const plisDeChemin = (P) => ({ 'path#join': P.join, 'path#resolve': (...p) => (p.some(P.isAbsolute) ? P.resolve(...p) : P.join(...p)), 'path#dirname': P.dirname, 'path#basename': P.basename })
 
@@ -50,15 +52,19 @@ export function repertoireTemporaire(env, platform) {
  * dynamique de `fs`/`child_process` se lit comme l'import statique quand il est attendu (`await import('…')`),
  * sinon il rend une cible inconnue, comme un `import()` à spécificateur non constant.
  * @param {{ texte: string, rel?: string, fichier?: string, argv?: (string | null)[], env?: Record<string, string | null | undefined> }[]} scripts
- * @param {{ env?: Record<string, string | undefined>, platform?: NodeJS.Platform }} [contexte]
- * @returns {{ chemin: string | null, inconnue: boolean, operation: string, commande?: string }[][]}
+ * Sous `echeance`, les scripts s'analysent par lots, chacun en une session : un premier de `LOT_SONDE` scripts au plus,
+ * puis chaque lot suivant aux scripts dont le coût au modèle (`session` + Σ`cout`), multiplié par le rapport du temps
+ * observé au temps prédit des lots déjà analysés, tient dans `reste()` ; un script au-delà de l'échéance rend `null`
+ * (non analysé).
+ * @param {{ env?: Record<string, string | undefined>, platform?: NodeJS.Platform, echeance?: { reste: () => number, cout: (script: { texte: string }) => number, session: number } }} [contexte]
+ * @returns {({ chemin: string | null, inconnue: boolean, operation: string, commande?: string }[] | null)[]}
  */
-export function ciblesDEcritureJS(scripts, { env = {}, platform = process.platform } = {}) {
+export function ciblesDEcritureJS(scripts, { env = {}, platform = process.platform, echeance } = {}) {
   const ts = typescript()
   const P = cheminsDe(platform), plis = plisDeChemin(P)
   const corpus = scripts.map((script, k) => ({ rel: `${k}/${script.rel ?? 'inline.mjs'}`, text: script.texte, script }))
   const envDuContexte = env
-  return Array.from(analyserCorpus(corpus), ({ fichier: { script: { fichier, argv = [], env = envDuContexte } }, sourceFile, diagnostics, checker }) => {
+  const analyser = (lot) => Array.from(analyserCorpus(lot), ({ fichier: { script: { fichier, argv = [], env = envDuContexte } }, sourceFile, diagnostics, checker }) => {
     if (diagnostics.length || !sourceFile) return []
     const sorties = []
     const provenance = creerProvenanceFs({ sourceFile, checker, ts })
@@ -208,6 +214,25 @@ export function ciblesDEcritureJS(scripts, { env = {}, platform = process.platfo
     })
     return sorties
   })
+  if (echeance === undefined) return analyser(corpus)
+  const rendus = []
+  let observe = 0, predit = 0
+  while (rendus.length < corpus.length) {
+    const facteur = predit > 0 ? observe / predit : 1
+    const lot = []
+    let cout = echeance.session
+    for (const entree of corpus.slice(rendus.length, rendus.length + (predit > 0 ? corpus.length : LOT_SONDE))) {
+      if ((cout + echeance.cout(entree.script)) * facteur > echeance.reste()) break
+      cout += echeance.cout(entree.script)
+      lot.push(entree)
+    }
+    if (lot.length === 0) break
+    const avant = echeance.reste()
+    rendus.push(...analyser(lot))
+    observe += avant - echeance.reste()
+    predit += cout
+  }
+  return [...rendus, ...corpus.slice(rendus.length).map(() => null)]
 }
 
 /** `spawn(fichier, [args])` rendu en une commande shell, `elements` = les nœuds de ses arguments (`null` : une liste non

@@ -133,6 +133,9 @@ test('puits, base du segment et lancements de scripts (#2537)', () => {
   assert.deepEqual(balayes('npx vitest run a-sonde'), [[base, 'dossier', ['a-sonde']]])
   assert.deepEqual(balayes('npx vitest run sous -c v.config.mjs'), [[resolve(base, 'v.config.mjs'), 'config', ['sous']]])
   assert.deepEqual(balayes('npx vitest run --dir d "$INCONNUE" x'), [[resolve(base, 'd'), 'dossier', [null, 'x']]])
+  assert.deepEqual(balayes('npx vitest run --root r --dir d'), [[resolve(base, 'd'), 'dossier', []]])
+  assert.deepEqual(balayes('npx vitest run --dir=d -r r'), [[resolve(base, 'd'), 'dossier', []]])
+  assert.deepEqual(balayes('npx vitest run --root=r'), [[resolve(base, 'r'), 'dossier', []]])
   assert.deepEqual(lances('python3 -c "print(1)"'), [])
   assert.deepEqual(lances('sh x.sh'), [])
 })
@@ -258,4 +261,62 @@ test('#2537 G8 — `execFile`/`spawn` : options en 2e argument, `shell: true`, t
   assert.deepEqual(lancees("spawnSync('rm', ['-f', 'x y'], { shell: true })"), ['rm -f x y'])
   assert.deepEqual(lancees("const a = ['-f', 'x']\nexecFileSync('rm', a)"), ["'rm' '-f' 'x'"])
   assert.deepEqual(lancees("const a = ['-f', 'x']\na.push('y')\nexecFileSync('rm', a)"), ["'rm' $argument_non_constant"])
+})
+
+test('#2537 — l’environnement d’un script lancé : affectations de tête, `env`, `+=`, et `$env:NOM` de PowerShell', () => {
+  const temp = (commande, { env = {}, powershell = false } = {}) => ciblesDEcritureDeCommande(commande, { base, env, powershell, scripts: true })
+    .filter((c) => c.operation === 'script').map((c) => c.env.TEMP)
+  assert.deepEqual(temp('TEMP=T node a.mjs'), ['T'])
+  assert.deepEqual(temp('env TEMP=T node a.mjs'), ['T'])
+  assert.deepEqual(temp('TEMP+=/x node a.mjs', { env: { TEMP: 'U' } }), ['U/x'])
+  assert.deepEqual(temp('TEMP+=/x node a.mjs'), [null])
+  assert.deepEqual(temp('TEMP=T; node a.mjs', { env: { TEMP: 'U' } }), ['T'])
+  assert.deepEqual(temp("$env:TEMP = 'T'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['T'])
+  assert.deepEqual(temp("${env:TEMP} = 'T'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['T'])
+  assert.deepEqual(temp("$Env:temp='T'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['T'])
+  assert.deepEqual(temp("$env:TEMP += '/x'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['U/x'])
+  assert.deepEqual(temp("$TEMP = 'T'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['U'])
+})
+
+test('#2537 — une base inconnue (`cd` non résolu) se propage à la commande imbriquée : ses cibles relatives sont non résolues', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux' }).map((c) => c.chemin)
+  assert.deepEqual(cibles('cd "$U"; find . -exec rm y \\;'), [null])
+  assert.deepEqual(cibles('cd "$U"; find /h -exec rm /h/y \\;'), ['/h/y'])
+  assert.deepEqual(cibles('find . -exec rm y \\;'), ['/b/y'])
+})
+
+test('#2537 — un splat PowerShell `@nom` n’est pas un chemin ; `vitest --root` résout le `--config` et fixe le dossier balayé', () => {
+  const cibles = (commande, options = {}) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', ...options }).map((c) => [c.chemin, c.inconnue])
+  assert.deepEqual(cibles('Remove-Item @cibles', { powershell: true }), [[null, true]])
+  assert.deepEqual(cibles("Remove-Item '@cibles'", { powershell: true }), [['/b/@cibles', false]])
+  const configs = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', scripts: true }).filter((c) => c.config).map((c) => [c.chemin, c.dossierFixeParLaLigne])
+  assert.deepEqual(configs('npx vitest run --root r -c v.config.mjs'), [['/b/r/v.config.mjs', true]])
+  assert.deepEqual(configs('npx vitest run --root r -c /abs/v.config.mjs'), [['/abs/v.config.mjs', true]])
+  assert.deepEqual(configs('npx vitest run --dir d -c v.config.mjs'), [['/b/v.config.mjs', true]])
+  assert.deepEqual(configs('npx vitest run -c v.config.mjs'), [['/b/v.config.mjs', false]])
+})
+
+test('#2537 — un tableau PowerShell en argument (`a,b`, `a, b`) nomme chacun de ses éléments (about_Arrays, about_Parsing)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => [c.chemin, c.inconnue])
+  for (const [commande, attendu] of [
+    ['Remove-Item P/a,/h/b', [['/b/P/a', false], ['/h/b', false]]],
+    ['Remove-Item a, /h/b, /h/c -Force', [['/b/a', false], ['/h/b', false], ['/h/c', false]]],
+    ['Remove-Item a , /h/b', [['/b/a', false], ['/h/b', false]]],
+    ["Remove-Item 'a',\"/h/b\"", [['/b/a', false], ['/h/b', false]]],
+    ['Remove-Item -Path:a,/h/b', [['/b/a', false], ['/h/b', false]]],
+    ['Remove-Item $x,/h/b', [[null, true], ['/h/b', false]]],
+    ['Copy-Item a, b /h/d', [['/h/d', false]]],
+    ["Remove-Item 'a,b'", [['/b/a,b', false]]],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+  assert.deepEqual(ciblesDEcritureDeCommande('rm a,b', { base: '/b', platform: 'linux' }).map((c) => c.chemin), ['/b/a,b'])
+})
+
+test('#2537 — une virgule échappée par l’accent grave PowerShell est littérale (about_Special_Characters)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => [c.chemin, c.inconnue])
+  for (const [commande, attendu] of [
+    ['Remove-Item a`,b', [['/b/a,b', false]]],
+    ['Remove-Item /h/a`,b', [['/h/a,b', false]]],
+    ['Remove-Item a`,b,/h/c', [['/b/a,b', false], ['/h/c', false]]],
+    ['Remove-Item a`$x', [[null, true]]],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
 })

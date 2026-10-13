@@ -126,10 +126,10 @@ test('#2537 — fonction shell : la définition LIE son corps, l’appel l’ex�
   assert.deepEqual(executes('function f { rm x; }; f'), [['rm', 'x']], '`function nom`')
   assert.deepEqual(executes('function f() { rm x; }; f > o.txt'), [['rm', 'x'], ['>', 'o.txt']], '`function nom()`, l’appel garde ses redirections')
   assert.deepEqual(executes('f() ( rm x ); f'), [['rm', 'x']], 'corps `( … )`')
-  assert.deepEqual(executes('f() if true; then rm x; fi; f'), [['true'], ['rm', 'x'], ['fi']], 'corps `if`')
-  assert.deepEqual(executes('f() for i in a; do rm $i; done; f'), [['for', 'i', 'in', 'a'], ['rm', '$i'], ['done']], 'corps `for`')
+  assert.deepEqual(executes('f() if true; then rm x; fi; f'), [['true'], ['rm', 'x']], 'corps `if`')
+  assert.deepEqual(executes('f() for i in a; do rm $i; done; f'), [['for', 'i', 'in', 'a'], ['rm', '$i']], 'corps `for`')
   assert.deepEqual(executes('function Nettoie { Remove-Item x }; nettoie', powershell), [['Remove-Item', 'x']], '`function` PowerShell, nom sans casse')
-  assert.deepEqual(executes('function f($a, $b) { Remove-Item $a }; f y z', powershell), [['Remove-Item', '$a']], 'paramètres PowerShell')
+  assert.deepEqual(executes('function f($a, $b) { Remove-Item $a }; f y z', powershell), [['Remove-Item', 'y']], 'paramètres PowerShell liés à l’appel')
   assert.deepEqual(executes('filter script:g { rm x }; & g', powershell), [['rm', 'x']], '`filter` à portée, opérateur d’appel')
   assert.deepEqual(executes('f(){ rm x }; f', powershell), [['f(){', 'rm', 'x', '}'], ['f']], '`nom()` n’est pas une définition PowerShell')
   assert.deepEqual(executes('f(){ rm x; }; command f; builtin f'), [['f'], ['f']], '`command`/`builtin` ne résolvent pas la fonction')
@@ -209,4 +209,92 @@ test('#2537 — parenthèses : une seule pile, la `)` d’une parenthèse de mot
   assert.ok(!segments.includes(''), `aucun segment vide : ${JSON.stringify(segments)}`)
   const bash = "bash -c 'until powershell -NoProfile -Command \"(Get-CimInstance Win32_Process | Where-Object { \\$_.CommandLine.Contains(''vitest.mjs run --max'') }).CommandLine\" | grep -q m; do sleep 3; done'"
   assert.ok(!lus(bash).flat().includes(''), 'cas du juge, sans segment vide fantôme')
+  const compte = "(Select-String -Path (Get-ChildItem -Recurse -Include *.ts,*.tsx src | ForEach-Object FullName) -Pattern \"type: 'scene'\" | Measure-Object).Count; z"
+  assert.deepEqual(lus(compte, { powershell: true }), [
+    ['Get-ChildItem -Recurse -Include *.ts,*.tsx src', 'ForEach-Object FullName'],
+    ["Select-String -Path (Get-ChildItem -Recurse -Include *.ts,*.tsx src | ForEach-Object FullName) -Pattern \"type: 'scene'\"", 'Measure-Object'],
+    ['z'],
+  ])
+  for (const [commande, options, attendu] of [
+    ['(a | b); c', {}, [['a', 'b'], ['c']]],
+    ['(a) | b', {}, [['a', 'b']]],
+    ['{ a; }; c', {}, [['a'], ['c']]],
+    ['{ a; } > f; c', {}, [['a'], ['> f'], ['c']]],
+    ['X=1; c', {}, [['X=1'], ['c']]],
+    ['env | b', {}, [['', 'b']]],
+    ['(Get-X | Y).Prop; z', { powershell: true }, [['Get-X', 'Y'], ['z']]],
+  ]) assert.deepEqual(lus(commande, options), attendu, commande)
+})
+
+test('#2537 — mots réservés : un motif de `case`, `fi`, `done`, `esac` ne sont aucune commande (man bash, Compound Commands)', () => {
+  const lus = (commande) => pipelinesDeJetons(commande).map((p) => p.map((s) => texteDuSegment(s)))
+  for (const [commande, attendu] of [
+    ['case x in a) rm /h/y;; esac', [['case x in'], ['rm /h/y']]],
+    ['case x in a|b) rm /h/y;; (c) z;; *) w;; esac; q', [['case x in'], ['rm /h/y'], ['z'], ['w'], ['q']]],
+    ['( case x in a) rm /h/y;; esac ); q', [['case x in'], ['rm /h/y'], ['q']]],
+    ['case $(m) in a) x;& b) y;;& *) z; esac > /h/o', [['m'], ['case $(m) in'], ['x'], ['y'], ['z'], ['> /h/o']]],
+    ['while x; do y; done < f; z', [['x'], ['y'], ['< f'], ['z']]],
+    ['if a; then b; else c; fi', [['a'], ['b'], ['c']]],
+  ]) assert.deepEqual(lus(commande), attendu, commande)
+  const [[condition], [corps], [fin]] = pipelinesDeJetons('while read p; do x; done < f')
+  assert.equal(condition.boucle.fin, fin, 'la fin de boucle est le segment de ses redirections')
+  assert.equal(corps.boucle, condition.boucle)
+  assert.equal(fin.boucle, null)
+  assert.deepEqual(ciblesDEcritureDeCommande('case x in a) rm /h/y;; esac', { base: '/b', platform: 'linux' }).map((c) => c.chemin), ['/h/y'])
+})
+
+test('#2537 — fonction exportée : `export -f`, `declare -fx` la passent au bash/sh enfant, les autres restent invisibles', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux' }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['f(){ rm /h/z; }; export -f f; bash -c f', ['/h/z']],
+    ['f(){ rm /h/z; }; declare -fx f; sh -c f', ['/h/z']],
+    ['f(){ rm /h/z; }; export -f f; bash -c "bash -c f"', ['/h/z']],
+    ['f(){ rm /h/z; }; bash -c f', []],
+    ['f(){ rm /h/z; }; (export -f f); bash -c f', []],
+    ['f(){ rm /h/z; }; export -f f; export -fn f; bash -c f', []],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
+test('#2537 — fonction PowerShell : `$args[n]` et `param(…)` liés aux arguments CONSTANTS de l’appel (about_Functions, about_Automatic_Variables)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['function f { Remove-Item $args[0] }; f /h/x', ['/h/x']],
+    ['function f { param($p) Remove-Item $p }; f /h/x', ['/h/x']],
+    ['function f($p, $q) { Remove-Item $q }; f /h/x /h/y', ['/h/y']],
+    ['function f { param([string]$p) Remove-Item "$p" }; f /h/x', ['/h/x']],
+    ['function f { Remove-Item $args[0] }; f $v', [null]],
+    ['function f { gci | % { Remove-Item $args[0] } }; f /h/x', [null]],
+    ['function f { param([Parameter(Position=1)]$p) Remove-Item $p }; f /h/x', [null]],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
+test('#2537 — `$args`, `@args` et `@PSBoundParameters` liés à l’appel (about_Automatic_Variables, about_Splatting)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['function f { Remove-Item $args }; f /h/a', ['/h/a']],
+    ['function f { Remove-Item $args }; f /h/a /h/b', [null]],
+    ['function f { Remove-Item @args }; f /h/a', ['/h/a']],
+    ["function f { Remove-Item '@args' }; f /h/a", ['/b/@args']],
+    ['function f { param($Path) Remove-Item @PSBoundParameters }; f /h/a', ['/h/a']],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
+test('#2537 — un motif de `case` développe ses substitutions (man bash, Compound Commands)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux' }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['case x in $(rm /h/y)) :;; esac', ['/h/y']],
+    ['case x in "$(rm /h/y)"|b) :;; esac', ['/h/y']],
+    ['case x in `rm /h/y`) :;; esac', ['/h/y']],
+    ["case x in '$(rm /h/y)') :;; esac", []],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
+test('#2537 — la `( … )` d’un `if`/`elseif`/`while`/`for`/`switch` PowerShell s’exécute ; `do … while` est un bloc (about_If, about_Do)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['if (Test-Path x) { rm x } elseif ($b -gt 1) { rm /h/y }', ['/b/x', '/h/y']],
+    ['if ($a) { rm a } elseif ($b) { rm b } else { rm c }', ['/b/a', '/b/b', '/b/c']],
+    ['do { rm a } while ($x)', ['/b/a']],
+    ['if (Remove-Item /h/c) { 1 }', ['/h/c']],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
 })
