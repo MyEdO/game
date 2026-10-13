@@ -23,6 +23,9 @@ const SP = join(tmpdir(), 'claude', SLUG, SESSION, 'scratchpad')
 const echapper = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** La suite du banc que `vitest run --dir` lance et qui écrit hors du scratchpad. */
 const SUITE_ECRIT = 'x.test.mjs'
+/** Lecture et listage, sur l'hôte, du chemin `relatif` sous une racine de l'hôte (`RACINE` ou `tmpdir()`). */
+const lireSous = (base, relatif) => FS.readFileSync(join(base, relatif), 'utf8')
+const listerSous = (base, relatif) => FS.readdirSync(join(base, relatif), { recursive: true, withFileTypes: true })
 
 test('#2537 — le scratchpad se dérive de `transcript_path` (segment après `.claude/projects/`) et de `session_id`, jamais du `cwd`', () => {
   assert.equal(scratchpadDeSession({ transcript_path: TRANSCRIPT, session_id: SESSION }), SP)
@@ -57,16 +60,17 @@ fs.writeFileSync(join(tmpdir(), 'claude', '${SLUG}', '${SESSION}', 'scratchpad',
     const volume = platform === 'win32' ? 'C:' : '/'
     const racine = hote ? RACINE : chemins.join(volume, '/banc/depot'), tmp = hote ? tmpdir() : chemins.join(volume, '/banc/tmp')
     const oblique = (chemin) => chemin.split('\\').join('/')
-    const paires = [[oblique(tmp), oblique(tmpdir())], [oblique(racine).replace(/\/$/, ''), oblique(RACINE).replace(/\/$/, '')]]
-    const traduire = (chemin, [de, vers]) => { const o = oblique(chemin), [a, b] = [de, vers]; return o.startsWith(a) ? b + o.slice(a.length) : null }
-    const versHote = (chemin) => paires.map((paire) => traduire(chemin, paire)).find(Boolean) ?? chemin
-    const versMonde = (chemin) => chemins.normalize(paires.map(([a, b]) => traduire(chemin, [b, a])).find(Boolean) ?? chemin)
+    const sous = (chemin, base) => { const o = oblique(chemin), b = oblique(base).replace(/\/$/, ''); return o.startsWith(b) ? `.${o.slice(b.length)}` : null }
+    const vers = (relatif, base) => relatif === null ? null : oblique(base).replace(/\/$/, '') + relatif.slice(1)
+    const versMonde = (chemin) => chemins.normalize(vers(sous(chemin, tmpdir()), tmp) ?? vers(sous(chemin, RACINE), racine) ?? chemin)
+    const hors = () => { throw Object.assign(new Error('hors du monde forgé'), { code: 'ENOENT' }) }
+    const enHote = (chemin, ouvrir) => { const t = sous(chemin, tmp), r = sous(chemin, racine); return t !== null ? ouvrir(tmpdir(), t) : r !== null ? ouvrir(RACINE, r) : hors() }
     const sp = chemins.join(tmp, 'claude', SLUG, SESSION, 'scratchpad')
     return {
       hote, racine, tmp, transcript: chemins.join(racine, '.claude', 'projects', SLUG, `${SESSION}.jsonl`), SP: sp, P: oblique(sp),
       HORS: oblique(chemins.resolve(racine, '..', 'hors-banc-2537')), R: oblique(racine).replace(/\/$/, ''), TMP: { TEMP: tmp, TMP: tmp, TMPDIR: tmp },
-      lire: (chemin) => { try { return { texte: FS.readFileSync(versHote(chemin), 'utf8') } } catch (e) { return { raison: `illisible (${e?.code})` } } },
-      lister: (dossier) => { try { return FS.readdirSync(versHote(dossier), { recursive: true, withFileTypes: true }).filter((e) => e.isFile() && estSuiteVitest(e.name)).map((e) => versMonde(join(e.parentPath, e.name))) } catch { return [] } },
+      lire: (chemin) => { try { return { texte: enHote(chemin, lireSous) } } catch (e) { return { raison: `illisible (${e?.code})` } } },
+      lister: (dossier) => { try { return enHote(dossier, listerSous).filter((e) => e.isFile() && estSuiteVitest(e.name)).map((e) => versMonde(join(e.parentPath, e.name))) } catch { return [] } },
     }
   }
   /** Chaque cas : l'outil, la commande, le type, la décision attendue, un motif de la raison, et les plateformes
