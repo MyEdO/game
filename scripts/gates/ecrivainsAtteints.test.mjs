@@ -118,12 +118,15 @@ const ATTENDU = {
     // (`mkdtempSync` + `writeFileSync` sous os.tmpdir(), `rmSync` en finally) — la lecture du lot doit
     // tomber pour prouver le FAIL-CLOSED ; l'arbre versionné n'est jamais écrit.
     'scripts/git-hooks/docs-rebuild.test.mjs',
-    // +1 le 2026-10-01 (#2194) : le journal des hooks git écrit sous `node_modules/.cache/hooks-git` du
-    // cwd du hook ; les bancs qui JOUENT un hook (pre-commit, commit-msg, node-requis) le lancent avec
-    // `cwd` = un dépôt ou un dossier JETABLE sous os.tmpdir(), et son banc INJECTE l'écriture. Mesure
-    // du 2026-10-01 : `git status --short --ignored` identique avant et après, sur ce worktree et sur
-    // l'arbre principal, et aucun `node_modules/.cache/hooks-git` créé.
+    // +1 le 2026-10-01 (#2194, #2603) : le journal des hooks git écrit sous `<git-dir>/hooks-git` du cwd
+    // du hook ; les bancs qui JOUENT un hook (pre-commit, commit-msg, node-requis) le lancent avec
+    // `cwd` = un dépôt ou un dossier JETABLE sous os.tmpdir(), et son banc écrit sous le `.git` d'un
+    // arbre jetable de os.tmpdir() ou INJECTE l'écriture. Mesure du 2026-10-13 : après ces quatre bancs,
+    // aucun `hooks-git` sous le git-dir de ce worktree ni sous celui de l'arbre principal.
     'scripts/git-hooks/journal.mjs',
+    // +1 le 2026-10-13 (#2603) : le banc du journal forge ses arbres sous `mkdtempSync` d'os.tmpdir(), `rmSync`
+    // en finally ; l'arbre n'est jamais écrit.
+    'scripts/git-hooks/journal.test.mjs',
     'scripts/git-hooks/merge-docs.mjs',
     // +4 le 2026-09-27 (#1903) : le pilote de fusion des stocks de sites et son banc écrivent %A, des
     // copies et des fichiers temporaires sous `os.tmpdir()` supprimés en `finally` (`three-way.mjs`,
@@ -506,6 +509,9 @@ const ATTENDU = {
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
     'scripts/guards/lib/renommageResilient.mjs',
     'scripts/test/verrou.mjs',
+    // +1 le 2026-10-13 (#2603) : par `build-all.mjs`, comme `docs:build` ; les bancs de build-all ne posent pas
+    // `VARIABLE_DU_JOURNAL`, l'écrivain hérité est vide.
+    'scripts/git-hooks/journal.mjs',
     // `scripts/docs/lib/jsdocUnion.test.mjs`
     'scripts/docs/lib/jsdocUnion.test.mjs',
     'scripts/docs/lib/plateforme-win32-fs.test.mjs',
@@ -543,6 +549,9 @@ const ATTENDU = {
     'scripts/docs/lib/fraicheur-docs.mjs',
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
     'scripts/guards/lib/renommageResilient.mjs',
+    // +2 le 2026-10-13 (#2603) : par `build-all.mjs`, comme `docs:build` ci-dessous.
+    'scripts/git-hooks/journal.mjs',
+    'scripts/test/verrou.mjs',
   ],
   'docs:build': [
     'scripts/docs/build-all.mjs',
@@ -551,6 +560,12 @@ const ATTENDU = {
     'scripts/guards/lib/protectionWorktree.mjs',
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
     'scripts/guards/lib/renommageResilient.mjs',
+    // +2 le 2026-10-13 (#2603) : `build-all.mjs` importe `etapeHeritee` de `journal.mjs`, qui n'écrit que sous
+    // `<git-dir>/hooks-git` et seulement si un hook ancêtre a posé `VARIABLE_DU_JOURNAL` ; `journal.mjs` importe
+    // `gitDirDe` de `barriere-outil.mjs`, dont seul `franchir` charge `verrou.mjs`, jamais appelé ici.
+    // L'arbre n'est jamais écrit.
+    'scripts/git-hooks/journal.mjs',
+    'scripts/test/verrou.mjs',
   ],
   'test:raw': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un

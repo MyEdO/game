@@ -25,6 +25,7 @@
 // processus) ; un dumper passe par `resoudreOutilLocal` + `envIsole`, qui transmettent l'env.
 import { execFileSync } from 'node:child_process'
 import { etapeProfilee } from '../etape-profilee.mjs'
+import { etapeHeritee } from '../git-hooks/journal.mjs'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -462,7 +463,7 @@ export function executer({
           mesure = etapeProfilee(`[docs:${check ? 'check' : 'build'}] ${g.script}`, () => mesurerGenerateur(g, {
             cwd, quiet, mode: check || (argv.includes('--verifier-code') && ecritDuCode(g)) ? 'verifier' : 'ecrire', tsxEsm, lectures: dossier, ignores: ignoresLectures, derivees, motifsDeclares: generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])]),
             rendues: path.join(dossier, 'cibles-rendues'),
-          }))
+          }), { mesurer: etapeHeritee(cwd) })
         } catch (e) {
           transmettreDiagnostic(e, quiet)
           const issue = issueDe(e)
@@ -567,7 +568,7 @@ export function executer({
           cwd,
           env: envIsole(process.env, binLocal(cwd)),
           ...sortiesDe(quiet),
-        }, { site: `build-all/${script}` }))
+        }, { site: `build-all/${script}` }), { mesurer: etapeHeritee(cwd) })
       } catch (e) {
         transmettreDiagnostic(e, quiet)
         refuser(`docs:${check ? 'check' : 'build'} — ${script} — ${natureDuRouge(issueDe(e))}`)

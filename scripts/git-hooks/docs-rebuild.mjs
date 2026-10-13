@@ -137,7 +137,7 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
   return { scripts: generateurs.filter((g) => selection.has(g.script)).map((g) => g.script), complete: false, raison: 'sources mesurées et préalables' }
 }
 
-export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, generateurs = GENERATORS }) {
+export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, mesurer = () => {}, generateurs = GENERATORS }) {
   let lot
   if (hook === 'post-commit') {
     const depot = depotDe(cwd, { enPanne: (_raison, vu) => annoncer(`[${hook}] lecture Git indisponible : ${refusDeGit(vu)}\n`) })
@@ -151,7 +151,7 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
   } else lot = hook === 'post-checkout' ? (avant === apres ? [] : touchedFiles(cwd, { de: avant, a: apres }))
     : hook === 'post-merge' ? lotDuPostMerge(cwd, { squash: avant === '1' }) : touchedFiles(cwd)
   const mesure = sourcesMesurees(cwd)
-  const etape = (nom, geste) => etapeProfilee(`[${hook}] ${nom}`, geste, { annoncer, horloge })
+  const etape = (nom, geste) => etapeProfilee(`[${hook}] ${nom}`, geste, { annoncer, horloge, mesurer })
   if (hook === 'post-checkout' && avant === '0'.repeat(40) && mesure === null) {
     annoncer(`[${hook}] worktree neuf : préparation requise par ops:chantier (\`npm ci\`, \`npm --prefix server ci\`, \`npm run docs:build\`)\n`)
     return 0
@@ -202,9 +202,9 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
 }
 
 function main([hook, avant, apres] = process.argv.slice(2)) {
-  journaliserLeHook(hook)
+  const journal = journaliserLeHook(hook)
   const cwd = racineDe(depotDe(process.cwd()))
-  if (cwd) process.exitCode = reconstruireApresGit({ cwd, hook, avant, apres })
+  if (cwd) process.exitCode = reconstruireApresGit({ cwd, hook, avant, apres, mesurer: journal.etape })
 }
 
 if (import.meta.main) main()

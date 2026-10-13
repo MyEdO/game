@@ -7,6 +7,7 @@ import '../node-requis.mjs'
 import { existsSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { journaliserLeHook } from './journal.mjs'
 import { INDEX, ceQuiChange, cheminGit, depotDe, ecartsDuTravail, entreesDe, natureDuChemin, racineDe, raisonCourte, rebaseEntame, shaDe } from '../guards/lib/gitPorte.mjs'
 
 const GENERATEUR = 'scripts/agents/compat-cli.mjs'
@@ -130,6 +131,7 @@ const sequenceEnCours = (depot) => {
 
 if (import.meta.main) {
   const hook = process.argv[2]
+  journaliserLeHook(hook)
   const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => cle !== 'GIT_INDEX_FILE'))
   try {
     const racine = resolve(racineDe(depotDe(process.cwd(), { env })) ?? process.cwd())
