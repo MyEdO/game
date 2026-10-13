@@ -5,17 +5,17 @@ import { MOT_INCONNU, ciblesDEcritureJS } from './ecrituresFichiers.mjs'
 /** Les cibles d'UN script de texte `texte` (`rel`, `fichier`, `argv`), sous `env` et `platform`. */
 const unScript = (texte, { env, platform, ...script } = {}) => ciblesDEcritureJS([{ texte, ...script }], { env, platform })[0]
 
-test('#2537 — un corpus s’analyse en une session, chaque script en portée de module : rien d’un script ne masque l’autre', () => {
+for (const platform of ['win32', 'linux']) test(`#2537 — un corpus s’analyse en une session, chaque script en portée de module : rien d’un script ne masque l’autre (${platform})`, () => {
   const masque = { texte: 'function require(m) { return {} }\nvar process = { env: {} }\n', rel: 'a.js' }
   const volume = 'C:'
   const ecrit = { texte: `const { writeFileSync } = require('fs')\nwriteFileSync('${volume}/hors/x.txt', 'a')\nwriteFileSync(process.env.TEMP + '/y', 'a')\n`, rel: 'b.js' }
   const env = { TEMP: 'T' }
-  assert.deepEqual(ciblesDEcritureJS([masque, ecrit], { env }), [[], [
+  assert.deepEqual(ciblesDEcritureJS([masque, ecrit], { env, platform }), [[], [
     { chemin: `${volume}/hors/x.txt`, inconnue: false, operation: 'writeFileSync' },
     { chemin: 'T/y', inconnue: false, operation: 'writeFileSync' },
   ]])
-  assert.deepEqual(ciblesDEcritureJS([masque, ecrit], { env })[1], unScript(ecrit.texte, { rel: ecrit.rel, env }))
-  assert.deepEqual(ciblesDEcritureJS([{ texte: "require('fs').writeFileSync('x', 'a'", rel: 'casse.mjs' }, ecrit], { env }).map((c) => c.length), [0, 2])
+  assert.deepEqual(ciblesDEcritureJS([masque, ecrit], { env, platform })[1], unScript(ecrit.texte, { rel: ecrit.rel, env, platform }))
+  assert.deepEqual(ciblesDEcritureJS([{ texte: "require('fs').writeFileSync('x', 'a'", rel: 'casse.mjs' }, ecrit], { env, platform }).map((c) => c.length), [0, 2])
 })
 
 test('#2537 — `VARIABLES_AMORCEES` : `LOCALAPPDATA` et `APPDATA` se plient, `PROGRAMDATA` non', () => {

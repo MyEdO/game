@@ -94,7 +94,8 @@ export function syntaxProgram(files) {
     const collision = Object.keys(sources).find(nom => nom.toLowerCase() === reserve.toLowerCase());
     if (collision !== undefined) throw new Error(`Fichier réservé à l’analyse syntaxique native : ${collision}`);
   }
-  const references = Object.keys(sources).map(nom => {
+  const corpus = Object.keys(sources);
+  const references = corpus.map(nom => {
     if (/[\r\n\u2028\u2029]/u.test(nom) || (nom.includes('"') && nom.includes("'"))) {
       throw new Error(`Chemin non représentable dans une référence syntaxique native : ${nom}`);
     }
@@ -106,6 +107,10 @@ export function syntaxProgram(files) {
     compilerOptions: { ...OPTIONS_VIRTUELLES, noLib: true, noResolve: true, moduleDetection: 'force', allowJs: true, resolveJsonModule: true, jsx: 'preserve' },
     files: Object.keys(sources),
   });
-  return ouvrir(root, fichiersVirtuels(sources), () => ({ openProjects: [config], openFiles: [entree] }),
-    (snapshot, plan) => snapshot.getDefaultProjectForFile(plan.openFiles[0]));
+  return ouvrir(root, fichiersVirtuels(sources), () => ({ openProjects: [config], openFiles: [entree] }), (snapshot, plan) => {
+    const parDefaut = snapshot.getDefaultProjectForFile(plan.openFiles[0]);
+    const configure = snapshot.getProject(config);
+    const tenus = new Set(configure?.program.getSourceFileNames());
+    return configure && corpus.every(nom => tenus.has(nom)) ? configure : parDefaut;
+  });
 }

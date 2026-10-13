@@ -143,11 +143,19 @@ const ECRITURES_DOTNET = {
   file: { copy: [1], move: [0, 1], replace: [0, 1, 2], createsymboliclink: [0], open: [0], openwrite: [0], create: [0], createtext: [0], delete: [0], encrypt: [0], decrypt: [0], setattributes: [0], setunixfilemode: [0], appendalllines: [0], appendalltext: [0], appendallbytes: [0], appendtext: [0], writeallbytes: [0], writealllines: [0], writealltext: [0], setcreationtime: [0], setcreationtimeutc: [0], setlastaccesstime: [0], setlastaccesstimeutc: [0], setlastwritetime: [0], setlastwritetimeutc: [0] },
   directory: { createdirectory: [0], delete: [0], move: [0, 1], createsymboliclink: [0], setcreationtime: [0], setcreationtimeutc: [0], setlastaccesstime: [0], setlastaccesstimeutc: [0], setlastwritetime: [0], setlastwritetimeutc: [0] },
 }
-/** Les arguments écrits des appels `[System.IO.File]::<méthode>(…)` du texte `source` : `{ texte, quote }` par argument,
- *  `texte: null` pour une expression autre qu'une chaîne ou une variable. */
-function ecrituresDotnet(source) {
-  const sorties = []
-  for (const [, classe, methode, liste] of source.matchAll(/\[(?:System\.)?IO\.(File|Directory)\]::(\w+)\s*\(([^)]*)\)/gi)) {
+/** Les arguments écrits des appels `[System.IO.File]::<méthode>(…)` des `jetons` d'un segment, un appel s'ouvrant dans un
+ *  jeton de code (sans `quote`) : `{ texte, quote }` par argument, `texte: null` pour une expression autre qu'une chaîne
+ *  ou une variable. Le `$(…)` d'une chaîne se juge en sous-commande. */
+function ecrituresDotnet(jetons) {
+  const sorties = [], code = []
+  let source = ''
+  for (const j of jetons) {
+    const texte = j.raw ?? j.text
+    if (j.quote === undefined) code.push([source.length, source.length + texte.length])
+    source += `${texte} `
+  }
+  for (const { 1: classe, 2: methode, 3: liste, index } of source.matchAll(/\[(?:System\.)?IO\.(File|Directory)\]::(\w+)\s*\(([^)]*)\)/gi)) {
+    if (!code.some(([debut, fin]) => index >= debut && index < fin)) continue
     const rangs = ECRITURES_DOTNET[classe.toLowerCase()][methode.toLowerCase()]
     if (!rangs) continue
     const args = [...liste.matchAll(/\s*('[^']*'|"[^"]*"|[^,]+)\s*(?:,|$)/g)].map((m) => m[1].trim())
@@ -220,7 +228,7 @@ const SPECIAUX = {
   awk: (args) => args.flatMap((a) => [...a.matchAll(/\bprintf?\b[^;}]*?>{1,2}\s*["']([^"']+)["']/g)].map((m) => m[1])),
   'new-temporaryfile': (_args, { temp }) => [temp],
   make: (args) => (args.some((a) => /^-[a-zA-Z]*[nq]|^--(?:dry-run|just-print|recon|question)$/.test(a)) ? [] : [null]),
-  mklink: (args) => args.filter((a) => !/^\/[dhj]$/i.test(a)).slice(0, 1),
+  mklink: (args) => args.filter((a) => !/^\/\/?[dhj]$/i.test(a)).slice(0, 1),
   mktemp: (args, { P, temp }) => {
     if (args.some((a) => /^-[a-zA-Z]*u/.test(a) || a === '--dry-run')) return []
     const dossier = valeursDOptions(args, ['-p'], ['--tmpdir']).at(-1)
@@ -710,7 +718,7 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
         const valeur = k > 0 ? developpes[k + 1] : amont?.length === 1 && amont[0].quote ? developper(amont[0].text, etat.variables, amont[0]) : undefined
         if (typeof valeur === 'string' && !nonConstant(valeur)) for (const e of ecrits) e.contenu = valeur.replace(/^\r?\n|\r?\n$/g, '')
       }
-      for (const argument of ecrituresDotnet(segment.jetons.map((j) => j.raw ?? j.text).join(' '))) {
+      for (const argument of ecrituresDotnet(segment.jetons)) {
         ajouter(argument.texte === null ? null : developper(argument.texte, etat.variables, { quote: argument.quote === 'simple' ? 'simple' : undefined }), 'dotnet', { ecrivain: true })
       }
       const outils = demandeAide ? { chemins: [], inconnue: false, racines: [] } : ecrituresDOutils(nom, developpes.slice(1))

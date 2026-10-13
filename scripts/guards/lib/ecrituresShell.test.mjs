@@ -230,7 +230,7 @@ test('#2537 palier 6 — écrivains complétés, enveloppes, aide et `tsc` prouv
   assert.deepEqual(vus('xgettext -o x.pot a.c'), [['xgettext', W.resolve(baseW, 'x.pot'), false]])
   assert.deepEqual(vus('gencat cat.cat msg'), [['gencat', W.resolve(baseW, 'cat.cat'), false]])
   assert.deepEqual(vus('localedef -f UTF-8 fr_FR'), [['localedef', null, true]])
-  for (const lien of ['mklink /J lien cible', 'cmd //c mklink /J lien cible']) assert.deepEqual(vus(lien), [['mklink', W.resolve(baseW, 'lien'), false]], lien)
+  for (const lien of ['mklink /J lien cible', 'cmd //c mklink /J lien cible', 'cmd //c mklink //J lien cible']) assert.deepEqual(vus(lien), [['mklink', W.resolve(baseW, 'lien'), false]], lien)
   assert.deepEqual(vus('make'), [['make', null, true]])
   assert.deepEqual(vus('make -n'), [])
   const temp = W.join('C:', '/banc-tmp')
@@ -238,6 +238,17 @@ test('#2537 palier 6 — écrivains complétés, enveloppes, aide et `tsc` prouv
   assert.deepEqual(vus('mktemp -p sous'), [['mktemp', W.resolve(baseW, 'sous'), false]])
   assert.deepEqual(vus('mktemp sous/x.XXXX'), [['mktemp', W.resolve(baseW, 'sous'), false]])
   assert.deepEqual(vus('mktemp -u'), [])
+})
+test('#2537 — `[IO.File]::` s’ouvre dans le code : une chaîne ou une here-string qui le cite est une donnée', () => {
+  const W = cheminsDe('win32'), baseW = BASES.win32
+  const vus = (commande) => ciblesDEcritureDeCommande(commande, { base: baseW, platform: 'win32', powershell: true }).map((c) => [c.operation, c.chemin, c.inconnue])
+  const ecrit = [['dotnet', W.resolve(baseW, 'a'), false]]
+  assert.deepEqual(vus("[IO.File]::WriteAllText('a', 'x')"), ecrit)
+  assert.deepEqual(vus("[IO.File]::WriteAllText( 'a' , 'x' )"), ecrit)
+  assert.deepEqual(vus("echo \"$([IO.File]::WriteAllText('a', 'x'))\""), ecrit)
+  assert.deepEqual(vus("$t = @\"\n$([IO.File]::WriteAllText('a', 'x'))\n\"@"), ecrit)
+  assert.deepEqual(vus("Write-Output '[IO.File]::WriteAllText(\"$X\", \"x\")'"), [])
+  assert.deepEqual(vus("$t = @'\n[IO.File]::WriteAllText(\"$X\", \"x\")\n'@\n[IO.File]::WriteAllText('a', $t)"), ecrit)
 })
 test('#2537 G8 — `execFile`/`spawn` : options en 2e argument, `shell: true`, tableau `const` littéral', () => {
   const lancees = (texte) => ciblesDEcritureJS([{ texte: `import { execFileSync, spawnSync } from 'node:child_process'\n${texte}` }])[0].map((c) => c.commande)

@@ -110,6 +110,19 @@ test('syntaxProgram : configuration propre, corpus fermé et une seule ouverture
   } finally { session?.dispose(); selections.mock.restore(); ouvertures.mock.restore(); }
 });
 
+test('#2537 — syntaxProgram : le corpus que tient la configuration d’analyse s’y analyse, quel que soit le projet par défaut de la racine', () => {
+  const rootSyntaxe = chemin('__analyse_syntaxique__').replace(/^([A-Za-z]):/, (_, drive) => `${drive.toLowerCase()}:`);
+  const horsConfiguration = { program: undefined, checker: undefined };
+  const selections = mock.method(Snapshot.prototype, 'getDefaultProjectForFile', () => horsConfiguration);
+  let session;
+  try {
+    session = syntaxProgram({ 'a.js': 'function require(m) { return {} }\n', 'b.js': "require('fs')\n" });
+    assert.equal(selections.mock.callCount(), 1);
+    assert.equal(session.program.getCompilerOptions().configFilePath, `${rootSyntaxe}/tsconfig.json`);
+    assert.equal(session.program.getSourceFile(chemin('b.js')).externalModuleIndicator, true);
+  } finally { session?.dispose(); selections.mock.restore(); }
+});
+
 for (const nom of ['simple".TS', "simple'.TS", 'esperluette&<angle>.TS']) {
   test(`syntaxProgram : référence au nom original sans encodage : ${nom}`, () => {
     const texte = '\uFEFFexport const x="😀";';
