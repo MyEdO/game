@@ -136,7 +136,7 @@ Lancer **1d100** par Personnage. Certains événements n'affectent que le Person
 L'argent non sécurisé (voir *Opérations Bancaires*) disparaît avant la prochaine aventure. Les Revenus sont crédités **après** le gaspillage (LDB 23 l.191 : « vous est seulement remis une fois que vous avez disposé de l'argent de votre dernière aventure »).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 23` (l.14-19, l.191) → `MassBattleState`, `revenus`, `heroBudget`, `consumeActivity`, `ActivityDef`, `interludeSchema`, `everBelongedClasses`, `openCatalogActivity`, `confirmActivity`, `Combatant`, +3 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/activities.ts`, `src/engine/types.ts`, `src/state/interludeFlow.ts`, +1 fichiers
+- `LDB 23` (l.14-19, l.191) → `MassBattleState`, `revenus`, `heroBudget`, `consumeActivity`, `ActivityDef`, `everBelongedClasses`, `interludeSchema`, `openCatalogActivity`, `confirmActivity`, `Combatant`, +3 — `src/data/activities.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/activities.ts`, `src/engine/types.ts`, `src/state/interludeFlow.ts`, +1 fichiers
 
 ---
 
@@ -594,7 +594,7 @@ Note sur les Revenus en voyage : l'Activité *Revenus* (LDB 23) n'est **pas adap
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 9` (l.558-565) → `shelter`, `ForageMethod`, `forageYield`, `survie-en-exterieur`, `voile` — `src/data/night-stakes.json`, `src/data/skills.json`, `src/engine/travelStages.ts`
-- `EDOC 8` (l.129-180) → `plein-air`, `cleDe`, `appliquerIssueActivite`, `printemps`, `approvisionnement`, `doc`, `gatherInnInfo`, `dessin`, `ete`, `recueillir-informations`, +32 — `src/data/activities.json`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/maladies.ts`, `src/data/skills.json`, `src/data/weather.json`, +12 fichiers
+- `EDOC 8` (l.129-180) → `plein-air`, `cleDe`, `appliquerIssueActivite`, `printemps`, `approvisionnement`, `doc`, `gatherInnInfo`, `dessin`, `ete`, `recueillir-informations`, +33 — `src/data/activities.json`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/maladies.ts`, `src/data/skills.json`, `src/data/weather.json`, +12 fichiers
 
 ---
 
