@@ -17,6 +17,7 @@ import type { Get, Set } from './flowTypes';
 import { Combatant } from '../engine/types';
 import { Scene } from './scene';
 import type { CascadeStep, BatchParticipant, CascadeRoll } from './pendings';
+import { estJete } from '../engine/tests';
 import { ficheDEntite } from './sceneNpc';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, cibleLabel, PsychType, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych } from '../engine/psychology';
@@ -209,7 +210,7 @@ registerCascadeApplier('encounterPsych', (get, set, step) => {
   if (!ep || !step.participants) return;
   for (const part of step.participants) {
     const hero = actorIn(get(), part.id);
-    if (!hero || !part.result) { part.outcome = []; continue; }
+    if (!hero || !estJete(part.result)) { part.outcome = []; continue; }
     const lines = resultLines(resolvePsychRow(hero, ep, part.result, !!part.immune));
     part.outcome = lines;
     for (const l of lines) get().log(l.text);

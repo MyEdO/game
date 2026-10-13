@@ -7,6 +7,7 @@ import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 import { rollCrewRole } from './shipManeuver';
 import { makeRNG } from '../engine/dice';
+import { jete } from '../engine/tests.testkit';
 import { rangeBandName } from '../engine/combat';
 
 /** Combattant d'équipage minimal (carac d'instance = Dex → valeur prévisible). Calqué sur crew-roles.test.ts. */
@@ -225,8 +226,8 @@ describe('rollCrewRole — cumul de rôles (Manque de bras, MDG 14 l.53)', () =>
       kind: 'hero', wounds: { current: 10, max: 10 }, skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }], conditions: [], talents: [] }) as unknown as Combatant;
 
   it('cumul → +2 crans de Difficulté : cible PLUS DURE (−20) qu\'un jet normal, même dé', () => {
-    const normal = rollCrewRole(cap(), 'capitaine', makeRNG(5))!;
-    const cumul = rollCrewRole(cap(), 'capitaine', makeRNG(5), true)!;
+    const normal = jete(rollCrewRole(cap(), 'capitaine', makeRNG(5)));
+    const cumul = jete(rollCrewRole(cap(), 'capitaine', makeRNG(5), true));
     expect(cumul.target).toBe(normal.target - 20); // Intermédiaire (+0) → +2 crans = Difficile (−20)
   });
 });

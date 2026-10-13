@@ -4,6 +4,8 @@ import type { Combatant } from '../engine/types';
 import { refLabel } from '../data';
 import type { PanelRowData } from './RollPanel';
 import { participantRow, type BuiltRollRow } from './rollRowBuild';
+import { estJete, type EchecSansJet } from '../engine/tests';
+import type { PlayerText } from '../i18n/playerText';
 
 /**
  * SOURCE UNIQUE des rangées-participants d'une modale MULTI (#328) : `CascadeModal` batch,
@@ -22,8 +24,13 @@ export interface ParticipantRow {
   spec?: string;
   interactive?: boolean;
   rerolled?: boolean;
-  result: { roll: number; target: number; sl: number; success?: boolean } | null;
+  /** `EchecSansJet` : ligne non tentable, résolue sans dé (LDB 09 l.30) — la rangée rend son `refus`. */
+  result: { roll: number; target: number; sl: number; success?: boolean } | EchecSansJet | null;
+  refus?: PlayerText;
 }
+
+/** Issue d'une rangée dont le dé est TOMBÉ (ou pas encore) — jamais la ligne non tentable. */
+type ResultatJete<P extends ParticipantRow> = Exclude<P['result'], EchecSansJet>;
 
 export interface ParticipantRowBundle<P extends ParticipantRow> {
   /** Actions de flux du domaine (routées par id de participant). */
@@ -33,16 +40,16 @@ export interface ParticipantRowBundle<P extends ParticipantRow> {
   onDarkPact: (id: string) => void;
   onForce: (id: string) => void;
   /** PRÉSENTATION de la rangée (pré-jet en attente puis résultat) — propre au vocabulaire de la modale. */
-  row: (part: P, actor: Combatant, res: P['result']) => PanelRowData;
+  row: (part: P, actor: Combatant, res: ResultatJete<P>) => PanelRowData;
   /** Rangée INTERACTIVE ? (défaut : `part.interactive !== false`). Le naval y greffe le gate `owns`. */
   interactiveOf?: (part: P, actor: Combatant) => boolean;
   /** Issue courte sous la ligne (DR ×2 essentiel…) — rendue APRÈS le jet seulement, dans le CANAL
    *  UNIQUE de sous-ligne (`PanelRowData.note`, `.rr-note`). */
-  note?: (part: P, actor: Combatant, res: NonNullable<P['result']>) => ReactNode;
+  note?: (part: P, actor: Combatant, res: NonNullable<ResultatJete<P>>) => ReactNode;
   /** ISSUES de la rangée (#1117) — les deux branches annoncées AVANT le jet, la branche réalisée APRÈS :
    *  rendue aux DEUX phases (c'est ce qui la distingue de `note`, qui ne dit que la conséquence subie).
    *  Elle occupe la MÊME sous-ligne, en tête ; un site qui fournit les deux les empile dans cet ordre. */
-  issues?: (part: P, actor: Combatant, res: P['result']) => ReactNode;
+  issues?: (part: P, actor: Combatant, res: ResultatJete<P>) => ReactNode;
   /** DONNÉE de Test ÉTENDU d'une rangée (cartographie de voyage…) : la barre est rendue par `RollRow`
    *  (site UNIQUE), visible avant/après le jet et persistante. Le bundle ne pose que la donnée. */
   extendedDrOf?: (part: P, actor: Combatant) => { cum: number; target: number } | undefined;
@@ -70,7 +77,11 @@ export function buildParticipantRows<P extends ParticipantRow>(
   return participants.flatMap((part) => {
     const actor = pool.find((c) => c.id === part.id);
     if (!actor) return [];
-    const res = part.result;
+    if (part.result && !estJete(part.result)) {
+      // Ligne non tentable (LDB 09 l.30) : TÉMOIN sans dé, son refus nommé pour toute ligne.
+      return [participantRow({ key: part.id, actor, row: { combatant: actor, note: part.refus }, interactive: false })];
+    }
+    const res = part.result as ResultatJete<P>;
     const extendedDr = bundle.extendedDrOf?.(part, actor);
     // Z5 (docs/charte-ui.md) — SOURCE UNIQUE du libellé de LIGNE d'une rangée-participant : la
     // Compétence lancée, DÉRIVÉE de la paire `{skillId, spec}` par le résolveur canonique (« Voile

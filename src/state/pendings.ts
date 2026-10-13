@@ -12,7 +12,7 @@ import type { Dir8 } from './dir8';
 import type { Effect, Dialogue } from './scene';
 import type { Flow } from './flow';
 import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
-import type { TestResult, OpposedResult } from '../engine/tests';
+import type { TestResult, OpposedResult, EchecSansJet } from '../engine/tests';
 import type { AttackResult, DefenseMode, DifficultyComposition, ModLine } from '../engine/combat';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { CriticalResolved } from '../engine/critical';
@@ -30,7 +30,7 @@ import type { SupportDetail } from '../engine/skills';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
-export interface CrewRoleRoll { roll: number; target: number; sl: number }
+export type CrewRoleRoll = { roll: number; target: number; sl: number; sansJet?: undefined } | EchecSansJet;
 
 export type { Money };
 /** Une ligne de butin d'équipement (giveTrapping) ATTRIBUABLE par portrait — partagée entre
@@ -609,6 +609,9 @@ export interface ShipManeuverParticipant extends RollParticipant {
    *  (manœuvre, bordée…) = comportement historique. */
   sense?: PairedSense;
   result: CrewRoleRoll | null;
+  /** Refus NOMMÉ du contributeur qui ne peut pas tenter son rôle (`crewRoleValue().refus`, LDB 09 l.30) :
+   *  `result` naît `ECHEC_SANS_JET`, la rangée est un témoin sans dé. */
+  refus?: PlayerText;
 }
 /** Contributeur ARTILLEUR d'un Tir de batterie (MDG 14) — MÊME forme qu'un rôle de manœuvre (un rôle,
  *  son DR) : alias du contributeur de Test d'équipage (une seule structure pour les 3 flux jumeaux). */
@@ -1748,7 +1751,11 @@ export interface BatchParticipant extends RollParticipant {
   /** Conséquence appliquée à CETTE rangée (dérivée des ops, #295 ; ligne STRUCTURÉE #349) — rendue
    *  comme note de la rangée (le portrait porte l'attribution), PERSISTE dans les rangées-témoins/bilan. */
   outcome?: RecapLine[];
-  result: CascadeRoll | null;
+  /** Le dé de la rangée, ou l'issue CONSTANTE d'une ligne que son porteur ne peut pas tenter
+   *  (`EchecSansJet`, posée par le monteur `rollStep` avec `refus`) : aucun dé, aucune influence. */
+  result: CascadeRoll | EchecSansJet | null;
+  /** Refus NOMMÉ d'une ligne non tentable (LDB 09 l.30) — présent ssi `result` est `EchecSansJet`. */
+  refus?: PlayerText;
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
   /** Réussite forcée par Résilience (LDB 17 l.68). */

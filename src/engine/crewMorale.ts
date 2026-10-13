@@ -17,8 +17,9 @@
 import crewMoraleJson from '../data/crew-morale.json';
 import { findTableEntry } from './tables';
 import { rollExpr, type RNG, defaultRNG } from './dice';
-import { rollTest, easeDifficulty } from './tests';
-import { bestForSkills } from './skills';
+import { rollTest, easeDifficulty, ECHEC_SANS_JET } from './tests';
+import { bestForSkills, refusNePeutTenter } from './skills';
+import type { PlayerText } from '../i18n/playerText';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { talentTestSLBonus } from './magic';
 import { skillDRBonus } from './ops';
@@ -157,9 +158,13 @@ export function payChoiceCostBrass(wageBrass: number, factorId: string): number 
 }
 
 /** Un contributeur à un Test d'équipage (un rôle tenu par un Personnage). `essential` → son DR compte DOUBLE. */
-export interface CrewContributor {
+export type CrewContributor = CrewContributorBase & (
   /** Valeur de Compétence effective du contributeur pour ce Test. */
-  value: number;
+  | { value: number; refus?: undefined }
+  /** Contributeur qui ne peut pas tenter son Test (`crewRoleValue().refus`) : aucun jet, `ECHEC_SANS_JET`. */
+  | { value?: undefined; refus: PlayerText }
+);
+interface CrewContributorBase {
   /** Rôle ESSENTIEL (MDG 14) : « Tout DR, ou DR négatif, qu'il génère est alors doublé. » */
   essential?: boolean;
   /** Étiquette d'affichage (journal) — le rôle tenu. */
@@ -175,7 +180,7 @@ export interface CrewContributor {
 
 export interface CrewTestResult {
   /** Détail par contributeur (DR brut puis doublé si essentiel). */
-  contributions: { label: string; sl: number; essential: boolean; counted: number }[];
+  contributions: { label: string; sl: number; essential: boolean; counted: number; refus?: PlayerText }[];
   /** Somme des DR (rôles essentiels doublés). */
   baseTotal: number;
   /** ±DR de la bande de Moral courante (MDG 14, EFFETS DU MORAL). */
@@ -199,16 +204,17 @@ export function resolveCrewTest(
   extraDR = 0,
 ): CrewTestResult {
   const contributions = contributors.map((c) => {
-    const t = rollTest(c.value, c.difficulty ?? difficulty, rng, c.modifier ?? 0);
+    const t = c.refus != null ? ECHEC_SANS_JET : rollTest(c.value, c.difficulty ?? difficulty, rng, c.modifier ?? 0);
     const sl = t.sl + (t.success ? (c.successDR ?? 0) : 0); // +DR de Talent sur un jet RÉUSSI (Commandant émérite)
     const counted = c.essential ? sl * 2 : sl;
-    return { label: c.label, sl, essential: !!c.essential, counted };
+    return { label: c.label, sl, essential: !!c.essential, counted, ...(c.refus != null ? { refus: c.refus } : {}) };
   });
   const baseTotal = contributions.reduce((s, c) => s + c.counted, 0);
   const moraleDR = moraleBand(moraleScore).crewTestDR;
   const total = baseTotal + moraleDR + extraDR;
-  const lines = contributions.map((c) =>
-    `${c.label} : ${c.sl >= 0 ? '+' : ''}${c.sl} DR${c.essential ? ` (essentiel ×2 → ${c.counted})` : ''}.`);
+  const lines = contributions.map((c) => (c.refus != null
+    ? `${c.label} : ${c.refus}`
+    : `${c.label} : ${c.sl >= 0 ? '+' : ''}${c.sl} DR${c.essential ? ` (essentiel ×2 → ${c.counted})` : ''}.`));
   if (moraleDR) lines.push(`Moral : ${moraleDR >= 0 ? '+' : ''}${moraleDR} DR.`);
   if (extraDR) lines.push(`Modificateur : ${extraDR >= 0 ? '+' : ''}${extraDR} DR.`);
   return { contributions, baseTotal, moraleDR, total, lines };
@@ -328,10 +334,24 @@ export function crewTestModOf(c: Combatant): number {
  *  (optionnel) : sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie qui « voit la lumière d'un
  *  phare », MDG 13 l.337 — visuel, transmis par l'appelant) ; restreint les `skillMod` sense-scopés
  *  (Surdité, LDB 18) via `testValue`. Absent = comportement historique. PUR. */
-export function crewRoleValue(crew: Combatant, role: CrewRoleData, sense?: PairedSense): { value: number; used?: RefDesignee } {
+export function crewRoleValue(crew: Combatant, role: CrewRoleData, sense?: PairedSense): CrewRoleValue {
   const b = bestForSkills([crew], role.skills ?? [], undefined, sense);
-  return { value: (b?.value ?? 0) + crewTestModOf(crew), used: b?.skillId ? { id: b.skillId, spec: b.spec } : undefined };
+  if (!b) {
+    const sk = role.skills?.[0];
+    return {
+      ...(sk ? { used: { id: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) } } : {}),
+      refus: refusNePeutTenter(crew, sk ? { skill: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) } : { action: role.label }),
+    };
+  }
+  return { value: b.value + crewTestModOf(crew), used: b.skillId ? { id: b.skillId, spec: b.spec } : undefined };
 }
+
+/** Valeur d'un membre à son rôle : la Compétence tenue et sa valeur, OU — quand il ne peut tenter
+ *  aucune des Compétences du rôle (`peutTenter`, LDB 09 l.30) — la Compétence du rôle et son refus
+ *  NOMMÉ, sans valeur : ce Test ne se lance pas (`ECHEC_SANS_JET`, #2588 Q1). */
+export type CrewRoleValue =
+  | { value: number; used?: RefDesignee; refus?: undefined }
+  | { value?: undefined; used?: RefDesignee; refus: PlayerText };
 
 /** Modificateurs SUR LA CIBLE du jet d'un rôle d'équipage en combat : Précipitations sur le pont (MDG 13
  *  l.185, `Combatant.envPrecipitation`), keyées par la Compétence que le rôle tient. SOURCE UNIQUE du jet
@@ -348,8 +368,9 @@ export function crewRoleTestMods(crew: Combatant, role: CrewRoleData, sense?: Pa
  *  S'y AJOUTE le +DR d'effet/trait/objet par Compétence (`skillDRBonus` — Boussole : +1 DR Orientation,
  *  MDG 14 l.275 ; MÊME règle d'application « sur un jet réussi » que dans le combat, combat.ts). PUR. */
 export function crewTalentDR(crew: Combatant, role: CrewRoleData): number {
-  const used = crewRoleValue(crew, role).used;
-  if (!used) return 0;
+  const rv = crewRoleValue(crew, role);
+  const used = rv.used;
+  if (!used || rv.refus) return 0;
   return talentTestSLBonus(crew, { skill: used.id, spec: used.spec }, (cond) => cond.kind === 'crewTest')
     + skillDRBonus(crew, used.id, used.spec);
 }
@@ -377,8 +398,9 @@ export function resolveCrewTestByRoles(
   const essentialRole = findCrewTestTypeById(testTypeId)?.essential;
   const contributors: CrewContributor[] = assignments.map((a) => {
     const role = findCrewRoleById(a.roleId);
+    const rv = role ? crewRoleValue(a.crew, role) : undefined;
     return {
-      value: role ? crewRoleValue(a.crew, role).value : 0,
+      ...(rv?.refus != null ? { refus: rv.refus } : { value: rv?.value ?? 0 }),
       modifier: role ? crewRoleTestMods(a.crew, role).reduce((s, m) => s + m.value, 0) : 0,
       essential: a.roleId === essentialRole,
       label: role?.label ?? a.roleId,

@@ -36,8 +36,8 @@ import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, findVehicleById, refLabel, specLabel } from '../data';
 import type { StakeRef } from '../data';
 import { partyCargoTotalEnc, nomDuNavire } from './carriers';
-import { partyAssisted } from '../engine/skills';
-import { rollTest, type TestResult } from '../engine/tests';
+import { partyAssisted, refusPersonneNePeutTenter } from '../engine/skills';
+import { rollTest, ECHEC_SANS_JET, type TestResult } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue } from '../engine/skills';
@@ -343,8 +343,9 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
       refLabel('skills', { id: skillId }), { ...pilotLigne!, surLaCible: navTest.mods }, navTest.difficulty, { savoir },
       { stake: voyageStakeRef('riverNav', { driftKm: Math.round(riverDriftKm(baseKm)), driftPct: driftPctOfSpeed() }) }));
   } else {
-    logs.push(t('rv.noPilot'));
-    dayCtx.forceDrift = true; // pas de barreur = contrôle perdu (note 2 : dérive)
+    // Personne ne peut tenter la Navigation : ÉCHEC sans jet, conséquence de l'échec (LDB 09 l.30 ; #2588 Q1).
+    logs.push(refusPersonneNePeutTenter({ skill: skillId }), t('rv.noPilot'));
+    dayCtx.forceDrift = !riverControlKept(ECHEC_SANS_JET.success, ECHEC_SANS_JET.sl, 0);
     set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: { ...dayCtx } } } });
   }
 

@@ -53,7 +53,7 @@ import { rule } from '../engine/policy';
 import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, overcastSL, castAfterCrit, defaultCritChoice, castInfo, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, overcastAxes, extraTargetCapacity, overcastDurationParts, overcastBudget } from '../engine/overcast';
-import { resolveOpposed, extendedTestStep } from '../engine/tests';
+import { resolveOpposed, extendedTestStep, ECHEC_SANS_JET } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
@@ -82,10 +82,10 @@ import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './
 import { crewTestContributors, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, withCrewActed } from './shipCrew';
 import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
-import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime } from '../engine/crewMorale';
+import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
-import { findCrewTestTypeById, findVehicleById, findStructureById, combatStakeRef } from '../data';
+import { findCrewTestTypeById, findCrewRoleById, findVehicleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './fireArc';
 import { facingToward } from './dir8';
@@ -168,14 +168,19 @@ function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
   const contributors = crewTestContributors(ship, battle.combatants, testTypeId, partyIds);
   if (!contributors.length) return null;
   const essentialRoleId = findCrewTestTypeById(testTypeId)?.essential;
-  const participants: ShipManeuverParticipant[] = contributors.map((a) => ({
-    id: a.crew.id,
-    interactive: partyIds.has(a.crew.id),
-    roleId: a.roleId,
-    essential: a.roleId === essentialRoleId,
-    cumul: (battle.crewActed?.[ship.id] ?? []).includes(a.crew.id), // déjà engagé dans un Test ce Round → cumul +2 crans (l.53)
-    result: null,
-  }));
+  const participants: ShipManeuverParticipant[] = contributors.map((a) => {
+    const role = findCrewRoleById(a.roleId);
+    // Rôle que le marin ne peut pas tenter : la rangée naît RÉSOLUE, témoin sans dé (LDB 09 l.30 ; #2588 Q1).
+    const refus = role ? crewRoleValue(a.crew, role).refus : undefined;
+    return {
+      id: a.crew.id,
+      interactive: refus == null && partyIds.has(a.crew.id),
+      roleId: a.roleId,
+      essential: a.roleId === essentialRoleId,
+      cumul: (battle.crewActed?.[ship.id] ?? []).includes(a.crew.id), // déjà engagé dans un Test ce Round → cumul +2 crans (l.53)
+      ...(refus != null ? { result: ECHEC_SANS_JET, refus } : { result: null }),
+    };
+  });
   const saboteur = shipSaboteurDR(ship); // MDG 14 l.45-47 : −1..−5 DR plats
   // #221 : Traits/Améliorations navals ciblant CE type de Test d'équipage (op `skillDRBonus` à `testType`).
   const traits = hullNavalTraits(ship);

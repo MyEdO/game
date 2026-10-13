@@ -3,7 +3,10 @@ import { rotateDir8, DIR8_DELTA } from './dir8';
 import { inFireArc, targetArc } from './fireArc';
 import { resolveShipManeuver } from '../engine/shipNavigation';
 import { useGame } from './store';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng, battleRng } from './battleRng';
+import { makeRNG } from '../engine/dice';
+import { ECHEC_SANS_JET } from '../engine/tests';
+import { jete } from '../engine/tests.testkit';
 import { emptyScene } from './scene';
 import { maneuverShip, rollShipManeuver, applyShipManeuver, forceShipManeuver, bonusShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew, shipManeuverParams, type ManeuverResult } from './shipManeuver';
 import * as navalTraitsMod from '../engine/navalTraits';
@@ -377,6 +380,49 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     const st = useGame.getState();
     expect(st.pendingShipManeuver).toBeNull();
     expect(st.battle!.acted).toBe(true); // un jet = une Action
+  });
+
+  /** Marin ÉPINGLÉ (`shipRole`) à la barre sans Voile — Compétence Avancée sans Augmentation (LDB 09 l.30) :
+   *  la seule façon pour un rôle d'échoir à qui ne peut pas le tenter (`shipDefaultRoles` n'élit que des formés). */
+  const sansVoile = (): Combatant => ({ ...helm(), id: 'muet', label: 'Muet', skills: [], shipRole: 'timonier' }) as unknown as Combatant;
+  const ouvreAvecSansVoile = (): void => {
+    seedBattleRng(7);
+    const shipC = { ...ship(), crewIds: ['helm', 'muet'] } as unknown as Combatant;
+    useGame.setState({ battle: { combatants: [shipC, helm(), sansVoile()], order: ['helm'], turn: 0, acted: false } as never, party: [helm(), sansVoile()], facing: { ship: 'N' }, pendingShipManeuver: null, scene: null as never });
+    useGame.getState().battleShipManeuver('helm');
+  };
+
+  it('rôle que son titulaire ne peut pas tenter : N+1 rangées, dont UNE échec sans jet à refus nommé (LDB 09 l.30 ; #2588 Q1)', () => {
+    ouvreAvecSansVoile();
+    const parts = useGame.getState().pendingShipManeuver!.participants;
+    expect(parts.map((x) => x.id)).toEqual(['helm', 'muet']);
+    const muet = parts.find((x) => x.id === 'muet')!;
+    expect(muet.result).toEqual(ECHEC_SANS_JET);
+    expect(muet.refus).toBe('Muet ne peut pas tenter le Test de Voile.');
+    expect(muet.interactive).toBe(false);
+    expect(parts.find((x) => x.id === 'helm')!.result).toBeNull(); // le titulaire tentable attend SON jet
+  });
+
+  it('rôle non tentable : le total = Σ des N jets + DR plats, la ligne sans jet n’y pèse rien (MDG 14 l.13)', () => {
+    ouvreAvecSansVoile();
+    useGame.getState().shipManeuverRoll('helm');
+    const p = useGame.getState().pendingShipManeuver!;
+    const helmSl = jete(p.participants.find((x) => x.id === 'helm')!.result).sl;
+    const plats = maneuverCrewTotal([], p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR);
+    expect(maneuverCrewTotal(p.participants, p.essentialRoleId, p.moraleScore, p.undercrew, p.extraDR)).toBe(helmSl + plats);
+  });
+
+  it('rôle non tentable : ni jet, ni Résilience, ni Chance — aucun tirage consommé (LDB 09 l.30 ; #2588 Q1)', () => {
+    ouvreAvecSansVoile();
+    const st = useGame.getState();
+    st.shipManeuverRoll('muet');
+    st.shipManeuverForceSuccess('muet');
+    st.shipManeuverBonusSL('muet');
+    st.shipManeuverReroll('muet');
+    expect(useGame.getState().pendingShipManeuver!.participants.find((x) => x.id === 'muet')!.result).toEqual(ECHEC_SANS_JET);
+    const muet = useGame.getState().battle!.combatants.find((c) => c.id === 'muet')!;
+    expect([muet.fortune, muet.resilience]).toEqual([2, 1]); // aucun point dépensé
+    expect(battleRng().int(1, 1_000_000)).toBe(makeRNG(7).int(1, 1_000_000)); // le flux n'a rien tiré depuis la graine
   });
 
   it('héros qui ne sert aucun navire → battleShipManeuver n’ouvre rien', () => {

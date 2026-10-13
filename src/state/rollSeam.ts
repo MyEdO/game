@@ -58,7 +58,7 @@ import { cadenceAuto } from '../engine/cadence';
 import { resoluSousOrdres } from './voyageCadence';
 import { byId, conditionLabel, dataLabel, type StakeRef } from '../data';
 import { t, type OutKey, type OutVars } from '../i18n';
-import { rollTest, clampTarget } from '../engine/tests';
+import { rollTest, clampTarget, ECHEC_SANS_JET, estJete, type EchecSansJet } from '../engine/tests';
 import { defaultRNG, type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
@@ -480,7 +480,8 @@ export function bandStep(spec: BandSpec, rows: readonly BatchParticipant[]): Bui
     ...(spec.icon ? { icon: spec.icon } : {}),
     ...(porteurs.size > 1 ? { groupOwner: true } : { actorId: rows[0].id }),
     aggregate: spec.aggregate ?? 'none',
-    participants: [...rows],
+    // Une rangée née RÉSOLUE sans dé (ligne non tentable, `rollStep` + `refus`) est un TÉMOIN : ni Lancer ni influence.
+    participants: rows.map((r) => (r.result && !estJete(r.result) ? { ...r, interactive: false } : r)),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.menace ? { menace: spec.menace } : {}),
     ...(spec.combatPsych ? { combatPsych: spec.combatPsych } : {}),
@@ -634,6 +635,9 @@ interface RollLineBase {
    *  jets de COMBAT : valeur MAISON (`LDB 12` silencieux sur le cumul ; `l.137`
    *  est permissif hors combat ; la combinaison vit au chapitre Combat, `LDB 14 l.48` et `l.95`). */
   plafond?: 'difficultes';
+  /** LIGNE NON TENTABLE (`peutTenter` faux, LDB 09 l.30 ; #2588 Q1) : le refus NOMMÉ du porteur. Le
+   *  monteur (`rollStep`) rend alors la ligne RÉSOLUE — `ECHEC_SANS_JET`, aucun dé — avec ce refus. */
+  refus?: PlayerText;
 }
 
 /**
@@ -876,7 +880,7 @@ export function rollLine(spec: RollLineSpec): RollLineParts {
 /** Ligne de jet ÉTALÉE en champs d'étape — la forme que rend `rollStep`, et la seule par laquelle une
  *  ligne déjà montée entre dans un mint (`MonoSpec.montee`). Type STRUCTUREL : il dit la FORME, pas la
  *  provenance — ce qu'elle vaut est tenu par le cliquet, cf. le JSDoc de `MonoSpec`. */
-export type LigneMontee = { base: number; mods?: ModLine[]; target: number; clamped?: number };
+export type LigneMontee = { base: number; mods?: ModLine[]; target: number; clamped?: number; refus?: PlayerText; result?: EchecSansJet };
 /** Étale une ligne montée en CHAMPS d'étape (`CascadeStep`/`BatchParticipant`) : `mods` et `clamped`
  *  ne sont posés que s'ils existent — un monteur local ne réécrit jamais cet étalement à la main.
  *
@@ -892,6 +896,7 @@ export function rollStep(spec: RollLineSpec): LigneMontee {
     ...(line.mods.length ? { mods: line.mods } : {}),
     target: line.target,
     ...(line.clamped ? { clamped: line.clamped } : {}),
+    ...(spec.refus != null ? { refus: spec.refus, result: ECHEC_SANS_JET } : {}),
   };
 }
 

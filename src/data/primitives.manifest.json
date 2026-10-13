@@ -129,6 +129,15 @@
     "verrou": "roll-seam-exclusivity-guard.test.ts"
   },
   {
+    "id": "echecSansJet",
+    "type": "primitives.manifest",
+    "label": "ECHEC_SANS_JET/estJete",
+    "fichier": "src/engine/tests.ts",
+    "concept": "issue d'un Test que son porteur ne peut pas tenter (LDB 09 l.30 ; #2588 Q1) : ÉCHEC, DR 0, sans dé, refus nommé sur la ligne ; `estJete` sépare un dé tombé de cette issue, `jete` (`src/engine/tests.testkit.ts`) l'exige en test",
+    "perimetre": "`rollStep` (`refus`), rangées d'équipage (`crewRoleValue`, `rollCrewRole`, `openCrewTestPending`), barre sans barreur (`rollShipManeuver`, voyage fluvial), rangée témoin de `buildParticipantRows`",
+    "verrou": "sea-voyage-flow.test.ts, ship-maneuver.test.ts, peut-tenter.test.ts"
+  },
+  {
     "id": "optionChooser",
     "type": "primitives.manifest",
     "label": "OptionChooser/ChoiceButtons",

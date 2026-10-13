@@ -65,7 +65,7 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string): Map<str
     // Meilleur marin FORMÉ encore libre : `partyBest` (skill/char indéfinis → `testValue`=0) score PUREMENT sur
     // `crewRoleValue`. Le `.filter` préserve l'ordre d'`apte` → first-max identique à la boucle strict-`>` d'origine.
     const candidates = apte.filter((c) => free.has(c.id) && trainedForRole(c, roleId));
-    const winner = partyBest(candidates, undefined, undefined, (c) => crewRoleValue(c, role).value)?.actor;
+    const winner = partyBest(candidates, undefined, undefined, (c) => crewRoleValue(c, role).value ?? -Infinity)?.actor;
     if (winner) { out.set(winner.id, roleId); free.delete(winner.id); }
   }
   // Le reste → Mousse (rôle par défaut, l.15) s'il sait Voile/Ramer.
@@ -100,7 +100,7 @@ export function shipCrewAssignments(ship: Combatant, combatants: Combatant[], te
  * `sense` (Test à sens dominant, ex. Vigie visuelle, #149) écarte la pénalité sensorielle hors-sujet du RANKING
  * du marin représentant — parité avec la valeur de Test (#158). PUR. */
 export function crewTestContributors(ship: Combatant, combatants: Combatant[], testTypeId: string, partyIds: Set<string>, sense?: PairedSense): CrewAssignment[] {
-  const roleVal = (a: CrewAssignment) => { const r = findCrewRoleById(a.roleId); return r ? crewRoleValue(a.crew, r, sense).value : 0; };
+  const roleVal = (a: CrewAssignment) => { const r = findCrewRoleById(a.roleId); return r ? crewRoleValue(a.crew, r, sense).value ?? -Infinity : 0; };
   const byRole = new Map<string, CrewAssignment[]>();
   for (const a of shipCrewAssignments(ship, combatants, testTypeId)) (byRole.get(a.roleId) ?? byRole.set(a.roleId, []).get(a.roleId)!).push(a);
   const out: CrewAssignment[] = [];

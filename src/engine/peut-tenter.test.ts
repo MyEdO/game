@@ -41,10 +41,14 @@ describe('peutTenter — l\'élection du meneur et le Soutien', () => {
 });
 
 describe('peutTenter — consommateurs sur un groupe d\'UN seul acteur', () => {
-  it('crewRoleValue (crewMorale) : un marin Inconscient à son poste ne fournit aucune valeur de Compétence', () => {
+  it('crewRoleValue (crewMorale) : un marin Inconscient à son poste ne fournit aucune valeur, il porte son refus nommé', () => {
     const mousse = findCrewRoleById('mousse')!;
-    expect(crewRoleValue(hero('m', 30, { voile: 20 }), mousse).value).toBeGreaterThan(0);
-    expect(crewRoleValue(hero('m', 30, { voile: 20, inconscient: true }), mousse)).toEqual({ value: 0, used: undefined });
+    const debout = crewRoleValue(hero('m', 30, { voile: 20 }), mousse);
+    expect(debout.value).toBeGreaterThan(0);
+    expect(debout.refus).toBeUndefined();
+    const ko = crewRoleValue(hero('m', 30, { voile: 20, inconscient: true }), mousse);
+    expect(ko.value).toBeUndefined();
+    expect(ko.refus).toBe('m ne peut pas tenter le Test de Voile.');
   });
 
   it('bestSkilledOption (skills) : un acteur Inconscient n\'obtient aucune option tentable', () => {

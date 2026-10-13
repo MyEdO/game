@@ -28,6 +28,7 @@ import type { ModLine } from '../engine/combat';
 import { Icon } from './Icon';
 import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl, specDeEtape } from '../state/cascade';
 import { formatDice } from '../engine/dice';
+import { estJete } from '../engine/tests';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
 import { opposedAttackerLabel } from '../state/rollSeam';
@@ -294,11 +295,11 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       return s.participants.flatMap((part) => {
         const a = pool.find((c) => c.id === part.id);
         if (!a) return [];
-        const res = part.result;
+        const res = estJete(part.result) ? part.result : null;
         // La rangée FIGÉE garde sa seconde lecture : ce que la bande a tranché reste lisible au bilan.
         const d = res ? { label: part.label ?? a.label, base: part.base, mods: part.mods, ...(part.difficulty ? { difficulty: part.difficulty } : {}), modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl, ...(part.second ? { second: secondReadOf(part.second, res)! } : {}) } : undefined;
         const extendedDr = extendedDrData(part.extendedDrDone, part.extendedDrTarget, res);
-        return [witnessRow({ key: witnessRowKey(s.id, part.id), row: { combatant: a, d, note: partNote(part) }, extendedDr })];
+        return [witnessRow({ key: witnessRowKey(s.id, part.id), row: { combatant: a, d, note: part.result && !res ? part.refus : partNote(part) }, extendedDr })];
       });
     }
     const pr = rowOf(s);
@@ -810,10 +811,10 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       // ISSUES de la rangée (#1117) : la MÊME dérivation que l'étape MONO, mais PAR PARTICIPANT — le
       // VERDICT d'une rangée résolue et la promesse d'une rangée DIVERGENTE. Une rangée dont l'annonce est
       // montée en tête de bande n'a plus rien à dire ici : elle se tait plutôt que de répéter.
-      issues: (part) => (!part.result && mutualise?.ids.includes(part.id) ? undefined : rowOutcomeNote(part.id, part.result)),
+      issues: (part, _actor, res) => (!res && mutualise?.ids.includes(part.id) ? undefined : rowOutcomeNote(part.id, res)),
       // Test ÉTENDU d'une rangée (cartographie de voyage) : DONNÉE seule — `RollRow` rend la barre (site
       // UNIQUE), visible AVANT et après le jet, persistante (arbitrage user 2026-07-11).
-      extendedDrOf: (part) => extendedDrData(part.extendedDrDone, part.extendedDrTarget, part.result),
+      extendedDrOf: (part) => extendedDrData(part.extendedDrDone, part.extendedDrTarget, estJete(part.result) ? part.result : null),
     }).map((r) => {
       // Verbes à RESSOURCE de la rangée (parité avec l'étape MONO, joués PAR RANGÉE — flux `cascadeBatch`) :
       // Résistance (Menace) sur une rangée TAGUÉE dont l'issue reste défavorable (LDB 10 l.1016-1020) ;

@@ -45,6 +45,8 @@ import { jetStepPresentable } from '../ui/CascadeModal';
 import { WORLD_STEP_OWNER, seatOwns } from './netOwnership';
 import { contractDisease } from '../engine/disease';
 import { makeRNG } from '../engine/dice';
+import { ECHEC_SANS_JET, estJete } from '../engine/tests';
+import { jete } from '../engine/tests.testkit';
 import { hullNavalTraits } from '../engine/navalTraits';
 
 /**
@@ -271,6 +273,59 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const committed = get().pendingCascade?.participants.find((s) => s.kind === 'progression') ?? strong[p.cursor];
     expect(committed.result!.sl).toBe(1); // plafonné (sans plafond : 6×N − 10)
     expect(committed.result!.success).toBe(true); // un Succès Minime reste un succès (LDB 12 l.110)
+  });
+
+  /** Un PJ ÉPINGLÉ (`shipRole`) à la barre sans Voile — Compétence Avancée sans Augmentation (LDB 09 l.30). */
+  function barreSansVoile(): string {
+    const [a, b, c] = get().party;
+    set({ party: [a, b, { ...c, shipRole: 'timonier', skills: c.skills.filter((sk) => sk.id !== 'voile') }] });
+    return c.id;
+  }
+
+  it('membre qui ne peut pas tenter son rôle : N+1 rangées, dont UNE échec sans jet à refus nommé (LDB 09 l.30 ; #2588 Q1)', () => {
+    const muet = barreSansVoile();
+    get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    const rows = driveToCrewStep('progression')!.participants!;
+    const sansJet = rows.filter((r) => r.result && !estJete(r.result));
+    expect(sansJet.map((r) => r.id)).toEqual([muet]);
+    expect(sansJet[0].result).toEqual(ECHEC_SANS_JET);
+    expect(sansJet[0].refus).toBe(`${get().party[2].label} ne peut pas tenter le Test de Voile.`);
+    expect(sansJet[0].interactive).toBe(false);
+    const tentables = rows.filter((r) => r.id !== muet);
+    expect(tentables.length).toBeGreaterThan(0);
+    expect(tentables.every((r) => r.result === null)).toBe(true); // les N autres attendent LEUR jet
+  });
+
+  it('membre qui ne peut pas tenter son rôle : total = Σ des N jets + DR plats (MDG 14 l.13)', () => {
+    const muet = barreSansVoile();
+    get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    const step = driveToCrewStep('progression')!;
+    for (const r of step.participants!) if (r.id !== muet) get().cascadeBatchRoll(r.id);
+    const p = get().pendingCascade!;
+    const rolled = p.participants[p.cursor];
+    const somme = rolled.participants!.filter((r) => r.id !== muet).reduce((t, r) => t + jete(r.result).sl * (r.essential ? 2 : 1), 0);
+    get().cascadeNext();
+    const committed = get().pendingCascade?.participants.find((s) => s.kind === 'progression') ?? rolled;
+    expect(committed.result!.sl).toBe(somme + Number(rolled.meta?.aggregateFlatDR ?? 0));
+  });
+
+  it('membre qui ne peut pas tenter son rôle : ni jet, ni Résilience, ni Chance — aucun tirage consommé (LDB 09 l.30 ; #2588 Q1)', () => {
+    const muet = barreSansVoile();
+    get().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
+    driveToCrewStep('progression');
+    const avant = get().party.find((h) => h.id === muet)!;
+    const points = { fortune: Math.max(1, avant.fortune ?? 0), resilience: Math.max(1, avant.resilience ?? 0) };
+    Object.assign(avant, points);
+    seedBattleRng(9);
+    get().cascadeBatchRoll(muet);
+    get().cascadeBatchForceSuccess(muet);
+    get().cascadeBatchBonusSL(muet);
+    get().cascadeBatchReroll(muet);
+    const p = get().pendingCascade!;
+    expect(p.participants[p.cursor].participants!.find((r) => r.id === muet)!.result).toEqual(ECHEC_SANS_JET);
+    const apres = get().party.find((h) => h.id === muet)!;
+    expect({ fortune: apres.fortune, resilience: apres.resilience }).toEqual(points); // aucun point dépensé
+    expect(battleRng().int(1, 1_000_000)).toBe(makeRNG(9).int(1, 1_000_000));
   });
 
   it('équipage au complet : aucune pénalité de Manque de bras, aucun plafond', () => {

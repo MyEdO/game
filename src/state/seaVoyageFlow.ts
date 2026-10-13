@@ -55,7 +55,7 @@ import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, find
 import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, vesselPropulsion, propulsionSkill, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
-import { rollTest, isDoubleRoll, extendedTestStep } from '../engine/tests';
+import { rollTest, isDoubleRoll, extendedTestStep, estJete } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter } from '../engine/skills';
@@ -493,20 +493,24 @@ function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: {
       interactive: true,
       essential: a.roleId === essentialRoleId,
       difficulty: 'intermediaire' as const,
+      bonusSlOnSuccess: role ? crewTalentDR(a.crew, role) : 0,
+      result: null,
       // La Compétence RÉELLEMENT tenue par le rôle (`crewRoleValue().used`) est celle qui se décompose ;
       // le modificateur de Test d'équipage des effets actifs (chanson de marin, `MDG 09 l.224`) est
       // DÉJÀ fondu dans `rv.value` : il se déclare en `dansLaValeur` et sort en chip NOMMÉE par son
-      // effet émetteur. Sans rôle résolu, la valeur vient d'une autre formule : elle se DÉCLARE comme telle.
-      ...rollStep(rv?.used
-        ? {
-          actor: a.crew, test: { skill: rv.used.id, spec: rv.used.spec, sense: opts.sense },
-          valeur: rv.value, difficulty: 'intermediaire',
-          ...(crewTestModParts(a.crew).length ? { dansLaValeur: crewTestModParts(a.crew) } : {}),
-          surLaCible: precipitationTestMods(precip, rv.used.id, rv.used.spec),
-        }
-        : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty: 'intermediaire', surLaCible: precipitationTestMods(precip) }),
-      bonusSlOnSuccess: role ? crewTalentDR(a.crew, role) : 0,
-      result: null,
+      // effet émetteur. Un membre qui ne peut pas tenter son rôle DÉCLARE son refus : la ligne naît
+      // résolue (`rollStep`, LDB 09 l.30 ; #2588 Q1). Sans rôle résolu, la valeur vient d'une autre
+      // formule : elle se DÉCLARE comme telle.
+      ...rollStep(rv?.refus != null
+        ? { actor: a.crew, test: { skill: rv.used?.id, spec: rv.used?.spec, sense: opts.sense }, difficulty: 'intermediaire', refus: rv.refus }
+        : rv?.used
+          ? {
+            actor: a.crew, test: { skill: rv.used.id, spec: rv.used.spec, sense: opts.sense },
+            valeur: rv.value, difficulty: 'intermediaire',
+            ...(crewTestModParts(a.crew).length ? { dansLaValeur: crewTestModParts(a.crew) } : {}),
+            surLaCible: precipitationTestMods(precip, rv.used.id, rv.used.spec),
+          }
+          : { valeur: rv?.value ?? 0, valeurEtrangere: true, difficulty: 'intermediaire', surLaCible: precipitationTestMods(precip) }),
     };
   });
   const saboteur = shipSaboteurDR(ship); // MDG 14 l.45-47 : −1..−5 DR plats, aussi en voyage (#214)
@@ -911,12 +915,12 @@ function dayEntriesFromStep(get: Get, step: CascadeStep): NightEntry[] {
       label: `${(part.roleId ? findCrewRoleById(part.roleId)?.label : undefined) ?? part.label ?? actor.label}${part.essential ? ' ★' : ''}`,
       // Z5 : la ligne NOMME la COMPÉTENCE lancée (couture id→label du catalogue) ; le RÔLE tenu est
       // la provenance, porté par le libellé d'entrée. La Difficulté posée à la construction voyage
-      // avec la ligne (#1112) au lieu d'être jetée.
-      d: {
+      // avec la ligne (#1112) au lieu d'être jetée. Une ligne non tentable n'a pas de dé : son refus.
+      ...(estJete(res) ? { d: {
         label: part.skillId ? refLabel('skills', { id: part.skillId, spec: part.spec }) : (part.label ?? actor.label),
         base: part.base, modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl,
         ...(part.difficulty ? { difficulty: part.difficulty } : {}),
-      },
+      } } : { text: part.refus }),
       tone: res.success ? 'ok' : 'bad',
     })];
   });
@@ -1767,7 +1771,7 @@ registerCascadeApplier('progression', (get, set, step) => {
   const hull = plan?.vehicle;
   const rng = battleRng();
   if (hull && shipHasNavalTrait(hullNavalTraits(hull), 'propulsion-a-vapeur')) {
-    const triggered = (step.participants ?? []).some((x) => x.result
+    const triggered = (step.participants ?? []).some((x) => estJete(x.result)
       && steamBreakdownTriggered({ success: x.result.roll <= x.result.target, sl: x.result.sl, isDouble: isDoubleRoll(x.result.roll) }));
     if (triggered) {
       // Tirage POST-POSE de la table de panne : l'étape `progression` est déjà posée, ce dé en est la

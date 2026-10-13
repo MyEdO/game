@@ -135,7 +135,7 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR, estJete } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, type SupportDetail } from '../engine/skills';
 import { findManeuverById, findDomainById, diseaseLabel, refLabel, findPsychologyById, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence } from '../data';
@@ -7826,7 +7826,7 @@ registerCascadeApplier('combatPsych', (get, set, step) => {
   if (!cp || !step.participants) return;
   for (const part of step.participants) {
     const hero = actorIn(get(), part.id);
-    if (!hero || !part.result) { part.outcome = []; continue; }
+    if (!hero || !estJete(part.result)) { part.outcome = []; continue; }
     const lines = resultLines(resolveCombatPsychRow(get, hero, cp, psychRowMeta(part), part.result, !!part.immune));
     part.outcome = lines;
     for (const l of lines) get().log(l.text);

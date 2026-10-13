@@ -14,7 +14,7 @@
  * (`vehicleCombatant` met `movement:0`) → on les relit via `creatureId` (`shipManeuverParams`).
  */
 import { battleRng } from './battleRng';
-import { rollTest, evaluateTest, easeDifficulty, bestForcedRoll } from '../engine/tests';
+import { rollTest, evaluateTest, easeDifficulty, bestForcedRoll, ECHEC_SANS_JET, type EchecSansJet } from '../engine/tests';
 import { rollLine } from './rollSeam';
 import { testValue, partyBest, peutTenter } from '../engine/skills';
 import { resolveShipManeuver, type ShipManeuverOutcome } from '../engine/shipNavigation';
@@ -42,17 +42,21 @@ export type { CrewRoleRoll };
 export function rollCrewRole(crew: Combatant, roleId: string, rng: RNG, cumul = false, sense?: PairedSense): CrewRoleRoll | null {
   const role = findCrewRoleById(roleId);
   if (!role) return null;
+  const rv = crewRoleValue(crew, role, sense);
+  if (rv.refus != null) return ECHEC_SANS_JET; // LDB 09 l.30 ; #2588 Q1
   // Cumul de 2 rôles (un marin déjà engagé dans un autre Test d'équipage ce Round) → +2 crans de Difficulté
   // (Manque de bras, MDG 14 l.53).
   const surCible = crewRoleTestMods(crew, role, sense).reduce((s, m) => s + m.value, 0);
-  const t = rollTest(crewRoleValue(crew, role, sense).value, cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire', rng, surCible);
+  const t = rollTest(rv.value, cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire', rng, surCible);
   return { roll: t.roll, target: t.target, sl: t.sl + (t.success ? crewTalentDR(crew, role) : 0) };
 }
 
 /** Résilience « Je ne faillirai pas ! » pour UN contributeur (PJ) : DR MAXIMAL à son rôle (LDB 17 l.68). PUR. */
-export function forceCrewRole(crew: Combatant, roleId: string, cumul = false, sense?: PairedSense): CrewRoleRoll | null {
+export function forceCrewRole(crew: Combatant, roleId: string, cumul = false, sense?: PairedSense): Exclude<CrewRoleRoll, EchecSansJet> | null {
   const role = findCrewRoleById(roleId);
   if (!role) return null;
+  const rv = crewRoleValue(crew, role, sense);
+  if (rv.refus != null) return null; // aucun jet à forcer — LDB 17 l.68, LDB 09 l.30
   // Résilience à DR max ; cible abaissée de +2 crans si cumul (Manque de bras, l.53). Le dé forcé est
   // POLICY-AWARE (`bestForcedRoll` : standard → 01 = DR max ; Fast DR → dé le plus haut, LDB 12 l.102) —
   // un 01 en dur DONNERAIT DR 0 en Fast DR (dizaines du jet). `crewTalentDR` (Commandant émérite, MDG 09 l.54)
@@ -63,7 +67,7 @@ export function forceCrewRole(crew: Combatant, roleId: string, cumul = false, se
   // voies d'un même Test — roulé et forcé par Résilience — ne peuvent pas jetter sur deux cibles.
   const target = rollLine({
     actor: crew, difficulty: cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire',
-    valeur: crewRoleValue(crew, role, sense).value, surLaCible: crewRoleTestMods(crew, role, sense),
+    valeur: rv.value, surLaCible: crewRoleTestMods(crew, role, sense),
   }).target;
   const die = bestForcedRoll(target);
   return { roll: die, target, sl: evaluateTest(die, target).sl + crewTalentDR(crew, role) };
@@ -211,9 +215,9 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
     .filter((c): c is Combatant => !!c);
   const imposed = helmsmanId ? inBattleId(battle, helmsmanId) : undefined;
   const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId) ? imposed : undefined) : bestHelmsman(crew, skillId);
-  const nav = helm ? rollTest(testValue(helm, skillId), 'intermediaire', battleRng()) : undefined;
   // LDB 09 l.30, MSRC 7 l.17 ; #2588 Q1.
-  return deriveManeuver(ship, { sl: nav?.sl ?? 0, roll: nav?.roll, target: nav?.target, success: nav?.success ?? false }, helm?.label);
+  const nav = helm ? rollTest(testValue(helm, skillId), 'intermediaire', battleRng()) : ECHEC_SANS_JET;
+  return deriveManeuver(ship, nav, helm?.label);
 }
 
 /** Résilience « Je ne faillirai pas ! » (LDB 17 l.68) : force le Test à RÉUSSIR (le virage a lieu) au DR

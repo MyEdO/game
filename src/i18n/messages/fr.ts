@@ -705,6 +705,7 @@ export const fr = {
   'geste.refus.mouvementEntrelace': '{name} ne peut plus se déplacer : il s’est déjà déplacé avant son Action ce Tour.',
   'geste.refus.caseDuMobile': '{name} ne se tient pas sur la case d’où part ce geste.',
   'refus.personneNePeutTenter': 'Personne dans le groupe ne peut tenter {quoi}.',
+  'refus.nePeutTenter': '{qui} ne peut pas tenter {quoi}.',
   'refus.quoiTest': 'le Test {de}',
   'refus.quoiAction': '« {action} »',
   'geste.refus.monte': 'Monture et cavalier ne franchissent pas ce passage ensemble : mettez d’abord pied à terre (« {action} »).',

@@ -6,7 +6,8 @@ import type { Scene } from '../../state/scene';
 import type { MapPlace, MapRoute, WorldMap } from '../../state/worldMap';
 import { renforcerCompetence, type TestScenario } from './_shared';
 import { REIK_INDEX, hasTradeGoods, reikMarket, type ReikEntry } from './_reik-index';
-import { rigSpeciesId } from '../../data';
+import { firstLevel, rigSpeciesId } from '../../data';
+import { adresseDeCreation } from '../../engine/adresseDeCreation';
 
 /**
  * « Commerce fluvial sur le Reik » — le commerce de cargaison de Mort sur le Reik Compagnon (ch.11
@@ -39,9 +40,11 @@ function traders(): Combatant[] {
   berta.items = [...(berta.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, convoi];
   berta.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.5 };
 
-  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar' });
+  // Voile (Au choix) du Batelier, désignée Chaland à la création — EDO 03 l.309.
+  const voileDeCarriere = adresseDeCreation.carriereCompetence(firstLevel('batelier')!.skills.findIndex((r) => 'id' in r && r.id === 'voile'));
+  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar le Batelier', motivation: 'Test', seed: 1502, id: 'com-gunnar', specChoices: { [voileDeCarriere]: 'chaland' } });
   renforcerCompetence(gunnar, 'ramer', 50);
-  renforcerCompetence(gunnar, 'voile', 40, 'caravelle'); // la spécialisation que sa carrière lui a donnée
+  renforcerCompetence(gunnar, 'voile', 40, 'chaland');
   gunnar.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.58 };
 
   const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto le Garde', motivation: 'Test', seed: 1503, id: 'com-otto' });

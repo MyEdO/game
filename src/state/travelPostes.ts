@@ -27,7 +27,7 @@ import { rollEncounter, type EncounterCategory } from '../engine/travelTables';
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
-import { extendedTestStep } from '../engine/tests';
+import { extendedTestStep, estJete } from '../engine/tests';
 import { registerCascadeApplier } from './cascade';
 import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, type Consequence, type BuiltCascadeStep } from './rollSeam';
 import { toRecapLines } from './recapLine';
@@ -248,7 +248,7 @@ registerCascadeApplier('stagePosteBatch', (get, set, step) => {
     const hero = get().party.find((h) => h.id === part.id);
     const def = posting ? activityById(posting.activityId) : undefined;
     if (!hero || !def || !posting) { part.outcome = []; continue; }
-    const cons = applyPoste(get, set, hero, def, posting.freeSkill, part.result ?? null);
+    const cons = applyPoste(get, set, hero, def, posting.freeSkill, estJete(part.result) ? part.result : null);
     const lines = resultLines(cons); // #349 : ligne STRUCTURÉE (tone dérivé de la Consequence)
     part.outcome = lines; // conséquence SUR SA rangée (le portrait attribue)
     for (const l of lines) get().log(l.text); // + journal/recap (une ligne par héros, pas d'agrégat)

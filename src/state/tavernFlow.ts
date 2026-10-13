@@ -30,7 +30,7 @@ import {
   TAVERN_GAMES, TAVERN_TEST_DIFFICULTY, type TavernGame, type TavernGameResult,
 } from '../engine/tavernGame';
 import { findTableEntry } from '../engine/tables';
-import { resolveOpposed, isDoubleRoll, evaluateCombinedTest, type TestResult } from '../engine/tests';
+import { resolveOpposed, isDoubleRoll, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
 import { applyOps } from '../engine/ops';
@@ -46,7 +46,7 @@ import {
 } from './rollSeam';
 import type { CascadeSecondRead, CascadeStep, CascadeStepMeta, CascadeTableDecl } from './pendings';
 import { advantageModLine, type ModLine } from '../engine/combat';
-import type { BatchParticipant } from './pendings';
+import type { BatchParticipant, CascadeRoll } from './pendings';
 import { registerCascadeApplier, rollBatchParticipant, pushStep, registerTableStepFamily, rollTableStep, type TableStepDef } from './cascade';
 import { combatStakeRef, refLabel } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
@@ -757,12 +757,12 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   const lanceur = p.throwers?.[seq.round - 1];
   const jet = rows.find((r) => r.id === lanceur?.id);
   const danseur = rows.find((r) => r.id.startsWith('danseur-'));
-  if (!lanceur || !jet?.result || !danseur?.result) return [];
-  const asTest = (r: BatchParticipant): TestResult => ({
-    roll: r.result!.roll, target: r.result!.target, base: r.base,
-    success: r.result!.roll <= r.result!.target, sl: r.result!.sl, isDouble: false,
+  if (!lanceur || !jet || !danseur || !estJete(jet.result) || !estJete(danseur.result)) return [];
+  const asTest = (r: CascadeRoll, base: number): TestResult => ({
+    roll: r.roll, target: r.target, base,
+    success: r.roll <= r.target, sl: r.sl, isDouble: false,
   });
-  if (resolveOpposed(asTest(jet), asTest(danseur)).attackerWins) return [];
+  if (resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base)).attackerWins) return [];
   const heros = actorIn(get(), lanceur.id);
   const id = `${TAVERN_DRINK_KIND}-${seq.round}`;
   const etape = heros && !cadenceAuto() && jetSurfaced(get(), heros)
@@ -977,7 +977,7 @@ function tavernSides(ctx: SequenceCloseCtx<TavernPayload>): {
   if (step.participants) {
     const mien = step.participants.find((r) => r.id === p.challengerId);
     const sien = step.participants.find((r) => r.id === p.opponentId);
-    if (!mien?.result || !sien?.result) return undefined;
+    if (!mien || !sien || !estJete(mien.result) || !estJete(sien.result)) return undefined;
     return {
       player: asTest(mien.result, mien.base), opponent: asTest(sien.result, sien.base),
       playerActor: tavernActor(get, p.challengerId), opponentActor: tavernActor(get, p.opponentId),
@@ -1012,12 +1012,12 @@ function torchonClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tav
   const danseur = band.participants.find((r) => r.id.startsWith('danseur-'));
   const cum = { ...seq.cum };
   const log: string[] = [];
-  const asTest = (r: BatchParticipant): TestResult => ({
-    roll: r.result!.roll, target: r.result!.target, base: r.base,
-    success: r.result!.roll <= r.result!.target, sl: r.result!.sl, isDouble: false,
+  const asTest = (r: CascadeRoll, base: number): TestResult => ({
+    roll: r.roll, target: r.target, base,
+    success: r.roll <= r.target, sl: r.sl, isDouble: false,
   });
-  if (jet?.result && danseur?.result) {
-    const opp = resolveOpposed(asTest(jet), asTest(danseur));
+  if (jet && danseur && estJete(jet.result) && estJete(danseur.result)) {
+    const opp = resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base));
     if (opp.attackerWins) {
       const ligne = sequenceTableRow(seq.params, opp.netSL);
       const touche = garanti(ligne, opp.netSL, 'ligne de touche');
@@ -1922,7 +1922,7 @@ function volleyTurnOf(get: Get, seq: SequenceState<TavernPayload>, step: Cascade
   const v = seq.params.volley;
   const st = p.volley;
   const jet = step.participants?.[0];
-  if (!v || !st || !jet?.result) return undefined;
+  if (!v || !st || !jet || !estJete(jet.result)) return undefined;
   const camp = step.meta?.camp === CAMP_OPPONENT ? CAMP_OPPONENT : CAMP_PLAYER;
   const acteur = actorIn(get(), jet.id);
   const tr: TestResult = {

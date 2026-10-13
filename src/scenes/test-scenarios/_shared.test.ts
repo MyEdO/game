@@ -27,7 +27,7 @@ describe('renforcerCompetence (helper scénarios de test)', () => {
   it('une Compétence groupée se possède par spécialisation, désignée par son id (LDB 09 l.40)', () => {
     const h = heros();
     expect(() => renforcerCompetence(h, 'voile', 40)).toThrow(/groupée/);
-    expect(() => renforcerCompetence(h, 'metier', 40, 'Cartographe')).toThrow(/spécialisation inconnue/);
+    expect(() => renforcerCompetence(h, 'voile', 40, 'Cogue')).toThrow(/horsCatalogue/);
     renforcerCompetence(h, 'voile', 40, 'cogue');
     expect(h.skills).toEqual([{ id: 'voile', spec: 'cogue', characteristic: 'agilite', advances: 40 }]);
   });

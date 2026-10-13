@@ -1,5 +1,6 @@
 import { Combatant, type SkillInstance } from '../../engine/types';
 import { byId } from '../../data';
+import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
 import { Scene, Terrain } from '../../state/scene';
 import type { WorldMap } from '../../state/worldMap';
 import type { IconId } from '../../ui/icons';
@@ -11,13 +12,9 @@ import { buildScene } from '../../state/mapSpec';
 export function renforcerCompetence(c: Combatant, skillId: string, advances: number, spec?: string): void {
   const def = byId('skill', skillId);
   if (!def) throw new Error(`[scénario] Compétence inconnue : ${skillId}`);
-  const groupee = !!(def.specs?.length || def.specsSource || def.specsOpen);
-  if (groupee && spec == null) throw new Error(`[scénario] ${skillId} est groupée : sa spécialisation manque`);
-  if (!groupee && spec != null) throw new Error(`[scénario] ${skillId} n'est pas groupée : spécialisation ${spec} refusée`);
-  const parId = spec != null && def.specs?.some((x) => x.id === spec);
-  if (spec != null && def.specs?.length && !parId && (!def.specsOpen || def.specs.some((x) => x.label === spec))) {
-    throw new Error(`[scénario] ${skillId} : spécialisation inconnue ${spec} (désignée par son id)`);
-  }
+  if (spec == null && estSpecialisable('skill', skillId)) throw new Error(`[scénario] ${skillId} est groupée : sa spécialisation manque`);
+  const refus = spec == null ? null : refusDeSpec('skill', skillId, spec);
+  if (refus) throw new Error(`[scénario] ${skillId} : spécialisation ${spec} refusée (${refus})`);
   const ex = c.skills.find((k) => k.id === skillId && k.spec === spec);
   if (ex) ex.advances = Math.max(ex.advances, advances);
   else c.skills.push({ id: skillId, ...(spec != null ? { spec } : {}), characteristic: def.characteristic, advances } as SkillInstance);

@@ -31,7 +31,7 @@ import { WORLD_STEP_OWNER } from './netOwnership';
 import { hoteOrphelin, PENDING_BY_JET } from './stateFields';
 import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './combatants';
-import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, type TestResult } from '../engine/tests';
+import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, estJete, type TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
 import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
@@ -724,7 +724,9 @@ export function stepOpposedFreeze(step: CascadeStep | undefined): OpposedRowFree
  */
 function rollBatchParticipants(step: CascadeStep, autoResolved = false) {
   const opp = stepOpposedFreeze(step);
-  return step.participants!.map((p) => (p.result ? p : {
+  // Une rangée née sans jet (ligne non tentable) n'a aucun dé à tirer, mais son refus a le journal pour
+  // SEULE surface quand aucune fenêtre ne s'ouvre : elle reçoit la même étampe de trace.
+  return step.participants!.map((p) => (p.result ? (autoResolved && p.refus != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
     ...p,
     ...(autoResolved ? { meta: { ...p.meta, autoResolved: true } } : {}),
     result: rollBatchParticipant(p, battleRng(), opp, step.evaluation),
@@ -765,6 +767,7 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
   const out: string[] = [];
   for (const row of rowSurface ? [] : step.participants ?? []) {
     if (!row.meta?.autoResolved || !row.result) continue;
+    if (!estJete(row.result)) { if (row.refus != null) out.push(row.refus); continue; }
     out.push(traceLineOf({
       who: actorIn(get(), row.id)?.label ?? row.id,
       label: row.label ?? step.rollLabel ?? undefined,
@@ -1268,7 +1271,7 @@ function batchOwnTestFailedLines(get: Get, step: CascadeStep): string[] {
   for (const part of step.participants ?? []) {
     // `statuQuo` : égalité parfaite d'un Test opposé (LDB 12 l.160) — rien ne s'est passé, ce n'est pas un
     // Test raté : le trigger d'échec ne part pas.
-    if (!part.result || part.result.success || part.result.statuQuo || part.meta?.noOwnTestFailed) continue;
+    if (!estJete(part.result) || part.result.success || part.result.statuQuo || part.meta?.noOwnTestFailed) continue;
     const actor = actorIn(get(), part.id);
     if (!actor) continue;
     lines.push(...(ownTestFailedEmitter?.(get, actor, part.result.sl) ?? []));

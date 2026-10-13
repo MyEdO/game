@@ -189,14 +189,23 @@ export function peutTenter(c: Combatant, skill?: string, spec?: string): boolean
   return !isOutOfAction(c) && (!skill || possesses(c, skill, spec));
 }
 
+/** Ce que nomme un refus : le Test d'une Compétence (spécialisation comprise), ou une action. */
+type QuoiRefuse = { skill: string; spec?: string } | { action: string };
+function quoiRefuse(quoi: QuoiRefuse): PlayerText {
+  return 'skill' in quoi
+    ? t('refus.quoiTest', { de: deElide(refLabel('skills', { id: quoi.skill, ...(quoi.spec ? { spec: quoi.spec } : {}) })) })
+    : t('refus.quoiAction', { action: quoi.action });
+}
+
 /** Refus NOMMÉ du Test (par Compétence) ou de l'action que personne dans le groupe ne peut tenter
  *  (`peutTenter`). LDB 09 l.30. */
-export function refusPersonneNePeutTenter(quoi: { skill: string } | { action: string }): PlayerText {
-  return t('refus.personneNePeutTenter', {
-    quoi: 'skill' in quoi
-      ? t('refus.quoiTest', { de: deElide(refLabel('skills', { id: quoi.skill })) })
-      : t('refus.quoiAction', { action: quoi.action }),
-  });
+export function refusPersonneNePeutTenter(quoi: QuoiRefuse): PlayerText {
+  return t('refus.personneNePeutTenter', { quoi: quoiRefuse(quoi) });
+}
+
+/** Refus NOMMÉ, décliné par ACTEUR, d'un Test qu'il ne peut pas tenter (`peutTenter`). LDB 09 l.30. */
+export function refusNePeutTenter(c: Combatant, quoi: QuoiRefuse): PlayerText {
+  return t('refus.nePeutTenter', { qui: c.label, quoi: quoiRefuse(quoi) });
 }
 
 /** Le personnage a-t-il AU MOINS UNE Augmentation dans `skillId` (spécialisation ciblée si `spec`) ?

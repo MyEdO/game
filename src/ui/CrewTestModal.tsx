@@ -78,7 +78,7 @@ export function CrewTestModalView({ p, battle, party, owns, roll, reroll, bonus,
     interactiveOf: (part) => !!part.interactive && owns(part.id),
     row: (part, actor, res) => {
       const role = findCrewRoleById(part.roleId);
-      const val = role ? crewRoleValue(actor, role, part.sense).value : 0;
+      const val = role ? crewRoleValue(actor, role, part.sense).value ?? 0 : 0;
       const mods = role ? crewRoleTestMods(actor, role, part.sense) : [];
       const label = `${role?.label ?? part.roleId}${part.essential ? ' ★' : ''}`;
       // Manque de bras (MDG 14 l.53) : marin déjà engagé ce Round → +2 crans de Difficulté (−20), itemisé.
