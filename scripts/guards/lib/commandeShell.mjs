@@ -862,13 +862,14 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
 }
 
 /** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, relus, deploye, ouvreDesBlocs,
- *  valeurs, deplies, bloc, tube, shell, enTete }` : les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise),
+ *  valeurs, deplies, bloc, deploiePar, tube, shell, enTete }` : les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise),
  *  `enTete` = les jetons que l'épluchage a retirés devant eux (enrobeurs, leurs flags, affectations), leur
  *  relecture de bloc (`jetonsDeBloc`), `ouvreDesBlocs` quand une tête de bloc n'exécute que ses corps, les `valeurs` (`valeurDAffectation`) que le segment pose pour la suite (ses
  *  affectations de tête quand l'épluchage le VIDE, ses arguments `NOM=val` sous une tête d'`AFFECTEURS`),
  *  `deploye` quand la commande qu'il porte (argument-chaîne, script npm, corps de bloc) est rendue à part,
  *  `deplies` = pour chaque jeton à substitution, les pipelines qu'elle exécute (rendus à part eux aussi),
- *  `bloc` = le segment dont un bloc le contient, `tube` = son pipeline, `shell` = le shell qui l'exécute : un
+ *  `bloc` = le segment dont un bloc le contient, `deploiePar` = le segment dont l'argument-chaîne ou le script npm l'a
+ *  rendu (une substitution n'en pose aucun), `tube` = son pipeline, `shell` = le shell qui l'exécute : un
  *  `{ parent }` par commande relue dans un processus neuf (argument-chaîne hors `eval`/`Invoke-Expression`, qui gardent
  *  celui de l'hôte, script npm, substitution), par sous-shell
  *  `( … )` et par membre d'un tube, `parent` étant celui de son hôte, partagé par les corps de bloc de cette commande.
@@ -896,6 +897,49 @@ export function texteDuSegment(segment) {
   return jetons.map((j) => j.raw ?? j.text).join(' ')
 }
 
+const DUREE_RE = /^(\d+(?:\.\d+)?)([smhd]?)$/
+const SECONDES_PAR_UNITE = { '': 1, s: 1, m: 60, h: 3600, d: 86400 }
+
+/** Une durée coreutils (`sleep`, `timeout`) en secondes : un nombre, suffixe `s`, `m`, `h` ou `d` ; `null` si
+ *  illisible. Réf : #2603. PURE. */
+export function secondesDeDuree(texte) {
+  const vu = DUREE_RE.exec(texte)
+  return vu ? Number(vu[1]) * SECONDES_PAR_UNITE[vu[2]] : null
+}
+
+/** La durée, en secondes, du `timeout` qu'épluche `enTete` : `undefined` sans `timeout`, `null` pour une durée
+ *  nulle ou illisible (`timeout 0` ne borne rien). Ses drapeaux à valeur (`ENROBEURS_TETE`) sont sautés. PURE. */
+function dureeDeTimeout(enTete) {
+  const i = enTete.findIndex((j) => jetonNu(j) && basenameExecutable(j.text) === 'timeout')
+  if (i === -1) return undefined
+  const { flags } = ENROBEURS_TETE.get('timeout')
+  let k = i + 1
+  while (enTete[k]?.text.startsWith('-')) k += flags.includes(enTete[k].text) ? 2 : 1
+  const secondes = secondesDeDuree(enTete[k]?.text ?? '')
+  return secondes > 0 ? secondes : null
+}
+
+/** `true` si le segment se lance en FOND (`&` nu après sa tête) : il survit au processus qui l'a lancé. */
+const lanceEnFond = (s) => s.jetons.some((j, k) => k > 0 && jetonNu(j) && j.text === '&')
+
+/**
+ * La BORNE DE VIE d'un segment de `pipelinesDeJetons`, en secondes : la durée du premier `timeout` épluché en tête
+ * de lui ou des segments qui le contiennent (`deploiePar`, puis `bloc`), `null` sans borne. Un segment lancé en fond
+ * (`lanceEnFond`) n'hérite pas de la borne de son porteur, sauf si ce porteur est lui-même lancé en fond : npm recolle
+ * le `&` de sa ligne derrière son script (`commandeScriptNpm`). Réf : #2603, constat 22 (E4). PURE.
+ * @returns {number|null}
+ */
+export function borneDeVie(segment) {
+  for (let s = segment; s; ) {
+    const duree = dureeDeTimeout(s.enTete)
+    if (duree !== undefined) return duree
+    const porteur = s.deploiePar ?? s.bloc
+    if (porteur && lanceEnFond(s) && !lanceEnFond(porteur)) return null
+    s = porteur
+  }
+  return null
+}
+
 /** Le séparateur qu'un bloc absorbe (`;`, `|`, `&&`, `||`, `)`), jeton de son segment. */
 const separateur = (op) => ({ text: op, raw: op, op: null, separateur: op })
 /** Le corps d'un bloc rendu au flux : ses séparateurs redeviennent des opérateurs. */
@@ -912,7 +956,7 @@ function declarationsDuSegment(jetons) {
 /** `pipelinesDeJetons` sur un FLUX de jetons : la commande tokenisée, ou le corps d'un bloc, lu sans être
  *  re-tokenisé ni relu (`relu` : ses jetons sortent déjà de `jetonsDeBloc`). `expression` : le flux d'une
  *  sous-expression `@(…)`, où un énoncé quoté est une chaîne, comme dans un bloc. */
-function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, shell, relu = false, expression = false }) {
+function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, deploiePar, shell, relu = false, expression = false }) {
   const pipelines = []
   const lus = segmentsAvecOperateur(flux)
   const avecSuite = (k) => (lus[k].op === null ? [...lus[k].jetons, ...suite] : lus[k].jetons)
@@ -959,7 +1003,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       const textes = ouvreDesBlocs ? [] : segment.map((j) => j.text)
       affectations.push(...deTete, ...affectationsDuSegment(textes))
       const posees = segment.length === 0 ? valeurs : declarationsDuSegment(segment)
-      const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
+      const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, deploiePar, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
       if (segment.length > 0) {
         const porteur = ouvreDesBlocs ? null : lecturePorteur(textes, segment)
         const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(segment, scripts))
@@ -967,7 +1011,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
           const debutSuite = porteur?.suite ?? null
           const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
           const rattache = porteur?.memeShell ? { shell: ici } : { hote: ici }
-          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, ...rattache })) pipelines.push(p)
+          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, deploiePar: lu, ...rattache })) pipelines.push(p)
         }
         const { corps } = lecture
         for (const c of corps) {

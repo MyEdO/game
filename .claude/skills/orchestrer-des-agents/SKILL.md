@@ -143,12 +143,13 @@ rendu d'un agent repris (stall, watchdog) porte des TESTS de périmètre PÉRIM�
   cache d'un sous-agent vit 5 min (la session, 1 h) : une reprise plus tardive RÉÉCRIT tout son
   contexte (#2568). La suite part dans un agent NEUF au brief COURT (corrections d'un verdict : sha
   commité, verdict, périmètre).
-- **Tant qu'un agent ou une commande est en vol, j'arme une HORLOGE de fond ≤ 55 min** : `sleep 3300`
-  en `run_in_background`, ré-armée à sa notification tant que l'attente dure. Mon cache vit 1 h : sa
-  notification me réveille au chaud. Mesuré sur #2596 : 55 min d'attente puis reprise au chaud
+- **Tant qu'un agent ou une commande est en vol, j'arme une HORLOGE par l'outil `Monitor`** sur
+  `sleep 1740` (sous le plafond de 30 min du Monitor), ré-armée à sa fin tant que l'attente dure. Mon
+  cache vit 1 h : sa notification me réveille au chaud. Mesuré sur #2596 : 55 min d'attente puis reprise au chaud
   (`lu 132661`), une réécriture complète au-delà de 60 min ; une requête de maintien ≈ 0,05 $, une
-  réécriture ≈ 1,6 $. `ScheduleWakeup` ne sert qu'en `/loop`. La garde `appel-borne` ne juge que les
-  sous-agents et les appels au premier plan : cette horloge, au fil principal et en fond, y passe.
+  réécriture ≈ 1,6 $. `ScheduleWakeup` ne sert qu'en `/loop`. Au fil principal, la garde `commande-piege`
+  refuse toute attente lancée en fond, et au premier plan celle sans borne sous l'échéance de l'appel
+  (#2603) : le harnais tue les shells de fond d'une session inactive, le `Monitor` en est exclu.
 
 **6. Vérification — par MOI, jamais sur la foi du rapport.** `npm run typecheck:fast` et
 `npm run test:perimetre` avant commit — le typecheck complet et la suite complète sont joués UNE fois par
@@ -183,8 +184,8 @@ lancement.
 **7. Push.** Le verdict d'une suite en fond se LIT puis se DÉCIDE — jamais un `tail … && git push` (le
 tail sort 0 quel que soit le rouge). La branche `chantier/**` se pousse LIBREMENT : son run CI
 (`.github/workflows/ci.yml`, `push.branches`) joue les mêmes gates que `main`, une fois. **Après CHAQUE
-push de branche, attendre son run EN FOND** par `npm run ops:ci -- --attendre` (`run_in_background` ou
-`Monitor`), qui sort sur le verdict du sha poussé avec un code par verdict et, sur un rouge, les tests en
+push de branche, attendre son run EN FOND** par `npm run ops:ci -- --attendre` (`Monitor`),
+qui sort sur le verdict du sha poussé avec un code par verdict et, sur un rouge, les tests en
 échec de chaque job rouge ; `npm run ops:ci -- --echecs <run>` relit ceux d'une course nommée — jamais
 un `gh run` ni un `sleep` à la main. Un rouge de branche ne bloque que cette branche, et se rejoue
 localement gate par gate (`npm run gates -- --gates <noms>`). `main` n'avance que par la FILE DE FUSION, où `ops:publier` fait entrer la PR de la branche

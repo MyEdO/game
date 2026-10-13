@@ -110,7 +110,7 @@ grille/murs/pions/chrome en surcouches SVG React. **Zustand** (store), **Vitest*
 
 ```bash
 npm install            # pose les hooks git et les pilotes de fusion
-npm run dev            # dev (port dérivé en worktree lié, imprimé au lancement)
+timeout <N> npm run dev # port dérivé en worktree lié, imprimé au lancement
 npm test               # tests Vitest
 npm run typecheck      # tsc --noEmit
 npm run typecheck:fast # typecheck incrémental (~7-10 s)

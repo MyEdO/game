@@ -21,6 +21,16 @@ export const sousAgent = (entree) => Boolean(entree?.agent_id)
 /** Le `tool_input` d'une entrée de hook, `null` s'il n'est pas un objet. */
 export const entreeDOutil = (entree) => (entree?.tool_input && typeof entree.tool_input === 'object' ? entree.tool_input : null)
 
+/** L'échéance d'un appel Bash ou PowerShell au premier plan sans `timeout` (schéma des outils de Claude Code). */
+export const ECHEANCE_PAR_DEFAUT_MS = 120_000
+
+/** Le `timeout` d'un `tool_input` en ms, nombre ou chaîne numérique ; `null` sinon. PURE. */
+export function timeoutDe(input) {
+  const brut = input?.timeout
+  if (typeof brut === 'number') return brut
+  return typeof brut === 'string' && brut.trim() !== '' && Number.isFinite(Number(brut)) ? Number(brut) : null
+}
+
 /** Les familles d'outil : LECTURE passe sans garde, hors ses actions refusées ; ÉDITION est jugée par
  *  les gardes d'écriture, SHELL (un `tool_input` à champ `command`) par les gardes de commande ; la
  *  PASSERELLE n'appelle que les outils de `LECTURES_LIBRES` que nomment ses clés `CLES_PASSERELLE`. */
