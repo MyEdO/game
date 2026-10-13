@@ -37,8 +37,10 @@ test('canonisation refusée : propriétaire courant nommé, étranger exclu, aut
       const vue = { utilisateur: 'courant', processus: [{ pid: 777, nom: 'témoin', proprietaire, cwd: alias, commande: 'node' }] }
       const resultat = mesurerProtectionWorktree(b.arbre, { snapshot: vue })
       assert.match(resultat.refus.join(' '), /ignoré authoré.*\.superpowers\/a.md/)
-      if (proprietaire === 'courant') assert.match(resultat.refus.join(' '), /PID 777 témoin.*canonisation physique illisible.*alias.*EACCES/)
-      else assert.doesNotMatch(resultat.refus.join(' '), /PID 777/)
+      if (proprietaire === 'courant') {
+        assert.match(resultat.indeterminees.join(' '), /PID 777 témoin.*canonisation physique illisible.*alias.*EACCES/)
+        assert.match(resultat.refus.join(' '), /mesure processus indéterminée : 1 processus/)
+      } else assert.doesNotMatch([...resultat.refus, ...resultat.indeterminees].join(' '), /PID 777/)
     }
   } finally { fs.realpathSync.native = original }
 })
@@ -150,11 +152,32 @@ test('protection : utilisateur illisible refuse ; système illisible exclu ; mes
   const b = terrain(t)
   const utilisateur = 'courant'
   const vue = (p) => mesurerProtectionWorktree(b.arbre, { snapshot: porteeProcessus({ utilisateur, processus: [p] }) })
-  assert.match(vue({ pid: 10, nom: 'illisible', proprietaire: utilisateur, creation: 'a', commande: 'node', cwd: null }).refus.join(' '), /PID 10 illisible.*cwd illisible/)
+  const illisible = vue({ pid: 10, nom: 'illisible', proprietaire: utilisateur, creation: 'a', commande: 'node', cwd: null })
+  assert.equal(illisible.ok, false)
+  assert.match(illisible.indeterminees.join(' '), /PID 10 illisible.*cwd illisible/)
   const horsPortee = vue({ pid: 11, nom: 'système', proprietaire: null, creation: null, commande: null, cwd: null })
   assert.equal(horsPortee.ok, true)
   assert.match(horsPortee.portee, /hors portée : 1.*système/)
   assert.match(vue({ pid: 12, nom: 'autre compte', proprietaire: 'autre', creation: 'b', commande: 'node', cwd: b.arbre }).refus.join(' '), /PID 12.*cwd/)
+})
+
+test('protection : un processus se nomme sur UNE ligne bornée, l’indétermination machine se cite à part', (t) => {
+  const b = terrain(t)
+  const utilisateur = 'courant'
+  for (let i = 0; i < 7; i++) writeFileSync(join(b.arbre, `sale-${i}.txt`), 'non commité')
+  const prompt = 'powershell.exe -NoProfile -EncodedCommand ' + 'JAB'.repeat(2000) + '\nReprise du lot\n\n' + 'consigne '.repeat(400)
+  const vu = mesurerProtectionWorktree(b.arbre, { snapshot: porteeProcessus({ utilisateur, processus: [
+    { pid: 13, nom: 'powershell.exe', proprietaire: utilisateur, creation: 'a', commande: prompt, cwd: b.arbre },
+    { pid: 14, nom: 'cachotier.exe', proprietaire: utilisateur, creation: 'b', commande: 'cachotier', cwd: null },
+  ] }) })
+  assert.equal(vu.ok, false)
+  assert.match(vu.refus[0], /^processus liés \(1\) : PID 13 powershell\.exe — powershell\.exe -NoProfile -EncodedCommand… — cwd, argument /)
+  assert.ok(vu.refus.includes('mesure processus indéterminée : 1 processus, cités à part'), vu.refus.join('\n'))
+  assert.ok(vu.refus.includes('modifications non commitées (7) : sale-0.txt, sale-1.txt, sale-2.txt, sale-3.txt, sale-4.txt, +2 autres'), vu.refus.join('\n'))
+  assert.deepEqual(vu.indeterminees, ['PID 14 cachotier.exe : cwd illisible'])
+  for (const ligne of [...vu.refus, ...vu.indeterminees]) assert.ok(!ligne.includes('\n') && ligne.length < 200, ligne)
+  const refuse = retirerWorktree(b.depot, b.arbre, { mesurer: () => vu })
+  assert.match(refuse.raison, /PID 13 powershell\.exe.* ; mesure processus indéterminée : 1 processus.* ; PID 14 cachotier\.exe : cwd illisible$/)
 })
 
 test('résidu : vide seul, non vide conservé', (t) => {

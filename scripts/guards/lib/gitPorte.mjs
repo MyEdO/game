@@ -2030,7 +2030,7 @@ export const ajouterWorktree = (depot, { chemin, branche, depuis }) => {
 /** Le worktree `chemin`, retiré sans forcer (`worktree remove`). @param {Depot} depot @param {string} chemin */
 export function retirerWorktree(depot, chemin, { mesurer = mesurerProtectionWorktree, residu = retirerResiduelVide } = {}) {
   const protection = mesurer(chemin)
-  if (!protection.ok) return indisponible(protection.refus.join(' ; '), { issue: 'refus' })
+  if (!protection.ok) return indisponible([...protection.refus, ...protection.indeterminees].join(' ; '), { issue: 'refus' })
   const vu = ecrire(depot, ['worktree', 'remove', '--', chemin])
   if (!reussi(vu)) return vu
   try { residu(chemin) }
