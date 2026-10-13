@@ -25,10 +25,14 @@ const plisDeChemin = (P) => ({ 'path#join': P.join, 'path#resolve': (...p) => (p
 export const VARIABLES_AMORCEES = ['TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA', 'HOMEDRIVE', 'HOMEPATH']
 
 /** `os.tmpdir()` du processus d'environnement `env` sous `platform` (Node, `lib/os.js`, `tmpdir`) ; `null` si
- *  `env` ne le porte pas. PURE. */
+ *  `env` ne le porte pas, ou qu'une variable lue avant la première non vide est non constante (`null`). PURE. */
 export function repertoireTemporaire(env, platform) {
-  const valeur = platform === 'win32' ? env.TEMP || env.TMP : env.TMPDIR || env.TMP || env.TEMP || '/tmp'
-  if (typeof valeur !== 'string' || valeur === '') return null
+  let valeur = platform === 'win32' ? null : '/tmp'
+  for (const nom of platform === 'win32' ? ['TEMP', 'TMP'] : ['TMPDIR', 'TMP', 'TEMP']) {
+    if (env[nom] === null) return null
+    if (typeof env[nom] === 'string' && env[nom] !== '') { valeur = env[nom]; break }
+  }
+  if (valeur === null) return null
   return valeur.length > 1 && /[\\/]$/.test(valeur) && !/:[\\/]$/.test(valeur) ? valeur.slice(0, -1) : valeur
 }
 
@@ -38,13 +42,14 @@ export function repertoireTemporaire(env, platform) {
  * Un chemin se REPLIE quand il est constant : littéral, `const` chaîne, `+`, gabarit, `join`/`resolve`/
  * `dirname`/`basename` de `node:path`, `[…].join(sep)`, `import.meta.dirname`/`filename`, `fileURLToPath(import.meta.url)`
  * de `node:url` (`fichier` = le chemin du script), `process.argv[k]` (`argv` = le `process.argv` du lancement),
- * `tmpdir()` de `node:os` et `process.env.<VARIABLES_AMORCEES>` (lus à `env`, `platform`) ; une fonction se
+ * `tmpdir()` de `node:os` et `process.env.<VARIABLES_AMORCEES>` (lus à l'`env` du script, sinon à celui du contexte, et à
+ * `platform`) ; une fonction se
  * reconnaît à l'import qui la lie (`exportAppele`), jamais à son nom ; `process.execPath` se plie en `node`. Un
  * lancement `node:child_process` rend `{ operation, commande }` (la commande, que l'appelant juge, un argument non
  * constant y valant `MOT_INCONNU`) ou, à exécutable non constant, une cible inconnue ; un `import()`
  * dynamique de `fs`/`child_process` se lit comme l'import statique quand il est attendu (`await import('…')`),
  * sinon il rend une cible inconnue, comme un `import()` à spécificateur non constant.
- * @param {{ texte: string, rel?: string, fichier?: string, argv?: (string | null)[] }[]} scripts
+ * @param {{ texte: string, rel?: string, fichier?: string, argv?: (string | null)[], env?: Record<string, string | null | undefined> }[]} scripts
  * @param {{ env?: Record<string, string | undefined>, platform?: NodeJS.Platform }} [contexte]
  * @returns {{ chemin: string | null, inconnue: boolean, operation: string, commande?: string }[][]}
  */
@@ -52,7 +57,8 @@ export function ciblesDEcritureJS(scripts, { env = {}, platform = process.platfo
   const ts = typescript()
   const P = cheminsDe(platform), plis = plisDeChemin(P)
   const corpus = scripts.map((script, k) => ({ rel: `${k}/${script.rel ?? 'inline.mjs'}`, text: script.texte, script }))
-  return Array.from(analyserCorpus(corpus), ({ fichier: { script: { fichier, argv = [] } }, sourceFile, diagnostics, checker }) => {
+  const envDuContexte = env
+  return Array.from(analyserCorpus(corpus), ({ fichier: { script: { fichier, argv = [], env = envDuContexte } }, sourceFile, diagnostics, checker }) => {
     if (diagnostics.length || !sourceFile) return []
     const sorties = []
     const provenance = creerProvenanceFs({ sourceFile, checker, ts })

@@ -89,10 +89,13 @@ function tokenizeCommand(command, { powershell = false } = {}) {
   // Mots de fin des heredocs ouverts sur la ligne EN COURS : leurs corps commencent au prochain
   // saut de ligne, dans l'ordre d'ouverture.
   let heredocs = []
-  // `(` en TÊTE de commande (début de segment, après `!`, `{`, `(`, un mot réservé ou `time`) ouvre
-  // un sous-shell, que ferme le `)` hors quote correspondant ; `$(` ouvre une SUBSTITUTION, qui reste
-  // dans le mot jusqu'à sa parenthèse fermante (`substitutions` du jeton).
-  let sousShells = 0
+  // Parenthèses ouvertes, la dernière au bout : `(` en TÊTE de commande (début de segment, après `!`, `{`, `(`, un
+  // mot réservé ou `time`) ouvre un SOUS-SHELL, que ferme le `)` hors quote correspondant, opérateur ; une `(` DANS
+  // un mot (`f()`, `foreach($x`, `.Contains(a b)`, `arr=(a b)`) ouvre une parenthèse de MOT, dont la `)` reste
+  // dans le mot qui la porte, même s'il en suit d'autres. `$(` ouvre une SUBSTITUTION, qui reste dans le mot jusqu'à
+  // sa parenthèse fermante (`substitutions` du jeton).
+  const parens = []
+  const sousShellOuvert = () => parens.at(-1) === 'sousShell'
   while (i < n) {
     while (i < n && /\s/.test(command[i])) {
       // Un SAUT DE LIGNE hors quote termine la commande comme un `;`, y compris la ligne qui suit le
@@ -127,13 +130,13 @@ function tokenizeCommand(command, { powershell = false } = {}) {
     const precedent = tokens.at(-1)
     if (command[i] === '(' && (!precedent || precedent.op || (precedent.quote === undefined && (AVANT_SOUS_SHELL.has(precedent.text) || precedent.text.endsWith('()'))))) {
       tokens.push({ text: '(', op: null, sousShell: true })
-      sousShells += 1
+      parens.push('sousShell')
       i += 1
       continue
     }
-    if (command[i] === ')' && sousShells > 0) {
+    if (command[i] === ')' && sousShellOuvert()) {
       tokens.push({ text: ')', op: ')' })
-      sousShells -= 1
+      parens.pop()
       i += 1
       continue
     }
@@ -158,8 +161,6 @@ function tokenizeCommand(command, { powershell = false } = {}) {
       buf += texte
     }
     let j = i
-    // Parenthèses ouvertes DANS le mot (`f(`, `foreach($x`) : la `)` qui les ferme reste dans le mot.
-    let parensDuMot = 0
     while (j < n) {
       const c = command[j]
       // CONTINUATION DE LIGNE (`\` POSIX, backtick PowerShell suivi du saut de ligne) : la commande
@@ -240,9 +241,9 @@ function tokenizeCommand(command, { powershell = false } = {}) {
         j++ // saute la quote fermante (si absente — quote non refermée — j a déjà atteint n)
         continue
       }
-      if (c === ')' && sousShells > 0 && parensDuMot === 0) break
-      if (c === '(') parensDuMot += 1
-      else if (c === ')') parensDuMot -= 1
+      if (c === ')' && sousShellOuvert()) break
+      if (c === '(') parens.push('mot')
+      else if (c === ')' && parens.length > 0) parens.pop()
       const fermant = c === '`' ? command.indexOf('`', j + 1) : -1
       if (fermant !== -1) {
         substitue(command.slice(j, fermant + 1), command.slice(j + 1, fermant))
@@ -726,15 +727,26 @@ function jetonsDeBloc(jetons) {
   })
 }
 
-/** `1` pour une accolade ouvrante NUE, `-1` pour une fermante, `0` sinon : seule lecture d'une accolade. */
-const accolade = (j) => (!jetonNu(j) ? 0 : j.text === '{' ? 1 : j.text === '}' ? -1 : 0)
+/** `true` si `jetons[k]` est en position de commande (XCU 2.4) : premier jeton, ou après un séparateur absorbé
+ *  (`separateur`) ou un jeton de `TOKENS_TETE_NUS`. */
+const enPositionDeCommande = (jetons, k) =>
+  k === 0 || (jetonNu(jetons[k - 1]) && (jetons[k - 1].separateur !== undefined || TOKENS_TETE_NUS.has(jetons[k - 1].text)))
 
-/** Index du `}` qui ferme le `{` de `jetons[k]` (jetons relus, `jetonsDeBloc`), ou `jetons.length` si le
- *  bloc reste ouvert. Seule recherche de la fin d'un bloc. */
-export function finDuBloc(jetons, k) {
+/** `1` pour l'accolade ouvrante NUE `jetons[k]`, `-1` pour une fermante, `0` sinon : seule lecture d'une accolade.
+ *  Hors PowerShell, `{` et `}` ne sont des mots réservés qu'en position de commande (XCU 2.4) ; en PowerShell, ce
+ *  sont des délimiteurs partout (about_Parsing, mode argument). */
+const accolade = (jetons, k, powershell) => {
+  const j = jetons[k]
+  if (!jetonNu(j) || (!powershell && !enPositionDeCommande(jetons, k))) return 0
+  return j.text === '{' ? 1 : j.text === '}' ? -1 : 0
+}
+
+/** Index du `}` qui ferme le `{` de `jetons[k]` (jetons relus, `jetonsDeBloc`) dans la grammaire du dialecte, PowerShell
+ *  par défaut (un bloc de `TETES_DE_BLOC`), ou `jetons.length` si le bloc reste ouvert. Seule recherche de la fin d'un bloc. */
+export function finDuBloc(jetons, k, powershell = true) {
   let profondeur = 0
   for (let i = k + 1; i < jetons.length; i++) {
-    profondeur += accolade(jetons[i])
+    profondeur += accolade(jetons, i, powershell)
     if (profondeur < 0) return i
   }
   return jetons.length
@@ -759,7 +771,7 @@ function lectureDesBlocs(jetons, { toutes = false } = {}) {
     if (!jetonNu(j)) continue
     if (jetons[k - 1]?.text === '}' && SUITES_DE_BLOC.has(j.text.toLowerCase())) { porte = true; continue }
     if (/[()]/.test(j.text)) parens += soldeParentheses(j.text)
-    if (j.text !== '{' || !porte || parens > 0) continue
+    if (accolade(jetons, k, true) !== 1 || !porte || parens > 0) continue
     const fin = finDuBloc(jetons, k)
     suspens ||= fin === jetons.length
     corps.push(jetons.slice(k + 1, fin))
@@ -986,11 +998,46 @@ function soldeDuCorps(jetons, powershell) {
   for (let k = 0; k < jetons.length; k++) {
     const j = jetons[k]
     if (!jetonNu(j)) continue
-    solde += accolade(j) + (j.sousShell ? 1 : 0)
-    const enTete = k === 0 || (jetonNu(jetons[k - 1]) && TOKENS_TETE_NUS.has(jetons[k - 1].text))
-    if (!powershell && enTete) solde += OUVRANTS_COMPOSES.has(j.text) ? 1 : FERMANTS_COMPOSES.has(j.text) ? -1 : 0
+    solde += accolade(jetons, k, powershell) + (j.sousShell ? 1 : 0)
+    if (!powershell && enPositionDeCommande(jetons, k)) solde += OUVRANTS_COMPOSES.has(j.text) ? 1 : FERMANTS_COMPOSES.has(j.text) ? -1 : 0
   }
   return solde
+}
+
+/** Un positionnel SEUL dans son mot : `$1`…`$9`, `${n}`, `$@`, `$*`. */
+const POSITIONNEL_RE = /^\$(?:([1-9])|\{([1-9]\d*)\}|([@*]))$/
+/** Un positionnel DANS un mot. */
+const POSITIONNELS_RE = /\$(?:([1-9])|\{([1-9]\d*)\}|([@*]))/g
+/** Un argument d'appel CONSTANT : ni substitution, ni `$` à développer hors quote simple. */
+const constant = (j) => !j.substitutions?.length && (j.quote === 'simple' || !j.text.includes('$'))
+/** L'argument d'appel qui remplace un positionnel : le jeton de l'appel, déjà développé à son site (ses substitutions
+ *  s'y sont dépliées). */
+const argumentLie = (j) => ({ ...j, substitutions: [] })
+
+/** Le corps de fonction `flux`, ses positionnels liés aux mots `args` de l'appel (XCU 2.5.2, 2.9.5) : `$n` seul dans
+ *  son mot devient le n-ième mot, ou rien (zéro champ nu, mot vide sous quote double) ; `$@` et `$*` nu, et `"$@"`,
+ *  autant de mots que d'arguments ; `"$*"` un seul mot, joints par une espace. Dans un mot plus long, un positionnel
+ *  se remplace par le texte de son argument. Un mot dont un argument n'est pas constant reste tel quel : un `$` non
+ *  résolu. PUR. */
+function lierPositionnels(flux, args) {
+  const texte = (n) => args[n - 1]?.text ?? ''
+  return flux.flatMap((j) => {
+    if (j.op || j.quote === 'simple' || !j.text.includes('$')) return [j]
+    const seul = j.substitutions?.length ? null : POSITIONNEL_RE.exec(j.text)
+    if (seul) {
+      const n = Number(seul[1] ?? seul[2] ?? 0)
+      if (n > 0) return args[n - 1] ? [argumentLie(args[n - 1])] : j.quote === 'double' ? [{ ...j, text: '', raw: '""' }] : []
+      if (seul[3] === '@' || j.quote !== 'double') return args.map(argumentLie)
+      if (!args.every(constant)) return [j]
+      const joint = args.map((a) => a.text).join(' ')
+      return [{ ...j, text: joint, raw: citeArgument(joint), quote: 'double' }]
+    }
+    const references = [...j.text.matchAll(POSITIONNELS_RE)]
+    if (references.length === 0) return [j]
+    if (references.some((m) => (m[3] ? args : [args[Number(m[1] ?? m[2]) - 1]]).some((a) => a !== undefined && !constant(a)))) return [j]
+    const remplace = (s) => s.replace(POSITIONNELS_RE, (_, court, long, tous) => (tous ? args.map((a) => a.text).join(' ') : texte(Number(court ?? long))))
+    return [{ ...j, text: remplace(j.text), raw: remplace(j.raw ?? j.text) }]
+  })
 }
 
 /** `true` si l'appel que ces jetons épluchés précèdent atteint une fonction : affectations, mots réservés et `time`
@@ -1064,20 +1111,23 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
         solde += soldeDuCorps(ajout, powershell)
         op = lus[s].op
       }
-      // Un corps `{ … }` est son contenu, comme celui d'un bloc ; `( … )` et un composé POSIX s'exécutent entiers.
-      const execute = corps[0].text === '{' ? corps.slice(1, finDuBloc(corps, 0)) : corps
-      if (op !== '|' && precedent !== '|') shells.at(-1).fonctions.set(cleDeFonction(definition.nom, powershell), execute.map(versFlux))
+      // Un corps `{ … }` est son contenu, comme celui d'un bloc, et les redirections qui suivent son `}` s'appliquent à
+      // chaque appel (XCU 2.9.5) ; `( … )` et un composé POSIX s'exécutent entiers, redirections comprises.
+      const fin = corps[0].text === '{' ? finDuBloc(corps, 0, powershell) : corps.length
+      const execute = corps[0].text === '{' ? corps.slice(1, fin) : corps
+      const fonction = { flux: execute.map(versFlux), redirections: corps.slice(fin + 1) }
+      if (op !== '|' && precedent !== '|') shells.at(-1).fonctions.set(cleDeFonction(definition.nom, powershell), fonction)
       cloture(op)
       continue
     }
     let lecture = lectureDesBlocs(relus)
     while (op !== null && lecture.suspens) {
-      let solde = relus.reduce((d, j) => d + accolade(j), 0)
+      let solde = relus.reduce((d, _, k) => d + accolade(relus, k, true), 0)
       do {
         const ajout = relu ? avecSuite(s + 1) : jetonsDeBloc(avecSuite(s + 1))
         segment.push(separateur(op), ...avecSuite(s + 1))
         relus.push(separateur(op), ...ajout)
-        solde = ajout.reduce((d, j) => d + accolade(j), solde)
+        solde = ajout.reduce((d, _, k) => d + accolade(ajout, k, true), solde)
         s += 1
         op = lus[s].op
       } while (op !== null && solde > 0)
@@ -1106,10 +1156,12 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
       const fonction = segment.length === 0 || ouvreDesBlocs || !appelleUneFonction(lu.enTete) ? undefined : ici.fonctions.get(cleDeFonction(segment[0].text, powershell))
       if (fonction !== undefined) {
-        // Appel : le corps s'exécute dans le shell de l'appel, comme la chaîne d'`eval` ; le segment ne garde que ses
-        // redirections, sa tête et ses arguments n'étant pas une commande.
-        for (const p of pipelinesDuFluxBorne(fonction, profondeur + 1, { scripts, budget, affectations, bloc, shell: ici, relu: powershell, powershell })) pipelines.push(p)
-        lu.jetons = redirectionsDuSegment(segment)
+        // Appel : le corps s'exécute dans le shell de l'appel, comme la chaîne d'`eval`, ses positionnels liés aux arguments
+        // de l'appel ; le segment ne garde que ses redirections et celles de la définition, sa tête et ses arguments
+        // n'étant pas une commande.
+        const corps = powershell ? fonction.flux : lierPositionnels(fonction.flux, lireRedirections(segment, 1).arguments)
+        for (const p of pipelinesDuFluxBorne(corps, profondeur + 1, { scripts, budget, affectations, bloc, shell: ici, relu: powershell, powershell })) pipelines.push(p)
+        lu.jetons = [...redirectionsDuSegment(segment), ...fonction.redirections]
         lu.relus = lu.jetons
         lu.deploye = true
       } else if (segment.length > 0) {

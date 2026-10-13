@@ -133,3 +133,10 @@ test('G3 : `--no-verify` sous une sous-commande qui peut être un alias est refu
     assert.equal(sortie(command), null, command)
   }
 })
+
+test('#2537 — fonction shell : un `{` argument n’ouvre aucun corps, `"$@"` porte les mots de l’appel', () => {
+  for (const command of ['f(){ echo {; }; git commit --no-verify -m x', 'git(){ command git "$@"; }; git commit --no-verify -m x', 'f(){ git "$@"; }; f commit --no-verify -m x']) {
+    assert.ok(evaluate(command), command)
+  }
+  assert.equal(evaluate('f(){ git "$@"; }; f log --no-walk'), null)
+})

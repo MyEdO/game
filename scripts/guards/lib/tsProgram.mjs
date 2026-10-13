@@ -88,7 +88,7 @@ function fichiersVirtuels(sources, dansLesLibs = () => false) {
 export function syntaxProgram(files) {
   const root = norm(path.resolve(VIRTUAL_ROOT, '__analyse_syntaxique__')).replace(/^([A-Za-z]):/, (_, drive) => `${drive.toLowerCase()}:`);
   const config = `${root}/tsconfig.json`;
-  const entree = `${root}/racine.TS`;
+  const entree = `${root}/racine.ts`;
   const sources = Object.fromEntries(Object.entries(files).map(([rel, text]) => [norm(path.resolve(VIRTUAL_ROOT, rel)), text]));
   for (const reserve of [config, entree]) {
     const collision = Object.keys(sources).find(nom => nom.toLowerCase() === reserve.toLowerCase());
@@ -107,10 +107,11 @@ export function syntaxProgram(files) {
     compilerOptions: { ...OPTIONS_VIRTUELLES, noLib: true, noResolve: true, moduleDetection: 'force', allowJs: true, resolveJsonModule: true, jsx: 'preserve' },
     files: Object.keys(sources),
   });
-  return ouvrir(root, fichiersVirtuels(sources), () => ({ openProjects: [config], openFiles: [entree] }), (snapshot, plan) => {
-    const parDefaut = snapshot.getDefaultProjectForFile(plan.openFiles[0]);
+  return ouvrir(root, fichiersVirtuels(sources), () => ({ openProjects: [config], openFiles: [entree] }), (snapshot) => {
     const configure = snapshot.getProject(config);
     const tenus = new Set(configure?.program.getSourceFileNames());
-    return configure && corpus.every(nom => tenus.has(nom)) ? configure : parDefaut;
+    const hors = corpus.filter(nom => !tenus.has(nom));
+    if (hors.length) throw new Error(`Corpus hors de la configuration d’analyse syntaxique : ${hors.join(', ')}`);
+    return configure;
   });
 }

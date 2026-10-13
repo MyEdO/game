@@ -70,31 +70,32 @@ test('dispose : erreurs du snapshot et du cache conservées, fermeture native un
 const chemin = rel => path.resolve(VIRTUAL_ROOT, rel).replaceAll('\\', '/');
 test('syntaxProgram : configuration propre, corpus fermé et une seule ouverture native', () => {
   const rootSyntaxe = chemin('__analyse_syntaxique__').replace(/^([A-Za-z]):/, (_, drive) => `${drive.toLowerCase()}:`);
-  const racine = `${rootSyntaxe}/racine.TS`;
+  const racine = `${rootSyntaxe}/racine.ts`;
   const sources = {
     [chemin('tsconfig.json')]: JSON.stringify({ compilerOptions: { noLib: false, noResolve: true, allowJs: false, resolveJsonModule: false }, files: [] }),
     [path.resolve(path.sep, 'tsconfig.json').replaceAll('\\', '/')]: JSON.stringify({ compilerOptions: { noLib: false, allowJs: false }, files: [] }),
-    [chemin('valide.TS')]: '\uFEFFexport const x="😀";',
-    [chemin('invalide.TS')]: '\uFEFFexport const x=;',
-    [chemin('valide.TSX')]: '\uFEFFexport const x=<div/>;',
-    [chemin('invalide.TSX')]: '\uFEFFexport const x=<div>;',
-    [chemin('valide.JS')]: '\uFEFFexport const x="😀";',
-    [chemin('invalide.JS')]: '\uFEFFexport const x=;',
-    [chemin('valide.JSON')]: '\uFEFF{"x":1}',
-    [chemin('invalide.JSON')]: '\uFEFF{"x":}',
+    [chemin('valide.ts')]: '\uFEFFexport const x="😀";',
+    [chemin('invalide.ts')]: '\uFEFFexport const x=;',
+    [chemin('valide.tsx')]: '\uFEFFexport const x=<div/>;',
+    [chemin('invalide.tsx')]: '\uFEFFexport const x=<div>;',
+    [chemin('valide.js')]: '\uFEFFexport const x="😀";',
+    [chemin('invalide.js')]: '\uFEFFexport const x=;',
+    [chemin('valide.json')]: '\uFEFF{"x":1}',
+    [chemin('invalide.json')]: '\uFEFF{"x":}',
     [chemin('import.ts')]: 'import "./absent.ts";',
   };
   const update = API.prototype.updateSnapshot;
   const ouvertures = mock.method(API.prototype, 'updateSnapshot', function (...args) { return update.apply(this, args); });
-  const choisir = Snapshot.prototype.getDefaultProjectForFile;
-  const selections = mock.method(Snapshot.prototype, 'getDefaultProjectForFile', function (...args) { return choisir.apply(this, args); });
+  const choisir = Snapshot.prototype.getProject;
+  const selections = mock.method(Snapshot.prototype, 'getProject', function (...args) { return choisir.apply(this, args); });
   let session;
   try {
     session = syntaxProgram(sources);
     assert.equal(ouvertures.mock.callCount(), 1);
     assert.deepEqual(ouvertures.mock.calls[0].arguments, [{ openProjects: [`${rootSyntaxe}/tsconfig.json`], openFiles: [racine] }]);
     assert.equal(selections.mock.callCount(), 1);
-    assert.deepEqual(selections.mock.calls[0].arguments, [racine]);
+    assert.deepEqual(selections.mock.calls[0].arguments, [`${rootSyntaxe}/tsconfig.json`]);
+    assert.equal(session.program, selections.mock.calls[0].result.program);
     for (const [nom, texte] of Object.entries(sources)) {
       const sf = session.program.getSourceFile(nom);
       assert.ok(sf, nom);
@@ -110,20 +111,20 @@ test('syntaxProgram : configuration propre, corpus fermé et une seule ouverture
   } finally { session?.dispose(); selections.mock.restore(); ouvertures.mock.restore(); }
 });
 
-test('#2537 — syntaxProgram : le corpus que tient la configuration d’analyse s’y analyse, quel que soit le projet par défaut de la racine', () => {
+test('#2537 — syntaxProgram : le corpus s’analyse TOUJOURS dans la configuration d’analyse, jamais dans le projet par défaut de la racine', () => {
   const rootSyntaxe = chemin('__analyse_syntaxique__').replace(/^([A-Za-z]):/, (_, drive) => `${drive.toLowerCase()}:`);
   const horsConfiguration = { program: undefined, checker: undefined };
   const selections = mock.method(Snapshot.prototype, 'getDefaultProjectForFile', () => horsConfiguration);
   let session;
   try {
     session = syntaxProgram({ 'a.js': 'function require(m) { return {} }\n', 'b.js': "require('fs')\n" });
-    assert.equal(selections.mock.callCount(), 1);
+    assert.equal(selections.mock.callCount(), 0);
     assert.equal(session.program.getCompilerOptions().configFilePath, `${rootSyntaxe}/tsconfig.json`);
     assert.equal(session.program.getSourceFile(chemin('b.js')).externalModuleIndicator, true);
   } finally { session?.dispose(); selections.mock.restore(); }
 });
 
-for (const nom of ['simple".TS', "simple'.TS", 'esperluette&<angle>.TS']) {
+for (const nom of ['simple".ts', "simple'.ts", 'esperluette&<angle>.ts']) {
   test(`syntaxProgram : référence au nom original sans encodage : ${nom}`, () => {
     const texte = '\uFEFFexport const x="😀";';
     const session = syntaxProgram({ [nom]: texte });

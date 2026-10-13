@@ -637,12 +637,13 @@ function lireTexteSurDisque(chemin) {
  * `for <v> in <mots>` littérale se déroule. `env` amorce `VARIABLES_AMORCEES` (`$TEMP`, `$env:TEMP`, `$env:LOCALAPPDATA`, `$HOME`, `~`) ;
  * `powershell` : la commande est du dialecte PowerShell (`tokenizeCommand`), où `\` sépare les chemins sur toute
  * plateforme. Les chemins se résolvent par le `node:path` de `platform` (`cheminsDe`). Avec `scripts`, s'y ajoutent les
- * LANCEMENTS JS (`lancementDInterpreteur`) : `{ operation: 'script' }` par fichier lancé (`config` pour un `--config` de
- * `vitest`, `dossier` pour un dossier balayé, tous deux porteurs des `filtres` positionnels de `vitest`, `null` pour un
+ * LANCEMENTS JS (`lancementDInterpreteur`) : `{ operation: 'script', env }` par fichier lancé, `env` = l'environnement qu'il reçoit (
+ * amorce et affectations de la commande) (`config` pour un `--config` de
+ * `vitest`, `enLigne` = le code d'un `-e`, `dossier` pour un dossier balayé, tous deux porteurs des `filtres` positionnels de `vitest`, `null` pour un
  * filtre non constant). `lireTexte` lit le tsconfig de `tsc` (`LECTURES_NPX`).
  */
 export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), platform = process.platform, env = {}, exclureArguments = () => false, powershell = false, segments = pipelinesDeJetons(commande, 0, { powershell }).flat(), scripts = false, lireTexte = lireTexteSurDisque } = {}) {
-  const P = cheminsDe(platform), temp = repertoireTemporaire(env, platform)
+  const P = cheminsDe(platform)
   const etats = new Map(), sorties = []
   const accueil = powershell ? env.USERPROFILE ?? env.HOME : env.HOME ?? (platform === 'win32' ? env.USERPROFILE : undefined)
   const amorce = new Map([
@@ -688,8 +689,27 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
   const sousCommande = (texte, etat) => {
     for (const cible of ciblesDEcritureDeCommande(texte, { base: etat.base ?? base, platform, env, scripts, lireTexte })) sorties.push(cible)
   }
+  /** L'environnement du processus que `segment` lance : `env`, ses `VARIABLES_AMORCEES` telles que la commande les a
+   *  posées avant lui (`etat`) et par ses affectations de tête ; `null` pour une valeur non constante. */
+  const environnementDe = (segment, etat) => {
+    const variables = new Map(etat.variables)
+    for (const valeur of segment.valeurs ?? []) {
+      const brut = valeur.jeton.raw ?? valeur.jeton.text
+      variables.set(valeur.nom, developper(valeur.valeur, variables, { ...valeur.jeton, raw: brut.slice(brut.indexOf('=') + 1) }))
+    }
+    for (const jeton of segment.enTete ?? []) {
+      const affectation = jetonNu(jeton) ? /^([A-Za-z_]\w*)=(.*)$/s.exec(jeton.text) : null
+      const brut = jeton.raw ?? jeton.text
+      if (affectation) variables.set(affectation[1], developper(affectation[2], variables, { ...jeton, raw: brut.slice(brut.indexOf('=') + 1) }))
+    }
+    return { ...env, ...Object.fromEntries(VARIABLES_AMORCEES.flatMap((nom) => {
+      const cle = powershell ? `env:${nom}` : nom
+      return variables.has(cle) ? [[nom, variables.get(cle)]] : []
+    })) }
+  }
   const traiter = (segment) => {
     const etat = etatDe(segment.shell)
+    const environnement = environnementDe(segment, etat), temp = repertoireTemporaire(environnement, platform)
     const jetons = sansRedirections(segment.jetons), textes = jetons.map(j => j.text)
     const nom = basenameExecutable(textes[0])
     const developpes = jetons.map((j, k) => developper(j.text, etat.variables, j) ?? `\0inconnue:${k}\0`)
@@ -748,17 +768,18 @@ export function ciblesDEcritureDeCommande(commande, { base = process.cwd(), plat
         const developpe = jeton === undefined ? null : developper(jeton.text, etat.variables, jeton)
         const code = developpe?.startsWith('--eval=') ? developpe.slice(7) : developpe
         if (code === null) ajouter(null, `${nom}-inline`)
-        else for (const cible of ciblesDEcritureJS([{ texte: code }], { env, platform })[0]) {
+        else if (scripts) sorties.push({ chemin: null, inconnue: false, operation: 'script', enLigne: code, env: environnement, segment, base: etat.base })
+        else for (const cible of ciblesDEcritureJS([{ texte: code }], { env: environnement, platform })[0]) {
           if (cible.commande !== undefined) sousCommande(cible.commande, etat)
           else ajouter(cible.chemin, cible.operation)
         }
       }
       for (const sortie of lancement?.ecritures ?? []) ajouter(sortie, nom, { ecrivain: true })
       if (scripts && lancement) {
-        for (const script of lancement.scripts) Object.assign(ajouter(script, 'script'), { argv: lancement.argv })
+        for (const script of lancement.scripts) Object.assign(ajouter(script, 'script'), { argv: lancement.argv, env: environnement })
         const filtres = lancement.filtres.map((f) => (nonConstant(f) ? null : f))
-        for (const config of lancement.configs) Object.assign(ajouter(config, 'script'), { config: true, filtres })
-        for (const dossier of lancement.dossiers) Object.assign(ajouter(dossier, 'script'), { dossier: true, filtres })
+        for (const config of lancement.configs) Object.assign(ajouter(config, 'script'), { config: true, filtres, env: environnement })
+        for (const dossier of lancement.dossiers) Object.assign(ajouter(dossier, 'script'), { dossier: true, filtres, env: environnement })
       }
     }
     for (const valeur of segment.valeurs ?? []) {

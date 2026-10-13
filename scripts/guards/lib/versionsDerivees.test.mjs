@@ -90,8 +90,8 @@ test('périmètre : `src/**` en `.ts`/`.tsx`, hors instruments, doublures et dé
 })
 
 const observerParcours = (t, visite) => {
-  const choisir = Snapshot.prototype.getDefaultProjectForFile
-  t.mock.method(Snapshot.prototype, 'getDefaultProjectForFile', function (...args) {
+  const choisir = Snapshot.prototype.getProject
+  t.mock.method(Snapshot.prototype, 'getProject', function (...args) {
     const projet = choisir.apply(this, args)
     const lire = projet.program.getSourceFile
     t.mock.method(projet.program, 'getSourceFile', function (...noms) {

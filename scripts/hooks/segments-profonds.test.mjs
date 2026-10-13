@@ -695,4 +695,6 @@ test('consommateur — commande-piege-guard juge le corps d’une fonction à so
   assert.equal(evaluatePiege('k(){ pkill node; }'), null, 'définie, jamais appelée')
   assert.equal(evaluatePiege('k(){ pkill node; }; command k'), null, '`command` lance l’exécutable `k`, pas la fonction')
   assert.equal(evaluatePiege('pkill(){ :; }; pkill node'), null, 'la fonction `pkill` masque l’exécutable')
+  assert.equal(evaluatePiege('f(){ echo {; }; ln -s ../Game/node_modules ./node_modules')?.decision, 'deny', 'un `{` argument n’ouvre aucun corps')
+  assert.equal(evaluatePiege('k(){ pkill "$@"; }; k node')?.decision, 'deny', '`$@` porte les mots de l’appel')
 })

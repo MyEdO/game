@@ -146,8 +146,42 @@ test('#2537 — fonction shell : la définition LIE son corps, l’appel l’ex�
 })
 
 test('#2537 — fonction shell : son corps se juge au cwd de l’appel, sa tête n’est pas un exécutable', () => {
-  const volume = 'C:'
-  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: `${volume}/repo`, platform: 'win32' }).map((c) => [c.operation, c.chemin, c.inconnue])
-  assert.deepEqual(cibles(`f(){ rm x; }; cd ${volume}/hors; f`), [['rm', `${volume}\\hors\\x`, false]])
-  assert.deepEqual(cibles('strip(){ sed -i s/a/b/ "$1"; }; strip githooks.html'), [['sed', null, true]], '`$1` est un mot inconnu ; `strip` n’est plus l’écrivain binutils')
+  const DRIVE = 'C' + ':'
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: `${DRIVE}/repo`, platform: 'win32' }).map((c) => [c.operation, c.chemin, c.inconnue])
+  assert.deepEqual(cibles(`f(){ rm x; }; cd ${DRIVE}/hors; f`), [['rm', `${DRIVE}\\hors\\x`, false]])
+  assert.deepEqual(cibles('strip(){ sed -i s/a/b/ "$1"; }; strip githooks.html'), [['sed', `${DRIVE}\\repo\\githooks.html`, false]], '`$1` est le mot de l’appel ; `strip` n’est plus l’écrivain binutils')
+  assert.deepEqual(cibles(`f(){ echo {; }; rm ${DRIVE}/hors/x`), [['rm', `${DRIVE}\\hors\\x`, false]], 'un `{` argument n’ouvre rien')
+  assert.deepEqual(cibles(`f(){ echo } > ${DRIVE}/hors/r; }; f`), [['redirection', `${DRIVE}\\hors\\r`, false]], 'un `}` argument ne ferme rien')
+  assert.deepEqual(cibles(`f(){ echo; } > ${DRIVE}/hors/r; f`), [['redirection', `${DRIVE}\\hors\\r`, false]], 'la redirection de la définition vaut à chaque appel')
+  assert.deepEqual(cibles(`f(){ cat a > "$1"; }; f ${DRIVE}/hors/x`), [['redirection', `${DRIVE}\\hors\\x`, false]])
+  assert.deepEqual(cibles('f(){ rm "$1"; }; f "$INCONNUE"'), [['rm', null, true]], 'un argument non constant reste non résolu')
+})
+
+test('#2537 — fonction shell : `{`/`}` réservés en position de commande seulement (XCU 2.4), délimiteurs partout en PowerShell', () => {
+  const executes = (commande, options) => pipelinesDeJetons(commande, 0, options).flat().filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(executes('f(){ echo {; }; rm x'), [['rm', 'x']])
+  assert.deepEqual(executes('f(){ echo }; }; f'), [['echo', '}']])
+  assert.deepEqual(executes('f(){ { echo a; }; }; f'), [['echo', 'a']], 'groupe imbriqué en position de commande')
+  assert.deepEqual(executes('function f { echo a }; rm x', { powershell: true }), [['rm', 'x']], 'PowerShell : le `}` argument ferme le corps')
+})
+
+test('#2537 — fonction shell : `$1…$n`, `$@`, `$*` liés aux mots de l’appel (XCU 2.5.2)', () => {
+  const executes = (commande) => pipelinesDeJetons(commande).flat().filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(executes('git(){ command git "$@"; }; git commit --no-verify -m x'), [['git', 'commit', '--no-verify', '-m', 'x']])
+  assert.deepEqual(executes('f(){ rm $@ $*; }; f a "b c"'), [['rm', 'a', 'b c', 'a', 'b c']])
+  assert.deepEqual(executes('f(){ echo "$*" "${2}" x$1y "$3" $3; }; f a b'), [['echo', 'a b', 'b', 'xay', '']], '`"$*"` un mot ; un positionnel absent : mot vide sous quote, rien nu')
+  assert.deepEqual(executes('f(){ rm "$@"; }; f'), [['rm']], '`"$@"` sans argument : zéro mot')
+  assert.deepEqual(executes('f(){ rm "$1" "a$1"; }; f "$X"'), [['rm', '$X', 'a$1']], 'argument non constant : non résolu')
+  assert.deepEqual(executes('f(){ g "$@"; }; g(){ rm "$2"; }; f a b'), [['rm', 'b']], 'liaison à travers deux appels')
+  assert.deepEqual(executes("f(){ echo '$1'; }; f a"), [['echo', '$1']], 'sous quote simple, rien ne se développe')
+})
+
+test('#2537 — parenthèses : une seule pile, la `)` d’une parenthèse de mot reste dans son mot', () => {
+  const lus = (commande, options) => pipelinesDeJetons(commande, 0, options).map((p) => p.map((s) => texteDuSegment(s)))
+  const ps = "(Get-CimInstance W | Where-Object { $_.Contains(vitest.mjs run --max) }).CommandLine"
+  const segments = lus(ps, { powershell: true }).flat()
+  assert.ok(segments.includes('$_.Contains(vitest.mjs run --max)'), JSON.stringify(segments))
+  assert.ok(!segments.includes(''), `aucun segment vide : ${JSON.stringify(segments)}`)
+  const bash = "bash -c 'until powershell -NoProfile -Command \"(Get-CimInstance Win32_Process | Where-Object { \\$_.CommandLine.Contains(''vitest.mjs run --max'') }).CommandLine\" | grep -q m; do sleep 3; done'"
+  assert.ok(!lus(bash).flat().includes(''), 'cas du juge, sans segment vide fantôme')
 })

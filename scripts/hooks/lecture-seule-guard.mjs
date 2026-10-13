@@ -4,7 +4,8 @@
 // Non jugé, donc admis (#2537) : cible non résolue hors de la table des écrivains (variable inconnue, chemin JS non
 // littéral, `import()` calculé, lanceur à exécutable non constant), git, npm, npx ou gh à sous-commande non
 // constante, script non lu (lancé par un interpréteur autre que `node`, `tsx`, `vitest` ; hors du scratchpad,
-// illisible, non parsable, écrit par la commande qui le lance, au-delà de `BORNE_OCTETS_JS`), code en ligne d'un langage
+// illisible, non parsable, écrit par la commande qui le lance, au-delà de `BUDGET_ANALYSE_MS`), dossier balayé au-delà de
+// ce budget, code en ligne d'un langage
 // autre que JS, suite de `vitest` choisie par un filtre non constant.
 // Trous (#2537) : suites de `vitest` lues à `estSuiteVitest`, jamais aux `include`/`exclude` de sa config ;
 // `awk system()`, `sed e`, `rg --pre`, script SUIVI qui écrit, module importé par un script du scratchpad, écritures
@@ -12,14 +13,14 @@
 // Évasion intentionnelle, hors de la classe que la garde ferme (#2537) : programme lancé par git (`GIT_PAGER`,
 // `GIT_EXTERNAL_DIFF`, `git -c core.pager=`, `grep -O`), interpréteur hors liste (`bun`, `deno`, `php`), code en ligne de `ruby`,
 // `fs['write'+…]`, `createRequire`, `getBuiltinModule`, global masqué (`const process = …`), classe locale.
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { OUTILS_SHELL, commandeDe } from '../guards/lib/contratGarde.mjs'
 import { scriptKindDe } from '../guards/lib/dialecte.mjs'
 import { cheminsDe, versCheminNatif } from '../guards/lib/commandeShell.mjs'
 import { ciblesDEcritureDeCommande } from '../guards/lib/ecrituresShell.mjs'
-import { ciblesDEcritureJS } from '../guards/lib/ecrituresFichiers.mjs'
+import { ciblesDEcritureJS, repertoireTemporaire } from '../guards/lib/ecrituresFichiers.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { enLectureSeule, fichesDAgent } from '../guards/lib/typesDAgent.mjs'
 import { canoniser } from '../docs/lib/chemin-mesure.mjs'
@@ -56,9 +57,16 @@ function sous(chemin, dossier, platform) {
 /** Débit de l'analyse JS d'un corpus en une session (`ciblesDEcritureJS`), en octets par ms : la plus lente des mesures
  *  sur les suites de `src/`, arrondie sous (#2537, 2026-10-13 : 458 à 771 o/ms, de 50 à 1896 suites). */
 export const DEBIT_ANALYSE_JS = 400
-/** Les octets de JS qu'un appel analyse au plus : la moitié du `timeout` du répartiteur (`repartiteur.mjs`, 10 s), barrière
- *  (`ATTENTE_BARRIERE`) déduite, au débit `DEBIT_ANALYSE_JS` ; au-delà, les scripts ne sont pas jugés. */
-export const BORNE_OCTETS_JS = 1_700_000
+/** Coût fixe d'une session d'analyse, en ms (#2537, 2026-10-13 : médiane 92 ms sur 40 sessions d'un script). */
+export const COUT_SESSION_MS = 100
+/** Coût d'une entrée de dossier parcourue, en ms (#2537, 2026-10-13 : 24 µs, 21 519 entrées). */
+export const COUT_ENTREE_MS = 0.025
+/** Facteur de marge du budget : une machine deux fois plus lente, et les autres gardes du répartiteur en série. */
+export const MARGE_BUDGET = 4
+/** Le temps d'analyse qu'un appel s'accorde : le `timeout` du répartiteur (`.claude/settings.json:34`, 10 s),
+ *  barrière (`ATTENTE_BARRIERE`) déduite, divisé par `MARGE_BUDGET`. Sessions, octets de JS et entrées parcourues s'y
+ *  décomptent ; au-delà, un script ou un dossier n'est pas jugé. */
+export const BUDGET_ANALYSE_MS = 2125
 
 /**
  * La suite `suite` est-elle choisie par les `filtres` positionnels de `vitest` balayant `dossier`, lancé depuis `depuis` ?
@@ -84,29 +92,45 @@ export function choisieParVitest(suite, filtres, dossier, depuis, platform) {
 /** La `root` littérale d'un `vitest.config` de texte `texte`, `undefined` sans elle. */
 const racineDeConfig = (texte) => /\broot\s*:\s*(['"`])([^'"`$]*)\1/.exec(texte)?.[2]
 
-/** Le texte du script `chemin`, ou la raison qui l'empêche de se lire. */
-function lireSurDisque(chemin) {
+/** Le texte du script `chemin`, ou la raison qui l'empêche de se lire : `trop` quand sa taille (`statSync`) dépasse
+ *  `plafond` octets, sans le lire. */
+function lireSurDisque(chemin, plafond = Infinity) {
   try {
+    if (statSync(chemin).size > plafond) return { raison: 'au-delà du budget', trop: true }
     return { texte: readFileSync(chemin, 'utf8') }
   } catch (e) {
     return { raison: `illisible (${e?.code ?? e?.message ?? e})` }
   }
 }
 
-/** Les suites (`estSuiteVitest`) sous `dossier`, hors `node_modules` ; `[]` s'il ne se lit pas. */
-function testsSurDisque(dossier) {
-  try {
-    return readdirSync(dossier, { recursive: true, withFileTypes: true })
-      .filter((e) => e.isFile() && estSuiteVitest(e.name) && !/[\\/]node_modules(?:[\\/]|$)/.test(e.parentPath))
-      .map((e) => cheminsDe(process.platform).join(e.parentPath, e.name))
-  } catch {
-    return []
+/** Les suites (`estSuiteVitest`) sous `dossier`, `node_modules` élagués à la descente, et le compte des entrées
+ *  parcourues (`parcourues`) ; `null` au-delà de `plafond` entrées. Un dossier illisible n'a pas de suite. */
+function testsSurDisque(dossier, plafond = Infinity) {
+  const { join } = cheminsDe(process.platform)
+  const suites = [], pile = [dossier]
+  let parcourues = 0
+  while (pile.length) {
+    const courant = pile.pop()
+    let entrees
+    try {
+      entrees = readdirSync(courant, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    parcourues += entrees.length
+    if (parcourues > plafond) return null
+    for (const e of entrees) {
+      if (e.isDirectory() && e.name !== 'node_modules') pile.push(join(courant, e.name))
+      else if (e.isFile() && estSuiteVitest(e.name)) suites.push(join(courant, e.name))
+    }
   }
+  return { suites, parcourues }
 }
 
 /** Le CANAL d'un refus, par famille : ce que l'agent fait à la place. */
 const CANAUX = {
   scratchpad: (sp) => `écris sous \`${sp}\``,
+  temporaire: (sp) => `amorce le répertoire temporaire de la commande sous le scratchpad (\`TEMP="${sp}/tmp" node …\`, \`TMPDIR=… npx vitest run …\`)`,
   inconnue: (sp) => `une cible littérale sous \`${sp}\``,
   git: () => 'la sous-commande de lecture de git (`log`, `show`, `diff`, `status`, `reflog <ref>`…)',
   npm: () => '`npx tsc --noEmit`, `npx vitest run <fichiers>` ou `npm test -- <fichiers>`',
@@ -121,66 +145,71 @@ const CANAUX = {
  * juge à ses écritures déclarées (`ciblesDEcritureJS`), au texte que la commande y écrit AVANT de le lancer
  * (`contenu`), sinon au disque (`lire`) ; un dossier du scratchpad que `vitest` balaie (`--dir`, cwd, `root` littérale
  * d'un `--config`) se juge à ses suites (`lister`) que choisissent ses filtres (`choisieParVitest`), analysées en un
- * corpus ; tout autre script n'est pas jugé. Au-delà de `BORNE_OCTETS_JS` de JS analysés par la commande, un script
+ * corpus ; tout autre script n'est pas jugé. Tous les scripts que lance la commande s'analysent en UN corpus, dans le
+ * budget `BUDGET_ANALYSE_MS` que décomptent sessions, octets et entrées parcourues ; au-delà, un script ou un dossier
  * n'est pas jugé : il est nommé dans `nonJuges`.
  * @param {string} commande
- * @param {{ base: string, scratchpad: string | null, platform?: NodeJS.Platform, env?: Record<string, string | undefined>, powershell?: boolean, lire?: typeof lireSurDisque, lister?: typeof testsSurDisque }} contexte
+ * @param {{ base: string, scratchpad: string | null, platform?: NodeJS.Platform, env?: Record<string, string | null | undefined>, powershell?: boolean, lire?: typeof lireSurDisque, lister?: typeof testsSurDisque }} contexte
  * @returns {{ defauts: { texte: string, canal: keyof typeof CANAUX }[], nonJuges: string[] }}
  */
 export function defautsDeCommande(commande, contexte) {
-  const budget = { octets: BORNE_OCTETS_JS, nonJuges: [] }
+  const budget = { ms: BUDGET_ANALYSE_MS, nonJuges: [] }
   return { defauts: defautsSousBudget(commande, contexte, budget), nonJuges: budget.nonJuges }
 }
 
-/** Les défauts de `defautsDeCommande`, le JS analysé décompté de `budget` (`octets` restants, `nonJuges`). */
+/** Les défauts de `defautsDeCommande`, l'analyse décomptée de `budget` (`ms` restantes, `nonJuges`). */
 function defautsSousBudget(commande, contexte, budget) {
   const { base, scratchpad, platform = process.platform, env = {}, powershell = false, lire = lireSurDisque, lister = testsSurDisque } = contexte
   const { dirname, extname, resolve } = cheminsDe(platform)
   const cle = (chemin) => (platform === 'win32' ? chemin.toLowerCase() : chemin)
   const dansLeScratchpad = (chemin) => scratchpad !== null && sous(chemin, scratchpad, platform)
   const ecrits = new Map()
-  /** Les défauts des scripts JS `lances` du scratchpad (`{ chemin, texte, depuis, argv }`), analysés en un corpus, dans
-   *  la borne du `budget`. */
-  const defautsDesScripts = (lances) => {
-    const juges = lances.filter(({ chemin, texte }) => {
-      const octets = Buffer.byteLength(texte)
-      if (octets > budget.octets) return !budget.nonJuges.push(chemin)
-      budget.octets -= octets
-      return true
-    })
-    const rel = (chemin) => (scriptKindDe(chemin, { inconnu: 'refus' }) === null ? 'script.mjs' : `script${extname(chemin)}`)
-    const cibles = ciblesDEcritureJS(juges.map(({ chemin, texte, argv }) => ({ texte, rel: rel(chemin), fichier: chemin, argv })), { env, platform })
-    return juges.flatMap(({ chemin, depuis }, k) => cibles[k].flatMap((cible) => {
-      if (cible.commande !== undefined) {
-        return defautsSousBudget(cible.commande, { ...contexte, base: depuis ?? base, powershell: false }, budget)
-          .map((d) => ({ ...d, texte: `script ${chemin} : ${cible.operation} « ${cible.commande} » : ${d.texte}` }))
-      }
-      if (cible.inconnue || depuis === null) return []
-      return dansLeScratchpad(resolve(depuis, versCheminNatif(cible.chemin, platform))) ? [] : [{ texte: `script ${chemin} : ${cible.operation} hors du scratchpad (${cible.chemin})`, canal: 'scratchpad' }]
-    }))
+  /** Le corpus de la commande : `{ chemin, texte, depuis, argv, env }` par script lancé. */
+  const lances = []
+  /** Met au corpus le script `chemin` que lance `cible` (ou son code en ligne `enLigne`), s'il est un JS lisible du scratchpad dans le budget : la marque
+   *  `{ script }` de son rang, que ses défauts remplacent ; `[]` sinon. */
+  const lance = (chemin, cible, enLigne) => {
+    if (enLigne === undefined && !dansLeScratchpad(chemin)) return []
+    const ecrit = enLigne ?? ecrits.get(cle(chemin))
+    if (ecrit === null) return []
+    const session = lances.length ? 0 : COUT_SESSION_MS
+    const lu = ecrit === undefined ? lire(chemin, Math.max(0, (budget.ms - session) * DEBIT_ANALYSE_JS)) : { texte: ecrit }
+    if (lu.raison && !lu.trop) return []
+    const cout = lu.texte === undefined ? Infinity : session + Buffer.byteLength(lu.texte) / DEBIT_ANALYSE_JS
+    if (lu.trop || cout > budget.ms) budget.nonJuges.push(chemin)
+    if (cout > budget.ms) return []
+    budget.ms -= cout
+    lances.push({ chemin, texte: lu.texte, depuis: cible.base ?? base, argv: cible.argv, env: cible.env ?? env })
+    return [{ script: lances.length - 1 }]
   }
-  /** Le script `chemin` que lance `cible`, à juger s'il est un JS lisible du scratchpad : `{ chemin, texte, depuis, argv }` ;
-   *  `null` sinon. */
-  const lance = (chemin, cible) => {
-    if (!dansLeScratchpad(chemin)) return null
-    const ecrit = ecrits.get(cle(chemin))
-    if (ecrit === null) return null
-    const lu = ecrit === undefined ? lire(chemin) : { texte: ecrit }
-    return lu.raison ? null : { chemin, texte: lu.texte, depuis: cible.base ?? base, argv: cible.argv }
+  /** Les défauts du script `lance` du corpus, à ses cibles d'écriture `cibles`. */
+  const defautsDuScript = ({ chemin, depuis, env: envDuScript }, cibles) => cibles.flatMap((cible) => {
+    if (cible.commande !== undefined) {
+      return defautsSousBudget(cible.commande, { ...contexte, base: depuis ?? base, env: envDuScript, powershell: false }, budget)
+        .map((d) => ({ ...d, texte: `script ${chemin} : ${cible.operation} « ${cible.commande} » : ${d.texte}` }))
+    }
+    if (cible.inconnue || depuis === null) return []
+    if (dansLeScratchpad(resolve(depuis, versCheminNatif(cible.chemin, platform)))) return []
+    const temp = repertoireTemporaire(envDuScript, platform)
+    const temporaire = cible.operation === 'mkdtempSync' && temp !== null && sous(resolve(depuis, versCheminNatif(cible.chemin, platform)), temp, platform)
+    return [{ texte: `script ${chemin} : ${cible.operation} hors du scratchpad (${cible.chemin})`, canal: temporaire ? 'temporaire' : 'scratchpad' }]
+  })
+  /** Les suites du dossier `dossier` mises au corpus, quand il est du scratchpad, que choisissent les filtres de `cible` ;
+   *  au-delà des entrées que le budget permet de parcourir, le dossier n'est pas jugé. */
+  const defautsDuDossier = (dossier, cible) => {
+    if (!dansLeScratchpad(dossier)) return []
+    const liste = lister(dossier, Math.floor(budget.ms / COUT_ENTREE_MS))
+    if (liste === null) return !budget.nonJuges.push(`${dossier} (entrées)`) || []
+    budget.ms -= liste.parcourues * COUT_ENTREE_MS
+    return liste.suites.filter((suite) => choisieParVitest(suite, cible.filtres, dossier, cible.base ?? base, platform)).flatMap((suite) => lance(suite, cible))
   }
-  const defautsDuLancement = (chemin, cible) => defautsDesScripts([lance(chemin, cible)].filter(Boolean))
-  /** Les défauts des suites du dossier `dossier`, quand il est du scratchpad, que choisissent les filtres de `cible`. */
-  const defautsDuDossier = (dossier, cible) => (dansLeScratchpad(dossier)
-    ? defautsDesScripts(lister(dossier).filter((suite) => choisieParVitest(suite, cible.filtres, dossier, cible.base ?? base, platform)).map((suite) => lance(suite, cible)).filter(Boolean))
-    : [])
   /** Les défauts du `--config` `chemin` : le config lancé, puis les suites de sa `root` littérale (cwd sans elle). */
   const defautsDeLaConfig = (chemin, cible) => {
-    const ecrit = ecrits.get(cle(chemin))
-    const lu = ecrit === undefined ? lire(chemin) : ecrit === null ? { raison: 'écrit' } : { texte: ecrit }
-    const racine = lu.raison ? undefined : racineDeConfig(lu.texte)
-    return [...defautsDuLancement(chemin, cible), ...defautsDuDossier(racine === undefined ? cible.base ?? base : resolve(dirname(chemin), racine), cible)]
+    const lancee = lance(chemin, cible)
+    const racine = lancee.length ? racineDeConfig(lances[lancee[0].script].texte) : undefined
+    return [...lancee, ...defautsDuDossier(racine === undefined ? cible.base ?? base : resolve(dirname(chemin), racine), cible)]
   }
-  return ciblesDEcritureDeCommande(commande, { base, platform, env, powershell, scripts: true, lireTexte: (chemin) => lire(chemin).texte }).flatMap((cible) => {
+  const morceaux = ciblesDEcritureDeCommande(commande, { base, platform, env, powershell, scripts: true, lireTexte: (chemin) => lire(chemin).texte }).flatMap((cible) => {
     if (cible.puits) return []
     if (cible.inconnue) {
       return cible.ecrivain ? [{ texte: `${cible.operation} : écrivain à cible non résolue (« ${cible.segment?.source ?? commande} »)`, canal: cible.famille ?? 'inconnue' }] : []
@@ -188,12 +217,17 @@ function defautsSousBudget(commande, contexte, budget) {
     if (cible.operation === 'script') {
       if (cible.config) return defautsDeLaConfig(cible.chemin, cible)
       if (cible.dossier) return defautsDuDossier(cible.chemin, cible)
-      return defautsDuLancement(cible.chemin, cible)
+      if (cible.enLigne !== undefined) return lance(`${cible.segment?.source ?? commande} (code en ligne)`, cible, cible.enLigne)
+      return lance(cible.chemin, cible)
     }
     ecrits.set(cle(cible.chemin), cible.contenu ?? null)
     if (scratchpad === null) return [{ texte: `écriture ${cible.operation} (${cible.chemin}) : scratchpad de session non dérivable (\`transcript_path\`, \`session_id\`)`, canal: 'session' }]
     return dansLeScratchpad(cible.chemin) ? [] : [{ texte: `${cible.operation} hors du scratchpad (${cible.chemin})`, canal: 'scratchpad' }]
   })
+  if (lances.length === 0) return morceaux
+  const rel = (chemin) => (scriptKindDe(chemin, { inconnu: 'refus' }) === null ? 'script.mjs' : `script${extname(chemin)}`)
+  const cibles = ciblesDEcritureJS(lances.map(({ chemin, texte, argv, env: envDuScript }) => ({ texte, rel: rel(chemin), fichier: chemin, argv, env: envDuScript })), { platform })
+  return morceaux.flatMap((m) => (m.script === undefined ? [m] : defautsDuScript(lances[m.script], cibles[m.script])))
 }
 
 /** `tmp`, `lire`, `lister` : le répertoire temporaire et le disque de l'hôte, que le banc forge pour la plateforme jouée.
@@ -204,7 +238,7 @@ function evaluer(entree, { baseDeLAppel, platform = process.platform, env = {}, 
   if (!fiche || !enLectureSeule(fiche)) return null
   const scratchpad = scratchpadDeSession(entree, tmp, platform)
   const { defauts, nonJuges } = defautsDeCommande(commandeDe(entree), { base: baseDeLAppel ?? process.cwd(), scratchpad, platform, env, powershell: entree.tool_name === 'PowerShell', lire, lister })
-  const contexte = nonJuges.length ? { contexte: `Garde lecture-seule : NON JUGÉS, au-delà de ${BORNE_OCTETS_JS} octets de JS analysés par appel (#2537) : ${nonJuges.join(', ')}.` } : null
+  const contexte = nonJuges.length ? { contexte: `Garde lecture-seule : NON JUGÉS, au-delà du budget d'analyse de ${BUDGET_ANALYSE_MS} ms par appel (#2537) : ${nonJuges.join(', ')}.` } : null
   if (defauts.length === 0) return contexte
   const canaux = [...new Set(defauts.map((d) => d.canal))].map((canal) => CANAUX[canal](scratchpad ?? 'non dérivable'))
   return {
