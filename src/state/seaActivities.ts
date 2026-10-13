@@ -37,7 +37,6 @@ import { battleRng } from './battleRng';
 import { openRest, placesOfKind } from './restFlow';
 import { activityById, activitiesFor, travelActivitySpec, applyTravelActivityResult, type ActivityDef } from '../engine/activities';
 import { applyOps } from '../engine/ops';
-import { estJete } from '../engine/tests';
 import { itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, payWithAllocation, soloPayer, distributeCredit, bourseOf } from './bourseFlow';
@@ -274,7 +273,7 @@ registerCascadeApplier('sea-activity-chart', (get, set, step, hero) => {
  *  pas de RNG) depuis `meta.activityId` pour appliquer `onSuccess` (GameOp, langue UNIQUE des effets)
  *  au jet DÉJÀ résolu (`applyTravelActivityResult`, jumeau PUR de `resolveTravelActivity`). */
 registerCascadeApplier('sea-activity-generic', (get, set, step, hero) => {
-  if (!estJete(step.result) || !hero) return;
+  if (!step.result || !hero) return;
   const def = typeof step.meta?.activityId === 'string' ? activityById(step.meta.activityId) : undefined;
   if (!def) return;
   const spec = travelActivitySpec(hero, def);

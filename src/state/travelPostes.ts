@@ -27,7 +27,7 @@ import { rollEncounter, type EncounterCategory } from '../engine/travelTables';
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
-import { extendedTestStep, estJete } from '../engine/tests';
+import { extendedTestStep, type EchecSansJet } from '../engine/tests';
 import { registerCascadeApplier } from './cascade';
 import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, type Consequence, type BuiltCascadeStep } from './rollSeam';
 import { toRecapLines } from './recapLine';
@@ -206,13 +206,13 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
  *   - Exténué (EDOC 8 l.133) → op `condition` APPLIQUÉ par `applyOps`, ligne DÉRIVÉE via `opConsequenceLine` ;
  *   - issues individuelles (Récupérer/Pratiquer/Recueillir infos) → notes narratives.
  *  Partagé par le pas d'affichage (`stagePoste`, sans Test) et le pas BATCH (`stagePosteBatch`, avec Test). */
-function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: RefDesignee | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | null): Consequence[] {
+function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: RefDesignee | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | EchecSansJet | null): Consequence[] {
   const spec = travelActivitySpec(hero, def, { freeSkill });
   const r = applyTravelActivityResult({ ...spec, actorId: hero.id }, def, roll);
   const plan = get().travelPlan;
   if (plan?.stage) set({ travelPlan: { ...plan, stage: { ...plan.stage, results: [...plan.stage.results, r] } } });
   const cons: Consequence[] = [];
-  if (r.roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });
+  if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });
   if (r.ops.length) cons.push(...freeCons(applyOps(hero, r.ops, { source: { kind: 'activity', id: def.id } })));
   if (r.extenue) {
     const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.133
@@ -231,7 +231,7 @@ function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeS
 registerCascadeApplier('stagePoste', (get, set, step, hero) => {
   const def = activityById(String(step.meta?.activityId ?? ''));
   if (!def || !hero) return;
-  const cons = applyPoste(get, set, hero, def, freeSkillFromMeta(step.meta), estJete(step.result) ? step.result : null);
+  const cons = applyPoste(get, set, hero, def, freeSkillFromMeta(step.meta), step.result ?? null);
   set({ party: [...get().party] });
   return { consequences: cons };
 });
@@ -248,7 +248,7 @@ registerCascadeApplier('stagePosteBatch', (get, set, step) => {
     const hero = get().party.find((h) => h.id === part.id);
     const def = posting ? activityById(posting.activityId) : undefined;
     if (!hero || !def || !posting) { part.outcome = []; continue; }
-    const cons = applyPoste(get, set, hero, def, posting.freeSkill, estJete(part.result) ? part.result : null);
+    const cons = applyPoste(get, set, hero, def, posting.freeSkill, part.result ?? null);
     const lines = resultLines(cons); // #349 : ligne STRUCTURÉE (tone dérivé de la Consequence)
     part.outcome = lines; // conséquence SUR SA rangée (le portrait attribue)
     for (const l of lines) get().log(l.text); // + journal/recap (une ligne par héros, pas d'agrégat)

@@ -369,7 +369,7 @@ registerCascadeApplier(PORT_SELL_BUYER_KIND, (get, set, step) => {
 const PORT_SELL_GOSSIP_KIND = 'port-sell-gossip';
 registerCascadeApplier(PORT_SELL_GOSSIP_KIND, (get, set, step) => {
   const jet = step.result;
-  if (!estJete(jet)) return {};
+  if (!jet) return {};
   const cargoIndex = Number(step.meta?.cargoIndex ?? -1);
   const st = get().port;
   const vessel = get().vessel;
@@ -378,10 +378,11 @@ registerCascadeApplier(PORT_SELL_GOSSIP_KIND, (get, set, step) => {
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'ragot au port');
   // Le Test de Ragot n'a pas de rangée propre : sa ligne se DÉRIVE (`traceLineOf`), jamais ré-imprimée à la main.
-  const gossip = (issue: string) => freeCons([traceLineOf({
+  // Né sans jet (LDB 09 l.30 ; #2588 Q1), il n'a ni dé ni cible à tracer : l'échec se dit sans eux.
+  const gossip = (issue: string) => freeCons([estJete(jet) ? traceLineOf({
     who: actor.label, label: t('port.gossipRow', { skill: refLabel('skills', { id: 'ragot' }), label }),
     roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success, issue,
-  })]);
+  }) : t('port.gossipSansJet', { name: actor.label, issue })]);
   if (!jet.success) {
     return { consequences: gossip(t('port.gossipFail', { relation: sellRelation(st.port, lot.cargoId) === 'surplus' ? t('port.hasSurplus') : t('port.produces') })) };
   }

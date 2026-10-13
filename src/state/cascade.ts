@@ -726,7 +726,7 @@ function rollBatchParticipants(step: CascadeStep, autoResolved = false) {
   const opp = stepOpposedFreeze(step);
   // Une rangée née sans jet (ligne non tentable) n'a aucun dé à tirer, mais son refus a le journal pour
   // SEULE surface quand aucune fenêtre ne s'ouvre : elle reçoit la même étampe de trace.
-  return step.participants!.map((p) => (p.result ? (autoResolved && p.refus != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
+  return step.participants!.map((p) => (p.result ? (autoResolved && refusSansJet(p) != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
     ...p,
     ...(autoResolved ? { meta: { ...p.meta, autoResolved: true } } : {}),
     result: rollBatchParticipant(p, battleRng(), opp, step.evaluation),
@@ -767,7 +767,9 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
   const out: string[] = [];
   for (const row of rowSurface ? [] : step.participants ?? []) {
     if (!row.meta?.autoResolved || !row.result) continue;
-    if (!estJete(row.result)) { if (row.refus != null) out.push(row.refus); continue; }
+    const refus = refusSansJet(row);
+    if (refus != null) { out.push(refus); continue; }
+    if (!estJete(row.result)) continue;
     out.push(traceLineOf({
       who: actorIn(get(), row.id)?.label ?? row.id,
       label: row.label ?? step.rollLabel ?? undefined,
@@ -1272,8 +1274,8 @@ function batchOwnTestFailedLines(get: Get, step: CascadeStep): string[] {
   const lines: string[] = [];
   for (const part of step.participants ?? []) {
     // `statuQuo` : égalité parfaite d'un Test opposé (LDB 12 l.160) — rien ne s'est passé, ce n'est pas un
-    // Test raté : le trigger d'échec ne part pas.
-    if (!estJete(part.result) || part.result.success || part.result.statuQuo || part.meta?.noOwnTestFailed) continue;
+    // Test raté : le trigger d'échec ne part pas. Une ligne non tentable est un échec (LDB 09 l.30 ; #2588 Q1).
+    if (!part.result || part.result.success || (estJete(part.result) && part.result.statuQuo) || part.meta?.noOwnTestFailed) continue;
     const actor = actorIn(get(), part.id);
     if (!actor) continue;
     lines.push(...(ownTestFailedEmitter?.(get, actor, part.result.sl) ?? []));
@@ -1371,7 +1373,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   const interaction = stepInteraction(step);
   const ownTestFailedLines = interaction === 'batch'
     ? batchOwnTestFailedLines(get, step)
-    : ((interaction === 'jet' && estJete(step.result) && !step.result.success && !step.result.statuQuo && hero && !step.meta?.noOwnTestFailed)
+    : ((interaction === 'jet' && step.result && !step.result.success && !(estJete(step.result) && step.result.statuQuo) && hero && !step.meta?.noOwnTestFailed)
       ? (ownTestFailedEmitter?.(get, hero, step.result.sl) ?? []) : []);
   journaliser(get, set, ownTestFailedLines, 'info', { actorId: step.actorId });
   // L'étape VALIDÉE garde sa conséquence (`outcome`) pour rester LISIBLE dans la pile à l'écran. Une

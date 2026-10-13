@@ -136,17 +136,21 @@ describe('Duel naval (échelle Mer) — modèle DEUX-ÉCHELLES jouable (MDG 13-1
     expect(ship('grimm-duel').wounds.current < before).toBe(reussies.length === 1);
   });
 
-  it('IA DE COQUE sans barreur apte : la manœuvre est un échec sans jet, refus nommé au journal, la coque avance sans virer (LDB 09 l.30 ; MDG 13 l.304)', () => {
+  it('IA DE COQUE sans barreur apte : échec sans jet, refus nommé au journal, la coque avance de M exactement sans virer, Man ignoré (LDB 09 l.30 ; MDG 12 l.50 ; MDG 13 l.68-75, l.119)', () => {
     const b = useGame.getState().battle!;
     const cogue = ship('cogue-duel');
     const ko = new Set(cogue.crewIds ?? []);
-    const combatants = b.combatants.map((c) => (ko.has(c.id) ? { ...c, conditions: [...c.conditions, { id: 'inconscient', value: 1 }] } : c));
+    // Coque d'esquif (Man +1), sans pièce qui la déséquilibre : une barre sans jet modifiée par Man avancerait de M+1.
+    const combatants = b.combatants.map((c) => (ko.has(c.id) ? { ...c, conditions: [...c.conditions, { id: 'inconscient', value: 1 }] }
+      : c.id === 'cogue-duel' ? { ...c, creatureId: 'esquif', postes: [] } : c));
     useGame.setState({ battle: { ...b, combatants, turn: b.order.indexOf('cogue-duel') }, journal: [] } as never);
     const cap = useGame.getState().facing['cogue-duel'];
     const avant = { ...ship('cogue-duel').pos! };
     runEnemyAI(useGame.getState, useGame.setState, 'cogue-duel');
     expect(useGame.getState().journal).toContain(refusPersonneNePeutTenter({ skill: shipManeuverParams(cogue).skillId }));
     expect(useGame.getState().facing['cogue-duel'], 'échec : le cap tient').toBe(cap);
-    expect(ship('cogue-duel').pos, 'la coque avance quand même le long du cap').not.toEqual(avant);
+    const { baseM, manoeuvre } = shipManeuverParams(ship('cogue-duel'));
+    expect(manoeuvre).toBeGreaterThan(0);
+    expect(chebyshev(avant, ship('cogue-duel').pos!), 'la coque avance de M, ni plus ni moins').toBe(baseM);
   });
 });

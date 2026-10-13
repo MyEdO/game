@@ -5,7 +5,7 @@
 import type { PlayerText } from '../i18n/playerText';
 import type { GameState, BattleState, RevealEntry, ShootingStanceKey } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { PendingCast, PendingDeviation, PendingCritSeverity, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, CascadeRoll, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
+import type { PendingCast, PendingDeviation, PendingCritSeverity, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
@@ -135,7 +135,7 @@ import {
   rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastRowSource, MISCAST_TABLES,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
-import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR, estJete } from '../engine/tests';
+import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, type SupportDetail } from '../engine/skills';
 import { findManeuverById, findDomainById, diseaseLabel, refLabel, findPsychologyById, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence } from '../data';
@@ -7762,7 +7762,7 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
  * l'Indice (vainc à ≥ Indice). SOURCE UNIQUE de la résolution par héros — l'applier de bande l'appelle
  * pour CHACUNE de ses rangées.
  */
-function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, rm: CombatPsychRowMeta, r: CascadeRoll, immune: boolean): Consequence[] {
+function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, rm: CombatPsychRowMeta, r: { success: boolean; sl: number }, immune: boolean): Consequence[] {
   const battle = get().battle;
   // DÉTERMINATION (LDB 17 l.59) : immunité TEMPORAIRE — la Peur/Terreur/Trait est IGNORÉE ce Round,
   // PAS vaincue. On NE cumule PAS le DR, on NE pose PAS de Brisé, on N'active PAS le trait ciblé : le
@@ -7826,7 +7826,7 @@ registerCascadeApplier('combatPsych', (get, set, step) => {
   if (!cp || !step.participants) return;
   for (const part of step.participants) {
     const hero = actorIn(get(), part.id);
-    if (!hero || !estJete(part.result)) { part.outcome = []; continue; }
+    if (!hero || !part.result) { part.outcome = []; continue; }
     const lines = resultLines(resolveCombatPsychRow(get, hero, cp, psychRowMeta(part), part.result, !!part.immune));
     part.outcome = lines;
     for (const l of lines) get().log(l.text);
@@ -7923,7 +7923,7 @@ function endShipTurn(get: Get, set: SetFn, delay?: number): void {
  *  2. sinon MANŒUVRE (`maneuverShip`, barreur = meilleur de l'équipage APTE) : virer pour amener le bord le plus
  *     armé en batterie quand la cible est déjà à portée, sinon fermer la distance cap sur elle (la coque avance
  *     TOUJOURS le long du cap, MDG 13) — l'approche se joue donc sur plusieurs Rounds. Sans barreur apte, le
- *     Test est un échec sans jet (LDB 09 l.30 ; MDG 13 l.304).
+ *     Test est un échec sans jet (LDB 09 l.30 ; MDG 13 l.68-75).
  * Les Tests d'équipage adverses sont auto-résolus par ces mêmes flux ; tout est journalisé (aucun jet silencieux).
  */
 function runShipAI(get: Get, set: SetFn, ship: Combatant): void {

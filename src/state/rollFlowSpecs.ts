@@ -1546,7 +1546,7 @@ export const FLOWS = {
     },
     resolve: (s, r, actor, _get, forced) => {
       if (!actor) return null; // rangée sans acteur résoluble (parité historique) — pas de jet
-      if (r.result && !estJete(r.result)) return null; // ligne non tentable : ni jet, ni Résilience, ni Résistance (LDB 09 l.30 ; #2588 Q1)
+      if (refusSansJet(r) != null) return null; // ligne non tentable : ni jet, ni Résilience, ni Résistance (LDB 09 l.30 ; #2588 Q1)
       // Résistance (Menace), LDB 10 l.1016-1020 : auto-succès de CETTE rangée à DR IMPOSÉ (aucun dé,
       // aucune ré-opposition — calque de l'étape MONO) ; les autres rangées de la bande sont intactes.
       if (forced?.sl != null) return { result: { roll: 1, target: r.target, sl: forced.sl, success: true } };

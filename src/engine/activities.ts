@@ -27,7 +27,7 @@ import type { ModLine } from './combat';
 import { resolveSkillBest, bestSkilledOption, testValue, type TestSpec } from './skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { DIFFICULTY_MODIFIERS } from './types';
-import { easeDifficulty } from './tests';
+import { easeDifficulty, estJete, type EchecSansJet } from './tests';
 import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, type TrappingData } from '../data';
 import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
@@ -624,11 +624,13 @@ export function travelActivitySpec(
 
 /** Issue d'une Activité de voyage à partir d'un JET DÉJÀ résolu (cascade influençable) — jumeau PUR de
  *  `resolveTravelActivity` mais sans RNG : `success`/`sl` viennent de l'étape. `roll==null` (Activité sans
- *  Test) → issue directe (Récupérer). Même déclaration d'effets (`ops`/`stageOutcome`/`extenue`). PUR. */
+ *  Test) → issue directe (Récupérer). Un Test que le héros ne peut pas tenter (`EchecSansJet`) est un
+ *  échec : ni dé ni cible, conséquence d'échec (LDB 09 l.30 ; #2588 Q1). Même déclaration d'effets
+ *  (`ops`/`stageOutcome`/`extenue`). PUR. */
 export function applyTravelActivityResult(
   spec: TravelActivitySpec,
   def: ActivityDef,
-  roll: { roll: number; target: number; sl: number; success: boolean } | null,
+  roll: { roll: number; target: number; sl: number; success: boolean } | EchecSansJet | null,
 ): TravelActivityResult {
   const out: TravelActivityResult = {
     activityId: def.id, actorId: spec.actorId, sl: 0, success: true, ops: [], extenue: false,
@@ -636,8 +638,10 @@ export function applyTravelActivityResult(
   };
   if (!roll) { out.ops = def.onSuccess ?? []; return out; } // Activité sans Test
   out.value = spec.value;
-  out.roll = roll.roll;
-  out.target = roll.target;
+  if (estJete(roll)) {
+    out.roll = roll.roll;
+    out.target = roll.target;
+  }
   out.sl = roll.sl;
   out.success = roll.success;
   out.ops = roll.success ? (def.onSuccess ?? []) : [];

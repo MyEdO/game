@@ -187,10 +187,18 @@ export function shipManeuverParams(ship: Combatant): ManeuverParams {
  *  de **DR** (ch.12 l.48-50, stat-bloc « −1 DR »), PAS de difficulté → il échelonne le DR (mouvement via la
  *  Progression + l'IC de collision), il ne BASCULE PAS la réussite. On prend donc `nav.success` (le d100),
  *  jamais `dr ≥ 0` (qui conflaterait un d100 raté à DR 0 en faux succès, ou un d100 réussi à DR<0 en faux échec). */
-function deriveManeuver(ship: Combatant, nav: { sl: number; roll?: number; target?: number; success?: boolean }, helmsman?: string): ManeuverResult {
+function deriveManeuver(ship: Combatant, nav: { sl: number; roll: number; target: number; success: boolean }, helmsman: string): ManeuverResult {
   const { baseM, manoeuvre, extraDR } = shipManeuverParams(ship);
   const out = resolveShipManeuver(nav.sl, baseM, manoeuvre, extraDR + maneuverTestTypeDR(ship)); // barreur SOLO, hors Test d'équipage
-  return { ...out, success: nav.success ?? out.success, navDR: nav.sl, roll: nav.roll, target: nav.target, helmsman, advanced: 0 };
+  return { ...out, success: nav.success, navDR: nav.sl, roll: nav.roll, target: nav.target, helmsman, advanced: 0 };
+}
+
+/** Barre que personne ne peut tenir : aucun Test, donc rien que Man ni les modificateurs du Test ne
+ *  modifient (MDG 12 l.50, MDG 13 l.119). La Progression (MDG 13 l.68-75) se lit au DR d'`ECHEC_SANS_JET`.
+ *  `helmsman` : le barreur IMPOSÉ qui ne peut pas tenter, nommé au journal. LDB 09 l.30 ; #2588 Q1. */
+function maneuverSansJet(ship: Combatant, refus: PlayerText, helmsman?: string): ManeuverResult {
+  const out = resolveShipManeuver(ECHEC_SANS_JET.sl, shipManeuverParams(ship).baseM, 0);
+  return { ...out, success: ECHEC_SANS_JET.success, navDR: ECHEC_SANS_JET.sl, ...(helmsman != null ? { helmsman } : {}), refus, advanced: 0 };
 }
 
 /**
@@ -209,7 +217,7 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const imposed = helmsmanId ? inBattleId(battle, helmsmanId) : undefined;
   const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId) ? imposed : undefined) : bestHelmsman(crew, skillId);
   // LDB 09 l.30, MSRC 7 l.17 ; #2588 Q1.
-  if (!helm) return { ...deriveManeuver(ship, ECHEC_SANS_JET), refus: imposed ? refusNePeutTenter(imposed, { skill: skillId }) : refusPersonneNePeutTenter({ skill: skillId }) };
+  if (!helm) return imposed ? maneuverSansJet(ship, refusNePeutTenter(imposed, { skill: skillId }), imposed.label) : maneuverSansJet(ship, refusPersonneNePeutTenter({ skill: skillId }));
   return deriveManeuver(ship, rollTest(testValue(helm, skillId), 'intermediaire', battleRng()), helm.label);
 }
 

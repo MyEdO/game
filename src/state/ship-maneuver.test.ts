@@ -13,6 +13,7 @@ import * as navalTraitsMod from '../engine/navalTraits';
 import { crewTestSuccess, crewRoleValue } from '../engine/crewMorale';
 import { refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
 import { findCrewRoleById } from '../data';
+import { t } from '../i18n';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, NavalTraitRef, ShipPoste } from '../engine/types';
 
@@ -275,14 +276,14 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
     expect(useGame.getState().battle!.combatants.find((c) => c.id === 'ship')!.pos).toEqual({ x: 5, y: 5 }); // position INCHANGÉE
   });
 
-  it('barre qui ne peut pas tenter le Test (sans Voile, Inconsciente, aucun barreur) : pas de barreur, ÉCHEC sans jet (LDB 09 l.30, LDB 16 l.113, #2588 Q1)', () => {
+  it('barre qui ne peut pas tenter le Test (sans Voile, Inconsciente, aucun barreur) : ÉCHEC sans jet, le barreur imposé reste nommé (LDB 09 l.30, LDB 16 l.113, #2588 Q1)', () => {
     const sansVoile = { ...helm2(), skills: [] } as unknown as Combatant;
     const ko = { ...helm2(), conditions: [{ id: 'inconscient', value: 1 }] } as unknown as Combatant;
     for (const [nom, h, imposee] of [['sans Voile', sansVoile, 'helm'], ['Inconsciente', ko, 'helm'], ['aucun barreur', ko, undefined]] as const) {
       seedBattleRng(7);
       useGame.setState({ battle: { combatants: [ship2(), h], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
       const res = rollShipManeuver(() => useGame.getState(), 'ship', imposee)!;
-      expect(res.helmsman, `${nom} : personne ne tient la barre`).toBeUndefined();
+      expect(res.helmsman, `${nom} : le barreur imposé, sinon personne`).toBe(imposee ? h.label : undefined);
       expect(res.roll, `${nom} : aucun jet`).toBeUndefined();
       expect(res.success, `${nom} : le Test exigé est un ÉCHEC`).toBe(false);
     }
@@ -297,7 +298,21 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
       expect(res.refus).toBe(attendu);
       applyShipManeuver(() => useGame.getState(), 'ship', res, 2);
       expect(useGame.getState().journal).toContain(attendu);
+      expect(useGame.getState().journal).toContain(t('shipManv.failLine', { helmsman: imposee ? sansVoile.label : t('shipManv.crewFallback'), ship: ship2().label, dr: res.dr }));
     }
+  });
+
+  it('barre sans jet sur un esquif (Man +1) : la Progression au DR de l’échec sans jet, sans Man — avance de M exactement, cap inchangé (MDG 12 l.50, MDG 13 l.68-75, l.119)', () => {
+    const esquif = { ...ship2(), creatureId: 'esquif', crewIds: [] } as unknown as Combatant;
+    const { baseM, manoeuvre } = shipManeuverParams(esquif);
+    expect(manoeuvre).toBeGreaterThan(0);
+    useGame.setState({ battle: { combatants: [esquif], order: ['ship'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
+    const r = maneuverShip(() => useGame.getState(), 'ship', 2)!;
+    expect(r.success).toBe(false);
+    expect(r.dr).toBe(ECHEC_SANS_JET.sl);
+    expect(r.advanced).toBe(baseM);
+    expect(useGame.getState().facing.ship).toBe('N');
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'ship')!.pos).toEqual({ x: 5, y: 5 - baseM });
   });
 
   it('applyShipManeuver vire (si succès) + avance le long du cap', () => {

@@ -356,7 +356,7 @@ export function openPlaceMerchant(get: Get, set: Set, entityId: string, archetyp
  *  journée + réassort visible/inline) vit ICI, keyée par `kind`. */
 const MERCHANT_RAGOT_KIND = 'merchant-ragot';
 registerCascadeApplier(MERCHANT_RAGOT_KIND, (get, set, step) => {
-  if (!estJete(step.result)) return {};
+  if (!step.result) return {};
   const meta = step.meta ?? {};
   const entityId = String(meta.entityId ?? '');
   const m = get().merchant;
@@ -367,7 +367,7 @@ registerCascadeApplier(MERCHANT_RAGOT_KIND, (get, set, step) => {
   return {
     consequences: freeCons([stepDetail(
       actor ? dataLabel(actor.label) : t('eff.party'),
-      t(gossipDay ? 'mf.searchOk' : 'mf.searchKo', { roll: step.result.roll }),
+      estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo', { roll: step.result.roll }) : t('mf.searchSansJet'),
     )]),
   };
 });
