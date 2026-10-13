@@ -87,10 +87,12 @@ Le kit ne DÉMARRE **jamais** le serveur de dev — il l'**attend** puis s'y **a
 la DERNIÈRE cause (`causeDeServeur` : connexion REFUSÉE = personne n'écoute ; réponse LENTE = Vite
 compile à froid ou la machine est chargée — mesuré de 35 s à 8 min, friction #2290).
 
-> **Le serveur de dev se lance EN TÂCHE DE FOND** (job détaché du shell de l'agent — `run_in_background`
-> de l'outil Bash), jamais en avant-plan : le plafond d'une commande d'avant-plan le TUE en pleine
-> recette longue (vécu en recette #700 : trois démarrages, ≈ 10 min perdues). Il s'arrête à la fin par
-> son PORT (`arreter-dev.mjs`, § « Éteindre son serveur de dev » ci-dessous), jamais laissé vivant.
+> **Le serveur de dev se lance par l'outil Bash, EN TÂCHE DE FOND et BORNÉ** : `timeout <N> npm run dev`
+> (N en secondes = la durée de la recette) en `run_in_background`, jamais en avant-plan : le plafond
+> d'une commande d'avant-plan le TUE en pleine recette longue (vécu en recette #700 : trois démarrages,
+> ≈ 10 min perdues). Il s'arrête à la fin par son PORT (`arreter-dev.mjs`, § « Éteindre son serveur de
+> dev » ci-dessous), jamais laissé vivant. Un `npm run dev` sans `timeout`, ou sous PowerShell (où
+> `timeout` est le `timeout.exe` de Windows), est refusé par la garde `appel-borne` (#2603).
 
 > **L'étalon se juge aux TROIS VUES, source unique `scripts/recette/vues-recette.json`** (#1847) :
 > `bureau` (la fenêtre réelle de l'utilisateur, et le viewport par DÉFAUT du kit), `portable` et
@@ -1620,18 +1622,19 @@ que CHAQUE page rend, jamais à un `pending*` (identique des deux côtés, cf. i
 
 | Cas | Commande | Contrôle |
 |---|---|---|
-| **Défaut hors production — sans variable** | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, puis `npm run dev` dans un autre | `relayHttpUrl` (`src/net/relay.ts`) vise `http://localhost:8787` ; `POST /rooms` rend `{"code":…,"hostToken":…}` |
+| **Défaut hors production — sans variable** | `npm run relay:dev` (= `npm --prefix server run dev`, wrangler dev, port 8787) dans un terminal, puis `timeout <N> npm run dev` en fond | `relayHttpUrl` (`src/net/relay.ts`) vise `http://localhost:8787` ; `POST /rooms` rend `{"code":…,"hostToken":…}` |
 | Build de production sans variable | Build avec `import.meta.env.PROD` vrai | Le défaut `RELAY_URL_PROD` vise le Worker Cloudflare déployé |
 | Relais explicite | Relancer Vite avec `VITE_RELAY_URL` | La variable prend priorité dans tous les modes ; une URL locale convient aussi à un build de production |
 
 `VITE_RELAY_URL` est lue via `import.meta.env` **au démarrage de Vite** : la poser après coup ne
-change rien, il faut relancer le serveur de dev. Syntaxe PowerShell :
+change rien, il faut relancer le serveur de dev, par l'outil Bash (PowerShell est refusé, § « Le serveur
+de dev se lance… ») :
 
-```powershell
-$env:VITE_RELAY_URL = 'http://localhost:8787'; npm run dev
+```bash
+VITE_RELAY_URL=http://localhost:8787 timeout <N> npm run dev
 ```
 
-(bash : `VITE_RELAY_URL=http://localhost:8787 npm run dev`). L'URL WebSocket en est DÉRIVÉE
+L'URL WebSocket en est DÉRIVÉE
 (`http`→`ws`, `roomWsUrl`) — une seule variable pour les deux.
 
 Pour éprouver le refus de connexion hors production, arrêter le relais local, ou relancer Vite avec
@@ -1757,7 +1760,7 @@ Vigilance ré-appende SON Test — une file d'étapes successives à drainer des
 Déroulé : étapes 1-6 sur `embuscade` (choix de groupe), étape 7 sur `entrainement` (jet solo),
 étape 8 pour la bande partagée. Tout depuis l'HÔTE sauf ce qui est marqué INVITÉ.
 
-1. Relay au défaut (prod) ou local (§ ci-dessus), `npm run dev`, arbre gelé.
+1. Relay au défaut (prod) ou local (§ ci-dessus), `timeout <N> npm run dev`, arbre gelé.
 2. Ouvrir les deux pages et lier les sièges (script du kit ci-dessus) — contrôler `net.mode`/
    `net.mySeat` des deux côtés.
 3. HÔTE : `__wfrp.scenario('embuscade')` → groupe de 4 posé, scène chargée ; l'invité la reçoit au

@@ -123,6 +123,10 @@ export function optionsDe(argv) {
   }
 }
 
+/** `true` si ces arguments ATTENDENT un run (`--veiller`) : la garde `commande-piege` la refuse en fond (#2603). PURE.
+ *  @param {string[]} argv */
+export const estUneAttente = (argv) => optionsDe(argv).veiller !== null
+
 /** Identifiant d'un RUN du train : le pid de son processus et l'instant (ms) de son lancement, que le
  *  parent de `--detache` choisit AVANT de détacher. PURE. */
 export const idDeRun = ({ pid, lancement }) => `${pid}-${lancement}`

@@ -15,14 +15,13 @@
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { commandeDe, entreeDOutil, sousAgent } from '../guards/lib/contratGarde.mjs'
+import { ECHEANCE_PAR_DEFAUT_MS, commandeDe, entreeDOutil, sousAgent, timeoutDe, verdictDe } from '../guards/lib/contratGarde.mjs'
+import { appelleServeurVite } from '../guards/lib/appelsRunners.mjs'
+import { REFUS_SATURE, borneDeVie, nouveauBudget, pipelinesDeJetons } from '../guards/lib/commandeShell.mjs'
 import { BORNE_DE_SONDE_S, CODE_EN_COURS, commandeDeSonde } from '../ops/sonde.mjs'
 
 /** La borne d'un appel d'outil d'un sous-agent : sous le TTL de 5 min de son cache de prompt (#2596). */
 export const BORNE_D_APPEL_MS = 270_000
-
-/** La borne d'un appel Bash ou PowerShell sans `timeout`. */
-const BORNE_PAR_DEFAUT_MS = 120_000
 
 /** Le `timeout` d'un appel de sonde : sa borne, plus le lancement de node. */
 const TIMEOUT_DE_SONDE_MS = BORNE_DE_SONDE_S * 1000 + 20_000
@@ -30,17 +29,10 @@ const TIMEOUT_DE_SONDE_MS = BORNE_DE_SONDE_S * 1000 + 20_000
 /** Les outils dont un champ `timeout` borne l'attente au premier plan. */
 const OUTILS_BORNES = ['Bash', 'PowerShell']
 
-/** Le `timeout` d'un `tool_input` en ms, nombre ou chaîne numérique ; `null` sinon. PURE. */
-function timeoutDe(input) {
-  const brut = input?.timeout
-  if (typeof brut === 'number') return brut
-  return typeof brut === 'string' && brut.trim() !== '' && Number.isFinite(Number(brut)) ? Number(brut) : null
-}
-
 /** La borne de l'attente au premier plan d'un `tool_input`, `null` en fond. PURE. */
 function borneDe(input) {
   if (input?.run_in_background === true) return null
-  return timeoutDe(input) ?? BORNE_PAR_DEFAUT_MS
+  return timeoutDe(input) ?? ECHEANCE_PAR_DEFAUT_MS
 }
 
 /**
@@ -75,7 +67,31 @@ function refus(outil, commande, borne, base) {
   }
 }
 
+/** Le refus d'un serveur vite lancé sans borne de vie, `graphie` = le segment vu. PURE. */
+function refusServeur(outil, graphie) {
+  return {
+    decision: 'deny',
+    raison: `⛔ Serveur vite SANS BORNE DE VIE REFUSÉ (${graphie}, ${outil}, #2603) : vite ne s'arrête pas sur inactivité, et `
+      + 'un serveur lancé sans `timeout` survit à l\'appel, au shell et à l\'agent. Lance-le par l\'outil Bash, borné et en fond : '
+      + '`timeout <N> npm run dev` (N en secondes, la durée de la recette), puis `node scripts/recette/arreter-dev.mjs` en fin de '
+      + 'recette. Sous PowerShell, `timeout` est le `timeout.exe` de Windows, qui ne borne rien : passe par Bash. '
+      + 'Variable d\'environnement : `VITE_RELAY_URL=… timeout <N> npm run dev`.',
+  }
+}
+
+/** Le refus d'un serveur vite que la commande lance sans borne de vie (`borneDeVie`), `null` sans. PURE. */
+function serveurSansBorne(outil, commande) {
+  const budget = nouveauBudget()
+  const segments = pipelinesDeJetons(commande, 0, { budget }).flat()
+  if (budget.sature) return verdictDe(REFUS_SATURE)
+  const texte = (s) => s.jetons.map((j) => j.text).join(' ')
+  const vu = segments.find((s) => appelleServeurVite(texte(s)) && (outil === 'PowerShell' || borneDeVie(s) === null))
+  return vu ? refusServeur(outil, texte(vu)) : null
+}
+
 function evaluer(entree, contexte) {
+  const serveur = serveurSansBorne(entree.tool_name, commandeDe(entree))
+  if (serveur) return serveur
   if (!sousAgent(entree)) return null
   const borne = borneDe(entreeDOutil(entree))
   if (borne === null || borne <= BORNE_D_APPEL_MS) return null

@@ -122,3 +122,42 @@ test('#2596 — forme PowerShell jouée EN VRAI : `.code` porte toujours un enti
     }
   }
 })
+
+test('#2603 — un serveur vite sans borne de vie est REFUSÉ à tout appelant, en fond comme au premier plan', async () => {
+  const cas = [
+    ['Bash', { command: 'npm run dev', run_in_background: true }],
+    ['Bash', { command: 'npm run dev' }],
+    ['Bash', { command: 'npm run dev -- --port 5180', run_in_background: true }],
+    ['Bash', { command: 'npm run preview', run_in_background: true }],
+    ['Bash', { command: 'npx vite preview', run_in_background: true }],
+    ['Bash', { command: 'timeout 0 npm run dev', run_in_background: true }],
+    ['Bash', { command: '(npm run dev &)', run_in_background: true }],
+    ['Bash', { command: 'nohup npm run dev &', run_in_background: true }],
+    ['Bash', { command: 'timeout 60 bash -c "(npm run dev &)"', run_in_background: true }],
+    ['PowerShell', { command: 'timeout 3000 npm run dev', run_in_background: true }],
+  ]
+  for (const appelant of [PRINCIPAL, SOUS_AGENT]) {
+    for (const [outil, input] of cas) {
+      const vu = await decision(appelant, outil, input)
+      assert.equal(vu?.permissionDecision, 'deny', `${outil} ${JSON.stringify(input)} ${JSON.stringify(appelant)}`)
+      assert.match(vu.permissionDecisionReason, /SANS BORNE DE VIE .*#2603.*timeout <N> npm run dev.*VITE_RELAY_URL=… timeout <N> npm run dev/s)
+    }
+  }
+})
+
+test('#2603 — acceptés : serveur vite borné par un `timeout` de coreutils, vite qui ne sert rien, texte qui le CITE', async () => {
+  const cas = [
+    { command: 'timeout 3000 npm run dev', run_in_background: true },
+    { command: 'timeout -k 5 2h npm run dev', run_in_background: true },
+    { command: 'VITE_RELAY_URL=http://localhost:8787 timeout 3000 npm run dev', run_in_background: true },
+    { command: 'timeout 60 bash -c "npm run dev"', run_in_background: true },
+    { command: 'timeout 3000 npm run dev &', run_in_background: true },
+    { command: 'npm run build' },
+    { command: 'npx vite --version' },
+    { command: 'grep vite package.json' },
+    { command: 'git commit -m "npm run dev"' },
+  ]
+  for (const appelant of [PRINCIPAL, SOUS_AGENT]) {
+    for (const input of cas) assert.equal(await decision(appelant, 'Bash', input), null, `${JSON.stringify(input)} ${JSON.stringify(appelant)}`)
+  }
+})

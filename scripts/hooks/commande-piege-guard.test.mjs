@@ -4,7 +4,10 @@
 // `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { evaluate } from './commande-piege-guard.mjs'
+import { fileURLToPath } from 'node:url'
+import { evaluate, garde } from './commande-piege-guard.mjs'
+import { repartir } from './repartition.mjs'
+import { REGISTRE } from './registre.mjs'
 import { CAS_HOTE_POWERSHELL, argumentsDuCas } from './hote-powershell-cas.mjs'
 
 const silent = (cmd) => evaluate(cmd) === null
@@ -782,4 +785,88 @@ test('DENY : une commande trop imbriquée pour être jugée est refusée, en de�
   assert.equal(decision?.decision, 'deny')
   assert.match(decision.reason, /commande trop imbriquée pour être jugée/)
   assert.match(evaluate('echo $($($(pkill node)))')?.reason ?? '', /PAR NOM/)
+})
+
+// ── #2603 : attente au fil principal (constat 1), quantificateur de regex démesuré (constat 23) ───────────────
+// La garde RÉELLE par le répartiteur (`repartir`), sur l'entrée de hook du fil principal et d'un sous-agent.
+const SOUS_AGENT = { session_id: 's', agent_id: 'a1', agent_type: 'codeur' }
+const FIL_PRINCIPAL = { session_id: 's' }
+
+/** La décision du répartiteur sur l'appel `tool_name`/`tool_input` de `appelant`, `null` sans refus. */
+async function decision(appelant, tool_name, tool_input) {
+  const { sortie } = await repartir({ PreToolUse: REGISTRE.PreToolUse.filter((g) => g === garde) }, JSON.stringify({
+    hook_event_name: 'PreToolUse', tool_name, tool_input, ...appelant,
+  }), { env: {}, cwd: process.cwd() })
+  return sortie?.hookSpecificOutput ?? null
+}
+const enFond = (command) => ({ command, run_in_background: true })
+const RACINE = fileURLToPath(new URL('../..', import.meta.url)).replaceAll('\\', '/').replace(/\/$/, '')
+const VEILLE = `node "${RACINE}/scripts/ops/publier.mjs" --veiller 4242-1700000000000; node "${RACINE}/scripts/ops/publier.mjs" --veiller 4242-1700000000000 --constat`
+const ATTENTES_EN_FOND = [
+  ['Bash', 'sleep 3300'],
+  ['Bash', 'until gh run view 1 --json status|grep -q completed; do sleep 30; done'],
+  ['Bash', 'while true; do sleep 5; done'],
+  ['Bash', 'while ! gh pr checks 1; do sleep 5; done'],
+  ['Bash', 'for i in 1 2; do sleep 2; done'],
+  ['Bash', 'bash -c "sleep 60"'],
+  ['Bash', 'npm run ops:ci -- --attendre'],
+  ['Bash', VEILLE],
+  ['Bash', `node "${RACINE}/scripts/ops/session.mjs" attendre abc --timeout-ms 1740000`],
+  ['Bash', 'gh run watch 1'],
+  ['PowerShell', 'Start-Sleep 30'],
+  ['PowerShell', 'while ($true) { Start-Sleep 5 }'],
+  ['PowerShell', 'do { Start-Sleep 5 } until ($x)'],
+]
+
+test('#2603 — fil principal : une ATTENTE en fond est REFUSÉE, renvoyée vers Monitor', async () => {
+  for (const [outil, commande] of ATTENTES_EN_FOND) {
+    const vu = await decision(FIL_PRINCIPAL, outil, enFond(commande))
+    assert.equal(vu?.permissionDecision, 'deny', `${outil} ${commande}`)
+    assert.match(vu.permissionDecisionReason, /Attente en FOND REFUSÉE .*#2603.*Monitor.*ré-arme/s, commande)
+  }
+})
+
+test('#2603 — fil principal : au premier plan, une attente sans borne de vie sous l\'échéance de l\'appel est REFUSÉE', async () => {
+  for (const commande of ['npm run ops:ci -- --attendre', 'sleep 300']) {
+    const vu = await decision(FIL_PRINCIPAL, 'Bash', { command: commande })
+    assert.equal(vu?.permissionDecision, 'deny', commande)
+    assert.match(vu.permissionDecisionReason, /PREMIER PLAN REFUSÉE .*120000 ms/s, commande)
+  }
+  assert.equal((await decision(FIL_PRINCIPAL, 'Bash', { command: 'sleep 200', timeout: 200000 }))?.permissionDecision, 'deny')
+  assert.equal((await decision(FIL_PRINCIPAL, 'PowerShell', { command: 'timeout 100 gh run watch 1' }))?.permissionDecision, 'deny')
+})
+
+test('#2603 — acceptés : sous-agent, attente bornée au premier plan, ctx_shell, lecture de flux, commande qui CITE l\'attente', async () => {
+  for (const [outil, commande] of ATTENTES_EN_FOND) assert.equal(await decision(SOUS_AGENT, outil, enFond(commande)), null, commande)
+  const cas = [
+    ['Bash', { command: 'sleep 30' }],
+    ['Bash', { command: 'sleep 200', timeout: 200001 }],
+    ['Bash', { command: 'timeout 100 gh run watch 1' }],
+    ['mcp__lean-ctx__ctx_shell', enFond('sleep 3300')],
+    ['Bash', enFond('while IFS= read -r l; do echo "$l"; done < f')],
+    ['Bash', enFond('npm run test:perimetre')],
+    ['Bash', enFond('npm run ops:publier -- --detache')],
+    ['Bash', enFond('npm run ops:ci -- --echecs 5')],
+    ['Bash', enFond(`node "${RACINE}/scripts/ops/session.mjs" lister`)],
+    ['Bash', enFond('git log --grep until')],
+    ['Bash', enFond('git commit -m "sleep 30"')],
+    ['Bash', enFond("git commit -F - <<'EOF'\nsleep 30 puis until\nEOF")],
+  ]
+  for (const [outil, input] of cas) assert.equal(await decision(FIL_PRINCIPAL, outil, input), null, `${outil} ${JSON.stringify(input)}`)
+})
+
+test('#2603 — un quantificateur de regex au-delà de 200 est REFUSÉ à tout appelant ; chaîne fixe et texte cité passent', async () => {
+  for (const commande of [
+    `grep -o '.{0,201}x' f`, 'grep -o ".\\{0,1500\\}nt" f', `rg -o '[^"]{0,400}x' f`, 'git grep -E "a{0,300}"',
+    'Select-String -Pattern ".{0,500}a"', `grep -E 'a{300}'`, `grep -o '.\\{,500\\}'`, `sed -n 's/.\\{500,\\}//p' f`,
+  ]) {
+    const vu = await decision(SOUS_AGENT, 'Bash', { command: commande })
+    assert.equal(vu?.permissionDecision, 'deny', commande)
+    assert.match(vu.permissionDecisionReason, /Quantificateur de regex .*#2603.*createReadStream/s, commande)
+  }
+  for (const commande of [
+    `grep -o '.{0,200}x' f`, `grep -F '.{0,500}' f`, `rg -F '.{0,500}' f`, `fgrep '.{0,500}' f`,
+    `Select-String -SimpleMatch -Pattern '.{0,500}'`, `awk '{print $1}'`, `awk -F, '{print $1}' f`, `rg '\\{\\}'`,
+    'git commit -m "grep .{0,400}"',
+  ]) assert.equal(await decision(FIL_PRINCIPAL, 'Bash', { command: commande }), null, commande)
 })
