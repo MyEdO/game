@@ -292,7 +292,10 @@ const doc = document(
     exiges: ['source', 'icon'],
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const a = v as { id: string; stake?: string; stakeForm?: string; rule?: string; ruleCategory?: string };
+        const a = v as { id: string; contexts: string[]; freeSkill?: boolean; stake?: string; stakeForm?: string; rule?: string; ruleCategory?: string };
+        if (a.freeSkill && a.contexts.includes('mer')) {
+          ctx.addIssue({ code: 'custom', path: ['freeSkill'], message: `${a.id} : une Activité de contexte mer ne déclare pas de Compétence libre — le choix d’Activité en mer ne nomme aucune Compétence (MDG 15 l.266-300)` });
+        }
         if (a.stake && !a.stakeForm) {
           ctx.addIssue({ code: 'custom', message: `${a.id} : enjeu sans forme déclarée (stakeForm)` });
         }

@@ -2147,7 +2147,7 @@ describe('Exposition en mer — une étape influençable par Test, une cascade p
     const casc = get().pendingCascade!;
     expect(casc.purpose).toBe('seaExposure');
     const living = get().party.filter((h) => !h.dead).length;
-    // 4 Tests/jour (bande 2 h sur 8 h de pont) = 4 VAGUES ; la 1ʳᵉ s'ouvre, les suivantes se
+    // 4 Tests/jour (`seaExposureTestsPerDay('glaciale')`) = 4 VAGUES ; la 1ʳᵉ s'ouvre, les suivantes se
     // construisent après elle (#1117 L3) — une RANGÉE par héros vivant dans la fenêtre.
     expect(casc.participants).toHaveLength(1);
     expect(casc.participants[0].kind).toBe('sea-exposition'); // applier d'escalade PARTAGÉ

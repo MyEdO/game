@@ -17,6 +17,8 @@ import { ECHEC_SANS_JET } from '../engine/tests';
 import { activityById, activitiesFor, applyTravelActivityResult, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from './activiteMer.testkit';
 import { refusNePeutTenter } from '../engine/skills';
+import { datasetFile, datasetSerializeRoot } from '../data/overrides';
+import { validateDataset } from '../data/schemas/validate';
 import { hasCondition } from '../engine/conditions';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { combatStakeRef } from '../data';
@@ -155,9 +157,13 @@ describe('Activités en mer non tentables', () => {
     expect(activitiesFor('mer').filter((a) => a.failExtenue).map((a) => a.id)).toEqual([]);
   });
 
-  it('garde de donnée : aucune Activité de contexte mer ne déclare `freeSkill` — `SeaActivityPick` ne porte aucune Compétence choisie (MDG 15 l.266-300)', () => {
-    expect(activitiesFor('mer').length).toBeGreaterThan(0);
-    expect(activitiesFor('mer').filter((a) => a.freeSkill).map((a) => a.id)).toEqual([]);
+  it('Compendium : l’enregistrement refuse une Activité de contexte mer à Compétence libre — `SeaActivityPick` ne porte aucune Compétence choisie (MDG 15 l.266-300)', () => {
+    // Porte de `CodexEdit.save` : la racine sérialisée du dataset, validée contre le schéma de son fichier.
+    const enregistrement = () => validateDataset(datasetFile('activities'), datasetSerializeRoot('activities'));
+    const { skills: _skills, ...sansCompetence } = activiteMer();
+    expect(avecActivite(activiteMer(), enregistrement)).toBeNull();
+    expect(avecActivite({ ...sansCompetence, freeSkill: true }, enregistrement))
+      .toMatch(/veille-en-mer : une Activité de contexte mer ne déclare pas de Compétence libre/);
   });
 
   describe('sea-activity-generic : une Activité de contexte mer sans résolveur', () => {

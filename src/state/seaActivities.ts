@@ -107,7 +107,7 @@ function seaActivityTest(def: ActivityDef): { skill: string; spec?: string } | u
 export function seaActivityRefus(hero: Combatant, def: ActivityDef): PlayerText | undefined {
   if (def.resolver === 'crewTraining') return undefined;
   const test = seaActivityTest(def);
-  if (!test) return travelActivitySpec(hero, def)?.refus;
+  if (!test) return travelActivitySpec(hero, def)!.refus;
   return peutTenter(hero, test.skill, test.spec) ? undefined : refusNePeutTenter(hero, { skill: test.skill, ...(test.spec ? { spec: test.spec } : {}) });
 }
 
@@ -141,16 +141,16 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
 
 /** Étape MONO chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : `travelActivitySpec` choisit la
  *  meilleure compétence TENTABLE de l'acteur, la porte lance le Test.
- *  `undefined` = Activité SANS Test (Récupérer…), appliquée d'office ici : aucune étape à jouer. Aucune
- *  Activité de contexte 'mer' ne déclare `freeSkill` (garde de donnée, `echec-sans-jet-appliers.test.ts`).
+ *  `undefined` = Activité SANS Test (Récupérer…), appliquée d'office ici : aucune étape à jouer. La spec
+ *  est toujours rendue : le schéma d'édition refuse `freeSkill` à une Activité de contexte 'mer'
+ *  (`superRefine` de `data/schemas/defs/activities.ts`).
  *
  *  EXPORTÉE pour être mesurée SEULE : aucune entrée de contexte 'mer' d'`activities.json` n'emprunte
  *  ce résolveur aujourd'hui (les trois sont `seaChart`, `opportunityTrade`, `crewTraining`), mais la
  *  donnée est éditable au Compendium. Ses tests posent une Activité 'mer' dérivée d'une entrée réelle au
  *  catalogue par le seam `setDataset` (`activiteMer.testkit.ts`). */
 export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: ActivityDef): BuiltCascadeStep | undefined {
-  const spec = travelActivitySpec(hero, def);
-  if (!spec) return undefined;
+  const spec = travelActivitySpec(hero, def)!;
   if (spec.target == null) {
     const { consequences } = appliquerIssueActivite(get, hero, def, spec, null);
     set({ party: [...get().party] });

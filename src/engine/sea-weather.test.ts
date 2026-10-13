@@ -192,8 +192,8 @@ describe('effets d’ambiance — Précipitations / Température / Visibilité (
     expect(dailyWaterLitres('mediane')).toBe(3);
   });
 
-  it('seaExposureTestsPerDay : 8 h de pont / cadence de bande (4 h → 2 Tests, 2 h → 4) ; Médiane → 0', () => {
-    // Une Période de travail à la voile = 8 h (l.107) ÷ la cadence RAW (l.209-225).
+  it('seaExposureTestsPerDay : Tests d’Exposition d’une journée en mer par bande de Température (MDG 13 l.107, l.185, l.203-225 ; décision A1 #1595)', () => {
+    // `WORK_PERIOD_HOURS.voile` ÷ `testEveryHours` de la bande.
     expect(seaExposureTestsPerDay('caniculaire')).toBe(4); // 8 ÷ 2
     expect(seaExposureTestsPerDay('glaciale')).toBe(4); // 8 ÷ 2
     expect(seaExposureTestsPerDay('chaude')).toBe(2); // 8 ÷ 4
