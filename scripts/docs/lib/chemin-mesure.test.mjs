@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ancetreExistant, canoniser, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { ancetreExistant, canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { envDeDepotForge, instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { depotDe, politiqueExclusionsDe } from '../../guards/lib/gitPorte.mjs'
@@ -168,6 +168,27 @@ test('canoniser : un chemin absent SOUS une jonction rend la cible réelle + le 
     const jonction = join(base, 'lien')
     symlinkSync(cible, jonction, 'junction')
     assert.equal(canoniser(join(jonction, 'absent', 'x.md')), join(realpathSync.native(cible), 'absent', 'x.md'))
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('canoniseurParDossier rend canoniser : feuille exacte, casse, jonction, absente, sous jonction, dossier absent, racine', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-memo-'))
+  try {
+    const cible = join(base, 'cible')
+    mkdirSync(cible)
+    writeFileSync(join(cible, 'Casse.md'), 'casse')
+    symlinkSync(cible, join(base, 'lien'), 'junction')
+    const chemins = [
+      join(cible, 'Casse.md'), join(cible, 'casse.md'), join(base, 'lien'), join(base, 'LIEN'), join(cible, 'absent.md'),
+      join(base, 'lien', 'Casse.md'), join(base, 'lien', 'absent', 'x.md'), join(base, 'absent', 'x.md'), base, cible,
+      join(tmpdir(), '..'), join(base, '..', '..'), base.split(/[\\/]/)[0] + '/',
+    ]
+    const canon = canoniseurParDossier()
+    for (const passe of [1, 2]) for (const chemin of chemins) assert.equal(canon(chemin), canoniser(chemin), `${passe} : ${chemin}`)
+    assert.equal(canon(join(base, 'lien', 'Casse.md')), join(realpathSync.native(cible), 'Casse.md'))
   } finally {
     rmSync(base, { recursive: true, force: true })
   }

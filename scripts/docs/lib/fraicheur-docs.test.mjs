@@ -9,7 +9,7 @@ import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
 import { ciblesPures, ciblesSurDisque, estCiblePure, executer, generateurDe, SOURCES_LUES } from '../build-all.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
-import { avantGenerateur, certifierGenerateur, chargerPreuve, copierDocsFrais, enregistrerPreuve, preparerPreuves, preuveValide } from './fraicheur-docs.mjs'
+import { avantGenerateur, certifierGenerateur, chargerPreuve, copierDocsFrais, enregistrerPreuve, nouvelleVue, preparerPreuves, preuveValide, vueApresGenerateur } from './fraicheur-docs.mjs'
 
 const doc = (nom) => ['docs', `${nom}.md`].join('/')
 const code = ['src', 'banc.generated.ts'].join('/')
@@ -235,6 +235,33 @@ for (const cas of ['propre', 'source', 'ignore', 'vide', 'lien', 'observe', 'son
       const suivant = certifierGenerateur(racine, lecteur, { ...entree, fichiers: [lecteur.script, cible], dossiers: ['data/neuf'] }, opts, prochain)
       assert.equal(suivant.ok, true, suivant.raison)
     }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+// #2603
+test('vue après générateur : égale à la vue complète du même instant, fichier et dossier neufs et écrits non déclarés compris', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.generated.ts\n', 'data/source.txt': 'source', 'data/temoin.txt': 'temoin', 'annexe/ecrit.txt': 'avant', 'g/froid.mjs': 'export const froid = 1\n', 'g/lecteur.mjs': 'export const lecteur = 1\n' } })
+  const cible = 'data/neuf/sortie.generated.ts'
+  const g = { runner: 'node', script: 'g/froid.mjs', targets: ['data/neuf/*.generated.ts'] }
+  const lecteur = { runner: 'node', script: 'g/lecteur.mjs', targets: [doc('lecteur')] }
+  const opts = { ...options, generateurs: [g, lecteur] }
+  const entree = { fichiers: [g.script, 'data/temoin.txt'], dossiers: [], cibles: [], git: [], sondes: [], incomplet: [] }
+  const sondes = [{ chemin: cible, type: 'exists', existe: false, nature: null }, { chemin: 'data/neuf', type: 'stat', existe: false, nature: null }]
+  const mesure = { [g.script]: entree, [lecteur.script]: { fichiers: [lecteur.script, 'data/source.txt', cible, 'annexe/ecrit.txt'], dossiers: ['data', 'data/neuf', 'annexe'], cibles: [], git: [], sondes, incomplet: [] } }
+  const photo = ({ hashes, listings, git, sondes, ignores, cibles, outillage, perimetre }) => ({ hashes, listings, git, sondes, ignores, cibles, outillage, perimetre })
+  try {
+    poser(racine, SOURCES_LUES, JSON.stringify(mesure))
+    const preparation = preparerPreuves(racine, opts)
+    const avant = avantGenerateur(racine, g, opts, preparation)
+    poser(racine, cible, 'export const produit = 1\n')
+    poser(racine, 'annexe/ecrit.txt', 'apres')
+    poser(racine, 'annexe/neuf.txt', 'neuf')
+    const vu = certifierGenerateur(racine, g, entree, opts, avant)
+    assert.equal(vu.ok, true, vu.raison)
+    const preuve = { version: 2, generateurs: { ...preparation.cache.generateurs, [g.script]: vu.record } }
+    const apres = photo(vueApresGenerateur(preparation.vue, opts, preuve, g, vu.perimetre, ['annexe/ecrit.txt', 'annexe/neuf.txt']))
+    assert.notDeepEqual(photo(preparation.vue), apres)
+    assert.deepEqual(apres, photo(nouvelleVue(racine, opts, preuve)))
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 

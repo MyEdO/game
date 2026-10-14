@@ -36,7 +36,7 @@ import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
 import { perimetreDeMesure } from './lib/perimetre-mesure.mjs'
 import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
-import { avantGenerateur, certifierGenerateur, chargerPreuve, enregistrerPreuve, invaliderPreuve, nouvelleVue, preparerPreuves, recordValide } from './lib/fraicheur-docs.mjs'
+import { avantGenerateur, certifierGenerateur, chargerPreuve, enregistrerPreuve, invaliderPreuve, nouvelleVue, preparerPreuves, recordValide, vueApresGenerateur } from './lib/fraicheur-docs.mjs'
 
 import { GENERATORS, SOURCES_LUES } from './lib/cibles-generees.mjs'
 export { GENERATORS, SOURCES_LUES, estCiblePure } from './lib/cibles-generees.mjs'
@@ -251,7 +251,7 @@ export async function rendreCible(cible, generateurs = GENERATORS) {
 
 /**
  * Racine (vidée puis recréée) des lectures d'un run mesuré, et l'ensemble `ignoresGit` de `cwd`,
- * calculé UNE fois, que chaque processus mesuré relit (#1769). REND le chemin de ce fichier.
+ * calculé par rang, que chaque processus mesuré relit (#1769). REND le chemin de ce fichier.
  */
 export function preparerLectures(cwd, racineLectures) {
   rmSync(racineLectures, { recursive: true, force: true })
@@ -415,7 +415,7 @@ export function executer({
     }
     const parGenerateur = Object.fromEntries(generateurs.filter((g) => Object.hasOwn(ancienneMesure, g.script)).map((g) => [g.script, ancienneMesure[g.script]]))
     let preuve = chargerPreuve(cwd)
-    let vue = perimes ? nouvelleVue(cwd, fraicheur, preuve) : undefined
+    let vue = perimes ? preparation.vue : undefined
     let ecrits = 0
     // Verdicts de `--check`, TOUS collectés : un générateur rouge ne masque pas les suivants.
     const refus = []
@@ -447,14 +447,14 @@ export function executer({
           console.error(`docs:build — ${g.script} périmé : ${validite.raison}`)
         }
         const dossier = path.join(racineLectures, `${passe}-${rang}`)
-        writeFileSync(ignoresLectures, JSON.stringify([...perimetreDeMesure(cwd).ignores]))
-        writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
         let mesure
         let avant
         try { avant = preparation && avantGenerateur(cwd, g, fraicheur, preparation) } catch (e) {
           console.error(`docs:build — ARRÊT : ${g.script} non certifiable : ${e.message}`)
           return 1
         }
+        writeFileSync(ignoresLectures, JSON.stringify([...(avant ? avant.baseline.ignores : perimetreDeMesure(cwd).ignores)]))
+        writeFileSync(derivees, JSON.stringify(ciblesSurDisque(generateurs.flatMap((g) => g.targets), cwd)))
         if (!check) {
           invaliderPreuve(cwd, [g.script])
           ecrits++
@@ -522,10 +522,10 @@ export function executer({
             return 1
           }
           preparation.mesure[g.script] = entree
-        }
-        if (perimes && preparation) {
-          preuve = { version: 2, generateurs: { ...preparation.cache.generateurs, ...Object.fromEntries(records) } }
-          vue = nouvelleVue(cwd, fraicheur, preuve)
+          if (perimes) {
+            preuve = { version: 2, generateurs: { ...preparation.cache.generateurs, ...Object.fromEntries(records) } }
+            vue = vueApresGenerateur(vue, fraicheur, preuve, g, certification.perimetre, lues.ecrits)
+          }
         }
       }
       if (check) break

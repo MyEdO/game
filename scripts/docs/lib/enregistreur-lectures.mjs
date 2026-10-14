@@ -25,7 +25,7 @@ import childProcess from 'node:child_process'
 import path from 'node:path'
 import { register, syncBuiltinESMExports } from 'node:module'
 import { isMainThread } from 'node:worker_threads'
-import { canoniser, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { normaliserRequeteMesuree, verifierRequeteMesuree } from '../../guards/lib/requeteMesuree.mjs'
 import { correspondGlob, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 
@@ -64,12 +64,7 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
   const cheminsRejetes = new Set()
   // Un `realpathSync.native` est un appel système (0,048 ms mesuré) et un générateur relit les mêmes
   // chemins des milliers de fois : la canonisation se mémorise pour la durée de la mesure.
-  const canoniques = new Map()
-  const canoniserMemo = (p) => {
-    let c = canoniques.get(p)
-    if (c === undefined) canoniques.set(p, (c = canoniser(p)))
-    return c
-  }
+  const canoniserMemo = canoniseurParDossier()
 
   /**
    * Chemin RELATIF POSIX retenu, ou `null` (hors racine, exclu, cible, ou descripteur de fichier).

@@ -11,7 +11,7 @@
 // n'est ni un fichier lu, ni un dossier listé, ni une entrée de listing : un clone propre ne l'a pas.
 import fs from 'node:fs'
 import path from 'node:path'
-import { correspondGlob } from '../../guards/lib/lister.mjs'
+import { correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 
 /** Ancêtre EXISTANT le plus proche d'un chemin absolu (lui-même s'il existe), ou `null` quand rien
@@ -60,6 +60,44 @@ export function canoniser(chemin, { strict = false } = {}) {
 }
 
 /**
+ * `canoniser` (non strict) MÉMORISÉ PAR DOSSIER (#2603) : le dossier parent se canonise une fois, la
+ * feuille se cherche dans les noms mémorisés de ce dossier. Une feuille absente sous son nom exact,
+ * ou qui est un lien (jonction comprise), repasse par `canoniser`. Une mémoire vit le temps
+ * d'UNE vue ou d'UNE mesure : le disque qu'elle a lu ne s'y relit plus.
+ */
+export function canoniseurParDossier() {
+  const dossiers = new Map()
+  const noms = new Map()
+  const dossierCanonique = (dossier) => {
+    let canonique = dossiers.get(dossier)
+    if (canonique === undefined) dossiers.set(dossier, (canonique = canoniser(dossier)))
+    return canonique
+  }
+  const nomsDe = (dossier) => {
+    let presents = noms.get(dossier)
+    if (presents === undefined) {
+      try { presents = new Set(listerDossier(dossier)) } catch { presents = new Set() }
+      noms.set(dossier, presents)
+    }
+    return presents
+  }
+  const estLien = (abs) => { try { return fs.lstatSync(abs).isSymbolicLink() } catch { return true } }
+  const canoniques = new Map()
+  const canoniserFeuille = (abs) => {
+    const dossier = path.dirname(abs)
+    const feuille = path.basename(abs)
+    if (dossier === abs || !nomsDe(dossier).has(feuille) || estLien(abs)) return canoniser(abs)
+    return path.join(dossierCanonique(dossier), feuille)
+  }
+  return (chemin) => {
+    const abs = path.resolve(chemin)
+    let canonique = canoniques.get(abs)
+    if (canonique === undefined) canoniques.set(abs, (canonique = canoniserFeuille(abs)))
+    return canonique
+  }
+}
+
+/**
  * Chemin RELATIF POSIX du chemin lu sous la racine, `''` pour la racine elle-même, ou `null` quand
  * il est HORS racine (le seul cas qui compte comme rejet). La racine est attendue déjà canonique
  * (`canoniser` une fois à l'installation) : les deux formes se comparent alors sur la même base.
@@ -78,7 +116,9 @@ export const EXCLUSIONS_FIXES = ['.git', 'node_modules', path.posix.dirname(CACH
 export function dansLaMesure(rel, ignores, derivees = new Set(), motifsDeclares = []) {
   if (EXCLUSIONS_FIXES.some((p) => rel === p || rel.startsWith(`${p}/`))) return false
   if (motifsDeclares.some((motif) => correspondGlob(rel, motif))) return true
-  if (derivees.has(rel) || [...derivees].some((p) => p.startsWith(`${rel}/`))) return true
+  if (derivees.has(rel)) return true
+  const prefixe = `${rel}/`
+  for (const p of derivees) if (p.startsWith(prefixe)) return true
   for (let fin = rel.length; fin > 0; fin = rel.lastIndexOf('/', fin - 1)) if (ignores.has(rel.slice(0, fin))) return false
   return true
 }
