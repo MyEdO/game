@@ -15,6 +15,7 @@ const empreinte = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const egaux = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const RACINE_OUTILLAGE = fileURLToPath(new URL('../../../', import.meta.url))
 
+const OUTILS = ['package.json', 'package-lock.json']
 const PRECHARGES = ['scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs']
 const LIB_DES_DOCS = 'scripts/docs/lib'
 const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => rel.endsWith('.mjs') && !rel.endsWith('.test.mjs') })
@@ -53,7 +54,13 @@ export function vueApresGenerateur(vue, options, preuve, g, perimetre, ecrits) {
   return photographier(vue.racine, options, preuve, lireMesure(vue.racine, options, true), undefined, perimetre, { vue, touche, selectionTouchee })
 }
 
-function photographier(racine, options, preuve, mesures, outillagePrecedent, perimetre, reprise) {
+/** #2603 */
+function vueDeContexte(racine, outillagePrecedent, perimetre = perimetreDeMesure(racine)) {
+  const canon = canoniseurParDossier()
+  return { hashes: new Map(OUTILS.map((rel) => [rel, hashFichier(racine, rel, undefined, canon)])), outillage: mesurerOutillage(outillagePrecedent, canon), perimetre, ignores: perimetre.ignores }
+}
+
+function photographier(racine, options, preuve, mesures, outillagePrecedent, perimetre, reprise, portee) {
   const canon = canoniseurParDossier()
   const reprendre = (carte, cle, rel, mesurer) => reprise?.vue[carte].has(cle) && !reprise.touche(rel) ? reprise.vue[carte].get(cle) : mesurer()
   const entrees = Object.values({ ...mesures, ...Object.fromEntries(Object.entries(preuve?.generateurs ?? {}).map(([s, r]) => [s, r.mesure])) })
@@ -61,7 +68,8 @@ function photographier(racine, options, preuve, mesures, outillagePrecedent, per
   const motifs = [options.generateurs.flatMap((g) => g.targets), ...options.generateurs.map((g) => [...g.targets, ...(g.injecte ?? [])])]
   const selections = new Map(motifs.map((m) => [JSON.stringify(m), m]))
   const cibles = new Map([...selections].map(([cle, m]) => [cle, reprise?.vue.cibles.has(cle) && !reprise.selectionTouchee(m) ? reprise.vue.cibles.get(cle) : options.ciblesSurDisque(m, racine)]))
-  const fichiers = new Set(['package.json', 'package-lock.json', ...options.generateurs.map((g) => g.script), ...[...cibles.values()].flat(), ...entrees.flatMap((e) => e.fichiers ?? [])])
+  const haches = portee ? [portee.script, ...cibles.get(JSON.stringify([...portee.targets, ...(portee.injecte ?? [])]))] : [...options.generateurs.map((g) => g.script), ...[...cibles.values()].flat()]
+  const fichiers = new Set([...OUTILS, ...haches, ...entrees.flatMap((e) => e.fichiers ?? [])])
   const hashes = new Map([...fichiers].map((rel) => [rel, reprendre('hashes', rel, rel, () => hashFichier(racine, rel, undefined, canon))]))
   const listings = new Map([...new Set(entrees.flatMap((e) => e.dossiers ?? []))].map((rel) => [rel, reprendre('listings', rel, rel, () => listing(racine, rel, canon))]))
   const requetes = new Map(entrees.flatMap((e) => (e.git ?? []).map((q) => [JSON.stringify(q), q])))
@@ -137,7 +145,7 @@ function contexte(racine, g, vue) {
   return {
     generateur: g,
     runtime: [process.version, process.platform, process.arch],
-    outils: ['package.json', 'package-lock.json'].map((rel) => [rel, hashFichier(racine, rel, vue)]),
+    outils: OUTILS.map((rel) => [rel, hashFichier(racine, rel, vue)]),
     outillage: vue?.outillage ?? mesurerOutillage(),
     perimetre: (vue?.perimetre ?? perimetreDeMesure(racine)).signature,
   }
@@ -247,8 +255,7 @@ export function preparerPreuves(racine, options) {
 }
 
 export function avantGenerateur(racine, g, options, preparation) {
-  const entree = preparation.mesure[g.script]
-  const vue = nouvelleVue(racine, options, null, entree ? { [g.script]: entree } : {}, preparation.vue.outillage)
+  const vue = vueDeContexte(racine, preparation.vue.outillage)
   const initial = contexte(racine, g, preparation.vue)
   const actuel = contexte(racine, g, vue)
   for (const champ of Object.keys(initial)) if (!egaux(initial[champ], actuel[champ])) throw new Error(`contexte modifié depuis préparation : ${champ}`)
@@ -258,7 +265,7 @@ export function avantGenerateur(racine, g, options, preparation) {
 export function certifierGenerateur(racine, g, entree, options, avant) {
   try {
     const preuve = { version: 2, generateurs: { [g.script]: { mesure: entree, sources: { contexte: avant.contexte } } } }
-    const vue = nouvelleVue(racine, options, preuve, {})
+    const vue = photographier(racine, options, preuve, {}, undefined, perimetreDeMesure(racine), undefined, g)
     const sources = mesurerSources(racine, g, entree, options, vue)
     if (!egaux(sources.contexte, avant.contexte)) throw new Error('outillage modifié pendant génération')
     const anciensFichiers = avant.baseline.fichiers
@@ -275,7 +282,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     const sondesMesurees = (entree.sondes ?? []).filter((q) => dansLaMesure(q.chemin, vue.ignores, deriveesMesurees, motifsDeclares))
     if (!egaux(sources.git, entree.git ?? []) || !egaux(sources.sondes, sondesMesurees)) throw new Error('requête ou sonde modifiée pendant génération')
     const record = { mesure: entree, sources, sorties: mesurerSorties(racine, g, options, vue) }
-    const finale = nouvelleVue(racine, options, preuve, {}, undefined, vue.perimetre)
+    const finale = photographier(racine, options, preuve, {}, undefined, vue.perimetre, undefined, g)
     if (!egaux(sources, mesurerSources(racine, g, entree, options, finale))) throw new Error('source modifiée pendant certification')
     const ignores = finale.ignores
     const derivees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
