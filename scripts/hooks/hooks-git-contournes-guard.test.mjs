@@ -133,3 +133,22 @@ test('G3 : `--no-verify` sous une sous-commande qui peut être un alias est refu
     assert.equal(sortie(command), null, command)
   }
 })
+
+test('#2537 — fonction shell : un `{` argument n’ouvre aucun corps, `"$@"` porte les mots de l’appel', () => {
+  for (const command of ['f(){ echo {; }; git commit --no-verify -m x', 'git(){ command git "$@"; }; git commit --no-verify -m x', 'f(){ git "$@"; }; f commit --no-verify -m x']) {
+    assert.ok(evaluate(command), command)
+  }
+  assert.equal(evaluate('f(){ git "$@"; }; f log --no-walk'), null)
+})
+
+test('#2537 — positionnels liés : `shift`, `"${@}"`, `"${1:-}"` et `set --` portent `--no-verify` jusqu’au commit ; liés ailleurs, ils passent', () => {
+  for (const command of [
+    'f(){ shift; git commit "$1" -m x; }; f y --no-verify', 'f(){ git "${@}"; }; f commit --no-verify -m x',
+    'f(){ git commit "${1:-}" -m x; }; f --no-verify', 'set -- --no-verify; git commit "$@" -m x',
+  ]) {
+    assert.match(evaluate(command)?.reason ?? '', /git commit --no-verify/, command)
+  }
+  for (const command of ['f(){ shift; git commit "$1" -m x; }; f --no-verify y', 'set -- -q; git commit "$@" -m x', 'f(){ git commit "${1:-}" -m x; }; f']) {
+    assert.equal(evaluate(command), null, command)
+  }
+})

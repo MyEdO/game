@@ -484,7 +484,7 @@ export const ECRIT_LU = {
       '`build-atlas-index.mjs`, ACQUIS par l’import de son banc — son `writeFileSync` vit dans ' +
       '`main()`, sous sa porte `import.meta.main` ; +1 lecture le 2026-09-22 (#1873) : ' +
       '`atlas-domain.workflow.test.mjs` lit les fiches d’agent de .claude/agents/ (frontmatter `tools:`) ' +
-      'pour tenir la liste des types SANS outil d’écriture (`typesEnLectureSeule` de scripts/raw/atlas-domain.workflow.test.mjs) — ' +
+      'pour tenir la liste des types SANS outil d’écriture (`typesEnLectureSeule` de scripts/guards/lib/typesDAgent.mjs) — ' +
       'la gate n’est plus sautable : un push qui donne `Edit` à `lecteur` doit la jouer ; +1 écrivain le ' +
       '2026-09-23 (#1739) : `pdf-de.test.mjs`, même régime os.tmpdir() (`avecSource`) — son PDF et ses dossiers de sortie Marker ' +
       'factices ne naissent que sous la racine `source` INJECTÉE dans la couture (scripts/raw/_lib.mjs)',

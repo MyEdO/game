@@ -50,7 +50,7 @@ for (const [rel, text] of [
 ]) test(`parité native texte, positions UTF16, dialecte et diagnostics : ${rel}`, () => {
   const { sourceFile: sf, diagnostics } = analyserTexte({ rel, text });
   assert.equal(sf.text, text);
-  assert.equal(sf.fileName, path.resolve(rel).replaceAll('\\', '/'));
+  assert.equal(sf.fileName, path.resolve(virtuel(rel)).replaceAll('\\', '/'));
   assert.equal(sf.end, text.length);
   assert.equal(sf.scriptKind, scriptKindDe(rel));
   for (const n of sf.statements) assert.equal(n.getText(sf), text.slice(n.getStart(sf), n.end));
@@ -64,6 +64,9 @@ for (const [rel, text] of [
   } else assert.deepEqual(diagnostics, []);
 });
 
+/** Le nom virtuel d'un `rel` au corpus : son extension de dialecte en minuscules (`analyserCorpus`). */
+function virtuel(rel) { return rel.replace(/\.[^./]+$/, (ext) => ext.toLowerCase()); }
+
 test('la casse des noms originaux reste distincte dans le même corpus', () => {
   const fichiers = [
     { rel: 'EntreeMajuscule.TS', text: 'export const premier = "😀";' },
@@ -73,7 +76,7 @@ test('la casse des noms originaux reste distincte dans le même corpus', () => {
   assert.equal(analyses.length, fichiers.length);
   for (let i = 0; i < fichiers.length; i++) {
     assert.equal(analyses[i].fichier, fichiers[i]);
-    assert.equal(analyses[i].sourceFile.fileName, path.resolve(fichiers[i].rel).replaceAll('\\', '/'));
+    assert.equal(analyses[i].sourceFile.fileName, path.resolve(virtuel(fichiers[i].rel)).replaceAll('\\', '/'));
     assert.equal(analyses[i].sourceFile.text, fichiers[i].text);
     assert.deepEqual(analyses[i].diagnostics, []);
   }

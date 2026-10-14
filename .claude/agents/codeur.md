@@ -24,6 +24,11 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
   worktree, tout `ctx_patch`/`ctx_read` prend un chemin ABSOLU (les chemins relatifs se résolvent
   contre la racine lean-ctx = l'arbre principal) ; au rendu, sonde `git status --short` de l'arbre
   principal et signale toute fuite. Tu écris des fichiers ; l'orchestrateur gère git.
+- **`ctx_patch` : un fichier par appel.** Un lot `ops` qui nomme plus d'un `path` est refusé
+  (`lotAmbigu`, `scripts/guards/lib/contratGarde.mjs`).
+- **Fichiers temporaires : dans le scratchpad de la session, sous un préfixe propre à ton lot**, jamais
+  dans `/tmp`. Jamais de `rm` à motif glob (`rm -f /tmp/sk.*`) : il efface les fichiers des autres
+  sessions (#1595 S11).
 - RÉUTILISE les primitives nommées au brief (`docs/primitives.md`). Spec
   contredite par le code réel ou par le `Source/` → STOPPE et rapporte l'écart, jamais improviser ni
   coder la règle fausse.
@@ -33,7 +38,8 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
   `scripts/test/perimetre.mjs`) ; aucune liste écrite à la main, la tienne comme celle du brief.
   **`test:perimetre` tourne SEUL dans son appel** (jamais enchaîné au typecheck) et **une fois au vert, en
   fin de travail** : un rouge s'itère sur le SEUL fichier rouge (`node --test <fichier>`,
-  `npm test -- <chemins>`), puis un dernier `test:perimetre` (#2568), en fond et sondé (puce Shell). Ton rendu colle les lignes `[perimetre]` du rapport (rangs, budget,
+  `npm test -- <chemins>`, chemins EN CLAIR : un chemin en variable rend le filtre invérifiable et
+  `[gates-ci]` refuse ; #1595 S10, S11, juge de #1765), puis un dernier `test:perimetre` (#2568), en fond et sondé (puce Shell). Ton rendu colle les lignes `[perimetre]` du rapport (rangs, budget,
   ce qui part à la CI).
   Les GATES du train (lint, deps:unused, docs:build, suites entières, `npm run gates`, tsc/vitest nus)
   appartiennent au run CI de la branche, qui les joue UNE fois : un brief qui te les impose se

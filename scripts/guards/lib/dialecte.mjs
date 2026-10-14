@@ -18,7 +18,9 @@ export function* analyserCorpus(fichiers, options = {}) {
   const entrees = Array.from(fichiers, (fichier) => {
     const kind = scriptKindDe(fichier.rel, options);
     const ext = String(fichier.rel).replaceAll('\\', '/').split('.').pop().toLowerCase();
-    return { fichier, chemin: path.resolve(`${fichier.rel}${Object.hasOwn(DIALECTE, ext) ? '' : '.ts'}`).replaceAll('\\', '/'), kind };
+    const rel = String(fichier.rel);
+    const virtuel = Object.hasOwn(DIALECTE, ext) ? `${rel.slice(0, rel.length - ext.length)}${ext}` : `${rel}.ts`;
+    return { fichier, chemin: path.resolve(virtuel).replaceAll('\\', '/'), kind };
   });
   const chemins = new Map();
   for (const { fichier, chemin, kind } of entrees) {

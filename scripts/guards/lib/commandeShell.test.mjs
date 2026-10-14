@@ -5,13 +5,25 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { resolve } from 'node:path'
 import { CAS_HOTE_POWERSHELL, argumentsDuCas } from '../../hooks/hote-powershell-cas.mjs'
-import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine, borneDeVie, secondesDeDuree, valeurParametre, pipelinesDeJetons, texteDuSegment, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance } from './commandeShell.mjs'
+import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine, borneDeVie, secondesDeDuree, valeurParametre, pipelinesDeJetons, texteDuSegment, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, nouveauBudget } from './commandeShell.mjs'
+import { ciblesDEcritureDeCommande } from './ecrituresShell.mjs'
 
 test('redirections : provenance de la cible séparée ou collée', () => {
   const [segment] = pipelinesDeJetons('echo \'$P/x\' > "$P/x" 2>$P/y').flat()
   const cibles = ciblesDeRedirectionAvecProvenance(segment.jetons)
   assert.deepEqual(cibles.map((j) => [j.text, j.raw]), [['$P/x', '"$P/x"'], ['$P/y', '$P/y']])
   assert.ok(cibles[0].quote)
+})
+
+test('#2537 — un opérateur échappé hors quote reste dans le mot, un `\\` de chemin Windows reste littéral', () => {
+  const textes = (commande) => pipelinesDeJetons(commande).flat().map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(textes('find . -exec rm {} \\; -print'), [['find', '.', '-exec', 'rm', '{}', ';', '-print']])
+  assert.deepEqual(textes('echo a\\|b \\> c'), [['echo', 'a|b', '>', 'c']])
+  assert.deepEqual(textes('dir depot\\src\\x'), [['dir', 'depot\\src\\x']])
+  const powershell = (commande) => pipelinesDeJetons(commande, 0, { powershell: true }).flat().map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(powershell('cd depot\\; echo a \\> c'), [['cd', 'depot\\'], ['echo', 'a', '\\', '>', 'c']], 'sous PowerShell, `\\` est littéral (about_Special_Characters)')
+  assert.deepEqual(powershell('echo "a\\" b'), [['echo', 'a\\', 'b']])
+  assert.deepEqual(powershell('Get-Date `\n-Format o'), [['Get-Date', '-Format', 'o']])
 })
 
 test('cibleDeLaCommande : paramètres de cwd, base inconnue et restauration absolue', () => {
@@ -105,6 +117,188 @@ test('argumentChaine : l\'hôte lit sa commande ENTIÈRE, jointe, après ses par
   assert.equal(argumentChaine(['pwsh', '-NoProfile', '-c']), null)
 })
 
+test('#2537 — fonction shell : la définition LIE son corps, l’appel l’exécute dans le shell de l’appel', () => {
+  const executes = (commande, options) => pipelinesDeJetons(commande, 0, options).flat().filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text))
+  const powershell = { powershell: true }
+  assert.deepEqual(executes('f(){ rm x; }'), [], 'définie, jamais appelée')
+  assert.deepEqual(executes('f(){ rm x; }; f'), [['rm', 'x']], '`nom()`')
+  assert.deepEqual(executes('f () { rm x; }; f'), [['rm', 'x']], '`nom ()`')
+  assert.deepEqual(executes('function f { rm x; }; f'), [['rm', 'x']], '`function nom`')
+  assert.deepEqual(executes('function f() { rm x; }; f > o.txt'), [['rm', 'x'], ['>', 'o.txt']], '`function nom()`, l’appel garde ses redirections')
+  assert.deepEqual(executes('f() ( rm x ); f'), [['rm', 'x']], 'corps `( … )`')
+  assert.deepEqual(executes('f() if true; then rm x; fi; f'), [['true'], ['rm', 'x']], 'corps `if`')
+  assert.deepEqual(executes('f() for i in a; do rm $i; done; f'), [['for', 'i', 'in', 'a'], ['rm', '$i']], 'corps `for`')
+  assert.deepEqual(executes('function Nettoie { Remove-Item x }; nettoie', powershell), [['Remove-Item', 'x']], '`function` PowerShell, nom sans casse')
+  assert.deepEqual(executes('function f($a, $b) { Remove-Item $a }; f y z', powershell), [['Remove-Item', 'y']], 'paramètres PowerShell liés à l’appel')
+  assert.deepEqual(executes('filter script:g { rm x }; & g', powershell), [['rm', 'x']], '`filter` à portée, opérateur d’appel')
+  assert.deepEqual(executes('f(){ rm x }; f', powershell), [['f(){', 'rm', 'x', '}'], ['f']], '`nom()` n’est pas une définition PowerShell')
+  assert.deepEqual(executes('f(){ rm x; }; command f; builtin f'), [['f'], ['f']], '`command`/`builtin` ne résolvent pas la fonction')
+  assert.deepEqual(executes('f(){ rm x; }; bash -c f'), [['f'], ['bash', '-c', 'f']], 'processus neuf : aucune fonction héritée')
+  assert.deepEqual(executes('( f(){ rm x; } ); f'), [['f']], 'définie dans un sous-shell : perdue à sa sortie')
+  assert.deepEqual(executes('f(){ rm x; }; (f); echo $(f)'), [['rm', 'x'], ['rm', 'x'], ['echo', '$(f)']], 'sous-shell et substitution héritent')
+  assert.deepEqual(executes('f(){ rm x; } | cat; f'), [['cat'], ['f']], 'définie dans un membre de tube : perdue')
+  assert.deepEqual(executes('( a(b) )'), [['a(b)']], 'la `)` d’un mot ferme sa propre parenthèse, pas le sous-shell')
+  const appel = pipelinesDeJetons('f(){ cd a; }; f').flat()
+  assert.equal(appel.find((s) => s.jetons[0]?.text === 'cd').shell, appel.at(-1).shell, 'le corps s’exécute dans le shell de l’appel')
+  const budget = nouveauBudget()
+  pipelinesDeJetons('f(){ f; }; f', 0, { budget })
+  assert.equal(budget.sature, true, 'récursion bornée par `PROFONDEUR_MAX_ENROBEURS`')
+})
+
+test('#2537 — fonction shell : son corps se juge au cwd de l’appel, sa tête n’est pas un exécutable', () => {
+  const DRIVE = 'C' + ':'
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: `${DRIVE}/repo`, platform: 'win32' }).map((c) => [c.operation, c.chemin, c.inconnue])
+  assert.deepEqual(cibles(`f(){ rm x; }; cd ${DRIVE}/hors; f`), [['rm', `${DRIVE}\\hors\\x`, false]])
+  assert.deepEqual(cibles('strip(){ sed -i s/a/b/ "$1"; }; strip githooks.html'), [['sed', `${DRIVE}\\repo\\githooks.html`, false]], '`$1` est le mot de l’appel ; `strip` n’est plus l’écrivain binutils')
+  assert.deepEqual(cibles(`f(){ echo {; }; rm ${DRIVE}/hors/x`), [['rm', `${DRIVE}\\hors\\x`, false]], 'un `{` argument n’ouvre rien')
+  assert.deepEqual(cibles(`f(){ echo } > ${DRIVE}/hors/r; }; f`), [['redirection', `${DRIVE}\\hors\\r`, false]], 'un `}` argument ne ferme rien')
+  assert.deepEqual(cibles(`f(){ echo; } > ${DRIVE}/hors/r; f`), [['redirection', `${DRIVE}\\hors\\r`, false]], 'la redirection de la définition vaut à chaque appel')
+  assert.deepEqual(cibles(`f(){ cat a > "$1"; }; f ${DRIVE}/hors/x`), [['redirection', `${DRIVE}\\hors\\x`, false]])
+  assert.deepEqual(cibles('f(){ rm "$1"; }; f "$INCONNUE"'), [['rm', null, true]], 'un argument non constant reste non résolu')
+})
+
+test('#2537 — fonction shell : `{`/`}` réservés en position de commande seulement (XCU 2.4), délimiteurs partout en PowerShell', () => {
+  const executes = (commande, options) => pipelinesDeJetons(commande, 0, options).flat().filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(executes('f(){ echo {; }; rm x'), [['rm', 'x']])
+  assert.deepEqual(executes('f(){ echo }; }; f'), [['echo', '}']])
+  assert.deepEqual(executes('f(){ { echo a; }; }; f'), [['echo', 'a']], 'groupe imbriqué en position de commande')
+  assert.deepEqual(executes('function f { echo a }; rm x', { powershell: true }), [['rm', 'x']], 'PowerShell : le `}` argument ferme le corps')
+})
+
+test('#2537 — fonction shell : `$1…$n`, `$@`, `$*` liés aux mots de l’appel (XCU 2.5.2)', () => {
+  const executes = (commande) => pipelinesDeJetons(commande).flat().filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(executes('git(){ command git "$@"; }; git commit --no-verify -m x'), [['git', 'commit', '--no-verify', '-m', 'x']])
+  assert.deepEqual(executes('f(){ rm $@ $*; }; f a b'), [['rm', 'a', 'b', 'a', 'b']])
+  assert.deepEqual(executes('f(){ rm $@ $1; }; f "b c"'), [['rm', '$@', '$1']], 'hors quote, un argument découpé en champs n’est pas lié (XCU 2.6.5)')
+  assert.deepEqual(executes('f(){ echo "$*" "${2}" x$1y "$3" $3; }; f a b'), [['echo', 'a b', 'b', 'xay', '']], '`"$*"` un mot ; un positionnel absent : mot vide sous quote, rien nu')
+  assert.deepEqual(executes('f(){ rm "$@"; }; f'), [['rm']], '`"$@"` sans argument : zéro mot')
+  assert.deepEqual(executes('f(){ rm "$1" "a$1"; }; f "$X"'), [['rm', '$1', 'a$1']], 'argument non constant : non lié, le corps peut changer `X`')
+  assert.deepEqual(executes('f(){ X=ok; rm "$1"; }; X=/hors; f "$X"'), [['rm', '$1']], 'jamais un lien littéral faux')
+  assert.deepEqual(executes('f(){ g "$@"; }; g(){ rm "$2"; }; f a b'), [['rm', 'b']], 'liaison à travers deux appels')
+  assert.deepEqual(executes("f(){ echo '$1'; }; f a"), [['echo', '$1']], 'sous quote simple, rien ne se développe')
+})
+
+test('#2537 — positionnels : formes accolées et à opérateur, `shift` et `set` (XCU 2.5.1, 2.5.2, 2.6.2, 2.14)', () => {
+  const executes = (commande) => pipelinesDeJetons(commande).flat().filter((s) => s.jetons.length > 0).map((s) => s.jetons.map((j) => j.text))
+  assert.deepEqual(executes('f(){ shift; git commit "$1" -m x; }; f y --no-verify'), [['shift'], ['git', 'commit', '--no-verify', '-m', 'x']])
+  assert.deepEqual(executes('f(){ shift 2; rm "$@"; }; f a b c'), [['shift', '2'], ['rm', 'c']])
+  assert.deepEqual(executes('f(){ git "${@}" "${*}"; }; f a b'), [['git', 'a', 'b', 'a b']])
+  assert.deepEqual(executes('f(){ rm "${1:-d}" "${2-e}" "${1:+p}" "${#}" "${#1}" "${1#a}" "${1%c}"; }; f abc'), [['rm', 'abc', 'e', 'p', '1', '3', 'bc', 'ab']])
+  assert.deepEqual(executes('f(){ rm "${1#*}" "${1:-$X}"; }; f a'), [['rm', '${1#*}', '${1:-$X}']], 'motif ou mot non constant : non lié')
+  assert.deepEqual(executes('set -- --no-verify; git commit "$@" -m x'), [['set', '--', '--no-verify'], ['git', 'commit', '--no-verify', '-m', 'x']])
+  assert.deepEqual(executes('f(){ set -- "$2" "$1"; rm "$1"; }; f a b'), [['set', '--', 'b', 'a'], ['rm', 'b']])
+  assert.deepEqual(executes('set -e; git "$@"'), [['set', '-e'], ['git', '$@']], 'des options seules ne lient rien')
+  for (const [commande, sens] of [
+    ['f(){ [ x ] && shift; rm "$1"; }; f a b', 'shift conditionnel'],
+    ['f(){ while true; do rm "$1"; shift; done; }; f a b', 'shift dans une boucle, dès son ouverture'],
+    ['f(){ case x in a) shift;; esac; rm "$1"; }; f a b', 'case'],
+    ['f(){ eval shift; rm "$1"; }; f a b', 'eval'],
+    ['f(){ set -- "$X"; rm "$1"; }; f a', 'set non constant'],
+    ['f(){ shift 3; rm "$1"; }; f a', 'shift au-delà de $#'],
+    ['x && set -- a; rm "$1"', 'set conditionnel au niveau 0'],
+  ]) assert.deepEqual(executes(commande).find(([tete]) => tete === 'rm'), ['rm', '$1'], sens)
+  assert.deepEqual(executes('f(){ g(){ rm "$1"; }; }; f a; rm x'), [['rm', 'x']], 'le corps d’une fonction définie dans un corps garde ses positionnels')
+  assert.deepEqual(executes('f(){ echo $(rm "$1"); }; f a').at(0), ['rm', 'a'], 'une substitution hérite de la liaison')
+})
+
+test('#2537 — parenthèses : une seule pile, la `)` d’une parenthèse de mot reste dans son mot', () => {
+  const lus = (commande, options) => pipelinesDeJetons(commande, 0, options).map((p) => p.map((s) => texteDuSegment(s)))
+  const ps = "(Get-CimInstance W | Where-Object { $_.Contains(vitest.mjs run --max) }).CommandLine"
+  const segments = lus(ps, { powershell: true }).flat()
+  assert.ok(segments.includes('$_.Contains(vitest.mjs run --max)'), JSON.stringify(segments))
+  assert.ok(!segments.includes(''), `aucun segment vide : ${JSON.stringify(segments)}`)
+  const bash = "bash -c 'until powershell -NoProfile -Command \"(Get-CimInstance Win32_Process | Where-Object { \\$_.CommandLine.Contains(''vitest.mjs run --max'') }).CommandLine\" | grep -q m; do sleep 3; done'"
+  assert.ok(!lus(bash).flat().includes(''), 'cas du juge, sans segment vide fantôme')
+  const compte = "(Select-String -Path (Get-ChildItem -Recurse -Include *.ts,*.tsx src | ForEach-Object FullName) -Pattern \"type: 'scene'\" | Measure-Object).Count; z"
+  assert.deepEqual(lus(compte, { powershell: true }), [
+    ['Get-ChildItem -Recurse -Include *.ts,*.tsx src', 'ForEach-Object FullName'],
+    ["Select-String -Path (Get-ChildItem -Recurse -Include *.ts,*.tsx src | ForEach-Object FullName) -Pattern \"type: 'scene'\"", 'Measure-Object'],
+    ['z'],
+  ])
+  for (const [commande, options, attendu] of [
+    ['(a | b); c', {}, [['a', 'b'], ['c']]],
+    ['(a) | b', {}, [['a', 'b']]],
+    ['{ a; }; c', {}, [['a'], ['c']]],
+    ['{ a; } > f; c', {}, [['a'], ['> f'], ['c']]],
+    ['X=1; c', {}, [['X=1'], ['c']]],
+    ['env | b', {}, [['', 'b']]],
+    ['(Get-X | Y).Prop; z', { powershell: true }, [['Get-X', 'Y'], ['z']]],
+  ]) assert.deepEqual(lus(commande, options), attendu, commande)
+})
+
+test('#2537 — mots réservés : un motif de `case`, `fi`, `done`, `esac` ne sont aucune commande (man bash, Compound Commands)', () => {
+  const lus = (commande) => pipelinesDeJetons(commande).map((p) => p.map((s) => texteDuSegment(s)))
+  for (const [commande, attendu] of [
+    ['case x in a) rm /h/y;; esac', [['case x in'], ['rm /h/y']]],
+    ['case x in a|b) rm /h/y;; (c) z;; *) w;; esac; q', [['case x in'], ['rm /h/y'], ['z'], ['w'], ['q']]],
+    ['( case x in a) rm /h/y;; esac ); q', [['case x in'], ['rm /h/y'], ['q']]],
+    ['case $(m) in a) x;& b) y;;& *) z; esac > /h/o', [['m'], ['case $(m) in'], ['x'], ['y'], ['z'], ['> /h/o']]],
+    ['while x; do y; done < f; z', [['x'], ['y'], ['< f'], ['z']]],
+    ['if a; then b; else c; fi', [['a'], ['b'], ['c']]],
+  ]) assert.deepEqual(lus(commande), attendu, commande)
+  const [[condition], [corps], [fin]] = pipelinesDeJetons('while read p; do x; done < f')
+  assert.equal(condition.boucle.fin, fin, 'la fin de boucle est le segment de ses redirections')
+  assert.equal(corps.boucle, condition.boucle)
+  assert.equal(fin.boucle, null)
+  assert.deepEqual(ciblesDEcritureDeCommande('case x in a) rm /h/y;; esac', { base: '/b', platform: 'linux' }).map((c) => c.chemin), ['/h/y'])
+})
+
+test('#2537 — fonction exportée : `export -f`, `declare -fx` la passent au bash/sh enfant, les autres restent invisibles', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux' }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['f(){ rm /h/z; }; export -f f; bash -c f', ['/h/z']],
+    ['f(){ rm /h/z; }; declare -fx f; sh -c f', ['/h/z']],
+    ['f(){ rm /h/z; }; export -f f; bash -c "bash -c f"', ['/h/z']],
+    ['f(){ rm /h/z; }; bash -c f', []],
+    ['f(){ rm /h/z; }; (export -f f); bash -c f', []],
+    ['f(){ rm /h/z; }; export -f f; export -fn f; bash -c f', []],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
+test('#2537 — fonction PowerShell : `$args[n]` et `param(…)` liés aux arguments CONSTANTS de l’appel (about_Functions, about_Automatic_Variables)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['function f { Remove-Item $args[0] }; f /h/x', ['/h/x']],
+    ['function f { param($p) Remove-Item $p }; f /h/x', ['/h/x']],
+    ['function f($p, $q) { Remove-Item $q }; f /h/x /h/y', ['/h/y']],
+    ['function f { param([string]$p) Remove-Item "$p" }; f /h/x', ['/h/x']],
+    ['function f { Remove-Item $args[0] }; f $v', [null]],
+    ['function f { gci | % { Remove-Item $args[0] } }; f /h/x', [null]],
+    ['function f { param([Parameter(Position=1)]$p) Remove-Item $p }; f /h/x', [null]],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
+test('#2537 — `$args`, `@args` et `@PSBoundParameters` liés à l’appel (about_Automatic_Variables, about_Splatting)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['function f { Remove-Item $args }; f /h/a', ['/h/a']],
+    ['function f { Remove-Item $args }; f /h/a /h/b', [null]],
+    ['function f { Remove-Item @args }; f /h/a', ['/h/a']],
+    ["function f { Remove-Item '@args' }; f /h/a", ['/b/@args']],
+    ['function f { param($Path) Remove-Item @PSBoundParameters }; f /h/a', ['/h/a']],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
+test('#2537 — un motif de `case` développe ses substitutions (man bash, Compound Commands)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux' }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['case x in $(rm /h/y)) :;; esac', ['/h/y']],
+    ['case x in "$(rm /h/y)"|b) :;; esac', ['/h/y']],
+    ['case x in `rm /h/y`) :;; esac', ['/h/y']],
+    ["case x in '$(rm /h/y)') :;; esac", []],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
+test('#2537 — la `( … )` d’un `if`/`elseif`/`while`/`for`/`switch` PowerShell s’exécute ; `do … while` est un bloc (about_If, about_Do)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => c.chemin)
+  for (const [commande, attendu] of [
+    ['if (Test-Path x) { rm x } elseif ($b -gt 1) { rm /h/y }', ['/b/x', '/h/y']],
+    ['if ($a) { rm a } elseif ($b) { rm b } else { rm c }', ['/b/a', '/b/b', '/b/c']],
+    ['do { rm a } while ($x)', ['/b/a']],
+    ['if (Remove-Item /h/c) { 1 }', ['/h/c']],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
 test('#2603 — secondesDeDuree : un nombre, suffixe `s`, `m`, `h` ou `d` ; `null` si illisible', () => {
   assert.deepEqual(['42', '1.5', '30s', '2m', '1.5h', '1d', '0'].map((texte) => secondesDeDuree(texte)), [42, 1.5, 30, 120, 5400, 86400, 0])
   for (const texte of ['', 'soudain', '2x', '-5', '.5', '1m30s', 'infinity']) assert.equal(secondesDeDuree(texte), null, texte)
@@ -113,7 +307,7 @@ test('#2603 — secondesDeDuree : un nombre, suffixe `s`, `m`, `h` ou `d` ; `nul
 test('#2603 — borneDeVie : le `timeout` de tête du segment ou de ses porteurs (`deploiePar`, `bloc`), `&` qui échappe', () => {
   const bornes = (commande) => pipelinesDeJetons(commande).flat().filter((s) => s.jetons.length > 0)
     .map((s) => [s.jetons.map((j) => j.text).join(' '), borneDeVie(s)])
-  assert.deepEqual(bornes('timeout 3000 npm run dev'), [['node scripts/lancer-local.mjs vite -- vite', 3000], ['npm run dev', 3000]])
+  assert.deepEqual(bornes('timeout 3000 npm run dev'), [['vite', 3000], ['npm run dev', 3000]])
   assert.deepEqual(bornes('timeout -k 5 --signal KILL 2h bash -c "sleep 9"'), [['sleep 9', 7200], ['bash -c sleep 9', 7200]])
   assert.deepEqual(bornes('timeout 1.5m sleep 9'), [['sleep 9', 90]])
   for (const commande of ['npm run dev', 'timeout 0 sleep 9', 'timeout soudain sleep 9', '(npm run dev &)', 'nohup npm run dev &']) {
@@ -121,6 +315,9 @@ test('#2603 — borneDeVie : le `timeout` de tête du segment ou de ses porteurs
   }
   assert.deepEqual(bornes('timeout 60 bash -c "(sleep 9 &)"').map(([, b]) => b), [null, 60])
   assert.deepEqual(bornes('timeout 60 npm run dev &').map(([, b]) => b), [60, 60])
+  assert.deepEqual(bornes('timeout 60 bash -c "f(){ sleep 9; }; f"').map(([, b]) => b), [60, 60])
+  assert.deepEqual(bornes('timeout 60 bash -c "f(){ sleep 9; }; f &"').map(([, b]) => b), [null, 60])
+  assert.deepEqual(bornes('f(){ sleep 9; }; timeout 5 bash -c "sleep 1"; f').map(([, b]) => b), [5, 5, null])
   const [deploye, porteur] = pipelinesDeJetons('timeout 5 bash -c "sleep 9"').flat()
   assert.equal(deploye.deploiePar, porteur)
   assert.equal(porteur.deploiePar, undefined)

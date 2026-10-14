@@ -101,7 +101,7 @@ const MAPPING_LIVRES = BOOKS.map((b) => '- ' + b.ab + ' = ' + b.dir + ' (langue 
 const LECTURE_SEULE = 'LECTURE SEULE — tu n ECRIS, ne modifies, ne crees et ne supprimes AUCUN fichier, nulle part : ni un fichier de source, ni une fiche, ni un brouillon, ni un scratch. Lire et rendre ta reponse structuree sont tes SEULS gestes.'
   + '\n' + 'Un passage de la source TRONQUE, fusionne, duplique ou visiblement abime ne se REPARE JAMAIS : tu le SIGNALES dans le champ `sourceAbimee` de ta reponse ([{ ref, constat }]), et tu cites la regle TELLE QUE le fichier la porte, troncature comprise. Reparer la source que tu cites, c est fabriquer ta preuve.'
 // Types d agent en LECTURE SEULE declares au depot (`.claude/agents/`) : leurs outils n incluent ni
-// Edit ni Write. REPERER et REDIGER lisent (`lecteur`) ; JUGER la completude ou la fidelite refute
+// Edit ni Write. REPERER lit (`lecteur`) ; REDIGER redige (`redacteur`) ; JUGER la completude ou la fidelite refute
 // (`juge`). Regime de chaque phase : `scripts/ops/workflows.test.mjs`.
 /** Les signalements de source ABIMEE du domaine COURANT. */
 let ABIMEES = []
@@ -264,7 +264,7 @@ async function applyGaps(dom, entries, gaps) {
     const existing = info.isNew ? null : entries.find((e) => e.topicId === info.topicId)
     const title = info.isNew ? info.title : (existing ? existing.title : info.topicId)
     const tid = info.isNew ? slug(info.title) : info.topicId
-    return agent(augmentPrompt(dom, existing ? existing.markdown : null, title, tid, info.gaps), { label: dom.domain + ':augment:' + tid, phase: 'Correction', agentType: 'lecteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
+    return agent(augmentPrompt(dom, existing ? existing.markdown : null, title, tid, info.gaps), { label: dom.domain + ':augment:' + tid, phase: 'Correction', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
       .then((rendu) => ficheDe(recolter(rendu, 'Correction'), tid))
   }))
   const map = new Map(entries.map((e) => [e.topicId, e]))
@@ -386,7 +386,7 @@ async function runDomain(domain) {
   log(dom.title + ' — inventaire : ' + inventory.length + ' elements')
 
   phase('Taxonomie')
-  const taxo = await agent(taxoPrompt(dom, inventory), { label: dom.domain + ':taxo', phase: 'Taxonomie', agentType: 'lecteur', model: 'opus', effort: 'medium', schema: TAXO_SCHEMA })
+  const taxo = await agent(taxoPrompt(dom, inventory), { label: dom.domain + ':taxo', phase: 'Taxonomie', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: TAXO_SCHEMA })
   recolter(taxo, 'Taxonomie')
   const TOPICS = (taxo && taxo.topics) || []
   if (!TOPICS.length) return { saute: 'taxonomie VIDE : aucun topic decoupe sur ' + inventory.length + ' elements inventories' }
@@ -402,7 +402,7 @@ async function runDomain(domain) {
   log(dom.title + ' — survey : ' + Object.values(byTopic).reduce((n, a) => n + a.length, 0) + ' passages ; ' + autre.length + ' hors-taxo')
 
   phase('Synthese')
-  let entries = (await parallel(TOPICS.map((t) => () => agent(synthPrompt(dom, t, byTopic[t.id] || [], t.covers), { label: dom.domain + ':synth:' + t.id, phase: 'Synthese', agentType: 'lecteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
+  let entries = (await parallel(TOPICS.map((t) => () => agent(synthPrompt(dom, t, byTopic[t.id] || [], t.covers), { label: dom.domain + ':synth:' + t.id, phase: 'Synthese', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
     .then((rendu) => ficheDe(recolter(rendu, 'Synthese'), t.id))))).filter(Boolean)
 
   let loops = 0

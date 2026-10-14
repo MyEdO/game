@@ -345,7 +345,7 @@ test('DENY : les faux négatifs de la sonde du juge', () => {
     'taskkill -im node.exe', 'taskkill /f /t /im node.exe', 'C:/Windows/System32/taskkill.exe /IM node.exe',
     '& taskkill /IM node.exe', 'sudo pkill node', 'nohup pkill node', 'env pkill node',
     'pgrep node | xargs -r kill', 'pgrep node | xargs -n1 kill -9', 'pgrep node | xargs -I{} kill {}',
-    'pidof node | xargs kill', 'killall -9 node', '/usr/bin/pkill -f vitest', 'pwsh -c "spps -n node"',
+    'pidof node | xargs kill', 'killall -9 node', '/usr/bin/pkill -f vitest', 'exec pkill node', 'pwsh -c "spps -n node"',
     'powershell.exe -NoProfile -Command "Get-Process -Name node | Stop-Process -Force"',
     'Invoke-Expression "taskkill /IM node.exe"', 'eval "pkill node"',
     'sh -c \'taskkill //F //IM grep.exe\'', 'cmd.exe /C "taskkill /IM node.exe"',
@@ -374,7 +374,6 @@ test('PASSE : les formes que la détection ne voit pas (en-tête du garde), chac
     "Write-Output 'Stop-Process -Name node' | pwsh -NoProfile -Command -", // #2172
     "Write-Output 'Stop-Process -Name node' | powershell -NoProfile", // #2172
     'pwsh -NoProfile -File arrete.ps1', // un script : hors de la ligne
-    'exec pkill node', // #2172
   ]) assert.equal(evaluate(cmd), null, cmd)
 })
 
@@ -766,8 +765,12 @@ test('DENY : la substitution de processus `<(…)`, `>(…)` exécute sa command
   for (const cmd of [
     'cat <(pkill node)', 'diff <(pkill node) x', 'tee >(pkill node) < x',
     'while read p; do kill $p; done < <(pgrep node)', 'read p < <(pgrep node); kill $p',
+    'while read p; do for q in 1; do echo $q; done; kill $p; done < <(pgrep node)',
   ]) assert.equal(evaluate(cmd)?.decision, 'deny', cmd)
-  for (const cmd of ['while read p; do kill $p; done < pids.txt', 'diff <(sort a) <(sort b)', 'arr=(pkill node)']) {
+  for (const cmd of [
+    'while read p; do kill $p; done < pids.txt', 'diff <(sort a) <(sort b)', 'arr=(pkill node)',
+    'while read p; do echo $p; done < <(pgrep node); kill $p',
+  ]) {
     assert.equal(evaluate(cmd), null, cmd)
   }
 })

@@ -4,6 +4,7 @@
 // (`LIGNE_VITEST`, `PARTIE`) ; node : la ligne `[durees] node <gate> {json}` de `scripts/test/node-tests.mjs`.
 import { spawnSync } from 'node:child_process'
 import { coursesCi, journalDe, lignesDuJournal } from '../guards/lib/coursesCi.mjs'
+import { SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { fait, indisponible } from '../guards/lib/gitPorte.mjs'
 
 /** Le mémo des durées de la CI, sous `dossierDesMesures` : `{ run, attempt, sha, date, vitest, node }`. */
@@ -13,8 +14,8 @@ export const DUREES_CI = 'durees-ci.json'
 const JOB_DE_SUITE = /^suite \d+\/\d+$/
 
 /** La ligne de MODULE du reporter Vitest par défaut (`getModuleLog`, `getStateSymbol` : ✓ réussi, × ou ❯ en
- *  échec, ↓ sauté), un espace de tête : `<symbole> <fichier> (<compte>) <n>ms`. */
-const LIGNE_VITEST = /^ [✓×❯↓] (\S+\.(?:test|spec)\.\w+) \([^)]*\) (\d+)ms(?: |$)/
+ *  échec, ↓ sauté), un espace de tête : `<symbole> <fichier> (<compte>) <n>ms`, le fichier une suite (`SUFFIXE_SUITE`). */
+const LIGNE_VITEST = new RegExp(String.raw`^ [✓×❯↓] (\S+${SUFFIXE_SUITE}) \([^)]*\) (\d+)ms(?: |$)`)
 
 /** Le bilan d'une partie (`scripts/test/run.mjs`) : `[partie] i/K : N fichier(s) sur T`. */
 const PARTIE = /^\[partie\] (\d+\/\d+) : (\d+) fichier\(s\)/

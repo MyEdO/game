@@ -182,7 +182,8 @@ test('les matchers générés capturent les noms natifs réellement observés de
     assert.ok(pre(inconnu), surface);
     assert.ok(pre('apply_patch'), surface);
     assert.ok(post('apply_patch'), surface);
-    assert.equal(pre('NotebookEdit'), false);
+    assert.ok(pre('NotebookEdit'), surface);
+    assert.equal(pre('PasUnEdit'), false);
   }
 });
 
