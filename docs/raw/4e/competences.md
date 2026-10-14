@@ -101,7 +101,8 @@ L'accord du MJ se modélise par une règle optionnelle à arbitrer (#1460).
 **Sources RAW :** LDB 09 l.34-46
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.34-46) → `doc`, `hasHealSkill`, `possesses`, `specIdOf`, `art`, `buySkillAdvance`, `athletisme`, `buildAdvancementView`, `slotCovers`, `designateSpec`, +23 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +20 fichiers
+- `LDB 8` (l.140) → `agitateur`, `agitateur-1`, `agitateur-2`, `agitateur-3`, `prisParLesAutres`, `agitateur-4`, `progression-schemas-derived` — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/engine/careerSlots.ts`
+- `LDB 9` (l.34-46, l.495) → `doc`, `hasHealSkill`, `possesses`, `specIdOf`, `art`, `ivresse`, `buySkillAdvance`, `athletisme`, `registerNightBandApplier`, `buildAdvancementView`, +40 — `src/data/drunkenness.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, +27 fichiers
 
 ---
 
@@ -266,7 +267,7 @@ Catapulte = groupe Catapulte exclusif.
 Géographie, Guerre, Herbes (cité LDB 09 l.565), Ingénierie, Loi, Magie, Nécromancie, Région,
 Remèdes, Théologie
 **ADE II :** Savoir (Magie) pour fabriquer des objets magiques (ADE II 4 l.94, l.98, l.104)
-**LDB (au choix d'une Carrière) :** Géographie, Folklore, Magie « ou tout autre exemple similaire » (LDB 08 l.140)
+**LDB (au choix d'une Carrière) :** « Savoir (Magie) ou tout autre exemple similaire » (LDB 08 l.140), après Géographie et Folklore
 **MDG (profils de PNJ) :** Guerre, Histoire, Ingénierie, Navigation, Politique, Religion (MDG 16 l.358, l.401,
 l.460, l.495)
 
