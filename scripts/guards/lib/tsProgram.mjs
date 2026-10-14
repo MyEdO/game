@@ -88,13 +88,14 @@ function fichiersVirtuels(sources, dansLesLibs = () => false) {
 export function syntaxProgram(files) {
   const root = norm(path.resolve(VIRTUAL_ROOT, '__analyse_syntaxique__')).replace(/^([A-Za-z]):/, (_, drive) => `${drive.toLowerCase()}:`);
   const config = `${root}/tsconfig.json`;
-  const entree = `${root}/racine.TS`;
+  const entree = `${root}/racine.ts`;
   const sources = Object.fromEntries(Object.entries(files).map(([rel, text]) => [norm(path.resolve(VIRTUAL_ROOT, rel)), text]));
   for (const reserve of [config, entree]) {
     const collision = Object.keys(sources).find(nom => nom.toLowerCase() === reserve.toLowerCase());
     if (collision !== undefined) throw new Error(`Fichier réservé à l’analyse syntaxique native : ${collision}`);
   }
-  const references = Object.keys(sources).map(nom => {
+  const corpus = Object.keys(sources);
+  const references = corpus.map(nom => {
     if (/[\r\n\u2028\u2029]/u.test(nom) || (nom.includes('"') && nom.includes("'"))) {
       throw new Error(`Chemin non représentable dans une référence syntaxique native : ${nom}`);
     }
@@ -103,9 +104,14 @@ export function syntaxProgram(files) {
   });
   sources[entree] = references.join('\n');
   sources[config] = JSON.stringify({
-    compilerOptions: { ...OPTIONS_VIRTUELLES, noLib: true, noResolve: true, allowJs: true, resolveJsonModule: true, jsx: 'preserve' },
+    compilerOptions: { ...OPTIONS_VIRTUELLES, noLib: true, noResolve: true, moduleDetection: 'force', allowJs: true, resolveJsonModule: true, jsx: 'preserve' },
     files: Object.keys(sources),
   });
-  return ouvrir(root, fichiersVirtuels(sources), () => ({ openProjects: [config], openFiles: [entree] }),
-    (snapshot, plan) => snapshot.getDefaultProjectForFile(plan.openFiles[0]));
+  return ouvrir(root, fichiersVirtuels(sources), () => ({ openProjects: [config], openFiles: [entree] }), (snapshot) => {
+    const configure = snapshot.getProject(config);
+    const tenus = new Set(configure?.program.getSourceFileNames());
+    const hors = corpus.filter(nom => !tenus.has(nom));
+    if (hors.length) throw new Error(`Corpus hors de la configuration d’analyse syntaxique : ${hors.join(', ')}`);
+    return configure;
+  });
 }

@@ -255,7 +255,7 @@ ancré, ou de NOMMER le blocage réel (quota, validation utilisateur, charge mac
 | Vérification mécanique (existence, famille) | `verif-mecanique` | claude-haiku-5-5 | low |
 | Code sous spec précise | `codeur` | opus | medium |
 | Jugement dur (réfutation, synthèse de verdicts, archi) | `juge` | opus | high |
-| Rédaction fidèle au Source (fiches, synthèses de règles) | `lecteur` | opus | medium |
+| Rédaction fidèle au Source (fiches, synthèses de règles) | `redacteur` | opus | medium |
 | Art vectoriel sur le rig SVG | `artiste` | opus | medium |
 | Recette navigateur en joueur | `recetteur` | sonnet | medium |
 | Joueur cloisonné de table simulée | `joueur` | sonnet | low |
