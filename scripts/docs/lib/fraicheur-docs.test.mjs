@@ -9,6 +9,7 @@ import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
 import { ciblesPures, ciblesSurDisque, estCiblePure, executer, generateurDe, SOURCES_LUES } from '../build-all.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
+import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { avantGenerateur, certifierGenerateur, chargerPreuve, copierDocsFrais, enregistrerPreuve, nouvelleVue, preparerPreuves, preuveValide, vueApresGenerateur } from './fraicheur-docs.mjs'
 
 const doc = (nom) => ['docs', `${nom}.md`].join('/')
@@ -111,9 +112,12 @@ test('préparation : une capture physique commune, null conservé, clés absente
     const listages = t.mock.method(fs, 'readdirSync')
     const presences = t.mock.method(fs, 'existsSync')
     syncBuiltinESMExports()
+    perimetreDeMesure(racine)
+    const parPerimetre = new Map(['data', 'data/sousdir'].map((rel) => [rel, compter(listages, rel, true)]))
+    for (const espion of [lectures, listages, presences]) espion.mock.resetCalls()
     const preparation = preparerPreuves(racine, opts)
     assert.equal(compter(lectures, 'data/source.txt'), 1)
-    assert.equal(compter(listages, 'data', true), 1)
+    assert.equal(compter(listages, 'data', true), 1 + parPerimetre.get('data'))
     assert.equal(compter(presences, 'data/absent.txt'), 1)
     assert.equal(preparation.vue.hashes.get('data/absent.txt'), null)
     assert.equal(preparation.fichiers.get('data/absent.txt'), null)
@@ -121,7 +125,7 @@ test('préparation : une capture physique commune, null conservé, clés absente
     assert.equal(compter(lectures, 'data/non-capture.txt'), 1)
     assert.equal(typeof preparation.fichiers.get('data/non-capture.txt'), 'string')
     assert.equal(preparation.vue.listings.has('data/sousdir'), false)
-    assert.equal(compter(listages, 'data/sousdir', true), 1)
+    assert.equal(compter(listages, 'data/sousdir', true), 1 + parPerimetre.get('data/sousdir'))
     const courant = preparation.vue.listings.get('data')
     const prive = preparation.dossiers.get('data')
     assert.deepEqual(Object.fromEntries(prive.entrees.map(({ nom, nature }) => [nom, nature])), { lien: 'link', 'non-capture.txt': 'file', 'source.txt': 'file', sousdir: 'directory' })
@@ -137,7 +141,7 @@ test('préparation : une capture physique commune, null conservé, clés absente
     poser(racine, 'data/absent.txt', 'désormais présente')
     const suivante = preparerPreuves(racine, opts)
     assert.equal(compter(lectures, 'data/source.txt'), 2)
-    assert.equal(compter(listages, 'data', true), 2)
+    assert.equal(compter(listages, 'data', true), 2 * (1 + parPerimetre.get('data')))
     assert.notEqual(suivante.fichiers.get('data/source.txt'), ancienHash)
     assert.equal(typeof suivante.fichiers.get('data/absent.txt'), 'string')
   } finally {

@@ -11,7 +11,7 @@
 // n'est ni un fichier lu, ni un dossier listé, ni une entrée de listing : un clone propre ne l'a pas.
 import fs from 'node:fs'
 import path from 'node:path'
-import { correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
+import { cheminAbsent, correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 
 /** Ancêtre EXISTANT le plus proche d'un chemin absolu (lui-même s'il existe), ou `null` quand rien
@@ -22,7 +22,7 @@ export function ancetreExistant(abs, { strict = false } = {}) {
     if (strict) {
       try { fs.statSync(ancetre); return ancetre }
       catch (e) {
-        if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw new Error(`ancêtre illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
+        if (!cheminAbsent(e)) throw new Error(`ancêtre illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
       }
     } else if (fs.existsSync(ancetre)) return ancetre
     const parent = path.dirname(ancetre)
@@ -36,7 +36,7 @@ export function ancetreExistant(abs, { strict = false } = {}) {
  * et suit jonctions et noms courts 8.3. Un chemin ABSENT du disque (le fichier d'un Write de
  * création) se canonise par son ancêtre EXISTANT le plus proche, le reste recollé tel quel : la
  * jonction traversée en amont est suivie quand même (#1973). Sans `strict`, une lecture illisible
- * garde la forme lexicale ; avec `strict`, seuls ENOENT et ENOTDIR permettent la remontée.
+ * garde la forme lexicale ; avec `strict`, seul un ancêtre `cheminAbsent` permet la remontée.
  *
  * DIRECTION de ce que suivre une jonction change : un fichier lu SOUS la racine par une jonction qui
  * pointe HORS d'elle devient un chemin hors racine — il est compté REJETÉ, pas retenu (mesuré sur une
@@ -50,7 +50,7 @@ export function canoniser(chemin, { strict = false } = {}) {
     try { return path.join(fs.realpathSync.native(ancetre), path.relative(ancetre, abs)) }
     catch (e) {
       if (!strict) return abs
-      if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw new Error(`canonisation physique illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
+      if (!cheminAbsent(e)) throw new Error(`canonisation physique illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
       const parent = path.dirname(ancetre)
       if (parent === ancetre) return abs
       ancetre = ancetreExistant(parent, { strict })

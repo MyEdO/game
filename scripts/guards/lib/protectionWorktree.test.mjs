@@ -189,3 +189,12 @@ test('résidu : vide seul, non vide conservé', (t) => {
   assert.throws(() => retirerResiduelVide(b.arbre), /ENOTEMPTY|EEXIST|EPERM/)
   assert.ok(existsSync(b.arbre))
 })
+
+test('protection : un dossier de sessions qui est un FICHIER refuse en le nommant', (t) => {
+  const b = terrain(t)
+  const sessions = join(b.racine, 'sessions-fichier')
+  writeFileSync(sessions, 'pas un dossier')
+  const vu = mesurerProtectionWorktree(b.arbre, { snapshot, sessions })
+  assert.equal(vu.ok, false)
+  assert.ok(vu.refus.includes('mesure indéterminée : dossier sessions non répertoire : ' + sessions), vu.refus.join('\n'))
+})

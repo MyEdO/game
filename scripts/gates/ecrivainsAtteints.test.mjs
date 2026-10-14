@@ -49,6 +49,9 @@ const ATTENDU = {
     'scripts/guards/balayages-non-resolus.test.mjs',
     'scripts/guards/lib/ecrituresFichiers.test.mjs',
     'scripts/guards/lib/ecrituresShell.test.mjs',
+    // +1 le 2026-10-14 (#2603) : `instanceDeDepot` sous `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en
+    // `t.after` ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/photoArbre.test.mjs',
     'scripts/guards/lib/processusWorktrees.test.mjs',
     'scripts/guards/lib/protectionWorktree.test.mjs',
     'scripts/guards/lib/racinesBalayees.test.mjs',

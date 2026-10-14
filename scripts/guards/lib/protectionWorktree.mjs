@@ -16,10 +16,6 @@ const enumeration = (libelle, elements, separateur = ', ') => libelle + ' (' + e
 export const designerProcessus = (p) => 'PID ' + p.pid + (p.nom ? ' ' + p.nom : '') + ' — ' + citation(p.commande)
 
 const RECONSTRUCTIBLES = ['node_modules', 'server/node_modules', 'dist', '.vite']
-const liste = (chemin) => {
-  try { return listerDossier(chemin) }
-  catch (e) { if (e.code === 'ENOENT') return []; throw e }
-}
 
 export function ignoresAuthores(racine, ignores) {
   const authores = []
@@ -38,7 +34,7 @@ export function ignoresAuthores(racine, ignores) {
     }
     if (!stat) throw new Error('ignoré disparu pendant mesure : ' + rel)
     if (!stat.isDirectory() || stat.isSymbolicLink()) { authores.push(rel); return }
-    const enfants = liste(chemin)
+    const enfants = listerDossier(chemin, { absent: 'vide' })
     if (!enfants.length) authores.push(rel + '/')
     for (const enfant of enfants) visiter(rel.replace(/\/$/, '') + '/' + enfant)
   }
@@ -80,8 +76,10 @@ export function mesurerProtectionWorktree(chemin, { snapshot, processus = mesure
     const commun = dossierGitCommun(depotDe(chemin))
     if (!commun.disponible) throw new Error(commun.raison)
     const dossier = sessions ?? join(commun.valeur, 'sessions')
-    for (const entree of liste(dossier).filter((e) => e.endsWith('.json'))) {
-      const fichier = join(dossier, entree)
+    const lues = listerDossier(dossier, { absent: 'vide', avecTypes: true })
+    if (lues.nature === 'other') throw new Error('dossier sessions non répertoire : ' + dossier)
+    for (const { nom } of lues.entrees.filter((e) => e.nom.endsWith('.json'))) {
+      const fichier = join(dossier, nom)
       const carte = JSON.parse(readFileSync(fichier, 'utf8'))
       if (!carte || typeof carte.worktree !== 'string' || !isAbsolute(carte.worktree) || typeof carte.etat !== 'string') throw new Error('carte session non attribuable : ' + fichier)
       if (!sousArbre(carte.worktree, chemin)) continue

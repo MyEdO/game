@@ -223,6 +223,33 @@ test('ancetreExistant : racine existante, lecteur absent et préfixes UNC', () =
   } finally { rmSync(base, { recursive: true, force: true }) }
 })
 
+test('canonisation stricte : un composant de 300 caractères est ABSENT, sur le disque et sous ENAMETOOLONG (#2603)', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-long-'))
+  const stat = fs.statSync
+  const realpath = fs.realpathSync.native
+  const long = join(base, 'JAB'.repeat(100), 'x.md')
+  const attendu = join(realpath(base), 'JAB'.repeat(100), 'x.md')
+  try {
+    assert.equal(ancetreExistant(long, { strict: true }), base)
+    assert.equal(canoniser(long, { strict: true }), attendu)
+    const tropLong = (chemin) => chemin.split(/[\\/]/).some((segment) => segment.length > 255)
+    fs.statSync = (chemin, ...reste) => {
+      if (tropLong(chemin)) throw Object.assign(new Error('banc'), { code: 'ENAMETOOLONG' })
+      return stat(chemin, ...reste)
+    }
+    fs.realpathSync.native = (chemin, ...reste) => {
+      if (tropLong(chemin)) throw Object.assign(new Error('banc'), { code: 'ENAMETOOLONG' })
+      return realpath(chemin, ...reste)
+    }
+    assert.equal(ancetreExistant(long, { strict: true }), base)
+    assert.equal(canoniser(long, { strict: true }), attendu)
+  } finally {
+    fs.statSync = stat
+    fs.realpathSync.native = realpath
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('ancetreExistant : le chemin lui-même s’il existe, son ancêtre sinon', () => {
   const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-'))
   try {

@@ -27,7 +27,7 @@ import { register, syncBuiltinESMExports } from 'node:module'
 import { isMainThread } from 'node:worker_threads'
 import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { normaliserRequeteMesuree, verifierRequeteMesuree } from '../../guards/lib/requeteMesuree.mjs'
-import { correspondGlob, parUnitesDeCode } from '../../guards/lib/lister.mjs'
+import { cheminAbsent, correspondGlob, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 
 const MARQUE = Symbol.for('wfrp.enregistreur-lectures')
 const RACINE = process.env.WFRP_LECTURES_RACINE
@@ -88,7 +88,7 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
     if (!rel || !admissible(rel)) return null
     if (exclues.has(rel) || motifsPropres.some((motif) => correspondGlob(rel, motif))) {
       try { if (brut.lstatSync(abs).isFile()) return null }
-      catch (e) { if (['ENOENT', 'ENOTDIR'].includes(e.code)) return null; throw e }
+      catch (e) { if (cheminAbsent(e)) return null; throw e }
     }
     return rel
   }

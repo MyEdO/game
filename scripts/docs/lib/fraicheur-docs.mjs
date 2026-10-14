@@ -3,7 +3,7 @@ import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
-import { correspondGlob, listerArbre, listerDossier } from '../../guards/lib/lister.mjs'
+import { cheminAbsent, correspondGlob, listerArbre, listerDossier } from '../../guards/lib/lister.mjs'
 import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
@@ -101,7 +101,7 @@ function hashFichier(racine, rel, vue, canon) {
   const absolu = cheminSous(racine, rel, canon)
   let stat
   try { stat = lstatSync(absolu) } catch (e) {
-    if (['ENOENT', 'ENOTDIR'].includes(e.code)) return null
+    if (cheminAbsent(e)) return null
     throw e
   }
   if (!stat.isFile()) throw new Error(`fichier attendu : ${rel}`)
@@ -111,7 +111,7 @@ function hashFichier(racine, rel, vue, canon) {
 function lireMesure(racine, options, facultative = false) {
   let mesure
   try { mesure = JSON.parse(readFileSync(cheminSous(racine, options.sourcesLues), 'utf8')) } catch (e) {
-    if (facultative && e.code === 'ENOENT') return {}
+    if (facultative && cheminAbsent(e)) return {}
     throw e
   }
   if (!mesure || typeof mesure !== 'object' || Array.isArray(mesure)) throw new Error('mesure invalide')
@@ -231,7 +231,7 @@ export function preparerPreuves(racine, options) {
       if (!natures.has(prefixe)) {
         let nature = null
         try { nature = lstatSync(path.join(racine, prefixe)) } catch (e) {
-          if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw e
+          if (!cheminAbsent(e)) throw e
         }
         natures.set(prefixe, nature)
       }

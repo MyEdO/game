@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { cheminsIgnores, depotDe, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe } from '../../guards/lib/gitPorte.mjs'
-import { listerArbre } from '../../guards/lib/lister.mjs'
+import { cheminAbsent, listerArbre } from '../../guards/lib/lister.mjs'
 import { canoniser, dansLaMesure, EXCLUSIONS_FIXES, relatifSousRacine } from './chemin-mesure.mjs'
 /**
  * Chemins IGNORÉS par git sous la racine, en UNE invocation : `--directory` rend un dossier ignoré en
@@ -28,7 +28,7 @@ export function perimetreDeMesure(racine) {
   const ancetres = [base, ...segments.map((_segment, i) => path.join(volume, ...segments.slice(0, segments.length - i - 1)))]
   for (const ancetre of ancetres) {
     try { fs.lstatSync(path.join(ancetre, '.git')) } catch (erreur) {
-      if (erreur.code === 'ENOENT') continue
+      if (cheminAbsent(erreur)) continue
       throw erreur
     }
     throw new Error('marqueur .git présent sans dépôt valide')
@@ -41,7 +41,7 @@ function hashPolitique(chemin, sansSuivre = false, racineCanonique, relatifAtten
     throw new Error(`politique hors racine : ${relatifAttendu}`)
   let stat
   try { stat = sansSuivre ? fs.lstatSync(chemin) : fs.statSync(chemin) } catch (e) {
-    if (e.code === 'ENOENT') return null
+    if (cheminAbsent(e)) return null
     throw e
   }
   if (stat.isSymbolicLink()) return { lien: fs.readlinkSync(chemin) }
