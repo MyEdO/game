@@ -1,6 +1,6 @@
 ---
 name: orchestrer-des-agents
-description: À utiliser pour écrire du code (même « petit »), dispatcher un agent ou un workflow, au retour d'un agent, et avant tout agent() sans modèle/effort.
+description: À utiliser pour écrire/modifier du code (même « petit »), dispatcher agent ou workflow, au retour d'un agent, avant tout agent() sans modèle/effort.
 ---
 
 # Orchestrer des agents
