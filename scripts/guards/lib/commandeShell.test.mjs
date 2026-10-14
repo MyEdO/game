@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { resolve } from 'node:path'
 import { CAS_HOTE_POWERSHELL, argumentsDuCas } from '../../hooks/hote-powershell-cas.mjs'
-import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine, valeurParametre, pipelinesDeJetons, texteDuSegment, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, nouveauBudget } from './commandeShell.mjs'
+import { GRAMMAIRES_HOTE_POWERSHELL, argumentChaine, borneDeVie, secondesDeDuree, valeurParametre, pipelinesDeJetons, texteDuSegment, cibleDeLaCommande, ciblesDeRedirectionAvecProvenance, nouveauBudget } from './commandeShell.mjs'
 import { ciblesDEcritureDeCommande } from './ecrituresShell.mjs'
 
 test('redirections : provenance de la cible séparée ou collée', () => {
@@ -297,4 +297,28 @@ test('#2537 — la `( … )` d’un `if`/`elseif`/`while`/`for`/`switch` PowerSh
     ['do { rm a } while ($x)', ['/b/a']],
     ['if (Remove-Item /h/c) { 1 }', ['/h/c']],
   ]) assert.deepEqual(cibles(commande), attendu, commande)
+})
+
+test('#2603 — secondesDeDuree : un nombre, suffixe `s`, `m`, `h` ou `d` ; `null` si illisible', () => {
+  assert.deepEqual(['42', '1.5', '30s', '2m', '1.5h', '1d', '0'].map((texte) => secondesDeDuree(texte)), [42, 1.5, 30, 120, 5400, 86400, 0])
+  for (const texte of ['', 'soudain', '2x', '-5', '.5', '1m30s', 'infinity']) assert.equal(secondesDeDuree(texte), null, texte)
+})
+
+test('#2603 — borneDeVie : le `timeout` de tête du segment ou de ses porteurs (`deploiePar`, `bloc`), `&` qui échappe', () => {
+  const bornes = (commande) => pipelinesDeJetons(commande).flat().filter((s) => s.jetons.length > 0)
+    .map((s) => [s.jetons.map((j) => j.text).join(' '), borneDeVie(s)])
+  assert.deepEqual(bornes('timeout 3000 npm run dev'), [['vite', 3000], ['npm run dev', 3000]])
+  assert.deepEqual(bornes('timeout -k 5 --signal KILL 2h bash -c "sleep 9"'), [['sleep 9', 7200], ['bash -c sleep 9', 7200]])
+  assert.deepEqual(bornes('timeout 1.5m sleep 9'), [['sleep 9', 90]])
+  for (const commande of ['npm run dev', 'timeout 0 sleep 9', 'timeout soudain sleep 9', '(npm run dev &)', 'nohup npm run dev &']) {
+    assert.ok(bornes(commande).every(([, borne]) => borne === null), commande)
+  }
+  assert.deepEqual(bornes('timeout 60 bash -c "(sleep 9 &)"').map(([, b]) => b), [null, 60])
+  assert.deepEqual(bornes('timeout 60 npm run dev &').map(([, b]) => b), [60, 60])
+  assert.deepEqual(bornes('timeout 60 bash -c "f(){ sleep 9; }; f"').map(([, b]) => b), [60, 60])
+  assert.deepEqual(bornes('timeout 60 bash -c "f(){ sleep 9; }; f &"').map(([, b]) => b), [null, 60])
+  assert.deepEqual(bornes('f(){ sleep 9; }; timeout 5 bash -c "sleep 1"; f').map(([, b]) => b), [5, 5, null])
+  const [deploye, porteur] = pipelinesDeJetons('timeout 5 bash -c "sleep 9"').flat()
+  assert.equal(deploye.deploiePar, porteur)
+  assert.equal(porteur.deploiePar, undefined)
 })

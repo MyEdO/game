@@ -108,7 +108,7 @@ test('un lien DÉJÀ au journal pour cette session et cette épique n’est pas 
   }
 })
 
-test('#2460 — le lot `<N> [--session …] [--json] --<geste> …` lie la session à N ; le lecteur `--session … --json [--depuis …]` ne lie rien et n’avertit pas', async () => {
+test('#2460 — le lot `<N> [--session …] [--json] --<geste> …` lie la session à N ; le lecteur `--session … --json` ne lie rien et n’avertit pas', async () => {
   assert.equal(epiqueLiee('node scripts/ops/suivi.mjs 2279 --session abc --json --ajouter-item 12 "un libellé"'), 2279)
   assert.equal(epiqueLiee('npm run ops:suivi -- 2279 --cocher 12.1'), 2279)
   assert.equal(epiqueLiee('npm run ops:suivi -- --session abc --json'), null)
@@ -118,7 +118,6 @@ test('#2460 — le lot `<N> [--session …] [--json] --<geste> …` lie la sessi
   }), { env: {}, cwd: racine })
   try {
     assert.deepEqual(await shell('npm run ops:suivi -- --session abc --json'), { sortie: null, traces: [] })
-    assert.deepEqual(await shell('npm run ops:suivi -- --session abc --json --depuis 0123abcd'), { sortie: null, traces: [] }, '--depuis : ni lien, ni avertissement')
     const lie = await shell('npm run ops:suivi -- 2279 --ajouter-etape 12 "brief écrit"')
     assert.deepEqual(lignesDuJournal(lie.traces[0].ligne).map((l) => [l.session, l.epique]), [['s', 2279]])
     const trop = await shell('npm run ops:suivi -- 2279 --ajouter-etape 12 brief écrit')

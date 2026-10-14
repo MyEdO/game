@@ -59,6 +59,7 @@ function fsFactice(present = null, espion = {}) {
     rmSync(chemin) {
       fichiers.delete(chemin)
     },
+    mkdirSync() {},
   }
 }
 
@@ -73,6 +74,20 @@ function tempsFactice(apres = {}) {
   }
   return t
 }
+
+test('dossier absent : la prise crée le dossier du verrou, puis le prend', () => {
+  const racine = fsReel.mkdtempSync(path.join(os.tmpdir(), 'verrou-dossier-'))
+  try {
+    const chemin = path.join(racine, 'absent', 'sous', 'banc.verrou')
+    const pris = prendreVerrou({ chemin, libelle: LIBELLE, estVivant: () => true })
+    assert.equal(pris.etat, 'pris')
+    assert.equal(JSON.parse(fsReel.readFileSync(chemin, 'utf8')).pid, process.pid)
+    pris.liberer()
+    assert.deepEqual(fsReel.readdirSync(path.dirname(chemin)), [])
+  } finally {
+    fsReel.rmSync(racine, { recursive: true, force: true })
+  }
+})
 
 test('verrou libre : pris, le tenant s’inscrit, et `liberer` rend la place', () => {
   const fs = fsFactice()

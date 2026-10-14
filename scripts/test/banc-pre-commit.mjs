@@ -2,7 +2,9 @@
 // BANC DU PRE-COMMIT (#2327 §5) — mesure, jamais une gate :
 //   npm run banc:pre-commit [-- --fois <N>] [--cas C1,C2]
 // Le hook de CET arbre (`scripts/git-hooks/pre-commit.mjs`) est joué sur un index JETABLE
-// (`GIT_INDEX_FILE` sous os.tmpdir(), `read-tree HEAD`) où chaque cas stage ses chemins par
+// (`GIT_INDEX_FILE` sous os.tmpdir(), `read-tree HEAD`, puis `update-index -q --refresh` : un index
+// lu d'un arbre n'a pas d'informations stat, et git re-hacherait l'arbre entier pendant la mesure)
+// où chaque cas stage ses chemins par
 // `hash-object -w` + `update-index --cacheinfo` : l'index réel et l'arbre de travail restent intacts.
 // Les blobs posés sont des objets libres du dépôt (ramassés par `git gc`). Le journal des hooks
 // (`scripts/git-hooks/journal.mjs`) reçoit une ligne par lancement.
@@ -37,6 +39,7 @@ function unLancement(chemins) {
   const env = { ...process.env, GIT_INDEX_FILE: join(dossier, 'index') }
   try {
     lancerGit(['read-tree', 'HEAD'], { cwd: RACINE, env })
+    lancerGit(['update-index', '-q', '--refresh'], { cwd: RACINE, env })
     for (const c of chemins) {
       const texte = lancerGit(['show', `HEAD:${c}`], { cwd: RACINE, env })
       const blob = lancerGit(['hash-object', '-w', '--stdin'], { cwd: RACINE, env, input: `${texte}\n`, net: true })

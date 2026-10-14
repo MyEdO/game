@@ -10,7 +10,7 @@ Tu cartographies — tu ne modifies rien et tu ne décides rien : l'archi appart
 
 - Rapporte les RÉGIONS pertinentes (`fichier:ligne-ligne`), les symboles exportés, les coutures (qui
   appelle quoi), et les primitives canoniques qui couvrent déjà le besoin (`docs/primitives.md`) — signale toute réinvention potentielle.
-- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin (règle de `codeur.md`).
+- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin ; aucun appel d'outil ne dure plus de 270 s, une commande plus longue part en fond et se sonde (règles de `codeur.md`, garde `scripts/hooks/appel-borne-guard.mjs`).
 - **Avant de rapporter un manque de vocabulaire moteur** (« aucune op/Condition/Flow/Trigger pour
   X », « aucune couture n'exprime Y ») : consulte `docs/vocabulaire-mecanique.md` et
   `docs/index-moteur.md` (index par concept FR) — cite la ligne consultée avant toute conclusion

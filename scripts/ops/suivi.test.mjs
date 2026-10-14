@@ -188,10 +188,10 @@ test('ARITÉ CLI — chaque geste consomme son arité : un mot en trop est refus
   assert.match(argumentsDuSuivi(['665', '--ajouter-etape', '2400', '--json']).refus, /attend 2 argument/)
   const modes = {
     '': 'liste', '665': 'situation', '665 --rendu': 'rendu', '665 --mesurer --sans-fetch --json': 'mesurer', '--outil --json': 'outil',
-    '--session s --json --depuis k': 'session', '665 --lot -': 'lot', '665 --session s --json --cocher 2400.1': 'lot',
+    '--session s --json': 'session', '665 --lot -': 'lot', '665 --session s --json --cocher 2400.1': 'lot',
   }
   for (const [argv, mode] of Object.entries(modes)) assert.equal(argumentsDuSuivi(argv.split(' ').filter(Boolean)).mode, mode, argv)
-  for (const refuse of ['--creer x', '665 --rendu --mesurer', '665 --json --cocher 1.1', '665 --sans-fetch', '--session s', '0', '665 666', '--outil', '665 --depuis k']) {
+  for (const refuse of ['--creer x', '665 --rendu --mesurer', '665 --json --cocher 1.1', '665 --sans-fetch', '--session s', '0', '665 666', '--outil', '--session s --json --depuis k']) {
     assert.ok(argumentsDuSuivi(refuse.split(' ')).refus, refuse)
   }
 })
@@ -513,7 +513,7 @@ test('digest et rendu : le digest tait le fait et le clos, le rendu `--rendu` mo
   } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
 })
 
-test('etatDeSession : sans lien, l’index en contexte ; lié, la clé suit l’ÉTAT, jamais l’heure de relecture ; `depuis` vide l’ajout tant que la clé ne change pas', () => {
+test('etatDeSession : sans lien, l’index en contexte ; lié, l’ajout est la situation datée de CHAQUE lecture', () => {
   const dossier = dossierJetable()
   try {
     poserSuivi({ dossier, epique: 9, lots: [BASE], maintenant: MAINTENANT })
@@ -522,15 +522,12 @@ test('etatDeSession : sans lien, l’index en contexte ; lié, la clé suit l’
     assert.match(seul.contexte, /^\[suivi\] session sans suivi lié[^\n]*\n- #9 — Vague du tome 1 — /)
     FS.writeFileSync(join(dossier, JOURNAL), ligneDeJournal({ iso: 'x', session: 's', epique: 9 }))
     const a = etatDeSession({ session: 's', dossier, maintenant: MAINTENANT })
-    const b = etatDeSession({ session: 's', dossier, maintenant: new Date(MAINTENANT.getTime() + 3_600_000) })
     assert.equal(a.ajout, ['[suivi] situation relue le 2026-10-07 10:00', '[suivi #9] ⚠ jamais mesurée (re-mesure demandée)',
       '[suivi #9] en cours : #2400 périmètre de tests', '  prochain geste : #2400.2 juge du diff', '  ouverts : 2 item(s), 1 étape(s) · jamais mesurée'].join('\n'))
     assert.deepEqual(a.aMesurer, [9], 'jamais mesurée : le lecteur DEMANDE la mesure, sans la faire')
-    assert.equal(a.cle, b.cle, 'même état, même clé')
-    assert.deepEqual([etatDeSession({ session: 's', dossier, maintenant: MAINTENANT, depuis: a.cle }).ajout, a.cle !== seul.cle], ['', true])
+    assert.equal(etatDeSession({ session: 's', dossier, maintenant: MAINTENANT }).ajout, a.ajout, 'relu sans changement : la même situation')
     poserSuivi({ dossier, epique: 9, lots: [[{ geste: 'cocher', ticket: 2400, n: 2 }]], maintenant: MAINTENANT })
-    const change = etatDeSession({ session: 's', dossier, maintenant: MAINTENANT, depuis: a.cle })
-    assert.notEqual(change.cle, a.cle)
+    const change = etatDeSession({ session: 's', dossier, maintenant: MAINTENANT })
     assert.doesNotMatch(change.ajout, /prochain geste/)
   } finally { FS.rmSync(dossier, { recursive: true, force: true }) }
 })
@@ -609,7 +606,7 @@ test('CLI `--session <id> --json` sur un dépôt FORGÉ : l’état de la sessio
     FS.writeFileSync(join(dossier, JOURNAL), ligneDeJournal({ iso: 'x', session: 's', epique: 9 }))
     const avant = FS.readdirSync(dossier).map((n) => [n, FS.statSync(join(dossier, n)).mtimeMs])
     const etat = JSON.parse(execFileSync(process.execPath, [SCRIPT, '--session', 's', '--json'], { cwd: racine, encoding: 'utf8' }))
-    assert.deepEqual(Object.keys(etat), ['session', 'suivis', 'contexte', 'ajout', 'cle', 'aMesurer'])
+    assert.deepEqual(Object.keys(etat), ['session', 'suivis', 'contexte', 'ajout', 'aMesurer'])
     assert.deepEqual([etat.suivis[0].lignes[1], etat.aMesurer], ['[suivi #9] en cours : #2400 périmètre de tests', [9]])
     assert.equal(FS.realpathSync(dirname(etat.suivis[0].chemin)), FS.realpathSync(dossier), 'le dossier des suivis du dépôt forgé')
     assert.deepEqual(FS.readdirSync(dossier).map((n) => [n, FS.statSync(join(dossier, n)).mtimeMs]), avant, 'rien n’est écrit')

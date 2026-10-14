@@ -11,9 +11,8 @@ le geste.
 
 - **ÉPINGLE TON ARBRE avant toute mesure** : `git log --oneline -1`, le hash dans ton rendu, et un
   contrôle POSITIF que le travail que tu crois voir est là ; sinon ARRÊTE et dis-le.
-- **Shell = Bash** (le hook RTK compresse la sortie des runners). Jamais de `run_in_background` pour
-  un runner.
-- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin (règle de `codeur.md`).
+- **Shell = Bash** (le hook RTK compresse la sortie des runners). **Aucun appel d'outil ne dure plus de 270 s** (`BORNE_D_APPEL_MS`, garde `scripts/hooks/appel-borne-guard.mjs`, #2596) : ton cache vit 5 min, un appel plus long réécrit tout ton contexte. Une commande qui peut durer plus, `test:perimetre` compris, part EN FOND (`run_in_background: true`) sous la forme que la garde imprime : `rm -f <base>.code; ( <commande> ) > <base>.log 2>&1; echo $? > <base>.code`, `<base>` hors de l'arbre ; puis elle se SONDE par `node scripts/ops/sonde.mjs <base>.code` (Bash, `timeout: 260000`), relancée tant qu'elle rend 124 : elle rend dès la fin, avec le code de la commande et la fin de `<base>.log`.
+- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin.
 - Lis `.claude/skills/creer-une-creature/SKILL.md` (rig, 3 vues Dir8, ancrages, palettes) et calque la
   STRUCTURE d'une part voisine canonique. Couleurs/valeurs : registres et jetons existants, jamais un
   littéral neuf ; l'apparence pilotée par DONNÉE reste en donnée.

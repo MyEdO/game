@@ -81,3 +81,21 @@ export function appelleUnRunner(segment) {
   if (porteUnDrapeau(joue, DRAPEAUX_D_INFORMATION)) return false
   return [LANCEUR_DE_RUNNER, LANCEUR_DOCS_CHECK, APPEL_TSC, APPEL_VITEST, APPEL_ESLINT, APPEL_OXLINT, APPEL_PLAYWRIGHT, APPEL_NODE_TEST].some((motif) => motif.test(joue))
 }
+
+const APPEL_VITE = appelDe('vite')
+/** Sous-commandes de vite qui ne servent rien : elles construisent, puis sortent. */
+const SOUS_COMMANDES_VITE_SANS_SERVEUR = ['build', 'optimize']
+
+/**
+ * `true` si le segment lance un SERVEUR vite (`vite`, `vite dev`, `vite serve`, `vite preview`), sous ses graphies
+ * (`appelDe`), le lanceur `scripts/lancer-local.mjs` étant un enrobeur de tête (`epluchageTete`) ; jamais sous un drapeau d'information (`DRAPEAUX_D_INFORMATION`).
+ * Réf : #2603, constat 22.
+ * @param {string} segment
+ * @returns {boolean}
+ */
+export function appelleServeurVite(segment) {
+  if (LECTEURS.test(segment)) return false
+  if (!APPEL_VITE.test(segment) || porteUnDrapeau(segment, DRAPEAUX_D_INFORMATION)) return false
+  const suivant = segment.replace(APPEL_VITE, '').trim().split(/\s+/)[0]
+  return !SOUS_COMMANDES_VITE_SANS_SERVEUR.includes(suivant)
+}

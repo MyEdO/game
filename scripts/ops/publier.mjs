@@ -41,7 +41,7 @@ import { fileURLToPath } from 'node:url'
 import {
   GitIndisponible, TRONC, abandonnerFusion, attributsDe, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
   conclureFusionSansChemins, depotDe,
-  estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, indisponible, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
+  estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, indisponible, lireEnLot, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 import { coursesCi, jobsEnEchecDe } from '../guards/lib/coursesCi.mjs'
@@ -122,6 +122,10 @@ export function optionsDe(argv) {
     inconnus,
   }
 }
+
+/** `true` si ces arguments ATTENDENT un run (`--veiller`) : la garde `commande-piege` la refuse en fond (#2603). PURE.
+ *  @param {string[]} argv */
+export const estUneAttente = (argv) => optionsDe(argv).veiller !== null
 
 /** Identifiant d'un RUN du train : le pid de son processus et l'instant (ms) de son lancement, que le
  *  parent de `--detache` choisit AVANT de détacher. PURE. */
@@ -703,6 +707,7 @@ const questionsDuTrain = (depot) => Object.freeze({
   baseAuTronc: () => baseCommune(depot, TRONC.suivi, 'HEAD'),
   ceQuiChange: (avant, apres) => ceQuiChange(depot, avant, apres),
   cheminsSales: () => cheminsSales(depot),
+  textesDe: (chemin) => ({ tete: lireEnLot(depot, 'HEAD', [chemin]).get(chemin) ?? null, disque: existsSync(join(depot.cwd, chemin)) ? readFileSync(join(depot.cwd, chemin), 'utf8') : null }),
   attributsDeFusion: (chemins) => attributsDe(depot, chemins, 'merge'),
   commitsDeLaPlage: (plage) => commitsDeLaPlage(plage, depot.cwd),
   verdictDesFusions: () => verdictDePublication(depot),

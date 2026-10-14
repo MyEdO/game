@@ -1,6 +1,6 @@
 // LA CI D'UN SHA, ATTENDUE PAR UN PROCESSUS QUI SORT (#2280, V1) — le symétrique, pour la CI d'une
-// branche, de la veille du train (`veillerLeTrain`, publier.mjs) : une session le lance en FOND et
-// lit sa sortie quand il sort, sans aucun `sleep` ni `gh run` de sa part.
+// branche, de la veille du train (`veillerLeTrain`, publier.mjs) : une session le suit par l'outil Monitor (#2603)
+// et lit sa sortie quand il sort, sans aucun `sleep` ni `gh run` de sa part.
 //
 // `--attendre [<sha>]` attend la course `CI` du sha (défaut : le sha POUSSÉ de la branche de son
 // arbre, `shasDistants`), relue toutes les `PERIODE_SONDE_MS`, et sort sur un verdict, un code par
@@ -47,6 +47,10 @@ export function optionsDe(argv) {
   if (geste === '--echecs' && /^[1-9]\d*$/.test(String(valeur ?? ''))) return { echecs: Number(valeur) }
   return null
 }
+
+/** `true` si ces arguments ATTENDENT une course (`--attendre`) : la garde `commande-piege` la refuse en fond (#2603).
+ *  PURE. @param {string[]} argv */
+export const estUneAttente = (argv) => optionsDe(argv)?.attendre === true
 
 /** L'URL d'une course. PURE. */
 export const urlDeCourse = (id) => `https://github.com/${DEPOT}/actions/runs/${id}`

@@ -1006,14 +1006,16 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
 }
 
 /** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, relus, deploye, ouvreDesBlocs,
- *  valeurs, valeursDeTete, deplies, bloc, tube, shell, enTete }` : les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise),
+ *  valeurs, valeursDeTete, deplies, bloc, deploiePar, enFond, tube, shell, enTete }` : les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise),
  *  `enTete` = les jetons que l'épluchage a retirés devant eux (enrobeurs, leurs flags, affectations), `valeursDeTete` les
  *  `valeurDAffectation` de ses affectations, celles d'un `env` comprises, leur
  *  relecture de bloc (`jetonsDeBloc`), `ouvreDesBlocs` quand une tête de bloc n'exécute que ses corps, les `valeurs` (`valeurDAffectation`) que le segment pose pour la suite (ses
  *  affectations de tête quand l'épluchage le VIDE, ses arguments `NOM=val` sous une tête d'`AFFECTEURS`),
  *  `deploye` quand la commande qu'il porte (argument-chaîne, script npm, corps de bloc) est rendue à part,
  *  `deplies` = pour chaque jeton à substitution, les pipelines qu'elle exécute (rendus à part eux aussi),
- *  `bloc` = le segment dont un bloc le contient, `tube` = son pipeline, `shell` = le shell qui l'exécute : un
+ *  `bloc` = le segment dont un bloc le contient, `deploiePar` = le segment dont l'argument-chaîne, le script npm ou l'appel de
+ *  fonction l'a rendu (une substitution n'en pose aucun), `enFond` quand il se lance en FOND (`&` nu après sa
+ *  tête, lu avant qu'un appel de fonction ne réduise ses jetons à ses redirections), `tube` = son pipeline, `shell` = le shell qui l'exécute : un
  *  `{ parent }` par commande relue dans un processus neuf (argument-chaîne hors `eval`/`Invoke-Expression`, qui gardent
  *  celui de l'hôte, script npm, substitution), par sous-shell
  *  `( … )` et par membre d'un tube, `parent` étant celui de son hôte, partagé par les corps de bloc de cette commande ;
@@ -1278,6 +1280,49 @@ export function texteDuSegment(segment) {
   return jetons.map((j) => j.raw ?? j.text).join(' ')
 }
 
+const DUREE_RE = /^(\d+(?:\.\d+)?)([smhd]?)$/
+const SECONDES_PAR_UNITE = { '': 1, s: 1, m: 60, h: 3600, d: 86400 }
+
+/** Une durée coreutils (`sleep`, `timeout`) en secondes : un nombre, suffixe `s`, `m`, `h` ou `d` ; `null` si
+ *  illisible. Réf : #2603. PURE. */
+export function secondesDeDuree(texte) {
+  const vu = DUREE_RE.exec(texte)
+  return vu ? Number(vu[1]) * SECONDES_PAR_UNITE[vu[2]] : null
+}
+
+/** La durée, en secondes, du `timeout` qu'épluche `enTete` : `undefined` sans `timeout`, `null` pour une durée
+ *  nulle ou illisible (`timeout 0` ne borne rien). Ses drapeaux à valeur (`ENROBEURS_TETE`) sont sautés. PURE. */
+function dureeDeTimeout(enTete) {
+  const i = enTete.findIndex((j) => jetonNu(j) && basenameExecutable(j.text) === 'timeout')
+  if (i === -1) return undefined
+  const { flags } = ENROBEURS_TETE.get('timeout')
+  let k = i + 1
+  while (enTete[k]?.text.startsWith('-')) k += flags.includes(enTete[k].text) ? 2 : 1
+  const secondes = secondesDeDuree(enTete[k]?.text ?? '')
+  return secondes > 0 ? secondes : null
+}
+
+/** `true` si le segment se lance en FOND (`&` nu après sa tête) : il survit au processus qui l'a lancé. */
+const lanceEnFond = (jetons) => jetons.some((j, k) => k > 0 && jetonNu(j) && j.text === '&')
+
+/**
+ * La BORNE DE VIE d'un segment de `pipelinesDeJetons`, en secondes : la durée du premier `timeout` épluché en tête
+ * de lui ou des segments qui le contiennent (`deploiePar`, puis `bloc`), `null` sans borne. Un segment lancé en fond
+ * (`enFond`) n'hérite pas de la borne de son porteur, sauf si ce porteur est lui-même lancé en fond : npm recolle
+ * le `&` de sa ligne derrière son script (`commandeScriptNpm`). Réf : #2603, constat 22 (E4). PURE.
+ * @returns {number|null}
+ */
+export function borneDeVie(segment) {
+  for (let s = segment; s; ) {
+    const duree = dureeDeTimeout(s.enTete)
+    if (duree !== undefined) return duree
+    const porteur = s.deploiePar ?? s.bloc
+    if (porteur && s.enFond && !porteur.enFond) return null
+    s = porteur
+  }
+  return null
+}
+
 /** Le séparateur qu'un bloc absorbe (`;`, `|`, `&&`, `||`, `)`), jeton de son segment. */
 const separateur = (op) => ({ text: op, raw: op, op: null, separateur: op })
 /** Le corps d'un bloc rendu au flux : ses séparateurs redeviennent des opérateurs. */
@@ -1294,7 +1339,7 @@ function declarationsDuSegment(jetons) {
 /** `pipelinesDeJetons` sur un FLUX de jetons : la commande tokenisée, ou le corps d'un bloc, lu sans être
  *  re-tokenisé ni relu (`relu` : ses jetons sortent déjà de `jetonsDeBloc`). `expression` : le flux d'une
  *  sous-expression `@(…)`, où un énoncé quoté est une chaîne, comme dans un bloc. */
-function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, shell, relu = false, expression = false, powershell = false, boucle = null }) {
+function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, deploiePar, shell, relu = false, expression = false, powershell = false, boucle = null }) {
   const pipelines = []
   const boucles = [boucle]
   const lus = segmentsAvecOperateur(flux)
@@ -1377,7 +1422,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       affectations.push(...deTete, ...affectationsDuSegment(textes))
       const posees = segment.length === 0 ? valeurs : declarationsDuSegment(segment)
       const enTete = jetons.slice(0, debut)
-      const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, valeursDeTete: valeurs, deplies, bloc, tube: courant, shell: ici, enTete, boucle: null }
+      const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, valeursDeTete: valeurs, deplies, bloc, deploiePar, enFond: lanceEnFond(segment), tube: courant, shell: ici, enTete, boucle: null }
       if (!powershell && boucles.length > 1 && jetonNu(enTete[0] ?? {}) && enTete[0]?.text === 'done') boucles.pop().fin = lu
       const ouvre = (j) => j !== undefined && jetonNu(j) && OUVRANTS_DE_BOUCLE.has(j.text)
       if (!powershell && [...enTete, segment[0]].some(ouvre)) boucles.push({ parent: boucles.at(-1), fin: null })
@@ -1389,7 +1434,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
         // n'étant pas une commande.
         const argumentsDeLAppel = lireRedirections(segment, 1).arguments
         const corps = powershell ? lierArgumentsPowerShell(fonction, argumentsDeLAppel) : lierPositionnels(fonction.flux, argumentsDeLAppel)
-        for (const p of pipelinesDuFluxBorne(corps, profondeur + 1, { scripts, budget, affectations, bloc, shell: ici, relu: powershell, powershell, boucle: lu.boucle })) pipelines.push(p)
+        for (const p of pipelinesDuFluxBorne(corps, profondeur + 1, { scripts, budget, affectations, bloc, deploiePar: lu, shell: ici, relu: powershell, powershell, boucle: lu.boucle })) pipelines.push(p)
         lu.jetons = [...redirectionsDuSegment(segment), ...fonction.redirections]
         lu.relus = lu.jetons
         lu.deploye = true
@@ -1407,7 +1452,7 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
           const heritees = SHELLS_IMPORTEURS.has(basenameExecutable(textes[0])) ? [...ici.fonctions].filter(([, f]) => f.exportee) : []
           const rattache = porteur?.memeShell ? { shell: ici } : { hote: ici, fonctions: heritees }
           const dialecte = porteur === null ? false : porteur.memeShell ? powershell : Boolean(ENROBEURS_ARGUMENT.get(basenameExecutable(textes[0]))?.hote)
-          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, ...rattache, powershell: dialecte })) pipelines.push(p)
+          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, deploiePar: lu, ...rattache, powershell: dialecte })) pipelines.push(p)
         }
         const { corps } = lecture
         for (const c of corps) {

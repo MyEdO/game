@@ -20,7 +20,15 @@
 //   --sampling-interval   µs entre échantillons du profileur CDP (mode profile, défaut 200)
 //
 // Sortie : statistiques imprimées sur stdout, exit 1 si la console a remonté une erreur.
-import { openApp, evaluate, sleep, consoleGuard, realKey } from './lib.mjs';
+import { openApp, evaluate, sleep, consoleGuard, realKey, geste, clic, SURFACE_CARTE } from './lib.mjs';
+
+/** Clic RÉEL de marche au point demandé, sur la surface de carte (`geste`). La marche naît du clic :
+ *  la fenêtre échantillonnée l'englobe, et avec lui le coût du geste (lectures de page de la
+ *  localisation et du contrôle, puis `mouseMoved`, `mousePressed`, `mouseReleased`), DIT à la sortie
+ *  (`NOTE_GESTE`). */
+const clicDeMarche = (session, args) => geste(session, { surface: SURFACE_CARTE, x: args.clickX, y: args.clickY }, { qui: 'perf-scenario' }, clic());
+
+const NOTE_GESTE = '(la fenêtre de MARCHE inclut le geste de clic : lectures de page de localisation et de contrôle, mouseMoved, mousePressed, mouseReleased)';
 
 function parseArgs(argv) {
   const out = { scenario: 'diligence', mode: 'cadence', seed: 42, url: undefined, clickX: 700, clickY: 620, samplingInterval: 200 };
@@ -68,9 +76,8 @@ async function runCadence(session, args) {
 
   const walk = evaluate(session, SAMPLER(3000));
   await sleep(150);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: args.clickX, y: args.clickY, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: args.clickX, y: args.clickY, button: 'left', clickCount: 1 });
-  console.log(stats('MARCHE  ', await walk));
+  await clicDeMarche(session, args);
+  console.log(stats('MARCHE  ', await walk), NOTE_GESTE);
 
   console.log('objets SVG dans le stage :', await evaluate(session,
     `document.querySelectorAll('svg [data-cid], svg g, svg polygon, svg path').length`));
@@ -81,8 +88,7 @@ async function runProfile(session, args) {
   await session.rpc('Profiler.setSamplingInterval', { interval: args.samplingInterval });
   await session.rpc('Profiler.start');
 
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: args.clickX, y: args.clickY, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: args.clickX, y: args.clickY, button: 'left', clickCount: 1 });
+  await clicDeMarche(session, args);
   await sleep(6000);
 
   const { profile } = await session.rpc('Profiler.stop');
@@ -98,6 +104,7 @@ async function runProfile(session, args) {
   }
   const durMs = (profile.endTime - profile.startTime) / 1000;
   console.log(`\n--- profil ${args.scenario} : ${total} échantillons sur ${durMs.toFixed(0)} ms ---`);
+  console.log(NOTE_GESTE);
   [...self.entries()].sort((a, b) => b[1] - a[1]).slice(0, 25)
     .forEach(([k, v]) => console.log(`${((v / total) * 100).toFixed(1).padStart(5)}%  ${((v / total) * durMs).toFixed(0).padStart(6)}ms  ${k}`));
 }

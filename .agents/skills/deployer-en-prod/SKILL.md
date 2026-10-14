@@ -15,8 +15,10 @@ Préconditions ABSOLUES :
 Procédure :
 ```bash
 gh workflow run deploy.yml --ref main
-gh run watch                          # ou : gh run list --workflow=deploy.yml -L 1
+gh run list --workflow=deploy.yml -L 1   # l'id du run lancé
 ```
+Le run se suit par l'outil `Monitor`, que la garde `commande-piege` exige hors de l'interrupteur
+`CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP` (#2603) : `gh run watch <id> --exit-status > /dev/null; echo "deploy : code $?"`.
 Puis vérifier le site : https://cgauche.github.io/jeu/
 
 Le secret Actions `PROD_DEPLOY_KEY` (dépôt `cgauche/game`) est la clé privée SSH dont la publique est

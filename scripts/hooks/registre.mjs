@@ -10,6 +10,7 @@ import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
+import { garde as appelBorne } from './appel-borne-guard.mjs'
 import { garde as poison } from './poison-postcheck.mjs'
 import { garde as superpowersEcriture } from './superpowers-ecriture-guard.mjs'
 import { garde as suiviEcriture } from './suivi-ecriture-guard.mjs'
@@ -22,7 +23,7 @@ import { garde as workflowType } from './workflow-type-guard.mjs'
 export const REGISTRE = {
   PreToolUse: [
     canalOutil, nouveauFichierSrc, donneeEditee, exceptionAjoutee, memoireTombale,
-    commandePiege, issueLabel, codeurGates, runnerCapture, superpowersEcriture, suiviEcriture, suiviLien, fermetureHorsCommit, hooksGitContournes,
+    commandePiege, issueLabel, codeurGates, runnerCapture, appelBorne, superpowersEcriture, suiviEcriture, suiviLien, fermetureHorsCommit, hooksGitContournes,
     lectureSeule, workflowType,
   ],
   PostToolUse: [poison],
