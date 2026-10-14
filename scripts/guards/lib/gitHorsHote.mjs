@@ -31,6 +31,8 @@
 //     une origine inconnue est refusée ;
 //   · `forme`    — une option qui produit des CHEMINS (`--name-only`, `--name-status`, `--numstat`,
 //     `ls-files`, `ls-tree`, `-z`) : une QUESTION de l'hôte la fixe elle-même, aucun appelant ne l'écrit.
+//     Un NOM de propriété (`{ 'ls-files': … }`, `PropertyAssignment.name` de l'AST) n'est pas un argument
+//     de git : une table indexée par sous-commande n'en écrit aucun (`requeteMesuree.mjs`, #2603).
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -79,11 +81,19 @@ export function sitesHorsHote(chemin, texte) {
   const sites = []
   const noter = (forme, i) => sites.push({ chemin, ligne: ligneDe(i), forme, extrait: lignes[ligneDe(i) - 1].trim().slice(0, 120) })
   for (const m of code.matchAll(LANCEUR)) noter('lanceur', m.index)
-  if (CANDIDAT_DECOUPE.test(code)) for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel: chemin, text: texte }])) {
+  const candidatsForme = [...code.matchAll(FORME)]
+  const decoupe = CANDIDAT_DECOUPE.test(code)
+  const cleCandidate = candidatsForme.some((m) => /^\s*:/.test(code.slice(m.index + m[0].length)))
+  const nomsDePropriete = new Set()
+  if (decoupe || cleCandidate) for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel: chemin, text: texte }])) {
     const ts = typescript()
     if (!sourceFile || diagnostics.length) throw new Error(`sitesHorsHote : syntaxe indéterminée pour ${chemin} : ${diagnostics.map(d => d.text).join('; ')}`)
-    const provenance = creerProvenanceFs({ sourceFile, checker, ts })
     const parcourir = (n, visiter) => { visiter(n); n.forEachChild(c => parcourir(c, visiter)) }
+    if (cleCandidate) parcourir(sourceFile, n => {
+      if (ts.isPropertyAssignment(n) && ts.isStringLiteralLikeNode(n.name)) nomsDePropriete.add(n.name.getStart(sourceFile))
+    })
+    if (!decoupe) continue
+    const provenance = creerProvenanceFs({ sourceFile, checker, ts })
     const donneeFichier = n => {
       if (!n) return false
       if (ts.isParenthesizedExpression(n) || ts.isAwaitExpression(n)) return donneeFichier(n.expression)
@@ -101,7 +111,7 @@ export function sitesHorsHote(chemin, texte) {
       if (!donneeFichier(n.expression.expression)) noter('decoupe', n.expression.name.getStart(sourceFile))
     })
   }
-  for (const m of code.matchAll(FORME)) noter('forme', m.index)
+  for (const m of candidatsForme) if (!nomsDePropriete.has(m.index)) noter('forme', m.index)
   return sites.sort((a, b) => a.ligne - b.ligne)
 }
 

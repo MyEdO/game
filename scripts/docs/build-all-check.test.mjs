@@ -194,7 +194,7 @@ test('contexte initial : outillage copié muté entre préparation et rang suiva
     const { copie } = copierOutillage(racine)
     const { avantGenerateur, preparerPreuves } = await import(pathToFileURL(path.join(copie, 'scripts/docs/lib/fraicheur-docs.mjs')).href)
     const preparation = preparerPreuves(racine, options)
-    const cible = path.join(copie, 'scripts/guards/lib/ecritureJsonAtomique.mjs')
+    const cible = path.join(copie, 'scripts/guards/lib/lister.mjs')
     writeFileSync(cible, readFileSync(cible, 'utf8') + '\n')
     assert.throws(() => avantGenerateur(racine, generateurs[0], options, preparation), /contexte modifié depuis préparation : outillage/)
     assert.equal(chargerPreuve(racine), null)
@@ -472,7 +472,7 @@ test('`--check` rejoue chaque générateur : un corps divergent posé sur le dis
   }
 })
 
-test('attestation : source app hors mesure reste fraîche ; outil transitif et hook URL invalident', () => {
+test('attestation : source app et module hors frontière d’outillage restent frais ; outil transitif et hook URL invalident (#2603)', () => {
   const { racine } = depotReel({ docsIgnores: true })
   try {
     const { copie, outil } = copierOutillage(racine)
@@ -483,7 +483,12 @@ test('attestation : source app hors mesure reste fraîche ; outil transitif et h
     const frais = jouer(['--perimes'])
     assert.equal(frais.status, 0, frais.sortie)
     assert.doesNotMatch(frais.sortie, /g\/a\.mjs — début|g\/b\.mjs — début/)
-    for (const rel of ['scripts/docs/lib/enregistreur-hooks.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs']) {
+    const horsFrontiere = path.join(copie, 'scripts/guards/lib/ecritureJsonAtomique.mjs')
+    writeFileSync(horsFrontiere, readFileSync(horsFrontiere, 'utf8') + '\n')
+    const toujoursFrais = jouer(['--perimes'])
+    assert.equal(toujoursFrais.status, 0, toujoursFrais.sortie)
+    assert.doesNotMatch(toujoursFrais.sortie, /g\/a\.mjs — début|g\/b\.mjs — début/)
+    for (const rel of ['scripts/docs/lib/enregistreur-hooks.mjs', 'src/lib/ordre.mjs']) {
       const cible = path.join(copie, rel)
       writeFileSync(cible, readFileSync(cible, 'utf8') + '\n')
       const perime = jouer(['--perimes'])

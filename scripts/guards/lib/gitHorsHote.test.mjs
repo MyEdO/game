@@ -96,3 +96,11 @@ test('forme : une option qui produit des chemins, où qu’elle soit écrite hor
   assert.deepEqual(formes("git(['show', '--numstat', sha])"), [[1, 'forme']])
   assert.deepEqual(formes("eolsDe(git, ['ls-files', '--eol', '--cached'])"), [[1, 'forme']], 'une question qui fixe sa commande ne reçoit pas de forme')
 })
+
+test('forme : un NOM de propriété n’est pas un argument de git, sa valeur et un opérande de ternaire le restent (#2603)', () => {
+  assert.deepEqual(formes("const drapeaux = { 'ls-files': /^(?:-z)$/, \"ls-tree\": /x/ }[commande]"), [])
+  assert.deepEqual(formes("const q = { args: ['ls-files', '-z'] }"), [[1, 'forme'], [1, 'forme']])
+  assert.deepEqual(formes("const c = court ? '--name-only' : '--name-status'"), [[1, 'forme'], [1, 'forme']])
+  assert.deepEqual(formes("const t = { ['ls-tree']: 1 }"), [[1, 'forme']], 'un nom calculé reste une valeur')
+  assert.throws(() => formes("const = ; ({ 'ls-files': 1 })"), /syntaxe indéterminée.*x\.mjs/)
+})
