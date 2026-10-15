@@ -38,7 +38,6 @@ export function effectiveIdParamFns(contenu: string, globalIdParamFns: RangsDuPa
 export const CORPUS_RACINE: string;
 export function estDansLeCorpus(rel: string): boolean;
 export const RATCHET_EXCEPTIONS: Record<string, string>;
-export function declarationQuiPorte(sf: import('typescript/unstable/ast').SourceFile, ligne: number): string;
 export function ratchetShortKey(site: { rel: string; declaration: string; rule: string }): string;
 export function isLabelLiteral(text: string): boolean;
 export function scanLabelLiteralCompare(relPath: string, contenu: string): LabelLiteralFinding[];

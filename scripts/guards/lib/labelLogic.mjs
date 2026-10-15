@@ -1,4 +1,4 @@
-import { ast, analyserCorpus } from './dialecte.mjs';
+import { ast, analyserCorpus, declarationQuiPorte } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « logique par LABEL interdite » (#142, doctrine CLAUDE.md bloc
 // agents). Module ESM pur (opère sur du texte source), consommé par
 // src/state/label-logic-guard.test.ts ET le hook au stylo (scripts/hooks/poison-postcheck.mjs) —
@@ -1022,23 +1022,6 @@ export const RATCHET_EXCEPTIONS = {
   'data/index.ts#qualityIdByLabel#label-logic':
     '`qualityIdByLabel` : l’entrée CANONIQUE d’un libellé doublon est celle dont l’id est son slug (#909).',
 };
-
-/** La déclaration de PREMIER NIVEAU qui porte la ligne `ligne` (1-based) : le nom de la fonction, ou de
- *  la première variable de l'instruction ; `''` hors de toute déclaration nommée.
- *  @param {ts.SourceFile} sf @param {number} ligne @returns {string} */
-export function declarationQuiPorte(sf, ligne) {
-  for (const st of sf.statements) {
-    const debut = sf.getLineAndCharacterOfPosition(st.getStart(sf)).line + 1;
-    const fin = sf.getLineAndCharacterOfPosition(st.getEnd()).line + 1;
-    if (ligne < debut || ligne > fin) continue;
-    if (ts.isFunctionDeclaration(st) && st.name) return st.name.text;
-    if (ts.isVariableStatement(st)) {
-      const d = st.declarationList.declarations[0];
-      if (ts.isIdentifier(d.name)) return d.name.text;
-    }
-  }
-  return '';
-}
 
 /** La clé de couture d'un site (`RATCHET_EXCEPTIONS`).
  *  @param {{ rel: string, declaration: string, rule: string }} site @returns {string} */

@@ -1,7 +1,7 @@
 import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { API, Program } from 'typescript/unstable/sync';
-import { analyserCorpus, analyserTexte, ast, scriptKindDe, typescript } from './dialecte.mjs';
+import { analyserCorpus, analyserTexte, ast, cleDeContenu, declarationQuiPorte, lignesDuContenu, scriptKindDe, typescript } from './dialecte.mjs';
 import path from 'node:path';
 
 test('une analyse détachée garde son AST et ses diagnostics sans exposer le checker fermé', () => {
@@ -142,4 +142,21 @@ for (const mode of ['épuisement', 'break', 'exception']) test(`une API par corp
     assert.equal(snapshot.mock.callCount(), 1);
     assert.equal(spy.mock.callCount(), 1);
   } finally { snapshot.mock.restore(); spy.mock.restore(); for (const instance of instances) close.call(instance); }
+});
+
+test('declarationQuiPorte : fonction, classe, interface, alias de type et variable nomment leur site ; hors déclaration, rien', () => {
+  const text = ['export function f() {', '  return 1;', '}', 'class C { x = 1; }', 'export interface I {', '  name: string;', '}',
+    'type T = { name: string };', 'const v = 2, w = 3;', 'f();'].join('\n');
+  const sf = ast({ rel: 'sites.ts', text });
+  assert.deepEqual([2, 4, 6, 8, 9, 10].map((l) => declarationQuiPorte(sf, l)), ['f', 'C', 'I', 'T', 'v', '']);
+  assert.equal(declarationQuiPorte(ast({ rel: 'decale.ts', text: `\n\n${text}` }), 8), 'I', 'une insertion en amont ne change pas la clé');
+});
+
+test('cleDeContenu / lignesDuContenu : la clé suit le texte, jamais la position ; péremption et ambiguïté se comptent', () => {
+  const text = '  // a\n// b\r\n// a\n';
+  const cle = cleDeContenu('x.mjs', text, 2);
+  assert.equal(cle, 'x.mjs :: // b');
+  assert.deepEqual(lignesDuContenu('x.mjs', `\n${text}`, cle), [3]);
+  assert.deepEqual(lignesDuContenu('x.mjs', text, cleDeContenu('x.mjs', text, 1)), [1, 3], 'ambiguë');
+  assert.deepEqual(lignesDuContenu('x.mjs', text, 'x.mjs :: // c'), [], 'périmée');
 });

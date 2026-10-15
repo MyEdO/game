@@ -1,4 +1,4 @@
-import { ast } from '../../scripts/guards/lib/dialecte.mjs';
+import { ast, declarationQuiPorte } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -8,7 +8,7 @@ import {
   scanLabelLogic, collectIdParamFunctions, scanLabelAsIdArg,
   scanLabelLiteralCompare, ecartsAuxDettesDeLibelle, DETTES_DE_LIBELLE, cleDeDette, fichierDeDette,
   scanCallResultLiteralCompare,
-  CORPUS_RACINE, estDansLeCorpus, RATCHET_EXCEPTIONS, ratchetShortKey, declarationQuiPorte,
+  CORPUS_RACINE, estDansLeCorpus, RATCHET_EXCEPTIONS, ratchetShortKey,
   collectLabelEntityResolvers, scanLabelResolverCalls,
   scanLabelKeyedIndex,
   collectFacesDAffichage, scanFaceDAffichageIdentite, scanFaceDeDonneeString, scanLiantsLitterauxDesFaces,

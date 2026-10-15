@@ -10,3 +10,6 @@ export function analyserCorpus(fichiers: Iterable<FichierSource>, options?: Opti
 export function avecAnalyse<T>(fichier: FichierSource, sourceFile: TS.SourceFile | null | undefined, checker: Checker | undefined, fn: (sourceFile: TS.SourceFile, checker: Checker | undefined) => T): T;
 export function analyserTexte(fichier: FichierSource, options?: OptionsDialecte): AnalyseSyntaxique;
 export function ast(fichier: FichierSource, options?: OptionsDialecte): TS.SourceFile | null;
+export function declarationQuiPorte(sf: TS.SourceFile, ligne: number): string;
+export function cleDeContenu(rel: string, texte: string, ligne: number): string;
+export function lignesDuContenu(rel: string, texte: string, cle: string): number[];
