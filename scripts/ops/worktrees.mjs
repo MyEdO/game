@@ -112,6 +112,9 @@ export function raisonDe(w) {
   }
 }
 
+/** Les processus que la mesure n'a pas su lire, une fois pour tout l'inventaire (dédupliqués). PURE. */
+export const indetermineesDe = (entrees) => [...new Set(entrees.flatMap((w) => w.protection?.indeterminees ?? []))]
+
 /** Une ligne d'inventaire : `<classe>\t<chemin>\t<branche|détaché@sha>\t<raison>`. PURE. */
 export const ligneDInventaire = (w) => [w.classe, w.chemin, refDe(w), raisonDe(w)].join('\t')
 
@@ -284,6 +287,8 @@ function main() {
     process.exit(1)
   }
   const entrees = [...vu.worktrees, ...vu.nonInscrits]
+  const indeterminees = indetermineesDe(entrees)
+  if (indeterminees.length) process.stdout.write(`mesure processus indéterminée — ${indeterminees.length} processus, refus de chaque arbre mesuré :\n${indeterminees.map((i) => `  ${i}\n`).join('')}\n`)
   for (const w of entrees) process.stdout.write(`${ligneDInventaire(w)}\n`)
   if (vu.portee) process.stdout.write(vu.portee + '\n')
   const comptes = comptesParClasse(entrees)

@@ -8,7 +8,8 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { ancetreExistant, canoniser, dansLaMesure, perimetreDeMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { ancetreExistant, canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { envDeDepotForge, instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
 import { depotDe, politiqueExclusionsDe } from '../../guards/lib/gitPorte.mjs'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
@@ -172,6 +173,27 @@ test('canoniser : un chemin absent SOUS une jonction rend la cible réelle + le 
   }
 })
 
+// #2603
+test('canoniseurParDossier rend canoniser : feuille exacte, casse, jonction, absente, sous jonction, dossier absent, racine', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-memo-'))
+  try {
+    const cible = join(base, 'cible')
+    mkdirSync(cible)
+    writeFileSync(join(cible, 'Casse.md'), 'casse')
+    symlinkSync(cible, join(base, 'lien'), 'junction')
+    const chemins = [
+      join(cible, 'Casse.md'), join(cible, 'casse.md'), join(base, 'lien'), join(base, 'LIEN'), join(cible, 'absent.md'),
+      join(base, 'lien', 'Casse.md'), join(base, 'lien', 'absent', 'x.md'), join(base, 'absent', 'x.md'), base, cible,
+      join(tmpdir(), '..'), join(base, '..', '..'), base.split(/[\\/]/)[0] + '/',
+    ]
+    const canon = canoniseurParDossier()
+    for (const passe of [1, 2]) for (const chemin of chemins) assert.equal(canon(chemin), canoniser(chemin), `${passe} : ${chemin}`)
+    assert.equal(canon(join(base, 'lien', 'Casse.md')), join(realpathSync.native(cible), 'Casse.md'))
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('ancetreExistant : racine existante, lecteur absent et préfixes UNC', () => {
   const base = mkdtempSync(join(tmpdir(), 'wfrp-racines-'))
   try {
@@ -199,6 +221,33 @@ test('ancetreExistant : racine existante, lecteur absent et préfixes UNC', () =
     const vu = spawnSync(process.execPath, [script], { encoding: 'utf8' })
     assert.equal(vu.status, 0, `${vu.stdout}${vu.stderr}`)
   } finally { rmSync(base, { recursive: true, force: true }) }
+})
+
+test('canonisation stricte : un composant de 300 caractères est ABSENT, sur le disque et sous ENAMETOOLONG (#2603)', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-long-'))
+  const stat = fs.statSync
+  const realpath = fs.realpathSync.native
+  const long = join(base, 'JAB'.repeat(100), 'x.md')
+  const attendu = join(realpath(base), 'JAB'.repeat(100), 'x.md')
+  try {
+    assert.equal(ancetreExistant(long, { strict: true }), base)
+    assert.equal(canoniser(long, { strict: true }), attendu)
+    const tropLong = (chemin) => chemin.split(/[\\/]/).some((segment) => segment.length > 255)
+    fs.statSync = (chemin, ...reste) => {
+      if (tropLong(chemin)) throw Object.assign(new Error('banc'), { code: 'ENAMETOOLONG' })
+      return stat(chemin, ...reste)
+    }
+    fs.realpathSync.native = (chemin, ...reste) => {
+      if (tropLong(chemin)) throw Object.assign(new Error('banc'), { code: 'ENAMETOOLONG' })
+      return realpath(chemin, ...reste)
+    }
+    assert.equal(ancetreExistant(long, { strict: true }), base)
+    assert.equal(canoniser(long, { strict: true }), attendu)
+  } finally {
+    fs.statSync = stat
+    fs.realpathSync.native = realpath
+    rmSync(base, { recursive: true, force: true })
+  }
 })
 
 test('ancetreExistant : le chemin lui-même s’il existe, son ancêtre sinon', () => {

@@ -67,8 +67,8 @@ public static class WorktreeProcess {
 '@
 $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $items = @()
-foreach ($p in Get-CimInstance Win32_Process) {
-  if ($Pids -and $p.ProcessId -notin ($Pids.Split(',') | ForEach-Object { [int]$_ })) { continue }
+$cibles = if ($Pids) { Get-CimInstance Win32_Process -Filter ((($Pids.Split(',') | ForEach-Object { "ProcessId=$([int]$_)" })) -join ' OR ') } else { Get-CimInstance Win32_Process }
+foreach ($p in $cibles) {
   $creation = if ($p.CreationDate) { $p.CreationDate.ToUniversalTime().ToString('o') } else { '' }
   $item = @{pid=[int]$p.ProcessId;nom=[string]$p.Name;creation=$creation;commande=[string]$p.CommandLine;cwd=$null;proprietaire=$null;erreurs=@()}
   try { $owner = [WorktreeProcess]::Owner($p.ProcessId) }

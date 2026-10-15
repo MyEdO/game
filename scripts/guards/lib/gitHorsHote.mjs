@@ -33,7 +33,7 @@
 //     `ls-files`, `ls-tree`, `-z`) : une QUESTION de l'hôte la fixe elle-même, aucun appelant ne l'écrit.
 //     Un élément d'une TABLE n'est pas un site : `const <nom> = new Set([…])` non exportée, `Set` global, chaque
 //     référence à `<nom>` — un `export { <nom> }` et une propriété raccourcie `{ <nom> }` compris — étant un appel
-//     `<nom>.has(…)` (`elementsDeTables`).
+//     `<nom>.has(…)` ; une CLÉ chaîne d'un `{…}` lu par indexation seule, `{…}[x]` ou `const <nom>` aux mêmes conditions (`elementsDeTables`).
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -110,10 +110,13 @@ export function sitesHorsHote(chemin, texte) {
   return sites.sort((a, b) => a.ligne - b.ligne)
 }
 
-/** Les positions des littéraux chaîne éléments d'une TABLE : `const <nom> = new Set([…])` non exportée, `Set` n'ayant aucune
- *  déclaration hors d'un `.d.ts`, dont chaque référence est un appel `<nom>.has(…)` ; la valeur d'une propriété raccourcie
- *  (`getShorthandAssignmentValueSymbol`) et la cible locale d'un `export { <nom> }` (`getExportSpecifierLocalTargetSymbol`)
- *  sont des références. */
+/** Les positions des littéraux chaîne éléments d'une TABLE, consultée seulement, sous deux formes :
+ *  · `const <nom> = new Set([…])` non exportée, `Set` n'ayant aucune déclaration hors d'un `.d.ts`, dont chaque référence
+ *    est un appel `<nom>.has(…)` : ses éléments chaînes ;
+ *  · un littéral `{…}` indexé sur-le-champ en lecture (`{…}[x]`), ou `const <nom> = {…}` non exportée dont chaque référence
+ *    est une lecture `<nom>[x]` : les CLÉS chaînes de ses `PropertyAssignment`, ses valeurs restant des sites.
+ *  La valeur d'une propriété raccourcie (`getShorthandAssignmentValueSymbol`) et la cible locale d'un `export { <nom> }`
+ *  (`getExportSpecifierLocalTargetSymbol`) sont des références. */
 function elementsDeTables(chemin, texte) {
   const ts = typescript()
   const positions = new Set()
@@ -129,14 +132,25 @@ function elementsDeTables(chemin, texte) {
           : checker.getSymbolAtLocation(n)
       if (symbole) references.set(symbole, [...(references.get(symbole) ?? []), n])
     })
-    const consulteeSeulement = (nom) => (references.get(checker.getSymbolAtLocation(nom)) ?? []).every((r) => r === nom
-      || (ts.isPropertyAccessExpression(r.parent) && r.parent.expression === r && r.parent.name.text === 'has' && ts.isCallExpression(r.parent.parent) && r.parent.parent.expression === r.parent))
+    const consulteeSeulement = (nom, consultation) => (references.get(checker.getSymbolAtLocation(nom)) ?? []).every((r) => r === nom || consultation(r))
+    const parSet = (r) => ts.isPropertyAccessExpression(r.parent) && r.parent.expression === r && r.parent.name.text === 'has' && ts.isCallExpression(r.parent.parent) && r.parent.parent.expression === r.parent
+    const exterieur = (n) => ts.isParenthesizedExpression(n.parent) ? exterieur(n.parent) : n
+    const ecrit = (n) => {
+      const e = exterieur(n), p = e.parent
+      return (ts.isBinaryExpression(p) && p.left === e && p.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && p.operatorToken.kind <= ts.SyntaxKind.LastAssignment)
+        || ((ts.isPrefixUnaryExpression(p) || ts.isPostfixUnaryExpression(p)) && (p.operator === ts.SyntaxKind.PlusPlusToken || p.operator === ts.SyntaxKind.MinusMinusToken))
+        || ts.isDeleteExpression(p)
+    }
+    const parIndex = (r) => { const e = exterieur(r), p = e.parent; return ts.isElementAccessExpression(p) && p.expression === e && !ecrit(p) }
+    const cles = (objet) => { for (const p of objet.properties) if (ts.isPropertyAssignment(p) && ts.isStringLiteral(p.name)) positions.add(p.name.getStart(sourceFile)) }
     parcourir(sourceFile, (n) => {
+      if (ts.isObjectLiteralExpression(n) && parIndex(n)) return cles(n)
       if (!ts.isVariableDeclaration(n) || !ts.isIdentifier(n.name) || !/^const\b/.test(n.parent.getText(sourceFile))) return
       if ((n.parent.parent.modifiers ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) return
       const table = n.initializer
+      if (table && ts.isObjectLiteralExpression(table) && consulteeSeulement(n.name, parIndex)) return cles(table)
       if (!table || !ts.isNewExpression(table) || !ts.isIdentifier(table.expression) || table.expression.text !== 'Set' || !global(table.expression)) return
-      if (!table.arguments?.[0] || !ts.isArrayLiteralExpression(table.arguments[0]) || !consulteeSeulement(n.name)) return
+      if (!table.arguments?.[0] || !ts.isArrayLiteralExpression(table.arguments[0]) || !consulteeSeulement(n.name, parSet)) return
       for (const e of table.arguments[0].elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) positions.add(e.getStart(sourceFile))
     })
   }

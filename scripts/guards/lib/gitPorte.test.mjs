@@ -21,7 +21,8 @@ import { sourceGit } from './cssImages.mjs'
 import { listerDossier, parUnitesDeCode } from './lister.mjs'
 import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
 import { createHash } from 'node:crypto'
-import { relireRequeteMesuree, normaliserRequeteMesuree } from './gitPorte.mjs'
+import { relireRequeteMesuree } from './gitPorte.mjs'
+import { normaliserRequeteMesuree } from './requeteMesuree.mjs'
 
 test('mesure 2456 : requêtes de cache hostiles refusées avant tout processus', () => {
   let appels = 0

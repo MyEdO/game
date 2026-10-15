@@ -1,13 +1,12 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { listerDossier } from '../../guards/lib/lister.mjs'
+import { cheminAbsent, listerDossier } from '../../guards/lib/lister.mjs'
 import { versPosix, versWindows } from './plateforme-win32-hooks.mjs'
 
-const absent = (erreur) => erreur?.code === 'ENOENT' || erreur?.code === 'ENOTDIR'
 const lireOuAbsent = (lire, valeurAbsente) => {
   try { return lire() }
   catch (erreur) {
-    if (absent(erreur)) return valeurAbsente
+    if (cheminAbsent(erreur)) return valeurAbsente
     throw erreur
   }
 }

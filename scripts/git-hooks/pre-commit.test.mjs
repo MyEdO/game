@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
-import { CHEMIN_DU_JOURNAL } from './journal.mjs'
+import { journalDe } from './journal.mjs'
 import { lancerGit, resultatDeGit } from '../test/gitDeBanc.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { transformSkillTree } from '../agents/compat-core.mjs'
@@ -226,14 +226,14 @@ test('INTÉGRITÉ — une PANNE de git sur le diff du lot est un fautif NOMMÉ, 
   }
 })
 
-test('journal : une ligne par exécution, refus nommés compris', () => {
+test('journal : un début et une fin par exécution sous le git-dir du dépôt, refus nommés compris', () => {
   const nom = 'src/x\t.ts'
   const { racine, jouer } = depotDuHook({ [nom]: 'export const x = 1\n' })
   try {
     assert.equal(jouer().status, 1)
-    const entrees = readFileSync(join(racine, CHEMIN_DU_JOURNAL), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
-    assert.equal(entrees.length, 1)
-    const [{ hook, code, verdict, refus }] = entrees
+    const entrees = readFileSync(journalDe(racine), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+    assert.deepEqual(entrees.map((e) => e.evenement), ['debut', 'fin'])
+    const [, { hook, code, verdict, refus }] = entrees
     assert.deepEqual({ hook, code, verdict }, { hook: 'pre-commit', code: 1, verdict: 'refusé' })
     assert.ok(refus.some((x) => x.startsWith(`${nom} : illisible dans l'index`)), refus.join('\n'))
   } finally {

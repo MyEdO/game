@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GitIndisponible, classer, depotDe, retirerWorktree, worktreesDe } from '../guards/lib/gitPorte.mjs'
 import {
-  CLASSES, GESTES_DE_L_INVENTAIRE, GESTES_DE_LA_PURGE, arbresTenus, classerWorktree, comptesParClasse, dossiersNonInscrits, inventaire as inventaireReel, ligneDInventaire, purger as purgerReel,
+  CLASSES, GESTES_DE_L_INVENTAIRE, GESTES_DE_LA_PURGE, arbresTenus, classerWorktree, comptesParClasse, dossiersNonInscrits, indetermineesDe, inventaire as inventaireReel, ligneDInventaire, purger as purgerReel,
 } from './worktrees.mjs'
 import { mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
@@ -132,6 +132,15 @@ test('ligneDInventaire : quatre colonnes tabulées, et LA raison de toucher ou n
 
   const horsMain = ligneDInventaire({ classe: 'propre+hors-main', chemin: '/h', branche: 'b', fusionne: false })
   assert.match(horsMain.split('\t')[3], /commits que origin\/main/)
+})
+
+test('indetermineesDe : l’indétermination machine se cite UNE fois pour tout l’inventaire', () => {
+  const protege = (indeterminees) => ({ protection: { ok: false, refus: [`mesure processus indéterminée : ${indeterminees.length} processus, cités à part`], indeterminees } })
+  assert.deepEqual(indetermineesDe([
+    protege(['PID 1 a.exe : cwd illisible', 'PID 2 b.exe : cwd illisible']),
+    protege(['PID 2 b.exe : cwd illisible', 'PID 3 c.exe — ancêtre illisible']),
+    { classe: 'absent' },
+  ]), ['PID 1 a.exe : cwd illisible', 'PID 2 b.exe : cwd illisible', 'PID 3 c.exe — ancêtre illisible'])
 })
 
 test('comptesParClasse compte dans l’ordre des CLASSES, sans les classes vides', () => {
