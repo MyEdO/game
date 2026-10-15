@@ -5,7 +5,7 @@ import { CharFrame } from './CharFrame';
 import { OptionChooser } from './OptionChooser';
 import { Prose } from './Prose';
 import {
-  seaActivitiesCatalog, seaActivityBlocked,
+  seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus,
   type SeaActivityPick,
 } from '../state/seaActivities';
 import { findVehicleById, findRegleById } from '../data';
@@ -64,12 +64,13 @@ export function SeaActivitiesModal() {
                 options={[
                   { key: 'repos', label: 'Repos', selected: !chosen, onSelect: () => set(h.id, null) },
                   ...catalog.map((def) => {
-                    const blocked = seaActivityBlocked(useGame.getState, def);
+                    // Fermée pour tous (`seaActivityBlocked`), ou pour CE héros seul (`seaActivityRefus`, LDB 09 l.30 ; #2588).
+                    const refus = seaActivityBlocked(useGame.getState, def) ?? seaActivityRefus(h, def);
                     return {
                       key: def.id,
                       label: def.label,
                       selected: chosen === def.id,
-                      ...(blocked ? { refus: blocked } : { title: def.label }),
+                      ...(refus ? { refus } : { title: def.label }),
                       onSelect: () => set(h.id, { activityId: def.id }),
                     };
                   }),

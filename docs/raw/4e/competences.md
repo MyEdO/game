@@ -45,7 +45,7 @@ Augmentations** dans cette Compétence inscrites sur la Feuille de Personnage.
 **Sources RAW :** LDB 09 l.12-18
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.12-18) → `doc`, `possesses`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, `useHealJetProps`, `TestResult`, +29 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/engine/axes.ts`, `src/engine/combat.ts`, `src/engine/magic.ts`, `src/engine/skillCombatApps.ts`, +20 fichiers
+- `LDB 9` (l.12-18) → `doc`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, `useHealJetProps`, `TestResult`, `rollTest`, +30 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/engine/activities.ts`, `src/engine/axes.ts`, `src/engine/combat.ts`, `src/engine/magic.ts`, +20 fichiers
 
 **Voir aussi :** [Tests & Degrés de Réussite](tests.md) pour l'utilisation de ce niveau en test.
 
@@ -73,7 +73,7 @@ Nécessitent un entraînement. **Impossible de tenter le Test sans au moins une 
 **Sources RAW :** LDB 09 l.22-32
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.22-32) → `doc`, `hasHealSkill`, `possesses`, `RecoverResolution`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `useTestJetProps`, `BargainModalView`, `AppraiseModalView`, +57 — `src/data/index.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/skills.json`, `src/engine/activities.ts`, +40 fichiers
+- `LDB 9` (l.22-32) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `RecoverResolution`, `ParticipantRow`, `useSurgeryJetProps`, `DispelModal`, `specIdOf`, `rollCrewRole`, +104 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +59 fichiers
 
 ---
 
@@ -102,7 +102,7 @@ L'accord du MJ se modélise par une règle optionnelle à arbitrer (#1460).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 8` (l.140) → `agitateur`, `agitateur-1`, `agitateur-2`, `agitateur-3`, `prisParLesAutres`, `agitateur-4`, `progression-schemas-derived` — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/engine/careerSlots.ts`
-- `LDB 9` (l.34-46, l.495) → `doc`, `hasHealSkill`, `possesses`, `specIdOf`, `art`, `ivresse`, `buySkillAdvance`, `athletisme`, `registerNightBandApplier`, `buildAdvancementView`, +40 — `src/data/drunkenness.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/regles.json`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, +27 fichiers
+- `LDB 9` (l.34-46, l.495) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `specIdOf`, `rollCrewRole`, `trainedForRole`, `traders`, `PostesRoster`, +93 — `src/data/activities.json`, `src/data/drunkenness.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/pregens.ts`, `src/data/regles.json`, +56 fichiers
 
 ---
 
@@ -187,7 +187,7 @@ Soin aux animaux, Voile**
 **Sources RAW :** LDB 09 l.65-574 (descriptions individuelles).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.65-574) → `mendier-ennuis`, `GearAssignList`, `porteADecouvrir`, `SOURCES_DE_SPECS`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `drivingAccidentDamage` ⚠sans-appelant, `DRUNK_CARACS`, `accidents-conduite-attelage`, `actBlockReason`, +106 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/drunkenness.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, +42 fichiers
+- `LDB 9` (l.65-574) → `mendier-ennuis`, `porteADecouvrir`, `GearAssignList`, `SOURCES_DE_SPECS`, `doc`, `rollDrivingMishap` ⚠sans-appelant, `altCharKey`, `skillAdvantageCap`, `drivingAccidentDamage` ⚠sans-appelant, `DRUNK_CARACS`, +108 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/driving-mishap.json`, `src/data/drunkenness.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, +43 fichiers
 
 ---
 
@@ -634,7 +634,7 @@ Activité Artisanat entre aventures utilise Métier (voir [Activités](activites
 **Sources RAW :** LDB 09 l.349-364
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.30, l.298, l.305-308, l.310-312, l.344-346, l.349-364) → `doc`, `hasHealSkill`, `possesses`, `altCharKey`, `specIdOf`, `skillAdvantageCap`, `art`, `athletisme`, `test-metier-int`, `slotCovers`, +35 — `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, +21 fichiers
+- `LDB 9` (l.30, l.298, l.305-308, l.310-312, l.344-346, l.349-364) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `altCharKey`, `ParticipantRow`, `skillAdvantageCap`, `specIdOf`, `rollCrewRole`, `trainedForRole`, +85 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/reglesOptionnelles.json`, +48 fichiers
 - `LDB 10` (l.650) → `deplierAjouts`, `lecture-rapide`, `linguistique`, `lire-ecrire`, `lire-sur-les-levres`, `loup-de-mer`, `machoires-d-acier`, `mage-de-guerre`, `magie-des-arcanes`, `magie-du-chaos`, +1 — `src/data/talents.json`, `src/engine/talentEffects.ts`
 - `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `possession-pas-a-sa-taille`, `gueule`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
 

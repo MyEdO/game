@@ -16,6 +16,7 @@ import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue } from './skills';
 import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, CHAR_LABELS, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine } from './types';
 import { weatherTestMods } from './weatherTestMod';
+import { precipitationTestMods } from './seaWeather';
 import { findTableEntry } from './tables';
 import { maxBy } from './pick';
 import locJson from '../data/localisation.json';
@@ -391,9 +392,9 @@ export interface SecondReadLine {
 export interface RollBreakdown {
   /** Intitulé du jet : 'Corps à corps' / 'Parade' / 'Esquive' / 'Projectiles'. */
   label: string;
-  /** SEUIL PUR (#1426) : le jet décrit est un POURCENTAGE (`dé ≤ nombre visé`), pas un Test — la ligne
-   *  rend son verdict en clair, sans ✓±DR (un pourcentage n'a pas de Degré de Réussite). Absent = Test. */
-  evaluation?: 'seuil';
+  /** SEUIL PUR (#1426) : le jet décrit est un POURCENTAGE (`dé ≤ nombre visé`), pas un Test — présent,
+   *  il PORTE le verdict que la ligne rend, sans ✓±DR (#2389, `state/pendings.LectureDuDe`). Absent = Test. */
+  seuil?: { reussite: string; echec: string };
   /** Difficulté du Test — NATURE du jet, pas un modificateur circonstanciel : elle se lit
    *  sur la LIGNE (texte + valeur, `ui/RollLine.tsx`) et n'entre JAMAIS dans `mods` (#1072). Sa
    *  valeur reste comprise dans `modifier`/`target`. */
@@ -832,6 +833,9 @@ export function attackModifiers(
   // (Corps à corps = CC, Projectiles = CT). Lu depuis `attacker.envWeather` (posé à l'ouverture du combat),
   // jamais recâblé côté state (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
   out.push(...weatherTestMods(attacker.envWeather, opts.kind === 'ranged' ? 'capacite-de-tir' : 'capacite-de-combat'));
+  // Précipitations sur le pont (MDG 13 l.185, #1936) : canal `precipitationTestMods`, lu depuis `attacker.envPrecipitation`.
+  const tested = combatSkillPick(attacker, opts.kind, weapon); // LDB 62 l.180
+  out.push(...precipitationTestMods(attacker.envPrecipitation, tested.skillId, tested.spec));
   // Modificateurs WEAPON-CONTEXTUELS dérivés de la SCÈNE (couvert / obscurité / météo au TIR (rangedMod/
   // poudre) / mouvement / tir-mêlée), calculés côté state (combatFlow) et injectés ici — la table de
   // Difficultés de Combat n'est pas exhaustive. La pénalité « Tests physiques » n'y est PLUS (canal ci-dessus).
@@ -900,7 +904,14 @@ export function defenseModifiers(defender: Combatant, mode: DefenseMode, dodgeMo
   // (posé à l'ouverture du combat), scopé par la carac RÉELLE du mode (Parade = CC, Esquive = Agilité) — jamais
   // recâblé par surface (la garde d'import interdit tout autre lecteur de `weatherPhysicalTestMod`).
   out.push(...weatherTestMods(defender.envWeather, defenseTestChar(mode)));
+  out.push(...precipitationTestMods(defender.envPrecipitation, defenseTestSkill(mode))); // MDG 13 l.185, #1936
   return out;
+}
+
+/** Compétence RÉELLE d'un mode de défense (Parade = Corps à corps, Esquive = Esquive) — clé du canal de
+ *  Précipitations (MDG 13 l.187-200). La substitution sociale n'en désigne aucune. */
+function defenseTestSkill(mode: DefenseMode): string | undefined {
+  return mode === 'parade' ? 'corps-a-corps' : mode === 'esquive' ? 'esquive' : undefined;
 }
 
 /** Caractéristique RÉELLE d'un mode de défense (Parade = Test de CC, Esquive = Agilité) — pour le canal météo
@@ -909,12 +920,6 @@ function defenseTestChar(mode: DefenseMode): CharKey | null {
   return mode === 'parade' ? 'capacite-de-combat' : mode === 'esquive' ? 'agilite' : null;
 }
 
-/** Modificateurs de BASE d'un Test de combat « brut » (hors Atouts d'arme et bonus de cible), en lignes
- *  NOMMÉES : Avantage ×10 + pénalité d'États + météo « Tests physiques » (canal `weatherTestMods`, #341).
- *  MÊME nomenclature que `attackModifiers`/`defenseModifiers` — une modale de Test opposé « brut »
- *  (Empoignade, Au Contact, Désengagement) affiche ainsi ses modificateurs au lieu d'un +N anonyme.
- *  `ck` = la Caractéristique RÉELLE du Test brut (Empoignade → Force, Désengagement/coup dans le dos →
- *  CC) : la météo n'arrive que si elle est physique (LISTE maison `physicalTestChars`). */
 /** LA ligne d'AVANTAGE d'un porteur (`LDB 14 l.215` : +10 par point à un Test approprié), ou `null`
  *  sans Avantage — SOURCE UNIQUE de sa mise en ligne, partagée par les Tests de combat « bruts »
  *  (`baseTestModLines`, ci-dessous) et par tout Test HORS arène que la règle dit « approprié »
@@ -926,12 +931,23 @@ export function advantageModLine(c: Combatant): ModLine | null {
   return adv ? { label: 'Avantage', value: adv, famille: 'jet', ref: RULE_REF.avantage } : null;
 }
 
+/** Modificateurs de BASE d'un Test de combat « brut » (hors Atouts d'arme et bonus de cible), en lignes
+ *  NOMMÉES : Avantage ×10 + pénalité d'États + météo « Tests physiques » (canal `weatherTestMods`, #341)
+ *  + Précipitations sur le pont (canal `precipitationTestMods`, MDG 13 l.185).
+ *  MÊME nomenclature que `attackModifiers`/`defenseModifiers` — une modale de Test opposé « brut »
+ *  (Empoignade, Au Contact, Désengagement) affiche ainsi ses modificateurs au lieu d'un +N anonyme.
+ *  `ck` = la Caractéristique RÉELLE du Test brut (Empoignade → Force, Désengagement/coup dans le dos →
+ *  CC) : la météo n'arrive que si elle est physique (LISTE maison `physicalTestChars`). `ctx` = le Test
+ *  tel que l'appelant le déclare : `ctx.skill`, la Compétence lancée (Au Contact, Désengagement :
+ *  `weaponSkillId('melee')`), absente pour un Test de Caractéristique (Empoignade, `GRAPPLE_TEST_CTX`) —
+ *  lue par les États (`conditionModLines`) ET par les Précipitations, comme `attackModifiers`/`defenseModifiers`. */
 export function baseTestModLines(c: Combatant, ck?: CharKey, ctx: EtatTestCtx = {}): ModLine[] {
   const out: ModLine[] = [];
   const adv = advantageModLine(c);
   if (adv) out.push(adv);
   out.push(...conditionModLines(c, ctx));
   out.push(...weatherTestMods(c.envWeather, ck ?? null));
+  out.push(...precipitationTestMods(c.envPrecipitation, ctx.skill)); // MDG 13 l.185, #1936
   return out;
 }
 

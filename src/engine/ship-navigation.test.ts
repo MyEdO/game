@@ -23,25 +23,10 @@ describe('progressionMovement — table de Progression (MDG 13 l.68-75)', () => 
 });
 
 describe('resolveShipManeuver — Test de Manœuvre = Navigation + Man du bateau (MDG 13 l.119)', () => {
-  it('réussite (DR final ≥ 0) → virage exécuté ; déplacement via la table de Progression', () => {
-    const r = resolveShipManeuver(2, 5, 1); // DR nav 2 + Man 1 = 3
-    expect(r.dr).toBe(3);
-    expect(r.success).toBe(true);
-    expect(r.movement).toBe(6); // M+1
-    expect(r.label).toContain('progresse bien');
-  });
-
-  it('échec (DR final < 0) → pas de virage, mais peut encore progresser « normalement »', () => {
-    const r = resolveShipManeuver(-1, 6, 0); // DR final −1
-    expect(r.success).toBe(false);
-    expect(r.movement).toBe(6); // −2 à 0 → M
-  });
-
-  it('la Man du bateau ET un extraDR (Salissures, houle…) modifient le DR final', () => {
-    expect(resolveShipManeuver(-1, 6, 2).dr).toBe(1); // Man +2 rattrape → réussite
-    expect(resolveShipManeuver(-1, 6, 2).success).toBe(true);
-    const fouled = resolveShipManeuver(1, 6, 0, -2); // −2 DR situationnel
-    expect(fouled.dr).toBe(-1);
-    expect(fouled.success).toBe(false);
+  it('DR final = DR de Navigation + Man + extraDR ; déplacement et libellé lus à la Progression au DR final', () => {
+    const r = resolveShipManeuver(2, 5, 1); // 2 + 1 = 3
+    expect(r).toEqual({ dr: 3, movement: 6, label: expect.stringContaining('progresse bien') }); // 1 à 3 → M+1
+    expect(resolveShipManeuver(1, 6, 0, -2)).toMatchObject({ dr: -1, movement: 6 }); // −2 à 0 → M
+    expect(resolveShipManeuver(-1, 6, -2, -2)).toMatchObject({ dr: -5, movement: 3 }); // −5 ou moins → M÷2
   });
 });

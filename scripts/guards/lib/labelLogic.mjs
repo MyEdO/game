@@ -1,4 +1,4 @@
-import { ast, analyserCorpus } from './dialecte.mjs';
+import { ast, analyserCorpus, declarationQuiPorte } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « logique par LABEL interdite » (#142, doctrine CLAUDE.md bloc
 // agents). Module ESM pur (opère sur du texte source), consommé par
 // src/state/label-logic-guard.test.ts ET le hook au stylo (scripts/hooks/poison-postcheck.mjs) —
@@ -988,44 +988,45 @@ export function estDansLeCorpus(rel) {
   return rel.startsWith(`${CORPUS_RACINE}/`) && estRetenu(rel);
 }
 
-/** COUTURES LÉGITIMES — `fichier:ligne` (relatif à `src/`) → justification. N'y entrent que la couture
+/** COUTURES LÉGITIMES — `fichier#déclaration#règle` (fichier relatif à `src/`, déclaration de PREMIER
+ *  NIVEAU qui porte le site, `declarationQuiPorte`) → justification. Une clé désigne UN site : si
+ *  plusieurs sites d'un fichier la portent, aucun n'est couture. N'y entrent que la couture
  *  de chargement et de saisie de `src/data/index.ts` (#909) et le parseur de saisie « format livre » de
  *  l'éditeur (`refFormatLivre.ts`) ; chacune a son test de légitimité (`label-logic-guard.test.ts`,
  *  « coutures légitimes »), qui juge le SITE par la déclaration qui le porte. Une DETTE n'y entre
  *  jamais : elle va au stock `DETTES_DE_LIBELLE`, avec son ticket. */
 export const RATCHET_EXCEPTIONS = {
-  'data/index.ts:3314':
+  'data/index.ts#qualityIdByLabel#face-donnee-string':
     "(c) `qualityIdByLabel` rend un ID, pas un texte : couture libellé→id d'AUTHORING (invariant 1, « aider " +
     'à la saisie »), déjà recensée comme résolveur par libellé (#909, `collectLabelEntityResolvers`).',
-  'ui/editor/refFormatLivre.ts:20':
-    '(b) Parseur de SAISIE « format livre » (invariant 1, « aider à la saisie »), même régime que :41 : la ' +
+  'ui/editor/refFormatLivre.ts#saisieAuChoix#face-affichage-identite':
+    '(b) Parseur de SAISIE « format livre » (invariant 1, « aider à la saisie »), même régime que `specIdOf` : la ' +
     'saisie « (Au choix) » se reconnaît au mot que l’affichage compose (`ref.motAuChoix`) ; elle rend `choix`.',
-  'ui/editor/refFormatLivre.ts:41':
+  'ui/editor/refFormatLivre.ts#specIdOf#face-affichage-identite':
     '(b) Parseur de SAISIE « format livre » de l’éditeur (invariant 1, « aider à la saisie ») : le texte ' +
     'saisi retrouve l’id de spécialisation dont le libellé affiché est ce texte ; il rend un id.',
-  'ui/editor/refFormatLivre.ts:52':
+  'ui/editor/refFormatLivre.ts#parseSkillRef#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : le nom de Compétence saisi retrouve son id (`findSkill`, #909).',
-  'ui/editor/refFormatLivre.ts:67':
+  'ui/editor/refFormatLivre.ts#parseTalentRef#label-entity-resolver-call':
     'Parseur de SAISIE « format livre » : le nom de Talent saisi retrouve son id (`findTalent`, #909).',
   // Résolveurs par LIBELLÉ de la couture de chargement/saisie (#909) — chacun est reconnu par
   // `collectLabelEntityResolvers`, donc chacun de ses appels hors couture est une dette au stock.
-  'data/index.ts:3142':
+  'data/index.ts#findSkill#label-logic':
     '`findSkill` : résolveur libellé→entrée de la couture de saisie (statblocs de campagne, #909).',
-  'data/index.ts:3176':
+  'data/index.ts#findTalent#label-logic':
     '`findTalent` : résolveur libellé→entrée de la couture de saisie (#909).',
-  'data/index.ts:3279':
+  'data/index.ts#findSpell#label-logic':
     '`findSpell` : résolveur libellé→entrée de la couture de saisie (#909).',
-  'data/index.ts:3309':
+  'data/index.ts#qualiteParSlugDeLabel#label-logic':
     '`qualiteParSlugDeLabel` : index du slug de libellé, lu par `qualityIdByLabel` SEUL (#909).',
-  'data/index.ts:3320':
+  'data/index.ts#qualityIdByLabel#label-logic':
     '`qualityIdByLabel` : l’entrée CANONIQUE d’un libellé doublon est celle dont l’id est son slug (#909).',
 };
 
-/** Résout le `shortKey` (`fichier:ligne` relatif à `src/`) d'un finding porté par un chemin `src/…`
- *  — même calcul que `label-logic-guard.test.ts` (ratchet).
- *  @param {{ rel: string, line: number }} finding @returns {string} */
-export function ratchetShortKey(finding) {
-  return `${finding.rel.replace(/^src\//, '')}:${finding.line}`;
+/** La clé de couture d'un site (`RATCHET_EXCEPTIONS`).
+ *  @param {{ rel: string, declaration: string, rule: string }} site @returns {string} */
+export function ratchetShortKey(site) {
+  return `${site.rel.replace(/^src\//, '')}#${site.declaration}#${site.rule}`;
 }
 
 // ── Résolution d'ENTITÉ depuis un LIBELLÉ, appelée hors de sa seule couture légitime (#909) ────────
@@ -1496,15 +1497,15 @@ export function contexteDeLaGarde(fichiers) {
 /**
  * TOUS les volets de la garde sur UN fichier — la seule composition, appelée par le test (corpus
  * entier, `scanLabelLogicCorpus`) et par le hook au stylo (fichier écrit). Chaque site porte son
- * statut : `couture` (`RATCHET_EXCEPTIONS`), `dette` (clé `fichier#règle` au stock `DETTES_DE_LIBELLE`,
+ * statut : `couture` (`RATCHET_EXCEPTIONS`, clé `ratchetShortKey` portée par UN site du fichier), `dette` (clé `fichier#règle` au stock `DETTES_DE_LIBELLE`,
  * que `ecartsAuxDettesDeLibelle` juge en compte), ou `nu`. Hors corpus : aucun site.
  * @param {string} rel @param {string} text @param {GardeContexte} ctx
- * @returns {{ rel: string, line: number, detail: string, rule: string, statut: 'couture' | 'dette' | 'nu' }[]}
+ * @returns {{ rel: string, line: number, detail: string, rule: string, declaration: string, statut: 'couture' | 'dette' | 'nu' }[]}
  */
 export function scanLabelLogicFichier(rel, text, ctx, sourceFile) {
   if (!estDansLeCorpus(rel)) return [];
   sourceFile ??= ast({ rel, text });
-  return [
+  const sites = [
     ...scanLabelLogic(rel, text, sourceFile),
     ...scanLabelAsIdArg(rel, text, effectiveIdParamFns(text, ctx.idParamFns)),
     ...scanLabelLiteralCompare(rel, text, sourceFile),
@@ -1514,9 +1515,12 @@ export function scanLabelLogicFichier(rel, text, ctx, sourceFile) {
     ...scanFaceDAffichageIdentite(rel, text, ctx.faces, sourceFile),
     ...scanFaceDeDonneeString(rel, text, sourceFile),
     ...scanLiantsLitterauxDesFaces(rel, text, sourceFile),
-  ].map((f) => {
-    const site = { rel, ...f };
-    const statut = ratchetShortKey(site) in RATCHET_EXCEPTIONS ? 'couture' : stockDe(cleDeDette(site)) > 0 ? 'dette' : 'nu';
+  ].map((f) => ({ rel, ...f, declaration: declarationQuiPorte(sourceFile, f.line) }));
+  const porteurs = new Map();
+  for (const s of sites) porteurs.set(ratchetShortKey(s), (porteurs.get(ratchetShortKey(s)) ?? 0) + 1);
+  return sites.map((site) => {
+    const cle = ratchetShortKey(site);
+    const statut = cle in RATCHET_EXCEPTIONS && porteurs.get(cle) === 1 ? 'couture' : stockDe(cleDeDette(site)) > 0 ? 'dette' : 'nu';
     return { ...site, statut };
   });
 }

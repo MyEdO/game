@@ -12,6 +12,7 @@ import { toBrass } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import { resolveOpposed } from '../engine/tests';
+import { jete } from '../engine/tests.testkit';
 import { activeSequence } from './sequenceCore';
 import { tavernPartieEnCours } from './tavernFlow';
 import { TAVERN_GAMES } from '../engine/tavernGame';
@@ -150,7 +151,7 @@ describe('playTavernGame', () => {
     const before = get().pendingCascade!.participants[0];
     const aT = before.meta!.opposed!.aT;
     get().cascadeBonusSL(stepId);
-    const after = get().pendingCascade!.participants[0].result!;
+    const after = jete(get().pendingCascade!.participants[0].result);
     // Le DR propre du défenseur monte de +1 (Chance, LDB 17 l.24) — jamais un nouveau jet de l'adversaire.
     expect(after.sl).toBe(before.result!.sl + 1);
     expect(after.roll).toBe(before.result!.roll); // même dé, la Chance n'en tire pas un autre

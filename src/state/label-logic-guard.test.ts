@@ -1,4 +1,4 @@
-import { ast } from '../../scripts/guards/lib/dialecte.mjs';
+import { ast, declarationQuiPorte } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -40,7 +40,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ →
 /** Le balayage de la garde sur le vrai corpus, tenu par `detenteur` (#1801) : l'inventaire, le cliquet
  *  du stock et celui des coutures périmées jugent le MÊME balayage. */
 const garde = detenteur(() => scanLabelLogicCorpus(corpusDeLaGarde()));
-const cleDe = (s: { rel: string; line: number }): string => ratchetShortKey(s);
+const cleDe = (s: { rel: string; declaration: string; rule: string }): string => ratchetShortKey(s);
 
 describe('garde « logique par libellé » : un corpus, une composition, deux statuts de site', () => {
   it('INVENTAIRE : chaque site du corpus est une couture légitime ou une dette au stock, aucun n’est nu', { timeout: 240_000 }, () => {
@@ -143,11 +143,16 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
 
   it('STATUT : couture au site, dette à la clé `fichier#règle` du stock, nu ailleurs — même fichier compris', () => {
     const ctx = contexteDeLaGarde([]);
-    const [couture] = Object.keys(RATCHET_EXCEPTIONS);
-    const [rel, ligne] = [`src/${couture.split(':')[0]}`, Number(couture.split(':')[1])];
+    const couture = Object.keys(RATCHET_EXCEPTIONS).find((k) => k.endsWith('#label-logic'))!;
+    const [fichier, decl] = couture.split('#');
+    const rel = `src/${fichier}`;
+    const porteur = (corps: string) => `export function ${decl}(label: string): Sonde | undefined {\n${corps}}\n`;
+    const resolution = '  return xs.find((s) => s.label === label);\n';
+    expect(scanLabelLogicFichier(rel, porteur(resolution), ctx).map((s) => [cleDe(s), s.statut])).toEqual([[couture, 'couture']]);
+    expect(scanLabelLogicFichier(rel, `\n\n\n${porteur(resolution)}`, ctx).map((s) => s.statut), 'une insertion en amont ne périme pas la couture').toEqual(['couture']);
+    expect(scanLabelLogicFichier(rel, porteur(resolution + resolution), ctx).map((s) => s.statut), 'une clé de couture désigne UN site').toEqual(['nu', 'nu']);
+    expect(scanLabelLogicFichier(rel, `export function autre(label: string): Sonde | undefined {\n${resolution}}\n`, ctx).map((s) => s.statut)).toEqual(['nu']);
     const faute = "x.label === 'Épée';"; // deux volets : `label-logic`, puis `label-literal`
-    const texte = (n: number) => `${'\n'.repeat(n - 1)}${faute}\n`;
-    expect(scanLabelLogicFichier(rel, texte(ligne), ctx).map((s) => s.statut)).toEqual(['couture', 'couture']);
     const dette = Object.keys(DETTES_DE_LIBELLE).find((k) => k.endsWith('#label-literal'))!;
     expect(DETTES_DE_LIBELLE[`${fichierDeDette(dette)}#label-logic`]).toBeUndefined();
     const sites = scanLabelLogicFichier(fichierDeDette(dette), faute, ctx);
@@ -165,24 +170,10 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
 });
 
 describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée par la déclaration qui porte son site', () => {
-  /** La déclaration de PREMIER NIVEAU qui porte la ligne `n` (1-based) de l'AST. */
-  const declarationDe = (sf: ts.SourceFile, n: number): string => {
-    for (const st of sf.statements) {
-      const debut = sf.getLineAndCharacterOfPosition(st.getStart(sf)).line + 1;
-      const fin = sf.getLineAndCharacterOfPosition(st.getEnd()).line + 1;
-      if (n < debut || n > fin) continue;
-      if (ts.isFunctionDeclaration(st) && st.name) return st.name.text;
-      if (ts.isVariableStatement(st)) {
-        const d = st.declarationList.declarations[0];
-        if (ts.isIdentifier(d.name)) return d.name.text;
-      }
-    }
-    return '';
-  };
-  const coutures = (prefixe: string) => Object.keys(RATCHET_EXCEPTIONS).filter((k) => k.startsWith(prefixe));
+  const coutures = (fichier: string) => Object.keys(RATCHET_EXCEPTIONS).filter((k) => k.startsWith(`${fichier}#`));
 
   it('seuls deux fichiers portent une couture : `data/index.ts` et le parseur `ui/editor/refFormatLivre.ts`', () => {
-    const fichiers = new Set(Object.keys(RATCHET_EXCEPTIONS).map((k) => k.split(':')[0]));
+    const fichiers = new Set(Object.keys(RATCHET_EXCEPTIONS).map((k) => k.split('#')[0]));
     expect([...fichiers].sort()).toEqual(['data/index.ts', 'ui/editor/refFormatLivre.ts']);
   });
 
@@ -190,12 +181,12 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
     const texte = readFileSync(join(ROOT, 'src/data/index.ts'), 'utf8');
     const sf = ast({ rel: 'src/data/index.ts', text: texte })!;
     const resolveurs = collectLabelEntityResolvers(texte);
-    const sites = coutures('data/index.ts:');
+    const sites = coutures('data/index.ts');
     expect(sites.length, 'aucune couture `data/index.ts` : le volet est devenu muet').toBeGreaterThan(0);
     for (const cle of sites) {
-      const decl = declarationDe(sf, Number(cle.split(':')[1]));
+      const decl = cle.split('#')[1];
       const lecteurs = new Set(texte.split('\n').flatMap((l, i) =>
-        new RegExp(`\\b${decl}\\b`).test(l) && declarationDe(sf, i + 1) !== decl ? [declarationDe(sf, i + 1)] : []));
+        new RegExp(`\\b${decl}\\b`).test(l) && declarationQuiPorte(sf, i + 1) !== decl ? [declarationQuiPorte(sf, i + 1)] : []));
       const porteur = resolveurs.has(decl) ? decl : lecteurs.size === 1 ? [...lecteurs][0] : `${decl} (lu par ${[...lecteurs].join(', ')})`;
       expect(resolveurs.has(porteur), `${cle} : \`${porteur}\` n'est pas un résolveur par libellé de #909`).toBe(true);
     }
@@ -206,7 +197,7 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
     const sf = ast({ rel: 'src/data/index.ts', text: texte })!;
     const site = garde().sites.find((s) => s.rule === 'face-donnee-string' && s.rel === 'src/data/index.ts');
     expect(site?.statut).toBe('couture');
-    expect(declarationDe(sf, site!.line)).toBe('qualityIdByLabel');
+    expect(declarationQuiPorte(sf, site!.line)).toBe('qualityIdByLabel');
     expect(collectLabelEntityResolvers(texte).has('qualityIdByLabel')).toBe(true);
   });
 
@@ -232,11 +223,11 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
     const texte = readFileSync(join(ROOT, rel), 'utf8');
     const sf = ast({ rel, text: texte })!;
     const lignes = texte.split('\n');
-    const sites = coutures('ui/editor/refFormatLivre.ts:');
+    const sites = coutures('ui/editor/refFormatLivre.ts');
     expect(sites.length).toBeGreaterThan(0);
     for (const cle of sites) {
-      const decl = declarationDe(sf, Number(cle.split(':')[1]));
-      const lecteurs = new Set(lignes.flatMap((l, i) => (new RegExp(`\\b${decl}\\(`).test(l) && declarationDe(sf, i + 1) !== decl ? [declarationDe(sf, i + 1)] : [])));
+      const decl = cle.split('#')[1];
+      const lecteurs = new Set(lignes.flatMap((l, i) => (new RegExp(`\\b${decl}\\(`).test(l) && declarationQuiPorte(sf, i + 1) !== decl ? [declarationQuiPorte(sf, i + 1)] : [])));
       const porteurs = decl in ALLER_RETOUR ? [decl] : [...lecteurs];
       expect(porteurs.length, `${cle} : \`${decl}\` n'est lu par aucun parseur`).toBeGreaterThan(0);
       for (const p of porteurs) {
@@ -284,7 +275,7 @@ describe('garde-fou « logique par label interdite » : volets `.label` (#142)',
 
   it('scanLabelLogic : la ligne rapportée est celle du FICHIER, sous un commentaire de bloc multiligne', () => {
     // Les volets de ligne et le volet AST (`slugId`) partagent la numérotation du fichier : c'est elle
-    // que portent les clés `fichier:ligne` de `RATCHET_EXCEPTIONS`.
+    // que `declarationQuiPorte` lit pour nommer la déclaration d'un site.
     const src = [
       '/**',
       ' * JSDoc de trois lignes.',

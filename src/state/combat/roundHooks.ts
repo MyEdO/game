@@ -8,7 +8,7 @@
  */
 import { registerCombatHook } from '../combatHooks';
 import { registerCascadeApplier } from '../cascade';
-import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type BuiltCascadeStep } from '../rollSeam';
+import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, testSkillLabel, type BuiltCascadeStep, type RollRequest } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
@@ -32,12 +32,16 @@ import { rule } from '../../engine/policy';
 import { rollWindsOfMagic, hasSecondeVue } from '../../engine/windsOfMagic';
 import { groupAdvantage } from '../../engine/advantagePool';
 import { combatStakeRef } from '../../data';
-import { t } from '../../i18n';
+import { t, deElide } from '../../i18n';
 import type { Combatant, ActiveEffect } from '../../engine/types';
 import type { CascadeStep } from '../pendings';
 import type { Get } from '../flowTypes';
 import { dataLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
+
+/** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
+ *  l'étape héros (`spellPlusTest`) et du libellé de son choix (`opt.tenterProlonger`). */
+const TEST_PROLONGATION = { char: 'force-mentale' } as const satisfies RollRequest['test'];
 
 // ============================================================================================
 // Séquence RAW de franchissement de Round, migrée ISO-COMPORTEMENT depuis advanceTurn (corps copiés
@@ -74,7 +78,7 @@ registerCombatHook({
       // Résilience), collectée par `collectHeroRoundEndUpkeep` — MIROIR strict de son prédicat.
       if (!surfaceOf(get, c.id)) {
         for (const e of pendingPlusExtensions(c)) {
-          const res = rollSansPilote(get, c, testValue(c, undefined, 'force-mentale'), 'intermediaire', battleRng());
+          const res = rollSansPilote(get, c, testValue(c, undefined, TEST_PROLONGATION.char), 'intermediaire', battleRng());
           resolvePlusExtension(c, e, res.success).forEach((l) => sink(l, c));
         }
       }
@@ -417,7 +421,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant, _sink: (line: 
     const choix = choiceStep({
       id: `spellPlusChoice-${c.id}-${spellId}`, kind: 'spellPlusChoice', actorId: c.id,
       icon: 'ui/think', label: stepProlonger(dataLabel(e.label), true),
-      options: [{ key: 'yes', label: t('opt.tenterProlonger', { quoi: e.label }) }, { key: 'no', label: t('opt.renoncer') }],
+      options: [{ key: 'yes', label: t('opt.tenterProlonger', { de: deElide(testSkillLabel(TEST_PROLONGATION)!), quoi: e.label }) }, { key: 'no', label: t('opt.renoncer') }],
       defaultChoice: 'no',
       meta: { sourceSpellId: spellId },
     });
@@ -472,7 +476,7 @@ registerCascadeApplier('spellPlusChoice', (get, set, step, hero) => {
     // pas. Difficulté : aucune n'est indiquée (LDB 47 l.311) → Intermédiaire.
     pushMono(set, {
       id: `spellPlusTest-${hero.id}-${spellId}`, kind: 'spellPlusTest',
-      actor: hero, ligne: { test: { char: 'force-mentale' } }, difficulty: 'intermediaire',
+      actor: hero, ligne: { test: TEST_PROLONGATION }, difficulty: 'intermediaire',
       icon: 'nav/dice', label: stepProlonger(dataLabel(effect.label)),
       meta: { sourceSpellId: spellId }, stake: combatStakeRef('spellPlusTest', { entryId: spellId }),
     });

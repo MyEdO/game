@@ -505,8 +505,8 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
       expect(specLabel('skills', 'corps-a-corps', 'poudre-noire')).toBe(findWeaponGroupById('poudre-noire')!.label);
     });
     it('une spec ouverte hors catalogue (savoir…) reste verbatim (texte libre toléré)', () => {
-      expect(specLabel('skills', 'savoir', 'Reikland')).toBe('Reikland');
-      expect(refLabel('skills', { id: 'savoir', spec: 'Reikland' })).toBe('Savoir (Reikland)');
+      expect(specLabel('skills', 'savoir', 'Plombiers du Reik')).toBe('Plombiers du Reik');
+      expect(refLabel('skills', { id: 'savoir', spec: 'Plombiers du Reik' })).toBe('Savoir (Plombiers du Reik)');
     });
     it('une spec MIGRÉE (langue/chevaucher/discretion, talent resistance) résout son id → label FR', () => {
       expect(specLabel('skills', 'langue', 'reikspiel')).toBe('Reikspiel');

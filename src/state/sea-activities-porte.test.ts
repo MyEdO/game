@@ -3,6 +3,7 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
 import { activityById, travelActivitySpec } from '../engine/activities';
+import { activiteMer, avecActivite } from './activiteMer.testkit';
 import { setRule, resetRule } from '../engine/policy';
 import { buildSeaGenericStep } from './seaActivities';
 import { composeRollLabel, effectiveTarget, type RollRequest } from './rollSeam';
@@ -143,18 +144,19 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
   /**
    * Chemin GÉNÉRIQUE (`sea-activity-generic`) : AUCUNE Activité de contexte 'mer' ne l'emprunte
    * aujourd'hui (`activities.json` : les trois entrées 'mer' sont `seaChart`, `opportunityTrade` et
-   * `crewTraining` — cette dernière bloquée par `seaActivityBlocked`). Le `def` étant un ARGUMENT du
-   * mint, il s'exerce quand même TEL QUEL, avec une Activité réelle à DEUX compétences (le choix de
-   * la meilleure est ainsi exercé). L'étape n'est jouable par aucun joueur tant qu'aucune donnée
-   * 'mer' ne porte ce résolveur : ce test mesure le MONTAGE, pas un chemin joueur.
+   * `crewTraining` — cette dernière bloquée par `seaActivityBlocked`), mais la donnée est éditable au
+   * Compendium. Le `def` étant un ARGUMENT du mint, il s'exerce avec une Activité 'mer' SANS résolveur
+   * dérivée d'une entrée réelle d'`activities.json`, à DEUX compétences (le choix de la meilleure est exercé).
    */
+  const MER = activiteMer({ id: 'releve-des-cotes', label: 'Relevé des côtes', difficulty: 'intermediaire', skills: [{ id: 'metier', spec: 'cartographe' }, { id: 'art', spec: 'cartographie' }] });
+
   it('chemin GÉNÉRIQUE — le MINT rend la MÊME cible et la MÊME valeur que `travelActivitySpec`, et possède le héros', () => {
     const hero = get().party[0];
-    const def = activityById('etablir-cartes')!;
-    const spec = travelActivitySpec(hero, def);
+    const def = MER;
+    const spec = travelActivitySpec(hero, def)!;
     expect(spec.target, 'le def choisi doit lancer un Test').not.toBeNull();
 
-    const step = buildSeaGenericStep(get, set, hero, def)!;
+    const step = avecActivite(def, () => buildSeaGenericStep(get, set, hero, def))!;
     expect(step, 'le mint doit rendre une étape (cible calculable)').toBeTruthy();
     expect(step.actorId).toBe(hero.id);
     expect(step.kind).toBe('sea-activity-generic');
@@ -179,20 +181,20 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     (hero as Combatant).characteristics = { ...hero.characteristics, dexterite: 80 };
     set({ party: [...get().party] } as never);
     const cible = get().party[0];
-    const def = activityById('etablir-cartes')!;
+    const def = MER;
 
     // Policy par DÉFAUT : plafond 99 des deux côtés.
-    const eteint = buildSeaGenericStep(get, set, cible, def)!;
-    expect(eteint.target).toBe(travelActivitySpec(cible, def).target);
+    const eteint = avecActivite(def, () => buildSeaGenericStep(get, set, cible, def))!;
+    expect(eteint.target).toBe(travelActivitySpec(cible, def)!.target);
     expect(eteint.target).toBe(99);
 
     try {
       setRule('test-over-100', true);
-      const actif = buildSeaGenericStep(get, set, cible, def)!;
+      const actif = avecActivite(def, () => buildSeaGenericStep(get, set, cible, def))!;
       expect(actif.target, 'le plafond se lève avec la règle').toBeGreaterThan(99);
       expect(actif.target, 'la cible est la valeur PLEINE : 80 Dex + 200 avances, Difficulté intermédiaire (+0)').toBe(280);
       expect(actif.target).toBe(actif.base! + sommeMods(actif.mods) + DIFFICULTY_MODIFIERS[def.difficulty ?? 'intermediaire']);
-      expect(travelActivitySpec(cible, def).target, 'le clamp EN DUR de l’engine ne suit pas la règle').toBe(99);
+      expect(travelActivitySpec(cible, def)!.target, 'le clamp EN DUR de l’engine ne suit pas la règle').toBe(99);
     } finally {
       resetRule('test-over-100');
     }

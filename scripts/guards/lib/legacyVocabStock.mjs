@@ -1071,13 +1071,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/state/roll-action-label-guard.test.ts",
-    motif: "désormais",
-    ancre: "donc TOUJOURS LÀ, et le scan le suit désormais jusqu'à sa clé. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/state/rollSeam.test.ts",
     motif: "désormais",
     ancre: "// `cascadeAppliers['progression']` est désormais le VRAI applier de mer (#275 Décision 4 cran 2, `seaVoyageFlow.ts`)",

@@ -23,8 +23,7 @@ import type { Combatant, CharKey, Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './combatants';
 import { d10, d100, type RNG } from '../engine/dice';
-import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssistedOption, type SupportDetail } from '../engine/skills';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { testValue, skillBaseValue, bestForSkills, bestForCombined, bestAssistedOption, peutTenter, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
@@ -451,18 +450,41 @@ export function setMassBattleHero(get: Get, set: Set, actionId: string, heroIds:
   set({ massBattle: { ...mb, assignment } });
 }
 
+/** Le Personnage peut-il TENTER le Test de cette action de bataille ? Les deux compétences d'un Test combiné,
+ *  l'une des compétences au choix sinon. LDB 09 l.30, LDB 12 l.202-206, ADE II 8 l.75. */
+export function peutTenterAction(c: Combatant, def: ActivityDef): boolean {
+  const sk = def.skills ?? [];
+  if (def.combined && sk.length >= 2) return peutTenter(c, sk[0].id, sk[0].spec) && peutTenter(c, sk[1].id, sk[1].spec);
+  return sk.length ? sk.some((s) => peutTenter(c, s.id, s.spec)) : peutTenter(c);
+}
+
+/** Refus NOMMÉ d'une action de bataille que personne ne peut tenter (`peutTenterAction`) : les postés, à défaut le
+ *  groupe. ADE II 8 l.65, l.116 ; LDB 09 l.30. */
+export function refusTenterAction(posted: Combatant[], def: ActivityDef): string {
+  return posted.length
+    ? t('mbf.postedCannot', { names: posted.map((h) => h.label).join(', '), action: def.label })
+    : refusPersonneNePeutTenter({ action: def.label });
+}
+
+/** Refus NOMMÉ de l'action quand ni ses postés ni, à défaut, `party` ne peuvent la tenter ; `null` sinon. */
+export function battleActionRefus(mb: MassBattleState, party: Combatant[], def: ActivityDef): string | null {
+  const posted = assignedHeroesFor(mb, party, def.id);
+  return (posted.length ? posted : party).some((c) => peutTenterAction(c, def)) ? null : refusTenterAction(posted, def);
+}
+
 /** Sélectionne l'équipe SOUTENUE (Soutien LDB 12) d'une Activité/Scène de bataille : les PJ POSTÉS (à
- *  défaut le meilleur PJ SEUL), puis la meilleure option assistée. `null` si aucune équipe/option. Source
- *  UNIQUE du motif crew→solo→team→picked (Planification l.81, Scènes multi-PJ l.116-118, tenue l.161). */
+ *  défaut le meilleur PJ SEUL), puis la meilleure option assistée. Personne qui puisse tenter : refus nommé
+ *  au journal, `null`. Source UNIQUE du motif crew→solo→team→picked (Planification l.81, Scènes multi-PJ
+ *  l.116-118, tenue l.161). */
 function resolveAssistedTeam(
-  mb: MassBattleState, party: Combatant[], actionId: string, skills: RefDesignee[] | undefined, char: CharKey | undefined,
+  get: Get, mb: MassBattleState, party: Combatant[], def: ActivityDef,
 ): { team: Combatant[]; picked: NonNullable<ReturnType<typeof bestAssistedOption>> } | null {
-  const crew = assignedHeroesFor(mb, party, actionId);
-  const solo = bestForSkills(party, skills, char)?.actor;
+  const crew = assignedHeroesFor(mb, party, def.id);
+  const solo = bestForSkills(party, def.skills, def.char)?.actor;
   const team = crew.length ? crew : (solo ? [solo] : []);
-  if (!team.length) return null;
-  const picked = bestAssistedOption(team, skills, char);
-  return picked ? { team, picked } : null;
+  const picked = bestAssistedOption(team, def.skills, def.char);
+  if (!picked) { get().log(refusTenterAction(crew, def)); return null; }
+  return { team, picked };
 }
 
 /** Ouvre le Test d'une Activité de bataille pré-combat (Planification/Infiltration/… l.79-106). Un Test
@@ -485,12 +507,14 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string): 
   const modLabel = mod ? t('mbf.modPrep') : undefined;
   const difficulty = battleActivityDifficulty(def, mb);
   if (def.combined && def.skills && def.skills.length >= 2) {
-    // Test COMBINÉ (l.75/102) : l'acteur posté décide (à défaut, SUGGESTION = celui maximisant le PLUS FAIBLE
-    // des deux). Les DEUX valeurs de l'acteur retenu sont dérivées via une passe SINGLETON.
-    const chosen = assignedHeroesFor(mb, party, activityId)[0] ?? bestForCombined(party, def.skills[0], def.skills[1], def.char)?.actor;
-    if (!chosen) return;
-    const picked = bestForCombined([chosen], def.skills[0], def.skills[1], def.char);
-    if (!picked) return;
+    // Test COMBINÉ (l.75/102) : le premier posté qui peut le tenter décide (sans poste, SUGGESTION = celui
+    // maximisant le PLUS FAIBLE des deux). Les DEUX valeurs de l'acteur retenu sont dérivées via une passe SINGLETON.
+    const [sk1, sk2] = def.skills;
+    const posted = assignedHeroesFor(mb, party, activityId);
+    const picked = posted.length
+      ? posted.map((h) => bestForCombined([h], sk1, sk2, def.char)).find((p) => p !== null) ?? null
+      : bestForCombined(party, sk1, sk2, def.char);
+    if (!picked) { get().log(refusTenterAction(posted, def)); return; }
     openBattlePending(get, set, {
       actor: picked.actor, battle: 'prep', def, skillValue: picked.value1, skillId: def.skills[0].id, spec: def.skills[0].spec, char: def.char,
       difficulty, mod, modLabel,
@@ -501,7 +525,7 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string): 
   if (def.assisted) {
     // Activité SOUTENABLE (Planification l.81) : résolue comme une Scène de Round. Équipe = les PJ POSTÉS ;
     // à défaut, la SUGGESTION = le meilleur PJ SEUL. Valeur SOUTENUE (`bestAssistedOption`, LDB 12).
-    const at = resolveAssistedTeam(mb, party, activityId, def.skills, def.char);
+    const at = resolveAssistedTeam(get, mb, party, def);
     if (!at) return;
     const { team, picked } = at;
     openBattlePending(get, set, {
@@ -511,11 +535,13 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string): 
     });
     return;
   }
-  // Activité SOLO (RAW l.75/102/106 « un Personnage », sans aide) : acteur = PJ posté (à défaut, SUGGESTION).
-  const chosen = assignedHeroesFor(mb, party, activityId)[0] ?? bestForSkills(party, def.skills, def.char)?.actor;
-  if (!chosen) return;
-  const picked = bestForSkills([chosen], def.skills, def.char);
-  if (!picked) return;
+  // Activité SOLO (RAW l.75/102/106 « un Personnage », sans aide) : le premier posté qui peut la tenter (sans
+  // poste, SUGGESTION).
+  const posted = assignedHeroesFor(mb, party, activityId);
+  const picked = posted.length
+    ? posted.map((h) => bestForSkills([h], def.skills, def.char)).find((p) => p !== null) ?? null
+    : bestForSkills(party, def.skills, def.char);
+  if (!picked) { get().log(refusTenterAction(posted, def)); return; }
   openBattlePending(get, set, {
     actor: picked.actor, battle: 'prep', def, skillValue: picked.value, skillId: picked.skillId, spec: picked.spec, char: def.char,
     difficulty, mod, modLabel,
@@ -536,7 +562,7 @@ export function openMassBattleScene(get: Get, set: Set, sceneId: string): void {
   // Scène 'test' MULTI-PJ (l.116-118/151/153) : compétences AU CHOIX, Soutien LDB 12.
   const party = get().party.filter((h) => !h.dead && !mb.actedHeroes.includes(h.id));
   if (!party.length) { get().log(t('mbf.allActed')); return; }
-  const at = resolveAssistedTeam(mb, party, scene.id, scene.skills, scene.char);
+  const at = resolveAssistedTeam(get, mb, party, scene);
   if (!at) return;
   const { team, picked } = at;
   const mod = massBattleThreatPenalty(mb); // Intrus l.219 : −20 aux Tests des autres Scènes.
@@ -556,7 +582,7 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   if (state.broken) { get().log(t('mbf.holdAlreadyBroken', { scene: scene.label })); return; }
   const party = get().party.filter((h) => !h.dead && !mb.actedHeroes.includes(h.id));
   if (!party.length) { get().log(t('mbf.allActed')); return; }
-  const at = resolveAssistedTeam(mb, party, scene.id, scene.skills, scene.char);
+  const at = resolveAssistedTeam(get, mb, party, scene);
   if (!at) return;
   const { team, picked } = at;
   const enemyBonus = holdEnemyBonus(scene.hold, state.held); // +10 cumulatif par Round déjà tenu (l.163).
@@ -583,10 +609,10 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   });
 }
 
-// ── Rassemblement (l.122) ────────────────────────────────────────────────────────────────────────
+// ── Rassemblement (ADE II 08 l.122) ──────────────────────────────────────────────────────────────
 
-/** Ouvre le Test de Résistance de guérison du Rassemblement (l.122, `ActivityDef` sceneKind 'rally') pour
- *  le prochain PJ vivant n'ayant pas récupéré ce Round. Disponible entre les Rounds (post-clash). */
+/** Ouvre le Rassemblement (ADE II 08 l.122 ; `activities.json › rassemblement`) pour le prochain PJ vivant
+ *  blessé qui ne l'a pas tenté ce Round, entre les Rounds. */
 export function openMassBattleRally(get: Get, set: Set): void {
   const mb = get().massBattle;
   if (!mb || mb.phase !== 'round' || !mb.awaitingNext) return;

@@ -560,7 +560,7 @@ compte des Rounds de combat, `LDB 16 l.97`). Le Test est donc roulé à chaque j
 Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les pénalités sont **permanentes** (seuls des moyens magiques ou miraculeux peuvent les annuler).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MSRC 16` (l.4-160) → `waterTableSchema`, `waterAppliesToSchema`, `isWounded`, `doc`, `onTickSchema`, `autoExposureMods`, `DiseaseDef`, `water-exposure`, `OPS_FIELDS`, `Disease`, +40 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/maladies.ts`, +20 fichiers
+- `MSRC 16` (l.4-160) → `waterTableSchema`, `waterAppliesToSchema`, `isWounded`, `KINDS_SOUS_ORDRES`, `doc`, `onTickSchema`, `autoExposureMods`, `DiseaseDef`, `water-exposure`, `OPS_FIELDS`, +42 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/maladies.ts`, +22 fichiers
 
 ---
 
@@ -810,7 +810,7 @@ Maladie de **privation prolongée** qui frappe ceux qui restent longtemps en mer
 **Voir aussi** : [Provisions et privations en mer — eau, rations, faim (MDG)](#provisions-et-privations-en-mer--eau-rations-faim-mdg) (soupe de chou fermenté ; biscuits de mer ≠ nourriture correcte) ; [Symptômes — 12 kinds LDB 20](#symptômes--12-kinds-ldb-20) (Blessé, Intoxication Alimentaire, Malaise, Nausée) ; `docs/raw/4e/etats.md`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 14` (l.224-234) → `mousse`, `shipboardSouls`, `SeaVoyageState`, `scenario`, `dailyWaterLitres`, `chirurgien`, `mene-de-main-de-maitre`, `consumeCrewProvisions`, `excellent-equipage`, `equipage-satisfait`, +13 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, +7 fichiers
+- `MDG 14` (l.224-234) → `mousse`, `scenario`, `SeaVoyageState`, `shipboardSouls`, `dailyWaterLitres`, `chirurgien`, `mene-de-main-de-maitre`, `consumeCrewProvisions`, `excellent-equipage`, `equipage-satisfait`, +13 — `src/data/crew-morale.json`, `src/data/crew-roles.json`, `src/data/index.ts`, `src/data/maladies.json`, `src/data/reglesOptionnelles.json`, `src/data/voyage-stakes.json`, +7 fichiers
 
 ---
 

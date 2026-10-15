@@ -122,11 +122,20 @@
   {
     "id": "rollSeam",
     "type": "primitives.manifest",
-    "label": "openRoll/resolveSurface",
+    "label": "openRoll/surfaceDeLEtape",
     "fichier": "src/state/rollSeam.ts",
     "concept": "surface DÉRIVÉE des porteurs : tenue × cadence × ordres de traversée → Modale/Visible-MJ/Interne, un seul site",
     "perimetre": "porte de résolution de tout Test influençable",
     "verrou": "roll-seam-exclusivity-guard.test.ts"
+  },
+  {
+    "id": "echecSansJet",
+    "type": "primitives.manifest",
+    "label": "ECHEC_SANS_JET/estJete",
+    "fichier": "src/engine/tests.ts",
+    "concept": "issue d'un Test que son porteur ne peut pas tenter (LDB 09 l.30 ; #2588 Q1) : ÉCHEC, DR 0, sans dé, refus nommé sur la ligne ; `estJete` sépare un dé tombé de cette issue, `jete` (`src/engine/tests.testkit.ts`) l'exige en test",
+    "perimetre": "`rollStep` (`refus`), rangées d'équipage (`crewRoleValue`, `rollCrewRole`, `openCrewTestPending`), barre sans barreur (`rollShipManeuver`, voyage fluvial), rangée témoin de `buildParticipantRows`",
+    "verrou": "sea-voyage-flow.test.ts, ship-maneuver.test.ts, peut-tenter.test.ts"
   },
   {
     "id": "optionChooser",
@@ -504,6 +513,24 @@
     "concept": "une sous-liste de feuille `idDe` jugée partout par la même définition : sur l'ENTRÉE résolue (`dansLaSousListe`, `refusDeLEntree`, via `porteLeChampMarqueur`), en ids admis du registre (`idsDeLaSousListe`), en déclaration d'une feuille (`declarationDeFeuilleDId`)",
     "perimetre": "producteurs d'ids qui énumèrent une sous-liste (Sorts mineurs de la création), instanciation d'un trapping, sélecteurs du Codex et de l'éditeur",
     "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/ref-field-sous-liste.test.tsx"
+  },
+  {
+    "id": "refCouvre",
+    "type": "primitives.manifest",
+    "label": "refCouvre",
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "concept": "une référence de Compétence ou de Talent couvre une entrée du même id : sans `spec`, toutes ses Spécialisations ; avec `spec`, la sienne seule (LDB 09 l.44) — l'adressage d'UNE convention, la construction `COUVERTURE_DE_SPEC` en garde la recopie",
+    "perimetre": "listes de références qui désignent des Compétences ou Talents (Activités, rôles d'équipage, Précipitations, ops `skillDRBonus`, jetons d'inversion, `reverseFailed`), recherche d'une Compétence sur la fiche",
+    "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
+  },
+  {
+    "id": "memeSpecialisation",
+    "type": "primitives.manifest",
+    "label": "memeSpecialisation",
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "concept": "deux Spécialisations désignent la même instance d'une Compétence ou d'un Talent, absente et vide confondues — l'identité d'instance, la construction `IDENTITE_D_INSTANCE` en garde la recopie",
+    "perimetre": "recherche d'une instance possédée sur la fiche (Compétences, Talents), dédoublonnage des options d'avancement, d'entraînement et de Carrière",
+    "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
   },
   {
     "id": "trappingsInstanciables",
@@ -1714,11 +1741,11 @@
   {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports/sansDeclarationsDeMetadonnees",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/COUVERTURE_DE_SPEC/IDENTITE_D_INSTANCE/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports/sansDeclarationsDeMetadonnees",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
     "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker natif emprunté au parcours de la session",
     "perimetre": "toute garde de canon unique",
-    "verrou": "canonUnique.test.mjs, unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts"
+    "verrou": "canonUnique.test.mjs, unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts, ref-couvre.test.ts"
   },
   {
     "id": "tsProgram",

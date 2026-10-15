@@ -224,7 +224,7 @@ describe('Résilience d’un contributeur d’équipage (shipManeuver) — cible
       skills: [{ id: 'voile', advances: 15, characteristic: 'agilite' }] as never,
     });
     const role = findCrewRoleById('timonier')!;
-    const v = crewRoleValue(marin, role).value;
+    const v = crewRoleValue(marin, role).value!;
 
     expect(forceCrewRole(marin, 'timonier')!.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS.intermediaire).target);
     const cumule = forceCrewRole(marin, 'timonier', true)!;

@@ -66,10 +66,8 @@ export function stepsWithoutDifficulty(src: string): number[] {
     const lit = s.slice(start, end);
     if (!/\btarget\s*[:,}]/.test(lit)) continue; // étape sans jet : rien à dire (`target:` OU raccourci `target,`)
     if (/\bdifficulty\s*[,:]/.test(lit)) continue; // Difficulté déclarée (clé ou raccourci)
-    // SEUIL PUR (#1426) : l'étape n'est pas un Test — « lancez un d100, si le résultat est inférieur ou
-    // égal au nombre visé » (MSRC 13 l.146 / MDG 15 l.362). Aucune Difficulté ne s'y applique, et lui en
-    // exiger une reviendrait à en inventer une. Exemption STRUCTURELLE (le champ `evaluation` du
-    // littéral), jamais une baseline : elle disparaît d'elle-même si le mode disparaît.
+    // SEUIL PUR (#1426, #2389) : le TYPE lui interdit toute Difficulté (`pendings.LectureDuDe`). Exemption
+    // STRUCTURELLE (le champ `evaluation` du littéral), jamais une baseline.
     // (lu sur la source ORIGINALE : `stripLiterals` a effacé la valeur `'seuil'`, pas la clé.)
     if (/\bevaluation\s*:\s*'seuil'/.test(src.slice(start, end))) continue;
     lines.push(src.slice(0, start).split('\n').length);

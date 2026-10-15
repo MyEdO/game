@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { openRoundStartPsych, openRoundEndCascade } from './combatFlow';
 import { FLOWS } from './rollFlowSpecs';
+import { jete } from '../engine/tests.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -23,6 +24,7 @@ import { modalOwnerOf } from './modalArbiter';
 const band = (): CascadeStep => useGame.getState().pendingCascade!.participants[0];
 /** Rangée d'un héros dans la bande courante. */
 const row = (id: string): BatchParticipant => band().participants!.find((p) => p.id === id)!;
+const jet = (id: string) => jete(row(id).result);
 const heroOf = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
 
 describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () => {
@@ -157,7 +159,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     // faible DR que le 01). Le DR gagné DOIT suivre ce dé (pas rester au max). La surface de pose du dé
     // est celle de la RANGÉE (flux `cascadeBatch`), pas de l'étape.
     useGame.getState().cascadeBatchForceSuccess(H.id);
-    const target = row(H.id).result!.target;
+    const target = jet(H.id).target;
     expect(FLOWS.cascadeBatch.picker?.(row(H.id), H)).toBeTruthy();
     const maxDR = row(H.id).result!.sl; // DR du dé 01 (max)
     const chosen = Math.max(1, target - 5); // dé élevé encore réussi → DR plus faible
@@ -183,7 +185,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     expect(band().combatPsych?.kind).toBe('terreur');
     useGame.getState().cascadeBatchForceSuccess(H.id);
     expect(FLOWS.cascadeBatch.picker?.(row(H.id), H)).toBeTruthy();
-    const chosen = Math.max(1, row(H.id).result!.target - 5);
+    const chosen = Math.max(1, jet(H.id).target - 5);
     useGame.getState().cascadeBatchSetForcedRoll(H.id, chosen);
     const r = row(H.id).result!;
     expect(r.roll).toBe(chosen);

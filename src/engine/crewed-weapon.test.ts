@@ -110,7 +110,7 @@ describe('crewedReloadStep — Test étendu de recharge, cumul de DR vers Rechar
 
 describe('attackModifiers — le −10 du Défaut redoublé apparaît sur le Test de tir (MDG 12 l.460)', () => {
   const shooter = (): Combatant =>
-    ({ id: 's', name: 'S', kind: 'hero', advantage: 0, conditions: [], size: 3, weapons: [] }) as unknown as Combatant;
+    ({ id: 's', name: 'S', kind: 'hero', advantage: 0, conditions: [], skills: [], size: 3, weapons: [] }) as unknown as Combatant;
   const mark = (): Combatant => ({ id: 't', name: 'T', kind: 'enemy', advantage: 0, conditions: [], size: 3 }) as unknown as Combatant;
 
   it('un canon Imprécise manié seul → ligne « Sous-effectif » à −10 dans les modificateurs de touche', () => {

@@ -98,6 +98,15 @@ export function estDebout(h: Combatant): boolean {
 }
 
 /**
+ * ÉQUIPAGE APTE : la POPULATION des postes de bord (barre, rame, rôle d'équipage, moteur), hors
+ * d'action exclus (`isOutOfAction`, LDB 16 l.113 ; MDG 14 l.39). Population, pas élection : qui MÈNE
+ * un Test se choisit par `partyBest` (`peutTenter`, `engine/skills.ts`).
+ */
+export function equipageApte(party: readonly Combatant[]): Combatant[] {
+  return party.filter((h) => !isOutOfAction(h));
+}
+
+/**
  * NI MORT NI À TERRE (0 Blessure, LDB 18 l.15) — la population que mesure la PORTÉE DE SAUT du groupe
  * hors combat. Distincte d'`estDebout`, qui exclut en plus l'Inconscient : là, c'est l'élection du
  * meneur qui refuse un corps incapable de mener. Ici, un Inconscient porté compte encore : population

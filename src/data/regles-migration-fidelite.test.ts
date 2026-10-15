@@ -5,7 +5,8 @@
  *  - `scripts/migrations/2026-10-05-1887-regles-adresses-prouvees.mjs` ;
  *  - `scripts/migrations/2026-10-06-1887-regles-navigation-progression.mjs`.
  * L'aller-retour compare ce que les migrations POSSÈDENT, la projection `id → { desc, descRef }` : le
- * reste de l'entrée (`label`, `source`…) se cure hors d'elles. Le rejeu sur l'arbre est no-op, au texte.
+ * reste de l'entrée (`label`, `source`…) se cure hors d'elles, comme toute entrée ABSENTE de la pré-image
+ * (née adressée, hors migration). Le rejeu sur l'arbre est no-op, au texte.
  *
  * Patron : `migration-b2c-fidelite.test.ts` (aller-retour par le VRAI script, rejeu no-op). La
  * pré-image est `regles.json` au PARENT du commit qui ajoute la PREMIÈRE migration.
@@ -44,7 +45,8 @@ describe('migrations #1887 regles — aller-retour et rejeu', () => {
     expect(seconde.echecs).toEqual([]);
     const troisieme = migrerTroisieme(seconde.texte);
     expect(troisieme.echecs).toEqual([]);
-    expect(projection(troisieme.texte)).toEqual(projection(arbre));
+    const possedes = new Set(projection(avant).map((e) => e.id));
+    expect(projection(troisieme.texte)).toEqual(projection(arbre).filter((e) => possedes.has(e.id)));
 
     for (const migrer of [migrerPremiere, migrerSeconde, migrerTroisieme]) {
       const rejeu = migrer(arbre);

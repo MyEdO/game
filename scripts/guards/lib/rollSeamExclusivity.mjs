@@ -1,4 +1,4 @@
-import { ast, analyserCorpus } from './dialecte.mjs';
+import { ast, analyserCorpus, avecAnalyse } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « exclusivité du seam de jet » (#274, DERNIER verrou du programme
 // #276). La porte déclarative
 // (`openRoll`, `src/state/rollSeam.ts`) + `TestOutcome.seal(...)` (`src/engine/testOutcome.ts`) sont
@@ -379,25 +379,23 @@ export function engineDiceRollers(engineFiles) {
  */
 export function scanDesHorsPorte(relPath, contenu, table, sourceFile, checker) {
   if (!DES_HORS_PORTE_RX.test(contenu) && !rollerNameRx(new Set(Object.values(table).flat())).test(contenu)) return [];
-  if (!sourceFile) {
-    for (const analyse of analyserCorpus([{ rel: relPath, text: contenu }])) return scanDesHorsPorte(relPath, contenu, table, analyse.sourceFile, analyse.checker);
-  }
-  const sf = sourceFile;
-  const contexte = contexteImports(sf, checker);
-  /** @type {Map<string, { line: number, name: string }>} */
-  const vus = new Map();
-  const visit = (node) => {
-    if (ts.isCallExpression(node) && !inSpecCallback(node)) {
-      const nom = estAppelDeclare(node, sf, table, contexte) ?? (estAppelDeDe(node) ? 'rng.int' : null);
-      if (nom) {
-        const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
-        vus.set(`${line}:${nom}`, { line, name: nom });
+  return avecAnalyse({ rel: relPath, text: contenu }, sourceFile, checker, (sf, checker) => {
+    const contexte = contexteImports(sf, checker);
+    /** @type {Map<string, { line: number, name: string }>} */
+    const vus = new Map();
+    const visit = (node) => {
+      if (ts.isCallExpression(node) && !inSpecCallback(node)) {
+        const nom = estAppelDeclare(node, sf, table, contexte) ?? (estAppelDeDe(node) ? 'rng.int' : null);
+        if (nom) {
+          const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+          vus.set(`${line}:${nom}`, { line, name: nom });
+        }
       }
-    }
-    node.forEachChild(visit);
-  };
-  sf.forEachChild(visit);
-  return [...vus.values()].sort((a, b) => a.line - b.line || parUnitesDeCode(a.name, b.name));
+      node.forEachChild(visit);
+    };
+    sf.forEachChild(visit);
+    return [...vus.values()].sort((a, b) => a.line - b.line || parUnitesDeCode(a.name, b.name));
+  });
 }
 
 /**
@@ -511,18 +509,16 @@ function rollerNameRx(names) {
  */
 export function scanEngineDelegatedRoll(relPath, contenu, table, sourceFile, checker) {
   if (!rollerNameRx(new Set(Object.values(table).flat())).test(contenu)) return [];
-  if (!sourceFile) {
-    for (const analyse of analyserCorpus([{ rel: relPath, text: contenu }])) return scanEngineDelegatedRoll(relPath, contenu, table, analyse.sourceFile, analyse.checker);
-  }
-  const sf = sourceFile;
-  const contexte = contexteImports(sf, checker);
-  const findings = [];
-  const visit = (node) => {
-    const name = ts.isCallExpression(node) && !inSpecCallback(node) ? estAppelDeclare(node, sf, table, contexte) : null;
-    if (name) findings.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
-    node.forEachChild(visit);
-  };
-  sf.forEachChild(visit);
-  findings.sort((a, b) => a.line - b.line);
-  return findings;
+  return avecAnalyse({ rel: relPath, text: contenu }, sourceFile, checker, (sf, checker) => {
+    const contexte = contexteImports(sf, checker);
+    const findings = [];
+    const visit = (node) => {
+      const name = ts.isCallExpression(node) && !inSpecCallback(node) ? estAppelDeclare(node, sf, table, contexte) : null;
+      if (name) findings.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
+      node.forEachChild(visit);
+    };
+    sf.forEachChild(visit);
+    findings.sort((a, b) => a.line - b.line);
+    return findings;
+  });
 }

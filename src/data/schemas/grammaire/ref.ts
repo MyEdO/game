@@ -497,6 +497,18 @@ export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = 
 export interface RefDesignee { id: string; spec?: string }
 export interface RefASpecialisation extends RefDesignee { choix?: true | string[] }
 
+/** La référence `ref` couvre-t-elle l'entrée `cible` du même id ? Sans `spec`, toutes ses
+ *  Spécialisations ; avec `spec`, la sienne seule. LDB 09 l.44. PUR. */
+export function refCouvre(ref: { readonly id: string; readonly spec?: string | undefined }, cible: { readonly id?: string | undefined; readonly spec?: string | undefined }): boolean {
+  return ref.id === cible.id && (ref.spec == null || ref.spec === cible.spec);
+}
+
+/** Deux Spécialisations désignent-elles la MÊME instance d'une entrée ? Absente et vide se confondent.
+ *  LDB 09 l.44 ; LDB 10 l.17. PUR. */
+export function memeSpecialisation(a: string | undefined, b: string | undefined): boolean {
+  return (a ?? '') === (b ?? '');
+}
+
 /**
  * Le littéral que le livre imprime à la place d'une spécialisation — Compétence : `LDB 09 l.40` ;
  * Talent : `LDB 10 l.17`. Ce n'est pas une

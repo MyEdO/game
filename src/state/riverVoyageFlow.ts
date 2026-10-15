@@ -17,15 +17,14 @@
  * la halte de nuit — la même présentation que les jets de bord du voyage maritime. La table des vents, l'Agilité
  * de rame, le chavirage et les Critiques de bateau sont propres au fleuve (`engine/riverNavigation.ts`).
  *
- * EXPOSITION HYDRIQUE (MSRC 16) : la descente EXERCE l'Effet EXISTANT `waterExposure` — un tirage d'auteur
- * par étape (`MapRoute.riverExposure`) qui, via `applyEffects`, ouvre la cascade de Test de Résistance →
- * maladie. RÉUTILISE le canal d'Effet (aucune mécanique neuve) : le moteur de tables hydriques et l'Effet
- * étaient déjà là (`engine/waterExposure.ts`), seule leur MISE EN SCÈNE dans le voyage manquait.
+ * EXPOSITION HYDRIQUE (MSRC 16 l.5-13) : un tirage d'auteur par étape (`MapRoute.riverExposure`) pose le
+ * Test d'Exposition par la couture de l'Effet de scène (`combatEffects.openWaterExposure`), sous le `kind`
+ * propre à la descente (`river-exposition`) ; tables hydriques : `engine/waterExposure.ts`.
  */
 import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute } from '../engine/clock';
-import { applyEffects, nePeutPasDifferer } from './combatEffects';
+import { effectTargets, openWaterExposure } from './combatEffects';
 import { openRest, placesOfKind } from './restFlow';
 import { placeById, type MapRoute, type WorldMap } from './worldMap';
 import { damageVesselHull, healVesselHull, syncHullWoundsFromVessel, spoilVesselCargoOnLeak } from './seaVoyageFlow';
@@ -34,19 +33,20 @@ import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
 import { travelSpeed } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
+import { estCompetenceDePropulsion, propulsionSkill, vesselPropulsion } from '../engine/shipBuild';
 import { voyageStakeRef, findVehicleById, refLabel, specLabel } from '../data';
 import type { StakeRef } from '../data';
 import { partyCargoTotalEnc, nomDuNavire } from './carriers';
-import { partyAssisted } from '../engine/skills';
-import { rollTest, type TestResult } from '../engine/tests';
+import { partyAssisted, refusPersonneNePeutTenter } from '../engine/skills';
+import { rollTest, ECHEC_SANS_JET, type TestResult } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue } from '../engine/skills';
 import { deMonde, rollExpr, type RNG } from '../engine/dice';
-import { difficultyFromModifier } from '../engine/tests';
+import { strandingPenaltyLine } from '../engine/seaPerils';
 import { effectiveChar } from '../engine/characteristics';
 import {
-  rollRiverWind, tickRiverWindDay, riverWindEffect, riverPilotSkill, savoirVoiesFluvialesBonus,
+  rollRiverWind, tickRiverWindDay, riverWindEffect, savoirVoiesFluvialesBonus,
   rowingAgilityFactor, rowingAgilityDifficulty, riverDayKm, riverDriftKm, navPenaltyMods,
   driftNavPenalty, driftPctOfSpeed, OUT_OF_CONTROL,
   riverControlKept, capsizeRightDifficulty, capsizeRightCumulative, capsizeSinkTurns, holeSinkMinutes, riverCritical, findRiverPeril,
@@ -56,10 +56,11 @@ import {
 } from '../engine/riverNavigation';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { startCascade, registerCascadeApplier, runCascadeImmediate } from './cascade';
-import { freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
+import { checkPartyWiped } from './partyWipe';
+import { composeRollLabel, freeCons, monoStep, choiceStep, displayStep, refusePorte, surfaceOf, pousseSi, openWorldTest, type Consequence, type BandLigne } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
-import { actorIn, garanti } from './combatants';
-import { riverAutoResolves, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
+import { actorIn, equipageApte, garanti } from './combatants';
+import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import { dataLabel } from '../data';
@@ -147,7 +148,7 @@ const log = (get: Get, _set: Set, lines: string[]) => {
 /** La COQUE de trajet fluviale : le navire de campagne si c'en est un, sinon le véhicule-bateau de la route
  *  (`vehicles.json`, facette `ship`+`hull`). Repart des Blessures persistées (#30) si c'est le navire de
  *  campagne. `null` si aucun bateau exploitable. */
-function riverHull(get: Get, route: MapRoute): { coque: Combatant; hasSail: boolean } | null {
+function riverHull(get: Get, route: MapRoute): { coque: Combatant } | null {
   const boatMode = route.modes.find((m) => findVehicleById(m)?.ship && findVehicleById(m)?.hull);
   const vessel = get().vessel;
   const vId = vessel && findVehicleById(vessel.vehicleId)?.ship ? vessel.vehicleId : boatMode;
@@ -159,13 +160,13 @@ function riverHull(get: Get, route: MapRoute): { coque: Combatant; hasSail: bool
     coque.label = nomDuNavire(vessel); // #230
     syncHullWoundsFromVessel(coque, vessel);
   }
-  return { coque, hasSail: !!v.ship.sail };
+  return { coque };
 }
 
 /** Un « batelier » : un PJ vivant AYANT des avances en Voile OU Ramer (l.11-17). Sans batelier, on paie un
  *  passeur (repli transport payant côté `startTravel`). */
 export function hasBatelier(party: Combatant[]): boolean {
-  return party.some((h) => !h.dead && (h.skills ?? []).some((s) => (s.id === 'voile' || s.id === 'ramer') && s.advances > 0));
+  return party.some((h) => !h.dead && (h.skills ?? []).some((s) => estCompetenceDePropulsion(s.id) && s.advances > 0));
 }
 
 /** Construit le TravelPlan d'une DESCENTE fluviale (route `river`, mode barge) — `null` si aucun bateau ou
@@ -175,9 +176,6 @@ export function buildRiverPlan(get: Get, routeId: string, fromPlaceId: string, t
   if (!hull || hull.coque.wounds.current <= 0) return null;
   if (!hasBatelier(get().party)) return null;
   const wind = rollRiverWind(battleRng());
-  // ORDRES permanents (couche `voyageCadence`) : `DEFAULT_VOYAGE_ORDERS` faute de cadence passée. AUCUN
-  // appelant ne renseigne `opts.cadence` en fluvial (l'écran de départ ne l'envoie qu'en mer) : la
-  // descente joue donc toujours le défaut, `riverAutoResolves` ne rend jamais `true` sur ce chemin.
   const orders: VoyageOrders = { cadence: opts.cadence ?? DEFAULT_VOYAGE_ORDERS.cadence };
   return {
     routeId, fromPlaceId, toPlaceId, mode: 'barge', hoursPerDay: 24, km: route.km, kmDone: 0, interrupted: false,
@@ -208,9 +206,9 @@ function arriveRiver(get: Get, set: Set, to: { scene: string; entry?: string; la
   get().transitionTo(to.scene, to.entry);
 }
 
-/** Meilleur pilote (barreur/rameur) du groupe avec Soutien (LDB 12) pour la Compétence de Navigation. */
+/** Meilleur pilote (barreur/rameur) de l'équipage apte avec Soutien (LDB 12) pour la Compétence de Navigation. */
 function riverPilot(get: Get, skillId: 'voile' | 'ramer') {
-  return partyAssisted(get().party, skillId);
+  return partyAssisted(equipageApte(get().party), skillId);
 }
 
 /**
@@ -227,18 +225,15 @@ function resolveRiverDay(get: Get, set: Set, route: MapRoute, to: { scene: strin
   const { steps, log: lines } = buildRiverDayCascade(get, set, route, to);
   for (const l of lines) log(get, set, [l]);
   if (!steps.length) {
-    // Aucun jet influençable (bateau coulé d'entrée, ou aucune entrée de vitesse à tester) : on
-    // finalise directement, comme la cascade le ferait à la clôture.
-    continueRiverDayAfterCascade(get, set);
+    // Aucun jet influençable (bateau coulé d'entrée, personne à la barre) : on finalise directement,
+    // comme la cascade le ferait à sa clôture — défaite hors combat comprise (`checkPartyWiped`).
+    if (!checkPartyWiped(get, set)) continueRiverDayAfterCascade(get, set);
     return;
   }
-  // Route COMMANDÉE (couche `voyageCadence`, résidu #91) : la journée de descente est de la ROUTINE
-  // influençable — l'auto-pilote pilote LE MÊME plan d'étapes via le pilote IMMÉDIAT de la cascade
-  // (mêmes appliers, mêmes conséquences), SANS modale par jet ; les lignes tombent au PV du jour
-  // (journal → recap de la halte). En coop, la conduite reste manuelle (modale).
-  if (get().net.mode === 'local' && riverAutoResolves(get().travelPlan?.orders, steps)) {
-    runCascadeImmediate(get, set, steps);
-    if (get().battle || get().pendingCascade) return; // combat en plein vol OU choix sans défaut : surfacé, jamais résolu en silence
+  // Traversée sous ordres (`voyageCadence.traverseeCommandee`, #91, #2545) : le jour se joue d'un bloc
+  // par le pilote IMMÉDIAT ; un choix sans défaut l'interrompt en `travelDay` (`cascade.runCascadeImmediate`).
+  if (traverseeCommandee(get())) {
+    if (!runCascadeImmediate(get, set, steps, { title: t('rv.dayTitle'), purpose: 'travelDay' })) return;
     continueRiverDayAfterCascade(get, set);
     return;
   }
@@ -275,8 +270,14 @@ function riverStep(
  *  donnée (`meta.navLabel`) et l'applier le RE-DÉRIVE pour une cascade PERSISTÉE (save reprise, siège
  *  coop) construite avant que la donnée n'existe — la ligne de jet n'est jamais sans nom (Z5). */
 function riverPilotSkillLabel(get: Get): string {
-  const vehicleId = get().travelPlan?.vehicle?.creatureId ?? '';
-  return refLabel('skills', { id: riverPilotSkill(findVehicleById(vehicleId)?.ship?.sail != null) });
+  return refLabel('skills', { id: riverNavSkill(get().travelPlan?.vehicle) });
+}
+
+/** Compétence de Navigation de la coque `hull` (MSRC 7 l.11-13), par la propulsion que le schéma de véhicule
+ *  garantit (`vesselPropulsion`, MDG 12 l.131). PUR. */
+function riverNavSkill(hull: Combatant | undefined): 'voile' | 'ramer' {
+  const id = hull?.creatureId;
+  return propulsionSkill(garanti(vesselPropulsion(findVehicleById(id ?? '')?.ship), id, 'propulsion de l’embarcation').mode);
 }
 
 /**
@@ -301,7 +302,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
   }));
 
   const baseKm = travelSpeed(get().party, get().possessions, plan.mode, route.speed?.[plan.mode]) * baseHoursPerDay(worldMap);
-  const skillId = riverPilotSkill(findVehicleById(coque.creatureId ?? '')?.ship?.sail != null);
+  const skillId = riverNavSkill(coque);
   const pilot = riverPilot(get, skillId);
 
   // CONTEXTE DE VITESSE du jour (relu à la clôture) : dérive déjà certaine (Calme/hors-contrôle/brisé),
@@ -345,12 +346,13 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute, to: { 
   if (pilot) {
     const savoir = savoirVoiesFluvialesBonus(pilot.actor);
     const navTest = riverNavTest(river, eff);
-    pousseSi(steps, riverStep('river-nav', 'riverNav', pilot.actor, stepPrecision(t('step.navigation'), refLabel('skills', { id: skillId })), 'travel/sail-ship',
+    pousseSi(steps, riverStep('river-nav', 'riverNav', pilot.actor, composeRollLabel(undefined, t('step.navigation'), { skill: skillId }), 'travel/sail-ship',
       refLabel('skills', { id: skillId }), { ...pilotLigne!, surLaCible: navTest.mods }, navTest.difficulty, { savoir },
       { stake: voyageStakeRef('riverNav', { driftKm: Math.round(riverDriftKm(baseKm)), driftPct: driftPctOfSpeed() }) }));
   } else {
-    logs.push(t('rv.noPilot'));
-    dayCtx.forceDrift = true; // pas de barreur = contrôle perdu (note 2 : dérive)
+    // Personne ne peut tenter la Navigation : ÉCHEC sans jet, conséquence de l'échec (LDB 09 l.30 ; #2588 Q1).
+    logs.push(refusPersonneNePeutTenter({ skill: skillId }), t('rv.noPilot'));
+    dayCtx.forceDrift = !riverControlKept(ECHEC_SANS_JET.success, ECHEC_SANS_JET.sl, 0);
     set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: { ...dayCtx } } } });
   }
 
@@ -450,7 +452,7 @@ export function continueRiverDayAfterCascade(get: Get, set: Set): void {
   // Efface le contexte transitoire du jour (jamais persisté au-delà de la journée).
   set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: undefined, dayAgilityFactor: undefined } } });
 
-  // Exposition hydrique du jour (MSRC 16) — ouvre l'Effet EXISTANT `waterExposure` (cascade influençable).
+  // Exposition hydrique du jour (MSRC 16) — dé d'auteur puis Test (`openWaterExposure`, `river-exposition`).
   // Si elle SURFACE, on DIFFÈRE la halte de nuit à sa clôture : sinon la cascade d'Exposition et la modale
   // de Repos coexistent, le Repos reprend la route AVANT la résolution de l'Exposition, et celle-ci
   // (purpose générique `test`) n'a plus de continuation → la journée suivante ne se ré-arme jamais (#344).
@@ -499,8 +501,8 @@ export function continueRiverDayAfterExposure(get: Get, set: Set): void {
 
 /**
  * EXPOSITION HYDRIQUE d'une étape (MSRC 16, l.5-13) : tirage d'auteur (`MapRoute.riverExposure`) qui
- * déclenche l'Effet EXISTANT `waterExposure` sur TOUT le groupe — aucune mécanique neuve. Sautée si le
- * bateau a coulé (plus de fleuve sous les pieds).
+ * pose le Test d'Exposition (`openWaterExposure`, kind `river-exposition`) sur TOUT le groupe. Sautée si
+ * le bateau a coulé.
  *
  * Le d100 d'auteur est un dé de MONDE : il DÉCIDE si l'Exposition a lieu, et se pose donc comme les
  * autres (`worldStep`, évaluation `'seuil'` : `dé ≤ chancePct`, ni bande ni DR). Il est poussé EN FIN
@@ -513,22 +515,18 @@ function openRiverExposureChance(get: Get, set: Set, route: MapRoute, sunk: bool
   if (!ex || sunk) return;
   openWorldTest(get, set, {
     actionLabel: t('rv.exposureLabel'),
-    difficulty: 'intermediaire',
-  }, RIVER_EXPOSURE_KIND, {
-    baseValue: Math.max(0, Math.min(100, ex.chancePct)),
-    exposureMode: ex.mode, exposureSource: ex.source,
-  });
+    cible: Math.max(0, Math.min(100, ex.chancePct)),
+    verdict: { reussite: t('seuil.expose'), echec: t('seuil.nonExpose') },
+  }, RIVER_EXPOSURE_KIND, { exposureMode: ex.mode, exposureSource: ex.source });
 }
 
-const RIVER_EXPOSURE_KIND = 'riverExposureChance';
+const RIVER_EXPOSURE_KIND = 'river-exposition-tirage';
 registerCascadeApplier(RIVER_EXPOSURE_KIND, (get, set, step) => {
   if (!step.result) return {};
   if (!step.result.success) return { consequences: freeCons([{ text: t('rv.exposureNone'), tone: 'info' }]) };
   const mode = step.meta?.exposureMode as import('../data').WaterExposureMode;
   const source = step.meta?.exposureSource as string | undefined;
-  // Une feuille `waterExposure` LITTÉRALE ne porte aucun canal de dés (#1508) : le marquage du jour
-  // qui suit ne peut donc pas passer devant un dé — et si ça changeait, ça lèverait ici.
-  nePeutPasDifferer(applyEffects(get, set, [{ type: 'waterExposure', mode, source, target: 'party' }]), 'riverVoyage.exposition');
+  openWaterExposure(get, set, effectTargets(get, 'party'), { mode, source }, 'river-exposition');
   marqueExpositionDuJour(get, set);
   return {};
 });
@@ -607,11 +605,11 @@ function rightingStep(get: Get, source: CascadeStep, round: number, be: number):
   // Le barreur est RE-RÉSOLU ici (acteur + Soutien du moment) : la ligne se remonte par le monteur
   // canonique, jamais transportée d'étape en étape. Le −5 cumulatif du Round courant est un
   // modificateur DE CIBLE (l.40) : déclaré en `surLaCible`, il ne s'empile pas d'un Round à l'autre.
-  const skillId = riverPilotSkill(findVehicleById(get().travelPlan?.vehicle?.creatureId ?? '')?.ship?.sail != null);
+  const skillId = riverNavSkill(get().travelPlan?.vehicle);
   const pilot = riverPilot(get, skillId);
   const savoir = pilot ? savoirVoiesFluvialesBonus(pilot.actor) : Number(source.meta?.savoir ?? 0);
   const cumul = penalty
-    ? [{ label: t('rv.rightingCumul', { n: round + 1 }), value: penalty, famille: 'jet' as const, ref: RULE_REF['navigation-chavirage'] }]
+    ? [{ label: t('rv.rightingCumul', { n: round + 1 }), value: penalty, famille: 'circonstance' as const, ref: RULE_REF['navigation-chavirage'] }]
     : undefined;
   // PORTEUR de l'étape : le barreur DU MOMENT quand il en reste un — le Test est le sien, donc la
   // fenêtre aussi. C'est un CHANGEMENT assumé : l'étape reprenait jusqu'ici l'`actorId` du chavirage,
@@ -713,7 +711,7 @@ registerCascadeApplier('riverPerilCheck', (get, set, step) => {
     // Le barreur est RE-RÉSOLU au moment de l'insertion (acteur + Soutien du moment) et la ligne se
     // remonte par le monteur canonique : les malus de dérive/hors-contrôle, eux, voyagent en drapeaux
     // sérialisables et redeviennent des chips NOMMÉES (`navPenaltyMods`).
-    const skillId = String(step.meta?.navSkill ?? riverPilotSkill(findVehicleById(get().travelPlan?.vehicle?.creatureId ?? '')?.ship?.sail != null));
+    const skillId = String(step.meta?.navSkill ?? riverNavSkill(get().travelPlan?.vehicle));
     const pilot = riverPilot(get, skillId as 'voile' | 'ramer');
     if (!hasPilot || !pilot) return resolveRiverPerilConsequence(get, set, peril, { ...step, result: null }, rng);
     // Un péril à Test PORTE sa conséquence (`onFail`, exigée par le schéma de `river-perils`) : sans
@@ -740,7 +738,7 @@ registerCascadeApplier('riverPerilCheck', (get, set, step) => {
     // (Force soutenue — bélier comme déblaiement), sinon le premier vivant. La porte de choix exige un
     // porteur : sans lui la fenêtre échoit à l'hôte, qui trancherait pour un autre siège.
     const decideur = step.actorId
-      ?? partyAssisted(get().party.filter((h) => !h.dead), undefined, 'force')?.actor.id
+      ?? partyAssisted(get().party, undefined, 'force')?.actor.id
       ?? get().party.find((h) => !h.dead)?.id ?? '';
     const st = choiceStep({
       id: `${step.id}-obstacle`, kind: 'riverObstacleChoice', actorId: decideur, icon: 'ui/warning',
@@ -749,8 +747,7 @@ registerCascadeApplier('riverPerilCheck', (get, set, step) => {
         { key: 'deblayer', label: t('opt.deblayer'), detail: t('rv.obstacleClearDetail') },
         { key: 'forcer', label: t('opt.forcerBelier'), detail: t('rv.obstacleRamDetail', { dmg: peril.obstacle.ramDamage }) },
       ],
-      // Cadence commandée : défaut = le MOINS destructif (déblayer, coque intacte) — MSRC 7 l.128.
-      defaultChoice: 'deblayer', meta: { perilId },
+      meta: { perilId },
     });
     return st ? { insert: [st] } : undefined;
   }
@@ -954,7 +951,7 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
     // INFLUENÇABLE (#270) si le jet se surface pour le barreur (`riverPerilDetect`).
     const pilotId = step.actorId;
     const pilot = pilotId ? get().party.find((h) => h.id === pilotId) : undefined;
-    const skilled = pilot && (pilot.skills ?? []).some((s) => (s.id === 'voile' || s.id === 'ramer') && s.advances > 0);
+    const skilled = pilot && (pilot.skills ?? []).some((s) => estCompetenceDePropulsion(s.id) && s.advances > 0);
     if (skilled) {
       j.push(t('rv.pilotKnows', { peril: peril.label }));
     } else if (pilot && surfaceOf(get, pilot.id)) {
@@ -980,34 +977,32 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
   return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
 }
 
-/** S'ÉCHOUER (l.97-99) : le bateau s'arrête, sa coque subit 12 Dégâts ; on le renfloue par un Test de Force
- *  « avec un malus égal au nombre total de Points d'Encombrement du bateau et de sa cargaison » (l.99). Le
- *  malus = Enc PROPRE du bateau (`VehicleData.enc`) + Enc de la CARGAISON des porteurs réels du groupe
- *  (`partyCargoTotalEnc` : bêtes/véhicules/navire, la cale fluviale du commerce MSRC 13), converti en
- *  difficulté (chaque 10 Enc ≈ un cran de −10 via
- *  `difficultyFromModifier`) ; degrade sur Intermédiaire si aucun Enc n'est connu (barge LDB `enc` null +
- *  convoi vide). Le RAW ne prévoit AUCUN délestage pour se renflouer (l.97-105 muets) → non modélisé. */
+/** S'ÉCHOUER (MSRC 7 l.97-99) : 12 Dégâts de coque, puis le Test de Force de renflouage. L'Enc PROPRE du
+ *  bateau (`VehicleData.enc`) et celle de la CARGAISON des porteurs réels du groupe (`partyCargoTotalEnc`)
+ *  font la pénalité. */
 export function applyEchouage(get: Get, set: Set, tell: (l: string[]) => void): void {
   const coque = get().travelPlan!.vehicle!;
   damageVesselHull(get, set, coque, echouageDamage());
-  const { difficulty, encTxt } = echouageDifficulty(get);
+  const { penalite, encTxt } = echouagePenalty(get);
   // Chemin IA/synchrone (`riverEchouageForce` gate l'acteur JOUEUR ci-dessus) : aucune rangée nulle
   // part pour ce jet — le journal est la SEULE surface, il PORTE le jet (#295 Lot 5, gardé nominativement).
   const force = partyAssisted(get().party, undefined, 'force');
-  const res = force ? rollTest(force.value, difficulty, battleRng()) : null;
-  tell([t('rv.grounded', { dmg: echouageDamage(), suite: res ? t('rv.fragRefloat', { diff: DIFFICULTY_LABELS[difficulty], enc: encTxt, roll: res.roll, target: res.target, issue: t(res.success ? 'rv.refloatOk' : 'rv.refloatKo') }) : t('rv.fragDot') })]);
+  const res = force ? rollTest(force.value, ECHOUAGE_DIFFICULTY, battleRng(), penalite?.value ?? 0) : null;
+  tell([t('rv.grounded', { dmg: echouageDamage(), suite: res ? t('rv.fragRefloat', { diff: DIFFICULTY_LABELS[ECHOUAGE_DIFFICULTY], enc: encTxt, roll: res.roll, target: res.target, issue: t(res.success ? 'rv.refloatOk' : 'rv.refloatKo') }) : t('rv.fragDot') })]);
 }
 
-/** Malus/difficulté du renflouage (l.99, Enc du bateau + de la cargaison) — SOURCE UNIQUE, partagée par
- *  le renflouage IA/synchrone (`applyEchouage`) et l'étape-jet JOUEUR (`riverEchouageForce`, #270). */
-function echouageDifficulty(get: Get): { difficulty: Difficulty; encTxt: string } {
+/** MSRC 7 l.99 ; LDB 12 l.148. */
+const ECHOUAGE_DIFFICULTY: Difficulty = 'intermediaire';
+
+/** Pénalité du renflouage (MSRC 7 l.99), dérivée au jet de `strandingPenalty` — partagée par le renflouage
+ *  IA/synchrone (`applyEchouage`) et l'étape-jet JOUEUR (`riverEchouageForce`, #270). */
+function echouagePenalty(get: Get): { penalite: ModLine | null; encTxt: string } {
   const coque = get().travelPlan!.vehicle!;
   const boatEnc = findVehicleById(coque.creatureId ?? '')?.enc ?? 0;
   const cargoEnc = partyCargoTotalEnc(get());
-  const totalEnc = boatEnc + cargoEnc;
-  const difficulty = totalEnc > 0 ? difficultyFromModifier(-totalEnc) : 'intermediaire';
-  const encTxt: string = totalEnc > 0 ? t('rv.encMalus', { total: totalEnc, boat: boatEnc, cargo: cargoEnc }) : '';
-  return { difficulty, encTxt };
+  const penalite = strandingPenaltyLine(boatEnc, cargoEnc, RULE_REF['navigation-echouage']);
+  const encTxt: string = penalite ? t('rv.encMalus', { total: -penalite.value, boat: boatEnc, cargo: cargoEnc }) : '';
+  return { penalite, encTxt };
 }
 
 /** ÉCHOUAGE (#270) : Dégâts fixes appliqués immédiatement (non-jetés) ; le renflouage (Test de Force)
@@ -1021,14 +1016,13 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
   }
   const coque = get().travelPlan!.vehicle!;
   damageVesselHull(get, set, coque, echouageDamage());
-  const { difficulty, encTxt } = echouageDifficulty(get);
+  const { penalite } = echouagePenalty(get);
   j.push(t('rv.grounded', { dmg: echouageDamage(), suite: t('rv.fragDot') }));
   const st = monoStep({
     id: `${idPrefix}-echouage`, kind: 'riverEchouageForce', actor: force.actor, icon: 'travel/repair',
-    label: t('step.riverEchouage'), rollLabel: t('char.force'), difficulty,
-    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support },
+    label: t('step.riverEchouage'), rollLabel: t('char.force'), difficulty: ECHOUAGE_DIFFICULTY,
+    ligne: { test: { char: 'force' }, valeur: force.value, soutien: force.support, ...(penalite ? { surLaCible: [penalite] } : {}) },
     stake: voyageStakeRef('riverEchouageForce'),
-    meta: { encTxt },
   });
   return st ? [st] : [];
 }

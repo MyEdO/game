@@ -45,15 +45,29 @@ import type { IconIdInput } from './icons';
  */
 
 /** Une TUILE d'état du mode (patron `PosteSheet` paramétré) : chip + valeur, éventuellement une jauge à
- *  crans (`NotchGauge`), cliquable vers l'écran de consultation quand il en existe un. */
+ *  crans (`NotchGauge`, qui porte alors seule le libellé et la valeur), cliquable vers l'écran de
+ *  consultation quand il en existe un. */
 export interface VoyageTile {
   key: string;
   icon: IconIdInput;
   label: string;
-  value: ReactNode;
-  gauge?: { value: number; max: number; min?: number; marks?: number[]; tone?: GaugeTone | ((v: number, m: number) => GaugeTone); format?: (v: number) => string };
+  value: string;
+  gauge?: { value: number; max: number; min?: number; marks?: number[]; tone?: GaugeTone | ((v: number, m: number) => GaugeTone) };
   onClick?: () => void;
   title?: string;
+}
+
+/** Rendu d'UNE tuile : un seul rendu par valeur — la jauge, quand il y en a une, porte libellé et valeur. */
+export function VoyageTileView({ tile: t }: { tile: VoyageTile }) {
+  const inner = t.gauge
+    ? <NotchGauge icon={<Icon id={t.icon} size="sm" />} label={t.label} value={t.gauge.value} max={t.gauge.max} min={t.gauge.min} marks={t.gauge.marks} tone={t.gauge.tone} format={() => t.value} stacked />
+    : <>
+      <span className="voyage-tile-label"><Icon id={t.icon} size="sm" /> {t.label}</span>
+      <span className="voyage-tile-value">{t.value}</span>
+    </>;
+  return t.onClick
+    ? <button type="button" className="voyage-tile clickable" onClick={t.onClick} title={t.title}>{inner}</button>
+    : <div className="voyage-tile">{inner}</div>;
 }
 
 /** Une carte de la CHRONIQUE (gabarit #257) : un jour/Étape passé, ou le jour EN COURS. */
@@ -354,16 +368,7 @@ export function VoyageScreen({ onClose }: { onClose: () => void }) {
             <div className="voyage-progress" aria-hidden><div className="voyage-progress-fill" style={{ width: `${plan.km > 0 ? Math.min(100, Math.round((plan.kmDone / plan.km) * 100)) : 0}%` }} /></div>
           </div>
           <div className="voyage-tiles">
-            {tiles.map((t) => {
-              const inner = <>
-                <span className="voyage-tile-label"><Icon id={t.icon} size="sm" /> {t.label}</span>
-                <span className="voyage-tile-value">{t.value}</span>
-                {t.gauge && <NotchGauge label={t.label} value={t.gauge.value} max={t.gauge.max} min={t.gauge.min} marks={t.gauge.marks} tone={t.gauge.tone} format={t.gauge.format} stacked />}
-              </>;
-              return t.onClick
-                ? <button key={t.key} type="button" className="voyage-tile clickable" onClick={t.onClick} title={t.title}>{inner}</button>
-                : <div key={t.key} className="voyage-tile">{inner}</div>;
-            })}
+            {tiles.map((t) => <VoyageTileView key={t.key} tile={t} />)}
           </div>
           <MasterDetail
             className="voyage-master"

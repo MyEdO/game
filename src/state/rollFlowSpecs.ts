@@ -45,7 +45,7 @@ import { sceneMetresPerTile } from './scene';
 import { metresRetenus, phaseDeChute } from './fallMove';
 import { REDERIVATIONS, resolveTrample, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
-import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR } from '../engine/tests';
+import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import { d100, defaultRNG, type RNG } from '../engine/dice';
 import { resolveRun, resolveDeliberateFall, runFromTest, fallFromTest } from '../engine/movement';
@@ -252,8 +252,9 @@ function crewRoleFlowSpec<P extends import('./rollFlowFactory').PendingBase & { 
     actor: (s, r) => actorIn(s, r.id),
     caps: { forced: true },
     resolve: (_s, r, actor, _get, forced) => {
-      if (!actor) return null;
-      const rr = forced ? forceCrewRole(actor, r.roleId, r.cumul, r.sense) : rollCrewRole(actor, r.roleId, battleRng(), r.cumul, r.sense);
+      if (!actor || refusSansJet(r) != null) return null; // LDB 09 l.30 ; #2588 Q1
+      if (!forced) return rollCrewRole(actor, r.roleId, battleRng(), r.cumul, r.sense);
+      const rr = forceCrewRole(actor, r.roleId, r.cumul, r.sense);
       return rr ? { result: rr } : null;
     },
     outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (roll ≤ cible)
@@ -309,8 +310,8 @@ const rollOutcome = (roll: number | null | undefined, target: number, sl: number
 
 /** Issue d'un Test dont le résultat est un `{ roll, target, sl }` SANS champ `success` (réussite propre
  *  = `roll ≤ cible`) : incantation, enfoncement de porte, Test d'équipage — un résultat absent = échec. */
-const cleanRollOutcome = (r: { roll: number; target: number; sl?: number } | null | undefined): TestOutcome =>
-  sealOutcome(!!r && r.roll <= r.target, r?.sl ?? 0, r?.roll ?? 0, r?.target ?? 0);
+const cleanRollOutcome = (r: { roll: number; target: number; sl?: number } | EchecSansJet | null | undefined): TestOutcome =>
+  estJete(r) ? sealOutcome(r.roll <= r.target, r.sl ?? 0, r.roll, r.target) : sealOutcome(false, 0);
 
 /** Réussite forcée d'un Test BINAIRE (Résilience « Je ne faillirai pas ! », LDB 17 l.68) : renvoie le
  *  `{ success, roll, target, sl }` forcé — avant le jet (pas de résultat → dé 01), ou après un échec
@@ -339,8 +340,8 @@ const prunedFleeSlots = (slots: FleeSlot[]): FleeSlot[] => {
  *  DR, `success`/`roll` INTACTS (LDB 17 l.24 ; succès du Test : LDB 12 l.11).
  *  `null` = pas encore lancé (rien à améliorer). Partagé par les flux `result` NON opposés (Test d'équipage /
  *  Test Étendu / cascade simple) dont le `bonus.derive` répétait `{ result: { ...r.result, sl: r.result.sl + 1 } }`. */
-const bumpResultSL = <R extends { sl: number }>(slot: { result?: R | null }): { result: R } | null =>
-  slot.result ? { result: { ...slot.result, sl: slot.result.sl + 1 } } : null;
+const bumpResultSL = <R extends { sl: number }>(slot: { result?: R | EchecSansJet | null }): { result: Exclude<R, EchecSansJet> } | null =>
+  estJete(slot.result) ? { result: { ...slot.result, sl: slot.result.sl + 1 } } : null;
 
 /** Lentille PARTAGÉE des Tests PLATS (le jet vit au niveau du pending : `roll`/`target`/`sl`/`success`) —
  *  `actorTR` reconstruit le TestResult, `applyRoll` re-projette roll/sl/success (identiques d'un flux à
@@ -483,8 +484,8 @@ const trDie = <P extends PendingBase & { roll?: TestResult | null }>() => ({
 });
 
 /** Jet d'un PARTICIPANT rangé sous `result` à 3 champs ({roll,target,sl}) — le socle re-dérive le DR. */
-const roll3Die = <Slot extends PendingBase & { result?: { roll: number; target: number; sl: number } | null }, P extends PendingBase>() => ({
-  read: (r: Slot) => (r.result ? { roll: r.result.roll, target: r.result.target, critable: false } : null),
+const roll3Die = <Slot extends PendingBase & { result?: { roll: number; target: number; sl: number } | EchecSansJet | null }, P extends PendingBase>() => ({
+  read: (r: Slot) => (estJete(r.result) ? { roll: r.result.roll, target: r.result.target, critable: false } : null),
   write: (_s: GameState, _r: Slot, _a: Combatant | undefined, _g: Get, tr: TestResult) =>
     ({ result: { roll: tr.roll, target: tr.target, sl: tr.sl } } as unknown as Partial<Slot>),
 } as NonNullable<RollFlowSpec<P, Slot>['die']>);
@@ -995,7 +996,7 @@ export const FLOWS = {
     // Niveau de Compétence du défenseur est imposé au SEUL point d'opposition (`opposedCascadeRoll`,
     // depuis `st.base`) — l'accesseur n'en est pas une seconde source (LDB 12 l.160).
     die: {
-      read: (st) => (st.target != null && st.result ? { roll: st.result.roll, target: st.target, critable: false } : null),
+      read: (st) => (st.target != null && estJete(st.result) ? { roll: st.result.roll, target: st.target, critable: false } : null),
       write: (_s, st, _a, _g, tr) => {
         if (st.target == null) return null;
         const opp = stepOpposedFreeze(st);
@@ -1050,7 +1051,7 @@ export const FLOWS = {
     },
     bonus: {
       derive: (_s, st) => {
-        if (!st.result) return null;
+        if (!estJete(st.result)) return null;
         const opp = stepOpposedFreeze(st);
         // Chance « +1 DR » (LDB 17 l.24) sur un Test OPPOSÉ : on RE-OPPOSE le jet défenseur amélioré (+1 DR)
         // à l'attaquant FIGÉ (1ʳᵉ position) — le +1 peut FAIRE BASCULER l'issue (calque `disengage.bonus.derive`).
@@ -1492,7 +1493,7 @@ export const FLOWS = {
     // au jet figé (le dé choisi doit peser sur l'opposition, pas sur un `roll ≤ cible` qui n'est pas
     // la règle du site) ; sinon l'issue est celle du dé.
     die: {
-      read: (r: BatchParticipant) => (r.result ? { roll: r.result.roll, target: r.result.target, critable: false } : null),
+      read: (r: BatchParticipant) => (estJete(r.result) ? { roll: r.result.roll, target: r.result.target, critable: false } : null),
       write: (s: GameState, r: BatchParticipant, _a: Combatant | undefined, _g: Get, tr: TestResult) => {
         const opp = currentStepFreeze(s);
         return {
@@ -1545,6 +1546,7 @@ export const FLOWS = {
     },
     resolve: (s, r, actor, _get, forced) => {
       if (!actor) return null; // rangée sans acteur résoluble (parité historique) — pas de jet
+      if (refusSansJet(r) != null) return null; // ligne non tentable : ni jet, ni Résilience, ni Résistance (LDB 09 l.30 ; #2588 Q1)
       // Résistance (Menace), LDB 10 l.1016-1020 : auto-succès de CETTE rangée à DR IMPOSÉ (aucun dé,
       // aucune ré-opposition — calque de l'étape MONO) ; les autres rangées de la bande sont intactes.
       if (forced?.sl != null) return { result: { roll: 1, target: r.target, sl: forced.sl, success: true } };
@@ -1560,7 +1562,7 @@ export const FLOWS = {
     bonus: {
       derive: (s, r) => {
         const opp = currentStepFreeze(s);
-        if (!opp || !r.result) return bumpResultSL(r);
+        if (!opp || !estJete(r.result)) return bumpResultSL(r);
         const def2 = bumpSL(hydrateTR({ roll: r.result.roll, target: r.target, base: r.base, success: r.result.success, sl: r.result.sl }));
         return { result: opposedCascadeRoll(def2, opp, r.target, r.base) };
       },

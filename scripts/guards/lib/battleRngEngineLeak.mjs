@@ -27,7 +27,7 @@
 //    invisible à un scan lexical de l'AST syntaxique seul ;
 //  - une réexportation `export * from` (angle mort de `tableDesExports`).
 import * as tsModule from 'typescript/unstable/ast';
-import { analyserCorpus } from './dialecte.mjs';
+import { analyserCorpus, avecAnalyse } from './dialecte.mjs';
 import { contexteImports, estAppelDeclare, tableDesExports } from './canonUnique.mjs';
 import { readCorpus } from './sourceCorpus.mjs';
 // Vue CODE SEUL du texte (primitive PARTAGÉE) : la ligne rapportée ne porte que du code, lignes
@@ -107,28 +107,26 @@ function resolveursARng(ctx) {
  */
 export function scanBattleRngEngineLeak(relPath, contenu, ctx = contexteDeScanRng(), sourceFile, checker) {
   if (!/\bbattleRng\b/.test(contenu) || !/\bresolve[A-Z]/.test(contenu)) return [];
-  if (!sourceFile) {
-    for (const analyse of analyserCorpus([{ rel: relPath, text: contenu }])) return scanBattleRngEngineLeak(relPath, contenu, ctx, analyse.sourceFile, analyse.checker);
-  }
-  const sf = sourceFile;
-  const contexte = contexteImports(sf, checker);
-  const table = resolveursARng(ctx);
-  /** @type {{ line: number, name: string }[]} */
-  const appels = [];
-  let vivant = false;
-  const visit = (node) => {
-    if (ts.isCallExpression(node)) {
-      if (estAppelDeclare(node, sf, RNG_VIVANT, contexte)) vivant = true;
-      const name = estAppelDeclare(node, sf, table, contexte);
-      if (name) appels.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
-    }
-    node.forEachChild(visit);
-  };
-  sf.forEachChild(visit);
-  if (!vivant) return [];
-  const lignes = codeSeul(contenu).split('\n');
-  /** @type {Map<string, { line: number, name: string, detail: string }>} */
-  const vus = new Map();
-  for (const a of appels) vus.set(`${a.line}:${a.name}`, { ...a, detail: lignes[a.line - 1].trim() });
-  return [...vus.values()];
+  return avecAnalyse({ rel: relPath, text: contenu }, sourceFile, checker, (sf, checker) => {
+    const contexte = contexteImports(sf, checker);
+    const table = resolveursARng(ctx);
+    /** @type {{ line: number, name: string }[]} */
+    const appels = [];
+    let vivant = false;
+    const visit = (node) => {
+      if (ts.isCallExpression(node)) {
+        if (estAppelDeclare(node, sf, RNG_VIVANT, contexte)) vivant = true;
+        const name = estAppelDeclare(node, sf, table, contexte);
+        if (name) appels.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, name });
+      }
+      node.forEachChild(visit);
+    };
+    sf.forEachChild(visit);
+    if (!vivant) return [];
+    const lignes = codeSeul(contenu).split('\n');
+    /** @type {Map<string, { line: number, name: string, detail: string }>} */
+    const vus = new Map();
+    for (const a of appels) vus.set(`${a.line}:${a.name}`, { ...a, detail: lignes[a.line - 1].trim() });
+    return [...vus.values()];
+  });
 }

@@ -73,7 +73,9 @@ const CLES: Record<string, string> = {
   "miscastMajor": '416a3aa0219e8f4e',
   "miscastWrath": '3da49a322927f1e7',
   "nightStakes": '54a15ad6883f8c31',
-  "voyageStakes": '9ce6e042bf3b10d8',
+  // #1595 (2026-10-12) : +1 item `sea-degagement-debris` (MDG 13 l.487-491), l’empêtrement dans des Débris marins.
+  // #1595 (2026-10-12) : +1 item `sea-salissures` (MDG 13 l.148) ; `sea-overspeed` resourcé (MDG 13 l.121-142, p.105).
+  "voyageStakes": '077c65ba8c111491',
   // #1920 B14 (2026-09-24) : −2 items (`recover-*` sur l'État), `sub` retiré.
   // #700 (2026-10-05) : +1 item `perception-detect` (LDB 09 l.399), la découverte d'une porte secrète.
   "flowStakes": '92b8c08cdf35308e',
@@ -134,7 +136,8 @@ const CLES: Record<string, string> = {
   // #1612 : l'Activité Mendier entre au dataset, et la section « Issues par Degrés de Réussite » REND
   // désormais les ops de chaque bande (primitive `opRows` — chips codex-liées + `rollTable` expansé)
   // là où elle n'en imprimait que le COMPTE (« N op(s) sur le Personnage »).
-  "activities": 'a872f5a4c467d4d7',
+  // #1595 S8 : `pratiquer-competence` porte un `maison` (liste `freeSkill` par défaut, EDOC 8 l.172) — recalée à la MESURE.
+  "activities": 'd1cb50d1c3cd514a',
   "massBattlePowerEstimate": '82674e9e4786f386',
   "massBattleMightModifiers": '8b5e85f5fa1f537a',
   "massBattleWarMachines": 'b77e9b7bc67a8d5b',
@@ -215,7 +218,8 @@ const CLES: Record<string, string> = {
   // d'être surpris, amende des gardes) — LDB 09 l.97/l.99 n'en chiffre aucune.
   // #700 (2026-10-05) : +4 règles maison — `porte-secrete-rayon-m`, `chute-tombant-non-debout`,
   // `fenetre-suspension`, `fouille-piece-minutes`.
-  "reglesOptionnelles": 'd62556c15e62cf7f',
+  // #1595 (2026-10-12) : +1 item `sea-salissures-difficulty` (maison, MDG 13 l.148).
+  "reglesOptionnelles": 'd5b53dfc895d9d77',
   "surincantation": '561218369ab9cdfd',
   "structureCriticals": '84e0df29c1ae4e21',
   "artilleryMisfire": 'aa3ad3238b5356f8',
@@ -225,7 +229,8 @@ const CLES: Record<string, string> = {
   "crewMoraleFactors": '91a12d65f9274e14',
   "crewMoraleBands": '817ce48b209e1729',
   "steamBreakdowns": '0241598713ede3cd',
-  "regles": 'e56e2e1f0a37237f',
+  // #1595 (2026-10-12) : +2 items `degagement-debris-marins` (MDG 13 l.487-491) et `salissures-navire` (MDG 13 l.148-159), les règles des enjeux `sea-degagement-debris` et `sea-salissures`.
+  "regles": '0df2775bd6b659da',
 };
 
 /** Union des clés PRÉSENTES par catégorie (diagnostic lisible — un item isolé qui gagne une clé que
@@ -410,7 +415,8 @@ const T3_DELTAS: Record<string, Record<string, number>> = {
   // MAISON : `LDB 09 l.97/l.99` ne chiffre aucune de leurs valeurs (partition XOR de
   // `regles-optionnelles-partition.test.ts`), leur folio se lit dans `ref` et n'ancre rien.
   // #700 (2026-10-05) : 87 → 91 items, `source` INCHANGÉ à 54 — les 4 règles maison de #700, cf. `CLES`.
-  "reglesOptionnelles": { desc: 91, source: 54 },
+  // #1595 (2026-10-12) : 91 → 92 items, `source` INCHANGÉ à 54 — `sea-salissures-difficulty` MAISON (MDG 13 l.148).
+  "reglesOptionnelles": { desc: 92, source: 54 },
   "landCargo": { source: 7 }, // 7 items — T3 : source +7
   "seaCargo": { source: 11 }, // 11 items — T3 : source +11
   "riverPerils": { source: 4 }, // 4 items — T3 : source +4

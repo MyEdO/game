@@ -75,7 +75,7 @@ describe('fingersLost / maxFingersLostForWeapon (#144 — source unique, réutil
 });
 
 describe('câblage : attackModifiers surface la ligne « Amputation » (effet de combat visible)', () => {
-  const attacker = (traumas: Trauma[]): Combatant => ({ advantage: 0, conditions: [], traumas } as unknown as Combatant);
+  const attacker = (traumas: Trauma[]): Combatant => ({ advantage: 0, conditions: [], skills: [], traumas } as unknown as Combatant);
   it('doigts gauches + arme à 2 mains → ligne Amputation −10', () => {
     const mods = attackModifiers(attacker([fingers('brasG', 2)]), null, w2, { kind: 'melee' });
     expect(mods.find((m) => m.label === 'Amputation')?.value).toBe(-10);

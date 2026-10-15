@@ -5,6 +5,7 @@
  * batterie, perception…) — un seul endroit assigne les marins aux postes.
  */
 import type { Combatant } from '../engine/types';
+import { refCouvre } from '../data/schemas/grammaire/ref';
 import { crewRoleValue, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
@@ -16,13 +17,15 @@ import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
 import { findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
 import { exposedCrew } from '../engine/shipCritical';
-import { partyBest } from '../engine/skills';
+import { partyBest, peutTenter } from '../engine/skills';
 import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
 import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
 import { battleRng } from './battleRng';
 import { t } from '../i18n';
 import type { Get, Set as SetFn } from './flowTypes';
+import { equipageApte } from './combatants';
+import { estCompetenceDePropulsion } from '../engine/shipBuild';
 
 /**
  * Assignation de l'équipage APTE d'un navire aux rôles qui contribuent à `testTypeId` (MDG 14). Chaque marin tient
@@ -35,10 +38,12 @@ import type { Get, Set as SetFn } from './flowTypes';
  *  `shipDefaultRoles` — donc exclue de tout Test d'équipage. */
 export const BENCHED = 'repos';
 
-/** Un marin est-il FORMÉ pour un rôle (possède une de ses compétences) ? PUR. */
+/** Un marin est-il FORMÉ pour un rôle : il porte une de ses Compétences ET peut en tenter le Test
+ *  (`peutTenter`) — LDB 09 l.30. PUR. */
 function trainedForRole(c: Combatant, roleId: string): boolean {
   const role = findCrewRoleById(roleId);
-  return !!role && role.skills.some((s) => (c.skills ?? []).some((k) => k.id === s.id && (s.spec == null || k.spec === s.spec)));
+  return !!role && role.skills.some((s) =>
+    (c.skills ?? []).some((k) => refCouvre(s, k)) && peutTenter(c, s.id, s.spec));
 }
 
 /**
@@ -63,12 +68,30 @@ export function shipDefaultRoles(crew: Combatant[], testTypeId: string): Map<str
     // Meilleur marin FORMÉ encore libre : `partyBest` (skill/char indéfinis → `testValue`=0) score PUREMENT sur
     // `crewRoleValue`. Le `.filter` préserve l'ordre d'`apte` → first-max identique à la boucle strict-`>` d'origine.
     const candidates = apte.filter((c) => free.has(c.id) && trainedForRole(c, roleId));
-    const winner = partyBest(candidates, undefined, undefined, (c) => crewRoleValue(c, role).value)?.actor;
+    const winner = partyBest(candidates, undefined, undefined, (c) => crewRoleValue(c, role).value ?? -Infinity)?.actor;
     if (winner) { out.set(winner.id, roleId); free.delete(winner.id); }
   }
   // Le reste → Mousse (rôle par défaut, l.15) s'il sait Voile/Ramer.
-  if (testType.roles.includes('mousse')) for (const id of free) if (trainedForRole(apte.find((x) => x.id === id)!, 'mousse')) out.set(id, 'mousse');
+  if (testType.roles.includes('mousse')) for (const id of free) {
+    const c = apte.find((x) => x.id === id)!;
+    if (peutTenter(c) && trainedForRole(c, 'mousse')) out.set(id, 'mousse');
+  }
   return out;
+}
+
+/** Rôle d'équipage à Compétence de propulsion (`crew-roles.json` ; MDG 14 l.24-32, l.69). PUR. */
+function roleDePropulsion(roleId: string | undefined): boolean {
+  const role = roleId ? findCrewRoleById(roleId) : undefined;
+  return !!role?.skills.some((s) => estCompetenceDePropulsion(s.id));
+}
+
+/** Membres d'équipage IMPLIQUÉS dans le maniement des voiles ou des avirons (MDG 13 l.111) : les aptes
+ *  dont le poste de Progression (`shipDefaultRoles`) est un rôle de propulsion, plus les `manieurs` du
+ *  jour (MDG 13 l.22-24, l.111). PUR. */
+export function equipageImplique(party: readonly Combatant[], manieurs: readonly string[]): Combatant[] {
+  const apte = equipageApte(party);
+  const postes = shipDefaultRoles(apte, 'progression');
+  return apte.filter((c) => manieurs.includes(c.id) || roleDePropulsion(postes.get(c.id)));
 }
 
 export function shipCrewAssignments(ship: Combatant, combatants: Combatant[], testTypeId: string): CrewAssignment[] {
@@ -95,7 +118,7 @@ export function shipCrewAssignments(ship: Combatant, combatants: Combatant[], te
  * `sense` (Test à sens dominant, ex. Vigie visuelle, #149) écarte la pénalité sensorielle hors-sujet du RANKING
  * du marin représentant — parité avec la valeur de Test (#158). PUR. */
 export function crewTestContributors(ship: Combatant, combatants: Combatant[], testTypeId: string, partyIds: Set<string>, sense?: PairedSense): CrewAssignment[] {
-  const roleVal = (a: CrewAssignment) => { const r = findCrewRoleById(a.roleId); return r ? crewRoleValue(a.crew, r, sense).value : 0; };
+  const roleVal = (a: CrewAssignment) => { const r = findCrewRoleById(a.roleId); return r ? crewRoleValue(a.crew, r, sense).value ?? -Infinity : 0; };
   const byRole = new Map<string, CrewAssignment[]>();
   for (const a of shipCrewAssignments(ship, combatants, testTypeId)) (byRole.get(a.roleId) ?? byRole.set(a.roleId, []).get(a.roleId)!).push(a);
   const out: CrewAssignment[] = [];

@@ -62,7 +62,7 @@ import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from
 import { emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import { findSpeciesById, findTalentById, specPoolOf, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
-import { estSpecialisable, type RefDesignee, type RefASpecialisation } from '../../data/schemas/grammaire/ref';
+import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../gameIso/rig/appearance';
 
 export type CharMode = 'rolled' | 'reassigned' | 'pointBuy';
@@ -548,7 +548,7 @@ export function speciesSkillRefs(d: CreatorDraft): RefASpecialisation[] {
 /** La Compétence retenue qui occupe l'emplacement d'espèce `ref` : même (id, spec) pour un emplacement
  *  fixe ; même id, hors des spécialisations fixes de la liste, pour un joker. */
 function occupe(d: CreatorDraft, ref: RefASpecialisation): (r: RefDesignee) => boolean {
-  if (ref.choix == null) return (r) => r.id === ref.id && (r.spec ?? '') === (ref.spec ?? '');
+  if (ref.choix == null) return (r) => r.id === ref.id && memeSpecialisation(r.spec, ref.spec);
   const fixes = speciesSkillRefs(d).filter((x) => x.choix == null && x.id === ref.id).map((x) => x.spec ?? '');
   return (r) => r.id === ref.id && !fixes.includes(r.spec ?? '');
 }

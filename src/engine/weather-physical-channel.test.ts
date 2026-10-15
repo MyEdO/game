@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { attackModifiers, defenseModifiers, baseTestMods } from './combat';
 import { weatherTestMods } from './weatherTestMod';
-import { Combatant, Weapon } from './types';
+import { Combatant, Weapon, type ModLine } from './types';
 
 /**
  * CONFORMANCE TRANSVERSALE du canal météo « Tests physiques » (EDOC 8 l.82, #341). LE test qui aurait
@@ -24,7 +24,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant =>
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
 const DELUGE = 'pluie-diluvienne';
-const METEO = (mods: { label: string; value: number }[]) => mods.filter((m) => m.label.startsWith('Météo'));
+const METEO = (mods: ModLine[]) => mods.filter((m) => m.ref?.category === 'weatherConditions');
 
 describe('#341 — canal météo « Tests physiques » : les 4 familles traversent LE MÊME canal', () => {
   it('pluie diluvienne → −10 à l’ATTAQUE (CC en mêlée, CT au tir), une seule ligne', () => {

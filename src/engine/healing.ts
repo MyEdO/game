@@ -20,12 +20,6 @@ const condStacks = (c: Combatant, name: string) => c.conditions.find((x) => x.id
 /** Id STABLE de la Compétence des actes de soin — source unique des sites qui la testent ou la lisent. */
 export const HEAL_SKILL = 'guerison';
 
-/** Le combattant possède-t-il la Compétence (Avancée) Guérison ? Sans Augmentation, « aucune idée
- *  de comment soigner » (LDB 09 l.30, l.32). */
-export function hasHealSkill(c: Combatant): boolean {
-  return (c.skills ?? []).some((s) => s.id === HEAL_SKILL);
-}
-
 /** Le personnage possède-t-il le Talent Chirurgie (LDB 10) ? Prérequis pour opérer une blessure
  *  chirurgicale (amputation, fracture majeure). */
 export function hasSurgerySkill(c: Combatant): boolean {

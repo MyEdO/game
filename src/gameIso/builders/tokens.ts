@@ -131,7 +131,7 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
   const riderHi = new Map<string, number>();
   for (const c of battle.combatants) {
     if (!c.pos) continue;
-    // Échelle MER : l'équipage d'un navire est ABSTRAIT (la coque le représente, MDG 14).
+    // MDG 14 l.39
     if (isPassengerInBattle(c, battle.combatants, isMerScene(scene))) continue;
     // Structure de siège : AUCUN jeton de case — elle se rend sur son ARÊTE (hit-area `data-cid`).
     if (isStructure(c)) continue;
