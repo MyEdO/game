@@ -1606,9 +1606,9 @@
   {
     "id": "ast",
     "type": "primitives.manifest",
-    "label": "analyserCorpus/analyserTexte/ast",
+    "label": "analyserCorpus/analyserTexte/ast/declarationQuiPorte/cleDeContenu/lignesDuContenu",
     "fichier": "scripts/guards/lib/dialecte.mjs",
-    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés, checker emprunté pendant le parcours et libération de session",
+    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés, checker emprunté pendant le parcours et libération de session ; déclaration de premier niveau qui porte une ligne, clé de site keyée par déclaration et lignes qu'elle désigne",
     "perimetre": "toute garde qui parse un fichier",
     "verrou": "—"
   },
