@@ -17,6 +17,7 @@ import {
   rollMeleeDefender,
   finishMelee,
   resolveMeleePassive,
+  rederivePassiveAttack,
   woundsFromHit,
 } from './combat';
 
@@ -187,14 +188,23 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     expect(r2.attackerRoll).toBe(atk.roll); // l'attaque ne change pas quand on relance la défense
     expect(r1.defenderRoll).not.toBe(r2.defenderRoll);
   });
-  it('resolveMeleePassive : un succès touche, un échec rate (Avantage au défenseur)', () => {
+  it('resolveMeleePassive : un succès touche, un échec rate SANS effet (LDB 15 l.63 ; arbitrage A6 2026-10-13)', () => {
     const a = fighter(80);
     const d = fighter(30);
     const hit = resolveMeleePassive(a, d, a.weapons[0], { roll: 5, target: 80, success: true, sl: 7, isDouble: false });
     expect(hit.hit).toBe(true);
     const miss = resolveMeleePassive(a, d, a.weapons[0], { roll: 95, target: 80, success: false, sl: -2, isDouble: false });
     expect(miss.hit).toBe(false);
-    expect(miss.advantageTo).toBe('defender');
+    expect(miss.advantageTo, 'aucun Avantage au défenseur qui ne s’est pas défendu').toBeNull();
+    expect(miss.netSL, 'le DR du jet, jamais 0').toBe(-2);
+  });
+  it('raté NON opposé : UNE issue, en mêlée comme au tir (LDB 13 l.125 ; LDB 15 l.63)', () => {
+    const a = fighter(80);
+    const d = fighter(30);
+    const rate = { roll: 95, target: 80, success: false, sl: -2, isDouble: false };
+    const melee = rederivePassiveAttack(a, d, a.weapons[0], rate, 'melee');
+    const tir = rederivePassiveAttack(a, d, { ...a.weapons[0], type: 'ranged' }, rate, 'ranged');
+    expect({ advantageTo: melee.advantageTo, netSL: melee.netSL, hit: melee.hit }).toEqual({ advantageTo: tir.advantageTo, netSL: tir.netSL, hit: tir.hit });
   });
 });
 

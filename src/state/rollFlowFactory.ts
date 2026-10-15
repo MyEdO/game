@@ -198,7 +198,7 @@ export interface RollFlowLens<P extends PendingBase, Slot extends PendingBase = 
 export type RollOutcome = TestOutcome;
 
 export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = P, Ctx = void> {
-  /** Clé du pending dans le store (ex. `'pendingTrample'`). */
+  /** Clé du pending dans le store (ex. `'pendingBattement'`). */
   key: keyof GameState & string;
   /**
    * MULTI (N jets dans une modale) : énumère les SLOTS de jet du pending, leur id, et les ré-injecte.

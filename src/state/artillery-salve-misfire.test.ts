@@ -3,6 +3,7 @@ import { applyOups } from './combatFlow';
 import { OPS_DIFFEREES } from './combatEffects';
 import { useGame } from './store';
 import type { CascadeStep } from './pendings';
+import { draineCascade, poseSurDeNonTombe } from './cascadeTestKit';
 import type { Combatant, Weapon } from '../engine/types';
 import { hydratePoste, recomputeLoadout } from '../engine/items';
 
@@ -24,18 +25,7 @@ const etapeCourante = (): CascadeStep | undefined => {
 
 /** POSE `valeur` sur chaque dé que la porte ouvre, et avance — le geste du joueur, jamais un appel
  *  moteur. Rend les `kind` des étapes jouées, dans l'ordre. */
-function poserLesDes(valeur: number): string[] {
-  const joues: string[] = [];
-  for (let garde = 0; garde < 8 && useGame.getState().pendingCascade; garde++) {
-    const st = etapeCourante();
-    if (!st) break;
-    joues.push(st.kind);
-    if (st.de && !st.de.result) useGame.getState().cascadeDieSetForcedRoll(st.id, valeur);
-    if (st.table && !st.table.result) useGame.getState().cascadeTableSetForcedRoll(st.id, valeur);
-    useGame.getState().cascadeNext();
-  }
-  return joues;
-}
+const poserLesDes = (valeur: number): string[] => draineCascade(useGame.getState, 8, poseSurDeNonTombe(valeur));
 const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mkHero = (id: string, over: Partial<Combatant> = {}): Combatant =>
   ({ id, name: id, kind: 'hero', characteristics: { ...chars },

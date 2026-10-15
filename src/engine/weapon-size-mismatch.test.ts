@@ -5,9 +5,10 @@
  * pose `sizeFor` sur le catalogue ogre ; les Tests hors combat (compétences/UI) restent hors périmètre.
  */
 import { describe, it, expect } from 'vitest';
-import { attackModifiers } from './combat';
+import { attackModifiers, freeAttackWeapon } from './combat';
 import { itemFromTrappingById } from './items';
 import { weaponsFromTraits } from './creatureEquip';
+import { attaqueNaturelle } from './creatureAttacks';
 import { findCreatureById } from '../data';
 import type { Combatant, Weapon } from './types';
 
@@ -42,6 +43,13 @@ describe('sizeFor — pénalité de Taille (ADE II 2 l.710)', () => {
   it("arme SANS `sizeFor` maniée par un porteur PLUS PETIT que la Moyenne (halfling, Taille Petite) : aucune ligne — la LDB (Talent Petit, ch.10 l.939-943) est muette sur une pénalité d'équipement ordinaire", () => {
     const mods = attackModifiers(attacker('petite'), null, weapon(), { kind: 'melee' });
     expect(mods.find((m) => m.label === 'Possession pas à sa taille')).toBeUndefined();
+  });
+
+  // LDB 85 l.387 ; LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.405
+  it.each([['pietinement', ''], ['morsure', 'morsure'], ['caudale', 'attaque-caudale'], ['cornes', 'cornes'], ['tentacules', 'tentacules']])('attaque gratuite de créature « %s » : arme NATURELLE, jamais de −20 pour un porteur Énorme', (kind, trait) => {
+    const w = freeAttackWeapon(attaqueNaturelle(trait ? [{ id: trait, value: 7 }] : [], kind)!);
+    expect(w.natural).toBe(true);
+    expect(attackModifiers(attacker('enorme'), null, w, { kind: 'melee' }).find((m) => m.label === 'Possession pas à sa taille')).toBeUndefined();
   });
 
   it("arme NATURELLE (`Weapon.natural`, LDB 85 l.33) : jamais de −20 même pour un porteur plus grand que la Moyenne — sa taille effective EST celle du porteur", () => {

@@ -104,7 +104,9 @@ const CLES: Record<string, string> = {
   // #1612 : la table MAISON `mendier-ennuis` entre au dataset, et sa rangée de gardes porte l'AMENDE
   // (op `money` à `Formula`, rendue par `opRows` comme toute autre op de rangée).
   "effectTables": 'd20de6db72702b5d',
-  "maneuvers": '30d7e463b2575792',
+  // #1765 : la manœuvre neuve `pietinement` entre, avec ses clés `ecartDeTailleMin`, `subType`, `damage`,
+  // `stake`, `stakeForm` — empreinte recalée à la MESURE ; FORME inchangée.
+  "maneuvers": 'b260da1b777da91e',
   "psychologie": '2287ac1af26a59cb',
   "domains": '4e7ed40a32f916d6',
   // #1897 : 54 sorts du livre fan fusionnés dans l'entrée qui les double (ids retirés), 4 créés, et

@@ -20,7 +20,7 @@ import {
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -789,7 +789,7 @@ function crewTargetLabel(cible: CrewTarget): string {
 function shipCritEntryItem(e: ShipCritEntry): CodexItem {
   const ch = e.crewHit;
   const jet = ch?.test?.test;
-  const sujet = jet && (jet.skill ? refLabel('skills', jet.skill) : jet.characteristic ? CHAR_LABELS[jet.characteristic] : '');
+  const sujet = jet && (testSkillLabel({ skill: jet.skill, char: jet.characteristic }) ?? '');
   return depuisEnveloppe(e, {
     sub: `d10 ${e.min}–${e.max}`,
     desc: e.note,
@@ -998,7 +998,7 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
 /** Section « Test imbriqué » d'une entrée miscast (« Résistance Accessible ou Sonné »), palier
  *  `onFailHard` inclus (« si vous échouez avec DR ≤ N → EN PLUS »). */
 function miscastTestSection(t: NonNullable<MiscastRowEntry['test']>): CodexSection {
-  const who = t.skill ? refLabel('skills', t.skill) : t.characteristic ? CHAR_LABELS[t.characteristic as keyof typeof CHAR_LABELS] : 'Test';
+  const who = testSkillLabel({ skill: t.skill, char: t.characteristic as CharKey | undefined }) ?? 'Test';
   const rows: CodexRow[] = [
     { t: 'kv', k: 'Test', v: `${who} ${DIFFICULTY_LABELS[t.difficulty as keyof typeof DIFFICULTY_LABELS]}` },
     { t: 'sub', label: 'Échec' },

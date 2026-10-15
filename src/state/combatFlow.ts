@@ -59,6 +59,7 @@ import {
   attackHandGate,
   conditionModLines,
   canFireWhileEngaged,
+  freeAttackWeapon,
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
@@ -75,7 +76,6 @@ import {
   isStupid,
   flyMeters, runMultiplier,
   isSkittishMount, immuneToSpellDomain,
-  traitCapability,
 } from '../engine/traits/dispatch';
 import {
   isMagicMissile,
@@ -150,13 +150,12 @@ import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { norm } from '../lib/normalize';
-import { gelerLaConstante } from '../lib/gelerProfond';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, buildWeapon, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
+import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
-import { creatureAttacks, selfManeuversOf, selfManeuverApplicable, type CreatureAttack } from '../engine/creatureAttacks';
+import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
 /** Deux lancers de Blessure Critique, dont le porteur CHOISIT le résultat gardé (LDB 41 l.170) :
@@ -194,7 +193,7 @@ import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollaps
 import { STEP_MAX_M } from './relief';
 import { placeCombatant } from './spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
-import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mountOf, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
+import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './lineOfSight';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './shipPostes';
@@ -267,7 +266,7 @@ export { aiMaybeFrenzy, resolvePsychAI, fireTurnStartTriggers, fireTurnEndTrigge
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
 export { runHitModifiers, registerHitModifier, martyrGuardOf, wardedAgainst, organicProjectile, toucheSauvee } from './combat/hitModifiers'; // baril : enregistre les modifiers (effet de bord) + ré-export pour applyCast / les tests (l11-sorts-zones, etc.)
 import {
-  trampleTarget, bestDefenseMode,
+  bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS,
   rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps,
   resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue,
   setManeuverPostHitHook,
@@ -306,21 +305,26 @@ export function applyIncomingMeleeAdvantage(get: Get, attacker: Combatant, targe
  * rendre des armes de type/portée différents pour le MÊME `pa`, donc deux verdicts d'interposition
  * (`surfacedDefensePending`) opposés — l'écran annoncerait le résultat puis la fenêtre l'invaliderait.
  *
- * Manœuvre de mêlée d'un trait SANS arme équipée (Morsure/Attaque caudale) : l'arme naturelle est
- * synthétisée (même helper que l'IA, `freeAttackWeapon`) avec l'Indice lu du profil. La mutation
- * Tentacule, elle, A une arme équipée (`nat-tentacule`) → `firedWeapon` la résout normalement.
+ * Arme d'une gratuite : `armeDeLaGratuite`. LDB 85 l.387 ; LDB 85 l.405
  */
 export function attackWeaponOf(battle: BattleState, attacker: Combatant, target: Combatant, pa: PendingAttack): Weapon {
-  // L'attaque NATURELLE prime : son arme est SYNTHÉTISÉE (aucune arme tenue ne la porte), donc ni
-  // l'objet figé au jet — qui est l'arme TENUE, `resolveAttack` passant par `firedWeapon` — ni le
-  // repli par uid ne peuvent la rendre.
-  const freeNatural = pa.freeKind && !attacker.weapons.some((w) => w.uid === pa.weaponUid)
-    ? freeAttackWeapon(pa.freeKind, creatureAttacks(attacker.traits ?? []).find((a) => a.kind === pa.freeKind)?.bonus ?? 0)
-    : null;
+  // L'attaque NATURELLE prime : son arme est SYNTHÉTISÉE (aucune arme tenue ne la porte), donc le
+  // repli par uid ne peut pas la rendre. Le JET la reçoit d'ici (`attackRoll`, `FLOWS.attack.resolve`).
+  const freeNatural = pa.freeKind ? armeDeLaGratuite(attacker, pa.freeKind, pa.weaponUid) : null;
   // Sinon l'arme FIGÉE au jet (#1153) : `Combatant.weapons` ne porte que le loadout ACTIF, un uid seul
   // peut donc être introuvable et rendre la main à l'auto-choix. `firedWeapon` : pending pas encore
   // lancé (`openAttackCascade`, `cleaveAttack`) ou 2ᵉ frappe (`dualStrikeAttack`).
-  return freeNatural ?? pa.weapon ?? firedWeapon(attacker, target, pa.weaponUid, battle.combatants);
+  return freeNatural ?? pa.weapon ?? firedWeapon(attacker, target, pa.weaponUid, battle.combatants, pa.harpoonRopeCut);
+}
+
+/** Arme SYNTHÉTISÉE d'une attaque gratuite de créature (`freeKind`) de `attacker` : celle du jet piloté
+ *  (`attackWeaponOf`), de l'aperçu du geste (`apercuDuGeste`) et de l'IA (`applyFreeAttack`). `null` quand
+ *  l'attaque épingle une arme PORTÉE (`weaponUid`) : c'est alors elle qui frappe. LDB 85 l.387 */
+export function armeDeLaGratuite(attacker: Combatant, kind: string, weaponUid?: string): Weapon | null {
+  if (weaponUid != null && attacker.weapons.some((w) => w.uid === weaponUid)) return null;
+  const attaque = attaqueNaturelle(attacker.traits ?? [], kind);
+  if (!attaque) throw new Error(`armeDeLaGratuite : ${attacker.id} n'a aucune attaque naturelle « ${kind} »`);
+  return freeAttackWeapon(attaque);
 }
 
 /** Arme effectivement tirée : mêlée au contact, distance sinon (Atout Pistolet pour tirer en Combat
@@ -780,13 +784,12 @@ export function resolveAttack(
   fromCharge?: boolean,
   intoCrowd?: boolean,
   heldGround?: boolean,
-  weaponUid?: string,
+  armeDuCoup?: Weapon, // arme résolue par l'appelant piloté (`attackWeaponOf`, #1026) ; absente = auto-choix
   withhold?: boolean, // « Retenir ses coups » (Aux Armes 07 l.59-61) — déclaré avant le jet, mêlée seule
-  harpoonRopeCut?: boolean, // mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677) — déclaré avant le jet, #476
 ): { res: AttackResult; weapon: Weapon; victim?: Combatant } | null {
   const battle = get().battle!;
   const mpt = sceneMetresPerTile(get().scene);
-  const weapon = firedWeapon(attacker, target, weaponUid, battle.combatants, harpoonRopeCut); // arme choisie + munition + sous-effectif du poste servi
+  const weapon = armeDuCoup ?? firedWeapon(attacker, target, undefined, battle.combatants); // arme choisie + munition + sous-effectif du poste servi
   // Restriction d'armes à distance de la rencontre (#471, `EncounterDef.banRanged`, NADJ 06 l.181) —
   // convergence UNIQUE joueur ET IA (tout tir passe par `resolveAttack`) : refus AVANT le jet, même
   // chemin de refus silencieux que la LdV bloquée ci-dessous (`blocked`). Défaut effectif : `banRangedActive`.
@@ -838,8 +841,7 @@ export function resolveAttack(
   }
   // Charge montée (LDB 14 l.183) : pour les DÉGÂTS, on substitue la Force (Bonus) et la Taille de la monture.
   // Combat monté (l.184) : un défenseur à cheval subit −20 à l'Esquive (sauf Acrobaties équestres) → dodgeMods.
-  const chargeMount = fromCharge ? mountOf(battle, attacker) : undefined;
-  const dmgProxy = chargeMount ? { sb: bonus(effectiveChar(chargeMount, 'force')), size: chargeMount.size } : undefined;
+  const dmgProxy = chargeDmgProxy(battle.combatants, attacker, fromCharge);
   // Défenseur SURFACÉ (`defenseSurfaced`) : sa défense se joue dans SA fenêtre, jamais ici — on résout le
   // seul jet d'ATTAQUANT (`defense:'none'`) et l'interposition (`openSurfacedDefense`, chemin piloté) ou la
   // fenêtre réactive (`maybeOpenDefense`, chemin IA) opposera le jet de défense au jet figé.
@@ -930,11 +932,12 @@ export function previewAttack(
   attacker: Combatant,
   target: Combatant,
   location?: HitLocation,
-  opts?: { intoCrowd?: boolean; heldGround?: boolean; weaponUid?: string; harpoonRopeCut?: boolean },
+  opts?: { intoCrowd?: boolean; heldGround?: boolean; weaponUid?: string; harpoonRopeCut?: boolean; weapon?: Weapon },
 ): AttackPreview {
   const battle = get().battle;
   const mpt = sceneMetresPerTile(get().scene);
-  const weapon = firedWeapon(attacker, target, opts?.weaponUid, battle?.combatants, opts?.harpoonRopeCut);
+  // `weapon` : l'arme que le JET lira (`attackWeaponOf`, `armeDeLaGratuite`) ; absente = arme tirée.
+  const weapon = opts?.weapon ?? firedWeapon(attacker, target, opts?.weaponUid, battle?.combatants, opts?.harpoonRopeCut);
   const kind: 'melee' | 'ranged' = weapon.type === 'ranged' ? 'ranged' : 'melee';
   // Distance de COMBAT PAR L'ARME EFFECTIVEMENT visée (#BUG-A) : géométrie de la MONTURE pour un
   // cavalier/cible monté (LDB 14 — le reach/la bande de portée se mesurent du couple, pas du cavalier 1×1),
@@ -2750,8 +2753,7 @@ function appliquerLaTouche(
     for (const w of target.weapons ?? []) if (reloadProgressOf(target, w) > 0) setReloadProgress(target, w, 0);
     if ((target.mannedPoste?.reloadProgress ?? 0) > 0) setReloadProgress(target, undefined, 0, target.mannedPoste);
   }
-  // Avantage (LDB Déplacement l.30-40) : +1 au défenseur vainqueur du Test opposé ; perte de TOUT
-  // l'Avantage en échouant un Test opposé ou en perdant une Blessure.
+  // LDB 13 l.123 ; LDB 14 l.219
   if (res.advantageTo === 'defender') {
     // Renversement côté défenseur (même règle qu'à l'attaque : voler l'Avantage adverse, ou +1).
     if (weapon.type === 'melee' && stealsOneAdvantage(target)) {
@@ -2761,9 +2763,9 @@ function appliquerLaTouche(
       critLog.push(tr('cf.reversal', { name: target.label }));
     } else campGain(get, target);
     target.gainedAdvThisRound = true;
-    if (!groupAdvantage()) attacker.advantage = 0; // l'attaquant a échoué au Test opposé (LDB ; pas de perte per-combattant en mode groupe)
+    if (!groupAdvantage()) attacker.advantage = 0; // LDB 14 l.219 ; AA 11 l.30-38
   }
-  if (res.hit && res.woundsLost && !groupAdvantage()) target.advantage = 0; // perdre une Blessure → perte de tout Avantage (LDB ; inerte en mode groupe)
+  if (res.hit && res.woundsLost && !groupAdvantage()) target.advantage = 0; // LDB 14 l.219 ; AA 11 l.30-38
   // Porte-Bouclier (LDB 10 l.972)
   if (res.advantageTo === 'attacker') {
     const shieldAdv = shieldAdvantageLevel(target, res.parryWeapon);
@@ -3522,7 +3524,7 @@ export function maybeOpenDefense(
   const atk = rollMeleeAttacker(attacker, target, weapon, battleRng(), undefined, env, flankRear); // jet d'attaque figé, flanc/dos compris
   // Charge montée (LDB 14 l.183) : Force (Bonus) + Taille de la MONTURE aux DÉGÂTS — la fenêtre porte le
   // proxy, sinon l'opposition différée le perdrait (le chemin inline le passe, resolveAttack).
-  const chargeMount = fromCharge ? mountOf(get().battle!, attacker) : undefined;
+  const dmgProxy = chargeDmgProxy(get().battle!.combatants, attacker, fromCharge);
   // Composée HORS du littéral, avec les MÊMES options que le jet figé ci-dessus (flanc/dos compris) :
   // la Difficulté affichée après la fenêtre est celle qui a fait la cible, pas une recomposition d'un
   // contexte appauvri.
@@ -3536,7 +3538,7 @@ export function maybeOpenDefense(
       atk,
       env,
       atkCompo,
-      ...(chargeMount ? { dmgProxy: { sb: bonus(effectiveChar(chargeMount, 'force')), size: chargeMount.size } } : {}),
+      ...(dmgProxy ? { dmgProxy } : {}),
       mode: bestDefenseMode(target),
       def: null,
       result: null,
@@ -3590,11 +3592,11 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
   // d'attaque), « Retenir ses coups » (AA 07 l.59-61) et le proxy de Charge montée (LDB 14 l.183) — sans
   // eux, la même attaque donnerait des Dégâts différents selon qu'elle traverse ou non la fenêtre.
   const { env } = attackEnv(get, attacker, target, weapon);
-  const chargeMount = pa.fromCharge ? mountOf(get().battle!, attacker) : undefined;
+  const dmgProxy = chargeDmgProxy(get().battle!.combatants, attacker, pa.fromCharge);
   const base = {
     attackerId: attacker.id, defenderId: target.id, weapon, location: pa.location, atk, def: null, result: null,
     env, withhold: pa.withhold, atkCompo: frozenDifficulty(pa.result!.attackerDetail!),
-    ...(chargeMount ? { dmgProxy: { sb: bonus(effectiveChar(chargeMount, 'force')), size: chargeMount.size } } : {}),
+    ...(dmgProxy ? { dmgProxy } : {}),
     suite: { mode: 'pilotee' as const, pa: { ...pa, defended: true } },
   };
   if (weapon.type === 'ranged') {
@@ -3953,19 +3955,6 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
 // Piétinement — action gratuite à 1 Avantage (LDB 85 - Traits de creature.md l.387)
 // ---------------------------------------------------------------------------
 
-/** Arme abstraite du Piétinement : Corps à corps (Bagarre), Dégâts = Bonus de Force (+0). */
-export const TRAMPLE_WEAPON: Weapon = gelerLaConstante(buildWeapon({ label: 'Piétinement', attackKind: 'pietinement', damage: { plusBF: true, flat: 0, bare: true } })); // #2097
-
-/** La voie GRATUITE du Piétinement est-elle ouverte ? « Se cabrer » (LDB 85 l.314) paie le Piétinement
- *  d'une Action de MOUVEMENT : elle exige donc que cette Action soit ENTIÈRE (aucun Mouvement dépensé
- *  ce Tour) — sinon le Piétinement retombe sur la voie ordinaire, 1 Avantage (l.320-321). SOURCE UNIQUE
- *  du prédicat : la porte de l'action (`battleTrample`), le PAIEMENT (`trampleConfirm`)
- *  et le libellé de coût de la fenêtre (`useTrampleJetProps`) le consomment tous — un site qui ne testait
- *  que le trait annonçait « coûte 1 Avantage » et n'en débitait aucun. */
-export function trampleFreeMove(battle: BattleState | null | undefined, attacker: Combatant): boolean {
-  return !!battle && traitCapability(attacker.traits, 'freeTrample') && battle.movementUsed === 0;
-}
-
 /** Résolution IA des attaques d'Arme GRATUITES « disponibles » (`grantFreeAttack {when:'available'}` —
  *  aujourd'hui l'état Frénésie, LDB 21 l.33 : « un Test de CC gratuit chaque Round ») d'un combattant PILOTÉ
  *  PAR L'IA. Gate `!aiDriven` : ennemi OU héros en Auto-combat (un héros MANUEL la déclenche lui-même via
@@ -4001,6 +3990,9 @@ export function aiAvailableFreeAttack(get: Get, set: SetFn, actor: Combatant): b
  *
  * `disponibles` : les gratuites d'Arme ne suivent QUE l'Action (jamais une gratuite — celle que nomme la
  * `suite` de la fenêtre —, ni une manœuvre gratuite), le site le déclare.
+ *
+ * Les gratuites de créature ne partent qu'au TOUR de la créature (garde d'entrée d'`aiCreatureFreeAttacks`,
+ * LDB 13 l.14, LDB 85 l.43) : hors de son tour, la file reste intacte et l'appelant reprend sa suite.
  */
 export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant, opts: { disponibles: boolean }): boolean {
   if (defenseEnCours(get())) return true; // une fenêtre est déjà vivante : la file attend sa fermeture
@@ -4092,28 +4084,11 @@ export function resolveFreeAttacks(get: Get, set: SetFn, actor: Combatant, trigg
 // Morsure/Caudale (Indice) avant Piétinement (BF+0) — cf. exemple Aventures à Ubersreik.
 // ---------------------------------------------------------------------------
 
-/** Arme abstraite d'une attaque gratuite : Piétinement = BF+0 ; Morsure/Caudale/Tentacules = +Indice
- *  (BF inclus). STAMPE `attackKind: kind` → la pose/Condition lit le champ STABLE, pas le nom. */
-export function freeAttackWeapon(kind: string, bonus: number): Weapon {
-  if (kind === 'pietinement') return TRAMPLE_WEAPON; // déjà stampé attackKind:'pietinement'
-  const name = kind === 'caudale' ? 'Attaque caudale' : kind === 'cornes' ? 'Cornes' : kind === 'tentacules' ? 'Tentacules' : 'Morsure';
-  return buildWeapon({ label: name, attackKind: kind, damage: { plusBF: false, flat: bonus } }); // Indice de créature (SB déjà inclus) → « +N »
-}
-
-/** Type de pose d'attaque (rendu créature) : le champ STABLE `weapon.attackKind` stampé à la
- *  construction (multilangue-safe), sinon repli par NOM (armes de statbloc/dérivées/grantNatural non
- *  stampées : « Griffe »/« Morsure »…). undefined = arme manufacturée → pose générique du gabarit.
- *  Sert au tintage de l'animation d'attaque (AnimatedPlanToken) et à la Condition Flow `attackKind`. */
-export function creatureAttackKind(weapon: { attackKind?: string; label: string }): string | undefined {
-  if (weapon.attackKind) return weapon.attackKind;
-  const n = weapon.label.toLowerCase();
-  if (n.includes('morsure')) return 'morsure';
-  if (n.includes('caudale') || n.includes('queue')) return 'caudale';
-  if (n.includes('piétin') || n.includes('pietin')) return 'pietinement';
-  if (n.includes('corne')) return 'cornes';
-  if (n.includes('tentacule')) return 'tentacules';
-  if (n.includes('griffe') || n === 'arme') return 'arme';
-  return undefined;
+/** Type de pose d'attaque (rendu créature) : l'id STABLE `weapon.attackKind` stampé à la construction.
+ *  undefined = arme manufacturée → pose générique du gabarit. Sert au tintage de l'animation d'attaque
+ *  (AnimatedPlanToken) et à la Condition Flow `attackKind`. */
+export function creatureAttackKind(weapon: { attackKind?: string }): string | undefined {
+  return weapon.attackKind;
 }
 
 /** Effets RAW post-touche d'une attaque gratuite (sur PB infligés) : Attaque caudale → cible de Taille
@@ -4134,20 +4109,19 @@ export function applyFreeAttackEffects(get: Get, attacker: Combatant, target: Co
   // (Venin = `effects` du trait `Venin`, appliqué par le `fireTriggers('onHit')` d'`applyAttackResult`.)
 }
 
-/** Cible d'une attaque gratuite : adversaire adjacent actif (Piétinement exige une Taille inférieure). */
-function freeAttackTarget(battle: BattleState, c: Combatant, kind: string): Combatant | undefined {
-  if (kind === 'pietinement') return trampleTarget(battle, c);
-  return battle.combatants.find((t) => t.kind !== c.kind && !isOutOfAction(t) && !!t.pos && !!c.pos && combatDistance(c, t) <= 1);
+/** Cible d'une attaque gratuite : adversaire adjacent actif, valide pour `kind` (`freeAttackTargetOk`). */
+function freeAttackTarget(battle: BattleState, c: Combatant, kind: AttackKind): Combatant | undefined {
+  return battle.combatants.find((t) => t.kind !== c.kind && !isOutOfAction(t) && !!t.pos && !!c.pos && combatDistance(c, t) <= 1 && freeAttackTargetOk(battle, c, kind, t));
 }
 
 /** Résout UNE attaque gratuite de `kind` contre `target`, OPPOSÉE et GRATUITE : ouvre la modale de
  *  défense (héros) → suspendu (`OPS_DIFFEREES`) ; sinon résout instantanément (opposé auto, ou passif si Surpris),
  *  restaure l'Action et applique les effets. Dépense `cost` Avantage (coût RAW par type :
  *  Cornes/Tentacules 0, Morsure/Caudale/Piétinement 1). */
-function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, kind: string, bonus: number, cost = 1): Applique {
+function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, kind: string, cost = 1): Applique {
   const prevActed = get().battle?.acted ?? false;
   campSpend(get, attacker, cost); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
-  const weapon = freeAttackWeapon(kind, bonus);
+  const weapon = armeDeLaGratuite(attacker, kind)!;
   // La manœuvre entre AVEC sa suite (#1508) : ses effets authored attendent la touche RÉELLE et se jouent
   // à la reprise sur la touche telle qu'elle a survécu (`toucheSauvee`) — le coup a bien eu lieu (LDB 13
   // l.123), seul son EFFET est ignoré (LDB 85 l.98) ; l'Action, gratuite, est rendue par la reprise.
@@ -4404,18 +4378,25 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
   if (enemy.kind !== 'enemy' || isOutOfAction(enemy)) { enemy.pendingFreeAttacks = undefined; return false; }
   const battle = get().battle;
   if (!battle || battle.over) { enemy.pendingFreeAttacks = undefined; return false; }
+  if (activeCombatant(battle)?.id !== enemy.id) return false; // LDB 13 l.14 ; LDB 85 l.43
   if (enemy.pendingFreeAttacks === undefined) {
-    const atks = creatureAttacks(enemy.traits ?? []);
+    const atks = attaquesNaturelles(enemy.traits ?? []);
     // Empoignade tenue par un Tentacule (LDB 85 l.405) UNIQUEMENT : « vous pouvez utiliser une Action d'Attaque
     // GRATUITE pour résoudre l'Empoignade AU LIEU de l'Action de la créature » — le tentacule tient pendant que
     // le corps agit. Pour CHAQUE adversaire encore Empoigné et en vie : Test opposé de Force GRATUIT (résolveur
     // PARTAGÉ `resolveGrappleOpposed`), instantané. La créature N'EST PAS verrouillée (ai.ts saute le verrou
     // LOT B pour le trait tentacule) → elle CONSERVE son Action normale. La Langue préhensile (p.340) n'a PAS
     // cette dérogation (« voir page 163 ») → elle est verrouillée comme tout grappleur (LOT B), pas ici.
-    if (atks.some((a) => a.kind === 'tentacules')) {
+    const tentacules = atks.find((a) => a.kind === 'tentacules');
+    if (tentacules) {
       for (const fid of [...(enemy.grapplingWith ?? [])]) {
         const foe = inBattleId(battle, fid);
         if (!foe || isOutOfAction(foe) || !areGrappling(enemy, foe)) continue;
+        // La résolution EST une gratuite de Tentacule : même plafond, même prix, même compteur. LDB 85 l.405
+        const prix = freeAttackCost(battle, enemy, tentacules.def);
+        if (gratuitesRestantes(enemy, 'tentacules', tentacules) === 0 || enemy.advantage < prix.advantage) break;
+        campSpend(get, enemy, prix.advantage);
+        enemy.freeAttacksThisTurn = { ...enemy.freeAttacksThisTurn, tentacules: (enemy.freeAttacksThisTurn?.tentacules ?? 0) + 1 };
         const line = resolveGrappleOpposed(get, enemy, foe);
         const b = get().battle; if (!b) break;
         set({ battle: { ...b, log: [...b.log, ev('attack', line, enemy.id, foe.id)] } });
@@ -4429,18 +4410,15 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
     // `aiCreatureFreeAttacks` (file DÉFINIE → bloc d'init sauté, on enchaîne l'unité suivante). Ordre RAW
     // conservé : Souffle → Vomi → Langue → Hurlement, AVANT les gratuites de mêlée.
     const zoneKinds = (['souffle', 'vomi', 'langue', 'hurlement'] as const).filter((k) => atks.some((a) => a.kind === k));
-    const traitKinds: string[] = [];
-    for (const a of atks) {
-      if (a.trigger !== 'free') continue;
-      if (a.kind === 'morsure' || a.kind === 'caudale') traitKinds.push(a.kind);
-      // Tentacules (LDB 85 l.405 : « Gagnez une Action d'Attaque gratuite PAR tentacule ») :
-      // count× entrées (« 8 Tentacules +9 » → 8), coût d'Avantage 0.
-      if (a.kind === 'tentacules') for (let i = 0; i < (a.count ?? 1); i++) traitKinds.push('tentacules');
-    }
+    // Gratuites de MÊLÉE : mêmes options et même plafond que le héros (`availableAttacks`) — une entrée
+    // par gratuite RESTANTE (`gratuitesRestantes`). LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.405
+    const traitKinds: AttackKind[] = atks
+      .filter((a) => a.trigger === 'free' && MELEE_MANEUVER_KINDS.includes(a.kind))
+      .flatMap((a) => Array.from({ length: gratuitesRestantes(enemy, a.kind, a) }, () => a.kind));
     // Cornes : Attaque gratuite gagnée EN CHARGEANT (LDB 85), sans coût d'Avantage.
-    const cornes = enemy.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes'] : [];
+    const cornes: AttackKind[] = enemy.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes'] : [];
     enemy.chargedThisTurn = false; // consommée
-    enemy.pendingFreeAttacks = [...zoneKinds, ...cornes, ...traitKinds, 'pietinement']; // zone d'abord, Piétinement (Taille) en dernier
+    enemy.pendingFreeAttacks = [...zoneKinds, ...cornes, ...traitKinds]; // zone d'abord, puis l'ordre de `attaquesNaturelles`
   }
   while (enemy.pendingFreeAttacks.length) {
     const kind = enemy.pendingFreeAttacks[0];
@@ -4460,24 +4438,19 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
       if (suspended) return true;
       continue;
     }
-    // Coût en Avantage PAR TYPE (RAW, lu de creatureAttacks) : Cornes (Charge) et Tentacules = 0 ;
-    // Morsure/Caudale = 1 ; Piétinement (Taille) = 1, SAUF Se cabrer (LDB 85 l.314, `freeTrample`) qui
-    // paie l'Action de Piétinement de son Action de Mouvement au lieu d'1 Avantage → coût 0 Avantage,
-    // MAIS exige l'Action de Mouvement encore ENTIÈRE ce Tour (`movementUsed === 0`) : une créature qui
-    // a déjà bougé (approche vers sa cible, cf. `runEnemyAI` case 'move') a déjà dépensé la sienne —
-    // le Piétinement gratuit lui est refusé (elle reste éligible au Piétinement normal à 1 Avantage).
-    // Une entrée inabordable est SAUTÉE (pas de break : des Tentacules à coût 0 restent jouables
-    // derrière une Morsure inabordable).
-    const freeTrampleMove = kind === 'pietinement' && traitCapability(enemy.traits, 'freeTrample');
-    if (freeTrampleMove && b2.movementUsed > 0) { enemy.pendingFreeAttacks.shift(); continue; }
-    const cost = kind === 'pietinement' ? (freeTrampleMove ? 0 : 1) : creatureAttacks(enemy.traits ?? []).find((a) => a.kind === kind)?.avantage ?? 1;
-    if (enemy.advantage < cost) { enemy.pendingFreeAttacks.shift(); continue; }
+    // Prix PAR TYPE : prédicat UNIQUE `freeAttackCost` (LDB 85 l.387 ; LDB 85 l.314). Une entrée
+    // inabordable est SAUTÉE (pas de break : des Tentacules à coût 0 restent jouables derrière une
+    // Morsure inabordable).
+    const attaque = attaqueNaturelle(enemy.traits ?? [], kind);
+    if (!attaque) { enemy.pendingFreeAttacks.shift(); continue; }
+    const prix = freeAttackCost(b2, enemy, attaque.def);
+    if (enemy.advantage < prix.advantage) { enemy.pendingFreeAttacks.shift(); continue; }
     const target = freeAttackTarget(b2, enemy, kind);
     if (!target) { enemy.pendingFreeAttacks.shift(); continue; }
-    const bonus = kind === 'pietinement' ? 0 : creatureAttacks(enemy.traits ?? []).find((a) => a.kind === kind)?.bonus ?? 0;
     enemy.pendingFreeAttacks.shift();
-    if (freeTrampleMove) set({ battle: { ...get().battle!, movementUsed: mountMovement(get().battle!, enemy) } }); // Se cabrer : dépense l'Action de Mouvement (LDB 85 l.314)
-    if (applyFreeAttack(get, set, enemy, target, kind, bonus, cost)) return true; // modale ouverte → reprise via defenseConfirm
+    enemy.freeAttacksThisTurn = { ...enemy.freeAttacksThisTurn, [kind]: (enemy.freeAttacksThisTurn?.[kind] ?? 0) + 1 }; // compteur partagé, dû à la déclaration
+    if (prix.movement) set({ battle: { ...get().battle!, movementUsed: mountMovement(get().battle!, enemy) } }); // LDB 85 l.314
+    if (applyFreeAttack(get, set, enemy, target, kind, prix.advantage)) return true; // modale ouverte → reprise via defenseConfirm
   }
   enemy.pendingFreeAttacks = undefined; // file épuisée
   return false;

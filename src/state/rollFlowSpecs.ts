@@ -3,7 +3,7 @@
  *
  * Chaque entrée de `FLOWS` déclare la partie MÉTIER d'un flux (comment résoudre le jet, quand il
  * est relançable, comment la Chance « +1 DR » et la Résilience re-dérivent le résultat) ; le store
- * câble les handlers générés sous les noms canoniques (`trampleRoll`, `trampleReroll`…) et garde
+ * câble les handlers générés sous les noms canoniques (`battementRoll`, `battementReroll`…) et garde
  * la main sur « Appliquer » (`xConfirm`) et « Annuler ».
  *
  * Fidélité : chaque `resolve`/`derive` reprend À L'IDENTIQUE le code historique du store
@@ -11,7 +11,7 @@
  */
 import type {
   GameState,
-  PendingTrample, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard,
+  PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard,
   PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery,
   PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple,
   PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound,
@@ -31,19 +31,19 @@ import { battleRng } from './battleRng';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
 import { actorIn, garanti, inBattleId } from './combatants';
 import {
-  TRAMPLE_WEAPON, resolveAttack, firedWeapon, bestDefenseMode, effectiveSpellOf,
+  resolveAttack, attackWeaponOf, firedWeapon, bestDefenseMode, effectiveSpellOf,
   disengageOutcome, castContextMods,
   rollManeuverAttacker, maneuverAttackerDifficulty, distraireAttackValue,
   counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor,
   clearApproachMoves, defenseDodgeMods,
 } from './combatFlow';
 import { bus, EVT } from './bus';
-import { campSpend } from './combat/advantagePool';
+import { campRestitue, campSpend } from './combat/advantagePool';
 import { creatureAttacks } from '../engine/creatureAttacks';
-import { mountMovement } from './mount';
+import { mountMovement, chargeDmgProxy } from './mount';
 import { sceneMetresPerTile } from './scene';
 import { metresRetenus, phaseDeChute } from './fallMove';
-import { REDERIVATIONS, resolveTrample, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
+import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
@@ -74,6 +74,7 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
   const weapon = p.weapon ?? firedWeapon(attacker, target, p.weaponUid, combatants, p.harpoonRopeCut);
   const r = p.result!;
   const compo = frozenDifficulty(r.attackerDetail);
+  const dmgProxy = chargeDmgProxy(combatants, attacker, p.fromCharge);
   if (!compo) {
     // Symétrie avec `rederivePassiveAttack` : une re-dérivation qui recompose faute de Difficulté
     // transportée ne peut pas être SILENCIEUSE (patron `REDERIVATIONS`).
@@ -96,9 +97,9 @@ function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack
     const sub = mode === 'social' ? { base: dd.base, label: dd.label } : undefined;
     return weapon.type === 'ranged'
       ? finishRanged(attacker, target, weapon, atk2, def, mode, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo)
-      : finishMelee(attacker, target, weapon, atk2, def, mode, p.location ?? undefined, [], dodge, undefined, r.parryWeapon, p.withhold, sub, compo);
+      : finishMelee(attacker, target, weapon, atk2, def, mode, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo);
   }
-  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', p.location ?? undefined, p.withhold, compo);
+  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', p.location ?? undefined, p.withhold, compo, dmgProxy);
 }
 
 /** Résout le résultat d'une défense réactive : TIR DÉFENDU (`finishRanged`, opposition RAW à distance —
@@ -185,7 +186,7 @@ function currentStepFreeze(s: GameState) {
 // ── Délégués de jet du store : générateur + types (fin de la duplication ~113 lignes) ──
 //
 // Chaque flux de `FLOWS` est câblé dans le store sous des noms canoniques `<prefix><Verbe>`
-// (`trampleRoll`, `trampleReroll`…). Ces délégués étaient écrits À LA MAIN, un par ligne — un
+// (`battementRoll`, `battementReroll`…). Ces délégués étaient écrits À LA MAIN, un par ligne — un
 // SOUS-ENSEMBLE hétérogène des 6 verbes par flux (un flux sans `caps.forced` n'expose pas
 // `…ForceSuccess`/`…SetForcedRoll`, etc.). `rollFlowActions`/`rollFlowActionsMulti` reproduisent
 // EXACTEMENT le même ensemble de clés (le store passe la liste des verbes voulus) sans rien
@@ -545,7 +546,9 @@ export const FLOWS = {
         const atk2 = forcedTR(aDie, ad.target, Math.max(evaluateTest(aDie, ad.target).sl, opposedForcedFloor(defSL, false)), ad.base);
         return { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) };
       }
-      const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.intoCrowd, p.heldGround, p.weaponUid, p.withhold);
+      const battle = s.battle;
+      if (!battle) return null;
+      const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.intoCrowd, p.heldGround, attackWeaponOf(battle, actor, target, p), p.withhold);
       // MÊME gel que `attackRoll` : l'OBJET arme réellement tiré (jamais l'uid, qui porte le choix du
       // joueur et discrimine l'attaque naturelle) — sans lui, toute re-dérivation re-passe par
       // `pickAttackWeaponList`, qui reprend la MÊLÉE dès qu'elle est à portée (`mount.ts`).
@@ -593,6 +596,13 @@ export const FLOWS = {
     onCancel: (get, set) => {
       const pa = get().pendingAttack;
       if (pa?.dualSecond) return; // 2ᵉ frappe d'un dual : engagée dès que la cible est choisie (le jet est imposé)
+      // Prix de la déclaration payé et non joué (`coutPaye`) : rendu AVANT tout jet, quel que soit le geste.
+      if (pa && !pa.result && pa.coutPaye) {
+        const attacker = inBattleId(get().battle, pa.attackerId);
+        if (attacker) campRestitue(get, attacker, pa.coutPaye.advantage);
+        const b = get().battle;
+        if (b) set({ battle: { ...b, movementUsed: Math.max(0, (b.movementUsed ?? 0) - pa.coutPaye.movement) } });
+      }
       // Charge : Annuler AVANT tout jet (`result===null`) DÉFAIT le misclic — comme annuler un déplacement,
       // mais pour la manœuvre combinée « déplacement + attaque ». On restaure positions, orientation, Mouvement,
       // Avantage (+1 de charge rendu) et `chargedThisTurn`. Une fois le dé lancé, la charge est ENGAGÉE (RAW LDB 15).
@@ -1260,54 +1270,13 @@ export const FLOWS = {
     },
   }),
 
-  /** Piétinement (LDB 85 l.320-321) : attaque de Bagarre, action gratuite à 1 Avantage. */
-  trample: makeRollFlow<PendingTrample>({
-    key: 'pendingTrample',
-    rolled: (p) => !!p.result,
-    actor: (s, p) => actorIn(s, p.attackerId),
-    caps: {
-      forced: true,
-    },
-    die: {
-      read: (p) => (p.result?.attackerDetail ? { roll: p.result.attackerDetail.roll, target: p.result.attackerDetail.target } : null),
-      write: (s, p, actor, _g, tr) => {
-        const t = actorIn(s, p.targetId);
-        return actor && t ? { result: rederivePassiveAttack(actor, t, TRAMPLE_WEAPON, tr, 'melee', undefined, false, frozenDifficulty(p.result?.attackerDetail)) } : null;
-      },
-    },
-    resolve: (s, p, actor, _get, forced) => {
-      const target = actorIn(s, p.targetId);
-      if (!actor || !target) return null;
-      if (forced) {
-        const ad = p.result?.attackerDetail;
-        if (!ad) return null; // rien à forcer sans jet d'attaque
-        // Dé PAR DÉFAUT = LE MEILLEUR (LDB 17 l.68), jamais le dé raté courant.
-        const tDie = bestForcedRoll(ad.target);
-        const atk2 = forcedTR(tDie, ad.target, Math.max(evaluateTest(tDie, ad.target).sl, 1));
-        return { result: rederivePassiveAttack(actor, target, TRAMPLE_WEAPON, atk2, 'melee', undefined, false, frozenDifficulty(ad)) };
-      }
-      return { result: resolveTrample(actor, target, battleRng()) };
-    },
-    outcome: (p) => testOutcome(p.result?.attackerDetail),
-    bonus: {
-      guard: (p) => !!p.result?.attackerDetail,
-      derive: (s, p, actor) => {
-        const target = actorIn(s, p.targetId);
-        if (!target) return null;
-        const ad = p.result!.attackerDetail!;
-        const atk2 = bumpSL(hydrateTR(ad));
-        return { result: rederivePassiveAttack(actor, target, TRAMPLE_WEAPON, atk2, 'melee', undefined, false, frozenDifficulty(ad)) };
-      },
-    },
-  }),
-
   /**
-   * Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé. CALQUE de
-   * `trample` (jet MONO d'attaquant influençable) — la seule différence est l'issue métier
+   * Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé, jet MONO
+   * d'attaquant influençable — l'issue métier
    * (`resolveBattement` dans `battementConfirm`, pas une attaque à Dégâts). Le jet de CC est figé ici ;
    * `caps.forced` autorise la Résilience (dé PAR DÉFAUT = DR max → retire le plus d'Avantage). PAS de
    * `picker` : l'Avantage retiré ne dépend que du DR (`battementRemoval`), aucun Coup Critique ni
-   * localisation ne rend un dé PRÉCIS meilleur que le DR max — le choix du dé n'apporterait rien (≠ trample).
+   * localisation ne rend un dé PRÉCIS meilleur que le DR max — le choix du dé n'apporterait rien (≠ attaque).
    */
   battement: makeRollFlow<PendingBattement>({
     key: 'pendingBattement',
@@ -1349,7 +1318,7 @@ export const FLOWS = {
    *  vit dans `maneuverConfirm`/`applyMan<X>`, pas ici. Un seul effort de souffle → un jet d'attaquant
    *  (LDB 85 l.251/376, relu influençable). Vomi : +40 d'attaquant (l.376) baked dans le jet. PAS de
    *  `picker` : le jet d'attaquant ne nourrit que le DR de l'OPPOSITION (`resolveManeuver` → `resolveOpposed`
-   *  → marge), aucun Coup Critique ni localisation ne dépend du dé PRÉCIS (≠ attaque/trample) → un dé
+   *  → marge), aucun Coup Critique ni localisation ne dépend du dé PRÉCIS (≠ attaque) → un dé
    *  choisi n'apporte rien de plus que le DR max de la Résilience par défaut. */
   maneuver: makeRollFlow<PendingManeuver>({
     key: 'pendingManeuver',
@@ -2126,7 +2095,7 @@ export { FLOW_VERBS } from './flowVerbs';
  *  Décorrélé de la clé `FLOWS` (shipBattery→battery, opposition→castOpposition). */
 export const FLOW_HANDLERS = {
   attack: FLOWS.attack, defense: FLOWS.defense, cast: FLOWS.cast, disengage: FLOWS.disengage, flee: FLOWS.flee,
-  auContact: FLOWS.auContact, grapple: FLOWS.grapple, trample: FLOWS.trample, battement: FLOWS.battement,
+  auContact: FLOWS.auContact, grapple: FLOWS.grapple, battement: FLOWS.battement,
   distraire: FLOWS.distraire, maneuver: FLOWS.maneuver, run: FLOWS.run, fall: FLOWS.fall, reload: FLOWS.reload, handGate: FLOWS.handGate, recover: FLOWS.recover,
   focus: FLOWS.focus, dispel: FLOWS.dispel, frenzy: FLOWS.frenzy, approach: FLOWS.approach, ward: FLOWS.ward,
   heal: FLOWS.heal, surgery: FLOWS.surgery, corruption: FLOWS.corruption, test: FLOWS.test, steamSave: FLOWS.steamSave,

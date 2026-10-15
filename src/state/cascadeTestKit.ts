@@ -58,25 +58,54 @@ export function soutienDe(st: LigneJugeable): number {
     .reduce((sum, m) => sum + m.value, 0);
 }
 
-/** Dé NATUREL que le banc POSE sur une rangée de Test (étape mono, ou `rangee` d'une bande) — par l'option
- *  « Dés fixés » (`cascadeSetForcedRoll` / `cascadeBatchSetForcedRoll`), le geste d'un joueur. `undefined`
- *  = le dé lancé reste. */
-export type PoseDe = (etape: CascadeStep, rangee?: BatchParticipant) => number | undefined;
+/** Dé NATUREL que le banc POSE sur une rangée de Test (étape mono, ou `rangee` d'une bande), sur la TABLE
+ *  ou sur le DÉ NU d'une étape (#1508) — par l'option « Dés fixés » (`cascadeSetForcedRoll` /
+ *  `cascadeBatchSetForcedRoll` / `cascadeTableSetForcedRoll` / `cascadeDieSetForcedRoll`), le geste d'un
+ *  joueur. `undefined` = le dé est lancé ; `null` = le banc REFUSE de lancer le dé de TABLE ou de DÉ NU,
+ *  qui ne tombe alors que si le socle le résout lui-même (sur une rangée de Test, `null` vaut `undefined`).
+ *  L'étape suffit à dire quel dé : `jetteLeDe` LÈVE sur une étape qui porte à la fois `table` et `de`, si
+ *  bien qu'aucune étape à deux porteurs ne se joue en taisant l'un d'eux. */
+export type PoseDe = (etape: CascadeStep, rangee?: BatchParticipant) => number | null | undefined;
+
+/** POSE `valeur` sur tout dé de TABLE ou dé NU non tombé ; un dé résolu d'office reste le sien. */
+export const poseSurDeNonTombe = (valeur: number): PoseDe => (etape) =>
+  ((etape.table && !etape.table.result) || (etape.de && !etape.de.result) ? valeur : undefined);
+
+/** Clé que le banc TRANCHE sur une étape de choix — le geste d'un joueur. `undefined` = le défaut
+ *  authoré (`defaultChoice`, sinon la première option). */
+export type ChoisitCle = (etape: CascadeStep) => string | undefined;
+
+/** Le dé d'une TABLE ou d'un DÉ NU, jumeaux (#1508) : POSÉ si le banc le fixe (« Dés fixés » — le dé posé
+ *  remplace aussi un dé résolu d'office), LAISSÉ si le banc le refuse, LANCÉ sinon s'il n'est pas tombé. */
+function jetteLeDe(get: () => GameState, cur: CascadeStep, poser?: PoseDe): void {
+  if (cur.table && cur.de) throw new Error(`étape « ${cur.id} » : elle porte à la fois une \`table\` et un \`de\` — le kit ne sait quel dé jouer`);
+  const s = get();
+  const porteur = cur.table
+    ? { tombe: !!cur.table.result, pose: s.cascadeTableSetForcedRoll, lance: s.cascadeTableRoll }
+    : cur.de && { tombe: !!cur.de.result, pose: s.cascadeDieSetForcedRoll, lance: s.cascadeDieRoll };
+  if (!porteur) return;
+  const n = poser?.(cur);
+  if (n === null) return;
+  if (n !== undefined) porteur.pose(cur.id, n);
+  else if (!porteur.tombe) porteur.lance(cur.id);
+}
 
 /**
- * JOUE UNE ÉTAPE de la cascade active, comme un joueur : elle est TRANCHÉE (choix → son défaut
- * authoré), LANCÉE (bande → chaque rangée non roulée ; table non tirée → son dé ; jet → son dé), puis
- * VALIDÉE. Rend le `kind` de l'étape jouée (`undefined` si aucune cascade active).
+ * JOUE UNE ÉTAPE de la cascade active, comme un joueur : elle est LANCÉE (bande → chaque rangée non
+ * roulée ; table ou dé nu → son dé ; jet → son dé — chacun POSÉ par `poser` s'il le fixe), TRANCHÉE
+ * (choix → `choisir`, sinon son défaut authoré), puis VALIDÉE. Rend le `kind` de l'étape jouée
+ * (`undefined` si aucune cascade active).
  *
- * SOURCE UNIQUE du pilotage de cascade en test (#1426) — `travel-flow`, `sea-voyage-flow`, `voyage`,
- * `14-voyage-maritime` et les sondes jouent tous CE pilote : une copie par fichier dérive, et c'est
- * ainsi qu'un flux refondu se voit reproché SA refonte par un pilote périmé.
+ * Pilote CANONIQUE de la cascade en test (#1426) : une copie par fichier dérive, et c'est ainsi qu'un
+ * flux refondu se voit reproché SA refonte par un pilote périmé. Les copies qui restent sont MESURÉES
+ * par la garde `src/state/pilote-cascade.test.ts` (stock `scripts/guards/lib/piloteCascadeStock.mjs`,
+ * qui ne fait que décroître).
  *
  * Une table que le socle a résolue lui-même (cadence déférée à un automate, `cascade.poserLeCurseur`)
  * se présente ici en `'affichage'` : rien à lancer, on valide — le kit n'a AUCUNE branche pour la
  * politique du socle, il joue ce que la fenêtre offre.
  */
-export function avanceEtapeCascade(get: () => GameState, poser?: PoseDe): string | undefined {
+export function avanceEtapeCascade(get: () => GameState, poser?: PoseDe, choisir?: ChoisitCle): string | undefined {
   const p = get().pendingCascade;
   if (!p) return undefined;
   const cur = p.participants[p.cursor];
@@ -98,10 +127,9 @@ export function avanceEtapeCascade(get: () => GameState, poser?: PoseDe): string
         if (n != null) get().cascadeBatchSetForcedRoll(part.id, n);
       }
     }
-    if (cur.table && !cur.table.result) get().cascadeTableRoll(cur.id);
-    if (cur.de && !cur.de.result) get().cascadeDieRoll(cur.id); // DÉ NU (#1508) : jumeau de la table — sans lui, le kit drainerait à vide sur une étape jamais prête
+    jetteLeDe(get, cur, poser);
     const apres = get().pendingCascade?.participants[get().pendingCascade!.cursor];
-    if (apres?.options && apres.chosen == null) get().cascadeChoose(apres.id, apres.defaultChoice ?? apres.options[0].key);
+    if (apres?.options && apres.chosen == null) get().cascadeChoose(apres.id, choisir?.(apres) ?? apres.defaultChoice ?? apres.options[0].key);
   }
   get().cascadeNext();
   return cur?.kind;
@@ -109,10 +137,10 @@ export function avanceEtapeCascade(get: () => GameState, poser?: PoseDe): string
 
 /** DRAINE la cascade active jusqu'à sa clôture (ou `max` étapes — garde d'emballement), en jouant
  *  chaque étape par `avanceEtapeCascade`. Rend les `kind` rencontrés, dans l'ordre. */
-export function draineCascade(get: () => GameState, max = 200, poser?: PoseDe): string[] {
+export function draineCascade(get: () => GameState, max = 200, poser?: PoseDe, choisir?: ChoisitCle): string[] {
   const kinds: string[] = [];
   for (let i = 0; i < max && get().pendingCascade; i++) {
-    const k = avanceEtapeCascade(get, poser);
+    const k = avanceEtapeCascade(get, poser, choisir);
     if (k !== undefined) kinds.push(k);
   }
   return kinds;

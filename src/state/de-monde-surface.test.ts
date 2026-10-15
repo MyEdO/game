@@ -29,6 +29,7 @@ import type { WorldMap } from './worldMap';
 import type { LandMarketProfile } from '../engine/landCargo';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
+import { avanceEtapeCascade, draineCascadeDifferee, type PoseDe } from './cascadeTestKit';
 
 /**
  * LE DÉ DE MONDE SOUS CONTRÔLE DU SIÈGE ENVIRONNEMENT (#1426).
@@ -246,22 +247,13 @@ function marcheAvecLot(): void {
 
 /** Pose le dé de l'étape COURANTE puis valide — le geste exact qu'offre la fenêtre au siège du monde. */
 function poser(roll: number): void {
-  const p = get().pendingCascade!;
-  const cur = p.participants[p.cursor];
-  // Le geste de la rangée : LANCER puis SUBSTITUER (couple atomique, `withPreRollFixedDie`), enfin
-  // valider — c'est la séquence exacte que produit le champ de dé fixé (`ui/forcedDieRow.ts`).
-  get().cascadeRoll(cur.id);
-  get().cascadeSetForcedRoll(cur.id, roll);
-  get().cascadeNext();
+  avanceEtapeCascade(get, () => roll);
   vi.runAllTimers();
 }
 
 /** Le geste SANS option de pose : « Lancer » puis valider — tout ce que la fenêtre offre alors. */
 function lancer(): void {
-  const p = get().pendingCascade!;
-  const cur = p.participants[p.cursor];
-  get().cascadeRoll(cur.id);
-  get().cascadeNext();
+  avanceEtapeCascade(get);
   vi.runAllTimers();
 }
 
@@ -482,18 +474,13 @@ describe('#1426 Q2 — le pourcentage d’auteur se lit « dé ≤ nombre visé 
     landSellCargo(get, set, CARRIER_ID, 0);
     // Le dé d'acheteur est un dé de MONDE : il se joue dans SA fenêtre (#1426). Ce que le joueur LIT
     // de ce dé, c'est donc l'étape (sa rangée + son dénouement), pas une ligne de journal.
-    const jouees: CascadeStep[] = [];
-    let g = 0;
-    while (get().pendingCascade && g++ < 5) {
-      const p = get().pendingCascade!;
-      const cur = p.participants[p.cursor];
-      get().cascadeRoll(cur.id);                                  // « Lancer » : le geste offert SANS option de pose
-      jouees.push(get().pendingCascade!.participants[p.cursor]);  // l'étape AVEC son dé tombé
-      get().cascadeNext();
-      vi.runAllTimers();
-    }
+    // L'étape AVEC son dé tombé, telle que la fenêtre la montre : relue à chaque état du store.
+    const jouees = new Map<string, CascadeStep>();
+    const desabonne = useGame.subscribe((s) => { for (const st of s.pendingCascade?.participants ?? []) if (st.result) jouees.set(st.id, st); });
+    draineCascadeDifferee(get, () => vi.runAllTimers(), 5); // « Lancer » : le geste offert SANS option de pose
+    desabonne();
     vi.useRealTimers();
-    const des = jouees.filter((st) => st.kind === 'land-sell-buyer');
+    const des = [...jouees.values()].filter((st) => st.kind === 'land-sell-buyer');
     expect(des.length, 'le dé d’acheteur a bien été joué dans sa fenêtre').toBeGreaterThan(0);
     for (const st of des) {
       expect(st.evaluation, 'un pourcentage RAW n’est pas un Test').toBe('seuil');
@@ -793,24 +780,20 @@ function traceDesTirages(): number[] {
 }
 
 /**
- * Pilote de test d'UNE JOURNÉE de voyage (la halte de nuit la clôt) — `pose:false` REFUSE de poser :
- * il tranche les choix, roule les jets et les bandes, mais n'appelle JAMAIS `cascadeTableRoll`. Une
- * journée qui se draine ainsi prouve que la table de MONDE a été résolue par le SOCLE, pas par un
- * geste. `pose:true` = le geste du joueur qui ne triche pas (il TIRE, il ne force aucune valeur).
- * Rend le `kind` de l'étape sur laquelle la séquence a BLOQUÉ (`undefined` = la journée est allée
- * au bout).
+ * Pilote de test d'UNE JOURNÉE de voyage (la halte de nuit la clôt), chaque étape jouée par
+ * `avanceEtapeCascade` — `pose:false` REFUSE le dé de table (`PoseDe` à `null`) : il tranche les choix,
+ * roule les jets et les bandes, mais ne lance JAMAIS une table. Une journée qui se draine ainsi prouve
+ * que la table de MONDE a été résolue par le SOCLE, pas par un geste. `pose:true` = le geste du joueur
+ * qui ne triche pas (il TIRE, il ne force aucune valeur). Rend le `kind` de l'étape sur laquelle la
+ * séquence a BLOQUÉ — la même étape reste sous le curseur après son geste — (`undefined` = la journée
+ * est allée au bout).
  */
-function draineJour(pose: boolean, jusqua?: string, max = 200): string | undefined {
-  for (let i = 0; i < max && get().pendingCascade && !get().pendingRest; i++) {
+const refuseLeDe: PoseDe = () => null;
+function draineJour(pose: boolean): string | undefined {
+  for (let i = 0; i < 200 && get().pendingCascade && !get().pendingRest; i++) {
     const cur = etapeCourante();
-    if (cur?.options && cur.chosen == null) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
-    else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().cascadeBatchRoll(part.id); }
-    else if (pose && cur?.table && !cur.table.result) get().cascadeTableRoll(cur.id);
-    else if (cur?.target != null && !cur.result) get().cascadeRoll(cur.id);
-    const avant = get().pendingCascade;
-    get().cascadeNext();
-    if (get().pendingCascade === avant) return etapeCourante()?.kind; // no-op : la séquence est BLOQUÉE
-    if (jusqua && cur?.kind === jusqua) return undefined;
+    avanceEtapeCascade(get, pose ? undefined : refuseLeDe);
+    if (cur && etapeCourante()?.id === cur.id) return cur.kind;
   }
   return undefined;
 }

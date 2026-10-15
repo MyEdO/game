@@ -9,6 +9,7 @@ import { useGame } from './store';
 import { availableAttacks } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { findManeuverById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';
 
@@ -56,7 +57,8 @@ describe('availableAttacks — énumération (pur)', () => {
     const hero = at('hero', 'H', 5, 5, { size: 'grande', advantage: 1 });
     const piet = availableAttacks(hero, mkBattle([hero, small])).find((x) => x.id === 'pietinement');
     expect(piet).toBeTruthy();
-    expect(piet!.targeting).toBe('trample');
+    expect(piet, 'attaque gratuite de mêlée CANONIQUE (LDB 85 l.387)').toMatchObject({ targeting: 'melee', reach: 1, forceMelee: true, freeKind: 'pietinement', cost: { action: false, advantage: findManeuverById('pietinement')!.advantageCost } });
+    expect(piet!.cost.movement, 'aucun Mouvement sans Se cabrer').toBeUndefined();
 
     const heroNoAdv = at('hero', 'H', 5, 5, { size: 'grande', advantage: 0 });
     expect(availableAttacks(heroNoAdv, mkBattle([heroNoAdv, small])).some((x) => x.id === 'pietinement')).toBe(false);

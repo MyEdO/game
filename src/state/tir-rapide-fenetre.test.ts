@@ -4,7 +4,9 @@ import { initialFields } from './stateFields';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './scene';
+import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
+import { draineCascade, poseSurDeNonTombe } from './cascadeTestKit';
 
 /**
  * TIR RAPIDE, BOUCLE REPRENABLE (#997, #1765) — `LDB 11 l.97-103`. Chaque tir d'interruption passe par la
@@ -14,6 +16,9 @@ import type { Combatant, Weapon } from '../engine/types';
 const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 1 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
 const g = () => useGame.getState();
 const de = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
+/** Les Tirs rapides déclenchés par `id`, comptés à leur marqueur de journal. */
+const tirsDe = (id: string) => g().battle!.log.filter((l) => l.text === t('cf.tirRapide', { name: id })).length;
+const etape = () => { const c = g().pendingCascade; return c?.participants[c.cursor]; };
 
 /** Deux héros surfacés, deux tireurs de l'IA à Bout Portant (LDB 14 l.62 : la défense est permise).
  *  E1 a pris le talent deux fois : il tire d'abord (LDB 11 l.103). */
@@ -118,6 +123,114 @@ describe('#997 — Tir rapide d’un tireur à gratuite de créature : la suite 
     g().defenseConfirm();
     expect(de('e1').advantage, 'E1 peut payer la Morsure').toBeGreaterThanOrEqual(1);
     expect(g().pendingDefense, 'aucune Morsure de E1 ne suit son tir d’interruption').toBeNull();
+    expect(g().battle!.order[g().battle!.turn], 'le Round s’ouvre').toBe('h1');
+  });
+});
+
+/** #1765 (DoD, point 2) — le tir d'interruption est SUSPENDU par la Maladresse de son défenseur : la boucle
+ *  des tireurs suivants est la suite du coup (`enchainement: tirRapide`), elle ne reprend qu'au dé. */
+describe('#1765 — Tir rapide : la Maladresse du défenseur suspend la boucle, qui reprend au dé, une fois', () => {
+  beforeEach(() => { vi.useFakeTimers(); seedBattleRng(3); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  it('H1 rate sa défense sur un double : E2 attend le dé de Maladresse, puis tire UNE fois', () => {
+    finDeRound();
+    g().battleEndTurn();
+    g().confirmRoundStart();
+    expect(g().pendingDefense?.attackerId).toBe('e1');
+    g().defenseRoll();
+    g().defenseSetForcedRoll(99); // LDB 14 l.13
+    g().defenseConfirm();
+    expect(etape()?.kind, 'la Maladresse tient la main').toBe('fumbleJet');
+    expect(g().pendingDefense, 'E2 n’a pas encore sa fenêtre').toBeNull();
+    expect(de('e2').loseNextAction, 'E2 n’a pas tiré').toBeFalsy();
+    expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
+    g().fumbleRoll();
+    g().fumbleConfirm();
+    expect(g().pendingDefense?.attackerId, 'la boucle reprend sur E2').toBe('e2');
+    expect(tirsDe('e2'), 'E2 tire UNE fois').toBe(1);
+    g().defenseRoll();
+    g().defenseConfirm();
+    draineCascade(g, 10, poseSurDeNonTombe(1));
+    expect(tirsDe('e2'), 'aucune reprise de plus').toBe(1);
+    expect(g().pendingCascade, 'aucune étape orpheline').toBeNull();
+  });
+});
+
+/** #1765 (DoD, point 2) — la Maladresse d'une arme Bâclé (LDB 60 l.50) et Solide (LDB 60 l.30) ouvre, au dé
+ *  de Maladresse, le dé de Sauvegarde Solide : la boucle des tireurs ne reprend qu'à ce dé, une fois. Siège MJ
+ *  0 : les tireurs sont des PNJ alliés de l'IA (`aiControlled`), l'ennemi visé défend sous le siège MJ. */
+describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle reprend au dé de Sauvegarde, une fois', () => {
+  beforeEach(() => { vi.useFakeTimers(); seedBattleRng(3); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+  const LAME = (): Weapon => ({ uid: 'lame', label: 'Lame', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] } as unknown as Weapon);
+
+  it('E1, sous siège MJ, rate sa défense sur un double : H2 attend le dé de Maladresse PUIS le dé de Solide, et tire UNE fois', () => {
+    finDeRound(0);
+    for (const [id, times] of [['h1', 2], ['h2', 1]] as const) {
+      de(id).aiControlled = true;
+      de(id).talents = [{ talentId: 'tir-rapide', times }];
+      de(id).weapons = [ARC()];
+    }
+    for (const id of ['e1', 'e2']) { de(id).talents = []; de(id).weapons = [LAME()]; }
+    g().battleEndTurn();
+    g().confirmRoundStart();
+    expect(g().pendingDefense?.attackerId).toBe('h1');
+    expect(g().pendingDefense?.defenderId).toBe('e1');
+    g().defenseRoll();
+    g().defenseSetForcedRoll(99); // LDB 14 l.13
+    g().defenseConfirm();
+    expect(etape()?.kind, 'la Maladresse de E1 tient la main').toBe('fumbleJet');
+    g().fumbleRoll();
+    g().fumbleConfirm();
+    const solide = etape();
+    expect(solide?.kind, 'le dé de Sauvegarde Solide tient la main').toBe('casseDArme');
+    expect(g().pendingDefense, 'H2 n’a pas encore sa fenêtre').toBeNull();
+    expect(de('h2').loseNextAction, 'H2 n’a pas tiré').toBeFalsy();
+    expect(tirsDe('h2')).toBe(0);
+    expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
+    g().cascadeDieSetForcedRoll(solide!.id, 1);
+    g().cascadeNext();
+    expect(de('e1').weapons.some((w) => w.uid === 'lame'), 'la Lame Bâclée se brise (1 < Solide)').toBe(false);
+    expect(g().pendingDefense?.attackerId, 'la boucle reprend sur H2').toBe('h2');
+    expect(tirsDe('h2'), 'H2 tire UNE fois').toBe(1);
+    g().defenseRoll();
+    g().defenseSetForcedRoll(96); // la défense échoue sans Maladresse
+    g().defenseConfirm();
+    draineCascade(g, 10, poseSurDeNonTombe(1));
+    expect(tirsDe('h2'), 'aucune reprise de plus').toBe(1);
+    expect(g().pendingCascade, 'aucune étape orpheline').toBeNull();
+    expect(g().pendingDefense, 'aucune défense orpheline').toBeNull();
+    expect(g().battle!.order[g().battle!.turn], 'le Round s’ouvre').toBe('h1');
+  });
+});
+
+/** #1765 — le tir d'interruption de l'IA sur un porteur de sauvegarde (LDB 85 l.98) sans siège passe par le
+ *  chemin INSTANTANÉ (`runPreemptShots` → `applyAttackResult`) : le retour suspendu arrête la boucle, le
+ *  tireur suivant ne tire qu'au dé, une fois. */
+describe('#1765 — Tir rapide instantané : la sauvegarde de la cible suspend la boucle, qui reprend au dé, une fois', () => {
+  beforeEach(() => { vi.useFakeTimers(); seedBattleRng(5); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  it('E1 touche H1 (Protection, sans siège) : E2 attend le dé de sauvegarde, puis tire UNE fois', () => {
+    finDeRound();
+    for (const id of ['h1', 'h2']) {
+      de(id).aiControlled = true;
+      de(id).traits = [{ id: 'protection', value: 10 }];
+    }
+    g().battleEndTurn();
+    g().confirmRoundStart();
+    expect(g().pendingDefense, 'aucune fenêtre de défense : le tir est instantané').toBeNull();
+    expect(tirsDe('e1'), 'E1 a tiré').toBe(1);
+    const sauvegarde = etape();
+    expect(sauvegarde?.kind, 'la sauvegarde de H1 tient la main').toBe('sauvegarde');
+    expect(sauvegarde?.de, 'une étape à dé').toBeTruthy();
+    expect(tirsDe('e2'), 'E2 n’a pas tiré').toBe(0);
+    expect(de('e2').loseNextAction, 'E2 n’a rien payé').toBeFalsy();
+    expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
+    g().cascadeNext();
+    expect(tirsDe('e2'), 'la boucle reprend : E2 tire UNE fois').toBe(1);
+    expect(g().pendingCascade, 'aucune étape orpheline').toBeNull();
     expect(g().battle!.order[g().battle!.turn], 'le Round s’ouvre').toBe('h1');
   });
 });

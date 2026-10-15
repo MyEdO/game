@@ -3,7 +3,7 @@ import { useGame } from '../../state/store';
 import { garanti } from '../../state/combatants';
 import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE } from '../../state/rollFlowSpecs';
 import { defenseDodgeMods } from '../../state/combatFlow';
-import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, DEFENSE_LABEL, FREE_ATTACK_LABEL, type DefenseMode } from '../../engine/combat';
+import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, DEFENSE_LABEL, type DefenseMode } from '../../engine/combat';
 import { shieldReactionCost } from '../../engine/combatFeatures/dispatch';
 import { combatSubstitute } from '../../engine/skillCombatApps';
 import { byId } from '../../data/index';
@@ -70,14 +70,8 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const myMods = [...defenseValueModParts(defender, pd.mode, chosenParry), ...defenseModifiers(defender, pd.mode, dodgeMods, pd.mode === 'parade' ? chosenParry : undefined)];
   const myBase = defenseBaseValue(defender, pd.mode, chosenParry, socialBase);
   const myLabel = pd.mode === 'social' ? (socialLabel ?? 'Intimidation') : DEFENSE_LABEL[pd.mode];
-  // Résolution alternative de l'arme de parade (`Weapon.resolveChar`) : la base vient déjà d'elle
-  // (`defenseValue`), le sous-titre nomme donc la MÊME Caractéristique (#203+, `attackTestLabel`).
-  // Z1 (`docs/charte-ui.md`) : l'acteur du jet est le DÉFENSEUR, sa Compétence celle du mode CHOISI —
-  // Parade = Corps à corps, Esquive = Esquive, substitution = la Compétence figée sur le pending
-  // (`substituteSkillId`, LDB 13 l.161-167). Ids stables : le libellé est dérivé par `composeRollLabel`.
-  const defenseTest = pd.mode === 'parade' && chosenParry?.resolveChar
-    ? { char: chosenParry.resolveChar }
-    : { skill: pd.mode === 'social' ? pd.substituteSkillId ?? sub?.skillId : pd.mode === 'esquive' ? 'esquive' : 'corps-a-corps' };
+  // Z1 (`docs/charte-ui.md`) : le DÉFENSEUR, et les ids du Test du mode CHOISI (`defenseTestOf`, LDB 13 l.161-167).
+  const defenseTest = defenseTestOf(defender, pd.mode, chosenParry, pd.substituteSkillId ?? sub?.skillId);
   // Valeurs affichées sur le segmented control (chaque option montre SA valeur effective).
   const segVal = (mode: DefenseMode) =>
     optionValue(defenseValue(defender, mode, chosenParry, mode === 'social' ? sub?.value : undefined), defenseModifiers(defender, mode, dodgeMods, mode === 'parade' ? chosenParry : undefined));
@@ -116,7 +110,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // fois à la fabrique (LDB 12 l.166 ; jet de Combat, LDB 13 l.118).
   const [attackLine, defenseLine] = opposedLines([
     {
-      label: kindGratuit ? FREE_ATTACK_LABEL[kindGratuit] ?? 'Attaque gratuite' : 'Attaque',
+      label: kindGratuit ? pd.weapon.label : 'Attaque',
       base: pd.atk.target,
       r: { roll: pd.atk.roll, target: pd.atk.target, sl: pd.atk.sl, success: pd.atk.success },
     },

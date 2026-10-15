@@ -81,6 +81,11 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * la liste) et les ids de GÉOMÉTRIE d'union fermée (`VOCABULARY_TYPES` = `BoneId` ; `skeletons.ts` sort,
  * `mesure-volume.mts` aussi une fois son masque de tronc écrit comme ses deux masques voisins,
  * `TORSO_BONES: BoneId[]`).
+ *
+ * RE-MESURE 2026-10-13 (#1765) : 6 → 7. Correction du DÉTECTEUR : la table littérale écrite en `Map`
+ * (`new Map([[…]])`, `new Map(Object.entries(TABLE))`, `isLiteralMap`) indexée par `.get(<identité>)`
+ * est la forme `id-record` — elle échappait au scan. `sortsFusionnes.ts` en sort démasqué ; `etatConnu`
+ * (`engine/conditions.ts`) quitte la sienne pour l'index par id (`indexParId`) de ses entrées.
  */
 const KNOWN: Record<string, number> = {
   // GEL NOMINATIF — chaque entrée porte sa CONDITION DE SORTIE ; aucune n'est une exception permanente.
@@ -99,6 +104,8 @@ const KNOWN: Record<string, number> = {
   // Sortie : `label` porté par les 4 Traits de construction de `ship-construction.json` (MDG 12 l.167-193)
   // + schéma, la table de libellés supprimée — mouvement de DONNÉE, à commissionner.
   'src/ui/compendium/registry.ts': 1, // `CONSTRUCTION_TRAIT_LABEL[t.id]`
+  // Sortie : table de MIGRATION gelée (#1897) — hors de `isRegistryIdBranchExcluded` par son seul chemin.
+  'src/data/sortsFusionnes.ts': 1, // `CORRESPONDANCE.get(id)` (`new Map(Object.entries(SORTS_FUSIONNES_1897))`)
 };
 
 /** Plafond GLOBAL du jour (= somme de `KNOWN`), destiné à tomber à 0. */
@@ -323,6 +330,32 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
       'export function row(t: Trait) { return LABELS[t.id] ?? t.id; }',
     ].join('\n');
     expect(rules(record)).toEqual(['id-record']);
+
+    // La MÊME table écrite en `Map` : paires littérales, `Object.entries` d'une table littérale, ou en ligne.
+    const mapPaires = [
+      "const LABELS = new Map([['renforce', 'Renforcé'], ['solide', 'Solide']]);",
+      'export function row(t: Trait) { return LABELS.get(t.id) ?? t.id; }',
+    ].join('\n');
+    expect(rules(mapPaires)).toEqual(['id-record']);
+
+    const mapEntries = [
+      "const LABELS: Record<string, string> = { renforce: 'Renforcé', solide: 'Solide' };",
+      'const PAR_ID = new Map(Object.entries(LABELS));',
+      'export function row(t: Trait) { return PAR_ID.get(t.id) ?? t.id; }',
+    ].join('\n');
+    expect(rules(mapEntries)).toEqual(['id-record']);
+
+    const mapEnLigne = "export function row(t: Trait) { return new Map([['renforce', 'Renforcé']]).get(t.id) ?? t.id; }";
+    expect(rules(mapEnLigne)).toEqual(['id-record']);
+  });
+
+  it('CONTRE-ÉPREUVE : un registre d’ENTRÉES qui portent leur `id`, résolu par `indexParId`, n’est pas une table figée', () => {
+    const registre = [
+      "const MARQUEURS = [{ id: 'petrifie', label: 'Pétrifié', severity: 95 }];",
+      "const parId = indexParId('etats', MARQUEURS);",
+      'export function connu(id: string) { return parId(id); }',
+    ].join('\n');
+    expect(rules(registre)).toEqual([]);
   });
 
   it('MORSURE : un ALIAS d’identité est suivi par sa LIAISON, quel que soit son nom', () => {

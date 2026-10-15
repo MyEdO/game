@@ -16,7 +16,7 @@
  * combatSlice.ts, combatCursor.ts, combatOrParty.ts.
  */
 import type { Get, Set } from './flowTypes';
-import type { Combatant, Weapon } from '../engine/types';
+import type { Combatant } from '../engine/types';
 import type { DifficultyShown } from '../engine/combat';
 import { attackTestLabel, isHelplessTarget, rangeBandModifier } from '../engine/combat';
 import { castInfo, isMagicMissile, missileDamage } from '../engine/magic';
@@ -24,7 +24,7 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import { effectiveRange } from '../engine/weaponDamage';
 import { isOutOfAction, canTakeAction, hasCondition, COND } from '../engine/conditions';
 import { isEngaged, reachTiles } from '../engine/engagement';
-import { campGain, campSpend } from './combat/advantagePool';
+import { avantageApresDepense, campGain, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
 import { isFrenzied } from '../engine/psychology';
 import { healableTargets, combatHealModes } from '../engine/healing';
@@ -49,18 +49,18 @@ import { afterApproach } from './combatDirector';
 import { ev } from './combatLog';
 import { refuserGeste } from './refusVisible';
 import { chargeArmee } from './localIntent';
-import { t } from '../i18n';
+import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { bus, EVT } from './bus';
 import type { GameState } from './store';
 import { chebyshev } from '../engine/grid';
 import {
   attackPlan, previewAttack, previewCast, selectedAttackOption,
-  trampleTarget, auContactEligible, grappleActionEligible, firedAttackBlock,
+  freeAttackTargetOk, auContactEligible, grappleActionEligible, firedAttackBlock,
   displaceSmaller, fearedSourceTowards, frenzyTarget, applyZoneCrossings, noteApproachMove,
   placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates,
   cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, openAttackCascade,
-  captureMoveSnapshot, firedWeapon, difficultyOf, activeCombatant, castTargetBlock, type AttackPreview, type AttackOption,
+  captureMoveSnapshot, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, type AttackPreview, type AttackOption,
 } from './combatFlow';
 
 export type HoverTargeting =
@@ -127,6 +127,9 @@ export interface TargetingMode {
    *  Rendu par le bandeau de phase de la console — la SORTIE, elle, vit au registre des actions
    *  (`surface: 'interlude'`). Absent = mode ordinaire, aucun bandeau. */
   label?: string;
+  /** CONSIGNE de la phase : ce que la carte attend du joueur (clé du catalogue `src/i18n`), rendue par
+   *  le MÊME bandeau que `label`. Absente = mode sans bandeau. */
+  consigne?: MsgKey;
   affordance?(get: Get, active: Combatant, target: Combatant): HoverTargeting;
   candidates?(get: Get, active: Combatant): Combatant[];
   /** Les `candidates` de ce mode sont-ils PEINTS en anneaux sur le terrain quand il tient le ciblage,
@@ -169,11 +172,6 @@ export type BattleClickOpts = { confirm?: boolean; skipMountChoice?: boolean; wa
 /** Options du clic-CASE (parité `battleClickTile`). `courseArmee` = le pendant exact de `approche`
  *  pour la zone de Course (même voyage, mêmes deux raisons). */
 export type TileClickOpts = { confirm?: boolean; courseArmee?: boolean };
-
-/** Libellé de la compétence d'attaque : `attackTestLabel` (Corps à corps/Projectiles, ou la Carac
- *  de Résolution alternative de l'arme) + famille d'arme si connue. */
-const weaponSkillLabel = (weapon: Weapon | undefined, kind: 'melee' | 'ranged', subType?: string): string =>
-  `${attackTestLabel(weapon, kind)}${subType ? ` (${subType})` : ''}`;
 
 /** Ops « cible » qui rendent un sort OFFENSIF → ciblable sur un ennemi (réticule + interdit hors portée,
  *  comme le tir). Tous les États WFRP sont négatifs (`condition`) ; `wounds` = Dégâts. Liste tenue
@@ -293,7 +291,6 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   };
 }
 
-/** Mode ATTAQUE : l'`AttackOption` armée (selectedAttack / ancien mode maneuver/tentacle/trample). */
 /**
  * Ce geste se résout-il par un Test d'ARME — donc par `previewAttack`, donc par une Difficulté de
  * combat composée (`LDB 14 l.91-96`) ?
@@ -302,7 +299,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
  * (`previewDifficultyOf`) : sans lui, chacun tenait SA liste de `targeting`, et le badge nommait une
  * Difficulté d'arme là où le réticule se taisait — mesuré sur l'Empoignade (Test opposé de FORCE,
  * `LDB 14 l.161`) : réticule « Empoignade · Force » sans Difficulté, badge « Intermédiaire (+0) ».
- * Les gestes qui n'en sont PAS : servir une pièce (on rejoint une équipe), Piétinement (`LDB 85`),
+ * Les gestes qui n'en sont PAS : servir une pièce (on rejoint une équipe),
  * zone (Souffle/Vomi/Langue/Regard), « Au contact » (Corps à corps opposé, `LDB 62 l.176`) et
  * Empoignade — tous des Tests dont la Difficulté ne se compose pas depuis une arme.
  */
@@ -315,11 +312,15 @@ export function gesteAuTestDArme(get: Get, active: Combatant, target: Combatant,
 /**
  * L'aperçu d'attaque DU GESTE — SOURCE UNIQUE des deux choses qu'un geste combiné change par rapport
  * à une frappe sur place : l'attaquant est à sa case d'ARRIVÉE (`dest`), et l'arme est celle que
- * l'option ARMÉE épingle (`option.weaponUid`). Le réticule au survol et le badge de l'aperçu tap-1
+ * l'option ARMÉE épingle (`option.weaponUid`), ou l'arme synthétisée de sa gratuite (`option.freeKind`,
+ * même règle que `attackWeaponOf`), et l'Avantage qui lui RESTE une fois le coût du geste débité
+ * (`avantageApresDepense`, le solde que `campSpend` pose au commit). Le réticule au survol et le badge de l'aperçu tap-1
  * passent tous deux par ici — sinon ils annoncent deux armes, donc deux Difficultés, pour un seul clic.
  */
 export function apercuDuGeste(get: Get, active: Combatant, target: Combatant, option: AttackOption, dest?: Pt): AttackPreview {
-  return previewAttack(get, dest ? { ...active, pos: dest } : active, target, undefined, { weaponUid: option.weaponUid });
+  const weapon = (option.freeKind ? armeDeLaGratuite(active, option.freeKind, option.weaponUid) : null) ?? undefined;
+  const attaquant = { ...active, ...(dest ? { pos: dest } : {}), advantage: avantageApresDepense(get, active, option.cost.advantage ?? 0) };
+  return previewAttack(get, attaquant, target, undefined, { weaponUid: option.weaponUid, weapon });
 }
 
 /**
@@ -359,10 +360,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   // rencontre, qui ne gouverne que le vivier de l'IA. Une arme qui l'abîme reste ciblable : son Bonus
   // d'Endurance se compte une fois de plus par catégorie de Taille au-dessus du porteur (`AA 10 l.98`).
   if (isStructure(target) && active.weapons.every((w) => structureImmune(w, target))) return { kind: 'none' };
-  if (option.targeting === 'trample')
-    return (active.advantage ?? 0) >= 1 && !!trampleTarget(battle, active, target.id)
-      ? { kind: 'ok', line: 'solid', title: 'Piétinement', targetName: target.label, skill: 'Capacité de Combat', base: 0, mod: 0, dmg: null, preview: { kind: 'attack', targetId: target.id } }
-      : { kind: 'none' };
+  if (option.freeKind && !freeAttackTargetOk(battle, active, option.freeKind, target)) return { kind: 'none' };
   if (option.targeting === 'zone') // Souffle/Vomi/Langue/Regard/Étreinte : réticule simple (portée/LdV au résolveur moteur)
     return { kind: 'ok', line: 'dashed', title: option.label, targetName: target.label, skill: 'Capacité de Combat', base: 0, mod: 0, dmg: null, preview: { kind: 'attack', targetId: target.id } };
   if (option.targeting === 'aucontact') // « Au Contact » (LDB 62 l.176) : Test opposé de Corps à corps, pas une frappe
@@ -406,9 +404,9 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
     kind: 'ok',
     // Gratuite (Morsure/Caudale/Tentacule) = toujours mêlée (trait solide) ; Arme = tir pointillé si à distance.
     line: option.freeKind ? 'solid' : p.kind === 'ranged' ? 'dashed' : 'solid',
-    title: option.freeKind ? option.label : p.weapon.label,
+    title: p.weapon.label,
     targetName: target.label,
-    skill: option.freeKind ? weaponSkillLabel(undefined, 'melee') : weaponSkillLabel(p.weapon, p.kind, p.weapon.subType),
+    skill: attackTestLabel(active, p.weapon, p.kind),
     base: p.base,
     // L'aperçu porte DÉJÀ sa cible plafonnée et écrêtée (`previewAttack` → `rollLine`) : le réticule
     // lit l'écart base→cible, il ne recombine rien (une 2ᵉ passe de `combineMods` amputerait la
@@ -473,7 +471,7 @@ function cleaveAffordance(get: Get, _active: Combatant, target: Combatant): Hove
   // L'enchaînement est une VRAIE frappe : son réticule porte la valeur et la Difficulté du jet qu'il
   // ouvrira, comme le ciblage ordinaire (`attackAffordance`) — un interlude n'est pas un ciblage aveugle.
   const p = previewAttack(get, atk, target);
-  return { kind: 'ok', line: 'solid', title: 'Frappe Mortelle', targetName: target.label, skill: attackTestLabel(weapon, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}), preview: { kind: 'attack', targetId: target.id } };
+  return { kind: 'ok', line: 'solid', title: 'Frappe Mortelle', targetName: target.label, skill: attackTestLabel(atk, weapon, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}), preview: { kind: 'attack', targetId: target.id } };
 }
 
 /** Mode 2ᵉ FRAPPE (deux armes, LDB 10 l.767-773) : cibles à portée de la main secondaire. */
@@ -487,7 +485,7 @@ function dualAffordance(get: Get, _active: Combatant, target: Combatant): HoverT
   // 2ᵉ frappe = une frappe : le réticule porte la valeur et la Difficulté de SON jet — celui de la main
   // SECONDAIRE (`LDB 14 l.181`, pénalité comprise), pas celui de l'arme principale déjà résolue.
   const p = previewAttack(get, atk, target, undefined, { weaponUid: off.uid });
-  return { kind: 'ok', line: 'solid', title: 'Deux armes', targetName: target.label, skill: attackTestLabel(off, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}), preview: { kind: 'attack', targetId: target.id } };
+  return { kind: 'ok', line: 'solid', title: 'Deux armes', targetName: target.label, skill: attackTestLabel(atk, off, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}), preview: { kind: 'attack', targetId: target.id } };
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -509,11 +507,11 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     if (p) { get().battleManPoste({ hullId: target.id, posteUid: p.item.uid }); return; }
   }
   // ATTAQUE unifiée : l'`AttackOption` armée (`selectedAttack`, défaut 'arme' ; les modes
-  // maneuver/tentacle/trample mappent sur leur option).
+  // maneuver/tentacle mappent sur leur option).
   const option = selectedAttackOption(active, battle);
   if (!option || !scene) return;
   if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
-  if (!canTakeAction(active) || hasCondition(active, COND.brise)) return; // Sonné/Brisé : pas d'attaque (parité boutons)
+  if (!canTakeAction(active) || hasCondition(active, COND.brise)) { refuserGeste(get, set, t('agate.unableToAct')); return; } // Sonné/Brisé : pas d'attaque (parité boutons)
   // Frénésie (LDB 21 l.33) : la cible est IMPOSÉE — l'ennemi le plus proche en Ligne de Vue.
   if (isFrenzied(active)) {
     const ft = frenzyTarget(get, active);
@@ -523,10 +521,13 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       return;
     }
   }
-  // Aiguillage par NATURE de l'attaque : Piétinement (Taille) → flux dédié ; zone ciblée (Souffle/Vomi/
-  // Langue/Regard/Étreinte) → `pendingManeuver` ; la MÊLÉE (Arme + Morsure/Caudale/Tentacule) passe par
-  // l'approche-puis-frappe ci-dessous.
-  if (option.targeting === 'trample') return get().battleTrample(target.id);
+  // Aiguillage par NATURE de l'attaque : zone ciblée (Souffle/Vomi/Langue/Regard/Étreinte) →
+  // `pendingManeuver` ; la MÊLÉE (Arme + Morsure/Caudale/Tentacule/Piétinement) passe par
+  // l'approche-puis-frappe ci-dessous, sur une cible VALIDE pour la gratuite (`freeAttackTargetOk`).
+  if (option.freeKind && !freeAttackTargetOk(battle, active, option.freeKind, target)) {
+    refuserGeste(get, set, t('cs.refusCibleGratuite', { name: target.label, attaque: option.label }));
+    return;
+  }
   // « Au Contact » (LDB 62 l.176) : action de Test opposé (pas une frappe) → flux dédié, jamais l'approche-puis-frappe.
   if (option.targeting === 'aucontact') return get().battleAuContact(target.id);
   // Empoignade (LDB 14 l.161) : action de Test opposé de Force entre deux Empoignés → flux dédié.
@@ -541,7 +542,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Frénésie) → frappe directe seulement. Une attaque GRATUITE (Morsure/Caudale/Tentacule, ou l'Arme en
   // attaque libre de Frénésie → `cost.action===false`) PEUT s'approcher (charge) même l'Action dépensée
   // (LDB 21 l.33).
-  if (battle.acted && option.cost.action && plan.kind !== 'attack') return;
+  if (battle.acted && option.cost.action && plan.kind !== 'attack') { refuserGeste(get, set, t('agate.actionSpent')); return; }
   // CLIC-ENNEMI NU = ATTAQUE À PORTÉE SEULEMENT (spec HUD § ARBITRAGE 2026-08-19) : l'approche
   // automatique vers la cible cliquée (Charge implicite / rejoindre-et-frapper) ne part plus toute
   // seule — elle se DEMANDE, en armant la Charge (`opts.approche`). Sans elle, refus DIT. Ce gate ne
@@ -624,7 +625,13 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   }
   // Avantage de la manœuvre dépensé UNE fois, à la frappe (après TOUS les portails — aperçu/monture/Peur/
   // ward) : gratuites de mêlée (Morsure/Caudale… coût RAW). L'Arme (cost.advantage 0) ne dépense rien.
+  const mouvementAvant = get().battle!.movementUsed ?? 0;
+  const avantageAvant = active.advantage;
   if (option.cost.advantage) campSpend(get, active, option.cost.advantage); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
+  if (option.cost.movement) set({ battle: { ...get().battle!, movementUsed: mountMovement(get().battle!, active) } }); // LDB 85 l.314
+  const mouvementPaye = (get().battle!.movementUsed ?? 0) - mouvementAvant;
+  const avantagePaye = avantageAvant - active.advantage;
+  const coutPaye = avantagePaye || mouvementPaye ? { advantage: avantagePaye, movement: mouvementPaye } : undefined;
   // === Approche-puis-frappe : DEUX beats explicites ===
   let approachPath: { x: number; y: number }[] | null = null;
   let pa: GameState['pendingAttack'];
@@ -700,6 +707,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // que le Critique forcé par Résilience. Réservé au joueur qui PILOTE ; l'IA (doAttack) résout hors de
   // ce chemin (pendingAttack), donc ne voit jamais ce choix.
   if (isHelplessTarget(target) && pilotedByHuman(get(), active)) pa = { ...pa, forced: true };
+  if (coutPaye) pa = { ...pa, coutPaye };
   // (2) FRAPPE — après le glissé d'approche : ouvre la SÉQUENCE de combat (jet d'attaque = ÉTAPE 0,
   // CascadeModal via useAttackJetProps ; ses conséquences s'empilent APRÈS dans la MÊME fenêtre). Garde
   // dans le différé : encore le tour de l'acteur et aucune autre cascade ouverte (anti double-ouverture).
@@ -829,7 +837,7 @@ export const CAST_MODE: TargetingMode = {
   id: 'cast', affordance: castAffordance, commitCombatant: castClickCommit, commitTile: castCommitTile,
 };
 const BATTERY_MODE: TargetingMode = {
-  id: 'battery', label: 'Bordée', affordance: batteryAffordance,
+  id: 'battery', label: 'Bordée', consigne: 'consigne.battery', affordance: batteryAffordance,
   commitCombatant: (get, _set, active, id) => { get().battleShipBattery(active.id, id); },
 };
 const HEAL_MODE: TargetingMode = {
@@ -869,7 +877,7 @@ const DISPEL_MODE: TargetingMode = {
   },
 };
 const OVERCAST_MODE: TargetingMode = {
-  id: 'overcast', label: 'Surincantation', affordance: overcastAffordance, anneauCandidats: 'hostile',
+  id: 'overcast', label: 'Surincantation', consigne: 'consigne.overcast', affordance: overcastAffordance, anneauCandidats: 'hostile',
   candidates: (get) => {
     const s = get();
     const pc = s.pendingCast;
@@ -882,7 +890,7 @@ const OVERCAST_MODE: TargetingMode = {
   commitCombatant: (get, _set, _active, id) => { get().castToggleExtraTarget(id); },
 };
 const CLEAVE_MODE: TargetingMode = {
-  id: 'cleave', label: 'Frappe Mortelle', affordance: cleaveAffordance, anneauCandidats: 'hostile',
+  id: 'cleave', label: 'Frappe Mortelle', consigne: 'consigne.cleave', affordance: cleaveAffordance, anneauCandidats: 'hostile',
   candidates: (get) => {
     const s = get();
     const battle = s.battle;
@@ -893,7 +901,7 @@ const CLEAVE_MODE: TargetingMode = {
   commitCombatant: (get, _set, _active, id) => { get().cleaveAttack(id); },
 };
 const DUAL_MODE: TargetingMode = {
-  id: 'dual', label: 'Des deux armes', affordance: dualAffordance, anneauCandidats: 'hostile',
+  id: 'dual', label: 'Des deux armes', consigne: 'consigne.dual', affordance: dualAffordance, anneauCandidats: 'hostile',
   candidates: (get) => {
     const s = get();
     const battle = s.battle;
@@ -905,7 +913,7 @@ const DUAL_MODE: TargetingMode = {
   commitCombatant: (get, _set, _active, id) => { get().dualStrikeAttack(id); },
 };
 const TELEPORT_MODE: TileTargetingMode = {
-  id: 'teleport', label: 'Téléportation',
+  id: 'teleport', label: 'Téléportation', consigne: 'consigne.teleport',
   tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
   commitTile: teleportCommitTile,
   tilePreview: (_get, active, pt) => (active.pos ? { target: pt, path: [active.pos, pt], label: 'Téléporter' } : null),
@@ -924,7 +932,7 @@ const PUSH_MODE: TileTargetingMode = {
 };
 /** Pose libre d'un gabarit de zone (sort de ZdE après jet OU pilonnage indirect de siège). */
 const PLACING_MODE: TileTargetingMode = {
-  id: 'placing-zone', label: 'Pose de la zone',
+  id: 'placing-zone', label: 'Pose de la zone', consigne: 'consigne.placing-zone',
   tileValidAt: (get, _active, pt) => { const pz = placingZoneOf(get()); return !!pz && placedZoneValidAt(get, pz, pt); },
   commitTile: (get, set, _active, pt) => commitPlacedZone(get, set, pt),
   commitCombatant: placingCommitCombatant,
@@ -946,6 +954,12 @@ export const TARGETING_MODES: readonly TargetingMode[] = [
 /** Nom d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans bandeau). */
 export const targetingModeLabel = (modeId: string): string | undefined =>
   TARGETING_MODES.find((m) => m.id === modeId)?.label;
+
+/** Consigne d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans consigne). */
+export const targetingModeConsigne = (modeId: string): PlayerText | undefined => {
+  const cle = TARGETING_MODES.find((m) => m.id === modeId)?.consigne;
+  return cle ? t(cle) : undefined;
+};
 
 /**
  * Aiguilleur UNIQUE — extrait factuellement des priorités de `battleClickEntity`/`hoverAim` :

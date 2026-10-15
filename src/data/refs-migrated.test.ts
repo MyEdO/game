@@ -48,7 +48,7 @@ import {
 } from '../../scripts/guards/lib/gameOpRefFk.mjs';
 import { champsDOpASlot, opsDuParse, slotsDOpNonJuges, slotsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { scanDuCorpus, listerDocuments } from '../../scripts/docs/lib/structures-scan.mjs';
-import { NARRATIVE_MARKERS } from '../engine/conditions';
+import { NARRATIVE_MARKERS, etatConnu } from '../engine/conditions';
 import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
 // @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vite.config.ts`
 import { sourceDirOf } from '../../scripts/raw/_lib.mjs';
@@ -1175,7 +1175,7 @@ describe('GameOp — toute référence de la donnée committée résout dans son
   const TRAUMA_IDS = new Set((traumasJson as { id: string }[]).map((t) => t.id));
 
   const resolvers: Record<string, (id: string) => boolean> = {
-    etats: (id) => !!findConditionById(id),
+    etats: (id) => !!etatConnu(id),
     groups: (id) => !!findGroupById(id),
     psychology: (id) => !!findPsychologyById(id),
     traits: (id) => !!findTraitById(id),
@@ -1199,8 +1199,7 @@ describe('GameOp — toute référence de la donnée committée résout dans son
   const { defs: DEFS, scan: CORPUS } = CORPUS_SCANNE;
   const sources = [...CORPUS.brutParNom].map(([file, data]) => ({ file, data }));
   const CHAMPS_A_SLOT = champsDOpASlot();
-  const softIds = { etats: Object.keys(NARRATIVE_MARKERS) };
-  const scan = scanGameOpRefs({ sources, resolvers, softIds, champsASlot: CHAMPS_A_SLOT });
+  const scan = scanGameOpRefs({ sources, resolvers, champsASlot: CHAMPS_A_SLOT });
 
   it('le périmètre est DÉRIVÉ de l’union GameOp moins les champs d’op à slot : aucun champ de référence sans cible déclarée', { timeout: 30_000 }, () => {
     const { derived, unclassified, stale } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
@@ -1342,11 +1341,10 @@ describe('GameOp — toute référence de la donnée committée résout dans son
     expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].traitId');
   });
 
-  it('un marqueur narratif (`NARRATIVE_MARKERS`) résout là où son registre est visé, et seulement s’il est injecté', () => {
-    const [marqueur] = Object.keys(NARRATIVE_MARKERS);
-    const fixture = [{ file: 'fixture.json', data: [{ op: 'condition', id: marqueur }] }];
-    expect(scanGameOpRefs({ sources: fixture, resolvers, softIds }).offenders.map(formatOffender)).toEqual([]);
-    expect(scanGameOpRefs({ sources: fixture, resolvers }).offenders).toHaveLength(1);
+  it('le registre `etats` résout par `etatConnu` : un marqueur narratif (`NARRATIVE_MARKERS`) passe, un libellé est un offenseur', () => {
+    const [{ id: marqueur }] = NARRATIVE_MARKERS;
+    const fixture = [{ file: 'fixture.json', data: [{ op: 'condition', id: marqueur }, { op: 'condition', id: 'Frénésie' }] }];
+    expect(scanGameOpRefs({ sources: fixture, resolvers }).offenders.map((o) => o.value)).toEqual(['Frénésie']);
   });
 
   it('un champ NON-RÉFÉRENCE porte sa justification, un champ gardé ailleurs nomme sa garde', () => {

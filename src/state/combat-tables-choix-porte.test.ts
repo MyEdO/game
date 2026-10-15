@@ -66,7 +66,7 @@ function combat(nb: number, seed = 7, invites: number[] = []) {
   for (const i of invites) ownership[H[i].id] = 1;
   useGame.setState({
     battle: { ...b }, pendingCascade: null, suspendedCascades: [], pendingDisengage: null,
-    pendingTrample: null, pendingLogQueue: [],
+    pendingLogQueue: [],
     net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership },
   } as never);
   return { H, E };
@@ -305,20 +305,20 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetDesFixes(); useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [] }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetDesFixes(); });
 
-  it('la GARDE du mint hôte mord sur `trample` : sans son pending, aucune fenêtre n’est montée', () => {
+  it('la GARDE du mint hôte mord sur `attack` : sans son pending, aucune fenêtre n’est montée', () => {
     // L'ordre « pending puis mint » n'est pas une convention d'écriture : c'est ce que la garde
     // EXIGE. Figé ici sans dépendre du nombre de suites que l'inversion ferait rougir.
-    useGame.setState({ pendingTrample: null } as never);
-    expect(() => hostStep(useGame.getState, { id: 'trample-jet', kind: 'trampleJet', jet: 'trample', actorId: 'x' }))
-      .toThrowError(/pendingTrample/);
-    useGame.setState({ pendingTrample: { attackerId: 'a', targetId: 'b', result: null } } as never);
-    const st = hostStep(useGame.getState, { id: 'trample-jet', kind: 'trampleJet', jet: 'trample', actorId: 'a' });
+    useGame.setState({ pendingAttack: null } as never);
+    expect(() => hostStep(useGame.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'x' }))
+      .toThrowError(/pendingAttack/);
+    useGame.setState({ pendingAttack: { attackerId: 'a', targetId: 'b', location: null, result: null } } as never);
+    const st = hostStep(useGame.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'a' });
     expect(st, 'le pending posé, le mint rend l’étape').toBeTruthy();
-    expect(st!.jet).toBe('trample');
-    useGame.setState({ pendingTrample: null } as never);
+    expect(st!.jet).toBe('attack');
+    useGame.setState({ pendingAttack: null } as never);
   });
 
-  it('PIÉTINEMENT : `pendingTrample` est posé AVANT l’étape hôte, qui va au siège du piétineur', () => {
+  it('PIÉTINEMENT : la gratuite canonique pose `pendingAttack` AVANT l’étape hôte, qui va au siège du piétineur', () => {
     // Le piétineur est tenu par l'HÔTE (c'est lui qui déclenche l'action) ; un SECOND héros appartient
     // au siège invité — la table de possession est donc réelle, et « la fenêtre est à son porteur » se
     // mesure : le siège 1 ne la tient PAS.
@@ -333,12 +333,12 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     const b = useGame.getState().battle!;
     useGame.setState({ battle: { ...b, turn: b.order.indexOf(hero.id), action: null, movementUsed: 0, acted: false } } as never);
 
-    useGame.getState().battleTrample(cible.id);
+    useGame.getState().battleSelectAttack('pietinement');
+    useGame.getState().battleClickEntity(cible.id, { confirm: true });
 
-    expect(useGame.getState().pendingTrample, 'la donnée que la fenêtre rend').not.toBeNull();
-    const st = steps().find((s) => s.jet === 'trample')!;
-    expect(st.id).toBe('trample-jet');
-    expect(st.kind).toBe('trampleJet');
+    expect(useGame.getState().pendingAttack?.freeKind, 'la donnée que la fenêtre rend').toBe('pietinement');
+    const st = steps().find((s) => s.jet === 'attack')!;
+    expect(st.kind).toBe('attackJet');
     expect(st.actorId).toBe(hero.id);
     expect(modalOwnerOf(useGame.getState()), 'la fenêtre est celle du piétineur').toBe(hero.id);
     expect(seatOwns(useGame.getState(), 1, hero.id), 'COOP : le siège invité ne tient PAS ce jet').toBe(false);

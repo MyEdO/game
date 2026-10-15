@@ -168,6 +168,9 @@ describe('chaînage de l’Action « des deux armes »', () => {
     useGame.getState().attackConfirm();
     expect(isOutOfAction(useGame.getState().battle!.combatants.find((c) => c.id === 'f1')!), 'pré-requis : la 1re frappe a tué').toBe(true);
     expect(useGame.getState().pendingDualStrike).toBeNull();
+    const h = useGame.getState().battle!.combatants.find((c) => c.id === 'h')!;
+    expect(h.advantage, 'une seule frappe a touché : aucun Avantage (LDB 10 l.773)').toBe(0);
+    expect(h.dualStrikeDefensePenalty, 'les deux armes ont été choisies : −10 aux défenses (LDB 10 l.773)').toBe(true);
   });
 });
 
@@ -313,5 +316,36 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     const { h, f2 } = setupBattle();
     const res = resolveDualSecond(useGame.getState, h, f2, h.weapons[1], 34);
     expect(res.defenderDetail).toBeDefined();
+  });
+
+  it('exception Critique : la valeur du tableau des Critiques survit à la fenêtre du défenseur surfacé', () => {
+    setupBattle();
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true, defended: true } as any });
+    useGame.getState().attackConfirm();
+    useGame.setState({ pendingDualStrike: { ...useGame.getState().pendingDualStrike!, critValue: 56 } });
+    useGame.getState().dualStrikeAttack('f2');
+    expect(useGame.getState().pendingAttack?.result?.attackerDetail?.roll, 'la 2ᵉ frappe prend la valeur du Critique').toBe(56);
+    useGame.getState().attackConfirm();
+    expect((useGame.getState().pendingDefense as any)?.atk?.roll, 'le jet figé voyage sur la fenêtre').toBe(56);
+    useGame.getState().defenseRoll();
+    expect(useGame.getState().pendingDefense?.result?.attackerDetail?.roll, 'l’opposition garde le jet de l’attaquant').toBe(56);
+  });
+
+  it('DR net identique, défenseur surfacé ou non, à dés égaux', () => {
+    const { h, f2 } = setupBattle();
+    const inline = resolveDualSecond(useGame.getState, h, f2, h.weapons[1], 34);
+    const deDefense = (inline.defenderDetail as any).roll as number;
+    useGame.setState({ ...initialFields(), battle: null });
+    setupBattle();
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ attackerRoll: 43, attackerDetail: { roll: 43, target: 50, success: true, sl: 0 } } as any), dualMode: true, defended: true } as any });
+    useGame.getState().attackConfirm();
+    useGame.setState({ pendingDualStrike: { ...useGame.getState().pendingDualStrike!, mainRoll: 34, critValue: undefined } });
+    useGame.getState().dualStrikeAttack('f2');
+    useGame.getState().attackConfirm();
+    useGame.getState().defenseRoll();
+    useGame.getState().defenseSetForcedRoll(deDefense);
+    expect(useGame.getState().pendingDefense?.result?.netSL).toBe(inline.netSL);
   });
 });

@@ -29,8 +29,7 @@ import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import { refLabel, dataLabel } from '../data';
-import { CHAR_LABELS } from '../engine/types';
+import { dataLabel, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
 import { rollLine } from './rollSeam';
 import {
@@ -339,7 +338,7 @@ function openBattlePending(_get: Get, set: Set, o: {
   opposition?: ActivityOppositionOn;
   heroIds?: string[]; support?: SupportDetail;
 }): void {
-  const skillLabel = o.skillId ? refLabel('skills', { id: o.skillId, spec: o.spec }) : o.char ? CHAR_LABELS[o.char] : t('mbf.testFallback');
+  const skillLabel = testSkillLabel({ skill: o.skillId, spec: o.spec, char: o.char }) ?? t('mbf.testFallback');
   // Cibles montées par le monteur canonique (`rollLine`, #1153) : le modificateur de SITUATION (Menace
   // ADE II 8 l.219 / Planification l.75) pèse SUR LA CIBLE (il n'est pas dans la valeur) et se nomme.
   const surLaCible = activityModLines(o.mod, o.modLabel);
@@ -349,7 +348,7 @@ function openBattlePending(_get: Get, set: Set, o: {
     valeur: o.skillValue, soutien: o.support, difficulty: o.difficulty, surLaCible,
   }).target;
   const combined = o.combined
-    ? { skill2: o.combined.skillId ? refLabel('skills', { id: o.combined.skillId, spec: o.combined.spec }) : CHAR_LABELS[o.char ?? 'intelligence'], skillValue2: o.combined.value,
+    ? { skill2: testSkillLabel({ skill: o.combined.skillId, spec: o.combined.spec, char: o.char ?? 'intelligence' }), skillValue2: o.combined.value,
       target2: rollLine({ actor: o.actor, test: { skill: o.combined.skillId, char: o.char, spec: o.combined.spec }, valeur: o.combined.value, difficulty: o.difficulty, surLaCible }).target }
     : {};
   const pa: PendingActivityFields = {

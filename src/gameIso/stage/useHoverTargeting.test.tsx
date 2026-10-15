@@ -53,7 +53,6 @@ function setup() {
     battle: { ...battle, turn: battle.order.indexOf(active.id), action: null, preview: null },
     pendingAttack: null,
     pendingDefense: null,
-    pendingTrample: null,
     pendingHeal: null,
     pendingCast: null,
     pendingCleave: null,
@@ -347,7 +346,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
     return renderToStaticMarkup(
       <svg>
         <AimOverlay battle={battle} hoverAim={aim} anchor={anchor} dims={dims}
-          pendingAttack={null} pendingDefense={null} pendingTrample={null} pendingHeal={null} pendingCast={null} />
+          pendingAttack={null} pendingDefense={null} pendingHeal={null} pendingCast={null} />
       </svg>,
     );
   }

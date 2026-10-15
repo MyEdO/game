@@ -378,6 +378,9 @@ export interface PendingAttack {
    *  Annule AVANT tout jet (`result === null`). Une fois le dé lancé, la charge est engagée (RAW). Capturé à
    *  la déclaration de charge (targetingModes), rejoué par `attackCancel`. */
   chargeUndo?: { pos: Record<string, Pt>; facing: Record<string, Dir8>; movedPreAction: boolean; movementUsed: number; advGained: number; gainedAdvBefore: boolean; chargedBefore: boolean };
+  /** PRIX payé à la DÉCLARATION (`AttackOption.cost` : Avantage, Mouvement consommé), rendu par
+   *  `attackCancel` tant qu'aucun dé n'est lancé. LDB 85 l.387 ; LDB 85 l.314 */
+  coutPaye?: { advantage: number; movement: number };
   /** Victime réelle si le tir a dévié dans la mêlée vers un allié (LDB 14 l.116) — sinon = targetId. */
   victimId?: string;
   /** Attaque d'enchaînement d'un balayage (Frappe Mortelle) : son acquittement fait avancer le `pendingCleave`. */
@@ -419,9 +422,9 @@ export interface PendingAttack {
   dualMode?: boolean;
   /** Cette attaque EST la 2ᵉ frappe (off-hand) d'un Maniement de deux armes : jet imposé, pas de relance. */
   dualSecond?: boolean;
-  /** Attaque GRATUITE de MANŒUVRE de mêlée (Morsure/Attaque caudale/Tentacules — trait de créature
-   *  qu'un héros active : mutation/polymorphie) : ne consomme pas l'Action ; effets onHit propres à la
-   *  manœuvre appliqués à la confirmation (cf. attackConfirm). `tentacules` = limiteur 1/tour (mutation). */
+  /** Attaque GRATUITE de créature de mêlée (Morsure/Attaque caudale/Tentacules/Piétinement — trait ou
+   *  Taille d'une créature qu'un héros joue) : ne consomme pas l'Action ; effets onHit propres à la
+   *  manœuvre appliqués à la confirmation (cf. attackConfirm). Plafond par tour : `plafondParTour`. */
   freeKind?: AttackKind;
   /** Réaction de Porte-Bouclier déclarée par le défenseur SURFACÉ (`AA 13 l.84`) : la fenêtre de défense
    *  la rend ici avec le résultat opposé, et `attackConfirm` la verse dans la `SuiteDeCoup`. */
@@ -499,20 +502,8 @@ export interface PendingDualStrike {
   mainRoll: number;
   critValue?: number;
 }
-/** Piétinement en attente (LDB 85 l.387) : modale interactive — Lancer (resolveTrample) →
- *  Chance → Appliquer (dépense 1 Avantage, action gratuite). */
-export interface PendingTrample {
-  attackerId: string;
-  targetId: string;
-  result: AttackResult | null; // null = pas encore lancé
-  rerolled?: boolean;
-  /** Réussite forcée par Résilience (LDB 17 l.68) → le joueur peut CHOISIR la valeur du dé. */
-  forced?: boolean;
-  /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
-  fixed?: boolean;
-}
 /** Battement en attente (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé.
- *  Modale MONO calquée sur `PendingTrample` — Lancer (jet de CC figé) → Chance/Pacte/Résilience →
+ *  Modale MONO — Lancer (jet de CC figé) → Chance/Pacte/Résilience →
  *  Appliquer (`resolveBattement` retire de l'Avantage adverse). Consomme l'Action. */
 export interface PendingBattement {
   attackerId: string;
@@ -927,10 +918,9 @@ export interface ToucheDeProjectile {
 /**
  * L'ENCHAÎNEMENT qui suit un coup appliqué (#1508) — une DÉCLARATION du site d'origine, jamais un
  * défaut muet : chaque site dit LEQUEL des balayages il a tranché, y compris « aucun ». Qui pose quoi :
- *  - `hero` : Frappe Mortelle du héros interactif (LDB 14 l.9), posée par `attackConfirm` quand ce
- *    site l'aurait appelée (ni Maniement de deux armes, ni manœuvre gratuite, ni Maladresse de
- *    l'attaquant), et par la gratuite de talent (`applyTalentFreeAttack`) d'un porteur que l'IA ne
- *    conduit pas. `wasChain` = ce coup était-il déjà un maillon d'un balayage en cours.
+ *  - `hero` : Frappe Mortelle du héros interactif (LDB 14 l.9), posée par `attackConfirm` (ni
+ *    Maniement de deux armes, ni Maladresse de l'attaquant), par le coup dans le dos (`fleeConfirm`), et par la gratuite de talent (`applyTalentFreeAttack`) d'un
+ *    porteur que l'IA ne conduit pas. `wasChain` = ce coup était-il déjà un maillon d'un balayage en cours.
  *    Jugée sur la touche RÉELLE : l'enchaînement EXIGE une cible TUÉE, donc il se décide APRÈS le dé
  *    de sauvegarde, qui décide de la mort ;
  *  - `chaine` : maillon de balayage encore à jouer (`ChaineDeBalayage`), posé par `runCleaveChain` — y
@@ -941,7 +931,7 @@ export interface ToucheDeProjectile {
  *    les tireurs suivants passent après ce tir, fenêtre de défense comprise (#997). `faits` = les
  *    tireurs déjà passés ce Round ;
  *  - `aucun` : le site d'origine a tranché qu'AUCUN balayage ne suit ce coup — Maladresse de
- *    l'attaquant, frappe du Maniement de deux armes, manœuvre gratuite d'un héros.
+ *    l'attaquant, frappe du Maniement de deux armes.
  */
 export type EnchainementDuCoup =
   | { mode: 'hero'; wasChain: boolean }
@@ -1944,13 +1934,13 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
   /** Héros qui lance (résolu via `actorIn`). Absent → étape de groupe (rare). */
   actorId?: string;
   icon?: string;
-  /** Étape-JET : le jet d'attaque/Piétinement/défense/magie/Test/désengagement/porte EST l'étape 0 de
+  /** Étape-JET : le jet d'attaque/défense/magie/Test/désengagement/porte EST l'étape 0 de
    *  la séquence, rendu par `CascadeModal` via le hook ou la modale correspondante (`useAttackJetProps`/
-   *  `useTrampleJetProps`/`useDefenseJetProps`/`useTestJetProps`/`useExtendedTestJetProps`/`CastModal`/
+   *  `useDefenseJetProps`/`useTestJetProps`/`useExtendedTestJetProps`/`CastModal`/
    *  `DisengageModal`/`ForceDoorModal`) → une seule fenêtre. Les données vivent dans `pendingAttack`/
-   *  `pendingTrample`/`pendingDefense`/`pendingCast`/`pendingTest`/`pendingExtendedTest`/`pendingDisengage`/
+   *  `pendingDefense`/`pendingCast`/`pendingTest`/`pendingExtendedTest`/`pendingDisengage`/
    *  `pendingForceDoor` (coexistants — comme l'attaque), résolus par leur `xConfirm`/`xNext` qui ferme la cascade. */
-  jet?: 'attack' | 'trample' | 'defense' | 'fumble' | 'cast' | 'test' | 'extended' | 'disengage' | 'forceDoor';
+  jet?: 'attack' | 'defense' | 'fumble' | 'cast' | 'test' | 'extended' | 'disengage' | 'forceDoor';
   /** Étape de GROUPE (action collective : enfoncer une porte à plusieurs) — l'arbitre coop lui donne
    *  l'owner '*' (chacun pilote ses héros) au lieu de `actorId` (une étape forceDoor n'a pas d'acteur
    *  unique). Absent sur les autres `kind` → repli sur `actorId` (identique à aujourd'hui). */

@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { resolveFreeAttacks } from './combatFlow';
+import { avanceEtapeCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
@@ -86,16 +87,10 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
   // en cadence MANUELLE, ces deux jets sont CADENCE-AWARE : ils s'ouvrent en étapes de cascade influençables
   // (modale de choix puis Test d'Init), pas en silence — c'est le principe « aucun jet de héros muet ».
   function driveChoice(key: string) {
-    const pc = useGame.getState().pendingCascade!;
-    const cur = pc.participants[pc.cursor];
-    useGame.getState().cascadeChoose(cur.id, key);
-    useGame.getState().cascadeNext();
+    avanceEtapeCascade(useGame.getState, undefined, () => key);
   }
   function driveTest() {
-    const pc = useGame.getState().pendingCascade!;
-    const cur = pc.participants[pc.cursor];
-    useGame.getState().cascadeRoll(cur.id); // jet d'Initiative
-    useGame.getState().cascadeNext(); // applique la branche (success → frappe via le hook)
+    avanceEtapeCascade(useGame.getState);
   }
 
   it('Frappe réactive (onCharged) : héros MANUEL → modale de CHOIX puis Test d’Init INFLUENÇABLE ; succès → riposte', () => {

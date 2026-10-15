@@ -37,7 +37,7 @@ La durée de chaque État est précisée dans sa description ; cependant, certai
 
 **Voir aussi** : Avantage (`combat.md`), Détermination (`destin.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.5-7) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `FREE_ATTACK_LABEL`, `EtatTestCtx`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
+- `LDB 16` (l.5-7) → `addCondition`, `addClockCondition`, `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `DEFENSE_LABEL`, `EtatTestCtx`, +10 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`
 
 ---
 
@@ -69,7 +69,7 @@ Un personnage peut subir plusieurs fois le même État. Les pénalités s'accumu
 - `LDB 16 l.137` — Surpris ne se cumule pas
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.11-15, l.37, l.115, l.137) → `jsonOpSchema`, `PRONE_POSE`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `doc`, `stopBleedOutcome`, `empileSurPionExistant`, `mouvementIntact`, `addCondition`, +76 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/combat.ts`, +25 fichiers
+- `LDB 16` (l.11-15, l.37, l.115, l.137) → `jsonOpSchema`, `PRONE_POSE`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `doc`, `stopBleedOutcome`, `mouvementIntact`, `empileSurPionExistant`, `opRow`, +77 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/combat.ts`, +25 fichiers
 
 ---
 
@@ -82,7 +82,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 
 **Voir aussi** : Détermination (`destin.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.19-21) → `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `FREE_ATTACK_LABEL`, `EtatTestCtx`, `etatScopeApplies`, `testStatePenaltyParts`, +13 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`, +1 fichiers
+- `LDB 16` (l.19-21) → `effectGlobalTestLines`, `etatTestMods`, `PoolCandidate`, `dropWorst`, `poolWinner`, `combatTestPenaltyParts`, `DEFENSE_LABEL`, `EtatTestCtx`, `etatScopeApplies`, `testStatePenaltyParts`, +13 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/engine/trauma.ts`, `src/engine/types.ts`, +1 fichiers
 
 ---
 
@@ -133,7 +133,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 **Voir aussi** : Traumatisme (`traumatisme.md`), Inconscient
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 16` (l.33-39) → `PRONE_POSE`, `collectHeroRoundEndUpkeep`, `findAwaitingExtension`, `combatTestPenaltyParts`, `competenceParId`, `impliqueDeplacement`, `etatScopeApplies`, `testStatePenaltyParts`, `meleeAttackerBonusLines`, `AttackOptions`, +5 — `src/data/index.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/ops.ts`, `src/gameIso/groundPose.ts`, `src/state/combat/roundHooks.ts`, +3 fichiers
-- `LDB 17` (l.61) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `forceCrewRole`, +94 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +49 fichiers
+- `LDB 17` (l.61) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `forceCrewRole`, +92 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +48 fichiers
 - `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
@@ -286,7 +286,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 **Voir aussi** : Brisé, Sonné, Hémorragique, Empoisonné, Inconscient, Traumatisme (`traumatisme.md`), Psychologie (`psychologie.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 16` (l.86-101) → `combat-fatigue`, `unstable`, `REPORT_DE_COMBATTANT`, `doc`, `EnemyAction`, `stopBleedOutcome`, `Formula`, `needsRecoveryRoll`, `brise`, `sleepParty`, +30 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, `src/engine/healing.ts`, +15 fichiers
-- `LDB 21` (l.33) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `REPORT_DE_COMBATTANT`, `fearSourceFor`, `psychImmuneToFrom`, `aiMaybeFrenzy`, `availableFreeAttackOps`, `Condition`, `describeApproach`, +41 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +19 fichiers
+- `LDB 21` (l.33) → `ApproachModal`, `FrenzyModal`, `hasMeaningfulOption`, `actionPrise`, `REPORT_DE_COMBATTANT`, `fearSourceFor`, `psychImmuneToFrom`, `aiMaybeFrenzy`, `Condition`, `describeApproach`, +42 — `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/combat.ts`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +20 fichiers
 
 ---
 
@@ -315,7 +315,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 
 **Voir aussi** : Inconscient, Traumatisme (`traumatisme.md`), Maladies (`maladies.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.103-109) → `jsonOpSchema`, `combat-fatigue`, `unstable`, `etatNonCumulable`, `REPORT_DE_COMBATTANT`, `doc`, `stopBleedOutcome`, `empileSurPionExistant`, `mouvementIntact`, `opRow`, +47 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, +24 fichiers
+- `LDB 16` (l.103-109) → `jsonOpSchema`, `combat-fatigue`, `unstable`, `etatNonCumulable`, `REPORT_DE_COMBATTANT`, `doc`, `stopBleedOutcome`, `mouvementIntact`, `empileSurPionExistant`, `opRow`, +48 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, +24 fichiers
 
 ---
 
@@ -341,7 +341,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 
 **Voir aussi** : Traumatisme (`traumatisme.md`), Hémorragique, Empoisonné, À Terre, Exténué
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.111-119) → `jsonOpSchema`, `combat-fatigue`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `doc`, `stopBleedOutcome`, `empileSurPionExistant`, `mouvementIntact`, `opRow`, +51 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, +22 fichiers
+- `LDB 16` (l.111-119) → `jsonOpSchema`, `combat-fatigue`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `doc`, `stopBleedOutcome`, `mouvementIntact`, `empileSurPionExistant`, `opRow`, +52 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, +22 fichiers
 - `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
@@ -366,7 +366,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 
 **Voir aussi** : Exténué, Magie (`magie.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.123-129) → `jsonOpSchema`, `STABLE_COND_KINDS`, `etatNonCumulable`, `doc`, `empileSurPionExistant`, `mouvementIntact`, `opRow`, `useAttackJetProps`, `toucheSauvee`, `ResolveWindow`, +40 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/combat.ts`, +17 fichiers
+- `LDB 16` (l.123-129) → `jsonOpSchema`, `STABLE_COND_KINDS`, `etatNonCumulable`, `doc`, `mouvementIntact`, `empileSurPionExistant`, `opRow`, `toucheSauvee`, `useAttackJetProps`, `ResolveWindow`, +41 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/combat.ts`, +17 fichiers
 
 ---
 
@@ -390,7 +390,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 
 **Voir aussi** : Initiative et Surprise (`combat.md`)
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.131-139) → `STABLE_COND_KINDS`, `buildExposureBand`, `DOCTRINES`, `applyIncomingMeleeAdvantage`, `combat-helpless-mode`, `pickDoctrine`, `chooseEnemyAction`, `hemorragique`, `inconscient`, `sonne`, +12 — `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/engine/conditions.ts`, `src/state/ai.ts`, `src/state/combat/flowEval.ts`, `src/state/combatFlow.ts`, +2 fichiers
+- `LDB 16` (l.131-139) → `STABLE_COND_KINDS`, `buildExposureBand`, `DOCTRINES`, `applyIncomingMeleeAdvantage`, `combat-helpless-mode`, `pickDoctrine`, `chooseEnemyAction`, `hemorragique`, `inconscient`, `sonne`, +13 — `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/state/ai.ts`, `src/state/combat/flowEval.ts`, +3 fichiers
 
 ---
 
@@ -427,8 +427,8 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 - `LDB 16 l.27-139` — descriptions individuelles
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.15-17, l.27-139) → `jsonOpSchema`, `PRONE_POSE`, `combat-fatigue`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `REPORT_DE_COMBATTANT`, `doc`, `StateRecoveryModal`, `EnemyAction`, +112 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, +36 fichiers
-- `LDB 17` (l.61) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `forceCrewRole`, +94 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +49 fichiers
+- `LDB 16` (l.15-17, l.27-139) → `jsonOpSchema`, `PRONE_POSE`, `combat-fatigue`, `unstable`, `STABLE_COND_KINDS`, `etatNonCumulable`, `REPORT_DE_COMBATTANT`, `doc`, `StateRecoveryModal`, `EnemyAction`, +113 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, +36 fichiers
+- `LDB 17` (l.61) → `ResilienceButton`, `RenounceModal`, `DeterminationButton`, `CritLocationPicker`, `hasMeaningfulOption`, `sourceSuspended`, `ForcedRollPicker`, `CorruptionModal`, `suspendSource`, `forceCrewRole`, +92 — `src/data/characteristics.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, +48 fichiers
 - `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +24 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
@@ -521,7 +521,7 @@ Le LDB 16 exprime toutes les durées en Rounds. Plusieurs sources introduisent d
 - `LDB 40 l.85` — Colère des dieux 131-135 : Hémorragique quotidien jusqu'à Pénitence
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 16` (l.117) → `jsonOpSchema`, `etatNonCumulable`, `doc`, `stopBleedOutcome`, `empileSurPionExistant`, `mouvementIntact`, `opRow`, `useAttackJetProps`, `toucheSauvee`, `ResolveWindow`, +34 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/combat.ts`, +17 fichiers
+- `LDB 16` (l.117) → `jsonOpSchema`, `etatNonCumulable`, `doc`, `stopBleedOutcome`, `mouvementIntact`, `empileSurPionExistant`, `opRow`, `toucheSauvee`, `useAttackJetProps`, `ResolveWindow`, +35 — `src/data/etats.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/data/schemas/defs/miscast.ts`, `src/engine/combat.ts`, +17 fichiers
 - `LDB 40` (l.56, l.59, l.63, l.64, l.68, l.71, l.72, l.73, l.75, l.77, l.79, l.84, l.85) → `jsonOpSchema`, `NestedTest`, `SinPoints`, `applyTriggeredTestBranch`, `peche`, `LIBELLE_DE_FORME`, `wrath-table`, `liveTableDecl`, `GameOp`, `ALL_MAGIC`, +40 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/miscast.ts`, `src/data/schemas/grammaire/valeurs.ts`, +10 fichiers
 - `LDB 46` (l.36, l.39-40, l.43-44, l.45, l.46, l.47-48, l.49, l.59, l.60, l.62, l.63, l.64, l.68, l.74, l.75, l.78, l.80) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `MiscastResult`, `mineure-cerumen`, `combat-spell-plus`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, +62 — `src/data/combat-stakes.json`, `src/data/miscast.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +6 fichiers
 

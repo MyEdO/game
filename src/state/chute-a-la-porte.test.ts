@@ -12,7 +12,7 @@ import { ouvrirDialogue } from './dialogue';
 import { runCombatFlow, bandeTriggeredTest } from './combat/triggeredTest';
 import { seedBattleRng } from './battleRng';
 import './combatFlow'; // injecte le walker de COMBAT dans la porte des dés (registerSuiteCombat)
-import { draineCascade } from './cascadeTestKit';
+import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 import { stepInteraction, suspendActiveCascade, runCascadeImmediate, pushStep, startCascade, resolveRemainingCascade, registerCascadeApplier } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import { canFixDie } from './netOwnership';
@@ -229,17 +229,12 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     // Poses par ACTEUR, dans l'ordre où ses dés s'ouvrent : A hauteur 2 puis dégâts 1, B hauteur 9 puis
     // dégâts 10. Les valeurs sont choisies pour que tout croisement change le total.
     const aPoser: Record<string, number[]> = { A: [2, 1], B: [9, 10] };
-    for (let garde = 0; useGame.getState().pendingCascade && garde < 20; garde++) {
-      const p = useGame.getState().pendingCascade!;
-      const st = p.participants[p.cursor];
-      if (!st) break;
-      if (st.de && !st.de.result) {
-        const v = aPoser[st.actorId!]?.shift();
-        expect(v, `étape sans pose prévue : ${st.id}`).toBeDefined();
-        useGame.getState().cascadeDieSetForcedRoll(st.id, v!);
-      }
-      useGame.getState().cascadeNext();
-    }
+    draineCascade(useGame.getState, 20, (st) => {
+      if (!st.de || st.de.result) return undefined;
+      const v = aPoser[st.actorId!]?.shift();
+      expect(v, `étape sans pose prévue : ${st.id}`).toBeDefined();
+      return v;
+    });
     expect(200 - par('A').wounds.current, 'A : 3×2 m + 1 − BE').toBe(3 * 2 + 1 - BE);
     expect(200 - par('B').wounds.current, 'B : 3×9 m + 10 − BE').toBe(3 * 9 + 10 - BE);
   });
@@ -540,12 +535,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     ],
   } as unknown as Dialogue);
 
-  const poseLeDe = (v: number): void => {
-    const p = useGame.getState().pendingCascade!;
-    const st = p.participants[p.cursor];
-    useGame.getState().cascadeDieSetForcedRoll(st.id, v);
-    useGame.getState().cascadeNext();
-  };
+  const poseLeDe = (v: number): void => { avanceEtapeCascade(useGame.getState, () => v); };
 
   it('DIALOGUE : « le dialogue n’avance jamais sous une modale de jet » vaut aussi d’un DÉ', () => {
     // L'invariant était écrit au présent dans le store et ne regardait que `pendingTest` : une branche
@@ -837,10 +827,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       const p = useGame.getState().pendingCascade!;
       for (const s of p.participants) if (!vus.includes(s.id)) vus.push(s.id);
       expect(p.seq, 'le compteur ne recule pas sous ce qu’il a déjà servi').toBeGreaterThanOrEqual(seqOuverture!);
-      const st = p.participants[p.cursor];
-      if (!st) break;
-      if (st.de && !st.de.result) useGame.getState().cascadeDieSetForcedRoll(st.id, 5);
-      useGame.getState().cascadeNext();
+      avanceEtapeCascade(useGame.getState, (st) => (st.de && !st.de.result ? 5 : undefined));
     }
     expect(new Set(vus).size, `ids tous distincts : ${vus.join(', ')}`).toBe(vus.length);
   });

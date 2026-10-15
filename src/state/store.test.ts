@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { resetFields } from './stateFields';
 import { useGame, entityPickables, type BattleState } from './store';
-import { draineCascade, cascadeDeTest } from './cascadeTestKit';
+import { avanceEtapeCascade, draineCascade, cascadeDeTest } from './cascadeTestKit';
 import { flowFromEffects, flowEffects, testFlow, EMPTY_FLOW } from './flow';
 import { buildAdvancementView } from './advancement';
 import { createHero } from '../engine/character';
@@ -73,16 +73,7 @@ function reset() {
  *  l'écran de victoire quand un héros survivant est conscient et a affronté des créatures corrompues /
  *  porte un marqueur de maladie). Lance chaque étape puis valide, jusqu'à `finishCombatEnd` → victoire. */
 function drainCombatEndCascade() {
-  for (let guard = 0; guard < 30; guard++) {
-    const p = useGame.getState().pendingCascade;
-    if (!p?.combatEndBoundary) break;
-    const cur = p.participants[p.cursor];
-    // Les jets de bilan de combat sont des BANDES (#1117 L4) : on lance chaque RANGÉE ; une étape MONO
-    // (upkeep différé non bandable) garde son lancer d'étape.
-    if (cur?.participants) { for (const row of cur.participants) if (!row.result) useGame.getState().cascadeBatchRoll(row.id); }
-    else if (cur?.target != null && !cur.result) useGame.getState().cascadeRoll(cur.id);
-    useGame.getState().cascadeNext();
-  }
+  for (let guard = 0; guard < 30 && useGame.getState().pendingCascade?.combatEndBoundary; guard++) avanceEtapeCascade(useGame.getState);
 }
 
 describe('Boucle de jeu (store)', () => {

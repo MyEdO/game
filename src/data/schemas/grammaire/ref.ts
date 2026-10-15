@@ -68,6 +68,8 @@ export const TYPES = {
   building: { espace: 'buildings.json', catalogue: 'bâtiments' },
   // AXE de forces/faiblesses (#409) : `activeAxes` d'un projet de scène résout AU PARSE (#1473 R1).
   axe: { espace: 'axes.json', catalogue: 'axes' },
+  weaponGroup: { espace: 'weaponGroups.json', catalogue: 'groupes d’armes' },
+  maneuver: { espace: 'maneuvers.json', catalogue: 'manœuvres' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;

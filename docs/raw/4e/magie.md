@@ -137,7 +137,7 @@ Quatre types de sorts :
 **Voir aussi :** [Magie Noire](#magie-noire-dhar), [Magie du Chaos — LDB 51](#magie-elfique-qhaysh)
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.12-14) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +45 — `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/state/combatEffects.ts`, +3 fichiers
+- `LDB 46` (l.12-14) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +46 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, +4 fichiers
 
 ---
 
@@ -150,7 +150,7 @@ Transcrire un sort dans un grimoire ne suffit pas à l'apprendre. Pour **mémori
 > **Verbatim** (l.20) : « Une fois qu'un Sort a été mémorisé, un lanceur de Sorts le connaît de façon permanente, sauf circonstances particulières. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.16-20) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +54 — `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/state/combatEffects.ts`, +6 fichiers
+- `LDB 46` (l.16-20) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +55 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, +7 fichiers
 
 ---
 
@@ -169,7 +169,7 @@ La compétence **Prière**, **Langue (Magick)** et **Focalisation** sont des **c
 > **Verbatim** (l.24) : « Pour lancer un Sort, effectuez un Test de Langue (Magick). Sur un succès, comparez votre DR au Niveau d'Incantation (NI) du Sort (indiqué dans sa description). Si votre DR est égal ou supérieur au NI du Sort, il est lancé comme dans la description du Sort. Sur un échec, la tentative échoue et rien ne se produit. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.22-24) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +59 — `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +8 fichiers
+- `LDB 46` (l.22-24) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +60 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, +9 fichiers
 - `LDB 85` (l.206-207) → `TraitDef`, `morsure`, `polymorphOps`, `ManeuverPostHitHook`, `spawnMutations`, `Condition`, `langue-prehensile`, `doc`, `mutationsAtSpawn`, `TriggerCtx`, +27 — `src/data/maneuvers.json`, `src/data/schemas/defs/traits.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +10 fichiers
 
 ---
@@ -188,7 +188,7 @@ Un **Critique** au Test d'incantation (double réussi) signifie que les Vents on
 > **Verbatim** (l.31-32) : « **Puissance totale :** le Sort est lancé, quels que soient son NI et votre DR obtenu, mais il peut être Dissipé. » / « **Force inéluctable :** si vous obtenez suffisamment de DR pour lancer votre Sort, il ne peut être Dissipé. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.27-32) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, `mineure-secousse-spirituelle`, +58 — `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, `src/engine/types.ts`, +7 fichiers
+- `LDB 46` (l.27-32) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, `mineure-secousse-spirituelle`, +59 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +8 fichiers
 
 ---
 
@@ -281,7 +281,7 @@ Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le cont
 | 96–00 | Chaos en cascade | Effectuer un nouveau lancer sur le Tableau des Incantations Imparfaites **Majeures**. |
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 46` (l.34-55) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `MiscastResult`, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `mineure-secousse-spirituelle`, +60 — `src/data/miscast.json`, `src/engine/magic.ts`, `src/engine/miscast.ts`, `src/engine/types.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +3 fichiers
+- `LDB 46` (l.34-55) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `MiscastResult`, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `mineure-secousse-spirituelle`, +61 — `src/data/index.ts`, `src/data/miscast.json`, `src/engine/magic.ts`, `src/engine/miscast.ts`, `src/engine/types.ts`, `src/state/combatFlow.ts`, +4 fichiers
 
 ---
 
@@ -493,7 +493,7 @@ Les sorts indiqués *Projectile magique* suivent des règles de résolution spé
 > **Verbatim** (l.101) : « Quand un Projectile magique est lancé avec succès et qu'il cible un autre Personnage, la Localisation atteinte est déterminée en inversant les dés lancés pour le Test de Langue (Magick). […] Le DR du Test de Langue (Magick) est ajouté aux Dégâts du Sort et à votre Bonus de Force Mentale pour déterminer le total de Dégâts infligés. Ces Dégâts sont réduits normalement par l'Endurance et les PA de la cible. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 13` (l.133) → `localisation`, `useDefenseJetProps`, `hitLocation`, `useAttackJetProps`, `toucheSauvee`, `FLOWS`, `previewDefense`, `rangedDefenseModes`, `GameState`, `createCombatSlice`, +3 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/state/combat/hitModifiers.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +4 fichiers
+- `LDB 13` (l.133) → `localisation`, `useDefenseJetProps`, `hitLocation`, `useAttackJetProps`, `toucheSauvee`, `FLOWS`, `previewDefense`, `passiveOutcome`, `rangedDefenseModes`, `GameState`, +4 — `src/data/localisation.json`, `src/data/schemas/defs/localisation.ts`, `src/engine/combat.ts`, `src/state/combat/hitModifiers.ts`, `src/state/combatFlow.ts`, `src/state/combatSlice.ts`, +4 fichiers
 - `LDB 46` (l.99-101) → `followsCharacterRules`, `overcastAxes`, `REPORT_DE_COMBATTANT`, `combat-spell-plus`, `missileComponent`, `missileOvercastDamageBonus`, `canCastFromGrimoire`, `miscast-table`, `miscast-row-test`, `oppositionDiscount`, +17 — `src/data/combat-stakes.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, `src/engine/miscast.ts`, +10 fichiers
 
 ---

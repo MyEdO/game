@@ -12,6 +12,7 @@ import { envDeDepotForge, envGitFeint, gabaritDeDepot, instanceDeDepot, sousGitF
 import { ENV_GIT_FEINT, GitIndisponible, TRAVAIL, depotDe, listerImage, shaDe } from './gitPorte.mjs'
 import { listerDossier } from './lister.mjs'
 import { ast, typescript } from './dialecte.mjs'
+import { MOTIF_D_EXTENSION } from './fichierVitest.mjs'
 import { readCorpus } from './sourceCorpus.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
@@ -437,7 +438,7 @@ test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pa
   }
   const racine = fileURLToPath(new URL('../../..', import.meta.url))
   const sites = listerImage(depotDe(racine), TRAVAIL, 'scripts')
-    .filter((f) => /\.[cm]?[jt]sx?$/.test(f))
+    .filter((f) => new RegExp(`${MOTIF_D_EXTENSION}$`).test(f))
     .flatMap((f) => surchargesDe(f, readFileSync(join(racine, f), 'utf8')).map((s) => ({ fichier: f, ...s })))
   const restants = sites.filter((s) => !SURCHARGES_HORS_CLASSE.some((e) => e.fichier === s.fichier && s.texte.includes(e.ancre)))
   assert.deepEqual(restants.map((s) => `${s.fichier}:${s.ligne} ${s.texte}`), [])

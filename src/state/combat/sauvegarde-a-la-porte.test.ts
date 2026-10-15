@@ -31,7 +31,7 @@ import type { CascadeStep } from '../pendings';
 import { CHAR_KEYS, type Combatant, type Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { OPS_DIFFEREES } from '../combatEffects';
-import { cascadeDeTest } from '../cascadeTestKit';
+import { avanceEtapeCascade, cascadeDeTest } from '../cascadeTestKit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -289,8 +289,7 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
       const st = casc.participants[casc.cursor];
       if (!st) break;
       for (const x of casc.participants) if (x.kind === 'sauvegarde' && x.actorId && !vus.includes(x.actorId)) vus.push(x.actorId);
-      if (st.de && !st.de.result) useGame.getState().cascadeDieSetForcedRoll(st.id, 1);
-      useGame.getState().cascadeNext();
+      avanceEtapeCascade(useGame.getState);
       capter();
     }
     const lignes = lignesLues();
@@ -330,8 +329,8 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
   const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
   const blindee = { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 };
 
-  /** Joue la séquence jusqu'au bout comme le pilote : dés posés à 1 (toute sauvegarde RATE), choix au
-   *  défaut. Renvoie les `kind` d'étapes traversés. */
+  /** Joue la séquence jusqu'au bout comme le pilote : les porteurs sont AUTO, leurs dés se résolvent
+   *  d'office ; choix au défaut. Renvoie les `kind` d'étapes traversés. */
   const derouler = (): string[] => {
     const vus: string[] = [];
     for (let garde = 0; garde < 12 && useGame.getState().pendingCascade; garde++) {
@@ -339,8 +338,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
       const st = casc.participants[casc.cursor];
       if (!st) break;
       vus.push(st.kind);
-      if (st.de && !st.de.result) useGame.getState().cascadeDieSetForcedRoll(st.id, 1);
-      useGame.getState().cascadeNext();
+      avanceEtapeCascade(useGame.getState);
       capter();
     }
     return vus;

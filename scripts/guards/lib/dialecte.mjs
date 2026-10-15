@@ -5,7 +5,11 @@ import { syntaxProgram, VIRTUAL_ROOT, libererSessions } from './tsProgram.mjs';
 const require = createRequire(import.meta.url);
 let compilateur;
 export const typescript = () => (compilateur ??= require('typescript/unstable/ast'));
-const DIALECTE = { ts: 'TS', mts: 'TS', cts: 'TS', tsx: 'TSX', js: 'JS', mjs: 'JS', cjs: 'JS', jsx: 'JSX', json: 'JSON' };
+const KIND_DE_SCRIPT = { ts: 'TS', mts: 'TS', cts: 'TS', tsx: 'TSX', js: 'JS', mjs: 'JS', cjs: 'JS', jsx: 'JSX' };
+/** Les EXTENSIONS d'un script du dépôt, liste UNIQUE : `fichierVitest.mjs` en compose son motif, `lintStage.mjs`
+ *  et `perimetre.mjs` la consomment. */
+export const EXTENSIONS_DE_SCRIPT = Object.freeze(Object.keys(KIND_DE_SCRIPT).map((ext) => `.${ext}`));
+const DIALECTE = { ...KIND_DE_SCRIPT, json: 'JSON' };
 
 export function scriptKindDe(fichier, { inconnu = 'TS' } = {}) {
   const nom = String(fichier ?? '').replaceAll('\\', '/').split('/').pop() ?? '';

@@ -86,13 +86,13 @@ import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
 import { pushChoice } from './rollSeam';
-import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById } from '../data';
+import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById, findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { verdictApprentissage } from '../engine/grimoire';
 import { spawnEnemy } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
 import { ev } from './combatLog';
-import { isOutOfAction, syncDerivedConditions, cannotDefend } from '../engine/conditions';
+import { isOutOfAction, syncDerivedConditions, cannotDefend, etatConnu, etatIdsConnus } from '../engine/conditions';
 import { tickDisease } from '../engine/disease';
 import { battleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
@@ -119,8 +119,8 @@ import { willAutoResolve } from './combatAuto';
 import { aiDriven, combatAdvanceBlocked } from './combatGate';
 import { endTurnArmed } from './endTurnGuard';
 import { activeLoadout, isShieldItem, loadoutLabel, formeResolue } from '../engine/items';
-import { bestDefenseMode, trampleTarget } from './combatManeuvers';
-import { creatureAttacks } from '../engine/creatureAttacks';
+import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, MELEE_MANEUVER_KINDS } from './combatManeuvers';
+import { attaquesNaturelles, attaqueNaturelle, type AttackKind } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
 import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
@@ -278,7 +278,9 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.turn('id')     → TRICHE : donne le tour à un combattant ; __wfrp.place('id',{x,y}) → téléporte
  *   __wfrp.attaque(a, d)  → SETUP : pose l'attaque de l'IA `a` sur `d` et OUVRE la modale de Défense de `d`
  *   __wfrp.attaqueGratuite(a, d, type?) → SETUP : l'ennemi `a` déclare une attaque GRATUITE de créature sur `d`
- *                           (file de production `aiCreatureFreeAttacks`) et OUVRE la modale de Défense de `d`
+ *                           (file de production `aiCreatureFreeAttacks`) ; ✓ quand la file la déclare : modale de
+ *                           Défense ouverte (sur `d` ou le premier adversaire au contact, nommé), coup suspendu
+ *                           sur une étape, ou coup joué sans fenêtre ; ✗ si rien ne part
  *   __wfrp.turnShip('id', 'tribord'|'babord'|crans) → vire le cap d'un NAVIRE (manœuvre) → re-mappe ses bordées
  *   __wfrp.modal()        → modale(s) ouvertes ; __wfrp.roll()/confirm()/cancel() → pilote LA modale
  *                           (convention <flux>Roll/Confirm/Cancel ; reveals/Round ont leur verbe propre)
@@ -300,6 +302,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.flags()        → drapeaux de scénario ; __wfrp.flag('id', true) → force un drapeau
  *   __wfrp.go('scene-id') → saute vers une scène du projet ; __wfrp.fight() → liste/lance une rencontre
  *   __wfrp.fear(h,e,i?)   → pose une Peur (Indice) de h envers e puis simule l'approche (Test de Calme ou Brisé)
+ *   __wfrp.psych(id,type) → pose l'état psychologique `type` (op `beginPsych`) ; type hors psychology.json → ✗ + ids valides
  *   __wfrp.time(min)      → avance l'horloge ; __wfrp.rest(jours) → dort (cascade quotidienne #T3)
  *   __wfrp.quality(id,label,av?) → ajoute un Atout d'arme à l'arme active + Avantages (test renversement…)
  *   __wfrp.seed(n)        → ré-ensemence le RNG de bataille (déterminisme, EN COURS de combat)
@@ -1413,7 +1416,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  reprend ce tour comme après une gratuite d'IA. Refus NOMMÉS, sans rien toucher : les refus de
      *  `attaque`, attaquant non ennemi, aucune gratuite disponible (ou `type` absent de ses gratuites),
      *  défenseur hors de portée, non surfacé, incapable de se défendre ; puis, si la file écarte l'unité, le
-     *  tour est rendu et la raison nommée (Avantage sous le coût). */
+     *  tour est rendu et la raison nommée (Avantage sous le coût). Une gratuite DÉCLARÉE par la file rend ✓,
+     *  qu'elle ouvre une fenêtre de Défense (sur `defenseurId` ou le premier adversaire au contact), soit
+     *  suspendue sur une étape (sauvegarde…) ou jouée sans fenêtre. */
     attaqueGratuite: (attaquantId: string, defenseurId: string, type?: string | null) => {
       const b = g().battle;
       if (!b || b.over) return '✗ pas de combat en cours';
@@ -1430,15 +1435,14 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : ses gratuites passent par la barre d'actions`;
       if (att.kind !== 'enemy') return `✗ ${att.label} n'est pas un ennemi : la file des gratuites de créature ne joue que les ennemis`;
       if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
-      const atks = creatureAttacks(att.traits ?? []);
-      const disponibles = [
-        ...(att.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes'] : []),
-        ...atks.filter((a) => a.trigger === 'free' && ['morsure', 'caudale', 'tentacules'].includes(a.kind)).map((a) => a.kind),
-        ...(trampleTarget(b, att, def.id) ? ['pietinement'] : []),
+      const atks = attaquesNaturelles(att.traits ?? []);
+      const disponibles: AttackKind[] = [
+        ...(att.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes' as const] : []),
+        ...atks.filter((a) => a.trigger === 'free' && MELEE_MANEUVER_KINDS.includes(a.kind) && freeAttackTargetOk(b, att, a.kind, def)).map((a) => a.kind),
       ];
       if (!disponibles.length) return `✗ ${att.label} n'a aucune attaque gratuite disponible contre ${def.label} (Morsure, Attaque caudale, Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact) — __wfrp.trait() d'abord`;
-      const kind = type ?? disponibles[0];
-      if (!disponibles.includes(kind)) return `✗ « ${kind} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
+      const kind = disponibles.find((k) => k === (type ?? disponibles[0]));
+      if (!kind) return `✗ « ${type} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
       if (combatDistance(att, def) > 1) return `✗ ${def.label} est hors de portée de ${att.label} (distance ${combatDistance(att, def)} > 1) — __wfrp.place() d'abord`;
       if (!defenseSurfaced(g(), def)) return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
       if (cannotDefend(def)) return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
@@ -1446,12 +1450,18 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const auTour = g().battle!;
       const porteur = inBattleId(auTour, att.id)!;
       porteur.pendingFreeAttacks = [kind];
-      aiCreatureFreeAttacks(() => useGame.getState(), useGame.setState, porteur);
-      const ouverte = g().pendingDefense;
-      if (ouverte?.defenderId === def.id) return `✓ ${att.label} déclare ${kind} sur ${def.label} — modale de Défense ouverte`;
-      if (ouverte) return `✗ la file a visé ${inBattleId(g().battle, ouverte.defenderId)?.label ?? ouverte.defenderId} (premier adversaire au contact) : sa modale de Défense est ouverte — isoler ${def.label} par __wfrp.place()`;
+      const declarees = porteur.freeAttacksThisTurn?.[kind] ?? 0;
+      const suspendue = aiCreatureFreeAttacks(() => useGame.getState(), useGame.setState, porteur);
+      if ((porteur.freeAttacksThisTurn?.[kind] ?? 0) > declarees) {
+        const ouverte = g().pendingDefense;
+        const visee = ouverte ? inBattleId(g().battle, ouverte.defenderId)?.label ?? ouverte.defenderId : null;
+        if (visee !== null) return `✓ ${att.label} déclare ${kind} sur ${visee} — modale de Défense ouverte${ouverte!.defenderId === def.id ? '' : ` (premier adversaire au contact, pas ${def.label})`}`;
+        const etape = g().pendingCascade;
+        if (suspendue) return `✓ ${att.label} déclare ${kind} : coup suspendu${etape ? ` sur l'étape ${etape.participants[etape.cursor]?.kind ?? '?'}` : ''} — __wfrp.modal()`;
+        return `✓ ${att.label} déclare ${kind} : coup joué sans fenêtre sur le premier adversaire au contact — __wfrp.log()`;
+      }
       if (g().battle === auTour) useGame.setState({ battle: b });
-      const cout = atks.find((a) => a.kind === kind)?.avantage ?? 1;
+      const cout = freeAttackCost(b, att, attaqueNaturelle(att.traits ?? [], kind)!.def).advantage;
       return `✗ la file a écarté ${kind} de ${att.label} : ${att.advantage} Avantage pour un coût de ${cout} — __wfrp.quality('${att.id}', null, ${cout}) d'abord`;
     },
 
@@ -1949,10 +1959,12 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return c ? `✓ ${c.label} : arme « ${c.weapons?.[0]?.label} » + ${label}${advantage != null ? ` · ${advantage} Av` : ''}` : `✗ ${id} introuvable`;
     },
 
-    /** RECETTE : applique un État à un combattant (par id) par l'effet `ops` (op `condition`). */
+    /** RECETTE : applique un État à un combattant (par id) par l'effet `ops` (op `condition`) ; un id
+     *  hors `etatConnu` (catalogue vivant ∪ marqueurs narratifs) → ✗ + ids valides, rien de posé. */
     condition: (id: string, name = 'sonne', n = 1) => {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
+      if (!etatConnu(name)) return `✗ État « ${name} » inconnu — ids valides : ${etatIdsConnus().join(', ')}`;
       nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'condition', id: name, value: n }] }]), 'devtools.condition');
       return `✓ ${c.label} : +${n} ${name}`;
     },
@@ -2062,6 +2074,16 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       approachFearTrigger(() => useGame.getState(), useGame.setState, enemy, fromPos);
       bus.emit(EVT.SCENE_DIRTY);
       return `✓ ${enemy.label} (Peur ${indice}) s'approche de ${hero.label} → Test de Calme ou Brisé`;
+    },
+
+    /** RECETTE : pose l'état psychologique `type` (id de `psychology.json`) sur un combattant par l'op
+     *  `beginPsych` (effet `ops`, même chemin que `condition`). */
+    psych: (id: string, type: string) => {
+      const c = actorIn(g(), id);
+      if (!c) return `✗ combattant ${id} introuvable`;
+      if (!findPsychologyById(type)) return `✗ état psychologique « ${type} » inconnu — ids valides : ${psychologies.map((p) => p.id).join(', ')}`;
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'beginPsych', type }] }]), 'devtools.psych');
+      return `✓ ${c.label} : ${psychologyLabel(type)}`;
     },
 
     /** RECETTE : saute vers une scène du projet/de la campagne par id (machinerie de transition). */

@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /** LDB 85 */
 import { z } from 'zod';
 import { entityAppearanceSchema, charKeySchema, mutationKindSchema, specsSourceSchema } from '../grammaire/valeurs';
-import { refSchema } from '../grammaire/reference';
+import { ref } from '../grammaire/ref';
 import { document } from '../grammaire/document';
 import { gameOpSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
 
@@ -49,7 +49,8 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   frenzyCapable: z.boolean().optional(),
   mindless: z.boolean().optional(),
   woundsUseForce: z.boolean().optional(),
-  freeTrample: z.boolean().optional(),
+  /** LDB 85 l.314 */
+  freeTrample: ref('maneuver').optional(),
   bestial: z.boolean().optional(),
   coldBlooded: z.boolean().optional(),
   stupid: z.boolean().optional(),
@@ -95,7 +96,7 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   frenzyCapable: { label: 'Frénésie' },
   mindless: { label: 'Sans esprit' },
   woundsUseForce: { label: 'Blessures calculées avec la Force' },
-  freeTrample: { label: 'Piétinement gratuit' },
+  freeTrample: { label: 'Manœuvre pour une Action de Mouvement', hint: 'Manœuvre que le porteur peut payer de son Action de Mouvement plutôt que de son Avantage' },
   bestial: { label: 'Bestial' },
   coldBlooded: { label: 'À Sang froid' },
   stupid: { label: 'Stupide' },
@@ -137,7 +138,7 @@ const doc = document(
     /** LDB 48 l.23 */
     nonTransferable: z.boolean().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
-    grantsManeuvers: z.array(refSchema).optional(),
+    grantsManeuvers: z.array(ref('maneuver')).optional(),
     /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`state/advancement.ts`). */
     passive: z.array(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
     appearance: entityAppearanceSchema.optional(),

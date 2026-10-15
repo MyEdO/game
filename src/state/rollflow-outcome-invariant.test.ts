@@ -82,10 +82,6 @@ const FIXTURES: Record<string, Fix> = {
       suite: { mode: 'machine', coup: {} },
     },
   }) },
-  trample: { make: (win) => ({
-    battle: arena(),
-    pendingTrample: { attackerId: 'A', targetId: 'B', result: { hit: win, attackerRoll: win ? 20 : 90, netSL: win ? 2 : -5, critical: false, advantageTo: win ? 'attacker' : 'defender', defenderDefeated: false, log: '', attackerDetail: atkDetail(win) } },
-  }) },
   // ── Incantation / Focalisation / dissipation (jet propre / DR) ──
   cast: {
     make: (win) => ({

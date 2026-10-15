@@ -55,7 +55,6 @@ const INVENTORY: Record<string, readonly string[]> = {
   disengage:  ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   auContact:  ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   grapple:    ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  trample:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   battement:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   distraire:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   maneuver:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],

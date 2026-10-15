@@ -2,8 +2,8 @@ import { useId, useMemo, useRef } from 'react';
 import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { COUCHE_CONVERSATION, reponsesDuNoeud, type ReponseDeDialogue, type TestAnnonce } from '../state/dialogue';
-import { byId, refLabel } from '../data';
-import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
+import { testSkillLabel } from '../data';
+import { DIFFICULTY_LABELS } from '../engine/types';
 import { spellMoney } from '../engine/money';
 import { t } from '../i18n';
 import { Coins } from './Coins';
@@ -18,15 +18,12 @@ import { GatedAction, raisonSi } from './GatedAction';
 /**
  * Ce que la réponse ANNONCE, en clair : « Compétence — Difficulté », plus le DR CUMULÉ d'un Test
  * ÉTENDU. Les ids STABLES viennent du FLUX (`testAnnonce`) ; ici, et ici seulement, ils se résolvent
- * en libellés au registre (`byId('skill')`/`refLabel`, `CHAR_LABELS`, `DIFFICULTY_LABELS`) — un
+ * en libellés au registre (`testSkillLabel`, `DIFFICULTY_LABELS`) — un
  * auteur n'écrit JAMAIS la Compétence dans le libellé de sa réponse (garde
- * `scripts/guards/lib/dialogueLabelTest.mjs`). Une Compétence hors catalogue s'affiche par son id
- * nu : une dette de donnée se voit, elle ne crashe pas.
+ * `scripts/guards/lib/dialogueLabelTest.mjs`).
  */
 function libelleDuTest(test: TestAnnonce): string {
-  const quoi = test.skill
-    ? (byId('skill', test.skill.id) ? refLabel('skills', test.skill) : test.skill.id)
-    : test.characteristic ? CHAR_LABELS[test.characteristic] : '';
+  const quoi = testSkillLabel({ skill: test.skill, char: test.characteristic }) ?? '';
   const diff = DIFFICULTY_LABELS[test.difficulty];
   // Le FORMAT est un texte joueur : il vit à l'i18n comme les autres formats de ligne de jet
   // (`casc.traceTestLabel`), jamais en gabarit codé ici.

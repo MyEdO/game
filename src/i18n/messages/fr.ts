@@ -49,13 +49,8 @@ export const fr = {
   'defense.awaiting': 'En attente de la Défense de {cible}.',
   // Action de la modale d'attaque quand la Défense s'interpose : elle passe la main, n'applique rien (#1765).
   'defense.passerLaMain': 'Passer à la Défense',
-  // Attaques gratuites de créature (LDB 85) — lu par `FREE_ATTACK_LABEL` (`engine/combat.ts`).
-  'freeAttack.morsure': 'Morsure',
-  'freeAttack.caudale': 'Attaque caudale',
-  'freeAttack.cornes': 'Cornes (charge)',
-  'freeAttack.pietinement': 'Piétinement',
-  'freeAttack.langue': 'Langue',
-  'freeAttack.hurlement': 'Hurlement',
+  // Action de la modale d'attaque quand aucune Défense ne s'interpose : elle applique le coup.
+  'defense.appliquer': 'Appliquer',
   // Localisations par forme de corps (LDB 76 l.17-29) — lu par `BODY_SHAPE_LOC_LABELS` (`engine/types.ts`).
   'hitloc.quadrupede.brasG': 'Membre antérieur gauche',
   'hitloc.quadrupede.brasD': 'Membre antérieur droit',
@@ -671,6 +666,7 @@ export const fr = {
   'cs.cursorInvalidTile': 'Case non valide pour cette action.',
   'cs.refusCourseNonArmee': 'Trop loin pour marcher — armez la Course pour aller jusque-là.',
   'cs.refusApprocheNonArmee': '{name} est hors de portée — armez la Charge pour l’atteindre.',
+  'cs.refusCibleGratuite': '{attaque} : {name} n’est pas une cible valide.',
   'cs.refusSansSortDissipable': 'Aucun Sort à dissiper sur cette cible.',
   'cs.refusCaseHorsPortee': 'Case hors d’atteinte pour ce Tour.',
   'cs.refusMouvementEpuise': 'Mouvement déjà dépensé ce Tour.',
@@ -2535,7 +2531,7 @@ export const fr = {
   'agate.noMovementLeft': 'plus de Mouvement ce tour',
   'agate.noResolve': 'aucun point de Détermination',
   'agate.noFreeWeaponAttack': 'aucune attaque d’Arme gratuite disponible',
-  'agate.noTrampleTarget': 'aucune cible piétinable',
+  'agate.noTrample': 'aucun Piétinement disponible',
   'agate.noBattementTarget': 'aucun adversaire où battre le fer',
   'agate.noDistraireTarget': 'aucun adversaire à distraire',
   'agate.singleLoadout': 'un seul set d’armes',
@@ -2572,6 +2568,18 @@ export const fr = {
   // Alvéole VIDE : rien ne s'y écrit à l'écran (arbitrage user 2026-08-24) — ce nom n'existe que pour
   // le lecteur d'écran, qui ne voit pas le creux.
   'cc.caseVide': 'emplacement vide',
+  // COÛT d'une alvéole, pour le lecteur d'écran (les crans le disent à l'œil).
+  'cc.coutAvantage': '{n} Avantage, dont {couverts} disponible(s)',
+  'cc.cout': 'Coût : {parts}',
+
+  // CONSIGNE d'un mode de ciblage (`TargetingMode.consigne`) : ce que la carte attend du joueur,
+  // dite par le bandeau de phase sous le nom de la phase.
+  'consigne.cleave': 'Cliquez un adversaire adjacent que vous n’avez pas encore frappé.',
+  'consigne.dual': 'Cliquez un adversaire à portée de votre seconde arme.',
+  'consigne.overcast': 'Cliquez chaque cible supplémentaire, puis validez.',
+  'consigne.placing-zone': 'Cliquez la case où poser la zone.',
+  'consigne.battery': 'Cliquez un adversaire dans l’arc de la bordée.',
+  'consigne.teleport': 'Cliquez la case où vous téléporter.',
 
   // Postures de tir : le refus vient du prédicat partagé `STANCE_BLOCK` (`state/combatFlow.ts`), lu
   // par le gate du registre, le store et la fenêtre de jet. Même famille de texte JOUEUR que ci-dessus

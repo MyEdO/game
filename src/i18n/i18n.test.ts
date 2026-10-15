@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { t, interpolate, getLocale } from './index';
 import { fr } from './messages/fr';
 import { CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, BODY_SHAPE_LOC_LABELS } from '../engine/types';
-import { DEFENSE_LABEL, FREE_ATTACK_LABEL } from '../engine/combat';
+import { DEFENSE_LABEL } from '../engine/combat';
 import { cibleLabel } from '../engine/psychology';
 import { psychologyLabel } from '../data';
 
@@ -33,8 +33,6 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     expect(HIT_LOCATION_LABELS.tete).toBe(t('hitloc.tete'));
     expect(HIT_LOCATION_LABELS.jambeD).toBe('Jambe droite');
     expect(DEFENSE_LABEL.parade).toBe('Parade');
-    expect(FREE_ATTACK_LABEL.morsure).toBe(t('freeAttack.morsure'));
-    expect(FREE_ATTACK_LABEL.caudale).toBe('Attaque caudale');
     expect(BODY_SHAPE_LOC_LABELS.quadrupede.brasG).toBe('Membre antérieur gauche');
     expect(BODY_SHAPE_LOC_LABELS.oiseau.brasG).toBe(t('hitloc.oiseau.brasG'));
     // Le libellé d'un type psy CIBLÉ DÉRIVE de psychology.json (donnée app-owned, comme etats.json),

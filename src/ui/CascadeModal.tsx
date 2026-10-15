@@ -8,7 +8,6 @@ import { StakeRule, OutcomeNote, sameCertainOps, sameEntityRef } from './StakeNo
 import { branchCertainOps, branchBlockingEntity } from '../state/combat/flowEval';
 import { resolveStake } from '../data';
 import { useAttackJetProps } from './jetProps/useAttackJetProps';
-import { useTrampleJetProps } from './jetProps/useTrampleJetProps';
 import { useDefenseJetProps } from './jetProps/useDefenseJetProps';
 import { useFumbleJetProps } from './jetProps/useFumbleJetProps';
 import { useTestJetProps } from './jetProps/useTestJetProps';
@@ -143,7 +142,6 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const resolveAll = useGame((s) => s.cascadeResolveAll); // « Tout lancer » → bilan
   const finish = useGame((s) => s.cascadeFinish); // « Terminer » du bilan
   const attackProps = useAttackJetProps(); // étape-jet d'attaque : rendue dans CETTE coquille (une fenêtre)
-  const trampleProps = useTrampleJetProps(); // étape-jet de Piétinement : jet + son Critique dans UNE fenêtre
   const defenseProps = useDefenseJetProps(); // étape-jet de défense réactive : défense + son Critique dans UNE fenêtre
   const fumbleProps = useFumbleJetProps(); // étape-jet de Maladresse : Tableau des Oups ! dans la MÊME fenêtre
   const testProps = useTestJetProps(); // étape-jet de Test de scène : même coquille, une seule fenêtre
@@ -445,7 +443,6 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // garde le sien, sans jamais deux `StakeNote`.
   const JET_RENDERERS: Record<NonNullable<CascadeStep['jet']>, () => JSX.Element> = {
     attack: () => <RollShell {...stakeProps} {...attackProps!} embedded={embedded} etape={etape} />,
-    trample: () => <RollShell {...stakeProps} {...trampleProps!} embedded={embedded} etape={etape} />,
     defense: () => <RollShell {...stakeProps} {...defenseProps!} embedded={embedded} etape={etape} />,
     fumble: () => <RollShell {...stakeProps} {...fumbleProps!} embedded={embedded} etape={etape} />,
     test: () => <RollShell {...stakeProps} {...testProps!} embedded={embedded} etape={etape} />,
@@ -468,7 +465,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // un titre « Haine ». La mémoire du joueur est portée par le JOURNAL (chaque conséquence y est
   // écrite par `commitStep`) et par le BILAN de fin de séquence, qui rend TOUTES les étapes.
   // Action « Continuer » / « Terminer » (dernière étape) — bouton primaire d'enchaînement, partagé par
-  // les étapes AFFICHAGE et CHOIX (conséquences pures, aucun jet à attendre) : `when:'always'`.
+  // les étapes AFFICHAGE, QUANTITÉ et CHOIX (conséquences pures, aucun jet à attendre) : `when:'always'` ;
+  // l'étape BATCH ne le sert qu'une fois ses rangées lancées (`ready`).
   // Un CHOIX non tranché ne se valide pas (`stepReady`) : l'action est REFUSÉE et dit pourquoi
   // (`RollAction.refus` → `GatedAction`), jamais un primaire actif qui ne fait rien.
   const continueAction: RollAction = {

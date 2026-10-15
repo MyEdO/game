@@ -1520,7 +1520,7 @@ function tirageSansSiege(get: Get, st: CascadeStep | undefined): boolean {
  *
  * DEV : la violation THROW (le producteur fautif se voit au premier passage) ; en PROD elle se
  * journalise et l'étape est FRANCHIE — une partie en cours ne se fige pas sur une fenêtre morte.
- * Prédicat PUR et TOTAL (les neuf `HostJet`) : `stateFields.hoteOrphelin`.
+ * Prédicat PUR et TOTAL (tous les `HostJet`) : `stateFields.hoteOrphelin`.
  *
  * Joué à l'ARRIVÉE du curseur seulement (ouverture, avancée, reprise, et l'append qui tire le curseur
  * hors du bilan) : le curseur POSÉ sur l'étape dont la fenêtre vient de rendre sa donnée n'est pas un

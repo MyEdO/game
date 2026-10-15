@@ -51,7 +51,7 @@ import type { AuthoredEnemy } from './encounterAuthoring';
 import { registerScene } from './store';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
-import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence } from '../data';
+import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
 import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, vesselPropulsion, type SteamBreakdownEntry, type PropulsionKind } from '../engine/shipBuild';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
@@ -99,7 +99,7 @@ import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs } from '../engine/disease';
-import { CHAR_LABELS, DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
+import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
 import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel } from './store';
@@ -2027,7 +2027,7 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
   let lastDR = 0;
   for (const step of restart) {
     const value = testValue(eng, step.skill?.id, step.char, step.skill?.spec);
-    const label = step.skill ? refLabel('skills', step.skill) : step.char ? CHAR_LABELS[step.char] : '';
+    const label = testSkillLabel({ skill: step.skill, char: step.char }) ?? '';
     if (step.extendedDR != null) {
       let total = 0;
       for (let i = 0; total < step.extendedDR && i < 20; i++) total += Math.max(0, rollTest(value, step.difficulty, rng).sl);

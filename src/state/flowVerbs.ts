@@ -83,7 +83,6 @@ export const FLOW_VERBS = {
   flee:         { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'], coop: true, resolution: ['fleeConfirm'] },
   auContact:    { kind: 'mono', verbs: ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingAuContact', field: 'moverId' } },
   grapple:      { kind: 'mono', verbs: ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingGrapple', field: 'actorId' } },
-  trample:      { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingTrample', field: 'attackerId' } },
   battement:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingBattement', field: 'attackerId' } },
   distraire:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingDistraire', field: 'moverId' } },
   // Manœuvre de créature : la modale n'influence QUE le jet de l'ATTAQUANT (les jets des défenseurs

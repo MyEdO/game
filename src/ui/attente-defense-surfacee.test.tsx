@@ -47,9 +47,10 @@ const dart: Weapon = { name: 'Fléchette', label: 'Fléchette', type: 'ranged', 
 
 /** Duel MJ : l'ENNEMI est conduit à la main (siège MJ → attaque PILOTÉE, modale d'attaque) et le
  *  héros défenseur est SURFACÉ (`defenseSurfaced`) — quadrant exact du défaut. */
-function duel(opts?: { gmSeat?: number; heroAi?: boolean; surpris?: boolean; atkWeapons?: Weapon[] }) {
+function duel(opts?: { gmSeat?: number; heroAi?: boolean; surpris?: boolean; atkWeapons?: Weapon[]; atkTraits?: Combatant['traits'] }) {
   const enemy = mk('Rôdeur', 'enemy', { x: 1, y: 0 }, opts?.atkWeapons ?? [sword]);
   const hero = mk('Grunni', 'hero', { x: 0, y: 0 }, [sword]);
+  if (opts?.atkTraits) enemy.traits = opts.atkTraits;
   if (opts?.heroAi) hero.aiControlled = true;
   if (opts?.surpris) addCondition(hero, COND.surpris);
   const battle: BattleState = {
@@ -298,7 +299,7 @@ describe('#1004 T1 / #997 — Tir rapide en interruption : l’attente annoncée
  * OPPOSÉS — l'écran annonçait le verdict chiffré, puis la fenêtre s'ouvrait et l'invalidait.
  */
 describe('#1026 SONDE2 — une seule vérité d’ARME entre l’écran et l’application', () => {
-  const NATURAL = { atkWeapons: [dart] };
+  const NATURAL = { atkWeapons: [dart], atkTraits: [{ id: 'morsure', value: 6 }] };
   const PA = { freeKind: 'morsure', weaponUid: undefined };
 
   it('divergence FORGÉE : les deux résolutions d’arme rendaient des verdicts opposés', () => {

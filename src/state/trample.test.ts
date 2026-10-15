@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { trampleTarget, aiCreatureFreeAttacks, runEnemyAI } from './combatFlow';
+import { cibleDEcartDeTaille, aiCreatureFreeAttacks, runEnemyAI, availableAttacks } from './combatFlow';
 import { mountMovement } from './mount';
+import { ACTION_GATES } from './actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';
 
 // ---------------------------------------------------------------------------
-// Piétinement — action gratuite à 1 Avantage (LDB 85 - Traits de creature.md l.320-321)
+// Piétinement — attaque gratuite de mêlée, OPPOSÉE (LDB 85 l.387 ; LDB 13 l.123)
 // ---------------------------------------------------------------------------
 
 /** Le combattant PREND son rang d'initiative : `runEnemyAI` refuse un tour qui n'est pas celui de
@@ -28,16 +29,16 @@ const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Part
     skills: [], talents: [], movement: 4, pos: { x, y }, ...over,
   }) as unknown as Combatant;
 
-describe('trampleTarget — cible de Piétinement (pur)', () => {
+describe('cibleDEcartDeTaille — cible au contact plus petite d’au moins N catégories (pur)', () => {
   it('renvoie un adversaire adjacent PLUS PETIT et vivant ; pas un égal/lointain/mort', () => {
     const big = at('enemy', 'TROLL', 5, 5, { size: 'grande' });
     const small = at('hero', 'H1', 5, 6, { size: 'moyenne' }); // adjacent, plus petit
     const equal = at('hero', 'H2', 4, 5, { size: 'grande' }); // adjacent mais même Taille
     const far = at('hero', 'H3', 5, 9, { size: 'petite' }); // plus petit mais loin
     const battle = { combatants: [big, small, equal, far] } as unknown as BattleState;
-    expect(trampleTarget(battle, big)?.id).toBe('H1');
-    expect(trampleTarget(battle, big, 'H2')).toBeUndefined(); // ciblage explicite d'un égal → rien
-    expect(trampleTarget(battle, big, 'H3')).toBeUndefined(); // trop loin
+    expect(cibleDEcartDeTaille(battle, big, 1)?.id).toBe('H1');
+    expect(cibleDEcartDeTaille(battle, big, 1, 'H2')).toBeUndefined(); // ciblage explicite d'un égal → rien
+    expect(cibleDEcartDeTaille(battle, big, 1, 'H3')).toBeUndefined(); // trop loin
   });
 });
 
@@ -69,98 +70,163 @@ describe('Piétinement en combat (store)', () => {
     E.wounds = { current: 30, max: 30, base: 30 } as Combatant['wounds'];
     E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     const turn = b.order.indexOf(H.id);
-    // Le Piétinement est une attaque GRATUITE déclenchée par `battleTrample` (pas un mode `action`) :
-    // `action: null` = aucun mode actif (le modèle unifié n'arme jamais `action: 'trample'`).
     useGame.setState({ battle: { ...b, turn, action: null, movementUsed: 0, acted: false } });
     return { H, E };
   }
 
-  it('héros plus grand piétine un adversaire adjacent plus petit (touche, action gratuite)', () => {
+  /** Le héros joue le Piétinement par l'attaque gratuite CANONIQUE : option armée, clic-cible commis. */
+  const pietiner = (cibleId: string): void => {
+    useGame.getState().battleSelectAttack('pietinement');
+    useGame.getState().battleClickEntity(cibleId, { confirm: true });
+  };
+  const advDe = (id: string): number => useGame.getState().battle!.combatants.find((c) => c.id === id)!.advantage;
+
+  it('héros plus grand : le Piétinement est un Test OPPOSÉ de Corps à corps, gratuit (LDB 13 l.123 ; LDB 85 l.387)', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
     H.size = 'grande';
     H.characteristics['capacite-de-combat'] = 85;
     H.characteristics.force = 45;
     H.advantage = 2;
-    const before = E.wounds.current;
-    // Modale : battleTrample ouvre SANS tirer ; trampleRoll tire ; trampleConfirm applique (gratuit).
-    useGame.getState().battleTrample(E.id);
-    expect(useGame.getState().pendingTrample).toBeTruthy();
-    expect(useGame.getState().pendingTrample!.result).toBeNull();
-    expect(useGame.getState().battle!.combatants.find((c) => c.id === E.id)!.wounds.current).toBe(before); // dégâts toujours en attente de résolution
-    useGame.getState().trampleRoll();
-    expect(useGame.getState().pendingTrample!.result).toBeTruthy();
-    useGame.getState().trampleConfirm();
-    const st = useGame.getState();
-    expect(st.pendingTrample).toBeNull();
-    expect(st.battle!.combatants.find((c) => c.id === E.id)!.wounds.current).toBeLessThan(before); // touché
-    expect(st.battle!.acted).toBe(false); // action GRATUITE : n'a pas consommé l'Action
+    pietiner(E.id);
+    expect(useGame.getState().pendingAttack!.freeKind).toBe('pietinement');
+    useGame.getState().attackRoll();
+    const pa = useGame.getState().pendingAttack!;
+    expect(pa.weapon!.attackKind, 'l’arme du JET est celle du Piétinement').toBe('pietinement');
+    expect(pa.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
+    useGame.getState().attackConfirm();
+    expect(useGame.getState().battle!.acted, 'action GRATUITE : l’Action reste').toBe(false);
   });
 
-  it('Coup Critique : le Critique se FOLD dans la cascade du Piétinement (plus de 2ᵉ fenêtre « Conséquences »)', () => {
+  it('Morsure jouée par un héros : l’arme du JET est la Morsure, jamais l’arme tenue (#1026 ; LDB 85 l.237)', () => {
+    useGame.getState().seedRng(3);
+    const { H, E } = setup();
+    H.traits = [{ id: 'morsure', value: 10 }];
+    H.advantage = 2;
+    useGame.getState().battleSelectAttack('morsure');
+    useGame.getState().battleClickEntity(E.id, { confirm: true });
+    useGame.getState().attackRoll();
+    const pa = useGame.getState().pendingAttack!;
+    expect(H.weapons.some((w) => w.attackKind === 'morsure'), 'aucune arme tenue ne porte la Morsure').toBe(false);
+    expect(pa.weapon!.attackKind).toBe('morsure');
+    expect(pa.result!.defenderDetail, 'Test opposé').toBeDefined();
+  });
+
+  // LDB 13 l.123 ; LDB 14 l.219.
+  it('Piétinement perdu (CC=1) : l’adversaire gagne +1 Avantage, le piétineur perd tout le sien', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
     H.size = 'grande';
-    H.characteristics['capacite-de-combat'] = 85;
-    H.characteristics.force = 45;
+    H.characteristics['capacite-de-combat'] = 1;
+    E.characteristics['capacite-de-combat'] = 95;
+    E.characteristics.agilite = 95;
     H.advantage = 2;
-    H.resilience = 2;
-    E.wounds = { current: 200, max: 200, base: 200 } as Combatant['wounds']; // survit au Critique (pas de victoire parasite)
-    // Le Piétinement OUVRE une cascade de COMBAT dont l'étape 0 est le jet `jet:'trample'` (comme l'attaque).
-    useGame.getState().battleTrample(E.id);
-    const casc = useGame.getState().pendingCascade!;
-    expect(casc.purpose).toBe('combat');
-    expect(casc.participants[casc.cursor].jet).toBe('trample');
-    // Force un Coup Critique (dé 11 = double, LDB 17 l.68) — déterministe.
-    useGame.getState().trampleRoll();
-    useGame.getState().trampleForceSuccess();
-    useGame.getState().trampleSetForcedRoll(11);
-    expect(useGame.getState().pendingTrample!.result!.critical).toBe(true);
-    useGame.getState().trampleConfirm();
-    const st = useGame.getState();
-    expect(st.pendingTrample).toBeNull();
-    expect(st.pendingCascade).toBeTruthy(); // la MÊME cascade reste ouverte…
-    expect(st.pendingCascade!.purpose).toBe('combat');
-    const cur = st.pendingCascade!.participants[st.pendingCascade!.cursor];
-    expect(cur.kind).toBe('critical'); // …son curseur est sur l'étape de Coup Critique (affichage inline)
-    expect(cur.jet).toBeUndefined(); // étape de conséquence, pas un nouveau jet
-  });
-
-  it('coût : un Piétinement raté dépense bien 1 Avantage (CC=1 → échec déterministe)', () => {
-    useGame.getState().seedRng(2);
-    const { H, E } = setup();
-    H.size = 'grande';
-    H.characteristics['capacite-de-combat'] = 1; // rate quasiment à coup sûr
-    H.advantage = 2;
+    E.advantage = 0;
     const before = E.wounds.current;
-    useGame.getState().battleTrample(E.id);
-    useGame.getState().trampleRoll();
-    useGame.getState().trampleConfirm();
-    const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
-    expect(h.advantage).toBe(1); // 2 − 1 (coût), pas de +1 (raté)
+    pietiner(E.id);
+    useGame.getState().attackRoll();
+    useGame.getState().attackConfirm();
+    expect(advDe(H.id)).toBe(0);
+    expect(advDe(E.id)).toBe(1);
     expect(useGame.getState().battle!.combatants.find((c) => c.id === E.id)!.wounds.current).toBe(before);
   });
 
-  it('refusé sans Avantage : la modale ne s’ouvre pas', () => {
+  it('sans Avantage, ou contre une cible de même Taille : aucune option Piétinement', () => {
     const { H, E } = setup();
     H.size = 'grande';
     H.advantage = 0;
-    useGame.getState().battleTrample(E.id);
-    expect(useGame.getState().pendingTrample).toBeNull();
-  });
-
-  it('refusé contre une cible de même Taille : la modale ne s’ouvre pas', () => {
-    const { H, E } = setup();
+    expect(availableAttacks(H, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
+    H.advantage = 2;
     H.size = 'moyenne';
     E.size = 'moyenne';
+    expect(availableAttacks(H, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
+  });
+
+  it('cible de même Taille au contact : le clic ne piétine pas (`freeAttackTargetOk`)', () => {
+    const { H, E } = setup();
+    const b = useGame.getState().battle!;
+    const E2 = b.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
+    E2.dead = false;
+    E2.pos = { x: 10, y: 11 };
+    H.size = 'grande';
+    E.size = 'moyenne';
+    E2.size = 'grande';
     H.advantage = 2;
-    useGame.getState().battleTrample(E.id);
-    expect(useGame.getState().pendingTrample).toBeNull();
+    pietiner(E2.id);
+    expect(useGame.getState().pendingAttack).toBeNull();
+    expect(advDe(H.id), 'rien n’est débité').toBe(2);
+    expect(useGame.getState().refus?.texte, 'le refus se DIT au clic').toContain(E2.label);
+  });
+
+  // LDB 85 l.314 ; LDB 85 l.387.
+  it('Se cabrer : sans Avantage, l’option existe et coûte l’Action de Mouvement', () => {
+    const { H } = setup();
+    H.size = 'grande';
+    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
+    H.advantage = 0;
+    const piet = availableAttacks(H, useGame.getState().battle!).find((o) => o.id === 'pietinement');
+    expect(piet?.cost).toEqual({ action: false, advantage: 0, movement: true });
+  });
+
+  it('Se cabrer : la frappe débite l’Action de Mouvement (movementUsed plein), PAS l’Avantage', () => {
+    const { H, E } = setup();
+    H.size = 'grande';
+    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
+    H.advantage = 2;
+    expect(useGame.getState().battle!.movementUsed).toBe(0);
+    pietiner(E.id);
+    const st = useGame.getState();
+    expect(st.pendingAttack!.freeKind).toBe('pietinement');
+    expect(st.battle!.movementUsed).toBe(mountMovement(st.battle!, H));
+    expect(advDe(H.id)).toBe(2);
+  });
+
+  it('Se cabrer + Mouvement DÉJÀ dépensé, mais de l’Avantage : la voie ORDINAIRE — 1 Avantage DÉBITÉ', () => {
+    const { H, E } = setup();
+    H.size = 'grande';
+    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
+    H.advantage = 2;
+    const spent = mountMovement(useGame.getState().battle!, H);
+    useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: spent } });
+    pietiner(E.id);
+    expect(useGame.getState().pendingAttack!.freeKind).toBe('pietinement');
+    expect(advDe(H.id)).toBe(1);
+    expect(useGame.getState().battle!.movementUsed, 'aucun Mouvement supplémentaire consommé').toBe(spent);
+  });
+
+  it('Se cabrer : aucune option si l’Action de Mouvement est dépensée et 0 Avantage', () => {
+    const { H } = setup();
+    H.size = 'grande';
+    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
+    H.advantage = 0;
+    useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: mountMovement(useGame.getState().battle!, H) } });
+    expect(availableAttacks(H, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
+  });
+
+  // LDB 85 l.237 ; LDB 85 l.314 ; LDB 85 l.387.
+  it.each([
+    { cas: 'Morsure (1 Avantage)', attaque: 'morsure', traits: [{ id: 'morsure', value: 10 }], taille: undefined },
+    { cas: 'Piétinement (1 Avantage)', attaque: 'pietinement', traits: [], taille: 'grande' },
+    { cas: 'Se cabrer (Action de Mouvement)', attaque: 'pietinement', traits: [{ id: 'se-cabrer' }], taille: 'grande' },
+  ] as const)('$cas : annulée avant le jet, la gratuite rend ce qu’elle a pris', ({ attaque, traits, taille }) => {
+    const { H, E } = setup();
+    if (taille) H.size = taille;
+    H.traits = [...traits] as unknown as Combatant['traits'];
+    H.advantage = 2;
+    useGame.getState().battleSelectAttack(attaque);
+    useGame.getState().battleClickEntity(E.id, { confirm: true });
+    const paye = useGame.getState();
+    expect(paye.pendingAttack, 'la déclaration a ouvert le jet').toBeTruthy();
+    expect(advDe(H.id) < 2 || paye.battle!.movementUsed > 0, 'la déclaration a PAYÉ').toBe(true);
+    useGame.getState().attackCancel();
+    const st = useGame.getState();
+    expect(st.pendingAttack).toBeNull();
+    expect(advDe(H.id), 'Avantage rendu').toBe(2);
+    expect(st.battle!.movementUsed, 'Mouvement rendu').toBe(0);
   });
 
   it('IA : un ennemi plus grand avec de l’Avantage piétine un héros adjacent plus petit (via aiCreatureFreeAttacks, #527)', () => {
-    // `aiCreatureFreeAttacks` est le SEUL point de production du Piétinement opportuniste IA — il empile
-    // TOUJOURS 'pietinement' en dernière attaque gratuite (combatFlow.ts:3026), Taille/Avantage permettant.
+    // `aiCreatureFreeAttacks` joue le Piétinement en dernière gratuite de la liste unique (`attaquesNaturelles`).
     useGame.getState().seedRng(2);
     const { H, E } = setup();
     E.size = 'enorme';
@@ -173,84 +239,10 @@ describe('Piétinement en combat (store)', () => {
     H.conditions = [{ id: 'surpris', value: 1 }]; // ne se défend pas → résolution instantanée (patron l.250)
     useGame.setState({ battle: { ...useGame.getState().battle! } });
     const before = H.wounds.current;
+    auTourDe(E.id);
     const suspended = aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     expect(suspended).toBe(false);
     expect(useGame.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before);
-  });
-
-  // Se cabrer (LDB 85 l.314) : « Pour une Action de Mouvement, la créature peut effectuer une Attaque
-  // de Piétinement si elle est plus grande que son adversaire » — SANS le coût d'1 Avantage du
-  // Piétinement générique (l.387). Condition de Taille inchangée (`trampleTarget`).
-  it('Se cabrer : sans Avantage, la modale s’ouvre quand même (coût payé par l’Action de Mouvement)', () => {
-    const { H, E } = setup();
-    H.size = 'grande';
-    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
-    H.advantage = 0;
-    useGame.getState().battleTrample(E.id);
-    expect(useGame.getState().pendingTrample).toBeTruthy();
-  });
-
-  it('Se cabrer : le Piétinement coûte l’Action de Mouvement (movementUsed plein), PAS l’Avantage', () => {
-    useGame.getState().seedRng(2);
-    const { H, E } = setup();
-    H.size = 'grande';
-    H.characteristics['capacite-de-combat'] = 85;
-    H.characteristics.force = 45;
-    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
-    H.advantage = 2;
-    expect(useGame.getState().battle!.movementUsed).toBe(0); // Action de Mouvement encore entière
-    useGame.getState().battleTrample(E.id);
-    useGame.getState().trampleRoll();
-    useGame.getState().trampleConfirm();
-    const st = useGame.getState();
-    // Le +1 d'une touche réussie (RAW, victoire au Test) COMPENSAIT jusqu'ici la dépense masquée d'1
-    // Avantage codée en dur côté trampleConfirm — l'Avantage inchangé ne prouvait PAS l'absence de coût.
-    // La preuve réelle du coût « Action de Mouvement » (LDB 85 l.314) est movementUsed porté au plein M.
-    expect(st.battle!.movementUsed).toBe(mountMovement(st.battle!, H));
-    expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(3); // 2 − 0 (coût) + 1 (victoire)
-  });
-
-  it('Se cabrer + Mouvement DÉJÀ dépensé, mais de l’Avantage : la voie ORDINAIRE s’applique — 1 Avantage DÉBITÉ', () => {
-    // #1078 LOT B2 : la fenêtre annonçait « coûte 1 Avantage » et le paiement, qui ne testait que le
-    // trait, n'en débitait aucun. Le prédicat PARTAGÉ (`trampleFreeMove`) ferme la voie gratuite dès que
-    // l'Action de Mouvement n'est plus entière (trait « Se cabrer », LDB 85 l.314 : « Pour une Action de
-    // Mouvement… ») : le coût redevient 1 Avantage (l.320-321), et c'est CE coût qui part.
-    useGame.getState().seedRng(2);
-    const { H, E } = setup();
-    H.size = 'grande';
-    H.characteristics['capacite-de-combat'] = 85;
-    H.characteristics.force = 45;
-    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
-    H.advantage = 2;
-    const spent = mountMovement(useGame.getState().battle!, H);
-    useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: spent } });
-    useGame.getState().battleTrample(E.id);
-    expect(useGame.getState().pendingTrample, 'la porte s’ouvre : il reste la voie à 1 Avantage').not.toBeNull();
-    useGame.getState().trampleRoll();
-    useGame.getState().trampleConfirm();
-    const st = useGame.getState();
-    expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage, '2 − 1 (coût) + 1 (victoire)').toBe(2);
-    expect(st.battle!.movementUsed, 'aucun Mouvement supplémentaire consommé').toBe(spent);
-  });
-
-  it('Se cabrer : refusé si l’Action de Mouvement est DÉJÀ dépensée ce Tour (movementUsed > 0, 0 Avantage)', () => {
-    const { H, E } = setup();
-    H.size = 'grande';
-    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
-    H.advantage = 0;
-    useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: mountMovement(useGame.getState().battle!, H) } });
-    useGame.getState().battleTrample(E.id);
-    expect(useGame.getState().pendingTrample).toBeNull(); // ni Avantage, ni Action de Mouvement disponible
-  });
-
-  it('Se cabrer : refusé contre une cible de même Taille — la condition RAW (plus grand) reste posée', () => {
-    const { H, E } = setup();
-    H.size = 'moyenne';
-    E.size = 'moyenne';
-    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
-    H.advantage = 0;
-    useGame.getState().battleTrample(E.id);
-    expect(useGame.getState().pendingTrample).toBeNull();
   });
 
   it('IA : Se cabrer piétine même à 0 Avantage SI l’Action de Mouvement est encore entière (coût 0 Avantage, movementUsed → plein M)', () => {
@@ -267,6 +259,7 @@ describe('Piétinement en combat (store)', () => {
     H.conditions = [{ id: 'surpris', value: 1 }]; // Surpris → ne se défend pas → résolution instantanée (patron creatureFreeAttacks.test.ts)
     useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: 0 } });
     const before = H.wounds.current;
+    auTourDe(E.id);
     const suspended = aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     expect(suspended).toBe(false);
     const st = useGame.getState();
@@ -294,6 +287,7 @@ describe('Piétinement en combat (store)', () => {
     // Mouvement à sacrifier pour le Piétinement gratuit de Se cabrer.
     useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: mountMovement(useGame.getState().battle!, E) } });
     const before = H.wounds.current;
+    auTourDe(E.id);
     const suspended = aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     expect(suspended).toBe(false);
     expect(useGame.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBe(before); // aucune attaque tentée
@@ -314,9 +308,31 @@ describe('Piétinement en combat (store)', () => {
     H.conditions = [{ id: 'surpris', value: 1 }];
     useGame.setState({ battle: { ...useGame.getState().battle! } });
     const before = H.wounds.current;
+    auTourDe(E.id);
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     expect(useGame.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBe(before); // aucune attaque tentée
     expect(useGame.getState().battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(0);
+  });
+
+  it('IA : Se cabrer + Mouvement DÉJÀ dépensé, mais de l’Avantage : piétine à 1 Avantage (LDB 85 l.387)', () => {
+    useGame.getState().seedRng(2);
+    const { H, E } = setup();
+    E.size = 'enorme';
+    E.characteristics['capacite-de-combat'] = 85;
+    E.characteristics.force = 45;
+    E.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
+    E.advantage = 2;
+    H.size = 'moyenne';
+    H.wounds = { current: 50, max: 50, base: 50 } as Combatant['wounds'];
+    H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
+    H.conditions = [{ id: 'surpris', value: 1 }];
+    const spent = mountMovement(useGame.getState().battle!, E);
+    useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: spent } });
+    const before = H.wounds.current;
+    auTourDe(E.id);
+    aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before);
+    expect(useGame.getState().battle!.movementUsed, 'aucun Mouvement supplémentaire').toBe(spent);
   });
 
   // #527 : le chemin ENNEMI RÉEL (`runEnemyAI` case 'move') doit tracer `movementUsed` — sinon la gate
@@ -364,5 +380,107 @@ describe('Piétinement en combat (store)', () => {
     vi.advanceTimersByTime(4000);
     const st = useGame.getState();
     expect(st.battle!.movementUsed).toBe(0); // aucune approche → l'Action de Mouvement reste entière
+  });
+
+  // LDB 85 l.387 ; LDB 85 l.237.
+  it('héros : un Piétinement par tour — joué, l’option disparaît, Avantage restant', () => {
+    useGame.getState().seedRng(2);
+    const { H, E } = setup();
+    H.size = 'grande';
+    H.advantage = 3;
+    pietiner(E.id);
+    useGame.getState().attackRoll();
+    useGame.getState().attackConfirm();
+    const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    h.advantage = 3;
+    expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
+    expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(false);
+  });
+
+  // La case de gate lit l'option, jamais un second prédicat. LDB 85 l.387 ; LDB 85 l.314.
+  it('gate « pietinement-gratuit » : fermée une fois le plafond atteint', () => {
+    useGame.getState().seedRng(2);
+    const { H, E } = setup();
+    H.size = 'grande';
+    H.advantage = 3;
+    expect(ACTION_GATES['pietinement-gratuit']({ active: H, battle: useGame.getState().battle! }).ok).toBe(true);
+    pietiner(E.id);
+    useGame.getState().attackRoll();
+    useGame.getState().attackConfirm();
+    vi.runAllTimers();
+    const b = useGame.getState().battle!;
+    const h = b.combatants.find((c) => c.id === H.id)!;
+    expect(h.advantage, 'il reste de l’Avantage').toBeGreaterThan(0);
+    expect(ACTION_GATES['pietinement-gratuit']({ active: h, battle: b }).ok).toBe(false);
+  });
+
+  it('gate « pietinement-gratuit » : Se cabrer à 0 Avantage, Mouvement intact, la gate est ouverte', () => {
+    const { H } = setup();
+    H.size = 'grande';
+    H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
+    H.advantage = 0;
+    expect(ACTION_GATES['pietinement-gratuit']({ active: H, battle: useGame.getState().battle! }).ok).toBe(true);
+  });
+
+  /** Le CHEMIN DU JOUEUR au clavier : l'option armée, Tab aimante la cible, Entrée commet. */
+  const pietinerAuClavier = (): void => {
+    useGame.getState().battleSelectAttack('pietinement');
+    useGame.getState().snapCursorToTarget(1);
+    useGame.getState().commitCursor();
+    vi.runAllTimers();
+  };
+
+  // LDB 85 l.387 ; LDB 13 l.123. La cible se tient au bord de l'empreinte Énorme (`sizes.json` footprintSide).
+  it('héros Énorme : Tab puis Entrée déclarent le Piétinement — jet opposé, option consommée', () => {
+    useGame.getState().seedRng(2);
+    const { H, E } = setup();
+    H.size = 'enorme';
+    H.advantage = 3;
+    E.pos = { x: 13, y: 10 };
+    pietinerAuClavier();
+    const pa = useGame.getState().pendingAttack;
+    expect(pa?.freeKind, 'Entrée ouvre le jet du Piétinement').toBe('pietinement');
+    expect(useGame.getState().pendingCascade, 'la modale s’ouvre').toBeTruthy();
+    useGame.getState().attackRoll();
+    expect(useGame.getState().pendingAttack!.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
+    useGame.getState().attackConfirm();
+    const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
+    expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);
+  });
+
+  it('héros Énorme : Annuler avant le jet rend l’Avantage et l’option', () => {
+    const { H, E } = setup();
+    H.size = 'enorme';
+    H.advantage = 3;
+    E.pos = { x: 13, y: 10 };
+    pietinerAuClavier();
+    expect(advDe(H.id), 'le coût est débité au commit').toBe(2);
+    useGame.getState().attackCancel();
+    const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(h.advantage).toBe(3);
+    expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(true);
+  });
+
+  // LDB 85 l.237 ; LDB 85 l.387 ; LDB 85 l.405.
+  it.each([
+    { cas: 'Morsure', kind: 'morsure', traits: [{ id: 'morsure', value: 6 }], plafond: 1 },
+    { cas: 'Piétinement', kind: 'pietinement', traits: [], plafond: 1 },
+    { cas: '2 Tentacules', kind: 'tentacules', traits: [{ id: 'tentacules', value: 6, count: 2 }], plafond: 2 },
+  ] as const)('IA et héros, même plafond par tour : $cas', ({ kind, traits, plafond }) => {
+    useGame.getState().seedRng(2);
+    const { H, E } = setup();
+    E.size = 'enorme';
+    E.traits = [...traits] as unknown as Combatant['traits'];
+    E.advantage = 5;
+    H.size = 'moyenne';
+    H.wounds = { current: 200, max: 200, base: 200 } as Combatant['wounds'];
+    H.conditions = [{ id: 'surpris', value: 1 }];
+    auTourDe(E.id);
+    expect(aiCreatureFreeAttacks(useGame.getState, useGame.setState, E)).toBe(false);
+    const e = useGame.getState().battle!.combatants.find((c) => c.id === E.id)!;
+    expect(e.freeAttacksThisTurn?.[kind], 'l’IA joue exactement le plafond').toBe(plafond);
+    e.advantage = 5;
+    expect(availableAttacks(e, useGame.getState().battle!).some((o) => o.freeKind === kind), 'le héros lit le même plafond').toBe(false);
   });
 });

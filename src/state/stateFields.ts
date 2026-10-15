@@ -84,7 +84,6 @@ const STATE_FIELDS = {
   pendingDualStrike: { init: null, resetOn: ['scene'] },
   pendingLogQueue: { init: [], resetOn: ['scene', 'combatStart'] },
   scheduledEffects: { init: [], resetOn: [] },
-  pendingTrample: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingBattement: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingDistraire: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingManeuver: { init: null, resetOn: ['scene', 'combatStart'] },
@@ -172,7 +171,6 @@ export type HostJet = NonNullable<CascadeStep['jet']>;
  */
 export const PENDING_BY_JET: Record<HostJet, PendingKey | null> = {
   attack: 'pendingAttack',
-  trample: 'pendingTrample',
   defense: 'pendingDefense',
   fumble: null,
   cast: 'pendingCast',
@@ -191,7 +189,7 @@ export const PENDING_BY_JET: Record<HostJet, PendingKey | null> = {
  * Trois causes, toutes portées ici — le slot VIDE, l'ACTEUR sorti du `battle`, et la donnée portée par
  * l'ÉTAPE (Maladresse : `PENDING_BY_JET.fumble` est `null`, son corps vit dans `step.fumble`).
  * Une étape déjà VALIDÉE (`committed`) est hors sujet : elle a rendu sa donnée et se ferme.
- * Prédicat PUR (aucun runtime importé) et TOTAL sur les neuf `HostJet`.
+ * Prédicat PUR (aucun runtime importé) et TOTAL sur les `HostJet`.
  */
 export function hoteOrphelin(s: Partial<GameState>, step: CascadeStep | undefined): boolean {
   return !!step && !step.committed && sansCorps(s, step);
@@ -211,7 +209,6 @@ export function sansCorps(s: Partial<GameState>, step: CascadeStep | undefined):
   const present = (id: string | undefined): boolean => !!id && !!s.battle?.combatants.some((c) => c.id === id);
   switch (step.jet) {
     case 'attack': return !present(s.pendingAttack?.attackerId) || !present(s.pendingAttack?.targetId);
-    case 'trample': return !present(s.pendingTrample?.attackerId) || !present(s.pendingTrample?.targetId);
     case 'defense': return !present(s.pendingDefense?.attackerId) || !present(s.pendingDefense?.defenderId);
     case 'fumble': return !step.fumble || !present(step.actorId);
     // Épreuve étendue : hors combat, l'acteur se lit au GROUPE (même pool que `useExtendedTestJetProps`).
@@ -228,7 +225,7 @@ export function sansCorps(s: Partial<GameState>, step: CascadeStep | undefined):
  * HÔTE EN ATTENTE (#1765) — « cette étape-jet attend que sa fenêtre rende sa donnée » : son slot vit et elle
  * n'est pas validée (`committed`). Le curseur ne la franchit pas — ni par un « Suivant », ni par « Tout
  * lancer » : c'est sa fenêtre qui la rend (`defenseConfirm` pose `committed`, `attackConfirm` vide son
- * slot). Prédicat PUR et TOTAL sur les neuf `HostJet`, lu par `cascade.stepReady`.
+ * slot). Prédicat PUR et TOTAL sur les `HostJet`, lu par `cascade.stepReady`.
  */
 export function hoteEnAttente(s: Partial<GameState>, step: CascadeStep): boolean {
   if (!step.jet || step.committed) return false;
