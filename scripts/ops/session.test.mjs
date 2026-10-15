@@ -344,7 +344,7 @@ test('raccord : claim entre snapshot et mutation ferme sur constat frais sous ve
   let intercale = false
   fs.rmSync = function (chemin, ...args) {
     const resultat = rm.call(this, chemin, ...args)
-    if (!intercale && String(chemin) === join(b.dossier, 'registre.lock')) {
+    if (!intercale && String(chemin) === join(b.dossier, 'registre.lock.reprise')) {
       intercale = true
       b.vivants.set(10, identite(10)); b.vivants.set(30, identite(30)); b.revendiquer(r)
     }

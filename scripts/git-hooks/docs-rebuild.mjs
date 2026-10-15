@@ -3,8 +3,8 @@ import '../node-requis.mjs'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ciblesSurDisque, GENERATORS, generateursDeCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
-import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
+import { ciblesSurDisque, CODE_DIFFERE, ESSAI_UNIQUE, GENERATORS, generateursDeCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
+import { fichiersDOutillage, preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import { ceQuEmporteLIndex, ceQuiChange, depotDe, estAncetre, etatDeLArbre, fusionnesEnCours, parentsDe, racineDe, refusDeGit, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
@@ -112,7 +112,8 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
   if (lot === null) return tous('plage Git inconnue')
   if (lot.some((f) => LECTURES_DES_DEPENDANCES.includes(f))) return tous('toolchain modifiée : lectures des dépendances non mesurées')
   if (!mesure || generateurs.some((g) => !Array.isArray(mesure[g.script]?.fichiers) || !Array.isArray(mesure[g.script]?.dossiers) || !Array.isArray(mesure[g.script]?.cibles))) return tous('mesure absente ou incomplète')
-  if (lot.some((f) => ['scripts/docs/build-all.mjs', 'scripts/git-hooks/docs-rebuild.mjs'].includes(f) || f.startsWith('scripts/docs/lib/'))) return tous('graphe ou outil de mesure modifié')
+  const outillage = fichiersDOutillage()
+  if (lot.some((f) => f === 'scripts/git-hooks/docs-rebuild.mjs' || outillage.has(f))) return tous('graphe ou outil de mesure modifié')
   if (generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||
     [...g.targets, ...(g.injecte ?? [])].some((c) => !c.includes('*') && !existsSync(join(cwd, c))))) return tous('cible absente')
   const selection = new Set(generateurs.filter((g) => touchesDocSources(lot, mesure, { seulement: [g.script] })).map((g) => g.script))
@@ -137,7 +138,7 @@ export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERA
   return { scripts: generateurs.filter((g) => selection.has(g.script)).map((g) => g.script), complete: false, raison: 'sources mesurées et préalables' }
 }
 
-export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, generateurs = GENERATORS }) {
+export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, mesurer = () => {}, generateurs = GENERATORS }) {
   let lot
   if (hook === 'post-commit') {
     const depot = depotDe(cwd, { enPanne: (_raison, vu) => annoncer(`[${hook}] lecture Git indisponible : ${refusDeGit(vu)}\n`) })
@@ -151,7 +152,7 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
   } else lot = hook === 'post-checkout' ? (avant === apres ? [] : touchedFiles(cwd, { de: avant, a: apres }))
     : hook === 'post-merge' ? lotDuPostMerge(cwd, { squash: avant === '1' }) : touchedFiles(cwd)
   const mesure = sourcesMesurees(cwd)
-  const etape = (nom, geste) => etapeProfilee(`[${hook}] ${nom}`, geste, { annoncer, horloge })
+  const etape = (nom, geste) => etapeProfilee(`[${hook}] ${nom}`, geste, { annoncer, horloge, mesurer })
   if (hook === 'post-checkout' && avant === '0'.repeat(40) && mesure === null) {
     annoncer(`[${hook}] worktree neuf : préparation requise par ops:chantier (\`npm ci\`, \`npm --prefix server ci\`, \`npm run docs:build\`)\n`)
     return 0
@@ -189,8 +190,12 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
   if (validite.ok) return 0
   annoncer(`[${hook}] docs : attestation périmée${validite.script ? ` (${validite.script})` : ''} — ${validite.raison}\n`)
   try {
-    etape('docs dérivés', () => docs(process.execPath, ['scripts/docs/build-all.mjs', '--perimes'], { cwd, stdio: 'inherit' }))
+    etape('docs dérivés', () => docs(process.execPath, ['scripts/docs/build-all.mjs', '--perimes', ESSAI_UNIQUE], { cwd, stdio: 'inherit' }))
   } catch (e) {
+    if (e.status === CODE_DIFFERE) {
+      annoncer(`[${hook}] docs — régénération DIFFÉRÉE (tenant ci-dessus) : attestation laissée périmée, \`npm run docs:build\` la rattrape\n`)
+      return CODE_DIFFERE
+    }
     annoncer(`[${hook}] docs — régénération INTERROMPUE : corriger le diagnostic puis relancer \`npm run docs:build\` (${e.status ?? e.message})\n`)
     return 1
   }
@@ -202,9 +207,9 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
 }
 
 function main([hook, avant, apres] = process.argv.slice(2)) {
-  journaliserLeHook(hook)
+  const journal = journaliserLeHook(hook)
   const cwd = racineDe(depotDe(process.cwd()))
-  if (cwd) process.exitCode = reconstruireApresGit({ cwd, hook, avant, apres })
+  if (cwd) process.exitCode = reconstruireApresGit({ cwd, hook, avant, apres, mesurer: journal.etape })
 }
 
 if (import.meta.main) main()

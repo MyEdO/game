@@ -105,3 +105,17 @@ test('forme : une option qui produit des chemins, où qu’elle soit écrite hor
   assert.deepEqual(formes("const A = new Set(['ls-files'])\nA.has(x)\nexport { A as B }"), [[1, 'forme']], 'un `export { A }` n’est pas une consultation')
   assert.deepEqual(formes("const A = new Set(['ls-files'])\nA.has(x)\nconst o = { A }"), [[1, 'forme']], 'une propriété raccourcie n’est pas une consultation')
 })
+
+test('forme : la CLÉ d’une table d’objet consultée seulement par indexation n’est pas un site, sa valeur et la même clé passée ailleurs le restent (#2603)', () => {
+  assert.deepEqual(formes("const drapeaux = { 'ls-files': /^(?:-z)$/, \"ls-tree\": /x/ }[commande]"), [], 'une table indexée sur-le-champ se consulte')
+  assert.deepEqual(formes("const D = { 'ls-files': /x/ }\nconst d = D[commande]"), [], 'une table nommée lue par indexation se consulte')
+  assert.deepEqual(formes("({ 'ls-files': ['-z'] })[commande]"), [[1, 'forme']], 'la valeur d’une table reste un site')
+  assert.deepEqual(formes("const o = { 'ls-files': 1 }\nquestion(Object.keys(o))"), [[1, 'forme']], 'une table dont les clés deviennent argv se passe à git')
+  assert.deepEqual(formes("const o = { 'ls-files': 1 }\nconst d = o[c]\nquestion(o)"), [[1, 'forme']], 'une table passée ailleurs n’est plus consultée seulement')
+  assert.deepEqual(formes("export const D = { 'ls-files': 1 }\nD[c]"), [[1, 'forme']], 'une table d’objet exportée se passe hors du module')
+  assert.deepEqual(formes("const D = { 'ls-files': 1 }\nD[c] = 2"), [[1, 'forme']], 'une indexation écrite n’est pas une consultation')
+  assert.deepEqual(formes("const q = { args: ['ls-files', '-z'] }"), [[1, 'forme'], [1, 'forme']])
+  assert.deepEqual(formes("const c = court ? '--name-only' : '--name-status'"), [[1, 'forme'], [1, 'forme']])
+  assert.deepEqual(formes("const t = { ['ls-tree']: 1 }[c]"), [[1, 'forme']], 'un nom calculé reste une valeur')
+  assert.throws(() => formes("const = ; ({ 'ls-files': 1 })"), /syntaxe indéterminée.*x\.mjs/)
+})

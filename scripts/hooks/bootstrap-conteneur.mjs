@@ -20,14 +20,15 @@
 // rend ce refus à la session au premier outil qu'il garde (son `matcher`) ; un outil que nul hook ne
 // garde ne le déclenche pas.
 import '../node-requis.mjs'
-import { spawn, spawnSync } from 'node:child_process'
-import { closeSync, existsSync, mkdirSync, openSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { closeSync, existsSync, openSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { verrouOutillageDe } from './barriere-outil.mjs'
-import { attendreLibre, prendreVerrou } from '../test/verrou.mjs'
-import { SOURCES_LUES } from '../docs/build-all.mjs'
-import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
+import { prendreVerrou } from '../test/verrou.mjs'
+import { ESSAI_UNIQUE, SOURCES_LUES } from '../docs/build-all.mjs'
+import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { approfondir, cheminGit, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
 import { BUDGET_CONSTAT, JOURNAL_DOCS, PREREQUIS } from './bootstrap-prerequis.mjs'
 import { entreeHookNative, produireRecuSessionStart } from '../ops/session-start.mjs'
 
@@ -58,47 +59,24 @@ export function lancer(exe, args, { budget = BUDGET_CONSTAT, ...options } = {}) 
   }
 }
 
-/** VERROU du `docs:build` détaché, relatif à la racine (`scripts/test/verrou.mjs`) : tenu par le
- *  constructeur détaché lui-même (`construireDocs`), le temps du build. */
-export const VERROU_DOCS = 'node_modules/.cache/bootstrap-docs-build.verrou'
-
-/** Le module de CE hook, que le constructeur détaché relance en mode `--docs-build`. */
-const MODULE = fileURLToPath(import.meta.url)
+/** `build-all`, que le bootstrap détache. */
+const BUILD_ALL = fileURLToPath(new URL('../docs/build-all.mjs', import.meta.url))
 
 /**
- * Le CONSTRUCTEUR détaché : il PREND `VERROU_DOCS` à son propre PID, puis seulement ouvre `JOURNAL_DOCS`
- * et joue `docs:build` ; un constructeur qui perd la prise sort sans toucher au journal. REND le code du
- * build, `null` sans prise. `lancer` s'injecte (mesure).
+ * Lance `docs:build --perimes` DÉTACHÉ (`lancerDetache` : il dépasse le budget du hook), en un seul essai
+ * du verrou des gestes lourds (`ESSAI_UNIQUE`, #2603) : tenu, le détaché sort DIFFÉRÉ et le nomme au journal
+ * `JOURNAL_DOCS`, sous le répertoire git, ouvert en ajout. Rend la forme de `lancer`, `valeur` = le pid.
  */
-export function construireDocs(racine, { lancer = spawnSync } = {}) {
-  const prise = prendreVerrou({ chemin: join(racine, VERROU_DOCS), libelle: 'docs:build détaché', commande: 'bootstrap-conteneur --docs-build', cwd: racine })
-  if (prise.etat !== 'pris') return null
+export function docsBuildDetache(racine, { detacher = lancerDetache } = {}) {
   try {
-    const fd = openSync(join(racine, JOURNAL_DOCS), 'w')
+    const journal = cheminGit(depotDe(racine), JOURNAL_DOCS)
+    if (!journal) return { ok: false, valeur: '', rapport: `répertoire git introuvable depuis ${racine}` }
+    const fdLog = openSync(resolve(racine, journal), 'a')
     try {
-      return lancer(process.execPath, [join(racine, 'scripts', 'docs', 'build-all.mjs'), '--quiet'], { cwd: racine, stdio: ['ignore', fd, fd], windowsHide: true }).status
+      return { ok: true, valeur: String(detacher({ script: BUILD_ALL, args: ['--perimes', ESSAI_UNIQUE, '--quiet'], cwd: racine, fdLog }) ?? ''), rapport: '' }
     } finally {
-      closeSync(fd)
+      closeSync(fdLog)
     }
-  } finally {
-    prise.liberer()
-  }
-}
-
-/**
- * Lance `docs:build` DÉTACHÉ (il dépasse le budget du hook) : le constructeur (`construireDocs`), si
- * `VERROU_DOCS` est libre au premier essai ; rend la forme de `lancer`, `valeur` = son pid. Verrou tenu
- * par un vivant : rien n'est lancé, `valeur` = le pid du constructeur en cours.
- */
-export function docsBuildDetache(racine) {
-  const verrou = join(racine, VERROU_DOCS)
-  const vu = attendreLibre({ chemin: verrou })
-  if (vu.etat !== 'libre') return { ok: true, valeur: String(vu.tenant.pid), rapport: '' }
-  try {
-    mkdirSync(dirname(verrou), { recursive: true })
-    const enfant = spawn(process.execPath, [MODULE, '--docs-build', racine], { cwd: racine, detached: true, stdio: 'ignore', windowsHide: true })
-    enfant.unref()
-    return { ok: true, valeur: String(enfant.pid ?? ''), rapport: '' }
   } catch (e) {
     return { ok: false, valeur: '', rapport: borner(e.message) }
   }
@@ -177,8 +155,7 @@ export function bootstrapSessionStart({ env = process.env, racine = process.cwd(
   return lignes
 }
 
-if (import.meta.main && process.argv[2] === '--docs-build') process.exitCode = construireDocs(process.argv[3]) ?? 0
-else if (import.meta.main) {
+if (import.meta.main) {
   try { bootstrapSessionStart({ racine: process.env.CLAUDE_PROJECT_DIR || process.cwd(), entree: await entreeHookNative() }) }
   catch (e) { process.stderr.write(`${e.message}\n`); process.exitCode = 1 }
 }

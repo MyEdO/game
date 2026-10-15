@@ -19,7 +19,7 @@ import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { constants, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { codeSeul } from '../guards/lib/commentPoison.mjs'
@@ -31,7 +31,7 @@ import { refusDeSujet, sujetDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { GitIndisponible, MARQUE_FEINTE, ajouterOrigine, classer, commitDe, depotDe, pousser, refusDeGit, reussi, shaDe, sortieDe } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
-import { citerArgv, lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { ABAISSER_PRIORITE, citerArgv, lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
 import { mesurerPrincipal, synchroniserPrincipal } from './synchroniser.mjs'
@@ -1115,6 +1115,9 @@ test('citerArgv : un token que `CommandLineToArgvW` relit comme UN argument', ()
 
 const LANCEMENT = { script: '/dep/scripts/ops/publier.mjs', args: ['--reprendre'], cwd: '/dep', fdLog: 9, node: '/bin/node' }
 
+/** Le préchargement BelowNormal, cité comme `-ArgumentList` le reçoit (#2603). */
+const PRECHARGE = ABAISSER_PRIORITE.map((a) => `'${citerArgv(a)}'`).join(',')
+
 test('lancerDetache : sous win32, le train reçoit une console CACHÉE (dont ses enfants héritent)', () => {
   const appels = []
   const pid = lancerDetache({
@@ -1137,7 +1140,7 @@ test('lancerDetache : sous win32, le train reçoit une console CACHÉE (dont ses
   assert.ok(commande.includes(' -WindowStyle Hidden'), commande)
   assert.ok(commande.includes(' -PassThru'), commande)
   assert.ok(commande.includes("-FilePath '/bin/node'"), commande)
-  assert.ok(commande.includes(`-ArgumentList '"/dep/scripts/ops/publier.mjs"','"--reprendre"'`), commande)
+  assert.ok(commande.includes(`-ArgumentList ${PRECHARGE},'"/dep/scripts/ops/publier.mjs"','"--reprendre"'`), commande)
   assert.equal(appels[0].options.cwd, '/dep')
   assert.equal(appels[0].options.windowsHide, true)
   assert.equal(appels[0].options.env.WFRP_PUBLIER_ENFANT, '1')
@@ -1154,7 +1157,7 @@ test('lancerDetache : sous win32, une apostrophe du chemin est CITÉE, jamais in
       return { stdout: '7', stderr: '' }
     },
   })
-  assert.match(commande, /-ArgumentList '"\/dep d''ops\/publier\.mjs"','"--reprendre"'/)
+  assert.ok(commande.includes(`-ArgumentList ${PRECHARGE},'"/dep d''ops/publier.mjs"','"--reprendre"'`), commande)
 })
 
 test('lancerDetache : sous win32, un chemin de script à ESPACE reste UN argument du train', () => {
@@ -1172,7 +1175,7 @@ test('lancerDetache : sous win32, un chemin de script à ESPACE reste UN argumen
     },
   })
   assert.ok(
-    commande.includes(`-ArgumentList '"/dep/dossier avec espace/publier.mjs"','"--file-timeout-min"','"30"','"arg avec espace"'`),
+    commande.includes(`-ArgumentList ${PRECHARGE},'"/dep/dossier avec espace/publier.mjs"','"--file-timeout-min"','"30"','"arg avec espace"'`),
     commande,
   )
 })
@@ -1198,7 +1201,7 @@ test('lancerDetache : hors win32, le détachement reste `detached` + le fd du jo
   })
   assert.equal(pid, 31)
   assert.equal(appels[0].exe, '/bin/node')
-  assert.deepEqual(appels[0].args, ['/dep/scripts/ops/publier.mjs', '--reprendre'])
+  assert.deepEqual(appels[0].args, [...ABAISSER_PRIORITE, '/dep/scripts/ops/publier.mjs', '--reprendre'])
   assert.equal(appels[0].options.detached, true)
   assert.deepEqual(appels[0].options.stdio, ['ignore', 9, 9])
   assert.equal(appels[0].options.env.WFRP_PUBLIER_ENFANT, '1')
@@ -2282,6 +2285,83 @@ test('commandeDeVeille / idDeRun / runDe : la commande que `--detache` imprime',
   assert.deepEqual([constat.veiller, constat.constat, constat.inconnus], [run, true, []])
   assert.equal(optionsDe(['--veiller', run, '--depuis', '7']).depuis, 7)
   assert.deepEqual(optionsDe(['--depuis', '-1']).inconnus, ['--depuis -1'])
+})
+
+test('lancerDetache (#2603) : aucun jeton de verrou `WFRP_VERROU_*` ne passe au détaché, ni hérité ni supplémentaire, sur les deux plateformes', () => {
+  const avant = process.env.WFRP_VERROU_HERITE
+  process.env.WFRP_VERROU_HERITE = 'jeton'
+  try {
+    const envs = []
+    const supplementaire = { WFRP_VERROU_SUPPLEMENTAIRE: 'jeton', WFRP_PUBLIER_ENFANT: '1' }
+    lancerDetache({ ...LANCEMENT, plateforme: 'linux', envSupplementaire: supplementaire, detacher: (_n, _a, o) => { envs.push(o.env); return { pid: 1, unref: () => {} } } })
+    lancerDetache({ ...LANCEMENT, plateforme: 'win32', envSupplementaire: supplementaire, executerSync: (_e, _a, o) => { envs.push(o.env); return { stdout: '7' } } })
+    for (const env of envs) {
+      assert.deepEqual(Object.keys(env).filter((cle) => cle.startsWith('WFRP_VERROU_')), [])
+      assert.equal(env.WFRP_PUBLIER_ENFANT, '1')
+    }
+  } finally {
+    if (avant === undefined) delete process.env.WFRP_VERROU_HERITE
+    else process.env.WFRP_VERROU_HERITE = avant
+  }
+})
+
+test('lancerDetache (#2603) : le préchargement RÉEL abaisse le processus en BelowNormal', () => {
+  const vu = spawnSync(process.execPath, [...ABAISSER_PRIORITE, '-e', 'process.stdout.write(String(require("node:os").getPriority()))'], { encoding: 'utf8' })
+  assert.equal(vu.status, 0, vu.stderr)
+  assert.equal(Number(vu.stdout), constants.priority.PRIORITY_BELOW_NORMAL)
+})
+
+test('lancerDetache (#2603) : tuer le parent tue son enfant NON détaché, jamais ses détachés (deux branches)', {
+  skip: process.platform !== 'win32' && 'win32 seulement : sous POSIX, tuer un parent laisse vivre ses enfants, détachés ou non — le contraste ne s’y observe pas',
+}, async () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'detache-survit-'))
+  const dormeur = join(dossier, 'dormeur.mjs')
+  writeFileSync(dormeur, 'setTimeout(() => {}, 30_000)\n')
+  const vit = (pid) => {
+    try {
+      process.kill(pid, 0)
+      return true
+    } catch {
+      return false
+    }
+  }
+  const parent = spawn(process.execPath, ['--input-type=module', '-e', `
+import { openSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { lancerDetache } from ${JSON.stringify(new URL('../guards/lib/lancerDetache.mjs', import.meta.url).href)}
+const script = ${JSON.stringify(dormeur)}, cwd = process.cwd()
+const enfant = spawn(process.execPath, [script], { stdio: 'ignore' })
+const fdLog = openSync(${JSON.stringify(join(dossier, 'detache.log'))}, 'a')
+const posix = lancerDetache({ script, args: [], cwd, fdLog, plateforme: 'linux' })
+const win32 = lancerDetache({ script, args: [], cwd, fdLog })
+process.stdout.write(JSON.stringify({ enfant: enfant.pid, posix, win32 }))
+setTimeout(() => {}, 30_000)
+`], { stdio: ['ignore', 'pipe', 'inherit'] })
+  const fin = new Promise((ok) => parent.once('exit', ok))
+  let pids = {}
+  try {
+    pids = await new Promise((ok, ko) => {
+      let lu = ''
+      parent.stdout.on('data', (b) => {
+        lu += b
+        if (lu.endsWith('}')) ok(JSON.parse(lu))
+      })
+      parent.once('exit', (code) => ko(new Error(`parent sorti (${code}) avant ses pids`)))
+    })
+    assert.deepEqual(Object.values(pids).map(vit), [true, true, true])
+    process.kill(parent.pid, 'SIGKILL')
+    await fin
+    for (let essai = 0; essai < 30 && vit(pids.enfant); essai += 1) await new Promise((ok) => setTimeout(ok, 100))
+    assert.equal(vit(pids.enfant), false, 'l’enfant non détaché meurt avec son parent')
+    assert.equal(vit(pids.posix), true, 'le détaché par `spawn({ detached: true })` survit')
+    assert.equal(vit(pids.win32), true, 'le détaché par `Start-Process` survit')
+  } finally {
+    const tous = [parent.pid, ...Object.values(pids)]
+    for (const pid of tous) if (vit(pid)) process.kill(pid, 'SIGKILL')
+    await fin
+    for (let essai = 0; essai < 30 && tous.some(vit); essai += 1) await new Promise((ok) => setTimeout(ok, 100))
+    rmSync(dossier, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
+  }
 })
 
 test('lancement : le parent de `--detache` et l’enfant nomment le MÊME run', () => {

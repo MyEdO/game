@@ -6,8 +6,8 @@
 /** Budget d'un CONSTAT : trois commandes courtes (`git rev-parse`, `git config`, `gh --version`). */
 export const BUDGET_CONSTAT = 10
 
-/** Journal du `docs:build` DÉTACHÉ d'un conteneur neuf, relatif à la racine. */
-export const JOURNAL_DOCS = 'node_modules/.cache/bootstrap-docs-build.log'
+/** Journal du `docs:build` DÉTACHÉ d'un conteneur neuf, sous le répertoire git (`git rev-parse --git-path`). */
+export const JOURNAL_DOCS = 'bootstrap-docs-build.log'
 
 /** Ce que le canon exige d'un arbre de travail, et comment le poser. `manque` MESURE, `poser` agit :
  *  un prérequis déjà satisfait ne fait rien. `budget` borne le temps total de `poser`, en secondes. */
@@ -40,7 +40,7 @@ export const PREREQUIS = [
     // dépasse le budget du hook — il part DÉTACHÉ, son journal nommé.
     manque: ({ racine, gestes }) => !gestes.docsMesures(racine),
     poser: ({ racine, gestes }) => gestes.docsBuildDetache(racine),
-    geste: `npm run docs:build, détaché (journal ${JOURNAL_DOCS})`,
+    geste: `docs:build --perimes, détaché, essai unique du verrou des gestes lourds (journal .git/${JOURNAL_DOCS})`,
     budget: 5,
   },
   {
