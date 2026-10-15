@@ -101,7 +101,8 @@ L'accord du MJ se modélise par une règle optionnelle à arbitrer (#1460).
 **Sources RAW :** LDB 09 l.34-46
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.34-46) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `specIdOf`, `rollCrewRole`, `trainedForRole`, `traders`, `PostesRoster`, +76 — `src/data/activities.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/schemas/defs/skills.ts`, `src/data/schemas/grammaire/ref.ts`, `src/data/schemas/grammaire/valeurs.ts`, +49 fichiers
+- `LDB 8` (l.140) → `agitateur`, `agitateur-1`, `agitateur-2`, `agitateur-3`, `prisParLesAutres`, `agitateur-4`, `progression-schemas-derived` — `src/data/careerLevels.json`, `src/data/careers.json`, `src/data/progression-schemas.derived.json` ⚠hors-app, `src/engine/careerSlots.ts`
+- `LDB 9` (l.34-46, l.495) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `ParticipantRow`, `specIdOf`, `rollCrewRole`, `trainedForRole`, `traders`, `PostesRoster`, +93 — `src/data/activities.json`, `src/data/drunkenness.json`, `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/pregens.ts`, `src/data/regles.json`, +56 fichiers
 
 ---
 
@@ -633,7 +634,8 @@ Activité Artisanat entre aventures utilise Métier (voir [Activités](activites
 **Sources RAW :** LDB 09 l.349-364
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 9` (l.305-308, l.311-346, l.348, l.349-364) → `altCharKey`, `skillAdvantageCap`, `test-metier-int`, `ACTION_GATES`, `PendingTest`, `skill-advantage`, `intimidation`, `intuition`, `langue`, `marchandage`, +9 — `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/skills.json`, `src/engine/skillCombatApps.ts`, `src/engine/skills.ts`, +7 fichiers
+- `LDB 9` (l.30, l.298, l.305-308, l.310-312, l.344-346, l.349-364) → `renforcerCompetence`, `cleDe`, `doc`, `ParametreAffectation`, `altCharKey`, `ParticipantRow`, `skillAdvantageCap`, `specIdOf`, `rollCrewRole`, `trainedForRole`, +85 — `src/data/activities.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/pregens.ts`, `src/data/reglesOptionnelles.json`, +48 fichiers
+- `LDB 10` (l.650) → `deplierAjouts`, `lecture-rapide`, `linguistique`, `lire-ecrire`, `lire-sur-les-levres`, `loup-de-mer`, `machoires-d-acier`, `mage-de-guerre`, `magie-des-arcanes`, `magie-du-chaos`, +1 — `src/data/talents.json`, `src/engine/talentEffects.ts`
 - `ADE II 2` (l.728) → `altCharKey`, `castingCharKey`, `possession-pas-a-sa-taille`, `gueule`, `DomainData`, `ogre`, `bouf-crane`, `broyeur-d-os`, `festin-des-damnes` — `src/data/domains.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/spells.json`, `src/data/traits.json`, `src/engine/magic.ts`, +1 fichiers
 
 ---
