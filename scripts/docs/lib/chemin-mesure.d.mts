@@ -1,6 +1,6 @@
 export function ancetreExistant(abs: string, options?: { strict?: boolean }): string | null;
 export function canoniser(chemin: string, options?: { strict?: boolean }): string;
-export function canoniseurParDossier(): (chemin: string) => string;
+export function canoniseurParDossier(): (chemin: string, lien?: boolean) => string;
 export function relatifSousRacine(
   racineCanonique: string,
   chemin: string,

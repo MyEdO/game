@@ -88,21 +88,28 @@ function photographier(racine, options, preuve, mesures, outillagePrecedent, per
   return { racine, hashes, listings, git, sondes, ignores, cibles, outillage, perimetre, canon, admis }
 }
 
-function cheminSous(racine, relatif, canon = canoniser) {
+function cheminLexical(racine, relatif) {
   if (typeof relatif !== 'string' || relatif.includes('\\') || path.posix.isAbsolute(relatif)
     || relatif.split('/').some((p) => p === '..' || p === '.') || /^[a-z]:/i.test(relatif)) throw new Error('chemin de preuve invalide')
-  const absolu = path.resolve(racine, relatif)
-  if (relatifSousRacine(canon(racine), absolu, canon) !== relatif) throw new Error('chemin de preuve hors racine')
+  return path.resolve(racine, relatif)
+}
+
+function cheminSous(racine, relatif, canon = canoniser, canonFeuille = canon) {
+  const absolu = cheminLexical(racine, relatif)
+  if (relatifSousRacine(canon(racine), absolu, canonFeuille) !== relatif) throw new Error('chemin de preuve hors racine')
   return absolu
 }
 
 function hashFichier(racine, rel, vue, canon) {
   if (vue) return vue.hashes.get(rel)
-  const absolu = cheminSous(racine, rel, canon)
+  const absolu = cheminLexical(racine, rel)
   let stat
-  try { stat = lstatSync(absolu) } catch (e) {
-    if (cheminAbsent(e)) return null
-    throw e
+  let echec
+  try { stat = lstatSync(absolu) } catch (e) { echec = e }
+  cheminSous(racine, rel, canon, canon && ((chemin) => canon(chemin, !stat || stat.isSymbolicLink())))
+  if (echec) {
+    if (cheminAbsent(echec)) return null
+    throw echec
   }
   if (!stat.isFile()) throw new Error(`fichier attendu : ${rel}`)
   return empreinte(readFileSync(absolu))
