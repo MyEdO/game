@@ -45,6 +45,12 @@ export function* analyserCorpus(fichiers, options = {}) {
   finally { libererSessions(session ? [session] : [], erreurs); }
 }
 
+export function avecAnalyse(fichier, sourceFile, checker, fn) {
+  if (sourceFile) return fn(sourceFile, checker);
+  for (const analyse of analyserCorpus([fichier])) if (analyse.sourceFile) return fn(analyse.sourceFile, analyse.checker);
+  throw new Error(`avecAnalyse : aucun arbre TypeScript pour ${fichier.rel}`);
+}
+
 export function analyserTexte(fichier, options) {
   for (const { sourceFile, diagnostics } of analyserCorpus([fichier], options)) return { fichier, sourceFile, diagnostics };
 }

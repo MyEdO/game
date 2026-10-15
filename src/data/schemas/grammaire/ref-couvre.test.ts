@@ -11,6 +11,12 @@ const COUVERTURE = { ...COUVERTURE_DE_SPEC, foyer: 'src/data/schemas/grammaire/r
 const IDENTITE = { ...IDENTITE_D_INSTANCE, foyer: 'src/data/schemas/grammaire/ref.ts' };
 const fixture = (text: string) => ({ rel: 'fixture.ts', text });
 
+describe('la COUVERTURE et l’IDENTITÉ ne s’écrivent nulle part ailleurs dans `src/` — prod ET tests', () => {
+  it('un parcours du corpus pour les deux constructions', { timeout: 60_000 }, () => {
+    expect(constructionsReserveesDuCorpus(corpusDesGardes(), [COUVERTURE, IDENTITE])).toEqual([]);
+  });
+});
+
 describe('refCouvre — une référence couvre une entrée du même id (LDB 09 l.44)', () => {
   it('sans `spec` : toutes les Spécialisations de l’id ; avec `spec` : la sienne seule', () => {
     expect(refCouvre({ id: 'metier' }, { id: 'metier', spec: 'forgeron' })).toBe(true);
@@ -20,10 +26,6 @@ describe('refCouvre — une référence couvre une entrée du même id (LDB 09 l
     expect(refCouvre({ id: 'metier', spec: 'forgeron' }, { id: 'metier' })).toBe(false);
     expect(refCouvre({ id: 'metier' }, { id: 'voile', spec: 'forgeron' })).toBe(false);
     expect(refCouvre({ id: 'metier' }, { id: undefined })).toBe(false);
-  });
-
-  it('la COUVERTURE ne s’écrit nulle part ailleurs dans `src/` — prod ET tests', () => {
-    expect(constructionsReserveesDuCorpus(corpusDesGardes(), [COUVERTURE])).toEqual([]);
   });
 
   it('le scan lit la FORME, pas le nom : opérandes commutés, `undefined` et `!` compris', () => {
@@ -77,16 +79,19 @@ describe('memeSpecialisation — l’identité d’instance (LDB 09 l.44 ; LDB 1
     expect(memeSpecialisation('forgeron', 'apothicaire')).toBe(false);
   });
 
-  it('l’IDENTITÉ ne s’écrit nulle part ailleurs dans `src/` — prod ET tests', () => {
-    expect(constructionsReserveesDuCorpus(corpusDesGardes(), [IDENTITE])).toEqual([]);
-  });
-
   it('le scan lit la FORME : égalité et inégalité, `spec` d’un seul côté suffit', () => {
     const vu = (text: string) => scanConstructionsReservees(fixture(text), [IDENTITE]).length;
     expect(vu("const ok = (a.spec ?? '') === (b.spec ?? '');"), 'forme canonique').toBe(1);
     expect(vu("const ok = s.id === id && (s.spec ?? '') === (spec ?? '');"), 'requête nue').toBe(1);
     expect(vu("const hors = (a.spec ?? '') !== (b.spec ?? '');"), 'inégalité').toBe(1);
     expect(vu("const ok = (a.spec ?? '') == (x ?? '');"), '`==`, un seul `spec`').toBe(1);
+    expect(vu("const ok = String(a.spec ?? '') === String(b.spec ?? '');"), '`String(X ?? \'\')`').toBe(1);
+    expect(vu("const hors = String(b.spec ?? '') !== String(a.spec ?? '');"), '`String(…)`, inégalité commutée').toBe(1);
+    expect(vu("const ok = (a.spec || '') === (b.spec || '');"), '`X || \'\'`').toBe(1);
+    expect(vu("const hors = (b.spec || '') != (a.spec || '');"), '`X || \'\'`, inégalité commutée').toBe(1);
+    expect(vu("const ok = (x || '') === String(a.spec ?? '');"), 'formes mêlées, `spec` d’un seul côté').toBe(1);
+    expect(vu("const ok = String(a.spec) === String(b.spec);"), '`String(X)` sans défaut vide').toBe(0);
+    expect(vu("const ok = (a.spec || 'x') === (b.spec || '');"), 'autre défaut que la chaîne vide, `||`').toBe(0);
     expect(vu("const ok = (a.spec ?? 'x') === (b.spec ?? '');"), 'autre défaut que la chaîne vide').toBe(0);
     expect(vu("const ok = (a.mode ?? '') === (b.mode ?? '');"), 'autre champ que `spec`').toBe(0);
     expect(vu("const ok = a.spec === b.spec;"), 'égalité stricte, sans confusion du vide').toBe(0);

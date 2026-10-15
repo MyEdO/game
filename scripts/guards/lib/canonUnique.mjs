@@ -27,7 +27,7 @@
 // appelants déclarent ; les verrous de lint du même concept sont #2019.
 import * as ts from 'typescript/unstable/ast';
 import { resolve, relative } from 'node:path';
-import { analyserCorpus } from './dialecte.mjs';
+import { analyserCorpus, avecAnalyse } from './dialecte.mjs';
 import { sAppliqueA } from './sourceCorpus.mjs';
 import { RACINE } from './bindingsVivants.mjs';
 import { resolveImport, sitesDeModule, liaisonsDe } from './importGraph.mjs';
@@ -439,17 +439,20 @@ export const COUVERTURE_DE_SPEC = Object.freeze({
 });
 
 /** L'IDENTITÉ d'instance recopiée, où `X` se nomme `spec` — la convention qu'écrit `memeSpecialisation`
- *  (`src/data/schemas/grammaire/ref.ts`) : `(X ?? '') === (Y ?? '')`, ou `!==`, `==`, `!=`. */
+ *  (`src/data/schemas/grammaire/ref.ts`) : `(X ?? '') === (Y ?? '')`, ou `!==`, `==`, `!=` ; chaque côté
+ *  vide par défaut en `X ?? ''` ou `X || ''`, nu ou sous `String(…)`. */
 export const IDENTITE_D_INSTANCE = Object.freeze({
   nom: 'IDENTITE_D_INSTANCE',
   indice: (texte) => texte.includes('spec'),
   /** @param {ts.Node} n @returns {string | null} */
   reconnait: (n) => {
     if (!ts.isBinaryExpression(n) || ![...EGALITES_SEULES, ...INEGALITES].includes(n.operatorToken.kind)) return null;
-    /** L'opérande `X` de `X ?? ''`, sinon `null`. @param {ts.Expression} e @returns {ts.Expression | null} */
+    /** L'opérande `X` de `X ?? ''`, `X || ''` ou `String(…)` de l'une d'elles, sinon `null`.
+     *  @param {ts.Expression} e @returns {ts.Expression | null} */
     const videParDefaut = (e) => {
       const x = sansEnveloppe(e);
-      if (!ts.isBinaryExpression(x) || x.operatorToken.kind !== ts.SyntaxKind.QuestionQuestionToken) return null;
+      if (ts.isCallExpression(x) && ts.isIdentifier(x.expression) && x.expression.text === 'String' && x.arguments.length === 1) return videParDefaut(x.arguments[0]);
+      if (!ts.isBinaryExpression(x) || ![ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(x.operatorToken.kind)) return null;
       const defaut = sansEnveloppe(x.right);
       return ts.isStringLiteral(defaut) && defaut.text === '' ? sansEnveloppe(x.left) : null;
     };
@@ -715,39 +718,33 @@ export function estAppelDeclare(appel, sf, fonctions, contexte) {
 
 export function sansDeclarationsDeMetadonnees(fichier, sourceFile, checker) {
   if (!/\bnommer(?:Champs|Noeud)\b/.test(fichier.text)) return fichier.text;
-  if (sourceFile) return texteSansDeclarationsDeMetadonnees(fichier, sourceFile, checker);
-  for (const analyse of analyserCorpus([fichier])) return texteSansDeclarationsDeMetadonnees(fichier, analyse.sourceFile, analyse.checker);
-  return fichier.text;
-}
-
-/** @param {Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>} fichier @param {ts.SourceFile} sourceFile
- * @param {ts.TypeChecker | undefined} checker @returns {string} */
-function texteSansDeclarationsDeMetadonnees(fichier, sourceFile, checker) {
-  const contexte = contexteImports(sourceFile, checker);
-  const fonctions = { 'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'] };
-  const plages = [];
-  const declaratif = (n) => {
-    if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isNonNullExpression(n)) return declaratif(n.expression);
-    if (ts.isArrayLiteralExpression(n)) { for (const element of n.elements) declaratif(element); return; }
-    if (!ts.isObjectLiteralExpression(n)) return;
-    plages.push([n.getStart(sourceFile), n.getStart(sourceFile) + 1], [n.end - 1, n.end]);
-    for (const propriete of n.properties) {
-      if (!ts.isPropertyAssignment(propriete) || ts.isComputedPropertyName(propriete.name)) continue;
-      plages.push([propriete.name.getStart(sourceFile), propriete.name.end]);
-      declaratif(propriete.initializer);
-    }
-  };
-  const walk = (n) => {
-    if (ts.isCallExpression(n)) {
-      const nom = estAppelDeclare(n, sourceFile, fonctions, contexte);
-      if (nom) for (const argument of n.arguments.slice(1, nom === 'nommerChamps' ? 3 : 2)) declaratif(argument);
-    }
-    n.forEachChild(walk);
-  };
-  walk(sourceFile);
-  let texte = fichier.text;
-  for (const [debut, fin] of plages.sort((a, b) => b[0] - a[0])) texte = texte.slice(0, debut) + texte.slice(debut, fin).replace(/[^\r\n]/g, ' ') + texte.slice(fin);
-  return texte;
+  return avecAnalyse(fichier, sourceFile, checker, (sf, checker) => {
+    const contexte = contexteImports(sf, checker);
+    const fonctions = { 'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'] };
+    const plages = [];
+    const declaratif = (n) => {
+      if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isNonNullExpression(n)) return declaratif(n.expression);
+      if (ts.isArrayLiteralExpression(n)) { for (const element of n.elements) declaratif(element); return; }
+      if (!ts.isObjectLiteralExpression(n)) return;
+      plages.push([n.getStart(sf), n.getStart(sf) + 1], [n.end - 1, n.end]);
+      for (const propriete of n.properties) {
+        if (!ts.isPropertyAssignment(propriete) || ts.isComputedPropertyName(propriete.name)) continue;
+        plages.push([propriete.name.getStart(sf), propriete.name.end]);
+        declaratif(propriete.initializer);
+      }
+    };
+    const walk = (n) => {
+      if (ts.isCallExpression(n)) {
+        const nom = estAppelDeclare(n, sf, fonctions, contexte);
+        if (nom) for (const argument of n.arguments.slice(1, nom === 'nommerChamps' ? 3 : 2)) declaratif(argument);
+      }
+      n.forEachChild(walk);
+    };
+    walk(sf);
+    let texte = fichier.text;
+    for (const [debut, fin] of plages.sort((a, b) => b[0] - a[0])) texte = texte.slice(0, debut) + texte.slice(debut, fin).replace(/[^\r\n]/g, ' ') + texte.slice(fin);
+    return texte;
+  });
 }
 
 /**
@@ -1005,34 +1002,28 @@ export function comparaisonDAppel({ nom, fonctions }) {
 export function scanConstructionsReservees(fichier, constructions, sourceFile, checker) {
   const retenues = constructions.filter((c) => sAppliqueA(fichier, c) && (!c.indice || c.indice(fichier.text)));
   if (!retenues.length) return [];
-  if (sourceFile) return trouvaillesDuScan(retenues, sourceFile, checker);
-  for (const analyse of analyserCorpus([fichier])) return trouvaillesDuScan(retenues, analyse.sourceFile, analyse.checker);
-  return [];
-}
-
-/** @param {readonly import('./canonUnique.mjs').ConstructionGardee[]} retenues @param {ts.SourceFile} sf
- * @param {ts.TypeChecker | undefined} checker @returns {{ line: number, construction: string, detail: string }[]} */
-function trouvaillesDuScan(retenues, sf, checker) {
-  const contexte = contexteImports(sf, checker);
-  /** @type {{ line: number, construction: string, detail: string }[]} */
-  const trouvailles = [];
-  const vues = new Set();
-  /** @param {ts.Node} n */
-  const walk = (n) => {
-    if (ts.isJSDocNodeKind(n.kind) || (n.flags & ts.NodeFlags.JSDoc)) return;
-    for (const c of retenues) {
-      const detail = c.reconnait(n, sf, contexte);
-      if (detail == null) continue;
-      const line = lineOf(sf, n);
-      const cle = `${line}|${c.nom}`;
-      if (vues.has(cle)) continue;
-      vues.add(cle);
-      trouvailles.push({ line, construction: c.nom, detail });
-    }
-    n.forEachChild(walk);
-  };
-  walk(sf);
-  return trouvailles;
+  return avecAnalyse(fichier, sourceFile, checker, (sf, checker) => {
+    const contexte = contexteImports(sf, checker);
+    /** @type {{ line: number, construction: string, detail: string }[]} */
+    const trouvailles = [];
+    const vues = new Set();
+    /** @param {ts.Node} n */
+    const walk = (n) => {
+      if (ts.isJSDocNodeKind(n.kind) || (n.flags & ts.NodeFlags.JSDoc)) return;
+      for (const c of retenues) {
+        const detail = c.reconnait(n, sf, contexte);
+        if (detail == null) continue;
+        const line = lineOf(sf, n);
+        const cle = `${line}|${c.nom}`;
+        if (vues.has(cle)) continue;
+        vues.add(cle);
+        trouvailles.push({ line, construction: c.nom, detail });
+      }
+      n.forEachChild(walk);
+    };
+    walk(sf);
+    return trouvailles;
+  });
 }
 
 /**
