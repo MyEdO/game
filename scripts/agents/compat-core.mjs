@@ -126,6 +126,9 @@ export function transformSkillTree(sourceFiles) {
   return outputs;
 }
 
+// #2537
+export const OUTILS_NON_RESOLUS = Object.freeze(['StructuredOutput', 'TodoWrite', 'TaskCreate', 'TaskGet', 'TaskUpdate', 'TaskList', 'SendFeedback', 'ScheduleWakeup', 'EnterPlanMode', 'ExitPlanMode', 'AskUserQuestion']);
+
 export function validateRolePairs(claudeProfiles, codexProfiles) {
   const diagnostics = [];
   for (const role of new Set([...claudeProfiles.keys(), ...codexProfiles.keys()])) {
@@ -142,6 +145,9 @@ export function validateRolePairs(claudeProfiles, codexProfiles) {
       const instructions = readTomlStringField(toml, 'developer_instructions', `${role}.toml`);
       if (frontmatter.attributes.get('name') !== role || name !== role)
         diagnostics.push({ family: 'agent', destination: role, type: 'parse', message: 'name différent du nom de fichier' });
+      for (const outil of (frontmatter.attributes.get('tools') ?? '').split(',').map((entree) => entree.trim()))
+        if (OUTILS_NON_RESOLUS.includes(outil))
+          diagnostics.push({ family: 'agent', destination: role, type: 'tools', message: `outil « ${outil} » hors du pool des sous-agents` });
       if (frontmatter.attributes.get('description') !== description)
         diagnostics.push({ family: 'agent', destination: role, type: 'content', message: 'description fonctionnelle divergente' });
       const expected = referencesIn(adapt(frontmatter.body).split('.claude/skills/').join('.agents/skills/'));
@@ -335,10 +341,16 @@ export function remplacerCleJson(texte, cle, valeur) {
   return `${avant}${separateur}\n${unite}${JSON.stringify(cle)}: ${serialise}\n${texte.slice(fin)}`;
 }
 
-/** Les racines que `agents:sync` POSSÈDE — source unique, lue ici (`managedRoots`) et par le train
- *  de publication (`scripts/ops/publier.mjs`, `estDocDerive`) : ces chemins sont DÉRIVÉS de
- *  `CLAUDE.md` et des fiches, donc committables avec les docs. */
+/** Les racines que `agents:sync` POSSÈDE en entier : ce qui y vit hors des sorties attendues est
+ *  orphelin (`managedRoots`, `collectDiffs`). */
 export const MANAGED_ROOTS = ['AGENTS.md', '.agents/skills', '.codex/credo.md'];
+
+/** Les surfaces dont `buildExpectedOutputs` dérive les déclarations de hooks (`hooksAttendus`). */
+export const SURFACES_DE_HOOKS = [SURFACE_CLAUDE, SURFACE_CODEX];
+
+/** Les DESTINATIONS de `buildExpectedOutputs` : tout chemin qu'il écrit ou retire est l'une d'elles ou
+ *  vit sous l'une d'elles. Lues par l'étape `docs` du train (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`). */
+export const DESTINATIONS = [...MANAGED_ROOTS, ...SURFACES_DE_HOOKS];
 
 /**
  * Les sorties attendues de `snapshot`. `registres` (script de `ENTREES_OUTIL` → registre) dérive les
@@ -361,7 +373,7 @@ export function buildExpectedOutputs(snapshot, registres) {
   for (const [destination, bytes] of transformSkillTree(snapshot)) files.set(destination, bytes);
   const credo = snapshot.get('.claude/credo.md');
   if (credo) files.set('.codex/credo.md', Buffer.from(`${GENERATED_PREFIX}.claude/credo.md -->\n${adapt(utf8.decode(credo))}`));
-  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+  for (const surface of SURFACES_DE_HOOKS) {
     try {
       const valeur = hooksAttendus(registres, surface);
       const cle = SORTIES_PAR_CLE.get(surface);

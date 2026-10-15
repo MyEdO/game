@@ -28,8 +28,7 @@ import { lireRendu, perimetreDeCoeur } from './workflow-args.mjs'
 import { coeursDeDomaines, coeursDuRegistre, domainesDe } from './_lib.mjs'
 import { scanForbiddenCounts } from './check-atlas-counts.mjs'
 import { jouerWorkflow } from '../guards/lib/jouer-workflow.mjs'
-import { OUTILS_ECRITURE } from '../guards/lib/contratGarde.mjs'
-import { listerDossier } from '../guards/lib/lister.mjs'
+import { outilsEnLectureSeule, typesEnLectureSeule as typesDuDepot } from '../guards/lib/typesDAgent.mjs'
 
 const SCRIPT = fileURLToPath(new URL('./atlas-domain.workflow.js', import.meta.url))
 const SOURCE = readFileSync(SCRIPT, 'utf8')
@@ -60,7 +59,7 @@ const repondreAvec = (trous) => {
   let audits = 0
   return (_prompt, opts) => {
     switch (opts.phase) {
-      case 'Cadrage': return { coverageRefs: [{ ab: 'BKA', nn: '05' }], sonnetBooks: ['SPG'] }
+      case 'Cadrage': return { coverageRefs: [{ ab: 'BKA', nn: '05' }] }
       case 'Cartographie': return { items: [{ item: 'Une regle de fixture', kind: 'table', ref: 'BKA 05 l.1-2', gist: 'un gist' }] }
       case 'Taxonomie': return { topics: [{ id: 'topic-un', t: 'Topic Un', hint: 'un hint', covers: ['Une regle de fixture'] }] }
       case 'Survey': return { hits: [{ topicId: 'topic-un', ref: 'BKA 05 l.1', gist: 'un gist' }] }
@@ -305,28 +304,13 @@ test('workflow Atlas : la grammaire dite au juge de FIDÉLITÉ désigne un FICHI
 // hors du prompt (le TYPE d'agent, dont les outils n'écrivent pas), l'autre dedans (la clause). Ce
 // banc mesure les OPTIONS RÉELLEMENT ENVOYÉES par le script, pas son texte.
 
-/** Les types d'agent du dépôt qui n'ont AUCUN outil d'écriture — lus à `.claude/agents/`, jamais
+/** Les types d'agent en lecture seule, lus à `.claude/agents/` (`typesEnLectureSeule`, scripts/guards/lib/typesDAgent.mjs), jamais
  *  écrits en dur : un agent dont on ajouterait `Edit` sortirait de cette liste sans que rien ne mente. */
-/** Une liste d'outils d'agent n'écrit rien : aucun canal d'écriture (`OUTILS_ECRITURE`). */
-const enLectureSeule = (outils) => !outils.some((o) => OUTILS_ECRITURE.includes(o))
-const typesEnLectureSeule = () => {
-  const dossier = fileURLToPath(new URL('../../.claude/agents/', import.meta.url))
-  const types = []
-  for (const f of listerDossier(dossier).filter((n) => n.endsWith('.md'))) {
-    const tete = readFileSync(join(dossier, f), 'utf8').split(/^---\s*$/m)[1] || ''
-    const nom = /^name:\s*(\S+)/m.exec(tete)
-    const outils = /^tools:\s*(.+)$/m.exec(tete)
-    // Pas de `tools:` = l'agent hérite de TOUS les outils, écriture comprise : jamais lecture seule.
-    if (!nom || !outils) continue
-    const liste = outils[1].split(',').map((s) => s.trim())
-    if (enLectureSeule(liste)) types.push(nom[1])
-  }
-  return types
-}
+const typesEnLectureSeule = () => typesDuDepot(fileURLToPath(new URL('../../', import.meta.url)))
 
 test('workflow Atlas : un agent muni du SEUL `ctx_patch` (canal d’édition prescrit) n’est pas en lecture seule', () => {
-  assert.equal(enLectureSeule(['mcp__lean-ctx__ctx_read', 'mcp__lean-ctx__ctx_patch']), false)
-  assert.equal(enLectureSeule(['mcp__lean-ctx__ctx_read', 'Bash']), true)
+  assert.equal(outilsEnLectureSeule(['mcp__lean-ctx__ctx_read', 'mcp__lean-ctx__ctx_patch']), false)
+  assert.equal(outilsEnLectureSeule(['mcp__lean-ctx__ctx_read', 'Bash']), true)
 })
 
 test('workflow Atlas : les types d’agent en lecture seule se lisent au dépôt (sinon le contrat est vide)', () => {
@@ -346,14 +330,14 @@ test('workflow Atlas : AUCUN agent ne part sans `agentType` en LECTURE SEULE, ni
   assert.deepEqual(sansModele.map(([cle]) => cle), [])
 })
 
-test('workflow Atlas : le type suit ce que la phase FAIT — `juge` là où l’on refute, `lecteur` ailleurs', async () => {
+test('workflow Atlas : le type suit ce que la phase FAIT — `juge` là où l’on refute, `redacteur` là où l’on rédige', async () => {
   const options = await optionsDesDeuxRuns()
-  const parType = { juge: [], lecteur: [] }
+  const parType = { juge: [], redacteur: [] }
   for (const [cle, o] of options) (parType[o.agentType] ||= []).push(cle)
   // AUDIT de complétude et VÉRIF de fidélité confrontent une entrée à la source et REFUTENT ;
-  // l'augmentation, elle, RÉDIGE — elle reste un lecteur, dans sa phase `Correction`.
+  // l'augmentation, elle, RÉDIGE — un `redacteur`, dans sa phase `Correction`.
   assert.deepEqual(parType.juge.sort(), [`Audit:${LOT[0]}:audit#1`, `Audit:${LOT[0]}:audit#2`, `Verif:${LOT[0]}:reverif:topic-un`, `Verif:${LOT[0]}:verif:topic-un`].sort())
-  assert.ok(parType.lecteur.includes(`Correction:${LOT[0]}:augment:topic-un`), parType.lecteur.join(' · '))
+  assert.ok(parType.redacteur.includes(`Correction:${LOT[0]}:augment:topic-un`), parType.redacteur.join(' · '))
 })
 
 test('workflow Atlas : TOUT prompt porte la clause de LECTURE SEULE, avec le refus de RÉPARER la source', async () => {

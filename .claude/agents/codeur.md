@@ -16,8 +16,7 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
   nouveau cas en est une INSTANCE, pas une variante — un `if (<type de cas>)` dans un socle est un
   trou de socle ; (3) `## Design jugé :` (verdict d'un juge, ou « non requis » motivé). Il en manque
   un → tu rends « BRIEF REFUSÉ : <ce qui manque> » SANS toucher un fichier.
-- **Shell = Bash** (le hook RTK compresse la sortie des runners). Jamais de `run_in_background` pour
-  un runner.
+- **Shell = Bash** (le hook RTK compresse la sortie des runners). **Aucun appel d'outil ne dure plus de 270 s** (`BORNE_D_APPEL_MS`, garde `scripts/hooks/appel-borne-guard.mjs`, #2596) : ton cache vit 5 min, un appel plus long réécrit tout ton contexte. Une commande qui peut durer plus, `test:perimetre` compris, part EN FOND (`run_in_background: true`) sous la forme que la garde imprime : `rm -f <base>.code; ( <commande> ) > <base>.log 2>&1; echo $? > <base>.code`, `<base>` hors de l'arbre ; puis elle se SONDE par `node scripts/ops/sonde.mjs <base>.code` (Bash, `timeout: 260000`), relancée tant qu'elle rend 124 : elle rend dès la fin, avec le code de la commande et la fin de `<base>.log`.
 - **Rien ne te survit.** Toute commande en arrière-plan (sonde, script, serveur) est BORNÉE : `timeout`, ou une
   boucle à sortie garantie. Avant ton rendu, arrête chaque tâche que tu as lancée. Ton rendu les LISTE, avec leur
   fin (terminée, tuée). Une tâche vivante après ton rendu, c'est l'utilisateur qui la nettoie à la main.
@@ -25,15 +24,23 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
   worktree, tout `ctx_patch`/`ctx_read` prend un chemin ABSOLU (les chemins relatifs se résolvent
   contre la racine lean-ctx = l'arbre principal) ; au rendu, sonde `git status --short` de l'arbre
   principal et signale toute fuite. Tu écris des fichiers ; l'orchestrateur gère git.
+- **`ctx_patch` : un fichier par appel.** Un lot `ops` qui nomme plus d'un `path` est refusé
+  (`lotAmbigu`, `scripts/guards/lib/contratGarde.mjs`).
+- **Fichiers temporaires : dans le scratchpad de la session, sous un préfixe propre à ton lot**, jamais
+  dans `/tmp`. Jamais de `rm` à motif glob (`rm -f /tmp/sk.*`) : il efface les fichiers des autres
+  sessions (#1595 S11).
 - RÉUTILISE les primitives nommées au brief (`docs/primitives.md`). Spec
   contredite par le code réel ou par le `Source/` → STOPPE et rapporte l'écart, jamais improviser ni
   coder la règle fausse.
 - **Auto-contrôle = `npm run test:perimetre`** avant le rendu, après `npm run typecheck:fast` si du `.ts`
   bouge, plus l'exécution réelle de l'outil livré en lecture seule. Il DÉRIVE les tests du périmètre des
   fichiers touchés et les lance, lint des fichiers touchés compris (politique et options :
-  `scripts/test/perimetre.mjs`) ; aucune liste écrite à la main, la tienne comme celle du brief. Pendant
-  l'itération, `node --test <fichier>` et `npm test -- <chemins>` sur le fichier en cours restent admis.
-  Ton rendu colle les lignes `[perimetre]` du rapport (rangs, budget, ce qui part à la CI).
+  `scripts/test/perimetre.mjs`) ; aucune liste écrite à la main, la tienne comme celle du brief.
+  **`test:perimetre` tourne SEUL dans son appel** (jamais enchaîné au typecheck) et **une fois au vert, en
+  fin de travail** : un rouge s'itère sur le SEUL fichier rouge (`node --test <fichier>`,
+  `npm test -- <chemins>`, chemins EN CLAIR : un chemin en variable rend le filtre invérifiable et
+  `[gates-ci]` refuse ; #1595 S10, S11, juge de #1765), puis un dernier `test:perimetre` (#2568), en fond et sondé (puce Shell). Ton rendu colle les lignes `[perimetre]` du rapport (rangs, budget,
+  ce qui part à la CI).
   Les GATES du train (lint, deps:unused, docs:build, suites entières, `npm run gates`, tsc/vitest nus)
   appartiennent au run CI de la branche, qui les joue UNE fois : un brief qui te les impose se
   REFUSE (« BRIEF REFUSÉ : gates hors périmètre ») — et `scripts/hooks/codeur-gates-guard.mjs` les

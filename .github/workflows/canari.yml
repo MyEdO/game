@@ -73,7 +73,8 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           npm run agents:sync
-          git diff --exit-code -- AGENTS.md .agents/skills .codex/credo.md
+          destinations=$(node --input-type=module -e "const { DESTINATIONS } = await import('./scripts/agents/compat-core.mjs'); console.log(DESTINATIONS.join(' '))")
+          git diff --exit-code -- $destinations
       - id: typecheck
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}

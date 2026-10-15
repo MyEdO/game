@@ -1,7 +1,8 @@
 #!/bin/sh
-# scripts/git-hooks/post-rewrite — régénère les docs dérivés après un REBASE ($1 = "rebase").
-# `amend` réécrit un commit déjà régénéré par son auteur : rien à faire. Même corps que post-merge
-# (docs-rebuild.mjs). Contrat de post-hook : ne fait jamais échouer l'opération qui vient d'avoir lieu.
+# scripts/git-hooks/post-rewrite — après un REBASE ($1 = "rebase") : miroirs d'agents produits dans l'index
+# (`miroirs-d-agents.mjs`, #2578 : `rebase --continue` ne joue pas le pre-commit), puis docs dérivés.
+# `amend` : le post-commit a produit. Contrat de post-hook : ne fait jamais échouer l'opération qui vient d'avoir lieu.
 [ "${1:-}" = "rebase" ] || exit 0
+"${npm_node_execpath:-node}" "$(dirname "$0")/miroirs-d-agents.mjs" post-rewrite || true
 "${npm_node_execpath:-node}" "$(dirname "$0")/docs-rebuild.mjs" post-rewrite || true
 exit 0

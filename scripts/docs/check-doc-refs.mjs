@@ -349,8 +349,9 @@ for (const dir of HOOKS_DIRS) {
 // chaque session et pointent vers `src/`/`scripts/`/`docs/` ; un renommage les laissait mentir
 // jusqu'à ce qu'un agent suive le pointeur (deux chemins morts ont vécu des mois). MÊME résolution
 // que les sens 1 et 6 — aucune seconde définition de « ce chemin existe-t-il ».
-// PÉRIMÈTRE dit : le credo, `.claude/agents/*.md`, `.claude/skills/*/SKILL.md`, et leurs jumeaux
-// Codex maintenus À LA MAIN (`.codex/agents/*.toml`, `.codex/credo.md`). Hors périmètre, dit aussi :
+// PÉRIMÈTRE dit : le credo, `.claude/agents/*.md`, `.claude/skills/*/SKILL.md`, leurs jumeaux Codex
+// maintenus À LA MAIN (`.codex/agents/*.toml`) et le credo Codex que `agents:sync` produit
+// (`.codex/credo.md`, `scripts/agents/compat-core.mjs`). Hors périmètre, dit aussi :
 // `.claude/memory/**` (les fiches citent l'état d'un jour, pas un pointeur à suivre) et
 // `.claude/settings.json` (les hooks qu'il déclare sont déjà jugés par la parité des canaux).
 const CONTEXTE_FICHIERS = [

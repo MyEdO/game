@@ -8,7 +8,7 @@
 //
 // Le script s'écrit avec l'outil d'écriture de fichier, jamais par heredoc, sed ou `node -e` : Git Bash
 // y casse les antislashs, les regex et l'accentué.
-import { decrireChoix, leverApresNettoyage } from './lib.mjs';
+import { leverApresNettoyage } from './lib.mjs';
 import { demarrer } from './setup.mjs';
 
 /** Le texte d'un script de recette neuf (PURE) : ses imports visent le gabarit et le kit par leur URL
@@ -19,7 +19,7 @@ export function squelette({ urlGabarit = import.meta.url, urlKit = new URL('./li
 import { recette } from '${urlGabarit}';
 import { clickButtonByText, evaluerFn, shot } from '${urlKit}';
 
-await recette(async ({ session, choix }) => {
+await recette(async ({ session }) => {
   // Les gestes du JOUEUR : clickButtonByText, cliquerSelecteur, realKey… ; \`__wfrp\` pour la mise en
   // place et l'observation seulement (docs/recette-navigateur.md).
 }, { attacher: true, scenario: 'entrainement' });
@@ -27,27 +27,27 @@ await recette(async ({ session, choix }) => {
 }
 
 /**
- * DÉROULE une recette : `demarrer` (session tenue par défaut, `attacher`), puis `corps({ session,
- * choix })`, puis le VERDICT de console — toute erreur de console depuis l'amorçage (ou depuis
- * l'attache, pour une session tenue) fait LEVER en la citant — puis la fermeture (`session.close` :
+ * DÉROULE une recette : `demarrer` (session tenue par défaut, `attacher`), puis `corps({ session })`,
+ * puis le verdict de console. Une erreur depuis l’amorçage (ou l’attache pour une session tenue)
+ * fait LEVER en la citant — puis la fermeture (`session.close` :
  * DÉTACHE une session tenue, ferme un Chrome ouvert ici). Une erreur du corps sort telle quelle, jointe
- * à un échec de fermeture (`leverApresNettoyage`). Imprime sur `sortie` les choix faits à la place du
- * joueur et les avertissements. Rend `{ choix, avertissements }`.
+ * à un échec de fermeture (`leverApresNettoyage`). Imprime les avertissements.
+ * Rend `{ avertissements }`.
  */
 export async function recette(corps, { attacher = true, scenario, graine, combat, url, lancer = demarrer, sortie = console } = {}) {
-  const { session, choix } = await lancer({ attacher, scenario, graine, combat, url });
+  const { session } = await lancer({ attacher, scenario, graine, combat, url });
   try {
-    await corps({ session, choix });
+    await corps({ session });
   } catch (e) {
     await leverApresNettoyage(e, () => session.close());
   }
   const erreurs = session.console.errors();
   const avertissements = session.console.warnings();
   await session.close();
-  sortie.log(decrireChoix(choix));
+
   if (avertissements.length) sortie.log(`Avertissements de console : ${avertissements.length}\n${avertissements.map((a) => `  · ${a.text}`).join('\n')}`);
   if (erreurs.length) throw new Error(`recette : ${erreurs.length} erreur(s) de console — ${erreurs.map((e) => e.text).join(' | ')}`);
-  return { choix, avertissements };
+  return { avertissements };
 }
 
 if (import.meta.main) process.stdout.write(squelette());

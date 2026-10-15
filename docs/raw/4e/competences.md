@@ -89,7 +89,10 @@ une Spécialisation précise.
 > — LDB 09 l.40
 
 Quand la Spécialisation est « Au choix », le joueur la sélectionne librement parmi les exemples de
-la description, ou en crée une avec l'accord du MJ.
+la description, ou en crée une avec l'accord du MJ. La liste d'exemples d'une Compétence n'est pas
+fermée : « Savoir (au choix) peut devenir Savoir (Géographie), Savoir (Folklore), Savoir (Magie) ou
+tout autre exemple similaire » (LDB 08 l.140), trois Spécialisations absentes de LDB 09 l.495.
+L'accord du MJ se modélise par une règle optionnelle à arbitrer (#1460).
 
 > « Chaque Compétence est alors appelée une Spécialisation. Quand une Spécialisation est mentionnée
 > dans les règles, elle est indiquée entre parenthèses. »
@@ -225,7 +228,7 @@ Duellistess des nouvelles Carrières).
 ### Langue (Int) — Avancée, Groupée
 **LDB :** bataille, bretonnien, classique, guilde, khazalid, Magick, voleur, tiléen
 (LDB 09 l.302)
-**Langues du Vieux Monde listées par LDB 09 l.319-346 :** Albionais, Bataille, Bretonnien,
+**Langues du Vieux Monde listées par LDB 09 l.319-341 :** Albionais, Bataille, Bretonnien,
 Classique, Elthárin, Estalien, Gospodarin, Grumbarth, Khazalid, Magick, Halfling, Norse, Reikspiel,
 Queekique, Tiléen, Langage des voleurs, Wastelander.
 **AA :** Langue (Arabéen) (AA 5 l.122)
@@ -263,6 +266,9 @@ Catapulte = groupe Catapulte exclusif.
 Géographie, Guerre, Herbes (cité LDB 09 l.565), Ingénierie, Loi, Magie, Nécromancie, Région,
 Remèdes, Théologie
 **ADE II :** Savoir (Magie) pour fabriquer des objets magiques (ADE II 4 l.94, l.98, l.104)
+**LDB (au choix d'une Carrière) :** « Savoir (Magie) ou tout autre exemple similaire » (LDB 08 l.140), après Géographie et Folklore
+**MDG (profils de PNJ) :** Guerre, Histoire, Ingénierie, Navigation, Politique, Religion (MDG 16 l.358, l.401,
+l.460, l.495)
 
 ### Signes secrets (Int) — Avancée, Groupée
 **LDB :** Ordre Gris, Guildes (au choix), Ruraux, Éclaireurs, Voleurs, Vagabonds
@@ -581,11 +587,13 @@ interrompu.
 ---
 
 ### Langue (Int) — Avancée, Groupée
-LDB 09 l.311-346
+LDB 09 l.310-312, l.296-302, l.314-341
 
 Aisance avec les langues. Tous les personnages parlent le reikspiel (et leur langue maternelle si
-différente) sans Test. Si Compétence possédée : compréhension normale sans Test ; Test requis pour
-concepts difficiles, dialectes ou vocabulaire obscur.
+différente) sans Test. Si Compétence possédée : se faire comprendre ou comprendre des concepts
+simples sans Test (LDB 09 l.298) ; Test requis pour un concept particulièrement difficile, un
+dialecte ou un vocabulaire obscur. Sans la Compétence, aucun Test : Compétence Avancée (LDB 09 l.30).
+Lire un document exige en plus le Talent Lire/Écrire (LDB 10 l.650).
 
 **Langue (Magick) :** sert à lancer des sorts ; peut nécessiter un Test avec conséquences en cas
 d'échec (voir [Magie](magie.md)).
@@ -593,18 +601,18 @@ d'échec (voir [Magie](magie.md)).
 **Langue (Bataille) :** ordres et gestes simples utilisables en combat sans pénalité pour celui qui
 la possède ; coordination d'attaques et stratégie inaccessibles à ceux qui ne la possèdent pas.
 
-**Sources RAW :** LDB 09 l.311-346 ; ADE II 2 l.728 (ogres : Langue Magick sur Endurance).
+**Sources RAW :** LDB 09 l.310-312, l.296-302, l.314-341 ; LDB 09 l.30 ; LDB 10 l.650 ; ADE II 2 l.728 (ogres : Langue Magick sur Endurance).
 
 ---
 
 ### Marchandage (Soc) — Base
-LDB 09 l.348-348
+LDB 09 l.344-346
 
 Obtenir de meilleures offres lors de négociations. Test opposé de Marchandage pour déterminer si
 l'on fait une bonne affaire. Utilisé aussi pour parcourir les échoppes et trouver les meilleurs prix
 (voir [Économie](economie.md)).
 
-**Sources RAW :** LDB 09 l.348-348
+**Sources RAW :** LDB 09 l.344-346
 
 ---
 

@@ -4,8 +4,8 @@ import { Buffer } from 'node:buffer';
 import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
-  transformSkillTree, validateRolePairs, buildExpectedOutputs as sortiesAttendues, collectDiffs,
-  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, compilerMatcher, hooksAttendus, remplacerCleJson,
+  transformSkillTree, validateRolePairs, OUTILS_NON_RESOLUS, buildExpectedOutputs as sortiesAttendues, collectDiffs,
+  DESTINATIONS, HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, compilerMatcher, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
 
@@ -136,6 +136,17 @@ test('valide noms, descriptions et références des rôles', () => {
   assert.equal(validateRolePairs(claude, new Map())[0].type, 'missing');
 });
 
+test('refuse une entrée `tools:` hors du pool des sous-agents, accepte un outil résolu', () => {
+  const paire = (tools) => [
+    new Map([['joueur', `---\nname: joueur\ndescription: Joue\ntools: ${tools}\n---\nCorps.\n`]]),
+    new Map([['joueur', 'name = "joueur"\ndescription = "Joue"\ndeveloper_instructions = """\nCorps.\n"""']]),
+  ];
+  assert.deepEqual(validateRolePairs(...paire('CronList')), []);
+  for (const outil of OUTILS_NON_RESOLUS) {
+    assert.deepEqual(validateRolePairs(...paire(`Read, ${outil}`)).map((d) => [d.type, d.message]), [['tools', `outil « ${outil} » hors du pool des sous-agents`]]);
+  }
+});
+
 test('génère seulement le credo Codex et partage la mémoire Claude', () => {
   const expected = buildExpectedOutputs(new Map([
     ['CLAUDE.md', Buffer.from('# CLAUDE.md\n')],
@@ -171,7 +182,8 @@ test('les matchers générés capturent les noms natifs réellement observés de
     assert.ok(pre(inconnu), surface);
     assert.ok(pre('apply_patch'), surface);
     assert.ok(post('apply_patch'), surface);
-    assert.equal(pre('NotebookEdit'), false);
+    assert.ok(pre('NotebookEdit'), surface);
+    assert.equal(pre('PasUnEdit'), false);
   }
 });
 
@@ -293,6 +305,18 @@ test('les déclarations committées sont celles que les registres RÉELS produis
   const snapshot = new Map(await Promise.all([SURFACE_CLAUDE, SURFACE_CODEX].map(async (s) => [s, await readFile(new URL(s, racine))])));
   const attendu = sortiesAttendues(snapshot, await chargerRegistres());
   assert.deepEqual(collectDiffs(attendu, snapshot).filter((d) => d.family === 'hook'), []);
+});
+
+test('`DESTINATIONS` couvre chaque sortie de `buildExpectedOutputs`, et chacune en reçoit une', () => {
+  const attendu = buildExpectedOutputs(new Map([
+    ['CLAUDE.md', Buffer.from('# CLAUDE.md\nClaude Code\n')],
+    ['.claude/credo.md', Buffer.from('# Credo\n')],
+    ['.claude/skills/demo/SKILL.md', Buffer.from('---\nname: demo\ndescription: Démo\n---\nCorps\n')],
+  ]));
+  const sous = (chemin, racine) => chemin === racine || chemin.startsWith(`${racine}/`);
+  const sorties = [...attendu.files.keys()];
+  assert.deepEqual(sorties.filter((c) => !DESTINATIONS.some((r) => sous(c, r))), []);
+  assert.deepEqual(DESTINATIONS.filter((r) => !sorties.some((c) => sous(c, r))), []);
 });
 
 test('réfute toute référence de profil qui diverge après normalisation', () => {

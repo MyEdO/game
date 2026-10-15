@@ -53,14 +53,14 @@ Un personnage peut subir plusieurs fois le même État. Les pénalités s'accumu
 
 ### États différents : on n'applique que la pénalité la plus forte
 
-> « Vous pouvez également être sous l'emprise d'États différents simultanément. Lorsque cela se produit, les effets _ne se cumulent pas_ ; vous choisissez la pénalité la plus importante et vous l'appliquez. Donc, si vous êtes sous l'emprise des États _Exténué_ et _À Terre_, vous ne subirez qu'une pénalité de -20 à vos Tests, et non de -30. » — `LDB 16 l.13-15`
+> « Vous pouvez également être sous l'emprise d'États différents simultanément. Lorsque cela se produit, les effets _ne se cumulent pas_ ; vous choisissez la pénalité la plus importante et vous l'appliquez. Donc, si vous êtes sous l'emprise des États _Exténué_ et _À Terre_, vous ne subirez qu'une pénalité de -20 à vos Test, et non de -30. » — `LDB 16 l.13`
 
 **Note RAW importante** : cette règle de non-cumul s'applique aux **pénalités aux Tests**. Les autres effets distincts (dégâts périodiques d'Hémorragique, contraintes de mouvement d'À Terre, etc.) s'appliquent bien simultanément.
 
 **Exceptions au cumul** : plusieurs États **ne se cumulent pas du tout** (un seul pion possible) :
 - **À Terre** (LDB 16 l.37 : « soit vous êtes *À Terre*, soit vous ne l'êtes pas »)
 - **Inconscient** (LDB 16 l.115 : même principe)
-- **Surpris** (l.134 : même principe)
+- **Surpris** (LDB 16 l.137 : même principe)
 
 **Sources RAW** :
 - `LDB 16 l.11-13` — règle de cumul (même État = additif ; États différents = pénalité la plus forte seule)

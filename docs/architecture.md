@@ -38,6 +38,17 @@ Après toute fusion ou tout rebase : les hooks `post-merge`/`post-rewrite` rég�
 code et les docs dont une source a bougé (`scripts/git-hooks/docs-rebuild.mjs`) ; un MIXTE réécrit
 reste à committer.
 
+**Miroirs d'agents** (#2578, `DESTINATIONS` de `scripts/agents/compat-core.mjs`) : produits sur
+l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). Le `pre-commit` les
+produit dans le commit ; les post-hooks (`scripts/git-hooks/miroirs-d-agents.mjs`) rattrapent ce que
+le `pre-commit` ne joue pas (fusion, rebase, `--no-verify`) — le `post-commit` seulement si l'index
+s'écarte de HEAD sur une destination, ou si le commit a touché une destination, une entrée non-JS du
+producteur (`ENTREES_DU_PRODUCTEUR`) ou un membre, données JSON comprises, de la clôture d'imports de
+son code (`RACINES_DU_PRODUCTEUR`, `clotureDImports`, spécificateurs mémoïsés par contenu :
+`specificateursMemoises` de `scripts/test/perimetre.mjs`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. L'étape
+`docs` du train les commet ; un `.claude/settings.json` sale n'y est dérivé que si seule sa clé
+`hooks` s'écarte de HEAD (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`).
+
 **Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
 pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :
 chaque version est lue par le format de son extension (`FORMATS`, `scripts/guards/lib/stockDeSites.mjs`)
@@ -517,7 +528,7 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   Un import relatif n'en sort pas (`claude-code`, `./x`, `../types` et `../hooks` restent permis).
   Hors couture, `$` n'a que ses places : objet d'un accès ni calculé ni optionnel à liste blanche
   (`ui.resolve`, `ui.log`, `ui.invalidate`, `ui.status`, `ui.toast`, `state.*`, `session.id`,
-  `session.append`, `session.root`, `tool.register`, `clock.every`) ou de l'idiome, argument d'une
+  `session.root`, `tool.register`, `clock.every`) ou de l'idiome, argument d'une
   fonction appelée par son nom,
   paramètre, `typeof $.x` en type. Il reste `$` dans la fonction qui le reçoit : `any` est refusé, et
   une liaison typée `EngineInterface` ou `typeof $` (paramètre, cast, alias, contrainte) se nomme `$`
@@ -527,7 +538,8 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   composée, égalité ou `case` numérique, `Math`, `++`/`--`) ; le parsing (appel d'une méthode de
   découpe ou de recherche de chaîne, `parseInt`, `parseFloat`, `Number`, `RegExp`, littéral regex,
   `Date.parse`, `new Date(x)`, `new URL(x)`, `JSON.parse`) ; `ask` en clé ou en littéral ;
-  `$.ui.invalidate` hors de `'ui.render'` (`RenderEventName`, types 2.1.289). Dans la couture : aucun
+  `$.ui.invalidate` hors de `'ui.render'` (`RenderEventName`, types 2.1.289) ; `$.session.append`, l'écriture
+  dans l'historique de la session, qui réécrit le cache de prompt au tour suivant (#2596). Dans la couture : aucun
   `$`, et les mêmes refus, sauf `JSON.parse`. Le mur NE GARDE PAS l'évasion délibérée (`'a' + 'sk'`,
   clé calculée, type dérivé de `On`) ; l'appelé IMPORTÉ qui reçoit `$` (le moteur le refuse, la garde
   `mods:check` le prouve par `claude plugin validate --strict`) ; un `../x` depuis un sous-dossier de

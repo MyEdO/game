@@ -15,7 +15,7 @@ PDF de 19 pages d'un tiers communautaire, réfs en pages LIVRE. Se télécharge 
 
 **Une CARTE, jamais une source** (règle stricte 1) : chaque écart se re-vérifie au `Source/`. Erreur
 prouvée : son §11 donne le non-cumul des États différents pour une nouveauté 5e, alors que
-`LDB 16 l.13-15` le dit déjà. Il avoue ne pas avoir comparé ligne à ligne sorts, talents, miracles et
+`LDB 16 l.13` le dit déjà. Il avoue ne pas avoir comparé ligne à ligne sorts, talents, miracles et
 bestiaire.
 
 Ce qu'il apporte que le livre ne dit pas : ses §19-20 (ce que la 5e reprend d'Aux Armes et de Vents de

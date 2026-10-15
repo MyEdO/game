@@ -13,6 +13,10 @@
 //     lu dans le `package.json` du dépôt de la portée (`racineNpmCourante`) ;
 //   - blocs PowerShell (`TETES_DE_BLOC` : `%`, `ForEach-Object`, `foreach`, `for`, `try`, `catch`,
 //     `finally`…) : le corps de chaque `{ … }` relu comme une commande (`lectureDesBlocs`) ;
+//   - fonctions (`nom()`, `nom ()`, `function nom`, `function nom()`, `function`/`filter` de PowerShell) : la
+//     définition LIE son corps (`{ … }`, `( … )`, composé POSIX) au shell, sans rien exécuter ; un segment dont la
+//     tête est une fonction liée, sans enrobeur de tête hors `time`, exécute ce corps dans le shell de l'appel
+//     (`definitionDeFonction`) ;
 //   - substitutions `$(…)`, `` `…` ``, `@(…)`, et de processus `<(…)`, `>(…)`, nues ou sous quote double
 //     (`$(…)` seule dans une here-string `@"…"@`) : leur contenu relu comme une commande exécutée, où
 //     qu'elles se trouvent dans le segment ;
@@ -20,11 +24,13 @@
 //     refusent la commande (`REFUS_SATURE`).
 import { Buffer } from 'node:buffer'
 import { readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import path, { dirname, join, resolve } from 'node:path'
 import { estRepertoire } from './gitPorte.mjs'
 import { LECTEURS } from './appelsRunners.mjs'
 import { racineNpmCourante } from './racineNpm.mjs'
+import { separerInvocation } from './invocation.mjs'
 
 // ── Parsing STRUCTUREL de la ligne de commande (#591 défaut 3) ───────────────────────────────────
 // La commande se TOKENISE (quotes simples/doubles + here-strings PowerShell `@'…'@`/`@"…"@`), se
@@ -41,17 +47,32 @@ const HEREDOC_OUVERTURE_RE = /^<<(-?)\s*(['"]?)([A-Za-z_][\w.-]*)\2/
  *  ligne de PROSE qui cite le mot, et la suite du texte redeviendrait des commandes. PUR. */
 const ferme = (ligne, { mot, tabs }) => (tabs ? ligne.replace(/^\t+/, '') : ligne).replace(/\r$/, '') === mot
 
-/** Index de la fin du CORPS des heredocs ouverts (`{ mot, tabs }`), `pos` étant le début de la
- *  première ligne de corps. Un mot jamais refermé consomme le reste de la commande, comme le shell. */
+/** Index de la fin du CORPS des heredocs ouverts (`{ mot, tabs, jeton }`), `pos` étant le début de la
+ *  première ligne de corps. Un mot jamais refermé consomme le reste de la commande, comme le shell.
+ *  Le corps LITTÉRAL d'un heredoc va au `corps` de son jeton : mot QUOTÉ (`<<'EOF'`, sans expansion), ou
+ *  mot nu dont le corps n'a ni `$`, ni `` ` ``, ni `\` (rien à développer) ; le corps d'un mot nu à développer
+ *  va à son `corpsADevelopper` ; après `<<-`, sans les tabulations de tête de ses lignes (`man bash`, Here
+ *  Documents). */
 function finDesCorpsHeredoc(command, pos, ouverts) {
   let i = pos
+  const poser = (ouvert, corps) => {
+    ouvert.jeton[!ouvert.litteral && /[$`\\]/.test(corps) ? 'corpsADevelopper' : 'corps'] = ouvert.tabs ? corps.replace(/^\t+/gm, '') : corps
+  }
   for (const ouvert of ouverts) {
+    const debut = i
     for (;;) {
-      if (i >= command.length) return command.length
+      if (i >= command.length) {
+        poser(ouvert, command.slice(debut))
+        return command.length
+      }
       const finLigne = command.indexOf('\n', i)
       const ligne = command.slice(i, finLigne === -1 ? command.length : finLigne)
+      const debutLigne = i
       i = finLigne === -1 ? command.length : finLigne + 1
-      if (ferme(ligne, ouvert)) break
+      if (ferme(ligne, ouvert)) {
+        poser(ouvert, command.slice(debut, debutLigne))
+        break
+      }
     }
   }
   return i
@@ -61,17 +82,23 @@ function finDesCorpsHeredoc(command, pos, ouverts) {
  *  `|`) ; `quote` est la PROVENANCE du mot — `'simple'` s'il est ENTIÈREMENT sous quote simple
  *  (`'…'`, `$'…'`, here-string `@'…'@`), `'double'` s'il l'est sous quote double (`"…"`,
  *  `@"…"@`), absente sinon (mot nu, ou mêlant nu et quoté, ou deux sortes de quote). */
-function tokenizeCommand(command) {
+function tokenizeCommand(command, { powershell = false } = {}) {
   const tokens = []
   let i = 0
   const n = command.length
   // Mots de fin des heredocs ouverts sur la ligne EN COURS : leurs corps commencent au prochain
   // saut de ligne, dans l'ordre d'ouverture.
   let heredocs = []
-  // `(` en TÊTE de commande (début de segment, après `!`, `{`, `(`, un mot réservé ou `time`) ouvre
-  // un sous-shell, que ferme le `)` hors quote correspondant ; `$(` ouvre une SUBSTITUTION, qui reste
-  // dans le mot jusqu'à sa parenthèse fermante (`substitutions` du jeton).
-  let sousShells = 0
+  // Parenthèses ouvertes, la dernière au bout : `(` en TÊTE de commande (début de segment, après `!`, `{`, `(`, un
+  // mot réservé ou `time`) ouvre un SOUS-SHELL, que ferme le `)` hors quote correspondant, opérateur ; une `(` DANS
+  // un mot (`f()`, `foreach($x`, `.Contains(a b)`, `arr=(a b)`) ouvre une parenthèse de MOT, dont la `)` reste
+  // dans le mot qui la porte, même s'il en suit d'autres. `$(` ouvre une SUBSTITUTION, qui reste dans le mot jusqu'à
+  // sa parenthèse fermante (`substitutions` du jeton).
+  const parens = []
+  const sousShellOuvert = () => parens.at(-1) === 'sousShell'
+  // Les `case` ouverts (`man bash`, Compound Commands, `case word in`), le dernier au bout, en phase `sujet`, `in`,
+  // `motif` ou `liste` : un motif n'est pas rendu, `;;`, `;&` et `;;&` ferment une clause en opérateur `;`.
+  const cases = []
   while (i < n) {
     while (i < n && /\s/.test(command[i])) {
       // Un SAUT DE LIGNE hors quote termine la commande comme un `;`, y compris la ligne qui suit le
@@ -85,12 +112,22 @@ function tokenizeCommand(command) {
       i++
     }
     if (i >= n) break
+    if (cases.at(-1)?.phase === 'motif') {
+      cases.at(-1).phase = 'liste'
+      if (!ESAC_RE.test(command.slice(i))) {
+        const { fin, motif, substitutions } = lectureDuMotif(command, i)
+        if (substitutions.length > 0) tokens.push({ text: motif, raw: motif, substitutions, op: null, motifDeCase: true }, { text: ';', op: ';' })
+        i = fin
+        continue
+      }
+    }
     const ouverture = HEREDOC_OUVERTURE_RE.exec(command.slice(i))
     if (ouverture) {
       // Le marqueur reste un token (`OPERATEUR_SHELL_RE` le lit comme une redirection : rien après
       // lui n'est un pathspec) ; son corps, lui, ne sera jamais tokenisé.
-      heredocs.push({ mot: ouverture[3], tabs: ouverture[1] === '-' })
-      tokens.push({ text: `<<${ouverture[3]}`, op: null })
+      const jeton = { text: `<<${ouverture[3]}`, op: null }
+      heredocs.push({ mot: ouverture[3], tabs: ouverture[1] === '-', litteral: ouverture[2] !== '', jeton })
+      tokens.push(jeton)
       i += ouverture[0].length
       continue
     }
@@ -103,20 +140,35 @@ function tokenizeCommand(command) {
       continue
     }
     const precedent = tokens.at(-1)
-    if (command[i] === '(' && (!precedent || precedent.op || (precedent.quote === undefined && AVANT_SOUS_SHELL.has(precedent.text)))) {
-      tokens.push({ text: '(', op: null })
-      sousShells += 1
+    const condition = powershell && command[i] === '(' && precedent !== undefined && !precedent.op && precedent.quote === undefined && ENTETES_A_CONDITION_RE.test(precedent.text)
+    if (condition) precedent.teteDeBloc = true
+    if (!condition && command[i] === '(' && (!precedent || precedent.op || (precedent.quote === undefined && (AVANT_SOUS_SHELL.has(precedent.text) || precedent.text.endsWith('()'))))) {
+      tokens.push({ text: '(', op: null, sousShell: true })
+      parens.push('sousShell')
       i += 1
       continue
     }
-    if (command[i] === ')' && sousShells > 0) {
+    if (command[i] === ')' && sousShellOuvert()) {
       tokens.push({ text: ')', op: ')' })
-      sousShells -= 1
+      parens.pop()
       i += 1
+      // PowerShell : `(…).Membre`, `(…).Methode(…)`, `(…)[k]` lisent le résultat du regroupement, sans rien exécuter
+      // (about_Properties, about_Methods, about_Arrays).
+      for (let m; powershell && (m = /^(?:\.\w+|\[[^\]]*\])/.exec(command.slice(i)));) {
+        i += m[0].length
+        if (m[0].startsWith('.') && command[i] === '(') i = parentheseFermante(command, i) + 1
+      }
       continue
     }
     if (command.startsWith('&&', i)) { tokens.push({ text: '&&', op: '&&' }); i += 2; continue }
     if (command.startsWith('||', i)) { tokens.push({ text: '||', op: '||' }); i += 2; continue }
+    const finDeClause = cases.at(-1)?.phase === 'liste' ? /^;(?:;&?|&)/.exec(command.slice(i)) : null
+    if (finDeClause) {
+      tokens.push({ text: finDeClause[0], op: ';' })
+      cases.at(-1).phase = 'motif'
+      i += finDeClause[0].length
+      continue
+    }
     if (command[i] === ';') { tokens.push({ text: ';', op: ';' }); i += 1; continue }
     if (command[i] === '|') { tokens.push({ text: '|', op: '|' }); i += 1; continue }
     const redirection = command.startsWith('>(', i) ? null : /^(?:\d*|&)>[>|]?(?:&\d+)?/.exec(command.slice(i))
@@ -140,7 +192,10 @@ function tokenizeCommand(command) {
       const c = command[j]
       // CONTINUATION DE LIGNE (`\` POSIX, backtick PowerShell suivi du saut de ligne) : la commande
       // se POURSUIT — les deux caractères disparaissent, et le saut n'est pas la fin d'une commande.
-      if ((c === '\\' || c === '`') && command[j + 1] === '\n') { j += 2; continue }
+      if ((c === '`' || (!powershell && c === '\\')) && command[j + 1] === '\n') { j += 2; continue }
+      // Opérateur échappé hors quote (`find … -exec rm {} \;`) : le caractère reste dans le mot (XCU 2.2.1) ;
+      // sous PowerShell, `\` est littéral (about_Special_Characters).
+      if (!powershell && c === '\\' && j + 1 < n && ';|&<>()'.includes(command[j + 1])) { buf += command[j + 1]; nu = true; j += 2; continue }
       // Substitution de commande `$(…)`, sous-expression `@(…)`, substitution de processus `<(…)`, `>(…)`.
       if ('$@<>'.includes(c) && command[j + 1] === '(') {
         const fermante = parentheseFermante(command, j + 1)
@@ -185,7 +240,7 @@ function tokenizeCommand(command) {
           // Échappement réel `\"`, `\\`, `` \` `` et `\$` seulement (XCU 2.2.3) — un backslash de chemin
           // Windows (`C:\Program…`) n'est PAS un échappement shell et reste LITTÉRAL (sinon les chemins
           // perdent leurs séparateurs, cassant la reconnaissance de `git.exe` au bout d'un chemin absolu, #591 suite).
-          if (quote === '"' && command[j] === '\\' && j + 1 < n && '"\\`$'.includes(command[j + 1])) {
+          if (!powershell && quote === '"' && command[j] === '\\' && j + 1 < n && '"\\`$'.includes(command[j + 1])) {
             buf += command[j + 1]; j += 2; continue
           }
           if (quote === '"' && ouverte === -1 && command.startsWith('$(', j)) { ouverte = j; ouverteBuf = buf.length; solde = 0 }
@@ -213,7 +268,18 @@ function tokenizeCommand(command) {
         j++ // saute la quote fermante (si absente — quote non refermée — j a déjà atteint n)
         continue
       }
-      if (c === ')' && sousShells > 0) break
+      if (c === ')' && sousShellOuvert()) break
+      // PowerShell : une `(` qui OUVRE un argument est un regroupement, dont le pipeline s'exécute avant la commande, comme
+      // `$(…)` (about_Operators, Grouping operator) ; sauf celle de `foreach (<v> in <expr>)` (about_Foreach).
+      if (powershell && c === '(' && buf === '' && quotes.size === 0 && !/^foreach$/i.test(tokens.at(-1)?.text ?? '')) {
+        const fermante = parentheseFermante(command, j)
+        substitue(command.slice(j, fermante + 1), command.slice(j + 1, fermante), true)
+        nu = true
+        j = fermante + 1
+        continue
+      }
+      if (c === '(') parens.push('mot')
+      else if (c === ')' && parens.length > 0) parens.pop()
       const fermant = c === '`' ? command.indexOf('`', j + 1) : -1
       if (fermant !== -1) {
         substitue(command.slice(j, fermant + 1), command.slice(j + 1, fermant))
@@ -229,10 +295,62 @@ function tokenizeCommand(command) {
     // argument vide (`''`) en reste un — c'est la quote qui le prouve.
     if (buf !== '' || quotes.size > 0) {
       tokens.push({ text: buf, raw: command.slice(i, j), substitutions, op: null, quote: !nu && quotes.size === 1 ? [...quotes][0] : undefined })
+      const haut = cases.at(-1)
+      if (powershell && quotes.size === 0 && /^do$/i.test(buf)) tokens.at(-1).teteDeBloc = true
+      const reserve = !powershell && quotes.size === 0 && substitutions.length === 0
+      const enTete = !precedent || Boolean(precedent.op) || (precedent.quote === undefined && (AVANT_SOUS_SHELL.has(precedent.text) || OUVERTURE_DE_FONCTION_RE.test(precedent.text)))
+      if (haut?.phase === 'sujet') haut.phase = 'in'
+      else if (haut?.phase === 'in' && reserve && buf === 'in') {
+        haut.phase = 'motif'
+        tokens.push({ text: ';', op: ';' })
+      } else if (haut?.phase === 'in') cases.pop()
+      else if (reserve && enTete && buf === 'case') cases.push({ phase: 'sujet' })
+      else if (haut?.phase === 'liste' && reserve && enTete && buf === 'esac') cases.pop()
     }
     i = j
   }
   return tokens
+}
+
+/** Mots PowerShell dont la `( … )` qui suit est une condition, lue comme un regroupement qui s'exécute (about_If,
+ *  about_While, about_For, about_Switch) ; `foreach` a sa grammaire (about_Foreach). */
+const ENTETES_A_CONDITION_RE = /^(?:if|elseif|while|for|switch)$/i
+/** `nom(){` : une définition de fonction dont le `{` ouvre le corps, collés en un mot. */
+const OUVERTURE_DE_FONCTION_RE = /^[A-Za-z_][\w.:-]*\(\)\{$/
+/** `esac` en tête de `texte`, mot entier. */
+const ESAC_RE = /^esac(?=[\s;&|<>)]|$)/
+/** Le motif de clause de `case` qui commence en `texte[k]` (`[(]motif[|motif]…)`, `man bash`, Compound Commands) :
+ *  `{ fin, motif, substitutions }`, `fin` = l'index qui suit sa `)`, `motif` son texte, `substitutions` ses `$( … )` et
+ *  ses substitutions par accents graves (hors quote simple), que le shell développe (forme de `tokenizeCommand`). Quotes, échappements et parenthèses de
+ *  motif étendu sautés. */
+function lectureDuMotif(texte, k) {
+  const debut = texte[k] === '(' ? k + 1 : k
+  const substitutions = []
+  const substitue = (ouvreur, fermant) => substitutions.push({ debut: ouvreur - debut, fin: fermant + 1 - debut, interne: texte.slice(ouvreur + (texte[ouvreur] === '`' ? 1 : 2), fermant), expression: false })
+  let profondeur = 0
+  let double = false
+  for (let i = debut; i < texte.length; i++) {
+    const c = texte[i]
+    if (c === '\\') i += 1
+    else if (c === '"') double = !double
+    else if (c === "'" && !double) {
+      const fin = texte.indexOf("'", i + 1)
+      if (fin === -1) break
+      i = fin
+    } else if (c === '$' && texte[i + 1] === '(') {
+      const fin = parentheseFermante(texte, i + 1)
+      substitue(i, fin)
+      i = fin
+    } else if (c === '`') {
+      const fin = texte.indexOf('`', i + 1)
+      if (fin === -1) break
+      substitue(i, fin)
+      i = fin
+    } else if (double) continue
+    else if (c === '(') profondeur += 1
+    else if (c === ')' && profondeur-- === 0) return { fin: i + 1, motif: texte.slice(debut, i), substitutions }
+  }
+  return { fin: texte.length, motif: texte.slice(debut), substitutions }
 }
 
 /** Index qui suit la here-string ouverte en `texte[k]` (`@'`/`@"` en fin de ligne, fermée par la marque
@@ -598,6 +716,7 @@ function lecturePorteur(segment, jetons) {
 const ENROBEURS_TETE = new Map([
   ['env', { flags: ['-u', '--unset'], affectations: true }],
   ['nohup', {}],
+  ['exec', { flags: ['-a'] }],
   ['command', { citeSous: ['-v', '-V'] }],
   ['builtin', {}],
   ['winpty', {}],
@@ -610,6 +729,16 @@ const ENROBEURS_TETE = new Map([
   ['stdbuf', { flags: ['-i', '-o', '-e', '--input', '--output', '--error'] }],
   ['nice', { flags: ['-n', '--adjustment'] }],
 ])
+
+/** Le lanceur d'un outil de cet arbre, `node scripts/lancer-local.mjs <paquet> [--cwd <dossier>] -- <cmd>` (`separerInvocation`) :
+ *  il ne fait qu'exécuter `<cmd>`, comme un enrobeur de tête. */
+const LANCEUR_LOCAL = /(?:^|[\\/])scripts[\\/]lancer-local\.mjs$/
+/** L'index de la commande que lance le lanceur local en `segment[i]`, `null` s'il n'en est pas un. */
+function apresLanceurLocal(segment, i) {
+  if (basenameExecutable(segment[i]) !== 'node' || !LANCEUR_LOCAL.test(segment[i + 1] ?? '')) return null
+  const suite = segment.slice(i + 2)
+  return separerInvocation(suite, { options: ['--cwd'] }) === null ? null : i + 3 + suite.indexOf('--')
+}
 
 /** Tokens de tête sans exécutable propre : call-operator PowerShell, accolades de bloc `& { … }`,
  *  parenthèse ouvrante de sous-shell `( … )`, et les mots réservés POSIX qui précèdent une commande
@@ -625,12 +754,12 @@ const AFFECTATION_RE = /^[A-Za-z_][A-Za-z0-9_]*[+]?=/
  *  collée, `if`, `else` et `while` sont des `TOKENS_TETE_NUS` : leur `{` s'épluche déjà en tête, comme celui de
  *  `& { }`. */
 const TETES_DE_BLOC = new Set([
-  '%', 'foreach-object', 'foreach', 'for', 'try', 'catch', 'finally', 'if', 'else', 'while', 'switch', 'trap',
+  '%', 'foreach-object', 'foreach', 'for', 'try', 'catch', 'finally', 'if', 'else', 'while', 'do', 'switch', 'trap',
   'where-object', 'where', '?',
 ])
 /** Mots qui, juste après le `}` d'un bloc, en ouvrent un autre dans le même segment (`} else {`,
  *  `} elseif (…) {`, `} catch [type] {`, `} finally {`). */
-const SUITES_DE_BLOC = new Set(['else', 'elseif', 'catch', 'finally'])
+const SUITES_DE_BLOC = new Set(['else', 'elseif', 'catch', 'finally', 'while', 'until'])
 const MOT_A_ENTETE_RE = /^(foreach|for|if|while|switch|elseif)(\(.*)$/i
 
 /** Un jeton NU : ni quoté, ni mêlé de quotes. */
@@ -686,15 +815,26 @@ function jetonsDeBloc(jetons) {
   })
 }
 
-/** `1` pour une accolade ouvrante NUE, `-1` pour une fermante, `0` sinon : seule lecture d'une accolade. */
-const accolade = (j) => (!jetonNu(j) ? 0 : j.text === '{' ? 1 : j.text === '}' ? -1 : 0)
+/** `true` si `jetons[k]` est en position de commande (XCU 2.4) : premier jeton, ou après un séparateur absorbé
+ *  (`separateur`) ou un jeton de `TOKENS_TETE_NUS`. */
+const enPositionDeCommande = (jetons, k) =>
+  k === 0 || (jetonNu(jetons[k - 1]) && (jetons[k - 1].separateur !== undefined || TOKENS_TETE_NUS.has(jetons[k - 1].text)))
 
-/** Index du `}` qui ferme le `{` de `jetons[k]` (jetons relus, `jetonsDeBloc`), ou `jetons.length` si le
- *  bloc reste ouvert. Seule recherche de la fin d'un bloc. */
-export function finDuBloc(jetons, k) {
+/** `1` pour l'accolade ouvrante NUE `jetons[k]`, `-1` pour une fermante, `0` sinon : seule lecture d'une accolade.
+ *  Hors PowerShell, `{` et `}` ne sont des mots réservés qu'en position de commande (XCU 2.4) ; en PowerShell, ce
+ *  sont des délimiteurs partout (about_Parsing, mode argument). */
+const accolade = (jetons, k, powershell) => {
+  const j = jetons[k]
+  if (!jetonNu(j) || (!powershell && !enPositionDeCommande(jetons, k))) return 0
+  return j.text === '{' ? 1 : j.text === '}' ? -1 : 0
+}
+
+/** Index du `}` qui ferme le `{` de `jetons[k]` (jetons relus, `jetonsDeBloc`) dans la grammaire du dialecte, PowerShell
+ *  par défaut (un bloc de `TETES_DE_BLOC`), ou `jetons.length` si le bloc reste ouvert. Seule recherche de la fin d'un bloc. */
+export function finDuBloc(jetons, k, powershell = true) {
   let profondeur = 0
   for (let i = k + 1; i < jetons.length; i++) {
-    profondeur += accolade(jetons[i])
+    profondeur += accolade(jetons, i, powershell)
     if (profondeur < 0) return i
   }
   return jetons.length
@@ -719,7 +859,7 @@ function lectureDesBlocs(jetons, { toutes = false } = {}) {
     if (!jetonNu(j)) continue
     if (jetons[k - 1]?.text === '}' && SUITES_DE_BLOC.has(j.text.toLowerCase())) { porte = true; continue }
     if (/[()]/.test(j.text)) parens += soldeParentheses(j.text)
-    if (j.text !== '{' || !porte || parens > 0) continue
+    if (accolade(jetons, k, true) !== 1 || !porte || parens > 0) continue
     const fin = finDuBloc(jetons, k)
     suspens ||= fin === jetons.length
     corps.push(jetons.slice(k + 1, fin))
@@ -730,11 +870,13 @@ function lectureDesBlocs(jetons, { toutes = false } = {}) {
   return { corps: executes, dehors, suspens: suspens || (ouvreTout && !toutes && parens > 0) }
 }
 
-/** L'affectation `NOM=valeur` (`NOM+=valeur`) d'un jeton : `{ nom, valeur, jeton }`, la valeur DÉCITÉE
- *  (le texte du jeton, ses quotes retirées), `jeton` celui qui porte ses substitutions. */
+/** L'affectation `NOM=valeur` (`NOM+=valeur`) d'un jeton : `{ nom, valeur, jeton, ajout }`, la valeur DÉCITÉE
+ *  (le texte du jeton, ses quotes retirées), `jeton` celui qui porte ses substitutions, `ajout` pour `+=` (`man bash`,
+ *  PARAMETERS). */
 function valeurDAffectation(jeton) {
   const egal = jeton.text.indexOf('=')
-  return { nom: jeton.text.slice(0, egal).replace(/[+]$/, ''), valeur: jeton.text.slice(egal + 1), jeton }
+  const ajout = jeton.text[egal - 1] === '+'
+  return { nom: jeton.text.slice(0, ajout ? egal - 1 : egal), valeur: jeton.text.slice(egal + 1), jeton, ajout }
 }
 
 /** Ouverture de substitution `$(` non refermée dans un texte : son solde de parenthèses. */
@@ -761,9 +903,11 @@ function epluchageTete(jetons) {
     const t = segment[i]
     if (t === undefined) return { debut: segment.length, affectations, valeurs }
     if (estAffectation(i)) { i = affecte(i); continue }
-    if (TOKENS_TETE_NUS.has(t)) { i += 1; continue }
+    if (jetons[i].motifDeCase || (TOKENS_TETE_NUS.has(t) && !jetons[i].teteDeBloc) || (i === 0 && jetonNu(jetons[0]) && FERMANTS_COMPOSES.has(t))) { i += 1; continue }
     // Un enrobeur qui porte ICI un argument-chaîne rend la main : la récursion le déploiera.
     if (argumentChaine(segment.slice(i)) !== null) return { debut: i, affectations, valeurs }
+    const lance = apresLanceurLocal(segment, i)
+    if (lance !== null) { i = lance; continue }
     const enrobeur = ENROBEURS_TETE.get(basenameExecutable(t))
     if (!enrobeur || enrobeur.citeSous?.includes(segment[i + 1])) return { debut: i, affectations, valeurs }
     i += 1
@@ -862,16 +1006,22 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
 }
 
 /** Les pipelines de `pipelinesProfonds`, segment par segment en `{ jetons, relus, deploye, ouvreDesBlocs,
- *  valeurs, deplies, bloc, tube, shell, enTete }` : les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise),
- *  `enTete` = les jetons que l'épluchage a retirés devant eux (enrobeurs, leurs flags, affectations), leur
+ *  valeurs, valeursDeTete, deplies, bloc, deploiePar, enFond, tube, shell, enTete }` : les JETONS exécutés (`tokenizeCommand`, provenance quotée comprise),
+ *  `enTete` = les jetons que l'épluchage a retirés devant eux (enrobeurs, leurs flags, affectations), `valeursDeTete` les
+ *  `valeurDAffectation` de ses affectations, celles d'un `env` comprises, leur
  *  relecture de bloc (`jetonsDeBloc`), `ouvreDesBlocs` quand une tête de bloc n'exécute que ses corps, les `valeurs` (`valeurDAffectation`) que le segment pose pour la suite (ses
  *  affectations de tête quand l'épluchage le VIDE, ses arguments `NOM=val` sous une tête d'`AFFECTEURS`),
  *  `deploye` quand la commande qu'il porte (argument-chaîne, script npm, corps de bloc) est rendue à part,
  *  `deplies` = pour chaque jeton à substitution, les pipelines qu'elle exécute (rendus à part eux aussi),
- *  `bloc` = le segment dont un bloc le contient, `tube` = son pipeline, `shell` = le shell qui l'exécute : un
+ *  `bloc` = le segment dont un bloc le contient, `deploiePar` = le segment dont l'argument-chaîne, le script npm ou l'appel de
+ *  fonction l'a rendu (une substitution n'en pose aucun), `enFond` quand il se lance en FOND (`&` nu après sa
+ *  tête, lu avant qu'un appel de fonction ne réduise ses jetons à ses redirections), `tube` = son pipeline, `shell` = le shell qui l'exécute : un
  *  `{ parent }` par commande relue dans un processus neuf (argument-chaîne hors `eval`/`Invoke-Expression`, qui gardent
  *  celui de l'hôte, script npm, substitution), par sous-shell
- *  `( … )` et par membre d'un tube, `parent` étant celui de son hôte, partagé par les corps de bloc de cette commande.
+ *  `( … )` et par membre d'un tube, `parent` étant celui de son hôte, partagé par les corps de bloc de cette commande ;
+ *  ses `fonctions` = les corps liés par nom (`definitionDeFonction`), copiés dans un sous-shell, un membre de tube et une
+ *  substitution, vides dans un processus neuf (option `fonctions` : celles qu'il hérite) ; `boucle` = la boucle POSIX
+ *  (`OUVRANTS_DE_BOUCLE`) qui le contient, `{ parent, fin }`, `fin` étant le segment qui suit son `done` (ses redirections), ou `null`.
  *  Un segment que l'épluchage VIDE y
  *  figure, `jetons` vide. Un bloc ouvert absorbe les segments qui le suivent, séparateurs compris, jusqu'à
  *  sa fermeture : un bloc est UNE commande. Dans un bloc, ou une sous-expression `@(…)`, un énoncé dont le
@@ -884,16 +1034,293 @@ export function pipelinesProfonds(command, profondeur = 0, options) {
  *  `affectations` reçoit les noms de variables d'environnement que chaque segment lu pose
  *  (`affectationsDuSegment`). Lecture PARTAGÉE avec `commande-piege-guard`. */
 export function pipelinesDeJetons(command, profondeur = 0, options = {}) {
-  const budget = options.budget ?? nouveauBudget()
   if (!command) return []
-  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { budget.sature = true; return [] }
-  return pipelinesDuFlux(tokenizeCommand(command), profondeur, { ...options, budget, shell: options.shell ?? { parent: options.hote ?? null } })
+  const shell = options.shell ?? { parent: options.hote ?? null, fonctions: new Map(options.fonctions) }
+  const jetons = tokenizeCommand(command, options)
+  return pipelinesDuFluxBorne(options.powershell ? jetons : lierPositionnels(jetons, options.positionnels ?? null), profondeur, { ...options, budget: options.budget ?? nouveauBudget(), shell })
+}
+
+/** `pipelinesDuFlux` au-delà de `PROFONDEUR_MAX_ENROBEURS` : rien, et `budget.sature`. */
+function pipelinesDuFluxBorne(flux, profondeur, options) {
+  if (profondeur > PROFONDEUR_MAX_ENROBEURS) { options.budget.sature = true; return [] }
+  return pipelinesDuFlux(flux, profondeur, options)
+}
+
+/** Un shell FOURCHÉ de `shell` (sous-shell, membre de tube, substitution) : il hérite d'une COPIE de ses fonctions. */
+const fourche = (shell) => ({ parent: shell, fonctions: new Map(shell.fonctions) })
+
+/** Nom de fonction tel que le shell le cherche : PowerShell l'ignore la casse (about_Functions). */
+const cleDeFonction = (nom, powershell) => (powershell ? nom.toLowerCase() : nom)
+const NOM_DE_FONCTION_RE = /^[A-Za-z_][\w.:-]*$/
+const PORTEE_POWERSHELL_RE = /^(?:global|script|local|private):/i
+/** Mots réservés qui ouvrent et ferment une commande composée POSIX (XCU 2.9.4). */
+const OUVRANTS_COMPOSES = new Set(['if', 'for', 'while', 'until', 'case', 'select'])
+const FERMANTS_COMPOSES = new Set(['fi', 'done', 'esac'])
+/** Mots réservés qui ouvrent une boucle POSIX, fermée par `done` (XCU 2.9.4 ; `select`, `man bash`). */
+const OUVRANTS_DE_BOUCLE = new Set(['while', 'until', 'for', 'select'])
+
+/** La définition de fonction que portent ces jetons relus (`jetonsDeBloc`) : `{ nom, debut, parametres }`, `debut` = l'index
+ *  du premier jeton de son corps, `parametres` le texte de ses paramètres d'en-tête, ou `null`. Formes : `nom()`, `nom ()`, `function nom`, `function nom()` (XCU 2.9.5,
+ *  `man bash` Shell Function Definitions) ; en PowerShell, `function`/`filter` seuls, nom à portée et paramètres
+ *  compris (about_Functions). Le corps s'ouvre par `{`, une `(` de sous-shell ou, hors PowerShell, un composé POSIX. PUR. */
+function definitionDeFonction(jetons, powershell) {
+  const nu = (k) => jetons[k] !== undefined && jetonNu(jetons[k])
+  if (!nu(0)) return null
+  const motCle = jetons[0].text === 'function' || (powershell && /^(?:function|filter)$/i.test(jetons[0].text))
+  let k = motCle ? 1 : 0
+  if (!nu(k)) return null
+  const brut = jetons[k].text
+  const nomBrut = brut.replace(/\(.*$/s, '')
+  const nom = powershell ? nomBrut.replace(PORTEE_POWERSHELL_RE, '') : nomBrut
+  if (!NOM_DE_FONCTION_RE.test(nom)) return null
+  let parametres = brut.slice(nomBrut.length)
+  let parens = soldeParentheses(parametres)
+  k += 1
+  if (parametres === '' && nu(k) && !jetons[k].sousShell && jetons[k].text.startsWith('(')) {
+    parametres = jetons[k].text
+    parens = soldeParentheses(parametres)
+    k += 1
+  }
+  while (parens > 0 && k < jetons.length) {
+    parametres += ' ' + jetons[k].text
+    parens += soldeParentheses(jetons[k++].text)
+  }
+  if (!motCle && (powershell || parametres !== '()')) return null
+  const ouvre = nu(k) && (jetons[k].text === '{' || jetons[k].sousShell || (!powershell && OUVRANTS_COMPOSES.has(jetons[k].text)))
+  return ouvre ? { nom, debut: k, parametres } : null
+}
+
+/** Solde d'ouverture du corps de fonction que ces jetons relus prolongent : `{`/`}`, `(` de sous-shell, et hors
+ *  PowerShell les mots de `OUVRANTS_COMPOSES`/`FERMANTS_COMPOSES` en position de commande. Le `)` qui ferme un
+ *  sous-shell est un opérateur, compté par l'appelant. PUR. */
+function soldeDuCorps(jetons, powershell) {
+  let solde = 0
+  for (let k = 0; k < jetons.length; k++) {
+    const j = jetons[k]
+    if (!jetonNu(j)) continue
+    solde += accolade(jetons, k, powershell) + (j.sousShell ? 1 : 0)
+    if (!powershell && enPositionDeCommande(jetons, k)) solde += OUVRANTS_COMPOSES.has(j.text) ? 1 : FERMANTS_COMPOSES.has(j.text) ? -1 : 0
+  }
+  return solde
+}
+
+/** Une référence de paramètre positionnel (XCU 2.5.1, 2.5.2, 2.6.2) : `$n`, `$@`, `$*`, `$#`, et leurs formes accolées
+ *  `${n}`, `${#n}`, `${#}`, `${n<op>mot}` (`-`, `:-`, `+`, `:+`, `=`, `:=`, `?`, `:?`, `#`, `##`, `%`, `%%`). */
+const POSITIONNEL_RE = /\$(?:([1-9#@*])|\{(#?)([1-9]\d*|[#@*])(?:(:?[-+=?]|##?|%%?)([^}]*))?\})/g
+/** Un argument d'appel CONSTANT : ni substitution, ni `$` à développer hors quote simple. */
+const constant = (j) => !j.substitutions?.length && (j.quote === 'simple' || !j.text.includes('$'))
+/** L'argument d'appel qui remplace un positionnel : le jeton de l'appel, déjà développé à son site (ses substitutions
+ *  s'y sont dépliées). */
+const argumentLie = (j) => ({ ...j, substitutions: [] })
+/** Ce qui change un développement non quoté (XCU 2.6.5 IFS par défaut, 2.6.6). */
+const DECOUPE_OU_MOTIF_RE = /[ \t\n*?[]/
+const MOTIF_RE = /[*?[\\]/
+/** Les têtes après lesquelles la liaison des positionnels n'est plus certaine (XCU 2.14 `eval`, `.`, `exec`). */
+const TETES_OPAQUES = new Set(['eval', '.', 'source', 'exec', 'builtin', 'command'])
+
+/** La valeur d'une référence `m` (`POSITIONNEL_RE`) sous la liaison `args`, ou `null` : non liée de façon certaine. PUR. */
+function valeurPositionnelle(m, args) {
+  const [, court, longueur, long, op, mot] = m
+  const nom = court ?? long
+  if (nom === '#') return op !== undefined ? null : longueur ? String(String(args.length).length) : String(args.length)
+  if (nom === '@' || nom === '*') {
+    if (longueur && op === undefined) return String(args.length)
+    if (op !== undefined || !args.every(constant)) return null
+    return args.map((a) => a.text).join(' ')
+  }
+  const arg = args[Number(nom) - 1]
+  if (arg !== undefined && !constant(arg)) return null
+  const valeur = arg?.text ?? ''
+  if (longueur) return op === undefined ? String(valeur.length) : null
+  if (op === undefined) return valeur
+  if (mot.includes('$') || mot.includes('`')) return null
+  const pose = op.startsWith(':') ? valeur !== '' : arg !== undefined
+  switch (op.replace(':', '')) {
+    case '-': return pose ? valeur : mot
+    case '+': return pose ? mot : ''
+    case '=': case '?': return pose ? valeur : null
+    default: {
+      if (MOTIF_RE.test(mot)) return null
+      if (op.startsWith('#')) return valeur.startsWith(mot) ? valeur.slice(mot.length) : valeur
+      return valeur.endsWith(mot) ? valeur.slice(0, valeur.length - mot.length) : valeur
+    }
+  }
+}
+
+/** Le mot `j` sous la liaison `args` : les mots qu'il devient, ou `[j]` tel quel (un `$` non résolu) dès qu'une de ses
+ *  références n'est pas liée de façon CERTAINE. `$n` seul dans son mot devient le n-ième mot, ou rien nu (zéro champ),
+ *  un mot vide sous quote double ; `"$@"` autant de mots que d'arguments ; `"$*"` un seul, joints par une espace. Hors
+ *  quote, un développement découpé en champs ou porteur de motif (XCU 2.6.5, 2.6.6) n'est pas lié. Les substitutions
+ *  du mot reçoivent la liaison (`positionnels`) : elles s'exécutent dans ce shell. PUR. */
+function lierMot(j, args) {
+  if (j.op || j.quote === 'simple' || !j.text.includes('$')) return [j]
+  if (j.substitutions?.length) return [{ ...j, substitutions: j.substitutions.map((s) => ({ ...s, positionnels: args })) }]
+  const references = [...j.text.matchAll(POSITIONNEL_RE)]
+  if (references.length === 0) return [j]
+  const nu = j.quote !== 'double'
+  const [seule] = references
+  if (references.length === 1 && seule[0] === j.text && seule[4] === undefined && !seule[2]) {
+    const nom = seule[1] ?? seule[3]
+    if (nom === '@' || (nom === '*' && nu)) {
+      if (!args.every(constant) || (nu && args.some((a) => a.text === '' || DECOUPE_OU_MOTIF_RE.test(a.text)))) return [j]
+      return args.map(argumentLie)
+    }
+    const arg = /^\d+$/.test(nom) ? args[Number(nom) - 1] : undefined
+    if (arg !== undefined && constant(arg) && !(nu && (arg.text === '' || DECOUPE_OU_MOTIF_RE.test(arg.text)))) return [argumentLie(arg)]
+  }
+  if (references.some((m) => (m[1] ?? m[3]) === '@' && !m[2] && m[4] === undefined) && args.length > 1) return [j]
+  const valeurs = references.map((m) => valeurPositionnelle(m, args))
+  if (valeurs.some((v) => v === null || (nu && DECOUPE_OU_MOTIF_RE.test(v)))) return [j]
+  let k = 0
+  const texte = j.text.replace(POSITIONNEL_RE, () => valeurs[k++])
+  if (nu && texte === '') return []
+  return [{ ...j, text: texte, raw: citeArgument(texte), quote: nu ? undefined : 'double' }]
+}
+
+/** La liaison après `shift [n]` (XCU 2.14 shift) ou `set [options] [--] [mot…]` (XCU 2.14 set), `mots` = ses arguments
+ *  liés : la nouvelle liaison, ou `null` quand elle n'est pas certaine. PUR. */
+function liaisonApres(commande, mots, args) {
+  if (commande === 'shift') {
+    const n = mots.length === 0 ? 1 : mots.length === 1 && /^\d+$/.test(mots[0].text) && constant(mots[0]) ? Number(mots[0].text) : null
+    return n === null || n > args.length ? null : args.slice(n)
+  }
+  for (let k = 0; k < mots.length; k++) {
+    const t = mots[k].text
+    if (!constant(mots[k])) return null
+    if (t === '--' || t === '-') return mots.slice(k + 1).every(constant) ? mots.slice(k + 1) : null
+    if (/^[-+][A-Za-z]*o$/.test(t)) k += 1
+    else if (!/^[-+][A-Za-z]+$/.test(t)) return mots.slice(k).every(constant) ? mots.slice(k) : null
+  }
+  return args
+}
+
+/** Le flux `flux`, ses paramètres positionnels liés à `args` (les mots de l'appel d'une fonction, XCU 2.9.5 ; `null` :
+ *  inconnus), mot par mot (`lierMot`) dans l'ordre d'exécution : un `shift` ou un `set` exécuté à coup sûr (niveau 0 du
+ *  flux, ni membre d'une liste `&&`/`||`, ni d'un tube, ni en fond) change la liaison des mots qui le suivent ; ailleurs
+ *  (branche, boucle, sous-shell, groupe, tête de `TETES_OPAQUES`) la liaison devient inconnue dès l'ouverture du composé
+ *  qui le porte. Le corps d'une fonction définie dans le flux garde ses positionnels, liés à son propre appel ; un `case`
+ *  rend la liaison inconnue jusqu'au bout du flux. PUR. */
+function lierPositionnels(flux, args) {
+  if (args === null && !flux.some((j) => !j.op && jetonNu(j) && j.text === 'set')) return flux
+  const morceaux = flux.flatMap((j, i) => (j.op ? [{ j, i }] : jetonsDeBloc([j]).map((p) => ({ j: p, i }))))
+  const nu = (k) => !morceaux[k].j.op && jetonNu(morceaux[k].j)
+  const enCommande = (k) => k === 0 || Boolean(morceaux[k - 1].j.op) || (jetonNu(morceaux[k - 1].j) && TOKENS_TETE_NUS.has(morceaux[k - 1].j.text))
+  const variation = (k, ouvreDefinition) => {
+    const { j } = morceaux[k]
+    if (j.op) return j.op === ')' ? -1 : 0
+    if (!jetonNu(j)) return 0
+    if (j.sousShell || ((enCommande(k) || ouvreDefinition) && (j.text === '{' || OUVRANTS_COMPOSES.has(j.text)))) return 1
+    return enCommande(k) && (j.text === '}' || FERMANTS_COMPOSES.has(j.text)) ? -1 : 0
+  }
+  const changeLaLiaison = (k) => nu(k) && (morceaux[k].j.text === 'shift' || morceaux[k].j.text === 'set' || TETES_OPAQUES.has(morceaux[k].j.text))
+  const liaisons = new Array(flux.length)
+  let liaison = args
+  let profondeur = 0
+  let fige = false
+  let saut = null
+  let commande = null
+  let opPrecedent = null
+  const appliquer = (opSuivant) => {
+    if (commande !== null) {
+      const certaine = commande.profondeur === 0 && !['&&', '||', '|'].includes(commande.opPrecedent) && !['|', '&'].includes(opSuivant)
+      if (certaine && (commande.nom === 'set' || (commande.nom === 'shift' && liaison !== null))) {
+        const mots = flux.slice(commande.i + 1, commande.fin).flatMap((j) => (liaison === null ? [j] : lierMot(j, liaison)))
+        liaison = liaisonApres(commande.nom, lireRedirections([morceaux[commande.k].j, ...mots], 1).arguments, liaison)
+      } else liaison = null
+    }
+    commande = null
+  }
+  for (let k = 0; k < morceaux.length; k++) {
+    const { j, i } = morceaux[k]
+    if (liaisons[i] === undefined) liaisons[i] = saut === null && !fige ? liaison : null
+    if (j.op) {
+      if (commande !== null) commande.fin = i
+      appliquer(j.op)
+      opPrecedent = j.op
+    } else if (nu(k) && j.text === 'case') {
+      fige = true
+      liaison = null
+    } else if (saut === null && enCommande(k) && nu(k) && (j.text === 'function' || j.text.endsWith('()') || morceaux[k + 1]?.j.text === '()')) {
+      saut = { profondeur, ouvert: false }
+    } else if (saut === null && commande === null && enCommande(k) && changeLaLiaison(k)) {
+      commande = { nom: j.text, k, i, fin: flux.length, profondeur, opPrecedent }
+    }
+    const delta = variation(k, saut !== null && !saut.ouvert)
+    if (saut !== null && delta > 0) saut.ouvert = true
+    if (profondeur === 0 && delta > 0 && saut === null) {
+      let p = 0
+      for (let r = k; r < morceaux.length && (r === k || p > 0); r++) {
+        p += variation(r, false)
+        if (changeLaLiaison(r)) liaison = null
+      }
+    }
+    profondeur += delta
+    if (profondeur < 0) { fige = true; liaison = null }
+    if (saut !== null && saut.ouvert && profondeur <= saut.profondeur) saut = null
+  }
+  appliquer(null)
+  return flux.flatMap((j, i) => (liaisons[i] ? lierMot(j, liaisons[i]) : [j]))
+}
+
+/** `true` si l'appel que ces jetons épluchés précèdent atteint une fonction : affectations, mots réservés et `time`
+ *  seulement. Un enrobeur de tête (`command`, `builtin`, `env`, `xargs`…) lance la commande, jamais la fonction. */
+const appelleUneFonction = (enTete) =>
+  enTete.every((j) => jetonNu(j) && (AFFECTATION_RE.test(j.text) || TOKENS_TETE_NUS.has(j.text) || j.text === 'time'))
+
+/** Les jetons de redirection d'un segment (opérateurs et cibles, `lireRedirections`) : ce qu'il garde quand sa tête
+ *  est une fonction, dont le corps exécute le reste. */
+function redirectionsDuSegment(jetons) {
+  const argumentsLus = new Set(lireRedirections(jetons, 0).arguments)
+  return jetons.filter((j) => !argumentsLus.has(j))
 }
 
 export function texteDuSegment(segment) {
   const jetons = segment.jetons.length ? segment.jetons
     : segment.enTete.filter((j) => segment.valeurs.some((v) => v.jeton === j))
   return jetons.map((j) => j.raw ?? j.text).join(' ')
+}
+
+const DUREE_RE = /^(\d+(?:\.\d+)?)([smhd]?)$/
+const SECONDES_PAR_UNITE = { '': 1, s: 1, m: 60, h: 3600, d: 86400 }
+
+/** Une durée coreutils (`sleep`, `timeout`) en secondes : un nombre, suffixe `s`, `m`, `h` ou `d` ; `null` si
+ *  illisible. Réf : #2603. PURE. */
+export function secondesDeDuree(texte) {
+  const vu = DUREE_RE.exec(texte)
+  return vu ? Number(vu[1]) * SECONDES_PAR_UNITE[vu[2]] : null
+}
+
+/** La durée, en secondes, du `timeout` qu'épluche `enTete` : `undefined` sans `timeout`, `null` pour une durée
+ *  nulle ou illisible (`timeout 0` ne borne rien). Ses drapeaux à valeur (`ENROBEURS_TETE`) sont sautés. PURE. */
+function dureeDeTimeout(enTete) {
+  const i = enTete.findIndex((j) => jetonNu(j) && basenameExecutable(j.text) === 'timeout')
+  if (i === -1) return undefined
+  const { flags } = ENROBEURS_TETE.get('timeout')
+  let k = i + 1
+  while (enTete[k]?.text.startsWith('-')) k += flags.includes(enTete[k].text) ? 2 : 1
+  const secondes = secondesDeDuree(enTete[k]?.text ?? '')
+  return secondes > 0 ? secondes : null
+}
+
+/** `true` si le segment se lance en FOND (`&` nu après sa tête) : il survit au processus qui l'a lancé. */
+const lanceEnFond = (jetons) => jetons.some((j, k) => k > 0 && jetonNu(j) && j.text === '&')
+
+/**
+ * La BORNE DE VIE d'un segment de `pipelinesDeJetons`, en secondes : la durée du premier `timeout` épluché en tête
+ * de lui ou des segments qui le contiennent (`deploiePar`, puis `bloc`), `null` sans borne. Un segment lancé en fond
+ * (`enFond`) n'hérite pas de la borne de son porteur, sauf si ce porteur est lui-même lancé en fond : npm recolle
+ * le `&` de sa ligne derrière son script (`commandeScriptNpm`). Réf : #2603, constat 22 (E4). PURE.
+ * @returns {number|null}
+ */
+export function borneDeVie(segment) {
+  for (let s = segment; s; ) {
+    const duree = dureeDeTimeout(s.enTete)
+    if (duree !== undefined) return duree
+    const porteur = s.deploiePar ?? s.bloc
+    if (porteur && s.enFond && !porteur.enFond) return null
+    s = porteur
+  }
+  return null
 }
 
 /** Le séparateur qu'un bloc absorbe (`;`, `|`, `&&`, `||`, `)`), jeton de son segment. */
@@ -912,42 +1339,77 @@ function declarationsDuSegment(jetons) {
 /** `pipelinesDeJetons` sur un FLUX de jetons : la commande tokenisée, ou le corps d'un bloc, lu sans être
  *  re-tokenisé ni relu (`relu` : ses jetons sortent déjà de `jetonsDeBloc`). `expression` : le flux d'une
  *  sous-expression `@(…)`, où un énoncé quoté est une chaîne, comme dans un bloc. */
-function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, shell, relu = false, expression = false }) {
+function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, suite = [], affectations = [], bloc, deploiePar, shell, relu = false, expression = false, powershell = false, boucle = null }) {
   const pipelines = []
+  const boucles = [boucle]
   const lus = segmentsAvecOperateur(flux)
   const avecSuite = (k) => (lus[k].op === null ? [...lus[k].jetons, ...suite] : lus[k].jetons)
   let courant = []
   const shells = [shell]
   let precedent = null
+  /** Ferme le segment que suit `op` : sortie de sous-shell, fin de pipeline. */
+  const cloture = (op) => {
+    if (op === ')' && shells.length > 1) shells.pop()
+    precedent = op
+    if (op !== '|' && op !== ')' && courant.length > 0) {
+      pipelines.push(courant)
+      courant = []
+    }
+  }
   for (let s = 0; s < lus.length; s++) {
     const jetons = avecSuite(s)
     let { op } = lus[s]
     const { debut, affectations: deTete, valeurs } = epluchageTete(jetons)
-    for (let k = 0; k < debut; k++) if (jetonNu(jetons[k]) && jetons[k].text === '(') shells.push({ parent: shells.at(-1) })
+    for (let k = 0; k < debut; k++) if (jetonNu(jetons[k]) && jetons[k].text === '(') shells.push(fourche(shells.at(-1)))
     const segment = jetons.slice(debut)
     const relus = relu ? [...segment] : jetonsDeBloc(segment)
+    // Une définition de fonction absorbe son corps jusqu'à sa fermeture, le lie au shell, et n'exécute rien.
+    const definition = definitionDeFonction(relus, powershell)
+    if (definition !== null) {
+      const corps = relus.slice(definition.debut)
+      let solde = soldeDuCorps(corps, powershell)
+      while (op !== null && solde > 0) {
+        corps.push(separateur(op))
+        if (op === ')') solde -= 1
+        s += 1
+        const ajout = relu ? avecSuite(s) : jetonsDeBloc(avecSuite(s))
+        corps.push(...ajout)
+        solde += soldeDuCorps(ajout, powershell)
+        op = lus[s].op
+      }
+      // Un corps `{ … }` est son contenu, comme celui d'un bloc, et les redirections qui suivent son `}` s'appliquent à
+      // chaque appel (XCU 2.9.5) ; `( … )` et un composé POSIX s'exécutent entiers, redirections comprises.
+      const fin = corps[0].text === '{' ? finDuBloc(corps, 0, powershell) : corps.length
+      const execute = corps[0].text === '{' ? corps.slice(1, fin) : corps
+      const entree = powershell ? entreeDuCorpsPowerShell(execute, definition.parametres) : { flux: execute, parametres: null }
+      const cle = cleDeFonction(definition.nom, powershell)
+      const fonction = { flux: entree.flux.map(versFlux), redirections: corps.slice(fin + 1), parametres: entree.parametres, exportee: shells.at(-1).fonctions.get(cle)?.exportee === true }
+      if (op !== '|' && precedent !== '|') shells.at(-1).fonctions.set(cle, fonction)
+      cloture(op)
+      continue
+    }
     let lecture = lectureDesBlocs(relus)
     while (op !== null && lecture.suspens) {
-      let solde = relus.reduce((d, j) => d + accolade(j), 0)
+      let solde = relus.reduce((d, _, k) => d + accolade(relus, k, true), 0)
       do {
         const ajout = relu ? avecSuite(s + 1) : jetonsDeBloc(avecSuite(s + 1))
         segment.push(separateur(op), ...avecSuite(s + 1))
         relus.push(separateur(op), ...ajout)
-        solde = ajout.reduce((d, j) => d + accolade(j), solde)
+        solde = ajout.reduce((d, _, k) => d + accolade(ajout, k, true), solde)
         s += 1
         op = lus[s].op
       } while (op !== null && solde > 0)
       lecture = lectureDesBlocs(relus)
     }
     const ouvreDesBlocs = lecture.corps.length > 0 && TETES_DE_BLOC.has(basenameExecutable(relus[0]?.text))
-    const ici = op === '|' || precedent === '|' ? { parent: shells.at(-1) } : shells.at(-1)
+    const ici = op === '|' || precedent === '|' ? fourche(shells.at(-1)) : shells.at(-1)
     // Les substitutions s'exécutent avant le segment, la chaîne citée comprise ; celles d'un corps de bloc se
     // déplient dans ce corps.
     const deplies = new Map()
     const deplie = (j) => {
       if (!j.substitutions?.length) return
-      const rendus = j.substitutions.flatMap(({ interne, expression: sousExpression }) =>
-        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, expression: sousExpression }))
+      const rendus = j.substitutions.flatMap(({ interne, expression: sousExpression, positionnels }) =>
+        pipelinesDeJetons(interne, profondeur + 1, { scripts, budget, affectations, bloc, hote: ici, fonctions: ici.fonctions, expression: sousExpression, powershell, positionnels }))
       for (const p of rendus) pipelines.push(p)
       deplies.set(j, rendus)
     }
@@ -959,33 +1421,165 @@ function pipelinesDuFlux(flux, profondeur, { scripts = scriptsNpm(), budget, sui
       const textes = ouvreDesBlocs ? [] : segment.map((j) => j.text)
       affectations.push(...deTete, ...affectationsDuSegment(textes))
       const posees = segment.length === 0 ? valeurs : declarationsDuSegment(segment)
-      const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, deplies, bloc, tube: courant, shell: ici, enTete: jetons.slice(0, debut) }
-      if (segment.length > 0) {
+      const enTete = jetons.slice(0, debut)
+      const lu = { jetons: segment, relus, deploye: false, ouvreDesBlocs, valeurs: posees, valeursDeTete: valeurs, deplies, bloc, deploiePar, enFond: lanceEnFond(segment), tube: courant, shell: ici, enTete, boucle: null }
+      if (!powershell && boucles.length > 1 && jetonNu(enTete[0] ?? {}) && enTete[0]?.text === 'done') boucles.pop().fin = lu
+      const ouvre = (j) => j !== undefined && jetonNu(j) && OUVRANTS_DE_BOUCLE.has(j.text)
+      if (!powershell && [...enTete, segment[0]].some(ouvre)) boucles.push({ parent: boucles.at(-1), fin: null })
+      lu.boucle = boucles.at(-1)
+      const fonction = segment.length === 0 || ouvreDesBlocs || !appelleUneFonction(lu.enTete) ? undefined : ici.fonctions.get(cleDeFonction(segment[0].text, powershell))
+      if (fonction !== undefined) {
+        // Appel : le corps s'exécute dans le shell de l'appel, comme la chaîne d'`eval`, ses positionnels liés aux arguments
+        // de l'appel ; le segment ne garde que ses redirections et celles de la définition, sa tête et ses arguments
+        // n'étant pas une commande.
+        const argumentsDeLAppel = lireRedirections(segment, 1).arguments
+        const corps = powershell ? lierArgumentsPowerShell(fonction, argumentsDeLAppel) : lierPositionnels(fonction.flux, argumentsDeLAppel)
+        for (const p of pipelinesDuFluxBorne(corps, profondeur + 1, { scripts, budget, affectations, bloc, deploiePar: lu, shell: ici, relu: powershell, powershell, boucle: lu.boucle })) pipelines.push(p)
+        lu.jetons = [...redirectionsDuSegment(segment), ...fonction.redirections]
+        lu.relus = lu.jetons
+        lu.deploye = true
+      } else if (segment.length > 0) {
+        const attribut = powershell ? null : exportDeFonctions(textes)
+        for (const nom of attribut?.noms ?? []) {
+          const marquee = ici.fonctions.get(nom)
+          if (marquee) ici.fonctions.set(nom, { ...marquee, exportee: attribut.exportee })
+        }
         const porteur = ouvreDesBlocs ? null : lecturePorteur(textes, segment)
         const inner = ouvreDesBlocs ? null : (porteur?.commande ?? commandeScriptNpm(segment, scripts))
         if (inner !== null) {
           const debutSuite = porteur?.suite ?? null
           const suiteInterne = debutSuite === null ? [] : segment.slice(debutSuite)
-          const rattache = porteur?.memeShell ? { shell: ici } : { hote: ici }
-          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, ...rattache })) pipelines.push(p)
+          const heritees = SHELLS_IMPORTEURS.has(basenameExecutable(textes[0])) ? [...ici.fonctions].filter(([, f]) => f.exportee) : []
+          const rattache = porteur?.memeShell ? { shell: ici } : { hote: ici, fonctions: heritees }
+          const dialecte = porteur === null ? false : porteur.memeShell ? powershell : Boolean(ENROBEURS_ARGUMENT.get(basenameExecutable(textes[0]))?.hote)
+          for (const p of pipelinesDeJetons(inner, profondeur + 1, { scripts, budget, suite: suiteInterne, affectations, bloc, deploiePar: lu, ...rattache, powershell: dialecte })) pipelines.push(p)
         }
         const { corps } = lecture
         for (const c of corps) {
-          for (const p of pipelinesDuFlux(c.map(versFlux), profondeur, { scripts, budget, affectations, bloc: lu, shell: ici, relu: true })) pipelines.push(p)
+          for (const p of pipelinesDuFlux(c.map(versFlux), profondeur, { scripts, budget, affectations, bloc: lu, shell: ici, relu: true, powershell, boucle: lu.boucle })) pipelines.push(p)
         }
         lu.deploye = inner !== null || corps.length > 0
       }
-      courant.push(lu)
+      // Un segment vide dont la tête n'a que des mots réservés n'est aucune commande : ce qui suit la `)` d'un sous-shell,
+      // le `}` d'un bloc, un fermant `fi`, `done`, `esac` (XCU 2.4, 2.9.4). Un enrobeur seul (`env`, `xargs`) en reste une, et tient sa place dans le tube.
+      if (segment.length > 0 || !lu.enTete.every((j) => j.motifDeCase || (jetonNu(j) && (AVANT_SOUS_SHELL.has(j.text) || FERMANTS_COMPOSES.has(j.text))))) courant.push(lu)
     }
-    if (op === ')' && shells.length > 1) shells.pop()
-    precedent = op
-    if (op !== '|' && op !== ')' && courant.length > 0) {
-      pipelines.push(courant)
-      courant = []
-    }
+    cloture(op)
   }
   if (courant.length > 0) pipelines.push(courant)
   return pipelines
+}
+
+/** Les shells enfants qui importent les fonctions exportées de leur environnement (`man bash`, `export -f`, cité de
+ *  mémoire). */
+const SHELLS_IMPORTEURS = new Set(['bash', 'sh'])
+/** L'attribut d'export que ce segment épluché (ses textes) pose sur des fonctions : `{ noms, exportee }`, `exportee` vrai
+ *  pour `export -f` et `declare`/`typeset -f -x`, faux pour `export -f -n` et `declare -f +x` ; `null` sinon (`man bash`,
+ *  SHELL BUILTIN COMMANDS, cité de mémoire). */
+function exportDeFonctions(textes) {
+  const tete = textes[0]
+  if (tete !== 'export' && tete !== 'declare' && tete !== 'typeset') return null
+  const args = textes.slice(1)
+  const options = args.filter((t) => /^-[A-Za-z]+$/.test(t)).join('')
+  const retraits = args.filter((t) => /^\+[A-Za-z]+$/.test(t)).join('')
+  if (!options.includes('f')) return null
+  const noms = args.filter((t) => !/^[-+]/.test(t))
+  if (tete === 'export') return { noms, exportee: !options.includes('n') }
+  return retraits.includes('x') ? { noms, exportee: false } : options.includes('x') ? { noms, exportee: true } : null
+}
+
+/** Un argument PowerShell CONSTANT : quoté simple, ou sans variable, substitution, splatting, tableau, bloc ni nom de
+ *  paramètre (about_Parsing, about_Splatting). */
+const constantPowerShell = (j) => j.quote === 'simple' || (!j.substitutions?.length && !/[$@(,{]/.test(j.text) && !j.text.startsWith('-'))
+/** Les noms d'un bloc `param(…)` PowerShell, en minuscules, dans l'ordre, ou `null` quand la liaison positionnelle n'est
+ *  pas certaine (attribut autre qu'un type, entrée illisible) (about_Functions, about_Functions_Advanced_Parameters). */
+function nomsDeParametres(texte) {
+  const ouvrante = texte.indexOf('(')
+  const fermante = texte.lastIndexOf(')')
+  if (ouvrante === -1 || fermante < ouvrante) return null
+  const interieur = texte.slice(ouvrante + 1, fermante)
+  const entrees = []
+  let profondeur = 0
+  let courante = ''
+  for (const ch of interieur) {
+    if ('([{'.includes(ch)) profondeur += 1
+    else if (')]}'.includes(ch)) profondeur -= 1
+    if (ch === ',' && profondeur === 0) { entrees.push(courante); courante = '' } else courante += ch
+  }
+  if (courante.trim() !== '') entrees.push(courante)
+  const noms = entrees.map((e) => /^\s*(?:\[[\w.]+(?:\[\])?\]\s*)*\$([A-Za-z_]\w*)\s*(?:=.*)?$/s.exec(e)?.[1]?.toLowerCase() ?? null)
+  return noms.includes(null) ? null : noms
+}
+/** Le corps PowerShell `execute` (jetons relus) sans ses attributs ni son bloc `param(…)` de tête, qui n'exécutent rien :
+ *  `{ flux, parametres }`, `parametres` = `{ noms, avancee }` (`nomsDeParametres` de l'en-tête `enTete` ou du bloc ;
+ *  `avancee` quand un attribut le précède, `$args` n'y étant pas lié), ou `null` si la liaison n'est pas certaine
+ *  (about_Functions, about_Functions_CmdletBindingAttribute). */
+function entreeDuCorpsPowerShell(execute, enTete) {
+  let k = 0
+  const passeSeparateurs = () => { while (execute[k]?.separateur !== undefined) k += 1 }
+  passeSeparateurs()
+  let avancee = false
+  while (execute[k] && jetonNu(execute[k]) && execute[k].text.startsWith('[')) {
+    avancee = true
+    let solde = 0
+    do {
+      const t = execute[k].text
+      solde += (t.match(/\[/g)?.length ?? 0) - (t.match(/\]/g)?.length ?? 0)
+      k += 1
+    } while (solde > 0 && k < execute.length)
+    passeSeparateurs()
+  }
+  let texte = enTete
+  if (execute[k] && jetonNu(execute[k]) && /^param(?:\(|$)/i.test(execute[k].text)) {
+    texte = execute[k].text
+    let solde = soldeParentheses(texte)
+    k += 1
+    if (solde === 0 && execute[k] && /^\(/.test(execute[k].text)) {
+      texte += execute[k].text
+      solde = soldeParentheses(execute[k].text)
+      k += 1
+    }
+    while (solde > 0 && k < execute.length) {
+      texte += ' ' + execute[k].text
+      solde += soldeParentheses(execute[k].text)
+      k += 1
+    }
+  }
+  const noms = texte ? nomsDeParametres(texte) : []
+  return { flux: execute.slice(k), parametres: noms === null ? null : { noms, avancee } }
+}
+/** Le corps de la `fonction` PowerShell, ses paramètres et `$args` liés aux `args` de l'appel quand c'est CERTAIN : un
+ *  jeton entier `$nom`, `"$nom"`, `$args[n]`, `$args` (un seul argument restant : plusieurs font un tableau), `@args` (les
+ *  arguments restants, un par mot) et `@PSBoundParameters` (`-nom valeur` par paramètre lié) ; les trois derniers hors
+ *  bloc imbriqué, qui a les siens. Tous les arguments constants (`constantPowerShell`), le nom jamais réaffecté dans le
+ *  corps. Sinon le corps tel quel (about_Functions, about_Automatic_Variables, about_Splatting). PUR. */
+function lierArgumentsPowerShell({ flux, parametres }, args) {
+  if (parametres === null || args.length === 0 || !args.every(constantPowerShell)) return flux
+  const valeurs = new Map()
+  const lies = parametres.noms.flatMap((nom, k) => (args[k] === undefined ? [] : [[nom, args[k]]]))
+  for (const [nom, valeur] of lies) valeurs.set('$' + nom, { jetons: [valeur], profond: true })
+  valeurs.set('@psboundparameters', { jetons: lies.flatMap(([nom, valeur]) => [{ text: '-' + nom, raw: '-' + nom, op: null }, valeur]), profond: false, nu: true })
+  if (!parametres.avancee) {
+    const restants = args.slice(parametres.noms.length)
+    restants.forEach((a, k) => valeurs.set('$args[' + k + ']', { jetons: [a], profond: false }))
+    if (restants.length === 1) valeurs.set('$args', { jetons: restants, profond: false })
+    valeurs.set('@args', { jetons: restants, profond: false, nu: true })
+  }
+  flux.forEach((j, k) => {
+    const affecte = /^\(?(\$[A-Za-z_]\w*)\s*(?:[-+*/]?=.*)?$/.exec(j.text)
+    const suivant = flux[k + 1]?.text ?? ''
+    if (affecte && (j.text.includes('=') || /^[-+*/]?=/.test(suivant) || /^in$/i.test(suivant))) valeurs.delete(affecte[1].toLowerCase())
+  })
+  let profondeur = 0
+  return flux.flatMap((j) => {
+    if (j.op === undefined || j.op === null) {
+      if (jetonNu(j) && j.text === '{') profondeur += 1
+      else if (jetonNu(j) && j.text === '}') profondeur -= 1
+    }
+    const lie = (j.quote === undefined || j.quote === 'double') && !j.substitutions?.length ? valeurs.get(j.text.toLowerCase()) : undefined
+    if (lie === undefined || (!lie.profond && profondeur > 0) || (lie.nu && j.quote !== undefined)) return [j]
+    return lie.jetons.map((v) => ({ ...v, substitutions: [], quote: j.quote === 'double' ? 'double' : v.quote }))
+  })
 }
 
 /** Têtes POSIX qui affectent leurs arguments `NOM[=val]` : `export` (sauf `-n`), `readonly` (sauf `-f`), et
@@ -1221,11 +1815,22 @@ export function gitSubcommand(segment) {
   return { sub: segment[idx], args: segment.slice(idx + 1) }
 }
 
-/** Affectation PowerShell `$nom = …` en tête d'un segment (ses jetons) : `{ nom, valeur }`, `valeur` = les
- *  jetons qui suivent le `=`, ou `null`. */
+/** Variable PowerShell `$nom`, ou d'environnement `$env:NOM`, `${env:NOM}` (about_Environment_Variables) : son nom, `env:NOM`
+ *  pour la seconde, NOM en capitales. */
+const VARIABLE_POWERSHELL_RE = /^\$(?:(\w+)|\{env:(\w+)\}|env:(\w+))/i
+const nomDeVariablePowerShell = (m) => (m[1] !== undefined ? m[1] : `env:${(m[2] ?? m[3]).toUpperCase()}`)
+
+/** Affectation PowerShell `$nom = …`, `$nom += …` (`$env:NOM` compris, `VARIABLE_POWERSHELL_RE`) en tête d'un segment (ses
+ *  jetons) : `{ nom, valeur, ajout }`, `valeur` = les jetons qui suivent l'opérateur, `ajout` pour `+=`
+ *  (about_Assignment_Operators), ou `null`. Collée (`$nom='…'`, un seul jeton), la valeur est le reste du jeton brut, relu
+ *  comme un jeton. */
 export function affectationPowerShell(jetons) {
-  const nom = /^\$(\w+)$/.exec(jetons[0]?.text ?? '')?.[1]
-  return nom && jetonNu(jetons[0]) && jetons[1]?.text === '=' ? { nom, valeur: jetons.slice(2) } : null
+  const seul = new RegExp(`${VARIABLE_POWERSHELL_RE.source}$`, 'i').exec(jetons[0]?.text ?? '')
+  if (seul && jetonNu(jetons[0]) && ['=', '+='].includes(jetons[1]?.text)) return { nom: nomDeVariablePowerShell(seul), valeur: jetons.slice(2), ajout: jetons[1].text === '+=' }
+  const colle = new RegExp(`${VARIABLE_POWERSHELL_RE.source}([+]?)=(.+)$`, 'is').exec(jetons[0]?.raw ?? '')
+  if (!colle) return null
+  const relus = tokenizeCommand(colle[5]).filter((j) => j.op === null)
+  return { nom: nomDeVariablePowerShell(colle), valeur: [...relus, ...jetons.slice(1)], ajout: colle[4] === '+' }
 }
 
 const SOUS_COMMANDES_GIT_DE_LECTURE = new Set(['grep', 'log', 'show', 'diff', 'blame'])
@@ -1371,11 +1976,18 @@ export function ciblesDeRedirectionAvecProvenance(jetons, depart = 0) {
 // absolu — aucune conversion.
 const DISQUE_POSIX_RE = /^\/([A-Za-z])\/(.*)$/
 
-/** Chemin de commande rendu natif pour la plateforme (`/c/Users/x` → `C:/Users/x` sur win32). */
-export function versCheminNatif(chemin, platform = process.platform) {
+/** Le module `node:path` de `platform` (`path.win32` ou `path.posix`), jamais celui de l'hôte : un juge qui reçoit
+ *  sa plateforme en paramètre résout comme elle. */
+export const cheminsDe = (platform) => (platform === 'win32' ? path.win32 : path.posix)
+
+/** Chemin de commande rendu natif pour la plateforme (`/c/Users/x` → `C:/Users/x` sur win32) ; `/tmp` de Git
+ *  Bash est le répertoire temporaire `tmp` (montage MSYS de `%TEMP%`). */
+export function versCheminNatif(chemin, platform = process.platform, tmp = tmpdir()) {
   if (platform !== 'win32') return chemin
   const m = DISQUE_POSIX_RE.exec(chemin)
-  return m ? `${m[1].toUpperCase()}:/${m[2]}` : chemin
+  if (m) return `${m[1].toUpperCase()}:/${m[2]}`
+  const t = /^\/tmp(?=\/|$)(.*)$/s.exec(chemin)
+  return t ? `${tmp}${t[1]}` : chemin
 }
 
 /** Les valeurs des flags globaux `git -C <path>` d'un segment, dans l'ordre ; `[]` hors git. Git les
@@ -1409,6 +2021,7 @@ const VARIABLE_NON_EXPANSEE_RE = /[$%]/
  *  depuis le répertoire où tourne SON segment, sinon le dernier `cd`/`Set-Location`. `null` si aucun.
  *  Les `cd` se PLIENT dans l'ordre : chacun se résout contre le répertoire où le précédent a mené. */
 function cheminNommeParLaCommande(command, cwd, platform) {
+  const { isAbsolute, resolve } = cheminsDe(platform)
   const pas = (depuis, brut) => {
     if (brut === null) return { brut: '', resolu: null }
     const natif = versCheminNatif(brut, platform)

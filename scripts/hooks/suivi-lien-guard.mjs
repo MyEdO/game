@@ -26,12 +26,13 @@ import { dossierDesSuivis } from '../guards/lib/gitPorte.mjs'
 import { JOURNAL, argumentsDuSuivi, ligneDeLien } from '../ops/suivi.mjs'
 import { relire } from '../ops/suiviFichiers.mjs'
 import { basenameExecutable, pipelinesDeJetons, sansRedirections } from '../guards/lib/commandeShell.mjs'
+import { sousAgent } from '../guards/lib/contratGarde.mjs'
 
 /** Le script lancé par un segment `node <…>/scripts/ops/suivi.mjs`. */
 const SCRIPT_DU_SUIVI = /(?:^|[\\/])scripts[\\/]ops[\\/]suivi\.mjs$/
 
 /** Vrai pour la session PRINCIPALE : un `session_id`, aucun `agent_id` (sous-agent). PURE. */
-export const sessionPrincipale = (entree) => typeof entree?.session_id === 'string' && entree.session_id !== '' && !entree.agent_id
+export const sessionPrincipale = (entree) => typeof entree?.session_id === 'string' && entree.session_id !== '' && !sousAgent(entree)
 
 /**
  * Les LANCEMENTS de `scripts/ops/suivi.mjs` d'une commande, par npm comme en direct : `segments`, les
