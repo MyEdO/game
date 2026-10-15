@@ -8,6 +8,7 @@ import { join, resolve, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import { attendreSync } from '../guards/lib/spawnResilient.mjs';
+import { TOLERANCE_CREATION_MS } from '../guards/lib/processusWorktrees.mjs';
 import { browserFreezeTimeout, browserUnfreezeTimeout } from '../../src/state/devtoolsTimers.ts';
 import { ENTETE_RACINE, RACINE, normaliserRacine, racineDepuisEntete, urlDev } from '../port-dev.mjs';
 
@@ -224,9 +225,6 @@ export function lireProcessus({ plateforme = process.platform, executer = spawnS
 /** ÉCHÉANCE d'extinction d'un Chrome et de libération de son profil, qui tient la CHARGE : #2540, une
  *  observation CIM coûte 600 à 800 ms sur une machine chargée, et l'extinction y dépassait 2000 ms. */
 export const ATTENTE_EXTINCTION_MS = 15000;
-
-/** Précision d'une date de création : `etimes` de ps est à la seconde, CIM à la milliseconde. */
-const TOLERANCE_CREATION_MS = Object.freeze({ ps: 1500, cim: 0 });
 
 /** Arrête l’arbre puis observe son extinction jusqu'à une échéance synchrone prise APRÈS l'arrêt,
  *  indépendamment du code taskkill. Un processus de l'instantané n'est de l'arbre que s'il est le MÊME

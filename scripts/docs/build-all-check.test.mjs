@@ -194,7 +194,7 @@ test('contexte initial : outillage copié muté entre préparation et rang suiva
     const { copie } = copierOutillage(racine)
     const { avantGenerateur, preparerPreuves } = await import(pathToFileURL(path.join(copie, 'scripts/docs/lib/fraicheur-docs.mjs')).href)
     const preparation = preparerPreuves(racine, options)
-    const cible = path.join(copie, 'scripts/guards/lib/ecritureJsonAtomique.mjs')
+    const cible = path.join(copie, 'scripts/guards/lib/lister.mjs')
     writeFileSync(cible, readFileSync(cible, 'utf8') + '\n')
     assert.throws(() => avantGenerateur(racine, generateurs[0], options, preparation), /contexte modifié depuis préparation : outillage/)
     assert.equal(chargerPreuve(racine), null)
@@ -454,6 +454,23 @@ function depotReel({ docsIgnores = false } = {}) {
   return { racine, git }
 }
 
+test('`--perimes` sur un clone NEUF, sans preuve ni docs : chaque générateur joue et `SOURCES_LUES` est écrit (constat du bootstrap, #2603)', () => {
+  const { racine } = instanceDeDepot({
+    commit: false,
+    fichiers: { '.gitignore': 'node_modules/\n', 'src/a.ts': 'export const a = 1\n', 'src/b.ts': 'export const b = 1\n', 'src/commun.ts': 'export const commun = 1\n', 'g/a.mjs': generateurReel('a'), 'g/b.mjs': generateurReel('b', { cliquet: true }) },
+  })
+  try {
+    mkdirSync(path.join(racine, 'docs'), { recursive: true })
+    assert.equal(existsSync(path.join(racine, SOURCES_LUES)), false)
+    const vu = executer(racine, ['--perimes'])
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.equal(existsSync(path.join(racine, SOURCES_LUES)), true, vu.sortie)
+    assert.deepEqual([DOC_A, DOC_B].map((d) => existsSync(path.join(racine, d))), [true, true])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 test('`--check` rejoue chaque générateur : un corps divergent posé sur le disque est NOMMÉ, sortie 1, rien d’écrit', () => {
   const { racine } = depotReel()
   try {
@@ -472,7 +489,7 @@ test('`--check` rejoue chaque générateur : un corps divergent posé sur le dis
   }
 })
 
-test('attestation : source app hors mesure reste fraîche ; outil transitif et hook URL invalident', () => {
+test('attestation : source app et module hors frontière d’outillage restent frais ; outil transitif et hook URL invalident (#2603)', () => {
   const { racine } = depotReel({ docsIgnores: true })
   try {
     const { copie, outil } = copierOutillage(racine)
@@ -483,7 +500,12 @@ test('attestation : source app hors mesure reste fraîche ; outil transitif et h
     const frais = jouer(['--perimes'])
     assert.equal(frais.status, 0, frais.sortie)
     assert.doesNotMatch(frais.sortie, /g\/a\.mjs — début|g\/b\.mjs — début/)
-    for (const rel of ['scripts/docs/lib/enregistreur-hooks.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs']) {
+    const horsFrontiere = path.join(copie, 'scripts/guards/lib/ecritureJsonAtomique.mjs')
+    writeFileSync(horsFrontiere, readFileSync(horsFrontiere, 'utf8') + '\n')
+    const toujoursFrais = jouer(['--perimes'])
+    assert.equal(toujoursFrais.status, 0, toujoursFrais.sortie)
+    assert.doesNotMatch(toujoursFrais.sortie, /g\/a\.mjs — début|g\/b\.mjs — début/)
+    for (const rel of ['scripts/docs/lib/enregistreur-hooks.mjs', 'src/lib/ordre.mjs']) {
       const cible = path.join(copie, rel)
       writeFileSync(cible, readFileSync(cible, 'utf8') + '\n')
       const perime = jouer(['--perimes'])

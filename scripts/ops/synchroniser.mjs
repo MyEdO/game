@@ -24,6 +24,7 @@ import {
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
+import { CODE_DIFFERE } from '../docs/build-all.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { estPidVivant, prendreVerrouAsync, sousEcheanceAsync } from '../test/verrou.mjs'
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
@@ -828,8 +829,8 @@ const refusEnReprise = (ctx, journal, refus) => interrompre(ctx, journal, `trans
 /**
  * Le CONSOMMATEUR (`--consommer`, #2493 verdict §2) : sous son verrou, joue `post-merge` sur la plage due
  * (`ORIG_HEAD` = son `de`) tant qu'elle change, puis la SOLDE sous `synchro.verrou` : supprimée sur un code 0,
- * `echec` posé sinon. Chaque ligne va à `<git-common-dir>/synchro-consommateurs/<pid>.log`, une exception
- * comprise. REND 0, 1 sur une exception.
+ * laissée au prochain passage sur `CODE_DIFFERE` (#2603), `echec` posé sinon. Chaque ligne va à
+ * `<git-common-dir>/synchro-consommateurs/<pid>.log`, une exception comprise. REND 0, 1 sur une exception.
  * @param {{ depuis?: string, env?: NodeJS.ProcessEnv, horloge?: () => number, estVivant?: (pid: number) => boolean,
  *   attente?: { echeanceMs: number, pasMs: number } }} [p]
  */
@@ -885,6 +886,7 @@ export async function consommerLaPlage({ depuis = process.cwd(), env, horloge = 
         const relu = lireDu(commun)
         if (relu && (relu.de !== du.de || relu.vers !== du.vers)) continue
         if (relu && code === 0) rmSync(cheminDuDu(commun), { force: true })
+        else if (relu && code === CODE_DIFFERE) ecrire(`[consommateurs] ${iso()} post-merge différé : un geste lourd tient la machine, plage due laissée au prochain passage`)
         else if (relu) ecrireJsonAtomique(cheminDuDu(commun), { ...relu, echec: { pid: process.pid, fin: iso(), code, log } })
         lacher()
         return 0

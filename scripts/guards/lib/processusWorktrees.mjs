@@ -59,19 +59,49 @@ export function porteeProcessus(vue) {
   return { ...vue, erreurs: [...new Set(erreurs)], horsPortee, portee: `examinés : commandes et cwd lisibles de tous les processus ; utilisateur=${vue.utilisateur} ; hors portée : ${horsPortee.length} processus d'autres comptes ou propriétaires illisibles (${noms.join(', ') || 'aucun'}) — propriétaire seul exclu du jugement d'indétermination` }
 }
 
-export function mesurerProcessusWorktrees({ platform = process.platform, pids } = {}) {
+/** Précision d'une date de création mesurée, par source : `etimes` de ps et `btime` de `/proc/stat` à la
+ *  seconde, CIM à la milliseconde. */
+export const TOLERANCE_CREATION_MS = Object.freeze({ ps: 1500, proc: 1500, cim: 0 })
+
+/** La précision des dates `creation` de `mesurerProcessusWorktrees` sur `platform`. */
+export const toleranceDeMesure = (platform = process.platform) => TOLERANCE_CREATION_MS[platform === 'win32' ? 'cim' : 'proc']
+
+/** `USER_HZ`, unité de `starttime` dans `/proc/<pid>/stat` : proc(5). */
+const TICKS_PAR_SECONDE = 100
+
+/** La vue INDÉTERMINÉE d'une mesure qui a dépassé son échéance `timeout` : aucun processus, la raison nommée. */
+function indeterminee(timeout) {
+  const raison = `mesure des processus indéterminée : échéance de ${timeout} ms atteinte`
+  return { ...porteeProcessus({ utilisateur: null, processus: [], erreurs: [raison] }), indeterminee: raison }
+}
+
+/** `creation` : date ISO 8601 UTC du démarrage du processus, sur les deux plateformes. `pids` ne lit que ces
+ *  processus ; `timeout` (ms) borne la mesure, et son échéance rend une vue `indeterminee`. */
+export function mesurerProcessusWorktrees({ platform = process.platform, pids, timeout } = {}) {
+  const debut = Date.now()
   if (platform === 'win32') {
     const system = process.env.SystemRoot
     if (!system) throw new Error('SystemRoot absent : lecteur Windows introuvable')
     const executable = path.join(system, process.arch === 'ia32' ? 'Sysnative' : 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-    return porteeProcessus(JSON.parse(execFileSync(executable, ['-NoProfile', '-NonInteractive', '-File', fileURLToPath(new URL('../../ops/processus-worktrees.ps1', import.meta.url)), ...(pids ? ['-Pids', pids.join(',')] : [])], { encoding: 'utf8', maxBuffer: 16 << 20 })))
+    const borne = timeout === undefined ? {} : { timeout, windowsHide: true }
+    let sortie
+    try {
+      sortie = execFileSync(executable, ['-NoProfile', '-NonInteractive', '-File', fileURLToPath(new URL('../../ops/processus-worktrees.ps1', import.meta.url)), ...(pids ? ['-Pids', pids.join(',')] : [])], { encoding: 'utf8', maxBuffer: 16 << 20, ...borne })
+    } catch (e) {
+      if (timeout !== undefined && e.code === 'ETIMEDOUT') return indeterminee(timeout)
+      throw e
+    }
+    return porteeProcessus(JSON.parse(sortie))
   }
   if (platform !== 'linux') throw new Error('mesure processus non supportée : ' + platform)
   const uid = process.getuid()
   const processus = []
   const racine = racineProcessusLinux(platform)
+  const demarrage = Number(/^btime (\d+)$/m.exec(readFileSync(path.join(racine, 'stat'), 'utf8'))?.[1]) * 1000
+  if (!Number.isFinite(demarrage)) throw new Error('btime illisible : ' + path.join(racine, 'stat'))
   for (const nom of listerDossier(racine).filter((n) => /^\d+$/.test(n))) {
     if (pids && !pids.includes(Number(nom))) continue
+    if (timeout !== undefined && Date.now() - debut >= timeout) return indeterminee(timeout)
     const dossier = path.join(racine, nom)
     const item = { pid: Number(nom), nom, proprietaire: null, commande: null, cwd: null, creation: null, erreurs: [] }
     try { item.proprietaire = String(statSync(dossier).uid) }
@@ -80,7 +110,7 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids } 
       const avant = readFileSync(dossier + '/stat', 'utf8')
       const creation = avant.slice(avant.lastIndexOf(')') + 2).split(' ')[19]
       item.nom = avant.slice(avant.indexOf('(') + 1, avant.lastIndexOf(')'))
-      item.creation = creation
+      item.creation = new Date(demarrage + (Number(creation) * 1000) / TICKS_PAR_SECONDE).toISOString()
       try {
         item.argv = readFileSync(dossier + '/cmdline', 'utf8').split('\0').filter(Boolean)
         item.commande = item.argv.join(' ')

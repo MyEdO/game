@@ -2,7 +2,7 @@ import { depotDe, etatDeLArbre } from './gitPorte.mjs'
 import { createHash } from 'node:crypto'
 import { lstatSync, readFileSync, readlinkSync } from 'node:fs'
 import { join } from 'node:path'
-import { listerArbre } from './lister.mjs'
+import { cheminAbsent, listerArbre } from './lister.mjs'
 
 export function photoArbre(racine) {
   try {
@@ -12,7 +12,7 @@ export function photoArbre(racine) {
       if (chemin.split('/').includes('node_modules')) continue
       const cible = join(racine, chemin)
       let statut
-      try { statut = lstatSync(cible) } catch (e) { if (e.code === 'ENOENT') continue; throw e }
+      try { statut = lstatSync(cible) } catch (e) { if (cheminAbsent(e)) continue; throw e }
       const fichiers = statut.isDirectory()
         ? listerArbre(cible, { descendre: (rel) => !rel.split('/').includes('node_modules') }).map((rel) => join(chemin, rel).replace(/\\/g, '/'))
         : [chemin]

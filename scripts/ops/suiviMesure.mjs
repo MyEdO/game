@@ -28,7 +28,7 @@ const nomDuVerrouDeMesure = (n) => `.${n}.mesure.verrou`
 export function mesureProfilee({ gestes = GESTES_DU_BOARD, inv = inventaire, issues = issuesDeGh, horloge = () => performance.now(), annoncer = (texte) => process.stderr.write(texte), ...params } = {}) {
   const durees = tableTotale([...Object.keys(GESTES_DU_BOARD), 'inv', 'issues'], () => 0)
   const envelopper = (nom, geste) => (...args) => {
-    return etapeProfilee(`[suivi] ${nom}`, () => geste(...args), { horloge, annoncer, mesurer: (ms) => { durees[nom] += ms } })
+    return etapeProfilee(`[suivi] ${nom}`, () => geste(...args), { horloge, annoncer, mesurer: ({ ms }) => { durees[nom] += ms } })
   }
   const enveloppes = tableTotale(Object.keys(GESTES_DU_BOARD), (nom) => envelopper(nom, gestes[nom]))
   const depart = horloge()
