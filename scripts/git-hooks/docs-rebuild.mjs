@@ -3,7 +3,7 @@ import '../node-requis.mjs'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ciblesSurDisque, GENERATORS, generateursDeCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesSurDisque, CODE_DIFFERE, ESSAI_UNIQUE, GENERATORS, generateursDeCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
 import { fichiersDOutillage, preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
@@ -190,8 +190,12 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
   if (validite.ok) return 0
   annoncer(`[${hook}] docs : attestation périmée${validite.script ? ` (${validite.script})` : ''} — ${validite.raison}\n`)
   try {
-    etape('docs dérivés', () => docs(process.execPath, ['scripts/docs/build-all.mjs', '--perimes'], { cwd, stdio: 'inherit' }))
+    etape('docs dérivés', () => docs(process.execPath, ['scripts/docs/build-all.mjs', '--perimes', ESSAI_UNIQUE], { cwd, stdio: 'inherit' }))
   } catch (e) {
+    if (e.status === CODE_DIFFERE) {
+      annoncer(`[${hook}] docs — régénération DIFFÉRÉE (tenant ci-dessus) : attestation laissée périmée, \`npm run docs:build\` la rattrape\n`)
+      return CODE_DIFFERE
+    }
     annoncer(`[${hook}] docs — régénération INTERROMPUE : corriger le diagnostic puis relancer \`npm run docs:build\` (${e.status ?? e.message})\n`)
     return 1
   }

@@ -454,6 +454,23 @@ function depotReel({ docsIgnores = false } = {}) {
   return { racine, git }
 }
 
+test('`--perimes` sur un clone NEUF, sans preuve ni docs : chaque générateur joue et `SOURCES_LUES` est écrit (constat du bootstrap, #2603)', () => {
+  const { racine } = instanceDeDepot({
+    commit: false,
+    fichiers: { '.gitignore': 'node_modules/\n', 'src/a.ts': 'export const a = 1\n', 'src/b.ts': 'export const b = 1\n', 'src/commun.ts': 'export const commun = 1\n', 'g/a.mjs': generateurReel('a'), 'g/b.mjs': generateurReel('b', { cliquet: true }) },
+  })
+  try {
+    mkdirSync(path.join(racine, 'docs'), { recursive: true })
+    assert.equal(existsSync(path.join(racine, SOURCES_LUES)), false)
+    const vu = executer(racine, ['--perimes'])
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.equal(existsSync(path.join(racine, SOURCES_LUES)), true, vu.sortie)
+    assert.deepEqual([DOC_A, DOC_B].map((d) => existsSync(path.join(racine, d))), [true, true])
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 test('`--check` rejoue chaque générateur : un corps divergent posé sur le disque est NOMMÉ, sortie 1, rien d’écrit', () => {
   const { racine } = depotReel()
   try {

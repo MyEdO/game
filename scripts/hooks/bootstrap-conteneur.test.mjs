@@ -3,18 +3,18 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
-import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  GESTES_DU_CONTENEUR, VERROU_DOCS, bootstrap, construireDocs, docsBuildDetache, estConteneurDistant, lancer, mettreEnConformite, sousOutillage,
+  GESTES_DU_CONTENEUR, bootstrap, docsBuildDetache, estConteneurDistant, lancer, mettreEnConformite, sousOutillage,
 } from './bootstrap-conteneur.mjs'
 import { verrouOutillageDe } from './barriere-outil.mjs'
-import { attendreLibre, prendreVerrou } from '../test/verrou.mjs'
+import { attendreLibre } from '../test/verrou.mjs'
+import { ESSAI_UNIQUE } from '../docs/build-all.mjs'
 import { BUDGET_TOTAL, JOURNAL_DOCS, MARGE_DE_DEMARRAGE, PREREQUIS } from './bootstrap-prerequis.mjs'
 import { depotDe } from '../guards/lib/gitPorte.mjs'
+import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { HOOKS_DE_SESSION, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -88,7 +88,7 @@ test('core.hooksPath vide : `npm install` posé, et lui seul', () => {
 test('docs dérivés absents : `docs:build` part DÉTACHÉ, la ligne NOMME son journal, et lui seul', () => {
   const { run, gestes, vus } = lanceurFeint({ ...CONFORME, 'docs mesurés': false })
   const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes)
-  assert.deepEqual(lignes, ['[conteneur] docs dérivés : posé par `npm run docs:build, détaché (journal node_modules/.cache/bootstrap-docs-build.log)`.'])
+  assert.deepEqual(lignes, ['[conteneur] docs dérivés : posé par `docs:build --perimes, détaché, essai unique du verrou des gestes lourds (journal .git/bootstrap-docs-build.log)`.'])
   assert.ok(vus.includes('docs:build détaché'), vus.join(' | '))
   assert.ok(!vus.some((v) => v.startsWith('npm') || v.startsWith('apt-get')), 'rien d’autre à poser')
 })
@@ -204,84 +204,32 @@ test('CÂBLAGE — le hook est PROPRE à la surface Claude (sa garde est un marq
 test('la table couvre les trois manques MESURÉS au conteneur du 2026-09-18, plus les docs dérivés (#2203)', () => {
   assert.deepEqual(
     PREREQUIS.map((p) => p.geste),
-    ['git fetch --unshallow origin', 'npm install', 'npm run docs:build, détaché (journal node_modules/.cache/bootstrap-docs-build.log)', 'apt-get update puis apt-get install -y gh'],
+    ['git fetch --unshallow origin', 'npm install', 'docs:build --perimes, détaché, essai unique du verrou des gestes lourds (journal .git/bootstrap-docs-build.log)', 'apt-get update puis apt-get install -y gh'],
   )
 })
 
-/** Racine jetable dont `scripts/docs/build-all.mjs` est un FAUX build : il journalise `debut`, puis vit
- *  2 s, le temps que le banc le juge en cours. */
-function racineDeBuild() {
-  const racine = mkdtempSync(join(tmpdir(), 'docs-detache-'))
-  mkdirSync(join(racine, 'scripts', 'docs'), { recursive: true })
-  writeFileSync(join(racine, 'scripts', 'docs', 'build-all.mjs'), "process.stdout.write('debut\\n')\nsetTimeout(() => {}, 2000)\n")
-  return racine
-}
-
-const attendre = async (condition, quoi) => {
-  for (let i = 0; i < 300; i++) {
-    if (condition()) return
-    await new Promise((r) => setTimeout(r, 100))
-  }
-  assert.fail(`${quoi} : non atteint en 30 s`)
-}
-
-/** Le tenant du verrou des docs de `racine`, `null` s'il est libre. */
-const tenantDocs = (racine) => {
-  const vu = attendreLibre({ chemin: join(racine, VERROU_DOCS) })
-  return vu.etat === 'libre' ? null : vu.tenant
-}
-
-/** Un pid MORT : celui d'un processus node sorti. */
-const pidMort = () => spawnSync(process.execPath, ['-e', '']).pid
-
-test('docs:build détaché : le constructeur TIENT le verrou à son PID ; un build vivant n’est ni relancé ni son journal tronqué ; fini, le verrou est libre et un build neuf repart', async () => {
-  const racine = racineDeBuild()
+test('docs:build détaché (#2603) : `build-all --perimes` en ESSAI UNIQUE du verrou des gestes lourds, par `lancerDetache`, journal sous le répertoire git ouvert EN AJOUT', () => {
+  const { racine } = instanceDeDepot({ commit: false })
   try {
-    const premier = docsBuildDetache(racine)
-    assert.equal(premier.ok, true, premier.rapport)
-    const journal = join(racine, JOURNAL_DOCS)
-    await attendre(() => existsSync(journal) && readFileSync(journal, 'utf8').includes('debut'), 'le build journalise')
-    assert.equal(String(tenantDocs(racine)?.pid), premier.valeur, 'le constructeur détaché tient le verrou à SON pid')
-    assert.deepEqual(docsBuildDetache(racine), { ok: true, valeur: premier.valeur, rapport: '' }, 'le build en cours est rendu, jamais relancé')
-    assert.match(readFileSync(journal, 'utf8'), /debut/, 'le journal du build en cours n’est pas tronqué')
-    await attendre(() => tenantDocs(racine) === null, 'le constructeur libère le verrou en fin de build')
-    const neuf = docsBuildDetache(racine)
-    assert.equal(neuf.ok, true, neuf.rapport)
-    assert.notEqual(neuf.valeur, premier.valeur)
-    await attendre(() => tenantDocs(racine) === null, 'le second constructeur finit')
-  } finally {
-    await rm(racine, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 })
-  }
-})
-
-test('docs:build détaché : un constructeur qui PERD la prise sort sans toucher au journal ni lancer le build', () => {
-  const racine = racineDeBuild()
-  try {
-    const journal = join(racine, JOURNAL_DOCS)
-    mkdirSync(dirname(journal), { recursive: true })
-    writeFileSync(journal, 'journal du build en cours\n')
-    const prise = prendreVerrou({ chemin: join(racine, VERROU_DOCS), libelle: 'banc' })
-    try {
-      assert.equal(construireDocs(racine, { lancer: () => assert.fail('build lancé par un perdant') }), null)
-    } finally {
-      prise.liberer()
-    }
-    assert.equal(readFileSync(journal, 'utf8'), 'journal du build en cours\n')
+    const journal = join(racine, '.git', JOURNAL_DOCS)
+    writeFileSync(journal, 'passage précédent\n')
+    const appels = []
+    const vu = docsBuildDetache(racine, { detacher: (p) => { appels.push(p); writeFileSync(p.fdLog, 'DIFFÉRÉ\n'); return 4242 } })
+    assert.deepEqual(vu, { ok: true, valeur: '4242', rapport: '' })
+    assert.deepEqual(appels.map(({ script, args, cwd }) => ({ script, args, cwd })), [{ script: join(REPO, 'scripts', 'docs', 'build-all.mjs'), args: ['--perimes', ESSAI_UNIQUE, '--quiet'], cwd: racine }])
+    assert.equal(readFileSync(journal, 'utf8'), 'passage précédent\nDIFFÉRÉ\n', 'le journal d’un passage précédent n’est pas tronqué')
+    assert.equal(existsSync(join(racine, 'node_modules')), false, 'rien sous node_modules (effacé par npm ci)')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
 })
 
-test('docs:build détaché : un verrou laissé par un PID MORT ne retient rien ; le gagnant le reprend, joue le build, puis le libère', () => {
-  const racine = racineDeBuild()
+test('docs:build détaché hors dépôt git : rien n’est lancé, le refus est rapporté', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'docs-hors-git-'))
   try {
-    mkdirSync(dirname(join(racine, VERROU_DOCS)), { recursive: true })
-    writeFileSync(join(racine, VERROU_DOCS), JSON.stringify({ pid: pidMort(), commande: 'mort' }))
-    assert.equal(tenantDocs(racine), null)
-    const lances = []
-    assert.equal(construireDocs(racine, { lancer: () => { lances.push(String(tenantDocs(racine)?.pid)); return { status: 0 } } }), 0)
-    assert.deepEqual(lances, [String(process.pid)], 'le build joue sous le verrou repris, au PID du constructeur')
-    assert.equal(tenantDocs(racine), null)
+    const vu = docsBuildDetache(racine, { detacher: () => assert.fail('détaché hors dépôt') })
+    assert.equal(vu.ok, false)
+    assert.match(vu.rapport, /^git refusé : /)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

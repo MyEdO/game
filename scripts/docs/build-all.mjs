@@ -9,6 +9,9 @@
 // (`injecte`) est MIXTE : il reste commité, et la CI le juge par `docs:build` puis `Arbre inchangé`.
 // `--check` (`npm run docs:check`) rend chaque générateur et compare son rendu au disque sans rien
 // écrire.
+// VERROU MACHINE (#2603) : la CLI d'un geste lourd (`estGesteLourd`) prend `verrouGestesLourds` avant
+// `executer`, qu'appellent aussi en processus `genererCode` et replay-head ; `--essai-unique` sort
+// en `CODE_DIFFERE` quand il est tenu.
 // Ordre motivé : les registres générés passent EN TÊTE (les générateurs de docs lisent `src/`) ; les
 // rapports d'Atlas LISENT les fiches docs/raw (`pagesLues` de coverage.mjs, `computeReconciliation`
 // de reconcile.mjs, `scan` de reanchor.mjs), ils passent donc APRÈS build-implemente qui y injecte ;
@@ -33,6 +36,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
+import { prendreVerrou, tenantEnUneLigne } from '../test/verrou.mjs'
+import { verrouGestesLourds } from '../test/verrouGestesLourds.mjs'
 import { ENV_CIBLES_RENDUES, estUnDocMarkdown, fusionnerLectures, serialiserSourcesLues } from './lib/ecriture-derives.mjs'
 import { perimetreDeMesure } from './lib/perimetre-mesure.mjs'
 import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
@@ -66,14 +71,6 @@ export const perimetreDesMixtes = (generateurs) =>
  */
 export function genererCode({ cwd, quiet = false, generateurs = GENERATORS }) {
   return executer({ cwd, argv: ['--code', ...(quiet ? ['--quiet'] : [])], generateurs })
-}
-
-/**
- * `--mixtes` : `perimetreDesMixtes`, avec conservation des autres mesures. REND le code de sortie : 0,
- * ou 1 au premier rouge, nommé.
- */
-export function genererMixtes({ cwd, quiet = false, generateurs = GENERATORS }) {
-  return executer({ cwd, argv: ['--mixtes', ...(quiet ? ['--quiet'] : [])], generateurs })
 }
 
 /** Étapes de `--check` qui ne GÉNÈRENT rien (vérificateurs purs, sans `--check`) : `build-all.mjs`
@@ -355,8 +352,7 @@ function argumentsDe(argv, drapeau) {
 }
 
 /**
- * `docs:build` (écriture, puis les vérificateurs purs), `--code` (`genererCode`), `--mixtes`
- * (`genererMixtes`) ou `--check`
+ * `docs:build` (écriture, puis les vérificateurs purs), `--code` (`genererCode`), `--mixtes` ou `--check`
  * (vérification). REND le code de sortie.
  * En écriture, le premier rouge ARRÊTE : un générateur rouge laisse docs/ à moitié régénéré, et
  * enchaîner les suivants fabriquerait un lot incohérent que le hook annoncerait « à committer ».
@@ -604,13 +600,46 @@ function ecrireSiDifferent(chemin, texte) {
   if (actuel !== texte) writeFileSync(chemin, texte)
 }
 
+/** Code de sortie « DIFFÉRÉ » (`EX_TEMPFAIL`, sysexits.h) : sous `ESSAI_UNIQUE`, le verrou des gestes lourds
+ *  est tenu, rien n'a tourné (#2603). */
+export const CODE_DIFFERE = 75
+
+/** Option CLI : un seul essai de prise du verrou des gestes lourds ; tenu, sortie `CODE_DIFFERE`. */
+export const ESSAI_UNIQUE = '--essai-unique'
+
+/** Vrai si `argv` est un geste LOURD, qui prend le verrou des gestes lourds (#2603) : tout mode, hors
+ *  `--code` et `--check --only`. */
+export const estGesteLourd = (argv) => !argv.includes('--code') && !(argv.includes('--check') && argv.includes('--only'))
+
 async function main() {
   const cwd = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
   if (process.argv.includes('--cibles-pures')) {
     process.stdout.write(`${ciblesPures(cwd).join('\n')}\n`)
     return
   }
-  process.exitCode = await executer({ cwd })
+  const argv = process.argv.slice(2)
+  if (!estGesteLourd(argv)) {
+    process.exitCode = await executer({ cwd })
+    return
+  }
+  const verrou = verrouGestesLourds(cwd)
+  const essaiUnique = argv.includes(ESSAI_UNIQUE)
+  const annoncer = (tenant) => console.error(`docs:build — en attente : ${verrou.libelle} : ${tenantEnUneLigne(tenant)} (échéance ${verrou.attente.echeanceMs / 60_000} min par tenant)`)
+  const prise = prendreVerrou({
+    chemin: verrou.chemin, libelle: verrou.libelle, identite: verrou.identite, cwd,
+    commande: ['node', 'scripts/docs/build-all.mjs', ...argv].join(' '),
+    attente: essaiUnique ? undefined : { ...verrou.attente, annoncer },
+  })
+  if (prise.etat !== 'pris') {
+    console.error(essaiUnique ? `docs:build — DIFFÉRÉ : ${verrou.libelle} : ${tenantEnUneLigne(prise.tenant)}` : `docs:build — ARRÊT à l'échéance :\n${prise.message}`)
+    process.exitCode = essaiUnique ? CODE_DIFFERE : 1
+    return
+  }
+  try {
+    process.exitCode = await executer({ cwd })
+  } finally {
+    prise.liberer()
+  }
 }
 
 if (import.meta.main) main()

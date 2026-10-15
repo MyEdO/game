@@ -77,13 +77,9 @@ const ATTENDU = {
     // #1964 — +1 le 2026-10-01 : fixtures sous os.tmpdir(), supprimées en finally.
     'scripts/gates/ecrivainsAtteints.test.mjs',
     'scripts/guards/lib/memoryLinks.test.mjs',
-    // +1 le 2026-10-01 (#2203) : `bootstrap-conteneur.mjs` lance `docs:build` détaché et ouvre son
-    // journal et son verrou sous `node_modules/.cache` ; son banc INJECTE ce geste (`GESTES_DU_CONTENEUR`)
-    // — l'arbre n'est jamais écrit.
-    'scripts/hooks/bootstrap-conteneur.mjs',
-    // +1 le 2026-10-01 (#2203) : le banc du VERROU de `docsBuildDetache` forge une racine JETABLE
-    // (`mkdtempSync` + `writeFileSync` d'un faux build sous `os.tmpdir()`, `rmSync` en finally) — un
-    // build détaché se lance sur un vrai fichier ; l'arbre n'est jamais écrit.
+    // +1 le 2026-10-01 (#2203) : le banc de `docsBuildDetache` forge un dépôt JETABLE (`instanceDeDepot`,
+    // sous `os.tmpdir()`, `rmSync` en finally) dont il écrit le journal (#2603) ; l'arbre
+    // n'est jamais écrit.
     'scripts/hooks/bootstrap-conteneur.test.mjs',
     // +1 le 2026-10-07 (#2436) : le banc du verrou des gates forge ses configurations Vitest et ses
     // fichiers de test sous un `mkdtempSync` d'os.tmpdir(), retirés par `rmSync` en finally ; l'arbre
@@ -308,7 +304,6 @@ const ATTENDU = {
   'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'test:ops': ['scripts/guards/lib/protectionWorktree.mjs',
     'scripts/agents/compat-cli.mjs',
-    'scripts/hooks/bootstrap-conteneur.mjs',
     'scripts/ops/session-start.test.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
@@ -481,6 +476,9 @@ const ATTENDU = {
     // sous un `mkdtempSync` d'os.tmpdir() (`writeFileSync` du compteur, `rmSync` en finally) ; l'arbre
     // n'est jamais écrit.
     'scripts/test/verrou.test.mjs',
+    // +1 (#2603) : le banc du verrou des gestes lourds forge un dépôt JETABLE (`instanceDeDepot`,
+    // sous os.tmpdir(), `rmSync` en finally) et y tient le verrou ; l'arbre n'est jamais écrit.
+    'scripts/test/verrouGestesLourds.test.mjs',
   ],
   'test:docs': ['scripts/guards/lib/protectionWorktree.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un

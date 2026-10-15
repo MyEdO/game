@@ -1669,11 +1669,11 @@
   {
     "id": "processusWorktrees",
     "type": "primitives.manifest",
-    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus",
+    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus/toleranceDeMesure",
     "fichier": "scripts/guards/lib/processusWorktrees.mjs",
-    "concept": "mesure Windows/Linux des identités, propriétaires, commandes et cwd ; liens au worktree ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
-    "perimetre": "protection des worktrees contre les processus vivants et inventaire lisible de la portée mesurée",
-    "verrou": "processusWorktrees.test.mjs, protectionWorktree.test.mjs"
+    "concept": "mesure Windows/Linux des identités (création en date ISO UTC), propriétaires, commandes et cwd, restreinte aux `pids` demandés et bornée par `timeout` (échéance = vue `indeterminee`) ; précision de la création par source (`TOLERANCE_CREATION_MS`) ; liens au worktree ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
+    "perimetre": "protection des worktrees contre les processus vivants, inventaire lisible de la portée mesurée, identité du détenteur d'un verrou (PID réutilisé)",
+    "verrou": "processusWorktrees.test.mjs, protectionWorktree.test.mjs, verrouGestesLourds.test.mjs"
   },
   {
     "id": "ciblesGenerees",
