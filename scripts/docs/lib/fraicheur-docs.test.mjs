@@ -108,6 +108,7 @@ test('préparation : une capture physique commune, null conservé, clés absente
   try {
     poser(racine, SOURCES_LUES, JSON.stringify({ [g.script]: entree }))
     symlinkSync(path.join(racine, 'data/sousdir'), path.join(racine, 'data/lien'), process.platform === 'win32' ? 'junction' : 'dir')
+    perimetreDeMesure(racine)
     const lectures = t.mock.method(fs, 'readFileSync')
     const listages = t.mock.method(fs, 'readdirSync')
     const presences = t.mock.method(fs, 'existsSync')
@@ -139,9 +140,10 @@ test('préparation : une capture physique commune, null conservé, clés absente
     const ancienHash = preparation.fichiers.get('data/source.txt')
     poser(racine, 'data/source.txt', 'source suivante')
     poser(racine, 'data/absent.txt', 'désormais présente')
+    for (const espion of [lectures, listages]) espion.mock.resetCalls()
     const suivante = preparerPreuves(racine, opts)
-    assert.equal(compter(lectures, 'data/source.txt'), 2)
-    assert.equal(compter(listages, 'data', true), 2 * (1 + parPerimetre.get('data')))
+    assert.equal(compter(lectures, 'data/source.txt'), 1)
+    assert.equal(compter(listages, 'data', true), 1 + parPerimetre.get('data'))
     assert.notEqual(suivante.fichiers.get('data/source.txt'), ancienHash)
     assert.equal(typeof suivante.fichiers.get('data/absent.txt'), 'string')
   } finally {

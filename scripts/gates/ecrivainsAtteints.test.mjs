@@ -500,6 +500,9 @@ const ATTENDU = {
     // `mkdirSync`) et une jonction (`symlinkSync`) sous `os.tmpdir()`, `rmSync` en finally ; l'arbre
     // n'est jamais écrit.
     'scripts/docs/lib/chemin-mesure.test.mjs',
+    // +1 le 2026-10-15 (#2603) : le banc de la reprise du périmètre forge ses dépôts JETABLES
+    // (`instanceDeDepot`, `mkdtempSync` sous os.tmpdir(), `rmSync` en finally) ; l'arbre n'est jamais écrit.
+    'scripts/docs/lib/perimetre-mesure.test.mjs',
     'scripts/docs/lib/ecriture-derives.mjs',
     // +1 le 2026-09-23 (#1801) : le banc de `ecrireOuVerifier` joue la primitive sur un doc JETABLE
     // (`mkdtempSync` + `writeFileSync` sous `os.tmpdir()`) ; l'arbre n'est jamais écrit.

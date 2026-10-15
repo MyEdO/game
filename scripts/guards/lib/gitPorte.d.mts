@@ -55,6 +55,8 @@ export function depotDe(
 ): Depot;
 /** La racine de l'arbre de travail, `null` hors d'un arbre. */
 export function racineDe(depot: Depot): string | null;
+/** La configuration brute (`config --null --list`) ; toute indisponibilité lève. */
+export function configurationDe(depot: Depot, opts?: { environnement?: NodeJS.ProcessEnv }): string;
 /** La valeur de l'attribut `nom` sur `chemin` (`check-attr`), `null` si git ne répond pas. */
 export function attributDe(depot: Depot, chemin: string, nom: string): string | null;
 export const INDEX: string;

@@ -62,8 +62,9 @@ export function canoniser(chemin, { strict = false } = {}) {
 /**
  * `canoniser` (non strict) MÉMORISÉ PAR DOSSIER (#2603) : le dossier parent se canonise une fois, la
  * feuille se cherche dans les noms mémorisés de ce dossier. Une feuille absente sous son nom exact,
- * ou qui est un lien (jonction comprise), repasse par `canoniser`. Une mémoire vit le temps
- * d'UNE vue ou d'UNE mesure : le disque qu'elle a lu ne s'y relit plus.
+ * ou qui est un lien (jonction comprise), repasse par `canoniser`. `lien` est le verdict « lien »
+ * d'un `lstatSync` que l'appelant vient de faire sur la feuille (échec compris) : il remplace le
+ * sien. Une mémoire vit le temps d'UNE vue ou d'UNE mesure : le disque qu'elle a lu ne s'y relit plus.
  */
 export function canoniseurParDossier() {
   const dossiers = new Map()
@@ -83,16 +84,16 @@ export function canoniseurParDossier() {
   }
   const estLien = (abs) => { try { return fs.lstatSync(abs).isSymbolicLink() } catch { return true } }
   const canoniques = new Map()
-  const canoniserFeuille = (abs) => {
+  const canoniserFeuille = (abs, lien) => {
     const dossier = path.dirname(abs)
     const feuille = path.basename(abs)
-    if (dossier === abs || !nomsDe(dossier).has(feuille) || estLien(abs)) return canoniser(abs)
+    if (dossier === abs || !nomsDe(dossier).has(feuille) || (lien ?? estLien(abs))) return canoniser(abs)
     return path.join(dossierCanonique(dossier), feuille)
   }
-  return (chemin) => {
+  return (chemin, lien) => {
     const abs = path.resolve(chemin)
     let canonique = canoniques.get(abs)
-    if (canonique === undefined) canoniques.set(abs, (canonique = canoniserFeuille(abs)))
+    if (canonique === undefined) canoniques.set(abs, (canonique = canoniserFeuille(abs, lien)))
     return canonique
   }
 }

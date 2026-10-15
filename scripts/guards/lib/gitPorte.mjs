@@ -1670,12 +1670,19 @@ export function nonSuivisIgnoresDe(depot) {
   return new Set(brut.split('\0').filter(Boolean).map((p) => p.replace(/\/$/, '')))
 }
 
+/** La configuration BRUTE (`config --null --list`, git-scm.com/docs/git-config) : une entrée
+ *  `clé\nvaleur` par champ terminé par NUL, includes résolus. Toute indisponibilité LÈVE.
+ *  @param {Depot} depot @param {{ environnement?: NodeJS.ProcessEnv }} [opts] @returns {string} */
+export function configurationDe(depot, { environnement } = {}) {
+  return lireLeLotOuLever(depot, ['config', '--null', '--list'], environnement ? { environnement } : {}, 'configuration', (s) => !s || s.endsWith('\0'))
+}
+
 // git-scm.com/docs/gitignore ; git-scm.com/docs/git-config
 export function politiqueExclusionsDe(depot) {
   const environnement = { ...(environnementDe(depot) ?? process.env) }
   const opts = { environnement }
   const { cwd } = lanceurDe(depot)
-  const brut = lireLeLotOuLever(depot, ['config', '--null', '--list'], opts, 'configuration des exclusions', (s) => !s || s.endsWith('\0'))
+  const brut = configurationDe(depot, opts)
   const configuration = brut.split('\0').filter((s) => s.toLowerCase().startsWith('core.excludesfile\n') || s.toLowerCase() === 'core.excludesfile')
     .map((s) => s.includes('\n') ? s.slice(s.indexOf('\n') + 1) : '')
   const excludeBrut = lireLeLotOuLever(depot, ['rev-parse', '--path-format=absolute', '--git-path', 'info/exclude'], opts, 'info/exclude', (s) => s.length > 1 && !s.includes('\0') && s.endsWith('\n'))
