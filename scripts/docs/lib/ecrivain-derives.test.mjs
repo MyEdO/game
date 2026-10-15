@@ -2,7 +2,7 @@
 // et le registre de code que le hook laisse n'est jamais plus vieux que ses sources.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawn, spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -15,6 +15,9 @@ import { reconstruireApresGit } from '../../git-hooks/docs-rebuild.mjs'
 import { executer, GENERATORS } from '../build-all.mjs'
 import { ATTENTE_DU_HOOK, cheminsDeLEcrivain, ENV_EPOQUE, MARGE_DU_HOOK_MS, ENV_TENU, envDeLaPasse, epoqueDe, operationEnCours, preempterLesDerives, sousLEpoque } from './ecrivain-derives.mjs'
 import { ecrireDoc } from './ecriture-derives.mjs'
+import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
+import { invaliderPreuve } from './fraicheur-docs.mjs'
+import { gitDe, gitEnFond } from '../../test/gitDeBanc.mjs'
 import { prendreVerrou } from '../../test/verrou.mjs'
 
 const url = (rel) => pathToFileURL(fileURLToPath(new URL(rel, import.meta.url))).href
@@ -41,7 +44,8 @@ test('#2603 — banc de la course : la passe en vol lit l’ancienne source, le 
     `appendFileSync(runs, 'x')`,
     `const source = readFileSync(${JSON.stringify(join(racine, 'src/s.txt'))}, 'utf8').trim()`,
     `writeFileSync(${JSON.stringify(join(signaux, 'lu'))}, source)`,
-    `while (!existsSync(${JSON.stringify(join(signaux, 'go'))})) await new Promise((r) => setTimeout(r, 50))`,
+    `const echeance = Date.now() + 60_000`,
+    `while (!existsSync(${JSON.stringify(join(signaux, 'go'))})) { if (Date.now() > echeance) throw new Error('signal go jamais posé'); await new Promise((r) => setTimeout(r, 50)) }`,
     `try { ecrireDoc(${JSON.stringify(registre)}, \`// depuis \${source}\\n\`) }`,
     `finally { writeFileSync(${JSON.stringify(join(signaux, 'apres-'))} + n, readFileSync(${JSON.stringify(registre)}, 'utf8')) }`,
   ].join('\n'))
@@ -74,6 +78,8 @@ test('#2603 — banc de la course : la passe en vol lit l’ancienne source, le 
     assert.equal(readFileSync(join(signaux, 'apres-1'), 'utf8'), '// depuis v2\n', 'la passe préemptée n’écrit pas le registre lu sur l’ancienne source')
     assert.equal(readFileSync(registre, 'utf8'), '// depuis v2\n', 'le registre que le hook a laissé n’est jamais réécrit plus vieux que sa source')
   } finally {
+    writeFileSync(join(signaux, 'go'), '')
+    if (enfant.exitCode === null) await Promise.race([fini, new Promise((r) => setTimeout(r, 10_000))])
     if (enfant.exitCode === null) enfant.kill()
     rmSync(signaux, { recursive: true, force: true })
     rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
@@ -87,18 +93,51 @@ test('#2603 — sousLEpoque : sans passe, écrit ; à l’époque attendue, écr
     const chemins = cheminsDeLEcrivain(join(racine, '.git'))
     let ecrits = 0
     const ecrire = () => ++ecrits
-    assert.equal(sousLEpoque(ecrire, { env: {}, cwd: racine }), 1)
+    assert.equal(sousLEpoque(join(racine, 'd.md'), ecrire, { env: {} }), 1)
     const env = envDeLaPasse(epoqueDe(chemins))
-    assert.equal(sousLEpoque(ecrire, { env, cwd: racine }), 2)
+    assert.equal(sousLEpoque(join(racine, 'd.md'), ecrire, { env }), 2)
     assert.equal(preempterLesDerives(chemins, 'banc', () => process.env[ENV_TENU]), epoqueDe(chemins))
     assert.equal(process.env[ENV_TENU], undefined)
     assert.notEqual(epoqueDe(chemins), '')
-    assert.throws(() => sousLEpoque(ecrire, { env, cwd: racine }), /passe préemptée/)
+    assert.throws(() => sousLEpoque(join(racine, 'd.md'), ecrire, { env }), /passe préemptée/)
     assert.equal(ecrits, 2)
-    assert.equal(sousLEpoque(ecrire, { env: envDeLaPasse(epoqueDe(chemins)), cwd: racine }), 3)
+    assert.equal(sousLEpoque(join(racine, 'd.md'), ecrire, { env: envDeLaPasse(epoqueDe(chemins)) }), 3)
     assert.deepEqual(env, { [ENV_EPOQUE]: env[ENV_EPOQUE], GIT_OPTIONAL_LOCKS: '0' })
   } finally {
     rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('#2603 — le verrou et l’époque de l’écrivain sont ceux du dépôt de la CIBLE, jamais celui du répertoire courant', () => {
+  const banc = mkdtempSync(join(tmpdir(), 'ecrivain-cible-'))
+  const courant = mkdtempSync(join(tmpdir(), 'ecrivain-courant-'))
+  const origine = process.cwd()
+  try {
+    gitDe(banc)('init', '-q')
+    gitDe(courant)('init', '-q')
+    process.chdir(courant)
+    const chemins = cheminsDeLEcrivain(join(banc, '.git'))
+    ecrireDoc(join(banc, 'docs', 'd.md'), 'un\n')
+    mkdirSync(join(banc, 'docs', '.cache'), { recursive: true })
+    writeFileSync(join(banc, CACHE_FRAICHEUR), JSON.stringify({ version: 2, generateurs: { 'g.mjs': {} } }))
+    invaliderPreuve(banc, ['g.mjs'])
+    assert.deepEqual(JSON.parse(readFileSync(join(banc, CACHE_FRAICHEUR), 'utf8')).generateurs, {})
+    assert.equal(existsSync(join(banc, '.git', 'hooks-git')), true, 'le verrou est pris sous le git-dir du banc de la cible')
+    preempterLesDerives(chemins, 'banc', () => {})
+    const avant = process.env[ENV_EPOQUE]
+    process.env[ENV_EPOQUE] = epoqueDe(chemins)
+    try {
+      ecrireDoc(join(banc, 'docs', 'd.md'), 'deux\n')
+    } finally {
+      if (avant === undefined) delete process.env[ENV_EPOQUE]
+      else process.env[ENV_EPOQUE] = avant
+    }
+    assert.equal(readFileSync(join(banc, 'docs', 'd.md'), 'utf8'), 'deux\n', 'la passe écrit sous l’époque du banc de la cible')
+    assert.equal(existsSync(join(courant, '.git', 'hooks-git')), false, 'rien sous le git-dir du dépôt courant')
+  } finally {
+    process.chdir(origine)
+    rmSync(banc, { recursive: true, force: true })
+    rmSync(courant, { recursive: true, force: true })
   }
 })
 
@@ -142,14 +181,14 @@ test('#2603 — sousLEpoque : une opération git en cours préempte la passe, ri
     writeFileSync(join(gitDir, 'index.lock'), '')
     assert.equal(operationEnCours(gitDir), 'index.lock')
     let ecrits = 0
-    assert.throws(() => sousLEpoque(() => ++ecrits, { env, cwd: racine }), /index\.lock en cours/)
+    assert.throws(() => sousLEpoque(join(racine, 'd.md'), () => ++ecrits, { env }), /index\.lock en cours/)
     assert.notEqual(epoqueDe(chemins), env[ENV_EPOQUE])
     rmSync(join(gitDir, 'index.lock'))
     assert.equal(operationEnCours(gitDir), null)
-    assert.throws(() => sousLEpoque(() => ++ecrits, { env, cwd: racine }), /passe préemptée/)
+    assert.throws(() => sousLEpoque(join(racine, 'd.md'), () => ++ecrits, { env }), /passe préemptée/)
     const prise = prendreVerrou({ chemin: chemins.verrou, libelle: 'tenant', commande: 'tenant' })
     try {
-      assert.throws(() => sousLEpoque(() => ++ecrits, { env: {}, cwd: racine, attente: { echeanceMs: 100, pasMs: 20 } }), /tenu par le PID/)
+      assert.throws(() => sousLEpoque(join(racine, 'd.md'), () => ++ecrits, { env: {}, attente: { echeanceMs: 100, pasMs: 20 } }), /tenu par le PID/)
     } finally {
       prise.liberer()
     }
@@ -173,7 +212,8 @@ function passeLente(racine, signaux) {
     `appendFileSync(s('runs'), 'x')`,
     `const source = readFileSync(${JSON.stringify(join(racine, 'src/s.txt'))}, 'utf8').trim()`,
     `writeFileSync(s('lu-' + n), source)`,
-    `while (!existsSync(s('go'))) await new Promise((r) => setTimeout(r, 50))`,
+    `const echeance = Date.now() + 60_000`,
+    `while (!existsSync(s('go'))) { if (Date.now() > echeance) throw new Error('signal go jamais posé'); await new Promise((r) => setTimeout(r, 50)) }`,
     `try {`,
     `  ecrireDoc(${JSON.stringify(join(racine, 'reg.js'))}, '// depuis ' + source)`,
     `  writeFileSync(s('ecrit-' + n), String(existsSync(${JSON.stringify(join(racine, '.git', 'index.lock'))})))`,
@@ -209,6 +249,8 @@ test('#2603 — executer --code concurrent à une passe la PRÉEMPTE : la passe 
     assert.equal(readFileSync(join(signaux, 'ecrit-2'), 'utf8'), 'false', 'la passe rejouée écrit')
     assert.equal(readFileSync(join(racine, 'reg.js'), 'utf8'), '// depuis v1')
   } finally {
+    writeFileSync(join(signaux, 'go'), '')
+    if (enfant.exitCode === null) await Promise.race([fini, new Promise((r) => setTimeout(r, 10_000))])
     if (enfant.exitCode === null) enfant.kill()
     rmSync(signaux, { recursive: true, force: true })
     rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })
@@ -218,11 +260,7 @@ test('#2603 — executer --code concurrent à une passe la PRÉEMPTE : la passe 
 test('#2603 — banc : une passe lente et un git checkout concurrent, zéro écriture pendant l’opération, la passe se rejoue après', async () => {
   const { racine } = instanceDeDepot({ fichiers: { 'src/s.txt': 'v1\n' } })
   const signaux = mkdtempSync(join(tmpdir(), 'checkout-'))
-  const git = (...args) => {
-    const vu = spawnSync('git', args, { cwd: racine, encoding: 'utf8' })
-    assert.equal(vu.status, 0, `git ${args.join(' ')} : ${vu.stderr}`)
-    return vu.stdout.trim()
-  }
+  const git = gitDe(racine, { net: true })
   const lent = join(signaux, 'smudge-lent.mjs')
   writeFileSync(lent, [
     'const morceaux = []',
@@ -243,7 +281,7 @@ test('#2603 — banc : une passe lente et un git checkout concurrent, zéro écr
   let checkout
   try {
     attendreFichier(join(signaux, 'lu-1'))
-    checkout = spawn('git', ['checkout', '-q', 'autre'], { cwd: racine, stdio: 'ignore' })
+    checkout = gitEnFond(['checkout', '-q', 'autre'], { cwd: racine })
     const checkoutFini = once(checkout, 'exit')
     attendreFichier(join(racine, '.git', 'index.lock'))
     writeFileSync(join(signaux, 'go'), '')
@@ -256,6 +294,8 @@ test('#2603 — banc : une passe lente et un git checkout concurrent, zéro écr
     assert.equal(readFileSync(join(signaux, 'ecrit-2'), 'utf8'), 'false', 'la passe rejouée écrit, arbre libre')
   } finally {
     if (checkout && checkout.exitCode === null) checkout.kill()
+    writeFileSync(join(signaux, 'go'), '')
+    if (enfant.exitCode === null) await Promise.race([fini, new Promise((r) => setTimeout(r, 10_000))])
     if (enfant.exitCode === null) enfant.kill()
     rmSync(signaux, { recursive: true, force: true })
     rmSync(racine, { recursive: true, force: true, maxRetries: 40, retryDelay: 250 })

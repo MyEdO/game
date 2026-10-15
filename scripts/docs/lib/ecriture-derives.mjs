@@ -23,7 +23,7 @@ export const estUnDocMarkdown = (cible) => cible.endsWith('.md')
 export function ecrireDoc(chemin, contenu) {
   let actuel
   try { actuel = readFileSync(chemin, 'utf8') } catch { actuel = null }
-  if (actuel !== contenu) sousLEpoque(() => ecrireTexteAtomique(chemin, contenu))
+  if (actuel !== contenu) sousLEpoque(chemin, () => ecrireTexteAtomique(chemin, contenu))
 }
 
 /** Variable d'env posée par build-all.mjs : le fichier où `ecrireOuVerifier` APPEND chaque cible qu'il

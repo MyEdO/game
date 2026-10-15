@@ -7,7 +7,7 @@
 // État : `<git-dir>/hooks-git/derives.verrou` et `<git-dir>/hooks-git/derives-epoque`.
 import { randomUUID } from 'node:crypto'
 import { readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { gitDirDe } from '../../hooks/barriere-outil.mjs'
 import { ecrireTexteAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
 import { BACKOFFS_MS } from '../../guards/lib/spawnResilient.mjs'
@@ -38,6 +38,17 @@ const OPERATIONS = Object.freeze(['rebase-merge', 'rebase-apply', 'sequencer', '
 /** L'opération git en cours dans l'arbre de répertoire git `gitDir`, `null` s'il est libre. Sans spawn.
  *  @param {string} gitDir @returns {string | null} */
 export const operationEnCours = (gitDir) => OPERATIONS.find((nom) => statSync(join(gitDir, nom), { throwIfNoEntry: false }) !== undefined) ?? null
+
+/** Le répertoire git du dépôt qui CONTIENT `chemin` : le premier `gitDirDe` non nul de ses ancêtres, `null` hors dépôt.
+ *  @param {string} chemin @returns {string | null} */
+export function gitDirContenant(chemin) {
+  for (let dossier = dirname(resolve(chemin)); ; dossier = dirname(dossier)) {
+    const gitDir = gitDirDe(dossier)
+    if (gitDir !== null || dirname(dossier) === dossier) return gitDir
+  }
+}
+
+export const CONTRATS_DE_DERIVATION = [{ fonction: gitDirContenant, lectures: 'corpus', retour: 'corpus' }]
 
 /** Les chemins de l'écrivain d'un arbre de répertoire git `gitDir`. @param {string} gitDir */
 export const cheminsDeLEcrivain = (gitDir) => ({
@@ -94,14 +105,14 @@ export const ecrivainTenu = (chemins, env = process.env) => Boolean(env[ENV_TENU
 export const envDeLaPasse = (attendue) => ({ [ENV_EPOQUE]: attendue, GIT_OPTIONAL_LOCKS: '0' })
 
 /**
- * `ecrire()` en écrivain unique de l'arbre `cwd` : hors dépôt, ou sous un ancêtre qui préempte (`ecrivainTenu`),
+ * `ecrire()` en écrivain unique du dépôt qui contient `cible` (`gitDirContenant`) : hors dépôt, ou sous un ancêtre qui préempte (`ecrivainTenu`),
  * `ecrire()` seul ; sinon sous le verrou (`attente`). Dans une passe (`ENV_EPOQUE` de `env`), l'époque puis l'arbre
  * sont relus : une époque changée LÈVE ; une opération git en cours (`operation`) pose une époque neuve, la passe
  * se rejouant après elle (`servirLesDemandes`), et LÈVE. LÈVE sur un verrou tenu à l'échéance, rien n'étant écrit.
- * @template T @param {() => T} ecrire @returns {T}
+ * @template T @param {string} cible @param {() => T} ecrire @returns {T}
  */
-export function sousLEpoque(ecrire, { env = process.env, cwd = process.cwd(), attente = ATTENTE_DE_LA_PASSE, operation = operationEnCours } = {}) {
-  const gitDir = gitDirDe(cwd)
+export function sousLEpoque(cible, ecrire, { env = process.env, attente = ATTENTE_DE_LA_PASSE, operation = operationEnCours } = {}) {
+  const gitDir = gitDirContenant(cible)
   if (gitDir === null) return ecrire()
   const chemins = cheminsDeLEcrivain(gitDir)
   if (ecrivainTenu(chemins, env)) return ecrire()

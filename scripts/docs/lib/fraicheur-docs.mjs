@@ -202,7 +202,8 @@ export function chargerPreuve(racine) {
 }
 
 function ecrirePreuve(racine, preuve) {
-  sousLEpoque(() => ecrireJsonAtomique(cheminSous(racine, CACHE_FRAICHEUR), preuve))
+  const cible = cheminSous(racine, CACHE_FRAICHEUR)
+  sousLEpoque(cible, () => ecrireJsonAtomique(cible, preuve))
 }
 
 export function invaliderPreuve(racine, scripts) {

@@ -15,7 +15,7 @@
 // par `lancer` (`gitPorte.mjs`), qui appelle `spawnSync` à liaison vive, et la garde `gitHorsHote`
 // attrape le littéral `'git'` lancé hors de l'hôte et du banc.
 import { createRequire, syncBuiltinESMExports } from 'node:module'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { ENV_GIT_FEINT, envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { estEchecDeChargement } from '../guards/lib/spawnResilient.mjs'
 
@@ -58,6 +58,12 @@ function echecDeGit(args, cwd, e) {
  * @param {string | undefined} cwd @param {OptionsDeBanc} [options] @returns {(...args: string[]) => string}
  */
 export const gitDe = (cwd, options = {}) => (...args) => lancerGit(args, { ...options, cwd })
+
+/**
+ * `git <args>` lancé EN FOND dans `cwd`, stdio ignoré, sous `envDeDepotForge()` : l'opération git concurrente d'un banc.
+ * @param {string[]} args @param {{ cwd?: string, env?: NodeJS.ProcessEnv }} [options] @returns {import('node:child_process').ChildProcess}
+ */
+export const gitEnFond = (args, { cwd, env = envDeDepotForge() } = {}) => spawn('git', args, { cwd, env, stdio: 'ignore' })
 
 /**
  * `gitDe` sous l'env HÉRITÉ du processus : la lecture de l'arbre réel du dépôt.
