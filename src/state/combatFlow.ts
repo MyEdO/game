@@ -277,7 +277,7 @@ import { spellFlowFor, spellOps, testFlow, flowHasFreeAttack, flattenFlow, EMPTY
 import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, rollTableStep, poserCurseurCascade, lireEnSeuil, etapesDeLaFenetre, pushStep } from './cascade';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
-import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
+import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
 import { APRES_COUP } from './pendings';
 import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
@@ -3726,6 +3726,23 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   return applyAttackResult(get, set, attacker, r.victim ?? target, r.weapon, r.res);
 }
 
+/**
+ * Applique le PREMIER coup restant d'une bordée (MDG 14 l.128) par la couture du coup ; les suivants
+ * voyagent dans sa suite (`enchainement: 'bordee'`), si bien qu'une fenêtre ouverte par un coup
+ * (sauvegarde, Critique) les reprend à sa fermeture. Une cible hors de combat ne reçoit plus rien.
+ * Rend `true` quand un coup a suspendu.
+ */
+export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee): boolean {
+  const [tir, ...tirs] = bordee.tirs;
+  const battle = get().battle;
+  if (!tir || !battle || battle.over) return false;
+  const tireur = inBattleId(battle, tir.tireurId);
+  const cible = inBattleId(battle, bordee.targetId);
+  if (!tireur || !cible || isOutOfAction(cible)) return false;
+  return applyAttackResult(get, set, tireur, cible, tir.weapon, tir.res,
+    { sousAttaque: true, suite: { enchainement: { mode: 'bordee', targetId: bordee.targetId, actedAvant: bordee.actedAvant, tirs } } });
+}
+
 // ---------------------------------------------------------------------------
 // Frappe Mortelle — balayage (LDB 14 - _GoBack.md l.9-12 + 85 l.299)
 // ---------------------------------------------------------------------------
@@ -3882,6 +3899,10 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   switch (enchainement.mode) {
     case 'hero': maybeHeroCleave(get, set, attacker, target, touche, enchainement.wasChain); break;
     case 'chaine': resumeCleaveChain(get, set, attacker, target, enchainement); break; // la chaîne reprend où elle s'est arrêtée
+    case 'bordee': // l'Action rendue APRÈS le `markActed` de l'application (MDG 14 l.37), puis le coup suivant
+      { const b = get().battle; if (b) set({ battle: { ...b, acted: enchainement.actedAvant } }); }
+      jouerLesTirsDeBordee(get, set, enchainement);
+      break;
     case 'auto': autoCleave(get, set, attacker, target, touche); break; // balayage d'un attaquant conduit par l'IA
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
   }

@@ -935,13 +935,19 @@ export interface ToucheDeProjectile {
  *  - `auto` : balayage de la MACHINE (LDB 85 l.362 : « Toutes les frappes réussies activent la règle
  *    optionnelle Frappe Mortelle »), gardé par `aiDriven` dans `autoCleave` ;
  *  - `aucun` : le site d'origine a tranché qu'AUCUN balayage ne suit ce coup — Maladresse de
- *    l'attaquant, frappe du Maniement de deux armes, manœuvre gratuite d'un héros.
+ *    l'attaquant, frappe du Maniement de deux armes, manœuvre gratuite d'un héros ;
+ *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee`.
  */
 export type EnchainementDuCoup =
   | { mode: 'hero'; wasChain: boolean }
   | ({ mode: 'chaine' } & ChaineDeBalayage)
+  | ({ mode: 'bordee' } & TirsDeBordee)
   | { mode: 'auto' }
   | { mode: 'aucun' };
+
+/** Coups d'une bordée encore à appliquer, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
+ *  navire avant la bordée, rendu après chaque coup — la bordée est une tâche d'équipage (MDG 14 l.37). */
+export interface TirsDeBordee { targetId: string; actedAvant: boolean; tirs: { tireurId: string; weapon: Weapon; res: AttackResult }[] }
 
 /** État d'une chaîne de BALAYAGE en cours (Frappe Mortelle/Taille, LDB 14 l.9 / 85 l.299) : cibles
  *  déjà frappées, enchaînements consommés, borne BCC, mode (Taille vs Frappe Mortelle). */

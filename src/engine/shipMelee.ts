@@ -20,7 +20,7 @@
  */
 import type { Combatant, Weapon } from './types';
 import type { ShipSize } from '../data';
-import { findVehicleById } from '../data';
+import { profilNavalDe } from './vehicle';
 import { ammoFamily } from './items';
 import { shipSizeOfLength } from './shipBuild';
 import { bonus, effectiveChar } from './characteristics';
@@ -57,8 +57,7 @@ export function isArtilleryWeapon(w: Weapon): boolean {
 /** La cible est-elle une COQUE de navire (facette `ship` du véhicule) ? Les structures de siège et les
  *  affûts inertes ont leurs propres règles (`engine/structures`, `inert`) — disjoints. */
 export function shipHull(target: Combatant): { size: ShipSize; tb: number } | null {
-  if (target.bodyShape !== 'vehicule') return null;
-  const lengthM = findVehicleById(target.creatureId ?? '')?.ship?.lengthM;
+  const lengthM = profilNavalDe(target)?.lengthM;
   if (lengthM == null) return null;
   return { size: shipSizeOfLength(lengthM), tb: bonus(effectiveChar(target, 'endurance')) };
 }

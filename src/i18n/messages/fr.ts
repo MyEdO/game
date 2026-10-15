@@ -633,8 +633,9 @@ export const fr = {
   // ── Phase C : narration des actions de combat (state/combatSlice). ──
   'cs.mount': '{name} enfourche {mount}.',
   'cs.dismount': '{name} descend de {mount}.',
+  'cs.bordeeSansNavire': '{ship} n’est pas un navire : il ne lâche pas de bordée.',
   'cs.bordeeNoArc': 'Aucune pièce de {ship} ne porte sur ce bord ({side}).',
-  'cs.bordee': 'Bordée {side} de {ship} sur {target} (DR d’équipage {dr}) : {n} pièce(s), {wounds} Blessure(s). Coque {cur}/{max}.',
+  'cs.bordee': 'Bordée {side} de {ship} sur {target} (DR d’équipage {dr}) : {n} pièce(s) font feu.',
   'cs.bordeeManque': 'Bordée {side} de {ship} sur {target} : {n} pièce(s) font feu, mais le Test d’équipage échoue (DR {dr}) — la bordée MANQUE (aucun Dégât).',
   'cs.bordeeGunnersChief': '{chief} dirige la batterie de {side} de {ship}.',
   'cs.bordeeGunnersCrew': 'Les artilleurs de {side} de {ship} font feu.',

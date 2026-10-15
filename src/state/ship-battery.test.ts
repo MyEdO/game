@@ -10,6 +10,9 @@ import { makeRNG } from '../engine/dice';
 import { jete } from '../engine/tests.testkit';
 import { rangeBandName } from '../engine/combat';
 import { propulsionDuNavire } from '../engine/shipBuild';
+import { resolveVolley } from '../engine/volley';
+import { jouerLesTirsDeBordee } from './combatFlow';
+import { t } from '../i18n';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -25,9 +28,9 @@ const seq = (values: number[]): RNG => { let i = 0; return { int: () => values[i
 
 const poste = (side: FireArc, uid: string): ShipPoste => ({ item: { uid, name: `Canon ${side}` } as never, side });
 const hull = (postes: ShipPoste[]): Combatant =>
-  ({ id: 'hull', name: 'Galère', pos: { x: 5, y: 5 }, postes, conditions: [], weapons: [] }) as unknown as Combatant;
+  ({ id: 'hull', label: 'Galère', pos: { x: 5, y: 5 }, postes, conditions: [], weapons: [] }) as unknown as Combatant;
 const target = (x: number, y: number): Combatant =>
-  ({ id: 'cible', name: 'Cible', pos: { x, y }, conditions: [], weapons: [] }) as unknown as Combatant;
+  ({ id: 'cible', label: 'Cible', pos: { x, y }, conditions: [], weapons: [] }) as unknown as Combatant;
 const artilleur = () => mk({ dexterite: 80 }, [{ id: 'projectiles', advances: 0, spec: 'poudre-noire' }]); // valeur 80
 
 /**
@@ -66,17 +69,17 @@ describe('resolveBattery — lâcher une bordée (DR partagé, MDG 14)', () => {
 
 // ── Flux JOUABLE (store) : Test d'équipage MULTI des Artilleurs → volée sur la coque (jumeau de la manœuvre). ──
 const gunnerPJ = (): Combatant =>
-  ({ id: 'gunner', name: 'Artilleur', kind: 'hero',
+  ({ id: 'gunner', label: 'Artilleur', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 2, resilience: 1,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
 const battPoste = (): ShipPoste =>
-  ({ side: 'tribord', item: { uid: 'canon', name: 'Canon moyen', kind: 'ranged', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
+  ({ side: 'tribord', item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
 const firingShip = (): Combatant =>
-  ({ id: 'ship', name: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, conditions: [], weapons: [] }) as unknown as Combatant;
+  ({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: { current: 60, max: 60 }, conditions: [], weapons: [] }) as unknown as Combatant;
 const enemyHull = (pos = { x: 9, y: 5 }): Combatant =>
-  ({ id: 'target', name: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos,
+  ({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos,
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: { current: 90, max: 90, base: 90 }, advantage: 0, conditions: [], weapons: [], armour: { corps: 0 }, skills: [], talents: [], crewIds: [] }) as unknown as Combatant;
 
@@ -173,7 +176,7 @@ const sailor = (id: string): Combatant =>
 const crewedHull = (crewIds: string[]): Combatant => ({ ...enemyHull(), crewIds } as Combatant);
 /** Pièce avec qualités/enchant custom (Atout d'aire + effet onHit générique). */
 const aireePoste = (qualities: { id: string; value?: number }[], onHit?: unknown): ShipPoste =>
-  ({ side: 'tribord', crewIds: ['gunner'], item: { uid: 'canon', name: 'Canon', kind: 'ranged', damage: { flat: 14, plusBF: false }, range: 75,
+  ({ side: 'tribord', crewIds: ['gunner'], item: { uid: 'canon', label: 'Canon', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
     qualities: [{ id: 'recharge', value: 6 }, ...qualities], ...(onHit ? { enchants: [{ onHitEffects: onHit }] } : {}) } } as unknown as ShipPoste);
 const shipWith = (poste: ShipPoste): Combatant => ({ ...firingShip(), postes: [poste], wounds: { current: 60, max: 60 } } as Combatant);
 
@@ -226,12 +229,115 @@ describe('bordée à munition à AIRE — balaie l’équipage exposé du navire
 
 describe('rollCrewRole — cumul de rôles (Manque de bras, MDG 14 l.53)', () => {
   const cap = (): Combatant =>
-    ({ id: 'cap', name: 'Cap', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+    ({ id: 'cap', label: 'Cap', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       kind: 'hero', wounds: { current: 10, max: 10 }, skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }], conditions: [], talents: [] }) as unknown as Combatant;
 
   it('cumul → +2 crans de Difficulté : cible PLUS DURE (−20) qu\'un jet normal, même dé', () => {
     const normal = jete(rollCrewRole(cap(), 'capitaine', NAVIGATION, makeRNG(5))!.result);
     const cumul = jete(rollCrewRole(cap(), 'capitaine', NAVIGATION, makeRNG(5), true)!.result);
     expect(cumul.target).toBe(normal.target - 20); // Intermédiaire (+0) → +2 crans = Difficile (−20)
+  });
+});
+
+// ── Chaque coup de bordée par la couture du coup, selon sa CIBLE (MDG 14 l.128 « un ennemi », EDOC 07 l.332) ──
+describe('bordée — chaque coup passe par la couture du coup, quelle que soit la cible', () => {
+  const fixe = (n: number): RNG => ({ int: () => n }) as unknown as RNG;
+  /** Créature ciblée : corps localisé, PA 2 partout. */
+  const pirate = (traits: unknown[] = []): Combatant =>
+    ({ ...sailor('target'), label: 'Pirate', wounds: { current: 30, max: 30 }, armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 },
+      characteristics: { ...sailor('x').characteristics, endurance: 30 }, traits }) as unknown as Combatant;
+  /** Coque SANS profil naval (EDOC 07 l.332-334). */
+  const chariot = (): Combatant => ({ ...enemyHull(), label: 'Chariot', creatureId: undefined } as unknown as Combatant);
+  const deuxPieces = (): ShipPoste[] => [battPoste(), { ...battPoste(), item: { ...battPoste().item, uid: 'canon2' } } as ShipPoste];
+  const monter = (cible: Combatant, postes = [battPoste()]) => {
+    seedBattleRng(7);
+    const ship = { ...firingShip(), postes } as Combatant;
+    useGame.setState({ battle: { combatants: [ship, gunnerPJ(), cible], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
+      party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, pendingCascade: null, suspendedCascades: [], scene: navScene() as never });
+    return ship;
+  };
+  /** Les tirs tels que la bordée les pose (`resolveVolley`), au jet fixé. */
+  const tirs = (ship: Combatant, cible: Combatant, roll: number) =>
+    resolveVolley(ship, ship.postes!, cible, 3, true, [gunnerPJ()], fixe(roll)).map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, res: s.res }));
+  const journal = () => JSON.stringify(useGame.getState().battle!.log);
+  const cible = () => useGame.getState().battle!.combatants.find((c) => c.id === 'target')!;
+
+  it('créature : la bordée jouée bout-en-bout la blesse, sans aucun État naval', () => {
+    monter(pirate());
+    useGame.getState().battleShipBattery('ship', 'target');
+    useGame.getState().shipBatteryRoll('gunner');
+    useGame.getState().shipBatteryConfirm();
+    expect(cible().wounds.current).toBeLessThan(30);
+    expect(cible().conditions.filter((c) => /navire|voie-d-eau/.test(c.id))).toEqual([]);
+    expect(useGame.getState().battle!.acted, 'la bordée ne consomme pas l’Action du navire (MDG 14 l.37)').toBe(false);
+  });
+
+  it('chariot : un double inflige des Blessures, et son Critique se dit « pas un navire » (EDOC 07 l.334)', () => {
+    const ship = monter(chariot());
+    expect(jouerLesTirsDeBordee(useGame.getState, useGame.setState, { targetId: 'target', actedAvant: false, tirs: tirs(ship, chariot(), 33) })).toBe(false);
+    expect(cible().wounds.current).toBeLessThan(90);
+    expect(journal()).toContain('pas un navire');
+  });
+
+  it('suspension : un coup qui ouvre une sauvegarde suspend, le coup suivant attend sa fermeture', () => {
+    const p = pirate([{ id: 'demoniaque', value: 9 }]);
+    const ship = monter(p, deuxPieces());
+    const coups = tirs(ship, p, 34);
+    expect(coups).toHaveLength(2);
+    expect(jouerLesTirsDeBordee(useGame.getState, useGame.setState, { targetId: 'target', actedAvant: false, tirs: coups })).toBe(true);
+    expect(useGame.getState().pendingCascade, 'la sauvegarde du 1er coup est ouverte').not.toBeNull();
+    expect(cible().wounds.current, 'aucune Blessure avant la sauvegarde').toBe(30);
+    const un = coups[0].res.woundsLost!;
+    for (let n = 0; n < 4 && useGame.getState().pendingCascade; n++) { // la fenêtre se ferme : dé raté (1 < 9) s'il reste à jeter
+      const pc = useGame.getState().pendingCascade!;
+      const st = pc.participants[pc.cursor];
+      if (st.de && !st.de.result) useGame.getState().cascadeDieSetForcedRoll(st.id, 1);
+      useGame.getState().cascadeNext();
+    }
+    expect(cible().wounds.current, 'les DEUX coups appliqués, le 2e après la reprise').toBe(30 - 2 * un);
+    expect(useGame.getState().pendingCascade).toBeNull();
+    expect(useGame.getState().battle!.acted, 'l’Action du navire rendue après la reprise').toBe(false);
+  });
+
+  it('aire sur un chariot : le rayon de l’Explosion balaie qui se tient à côté (EDOC 07 l.332)', () => {
+    const voisin = { ...sailor('m1'), pos: { x: 9, y: 6 } } as Combatant;
+    seedBattleRng(7);
+    const ship = { ...firingShip(), postes: [aireePoste([{ id: 'a-explosion', value: 4 }])] } as Combatant;
+    useGame.setState({ battle: { combatants: [ship, gunnerPJ(), chariot(), voisin], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
+      party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, scene: { ...navScene(), metresPerTile: 2 } as never });
+    useGame.getState().battleShipBattery('ship', 'target');
+    useGame.getState().shipBatteryRoll('gunner');
+    useGame.getState().shipBatteryConfirm();
+    expect(cible().wounds.current).toBeLessThan(90);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === 'm1')!.wounds.current).toBeLessThan(6);
+  });
+});
+
+// ── Sonde du juge promue (#1906) : un VRAI véhicule routier (`chariot-lourd`, schéma `vehicles`), en cible puis en tireur ──
+describe('bordée et véhicule routier réel (chariot-lourd) — EDOC 07 l.332-334, MDG 14 l.128', () => {
+  const lourd = (over: Partial<Combatant>): Combatant =>
+    ({ ...enemyHull(), creatureId: 'chariot-lourd', label: 'Chariot lourd', ...over } as Combatant);
+
+  it('en CIBLE : la bordée part et se résout sans lever ; aucun État naval sur une coque routière', () => {
+    seedBattleRng(7);
+    useGame.setState({ battle: { combatants: [firingShip(), gunnerPJ(), lourd({})], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
+      party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, pendingCascade: null, refus: null, scene: navScene() as never });
+    useGame.getState().battleShipBattery('ship', 'target');
+    expect(useGame.getState().pendingShipBattery, `refus : ${useGame.getState().refus?.texte}`).not.toBeNull();
+    useGame.getState().shipBatteryRoll('gunner');
+    expect(() => useGame.getState().shipBatteryConfirm()).not.toThrow();
+    const c = useGame.getState().battle!.combatants.find((x) => x.id === 'target')!;
+    expect(c.wounds.current).toBeLessThan(90);
+    expect(c.conditions.filter((x) => /navire|voie-d-eau/.test(x.id))).toEqual([]);
+  });
+
+  it('en TIREUR : un chariot ne lâche pas de bordée — refus dit, aucun Test ouvert', () => {
+    seedBattleRng(7);
+    const tireur = lourd({ id: 'ship', kind: 'npc', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 } });
+    useGame.setState({ battle: { combatants: [tireur, gunnerPJ(), enemyHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
+      party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, refus: null, scene: navScene() as never });
+    expect(() => useGame.getState().battleShipBattery('ship', 'target')).not.toThrow();
+    expect(useGame.getState().pendingShipBattery).toBeNull();
+    expect(useGame.getState().refus?.texte).toBe(t('cs.bordeeSansNavire', { ship: 'Chariot lourd' }));
   });
 });

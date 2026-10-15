@@ -8,7 +8,7 @@
  */
 import { RNG, defaultRNG } from './dice';
 import { t } from '../i18n';
-import { rollTest, resolveOpposed, evaluateTest, opposedReasons, exactDifficultyFromModifier, TestResult, type VerdictReason } from './tests';
+import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, TestResult, type VerdictReason } from './tests';
 import { bonus, effectiveChar, baseWithTraits } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { isInanimate, isStructure, structureEnduranceMult, structureTaille } from './structures';
@@ -1475,9 +1475,18 @@ export function resolveStrayRangedHit(
     mods: devie ? [...src.mods, { label: 'Tir dévié', value: devie, famille: 'jet', ref: RULE_REF['tir-dans-un-combat-au-corps-a-corps'] }] : src.mods,
   };
   const atkBd = bd(`${attackTestLabel(weapon, 'ranged')} (dévié)`, base, atk, compo);
-  const res = applyHit(attacker, victim, weapon, atkBd, Math.max(0, atk.sl), atk.isDouble && atk.success);
+  const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl));
   res.log = `Le tir dévie dans la mêlée et touche ${victim.label} !`;
   return res;
+}
+
+/**
+ * Touche dont le jet pour toucher est DÉJÀ POSÉ (`atkBd`) : tir dévié (LDB 14 l.136), pièce d'une bordée
+ * (MDG 14 l.128). Raté → aucun effet ; réussi → `applyHit`, Critique sur un double (LDB 13 l.177, MDG 13 l.656).
+ */
+export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number): AttackResult {
+  if (!atkBd.success) return miss(attacker, defender, atkBd, null);
+  return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll));
 }
 
 /** Attaque de Piétinement (LDB 85 l.387) : créature plus grande, Dégâts = Bonus de Force (+0),
@@ -1487,8 +1496,7 @@ export function resolveTrample(attacker: Combatant, target: Combatant, rng: RNG 
   const mods = attackModifiers(attacker, target, fist, { kind: 'melee' });
   const atk = rollTest(combatValue(attacker, 'melee'), 'intermediaire', rng, combineMods(mods));
   const atkBd = bd('Corps à corps (Piétinement)', combatValue(attacker, 'melee'), atk, composeAttack(mods));
-  if (!atk.success) return miss(attacker, target, atkBd, null);
-  return applyHit(attacker, target, fist, atkBd, atk.sl, atk.isDouble && atk.success);
+  return toucheAuJetPose(attacker, target, fist, atkBd, atk.sl);
 }
 
 /** L'arme inflige-t-elle l'État *En flammes* (un onHitEffect posant la Condition `en-flammes`, ex. Épée
@@ -1591,7 +1599,8 @@ function applyHit(
   // AUCUNE Blessure ni Critique de navire ; sinon plancher 0 pour une coque (un coup faible ricoche).
   const hullBlocked = !!hullAdj && 'blocked' in hullAdj;
   if (hullBlocked) isCritical = false;
-  const woundsLost = hullBlocked ? 0 : woundsFromHit(weapon, defender, loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size);
+  else if (hullAdj && defender.wounds.current <= 0) isCritical = true; // MDG 13 l.656
+  const woundsLost = hullBlocked ? 0 : woundsFromHit(weapon, defender, hullAdj ? 'corps' : loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size); // Blindage de la Coque : MDG 12 l.232
   // AA 10 l.98 — terme DIT au journal quand le BE d'une Structure est compté plusieurs fois.
   const beMult = structureEnduranceMult(weapon, defender, attacker.size);
   const beBase = bonus(effectiveChar(defender, 'endurance'));
