@@ -26,13 +26,14 @@ function launch() {
 }
 
 /** Descend le fleuve par une route de barge jusqu'à l'arrivée (travelPlan retombé à null). Route directe
- *  ≤ 48 km → une seule journée, pas de halte ; on gère quand même une éventuelle nuit de relais. */
+ *  ≤ 48 km → une seule journée, pas de halte ; on gère quand même une éventuelle nuit de relais, et on force un barrage rencontré (MSRC 7 l.128). */
 function drainCascade(): void {
   let g = 0;
   while (get().pendingCascade && g++ < 200) {
     const p = get().pendingCascade!;
     const cur = p.participants[p.cursor];
     if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
+    else if (cur?.options && cur.chosen == null) { get().cascadeChoose(cur.id, 'forcer'); get().cascadeNext(); }
     else get().cascadeNext();
   }
 }
@@ -178,8 +179,8 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
       : { ...r, riverPerils: (r.riverPerils ?? []).map((pe) => (pe.perilId === 'barrage' ? { ...pe, chancePct: 100 } : pe)) })) } });
   }
 
-  it('graine 2, cadence par défaut, barrage posé : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
-    seedBattleRng(2);
+  it('graine 5, cadence par défaut, barrage posé : aucune fenêtre de jour ni d’Exposition jusqu’à Altdorf, chaque jet au journal', () => {
+    seedBattleRng(5);
     barragePose();
     // Le journal du store est plafonné : chaque ligne se capte à son puits (`log`), le temps de la descente.
     const journal: string[] = [];
@@ -201,7 +202,8 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     const expositions = journal.filter((l) => /^Exposition hydrique : \d+\/\d+ → exposition\.$/.test(l)).length;
     expect(expositions).toBeGreaterThan(0);
     expect(journal.filter((l) => / — Résistance : \d+\/\d+ → /.test(l)).length).toBe(expositions * get().party.length);
-    expect(journal.filter((l) => / — Agilité : \d+\/\d+ → /.test(l)).length).toBe(jours);
+    // MSRC 5 l.13, l.17 ; #2588 (issuecomment-6124973279).
+    expect(journal.filter((l) => / — Agilité : \d+\/\d+ → /.test(l)), 'le barreur a Voile : aucune Agilité').toEqual([]);
   });
 
   it('graine 7, JOUR-PAR-JOUR : le même jour ouvre sa fenêtre', () => {

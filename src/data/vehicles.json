@@ -165,8 +165,7 @@
         "B": 60
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "mixte"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 4,
@@ -176,7 +175,8 @@
       "capacity": 300,
       "sail": {
         "m": 3,
-        "crew": 3
+        "crew": 3,
+        "spec": "chaland"
       },
       "oars": {
         "m": 3,
@@ -223,7 +223,6 @@
       },
       "bodyShape": "vehicule",
       "propulsion": "fluvial",
-      "rig": "mixte",
       "locationTable": "navire-fluvial",
       "criticalTable": "river-criticals"
     },
@@ -235,7 +234,8 @@
       "capacity": 300,
       "sail": {
         "m": 3,
-        "crew": 3
+        "crew": 3,
+        "spec": "chaland"
       },
       "oars": {
         "m": 3,
@@ -272,7 +272,6 @@
       },
       "bodyShape": "vehicule",
       "propulsion": "fluvial",
-      "rig": "avirons",
       "locationTable": "navire-fluvial",
       "criticalTable": "river-criticals"
     },
@@ -509,8 +508,7 @@
         "B": 10
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "avirons"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 1,
@@ -547,8 +545,7 @@
         "B": 10
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "avirons"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 2,
@@ -585,8 +582,7 @@
         "B": 20
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "mixte"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 3,
@@ -596,7 +592,8 @@
       "capacity": 120,
       "sail": {
         "m": 3,
-        "crew": 2
+        "crew": 2,
+        "spec": "esquif"
       },
       "oars": {
         "m": 3,
@@ -627,8 +624,7 @@
         "B": 90
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "mixte"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 4,
@@ -638,7 +634,8 @@
       "capacity": 500,
       "sail": {
         "m": 3,
-        "crew": 3
+        "crew": 3,
+        "spec": "chaland"
       },
       "oars": {
         "m": 3,
@@ -669,8 +666,7 @@
         "B": 120
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "mixte"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 15,
@@ -680,7 +676,8 @@
       "capacity": 80,
       "sail": {
         "m": 4,
-        "crew": 4
+        "crew": 4,
+        "spec": "chaland"
       },
       "oars": {
         "m": 4,
@@ -723,8 +720,7 @@
         "B": 30
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "mixte"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 4,
@@ -734,7 +730,8 @@
       "capacity": 150,
       "sail": {
         "m": 4,
-        "crew": 2
+        "crew": 2,
+        "spec": "drakkar"
       },
       "oars": {
         "m": 3,
@@ -769,8 +766,7 @@
         "B": 60
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "mixte"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 32,
@@ -780,7 +776,8 @@
       "capacity": 100,
       "sail": {
         "m": 4,
-        "crew": 4
+        "crew": 4,
+        "spec": "drakkar"
       },
       "oars": {
         "m": 6,
@@ -811,8 +808,7 @@
         "B": 50
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "voile"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 15,
@@ -822,7 +818,8 @@
       "capacity": 300,
       "sail": {
         "m": 5,
-        "crew": 8
+        "crew": 8,
+        "spec": "cogue"
       },
       "traits": [
         {
@@ -902,8 +899,7 @@
         "B": 90
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "voile"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 20,
@@ -913,7 +909,8 @@
       "capacity": 600,
       "sail": {
         "m": 5,
-        "crew": 10
+        "crew": 10,
+        "spec": "caraque"
       },
       "traits": [
         {
@@ -944,8 +941,7 @@
         "B": 100
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "mixte"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 35,
@@ -955,7 +951,8 @@
       "capacity": 150,
       "sail": {
         "m": 6,
-        "crew": 16
+        "crew": 16,
+        "spec": "galere-de-guerre"
       },
       "oars": {
         "m": 4,
@@ -996,8 +993,7 @@
         "B": 180
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "mixte"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 50,
@@ -1007,7 +1003,8 @@
       "capacity": 500,
       "sail": {
         "m": 7,
-        "crew": 30
+        "crew": 30,
+        "spec": "drakkar"
       },
       "oars": {
         "m": 4,
@@ -1048,8 +1045,7 @@
         "B": 275
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "voile"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 90,
@@ -1059,7 +1055,8 @@
       "capacity": 1400,
       "sail": {
         "m": 8,
-        "crew": 80
+        "crew": 80,
+        "spec": "croiseur"
       },
       "traits": [
         {
@@ -1093,8 +1090,7 @@
         "B": 220
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "voile"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 90,
@@ -1104,7 +1100,8 @@
       "capacity": 600,
       "sail": {
         "m": 8,
-        "crew": 60
+        "crew": 60,
+        "spec": "galion-bretonnien"
       },
       "traits": [
         {
@@ -1138,8 +1135,7 @@
         "B": 100
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "voile"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 20,
@@ -1149,7 +1145,8 @@
       "capacity": 650,
       "sail": {
         "m": 7,
-        "crew": 12
+        "crew": 12,
+        "spec": "caravelle"
       },
       "traits": [
         {
@@ -1180,8 +1177,7 @@
         "B": 80
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "mixte"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 35,
@@ -1191,7 +1187,8 @@
       "capacity": 400,
       "sail": {
         "m": 7,
-        "crew": 15
+        "crew": 15,
+        "spec": "chebec-arabien"
       },
       "oars": {
         "m": 4,
@@ -1226,8 +1223,7 @@
         "B": 60
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "voile"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 15,
@@ -1237,7 +1233,8 @@
       "capacity": 300,
       "sail": {
         "m": 5,
-        "crew": 8
+        "crew": 8,
+        "spec": "boutre-d-inja"
       },
       "traits": []
     }
@@ -1264,8 +1261,7 @@
         "B": 400
       },
       "bodyShape": "vehicule",
-      "propulsion": "maritime",
-      "rig": "voile"
+      "propulsion": "maritime"
     },
     "ship": {
       "crew": 220,
@@ -1275,7 +1271,8 @@
       "capacity": 4000,
       "sail": {
         "m": 9,
-        "crew": 200
+        "crew": 200,
+        "spec": "bateau-tresor-cathayen"
       },
       "traits": []
     }

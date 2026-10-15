@@ -148,7 +148,7 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     get().startTravel('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
     const kinds = await runOneSeaDay();
     const day = get().pendingRest!.travelDay!.lines.map((l) => l.text).join('\n');
-    expect(day).toContain('Forcer le rythme : Personne dans le groupe ne peut tenter le Test de Voile. Le navire garde son allure.');
+    expect(day).toContain('Forcer le rythme : Personne dans le groupe ne peut tenter le Test de Voile (Cogue). Le navire garde son allure.');
     expect(kinds).not.toContain('sea-force-pace');
     expect(kinds).not.toContain('sea-epuisement');
   });

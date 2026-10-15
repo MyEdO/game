@@ -1266,14 +1266,6 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             } as CodexRow))),
           },
           {
-            title: 'Agilité de rame (Test quotidien)', layout: 'list',
-            rows: [
-              { t: 'kv', k: 'Difficulté', v: DIFFICULTY_LABELS[n.rowingAgility.difficulty] } as CodexRow,
-              { t: 'kv', k: 'Échec', v: `${n.rowingAgility.failSpeedPct} % vitesse` } as CodexRow,
-              { t: 'kv', k: `Échec spectaculaire (DR ≤ ${n.rowingAgility.spectacularSL})`, v: `×${n.rowingAgility.spectacularSpeedFactor} vitesse` } as CodexRow,
-            ],
-          },
-          {
             title: 'Chavirage (Très fort de côté)', layout: 'list',
             rows: [
               { t: 'kv', k: 'Retirer la voile', v: DIFFICULTY_LABELS[n.capsize.removeSailDifficulty] } as CodexRow,

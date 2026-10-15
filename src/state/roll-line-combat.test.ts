@@ -20,6 +20,10 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { propulsionDuNavire } from '../engine/shipBuild';
+
+/** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
+const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 /**
  * MONTEUR CANONIQUE — les sites de COMBAT (#1153 L1b). Chaque site migré est jugé sur DEUX grandeurs
@@ -221,13 +225,13 @@ describe('Résilience d’un contributeur d’équipage (shipManeuver) — cible
   it('cible = valeur du rôle + Difficulté (cumul : 2 crans plus dur), écrêtée comme `rollTest`', () => {
     const marin = hero({
       id: 'ma', label: 'Marin', conditions: ETAT,
-      skills: [{ id: 'voile', advances: 15, characteristic: 'agilite' }] as never,
+      skills: [{ id: 'voile', spec: 'cogue', advances: 15, characteristic: 'agilite' }] as never,
     });
     const role = findCrewRoleById('timonier')!;
-    const v = crewRoleValue(marin, role).value!;
+    const v = crewRoleValue(marin, role, NAVIGATION).value!;
 
-    expect(forceCrewRole(marin, 'timonier')!.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS.intermediaire).target);
-    const cumule = forceCrewRole(marin, 'timonier', true)!;
+    expect(forceCrewRole(marin, 'timonier', NAVIGATION)!.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS.intermediaire).target);
+    const cumule = forceCrewRole(marin, 'timonier', NAVIGATION, true)!;
     expect(cumule.target).toBeLessThan(v);
     expect(inexplique({ base: v, target: cumule.target, mods: [{ label: 'Manque de bras', value: cumule.target - v, famille: 'jet' }] })).toBe(0);
   });
@@ -240,12 +244,12 @@ describe('Résilience d’un contributeur d’équipage (shipManeuver) — cible
     const barreur = hero({
       id: 'ba', label: 'Barreur', conditions: ETAT,
       characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 35, endurance: 40, initiative: 30, agilite: 105, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
-      skills: [{ id: 'voile', advances: 15, characteristic: 'agilite' }] as never,
+      skills: [{ id: 'voile', spec: 'cogue', advances: 15, characteristic: 'agilite' }] as never,
     });
     const role = findCrewRoleById('timonier')!;
-    expect(crewRoleValue(barreur, role).value, 'la fixture doit VRAIMENT franchir le plafond').toBe(110);
+    expect(crewRoleValue(barreur, role, NAVIGATION).value, 'la fixture doit VRAIMENT franchir le plafond').toBe(110);
 
-    const forcee = forceCrewRole(barreur, 'timonier')!;
+    const forcee = forceCrewRole(barreur, 'timonier', NAVIGATION)!;
     expect(forcee.target, 'plafond 99 — la même cible que celle du jet roulé').toBe(99);
     expect(forcee.sl, 'DR 9 : les dizaines de la cible ÉCRÊTÉE (99) moins celles du dé forcé').toBe(9);
   });

@@ -19,7 +19,7 @@ import { currentTargetingMode } from './targetingModes';
 import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied } from '../engine/psychology';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle, estNavire } from '../engine/vehicle';
 import { compatibleAmmo } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, selfManeuversOf, selfManeuverApplicable, battementFoes, distraireFoes } from './combatManeuvers';
@@ -250,7 +250,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   'equipage-suffisant': ({ active, battle }) =>
     (pushSlot(active, battle.combatants).undercrew ? no(t('agate.pushUndercrew')) : ok),
   'navire-action': ({ active, battle }) =>
-    !isVehicle(active) ? no(t('agate.notAVessel')) : battle.acted ? no(t('agate.vesselActionSpent')) : ok,
+    !estNavire(active) ? no(t('agate.notAVessel')) : battle.acted ? no(t('agate.vesselActionSpent')) : ok,
 };
 
 /** Les entrées de REMÈDE du registre — celles que la donnée porte au gate `etat-porte`. */

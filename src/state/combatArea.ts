@@ -27,6 +27,7 @@
  */
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Combatant, Weapon, HitLocation } from '../engine/types';
+import { isVehicle } from '../engine/vehicle';
 import { woundsFromHit, rangeBandName } from '../engine/combat';
 import { sceneMetresPerTile } from './scene';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -92,9 +93,6 @@ export function blastRadiusTiles(weapon: Weapon, metresPerTile: number): number 
   return indice > 0 ? metresToTiles(indice, metresPerTile) : 0;
 }
 
-/** Un porteur de navire (carène) — détecté par `bodyShape:'vehicule'` (≠ personnage). */
-const isShip = (c: Combatant): boolean => c.bodyShape === 'vehicule';
-
 /**
  * SOURCE des cibles secondaires — DEUX branches RAW (cf. en-tête) dispatchées sur la cible primaire :
  *  - personnage → les combattants vivants d'un AUTRE camp que l'attaquant à ≤ `indice` mètres (Chebyshev, échelle `metresPerTile`), du plus proche au plus loin ;
@@ -104,7 +102,7 @@ const isShip = (c: Combatant): boolean => c.bodyShape === 'vehicule';
  */
 export function areaTargets(combatants: Combatant[], metresPerTile: number, crewOf: (ship: Combatant) => Combatant[] = () => []): (indice: number) => AreaTargets {
   return (indice) => (hit) => {
-    if (hit.primaryTarget && isShip(hit.primaryTarget)) return exposedCrew(crewOf(hit.primaryTarget)); // mer : balaie le pont (Éclats-like)
+    if (hit.primaryTarget && isVehicle(hit.primaryTarget)) return exposedCrew(crewOf(hit.primaryTarget)); // mer : balaie le pont (Éclats-like)
     // Centre : le point d'impact CHOISI (pilonnage indirect) sinon la position de la primaire (tir direct/bordée).
     const center = hit.center ?? hit.primaryTarget?.pos;
     if (!center) return [];

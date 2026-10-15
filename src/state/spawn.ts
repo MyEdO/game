@@ -6,7 +6,7 @@ import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillIns
 import { skillCharacteristicById } from '../engine/character';
 import { isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../engine/statEntry';
 import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
-import { vehicleCombatant } from '../engine/vehicle';
+import { vehicleCombatant, estNavire } from '../engine/vehicle';
 import { inanimateCombatant } from '../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../engine/navalTraits';
 import { requiredTerrains } from '../engine/ops';
@@ -438,7 +438,7 @@ export function spawnEnemy(
   // Blindage (MDG 12 l.234/236) : PA de coque depuis les Traits du TYPE (`ship.traits`) + les Améliorations
   // d'INSTANCE (`upgrades`). Self-contained → posé ici (pas de post-pass type `applyShipPostes`). Consommé par
   // les dégâts navals (`applyOps` op `wounds` déduit `armour.corps`).
-  if (c.bodyShape === 'vehicule') {
+  if (estNavire(c)) {
     const navalTraits = hullNavalTraits(c);
     const ap = hullArmourBonus(navalTraits);
     if (ap) c.armour.corps = (c.armour.corps ?? 0) + ap;

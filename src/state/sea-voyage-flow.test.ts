@@ -27,6 +27,7 @@ import type { CascadeStep } from './pendings';
 import { resumeTravel } from './travelFlow';
 import { applyEffects, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
+import { navigationDuNavire } from './shipCrew';
 import { cascadeAppliers, registerCascadeApplier, runCascadeImmediate } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascadeTestKit';
 import { crewRoleValue } from '../engine/crewMorale';
@@ -289,7 +290,7 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const sansJet = rows.filter((r) => r.result && !estJete(r.result));
     expect(sansJet.map((r) => r.id)).toEqual([muet]);
     expect(sansJet[0].result).toEqual(ECHEC_SANS_JET);
-    expect(sansJet[0].refus).toBe(`${get().party[2].label} ne peut pas tenter le Test de Voile.`);
+    expect(sansJet[0].refus).toBe(`${get().party[2].label} ne peut pas tenter le Test de Voile (Cogue).`);
     expect(sansJet[0].interactive).toBe(false);
     const tentables = rows.filter((r) => r.id !== muet);
     expect(tentables.length).toBeGreaterThan(0);
@@ -459,7 +460,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     seedBattleRng(1);
     const [a, b] = makePregens();
     const vigie = { ...a, skills: [{ id: 'perception', characteristic: 'initiative', advances: 0 }], traumas: [traumaById('surdite', undefined, 'tete')] };
-    const timonier = { ...b, skills: [{ id: 'voile', characteristic: 'dexterite', advances: 30 }], traumas: [] };
+    const timonier = { ...b, skills: [{ id: 'voile', spec: 'cogue', characteristic: 'dexterite', advances: 30 }], traumas: [] };
     useGame.setState({
       party: [vigie, timonier],
       scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
@@ -504,7 +505,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     const vigieRole = findCrewRoleById('vigie')!;
     const vigiePart = phare!.participants!.find((x) => x.id === vigie.id);
     expect(vigiePart).toBeTruthy();
-    expect(vigiePart!.base).toBe(crewRoleValue(vigie, vigieRole, 'vue').value);
+    expect(vigiePart!.base).toBe(crewRoleValue(vigie, vigieRole, navigationDuNavire(useGame.getState, useGame.getState().travelPlan!.vehicle!), 'vue').value);
     // Autre étape (Progression, sans sens narratif dédié) : base résolue SANS sens — comportement historique.
     expect(progression).toBeTruthy();
     for (const part of progression!.participants!) expect(typeof part.base).toBe('number');
@@ -1456,7 +1457,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
     const party = makePregens().slice(0, postes.length).map((h, i) => ({
       ...h,
       ...(postes[i] ? { shipRole: postes[i] } : {}),
-      skills: [...h.skills.filter((sk) => sk.id !== 'voile' && sk.id !== 'ramer'), ...(voile.includes(i) ? [{ id: 'voile', characteristic: 'agilite' as const, advances: 10 }] : [])],
+      skills: [...h.skills.filter((sk) => sk.id !== 'voile' && sk.id !== 'ramer'), ...(voile.includes(i) ? [{ id: 'voile', spec: 'cogue', characteristic: 'agilite' as const, advances: 10 }] : [])],
     }));
     set({ party } as never);
     return party;
@@ -2075,7 +2076,7 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
       freshState();
       seedBattleRng(7);
       // Forcer le rythme est un Test de Voile (MDG 13 l.95-107) : un marin au moins doit pouvoir le tenter.
-      set({ party: get().party.map((h) => ({ ...h, skills: [...h.skills.filter((sk) => sk.id !== 'voile'), { id: 'voile', characteristic: 'agilite', advances: 10 }] })) } as never);
+      set({ party: get().party.map((h) => ({ ...h, skills: [...h.skills.filter((sk) => sk.id !== 'voile'), { id: 'voile', spec: 'cogue', characteristic: 'agilite', advances: 10 }] })) } as never);
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { pace: 1, cadence: 'jour-par-jour' })!;
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysAtSea: 1, forcePace: 1, paceToday: undefined, weather: { ...plan.sea!.weather, temperature: 'mediane', precipitations: precip, vent: 'brise-fraiche' } } } });
       runSeaDay(get, set);
@@ -2239,15 +2240,15 @@ describe('Survitesse — « Ça va lâcher, capitaine ! » (#443, MDG 13 l.121-1
     expect(st!.meta?.overspeedDamage).toBe(overspeedRow(4, 11)!.damage);
   });
 
-  it('navire à AVIRONS SEULS (Chaloupe, sail absent) → référent avirons même sans `modeToday` persisté (propulsion du navire, `seaRig`)', () => {
-    set({ vessel: { ...get().vessel!, vehicleId: 'chaloupe' } });
+  it('navire à VAPEUR (Cogue + propulsion à vapeur), sans `modeToday` → référent M 4, pas la voile (MDG 12 l.311)', () => {
+    set({ vessel: { ...get().vessel!, vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }] } });
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
-    const sea = { ...plan.sea!, milesToday: 1, effMToday: 9 }; // oars.m 3 → M+6, pas de modeToday
+    const sea = { ...plan.sea!, modeToday: undefined, milesToday: 1, effMToday: 10 }; // M 4 → M+6 (sail.m 5 → M+5)
     set({ travelPlan: { ...plan, sea } });
     const [st] = buildOverspeedSteps(get);
     expect(st).toBeTruthy();
-    expect(resolveStake(st!.stake!).text).toContain('Survitesse M+6'); // référent M = oars.m 3
-    expect(st!.meta?.overspeedDamage).toBe(overspeedRow(3, 9)!.damage);
+    expect(resolveStake(st!.stake!).text).toContain('Survitesse M+6');
+    expect(st!.meta?.overspeedDamage).toBe(overspeedRow(4, 10)!.damage);
   });
 });
 
@@ -2398,7 +2399,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
         ...h,
         skills: [
           ...h.skills.filter((sk) => !['voile', 'ramer', 'resistance'].includes(sk.id)),
-          { id: 'voile', advances: 10 },
+          { id: 'voile', spec: 'cogue', advances: 10 },
           { id: 'ramer', advances: 10 },
           { id: 'resistance', advances: 10 },
         ],
@@ -2468,7 +2469,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
     set({
       party: get().party.map((h, i) => (i !== 0 ? h : {
         ...h,
-        skills: [...h.skills.filter((sk) => sk.id !== 'voile'), { id: 'voile', advances: 80 }],
+        skills: [...h.skills.filter((sk) => sk.id !== 'voile'), { id: 'voile', spec: 'cogue', advances: 80 }],
       })),
     } as never);
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { pace: 1, cadence: 'jour-par-jour' })!;
@@ -2516,7 +2517,7 @@ describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Pro
   beforeEach(() => {
     freshState();
     // Un barreur qui peut tenter la Voile (LDB 09 l.30) : aucun prétiré ne l'a.
-    useGame.setState({ party: get().party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'voile', characteristic: 'agilite' as const, advances: 10 }] } : h)) });
+    useGame.setState({ party: get().party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'voile', spec: 'cogue', characteristic: 'agilite' as const, advances: 10 }] } : h)) });
   });
 
   it('la Progression PROPOSE les deux voies RAW, équipage par défaut', () => {
@@ -2550,7 +2551,7 @@ describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Pro
     expect(choix, 'le choix MDG 14 l.63 reste posé').toBeTruthy();
     const nav = choix!.options!.find((o) => o.key === 'nav');
     expect(nav, 'la voie Navigation est présente').toBeTruthy();
-    expect(nav!.refus).toBe('Personne dans le groupe ne peut tenter le Test de Voile.');
+    expect(nav!.refus).toBe('Personne dans le groupe ne peut tenter le Test de Voile (Cogue).');
     expect(choix!.options!.find((o) => o.key === 'crew')!.refus, 'la voie d’équipage reste ouverte').toBeUndefined();
     expect(choix!.defaultChoice).toBe('crew');
   });
@@ -2591,7 +2592,7 @@ describe('Test d’équipage — la chanson de marin est NOMMÉE sur la rangée 
     set({
       party: get().party.map((h) => ({
         ...h,
-        skills: [...h.skills.filter((sk) => !['voile', 'ramer'].includes(sk.id)), { id: 'voile', advances: 12 }, { id: 'ramer', advances: 12 }],
+        skills: [...h.skills.filter((sk) => !['voile', 'ramer'].includes(sk.id)), { id: 'voile', spec: 'cogue', advances: 12 }, { id: 'ramer', advances: 12 }],
         activeEffects: [...(h.activeEffects ?? []), { label: 'Naviguons tous ensemble', crewTestMod: 10, duration: { scale: 'permanent' as const } }],
       })),
     } as never);

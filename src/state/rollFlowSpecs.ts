@@ -253,8 +253,8 @@ function crewRoleFlowSpec<P extends import('./rollFlowFactory').PendingBase & { 
     caps: { forced: true },
     resolve: (_s, r, actor, _get, forced) => {
       if (!actor || refusSansJet(r) != null) return null; // LDB 09 l.30 ; #2588 Q1
-      if (!forced) return rollCrewRole(actor, r.roleId, battleRng(), r.cumul, r.sense);
-      const rr = forceCrewRole(actor, r.roleId, r.cumul, r.sense);
+      if (!forced) return rollCrewRole(actor, r.roleId, r.navigation, battleRng(), r.cumul, r.sense);
+      const rr = forceCrewRole(actor, r.roleId, r.navigation, r.cumul, r.sense);
       return rr ? { result: rr } : null;
     },
     outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (roll ≤ cible)

@@ -149,6 +149,7 @@ import { actorIn, inBattleId, garanti } from './combatants';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
+import { rigDuNavire } from '../engine/shipBuild';
 import { norm } from '../lib/normalize';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
@@ -198,7 +199,7 @@ import { sweepDismountDeaths, mountedAttackMods, mountedDodgeMods, mountMovement
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './lineOfSight';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf } from './shipPostes';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle, profilNavalDe, estNavire } from '../engine/vehicle';
 import { targetArc, headingToBear } from './fireArc';
 import { bearingPostes, mostArmedSide } from './shipBattery';
 import { maneuverShip } from './shipManeuver';
@@ -1764,12 +1765,18 @@ export function applyCriticalToTarget(
     log.push(tr('cf.collapse', { name: target.label }));
     return false;
   }
-  // Coque inerte (véhicule / navire) : aucun Trauma humain. Le coup se résout sur les tables de NAVIRE
-  // (MDG 13) via le module FRÈRE `shipCritical` — localisation par gréement (Coque/Gréement/Avirons/…
+  // Coque inerte : aucun Trauma humain. Coque sans profil naval (`profilNavalDe`) : EDOC 07 l.334. Navire : tables
+  // de NAVIRE (MDG 13 l.656) via le module FRÈRE `shipCritical` — localisation par gréement (Coque/Gréement/Avirons/…
   // vs Équipage), effets en `GameOp` (Voie d'eau / En flammes) posés par `applyOps`. (Le `resolveCritique` de
   // personnage indexerait des Traumatismes humains, hors-sujet pour une coque.)
-  if (target.bodyShape === 'vehicule') {
-    return applyHullCriticalToTarget(target, log, set, { ctx, suppressReveal, get });
+  if (isVehicle(target)) {
+    const profil = profilNavalDe(target);
+    if (!profil) {
+      log.push(tr('cf.coqueSansCritique', { name: target.label })); // EDOC 07 l.334
+      return false;
+    }
+    const rig = garanti(rigDuNavire(profil), target.creatureId, 'gréement du navire (schéma `vehicles`, MDG 12 l.131)');
+    return applyHullCriticalToTarget(target, rig, log, set, { ctx, suppressReveal, get });
   }
   // La Localisation est RÉSOLUE par l'appelant (Coup Critique = 1d100 frais via `critWoundLocation`, qui
   // honore aussi la loc choisie « Je ne faillirai pas ! » / le Critique pré-montré ; overkill = loc de
@@ -1851,8 +1858,8 @@ export function applyCriticalToTarget(
 }
 
 /**
- * Critique encaissé par une COQUE (véhicule/navire, `bodyShape:'vehicule'`) — MDG 13-14. On lit le gréement
- * de la coque (`vehicles.json` → `hull.rig`) pour la colonne de Localisation, puis on DÉLÈGUE au résolveur engine
+ * Critique encaissé par un NAVIRE (`profilNavalDe`) — MDG 13-14. Le gréement `rig` (`rigDuNavire`, résolu à
+ * l'aiguillage d'`applyCriticalToTarget`) donne la colonne de Localisation, puis on DÉLÈGUE au résolveur engine
  * PUR `applyHullCritical`, qui pose les États NAVALS sur la coque (`GameOp`) ET répercute sur l'ÉQUIPAGE : un coup
  * « Équipage » devient un Critique de PERSONNAGE sur un marin exposé, les Éclats infligent 9 Dégâts à autant de
  * marins. L'équipage est résolu depuis `target.crewIds` via la bataille (`get`) ; absent → effets de coque seuls.
@@ -1861,13 +1868,13 @@ export function applyCriticalToTarget(
  */
 export function applyHullCriticalToTarget(
   target: Combatant,
+  rig: ShipRig,
   log: string[],
   set: SetFn,
   opts?: { ctx?: DeviationCtx; suppressReveal?: boolean; get?: Get; forcedLocRoll?: number; forcedCritRoll?: number },
 ): boolean {
   const { ctx, suppressReveal, get, forcedLocRoll, forcedCritRoll } = opts ?? {};
   const hull = findVehicleById(target.creatureId ?? '')?.hull;
-  const rig: ShipRig = hull?.rig ?? 'mixte';
   const crew = get && target.crewIds
     ? (target.crewIds.map((id) => actorIn(get(), id)).filter(Boolean) as Combatant[])
     : [];
@@ -6909,7 +6916,7 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
   // n'est ni victoire ni défaite mais une SÉQUENCE de survie (Natation → échouage, `beginShipwreck`),
   // quelle que soit la situation côté ennemis (on peut couler ET avoir coulé l'adversaire).
   const vessel = get().vessel;
-  const campaignHull = vessel ? battle.combatants.find((c) => c.creatureId === vessel.vehicleId && c.bodyShape === 'vehicule') : undefined;
+  const campaignHull = vessel ? battle.combatants.find((c) => c.creatureId === vessel.vehicleId && estNavire(c)) : undefined;
   if (campaignHull && isOutOfAction(campaignHull)) {
     const aboardIds = (campaignHull.crewIds ?? [])
       .map((id) => inBattleId(battle, id))
@@ -7976,7 +7983,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   battle.aiTurnPlayed = cleTour;
   // Couche MER (navire-unité) : une coque IA agit en UNITÉ via des Tests d'équipage (manœuvre/bordée), pas comme
   // une créature (ni psychologie, ni marche de fantassin). Branche DÉDIÉE — `chooseEnemyAction` n'a aucun candidat naval.
-  if (isVehicle(enemy)) return runShipAI(get, set, enemy);
+  if (isVehicle(enemy)) return estNavire(enemy) ? runShipAI(get, set, enemy) : endShipTurn(get, set);
   // Cycle de tour ennemi (LDB 21/85) en hooks `turnStart` ordonnés (state/combat/turnHooks) : fin de
   // Frénésie 10 → Rage 20 → tentative de Frénésie IA 30 → psychologie 40. La dépendance d'ordre RAW
   // (Frénésie/Rage AVANT la psychologie — la Frénésie en rend immunisé) est encodée par les `order`.

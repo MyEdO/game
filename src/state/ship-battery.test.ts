@@ -9,6 +9,10 @@ import { rollCrewRole } from './shipManeuver';
 import { makeRNG } from '../engine/dice';
 import { jete } from '../engine/tests.testkit';
 import { rangeBandName } from '../engine/combat';
+import { propulsionDuNavire } from '../engine/shipBuild';
+
+/** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
+const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 /** Combattant d'équipage minimal (carac d'instance = Dex → valeur prévisible). Calqué sur crew-roles.test.ts. */
 const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advances: number; spec?: string }[] = []): Combatant =>
@@ -34,7 +38,7 @@ const artilleur = () => mk({ dexterite: 80 }, [{ id: 'projectiles', advances: 0,
 describe('resolveBattery — lâcher une bordée (DR partagé, MDG 14)', () => {
   it('cap Nord, cible plein EST → bordée TRIBORD ; seules SES pièces tirent ; DR = total du Test d’équipage', () => {
     const h = hull([poste('tribord', 't1'), poste('tribord', 't2'), poste('babord', 'b1')]);
-    const plan = resolveBattery(h, target(9, 5), 'N', [{ crew: artilleur(), roleId: 'artilleur' }], 80, seq([30]))!;
+    const plan = resolveBattery(h, target(9, 5), 'N', [{ crew: artilleur(), roleId: 'artilleur' }], 80, NAVIGATION, seq([30]))!;
     expect(plan.side).toBe('tribord');
     expect(plan.postes.map((p) => p.item.uid)).toEqual(['t1', 't2']); // pas la pièce bâbord
     expect(plan.dr).toBe(plan.crewTest.total); // le DR partagé = le total du Test d'équipage
@@ -43,20 +47,20 @@ describe('resolveBattery — lâcher une bordée (DR partagé, MDG 14)', () => {
 
   it('cible plein OUEST → bordée BÂBORD (le bord opposé tire)', () => {
     const h = hull([poste('tribord', 't1'), poste('babord', 'b1'), poste('babord', 'b2')]);
-    const plan = resolveBattery(h, target(1, 5), 'N', [{ crew: artilleur(), roleId: 'artilleur' }], 80, seq([30]))!;
+    const plan = resolveBattery(h, target(1, 5), 'N', [{ crew: artilleur(), roleId: 'artilleur' }], 80, NAVIGATION, seq([30]))!;
     expect(plan.side).toBe('babord');
     expect(plan.postes.map((p) => p.item.uid)).toEqual(['b1', 'b2']);
   });
 
   it('aucune pièce sur la bordée qui porte → null (rien à lâcher, pas de Test gaspillé)', () => {
     const h = hull([poste('babord', 'b1')]); // que bâbord ; cible à l'est → tribord
-    expect(resolveBattery(h, target(9, 5), 'N', [{ crew: artilleur(), roleId: 'artilleur' }], 80, seq([30]))).toBeNull();
+    expect(resolveBattery(h, target(9, 5), 'N', [{ crew: artilleur(), roleId: 'artilleur' }], 80, NAVIGATION, seq([30]))).toBeNull();
   });
 
   it('positions non résolues → null (défensif)', () => {
     const h = hull([poste('tribord', 't1')]);
     h.pos = undefined as never;
-    expect(resolveBattery(h, target(9, 5), 'N', [], 80, seq([30]))).toBeNull();
+    expect(resolveBattery(h, target(9, 5), 'N', [], 80, NAVIGATION, seq([30]))).toBeNull();
   });
 });
 
@@ -226,8 +230,8 @@ describe('rollCrewRole — cumul de rôles (Manque de bras, MDG 14 l.53)', () =>
       kind: 'hero', wounds: { current: 10, max: 10 }, skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }], conditions: [], talents: [] }) as unknown as Combatant;
 
   it('cumul → +2 crans de Difficulté : cible PLUS DURE (−20) qu\'un jet normal, même dé', () => {
-    const normal = jete(rollCrewRole(cap(), 'capitaine', makeRNG(5))!.result);
-    const cumul = jete(rollCrewRole(cap(), 'capitaine', makeRNG(5), true)!.result);
+    const normal = jete(rollCrewRole(cap(), 'capitaine', NAVIGATION, makeRNG(5))!.result);
+    const cumul = jete(rollCrewRole(cap(), 'capitaine', NAVIGATION, makeRNG(5), true)!.result);
     expect(cumul.target).toBe(normal.target - 20); // Intermédiaire (+0) → +2 crans = Difficile (−20)
   });
 });

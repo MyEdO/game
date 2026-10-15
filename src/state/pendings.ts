@@ -27,6 +27,7 @@ import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFacto
 import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail } from '../engine/skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -602,6 +603,9 @@ export interface ShipManeuverParticipant extends RollParticipant {
   essential: boolean;
   /** Marin déjà engagé dans un AUTRE Test d'équipage ce Round → cumul à +2 crans de Difficulté (Manque de bras, l.53). */
   cumul?: boolean;
+  /** Compétence de Navigation du navire (`propulsionDuNavire().competence`), posée à la construction :
+   *  spécialise la Compétence du rôle (`competencesDuRole`, MDG 13 l.18-19). */
+  navigation: RefDesignee;
   /** Sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie du phare, MDG 13 l.337 — visuel), posé
    *  À LA CONSTRUCTION de l'étape par l'appelant qui connaît le contexte (`buildVoyageCrewStep`, kind
    *  `'phare'`, `seaVoyageFlow.ts`). Restreint les `skillMod` sense-scopés (Surdité, LDB 18) via

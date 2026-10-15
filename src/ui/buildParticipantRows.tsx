@@ -137,11 +137,11 @@ export function buildParticipantRows<P extends ParticipantRow>(
 export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res: { roll: number; target: number; sl: number } | null): PanelRowData {
   const role = findCrewRoleById(part.roleId);
   if (!role) return { combatant: actor };
-  const rv = crewRoleValue(actor, role, part.sense);
+  const rv = crewRoleValue(actor, role, part.navigation, part.sense);
   const label = `${role.label}${part.essential ? ' ★' : ''}`;
   const difficulty = part.cumul ? easeDifficulty('intermediaire', -2) : undefined;
   if (rv.refus != null) return { combatant: actor, note: rv.refus };
-  const mods = crewRoleTestMods(actor, role, part.sense);
+  const mods = crewRoleTestMods(actor, role, part.navigation, part.sense);
   return res
     ? { combatant: actor, d: testBreakdown(label, rv.value, { roll: res.roll, target: res.target, sl: res.sl }, difficulty, mods) }
     : { combatant: actor, pending: testPending(label, rv.value, undefined, difficulty, mods) };

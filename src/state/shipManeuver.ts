@@ -23,10 +23,11 @@ import { cargoOverload } from '../engine/seaVoyage';
 import { exposedCrew } from '../engine/shipCritical';
 import { crewRoleValue, crewRoleTestMods, crewTalentDR, moraleBand, capToSuccesMinime, crewTestSuccess } from '../engine/crewMorale';
 import { placementPenalty } from './shipPostes';
-import { inBattleId } from './combatants';
+import { inBattleId, garanti } from './combatants';
 import { t } from '../i18n';
 import { findVehicleById, findCrewRoleById } from '../data';
-import { vesselPropulsion, propulsionSkill } from '../engine/shipBuild';
+import { propulsionDuNavire, milieuDuVoyage, type MilieuDeNavigation } from '../engine/shipBuild';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { PairedSense } from '../engine/ops';
@@ -41,23 +42,23 @@ export type { CrewRoleRoll };
  *  rôle est inconnu. La valeur suit `crewRoleValue` (meilleure compétence du rôle pour ce marin) ; sur un jet
  *  RÉUSSI s'ajoute le +DR de Talent en contexte Test d'équipage (`crewTalentDR` — Commandant émérite, MDG 09 l.54).
  *  `sense` (optionnel) : sens narratif du Test précis (Vigie du phare, MDG 13 l.337) — transmis à `crewRoleValue`. */
-export function rollCrewRole(crew: Combatant, roleId: string, rng: RNG, cumul = false, sense?: PairedSense): { result: CrewRoleRoll; refus?: PlayerText } | null {
+export function rollCrewRole(crew: Combatant, roleId: string, navigation: RefDesignee, rng: RNG, cumul = false, sense?: PairedSense): { result: CrewRoleRoll; refus?: PlayerText } | null {
   const role = findCrewRoleById(roleId);
   if (!role) return null;
-  const rv = crewRoleValue(crew, role, sense);
+  const rv = crewRoleValue(crew, role, navigation, sense);
   if (rv.refus != null) return ligneSansJet(rv.refus);
   // Cumul de 2 rôles (un marin déjà engagé dans un autre Test d'équipage ce Round) → +2 crans de Difficulté
   // (Manque de bras, MDG 14 l.53).
-  const surCible = crewRoleTestMods(crew, role, sense).reduce((s, m) => s + m.value, 0);
+  const surCible = crewRoleTestMods(crew, role, navigation, sense).reduce((s, m) => s + m.value, 0);
   const t = rollTest(rv.value, cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire', rng, surCible);
-  return { result: { roll: t.roll, target: t.target, sl: t.sl + (t.success ? crewTalentDR(crew, role) : 0) } };
+  return { result: { roll: t.roll, target: t.target, sl: t.sl + (t.success ? crewTalentDR(crew, role, navigation) : 0) } };
 }
 
 /** Résilience « Je ne faillirai pas ! » pour UN contributeur (PJ) : DR MAXIMAL à son rôle (LDB 17 l.68). PUR. */
-export function forceCrewRole(crew: Combatant, roleId: string, cumul = false, sense?: PairedSense): Exclude<CrewRoleRoll, EchecSansJet> | null {
+export function forceCrewRole(crew: Combatant, roleId: string, navigation: RefDesignee, cumul = false, sense?: PairedSense): Exclude<CrewRoleRoll, EchecSansJet> | null {
   const role = findCrewRoleById(roleId);
   if (!role) return null;
-  const rv = crewRoleValue(crew, role, sense);
+  const rv = crewRoleValue(crew, role, navigation, sense);
   if (rv.refus != null) return null; // aucun jet à forcer — LDB 17 l.68, LDB 09 l.30
   // Résilience à DR max ; cible abaissée de +2 crans si cumul (Manque de bras, l.53). Le dé forcé est
   // POLICY-AWARE (`bestForcedRoll` : standard → 01 = DR max ; Fast DR → dé le plus haut, LDB 12 l.102) —
@@ -69,10 +70,10 @@ export function forceCrewRole(crew: Combatant, roleId: string, cumul = false, se
   // voies d'un même Test — roulé et forcé par Résilience — ne peuvent pas jetter sur deux cibles.
   const target = rollLine({
     actor: crew, difficulty: cumul ? easeDifficulty('intermediaire', -2) : 'intermediaire',
-    valeur: rv.value, surLaCible: crewRoleTestMods(crew, role, sense),
+    valeur: rv.value, surLaCible: crewRoleTestMods(crew, role, navigation, sense),
   }).target;
   const die = bestForcedRoll(target);
-  return { roll: die, target, sl: evaluateTest(die, target).sl + crewTalentDR(crew, role) };
+  return { roll: die, target, sl: evaluateTest(die, target).sl + crewTalentDR(crew, role, navigation) };
 }
 
 /** Total du Test d'équipage de MANŒUVRE (MDG 14 l.13) : Σ des DR des contributeurs, le rôle ESSENTIEL compté
@@ -103,8 +104,8 @@ export function maneuverCrewTotal(
 
 /** `ManeuverResult` d'un Test d'ÉQUIPAGE : le total d'équipage tient lieu de DR de Navigation ; `success` =
  *  `crewTestSuccess` du DR final, Man compris (MDG 14 l.13, l.76). Le déplacement suit la Progression. PUR. */
-export function deriveManeuverFromCrew(ship: Combatant, crewTotal: number): ManeuverResult {
-  const { baseM, manoeuvre, extraDR } = shipManeuverParams(ship);
+export function deriveManeuverFromCrew(ship: Combatant, crewTotal: number, milieu: MilieuDeNavigation): ManeuverResult {
+  const { baseM, manoeuvre, extraDR } = shipManeuverParams(ship, milieu);
   const out = resolveShipManeuver(crewTotal, baseM, manoeuvre, extraDR);
   return { ...out, success: crewTestSuccess(out.dr), navDR: crewTotal, advanced: 0 };
 }
@@ -112,10 +113,10 @@ export function deriveManeuverFromCrew(ship: Combatant, crewTotal: number): Mane
 /** Le barreur : parmi l'équipage présent (`exposedCrew` : vivant, Blessures > 0) qui peut tenter le Test
  *  (`peutTenter`, lu par `partyBest` — un Inconscient ne tient pas la barre, LDB 16 l.113), celui qui a la
  *  MEILLEURE valeur de Test de `skillId` (Voile/Ramer). */
-function bestHelmsman(crew: Combatant[], skillId: string): Combatant | undefined {
+function bestHelmsman(crew: Combatant[], competence: RefDesignee): Combatant | undefined {
   // Argmax sur l'axe ACTEUR (`partyBest` = maxBy sur `testValue`) : first-max strict, identique au tri desc stable
   // qui rendait le PREMIER max en `[0]`.
-  return partyBest(exposedCrew(crew), skillId)?.actor;
+  return partyBest(exposedCrew(crew), competence.id, undefined, undefined, competence.spec)?.actor;
 }
 
 export interface ManeuverResult extends ShipManeuverOutcome {
@@ -145,18 +146,16 @@ export interface ManeuverParams {
   baseM: number;
   manoeuvre: number;
   extraDR: number;
-  skillId: string;
+  competence: RefDesignee;
 }
 /** `skillDRBonus` ciblé `testType:"manoeuvre"` (#221) — consommé UNIQUEMENT par `deriveManeuver` (barreur solo,
  *  hors Test d'équipage) ; le Test d'équipage l'obtient déjà via `openCrewTestPending`. PUR. */
 function maneuverTestTypeDR(ship: Combatant): number {
   return navalTestTypeDR(hullNavalTraits(ship), 'manoeuvre');
 }
-export function shipManeuverParams(ship: Combatant): ManeuverParams {
+export function shipManeuverParams(ship: Combatant, milieu: MilieuDeNavigation): ManeuverParams {
   const vd = ship.creatureId ? findVehicleById(ship.creatureId)?.ship : undefined;
-  const propulsion = vesselPropulsion(vd);
-  const baseM = propulsion?.m ?? 0;
-  const skillId = propulsionSkill(propulsion?.mode ?? 'avirons');
+  const { m: baseM, competence } = garanti(propulsionDuNavire(ship.creatureId, ship.upgrades, milieu), ship.creatureId, 'propulsion du navire');
   // Répartition des pièces (MDG 12 l.432-433) : un bord surchargé pénalise −1/−2 M, Man ET DR de Navigation
   // (trois colonnes RAW DISTINCTES → cumulées). Sans Contenance connue → aucune pénalité.
   const place = vd?.capacity
@@ -179,15 +178,15 @@ export function shipManeuverParams(ship: Combatant): ManeuverParams {
     // « Bouteur » (MSRC 12 l.66) → +20 au Test de Navigation pour diriger ; « Gréement de course » (l.137)
     // → −10. Converti en DR d'équipage (`navalNavTestDR`, ÷10) — injecté ICI UNE fois (deriveManeuver/FromCrew),
     // jamais dans openCrewTestPending, pour ne pas double-compter.
-    extraDR: navalSkillTestDR(navalTraits, skillId) + navalNavTestDR(navalTraits) + place.navDR,
-    skillId,
+    extraDR: navalSkillTestDR(navalTraits, competence.id) + navalNavTestDR(navalTraits) + place.navDR,
+    competence,
   };
 }
 
 /** `ManeuverResult` du Test de Navigation d'un barreur SOLO (PUR, aucune mutation, aucun RNG) : `success`
  *  = `nav.success` (LDB 12 l.11) ; le Man entre au DR (MDG 13 l.119 ; MDG 12 l.50). */
-function deriveManeuver(ship: Combatant, nav: { sl: number; roll: number; target: number; success: boolean }, helmsman: string): ManeuverResult {
-  const { baseM, manoeuvre, extraDR } = shipManeuverParams(ship);
+function deriveManeuver(params: ManeuverParams, ship: Combatant, nav: { sl: number; roll: number; target: number; success: boolean }, helmsman: string): ManeuverResult {
+  const { baseM, manoeuvre, extraDR } = params;
   const out = resolveShipManeuver(nav.sl, baseM, manoeuvre, extraDR + maneuverTestTypeDR(ship)); // barreur SOLO, hors Test d'équipage
   return { ...out, success: nav.success, navDR: nav.sl, roll: nav.roll, target: nav.target, helmsman, advanced: 0 };
 }
@@ -195,8 +194,8 @@ function deriveManeuver(ship: Combatant, nav: { sl: number; roll: number; target
 /** Barre que personne ne peut tenir : aucun Test, donc rien que Man ni les modificateurs du Test ne
  *  modifient (MDG 12 l.50, MDG 13 l.119). La Progression (MDG 13 l.68-75) se lit au DR d'`ECHEC_SANS_JET`.
  *  `helmsman` : le barreur IMPOSÉ qui ne peut pas tenter, nommé au journal. LDB 09 l.30 ; #2588 Q1. */
-function maneuverSansJet(ship: Combatant, refus: PlayerText, helmsman?: string): ManeuverResult {
-  const out = resolveShipManeuver(ECHEC_SANS_JET.sl, shipManeuverParams(ship).baseM, 0);
+function maneuverSansJet(params: ManeuverParams, refus: PlayerText, helmsman?: string): ManeuverResult {
+  const out = resolveShipManeuver(ECHEC_SANS_JET.sl, params.baseM, 0);
   return { ...out, success: ECHEC_SANS_JET.success, navDR: ECHEC_SANS_JET.sl, ...(helmsman != null ? { helmsman } : {}), refus, advanced: 0 };
 }
 
@@ -209,15 +208,16 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const battle = get().battle;
   const ship = inBattleId(battle, shipId);
   if (!battle || !ship) return null;
-  const { skillId } = shipManeuverParams(ship);
+  const params = shipManeuverParams(ship, milieuDuVoyage(get().travelPlan));
+  const { id: skillId, spec } = params.competence;
   const crew = (ship.crewIds ?? [])
     .map((id) => inBattleId(battle, id))
     .filter((c): c is Combatant => !!c);
   const imposed = helmsmanId ? inBattleId(battle, helmsmanId) : undefined;
-  const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId) ? imposed : undefined) : bestHelmsman(crew, skillId);
+  const helm = helmsmanId ? (imposed && peutTenter(imposed, skillId, spec) ? imposed : undefined) : bestHelmsman(crew, params.competence);
   // LDB 09 l.30, MSRC 7 l.17 ; #2588 Q1.
-  if (!helm) return imposed ? maneuverSansJet(ship, refusNePeutTenter(imposed, { skill: skillId }), imposed.label) : maneuverSansJet(ship, refusPersonneNePeutTenter({ skill: skillId }));
-  return deriveManeuver(ship, rollTest(testValue(helm, skillId), 'intermediaire', battleRng()), helm.label);
+  if (!helm) return imposed ? maneuverSansJet(params, refusNePeutTenter(imposed, { skill: skillId, spec }), imposed.label) : maneuverSansJet(params, refusPersonneNePeutTenter({ skill: skillId, spec }));
+  return deriveManeuver(params, ship, rollTest(testValue(helm, skillId, undefined, spec), 'intermediaire', battleRng()), helm.label);
 }
 
 /**

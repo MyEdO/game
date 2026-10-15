@@ -10,6 +10,10 @@ import { RULE_REF } from '../engine/ruleRefs';
 import type { Combatant, Weapon } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import type { TravelPlan } from './travelFlow';
+import { propulsionDuNavire } from '../engine/shipBuild';
+
+/** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
+const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 /** MDG 13 l.185-200 · LDB 62 l.180 */
 const PISTOLET = { label: 'Pistolet', type: 'ranged', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] } as unknown as Weapon;
@@ -82,9 +86,9 @@ describe('Précipitations Très abondantes au combat ouvert pendant un voyage en
     const { H } = ouvreLeCombat();
     tireur(H, PISTOLET, 'poudre-noire');
     const role = findCrewRoleById('artilleur')!;
-    expect(meteo(crewRoleTestMods(H, role))).toEqual([-30]);
-    const joueur = rollCrewRole(H, 'artilleur', seq([45]))!.result;
-    const headless = resolveCrewTestByRoles([{ crew: H, roleId: 'artilleur' }], 'batterie', 'intermediaire', 80, seq([45]));
+    expect(meteo(crewRoleTestMods(H, role, NAVIGATION))).toEqual([-30]);
+    const joueur = rollCrewRole(H, 'artilleur', NAVIGATION, seq([45]))!.result;
+    const headless = resolveCrewTestByRoles([{ crew: H, roleId: 'artilleur' }], 'batterie', 'intermediaire', 80, NAVIGATION, seq([45]));
     expect(headless.contributions[0].sl).toBe(joueur.sl);
   });
 });

@@ -282,8 +282,8 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
 
   it('barre non tentable : le refus NOMMÉ du barreur imposé, ou de personne sans barreur, et le journal le porte (LDB 09 l.30 ; #2588 Q1)', () => {
     const sansVoile = { ...helm2(), skills: [] } as unknown as Combatant;
-    const { skillId } = shipManeuverParams(ship2());
-    for (const [imposee, attendu] of [['helm', refusNePeutTenter(sansVoile, { skill: skillId })], [undefined, refusPersonneNePeutTenter({ skill: skillId })]] as const) {
+    const { id: skill, spec } = shipManeuverParams(ship2(), 'maritime').competence;
+    for (const [imposee, attendu] of [['helm', refusNePeutTenter(sansVoile, { skill, spec })], [undefined, refusPersonneNePeutTenter({ skill, spec })]] as const) {
       useGame.setState({ battle: { combatants: [ship2(), sansVoile], order: ['ship', 'helm'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never, journal: [] });
       const res = rollShipManeuver(() => useGame.getState(), 'ship', imposee)!;
       expect(res.refus).toBe(attendu);
@@ -295,7 +295,7 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
 
   it('barre sans jet sur un esquif (Man +1) : la Progression au DR de l’échec sans jet, sans Man — avance de M exactement, cap inchangé (MDG 12 l.50, MDG 13 l.68-75, l.119)', () => {
     const esquif = { ...ship2(), creatureId: 'esquif', crewIds: [] } as unknown as Combatant;
-    const { baseM, manoeuvre } = shipManeuverParams(esquif);
+    const { baseM, manoeuvre } = shipManeuverParams(esquif, 'maritime');
     expect(manoeuvre).toBeGreaterThan(0);
     useGame.setState({ battle: { combatants: [esquif], order: ['ship'], turn: 0 } as never, facing: { ship: 'N' }, scene: null as never });
     const r = maneuverShip(() => useGame.getState(), 'ship', 2)!;
@@ -360,7 +360,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     ({ id: 'helm', label: 'Timonier', kind: 'hero',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 2, resilience: 1,
-      skills: [{ id: 'voile', characteristic: 'agilite', advances: 40 }], talents: [], weapons: [],
+      skills: [{ id: 'voile', spec: 'chaland', characteristic: 'agilite', advances: 40 }], talents: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
   const ship = (): Combatant =>
     ({ id: 'ship', label: 'Barge', kind: 'npc', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] }) as unknown as Combatant;
@@ -399,7 +399,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
     expect(parts.map((x) => x.id)).toEqual(['helm', 'muet']);
     const muet = parts.find((x) => x.id === 'muet')!;
     expect(muet.result).toEqual(ECHEC_SANS_JET);
-    expect(muet.refus).toBe('Muet ne peut pas tenter le Test de Voile.');
+    expect(muet.refus).toBe('Muet ne peut pas tenter le Test de Voile (Chaland).');
     expect(muet.interactive).toBe(false);
     expect(parts.find((x) => x.id === 'helm')!.result).toBeNull(); // le titulaire tentable attend SON jet
   });
@@ -444,12 +444,12 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
   // porte plus JAMAIS de terme `testType`.
   it('shipManeuverParams n’ajoute JAMAIS le mod `testType:"manoeuvre"` (site canonique = openCrewTestPending seul)', () => {
     const shipC = ship();
-    const baseline = shipManeuverParams(shipC).extraDR; // sans mod `testType`
+    const baseline = shipManeuverParams(shipC, 'maritime').extraDR; // sans mod `testType`
     const spy = vi.spyOn(navalTraitsMod, 'navalTestTypeDR').mockImplementation((_traits, testTypeId) => (testTypeId === 'manoeuvre' ? 3 : 0));
     try {
       // Si shipManeuverParams consommait encore `navalTestTypeDR('manoeuvre')`, cette valeur (3) SE VERRAIT ICI —
       // elle ne doit rien changer : le mod est UNIQUEMENT lu par `openCrewTestPending` (combatSlice.ts).
-      expect(shipManeuverParams(shipC).extraDR).toBe(baseline);
+      expect(shipManeuverParams(shipC, 'maritime').extraDR).toBe(baseline);
     } finally {
       spy.mockRestore();
     }
@@ -467,8 +467,8 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
       const rolled = useGame.getState().pendingShipManeuver!;
       const total = maneuverCrewTotal(rolled.participants, rolled.essentialRoleId, rolled.moraleScore, rolled.undercrew, rolled.extraDR);
       const shipC = useGame.getState().battle!.combatants.find((c) => c.id === 'ship')!;
-      const params = shipManeuverParams(shipC); // n'a jamais lu le mod `testType` (test précédent)
-      const result = deriveManeuverFromCrew(shipC, total);
+      const params = shipManeuverParams(shipC, 'maritime'); // n'a jamais lu le mod `testType` (test précédent)
+      const result = deriveManeuverFromCrew(shipC, total, 'maritime');
       expect(result.dr).toBe(total + params.manoeuvre + params.extraDR); // AUCUN +3 caché en plus
     } finally {
       spy.mockRestore();
@@ -483,15 +483,15 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
    */
   it('DR final 0 : virage RATÉ par défaut, RÉUSSI sous « 0 DR compte comme un succès » — même socle que la bordée', () => {
     const shipC = { ...ship(), creatureId: 'bateau-de-patrouille' } as Combatant; // Man 0, aucun trait à passif
-    const params = shipManeuverParams(shipC);
+    const params = shipManeuverParams(shipC, 'maritime');
     const crewTotal = -(params.manoeuvre + params.extraDR); // DR final = crewTotal + Man + extra = 0 pile
-    expect(deriveManeuverFromCrew(shipC, crewTotal).dr).toBe(0);
-    expect(deriveManeuverFromCrew(shipC, crewTotal).success).toBe(crewTestSuccess(0)); // le socle, jamais un seuil local
-    expect(deriveManeuverFromCrew(shipC, crewTotal).success).toBe(false); // défaut RAW : 0 = échec
+    expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').dr).toBe(0);
+    expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(crewTestSuccess(0)); // le socle, jamais un seuil local
+    expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(false); // défaut RAW : 0 = échec
     setRule('crew-test-zero-success', true);
     try {
-      expect(deriveManeuverFromCrew(shipC, crewTotal).success).toBe(true); // Succès Minime → le navire vire
-      expect(deriveManeuverFromCrew(shipC, crewTotal - 1).success).toBe(false); // −1 reste un échec
+      expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(true); // Succès Minime → le navire vire
+      expect(deriveManeuverFromCrew(shipC, crewTotal - 1, 'maritime').success).toBe(false); // −1 reste un échec
     } finally {
       resetRule('crew-test-zero-success');
     }
@@ -504,7 +504,7 @@ describe('Test d’équipage : un rôle devenu non tentable au jet pose le refus
     const helm = { id: 'helm', label: 'Timonier', kind: 'hero',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 2, resilience: 1,
-      skills: [{ id: 'voile', characteristic: 'agilite', advances: 40 }], talents: [], weapons: [],
+      skills: [{ id: 'voile', spec: 'chaland', characteristic: 'agilite', advances: 40 }], talents: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } } as unknown as Combatant;
     const ship = { id: 'ship', label: 'Barge', kind: 'npc', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] } as unknown as Combatant;
     useGame.setState({ battle: { combatants: [ship, helm], order: ['helm'], turn: 0, acted: false } as never, party: [helm], facing: { ship: 'N' }, pendingShipManeuver: null, scene: null as never });
@@ -516,7 +516,7 @@ describe('Test d’équipage : un rôle devenu non tentable au jet pose le refus
     useGame.setState({ battle: { ...b, combatants: b.combatants.map((c) => (c.id === 'helm' ? sansVoile : c)) } });
     useGame.getState().shipManeuverRoll('helm');
     const apres = useGame.getState().pendingShipManeuver!.participants.find((x) => x.id === 'helm')!;
-    const attendu = crewRoleValue(sansVoile, findCrewRoleById(part.roleId)!).refus;
+    const attendu = crewRoleValue(sansVoile, findCrewRoleById(part.roleId)!, apres.navigation).refus;
     expect(attendu).toBeDefined();
     expect(apres.result).toEqual(ECHEC_SANS_JET);
     expect(apres.refus).toBe(attendu);

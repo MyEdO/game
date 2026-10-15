@@ -632,11 +632,14 @@ export function scannerDonnees(
   const estCondition = (o: Obj) => typeof o.kind === 'string' && kindsCondition.has(o.kind);
 
   /**
-   * La clé OUVRE-T-ELLE une référence ? Non pour une clé de PROSE, non quand la valeur est un
-   * LITTÉRAL D'ENUM du schéma du document (un discriminant `kind`/`type`/`op`… n'est pas une FK).
+   * La clé OUVRE-T-ELLE une référence ? Non pour une clé de PROSE, non pour une clé de
+   * `CLES_DE_SPECIALISATION` (même règle que les cases de `inscrireReference` ; #1904), non quand la
+   * valeur est un LITTÉRAL D'ENUM du schéma du document (un discriminant `kind`/`type`/`op`… n'est pas
+   * une FK).
    */
   const ouvreReference = (dataset: string, k: string, v: string): boolean =>
     !(CLES_PROSE_SANS_REFERENCE as readonly string[]).includes(k) &&
+    !CLES_DE_SPECIALISATION.has(k) &&
     !estCleScopee(k) &&
     !choixDeclares.get(dataset)?.get(k)?.has(v);
 
