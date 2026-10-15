@@ -57,9 +57,12 @@
  *    (`test:tournerCamera : zéro sans événement, non fini et active refusés avant entrée`, `test:tournerCamera :
  *    angle immense et délai invalide refusés sans entrée`) (sonde : #1765 issuecomment-6195158339 L-B,
  *    variante `deuxNiveaux`) ;
- *  - une fonction dont une itération lit ou joue directement ne prête pas son statut : une boucle qui lit
- *    et appelle une fonction dont SEULE l'itération joue n'est pas un site (fonctions MUTUELLES comprises)
- *    — 0 occurrence (sonde : #1765 issuecomment-6195158339 L-B, variante `disqPrete`) ;
+ *  - une fonction dont une itération lit ou joue directement ne prête RIEN, pas même ce que sa LIGNE DROITE
+ *    lit ou joue : une boucle qui lit et appelle une telle fonction dont la ligne droite joue n'est pas un
+ *    site (fonctions MUTUELLES comprises) — 0 occurrence (sonde : #1765 issuecomment-6195158339 L-B,
+ *    variante `disqPrete`). Les 11 boucles externes qui appellent une fonction déjà au stock
+ *    (`travel.test.ts`, `miscast-step.test.ts`, `15-commerce-fluvial.test.ts`, `tavern-regime-rapide.test.ts`)
+ *    ne sont pas des pilotes : leur pilote, la fonction appelée, est déjà au stock ;
  *  - une itération qui ne pilote QUE par l'appel d'un helper ne disqualifie pas la fonction qui la porte :
  *    cette fonction prête encore ce qu'elle lit ou joue directement, et la boucle qui l'appelle peut
  *    devenir un SECOND site — 0 occurrence (sonde : #1765 issuecomment-6195158339 L-B, `L8`) ;

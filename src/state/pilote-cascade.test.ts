@@ -6,7 +6,7 @@
  * `scripts/guards/lib/piloteCascadeAudit.ts`, partagée avec la régénération (`regenerations`) ; le stock
  * `scripts/guards/lib/piloteCascadeStock.mjs` porte les copies restantes et ne fait que décroître.
  */
-import { describe, it, expect } from 'vitest';
+import { beforeAll, describe, it, expect } from 'vitest';
 import { EXEMPTIONS, bouclesPilotes, corpusMesure, regenerations, sitesDeBoucles, sitesPiloteCascade, type ExemptionPilote } from '../../scripts/guards/lib/piloteCascadeAudit';
 import { PILOTE_CASCADE_RATCHET } from '../../scripts/guards/lib/piloteCascadeStock.mjs';
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
@@ -25,6 +25,8 @@ const mesure = detenteur(() => {
 const ecart = (s: readonly Site[] = mesure().sites) => ecartDuVolet({ sites: s, stock: PILOTE_CASCADE_RATCHET, ou: STOCK });
 
 describe('pilote de cascade : aucune itération de test neuve ne pilote la cascade à la main (#1765)', () => {
+  beforeAll(() => { mesure(); }, 60_000);
+
   it('aucun site NEUF, et aucune entrée SOLDÉE ne traîne au stock', () => {
     const { neuves, perimees } = ecart();
     expect(neuves, `Itérations NEUVES qui jouent une cascade à la main — passer par \`avanceEtapeCascade\`/\`draineCascade\` :\n  ${neuves.join('\n  ')}`).toEqual([]);
@@ -239,7 +241,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
 
 describe('le kit LÈVE sur une étape qui porte à la fois une table et un dé nu', () => {
   it('`avanceEtapeCascade` nomme l’étape à deux porteurs au lieu d’en jouer un', () => {
-    const etape = { id: 's0', kind: 'table', table: {}, de: {} } as unknown as CascadeStep;
+    const etape: CascadeStep = { id: 's0', kind: 'table', table: { tableId: 't' }, de: {} };
     const rien = () => {};
     const etat = { pendingCascade: cascadeDeTest([etape]), cascadeTableRoll: rien, cascadeDieRoll: rien, cascadeNext: rien };
     expect(() => avanceEtapeCascade(() => etat as unknown as GameState)).toThrow(/« s0 ».*`table`.*`de`/);

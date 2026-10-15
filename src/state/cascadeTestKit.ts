@@ -1,9 +1,9 @@
 /**
- * Kit de TEST pour `cascade.ts` — `spyApplier` mutualise le motif dupliqué (~13 sites,
- * `cascade.test.ts`/`rollSeam.test.ts`/`cadence-rapide.test.ts`) : un `registerCascadeApplier` qui
- * PUSH une entrée dérivée de l'étape validée dans un tableau `applied` puis renvoie une conséquence
- * (`journal`/`insert`/…) optionnelle. N'importer que depuis des `*.test.ts` — module de test, pas de
- * périmètre runtime.
+ * Kit de TEST pour `cascade.ts` — `spyApplier` mutualise le motif dupliqué des suites de cascade : un
+ * `registerCascadeApplier` qui PUSH une entrée dérivée de l'étape validée dans un tableau `applied` puis
+ * renvoie une conséquence (`journal`/`insert`/…) optionnelle. N'importer que depuis l'outillage de test,
+ * suite ou kit au sens d'`estSuiteVitest`/`estKitDeTest` (`scripts/guards/lib/fichierVitest.mjs`) —
+ * module de test, pas de périmètre runtime.
  */
 import { registerCascadeApplier, type CascadeApplier } from './cascade';
 import type { GameState } from './store';
