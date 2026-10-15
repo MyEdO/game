@@ -10,11 +10,12 @@ import { ENTETE_RACINE, portDev, portPreview, valeurEnteteRacine } from './scrip
 import { proseSource } from './scripts/source/prose-source-plugin.mjs';
 import { TAS_WORKER_MO } from './scripts/test/partition.mjs';
 import { RACINES_DE_LA_SUITE } from './scripts/guards/lib/racinesDeLaSuite.mjs';
-import { argumentsDeGenerationCode } from './scripts/gates/generationCode.mjs';
+import { argumentsDeGenerationCode, verdictDeGenerationCode } from './scripts/gates/generationCode.mjs';
 
 /** Les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs : registres « dépose un fichier →
  *  intégré » et INDEX DES IDS) produites au démarrage et à chaque ajout/suppression dans un dossier
- *  `defs/` (HMR récupère ensuite). Un rouge ARRÊTE le démarrage : le code ne compile pas sans elles. */
+ *  `defs/` (HMR récupère ensuite). Un rouge ARRÊTE le démarrage : le code ne compile pas sans elles. Un
+ *  DIFFÉRÉ (`verdictDeGenerationCode`, #2603) avertit et continue : le tenant de l'écrivain des dérivés les écrit. */
 function registryGen() {
   const dirs = (REGISTRIES as { dir: string }[]).map((r) => r.dir.replace(/\\/g, '/'));
   const touched = (f: string) => dirs.some((d) => f.replace(/\\/g, '/').includes(d));
@@ -23,7 +24,9 @@ function registryGen() {
     const r = spawnSync(process.execPath, ['scripts/docs/build-all.mjs', ...mode], {
       cwd: fileURLToPath(new URL('.', import.meta.url)), stdio: 'inherit',
     });
-    if (r.status !== 0) throw new Error(`registry-gen : cibles de code en échec (exit ${r.status ?? r.signal}) — npm run gen`);
+    const verdict = verdictDeGenerationCode(r.status);
+    if (verdict === 'differe') console.warn(`registry-gen : cibles de code DIFFÉRÉES (exit ${r.status}) — l'écrivain des dérivés est tenu, son tenant les écrit`);
+    else if (verdict === 'echec') throw new Error(`registry-gen : cibles de code en échec (exit ${r.status ?? r.signal}) — npm run gen`);
   };
   return {
     name: 'registry-gen',

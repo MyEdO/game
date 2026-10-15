@@ -3,7 +3,8 @@
 // build-systemes.mjs : manifest éditorial (src/data/raw.manifest.json) + calcul. Mode `--check` : fiche
 // périmée, dette orpheline ou sans objet = sortie 1.
 // Re-run : node scripts/raw/build-implemente.mjs (npm run raw:implemente).
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
+import { ecrireDoc } from '../docs/lib/ecriture-derives.mjs'
 import { parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { join } from 'node:path'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
@@ -711,7 +712,7 @@ function main() {
     return
   }
 
-  for (const r of touched) writeFileSync(join(ctx.rawDir, r.doc), r.content)
+  for (const r of touched) ecrireDoc(join(ctx.rawDir, r.doc), r.content)
   printStats(ctx, all, touched.length)
   if (orphans.length) printOrphans(orphans)
   if (sansObjet.length) printSansObjet(sansObjet)

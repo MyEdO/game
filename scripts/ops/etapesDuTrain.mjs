@@ -4,7 +4,7 @@
 // (`contexteDe`, `publier.mjs`), qui porte des QUESTIONS (`questionsDuTrain`) et des gestes NOMMÉS aux
 // arguments validés (`commit` → `commitDe`, `fusionner`, `abandonnerFusion`, `conclureFusionSansCiblesPures`,
 // `pousser`, `tronc`, `npm`,
-// `docs`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
+// `docs`, `attendreReconstruction`, `coursesCi`, `coursesDeFile`, `parentsDe`, `jobsEnEchec`, `lirePr`, `ouvrirPr`, `demanderFusion`,
 // `lireFusion`, `lireTicket`, `commenter`, `synchroniserPrincipal`). Le test de clôture (`etapesDuTrain.test.mjs`) refuse
 // à ce module toute liaison, importée de n'importe quel module de sa clôture, qui atteint un lancement
 // de processus par l'une des SOURCES de capacité de sa table : import d'un module intégré hors de ses
@@ -22,7 +22,7 @@ import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { refusDeSujet } from '../guards/lib/sujetDeCommit.mjs'
 import { marqueDe } from '../guards/lib/plageFermante.mjs'
 import { estCiblePure, perimetreDesMixtes } from '../docs/build-all.mjs'
-import { sourcesMesurees, touchesDocSources } from '../git-hooks/docs-rebuild.mjs'
+import { sourcesMesurees, touchesDocSources } from '../git-hooks/selection-des-derives.mjs'
 import { resoudreOutilLocal } from '../lancer-local.mjs'
 import { correspondGlob } from '../guards/lib/lister.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
@@ -155,9 +155,10 @@ function seuleLaCleGereeAChange(chemin, lire) {
 
 /**
  * Partage des chemins SALES en deux tas : ce que l'étape `docs` sait committer (`estDocDerive`, qui
- * reçoit `lire`) et le reste. PURE. Mesuré (2026-09-14, premier train réel) : après un rebase MANUEL, le hook
- * `post-rewrite` régénère les docs dérivés SANS les committer (`scripts/git-hooks/docs-rebuild.mjs`)
- * — sans ce partage, la préflight refusait le train pour une saleté que l'étape `docs` commet.
+ * reçoit `lire`) et le reste. PURE. Mesuré (2026-09-14, premier train réel) : après un rebase MANUEL, la
+ * reconstruction que demande le hook `post-rewrite` régénère les docs dérivés SANS les committer
+ * (`scripts/git-hooks/reconstruction.mjs`, attendue par `attendreLesDerives`) — sans ce partage, la préflight
+ * refusait le train pour une saleté que l'étape `docs` commet.
  * @param {string[]} chemins @param {readonly object[]} generators
  * @param {(chemin: string) => { tete: string | null, disque: string | null }} [lire]
  * @returns {{derives:string[], manuscrits:string[]}}
@@ -392,6 +393,8 @@ function reprendreApresEjection(ctx, journal, cause) {
     if (code.status !== 0)
       return { ok: false, raison: `${cause.raison} — fusion conclue, mais les cibles de code ne sont pas produites (\`npm run gen\` a rendu ${code.status ?? code.signal})${code.stderr ? `\n${finDeSortie(code.stderr)}` : ''}` }
   }
+  const enCours = attendreLesDerives(ctx, 'reprise')
+  if (enCours) return enCours
   journal.ejections = (journal.ejections ?? 0) + 1
   journal.tete = ctx.tete
   return {
@@ -399,6 +402,18 @@ function reprendreApresEjection(ctx, journal, cause) {
     relancer: ['docs', 'push-branche', 'pr', 'file'],
     dit: `${cause.raison} — ${TRONC.suivi} fusionné (tête ${journal.tete.slice(0, 9)}) : le train reprend à \`docs\``,
   }
+}
+
+/**
+ * La reconstruction des dérivés de l'arbre ATTENDUE (`ctx.attendreReconstruction`, #2603) avant une lecture de
+ * l'arbre sale : REND un refus si elle court encore à l'échéance, `null` sinon ; un verdict non nul est journalisé.
+ * @param {string} ou l'étape qui attend
+ */
+function attendreLesDerives(ctx, ou) {
+  const passe = ctx.attendreReconstruction()
+  if (passe.etat === 'en-cours') return { ok: false, raison: `${ou} : reconstruction des dérivés toujours en cours à l’échéance — \`--reprendre\` après sa fin` }
+  if (passe.code) ctx.journaliser(`[publier] ${ou} — reconstruction des dérivés : ${passe.etat}, code ${passe.code}${passe.log ? `, journal ${passe.log}` : ''}\n`)
+  return null
 }
 
 /** La table des ÉTAPES : nom, `jouer(ctx, journal)`, `dejaFaite(ctx, journal)`. Ajouter une étape,
@@ -424,6 +439,8 @@ export const ETAPES = [
       }
       const horsCi = refusDeBranche(ctx.branche, filtres)
       if (horsCi) return { ok: false, raison: horsCi }
+      const enCours = attendreLesDerives(ctx, 'preflight')
+      if (enCours) return enCours
       const { derives, manuscrits } = salesDuTrain(ctx)
       if (manuscrits.length)
         return {
@@ -477,6 +494,8 @@ export const ETAPES = [
       const touches = ctx.questions.ceQuiChange(journal.base, journal.tete).chemins()
       // La saleté est lue AVANT toute décision de saut : `touchesDocSources` ne court-circuite que la
       // RÉGÉNÉRATION, jamais le COMMIT.
+      const avant = attendreLesDerives(ctx, 'docs')
+      if (avant) return avant
       const salesAvant = ctx.questions.cheminsSales()
       const seulement = perimetreDesMixtes(ctx.generators).map((g) => g.script)
       const regenerer = touchesDocSources(touches, sourcesMesurees(racine), { seulement })
@@ -495,6 +514,8 @@ export const ETAPES = [
         if (!stocks.ok) return stocks
         if (stocks.dit) ctx.journaliser(`[publier] docs — ${stocks.dit}\n`)
       }
+      const apres = attendreLesDerives(ctx, 'docs')
+      if (apres) return apres
       const chemins = ctx.questions.cheminsSales()
       const { manuscrits } = salesDuTrain(ctx, chemins)
       if (manuscrits.length)

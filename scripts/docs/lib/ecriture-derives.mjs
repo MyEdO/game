@@ -4,7 +4,9 @@
 // `ecrireOuVerifier` écrit une cible, ou la compare au disque sous `--check` ; `enregistreur-lectures.mjs`
 // MESURE ce que le générateur lit, et `fusionnerLectures` / `serialiserSourcesLues` en font le dérivé
 // local `docs/.sources-lues.json` (jamais commité, #2203 A2).
-import { appendFileSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { appendFileSync, readFileSync, statSync } from 'node:fs'
+import { ecrireTexteAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
+import { sousLEpoque } from './ecrivain-derives.mjs'
 import { listerDossier } from '../../guards/lib/lister.mjs'
 import path from 'node:path'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
@@ -14,14 +16,14 @@ import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 export const estUnDocMarkdown = (cible) => cible.endsWith('.md')
 
 /**
- * Écrit un dérivé. N'ÉCRIT QUE SI LE RENDU DIFFÈRE : la suite lit les dérivés pendant que les gates
- * tournent en LANES parallèles (`scripts/gates/toutes.mjs`), et un fichier réécrit à l'identique
- * serait un lecteur sur un fichier en cours d'écriture.
+ * Écrit un dérivé. N'ÉCRIT QUE SI LE RENDU DIFFÈRE, ATOMIQUEMENT (`ecrireTexteAtomique`) et sous l'époque de
+ * la passe (`sousLEpoque`, #2603) : la suite lit les dérivés pendant que les gates tournent en LANES
+ * parallèles (`scripts/gates/toutes.mjs`).
  */
 export function ecrireDoc(chemin, contenu) {
   let actuel
   try { actuel = readFileSync(chemin, 'utf8') } catch { actuel = null }
-  if (actuel !== contenu) writeFileSync(chemin, contenu)
+  if (actuel !== contenu) sousLEpoque(() => ecrireTexteAtomique(chemin, contenu))
 }
 
 /** Variable d'env posée par build-all.mjs : le fichier où `ecrireOuVerifier` APPEND chaque cible qu'il

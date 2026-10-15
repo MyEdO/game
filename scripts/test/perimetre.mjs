@@ -19,26 +19,26 @@
 // posées (`tracer`, `VARIANTES`). Tous signés par `versionDesMemos`.
 import { spawnSync } from 'node:child_process'
 import { availableParallelism } from 'node:os'
-import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { join, posix, resolve, sep } from 'node:path'
+import { mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { join, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { performance } from 'node:perf_hooks'
 import { typescript, analyserCorpus } from '../guards/lib/dialecte.mjs'
-import { clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe, CHEMIN_TSCONFIG } from '../guards/lib/importGraph.mjs'
+import { clotureDImports, grapheInverse, resolveImport, aliasDuDepot, estModule, liaisonsDe } from '../guards/lib/importGraph.mjs'
 import { APPEL_DE_LECTURE, evaluateurDuDepot, evaluer, lecteurDExpressions, lectureDeModule, partiesDeRequete } from '../guards/lib/racinesBalayees.mjs'
 import { RACINES_DE_LA_SUITE } from '../guards/lib/racinesDeLaSuite.mjs'
 import { estSuiteVitest } from '../guards/lib/fichierVitest.mjs'
 import { paquetsDArgv } from '../guards/lib/porteSpawn.mjs'
 import { citeArgument } from '../guards/lib/commandeShell.mjs'
 import { arbrePrincipal, baseCommune, ceQuiChange, depotDe, lireEnLot, listerImage, racineDe, SUIVI, TRAVAIL, TRONC } from '../guards/lib/gitPorte.mjs'
-import { ancetresDe, LECTURES_DES_DEPENDANCES, selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/docs-rebuild.mjs'
+import { ancetresDe, LECTURES_DES_DEPENDANCES, selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/selection-des-derives.mjs'
 import { DRAPEAU_REGIME, EMPREINTES_WORKER_MO, PORTEE_LOT_S, capaciteDuLanceur, codeEnfant, environnementDe, maxWorkersMono } from './partition.mjs'
 import { DUREES_CI, dureesValides, memoCiDe, rapatrierDureesCi } from './dureesCi.mjs'
 import { EXTS_LINT, appelDuLint, lancerLint } from '../guards/lib/lintStage.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
 import { prendreVerrou } from './verrou.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
+import { blobDe, memosDe, specificateursMemoises, versionDesMemos } from '../guards/lib/memosDAnalyse.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -125,33 +125,6 @@ const VARIANTES = 8
 /** Le dossier des mémos, relatif à la racine du dépôt. */
 const CACHE = 'node_modules/.cache/perimetre'
 
-/** Les modules dont le code DÉCIDE du contenu des mémos : leur texte signe la version des mémos. Ce module en
- *  est : il calcule les mémos `declarations` (`declarationsDeLArbre`) et `liaisons` (leur projection). */
-const VERSIONNANTS = Object.freeze(['scripts/guards/lib/importGraph.mjs', 'scripts/guards/lib/racinesBalayees.mjs', 'scripts/guards/lib/dialecte.mjs', 'scripts/test/perimetre.mjs'])
-/** Les paquets dont la version DÉCIDE aussi des mémos : l'analyseur et le transpileur (`sourceALExecution`). */
-const PAQUETS_VERSIONNANTS = ['typescript', 'rolldown']
-
-/**
- * La version des mémos du dépôt de `racine` : le texte des `VERSIONNANTS`, le `tsconfig.json` du dépôt
- * (`CHEMIN_TSCONFIG`, lu par `sourceALExecution`) et la version installée des `PAQUETS_VERSIONNANTS`.
- * @param {string} racine
- * @param {(versionnant: string) => string} [lireVersionnant] le texte d'un `VERSIONNANTS`, relatif à ce dépôt
- */
-export function versionDesMemos(racine, lireVersionnant = (f) => readFileSync(join(RACINE, f), 'utf8')) {
-  const texte = (chemin) => { try { return readFileSync(chemin, 'utf8') } catch { return '' } }
-  return blobDe([
-    ...VERSIONNANTS.map(lireVersionnant),
-    texte(join(racine, CHEMIN_TSCONFIG)),
-    ...PAQUETS_VERSIONNANTS.map((p) => `${p}@${JSON.parse(texte(join(RACINE, 'node_modules', p, 'package.json')) || '{}').version ?? ''}`),
-  ].join('\0'))
-}
-
-/** L'empreinte de blob git d'un texte (`git hash-object`). */
-const blobDe = (texte) => {
-  const octets = Buffer.from(texte, 'utf8')
-  return createHash('sha1').update(`blob ${octets.length}\0`).update(octets).digest('hex')
-}
-
 /** Le test est-il une suite Vitest (`RACINES_DE_LA_SUITE`) ? une suite `node --test` (`scripts/**\/*.test.mjs`) ? */
 const estTestVitest = (rel) => RACINES_DE_LA_SUITE.some(({ dir, exts }) => rel.startsWith(`${dir}/`) && exts.some((e) => rel.endsWith(e)) && estSuiteVitest(rel))
 const estTestNode = (rel) => rel.startsWith('scripts/') && rel.endsWith('.test.mjs')
@@ -175,48 +148,8 @@ function imagesDuDiff(depot, { base, tete } = {}) {
   return { base: borne, tete: null, touches, post, avant }
 }
 
-/** Les mémos du dossier `dossier` (JSON par famille), signés par `version` : une autre version les vide. */
-export function memosDe(dossier, version) {
-  const familles = {}
-  const charger = (nom) => {
-    if (familles[nom]) return familles[nom].entrees
-    let entrees = {}
-    try {
-      const lu = JSON.parse(readFileSync(join(dossier, `${nom}.json`), 'utf8'))
-      if (lu.version === version) entrees = lu.memos
-    } catch { entrees = {} }
-    familles[nom] = { entrees, sale: false }
-    return entrees
-  }
-  return {
-    lire: (nom, cle) => charger(nom)[cle],
-    ecrire: (nom, cle, valeur) => { charger(nom)[cle] = valeur; familles[nom].sale = true },
-    sauver: () => {
-      for (const [nom, { entrees, sale }] of Object.entries(familles)) {
-        if (!sale) continue
-        mkdirSync(dossier, { recursive: true })
-        writeFileSync(join(dossier, `${nom}.json`), JSON.stringify({ version, memos: entrees }))
-      }
-    },
-  }
-}
-
 /** Les mémos du dépôt de `racine` sous `dossier` (`CACHE` par défaut), signés par `versionDesMemos`. */
 export const memosDuDepot = (racine, dossier = join(racine, CACHE)) => memosDe(dossier, versionDesMemos(racine))
-
-/**
- * L'option `specificateurs` de `clotureDImports` sur `memos`, adressée par contenu (extension, `blobDe`) :
- * une famille par régime de marche (`typesEffaces`), les sites n'étant valables que sous le leur.
- * @param {ReturnType<typeof memosDe>} memos @param {{ typesEffaces: boolean }} regime
- */
-export function specificateursMemoises(memos, { typesEffaces }) {
-  const famille = typesEffaces ? 'specificateurs' : 'specificateurs-typage'
-  const cle = (a, t) => `${posix.extname(a)}:${blobDe(t)}`
-  return {
-    lire: (a, t) => memos.lire(famille, cle(a, t)),
-    ecrire: (a, t, sites) => memos.ecrire(famille, cle(a, t), sites.map(({ spec, motifs, nature, ligne }) => ({ spec, motifs, nature, ligne }))),
-  }
-}
 
 /** Les `setupFiles` de la config Vitest (`CONFIG_VITEST`), lus sur son arbre syntaxique. */
 function setupFilesDe(texte) {

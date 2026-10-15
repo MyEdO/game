@@ -15,7 +15,7 @@ import { listerDossier } from '../guards/lib/lister.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { genererCode, issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
+import { CODE_SOURCE_MODIFIEE, genererCode, issueDe, natureDuRouge, perimetreDesMixtes } from './build-all.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
 import { CACHE_FRAICHEUR } from './lib/cache-fraicheur.mjs'
 import { chargerPreuve, preuveValide } from './lib/fraicheur-docs.mjs'
@@ -158,8 +158,8 @@ test('fermeture : une mutation de source connue entre passes reste fatale', () =
   const { racine, generateurs, options } = depotFermeture({ mutation: true })
   try {
     const vu = executer(racine, [], {}, [], generateurs)
-    assert.equal(vu.status, 1, vu.sortie)
-    assert.match(vu.sortie, /source modifiée ou non capturée : inputs\/a\.txt/)
+    assert.equal(vu.status, CODE_SOURCE_MODIFIEE, vu.sortie)
+    assert.match(vu.sortie, /source modifiée : inputs\/a\.txt/)
     assert.equal(preuveValide(racine, options).ok, false)
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
@@ -334,7 +334,7 @@ test('certification refusée : arrêt avant générateur aval', () => {
     const aval = readFileSync(path.join(racine, DOC_B))
     const vu = executer(racine, [])
     assert.equal(vu.status, 1, vu.sortie)
-    assert.match(vu.sortie, /listing modifié ou non capturé/)
+    assert.match(vu.sortie, /listing non capturé/)
     assert.doesNotMatch(vu.sortie, /g\/b\.mjs — début/)
     assert.deepEqual(readFileSync(path.join(racine, DOC_B)), aval)
     assert.equal(chargerPreuve(racine)?.generateurs['g/a.mjs'], undefined)

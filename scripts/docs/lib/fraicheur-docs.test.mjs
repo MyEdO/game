@@ -56,7 +56,8 @@ for (const present of [true, false]) test(`baseline conservée entre passes : so
     poser(racine, doc('a'), 'sortie')
     const vu = certifierGenerateur(racine, g, entree, opts, avant)
     assert.equal(vu.ok, false)
-    assert.match(vu.raison, /source modifiée ou non capturée : data\/connue\.txt/)
+    assert.match(vu.raison, /source modifiée : data\/connue\.txt/)
+    assert.equal(vu.sourceModifiee, true)
     assert.equal(preparation.fichiers.get('data/connue.txt'), capture)
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
@@ -81,6 +82,7 @@ test('inventaire Git : lien inutilisé capturé par son parent ; lien effectivem
     const refuse = certifierGenerateur(racine, g, { ...entree, fichiers: [...entree.fichiers, 'data/lien/source.txt'] }, opts, avant)
     assert.equal(refuse.ok, false)
     assert.match(refuse.raison, /hors racine/)
+    assert.equal(refuse.sourceModifiee, false, 'un refus de structure est un verdict')
   } finally {
     rmSync(racine, { recursive: true, force: true })
     rmSync(externe, { recursive: true, force: true })
@@ -151,6 +153,21 @@ test('préparation : une capture physique commune, null conservé, clés absente
     syncBuiltinESMExports()
     rmSync(racine, { recursive: true, force: true })
   }
+})
+
+// #2603
+test('une source modifiée pendant la passe : refus marqué `sourceModifiee`', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
+  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
+  const opts = { ...options, generateurs: [g] }
+  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: ['data'], cibles: [], git: [], sondes: [], incomplet: [] }
+  try {
+    const avant = avantGenerateur(racine, g, opts, preparerPreuves(racine, opts))
+    poser(racine, doc('a'), 'sortie')
+    poser(racine, 'data/source.txt', 'source modifiée')
+    const vu = certifierGenerateur(racine, g, entree, opts, avant)
+    assert.deepEqual([vu.ok, vu.sourceModifiee], [false, true], vu.raison)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
 test('baseline privée : modifier la préparation ne blanchit pas une source nouvelle', () => {

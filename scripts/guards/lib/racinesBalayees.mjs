@@ -9,7 +9,8 @@
 //     objet rendu s'évalue champ par champ (déstructuration, accès de propriété, défaut d'un champ
 //     absent) ; `map`/`flatMap` rendent les valeurs de leur rappel (`PROJECTIONS`) ; une boucle `for…of`,
 //     déstructurée ou non, parcourt les valeurs de son tableau ; le champ absent d'un objet étalé se lit
-//     dans ses étalements, l'argument absent prend le défaut de son paramètre.
+//     dans ses étalements, l'argument absent prend le défaut de son paramètre. L'appel de la primitive du
+//     dossier git (`DOSSIER_GIT`) vaut `<racine>/.git`, sans évaluer ses retours.
 //   · Une liaison RÉAFFECTÉE vaut sa valeur initiale et le membre droit de chaque `=` (`??=`, `||=`, `&&=`)
 //     qui la vise ; une réaffectation illisible rend `<nom> réaffectée`, un membre droit qui revient à la
 //     liaison `<nom> réaffectée en récurrence`.
@@ -32,6 +33,11 @@ const PORTES_GIT = Object.freeze({
   listerImage: Object.freeze({ depot: 0, depuis: 2, chemins: 'reste' }),
   lireEnLot: Object.freeze({ depot: 0, depuis: 2, chemins: 'argument' }),
 })
+
+/** La primitive canonique du DOSSIER GIT d'une racine (`<module>#<fonction>`) : le modèle la pose en `<x>/.git`, la
+ *  valeur réelle d'un worktree lié est `<commun>/worktrees/<nom>` ; dans les deux cas une racine exacte que rien
+ *  de suivi n'habite, `git help gitrepository-layout`. */
+const DOSSIER_GIT = 'scripts/hooks/barriere-outil.mjs#gitDirDe'
 
 /** Préfiltre textuel : un module sans appel nommé d'une lecture n'a aucun site de base. */
 export const APPEL_DE_LECTURE = new RegExp(`\\bCONTRATS_DE_DERIVATION\\b|\\b(?:${[...PRIMITIVES, ...Object.keys(PORTES_GIT)].join('|')})\\s*\\(`)
@@ -567,7 +573,9 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
         : 'non' in o || 'relais' in o || 'hors' in o ? [o] : [{ non: `propriété ${e.texte}` }])
       case 'appel': {
         const args = e.args.map((a) => valeurs(a, ctx))
-        return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c ? retour(c.fn, args) : 'lambda' in c ? rendusDeLambda(c, e.texte)
+        return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c && `${c.fn.f}#${c.fn.id}` === DOSSIER_GIT
+          ? (e.args[0] ? valeurs({ k: 'join', v: [e.args[0], { k: 'lit', v: '.git' }] }, ctx) : [{ non: 'argument absent' }])
+          : 'fn' in c ? retour(c.fn, args) : 'lambda' in c ? rendusDeLambda(c, e.texte)
           : 'relais' in c ? [c] : [{ non: `appel ${e.texte}` }])
       }
       case 'dir': return valeurs(e.v, ctx).map((v) => 'espace' in v ? parentExterne(v) : 'chemin' in v ? borne(posix.dirname(v.chemin || '.')) : 'texte' in v ? { texte: posix.dirname(v.texte) } : v)

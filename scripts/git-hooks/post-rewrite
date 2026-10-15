@@ -1,8 +1,7 @@
 #!/bin/sh
-# scripts/git-hooks/post-rewrite — après un REBASE ($1 = "rebase") : miroirs d'agents produits dans l'index
-# (`miroirs-d-agents.mjs`, #2578 : `rebase --continue` ne joue pas le pre-commit), puis docs dérivés.
+# scripts/git-hooks/post-rewrite — après un REBASE ($1 = "rebase"), UN processus (#2603) : miroirs d'agents produits
+# dans l'index (#2578 : `rebase --continue` ne joue pas le pre-commit), puis docs-rebuild.mjs.
 # `amend` : le post-commit a produit. Contrat de post-hook : ne fait jamais échouer l'opération qui vient d'avoir lieu.
 [ "${1:-}" = "rebase" ] || exit 0
-"${npm_node_execpath:-node}" "$(dirname "$0")/miroirs-d-agents.mjs" post-rewrite || true
 "${npm_node_execpath:-node}" "$(dirname "$0")/docs-rebuild.mjs" post-rewrite || true
 exit 0

@@ -429,10 +429,41 @@ describe('estDocDerive', () => {
 
 // ── Les gestes du train : des écrivains NOMMÉS, jamais une commande git libre ──────────────────
 
+/** La reconstruction des dérivés de l'arbre, soldée verte (`ctx.attendreReconstruction`, #2603). */
+const RECONSTRUCTION_SOLDEE = () => ({ etat: 'soldee', seq: 1, code: 0 })
+
+// #2603
+test('preflight et étape `docs` ATTENDENT la reconstruction des dérivés avant de lire l’arbre sale : en cours à l’échéance, refus nommé ; verdict rouge, journalisé', () => {
+  const lues = []
+  const journal = []
+  const ctx = (passe) => ({
+    racine: '/nulle-part', branche: 'chantier/x', generators: GENERATORS, filtresDePush: ['chantier/**'],
+    journaliser: (texte) => journal.push(texte),
+    attendreReconstruction: () => { lues.push('attente'); return passe },
+    questions: {
+      rebaseEntame: () => null, brancheDe: () => 'chantier/x', origineDe: () => 'https://exemple.invalid/autre.git',
+      ceQuiChange: () => ({ chemins: () => [] }), cheminsSales: () => { lues.push('sales'); return [] },
+    },
+  })
+  const preflight = ETAPES.find((e) => e.nom === 'preflight')
+  assert.deepEqual(preflight.jouer(ctx({ etat: 'en-cours' }), journalVide('chantier/x')),
+    { ok: false, raison: 'preflight : reconstruction des dérivés toujours en cours à l’échéance — `--reprendre` après sa fin' })
+  assert.deepEqual(lues, ['attente'], 'l’arbre sale n’est pas lu sous une reconstruction en cours')
+  const docs = ETAPES.find((e) => e.nom === 'docs')
+  lues.length = 0
+  assert.deepEqual(docs.jouer(ctx({ etat: 'en-cours' }), { base: 'b'.repeat(40), tete: 'a'.repeat(40) }),
+    { ok: false, raison: 'docs : reconstruction des dérivés toujours en cours à l’échéance — `--reprendre` après sa fin' })
+  assert.deepEqual(lues, ['attente'])
+  lues.length = 0
+  assert.deepEqual(preflight.jouer(ctx({ etat: 'mort', code: 70, log: '/j/1.log' }), journalVide('chantier/x')), { ok: false, raison: 'origin étranger au dépôt : https://exemple.invalid/autre.git' })
+  assert.deepEqual(journal, ['[publier] preflight — reconstruction des dérivés : mort, code 70, journal /j/1.log\n'])
+  assert.deepEqual(lues, ['attente', 'sales'], 'un verdict rendu laisse lire l’arbre')
+})
+
 test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
-  assert.deepEqual(cles, ['abandonnerFusion', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
+  assert.deepEqual(cles, ['abandonnerFusion', 'attendreReconstruction', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
   assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'textesDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
@@ -582,7 +613,7 @@ test('#2578 — préflight du train sur un `.claude/settings.json` sale : seule 
     const preflight = ETAPES.find((e) => e.nom === 'preflight')
     const reel = contexteDe({ racine, branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
     const ORIGINE = 'https://exemple.invalid/autre.git'
-    const ctx = { racine, branche: 'chantier/x', filtresDePush: ['chantier/**'], generators: reel.generators, questions: { ...reel.questions, origineDe: () => ORIGINE } }
+    const ctx = { racine, branche: 'chantier/x', filtresDePush: ['chantier/**'], generators: reel.generators, attendreReconstruction: RECONSTRUCTION_SOLDEE, questions: { ...reel.questions, origineDe: () => ORIGINE } }
     writeFileSync(join(racine, '.claude', 'settings.json'), remplacerCleJson(tete, 'hooks', { PreToolUse: [{ matcher: 'Bash', hooks: [] }] }))
     assert.deepEqual(preflight.jouer(ctx, journalVide('chantier/x')), { ok: false, raison: `origin étranger au dépôt : ${ORIGINE}` }, 'la saleté dérivée passe la porte de l’arbre')
     writeFileSync(join(racine, '.claude', 'settings.json'), tete.replace('Bash(git status)', 'Bash(git push)'))
@@ -939,6 +970,7 @@ test('étape `docs` : `build-all --mixtes` ROUGE est un refus nommé par la fin 
     const ctx = {
       racine,
       generators: GENERATORS,
+      attendreReconstruction: RECONSTRUCTION_SOLDEE,
       journaliser: () => {},
       docs: (mode) => { gestes.push(['docs', mode]); return { status: 1, stderr: 'docs:mixtes — ARRÊT sur g/a.mjs (sortie 1)' } },
       npm: (script) => { gestes.push(['npm', script]); return { status: 0 } },
@@ -976,6 +1008,7 @@ test('étape `docs` : la sélection se restreint à `perimetreDesMixtes` — la 
       const vu = docs.jouer({
         racine,
         generators: GENERATORS,
+        attendreReconstruction: RECONSTRUCTION_SOLDEE,
         journaliser: () => {},
         docs: (mode) => { gestes.push(['docs', mode]); return { status: 1, stderr: '' } },
         npm: (script) => { gestes.push(['npm', script]); return { status: 0 } },
@@ -1012,6 +1045,7 @@ describe('étape `docs` : stocks de sites régénérés après une fusion du tro
     const ctx = {
       racine,
       generators: GENERATORS,
+      attendreReconstruction: RECONSTRUCTION_SOLDEE,
       get tete() { return tete },
       journaliser: (l) => { lignes.push(l) },
       docs: () => assert.fail('aucune source de mixte dans la plage'),
@@ -1548,6 +1582,7 @@ const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = 
     conclureFusionSansCiblesPures: (p) => { gestes.push(['conclure', p]); return conclusion },
     docs: (mode) => { gestes.push(['docs', mode]); return { status: 0, stderr: '' } },
     generators: GENERATORS,
+    attendreReconstruction: RECONSTRUCTION_SOLDEE,
     questions: {
       commitsDeLaPlage: () => [{ sha: 'c'.repeat(40), message: 'feat(ops): refs #2178 — x' }],
       cheminsEnConflit: () => conflits,
@@ -1834,6 +1869,7 @@ test('preflight #2285 fc1 : fetch refusé conserve le diagnostic et interdit le 
     branche: 'chantier/x',
     filtresDePush: ['chantier/**'],
     generators: GENERATORS,
+    attendreReconstruction: RECONSTRUCTION_SOLDEE,
     tronc: () => vuFetch,
     questions: {
       rebaseEntame: () => null,
@@ -1860,6 +1896,7 @@ test('preflight #2285 fc1 : fetch et verdict verts poursuivent les lectures', ()
     tete: 'a'.repeat(40),
     filtresDePush: ['chantier/**'],
     generators: GENERATORS,
+    attendreReconstruction: RECONSTRUCTION_SOLDEE,
     tronc: () => { appels.push('fetch'); return { disponible: true } },
     questions: {
       rebaseEntame: () => null,
@@ -1886,6 +1923,7 @@ test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, a
     branche: 'chantier/x',
     filtresDePush: ['chantier/**'],
     generators: GENERATORS,
+    attendreReconstruction: RECONSTRUCTION_SOLDEE,
     tronc: () => ({ disponible: true }),
     questions: {
       rebaseEntame: () => null,

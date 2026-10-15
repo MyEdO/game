@@ -169,7 +169,13 @@ export const ECRIT_LU = {
       '(kill-pid.mjs, knip-exports-baseline.json, vite.config.ts) ; +1 écrivain le 2026-09-27 (#1806) : ' +
       '`git-hooks/docs-rebuild.test.mjs` pose une cale `git` (`mkdtempSync` + `writeFileSync` sous ' +
       'os.tmpdir(), `rmSync` en finally) sur le dépôt jetable de `instanceDeDepot` — sonde ' +
-      '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +3 écrivains le ' +
+      '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +1 écrivain le ' +
+      '2026-10-15 (#2603) : `git-hooks/reconstruction.mjs`, atteint par ' +
+      '`docs-rebuild.mjs` : l’état, les verrous et les journaux de la reconstruction sous `.git/hooks-git/` des dépôts ' +
+      '`instanceDeDepot` sous os.tmpdir() ; ' +
+      '`guards/lib/cssImages.test.mjs` (#2603) sauve les mémos d’analyse sous `.git/hooks-git/memos-analyse/` de dépôts ' +
+      '`instanceDeDepot` sous os.tmpdir(), retirés en finally ; `guards/lib/memosDAnalyse.test.mjs` (#2603) écrit ses mémos ' +
+      'sous des `mkdtempSync` d’os.tmpdir(), retirés par `t.after` ; +3 écrivains le ' +
       '2026-09-30 (#2132) : `hooks/suivi-lien-guard.test.mjs` et `hooks/inject-suivi.test.mjs` forgent un dépôt ' +
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
       '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, et `ops/suiviFichiers.mjs` (#2460), son écriture atomique, n’écrivent que derrière sa porte ' +
@@ -230,7 +236,10 @@ export const ECRIT_LU = {
       'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<nom>.verrou` voisin du fichier écrit, le verrou de mesure `.<N>.mesure.verrou` (#2460), leur temporaire et leur reprise, dans ce même ' +
       'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; `synchroniser.mjs` (#2187 : il avance ' +
       'l’arbre PRINCIPAL — fichiers W′, `.git/index`, `.git/index.lock`, `.git/synchro/`, `.git/synchro-conflits/` — ' +
-      'sous sa porte `import.meta.main` ; son banc ne le joue que sur des dépôts `instanceDeDepot` sous os.tmpdir()) ; `ecritureJsonAtomique.mjs` (scripts/guards/lib), atteint par `publier.mjs`, ' +
+      'sous sa porte `import.meta.main` ; son banc ne le joue que sur des dépôts `instanceDeDepot` sous os.tmpdir()) ; ' +
+      '`reconstruction.mjs` (#2603), atteint par `synchroniser.mjs` et `bootstrap-conteneur.mjs` : son état, ses verrous et ses ' +
+      'journaux vivent sous `.git/hooks-git/`, hors de l’arbre, et ses bancs ne le jouent que sur des dépôts `instanceDeDepot` ' +
+      'sous os.tmpdir() ; `ecritureJsonAtomique.mjs` (scripts/guards/lib), atteint par `publier.mjs`, ' +
       'pour `vigie.mjs` (#2280, #2603 : les mémoires machine des verdicts et des têtes de l’origine, et leurs verrous, sous `<arbre principal>/.git/vigie/`, répertoire git ' +
       'COMMUN, hors de l’arbre ; ses bancs `vigie.test.mjs` et `ci.test.mjs` n’écrivent que sous `mkdtempSync`) ; ' +
       '`reprendre-file.mjs` ne peut ajouter au résumé GitHub que sous sa porte CLI ' +
@@ -270,9 +279,11 @@ export const ECRIT_LU = {
       '+1 écrivain le 2026-10-07 (#2400) : `lintStage.mjs`, atteint par `perimetre.mjs`, dont le banc injecte le lanceur de lint ; ' +
       '+1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` atteint `ecrireOuVerifier` par le générateur, ' +
       'sans jamais passer sa porte d’écriture `import.meta.main` (formats calculés en mémoire) ; +1 le 2026-10-07 (#2400, fusion de #2456) : ' +
-      '`fraicheur-docs.mjs`, atteint par `perimetre.mjs` → `docs-rebuild.mjs` → `build-all.mjs`, n’écrit sa preuve ' +
+      '`fraicheur-docs.mjs`, atteint par `perimetre.mjs` → `selection-des-derives.mjs` → `build-all.mjs`, n’écrit sa preuve ' +
       '(node_modules/.cache/docs-fraicheur.json) que depuis `executer` sous la porte `import.meta.main` de build-all.mjs, ' +
-      'que les bancs de la gate n’appellent pas',
+      'que les bancs de la gate n’appellent pas ; +1 le 2026-10-15 (#2603) : `purgerPerimes.mjs`, atteint par `perimetre.mjs` → ' +
+      '`memosDAnalyse.mjs`, ne purge que le dossier de mémos de son appelant (node_modules/.cache/perimetre, ou un ' +
+      '`mkdtempSync` d’os.tmpdir() des bancs)',
   },
   'test:docs': {
     ecrit: [],
@@ -281,7 +292,8 @@ export const ECRIT_LU = {
       'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
       'scripts/etape-profilee.mjs',
       'scripts/git-hooks/', 'scripts/hooks/',
-      'scripts/test/verrou.mjs', 'scripts/node-requis.mjs',
+      'scripts/test/verrou.mjs', 'scripts/test/verrouDeSuite.mjs', 'scripts/test/verrouGestesLourds.mjs', 'scripts/test/gitDeBanc.mjs',
+      'scripts/test/node-tests.mjs', 'scripts/node-requis.mjs',
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
       'scripts/gates/', 'scripts/ops/reprendre-file.mjs', 'scripts/ops/ruleset-main.mjs',
       'scripts/art-ref/',
@@ -315,7 +327,13 @@ export const ECRIT_LU = {
       '`scripts/gates/toutes.mjs` atteint `purgerPerimes`, mais `principal` reste derrière `import.meta.main` ; ' +
       'ni ses mkdir/writeFile ni sa purge ne sont appelés. `scripts/ops/reprendre-file.mjs` garde sa CLI ' +
       'derrière `import.meta.main` : `reprendreFile` et appendFileSync sous GITHUB_STEP_SUMMARY ne sont pas appelés. ' +
-      'Les seules sorties de la sonde de lectures sont archivées hors arbre',
+      'Les seules sorties de la sonde de lectures sont archivées hors arbre ; +2 écrivains le 2026-10-15 (#2603) : ' +
+      '`docs/lib/ecrivain-derives.test.mjs` joue la course passe/post-hook dans un dépôt `instanceDeDepot` sous os.tmpdir() ' +
+      '(générateur lent et signaux sous `mkdtempSync`, `rmSync` en finally) ; il importe `docs-rebuild.mjs`, qui atteint ' +
+      '`reconstruction.mjs` (état, verrous et journaux sous `.git/hooks-git/` des seuls dépôts jetables) ; ' +
+      '`miroirs-d-agents.mjs` y atteint `memosDAnalyse.mjs`, dont les ' +
+      'mémos ne s’écrivent que sous `<git-common-dir>/hooks-git/memos-analyse/`, hors de l’arbre, et seulement par un post-hook ' +
+      'ou une porte que les bancs ne jouent que dans des dépôts `instanceDeDepot` sous os.tmpdir()'
   },
   'deps:unused': {
     ecrit: [],
@@ -442,7 +460,7 @@ export const ECRIT_LU = {
       // scripts/docs/build-all.mjs).
       'docs/raw/**/00-index.md':
         '`build-atlas-index.test.mjs` IMPORTE l’écrivain des blocs des index de l’Atlas (cœurs du ' +
-        'routeur, domaines de chaque cœur) ; son unique `writeFileSync` vit dans `main()`, sous sa ' +
+        'routeur, domaines de chaque cœur) ; son unique écriture (`ecrireDoc`) vit dans `main()`, sous sa ' +
         'porte `import.meta.main` (scripts/raw/build-atlas-index.mjs), et le banc n’appelle que ses fonctions ' +
         'PURES (`lignesDesCoeurs`, `lignesDesDomaines`, `blocsDeLAtlas`, `injecter`). Le cas `--check` ' +
         'le LANCE, mais dans un arbre JETABLE de `os.tmpdir()` dont il est le cwd : ce sont ces ' +
@@ -481,13 +499,16 @@ export const ECRIT_LU = {
       'dans `assemble()`, appelée par le seul `main()`, sous sa porte `import.meta.main` ; +4 le 2026-09-20 ' +
       '(#1825) : la fabrique d’Atlas jetable (`atlasFixture.mjs`) et les deux bancs qui la ' +
       'prennent (`_lib.test.mjs`, `build-atlas-index.test.mjs`), même régime os.tmpdir(), et ' +
-      '`build-atlas-index.mjs`, ACQUIS par l’import de son banc — son `writeFileSync` vit dans ' +
+      '`build-atlas-index.mjs`, ACQUIS par l’import de son banc — son écriture (`ecrireDoc`) vit dans ' +
       '`main()`, sous sa porte `import.meta.main` ; +1 lecture le 2026-09-22 (#1873) : ' +
       '`atlas-domain.workflow.test.mjs` lit les fiches d’agent de .claude/agents/ (frontmatter `tools:`) ' +
       'pour tenir la liste des types SANS outil d’écriture (`typesEnLectureSeule` de scripts/guards/lib/typesDAgent.mjs) — ' +
       'la gate n’est plus sautable : un push qui donne `Edit` à `lecteur` doit la jouer ; +1 écrivain le ' +
       '2026-09-23 (#1739) : `pdf-de.test.mjs`, même régime os.tmpdir() (`avecSource`) — son PDF et ses dossiers de sortie Marker ' +
-      'factices ne naissent que sous la racine `source` INJECTÉE dans la couture (scripts/raw/_lib.mjs)',
+      'factices ne naissent que sous la racine `source` INJECTÉE dans la couture (scripts/raw/_lib.mjs) ; +3 écrivains le ' +
+      '2026-10-15 (#2603) : `ecritureJsonAtomique.mjs`, `renommageResilient.mjs` et `test/verrou.mjs`, ACQUIS par ' +
+      '`ecriture-derives.mjs` → `ecrivain-derives.mjs` (l’écrivain unique des dérivés) — `ecrireDoc` n’est appelé que ' +
+      'sous la porte `import.meta.main` des scripts de scripts/raw/, que les bancs de la gate n’appellent pas',
   },
   'raw:check-refs': {
     ecrit: [],
@@ -500,7 +521,10 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: ['docs/raw/', 'src/', 'Source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
-      'aucune écriture dans les scripts atteints ; LIT Source/, les stocks scripts/raw/dead-code-refs-stock.json et ' +
+      'aucune écriture dans l’arbre : `ecritureJsonAtomique.mjs`, `renommageResilient.mjs` et `test/verrou.mjs`, ACQUIS (#2603) par ' +
+      '`build-implemente.mjs` → `ecriture-derives.mjs` → `ecrivain-derives.mjs` (l’écrivain unique des dérivés), n’écrivent ' +
+      'que sous la porte `import.meta.main` de scripts/raw/build-implemente.mjs, que la gate n’appelle pas ; ' +
+      'LIT Source/, les stocks scripts/raw/dead-code-refs-stock.json et ' +
       'scripts/raw/empty-line-code-refs-stock.json, absents quand ils sont soldés, et scripts/raw/graphy-stock.json (sites différés)',
   },
   'raw:check-ancres': {

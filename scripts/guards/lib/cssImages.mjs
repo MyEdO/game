@@ -3,12 +3,11 @@
 // CÔTÉ `{ manifeste, partagees, reutilises, lire }` qu'en lit la garde `RECLASSEMENT:`. Les imports
 // qui fixent `reutilises` sont ceux de `directImportsOf` (`importGraph.mjs`) sur le contenu entier des
 // modules que `git grep -l` (`fichiersDuGrep`, `gitPorte.mjs`) présélectionne (`motifDeCitation`), lus par lot
-// (`lireEnLot`) et résolus contre l'arbre lu. Appelants : `cssCouchesAudit.ts` (disque),
-// `ventilationDeGit` (l'admission du RETOURNÉ par la régénération de `cssCouchesAudit.ts`, et
-// `scripts/ui/ventilation-css-couches.mts`), la porte du commit, la porte de plage au push.
+// (`lireEnLot`) et résolus contre l'arbre lu ; leurs spécificateurs NON RÉSOLUS se mémoïsent par contenu
+// (`memosDAnalyse.mjs`).
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { CHEMIN_TSCONFIG, aliasDe, directImportsOf, estModule, pathspecsDeModules } from './importGraph.mjs'
+import { CHEMIN_TSCONFIG, aliasDe, estModule, globsDe, importsDirectsDesSites, pathspecsDeModules, specificateursDe } from './importGraph.mjs'
 import { analyserCorpus } from './dialecte.mjs'
 import { INDEX, SUIVI, TRAVAIL, ceQuiChange, depotDe, fichiersDuGrep, lireEnLot, listerImage, shaDe } from './gitPorte.mjs'
 import {
@@ -64,11 +63,12 @@ export function motifDeCitation(manifeste) {
  * Les imports DIRECTS (`directImportsOf`, `importGraph.mjs`) de chaque chemin de `rels` dans l'arbre
  * `source`, lus par lot (`lireTout`) et résolus contre les SEULS fichiers (`lister`) et les alias
  * (`tsconfig.json`, `aliasDe`) de cet arbre : le disque n'est pas l'arbre jugé (#1806). Un chemin absent
- * de l'arbre, ou qui n'est pas un module de code (`estModule`), n'importe rien.
- * @param {SourceCss} source @param {readonly string[]} rels @param {{ racine?: string }} [options]
+ * de l'arbre, ou qui n'est pas un module de code (`estModule`), n'importe rien. Un texte déjà analysé
+ * (`specificateurs`, `memosDAnalyse`) ne se reparse pas : seule sa résolution, qui dépend de l'arbre, se refait.
+ * @param {SourceCss} source @param {readonly string[]} rels @param {{ racine?: string, specificateurs?: import('./memosDAnalyse.mjs').Specificateurs }} [options]
  * @returns {[string, string[]][]}
  */
-export function importsDansLArbre(source, rels, { racine = '.' } = {}) {
+export function importsDansLArbre(source, rels, { racine = '.', specificateurs } = {}) {
   const modules = rels.filter(estModule)
   if (!modules.length) return rels.map((rel) => [rel, []])
   const racineAbs = resolve(racine).split('\\').join('/')
@@ -77,8 +77,18 @@ export function importsDansLArbre(source, rels, { racine = '.' } = {}) {
   const textes = source.lireTout(modules)
   const fichiers = [...new Set(modules)].map((rel) => ({ rel, text: textes.get(rel) })).filter(({ text }) => typeof text === 'string')
   const imports = new Map()
-  for (const { fichier, sourceFile, diagnostics } of analyserCorpus(fichiers))
-    imports.set(fichier.rel, directImportsOf(fichier.rel, sourceFile, { ...options, diagnostics }))
+  const aAnalyser = []
+  for (const fichier of fichiers) {
+    const sites = specificateurs?.lire(fichier.rel, fichier.text)
+    if (sites) imports.set(fichier.rel, importsDirectsDesSites(fichier.rel, sites, options))
+    else aAnalyser.push(fichier)
+  }
+  for (const { fichier, sourceFile, diagnostics } of analyserCorpus(aAnalyser)) {
+    const sites = [...specificateursDe(resolve(racineAbs, fichier.rel), sourceFile, diagnostics),
+      ...globsDe(sourceFile).map(({ motifs, ligne }) => ({ spec: motifs.join(','), motifs, nature: 'glob', ligne }))]
+    specificateurs?.ecrire(fichier.rel, fichier.text, sites)
+    imports.set(fichier.rel, importsDirectsDesSites(fichier.rel, sites, options))
+  }
   return rels.map((rel) => [rel, [...(imports.get(rel) ?? [])]])
 }
 
@@ -86,14 +96,15 @@ export function importsDansLArbre(source, rels, { racine = '.' } = {}) {
  * Le CÔTÉ d'un arbre : manifeste, `FEUILLES_PARTAGEES`, `fichier`s RÉUTILISÉS et lecteur de texte. Les
  * importeurs sont les modules de `src/` qui citent le manifeste (`citants`, `motifDeCitation`), lus
  * ENTIERS (`importsDansLArbre`).
- * @param {SourceCss} source @param {{ racine?: string }} [options] le dépôt où les imports se résolvent
+ * @param {SourceCss} source @param {{ racine?: string, specificateurs?: import('./memosDAnalyse.mjs').Specificateurs }} [options] le dépôt où les
+ *   imports se résolvent, et les mémos d'analyse (`memosDAnalyse`)
  * @throws {Error} manifeste ou `cssCouches.mjs` illisible.
  */
-export function coteCss(source, { racine = '.' } = {}) {
+export function coteCss(source, { racine = '.', specificateurs } = {}) {
   const manifeste = manifesteDe(source.lire(CHEMIN_MANIFESTE))
   const partagees = feuillesPartageesDe(source.lire(CHEMIN_COUCHES))
   const motif = motifDeCitation(manifeste)
-  const imports = motif ? importsDansLArbre(source, source.citants(motif), { racine }) : []
+  const imports = motif ? importsDansLArbre(source, source.citants(motif), { racine, specificateurs }) : []
   return { manifeste, partagees, reutilises: fichiersReutilises(manifeste, imports), lire: source.lire }
 }
 
