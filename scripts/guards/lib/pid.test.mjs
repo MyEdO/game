@@ -2,7 +2,7 @@
 // sondé ; ESRCH, EPERM et toute autre erreur de `process.kill(pid, 0)` portés par une sonde injectée.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { estPidDeProcessus, estPidVivant } from './pid.mjs'
+import { creationMemorisee, estPidDeProcessus, estPidVivant, estPidVivantDepuis } from './pid.mjs'
 import { constructionsReserveesDuCorpus, scanConstructionsReservees, SONDE_D_EXISTENCE } from './canonUnique.mjs'
 import { corpusDesGardes } from './commentPoison.mjs'
 
@@ -32,6 +32,46 @@ test('estPidVivant : ESRCH = mort, EPERM = vivant, toute autre erreur remonte te
   assert.equal(estPidVivant(7, { sonder: () => { throw erreurDeSonde('ESRCH') } }), false)
   assert.equal(estPidVivant(7, { sonder: () => { throw erreurDeSonde('EPERM') } }), true)
   assert.throws(() => estPidVivant(7, { sonder: () => { throw erreurDeSonde('EINVAL') } }), (e) => e.code === 'EINVAL')
+})
+
+// #2603
+test('estPidVivantDepuis : pid invalide ou ESRCH mort sans mesure ; mesure indéterminée vivante ; création au-delà de naissance + tolérance = pid réutilisé, mort', () => {
+  const mesures = []
+  const identite = (creation) => ({ toleranceMs: 1_000, lireCreation: (pid) => { mesures.push(pid); return creation } })
+  for (const pid of INVALIDES) assert.equal(estPidVivantDepuis(pid, 5_000, identite(5_000)), false, String(pid))
+  const esrch = (pid) => estPidVivant(pid, { sonder: () => { throw erreurDeSonde('ESRCH') } })
+  assert.equal(estPidVivantDepuis(7, 5_000, identite(5_000), { estVivant: esrch }), false)
+  assert.deepEqual(mesures, [], 'un mort ne se mesure pas')
+  const vivant = () => true
+  assert.equal(estPidVivantDepuis(7, 5_000, identite(null), { estVivant: vivant }), true)
+  assert.equal(estPidVivantDepuis(7, 5_000, identite(6_000), { estVivant: vivant }), true)
+  assert.equal(estPidVivantDepuis(7, 5_000, identite(6_001), { estVivant: vivant }), false)
+  assert.deepEqual(mesures, [7, 7, 7])
+})
+
+// #2603
+test('creationMemorisee : un pid réutilisé à t = 1 s est vu mort à t = `pasMs`, pas avant', () => {
+  let t = 0
+  let creation = 5_000
+  let lectures = 0
+  const lireCreation = creationMemorisee(() => { lectures += 1; return creation }, { pasMs: 60_000, horloge: () => t })
+  const juge = () => `${t}:${estPidVivantDepuis(7, 5_000, { lireCreation, toleranceMs: 0 }, { estVivant: () => true })}`
+  const vu = [juge()]
+  creation = 30_000
+  for (t of [1_000, 59_999, 60_000]) vu.push(juge())
+  assert.deepEqual(vu, ['0:true', '1000:true', '59999:true', '60000:false'])
+  assert.equal(lectures, 2)
+})
+
+// #2603
+test('creationMemorisee : la mesure est gardée par `cle`, le pid par défaut', () => {
+  let lectures = 0
+  const lireCreation = creationMemorisee(() => { lectures += 1; return 1 }, { pasMs: 60_000, horloge: () => 0 })
+  lireCreation(7, 'a')
+  lireCreation(7, 'a')
+  lireCreation(7, 'b')
+  lireCreation(7)
+  assert.equal(lectures, 3)
 })
 
 // ── La sonde d'existence a UN foyer ────────────────────────────────────────────────────────────────

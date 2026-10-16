@@ -10,7 +10,8 @@
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { ENV_GIT_FEINT, ajouterOrigine, commitDe, depotDe, initialiserDepot, natureDuChemin, poserRef, reglerDepot, reussi, shaDe } from './gitPorte.mjs'
+import { ENV_GIT_FEINT, ajouterOrigine, commitDe, depotDe, initialiserDepot, poserRef, reglerDepot, reussi, shaDe } from './gitPorte.mjs'
+import { natureDuChemin } from './natureDuChemin.mjs'
 import { listerDossier } from './lister.mjs'
 
 /** @typedef {{ fichiers?: Record<string, string>, branche?: string, origin?: string | null, message?: string, refs?: Record<string, string>, commit?: boolean }} ParamsDepot */
