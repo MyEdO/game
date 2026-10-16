@@ -206,11 +206,49 @@ describe('Cascade séquentielle influençable', () => {
     const hote = useGame.getState().pendingCascade!.participants[0];
     useGame.setState({ pendingCascade: null });
     const resolved = runCascadeImmediate(useGame.getState, useGame.setState, [hote]);
-    expect(resolved, 'pilote INTERROMPU : aucune étape rendue, l’appelant n’enchaîne rien (#1595)').toBeUndefined();
+    expect(resolved, 'pilote INTERROMPU : aucune étape rendue, l’appelant n’enchaîne rien (#1765)').toBeUndefined();
     const p = useGame.getState().pendingCascade!;
     expect(p.cursor).toBe(0);
     expect(p.participants[0].committed).toBeFalsy();
     expect(useGame.getState().pendingExtendedTest).not.toBeNull();
+  });
+
+  it('runCascadeImmediate : parqué sur l’étape HÔTE, la fenêtre rendue → la reprise du pilote finit la séquence sans fenêtre, comme sans parcage (#1765)', () => {
+    const g = useGame.getState;
+    const s = useGame.setState;
+    const h = hero();
+    spyApplier('extendedJet', applied, () => ({ kind: 'extendedJet', success: true }));
+    spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+    const sequence = (): CascadeStep[] => {
+      g().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+      const hote = g().pendingCascade!.participants[0];
+      s({ pendingCascade: null });
+      return [hote, step('s1', h.id), { id: 'd', kind: 'note', actorId: h.id }];
+    };
+
+    const temoinSteps = sequence();
+    s({ pendingExtendedTest: null });
+    g().seedRng(7);
+    const temoin = runCascadeImmediate(g, s, temoinSteps)!;
+    const appliquesTemoin = [...applied];
+    expect(appliquesTemoin.map((a) => a.kind)).toEqual(['extendedJet', 'tally', 'note']);
+
+    applied.length = 0;
+    const steps = sequence();
+    g().seedRng(7);
+    expect(runCascadeImmediate(g, s, steps), 'pilote PARQUÉ sur l’hôte').toBeUndefined();
+    expect(g().pendingCascade!.piloteImmediat, 'la séquence parquée sur l’hôte ne porte pas la reprise').toEqual({ sansContexte: true });
+    expect(applied).toEqual([]);
+
+    s({ pendingExtendedTest: null });
+    const done = advanceCascade(g, s)!;
+    expect(done, 'la reprise n’a pas fini la séquence : le curseur est resté sur une fenêtre').toBeTruthy();
+    expect(done.cursor).toBe(steps.length);
+    expect(g().pendingCascade, 'une fenêtre s’est rouverte après le rendu de l’hôte').toBeNull();
+    expect(applied.filter((a) => a.kind === 'extendedJet'), 'l’hôte validé plus d’une fois').toHaveLength(1);
+    expect(done.participants.every((x) => x.committed)).toBe(true);
+    expect(applied).toEqual(appliquesTemoin);
+    expect(done.participants.map((x) => x.result?.roll)).toEqual(temoin.map((x) => x.result?.roll));
   });
 
   it('runCascadeImmediate : CHOIX avec `defaultChoice` authoré → tranché sans surfacer (comportement inchangé)', () => {
