@@ -34,7 +34,7 @@ import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { canAidTeam } from '../state/commandTeam';
 import { shipOfCrew } from '../state/shipPostes';
 import { quartIndex } from '../state/shipCrew';
-import { isVehicle, estNavire } from '../engine/vehicle';
+import { isVehicle, estNavire } from '../engine/coque';
 import { controlsCombatant } from '../state/netOwnership';
 import { inBattleId } from '../state/combatants';
 import { combatDistance } from '../state/footprint';
@@ -613,7 +613,7 @@ export function CombatConsole() {
   // les cases navales du registre, dans la MÊME travée.
   const controlled = controlsCombatant(useGame.getState(), active);
   const vehicule = isVehicle(active);
-  const navire = estNavire(active); // les Tests d'équipage sont NAVALS (MDG 14) ; une coque routière n'en a pas
+  const navire = estNavire(active); // MDG 14
   /** FORME SPECTATRICE (arbitrage utilisateur 2026-08-24, verbatim : « D'ailleurs même au tour de
    *  l'adversaire, pourquoi je vois son pont entier ? Même RT ne fait pas ca ») — tout tour NON tenu
    *  par ce siège (ennemi, IA, autre siège coop, auto-combat) ET toute pause de Round : la bande
@@ -916,7 +916,7 @@ export function CombatConsole() {
     // les MÊMES cases du registre, pas une 2ᵉ barre. Bordée et Rude épreuve dépensent l'Action du navire
     // (gate `navire-action`) ; chant et recharge sont des tâches parallèles (gate `toujours`), donc leur
     // disponibilité RÉELLE est une restriction de SITE : sans chanteur / sans pièce déchargée, case inerte.
-    // La recharge d'une pièce montée vaut pour toute coque (LDB 62 l.335) ; le reste est naval (MDG 14).
+    // Recharge : LDB 62 l.335 ; bordée, Rude épreuve, chant : MDG 14.
     navire ? cellFor('battery', 'attaque', { off: (active.postes ?? []).length === 0 }) : undefined,
     navire ? cellFor('crew-test-rude-epreuve', 'geste', { args: { shipId: active.id, crewTestId: 'rude-epreuve' } }) : undefined,
     navire ? cellFor('sing-shanty', 'geste', { off: !canSing, args: { shipId: active.id } }) : undefined,

@@ -52,6 +52,7 @@ import { registerScene } from './store';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence } from '../data';
+import { profilNavalDe } from '../engine/coque';
 import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
@@ -436,7 +437,7 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const plan = get().travelPlan!;
   const sea = plan.sea!;
   const hull = plan.vehicle!;
-  const vd = findVehicleById(hull.creatureId ?? '')?.ship;
+  const vd = profilNavalDe(hull);
   const traits = hullNavalTraits(hull);
   const vessel = get().vessel;
   const propulsion = seaRig(hull);

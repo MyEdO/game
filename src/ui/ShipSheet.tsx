@@ -12,7 +12,7 @@ import { ShipRolesPanel } from './ShipRolesPanel';
 import { StationSheet } from './StationSheet';
 import { postesToStations } from '../state/stations';
 import { posteAnchor } from '../state/shipPostes';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle } from '../engine/coque';
 import type { Combatant, NavalTraitRef } from '../engine/types';
 import type { Dir8 } from '../state/dir8';
 import { Icon } from './Icon';

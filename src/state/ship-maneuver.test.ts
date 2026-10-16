@@ -89,7 +89,7 @@ describe('maneuverShip — Test de Navigation du barreur → vire le navire (MDG
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 },
     }) as unknown as Combatant;
   const ship = (): Combatant =>
-    ({ id: 'ship', label: 'Barge', kind: 'npc', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] }) as unknown as Combatant;
+    ({ id: 'ship', label: 'Barge', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] }) as unknown as Combatant;
 
   it('vire le navire SSI le Test réussit (virage ⇔ réussite ; barreur = meilleur en Voile)', () => {
     seedBattleRng(7);
@@ -256,7 +256,7 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
       skills: [{ id: 'voile', characteristic: 'agilite', advances: 40 }], talents: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
   const ship2 = (): Combatant =>
-    ({ id: 'ship', label: 'Barge', kind: 'npc', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] }) as unknown as Combatant;
+    ({ id: 'ship', label: 'Barge', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] }) as unknown as Combatant;
 
   it('rollShipManeuver NE MUTE RIEN (ni cap, ni position) — il ne fait que résoudre le Test', () => {
     seedBattleRng(7);
@@ -363,7 +363,7 @@ describe('flux shipManeuver (store) — bouton HUD → modale → confirm (MDG 1
       skills: [{ id: 'voile', spec: 'chaland', characteristic: 'agilite', advances: 40 }], talents: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } }) as unknown as Combatant;
   const ship = (): Combatant =>
-    ({ id: 'ship', label: 'Barge', kind: 'npc', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] }) as unknown as Combatant;
+    ({ id: 'ship', label: 'Barge', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] }) as unknown as Combatant;
 
   it('battleShipManeuver ouvre le Test d’équipage (participants) ; setTurn ; roll PJ ; confirm → Action consommée', () => {
     seedBattleRng(7);
@@ -506,7 +506,7 @@ describe('Test d’équipage : un rôle devenu non tentable au jet pose le refus
       wounds: { current: 10, max: 10 }, advantage: 0, conditions: [], fortune: 2, resilience: 1,
       skills: [{ id: 'voile', spec: 'chaland', characteristic: 'agilite', advances: 40 }], talents: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } } as unknown as Combatant;
-    const ship = { id: 'ship', label: 'Barge', kind: 'npc', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] } as unknown as Combatant;
+    const ship = { id: 'ship', label: 'Barge', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['helm'], pos: { x: 5, y: 5 }, conditions: [], weapons: [] } as unknown as Combatant;
     useGame.setState({ battle: { combatants: [ship, helm], order: ['helm'], turn: 0, acted: false } as never, party: [helm], facing: { ship: 'N' }, pendingShipManeuver: null, scene: null as never });
     useGame.getState().battleShipManeuver('helm');
     const part = useGame.getState().pendingShipManeuver!.participants.find((x) => x.id === 'helm')!;

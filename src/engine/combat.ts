@@ -462,6 +462,10 @@ export interface AttackResult {
   critLocation?: HitLocation;
   damage?: number; // dégâts bruts (avant mitigation)
   woundsLost?: number; // Blessures réellement perdues
+  /** Dégâts de la touche encaissés par un TIERS (Martyr, LDB 43 l.107) : la cible n'en reçoit aucun, ni à la
+   *  Localisation du Critique (`woundsAtCritLocation`) ni en surcroît de Déviation (LDB 63 l.30). Posé une fois,
+   *  il voyage avec la touche : un coup qui ré-entre après une fenêtre ne les transfère pas deux fois. */
+  degatsTransferes?: boolean;
   /** PA externe location-INDÉPENDANT appliqué aux Dégâts (PA d'opposition `extraAP` − Tir sûr) — permet de
    *  recalculer les Blessures à la localisation RE-TIRÉE d'un Coup Critique (`woundsAtCritLocation`, LDB 18
    *  l.55), où seule l'ignorance de PA (Partielle / Points faibles) dépend de la localisation. */
@@ -1482,7 +1486,7 @@ export function resolveStrayRangedHit(
 
 /**
  * Touche dont le jet pour toucher est DÉJÀ POSÉ (`atkBd`) : tir dévié (LDB 14 l.136), pièce d'une bordée
- * (MDG 14 l.128). Raté → aucun effet ; réussi → `applyHit`, Critique sur un double (LDB 13 l.177, MDG 13 l.656).
+ * (MDG 14 l.128). Réussi → `applyHit` ; Critique : LDB 13 l.183, MDG 13 l.656.
  */
 export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number): AttackResult {
   if (!atkBd.success) return miss(attacker, defender, atkBd, null);
@@ -1648,6 +1652,7 @@ export function woundsAtCritLocation(res: AttackResult, weapon: Weapon, defender
   // AA 10 l.105 — ce site re-tire une Localisation : une Structure ne peut pas y passer, et la Taille de
   // l'attaquant (`AA 10 l.98`) n'y a donc aucun terme à compter (passée `undefined`, jamais omise).
   if (isStructure(defender)) throw new Error(`woundsAtCritLocation : ${defender.label} est une Structure — AA 10 l.105.`);
+  if (res.degatsTransferes) return 0;
   const ignoredAP = ignoredArmourAP(defender, location, { roll: res.attackerRoll, critical: true, empaleuse: hasQuality(weapon, 'empaleuse') });
   return woundsFromHit(weapon, defender, location, res.damage ?? 0, (res.apExternal ?? 0) - ignoredAP, 1, undefined);
 }

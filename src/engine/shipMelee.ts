@@ -14,15 +14,14 @@
  *    fait une certaine Taille » (l.616) → en mêlée contre une coque, les règles de Taille LDB 85 (Atouts
  *    conférés + ×N) sont REMPLACÉES par cet ajustement de BE.
  *
- * La Taille du navire est DÉRIVÉE de sa longueur par `shipSizeOfLength` (`./shipBuild`), qui lit le
+ * La Taille du navire est DÉRIVÉE de sa longueur par `hullShipSize` (`./shipBuild`), qui lit le
  * tableau CARACTÉRISTIQUES DE BATEAU STANDARD en donnée (MDG 12 l.120-129) — aucun champ de donnée
  * redondant, et aucune seconde écriture de la même table.
  */
 import type { Combatant, Weapon } from './types';
 import type { ShipSize } from '../data';
-import { profilNavalDe } from './vehicle';
 import { ammoFamily } from './items';
-import { shipSizeOfLength } from './shipBuild';
+import { hullShipSize } from './shipBuild';
 import { bonus, effectiveChar } from './characteristics';
 import { SIZE_ORDER, effectiveSize, type SizeCategory } from './size';
 
@@ -54,14 +53,6 @@ export function isArtilleryWeapon(w: Weapon): boolean {
   return ammoFamily(w.subType) === 'artillerie';
 }
 
-/** La cible est-elle une COQUE de navire (facette `ship` du véhicule) ? Les structures de siège et les
- *  affûts inertes ont leurs propres règles (`engine/structures`, `inert`) — disjoints. */
-export function shipHull(target: Combatant): { size: ShipSize; tb: number } | null {
-  const lengthM = profilNavalDe(target)?.lengthM;
-  if (lengthM == null) return null;
-  return { size: shipSizeOfLength(lengthM), tb: bonus(effectiveChar(target, 'endurance')) };
-}
-
 /** Ajustement d'un COUP PERSONNEL contre une coque (MDG 13) — consommé par `applyHit` :
  *  - `null` : la cible n'est pas une coque → chemin normal ;
  *  - `{ blocked }` : AUCUNE Blessure à la coque (petites armes l.605 / case « – » du tableau l.614) ;
@@ -71,10 +62,10 @@ export function hullHitAdjust(attackerSize: SizeCategory | undefined, weapon: We
   | { blocked: 'petites-armes' | 'taille' }
   | { extraTB: number }
   | null {
-  const hull = shipHull(target);
-  if (!hull) return null;
+  const size = hullShipSize(target);
+  if (!size) return null;
   if (weapon.type === 'ranged') return isArtilleryWeapon(weapon) ? { extraTB: 0 } : { blocked: 'petites-armes' };
-  const f = meleeVsHullBE(hull.size, effectiveSize(attackerSize));
+  const f = meleeVsHullBE(size, effectiveSize(attackerSize));
   if (!f) return { blocked: 'taille' };
-  return { extraTB: 'mult' in f ? (f.mult - 1) * hull.tb : f.flat };
+  return { extraTB: 'mult' in f ? (f.mult - 1) * bonus(effectiveChar(target, 'endurance')) : f.flat };
 }

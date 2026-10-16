@@ -67,7 +67,7 @@ import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
-import { estNavire, profilNavalDe } from '../engine/vehicle';
+import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from './terrain';
 import { sceneToAscii } from './sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { meleeVsHullBE, isArtilleryWeapon, hullHitAdjust, shipHull } from './shipMelee';
+import { meleeVsHullBE, isArtilleryWeapon, hullHitAdjust } from './shipMelee';
+import { hullShipSize } from './shipBuild';
 import { rederivePassiveAttack, woundsFromHit } from './combat';
 import type { Combatant, Weapon } from './types';
 import type { SizeCategory } from './size';
@@ -10,16 +11,14 @@ import type { SizeCategory } from './size';
  *  - corps à corps : TABLEAU DE COMPARAISON DES TAILLES (ch.13 l.618-637) — BE ajusté, « – » = aucun Dégât ;
  *  - « les tirs de petites armes […] n'infligent pas assez de Dégâts pour avoir un effet sur un vaisseau » (l.605).
  */
-describe('shipHull — la coque et sa Taille, DÉRIVÉES du véhicule ciblé', () => {
-  it('la Taille vient de la longueur du véhicule, par la table en donnée (`shipSizeOfLength`)', () => {
-    // La colonne « Taille » (MDG 12 l.123-129) est lue UNE fois, en donnée
-    // (`ship-construction.json › standard[].lengthM`) : ce module ne la réécrit pas.
-    expect(shipHull(hull('coracle'))).toEqual({ size: 'minuscule', tb: 4 }); // 3 m
-    expect(shipHull(hull('cogue'))).toEqual({ size: 'moyenne', tb: 4 }); // 25 m
-    expect(shipHull(hull('galion-bretonnien'))).toEqual({ size: 'enorme', tb: 4 }); // 60 m
+describe('hullShipSize — la Taille de la coque, DÉRIVÉE du véhicule ciblé', () => {
+  it('la Taille vient de la longueur du véhicule, par la table en donnée (MDG 12 l.123-129)', () => {
+    expect(hullShipSize(hull('coracle'))).toBe('minuscule'); // 3 m
+    expect(hullShipSize(hull('cogue'))).toBe('moyenne'); // 25 m
+    expect(hullShipSize(hull('galion-bretonnien'))).toBe('enorme'); // 60 m
   });
-  it('cible qui n’est pas une coque → null (chemin normal intact)', () => {
-    expect(shipHull(bruiser())).toBeNull();
+  it('cible qui n’est pas une coque → undefined (chemin normal intact)', () => {
+    expect(hullShipSize(bruiser())).toBeUndefined();
   });
 });
 

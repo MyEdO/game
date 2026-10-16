@@ -19,7 +19,7 @@ import { currentTargetingMode } from './targetingModes';
 import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied } from '../engine/psychology';
-import { isVehicle, estNavire } from '../engine/vehicle';
+import { isVehicle, estNavire } from '../engine/coque';
 import { compatibleAmmo } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, selfManeuversOf, selfManeuverApplicable, battementFoes, distraireFoes } from './combatManeuvers';

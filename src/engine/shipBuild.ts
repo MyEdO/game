@@ -36,6 +36,7 @@ import { rollTest } from './tests';
 import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
+import { profilNavalDe } from './coque';
 import type { ShipSize, NavalInstall, InstallBand } from '../data';
 import type { ProfilDePropulsion } from '../data/schemas/grammaire/valeurs';
 import type { Combatant, NavalTraitRef, VehicleData } from './types';
@@ -153,13 +154,12 @@ export function shipSizeOfLength(lengthM: number): ShipSize {
 }
 
 /**
- * Taille d'une COQUE EN JEU (`Combatant`) — sa longueur vit sur le TYPE de véhicule (`creatureId`,
- * `vehicles.json`), jamais recopiée sur l'instance : même patron que `hullNavalTraits`
- * (`./navalTraits`). `undefined` quand la coque n'a pas de profil naval (véhicule non navire, ou
- * type introuvable) — l'appelant NOMME ce cas. PUR.
+ * Taille d'une COQUE EN JEU (`Combatant`), MDG 12 l.120-129 — sa longueur vit sur son profil naval
+ * (`profilNavalDe`), jamais recopiée sur l'instance. `undefined` quand la coque n'a pas de profil naval
+ * (véhicule non navire, ou type introuvable) — l'appelant NOMME ce cas. PUR.
  */
-export function hullShipSize(hull: Combatant): ShipSize | undefined {
-  const lengthM = findVehicleById(hull.creatureId ?? '')?.ship?.lengthM;
+export function hullShipSize(hull: Pick<Combatant, 'bodyShape' | 'creatureId'>): ShipSize | undefined {
+  const lengthM = profilNavalDe(hull)?.lengthM;
   return lengthM === undefined ? undefined : shipSizeOfLength(lengthM);
 }
 

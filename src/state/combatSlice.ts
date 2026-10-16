@@ -93,7 +93,7 @@ import { facingToward } from './dir8';
 import { bearingPostes, mostArmedSide } from './shipBattery';
 import { resolveVolley } from '../engine/volley';
 import type { ShipManeuverParticipant } from './pendings';
-import { estNavire } from '../engine/vehicle';
+import { estNavire } from '../engine/coque';
 import { navalTestTypeDR, hullNavalTraits } from '../engine/navalTraits';
 import { crewedFireWeapon, crewedReloadStep } from '../engine/crewedWeapon';
 import { exposedCrew } from '../engine/shipCritical';

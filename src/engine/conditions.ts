@@ -27,6 +27,7 @@ import { recomputeLoadout } from './items';
 import { refreshWounds } from './characteristics';
 import { restoreSuppressedPsych } from './psychology';
 import { hasActiveFlag } from './activeFlags';
+import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
 import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
 import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
@@ -936,7 +937,7 @@ export function bleedDeathRoll(c: Combatant, rng: RNG = defaultRNG): { died: boo
  *  (consommée par `isOutOfAction` et la résolution de Blessure critique). */
 export function usesSuddenDeath(c: Combatant): boolean {
   if (c.kind === 'hero') return false; // jamais pour les PJ (LDB 18 l.46)
-  if (c.bodyShape === 'vehicule') return false; // une COQUE n'est pas un figurant : sa destruction passe par ses Blessures (Naufrage) et les Critiques NAVALS — pas de « Mort Subite » de mook (MDG 13)
+  if (isVehicle(c)) return false; // MDG 13 l.656
   const mode = rule('combat-sudden-death');
   if (mode === 'off') return false;
   if (mode === 'tous') return true;
@@ -951,7 +952,7 @@ export function isOutOfAction(c: Combatant): boolean {
   if (c.inert) return c.dead === true || c.outOfRencontre === true;
   // Coque : détruite à 0 PB (MDG 13 l.656), OU coulée par la Voie d'eau — Inondation ≥ Endurance pose
   // l'État `naufrage` (MDG 13 l.674 : « il coule »), l'autre voie de coulée que les Blessures à 0.
-  if (c.bodyShape === 'vehicule') return c.dead === true || c.outOfRencontre === true || c.wounds.current <= 0 || hasCondition(c, 'naufrage');
+  if (isVehicle(c)) return c.dead === true || c.outOfRencontre === true || c.wounds.current <= 0 || hasCondition(c, 'naufrage');
   return c.dead === true || c.outOfRencontre === true || hasCondition(c, COND.inconscient) || (usesSuddenDeath(c) && c.wounds.current <= 0);
 }
 
@@ -969,7 +970,7 @@ export function endState(c: Combatant): EndState | null {
   if (c.inert) return null;
   if (c.dead) return 'mort';
   if (c.outOfRencontre) return c.exitReason === 'reddition' || c.exitReason === 'prise' ? 'rendu' : 'hors-combat';
-  if (c.bodyShape === 'vehicule') return c.wounds && c.wounds.current <= 0 ? 'hors-combat' : null; // coque coulée (MDG 13)
+  if (isVehicle(c)) return c.wounds && c.wounds.current <= 0 ? 'hors-combat' : null; // MDG 13
   if (usesSuddenDeath(c) && c.wounds && c.wounds.current <= 0) return 'hors-combat'; // figurant tombé à 0 PB
   if (!c.dead && hasCondition(c, COND.inconscient)) return 'inconscient'; // vivant mais KO (même gate de cycle de vie qu'isOutOfAction)
   return null;
@@ -995,7 +996,7 @@ export function inDeathCondition(c: Combatant): boolean {
  *  (Une COQUE ne tombe pas « À Terre » : sa mise hors-jeu à 0 PB est gérée par `isOutOfAction`.) */
 export function applyZeroWounds(c: Combatant): void {
   if (c.inert) return; // OBJET INERTE (affût d'artillerie) : en permanence à 0 PB, immune aux Blessures → jamais À Terre (cf. isOutOfAction)
-  if (c.bodyShape === 'vehicule') return;
+  if (isVehicle(c)) return;
   if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
 }
 
@@ -1026,7 +1027,7 @@ export function loseWounds(c: Combatant, amount: number): number {
  */
 export function tickDeath(c: Combatant): string[] {
   const log: string[] = [];
-  if (c.dead || c.outOfRencontre || c.inert || usesSuddenDeath(c) || c.bodyShape === 'vehicule') return log; // un OBJET INERTE (affût, 0 PB permanent) et une coque ne « meurent » pas par la cascade Inconscient→mort (cf. isOutOfAction)
+  if (c.dead || c.outOfRencontre || c.inert || usesSuddenDeath(c) || isVehicle(c)) return log; // un OBJET INERTE (affût, 0 PB permanent) et une coque ne « meurent » pas par la cascade Inconscient→mort (cf. isOutOfAction)
   const be = bonus(effectiveChar(c, 'endurance'));
   if (c.wounds.current > 0) {
     c.roundsAtZero = 0;

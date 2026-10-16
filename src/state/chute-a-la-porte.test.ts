@@ -51,7 +51,7 @@ const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
   }) as unknown as Combatant;
 
 /** Le patrouilleur : 25 m → Taille MOYENNE (MDG 12 l.126) ; le nid-de-pie est une Amélioration d'instance. */
-const coque = (): Combatant => ({ id: 'hull', creatureId: 'bateau-de-patrouille', upgrades: [{ id: 'nid-de-pie' }] } as unknown as Combatant);
+const coque = (): Combatant => ({ id: 'hull', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', upgrades: [{ id: 'nid-de-pie' }] } as unknown as Combatant);
 
 /** Les ops de la branche d'ÉCHEC de « Mât brisé » (d10 = 10), telles qu'AUTHORÉES. */
 const opsDeChute = (): GameOp[] => {
@@ -875,7 +875,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
    *  Forme entière et non littéral mince — elle traverse le bus de triggers comme n'importe quel corps. */
   const coqueMoyenne = (): Combatant => ({
     ...marin('hull'), id: 'hull', label: 'La cogue', kind: 'npc',
-    creatureId: 'cogue', upgrades: [{ id: 'nid-de-pie' }],
+    bodyShape: 'vehicule', creatureId: 'cogue', upgrades: [{ id: 'nid-de-pie' }],
   } as unknown as Combatant);
 
   /** Le nœud `test` du coup à l'ÉQUIPAGE, tel que `ship-criticals.json` l'AUTHORE (« Mât brisé »). */

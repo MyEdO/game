@@ -16,6 +16,7 @@ import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
 import { findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
+import { estNavire, profilNavalDe } from '../engine/coque';
 import { exposedCrew } from '../engine/shipCritical';
 import { partyBest, peutTenter } from '../engine/skills';
 import { maxBy } from '../engine/pick';
@@ -177,7 +178,7 @@ export function shipboardSouls(get: Get): { heroes: number; crew: number; total:
 }
 
 export function shipUndercrew(get: Get, ship: Combatant, combatants: Combatant[]): UndercrewPenalty {
-  const nominal = findVehicleById(ship.creatureId ?? '')?.ship?.crew ?? 0;
+  const nominal = profilNavalDe(ship)?.crew ?? 0;
   // Équipage ABSTRAIT (MDG 14 l.39 : « la performance des Personnages représente celle de tout l'équipage ») → le
   // complément NOMINAL est réputé PRÉSENT ; seule l'ATTRITION RÉELLE creuse le Manque de bras : les marins NOMMÉS
   // tombés au combat (Éclats, critique « Équipage ») + les pertes de CAMPAGNE (Embrigadement `crewLost`, MDG 15 l.245).
@@ -252,7 +253,7 @@ export function endShanty(get: Get, singer: Combatant): string[] {
 
 /**
  * Résolution d'un NAVIRE comme UNITÉ DE COMBAT — abordage & naufrage (MDG 13-14). Un navire au combat =
- * sa COQUE (`bodyShape:'vehicule'`, à PV) + son ÉQUIPAGE (`crewIds`, de vrais combattants exposés). L'unité
+ * sa COQUE (`estNavire`, à PV) + son ÉQUIPAGE (`crewIds`, de vrais combattants exposés). L'unité
  * sort du combat dès qu'UNE des deux issues RAW est atteinte — dans les DEUX sens, pour que la victoire
  * navale soit gagnable par CHAQUE voie :
  *  - **NAUFRAGE** — la coque tombe à 0 PB (« le navire coule », MDG 13 l.117). L'équipage encore en
@@ -271,7 +272,7 @@ export function endShanty(get: Get, singer: Combatant): string[] {
 export function resolveShipUnits(combatants: Combatant[]): string[] {
   const lines: string[] = [];
   for (const hull of combatants) {
-    if (hull.bodyShape !== 'vehicule' || !hull.crewIds?.length || !hull.wounds) continue;
+    if (!estNavire(hull) || !hull.crewIds?.length || !hull.wounds) continue;
     const crew = hull.crewIds
       .map((id) => combatants.find((c) => c.id === id))
       .filter((c): c is Combatant => !!c);

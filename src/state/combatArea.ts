@@ -28,7 +28,7 @@
  */
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Combatant, Weapon, HitLocation } from '../engine/types';
-import { estNavire } from '../engine/vehicle';
+import { estNavire } from '../engine/coque';
 import { woundsFromHit, rangeBandName } from '../engine/combat';
 import { sceneMetresPerTile } from './scene';
 import { bonus, effectiveChar } from '../engine/characteristics';

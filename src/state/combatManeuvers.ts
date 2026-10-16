@@ -22,7 +22,7 @@ import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
 import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL } from '../engine/combat';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle } from '../engine/coque';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, type TestResult } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';

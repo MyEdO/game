@@ -25,7 +25,8 @@ import { crewRoleValue, crewRoleTestMods, crewTalentDR, moraleBand, capToSuccesM
 import { placementPenalty } from './shipPostes';
 import { inBattleId, garanti } from './combatants';
 import { t } from '../i18n';
-import { findVehicleById, findCrewRoleById } from '../data';
+import { findCrewRoleById } from '../data';
+import { profilNavalDe } from '../engine/coque';
 import { propulsionDuNavire, milieuDuVoyage, type MilieuDeNavigation } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { RNG } from '../engine/dice';
@@ -154,7 +155,7 @@ function maneuverTestTypeDR(ship: Combatant): number {
   return navalTestTypeDR(hullNavalTraits(ship), 'manoeuvre');
 }
 export function shipManeuverParams(ship: Combatant, milieu: MilieuDeNavigation): ManeuverParams {
-  const vd = ship.creatureId ? findVehicleById(ship.creatureId)?.ship : undefined;
+  const vd = profilNavalDe(ship);
   const { m: baseM, competence } = garanti(propulsionDuNavire(ship.creatureId, ship.upgrades, milieu), ship.creatureId, 'propulsion du navire');
   // Répartition des pièces (MDG 12 l.432-433) : un bord surchargé pénalise −1/−2 M, Man ET DR de Navigation
   // (trois colonnes RAW DISTINCTES → cumulées). Sans Contenance connue → aucune pénalité.

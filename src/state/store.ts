@@ -26,7 +26,7 @@ import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { EtatDeSequence } from './sequenceCore';
 import { applyShipCollision } from './shipCollision';
 import { milieuDuVoyage } from '../engine/shipBuild';
-import { estNavire } from '../engine/vehicle';
+import { estNavire } from '../engine/coque';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
 import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';

@@ -6,7 +6,8 @@ import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillIns
 import { skillCharacteristicById } from '../engine/character';
 import { isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../engine/statEntry';
 import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../data';
-import { vehicleCombatant, estNavire } from '../engine/vehicle';
+import { vehicleCombatant } from '../engine/vehicle';
+import { estNavire } from '../engine/coque';
 import { inanimateCombatant } from '../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../engine/navalTraits';
 import { requiredTerrains } from '../engine/ops';
