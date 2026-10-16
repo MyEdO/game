@@ -113,7 +113,6 @@ const NOMMES = [
   'weapon|ammo|armour|inventory',
   'arme|morsure|caudale|cornes|souffle|vomi|tentacules|etreinte|regard|langue|hurlement',
   'ally|enemy',
-  'avirons|voile|mixte',
   'bravoure|ami|staggering|belligerent|blackout',
   'fixed|perDR|perHit|perKill',
   'generalDown|intervention|noIntervention|combatWon|combatLost',

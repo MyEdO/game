@@ -107,6 +107,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/psych/registry.ts', 'Registre de psychologie'],
   ['src/engine/psych/types.ts', 'Types de psychologie'],
   ['src/engine/psychology.ts', 'Psychologie : Peur, Terreur, Frénésie'],
+  ['src/engine/propulsion.ts', 'Navigation de navire'],
   ['src/engine/pursuit.ts', 'Poursuite'],
   ['src/engine/qualities/craftEconomy.ts', "Économie de l'artisanat (qualités)"],
   ['src/engine/qualities/describe.ts', 'Description des qualités'],
