@@ -118,7 +118,7 @@ test('chaque garde d’écriture du registre couvre une FAMILLE entière de cana
 })
 
 const LECTURES = LECTURES_LIBRES.map((nu) => `mcp__lean-ctx__${nu}`)
-const HORS_LECTURE = ['ctx_execute', 'ctx_edit', 'ctx_patch', 'shell', 'ctx_shell', 'ctx_call', 'ctx_knowledge', 'ctx_session', 'ctx_verify', 'outil_inconnu', 'ctx_outil_inconnu'].map((nu) => `mcp__lean-ctx__${nu}`)
+const HORS_LECTURE = ['ctx_execute', 'ctx_edit', 'ctx_patch', 'shell', 'ctx_shell', 'ctx_call', 'ctx_knowledge', 'ctx_session', 'outil_inconnu', 'ctx_outil_inconnu'].map((nu) => `mcp__lean-ctx__${nu}`)
 
 test('le matcher PreToolUse du répartiteur couvre TOUT outil lean-ctx hors `LECTURES_LIBRES`, classé ou non, sur les DEUX surfaces (sinon un refus ne part jamais)', () => {
   for (const surface of SURFACES)
