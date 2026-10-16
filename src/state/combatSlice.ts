@@ -1823,7 +1823,9 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     confirmRoundStart: () => {
       set({ pendingRoundStart: null, preemptAiming: null }); // la pause se ferme → toute visée Tir rapide armée retombe
-      runPreemptShots(get, set); // LDB 11 l.97-103 : les tirs d'interruption, puis `ouvrirLeRound` au bout de leur boucle
+      // LDB 11 l.97-103 : les tirs d'interruption, puis `ouvrirLeRound` au bout de leur boucle. Rien ne suit
+      // ici : un tir qui tient la main emporte la boucle dans sa suite (`enchainement: 'tirRapide'`).
+      jouerFlowEntier(runPreemptShots(get, set) ? OPS_DIFFEREES : undefined);
     },
 
     /** Reprise après un CHANGEMENT DE CADENCE en plein combat. La cadence vit dans le registre de RÈGLES
@@ -2594,7 +2596,8 @@ export function createCombatSlice(get: Get, set: Set) {
       if (differee && (suite ? suite.participants.length - (suite.cursor + 1) : 0) <= 0) {
         throw new Error('#1508 — casse d’arme différée sans étape derrière la Maladresse : le curseur fermerait la cascade sur un dé jamais servi.');
       }
-      if (!differee && coup) jouerLApresCoup(get, set, coup);
+      // L'après-coup qui tient la main a poussé ses étapes DERRIÈRE celle-ci : la suite est le curseur.
+      if (!differee && coup) jouerFlowEntier(jouerLApresCoup(get, set, coup) ? OPS_DIFFEREES : undefined);
       // La Maladresse est l'étape COURANTE de la cascade combat → enchaîner le curseur (sa clôture reprend l'IA).
       get().cascadeNext();
     },

@@ -1181,33 +1181,142 @@ const CONSOMMATEURS = ['jouerFlowEntier', 'nePeutPasDifferer', 'cloturer'];
 /** Un coup suspendu ne se clôt pas (`cloturer`) et ne se déclare pas indifférable (`nePeutPasDifferer`) :
  *  sa suite voyage sur la fenêtre (#1765). Seul `jouerFlowEntier` (rien ne suit) le consomme. */
 const CONSOMMATEURS_DU_COUP = ['jouerFlowEntier'];
-const consommateursDe = (point: string): string[] => (POINTS_DU_COUP.includes(point) ? CONSOMMATEURS_DU_COUP : CONSOMMATEURS);
+const consommateursDe = (point: string): string[] => (POINTS_DU_COUP.includes(point) || relaisDuCoup().noms.includes(point) ? CONSOMMATEURS_DU_COUP : CONSOMMATEURS);
+
+/** Un nœud qui OUVRE une fonction : ses `return` ne sont pas ceux de la fonction qui l'englobe. */
+const ouvreUneFonction = (x: ts.Node): boolean => ts.isFunctionDeclaration(x) || ts.isFunctionExpression(x) || ts.isArrowFunction(x)
+  || ts.isMethodDeclaration(x) || ts.isGetAccessorDeclaration(x) || ts.isSetAccessorDeclaration(x) || ts.isConstructorDeclaration(x);
+
+/** Les fonctions NOMMÉES d'un fichier : `function f`, ou `const f = () => …` / `const f = function …`. */
+function fonctionsNommees(sf: ts.SourceFile): Array<{ nom: string; fn: ts.Node }> {
+  const out: Array<{ nom: string; fn: ts.Node }> = [];
+  const walk = (x: ts.Node): void => {
+    if (ts.isFunctionDeclaration(x) && x.name && x.body) out.push({ nom: x.name.text, fn: x.body });
+    if (ts.isVariableDeclaration(x) && ts.isIdentifier(x.name) && x.initializer && (ts.isArrowFunction(x.initializer) || ts.isFunctionExpression(x.initializer))) {
+      out.push({ nom: x.name.text, fn: x.initializer.body });
+    }
+    x.forEachChild(walk);
+  };
+  walk(sf);
+  return out;
+}
+
+/** Le corps `corps` rend-il une valeur DÉRIVÉE du retour d'un des `points` ? Dérivée : l'expression
+ *  rendue porte l'appel (direct ou comparé, `=== OPS_DIFFEREES`), ou une variable locale qui l'a
+ *  capturé (déclaration ou affectation, transitivement), ou le `return` est gardé par un `if` dont la
+ *  condition en dérive. Les fonctions imbriquées ont leurs propres `return` : on n'y descend pas. */
+function rendUnDerive(corps: ts.Node, points: ReadonlySet<string>): boolean {
+  const capturees = new Set<string>();
+  const derive = (e: ts.Node): boolean => {
+    if (ouvreUneFonction(e)) return false;
+    if (ts.isCallExpression(e) && ts.isIdentifier(e.expression) && points.has(e.expression.text)) return true;
+    if (ts.isIdentifier(e) && capturees.has(e.text)) return true;
+    return !!e.forEachChild((z) => (derive(z) ? true : undefined));
+  };
+  const parcourt = (x: ts.Node, visite: (y: ts.Node) => void): void => {
+    visite(x);
+    x.forEachChild((y) => { if (!ouvreUneFonction(y)) parcourt(y, visite); });
+  };
+  const ASSIGNATIONS = [ts.SyntaxKind.EqualsToken, ts.SyntaxKind.BarBarEqualsToken, ts.SyntaxKind.AmpersandAmpersandEqualsToken, ts.SyntaxKind.QuestionQuestionEqualsToken, ts.SyntaxKind.BarEqualsToken];
+  for (let avant = -1; capturees.size !== avant;) {
+    avant = capturees.size;
+    parcourt(corps, (y) => {
+      if (ts.isVariableDeclaration(y) && ts.isIdentifier(y.name) && y.initializer && derive(y.initializer)) capturees.add(y.name.text);
+      if (ts.isBinaryExpression(y) && ASSIGNATIONS.includes(y.operatorToken.kind) && ts.isIdentifier(y.left) && derive(y.right)) capturees.add(y.left.text);
+    });
+  }
+  const gardeDerivee = (r: ts.Node): boolean => {
+    for (let p = r.parent; p && p !== corps; p = p.parent) if (ts.isIfStatement(p) && derive(p.expression)) return true;
+    return false;
+  };
+  let rend = false;
+  if (!ts.isBlock(corps)) return derive(corps); // flèche à corps expression : sa valeur EST son retour
+  parcourt(corps, (y) => { if (ts.isReturnStatement(y) && y.expression && (derive(y.expression) || gardeDerivee(y))) rend = true; });
+  return rend;
+}
+
+/** Les RELAIS d'un point du coup dans `fichiers`, au POINT FIXE : un relais de relais en est un. Rend
+ *  `rel nom` par relais. Le scan résout par NOM, comme `appelsPerdus`. */
+function relaisDans(analyser: (noms: string[]) => Iterable<{ rel: string; sf: ts.SourceFile | null }>): { noms: string[]; sites: string[] } {
+  const points = new Set(POINTS_DU_COUP);
+  const sites = new Set<string>();
+  for (let avant = -1; points.size !== avant;) {
+    avant = points.size;
+    for (const { rel, sf } of analyser([...points])) {
+      if (!sf) continue;
+      for (const { nom, fn } of fonctionsNommees(sf)) {
+        if (POINTS_DU_COUP.includes(nom) || !rendUnDerive(fn, points)) continue;
+        points.add(nom);
+        sites.add(`${rel} ${nom}`);
+      }
+    }
+  }
+  return { noms: [...points].filter((n) => !POINTS_DU_COUP.includes(n)), sites: [...sites].sort() };
+}
+
+let relaisMemo: { noms: string[]; sites: string[] } | null = null;
+/** Les relais du corpus de PRODUCTION, mesurés une fois. */
+const relaisDuCoup = (): { noms: string[]; sites: string[] } => (relaisMemo ??= relaisDans(function* (noms) {
+  for (const { fichier: { rel }, sourceFile } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && noms.some((n) => text.includes(`${n}(`))))) {
+    yield { rel, sf: sourceFile };
+  }
+}));
+
+/** L'expression qui PORTE la valeur de `n` : on remonte les parents qui la transmettent telle quelle —
+ *  parenthèse, `as`, `<T>`, `satisfies`, `!` (non-nul ou négation), `await`, branche d'un ternaire,
+ *  opérande DROITE de `&&` / `||` / `??` / virgule. La condition d'un ternaire et l'opérande gauche d'un `&&` sont LUES : la remontée
+ *  s'y arrête, et la valeur est consommée. */
+function porteurDe(n: ts.Expression): ts.Expression {
+  let x = n;
+  for (;;) {
+    const p = x.parent;
+    if (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isTypeAssertion(p) || ts.isSatisfiesExpression(p)
+      || ts.isNonNullExpression(p) || ts.isAwaitExpression(p)
+      || (ts.isPrefixUnaryExpression(p) && p.operator === ts.SyntaxKind.ExclamationToken)
+      || (ts.isConditionalExpression(p) && (p.whenTrue === x || p.whenFalse === x))
+      || (ts.isBinaryExpression(p) && p.right === x && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.CommaToken].includes(p.operatorToken.kind))) {
+      x = p;
+      continue;
+    }
+    return x;
+  }
+}
+
+/** La perte d'un retour de `n` passé en ARGUMENT de `p`, ou `null` si `p` est un consommateur nommé du point. */
+function formeArgument(p: ts.CallExpression, n: ts.CallExpression): string | null {
+  const nom = ts.isIdentifier(p.expression) ? p.expression.text : '(appel non nommé)';
+  const point = ts.isIdentifier(n.expression) ? n.expression.text : '';
+  return consommateursDe(point).includes(nom) ? null : `retour passé en ARGUMENT de « ${nom} »`;
+}
+
+/** Le nombre de LECTURES de `decl` dans `sf` : ses homonymes, hors l'identifiant qui le déclare. */
+function lecturesDe(decl: ts.Identifier, sf: ts.SourceFile): number {
+  let lectures = 0;
+  const compte = (x: ts.Node): void => { if (ts.isIdentifier(x) && x.text === decl.text && x !== decl) lectures++; x.forEachChild(compte); };
+  compte(sf);
+  return lectures;
+}
 
 /** La FORME d'un appel dont le retour se perd, ou `null` s'il est consommé. Purement syntaxique : les
  *  formes que le scan ne SAIT PAS trancher sont déclarées en angles morts mesurés, plus bas. */
 function formePerdue(n: ts.CallExpression, sf: ts.SourceFile): string | null {
-  const p = n.parent;
+  const e = porteurDe(n);
+  const p = e.parent;
   // A — instruction nue : `runFlow(…);`
   if (ts.isExpressionStatement(p)) return 'retour JETÉ (instruction nue)';
+  // V — `void runFlow(…)` : l'opérateur jette la valeur, quel que soit son propre parent.
+  if (ts.isVoidExpression(p)) return 'retour jeté par VOID';
   // D — séquence à virgule : `x = (runFlow(…), 1);` — l'opérande gauche est évalué puis abandonné.
-  if (ts.isBinaryExpression(p) && p.operatorToken.kind === ts.SyntaxKind.CommaToken && p.left === n) return 'retour jeté par une VIRGULE';
+  if (ts.isBinaryExpression(p) && p.operatorToken.kind === ts.SyntaxKind.CommaToken && p.left === e) return 'retour jeté par une VIRGULE';
   // G — flèche à CORPS EXPRESSION : la valeur part dans le retour de la flèche, que son appelant ne lit
   //     pas forcément (`() => void` d'un verbe de store, callback de `forEach`). Le corps de BLOC, lui,
   //     rend le choix EXPLICITE — c'est celui qu'on exige.
-  if (ts.isArrowFunction(p) && p.body === n) return 'retour jeté dans une FLÈCHE à corps expression (corps de bloc + retour consommé)';
+  if (ts.isArrowFunction(p) && p.body === e) return 'retour jeté dans une FLÈCHE à corps expression (corps de bloc + retour consommé)';
   // C — argument d'un appel qui n'est pas un consommateur nommé.
-  if (ts.isCallExpression(p) && p.arguments.includes(n)) {
-    const nom = ts.isIdentifier(p.expression) ? p.expression.text : '(appel non nommé)';
-    const point = ts.isIdentifier(n.expression) ? n.expression.text : '';
-    return consommateursDe(point).includes(nom) ? null : `retour passé en ARGUMENT de « ${nom} »`;
-  }
+  if (ts.isCallExpression(p) && p.arguments.includes(e)) return formeArgument(p, n);
   // B — capturé dans une variable JAMAIS RELUE : la capture ne consomme rien, seule la lecture le fait.
-  if (ts.isVariableDeclaration(p) && p.initializer === n && ('name' in p && ts.isIdentifier(p.name))) {
-    const nom = p.name.text;
-    let lectures = 0;
-    const compte = (x: ts.Node): void => { if (ts.isIdentifier(x) && x.text === nom && x !== p.name) lectures++; x.forEachChild(compte); };
-    compte(sf);
-    if (lectures === 0) return `retour capturé dans « ${nom} », JAMAIS relu`;
+  if (ts.isVariableDeclaration(p) && p.initializer === e && ts.isIdentifier(p.name) && lecturesDe(p.name, sf) === 0) {
+    return `retour capturé dans « ${p.name.text} », JAMAIS relu`;
   }
   return null;
 }
@@ -1216,10 +1325,11 @@ function formePerdue(n: ts.CallExpression, sf: ts.SourceFile): string | null {
  *  mesure une couture, il ne joue pas la suite d'une partie : le corpus est donc `prod` seul. */
 function appelsPerdus(): string[] {
   const out: string[] = [];
-  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && POINTS_DAPPLICATION.some((n) => text.includes(`${n}(`))))) {
+  const scannes = [...POINTS_DAPPLICATION, ...relaisDuCoup().noms]; // un relais rend le retour du coup : il se consomme comme lui
+  for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && scannes.some((n) => text.includes(`${n}(`))))) {
     if (!sf) continue;
     const walk = (n: ts.Node): void => {
-      if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && POINTS_DAPPLICATION.includes(n.expression.text)) {
+      if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && scannes.includes(n.expression.text)) {
         const forme = formePerdue(n, sf);
         if (forme) out.push(`${rel}:${sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1} ${n.expression.text}(…) — ${forme}`);
       }
@@ -1257,20 +1367,21 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
     expect(vus, 'aucun appel vu : le scan ne mordrait sur rien').toBeGreaterThan(20);
   });
 
-  it('QUATRE formes de perte sont reconnues (instruction nue, virgule, flèche à corps expression, argument étranger)', () => {
-    const sonde = (src: string): string[] => {
-      const sf = ast({ rel: 'x.ts', text: src })!;
-      const out: string[] = [];
-      const walk = (n: ts.Node): void => {
-        if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && POINTS_DAPPLICATION.includes(n.expression.text)) {
-          const f = formePerdue(n, sf);
-          if (f) out.push(f);
-        }
-        n.forEachChild(walk);
-      };
-      walk(sf);
-      return out;
+  const sonde = (src: string): string[] => {
+    const sf = ast({ rel: 'x.ts', text: src })!;
+    const out: string[] = [];
+    const walk = (n: ts.Node): void => {
+      if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && POINTS_DAPPLICATION.includes(n.expression.text)) {
+        const f = formePerdue(n, sf);
+        if (f) out.push(f);
+      }
+      n.forEachChild(walk);
     };
+    walk(sf);
+    return out;
+  };
+
+  it('QUATRE formes de perte sont reconnues (instruction nue, virgule, flèche à corps expression, argument étranger)', () => {
     expect(sonde('runFlow(g, s, f);'), 'A').toHaveLength(1);
     expect(sonde('const r = runFlow(g, s, f);'), 'B — capturé, jamais relu').toHaveLength(1);
     expect(sonde('const r = runFlow(g, s, f); use(r);'), 'B — capturé PUIS lu : consommé').toEqual([]);
@@ -1286,6 +1397,35 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
     expect(sonde('nePeutPasDifferer(doAttack(g, s, a, d), "site");'), 'coup : `nePeutPasDifferer` refusé').toHaveLength(1);
     expect(sonde('jouerFlowEntier(applyFreeAttack(g, s, a, d, k, 0));'), 'coup : rien ne suit').toEqual([]);
     expect(sonde('if (applyTalentFreeAttack(g, s, a, op, fa)) return true;'), 'coup : retour lu').toEqual([]);
+  });
+
+  it('les parents TRANSPARENTS ne cachent pas une perte, et `void` en est une', () => {
+    expect(sonde('c ? applyAttackResult(g, s, a, d, w, r) : null;'), 'branche de ternaire').toHaveLength(1);
+    expect(sonde('c && applyAttackResult(g, s, a, d, w, r);'), 'droite de &&').toHaveLength(1);
+    expect(sonde('c || runFlow(g, s, f);'), 'droite de ||').toHaveLength(1);
+    expect(sonde('c ?? runFlow(g, s, f);'), 'droite de ??').toHaveLength(1);
+    expect(sonde('(applyAttackResult(g, s, a, d, w, r));'), 'parenthèse').toHaveLength(1);
+    expect(sonde('applyAttackResult(g, s, a, d, w, r)!;'), 'non-nul').toHaveLength(1);
+    expect(sonde('!runFlow(g, s, f);'), 'négation').toHaveLength(1);
+    expect(sonde('runFlow(g, s, f) as Applique;'), 'as').toHaveLength(1);
+    expect(sonde('runFlow(g, s, f) satisfies Applique;'), 'satisfies').toHaveLength(1);
+    expect(sonde('void applyAttackResult(g, s, a, d, w, r);'), 'void').toHaveLength(1);
+    expect(sonde('x = 1, runFlow(g, s, f);'), 'droite de virgule').toHaveLength(1);
+    expect(sonde('await runFlow(g, s, f);'), 'await').toHaveLength(1);
+    expect(sonde('<Applique>runFlow(g, s, f);'), 'assertion <T>').toHaveLength(1);
+    expect(sonde('return (x(), runFlow(g, s, f));'), 'retour propagé sous droite de virgule').toEqual([]);
+    expect(sonde('if (!(await applyTalentFreeAttack(g, s, a, op, fa))) return;'), 'await lu').toEqual([]);
+    expect(sonde('const r = <Applique>runFlow(g, s, f);'), 'capturé sous <T>, jamais relu').toHaveLength(1);
+    expect(sonde('x = (c ? runFlow(g, s, f) : undefined, 1);'), 'ternaire sous virgule').toHaveLength(1);
+    expect(sonde('const r = (runFlow(g, s, f) as Applique);'), 'capturé sous as, jamais relu').toHaveLength(1);
+    expect(sonde('list.forEach((f) => (runFlow(g, s, f)));'), 'flèche sous parenthèse').toHaveLength(1);
+    expect(sonde('console.log(c ? runFlow(g, s, f) : undefined);'), 'argument étranger sous ternaire').toHaveLength(1);
+    expect(sonde('jouerFlowEntier((runFlow(g, s, f)));'), 'consommateur nommé sous parenthèse').toEqual([]);
+    expect(sonde('return c ? runFlow(g, s, f) : undefined;'), 'retour propagé sous ternaire').toEqual([]);
+    expect(sonde('return c && applyFreeAttack(g, s, a, d, k, 0);'), 'retour propagé sous &&').toEqual([]);
+    expect(sonde('if (!applyTalentFreeAttack(g, s, a, op, fa)) return;'), 'négation lue').toEqual([]);
+    expect(sonde('applyAttackResult(g, s, a, d, w, r) ? x() : y();'), 'condition de ternaire : lue').toEqual([]);
+    expect(sonde('runFlow(g, s, f) && x();'), 'gauche de && : lue').toEqual([]);
   });
 
   it('aucun appel ne PERD son retour — le signal « différé » ne peut pas mourir en silence', () => {
@@ -1343,25 +1483,39 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     expect(perdus, 'le scan voit un retour CONSOMMÉ — il ne peut pas savoir que l’appelant poursuit').toEqual([]);
   });
 
-  it('angle mort : le RELAIS d’un point du coup passé en valeur (hook) échappe au scan — déclaré', () => {
-    // Une fonction qui REND le retour d'un point du coup le propage (consommé) ; son propre appelant,
-    // lui, n'est vu que si son nom est au scan. Le relais passé en VALEUR (`setFreeAttackHook`) est
-    // appelé par le dispatcher d'ops, qui s'arrête à la première fenêtre ouverte (`combatFlow` #1852).
-    expect(sondeVoit('function relais() { return applyFreeAttack(g, s, a, d, k, 0); } relais();'), 'le scan voit le point, pas le relais').toBe(1);
-    const relais: string[] = [];
-    for (const { fichier: { rel }, sourceFile: sf } of analyserCorpus(corpus().filter(({ rel, text }) => !estFichierVitest(rel) && POINTS_DU_COUP.some((n) => text.includes(`return ${n}(`))))) {
-      if (!sf) continue;
-      const walk = (x: ts.Node): void => {
-        if (ts.isFunctionDeclaration(x) && x.name && !POINTS_DU_COUP.includes(x.name.text)) {
-          const rend = (y: ts.Node): boolean => (ts.isReturnStatement(y) && !!y.expression && ts.isCallExpression(y.expression)
-            && ts.isIdentifier(y.expression.expression) && POINTS_DU_COUP.includes(y.expression.expression.text)) || !!y.forEachChild((z) => (rend(z) ? true : undefined));
-          if (rend(x)) relais.push(`${rel} ${x.name.text}`);
-        }
-        x.forEachChild(walk);
-      };
-      walk(sf);
-    }
-    expect(relais, 'un relais NEUF d’un point du coup : déclarer qui consomme son retour').toEqual(['src/state/combatFlow.ts freeAttackHookImpl']);
+  it('un RELAIS rend une valeur DÉRIVÉE du coup : direct, comparé, capturé, gardé — au point fixe', () => {
+    const relaisDe = (src: string): string[] => relaisDans(function* () { yield { rel: 'x.ts', sf: ast({ rel: 'x.ts', text: src })! }; }).noms;
+    expect(relaisDe('function relais() { return applyAttackResult(g, s, a, d, w, r); }'), 'A — relais direct').toEqual(['relais']);
+    expect(relaisDe('function runPreemptShots() { for (const x of l) { return applyAttackResult(g, s, a, d, w, r, { suite }) === OPS_DIFFEREES; } return false; }'), 'B — booléen comparé').toEqual(['runPreemptShots']);
+    expect(relaisDe('function f() { const t = applyAttackResult(g, s, a, d, w, r); return t; }'), 'C — capturé puis rendu').toEqual(['f']);
+    expect(relaisDe('function f() { let suspendu = false; suspendu = doAttack(g, s, a, d); if (suspendu) return true; return false; }'), 'affecté puis gardé').toEqual(['f']);
+    expect(relaisDe('function f() { return g(); } function h() { return f() || applyFreeAttack(g, s, a, d, k, 0); } function i() { return h(); }'), 'relais de relais').toEqual(['h', 'i']);
+    expect(relaisDe('const f = () => applyTalentFreeAttack(g, s, a, op, fa);'), 'flèche à corps expression').toEqual(['f']);
+    expect(relaisDe('function f() { list.forEach(() => { return doAttack(g, s, a, d); }); return false; }'), 'le retour d’une fonction IMBRIQUÉE n’est pas celui de f').toEqual([]);
+    expect(relaisDe('function f() { const t = applyAttackResult(g, s, a, d, w, r); use(t); return false; }'), 'capturé, jamais rendu').toEqual([]);
+  });
+
+  it('chaque RELAIS du corpus est soumis au scan comme un point du coup — le relais en valeur (hook) seul lui échappe', () => {
+    // Un relais rend le retour du coup : son appelant le consomme comme celui d'un point du coup
+    // (`appelsPerdus` scanne les noms des relais). Le relais passé en VALEUR (`setFreeAttackHook`,
+    // `freeAttackHookImpl`) n'a pas d'appel par nom : le dispatcher d'ops de `runCombatFlow` le lit et
+    // rompt sa boucle à la première fenêtre ouverte (`combat/triggeredTest.ts:473`, #1852). Le signal
+    // MEURT là : `runCombatFlow` rend `void` (`combat/triggeredTest.ts:456`), et son appelant
+    // `resolveFreeAttacks` le redérive de l'état par `defenseEnCours` (`combatFlow.ts:4069`, `:4077`).
+    // Une seule représentation jusqu'au dispatcher : #2639.
+    expect(sondeVoit('function relais() { return applyFreeAttack(g, s, a, d, k, 0); } relais();'), 'le scan par NOM voit le point, pas le relais').toBe(1);
+    expect(relaisDuCoup().sites, 'un relais NEUF d’un point du coup : son appelant doit consommer son retour').toEqual([
+      'src/state/combatFlow.ts aiAvailableFreeAttack',
+      'src/state/combatFlow.ts aiCreatureFreeAttacks',
+      'src/state/combatFlow.ts autoCleave',
+      'src/state/combatFlow.ts drainerLesGratuites',
+      'src/state/combatFlow.ts freeAttackHookImpl',
+      'src/state/combatFlow.ts jouerLApresCoup',
+      'src/state/combatFlow.ts jouerLaSuiteDuCoup',
+      'src/state/combatFlow.ts resumeCleaveChain',
+      'src/state/combatFlow.ts runCleaveChain',
+      'src/state/combatFlow.ts runPreemptShots',
+    ]);
   });
 
   it('angle mort : un appel PAR OBJET échappe au scan — et le corpus n’en porte aucun', () => {

@@ -411,9 +411,12 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * la fin de sa fonction. Une déférance laisse simplement la cascade OUVERTE — le dé se joue, sa
  * conséquence se dit, et il n'y a aucune suite à confier.
  *
- * Exception nommée : `advanceCombatJet` après l'appel (`attackConfirm`). Il retient le
- * curseur tant qu'une fenêtre `pending*` est ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde,
- * Déviation) l'a poussée dans la cascade, et le curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
+ * Exceptions nommées, toutes deux une avance du CURSEUR de la cascade après l'appel :
+ * - `advanceCombatJet` (`attackConfirm`). Il retient le curseur tant qu'une fenêtre `pending*` est
+ *   ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde, Déviation) l'a poussée dans la cascade, et le
+ *   curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
+ * - `cascadeNext()` qui clôt l'étape COURANTE (`fumbleConfirm`, la Maladresse) : l'après-coup qui tient
+ *   la main a poussé ses étapes DERRIÈRE elle, et le curseur avance dessus.
  *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
  * c'est une `Cloture`, différée avec la continuation.
@@ -1089,7 +1092,9 @@ export function openSkillTest(
 export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.flowTitle'), sl?: number): Applique {
   const stack: Flow[] = [structuredClone(flow)]; // #2097
   const batch: Effect[] = [];
-  const flush = (): Applique => (batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined);
+  const flush = (): Applique => {
+    return batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined;
+  };
   /** Le lot vient d'ouvrir un dé : `node` (non consommé) et le reste de la pile deviennent SA suite. */
   const confier = (node?: Flow): Applique => {
     differerLaSuite(set, { kind: 'seq', steps: [...(node ? [node] : []), ...stack.splice(0)] }, 'scene', label);
