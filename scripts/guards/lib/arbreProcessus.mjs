@@ -40,7 +40,7 @@ export function mesurerArbreProcessus() {
 }
 
 export function identitePresente(identite, vue) {
-  return Boolean(identite?.creation && vue.some((p) => p.pid === identite.pid && p.creation === identite.creation))
+  return Boolean(identite?.creation && vue.some((p) => p.pid === identite.pid && p.creation === identite.creation && p.etat !== 'Z'))
 }
 
 export function filiationValide(parent, enfant) {
@@ -48,28 +48,21 @@ export function filiationValide(parent, enfant) {
     ? p.creation.replace(/(?:\.(\d+))?Z$/, (_fin, fraction = '') => `.${fraction.padEnd(9, '0')}Z`) : null
   const creationParent = creationDe(parent)
   const creationEnfant = creationDe(enfant)
-  return creationParent !== null && creationEnfant !== null && creationEnfant >= creationParent
+  return parent?.etat !== 'Z' && enfant?.etat !== 'Z' && creationParent !== null && creationEnfant !== null && creationEnfant >= creationParent
 }
 
-export function capturerDescendants(pid, vue, captures = new Map()) {
+export function ancetresValidesDe(pid, vue) {
   const parPid = new Map(vue.map((p) => [p.pid, p]))
-  const liens = vue.filter((p) => filiationValide(parPid.get(p.ppid), p))
-  const pids = descendantsDe(pid, liens.map((p) => `${p.pid} ${p.ppid}`).join('\n'))
-  for (const descendant of pids) {
-    const p = vue.find((p) => p.pid === descendant)
-    if (p?.creation) captures.set(p.pid, p)
+  let enfant = parPid.get(pid)
+  if (!filiationValide(enfant, enfant)) return []
+  const ancetres = []
+  const vus = new Set([pid])
+  for (;;) {
+    const parent = parPid.get(enfant.ppid)
+    if (!parent || vus.has(parent.pid) || !filiationValide(parent, enfant)) break
+    vus.add(parent.pid)
+    ancetres.push(parent)
+    enfant = parent
   }
-  return captures
-}
-
-export function tuerCaptures(captures, vue = mesurerArbreProcessus()) {
-  const profondeur = (p, vus = new Set()) => {
-    if (vus.has(p.pid) || !captures.has(p.ppid)) return 0
-    vus.add(p.pid)
-    return 1 + profondeur(captures.get(p.ppid), vus)
-  }
-  for (const p of [...captures.values()].sort((a, b) => profondeur(b) - profondeur(a))) if (identitePresente(p, vue)) {
-    if (process.platform === 'win32') spawnSync('taskkill', ['/F', '/PID', String(p.pid)], { stdio: 'ignore', windowsHide: true })
-    else tuerUnPid(p.pid)
-  }
+  return ancetres
 }

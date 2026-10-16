@@ -1,5 +1,6 @@
 // #2626
-import { superviserProcessus, sortieDeSupervision } from '../guards/lib/superviserProcessus.mjs'
+import { pathToFileURL } from 'node:url'
+import { ancetresValidesDe, mesurerArbreProcessus } from '../guards/lib/arbreProcessus.mjs'
 import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
@@ -44,7 +45,7 @@ export function publicationDe(env, racine) {
     throw new Error('publication isolée : identité invalide')
   const chemin = journalDePublication(p)
   const tenant = tenantDe(journalDePublication(p, true))
-  if (tenant?.pid !== p.pid || resolve(tenant.cwd ?? '') !== resolve(p.source) || process.ppid !== p.pid)
+  if (tenant?.pid !== p.pid || resolve(tenant.cwd ?? '') !== resolve(p.source) || !ancetresValidesDe(process.pid, mesurerArbreProcessus()).some((a) => a.pid === p.pid))
     throw new Error('publication isolée : lanceur ou verrou différent')
   const journal = lireJournal(chemin, p.branche)
   if (journal.publication?.generation !== p.generation ||
@@ -112,7 +113,8 @@ export function preparerPublication({ source, branche, chemins, reprendre, uuid 
   return p
 }
 
-export async function lancerProcessus(executable, args, options) {
+export async function lancerProcessus(executable, args, options, supervision) {
+  const { superviserProcessus, sortieDeSupervision } = supervision ?? await import('../guards/lib/superviserProcessus.mjs')
   const vu = await superviserProcessus({
     commande: executable, args, cwd: options.cwd, heriter: true, env: options.env, shell: options.shell, stdio: options.stdio,
   })
@@ -124,7 +126,7 @@ export async function lancerProcessus(executable, args, options) {
 
 export async function publierDepuisSnapshot({
   source, branche, chemins, reprendre, args, lancementNpm,
-  env = process.env, lancer = lancerProcessus, preparer = preparerPublication,
+  env = process.env, lancer, preparer = preparerPublication,
   verrouiller = prendreVerrou, retirer = retirerWorktree,
   fusionDansMain = (p) => ancetreConfirme(estAncetre, depotDe(p.snapshot), 'HEAD', 'origin/main'),
   ecrire = (texte) => process.stderr.write(texte),
@@ -148,11 +150,18 @@ export async function publierDepuisSnapshot({
       return 0
     }
     const p = preparer({ source, branche, chemins, reprendre })
+    let lancement = lancer
+    if (!lancement) {
+      const supervision = await import(pathToFileURL(join(p.snapshot, 'scripts/guards/lib/superviserProcessus.mjs')).href)
+      if (typeof supervision.superviserProcessus !== 'function' || typeof supervision.sortieDeSupervision !== 'function')
+        throw new Error('publication isolée : module supervision du snapshot invalide')
+      lancement = (executable, argv, options) => lancerProcessus(executable, argv, options, supervision)
+    }
     entamer(p)
     ecrire(`[publier] snapshot ${p.snapshot} — tête demandée ${p.demande} — branche ${branche}\n`)
     if (!p.dependancesInstallees || !existsSync(join(p.snapshot, 'node_modules'))) {
       const npm = lancementNpm(process.platform)
-      const installe = await lancer(npm.executable, npm.args, {
+      const installe = await lancement(npm.executable, npm.args, {
         cwd: p.snapshot, stdio, shell: npm.shell, env,
       })
       if (installe.code !== 0) throw new Error(`npm ci du snapshot en échec : code ${installe.code}${installe.signal ? `, signal ${installe.signal}` : ''}`)
@@ -161,7 +170,7 @@ export async function publierDepuisSnapshot({
       journal.publication.dependancesInstallees = true
       ecrireJsonAtomique(chemins.json, journal)
     }
-    const execute = await lancer(process.execPath, [join(p.snapshot, 'scripts/ops/publier.mjs'), ...args, '--reprendre'], {
+    const execute = await lancement(process.execPath, [join(p.snapshot, 'scripts/ops/publier.mjs'), ...args, '--reprendre'], {
       cwd: p.snapshot, stdio, env: { ...env, [ENV_PUBLICATION]: JSON.stringify(p) },
     })
     const journal = JSON.parse(readFileSync(chemins.json, 'utf8'))

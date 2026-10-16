@@ -62,6 +62,7 @@ const ATTENDU = {
     'scripts/guards/lib/processusWorktrees.test.mjs',
     // #2626
     'scripts/guards/lib/superviserProcessus.test.mjs',
+    'scripts/guards/lib/superviserProcessus.mjs',
     'scripts/guards/lib/protectionWorktree.test.mjs',
     'scripts/guards/lib/racinesBalayees.test.mjs',
     'scripts/hooks/superpowers-ecriture-guard.test.mjs',
@@ -311,6 +312,8 @@ const ATTENDU = {
   // #2328
   'livraison:plage': ['scripts/guards/lib/protectionWorktree.mjs', ],
   'test:ops': ['scripts/guards/lib/protectionWorktree.mjs',
+    // #2626
+    'scripts/guards/lib/superviserProcessus.mjs',
     'scripts/agents/compat-cli.mjs',
     'scripts/ops/session-start.test.mjs',
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un

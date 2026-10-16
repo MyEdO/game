@@ -601,17 +601,19 @@ test('contrôleur : un petit-enfant qui écrit sur stderr après la sortie 0 de 
   assert.equal(existsSync(join(b.dossier, `${id}.stderr`)), false)
 })
 
-test('JobHost possède Job sans breakaway, suspend/assign/resume, cleanup handle et wait avant exit0', () => {
+test('JobHost partage la création atomique du Job et son nettoyage borné', () => {
   const ps = readFileSync(new URL('./session-process.ps1', import.meta.url), 'utf8')
-  assert.match(ps, /0x00002000/)
-  assert.match(ps, /0x00000004/)
-  assert.ok(ps.indexOf('if (!AssignProcessToJobObject') < ps.indexOf('if (ResumeThread'))
-  assert.match(ps, /TerminateProcess\(pi\.hProcess/)
-  assert.match(ps, /TerminateJobObject\(job/)
-  assert.match(ps, /ActiveProcesses/)
-  assert.match(ps, /WaitForSingleObject\(pi\.hProcess/)
+  const natif = readFileSync(new URL('../guards/lib/processusJob.cs', import.meta.url), 'utf8')
+  assert.match(ps, /Add-Type -Path.*processusJob\.cs/)
+  assert.match(natif, /0x00002000/)
+  assert.match(natif, /PROC_THREAD_ATTRIBUTE_JOB_LIST/)
+  assert.match(natif, /0x00080000/)
+  assert.match(natif, /TerminateJobObject\(job/)
+  assert.match(natif, /ActiveProcesses/)
+  assert.match(natif, /cleanup\.ElapsedMilliseconds >= 5000/)
   assert.match(ps, /exit 0/)
-  assert.doesNotMatch(ps, /BREAKAWAY|taskkill|Stop-Process|ConvertFrom-Json|RedirectStandard|AnonymousPipe/)
+  assert.doesNotMatch(natif, /BREAKAWAY|AssignProcessToJobObject|ResumeThread/)
+  assert.doesNotMatch(ps, /taskkill|Stop-Process|ConvertFrom-Json|RedirectStandard|AnonymousPipe/)
 })
 
 test('politique : schéma strict lu une fois ; sandbox et approbation à leur seule valeur prouvée ; clé inconnue, réseau, profil et type faux refusés', (t) => {
