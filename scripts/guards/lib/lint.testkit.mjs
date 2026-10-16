@@ -12,9 +12,13 @@ const RACINE = fileURLToPath(new URL('../../../', import.meta.url))
 const { ConfigCommentParser } = createRequire(import.meta.resolve('eslint'))('@eslint/plugin-kit')
 const parseur = new ConfigCommentParser()
 
-export function directivesLint(texte, fichier, regles) {
+/** Les directives qui éteignent une des `regles` : la ligne de la directive, et la ligne qu'elle CIBLE
+ *  selon sa forme — `-next-line` la ligne qui suit le commentaire, `-line` la sienne, `null` pour la
+ *  forme bloc (`/* eslint-disable *\/`) et le commentaire de configuration, qui n'éteignent pas UNE ligne. */
+export function directivesLintCiblees(texte, fichier, regles) {
   const parse = parseSync(fichier, texte)
   if (parse.errors.length) throw new Error(`${fichier}: ${parse.errors.map(e => e.message).join('; ')}`)
+  const ligneDe = (pos) => texte.slice(0, pos).split('\n').length
   return parse.comments.flatMap(c => {
     const d = parseur.parseDirective(c.value.trim().replace(/^oxlint(?=\b|-)/, 'eslint'))
     if (!d) return []
@@ -25,8 +29,13 @@ export function directivesLint(texte, fichier, regles) {
       if (!parsed.ok) throw new Error(`${fichier}: directive invalide`)
       noms = Object.keys(parsed.config)
     } else return []
-    return (!noms.length || noms.some(n => regles.includes(n))) ? [texte.slice(0,c.start).split('\n').length] : []
+    if (noms.length && !noms.some(n => regles.includes(n))) return []
+    const cible = d.label === 'eslint-disable-next-line' ? ligneDe(c.end) + 1 : d.label === 'eslint-disable-line' ? ligneDe(c.start) : null
+    return [{ ligne: ligneDe(c.start), cible }]
   })
+}
+export function directivesLint(texte, fichier, regles) {
+  return directivesLintCiblees(texte, fichier, regles).map(d => d.ligne)
 }
 export function configPourFichier(fichier) {
   const rel = relative(RACINE, resolve(RACINE,fichier)).replaceAll('\\','/')

@@ -113,6 +113,7 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
     const sites = constructionsReserveesDuCorpus(corpus, [arete])
       .map(({ rel, line }) => `${rel}#${declarationQuiPorte(ast(corpus.find((f) => f.rel === rel)!)!, line)}`);
     const porteurs = (cle: string) => sites.filter((s) => s === cle).length;
+    expect(EXEMPTIONS.filter((cle) => cle.endsWith('#')), 'exemption sans DÉCLARATION nommée : la clé vaudrait clé de fichier').toEqual([]);
     expect(EXEMPTIONS.filter((cle) => porteurs(cle) === 0), 'exemption PÉRIMÉE : la déclaration ne re-tape plus l’union').toEqual([]);
     expect(EXEMPTIONS.filter((cle) => porteurs(cle) > 1), 'exemption AMBIGUË : la déclaration porte plusieurs recopies').toEqual([]);
     expect(sites.filter((s) => !EXEMPTIONS.includes(s)), 'dériver du canon : `z.infer<typeof wallSideSchema>` / `wallSideSchema.options`').toEqual([]);

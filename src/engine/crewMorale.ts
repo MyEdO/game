@@ -328,16 +328,24 @@ export function crewTestModOf(c: Combatant): number {
   return crewTestModParts(c).reduce((s, m) => s + m.value, 0);
 }
 
+/** Compétences du rôle `role` à bord d'un navire de Compétence de Navigation `navigation`
+ *  (`propulsionDuNavire().competence`) : la Compétence du rôle qui EST celle du navire porte sa
+ *  Spécialisation (MDG 13 l.18-19, l.97 ; MDG 14 l.24-32). PUR. */
+export function competencesDuRole(role: CrewRoleData, navigation: RefDesignee): RefDesignee[] {
+  return (role.skills ?? []).map((s) => (s.id === navigation.id && !s.spec && navigation.spec ? { ...s, spec: navigation.spec } : s));
+}
+
 /** Valeur de Compétence d'un membre pour un rôle : la MEILLEURE de ses compétences (Mousse = Voile/Ramer),
  *  PLUS le modificateur « Test d'équipage » de ses effets actifs (`crewTestModOf` — chansons de marin).
  *  SEUL point de valeur des Tests d'équipage (manœuvre, bordée, générique, fiche du navire). `sense`
  *  (optionnel) : sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie qui « voit la lumière d'un
  *  phare », MDG 13 l.337 — visuel, transmis par l'appelant) ; restreint les `skillMod` sense-scopés
  *  (Surdité, LDB 18) via `testValue`. Absent = comportement historique. PUR. */
-export function crewRoleValue(crew: Combatant, role: CrewRoleData, sense?: PairedSense): CrewRoleValue {
-  const b = bestForSkills([crew], role.skills ?? [], undefined, sense);
+export function crewRoleValue(crew: Combatant, role: CrewRoleData, navigation: RefDesignee, sense?: PairedSense): CrewRoleValue {
+  const skills = competencesDuRole(role, navigation);
+  const b = bestForSkills([crew], skills, undefined, sense);
   if (!b) {
-    const sk = role.skills?.[0];
+    const sk = skills[0];
     return {
       ...(sk ? { used: { id: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) } } : {}),
       refus: refusNePeutTenter(crew, sk ? { skill: sk.id, ...(sk.spec ? { spec: sk.spec } : {}) } : { action: role.label }),
@@ -356,8 +364,8 @@ export type CrewRoleValue =
 /** Modificateurs SUR LA CIBLE du jet d'un rôle d'équipage en combat : Précipitations sur le pont (MDG 13
  *  l.185, `Combatant.envPrecipitation`), keyées par la Compétence que le rôle tient. SOURCE UNIQUE du jet
  *  (`rollCrewRole`/`forceCrewRole`, `resolveCrewTestByRoles`) et de l'affichage des modales d'équipage. PUR. */
-export function crewRoleTestMods(crew: Combatant, role: CrewRoleData, sense?: PairedSense): ModLine[] {
-  const used = crewRoleValue(crew, role, sense).used;
+export function crewRoleTestMods(crew: Combatant, role: CrewRoleData, navigation: RefDesignee, sense?: PairedSense): ModLine[] {
+  const used = crewRoleValue(crew, role, navigation, sense).used;
   return precipitationTestMods(crew.envPrecipitation, used?.id, used?.spec);
 }
 
@@ -367,8 +375,8 @@ export function crewRoleTestMods(crew: Combatant, role: CrewRoleData, sense?: Pa
  *  individuels » — ici la moitié Tests d'équipage. Compétence = celle que le rôle utilise (`crewRoleValue.used`).
  *  S'y AJOUTE le +DR d'effet/trait/objet par Compétence (`skillDRBonus` — Boussole : +1 DR Orientation,
  *  MDG 14 l.275 ; MÊME règle d'application « sur un jet réussi » que dans le combat, combat.ts). PUR. */
-export function crewTalentDR(crew: Combatant, role: CrewRoleData): number {
-  const rv = crewRoleValue(crew, role);
+export function crewTalentDR(crew: Combatant, role: CrewRoleData, navigation: RefDesignee): number {
+  const rv = crewRoleValue(crew, role, navigation);
   const used = rv.used;
   if (!used || rv.refus) return 0;
   return talentTestSLBonus(crew, { skill: used.id, spec: used.spec }, (cond) => cond.kind === 'crewTest')
@@ -392,20 +400,21 @@ export function resolveCrewTestByRoles(
   testTypeId: string,
   difficulty: Difficulty,
   moraleScore: number,
+  navigation: RefDesignee,
   rng: RNG = defaultRNG,
   opts: { understaffed?: boolean; extraDR?: number } = {},
 ): CrewTestResult {
   const essentialRole = findCrewTestTypeById(testTypeId)?.essential;
   const contributors: CrewContributor[] = assignments.map((a) => {
     const role = findCrewRoleById(a.roleId);
-    const rv = role ? crewRoleValue(a.crew, role) : undefined;
+    const rv = role ? crewRoleValue(a.crew, role, navigation) : undefined;
     return {
       ...(rv?.refus != null ? { refus: rv.refus } : { value: rv?.value ?? 0 }),
-      modifier: role ? crewRoleTestMods(a.crew, role).reduce((s, m) => s + m.value, 0) : 0,
+      modifier: role ? crewRoleTestMods(a.crew, role, navigation).reduce((s, m) => s + m.value, 0) : 0,
       essential: a.roleId === essentialRole,
       label: role?.label ?? a.roleId,
       difficulty: a.doubleRole ? easeDifficulty(difficulty, -2) : undefined,
-      successDR: role ? crewTalentDR(a.crew, role) : 0, // Commandant émérite (MDG 09 l.54)
+      successDR: role ? crewTalentDR(a.crew, role, navigation) : 0, // Commandant émérite (MDG 09 l.54)
     };
   });
   const res = resolveCrewTest(contributors, difficulty, moraleScore, rng, (opts.understaffed ? UNDERCREW_DR : 0) + (opts.extraDR ?? 0));

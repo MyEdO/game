@@ -386,6 +386,17 @@ export const CONCEPTS: readonly Concept[] = [
     ],
   },
   {
+    id: 'profil-de-propulsion',
+    label: 'profil de propulsion d’un navire (Mouvement, équipage, Spécialisation de Voile)',
+    strate: 'Valeur',
+    // Porte : `vehicles.ts › ship.sail`/`ship.oars` ; MDG 12 l.131 ; MDG 13 l.18.
+    champs: ['sail', 'oars'],
+    signatures: [
+      { sig: 'crew,m', statut: 'cible', note: 'avirons, ou voile d’un plan de construction (`ship-construction.json`)' },
+      { sig: 'crew,m,spec', statut: 'cible', note: 'voile d’un navire : `spec` = sa Spécialisation de Voile (MDG 13 l.18 ; LDB 09 l.571)' },
+    ],
+  },
+  {
     id: 'de',
     label: 'lancer de dés',
     strate: 'Valeur',

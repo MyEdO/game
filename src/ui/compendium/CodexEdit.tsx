@@ -365,7 +365,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'disponibilite') add('dispoPct', 'barterRatios');
   // #422 : Navigation fluviale (`riverNavigation`, mode 'single', patron `waterExposure`) —
   // `windForces`/`windDirections` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
-  // `windEffect`/`capsize`/`rowingAgility`/`outOfControl`/`echouage`/`temporaryRepair` sont des objets
+  // `windEffect`/`capsize`/`outOfControl`/`echouage`/`temporaryRepair` sont des objets
   // (hétérogènes ou Record de Record) déjà couverts par le sous-formulaire récursif (`ObjectField`).
   if (categoryKey === 'riverNavigation') add('windForces', 'windDirections');
   // Fourchettes à DEUX bornes (#1659) — toutes servies par la MÊME primitive (`PlageField`) : la

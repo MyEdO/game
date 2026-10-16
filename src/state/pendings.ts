@@ -27,6 +27,7 @@ import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFacto
 import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail } from '../engine/skills';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -596,6 +597,9 @@ export interface ShipManeuverParticipant extends RollParticipant {
   essential: boolean;
   /** Marin déjà engagé dans un AUTRE Test d'équipage ce Round → cumul à +2 crans de Difficulté (Manque de bras, l.53). */
   cumul?: boolean;
+  /** Compétence de Navigation du navire (`propulsionDuNavire().competence`), posée à la construction :
+   *  spécialise la Compétence du rôle (`competencesDuRole`, MDG 13 l.18-19). */
+  navigation: RefDesignee;
   /** Sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie du phare, MDG 13 l.337 — visuel), posé
    *  À LA CONSTRUCTION de l'étape par l'appelant qui connaît le contexte (`buildVoyageCrewStep`, kind
    *  `'phare'`, `seaVoyageFlow.ts`). Restreint les `skillMod` sense-scopés (Surdité, LDB 18) via
@@ -928,14 +932,20 @@ export interface ToucheDeProjectile {
  *    les tireurs suivants passent après ce tir, fenêtre de défense comprise (#997). `faits` = les
  *    tireurs déjà passés ce Round ;
  *  - `aucun` : le site d'origine a tranché qu'AUCUN balayage ne suit ce coup — Maladresse de
- *    l'attaquant, frappe du Maniement de deux armes.
+ *    l'attaquant, frappe du Maniement de deux armes ;
+ *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee`.
  */
 export type EnchainementDuCoup =
   | { mode: 'hero'; wasChain: boolean }
   | ({ mode: 'chaine' } & ChaineDeBalayage)
+  | ({ mode: 'bordee' } & TirsDeBordee)
   | { mode: 'auto' }
   | { mode: 'tirRapide'; faits: string[] }
   | { mode: 'aucun' };
+
+/** Coups d'une bordée encore à appliquer, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
+ *  navire avant la bordée, rendu après chaque coup — la bordée est une tâche d'équipage (MDG 14 l.37). */
+export interface TirsDeBordee { targetId: string; actedAvant: boolean; tirs: { tireurId: string; weapon: Weapon; res: AttackResult }[] }
 
 /** État d'une chaîne de BALAYAGE en cours (Frappe Mortelle/Taille, LDB 14 l.9 / 85 l.299) : cibles
  *  déjà frappées, enchaînements consommés, borne BCC, mode (Taille vs Frappe Mortelle). */

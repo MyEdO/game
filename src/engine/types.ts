@@ -8,6 +8,7 @@ import type { ReachId } from './items';
 import type { CodexTarget, ModProvenance } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
+import type { ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
 
 /** Libellés d'AFFICHAGE de l'axe d'Allonge, PAR id d'axe (`ReachId`, `engine/items.ts` — LDB 62
@@ -202,13 +203,11 @@ export interface VehicleData {
    *  l.229 (« pas de course ») ; `count` = nombre de bêtes (Tests de Résistance sur échec du conducteur). */
   travel?: { movement: number; medium?: Propulsion; draft?: { montureId: string; count: number }; classes: VehicleTravelClass[] };
   /** Facette COQUE (entité à PV). `char.endurance` = Endurance, `char.B` = Blessures. `bodyShape` = 'vehicule'.
-   *  `rig` = gréement (avirons/voile/mixte) → colonne de Localisation des Dégâts (MDG 13).
    *  `locationTable`/`criticalTable` = réfs de tables data-driven (branchées aux dalles fluvial/maritime). */
   hull?: {
     char: { endurance: number; B: number };
     bodyShape: 'vehicule';
     propulsion: Propulsion;
-    rig?: 'avirons' | 'voile' | 'mixte';
     traits?: { id: string; value?: number; arg?: string }[];
     locationTable?: string | null;
     criticalTable?: string | null;
@@ -225,8 +224,8 @@ export interface VehicleData {
      *  créature : un navire occupe ses cases (grille + rendu) sans être une créature (aucune Peur de Taille). */
     footprint?: number;
     capacity: number;
-    sail?: { m: number; crew: number };
-    oars?: { m: number; crew: number };
+    sail?: ProfilDeVoile;
+    oars?: ProfilDePropulsion;
     traits: NavalTraitRef[];
   };
   /** Facette PONT (couche tactique, §1bis du modèle naval) : plan person-scale du pont, authoré une fois

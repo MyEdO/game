@@ -377,15 +377,20 @@ test('canaux bouchés : lstat, access, opendir, readdir à rappel, glob (synchro
     fs.lstatSync(path.join(racine, 'f.md'))
     await fs.promises.lstat(path.join(racine, 'a'))
     assert.throws(() => fs.accessSync(path.join(racine, 'absent.md')), { code: 'ENOENT' })
-    /* eslint-disable murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé */
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     fs.opendirSync(path.join(racine, 'o')).closeSync()
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     await (await fs.promises.opendir(path.join(racine, 'p'))).close()
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     await new Promise((fin, echec) => fs.readdir(path.join(racine, 'r'), (e) => (e ? echec(e) : fin())))
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     assert.deepEqual(fs.globSync('a/**/*.md', { cwd: racine }).map((p) => p.split(path.sep).join('/')), ['a/b/x.md'])
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     assert.deepEqual(fs.globSync('neuf/*.md', { cwd: racine }), [])
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     assert.deepEqual(await new Promise((fin, echec) => fs.glob('rappel/*.md', { cwd: racine }, (e, r) => (e ? echec(e) : fin(r)))), [])
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
     assert.deepEqual(await Array.fromAsync(fs.promises.glob('promesse/*.md', { cwd: racine })), [])
-    /* eslint-enable murs/ordre-total */
     assert.throws(() => fs.readFileSync(path.join(racine, 'lu-absent.md')), { code: 'ENOENT' })
     assert.throws(() => fs.openSync(path.join(racine, 'ouvert-absent.md'), 'r'), { code: 'ENOENT' })
     await assert.rejects(fs.promises.readFile(path.join(racine, 'promis-absent.md')), { code: 'ENOENT' })

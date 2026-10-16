@@ -269,7 +269,7 @@ registerHitModifier({
   id: 'ward-saves',
   order: 10,
   apply: ({ get, attacker, target, attaque, res, ouvrirSauvegarde }) => {
-    if (!res.hit || !res.woundsLost) return res;
+    if (!res.hit || !(res.woundsLost || res.critical)) return res;
     // Sauvegarde déjà tombée : on APPLIQUE son issue. « le coup est ignoré, même s'il s'agit d'un
     // critique » (LDB 85 l.98) — la ligne du dé, elle, est écrite par la porte (`cascade.lireEnSeuil`).
     if (res.sauvegarde) return res.sauvegarde.sauve ? toucheSauvee(res) : res;
@@ -299,24 +299,21 @@ registerHitModifier({
 });
 
 registerHitModifier({
-  // Martyr (LDB 43 l.107) : la frappe est encaissée par le prêtre trouvé par `martyrGuardOf`, au lieu
-  // de la cible — qui ne perd aucun PB (les États de la touche restent sur elle).
+  // Martyr : LDB 43 l.107 ; le Critique reste sur la cible (LDB 14 l.3, LDB 13 l.159).
   id: 'martyr',
   order: 40,
   apply: ({ get, attacker, target, weapon, res, encaisse }) => {
-    if (res.hit && res.woundsLost) {
+    const raw = res.damage ?? res.woundsLost;
+    if (res.hit && !res.degatsTransferes && raw) {
       const priest = martyrGuardOf(get().battle!, target);
       if (priest) {
         const loc = res.location ?? 'corps';
-        const raw = res.damage ?? res.woundsLost;
-        // Aucun calcul propre à ce Miracle : on COMPOSE la primitive unique des Blessures
-        // (LDB 13 l.159), qui apporte le PA à la Localisation, Robuste, les bypass d'arme et le
-        // plancher ; LDB 43 l.107 n'y ajoute qu'un BE de plus retiré des Dégâts.
+        // LDB 13 l.159, LDB 43 l.107.
         const taken = woundsFromHit(weapon, priest, loc, raw - bonus(effectiveChar(priest, 'endurance')), 0, 1, attacker.size);
         loseWounds(priest, taken);
         if (priest.wounds.current <= 0) applyZeroWounds(priest);
         encaisse?.(priest, taken);
-        res = { ...res, woundsLost: 0, log: `${res.log ? res.log + ' ' : ''}${t('cf.martyrTakes', { priest: priest.label, name: target.label, taken })}` };
+        res = { ...res, woundsLost: 0, degatsTransferes: true, log: `${res.log ? res.log + ' ' : ''}${t('cf.martyrTakes', { priest: priest.label, name: target.label, taken })}` };
       }
     }
     return res;

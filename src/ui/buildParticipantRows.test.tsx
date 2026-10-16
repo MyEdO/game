@@ -140,16 +140,16 @@ describe('crewRoleRow — refus du rôle non tentable, dé jeté contre sa cible
     wounds: { current: 12, max: 12 }, advantage: 0, weapons: [], items: [], movement: 4,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   } as unknown as Combatant;
-  const part = { id: 'm1', roleId: 'timonier', essential: true, result: null, interactive: true };
+  const part = { id: 'm1', roleId: 'timonier', essential: true, result: null, interactive: true, navigation: { id: 'voile', spec: 'cogue' } };
 
   it('non jetée : la rangée annonce le refus nommé, aucun jet en attente', () => {
     const row = crewRoleRow(part as never, marin, null);
-    expect(row.note).toBe(refusNePeutTenter(marin, { skill: 'voile' }));
+    expect(row.note).toBe(refusNePeutTenter(marin, { skill: 'voile', spec: 'cogue' }));
     expect(row.pending).toBeUndefined();
   });
 
   it('jetée : le dé s’affiche contre sa cible, sans refus', () => {
-    const row = crewRoleRow(part as never, { ...marin, conditions: [], skills: [{ id: 'voile', advances: 10 }] as Combatant['skills'] }, { roll: 23, target: 41, sl: 1 });
+    const row = crewRoleRow(part as never, { ...marin, conditions: [], skills: [{ id: 'voile', spec: 'cogue', advances: 10 }] as Combatant['skills'] }, { roll: 23, target: 41, sl: 1 });
     expect(row.note).toBeUndefined();
     expect(row.d).toMatchObject({ roll: 23, target: 41, sl: 1 });
   });

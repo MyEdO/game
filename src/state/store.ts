@@ -25,6 +25,8 @@ import type { RefusIHM } from './refusVisible';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { EtatDeSequence } from './sequenceCore';
 import { applyShipCollision } from './shipCollision';
+import { milieuDuVoyage } from '../engine/shipBuild';
+import { estNavire } from '../engine/coque';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
 import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
@@ -1950,9 +1952,9 @@ export const useGame = create<GameState>((set, get) => ({
     if (!battle || !hull?.pos || !dir) return 0;
     const d = DIR8_DELTA[dir];
     const w = scene?.dimensions.w ?? Infinity, h = scene?.dimensions.h ?? Infinity;
-    // Autres COQUES (jetons-navires) percutables (≠ self, pos connue) : une tuile occupée par une coque arrête
-    // l'avance ADJACENT (pas de chevauchement) et déclenche la collision (MDG 13).
-    const otherHulls = battle.combatants.filter((c) => c.id !== shipId && c.bodyShape === 'vehicule' && c.pos);
+    // Autres NAVIRES percutables (≠ self, pos connue) : une tuile occupée par un navire arrête l'avance ADJACENT
+    // (pas de chevauchement) et déclenche la collision (MDG 13 l.423-465).
+    const otherHulls = battle.combatants.filter((c) => c.id !== shipId && estNavire(c) && c.pos);
     const hullAt = (x: number, y: number) => otherHulls.find((c) => footprintTiles(c.pos!, footprintN(c)).some((t) => t.x === x && t.y === y));
     // Avance PAS-À-PAS le long du cap (coque 1×1) : on s'arrête au dernier pas libre — sortie de scène OU coque devant.
     let moved = 0;
@@ -1984,7 +1986,7 @@ export const useGame = create<GameState>((set, get) => ({
       const opp = rotateDir8(dir, 4);
       const vf = facing[victim.id];
       const frontal = vf === opp || vf === rotateDir8(opp, 1) || vf === rotateDir8(opp, -1);
-      for (const line of applyShipCollision(hull, victim, { ramProue: true, frontal }).lines) get().log(line);
+      for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }).lines) get().log(line);
     }
     if (moved > 0 || victim) { set({ battle: { ...battle } }); bus.emit(EVT.SCENE_DIRTY); }
     return moved;

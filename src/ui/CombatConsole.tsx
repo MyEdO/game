@@ -34,7 +34,7 @@ import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { canAidTeam } from '../state/commandTeam';
 import { shipOfCrew } from '../state/shipPostes';
 import { quartIndex } from '../state/shipCrew';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle, estNavire } from '../engine/coque';
 import { controlsCombatant } from '../state/netOwnership';
 import { inBattleId } from '../state/combatants';
 import { combatDistance } from '../state/footprint';
@@ -622,6 +622,7 @@ export function CombatConsole() {
   // les cases navales du registre, dans la MÊME travée.
   const controlled = controlsCombatant(useGame.getState(), active);
   const vehicule = isVehicle(active);
+  const navire = estNavire(active); // MDG 14
   /** FORME SPECTATRICE (arbitrage utilisateur 2026-08-24, verbatim : « D'ailleurs même au tour de
    *  l'adversaire, pourquoi je vois son pont entier ? Même RT ne fait pas ca ») — tout tour NON tenu
    *  par ce siège (ennemi, IA, autre siège coop, auto-combat) ET toute pause de Round : la bande
@@ -920,14 +921,15 @@ export function CombatConsole() {
     active.mannedPoste ? cellFor('leave-poste', 'geste', { off: busy }) : undefined,
     // La barre : le BARREUR la tient (`atHelm`), et la COQUE elle-même quand c'est SON tour — même case,
     // mêmes arguments (`battleShipManeuver` accepte l'un ou l'autre, `combatSlice.ts:1362`).
-    atHelm || vehicule ? cellFor('maneuver-ship', 'geste', { off: busy, args: { crewId: active.id } }) : undefined,
+    atHelm || navire ? cellFor('maneuver-ship', 'geste', { off: busy, args: { crewId: active.id } }) : undefined,
     // NAVIRE (échelle Mer) : au tour de la coque, ses Tests d'équipage sont les gestes de la travée —
     // les MÊMES cases du registre, pas une 2ᵉ barre. Bordée et Rude épreuve dépensent l'Action du navire
     // (gate `navire-action`) ; chant et recharge sont des tâches parallèles (gate `toujours`), donc leur
     // disponibilité RÉELLE est une restriction de SITE : sans chanteur / sans pièce déchargée, case inerte.
-    vehicule ? cellFor('battery', 'attaque', { off: (active.postes ?? []).length === 0 }) : undefined,
-    vehicule ? cellFor('crew-test-rude-epreuve', 'geste', { args: { shipId: active.id, crewTestId: 'rude-epreuve' } }) : undefined,
-    vehicule ? cellFor('sing-shanty', 'geste', { off: !canSing, args: { shipId: active.id } }) : undefined,
+    // Recharge : LDB 62 l.335 ; bordée, Rude épreuve, chant : MDG 14.
+    navire ? cellFor('battery', 'attaque', { off: (active.postes ?? []).length === 0 }) : undefined,
+    navire ? cellFor('crew-test-rude-epreuve', 'geste', { args: { shipId: active.id, crewTestId: 'rude-epreuve' } }) : undefined,
+    navire ? cellFor('sing-shanty', 'geste', { off: !canSing, args: { shipId: active.id } }) : undefined,
     vehicule ? cellFor('ship-reload', 'geste', { off: !reloadable, args: { shipId: active.id, posteUid: reloadable?.item.uid } }) : undefined,
   ];
   // ADRESSE FIXE — chaque case d'une zone rend ce que le PORTEUR y a posé (`active.barre`), et à

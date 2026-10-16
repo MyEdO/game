@@ -193,6 +193,21 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(couple('diligence-projet.json', 'ref')).toMatchObject({ occurrences: 275, atteintes: 275 });
   });
 
+  it('fixture : une Spécialisation homonyme d’un id n’ouvre aucune référence (`CLES_DE_SPECIALISATION`, #1904)', () => {
+    const dossier = mkdtempSync(join(tmpdir(), 'slots-spec-'));
+    try {
+      mkdirSync(join(dossier, 'src/data'), { recursive: true });
+      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+      cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+      writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'savoir', label: 'Savoir' }, { id: 'art', label: 'Art' }]));
+      writeFileSync(join(dossier, 'src/data/marins.json'), JSON.stringify([{ id: 'm1', skills: [{ id: 'savoir', spec: 'art' }] }, { id: 'm2', skills: [{ skillId: 'art' }] }]));
+      const fixture = scannerDonnees(dossier, []);
+      expect(couplesDeReference(fixture, []).filter((c) => c.dataset === 'marins.json'), 'le témoin `skillId` se compte, la Spécialisation `art` non.').toEqual([{ dataset: 'marins.json', champ: 'skills', occurrences: 1, atteintes: 0 }]);
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
+  });
+
   it('fixture : ENTRÉE DE RACINE `(racine)` jointe, et une référence portée par une CLÉ de record rend « — » au doc', () => {
     const dossier = mkdtempSync(join(tmpdir(), 'slots-racine-'));
     try {

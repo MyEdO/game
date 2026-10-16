@@ -2437,6 +2437,18 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     expect(caseAction('charge'), 'une coque ne charge pas').toBeNull();
   });
 
+  it('N-1b — au tour d’un CHARIOT (coque sans profil naval) : aucune case navale (MDG 13 l.584, MDG 14 l.128)', () => {
+    const ship = monterNavire();
+    const chariot = vehicleCombatant(findVehicleById('diligence')!)!;
+    act(() => {
+      useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [{ ...chariot, id: ship.id, kind: 'hero', pos: ship.pos, crewIds: ship.crewIds, postes: ship.postes }, ...useGame.getState().battle!.combatants.slice(1)] } });
+    });
+    for (const id of ['maneuver-ship', 'battery', 'crew-test-rude-epreuve', 'sing-shanty']) {
+      expect(caseAction(id), `case navale « ${id} » offerte au tour d’un chariot`).toBeNull();
+    }
+    expect(caseAction('ship-reload'), 'la recharge d’une pièce montée reste offerte (LDB 62 l.335)').not.toBeNull();
+  });
+
   it('N-2 — la Bordée ARME son mode par le registre, et l’interlude prend la main pour en sortir', () => {
     monterNavire();
     act(() => caseAction('battery')!.click());

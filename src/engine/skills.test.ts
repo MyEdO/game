@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { testValue, partyBest, partyAssisted, skillCharKeyById, bestForSkills, bestForCombined, bestAssistedOption } from './skills';
+import { testValue, partyBest, partyAssisted, skillCharKeyById, bestForSkills, bestForCombined, bestAssistedOption, skillBaseValue, possesses } from './skills';
 import { Combatant, SkillInstance } from './types';
 
 const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advances: number; spec?: string }[] = []): Combatant =>
@@ -176,5 +176,38 @@ describe('bestForCombined — Test COMBINÉ : facteur limitant le plus élevé',
   });
   it('groupe vide → null', () => {
     expect(bestForCombined([], { id: 'discretion' }, { id: 'perception' }, undefined)).toBeNull();
+  });
+});
+
+/** Marin à Agilité 40 dont les Voiles se testent sur l'Agilité. */
+const marin = (skills: { id: string; advances: number; spec?: string }[]): Combatant => {
+  const c = mk({ agilite: 40 });
+  return { ...c, skills: skills.map((s) => ({ ...s, characteristic: 'agilite' }) as SkillInstance) } as Combatant;
+};
+
+describe('Spécialisation de Voile du navire (LDB 09 l.30, l.571 ; MDG 13 l.18)', () => {
+  const caravelle = marin([{ id: 'voile', spec: 'caravelle', advances: 20 }]);
+  const chaland = marin([{ id: 'voile', spec: 'chaland', advances: 15 }]);
+  const sansVoile = marin([]);
+  const sansAugmentation = marin([{ id: 'voile', spec: 'caravelle', advances: 0 }]);
+
+  it('la Spécialisation sœur se teste sur la Caractéristique nue ; la sienne, avec ses Augmentations', () => {
+    expect(skillBaseValue(caravelle, 'voile', 'chaland')).toBe(40);
+    expect(testValue(caravelle, 'voile', undefined, 'chaland')).toBe(40);
+    expect(skillBaseValue(caravelle, 'voile', 'caravelle')).toBe(60);
+  });
+
+  it('une Augmentation de Voile, quelle que soit sa Spécialisation, ouvre le Test ; sans elle, il ne se tente pas', () => {
+    expect(possesses(caravelle, 'voile', 'chaland')).toBe(true);
+    expect(possesses(sansVoile, 'voile', 'chaland')).toBe(false);
+    expect(possesses(sansAugmentation, 'voile', 'chaland')).toBe(false);
+  });
+
+  it('le barreur se choisit sur la Spécialisation du navire, sans Soutien de la sœur (LDB 12 l.195)', () => {
+    const surChaland = partyAssisted([caravelle, chaland], 'voile', undefined, undefined, 'chaland')!;
+    expect([surChaland.actor, surChaland.value, surChaland.support.count]).toEqual([chaland, 55, 0]);
+    const surCaravelle = partyAssisted([caravelle, chaland], 'voile', undefined, undefined, 'caravelle')!;
+    expect([surCaravelle.actor, surCaravelle.value]).toEqual([caravelle, 60]);
+    expect(partyAssisted([sansVoile], 'voile', undefined, undefined, 'chaland')).toBeNull();
   });
 });

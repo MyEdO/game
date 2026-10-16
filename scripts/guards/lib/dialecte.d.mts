@@ -13,5 +13,3 @@ export function avecAnalyse<T>(fichier: FichierSource, sourceFile: TS.SourceFile
 export function analyserTexte(fichier: FichierSource, options?: OptionsDialecte): AnalyseSyntaxique;
 export function ast(fichier: FichierSource, options?: OptionsDialecte): TS.SourceFile | null;
 export function declarationQuiPorte(sf: TS.SourceFile, ligne: number): string;
-export function cleDeContenu(rel: string, texte: string, ligne: number): string;
-export function lignesDuContenu(rel: string, texte: string, cle: string): number[];

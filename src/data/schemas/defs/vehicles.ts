@@ -7,14 +7,15 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  * 22/25, `ship` 20/25, `travel` 3/25, `deck` 1/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
  */
 import { z } from 'zod';
-import { availabilitySchema, cell2Schema, enumNomme, moneySchema } from '../grammaire/valeurs';
+import { availabilitySchema, cell2Schema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { ref } from '../grammaire/ref';
 
 export const file = 'vehicles.json';
 export const famille = 'entite';
 
-/** Gréement d'une coque (MDG 12) — affiché par la fiche et le dossier de navire. */
+/** Gréement d'une coque, dérivé de sa propulsion par `rigDuNavire` (MDG 13) — libellés de la fiche et du
+ *  dossier de navire. */
 export const rigSchema = enumNomme({ avirons: 'Avirons', voile: 'Voile', mixte: 'Mixte (voile et avirons)' });
 
 /** BORD du pont où siège un poste d'équipage (MDG 12) — affiché par la fiche de navire. */
@@ -73,7 +74,6 @@ const doc = document(
       char: nommerChamps(z.strictObject({ endurance: z.number(), B: z.number() }), { endurance: { label: "Endurance" }, B: { label: "Blessures" } }),
       bodyShape: z.literal('vehicule'),
       propulsion: z.enum(['terrestre', 'fluvial', 'maritime']),
-      rig: rigSchema.optional(),
       /** Table de Localisation des coups (`shipHitLocation`, `src/engine/combat.ts`) — vocabulaire
        *  FERMÉ : une coquille d'authoring résoudrait sinon la coque fluviale sur la table maritime.
        *  Absent/`null` = `navire` (MDG 13) ; `navire-fluvial` = MSRC 7. */
@@ -82,7 +82,7 @@ const doc = document(
        *  FERMÉ que `locationTable`, et pour la même raison : les deux jeux chargés sont
        *  `ship-criticals` (MDG 13) et `river-criticals` (MSRC 5). Absent/`null` = `ship-criticals`. */
       criticalTable: z.union([z.enum(['ship-criticals', 'river-criticals']), z.null()]).optional(),
-    }), { char: { label: "caractéristiques" }, bodyShape: { label: "forme" }, propulsion: { label: "propulsion" }, rig: { label: "gréement" }, locationTable: { label: "table de Localisation" }, criticalTable: { label: "table de Critiques" } }).optional(),
+    }), { char: { label: "caractéristiques" }, bodyShape: { label: "forme" }, propulsion: { label: "propulsion" }, locationTable: { label: "table de Localisation" }, criticalTable: { label: "table de Critiques" } }).optional(),
     /** Facette NAVIRE (profil naval MDG 12). */
     ship: nommerChamps(z.strictObject({
       crew: z.number(),
@@ -95,8 +95,8 @@ const doc = document(
       lengthM: z.number().int().min(1),
       footprint: z.number().optional(),
       capacity: z.number(),
-      sail: nommerChamps(z.strictObject({ m: z.number(), crew: z.number() }), { m: { label: "Mouvement" }, crew: { label: "équipage" } }).optional(),
-      oars: nommerChamps(z.strictObject({ m: z.number(), crew: z.number() }), { m: { label: "Mouvement" }, crew: { label: "équipage" } }).optional(),
+      sail: profilDeVoileSchema.optional(),
+      oars: profilDePropulsionSchema.optional(),
       traits: z.array(navalTraitRefSchema),
     }), { crew: { label: "équipage" }, manoeuvre: { label: "manœuvre" }, lengthM: { label: "longueur en mètres" }, footprint: { label: "emprise" }, capacity: { label: "capacité" }, sail: { label: "voile" }, oars: { label: "avirons" }, traits: { label: "Traits" } }).optional(),
     /** Facette PONT (plan person-scale, authoré par TYPE). */

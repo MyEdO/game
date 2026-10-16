@@ -294,7 +294,7 @@ Une créature plus grande peut effectuer une **Attaque de Piétinement comme Act
 **Voir aussi** : [Localisation des créatures non humaines](#localisation-des-créatures-non-humaines) ; [Taille — tir sur créature grande](combat.md#taille--catégories-et-modificateurs-de-combat).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 14` (l.142-165) → `GrappleModal`, `areGrappling`, `setGrapple`, `scatter`, `grappleTierMod`, `grapple`, `REPORT_DE_COMBATTANT`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, `MODAL_DEFS`, +46 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +24 fichiers
+- `LDB 14` (l.142-165) → `GrappleModal`, `areGrappling`, `setGrapple`, `scatter`, `grappleTierMod`, `grapple`, `REPORT_DE_COMBATTANT`, `grappleEnvMod`, `MANUAL_COMBAT_INTENTS`, `MODAL_DEFS`, +47 — `src/data/grapple.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/grapple.ts`, `src/engine/combat.ts`, +24 fichiers
 - `LDB 85` (l.357-387) → `TraitDef`, `coupFerme`, `doc`, `SIZE_LABEL`, `cannotStopOn`, `markAttacked`, `agressifEnvers`, `attaqueDEcart`, `sizeDamageMultiplier`, `attaquesNaturelles`, +53 — `src/data/index.ts`, `src/data/maneuvers.json`, `src/data/regles.json`, `src/data/schemas/defs/maneuvers.ts`, `src/data/traits.json`, `src/engine/character.ts`, +17 fichiers
 
 ---

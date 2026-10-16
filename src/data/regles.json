@@ -872,30 +872,6 @@
     }
   },
   {
-    "id": "navigation-agilite-de-rame",
-    "type": "regles",
-    "label": "Navigation — Agilité de rame",
-    "descRef": {
-      "book": "mort-sur-le-reik-compagnon",
-      "ch": "07",
-      "parts": [
-        {
-          "kind": "blocs",
-          "sec": "regles-de-navigation",
-          "secOcc": 1,
-          "b0": 3,
-          "b1": 3,
-          "sum": "8948606c975c88a5"
-        }
-      ]
-    },
-    "source": {
-      "book": "mort-sur-le-reik-compagnon",
-      "page": 28,
-      "note": "MSRC 7 l.17"
-    }
-  },
-  {
     "id": "navigation-derive",
     "type": "regles",
     "label": "Navigation — Dérive",
