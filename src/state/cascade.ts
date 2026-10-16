@@ -223,8 +223,8 @@ export interface TableStepRow {
   max: number;
   /** id STABLE de la ligne (toute logique s'y attache — jamais le libellé). */
   id: string;
-  /** Libellé de la ligne — AFFICHAGE seul (picker de lignes). Les `rows` sont passées PAR RÉFÉRENCE
-   *  depuis la donnée du domaine (`tableDesCritiquesDeStructure` porte déjà son `label`) : zéro duplication. */
+  /** Libellé de la ligne — AFFICHAGE seul (picker de lignes). Les `rows` sont la table du domaine, telle que
+   *  son module la lit (`tableDesCritiquesDeStructure` porte déjà son `label`) : zéro duplication. */
   label?: string;
 }
 
@@ -258,8 +258,9 @@ export interface TableStepDef {
   entryCategory?: string;
 }
 
-/** REGISTRE STATIQUE : les tables dont l'id est ÉCRIT AU CODE (Critiques de Structure, Événements
- *  d'interlude, `sea-board-events`…) — une def posée une fois, au chargement de son module. */
+/** REGISTRE STATIQUE : les tables dont l'id est ÉCRIT AU CODE (Critiques par Localisation, Incantations
+ *  imprévues, Incidents de Tir par Salve, Événements d'interlude…) — une def posée une fois, au
+ *  chargement de son module. */
 const tableStepStatiques: Record<string, TableStepDef> = {};
 
 /**
