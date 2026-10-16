@@ -38,7 +38,7 @@ export function effectiveIdParamFns(contenu: string, globalIdParamFns: RangsDuPa
 export const CORPUS_RACINE: string;
 export function estDansLeCorpus(rel: string): boolean;
 export const RATCHET_EXCEPTIONS: Record<string, string>;
-export function ratchetShortKey(finding: { rel: string; line: number }): string;
+export function ratchetShortKey(site: { rel: string; declaration: string; rule: string }): string;
 export function isLabelLiteral(text: string): boolean;
 export function scanLabelLiteralCompare(relPath: string, contenu: string): LabelLiteralFinding[];
 export const DETTES_DE_LIBELLE: Readonly<Record<string, number>>;
@@ -104,6 +104,7 @@ export interface SiteDeLaGarde {
   rule: string;
   face?: string;
   fn?: string;
+  declaration: string;
   statut: 'couture' | 'dette' | 'nu';
 }
 export function scanLabelLogicFichier(rel: string, text: string, ctx: GardeContexte): SiteDeLaGarde[];

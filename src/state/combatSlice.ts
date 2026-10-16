@@ -19,7 +19,7 @@ import * as travelFlow from './travelFlow';
 import { continueRestNights } from './restFlow';
 import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './riverVoyageFlow';
 import { Combatant, HitLocation, CHAR_LABELS, type FireArc, type Weapon } from '../engine/types';
-import { rollLine, hostStep, pushDisplay } from './rollSeam';
+import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { creatureAttacks, type AttackKind } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
 import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, moveEnv, removeEntity, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, auContactEligible, applyAttackResult, openSurfacedDefense, castSpell, applyCast, castContextMods, applyZoneCrossings, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, applyCriticalToTarget, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, aiDriven, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites,  aiOvercastPlan, hasFreeWeaponAttack, attackWeaponOf, applyWail, resolveManeuver, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, displaceSmaller, applySurprise, resolveMovement, fearedSourceTowards, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, rollInitiative, handleConditionGained, routeTriggeredTest, freeAttackHookImpl, setFreeAttackHook, applyFocusInterruption, setFocusInterruptHook, applyBladeTrap, setBladeTrapHook, setZoneCrossTestHook, zoneCrossTestHookImpl, finishCombatEnd, resolveWeaponArea, areaTargets, battleAreaTargets, siegeBlastRadiusTiles, availableAttacks, aiWouldPrepareSpell, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, selfManeuversOf, selfManeuverApplicable, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
@@ -54,7 +54,7 @@ import { rule } from '../engine/policy';
 import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, overcastSL, castAfterCrit, defaultCritChoice, castInfo, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
 import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, overcastAxes, extraTargetCapacity, overcastDurationParts, overcastBudget } from '../engine/overcast';
-import { resolveOpposed, extendedTestStep } from '../engine/tests';
+import { resolveOpposed, extendedTestStep, ligneSansJet } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
@@ -68,12 +68,12 @@ import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, isActionLocked, stacks, recoveredStacks, COND, setConditionGainedHook, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
-import { hasHealSkill, availableHealModes, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
+import { HEAL_SKILL, availableHealModes, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
 import { entreeEnRencontre } from '../engine/persistence';
-import { testValue, actorHasSkill, soutienDetail } from '../engine/skills';
+import { testValue, actorHasSkill, soutienDetail, possesses } from '../engine/skills';
 import { rollOups } from '../engine/oups';
 import { spawnEnemy, placeCombatant } from './spawn';
 import { ficheDEntite } from './sceneNpc';
@@ -83,7 +83,7 @@ import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './
 import { crewTestContributors, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, withCrewActed } from './shipCrew';
 import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
-import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime } from '../engine/crewMorale';
+import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
 import { findCrewTestTypeById, findCrewRoleById, findVehicleById, findStructureById, combatStakeRef } from '../data';
@@ -119,7 +119,7 @@ import { combatDistance } from './footprint';
 import { combatOrder } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, setOwnTestFailedEmitter, poserCurseurCascade } from './cascade';
+import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, setOwnTestFailedEmitter, setClotureDeCascade, poserCurseurCascade } from './cascade';
 import { pursuitAbandon } from './pursuitFlow';
 import { closeSequenceRound } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
@@ -169,15 +169,19 @@ function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
   const contributors = crewTestContributors(ship, battle.combatants, testTypeId, partyIds);
   if (!contributors.length) return null;
   const essentialRoleId = findCrewTestTypeById(testTypeId)?.essential;
-  const participants: ShipManeuverParticipant[] = contributors.map((a) => ({
-    id: a.crew.id,
-    label: `${findCrewRoleById(a.roleId)?.label ?? a.roleId} — ${a.crew.label}${(battle.crewActed?.[ship.id] ?? []).includes(a.crew.id) ? ' −2 (cumul)' : ''}`,
-    interactive: partyIds.has(a.crew.id),
-    roleId: a.roleId,
-    essential: a.roleId === essentialRoleId,
-    cumul: (battle.crewActed?.[ship.id] ?? []).includes(a.crew.id), // déjà engagé dans un Test ce Round → cumul +2 crans (l.53)
-    result: null,
-  }));
+  const participants: ShipManeuverParticipant[] = contributors.map((a) => {
+    const role = findCrewRoleById(a.roleId);
+    // LDB 09 l.30 ; #2588 Q1.
+    const refus = role ? crewRoleValue(a.crew, role).refus : undefined;
+    return temoinSiSansJet({
+      id: a.crew.id,
+      interactive: partyIds.has(a.crew.id),
+      roleId: a.roleId,
+      essential: a.roleId === essentialRoleId,
+      cumul: (battle.crewActed?.[ship.id] ?? []).includes(a.crew.id), // déjà engagé dans un Test ce Round → cumul +2 crans (l.53)
+      ...(refus != null ? ligneSansJet(refus) : { result: null }),
+    });
+  });
   const saboteur = shipSaboteurDR(ship); // MDG 14 l.45-47 : −1..−5 DR plats
   // #221 : Traits/Améliorations navals ciblant CE type de Test d'équipage (op `skillDRBonus` à `testType`).
   const traits = hullNavalTraits(ship);
@@ -462,10 +466,7 @@ export function createCombatSlice(get: Get, set: Set) {
     else if (done?.purpose === 'travelDay') {
       handled = true;
       if (get().travelPlan?.river) continueRiverDayAfterCascade(get, set);
-      // Mer : une « Fuite de vapeur » (pendingSteamSave) peut avoir suspendu la clôture DEPUIS l'applier
-      // 'progression' (cascade fermée sans insert du reste du jour) — `resolveSteamSave` reprend la
-      // journée lui-même à sa résolution ; ne pas clôturer prématurément ici.
-      else if (get().travelPlan?.sea) { if (!get().pendingSteamSave) continueSeaDayAfterCascade(get, set); }
+      else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set, done.piloteImmediat?.rowSurface === 'pv' ? done.participants : []);
       else travelFlow.continueTravelDayAfterCascade(get, set, done);
     }
     // Exposition hydrique fluviale (MSRC 16) surfacée APRÈS le jour (#344) : la clôture reprend la fin du
@@ -483,8 +484,8 @@ export function createCombatSlice(get: Get, set: Set) {
     // du jour. Couture GÉNÉRIQUE (toute la classe, pas seulement « fuir ») : ici `pendingCascade` est DÉJÀ
     // null (post-`advanceCascade`), sans garde de synchronisation. Gaté sur `travelPlan.sea` : à
     // l'accostage `travelPlan` est nul (la désertion `purpose:'test'`
-    // a sa propre reprise `resolvePortArrival`) ; `runSeaDay` re-garde de son côté combat/steamSave.
-    else if (done?.purpose === 'test' && get().travelPlan?.sea && !get().pendingSteamSave) { runSeaDay(get, set); handled = true; }
+    // a sa propre reprise `resolvePortArrival`) ; `runSeaDay` garde de son côté combat/steamSave.
+    else if (done?.purpose === 'test' && get().travelPlan?.sea) { runSeaDay(get, set); handled = true; }
     // ── Étage 2 : BORNES portées par la séquence — plus une chaîne EXCLUSIVE (#942 L1) ──
     // Accostage à FINALISER à la clôture (désertion à la relâche surfacée, #387) : `travelPlan` est déjà nul
     // ici (l'arrivée l'a annulé) — la séquence porte sa continuation dans `portArrival`. Couture GÉNÉRALE
@@ -528,6 +529,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // propriété du teardown, cf. `dismissVictory`/`dismissDefeat`).
     if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
   };
+  setClotureDeCascade(dispatchCascadeDone);
 
   /** Dissout l'INTENTION LOCALE armée et dit s'il y en avait une (spec zone 4) : le clic du champ qui
    *  la consomme reste, lui, le geste par défaut. */
@@ -1741,7 +1743,7 @@ export function createCombatSlice(get: Get, set: Set) {
       };
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
-        { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: 'Commandant d’équipe', stake: combatStakeRef('teamCommand') },
+        { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: t('cs.teamCommandTest'), stake: combatStakeRef('teamCommand') },
         onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: active.id });
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -2877,8 +2879,8 @@ export function createCombatSlice(get: Get, set: Set) {
         audience: battle.combatants.filter((c) => !isOutOfAction(c)),
         triggerCtx: { rng: battleRng() },
       });
-      // Météo du JOUR estampillée sur chaque combattant (#341) : SOURCE du canal « Tests physiques »
-      // (`weatherTestMods`, lu par attack/defenseModifiers/baseTestMods) — AVANT tout jet de ce combat.
+      // Météo du JOUR estampillée sur chaque combattant (#341 ; Précipitations MDG 13 l.185) : SOURCE des
+      // canaux `weatherTestMods` et `precipitationTestMods` — AVANT tout jet de ce combat.
       stampEnvWeatherAtCombatStart(get, set);
       // Option « Vents Tourbillonnants » (LDB 46 l.179-190, #491) : tirage 1d10 de la force des Vents
       // + Test de Perception (Seconde vue) des porteurs — AVANT tout jet d'Incantation/Focalisation.
@@ -2941,7 +2943,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const { battle } = get();
       if (!battle) return;
       const healer = activeCombatant(battle);
-      if (!healer || !controlsCombatant(get(), healer) || !hasHealSkill(healer) || battle.acted || !canTakeAction(healer)) return;
+      if (!healer || !controlsCombatant(get(), healer) || !possesses(healer, HEAL_SKILL) || battle.acted || !canTakeAction(healer)) return;
       const target = inBattleId(battle, targetId);
       if (!target || !availableHealModes(target).includes(mode)) return;
       const skillValue = testValue(healer, 'guerison');
@@ -3694,7 +3696,6 @@ export function createCombatSlice(get: Get, set: Set) {
       const cap = skillAdvantageCap(active, skillId);
       if (cap <= 0 || (active.advantage ?? 0) >= cap) return; // pas d'application « Avantage », ou déjà au plafond de la méthode
       const sd = byId('skill', skillId);
-      const skillLabel = sd?.label ?? skillId;
       // Le plafond est une DONNÉE PAR COMPÉTENCE (`SkillData.combatAdvantage.cap`, appliquée par
       // `skillAdvantageCap`) : Intuition relève de l'Initiative mais plafonne au Bonus d'Intelligence
       // (LDB 09 l.305+308). L'enjeu nomme donc CETTE Caractéristique — id en donnée, label à l'affichage.
@@ -3703,7 +3704,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // COUTURE UNIQUE (`openSkillTest`) : l'observateur reste l'acteur imposé (`actorId`), et son
       // Test est PERSONNEL — `noSupport` (LDB 09 l.308, LDB 12 l.197).
       openSkillTest(get, set,
-        { skill: { id: skillId }, difficulty: 'intermediaire', label: `Avantage — ${skillLabel}`, noSupport: true, stake: combatStakeRef('skillAdvantage', { entryId: skillId, values: { capChar } }) },
+        { skill: { id: skillId }, difficulty: 'intermediaire', label: t('cs.skillAdvantageTest'), noSupport: true, stake: combatStakeRef('skillAdvantage', { entryId: skillId, values: { capChar } }) },
         EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW,
         { actorId: active.id, combatAdvantage: { combatantId: active.id, cap }, cancellable: true });
     },

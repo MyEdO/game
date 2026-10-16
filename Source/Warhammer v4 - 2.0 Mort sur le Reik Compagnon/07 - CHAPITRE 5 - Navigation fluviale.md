@@ -4,7 +4,7 @@
 
 Dans **Mort sur le Reik**, les aventuriers passent une grande partie de leur temps à naviguer sur le fleuve dans une barge commerciale. Le MJ peut partir du principe que les Personnages arrivent toujours à destination sans encombre, mais il peut être plus intéressant de jouer au moins quelques trajets en détail, en utilisant les règles suivantes et en imaginant quels problèmes et accidents ils pourraient rencontrer.
 
-*Fort*. Vous pouvez avertir les Personnages d'un changement à venir, par exemple en décrivant les nuages qui s'accumulent ou se dispersent, ou en mentionnant que le feuillage des arbres commence à s'agiter. Cela leur permet de se préparer s'ils le souhaitent. Les vents évoluent graduellement, et les Personnages sont rarement pris de court par un changement dans la météo.
+
 
 ### **RÈGLES DE NAVIGATION**
 
@@ -18,7 +18,7 @@ Ramer est une Compétence de base, ce qui veut dire que tous les Personnages ont
 
 ### **CONDITIONS MÉTÉOROLOGIQUES**
 
-Le seul facteur météorologique qui impacte la vitesse de mouvement d'un bateau sur un fleuve ou une rivière est le vent. Lancez 2d10 en début de voyage, et consultez le Tableau des vents pour déterminer sa force et sa direction. Ensuite, lancez un nouveau d10 à l'aube, à midi, au crépuscule, et à minuit : sur un 1, la force du vent change d'une catégorie. Il a autant de chance de s'être affaibli ou renforcé. Un vent *Calme* ne peut que devenir *Léger*, et un vent *Très Fort* ne peut que devenir
+Le seul facteur météorologique qui impacte la vitesse de mouvement d'un bateau sur un fleuve ou une rivière est le vent. Lancez 2d10 en début de voyage, et consultez le Tableau des vents pour déterminer sa force et sa direction. Ensuite, lancez un nouveau d10 à l'aube, à midi, au crépuscule, et à minuit : sur un 1, la force du vent change d'une catégorie. Il a autant de chance de s'être affaibli ou renforcé. Un vent *Calme* ne peut que devenir *Léger*, et un vent *Très Fort* ne peut que devenir *Fort*. Vous pouvez avertir les Personnages d'un changement à venir, par exemple en décrivant les nuages qui s'accumulent ou se dispersent, ou en mentionnant que le feuillage des arbres commence à s'agiter. Cela leur permet de se préparer s'ils le souhaitent. Les vents évoluent graduellement, et les Personnages sont rarement pris de court par un changement dans la météo.
 
 #### TABLEAU DES VENTS
 

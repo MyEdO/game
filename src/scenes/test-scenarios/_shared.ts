@@ -1,9 +1,24 @@
-import { Combatant } from '../../engine/types';
+import { Combatant, type SkillInstance } from '../../engine/types';
+import { byId } from '../../data';
+import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
 import { Scene, Terrain } from '../../state/scene';
 import type { WorldMap } from '../../state/worldMap';
 import type { IconId } from '../../ui/icons';
 import { buildEncounters, type AuthoredEncounter } from '../../state/encounterAuthoring';
 import { buildScene } from '../../state/mapSpec';
+
+/** Ajoute ou renforce une Compétence d'un héros de scénario, à la Caractéristique de la donnée. Une
+ *  Compétence groupée se possède par spécialisation, désignée par son id — LDB 09 l.40, LDB 09 l.44. */
+export function renforcerCompetence(c: Combatant, skillId: string, advances: number, spec?: string): void {
+  const def = byId('skill', skillId);
+  if (!def) throw new Error(`[scénario] Compétence inconnue : ${skillId}`);
+  if (spec == null && estSpecialisable('skill', skillId)) throw new Error(`[scénario] ${skillId} est groupée : sa spécialisation manque`);
+  const refus = spec == null ? null : refusDeSpec('skill', skillId, spec);
+  if (refus) throw new Error(`[scénario] ${skillId} : spécialisation ${spec} refusée (${refus})`);
+  const ex = c.skills.find((k) => k.id === skillId && k.spec === spec);
+  if (ex) ex.advances = Math.max(ex.advances, advances);
+  else c.skills.push({ id: skillId, ...(spec != null ? { spec } : {}), characteristic: def.characteristic, advances } as SkillInstance);
+}
 
 /** Attache des rencontres authored (terse) à une scène : expanse chaque liste d'ennemis en
  *  entités 'personnage' + `members` canoniques, pousse les entités dans la scène et pose les

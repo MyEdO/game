@@ -25,8 +25,8 @@ import { useLongPress } from './useLongPress';
 import { ReadyRow } from './ReadyRow';
 import { SpectatorChip } from './SpectatorChip';
 import { spectatorSeatOfModal } from './ownership';
-import { actorHasSkill } from '../engine/skills';
-import { hasHealSkill, healableTargets } from '../engine/healing';
+import { actorHasSkill, possesses } from '../engine/skills';
+import { HEAL_SKILL, healableTargets } from '../engine/healing';
 import { canTakeAction, isActionLocked, isOutOfAction, raisonRefusDetermination } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
@@ -851,7 +851,7 @@ export function CombatConsole() {
       return acc;
     }, {}),
   );
-  const healTargets = hasHealSkill(active)
+  const healTargets = possesses(active, HEAL_SKILL)
     ? healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true })
     : [];
 

@@ -121,6 +121,7 @@ describe('(C) battleAidTeam — Test de Commandement réussi pose teamCommanderI
     useGame.getState().battleAidTeam();
     const pt = useGame.getState().pendingTest!;
     expect(pt).toBeTruthy();
+    expect(pt.label, 'titre Z0 : la clé de catalogue, rendue').toBe('Commandant d’équipe');
     expect(pt.actorId).toBe('cmd'); // c'est le COMMANDANT qui teste (RAW : le porteur du Talent aide)
     expect(useGame.getState().battle!.acted).toBe(true); // le Test EST l'Action (posée d'emblée, réussite ou non)
     // Conséquence du SUCCÈS = l'op `teamCommander` (branche onSuccess de l'action) → testée SANS RNG : un

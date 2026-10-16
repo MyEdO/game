@@ -21,6 +21,16 @@ export const sousAgent = (entree) => Boolean(entree?.agent_id)
 /** Le `tool_input` d'une entrée de hook, `null` s'il n'est pas un objet. */
 export const entreeDOutil = (entree) => (entree?.tool_input && typeof entree.tool_input === 'object' ? entree.tool_input : null)
 
+/** L'échéance d'un appel Bash ou PowerShell au premier plan sans `timeout` (schéma des outils de Claude Code). */
+export const ECHEANCE_PAR_DEFAUT_MS = 120_000
+
+/** Le `timeout` d'un `tool_input` en ms, nombre ou chaîne numérique ; `null` sinon. PURE. */
+export function timeoutDe(input) {
+  const brut = input?.timeout
+  if (typeof brut === 'number') return brut
+  return typeof brut === 'string' && brut.trim() !== '' && Number.isFinite(Number(brut)) ? Number(brut) : null
+}
+
 /** Les familles d'outil : LECTURE passe sans garde, hors ses actions refusées ; ÉDITION est jugée par
  *  les gardes d'écriture, SHELL (un `tool_input` à champ `command`) par les gardes de commande ; la
  *  PASSERELLE n'appelle que les outils de `LECTURES_LIBRES` que nomment ses clés `CLES_PASSERELLE`. */
@@ -111,12 +121,12 @@ const outilsDeFamille = (famille) => Object.keys(FAMILLES_LEAN_CTX).filter((nu) 
 /** Les canaux shell : Bash, PowerShell, et la famille SHELL de lean-ctx. */
 export const OUTILS_SHELL = ['Bash', 'PowerShell', ...outilsDeFamille(SHELL)]
 
-/** Les canaux d'écriture de fichier : Write, Edit, apply_patch, et la famille ÉDITION de lean-ctx (`ctx_patch`, le
- *  canal prescrit par `~/.claude/CLAUDE.md`). */
-export const OUTILS_ECRITURE = ['Write', 'Edit', 'apply_patch', ...outilsDeFamille(EDITION)]
+/** Les canaux d'écriture de fichier : Write, Edit, NotebookEdit, apply_patch, et la famille ÉDITION de lean-ctx
+ *  (`ctx_patch`, le canal prescrit par `~/.claude/CLAUDE.md`). */
+export const OUTILS_ECRITURE = ['Write', 'Edit', 'NotebookEdit', 'apply_patch', ...outilsDeFamille(EDITION)]
 
-/** Les canaux d'écriture qui CRÉENT un fichier : `Edit` n'en crée pas. */
-export const OUTILS_CREATION = OUTILS_ECRITURE.filter((outil) => outil !== 'Edit')
+/** Les canaux d'écriture qui CRÉENT un fichier : `Edit` n'en crée pas, `NotebookEdit` crée une cellule. */
+export const OUTILS_CREATION = OUTILS_ECRITURE.filter((outil) => outil !== 'Edit' && outil !== 'NotebookEdit')
 
 /** L'outil `nom` est-il couvert par `outils` ? Une entrée `….*` (`MOTIF_LEAN_CTX`) couvre son préfixe. */
 export const outilCouvert = (outils, nom) =>
@@ -270,10 +280,10 @@ const texteDeLOp = (ecrit, role) => {
   return cle ? ecrit[cle] : undefined
 }
 
-/** Le chemin visé : `file_path` (`Write`, `Edit`), `path` (`ctx_patch`) ; `undefined` sans chemin, ou
- *  fait de blancs. */
+/** Le chemin visé : `file_path` (`Write`, `Edit`), `notebook_path` (`NotebookEdit`), `path` (`ctx_patch`) ;
+ *  `undefined` sans chemin, ou fait de blancs. */
 export const cheminVise = (ecrit) => {
-  const chemin = ecrit?.file_path ?? ecrit?.path
+  const chemin = ecrit?.file_path ?? ecrit?.notebook_path ?? ecrit?.path
   return typeof chemin === 'string' && chemin.trim() !== '' ? chemin : undefined
 }
 
@@ -320,13 +330,18 @@ export function cheminDEcriture(toolInput, { base, platform = process.platform }
  *  git ne reconnaît pas : aucune preuve, `false` — le hook garde (`gitPorte.mjs`, `estIgnore`). */
 const ignoreParGit = (reel, racine) => estIgnore(depotAuxPannes(racine, []), reel)
 
-/** Le texte posé : `new_string` (`Edit`), `content` (`Write`), la clé `neuf` de son op (`ctx_patch`,
- *  `OPS_CTX_PATCH`). */
-export const texteNeuf = (ecrit) => ecrit?.new_string ?? ecrit?.content ?? texteDeLOp(ecrit, 'neuf')
+/** L'écriture vise-t-elle une cellule de carnet (`NotebookEdit`, `notebook_path`) ? */
+const estCellule = (ecrit) => typeof ecrit?.notebook_path === 'string'
 
-/** Le texte remplacé, quand l'écriture le porte : `old_string` (`Edit`), la clé `remplace` de son op
- *  (`ctx_patch`, `OPS_CTX_PATCH`). */
-export const texteRemplace = (ecrit) => ecrit?.old_string ?? texteDeLOp(ecrit, 'remplace')
+/** Le texte posé : `new_string` (`Edit`), `content` (`Write`), `new_source` (`NotebookEdit`, `''` en
+ *  `edit_mode` `delete`), la clé `neuf` de son op (`ctx_patch`, `OPS_CTX_PATCH`). */
+export const texteNeuf = (ecrit) =>
+  estCellule(ecrit) ? (ecrit.edit_mode === 'delete' ? '' : ecrit.new_source) : ecrit?.new_string ?? ecrit?.content ?? texteDeLOp(ecrit, 'neuf')
+
+/** Le texte remplacé, quand l'écriture le porte : `old_string` (`Edit`), `''` pour une cellule insérée
+ *  (`NotebookEdit` `edit_mode` `insert`), la clé `remplace` de son op (`ctx_patch`, `OPS_CTX_PATCH`). */
+export const texteRemplace = (ecrit) =>
+  estCellule(ecrit) && ecrit.edit_mode === 'insert' ? '' : ecrit?.old_string ?? texteDeLOp(ecrit, 'remplace')
 
 /** L'écriture pose-t-elle le fichier ENTIER ? `Write` (`content`), `ctx_patch` op `create`. */
 export const ecritLeFichierEntier = (ecrit) => typeof ecrit?.content === 'string' || ecrit?.op === 'create'
@@ -336,14 +351,31 @@ export const fichierExistait = (ecrit, lireExistence) => typeof ecrit?.existeAva
 /** Les ops ANCRÉES de `ctx_patch` qui remplacent des lignes : `line`, ou `start_line`..`end_line`. */
 const OPS_DE_LIGNES = new Set(['set_line', 'replace_lines', 'delete'])
 
-/** Le texte que l'écriture remplace se RÉSOUT-il ? Porté, fichier entier, ou op ancrée
- *  (`insert_after` compris) ; sinon (`replace_symbol`, op inconnue) l'écriture n'est pas jugeable. */
+/** Le texte que l'écriture remplace se RÉSOUT-il ? Porté, fichier entier, op ancrée (`insert_after`
+ *  compris) ou cellule nommée par `cell_id` ; sinon (`replace_symbol`, op inconnue) l'écriture n'est pas jugeable. */
 export const remplaceResoluble = (ecrit) =>
   texteRemplace(ecrit) !== undefined || ecritLeFichierEntier(ecrit) || ecrit?.op === 'insert_after' || OPS_DE_LIGNES.has(ecrit?.op)
+  || (estCellule(ecrit) && typeof ecrit.cell_id === 'string')
 
-/** Les lignes que vise une op ancrée dans `contenu` (le fichier AVANT écriture) ; `''` pour
- *  `insert_after`, qui n'en remplace aucune ; `undefined` hors op ancrée ou ancre illisible. */
+/** La source de la cellule `cell_id` du carnet `contenu` (JSON nbformat) : la cellule d'`id` `cell_id`, sinon
+ *  `cell-<N>` vise la N-ième cellule si elle n'a pas d'`id` (la graphie `<cell id="cell-<N>">` du `Read`, que la
+ *  description de `NotebookEdit` donne pour `cell_id`) ; `undefined` sans elle. */
+function celluleVisee(ecrit, contenu) {
+  if (typeof ecrit.cell_id !== 'string') return undefined
+  let carnet
+  try { carnet = JSON.parse(String(contenu ?? '')) } catch { return undefined }
+  const cellules = Array.isArray(carnet?.cells) ? carnet.cells : []
+  const rang = /^cell-(\d+)$/.exec(ecrit.cell_id)?.[1]
+  const cellule = cellules.find((c) => c?.id === ecrit.cell_id) ?? (rang === undefined || cellules[Number(rang)]?.id !== undefined ? undefined : cellules[Number(rang)])
+  const source = cellule?.source
+  return Array.isArray(source) ? source.join('') : typeof source === 'string' ? source : undefined
+}
+
+/** Les lignes que vise une op ancrée dans `contenu` (le fichier AVANT écriture), ou la source de la
+ *  cellule visée (`NotebookEdit`) ; `''` pour `insert_after`, qui n'en remplace aucune ; `undefined` hors
+ *  op ancrée ou ancre illisible. */
 export function lignesVisees(ecrit, contenu) {
+  if (estCellule(ecrit)) return celluleVisee(ecrit, contenu)
   if (ecrit?.op === 'insert_after') return ''
   if (!OPS_DE_LIGNES.has(ecrit?.op)) return undefined
   const debut = Number(ecrit.start_line ?? ecrit.line)
@@ -353,7 +385,8 @@ export function lignesVisees(ecrit, contenu) {
 }
 
 /** Le texte que l'écriture remplace, AVANT elle : le texte remplacé qu'elle porte, sinon le fichier
- *  entier (`Write`, `create`) ou les lignes visées (op ancrée) lus par `lire()`, sinon `''`. */
+ *  entier (`Write`, `create`), les lignes visées (op ancrée) ou la cellule visée (`NotebookEdit`) lus par
+ *  `lire()`, sinon `''`. */
 export function texteAvant(ecrit, lire) {
   const remplace = texteRemplace(ecrit)
   if (remplace !== undefined) return remplace

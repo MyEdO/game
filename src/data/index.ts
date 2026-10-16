@@ -977,6 +977,8 @@ export interface SkillData {
    *  `specs[]` n'est qu'un historique/suggestions, pas une liste fermée. Absent/`false` = FERMÉ — la
    *  valeur `spec` d'une instance DOIT être un id de `specs[]` (garde-fou `refs-migrated.test.ts`). */
   specsOpen?: boolean;
+  /** Posséder une Spécialisation rend les autres de Base (`possesses`). LDB 09 l.571. */
+  specsSoeursDeBase?: boolean;
   desc: string;
   source: SourceRef;
   /** Test « impliquant un déplacement » (LDB 16 l.35/64) : ciblé par les pénalités d'État À Terre /

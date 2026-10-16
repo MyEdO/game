@@ -3,8 +3,9 @@ import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
-import { correspondGlob, listerArbre, listerDossier } from '../../guards/lib/lister.mjs'
-import { canoniser, dansLaMesure, perimetreDeMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { cheminAbsent, correspondGlob, listerArbre, listerDossier } from '../../guards/lib/lister.mjs'
+import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
 import { ecrireJsonAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
 import { clotureDImports } from '../../guards/lib/importGraph.mjs'
@@ -14,45 +15,101 @@ const empreinte = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const egaux = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const RACINE_OUTILLAGE = fileURLToPath(new URL('../../../', import.meta.url))
 
-function mesurerOutillage(ancien) {
-  if (ancien?.length && ancien.every(([rel, hash]) => hashFichier(RACINE_OUTILLAGE, rel) === hash)) return ancien
-  const fichiers = clotureDImports(['scripts/docs/build-all.mjs', 'scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs'], { racine: RACINE_OUTILLAGE })
-  return [...fichiers].sort().map((rel) => [rel, hashFichier(RACINE_OUTILLAGE, rel)])
+const OUTILS = ['package.json', 'package-lock.json']
+const PRECHARGES = ['scripts/docs/lib/enregistreur-lectures.mjs', 'scripts/docs/lib/enregistreur-hooks.mjs']
+const LIB_DES_DOCS = 'scripts/docs/lib'
+const fichiersDeLaLib = () => listerArbre(path.join(RACINE_OUTILLAGE, LIB_DES_DOCS), { filtre: (rel) => rel.endsWith('.mjs') && !rel.endsWith('.test.mjs') })
+  .map((rel) => `${LIB_DES_DOCS}/${rel}`)
+
+/** #2603 */
+export function fichiersDOutillage() {
+  return new Set([...clotureDImports(PRECHARGES, { racine: RACINE_OUTILLAGE }), 'scripts/docs/build-all.mjs', ...fichiersDeLaLib()])
 }
 
-export function nouvelleVue(racine, options, preuve = chargerPreuve(racine), mesures = lireMesure(racine, options, true), outillagePrecedent) {
+function mesurerOutillage(ancien, canon) {
+  const connus = new Set(ancien?.map(([rel]) => rel))
+  if (ancien?.length && fichiersDeLaLib().every((rel) => connus.has(rel)) && ancien.every(([rel, hash]) => hashFichier(RACINE_OUTILLAGE, rel, undefined, canon) === hash)) return ancien
+  return [...fichiersDOutillage()].sort().map((rel) => [rel, hashFichier(RACINE_OUTILLAGE, rel, undefined, canon)])
+}
+
+export function nouvelleVue(racine, options, preuve = chargerPreuve(racine), mesures = lireMesure(racine, options, true), outillagePrecedent, perimetre = perimetreDeMesure(racine)) {
+  return photographier(racine, options, preuve, mesures, outillagePrecedent, perimetre)
+}
+
+/** #2603 */
+export function vueApresGenerateur(vue, options, preuve, g, perimetre, ecrits) {
+  const motifs = [...g.targets, ...(g.injecte ?? [])]
+  const sorties = new Set([...vue.cibles.get(JSON.stringify(motifs)), ...options.ciblesSurDisque(motifs, vue.racine), ...ecrits])
+  const ancetres = new Set([...sorties].flatMap((rel) => {
+    const liste = ['']
+    for (let parent = path.posix.dirname(rel); parent !== '.'; parent = path.posix.dirname(parent)) liste.push(parent)
+    return liste
+  }))
+  const touche = (rel) => {
+    if (sorties.has(rel) || ancetres.has(rel)) return true
+    for (let parent = path.posix.dirname(rel); parent !== '.'; parent = path.posix.dirname(parent)) if (sorties.has(parent)) return true
+    return false
+  }
+  const selectionTouchee = (selection) => selection.some((motif) => [...sorties].some((rel) => correspondGlob(rel, motif)))
+  return photographier(vue.racine, options, preuve, lireMesure(vue.racine, options, true), undefined, perimetre, { vue, touche, selectionTouchee })
+}
+
+/** #2603 */
+function vueDeContexte(racine, outillagePrecedent, perimetre = perimetreDeMesure(racine)) {
+  const canon = canoniseurParDossier()
+  return { hashes: new Map(OUTILS.map((rel) => [rel, hashFichier(racine, rel, undefined, canon)])), outillage: mesurerOutillage(outillagePrecedent, canon), perimetre, ignores: perimetre.ignores }
+}
+
+function photographier(racine, options, preuve, mesures, outillagePrecedent, perimetre, reprise, portee) {
+  const canon = canoniseurParDossier()
+  const reprendre = (carte, cle, rel, mesurer) => reprise?.vue[carte].has(cle) && !reprise.touche(rel) ? reprise.vue[carte].get(cle) : mesurer()
   const entrees = Object.values({ ...mesures, ...Object.fromEntries(Object.entries(preuve?.generateurs ?? {}).map(([s, r]) => [s, r.mesure])) })
-  const perimetre = perimetreDeMesure(racine)
   const ignores = perimetre.ignores
   const motifs = [options.generateurs.flatMap((g) => g.targets), ...options.generateurs.map((g) => [...g.targets, ...(g.injecte ?? [])])]
   const selections = new Map(motifs.map((m) => [JSON.stringify(m), m]))
-  const cibles = new Map([...selections].map(([cle, m]) => [cle, options.ciblesSurDisque(m, racine)]))
-  const fichiers = new Set(['package.json', 'package-lock.json', ...options.generateurs.map((g) => g.script), ...[...cibles.values()].flat(), ...entrees.flatMap((e) => e.fichiers ?? [])])
-  const hashes = new Map([...fichiers].map((rel) => [rel, hashFichier(racine, rel)]))
-  const listings = new Map([...new Set(entrees.flatMap((e) => e.dossiers ?? []))].map((rel) => [rel, listing(racine, rel)]))
+  const cibles = new Map([...selections].map(([cle, m]) => [cle, reprise?.vue.cibles.has(cle) && !reprise.selectionTouchee(m) ? reprise.vue.cibles.get(cle) : options.ciblesSurDisque(m, racine)]))
+  const haches = portee ? [portee.script, ...cibles.get(JSON.stringify([...portee.targets, ...(portee.injecte ?? [])]))] : [...options.generateurs.map((g) => g.script), ...[...cibles.values()].flat()]
+  const fichiers = new Set([...OUTILS, ...haches, ...entrees.flatMap((e) => e.fichiers ?? [])])
+  const hashes = new Map([...fichiers].map((rel) => [rel, reprendre('hashes', rel, rel, () => hashFichier(racine, rel, undefined, canon))]))
+  const listings = new Map([...new Set(entrees.flatMap((e) => e.dossiers ?? []))].map((rel) => [rel, reprendre('listings', rel, rel, () => listing(racine, rel, canon))]))
   const requetes = new Map(entrees.flatMap((e) => (e.git ?? []).map((q) => [JSON.stringify(q), q])))
   const git = new Map([...requetes].map(([cle, q]) => [cle, gitPorte.relireRequeteMesuree(gitPorte.depotDe(racine), q)]))
   const demandes = new Map(entrees.flatMap((e) => (e.sondes ?? []).map((q) => [JSON.stringify(q), q])))
-  const sondes = new Map([...demandes].map(([cle, q]) => [cle, sonde(racine, q)]))
-  const outillage = mesurerOutillage(outillagePrecedent ?? Object.values(preuve?.generateurs ?? {})[0]?.sources?.contexte?.outillage)
-  return { racine, hashes, listings, git, sondes, ignores, cibles, outillage, perimetre }
+  const sondes = new Map([...demandes].map(([cle, q]) => [cle, reprendre('sondes', cle, q.chemin, () => sonde(racine, q, undefined, canon))]))
+  const outillage = mesurerOutillage(outillagePrecedent ?? Object.values(preuve?.generateurs ?? {})[0]?.sources?.contexte?.outillage, canon)
+  const derivees = new Set(cibles.get(JSON.stringify(motifs[0])))
+  const motifsDeclares = motifs.slice(1).flat()
+  const admissions = new Map()
+  const admis = (rel) => {
+    let admission = admissions.get(rel)
+    if (admission === undefined) admissions.set(rel, (admission = dansLaMesure(rel, ignores, derivees, motifsDeclares)))
+    return admission
+  }
+  return { racine, hashes, listings, git, sondes, ignores, cibles, outillage, perimetre, canon, admis }
 }
 
-function cheminSous(racine, relatif) {
+function cheminLexical(racine, relatif) {
   if (typeof relatif !== 'string' || relatif.includes('\\') || path.posix.isAbsolute(relatif)
     || relatif.split('/').some((p) => p === '..' || p === '.') || /^[a-z]:/i.test(relatif)) throw new Error('chemin de preuve invalide')
-  const absolu = path.resolve(racine, relatif)
-  if (relatifSousRacine(canoniser(racine), absolu) !== relatif) throw new Error('chemin de preuve hors racine')
+  return path.resolve(racine, relatif)
+}
+
+function cheminSous(racine, relatif, canon = canoniser, canonFeuille = canon) {
+  const absolu = cheminLexical(racine, relatif)
+  if (relatifSousRacine(canon(racine), absolu, canonFeuille) !== relatif) throw new Error('chemin de preuve hors racine')
   return absolu
 }
 
-function hashFichier(racine, rel, vue) {
+function hashFichier(racine, rel, vue, canon) {
   if (vue) return vue.hashes.get(rel)
-  const absolu = cheminSous(racine, rel)
+  const absolu = cheminLexical(racine, rel)
   let stat
-  try { stat = lstatSync(absolu) } catch (e) {
-    if (['ENOENT', 'ENOTDIR'].includes(e.code)) return null
-    throw e
+  let echec
+  try { stat = lstatSync(absolu) } catch (e) { echec = e }
+  cheminSous(racine, rel, canon, canon && ((chemin) => canon(chemin, !stat || stat.isSymbolicLink())))
+  if (echec) {
+    if (cheminAbsent(echec)) return null
+    throw echec
   }
   if (!stat.isFile()) throw new Error(`fichier attendu : ${rel}`)
   return empreinte(readFileSync(absolu))
@@ -61,26 +118,26 @@ function hashFichier(racine, rel, vue) {
 function lireMesure(racine, options, facultative = false) {
   let mesure
   try { mesure = JSON.parse(readFileSync(cheminSous(racine, options.sourcesLues), 'utf8')) } catch (e) {
-    if (facultative && e.code === 'ENOENT') return {}
+    if (facultative && cheminAbsent(e)) return {}
     throw e
   }
   if (!mesure || typeof mesure !== 'object' || Array.isArray(mesure)) throw new Error('mesure invalide')
   return mesure
 }
 
-function entreeValide(racine, entree) {
+function entreeValide(racine, entree, canon) {
   if (!entree || !Array.isArray(entree.fichiers) || !Array.isArray(entree.dossiers) || !Array.isArray(entree.cibles)) throw new Error('mesure incomplète')
-  for (const rel of [...entree.fichiers, ...entree.dossiers, ...entree.cibles]) cheminSous(racine, rel)
+  for (const rel of [...entree.fichiers, ...entree.dossiers, ...entree.cibles]) cheminSous(racine, rel, canon)
   if (entree.incomplet?.length) throw new Error(`mesure non certifiable : ${entree.incomplet.join(', ')}`)
 }
 
-function listing(racine, rel) {
-  return listerDossier(cheminSous(racine, rel), { absent: 'vide', avecTypes: true })
+function listing(racine, rel, canon) {
+  return listerDossier(cheminSous(racine, rel, canon), { absent: 'vide', avecTypes: true })
 }
 
-function sonde(racine, requete, vue) {
+function sonde(racine, requete, vue, canon) {
   if (vue) return vue.sondes.get(JSON.stringify(requete))
-  const absolu = cheminSous(racine, requete.chemin)
+  const absolu = cheminSous(racine, requete.chemin, canon)
   if (requete.type === 'exists') return { ...requete, existe: existsSync(absolu), nature: null }
   if (requete.type !== 'stat') throw new Error('type de sonde invalide')
   try {
@@ -95,19 +152,19 @@ function contexte(racine, g, vue) {
   return {
     generateur: g,
     runtime: [process.version, process.platform, process.arch],
-    outils: ['package.json', 'package-lock.json'].map((rel) => [rel, hashFichier(racine, rel, vue)]),
+    outils: OUTILS.map((rel) => [rel, hashFichier(racine, rel, vue)]),
     outillage: vue?.outillage ?? mesurerOutillage(),
     perimetre: (vue?.perimetre ?? perimetreDeMesure(racine)).signature,
   }
 }
 
 function mesurerSources(racine, g, entree, options, vue) {
-  entreeValide(racine, entree)
+  entreeValide(racine, entree, vue?.canon)
   const ignores = vue?.ignores ?? perimetreDeMesure(racine).ignores
   const motifs = options.generateurs.flatMap((g) => g.targets)
   const motifsDeclares = options.generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])])
   const derivees = new Set(vue ? vue.cibles.get(JSON.stringify(motifs)) : options.ciblesSurDisque(motifs, racine))
-  const admis = (rel) => dansLaMesure(rel, ignores, derivees, motifsDeclares)
+  const admis = vue ? vue.admis : (rel) => dansLaMesure(rel, ignores, derivees, motifsDeclares)
   const fichiers = [...new Set([g.script, ...entree.fichiers.filter(admis)])].sort()
   const dossiers = [...new Set(entree.dossiers.filter(admis))].sort()
   return {
@@ -181,7 +238,7 @@ export function preparerPreuves(racine, options) {
       if (!natures.has(prefixe)) {
         let nature = null
         try { nature = lstatSync(path.join(racine, prefixe)) } catch (e) {
-          if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw e
+          if (!cheminAbsent(e)) throw e
         }
         natures.set(prefixe, nature)
       }
@@ -194,19 +251,18 @@ export function preparerPreuves(racine, options) {
     if (stat?.isDirectory()) dossiers.add(rel)
   }
   for (const e of Object.values(mesure)) for (const rel of e.dossiers ?? []) dossiers.add(rel)
-  const vue = nouvelleVue(racine, options, cache)
+  const vue = nouvelleVue(racine, options, cache, mesure, undefined, perimetre)
   return {
     cache,
     mesure,
     vue,
-    fichiers: new Map([...fichiers].map((rel) => [rel, vue.hashes.has(rel) ? vue.hashes.get(rel) : hashFichier(racine, rel)])),
-    dossiers: new Map([...dossiers].map((rel) => [rel, vue.listings.has(rel) ? structuredClone(vue.listings.get(rel)) : listing(racine, rel)])),
+    fichiers: new Map([...fichiers].map((rel) => [rel, vue.hashes.has(rel) ? vue.hashes.get(rel) : hashFichier(racine, rel, undefined, vue.canon)])),
+    dossiers: new Map([...dossiers].map((rel) => [rel, vue.listings.has(rel) ? structuredClone(vue.listings.get(rel)) : listing(racine, rel, vue.canon)])),
   }
 }
 
 export function avantGenerateur(racine, g, options, preparation) {
-  const entree = preparation.mesure[g.script]
-  const vue = nouvelleVue(racine, options, null, entree ? { [g.script]: entree } : {}, preparation.vue.outillage)
+  const vue = vueDeContexte(racine, preparation.vue.outillage)
   const initial = contexte(racine, g, preparation.vue)
   const actuel = contexte(racine, g, vue)
   for (const champ of Object.keys(initial)) if (!egaux(initial[champ], actuel[champ])) throw new Error(`contexte modifié depuis préparation : ${champ}`)
@@ -216,7 +272,7 @@ export function avantGenerateur(racine, g, options, preparation) {
 export function certifierGenerateur(racine, g, entree, options, avant) {
   try {
     const preuve = { version: 2, generateurs: { [g.script]: { mesure: entree, sources: { contexte: avant.contexte } } } }
-    const vue = nouvelleVue(racine, options, preuve, {})
+    const vue = photographier(racine, options, preuve, {}, undefined, perimetreDeMesure(racine), undefined, g)
     const sources = mesurerSources(racine, g, entree, options, vue)
     if (!egaux(sources.contexte, avant.contexte)) throw new Error('outillage modifié pendant génération')
     const anciensFichiers = avant.baseline.fichiers
@@ -233,9 +289,9 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     const sondesMesurees = (entree.sondes ?? []).filter((q) => dansLaMesure(q.chemin, vue.ignores, deriveesMesurees, motifsDeclares))
     if (!egaux(sources.git, entree.git ?? []) || !egaux(sources.sondes, sondesMesurees)) throw new Error('requête ou sonde modifiée pendant génération')
     const record = { mesure: entree, sources, sorties: mesurerSorties(racine, g, options, vue) }
-    const finale = nouvelleVue(racine, options, preuve, {})
+    const finale = photographier(racine, options, preuve, {}, undefined, vue.perimetre, undefined, g)
     if (!egaux(sources, mesurerSources(racine, g, entree, options, finale))) throw new Error('source modifiée pendant certification')
-    const ignores = perimetreDeMesure(racine).ignores
+    const ignores = finale.ignores
     const derivees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
     const parents = new Set()
     for (const [rel] of record.sorties) {
@@ -243,7 +299,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
       while (parent !== '.') { parents.add(parent); parent = path.posix.dirname(parent) }
       parents.add('')
     }
-    const listings = new Map([...parents].map((rel) => [rel, listing(racine, rel)]))
+    const listings = new Map([...parents].map((rel) => [rel, listing(racine, rel, finale.canon)]))
     const propres = [...g.targets, ...(g.injecte ?? [])]
     const observes = new Set(sources.dossiers.map(([rel]) => rel))
     const sortiesCertifiees = new Set(record.sorties.map(([rel]) => rel))
@@ -263,7 +319,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     }
     const validerStructure = (rel) => {
       if (observes.has(rel) || !absentAvant(rel)) throw new Error(`parent nouveau non structurel : ${rel}`)
-      const snapshot = listings.get(rel) ?? listing(racine, rel)
+      const snapshot = listings.get(rel) ?? listing(racine, rel, finale.canon)
       if (snapshot.nature !== 'directory' || !snapshot.entrees.length) throw new Error(`structure de sortie vide ou non répertoire : ${rel}`)
       for (const e of snapshot.entrees) {
         const chemin = rel ? `${rel}/${e.nom}` : e.nom
@@ -279,7 +335,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
       if (!precedent) throw new Error(`parent de sortie non capturé : ${rel}`)
       for (const e of precedent.entrees) {
         const chemin = rel ? `${rel}/${e.nom}` : e.nom
-        if (e.nature === 'file' && !sortiesCertifiees.has(chemin) && avant.baseline.fichiers.has(chemin) && avant.baseline.fichiers.get(chemin) !== hashFichier(racine, chemin)) throw new Error(`source de parent modifiée : ${chemin}`)
+        if (e.nature === 'file' && !sortiesCertifiees.has(chemin) && avant.baseline.fichiers.has(chemin) && avant.baseline.fichiers.get(chemin) !== hashFichier(racine, chemin, undefined, finale.canon)) throw new Error(`source de parent modifiée : ${chemin}`)
       }
       const ancien = projeterListingMesure(rel, precedent, avant.baseline.ignores, avant.baseline.derivees, propres, motifsDeclares)
       const apres = projeterListingMesure(rel, actuel, ignores, derivees, propres, motifsDeclares)
@@ -293,7 +349,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     }
     for (const [rel, hash] of record.sorties) avant.preparation.fichiers.set(rel, hash)
     for (const [rel, actuel] of listings) avant.preparation.dossiers.set(rel, actuel)
-    return { ok: true, record }
+    return { ok: true, record, perimetre: vue.perimetre }
   } catch (e) { return { ok: false, raison: e.message } }
 }
 

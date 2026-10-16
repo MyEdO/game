@@ -5,7 +5,7 @@
 import type { PlayerText } from '../i18n/playerText';
 import type { GameState, BattleState, RevealEntry, ShootingStanceKey } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { PendingCast, PendingDeviation, PendingCritSeverity, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, CascadeRoll, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
+import type { PendingCast, PendingDeviation, PendingCritSeverity, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
@@ -19,7 +19,7 @@ import { beatHold, approachMs, afterApproach } from './combatDirector';
 import { scheduleCombatTimer } from './combatTimers';
 import { facingToward, DIR8_ORDER, type Dir8 } from './dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
-import { setVesselHull } from './seaVoyageFlow';
+import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
 import {
   resolveMelee,
   resolveRanged,
@@ -144,7 +144,7 @@ import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, type StructureCriticalResolved } from '../engine/structureCritical';
-import { STRUCTURE_CRITICALS } from '../data/structureCriticals';
+import { STRUCTURE_CRITICALS, STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
 import { actorIn, inBattleId, garanti } from './combatants';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
@@ -200,7 +200,7 @@ import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, ser
 import { isVehicle } from '../engine/vehicle';
 import { targetArc, headingToBear } from './fireArc';
 import { bearingPostes, mostArmedSide } from './shipBattery';
-import { shipHelmsman, maneuverShip } from './shipManeuver';
+import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
 import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType } from '../engine/psychology';
@@ -285,7 +285,7 @@ import {
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
 import { dataLabel } from '../data';
-import { stepPrecision, stepPsych } from './rollSeam';
+import { stepDetail, stepPrecision, stepPsych } from './rollSeam';
 
 /** L'État du défenseur accorde-t-il un Avantage à l'assaillant en mêlée ? Lu en DONNÉES
  *  (`incomingMeleeAdvantage` → `passive` `incomingAdvantage`, kind `etat`). Sonné : « +1 Avantage avant
@@ -591,16 +591,18 @@ export function activeDayWeather(get: Get): Weather | undefined {
   return w?.id;
 }
 
-/** Estampille la météo du JOUR (`activeDayWeather`) sur CHAQUE combattant à l'ouverture du combat (#341) —
- *  SOURCE de `Combatant.envWeather`, seule entrée du canal « Tests physiques » (`weatherTestMods`, lu par
- *  attack/defenseModifiers/baseTestMods). Un combat hors voyage (pas de météo de jour) laisse le champ vide
- *  (aucune pénalité). No-op si pas de combat. */
+/** Estampille la météo du JOUR sur CHAQUE combattant à l'ouverture du combat — SOURCE de
+ *  `Combatant.envWeather` (`activeDayWeather`, canal `weatherTestMods`, #341) et de
+ *  `Combatant.envPrecipitation` (`activeSeaPrecipitation`, canal `precipitationTestMods`, MDG 13 l.185),
+ *  lus par attack/defenseModifiers/baseTestMods et les Tests d'équipage. Un combat hors voyage laisse les
+ *  champs vides (aucune pénalité). No-op si pas de combat. */
 export function stampEnvWeatherAtCombatStart(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle) return;
   const w = activeDayWeather(get);
-  if (!w) return;
-  set({ battle: { ...battle, combatants: battle.combatants.map((c) => (c.envWeather === w ? c : { ...c, envWeather: w })) } });
+  const p = activeSeaPrecipitation(get);
+  if (!w && !p) return;
+  set({ battle: { ...battle, combatants: battle.combatants.map((c) => ({ ...c, ...(w ? { envWeather: w } : {}), ...(p ? { envPrecipitation: p } : {}) })) } });
 }
 
 /**
@@ -1670,7 +1672,7 @@ const CRIT_TABLE_CATEGORIES: Record<CritTableKey, string> = {
 for (const key of Object.keys(CRIT_TABLE_IDS) as CritTableKey[]) {
   const rows = critTableRows('ldb', key);
   registerTableStep(CRIT_TABLE_IDS[key], {
-    label: `Blessures critiques — ${libelleDeValeur(critTableSchema, key)}`,
+    label: stepDetail(tr('step.blessuresCritiques'), dataLabel(libelleDeValeur(critTableSchema, key))),
     die: 100,
     rows,
     lines: (die) => [findTableEntry(rows, die).label],
@@ -1918,7 +1920,7 @@ export function applyHullCriticalToTarget(
  *  lignes reste au moteur (`rollStructureCritical`, appelé avec le dé déjà tiré : aucun dé consommé). */
 export const STRUCTURE_CRIT_TABLE = 'structure-criticals';
 registerTableStep(STRUCTURE_CRIT_TABLE, {
-  label: 'Blessures critiques sur une Structure',
+  label: dataLabel(STRUCTURE_CRITICALS_LABEL),
   die: 100,
   rows: STRUCTURE_CRITICALS,
   lines: (die) => { const o = rollStructureCritical(battleRng(), die); return o.note ? [...o.log, o.note] : [...o.log]; },
@@ -6498,7 +6500,7 @@ export type ContractionEntry = 'infection' | 'contagion' | 'chirurgie';
  *  l'appelle, la maladie, sa difficulté de Résistance (les crans de l'exposition — Contagieux : 2 plus
  *  difficile — DÉJÀ appliqués) et le libellé d'exposition. `instant` (Contagieux, EDO App.2 l.230) :
  *  contractée → incubation « Instantanée ». Le `resistVal` (Résistance effective) est figé à la décision. */
-interface CombatEndDiseaseTest { entry: ContractionEntry; disease: string; difficulty: Difficulty; label: string; instant?: boolean }
+interface CombatEndDiseaseTest { entry: ContractionEntry; disease: string; difficulty: Difficulty; label: PlayerText; instant?: boolean }
 
 /** Valeur de Résistance d'un héros pour les Tests de Contraction (E + avances de Résistance) — figée à la
  *  décision pour rester stable entre la pose de l'étape et sa résolution. */
@@ -6524,7 +6526,7 @@ function decideCombatEndHeroTests(
   if (c.tookCriticalThisFight) {
     const dressed = c.woundDressed;
     if (!c.dead && !dressed && dm === 'full' && contractionDue(c, 'infection-mineure'))
-      diseases.push({ entry: 'infection', disease: 'infection-mineure', difficulty: 'tresFacile', label: 'Infection (Blessure critique)' });
+      diseases.push({ entry: 'infection', disease: 'infection-mineure', difficulty: 'tresFacile', label: stepPrecision(diseaseLabel('infection-mineure'), tr('step.blessureCritique')) });
   }
   c.tookCriticalThisFight = false; // consommé (idempotent)
   c.woundDressed = false;
@@ -6540,7 +6542,7 @@ function decideCombatEndHeroTests(
         entry: 'contagion',
         disease: def.id,
         difficulty: easeDifficulty(def.contractDifficulty, exp.difficultyShift ?? 0),
-        label: `Contagion (${diseaseLabel(def.id)})`,
+        label: stepPrecision(tr('step.contagion'), diseaseLabel(def.id)),
         ...(exp.instant ? { instant: true } : {}),
       });
     }
@@ -6627,7 +6629,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
         id: `combatEndDisease-${c.id}-${d.entry}-${d.disease}`, kind: 'combatEndDisease', actor: c, icon: 'medical/infection',
         rollLabel: 'Résistance', difficulty: d.difficulty,
         ligne: { valeur: resVal, surLaCible: conditionModLines(c, { skill: 'resistance', disease: d.disease }) },
-        label: dataLabel(d.label), meta: { entry: d.entry, disease: d.disease, ...(d.instant ? { instant: true } : {}) },
+        label: d.label, meta: { entry: d.entry, disease: d.disease, ...(d.instant ? { instant: true } : {}) },
         stake: combatStakeRef('combatEndDisease', { entryId: d.disease }),
         menace: 'maladie', // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
       });
@@ -7807,7 +7809,7 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
  * l'Indice (vainc à ≥ Indice). SOURCE UNIQUE de la résolution par héros — l'applier de bande l'appelle
  * pour CHACUNE de ses rangées.
  */
-function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, rm: CombatPsychRowMeta, r: CascadeRoll, immune: boolean): Consequence[] {
+function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, rm: CombatPsychRowMeta, r: { success: boolean; sl: number }, immune: boolean): Consequence[] {
   const battle = get().battle;
   // DÉTERMINATION (LDB 17 l.59) : immunité TEMPORAIRE — la Peur/Terreur/Trait est IGNORÉE ce Round,
   // PAS vaincue. On NE cumule PAS le DR, on NE pose PAS de Brisé, on N'active PAS le trait ciblé : le
@@ -7967,8 +7969,8 @@ function endShipTurn(get: Get, set: SetFn, delay?: number): void {
  *     d'équipage des Artilleurs résolu sans modale, mêmes fns pures que le joueur) ;
  *  2. sinon MANŒUVRE (`maneuverShip`, barreur = meilleur de l'équipage APTE) : virer pour amener le bord le plus
  *     armé en batterie quand la cible est déjà à portée, sinon fermer la distance cap sur elle (la coque avance
- *     TOUJOURS le long du cap, MDG 13) — l'approche se joue donc sur plusieurs Rounds ;
- *  3. à défaut de barreur apte → la coque dérive le long de son cap (`shipAdvance`).
+ *     TOUJOURS le long du cap, MDG 13) — l'approche se joue donc sur plusieurs Rounds. Sans barreur apte, le
+ *     Test est un échec sans jet (LDB 09 l.30 ; MDG 13 l.68-75).
  * Les Tests d'équipage adverses sont auto-résolus par ces mêmes flux ; tout est journalisé (aucun jet silencieux).
  */
 function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
@@ -7991,16 +7993,10 @@ function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
     return endShipTurn(get, set, TEMPO.aimTelegraph);
   }
   // 2) MANŒUVRE : aligner le bord le plus armé (si à portée) ou fermer la distance (hors portée).
-  const helm = shipHelmsman(battle.combatants, ship);
-  if (helm) {
-    const primary = mostArmedSide(ship);
-    const inRange = shipMaxPosteRange(ship) > 0 && distMetres <= shipMaxPosteRange(ship);
-    const desired = inRange && primary ? headingToBear(primary, bearing) : bearing;
-    maneuverShip(get, ship.id, shipTurnToward(heading, desired), helm.id); // vire (si Test réussi) + avance ; journalise
-    return endShipTurn(get, set);
-  }
-  // 3) Aucun barreur apte : la coque dérive le long de son cap (approche minimale, MDG 13 M÷2 plancher).
-  get().shipAdvance(ship.id, Math.max(1, Math.round(shipMaxPosteRange(ship) / mpt) || 1));
+  const primary = mostArmedSide(ship);
+  const inRange = shipMaxPosteRange(ship) > 0 && distMetres <= shipMaxPosteRange(ship);
+  const desired = inRange && primary ? headingToBear(primary, bearing) : bearing;
+  maneuverShip(get, ship.id, shipTurnToward(heading, desired)); // vire (si Test réussi) + avance ; journalise
   endShipTurn(get, set);
 }
 

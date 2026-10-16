@@ -24,6 +24,7 @@ import { ouvrirEtal, registerEtalGenerateur } from './etalLotFlow';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { registerCascadeApplier, chainStep } from './cascade';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
+import { t } from '../i18n';
 import { actorIn, garanti } from './combatants';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
@@ -36,6 +37,7 @@ import {
 import { type CargoLot, loadCargo, carrierCanLoad, carrierFreeEnc, transferCargo } from '../engine/cargo';
 import { findLieuServiceById, combatStakeRef } from '../data/index';
 import { primaryCargoCarrier, carrierById, persistCarriersCargo } from './carriers';
+import { appraiseRefus, APPRAISE_SKILL } from './merchantFlow';
 import { seasonOfMonth } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
 import type { Get, Set } from './flowTypes';
@@ -186,8 +188,9 @@ export function landEvalWine(get: Get, set: Set, cargoId: string): void {
   if (!st) return;
   const offer = st.offers.find((o) => o.cargoId === cargoId);
   if (!offer || !offer.wine || offer.wineTier) return; // pas du vin, ou déjà évalué
-  const best = partyBest(get().party, 'evaluation');
-  if (!best) { log(get, set, ['Personne dans le groupe ne sait évaluer un vin.']); return; }
+  const refus = appraiseRefus(get().party);
+  if (refus) { log(get, set, [refus]); return; }
+  const best = partyBest(get().party, APPRAISE_SKILL.evaluate.skill)!;
   const diff = wineEvalDifficulty(testValue(best.actor, 'resistance-a-l-alcool'));
   // #274 sweep : `rollTest` inline silencieux — migré sur `openRoll`.
   openPartyTest(get, set, {
@@ -303,7 +306,7 @@ export function landBuyCargo(get: Get, set: Set, cargoId: string, enc: number): 
  * peuvent proposer la moitié de la cargaison à la place : lancez à nouveau le dé en l'opposant au
  * nombre précédemment obtenu »). Retire le lot vendu, crédite la bourse.
  *
- * Le dé d'acheteur est un dé de MONDE routé par la porte (`openWorldTest`, côté `worldSide`) — MÊME
+ * Le dé d'acheteur est un dé de MONDE routé par la porte (`openWorldTest`, porteur `WORLD_STEP_OWNER`) — MÊME
  * chemin que son jumeau maritime (`portFlow.openPortSellBuyerStep`) : le siège qui possède le monde
  * le POSE quand l'option « Dés fixés » est active, et le voit passer sinon.
  */
@@ -314,19 +317,18 @@ export function landSellCargo(get: Get, set: Set, carrierId: string, cargoIndex:
   openLandSellBuyerStep(get, set, carrierId, cargoIndex, lot.enc, true, 1);
 }
 
-/** 1. Trouver un acheteur (dé de MONDE, l.146) : cible = la Demande du Lieu, posée en `meta.baseValue`
- *  (difficulté Intermédiaire = modificateur nul, la cible passe telle quelle). Échec sur la 1ʳᵉ
- *  tentative → 2ᵉ tentative sur la MOITIÉ du lot, MÊME cible (`attempt:2`) ; le message « la moitié
- *  trouve preneur » ne s'affiche QUE si cette 2ᵉ tentative réussit. */
+/** 1. Trouver un acheteur (dé de MONDE, MSRC 13 l.146) : cible = la Demande du Lieu. Échec sur la 1ʳᵉ
+ *  tentative → 2ᵉ tentative sur la MOITIÉ du lot, MÊME cible (`attempt:2`). */
 function openLandSellBuyerStep(get: Get, set: Set, carrierId: string, cargoIndex: number, sellEnc: number, allowHalfRetry: boolean, attempt: 1 | 2): void {
   const st = get().landMarket;
   const carrier = carrierById(get(), carrierId);
   const lot = carrier?.cargo[cargoIndex];
   if (!st || !carrier || !lot) return;
   openWorldTest(get, set, {
-    actionLabel: 'Trouver un acheteur',
-    difficulty: 'intermediaire',
-  }, LAND_SELL_BUYER_KIND, { carrierId, cargoIndex, sellEnc, retryHalf: allowHalfRetry, attempt, baseValue: sellDemandTarget(st.market) });
+    actionLabel: t('port.buyerSearch'),
+    cible: sellDemandTarget(st.market),
+    verdict: { reussite: t('seuil.acheteurTrouve'), echec: t('seuil.aucunAcheteur') },
+  }, LAND_SELL_BUYER_KIND, { carrierId, cargoIndex, sellEnc, retryHalf: allowHalfRetry, attempt });
 }
 
 const LAND_SELL_BUYER_KIND = 'land-sell-buyer';

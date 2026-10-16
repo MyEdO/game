@@ -22,6 +22,7 @@ import {
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
 import { attendreLibre, estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
+import { CODE_DIFFERE } from '../docs/build-all.mjs'
 
 const ENV = envDeDepotForge()
 const ATTENTE = { echeanceMs: 3_000, pasMs: 20 }
@@ -740,6 +741,24 @@ process.exitCode = libere ? 0 : 1
     assert.equal(duDe(m.principal), null)
     assert.match(readFileSync(logDe(m.principal, reprise.pid), 'utf8'), new RegExp(`post-merge ORIG_HEAD=${m.B.slice(0, 9)} HEAD=${U.slice(0, 9)} — début\\n.+ post-merge — fin, code 0 `))
     assert.deepEqual(await sync(m.principal), { etat: 'a-jour', sha: U })
+  })
+
+  test('15 ter post-merge DIFFÉRÉ (`CODE_DIFFERE`, #2603) : `du.json` gardé SANS échec, la plage due soldée au passage suivant', async () => {
+    const m = monde({ 'a.md': 'a\n' })
+    const U = committer(m.amont, { 'a.md': 'b\n' })
+    mkdirSync(join(m.principal, 'hooks-fixture'))
+    writeFileSync(join(m.principal, 'hooks-fixture', 'post-merge'), `#!/bin/sh\necho "post-merge $1" >&2\nexit ${CODE_DIFFERE}\n`)
+    chmodSync(join(m.principal, 'hooks-fixture', 'post-merge'), 0o755)
+    exiger(reglerDepot(depot(m.principal), 'core.hooksPath', 'hooks-fixture'), 'hooksPath')
+    const vu = await synchroniserPrincipal({ consommateur: SYNCHRONISEUR, depuis: m.principal, env: ENV, gestes: { attente: ATTENTE } })
+    assert.equal(vu.etat, 'avance', JSON.stringify(vu))
+    const du = await consommationFinie(m.principal, [vu.consommateurs.pid], { solde: false })
+    assert.deepEqual([du?.de, du?.vers, du?.echec ?? null], [m.B, U, null], JSON.stringify(du))
+    assert.match(readFileSync(logDe(m.principal, vu.consommateurs.pid), 'utf8'), /post-merge différé : un geste lourd tient la machine, plage due laissée au prochain passage/)
+    writeFileSync(join(m.principal, 'hooks-fixture', 'post-merge'), '#!/bin/sh\nexit 0\n')
+    const reprise = spawnSync(process.execPath, [SYNCHRONISEUR, '--consommer'], { cwd: m.principal, env: ENV, encoding: 'utf8', timeout: 60_000 })
+    assert.equal(reprise.status, 0, `${reprise.error?.message ?? ''} ${reprise.stderr}`)
+    assert.equal(duDe(m.principal), null)
   })
 
   test('15 bis post-merge présent mais non exécutable : avance-non-prete, jamais avance', async () => {

@@ -29,11 +29,12 @@ import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob, motifDeGlob } from './lister.mjs'
+import { cheminAbsent, listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob, motifDeGlob } from './lister.mjs'
 import { clotureDImports, estModule } from './importGraph.mjs'
 import { norm } from '../../../src/lib/normalize.ts'
 import { ciblesSurDisque, GENERATORS, NON_GENERATOR_CHECKS } from '../../docs/build-all.mjs'
 import { lintFixtures, directivesLint } from './lint.testkit.mjs'
+import { cleDeContenu, lignesDuContenu } from './dialecte.mjs'
 import { lancerLint } from './lintStage.mjs'
 import configurationLint, { BLOCS_LINT as configEslint, REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
 
@@ -166,6 +167,23 @@ test('EFFET — `listerArbre` honore `filtre` (fichiers) et `descendre` (dossier
   }
 })
 
+test('EFFET — `listerArbre` ne descend aucun lien (vers un dossier, vers un fichier, mort) : chacun est rendu comme un fichier (#2603)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'lister-liens-'))
+  const lier = (cible, nom, type) => symlinkSync(join(dir, cible), join(dir, nom), process.platform === 'win32' ? 'junction' : type)
+  try {
+    mkdirSync(join(dir, 'Cible'))
+    writeFileSync(join(dir, 'Cible', 'dedans.md'), '')
+    writeFileSync(join(dir, 'f.md'), '')
+    lier('Cible', 'LienDossier', 'dir')
+    lier('f.md', 'LienFichier', 'file')
+    lier('nulle-part', 'LienMort', 'file')
+    assert.deepEqual(listerArbre(dir), ['Cible/dedans.md', 'LienDossier', 'LienFichier', 'LienMort', 'f.md'])
+    assert.deepEqual(listerArbre(dir, { filtre: (rel) => !rel.startsWith('Lien'), descendre: () => true }), ['Cible/dedans.md', 'f.md'])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
 test('`parLibelle` — alphabétique ACCENTS et CASSE ignorés, là où `parUnitesDeCode` les fait décider', () => {
   // Les trois désalphabétisations mesurées sur les docs routés par CLAUDE.md quand un libellé est trié
   // en unités de code : accent APRÈS la lettre nue, majuscule AVANT toute minuscule.
@@ -208,6 +226,17 @@ test('`absent` — `vide` rend `[]` sur un dossier absent, `lever` (défaut) lè
   assert.throws(() => listerDossier(absent))
 })
 
+test('`cheminAbsent` — ENOENT, ENOTDIR et ENAMETOOLONG sont absents ; une lecture refusée ne l’est pas (#2603)', () => {
+  for (const code of ['ENOENT', 'ENOTDIR', 'ENAMETOOLONG']) assert.equal(cheminAbsent(Object.assign(new Error(code), { code })), true, code)
+  for (const code of ['EACCES', 'EPERM', 'ELOOP', 'EIO', undefined]) assert.equal(cheminAbsent(Object.assign(new Error('banc'), { code })), false, String(code))
+  assert.equal(cheminAbsent(undefined), false)
+  const dir = mkdtempSync(join(tmpdir(), 'lister-nom-long-'))
+  try {
+    assert.deepEqual(listerDossier(join(dir, 'JAB'.repeat(100)), { absent: 'vide', avecTypes: true }), { nature: 'absent', entrees: [] })
+    assert.deepEqual(listerDossier(join(dir, 'JAB'.repeat(100)), { absent: 'vide' }), [])
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
 // --- (b) MUR : la portée du lint COUVRE le registre ---------------------------------------------
 
 test('MUR — toute racine du registre des générateurs est sous les globs de chaque bloc du mur « ordre total »', () => {
@@ -247,14 +276,21 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
 
 /** Les exemptions AU SITE du mur de l'ordre total, nommées : le crochet de l'enregistreur de lectures
  *  (il POSE le listing), la reproduction du filtre de Vitest (`toLocaleLowerCase`) et l'oracle naïf du
- *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). */
+ *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). Une exemption est keyée par
+ *  le CONTENU de la ligne qui SUIT la directive (`fichier :: <ligne trimée>`, `cleDeContenu`, #2200) :
+ *  le texte de la directive se répète (sept fois le même crochet dans `enregistreur-lectures.mjs`),
+ *  la ligne qu'elle éteint non. */
 const EXEMPTIONS_DU_MUR = [
-  'scripts/guards/lib/sourceCorpus.test.mjs:37',
-  'scripts/docs/lib/enregistreur-lectures.mjs:104', 'scripts/docs/lib/enregistreur-lectures.mjs:110',
-  'scripts/docs/lib/enregistreur-lectures.mjs:140', 'scripts/docs/lib/enregistreur-lectures.mjs:173',
-  'scripts/docs/lib/enregistreur-lectures.mjs:177', 'scripts/docs/lib/enregistreur-lectures.mjs:198',
-  'scripts/docs/lib/enregistreur-lectures.mjs:204',
-  'scripts/test/partition.mjs:191', 'scripts/test/partition.mjs:196',
+  "scripts/guards/lib/sourceCorpus.test.mjs :: import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'",
+  'scripts/docs/lib/enregistreur-lectures.mjs :: readdirSync: fs.readdirSync,',
+  'scripts/docs/lib/enregistreur-lectures.mjs :: promisesReaddir: fs.promises.readdir,',
+  "scripts/docs/lib/enregistreur-lectures.mjs :: const entrees = brut.readdirSync(path.resolve(base, rel), { withFileTypes: true }).map((e) => ({ nom: e.name, nature: e.isSymbolicLink() ? 'link' : e.isFile() ? 'file' : e.isDirectory() ? 'directory' : 'other' })).sort((a, b) => parUnitesDeCode(a.nom, b.nom))",
+  'scripts/docs/lib/enregistreur-lectures.mjs :: fs.readdirSync = function (p, ...a) { const r = brut.readdirSync.call(this, p, ...a); noterDossier(p); return r }',
+  'scripts/docs/lib/enregistreur-lectures.mjs :: fs.promises.readdir = function (p, ...a) { return brut.promisesReaddir.call(this, p, ...a).then((r) => { noterDossier(p); return r }) }',
+  'scripts/docs/lib/enregistreur-lectures.mjs :: fs.readdirSync = brut.readdirSync',
+  'scripts/docs/lib/enregistreur-lectures.mjs :: fs.promises.readdir = brut.promisesReaddir',
+  'scripts/test/partition.mjs :: const cible = relative(racine, t).toLocaleLowerCase()',
+  'scripts/test/partition.mjs :: return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())',
 ]
 
 const porteCommentaireEslint = texte => texte.includes('eslint') || texte.includes('oxlint')
@@ -308,8 +344,16 @@ test('DIRECTIVES — sous les globs du mur, les seules directives qui l’éteig
     assert.ok(sousLeMur.includes(temoin), `la marche des globs du mur ne voit plus \`${temoin}\``)
   }
   const porteurs = sousLeMur.filter((rel) => porteCommentaireEslint(readFileSync(join(RACINE_DEPOT, rel), 'utf8')))
-  const vues=porteurs.flatMap(rel=>directivesLint(readFileSync(join(RACINE_DEPOT,rel),'utf8'),rel,regles).map(l=>rel+':'+l))
-  assert.deepEqual(vues.sort(parUnitesDeCode), [...EXEMPTIONS_DU_MUR].sort(parUnitesDeCode))
+  const vues = []
+  for (const rel of porteurs) {
+    const code = readFileSync(join(RACINE_DEPOT, rel), 'utf8')
+    for (const ligne of directivesLint(code, rel, regles)) {
+      const cle = cleDeContenu(rel, code, ligne + 1)
+      assert.equal(lignesDuContenu(rel, code, cle).length, 1, `exemption AMBIGUË : « ${cle} » désigne plusieurs lignes`)
+      vues.push(cle)
+    }
+  }
+  assert.deepEqual(vues.sort(parUnitesDeCode), [...EXEMPTIONS_DU_MUR].sort(parUnitesDeCode), 'directive hors exemption, ou exemption PÉRIMÉE')
   const plante = code => directivesLint(code,'scripts/docs/zz-plante-directives.mjs',regles)
   assert.deepEqual(plante('// oxlint-disable-next-line murs/ordre-total -- r\nx()'),[1])
   assert.deepEqual(plante('/* oxlint-disable */\nx()'),[1])

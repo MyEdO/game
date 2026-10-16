@@ -1,6 +1,7 @@
 import { ast } from './dialecte.mjs';
 // FORME D'UN SCRIPT DE WORKFLOW — le jugement PUR que partagent la porte de forme
-// (`scripts/ops/workflows.test.mjs`) et la doublure qui joue les scripts (`jouer-workflow.mjs`).
+// (`scripts/ops/workflows.test.mjs`), la doublure qui joue les scripts (`jouer-workflow.mjs`) et la garde
+// de l'outil `Workflow` (`scripts/hooks/workflow-type-guard.mjs`).
 //
 // Invariant (run `wf_564ccc33-1bf`, #1993) : aucune propriété RACINE d'un schéma passé à `agent()`
 // n'accepte une chaîne. Une fonction le juge (`defautsDeRacine`), à deux points d'application : la
@@ -174,4 +175,158 @@ export function lireWorkflow(texte, fichier) {
   if (exporte && !libres.length) defauts.push(`${fichier}:${ligne(exporte)} — \`export const meta\` sans référence à l’identifiant libre \`agent\``)
   if (!exporte && libres.length) defauts.push(`${fichier}:${ligne(libres[0])} — \`agent\` libre référencé sans \`export const meta\` de premier niveau`)
   return { script: Boolean(exporte), exportDeMeta: exporte ? exporte.getStart(sf) : null, defauts }
+}
+
+// ── SITES `agent(prompt, options)` : le jugement PAR APPEL (#2537) ───────────────────────────────
+// Consommé par la porte de forme (`scripts/ops/workflows.test.mjs`) et par la garde de l'outil
+// `Workflow` (`scripts/hooks/workflow-type-guard.mjs`). Deux couches : UNIVERSELLE (options fermées,
+// `agentType` littéral qui nomme un type déclaré), et DÉPÔT (`regimes` : étages et modèles), que la
+// porte seule fournit.
+
+/** Un littéral de chaîne sans substitution. PUR. */
+export const estTexte = (n) => {
+  const ts = typescript()
+  return Boolean(n) && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n))
+}
+/** Le texte d'un nœud, blancs repliés, borné à 60 caractères (messages). PUR. */
+export const apercu = (n, sf) => n.getText(sf).replace(/\s+/g, ' ').slice(0, 60)
+
+/**
+ * Un objet littéral FERMÉ : chaque membre est une affectation ou un raccourci, à clé non calculée,
+ * sans doublon, sans `__proto__`. PUR.
+ * @returns {{ membres: Map<string, { noeud: any, valeur: any }>, ouvertures: [any, string][] }}
+ */
+export function fermer(obj, sf) {
+  const ts = typescript()
+  const membres = new Map()
+  const ouvertures = []
+  for (const p of obj.properties) {
+    if (!ts.isPropertyAssignment(p) && !ts.isShorthandPropertyAssignment(p)) {
+      ouvertures.push([p, ts.isSpreadAssignment(p) ? `spread \`${apercu(p, sf)}\`` : `méthode ou accesseur \`${apercu(p, sf)}\``])
+      continue
+    }
+    if (ts.isComputedPropertyName(p.name)) {
+      ouvertures.push([p, `clé calculée \`${apercu(p.name, sf)}\``])
+      continue
+    }
+    const cle = p.name.text
+    if (cle === '__proto__') ouvertures.push([p, '`__proto__`'])
+    else if (membres.has(cle)) ouvertures.push([p, `clé « ${cle} » en double`])
+    else membres.set(cle, { noeud: p, valeur: ts.isShorthandPropertyAssignment(p) ? p.name : p.initializer })
+  }
+  return { membres, ouvertures }
+}
+
+/**
+ * Les sites `agent(…)` du fichier, dans l'ordre du source. PUR. `membres` vaut `null` quand les
+ * options ne sont pas un objet littéral.
+ * @returns {{ appel: any, prompt: any, options: any, membres: Map<string, { noeud: any, valeur: any }> | null, ouvertures: [any, string][] }[]}
+ */
+export function sitesDAgent(sf) {
+  const ts = typescript()
+  const sites = []
+  const marcher = (n) => {
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'agent') {
+      const [prompt, options] = n.arguments ?? []
+      const ferme = options && ts.isObjectLiteralExpression(options) ? fermer(options, sf) : { membres: null, ouvertures: [] }
+      sites.push({ appel: n, prompt, options, ...ferme })
+    }
+    n.forEachChild(marcher)
+  }
+  marcher(sf)
+  return sites
+}
+
+/** Une option d'un site : absente, littérale (`valeur`), ou non littérale (`valeur: null`). PUR. */
+export function optionDuSite(site, champ) {
+  const m = site.membres?.get(champ)
+  if (!m) return { present: false, valeur: null, noeud: site.options }
+  return { present: true, valeur: estTexte(m.valeur) ? m.valeur.text : null, noeud: m.noeud }
+}
+
+/**
+ * Défauts PAR APPEL des sites `agent(…)` d'un script de workflow. PUR.
+ * Universel : options littérales et FERMÉES ; `agentType` présent, littéral, et nom d'un type de
+ * `typesDeclares` (le `name:` du frontmatter d'une fiche de `.claude/agents/`) — Calibrage de
+ * `.claude/skills/orchestrer-des-agents/SKILL.md` ; portée STATIQUE : ni `with`, ni `eval` libre, ni
+ * `arguments` de l'enveloppe, ni déclaration qui lie `agent`, ni référence à `agent` hors d'un appel
+ * direct `agent(…)` — sinon un appel échappe aux sites lus.
+ * Dépôt (`regimes`, absent hors de la porte) : `phase`, `model` et `effort` littéraux ; étage de la
+ * phase (`regimes.phases[phase]`, `null` = régime inconnu, nommé par la porte) ; sinon phase
+ * MÉCANIQUE (`regimes.mecanique` : types permis, couples (type, modèle), exceptions par phase).
+ * @param {any} sf
+ * `sites` : ceux de `sitesDAgent(sf)`, passés par l'appelant qui les lit aussi.
+ * @param {{ typesDeclares: Set<string>, sites?: ReturnType<typeof sitesDAgent>, regimes?: {
+ *   phases: Record<string, { nom: string, type: string, modele: string, effort: string } | null>,
+ *   mecanique: { types: string[], couples: { type: string, modele: string }[], exceptions: { phase: string, type: string }[] },
+ * } }} contexte
+ * @returns {{ regle: string, message: string }[]}
+ */
+export function defautsDesSitesDAgent(sf, { typesDeclares, regimes, sites = sitesDAgent(sf) }) {
+  const ts = typescript()
+  const defauts = []
+  const ligne = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1
+  const dire = (regle, n, message) => defauts.push({ regle, message: `${sf.fileName}:${ligne(n)} — ${message}` })
+  const vu = (x) => (x.present ? `\`${x.valeur}\`` : 'absent')
+  const declares = [...typesDeclares].join('/')
+  const evalsLibres = new Set(referencesLibres(sf, 'eval'))
+  /** `arguments` que seule l'enveloppe lie : aucune fonction NON fléchée ne l'englobe (une flèche n'en a pas). */
+  const argumentsDeLEnveloppe = new Set(referencesLibres(sf, 'arguments').filter((id) => {
+    for (let a = id.parent; a; a = a.parent) if (ts.isFunctionLikeDeclaration(a) && !ts.isArrowFunction(a)) return false
+    return true
+  }))
+  for (const id of declarationsDuFichier(sf).get('agent') ?? []) dire('agent-direct', id, 'déclaration qui lie le nom `agent` — l’identifiant du harnais ne se masque pas')
+  const portee = (n) => {
+    if (ts.isWithStatement(n)) dire('portee', n, 'instruction `with` — la liaison des noms ne se lit plus à la forme')
+    if (ts.isIdentifier(n) && evalsLibres.has(n)) dire('portee', n, '`eval` — du code que la forme ne lit pas')
+    if (ts.isIdentifier(n) && argumentsDeLEnveloppe.has(n)) dire('portee', n, '`arguments` — alias des doublures du harnais, que la forme ne lit pas')
+    if (ts.isIdentifier(n) && n.text === 'agent' && estReference(n) && !(ts.isCallExpression(n.parent) && n.parent.expression === n)) {
+      dire('agent-direct', n, `\`agent\` non appelé directement (${ts.SyntaxKind[n.parent.kind]}) — seul un appel \`agent(…)\` est un site que la porte lit`)
+    }
+    n.forEachChild(portee)
+  }
+  sf.forEachChild(portee)
+  for (const site of sites) {
+    if (site.membres === null) {
+      dire('options', site.options ?? site.appel, "options de l'agent non littérales — la porte ne peut pas lire son étage")
+      continue
+    }
+    for (const [noeud, pourquoi] of site.ouvertures) dire('options', noeud, `options non fermées : ${pourquoi}`)
+    const lire = (champ) => {
+      const x = optionDuSite(site, champ)
+      if (x.present && x.valeur === null) dire('options', x.noeud, `\`${champ}\` non littéral — un étage d'agent se lit à la forme du script, jamais à l'exécution`)
+      return x
+    }
+    const phase = regimes ? lire('phase') : null
+    const agentType = lire('agentType')
+    const modele = regimes ? lire('model') : null
+    const effort = regimes ? lire('effort') : null
+    if (!agentType.present) dire('agent', site.options, `\`agentType\` absent — un agent de workflow nomme un type déclaré sous \`.claude/agents/\` (${declares})`)
+    else if (agentType.valeur !== null && !typesDeclares.has(agentType.valeur)) dire('agent', agentType.noeud, `\`agentType\` ${vu(agentType)} : aucun type de ce nom déclaré sous \`.claude/agents/\` (${declares})`)
+    if (!regimes) continue
+
+    const lisible = (x) => x.present && x.valeur !== null
+    const nonLitteral = (x) => x.present && x.valeur === null
+    if (!phase.present) {
+      dire('agent', site.appel, '`phase` absente — c\'est la clé STABLE de la porte (le `label` est de l\'affichage)')
+      continue
+    }
+    if (phase.valeur === null) continue
+    if (Object.hasOwn(regimes.phases, phase.valeur)) {
+      const etage = regimes.phases[phase.valeur]
+      if (etage === null) continue
+      if (lisible(agentType) && agentType.valeur !== etage.type) dire('agent', agentType.noeud, `phase de ${etage.nom} \`${phase.valeur}\` : \`agentType: '${etage.type}'\` exigé (lu : ${vu(agentType)})`)
+      if (!nonLitteral(modele) && modele.valeur !== etage.modele) dire('agent', modele.noeud, `phase de ${etage.nom} \`${phase.valeur}\` : \`model: '${etage.modele}'\` exigé AUSSI (lu : ${vu(modele)}) — un sous-agent ne tourne jamais sur le modèle de session`)
+      if (!nonLitteral(effort) && effort.valeur !== etage.effort) dire('agent', effort.noeud, `phase de ${etage.nom} \`${phase.valeur}\` : \`effort: '${etage.effort}'\` exigé AUSSI (lu : ${vu(effort)})`)
+      continue
+    }
+    if (!effort.present) dire('agent', site.options, `phase MÉCANIQUE \`${phase.valeur}\` : \`effort\` littéral exigé (lu : absent)`)
+    const { mecanique } = regimes
+    const permis = [...mecanique.types, ...mecanique.exceptions.filter((e) => e.phase === phase.valeur).map((e) => e.type)]
+    const types = lisible(agentType) && permis.includes(agentType.valeur) ? [agentType.valeur] : permis
+    const modeles = [...new Set(mecanique.couples.filter((c) => types.includes(c.type)).map((c) => c.modele))]
+    if (!nonLitteral(modele) && !modeles.includes(modele.valeur)) dire('agent', modele.noeud, `phase MÉCANIQUE \`${phase.valeur}\` : \`model\` littéral parmi ${modeles.join('/')} exigé pour ${types.join('/')} (lu : ${vu(modele)})`)
+    if (lisible(agentType) && !permis.includes(agentType.valeur)) dire('agent', agentType.noeud, `phase MÉCANIQUE \`${phase.valeur}\` : \`agentType\` littéral parmi ${permis.join('/')} exigé (lu : ${vu(agentType)})`)
+  }
+  return defauts
 }

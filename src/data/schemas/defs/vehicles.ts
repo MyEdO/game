@@ -121,6 +121,16 @@ const doc = document(
     codex: { keys: ['vehicles'] },
     edit: { dataset: 'vehicles' },
   },
+  {
+    /** MDG 12 l.131, l.195-199, l.311 */
+    affinerEntree: (entree) =>
+      entree.superRefine((v, ctx) => {
+        const navire = (v as { ship?: { sail?: unknown; oars?: unknown } }).ship;
+        if (navire && !navire.sail && !navire.oars) {
+          ctx.addIssue({ code: 'custom', path: ['ship', 'sail'], message: `${(v as { id: string }).id} : navire sans propulsion — Voiles ou Avirons requis` });
+        }
+      }),
+  },
 );
 
 export const schema = doc.schema;

@@ -1,6 +1,12 @@
-// DÉTACHEMENT d'un processus node du dépôt (#1784) : le train de publication (`scripts/ops/publier.mjs`)
-// et le consommateur du post-merge (`scripts/ops/synchroniser.mjs --consommer`, #2493).
+// DÉTACHEMENT d'un processus node du dépôt (#1784) : le train de publication (`scripts/ops/publier.mjs`),
+// le consommateur du post-merge (`scripts/ops/synchroniser.mjs --consommer`, #2493) et le `docs:build` du
+// bootstrap d'un conteneur (`scripts/hooks/bootstrap-conteneur.mjs`). Tout détaché tourne en BelowNormal
+// (`./abaisser-priorite.mjs`, #2603) et n'hérite d'aucun jeton de verrou (`PREFIXE_JETON_VERROU`).
 import { spawn, spawnSync } from 'node:child_process'
+import { PREFIXE_JETON_VERROU } from '../../test/verrou.mjs'
+
+/** Le préchargement qui abaisse la priorité du détaché (`node --import`). */
+export const ABAISSER_PRIORITE = Object.freeze(['--import', new URL('./abaisser-priorite.mjs', import.meta.url).href])
 
 /**
  * Un token de ligne de commande Win32 : ce que `CommandLineToArgvW` (donc `node`, donc tout
@@ -58,14 +64,15 @@ export function lancerDetache({
   detacher = spawn,
   executerSync = spawnSync,
 }) {
-  const env = { ...process.env, ...envSupplementaire }
+  const env = Object.fromEntries(Object.entries({ ...process.env, ...envSupplementaire }).filter(([cle]) => !cle.startsWith(PREFIXE_JETON_VERROU)))
+  const argv = [...ABAISSER_PRIORITE, script, ...args]
   if (plateforme !== 'win32') {
-    const enfant = detacher(node, [script, ...args], { cwd, detached: true, stdio: ['ignore', fdLog, fdLog], env })
+    const enfant = detacher(node, argv, { cwd, detached: true, stdio: ['ignore', fdLog, fdLog], env })
     enfant.unref()
     return enfant.pid
   }
   const cite = (valeur) => `'${String(valeur).replace(/'/g, "''")}'`
-  const liste = [script, ...args].map((a) => cite(citerArgv(a))).join(',')
+  const liste = argv.map((a) => cite(citerArgv(a))).join(',')
   const vu = executerSync(
     'powershell.exe',
     [

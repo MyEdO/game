@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { spyApplier } from './cascadeTestKit';
 import { setGmSeat } from './netFlow';
-import { openRoll, resolveSurface, rollSansPilote, type RollRequest } from './rollSeam';
+import { openRoll, rollSansPilote, type RollRequest } from './rollSeam';
 import { jetSurfaced, humanControlled } from './netOwnership';
 import type { Combatant } from '../engine/types';
 
@@ -58,11 +58,6 @@ describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roul
     expect(jetSurfaced(s, h), 'surface : ce héros a un joueur, son jet doit remonter').toBe(true);
   });
 
-  it('resolveSurface(hero-test) rend M pour le héros d’un siège invité (et non I)', () => {
-    hoteAvecHerosDInvite();
-    expect(resolveSurface(useGame.getState, req('H1'), KIND)).toBe('M');
-  });
-
   it('openRoll pose une FENÊTRE pour le héros d’un siège invité (aucune conséquence appliquée d’office)', () => {
     hoteAvecHerosDInvite();
     openRoll(useGame.getState, useGame.setState, req('H1'), KIND);
@@ -79,7 +74,9 @@ describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roul
   it('un héros conduit par l’IA (aiControlled) n’a AUCUN pilote : il reste inline, et le repli l’accepte', () => {
     useGame.setState({ party: [hero('H1', { aiControlled: true } as Partial<Combatant>)], pendingCascade: null } as never);
     useGame.setState({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1 } } } as never);
-    expect(resolveSurface(useGame.getState, req('H1'), KIND)).toBe('I');
+    openRoll(useGame.getState, useGame.setState, req('H1'), KIND);
+    expect(useGame.getState().pendingCascade, 'aucun pilote : aucune fenêtre').toBeNull();
+    expect(applied, 'résolu d’office, conséquence appliquée').toHaveLength(1);
     const h = useGame.getState().party[0];
     expect(() => rollSansPilote(useGame.getState, h, 45)).not.toThrow();
   });

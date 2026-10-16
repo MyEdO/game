@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS } from './combatFlow';
+import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS, STRUCTURE_CRIT_TABLE } from './combatFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { stepInteraction, rollTableStep, tableStepDef } from './cascade';
 import { draineCascade } from './cascadeTestKit';
@@ -343,5 +343,16 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     const committee = useGame.getState().pendingCascade!.participants[0];
     expect(committee.committed).toBe(true);
     expect(committee.foldMemo, 'mémo survivant au commit').toBeUndefined();
+  });
+});
+
+describe('libellé de la rangée de tirage des tables de Blessures critiques', () => {
+  it('par Localisation : « Blessures critiques — <Localisation> », la Localisation lue au schéma', () => {
+    expect(Object.values(CRIT_TABLE_IDS).map((id) => tableStepDef(id)?.label)).toEqual([
+      'Blessures critiques — Tête', 'Blessures critiques — Bras', 'Blessures critiques — Corps', 'Blessures critiques — Jambe',
+    ]);
+  });
+  it('sur une Structure : le libellé de la table, lu à la donnée (structure-criticals.json)', () => {
+    expect(tableStepDef(STRUCTURE_CRIT_TABLE)?.label).toBe('Blessures critiques sur une Structure');
   });
 });

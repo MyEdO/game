@@ -22,7 +22,9 @@ export function* analyserCorpus(fichiers, options = {}) {
   const entrees = Array.from(fichiers, (fichier) => {
     const kind = scriptKindDe(fichier.rel, options);
     const ext = String(fichier.rel).replaceAll('\\', '/').split('.').pop().toLowerCase();
-    return { fichier, chemin: path.resolve(`${fichier.rel}${Object.hasOwn(DIALECTE, ext) ? '' : '.ts'}`).replaceAll('\\', '/'), kind };
+    const rel = String(fichier.rel);
+    const virtuel = Object.hasOwn(DIALECTE, ext) ? `${rel.slice(0, rel.length - ext.length)}${ext}` : `${rel}.ts`;
+    return { fichier, chemin: path.resolve(virtuel).replaceAll('\\', '/'), kind };
   });
   const chemins = new Map();
   for (const { fichier, chemin, kind } of entrees) {
@@ -47,10 +49,52 @@ export function* analyserCorpus(fichiers, options = {}) {
   finally { libererSessions(session ? [session] : [], erreurs); }
 }
 
+export function avecAnalyse(fichier, sourceFile, checker, fn) {
+  if (sourceFile) return fn(sourceFile, checker);
+  for (const analyse of analyserCorpus([fichier])) if (analyse.sourceFile) return fn(analyse.sourceFile, analyse.checker);
+  throw new Error(`avecAnalyse : aucun arbre TypeScript pour ${fichier.rel}`);
+}
+
 export function analyserTexte(fichier, options) {
   for (const { sourceFile, diagnostics } of analyserCorpus([fichier], options)) return { fichier, sourceFile, diagnostics };
 }
 
 export function ast(fichier, options) {
   return analyserTexte(fichier, options).sourceFile;
+}
+
+/** La déclaration de PREMIER NIVEAU qui porte la ligne `ligne` (1-based) : le nom de la fonction, de la
+ *  classe, de l'interface, de l'alias de type, ou de la première variable de l'instruction ; `''` hors
+ *  de toute déclaration nommée. Clé d'un SITE d'exemption, stable à toute édition en amont (#2200).
+ *  @param {import('typescript/unstable/ast').SourceFile} sf @param {number} ligne @returns {string} */
+export function declarationQuiPorte(sf, ligne) {
+  const ts = typescript();
+  for (const st of sf.statements) {
+    const debut = sf.getLineAndCharacterOfPosition(st.getStart(sf)).line + 1;
+    const fin = sf.getLineAndCharacterOfPosition(st.getEnd()).line + 1;
+    if (ligne < debut || ligne > fin) continue;
+    if ((ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name) return st.name.text;
+    if (ts.isInterfaceDeclaration(st) || ts.isTypeAliasDeclaration(st)) return st.name.text;
+    if (ts.isVariableStatement(st)) {
+      const d = st.declarationList.declarations[0];
+      if (ts.isIdentifier(d.name)) return d.name.text;
+    }
+  }
+  return '';
+}
+
+const cleDeLigne = (rel, ligne) => `${rel} :: ${ligne.trim()}`;
+
+/** Clé de CONTENU d'un site sans déclaration englobante (prose, ligne de commentaire) :
+ *  `fichier :: <ligne trimée>` — le contenu, jamais la position (#2200).
+ *  @param {string} rel @param {string} texte @param {number} ligne 1-based @returns {string} */
+export function cleDeContenu(rel, texte, ligne) {
+  return cleDeLigne(rel, texte.split('\n')[ligne - 1] ?? '');
+}
+
+/** Les lignes (1-based) de `texte` dont la clé de contenu est `cle` : aucune = exemption PÉRIMÉE,
+ *  plusieurs = exemption AMBIGUË. @param {string} rel @param {string} texte @param {string} cle
+ *  @returns {number[]} */
+export function lignesDuContenu(rel, texte, cle) {
+  return texte.split('\n').flatMap((l, i) => (cleDeLigne(rel, l) === cle ? [i + 1] : []));
 }

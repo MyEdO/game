@@ -68,6 +68,7 @@ export function buildAuthorPerilSteps(route: MapRoute, destLabel: string, interr
     icon: 'ui/warning',
     cible: Math.max(0, Math.min(100, peril.chancePct)),
     rollLabel: peril.label,
+    verdict: { reussite: t('seuil.survient'), echec: t('seuil.evite') },
     meta: { perilIndex: i, destLabel, interruptId },
   }));
 }

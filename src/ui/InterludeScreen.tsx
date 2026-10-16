@@ -8,7 +8,7 @@ import { bourseOf } from '../state/bourseFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { heroStatus, heroClass, incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../state/interludeFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
-import { armyMight, battleActivityDifficulty, battlePrepEntries, type MassBattleState } from '../state/massBattleFlow';
+import { armyMight, battleActivityDifficulty, battlePrepEntries, peutTenterAction, refusTenterAction, type MassBattleState } from '../state/massBattleFlow';
 import {
   craftCatalog, craftTarget, learnableTalents, orderCatalog, metierOf, bankPayout, entrainementOptions,
   classGatedDifficulty, activityTestMod, activityModLines,
@@ -19,7 +19,7 @@ import { learnableSpells } from '../engine/grimoire';
 import { DIFFICULTY_LABELS, CHAR_LABELS, type CharKey, type Difficulty } from '../engine/types';
 import { describeQuality } from '../engine/qualities/describe';
 import { effectiveChar } from '../engine/characteristics';
-import { testValue } from '../engine/skills';
+import { peutTenter, testValue } from '../engine/skills';
 import { combatValue } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { buildWeapon } from '../engine/items';
@@ -1199,13 +1199,15 @@ function BattlePrepPane({ hero, def, refus, entry }: {
   // Difficulté : celle que l'entrée DÉCLARE — dérivée de l'écart d'armées quand elle porte
   // `difficultyFrom` (Discours, l.71), sinon fixe. MÊME source que l'ouverture du jet.
   const diff: Difficulty = mb ? battleActivityDifficulty(def, mb) : def.difficulty ?? 'intermediaire';
-  // Pré-jet : la MEILLEURE des compétences déclarées pour CE héros (approx. du jet mené par lui).
+  // Pré-jet : la MEILLEURE des compétences déclarées que CE héros peut tenter (`peutTenter`, LDB 09 l.30).
   let prejet: PendingRoll | undefined;
-  if (def.skills?.length) {
-    const best = def.skills
-      .map((ref) => ({ ref, v: testValue(hero, ref.id, undefined, ref.spec) }))
-      .sort((a, b) => b.v - a.v)[0];
-    const chips = def.skills.map((s, i) => (
+  const skills = def.skills ?? [];
+  const best = skills
+    .filter((ref) => peutTenter(hero, ref.id, ref.spec))
+    .map((ref) => ({ ref, v: testValue(hero, ref.id, undefined, ref.spec) }))
+    .sort((a, b) => b.v - a.v)[0];
+  if (best) {
+    const chips = skills.map((s, i) => (
       <Fragment key={`${s.id}-${s.spec ?? ''}`}>
         {i > 0 && (def.combined ? ' + ' : ' ou ')}
         <SkillChip skillId={s.id} show={s.spec ? `${refLabel('skills', { id: s.id })} (${s.spec})` : undefined} />
@@ -1214,7 +1216,8 @@ function BattlePrepPane({ hero, def, refus, entry }: {
     prejet = withStake(testPending(<>{chips}</>, best.v, undefined, diff), def.id);
   }
   const done = entry?.done ?? false;
-  const blocked = done ? 'Déjà réalisée cette bataille (Activité non répétable).' : entry?.blocked ?? null;
+  const blocked = done ? 'Déjà réalisée cette bataille (Activité non répétable).'
+    : entry?.blocked ?? (peutTenterAction(hero, def) ? null : refusTenterAction([hero], def));
   const undertake = () => {
     setHero(def.id, [hero.id]); // désigne CE héros comme meneur de l'Activité de préparation
     battleActivity(def.id);

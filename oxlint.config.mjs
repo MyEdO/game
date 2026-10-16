@@ -166,7 +166,7 @@ const IDIOME = [
 const PLACES_DE_DOLLAR = [
   DOLLAR_DE('"ui"', '/^(resolve|log|invalidate|status|toast)$/'),
   `MemberExpression[computed=false][optional=false] > MemberExpression.object${ACCES('"state"')} > Identifier.object`,
-  DOLLAR_DE('"session"', '/^(id|append|root)$/'),
+  DOLLAR_DE('"session"', '/^(id|root)$/'),
   DOLLAR_DE('"tool"', '"register"'),
   DOLLAR_DE('"clock"', '"every"'),
   `CallExpression${IDIOME} > MemberExpression.callee > MemberExpression.object > Identifier.object`,
@@ -269,6 +269,9 @@ const VERROU_MOD = [{
 }, {
   selector: 'MemberExpression[property.name="invalidate"][object.property.name="ui"][object.object.name="$"]:not(CallExpression[arguments.length=1][arguments.0.value="ui.render"] > MemberExpression.callee)',
   message: `\`$.ui.invalidate\` hors d'un événement de RENDU (\`'ui.render'\`) : invalider une réponse mise en cache casse le cache de prompt ; ${REMEDE_MOD}.`,
+}, {
+  selector: 'MemberExpression[property.name="append"][object.property.name="session"][object.object.name="$"]',
+  message: 'Un mod n\'écrit jamais dans l\'historique de la session (`$.session.append`) : le tour suivant relit l\'historique et réécrit le cache de prompt ; la situation se rend au bandeau, en résultat d\'outil ou en bloc `prompt.context` (#2596).',
 }, {
   selector: [
     ':matches(VariableDeclarator, FunctionDeclaration, FunctionExpression, ClassDeclaration, ClassExpression) > Identifier.id[name="appel"]',

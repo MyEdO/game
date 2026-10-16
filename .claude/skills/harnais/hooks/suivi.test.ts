@@ -1,23 +1,21 @@
 // Banc de la fonction `suivi` du mod `harnais` (#2279), sous `claude plugin test` : les hooks de test
 // tiennent lieu du moteur et servent `process.run` comme `scripts/ops/suivi.mjs` : le fichier est lu au
-// LANCEMENT, `ajout` vide quand `--depuis` vaut la clé lue, `--outil --json` rend la définition de l'outil. Le kit 2.1.289 ne sert ni le
-// `$.session.append` d'un plugin ni `$.state` au banc : l'atome se lit sur le `--depuis` de la relecture
-// suivante (la clé retenue), sur le bandeau (l'état gardé), et une tentative d'ajout sur le journal de
-// débogage, où le kit la fait échouer. Le chemin de succès de l'ajout se prouve en session réelle (DoD #2279).
+// LANCEMENT, `--outil --json` rend la définition de l'outil. Le kit 2.1.289 ne sert pas `$.state` au banc :
+// l'atome se lit sur le bandeau, le bloc `suivi` du `prompt.context` et le résultat de l'outil. Aucun tour
+// n'écrit dans l'historique de la session (#2596) ; le mur `murs/mod-sans-regle` refuse `$.session.append`.
 import type { On, RenderElement } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 const SESSION = 'session-de-test'
-const lie = (cle: string, prochain: string, aMesurer: number[] = []) => ({
+const lie = (digest: string, prochain: string, aMesurer: number[] = []) => ({
   session: SESSION,
   suivis: [{ epique: 9, chemin: '/s/9.json', lignes: ['[suivi #9] en cours : #4 ouvert', `  prochain geste : ${prochain}`] }],
-  contexte: `[suivi #9] /s/9.json — digest ${cle}`,
+  contexte: `[suivi #9] /s/9.json — digest ${digest}`,
   ajout: `[suivi] situation relue\n[suivi #9] en cours : #4 ouvert\n  prochain geste : ${prochain}`,
-  cle,
   aMesurer,
 })
 type Etat = ReturnType<typeof lie>
-const SANS_LIEN: Etat = { session: SESSION, suivis: [], contexte: '[suivi] session sans suivi lié ; index', ajout: '', cle: 'vide', aMesurer: [] }
+const SANS_LIEN: Etat = { session: SESSION, suivis: [], contexte: '[suivi] session sans suivi lié ; index', ajout: '', aMesurer: [] }
 const BANDEAU = { component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100 } as never } as const
 const DEMARRAGE = { cwd: '/depot', surface: null, isInteractive: false } as never
 type Panne = { exitCode: number; stdout: string; stderr: string }
@@ -74,9 +72,7 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
     const enPanne = panne()
     if (suspendre()) await new Promise<void>((relache) => { suspendues.push(relache) })
     if (enPanne) return { value: { ...enPanne, isStdoutTruncated: false, isStderrTruncated: false } }
-    const depuis = e.argv.indexOf('--depuis')
-    const rendu = depuis >= 0 && e.argv[depuis + 1] === lu.cle ? { ...lu, ajout: '' } : lu
-    return { value: { exitCode: 0, stdout: JSON.stringify(rendu), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    return { value: { exitCode: 0, stdout: JSON.stringify(lu), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   on('ui.log', async (_$, e) => {
     journal.push({ text: e.text, to: e.to })
@@ -84,9 +80,6 @@ function monde(on: On, fichier: () => Etat, panne: () => Panne | null = () => nu
   })
   return { argvs, synchros, outils, ordre, journal, mesures, relacher: () => suspendues.shift()?.(), finirMesure: () => mesuresSuspendues.shift()?.() }
 }
-
-/** Les lignes du journal qui disent une tentative d'ajout (le kit la fait échouer). */
-const ajoutsTentes = (journal: { text: string; to?: string }[]) => journal.filter((l) => l.text.includes('ajout du suivi'))
 
 const textes = async (ui: { findAll: (q: { type: 'Text' }) => Promise<{ text?: string }[]> }) => (await ui.findAll({ type: 'Text' })).map((el) => el.text)
 
@@ -189,30 +182,22 @@ test('sans lien : bandeau vide sur terminal ET desktop, l’index en contexte', 
   expect(contexte.blocks).toEqual([{ name: 'suivi', text: SANS_LIEN.contexte }])
 })
 
-test('prompt.context porte le bloc `suivi` et sa clé devient le `--depuis` ; un ajout en attente est TENTÉ au tour, son échec ne casse pas le tour et le garde pour le suivant', async ($, on) => {
+test('prompt.context porte le bloc `suivi` de l’état relu ; un tour passe sans rien écrire, ni à l’historique ni au journal (#2596)', async ($, on) => {
   const horloge = mock.clock(on)
   let fichier = lie('k1', 'juge du brief')
   const vu = monde(on, () => fichier)
   await $.session.start(DEMARRAGE)
   const contexte = await $.prompt.context({ blocks: [{ name: 'currentDate', text: 'x' }] })
   expect(contexte.blocks).toEqual([{ name: 'currentDate', text: 'x' }, { name: 'suivi', text: fichier.contexte }])
-  const depuis = () => vu.argvs.at(-1)?.slice(2)
-  await horloge.advance(60 * 1000)
-  expect(depuis()).toEqual(['--session', SESSION, '--json', '--depuis', 'k1'])
-  expect(await $.turn.start({ text: 'a', turnId: 't1' })).toEqual({ turnId: 't1' })
-  expect(ajoutsTentes(vu.journal)).toEqual([])
   fichier = lie('k2', 'juge du diff')
   await horloge.advance(60 * 1000)
-  expect(depuis()).toEqual(['--session', SESSION, '--json', '--depuis', 'k1'])
-  expect(await $.turn.start({ text: 'b', turnId: 't2' })).toEqual({ turnId: 't2' })
-  expect(ajoutsTentes(vu.journal).map((l) => l.to)).toEqual(['debug'])
-  await horloge.advance(60 * 1000)
-  expect(depuis()).toEqual(['--session', SESSION, '--json', '--depuis', 'k1'])
-  expect(await $.turn.start({ text: 'c', turnId: 't3' })).toEqual({ turnId: 't3' })
-  expect(ajoutsTentes(vu.journal).length).toBe(2)
+  expect(vu.argvs.at(-1)?.slice(2)).toEqual(['--session', SESSION, '--json'])
+  expect(await $.turn.start({ text: 'a', turnId: 't1' })).toEqual({ turnId: 't1' })
+  expect(vu.journal).toEqual([])
+  expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: fichier.contexte }])
 })
 
-test('course C2 : une relecture LANCÉE avant l’édition de l’outil et rendue après est ignorée — ni bandeau qui régresse, ni ajout antérieur en attente', async ($, on) => {
+test('course C2 : une relecture LANCÉE avant l’édition de l’outil et rendue après est ignorée — le bandeau ne régresse pas', async ($, on) => {
   const horloge = mock.clock(on)
   let fichier = lie('k1', 'juge du brief')
   let suspendu = false
@@ -222,7 +207,7 @@ test('course C2 : une relecture LANCÉE avant l’édition de l’outil et rendu
   fichier = lie('k2', 'juge du diff')
   suspendu = true
   await horloge.advance(60 * 1000)
-  expect(vu.argvs.at(-1)?.slice(2)).toEqual(['--session', SESSION, '--json', '--depuis', 'k1'])
+  expect(vu.argvs.at(-1)?.slice(2)).toEqual(['--session', SESSION, '--json'])
   suspendu = false
   fichier = lie('k3', 'publier')
   await $.tool.call({ tool: 'mcp__harnais__suivi', epique: 9, mutations: LOT } as never)
@@ -231,37 +216,11 @@ test('course C2 : une relecture LANCÉE avant l’édition de l’outil et rendu
   const ui = await $.ui.mount({ plugin: 'harnais', surface: 'terminal', ...BANDEAU })
   expect(await textes(ui)).toEqual(['[suivi #9] en cours : #4 ouvert', '  prochain geste : publier'])
   await ui.unmount()
-  expect(await $.turn.start({ text: 'a', turnId: 't1' })).toEqual({ turnId: 't1' })
-  expect(ajoutsTentes(vu.journal)).toEqual([])
-  await horloge.advance(60 * 1000)
-  expect(vu.argvs.at(-1)?.slice(2)).toEqual(['--session', SESSION, '--json', '--depuis', 'k3'])
+  expect((await $.prompt.context({ blocks: [] })).blocks).toEqual([{ name: 'suivi', text: fichier.contexte }])
 })
 
-test('course C2, variante étroite : une relecture lancée PENDANT le script de l’outil, qui lit déjà son écriture, et rendue après lui est ignorée — l’ajout de l’outil n’est pas remis en attente', async ($, on) => {
-  const horloge = mock.clock(on)
-  let fichier = lie('k1', 'juge du brief')
-  let suspendu = false
-  const vu = monde(on, () => fichier, () => null, () => suspendu)
-  await $.session.start(DEMARRAGE)
-  await $.prompt.context({ blocks: [] })
-  suspendu = true
-  fichier = lie('k3', 'publier')
-  const outil = $.tool.call({ tool: 'mcp__harnais__suivi', epique: 9, mutations: LOT } as never)
-  await horloge.advance(60 * 1000)
-  expect(vu.argvs.at(-1)?.slice(2)).toEqual(['--session', SESSION, '--json', '--depuis', 'k1'])
-  suspendu = false
-  vu.relacher()
-  expect((await outil).result).toBe(fichier.ajout)
-  vu.relacher()
-  await horloge.advance(0)
-  expect(await $.turn.start({ text: 'a', turnId: 't1' })).toEqual({ turnId: 't1' })
-  expect(ajoutsTentes(vu.journal)).toEqual([])
-  await horloge.advance(60 * 1000)
-  expect(vu.argvs.at(-1)?.slice(2)).toEqual(['--session', SESSION, '--json', '--depuis', 'k3'])
-})
-
-test('l’outil passe son lot ENTIER par `--lot <json>` (#2460), rafraîchit l’état, retient sa clé et vide l’attente', async ($, on) => {
-  const horloge = mock.clock(on)
+test('l’outil passe son lot ENTIER par `--lot <json>` (#2460), rafraîchit l’état et rend la situation datée en résultat', async ($, on) => {
+  mock.clock(on)
   let fichier = lie('k1', 'juge du brief')
   const vu = monde(on, () => fichier)
   await $.session.start(DEMARRAGE)
@@ -273,10 +232,6 @@ test('l’outil passe son lot ENTIER par `--lot <json>` (#2460), rafraîchit l�
   const ui = await $.ui.mount({ plugin: 'harnais', surface: 'terminal', ...BANDEAU })
   expect(await textes(ui)).toContain('  prochain geste : juge du diff')
   await ui.unmount()
-  await $.turn.start({ text: 'a', turnId: 't1' })
-  expect(ajoutsTentes(vu.journal)).toEqual([])
-  await horloge.advance(60 * 1000)
-  expect(vu.argvs.at(-1)?.slice(2)).toEqual(['--session', SESSION, '--json', '--depuis', 'k2'])
 })
 
 test('échec du script — code non nul, JSON illisible : le dernier état VALIDE est gardé (bandeau, contexte), une ligne au journal de DÉBOGAGE, l’outil refuse avec le motif', async ($, on) => {

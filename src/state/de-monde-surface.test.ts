@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { resolveSurface, surfaceDesEtapes, buildBand, surfaceOf, tableStep, displayStep, type RollRequest } from './rollSeam';
+import { surfaceDeLEtape, surfaceDesEtapes, buildBand, surfaceOf, tableStep, displayStep, monoStep, worldStep } from './rollSeam';
+import { t } from '../i18n';
 import { actorIn } from './combatants';
 import { runCascadeImmediate, lireDeEtape, tableStepDef, naturalRollForTableRow, rollTableStep, registerTableStep, startCascade, pushStep, registerCascadeApplier, suspendActiveCascade, poserCurseurCascade, stepReady } from './cascade';
 import { fixtureText } from '../i18n/fixtureText';
@@ -51,15 +52,23 @@ import { avanceEtapeCascade, draineCascadeDifferee, type PoseDe } from './cascad
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 
-/** Une requête de jet de MONDE minimale — la forme exacte que monte `openWorldTest`. */
-const requeteMonde = (): RollRequest => ({
-  side: { worldSide: 'world' },
-  actionLabel: 'Trouver un acheteur',
-  test: {},
-  difficulty: 'intermediaire',
-});
+type Surface = ReturnType<typeof surfaceDeLEtape>;
 
-describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (resolveSurface, côté worldSide)', () => {
+/** Le dé de MONDE tel que `openWorldTest` le monte (`worldStep`), et sa surface par la couture de ses
+ *  ouvreurs (`surfaceDeLEtape`, cf. `ouvrirLEtape`). */
+const surfaceMonde = (): Surface => surfaceDeLEtape(get, worldStep({
+  id: 'x', kind: 'x', label: fixtureText('Trouver un acheteur'), cible: 40,
+  verdict: { reussite: t('seuil.sousLeSeuil'), echec: t('seuil.auDessus') },
+}));
+
+/** Le jet d'un HÉROS tel que `openRoll` le monte pour un côté `actorId` (`monoStep`, porteur = le héros),
+ *  et sa surface par la même couture. */
+const surfaceHerosDe = (h: Combatant, kind = 'x', label = 'Test de héros'): Surface => surfaceDeLEtape(get, monoStep({
+  id: kind, kind, label: fixtureText(label), actor: h, difficulty: 'intermediaire',
+  ligne: { valeur: 40 }, stake: { key: { dataset: 'combat', kind: 'mutation' } },
+})!);
+
+describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur MONDE de `monoStep`)', () => {
   beforeEach(() => {
     resetDesFixes();
     resetCadence();
@@ -70,33 +79,31 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (resolveS
   it('le siège local possède le monde → M : il VOIT son dé, option de pose ÉTEINTE (elle ne gate que la POSE)', () => {
     expect(seatOwns(get(), 0, WORLD_STEP_OWNER), 'précondition : le siège 0 possède le monde en solo').toBe(true);
     expect(canFixDie(get(), WORLD_STEP_OWNER), 'option OFF : rien à poser').toBe(false);
-    expect(resolveSurface(get, requeteMonde(), 'x'), 'et pourtant la fenêtre s’ouvre : posséder, c’est voir').toBe('M');
+    expect(surfaceMonde(), 'et pourtant la fenêtre s’ouvre : posséder, c’est voir').toBe('M');
   });
 
   it('CONTRÔLE POSITIF — la surface d’un jet de monde est celle d’un jet de HÉROS, même montage', () => {
     const h = makePregens()[0];
     set({ party: [h], battle: null });
-    const requeteHeros = (): RollRequest => ({
-      side: { actorId: h.id }, actionLabel: 'Test de héros', test: {}, difficulty: 'intermediaire',
-    });
-    const series = (r: () => RollRequest) => {
+    const series = (surface: () => Surface) => {
       resetDesFixes(); resetCadence();
-      const manuelOff = resolveSurface(get, r(), 'x');
+      const manuelOff = surface();
       setDesFixes(true);
-      const manuelOn = resolveSurface(get, r(), 'x');
+      const manuelOn = surface();
       setCadence('rapide');
-      const auto = resolveSurface(get, r(), 'x');
+      const auto = surface();
       resetDesFixes(); resetCadence();
       return { manuelOff, manuelOn, auto };
     };
-    expect(series(requeteMonde), 'un porteur MONDE et un porteur HÉROS traversent le MÊME prédicat').toEqual(series(requeteHeros));
-    expect(series(requeteMonde), 'et la série discrimine bien la cadence').toEqual({ manuelOff: 'M', manuelOn: 'M', auto: 'I' });
+    const surfaceHeros = () => surfaceHerosDe(h);
+    expect(series(surfaceMonde), 'un porteur MONDE et un porteur HÉROS traversent le MÊME prédicat').toEqual(series(surfaceHeros));
+    expect(series(surfaceMonde), 'et la série discrimine bien la cadence').toEqual({ manuelOff: 'M', manuelOn: 'M', auto: 'I' });
   });
 
   it('la cadence AUTO domine toujours : auto + option ON reste I (le précédent ne se renverse pas)', () => {
     setDesFixes(true);
     setCadence('rapide');
-    expect(resolveSurface(get, requeteMonde(), 'x')).toBe('I');
+    expect(surfaceMonde()).toBe('I');
   });
 
   /**
@@ -111,24 +118,23 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (resolveS
     set({ party: [h], battle: null });
     set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 0, ownership: { [h.id]: 0 } } });
     expect(seatOwns(get(), 0, h.id), 'précondition : le siège MJ POSSÈDE bien ce héros').toBe(true);
-    const requeteHeros = (): RollRequest => ({ side: { actorId: h.id }, actionLabel: 'Résistance', test: {}, difficulty: 'intermediaire' });
-    expect(resolveSurface(get, requeteHeros(), 'x'), 'possédé par le siège MJ n’est pas CONDUIT par lui — le joueur roule son héros').toBe('M');
+    expect(surfaceHerosDe(h, 'x', 'Résistance'), 'possédé par le siège MJ n’est pas CONDUIT par lui — le joueur roule son héros').toBe('M');
     const bande = buildBand(get, {
       id: 'b', kind: 'x', label: fixtureText('Bande'), difficulty: 'intermediaire',
       porteurs: [{ actor: h, ligne: { test: { skill: 'resistance', char: 'endurance' } } }],
     })!;
     expect(surfaceDesEtapes(get, [bande]), 'la SÉQUENCE répond comme la requête — même calcul').toBe('M');
-    expect(resolveSurface(get, requeteMonde(), 'x'), 'CONTRÔLE : le dé de MONDE, même montage, revient au MJ').toBe('V');
+    expect(surfaceMonde(), 'CONTRÔLE : le dé de MONDE, même montage, revient au MJ').toBe('V');
     set({ net: { ...get().net, ownership: {} } });
   });
 
   it('coop AVEC siège MJ : V (le MJ voit/lance), et la possession du monde SUIT ce siège', () => {
     set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
-    expect(resolveSurface(get, requeteMonde(), 'x')).toBe('V');
+    expect(surfaceMonde()).toBe('V');
     expect(seatOwns(get(), 1, WORLD_STEP_OWNER), 'la fenêtre appartient au siège MJ').toBe(true);
     expect(seatOwns(get(), 0, WORLD_STEP_OWNER), 'et plus à l’hôte').toBe(false);
     setDesFixes(true);
-    expect(resolveSurface(get, requeteMonde(), 'x'), 'l’option ne déplace pas une fenêtre déjà due au MJ').toBe('V');
+    expect(surfaceMonde(), 'l’option ne déplace pas une fenêtre déjà due au MJ').toBe('V');
   });
 
   /**
@@ -143,25 +149,25 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (resolveS
   it('un Test SUBI et un jet volontaire du MÊME porteur rendent la MÊME série (la classe a disparu)', () => {
     const h = makePregens()[0];
     set({ party: [h], battle: null });
-    const requete = (side: RollRequest['side'], actionLabel: string) => (): RollRequest => ({ side, actionLabel, test: {}, difficulty: 'intermediaire' });
-    const serie = (r: () => RollRequest) => {
+    const requete = (actionLabel: string) => (): Surface => surfaceHerosDe(h, 'x', actionLabel);
+    const serie = (surface: () => Surface) => {
       resetCadence();
       set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
-      const solo = resolveSurface(get, r(), 'x');
+      const solo = surface();
       set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
-      const mj = resolveSurface(get, r(), 'x');
+      const mj = surface();
       set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
       setCadence('rapide');
-      const auto = resolveSurface(get, r(), 'x');
+      const auto = surface();
       resetCadence();
       return { solo, mj, auto };
     };
-    const subiParHeros = serie(requete({ actorId: h.id }, 'Scorbut'));
+    const subiParHeros = serie(requete('Scorbut'));
     expect(subiParHeros, 'l’intitulé du jet ne change pas sa surface — seul le porteur la décide')
-      .toEqual(serie(requete({ actorId: h.id }, 'Ragot')));
+      .toEqual(serie(requete('Ragot')));
     expect(subiParHeros, 'un jet que le joueur doit faire APPARAÎT, subi ou non').toEqual({ solo: 'M', mj: 'M', auto: 'I' });
     // Et le PORTEUR discrimine bien : le dé du MONDE revient au siège MJ quand il existe (V).
-    expect(serie(requeteMonde), 'le dé de monde va au siège qui le tient').toEqual({ solo: 'M', mj: 'V', auto: 'I' });
+    expect(serie(surfaceMonde), 'le dé de monde va au siège qui le tient').toEqual({ solo: 'M', mj: 'V', auto: 'I' });
   });
 });
 
@@ -302,7 +308,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
     expect(step.worldOwner, 'étape de MONDE : aucun acteur ne la porte, le sentinel la route au siège').toBe(true);
     expect(step.actorId).toBeUndefined();
     // La cible EST la Demande du Lieu (Taille 4 × 10 + 30 Commerce) — posée par le call-site en
-    // `meta.baseValue`, jamais recalculée par la porte.
+    // `cible` (`openWorldTest`), jamais recalculée par la porte.
     expect(step.target).toBe(70);
   });
 
@@ -384,7 +390,7 @@ describe('#1426 Q1 — `stopSequence` TRONQUE la séquence au goulot partagé (p
     const route = routeAvecPerils(0);
     planSur(route);
     seedBattleRng(5);
-    const steps = runCascadeImmediate(get, set, [...buildAuthorPerilSteps(route, 'B', 'voyage-mer')]);
+    const steps = runCascadeImmediate(get, set, [...buildAuthorPerilSteps(route, 'B', 'voyage-mer')])!;
     // UN seul dé tombé : la séquence est tronquée à l'étape courante (3 étapes construites, 1 gardée).
     expect(steps).toHaveLength(1);
     expect(steps[0].result?.roll).toBeGreaterThan(0);
@@ -401,7 +407,7 @@ describe('#1426 Q1 — `stopSequence` TRONQUE la séquence au goulot partagé (p
     const route = routeAvecPerils(-1);
     planSur(route);
     seedBattleRng(5);
-    const steps = runCascadeImmediate(get, set, [...buildAuthorPerilSteps(route, 'B', 'voyage-mer')]);
+    const steps = runCascadeImmediate(get, set, [...buildAuthorPerilSteps(route, 'B', 'voyage-mer')])!;
     expect(steps).toHaveLength(3);
     expect(get().travelPlan!.interrupted).toBe(false);
   });
@@ -412,7 +418,7 @@ describe('#1426 Q1 — `stopSequence` TRONQUE la séquence au goulot partagé (p
       planSur(route);
       set({ journal: [] });
       seedBattleRng(5);
-      return runCascadeImmediate(get, set, [...buildAuthorPerilSteps(route, 'B', 'voyage-mer')])
+      return runCascadeImmediate(get, set, [...buildAuthorPerilSteps(route, 'B', 'voyage-mer')])!
         .map((s2) => ({ qui: String(s2.label), de: s2.result!.roll }));
     };
     const base = routeAvecPerils(-1).perils!;
@@ -487,6 +493,19 @@ describe('#1426 Q2 — le pourcentage d’auteur se lit « dé ≤ nombre visé 
       expect(st.result!.sl, 'et un seuil n’a aucun Degré de Réussite').toBe(0);
     }
     for (const l of get().journal) expect(l).not.toMatch(/\bDR\b/);
+  });
+
+  it('la TRACE d’un seuil résolu sans fenêtre dit le VERDICT de l’étape, jamais « réussi/échec » (#2389)', () => {
+    seedBattleRng(3);
+    set({ battle: null, party: [], pendingCascade: null, suspendedCascades: [], journal: [] } as never);
+    registerCascadeApplier('sonde-seuil-trace', () => undefined);
+    const verdict = { reussite: t('seuil.sousLeSeuil'), echec: t('seuil.auDessus') };
+    const st = worldStep({ id: 'w', kind: 'sonde-seuil-trace', label: fixtureText('Désertion'), rollLabel: 'Désertion', cible: 50, verdict });
+    const [joue] = runCascadeImmediate(get, set, [st])!;
+    const ligne = get().journal.find((x) => x.includes('Désertion'));
+    expect(ligne, 'le dé sans fenêtre a sa trace').toBeTruthy();
+    expect(ligne).toContain(String(joue!.result!.success ? verdict.reussite : verdict.echec));
+    expect(ligne).not.toContain(t(joue!.result!.success ? 'casc.autoRowHit' : 'casc.autoRowMiss'));
   });
 });
 
@@ -753,7 +772,7 @@ function prepareJourMaritime(seed: number): void {
     gameTime: 8 * 60, lastUpkeepDay: 0, journal: [],
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   } as never);
-  const plan = buildSeaPlan(get, 'rmer', 'A', 'B', carteMer.routes[0])!;
+  const plan = buildSeaPlan(get, 'rmer', 'A', 'B', carteMer.routes[0], { cadence: 'jour-par-jour' })!;
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
 }
 const ouvreJourMaritime = (seed: number): void => { prepareJourMaritime(seed); runSeaDay(get, set); };

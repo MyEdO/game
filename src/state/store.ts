@@ -141,6 +141,7 @@ import type {
 } from './pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { toMoney } from '../engine/money';
+import { postingTenu } from '../engine/activities';
 import { payFromGroup } from './bourseFlow';
 import * as medicFlow from './medicFlow';
 import type { MedicState, MedicNpc } from './medicFlow';
@@ -1510,9 +1511,9 @@ export interface GameState extends RollFlowActionsMap {
   /** Bascule la CADENCE des ordres de la traversée en cours (couche `voyageCadence`) — « Passer en
    *  jour-par-jour » de l'écran de traversée, ou retour en commandée. */
   setVoyageCadence: (cadence: import('./voyageCadence').VoyageCadence) => void;
-  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, id d'Activité de voyage EDOC 8),
+  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage EDOC 8),
    *  ou le détache (`null` ⇒ rôle inféré). Réutilisé au départ de chaque trajet (0 ré-assignation/jour). */
-  setTravelRole: (heroId: string, role: string | null) => void;
+  setTravelRole: (heroId: string, role: import('../engine/activities').StagePosting | null) => void;
   /** Épingle (`role`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) — interface de gestion
    *  du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
   setShipRole: (crewId: string, role: string | null) => void;
@@ -3142,7 +3143,7 @@ export const useGame = create<GameState>((set, get) => ({
   seaActivitiesConfirm: (picks) => seaActivities.seaActivitiesConfirm(get, set, picks),
   resolveManannPriest: (pay) => seaVoyageFlow.resolveManannPriest(get, set, pay),
   resolveShoreLeave: (allow) => seaVoyageFlow.resolveShoreLeave(get, set, allow),
-  setTravelRole: (heroId, role) => set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role || undefined }))),
+  setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
   setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
   setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
   setPosteAmmo: (shipId, posteUid, ammoUid) => {

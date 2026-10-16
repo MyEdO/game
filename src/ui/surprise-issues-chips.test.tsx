@@ -21,6 +21,7 @@ import { testScene } from '../scenes/test-fixture';
 import { runCombatFlow } from '../state/combat/triggeredTest';
 import { testFlow, EMPTY_FLOW } from '../state/flow';
 import { testValue } from '../engine/skills';
+import { jete } from '../engine/tests.testkit';
 import { CascadeBody } from './CascadeModal';
 import { resolveStake, combatStakeRef, regles } from '../data';
 import type { BattleState } from '../state/store';
@@ -255,7 +256,7 @@ describe('#1117 — la Surprise est UNE bande : un jet d’embusqueur, N guetteu
     seedBattleRng(11);
     ambush([{ talentId: 'vigilance', times: 1 }], 3, 65);
     lancer('h'); lancer('h2'); lancer('h3');
-    const jets = bande().participants!.map((p) => p.result!);
+    const jets = bande().participants!.map((p) => jete(p.result));
     expect(jets.every((r) => r), 'les 3 rangées ont leur jet').toBe(true);
     expect(jets.every((r) => r.roll <= r.target), 'chaque dé est SOUS la cible : le Test simple serait réussi').toBe(true);
     expect(jets.every((r) => !r.success), 'et pourtant les 3 PERDENT — l’embusqueur remporte l’opposition').toBe(true);

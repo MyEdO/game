@@ -34,10 +34,8 @@
 import seaNavJson from '../data/sea-navigation.json';
 import { findTableEntry } from './tables';
 import { d10, type RNG, defaultRNG } from './dice';
-import { rollTest } from './tests';
 import { progressionMovement } from './shipNavigation';
 import type { Combatant, Difficulty } from './types';
-import { effectiveChar } from './characteristics';
 import { testValue } from './skills';
 
 type Per = 'heure' | 'minute' | 'round';
@@ -91,8 +89,7 @@ export function forcePaceDifficulty(bonusM: number, rig: 'voile' | 'avirons'): D
   return row?.[rig] ?? null;
 }
 
-/** Test d'ÉPUISEMENT de fin de Période de travail (MDG 13 l.109-111) : Résistance Accessible (+20), Complexe
- *  (−10) si le rythme a été forcé ; échec → +1 Exténué (l'appelant pose l'État). PUR. */
+/** Difficulté du Test d'Épuisement, `forced` = rythme forcé (MDG 13 l.111). PUR. */
 export function exhaustionDifficulty(forced: boolean): Difficulty {
   return forced ? DATA.epuisement.forcedDifficulty : DATA.epuisement.difficulty;
 }
@@ -110,19 +107,10 @@ export function overspeedRow(baseM: number, m: number): OverspeedRow | null {
   return { difficulty: row.difficulty, per: row.per, damage: row.damage };
 }
 
-/** Dégâts d'un ÉCHEC du Test de survitesse : `damage + X`, « X est égal au nombre de Degrés de
- *  Réussite négatifs générés sur un Test de Résistance raté » (MDG 13 l.142). PUR — factorisé pour être
- *  partagé par `rollOverspeedDamage` (jet auto-contenu) et tout appelant qui possède déjà le résultat
- *  d'un Test résolu ailleurs (ex. couture cascade, `seaVoyageFlow.ts`). */
+/** Dégâts d'un ÉCHEC du Test de survitesse (MDG 13 l.142), sur le résultat d'un Test résolu par la
+ *  porte des jets (`seaVoyageFlow.ts`). PUR. */
 export function overspeedDamage(baseDamage: number, sl: number): number {
   return baseDamage + Math.max(0, -sl);
-}
-
-/** Test d'Endurance du NAVIRE en survitesse : échec → Dégâts `damage + X` (MDG 13 l.142, `overspeedDamage`).
- *  PUR (RNG injecté). */
-export function rollOverspeedDamage(hull: Combatant, row: OverspeedRow, rng: RNG = defaultRNG): { roll: number; target: number; success: boolean; damage: number } {
-  const t = rollTest(effectiveChar(hull, 'endurance'), row.difficulty, rng);
-  return { roll: t.roll, target: t.target, success: t.success, damage: t.success ? 0 : overspeedDamage(row.damage, t.sl) };
 }
 
 // ── Salissures (MDG 13 l.144-159) ───────────────────────────────────────────────────────────────────────
@@ -136,12 +124,11 @@ export function foulingEffects(level: number): FoulingLevel {
   return DATA.salissures.levels.find((l) => l.level === capped)!;
 }
 
-/** Test HEBDOMADAIRE de Salissures (MDG 13 l.148 : Test de Résistance du VAISSEAU ; raté → +1 niveau, max 5).
- *  PUR — renvoie le nouveau niveau + le détail du jet. */
-export function rollWeeklyFouling(hullE: number, level: number, rng: RNG = defaultRNG): { level: number; roll: number; target: number; gained: boolean } {
-  const t = rollTest(hullE, 'intermediaire', rng);
-  const gained = !t.success && level < DATA.salissures.levels.length;
-  return { level: gained ? level + 1 : level, roll: t.roll, target: t.target, gained };
+/** Niveau de Salissures après le Test HEBDOMADAIRE (MDG 13 l.148), plafonné au dernier niveau du
+ *  tableau. PUR. */
+export function weeklyFoulingLevel(level: number, success: boolean): { level: number; gained: boolean } {
+  const gained = !success && level < DATA.salissures.levels.length;
+  return { level: gained ? level + 1 : level, gained };
 }
 
 // ── Orientation : Repères & Changement de cap (MDG 13 l.307-331) ────────────────────────────────────────

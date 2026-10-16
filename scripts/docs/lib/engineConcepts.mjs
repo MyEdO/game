@@ -150,6 +150,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/testOutcome.ts', 'Issue de test (Degrés de Réussite)'],
   ['src/engine/testPolicy.ts', 'Politique de test'],
   ['src/engine/tests.ts', 'Tests (jets de caractéristique)'],
+  ['src/engine/tests.testkit.ts', 'Tests : harnais de test (lecture d’un jet tombé, échec sans jet refusé)'],
   ['src/engine/timeCost.ts', 'Coût en temps'],
   ['src/engine/traceLine.ts', 'Ligne de dé du journal (dériveur)'],
   ['src/engine/traits/dispatch.ts', 'Aiguillage des traits'],

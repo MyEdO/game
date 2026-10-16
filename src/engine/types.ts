@@ -8,6 +8,7 @@ import type { ReachId } from './items';
 import type { CodexTarget, ModProvenance } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
+import type { StagePosting } from './activities';
 
 /** Libellés d'AFFICHAGE de l'axe d'Allonge, PAR id d'axe (`ReachId`, `engine/items.ts` — LDB 62
  *  l.156-164). Toute LOGIQUE d'Allonge passe par `reachIdOf`/`reachRankOf`, jamais par ce libellé. */
@@ -1537,10 +1538,11 @@ export interface Combatant {
   riderId?: string;
   /** Ce combattant est une MONTURE rideable (peut être enfourché par un allié à pied — LDB 14). */
   mountable?: boolean;
-  /** Rôle de marche PERSISTANT (`id` d'Activité de voyage EDOC 8) — « les mêmes tiennent toujours le
-   *  même poste ». Attaché au personnage (toutes parties de voyage) ; l'assignation d'un trajet en est
-   *  initialisée. Absent ⇒ inféré des compétences (`defaultTravelRole`). Le joueur l'épingle/le change. */
-  travelRole?: string;
+  /** Rôle de marche PERSISTANT (Activité de voyage EDOC 8, et sa compétence choisie pour Pratiquer une
+   *  Compétence) — « les mêmes tiennent toujours le même poste ». Attaché au personnage (toutes parties de
+   *  voyage) ; l'assignation d'un trajet en est initialisée. Absent ⇒ inféré des compétences
+   *  (`defaultTravelRole`). Le joueur l'épingle/le change. */
+  travelRole?: StagePosting;
   /** Rôle d'ÉQUIPAGE naval ÉPINGLÉ (`id` de `crew-roles.json` : timonier/artilleur/mousse…) — le poste que ce membre
    *  tient lors des Tests d'équipage du navire (MDG 14). ABSENT ⇒ le Test décide : `shipDefaultRoles`
    *  (`state/shipCrew`) affecte l'équipage au moment du jet, selon le TYPE de Test joué. Aucune surface
@@ -1818,6 +1820,10 @@ export interface Combatant {
    *  survenant un jour de voyage (`activeDayWeather`). SEULE source du canal « Tests physiques » (`weatherTestMods`,
    *  lu par attack/defenseModifiers) — jamais recâblée par surface. Transitoire (non persistée hors combat). */
   envWeather?: import('./travelStages').Weather;
+  /** Précipitations du jour de mer sous lesquelles ce combattant agit (MDG 13 l.185, #1936) : posées à
+   *  l'ouverture d'un combat survenant pendant un voyage maritime. SEULE source du canal
+   *  `precipitationTestMods` en combat. Transitoire (non persistée hors combat). */
+  envPrecipitation?: import('./seaWeather').SeaPrecipitationId;
   /** Adversaires avec qui ce combattant est Engagé en mêlée (LDB 13 l.169-171).
    *  Relationnel et symétrique ; purgé par paire en fin de Round si aucune attaque échangée. */
   engagedWith?: string[];
@@ -1884,7 +1890,7 @@ export const DIFFICULTY_MODIFIERS: Record<Difficulty, number> = {
 /** VOCABULAIRE FERMÉ des étapes de la cascade de NUIT (#1117) — les 16 `kind` réellement
  *  émis : 7 par les Tests d'entretien DIFFÉRÉS (`UpkeepDeferTest`), 8 construits par le flux de nuit,
  *  1 par l'entretien de MER (`sea-exposition` — MÊME règle d'Exposition, AUTRE route, donc autre kind :
- *  les ORDRES d'une traversée ne commandent que le sien, cf. `voyageCadence.SEA_KINDS_SOUS_ORDRES`).
+ *  les ORDRES d'une traversée ne commandent que le sien, cf. `voyageCadence.KINDS_SOUS_ORDRES`).
  *  Union au TYPE = premier rideau : un kind inventé ne compile pas ; le résolveur d'enjeu jette en
  *  second rideau. Ajouter une étape de nuit = l'ajouter ICI et lui authorer son entrée d'enjeu. */
 export const NIGHT_TEST_KINDS = [

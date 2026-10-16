@@ -1304,6 +1304,54 @@
     }
   },
   {
+    "id": "degagement-debris-marins",
+    "type": "regles",
+    "label": "Débris marins — Empêtrement et dégagement",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "debris-marins",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 3,
+          "sum": "0ca4e989a4979f4a"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 112,
+      "note": "MDG 13 l.487-491"
+    }
+  },
+  {
+    "id": "salissures-navire",
+    "type": "regles",
+    "label": "Salissures",
+    "descRef": {
+      "book": "mer-des-griffes",
+      "ch": "13",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "salissures",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 3,
+          "sum": "87b2d871a948da80"
+        }
+      ]
+    },
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 105,
+      "note": "MDG 13 l.148-159"
+    }
+  },
+  {
     "id": "guerison-des-blessures",
     "type": "regles",
     "label": "Guérison des Blessures",

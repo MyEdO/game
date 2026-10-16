@@ -459,12 +459,6 @@
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "scripts/guards/lib/canonUnique.mjs",
-      "ref": "sansDeclarationsDeMetadonnees : cycle d'appels sansDeclarationsDeMetadonnees",
-      "occurrence": 1
-    },
-    {
-      "famille": "cycle d'appels",
       "fichier": "src/ui/CombatConsole.test.tsx",
       "ref": "borderColorOf : cycle d'appels parseColor",
       "occurrence": 1

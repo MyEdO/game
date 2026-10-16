@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { copyFileSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
-import { ciblesSurDisque, executer, genererCode, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
+import { ciblesSurDisque, CODE_DIFFERE, executer, genererCode, GENERATORS, mesurerEnRendu, SOURCES_LUES } from '../docs/build-all.mjs'
 import { preuveValide } from '../docs/lib/fraicheur-docs.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { lotDuPostMerge, reconstruireApresGit, selectionDesGenerateurs, touchedFiles, touchesDocSources } from './docs-rebuild.mjs'
@@ -145,6 +145,20 @@ test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur
   assert.equal(touchesDocSources(['src/ui/Prose.tsx'], mesure), true)
   assert.equal(touchesDocSources(['scripts\\raw\\build-implemente.mjs'], mesure), true)
   assert.equal(touchesDocSources(['docs/raw/4e/combat.md'], mesure), true)
+})
+
+// #2603
+test('frontière d’outillage : un module importé par un générateur entre dans sa mesure, sélection partielle ; un module préchargé périme tout', () => {
+  const scripts = ['scripts/gen-formats.mjs', 'scripts/raw/build-catalogs.mjs']
+  const generateurs = GENERATORS.filter((g) => scripts.includes(g.script))
+  const rendues = mesurerEnRendu(scripts, { cwd: RACINE })
+  const mesure = tableTotale(scripts, (script) => rendues.get(script).entree)
+  assert.deepEqual(scripts.filter((script) => mesure[script].fichiers.includes('scripts/guards/lib/gitPorte.mjs')), ['scripts/raw/build-catalogs.mjs'])
+  const lecteurs = selectionDesGenerateurs({ lot: ['scripts/guards/lib/gitPorte.mjs'], mesure, cwd: RACINE, generateurs })
+  assert.deepEqual([lecteurs.complete, lecteurs.raison], [false, 'sources mesurées et préalables'])
+  assert.ok(lecteurs.scripts.includes('scripts/raw/build-catalogs.mjs'), lecteurs.scripts.join(', '))
+  assert.deepEqual(selectionDesGenerateurs({ lot: ['src/lib/ordre.mjs'], mesure, cwd: RACINE, generateurs }),
+    { scripts, complete: true, raison: 'graphe ou outil de mesure modifié' })
 })
 
 test('FAIL-CLOSED : git INDISPONIBLE sur la lecture du lot, le lot est INCONNU (`null`, on régénère), jamais vide', () => {
@@ -463,10 +477,27 @@ test('fusion server seule : installer avant passe attestée ; lot sans lockfile 
         docs: (_cmd, args) => { gestes.push(args.slice(1).join(' ')); throw new Error('rouge réel de la passe') },
       })
       assert.equal(vu, 1)
-      assert.deepEqual(gestes, server ? ['--prefix server ci --no-audit --no-fund', '--perimes'] : ['--perimes'])
+      assert.deepEqual(gestes, server ? ['--prefix server ci --no-audit --no-fund', '--perimes --essai-unique'] : ['--perimes --essai-unique'])
     } finally {
       rmSync(racine, { recursive: true, force: true })
     }
+  }
+})
+
+test('#2603 — build-all DIFFÉRÉ (verrou des gestes lourds tenu) : le hook rend `CODE_DIFFERE` sans attendre, l’attestation reste périmée', () => {
+  const { racine } = fusionReelle({ 'a.txt': 'a' }, { 'a.txt': 'b' })
+  const sorties = []
+  try {
+    const vu = reconstruireApresGit({ cwd: racine, hook: 'post-merge', annoncer: (texte) => sorties.push(texte),
+      npm: () => assert.fail('aucun lockfile au lot'),
+      docs: () => { throw Object.assign(new Error('différé'), { status: CODE_DIFFERE }) },
+    })
+    assert.equal(vu, CODE_DIFFERE)
+    assert.match(sorties.join(''), /régénération DIFFÉRÉE \(tenant ci-dessus\) : attestation laissée périmée/)
+    assert.doesNotMatch(sorties.join(''), /INTERROMPUE/)
+    assert.equal(preuveValide(racine, { generateurs: GENERATORS, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, false)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
 })
 
@@ -544,7 +575,7 @@ test('checkout existant sans mesure : génération attestée puis second checkou
   }
   try {
     assert.equal(reconstruireApresGit(options), 0)
-    assert.deepEqual(appels, [['--perimes']])
+    assert.deepEqual(appels, [['--perimes', '--essai-unique']])
     assert.equal(readFileSync(join(worktree, cible), 'utf8'), 'source réelle')
     assert.equal(preuveValide(worktree, { generateurs, ciblesSurDisque, sourcesLues: SOURCES_LUES }).ok, true)
     assert.equal(reconstruireApresGit(options), 0)

@@ -105,9 +105,9 @@ describe('evalCondition — Conditions PARTY-level (#711 : skill/career/species/
     expect(evalCondition({ kind: 'skill', id: 'dresser' }, base)).toBe(false); // pas de groupe → false
   });
   it('skill : spec distingue les instances (Métier (Serrurier) ≠ Métier (Brasseur))', () => {
-    const party = [{ skills: [{ id: 'metier', spec: 'Serrurier', advances: 1 }] }];
-    expect(evalCondition({ kind: 'skill', id: 'metier', spec: 'Serrurier' }, { ...base, party })).toBe(true);
-    expect(evalCondition({ kind: 'skill', id: 'metier', spec: 'Brasseur' }, { ...base, party })).toBe(false);
+    const party = [{ skills: [{ id: 'metier', spec: 'serrurier', advances: 1 }] }];
+    expect(evalCondition({ kind: 'skill', id: 'metier', spec: 'serrurier' }, { ...base, party })).toBe(true);
+    expect(evalCondition({ kind: 'skill', id: 'metier', spec: 'brasseur' }, { ...base, party })).toBe(false);
   });
   it('career : match par id, any/all', () => {
     const party = [{ career: 'soldat' }, { career: 'artisan' }];

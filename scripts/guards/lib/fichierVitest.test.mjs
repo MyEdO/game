@@ -147,9 +147,10 @@ const DIALECTES = new RegExp(`${MOTIF_D_EXTENSION}$`)
 const SONDE_DATEE = /(^|\/)audit-\d{4}-\d{2}-\d{2}$/
 /** Le motif tel qu'on l'écrirait dans une regexp, assemblé mot par mot à l'exécution. */
 const MOTIFS = ['test', 'bench', 'testkit'].map((mot) => ['\\', '.', mot, '\\', '.'].join(''))
-/** Le motif en ALTERNANCE (`\.(<a>|<mot>|<b>)\.`), où le mot côtoie d'autres suffixes dans un
- *  groupe : même copie du prédicat, invisible à `MOTIFS`. Assemblé à l'exécution, comme lui. */
-const ALTERNANCE = new RegExp(String.raw`\\\.\((?:\w+\|)*(?:` + ['test', 'bench', 'testkit'].join('|') + String.raw`)(?:\|\w+)*\)\\\.`)
+/** Le motif en ALTERNANCE (`\.(<a>|<mot>|<b>)\.`, groupe capturant ou non, `\.(?:<a>|<mot>)\.`), où le mot
+ *  côtoie d'autres suffixes dans un groupe : même copie du prédicat, invisible à `MOTIFS`. Assemblé à l'exécution,
+ *  comme lui. */
+const ALTERNANCE = new RegExp(String.raw`\\\.\((?:\?:)?(?:\w+\|)*(?:` + ['test', 'bench', 'testkit'].join('|') + String.raw`)(?:\|\w+)*\)\\\.`)
 /** Une ligne de CODE SEUL copie-t-elle le motif, en bloc ou en alternance ? */
 const copieLeMotif = (ligne) => MOTIFS.some((m) => ligne.includes(m)) || ALTERNANCE.test(ligne)
 
@@ -181,7 +182,7 @@ test('le prédicat vit en UN exemplaire : aucune copie locale du motif dans src/
 })
 
 test('le balayage voit la copie en ALTERNANCE, comme la copie en bloc', () => {
-  const copies = [String.raw`/\.(test|d)\.ts$/`, String.raw`/\.(test|spec)\./`, String.raw`/\.(spec|test)\./`, String.raw`/\.(d|bench|spec)\./`, String.raw`/\.testkit\.ts$/`, String.raw`/\.testkit\.tsx?$/`, String.raw`/\.(testkit|d)\./`]
+  const copies = [String.raw`/\.(test|d)\.ts$/`, String.raw`/\.(test|spec)\./`, String.raw`/\.(spec|test)\./`, String.raw`/\.(d|bench|spec)\./`, String.raw`/\.(?:test|spec)\.[cm]?[jt]sx?$/`, String.raw`/\.(?:spec|bench)\./`, String.raw`/\.testkit\.ts$/`, String.raw`/\.testkit\.tsx?$/`, String.raw`/\.(testkit|d)\./`, String.raw`/\.(?:testkit|d)\./`]
   for (const ligne of copies) assert.equal(copieLeMotif(ligne), true, ligne)
   for (const ligne of [String.raw`/\.(ts|tsx)$/`, String.raw`/\.(d)\.ts$/`, String.raw`/(test|spec)/`]) assert.equal(copieLeMotif(ligne), false, ligne)
 })

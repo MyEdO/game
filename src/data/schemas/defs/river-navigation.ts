@@ -83,7 +83,7 @@ const doc = document(
   champs,
   {
     windForces: { label: 'Forces de vent', hint: 'Table de tirage d10 des forces de vent fluviales' },
-    windDirections: { label: 'Directions de vent', hint: 'Table de tirage d10 des directions de vent relatives au bateau' },
+    windDirections: { label: 'Vent relatif', hint: 'Table de tirage d10 du vent relatif au bateau' },
     windTickThreshold: {
       label: 'Résultat de bascule du vent',
       hint: 'Résultat exact du d10 qui fait changer la FORCE du vent d’un cran (la direction n’est tirée qu’au départ)',

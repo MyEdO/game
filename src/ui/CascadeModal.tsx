@@ -27,6 +27,7 @@ import type { ModLine } from '../engine/combat';
 import { Icon } from './Icon';
 import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl, specDeEtape } from '../state/cascade';
 import { formatDice } from '../engine/dice';
+import { estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
 import { opposedAttackerLabel } from '../state/rollSeam';
@@ -38,7 +39,7 @@ import { opposedResponded } from './opposedFrozen';
 import { frozenOpposedRow, tableRow, witnessRow, buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import type { CascadeStep, CascadeRollStep, CascadeRoll, BatchParticipant, SeuilDeSauvegarde } from '../state/pendings';
 import type { Combatant } from '../engine/types';
-import { buildParticipantRows, rollAllUnrolledRows } from './buildParticipantRows';
+import { buildParticipantRows, rollAllUnrolledRows, rangeeSansJet } from './buildParticipantRows';
 import { Prose, mdToText } from './Prose';
 
 /** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
@@ -206,7 +207,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // le NOMME (« plafond 99 ») au lieu de l'avouer « autres » (#1117).
     // La SECONDE LECTURE (Test combiné) est ÉVALUÉE par le socle (`secondReadOf`) : la modale la
     // transmet, elle ne recompare pas le dé.
-    return testBreakdown(l.label, l.base, { roll: r.roll, target: s.target, sl: r.sl, success: r.success, ...(s.clamped ? { clamped: s.clamped } : {}), ...(s.evaluation ? { evaluation: s.evaluation } : {}) }, s.difficulty, l.mods, s.easedBy, secondReadOf(s.second, r));
+    return testBreakdown(l.label, l.base, { roll: r.roll, target: s.target, sl: r.sl, success: r.success, ...(s.clamped ? { clamped: s.clamped } : {}), ...(s.evaluation === 'seuil' ? { seuil: s.verdict } : {}) }, s.difficulty, l.mods, s.easedBy, secondReadOf(s.second, r));
   };
   const pendingOf = (s: CascadeRollStep) => {
     const l = stepLine(s);
@@ -261,7 +262,9 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // Étape BATCH committée : sa conséquence (resultLine, #331) se lit SUR PLACE — note SEULE (pas de
     // RollLine mono factice `base 0` : le batch n'a ni acteur ni cible d'étape, le verdict est agrégé).
     if (s.participants) return s.outcome?.length ? { combatant: a, note: noteFor(s) } : null;
-    if (s.result && isRollStep(s)) return { combatant: a, d: breakdown(s, s.result), note: noteFor(s) }; // jet validé
+    const refus = refusSansJet(s);
+    if (refus != null) return { combatant: a, note: <>{refus}{noteFor(s)}</> };
+    if (estJete(s.result) && isRollStep(s)) return { combatant: a, d: breakdown(s, s.result), note: noteFor(s) }; // jet validé
     // TIRAGE SUR TABLE committé : le dé A ÉTÉ jeté — la rangée existe même sans conséquence écrite,
     // sinon l'étape DISPARAÎT du bilan (une table que le socle a résolue d'office pour un porteur
     // qu'aucun siège ne tient n'aurait alors jamais été vue, #1426).
@@ -277,7 +280,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // DONNÉE de Test ÉTENDU d'une rangée (arbitrage user 2026-07-11 : la barre est RENDUE par `RollRow`
   // — site UNIQUE — pas ici ; ceci ne calcule que `{cum, target}`). `done` = DR cumulés AVANT ce jet,
   // `+ SL` du jet réussi. Générique : mono (`meta`) ou batch (participant), toute la CLASSE des jets étendus.
-  const extendedDrData = (done: number | undefined, target: number | undefined, res: CascadeRoll | null | undefined): { cum: number; target: number } | undefined => {
+  const extendedDrData = (done: number | undefined, target: number | undefined, res: CascadeRoll | EchecSansJet | null | undefined): { cum: number; target: number } | undefined => {
     if (target == null) return undefined;
     const gain = res?.success ? Math.max(0, res.sl) : 0;
     // Un Test étendu SE TERMINE à la cible (LDB 12 l.170-186) : le cumul affiché est BORNÉ à la cible — un
@@ -297,11 +300,11 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       return s.participants.flatMap((part) => {
         const a = pool.find((c) => c.id === part.id);
         if (!a) return [];
-        const res = part.result;
+        const res = estJete(part.result) ? part.result : null;
         // La rangée FIGÉE garde sa seconde lecture : ce que la bande a tranché reste lisible au bilan.
         const d = res ? { label: part.label ?? a.label, base: part.base, mods: part.mods, ...(part.difficulty ? { difficulty: part.difficulty } : {}), modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl, ...(part.second ? { second: secondReadOf(part.second, res)! } : {}) } : undefined;
         const extendedDr = extendedDrData(part.extendedDrDone, part.extendedDrTarget, res);
-        return [witnessRow({ key: witnessRowKey(s.id, part.id), row: { combatant: a, d, note: partNote(part) }, extendedDr })];
+        return [witnessRow({ key: witnessRowKey(s.id, part.id), row: { combatant: a, d, note: refusSansJet(part) ?? partNote(part) }, extendedDr })];
       });
     }
     const pr = rowOf(s);
@@ -818,10 +821,10 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       // ISSUES de la rangée (#1117) : la MÊME dérivation que l'étape MONO, mais PAR PARTICIPANT — le
       // VERDICT d'une rangée résolue et la promesse d'une rangée DIVERGENTE. Une rangée dont l'annonce est
       // montée en tête de bande n'a plus rien à dire ici : elle se tait plutôt que de répéter.
-      issues: (part) => (!part.result && mutualise?.ids.includes(part.id) ? undefined : rowOutcomeNote(part.id, part.result)),
+      issues: (part, _actor, res) => (!res && mutualise?.ids.includes(part.id) ? undefined : rowOutcomeNote(part.id, res)),
       // Test ÉTENDU d'une rangée (cartographie de voyage) : DONNÉE seule — `RollRow` rend la barre (site
       // UNIQUE), visible AVANT et après le jet, persistante (arbitrage user 2026-07-11).
-      extendedDrOf: (part) => extendedDrData(part.extendedDrDone, part.extendedDrTarget, part.result),
+      extendedDrOf: (part) => extendedDrData(part.extendedDrDone, part.extendedDrTarget, estJete(part.result) ? part.result : null),
     }).map((r) => {
       // Verbes à RESSOURCE de la rangée (parité avec l'étape MONO, joués PAR RANGÉE — flux `cascadeBatch`) :
       // Résistance (Menace) sur une rangée TAGUÉE dont l'issue reste défavorable (LDB 10 l.1016-1020) ;
@@ -899,10 +902,10 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // Chance / relance gratuite / Résilience ne sont PAS recopiées ici : `RollRow`/`InfluenceRow` les
   // DÉRIVENT de `actor` (site unique). `rolled` est dérivé par le noyau du dé de la ligne (`row.d`) —
   // identique à la phase de l'étape, une étape-JET portant toujours sa cible (`stepInteraction`).
-  const curRow: BuiltRollRow = buildRollRow(
+  const curRow: BuiltRollRow = rangeeSansJet(cur.id, actor, cur) ?? buildRollRow(
     {
       actor,
-      row: res && isRollStep(cur) ? { combatant: actor, d: breakdown(cur, res) } : curPending,
+      row: estJete(res) && isRollStep(cur) ? { combatant: actor, d: breakdown(cur, res) } : curPending,
       onRoll: () => roll(cur.id),
       rerolled: !!cur.rerolled,
       onReroll: () => reroll(cur.id),

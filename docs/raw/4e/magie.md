@@ -170,7 +170,7 @@ La compétence **Prière**, **Langue (Magick)** et **Focalisation** sont des **c
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.22-24) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `hasArcaneTalent` ⚠sans-appelant, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, +60 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/domainAttributes.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, +9 fichiers
-- `LDB 85` (l.206-207) → `TraitDef`, `morsure`, `polymorphOps`, `ManeuverPostHitHook`, `spawnMutations`, `Condition`, `langue-prehensile`, `doc`, `mutationsAtSpawn`, `TriggerCtx`, +27 — `src/data/maneuvers.json`, `src/data/schemas/defs/traits.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +10 fichiers
+- `LDB 85` (l.206-207) → `TraitDef`, `morsure`, `polymorphOps`, `ManeuverPostHitHook`, `spawnMutations`, `TEST_PROLONGATION`, `Condition`, `langue-prehensile`, `doc`, `mutationsAtSpawn`, +28 — `src/data/maneuvers.json`, `src/data/schemas/defs/traits.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/traits.json`, `src/engine/flowCore.ts`, `src/engine/ops.ts`, +10 fichiers
 
 ---
 
@@ -742,7 +742,7 @@ La **malepierre** est un éclat de magie pure dans le plan matériel — manifes
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 19` (l.40, l.51-53) → `CorruptionModal`, `combat-end-corruption`, `EXPOSURE_LADDER`, `testDeCorruption`, `sombre-pacte`, `physique`, `exposureLevelSchema`, `corruption-mineure`, `corruption-moderee`, `corruption-majeure`, +18 — `src/data/characteristics.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/mutationTables.json`, `src/data/regles.json`, `src/data/schemas/defs-scenes/effets.ts`, +10 fichiers
 - `LDB 44` (l.113-119) → `doc` — `src/data/schemas/defs/trappings.ts`
-- `LDB 46` (l.164-173) → `DispelModal`, `windsModFromRoll`, `FocusModal`, `force-des-vents`, `rollWindsOfMagic`, `STEP_WINDOW_AUTO`, `REPORT_DE_COMBATTANT`, `doc`, `windsMagicModOf`, `HoverTargeting`, +69 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +32 fichiers
+- `LDB 46` (l.164-173) → `DispelModal`, `windsModFromRoll`, `FocusModal`, `force-des-vents`, `rollWindsOfMagic`, `STEP_WINDOW_AUTO`, `REPORT_DE_COMBATTANT`, `doc`, `windsMagicModOf`, `HoverTargeting`, +70 — `src/data/actions.json`, `src/data/combat-stakes.json`, `src/data/flow-stakes.json`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +32 fichiers
 - `VDM 2` (l.165) → `surincantation`, `doc`, `armourCastDRPenalty`, `armure-du-chaos`, `malevolentInfluenceSeverity`, `ItemInstance`, `malepierreDR`, `malepierreCharge`, `malepierreReserveOf`, `consumeMalepierre`, +4 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/trappings.ts`, `src/data/surincantation.json`, `src/data/trappings.json`, `src/data/weaponGroups.json`, +4 fichiers
 - dette : #884
 
@@ -827,7 +827,7 @@ Le « Département des arts magiques maritimes » du collège du baron Henryk (M
 **Voir aussi :** [Focalisation (Test étendu)](#focalisation-test-étendu), [Focalisation Critique](#focalisation-critique), [Maladresse de Focalisation](#maladresse-de-focalisation), [Domaine du Feu (Aqshy — Vent Rouge)](#domaine-du-feu-aqshy--vent-rouge)
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 2` (l.178-186) → `seaMagicContext`, `crew`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
+- `MDG 2` (l.178-186) → `crew`, `seaMagicContext`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
 
 ---
 
@@ -849,7 +849,7 @@ Ces sorts manipulent des objets de jeu « navals » (navire, Manœuvre, tourbill
 **Voir aussi :** [Magie des mers — modificateurs des Vents en mer](#magie-des-mers--modificateurs-des-vents-en-mer), [Surincantation](#surincantation), [Zone d'Effet (ZdE)](#zone-deffet-zde)
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 2` (l.189-262) → `seaMagicContext`, `crew`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
+- `MDG 2` (l.189-262) → `crew`, `seaMagicContext`, `doc`, `SeaWind`, `CastTestModsContext`, `castTestDRMods`, `resolveCasting`, `evaluateCasting`, `resolveMagicMissile`, `resolveFocus`, +8 — `src/data/index.ts`, `src/data/schemas/defs/domains.ts`, `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/engine/magic.ts`, `src/scenes/test-scenarios/14-voyage-maritime.ts`, +2 fichiers
 
 ---
 

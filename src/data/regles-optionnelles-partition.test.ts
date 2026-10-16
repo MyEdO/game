@@ -52,7 +52,9 @@ const REGLES = reglesOptionnelles as Regle[];
  *  de la croisée (#700 issuecomment-5984719806). */
 /** Puis 91 = 54 + 37 (#700, 2026-10-05) : `fouille-piece-minutes` — LDB 12 l.200 ne chiffre pas la durée
  *  de la fouille d'une pièce : MAISON. */
-const PARTITION = { total: 91, source: 54, maison: 37 };
+/** Puis 92 = 54 + 38 (#1595, 2026-10-12) : `sea-salissures-difficulty` — MDG 13 l.148 ne chiffre pas la
+ *  Difficulté du Test de Résistance du navire : MAISON. */
+const PARTITION = { total: 92, source: 54, maison: 38 };
 
 /**
  * COEXISTENCE `source` + `maison` (chaîne non vide) sur les entrées de PREMIER niveau de `src/data`,
@@ -64,7 +66,9 @@ const COEXISTENCE: Record<string, number> = {
   'actions.json': 1,
   // 8 → 9 (#1612) : l'Activité `mendier` cite son folio (LDB 119) ET porte en clair les cinq points
   // que le livre laisse ouverts (durée, discours, apparence, ennuis, gate de lieu).
-  'activities.json': 9,
+  // 9 → 10 (#1595 S8) : `pratiquer-competence` cite son folio (EDOC 35) ET porte en clair la liste
+  // `freeSkill` par défaut, que le livre laisse ouverte (« etc. », EDOC 8 l.172).
+  'activities.json': 10,
   'creatures.json': 1,
   'etats.json': 1,
   // 0 → 2 (#680, 2026-09-29) : les 2 Groupes d'EDO 02 cités à leur folio ET portant la raison de leur appartenance hors canon

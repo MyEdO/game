@@ -24,7 +24,7 @@ import type { RNG } from '../engine/dice';
 import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL } from '../engine/combat';
 import { isVehicle } from '../engine/vehicle';
 import { isInanimate } from '../engine/structures';
-import { rollTest, resolveOpposed, hydrateTR, type TestResult } from '../engine/tests';
+import { rollTest, resolveOpposed, hydrateTR, estJete, type TestResult } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
@@ -599,7 +599,7 @@ function openManeuverDefenseCascade(
  *  Avantage variable) → effets via `applyManeuverEffects` (le MÊME que le chemin silencieux). Le Critique se
  *  FOLDE dans la MÊME cascade (les ops de Dégâts poussent une révélation → `pushReveal` l'append). */
 registerCascadeApplier('maneuverDefense', (get, set, step, hero) => {
-  if (!hero || !step.result) return;
+  if (!hero || !estJete(step.result)) return;
   const md = step.meta?.maneuverDefense;
   const opp = step.meta?.opposed;
   if (!md || !opp) return;

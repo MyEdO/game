@@ -1,4 +1,4 @@
-import { ast, analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
+import { ast, analyserCorpus, declarationQuiPorte } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
@@ -86,13 +86,17 @@ function nameFieldSites(): string[] {
   return (sitesMemo ??= scanNameFieldSites());
 }
 
+/** Un site = `fichier#déclaration` de premier niveau qui le porte (`declarationQuiPorte`, #2200). */
 function scanNameFieldSites(): string[] {
   const out: string[] = [];
   for (const { fichier: { rel, text }, sourceFile } of analyserCorpus(readCorpus(['src']))) {
-    for (const line of nameFieldLines(rel, text, sourceFile!)) out.push(`${rel}:${line}`);
+    for (const line of nameFieldLines(rel, text, sourceFile!)) out.push(`${rel}#${declarationQuiPorte(sourceFile!, line)}`);
   }
   return out;
 }
+
+/** Une clé désigne UN site : portée par plusieurs sites, elle n'en exempte aucun. */
+const porteurs = (sites: string[], cle: string) => sites.filter((at) => at === cle).length;
 
 /**
  * Deux porteurs SEULS exemptés — jamais un porteur de donnée, toujours une STRUCTURE DE PARSING :
@@ -102,8 +106,8 @@ function scanNameFieldSites(): string[] {
  *    spec? }` est un couple de parsing interne, pas une identité d'objet.
  */
 const ALLOWLIST: string[] = [
-  'src/engine/statEntry.ts:16', // StatEntry — sortie de PARSEUR runtime, jamais persistée
-  'src/engine/statEntry.ts:155', // splitLabel — couple de parsing { name, spec? }, jamais un porteur (ligne recalée : TraitInstance.src inséré au-dessus par #862)
+  'src/engine/statEntry.ts#StatEntry', // sortie de PARSEUR runtime, jamais persistée
+  'src/engine/statEntry.ts#splitLabel', // couple de parsing { name, spec? }, jamais un porteur
 ];
 
 /**
@@ -164,7 +168,8 @@ function Inner() {
 
   it('aucune NOUVELLE déclaration de champ `name` hors BASELINE/ALLOWLIST (CLAUDE.md, doctrine '
     + '2026-07-19 — un porteur nouveau utilise `label`/`id`, jamais `name`)', () => {
-    const nouveaux = nameFieldSites().filter((at) => !BASELINE.includes(at) && !ALLOWLIST.includes(at));
+    const sites = nameFieldSites();
+    const nouveaux = sites.filter((at) => !BASELINE.includes(at) && !(ALLOWLIST.includes(at) && porteurs(sites, at) === 1));
     expect(
       nouveaux,
       `Nouvelle(s) déclaration(s) de champ \`name\` — renommer en \`label\` (affichage) ou \`id\` '
@@ -176,13 +181,15 @@ function Inner() {
    *  voit RIEN : `BASELINE` est vide, un corpus vide les laisserait tous deux verts. Le peuplement est
    *  donc asserté par l'ALLOWLIST elle-même, qui doit être VUE site par site : c'est à la fois la
    *  preuve que le corpus est là et le contrôle de péremption qui manquait à ces exemptions. */
-  it('PEUPLEMENT : chaque site de l\'ALLOWLIST est RÉELLEMENT vu par le scan (sinon exemption périmée)', () => {
+  it('PEUPLEMENT : chaque clé de l\'ALLOWLIST désigne EXACTEMENT un site vu par le scan (sinon exemption périmée ou ambiguë)', () => {
     const vus = nameFieldSites();
     expect(vus.length, 'corpus vide : les deux cliquets seraient verts sans rien scanner').toBeGreaterThan(0);
-    const absents = ALLOWLIST.filter((at) => !vus.includes(at));
+    const ambigues = ALLOWLIST.filter((at) => porteurs(vus, at) > 1);
+    expect(ambigues, `ces déclarations portent PLUSIEURS champs \`name\` : la clé n'exempte plus aucun site :\n${ambigues.join('\n')}`).toEqual([]);
+    const absents = ALLOWLIST.filter((at) => porteurs(vus, at) === 0);
     expect(
       absents,
-      'ces sites exemptés ne portent plus (ou plus au même endroit) de champ `name` : ôter d’ALLOWLIST'
+      'ces déclarations exemptées ne portent plus de champ `name` : ôter d’ALLOWLIST'
         + ` — ou le scan a cessé de voir le corpus :\n${absents.join('\n')}`,
     ).toEqual([]);
   });
@@ -190,6 +197,6 @@ function Inner() {
   it('la baseline DÉCROÎT : aucun site listé n\'a été migré sans être ôté de la liste', () => {
     const restants = new Set(nameFieldSites());
     const perimes = BASELINE.filter((at) => !restants.has(at));
-    expect(perimes, 'ces sites ne portent plus (ou plus au même endroit) de champ `name` : ôter de BASELINE').toEqual([]);
+    expect(perimes, 'ces déclarations ne portent plus de champ `name` : ôter de BASELINE').toEqual([]);
   });
 });

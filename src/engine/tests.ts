@@ -89,6 +89,34 @@ export interface TestResult {
   clamped?: number;
 }
 
+/** ISSUE d'un Test que l'acteur ne peut pas tenter (`peutTenter` faux) : aucun dé, aucun RNG, ni cible
+ *  ni jet à lire. LDB 09 l.30 ; #2588 Q1. Valeur CONSTANTE : toutes les lignes non tentables la partagent. */
+export interface EchecSansJet {
+  readonly sansJet: true;
+  readonly success: false;
+  readonly sl: 0;
+  readonly roll?: undefined;
+  readonly target?: undefined;
+}
+export const ECHEC_SANS_JET: EchecSansJet = Object.freeze({ sansJet: true, success: false, sl: 0 } as const);
+
+/** Le dé a-t-il été JETÉ ? Faux pour une issue sans jet (`EchecSansJet`) comme pour un slot sans dé (`null`). */
+export function estJete<T extends object>(r: T | EchecSansJet | null | undefined): r is Exclude<T, EchecSansJet> {
+  return r != null && (r as { sansJet?: true }).sansJet !== true;
+}
+
+/** Ligne NON TENTABLE : l'issue constante et son refus NOMMÉ, posés ENSEMBLE — source UNIQUE de la paire
+ *  (monteur `rollSeam.rollStep`, Test d'équipage `combatSlice.openCrewTestPending`). LDB 09 l.30 ; #2588 Q1. */
+export function ligneSansJet<R>(refus: R): { result: EchecSansJet; refus: R } {
+  return { result: ECHEC_SANS_JET, refus };
+}
+
+/** Refus NOMMÉ d'une ligne née sans jet, `undefined` pour une ligne tentable (jetée ou en attente de dé) :
+ *  prédicat UNIQUE de « non tentable ⇒ témoin » (`rollSeam.temoinSiSansJet`, `buildParticipantRows`). */
+export function refusSansJet<R>(ligne: { result?: object | null; refus?: R }): R | undefined {
+  return ligne.result != null && !estJete(ligne.result) ? ligne.refus : undefined;
+}
+
 /** Effectue un Test simple contre une valeur cible (d100 ≤ valeur, LDB 12 l.7-13).
  *  Le `TestResult` rendu ne porte AUCUNE valeur nue (`base`) : `value` est la valeur TESTÉE, qui n'est
  *  la valeur nue du départage (`LDB 12 l.160`, `LDB 09 l.17`) que par coïncidence. Un site dont le jet

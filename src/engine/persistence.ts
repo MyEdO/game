@@ -81,7 +81,7 @@ export const REPORT_DE_COMBATTANT = {
   pos: rencontre(POSITION), initiative: rencontre('Initiative de la rencontre'),
   gainedAdvThisRound: rencontre(TOUR), usedShieldReactionRound: rencontre(TOUR), distractedRounds: rencontre(TOUR),
   defensiveStance: rencontre(TOUR), dualStrikeDefensePenalty: rencontre(TOUR), aiming: rencontre(TOUR),
-  envWeather: rencontre('EDOC 8 l.82'),
+  envWeather: rencontre('EDOC 8 l.82'), envPrecipitation: rencontre('MDG 13 l.185'),
   engagedWith: rencontre(RELATION, []), meleeThisRound: rencontre(RELATION, []), attackedThisRound: rencontre(RELATION),
   contactWith: rencontre(RELATION), grapplingWith: rencontre(RELATION),
   appearance: PERSISTE, appearanceOverride: PERSISTE,
