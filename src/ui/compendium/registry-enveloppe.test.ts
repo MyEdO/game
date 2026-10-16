@@ -162,7 +162,8 @@ const CLES: Record<string, string> = {
   // #1715 : les 7 types de bâtiment quittent le code pour `buildings.json` et entrent au Codex —
   // empreinte MESURÉE, chaque item portant son `maison` (aucun folio n'imprime de catalogue de bâtiments).
   "buildings": '90fe536489e3927b',
-  "vehicles": 'dcc320ad1f8760a1',
+  // #1595 corrb-3 : Barque et Chaland (LDB) fusionnés dans barque-fluviale et barge-fluviale, qui gagnent `alsoIn` et `desc` — empreinte MESURÉE.
+  "vehicles": 'c4bae7058909c685',
   "celestialHouses": '0507cb49e07e8336',
   // #680 (2026-09-29) : 2 Groupes NEUFS (`source` + `maison`) et la catégorie adopte
   // `depuisEnveloppe` — sa projection écrite à la main (`{ id, label }`) taisait les deux. Empreinte MESURÉE.

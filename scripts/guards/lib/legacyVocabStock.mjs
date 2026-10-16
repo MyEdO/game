@@ -273,13 +273,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/engine/combat.ts",
-    motif: "désormais",
-    ancre: "10 (l.282). L'OVERKILL (Blessures perdues > PB COURANTS, LDB 18 l.17) est désormais",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/engine/combatFeatures/types.ts",
     motif: "désormais",
     ancre: "(Le +DR de Talent — Menaçant → Intimidation — est désormais la règle UNIVERSELLE `talentTestSLBonus`",
