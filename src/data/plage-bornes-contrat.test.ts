@@ -209,16 +209,17 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     // un livre l'écrit : `LDB 07 l.49` ne pose aucun plafond au nombre d'Augmentations, la bande
     // « 71 et + » (l.70) n'a donc pas de borne haute ; `MDG 15 l.383` imprime « 4 ou plus » à la
     // dernière bande du Prix d'offre ; `MDG 12 l.129` imprime « 81+ » à la dernière taille de coque
-    // (#1659 L-1659-3 — la donnée y écrivait un plafond `130` absent de la l.129). JSON n'a
-    // pas d'Infinity — c'est le lookup qui ouvre, et il est UN pour les trois (`tableOuverte`,
-    // `src/engine/tables.ts`).
-    // Si une QUATRIÈME population s'ouvrait sans revue, le nœud ouvert cesserait d'être l'exception
+    // (#1659 L-1659-3 — la donnée y écrivait un plafond `130` absent de la l.129) ; `AA 10 l.127`
+    // imprime « 96 ou plus » à l'Effondrement d'une Structure (#1595 — la donnée y écrivait un plafond
+    // `100`). JSON n'a pas d'Infinity — c'est le lookup qui ouvre, et il est UN pour les quatre
+    // (`tableOuverte`, `src/engine/tables.ts`).
+    // Si une CINQUIÈME population s'ouvrait sans revue, le nœud ouvert cesserait d'être l'exception
     // mesurée qu'il dit être.
     expect(
       [...new Set(M.bandesOuvertes.map((s) => `${s.doc}${s.chemin}`))].sort(),
       'une bande à borne haute OUVERTE (`max: null`) est apparue ailleurs : `plageOuverteSchema` est le nœud d’une EXCEPTION nommée, pas la forme générale d’une fourchette.',
-    ).toEqual(['advancementCosts.json[]', 'sea-cargo.json.sell.offerPrice[]', 'ship-construction.json.standard[].lengthM']);
-    expect(M.bandesOuvertes.length, 'une bande ouverte a disparu : la sonde ne mesure plus ce qu’elle nomme.').toBe(3);
+    ).toEqual(['advancementCosts.json[]', 'sea-cargo.json.sell.offerPrice[]', 'ship-construction.json.standard[].lengthM', 'structure-criticals.json.entries[]']);
+    expect(M.bandesOuvertes.length, 'une bande ouverte a disparu : la sonde ne mesure plus ce qu’elle nomme.').toBe(4);
   });
 
   it('F — les paires de bornes en TUPLE sont un STOCK NOMINATIF DÉCROISSANT, et ce qui n’en est pas est EXCLU NOMMÉMENT', () => {

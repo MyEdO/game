@@ -61,6 +61,7 @@ export const witnessRowKey = (stepId: string, participantId?: string): string =>
  *  les faces du dé (d100 → « 01-50 », d10 → « 1-5 »). Une ligne à borne unique ne s'écrit pas « 7-7 ». */
 export function fourchette(min: number, max: number, dieMax: number): string {
   const pad = (n: number) => (dieMax >= 100 ? String(n).padStart(2, '0') : String(n));
+  if (max === Number.POSITIVE_INFINITY) return `${pad(min)}+`; // `tableOuverte`, engine/tables
   return min === max ? pad(min) : `${pad(min)}-${pad(max)}`;
 }
 

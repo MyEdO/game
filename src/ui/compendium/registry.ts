@@ -2532,7 +2532,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'structureCriticals', label: 'Critiques de structure', group: 'Effets',
     build: () => STRUCTURE_CRITICALS.map((c) => ({
-      id: c.id, label: c.label, sub: `d100 ${c.min}–${c.max}`, desc: c.note,
+      id: c.id, label: c.label, sub: c.max == null ? `d100 ${c.min} ou plus` : `d100 ${c.min}–${c.max}`, desc: c.note,
       meta: facts(
         c.wounds != null ? fact('Blessures', c.wounds) : null,
         c.trivial ? fact('Type', 'Triviale (« T »)') : null,

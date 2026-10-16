@@ -11,8 +11,9 @@ export function findTableEntry<T extends { min: number; max: number }>(table: T[
 
 /**
  * Bande d'une table dont la DERNIÈRE n'a pas de plafond — `max: null` (JSON n'a pas d'Infinity).
- * Trois livres l'impriment ainsi : « 71 et + » (LDB 07 l.49/l.70, coût d'Augmentation), « 4 ou plus »
- * (MDG 15 l.383, prix d'offre), « 81+ » (MDG 12 l.129, taille de coque).
+ * Quatre tables l'impriment ainsi : « 71 et + » (LDB 07 l.49/l.70, coût d'Augmentation), « 4 ou plus »
+ * (MDG 15 l.383, prix d'offre), « 81+ » (MDG 12 l.129, taille de coque), « 96 ou plus » (AA 10 l.127,
+ * Critique de Structure).
  */
 export interface BandeOuverte { min: number; max: number | null }
 
@@ -22,8 +23,9 @@ export interface BandeOuverte { min: number; max: number | null }
  * le premier échelon imprimé, et une valeur qui n'y tombe pas est une ANOMALIE que l'appelant NOMME
  * (`findTableEntryIndex` < 0), jamais le repli de `findTableEntry` sur la dernière bande.
  *
- * SOURCE UNIQUE des trois tables ouvertes du moteur : prix d'offre du commerce (`./cargo`), coût
- * d'Augmentation (`./advancement`), colonne « Taille » des coques (`./shipBuild`). La forme ouverte
+ * SOURCE UNIQUE des tables ouvertes du moteur : prix d'offre du commerce (`./cargo`), coût
+ * d'Augmentation (`./advancement`), colonne « Taille » des coques (`./shipBuild`), Critiques de
+ * Structure (`./structureCritical`). La forme ouverte
  * est déclarée UNE fois en grammaire (`plageOuverteSchema`), elle s'ouvre UNE fois ici.
  * PUR.
  */

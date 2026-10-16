@@ -924,9 +924,7 @@ export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z
  * FOURCHETTE À BORNE HAUTE OUVERTE — même concept `plage`, une seule divergence : la DERNIÈRE bande
  * n'a pas de plafond, et JSON n'a pas d'Infinity (`max: null` ; c'est le lookup qui ouvre, cf.
  * `src/engine/advancement.ts`). Composée sur la SHAPE de `plageSchema`, graphie UNIQUE de dérivation
- * dans la grammaire. Mesuré 2026-09-01 sur les deux racines de donnée : DEUX bandes ouvertes
- * (`advancementCosts.json`, « 71 et + », LDB 07 l.49/l.70 ; `sea-cargo.json › sell.offerPrice`,
- * « 4 ou plus », MDG 15 l.383) contre plus de 1470 fourchettes FERMÉES — sonde tenue par
+ * dans la grammaire. Les bandes ouvertes de la donnée sont NOMMÉES, une par document, par
  * `src/data/plage-bornes-contrat.test.ts` (volet E). La couverture d'une suite de telles bandes se vérifie
  * par `ecartsDeCouverture(…, 'ouverte')` ci-dessous.
  */

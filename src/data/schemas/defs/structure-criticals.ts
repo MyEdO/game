@@ -2,13 +2,13 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** AA 10 l.13/116 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { plageSchema } from '../grammaire/valeurs';
+import { plageOuverteSchema } from '../grammaire/valeurs';
 
 export const file = 'structure-criticals.json';
 export const famille = 'config';
 
 const structureCritEntrySchema = nommerChamps(z.strictObject({
-  ...plageSchema.shape,
+  ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
   /** Blessures supplémentaires de la Structure (0 = Triviale ; null = détruite). */
@@ -17,7 +17,7 @@ const structureCritEntrySchema = nommerChamps(z.strictObject({
   destroyed: z.boolean().optional(),
   note: z.string(),
 }), {
-  ...metaDesChamps(plageSchema, { exigees: true }),
+  ...metaDesChamps(plageOuverteSchema, { exigees: true }),
   id: { label: 'Identifiant' },
   label: { label: 'Libellé' },
   wounds: { label: 'Blessures' },

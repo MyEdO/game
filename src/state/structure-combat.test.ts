@@ -12,7 +12,7 @@ import type { TestResult } from '../engine/tests';
 import { stepInteraction } from './cascade';
 import { draineCascade } from './cascadeTestKit';
 import { findTableEntry } from '../engine/tables';
-import { STRUCTURE_CRITICALS } from '../data/structureCriticals';
+import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
 import { rollStructureCritical } from '../engine/structureCritical';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
@@ -207,7 +207,7 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
     const { S, H } = start('mur-en-pierre');
     const log: string[] = [];
     const before = S!.wounds.current;
-    expect(applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, log, 98).destroyed).toBe(true);
+    expect(applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, log, { forcedRoll: 98 }).destroyed).toBe(true);
     expect(S!.wounds.current).toBe(before);
     expect(S!.criticalWounds).toBe(1);
     collapseStructure(useGame.getState, useGame.setState, S!);
@@ -218,7 +218,7 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
   it("ligne à Blessures (forcedRoll 40, Secouée = 1) → 1 Blessure retirée, comptée au cumul, Structure gardée", () => {
     const { S, H } = start('mur-en-pierre');
     const before = S!.wounds.current;
-    expect(applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], 40).destroyed).toBe(false);
+    expect(applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 40 }).destroyed).toBe(false);
     expect(S!.wounds.current).toBe(before - 1);
     expect(S!.criticalWounds).toBe(1);
   });
@@ -226,19 +226,19 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
   it("Blessure Triviale (forcedRoll 10, Ébréchée) → 0 Blessure retirée, hors du cumul (AA 07 l.79)", () => {
     const { S, H } = start('mur-en-pierre');
     const before = S!.wounds.current;
-    applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], 10);
+    applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 10 });
     expect(S!.wounds.current).toBe(before);
     expect(S!.criticalWounds ?? 0).toBe(0);
   });
 
   it("le Critique empile une ÉTAPE À TABLE : le tirage est DÉCLARÉ (table + dé + ligne stable), la séquence l'affiche", () => {
     const { S, H } = start('mur-en-pierre');
-    applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], 40);
+    applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 40 });
     const steps = useGame.getState().pendingCascade!.participants;
     const step = steps[steps.length - 1];
     expect(stepInteraction(step)).toBe('affichage'); // dé déjà tiré (le coup est résolu) → l'étape MONTRE
     expect(step.table!.tableId).toBe(STRUCTURE_CRIT_TABLE);
-    expect(step.table!.result).toMatchObject({ roll: 40, die: 40, id: findTableEntry(STRUCTURE_CRITICALS, 40).id });
+    expect(step.table!.result).toMatchObject({ roll: 40, die: 40, id: findTableEntry(tableDesCritiquesDeStructure(), 40).id });
     // La ligne affichée est celle du MOTEUR (source unique du formatage), pas une reformulation.
     expect(step.table!.result!.lines[0]).toBe(rollStructureCritical(makeRNG(1), 40).log[0]);
   });
@@ -266,7 +266,7 @@ describe('Structures de siège — à 0, seul le 96+ effondre (AA 10 l.114, l.12
     const { S, H } = start('porte');
     applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, hitRes(hache, S!, 20));
     const s = live(S!.id)!;
-    for (let i = 0; i < critiques; i++) applyStructureCriticalToTarget(useGame.setState, s, {}, [], 40);
+    for (let i = 0; i < critiques; i++) applyStructureCriticalToTarget(useGame.setState, s, {}, [], { forcedRoll: 40 });
     useGame.setState({ pendingCascade: null });
     for (let r = 0; r < rounds; r++) {
       tickDeath(s);
@@ -291,10 +291,78 @@ describe('Structures de siège — à 0, seul le 96+ effondre (AA 10 l.114, l.12
     it(`mode '${mode}' : contrôle, un Critique au dé 96 l'effondre (retrait et brèche)`, () => {
       setRule('combat-aa-blessures', mode);
       const s = porteAZero(4, 4);
-      expect(applyStructureCriticalToTarget(useGame.setState, s, {}, [], 96).destroyed).toBe(true);
+      expect(applyStructureCriticalToTarget(useGame.setState, s, {}, [], { forcedRoll: 96 }).destroyed).toBe(true);
       checkBattleOver(useGame.getState, useGame.setState);
       expect(live(s.id), 'retirée du combat').toBeUndefined();
       expect(structureIsDown(useGame.getState().scene!, seg)).toBe(true);
+    });
+  }
+});
+
+describe('Structures de siège — le jet du Critique prend le modificateur du mode (AA 10 l.114 ; AA 07 l.36 ; LDB 18 l.17)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
+  const heros = (H: Combatant) => ({ attackerId: H.id, attackerKind: 'hero' as const });
+  /** Dernière étape de Critique de Structure de la cascade : sa déclaration et son tirage. */
+  const derniereEtape = () => {
+    const st = (useGame.getState().pendingCascade?.participants ?? []).filter((p) => p.table?.tableId === STRUCTURE_CRIT_TABLE).slice(-1)[0];
+    expect(st, 'une étape de Critique de Structure').toBeTruthy();
+    return st!.table!;
+  };
+
+  it("'aa', chemin de la mêlée : Structure à 2, un double qui retire 6, l'appelant transmet le dépassement (+40)", () => {
+    setRule('combat-aa-blessures', 'aa');
+    const { S, H } = start('porte');
+    S!.wounds.current = 2;
+    applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, hitRes(hache, S!, 20, { critical: true, attackerRoll: 22, woundsLost: 6 }));
+    const table = derniereEtape();
+    expect(table.mod).toBe(40);
+    expect(table.result!.die).toBe(table.result!.roll + 40);
+    expect(table.result!.id).toBe(findTableEntry(tableDesCritiquesDeStructure(), table.result!.die).id);
+  });
+
+  it("'aa' : Structure à 2, un coup qui en retire 6, dé naturel 60 → dé effectif 100, Effondrement", () => {
+    setRule('combat-aa-blessures', 'aa');
+    const { S, H } = start('porte');
+    S!.wounds.current = 0;
+    const outcome = applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: Math.max(0, 6 - 2), forcedRoll: 60 });
+    expect(derniereEtape().result).toMatchObject({ roll: 60, die: 100 });
+    expect(outcome.destroyed).toBe(true);
+  });
+
+  it("'aa' : Structure déjà à 0, un coup de 3, dé naturel 70 → dé effectif 100, Effondrement", () => {
+    setRule('combat-aa-blessures', 'aa');
+    const { S, H } = start('porte');
+    S!.wounds.current = 0;
+    const outcome = applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: 3, forcedRoll: 70 });
+    expect(derniereEtape().result).toMatchObject({ roll: 70, die: 100 });
+    expect(outcome.destroyed).toBe(true);
+  });
+
+  it("'aa', filet d'applyCriticalToTarget : son dépassement atteint la déclaration", () => {
+    setRule('combat-aa-blessures', 'aa');
+    const { S, H } = start('porte');
+    S!.wounds.current = 0;
+    applyCriticalToTarget(S!, 'corps', true, 3, [], useGame.setState, { get: useGame.getState, ctx: heros(H) });
+    expect(derniereEtape().mod).toBe(30);
+  });
+
+  it("'ldb' : dépassement 3 > BE 2 → −20 (dé 40 → 20, Ébréchée), plancher 01 (dé 10 → 01)", () => {
+    setRule('combat-aa-blessures', 'ldb');
+    const { S, H } = start('porte');
+    S!.wounds.current = 0;
+    applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: 3, forcedRoll: 40 });
+    expect(derniereEtape().result).toMatchObject({ roll: 40, die: 20, id: 'ebrechee' });
+    applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: 3, forcedRoll: 10 });
+    expect(derniereEtape().result).toMatchObject({ roll: 10, die: 1, id: 'ebrechee' });
+  });
+
+  for (const mode of ['ldb', 'aa'] as const) {
+    it(`mode '${mode}', contrôle : sans dépassement, le modificateur vaut 0 (dé 40 → Secouée)`, () => {
+      setRule('combat-aa-blessures', mode);
+      const { S, H } = start('porte');
+      applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: 0, forcedRoll: 40 });
+      expect(derniereEtape().result).toMatchObject({ roll: 40, die: 40, id: 'secouee' });
     });
   }
 });
@@ -358,9 +426,10 @@ describe('Structures de siège — Projectile magique (AA 10 l.114 ; LDB 18 l.17
 
 describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête → battleClickEntity → brèche)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
 
-  it("cliquer la porte (battleClickEntity = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à l'Effondrement et la BRÈCHE", () => {
+  it("mode 'aa' (AA 07 l.36) : cliquer la porte (battleClickEntity = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à l'Effondrement et la BRÈCHE", () => {
+    setRule('combat-aa-blessures', 'aa');
     const { S, H } = start('porte', { seed: 7 });
     const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
     // Héros au CONTACT de l'ancrage (2,2), arme de mêlée, Combat/Force élevés → traverse les 8 Bl (BE 2).

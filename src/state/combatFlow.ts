@@ -143,8 +143,8 @@ import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
-import { rollStructureCritical, structureCollapseLog, type StructureCriticalResolved } from '../engine/structureCritical';
-import { STRUCTURE_CRITICALS, STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
+import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
+import { STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
 import { actorIn, inBattleId, garanti } from './combatants';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
@@ -172,7 +172,7 @@ import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironment
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './zones';
 import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
-import { resolveCritique, jeuDeCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critSeverityReduction, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
+import { resolveCritique, jeuDeCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critSeverityReduction, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from '../engine/artilleryMisfire';
@@ -273,7 +273,8 @@ import {
   setManeuverPostHitHook,
 } from './combatManeuvers';
 import { spellFlowFor, spellOps, testFlow, flowHasFreeAttack, flattenFlow, EMPTY_FLOW, type Flow, type FlowTest, type EffectTrigger } from './flow';
-import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, rollTableStep, poserCurseurCascade, lireEnSeuil, etapesDeLaFenetre, pushStep } from './cascade';
+import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, registerTableStepFamily, rollTableStep, poserCurseurCascade, lireEnSeuil, etapesDeLaFenetre, pushStep, type TableStepDef } from './cascade';
+import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
 import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
@@ -1760,7 +1761,7 @@ export function applyCriticalToTarget(
   // humain) et pas de « Mort » de personnage. Filet de sécurité pour TOUT appelant (opposé/magie) ; le chemin
   // d'attaque normal passe déjà par `applyStructureCriticalToTarget` (cf. `applyAttackResult`).
   if (target.bodyShape === 'structure') {
-    applyStructureCriticalToTarget(set, target, { attackerId: ctx?.attackerId, attackerKind: ctx?.attackerKind, weapon: ctx?.weapon }, log);
+    applyStructureCriticalToTarget(set, target, { attackerId: ctx?.attackerId, attackerKind: ctx?.attackerKind, weapon: ctx?.weapon }, log, { overkill });
     return false; // une Structure ne « meurt » pas comme un personnage : sa destruction est l'Effondrement (AA 10 l.127)
   }
   if (!isCoupCritique && usesSuddenDeath(target)) {
@@ -1926,13 +1927,13 @@ export function applyHullCriticalToTarget(
  *  fourchettes et les ids ; le TIRAGE passe par le résolveur unique `rollTableStep`, le FORMATAGE des
  *  lignes reste au moteur (`rollStructureCritical`, appelé avec le dé déjà tiré : aucun dé consommé). */
 export const STRUCTURE_CRIT_TABLE = 'structure-criticals';
-registerTableStep(STRUCTURE_CRIT_TABLE, {
+registerTableStepFamily(memoParVersion('structureCriticals', () => new Map<string, TableStepDef>([[STRUCTURE_CRIT_TABLE, {
   label: dataLabel(STRUCTURE_CRITICALS_LABEL),
   die: 100,
-  rows: STRUCTURE_CRITICALS,
+  rows: tableDesCritiquesDeStructure(),
   lines: (die) => { const o = rollStructureCritical(battleRng(), die); return o.note ? [...o.log, o.note] : [...o.log]; },
   entryCategory: 'structureCriticals',
-});
+}]])));
 
 /**
  * Critique de Structure (AA 10 l.112-127) — calqué sur `applyHullCriticalToTarget`. Le dé passe par
@@ -1949,15 +1950,20 @@ export function applyStructureCriticalToTarget(
   target: Combatant,
   ctx: { attackerId?: string; attackerKind?: Combatant['kind']; weapon?: string },
   log: string[],
-  forcedRoll?: number,
+  opts: Pick<OptionsCritique, 'overkill' | 'forcedRoll'> = {},
 ): StructureCriticalResolved {
+  const { overkill = 0, forcedRoll } = opts;
   // CONTRAINTE des deux `forcedRoll` de cette fonction — ils ne portent PAS le même dé :
-  //  - celui de la DÉCLARATION (`table.forcedRoll`, = le paramètre de cette fonction) est le dé NATUREL,
+  //  - celui de la DÉCLARATION (`table.forcedRoll`, = `opts.forcedRoll`) est le dé NATUREL,
   //    car `rollTableStep` lui applique encore `mod` avant son lookup ;
   //  - celui passé au MOTEUR est le dé EFFECTIF (`rolled.die`) : `rollStructureCritical` refait SON
   //    lookup et n'a aucun concept de `mod` — lui donner le naturel décalerait la ligne mécanique de
   //    celle affichée par l'étape.
-  const table: CascadeTableDecl = { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, forcedRoll };
+  // AA 10 l.114 ; AA 07 l.36 ; LDB 18 l.17.
+  const table: CascadeTableDecl = {
+    tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, forcedRoll,
+    mod: REGIMES_DE_CRITIQUE[jeuDeCritique()].severite(target, overkill), clamp: true,
+  };
   const rolled = rollTableStep(table, battleRng());
   const outcome = rollStructureCritical(battleRng(), rolled.die);
   if (!outcome.entry.trivial) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // AA 07 l.79
@@ -2595,7 +2601,7 @@ function appliquerLaTouche(
     target.wounds.current = Math.max(0, before - lost);
     // `res.critical` porte la prise de l'arme sur la Structure (ADE II 08 l.296, l.300, `applyHit`).
     if (res.critical && declencheUnCritique(target, { double: res.critical, lost, current: before }))
-      applyStructureCriticalToTarget(set, target, { attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label }, critLog);
+      applyStructureCriticalToTarget(set, target, { attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label }, critLog, { overkill: Math.max(0, lost - before) });
   } else if (res.hit && isVehicle(target)) {
     // COQUE : MDG 13 l.656, MSRC 07 l.74 (`res.critical`, posé par `applyHit`), MDG 12 l.232 (aucune Déviation).
     // Ni Localisation re-tirée ni Blessures recalculées : `res.woundsLost` tel quel. Véhicule routier : EDOC 07 l.334,

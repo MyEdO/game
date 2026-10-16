@@ -224,7 +224,7 @@ export interface TableStepRow {
   /** id STABLE de la ligne (toute logique s'y attache — jamais le libellé). */
   id: string;
   /** Libellé de la ligne — AFFICHAGE seul (picker de lignes). Les `rows` sont passées PAR RÉFÉRENCE
-   *  depuis la donnée du domaine (`STRUCTURE_CRITICALS` porte déjà son `label`) : zéro duplication. */
+   *  depuis la donnée du domaine (`tableDesCritiquesDeStructure` porte déjà son `label`) : zéro duplication. */
   label?: string;
 }
 

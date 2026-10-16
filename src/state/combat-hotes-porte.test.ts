@@ -294,7 +294,7 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     seedBattleRng(11);
     const structure = mk('s', 'enemy', { x: 2, y: 0 }, []);
     const log: string[] = [];
-    applyStructureCriticalToTarget(useGame.setState, structure, { attackerId: hero.id, attackerKind: 'hero', weapon: 'Épée' }, log, 42);
+    applyStructureCriticalToTarget(useGame.setState, structure, { attackerId: hero.id, attackerKind: 'hero', weapon: 'Épée' }, log, { forcedRoll: 42 });
     const st = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'critical')!;
     expect(st.actorId).toBe(structure.id);
     expect(st.table!.result!.roll, 'le dé est POSÉ : la fenêtre ne le re-jette pas').toBe(42);

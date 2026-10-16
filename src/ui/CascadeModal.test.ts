@@ -1,6 +1,7 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect } from 'vitest';
-import { jetStepPresentable, witnessRowKey } from './CascadeModal';
+import { jetStepPresentable, witnessRowKey, fourchette } from './CascadeModal';
+import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
 import type { CascadeStep, CascadeTestStep } from '../state/pendings';
 import type { Combatant } from '../engine/types';
 
@@ -59,5 +60,13 @@ describe('witnessRowKey — clés de rangée SCOPÉES par étape (anti-collision
 
   it('sans participant (pas MONO) : la clé est l’id d’étape nu (inchangé)', () => {
     expect(witnessRowKey('orientation')).toBe('orientation');
+  });
+});
+
+describe('fourchette — tuile d’une ligne de table d’étape', () => {
+  it('bande ouverte (« 96 ou plus », AA 10 l.127) : « 96+ » ; bande fermée : « 01-35 »', () => {
+    const t = tableDesCritiquesDeStructure();
+    expect(fourchette(t[t.length - 1].min, t[t.length - 1].max, 100)).toBe('96+');
+    expect(fourchette(t[0].min, t[0].max, 100)).toBe('01-35');
   });
 });
