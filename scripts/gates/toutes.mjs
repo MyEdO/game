@@ -41,6 +41,8 @@ import '../node-requis.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
 export { photoArbre } from '../guards/lib/photoArbre.mjs'
 import { spawn, spawnSync } from 'node:child_process'
+import { tuerArbre } from '../guards/lib/arbreProcessus.mjs'
+export { tuerArbre, descendantsDe } from '../guards/lib/arbreProcessus.mjs'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
@@ -124,6 +126,7 @@ export const ECRIT_LU = {
     raison: RETRAIT_WORKTREE_FERME +
       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
       'patchCodex.test.mjs écrit son fichier et sa jonction réels uniquement sous mkdtempSync de os.tmpdir(), puis unlinkSync et rmSync en finally ; ' +
+      'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
@@ -695,7 +698,7 @@ export const prerequisAbsents = (entree, racine) =>
   (entree?.prerequis ?? []).filter(({ chemin }) => !existsSync(join(racine, chemin)))
 
 /** Ce qu'un refus de prérequis écrit dans la sortie de la gate — c'est cette queue que le résumé
- *  imprime, et le MÊME texte que la préflight de `scripts/ops/publier.mjs` rend AVANT la série. PURE. */
+ *  imprime, et le MÊME texte que la préflight de `scripts/ops/etapesDuTrain.mjs` rend AVANT la série. PURE. */
 export const refusDePrerequis = (nom, absents) =>
   `${absents
     .map(({ chemin, pose }) => `[gates] ${nom} — prérequis absent : \`${chemin}\` (le pose : \`${pose}\`)`)
@@ -740,77 +743,6 @@ export function refusDeCouverture(noms, ecritLu = ECRIT_LU) {
   return refus
 }
 
-/**
- * Tue l'ARBRE d'un enfant. Un `kill` sur le seul PID laisse vivre `npm`, `vitest` et leurs workers :
- * ils garderaient le verrou de suite et les cœurs après un Ctrl-C.
- *
- * LE GROUPE NE SUFFIT PAS, et c'est mesuré : `process.kill(-pid)` ne frappe que le groupe du fils,
- * or un descendant posé avec `detached: true` reçoit SON PROPRE groupe (`setsid`) et sort de portée.
- * Sous Windows le défaut ne se voyait pas — `taskkill /T` suit la FILIATION, pas la session — d'où un
- * vert local et un rouge sur la CI ubuntu (run 33866600011, `toutes.test.mjs` : « le PETIT-FILS écrit
- * encore »). Sur POSIX on énumère donc la descendance par `ps`, on tue les FEUILLES d'abord, puis le
- * fils, puis son groupe — ce dernier tir rattrapant tout processus né après l'instantané de `ps`.
- * Patron `tree-kill`, sans la dépendance. `lister`/`tuer`/`plateforme` sont injectés pour la mesure.
- */
-export function tuerArbre(pid, { plateforme = process.platform, lister = listerProcessus, tuer = tuerUnPid } = {}) {
-  if (!pid) return
-  // `taskkill /T` suit la filiation PARENT-ENFANT, quelle que soit la session : rien à énumérer.
-  if (plateforme === 'win32') {
-    spawnSync('taskkill', ['/T', '/F', '/PID', String(pid)], { stdio: 'ignore' })
-    return
-  }
-  // Feuilles d'abord, puis le fils, PUIS son groupe : un descendant tué avant son parent ne peut pas
-  // être ré-adopté par init et survivre à la bataille.
-  for (const descendant of descendantsDe(pid, lister())) tuer(descendant)
-  tuer(pid)
-  tuer(-pid)
-}
-
-/** Envoie SIGKILL à un pid (ou à un groupe, pid négatif). Un pid déjà mort n'est pas une erreur. */
-function tuerUnPid(pid) {
-  try {
-    process.kill(pid, 'SIGKILL')
-  } catch {
-    /* déjà mort, ou hors de notre portée : le suivant tranchera */
-  }
-}
-
-/** Table `pid ppid` de TOUS les processus (POSIX). Vide si `ps` manque : on retombe sur le groupe. */
-function listerProcessus() {
-  const ps = spawnSync('ps', ['-A', '-o', 'pid=,ppid='], { encoding: 'utf8' })
-  return ps.stdout ?? ''
-}
-
-/**
- * Descendance TRANSITIVE de `pid` d'après une sortie `ps -A -o pid=,ppid=`, LES FEUILLES D'ABORD.
- * `vus` ferme les cycles que `ps` peut rendre (un processus dont le ppid est lui-même, ou 0 adopté
- * par 1) : sans lui, l'énumération ne s'arrêterait pas.
- */
-export function descendantsDe(pid, sortiePs) {
-  const enfantsDe = new Map()
-  for (const ligne of String(sortiePs).split('\n')) {
-    const m = /^\s*(\d+)\s+(\d+)\s*$/.exec(ligne)
-    if (!m) continue
-    const [fils, parent] = [Number(m[1]), Number(m[2])]
-    if (!enfantsDe.has(parent)) enfantsDe.set(parent, [])
-    enfantsDe.get(parent).push(fils)
-  }
-  const parGeneration = []
-  const vus = new Set([pid])
-  let front = [pid]
-  while (front.length) {
-    const suivante = []
-    for (const parent of front)
-      for (const fils of enfantsDe.get(parent) ?? [])
-        if (!vus.has(fils)) {
-          vus.add(fils)
-          suivante.push(fils)
-        }
-    if (suivante.length) parGeneration.push(suivante)
-    front = suivante
-  }
-  return parGeneration.reverse().flat()
-}
 
 /** Plafond d'une gate, en millisecondes. */
 export const limiteDe = (gate) => (TIMEOUTS[gate] ?? TIMEOUTS.defaut) * 1000
