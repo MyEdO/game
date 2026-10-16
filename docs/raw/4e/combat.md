@@ -4094,6 +4094,8 @@ Le supplément redéfinit l'État *Hémorragique* dans le cadre de son système 
 - **Malus aux infections** : pénalité de **−10** à tout Test pour résister à une **Blessure purulente**, une **Infection mineure** ou une **Infection du sang**.
 - **Plancher à 0 Blessure** : si vous atteignez 0 Blessure, vous **ne perdez plus de Points de Blessure supplémentaires** (le saignement ne descend pas en négatif).
 - **Risque d'inconscience** : à la fin de chaque **Tour**, vous devez réussir un **Test de Résistance Intermédiaire (+0)** sous peine de subir immédiatement l'État *Inconscient*.
+- **Décompte du Livre de Base maintenu** : « si vous n'êtes pas guéri avant un nombre de Rounds égal à votre Bonus d'Endurance, vous perdrez connaissance, et gagnerez l'État *Inconscient* » `LDB 18 l.15` ; `AA 07 l.7` renvoie à la p.172. Le Test de Résistance de l'Hémorragique s'y ajoute.
+  Arbitrage de l'utilisateur, #1595 c.6219559935, 2026-10-16 : « Renvoi tacite : oui ».
 - **Risque de mort (Inconscient + Hémorragique)** : si vous êtes à la fois *Inconscient* et *Hémorragique*, à la fin du Round vous avez **10 % de chance de mourir par État _Hémorragique_ possédé**. Exemple verbatim : 3 États *Hémorragique* → mort sur un résultat de **1 à 30** (au d100). Si vous évitez la mort en faisant un **double** sur ce jet, vos blessures coagulent et vous **perdez 1 État _Hémorragique_**. Vous ne pouvez pas reprendre vos esprits tant que **tous** les États *Hémorragique* ne sont pas retirés.
 - **Réveil et épuisement** : « **Une fois tous les États _Hémorragique_ retirés, gagnez un État _Exténué_.** »
 - **Retrait de l'État** : un **Test de Guérison Accessible (+20)** réussi retire 1 État *Hémorragique*, **+1 par DR**. Tout Sort ou Prière qui guérit des Points de Blessure retire **1 État par Point de Blessure guéri**. (Voir aussi les règles sur les bandages.)
@@ -4206,6 +4208,7 @@ Le **Tableau des Armes de Base** d'*Aux Armes* utilise ces nouveaux Atouts. Extr
 **Voir aussi** : LDB — États (Hémorragique, Inconscient, Exténué, À Terre, Empoisonné) ; LDB 13 — Combat & Critiques ; LDB 62 — Atouts/Défauts d'arme (Protectrice/Défensive/Taille version Livre de Base) ; AA — Atouts à distance (Salve, etc.) ; LDB 18 — Traumatisme (Blessures Critiques).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
+- `LDB 18` (l.15) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +26 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 - `AA 7` (l.4-10, l.11) → `healDifficulty`, `aaBleedUnconsciousDue`, `aaBleedUnconsciousApply`, `collectHeroRoundEndUpkeep`, `tickDeath`, `createCombatSlice` — `src/data/combat-stakes.json`, `src/data/reglesOptionnelles.json`, `src/engine/conditions.ts`, `src/engine/healing.ts`, `src/state/combat/roundHooks.ts`, `src/state/combatSlice.ts`
 - `AA 8` (l.67-76, l.79-81, l.83-85, l.87, l.89-95, l.98-108, l.131-147) → `splitIndice`, `doc`, `withArg`, `qualityRefSchema`, `isShieldTrapping`, `coutAvantageTexte`, `QualityInstance`, `cimeterre`, `dague-ballock`, `INDICE_TEMPLATE`, +17 — `src/data/index.ts`, `src/data/qualities.json`, `src/data/schemas/defs/qualities.ts`, `src/data/schemas/defs/trappings.ts`, `src/data/schemas/grammaire/reference.ts`, `src/data/trappings.json`, +7 fichiers
 
@@ -4720,7 +4723,11 @@ Les Structures n'ont **pas de Localisations de Dégâts**. Si l'on tire sur une 
 Infliger un Critique à une Structure est bien plus difficile que contre un Personnage :
 - Sur un **double**, la Structure risque un Critique, **uniquement si l'attaque retire aussi ≥ 25 % des Blessures restantes** de la Structure. `AA 10 l.113-114`
 - Une fois les **Blessures à 0**, **tout** coup qui touche cause une Blessure Critique. `AA 10 l.114`
-- Les Critiques affectent la Structure comme un Personnage ; toute circonstance qui **entraînerait la mort d'un Personnage** inflige une Blessure Critique d'**Effondrement** à la Structure. `AA 10 l.114`
+- « Les Blessures Critiques ont un impact sur une Structure de la même manière que les Blessures Critiques affectent un Personnage, et toute circonstance qui entraînerait la mort d'un Personnage inflige des Blessures Critiques d'Effondrement à la Structure. » `AA 10 l.114`
+- **Lecture S1** (#1595 c.6219992594) : la mort par le compte de Critiques exige l'État *Inconscient* (« Si un Personnage possède l'État *Inconscient* et est à 0 Blessure » — `AA 07 l.73` ; `LDB 18 l.34`), qu'une Structure n'a jamais. Une Structure à 0 reste en jeu ; elle ne s'effondre qu'à la ligne « 96 ou plus » (`AA 10 l.127`).
+- **Lecture S2** (#1595 c.6219992594) : le jet de Critique d'une Structure suit la procédure du mode.
+  - En `aa` : « ajoutez +10 au résultat d'un jet de 1D100 par Blessure que vous infligez au-delà de celles nécessaires pour faire tomber l'ennemi à 0 Blessure (ou, si votre opposant était déjà à 0 Blessure, +10 par Blessure que vous infligez) » `AA 07 l.36`.
+  - En `ldb` : « vous ôtez -20 à votre résultat sur le Tableau des Critiques avec un résultat minimum de 01 » `LDB 18 l.17`.
 
 #### Tableau des Blessures Critiques sur une Structure
 
@@ -4855,7 +4862,7 @@ Si l'arme subit un **Incident de tir** à n'importe quel moment, en résoudre le
 - `AA 10 l.55-92` — Descriptions narratives de chaque Structure (barge, patrouilleur, chaloupe, chariots, charrettes, clayonnage, diligence, herse, mantelet, murs, palissade, porte renforcée, terrassement).
 - `AA 10 l.94-98` — Attaques contre les Structures : auto-touche en mêlée, véhicule en mouvement = Tir ciblé −20, conducteur = Test opposé CC/Conduite d'attelage, pénalité de Taille (BE ×N), exception des armes de siège.
 - `AA 10 l.101-111` — Dégâts aux Structures (Endurance/Blessures, bandes de mur de 5 m), absence de Localisations, table « tir raté » Degrés d'échec 0 à −2 / −3 ou moins.
-- `AA 10 l.113-128` — Critiques sur Structure (double + ≥25 % Blessures retirées ; tout coup à 0 Blessure ; Effondrement = « mort ») + Tableau des Blessures Critiques sur une Structure (Ébréchée → Effondrement).
+- `AA 10 l.113-128` — Critiques sur Structure (double + ≥25 % Blessures retirées ; tout coup à 0 Blessure ; Effondrement au seul « 96 ou plus », lectures S1/S2 de #1595 c.6219992594) + Tableau des Blessures Critiques sur une Structure (Ébréchée → Effondrement).
 - `AA 10 l.131-134` — Réparation : Métier (Charpentier/Maçon) Accessible (+20) hors combat (1d10 h / 1d10 Blessures), Très Difficile (−30) en combat (20 DR) ; Guérison sans effet.
 - `AA 10 l.136-150` — Règles générales des Armes de Siège : groupes d'armes requis, baliste via Projectiles (Arbalète) sans Atouts, munitions spéciales obligatoires.
 - `AA 10 l.152-173` — Descriptions des armes de siège (baliste, batterie tonnerre de feu, canons, canon à répétition + recul Résistance Accessible/Critique épaule, catapulte, mortier, canon feu d'enfer, pierrier).
@@ -4876,7 +4883,9 @@ Si l'arme subit un **Incident de tir** à n'importe quel moment, en résoudre le
 **Voir aussi** : AA : Qualités et Défauts d'armes (Imprécise, Dangereuse, Recharge, Salve, Tir de zone, Explosion, Empaleuse, Perforante, Percutante, Dévastatrice, Pointue, Pointe d'arme) ; LDB 13 : Combat (Tir ciblé, DR, doubles/Critiques) ; LDB 18 : Traumatisme (Localisations, Blessures Critiques au bras) ; LDB 16 : États (*Surpris*, *À Terre*, *En flammes*) ; LDB 14 : Taille (catégories, modificateurs de Taille de cible) ; ADE II : Combat de masse (grandes batailles).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `AA 10` (l.3-25, l.28-53, l.55-92, l.94-98, l.101-111, l.113-128, l.131-134, l.136-150, l.152-173, l.175-196, l.198-224, l.227-249, l.254-276) → `ArtilleryMisfireEntry`, `StructureCritEntry`, `artillery-misfire`, `structure-criticals`, `D10_SALVE_MISFIRE`, `warMachineCrewPenalty`, `doc`, `woundsFromHit`, `couvertDepuisDifficulte`, `CrewTooltip`, +117 — `src/data/artillery-misfire.json`, `src/data/artilleryMisfire.ts`, `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/props.json`, `src/data/qualities.json`, +50 fichiers
+- `LDB 18` (l.17, l.34) → `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, `critSeverityReduction`, +29 — `src/data/index.ts`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, +14 fichiers
+- `AA 7` (l.36, l.73) → `StructureCritEntry`, `CritEntry`, `aaCriticalOffset`, `retenir-ses-coups`, `critiqueTriviale`, `aaDeathByCriticalCount`, `OptionsCritique`, `resolveCritique`, `usesSuddenDeath`, `horsDeCombatParMortSubite`, +24 — `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/structureCriticals.ts`, +3 fichiers
+- `AA 10` (l.3-25, l.28-53, l.55-92, l.94-98, l.101-111, l.113-128, l.131-134, l.136-150, l.152-173, l.175-196, l.198-224, l.227-249, l.254-276) → `ArtilleryMisfireEntry`, `StructureCritEntry`, `artillery-misfire`, `structure-criticals`, `BandeOuverte`, `D10_SALVE_MISFIRE`, `warMachineCrewPenalty`, `doc`, `woundsFromHit`, `couvertDepuisDifficulte`, +117 — `src/data/artillery-misfire.json`, `src/data/artilleryMisfire.ts`, `src/data/combat-stakes.json`, `src/data/index.ts`, `src/data/props.json`, `src/data/qualities.json`, +51 fichiers
 - dette : #1595
 - bloqué : Réparation des Structures, aucun site ne la résout (train Corr-C) : Test de Métier (Charpentier) ou (Maçon) Accessible (+20) hors combat (AA 10 l.132) ; Test étendu Très Difficile (−30), 20 DR, en combat (AA 10 l.134)
 

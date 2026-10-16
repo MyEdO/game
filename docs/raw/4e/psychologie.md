@@ -254,7 +254,7 @@ Reflète une très forte relation émotionnelle (romantique, familiale, amitié 
 - `LDB 21 l.73-77` — définition et effets
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 21` (l.73-77) → `encounterPsych`, `nightmare`, `fearSourceFor`, `terreur`, `refreshDefendedPsych`, `targetCausesEntries`, `targetCausedSourcesFor`, `targetCausedTrigger`, `amour`, `aaBleedUnconsciousApply`, +8 — `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/encounterPsych.ts`, +4 fichiers
+- `LDB 21` (l.73-77) → `encounterPsych`, `nightmare`, `fearSourceFor`, `terreur`, `refreshDefendedPsych`, `targetCausesEntries`, `targetCausedSourcesFor`, `targetCausedTrigger`, `aaBleedUnconsciousApply`, `amour`, +8 — `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/encounterPsych.ts`, +4 fichiers
 
 ---
 
@@ -270,7 +270,7 @@ Sentiments positifs envers un groupe d'individus.
 - `LDB 21 l.79-83` — définition et effets
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 21` (l.79-83) → `encounterPsych`, `nightmare`, `fearSourceFor`, `terreur`, `refreshDefendedPsych`, `targetCausesEntries`, `targetCausedSourcesFor`, `targetCausedTrigger`, `amour`, `aaBleedUnconsciousApply`, +8 — `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/encounterPsych.ts`, +4 fichiers
+- `LDB 21` (l.79-83) → `encounterPsych`, `nightmare`, `fearSourceFor`, `terreur`, `refreshDefendedPsych`, `targetCausesEntries`, `targetCausedSourcesFor`, `targetCausedTrigger`, `aaBleedUnconsciousApply`, `amour`, +8 — `src/data/index.ts`, `src/data/night-stakes.json`, `src/data/psychology.json`, `src/data/regles.json`, `src/data/traits.json`, `src/engine/encounterPsych.ts`, +4 fichiers
 
 ---
 
