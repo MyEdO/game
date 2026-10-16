@@ -1054,27 +1054,13 @@ export function evaluateMissile(
 /** Déviation Critique d'un Projectile magique (LDB 63) : éligible SEULEMENT si l'armure ABSORBE
  *  réellement le coup à la loc du Critique — une vraie pièce sacrifiable (`deviatableArmourAt`) ET une PA
  *  mitigante après bypass de Domaine (Ombres/Métal/Cieux) ET un sort qui n'ignore pas les PA. Sinon
- *  « le coup absorbé par votre armure » n'a pas de sens → pas d'offre. `extraWounds` = Blessures
- *  supplémentaires au Dévier (Dégâts recalculés à PA−1 ; la réduction de DR de la cible est déjà
- *  portée par `cr` — `evaluateMissile`). */
-export function magicDeviationEligible(
-  caster: Combatant,
-  target: Combatant,
-  loc: HitLocation,
-  spell: SpellLike,
-  cr: CastResult,
-  woundsAtFullPA: number,
-  /** DR alloués à la colonne « Dégât en plus » (`VDM 02 l.198`) — DOIT être le même que celui déjà
-   *  reflété dans `woundsAtFullPA` par l'appelant, sinon le recalcul à PA−1 perd ce bonus. */
-  overcastDamageSteps = 0,
-): { eligible: boolean; extraWounds: number } {
-  if (!deviatableArmourAt(target, loc)) return { eligible: false, extraWounds: 0 };
-  if (missileDamage(spell)?.ignorePA) return { eligible: false, extraWounds: 0 };
+ *  « le coup absorbé par votre armure » n'a pas de sens → pas d'offre. */
+export function magicDeviationEligible(target: Combatant, loc: HitLocation, spell: SpellLike): boolean {
+  if (!deviatableArmourAt(target, loc)) return false;
+  if (missileDamage(spell)?.ignorePA) return false;
   const totalAP = effectiveArmourAt(target, loc);
   const { apIgnored } = domainMissileMods(target, spell, loc, totalAP);
-  if (apIgnored > 0 && totalAP - apIgnored <= 0) return { eligible: false, extraWounds: 0 }; // PA entièrement bypassée → no-op
-  const at1 = evaluateMissile(caster, target, spell, cr, loc, 1, overcastDamageSteps).woundsLost ?? 0; // recalcul à PA−1
-  return { eligible: true, extraWounds: Math.max(0, at1 - woundsAtFullPA) };
+  return !(apIgnored > 0 && totalAP - apIgnored <= 0); // PA entièrement bypassée → no-op
 }
 
 /**

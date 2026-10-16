@@ -132,7 +132,7 @@ describe('LDB 63 l.30 — le rebond attend l’issue de la DÉVIATION CRITIQUE d
     const { h1, h2 } = poser();
     const etapes = useGame.getState().pendingCascade?.participants ?? [];
     expect(etapes.some((s) => s.kind === 'deviation'), `une Déviation Critique est offerte : ${etapes.map((s) => s.kind).join(',')}`).toBe(true);
-    expect(h1.wounds.current, 'les Blessures sont posées, le Critique reste à trancher').toBe(0);
+    expect(h1.wounds.current, 'aucune mutation avant la dernière décision de Critique').toBe(1);
     expect(h2.wounds.current, 'le rebond attend l’issue').toBe(30);
     expect(rebonds()).toBe(0);
   });

@@ -814,32 +814,48 @@ export interface DecisionDeCritique {
   auto?: true;
 }
 
-/** Déviation Critique en attente (LDB 63 l.30) : une victime a subi une Blessure Critique — Coup
- *  Critique sur double OU dépassement — à une localisation où elle porte de la PA ; elle choisit
- *  Dévier (sacrifie 1 PA, ignore le Critique, subit les Blessures recalculées PA−1) ou Subir.
- *  Union discriminée par `mode` :
- *  - `melee` : `res`/`weapon` figés → le résolveur REJOUE `applyAttackResult` avec la décision (son
- *    « tail » décision-indépendant — riposte/triggers/ammo… — tourne ainsi une seule fois).
- *  - `self` : auto-contenu (opposé/tir/magie n'ont pas de tail) → le résolveur applique directement
- *    déflexion vs Critique pré-tiré, sans rejouer aucune attaque.
- *  Le Critique PRÉ-TIRÉ (`crit`, graine figée) est affiché sur la modale ET appliqué tel quel sur Subir. */
-export type PendingDeviation =
+/** LE COUP qu'une fenêtre de Blessure critique suspend, et que sa reprise RÉ-ENTRE avec les décisions
+ *  tranchées (#1426 ; #1595 c.6220635824) — union discriminée par `mode` :
+ *  - `melee` : un coup d'arme, `res`/`weapon` figés → la reprise rejoue `applyAttackResult` (son
+ *    « tail » décision-indépendant — riposte/triggers/ammo… — tourne ainsi une seule fois) ;
+ *  - `projectile` : une touche de Projectile magique → la reprise rejoue son application. */
+export type CoupSuspendu =
   | {
       mode: 'melee';
-      attackerId: string;
-      targetId: string; // victime du Critique (cible réelle, y compris un tir dévié)
       weapon: Weapon;
       res: AttackResult;
+      /** Ce que l'appelant fera APRÈS le coup (#1508) : la DÉVIATION est une fenêtre DE PLUS sur le même
+       *  coup, et cette donnée porte jusqu'à la reprise d'après-déviation la chaîne de balayage en cours
+       *  et l'Action d'une frappe gratuite. */
+      suite?: SuiteDeCoup;
+      touche?: never;
+    }
+  | {
+      mode: 'projectile';
+      /** La touche, ses Dégâts APRÈS le registre « après la touche » (sauvegardes, Martyr) : la reprise
+       *  ne le rejoue pas. Ce que l'appelant fera APRÈS elle (son `rebond`) y voyage. */
+      touche: ToucheDeProjectile;
+      weapon?: never;
+      res?: never;
+      suite?: never;
+    };
+
+/** Déviation Critique en attente (LDB 63 l.30) : une victime a subi une Blessure Critique — Coup
+ *  Critique OU dépassement — à une localisation où elle porte de la PA ; elle choisit Dévier (sacrifie
+ *  1 PA, ignore le Critique, subit les Blessures recalculées PA−1) ou Subir. Union discriminée par `mode` :
+ *  le `CoupSuspendu` (`melee`, `projectile`), que la reprise ré-entre ; `self` : auto-contenu (Test
+ *  opposé), le résolveur applique directement déflexion vs Critique pré-tiré, sans rejouer aucun coup.
+ *  Le Critique PRÉ-TIRÉ (`crit`, graine figée) est affiché sur la modale ET appliqué tel quel sur Subir. */
+export type PendingDeviation =
+  | (CoupSuspendu & {
+      attackerId: string;
+      targetId: string; // victime du Critique (cible réelle, y compris un tir dévié)
       crit: CriticalResolved;
       /** Les Blessures critiques du coup déjà tranchées, avant celle-ci (#1595 c.6220635824). */
       decides: readonly DecisionDeCritique[];
       reveal: RevealEntry;
       resumeAfter: boolean;
-      /** Ce que l'appelant fera APRÈS le coup (#1508) : la DÉVIATION est une fenêtre DE PLUS sur le même
-       *  coup, et cette donnée porte jusqu'à la reprise d'après-déviation la chaîne de balayage en cours
-       *  et l'Action d'une frappe gratuite. */
-      suite?: SuiteDeCoup;
-    }
+    })
   | {
       mode: 'self';
       attackerId: string;
@@ -848,15 +864,10 @@ export type PendingDeviation =
       crit: CriticalResolved;
       origine: OrigineCritique;
       overkill: number; // dépassement (LDB 18 l.17)
-      deflectExtraWounds: number; // Blessures ajoutées au Dévier (recalcul PA−1 ; 0 pour un critique « sec »)
       woundsBefore: number; // PB avant CE coup → restauration Destin correcte au Subir
       reveal: RevealEntry;
       resumeAfter: boolean;
       ctx: DeviationCtx;
-      /** LA TOUCHE de Projectile magique que cette fenêtre suspend (#1508) — présente pour le seul
-       *  chemin du Projectile. Ce que l'appelant fera APRÈS la touche (son `rebond`) voyage ainsi
-       *  jusqu'à la reprise : c'est la DERNIÈRE fenêtre fermée qui le joue, sur des PB frais. */
-      touche?: ToucheDeProjectile;
     };
 
 /** FENÊTRE de POSE du d100 de SÉVÉRITÉ d'une Blessure Critique (#942 L4) : le dé de la table de
@@ -864,19 +875,16 @@ export type PendingDeviation =
  *  résolution de l'attaque est SUSPENDUE. La charge est sérialisable (coop) et rejoue le MÊME chemin
  *  que la déviation : l'applier re-entre dans `applyAttackResult` avec le Critique construit sur le dé
  *  posé (`ApplicationDuCoup.critiques`) — aucune mécanique parallèle. */
-export interface PendingCritSeverity {
+export type PendingCritSeverity = CoupSuspendu & {
   attackerId: string;
   targetId: string;
-  weapon: Weapon;
-  res: AttackResult;
   location: HitLocation; // loc du Critique : re-tirée pour un double, loc de touche pour un dépassement
   overkill: number; // dépassement (LDB 18 l.17) — porté en `mod` par la déclaration
   origine: OrigineCritique;
   /** Les Blessures critiques du coup déjà tranchées, avant celle-ci (#1595 c.6220635824). */
   decides: readonly DecisionDeCritique[];
   twice?: boolean; // LDB 41 l.170 — pose `keepHighest: 2` sur la déclaration et garde la bifurcation AA
-  suite?: SuiteDeCoup; // ce que l'appelant fera APRÈS le coup (#1508) : le PLI post-dé la reconduit dans la `PendingDeviation` qu'il forme
-}
+};
 /**
  * LE REBOND d'un Projectile « Attaques en chaîne » (op `chain`, `LDB 47 l.340`) en DONNÉE (#1508) : ce
  * que l'appelant fera APRÈS la touche, porté PAR la touche. Une fenêtre ouverte sur la cible (sauvegarde
@@ -924,6 +932,9 @@ export interface ToucheDeProjectile {
   overcastDurationSteps: number;
   chosenTableRolls?: number;
   conjureForm?: ConjureForm;
+  /** Les Blessures critiques de la touche déjà tranchées à leur fenêtre, dans l'ordre (#1426 ; LDB 63 l.30) —
+   *  posées par la seule reprise de la fenêtre. */
+  critiques?: readonly DecisionDeCritique[];
   /** IDENTITÉ du Sort source pour la dissipation (LDB 46 l.158-160), composée à l'ouverture du
    *  lancement (`applyCast`) : donnée pure, elle voyage telle quelle plutôt que d'être recomposée à la
    *  reprise — une 2ᵉ composition serait une 2ᵉ vérité. */
