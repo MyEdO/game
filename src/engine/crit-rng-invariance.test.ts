@@ -12,8 +12,8 @@ import type { JeuDeCritique } from '../data/criticals';
  * Ce qu'il verrouille, qu'aucun autre test ne voit : l'ORDRE de consommation des dés. Un jet déplacé
  * d'une ligne (le 1d10 de fracture avant l'amputation, un dé de plus tiré quelque part) laisse toutes
  * les assertions de comportement vertes et change TOUTES les parties à seed égale. 480 cas : 40 seeds
- * × 6 Localisations × 2 jeux, la moitié avec 8 points d'overkill pour exercer le modificateur de
- * sévérité de chaque jeu.
+ * × 6 Localisations × 2 jeux, la moitié avec un dépassement qui exerce le modificateur de sévérité
+ * de chaque jeu : 2 en `ldb` (BE 3 ; LDB 18 l.17 ; #1595 c.6222318751), 8 en `aa` (AA 07 l.36).
  *
  * PÉRIMÈTRE, depuis B3-1/B3-1b : le résolveur ne roule PLUS aucun nœud `test` — ni celui de la rangée,
  * ni celui de l'Amputation (LDB 18 l.237) : il les REND en `testFlow` (ou les ARME sur
@@ -54,6 +54,7 @@ function stable(v: unknown): unknown {
 }
 
 const REFERENCE = reference as unknown as Record<string, unknown>;
+const DEPASSEMENT: Record<JeuDeCritique, number> = { ldb: 2, aa: 8 };
 const LOCS: HitLocation[] = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'];
 
 describe('invariance du RNG des Blessures critiques — référence figée AVANT la fusion des lecteurs', () => {
@@ -74,9 +75,9 @@ describe('invariance du RNG des Blessures critiques — référence figée AVANT
   it('les 480 cas rendent un `CriticalResolved` IDENTIQUE à la référence', () => {
     const divergences: string[] = [];
     for (let seed = 1; seed <= 40; seed++) {
-      const overkill = seed % 2 === 0 ? 8 : 0;
       for (const loc of LOCS) {
         for (const jeu of ['ldb', 'aa'] as JeuDeCritique[]) {
+          const overkill = seed % 2 === 0 ? DEPASSEMENT[jeu] : 0;
           const cle = `${jeu}|${seed}|${loc}|${overkill}`;
           const obtenu = JSON.stringify(stable(resolveCritique(jeu, cible(), loc, makeRNG(seed), { overkill })));
           const attendu = JSON.stringify(stable(REFERENCE[cle]));

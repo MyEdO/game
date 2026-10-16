@@ -48,7 +48,7 @@ BE et PA réduisent les Dégâts **sauf indication contraire** (certaines règle
 **Voir aussi** : États À Terre / Inconscient → [etats.md](etats.md) (LDB 16) ; [Guérison des PB](#10-guérison-des-points-de-blessure).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.12-19) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +25 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, `src/engine/relations.ts`, +14 fichiers
+- `LDB 18` (l.12-19) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +26 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, `src/engine/relations.ts`, +14 fichiers
 
 ---
 
@@ -59,11 +59,11 @@ BE et PA réduisent les Dégâts **sauf indication contraire** (certaines règle
 1. **Coup Critique** — déclenché en combat (double réussi en CC/Projectiles ; voir [combat.md](combat.md)).
 2. **Overflow de PB** — on subit plus de Dégâts qu'on ne possède de PB (excédent négatif).
 
-**Modificateur d'overflow** (`LDB 18 l.17`) : si le total de PB tomberait à un valeur négative dont la valeur absolue est **inférieure** au BE, appliquer **−20 au résultat sur le Tableau des Critiques**, minimum 01.
+**Modificateur d'overflow** (`LDB 18 l.17`) : si le nombre de Points de Blessure passés en négatif est **inférieur** au BE — strictement ; égalité → pas de −20 —, appliquer **−20 au résultat sur le Tableau des Critiques**, minimum 01. Le −20 ne vaut que pour le Critique né du dépassement (#1595 c.6222318751).
 
-> « Si vos Points de Blessure en négatifs sont inférieurs à votre Bonus d'Endurance, vous ôtez -20 à votre résultat sur le Tableau des Critiques avec un résultat minimum de 01. » — `LDB 18 l.17`
+> « Si vos Points de Blessure en négatifs sont inférieurs à votre Bonus d'Endurance (donc inférieur à -4 Points de Blessure si votre BE est de 4), vous ôtez -20 à votre résultat sur le Tableau des Critiques avec un résultat minimum de 01 » — `LDB 18 l.17`
 
-Exemple : BE = 4, PB restants = 2, Dégâts = 8 → PB fictifs = −6 → |−6| = 6 > BE 4 → **pas** de −20. Mais si PB fictifs = −3 → |−3| = 3 < BE 4 → **−20 appliqué**.
+Exemple : BE = 4, PB restants = 2, Dégâts = 8 → PB fictifs = −6 → 6 > BE 4 → **pas** de −20. Mais si PB fictifs = −3 → 3 < BE 4 → **−20 appliqué** ; si PB fictifs = −4 → 4 = BE 4 → **pas** de −20.
 
 **PB d'une Blessure critique** (`LDB 18 l.53`) : les PB perdus indiqués dans le Tableau **ignorent BE et PA**. Ces PB perdus n'entraînent **pas** eux-mêmes de nouvelles Blessures critiques.
 
@@ -85,7 +85,7 @@ Exemple : BE = 4, PB restants = 2, Dégâts = 8 → PB fictifs = −6 → |−6|
 **Sources RAW** : `LDB 18 l.30`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.30) → `EtatPanel`, `combat-sudden-death`, `PendingDeviation`, `AttackOptions`, `inDeathCondition`, `peutRetenirSesCoups`, `applyHit`, `appliquerToucheDeProjectile` — `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/state/combatFlow.ts`, `src/state/pendings.ts`, `src/ui/EtatPanel.tsx`
+- `LDB 18` (l.30) → `EtatPanel`, `combat-sudden-death`, `AttackOptions`, `inDeathCondition`, `peutRetenirSesCoups`, `applyHit` — `src/data/reglesOptionnelles.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/ui/EtatPanel.tsx`
 
 ---
 
@@ -129,7 +129,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 **Voir aussi** : [Option : Mort Subite](#6-option--mort-subite) ; Destin → [destin.md](destin.md).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.34, l.38-40, l.42-43) → `criticals-ldb-tete`, `blessure-spectaculaire`, `coupure-mineure`, `coup-a-l-il`, `frappe-a-l-oreille`, `coup-percutant`, `il-au-beurre-noir`, `crit-severity`, `crit-row-test`, `oreille-tranchee`, +33 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/traumas.json`, +7 fichiers
+- `LDB 18` (l.34, l.38-40, l.42-43) → `criticals-ldb-tete`, `blessure-spectaculaire`, `coupure-mineure`, `coup-a-l-il`, `frappe-a-l-oreille`, `coup-percutant`, `il-au-beurre-noir`, `crit-severity`, `crit-row-test`, `oreille-tranchee`, +31 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/traumas.json`, +6 fichiers
 
 ---
 

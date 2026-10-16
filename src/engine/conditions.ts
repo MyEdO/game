@@ -1033,10 +1033,10 @@ export function loseWounds(c: Combatant, amount: number): number {
   return lost;
 }
 
-/** Upkeep de mort en fin de Round : LDB 18 l.15, l.34 ; AA 07 l.5 ; MDG 13 l.656, l.674. Retourne le journal. */
+/** Upkeep de mort en fin de Round : LDB 18 l.15 ; MDG 13 l.656, l.674. Retourne le journal. */
 export function tickDeath(c: Combatant): string[] {
   const log: string[] = [];
-  if (c.dead || c.outOfRencontre || isInanimate(c)) return log; // AA 10 l.114 ; MDG 13 l.656, l.674
+  if (c.dead || c.outOfRencontre || isInanimate(c)) return log; // #1595 c.6219992594 (S1) ; MDG 13 l.656, l.674
   if (c.wounds.current > 0) {
     c.roundsAtZero = 0;
     return log;

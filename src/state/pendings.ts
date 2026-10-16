@@ -847,7 +847,7 @@ export type PendingDeviation =
       location: HitLocation; // loc du Critique : re-tirée pour un double, loc de touche pour un dépassement
       crit: CriticalResolved;
       origine: OrigineCritique;
-      overkill: number; // dépassement (−20 à la table si > BE, LDB 18 l.30)
+      overkill: number; // dépassement (LDB 18 l.17)
       deflectExtraWounds: number; // Blessures ajoutées au Dévier (recalcul PA−1 ; 0 pour un critique « sec »)
       woundsBefore: number; // PB avant CE coup → restauration Destin correcte au Subir
       reveal: RevealEntry;
@@ -870,7 +870,7 @@ export interface PendingCritSeverity {
   weapon: Weapon;
   res: AttackResult;
   location: HitLocation; // loc du Critique : re-tirée pour un double, loc de touche pour un dépassement
-  overkill: number; // dépassement (−20 à la table si > BE, LDB 18 l.17) — porté en `mod` par la déclaration
+  overkill: number; // dépassement (LDB 18 l.17) — porté en `mod` par la déclaration
   origine: OrigineCritique;
   /** Les Blessures critiques du coup déjà tranchées, avant celle-ci (#1595 c.6220635824). */
   decides: readonly DecisionDeCritique[];

@@ -6,8 +6,7 @@
  * Le SOCLE résout la séquence, la même pour les deux jeux : lookup `findTableEntry` → jet de la
  * rangée → `onRepeat` → `traumas` → `amputation` → `stampCriticalEscalation` → `fireCritTriggers`.
  * Les FEUILLES n'adressent que ce qui diffère, déclaré une fois dans `REGIMES` : le modificateur de
- * SÉVÉRITÉ du d100 (LDB 18 l.17 : −20 quand l'overkill dépasse le Bonus d'Endurance, minimum 01 /
- * AA 07 l.36 : +10 par Blessure au-delà de 0) et le libellé de journal.
+ * SÉVÉRITÉ du d100 (LDB 18 l.17 ; AA 07 l.36) et le libellé de journal.
  */
 import { d100, d10, RNG, defaultRNG } from './dice';
 import { findTableEntry } from './tables';
@@ -204,14 +203,9 @@ export function critWoundLocation(rng: RNG, bodyShape: BodyShape = 'humanoide', 
   return override ?? critLocationRoll(rng, bodyShape);
 }
 
-/**
- * Réduction du d100 de SÉVÉRITÉ d'une Blessure critique — LDB 18 l.17 (verbatim : « vous ôtez -20 à
- * votre résultat sur le Tableau des Critiques avec un résultat minimum de 01 »), quand les PB négatifs
- * dépassent le Bonus d'Endurance. SOURCE UNIQUE du modificateur : le régime `ldb` l'applique à SON
- * lookup, la DÉCLARATION d'étape à table le porte en `mod` (négatif) — les deux lisent la même valeur.
- */
-export function critSeverityReduction(target: Combatant, overkill: number): number {
-  return overkill > bonus(effectiveChar(target, 'endurance')) ? 20 : 0;
+/** LDB 18 l.17 ; #1595 c.6222318751. */
+function severiteLdb(target: Combatant, overkill: number): number {
+  return overkill > 0 && overkill < bonus(effectiveChar(target, 'endurance')) ? -20 : 0;
 }
 
 /** Décalage AA du jet de Critique (AA 07 l.36) : +10 par Blessure au-delà de 0. PUR. */
@@ -234,7 +228,7 @@ interface RegimeCritique {
  * (`crit-n-plus-1.test.ts`) puisse en poser une et la retirer — le moteur, lui, ne l'écrit jamais.
  */
 export const REGIMES_DE_CRITIQUE: Record<string, RegimeCritique> = {
-  ldb: { severite: (target, overkill) => -critSeverityReduction(target, overkill), journal: 'Blessure critique' },
+  ldb: { severite: severiteLdb, journal: 'Blessure critique' },
   aa: { severite: (_target, overkill) => aaCriticalOffset(overkill), journal: 'Blessure critique AA' },
 };
 

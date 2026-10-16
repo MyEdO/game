@@ -55,11 +55,15 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     expect(res.location).toBe(res.critLocation);
   });
 
-  it("'ldb' : deux lignes de table, la seconde à −20 quand le dépassement excède le BE (LDB 18 l.17)", () => {
-    const { res, cible } = coupQuiDepasse(true, { endurance: 10, de: 50 });
-    const rangee = (r: number) => findTableEntry(critTableRows('ldb', critTableKeyFor(res.critLocation!)), r).id;
-    expect(cible.critEntriesSuffered).toEqual([rangee(50), rangee(30)]);
-  });
+  for (const [endurance, be, seconde] of [[35, 3, 30], [10, 1, 50]] as const) {
+    it(`'ldb' : BE ${be} — deux lignes de table, la seconde au d100 ${seconde} (LDB 18 l.17 ; #1595 c.6222318751)`, () => {
+      const { res, cible } = coupQuiDepasse(true, { endurance, de: 50 });
+      const depassement = (res.woundsLost ?? 0) - 2;
+      expect(depassement > 0 && depassement < be, `dépassement ${depassement}, BE ${be}`).toBe(seconde === 30);
+      const rangee = (r: number) => findTableEntry(critTableRows('ldb', critTableKeyFor(res.critLocation!)), r).id;
+      expect(cible.critEntriesSuffered).toEqual([rangee(50), rangee(seconde)]);
+    });
+  }
 
   it("'ldb' : la Déviation du premier Critique laisse le second (LDB 63 l.30 ; LDB 18 l.17)", () => {
     const { cible } = coupQuiDepasse(true, { pa: 1, endurance: 10 });

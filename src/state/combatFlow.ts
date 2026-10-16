@@ -173,7 +173,7 @@ import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironment
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './zones';
 import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
-import { resolveCritique, jeuDeCritique, critiquesDuCoup, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critSeverityReduction, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
+import { resolveCritique, jeuDeCritique, critiquesDuCoup, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from '../engine/artilleryMisfire';
@@ -1695,11 +1695,11 @@ export function critSeverityInSeam(twice?: boolean): boolean {
 }
 
 /** DÉCLARATION du tirage de SÉVÉRITÉ d'une Blessure critique (LDB 18) : la table de la Localisation,
- *  d100, et la réduction d'overkill portée en `mod` NÉGATIF (source unique `critSeverityReduction`).
+ *  d100, et le modificateur du régime (`REGIMES_DE_CRITIQUE`) porté en `mod`.
  *  `clamp` : plancher « avec un résultat minimum de 01 » (LDB 18 l.17), la même borne que le
  *  `Math.max(1, …)` du lookup moteur. `keepHighest: 2` sous Bénédiction de Sauvagerie (LDB 41 l.170).
  *  Le dé de la déclaration est le dé NATUREL (le `mod` s'applique au lookup) : c'est exactement ce que
- *  `resolveCritique` attend en `forcedRoll`, qui applique LUI-MÊME la réduction — les deux lookups tombent
+ *  `resolveCritique` attend en `forcedRoll`, qui applique LUI-MÊME le modificateur — les deux lookups tombent
  *  donc sur la même ligne. LÈVE hors du périmètre du seam (défense en profondeur : une déclaration LDB
  *  fabriquée sous la variante AA promettrait une ligne que le résolveur AA n'appliquerait pas). */
 export function critSeverityDecl(target: Combatant, location: HitLocation, overkill: number, twice?: boolean): CascadeTableDecl {
@@ -1708,7 +1708,7 @@ export function critSeverityDecl(target: Combatant, location: HitLocation, overk
   }
   return {
     tableId: CRIT_TABLE_IDS[critTableKeyFor(location)], spec: { n: 1, sides: 100 },
-    mod: -critSeverityReduction(target, overkill), clamp: true,
+    mod: REGIMES_DE_CRITIQUE[jeuDeCritique(twice)].severite(target, overkill), clamp: true,
     ...(twice ? { keepHighest: 2 } : {}),
   };
 }
@@ -5768,8 +5768,8 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
       // de PA), `autoDeviate` retourne false → on TOMBE sur `applyCritAndFinalize` (Critique subi).
     } else if (rule('combat-critical-deflect') && elig.eligible && tenu) {
       // Porteur blindé TENU : SUSPEND son choix (étape `self`, push SYNCHRONE — la boucle multi-cibles continue,
-      // chaque cible porte SON propre step indépendant). Le Critique pré-tiré PORTE l'overkill (−20 table si
-      // > BE, LDB 18 l.30) → un double qui dépasse garde sa sévérité au Subir.
+      // chaque cible porte SON propre step indépendant). Le Critique pré-tiré PORTE l'overkill (LDB 18 l.17)
+      // → un double qui dépasse garde sa sévérité au Subir.
       const cr2 = resolveCritSeverity(cible, loc, ovk, c2.critTwice).crit; // dé de sévérité par l'étape à table (seam UNIQUE)
       pushDeviationStep(set, { targetId: cible.id, offerte: true, pretire: {
         mode: 'self', attackerId: caster.id, targetId: cible.id, location: loc, crit: cr2,

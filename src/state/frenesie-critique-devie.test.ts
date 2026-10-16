@@ -40,7 +40,7 @@ function monte() {
   const hero = relu(H);
   hero.pos = { x: gob.pos!.x - 1, y: gob.pos!.y };
   man.pos = { x: gob.pos!.x - 1, y: gob.pos!.y + 1 };
-  gob.wounds.current = 10; // dépassement ≤ BE : pas de −20 (LDB 18 l.17)
+  gob.wounds.current = 1; // dépassement ≥ BE : pas de −20 (LDB 18 l.17 ; #1595 c.6222318751)
   gob.important = true; // LDB 18 l.44 : hors Mort subite
   gob.armour = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 };
   for (const o of foes) if (o !== gob && o !== man && o.pos && Math.abs(o.pos.x - hero.pos.x) <= 1 && Math.abs(o.pos.y - hero.pos.y) <= 1) o.pos = { x: o.pos.x + 6, y: o.pos.y };

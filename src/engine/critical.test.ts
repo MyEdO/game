@@ -138,10 +138,14 @@ describe.each(JEUX)('resolveCritique (%s) — invariants partagés par les deux 
 // CE QUI DIVERGE — la SÉVÉRITÉ et le LIBELLÉ de journal, et rien d'autre.
 // ---------------------------------------------------------------------------------------------
 describe('sévérité et journal — les deux seules divergences entre les jeux', () => {
-  it('LDB 18 l.17 : overkill > Bonus d’Endurance → −20 sur le d100 (minimum 01)', () => {
-    const a = resolveCritique('ldb', cible(35), 'corps', makeRNG(7), { overkill: 0 }); // BE(35) = 3
-    const b = resolveCritique('ldb', cible(35), 'corps', makeRNG(7), { overkill: 10 }); // 10 > 3 → −20
-    expect(b.roll).toBe(Math.max(1, a.roll - 20));
+  it('LDB 18 l.17 ; #1595 c.6222318751 : −20 si 0 < dépassement < BE, strictement ; minimum 01', () => {
+    const jet = (overkill: number, de = 50): number => resolveCritique('ldb', cible(45), 'corps', seq(de), { overkill }).roll; // BE 4
+    expect(jet(0)).toBe(50);
+    expect(jet(1)).toBe(30);
+    expect(jet(3)).toBe(30);
+    expect(jet(4), 'égalité : pas de −20').toBe(50);
+    expect(jet(6)).toBe(50);
+    expect(jet(1, 10), 'minimum 01').toBe(1);
   });
 
   it('AA 07 l.36 : +10 par Blessure au-delà de 0 — et le décalage pousse jusqu’à la ligne LÉTALE plafond', () => {

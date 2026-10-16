@@ -347,15 +347,29 @@ describe('Structures de siège — le jet du Critique prend le modificateur du m
     expect(derniereEtape().mod).toBe(30);
   });
 
-  it("'ldb' : dépassement 3 > BE 2 → −20 (dé 40 → 20, Ébréchée), plancher 01 (dé 10 → 01)", () => {
+  it("'ldb' : Structure de BE 2 à 0, un coup d'1 Blessure → −20 (dé 40 → 20 ; dé 10 → 01 ; dé 100 → 80), le 96+ hors d'atteinte (LDB 18 l.17 ; #1595 c.6222318751)", () => {
     setRule('combat-aa-blessures', 'ldb');
     const { S, H } = start('porte');
     S!.wounds.current = 0;
-    applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: 3, forcedRoll: 40 });
+    applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: 1, forcedRoll: 40 });
     expect(derniereEtape().result).toMatchObject({ roll: 40, die: 20, id: 'ebrechee' });
-    applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: 3, forcedRoll: 10 });
+    applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: 1, forcedRoll: 10 });
     expect(derniereEtape().result).toMatchObject({ roll: 10, die: 1, id: 'ebrechee' });
+    const outcome = applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill: 1, forcedRoll: 100 });
+    expect(derniereEtape().result).toMatchObject({ roll: 100, die: 80, id: 'pluie-d-echardes' });
+    expect(outcome.destroyed).toBe(false);
   });
+
+  for (const overkill of [2, 3]) {
+    it(`'ldb' : Structure de BE 2 à 0, un coup de ${overkill} Blessures → aucun −20, dé 98 → Effondrement (LDB 18 l.17 ; AA 10 l.127)`, () => {
+      setRule('combat-aa-blessures', 'ldb');
+      const { S, H } = start('porte');
+      S!.wounds.current = 0;
+      const outcome = applyStructureCriticalToTarget(useGame.setState, S!, heros(H), [], { overkill, forcedRoll: 98 });
+      expect(derniereEtape().result).toMatchObject({ roll: 98, die: 98, id: 'effondrement' });
+      expect(outcome.destroyed).toBe(true);
+    });
+  }
 
   for (const mode of ['ldb', 'aa'] as const) {
     it(`mode '${mode}', contrôle : sans dépassement, le modificateur vaut 0 (dé 40 → Secouée)`, () => {
@@ -428,8 +442,7 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
 
-  it("mode 'aa' (AA 07 l.36) : cliquer la porte (battleClickEntity = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à l'Effondrement et la BRÈCHE", () => {
-    setRule('combat-aa-blessures', 'aa');
+  it("cliquer la porte (battleClickEntity = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à l'Effondrement et la BRÈCHE", () => {
     const { S, H } = start('porte', { seed: 7 });
     const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
     // Héros au CONTACT de l'ancrage (2,2), arme de mêlée, Combat/Force élevés → traverse les 8 Bl (BE 2).
