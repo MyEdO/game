@@ -401,8 +401,8 @@ Navires : MDG 13 l.656.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `AA 10` (l.13-14) → `StructureCritEntry`, `aretesAbritantes`, `couvertDArete`, `lineOfSightCover`, `StructureData` — `src/data/schemas/defs/structure-criticals.ts`, `src/data/structureCriticals.ts`, `src/engine/cover.ts`, `src/engine/structures.ts`, `src/engine/types.ts`, `src/state/lineOfSight.ts`
-- `MDG 13` (l.656) → `RepairTick`, `sea-navigation`, `voie-d-eau`, `isOutOfAction`, `toucheAuJetPose`, `applyHit`, `applyCriticalToTarget` — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/shipBuild.ts`, `src/state/combatFlow.ts`
-- `EDOC 7` (l.332-347) → `boardingDifficulty`, `BoardingParams`, `boardMovingVehicle` ⚠sans-appelant, `BoardMountParams`, `BoardMountResult`, `VehicleRepairParams`, `VehicleRepairResult`, `repairVehicleAttempt` ⚠sans-appelant, `applyCriticalToTarget` — `src/engine/mountedManeuvers.ts` ⚠hors-app, `src/engine/vehicle.ts`, `src/engine/volley.ts`, `src/state/combatArea.ts`, `src/state/combatFlow.ts`
+- `MDG 13` (l.656) → `RepairTick`, `sea-navigation`, `voie-d-eau`, `usesSuddenDeath`, `isOutOfAction`, `toucheAuJetPose`, `applyHit`, `applyCriticalToTarget`, `appliquerLaTouche` — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/shipBuild.ts`, `src/state/combatFlow.ts`
+- `EDOC 7` (l.332-347) → `boardingDifficulty`, `BoardingParams`, `boardMovingVehicle` ⚠sans-appelant, `BoardMountParams`, `VehicleRepairParams`, `BoardMountResult`, `VehicleRepairResult`, `repairVehicleAttempt` ⚠sans-appelant, `applyCriticalToTarget` — `src/engine/mountedManeuvers.ts` ⚠hors-app, `src/engine/vehicle.ts`, `src/engine/volley.ts`, `src/state/combatArea.ts`, `src/state/combatFlow.ts`
 - dette : #673
 - bloqué : Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Seul le refus de la Blessure Critique est joué
 
@@ -757,7 +757,7 @@ Autres formes de propulsion : Propulsion à vapeur → **Métier (Ingénieur)** 
 **Voir aussi :** [Progression d'un navire (MDG)](#progression-dun-navire-mdg), [Tests d'équipage (MDG)](#tests-déquipage-mdg), [`tests.md`](tests.md) (Soutien, Difficulté).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.17-20, l.30-36) → `PROPULSION_KINDS`, `COMPETENCE_DU_MODE`, `estCompetenceDePropulsion`, `plus2`, `plus1`, `normal`, `milieuDuVoyage`, `minus1`, `STEAM_SKILL`, `half`, +13 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, +6 fichiers
+- `MDG 13` (l.17-20, l.30-36) → `PROPULSION_KINDS`, `COMPETENCE_DU_MODE`, `estCompetenceDePropulsion`, `plus2`, `plus1`, `normal`, `minus1`, `milieuDuVoyage`, `STEAM_SKILL`, `half`, +13 — `src/data/naval-progression.json`, `src/data/regles.json`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/grammaire/valeurs.ts`, `src/data/voyage-stakes.json`, `src/engine/crewMorale.ts`, +6 fichiers
 
 ---
 
@@ -920,7 +920,7 @@ Force du vent tirée au début, mise à jour à l'aube/midi/crépuscule/minuit (
 **Voir aussi :** [Météo de la Mer des Griffes (MDG)](#météo-de-la-mer-des-griffes-mdg), [Détroits et tourbillons (MDG)](#détroits-et-tourbillons-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.246-304) → `basculesDeForce`, `sea-weather`, `windAspectSchema`, `windDirectionSchema`, `SeaVoyageBody`, `construireCarte`, `WorldMapRoutePanel`, `OrientationOutcome`, `orientationOutcome`, `SeaVoyageState`, +33 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +10 fichiers
+- `MDG 13` (l.246-304) → `basculesDeForce`, `sea-weather`, `windAspectSchema`, `windDirectionSchema`, `SeaVoyageBody`, `construireCarte`, `WorldMapRoutePanel`, `OrientationOutcome`, `orientationOutcome`, `MapRouteTrace`, +33 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +10 fichiers
 
 ---
 
@@ -1045,7 +1045,7 @@ Réparation permanente : **Test de Métier (Constructeur de navires)** (ou **Mé
 **Voir aussi :** [Salissures de coque (MDG)](#salissures-de-coque-mdg), [Entretien du navire (Activité en mer) (MDG)](#entretien-du-navire-activité-en-mer-mdg), [Tests d'équipage (MDG)](#tests-déquipage-mdg) (Entretien).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.639-651) → `meleeVsHullBE`, `PortView`, `RepairTick`, `sea-navigation`, `voie-d-eau`, `isOutOfAction`, `toucheAuJetPose`, `applyHit`, `GameState`, `applyCriticalToTarget` — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/shipBuild.ts`, `src/engine/shipMelee.ts`, +3 fichiers
+- `MDG 13` (l.639-651) → `meleeVsHullBE`, `PortView`, `RepairTick`, `sea-navigation`, `voie-d-eau`, `usesSuddenDeath`, `isOutOfAction`, `toucheAuJetPose`, `applyHit`, `GameState`, +2 — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/shipBuild.ts`, `src/engine/shipMelee.ts`, +3 fichiers
 
 ---
 
