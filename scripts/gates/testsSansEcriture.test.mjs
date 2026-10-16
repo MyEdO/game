@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -9,7 +9,7 @@ import { lancerSansEcriture } from './testsSansEcriture.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
 
 const GARDE = {
-  question: 'Un test de scripts/ ou son enfant écrit-il dans la racine de travail pendant une suite ?',
+  question: 'Un test de scripts/ ou son enfant écrit-il dans la racine de travail, ou dans son répertoire git commun, pendant une suite ?',
   primitive: 'lancerSansEcriture, photoArbre et intercepterEcritures ; OPERATIONS_FS, canoniser, syncBuiltinESMExports.',
   perimetre: 'Toutes les gates de testsParGate câblées par package.json ; fs, fs.promises et descripteurs ouverts pendant le lancement Node, ignorés compris.',
   exemption: 'Les dépôts de banc et journaux sous os.tmpdir() sont hors de la racine réelle. Le namespace Windows des tuyaux nommés est un canal IPC, sans fichier dans le dépôt.',
@@ -258,6 +258,19 @@ test('une photo Git impossible refuse le lancement', () => {
 test('les écritures dans un dossier temporaire externe restent permises', () => avecDepot((racine) => {
   const texte = "import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'; import { tmpdir } from 'node:os'; import { join } from 'node:path'; const d = mkdtempSync(join(tmpdir(), 'permis-')); try { writeFileSync(join(d, 'f'), 'x') } finally { rmSync(d, { recursive: true }) }"
   assert.equal(joue(racine, texte).code, 0)
+}))
+
+test('#2603 — depuis un worktree, une écriture sous le répertoire git COMMUN, hors de l’arbre, est refusée', () => avecDepot((racine) => {
+  const parent = mkdtempSync(join(tmpdir(), 'tests-sans-ecriture-worktree-'))
+  const arbre = join(parent, 'arbre')
+  try {
+    gitDe(racine)('worktree', 'add', '-q', '--detach', arbre)
+    const cible = join(racine, '.git', 'hooks-git', 'pollution')
+    const r = joue(arbre, `import { mkdirSync, writeFileSync } from 'node:fs'; import { dirname } from 'node:path'; try { mkdirSync(dirname(${JSON.stringify(cible)}), { recursive: true }); writeFileSync(${JSON.stringify(cible)}, 'x') } catch {}`)
+    assert.equal(r.code, 1, r.brut)
+    assert.match(r.messages.join('\n'), /REFUS écriture dans le dépôt git : mkdirSync hooks-git/)
+    assert.equal(existsSync(cible), false)
+  } finally { rmSync(parent, { recursive: true, force: true }) }
 }))
 
 test('Windows : les deux namespaces IPC nommés échangent des octets sous la garde', { skip: process.platform !== 'win32' }, () => avecDepot((racine) => {

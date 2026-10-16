@@ -7,12 +7,12 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  GESTES_DU_CONTENEUR, bootstrap, docsBuildDetache, estConteneurDistant, lancer, mettreEnConformite, sousOutillage,
+  GESTES_DU_CONTENEUR, bootstrap, demanderLesDerives, estConteneurDistant, lancer, mettreEnConformite, sousOutillage,
 } from './bootstrap-conteneur.mjs'
 import { verrouOutillageDe } from './barriere-outil.mjs'
 import { attendreLibre } from '../test/verrou.mjs'
-import { ESSAI_UNIQUE } from '../docs/build-all.mjs'
-import { BUDGET_TOTAL, JOURNAL_DOCS, MARGE_DE_DEMARRAGE, PREREQUIS } from './bootstrap-prerequis.mjs'
+import { demanderLaReconstruction, demandesDe } from '../git-hooks/reconstruction.mjs'
+import { BUDGET_TOTAL, MARGE_DE_DEMARRAGE, PREREQUIS } from './bootstrap-prerequis.mjs'
 import { depotDe } from '../guards/lib/gitPorte.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { HOOKS_DE_SESSION, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../agents/compat-core.mjs'
@@ -35,7 +35,7 @@ function lanceurFeint(reponses) {
     dossierDesHooks: () => { vus.push('git dossierDesHooks'); return reponses['git hooks'] ?? null },
     approfondir: () => { vus.push('git approfondir'); return { ok: true, valeur: '', rapport: '' } },
     docsMesures: () => { vus.push('docs mesurés'); return reponses['docs mesurés'] ?? false },
-    docsBuildDetache: () => { vus.push('docs:build détaché'); return reponses['docs:build'] ?? { ok: true, valeur: '4242', rapport: '' } },
+    demanderLesDerives: () => { vus.push('reconstruction demandée'); return reponses['reconstruction'] ?? { ok: true, valeur: 'seq=1', rapport: '' } },
     sousOutillage: (_racine, geste) => { vus.push('sous outillage'); return geste() },
   }
   return { run, gestes, vus }
@@ -85,11 +85,11 @@ test('core.hooksPath vide : `npm install` posé, et lui seul', () => {
 })
 
 // #2203 : les docs purs ne sont pas commités ; un conteneur neuf les produit sans bloquer la session.
-test('docs dérivés absents : `docs:build` part DÉTACHÉ, la ligne NOMME son journal, et lui seul', () => {
+test('docs dérivés absents : la reconstruction part DÉTACHÉE, la ligne NOMME son journal, et elle seule', () => {
   const { run, gestes, vus } = lanceurFeint({ ...CONFORME, 'docs mesurés': false })
   const lignes = bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes)
-  assert.deepEqual(lignes, ['[conteneur] docs dérivés : posé par `docs:build --perimes, détaché, essai unique du verrou des gestes lourds (journal .git/bootstrap-docs-build.log)`.'])
-  assert.ok(vus.includes('docs:build détaché'), vus.join(' | '))
+  assert.deepEqual(lignes, ['[conteneur] docs dérivés : posé par `reconstruction détachée des dérivés (journal .git/hooks-git/reconstruction/<pid>.log)`.'])
+  assert.ok(vus.includes('reconstruction demandée'), vus.join(' | '))
   assert.ok(!vus.some((v) => v.startsWith('npm') || v.startsWith('apt-get')), 'rien d’autre à poser')
 })
 
@@ -125,11 +125,11 @@ test('un prérequis n’est jamais posé sans son constat (table rejouable à vi
 // superficiel conservé EN SILENCE de l'autre. Les constats git sont des questions de l'hôte
 // (`gitPorte.mjs`), qui ne lisent que stdout.
 /** Les gestes git RÉELS du conteneur ; les docs dérivés, eux, sont MESURÉS présents — jamais la mesure
- *  de l'arbre qui joue le test, jamais un `docs:build` détaché lancé par le banc. */
+ *  de l'arbre qui joue le test, jamais une reconstruction demandée par le banc. */
 const GESTES_GIT_REELS = {
   ...GESTES_DU_CONTENEUR,
   docsMesures: () => true,
-  docsBuildDetache: () => assert.fail('docs:build détaché lancé par le banc'),
+  demanderLesDerives: () => assert.fail('reconstruction demandée par le banc'),
 }
 
 test('la VALEUR mesurée ne lit que stdout — un bruit sur stderr ne fausse aucun constat', () => {
@@ -204,32 +204,30 @@ test('CÂBLAGE — le hook est PROPRE à la surface Claude (sa garde est un marq
 test('la table couvre les trois manques MESURÉS au conteneur du 2026-09-18, plus les docs dérivés (#2203)', () => {
   assert.deepEqual(
     PREREQUIS.map((p) => p.geste),
-    ['git fetch --unshallow origin', 'npm install', 'docs:build --perimes, détaché, essai unique du verrou des gestes lourds (journal .git/bootstrap-docs-build.log)', 'apt-get update puis apt-get install -y gh'],
+    ['git fetch --unshallow origin', 'npm install', 'reconstruction détachée des dérivés (journal .git/hooks-git/reconstruction/<pid>.log)', 'apt-get update puis apt-get install -y gh'],
   )
 })
 
-test('docs:build détaché (#2603) : `build-all --perimes` en ESSAI UNIQUE du verrou des gestes lourds, par `lancerDetache`, journal sous le répertoire git ouvert EN AJOUT', () => {
+test('docs dérivés détachés (#2603) : `demanderLesDerives` DEMANDE la reconstruction de l’arbre, un détaché `--servir` lancé, la demande nommée', () => {
   const { racine } = instanceDeDepot({ commit: false })
   try {
-    const journal = join(racine, '.git', JOURNAL_DOCS)
-    writeFileSync(journal, 'passage précédent\n')
     const appels = []
-    const vu = docsBuildDetache(racine, { detacher: (p) => { appels.push(p); writeFileSync(p.fdLog, 'DIFFÉRÉ\n'); return 4242 } })
-    assert.deepEqual(vu, { ok: true, valeur: '4242', rapport: '' })
-    assert.deepEqual(appels.map(({ script, args, cwd }) => ({ script, args, cwd })), [{ script: join(REPO, 'scripts', 'docs', 'build-all.mjs'), args: ['--perimes', ESSAI_UNIQUE, '--quiet'], cwd: racine }])
-    assert.equal(readFileSync(journal, 'utf8'), 'passage précédent\nDIFFÉRÉ\n', 'le journal d’un passage précédent n’est pas tronqué')
+    const vu = demanderLesDerives(racine, { demander: (r) => demanderLaReconstruction(r, { detacher: (p) => { appels.push(p); return 4242 } }) })
+    assert.deepEqual(vu, { ok: true, valeur: 'seq=1', rapport: '' })
+    assert.deepEqual(appels, [{ script: join(REPO, 'scripts', 'git-hooks', 'reconstruction.mjs'), args: ['--servir'], cwd: racine, fdLog: 'ignore' }])
+    assert.equal(demandesDe(racine), 1)
     assert.equal(existsSync(join(racine, 'node_modules')), false, 'rien sous node_modules (effacé par npm ci)')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
 })
 
-test('docs:build détaché hors dépôt git : rien n’est lancé, le refus est rapporté', () => {
+test('docs dérivés détachés hors dépôt git : rien n’est lancé, le refus est rapporté', () => {
   const racine = mkdtempSync(join(tmpdir(), 'docs-hors-git-'))
   try {
-    const vu = docsBuildDetache(racine, { detacher: () => assert.fail('détaché hors dépôt') })
+    const vu = demanderLesDerives(racine, { demander: (r) => demanderLaReconstruction(r, { detacher: () => assert.fail('détaché hors dépôt') }) })
     assert.equal(vu.ok, false)
-    assert.match(vu.rapport, /^git refusé : /)
+    assert.match(vu.rapport, /^répertoire git introuvable depuis /)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

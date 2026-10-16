@@ -47,6 +47,11 @@ test('admission déclarée : endpoints glob ignorés, natures et frontières', (
   for (const rel of ['node_modules/a.generated.ts', '.git/a.generated.ts', 'docs/.cache/a.generated.ts', 'data/foreign.cache']) assert.equal(dansLaMesure(rel, ignores, new Set(), motifs), false)
 })
 
+test('#2603 — un segment .git, à toute profondeur, n’est jamais dans la mesure ; un nom qui le contient y reste', () => {
+  for (const rel of ['src/.git', 'src/.git/HEAD', 'a/b/.git']) assert.equal(dansLaMesure(rel, new Set()), false, rel)
+  for (const rel of ['src/.gitignore', 'src/a.git', 'src/.github/x.yml']) assert.equal(dansLaMesure(rel, new Set()), true, rel)
+})
+
 test('projection froide : seuls les fichiers propres sortent, dossiers, liens et autre producteur restent', () => {
   const snapshot = { nature: 'directory', entrees: [
     { nom: 'a.generated.ts', nature: 'file' }, { nom: 'b.generated.ts', nature: 'directory' },

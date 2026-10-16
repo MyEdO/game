@@ -113,9 +113,13 @@ export function relatifSousRacine(racineCanonique, chemin, canoniserChemin = can
 
 export const EXCLUSIONS_FIXES = ['.git', 'node_modules', path.posix.dirname(CACHE_FRAICHEUR)].sort()
 
+/** Segment qu'aucun chemin suivi ne porte, à toute profondeur (`git help gitrepository-layout`). */
+const SEGMENT_GIT = '.git'
+
 /** #2475 / #2477 */
 export function dansLaMesure(rel, ignores, derivees = new Set(), motifsDeclares = []) {
   if (EXCLUSIONS_FIXES.some((p) => rel === p || rel.startsWith(`${p}/`))) return false
+  if (rel.split('/').includes(SEGMENT_GIT)) return false
   if (motifsDeclares.some((motif) => correspondGlob(rel, motif))) return true
   if (derivees.has(rel)) return true
   const prefixe = `${rel}/`

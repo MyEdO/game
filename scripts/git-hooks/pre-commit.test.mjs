@@ -10,7 +10,7 @@ import { spawnSync } from 'node:child_process'
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, sep } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { envDeDepotForge, envGitFeint, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { journalDe } from './journal.mjs'
 import { lancerGit, resultatDeGit } from '../test/gitDeBanc.mjs'
@@ -282,12 +282,15 @@ const REGISTRE_LECTEUR = "import outils from './outils.json' with { type: 'json'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Le dossier des hooks RÉELS (`core.hooksPath` du dépôt). */
 const CROCHETS = fileURLToPath(new URL('.', import.meta.url))
-/** Les hooks RÉELS que #2578 câble, posés dans un dépôt forgé : leur texte, `$(dirname "$0")` résolu vers
- *  `CROCHETS`, sans `docs-rebuild.mjs` (ses cibles et ses docs, hors de ce dépôt). */
+/** Le point d'entrée des post-hooks forgés : les miroirs d'agents seuls (`jouerLesMiroirs`), sans les cibles ni les
+ *  docs de `docs-rebuild.mjs`, hors de ce dépôt. */
+const MIROIRS_SEULS = 'miroirs-seuls.mjs'
+/** Les hooks RÉELS que #2578 câble, posés dans le dossier `crochets` d'un dépôt forgé : leur texte,
+ *  `docs-rebuild.mjs` remplacé par `MIROIRS_SEULS` de `crochets`, le reste de `$(dirname "$0")` résolu vers `CROCHETS`. */
 const HOOKS_DES_MIROIRS = ['pre-commit', 'post-commit', 'post-merge', 'post-rewrite']
-const hookForge = (nom) => readFileSync(join(CROCHETS, nom), 'utf8').split('\n')
-  .filter((ligne) => !ligne.includes('docs-rebuild.mjs'))
-  .join('\n').replaceAll('"$(dirname "$0")/', `"${CROCHETS.replaceAll(sep, '/')}`)
+const hookForge = (nom, crochets) => readFileSync(join(CROCHETS, nom), 'utf8')
+  .replaceAll('"$(dirname "$0")/docs-rebuild.mjs"', `"${join(crochets, MIROIRS_SEULS).replaceAll(sep, '/')}"`)
+  .replaceAll('"$(dirname "$0")/', `"${CROCHETS.replaceAll(sep, '/')}`)
 /** Le producteur (clôture d'imports de `compat-cli.mjs`), commis dans chaque dépôt forgé : le hook charge
  *  celui du dépôt qui commet. */
 const PRODUCTEUR = tableTotale([...clotureDImports(['scripts/agents/compat-cli.mjs'], { racine: RACINE })], (rel) => readFileSync(join(RACINE, rel), 'utf8'))
@@ -299,8 +302,9 @@ function depotAuSkill(fichiers = {}) {
   const env = envDeDepotForge()
   const { racine } = instanceDeDepot({ fichiers: { '.gitattributes': '* text=auto eol=lf\n', '.gitignore': 'node_modules/\n', 'notes.txt': 'n\n', ...PRODUCTEUR, ...fichiers }, message: 'socle' })
   const crochets = mkdtempSync(join(tmpdir(), 'crochets-'))
+  writeFileSync(join(crochets, MIROIRS_SEULS), `import { jouerLesMiroirs } from ${JSON.stringify(pathToFileURL(join(CROCHETS, 'miroirs-d-agents.mjs')).href)}\nawait jouerLesMiroirs(process.argv[2])\n`)
   for (const nom of HOOKS_DES_MIROIRS) {
-    writeFileSync(join(crochets, nom), hookForge(nom))
+    writeFileSync(join(crochets, nom), hookForge(nom, crochets))
     chmodSync(join(crochets, nom), 0o755)
   }
   const git = (...args) => lancerGit(args, { cwd: racine, env })

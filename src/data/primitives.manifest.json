@@ -1714,11 +1714,20 @@
   {
     "id": "ecritureJsonAtomique",
     "type": "primitives.manifest",
-    "label": "ecrireJsonAtomique",
+    "label": "ecrireJsonAtomique/ecrireTexteAtomique",
     "fichier": "scripts/guards/lib/ecritureJsonAtomique.mjs",
-    "concept": "écriture d'une valeur JSON en un geste : temporaire propre au processus, puis renommage sur la cible, dossier créé ; un lecteur concurrent ne lit jamais un fichier à moitié écrit",
-    "perimetre": "journal du train (`publier.mjs`), cache de la vigie (`vigie.mjs`), mesures du périmètre de tests (`perimetre.mjs`)",
+    "concept": "écriture d'un texte (ou d'une valeur JSON) en un geste : temporaire propre au processus, puis renommage sur la cible, dossier créé ; un lecteur concurrent ne lit jamais un fichier à moitié écrit",
+    "perimetre": "journal du train (`publier.mjs`), cache de la vigie (`vigie.mjs`), mesures et mémos du périmètre de tests (`perimetre.mjs`), cibles des générateurs (`ecrireDoc`), époque de l'écrivain des dérivés",
     "verrou": "ecritureJsonAtomique.test.mjs"
+  },
+  {
+    "id": "ecrivainDesDerives",
+    "type": "primitives.manifest",
+    "label": "preempterLesDerives/sousLEpoque/envDeLaPasse",
+    "fichier": "scripts/docs/lib/ecrivain-derives.mjs",
+    "concept": "écrivain UNIQUE des dérivés d'un arbre : verrou et époque sous `.git/hooks-git/` ; le post-hook et `build-all --code` préemptent (époque neuve, puis écrivent), la passe détachée écrit sous l'époque lue à son début et toute écriture d'une passe préemptée, ou pendant une opération git, lève ; toute autre écriture prend le verrou",
+    "perimetre": "post-hooks (`docs-rebuild.mjs`), `executer --code` (`build-all.mjs`), passe détachée (`reconstruction.mjs`), écriture des cibles (`ecrireDoc`) et du cache de fraîcheur (`fraicheur-docs.mjs`)",
+    "verrou": "ecrivain-derives.test.mjs"
   },
   {
     "id": "capaciteDuLanceur",
@@ -1733,9 +1742,9 @@
     "id": "ancetresDe",
     "type": "primitives.manifest",
     "label": "ancetresDe/LECTURES_DES_DEPENDANCES",
-    "fichier": "scripts/git-hooks/docs-rebuild.mjs",
+    "fichier": "scripts/git-hooks/selection-des-derives.mjs",
     "concept": "dossiers qui contiennent un chemin, du parent à la racine du dépôt ; manifestes de dépendances dont les lectures ne sont pas mesurées",
-    "perimetre": "sélection des docs dérivés par lectures (`docs-rebuild.mjs`) et périmètre de tests (`perimetre.mjs`)",
+    "perimetre": "sélection des docs dérivés par lectures (`selection-des-derives.mjs`) et périmètre de tests (`perimetre.mjs`)",
     "verrou": "docs-rebuild.test.mjs"
   },
   {

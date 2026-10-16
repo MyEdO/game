@@ -6,7 +6,7 @@
 // attendre sous une échéance ; il ne tue personne.
 import { randomUUID } from 'node:crypto'
 import fsReel from 'node:fs'
-import { dirname } from 'node:path'
+import { basename, dirname } from 'node:path'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 /** Préfixe des jetons de verrou d'environnement (#2603) : `lancerDetache` n'en transmet aucun. */
@@ -92,7 +92,7 @@ export function sousEcheanceAsync({ attente, horloge = Date.now, essai, abouti, 
  */
 export function attendreLibre({ chemin, attente, fs = fsReel, estVivant = estPidVivant, dormir = attendreSync, horloge = Date.now }) {
   const essai = () => {
-    const tenant = tenantDe(lireBrut(fs, chemin))
+    const tenant = tenantDuTexte(lireBrut(fs, chemin))
     return tenant && estVivant(tenant.pid) ? { etat: 'occupe', tenant } : { etat: 'libre' }
   }
   return derouler(sousEcheance({ attente, horloge, essai, abouti: (vu) => vu.etat === 'libre' }), dormir)
@@ -206,7 +206,7 @@ function prendreDepuis({ chemin, libelle, temporaire, fs, vivant, liberer }) {
       if (e.code !== 'EEXIST') throw e
       const brut = lireBrut(fs, chemin)
       if (brut === undefined) continue
-      const tenant = tenantDe(brut)
+      const tenant = tenantDuTexte(brut)
       if (tenant && vivant(tenant, brut)) {
         return { etat: 'refus', message: refusVerrou({ chemin, tenant, libelle }), tenant }
       }
@@ -251,7 +251,7 @@ function liberer({ chemin, texte, pid, generation, fs, vivant, dormir }) {
         continue
       }
       try {
-        if (tenantDe(lireOuAbsent(fs, chemin))?.generation === generation) fs.rmSync(chemin, { force: true })
+        if (tenantDuTexte(lireOuAbsent(fs, chemin))?.generation === generation) fs.rmSync(chemin, { force: true })
       } finally {
         fs.rmSync(reprise, { force: true })
       }
@@ -288,7 +288,7 @@ function reprendre({ chemin, mort, temporaire, fs, vivant }) {
 /** Retire le verrou de reprise `reprise` tenu par un MORT, si son texte relu est encore celui jugé mort. */
 function retirerRepriseMorte({ reprise, fs, vivant }) {
   const brut = lireBrut(fs, reprise)
-  const tenant = tenantDe(brut)
+  const tenant = tenantDuTexte(brut)
   if (tenant && !vivant(tenant, brut) && lireBrut(fs, reprise) === brut) fs.rmSync(reprise, { force: true })
 }
 
@@ -312,7 +312,7 @@ function lireOuAbsent(fs, chemin) {
 }
 
 /** Le tenant que porte le texte `brut`, ou `null` s'il est absent, illisible ou sans PID exploitable. */
-function tenantDe(brut) {
+function tenantDuTexte(brut) {
   try {
     const lu = JSON.parse(brut ?? '')
     return Number.isInteger(lu?.pid) ? lu : null
@@ -320,3 +320,54 @@ function tenantDe(brut) {
     return null
   }
 }
+
+/** Le tenant que porte le verrou `chemin`, `null` s'il est absent, illisible ou sans PID. @param {string} chemin */
+export const tenantDe = (chemin) => tenantDuTexte(lireBrut(fsReel, chemin))
+
+/** L'âge (s) d'un tenant à l'`horloge`, `null` sans date lisible. PURE. */
+export const ageDe = (tenant, horloge) => {
+  const date = Date.parse(tenant?.date ?? '')
+  return Number.isFinite(date) ? Math.round((horloge() - date) / 1000) : null
+}
+
+/**
+ * Le `estVivant` d'une prise du verrou `chemin` : `estVivant(pid)`, et le tenant `pid` relu n'a pas dépassé
+ * `borneMs` d'âge.
+ * @param {string} chemin @param {number} borneMs @param {(pid: number) => boolean} estVivant @param {() => number} horloge
+ */
+export const vivantSousBorne = (chemin, borneMs, estVivant, horloge) => (/** @type {number} */ pid) => {
+  if (!estVivant(pid)) return false
+  const tenant = tenantDe(chemin)
+  const age = tenant?.pid === pid ? ageDe(tenant, horloge) : null
+  return age === null || age * 1000 <= borneMs
+}
+
+/** La date de modification ISO du fichier `chemin`, `null` s'il manque. @param {string} chemin */
+export function mtimeDe(chemin) {
+  try {
+    return fsReel.statSync(chemin).mtime.toISOString()
+  } catch {
+    return null
+  }
+}
+
+/** @typedef {{ verrou: string, pid: number, depuis: string | null, preuve: 'jeton du journal' | 'PID mort' | 'âge > borne' }} Orphelin */
+
+/**
+ * Le `estVivant` d'une prise du verrou `chemin` (`vivantSousBorne`, sans borne si `borneMs` est `null`) qui
+ * CONSIGNE dans `orphelins` (clé `chemin`) son tenant jugé absent (#2493) : `PID mort`, ou `âge > borne`.
+ * @param {string} chemin @param {number | null} borneMs @param {(pid: number) => boolean} estVivant @param {() => number} horloge
+ * @param {Map<string, Orphelin>} orphelins
+ */
+export const consignant = (chemin, borneMs, estVivant, horloge, orphelins) => (/** @type {number} */ pid) => {
+  const tenant = tenantDe(chemin)
+  const vivant = borneMs === null ? estVivant(pid) : vivantSousBorne(chemin, borneMs, estVivant, horloge)(pid)
+  if (!vivant && tenant?.pid === pid) {
+    orphelins.set(chemin, { verrou: chemin, pid, depuis: tenant.date ?? mtimeDe(chemin), preuve: estVivant(pid) ? 'âge > borne' : 'PID mort' })
+  }
+  return vivant
+}
+
+/** Les orphelins `orphelins` nommés : `<nom> (PID p mort depuis d, preuve)`, joints par `, `. PURE. @param {Orphelin[]} orphelins */
+export const nomDesOrphelins = (orphelins) => orphelins
+  .map((o) => `${basename(o.verrou)} (PID ${o.pid}${o.preuve === 'âge > borne' ? '' : ' mort'} depuis ${o.depuis ?? '?'}, ${o.preuve})`).join(', ')

@@ -1,7 +1,5 @@
-// DÉTACHEMENT d'un processus node du dépôt (#1784) : le train de publication (`scripts/ops/publier.mjs`),
-// le consommateur du post-merge (`scripts/ops/synchroniser.mjs --consommer`, #2493) et le `docs:build` du
-// bootstrap d'un conteneur (`scripts/hooks/bootstrap-conteneur.mjs`). Tout détaché tourne en BelowNormal
-// (`./abaisser-priorite.mjs`, #2603) et n'hérite d'aucun jeton de verrou (`PREFIXE_JETON_VERROU`).
+// DÉTACHEMENT d'un processus node du dépôt (#1784, #2493, #2603). Tout détaché tourne en BelowNormal
+// (`./abaisser-priorite.mjs`, #2603) et n'hérite d'aucun jeton de verrou (`PREFIXE_JETON_VERROU`) ni de l'index d'un hook (`GIT_INDEX_FILE`, #2603).
 import { spawn, spawnSync } from 'node:child_process'
 import { PREFIXE_JETON_VERROU } from '../../test/verrou.mjs'
 
@@ -39,17 +37,15 @@ export function citerArgv(valeur) {
 }
 
 /**
- * Le seul site de détachement d'un processus node du dépôt (#1784) : le TRAIN et le consommateur du
- * post-merge (#2493) — `spawnBorne` (scripts/gates/toutes.mjs) en détache aussi ses gates, mais sous POSIX
+ * Le seul site de détachement d'un processus node du dépôt (#1784, #2493, #2603) — `spawnBorne` (scripts/gates/toutes.mjs) en détache aussi ses gates, mais sous POSIX
  * seulement (`detached: process.platform !== 'win32'`) : sous win32 elles héritent de la console de
  * l'appelant. Sous win32, `spawn({ detached: true })` pose `DETACHED_PROCESS` (libuv) : le détaché n'a
  * AUCUNE console, et chacun de ses enfants console (`git`, `gh`, `npm`, `node`) en ALLOUE une, visible au
  * premier plan ; `Start-Process -WindowStyle Hidden` n'en ouvre qu'une, la sienne, CACHÉE, dont ses
  * enfants héritent. Le pid rendu est celui du NODE détaché (`-PassThru`), jamais celui du `powershell`
  * intermédiaire, qui rend la main aussitôt et meurt sans l'emporter. Aucune redirection n'est demandée à
- * `Start-Process` : le détaché ouvre LUI-MÊME son journal (`modeDuLog` du train, `<pid>.log` du
- * consommateur), et `-RedirectStandard*` retiendrait le `powershell` jusqu'à sa fin.
- * @param {{script:string, args:string[], cwd:string, fdLog:number, envSupplementaire?:Record<string,string>,
+ * `Start-Process` : le détaché ouvre LUI-MÊME son journal, et `-RedirectStandard*` retiendrait le `powershell` jusqu'à sa fin.
+ * @param {{script:string, args:string[], cwd:string, fdLog:number|'ignore', envSupplementaire?:Record<string,string>,
  *          plateforme?:string, node?:string, detacher?:Function, executerSync?:Function}} p
  * @returns {number|undefined} pid du processus NODE détaché
  */
@@ -64,7 +60,7 @@ export function lancerDetache({
   detacher = spawn,
   executerSync = spawnSync,
 }) {
-  const env = Object.fromEntries(Object.entries({ ...process.env, ...envSupplementaire }).filter(([cle]) => !cle.startsWith(PREFIXE_JETON_VERROU)))
+  const env = Object.fromEntries(Object.entries({ ...process.env, ...envSupplementaire }).filter(([cle]) => !cle.startsWith(PREFIXE_JETON_VERROU) && cle !== 'GIT_INDEX_FILE'))
   const argv = [...ABAISSER_PRIORITE, script, ...args]
   if (plateforme !== 'win32') {
     const enfant = detacher(node, argv, { cwd, detached: true, stdio: ['ignore', fdLog, fdLog], env })

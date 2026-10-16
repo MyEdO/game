@@ -1,29 +1,26 @@
 // Les miroirs d'agents (#2578) produits sur un INDEX par `runCompat`, unique producteur
 // (`scripts/agents/compat-cli.mjs`), chargé depuis le dépôt qui commet. Le CODE du producteur est
 // dans l'état de l'index, ou la famille saute, AVERTIE ; la gate `agents:check` de la CI juge.
-// Point d'entrée des post-hooks : `post-commit`, `post-merge`, `post-rewrite` (`git help githooks`) ;
-// le `pre-commit` importe `produireLesMiroirs`.
+// Les post-hooks `post-commit`, `post-merge`, `post-rewrite` (`git help githooks`) jouent `jouerLesMiroirs`
+// dans le processus de `docs-rebuild.mjs` ; le `pre-commit` importe `produireLesMiroirs`.
 import '../node-requis.mjs'
 import { existsSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { journaliserLeHook } from './journal.mjs'
 import { INDEX, ceQuiChange, cheminGit, depotDe, ecartsDuTravail, entreesDe, natureDuChemin, racineDe, raisonCourte, rebaseEntame, shaDe } from '../guards/lib/gitPorte.mjs'
 
 const GENERATEUR = 'scripts/agents/compat-cli.mjs'
 const NOYAU = 'scripts/agents/compat-core.mjs'
 
-/** @typedef {{ memos: { sauver: () => void }, specificateurs: NonNullable<Parameters<typeof import('../guards/lib/importGraph.mjs').clotureDImports>[1]>['specificateurs'] }} Marches */
+/** @typedef {ReturnType<typeof import('../guards/lib/memosDAnalyse.mjs').memosDAnalyse>} Marches */
 
 /**
- * Les mémos du dépôt de `racine` (`memosDuDepot`) et l'option `specificateurs` de `clotureDImports` qu'ils
- * portent, sous le régime de typage (`specificateursMemoises`).
+ * Les mémos d'analyse du dépôt de `racine` (`memosDAnalyse`) : l'option `specificateurs` de `clotureDImports`.
  * @param {string} racine @returns {Promise<Marches>}
  */
 async function marchesMemoisees(racine) {
-  const { memosDuDepot, specificateursMemoises } = await import('../test/perimetre.mjs')
-  const memos = memosDuDepot(racine)
-  return { memos, specificateurs: specificateursMemoises(memos, { typesEffaces: false }) }
+  const { memosDAnalyse } = await import('../guards/lib/memosDAnalyse.mjs')
+  return memosDAnalyse(depotDe(racine), { racine })
 }
 
 /**
@@ -56,7 +53,7 @@ export async function produireLesMiroirs(depot, racine, { env, marches } = {}) {
     try {
       return await produireLesMiroirs(depot, racine, { env, marches: propres })
     } finally {
-      propres.memos.sauver()
+      propres.sauver()
     }
   }
   const etat = { ecarts: new Set(ecartsDuTravail(depot)), cache: new Map(), specificateurs: marches.specificateurs }
@@ -129,14 +126,17 @@ const sequenceEnCours = (depot) => {
   return chemin !== null && natureDuChemin(resolve(depot.cwd, chemin)) !== 'absent'
 }
 
-if (import.meta.main) {
-  const hook = process.argv[2]
-  journaliserLeHook(hook)
+/**
+ * Les miroirs d'agents d'un post-hook `hook` de l'arbre du processus, l'environnement sans `GIT_INDEX_FILE` :
+ * `post-commit` pendant un rebase ou un séquenceur ne produit rien. Rien ne lève : un échec est AVERTI.
+ * @param {string} hook
+ */
+export async function jouerLesMiroirs(hook) {
   const env = Object.fromEntries(Object.entries(process.env).filter(([cle]) => cle !== 'GIT_INDEX_FILE'))
   try {
     const racine = resolve(racineDe(depotDe(process.cwd(), { env })) ?? process.cwd())
     const depot = depotDe(racine, { env })
-    if (hook === 'post-commit' && (rebaseEntame(depot) || sequenceEnCours(depot))) process.exit(0)
+    if (hook === 'post-commit' && (rebaseEntame(depot) || sequenceEnCours(depot))) return
     const marches = await marchesMemoisees(racine)
     try {
       if (hook !== 'post-commit' || await commitAProduire(depot, racine, marches)) {
@@ -152,7 +152,7 @@ if (import.meta.main) {
         }
       }
     } finally {
-      marches.memos.sauver()
+      marches.sauver()
     }
   } catch (e) {
     process.stderr.write(`[${hook}] miroirs d'agents NON produits : ${raisonCourte(e?.message ?? e)}\n`)

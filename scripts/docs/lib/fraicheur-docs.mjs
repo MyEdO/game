@@ -8,6 +8,7 @@ import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, r
 import { perimetreDeMesure } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
 import { ecrireJsonAtomique } from '../../guards/lib/ecritureJsonAtomique.mjs'
+import { sousLEpoque } from './ecrivain-derives.mjs'
 import { clotureDImports } from '../../guards/lib/importGraph.mjs'
 
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
@@ -201,7 +202,8 @@ export function chargerPreuve(racine) {
 }
 
 function ecrirePreuve(racine, preuve) {
-  ecrireJsonAtomique(cheminSous(racine, CACHE_FRAICHEUR), preuve)
+  const cible = cheminSous(racine, CACHE_FRAICHEUR)
+  sousLEpoque(cible, () => ecrireJsonAtomique(cible, preuve))
 }
 
 export function invaliderPreuve(racine, scripts) {
@@ -261,11 +263,14 @@ export function preparerPreuves(racine, options) {
   }
 }
 
+/** Une source, un listing ou le contexte d'un générateur a changé pendant sa passe (#2603). */
+export class SourceModifiee extends Error {}
+
 export function avantGenerateur(racine, g, options, preparation) {
   const vue = vueDeContexte(racine, preparation.vue.outillage)
   const initial = contexte(racine, g, preparation.vue)
   const actuel = contexte(racine, g, vue)
-  for (const champ of Object.keys(initial)) if (!egaux(initial[champ], actuel[champ])) throw new Error(`contexte modifié depuis préparation : ${champ}`)
+  for (const champ of Object.keys(initial)) if (!egaux(initial[champ], actuel[champ])) throw new SourceModifiee(`contexte modifié depuis préparation : ${champ}`)
   return { contexte: actuel, preparation, baseline: { fichiers: new Map(preparation.fichiers), dossiers: new Map([...preparation.dossiers].map(([rel, snapshot]) => [rel, { nature: snapshot.nature, entrees: snapshot.entrees.map(({ nom, nature }) => ({ nom, nature })) }])), ignores: new Set(vue.ignores), derivees: new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine)) } }
 }
 
@@ -274,23 +279,25 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     const preuve = { version: 2, generateurs: { [g.script]: { mesure: entree, sources: { contexte: avant.contexte } } } }
     const vue = photographier(racine, options, preuve, {}, undefined, perimetreDeMesure(racine), undefined, g)
     const sources = mesurerSources(racine, g, entree, options, vue)
-    if (!egaux(sources.contexte, avant.contexte)) throw new Error('outillage modifié pendant génération')
+    if (!egaux(sources.contexte, avant.contexte)) throw new SourceModifiee('outillage modifié pendant génération')
     const anciensFichiers = avant.baseline.fichiers
     const anciensDossiers = avant.baseline.dossiers
     const motifsDeclares = options.generateurs.flatMap((g) => [...g.targets, ...(g.injecte ?? [])])
     for (const [rel, hash] of sources.fichiers) {
-      if (!anciensFichiers.has(rel) || anciensFichiers.get(rel) !== hash) throw new Error(`source modifiée ou non capturée : ${rel}`)
+      if (!anciensFichiers.has(rel)) throw new Error(`source non capturée : ${rel}`)
+      if (anciensFichiers.get(rel) !== hash) throw new SourceModifiee(`source modifiée : ${rel}`)
     }
     for (const [rel, noms] of sources.dossiers) {
       const propres = [...g.targets, ...(g.injecte ?? [])]
-      if (!anciensDossiers.has(rel) || !egaux(projeterListingMesure(rel, anciensDossiers.get(rel), avant.baseline.ignores, avant.baseline.derivees, propres, motifsDeclares), noms)) throw new Error(`listing modifié ou non capturé : ${rel}`)
+      if (!anciensDossiers.has(rel)) throw new Error(`listing non capturé : ${rel}`)
+      if (!egaux(projeterListingMesure(rel, anciensDossiers.get(rel), avant.baseline.ignores, avant.baseline.derivees, propres, motifsDeclares), noms)) throw new SourceModifiee(`listing modifié : ${rel}`)
     }
     const deriveesMesurees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
     const sondesMesurees = (entree.sondes ?? []).filter((q) => dansLaMesure(q.chemin, vue.ignores, deriveesMesurees, motifsDeclares))
-    if (!egaux(sources.git, entree.git ?? []) || !egaux(sources.sondes, sondesMesurees)) throw new Error('requête ou sonde modifiée pendant génération')
+    if (!egaux(sources.git, entree.git ?? []) || !egaux(sources.sondes, sondesMesurees)) throw new SourceModifiee('requête ou sonde modifiée pendant génération')
     const record = { mesure: entree, sources, sorties: mesurerSorties(racine, g, options, vue) }
     const finale = photographier(racine, options, preuve, {}, undefined, vue.perimetre, undefined, g)
-    if (!egaux(sources, mesurerSources(racine, g, entree, options, finale))) throw new Error('source modifiée pendant certification')
+    if (!egaux(sources, mesurerSources(racine, g, entree, options, finale))) throw new SourceModifiee('source modifiée pendant certification')
     const ignores = finale.ignores
     const derivees = new Set(options.ciblesSurDisque(options.generateurs.flatMap((g) => g.targets), racine))
     const parents = new Set()
@@ -335,7 +342,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
       if (!precedent) throw new Error(`parent de sortie non capturé : ${rel}`)
       for (const e of precedent.entrees) {
         const chemin = rel ? `${rel}/${e.nom}` : e.nom
-        if (e.nature === 'file' && !sortiesCertifiees.has(chemin) && avant.baseline.fichiers.has(chemin) && avant.baseline.fichiers.get(chemin) !== hashFichier(racine, chemin, undefined, finale.canon)) throw new Error(`source de parent modifiée : ${chemin}`)
+        if (e.nature === 'file' && !sortiesCertifiees.has(chemin) && avant.baseline.fichiers.has(chemin) && avant.baseline.fichiers.get(chemin) !== hashFichier(racine, chemin, undefined, finale.canon)) throw new SourceModifiee(`source de parent modifiée : ${chemin}`)
       }
       const ancien = projeterListingMesure(rel, precedent, avant.baseline.ignores, avant.baseline.derivees, propres, motifsDeclares)
       const apres = projeterListingMesure(rel, actuel, ignores, derivees, propres, motifsDeclares)
@@ -350,7 +357,7 @@ export function certifierGenerateur(racine, g, entree, options, avant) {
     for (const [rel, hash] of record.sorties) avant.preparation.fichiers.set(rel, hash)
     for (const [rel, actuel] of listings) avant.preparation.dossiers.set(rel, actuel)
     return { ok: true, record, perimetre: vue.perimetre }
-  } catch (e) { return { ok: false, raison: e.message } }
+  } catch (e) { return { ok: false, raison: e.message, sourceModifiee: e instanceof SourceModifiee } }
 }
 
 export function enregistrerPreuve(racine, options, preparation, records, vue) {

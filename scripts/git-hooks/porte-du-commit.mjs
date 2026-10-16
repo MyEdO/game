@@ -77,6 +77,7 @@ import {
   deplaceLaFrontiere, lignesDeReclassement, raisonDeRefusDeReclassement, reclassementsNonDeclares,
 } from '../guards/lib/reclassementCss.mjs'
 import { coteCss, sourceGit } from '../guards/lib/cssImages.mjs'
+import { memosDAnalyse } from '../guards/lib/memosDAnalyse.mjs'
 import {
   estCheminDuBudget, importsDe, mesurerBudget, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
@@ -1058,6 +1059,8 @@ export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAu
     depot: entreesDe(depot, INDEX, chemins, { index: INDEX_DU_DEPOT }),
     emporte: entreesDe(depot, INDEX, chemins),
   } : null)
+  let memosCss
+  const memos = () => (memosCss ??= memosDAnalyse(depot, { racine: dir }))
   return {
     base,
     stages,
@@ -1080,18 +1083,21 @@ export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAu
     apport,
     fusion,
     deplaceLaFrontiereCss: (chemins) => {
+      const { specificateurs } = memos()
       const f = fusion()
       return deplaceLaFrontiere(f
-        ? { chemins: f.fait.chemins(), nesOuMorts: () => f.fait.chemins('AD'), base: sourceA(f.fusion.commune), commit: sourceDuCommit(), racine: dir }
-        : { chemins, nesOuMorts: () => vers().chemins('AD', []), base: sourceDeLaBase(), commit: sourceDuCommit(), racine: dir })
+        ? { chemins: f.fait.chemins(), nesOuMorts: () => f.fait.chemins('AD'), base: sourceA(f.fusion.commune), commit: sourceDuCommit(), racine: dir, specificateurs }
+        : { chemins, nesOuMorts: () => vers().chemins('AD', []), base: sourceDeLaBase(), commit: sourceDuCommit(), racine: dir, specificateurs })
     },
     cotesCss: () => {
       const f = fusion()
-      const cote = (s) => coteCss(s, { racine: dir })
+      const cote = (s) => coteCss(s, { racine: dir, specificateurs: memos().specificateurs })
       return f
         ? { base: cote(sourceA(f.fusion.commune)), commit: cote(sourceDuCommit()), parents: f.fusion.parents.map((p) => cote(sourceA(p))) }
         : { base: cote(sourceDeLaBase()), commit: cote(sourceDuCommit()) }
     },
+    /** Les mémos d'analyse lus par `deplaceLaFrontiereCss` et `cotesCss`, écrits UNE fois, le commit jugé (`memosDAnalyse`). */
+    sauverLesMemos: () => memosCss?.sauver(),
   }
 }
 
@@ -1356,6 +1362,7 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
     deplace: () => commit.deplaceLaFrontiereCss(fichiers),
     cotes: commit.cotesCss,
   })
+  commit.sauverLesMemos()
   const hunks = jugerOuConfier(() => evaluateHunksEmportes({ stages: commit.stages(fichiers) }), pannes)
   return [decision, porteDuTicket, antiEsquive, juge, registresPorteurs, tombale, budget, stocks, reclassements, hunks]
 }

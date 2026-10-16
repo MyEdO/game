@@ -413,9 +413,24 @@ export function closureOf(roots, { racine, cache } = {}) {
  */
 export function directImportsOf(fromFile, contenu, { racine = '.', existe, alias = aliasDuDepot(racine), diagnostics } = {}) {
   const root = resolve(racine).split('\\').join('/');
+  return importsDirectsDesSites(fromFile, specificateursDe(resolve(root, fromFile), contenu, diagnostics), { racine, existe, alias });
+}
+
+/**
+ * Les cibles `src/` de `fromFile` (chemins POSIX relatifs à `racine`) que résolvent ses `sites` NON RÉSOLUS
+ * (`specificateursDe`, ou leur mémo `SiteNonResolu`), sites `glob` écartés : le rendu de `directImportsOf`.
+ * @param {string} fromFile @param {readonly { spec: string, nature: string }[]} sites
+ * @param {{ racine?: string, existe?: (abs: string) => boolean, alias?: readonly { prefixe: string, vers: string }[] }} [options]
+ * @returns {string[]}
+ */
+export function importsDirectsDesSites(fromFile, sites, { racine = '.', existe = fichierExiste, alias = aliasDuDepot(racine) } = {}) {
+  const root = resolve(racine).split('\\').join('/');
+  const abs = resolve(root, fromFile);
   const found = new Set();
-  for (const { cible } of arcsDe(resolve(root, fromFile), contenu, { existe, alias, diagnostics })) {
-    if (cible.startsWith(`${root}/`) && cible.includes('/src/')) found.add(cible.slice(root.length + 1));
+  for (const site of sites) {
+    if (site.nature === 'glob') continue;
+    const cible = resolveImport(abs, site.spec, existe, alias, site.nature);
+    if (cible && cible.startsWith(`${root}/`) && cible.includes('/src/')) found.add(cible.slice(root.length + 1));
   }
   return [...found];
 }

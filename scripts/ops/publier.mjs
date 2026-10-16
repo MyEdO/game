@@ -40,7 +40,7 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   GitIndisponible, TRONC, abandonnerFusion, attributsDe, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
-  conclureFusionSansChemins, depotDe,
+  conclureFusionSansChemins, depotDe, TIMEOUT_DU_HOOK_MS,
   estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, indisponible, lireEnLot, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
@@ -60,6 +60,7 @@ import { TIMEOUT_SYNCHRONISEUR } from '../agents/compat-core.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
 import { ligneDeLEtat, mesurerPrincipal } from './synchroniser.mjs'
+import { attendreLaReconstruction, demandesDe } from '../git-hooks/reconstruction.mjs'
 
 /** L'arbre où VIT ce script — jamais `process.cwd()` : le train publie SON worktree. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -792,7 +793,8 @@ function numeroDeTicket(geste, numero) {
  * par un geste d'ici. Écrivains nommés de l'hôte :
  * `commit`, `fusionner` (un message), `abandonnerFusion`, `conclureFusionSansCiblesPures` (des cibles pures
  * et un message), `pousser`, `tronc`. Hors git : `npm` (un NOM
- * de script), `docs` (un mode de `build-all.mjs`), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
+ * de script), `docs` (un mode de `build-all.mjs`), `attendreReconstruction` (la reconstruction des dérivés de
+ * l'arbre jusqu'à ses demandes courantes, `attendreLaReconstruction`), `coursesCi` (un sha), `coursesDeFile`, `parentsDe`
  * (un sha), `jobsEnEchec` (un id de course et son essai), `lirePr`, `ouvrirPr` (un titre et un corps), `demanderFusion` (un numéro de PR et
  * un sha), `lireFusion` (un numéro de PR, un sha et un uuid), `lireTicket` (un numéro), `commenter` (un numéro et un corps) ; chacun valide ses arguments avant tout spawn.
  * Données : `generators` (`GENERATORS` de `build-all.mjs`), la table des dérivés que lit
@@ -827,6 +829,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog, maint
       if (vu.stderr) writeSync(fdLog, vu.stderr)
       return vu
     },
+    attendreReconstruction: () => attendreLaReconstruction(racine, demandesDe(racine), { echeanceMs: TIMEOUT_DU_HOOK_MS }),
     coursesCi(sha) {
       return coursesCi({ cwd: racine, commit: shaComplet('coursesCi', sha), limit: 30 })
     },
