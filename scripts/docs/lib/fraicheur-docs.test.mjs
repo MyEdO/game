@@ -179,6 +179,54 @@ test('préparation : une capture physique commune, null conservé, clés absente
 })
 
 // #2603
+test('source supprimée entre son hash et sa sonde dans la finale : certificat refusé', (t) => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'docs/\n', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
+  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
+  const opts = { ...options, generateurs: [g] }
+  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: [], cibles: [], git: [], sondes: [{ chemin: 'data/source.txt', type: 'exists', existe: true, nature: null }], incomplet: [] }
+  const source = path.join(racine, 'data/source.txt')
+  try {
+    poser(racine, SOURCES_LUES, JSON.stringify({ [g.script]: entree }))
+    const avant = avantGenerateur(racine, g, opts, preparerPreuves(racine, opts))
+    poser(racine, doc('a'), 'sortie')
+    const lire = fs.readFileSync
+    let lectures = 0
+    t.mock.method(fs, 'readFileSync', function (chemin, ...reste) {
+      const octets = lire.call(this, chemin, ...reste)
+      if (typeof chemin === 'string' && path.resolve(chemin) === source && ++lectures === 2) rmSync(source)
+      return octets
+    })
+    syncBuiltinESMExports()
+    const vu = certifierGenerateur(racine, g, entree, opts, avant)
+    assert.equal(lectures, 2)
+    assert.deepEqual([vu.ok, vu.sourceModifiee], [false, true], vu.raison)
+  } finally {
+    t.mock.restoreAll()
+    syncBuiltinESMExports()
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('chemin sous la racine : validé pour UNE vue, jonction posée ensuite refusée par la suivante', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'data/sous/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
+  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
+  const opts = { ...options, generateurs: [g] }
+  const externe = fs.mkdtempSync(path.join(racine, '..', 'fraicheur-jonction-'))
+  try {
+    poser(racine, SOURCES_LUES, JSON.stringify({ [g.script]: { fichiers: [g.script, 'data/sous/source.txt'], dossiers: [], cibles: [], git: [], sondes: [], incomplet: [] } }))
+    assert.equal(typeof nouvelleVue(racine, opts).hashes.get('data/sous/source.txt'), 'string')
+    poser(externe, 'source.txt', 'externe')
+    rmSync(path.join(racine, 'data/sous'), { recursive: true })
+    symlinkSync(externe, path.join(racine, 'data/sous'), process.platform === 'win32' ? 'junction' : 'dir')
+    assert.throws(() => nouvelleVue(racine, opts), /chemin de preuve hors racine/)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(externe, { recursive: true, force: true })
+  }
+})
+
+// #2603
 test('une source modifiée pendant la passe : refus marqué `sourceModifiee`', () => {
   const { racine } = instanceDeDepot({ fichiers: { 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
   const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
