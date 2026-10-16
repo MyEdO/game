@@ -14,6 +14,22 @@ import path from 'node:path'
 import { cheminAbsent, correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 
+const HOTE_PIPE = String.raw`[^\\/]+[\\/]pipe[\\/]`
+const SAUTS_VERS_DOSDEVICES = String.raw`(?:GLOBALROOT[\\/](?:\?\?|GLOBAL\?\?|DosDevices)[\\/]|Global[\\/])*`
+const PIPE_NOMME = new RegExp(String.raw`^[\\/]{2}(?:[.?][\\/]${SAUTS_VERS_DOSDEVICES}(?:pipe[\\/]|UNC[\\/]${HOTE_PIPE}|GLOBALROOT[\\/]Device[\\/](?:NamedPipe[\\/]|Mup[\\/](?:;[^\\/]*[\\/])*${HOTE_PIPE}))|${HOTE_PIPE})`, 'i')
+
+/**
+ * Chemin du namespace Windows des PIPES NOMMÉS, casse indifférente : un appel `fs` sur lui OUVRE le
+ * pipe, +1 connexion par appel (#2603). Formes mesurées : `\\<hôte>\pipe\` ; `\\.\` ou `\\?\`, des
+ * sauts de liens du gestionnaire d'objets (`GLOBALROOT\??`, `GLOBALROOT\GLOBAL??`,
+ * `GLOBALROOT\DosDevices`, `Global`), puis `pipe\` ou `UNC\<hôte>\pipe\` ; `GLOBALROOT\Device\NamedPipe\`
+ * et `GLOBALROOT\Device\Mup\[;<fournisseur>\]<hôte>\pipe\`. Faux hors de la plateforme win32 de
+ * `chemins` : le `node:path` de ce module, `path.win32` sous `plateforme-win32-hooks.mjs`.
+ */
+export function estPipeNomme(chemin, chemins = path) {
+  return chemins.sep === '\\' && PIPE_NOMME.test(chemin)
+}
+
 /** Ancêtre EXISTANT le plus proche d'un chemin absolu (lui-même s'il existe), ou `null` quand rien
  *  n'existe jusqu'à la racine (lecteur absent). */
 export function ancetreExistant(abs, { strict = false } = {}) {
@@ -45,6 +61,7 @@ export function ancetreExistant(abs, { strict = false } = {}) {
  */
 export function canoniser(chemin, { strict = false } = {}) {
   const abs = path.resolve(chemin)
+  if (estPipeNomme(abs)) return abs
   let ancetre = ancetreExistant(abs, { strict })
   while (ancetre !== null) {
     try { return path.join(fs.realpathSync.native(ancetre), path.relative(ancetre, abs)) }
@@ -85,6 +102,7 @@ export function canoniseurParDossier() {
   const estLien = (abs) => { try { return fs.lstatSync(abs).isSymbolicLink() } catch { return true } }
   const canoniques = new Map()
   const canoniserFeuille = (abs, lien) => {
+    if (estPipeNomme(abs)) return canoniser(abs)
     const dossier = path.dirname(abs)
     const feuille = path.basename(abs)
     if (dossier === abs || !nomsDe(dossier).has(feuille) || (lien ?? estLien(abs))) return canoniser(abs)
