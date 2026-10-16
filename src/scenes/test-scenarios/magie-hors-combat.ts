@@ -6,12 +6,13 @@ import type { TestScenario } from './_shared';
 import { t } from '../../i18n';
 import type { Scene } from '../../state/scene';
 import type { Combatant, CharKey } from '../../engine/types';
+import { refCouvre } from '../../data/schemas/grammaire/ref';
 
 /** Garantit qu'un héros peut TENTER une Compétence d'incantation (avancée ≥ 1, LDB 09-Compétences) —
  *  fixture de vérif : un pré-tiré peut avoir la Compétence à 0 avance (donc non tentable). */
 function ensureSkill(h: Combatant, name: string, characteristic: CharKey, spec?: string) {
   const skillId = findSkill(name)?.id ?? slugId(name);
-  const sk = h.skills.find((s) => s.id === skillId && (spec == null || s.spec === spec));
+  const sk = h.skills.find((s) => refCouvre({ id: skillId, spec }, s));
   if (sk) sk.advances = Math.max(sk.advances, 5);
   else h.skills.push({ id: skillId, spec, characteristic, advances: 5 });
 }

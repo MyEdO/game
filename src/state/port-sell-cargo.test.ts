@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { seedBattleRng } from './battleRng';
+import { seedBattleRng, battleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import type { PortProfile } from '../engine/seaVoyage';
@@ -33,6 +33,14 @@ function setSkill(c: Combatant, skillId: string, advances: number): void {
   const ex = c.skills.find((s) => s.id === skillId);
   if (ex) ex.advances = advances;
   else c.skills.push({ id: skillId, advances } as SkillInstance);
+}
+
+/** Impose les PROCHAINS d100 du RNG PARTAGÉ (`battleRng`, source unique des dés) ; les autres tirages,
+ *  et les d100 au-delà de la file, restent ceux de la graine. À poser APRÈS le dernier `seedBattleRng`. */
+function imposeD100(...des: number[]): void {
+  const rng = battleRng() as { int: (min: number, max: number) => number };
+  const brut = rng.int.bind(rng);
+  rng.int = (min, max) => (min === 1 && max === 100 && des.length ? des.shift()! : brut(min, max));
 }
 
 const scene = { id: 'scene-P', label: 'Port', dimensions: { w: 2, h: 2 }, layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }], entities: [], dialogues: [], triggers: [] } as never;
@@ -101,9 +109,10 @@ describe('portSellCargo — cascade Ragot → acheteur → Marchandage (#275/#27
     expect(get().journal.some((l) => /aucun marchand intéressé/.test(l))).toBe(true);
   });
 
-  it('cible d’acheteur AU PLANCHER (clamp policy `targetMin`) → 1ʳᵉ tentative ratée, la 2ᵉ (moitié du lot) trouve preneur', async () => {
+  it('1ʳᵉ recherche d’acheteur ratée (d100 > nombre visé), la 2ᵉ sur la moitié du lot au MÊME nombre visé trouve preneur (MDG 15 l.362)', async () => {
     const hero = makePregens()[0];
-    setup({ taille: 0, richesse: 1, production: [] }, [hero]); // seed 1 (défaut de `setup`)
+    setup({ taille: 5, richesse: 1, production: [] }, [hero]); // nombre visé 50 (MDG 15 l.362)
+    imposeD100(51, 50);
     get().portSellCargo(0);
     await drain();
     expect(get().pendingCascade).toBeNull();

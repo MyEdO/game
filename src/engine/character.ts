@@ -42,6 +42,7 @@ import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
+import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
  *  Caractéristique + avances. (≠ re-lookup par libellé — multilangue-safe.) */
@@ -365,7 +366,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const heroSoFar: Combatant = { characteristics: chars, talents } as Combatant;
   const skills: SkillInstance[] = [];
   const addSkill = ({ id, spec }: RefDesignee, adv: number) => {
-    const existing = skills.find((s) => s.id === id && (s.spec ?? '') === (spec ?? ''));
+    const existing = skills.find((s) => s.id === id && memeSpecialisation(s.spec, spec));
     if (existing) existing.advances += adv; // même (id, spec) = même Compétence (LDB 09 l.42)
     else skills.push({ id, spec, characteristic: skillCharacteristicById(id), advances: adv });
   };

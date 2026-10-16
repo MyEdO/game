@@ -66,6 +66,7 @@ import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, e
 import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
+import { propulsionDuNavire } from '../engine/shipBuild';
 import { estAbsent } from './terrain';
 import { sceneToAscii } from './sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
@@ -1448,7 +1449,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** Recette : MANŒUVRE un navire (MDG 13) — le barreur (meilleur en Voile/Ramer de l'équipage, ou
-     *  `helmsmanId`) jette un Test de Navigation → `resolveShipManeuver` → vire SUR RÉUSSITE. `side` =
+     *  `helmsmanId`) jette un Test de Navigation → `maneuverShip` → vire sur réussite du Test. `side` =
      *  'tribord'/'babord' (90°) ou crans. Contrairement à `turnShip` (triche), ce virage PEUT échouer. */
     maneuver: (shipId: string, side: 'tribord' | 'babord' | number = 'tribord', helmsmanId?: string) => {
       const b = g().battle;
@@ -2309,8 +2310,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     forceOverspeed: (overM = 5) => {
       const plan = g().travelPlan;
       if (!plan?.sea) return '✗ aucune traversée en cours (travelPlan.sea)';
-      const vd = plan.vehicle ? findVehicleById(plan.vehicle.creatureId ?? '')?.ship : undefined;
-      const baseM = vd?.sail?.m ?? vd?.oars?.m ?? 0;
+      const baseM = plan.vehicle ? propulsionDuNavire(plan.vehicle.creatureId, plan.vehicle.upgrades)?.m ?? 0 : 0;
       if (!baseM) return '✗ M de conception introuvable sur le navire de campagne';
       const effMToday = baseM + Math.max(1, overM);
       useGame.setState({ travelPlan: { ...plan, sea: { ...plan.sea, effMToday, milesToday: Math.max(1, plan.sea.milesToday) } } });

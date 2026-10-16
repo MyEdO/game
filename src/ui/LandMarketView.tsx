@@ -12,7 +12,8 @@ import { ScreenShell } from './ScreenShell';
 import { SpeakerBanner } from './SpeakerBanner';
 import { CargoTransferPanel } from './CargoTransferPanel';
 import { TradeTable, type TradeGroup } from './TradeTable';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
+import { appraiseRefus } from '../state/merchantFlow';
 import { Grid, Row, spanFull } from './Layout';
 
 /** Raison UNIQUE du refus des gestes de marché à un invité : l'hôte seul engage la bourse du groupe. */
@@ -45,6 +46,7 @@ export function LandMarketView() {
   const dump = useGame((s) => s.landDumpCargo);
   const move = useGame((s) => s.moveCargo);
   const evalWine = useGame((s) => s.landEvalWine);
+  const refusEval = appraiseRefus(party);
   const isGuest = useGame((s) => s.net.mode) === 'guest';
   const [buyEnc, setBuyEnc] = useState<Record<string, number>>({});
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
@@ -107,7 +109,7 @@ export function LandMarketView() {
                       ? <span className="port-hint"> — {o.wineTier}{o.wineEvalOk ? '' : ' (?)'}</span>
                       : <> <GatedAction
                           id={`market-eval-${o.cargoId}`} label="Évaluer" ariaLabel={`Évaluer ${o.label}`}
-                          enabled={!isGuest} reason={REFUS_INVITE}
+                          enabled={!isGuest && !refusEval} {...raisonSi(isGuest ? REFUS_INVITE : refusEval)}
                           descOfferte="Test d’Évaluation pour révéler la qualité secrète du vin"
                           onClick={() => evalWine(o.cargoId)} primary={false} btnClassName="small ghost"
                         /></>)}

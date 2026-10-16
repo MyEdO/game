@@ -9,6 +9,7 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { spells, blessingsOf, miraclesOf, findSkill, findTalent, rigSpeciesId } from '../../data';
 import { slugId } from '../../data/slug';
+import { refCouvre, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import { acquerirTalent, splitLabel } from '../../engine/careerSlots';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
@@ -19,7 +20,7 @@ export const clone = (c: Combatant): Combatant => JSON.parse(JSON.stringify(c)) 
 /** Monte (ou ajoute) une Compétence à un niveau d'avances donné. */
 export function boostSkill(c: Combatant, name: string, spec: string | undefined, characteristic: CharKey, advances: number): void {
   const skillId = findSkill(name)?.id ?? slugId(name);
-  const s = c.skills.find((x) => x.id === skillId && (spec == null || x.spec === spec));
+  const s = c.skills.find((x) => refCouvre({ id: skillId, spec }, x));
   if (s) s.advances = Math.max(s.advances, advances);
   else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
 }
@@ -33,7 +34,7 @@ export function addTalents(c: Combatant, names: string[]): void {
   for (const name of names) {
     const { name: base, spec } = splitLabel(name);
     const talentId = findTalent(base)?.id ?? slugId(base);
-    if (!c.talents.some((t) => t.talentId === talentId && (t.spec ?? '') === (spec ?? ''))) acquerirTalent(c, { id: talentId, spec });
+    if (!c.talents.some((t) => t.talentId === talentId && memeSpecialisation(t.spec, spec))) acquerirTalent(c, { id: talentId, spec });
   }
 }
 

@@ -21,19 +21,19 @@ describe('talentTestSLBonus — règle LDB 10 universelle (matcher structuré te
   it('spec FIXE : Diction instinctive ne booste que Langue (Magick), pas (Bretonnien)', () => {
     const d = c([{ talentId: 'diction-instinctive', times: 1 }]);
     expect(talentTestSLBonus(d, { skill: 'langue', spec: 'magick' })).toBe(1);
-    expect(talentTestSLBonus(d, { skill: 'langue', spec: 'Bretonnien' })).toBe(0);
+    expect(talentTestSLBonus(d, { skill: 'langue', spec: 'bretonnien' })).toBe(0);
   });
 
   it('specFromInstance : Maître artisan (Serrurier) booste Métier (Serrurier), pas (Forgeron)', () => {
-    const m = c([{ talentId: 'maitre-artisan', times: 1, spec: 'Serrurier' }]);
-    expect(talentTestSLBonus(m, { skill: 'metier', spec: 'Serrurier' })).toBe(1);
-    expect(talentTestSLBonus(m, { skill: 'metier', spec: 'Forgeron' })).toBe(0);
+    const m = c([{ talentId: 'maitre-artisan', times: 1, spec: 'serrurier' }]);
+    expect(talentTestSLBonus(m, { skill: 'metier', spec: 'serrurier' })).toBe(1);
+    expect(talentTestSLBonus(m, { skill: 'metier', spec: 'forgeron' })).toBe(0);
     expect(talentTestSLBonus(m, { skill: 'metier' })).toBe(0); // une spec d’instance est EXIGÉE
   });
 
   it('exceptSpec : Linguistique booste les langues de communication, PAS Langue (Magick)', () => {
     const l = c([{ talentId: 'linguistique', times: 3 }]);
-    expect(talentTestSLBonus(l, { skill: 'langue', spec: 'Bretonnien' })).toBe(3);
+    expect(talentTestSLBonus(l, { skill: 'langue', spec: 'bretonnien' })).toBe(3);
     expect(talentTestSLBonus(l, { skill: 'langue', spec: 'magick' })).toBe(0); // desc : « ne fonctionne pas avec Langue (Magick) »
   });
 

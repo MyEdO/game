@@ -19,7 +19,7 @@ import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './sceneNpc';
 import { buildActorView } from './combat/flowEval';
-import { partyBest, partyAssisted, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
+import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { parseStatus } from '../engine/creation';
 import { easeDifficulty } from '../engine/tests';
@@ -36,9 +36,9 @@ import { harvestSizeOf, harvestYield } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
-import { hasHealSkill, HEAL_SKILL, type HealMode } from '../engine/healing';
+import { HEAL_SKILL, type HealMode } from '../engine/healing';
 import { openMedic } from './medicFlow';
-import { seaWeatherTestMod, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
+import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
 import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoyage';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
@@ -76,7 +76,7 @@ import { possessionLabel, type Possession, type LivingRef } from '../engine/poss
 import { ev } from './combatLog';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
-import { dataLabel } from '../data';
+import { dataLabel, type WaterExposureMode } from '../data';
 import { actionsAuthorees, type Drapeaux } from './usable';
 import type { SceneEntity } from './scene';
 
@@ -422,8 +422,8 @@ export function jouerFlowEntier(_applique: Applique): void {
 
 /**
  * CONSOMME le signal d'un lot qui NE PEUT PAS ouvrir de dé (#1508) — le site applique une donnée
- * LITTÉRALE dont le type d'Effet n'a pas de canal de dés (`giveMoney`, `giveTrapping`,
- * `waterExposure`), et ce qui le suit ne pourrait donc jamais passer devant un dé.
+ * LITTÉRALE dont le type d'Effet n'a pas de canal de dés (`giveMoney`, `giveTrapping`, `giveXp`…), et
+ * ce qui le suit ne pourrait donc jamais passer devant un dé.
  *
  * Ce n'est pas une exemption, c'est un FAIL-FAST : si un jour ce lot atteint la porte, il lève ICI,
  * nommément, au lieu d'inverser l'ordre en silence. Un site qui « ne devrait pas » différer et le
@@ -981,16 +981,7 @@ export function openSkillTest(
       ? refLabel('skills', { id: spec.easierIf!.hasSkill.id, spec: spec.easierIf!.hasSkill.spec })
       : refLabel('talents', { id: spec.easierIf!.hasTalent! }))
     : undefined;
-  // Météo maritime ACTIVE (Précipitations, MDG 13 l.187-201) — POINT UNIQUE d'injection des mods
-  // d'environnement dans un Test : même malus pour tout le monde (indépendant du candidat), au même
-  // titre que le mod social ou le Soutien. `undefined` hors voyage en mer / Test de Caractéristique.
-  const env = seaWeatherTestMod(get().travelPlan?.sea, spec.skill?.id, spec.skill?.spec);
-  // Canal `surLaCible` du monteur : le malus pèse sur la CIBLE, pas sur la valeur (le pending le porte
-  // toujours à part, `envMod`/`envLabel`). Même mod pour tous les candidats — monté une fois. La ligne
-  // porte sa fiche : la table de météo maritime (MDG 13) d'où sort la Précipitation.
-  const envLines: ModLine[] = env
-    ? [{ label: env.label, value: env.mod, famille: 'jet', ref: RULE_REF['meteo-maritime'] }]
-    : [];
+  const pont = activeSeaPrecipitation(get); // MDG 13 l.185
   // Pool des héros AVEC leur position à jour si un combat est en cours (`battle.combatants` — `party` seule
   // ne porte pas `pos`, LDB 12 l.196 « adjacent »). Même patron que `effectTargets` ci-dessus.
   const battle = get().battle;
@@ -1001,7 +992,7 @@ export function openSkillTest(
   // `opts.actorId`). Un Test qu'on ne peut pas soutenir se déclare `noSupport` (l.197), il ne se
   // dérive pas de la restriction du lanceur.
   const allies = (a: Combatant): Combatant[] => pool.filter((c) => c.kind === a.kind && !c.dead);
-  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && !c.dead);
+  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && peutTenter(c, spec.skill?.id, spec.skill?.spec));
   const candidates = runners.map((actor) => {
     const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
@@ -1028,7 +1019,7 @@ export function openSkillTest(
       valeur: value,
       ...(soutD ? { soutien: soutD } : {}),
       ...(social ? { dansLaValeur: socialLines(actor) } : {}),
-      ...(envLines.length ? { surLaCible: envLines } : {}),
+      pont,
     });
     return {
       id: actor.id, label: actor.label, value,
@@ -1056,7 +1047,6 @@ export function openSkillTest(
       requireSL: spec.requireSL ?? 0, target: def.target, clamped: def.clamped, base: def.base, mods: def.mods, psychMod: def.psychMod, psychDetail: def.psychDetail,
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,
       support: def.support, easedBy,
-      envMod: env?.mod, envLabel: env?.label,
       capriciousRoll, capriciousDR: capDR || undefined,
       ...structuredClone({ onSuccess, onFailure, after }), // #2097
       candidates: candidates.length > 1 ? candidates : undefined,
@@ -1912,39 +1902,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   waterExposure: {
     group: 'Afflictions', label: libelleEffet('waterExposure'), icon: 'travel/wave',
     make: () => ({ type: 'waterExposure', mode: 'ingestion', target: 'hero' }),
-    apply: (e, env) => {
-      // « Maladies transmises par l'eau » (MSRC 16 l.13) : UN Test de Résistance Intermédiaire (+0) modifié
-      // PAR HÉROS exposé — étape de cascade influençable (jamais de jet silencieux). Modificateurs
-      // cumulés : tableau 1 « Source d'eau » (choix d'auteur `e.source`, ingestion ET immersion) +
-      // tableau 2 « Blessures et États » (DÉRIVÉ du héros, immersion seule). La conséquence (d100
-      // « +10/DR négatif » → contraction DIRECTE) vit dans l'applier `waterExposure`.
-      const heroes = env.targets(e.target ?? 'hero', e.heroId);
-      if (!heroes.length) return;
-      const src = sourceExposureMod(e.source);
-      const steps = heroes.flatMap((h) => {
-        const auto = autoExposureMods(h, e.mode); // tableau 2 (gate `appliesTo` interne : immersion seule)
-        const parts = [...(src ? [src] : []), ...auto]; // tableau 1 : « à l'ingestion et à l'immersion »
-        const detail = parts.map((m) => `${m.label} ${m.mod > 0 ? '+' : ''}${m.mod}`).join(' · ');
-        // Ligne montée par le MONTEUR CANONIQUE (dans le mint) : la base est le Niveau de Résistance NU,
-        // et les deux tableaux d'exposition sont des lignes NOMMÉES sur la cible, chacune liée à la
-        // fiche qui les octroie (MSRC 16).
-        const step = monoStep({
-          id: `waterExposure-${h.id}`, kind: 'waterExposure', actor: h, icon: 'travel/wave',
-          rollLabel: refLabel('skills', WATER_EXPOSURE.test.skill),
-          label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
-          difficulty: WATER_EXPOSURE.test.difficulty,
-          ligne: {
-            test: { skill: WATER_EXPOSURE.test.skill.id, spec: WATER_EXPOSURE.test.skill.spec },
-            surLaCible: parts.map((m): ModLine => ({
-              label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
-            })),
-          },
-          stake: combatStakeRef('waterExposure'),
-        });
-        return step ? [step] : [];
-      });
-      if (steps.length) openSequence(env.get, env.set, { title: t('eff.waterTitle'), icon: 'travel/wave', purpose: 'test', steps });
-    },
+    apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'hero', e.heroId), e, 'waterExposure'),
   },
 
   // ── Temps & repos ──────────────────────────────────────────────────────
@@ -2189,7 +2147,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!ctx.entityIds.has(e.entityId)) return [{ level: 'error', message: `Soins payants → PNJ soigneur inexistant « ${e.entityId || '(aucun)'} »` }];
       const npc = ctx.npcSheet(e.entityId);
       if (!npc) return [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » n'a aucune fiche (ni réf de bestiaire, ni profil, ni preset)` }];
-      return hasHealSkill(npc) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
+      return possesses(npc, HEAL_SKILL) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
     },
   },
   castSpell: {
@@ -2264,11 +2222,48 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
 };
 
+/** Les `kind` de l'étape de Test d'Exposition HYDRIQUE (MSRC 16 l.13) — MÊME règle, MÊME applier, DEUX
+ *  routes qui la posent : l'Effet de scène (`waterExposure`) et la descente (`river-exposition`, seule
+ *  couverte par les ORDRES d'une traversée, cf. `voyageCadence.KINDS_SOUS_ORDRES`). */
+export const WATER_EXPOSURE_KINDS = ['waterExposure', 'river-exposition'] as const;
+export type WaterExposureKind = (typeof WATER_EXPOSURE_KINDS)[number];
+
+/** Ouvre le Test d'Exposition HYDRIQUE (MSRC 16 l.5-13) des `heroes`, sous le `kind` de la route qui le pose. */
+export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combatant[], e: { mode: WaterExposureMode; source?: string }, kind: WaterExposureKind): void {
+  // MSRC 16 l.13 : une étape par héros exposé ; tableau 1 (`e.source`) et tableau 2 (`autoExposureMods`).
+  // Conséquence : l'applier de `WATER_EXPOSURE_KINDS`.
+  if (!heroes.length) return;
+  const src = sourceExposureMod(e.source);
+  const steps = heroes.flatMap((h) => {
+    const auto = autoExposureMods(h, e.mode); // tableau 2 (gate `appliesTo` interne : immersion seule)
+    const parts = [...(src ? [src] : []), ...auto]; // tableau 1 : « à l'ingestion et à l'immersion »
+    const detail = parts.map((m) => `${m.label} ${m.mod > 0 ? '+' : ''}${m.mod}`).join(' · ');
+    // Ligne montée par le MONTEUR CANONIQUE (dans le mint) : la base est le Niveau de Résistance NU,
+    // et les deux tableaux d'exposition sont des lignes NOMMÉES sur la cible, chacune liée à la
+    // fiche qui les octroie (MSRC 16).
+    const step = monoStep({
+      id: `${kind}-${h.id}`, kind, actor: h, icon: 'travel/wave',
+      rollLabel: refLabel('skills', WATER_EXPOSURE.test.skill),
+      label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
+      difficulty: WATER_EXPOSURE.test.difficulty,
+      ligne: {
+        test: { skill: WATER_EXPOSURE.test.skill.id, spec: WATER_EXPOSURE.test.skill.spec },
+        surLaCible: parts.map((m): ModLine => ({
+          label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
+        })),
+      },
+      stake: combatStakeRef('waterExposure'),
+    });
+    return step ? [step] : [];
+  });
+  if (steps.length) openSequence(get, set, { title: t('eff.waterTitle'), icon: 'travel/wave', purpose: 'test', steps });
+}
+
 /** Étape de cascade `waterExposure` (MSRC 16 l.49) : Test raté → d100 « avec un modificateur de +10
  *  pour chaque DR négatif » → maladie CONTRACTÉE directement (`applyContraction`, incubation normale —
  *  le Test d'exposition EST le test, jamais un second Test de Contraction). « Relancez si le Personnage
  *  n'est pas blessé » honoré par `drawWaterDisease`. Déjà porteur → rien de neuf (dédoublonnée). */
-registerCascadeApplier('waterExposure', (_get, _set, step, hero) => {
+for (const kindExposition of WATER_EXPOSURE_KINDS) registerCascadeApplier(kindExposition, (_get, _set, step, hero) => {
   if (!hero || !step.result) return;
   if (step.result.success) return { consequences: freeCons([t('eff.waterSafe', { name: hero.label })]) };
   const draw = drawWaterDisease(Math.max(0, -step.result.sl), isWounded(hero), battleRng());
@@ -2323,7 +2318,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
   const npc = sceneNpc(get().scene, e.entityId);
   if (!npc) { get().log(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
-  if (!hasHealSkill(npc)) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
+  if (!possesses(npc, HEAL_SKILL)) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
   openMedic(get, set, {
     npc: {
       id: e.entityId,

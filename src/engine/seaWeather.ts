@@ -8,7 +8,7 @@
  *    et de printemps et 4 pour l'hiver », l.164) ; mer chaude : « soustrayez 2 au résultat (minimum
  *    de 1) des lancers pour la Température et la Visibilité » (l.166).
  *  - Rose des vents (l.250-260) : 1-6 dominant, 7 nord, 8 sud, 9 ouest, 10 est.
- *  - Aspect du vent (l.262-270) : direction du vent COMPARÉE au cap du navire → vent arrière /
+ *  - Vent relatif (l.262-270) : direction du vent COMPARÉE au cap du navire → vent arrière /
  *    latéral (bâbord-tribord) / de face.
  *  - Mise à jour du vent « à l'aube, à midi, au crépuscule et à minuit » (l.272) : 1d10, sur 1 le
  *    vent change d'un cran (autant de chances de forcir que de mollir ; Calme plat ne peut que
@@ -34,9 +34,12 @@ import { memoParVersion } from '../data/versionDataset';
 import { d10, type RNG, defaultRNG } from './dice';
 import { WORK_PERIOD_HOURS } from './seaNavigation';
 import type { Difficulty } from './types';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Season } from './travelStages';
 import { rule } from './policy';
+import { RULE_REF } from './ruleRefs';
+import type { ModLine } from './combat';
+import { t } from '../i18n';
 
 export type SeaPrecipitationId = 'aucune' | 'legeres' | 'abondantes' | 'tres-abondantes';
 export type SeaTemperatureId = 'caniculaire' | 'chaude' | 'mediane' | 'froide' | 'glaciale';
@@ -44,7 +47,7 @@ export type SeaVisibilityId = 'degage' | 'brume' | 'brouillard' | 'puree-de-pois
 export type SeaWindForceId = 'calme-plat' | 'legere-brise' | 'brise-fraiche' | 'vent-modere' | 'vent-violent' | 'violente-tempete';
 /** Direction du vent (rose des vents, l.250) — `dominant` = vents d'ouest sur la Mer des Griffes (l.253). */
 export type WindDirection = 'nord' | 'sud' | 'est' | 'ouest';
-/** Aspect du vent par rapport au cap (l.262-270). */
+/** Vent relatif au cap (l.262-270). */
 export type WindAspect = 'arriere' | 'lateral' | 'face';
 
 export interface SeaWeather {
@@ -126,7 +129,7 @@ export function rollWindDirection(rng: RNG = defaultRNG, dominantDirection: Wind
   return dir === 'dominant' ? dominantDirection : (dir as WindDirection);
 }
 
-/** Aspect du vent pour un navire faisant route vers `heading` (l.262-270) : un vent du nord souffle
+/** Vent relatif pour un navire faisant route vers `heading` (l.262-270) : un vent du nord souffle
  *  DEPUIS le nord → cap au nord = vent de face ; cap au sud = vent arrière ; est/ouest = latéral. PUR. */
 export function windAspect(heading: WindDirection, windFrom: WindDirection): WindAspect {
   if (heading === windFrom) return 'face';
@@ -181,13 +184,22 @@ export function visibilityDRPenalty(vis: SeaVisibilityId, distanceM: number): nu
   return def.drPenalty != null && def.beyondM != null && distanceM > def.beyondM ? def.drPenalty : 0;
 }
 
-/** Modificateur de Précipitations sur un Test de Compétence `skillId` (spécialisation `spec`), l.187-201.
- *  Une référence SANS `spec` couvre toute spécialisation ; une référence AVEC `spec` ne couvre que
- *  celle-là. Hors liste : `otherMod`, sinon 0. PUR. */
-export function precipitationSkillMod(precip: SeaPrecipitationId, skillId: string, spec?: string): number {
+/** MDG 13 l.187-200. `skillId` absent = Test de Caractéristique. PUR. */
+function precipitationMod(precip: SeaPrecipitationId, skillId: string | undefined, spec: string | undefined): number {
   const def = precipitationDef(precip);
-  const couvre = (r: RefDesignee): boolean => r.id === skillId && (r.spec == null || r.spec === spec);
-  return def.skillMods?.find((m) => m.skills.some(couvre))?.mod ?? def.otherMod ?? 0;
+  return def.skillMods?.find((m) => m.skills.some((r) => refCouvre(r, { id: skillId, spec })))?.mod ?? def.otherMod ?? 0;
+}
+
+/** CANAL UNIQUE des Précipitations sur le Test d'un Personnage sur le pont (MDG 13 l.185) : la ligne
+ *  « Météo : … » d'un Test de Compétence `skillId` (spécialisation `spec`) ou de Caractéristique
+ *  (`skillId` absent), sous la Précipitation `precip` — vide hors mer ou sans malus. Même forme que
+ *  `weatherTestMods` (`weatherTestMod.ts`). PUR. */
+export function precipitationTestMods(precip: SeaPrecipitationId | undefined, skillId?: string, spec?: string): ModLine[] {
+  if (!precip) return [];
+  const value = precipitationMod(precip, skillId, spec);
+  return value
+    ? [{ label: t('tp.modWeather', { weather: precipitationDef(precip).label }), value, famille: 'circonstance', ref: RULE_REF['meteo-maritime'] }]
+    : [];
 }
 
 /** Litres d'eau à boire PAR JOUR et par membre d'équipage : la bande de Température (Caniculaire 4 L,

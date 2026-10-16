@@ -12,7 +12,7 @@ import type { Dir8 } from './dir8';
 import type { Effect, Dialogue } from './scene';
 import type { Flow } from './flow';
 import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
-import type { TestResult, OpposedResult } from '../engine/tests';
+import type { TestResult, OpposedResult, EchecSansJet } from '../engine/tests';
 import type { AttackResult, DefenseMode, DifficultyComposition, ModLine } from '../engine/combat';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { CriticalResolved } from '../engine/critical';
@@ -30,7 +30,7 @@ import type { SupportDetail } from '../engine/skills';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
-export interface CrewRoleRoll { roll: number; target: number; sl: number }
+export type CrewRoleRoll = { roll: number; target: number; sl: number; sansJet?: undefined } | EchecSansJet;
 
 export type { Money };
 /** Une ligne de butin d'équipement (giveTrapping) ATTRIBUABLE par portrait — partagée entre
@@ -137,12 +137,6 @@ export interface PendingTest {
   psychMod?: number;
   /** Libellé lisible du malus psy social (« Animosité −20 envers Elfe ») pour la modale de Test. */
   psychDetail?: string;
-  /** Mod d'ENVIRONNEMENT (météo maritime — Précipitations, MDG 13 l.187-201) — déjà intégré à
-   *  `target` (PAS à `skillValue`, comme la Difficulté : `seaWeatherTestMod`, POINT UNIQUE dans
-   *  `openSkillTest`) ; conservé À PART pour l'afficher comme une ligne de mod dédiée dans la modale. */
-  envMod?: number;
-  /** Libellé de la source du mod d'environnement (« Abondantes ») pour la modale de Test. */
-  envLabel?: string;
   /** d10 de Capricieux tiré par l'interlocuteur (MSRC 15 l.149-159), UNE fois par Test, seedé —
    *  porté pour l'affichage (la table est celle de la créature, pas un mod de l'acteur). */
   capriciousRoll?: number;
@@ -615,6 +609,9 @@ export interface ShipManeuverParticipant extends RollParticipant {
    *  (manœuvre, bordée…) = comportement historique. */
   sense?: PairedSense;
   result: CrewRoleRoll | null;
+  /** Refus NOMMÉ du contributeur qui ne peut pas tenter son rôle (`crewRoleValue().refus`, LDB 09 l.30) :
+   *  `result` naît `ECHEC_SANS_JET`, la rangée est un témoin sans dé. */
+  refus?: PlayerText;
 }
 /** Contributeur ARTILLEUR d'un Tir de batterie (MDG 14) — MÊME forme qu'un rôle de manœuvre (un rôle,
  *  son DR) : alias du contributeur de Test d'équipage (une seule structure pour les 3 flux jumeaux). */
@@ -1586,6 +1583,8 @@ export interface CascadeStepMeta {
   opsDeCtx?: OpsCtxGele;
   /** ÉQUIPAGE (`OpsCtx.crew`) d'une feuille différée, en ids — résolus par `actorIn` à la reprise. */
   opsDeCrewIds?: string[];
+  /** Acteur et soutiens d'un jet de Voile ou de Ramer, en ids (MDG 13 l.111). */
+  manieurs?: string[];
   /** Modificateur PLAT au total d'une étape batch sommée — NEUTRE : le flux propriétaire y verse ses
    *  paramètres DÉJÀ chiffrés (le naval : bande de Moral + Manque de bras + sabotage, MDG 14). */
   aggregateFlatDR?: number;
@@ -1754,7 +1753,11 @@ export interface BatchParticipant extends RollParticipant {
   /** Conséquence appliquée à CETTE rangée (dérivée des ops, #295 ; ligne STRUCTURÉE #349) — rendue
    *  comme note de la rangée (le portrait porte l'attribution), PERSISTE dans les rangées-témoins/bilan. */
   outcome?: RecapLine[];
-  result: CascadeRoll | null;
+  /** Le dé de la rangée, ou l'issue CONSTANTE d'une ligne que son porteur ne peut pas tenter
+   *  (`EchecSansJet`, posée par le monteur `rollStep` avec `refus`) : aucun dé, aucune influence. */
+  result: CascadeRoll | EchecSansJet | null;
+  /** Refus NOMMÉ d'une ligne non tentable (LDB 09 l.30) — présent ssi `result` est `EchecSansJet`. */
+  refus?: PlayerText;
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
   /** Réussite forcée par Résilience (LDB 17 l.68). */
@@ -1903,10 +1906,23 @@ export type CascadeTableDone = CascadeTableDecl & { result: CascadeTableResult }
  * Les RANGÉES gardent le leur (`BatchParticipant`, homonyme mais autre champ : il dit qui JOUE, et
  * c'est `surfaceRow` qui le pose).
  */
-/** Les deux LECTURES d'un dé d'étape (#1426) — cf. `CascadeStep.evaluation`. */
+/** Les deux LECTURES d'un dé d'étape (#1426) — cf. `LectureDuDe`. */
 export type StepEvaluation = 'test' | 'seuil';
 
-export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
+/** VERDICT d'un dé lu en `'seuil'` (#2389) : ce que dit la rangée selon que `dé ≤ cible` ou non. */
+export interface SeuilVerdict { reussite: PlayerText; echec: PlayerText }
+
+/**
+ * COMMENT le dé d'une étape se LIT (#1426). Absente = `'test'` : la lecture WFRP complète (LDB 12 l.28).
+ *
+ * `'seuil'` = POURCENTAGE PUR (`dé ≤ nombre visé`, MSRC 13 l.146, MDG 15 l.362) : aucune bande, aucun
+ * DR, aucun écrêtage, aucune Difficulté — et un VERDICT exigé ici (#2389), que la rangée rend tel quel.
+ */
+export type LectureDuDe =
+  | { evaluation?: 'test'; verdict?: undefined }
+  | { evaluation: 'seuil'; verdict: SeuilVerdict; difficulty?: undefined };
+
+interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Sous-titre de l'étape — CHAMP PILOTE du murage du texte joueur (#1318 V8a₀). RESSERRÉ ici et non
    *  sur `RollParticipant` : la marque entre par l'ÉTAPE de cascade, pas par toutes les rangées de tous
    *  les flux multi d'un coup.
@@ -1939,8 +1955,8 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
    *  l'owner '*' (chacun pilote ses héros) au lieu de `actorId` (une étape forceDoor n'a pas d'acteur
    *  unique). Absent sur les autres `kind` → repli sur `actorId` (identique à aujourd'hui). */
   groupOwner?: boolean;
-  /** Étape SUBIE par le siège MONDE (côté `worldSide` du seam de jet, #275 Décision 3 — désertion,
-   *  Moral, périls sans acteur unique) : aucun `actorId`, l'arbitre route l'owner au siège MJ (`gmSeat`)
+  /** Étape tenue par le siège MONDE (#275 Décision 3 — désertion, Moral, périls sans acteur unique, Test
+   *  d'un navire ; posée par `worldStep`, `monoStep` porteur `monde`, `displayStep`, `tableStep`) : aucun `actorId`, l'arbitre route l'owner au siège MJ (`gmSeat`)
    *  quand il existe, à l'hôte sinon (`netOwnership.seatOwns` via le sentinel `WORLD_STEP_OWNER`). */
   worldOwner?: boolean;
   /** Libellé du Test affiché (« Résistance », « Calme », « Survie en extérieur »…) — la COMPÉTENCE
@@ -1968,25 +1984,15 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
   mods?: ModLine[];
   /** Cible EFFECTIVE (difficulté déjà appliquée → Test « +0 » sur `target`). Absent → étape sans jet. */
   target?: number;
-  /**
-   * COMMENT le dé se LIT (#1426). Absent = `'test'` : la lecture WFRP complète — bandes automatiques
-   * (LDB 12 l.28), Degrés de Réussite, écrêtage de la cible aux bornes de `TestPolicy`.
-   *
-   * `'seuil'` = POURCENTAGE PUR : `dé ≤ nombre visé`, RIEN d'autre. Aucune bande, aucun DR, aucun
-   * écrêtage. C'est ce que le RAW décrit quand il écrit « Lancez un d100 : si le résultat est
-   * inférieur ou égal au chiffre final, un acheteur est trouvé » (MSRC 13 l.146) ou « Lancez 1d100 et
-   * si le résultat est inférieur ou égal au nombre visé, vous trouvez un acheteur » (MDG 15 l.362) —
-   * les mêmes pages écrivent « Test de Ragot Complexe (–10) » trois lignes plus haut quand elles
-   * veulent un Test. Un nombre visé de 100 vaut donc 100 %, et un 03 ne réussit pas d'office.
-   *
-   * Le champ est ABSENT partout où le comportement ne change pas : aucune étape existante à migrer.
-   */
-  evaluation?: StepEvaluation;
   /** ÉCRÊTAGE réellement subi par `target` aux bornes de `TestPolicy` (`engine/tests.clampTarget`) —
    *  une base SOUTENUE peut dépasser le plafond, et l'écart doit se NOMMER (« plafond 99 ») au lieu
    *  d'être avoué « autres » par le réconciliateur de `RollLine`. Mesuré à la construction. */
   clamped?: number;
-  result?: CascadeRoll | null;
+  /** Le dé de l'étape, ou l'issue CONSTANTE d'une ligne que son porteur ne peut pas tenter (`EchecSansJet`,
+   *  posée par `monoStep` depuis `rollStep` avec `refus`) : l'étape mono est le cas N=0 d'une bande. */
+  result?: CascadeRoll | EchecSansJet | null;
+  /** Refus NOMMÉ d'une ligne non tentable (LDB 09 l.30) — présent ssi `result` est `EchecSansJet`. */
+  refus?: PlayerText;
   /** Étape à TABLE (#942 L2) : un TIRAGE SUR TABLEAU est l'interaction `'table'` — le dé de l'étape se
    *  jette sur `table.tableId` (registre `tableStepDef`), `rollTableStep` pose `table.result` (dé
    *  naturel + dé effectif + id de ligne + lignes). Résolue → l'étape s'affiche comme les autres
@@ -2116,9 +2122,14 @@ export interface CascadeStepBase extends Omit<RollParticipant, 'interactive'> {
   foldMemo?: Record<string, CascadeStep>;
 }
 
+export type CascadeStepBase = CascadeStepCore & LectureDuDe;
+
 /** Étape qui LANCE un dé : `target` (cible effective) et `rollLabel` (compétence lancée) vont
  *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/charte-ui.md`). */
 export type CascadeRollStep = CascadeStepBase & { target: number; rollLabel: string };
+
+/** Étape qui lance un dé LU EN TEST (`LectureDuDe` `'test'`, LDB 12 l.28). */
+export type CascadeTestStep = Extract<CascadeRollStep, { evaluation?: 'test' }>;
 
 /**
  * UNE étape de cascade : elle LANCE (cible + libellé de ligne) ou elle ne lance pas (affichage, choix,
@@ -2127,6 +2138,18 @@ export type CascadeRollStep = CascadeStepBase & { target: number; rollLabel: str
  * l'oubli ne compile pas (#1078 LOT C1).
  */
 export type CascadeStep = CascadeRollStep | (CascadeStepBase & { target?: undefined; rollLabel?: undefined });
+
+/** SURFACE des rangées d'une bande résolue par un pilote sans fenêtre, DÉCLARÉE par ce pilote : le
+ *  procès-verbal structuré d'une traversée (`dayEntriesFromStep`, `seaVoyageFlow.ts`) montre déjà
+ *  chaque dé, ligne par ligne — le journal ne les redit pas (#1291). Absente = le journal est la seule
+ *  surface, il porte les dés. */
+export type RowSurface = 'pv';
+
+/** Contexte de lancement d'un pilote immédiat PARQUÉ, rejoué tel quel à sa reprise : `sansContexte` = lancé
+ *  sans `ctx` (un combat ouvert en plein vol arrête la boucle sans rien empiler) ; `rowSurface` = la
+ *  surface de rangées qu'il avait déclarée, que le dénouement de la séquence honore. */
+export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface };
+
 /**
  * CASCADE séquentielle influençable (régime choisi par l'utilisateur pour les jets de NUIT et de
  * VOYAGE — cf. docs/superpowers/specs/2026-06-14-multi-roll-modal-design.md, Étape 3) : on présente
@@ -2196,6 +2219,11 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  `attackerId` (attaques gratuites restantes puis avance) au lieu du `resumeSuspendedAI` générique —
    *  `free` = la manœuvre était une attaque gratuite (ne re-déclenche pas les libres d'Arme post-Action). */
   maneuverResume?: { attackerId: string; free: boolean };
+  /** Séquence PARQUÉE par le pilote IMMÉDIAT (`cascade.runCascadeImmediate`) sur un choix sans défaut,
+   *  ou derrière un combat ouvert en plein vol : le choix validé ou le combat clos, la suite reprend par ce
+   *  même pilote (`cascade.avanceUnPas`), jamais en fenêtre, avec le CONTEXTE de son lancement
+   *  (`ReprisePilote`). */
+  piloteImmediat?: ReprisePilote;
   /** ACCOSTAGE à finaliser À LA CLÔTURE (MDG 15 l.245) : une cascade dont la fermeture doit résoudre
    *  l'événement de port puis transitionner vers la scène du lieu — porté par la désertion à la relâche
    *  (`resolveShoreLeave`), surfacée au siège MJ (`travelPlan` déjà nul à l'accostage, hors de la branche

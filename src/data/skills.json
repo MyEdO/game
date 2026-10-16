@@ -2000,6 +2000,7 @@
         "label": "Frégate"
       }
     ],
+    "specsSoeursDeBase": true,
     "desc": "C'est votre capacité à piloter et manœuvrer un voilier – y compris gérer les nœuds, le gouvernail, la mesure du vent, etc. En partant du principe que vous disposez d'un équipage suffisamment entraîné sur votre vaisseau, vous utilisez uniquement la Compétence Voile quand vous devez pousser votre vaisseau pour effectuer une course-poursuite, naviguer sur des hauts-fonds particulièrement dangereux, lutter contre de mauvaises conditions météo, ou lors de difficultés similaires. Naviguer simplement par vent calme ou guider un bateau dans le sens du courant ne nécessite pas de Test pour ceux qui possèdent Voile. La Compétence peut aussi être utilisée pour des activités liées à la voile, comme faire des nœuds ou les utiliser pour ligoter des personnes.\n\nComme tous les bateaux à voile sont peu ou prou identiques à diriger, posséder une Spécialisation fait que les autres sont de Base pour vous.",
     "source": {
       "book": "livre-de-base",

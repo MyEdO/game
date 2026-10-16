@@ -24,7 +24,7 @@ import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
-import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import { bypassedAP } from './armourBypass';
 import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
@@ -245,9 +245,7 @@ export function formulaExpectation(f: Formula, ref: Combatant): number {
  *  `skillMod` (valeur du Test) — consommée au calcul du DR d'un Test
  *  RÉUSSI (Discrétion de la Surprise, incantation, attaque, Test générique). */
 export function skillDRBonus(c: Combatant, skillId: string, spec?: string): number {
-  // Une op SANS `spec` s'applique à toute spécialisation (Furtif → Discrétion) ; une op AVEC `spec` ne
-  // s'applique qu'à cette spécialisation (Aura de Dhar → Langue (Magick) seulement, pas Langue (Bretonnien)).
-  const matches = (s?: { id: string; spec?: string }) => s?.id === skillId && (s.spec == null || s.spec === spec);
+  const matches = (s?: RefDesignee) => s != null && refCouvre(s, { id: skillId, spec });
   let n = 0;
   for (const t of c.traits ?? []) {
     for (const op of findTraitById(t.id)?.passive ?? []) {

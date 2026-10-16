@@ -2,7 +2,7 @@
  * PROGRESSION & MANŒUVRE d'un navire — couche PURE de MDG 13 « Navigation maritime ». BOOK-AGNOSTIC :
  * le « Personnage à la barre » et le Test de Navigation (Voile / Ramer) sont PARTAGÉS avec le Compagnon de
  * Mort sur le Reik ch.5 (fluvial) — on ne modélise donc rien de spécifiquement maritime ici, juste la
- * traduction RAW d'un DR de Test en déplacement / réussite de manœuvre. Les modificateurs propres à un
+ * traduction RAW d'un DR de Test en déplacement. Les modificateurs propres à un
  * livre (Savoir (Océans) « premier chiffre » en mer ; Savoir (Voies fluviales) +1 DR en eau douce) sont
  * passés par l'appelant via `extraDR`, jamais codés ici.
  */
@@ -30,12 +30,10 @@ export function progressionMovement(baseM: number, dr: number): number {
   }
 }
 
-/** Issue d'un Test de Manœuvre : DR final, réussite du virage, déplacement effectif et libellé de progression. */
+/** Résultat chiffré d'un Test de Manœuvre : DR final, déplacement effectif et libellé de progression. */
 export interface ShipManeuverOutcome {
   /** DR final = DR du Test de Navigation + Man du bateau + `extraDR`. */
   dr: number;
-  /** Réussite (DR final ≥ 0) → la manœuvre (virage / évitement) est exécutée. */
-  success: boolean;
   /** Déplacement effectif (cases) via la table de Progression. */
   movement: number;
   /** Libellé de progression verbatim (MDG 13). */
@@ -43,12 +41,11 @@ export interface ShipManeuverOutcome {
 }
 
 /**
- * Test de Manœuvre (MDG 13 l.117-119) = Test de Navigation (Voile / Ramer du Personnage à la barre)
- * MODIFIÉ par la Caractéristique Man du bateau, plus tout modificateur situationnel (`extraDR` : Salissures,
- * météo, Détroit…). Réussite (DR final ≥ 0) → la manœuvre est exécutée ; le déplacement suit la table de
- * Progression. `navTestDR` est le DR brut du Test de Navigation déjà résolu (RNG en amont). PUR.
+ * Test de Manœuvre (MDG 13 l.119 ; MDG 12 l.50) : DR du Test de Navigation déjà résolu (`navTestDR`, RNG en
+ * amont) + Man du bateau + `extraDR` (Salissures, météo, Détroit…) ; le déplacement suit la table de
+ * Progression (MDG 13 l.68-75). PUR.
  */
 export function resolveShipManeuver(navTestDR: number, baseM: number, manoeuvre: number, extraDR = 0): ShipManeuverOutcome {
   const dr = navTestDR + manoeuvre + extraDR;
-  return { dr, success: dr >= 0, movement: progressionMovement(baseM, dr), label: findTableEntry(PROGRESSION, dr).desc };
+  return { dr, movement: progressionMovement(baseM, dr), label: findTableEntry(PROGRESSION, dr).desc };
 }

@@ -9,14 +9,15 @@ import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor } from '../engine/bargain';
-import { SL_ASTOUNDING } from '../engine/tests';
+import { SL_ASTOUNDING, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
 import type { SceneEntity } from './scene';
-import { partyAssisted, skillBaseValue, type SupportDetail } from '../engine/skills';
+import { partyAssisted, skillBaseValue, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
+import { hasTalent } from '../engine/magic';
 import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
@@ -25,7 +26,6 @@ import { bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse } fr
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
-import { slugId } from '../data/slug';
 import { MERCHANTS } from './merchants/index';
 import type { UniteAchetable } from './merchants/types';
 import { FLOWS } from './rollFlowSpecs';
@@ -367,7 +367,7 @@ registerCascadeApplier(MERCHANT_RAGOT_KIND, (get, set, step) => {
   return {
     consequences: freeCons([stepDetail(
       actor ? dataLabel(actor.label) : t('eff.party'),
-      t(gossipDay ? 'mf.searchOk' : 'mf.searchKo', { roll: step.result.roll }),
+      estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo', { roll: step.result.roll }) : t('mf.searchSansJet'),
     )]),
   };
 });
@@ -838,9 +838,8 @@ export function bargainConfirm(get: Get, set: Set): void {
   }));
 }
 
-/** Talent « Détection d'artefact » (LDB 10 l.336) : Test d'Intuition au toucher — succès =
- *  l'objet est senti magique, chaque DR apprend une règle spéciale ; UNE tentative par artefact. */
-export const DETECT_TALENT = "Détection d'artefact";
+/** Talent « Détection d'artefact », id stable — LDB 10 l.336. */
+const DETECT_TALENT = 'detection-d-artefact';
 
 /** Compétence testée par CHAQUE mode de la fenêtre Évaluation/Détection, par id STABLE — SOURCE
  *  UNIQUE lue par l'ouverture du jet (`bestDetector`/`openAppraise`) ET par la modale qui décompose
@@ -853,11 +852,26 @@ export const APPRAISE_SKILL = {
 
 /** Meilleur détecteur du groupe : meilleure Intuition PARMI les porteurs du Talent (c'est LUI qui
  *  touche l'objet — pas un partyBest global comme l'Évaluation). null si personne ne l'a. */
-export function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
-  const holders = party.filter((h) => !h.dead && h.talents.some((t) => t.talentId === slugId(DETECT_TALENT) && (t.times ?? 1) >= 1));
-  if (!holders.length) return null;
+function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
+  const holders = party.filter((h) => hasTalent(h, DETECT_TALENT));
   const best = partyAssisted(holders, APPRAISE_SKILL.detect.skill, APPRAISE_SKILL.detect.characteristic); // Soutien (LDB 12)
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
+}
+
+/** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection (`bestDetector`) ; `null` = personne qui puisse tenter. */
+function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect'): { actor: Combatant; value: number; support: SupportDetail } | null {
+  return mode === 'detect' ? bestDetector(party) : partyAssisted(party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic);
+}
+
+/** Détection : le refus nomme le Talent, pas la Compétence — LDB 10 l.336. */
+const appraiseNobody = (mode: 'evaluate' | 'detect'): string => refusPersonneNePeutTenter(
+  mode === 'detect' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
+);
+
+/** Refus NOMMÉ d'une Évaluation/Détection que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste
+ *  de l'UI en dérive. */
+export function appraiseRefus(party: Combatant[], mode: 'evaluate' | 'detect' = 'evaluate'): string | null {
+  return appraiseLeader(party, mode) ? null : appraiseNobody(mode);
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
@@ -867,8 +881,8 @@ function openAppraise(
   target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; index: number } },
   itemName: string, mode: 'evaluate' | 'detect', trappingId?: string,
 ): void {
-  const best = mode === 'detect' ? bestDetector(get().party) : partyAssisted(get().party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic); // Soutien (LDB 12)
-  if (!best) return;
+  const best = appraiseLeader(get().party, mode);
+  if (!best) { get().log(appraiseNobody(mode)); return; }
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   set({ pendingAppraise: {
     actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,

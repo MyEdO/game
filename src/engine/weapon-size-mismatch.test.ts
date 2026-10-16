@@ -11,7 +11,7 @@ import { weaponsFromTraits } from './creatureEquip';
 import { findCreatureById } from '../data';
 import type { Combatant, Weapon } from './types';
 
-const attacker = (size?: Combatant['size']): Combatant => ({ advantage: 0, conditions: [], size } as unknown as Combatant);
+const attacker = (size?: Combatant['size']): Combatant => ({ advantage: 0, conditions: [], skills: [], size } as unknown as Combatant);
 const weapon = (sizeFor?: Weapon['sizeFor']): Weapon => ({ name: 'Massue', type: 'melee', hands: 1, qualities: [], sizeFor }) as unknown as Weapon;
 
 describe('sizeFor — pénalité de Taille (ADE II 2 l.710)', () => {

@@ -1854,7 +1854,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   const looter = (over: Partial<Combatant> = {}): Combatant =>
     ({ id: 'a', label: 'A', kind: 'hero', xp: 0, wounds: { current: 12, max: 12 }, conditions: [],
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
-      weapons: [], armour: {}, items: [], skills: [], talents: [], movement: 4, ...over }) as unknown as Combatant;
+      weapons: [], armour: {}, items: [], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }], talents: [], movement: 4, ...over }) as unknown as Combatant;
 
   function lootScene() {
     const scene = emptyScene(8, 8);
@@ -3606,7 +3606,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     expect(buyAt(1.5)).toBeGreaterThan(buyAt(1)); // +50 % → coûte plus cher
   });
 
-  const appraiser = (): Combatant => ({ id: 'h', label: 'H', characteristics: { intelligence: 40 }, skills: [], talents: [], items: [{ uid: 'm', label: 'Épée', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false }], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
+  const appraiser = (): Combatant => ({ id: 'h', label: 'H', kind: 'hero', characteristics: { intelligence: 30 }, skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 10 }], talents: [], items: [{ uid: 'm', label: 'Épée', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false }], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
 
   it('appraiseItem : crée un pendingAppraise sur l’objet non identifié (#2e)', () => {
     useGame.setState({ party: [appraiser()], scene: merchantScene() });
@@ -3615,7 +3615,16 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const pa = useGame.getState().pendingAppraise!;
     expect(pa).toBeTruthy();
     expect(pa.itemUid).toBe('m');
-    expect(pa.target).toBe(40); // Int 40, Intermédiaire +0
+    expect(pa.target).toBe(40); // Int 30 + Évaluation 10, Intermédiaire +0
+  });
+
+  it('appraiseItem : personne qui puisse tenter l’Évaluation (LDB 09 l.30) → refus NOMMÉ, aucune fenêtre', () => {
+    const profane = { ...appraiser(), skills: [] } as Combatant;
+    useGame.setState({ party: [profane], scene: merchantScene() });
+    useGame.getState().openMerchant('pnj');
+    useGame.getState().appraiseItem('m', 'h');
+    expect(useGame.getState().pendingAppraise).toBeNull();
+    expect(useGame.getState().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
   });
 
   it('resolveAppraise : succès → identified=true (révèle l’objet) (#2e)', () => {

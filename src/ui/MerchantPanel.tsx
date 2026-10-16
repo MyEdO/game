@@ -13,8 +13,8 @@ import { rangeSpecLabel, ammoRangeModLabel } from './weaponStats';
 import type { WeaponDamageSpec, WeaponRangeSpec, AmmoRangeMod } from '../engine/types';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { sellGain, barterQuote, sellBuyerAvailability, sellRefusal, catalogEntryOf } from '../state/merchantFlow';
-import { GatedAction } from './GatedAction';
+import { sellGain, barterQuote, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus } from '../state/merchantFlow';
+import { GatedAction, raisonSi } from './GatedAction';
 import { partyMoneyTotal } from '../state/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
@@ -497,6 +497,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     if (!sellHeroes.length) return <p className="empty">— rien à vendre —</p>;
     const activeSellId = (sellHero && sellHeroes.some((h) => h.id === sellHero) ? sellHero : sellHeroes[0]?.id) ?? '';
     const sellHeroObj = party.find((h) => h.id === activeSellId);
+    const refusEval = appraiseRefus(party);
     const heroItems = sellHeroObj?.items ?? [];
     // « équipé » = armure portée (`equipped`) OU arme tenue dans le set actif (loadout), jamais un flag d'arme.
     const isEquippedForSell = (it: ItemInstance) =>
@@ -548,7 +549,16 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
               );
             })()}
             {it.identified === false && (
-              <button className="btn small" onClick={() => onAppraise(it.uid, activeSellId)} title="Test d'Évaluation : révèle les qualités cachées">Évaluer</button>
+              <GatedAction
+                id={`sell-eval-${it.uid}`}
+                label="Évaluer"
+                enabled={!refusEval}
+                {...raisonSi(refusEval)}
+                descOfferte="Test d'Évaluation : révèle les qualités cachées"
+                onClick={() => onAppraise(it.uid, activeSellId)}
+                primary={false}
+                btnClassName="small"
+              />
             )}
             {refused
               ? <GatedAction id={`sell-${it.uid}`} label="+ Vendre" enabled={false} reason={refused} onClick={() => {}} primary={false} btnClassName="small" />

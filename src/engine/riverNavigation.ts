@@ -36,6 +36,7 @@ import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
 import { RULE_REF } from './ruleRefs';
 import type { ModLine } from './combat';
+import { t } from '../i18n';
 
 // ── Types de la table des vents (l.21-41) ────────────────────────────────────────────────────────
 
@@ -125,13 +126,6 @@ export function savoirVoiesFluvialesBonus(c: Combatant): number {
   return adv > 0 ? DATA.savoirVoiesFluvialesDR : 0;
 }
 
-/** Compétence de Navigation d'une embarcation (l.11-13) : **Voile** si le bateau porte une voilure, sinon
- *  **Ramer** (barque). Décision de DONNÉE (facette `ship.sail` du véhicule), même règle que la manœuvre
- *  navale (`shipManeuverParams`). PUR. */
-export function riverPilotSkill(hasSail: boolean): 'voile' | 'ramer' {
-  return hasSail ? 'voile' : 'ramer';
-}
-
 /** Le barreur garde-t-il le CONTRÔLE à l'issue du Test de Navigation de l'étape (l.15) ? Une réussite garde
  *  toujours le cap ; un ÉCHEC de peu est rattrapé par le +1 DR de **Savoir (Voies fluviales)** (l.13 :
  *  `navSL + savoir ≥ 0`). Sinon le contrôle est perdu → le courant emporte le bateau (dérive, note 2 l.38). PUR. */
@@ -166,8 +160,8 @@ export function riverDriftKm(baseKmPerDay: number): number {
  *  Difficulté — le défaut Intermédiaire +0 est celui de la table, LDB 12 l.148). PUR. */
 export function navPenaltyMods(state: { drift?: boolean; outOfControl?: boolean }): ModLine[] {
   const mods: ModLine[] = [];
-  if (state.drift) mods.push({ label: 'Dérive', value: driftNavPenalty(), famille: 'jet', ref: RULE_REF['navigation-derive'] });
-  if (state.outOfControl) mods.push({ label: 'Hors de contrôle', value: OUT_OF_CONTROL.navPenalty, famille: 'jet', ref: RULE_REF['navigation-greement'] });
+  if (state.drift) mods.push({ label: t('rv.modDrift'), value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
+  if (state.outOfControl) mods.push({ label: t('rv.modOutOfControl'), value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
   return mods;
 }
 

@@ -3,7 +3,8 @@ import type { CampaignVessel } from '../state/store';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan } from '../state/travelFlow';
 import { rollSeaWeather } from '../engine/seaWeather';
-import { voyageMode, voyageTiles, voyageDayCards, dayAgenda } from './VoyageScreen';
+import { voyageMode, voyageTiles, voyageDayCards, dayAgenda, VoyageTileView } from './VoyageScreen';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { moraleBand } from '../engine/crewMorale';
 import { voyageStepPending } from '../state/modalArbiter';
 import type { PendingCascade, CascadeStep } from '../state/pendings';
@@ -72,6 +73,14 @@ describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
     const moral = voyageTiles('mer', seaPlan(), haut, [hero('h1')], [], 0).find((t) => t.key === 'moral')!;
     const band = moraleBand(120);
     expect(moral.value).toBe(`120 — ${band.label}`);
+  });
+
+  it('tuiles MER à jauge (Coque, Moral, Cale) : libellé et valeur rendus UNE fois, par la jauge', () => {
+    for (const tile of voyageTiles('mer', seaPlan(), vessel(), [hero('h1')], [], 0).filter((t) => t.gauge)) {
+      const html = renderToStaticMarkup(<VoyageTileView tile={tile} />);
+      expect(html.split(tile.value).length - 1, `${tile.key} : « ${tile.value} »`).toBe(1);
+      expect(html.split(`>${tile.label}<`).length - 1, `${tile.key} : libellé`).toBe(1);
+    }
   });
 
   it('tuiles TERRE : allure et saison (sans navire ni bêtes)', () => {

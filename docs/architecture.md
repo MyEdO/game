@@ -570,16 +570,18 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
 (lever = travail coop futur, hors #254 qui ferme sur DOCUMENTATION seule) :
 
-- **Cadence COMMANDÉE désactivée hors mode local** — `src/state/seaVoyageFlow.ts` l.876 et l.1541
-  gatent la résolution immédiate/headless d'une journée de routine (`runCascadeImmediate`) par
-  `get().net.mode === 'local'` (en plus de `seaAutoResolves`/`seaDayAllRoutine`) ; en coop la cadence
-  reste JOUR-PAR-JOUR quels que soient les ordres (commentaire au site : « coop = cadence manuelle,
-  pas d'auto-pilote des postes d'autrui »). Raison technique : la résolution immédiate est un bloc
-  synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales (`modalArbiter.ts`)
-  — elle piloterait donc silencieusement les Tests de routine des postes tenus par des PERSONNAGES
-  D'INVITÉS sans leur passer la main (contradiction avec le gating spectateur/ownership déjà posé
-  ailleurs, `netOwnership.controlsActive`), même si le résultat reste tracé au PV. Lever ⇒ router les
-  Tests de routine par owner de poste comme le fait déjà le registre de modales pour les interruptions.
+- **Cadence COMMANDÉE désactivée hors mode local** — `src/state/voyageCadence.ts` (`traverseeCommandee`)
+  est la source unique de « commandée ET locale » : elle garde la résolution d'un bloc du jour
+  (`runCascadeImmediate`, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
+  `seaVoyageFlow.runSeaDay`/`continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
+  (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`). En coop, la cadence reste JOUR-PAR-JOUR quels que
+  soient les ordres : chaque jet de route ouvre la fenêtre de son porteur. Raison technique : la résolution
+  immédiate est un bloc synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales
+  (`modalArbiter.ts`) — elle piloterait donc silencieusement les Tests de routine des postes tenus par des
+  PERSONNAGES D'INVITÉS sans leur passer la main (contradiction avec le gating spectateur/ownership,
+  `netOwnership.controlsActive`). Garde : `src/state/jets-sans-classe.test.ts` (coop × commandée),
+  `src/state/voyage-cadence.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
+  owner de poste comme le fait déjà le registre de modales pour les interruptions.
 - **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `src/state/modalArbiter.ts` l.110-112 :
   décision de bourse PARTAGÉE (argent du groupe) → seul l'hôte la tranche, comme les autres actions à
   l'argent du groupe (achat/vente marchand…) ; aucun routage d'intent coop pour cette décision. Lever

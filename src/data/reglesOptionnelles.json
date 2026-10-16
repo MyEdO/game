@@ -1232,6 +1232,25 @@
     "hint": "Quand le navire de campagne coule (Blessures à 0, MDG 13 l.674), chaque héros à bord tente un Test de Natation (LDB 09 l.372) pour rejoindre la côte ; échec = noyade (LDB 18 l.344). La Difficulté d’un naufrage en pleine mer n’est pas chiffrée : ancrage le plus proche = la noyade du Tourbillon (Natation Complexe –10, MDG 13 l.522). Défaut Complexe."
   },
   {
+    "id": "sea-salissures-difficulty",
+    "type": "reglesOptionnelles",
+    "label": "Salissures : Difficulté du Test de Résistance du navire",
+    "ref": "MDG 13 l.148",
+    "maison": "MDG 13 l.148 exige un Test de Résistance hebdomadaire du vaisseau sans en chiffrer la Difficulté ; LDB 12 l.137 confie toute Difficulté au MJ : Difficulté maison, défaut Intermédiaire (LDB 12 l.166, défaut du Test opposé).",
+    "group": "Voyage",
+    "kind": "mode",
+    "default": "intermediaire",
+    "options": [
+      "facile",
+      "accessible",
+      "intermediaire",
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "Chaque semaine en mer, le navire fait un Test de Résistance (MDG 13 l.148) sur son Endurance (MDG 12 l.58) ; chaque échec ajoute un niveau de Salissures. La source ne chiffre pas la Difficulté de ce Test : défaut Intermédiaire (+0)."
+  },
+  {
     "id": "landRobberyFleePct",
     "type": "reglesOptionnelles",
     "label": "Vol terrestre — perte de cargaison en cas de FUITE (%)",

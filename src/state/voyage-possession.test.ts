@@ -21,9 +21,9 @@ import { emptyScene } from './scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { buildSeaPlan, runSeaDay, resolvePortArrival } from './seaVoyageFlow';
-import { buildRiverDayCascade } from './riverVoyageFlow';
 import { buildStageSteps, buildWeatherResistanceSteps } from './travelPostes';
 import { startCascade } from './cascade';
+import { addCondition, COND } from '../engine/conditions';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -90,6 +90,8 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
   beforeEach(fraisMer);
 
   it('Progression : le CHOIX porte le barreur, et la bande d’équipage est PARTAGÉE (plus de fenêtre hôte-seul)', () => {
+    // Un barreur qui peut tenter la Voile (LDB 09 l.30) : aucun prétiré ne l'a.
+    useGame.setState({ party: get().party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'voile', characteristic: 'agilite' as const, advances: 10 }] } : h)) });
     const equipage = get().party;
     deuxSieges(equipage[0].id, equipage[1].id, equipage[2].id); // TOUT l'équipage est à l'invité
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])! });
@@ -208,27 +210,24 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
     expect(seatOwns(get(), 1, modalOwnerOf(get()) as string), 'la fenêtre du jour est au siège du bord').toBe(true);
   });
 
-  it('péril SANS barreur : le pas de vérification est une étape MONDE (siège MJ), pas un pas anonyme', () => {
+  it('péril SANS barreur (équipage hors d’action, LDB 16 l.113) : le pas de vérification est une étape MONDE', () => {
     seedBattleRng(7);
     const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
     skill(gunnar, 'ramer', 50);
     get().setParty([gunnar]);
     get().loadProject([quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], 'quai-a', riverMap({ riverPerils: [{ perilId: 'debris', chancePct: 100 }] }));
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
+    deuxSieges(gunnar.id);
+    addCondition(get().party[0], COND.inconscient);
     get().startTravel('r-reik', 'barge');
-    set({ pendingCascade: null });
-    // Plus personne à bord pour tenir la barre : `riverPilot` (le meilleur du groupe, Soutien compris)
-    // ne rend PERSONNE — le fleuve vérifie seul son péril, et ce pas n'est le pas de personne.
-    // Branche ÉTROITE, et c'est mesuré ici : un passager sans la moindre avance en Voile/Ramer reste un
-    // barreur pour `partyAssisted`. Elle préexiste à la porte (`actorId: pilot?.actor.id`, sans porteur).
-    set({ party: [] });
-    const route = (get().worldMap as WorldMap).routes[0];
-    const { steps } = buildRiverDayCascade(get, set, route, { scene: 'quai-b', label: 'Altdorf' });
-    const check = steps.find((s) => s.kind === 'riverPerilCheck')!;
-    expect(check, 'le pas de vérification du péril existe').toBeTruthy();
-    expect(check.actorId, 'aucun héros ne le porte').toBeUndefined();
-    expect(check.worldOwner, 'c’est une étape MONDE (porte : `displayStep worldOwner`)').toBe(true);
-    startCascade(get, set, { title: 'Journée de descente', purpose: 'travelDay', steps: [check] });
+    const jour = etapes();
+    expect(jour.some((s) => s.kind === 'riverNav'), 'personne ne tient la barre : aucun Test de Navigation').toBe(false);
+    const i = jour.findIndex((s) => s.kind === 'riverPerilCheck');
+    expect(i, 'le pas de vérification du péril est dans la cascade du jour').toBeGreaterThanOrEqual(0);
+    for (let k = 0; k < i; k++) get().cascadeNext();
+    const pc = get().pendingCascade!;
+    expect(pc.participants[pc.cursor].kind, 'la fenêtre est posée sur le pas de vérification').toBe('riverPerilCheck');
+    expect(pc.participants[pc.cursor].actorId, 'aucun héros ne le porte').toBeUndefined();
     expect(modalOwnerOf(get()), 'routée au sentinel MONDE, jamais `undefined` (= hôte seul)').toBe(WORLD_STEP_OWNER);
   });
 });

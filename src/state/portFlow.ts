@@ -13,9 +13,9 @@
  *
  * VENTE (`portSellCargo`, dernier reliquat #275/#274) : CASCADE (`state/rollSeam.ts` `openRoll` +
  * `state/cascade.ts`) — Ragot (hero-test), recherche d'acheteur (dé de MONDE par `openWorldTest`,
- * côté `worldSide`), Marchandage opposé (hero-test pour le héros, le marchand roule via
+ * porteur `WORLD_STEP_OWNER`), Marchandage opposé (hero-test pour le héros, le marchand roule via
  * `engine/seaVoyage.rollMerchantOpposition`, moteur pur) sont chacun une étape routée par la policy
- * M/V/I (`resolveSurface`) — chaque continuation ENCHAÎNE l'étape suivante depuis l'applier de la
+ * M/V/I (`surfaceDeLEtape`) — chaque continuation ENCHAÎNE l'étape suivante depuis l'applier de la
  * précédente (patron `merchantFlow.ts` Ragot→réassort ; défère via `setTimeout` si la cascade est
  * encore EN COURS de commit, patron `seaVoyageFlow.ts` `sea-desertion`). ACHAT (`portBuyCargo`, #266)
  * suit le MÊME patron : le Marchandage d'achat s'ouvre par `openRoll` (hero-test) — SURFACÉ comme la
@@ -27,7 +27,7 @@ import type { RNG } from '../engine/dice';
 import { ouvrirEtal, registerEtalGenerateur } from './etalLotFlow';
 import { placeOfScene } from './worldMap';
 import { partyAssisted } from '../engine/skills';
-import { resolveOpposed, bumpSL, SL_ASTOUNDING, type TestResult } from '../engine/tests';
+import { resolveOpposed, bumpSL, SL_ASTOUNDING, estJete, type TestResult } from '../engine/tests';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
@@ -43,7 +43,7 @@ import {
 import { seasonOfMonth } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
 import { registerCascadeApplier, chainStep } from './cascade';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep, CascadeRoll } from './pendings';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
 import { actorIn, garanti } from './combatants';
 import { traceLineOf } from '../engine/traceLine';
@@ -227,14 +227,13 @@ export function portBuyCargo(get: Get, set: Set, cargoId: string, enc: number): 
  *  Niveau de Compétence nu posé par la porte du seam (`rollSeam.buildMonoStep`, `LDB 09 l.17`) — la
  *  grandeur que `resolveOpposed` compare à DR égal (`LDB 12 l.160`) : rien à en défaire ici.
  *  SOURCE UNIQUE des deux appliers de Marchandage portuaire (achat + vente). */
-function bargainHeroTR(step: CascadeStep): TestResult {
-  const r = step.result!;
+function bargainHeroTR(step: CascadeStep, r: CascadeRoll): TestResult {
   return { roll: r.roll, target: r.target, ...(step.base != null ? { base: step.base } : {}), success: r.success, sl: r.sl, isDouble: false };
 }
 
 const PORT_BUY_BARGAIN_KIND = 'port-buy-bargain';
 registerCascadeApplier(PORT_BUY_BARGAIN_KIND, (get, set, step) => {
-  if (!step.result) return {};
+  if (!estJete(step.result)) return {};
   const cargoId = String(step.meta?.cargoId ?? '');
   const want = Number(step.meta?.want ?? 0);
   const basePrice = Number(step.meta?.basePrice ?? 0);
@@ -242,7 +241,7 @@ registerCascadeApplier(PORT_BUY_BARGAIN_KIND, (get, set, step) => {
   const merchantNegotiator = !!step.meta?.merchantNegotiator;
   const sellerDR = Number(step.meta?.sellerDR ?? 0);
   const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'marchandage au port');
-  const heroTR: TestResult = bargainHeroTR(step);
+  const heroTR: TestResult = bargainHeroTR(step, step.result);
   const merchantRoll = rollMerchantOpposition(merchantValue, battleRng());
   // +DR du vendeur NPC (l.339-341) porté AVANT le départage : `resolveOpposed` reste le seul juge.
   const opp = resolveOpposed(heroTR, bumpSL(merchantRoll, sellerDR));
@@ -305,7 +304,7 @@ function openPortSellBargainStep(get: Get, set: Set, cargoIndex: number, sellEnc
 
 const PORT_SELL_BARGAIN_KIND = 'port-sell-bargain';
 registerCascadeApplier(PORT_SELL_BARGAIN_KIND, (get, set, step) => {
-  if (!step.result) return {};
+  if (!estJete(step.result)) return {};
   const cargoIndex = Number(step.meta?.cargoIndex ?? -1);
   const sellEnc = Number(step.meta?.sellEnc ?? 0);
   const offerPct = Number(step.meta?.offerPct ?? 100);
@@ -313,7 +312,7 @@ registerCascadeApplier(PORT_SELL_BARGAIN_KIND, (get, set, step) => {
   const merchantNegotiator = !!step.meta?.merchantNegotiator;
   const sellerDR = Number(step.meta?.sellerDR ?? 0);
   const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'marchandage au port');
-  const heroTR: TestResult = bargainHeroTR(step);
+  const heroTR: TestResult = bargainHeroTR(step, step.result);
   const merchantRoll = rollMerchantOpposition(merchantValue, battleRng());
   // +DR du vendeur PJ (l.389-397) porté AVANT le départage : `resolveOpposed` reste le seul juge.
   const opp = resolveOpposed(bumpSL(heroTR, sellerDR), merchantRoll);
@@ -325,11 +324,8 @@ registerCascadeApplier(PORT_SELL_BARGAIN_KIND, (get, set, step) => {
   return { consequences: freeCons([finalizePortSale(get, set, cargoIndex, sellEnc, offerPct, bargainPctVal, bargainLine)]) };
 });
 
-/** 2. Trouver un acheteur (dé de MONDE par `openWorldTest`, côté `worldSide` — l.362) : cible = `chance.target`
- *  (posé en `meta.baseValue`, difficulté Intermédiaire = modificateur nul, la cible passe telle
- *  quelle). Échec sur la 1ʳᵉ tentative SANS Ragot préalable → 2ᵉ tentative sur la moitié du lot
- *  (`attempt:2`) ; le message « la moitié trouve preneur » ne s'affiche QUE si cette 2ᵉ tentative
- *  réussit (parité stricte avec l'ancienne résolution synchrone). */
+/** 2. Trouver un acheteur (dé de MONDE par `openWorldTest`, MDG 15 l.362) : cible = `chance.target`.
+ *  Échec sur la 1ʳᵉ tentative SANS Ragot préalable → 2ᵉ tentative sur la moitié du lot (`attempt:2`). */
 function openPortSellBuyerStep(get: Get, set: Set, cargoIndex: number, sellEnc: number, allowHalfRetry: boolean, attempt: 1 | 2): void {
   const st = get().port;
   const vessel = get().vessel;
@@ -339,13 +335,14 @@ function openPortSellBuyerStep(get: Get, set: Set, cargoIndex: number, sellEnc: 
   const chance = sellChance(st.port, lot.cargoId, milles);
   openWorldTest(get, set, {
     actionLabel: t('port.buyerSearch'),
-    difficulty: 'intermediaire',
-  }, PORT_SELL_BUYER_KIND, { cargoIndex, sellEnc, retryHalf: allowHalfRetry, attempt, baseValue: chance.target });
+    cible: chance.target,
+    verdict: { reussite: t('seuil.acheteurTrouve'), echec: t('seuil.aucunAcheteur') },
+  }, PORT_SELL_BUYER_KIND, { cargoIndex, sellEnc, retryHalf: allowHalfRetry, attempt });
 }
 
 const PORT_SELL_BUYER_KIND = 'port-sell-buyer';
 registerCascadeApplier(PORT_SELL_BUYER_KIND, (get, set, step) => {
-  if (!step.result) return {};
+  if (!estJete(step.result)) return {};
   const cargoIndex = Number(step.meta?.cargoIndex ?? -1);
   const sellEnc = Number(step.meta?.sellEnc ?? 0);
   const retryHalf = !!step.meta?.retryHalf;
@@ -371,7 +368,8 @@ registerCascadeApplier(PORT_SELL_BUYER_KIND, (get, set, step) => {
  *  candidat au Ragot → même message qu'avant, aucun jet à ouvrir. */
 const PORT_SELL_GOSSIP_KIND = 'port-sell-gossip';
 registerCascadeApplier(PORT_SELL_GOSSIP_KIND, (get, set, step) => {
-  if (!step.result) return {};
+  const jet = step.result;
+  if (!jet) return {};
   const cargoIndex = Number(step.meta?.cargoIndex ?? -1);
   const st = get().port;
   const vessel = get().vessel;
@@ -380,11 +378,12 @@ registerCascadeApplier(PORT_SELL_GOSSIP_KIND, (get, set, step) => {
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
   const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'ragot au port');
   // Le Test de Ragot n'a pas de rangée propre : sa ligne se DÉRIVE (`traceLineOf`), jamais ré-imprimée à la main.
-  const gossip = (issue: string) => freeCons([traceLineOf({
+  // Né sans jet (LDB 09 l.30 ; #2588 Q1), il n'a ni dé ni cible à tracer : l'échec se dit sans eux.
+  const gossip = (issue: string) => freeCons([estJete(jet) ? traceLineOf({
     who: actor.label, label: t('port.gossipRow', { skill: refLabel('skills', { id: 'ragot' }), label }),
-    roll: step.result!.roll, target: step.result!.target, sl: step.result!.sl, success: step.result!.success, issue,
-  })]);
-  if (!step.result.success) {
+    roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success, issue,
+  }) : t('port.gossipSansJet', { name: actor.label, issue })]);
+  if (!jet.success) {
     return { consequences: gossip(t('port.gossipFail', { relation: sellRelation(st.port, lot.cargoId) === 'surplus' ? t('port.hasSurplus') : t('port.produces') })) };
   }
   chainStep(get, () => openPortSellBuyerStep(get, set, cargoIndex, lot.enc, false, 1));

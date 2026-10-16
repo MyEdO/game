@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useGame, type SheetTab } from '../state/store';
-import { bestDetector } from '../state/merchantFlow';
+import { appraiseRefus } from '../state/merchantFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
@@ -12,14 +12,14 @@ import { effectiveChar, bonus } from '../engine/characteristics';
 import { baseWithTalents } from '../engine/talentEffects';
 import { refKey, parseRefKey } from '../engine/careerSlots';
 import { buildAdvancementView } from '../state/advancement';
-import { hasHealSkill, isHealable } from '../engine/healing';
+import { HEAL_SKILL, isHealable } from '../engine/healing';
 import { isConsumable } from '../engine/consumables';
 import { isMagicMissile, isArcaneSpell, castBlockedBy, castInfoIsPrayer } from '../engine/magic';
 import { effectiveSpellOf } from '../state/combatFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { refusDepensePx } from '../state/partyFlow';
 import { t, type MsgKey } from '../i18n';
-import { actorHasSkill } from '../engine/skills';
+import { actorHasSkill, peutTenter } from '../engine/skills';
 import { nextProsthesisTier } from '../engine/trauma';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { rule } from '../engine/policy';
@@ -142,7 +142,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
 
   // Guérison hors-combat : un soigneur du groupe peut panser ce héros (sans avancer le temps, pour
   // stopper une hémorragie AVANT que l'horloge ne la fasse ticker — LDB 09-Compétences).
-  const canSoigner = !inBattle && isHealable(hero) && party.some(hasHealSkill);
+  const canSoigner = !inBattle && isHealable(hero) && party.some((h) => peutTenter(h, HEAL_SKILL));
 
   // GATE CORRIGÉ (#492 bug 2) : un lanceur de Bénédictions sans sort mémorisé encore (Bienheureux
   // avant sa 1re Bénédiction) garde son onglet Magie & Foi — `spells.length` seul le privait à tort.
@@ -563,8 +563,8 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
   const appraiseItem = useGame((s) => s.appraiseItem);
   const items = hero.items ?? [];
   const party = useGame((s) => s.party);
-  // Détection d'artefact (LDB 10) : visible seulement si un héros du groupe possède le Talent.
-  const canDetect = !!bestDetector(party);
+  const refusEval = appraiseRefus(party);
+  const refusDetect = appraiseRefus(party, 'detect');
   // Verrou d'Évaluation : un échec bloque la re-tentative jusqu'au lendemain (LDB 12 l.94).
   const today = useGame((s) => Math.floor(s.gameTime / MINUTES_PER_DAY));
 
@@ -595,10 +595,28 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                 {it.identified === false && !locked && (
                   <>
                     {it.appraiseTriedDay !== today && (
-                      <button className="btn small" title="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain" onClick={() => appraiseItem(it.uid, hero.id)}>Évaluer</button>
+                      <GatedAction
+                        id={`sheet-eval-${it.uid}`}
+                        label="Évaluer"
+                        enabled={!refusEval}
+                        {...raisonSi(refusEval)}
+                        descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
+                        onClick={() => appraiseItem(it.uid, hero.id)}
+                        primary={false}
+                        btnClassName="small"
+                      />
                     )}
-                    {canDetect && !it.detectTried && (
-                      <button className="btn small" title="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet" onClick={() => appraiseItem(it.uid, hero.id, 'detect')}>Détecter</button>
+                    {!it.detectTried && (
+                      <GatedAction
+                        id={`sheet-detect-${it.uid}`}
+                        label="Détecter"
+                        enabled={!refusDetect}
+                        {...raisonSi(refusDetect)}
+                        descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet"
+                        onClick={() => appraiseItem(it.uid, hero.id, 'detect')}
+                        primary={false}
+                        btnClassName="small"
+                      />
                     )}
                   </>
                 )}

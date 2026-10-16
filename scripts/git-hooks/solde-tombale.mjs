@@ -14,6 +14,7 @@
 // le vocabulaire RAW derrière lui, et un commit qui ne ferme rien n'a aucune raison de le payer. Les
 // tickets fermés lui sont PASSÉS : il n'importe pas la porte.
 import { extractComments, estFichierScanne } from '../guards/lib/commentPoison.mjs'
+import { cleDeContenu } from '../guards/lib/dialecte.mjs'
 
 /** Motifs de DETTE : les tournures par lesquelles un commentaire annonce un travail NON FAIT.
  *  La borne de mot est en TÊTE seulement (« vedette » n'est pas une dette) : `\b` est ASCII et ne se
@@ -30,15 +31,14 @@ const TICKET_RE = /#(\d+)/g
 
 /**
  * Sites où le mot « dette » ne dit PAS une dette d'ingénierie portée par le ticket cité — stock
- * NOMINATIF AU SITE (`fichier:ligne`), chacun avec sa raison, et DÉCROISSANT : jamais une exemption
- * par FICHIER, jamais une liste ouverte. Une ligne qui bouge sort du stock et se rejuge.
+ * NOMINATIF AU SITE, keyé par CONTENU (`fichier :: <ligne trimée>`, `cleDeContenu`, #2200), chacun avec
+ * sa raison, et DÉCROISSANT : jamais une exemption par FICHIER, jamais une liste ouverte. Une ligne
+ * dont le texte change sort du stock et se rejuge.
  */
 export const EXEMPTIONS_TOMBALE = [
-  { site: 'src/ui/shipStatus.tsx:22', raison: 'la « dette cumulée » y est une RESSOURCE DU JEU (solde dû à l\'équipage), pas un travail non fait' },
-  { site: 'src/data/stake-rule-ratchet.test.ts:120', raison: 'énonce l\'ABSENCE de dette (« le dataset naît sans dette »)' },
-  { site: 'src/engine/effect-rule-anchor.test.ts:158', raison: 'constate qu\'un stock VOISIN ne bouge pas, n\'annonce aucun travail dû sur le ticket cité' },
-  { site: 'scripts/ui/audit-i18n.mjs:3', raison: '« 2e chasse aux dettes » est le NOM du lot du ticket, pas une dette qu\'il laisserait ouverte' },
-  { site: 'src/ui/ui-ratchets.test.ts:497', raison: 'récit d\'un lot EXÉCUTÉ (« -2, PURGE du doublon ») : la dette y est celle que le lot a réduite' },
+  { site: "src/ui/shipStatus.tsx :: /** Résumé de l'équipage SALARIÉ (#216) : roster (rôle × compte), solde hebdomadaire due, dette cumulée.", raison: 'la « dette cumulée » y est une RESSOURCE DU JEU (solde dû à l\'équipage), pas un travail non fait' },
+  { site: 'src/data/stake-rule-ratchet.test.ts :: /** Même contrat pour la cascade de COMBAT (#1117 L2) : le dataset naît sans dette. */', raison: 'énonce l\'ABSENCE de dette (« le dataset naît sans dette »)' },
+  { site: 'scripts/ui/audit-i18n.mjs :: // catalogue i18n (`src/i18n/`). Etape 1 du ticket #320 (2e chasse aux dettes, lot L6) — MESURE', raison: '« 2e chasse aux dettes » est le NOM du lot du ticket, pas une dette qu\'il laisserait ouverte' },
 ]
 const SITES_EXEMPTES = new Set(EXEMPTIONS_TOMBALE.map((e) => e.site))
 
@@ -70,7 +70,7 @@ export function tombalesDansSource(numeros, { fichiers = [], lire = () => null }
         for (const m of texte.matchAll(TICKET_RE)) {
           const n = Number(m[1])
           if (!cibles.has(n) || vus.has(n)) continue
-          const site = `${chemin}:${commentaire.line + rang}`
+          const site = cleDeContenu(chemin, src, commentaire.line + rang)
           if (SITES_EXEMPTES.has(site)) continue
           vus.add(n)
           trouvailles.push({

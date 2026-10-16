@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import type { RNG } from './dice';
 import { createHero } from './character';
 import { makeRNG } from './dice';
-import { difficultyFromModifier } from './tests';
 import { RULE_REF } from './ruleRefs';
+import { strandingPenalty } from './seaPerils';
 import {
-  rollRiverWind, tickRiverWind, riverWindEffect, savoirVoiesFluvialesBonus, riverPilotSkill,
+  rollRiverWind, tickRiverWind, riverWindEffect, savoirVoiesFluvialesBonus,
   riverControlKept, rowingAgilityFactor, riverDayKm, riverDriftKm, navPenaltyMods,
   capsizeRightDifficulty, capsizeRightCumulative, capsizeSinkTurns, holeSinkMinutes,
   riverCritical, resolveRiverImpact, rollBarrage, echouageDamage, findRiverPeril, RIVER_PERILS,
@@ -56,11 +56,6 @@ describe('Navigation & rame (l.11-17)', () => {
     expect(savoirVoiesFluvialesBonus(h)).toBe(1);
   });
 
-  it('embarcation : Voile si voilure, sinon Ramer — barque (l.11-13)', () => {
-    expect(riverPilotSkill(true)).toBe('voile');
-    expect(riverPilotSkill(false)).toBe('ramer');
-  });
-
   it('contrôle gardé : réussite TOUJOURS ; échec de peu rattrapé par Savoir +1 DR (l.13)', () => {
     expect(riverControlKept(true, -5, 0)).toBe(true); // une réussite garde le cap
     expect(riverControlKept(false, -1, 1)).toBe(true); // échec −1 DR + Savoir +1 = 0 → rattrapé
@@ -85,18 +80,15 @@ describe('Navigation & rame (l.11-17)', () => {
   it('les malus de Navigation sont des MODIFICATEURS NOMMÉS, pas des Difficultés (l.38 dérive −10, l.41 hors de contrôle −20)', () => {
     expect(navPenaltyMods({})).toEqual([]);
     // Chaque malus PORTE sa fiche de règle (#1117 L5b) : la chip s'ouvre sur la note du Tableau des Vents.
-    expect(navPenaltyMods({ drift: true })).toEqual([{ label: 'Dérive', value: -10, famille: 'jet', ref: RULE_REF['navigation-derive'] }]);
-    expect(navPenaltyMods({ outOfControl: true })).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'jet', ref: RULE_REF['navigation-greement'] }]);
+    expect(navPenaltyMods({ drift: true })).toEqual([{ label: 'Dérive', value: -10, famille: 'circonstance', ref: RULE_REF['navigation-derive'] }]);
+    expect(navPenaltyMods({ outOfControl: true })).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(navPenaltyMods({ drift: true, outOfControl: true }).reduce((s, m) => s + m.value, 0)).toBe(-30);
-    expect(difficultyFromModifier(20)).toBe('accessible');
   });
 
-  it('renflouage à l\'échouage (l.99) : Test de Force malus = Enc du bateau → cran de difficulté', () => {
-    // « un Test de Force avec un malus égal au nombre total de Points d'Encombrement du bateau » (l.99).
-    // Le malus (−Enc) se compose en difficulté par le MÊME helper que les malus de Navigation (crans de 10).
-    expect(difficultyFromModifier(-6)).toBe('complexe'); // coracle Enc 6 → −6 ≈ −10 (Complexe)
-    expect(difficultyFromModifier(-25)).toBe('difficile'); // barque Enc 25 → −25 ≈ −20 (Difficile)
-    expect(difficultyFromModifier(0)).toBe('intermediaire'); // Enc inconnu (barge LDB) → pas de malus
+  it('renflouage à l\'échouage (MSRC 7 l.99) : le malus = −(Enc du bateau + Enc de la cargaison), point par point', () => {
+    expect(strandingPenalty(6, 0)).toBe(-6);
+    expect(strandingPenalty(25, 0)).toBe(-25);
+    expect(strandingPenalty(20, 4)).toBe(-24);
   });
 });
 

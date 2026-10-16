@@ -17,7 +17,7 @@
 import { battleRng } from './battleRng';
 import { d100 } from '../engine/dice';
 import {
-  travelActivitySpec, applyTravelActivityResult, aggregateActivityOutcomes, activityById,
+  travelActivitySpec, aggregateActivityOutcomes, activityById,
   type ActivityDef, type TravelActivityResult,
 } from '../engine/activities';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -27,8 +27,9 @@ import { rollEncounter, type EncounterCategory } from '../engine/travelTables';
 import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds } from '../engine/healing';
 import { removeCondition, stacks } from '../engine/conditions';
-import { extendedTestStep } from '../engine/tests';
+import { extendedTestStep, type EchecSansJet } from '../engine/tests';
 import { registerCascadeApplier } from './cascade';
+import { appliquerIssueActivite } from './activityIssue';
 import { freeCons, resultLines, rollStep, monoStep, displayStep, bandStep, pousseSi, type Consequence, type BuiltCascadeStep } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { t, type MsgKey } from '../i18n';
@@ -144,6 +145,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
     const def = activityById(posting.activityId);
     if (!def) continue;
     const spec = travelActivitySpec(hero, def, { skillMod: weatherModOf(def, weather), stages, freeSkill: posting.freeSkill });
+    if (!spec) continue; // poste non tenu (`postingTenu`, EDOC 8 l.172)
     // Test étendu DÉJÀ ACHEVÉ (LDB 12 l.170-186 : un Test étendu SE TERMINE à la cible — il ne se relance
     // PAS chaque jour, sinon le cumul déborde son plafond « 5/2 », « 6/2 » à chaque re-complétion) : le
     // poste n'a plus d'objet → un pas d'AFFICHAGE « achevée », aucun jet ni accumulation (F1).
@@ -167,20 +169,19 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
       // héros (`effectiveSkillCharKey`) — le −10 s'ajoute au mod météo (recalcul de la cible, dont les
       // bornes viennent de `getTestPolicy` via `clampTarget`, jamais d'un plafond écrit ici).
       const wMod = weatherModOf(def, weather);
-      const char = spec.used ? effectiveSkillCharKey(hero, spec.used.id, { spec: spec.used.spec }) : undefined;
-      const pMod = weatherTestMods(weather, char ?? null).reduce((s, l) => s + l.value, 0); // CANAL UNIQUE (#341)
+      const char = effectiveSkillCharKey(hero, spec.used.id, { spec: spec.used.spec });
+      const pMod = weatherTestMods(weather, char).reduce((s, l) => s + l.value, 0); // CANAL UNIQUE (#341)
       const mods = stageActivityMods(weather, wMod, pMod);
       const difficulty = def.difficulty ?? 'intermediaire';
       batchParts.push({
         id: hero.id,
-        label: spec.used ? refLabel('skills', { id: spec.used.id, spec: spec.used.spec }) : def.label,
+        label: refLabel('skills', { id: spec.used.id, spec: spec.used.spec }),
         interactive: true,
         difficulty,
-        // Les mods de MÉTÉO (`wMod`/`pMod`) s'ajoutent à la CIBLE, ils ne sont pas dans la valeur.
-        ...rollStep(spec.used
-          ? { actor: hero, test: { skill: spec.used.id, spec: spec.used.spec }, valeur: spec.value, difficulty, surLaCible: mods }
-          : { valeur: spec.value, valeurEtrangere: true, difficulty, surLaCible: mods }),
         result: null,
+        // Les mods de MÉTÉO (`wMod`/`pMod`) s'ajoutent à la CIBLE, ils ne sont pas dans la valeur. Poste
+        // qu'il ne peut pas tenter (`spec.refus`) : la ligne naît `ECHEC_SANS_JET` (LDB 09 l.30 ; #2588 Q1).
+        ...rollStep({ actor: hero, test: { skill: spec.used.id, spec: spec.used.spec }, valeur: spec.value, difficulty, surLaCible: mods, refus: spec.refus }),
         ...(spec.drTarget != null ? { extendedDrDone: Math.min(plan.extendedProgress ?? 0, spec.drTarget), extendedDrTarget: spec.drTarget } : {}),
       });
     }
@@ -199,31 +200,16 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
 
 // ── APPLIERS des étapes de l'Étape (purpose `travelDay`) : conséquence RAW par `kind`, moteur PUR ──
 
-/** UN poste RÉSOLU : issue du jet (ops/Exténué/portée Étape) via le jumeau PUR `applyTravelActivityResult`,
- *  enregistrée dans le contexte d'Étape (l'agrégation `stageAggregate` la relira), et RENDUE en
- *  `Consequence[]` STRUCTURÉES (#295) — jamais une chaîne composée à la main :
- *   - Activité SANS Test → `out.activityDone` (nom en var : la rangée batch peut n'avoir pas d'actorId) ;
- *   - Exténué (EDOC 8 l.133) → op `condition` APPLIQUÉ par `applyOps`, ligne DÉRIVÉE via `opConsequenceLine` ;
- *   - issues individuelles (Récupérer/Pratiquer/Recueillir infos) → notes narratives.
- *  Partagé par le pas d'affichage (`stagePoste`, sans Test) et le pas BATCH (`stagePosteBatch`, avec Test). */
-function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: RefDesignee | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | null): Consequence[] {
+/** UN poste RÉSOLU : son issue (`appliquerIssueActivite`, source unique terre et mer) enregistrée dans le
+ *  contexte d'Étape (l'agrégation `stageAggregate` la relira). Partagé par le pas d'affichage
+ *  (`stagePoste`, sans Test) et le pas BATCH (`stagePosteBatch`, avec Test). */
+function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: RefDesignee | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | EchecSansJet | null): Consequence[] {
   const spec = travelActivitySpec(hero, def, { freeSkill });
-  const r = applyTravelActivityResult({ ...spec, actorId: hero.id }, def, roll);
+  if (!spec) return [];
+  const { result, consequences } = appliquerIssueActivite(get, hero, def, spec, roll);
   const plan = get().travelPlan;
-  if (plan?.stage) set({ travelPlan: { ...plan, stage: { ...plan.stage, results: [...plan.stage.results, r] } } });
-  const cons: Consequence[] = [];
-  if (r.roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });
-  if (r.ops.length) cons.push(...freeCons(applyOps(hero, r.ops, { source: { kind: 'activity', id: def.id } })));
-  if (r.extenue) {
-    const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.133
-    applyOps(hero, [op], { source: { kind: 'activity', id: def.id } });
-    cons.push({ ops: [op] });
-  }
-  // Issues INDIVIDUELLES (Récupérer / Pratiquer / Recueillir infos) : récit (systèmes dédiés câblés ailleurs).
-  if (r.success && r.stageOutcome === 'countsAsRest') cons.push(...freeCons([t('tp.countsAsRest', { name: hero.label })]));
-  else if (r.success && r.stageOutcome === 'rerollToken') cons.push(...freeCons([t('tp.practice', { name: hero.label })]));
-  else if (r.success && r.stageOutcome === 'gatherInfo') cons.push(...freeCons([t('tp.gatherInfo', { name: hero.label })]));
-  return cons;
+  if (plan?.stage) set({ travelPlan: { ...plan, stage: { ...plan.stage, results: [...plan.stage.results, result] } } });
+  return consequences;
 }
 
 /** Poste SANS Test (Récupérer) : pas d'affichage — l'issue s'applique d'office (le journal annonce

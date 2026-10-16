@@ -9,6 +9,7 @@ import { testScene } from '../../scenes/test-fixture';
 import { resetCadence } from '../../engine/cadence';
 import { hasCondition } from '../../engine/conditions';
 import { REPLIS_DEUX_CIBLES, evaluateTest, resolveOpposed, bumpSL, type TestResult } from '../../engine/tests';
+import { jete } from '../../engine/tests.testkit';
 import { testValue, skillBaseValue } from '../../engine/skills';
 import { frozenOpposedBatchStep, rollFrozenOpposedAttacker, simpleTriggeredTestStep, simpleBatchTestStep, withDerivedStake } from './triggeredTest';
 import { resolveRecoverTest } from './recover';
@@ -164,7 +165,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
       expect(aT.base, 'le pré-jet de l’attaquant porte sa Force NUE').toBe(skillBaseValue(wielder, undefined, undefined, 'force'));
       expect(step.base, 'l’étape du défenseur porte sa Résistance NUE').toBe(55);
       useGame.getState().cascadeRoll(step.id);
-      const r = useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result!;
+      const r = jete(useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
       const verdict = resolveOpposed(aT, { roll: r.roll, target: r.target, success: r.success, sl: r.sl, isDouble: false, base: step.base });
       if (verdict.decidedBy !== 'valeur') continue;
       joue = true;

@@ -19,18 +19,7 @@
 import type { Combatant } from './types';
 import { byId } from '../data';
 import { effectiveChar, bonus } from './characteristics';
-import { skillBaseValue } from './skills';
-
-/** Le personnage POSSÈDE-t-il la Compétence (Base = toujours, testable sur la Caractéristique nue ;
- *  Avancée = au moins une Augmentation, LDB 09 l.25/l.30 — cf. `docs/raw/4e/competences.md`) ? `spec`
- *  cible une spécialisation précise (sinon la première instance de l'id, comme `skillBaseValue`) —
- *  exportée : réutilisée par `engine/axes.ts` (#409, gate « axe expert » avant `skillBaseValue`). */
-export function possesses(c: Combatant, skillId: string, spec?: string): boolean {
-  const sd = byId('skill', skillId);
-  if (!sd) return false;
-  const inst = c.skills?.find((s) => s.id === skillId && (spec == null || s.spec === spec));
-  return sd.acces === 'base' || (inst?.advances ?? 0) > 0;
-}
+import { skillBaseValue, possesses } from './skills';
 
 /** Valeur d'un Test de la Compétence `skillId` (spécialisation `spec`) pour `c` — SOURCE UNIQUE partagée
  *  avec la valeur de défense sociale : `skillBaseValue` (Caractéristique EFFECTIVE + carac alternative +

@@ -8,6 +8,7 @@ import { findCrewRoleById, findSeaShantyById } from '../data';
 import { rollCrewRole } from './shipManeuver';
 import { endShanty, applyShantyToCrew, quartIndex, QUART_MINUTES } from './shipCrew';
 import { makeRNG } from '../engine/dice';
+import { jete } from '../engine/tests.testkit';
 import type { Combatant, SkillInstance } from '../engine/types';
 
 /**
@@ -26,7 +27,7 @@ const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
 describe('Vocabulaire des chansons (ops génériques → ActiveEffect)', () => {
   it('crewTestMod +10 (« Naviguons tous ensemble », MDG 09 l.224) → crewRoleValue du marin +10', () => {
     const c = mk('m1', { skills: [{ id: 'voile', characteristic: 'agilite', advances: 20 } as SkillInstance] });
-    const base = crewRoleValue(c, findCrewRoleById('timonier')!).value;
+    const base = crewRoleValue(c, findCrewRoleById('timonier')!).value!;
     applyOps(c, [{ op: 'crewTestMod', mod: 10 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
     expect(crewTestModOf(c)).toBe(10);
     expect(crewRoleValue(c, findCrewRoleById('timonier')!).value).toBe(base + 10);
@@ -182,9 +183,9 @@ describe('Commandant émérite (MDG 09 l.50-54) — +niveau DR aux Tests d’éq
     // valeur 80 : succès quasi garanti avec ce seed ; on vérifie sl = DR de base + niveau.
     const c = cap(3);
     c.characteristics.sociabilite = 80;
-    const withTalent = rollCrewRole(c, 'capitaine', makeRNG(11))!;
+    const withTalent = jete(rollCrewRole(c, 'capitaine', makeRNG(11))!.result);
     const sans = { ...c, talents: [] } as Combatant;
-    const without = rollCrewRole(sans, 'capitaine', makeRNG(11))!;
+    const without = jete(rollCrewRole(sans, 'capitaine', makeRNG(11))!.result);
     expect(withTalent.roll).toBe(without.roll); // même dé (même seed)
     if (withTalent.roll <= withTalent.target) expect(withTalent.sl).toBe(without.sl + 3);
     else expect(withTalent.sl).toBe(without.sl); // raté → pas de bonus
