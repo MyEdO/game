@@ -91,12 +91,16 @@ le contexte d'attaque riche — roll/arme/attaquant — qu'exige la résolution 
 **Reste à faire pour « un seul bus » complet** : #315 (exécuteur unique — `runPureFlowLines` à
 supprimer + garde de double-exécution).
 
-## 4. BUG concret relevé (exemple) — « punching-ball à 0 PB » + intégrité hors-combat
+## 4. « Punching-ball à 0 PB » + intégrité hors-combat
 
-> **À CORRIGER PLUS TARD.** Sert d'illustration de l'incohérence : l'état « à terre / mourant /
-> hors-combat » est éclaté, et l'IA lit un demi-état.
+### 4a. Conforme au RAW : acharnement sur un héros à 0 PB pendant plusieurs rounds
 
-### 4a. Confirmé : acharnement sur un héros à 0 PB pendant plusieurs rounds
+> **Constat (#1595, 2026-10-16).** Un héros à 0 PB, conscient, est À Terre et reste une cible : `LDB 18 l.15` ;
+> `LDB 16 l.35` (+20 pour le toucher en mêlée). Il perd connaissance après BE Rounds (`LDB 18 l.15`) ; il
+> meurt Inconscient à 0 quand ses Blessures critiques dépassent son BE (`LDB 18 l.34`), ou par une ligne
+> mortelle du Tableau des Critiques (`LDB 18 l.38`). L'oubli « dans le tumulte du combat » vise ceux qui
+> sont « au sol, apparemment morts » (`LDB 18 l.36`), donc l'Inconscient, que `isOutOfAction` retire du ciblage.
+
 Modèle de mort (RAW LDB 18, `engine/conditions.ts`) :
 - 0 PB → À Terre, **conscient**, `isOutOfAction` FAUX.
 - Passage Inconscient seulement quand `roundsAtZero > BE`, compteur avancé **1×/round** dans `tickDeath`,
@@ -114,11 +118,7 @@ Côté IA (`state/ai.ts`, `state/combatFlow.ts`) :
 
 ⇒ Un héros tombé à 0 reste conscient ~**BE rounds** (3-4), focalisé par **tous** les ennemis, chacun
 incrémentant `target.criticalWounds` (`state/combatFlow.ts`), **sans mourir** tant que la porte
-(Inconscient ET `crit > BE`) n'est pas franchie. = « 3 IA, 3 rounds, enchaînement de critiques, on se
-demande s'il va mourir un jour ».
-
-**Correctifs visés** : politique de ciblage IA (ne pas focaliser une cible à 0 PB / À Terre ; répartir) ;
-prédicat unique « neutralisé » lu par l'IA.
+(Inconscient ET `crit > BE`) n'est pas franchie, hors ligne mortelle du Tableau des Critiques.
 
 ### 4b. Suspecté (non clos par lecture statique) : « X est hors combat » puis ils continuent
 - La ligne de journal `cf.outOfAction` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
