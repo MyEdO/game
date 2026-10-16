@@ -82,7 +82,9 @@ charge — les effets NON-attaque-gratuite ; les Flows `grantFreeAttack` restent
 pas de double frappe, la Frappe réactive part de `resolveFreeAttacks`). **7bis** : un Coup Critique OPPOSÉ
 (LDB 14 l.7) / dévié (`applyOpposedCritical`, `resolveDeviation` mode `self`) émet désormais `onCrit` via le
 bus, avec l'arme RÉELLE de l'attaquant (`DeviationCtx.weaponObj`) → les Atouts « sur Critique » (Taillade →
-Hémorragique) s'appliquent aussi sur ces Critiques. `applyOpposedCritical` reste MACHINERIE (ne nomme
+Hémorragique) s'appliquent aussi sur ces Critiques. Dans la touche d'arme (`appliquerLaTouche`), `onCrit` part pour le
+seul Coup Critique non létal (`origine === 'coup-critique'`, #1595 c.6221792068 Q4) ; la Blessure critique du
+dépassement ne l'émet pas, la Frappe blessante joue à chaque Blessure critique. `applyOpposedCritical` reste MACHINERIE (ne nomme
 aucune entité, §3) — elle ÉMET l'événement, elle n'est pas convertie en hook (un hook de phase ne porte pas
 le contexte d'attaque riche — roll/arme/attaquant — qu'exige la résolution du Critique opposé).
 

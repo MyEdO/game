@@ -401,8 +401,8 @@ Navires : MDG 13 l.656.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `AA 10` (l.13-14) → `StructureCritEntry`, `aretesAbritantes`, `couvertDArete`, `lineOfSightCover`, `StructureData` — `src/data/schemas/defs/structure-criticals.ts`, `src/data/structureCriticals.ts`, `src/engine/cover.ts`, `src/engine/structures.ts`, `src/engine/types.ts`, `src/state/lineOfSight.ts`
-- `MDG 13` (l.656) → `toutCoupEstCritique`, `WorldMapView`, `resolveShipUnits`, `RepairTick`, `sea-navigation`, `voie-d-eau`, `buildSeaPlan`, `usesSuddenDeath`, `declencheUnCritique`, `isOutOfAction`, +7 — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/shipBuild.ts`, `src/engine/structures.ts`, +6 fichiers
-- `EDOC 7` (l.332-347) → `boardingDifficulty`, `BoardingParams`, `boardMovingVehicle` ⚠sans-appelant, `BoardMountParams`, `VehicleRepairParams`, `BoardMountResult`, `toutCoupEstCritique`, `VehicleRepairResult`, `repairVehicleAttempt` ⚠sans-appelant, `usesSuddenDeath`, +3 — `src/engine/conditions.ts`, `src/engine/mountedManeuvers.ts` ⚠hors-app, `src/engine/structures.ts`, `src/engine/vehicle.ts`, `src/engine/volley.ts`, `src/state/combatArea.ts`, +1 fichiers
+- `MDG 13` (l.656) → `WorldMapView`, `resolveShipUnits`, `OrigineCritique`, `RegimeDePorteur`, `RepairTick`, `sea-navigation`, `voie-d-eau`, `buildSeaPlan`, `usesSuddenDeath`, `isOutOfAction`, +6 — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/shipBuild.ts`, +6 fichiers
+- `EDOC 7` (l.332-347) → `boardingDifficulty`, `BoardingParams`, `boardMovingVehicle` ⚠sans-appelant, `BoardMountParams`, `VehicleRepairParams`, `BoardMountResult`, `VehicleRepairResult`, `repairVehicleAttempt` ⚠sans-appelant, `RegimeDePorteur`, `usesSuddenDeath`, +1 — `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/mountedManeuvers.ts` ⚠hors-app, `src/engine/vehicle.ts`, `src/engine/volley.ts`, `src/state/combatArea.ts`, +1 fichiers
 - dette : #673
 - bloqué : Tir ciblé vers un emplacement du véhicule (Harnachement, Roues, Sièges/chargement, EDOC 07 l.334-347) : aucun producteur de visée d'emplacement sur une coque routière, l'effet de l'emplacement sur Critique n'est pas joué. Test de Conduite d'attelage Difficile (-20) du conducteur d'un véhicule en mouvement après un Critique ou à 0 Blessures (EDOC 07 l.334) : aucun état « en mouvement » d'une coque routière au combat. Seul le refus de la Blessure Critique est joué
 
@@ -1045,7 +1045,7 @@ Réparation permanente : **Test de Métier (Constructeur de navires)** (ou **Mé
 **Voir aussi :** [Salissures de coque (MDG)](#salissures-de-coque-mdg), [Entretien du navire (Activité en mer) (MDG)](#entretien-du-navire-activité-en-mer-mdg), [Tests d'équipage (MDG)](#tests-déquipage-mdg) (Entretien).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.639-651) → `meleeVsHullBE`, `toutCoupEstCritique`, `PortView`, `WorldMapView`, `resolveShipUnits`, `RepairTick`, `sea-navigation`, `voie-d-eau`, `buildSeaPlan`, `usesSuddenDeath`, +10 — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/shipBuild.ts`, `src/engine/shipMelee.ts`, +9 fichiers
+- `MDG 13` (l.639-651) → `meleeVsHullBE`, `PortView`, `WorldMapView`, `resolveShipUnits`, `OrigineCritique`, `RegimeDePorteur`, `RepairTick`, `sea-navigation`, `voie-d-eau`, `buildSeaPlan`, +10 — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/shipBuild.ts`, +9 fichiers
 
 ---
 
