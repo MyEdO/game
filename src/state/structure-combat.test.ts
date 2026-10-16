@@ -4,7 +4,7 @@ import { applyAttackResult, applyStructureCriticalToTarget, applyCriticalToTarge
 import { seedBattleRng } from './battleRng';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { findSpellById } from '../data';
-import { isOutOfAction, endState, usesSuddenDeath, inDeathCondition, circonstanceMortelle, tickDeath, hasCondition } from '../engine/conditions';
+import { isOutOfAction, endState, usesSuddenDeath, inDeathCondition, tickDeath, hasCondition } from '../engine/conditions';
 import { rederivePassiveAttack } from '../engine/combat';
 import { toutCoupEstCritique } from '../engine/structures';
 import { setRule, resetRule } from '../engine/policy';
@@ -255,12 +255,12 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
   });
 });
 
-describe('Structures de siège — cumul de Critiques à 0 Blessure (AA 10 l.114 → LDB 18 l.15, l.34)', () => {
+describe('Structures de siège — à 0, seul le 96+ effondre (AA 10 l.114, l.127 ; LDB 18 l.34 ; AA 07 l.73)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
 
   const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
-  /** Porte (BE 2) amenée à 0 par la Hache, puis `critiques` Critiques non triviaux (Secouée) et `rounds`
+  /** Porte (BE 2) amenée à 0 par la Hache, puis `critiques` Critiques Secouée (dé 40) et `rounds`
    *  franchissements de Round (`tick-death` puis `resolveRoundBoundary`, comme `advanceTurn`). */
   function porteAZero(critiques: number, rounds: number) {
     const { S, H } = start('porte');
@@ -276,49 +276,27 @@ describe('Structures de siège — cumul de Critiques à 0 Blessure (AA 10 l.114
     return s;
   }
 
-  it('BE 2, à 0 depuis 3 Rounds, 3e Critique → Effondrement à la fin de CE Round : retrait ET brèche', () => {
-    const s = porteAZero(3, 3);
-    expect(live(s.id), 'retirée du combat').toBeUndefined();
-    expect(structureIsDown(useGame.getState().scene!, seg)).toBe(true);
-    expect(wallBetween(useGame.getState().scene!, 2, 2, 3, 2)).toBe(false);
-  });
+  for (const mode of ['ldb', 'aa'] as const) {
+    it(`mode '${mode}' : à 0 depuis 4 Rounds avec 4 Critiques (BE 2), la Structure reste en jeu, jamais Inconsciente`, () => {
+      setRule('combat-aa-blessures', mode);
+      const s = porteAZero(4, 4);
+      expect(s.wounds.current).toBe(0);
+      expect(s.criticalWounds).toBe(4);
+      expect(live(s.id), 'en jeu').toBeTruthy();
+      expect(structureIsDown(useGame.getState().scene!, seg)).toBe(false);
+      expect(hasCondition(s, 'inconscient')).toBe(false);
+      expect(inDeathCondition(s)).toBe(false);
+    });
 
-  it('sous le seuil de Critiques (2 ≤ BE) : la Structure tient', () => {
-    const s = porteAZero(2, 3);
-    expect(circonstanceMortelle(s)).toBe(false);
-    expect(live(s.id)).toBeTruthy();
-    expect(structureIsDown(useGame.getState().scene!, seg)).toBe(false);
-  });
-
-  it('sous le seuil de Rounds (2 ≤ BE) : la Structure tient', () => {
-    const s = porteAZero(3, 2);
-    expect(live(s.id)).toBeTruthy();
-    expect(structureIsDown(useGame.getState().scene!, seg)).toBe(false);
-  });
-
-  it('remontée au-dessus de 0 : l\'horloge repart de zéro', () => {
-    const s = porteAZero(3, 2);
-    expect(s.roundsAtZero).toBe(2);
-    s.wounds.current = 1;
-    tickDeath(s);
-    expect(s.roundsAtZero).toBe(0);
-    expect(circonstanceMortelle(s)).toBe(false);
-  });
-
-  it('une Structure ne passe jamais Inconsciente, ni en circonstance de mort de Personnage', () => {
-    const s = porteAZero(3, 2);
-    tickDeath(s);
-    expect(hasCondition(s, 'inconscient')).toBe(false);
-    expect(inDeathCondition(s)).toBe(false);
-    expect(circonstanceMortelle(s), 'contrôle : la circonstance de la Structure est atteinte').toBe(true);
-  });
-
-  it("mode 'aa' : l'horloge n'effondre pas (AA 06 l.556), seul le 96+ (AA 10 l.127)", () => {
-    setRule('combat-aa-blessures', 'aa');
-    const s = porteAZero(3, 3);
-    expect(live(s.id)).toBeTruthy();
-    expect(structureIsDown(useGame.getState().scene!, seg)).toBe(false);
-  });
+    it(`mode '${mode}' : contrôle, un Critique au dé 96 l'effondre (retrait et brèche)`, () => {
+      setRule('combat-aa-blessures', mode);
+      const s = porteAZero(4, 4);
+      expect(applyStructureCriticalToTarget(useGame.setState, s, {}, [], 96).destroyed).toBe(true);
+      checkBattleOver(useGame.getState, useGame.setState);
+      expect(live(s.id), 'retirée du combat').toBeUndefined();
+      expect(structureIsDown(useGame.getState().scene!, seg)).toBe(true);
+    });
+  }
 });
 
 describe('Structures de siège — retrait à UNE couture, filet compris (AA 10 l.127)', () => {

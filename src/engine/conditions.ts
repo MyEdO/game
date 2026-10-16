@@ -1022,19 +1022,6 @@ export function inDeathCondition(c: Combatant): boolean {
   return hasCondition(c, COND.inconscient) && c.wounds.current <= 0 && (c.criticalWounds ?? 0) > be;
 }
 
-/** Horloge de LDB 18 l.15 écoulée : à 0 PB depuis plus de BE Rounds (`roundsAtZero`, posé par `tickDeath`). */
-function horlogeAZeroEcoulee(c: Combatant): boolean {
-  return (c.roundsAtZero ?? 0) > bonus(effectiveChar(c, 'endurance'));
-}
-
-/** Circonstance qui entraînerait la mort d'un Personnage : `inDeathCondition`. Structure : AA 10 l.114, l.127 ;
- *  #1595 c.6219992594. */
-export function circonstanceMortelle(c: Combatant): boolean {
-  if (!isStructure(c)) return inDeathCondition(c);
-  if (c.dead || c.outOfRencontre || rule('combat-aa-blessures') === 'aa') return false;
-  return c.wounds.current <= 0 && horlogeAZeroEcoulee(c) && (c.criticalWounds ?? 0) > bonus(effectiveChar(c, 'endurance'));
-}
-
 /** À 0 PB : gagne l'État À Terre (LDB 18 l.15). À appeler quand un coup non-critique amène à 0.
  *  Un objet inanimé (Structure, coque, affût) ne tombe jamais À Terre : AA 10 l.114, MDG 13 l.656. */
 export function applyZeroWounds(c: Combatant): void {
@@ -1061,14 +1048,13 @@ export function loseWounds(c: Combatant, amount: number): number {
 /** Upkeep de mort en fin de Round : LDB 18 l.15, l.34 ; AA 07 l.5 ; MDG 13 l.656, l.674. Retourne le journal. */
 export function tickDeath(c: Combatant): string[] {
   const log: string[] = [];
-  if (c.dead || c.outOfRencontre || c.inert || isVehicle(c)) return log; // MDG 13 l.656, l.674
+  if (c.dead || c.outOfRencontre || isInanimate(c)) return log; // AA 10 l.114 ; MDG 13 l.656, l.674
   if (c.wounds.current > 0) {
     c.roundsAtZero = 0;
     return log;
   }
   c.roundsAtZero = (c.roundsAtZero ?? 0) + 1;
-  // Une Structure compte l'horloge (AA 10 l.114 → LDB 18 l.15, lue par `circonstanceMortelle`) sans jamais perdre connaissance.
-  if (rule('combat-aa-blessures') !== 'aa' && !isStructure(c) && horlogeAZeroEcoulee(c) && !hasCondition(c, COND.inconscient)) {
+  if (rule('combat-aa-blessures') !== 'aa' && c.roundsAtZero > bonus(effectiveChar(c, 'endurance')) && !hasCondition(c, COND.inconscient)) {
     addCondition(c, COND.inconscient);
     log.push(t('cond.unconscious', { name: c.label, rounds: c.roundsAtZero }));
   }

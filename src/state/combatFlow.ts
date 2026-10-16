@@ -155,7 +155,7 @@ import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, circonstanceMortelle, declencheUnCritique, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, declencheUnCritique, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
 import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
@@ -7396,11 +7396,8 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
     return;
   }
   // (2) Finaliser les morts lentes restantes (héros sans Destin) — + effet « à la mort » (onSlain) éventuel.
-  //      Une Structure dans la même circonstance s'effondre (AA 10 l.114 → l.127), après les passes en place ci-dessous.
-  const effondrees: Combatant[] = [];
   for (const c of battle.combatants) {
-    if (!circonstanceMortelle(c)) continue;
-    if (isStructure(c)) { effondrees.push(c); continue; }
+    if (!inDeathCondition(c)) continue;
     c.dead = true;
     for (const line of notifySlain(get, set, c)) battle.log.push(ev('death', line, c.id));
   }
@@ -7442,13 +7439,6 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   }
   // « Avantages et Magie » : la convergence de Domaine ne vaut que DANS le Round (LDB 46 l.123-125).
   if (battle.domainCasts?.length) battle.domainCasts = undefined;
-  // (3bis) Effondrement (AA 10 l.127) des Structures relevées en (2) : ligne `destroyed` de la table ; la BRÈCHE suit au balayage de `checkBattleOver` (4).
-  const deEffondrement = garanti(STRUCTURE_CRITICALS.find((e) => e.destroyed), 'destroyed', 'ligne de structure-criticals.json').min;
-  for (const s of effondrees) {
-    const lignes: string[] = [];
-    applyStructureCriticalToTarget(set, s, {}, lignes, deEffondrement);
-    for (const l of lignes) battle.log.push(ev('damage', l, s.id));
-  }
   // (4) Le combat est-il terminé à ce franchissement ? (morts lentes finalisées ci-dessus → victoire/défaite,
   //     capture des récompenses incluse). On tranche AVANT de proposer la fenêtre d'initiative.
   if (checkBattleOver(get, set)) return;
