@@ -888,7 +888,7 @@ export const STRUCTURES_ENVELOPPE = [
  *  ne résout vers RIEN, sans être un document ni une op : HORS STRATE. `L1a #1466` quand le NOM de
  *  la clé annonçait une FK (`clé de référence non résolue`) — branche VIDE à ce jour, 0 ligne —,
  *  `#1553` sinon. CE QUE LE MOTIF DIT, ligne à ligne (mesuré 2026-09-23, #1473) : `clé réservée`
- *  96 lignes / 409 occurrences, `identité non résolue` 2 / 2. Ces comptes sont DÉRIVÉS des lignes
+ *  96 lignes / 407 occurrences, `identité non résolue` 2 / 2. Ces comptes sont DÉRIVÉS des lignes
  *  ci-dessous — la garde `src/data/plage-bornes-contrat.test.ts` (sonde D) les recalcule et exige
  *  que cet en-tête les CITE, elle ne les compare plus à un littéral recopié. Le motif `clé
  *  réservée` ne décrit PAS une valeur qui pointerait vers rien — le déclencheur est le NOM
