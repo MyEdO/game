@@ -164,7 +164,7 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
       expect(journal.filter((l) => l.includes(de)), `dé de bande RE-dit au journal (${e.id} — ${de}) :\n${journal.join('\n')}`).toEqual([]);
     }
     // Forcer le rythme (MDG 13 l.95-107) : étape MONO du tableau auto-résolu — le journal EST sa seule surface.
-    const monos = journal.filter((l) => /^.+ — (Voile|Ramer) : \d+\/\d+ → (réussi|échec) \(DR [+-]\d+\)\.$/.test(l));
+    const monos = journal.filter((l) => /^.+ — (Voile|Ramer) \([^()]+\) : \d+\/\d+ → (réussi|échec) \(DR [+-]\d+\)\.$/.test(l));
     expect(monos.length, `ligne de dé du MONO attendue au journal :\n${journal.join('\n')}`).toBe(1);
   });
 });
