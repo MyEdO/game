@@ -203,7 +203,6 @@ function rendu() {
 
   const SRC_GATES = readFileSync(chemin('scripts/gates/toutes.mjs'), 'utf8')
   const SRC_PREPUSH = readFileSync(chemin('scripts/git-hooks/pre-push.mjs'), 'utf8')
-  const SRC_RULESET = readFileSync(chemin('scripts/ops/ruleset-main.mjs'), 'utf8')
 
   /** Options de `npm run gates`, DÉRIVÉES du lanceur : `argv.includes` (drapeau) ET `argv.indexOf`
    *  (option à valeur, comme `--gates a,b`) — ne lire que le premier en oubliait la moitié. */
@@ -215,12 +214,6 @@ function rendu() {
   /** Variable qui borne la suite pendant les lanes (nommée par le lanceur lui-même). */
   const BORNE_SUITE = (SRC_GATES.match(/\bWFRP_[A-Z_]+COEURS\b/) ?? [])[0]
   if (!BORNE_SUITE) abandon('scripts/gates/toutes.mjs ne borne plus la suite par une variable `WFRP_*COEURS`')
-
-  /** Régime de push : sa date et son verbatim, lus AU RULESET — c'est lui la porte (#1776). */
-  const REGIME = /Décision utilisateur du (\d{4}-\d{2}-\d{2}), verbatim : «\s*([^»]+?)\s*»/.exec(
-    SRC_RULESET.replace(/^\/\/ ?/gm, '').replace(/\s*\n\s*/g, ' '),
-  )
-  if (!REGIME) abandon('scripts/ops/ruleset-main.mjs ne porte plus la décision utilisateur datée en verbatim')
 
   /** Nombre de refus que le hook `pre-push` NOMME — lu au hook, jamais recopié. */
   const NB_REFUS_PREPUSH = (SRC_PREPUSH.match(/^\/\/\s+\d\.\s/gm) ?? []).length
@@ -419,7 +412,7 @@ stables pendant la génération et au contrôle final. Les captures temporaires 
 Une sélection de code ou de fichiers mixtes vide n'écrit rien. \`docs:check\` rejoue toujours les générateurs et
 vérificateurs, sans écrire de preuve ni modifier les docs. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte, COMPOSITE
+du harnais. Le train capture la tête committée dans un worktree détaché isolé, installe ses dépendances par \`npm ci\` et y exécute les imports, générateurs et étapes. Le WIP, l’index, HEAD et la branche locale du codeur restent intacts. La ref distante reste la branche de chantier originale ; son SHA est capturé avant fetch et sert de bail explicite à chaque push. Une avance concurrente est refusée. Le journal de l’arbre source porte les SHA demandé et publié ainsi que le snapshot, repris par \`--reprendre\` tant que le train n’est pas soldé. Un verrou par branche sérialise les trains ; le snapshot n’est retiré sans forcer qu’après fusion constatée. Une nouvelle tête peut remplacer un train arrêté : son journal est archivé et son snapshot conservé. Si l’ancienne tête publiée porte des commits absents du correctif, le train les fusionne dans le nouveau snapshot avant les docs et le push, sous le bail capturé ; une avance distante étrangère reste refusée. \`--etapes\` et \`--veiller\` ne créent aucun snapshot. Le lanceur imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte, COMPOSITE
 (\`node <racine>/scripts/ops/publier.mjs --veiller <run>; node <racine>/scripts/ops/publier.mjs --veiller <run> --constat\`),
 qui SUIT ce run jusqu'au verdict — elle lit le journal JSON, émet une ligne par transition d'étape, finit sur
 la ligne \`PUBLICATION:\` et sort en 0 (vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur,
@@ -434,7 +427,7 @@ branche poussée s'attend de même, en fond : \`npm run ops:ci -- --attendre [<s
 attend la course \`CI\` du sha poussé et sort sur son verdict, un code par verdict (verte 0, rouge 1, annulée,
 absente, borne dépassée), en nommant sur un rouge les tests en échec de chaque job rouge ; \`--echecs <run>\`
 rend cette extraction pour une course nommée. Le train régénère et commet les docs MIXTES (\`node scripts/docs/build-all.mjs --mixtes\`), POUSSE la branche
-de chantier, ouvre sa PR vers \`main\` et l'ARME ; la FILE DE FUSION du serveur la juge sur son commit de
+de chantier, ouvre sa PR vers \`main\` et ARME l’auto-merge à l’étape \`pr\` par \`gh pr merge --auto --match-head-commit <sha>\`, avant l’attente de la CI. \`ops:ruleset\` active \`allow_auto_merge: true\` sur le dépôt. Après un refus explicite d’auto-merge journalisé, le train utilise le repli \`enqueuePullRequest\`. La FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). L'étape \`file\`
 journalise le compte qui demande la fusion ; une course de branche ANNULÉE s'attend, sa relance appartenant à
 la reprise serveur, jusqu'à son ${PLAFOND_RELANCES}ᵉ essai, où le train rend la main avec le geste
@@ -447,7 +440,7 @@ ANNULÉE se redemande sur la même tête, sans fusion, dans la même borne ; un 
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.
 
-**Reprise serveur de file.** Le workflow \`reprise-file.yml\` lit exclusivement le code de \`main\`. Il ne met jamais de PR en file : sous \`GITHUB_TOKEN\`, une entrée ne déclenche pas de workflow \`merge_group\` ([documentation GitHub](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)). Une PR verte du train est nommée avec le geste \`npm run ops:publier -- --detache\`, une seule fois par PR et tête. Le lecteur partagé avec le train local contrôle la tête publiée et l’entrée GraphQL ; une entrée \`AWAITING_CHECKS\` âgée de ${DELAI_FILE_MS / 60_000} minutes sans course CI \`merge_group\` pour sa tête de groupe est nommée après relecture de la même entrée. Une lecture refusée ou non exhaustive reste indéterminée. Une course de branche annulée, sans job rouge, est relancée par \`rerun-failed-jobs\` ${DELAI_RELANCE_MS / 60_000} minutes après sa dernière mise à jour ; à son ${PLAFOND_RELANCES}ᵉ essai, le geste devient \`gh run rerun <id> --failed\`. Une course rouge reste ignorée. Les commentaires sur la PR et ses tickets cités portent le SHA et le run/attempt ; les relances sont dédupliquées par course et essai. La réconciliation toutes les 10 minutes couvre les PR ouvertes après la CI et les courses annulées. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit ces états sans relancer ni commenter.
+**Reprise serveur de file.** Le workflow \`reprise-file.yml\` lit exclusivement le code de \`main\`. Il ne met jamais de PR en file : sous \`GITHUB_TOKEN\`, une entrée ne déclenche pas de workflow \`merge_group\` ([documentation GitHub](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)). Une PR armée est observée sans alerte ; seule une PR verte du train non armée et hors file est nommée avec le geste \`npm run ops:publier -- --detache\`, une seule fois par PR et tête. Le lecteur partagé avec le train local contrôle la tête publiée et l’entrée GraphQL ; une entrée \`AWAITING_CHECKS\` âgée de ${DELAI_FILE_MS / 60_000} minutes sans course CI \`merge_group\` pour sa tête de groupe est nommée après relecture de la même entrée. Une lecture refusée ou non exhaustive reste indéterminée. Une course de branche annulée, sans job rouge, est relancée par \`rerun-failed-jobs\` ${DELAI_RELANCE_MS / 60_000} minutes après sa dernière mise à jour ; à son ${PLAFOND_RELANCES}ᵉ essai, le geste devient \`gh run rerun <id> --failed\`. Une course rouge reste ignorée. Les commentaires sur la PR et ses tickets cités portent le SHA et le run/attempt ; les relances sont dédupliquées par course et essai. La réconciliation toutes les 10 minutes couvre les PR ouvertes après la CI et les courses annulées. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit ces états sans relancer ni commenter.
 
 **Suivi de vague.** Toute reprise (compaction, lendemain, pause) commence par RELIRE
 \`.git/suivi/<N>.json\`, le suivi de l'épique \`<N>\` : seule source du plan et du prochain geste, il vit
@@ -596,7 +589,7 @@ et son journal sépare le temps machine LOCAL du temps d'ATTENTE de GitHub.
 
 ## 6. Gates et livraison
 
-**Régime** (arbitrage utilisateur ${REGIME[1]} : « ${REGIME[2]} ») : une branche \`chantier/**\` se
+**Régime** (\`scripts/ops/ruleset-main.mjs\`, #2178) : une branche \`chantier/**\` se
 pousse **LIBREMENT**, aussi souvent qu'on veut — c'est le push qui déclenche la CI, et la CI joue les
 mêmes gates que la file. \`main\` n'avance que par la **FILE DE FUSION**, et c'est le SERVEUR qui la
 tient et la SÉRIALISE : le ruleset \`main\` (\`${script('ops:ruleset')}\`, mode \`active\`) exige une PR,

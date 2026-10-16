@@ -183,7 +183,9 @@ lancement.
   fichier JAMAIS lu (`ctx_read(mode=raw, fresh=true)`) ; un agent d'art à qui `Read` d'une image est
   refusé relance `node C:/Users/gauch/.claude/fix-leanctx-settings.mjs`.
 
-**7. Push.** Le verdict d'une suite en fond se LIT puis se DÉCIDE — jamais un `tail … && git push` (le
+**7. Publication au fil de l’eau (#2626).** Le lot est l’unité de composition et de jugement. Chaque tête committée dont la CI est verte se publie immédiatement par `npm run ops:publier -- --detache`, même si le lot reste en cours. Les commits intermédiaires citent `refs #N` ; seul le solde clôt le ticket. Le train arme l’auto-merge à l’étape `pr`, avant l’attente CI : GitHub assure ensuite l’entrée en file à la CI verte. `enqueuePullRequest` est le repli après un refus explicite d’auto-merge, journalisé par le train. Une tête verte n’attend ni la fin du lot ni une fusion manuelle.
+
+Le verdict d'une suite en fond se LIT puis se DÉCIDE — jamais un `tail … && git push` (le
 tail sort 0 quel que soit le rouge). La branche `chantier/**` se pousse LIBREMENT : son run CI
 (`.github/workflows/ci.yml`, `push.branches`) joue les mêmes gates que `main`, une fois. **Après CHAQUE
 push de branche, attendre son run EN FOND** par `npm run ops:ci -- --attendre` (`Monitor`),

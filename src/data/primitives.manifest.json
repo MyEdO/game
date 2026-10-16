@@ -1,5 +1,23 @@
 [
   {
+    "id": "arbreProcessus",
+    "type": "primitives.manifest",
+    "label": "tuerArbre/descendantsDe/mesurerArbreProcessus/identitePresente/capturerDescendants/tuerCaptures",
+    "fichier": "scripts/guards/lib/arbreProcessus.mjs",
+    "concept": "descendance de processus, identité PID et création, capture des descendants vivants et arrêt après disparition du parent",
+    "perimetre": "gates locales, supervision du push et des hooks, train de publication",
+    "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
+  },
+  {
+    "id": "superviserProcessus",
+    "type": "primitives.manifest",
+    "label": "superviserProcessus/sortieDeSupervision",
+    "fichier": "scripts/guards/lib/superviserProcessus.mjs",
+    "concept": "commande asynchrone avec échéance interne, surveillance du parent et des ancêtres git, interruption et nettoyage des descendants capturés par identité",
+    "perimetre": "gitPorte.pousser, wrapper pre-push, lancement du train de publication",
+    "verrou": "scripts/guards/lib/superviserProcessus.test.mjs"
+  },
+  {
     "id": "screenShell",
     "type": "primitives.manifest",
     "label": "ScreenShell",
@@ -1717,7 +1735,7 @@
     "label": "ecrireJsonAtomique/ecrireTexteAtomique",
     "fichier": "scripts/guards/lib/ecritureJsonAtomique.mjs",
     "concept": "écriture d'un texte (ou d'une valeur JSON) en un geste : temporaire propre au processus, puis renommage sur la cible, dossier créé ; un lecteur concurrent ne lit jamais un fichier à moitié écrit",
-    "perimetre": "journal du train (`publier.mjs`), cache de la vigie (`vigie.mjs`), mesures et mémos du périmètre de tests (`perimetre.mjs`), cibles des générateurs (`ecrireDoc`), époque de l'écrivain des dérivés",
+    "perimetre": "journal du train (`publier.mjs`, `publierTrain.mjs`, `publicationIsolee.mjs`), cache de la vigie (`vigie.mjs`), mesures et mémos du périmètre de tests (`perimetre.mjs`), cibles des générateurs (`ecrireDoc`), époque de l'écrivain des dérivés",
     "verrou": "ecritureJsonAtomique.test.mjs"
   },
   {

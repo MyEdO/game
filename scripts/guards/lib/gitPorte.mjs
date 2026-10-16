@@ -48,6 +48,7 @@ import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { DEPOT } from './ticketsGh.mjs'
+import { fileURLToPath } from 'node:url'
 
 /** Borne de présentation de `raisonCourte`. */
 const RAISON_MAX = 200
@@ -1620,10 +1621,10 @@ export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])
 /** Borne d'un `ls-remote` (`shasDistants`, `tetesDistantes`), en millisecondes : celle de `fetchOrigin`. */
 export const TIMEOUT_DU_DISTANT_MS = 60000
 
-/** Les refs de l'origine que `motifs` désignent (`git help ls-remote`, « <patterns> »), en UN `ls-remote
- *  origin` : une `Map` ref → sha, `null` quand git ne répond pas 0. */
-function refsDistantes(depot, motifs) {
-  const brut = lire(depot, ['ls-remote', 'origin', ...revisionsDe(motifs)], { timeout: TIMEOUT_DU_DISTANT_MS })
+/** Les refs annoncées par l'origine, restreintes si `motifs` est donné (`git help ls-remote`, « <patterns> »),
+ *  en UN `ls-remote origin` : une `Map` ref → sha, `null` quand git ne répond pas 0. */
+export function refsDistantes(depot, motifs = []) {
+  const brut = lire(depot, ['ls-remote', 'origin', ...(motifs.length ? revisionsDe(motifs) : [])], { timeout: TIMEOUT_DU_DISTANT_MS })
   if (brut === null) return null
   return new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
 }
@@ -1978,19 +1979,39 @@ export function conclureFusionSansChemins(depot, { chemins, message }) {
  * HEAD poussé vers la branche `vers` de l'origine. `bail` = `--force-with-lease`, qui n'écrase que ce
  * que le dépôt vient de lire. Jamais vers le tronc : `main` n'avance que par la file de fusion
  * (scripts/ops/ruleset-main.mjs).
- * @param {Depot} depot @param {{ vers: string, bail?: boolean }} p
+ * @param {Depot} depot @param {{ vers: string, bail?: false | string }} p
  * @throws {Error} `vers` = `TRONC`.
  */
 export function pousser(depot, { vers, bail = false }) {
   if ([TRONC.nom, TRONC.branche].includes(vers)) throw new Error('`git push` vers `main` : main n’avance que par la file de fusion (`npm run ops:publier`)')
-  return ecrire(depot, ['push', ...(bail ? ['--force-with-lease'] : []), 'origin', `HEAD:${revisionsDe([vers])[0]}`], { timeout: 600_000 })
+  const ref = revisionsDe([vers])[0]
+  if (bail !== false && typeof bail !== 'string') throw new Error('pousser : bail SHA explicite requis')
+  const attendu = typeof bail === 'string' ? bail : null
+  if (attendu !== null && attendu !== '' && !/^[a-f0-9]{40,64}$/.test(attendu)) throw new Error('pousser : bail SHA explicite invalide')
+  const lease = attendu !== null ? [`--force-with-lease=${ref.startsWith('refs/') ? ref : `refs/heads/${ref}`}:${attendu}`] : []
+  const args = ['push', ...lease, 'origin', `HEAD:${ref}`]
+  const { spawn } = lanceurDe(depot)
+  if (spawn && spawn !== spawnSync) return ecrire(depot, args, { timeout: 600_000 })
+  const cwd = lanceurDe(depot).cwd
+  const env = environnementDe(depot)
+  const feinte = feinteDeGit(env ?? process.env, args, 'git push')
+  if (feinte) return classer(feinte, { cwd })
+  const options = Buffer.from(JSON.stringify({ commande: 'git', args, cwd, timeout: 600_000 })).toString('base64')
+  const superviseur = lancer(process.execPath, [fileURLToPath(new URL('./superviserProcessus.mjs', import.meta.url)), options], { cwd, env })
+  if (superviseur.status !== 0) return classer(superviseur, { cwd })
+  try {
+    const vu = JSON.parse(superviseur.stdout)
+    if (vu.error) vu.error = Object.assign(new Error(vu.error.message), { code: vu.error.code })
+    return classer(vu, { cwd })
+  } catch (e) { return indisponible('superviseur push illisible : ' + e.message) }
 }
 
-/** Un worktree neuf en `chemin`, sur la branche NEUVE `branche` partie de `depuis` (`worktree add -b`).
- *  @param {Depot} depot @param {{ chemin: string, branche: string, depuis: string }} p */
-export const ajouterWorktree = (depot, { chemin, branche, depuis }) => {
-  const [nom, base] = revisionsDe([branche, depuis])
-  return ecrire(depot, ['worktree', 'add', '-b', nom, '--', chemin, base])
+/** Un worktree neuf en `chemin`, depuis `depuis`, détaché ou sur une branche neuve.
+ *  @param {Depot} depot @param {{ chemin: string, branche?: string, depuis: string, detache?: boolean }} p */
+export const ajouterWorktree = (depot, { chemin, branche, depuis, detache = false }) => {
+  if (detache && branche) throw new Error('ajouterWorktree : détaché sans branche')
+  const [base] = revisionsDe([depuis])
+  return ecrire(depot, ['worktree', 'add', ...(detache ? ['--detach'] : ['-b', revisionsDe([branche])[0]]), '--', chemin, base])
 }
 
 /** Le worktree `chemin`, retiré sans forcer (`worktree remove`). @param {Depot} depot @param {string} chemin */

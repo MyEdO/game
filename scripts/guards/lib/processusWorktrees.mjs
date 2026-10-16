@@ -77,7 +77,7 @@ function indeterminee(timeout) {
 
 /** `creation` : date ISO 8601 UTC du démarrage du processus, sur les deux plateformes. `pids` ne lit que ces
  *  processus ; `timeout` (ms) borne la mesure, et son échéance rend une vue `indeterminee`. */
-export function mesurerProcessusWorktrees({ platform = process.platform, pids, timeout } = {}) {
+export function mesurerProcessusWorktrees({ platform = process.platform, pids, timeout, identites = false } = {}) {
   const debut = Date.now()
   if (platform === 'win32') {
     const system = process.env.SystemRoot
@@ -86,12 +86,13 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, t
     const borne = timeout === undefined ? {} : { timeout, windowsHide: true }
     let sortie
     try {
-      sortie = execFileSync(executable, ['-NoProfile', '-NonInteractive', '-File', fileURLToPath(new URL('../../ops/processus-worktrees.ps1', import.meta.url)), ...(pids ? ['-Pids', pids.join(',')] : [])], { encoding: 'utf8', maxBuffer: 16 << 20, ...borne })
+      sortie = execFileSync(executable, ['-NoProfile', '-NonInteractive', '-File', fileURLToPath(new URL('../../ops/processus-worktrees.ps1', import.meta.url)), ...(pids ? ['-Pids', pids.join(',')] : []), ...(identites ? ['-Identites'] : [])], { encoding: 'utf8', maxBuffer: 16 << 20, ...borne })
     } catch (e) {
       if (timeout !== undefined && e.code === 'ETIMEDOUT') return indeterminee(timeout)
       throw e
     }
-    return porteeProcessus(JSON.parse(sortie))
+    const vue = JSON.parse(sortie)
+    return identites ? vue : porteeProcessus(vue)
   }
   if (platform !== 'linux') throw new Error('mesure processus non supportée : ' + platform)
   const uid = process.getuid()
@@ -109,14 +110,16 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, t
     try {
       const avant = readFileSync(dossier + '/stat', 'utf8')
       const creation = avant.slice(avant.lastIndexOf(')') + 2).split(' ')[19]
+      item.ppid = Number(avant.slice(avant.lastIndexOf(')') + 2).split(' ')[1])
+      item.etat = avant.slice(avant.lastIndexOf(')') + 2).split(' ')[0]
       item.nom = avant.slice(avant.indexOf('(') + 1, avant.lastIndexOf(')'))
       item.creation = new Date(demarrage + (Number(creation) * 1000) / TICKS_PAR_SECONDE).toISOString()
-      try {
+      if (!identites) try {
         item.argv = readFileSync(dossier + '/cmdline', 'utf8').split('\0').filter(Boolean)
         item.commande = item.argv.join(' ')
         if (!item.commande) item.erreurs.push('commande illisible')
       } catch (e) { item.erreurs.push('commande illisible : ' + e.message) }
-      try { item.cwd = readlinkSync(dossier + '/cwd') } catch (e) { item.erreurs.push('cwd illisible : ' + e.message) }
+      if (!identites) try { item.cwd = readlinkSync(dossier + '/cwd') } catch (e) { item.erreurs.push('cwd illisible : ' + e.message) }
       const apres = readFileSync(dossier + '/stat', 'utf8')
       if (apres.slice(apres.lastIndexOf(')') + 2).split(' ')[19] !== creation) throw new Error('identité modifiée pendant inspection')
     } catch (e) {
@@ -125,7 +128,8 @@ export function mesurerProcessusWorktrees({ platform = process.platform, pids, t
     }
     processus.push(item)
   }
-  return porteeProcessus({ utilisateur: String(uid), processus })
+  const vue = { utilisateur: String(uid), processus, erreurs: [] }
+  return identites ? vue : porteeProcessus(vue)
 }
 
 export function racineProcessusLinux(platform = process.platform) {
