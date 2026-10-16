@@ -500,3 +500,11 @@ test(`#2279 N0 — ${PROCESSUS} processus se disputent le verrou : aucune sectio
     fsReel.rmSync(dossier, { recursive: true, force: true })
   }
 })
+
+// #2516
+test('verrou dont le tenant porte un pid hors de l’int32 : repris comme mort, sans exception', () => {
+  const fs = fsFactice(JSON.stringify({ pid: 2 ** 31, commande: 'tenant forgé' }))
+  const pris = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, pid: 4242, fs })
+  assert.equal(pris.etat, 'pris')
+  assert.equal(JSON.parse(fs.boite.contenu).pid, 4242)
+})

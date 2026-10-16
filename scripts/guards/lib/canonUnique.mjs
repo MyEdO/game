@@ -10,8 +10,8 @@
 // exemption. Ce module exporte la MÉCANIQUE, sans foyer ; le consommateur la déclare en y joignant son
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
-//    `COUVERTURE_DE_SPEC`, `IDENTITE_D_INSTANCE`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et
-//    `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `COUVERTURE_DE_SPEC`, `IDENTITE_D_INSTANCE`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON`,
+//    `SONDE_D_EXISTENCE` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
@@ -534,6 +534,23 @@ export const ECRITURE_DE_STOCK_JSON = Object.freeze({
     const objet = appel.args[0];
     if (!objet || !ts.isObjectLiteralExpression(objet)) return null;
     return objet.properties.some((p) => keyName(p.name) === 'entrees') ? 'écriture du format JSON des stocks recopiée (`texteDeStock`)' : null;
+  },
+});
+
+/** La SONDE D'EXISTENCE d'un processus, un appel `kill(<pid>, 0)` — méthode `.kill` ou fonction `kill`,
+ *  signal `0` ou `'0'` (kill(2), #2516). Son foyer : `estPidVivant`. */
+export const SONDE_D_EXISTENCE = Object.freeze({
+  nom: 'SONDE_D_EXISTENCE',
+  indice: (texte) => texte.includes('kill'),
+  /** @param {ts.Node} n @returns {string | null} */
+  reconnait: (n) => {
+    if (!ts.isCallExpression(n) || n.arguments.length < 2) return null;
+    const appele = sansEnveloppe(n.expression);
+    const nom = ts.isPropertyAccessExpression(appele) ? appele.name.text : ts.isIdentifier(appele) ? appele.text : null;
+    if (nom !== 'kill') return null;
+    const signal = sansEnveloppe(n.arguments[1]);
+    const nul = (ts.isNumericLiteral(signal) && Number(signal.text) === 0) || (ts.isStringLiteral(signal) && signal.text === '0');
+    return nul ? 'sonde d’existence de processus recopiée (`estPidVivant`)' : null;
   },
 });
 

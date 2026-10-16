@@ -9,8 +9,9 @@ import { ENV_PUBLICATION, publicationDe, publierDepuisSnapshot } from './publica
 import {
   CODE_ARRET_MOTEUR, cheminsDeJournal, codeDeVerdict, commandeDeVeille, entameDuRun,
   envDeLancement, filetDuTrainEnfant, idDeRun, lancementDe, lancementNpm, ligneDeDetachement,
-  ligneDePublication, lireJournal, modeDuLog, ouvrirLog, optionsDe, vivant,
+  ligneDePublication, lireJournal, modeDuLog, ouvrirLog, optionsDe,
 } from './publicationDonnee.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -83,7 +84,7 @@ async function main() {
     },
     echouer: (e) => {
       const journal = lireJournal(chemins.json, branche)
-      if (journal.pid && journal.pid !== process.pid && !journal.verdict && vivant(journal.pid)) {
+      if (journal.pid !== process.pid && !journal.verdict && estPidVivant(journal.pid)) {
         ecrire(`[publier] REFUS : ${e.message}\n`)
         return CODE_ARRET_MOTEUR
       }

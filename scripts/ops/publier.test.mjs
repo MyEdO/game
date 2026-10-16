@@ -33,10 +33,11 @@ import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { envDeDepotForge, envGitFeint, instanceDeDepot, sousGitFeint, sousLEnvDeLUtilisatrice } from '../guards/lib/depotGabarit.mjs'
 import { ABAISSER_PRIORITE, citerArgv, lancerDetache } from '../guards/lib/lancerDetache.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
-import { estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
+import { sousEcheanceAsync } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 import { mesurerPrincipal, synchroniserPrincipal } from './synchroniser.mjs'
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
-import { CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE, CODE_INDETERMINEE, ENV_LANCEMENT, FILE_TIMEOUT_MIN, codeDeVerdict, commandeDeVeille, cheminsDeJournal, entameDuRun, envDeLancement, idDeRun, lancementDe, ligneDePublication, pidDeRun, runDe, filetDuTrainEnfant, journalInitial, journalVide, lancementNpm, ligneDeDetachement, lireJournal, modeDuLog, motifDeRotation, nomDeJournal, nomDeRotation, optionsDe, rotationnerLog, vivant } from './publicationDonnee.mjs'
+import { CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE, CODE_INDETERMINEE, ENV_LANCEMENT, FILE_TIMEOUT_MIN, codeDeVerdict, commandeDeVeille, cheminsDeJournal, entameDuRun, envDeLancement, idDeRun, lancementDe, ligneDePublication, pidDeRun, runDe, filetDuTrainEnfant, journalInitial, journalVide, lancementNpm, ligneDeDetachement, lireJournal, modeDuLog, motifDeRotation, nomDeJournal, nomDeRotation, optionsDe, rotationnerLog } from './publicationDonnee.mjs'
 import { RACINE, borneDeVeilleMin, transitionsDuRun, veillerLeTrain, constaterLaMort, contexteDe, etatDeLEtape, etatDuTrain, jouerLeTrain, mortDuRun, planDeReprise, transitionDuRun } from './publierTrain.mjs'
 import {
   BORNE_EJECTIONS,
@@ -155,11 +156,6 @@ test('etatDuTrain : un verdict posé pour une AUTRE tête que HEAD est `périmé
   assert.deepEqual([perime.etat, perime.reprise], ['périmé', NOMS[0]])
   assert.equal(etatDuTrain(journalDuRun({ en: 'rouge', verdict: { etat: 'rouge', etape: 'x' } }), { teteVivante: 'bbb' }).etat, 'périmé')
   assert.equal(etatDuTrain(journalDuRun(), { teteVivante: 'bbb', vivant: () => true }).etat, 'en-vol', 'le train commite ses dérivés : HEAD bouge pendant le vol')
-})
-
-test('vivant : le processus courant vit ; un pid qui n’est pas un entier positif ne vit pas, sans sonde', () => {
-  assert.equal(vivant(process.pid), true)
-  for (const pid of [undefined, null, 0, -1, 1.5, '7']) assert.equal(vivant(pid), false, String(pid))
 })
 
 // ── planDeReprise / etatDeLEtape ───────────────────────────────────────────────────────
@@ -2298,14 +2294,6 @@ test('lancerDetache (#2603) : tuer le parent tue son enfant NON détaché, jamai
   const dossier = mkdtempSync(join(tmpdir(), 'detache-survit-'))
   const dormeur = join(dossier, 'dormeur.mjs')
   writeFileSync(dormeur, 'setTimeout(() => {}, 30_000)\n')
-  const vit = (pid) => {
-    try {
-      process.kill(pid, 0)
-      return true
-    } catch {
-      return false
-    }
-  }
   const parent = spawn(process.execPath, ['--input-type=module', '-e', `
 import { openSync } from 'node:fs'
 import { spawn } from 'node:child_process'
@@ -2329,18 +2317,18 @@ setTimeout(() => {}, 30_000)
       })
       parent.once('exit', (code) => ko(new Error(`parent sorti (${code}) avant ses pids`)))
     })
-    assert.deepEqual(Object.values(pids).map(vit), [true, true, true])
+    assert.deepEqual(Object.values(pids).map((pid) => estPidVivant(pid)), [true, true, true])
     process.kill(parent.pid, 'SIGKILL')
     await fin
-    for (let essai = 0; essai < 30 && vit(pids.enfant); essai += 1) await new Promise((ok) => setTimeout(ok, 100))
-    assert.equal(vit(pids.enfant), false, 'l’enfant non détaché meurt avec son parent')
-    assert.equal(vit(pids.posix), true, 'le détaché par `spawn({ detached: true })` survit')
-    assert.equal(vit(pids.win32), true, 'le détaché par `Start-Process` survit')
+    for (let essai = 0; essai < 30 && estPidVivant(pids.enfant); essai += 1) await new Promise((ok) => setTimeout(ok, 100))
+    assert.equal(estPidVivant(pids.enfant), false, 'l’enfant non détaché meurt avec son parent')
+    assert.equal(estPidVivant(pids.posix), true, 'le détaché par `spawn({ detached: true })` survit')
+    assert.equal(estPidVivant(pids.win32), true, 'le détaché par `Start-Process` survit')
   } finally {
     const tous = [parent.pid, ...Object.values(pids)]
-    for (const pid of tous) if (vit(pid)) process.kill(pid, 'SIGKILL')
+    for (const pid of tous) if (estPidVivant(pid)) process.kill(pid, 'SIGKILL')
     await fin
-    for (let essai = 0; essai < 30 && tous.some(vit); essai += 1) await new Promise((ok) => setTimeout(ok, 100))
+    for (let essai = 0; essai < 30 && tous.some((pid) => estPidVivant(pid)); essai += 1) await new Promise((ok) => setTimeout(ok, 100))
     rmSync(dossier, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
   }
 })

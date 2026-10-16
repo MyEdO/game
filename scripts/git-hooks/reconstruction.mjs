@@ -20,7 +20,8 @@ import { toleranceDeMesure } from '../guards/lib/processusWorktrees.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { ATTENTE_GESTES_LOURDS, creationMesuree } from '../test/verrouGestesLourds.mjs'
-import { attendreLibre, consignant, estPidVivant, nomDesOrphelins, prendreVerrou } from '../test/verrou.mjs'
+import { attendreLibre, consignant, nomDesOrphelins, prendreVerrou } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 import { journaliserLeHook } from './journal.mjs'
 
 /** Code d'une reconstruction demandée dont aucun détaché ne vit plus, sans verdict (`EX_SOFTWARE`, sysexits.h). */
@@ -142,12 +143,14 @@ export function passeDesDerives({ racine, log, ecrire, env = {}, generateurs = G
 
 /**
  * Le DÉTACHÉ : sous le verrou de reconstruction de l'arbre `racine` (attente par tenant, identité mesurée),
- * sert les demandes tant que `soldees < demandes`. Chaque passe attend un arbre libre de toute opération git
- * (`operationEnCours`, échéance → `CODE_DIFFERE`), joue `passe` sous l'époque de l'écrivain des dérivés lue
- * avant elle (`envDeLaPasse`), puis solde sa cible ; une époque changée pendant la passe (`preempterLesDerives`, ou
- * une opération git vue par `sousLEpoque`) la rejoue sans rien solder ; une passe en `CODE_SOURCE_MODIFIEE` est rejouée
- * `REJEUX_SUR_SOURCE_MODIFIEE` fois au plus, puis soldée de ce code. La sortie se décide sous le verrou d'état, où le détaché se retire de `lances`.
- * REND le nombre de passes jouées.
+ * sert les demandes tant que `soldees < demandes`. Une opération git en cours (`operationEnCours`) s'attend
+ * verrou de l'arbre RENDU, le détaché restant inscrit à `lances` ; à sa fin ou à l'échéance, il reprend le verrou
+ * par la même prise et relit sa cible sous le verrou d'état ; une opération encore en cours à l'échéance solde la
+ * cible de `CODE_DIFFERE`. Chaque passe joue `passe` sous l'époque de l'écrivain des dérivés lue avant elle
+ * (`envDeLaPasse`), puis solde sa cible ; une époque changée pendant la passe (`preempterLesDerives`, ou une
+ * opération git vue par `sousLEpoque`) la rejoue sans rien solder ; une passe en `CODE_SOURCE_MODIFIEE` est rejouée
+ * `REJEUX_SUR_SOURCE_MODIFIEE` fois au plus, puis soldée de ce code. La sortie se décide sous le verrou d'état, où
+ * le détaché se retire de `lances`. REND le nombre de passes jouées.
  * @param {{ racine: string, passe?: typeof passeDesDerives, horloge?: () => number, dormir?: (ms: number) => void,
  *   estVivant?: (pid: number) => boolean, attenteArbre?: { echeanceMs: number, pasMs: number },
  *   attenteTenant?: { echeanceMs: number, pasMs: number, parTenant?: boolean }, operation?: (gitDir: string) => string | null }} p
@@ -176,34 +179,54 @@ export function servirLesDemandes({
   const retirer = () => sousLEtat(chemins, racine, commande, (etat) => ({ ecrire: sansCeDetache(etat) }))
   /** @type {Map<string, any>} */
   const orphelins = new Map()
-  const prise = prendreVerrou({
-    chemin: chemins.verrou, libelle: 'reconstruction de l’arbre', commande, cwd: racine, horloge, dormir,
-    attente: { ...attenteTenant, annoncer: () => {} },
-    identite: { lireCreation: creationMesuree, toleranceMs: toleranceDeMesure(), pasMs: ATTENTE_GESTES_LOURDS.pasMs },
-    estVivant: consignant(chemins.verrou, null, estVivant, horloge, orphelins),
-  })
-  if (prise.etat !== 'pris') {
-    ecrire(`[reconstruction] ${iso()} verrou de l’arbre tenu à l’échéance : ${prise.message}\n`)
-    retirer()
-    return 0
+  /** La prise du verrou de l'arbre ; `null` à l'échéance, ce détaché retiré de `lances`. */
+  const prendre = () => {
+    const vu = prendreVerrou({
+      chemin: chemins.verrou, libelle: 'reconstruction de l’arbre', commande, cwd: racine, horloge, dormir,
+      attente: { ...attenteTenant, annoncer: () => {} },
+      identite: { lireCreation: creationMesuree, toleranceMs: toleranceDeMesure(), pasMs: ATTENTE_GESTES_LOURDS.pasMs },
+      estVivant: consignant(chemins.verrou, null, estVivant, horloge, orphelins),
+    })
+    if (vu.etat !== 'pris') {
+      ecrire(`[reconstruction] ${iso()} verrou de l’arbre tenu à l’échéance : ${vu.message}\n`)
+      retirer()
+      return null
+    }
+    if (orphelins.size) ecrire(`[reconstruction] ${iso()} verrou orphelin repris : ${nomDesOrphelins([...orphelins.values()])}\n`)
+    orphelins.clear()
+    return vu
   }
-  if (orphelins.size) ecrire(`[reconstruction] ${iso()} verrou orphelin repris : ${nomDesOrphelins([...orphelins.values()])}\n`)
+  let prise = prendre()
+  if (prise === null) return 0
   let passes = 0
   let rejeux = 0
+  /** La dernière attente de l'opération a-t-elle échu, opération encore en cours ? */
+  let echue = false
   try {
     for (;;) {
       const cible = sousLEtat(chemins, racine, commande, (etat) => (etat.soldees >= etat.demandes
         ? { ecrire: sansCeDetache(etat), rendu: null }
         : { rendu: etat.demandes }))
       if (cible === null) return passes
+      const enCours = operation(gitDir)
+      if (enCours && !echue) {
+        prise.liberer()
+        prise = null
+        ecrire(`[reconstruction] ${iso()} ${enCours} en cours : verrou de l’arbre rendu pendant l’attente\n`)
+        const echeance = horloge() + attenteArbre.echeanceMs
+        let vu = enCours
+        while (vu && horloge() < echeance) {
+          dormir(attenteArbre.pasMs)
+          vu = operation(gitDir)
+        }
+        prise = prendre()
+        if (prise === null) return passes
+        echue = Boolean(vu)
+        continue
+      }
+      echue = false
       const debut = iso()
       ecrire(`[reconstruction] ${debut} passe seq=${cible} — début\n`)
-      const echeance = horloge() + attenteArbre.echeanceMs
-      let enCours = operation(gitDir)
-      while (enCours && horloge() < echeance) {
-        dormir(attenteArbre.pasMs)
-        enCours = operation(gitDir)
-      }
       let code
       const epoque = epoqueDe(ecrivain)
       if (enCours) {
@@ -235,7 +258,7 @@ export function servirLesDemandes({
       }))
     }
   } finally {
-    prise.liberer()
+    prise?.liberer()
   }
 }
 

@@ -6,7 +6,8 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { ajouterWorktree, brancheDe, depotDe, estAncetre, estShaComplet, fetchOrigin, reussi, refusDeGit, retirerWorktree, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
-import { prendreVerrou, estPidVivant, tenantDe } from '../test/verrou.mjs'
+import { prendreVerrou, tenantDe } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 import { cheminsDeJournal, lireJournal } from './publicationDonnee.mjs'
 
 function snapshotDe(source, generation) {
@@ -66,7 +67,7 @@ export function preparerPublication({ source, branche, chemins, reprendre, uuid 
   if (!branche || branche === 'HEAD' || branche === 'main' || g.brancheDe(depot) !== branche)
     throw new Error('publication isolée : une branche de chantier est requise')
   const precedent = existsSync(chemins.json) ? JSON.parse(readFileSync(chemins.json, 'utf8')) : null
-  if (precedent?.pid && !precedent.verdict && estPidVivant(precedent.pid))
+  if (!precedent?.verdict && estPidVivant(precedent?.pid))
     throw new Error(`publication isolée : train ${precedent.pid} encore vivant`)
   if (reprendre && precedent?.publication) {
     const p = precedent.publication
