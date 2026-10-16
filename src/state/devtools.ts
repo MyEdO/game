@@ -1784,7 +1784,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       for (let d = 1; d <= 100 && de === undefined; d++) if (shipHitLocation(gree, d, table) === location) de = d;
       if (de === undefined) return `✗ « ${location} » n'est pas une Localisation de ce gréement (${gree})`;
       const log: string[] = [];
-      applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll });
+      applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll, ctx: { coup: { degats: 0, cause: null } } });
       for (const l of log) useGame.getState().log(l);
       return [`✓ Critique de navire « ${location} » (d100 imposé ${de}) sur ${coque.label}`, ...log];
     },

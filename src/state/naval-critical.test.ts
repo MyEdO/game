@@ -66,7 +66,7 @@ describe('applyCriticalToTarget — l’équipage lié (crewIds) encaisse via la
       // La bataille PORTE la file de journal différée : depuis #1657 B3-1/B3-2, le Test de la rangée
       // du Critique encaissé par le marin part par la PORTE — sa voie inline y pousse ses lignes.
       const get = (() => ({ battle: { combatants: crew }, party: [], pendingLogQueue: [] })) as never;
-      applyCriticalToTarget(s, 'corps', 0, [], setStub, { get });
+      applyCriticalToTarget(s, 'corps', 0, [], setStub, { get, ctx: { coup: { degats: 12, cause: 'double' } } }); // le coup qui porte le Critique (MDG 13 l.584)
       crewTouched = crew.some((c) => c.wounds.current < 13 || (c.traumas?.length ?? 0) > 0 || c.conditions.length > 0);
     }
     expect(crewTouched).toBe(true);

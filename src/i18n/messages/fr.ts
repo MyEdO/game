@@ -2136,7 +2136,7 @@ export const fr = {
   'shipCrit.crewNoneExposed': "Coup à l'Équipage, aucun marin exposé : le coup porte sur {loc}.",
   'shipCrit.stationFermee': "Coup à l'Équipage sur {loc}, que ce bateau n'a pas : personne n'est touché.",
   'shipCrit.crewHit': 'Équipage touché : {name} encaisse un Critique — {label}.',
-  'shipCrit.crewSansCritique': 'Équipage touché : {name}, sous Mort subite, ne subit aucune Blessure critique.',
+  'shipCrit.crewBlesse': 'Équipage touché : {name} perd {n} Blessure(s).',
   'shipCrit.crewTakes': "{n} membre(s) d'équipage encaisse(nt) le Critique ({label}).",
   'cascade.coqueDisparue': 'Conséquence de « {label} » non appliquée : le bateau concerné n’est plus en jeu.',
   'cascade.cibleDisparue': 'Conséquence de « {label} » non appliquée : la cible n’est plus en jeu.',

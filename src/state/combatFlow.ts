@@ -156,7 +156,7 @@ import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, impenetrableAt, piecesPorteesA, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
+import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
 import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
@@ -1738,13 +1738,6 @@ export function resolveCritSeverity(
   return { crit, table: { ...decl, forcedRoll: rolled.roll, result: rolled } };
 }
 
-/** Mort subite (LDB 18 l.44, l.46) : l'issue du coup qui dépasse les Blessures d'un figurant (#2654). */
-export function appliquerMortSubite(target: Combatant, log: string[]): void {
-  target.wounds.current = 0;
-  if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
-  log.push(tr('cf.collapse', { name: target.label }));
-}
-
 /** Applique une Blessure critique (Coup Critique ou overkill) à `target` : PB (ignore BE+PA,
  *  plancher 0) + États + compteur. RETOURNE `true`
  *  si le résultat est létal (le caller finalise via finalizeHeroDeath). Pousse le journal dans `log`. */
@@ -1886,7 +1879,7 @@ export function applyHullCriticalToTarget(
   // Les dés IMPOSÉS sont ceux que le moteur accepte déjà (`applyHullCritical`) : la recette s'en sert
   // pour atteindre une Localisation VOULUE sans chemin parallèle — le jeu applique le sien.
   const outcome = applyHullCritical(target, crew, rig, battleRng(), forcedLocRoll, forcedCritRoll, {
-    locationTable: hull?.locationTable, criticalTable: hull?.criticalTable,
+    locationTable: hull?.locationTable, criticalTable: hull?.criticalTable, coup: ctx?.coup,
   });
   target.criticalWounds = (target.criticalWounds ?? 0) + 1;
   for (const l of outcome.lines) log.push(l);
@@ -1894,7 +1887,7 @@ export function applyHullCriticalToTarget(
     || crew.some((c) => c.kind === 'hero');
   if (!suppressReveal && heroConcerned) {
     pushReveal(set, {
-      kind: 'critical', title: 'Critique de navire', dice: outcome.crewCrit?.crit.roll ?? 0, lines: outcome.lines,
+      kind: 'critical', title: 'Critique de navire', dice: outcome.crewCrit[0]?.crit.roll ?? 0, lines: outcome.lines,
       subjectId: target.id, severity: 'grave', actorId: ctx?.attackerId, weapon: ctx?.weapon, details: [],
     });
   }
@@ -1905,10 +1898,9 @@ export function applyHullCriticalToTarget(
   //  · sinon → le coup à l'équipage de la rangée (MSRC 07 l.78/l.94, MDG 13 l.763) sur N marins :
   //    UNE bande de N rangées pour ceux que des sièges tiennent, voie inline pour les autres.
   if (get) {
-    const crit = outcome.crewCrit;
-    const blesse = crit ? crew.find((c) => c.id === crit.crewId) : undefined;
-    if (crit?.crit.testFlow && !crit.crit.lethal && blesse) {
-      routeTriggeredTest(get, set, blesse, blesse, crit.crit.testFlow, { label: crit.crit.label });
+    for (const { crewId, crit } of outcome.crewCrit) {
+      const blesse = crew.find((c) => c.id === crewId);
+      if (crit.testFlow && !crit.lethal && blesse) routeTriggeredTest(get, set, blesse, blesse, crit.testFlow, { label: crit.label });
     }
     const coup = outcome.crewHit;
     if (coup?.testFlow) {
@@ -2218,7 +2210,7 @@ export function applyOpposedCritical(
   // B. de Sauvagerie (LDB 41) : l'attaquant à l'origine du double tire deux lancers de Critique.
   const attacker = ctx.attackerId ? inBattleId(get().battle, ctx.attackerId) : undefined;
   const heroConcerned = victim.kind === 'hero' || attacker?.kind === 'hero';
-  const c2: DeviationCtx = { ...ctx, attackerKind: attacker?.kind, critTwice: attacker ? critRollTwiceFor(attacker) : undefined };
+  const c2: DeviationCtx = { ...ctx, attackerKind: attacker?.kind, critTwice: attacker ? critRollTwiceFor(attacker) : undefined, coup: { degats: 0, cause: 'double' } };
   const deviable = !!rule('combat-critical-deflect') && deviatableArmourAt(victim, loc);
   if (deviable && !tenuParUnHumain(get(), victim.id)) {
     if (autoDeviate(set, victim, loc, ctx, roll, log, heroConcerned)) return;
@@ -2658,7 +2650,10 @@ function appliquerLaTouche(
     applyOps(target, GRAPPLE.init, { caster: attacker, source: GRAPPLE_SOURCE });
     critLog.push(tr('cf.grappleInit', { name: attacker.label, foe: target.label }));
   }
-  const ctxCrit: DeviationCtx = { attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label, critTwice: twice };
+  const ctxCrit: DeviationCtx = {
+    attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label, critTwice: twice,
+    coup: { degats: res.damage ?? 0, cause: causeDuCoupCritique(res), arme: weapon },
+  };
   // Blessure Critique INFLIGÉE (`lethal` = rendu d'`applyCritAndFinalize`) : Frappe blessante (LDB 10),
   // puis les effets `onCrit` des données sur un Coup Critique.
   const apresLeCritique = (lethal: boolean, loc: HitLocation, origine: OrigineCritique): void => {
@@ -5856,7 +5851,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.reinjuryBleed', { name: cible.label, n: mReinj, loc: locationLabel(loc, cible.bodyShape) })); }
   appliquerLesCritiques({
     get, set, target: cible, compte, plan, log: lignes, currentBefore, roll: mres.roll ?? 0,
-    ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice },
+    ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: { degats: mres.damage ?? 0, cause } },
     heroConcerne: cible.kind === 'hero' || caster.kind === 'hero',
   });
   // 0 PB → À Terre (LDB 18 l.15).

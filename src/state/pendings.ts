@@ -16,6 +16,7 @@ import type { TestResult, OpposedResult, EchecSansJet } from '../engine/tests';
 import type { AttackResult, DefenseMode, DifficultyComposition, ModLine } from '../engine/combat';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
+import type { CoupSurLaCoque } from '../engine/shipCritical';
 import type { OupsResolved } from '../engine/oups';
 import type { StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
@@ -805,6 +806,8 @@ export interface DeviationCtx {
    *  d'un Critique OPPOSÉ / dévié avec les Atouts d'arme du porteur (Taillade → Hémorragique, #316). */
   weaponObj?: Weapon;
   critTwice?: boolean;
+  /** Le coup qui porte le Critique, pour le marin d'un Critique de coque à l'Équipage (MDG 13 l.584). */
+  coup?: CoupSurLaCoque;
 }
 
 /** La décision prise sur UNE Blessure critique d'un coup, au rang de son append (#1426 ; LDB 63 l.30) :

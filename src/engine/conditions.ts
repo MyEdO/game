@@ -130,6 +130,13 @@ function empileSurPionExistant(existing: ConditionInstance, value: number): void
   if (existing.derivedFrom) existing.derivedFrom = { ...existing.derivedFrom, stacks: 0 };
 }
 
+/** Mort subite (LDB 18 l.44, l.46) : l'issue du coup qui dépasse les Blessures d'un figurant (#2654). */
+export function appliquerMortSubite(target: Combatant, log: string[]): void {
+  target.wounds.current = 0;
+  if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
+  log.push(t('cf.collapse', { name: target.label }));
+}
+
 export function addCondition(c: Combatant, name: string, value = 1, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, locks?: ConditionLocks): void {
   const { lockedUntil, unlockBy } = locks ?? {};
   if (!groupAdvantage()) c.advantage = 0; // « Si vous subissez un État quel qu'il soit, vous perdez immédiatement tout Avantage » (LDB 16 l.7) — pas de perte per-combattant en mode « Avantage de groupe » (la réserve du camp ne change pas)
