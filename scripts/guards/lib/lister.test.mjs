@@ -282,13 +282,12 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
  *  la ligne qu'elle éteint non. */
 const EXEMPTIONS_DU_MUR = [
   "scripts/guards/lib/sourceCorpus.test.mjs :: import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'",
-  'scripts/docs/lib/enregistreur-lectures.mjs :: readdirSync: fs.readdirSync,',
-  'scripts/docs/lib/enregistreur-lectures.mjs :: promisesReaddir: fs.promises.readdir,',
-  "scripts/docs/lib/enregistreur-lectures.mjs :: const entrees = brut.readdirSync(path.resolve(base, rel), { withFileTypes: true }).map((e) => ({ nom: e.name, nature: e.isSymbolicLink() ? 'link' : e.isFile() ? 'file' : e.isDirectory() ? 'directory' : 'other' })).sort((a, b) => parUnitesDeCode(a.nom, b.nom))",
-  'scripts/docs/lib/enregistreur-lectures.mjs :: fs.readdirSync = function (p, ...a) { const r = brut.readdirSync.call(this, p, ...a); noterDossier(p); return r }',
-  'scripts/docs/lib/enregistreur-lectures.mjs :: fs.promises.readdir = function (p, ...a) { return brut.promisesReaddir.call(this, p, ...a).then((r) => { noterDossier(p); return r }) }',
-  'scripts/docs/lib/enregistreur-lectures.mjs :: fs.readdirSync = brut.readdirSync',
-  'scripts/docs/lib/enregistreur-lectures.mjs :: fs.promises.readdir = brut.promisesReaddir',
+  'scripts/docs/lib/enregistreur-lectures.mjs :: readdirSync: fs.readdirSync, opendirSync: fs.opendirSync, readdir: fs.readdir, globSync: fs.globSync, glob: fs.glob,',
+  'scripts/docs/lib/enregistreur-lectures.mjs :: promisesReaddir: fs.promises.readdir, promisesOpendir: fs.promises.opendir, promisesGlob: fs.promises.glob,',
+  "scripts/docs/lib/enregistreur-lectures.mjs :: const entreesDe = (abs) => brut.readdirSync(abs, { withFileTypes: true }).map((e) => ({ nom: e.name, nature: e.isSymbolicLink() ? 'link' : e.isFile() ? 'file' : e.isDirectory() ? 'directory' : 'other' })).sort((a, b) => parUnitesDeCode(a.nom, b.nom))",
+  'scripts/docs/lib/enregistreur-lectures.mjs :: Object.assign(fs, { readdirSync: synchrone(brut.readdirSync, noterDossier), opendirSync: synchrone(brut.opendirSync, noterDossier), readdir: aRappel(brut.readdir, noterDossier), globSync: avantGlob(brut.globSync), glob: avantGlob(brut.glob) })',
+  'scripts/docs/lib/enregistreur-lectures.mjs :: Object.assign(fs, { readdirSync: brut.readdirSync, opendirSync: brut.opendirSync, readdir: brut.readdir, globSync: brut.globSync, glob: brut.glob })',
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: fs.opendirSync(path.join(racine, 'o')).closeSync()",
   'scripts/test/partition.mjs :: const cible = relative(racine, t).toLocaleLowerCase()',
   'scripts/test/partition.mjs :: return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())',
 ]

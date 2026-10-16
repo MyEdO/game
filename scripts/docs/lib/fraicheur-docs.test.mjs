@@ -89,6 +89,29 @@ test('inventaire Git : lien inutilisé capturé par son parent ; lien effectivem
   }
 })
 
+// #2603
+for (const muee of [null, 'data/absent.txt']) test(`sondes lstat et access rejouées avec leur mode et leur code${muee ? ` : ${muee} posé pendant la passe, refus` : ''}`, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'docs/\n', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
+  const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }
+  const opts = { ...options, generateurs: [g] }
+  const sondes = [
+    { chemin: 'data', type: 'lstat', existe: true, nature: 'directory' },
+    { chemin: 'data/absente2.txt', type: 'lstat', existe: false, nature: null, code: 'ENOENT' },
+    { chemin: 'data/source.txt', type: 'access', mode: fs.constants.R_OK, existe: true, nature: null },
+    { chemin: 'data/absent.txt', type: 'access', mode: fs.constants.F_OK, existe: false, nature: null, code: 'ENOENT' },
+  ]
+  const entree = { fichiers: [g.script, 'data/source.txt'], dossiers: [], cibles: [], git: [], sondes, incomplet: [] }
+  try {
+    poser(racine, SOURCES_LUES, JSON.stringify({ [g.script]: entree }))
+    const avant = avantGenerateur(racine, g, opts, preparerPreuves(racine, opts))
+    if (muee) poser(racine, muee, 'surgi')
+    poser(racine, doc('a'), 'sortie')
+    const vu = certifierGenerateur(racine, g, entree, opts, avant)
+    assert.equal(vu.ok, !muee, vu.raison)
+    if (muee) assert.match(vu.raison, /sonde modifiée/)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
 test('source mesurée : lien POSIX pendant ne devient jamais une absence connue', { skip: process.platform === 'win32' }, () => {
   const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'docs/\n', 'data/source.txt': 'source', 'g/a.mjs': 'export const a = 1\n' } })
   const g = { runner: 'node', script: 'g/a.mjs', targets: [doc('a')] }

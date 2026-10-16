@@ -52,7 +52,7 @@ const L = classe(LECTURE)
 
 /** La version de lean-ctx, et son tag, aux sources de laquelle `FAMILLES_LEAN_CTX` et `OPS_CTX_PATCH` sont
  *  audités ; le binaire de l'hôte y est confronté (`scripts/hooks/canal-outil-guard.test.mjs`). */
-export const LEAN_CTX_VERSION = Object.freeze({ version: '3.10.5', tag: '516c76e96' })
+export const LEAN_CTX_VERSION = Object.freeze({ version: '3.11.4', tag: '1074255e5' })
 
 /**
  * CLASSEMENT des outils de lean-ctx `LEAN_CTX_VERSION`, par nom nu :
@@ -61,12 +61,13 @@ export const LEAN_CTX_VERSION = Object.freeze({ version: '3.10.5', tag: '516c76e
  * lui, IMPORTE un fichier désigné dans cet état ou lance un programme est REFUSÉE. Sources au tag de
  * `LEAN_CTX_VERSION` : ctx_fill (`tools/ctx_fill.rs` l.31) et ctx_benchmark (`tools/ctx_benchmark.rs` l.12)
  * lisent un `path` comme ctx_read ; ctx_compress n'écrit que sa session (`tools/ctx_compress.rs`
- * l.205) ; ctx_plan, ctx_response, ctx_discover n'écrivent rien. Chaînes du binaire :
+ * l.205) ; ctx_verify que son index de sessions (`tools/ctx_verify.rs` l.1-40, `core/session/persistence.rs`
+ * l.265-317) ; ctx_plan, ctx_response, ctx_discover n'écrivent rien.
+ * Chaînes du binaire :
  * - ctx_knowledge : « export/import: bundle directory (OKF) or file path », « ERROR: import requires
  *   `path` (a file or an OKF directory) » ;
  * - ctx_session : « ctx_session.export », « Export write failed: », « ERROR: path is required for
  *   action=import » ;
- * - ctx_verify : « action=proof|v2 for Lean4 proof verification » ;
  * - ctx_graph, ctx_index, ctx_impact, ctx_search : « graphs », « bm25_index.bin.zst » (`~/.config/lean-ctx/`) ;
  * - ctx_cache : « ANTIPATTERN: does NOT affect disk files ».
  */
@@ -79,7 +80,7 @@ export const FAMILLES_LEAN_CTX = Object.freeze({
   ctx_session: classe(LECTURE, 'export', 'import'),
   ctx_summary: L, ctx_memory: L, ctx_cache: L, ctx_index: L, ctx_context: L, ctx_metrics: L, ctx_gain: L,
   ctx_heatmap: L, ctx_cost: L, ctx_perf: L,
-  ctx_verify: classe(LECTURE, 'proof', 'v2'),
+  ctx_verify: L,
   ctx_compare: L, ctx_analyze: L, ctx_benchmark: L, ctx_discover: L, ctx_discover_tools: L,
   ctx_load_tools: L, ctx_plan: L, ctx_fill: L, ctx_compress: L, ctx_response: L,
   ctx_patch: classe(EDITION),
@@ -200,13 +201,13 @@ const opCtxPatch = (formes, { neuf = 'new_text', remplace = null, enLot = true, 
  * Les ops de `ctx_patch`, lean-ctx `LEAN_CTX_VERSION` : la seule déclaration de ses clés. `formes` :
  * les jeux de clés que l'op CONSOMME, hors `path` — une entrée porte les clés d'UNE forme ; `neuf`,
  * `remplace` : la clé de son texte posé, de son texte remplacé ; `enLot` : admise dans `ops[]`
- * (`registered/ctx_patch.rs` l.196-200 pour les refusées) ; `deleguee` : appliquée à l'état laissé par
- * les ops qui la précèdent (l.183-187, l.228-255), là où une op ANCRÉE se juge contre la préimage de son
+ * (`registered/ctx_patch.rs` l.229-233 pour les refusées) ; `deleguee` : appliquée à l'état laissé par
+ * les ops qui la précèdent (l.216-220, l.261-285), là où une op ANCRÉE se juge contre la préimage de son
  * run (`ctx_patch/apply.rs` l.127).
- * - schéma MCP, `registered/ctx_patch.rs` l.58-69 (`if`/`then`) ;
+ * - schéma MCP, `registered/ctx_patch.rs` l.59-70 (`if`/`then`) ;
  * - set_line, replace_lines, insert_after, delete, create : `ctx_patch/anchors.rs` l.94-180 ;
  * - replace_symbol : `ctx_patch/symbol.rs` l.35-58 ;
- * - replace_unique : `registered/ctx_patch.rs` l.348-366 ; replace_all : l.599-623.
+ * - replace_unique : `registered/ctx_patch.rs` l.397-415 ; replace_all : l.661-695.
  */
 export const OPS_CTX_PATCH = Object.freeze({
   set_line: opCtxPatch([['line', 'hash', 'new_text']]),
@@ -220,7 +221,7 @@ export const OPS_CTX_PATCH = Object.freeze({
 })
 
 /** Les clés communes à toute op : `path` ; en tête seulement, `dry_run` (`registered/ctx_patch.rs`
- *  l.276-294 : l'élément délégué garde le sien sur celui de tête). */
+ *  l.325-343 : l'élément délégué garde le sien sur celui de tête). */
 const COMMUNES_OP = ['path']
 const COMMUNES_TETE = ['path', 'dry_run']
 
@@ -228,9 +229,9 @@ const opDe = (objet) => (typeof objet?.op === 'string' && Object.hasOwn(OPS_CTX_
 
 /** Le lot `ops` de `ctx_patch` est-il ambigu ? Oui s'il n'est pas un tableau, si l'un de ses éléments
  *  n'est pas un objet, s'il nomme plus d'un `path` (le sien, celui de tête à défaut) : lean-ctx groupe
- *  un lot par `path` BRUT (`registered/ctx_patch.rs` l.428, `group_ops_by_path`) et applique chaque
- *  groupe à l'état laissé par le précédent (l.148-166, `ctx_patch/mod.rs` l.112) : deux `path` d'un même
- *  fichier y font deux préimages ; ou si une op NON déléguée suit une op déléguée (l.228-255). */
+ *  un lot par `path` BRUT (`registered/ctx_patch.rs` l.477, `group_ops_by_path`) et applique chaque
+ *  groupe à l'état laissé par le précédent (l.152-171, `ctx_patch/mod.rs` l.112) : deux `path` d'un même
+ *  fichier y font deux préimages ; ou si une op NON déléguée suit une op déléguée (l.261-285). */
 export const lotAmbigu = (input) =>
   input?.ops !== undefined &&
   (!Array.isArray(input.ops) ||
@@ -239,7 +240,7 @@ export const lotAmbigu = (input) =>
     input.ops.some((op, i) => !opDe(op)?.deleguee && input.ops.slice(0, i).some((precedente) => opDe(precedente)?.deleguee)))
 
 /** Les clés de texte (`remplace`, `neuf`) d'une op DÉLÉGUÉE de `ops[]` qui la font échouer après l'écriture
- *  du run ancré qui la précède (`registered/ctx_patch.rs` l.236-251, l.349-357) : absente, non-chaîne,
+ *  du run ancré qui la précède (`registered/ctx_patch.rs` l.269-281, l.398-406) : absente, non-chaîne,
  *  ou `remplace` vide. */
 const textesInvalides = (objet, spec) =>
   [spec.remplace, spec.neuf].filter(Boolean).flatMap((cle) => {

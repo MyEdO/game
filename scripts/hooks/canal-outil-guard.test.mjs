@@ -47,7 +47,6 @@ test('DRIVER : tout outil lean-ctx NON classé, direct ou par la passerelle, et 
     ['ctx_knowledge action non-chaîne', 'mcp__lean-ctx__ctx_knowledge', { action: ['export'], path: FICHE }],
     ['ctx_session export', 'mcp__lean-ctx__ctx_session', { action: 'export', path: FICHE }],
     ['ctx_session import', 'mcp__lean-ctx__ctx_session', { action: 'import', path: FICHE }],
-    ['ctx_verify proof', 'mcp__lean-ctx__ctx_verify', { action: 'proof' }],
     ['ctx_call tool non-chaîne', 'mcp__lean-ctx__ctx_call', { tool: ['ctx_edit'], arguments: { path: FICHE } }],
     ['ctx_edit', 'mcp__lean-ctx__ctx_edit', { path: FICHE, old_string: 'x', new_string: 'y' }],
     ['ctx_refactor', 'mcp__lean-ctx__ctx_refactor', { action: 'replace_symbol_body', name_path: 'f', body: 'x' }],
@@ -82,6 +81,7 @@ test('DRIVER : un outil de LECTURE classé, direct ou par la passerelle, un shel
     ['ctx_knowledge recall', 'mcp__lean-ctx__ctx_knowledge', { action: 'recall', query: 'x' }],
     ['ctx_session status', 'mcp__lean-ctx__ctx_session', { action: 'status' }],
     ['ctx_verify stats', 'mcp__lean-ctx__ctx_verify', { action: 'stats' }],
+    ['ctx_verify proof', 'mcp__lean-ctx__ctx_verify', { action: 'proof' }],
     ['ctx_shell anodin', 'mcp__lean-ctx__ctx_shell', { command: 'git status', cwd: REPO }],
     ['shell (alias) anodin', 'mcp__lean-ctx__shell', { command: 'git status', cwd: REPO }],
     ['ctx_patch create avec path', 'mcp__lean-ctx__ctx_patch', { op: 'create', path: join(REPO, 'docs', 'zz-sonde.md'), new_text: 'x' }],
@@ -100,7 +100,6 @@ test('DRIVER : la passerelle vers un outil hors `LECTURES_LIBRES` est REFUSÉE q
     ['aplati ctx_knowledge export', { name: 'ctx_knowledge', action: 'export', format: 'okf', path: FICHE }],
     ['aplati ctx_knowledge import', { name: 'ctx_knowledge', action: 'import', path: FICHE, merge: 'replace' }],
     ['aplati ctx_session export', { name: 'ctx_session', action: 'export', value: FICHE }],
-    ['aplati ctx_verify proof', { name: 'ctx_verify', action: 'proof' }],
     ['arguments null + action à plat', { name: 'ctx_knowledge', arguments: null, action: 'export', path: FICHE }],
     ['arguments {} + action à plat', { name: 'ctx_knowledge', arguments: {}, action: 'export' }],
     ['imbriqué ctx_knowledge export', { name: 'ctx_knowledge', arguments: { action: 'export', path: FICHE } }],
@@ -123,6 +122,7 @@ test('DRIVER : la passerelle vers un outil de `LECTURES_LIBRES` passe, aplatie c
     ['aplati ctx_read', { name: 'ctx_read', path: FICHE, mode: 'full' }],
     ['imbriqué ctx_read', { name: 'ctx_read', arguments: { path: FICHE } }],
     ['arguments null ctx_read', { name: 'ctx_read', arguments: null, path: FICHE }],
+    ['aplati ctx_verify proof', { name: 'ctx_verify', action: 'proof' }],
   ]
   for (const surface of ['claude', 'codex'])
     for (const [nom, entree] of passent) assert.equal(decisionDe(`${P}ctx_call`, entree, surface).decision, null, `${surface} : ${nom}`)
@@ -207,6 +207,20 @@ test('CONTRAT : chaque op du schéma `ctx_patch`, avec ses seules clés déclar�
     const { raison } = decisionDe(`${P}ctx_patch`, entree)
     assert.ok(!raison.includes('hors du schéma') && raison.includes('non jugeable'), `${nom} : ${raison}`)
   }
+})
+
+test('lean-ctx `LEAN_CTX_VERSION` : les formes de `ctx_patch` hors de `OPS_CTX_PATCH` (`registered/ctx_patch.rs` l.190-212, l.661-695) et les outils non classés sont refusés — surfaces claude et codex', () => {
+  const refuses = [
+    ['ctx_patch', 'sans op, old_text/new_text', { path: DOC, old_text: 'a', new_text: 'b' }],
+    ['ctx_patch', 'sans op, old_string/new_string', { path: DOC, old_string: 'a', new_string: 'b' }],
+    ['ctx_patch', 'replace_all old_string/new_string', { op: 'replace_all', path: DOC, old_string: 'a', new_string: 'b' }],
+    ['ctx_patch', 'replace_all old_text/new_text', { op: 'replace_all', path: DOC, old_text: 'a', new_text: 'b' }],
+    ['ctx_patch', 'ops[] sans op', { path: DOC, ops: [{ old_text: 'a', new_text: 'b' }] }],
+    ['ctx_work_graph', 'execute', { action: 'execute' }],
+    ['ctx_shape', 'sans argument', {}],
+  ]
+  for (const surface of ['claude', 'codex'])
+    for (const [nu, nom, entree] of refuses) assert.equal(decisionDe(`${P}${nu}`, entree, surface).decision, 'deny', `${surface} : ${nu} ${nom}`)
 })
 
 test('SCHÉMA lean-ctx « Cross-file ops[] batch (incl. replace_unique) supported; replace_all and create must be sent as separate top-level calls, not inside ops[] » — surfaces claude et codex', () => {
