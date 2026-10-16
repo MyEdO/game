@@ -12,7 +12,7 @@ export function fusionnerLectures(dossier: string): {
   incomplet: string[];
 };
 
-export type SondeMesuree = { chemin: string; type: 'exists' | 'stat'; existe: boolean; nature: 'file' | 'directory' | 'other' | null; code?: string };
+export type SondeMesuree = { chemin: string; type: 'exists' | 'stat' | 'lstat' | 'access'; existe: boolean; nature: 'file' | 'directory' | 'other' | null; mode?: number; code?: string };
 
 export function serialiserSourcesLues(
   parGenerateur: Record<string, { cibles: readonly string[]; fichiers: readonly string[]; dossiers: readonly string[]; git?: readonly import('../../guards/lib/requeteMesuree.mjs').RequeteMesuree[]; sondes?: readonly SondeMesuree[]; incomplet?: readonly string[] }>,

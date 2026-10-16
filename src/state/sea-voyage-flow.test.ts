@@ -28,11 +28,12 @@ import { resumeTravel } from './travelFlow';
 import { applyEffects, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
+import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { cascadeAppliers, registerCascadeApplier, runCascadeImmediate } from './cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascadeTestKit';
 import { crewRoleValue } from '../engine/crewMorale';
-import { findCrewRoleById, resolveStake } from '../data';
-import { resultLine, testSkillLabel, buildBand, rollLine } from './rollSeam';
+import { findCrewRoleById, resolveStake, testSkillLabel } from '../data';
+import { resultLine, buildBand, rollLine } from './rollSeam';
 import { t } from '../i18n';
 import { voyageTiles, vesselHullGauge } from '../ui/VoyageScreen';
 import { checkBattleOver } from './combatFlow';
@@ -1467,10 +1468,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
    *  Progression (MDG 14 l.63), sinon son défaut. `undefined` si la journée se clôt sans la bande. */
   function jusquaLaBande(opts: { poser?: PoseDe; voie?: 'nav' | 'crew' }): CascadeStep | undefined {
     for (let i = 0; i < 120 && get().pendingCascade && get().pendingCascade!.purpose !== 'seaExhaustion'; i++) {
-      const p = get().pendingCascade!;
-      const cur = p.participants[p.cursor];
-      if (opts.voie && cur?.kind === 'sea-progression-choice' && cur.chosen == null) get().cascadeChoose(cur.id, opts.voie);
-      avanceEtapeCascade(get, opts.poser);
+      avanceEtapeCascade(get, opts.poser, (st) => (st.kind === 'sea-progression-choice' ? opts.voie : undefined));
     }
     const casc = get().pendingCascade;
     return casc?.purpose === 'seaExhaustion' ? casc.participants.find((st) => st.kind === 'sea-epuisement') : undefined;
@@ -1996,10 +1994,7 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
       if (!p) break;
       const cur = p.participants[p.cursor];
       if (cur?.kind === 'orientation') { orientation = cur; break; }
-      if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
-      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().cascadeBatchRoll(part.id); }
-      else if (cur && !cur.result) get().cascadeRoll(cur.id);
-      get().cascadeNext();
+      avanceEtapeCascade(get);
     }
     expect(orientation?.participants?.length).toBeGreaterThan(0);
     for (const part of orientation!.participants!) {
@@ -2541,7 +2536,9 @@ describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Pro
     const nav = get().pendingCascade!.participants.find((s) => s.kind === 'sea-progression-nav');
     expect(nav, 'la voie Navigation est insérée').toBeTruthy();
     expect(nav!.participants, 'voie MONO : un barreur, pas un batch d’équipage').toBeUndefined();
-    expect(['Voile', 'Ramer']).toContain(nav!.rollLabel);
+    const competence = navigationDuNavire(get, get().travelPlan!.vehicle!);
+    expect(estCompetenceDePropulsion(competence.id), 'Voile ou Ramer').toBe(true);
+    expect(nav!.rollLabel).toBe(testSkillLabel({ skill: competence.id, spec: competence.spec }));
   });
 
   it('personne qui puisse tenter la Voile (LDB 09 l.30) : la voie Navigation reste OFFERTE, fermée avec son refus nommé', () => {

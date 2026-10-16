@@ -21,15 +21,14 @@
 // garde ne le déclenche pas.
 import '../node-requis.mjs'
 import { spawnSync } from 'node:child_process'
-import { closeSync, existsSync, openSync } from 'node:fs'
-import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { verrouOutillageDe } from './barriere-outil.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
-import { ESSAI_UNIQUE, SOURCES_LUES } from '../docs/build-all.mjs'
-import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
-import { approfondir, cheminGit, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
-import { BUDGET_CONSTAT, JOURNAL_DOCS, PREREQUIS } from './bootstrap-prerequis.mjs'
+import { SOURCES_LUES } from '../docs/build-all.mjs'
+import { demanderLaReconstruction } from '../git-hooks/reconstruction.mjs'
+import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
+import { BUDGET_CONSTAT, PREREQUIS } from './bootstrap-prerequis.mjs'
 import { entreeHookNative, produireRecuSessionStart } from '../ops/session-start.mjs'
 
 /** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */
@@ -59,24 +58,13 @@ export function lancer(exe, args, { budget = BUDGET_CONSTAT, ...options } = {}) 
   }
 }
 
-/** `build-all`, que le bootstrap détache. */
-const BUILD_ALL = fileURLToPath(new URL('../docs/build-all.mjs', import.meta.url))
-
 /**
- * Lance `docs:build --perimes` DÉTACHÉ (`lancerDetache` : il dépasse le budget du hook), en un seul essai
- * du verrou des gestes lourds (`ESSAI_UNIQUE`, #2603) : tenu, le détaché sort DIFFÉRÉ et le nomme au journal
- * `JOURNAL_DOCS`, sous le répertoire git, ouvert en ajout. Rend la forme de `lancer`, `valeur` = le pid.
+ * Demande la reconstruction DÉTACHÉE des dérivés de `racine` (`demanderLaReconstruction`, #2603 : elle dépasse le
+ * budget du hook), son journal ouvert par le détaché. Rend la forme de `lancer`, `valeur` = `seq=<N>`.
  */
-export function docsBuildDetache(racine, { detacher = lancerDetache } = {}) {
+export function demanderLesDerives(racine, { demander = demanderLaReconstruction } = {}) {
   try {
-    const journal = cheminGit(depotDe(racine), JOURNAL_DOCS)
-    if (!journal) return { ok: false, valeur: '', rapport: `répertoire git introuvable depuis ${racine}` }
-    const fdLog = openSync(resolve(racine, journal), 'a')
-    try {
-      return { ok: true, valeur: String(detacher({ script: BUILD_ALL, args: ['--perimes', ESSAI_UNIQUE, '--quiet'], cwd: racine, fdLog }) ?? ''), rapport: '' }
-    } finally {
-      closeSync(fdLog)
-    }
+    return { ok: true, valeur: `seq=${demander(racine)}`, rapport: '' }
   } catch (e) {
     return { ok: false, valeur: '', rapport: borner(e.message) }
   }
@@ -99,12 +87,12 @@ export function sousOutillage(racine, geste) {
 }
 
 /** Les GESTES des prérequis — ceux de l'hôte au dépôt (`gitPorte.mjs`), la mesure des docs dérivés,
- *  leur `docs:build` détaché et le verrou d'outillage : injectables (mesure). Une pose rend la forme de `lancer`. */
+ *  la reconstruction demandée et le verrou d'outillage : injectables (mesure). Une pose rend la forme de `lancer`. */
 export const GESTES_DU_CONTENEUR = Object.freeze({
   estSuperficiel, dossierDesHooks,
   approfondir: (depot, options) => renduDeGit(approfondir(depot, options)),
   docsMesures: (racine) => existsSync(join(racine, SOURCES_LUES)),
-  docsBuildDetache,
+  demanderLesDerives,
   sousOutillage,
 })
 

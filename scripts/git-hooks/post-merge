@@ -1,9 +1,8 @@
 #!/bin/sh
-# scripts/git-hooks/post-merge — après une fusion : miroirs d'agents produits dans l'index
-# (`miroirs-d-agents.mjs`, #2578 : une fusion commise par git ne joue pas le pre-commit), puis
-# cibles de CODE et docs dérivés dont une source a bougé (docs-rebuild.mjs, partagé avec post-rewrite et
-# post-checkout ; #2203 A2). Contrat de post-hook : son code ne change pas la fusion (`git help githooks`,
-# post-merge) ; celui de docs-rebuild est rendu tel quel à qui le lit (`scripts/ops/synchroniser.mjs`,
-# état `avance-non-prete`).
-"${npm_node_execpath:-node}" "$(dirname "$0")/miroirs-d-agents.mjs" post-merge || true
+# scripts/git-hooks/post-merge — après une fusion, UN processus (#2603) : miroirs d'agents produits dans l'index
+# (#2578 : une fusion commise par git ne joue pas le pre-commit), lot, `npm ci`, cibles de CODE dont une source
+# a bougé, puis demande de reconstruction des docs dérivés en fond (docs-rebuild.mjs, partagé avec post-commit,
+# post-rewrite et post-checkout ; #2203 A2). Contrat de post-hook : son code ne change pas la fusion (`git help
+# githooks`, post-merge) ; celui de la partie synchrone est rendu tel quel, et la ligne `reconstruction seq=<N>`
+# sur stdout, à qui le lit (`scripts/ops/synchroniser.mjs`, état `avance-non-prete`).
 exec "${npm_node_execpath:-node}" "$(dirname "$0")/docs-rebuild.mjs" post-merge "$1"

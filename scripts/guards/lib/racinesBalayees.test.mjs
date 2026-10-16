@@ -223,6 +223,21 @@ test('VALEUR DE RETOUR d’une fonction importée, paramètre par défaut compri
   assert.deepEqual(racinesDe(modules, 'scripts/garde.test.mjs'), [[{ chemin: 'docs/projets' }]])
 })
 
+// #2603
+test('DOSSIER GIT : `gitDirDe(x)` vaut `<x>/.git` ; son homonyme hors `barriere-outil.mjs` s’évalue sur ses retours', () => {
+  const gitDirDe = "export function gitDirDe(racine) {\n  const point = join(racine, '.git')\n  const lu = /gitdir: (.+)/.exec(readFileSync(point, 'utf8'))\n  return lu ? resolve(racine, lu[1]) : null\n}\n"
+  const modules = {
+    'scripts/hooks/barriere-outil.mjs': "import { readFileSync } from 'node:fs'\nimport { join, resolve } from 'node:path'\n" + gitDirDe,
+    'scripts/autre.mjs': "import { readFileSync } from 'node:fs'\nimport { join, resolve } from 'node:path'\n" + gitDirDe,
+    'scripts/garde.mjs': "import { readFileSync } from 'node:fs'\nimport { join } from 'node:path'\nimport { gitDirDe } from './hooks/barriere-outil.mjs'\n" +
+      "import { gitDirDe as homonyme } from './autre.mjs'\nreadFileSync(join(gitDirDe('docs'), 'epoque'))\nreadFileSync(join(homonyme('docs'), 'epoque'))\n",
+  }
+  assert.deepEqual(racinesDe(modules, 'scripts/garde.mjs'), [
+    [{ chemin: 'docs/.git/epoque' }], [{ chemin: 'docs/.git' }],
+    [couvert('corpus:docs', 'forme ElementAccessExpression'), { non: 'valeur nulle' }], [{ chemin: 'docs/.git' }],
+  ])
+})
+
 test('DÉSTRUCTURATION d’un objet rendu, champ par champ ; accès de propriété d’une constante', () => {
   const modules = {
     'scripts/lib/lieux.mjs': "export function lieux() { return { donnees: 'src/data', autre: 'x' } }\nexport const PERIMETRE = { racines: ['src/state'] }\n",

@@ -55,12 +55,26 @@ export function etatNonCumulable(id: string): boolean {
 }
 
 /** Marqueurs NARRATIFS hors LDB 16 (PAS des États `etats.json`, cf. `data-wellformed.test`) : Pétrifié
- *  (LDB 85), sans entrée catalogue — REGISTRE UNIQUE de l'exception (libellé, sévérité, icone) : la
- *  sévérité (`conditionSeverity`), l'icone (`gameIso/effectIcons.conditionMeta`) et le nom scanné dans
- *  le journal (`conditionIdInText`) le COMPOSENT, aucun n'en garde de copie. */
-export const NARRATIVE_MARKERS: Record<string, { label: string; severity: number; icon: string }> = {
-  petrifie: { label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
-};
+ *  (LDB 85), sans entrée catalogue — REGISTRE UNIQUE de l'exception (libellé, sévérité, icone) : le
+ *  résolveur `etatConnu` et le nom scanné dans le journal (`conditionIdInText`) le COMPOSENT, aucun
+ *  n'en garde de copie. */
+export const NARRATIVE_MARKERS: readonly { id: string; label: string; severity: number; icon: string }[] = [
+  { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
+];
+
+const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
+
+/** État RÉSOLU par son id STABLE : catalogue VIVANT (`etats.json`) ∪ marqueurs narratifs
+ *  (`NARRATIVE_MARKERS`), `undefined` hors des deux. SOURCE UNIQUE du jeu d'ids d'État connus : le
+ *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`, garde FK
+ *  `refs-migrated.test`), la sévérité (`conditionSeverity`) et l'icone
+ *  (`gameIso/effectIcons.conditionMeta`) le composent. */
+export function etatConnu(id: string): { label: string; severity?: number; icon?: string } | undefined {
+  return findConditionById(id) ?? marqueurParId(id);
+}
+
+/** Ids que `etatConnu` résout, catalogue vivant puis marqueurs — la liste rendue par un refus. */
+export const etatIdsConnus = (): string[] => [...conditionIds(), ...NARRATIVE_MARKERS.map((m) => m.id)];
 
 /** id de l'État NOMMÉ dans un texte de journal (jeu de noms FERMÉ : catalogue VIVANT + marqueurs
  *  narratifs), `undefined` sinon — la logique reste keyée par ID, le libellé n'est que le motif
@@ -68,7 +82,7 @@ export const NARRATIVE_MARKERS: Record<string, { label: string; severity: number
  *  (`state/combatLog`) et son icone (`gameIso/combatNarration`) ; meurt avec le journal STRUCTURÉ (#1330). */
 export function conditionIdInText(text: string): string | undefined {
   for (const id of conditionIds()) if (text.includes(conditionLabel(id))) return id;
-  for (const [id, marqueur] of Object.entries(NARRATIVE_MARKERS)) if (text.includes(marqueur.label)) return id;
+  for (const marqueur of NARRATIVE_MARKERS) if (text.includes(marqueur.label)) return marqueur.id;
   return undefined;
 }
 
@@ -77,8 +91,7 @@ export function conditionIdInText(text: string): string | undefined {
  *  (`gameIso/effectIcons.conditionMeta`, `important` = sévérité ≥ 50) ET l'importance d'un évènement de
  *  combat pour le bandeau/la cadence (`state/combatLog.isImportantEvent`). */
 export function conditionSeverity(name: string): number {
-  const id = slugId(name);
-  return findConditionById(id)?.severity ?? NARRATIVE_MARKERS[id]?.severity ?? 10;
+  return etatConnu(slugId(name))?.severity ?? 10;
 }
 
 /**

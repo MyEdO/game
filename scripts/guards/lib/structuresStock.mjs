@@ -122,6 +122,10 @@ export const STRUCTURES_CIBLES = [
   { concept: "adresse", signature: "book,ch,parts", date: "2026-09-07" },
   { concept: "fragment", signature: "b0,b1,sec,secOcc,sum+…", date: "2026-09-07" },
   { concept: "fragment", signature: "col,row,sec,secOcc,sum+…", date: "2026-09-07" },
+  // #1765 : les deux branches de `weaponDamageSpecSchema` (`grammaire/valeurs.ts`). Aucune donnée n'est réécrite.
+  { concept: "degats-arme", signature: "flat,plusBF", date: "2026-10-13" },
+  { concept: "degats-arme", signature: "bare,flat,plusBF", date: "2026-10-13" },
+  { concept: "degats-arme", signature: "literal", date: "2026-10-13" },
   { concept: "de", signature: "n,sides", date: "2026-08-23" },
   { concept: "de", signature: "n,plus,sides", date: "2026-08-23" },
   // #1463 L-de-1 : la COMPOSITION d'une `Formula` (`formulaSchema`, `grammaire/valeurs.ts`) et le

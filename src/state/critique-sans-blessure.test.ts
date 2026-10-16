@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 import { applyAttackResult, jouerLesTirsDeBordee } from './combatFlow';
+import { OPS_DIFFEREES } from './combatEffects';
 import { draineCascade } from './cascadeTestKit';
 import { resolveVolley } from '../engine/volley';
 import { rederivePassiveAttack } from '../engine/combat';
@@ -104,7 +105,7 @@ describe('Critique d’un personnage ou d’une créature dont le coup est absor
     const { H, E } = combat();
     const res = doubleAbsorbe(E, H);
     expect(res).toMatchObject({ hit: true, critical: true, woundsLost: 0 });
-    expect(applyAttackResult(useGame.getState, useGame.setState, E, H, gourdin, res)).toBe(true);
+    expect(applyAttackResult(useGame.getState, useGame.setState, E, H, gourdin, res)).toBe(OPS_DIFFEREES);
     const etape = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!;
     expect(etape.table).toBeDefined();
     useGame.getState().cascadeTableRoll(etape.id);

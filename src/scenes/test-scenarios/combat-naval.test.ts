@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { useGame } from '../../state/store';
+import { draineCascade } from '../../state/cascadeTestKit';
 import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { ficheDEntite } from '../../state/sceneNpc';
@@ -181,10 +182,7 @@ describe('combat-naval — bordée de la barge sur un pirate, par la porte du jo
     expect(p, `bordée refusée : ${useGame.getState().refus?.texte}`).not.toBeNull();
     for (const x of p!.participants) if (!x.result) useGame.getState().shipBatteryRoll(x.id);
     expect(() => useGame.getState().shipBatteryConfirm()).not.toThrow();
-    for (let i = 0; i < 20 && useGame.getState().pendingCascade; i++) {
-      useGame.getState().cascadeResolveAll();
-      useGame.getState().cascadeFinish();
-    }
+    draineCascade(useGame.getState);
     const coups = useGame.getState().battle!.log.slice(logAvant).filter((e) => e.targetId === PIRATE && GUNNER_IDS.includes(e.actorId ?? ''));
     expect(new Set(coups.map((e) => e.actorId)), 'un coup par pierrier servi, touché ou raté').toEqual(new Set(GUNNER_IDS));
     expect(pirate().wounds.current).toBeLessThanOrEqual(avant);

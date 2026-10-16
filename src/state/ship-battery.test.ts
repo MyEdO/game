@@ -12,6 +12,7 @@ import { rangeBandName } from '../engine/combat';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { resolveVolley } from '../engine/volley';
 import { jouerLesTirsDeBordee } from './combatFlow';
+import { draineCascade, poseSurDeNonTombe } from './cascadeTestKit';
 import { t } from '../i18n';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
@@ -288,12 +289,7 @@ describe('bordée — chaque coup passe par la couture du coup, quelle que soit 
     expect(useGame.getState().pendingCascade, 'la sauvegarde du 1er coup est ouverte').not.toBeNull();
     expect(cible().wounds.current, 'aucune Blessure avant la sauvegarde').toBe(30);
     const un = coups[0].res.woundsLost!;
-    for (let n = 0; n < 4 && useGame.getState().pendingCascade; n++) { // la fenêtre se ferme : dé raté (1 < 9) s'il reste à jeter
-      const pc = useGame.getState().pendingCascade!;
-      const st = pc.participants[pc.cursor];
-      if (st.de && !st.de.result) useGame.getState().cascadeDieSetForcedRoll(st.id, 1);
-      useGame.getState().cascadeNext();
-    }
+    draineCascade(useGame.getState, 4, poseSurDeNonTombe(1)); // la fenêtre se ferme : dé raté (1 < 9) s'il reste à jeter
     expect(cible().wounds.current, 'les DEUX coups appliqués, le 2e après la reprise').toBe(30 - 2 * un);
     expect(useGame.getState().pendingCascade).toBeNull();
     expect(useGame.getState().battle!.acted, 'l’Action du navire rendue après la reprise').toBe(false);

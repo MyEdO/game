@@ -14,7 +14,11 @@
 // suites, compter les suites, refuser une suite dans une liste) parle des tests, pas de la
 // production — il consomme `estSuiteVitest`, qui dit VRAI sur une suite et FAUX sur un banc. Les
 // deux concepts vivent donc dans CE module, en UN exemplaire chacun : aucun autre fichier du dépôt
-// n'écrit un littéral `\.test\.` ni `\.bench\.` (garde de balayage, `fichierVitest.test.mjs`).
+// n'écrit un littéral `\.test\.`, `\.bench\.` ni `\.testkit\.` (garde de balayage, `fichierVitest.test.mjs`).
+//
+// TROISIÈME FORME, le KIT de test (`*.testkit.*`) : un module que seul l'OUTILLAGE de test importe —
+// suites, setup (`src/test-setup.ts`), fixtures (`scripts/test/fixtures/`). Il n'est pas joué (ni suite
+// ni banc), mais il n'est pas de la production : `estKitDeTest`, en UN exemplaire.
 //
 // La FORME du cliquet, jamais une liste de fichiers : le banc N+1 est couvert sans qu'on y revienne.
 //
@@ -22,16 +26,24 @@
 // `racinesDeLaSuite.mjs`, d'où `vite.config.ts` tire ses globs ; une garde qui confronte un glob au
 // prédicat de suite le DÉPLIE par `finsDuGlob`, jamais par une copie locale.
 
-/** Le SUFFIXE d'une SUITE, source de regex SANS ancre : `.test.` puis un dialecte du dépôt — `.ts`,
- *  `.tsx`, `.js`, `.jsx`, et les formes de module explicites `.mts`/`.cts`/`.mjs`/`.cjs`
- *  (`scripts/**` écrit ses gardes et leurs tests en `.mjs`, ses planches en `.mts`). Un dialecte
- *  manquant ferait rentrer l'instrument dans un corpus de PRODUCTION selon l'extension, ce qui est
- *  exactement le défaut qu'on ferme. Exporté NU pour que les sites qui ont besoin d'un motif PLUS
- *  LARGE (un chemin, une racine, un nom dans la prose) le COMPOSENT au lieu de le recopier. */
-export const SUFFIXE_SUITE = String.raw`\.test\.[cm]?[jt]sx?`;
+import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 
-/** Le SUFFIXE d'un INSTRUMENT (suite OU banc), même usage et mêmes dialectes que `SUFFIXE_SUITE`. */
-export const SUFFIXE_INSTRUMENT = String.raw`\.(test|bench)\.[cm]?[jt]sx?`;
+/** Le MOTIF d'une extension de script, source de regex SANS ancre : un groupe NON CAPTURANT construit depuis
+ *  la liste unique `EXTENSIONS_DE_SCRIPT` (`dialecte.mjs`), la plus longue d'abord, pour qu'un motif non ancré
+ *  prenne `.tsx` entier plutôt que `.ts`. Les trois suffixes le COMPOSENT, et aucun site du dépôt ne
+ *  recopie le fragment littéral des dialectes (garde de balayage, `fichierVitest.test.mjs`). */
+export const MOTIF_D_EXTENSION = `(?:${[...EXTENSIONS_DE_SCRIPT]
+  .sort((a, b) => b.length - a.length)
+  .map((ext) => ext.replaceAll('.', String.raw`\.`))
+  .join('|')})`;
+
+/** Le SUFFIXE d'une SUITE, source de regex SANS ancre : `.test.` puis un `MOTIF_D_EXTENSION`. Exporté NU pour
+ *  que les sites qui ont besoin d'un motif PLUS LARGE (un chemin, une racine, un nom dans la prose) le
+ *  COMPOSENT au lieu de le recopier. */
+export const SUFFIXE_SUITE = String.raw`\.test` + MOTIF_D_EXTENSION;
+
+/** Le SUFFIXE d'un INSTRUMENT (suite OU banc), même usage que `SUFFIXE_SUITE`. */
+export const SUFFIXE_INSTRUMENT = String.raw`\.(test|bench)` + MOTIF_D_EXTENSION;
 
 /** Un fichier joué par Vitest (ou par `node --test`) : `.test.` (suite) ou `.bench.` (banc), en FIN
  *  de nom, DANS TOUS LES DIALECTES du dépôt — DÉRIVÉ de `SUFFIXE_INSTRUMENT`, jamais réécrit.
@@ -55,6 +67,21 @@ export const EST_SUITE_VITEST = new RegExp(`${SUFFIXE_SUITE}$`);
  * @returns {boolean}
  */
 export const estSuiteVitest = (rel) => EST_SUITE_VITEST.test(rel);
+
+/** Le SUFFIXE d'un KIT de test, `.testkit.` puis un `MOTIF_D_EXTENSION` : `src/**` en `.ts`, `scripts/**` en
+ *  `.mjs` (`lint.testkit.mjs`). Sa déclaration `.testkit.d.mts` n'en est pas un : l'ancre de fin la refuse. */
+export const SUFFIXE_KIT = String.raw`\.testkit` + MOTIF_D_EXTENSION;
+
+/** Un KIT de test, en FIN de nom — DÉRIVÉ de `SUFFIXE_KIT`. Une suite du kit (`x.testkit.test.ts`) est
+ *  une suite, pas un kit. */
+export const EST_KIT_DE_TEST = new RegExp(`${SUFFIXE_KIT}$`);
+
+/**
+ * Ce chemin (ou ce nom de fichier) désigne-t-il un KIT de test — ni joué, ni de la production ?
+ * @param {string} rel chemin POSIX depuis la racine, ou nom nu.
+ * @returns {boolean}
+ */
+export const estKitDeTest = (rel) => EST_KIT_DE_TEST.test(rel);
 
 /** Le séparateur d'un glob d'`include` : ce qui précède est le DOSSIER, ce qui suit la FIN de nom. */
 export const SEPARATEUR_GLOB = '/**/*';

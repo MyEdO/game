@@ -34,9 +34,17 @@ par `npm run docs:build`. Aucune ne se fusionne.
 (heading porteur), donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un
 vrai conflit humain.
 
-Après toute fusion ou tout rebase : les hooks `post-merge`/`post-rewrite` régénèrent les cibles de
-code et les docs dont une source a bougé (`scripts/git-hooks/docs-rebuild.mjs`) ; un MIXTE réécrit
-reste à committer.
+Après tout commit, toute fusion ou tout rebase : les hooks `post-commit`/`post-merge`/`post-rewrite`
+choisissent les générateurs dont une source a bougé (`scripts/git-hooks/selection-des-derives.mjs`) ;
+`scripts/git-hooks/docs-rebuild.mjs` régénère les cibles de code avant de rendre la main
+(`build-all --code --sans-certifier` : leurs certificats invalidés, la passe les certifie) et DEMANDE la
+reconstruction des docs, jouée en fond par un détaché par arbre (`scripts/git-hooks/reconstruction.mjs`,
+journal `.git/hooks-git/reconstruction/<pid>.log`) une fois l'arbre libre de toute opération git ;
+`--attendre` attend sa fin. Un MIXTE réécrit reste à committer. Les dérivés et le cache de fraîcheur n'ont
+qu'UN écrivain à la fois (`scripts/docs/lib/ecrivain-derives.mjs`) : tout écrivain de cibles de code hors passe
+PRÉEMPTE la passe en cours (époque neuve sous verrou), dont toute écriture suivante est refusée, puis la passe est rejouée ; une écriture de la
+passe pendant une opération git (checkout, rebase, fusion) la préempte de même ; toute autre écriture prend le
+verrou.
 
 **Miroirs d'agents** (#2578, `DESTINATIONS` de `scripts/agents/compat-core.mjs`) : produits sur
 l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). Le `pre-commit` les
@@ -303,7 +311,7 @@ src/state/
                               (previewAttack/Defense) : il partage attackEnv/bestDefenseMode avec la
                               résolution → cycle. La cohésion preview↔résolution est voulue.
   rollFlowFactory.ts / rollFlowSpecs.ts  FABRIQUE générique des flux de jet différé (« une situation = une modale ») +
-                              specs des flux (attack/defense/cast/disengage/trample/run/focus/psych/
+                              specs des flux (attack/defense/cast/disengage/run/focus/psych/
                               frenzy/approach/test/heal + reload/recover/activity/corruption/appraise/
                               bargain) — un nouveau jet = 1 spec + 1 xConfirm. Résilience « Je ne
                               faillirai pas ! » (LDB 17 l.68, GLOBALE) : mécanisme UNIQUE (factory

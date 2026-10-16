@@ -644,6 +644,14 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
     expect(classement({ book: 'ldb', page: 12 })).toMatchObject({ concept: 'source', statut: 'cible' });
   });
 
+  it('les deux branches de `weaponDamageSpecSchema` sont des Dégâts d’arme CIBLES, et `plusBF` étalé sur un op n’en est pas', () => {
+    expect(classement({ plusBF: true, flat: 4 }, 'damage')).toMatchObject({ concept: 'degats-arme', statut: 'cible' });
+    expect(classement({ plusBF: true, flat: 0, bare: true }, 'damage')).toMatchObject({ concept: 'degats-arme', statut: 'cible' });
+    expect(classement({ literal: '2d10' }, 'damage')).toMatchObject({ concept: 'degats-arme', statut: 'cible' });
+    expect(classement({ op: 'grantNaturalWeapon', label: 'x', damage: 1, plusBF: true, bare: true, qualities: [] }, 'passive')).toBeNull();
+    expect(classement({ sign: 1, flat: 2, d10: 1 }, 'effect')).toBeNull();
+  });
+
   it('un coefficient saisonnier sous `price` est un PRIX déclaré, jamais une monnaie à éteindre', () => {
     expect(classement({ printemps: 1, ete: 0.5, automne: 0.25, hiver: 0.5 }, 'price')).toMatchObject({
       concept: 'prix',

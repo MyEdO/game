@@ -86,7 +86,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
   ['maneuvers.kind', attackKindSchema, {
     arme: 'Arme / griffes', morsure: 'Morsure', caudale: 'Attaque caudale', cornes: 'Cornes',
     souffle: 'Souffle', vomi: 'Vomissement', tentacules: 'Tentacules', etreinte: 'Étreinte',
-    regard: 'Regard pétrifiant', langue: 'Langue préhensile', hurlement: 'Hurlement',
+    regard: 'Regard pétrifiant', langue: 'Langue préhensile', hurlement: 'Hurlement', pietinement: 'Piétinement',
   }],
   ['trappings.categorie', trappingCategorieSchema, {
     melee: 'Armes de mêlée', ranged: 'Armes à distance', ammunition: 'Munitions',
@@ -132,6 +132,6 @@ describe('enums de def NOMMÉS (#1694 B1) — le libellé de chaque VALEUR vit s
   });
 
   it('une valeur HORS de l’univers se rend BRUTE, jamais vide', () => {
-    expect(libelleDeValeur(attackKindSchema, 'pietinement')).toBe('pietinement');
+    expect(libelleDeValeur(attackKindSchema, 'hors-univers')).toBe('hors-univers');
   });
 });

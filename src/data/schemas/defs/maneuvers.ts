@@ -1,7 +1,8 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 85. */
 import { z } from 'zod';
-import { charKeySchema, enumNomme, stakeFormSchema } from '../grammaire/valeurs';
+import { charKeySchema, enumNomme, stakeFormSchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
+import { ref } from '../grammaire/ref';
 import { document } from '../grammaire/document';
 import { triggeredEffectSchema } from '../grammaire/mecanique';
 
@@ -31,6 +32,7 @@ export const attackKindSchema = enumNomme({
   regard: 'Regard pétrifiant',
   langue: 'Langue préhensile',
   hurlement: 'Hurlement',
+  pietinement: 'Piétinement',
 });
 
 const doc = document(
@@ -47,6 +49,10 @@ const doc = document(
     range: maneuverMeasure.optional(),
     blast: maneuverMeasure.optional(),
     magic: z.boolean().optional(),
+    /** LDB 85 l.387 */
+    ecartDeTailleMin: z.number().int().min(1).optional(),
+    subType: ref('weaponGroup').optional(),
+    damage: weaponDamageSpecSchema.optional(),
     effects: z.array(triggeredEffectSchema),
     /** ENJEU de l'ENTRÉE (#1117) — ce que la manœuvre met en jeu, COLLÉ à ses `effects` (éditable au
      *  Codex). Rendu par `resolveStake` et PRIORITAIRE sur le gabarit du kind `maneuverDefense`. */
@@ -64,6 +70,9 @@ const doc = document(
     range: { label: 'Portée' },
     blast: { label: 'Zone d’effet' },
     magic: { label: 'Magique' },
+    ecartDeTailleMin: { label: 'Écart de Taille minimal', hint: 'Ouverte à tout combattant plus grand que sa cible d’au moins ce nombre de catégories de Taille' },
+    subType: { label: 'Groupe d’armes', hint: 'Spécialisation de Corps à corps du jet d’attaque' },
+    damage: { label: 'Dégâts', hint: 'Dégâts de l’attaque, à défaut l’Indice du trait qui l’octroie' },
     effects: { label: 'Effets déclenchés' },
     stake: { label: 'Enjeu', hint: 'Ce que la manœuvre met en jeu, collé à ses effets déclenchés' },
     stakeForm: { label: 'Forme de l’enjeu' },

@@ -27,9 +27,10 @@ import { formatMoney } from '../../engine/money';
 import { rule, ruleDef } from '../../engine/policy';
 import {
   conditionLabel, psychologyLabel, groupLabel, symptomLabel, creatureLabel,
-  diseaseLabel, refLabel, qualityRefLabel,
+  diseaseLabel, refLabel, qualityRefLabel, testSkillLabel,
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
+import { deElide } from '../../i18n';
 
 function assertNever(x: never): never {
   throw new Error(`humanize: cas non couvert — ${JSON.stringify(x)}`);
@@ -533,9 +534,9 @@ export function humanizeFlow(f: Flow): string {
       return f.else ? `${base} ; sinon ${humanizeFlow(f.else)}` : base;
     }
     case 'test': {
-      const who = f.test.skill ? refLabel('skills', f.test.skill) : (f.test.characteristic ? CHAR_LABELS[f.test.characteristic] : 'un Test');
+      const who = testSkillLabel({ skill: f.test.skill, char: f.test.characteristic }) ?? 'un Test';
       const opp = f.test.opposed ? ' opposé' : '';
-      return `Jet${opp} de ${who} : en cas de réussite, ${humanizeFlow(f.success)} ; en cas d'échec, ${humanizeFlow(f.fail)}`;
+      return `Jet${opp} ${deElide(who)} : en cas de réussite, ${humanizeFlow(f.success)} ; en cas d'échec, ${humanizeFlow(f.fail)}`;
     }
     case 'choice': {
       const cout = coutAvantageTexte(f.advantageCost);

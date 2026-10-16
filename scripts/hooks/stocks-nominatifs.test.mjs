@@ -7,7 +7,8 @@
 // `plageStock.mjs`), un seul endroit où elle est écrite. Lancée par `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
@@ -1143,8 +1144,10 @@ test('fenêtre — un stock OBJET dont les valeurs sont des tableaux est rendu, 
 
 test('CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence', async (t) => {
   exigerHistoireComplete()
+  const dossierDesMemos = mkdtempSync(join(tmpdir(), 'stocks-memos-'))
+  t.after(() => rmSync(dossierDesMemos, { recursive: true, force: true }))
   const { refus, notes, commits } = await croissancesDeLaPlage({
-    cwd: RACINE, debut: debutDeLaPlage(), fin: git('rev-parse', 'HEAD').trim(), vers: refPoussee(),
+    cwd: RACINE, debut: debutDeLaPlage(), fin: git('rev-parse', 'HEAD').trim(), vers: refPoussee(), dossierDesMemos,
   })
   for (const n of notes) t.diagnostic(n)
   if (commits !== undefined) t.diagnostic(`${commits} commit(s) jugé(s)`)

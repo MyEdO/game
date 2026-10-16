@@ -111,7 +111,7 @@ const NOMMES = [
   'scenario|mixte',
   'selfWound|weaponDamageActLast|actionPenalty|loseMovement|loseAction|trauma|hitAlly|misfire',
   'weapon|ammo|armour|inventory',
-  'arme|morsure|caudale|cornes|souffle|vomi|tentacules|etreinte|regard|langue|hurlement',
+  'arme|morsure|caudale|cornes|souffle|vomi|tentacules|etreinte|regard|langue|hurlement|pietinement',
   'ally|enemy',
   'bravoure|ami|staggering|belligerent|blackout',
   'fixed|perDR|perHit|perKill',

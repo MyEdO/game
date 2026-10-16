@@ -6,7 +6,7 @@ import { seedBattleRng } from '../../state/battleRng';
 import { toBrass } from '../../engine/money';
 import { distributeCredit, partyMoneyTotal } from '../../state/bourseFlow';
 import { primaryCargoCarrier } from '../../state/carriers';
-import { draineCascadeDifferee } from '../../state/cascadeTestKit';
+import { avanceEtapeCascade, draineCascadeDifferee } from '../../state/cascadeTestKit';
 import { carrierFreeEnc } from '../../engine/cargo';
 import { REIK_INDEX } from './_reik-index';
 
@@ -162,8 +162,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
       const cur = p?.participants[p.cursor];
       if (p && cur?.options && cur.chosen == null) {
         decisions.push(cur.kind);
-        get().cascadeChoose(cur.id, 'forcer');
-        get().cascadeNext();
+        avanceEtapeCascade(get, undefined, () => 'forcer');
         continue;
       }
       if (p) { fenetres.push(p.purpose); break; }

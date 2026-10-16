@@ -17,10 +17,10 @@ import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 import { INDEX, lireEnLot } from './gitPorte.mjs'
 import { clotureDImports } from './importGraph.mjs'
 
-export const EXTS_LINT = ['.ts', '.tsx', '.mjs', '.mts', '.js', '.jsx', '.cts', '.cjs']
 export const BUDGET_DE_LIGNE = 16000
 export function lotsDeLigne(fichiers, budget = BUDGET_DE_LIGNE) {
   const lots = []
@@ -121,7 +121,7 @@ export function fermetureDeConfig(racine) {
  * @returns {{ defauts: ReturnType<typeof defautsDeRapport>, saut: string | null }}
  */
 export function lintDeLIndex(racine, depot, chemins) {
-  const aJuger = chemins.map((c) => String(c).replace(/\\/g, '/')).filter((rel) => EXTS_LINT.some((e) => rel.endsWith(e)))
+  const aJuger = chemins.map((c) => String(c).replace(/\\/g, '/')).filter((rel) => EXTENSIONS_DE_SCRIPT.some((e) => rel.endsWith(e)))
   if (!aJuger.length) return { defauts: [], saut: null }
   let fermeture
   try {

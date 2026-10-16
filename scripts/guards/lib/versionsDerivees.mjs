@@ -18,7 +18,7 @@
 import { posix } from 'node:path'
 import { analyserCorpus, typescript } from './dialecte.mjs'
 import { libererSessions } from './tsProgram.mjs'
-import { estFichierVitest } from './fichierVitest.mjs'
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 
 /** Les champs qui portent une version de document. */
 const CHAMPS = new Set(['version', 'schema'])
@@ -29,7 +29,7 @@ const FORMATS = /(^|\/)formats\.generated(\.[cm]?[jt]s)?$/
 
 /** Le fichier relève-t-il de la garde : `src/**` en `.ts`/`.tsx`, hors instruments et doublures. */
 export const relevePerimetre = (rel) =>
-  rel.startsWith('src/') && /\.tsx?$/.test(rel) && !/\.d\.ts$/.test(rel) && !estFichierVitest(rel) && !/\.testkit\.tsx?$/.test(rel)
+  rel.startsWith('src/') && /\.tsx?$/.test(rel) && !/\.d\.ts$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel)
 
 /**
  * Les sites fautifs des trois prédicats, par prédicat : `chemin:ligne — motif`.

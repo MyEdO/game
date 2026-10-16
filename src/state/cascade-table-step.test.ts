@@ -47,10 +47,10 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
   it("l'interaction est inférée du champ `table` : sans résultat = à tirer, avec résultat = affichage prêt", () => {
     const st = tableStep('t1');
     expect(stepInteraction(st)).toBe('table');
-    expect(stepReady(st)).toBe(false);
+    expect(stepReady(st, useGame.getState())).toBe(false);
     const tiree: CascadeStep = { ...st, table: { ...st.table!, result: { roll: 12, die: 12, id: 'basse', lines: ['x'] } } };
     expect(stepInteraction(tiree)).toBe('affichage');
-    expect(stepReady(tiree)).toBe(true);
+    expect(stepReady(tiree, useGame.getState())).toBe(true);
   });
 
   it('tirage NATUREL par les vraies coutures : le dé tombe dans SA fourchette, la ligne est affichée puis APPLIQUÉE', () => {

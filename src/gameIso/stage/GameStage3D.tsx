@@ -1546,7 +1546,9 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return null;
       // Seul ce qui est VU se pointe : la visibilité est celle de la succession des corps (`succession`).
-      const cibles: PickTarget[] = boardsRef.current.filter((b) => b.mesh.visible).map((b) => ({ cid: b.sub.cid ?? null, object: b.mesh }));
+      // Un GISANT (`groundPose.ts:groundStateOf`, hors de combat) n'est ni cible ni écran : le geste le
+      // résout par la case, où `combatantAtTile` l'écarte — son quad volerait le clic du voisin debout.
+      const cibles: PickTarget[] = boardsRef.current.filter((b) => b.mesh.visible && b.sub.anim?.ground !== 'corpse').map((b) => ({ cid: b.sub.cid ?? null, object: b.mesh }));
       return pickNearestTarget(
         camera,
         cibles,

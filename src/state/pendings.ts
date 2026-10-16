@@ -373,6 +373,9 @@ export interface PendingAttack {
    *  Annule AVANT tout jet (`result === null`). Une fois le dé lancé, la charge est engagée (RAW). Capturé à
    *  la déclaration de charge (targetingModes), rejoué par `attackCancel`. */
   chargeUndo?: { pos: Record<string, Pt>; facing: Record<string, Dir8>; movedPreAction: boolean; movementUsed: number; advGained: number; gainedAdvBefore: boolean; chargedBefore: boolean };
+  /** PRIX payé à la DÉCLARATION (`AttackOption.cost` : Avantage, Mouvement consommé), rendu par
+   *  `attackCancel` tant qu'aucun dé n'est lancé. LDB 85 l.387 ; LDB 85 l.314 */
+  coutPaye?: { advantage: number; movement: number };
   /** Victime réelle si le tir a dévié dans la mêlée vers un allié (LDB 14 l.116) — sinon = targetId. */
   victimId?: string;
   /** Attaque d'enchaînement d'un balayage (Frappe Mortelle) : son acquittement fait avancer le `pendingCleave`. */
@@ -414,9 +417,9 @@ export interface PendingAttack {
   dualMode?: boolean;
   /** Cette attaque EST la 2ᵉ frappe (off-hand) d'un Maniement de deux armes : jet imposé, pas de relance. */
   dualSecond?: boolean;
-  /** Attaque GRATUITE de MANŒUVRE de mêlée (Morsure/Attaque caudale/Tentacules — trait de créature
-   *  qu'un héros active : mutation/polymorphie) : ne consomme pas l'Action ; effets onHit propres à la
-   *  manœuvre appliqués à la confirmation (cf. attackConfirm). `tentacules` = limiteur 1/tour (mutation). */
+  /** Attaque GRATUITE de créature de mêlée (Morsure/Attaque caudale/Tentacules/Piétinement — trait ou
+   *  Taille d'une créature qu'un héros joue) : ne consomme pas l'Action ; effets onHit propres à la
+   *  manœuvre appliqués à la confirmation (cf. attackConfirm). Plafond par tour : `plafondParTour`. */
   freeKind?: AttackKind;
   /** Réaction de Porte-Bouclier déclarée par le défenseur SURFACÉ (`AA 13 l.84`) : la fenêtre de défense
    *  la rend ici avec le résultat opposé, et `attackConfirm` la verse dans la `SuiteDeCoup`. */
@@ -480,6 +483,9 @@ export interface PendingCleave {
   /** Mode Frappe Mortelle (option, hors Taille) : la poursuite EXIGE de tuer chaque cible (LDB 14
    *  l.9). Absent/false = balayage de Taille (enchaîne sur une simple touche, LDB 85 l.362). */
   fm?: boolean;
+  /** La restitution du coup qui a ouvert la chaîne (`SuiteDeCoup.restitution`, LDB 85 l.43, LDB 21
+   *  l.33) : versée dans la suite de chaque maillon, jouée à la fermeture de la chaîne. */
+  restitution?: SuiteDeCoup['restitution'];
 }
 /** Sélection de la 2ᵉ cible du Maniement de deux armes (LDB 10 l.767-773), après une 1ʳᵉ frappe RÉUSSIE.
  *  Calqué sur PendingCleave : le joueur clique une cible (ou renonce via `dualStrikeSkip`). `mainRoll` = jet
@@ -491,20 +497,8 @@ export interface PendingDualStrike {
   mainRoll: number;
   critValue?: number;
 }
-/** Piétinement en attente (LDB 85 l.387) : modale interactive — Lancer (resolveTrample) →
- *  Chance → Appliquer (dépense 1 Avantage, action gratuite). */
-export interface PendingTrample {
-  attackerId: string;
-  targetId: string;
-  result: AttackResult | null; // null = pas encore lancé
-  rerolled?: boolean;
-  /** Réussite forcée par Résilience (LDB 17 l.68) → le joueur peut CHOISIR la valeur du dé. */
-  forced?: boolean;
-  /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
-  fixed?: boolean;
-}
 /** Battement en attente (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé.
- *  Modale MONO calquée sur `PendingTrample` — Lancer (jet de CC figé) → Chance/Pacte/Résilience →
+ *  Modale MONO — Lancer (jet de CC figé) → Chance/Pacte/Résilience →
  *  Appliquer (`resolveBattement` retire de l'Avantage adverse). Consomme l'Action. */
 export interface PendingBattement {
   attackerId: string;
@@ -925,17 +919,20 @@ export interface ToucheDeProjectile {
 /**
  * L'ENCHAÎNEMENT qui suit un coup appliqué (#1508) — une DÉCLARATION du site d'origine, jamais un
  * défaut muet : chaque site dit LEQUEL des balayages il a tranché, y compris « aucun ». Qui pose quoi :
- *  - `hero` : Frappe Mortelle du héros interactif (LDB 14 l.9), posée par `attackConfirm` SEUL, et
- *    seulement quand ce site l'aurait appelée (ni Maniement de deux armes, ni manœuvre gratuite, ni
- *    Maladresse de l'attaquant). `wasChain` = ce coup était-il déjà un maillon d'un balayage en cours.
+ *  - `hero` : Frappe Mortelle du héros interactif (LDB 14 l.9), posée par `attackConfirm` (ni
+ *    Maniement de deux armes, ni Maladresse de l'attaquant), par le coup dans le dos (`fleeConfirm`), et par la gratuite de talent (`applyTalentFreeAttack`) d'un
+ *    porteur que l'IA ne conduit pas. `wasChain` = ce coup était-il déjà un maillon d'un balayage en cours.
  *    Jugée sur la touche RÉELLE : l'enchaînement EXIGE une cible TUÉE, donc il se décide APRÈS le dé
  *    de sauvegarde, qui décide de la mort ;
  *  - `chaine` : maillon de balayage encore à jouer (`ChaineDeBalayage`), posé par `runCleaveChain` — y
  *    compris quand une fenêtre de défense s'interpose, qui le porte dans SA suite ;
  *  - `auto` : balayage de la MACHINE (LDB 85 l.362 : « Toutes les frappes réussies activent la règle
  *    optionnelle Frappe Mortelle »), gardé par `aiDriven` dans `autoCleave` ;
+ *  - `tirRapide` : la BOUCLE des Tirs rapides de l'IA (LDB 11 l.97-103), posée par `runPreemptShots` —
+ *    les tireurs suivants passent après ce tir, fenêtre de défense comprise (#997). `faits` = les
+ *    tireurs déjà passés ce Round ;
  *  - `aucun` : le site d'origine a tranché qu'AUCUN balayage ne suit ce coup — Maladresse de
- *    l'attaquant, frappe du Maniement de deux armes, manœuvre gratuite d'un héros ;
+ *    l'attaquant, frappe du Maniement de deux armes ;
  *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee`.
  */
 export type EnchainementDuCoup =
@@ -943,6 +940,7 @@ export type EnchainementDuCoup =
   | ({ mode: 'chaine' } & ChaineDeBalayage)
   | ({ mode: 'bordee' } & TirsDeBordee)
   | { mode: 'auto' }
+  | { mode: 'tirRapide'; faits: string[] }
   | { mode: 'aucun' };
 
 /** Coups d'une bordée encore à appliquer, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
@@ -962,14 +960,22 @@ export interface ChaineDeBalayage { hitIds: string[]; n: number; bcc: number; fm
  *
  * Les champs sont ceux que la reprise lit déjà : deux DRAPEAUX DU COUP (l'Avantage différé du
  * Maniement de deux armes LDB 10 l.767-773, l'Empoignade LDB 14 l.159 — un coup repris sans eux ne
- * serait plus le même coup), l'attaque GRATUITE dont les effets attendent la touche et dont l'Action
- * doit être rendue (même donnée `{kind, prevActed}` que la fenêtre de défense), l'ouverture de la 2ᵉ
- * frappe du HÉROS, et l'ENCHAÎNEMENT (ci-dessous). Tous JSON-sérialisables : la suite voyage sur l'étape.
+ * serait plus le même coup), la RESTITUTION de l'Action d'une gratuite, les EFFETS de sa manœuvre,
+ * les gratuites « à la touche » du héros, l'ouverture de la 2ᵉ frappe du HÉROS, et l'ENCHAÎNEMENT
+ * (ci-dessous). Tous JSON-sérialisables : la suite voyage sur l'étape.
  */
 export interface SuiteDeCoup {
   deferAttackerAdvantage?: boolean;
   grapple?: boolean;
-  freeAttack?: { kind: string; prevActed: boolean };
+  /** L'Action d'AVANT une gratuite (LDB 85 l.43, LDB 21 l.33), rendue au bout du coup ENTIER : chaque
+   *  maillon de son enchaînement la porte, et seule la fin de la chaîne la joue — une fenêtre qui
+   *  suspend un maillon l'emporte avec lui. */
+  restitution?: { prevActed: boolean };
+  /** La NATURE de la gratuite (clé de `maneuverEffectsOf`) dont les effets attendent la touche — propre
+   *  au coup principal, jamais portée par un maillon. */
+  manoeuvre?: { kind: string };
+  /** Les gratuites `onHit` du héros (Assaut féroce, LDB 10 l.72), jouées sur la touche RÉELLE. */
+  gratuitesALaTouche?: boolean;
   /** L'enchaînement d'après CE coup — DÉCLARÉ par le site d'origine, jamais déduit à la reprise. */
   enchainement?: EnchainementDuCoup;
   /** Ouverture de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773) : posée seulement pour la
@@ -1954,13 +1960,13 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Héros qui lance (résolu via `actorIn`). Absent → étape de groupe (rare). */
   actorId?: string;
   icon?: string;
-  /** Étape-JET : le jet d'attaque/Piétinement/défense/magie/Test/désengagement/porte EST l'étape 0 de
+  /** Étape-JET : le jet d'attaque/défense/magie/Test/désengagement/porte EST l'étape 0 de
    *  la séquence, rendu par `CascadeModal` via le hook ou la modale correspondante (`useAttackJetProps`/
-   *  `useTrampleJetProps`/`useDefenseJetProps`/`useTestJetProps`/`useExtendedTestJetProps`/`CastModal`/
+   *  `useDefenseJetProps`/`useTestJetProps`/`useExtendedTestJetProps`/`CastModal`/
    *  `DisengageModal`/`ForceDoorModal`) → une seule fenêtre. Les données vivent dans `pendingAttack`/
-   *  `pendingTrample`/`pendingDefense`/`pendingCast`/`pendingTest`/`pendingExtendedTest`/`pendingDisengage`/
+   *  `pendingDefense`/`pendingCast`/`pendingTest`/`pendingExtendedTest`/`pendingDisengage`/
    *  `pendingForceDoor` (coexistants — comme l'attaque), résolus par leur `xConfirm`/`xNext` qui ferme la cascade. */
-  jet?: 'attack' | 'trample' | 'defense' | 'fumble' | 'cast' | 'test' | 'extended' | 'disengage' | 'forceDoor';
+  jet?: 'attack' | 'defense' | 'fumble' | 'cast' | 'test' | 'extended' | 'disengage' | 'forceDoor';
   /** Étape de GROUPE (action collective : enfoncer une porte à plusieurs) — l'arbitre coop lui donne
    *  l'owner '*' (chacun pilote ses héros) au lieu de `actorId` (une étape forceDoor n'a pas d'acteur
    *  unique). Absent sur les autres `kind` → repli sur `actorId` (identique à aujourd'hui). */

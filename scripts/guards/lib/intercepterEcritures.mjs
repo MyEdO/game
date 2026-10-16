@@ -33,8 +33,14 @@ function surHote(geste) {
 const canonique = (p) => surHote(() => canoniser(p, { strict: true }))
 const relatif = (base, p, physique) => surHote(() => relatifSousRacine(base, p, physique))
 
-export function installer({ racine, signaler }) {
+/**
+ * Refuse toute écriture de fichier sous `racine` et sous `gitCommun`, le répertoire git COMMUN du dépôt, hors de
+ * l'arbre en worktree (#2603).
+ * @param {{ racine: string, gitCommun?: string, signaler: (message: string) => void }} options
+ */
+export function installer({ racine, gitCommun, signaler }) {
   const base = canonique(resoudre(racine))
+  const commun = gitCommun ? canonique(resoudre(gitCommun)) : null
   const descripteurs = new Map()
   const originaux = []
   const envelopper = (objet, nom, fabrique) => {
@@ -56,9 +62,12 @@ export function installer({ racine, signaler }) {
     if (estIPC(chemin)) return
     const physique = (c) => OPERATIONS_FS[nom]?.entree
       ? cheminsHote.join(canonique(cheminsHote.dirname(c)), cheminsHote.basename(c)) : canonique(c)
-    const sousRacine = relatif(base, chemin, resoudre) ?? relatif(base, chemin, physique)
-    if (sousRacine === null) return
-    const message = `[tests] REFUS écriture dans l'arbre : ${nom} ${sousRacine || '.'}`
+    const sous = (zone) => relatif(zone, chemin, resoudre) ?? relatif(zone, chemin, physique)
+    const sousGit = commun === null ? null : sous(commun)
+    const sousRacine = sousGit === null ? sous(base) : null
+    if (sousGit === null && sousRacine === null) return
+    const message = sousGit === null ? `[tests] REFUS écriture dans l'arbre : ${nom} ${sousRacine || '.'}`
+      : `[tests] REFUS écriture dans le dépôt git : ${nom} ${sousGit || '.'}`
     signaler(message)
     throw new Error(message)
   }
@@ -138,5 +147,5 @@ if (racine && !globalThis[marque]) {
   const append = fs.appendFileSync
   if (relatif(canonique(resoudre(racine)), resoudre(sortie), canonique) !== null) throw new Error('journal de refus des tests sous la racine')
   globalThis[marque] = true
-  installer({ racine, signaler: (message) => append(`${sortie}.${process.pid}.jsonl`, JSON.stringify(message) + '\n') })
+  installer({ racine, gitCommun: process.env.WFRP_TESTS_GIT_COMMUN, signaler: (message) => append(`${sortie}.${process.pid}.jsonl`, JSON.stringify(message) + '\n') })
 }

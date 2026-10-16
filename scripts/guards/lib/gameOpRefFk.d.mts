@@ -54,7 +54,6 @@ export function auditFieldCoverage(
 export function scanGameOpRefs(input: {
   sources: JsonSource[];
   resolvers: Record<string, (id: string) => boolean>;
-  softIds?: Record<string, readonly string[]>;
   champsASlot?: Iterable<string>;
 }): ScanResult;
 export function formatOffender(o: GameOpRefOffender): string;

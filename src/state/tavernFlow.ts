@@ -23,7 +23,7 @@
  *
  * Réservé aux tables qui activent l'option `tavern-games`.
  */
-import { CHAR_LABELS, DIFFICULTY_LABELS, type CharKey, type Combatant, type Difficulty } from '../engine/types';
+import { DIFFICULTY_LABELS, type CharKey, type Combatant, type Difficulty } from '../engine/types';
 import type { Get, Set } from './flowTypes';
 import {
   findTavernGameById, resolveTavernRound, rollTavernTest, tavernOpposedLog, tavernExtendedLog, roundSL,
@@ -40,7 +40,7 @@ import { battleRng } from './battleRng';
 import { toBrass, fromBrass, formatMoney } from '../engine/money';
 import { bourseOf, creditBourse, payWithAllocation, soloPayer } from './bourseFlow';
 import {
-  freeCons, testSkillLabel, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget,
+  freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget,
   tableStep, displayStep,
   type BuiltCascadeStep, type Consequence,
 } from './rollSeam';
@@ -67,7 +67,7 @@ import type { Scene } from './scene';
 import { jetSurfaced } from './netOwnership';
 import { cadenceAuto } from '../engine/cadence';
 import { t, interpolate } from '../i18n';
-import { dataLabel } from '../data';
+import { dataLabel, testSkillLabel } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 
@@ -540,7 +540,7 @@ function tavernOptionRound(get: Get, seq: SequenceState<TavernPayload>, game: Ta
     actorId: h.id,
     options: (game.options ?? []).map((o, i) => ({
       key: String(i),
-      label: o.skill ? refLabel('skills', o.skill) : dataLabel(CHAR_LABELS[o.char ?? 'intelligence']),
+      label: testSkillLabel({ skill: o.skill, char: o.char ?? 'intelligence' }),
       detail: DIFFICULTY_LABELS[o.difficulty],
     })),
     defaultChoice: '0',

@@ -116,11 +116,18 @@ describe('Cascade séquentielle influençable', () => {
     expect(stepInteraction(jet)).toBe('jet');
     expect(stepInteraction(choix)).toBe('choix');
     expect(stepInteraction(aff)).toBe('affichage');
-    expect(stepReady(jet)).toBe(false);
-    expect(stepReady({ ...jet, result: { roll: 10, target: 30, sl: 2, success: true } })).toBe(true);
-    expect(stepReady(choix)).toBe(false);
-    expect(stepReady({ ...choix, chosen: 'a' })).toBe(true);
-    expect(stepReady(aff)).toBe(true);
+    expect(stepReady(jet, useGame.getState())).toBe(false);
+    expect(stepReady({ ...jet, result: { roll: 10, target: 30, sl: 2, success: true } }, useGame.getState())).toBe(true);
+    expect(stepReady(choix, useGame.getState())).toBe(false);
+    expect(stepReady({ ...choix, chosen: 'a' }, useGame.getState())).toBe(true);
+    expect(stepReady(aff, useGame.getState())).toBe(true);
+    // Étape HÔTE (#1765) : prête une fois sa fenêtre validée (`committed`) ou son slot rendu.
+    const hote: CascadeStep = { id: 'h', kind: 'defenseJet', jet: 'defense', actorId: 'x' };
+    const vivante = { pendingDefense: {} } as unknown as Parameters<typeof stepReady>[1];
+    expect(stepInteraction(hote)).toBe('affichage');
+    expect(stepReady(hote, vivante), 'la défense attend sa fenêtre').toBe(false);
+    expect(stepReady({ ...hote, committed: true }, vivante), 'validée : le slot vivant est celui de la frappe suivante').toBe(true);
+    expect(stepReady(hote, { pendingDefense: null }), 'slot rendu').toBe(true);
   });
 
   it('étape « choix » : no-op sans choix, puis l’option pilote la conséquence + insertion', () => {
@@ -193,6 +200,57 @@ describe('Cascade séquentielle influençable', () => {
     expect(p.participants.map((s) => s.id)).toEqual(['s1', 'c', 'd']);
   });
 
+  it('runCascadeImmediate : étape HÔTE dont la fenêtre vit (`pendingExtendedTest`) → S’ARRÊTE PENDANTE, non validée (#1765)', () => {
+    const h = hero();
+    useGame.getState().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+    const hote = useGame.getState().pendingCascade!.participants[0];
+    useGame.setState({ pendingCascade: null });
+    const resolved = runCascadeImmediate(useGame.getState, useGame.setState, [hote]);
+    expect(resolved, 'pilote INTERROMPU : aucune étape rendue, l’appelant n’enchaîne rien (#1765)').toBeUndefined();
+    const p = useGame.getState().pendingCascade!;
+    expect(p.cursor).toBe(0);
+    expect(p.participants[0].committed).toBeFalsy();
+    expect(useGame.getState().pendingExtendedTest).not.toBeNull();
+  });
+
+  it('runCascadeImmediate : parqué sur l’étape HÔTE, la fenêtre rendue → la reprise du pilote finit la séquence sans fenêtre, comme sans parcage (#1765)', () => {
+    const g = useGame.getState;
+    const s = useGame.setState;
+    const h = hero();
+    spyApplier('extendedJet', applied, () => ({ kind: 'extendedJet', success: true }));
+    spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+    const sequence = (): CascadeStep[] => {
+      g().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+      const hote = g().pendingCascade!.participants[0];
+      s({ pendingCascade: null });
+      return [hote, step('s1', h.id), { id: 'd', kind: 'note', actorId: h.id }];
+    };
+
+    const temoinSteps = sequence();
+    s({ pendingExtendedTest: null });
+    g().seedRng(7);
+    const temoin = runCascadeImmediate(g, s, temoinSteps)!;
+    const appliquesTemoin = [...applied];
+    expect(appliquesTemoin.map((a) => a.kind)).toEqual(['extendedJet', 'tally', 'note']);
+
+    applied.length = 0;
+    const steps = sequence();
+    g().seedRng(7);
+    expect(runCascadeImmediate(g, s, steps), 'pilote PARQUÉ sur l’hôte').toBeUndefined();
+    expect(g().pendingCascade!.piloteImmediat, 'la séquence parquée sur l’hôte ne porte pas la reprise').toEqual({ sansContexte: true });
+    expect(applied).toEqual([]);
+
+    s({ pendingExtendedTest: null });
+    const done = advanceCascade(g, s)!;
+    expect(done, 'la reprise n’a pas fini la séquence : le curseur est resté sur une fenêtre').toBeTruthy();
+    expect(done.cursor).toBe(steps.length);
+    expect(g().pendingCascade, 'une fenêtre s’est rouverte après le rendu de l’hôte').toBeNull();
+    expect(applied.filter((a) => a.kind === 'extendedJet'), 'l’hôte validé plus d’une fois').toHaveLength(1);
+    expect(done.participants.every((x) => x.committed)).toBe(true);
+    expect(applied).toEqual(appliquesTemoin);
+    expect(done.participants.map((x) => x.result?.roll)).toEqual(temoin.map((x) => x.result?.roll));
+  });
+
   it('runCascadeImmediate : CHOIX avec `defaultChoice` authoré → tranché sans surfacer (comportement inchangé)', () => {
     useGame.getState().seedRng(7);
     const h = hero();
@@ -237,13 +295,13 @@ describe('Cascade séquentielle influençable', () => {
     const batch: CascadeStep = { id: 'progression', kind: 'crew-batch', label: fixtureText('Progression'), groupOwner: true, participants, result: null};
     startCascade(useGame.getState, useGame.setState, { title: 'Voyage', purpose: 'test', steps: [batch] });
     expect(stepInteraction(useGame.getState().pendingCascade!.participants[0])).toBe('batch');
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(false); // aucun participant lancé
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(false); // aucun participant lancé
     useGame.getState().cascadeNext(); // batch pas prêt → no-op (aucun participant lancé)
     expect(applied).toHaveLength(0);
     useGame.getState().cascadeBatchRoll(h1.id);
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(false); // h2 pas encore lancé
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(false); // h2 pas encore lancé
     useGame.getState().cascadeBatchRoll(h2.id);
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(true);
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(true);
     useGame.getState().cascadeNext(); // agrège (essentiel ×2, MDG 14 l.19) puis applique
     expect(applied).toHaveLength(1);
     expect(useGame.getState().pendingCascade).toBeNull();

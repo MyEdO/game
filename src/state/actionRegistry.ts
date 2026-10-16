@@ -14,7 +14,7 @@
  */
 import type { Combatant } from '../engine/types';
 import type { BattleState, GameState } from './store';
-import { canMove, trampleTarget, entityPickables, activeCombatant } from './store';
+import { canMove, entityPickables, activeCombatant } from './store';
 import { currentTargetingMode } from './targetingModes';
 import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
@@ -169,7 +169,7 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
   'attaque-libre-frenesie': ({ active }) =>
     hasFreeWeaponAttack(active) ? ok : no(t('agate.noFreeWeaponAttack')),
   'pietinement-gratuit': ({ active, battle }) =>
-    active.advantage >= 1 && !!trampleTarget(battle, active) ? ok : no(t('agate.noTrampleTarget')),
+    availableAttacks(active, battle).some((o) => o.freeKind === 'pietinement') ? ok : no(t('agate.noTrample')),
   'set-commutable': ({ active, battle }) =>
     (active.loadouts?.length ?? 0) < 2
       ? no(t('agate.singleLoadout'))
@@ -479,7 +479,7 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
     const s = get();
     const b = s.battle;
     const active = b ? activeCombatant(b) : undefined;
-    if (b && active && wastesAction(active, b) && !endTurnArmed(b)) { s.armEndTurn(); return; }
+    if (b && active && wastesAction(active, b, s.pendingCleave) && !endTurnArmed(b)) { s.armEndTurn(); return; }
     s.battleEndTurn();
   },
   cancelMove: (get) => get().cancelMove(),
