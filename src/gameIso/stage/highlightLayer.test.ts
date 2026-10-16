@@ -69,6 +69,15 @@ describe('combatHighlightsView — anneaux de CANDIDATS, teinte déclarée par l
     expect(vue(combat()).candidates).toBeNull();
   });
 
+  it('chaîne de BALAYAGE ouverte : l’adversaire adjacent non frappé porte un anneau HOSTILE', () => {
+    const battle = combat({ acted: true });
+    useGame.setState({ pendingCleave: { attackerId: 'h1', hitIds: [], count: 1, fm: true, restitution: { prevActed: false } } });
+    const cand = vue(battle).candidates;
+    expect(cand, 'le mode Frappe Mortelle peint ses candidats').not.toBeNull();
+    expect(cand!.ids).toEqual(['e1']);
+    expect(cand!.friendly).toBe(false);
+  });
+
   it('mode DISSIPER : aucun anneau de candidat — le mode ne le déclare pas', () => {
     expect(vue(combat({ action: 'dispel' })).candidates).toBeNull();
   });

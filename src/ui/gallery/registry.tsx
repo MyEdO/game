@@ -1429,7 +1429,7 @@ function RevealBodyDemo() {
         dice: 73,
         lines: ['Entaille profonde du bras'],
         weapon: 'Épée',
-        crit: { location: 'Bras droit', woundsLost: 5, conditions: [{ id: 'saignement', value: 1 }] },
+        crit: { location: 'Bras droit', woundsLost: 5, conditions: [{ id: 'hemorragique', value: 1 }] },
         details: [{ text: 'Hémorragie 1', note: 'Un Saignement s’ajoute à chaque Round tant qu’il n’est pas soigné.' }],
       }}
       actor={herosExemple()}

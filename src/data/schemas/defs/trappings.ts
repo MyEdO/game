@@ -8,7 +8,7 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, enumNomme, formulaSchema, moneySchema, reachSchema, sizeCategorySchema } from '../grammaire/valeurs';
+import { availabilitySchema, enumNomme, formulaSchema, moneySchema, reachSchema, sizeCategorySchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
 import { gameOpSchema, flowSchema, triggeredEffectSchema } from '../grammaire/mecanique';
 /** Les Atouts d'un objet passent par la vue COMMUNE `qualityRefSchema` : `quality` n'est PAS un type
  *  de `TYPES` (`grammaire/ref.ts`) — aucune fabrique FK ne le vise, et son ouverture est ancrée
@@ -28,16 +28,6 @@ export const trappingCategorieSchema = enumNomme({
   armor: 'Armures',
   trapping: 'Équipement',
 });
-
-/** ZI */
-const weaponDamageSpecSchema = z.union([
-  nommerChamps(z.strictObject({ literal: z.string() }), { literal: { label: 'Valeur littérale' } }),
-  nommerChamps(z.strictObject({ plusBF: z.boolean(), flat: z.number(), bare: z.literal(true).optional() }), {
-    plusBF: { label: 'Ajouter le Bonus de Force' },
-    flat: { label: 'Valeur fixe' },
-    bare: { label: 'Mains nues' },
-  }),
-]);
 
 /** `WeaponRangeSpec` : mètres fixes, ou Bonus de Force × bf (armes de jet). */
 const weaponRangeSpecSchema = z.union([z.number(), nommerChamps(z.strictObject({ bf: z.number() }), { bf: { label: 'Bonus de Force' } })]);

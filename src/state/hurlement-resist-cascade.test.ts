@@ -13,7 +13,7 @@ import { testScene } from '../scenes/test-fixture';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest, draineCascade } from './cascadeTestKit';
 
 describe('Hurlement fantomatique — Test de Résistance influençable (héros manuel)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });
@@ -42,7 +42,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     }
     b.combatants.find((c) => c.label === 'H1')!.pos = { x: 6, y: 5 };
     b.combatants.find((c) => c.label === 'H2')!.pos = { x: 5, y: 6 };
-    useGame.setState({ battle: { ...b, acted: true } });
+    useGame.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: true } });
     return { E };
   }
 
@@ -66,13 +66,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     }
 
     // Drive la cascade : chaque étape (Résistance ratée) → Brisé à la validation.
-    let guard = 0;
-    while (useGame.getState().pendingCascade && guard++ < 20) {
-      const pc = useGame.getState().pendingCascade!;
-      const cur = pc.participants[pc.cursor];
-      if (cur && cur.target != null && !cur.result) useGame.getState().cascadeRoll(cur.id);
-      useGame.getState().cascadeNext();
-    }
+    draineCascade(useGame.getState, 20);
     // (3) reprise propre : cascade fermée (pas d'orphelin).
     expect(useGame.getState().pendingCascade, 'la cascade doit se fermer proprement').toBeNull();
     // Brisé appliqué sur échec de Résistance + Assourdi (continuation `after`).

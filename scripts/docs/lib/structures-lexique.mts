@@ -236,10 +236,13 @@ export type Concept = {
   noyau?: readonly string[];
   noyauMin?: number;
   /**
-   * Clés dont la CO-PRÉSENCE (au moins une) est EXIGÉE en plus du noyau. Discrimine deux concepts
-   * qui partagent le même noyau : le plus contraint se déclare AVANT, et l'objet qui ne porte
-   * aucune de ces clés retombe sur le suivant. Attribut DÉCLARÉ sur l'entrée du registre (#842),
-   * jamais un test d'identité au call-site.
+   * Clés dont la CO-PRÉSENCE (au moins une) est EXIGÉE en plus du noyau : l'objet qui porte le noyau
+   * sans aucune de ces clés n'est PAS une instance du concept. Une seule mécanique, deux usages :
+   * discriminer deux concepts au même noyau (le plus contraint se déclare AVANT, l'objet écarté
+   * retombe sur le suivant), et écarter un PORTEUR HORS CONCEPT qui partage une clé du noyau. Sur un
+   * concept en UNION (`noyauMin` sous la taille du noyau), la liste nomme une clé que porte chaque
+   * branche : un objet qui n'a que la clé partagée par le porteur hors concept est écarté. Attribut
+   * DÉCLARÉ sur l'entrée du registre (#842), jamais un test d'identité au call-site.
    */
   coPresence?: readonly string[];
   /** Le concept n'est candidat que si le SITE d'appel l'a mesuré (cf. `contexte.candidats`). */
@@ -506,6 +509,25 @@ export const CONCEPTS: readonly Concept[] = [
       { sig: 'roll', statut: 'cible' },
     ],
     noyau: ['fixed'],
+  },
+  // Porte : `weaponDamageSpecSchema` (`src/data/schemas/grammaire/valeurs.ts`), union de deux branches
+  // aux clés DISJOINTES, `{literal}` et `{plusBF, flat, bare?}` — d'où `noyauMin: 1`. `flat` n'est pas
+  // au noyau : `sea-events › effect {d10, flat, sign}` (`manannFactor`) le porte aussi. La
+  // `coPresence` écarte `plusBF` SANS `flat` : les `grantNaturalWeapon` (`mutations`, `traits`,
+  // `grammaire/mecanique.ts`) l'étalent sur l'op, mesurés au stock des ops. `literal` ne vit que sous
+  // `trappings › damage` (mesuré 2026-10-13 sur les 2 racines) : aucun site.
+  {
+    id: 'degats-arme',
+    label: 'Dégâts d’arme (`WeaponDamageSpec`)',
+    strate: 'Valeur',
+    signatures: [
+      { sig: 'flat,plusBF', statut: 'cible' },
+      { sig: 'bare,flat,plusBF', statut: 'cible', note: '`bare` optionnel : Mains nues' },
+      { sig: 'literal', statut: 'cible' },
+    ],
+    noyau: ['plusBF', 'literal'],
+    noyauMin: 1,
+    coPresence: ['flat', 'literal'],
   },
   // DERNIER concept de la strate, et le RANG décide (patron `bornes` avant `plage`) : `difficulty`
   // est une VALEUR de Difficulté (`difficultySchema`, `src/data/schemas/grammaire/valeurs.ts`) qu'un

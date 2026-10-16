@@ -33,6 +33,7 @@ export function combatAdvanceBlocked(
   // déjà couverte. La lister à part créait une 2ᵉ source de vérité désynchronisable → soft-lock.
   // NB : pas de file de révélations non plus — une révélation est une ÉTAPE de `pendingCascade`
   // (#942 L8), déjà couverte par le terme ci-dessus (même raison que `pendingFumble`).
-  if (s.pendingFateSave || s.pendingCascade) return true;
+  // Une défense vivante attend SA fenêtre (#1765) : le combat n'avance pas par-dessus.
+  if (s.pendingFateSave || s.pendingCascade || s.pendingDefense) return true;
   return false;
 }

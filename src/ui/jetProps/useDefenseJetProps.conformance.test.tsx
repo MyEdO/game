@@ -20,7 +20,7 @@ import { useDefenseJetProps } from './useDefenseJetProps';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
+const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', subType: 'base', qualities: [] } as unknown as Weapon;
 const mk = (id: string, label: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
   ({ id, name: label, label, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: { current: 18, max: 18 },
@@ -102,7 +102,7 @@ describe('Défense — Z1 « Acteur — Action (Compétence) »', () => {
     const view = openDefense();
     expect(useGame.getState().pendingDefense!.mode).toBe('parade');
     expect(view.querySelector('h3')?.textContent).toBe('Défense');
-    expect(subtitle()).toBe('Gunnar — Défense (Corps à corps)');
+    expect(subtitle()).toBe('Gunnar — Défense (Corps à corps (Base))');
     // Z3 reste le SEUL A→B : le sous-titre ne redit pas l'attaquant.
     expect(view.querySelectorAll('.rm-vs')).toHaveLength(1);
     expect(subtitle()).not.toContain('Rat géant');
@@ -144,7 +144,7 @@ describe('Défense — l’attaque annoncée, et son voyage jusqu’à l’invit
       const attendu = attackRowText();
       const voyage = JSON.parse(JSON.stringify(useGame.getState().pendingDefense));
       act(() => { useGame.setState({ pendingDefense: voyage }); });
-      expect(subtitle()).toBe('Gunnar — Défense (Corps à corps)');
+      expect(subtitle()).toBe('Gunnar — Défense (Corps à corps (Base))');
       expect(attackRowText()).toBe(attendu);
     });
   }

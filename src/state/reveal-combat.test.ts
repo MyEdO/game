@@ -6,6 +6,7 @@ import { combatAdvanceBlocked } from './combatGate';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
+import { OPS_DIFFEREES } from './combatEffects';
 
 // Coup Critique / Assommante en révélation + gel de l'IA.
 describe('Conséquences d’attaque en révélation (store)', () => {
@@ -113,7 +114,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     // (1) Le Critique sur le héros armé SUSPEND, en posant une ÉTAPE DE CHOIX (Critique pré-tiré + options).
     useGame.setState({ pendingCascade: null });
     const suspended = applyAttackResult(useGame.getState, useGame.setState, enemy, hero, enemy.weapons[0], res);
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     const devId = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!.id;
     useGame.getState().cascadeTableRoll(devId); // le dé de sévérité tombe DANS la MÊME fenêtre (#1426)
     const dev = useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation');

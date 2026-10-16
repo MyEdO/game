@@ -76,7 +76,7 @@ describe('L13 — gates & redirections', () => {
     useGame.getState().seedRng(failSeed!);
     const before = hero.wounds.current;
     const suspended = doAttack(useGame.getState, useGame.setState, E, hero);
-    expect(suspended).toBe(false);
+    expect(suspended).toBeUndefined();
     expect(hero.wounds.current).toBe(before);
     expect(useGame.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/Bénédiction de Protection/);
   });

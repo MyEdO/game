@@ -45,7 +45,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   ['Contagieux', 'transmet au TOUCHER la maladie hébergée (`$arg`) — `effects` AUTHORÉ onHit on:victim → op `exposeDisease{difficultyShift:-2, incubation:\'instant\'}` (ops.ts:1576), moissonnée par `applyAttackResult` (combatFlow.ts:2127) et résolue au bilan de fin de combat (`decideCombatEndHeroTests`, combatFlow.ts:5032) ; cf. `state/contagieux.test.ts`'],
   ['Absorption', 'engloutissement de fin de Round MÉCANISÉ 100% data-driven (`absorption.effects` : onRoundEnd Empêtré×BF + Empoigné + Digéré ; digestion drain BF ignore PA/BE + créature guérit ; redirection onWoundLoss ; un/Round ; purge à la mort) — dispatché par `fireTriggers`, cf. `absorption.test.ts` (EDO 11 l.222)'],
   ['Vampirique', 'drain de PB sur Morsure (combatFlow.applyFreeAttackEffects — gating « kind=morsure » sans Condition Flow)'],
-  ['Se cabrer', 'couvert par le Piétinement existant (LDB 85 — trampleTarget)'],
+  ['Se cabrer', 'Piétinement payé par l’Action de Mouvement — `capabilities.freeTrample` lu par `freeAttackCost` (LDB 85 l.314)'],
   // Bestiaire fluvial (MSRC 15) — mécanique AUTHORÉE en `effects` (fireTriggers), comme Constricteur/Venin.
   ['S\'accrocher pour se nourrir', 'attache post-Morsure + drain 1 PB/Round — `effects` AUTHORÉ (condition empetre grapple onHit + wounds onRoundStart on grappled, fireTriggers)'],
   ['Engloutir', 'engloutit à la touche : Empêtré Force=créature + drain 1 PB/Round — `effects` AUTHORÉ (fireTriggers onHit + onRoundStart)'],

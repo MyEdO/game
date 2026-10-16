@@ -30,6 +30,8 @@ import { stepInteraction } from '../cascade';
 import type { CascadeStep } from '../pendings';
 import { CHAR_KEYS, type Combatant, type Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
+import { OPS_DIFFEREES } from '../combatEffects';
+import { avanceEtapeCascade, cascadeDeTest } from '../cascadeTestKit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -114,7 +116,7 @@ describe('coup physique — le dé naît à la porte, AVANT toute mutation', () 
   it('un TIR du dehors SUSPEND le coup : étape de dé NON résolue, portant son seuil, et rien n’a bougé', () => {
     const { cible, archer } = monteDome();
     const suspendu = applyAttackResult(useGame.getState, useGame.setState, archer, cible, arc, touche());
-    expect(suspendu, 'la résolution est suspendue tant que le dé n’est pas tombé').toBe(true);
+    expect(suspendu, 'la résolution est suspendue tant que le dé n’est pas tombé').toBe(OPS_DIFFEREES);
     const st = etapeCourante()!;
     expect(st.kind).toBe('sauvegarde');
     expect(stepInteraction(st), 'le dé reste à jeter').toBe('de');
@@ -178,7 +180,7 @@ describe('aucune scission par KIND de porteur (canon : la porte pousse pour tous
     setBattle([hero, demon]);
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     const suspendu = applyAttackResult(useGame.getState, useGame.setState, hero, demon, epee, touche());
-    expect(suspendu, 'le coup est suspendu pour un porteur ENNEMI aussi').toBe(true);
+    expect(suspendu, 'le coup est suspendu pour un porteur ENNEMI aussi').toBe(OPS_DIFFEREES);
     const st = etapeCourante()!;
     expect(st.kind).toBe('sauvegarde');
     expect(st.actorId, 'le dé appartient au démon').toBe(demon.id);
@@ -287,8 +289,7 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
       const st = casc.participants[casc.cursor];
       if (!st) break;
       for (const x of casc.participants) if (x.kind === 'sauvegarde' && x.actorId && !vus.includes(x.actorId)) vus.push(x.actorId);
-      if (st.de && !st.de.result) useGame.getState().cascadeDieSetForcedRoll(st.id, 1);
-      useGame.getState().cascadeNext();
+      avanceEtapeCascade(useGame.getState);
       capter();
     }
     const lignes = lignesLues();
@@ -328,8 +329,8 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
   const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
   const blindee = { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 };
 
-  /** Joue la séquence jusqu'au bout comme le pilote : dés posés à 1 (toute sauvegarde RATE), choix au
-   *  défaut. Renvoie les `kind` d'étapes traversés. */
+  /** Joue la séquence jusqu'au bout comme le pilote : les porteurs sont AUTO, leurs dés se résolvent
+   *  d'office ; choix au défaut. Renvoie les `kind` d'étapes traversés. */
   const derouler = (): string[] => {
     const vus: string[] = [];
     for (let garde = 0; garde < 12 && useGame.getState().pendingCascade; garde++) {
@@ -337,8 +338,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
       const st = casc.participants[casc.cursor];
       if (!st) break;
       vus.push(st.kind);
-      if (st.de && !st.de.result) useGame.getState().cascadeDieSetForcedRoll(st.id, 1);
-      useGame.getState().cascadeNext();
+      avanceEtapeCascade(useGame.getState);
       capter();
     }
     return vus;
@@ -373,7 +373,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     // 1) La SAUVEGARDE s'ouvre la première, avant toute mutation.
     const suspendu = applyAttackResult(useGame.getState, useGame.setState, brute, porteur, gourdin, depassement,
       { suite: { deferAttackerAdvantage: true } });
-    expect(suspendu, 'la sauvegarde suspend AVANT toute mutation').toBe(true);
+    expect(suspendu, 'la sauvegarde suspend AVANT toute mutation').toBe(OPS_DIFFEREES);
     expect(etapeCourante()!.kind).toBe('sauvegarde');
     expect(etapesDeviation(), 'aucune fenêtre de Critique avant le dé').toHaveLength(0);
 
@@ -423,6 +423,10 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
   const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
   const demoniaque = [{ id: 'demoniaque', value: 8 }] as never;
   const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);
+
+  /** La fenêtre de défense telle que `openDefenseCascade` la pose : son étape au curseur de la séquence de combat. */
+  const fenetreDeDefense = (defenseur: Combatant) =>
+    cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: defenseur.id }], { title: 'Défense', purpose: 'combat' });
 
   /** La sauvegarde du porteur est l'étape COURANTE, et rien n'a encore bougé. */
   const sauvegardeEnCours = (porteur: Combatant): CascadeStep => {
@@ -506,7 +510,10 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const h2 = mk('hero', 'h2', { pos: { x: 4, y: 5 }, characteristics: nul(), aiControlled: true } as never);
     setBattle([ogre, h1, h2]);
     seedBattleRng(4);
-    useGame.setState({ pendingDefense: { attackerId: ogre.id, defenderId: h1.id, weapon: griffe, mode: 'parade', result: touche(), suite: { mode: 'machine', coup: { enchainement: { mode: 'chaine', hitIds: [h1.id], n: 0, bcc: 2, fm: false } } } } as never });
+    useGame.setState({
+      pendingDefense: { attackerId: ogre.id, defenderId: h1.id, weapon: griffe, mode: 'parade', result: touche(), suite: { mode: 'machine', coup: { enchainement: { mode: 'chaine', hitIds: [h1.id], n: 0, bcc: 2, fm: false } } } } as never,
+      pendingCascade: fenetreDeDefense(h1),
+    });
     useGame.getState().defenseConfirm();
     sauvegardeEnCours(h1);
     expect(h2.wounds.current, 'le maillon suivant attend le dé du maillon courant').toBe(30);
@@ -573,7 +580,10 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     // Parade RATÉE sur un DOUBLE (66) : « tout Test de combat qui est un échec et dont le résultat du jet
     // est un double est une Maladresse » (LDB 14 l.19) — due que ce coup soit un maillon de chaîne ou non.
     const rate = { ...touche(), defenderDetail: { roll: 66, target: 20, success: false, sl: -4 } } as AttackResult;
-    useGame.setState({ pendingDefense: { attackerId: ogre.id, defenderId: h1.id, weapon: griffe, mode: 'parade', result: rate, suite: { mode: 'machine', coup: { enchainement: { mode: 'chaine', hitIds: [h1.id], n: 0, bcc: 2, fm: false } } } } as never });
+    useGame.setState({
+      pendingDefense: { attackerId: ogre.id, defenderId: h1.id, weapon: griffe, mode: 'parade', result: rate, suite: { mode: 'machine', coup: { enchainement: { mode: 'chaine', hitIds: [h1.id], n: 0, bcc: 2, fm: false } } } } as never,
+      pendingCascade: fenetreDeDefense(h1),
+    });
     useGame.getState().defenseConfirm();
     sauvegardeEnCours(h1);
     poser(5); // < 6 : le coup porte sur h1 → Maladresse DUE, puis la chaîne parquée reprend
@@ -585,6 +595,51 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     useGame.getState().fumbleConfirm();
     const coups = (useGame.getState().battle?.log ?? []).map((l) => l.text).filter((x) => /^ogre touche/.test(x));
     expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne reprend tout de même sur h2 — ${coups.join(' | ')}`).toBe(1);
+  });
+
+  // Frénésie (LDB 21 l.33) qui balaie (LDB 85 l.362) ; le maillon frappe un démon (LDB 85 l.98) : la
+  // restitution (LDB 85 l.43) traverse l'étape de sauvegarde.
+  const maillonSurDemon = (): Combatant => {
+    const heros = mk('hero', 'furieux', { pos: { x: 0, y: 0 }, weapons: [epee], psychState: [{ type: 'frenesie' }] } as never);
+    const e1 = mk('enemy', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 0, y: 1 }, characteristics: nul(), traits: demoniaque } as never);
+    setBattle([heros, e1, demon]);
+    useGame.setState({ pendingCleave: null, pendingDualStrike: null, pendingDefense: null });
+    useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', result: { ...touche(), cleave: true } } as never });
+    useGame.getState().attackConfirm();
+    expect(useGame.getState().pendingCleave?.restitution, 'la chaîne de la gratuite emporte sa restitution').toEqual({ prevActed: false });
+    useGame.getState().cleaveAttack(demon.id);
+    const pa = useGame.getState().pendingAttack!;
+    useGame.setState({ pendingAttack: { ...pa, result: touche() } as never });
+    useGame.getState().attackConfirm();
+    return demon;
+  };
+
+  it('(ix) MAILLON d’un héros suspendu sur une sauvegarde : l’Action de la gratuite est rendue à la fermeture', () => {
+    // Le siège MJ tient le démon : son dé de sauvegarde est un geste de siège, jamais posé d'office
+    // (`cascade.tirageSansSiege`) quand le curseur du maillon arrive dessus.
+    const net = useGame.getState().net;
+    try {
+      useGame.setState({ net: { ...net, gmSeat: 0 } });
+      const demon = maillonSurDemon();
+      sauvegardeEnCours(demon);
+      poser(5); // < 8 : le coup porte, puis la suite du maillon se joue
+      expect(demon.wounds.current, 'le maillon a porté à la reprise').toBeLessThan(30);
+      expect(useGame.getState().pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
+      expect(useGame.getState().battle!.acted, 'gratuite : l’Action d’avant, maillon suspendu compris').toBe(false);
+    } finally {
+      useGame.setState({ net });
+    }
+  });
+
+  it('(ix) MAILLON d’un héros, SANS siège MJ : le dé de sauvegarde part d’office, et l’Action de la gratuite est rendue', () => {
+    expect(useGame.getState().net.gmSeat, 'aucun siège MJ ne tient le démon').toBeUndefined();
+    const demon = maillonSurDemon();
+    expect(useGame.getState().pendingCascade, 'le dé est tiré d’office : aucune étape ne reste à jouer').toBeNull();
+    expect(lignesLues().some((l) => /^demon — Sauvegarde : dé \d+/.test(l)), lignesLues().join(' | ')).toBe(true);
+    expect(demon.wounds.current, 'graine 1 : le dé (7) manque le 8+, le maillon porte').toBeLessThan(30);
+    expect(useGame.getState().pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
+    expect(useGame.getState().battle!.acted, 'gratuite : l’Action d’avant, maillon suspendu compris').toBe(false);
   });
 
   it('(viii) TIR RAPIDE d’INTERRUPTION sur un porteur de sauvegarde : la cascade-hôte n’est pas détruite, et le tour n’avance pas', () => {

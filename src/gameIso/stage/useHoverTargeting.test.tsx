@@ -53,7 +53,6 @@ function setup() {
     battle: { ...battle, turn: battle.order.indexOf(active.id), action: null, preview: null },
     pendingAttack: null,
     pendingDefense: null,
-    pendingTrample: null,
     pendingHeal: null,
     pendingCast: null,
     pendingCleave: null,
@@ -297,11 +296,12 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     foe.pos = { x: active.pos!.x + 1, y: active.pos!.y };
     const off = { label: 'Dague', name: 'Dague', type: 'melee', uid: 'off-1', hand: 'off', damage: { plusBF: true, flat: 2 }, qualities: [] };
     active.weapons = [...active.weapons, off as never];
-    // L'interlude tel que le flux le pose : la cascade de combat tient la fenêtre, la 2ᵉ frappe attend
-    // une cible SUR LA CARTE (`pendingDualStrike`) — la modale s'est effacée.
+    // L'interlude tel que `attackConfirm` le pose : l'étape `attack` au curseur, son slot vidé
+    // (`pendingAttack` null), le coup fermé ; la 2ᵉ frappe attend une cible SUR LA CARTE.
     useGame.setState({
+      pendingAttack: null,
       pendingDualStrike: { attackerId: active.id, offWeaponUid: 'off-1', mainRoll: 30 },
-      pendingCascade: cascadeDeTest([{ id: 'r', kind: 'affichage', actorId: active.id }], { purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'r', kind: 'attackJet', jet: 'attack', actorId: active.id }], { purpose: 'combat' }),
     });
 
     const aim = probeAim({ x: foe.pos!.x, y: foe.pos!.y }).hoverAim;
@@ -346,7 +346,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
     return renderToStaticMarkup(
       <svg>
         <AimOverlay battle={battle} hoverAim={aim} anchor={anchor} dims={dims}
-          pendingAttack={null} pendingDefense={null} pendingTrample={null} pendingHeal={null} pendingCast={null} />
+          pendingAttack={null} pendingDefense={null} pendingHeal={null} pendingCast={null} />
       </svg>,
     );
   }

@@ -2,16 +2,22 @@ import { describe, it, expect } from 'vitest';
 import { pickActiveModalKey as pick } from './ActiveModal';
 import type { GameState } from '../state/store';
 import { cascadeDeTest } from '../state/cascadeTestKit';
+import type { Weapon } from '../engine/types';
 
 /**
  * Arbitre de modales (R2, désormais REGISTRE state/modalArbiter) : une seule modale de combat à
  * la fois, par priorité explicite (ordre du registre). La file est implicite — une modale moins
  * prioritaire dont le `pending` est posé n'apparaît qu'une fois les plus prioritaires fermées.
- * Les tests passent des pendings MINCES (la forme suffit à l'arbitre).
+ * Les tests passent des pendings MINCES (la forme suffit à l'arbitre), sauf l'étape-jet élue : son
+ * corps (slot + acteurs présents au combat, `stateFields.sansCorps`) est celui que le jeu pose.
  */
 // CLÉS contraintes à `keyof GameState` (un pending typo'd ou SUPPRIMÉ → erreur tsc), VALEURS libres
 // (`unknown`) pour garder les pendings MINCES. L'ancien `s: object` + cast masquait toute faute de clé.
 const pickActiveModalKey = (s: Partial<Record<keyof GameState, unknown>>) => pick(s as Parameters<typeof pick>[0]);
+/** Le combat où vivent les acteurs des étapes-jets ci-dessous. */
+const battle = { combatants: [{ id: 'h1' }, { id: 'e1' }] };
+const defense = { attackerId: 'e1', defenderId: 'h1' };
+const attaque = { attackerId: 'h1', targetId: 'e1' };
 describe('pickActiveModalKey — priorité des modales de combat', () => {
   it('aucun pending → null', () => {
     expect(pickActiveModalKey({})).toBeNull();
@@ -26,9 +32,9 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // par la cascade-hôte ouverte par maybeOpenDefense (CascadeModal → useDefenseJetProps).
     expect(pickActiveModalKey({ pendingDefense: {} })).toBeNull();
     const defCascade = cascadeDeTest([{ id: 'd', kind: 'defenseJet', jet: 'defense', actorId: 'h1' }]);
-    expect(pickActiveModalKey({ pendingDefense: {}, pendingCascade: defCascade })).toBe('cascade');
+    expect(pickActiveModalKey({ battle, pendingDefense: defense, pendingCascade: defCascade })).toBe('cascade');
     // Défense réactive (cascade) l'emporte sur le jet d'attaque du joueur : `cascade` avant `attack` au registre.
-    expect(pickActiveModalKey({ pendingDefense: {}, pendingCascade: defCascade, pendingAttack: {} })).toBe('cascade');
+    expect(pickActiveModalKey({ battle, pendingDefense: defense, pendingCascade: defCascade, pendingAttack: attaque })).toBe('cascade');
   });
 
   it('la révélation n’est PLUS une modale propre : c’est une ÉTAPE d’AFFICHAGE de la cascade', () => {
@@ -49,8 +55,8 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // Sans cascade fumble → la Corruption l'emporte (la Maladresse n'existe QUE comme étape de cascade).
     expect(pickActiveModalKey({ pendingCorruption: {} })).toBe('corruption');
     // Cascade portant une étape `jet:'fumble'` (donnée SUR l'étape `step.fumble`) → 'cascade' (avant 'corruption').
-    const fumbleCascade = cascadeDeTest([{ id: 'f', kind: 'fumbleJet', jet: 'fumble', actorId: 'h1' }]);
-    expect(pickActiveModalKey({ pendingCascade: fumbleCascade, pendingCorruption: {} })).toBe('cascade');
+    const fumbleCascade = cascadeDeTest([{ id: 'f', kind: 'fumbleJet', jet: 'fumble', actorId: 'h1', fumble: { weapon: {} as Weapon, result: null } }]);
+    expect(pickActiveModalKey({ battle, pendingCascade: fumbleCascade, pendingCorruption: {} })).toBe('cascade');
   });
 
   it('Frappe Mortelle / 2ᵉ frappe (Deux armes) ne sont PLUS des modales (ciblage carte, TargetPrompt)', () => {
@@ -63,17 +69,11 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // ouvrent une cascade (Charge incluse) ; cleave/dual réutilisent celle déjà ouverte.
     expect(pickActiveModalKey({ pendingAttack: {} })).toBeNull();
     const atkCascade = cascadeDeTest([{ id: 'a', kind: 'attackJet', jet: 'attack', actorId: 'h1' }]);
-    expect(pickActiveModalKey({ pendingAttack: {}, pendingCascade: atkCascade })).toBe('cascade');
+    expect(pickActiveModalKey({ battle, pendingAttack: attaque, pendingCascade: atkCascade })).toBe('cascade');
+    // Acteurs absents du combat : l'étape n'a aucun corps à rendre, l'arbitre ne l'élit pas (`sansCorps`).
+    expect(pickActiveModalKey({ pendingAttack: attaque, pendingCascade: atkCascade })).toBeNull();
     // Frappe Mortelle : la 2ᵉ frappe (pendingAttack) RÉUTILISE la cascade d'enchaînement → 'cascade'.
-    expect(pickActiveModalKey({ pendingCleave: {}, pendingAttack: {}, pendingCascade: atkCascade })).toBe('cascade');
-  });
-
-  it('le Piétinement n’est PLUS une modale propre : étape `jet:\'trample\'` de la cascade `combat` (Critique foldé)', () => {
-    // pendingTrample SEUL (sans cascade) → aucune entrée 'trample' → null. `battleTrample`
-    // ouvre une cascade `jet:'trample'` (comme l'attaque) → le Coup Critique se fold dans LA MÊME fenêtre.
-    expect(pickActiveModalKey({ pendingTrample: {} })).toBeNull();
-    const trampleCascade = cascadeDeTest([{ id: 't', kind: 'trampleJet', jet: 'trample', actorId: 'h1' }]);
-    expect(pickActiveModalKey({ pendingTrample: {}, pendingCascade: trampleCascade })).toBe('cascade');
+    expect(pickActiveModalKey({ battle, pendingCleave: {}, pendingAttack: attaque, pendingCascade: atkCascade })).toBe('cascade');
   });
 
   it('l’incantation n’est PLUS une modale propre : c’est une étape `jet:\'cast\'` de la cascade (wrapper-fold)', () => {

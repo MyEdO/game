@@ -378,7 +378,7 @@ Une créature plus grande ignore la nécessité de se Désengager pour quitter l
 Pendant les Tests opposés de **Force** (et similaires), si l'une des créatures est supérieure d'au moins deux Tailles, elle gagne automatiquement. Si l'une des créatures est d'une Taille supérieure, la plus petite doit obtenir un Critique sur son jet pour pouvoir s'opposer. Si c'est le cas, le DR est comparé comme d'habitude. Tout autre résultat indique que la plus grande créature l'a emporté.
 
 
-#### **Peur et Terreur**
+<span id="page-344-0" data-folio="343"></span>#### **Peur et Terreur**
 
 Si la créature est considérée comme agressive, elle provoquera la *Peur* chez toute créature plus petite qu'elle, et de la *Terreur* à toute créature plus petite qu'elle d'au moins deux catégories. Le niveau de *Peur* ou de *Terreur* égale la différence de catégories de Taille. Ainsi, si elle est de catégorie Grande et son adversaire de catégorie Petite, elle lui cause *Terreur* 2. Voir page 191.
 

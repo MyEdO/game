@@ -8,7 +8,7 @@
  */
 import { registerCombatHook } from '../combatHooks';
 import { registerCascadeApplier } from '../cascade';
-import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, testSkillLabel, type BuiltCascadeStep, type RollRequest } from '../rollSeam';
+import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type BuiltCascadeStep, type RollRequest } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
@@ -36,7 +36,7 @@ import { t, deElide } from '../../i18n';
 import type { Combatant, ActiveEffect } from '../../engine/types';
 import type { CascadeStep } from '../pendings';
 import type { Get } from '../flowTypes';
-import { dataLabel } from '../../data';
+import { dataLabel, testSkillLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
 
 /** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de

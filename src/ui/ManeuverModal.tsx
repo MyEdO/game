@@ -1,17 +1,19 @@
 import { useGame } from '../state/store';
 import { combatValue } from '../engine/combat';
 import { creatureAttacks } from '../engine/creatureAttacks';
-import { MANEUVER_ICON } from '../state/combatFlow';
+import { MANEUVER_ICON, maneuverDefensePending } from '../state/combatFlow';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { Icon } from './Icon';
 import { OptionChooser, type RollSegOption } from './OptionChooser';
 import { testBreakdown, testPending } from './breakdown';
+import { confirmerLeCoup } from './jetProps/useAttackJetProps';
 
 /**
  * Modale de MANŒUVRE de créature (Souffle/Vomi/Langue/Regard/Étreinte — LDB 85 - Traits de
  * créature.md) qu'un héros active (mutation/polymorphie). La modale influence le SEUL jet de
- * l'ATTAQUANT (CC ou CT) ; « Appliquer » roule les défenseurs et résout l'opposition au feed.
+ * l'ATTAQUANT (CC ou CT) ; « Appliquer » roule les défenseurs et résout l'opposition au feed — sauf
+ * quand un défenseur SURFACÉ joue sa défense en cascade : « Passer à la Défense » (`maneuverDefensePending`).
  * Regard pétrifiant (l.238) : Avantage variable → un sélecteur
  * (pré-jet) fixe le DR ajouté. (Le Hurlement n'ouvre PAS de modale — pas de jet d'attaquant.)
  */
@@ -26,6 +28,7 @@ export function ManeuverModal() {
   const setAvantage = useGame((s) => s.maneuverSetAvantage);
   const confirm = useGame((s) => s.maneuverConfirm);
   const cancel = useGame((s) => s.maneuverCancel);
+  const awaitingDefense = useGame(maneuverDefensePending);
   if (!pm || !battle) return null;
   const attacker = battle.combatants.find((c) => c.id === pm.attackerId);
   if (!attacker) return null;
@@ -66,7 +69,7 @@ export function ManeuverModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'always' },
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    confirmerLeCoup(awaitingDefense, confirm),
   ];
 
   return (

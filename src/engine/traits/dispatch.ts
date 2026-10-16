@@ -200,7 +200,7 @@ export function traitMovementMod(traits: TraitList | undefined): number {
  *  Immunité (Poison)) vient de l'INDICE/arg de l'INSTANCE, lu par les helpers dédiés (wardSaves, etc.). */
 export function traitCapability(traits: TraitList | undefined, cap: keyof TraitCapabilities): boolean {
   const list = traits ?? [];
-  // Suppression GÉNÉRIQUE (Dressé (Dompté) « ignore son Trait Bestial », LDB 85 l.85) : un trait porté
+  // Suppression GÉNÉRIQUE (Dressé (Dompté) « ignore son Trait Bestial », LDB 85 l.106) : un trait porté
   // peut annuler la capacité d'un AUTRE trait du même porteur — aucun code par-nom de discipline.
   if (list.some((t) => findTraitById(t.id)?.suppressesCapabilities?.includes(cap))) return false;
   return list.some((t) => !!findTraitById(t.id)?.capabilities?.[cap]);
@@ -295,6 +295,12 @@ export function spellDomainImmunityOf(traits: TraitList | undefined): string | u
  *  Comparaison d'id STRICTE — `null`/`undefined` (Sort sans Domaine) ne matche jamais. */
 export function immuneToSpellDomain(traits: TraitList | undefined, spellDomainId: string | null | undefined): boolean {
   return spellDomainId != null && spellDomainImmunityOf(traits) === spellDomainId;
+}
+
+/** Le porteur paie-t-il la manœuvre `maneuverId` de son Action de Mouvement (capability `freeTrample`,
+ *  lue PAR ID) ? LDB 85 l.314 */
+export function maneuverPaidByMovement(traits: TraitList | undefined, maneuverId: string): boolean {
+  return traitCapability(traits, 'freeTrample') && (traits ?? []).some((t) => findTraitById(t.id)?.capabilities?.freeTrample?.id === maneuverId);
 }
 
 /** Instable (LDB 85 l.199). */

@@ -38,7 +38,7 @@ const atkDetail = { label: 'Corps à corps', base: T, modifier: 0, target: T, ro
 /** Incantation ENNEMIE figée (l'« attaquant » des Tests opposés Contre-sort / Opposition). */
 const ENEMY_CAST = { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: '' };
 const atkResult = {
-  hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defender',
+  hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: null,
   defenderDefeated: false, log: 'raté', attackerDetail: atkDetail,
 };
 
@@ -69,10 +69,6 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   attack: {
     state: { pendingAttack: { attackerId: 'H', targetId: 'E', location: null, result: atkResult } },
     read: () => ({ roll: P<{ result: { attackerRoll: number } }>('pendingAttack').result.attackerRoll, success: P<{ result: { attackerDetail: { success: boolean } } }>('pendingAttack').result.attackerDetail.success }),
-  },
-  trample: {
-    state: { pendingTrample: { attackerId: 'H', targetId: 'E', result: atkResult } },
-    read: () => ({ roll: P<{ result: { attackerRoll: number } }>('pendingTrample').result.attackerRoll, success: P<{ result: { attackerDetail: { success: boolean } } }>('pendingTrample').result.attackerDetail.success }),
   },
   defense: {
     state: {

@@ -12,6 +12,7 @@ import type { AttackResult } from '../engine/combat';
 import { emptyScene } from './scene';
 import { draineCascade } from './cascadeTestKit';
 import { stepInteraction } from './cascade';
+import { OPS_DIFFEREES } from './combatEffects';
 
 // « Écailles épineuses » (EDO App.2 l.196 : « Ce PA ne peut pas être utilisé pour la Déviation Critique »)
 // — la DONNÉE réelle de mutations.json, pour que ce test casse si le drapeau `noDeviation` disparaît.
@@ -138,7 +139,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const suspended = applyAttackResult(useGame.getState, useGame.setState, e, h, critWeapon, critRes());
     // La sévérité se tire DANS la fenêtre pour TOUT porteur — la déviation, elle, n'a rien à sacrifier :
     // l'étape existe, sans voies. Une étape et une seule (jamais une 2ᵉ fenêtre pour le même coup).
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     const etapes = useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes).toHaveLength(1);
     expect(etapes[0].table, 'la table de sévérité n’est pas déclarée sur l’étape').toBeTruthy();
@@ -159,7 +160,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     };
     const voies = () => (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'deviation');
     const std = mont();
-    expect(applyAttackResult(useGame.getState, useGame.setState, std.e, std.h, critWeapon, critRes()), 'standard : suspendu').toBe(true);
+    expect(applyAttackResult(useGame.getState, useGame.setState, std.e, std.h, critWeapon, critRes()), 'standard : suspendu').toBe(OPS_DIFFEREES);
     expect(tireLaSeverite().options?.map((o) => o.key), 'standard : Dévier / Subir offerts').toEqual(['devier', 'subir']);
 
     useGame.setState({ pendingCascade: null });
@@ -175,7 +176,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const h = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, items: [wornPiece(3)], criticalWounds: 0 });
     setBattle([e, h]);
     const suspended = applyAttackResult(useGame.getState, useGame.setState, e, h, critWeapon, critRes());
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     resolveDeviation(useGame.getState, useGame.setState, tireLaSeverite().deviation!, true); // « Dévier »
     const hh = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken).toBe(1); // pièce endommagée (−1 PA)
@@ -207,7 +208,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     expect(tenuParUnHumain(useGame.getState(), 'e1'), 'un siège MJ tient les ennemis').toBe(true);
     // La décision appartient à la VICTIME : le MJ la tient, donc c'est LUI qui tranche — pas l'automate.
     const suspended = applyAttackResult(useGame.getState, useGame.setState, h, e, critWeapon, critRes());
-    expect(suspended, 'la fenêtre doit s’ouvrir pour le porteur tenu').toBe(true);
+    expect(suspended, 'la fenêtre doit s’ouvrir pour le porteur tenu').toBe(OPS_DIFFEREES);
     const etapes = useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes, 'une seule fenêtre pour la Blessure critique').toHaveLength(1);
     expect(etapes[0].options?.map((o) => o.key), 'les voies Dévier/Subir doivent être offertes').toEqual(['devier', 'subir']);
@@ -246,7 +247,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const h = avecEcailles(hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 }, items: [wornPiece(3)], criticalWounds: 0 }));
     setBattle([e, h]);
     const suspended = applyAttackResult(useGame.getState, useGame.setState, e, h, critWeapon, critRes());
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     resolveDeviation(useGame.getState, useGame.setState, tireLaSeverite().deviation!, true);
     const hh = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken).toBe(1); // pièce portée endommagée

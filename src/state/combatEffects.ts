@@ -5,7 +5,7 @@ import { armChapterRecapIfDue } from './chapitreRecap';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, PendingCascade, PendingTest, ScheduledEffect } from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
-import { Combatant, CHAR_LABELS, type ModLine } from '../engine/types';
+import { Combatant, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, defaultRNG, roll as rollDice } from '../engine/dice';
@@ -29,7 +29,7 @@ import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { itemFromGive, giveTrappingLabel, withGiveQualities, avecObjet } from '../engine/items';
 import { trappingById, indiceById, documentById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
-import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
+import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
 import { clampSaboteurDR } from './shipCrew';
 import { harvestSizeOf, harvestYield } from '../engine/harvest';
@@ -410,6 +410,10 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * CONSOMME le signal là où RIEN NE SUIT (#1508) : l'instruction suivante du site est son `return` ou
  * la fin de sa fonction. Une déférance laisse simplement la cascade OUVERTE — le dé se joue, sa
  * conséquence se dit, et il n'y a aucune suite à confier.
+ *
+ * Exception nommée : `advanceCombatJet` après l'appel (`attackConfirm`). Il retient le
+ * curseur tant qu'une fenêtre `pending*` est ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde,
+ * Déviation) l'a poussée dans la cascade, et le curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
  *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
  * c'est une `Cloture`, différée avec la continuation.
@@ -1038,7 +1042,7 @@ export function openSkillTest(
   const def = candidates.find((c) => c.id === best.actor.id) ?? candidates[0];
   if (!def) return false;
   // Compétence/Caractéristique RÉELLE (cadre de jet) ≠ intitulé de situation (titre). Char → libellé long.
-  const skill = spec.skill ? refLabel('skills', spec.skill) : (spec.characteristic ? CHAR_LABELS[spec.characteristic] : undefined);
+  const skill = testSkillLabel({ skill: spec.skill, char: spec.characteristic });
   const label = spec.label || skill || 'Test';
   set({
     pendingTest: {

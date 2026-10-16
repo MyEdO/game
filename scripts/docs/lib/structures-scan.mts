@@ -260,7 +260,8 @@ export function classerValeur(sig: string, cles: readonly string[], contexte: Co
     const parChamp = c.champs?.includes(contexte.champ) ?? false;
     const parNoyau = c.noyau ? c.noyau.filter((k) => set.has(k)).length >= (c.noyauMin ?? c.noyau.length) : false;
     // `coPresence` DÉCLARÉE : le concept n'est retenu que si l'objet porte au moins une de ces clés,
-    // sinon on continue vers le concept suivant (`bornes` avant `plage`, même noyau).
+    // sinon on continue vers le concept suivant (`bornes` avant `plage`, même noyau), ou vers aucun
+    // (porteur hors concept : `plusBF` des `grantNaturalWeapon` sans `flat`, écarté de `degats-arme`).
     if (c.coPresence && !c.coPresence.some((k) => set.has(k))) continue;
     // `horsDesignation` DÉCLARÉE : un objet qui DÉSIGNE une entité n'est pas la valeur du concept
     // (`test` cède ainsi les 66 objets qui portent `difficulty` en champ d'une entité ou d'une

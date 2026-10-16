@@ -11,13 +11,16 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { maybeOpenDefense, openAttackCascade, applyAttackResult, jouerLApresCoup } from './combatFlow';
+import { maybeOpenDefense, openAttackCascade, applyAttackResult, jouerLApresCoup, aiCreatureFreeAttacks } from './combatFlow';
 import { battleRng, seedBattleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { resetCadence } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';
-import type { AttackResult } from '../engine/combat';
+import { resolveMelee, freeAttackWeapon, type AttackResult } from '../engine/combat';
+import { attaqueNaturelle } from '../engine/creatureAttacks';
+import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
+import { avanceEtapeCascade, draineCascade, poseSurDeNonTombe } from './cascadeTestKit';
 
 const g = useGame.getState;
 const CH = { 'capacite-de-combat': 45, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -30,6 +33,13 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, w
 
 type Suspension = 'sauvegarde' | 'deviation' | 'casseAttaquant' | 'casseDefenseur';
 type Charge = 'maladresseHeros' | 'maladresseEnnemiMJ' | 'balayage' | 'reaction' | 'repriseIA';
+
+/** Le `cleave` du jet RÉEL de `resolveMelee` (LDB 85 l.362) — jamais posé à la main. */
+function balaie(attaquant: Combatant, defenseur: Combatant): boolean {
+  const reel = resolveMelee(attaquant, defenseur, attaquant.weapons[0], makeRNG(7));
+  expect(reel.hit && reel.cleave, 'le jet RÉEL de `resolveMelee` touche et balaie').toBe(true);
+  return !!reel.cleave;
+}
 
 /** LE COUP, monté selon la charge et la suspension, puis ouvert par la porte réelle (`maybeOpenDefense`).
  *  `temoin` : le MÊME coup, sans ce qui le suspend (ni Trait de sauvegarde, ni PA à dévier, ni Solide). */
@@ -75,7 +85,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
     attackerDetail: susp === 'casseAttaquant' ? { roll: 33, success: false, sl: -2 } : { roll: 30, success: true, sl: 1 },
     defenderDetail: { roll: doubleRate ? 44 : 57, success: false, sl: -3, mode: 'parade' },
     parryWeapon: parade,
-    ...(charge === 'balayage' ? { cleave: true } : {}), // `resolveMelee` le pose : `sizeGap(grande, moyenne) >= 1`
+    ...(charge === 'balayage' ? { cleave: balaie(attaquant, defenseur) } : {}),
   } as unknown as AttackResult;
   const suite = ennemiDefend ? { enchainement: { mode: 'aucun' as const } } : undefined;
   expect(maybeOpenDefense(g, useGame.setState, attaquant, defenseur, attaquant.weapons[0], suite), 'la fenêtre du défenseur s’ouvre').toBe(true);
@@ -107,10 +117,7 @@ function jouer(): string[] {
       g().fumbleConfirm();
       continue;
     }
-    if (st.options && !st.chosen) g().cascadeChoose(st.id, 'subir');
-    if (st.de && !st.de.result) g().cascadeDieSetForcedRoll(st.id, 1);
-    if (st.table && !st.table.result) g().cascadeTableSetForcedRoll(st.id, 1);
-    g().cascadeNext();
+    avanceEtapeCascade(g, poseSurDeNonTombe(1), () => 'subir');
   }
   vi.runAllTimers();
   const b = g().battle!;
@@ -239,42 +246,127 @@ describe('mise hors de combat automatique (`autoKill`, LDB 16 l.113) : l’aprè
     (h as { fate?: number }).fate = 0;
     const res = { hit: true, autoKill: true, attackerRoll: 20, netSL: 2, location: 'corps', damage: 5, woundsLost: 3, critical: false,
       advantageTo: null, defenderDefeated: false, log: 'achève.' } as unknown as AttackResult;
-    applyAttackResult(g, useGame.setState, e, h, e.weapons[0], res, { sousAttaque: true, suite: { freeAttack: { kind: 'morsure', prevActed: false }, enchainement: { mode: 'aucun' } } });
+    applyAttackResult(g, useGame.setState, e, h, e.weapons[0], res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'morsure' }, enchainement: { mode: 'aucun' } } });
     expect(g().battle!.combatants.find((c) => c.id === 'h')!.wounds.current, 'la cible est mise hors de combat').toBe(0);
     expect(g().battle!.acted, 'frappe GRATUITE : la suite rend l’Action consommée par la mort-auto').toBe(false);
   });
 });
 
-describe('Piétinement suspendu : aucun balayage parasite, Action rendue (`enchainement: aucun`)', () => {
+/** Graine d'un Piétinement (Test opposé) qui touche et balaie. */
+const SEED_PIETINEMENT = 7;
+
+/** LDB 14 l.9 ; LDB 85 l.362 ; LDB 85 l.387 ; LDB 13 l.123. */
+describe('Piétinement d’un plus grand : le balayage suit, l’Action rendue à sa fermeture', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetCadence(); });
 
   for (const suspendu of [false, true]) {
-    it(`héros en Auto-combat, plus grand, qui piétine (${suspendu ? 'sauvegarde à la porte' : 'direct'})`, () => {
+    it(`héros humain, plus grand, qui piétine (${suspendu ? 'sauvegarde à la porte' : 'direct'})`, () => {
       seedBattleRng(3);
       const h = mk('h', 'hero', { x: 1, y: 0 }, [arme('sw', 'Épée')]);
-      h.size = 'enorme'; (h as { aiControlled?: boolean }).aiControlled = true; h.advantage = 2;
+      h.size = 'enorme'; h.advantage = 2;
       const e1 = mk('e1', 'enemy', { x: 0, y: 0 }, [arme('gr', 'Griffe')]);
       const e2 = mk('e2', 'enemy', { x: 1, y: 1 }, [arme('gr2', 'Griffe')]);
       if (suspendu) e1.traits = [{ id: 'demoniaque', value: 9 }] as never;
+      const pietinement = resolveMelee(h, e1, freeAttackWeapon(attaqueNaturelle([], 'pietinement')!), makeRNG(SEED_PIETINEMENT), { defense: 'parade' });
+      expect(pietinement.hit && pietinement.cleave, 'le Test opposé RÉEL du Piétinement touche et balaie').toBe(true);
       const battle = {
         combatants: [h, e1, e2], order: ['h', 'e1', 'e2'], baseOrder: ['h', 'e1', 'e2'], turn: 0, round: 1, action: null,
         selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
       } as unknown as BattleState;
       useGame.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
+        pendingCleave: null,
         net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
-        pendingTrample: { attackerId: 'h', targetId: 'e1', result: {
-          hit: true, attackerRoll: 20, netSL: 3, location: 'corps', damage: 6, woundsLost: 4, critical: false, advantageTo: null,
-          defenderDefeated: false, log: 'piétine.', cleave: true,
-        } as unknown as AttackResult } } as never);
-      g().trampleConfirm();
-      jouer();
-      const b = g().battle!;
-      expect(b.combatants.find((c) => c.id === 'e1')!.wounds.current, 'le Piétinement a porté').toBeLessThan(200);
-      expect(b.combatants.find((c) => c.id === 'e2')!.wounds.current, 'aucun balayage ne suit un Piétinement').toBe(200);
-      expect(b.acted, 'action GRATUITE : l’Action retrouve sa valeur').toBe(false);
+        pendingAttack: { attackerId: 'h', targetId: 'e1', location: null, result: pietinement, freeKind: 'pietinement', weapon: freeAttackWeapon(attaqueNaturelle([], 'pietinement')!) } } as never);
+      let restitutions = 0;
+      const unsub = useGame.subscribe((s, p) => { if (p.battle?.acted === true && s.battle?.acted === false) restitutions++; });
+      try {
+        g().attackConfirm();
+        jouer();
+        expect(g().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current, 'le Piétinement a porté').toBeLessThan(200);
+        const pc = g().pendingCleave;
+        expect(pc?.attackerId, 'le balayage est offert').toBe('h');
+        expect(pc?.hitIds).toEqual(['e1']);
+        expect(pc?.count, 'aucun enchaînement consommé').toBe(0);
+        expect(restitutions, 'la chaîne porte l’Action jusqu’à sa fermeture').toBe(0);
+        g().cleaveEnd();
+        expect(g().pendingCleave).toBeNull();
+        expect(g().battle!.acted, 'action GRATUITE : l’Action retrouve sa valeur').toBe(false);
+        expect(restitutions, 'l’Action est rendue UNE fois').toBe(1);
+      } finally {
+        unsub();
+      }
     });
   }
+});
+
+/** #977 — le Piétinement suspendu par une sauvegarde de touche (LDB 85 l.98) : sa suite ne joue qu'à la
+ *  reprise, une fois. */
+describe('Piétinement suspendu par une sauvegarde : la suite joue à la reprise, une fois', () => {
+  const etape = () => { const c = g().pendingCascade; return c?.participants[c.cursor]; };
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetCadence(); });
+
+  for (const gmSeat of [0, undefined]) {
+    it(`héros énorme qui piétine un démon (siège MJ : ${gmSeat ?? 'aucun'})`, () => {
+      seedBattleRng(3);
+      const h = mk('h', 'hero', { x: 1, y: 0 }, [arme('sw', 'Épée')]);
+      h.size = 'enorme'; h.advantage = 2;
+      const e1 = mk('e1', 'enemy', { x: 0, y: 0 }, [arme('gr', 'Griffe')]);
+      e1.traits = [{ id: 'demoniaque', value: 9 }] as never;
+      const e2 = mk('e2', 'enemy', { x: 1, y: 1 }, [arme('gr2', 'Griffe')]);
+      const pietinement = resolveMelee(h, e1, freeAttackWeapon(attaqueNaturelle([], 'pietinement')!), makeRNG(SEED_PIETINEMENT), { defense: 'parade' });
+      expect(pietinement.hit && pietinement.cleave, 'le Test opposé RÉEL du Piétinement touche et balaie').toBe(true);
+      const battle = {
+        combatants: [h, e1, e2], order: ['h', 'e1', 'e2'], baseOrder: ['h', 'e1', 'e2'], turn: 0, round: 1, action: null,
+        selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+      } as unknown as BattleState;
+      useGame.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
+        pendingDefense: null, pendingCleave: null,
+        net: { ...g().net, mode: 'local', mySeat: 0, gmSeat, ownership: {} },
+        pendingAttack: { attackerId: 'h', targetId: 'e1', location: null, result: pietinement, freeKind: 'pietinement', weapon: freeAttackWeapon(attaqueNaturelle([], 'pietinement')!) } } as never);
+      let restitutions = 0;
+      const unsub = useGame.subscribe((s, p) => { if (p.battle?.acted === true && s.battle?.acted === false) restitutions++; });
+      try {
+        g().attackConfirm();
+        expect(etape()?.de, 'une étape à dé (sauvegarde) tient la main').toBeTruthy();
+        expect(g().pendingCleave, 'le balayage n’est pas offert avant le dé').toBeNull();
+        expect(g().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current, 'aucune Blessure avant le dé').toBe(200);
+        expect(restitutions, 'rien ne suit avant le dé de sauvegarde').toBe(0);
+        let des = 0;
+        draineCascade(g, 20, (st) => (st.de ? (des++, 3) : undefined));
+        expect(des, 'le dé de sauvegarde a été posé').toBe(1);
+        expect(g().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current, 'la sauvegarde ratée : le Piétinement a porté').toBeLessThan(200);
+        expect(g().pendingCleave?.hitIds, 'à la reprise, le balayage est offert').toEqual(['e1']);
+        expect(restitutions, 'la chaîne porte l’Action jusqu’à sa fermeture').toBe(0);
+        g().cleaveEnd();
+        expect(g().battle!.acted, 'action GRATUITE : l’Action retrouve sa valeur').toBe(false);
+        expect(restitutions, 'la suite joue UNE fois, à la reprise').toBe(1);
+      } finally {
+        unsub();
+      }
+    });
+  }
+
+  it('créature IA énorme qui piétine un héros démoniaque Surpris : l’attaque gratuite instantanée est suspendue', () => {
+    seedBattleRng(2);
+    const h = mk('h', 'hero', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
+    h.traits = [{ id: 'demoniaque', value: 9 }] as never;
+    h.conditions = [{ id: 'surpris', value: 1 }] as never;
+    const e = mk('e', 'enemy', { x: 1, y: 0 }, [arme('gr', 'Griffe')]);
+    e.size = 'enorme'; e.advantage = 2; e.characteristics['capacite-de-combat'] = 85;
+    const battle = {
+      combatants: [e, h], order: ['e', 'h'], baseOrder: ['e', 'h'], turn: 0, round: 1, action: null,
+      selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: true, log: [], over: null,
+    } as unknown as BattleState;
+    useGame.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
+      pendingDefense: null, pendingCleave: null, net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
+    const suspendu = aiCreatureFreeAttacks(g, useGame.setState, g().battle!.combatants.find((c) => c.id === 'e')!);
+    expect(suspendu, 'le retour suspendu de l’attaque gratuite est rendu à l’IA').toBe(true);
+    expect(etape()?.kind, 'une étape de sauvegarde tient la main').toBe('sauvegarde');
+    expect(etape()?.de, 'son dé n’est pas tombé').toBeTruthy();
+    expect(g().battle!.combatants.find((c) => c.id === 'h')!.wounds.current, 'aucune Blessure avant le dé').toBe(200);
+  });
 });
 
 /**

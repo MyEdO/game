@@ -11,6 +11,7 @@ import { toBrass, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, bourseOf, creditBourse, debitBourse } from './bourseFlow';
 import type { WorldMap } from './worldMap';
 import type { Combatant } from '../engine/types';
+import { avanceEtapeCascade } from './cascadeTestKit';
 import type { CascadeStep } from './pendings';
 
 /** Remet la Bourse d'un héros à un montant EXACT (test) — vide puis crédite (SOCLE POSSESSIONS #531). */
@@ -68,21 +69,12 @@ const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 
 async function runOneSeaDay(vues: CascadeStep[] = []): Promise<string[]> {
   const kinds: string[] = [];
-  for (let i = 0; i < 40; i++) {
-    if (get().pendingRest || get().pendingSeaActivities) break;
-    const casc = get().pendingCascade;
-    if (casc) {
-      const cur = casc.participants[casc.cursor];
-      if (cur) { kinds.push(cur.kind); vues.push(cur); }
-      // Choix de Progression (MDG 14 l.63) : le pilote répond par défaut, comme la cadence commandée.
-      if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
-      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().cascadeBatchRoll(part.id); }
-      else if (cur && !cur.result) get().cascadeRoll(cur.id);
-      get().cascadeNext();
-      await tick();
-      continue;
-    }
-    break;
+  for (let i = 0; i < 40 && get().pendingCascade && !get().pendingRest && !get().pendingSeaActivities; i++) {
+    const casc = get().pendingCascade!;
+    const cur = casc.participants[casc.cursor];
+    if (cur) { kinds.push(cur.kind); vues.push(cur); }
+    avanceEtapeCascade(get);
+    await tick();
   }
   return kinds;
 }
@@ -95,18 +87,16 @@ async function runSeaActivities() {
     if (get().pendingRest) break;
     const casc = get().pendingCascade;
     const ext = get().pendingExtendedTest;
-    if (casc) {
-      const cur = casc.participants[casc.cursor];
-      if (cur?.options && !cur.chosen) get().cascadeChoose(cur.id, cur.defaultChoice ?? cur.options[0].key);
-      else if (cur && !cur.result) get().cascadeRoll(cur.id);
-      get().cascadeNext();
-      await tick();
-      continue;
-    }
+    // La fenêtre `extended` d'abord : son étape hôte n'est prête que quand elle a rendu sa donnée (#1765).
     if (ext) {
       const cur = ext.rounds[ext.rounds.length - 1];
       if (!cur.result) get().extendedTestRoll(cur.id);
       get().extendedTestNext();
+      await tick();
+      continue;
+    }
+    if (casc) {
+      avanceEtapeCascade(get);
       await tick();
       continue;
     }
@@ -268,12 +258,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
  *  déférée s'exécuter, comme un clic UI l'espacerait. */
 async function drainPortSellCascade(): Promise<void> {
   for (let i = 0; i < 30; i++) {
-    const p = get().pendingCascade;
-    if (p) {
-      const cur = p.participants[p.cursor];
-      if (cur && cur.target != null && !cur.result) get().cascadeRoll(cur.id);
-      get().cascadeNext();
-    }
+    avanceEtapeCascade(get);
     await tick();
   }
 }

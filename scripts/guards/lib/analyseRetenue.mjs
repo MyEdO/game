@@ -56,7 +56,7 @@
 import { posix, resolve } from 'node:path'
 import * as ts from 'typescript/unstable/ast'
 import { analyserCorpus, avecAnalyse } from './dialecte.mjs'
-import { estSuiteVitest } from './fichierVitest.mjs'
+import { estSuiteVitest, MOTIF_D_EXTENSION } from './fichierVitest.mjs'
 import { contexteImports, origineImportee } from './canonUnique.mjs'
 
 const FABRIQUES_DE_PROGRAMME = Object.freeze(['repoProgram', 'virtualProgram', 'syntaxProgram'])
@@ -462,6 +462,9 @@ function exportes(sf, ctx) {
   return out
 }
 
+/** L'extension de script en fin de spécifieur, que `detentionsDe` retire avant de comparer au module. */
+const EXTENSION_FINALE = new RegExp(`${MOTIF_D_EXTENSION}$`)
+
 /** Noms locaux de la PRIMITIVE DE DÉTENTION importée par nom depuis son module, dans un fichier de
  *  test seulement : ailleurs, aucun `afterAll` ne la libère. */
 function detentionsDe(sf) {
@@ -470,7 +473,7 @@ function detentionsDe(sf) {
   for (const st of sf.statements) {
     const liens = ts.isImportDeclaration(st) ? st.importClause?.namedBindings : undefined
     if (!liens || !ts.isNamedImports(liens) || !ts.isStringLiteral(st.moduleSpecifier)) continue
-    const cible = posix.join(posix.dirname(sf.fileName), st.moduleSpecifier.text).replace(/\.[cm]?[jt]sx?$/, '')
+    const cible = posix.join(posix.dirname(sf.fileName), st.moduleSpecifier.text).replace(EXTENSION_FINALE, '')
     if (cible !== resolve(PRIMITIVE_DE_DETENTION.module).replaceAll('\\', '/')) continue
     for (const el of liens.elements) if ((el.propertyName ?? el.name).text === PRIMITIVE_DE_DETENTION.nom) out.add(el.name.text)
   }

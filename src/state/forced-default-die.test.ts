@@ -29,7 +29,7 @@ const C = (over: Partial<Combatant>): Combatant =>
   }) as unknown as Combatant;
 
 beforeEach(() => {
-  useGame.setState({ pendingAttack: null, pendingDefense: null, pendingTrample: null, pendingCast: null, battle: null });
+  useGame.setState({ pendingAttack: null, pendingDefense: null, pendingCast: null, battle: null });
 });
 
 /** Attaque ratée sur un DOUBLE malheureux (88 vs 45) — le pire cas mesuré. */
@@ -40,7 +40,7 @@ function setupAttack() {
     pendingAttack: {
       attackerId: 'A', targetId: 'B', location: null,
       result: {
-        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defender',
+        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: null,
         defenderDefeated: false, log: 'raté',
         attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 88, success: false, sl: -4 },
       } as never,
@@ -92,26 +92,6 @@ describe('défense — même dé par défaut, plancher opposé conservé (LDB 17
     expect(pd.def!.roll).toBe(die);
     expect(pd.def!.sl).toBe(Math.max(evaluateTest(die, 50).sl, atk.sl + 1, 1));
     expect(pd.result!.hit).toBe(false); // l'emporte
-  });
-});
-
-describe('piétinement — même dé par défaut', () => {
-  it('le dé raté (90) est remplacé par le meilleur', () => {
-    seedBattleRng(7);
-    useGame.setState({
-      battle: { combatants: [C({ id: 'A', label: 'Ogre', resilience: 2 }), C({ id: 'B', label: 'Gnoblar', kind: 'enemy', pos: { x: 1, y: 0 } })], log: [] } as never,
-      pendingTrample: {
-        attackerId: 'A', targetId: 'B',
-        result: {
-          hit: false, attackerRoll: 90, netSL: -5, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'raté',
-          attackerDetail: { label: 'Bagarre', base: 45, modifier: 0, target: 45, roll: 90, success: false, sl: -5 },
-        },
-      } as never,
-    });
-    useGame.getState().trampleForceSuccess();
-    const res = useGame.getState().pendingTrample!.result!;
-    expect(res.attackerRoll).toBe(bestForcedRoll(45));
-    expect(res.hit).toBe(true);
   });
 });
 

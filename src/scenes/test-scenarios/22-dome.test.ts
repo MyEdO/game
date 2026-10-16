@@ -8,6 +8,7 @@ import { seedBattleRng } from '../../state/battleRng';
 import { draineEtLit } from '../../state/cascadeTestKit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
+import { OPS_DIFFEREES } from '../../state/combatEffects';
 const scenarioConstruit = scenario.construire();
 
 /**
@@ -77,7 +78,7 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
       protegee.wounds.current = avant;
       // Depuis #1508 le coup est SUSPENDU sur l'étape de dé : c'est la fenêtre qui jette le 1d10.
       const suspendu = applyAttackResult(useGame.getState, useGame.setState, archer, protegee, arc, tir());
-      expect(suspendu, 'le coup doit être suspendu sur sa sauvegarde, jamais résolu en silence').toBe(true);
+      expect(suspendu, 'le coup doit être suspendu sur sa sauvegarde, jamais résolu en silence').toBe(OPS_DIFFEREES);
       sauve = draineEtLit(useGame.getState).some((x) => /sauvegarde 1d10 : \d+ ≥ Protection \(6\+\) du Dôme\./.test(x));
     }
     expect(sauve, 'aucune sauvegarde du Dôme en 40 tirs : elle ne s’ouvre pas').toBe(true);
@@ -109,7 +110,7 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
     for (let i = 0; i < 40; i++) {
       protegee.wounds.current = 20;
       const suspendu = applyAttackResult(useGame.getState, useGame.setState, orc, protegee, epee, tir());
-      expect(suspendu, 'aucune étape de sauvegarde ne s’ouvre en mêlée sous la voûte').toBe(false);
+      expect(suspendu, 'aucune étape de sauvegarde ne s’ouvre en mêlée sous la voûte').toBeUndefined();
       lues.push(...draineEtLit(useGame.getState));
     }
     expect(

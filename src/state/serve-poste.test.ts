@@ -25,11 +25,11 @@ const gunner = (): Combatant =>
   }) as unknown as Combatant;
 
 const enemyAt = (id: string, x: number, y: number): Combatant =>
-  ({ id, label: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [] }) as unknown as Combatant;
+  ({ id, label: id, kind: 'enemy', pos: { x, y }, wounds: { current: 10, max: 10 }, conditions: [], weapons: [] }) as unknown as Combatant;
 
 /** Coque AMIE dont l'équipage inclut le canonnier — son cap (`facing[hull]`) détermine l'arc. */
 const hull = (): Combatant =>
-  ({ id: 'hull', label: 'Chaloupe', kind: 'npc', pos: { x: 5, y: 5 }, crewIds: ['gunner'], conditions: [], weapons: [] }) as unknown as Combatant;
+  ({ id: 'hull', label: 'Chaloupe', kind: 'npc', pos: { x: 5, y: 5 }, crewIds: ['gunner'], wounds: { current: 20, max: 20 }, conditions: [], weapons: [] }) as unknown as Combatant;
 
 const battle = (combatants: Combatant[]): BattleState =>
   ({ combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, selectedSpellId: null, acted: false, over: null }) as unknown as BattleState;

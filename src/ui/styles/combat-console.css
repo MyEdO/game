@@ -623,6 +623,10 @@
 .cc-cost > i.on {
   background: var(--cc-cell-cran);
 }
+/* Cran de MOUVEMENT : la teinte de la gouttière de Mouvement. */
+.cc-cost > i[data-cout='mouvement'] {
+  --cc-cell-cran: var(--gauge-move);
+}
 
 /* VIGNETTE de set : plaquette d'acier à hauteur PARTAGÉE (les SET_SLOTS se répartissent la hauteur
    des deux rangées d'alvéoles), son rang gravé en tête, l'état de charge dit au pied. */

@@ -289,6 +289,31 @@ function isLiteralRecord(node, literalRecords) {
   return false;
 }
 
+/** `Map` FERMÉE écrite à la main : `new Map([['a', x], ['b', y]])` (paires à clé littérale), ou
+ *  `new Map(Object.entries(<table littérale>))`, ou un identifiant qui en tient une. C'est la table
+ *  littérale de `isLiteralRecord` sous une autre écriture : `MAP.get(def.id)` fige le registre comme
+ *  `TABLE[def.id]`. Une `Map` CALCULÉE depuis un registre (`new Map(xs.map((x) => [x.id, x]))`) le
+ *  SUIT, elle ne le fige pas. */
+function isLiteralMap(node, literalMaps, literalRecords) {
+  const n = unwrap(node);
+  if (ts.isIdentifier(n)) return literalMaps.has(n.text);
+  if (!ts.isNewExpression(n) || !ts.isIdentifier(n.expression) || n.expression.text !== 'Map') return false;
+  const arg = n.arguments?.[0] && unwrap(n.arguments[0]);
+  if (!arg) return false;
+  if (ts.isArrayLiteralExpression(arg)) {
+    return arg.elements.length > 0 && arg.elements.every((e) => {
+      const paire = unwrap(e);
+      return ts.isArrayLiteralExpression(paire) && paire.elements.length === 2 && isEntryLiteral(unwrap(paire.elements[0]));
+    });
+  }
+  if (ts.isCallExpression(arg) && ts.isPropertyAccessExpression(arg.expression)
+    && ts.isIdentifier(arg.expression.expression) && arg.expression.expression.text === 'Object'
+    && arg.expression.name.text === 'entries' && arg.arguments.length === 1) {
+    return isLiteralRecord(arg.arguments[0], literalRecords) && !estTableTotale(unwrap(arg.arguments[0]));
+  }
+  return false;
+}
+
 /** Pré-passe : noms déclarés dans le fichier qui tiennent une collection/table FERMÉE de littéraux.
  *  Une table TOTALE déclarée (`estTableTotale`, `canonUnique.mjs` : `const T: Record<StepId, X> = {…}`,
  *  ou son `satisfies`) n'est pas une table littérale figée : le compilateur exige une entrée par
@@ -303,6 +328,7 @@ function isLiteralRecord(node, literalRecords) {
 function collectLiteralHolders(sf, contexte) {
   const collections = new Set();
   const records = new Set();
+  const maps = new Set();
   const computed = new Set(); // noms déclarés au moins une fois avec une valeur NON littérale
   const vocabulary = new Set(); // noms annotés par un type de `VOCABULARY_TYPES`
   const visit = (node) => {
@@ -311,14 +337,15 @@ function collectLiteralHolders(sf, contexte) {
       if (isVocabularyCollectionDecl(node, sf, contexte)) vocabulary.add(name);
       else if (isLiteralStringCollection(node.initializer, collections)) collections.add(name);
       else if (isLiteralRecord(node.initializer, records) && !estTableTotale(unwrap(node.initializer))) records.add(name);
+      else if (isLiteralMap(node.initializer, maps, records)) maps.add(name);
       else computed.add(name);
     }
     node.forEachChild(visit);
   };
   sf.forEachChild(visit);
-  for (const name of computed) { collections.delete(name); records.delete(name); }
-  for (const name of vocabulary) { collections.delete(name); records.delete(name); }
-  return { collections, records };
+  for (const name of computed) { collections.delete(name); records.delete(name); maps.delete(name); }
+  for (const name of vocabulary) { collections.delete(name); records.delete(name); maps.delete(name); }
+  return { collections, records, maps };
 }
 
 /**
@@ -327,7 +354,8 @@ function collectLiteralHolders(sf, contexte) {
  *                      liaison GÉNÉRIQUE (entrée reçue, itérée, ou prop de composant) ;
  *  - `id-switch`     : `switch (entry.id) { case 'a': … }`, même condition de liaison ;
  *  - `id-membership` : `['a','b'].includes(r.id)`, `SET_EN_DUR.has(x.id)` ;
- *  - `id-record`     : `TABLE_LITTÉRALE[def.id]` — table fermée indexée par l'identité d'une entrée.
+ *  - `id-record`     : `TABLE_LITTÉRALE[def.id]` — table fermée indexée par l'identité d'une entrée —,
+ *                      ou `MAP_LITTÉRALE.get(def.id)`, la même table écrite en `Map` (`isLiteralMap`).
  *
  * FRONTIÈRE (raisonnée, pas une liste d'exceptions) — ne lèvent PAS :
  *  - un `.id` comparé à une VARIABLE (`r.id === selectedId`) : sélection, pas branchement en dur ;
@@ -336,6 +364,8 @@ function collectLiteralHolders(sf, contexte) {
  *    stable, forme recommandée par la doctrine — la réaction PAR-NOM d'entité relève, elle, de la
  *    garde `hardcode.mjs` (`hasTalent`/`hasTraitKey`/`hasCondition` à argument littéral) ;
  *  - une entrée tenue par une constante de MODULE (`FORTUNE.id === x`) : code non générique ;
+ *  - un index CALCULÉ depuis un registre (`indexParId('etats', etats)`, `new Map(xs.map((x) => [x.id, x]))`) :
+ *    il SUIT le registre, il ne le fige pas (`isLiteralMap`) ;
  *  - un mot du VOCABULAIRE `GameOp` (`id === ''` — `OP_VOCABULARY`) : il ne désigne aucune entrée
  *    de registre ;
  *  - une collection de VOCABULAIRE FERMÉ (`const WAIST_BONES: BoneId[]` — `VOCABULARY_TYPES`) : ses
@@ -362,7 +392,7 @@ function collectLiteralHolders(sf, contexte) {
  */
 export function scanRegistryIdBranch(relPath, contenu, sf = arbreDe(relPath, contenu)) {
   const contexte = contexteImports(sf);
-  const { collections, records } = collectLiteralHolders(sf, contexte);
+  const { collections, records, maps } = collectLiteralHolders(sf, contexte);
   const lines = contenu.split('\n');
   const findings = [];
   const scopes = new Scopes();
@@ -439,6 +469,11 @@ export function scanRegistryIdBranch(relPath, contenu, sf = arbreDe(relPath, con
     }
     if (ts.isElementAccessExpression(node) && isEntryIdentity(node.argumentExpression, scopes, true)
       && isLiteralRecord(node.expression, records)) {
+      report(node, 'id-record');
+    }
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.name)
+      && node.expression.name.text === 'get' && node.arguments.length > 0
+      && isEntryIdentity(node.arguments[0], scopes, true) && isLiteralMap(node.expression.expression, maps, records)) {
       report(node, 'id-record');
     }
 

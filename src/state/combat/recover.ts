@@ -4,10 +4,10 @@
  * l'IA (résolution inline, combatFlow) ET le flux joueur (`pendingStateRecovery`, combatSlice). Remplace
  * les branches par-nom `if state === empetre … else athletisme` dupliquées des deux côtés.
  */
-import { type Combatant, type Difficulty, CHAR_LABELS } from '../../engine/types';
+import { type Combatant, type Difficulty } from '../../engine/types';
 import { testValue, skillBaseValue } from '../../engine/skills';
 import { isOutOfAction } from '../../engine/conditions';
-import { findConditionById, refLabel } from '../../data';
+import { findConditionById, testSkillLabel } from '../../data';
 
 /** L'entrave d'un Test de récupération OPPOSÉ : sa valeur, sa nue, son libellé — posés ENSEMBLE. */
 export interface RecoverOpposition {
@@ -57,7 +57,7 @@ export function resolveRecoverTest(
   const rec = etat.recover;
   const skillValue = testValue(actor, rec.skill?.id, rec.characteristic, rec.skill?.spec);
   const skillBase = skillBaseValue(actor, rec.skill?.id, rec.skill?.spec, rec.characteristic);
-  const skillLabel = rec.skill ? refLabel('skills', rec.skill) : (rec.characteristic ? CHAR_LABELS[rec.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: rec.skill, char: rec.characteristic }) ?? 'Test';
   let opposition: RecoverOpposition | undefined, requireSl: number | undefined;
   let entangleOnFail: boolean | undefined, struggleDamage: number | undefined;
   if (rec.opposedBy === 'source') {

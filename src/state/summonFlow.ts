@@ -26,6 +26,7 @@ import { isOutOfAction } from '../engine/conditions';
 import { RNG, defaultRNG } from '../engine/dice';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
+import { mirrorPools } from '../engine/advantagePool';
 
 /** Descripteur d'invocation = la charge utile de l'op `summon` du Flow (donnée éditable du sort) ;
  *  le discriminant `op` est superflu pour cette fonction dédiée → l'op complète s'assigne quand même. */
@@ -112,6 +113,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
     insertAfter(battle.order, caster.id, id);
     placed.push(c);
   }
+  if (battle.advantagePools) mirrorPools(battle.advantagePools, placed); // AA 11 l.11-13
   set({ battle: { ...battle } });
   if (!placed.length) return [t('summon.noRoom', { name: caster.label, ref: invoque })];
   const name = placed[0].label;
