@@ -6,7 +6,7 @@
 // les `jouer` réels (build-all, push, gh) ne sont jugés que par le train joué. Exceptions nommées : les
 // CLI réelles sous git feint (#2285), le constat d'une `fin` tuée sur le journal CAPTURÉ du témoin 6 et la
 // veille composite tuée sous bash (#2493, `.git/suivi/2493-design-verdict-2026-10-08.md`, §4 T2 et T3).
-import { corpsDeFusion, fusionDe, issueDeFusion, refusDEnfileur, reponseHttp } from '../guards/lib/fusionPr.mjs'
+import { refusDEnfileur } from '../guards/lib/fusionPr.mjs'
 import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
 import { REFUS_DE_FILE } from './fixtures/github-refus-file.mjs'
 import { ENTREE_2495, JEUNE_2495, PR_2495 } from './fixtures/github-2495-file.mjs'
@@ -36,48 +36,8 @@ import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
 import { mesurerPrincipal, synchroniserPrincipal } from './synchroniser.mjs'
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
-import {
-  CODE_ARRET_MOTEUR,
-  CODE_BORNE_DEPASSEE,
-  CODE_INDETERMINEE,
-  ENV_LANCEMENT,
-  FILE_TIMEOUT_MIN,
-  RACINE,
-  borneDeVeilleMin,
-  codeDeVerdict,
-  commandeDeVeille,
-  cheminsDeJournal,
-  entameDuRun,
-  envDeLancement,
-  idDeRun,
-  lancementDe,
-  ligneDePublication,
-  pidDeRun,
-  runDe,
-  transitionsDuRun,
-  veillerLeTrain,
-  constaterLaMort,
-  contexteDe,
-  etatDeLEtape,
-  etatDuTrain,
-  filetDuTrainEnfant,
-  jouerLeTrain,
-  journalInitial,
-  journalVide,
-  lancementNpm,
-  ligneDeDetachement,
-  lireJournal,
-  mortDuRun,
-  modeDuLog,
-  motifDeRotation,
-  nomDeJournal,
-  nomDeRotation,
-  optionsDe,
-  planDeReprise,
-  rotationnerLog,
-  transitionDuRun,
-  vivant,
-} from './publier.mjs'
+import { CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE, CODE_INDETERMINEE, ENV_LANCEMENT, FILE_TIMEOUT_MIN, codeDeVerdict, commandeDeVeille, cheminsDeJournal, entameDuRun, envDeLancement, idDeRun, lancementDe, ligneDePublication, pidDeRun, runDe, filetDuTrainEnfant, journalInitial, journalVide, lancementNpm, ligneDeDetachement, lireJournal, modeDuLog, motifDeRotation, nomDeJournal, nomDeRotation, optionsDe, rotationnerLog, vivant } from './publicationDonnee.mjs'
+import { RACINE, borneDeVeilleMin, transitionsDuRun, veillerLeTrain, constaterLaMort, contexteDe, etatDeLEtape, etatDuTrain, jouerLeTrain, mortDuRun, planDeReprise, transitionDuRun } from './publierTrain.mjs'
 import {
   BORNE_EJECTIONS,
   ETAPES,
@@ -463,7 +423,7 @@ test('preflight et étape `docs` ATTENDENT la reconstruction des dérivés avant
 test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux arguments validés : ni poignée du dépôt, ni commande libre', () => {
   const ctx = contexteDe({ racine: '/nulle-part', branche: 'chantier/x', options: {}, journaliser: () => {}, fdLog: 'ignore' })
   const cles = Object.getOwnPropertyNames(ctx).sort()
-  assert.deepEqual(cles, ['abandonnerFusion', 'attendreReconstruction', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lireFusion', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
+  assert.deepEqual(cles, ['abandonnerFusion', 'attendreReconstruction', 'branche', 'commenter', 'commit', 'conclureFusionSansCiblesPures', 'coursesCi', 'coursesDeFile', 'demanderFusion', 'docs', 'etatFileDePr', 'fdLog', 'filtresDePush', 'fusionner', 'generators', 'jobsEnEchec', 'journaliser', 'lirePr', 'lireTicket', 'npm', 'options', 'ouvrirPr', 'parentsDe', 'pousser', 'publication', 'questions', 'racine', 'synchroniserPrincipal', 'tete', 'tronc'])
   assert.deepEqual(Object.keys(ctx.questions).sort(), ['attributsDeFusion', 'baseAuTronc', 'brancheDe', 'ceQuiChange', 'cheminsEnConflit', 'cheminsSales', 'combienDe', 'commitsDeLaPlage', 'estAncetre', 'origineDe', 'rebaseEntame', 'shaDe', 'textesDe', 'verdictDesFusions'])
   assert.equal(Object.isFrozen(ctx.questions), true)
   assert.equal(ctx.generators, GENERATORS)
@@ -476,13 +436,10 @@ test('le contexte du train ne porte que des QUESTIONS et des gestes NOMMÉS aux 
     assert.throws(() => ctx.coursesCi(sha), /ctx\.coursesCi : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.demanderFusion({ numero: 7, sha }), /ctx\.demanderFusion : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.etatFileDePr({ numero: 7, sha }), /ctx\.etatFileDePr : un sha COMPLET/, JSON.stringify(sha))
-    assert.throws(() => ctx.lireFusion({ numero: 7, sha, uuid: '12345678-1234-1234-1234-123456789abc' }), /ctx\.lireFusion : un sha COMPLET/, JSON.stringify(sha))
     assert.throws(() => ctx.parentsDe(sha), /ctx\.parentsDe : un sha COMPLET/, JSON.stringify(sha))
   }
   for (const numero of ['0', '7a', undefined])
     assert.throws(() => ctx.demanderFusion({ numero, sha: 'a'.repeat(40) }), /ctx\.demanderFusion : un NUMÉRO/, JSON.stringify(numero))
-  for (const uuid of ['x', '630b9d5e-3f2a-4f7e-8b0c-2d5f9a8c1e42/../..', undefined])
-    assert.throws(() => ctx.lireFusion({ numero: 7, uuid }), /ctx\.lireFusion : un UUID de demande/, JSON.stringify(uuid))
   for (const id of ['1', 0, -3, 1.5, undefined])
     assert.throws(() => ctx.jobsEnEchec(id), /ctx\.jobsEnEchec : un id de course/, JSON.stringify(id))
   for (const essai of [0, -1, 1.5, '2']) assert.throws(() => ctx.jobsEnEchec(1, essai), /ctx\.jobsEnEchec : un essai de course/, String(essai))
@@ -556,6 +513,34 @@ function implantationDuCli() {
   }
 }
 
+test('#2626 bootstrap : générateur WIP invalide ignoré ; panne de préparation reçoit run et verdict', () => {
+  const { racine } = implantationDuCli()
+  try {
+    const branche = 'chantier/2626-bootstrap'
+    const generateur = join(racine, 'scripts/docs/build-all.mjs')
+    writeFileSync(generateur, 'const = WIP invalide')
+    const vu = spawnSync(process.execPath, [join(racine, 'scripts/ops/publier.mjs')], {
+      cwd: racine, encoding: 'utf8', env: { ...envDeDepotForge(), ...envGitFeint([
+        { si: ['--show-toplevel'], stdout: racine, status: 0 },
+        { si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 },
+        { si: ['HEAD^{commit}'], stdout: 'a'.repeat(40), status: 0 },
+        { si: ['ls-remote', 'origin', `refs/heads/${branche}`], stderr: 'panne distante attendue', status: 29 },
+        { si: [], status: 97, stderr: 'GARDE bootstrap : commande interdite' },
+      ]), WFRP_PUBLIER_ENFANT: '', WFRP_PUBLIER_LOG: '' },
+    })
+    assert.equal(vu.status, CODE_ARRET_MOTEUR, vu.stderr)
+    assert.match(vu.stderr, /panne distante attendue/)
+    assert.doesNotMatch(vu.stderr, /SyntaxError|GARDE bootstrap/)
+    const journal = lireJournal(cheminsDeJournal(racine, branche).json, branche)
+    assert.ok(journal.run)
+    assert.equal(journal.verdict.etape, 'moteur')
+    assert.match(journal.verdict.raison, /panne distante attendue/)
+    assert.equal(readFileSync(generateur, 'utf8'), 'const = WIP invalide')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 test('#2285 consommateurs moteur : vrai CLI, journal et log autonomes', () => {
   const { racine } = implantationDuCli()
   try {
@@ -572,7 +557,7 @@ test('#2285 consommateurs moteur : vrai CLI, journal et log autonomes', () => {
         { si: ['--show-toplevel'], stdout: racine, status: 0 },
         { si: ['symbolic-ref', '--quiet', '--short', 'HEAD'], stdout: branche, status: 0 },
         { si: ['HEAD^{commit}'], stdout: 'a'.repeat(40), status: 0 },
-        { si: ['rev-parse', '--git-path', 'rebase-merge'], stdout, stderr, status: 29 },
+        { si: ['ls-remote', 'origin', `refs/heads/${branche}`], stdout, stderr, status: 29 },
         { si: [], status: 97, stderr: 'GARDE consommateurs : commande interdite\n' },
       ]), WFRP_PUBLIER_ENFANT: '', WFRP_PUBLIER_LOG: '' },
     })
@@ -653,10 +638,10 @@ function argvDesAppelsGh(code) {
 
 // La SOURCE `gh` du train : le train, ses étapes (#1806) et la couture REST qu'il partage avec les
 // autres `ops` (#1813). En lire une partie seulement rendrait le cliquet aveugle.
-const SOURCES_GH_DU_TRAIN = ['./publier.mjs', './etapesDuTrain.mjs', './reprendre-file.mjs', '../guards/lib/ticketsGh.mjs', '../guards/lib/fusionPr.mjs']
+const SOURCES_GH_DU_TRAIN = ['./publierTrain.mjs', './etapesDuTrain.mjs', './reprendre-file.mjs', '../guards/lib/ticketsGh.mjs', '../guards/lib/fusionPr.mjs']
 
 const DOCUMENTS_GRAPHQL_DU_TRAIN = new Set([
-  'query IdentiteDeFusion($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { id headRefOid state merged mergeCommit { oid } isInMergeQueue mergeQueueEntry { id state enqueuedAt enqueuer { login } headCommit { oid } } } } viewer { login } }',
+  'query IdentiteDeFusion($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { pullRequest(number: $number) { id headRefOid state merged mergeCommit { oid } autoMergeRequest { enabledAt } isInMergeQueue mergeQueueEntry { id state enqueuedAt enqueuer { login } headCommit { oid } } } } viewer { login } }',
   'mutation EnfilerFusion($input: EnqueuePullRequestInput!) { enqueuePullRequest(input: $input) { mergeQueueEntry { id headCommit { oid } } } }',
 ])
 
@@ -705,15 +690,18 @@ test('la SOURCE du train : REST et deux documents GraphQL fixes, aucun geste de 
   for (const argv of argvs) {
     const dit = `gh ${argv.join(' ')}`
     // #1804 ; #2437
+    if (argv[0] === 'pr') {
+      assert.deepEqual(argv, ['pr', 'merge', '--auto', '--repo', '--match-head-commit'])
+      continue
+    }
     assert.equal(argv[0], 'api', `route hors REST : ${dit}`)
     if (argv[1] === 'graphql') continue
     // La CI ferme (job `fermetures`), jamais le train — ni `gh issue close`, ni son équivalent REST
     // `-X PATCH -f state=closed`, que l'ancienne rédaction de ce cliquet ne voyait pas.
-    // `PUT …/pulls/{n}/merge-async` : la demande de fusion REST (#2178), seule route PUT du train.
     for (const nom of ['-X', '--method']) {
       const i = argv.indexOf(nom)
       if (i === -1) continue
-      const permise = argv[i + 1] === 'POST' || (argv[i + 1] === 'PUT' && argv.some((a) => /\/pulls\/\$\{[^}]+\}\/merge-async$/.test(a)))
+      const permise = argv[i + 1] === 'POST'
       assert.ok(permise, `méthode interdite au train : ${dit}`)
     }
     assert.equal(argv.some((a) => /state=closed/.test(a)), false, `geste de fermeture : ${dit}`)
@@ -741,9 +729,8 @@ test('#2437 garde AST détecte les routes template et parenthésées et refuse l
     assert.throws(() => verifierGraphqlDuTrain(source + `\nappel(['api', 'graphql', '--input', '-'], { input: JSON.stringify({ query: ${document}, variables: {} }) })`), /document GraphQL interdit/)
 })
 
-for (const suivi of [false, true]) test(`#2437 contexte du train repli ${suivi ? 'failed GET' : 'refus PUT'} conserve la tête`, () => {
+test('#2626 contexte du train : refus auto puis repli conserve la tête', () => {
   const sha = 'a'.repeat(40)
-  const uuid = '12345678-1234-1234-1234-123456789abc'
   const appels = []
   const entree = ENTREE_2495
   let enfilee = false
@@ -765,21 +752,15 @@ for (const suivi of [false, true]) test(`#2437 contexte du train repli ${suivi ?
   syncBuiltinESMExports()
   try {
     const ctx = contexteDe({ racine: RACINE, branche: 'chantier/2437', options: {}, journaliser: () => {}, fdLog: 'ignore', maintenant: () => JEUNE_2495 })
-    const vu = suivi ? ctx.lireFusion({ numero: 7, sha, uuid }) : ctx.demanderFusion({ numero: 7, sha })
+    const vu = ctx.demanderFusion({ numero: 7, sha })
     assert.deepEqual(vu, { ok: true, statut: 'enqueued', deja: true, compte: 'cgauche', entree })
     const mutation = appels.find((a) => a.args.includes('graphql') && JSON.parse(a.options.input).query.startsWith('mutation'))
     assert.deepEqual(JSON.parse(mutation.options.input).variables, { input: { pullRequestId: 'PR7', expectedHeadOid: sha } })
-    assert.equal(appels.filter((a) => a.args.includes('PUT')).length, suivi ? 0 : 1)
-    if (suivi) assert.ok(appels.some((a) => a.args.some((arg) => arg.endsWith(uuid))))
+    assert.deepEqual(appels.find((a) => a.args[0] === 'pr').args, ['pr', 'merge', '7', '--auto', '--repo', DEPOT, '--match-head-commit', sha])
   } finally { feinte.mock.restore(); syncBuiltinESMExports() }
 })
 
 test('le train n’IMPORTE pas le module qui FERME — l’invariant tient sur les imports, pas sur les argv', () => {
-  // Un cliquet d'argv est AVEUGLE à un appel indirect : tant que `publier.mjs` importait
-  // `fermer-depuis-main.mjs` pour `DEPOT`/`commitsDeLaPlage`/`marqueDe`, un `fermerLeTicket(…)`
-  // glissé dans l'étape `pilotage` laissait ce fichier vert. La mesure est GÉNÉRALE
-  // (`scripts/guards/lib/modulesFeuilles.mjs`) et couvre toutes les graphies d'import ; le train lit
-  // le vocabulaire d'une plage fermante dans `plageFermante.mjs`, qui ne ferme rien.
   assert.deepEqual(manquementsDeFeuilles().manquements, [])
   const etapes = readFileSync(new URL('./etapesDuTrain.mjs', import.meta.url), 'utf8')
   assert.match(etapes, /from '\.\.\/guards\/lib\/plageFermante\.mjs'/)
@@ -1336,7 +1317,7 @@ test('sortieDe / refusDeGit : la sortie d’un git en échec, jamais vide', () =
   assert.match(refusDeGit({ disponible: true, absent: true }), /status \?/)
 })
 
-const journalPush = () => ({ ...journalVide('b'), base: 'aaa', tete: 'ttttttttt' })
+const journalPush = () => ({ ...journalVide('b'), base: 'aaa', tete: 'ttttttttt', publication: { bail: 'b'.repeat(40) } })
 
 // ── étapes `push-branche`, `pr` et `file` ───────────────────────────────────────────────
 
@@ -1352,7 +1333,7 @@ test('push-branche : pousse la TÊTE sur SA branche, par un bail — c’est lui
     pousser: (geste) => { vus = geste; return { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } } },
   }
   const vu = etapeBranche.jouer(ctx, journalPush())
-  assert.deepEqual(vus, { vers: 'refs/heads/chantier/1776', bail: true })
+  assert.deepEqual(vus, { vers: 'refs/heads/chantier/1776', bail: 'b'.repeat(40) })
   assert.equal(vu.ok, true)
   assert.match(vu.dit, /poussé sur chantier\/1776 — la CI de la branche juge/)
 })
@@ -1378,7 +1359,7 @@ test('#2285 push-branche : écrivain injecté, diagnostic complet après classif
   assert.ok(vu.raison.includes(stderr), vu.raison)
   assert.ok(vu.raison.includes(stdout), vu.raison)
   assert.match(vu.raison, /status 17/)
-  assert.deepEqual(commandes, [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/chantier/1776']])
+  assert.deepEqual(commandes, [['push', `--force-with-lease=refs/heads/chantier/1776:${'b'.repeat(40)}`, 'origin', 'HEAD:refs/heads/chantier/1776']])
 })
 
 test('#2285 rendu : conserve toutes les notes, les deux flux et la distinction des échecs', () => {
@@ -1473,75 +1454,36 @@ test('titreDePr : aucun mot fermant — la fermeture appartient à `fermetures.y
   assert.deepEqual(numerosCites(titreDePr('chantier/2178')), [])
 })
 
-// ── Demande de fusion REST : `PUT …/pulls/{n}/merge-async`, `GET …/merge-async/{uuid}` ──────────────
-
-test('corpsDeFusion : la TÊTE JUGÉE en `sha`, `merge_action: default`, aucun `merge_method` (« Only supported for direct merges »)', () => {
-  assert.deepEqual(JSON.parse(corpsDeFusion('a'.repeat(40))), { sha: 'a'.repeat(40), merge_action: 'default' })
-})
-
-/** Une sortie de `gh api --include`, en-têtes CRLF (mesuré 2026-09-30). */
-const HTTP = (code, corps) => `HTTP/2.0 ${code} X\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(corps)}`
-
-test('reponseHttp : code de la ligne d’état et corps JSON après la ligne vide ; sans ligne d’état, refus nommé', () => {
-  assert.deepEqual(reponseHttp(HTTP(409, { status: 'pending' })), { ok: true, code: 409, corps: { status: 'pending' } })
-  assert.deepEqual(reponseHttp('HTTP/2.0 204 No Content\r\n\r\n'), { ok: true, code: 204, corps: null })
-  assert.match(reponseHttp('{"status":"merged"}').raison, /sans ligne d’état HTTP/)
-  assert.match(reponseHttp('HTTP/2.0 200 OK\r\n\r\n{').raison, /HTTP 200, corps illisible/)
-})
-
-test('issueDeFusion : 202/409 pendante (uuid), 200 merged/enqueued, 400 failed ; tout autre code se NOMME', () => {
-  const pendante = { status: 'pending', details: { message: 'm', uuid: 'u-1', merge_method: 'merge', merge_action: 'default', expected_head_sha: 'ttt' } }
-  assert.deepEqual(issueDeFusion({ code: 202, corps: pendante }), { ok: true, statut: 'pending', uuid: 'u-1', attendue: 'ttt', deja: false })
-  assert.deepEqual(issueDeFusion({ code: 409, corps: pendante }), { ok: true, statut: 'pending', uuid: 'u-1', attendue: 'ttt', deja: true })
-  assert.deepEqual(issueDeFusion({ code: 200, corps: { status: 'merged', details: { message: 'm', sha: 'f'.repeat(40) } } }), { ok: true, statut: 'merged', fusion: 'f'.repeat(40) })
-  assert.deepEqual(issueDeFusion({ code: 200, corps: { status: 'enqueued', details: { message: 'm' } } }), { ok: true, statut: 'enqueued' })
-  assert.deepEqual(issueDeFusion({ code: 400, corps: { status: 'failed', details: { message: 'Pull request is closed.' } } }), { ok: true, statut: 'failed', message: 'Pull request is closed.' })
-  assert.deepEqual(issueDeFusion({ code: 403, corps: { message: 'Resource not accessible' } }), { ok: false, raison: 'HTTP 403 : Resource not accessible' })
-  assert.match(issueDeFusion({ code: 202, corps: { status: 'pending', details: {} } }).raison, /HTTP 202 hors schéma/)
-})
-
-test('fusionDe : un 4xx de `gh` (exit 1) est LU dans son corps ; une panne sans sortie reste la panne', () => {
-  const conflit = { ok: false, raison: 'gh a rendu 1 : (HTTP 409)', stdout: HTTP(409, { status: 'pending', details: { message: 'm', uuid: 'u-2', merge_method: 'merge', merge_action: 'default', expected_head_sha: 't' } }) }
-  assert.deepEqual(fusionDe(conflit), { ok: true, statut: 'pending', uuid: 'u-2', attendue: 't', deja: true })
-  assert.deepEqual(fusionDe({ ok: false, raison: 'spawn gh ENOENT' }), { ok: false, raison: 'spawn gh ENOENT' })
-  assert.match(fusionDe({ ok: false, raison: 'gh a rendu 1 : x', stdout: '' }).raison, /^gh a rendu 1 : x — réponse sans ligne d’état HTTP/)
-})
-
 // ── étape `pr` ───────────────────────────────────────────────────────────────────────────────
 
 const etapePr = ETAPES.find((e) => e.nom === 'pr')
 
-test('pr : une PR ABSENTE est créée — aucune demande de fusion ici, elle appartient à l’étape `file`', () => {
+test('#2626 pr absente créée puis armée avant toute lecture CI', () => {
   const gestes = []
   let lectures = 0
   const ctx = {
     branche: 'chantier/2178',
     lirePr: () => ({ ok: true, prs: lectures++ === 0 ? [] : [prDeRest(REST())] }),
     ouvrirPr: (p) => { gestes.push(['ouvrir', p.titre]); return { ok: true } },
-    demanderFusion: () => assert.fail('la demande de fusion attend la course verte de la branche'),
+    demanderFusion: (p) => { gestes.push(['armer', p]); return { ok: true, statut: 'armed' } },
+    coursesCi: () => assert.fail('pr arme avant toute attente de CI'),
   }
   const vu = etapePr.jouer(ctx, journalPush())
-  assert.deepEqual(gestes, [['ouvrir', 'publication chantier/2178']])
-  assert.deepEqual([vu.ok, vu.detail], [true, { pr: 7 }])
+  assert.deepEqual(gestes, [['ouvrir', 'publication chantier/2178'], ['armer', { numero: 7, sha: journalPush().tete }]])
+  assert.deepEqual(vu.detail, { pr: 7, armement: 'armed' })
 })
-
-test('pr : une PR OUVERTE n’est pas recréée ; un refus de création est ROUGE et nommé', () => {
-  const ouverte = {
-    branche: 'chantier/2178',
-    lirePr: () => ({ ok: true, prs: [prDeRest(REST())] }),
-    ouvrirPr: () => assert.fail('PR déjà ouverte'),
-  }
-  assert.deepEqual(etapePr.jouer(ouverte, journalPush()).detail, { pr: 7 })
-  const refusee = { branche: 'chantier/2178', lirePr: () => ({ ok: true, prs: [] }), ouvrirPr: () => ({ ok: false, raison: 'gh a rendu 1 : HTTP 422' }) }
-  assert.match(etapePr.jouer(refusee, journalPush()).raison, /REFUSÉ : gh a rendu 1 : HTTP 422/)
-})
-
-test('pr : déjà faite sur une PR OUVERTE ou FUSIONNÉE de la tête, jamais sur une autre tête', () => {
-  const avec = (plus) => ({ lirePr: () => ({ ok: true, prs: [prDeRest(REST(plus))] }) })
-  assert.equal(etapePr.dejaFaite(avec({}), journalPush()), true)
+test('#2626 pr existante non armée : reprise ; armée/en file/fusionnée même SHA : étape acquise', () => {
+  const avec = (plus = {}, statut) => ({
+    lirePr: () => ({ ok: true, prs: [prDeRest(REST(plus))] }),
+    etatFileDePr: () => ({ ok: true, statut }),
+  })
+  assert.equal(etapePr.dejaFaite(avec(), journalPush()), false)
+  for (const statut of ['armed', 'enqueued']) assert.equal(etapePr.dejaFaite(avec({}, statut), journalPush()), true)
   assert.equal(etapePr.dejaFaite(avec({ state: 'closed', merged_at: 'x', merge_commit_sha: 'f'.repeat(40) }), journalPush()), true)
-  assert.equal(etapePr.dejaFaite(avec({ head: { sha: 'autre' } }), journalPush()), false)
+  assert.equal(etapePr.dejaFaite(avec({ head: { sha: 'autre' } }, 'armed'), journalPush()), false)
   assert.equal(etapePr.dejaFaite({ lirePr: () => ({ ok: false, raison: 'x' }) }, journalPush()), false)
+  const refusee = { lirePr: () => ({ ok: true, prs: [prDeRest(REST())] }), demanderFusion: () => ({ ok: false, raison: 'refus serveur' }) }
+  assert.match(etapePr.jouer(refusee, journalPush()).raison, /armement.*REFUSÉ.*refus serveur/)
 })
 
 // ── étape `file` ─────────────────────────────────────────────────────────────────────────────
@@ -1550,12 +1492,10 @@ const etapeFile = ETAPES.find((e) => e.nom === 'file')
 
 const courseDeBrancheVerte = { headSha: 'ttttttttt', status: 'completed', conclusion: 'success', databaseId: 40, workflowName: 'CI' }
 
-/** Le contexte de l'étape `file` : la PR lue (`prs` : ses lectures successives), les courses de branche et de file, les jobs rouges, et
- *  les réponses de la demande de fusion (`demande` au PUT, `suivis` aux GET successifs). */
-const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = [branche], file = [], fileAvant = [], files = [fileAvant, file], jobs = [], annules = [], motif = null, fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], conclusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, demande = { ok: true, statut: 'enqueued' }, suivis = [], parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
+// #2626
+const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = [branche], file = [], fileAvant = [], files = [fileAvant, file], jobs = [], annules = [], motif = null, fusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, conflits = [], conclusion = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }, demande = { ok: true, statut: 'enqueued' }, parents = ['m'.repeat(40), 'ttttttttt'], ancetres = [], fileTimeoutMin = 30 } = {}) => {
   const gestes = []
   const lignes = []
-  let suivi = 0
   let lectureDeBranche = 0
   let lectureDeFile = 0
   let lectureDePr = 0
@@ -1574,8 +1514,7 @@ const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = 
     parentsDe: () => ({ ok: true, parents }),
     jobsEnEchec: (id) => { gestes.push(['jobs', id]); return { disponible: true, valeur: { rouges: jobs, annules, motif } } },
     demanderFusion: (p) => { gestes.push(['demander', p]); return demande },
-    etatFileDePr: () => ({ ok: true, statut: 'enqueued' }),
-    lireFusion: (p) => { gestes.push(['suivre', p]); return suivis[Math.min(suivi++, suivis.length - 1)] },
+    etatFileDePr: () => ({ ok: true, ...(gestes.some((g) => g[0] === 'demander') ? { statut: 'enqueued' } : {}) }),
     tronc: () => { gestes.push(['tronc']); return { disponible: true, sha: 'm'.repeat(40) } },
     fusionner: ({ message }) => { gestes.push(['fusionner', message]); return fusion },
     abandonnerFusion: () => { gestes.push(['abandonner']); return fusion },
@@ -1591,6 +1530,18 @@ const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = 
   }
   return { ctx, gestes, lignes }
 }
+for (const differe of [false, true]) test(`#2626 pr conflit ${differe ? 'après refus calcul différé' : 'visible avant armement'} : fusion canonique puis relance`, () => {
+  const sale = REST({ mergeable_state: 'dirty' })
+  const { ctx, gestes } = ctxFile({ prs: differe ? [REST({ mergeable_state: 'unknown' }), sale] : [sale], demande: { ok: false, raison: 'conflit calculé' } })
+  const journal = journalPush()
+  const vu = etapePr.jouer(ctx, journal)
+  assert.equal(vu.ok, true, vu.raison)
+  assert.deepEqual(vu.relancer, ['docs', 'push-branche', 'pr', 'file'])
+  assert.deepEqual(gestes.map((g) => g[0]), differe ? ['demander', 'tronc', 'fusionner'] : ['tronc', 'fusionner'])
+  assert.equal(journal.ejections, 1)
+  assert.equal(journal.tete, ctx.tete)
+})
+
 const courseDeFileRouge = { headBranch: 'gh-readonly-queue/main/pr-7-abc', headSha: 'g'.repeat(40), status: 'completed', conclusion: 'failure', databaseId: 99, workflowName: 'CI' }
 
 for (const variante of ['redemande', 'plafond', 'courses illisibles']) test(`#2499 sortie de file sans course rouge : ${variante}`, () => {
@@ -1656,7 +1607,7 @@ test('#2499 train composé : entrée jeune puis absence de groupe nommée sans n
     assert.match(vu.raison, /PR #7.*REFUSÉE.*cgauche.*aucun run CI merge_group/)
     assert.match(vu.raison, /retirer cette entrée/)
     assert.equal(vu.detail.compte, 'cgauche')
-    assert.equal(demandes, 1)
+    assert.equal(demandes, 0)
     assert.ok(lectures >= 4)
   } finally { api.mock.restore(); sommeil.mock.restore(); montre.mock.restore(); syncBuiltinESMExports() }
 })
@@ -1706,7 +1657,8 @@ test('#2392 file : la demande journalise le COMPTE qui la porte, une fois ; une 
     [{ ok: true, statut: 'enqueued', deja: true, compte: 'cgauche' }, '[publier] file — déjà en file, constaté sous le compte « cgauche »\n'],
   ]) {
     const { ctx, lignes } = ctxFile({ pr: REST(), demande })
-    ctx.etatFileDePr = () => ({ ok: true, statut: 'merged', fusion: 'f'.repeat(40) })
+    let lectures = 0
+    ctx.etatFileDePr = () => lectures++ === 0 ? { ok: true } : { ok: true, statut: 'merged', fusion: 'f'.repeat(40) }
     const vu = etapeFile.jouer(ctx, journalPush())
     assert.deepEqual(lignes.filter((l) => l.includes('compte')), [ligne])
     assert.equal(vu.detail.compte, 'cgauche', 'l’issue de l’étape porte le compte')
@@ -1723,31 +1675,27 @@ test('#2392 file : un refus d’enfileur nomme le COMPTE et le geste humain sur 
   assert.equal(ligneDePublication({ etat: 'rouge', etape: 'file', raison: vu.raison }, 't'), `PUBLICATION: rouge file — ${vu.raison}`)
 })
 
-test('file : course de branche VERTE → `merge-async` sur la TÊTE JUGÉE ; `merged` rend vert avec le commit de fusion', () => {
+test('file : tête non armée → armement sur la tête jugée ; fusion confirmée rend vert', () => {
   const { ctx, gestes } = ctxFile({ pr: REST(), demande: { ok: true, statut: 'merged', fusion: 'f'.repeat(40) } })
   const vu = etapeFile.jouer(ctx, journalPush())
   assert.deepEqual([vu.ok, vu.detail.pr, vu.detail.fusion], [true, 7, 'f'.repeat(40)])
   assert.deepEqual(gestes, [['demander', { numero: 7, sha: 'ttttttttt' }]])
 })
 
-test('file : une demande PENDANTE (202, ou 409 déjà pendante) se SUIT par son uuid jusqu’à `merged`', () => {
-  for (const deja of [false, true]) {
-    const { ctx, gestes } = ctxFile({
-      pr: REST(),
-      demande: { ok: true, statut: 'pending', uuid: 'u-1', attendue: 'ttttttttt', deja },
-      suivis: [{ ok: true, statut: 'merged', fusion: 'f'.repeat(40) }],
-    })
+test('#2626 file : auto-merge armé avant CI est seulement observé jusqu’à fusion', () => {
+  const { ctx, gestes, lignes } = ctxFile({ pr: REST(), fileTimeoutMin: 0.01 })
+  let lectures = 0
+  ctx.etatFileDePr = () => ++lectures === 1 ? { ok: true, statut: 'armed' } : { ok: true, statut: 'merged', fusion: 'f'.repeat(40) }
+  const sommeil = mock.method(Atomics, 'wait', () => 'timed-out')
+  try {
     const vu = etapeFile.jouer(ctx, journalPush())
-    assert.deepEqual([vu.ok, vu.detail.fusion], [true, 'f'.repeat(40)], `deja=${deja}`)
-    assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'suivre'])
-    assert.deepEqual(gestes[1][1], { numero: 7, sha: 'ttttttttt', uuid: 'u-1' })
-  }
+    assert.equal(vu.detail.fusion, 'f'.repeat(40))
+    assert.equal(gestes.length, 0)
+    assert.ok(lignes.some((s) => s.includes('armée, GitHub attend les checks')))
+  } finally { sommeil.mock.restore() }
 })
 
-test('file : une demande en ÉCHEC (`failed`, 400) ou REFUSÉE, sur une PR relue SANS conflit, est ROUGE et nommée, sans nouvelle demande', () => {
-  const echec = ctxFile({ pr: REST(), demande: { ok: true, statut: 'failed', message: 'Pull request is closed.' } })
-  assert.equal(etapeFile.jouer(echec.ctx, journalPush()).raison, 'demande de fusion de la PR #7 en ÉCHEC : Pull request is closed.')
-  assert.deepEqual(echec.gestes.map((g) => g[0]), ['demander'])
+test('file : demande REFUSÉE sur une PR relue sans conflit : rouge nommé sans nouvelle demande', () => {
   const refus = ctxFile({ pr: REST(), demande: { ok: false, raison: 'HTTP 403 : Resource not accessible' } })
   assert.equal(etapeFile.jouer(refus.ctx, journalPush()).raison, 'demande de fusion de la PR #7 REFUSÉE : HTTP 403 : Resource not accessible')
   assert.deepEqual(refus.gestes.map((g) => g[0]), ['demander'])
@@ -1755,7 +1703,7 @@ test('file : une demande en ÉCHEC (`failed`, 400) ou REFUSÉE, sur une PR relue
 
 // #2525
 const REFUS_POUR_CONFLIT = { ok: false, raison: REFUS_DE_FILE.concatene }
-const ECHEC_POUR_CONFLIT = { ok: true, statut: 'failed', message: 'Pull request has merge conflicts' }
+const ECHEC_POUR_CONFLIT = { ok: false, raison: 'Pull request has merge conflicts' }
 
 test('file #2525 : une demande REFUSÉE ou en ÉCHEC, sur une PR relue en CONFLIT, se REPREND : fusion d’origin/main, relance, aucune nouvelle demande', () => {
   for (const demande of [REFUS_POUR_CONFLIT, ECHEC_POUR_CONFLIT]) {
@@ -1788,18 +1736,11 @@ test('file #2525 : après un refus, une PR dont le conflit n’est pas jugé (`u
   } finally { sommeil.mock.restore() }
 })
 
-test('file : un 409 « déjà pendante » sur une AUTRE tête est REFUSÉ d’emblée, nommé, sans suivi (« the merge will be cancelled »)', () => {
-  const { ctx, gestes } = ctxFile({
-    pr: REST(),
-    demande: { ok: true, statut: 'pending', uuid: 'u-old', attendue: 'ooooooooo', deja: true },
-    suivis: [{ ok: true, statut: 'failed', message: 'Head branch was modified.' }],
-  })
-  const debut = Date.now()
-  const vu = etapeFile.jouer(ctx, journalPush())
-  assert.equal(vu.ok, false)
-  assert.equal(vu.raison, 'une demande de fusion de la PR #7 est DÉJÀ pendante (409, u-old) sur ooooooooo, pas la tête publiée ttttttttt : GitHub l’annule (schéma de `merge-async`, `sha`) — `--reprendre` après son échec')
-  assert.deepEqual(gestes.map((g) => g[0]), ['demander'], 'aucun suivi de la demande d’une autre tête')
-  assert.ok(Date.now() - debut < 5000, 'aucune attente')
+test('#2626 file : observation divergente refuse sans armer', () => {
+  const { ctx, gestes } = ctxFile({ pr: REST() })
+  ctx.etatFileDePr = () => ({ ok: false, raison: 'tête de PR changée' })
+  assert.match(etapeFile.jouer(ctx, journalPush()).raison, /tête de PR changée/)
+  assert.equal(gestes.length, 0)
 })
 
 test('file : une course de file rouge sur un GROUPE (G^1 hors d’origin/main) n’est PAS une éjection de la PR — ni rouge, ni reprise : on attend dans la borne', () => {
@@ -1942,6 +1883,7 @@ test('preflight : une fusion dont la résolution n’est pas JUGÉE est ROUGE, a
 test('#2392 file : une course de file ANNULÉE se REDEMANDE sur la même tête, sans fusion d’origin/main ; la vieille course, écartée, n’éjecte plus', () => {
   const { ctx, gestes, lignes } = ctxFile({ pr: REST(), files: [[], [courseDeFileRouge]], annules: ['docs', 'suite 1/3'], parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]], fileTimeoutMin: 0.002 })
   const journal = journalPush()
+  ctx.etatFileDePr = () => ({ ok: true })
   const vu = etapeFile.jouer(ctx, journal)
   assert.equal(vu.indetermine, true, 'la nouvelle demande attend sa course dans la borne')
   assert.deepEqual(gestes.map((g) => g[0]), ['demander', 'tronc', 'jobs', 'demander'])
@@ -1953,6 +1895,7 @@ test('#2392 file : une course de file ANNULÉE se REDEMANDE sur la même tête, 
 test(`#2392 file : une course de file ANNULÉE au-delà de la borne (${BORNE_EJECTIONS}) est ROUGE et nommée`, () => {
   const neuve = { ...courseDeFileRouge, databaseId: 100 }
   const { ctx, gestes } = ctxFile({ pr: REST(), files: [[], [courseDeFileRouge], [courseDeFileRouge], [neuve, courseDeFileRouge]], annules: ['docs'], parents: ['p'.repeat(40), 'ttttttttt'], ancetres: [['p'.repeat(40), 'm'.repeat(40)]] })
+  ctx.etatFileDePr = () => ({ ok: true })
   const vu = etapeFile.jouer(ctx, journalPush())
   assert.equal(vu.ok, false)
   assert.equal(vu.raison, `PR #7 éjectée par la course https://github.com/${DEPOT}/actions/runs/100 ANNULÉE — jobs annulés : docs — reprise une 2ᵉ fois, au-delà de la borne (${BORNE_EJECTIONS})`)

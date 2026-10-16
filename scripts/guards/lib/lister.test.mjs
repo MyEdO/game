@@ -295,6 +295,7 @@ const EXEMPTIONS_DU_MUR = [
   "scripts/docs/lib/enregistreur-lectures.test.mjs :: assert.deepEqual(fs.globSync('neuf/*.md', { cwd: racine }), [])",
   "scripts/docs/lib/enregistreur-lectures.test.mjs :: assert.deepEqual(await new Promise((fin, echec) => fs.glob('rappel/*.md', { cwd: racine }, (e, r) => (e ? echec(e) : fin(r)))), [])",
   "scripts/docs/lib/enregistreur-lectures.test.mjs :: assert.deepEqual(await Array.fromAsync(fs.promises.glob('promesse/*.md', { cwd: racine })), [])",
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: const globSurPipe = (pipe) => fs.globSync('*', { cwd: pipe })",
   'scripts/test/partition.mjs :: const cible = relative(racine, t).toLocaleLowerCase()',
   'scripts/test/partition.mjs :: return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())',
 ]

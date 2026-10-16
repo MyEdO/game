@@ -60,6 +60,8 @@ const ATTENDU = {
     // `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/photoArbre.test.mjs',
     'scripts/guards/lib/processusWorktrees.test.mjs',
+    // #2626
+    'scripts/guards/lib/superviserProcessus.test.mjs',
     'scripts/guards/lib/protectionWorktree.test.mjs',
     'scripts/guards/lib/racinesBalayees.test.mjs',
     'scripts/hooks/superpowers-ecriture-guard.test.mjs',
@@ -325,14 +327,9 @@ const ATTENDU = {
     //   sous os.tmpdir() (fixture partagée + mkdtemp), jetés en finally — aucune écriture DANS
     //   l'arbre. `chantier.mjs`/`worktrees.mjs` écrivent, eux, dans l'arbre PRINCIPAL en usage réel
     //   (git worktree add/remove), jamais depuis la gate.
-    // · `publier.mjs` est atteint par `publier.test.mjs`, qui joue ses fonctions PURES (options,
-    //   journal en mémoire, verdicts, mise en forme) et ses étapes sur des `ctx` FACTICES, dans des
-    //   racines jetables (mkdtemp sous os.tmpdir(), rmSync en finally — d'où ses imports d'écriture).
-    //   Les écritures réelles de `publier.mjs` sont son journal `node_modules/.cache/publication/` et
-    //   le commit des docs DÉRIVÉS — toutes deux derrière sa porte `import.meta.main` (scripts/ops/publier.mjs,
-    //   dernière ligne), jamais depuis la gate.
+    // #2626
     // · `build-all.mjs`, `ecriture-derives.mjs` et `purgerPerimes.mjs` sont atteints PAR
-    //   `publier.mjs`, qui n'en importe que des CONSTANTES et des fonctions pures (`GENERATORS`,
+    //   `publierTrain.mjs`, qui n'en importe que des CONSTANTES et des fonctions pures (`GENERATORS`,
     //   `SOURCES_LUES`) ; leurs écritures vivent derrière leurs propres portes `import.meta.main`, ou sous
     //   `node_modules/.cache`.
     'scripts/docs/build-all.mjs',
@@ -355,7 +352,10 @@ const ATTENDU = {
     // dans l'histoire et le solde qu'un commit emporte exige de VRAIS commits, et l'arbre du dépôt
     // n'est jamais écrit — mesuré le 2026-09-18, `git status --porcelain` identique avant/après.
     'scripts/ops/plageFermante.test.mjs',
-    'scripts/ops/publier.mjs',
+    'scripts/ops/publicationDonnee.mjs',
+    'scripts/ops/publicationIsolee.mjs',
+    'scripts/ops/publicationIsolee.test.mjs',
+    'scripts/ops/publierTrain.mjs',
     'scripts/ops/publier.test.mjs',
     'scripts/ops/reprendre-file.mjs',
     'scripts/ops/reprendre-file.test.mjs',
@@ -417,7 +417,7 @@ const ATTENDU = {
     'scripts/ops/ci.test.mjs',
     'scripts/ops/vigie.test.mjs',
     // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
-    // qu'atteignent `publier.mjs` (journal du train) et `vigie.mjs` (cache des verdicts) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
+    // qu'atteignent `publierTrain.mjs` (journal du train) et `vigie.mjs` (cache des verdicts) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
     'scripts/guards/lib/ecritureJsonAtomique.mjs',
     // +1 le 2026-10-08 (#2493) : `renommageResilient.mjs`, le renommage que `ecritureJsonAtomique.mjs` et

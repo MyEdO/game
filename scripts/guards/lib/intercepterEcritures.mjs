@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { syncBuiltinESMExports } from 'node:module'
 import { URL as NodeURL, fileURLToPath } from 'node:url'
-import { canoniser, relatifSousRacine } from '../../docs/lib/chemin-mesure.mjs?wfrp-hote-interception'
+import { canoniser, estPipeNomme, relatifSousRacine } from '../../docs/lib/chemin-mesure.mjs?wfrp-hote-interception'
 import { OPERATIONS_FS, ouvreEnEcriture } from './operationsFs.mjs'
 
 const lecteursHote = { statSync: fs.statSync, existsSync: fs.existsSync, realpathSync: fs.realpathSync }
@@ -51,15 +51,14 @@ export function installer({ racine, gitCommun, signaler }) {
   }
   const cheminDe = (p) => typeof p === 'number' ? descripteurs.get(p)
     : p instanceof NodeURL ? fileURLToPath(p) : Buffer.isBuffer(p) ? resoudre(p.toString()) : typeof p === 'string' ? resoudre(p) : p && typeof p.fd === 'number' ? descripteurs.get(p.fd) : null
-  const estIPC = (chemin) => process.platform === 'win32' && /^\\\\[.?]\\pipe\\/i.test(chemin)
   const cibleOuverte = (p) => {
     const chemin = cheminDe(p)
-    return estIPC(chemin) ? chemin : canonique(chemin)
+    return estPipeNomme(chemin) ? chemin : canonique(chemin)
   }
   const verifier = (nom, p) => {
     const chemin = cheminDe(p)
     if (!chemin) return
-    if (estIPC(chemin)) return
+    if (estPipeNomme(chemin)) return
     const physique = (c) => OPERATIONS_FS[nom]?.entree
       ? cheminsHote.join(canonique(cheminsHote.dirname(c)), cheminsHote.basename(c)) : canonique(c)
     const sous = (zone) => relatif(zone, chemin, resoudre) ?? relatif(zone, chemin, physique)

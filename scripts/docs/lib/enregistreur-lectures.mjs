@@ -26,7 +26,7 @@ import path from 'node:path'
 import { register, syncBuiltinESMExports } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { isMainThread } from 'node:worker_threads'
-import { canoniser, canoniseurParDossier, dansLaMesure, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { canoniser, canoniseurParDossier, dansLaMesure, estPipeNomme, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
 import { normaliserRequeteMesuree, verifierRequeteMesuree } from '../../guards/lib/requeteMesuree.mjs'
 import { cheminAbsent, correspondGlob, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 
@@ -165,11 +165,14 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
   })
   /** Une lecture ou un listing qui ÉCHOUE n'a pas de contenu à hasher : son issue tient à l'existence et à la nature
    *  du chemin, que la sonde `stat` porte et que la certification rejoue. */
-  const noterEchec = (p) => {
-    let r
-    try { r = brut.statSync(p) } catch (e) { noterSonde(p, 'stat', undefined, e); return }
-    noterSonde(p, 'stat', r)
-  }
+  const noterEchec = (p) => mesurer(() => {
+    const chemin = retenu(p, cheminsRejetes)
+    if (chemin === null) return
+    let r, erreur
+    try { r = brut.statSync(p) } catch (e) { erreur = e }
+    const sonde = sondeNeuve(chemin, 'stat', r, erreur)
+    if (sonde) return { sondes: [sonde] }
+  })
   /**
    * Un glob énumère sans lister : chaque dossier qu'il PARCOURT, depuis le préfixe statique du motif,
    * entre en `dossiers` (profondeur bornée par le motif, sauf `**`) ; un préfixe absent est une sonde.
@@ -178,6 +181,7 @@ export function installer({ racine, ignores, cibles = [], motifsPropres = [], mo
     const delta = { dossiers: {}, sondes: [] }
     const depart = options?.cwd instanceof URL ? fileURLToPath(options.cwd) : path.resolve(options?.cwd ?? process.cwd())
     const parcourir = (abs, profondeur) => {
+      if (estPipeNomme(abs)) return
       const rel = retenu(abs, cheminsRejetes)
       let entrees
       try { entrees = entreesDe(abs) } catch (e) {

@@ -14,7 +14,7 @@ import {
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
   appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, dossierGitCommun, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
   fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, tetesDistantes, urlOrigineAcceptee, worktreesDe,
+  fusionner, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refsDistantes, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, tetesDistantes, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
@@ -704,6 +704,9 @@ test('tetesDistantes : UN `ls-remote` rend TOUTES les têtes de l’origine, et 
     const d = depotDe(aval, { env: envDeDepotForge(), spawn: (git, args, o) => { argv.push(args.slice(OPTIONS_DE_L_HOTE.length)); return spawnSync(git, args, o) } })
     assert.deepEqual(tetesDistantes(d), new Map([['refs/heads/chantier/9', amont.premier], ['refs/heads/main', amont.second]]))
     assert.deepEqual(argv, [['ls-remote', 'origin', 'refs/heads/*']])
+    argv.length = 0
+    assert.equal(refsDistantes(d).get('refs/tags/v1'), amont.premier)
+    assert.deepEqual(argv, [['ls-remote', 'origin']])
     assert.equal(shaDe(forge(aval), 'origin/main'), null, 'une LECTURE : la ref de suivi supprimée le reste')
     assert.throws(() => tetesDistantes(forge(amont.racine)), GitIndisponible, 'sans origine : une panne nommée, jamais « aucune tête »')
   } finally {
@@ -1530,8 +1533,11 @@ test('ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de
       ['fusionner', () => fusionner(d, { de: 'origin/main', message: 'm #1' }), [['merge', '--no-ff', '-m', 'm #1', 'origin/main']]],
       ['abandonnerFusion', () => abandonnerFusion(d), [['merge', '--abort']]],
       ['conclureFusionSansChemins', () => conclureFusionSansChemins(d, { chemins: ['a.txt'], message: 'm' }), [['--literal-pathspecs', 'rm', '-q', '--cached', '--', 'a.txt'], ['commit', '-q', '-F', '-']]],
-      ['pousser', () => pousser(d, { vers: 'refs/heads/x', bail: true }), [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/x']]],
+      ['pousser', () => pousser(d, { vers: 'refs/heads/x' }), [['push', 'origin', 'HEAD:refs/heads/x']]],
+      ['pousser bail SHA', () => pousser(d, { vers: 'x', bail: 'a'.repeat(40) }), [['push', `--force-with-lease=refs/heads/x:${'a'.repeat(40)}`, 'origin', 'HEAD:x']]],
+      ['pousser ref absente', () => pousser(d, { vers: 'x', bail: '' }), [['push', '--force-with-lease=refs/heads/x:', 'origin', 'HEAD:x']]],
       ['ajouterWorktree', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main' }), [['worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
+      ['ajouterWorktree détaché', () => ajouterWorktree(d, { chemin: '/w', depuis: 'abc', detache: true }), [['worktree', 'add', '--detach', '--', '/w', 'abc']]],
       ['retirerWorktree', () => retirerWorktree(d, '/w', { mesurer: () => ({ ok: true }), residu: () => {} }), [['worktree', 'remove', '--', '/w']]],
       ['supprimerBranche', () => supprimerBranche(d, 'b'), [['branch', '-d', '--', 'b']]],
       ['elaguerWorktrees', () => elaguerWorktrees(d), [['worktree', 'prune']]],
