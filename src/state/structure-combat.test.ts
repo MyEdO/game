@@ -124,6 +124,17 @@ describe('Structures de siège — Dégâts par le chemin combat', () => {
     expect(s.wounds.current).toBe(12);
   });
 
+  it('Canon qui entame le Mur : le coup ne se clôt pas sur des PB de Personnage — ni Premier sang ni État (AA 10 l.127 ; #1595 C7)', () => {
+    const { S, H } = start('mur-en-pierre');
+    useGame.setState({ battle: { ...useGame.getState().battle!, victoryCondition: { type: 'firstBlood' } } });
+    applyAttackResult(useGame.getState, useGame.setState, H, S!, canon, hitRes(canon, S!, 60));
+    draineCascade(useGame.getState);
+    const s = useGame.getState().battle!.combatants.find((c) => c.id === S!.id)!;
+    expect(s.wounds.current).toBe(0);
+    expect(s.outOfRencontre, 'une structure ne sort pas au Premier sang').toBeFalsy();
+    expect(s.conditions.map((c) => c.id)).toEqual([]);
+  });
+
   it('Flèche sur Mur en pierre (Impénétrable) : 0 Blessure (immunité dans le chemin combat)', () => {
     const { S, H } = start('mur-en-pierre');
     applyAttackResult(useGame.getState, useGame.setState, H, S!, fleche, hitRes(fleche, S!, 30));

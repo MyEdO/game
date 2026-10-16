@@ -18,6 +18,7 @@ import { emptyScene } from './scene';
 import { stepInteraction } from './cascade';
 import { OPS_DIFFEREES } from './combatEffects';
 import { draineCascade } from './cascadeTestKit';
+import { t as tr } from '../i18n';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
 
@@ -171,7 +172,9 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
     expect(devSteps()[0].critSeverity?.mode).toBe('projectile');
     expect(devSteps()[0].critSeverity?.origine).toBe('coup-critique');
     expect(devSteps()[0].options?.map((o) => o.key)).toEqual(['devier', 'subir']);
-    expect(tireLaSeverite().deviation!.mode).toBe('projectile');
+    const dev = tireLaSeverite().deviation!;
+    expect(dev.mode).toBe('projectile');
+    expect(dev.reveal.title, 'l’Incantation critique est un Coup Critique').toBe(tr('step.coupCritique'));
     expect(live('h-cible').wounds.current).toBe(30);
     expect(live('h-cible').criticalWounds ?? 0).toBe(0);
   });
@@ -240,6 +243,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
     expect(sev?.mode).toBe('projectile');
     expect(sev?.origine).toBe('depassement');
     expect(sev?.overkill).toBeGreaterThan(0);   // le Critique d'overkill garde sa sévérité
+    expect(tireLaSeverite().deviation!.reveal.title, 'le dépassement n’est pas un Coup Critique').toBe(tr('step.blessureCritique'));
     expect(live('h-cible').criticalWounds ?? 0).toBe(0); // suspendu
   });
 

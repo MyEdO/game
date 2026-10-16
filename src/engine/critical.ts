@@ -285,17 +285,19 @@ interface RegimeDePorteur {
   coupCritiqueNu(jeu: JeuDeCritique): boolean;
   /** LDB 63 l.30 : la victime choisit (fenêtre Dévier/Subir). */
   fenetre: boolean;
+  /** Le coup se clôt sur les PB du porteur : Premier sang, 0 PB (LDB 18 l.15), liens levés ; AA 10 l.127. */
+  clore: boolean;
 }
 
 const toujours = (): boolean => true;
 const jamais = (): boolean => false;
 
 export const REGIMES_DE_PORTEUR: Record<Porteur, RegimeDePorteur> = {
-  personnage: { aZeroToutCoup: false, coupCritiqueCompte: toujours, depassement: true, plafond: (jeu) => (jeu === 'ldb' ? 2 : 1), coupCritiqueNu: (jeu) => jeu === 'ldb', fenetre: true },
-  structure: { aZeroToutCoup: true, coupCritiqueCompte: (lost, current) => lost >= current * 0.25, depassement: false, plafond: () => 1, coupCritiqueNu: jamais, fenetre: false },
-  navire: { aZeroToutCoup: true, coupCritiqueCompte: toujours, depassement: false, plafond: () => 1, coupCritiqueNu: jamais, fenetre: false },
-  'vehicule-routier': { aZeroToutCoup: false, coupCritiqueCompte: toujours, depassement: true, plafond: () => 1, coupCritiqueNu: jamais, fenetre: false },
-  inerte: { aZeroToutCoup: false, coupCritiqueCompte: jamais, depassement: false, plafond: () => 0, coupCritiqueNu: jamais, fenetre: false },
+  personnage: { aZeroToutCoup: false, coupCritiqueCompte: toujours, depassement: true, plafond: (jeu) => (jeu === 'ldb' ? 2 : 1), coupCritiqueNu: (jeu) => jeu === 'ldb', fenetre: true, clore: true },
+  structure: { aZeroToutCoup: true, coupCritiqueCompte: (lost, current) => lost >= current * 0.25, depassement: false, plafond: () => 1, coupCritiqueNu: jamais, fenetre: false, clore: false },
+  navire: { aZeroToutCoup: true, coupCritiqueCompte: toujours, depassement: false, plafond: () => 1, coupCritiqueNu: jamais, fenetre: false, clore: true },
+  'vehicule-routier': { aZeroToutCoup: false, coupCritiqueCompte: toujours, depassement: true, plafond: () => 1, coupCritiqueNu: jamais, fenetre: false, clore: true },
+  inerte: { aZeroToutCoup: false, coupCritiqueCompte: jamais, depassement: false, plafond: () => 0, coupCritiqueNu: jamais, fenetre: false, clore: true },
 };
 
 const FORMES_DE_PERSONNAGE: ReadonlySet<BodyShape> = new Set(['humanoide', 'quadrupede', 'oiseau', 'serpent', 'araignee']);

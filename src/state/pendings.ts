@@ -758,6 +758,8 @@ export interface RevealEntry {
   actorId?: string;
   /** Arme employée (Coup Critique). */
   weapon?: string;
+  /** D'où naît la Blessure critique révélée (`estUnCoupCritique`) : titre, Seconde main (LDB 10 l.767-773). */
+  origine?: OrigineCritique;
   /** Effets détaillés (table des Critiques) AVEC leur explication RAW — pour qu'on sache « à quoi ça
    *  correspond » (plus de simple texte gris). */
   details?: { text: string; note?: string }[];

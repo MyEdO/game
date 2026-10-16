@@ -254,7 +254,7 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
     useGame.setState({ pendingDefense: null, pendingCascade: null } as never);
     resolveDeviation(useGame.getState, useGame.setState, {
       mode: 'melee', attackerId: enemy.id, targetId: hero.id, weapon: sword, res,
-      crit, decides: [], reveal: previewCritEntry(hero, crit, { attackerId: enemy.id, weapon: sword.label }), resumeAfter: false,
+      crit, decides: [], reveal: previewCritEntry(hero, crit, 'coup-critique', { attackerId: enemy.id, weapon: sword.label }), resumeAfter: false,
     }, true);
     const st = etape('fumble');
     expect(st, 'la Maladresse du défenseur est une étape de la séquence').toBeTruthy();

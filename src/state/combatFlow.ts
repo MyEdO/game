@@ -1758,12 +1758,14 @@ export function applyCriticalToTarget(
     ctx?: DeviationCtx; // qui inflige le coup + l'arme (→ modale enrichie) ; critTwice = B. de Sauvagerie de l'attaquant
     prerolled?: CriticalResolved; // Critique déjà tiré (déviation : on a montré CE Critique → on l'applique tel quel, sans re-tirer)
     suppressReveal?: boolean; // la modale de déviation a DÉJÀ affiché le Critique → ne pas re-pousser une révélation
+    /** D'où naît la Blessure (Personnage) : titre de sa révélation. */
+    origine?: OrigineCritique;
     /** REQUIS : résout l'ÉQUIPAGE (`crewIds`) d'un navire, et OUVRE par la porte le Test que la rangée
      *  impose (`CriticalResolved.testFlow`) — un appelant sans `get` perdrait ce jet en silence. */
     get: Get;
   },
 ): boolean {
-  const { ctx, prerolled, suppressReveal, get } = opts;
+  const { ctx, prerolled, suppressReveal, get, origine } = opts;
   // Aiguillage par porteur : `porteurDeCritique` (AA 10 l.114 ; MDG 13 l.656 ; EDOC 07 l.334).
   const porteur = porteurDeCritique(target);
   if (porteur === 'structure') {
@@ -1844,8 +1846,8 @@ export function applyCriticalToTarget(
   if (!suppressReveal && heroConcerned) {
     const sum = critImmediateSummary(crit.ops);
     pushReveal(set, {
-      kind: 'critical', title: 'Coup Critique', dice: crit.roll, lines: revealLines, subjectId: target.id,
-      severity: 'grave',
+      kind: 'critical', title: tr(estUnCoupCritique(origine) ? 'step.coupCritique' : 'step.blessureCritique'), dice: crit.roll, lines: revealLines, subjectId: target.id,
+      severity: 'grave', ...(origine ? { origine } : {}),
       actorId: ctx?.attackerId, weapon: ctx?.weapon, details,
       crit: { location: locationLabel(crit.location, target.bodyShape), woundsLost: sum.woundsLost, conditions: sum.conditions.length ? sum.conditions : undefined },
     }, { table: severity?.table }); // la DÉCLARATION résolue voyage avec la révélation : dé + ligne atteinte sur la rangée
@@ -2036,7 +2038,7 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
 /** Construit la révélation d'affichage d'un Coup Critique PRÉ-TIRÉ, SANS muter la cible (pour la modale
  *  de déviation : on montre le Critique qui menace avant le choix Dévier/Subir). Détails de base (sans la
  *  consolidation des amputations multiples, calculée seulement à l'application). */
-export function previewCritEntry(target: Combatant, crit: CriticalResolved, ctx?: { attackerId?: string; weapon?: string }): RevealEntry {
+export function previewCritEntry(target: Combatant, crit: CriticalResolved, origine: OrigineCritique, ctx?: { attackerId?: string; weapon?: string }): RevealEntry {
   const lines = [crit.log];
   const details: { text: string; note?: string }[] = [];
   for (const t of crit.traumas) {
@@ -2050,8 +2052,8 @@ export function previewCritEntry(target: Combatant, crit: CriticalResolved, ctx?
   }
   const sum = critImmediateSummary(crit.ops);
   return {
-    kind: 'critical', title: 'Coup Critique', dice: crit.roll, lines, subjectId: target.id,
-    actorId: ctx?.attackerId, weapon: ctx?.weapon, details,
+    kind: 'critical', title: tr(estUnCoupCritique(origine) ? 'step.coupCritique' : 'step.blessureCritique'), dice: crit.roll, lines, subjectId: target.id,
+    actorId: ctx?.attackerId, weapon: ctx?.weapon, details, origine,
     crit: { location: locationLabel(crit.location, target.bodyShape), woundsLost: sum.woundsLost, conditions: sum.conditions.length ? sum.conditions : undefined },
   };
 }
@@ -2069,10 +2071,10 @@ function deflectCrit(target: Combatant, location: HitLocation, log: string[]): b
  *  une éventuelle mort par le chemin normal. `woundsBefore` = PB AVANT les dégâts de base (passé par
  *  l'appelant → restauration Destin correcte au Subir). */
 function applyCritAndFinalize(
-  get: Get, set: SetFn, target: Combatant, location: HitLocation, overkill: number,
+  get: Get, set: SetFn, target: Combatant, location: HitLocation, overkill: number, origine: OrigineCritique,
   log: string[], ctx: DeviationCtx, woundsBefore: number, crit?: CriticalResolved, suppressReveal?: boolean,
 ): boolean {
-  const lethal = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get });
+  const lethal = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine });
   if (lethal) finalizeHeroDeath(get, set, target, 'hit', woundsBefore, inBattleId(get().battle, ctx.attackerId));
   return lethal;
 }
@@ -2169,7 +2171,7 @@ registerCascadeTableFold('deviation', (step, get) => {
   const target = inBattleId(get().battle, p.targetId);
   if (!target) return step;
   const crit = resolveCritique(jeuDeCritique(p.twice), target, p.location, battleRng(), { overkill: p.overkill, twice: p.twice, forcedRoll: rolled.roll });
-  const reveal = previewCritEntry(target, crit, { attackerId: p.attackerId, weapon: libelleDuCoup(p) });
+  const reveal = previewCritEntry(target, crit, p.origine, { attackerId: p.attackerId, weapon: libelleDuCoup(p) });
   const coup: CoupSuspendu = p.mode === 'melee'
     ? { mode: 'melee', weapon: p.weapon, res: p.res, ...(p.suite ? { suite: p.suite } : {}) }
     : { mode: 'projectile', touche: p.touche };
@@ -2223,14 +2225,14 @@ export function applyOpposedCritical(
   } else if (deviable) {
     // Porteur blindé TENU : on SUSPEND pour son choix Dévier/Subir (étape `self`, Critique « sec » pré-tiré).
     const { crit } = resolveCritSeverity(victim, loc, 0, c2.critTwice); // dé de sévérité par l'étape à table (seam UNIQUE)
-    const reveal = previewCritEntry(victim, crit, ctx);
+    const reveal = previewCritEntry(victim, crit, entree.origine, ctx);
     pushDeviationStep(set, { targetId: victim.id, offerte: true, pretire: {
       mode: 'self', attackerId: ctx.attackerId ?? '', targetId: victim.id, location: loc, crit,
       origine: entree.origine, overkill: 0, woundsBefore: victim.wounds.current, reveal, resumeAfter: true, ctx: c2,
     } });
     return;
   }
-  applyCritAndFinalize(get, set, victim, loc, 0, log, c2, victim.wounds.current);
+  applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, victim.wounds.current);
   // 7bis (#316) : un Coup Critique OPPOSÉ (LDB 14 l.3) est une Blessure Critique — le bus émet `onCrit`
   // pour l'attaquant, afin que ses effets de donnée « sur Critique » (Taillade → Hémorragique) s'appliquent
   // ici aussi. Chemin mutuellement exclusif de la déviation (self → émis au Subir de resolveDeviation).
@@ -2431,7 +2433,7 @@ function planifierLesCritiques<C extends CompteDuCoup>(
     }
     if (!deviable) { plan.push({}); continue; }
     const crit = resolveCritSeverity(target, cloc, entree.overkill, twice).crit;
-    const reveal = previewCritEntry(target, crit, { attackerId: p.attacker.id, weapon: libelleDuCoup(p.coup) });
+    const reveal = previewCritEntry(target, crit, entree.origine, { attackerId: p.attacker.id, weapon: libelleDuCoup(p.coup) });
     pushDeviationStep(set, { targetId: target.id, offerte: true, pretire: { ...p.coup, ...fenetre, crit, reveal, resumeAfter: true } });
     return null; // suspendu — la résolution part de l'applier 'deviation'
   }
@@ -2478,7 +2480,7 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): void {
     if (!devie) {
       // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
       // (pose du dé, #942 L4) garde sa révélation.
-      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, log, ctx, a.currentBefore, decision.crit, !!decision.crit && !!decision.deviation);
+      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.currentBefore, decision.crit, !!decision.crit && !!decision.deviation);
       a.apres?.(lethal, entree.origine);
     }
     if (estUnCoupCritique(entree.origine)) casse();
@@ -2695,7 +2697,7 @@ function appliquerLaTouche(
       get, set, target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, currentBefore,
       roll: res.attackerRoll, heroConcerne: attacker.kind === 'hero', apres: (lethal, origine) => apresLeCritique(lethal, lieu, origine),
     });
-    if (!isStructure(target)) clore(currentBefore);
+    if (regimeDePorteur(target).clore) clore(currentBefore);
   }
   // Critiques du Test opposé (LDB 14 l.3) : « Si vous obtenez un Critique, votre adversaire reçoit
   // immédiatement une Blessure critique […] le DR est calculé comme d'habitude, tout comme la
@@ -4002,7 +4004,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
     // depuis un APPLIER (reprise d'une sauvegarde), cette poussée vit encore dans la FENÊTRE d'insertion
     // et pas dans `participants` : les deux se lisent, la fenêtre en dernier (elle est la plus récente).
     const critValue = touche.critical
-      ? [...(get().pendingCascade?.participants ?? []), ...etapesDeLaFenetre()].reverse().find((s) => s.kind === 'critical')?.reveal?.dice
+      ? [...(get().pendingCascade?.participants ?? []), ...etapesDeLaFenetre()].reverse().find((s) => s.kind === 'critical' && estUnCoupCritique(s.reveal?.origine))?.reveal?.dice
       : undefined;
     set({ pendingDualStrike: { attackerId: attacker.id, offWeaponUid: suite.dualMain.offWeaponUid, mainRoll: suite.dualMain.mainRoll, critValue } });
   }
@@ -4405,7 +4407,7 @@ export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, de
   const log: string[] = [];
   if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
   else {
-    applyCritAndFinalize(get, set, target, dev.location, dev.overkill, log, dev.ctx, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
+    applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
     // 7bis (#316) : Subir un Critique OPPOSÉ dévié = Blessure Critique → le bus émet `onCrit` pour l'attaquant.
     emitOpposedCrit(get, set, inBattleId(battle, dev.ctx.attackerId), target, dev.location, dev.ctx.weaponObj, log);
   }
@@ -5836,14 +5838,14 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const aPleinesPA = evaluateMissile(caster, cible, spell, mres, loc, 0, ch.overcastDamageSteps).woundsLost ?? 0;
   const blessures = (n: number): number => (n === 0 ? woundsLost
     : woundsLost + Math.max(0, (evaluateMissile(caster, cible, spell, mres, loc, n, ch.overcastDamageSteps).woundsLost ?? 0) - aPleinesPA));
-  const coupCritique = !!ch.critWound; // LDB 46 l.30
+  const cause = ch.critWound ? 'incantation-critique' as const : null; // LDB 46 l.30
   const twice = critRollTwiceFor(caster);
   const planifie = planifierLesCritiques(get, set, {
     attacker: caster, target: cible, coup: { mode: 'projectile', touche: { ...ch, mres } }, decides: ch.critiques ?? [], sousAttaque: false, twice,
-    recompter: (n) => ({
-      compte: critiquesDuCoup(cible, { coupCritique: coupCritique ? 'incantation-critique' : null, prise: true, current: currentBefore, blessures: () => blessures(n) }),
-      lieu: loc, blessures: blessures(n), coupCritique,
-    }),
+    recompter: (n) => {
+      const compte = critiquesDuCoup(cible, { coupCritique: cause, prise: true, current: currentBefore, blessures: () => blessures(n) });
+      return { compte, lieu: loc, blessures: blessures(n), coupCritique: compte.critiques.some((c) => estUnCoupCritique(c.origine)) };
+    },
     deviable: (lieu, n) => magicDeviationEligible(apresDeviations(cible, lieu, n), lieu, spell),
   });
   if (!planifie) return { issue: 'suspendue-deviation', lignes };

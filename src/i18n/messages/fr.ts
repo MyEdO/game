@@ -1320,6 +1320,7 @@ export const fr = {
   'step.critDevier': 'Coup Critique — dévier ?',
   'step.paradePiegerLame': 'Parade — piéger la lame ?',
   'step.blessureCritique': 'Blessure critique',
+  'step.coupCritique': 'Coup Critique',
   'step.blessuresCritiques': 'Blessures critiques',
   'step.sauvegarde': 'Sauvegarde',
   'step.sauvegardeSolide': 'Sauvegarde Solide — {weapon}',

@@ -19,6 +19,7 @@
  *    est parqué sur SON étape, par IDENTITÉ, et rendu à la reprise.
  */
 import { tableTotale } from '../../lib/tableTotale';
+import { t as tr } from '../../i18n';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
 import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, freeAttackHookImpl, resolveDeviation } from '../combatFlow';
@@ -525,6 +526,22 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     expect(crit, 'le Critique a bien appendu SON étape à la reprise').toBeDefined();
     expect(ds!.critValue, 'la 2ᵉ frappe lit la valeur du tableau des Critiques (LDB 10 l.767-773)').toBe(crit!.reveal?.dice);
     expect(useGame.getState().pendingCascade, 'la cascade reste OUVERTE : la 2ᵉ frappe s’y rendra').not.toBeNull();
+  });
+
+  it('(iii bis) MANIEMENT DE DEUX ARMES : la valeur est celle du Coup Critique, pas du Critique de dépassement (LDB 10 l.767-773 ; #1595 C7)', () => {
+    const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */, wounds: { current: 2, max: 30 } } as never);
+    const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773 : un adversaire reste disponible
+    setBattle([heros, demon, voisin]);
+    const critique = { ...touche(), critical: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
+    useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });
+    useGame.getState().attackConfirm();
+    expect(etapeCourante()?.kind).toBe('sauvegarde');
+    poser(5); // < 8 : le coup porte — Coup Critique PUIS dépassement (LDB 18 l.17)
+    const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    expect(crits.map((s) => s.reveal?.origine), 'les deux Blessures critiques, dans leur ordre').toEqual(['coup-critique', 'depassement']);
+    expect(crits.map((s) => s.reveal?.title)).toEqual([tr('step.coupCritique'), tr('step.blessureCritique')]);
+    expect(useGame.getState().pendingDualStrike!.critValue).toBe(crits[0].reveal?.dice);
   });
 
   it('(iv) `defenseConfirm` : le maillon de balayage PARQUÉ reprend après le dé, sans balayage neuf', () => {
