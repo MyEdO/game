@@ -1,10 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { gitDe } from '../test/gitDeBanc.mjs'
+import { installer } from '../guards/lib/intercepterEcritures.mjs'
 import { lancerSansEcriture } from './testsSansEcriture.mjs'
 import { photoArbre } from '../guards/lib/photoArbre.mjs'
 
@@ -304,6 +305,49 @@ test('Windows : les deux namespaces IPC nommés échangent des octets sous la ga
   for (const marque of ['.', '?']) {
     const resultat = joue(racine, texte.replace('MARQUE', JSON.stringify(marque)))
     assert.equal(resultat.code, 0, resultat.brut)
+  }
+}))
+
+// #2603
+test('POSIX : une écriture dans l’arbre par une URL file://// dont le 2e segment est « pipe » reste refusée', { skip: process.platform === 'win32' && 'le namespace des pipes nommés est propre à win32' }, (t) => {
+  const temporaire = tmpdir()
+  if (dirname(temporaire) !== sep) {
+    t.skip(`${temporaire} : un 2e segment « pipe » exige un dossier temporaire à la racine`)
+    return
+  }
+  const base = join(temporaire, 'pipe')
+  const creee = !existsSync(base)
+  mkdirSync(base, { recursive: true })
+  const racine = mkdtempSync(join(base, 'racine-'))
+  const signaux = []
+  let restaurer
+  try {
+    restaurer = installer({ racine, signaler: (m) => signaux.push(m) })
+    assert.throws(() => writeFileSync(new URL(`file:///${racine}/f.txt`), 'x'), /REFUS écriture dans l'arbre : writeFileSync f\.txt/)
+    assert.equal(existsSync(join(racine, 'f.txt')), false)
+    assert.equal(signaux.length, 1)
+  } finally {
+    restaurer?.()
+    rmSync(racine, { recursive: true, force: true })
+    if (creee) try { rmdirSync(base) } catch {}
+  }
+})
+
+// #2603
+test('Windows : une écriture dans l’arbre par un espace étendu de FICHIERS (\\\\.\\C:, GLOBALROOT, Volume{…}) reste refusée', { skip: process.platform !== 'win32' }, () => avecDepot((racine) => {
+  const separateur = '\\'
+  const volume = spawnSync('mountvol', [racine.slice(0, 3), '/L'], { encoding: 'utf8' }).stdout.trim()
+  assert.match(volume, /^\\\\\?\\Volume\{[0-9a-f-]+\}\\$/i)
+  const formes = {
+    point: `${separateur}${separateur}.${separateur}${join(racine, 'poison-point')}`,
+    globalroot: `${separateur}${separateur}.${separateur}GLOBALROOT${separateur}??${separateur}${join(racine, 'poison-globalroot')}`,
+    volume: volume + join(racine, 'poison-volume').slice(3),
+  }
+  for (const [forme, cible] of Object.entries(formes)) {
+    const r = joue(racine, `import { writeFileSync } from 'node:fs'; try { writeFileSync(${JSON.stringify(cible)}, 'x') } catch {}`)
+    assert.equal(r.code, 1, `${forme} : ${r.brut}`)
+    assert.match(r.messages.join('\n'), new RegExp(`REFUS écriture dans l'arbre : writeFileSync poison-${forme}`))
+    assert.equal(existsSync(join(racine, `poison-${forme}`)), false, forme)
   }
 }))
 
