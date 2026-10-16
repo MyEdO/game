@@ -1,0 +1,115 @@
+import { describe, it, expect, afterEach } from 'vitest';
+import { critiquesDuCoup, porteurDeCritique, type CauseCoupCritique, type JeuDeCritique } from './critical';
+import { findVehicleById } from '../data';
+import { resetRule, setRule } from './policy';
+import type { Combatant } from './types';
+
+// #1595 c.6220635824, c.6221792068, c.6219992594 — le compte des Blessures critiques d'un coup.
+
+const porteur = (p: Partial<Combatant>): Combatant =>
+  ({ id: 'c', label: 'Cible', kind: 'enemy', important: true, conditions: [], talents: [], skills: [], characteristics: { endurance: 30, force: 30, agilite: 30, initiative: 30, 'force-mentale': 30 }, wounds: { current: 10, max: 10 }, ...p } as unknown as Combatant);
+
+const personnage = porteur({});
+const figurant = porteur({ important: false });
+const structure = porteur({ bodyShape: 'structure', creatureId: 'porte' });
+const navire = porteur({ bodyShape: 'vehicule', creatureId: 'cogue' });
+const bateauFluvial = porteur({ bodyShape: 'vehicule', creatureId: 'barge-fluviale' });
+const routier = porteur({ bodyShape: 'vehicule', creatureId: 'charrette' });
+const engin = porteur({ bodyShape: 'engin', inert: true });
+
+const compte = (
+  c: Combatant, jeu: JeuDeCritique, coup: { cc?: CauseCoupCritique; prise?: boolean; current: number; lost: number },
+) => critiquesDuCoup(c, { coupCritique: coup.cc ?? null, prise: coup.prise ?? true, current: coup.current, blessures: () => coup.lost }, jeu);
+
+afterEach(() => { resetRule('combat-sudden-death'); });
+
+describe('porteurDeCritique — classifieur TOTAL', () => {
+  it.each([
+    [personnage, 'personnage'], [structure, 'structure'], [navire, 'navire'], [bateauFluvial, 'navire'],
+    [routier, 'vehicule-routier'], [engin, 'inerte'],
+  ] as const)('%#', (c, attendu) => expect(porteurDeCritique(c)).toBe(attendu));
+
+  it('une forme sans ligne lève, jamais de repli sur personnage', () => {
+    expect(() => porteurDeCritique(porteur({ bodyShape: 'army' }))).toThrow(/REGIMES_DE_PORTEUR/);
+  });
+
+  it('les anciens doublons barque/chaland vivent sous les ids du bateau (#1595 c.6221792068 Q6)', () => {
+    expect(findVehicleById('barque')).toBeUndefined();
+    expect(findVehicleById('chaland')).toBeUndefined();
+    expect(porteurDeCritique(porteur({ bodyShape: 'vehicule', creatureId: 'barque-fluviale' }))).toBe('navire');
+  });
+});
+
+describe('critiquesDuCoup — porteur × jeu × cause', () => {
+  const origines = (r: ReturnType<typeof critiquesDuCoup>) => r.critiques.map((x) => `${x.origine}:${x.overkill}`);
+
+  it.each(['double', 'empaleuse', 'incantation-critique'] as const)('ldb, Personnage, %s qui dépasse → 2 (d100 nu puis dépassement)', (cc) => {
+    expect(origines(compte(personnage, 'ldb', { cc, current: 3, lost: 7 }))).toEqual(['coup-critique:0', 'depassement:4']);
+  });
+  it('ldb, Personnage, double sans dépassement → 1', () => {
+    expect(origines(compte(personnage, 'ldb', { cc: 'double', current: 8, lost: 7 }))).toEqual(['coup-critique:0']);
+  });
+  it('ldb, Personnage, dépassement seul → 1 ; égalité → 0 (LDB 13 l.161)', () => {
+    expect(origines(compte(personnage, 'ldb', { current: 3, lost: 5 }))).toEqual(['depassement:2']);
+    expect(origines(compte(personnage, 'ldb', { current: 3, lost: 3 }))).toEqual([]);
+  });
+  it('aa, Personnage, double qui dépasse → 1, avec le +10 par Blessure (AA 07 l.36, l.42)', () => {
+    expect(origines(compte(personnage, 'aa', { cc: 'double', current: 3, lost: 7 }))).toEqual(['coup-critique:4']);
+  });
+  it('aa, Personnage, tomber à 0 suffit (AA 07 l.36)', () => {
+    expect(origines(compte(personnage, 'aa', { current: 3, lost: 3 }))).toEqual(['depassement:0']);
+  });
+  it('Perturbante contre un Personnage à 0 : +0 en aa, rien en ldb (#1595 c.6221792068 Q2)', () => {
+    expect(origines(compte(personnage, 'aa', { current: 0, lost: 0 }))).toEqual(['depassement:0']);
+    expect(origines(compte(personnage, 'ldb', { current: 0, lost: 0 }))).toEqual([]);
+  });
+
+  it.each(['ldb', 'aa'] as const)('%s, Structure : double sous 25 %% → 0, au-dessus → 1 ; à 0 tout coup → 1 (AA 10 l.114)', (jeu) => {
+    expect(origines(compte(structure, jeu, { cc: 'double', current: 40, lost: 9 }))).toEqual([]);
+    expect(origines(compte(structure, jeu, { cc: 'empaleuse', current: 40, lost: 10 }))).toEqual(['coup-critique:0']);
+    expect(origines(compte(structure, jeu, { current: 0, lost: 3 }))).toEqual(['a-zero:3']);
+    expect(origines(compte(structure, jeu, { current: 2, lost: 30 }))).toEqual([]);
+  });
+
+  it.each([[navire], [bateauFluvial]])('%#, navire et bateau : double → 1, à 0 tout coup → 1, jamais de dépassement (MDG 13 l.656 ; MSRC 07 l.74)', (c) => {
+    for (const jeu of ['ldb', 'aa'] as const) {
+      expect(origines(compte(c, jeu, { cc: 'incantation-critique', current: 30, lost: 2 }))).toEqual(['coup-critique:0']);
+      expect(origines(compte(c, jeu, { current: 0, lost: 2 }))).toEqual(['a-zero:2']);
+      expect(origines(compte(c, jeu, { cc: 'double', current: 0, lost: 2 }))).toEqual(['coup-critique:2']);
+      expect(origines(compte(c, jeu, { current: 3, lost: 9 }))).toEqual([]);
+    }
+  });
+
+  it('véhicule routier : dépassement et double, plafond 1 (EDOC 07 l.334 ; LDB 14 l.3 ; c.6221792068 Q1)', () => {
+    expect(origines(compte(routier, 'ldb', { current: 3, lost: 9 }))).toEqual(['depassement:6']);
+    expect(origines(compte(routier, 'ldb', { cc: 'double', current: 3, lost: 9 }))).toEqual(['coup-critique:6']);
+    expect(origines(compte(routier, 'ldb', { current: 0, lost: 0 }))).toEqual([]);
+  });
+
+  it('engin inerte : jamais de Critique', () => {
+    expect(origines(compte(engin, 'ldb', { cc: 'double', current: 0, lost: 5 }))).toEqual([]);
+  });
+
+  it('coup sans prise (sauvegarde, Bouclier anti-flèches, immunité, coque bloquée) : rien, sur tout porteur', () => {
+    for (const c of [personnage, structure, navire, routier])
+      expect(compte(c, 'ldb', { cc: 'double', prise: false, current: 0, lost: 9 })).toEqual({ critiques: [], mortSubite: false });
+  });
+});
+
+describe('critiquesDuCoup — Mort subite (LDB 18 l.44, l.46 ; AA 07 l.65, l.67 ; #1595 c.6219992594)', () => {
+  it('ldb : aucun Critique, même sur un double ; la Mort subite sur le dépassement, sans relance de Localisation', () => {
+    const relances: boolean[] = [];
+    const r = critiquesDuCoup(figurant, { coupCritique: 'double', prise: true, current: 3, blessures: (rel) => { relances.push(rel); return 5; } }, 'ldb');
+    expect(r).toEqual({ critiques: [], mortSubite: true });
+    expect(relances).toEqual([false]);
+    expect(compte(figurant, 'ldb', { cc: 'double', current: 8, lost: 5 })).toEqual({ critiques: [], mortSubite: false });
+  });
+  it('aa : aucun Critique, et la sortie reste celle de horsDeCombatParMortSubite', () => {
+    expect(compte(figurant, 'aa', { cc: 'double', current: 3, lost: 5 })).toEqual({ critiques: [], mortSubite: false });
+  });
+  it('règle off : le figurant reçoit ses Critiques', () => {
+    setRule('combat-sudden-death', 'off');
+    expect(compte(figurant, 'ldb', { cc: 'double', current: 3, lost: 5 }).critiques).toHaveLength(2);
+  });
+});
+

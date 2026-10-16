@@ -201,6 +201,12 @@
       "book": "mort-sur-le-reik-compagnon",
       "page": 33
     },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 306
+      }
+    ],
     "travel": {
       "movement": 8,
       "classes": [
@@ -254,7 +260,8 @@
         "brass": 0
       },
       "availability": "Rare"
-    }
+    },
+    "desc": "Nécessite trois membres d'équipage."
   },
   {
     "id": "barque-fluviale",
@@ -265,6 +272,12 @@
       "book": "mort-sur-le-reik-compagnon",
       "page": 33
     },
+    "alsoIn": [
+      {
+        "book": "livre-de-base",
+        "page": 306
+      }
+    ],
     "hull": {
       "char": {
         "endurance": 35,
@@ -294,7 +307,8 @@
         "brass": 0
       },
       "availability": "Limitée"
-    }
+    },
+    "desc": "Un rameur est la norme."
   },
   {
     "id": "charrette",
@@ -440,48 +454,6 @@
       "bodyShape": "vehicule",
       "propulsion": "terrestre"
     }
-  },
-  {
-    "id": "barque",
-    "type": "vehicles",
-    "label": "Barque",
-    "icon": "travel/rowboat",
-    "source": {
-      "book": "livre-de-base",
-      "page": 306
-    },
-    "enc": null,
-    "desc": "Un rameur est la norme.",
-    "purchase": {
-      "price": {
-        "gold": 6,
-        "silver": 0,
-        "brass": 0
-      },
-      "availability": "Limitée"
-    },
-    "chargement": 60
-  },
-  {
-    "id": "chaland",
-    "type": "vehicles",
-    "label": "Chaland",
-    "icon": "travel/barge",
-    "source": {
-      "book": "livre-de-base",
-      "page": 306
-    },
-    "enc": null,
-    "desc": "Nécessite trois membres d'équipage.",
-    "purchase": {
-      "price": {
-        "gold": 225,
-        "silver": 0,
-        "brass": 0
-      },
-      "availability": "Rare"
-    },
-    "chargement": 300
   },
   {
     "id": "coracle",

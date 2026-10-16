@@ -16,7 +16,7 @@ import { d10, d100, rollDice, parseDice, type RNG, defaultRNG } from './dice';
 import { findTableEntry } from './tables';
 import { applyOps, type GameOp } from './ops';
 import { shipHitLocation, hitLocation, type ShipRig, type ShipLocation } from './combat';
-import { resolveCritique, jeuDeCritique, type CriticalResolved } from './critical';
+import { resolveCritique, jeuDeCritique, critiquesDuCoup, type CriticalResolved } from './critical';
 import { poserEnjeu, type FlowTestNode } from './flowCore';
 import { combatStakeRef, findShipStation, type StakeRef } from '../data';
 import { hullNavalTraits, shipHasNavalTrait } from './navalTraits';
@@ -280,6 +280,12 @@ export function applyHullCritical(
 
   if (hit.crewHit) {
     const sailor = exposed[0]!;
+    // MDG 13 l.584, l.660 ; #1595 c.6221792068 Q7.
+    const compte = critiquesDuCoup(sailor, { coupCritique: 'double', prise: true, current: sailor.wounds.current, blessures: () => 0 });
+    if (!compte.critiques.length) {
+      lines.push(t('shipCrit.crewSansCritique', { name: sailor.label }));
+      return { location: 'equipage', hullOps: [], shrapnel: [], extraHullCrits: [], lines };
+    }
     const crit = resolveCritique(jeuDeCritique(), sailor, hitLocation(d100(rng)), rng);
     applyOps(sailor, crit.ops, { rng });
     if (crit.traumas.length) sailor.traumas = [...(sailor.traumas ?? []), ...crit.traumas];

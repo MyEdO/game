@@ -20,9 +20,19 @@ const hull = () => vehicleCombatant(findVehicleById('cogue')!)!; // rig 'voile'
  * coup à l'Équipage = Critique de PERSONNAGE sur un marin exposé ; Éclats = 9 Dégâts à autant de marins.
  */
 describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un journal)', () => {
+  it('MDG 13 l.660 ; #1595 c.6221792068 Q7 : un marin figurant sous Mort subite ne reçoit aucun Critique', () => {
+    const crew = [sailor('marin-1')];
+    expect(usesSuddenDeath(crew[0])).toBe(true);
+    const r = applyHullCritical(hull(), crew, 'voile', makeRNG(2), 5);
+    expect(r.location).toBe('equipage');
+    expect(r.crewCrit).toBeUndefined();
+    expect(crew[0].wounds.current).toBe(13);
+    expect(crew[0].criticalWounds ?? 0).toBe(0);
+  });
+
   it("Localisation Équipage (d100≤9) → un marin EXPOSÉ subit un Critique de personnage (resolveCritique)", () => {
     const ship = hull();
-    const crew = [sailor('marin-1'), sailor('marin-2')];
+    const crew = [sailor('marin-1', { important: true }), sailor('marin-2')]; // hors Mort subite (LDB 18 l.46)
     const before = crew[0].wounds.current;
     const r = applyHullCritical(ship, crew, 'voile', makeRNG(2), 5); // loc 5 → Équipage
     expect(r.location).toBe('equipage');

@@ -23,6 +23,9 @@ import { rule } from './policy';
 import { EMPTY_FLOW, poserEnjeu, type Flow, type FlowTestNode } from './flowCore';
 import { combatStakeRef, type StakeRef } from '../data';
 import { type GameOp } from './ops';
+import { isStructure, isEngin } from './structures';
+import { isVehicle, estNavire } from './coque';
+import { usesSuddenDeath } from './conditions';
 
 export type { CritTableKey, JeuDeCritique };
 
@@ -255,6 +258,96 @@ function regimeDe(jeu: JeuDeCritique): RegimeCritique {
  */
 export function jeuDeCritique(twice = false): JeuDeCritique {
   return !twice && rule('combat-aa-blessures') === 'aa' ? 'aa' : 'ldb';
+}
+
+/** Porteur d'une Blessure critique : le régime qui compte les Critiques d'un coup. */
+export type Porteur = 'personnage' | 'structure' | 'navire' | 'vehicule-routier' | 'inerte';
+/** Ce qui ouvre une Blessure critique : le Coup Critique (LDB 13 l.183, LDB 14 l.3), le dépassement des
+ *  Blessures (LDB 13 l.161 ; AA 07 l.36), ou un coup sur une coque à 0 (AA 10 l.114 ; MDG 13 l.656). */
+export type OrigineCritique = 'coup-critique' | 'depassement' | 'a-zero';
+/** Cause d'un Coup Critique : double (LDB 13 l.183), Empaleuse (LDB 62 l.248), Incantation critique (LDB 46 l.28, l.30). */
+export type CauseCoupCritique = 'double' | 'empaleuse' | 'incantation-critique';
+export interface CritiqueDuCoup { origine: OrigineCritique; overkill: number }
+export interface CompteDesCritiques { critiques: readonly CritiqueDuCoup[]; mortSubite: boolean }
+
+/** Ce qu'un PORTEUR adresse au compte — table jumelle de `REGIMES_DE_CRITIQUE`. */
+interface RegimeDePorteur {
+  /** AA 10 l.114 ; MDG 13 l.656 ; MSRC 07 l.74. */
+  aZeroToutCoup: boolean;
+  /** AA 10 l.114 ; #1595 c.6221792068 Q5. */
+  coupCritiqueCompte(lost: number, current: number): boolean;
+  /** LDB 13 l.161 ; AA 07 l.36 ; EDOC 07 l.334, LDB 14 l.3. */
+  depassement: boolean;
+  /** LDB 14 l.3, LDB 13 l.161, #1595 c.6220635824 ; AA 07 l.42 ; #1595 c.6221792068 Q1. */
+  plafond(jeu: JeuDeCritique): 0 | 1 | 2;
+  /** LDB 18 l.53 : d100 nu du Coup Critique (`ldb`, Personnage). */
+  coupCritiqueNu(jeu: JeuDeCritique): boolean;
+  /** LDB 63 l.30 : la victime choisit (fenêtre Dévier/Subir). */
+  fenetre: boolean;
+}
+
+const toujours = (): boolean => true;
+const jamais = (): boolean => false;
+
+export const REGIMES_DE_PORTEUR: Record<Porteur, RegimeDePorteur> = {
+  personnage: { aZeroToutCoup: false, coupCritiqueCompte: toujours, depassement: true, plafond: (jeu) => (jeu === 'ldb' ? 2 : 1), coupCritiqueNu: (jeu) => jeu === 'ldb', fenetre: true },
+  structure: { aZeroToutCoup: true, coupCritiqueCompte: (lost, current) => lost >= current * 0.25, depassement: false, plafond: () => 1, coupCritiqueNu: jamais, fenetre: false },
+  navire: { aZeroToutCoup: true, coupCritiqueCompte: toujours, depassement: false, plafond: () => 1, coupCritiqueNu: jamais, fenetre: false },
+  'vehicule-routier': { aZeroToutCoup: false, coupCritiqueCompte: toujours, depassement: true, plafond: () => 1, coupCritiqueNu: jamais, fenetre: false },
+  inerte: { aZeroToutCoup: false, coupCritiqueCompte: jamais, depassement: false, plafond: () => 0, coupCritiqueNu: jamais, fenetre: false },
+};
+
+const FORMES_DE_PERSONNAGE: ReadonlySet<BodyShape> = new Set(['humanoide', 'quadrupede', 'oiseau', 'serpent', 'araignee']);
+
+/** Porteur d'un combattant — SEUL classifieur du régime de Critique, TOTAL : une forme sans ligne lève. */
+export function porteurDeCritique(c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'inert' | 'label'>): Porteur {
+  if (isStructure(c)) return 'structure';
+  if (isVehicle(c)) return estNavire(c) ? 'navire' : 'vehicule-routier';
+  if (c.inert || isEngin(c)) return 'inerte';
+  const forme = c.bodyShape ?? 'humanoide';
+  if (FORMES_DE_PERSONNAGE.has(forme)) return 'personnage';
+  throw new Error(`porteurDeCritique : « ${c.label} » (forme « ${forme} ») n'a pas de ligne dans REGIMES_DE_PORTEUR.`);
+}
+
+/** Le régime d'un porteur, pour les lecteurs du store (fenêtre, plafond). */
+export function regimeDePorteur(c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'inert' | 'label'>): RegimeDePorteur {
+  return REGIMES_DE_PORTEUR[porteurDeCritique(c)];
+}
+
+/** Le coup est-il « supérieur au total » (LDB 13 l.161) ou fait-il « tomber à 0 » (AA 07 l.36) ? */
+function depasse(jeu: JeuDeCritique, lost: number, current: number): boolean {
+  return jeu === 'aa' ? lost >= current : lost > current;
+}
+
+/**
+ * Les Blessures critiques d'UN coup, dans leur ordre d'application — SOURCE UNIQUE du compte, pour l'arme
+ * et la magie. Deux phases : le Coup Critique est-il retenu (prise, Mort subite, porteur, cause) ? Puis
+ * `blessures(relance)` donne les Blessures du coup à la Localisation (relancée si le Coup Critique est
+ * retenu, LDB 18 l.53, l.55 ; AA 07 l.32) ; `current` = Blessures AVANT le coup.
+ * Prise : ADE II 08 l.296, l.300 ; MDG 13 l.605, l.614 ; LDB 85 l.98, l.278 ; LDB 47 l.358.
+ * Mort subite : LDB 18 l.44, l.46 ; AA 07 l.65, l.67 ; #1595 c.6219992594.
+ */
+export function critiquesDuCoup(
+  c: Combatant,
+  coup: { coupCritique: CauseCoupCritique | null; prise: boolean; current: number; blessures: (relance: boolean) => number },
+  jeu: JeuDeCritique = jeuDeCritique(),
+): CompteDesCritiques {
+  if (!coup.prise) return { critiques: [], mortSubite: false };
+  const R = REGIMES_DE_PORTEUR[porteurDeCritique(c)];
+  const { current } = coup;
+  if (usesSuddenDeath(c)) {
+    if (!R.depassement || jeu === 'aa') return { critiques: [], mortSubite: false };
+    return { critiques: [], mortSubite: depasse(jeu, coup.blessures(false), current) };
+  }
+  const relance = coup.coupCritique !== null && porteurDeCritique(c) === 'personnage';
+  const lost = coup.blessures(relance);
+  const overkill = Math.max(0, lost - current);
+  const critiques: CritiqueDuCoup[] = [];
+  const cc = coup.coupCritique !== null && R.coupCritiqueCompte(lost, current);
+  if (cc) critiques.push({ origine: 'coup-critique', overkill: R.coupCritiqueNu(jeu) ? 0 : overkill });
+  else if (R.aZeroToutCoup && current <= 0) critiques.push({ origine: 'a-zero', overkill });
+  if (R.depassement && depasse(jeu, lost, current)) critiques.push({ origine: 'depassement', overkill });
+  return { critiques: critiques.slice(0, R.plafond(jeu)), mortSubite: false };
 }
 
 /** Lignes de la table d'un (jeu, clé) — passées PAR RÉFÉRENCE au registre d'étapes (zéro duplication). */
