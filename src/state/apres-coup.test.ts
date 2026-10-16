@@ -348,24 +348,43 @@ describe('Piétinement suspendu par une sauvegarde : la suite joue à la reprise
     });
   }
 
-  it('créature IA énorme qui piétine un héros démoniaque Surpris : l’attaque gratuite instantanée est suspendue', () => {
+  it('créature IA énorme qui piétine un héros démoniaque Surpris : l’attaque gratuite suspendue reprend au dé, une fois', () => {
     seedBattleRng(2);
     const h = mk('h', 'hero', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
     h.traits = [{ id: 'demoniaque', value: 9 }] as never;
     h.conditions = [{ id: 'surpris', value: 1 }] as never;
     const e = mk('e', 'enemy', { x: 1, y: 0 }, [arme('gr', 'Griffe')]);
     e.size = 'enorme'; e.advantage = 2; e.characteristics['capacite-de-combat'] = 85;
+    // `acted: false` : le coup marque l'Action (`true`), la restitution `prevActed` la rend — la transition s'observe.
     const battle = {
       combatants: [e, h], order: ['e', 'h'], baseOrder: ['e', 'h'], turn: 0, round: 1, action: null,
-      selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: true, log: [], over: null,
+      selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as BattleState;
     useGame.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
       pendingDefense: null, pendingCleave: null, net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
-    const suspendu = aiCreatureFreeAttacks(g, useGame.setState, g().battle!.combatants.find((c) => c.id === 'e')!);
-    expect(suspendu, 'le retour suspendu de l’attaque gratuite est rendu à l’IA').toBe(true);
-    expect(etape()?.kind, 'une étape de sauvegarde tient la main').toBe('sauvegarde');
-    expect(etape()?.de, 'son dé n’est pas tombé').toBeTruthy();
-    expect(g().battle!.combatants.find((c) => c.id === 'h')!.wounds.current, 'aucune Blessure avant le dé').toBe(200);
+    let marquages = 0;
+    let restitutions = 0;
+    const unsub = useGame.subscribe((s, p) => {
+      if (p.battle?.acted === false && s.battle?.acted === true) marquages++;
+      if (p.battle?.acted === true && s.battle?.acted === false) restitutions++;
+    });
+    try {
+      const suspendu = aiCreatureFreeAttacks(g, useGame.setState, g().battle!.combatants.find((c) => c.id === 'e')!);
+      expect(suspendu, 'le retour suspendu de l’attaque gratuite est rendu à l’IA').toBe(true);
+      expect(etape()?.kind, 'une étape de sauvegarde tient la main').toBe('sauvegarde');
+      expect(etape()?.de, 'son dé n’est pas tombé').toBeTruthy();
+      expect(g().battle!.combatants.find((c) => c.id === 'h')!.wounds.current, 'aucune Blessure avant le dé').toBe(200);
+      expect(marquages + restitutions, 'ni le coup ni sa queue avant le dé').toBe(0);
+      let des = 0;
+      draineCascade(g, 20, (st) => (st.de ? (des++, 3) : undefined));
+      expect(des, 'le dé de sauvegarde a été posé').toBe(1);
+      expect(g().battle!.combatants.find((c) => c.id === 'h')!.wounds.current, 'la sauvegarde ratée : le Piétinement a porté').toBeLessThan(200);
+      expect(marquages, 'le coup marque l’Action à la reprise').toBe(1);
+      expect(restitutions, 'la queue rend l’Action UNE fois, à la reprise').toBe(1);
+      expect(g().battle!.acted, 'action GRATUITE : l’Action retrouve sa valeur').toBe(false);
+    } finally {
+      unsub();
+    }
   });
 });
 

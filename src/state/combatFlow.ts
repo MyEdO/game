@@ -3376,7 +3376,8 @@ registerCascadeApplier('casseDArme', (get, set, step, porteur) => {
   if (!c) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
   const issue = applyOups(get, set, c, casse.reprise.weapon, casse.reprise.r, des, casse.reprise.coup);
   // La Maladresse appliquée, l'APRÈS-COUP du coup reprend au temps que le dé avait suspendu.
-  if (issue !== OPS_DIFFEREES && casse.reprise.coup) jouerLApresCoup(get, set, casse.reprise.coup);
+  // Rien ne suit que la conclusion du dé de casse : un après-coup qui tient la main emporte sa queue.
+  if (issue !== OPS_DIFFEREES && casse.reprise.coup) jouerFlowEntier(jouerLApresCoup(get, set, casse.reprise.coup) ? OPS_DIFFEREES : undefined);
   return dit();
 });
 

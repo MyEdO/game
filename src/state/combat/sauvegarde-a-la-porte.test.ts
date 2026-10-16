@@ -92,6 +92,20 @@ function poser(valeur: number): void {
   capter();
 }
 
+/** SUIT l'Action : marquages (`acted` false→true), restitutions (true→false), et l'état au PREMIER instant où
+ *  une étape de sauvegarde de `porteurId` attend son dé — observé même quand le dé part d'office. */
+function suitLAction(porteurId: string): { vu: { marquages: number; restitutions: number; avantLeDe: { pb: number; marquages: number; restitutions: number } | null }; unsub: () => void } {
+  const vu = { marquages: 0, restitutions: 0, avantLeDe: null as { pb: number; marquages: number; restitutions: number } | null };
+  const unsub = useGame.subscribe((s, p) => {
+    if (p.battle?.acted === false && s.battle?.acted === true) vu.marquages++;
+    if (p.battle?.acted === true && s.battle?.acted === false) vu.restitutions++;
+    const enAttente = s.pendingCascade?.participants.some((x) => x.kind === 'sauvegarde' && x.actorId === porteurId && x.de?.result == null);
+    const pb = s.battle?.combatants.find((c) => c.id === porteurId)?.wounds.current;
+    if (enAttente && !vu.avantLeDe && pb !== undefined) vu.avantLeDe = { pb, marquages: vu.marquages, restitutions: vu.restitutions };
+  });
+  return { vu, unsub };
+}
+
 /** Les lignes que le joueur a lues sur les étapes de la séquence (captes + état courant + journal). */
 const lignesLues = (): string[] => {
   capter();
@@ -313,13 +327,22 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
     const nul = tableTotale(CHAR_KEYS, () => 1);
     const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul, traits: [{ id: 'demoniaque', value: 8 }] } as never);
     setBattle([frappeur, demon]);
-    freeAttackHookImpl(useGame.getState, useGame.setState, frappeur,
-      { op: 'grantFreeAttack' } as never, { targetId: demon.id, cap: 1, key: 'frappe-reactive' });
-    const st = etapeCourante();
-    expect(st?.kind, 'la frappe gratuite a bien ouvert la sauvegarde du démon').toBe('sauvegarde');
-    poser(1); // sauvegarde RATÉE : le coup porte, et la RÉ-ENTRÉE rejoue `markActed`
-    expect(demon.wounds.current, 'la frappe a bien été appliquée à la reprise').toBeLessThan(30);
-    expect(useGame.getState().battle!.acted, 'une frappe GRATUITE ne consomme pas l’Action, même suspendue par une sauvegarde').toBe(false);
+    const { vu, unsub } = suitLAction(demon.id);
+    try {
+      freeAttackHookImpl(useGame.getState, useGame.setState, frappeur,
+        { op: 'grantFreeAttack' } as never, { targetId: demon.id, cap: 1, key: 'frappe-reactive' });
+      const st = etapeCourante();
+      expect(st?.kind, 'la frappe gratuite a bien ouvert la sauvegarde du démon').toBe('sauvegarde');
+      expect({ pb: demon.wounds.current, marquages: vu.marquages, restitutions: vu.restitutions }, 'avant le dé : ni Blessure, ni Action marquée, ni Action rendue').toEqual({ pb: 30, marquages: 0, restitutions: 0 });
+      expect(useGame.getState().battle!.acted, 'avant le dé : l’Action d’avant').toBe(false);
+      poser(1); // sauvegarde RATÉE : le coup porte, et la RÉ-ENTRÉE rejoue `markActed`
+      expect(demon.wounds.current, 'la frappe a bien été appliquée à la reprise').toBeLessThan(30);
+      expect(vu.marquages, 'le coup marque l’Action UNE fois, à la reprise').toBe(1);
+      expect(vu.restitutions, 'la queue rend l’Action UNE fois, à la reprise').toBe(1);
+      expect(useGame.getState().battle!.acted, 'une frappe GRATUITE ne consomme pas l’Action, même suspendue par une sauvegarde').toBe(false);
+    } finally {
+      unsub();
+    }
   });
 });
 
@@ -634,12 +657,19 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
 
   it('(ix) MAILLON d’un héros, SANS siège MJ : le dé de sauvegarde part d’office, et l’Action de la gratuite est rendue', () => {
     expect(useGame.getState().net.gmSeat, 'aucun siège MJ ne tient le démon').toBeUndefined();
-    const demon = maillonSurDemon();
-    expect(useGame.getState().pendingCascade, 'le dé est tiré d’office : aucune étape ne reste à jouer').toBeNull();
-    expect(lignesLues().some((l) => /^demon — Sauvegarde : dé \d+/.test(l)), lignesLues().join(' | ')).toBe(true);
-    expect(demon.wounds.current, 'graine 1 : le dé (7) manque le 8+, le maillon porte').toBeLessThan(30);
-    expect(useGame.getState().pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
-    expect(useGame.getState().battle!.acted, 'gratuite : l’Action d’avant, maillon suspendu compris').toBe(false);
+    const { vu, unsub } = suitLAction('demon');
+    try {
+      const demon = maillonSurDemon();
+      expect(vu.avantLeDe, 'avant le dé tiré d’office : le maillon n’a pas porté, l’Action n’est pas rendue').toEqual({ pb: 30, marquages: 1, restitutions: 0 });
+      expect(useGame.getState().pendingCascade, 'le dé est tiré d’office : aucune étape ne reste à jouer').toBeNull();
+      expect(lignesLues().some((l) => /^demon — Sauvegarde : dé \d+/.test(l)), lignesLues().join(' | ')).toBe(true);
+      expect(demon.wounds.current, 'graine 1 : le dé (7) manque le 8+, le maillon porte').toBeLessThan(30);
+      expect(useGame.getState().pendingCleave, 'plus aucune cible : la chaîne est close').toBeNull();
+      expect(vu.restitutions, 'la queue rend l’Action UNE fois, après le dé').toBe(1);
+      expect(useGame.getState().battle!.acted, 'gratuite : l’Action d’avant, maillon suspendu compris').toBe(false);
+    } finally {
+      unsub();
+    }
   });
 
   it('(viii) TIR RAPIDE d’INTERRUPTION sur un porteur de sauvegarde : la cascade-hôte n’est pas détruite, et le tour n’avance pas', () => {
