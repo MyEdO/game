@@ -239,13 +239,13 @@ export function entreeDeFusion(depot, { parents, commune, juges }, lireLaFusion)
  * `null` = l'OBJET demandé n'existe pas (le contrat des lecteurs d'image) ; une INDISPONIBILITÉ de
  * git est rendue à part (`indisponible`), et l'appelant la NOMME : une plage illisible ne se juge
  * pas, elle se dit.
- * @param {{ cwd?: string, debut: string, fin: string, vers?: string | null }} p
+ * @param {{ cwd?: string, debut: string, fin: string, vers?: string | null, dossierDesMemos?: string }} p
  * `commits` nul : la plage ne se lit pas. `pannes` reçoit les indisponibilités de git, lecture comprise.
  * `troncDesEres` = le tronc que la plage exclut, contre lequel se mesure l'ère de ses commits : `debut` d'un
  * push vers le tronc, `TRONC.suivi` sinon (#2503). `sauverLesMemos` écrit les mémos d'analyse (`memosDAnalyse`), une fois les `cotes()` jugées.
  * @returns {{ depot: import('./gitPorte.mjs').Depot, commits: object[] | null, cumul: { fichier: string, parCle: Map<string, number> }[], notes: string[], plage: string, pannes: string[], troncDesEres?: string, sauverLesMemos?: () => void }}
  */
-export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null } = {}) {
+export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null, dossierDesMemos } = {}) {
   const pannes = []
   const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
   const notes = []
@@ -270,7 +270,7 @@ export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null 
   }
   const messages = new Map((journalDe(depot, revisions) ?? []).map((c) => [c.sha, c.message]))
   const texteA = (arbre) => (f) => lireEnLot(depot, arbre, [f]).get(f) ?? null
-  const { specificateurs, sauver: sauverLesMemos } = memosDAnalyse(depot, { racine: cwd })
+  const { specificateurs, sauver: sauverLesMemos } = memosDAnalyse(depot, { racine: cwd, dossierDesMemos })
   let commits
   try {
     commits = shas.map((sha) => {

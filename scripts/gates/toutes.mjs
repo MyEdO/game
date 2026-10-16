@@ -175,7 +175,8 @@ export const ECRIT_LU = {
       '`instanceDeDepot` sous os.tmpdir() ; ' +
       '`guards/lib/cssImages.test.mjs` (#2603) sauve les mémos d’analyse sous `.git/hooks-git/memos-analyse/` de dépôts ' +
       '`instanceDeDepot` sous os.tmpdir(), retirés en finally ; `guards/lib/memosDAnalyse.test.mjs` (#2603) écrit ses mémos ' +
-      'sous des `mkdtempSync` d’os.tmpdir(), retirés par `t.after` ; +3 écrivains le ' +
+      'sous des `mkdtempSync` d’os.tmpdir(), retirés par `t.after` ; `hooks/stocks-nominatifs.test.mjs` (#2603, 2026-10-16) ' +
+      'sauve les mémos d’analyse de la plage du dépôt réel sous un `mkdtempSync` d’os.tmpdir(), retiré par `t.after` ; +3 écrivains le ' +
       '2026-09-30 (#2132) : `hooks/suivi-lien-guard.test.mjs` et `hooks/inject-suivi.test.mjs` forgent un dépôt ' +
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
       '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, et `ops/suiviFichiers.mjs` (#2460), son écriture atomique, n’écrivent que derrière sa porte ' +

@@ -111,18 +111,24 @@ export function specificateursMemoises(memos, { typesEffaces }) {
 /** Le dossier des mémos d'analyse, sous le répertoire git COMMUN. */
 export const DOSSIER_DES_MEMOS = 'hooks-git/memos-analyse'
 
+/** `<git-common-dir>/DOSSIER_DES_MEMOS` du dépôt, ou `''` sans répertoire commun. @param {import('./gitPorte.mjs').Depot} depot */
+function dossierParDefaut(depot) {
+  const commun = dossierGitCommun(depot)
+  return commun.disponible ? join(commun.valeur, DOSSIER_DES_MEMOS) : ''
+}
+
 /** @typedef {{ lire: (abs: string, texte: string) => { spec: string, nature: string }[] | undefined,
  *   ecrire: (abs: string, texte: string, sites: any[]) => void }} Specificateurs */
 
 /**
  * Les mémos d'analyse PAR FICHIER du dépôt `depot` : les spécificateurs NON RÉSOLUS d'un texte, sous le régime de
- * typage (`specificateursMemoises`), signés par `versionDesMemos` de `racine`, sous `<git-common-dir>/DOSSIER_DES_MEMOS` ;
- * `sauver`, UNE fois par geste, les écrit (`memosDe`). Sans répertoire commun, ceux du seul processus.
- * @param {import('./gitPorte.mjs').Depot} depot @param {{ racine?: string }} [options]
+ * typage (`specificateursMemoises`), signés par `versionDesMemos` de `racine`, sous `dossierDesMemos`, par défaut
+ * `<git-common-dir>/DOSSIER_DES_MEMOS` ; `sauver`, UNE fois par geste, les écrit (`memosDe`). Sans répertoire commun,
+ * ceux du seul processus.
+ * @param {import('./gitPorte.mjs').Depot} depot @param {{ racine?: string, dossierDesMemos?: string }} [options]
  * @returns {{ specificateurs: Specificateurs, sauver: () => void }}
  */
-export function memosDAnalyse(depot, { racine = depot.cwd } = {}) {
-  const commun = dossierGitCommun(depot)
-  const memos = memosDe(commun.disponible ? join(commun.valeur, DOSSIER_DES_MEMOS) : '', versionDesMemos(racine))
+export function memosDAnalyse(depot, { racine = depot.cwd, dossierDesMemos = dossierParDefaut(depot) } = {}) {
+  const memos = memosDe(dossierDesMemos, versionDesMemos(racine))
   return { specificateurs: specificateursMemoises(memos, { typesEffaces: false }), sauver: memos.sauver }
 }

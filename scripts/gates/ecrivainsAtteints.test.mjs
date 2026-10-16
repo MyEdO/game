@@ -41,6 +41,9 @@ const ATTENDU = {
     'scripts/git-hooks/reconstruction.mjs',
     'scripts/guards/lib/cssImages.test.mjs',
     'scripts/guards/lib/memosDAnalyse.test.mjs',
+    // +1 le 2026-10-16 (#2603) : les mémos d'analyse de la plage sous un `mkdtempSync` d'os.tmpdir(), retiré par
+    // `t.after` ; ni l'arbre ni le répertoire git ne sont écrits.
+    'scripts/hooks/stocks-nominatifs.test.mjs',
     'scripts/guards/lib/patchCodex.test.mjs',
     'scripts/gates/testsSansEcriture.test.mjs',
     // #2489 : bancs Vitest et génération sous os.tmpdir() ; rapports périmètre relayés
