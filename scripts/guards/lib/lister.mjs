@@ -84,6 +84,11 @@ export const correspondGlob = (chemin, motif) => {
   return expression.test(String(chemin ?? '').replace(/\\/g, '/'))
 }
 
+/** Ce chemin est-il couvert par ce PATHSPEC git nu (sans magie, sans `?` ni `[…]`) ? `fnmatch` sans
+ *  `FNM_PATHNAME` : `*` traverse `/` ; un dossier couvre ce qu'il contient ; `''` couvre tout. */
+export const couvertParPathspec = (chemin, spec) =>
+  new RegExp(`^${spec.split('*').map((morceau) => morceau.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*')}${spec === '' ? '' : '(?:/|$)'}`).test(chemin)
+
 /**
  * Chemins RELATIFS POSIX des FICHIERS sous `dir`, à toute profondeur : dossiers parcourus dans
  * l'ordre trié ET résultat trié (le tri final décide, la marche ne fait que le rendre lisible).

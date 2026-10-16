@@ -360,3 +360,44 @@ test('le compteur de rejets voyage avec la mesure fusionnée (un rejet muet = un
     rmSync(sortie, { recursive: true, force: true })
   }
 })
+
+// #2603
+test('canaux bouchés : lstat, access, opendir, readdir à rappel, glob (synchrone, à rappel, promesse) et lecture d’un absent (readFileSync, openSync, promises.readFile) laissent leur trace', async () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'canaux-'))
+  mkdirSync(path.join(racine, 'a/b'), { recursive: true })
+  mkdirSync(path.join(racine, 'o'))
+  mkdirSync(path.join(racine, 'r'))
+  mkdirSync(path.join(racine, 'p'))
+  writeFileSync(path.join(racine, 'a/b/x.md'), 'x')
+  writeFileSync(path.join(racine, 'f.md'), 'x')
+  const c = installer({ racine, ignores: new Set() })
+  try {
+    fs.lstatSync(path.join(racine, 'f.md'))
+    await fs.promises.lstat(path.join(racine, 'a'))
+    assert.throws(() => fs.accessSync(path.join(racine, 'absent.md')), { code: 'ENOENT' })
+    /* eslint-disable murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé */
+    fs.opendirSync(path.join(racine, 'o')).closeSync()
+    await (await fs.promises.opendir(path.join(racine, 'p'))).close()
+    await new Promise((fin, echec) => fs.readdir(path.join(racine, 'r'), (e) => (e ? echec(e) : fin())))
+    assert.deepEqual(fs.globSync('a/**/*.md', { cwd: racine }).map((p) => p.split(path.sep).join('/')), ['a/b/x.md'])
+    assert.deepEqual(fs.globSync('neuf/*.md', { cwd: racine }), [])
+    assert.deepEqual(await new Promise((fin, echec) => fs.glob('rappel/*.md', { cwd: racine }, (e, r) => (e ? echec(e) : fin(r)))), [])
+    assert.deepEqual(await Array.fromAsync(fs.promises.glob('promesse/*.md', { cwd: racine })), [])
+    /* eslint-enable murs/ordre-total */
+    assert.throws(() => fs.readFileSync(path.join(racine, 'lu-absent.md')), { code: 'ENOENT' })
+    assert.throws(() => fs.openSync(path.join(racine, 'ouvert-absent.md'), 'r'), { code: 'ENOENT' })
+    await assert.rejects(fs.promises.readFile(path.join(racine, 'promis-absent.md')), { code: 'ENOENT' })
+    const { sondes, dossiers } = c.rendu()
+    assert.ok(sondes.some((s) => s.chemin === 'f.md' && s.type === 'lstat' && s.nature === 'file'))
+    assert.ok(sondes.some((s) => s.chemin === 'a' && s.type === 'lstat' && s.nature === 'directory'))
+    assert.ok(sondes.some((s) => s.chemin === 'absent.md' && s.type === 'access' && !s.existe))
+    assert.ok(sondes.some((s) => s.chemin === 'lu-absent.md' && s.type === 'stat' && !s.existe && s.code === 'ENOENT'))
+    assert.ok(sondes.some((s) => s.chemin === 'neuf' && s.type === 'exists' && !s.existe))
+    for (const d of ['rappel', 'promesse']) assert.ok(sondes.some((s) => s.chemin === d && s.type === 'exists' && !s.existe), `glob ${d} non mesuré`)
+    for (const f of ['ouvert-absent.md', 'promis-absent.md']) assert.ok(sondes.some((s) => s.chemin === f && s.type === 'stat' && !s.existe && s.code === 'ENOENT'), `échec ${f} non mesuré`)
+    for (const d of ['o', 'p', 'r', 'a', 'a/b']) assert.ok(Object.hasOwn(dossiers, d), `listing ${d} non mesuré : ${Object.keys(dossiers)}`)
+  } finally {
+    c.restaurer()
+    rmSync(racine, { recursive: true, force: true })
+  }
+})

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { accessSync, constants, copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
@@ -140,9 +140,13 @@ function sonde(racine, requete, vue, canon) {
   if (vue) return vue.sondes.get(JSON.stringify(requete))
   const absolu = cheminSous(racine, requete.chemin, canon)
   if (requete.type === 'exists') return { ...requete, existe: existsSync(absolu), nature: null }
-  if (requete.type !== 'stat') throw new Error('type de sonde invalide')
+  if (requete.type === 'access') {
+    try { accessSync(absolu, requete.mode); return { ...requete, existe: true, nature: null } }
+    catch (e) { return { ...requete, existe: false, nature: null, ...(requete.code !== undefined ? { code: e.code } : {}) } }
+  }
+  if (requete.type !== 'stat' && requete.type !== 'lstat') throw new Error('type de sonde invalide')
   try {
-    const stat = statSync(absolu)
+    const stat = (requete.type === 'lstat' ? lstatSync : statSync)(absolu)
     return { ...requete, existe: true, nature: stat.isFile() ? 'file' : stat.isDirectory() ? 'directory' : 'other' }
   } catch (e) {
     return { ...requete, existe: false, nature: null, ...(requete.code !== undefined ? { code: e.code } : {}) }

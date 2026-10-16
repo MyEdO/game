@@ -17,7 +17,8 @@ import {
   attendreLaReconstruction, cheminsDeLaReconstruction, CODE_MORT_SANS_VERDICT, demanderLaReconstruction, demandesDe, passeDesDerives, REJEUX_SUR_SOURCE_MODIFIEE,
   servirLesDemandes,
 } from './reconstruction.mjs'
-import { selectionDesGenerateurs, touchesDocSources } from './selection-des-derives.mjs'
+import { pathspecsDeRequeteGit, selectionDesGenerateurs, touchesDocSources } from './selection-des-derives.mjs'
+import { couvertParPathspec } from '../guards/lib/lister.mjs'
 import { gitDe, resultatDeGit } from '../test/gitDeBanc.mjs'
 import { estPidVivant } from '../test/verrou.mjs'
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -84,14 +85,58 @@ test('une SOURCE LUE, une CIBLE signée, un dossier LISTÉ : les trois font rég
   assert.equal(touchesDocSources(['src\\ui\\Prose.tsx'], MESURE), true)
 })
 
-test('le FRÈRE d’une source lue fait régénérer ; un chemin sans parent mesuré, non', () => {
-  // `notes/lue.md` est mesurée : une voisine AJOUTÉE dans le même dossier alimente le même doc, et
-  // aucun générateur qui énumère sans lister ne le dirait autrement.
-  assert.equal(touchesDocSources(['notes/voisine.md'], MESURE), true)
+test('un FRÈRE simplement voisin d’une source lue ne fait pas régénérer ; la source elle-même, si', () => {
+  assert.equal(touchesDocSources(['notes/voisine.md'], MESURE), false)
   assert.equal(touchesDocSources(['public/x.svg'], MESURE), false)
-  // À la RACINE, le voisinage ne prouve rien : un fichier de racine n'est lu que s'il est mesuré.
   assert.equal(touchesDocSources(['README.md'], { 'g/a.mjs': { cibles: [], fichiers: ['package.json'], dossiers: [] } }), false)
   assert.equal(touchesDocSources(['package.json'], { 'g/a.mjs': { cibles: [], fichiers: ['package.json'], dossiers: [] } }), true)
+})
+
+// #2603
+test('un chemin SONDÉ absent, puis ajouté, fait régénérer ; un descendant d’un dossier sondé aussi', () => {
+  const mesure = { 'g/a.mjs': { cibles: [], fichiers: ['notes/lue.md'], dossiers: [], sondes: [
+    { chemin: 'notes/peut-etre.md', type: 'exists', existe: false, nature: null },
+    { chemin: 'cache', type: 'stat', existe: false, nature: null, code: 'ENOENT' },
+  ] } }
+  assert.equal(touchesDocSources(['notes/peut-etre.md'], mesure), true)
+  assert.equal(touchesDocSources(['cache/neuf/x.json'], mesure), true)
+  assert.equal(touchesDocSources(['notes/autre.md'], mesure), false)
+})
+
+// #2603
+test('un chemin couvert par le pathspec d’une requête `git` mesurée fait régénérer ; `rev-parse --show-toplevel` seul, non', () => {
+  const avecGit = (...git) => ({ 'g/a.mjs': { cibles: [], fichiers: [], dossiers: [], git } })
+  const lsFiles = avecGit({ args: ['ls-files', '.claude/memory/user-*.md'], cwd: '' })
+  assert.equal(touchesDocSources(['.claude/memory/user-neuve.md'], lsFiles), true)
+  assert.equal(touchesDocSources(['.claude/memory/feedback-x.md'], lsFiles), false)
+  const log = avecGit({ args: ['log', '--diff-filter=A', '--format=%as', '-1', '--', 'x/fiche.md'], cwd: 'notes' })
+  assert.equal(touchesDocSources(['notes/x/fiche.md'], log), true)
+  assert.equal(touchesDocSources(['notes/x/voisine.md'], log), false)
+  assert.equal(touchesDocSources(['README.md'], avecGit({ args: ['rev-parse', '--show-toplevel'], cwd: '' })), false)
+  assert.equal(touchesDocSources(['README.md'], avecGit({ args: ['status', '--short'], cwd: '' })), true, 'sans pathspec, la requête dépend de tout l’arbre')
+  assert.equal(touchesDocSources(['README.md'], avecGit({ args: ['ls-files', '-x', 'a', 'b'], cwd: '' })), true, 'une option à valeur rend la portée illisible')
+})
+
+// #2603
+test('pathspecsDeRequeteGit : après `--`, sinon les non-options de `ls-files`, relatifs au cwd ; `null` quand la portée est illisible', () => {
+  assert.deepEqual(pathspecsDeRequeteGit({ args: ['rev-parse', '--show-toplevel'], cwd: '' }), [])
+  assert.deepEqual(pathspecsDeRequeteGit({ args: ['ls-files', '-z', 'a/*.md', 'b'], cwd: 'sous' }), ['sous/a/*.md', 'sous/b'])
+  assert.deepEqual(pathspecsDeRequeteGit({ args: ['log', '-1', '--', '.'], cwd: '' }), [''])
+  assert.equal(pathspecsDeRequeteGit({ args: ['log', '-1'], cwd: '' }), null)
+  assert.equal(pathspecsDeRequeteGit({ args: ['ls-files', ':(glob)a/**'], cwd: '' }), null)
+  for (const [args, lot] of [
+    [['ls-files', '--others', '--exclude-standard', 'notes'], 'notes/.gitignore'],
+    [['ls-files', '--exclude-from=.gitignore', '--ignored', '--others', 'notes'], '.gitignore'],
+    [['check-ignore', '--', 'notes/a.md'], '.gitignore'],
+    [['check-attr', 'diff', '--', 'notes/a.md'], '.gitattributes'],
+    [['log', '--follow', '--format=%H', '--', 'notes/a.md'], 'notes/ancien.md'],
+    [['log', '-M', '--diff-filter=A', '--', 'notes/a.md'], 'notes/ancien.md'],
+  ]) {
+    assert.equal(pathspecsDeRequeteGit({ args, cwd: '' }), null, `${args.join(' ')} : sa sortie dépend d’un fichier hors pathspec`)
+    assert.equal(touchesDocSources([lot], { 'g/a.mjs': { cibles: [], fichiers: [], dossiers: [], git: [{ args, cwd: '' }] } }), true, lot)
+  }
+  assert.equal(couvertParPathspec('a/b/c.md', 'a/*.md'), true, 'le `*` de Git franchit `/`')
+  assert.equal(couvertParPathspec('ab/c.md', 'a'), false)
 })
 
 test('FAIL-CLOSED : lot inconnu ou mesure illisible → on régénère ; lot vide → silence', () => {
@@ -140,8 +185,8 @@ test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur
   const rendues = mesurerEnRendu(MESURES, { cwd: RACINE })
   const mesure = tableTotale(MESURES, (script) => rendues.get(script).entree)
   for (const [script, { fichiers }] of Object.entries(mesure)) assert.ok(fichiers.length > 1, `${script} : mesure aveugle`)
-  // `.claude/memory/user-*.md` alimente `docs/doctrines.md` : une fiche NEUVE compte (frère d'une
-  // source lue), et `.github/workflows` est un dossier mesuré — deux classes hors des préfixes.
+  // `.claude/memory/user-*.md` alimente `docs/doctrines.md` : une fiche NEUVE compte (pathspec de
+  // `git ls-files`), et `.github/workflows` est un dossier mesuré — deux classes hors des préfixes.
   assert.equal(touchesDocSources(['.claude/memory/user-x.md'], mesure), true)
   assert.equal(touchesDocSources(['.github/workflows/ci.yml'], mesure), true)
   assert.equal(touchesDocSources(['tsconfig.json'], mesure), true)
@@ -150,7 +195,7 @@ test('les classes que la liste de préfixes d’avant #1773 RATAIT sont vues sur
   assert.equal(touchesDocSources(['public/galeries.html'], mesure), false)
   // Et les classes que la liste voyait déjà restent vues.
   assert.equal(touchesDocSources(['src/ui/Prose.tsx'], mesure), true)
-  assert.equal(touchesDocSources(['scripts\\raw\\build-implemente.mjs'], mesure), true)
+  assert.equal(touchesDocSources(['scripts\\raw\\_lib.mjs'], mesure), true)
   assert.equal(touchesDocSources(['docs/raw/4e/combat.md'], mesure), true)
 })
 
@@ -288,7 +333,7 @@ test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans d
   const mesure = {
     'g/code.mjs': { fichiers: ['data/code.json'], dossiers: [], cibles: [] },
     'g/a.mjs': { fichiers: ['notes/a.txt'], dossiers: ['notes'], cibles: [doc('a')] },
-    'g/b.mjs': { fichiers: [doc('a')], dossiers: [], cibles: [doc('b')] },
+    'g/b.mjs': { fichiers: [doc('a'), 'lus/b.txt'], dossiers: [], cibles: [doc('b')] },
     'g/c.mjs': { fichiers: ['ailleurs/c.txt'], dossiers: [], cibles: [doc('c')] },
   }
   const selection = (lot, m = mesure) => selectionDesGenerateurs({ lot, mesure: m, cwd: racine, generateurs })
@@ -298,7 +343,11 @@ test('sélection mesurée ferme la chaîne de lecteurs et de préalables, sans d
     assert.deepEqual(selection([doc('a')]).scripts, ['g/a.mjs', 'g/b.mjs'])
     assert.deepEqual(selection(['public/independent.svg']).scripts, [])
     const mixte = [{ ...generateurs[1], targets: [], injecte: [doc('a')] }, ...generateurs.filter((g) => g.script !== 'g/a.mjs')]
-    assert.ok(selectionDesGenerateurs({ lot: ['notes/a.txt'], mesure, cwd: racine, generateurs: mixte }).scripts.includes('g/code.mjs'))
+    assert.deepEqual(selection(['lus/b.txt']).scripts, ['g/b.mjs'], 'un lecteur retenu ne tire pas son producteur aux sources intactes')
+    assert.deepEqual(selectionDesGenerateurs({ lot: ['notes/a.txt'], mesure, cwd: racine, generateurs: mixte }).scripts, ['g/a.mjs', 'g/b.mjs'],
+      'un mixte retenu seul ne tire pas les générateurs de code')
+    assert.deepEqual(selectionDesGenerateurs({ lot: ['data/code.json'], mesure, cwd: racine, generateurs: mixte }).scripts, ['g/a.mjs', 'g/code.mjs', 'g/b.mjs'],
+      'témoin : un générateur de code retenu tire les mixtes (#2193)')
     assert.equal(selection(null).complete, true)
     assert.equal(selection(['notes/a.txt'], { 'g/a.mjs': mesure['g/a.mjs'] }).complete, true)
     assert.equal(selection(['scripts/docs/lib/enregistreur-lectures.mjs']).complete, true)
