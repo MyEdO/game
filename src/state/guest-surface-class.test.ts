@@ -186,6 +186,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   cloreChapitre: HOTE('clôture du chapitre'),
   ajournerChapterRecap: HOTE('clôture du chapitre'),
   chooseDialogue: HOTE('dialogue (jeton unique, #669)'),
+  designerHerosChoisir: HOTE('désignation d’un héros pour un état de campagne (décision de groupe, comme le dialogue)'),
   // ── Interlude : ouverture/clôture et bataille de masse ────────────────────────────────────────
   interludeEnd: HOTE('clôture de l’interlude'),
   interludeEntrainement: HOTE('entraînement (bourse du groupe)'),

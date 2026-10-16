@@ -592,3 +592,46 @@ function message(champ: HTMLInputElement | HTMLSelectElement): string | null {
   if (champ.getAttribute('aria-invalid') !== 'true') return null;
   return document.getElementById(champ.getAttribute('aria-describedby') ?? '')?.textContent ?? null;
 }
+
+describe('NarratifEditor — onglet États de campagne (#2539)', () => {
+  const issue = (): NarratifBlock => ({
+    ...emptyNarratif(),
+    etats: [{ id: 'issue', label: 'Issue', ref: 'EDO 01 l.241', forme: { kind: 'enum', valeurs: [{ id: 'relache', label: 'Relâché' }, { id: 'condamne', label: 'Condamné' }] } }],
+  });
+  const tribunal = (): Scene => ({
+    ...emptyScene(4, 4),
+    id: 'tribunal',
+    label: 'Le tribunal',
+    triggers: [{
+      id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, when: { kind: 'etat', etat: 'issue', value: 'condamne' },
+      flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'poserEtat', etat: 'issue', valeur: 'condamne' } }] },
+    }],
+  });
+  const valeurs = () => [...container.querySelectorAll('label')].filter((l) => l.textContent?.includes('Id de la valeur')).map((l) => l.querySelector('input')!);
+
+  it('ajoute un état ; passer à la forme énumérée lui donne une valeur ; le bloc PARSE', () => {
+    mount();
+    click(btn('États'));
+    click(btn('Ajouter un état'));
+    setValue(field('Référence du passage'), 'EDO 02 l.91');
+    expect(last.etats).toEqual([{ id: 'etat-1', label: 'Nouvel état', ref: 'EDO 02 l.91', forme: { kind: 'heros' } }]);
+    setValue(field('Forme'), 'enum');
+    click(btn('Ajouter une valeur'));
+    expect(last.etats[0].forme).toEqual({ kind: 'enum', valeurs: [{ id: 'valeur-1', label: 'Valeur 1' }, { id: 'valeur-2', label: 'Valeur 2' }] });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
+  it('renommer une valeur propage à la Condition et à l’Effet qui la nomment ; la valeur nommée ne se retire pas', () => {
+    mount(issue(), [tribunal()]);
+    click(btn('États'));
+    expect(btn('Supprimer la valeur 2').getAttribute('aria-disabled')).toBe('true');
+    expect(btn('Supprimer cet état').getAttribute('aria-disabled')).toBe('true');
+    expect((field('Forme') as HTMLSelectElement).disabled, 'la forme d’un état désigné ne change pas').toBe(true);
+    setValue(valeurs()[1], 'pendu');
+    const t = lastProjet.scenes[0].triggers[0];
+    expect(t.when).toEqual({ kind: 'etat', etat: 'issue', value: 'pendu' });
+    expect((t.flow as { steps: { effect: unknown }[] }).steps[0].effect).toEqual({ type: 'poserEtat', etat: 'issue', valeur: 'pendu' });
+    click(btn('Supprimer la valeur 1'));
+    expect(last.etats[0].forme).toEqual({ kind: 'enum', valeurs: [{ id: 'pendu', label: 'Condamné' }] });
+  });
+});

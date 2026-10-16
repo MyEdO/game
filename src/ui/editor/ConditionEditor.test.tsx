@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ConditionEditor, WhenEditor, condSummary, recast } from './ConditionEditor';
 import type { Condition } from '../../state/flow';
+import { emptyNarratif } from '../../state/campaignNarratif';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
 import { readFileSync } from 'node:fs';
@@ -143,5 +144,37 @@ describe('#1318 E1 — la largeur des champs nombre du bloc Condition vit dans l
   it('editor.css borne `.cond-time input[type=number]` à la largeur compacte d’atelier', () => {
     const css = readFileSync(fileURLToPath(new URL('../styles/editor.css', import.meta.url)), 'utf8');
     expect(css).toMatch(/\.cond-time input\[type='number'\][^{]*\{[^}]*width:\s*44px/);
+  });
+});
+
+describe('ConditionEditor — états de campagne (#2539) : offre par USAGE de la forme, libellés résolus', () => {
+  const narratif = {
+    ...emptyNarratif(),
+    etats: [
+      { id: 'sosie', label: 'Le sosie', ref: 'EDO 02 l.91', forme: { kind: 'heros' as const } },
+      { id: 'issue', label: 'Issue du procès', ref: 'EDO 01 l.241', forme: { kind: 'enum' as const, valeurs: [{ id: 'condamne', label: 'Condamné' }] } },
+    ],
+  };
+  const options = (html: string, aria: string): string[] => {
+    const select = html.split(`aria-label="${aria}"`)[1]?.split('</select>')[0] ?? '';
+    return [...select.matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]);
+  };
+
+  it('le sélecteur de héros n’offre que les états qui admettent la sélection ; la valeur comparée, que ceux qui admettent la comparaison', () => {
+    expect(options(renderToStaticMarkup(<ConditionEditor cond={{ kind: 'partyDead', who: 'any' }} narratif={narratif} onChange={() => {}} />), 'Héros visé'))
+      .toEqual([...Object.keys(valeursDe(partyWhoSchema) ?? {}), 'etat:sosie']);
+    expect(renderToStaticMarkup(<ConditionEditor cond={{ kind: 'etat', etat: 'sosie' }} narratif={narratif} onChange={() => {}} />)).not.toContain('Valeur comparée');
+    expect(options(renderToStaticMarkup(<ConditionEditor cond={{ kind: 'etat', etat: 'issue' }} narratif={narratif} onChange={() => {}} />), 'Valeur comparée'))
+      .toEqual(['', 'condamne']);
+  });
+
+  it('sans narratif (racine de catalogue), aucun état n’est offert', () => {
+    expect(options(renderToStaticMarkup(<ConditionEditor cond={{ kind: 'partyDead', who: 'any' }} onChange={() => {}} />), 'Héros visé'))
+      .toEqual(Object.keys(valeursDe(partyWhoSchema) ?? {}));
+  });
+
+  it('condSummary nomme l’état et la valeur par leur LIBELLÉ', () => {
+    expect(condSummary({ kind: 'etat', etat: 'issue', value: 'condamne' }, narratif)).toBe('état « Issue du procès » = Condamné');
+    expect(condSummary({ kind: 'partyDead', who: { etat: 'sosie' } }, narratif)).toBe('héros désigné « Le sosie » mort');
   });
 });

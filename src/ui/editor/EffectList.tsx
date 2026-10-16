@@ -25,7 +25,8 @@ import { FlowEditor } from './FlowEditor';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { GameOpEditor, opSummary } from './GameOpEditor';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
-import { RefField, RefNarrativeField, entreesDeStades, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/RefField';
+import { RefField, RefNarrativeField, SOURCE_NARRATIVE, entreesDeStades, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/RefField';
+import { etatsAdmettant, libelleDeValeurDEtat, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { NumberField } from '../NumberField';
@@ -132,6 +133,10 @@ export interface Ctx {
   narratif?: NarratifBlock;
 }
 
+/** L'USAGE d'état que fait chaque Effet à état (`FORMES_D_ETAT`) : son sélecteur n'offre que les états
+ *  dont la forme l'admet. */
+const USAGE_DE_L_EFFET = { poserEtat: 'poser', designerHeros: 'designer' } as const satisfies Partial<Record<Effect['type'], UsageDEtat>>;
+
 /** Les objets du projet que lit `giveTrapping` : ceux du narratif, aucun à une racine de catalogue. */
 const AUCUN_OBJET: readonly TrappingData[] = [];
 const objetsDuProjet = (ctx: Pick<Ctx, 'narratif'>): readonly TrappingData[] => ctx.narratif?.objets ?? AUCUN_OBJET;
@@ -204,6 +209,8 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
   switch (effect.type) {
     case 'journal': return `Journal : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}`;
     case 'setFlag': return `Flag ${e.flag || '?'} = ${e.value === false ? 'faux' : 'vrai'}`;
+    case 'poserEtat': return `État ${ref('etat', e.etat)} = ${e.valeur ? libelleDeValeurDEtat(ctx.narratif?.etats, e.etat, e.valeur) : '?'}`;
+    case 'designerHeros': return `Désigner un héros : ${ref('etat', e.etat)}`;
     case 'setObjective': return `Objectif [${e.id || '?'}] : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}${hasSchedule(e) ? ` (échéance ${scheduleSummary(e)})` : ''}`;
     case 'clearObjective': return e.id ? `Retirer l'objectif [${e.id}]` : `Retirer tous les objectifs`;
     case 'document': return `Document : ${ref('documentId', e.documentId)}`;
@@ -382,6 +389,28 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {TYPES_A_REF_NARRATIVE.has(effect.type) && !ctx.narratif && (
           <p className="hint">Ce catalogue ne connaît aucune campagne : cet Effet ne s’y pose pas.</p>
+        )}
+        {(effect.type === 'poserEtat' || effect.type === 'designerHeros') && ctx.narratif && (
+          <RefField
+            cfg={{ entrees: etatsAdmettant(ctx.narratif.etats, USAGE_DE_L_EFFET[effect.type]).map((x) => ({ id: x.id, label: x.label })), nom: SOURCE_NARRATIVE.etats }}
+            label="État de campagne"
+            value={e.etat ?? ''}
+            onChange={(v) => upd(effect.type === 'poserEtat' ? { etat: typeof v === 'string' ? v : '', valeur: '' } : { etat: typeof v === 'string' ? v : '' })}
+          />
+        )}
+        {effect.type === 'poserEtat' && ctx.narratif && (
+          <RefField
+            cfg={{ entrees: valeursDeclarees(ctx.narratif.etats.find((x) => x.id === e.etat)).map((v) => ({ id: v.id, label: v.label })), nom: 'valeurs de l’état' }}
+            label="Valeur posée"
+            value={e.valeur ?? ''}
+            onChange={(v) => upd({ valeur: typeof v === 'string' ? v : '' })}
+          />
+        )}
+        {effect.type === 'designerHeros' && (
+          <>
+            <ProseField label="Invite de la désignation" value={effect.invite ?? ''} onChange={(invite) => upd({ invite: invite || undefined })} />
+            <ProvenanceDuTexte copie identite={identite} sujet="de l'invite" value={effect} onChange={upd} />
+          </>
         )}
         {effect.type === 'document' && ctx.narratif && (
           <RefNarrativeField cle="documentId" narratif={ctx.narratif} label="Document remis" value={e.documentId} onChange={(documentId) => upd({ documentId: documentId ?? '' })} />

@@ -55,10 +55,12 @@ function arriver(lieu: string): void {
   expect(map.places.find((p) => p.scene === get().scene?.id)?.id, `arrivée à ${lieu}`).toBe(lieu);
 }
 
-/** Au virage : le corps de Kastor se fouille (`edo-ch1-corps-kastor-fouille` ouvre le tronçon 2). */
+/** Au virage : le corps de Kastor se fouille, le sosie se désigne (EDO 02 l.91), puis
+ *  `edo-ch1-corps-kastor-fouille` ouvre le tronçon 2. */
 function fouillerLeCorps(): void {
   get().moveParty({ x: 36, y: 3 });
   get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
+  get().designerHerosChoisir(get().party[0].id);
 }
 
 /** Le tarif d'auteur du billet, tel que l'offre de départ le lit. */

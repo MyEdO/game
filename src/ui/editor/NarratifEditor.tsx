@@ -8,7 +8,8 @@ import { isSwarm } from '../../engine/traits/dispatch';
 import { mergeCreatureProfile } from '../../state/campaignData';
 import { charAbr, creatures, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
-import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNarratif, OuvertureBlock, ClotureBlock, AmbianceCadre, EcartDeFiche } from '../../state/campaignNarratif';
+import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNarratif, EtatNarratif, OuvertureBlock, ClotureBlock, AmbianceCadre, EcartDeFiche } from '../../state/campaignNarratif';
+import { FORMES_D_ETAT, valeursDeclarees, type FormeDEtatKind } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { SourceRefField, useSaisieEnCours } from '../SourceRefField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { ProseField } from '../ProseField';
@@ -32,11 +33,11 @@ import { Stack } from '../Layout';
 
 /**
  * Éditeur du bloc NARRATIF d'un paquet de campagne (#765) — overlay plein-champ (`ScreenShell`, même
- * coquille que la Carte du monde). Les onglets Affaires/Indices (#670), Documents (#679) et PNJ (#671
- * lot B) sont ÉDITABLES ; l'onglet Objets reste en lecture. Frontière RÉFÉRENCE vs NARRATIF : ces entrées
+ * coquille que la Carte du monde). Les onglets Affaires/Indices (#670), Documents (#679), PNJ (#671
+ * lot B) et États (#2539) sont ÉDITABLES ; l'onglet Objets reste en lecture. Frontière RÉFÉRENCE vs NARRATIF : ces entrées
  * référencent la règle globale PAR ID.
  */
-type NarratifTab = 'cadre' | 'affaires' | 'indices' | 'documents' | 'presetsPnj' | 'objets' | 'ecartes';
+type NarratifTab = 'cadre' | 'affaires' | 'indices' | 'documents' | 'etats' | 'presetsPnj' | 'objets' | 'ecartes';
 
 /** Liste des créatures globales (base d'un preset), triée par libellé — patron `Inspector.tsx`. */
 const optionsDeCreature = memoParVersion('creatures', () => [...creatures].map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)));
@@ -146,6 +147,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   const [selAffaireId, setSelAffaireId] = useState<string | null>(narratif.affaires[0]?.id ?? null);
   const [selIndiceId, setSelIndiceId] = useState<string | null>(narratif.indices[0]?.id ?? null);
   const [selDocumentId, setSelDocumentId] = useState<string | null>(narratif.documents[0]?.id ?? null);
+  const [selEtatId, setSelEtatId] = useState<string | null>(narratif.etats[0]?.id ?? null);
 
   const poserNarratif = (n: NarratifBlock) => onChange?.({ ...projet, narratif: n });
 
@@ -258,14 +260,17 @@ export function NarratifEditor({ projet, onChange, onClose }: {
     if (selIndiceId === id) setSelIndiceId(nextId);
   };
 
-  /** Renomme le stade `from` de l'indice `indiceId` en `nextId` — un id libre DANS l'indice, que
-   *  `ChampIdStable` seul émet — et le propage aux Effects qui le désignent. */
-  const renameStade = (indiceId: string, from: string, nextId: string) => {
-    const cible: CibleNarrative = { registre: 'indices', id: indiceId, stade: from };
+  /** Renomme la sous-entrée `from` (stade d'un indice, valeur d'un état) de l'entrée `id` du `registre` en
+   *  `nextId` — un id libre DANS l'entrée, que `ChampIdStable` seul émet — et le propage à toute référence
+   *  du projet (`renommeRef`) ; `renomme` réécrit l'entrée elle-même. */
+  const renommeSousEntree = <R extends 'indices' | 'etats'>(registre: R, id: string, from: string, nextId: string, renomme: (e: NarratifBlock[R][number]) => NarratifBlock[R][number]) => {
+    const cible: CibleNarrative = { registre, id, sous: from };
     const p = renommeRef(projet, cible, nextId);
-    const indices = p.narratif.indices.map((i) => (i.id === indiceId ? { ...i, stades: i.stades.map((s) => (s.id === from ? { ...s, id: nextId } : s)) } : i));
-    onChange?.({ ...p, narratif: { ...p.narratif, indices } }, { cible, nouveau: nextId });
+    const liste = (p.narratif[registre] as readonly NarratifBlock[R][number][]).map((e) => (e.id === id ? renomme(e) : e));
+    onChange?.({ ...p, narratif: { ...p.narratif, [registre]: liste } }, { cible, nouveau: nextId });
   };
+  const renameStade = (indiceId: string, from: string, nextId: string) =>
+    renommeSousEntree('indices', indiceId, from, nextId, (i) => ({ ...i, stades: i.stades.map((s) => (s.id === from ? { ...s, id: nextId } : s)) }));
 
   const selectedIndice = narratif.indices.find((i) => i.id === selIndiceId) ?? null;
 
@@ -293,6 +298,27 @@ export function NarratifEditor({ projet, onChange, onClose }: {
 
   const selectedDocument = narratif.documents.find((d) => d.id === selDocumentId) ?? null;
 
+  const setEtats = (etats: EtatNarratif[]) => poserNarratif({ ...narratif, etats });
+  const addEtat = () => {
+    const id = idFrais('etat', narratif.etats, entreesDuNarratif(narratif));
+    setEtats([...narratif.etats, { id, label: 'Nouvel état', ref: '', forme: formeNeuve('heros') }]);
+    setSelEtatId(id);
+  };
+  const removeEtat = (id: string) => {
+    retireEntree('etats', id);
+    if (selEtatId === id) setSelEtatId(null);
+  };
+  const updateEtat = (id: string, patch: Partial<EtatNarratif>) => setEtats(narratif.etats.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  const renameEtat = (id: string, nextId: string) => {
+    renommeEntree('etats', id, nextId);
+    if (selEtatId === id) setSelEtatId(nextId);
+  };
+  const renameValeur = (etatId: string, from: string, nextId: string) =>
+    renommeSousEntree('etats', etatId, from, nextId, (x) => (FORMES_D_ETAT[x.forme.kind].valeursDeclarees
+      ? { ...x, forme: { ...x.forme, valeurs: valeursDeclarees(x).map((v) => (v.id === from ? { ...v, id: nextId } : v)) } as EtatNarratif['forme'] }
+      : x));
+  const selectedEtat = narratif.etats.find((x) => x.id === selEtatId) ?? null;
+
   const setOuverture = (ouverture: OuvertureBlock | undefined) => poserNarratif({ ...narratif, ouverture });
   const setCloture = (cloture: ClotureBlock | undefined) => poserNarratif({ ...narratif, cloture });
   const setEcartes = (ecartes: EcartDeFiche[] | undefined) => poserNarratif({ ...narratif, ecartes });
@@ -302,6 +328,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
     { key: 'affaires', label: 'Affaires', count: narratif.affaires.length },
     { key: 'indices', label: 'Indices', count: narratif.indices.length },
     { key: 'documents', label: 'Documents', count: narratif.documents.length },
+    { key: 'etats', label: 'États', count: narratif.etats.length },
     { key: 'presetsPnj', label: 'PNJ', count: narratif.presetsPnj.length },
     { key: 'objets', label: 'Objets', count: narratif.objets.length },
     { key: 'ecartes', label: 'Écarts', count: narratif.ecartes?.length ?? 0 },
@@ -316,6 +343,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
     >
       {tab === 'cadre' && (
         <CadreForm
+          narratif={narratif}
           ouverture={narratif.ouverture}
           cloture={narratif.cloture}
           onOuverture={setOuverture}
@@ -390,7 +418,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
                   onRename={(nextId) => renameIndice(selectedIndice.id, nextId)}
                   onPatch={(patch) => updateIndice(selectedIndice.id, patch)}
                   onRenameStade={(from, nextId) => renameStade(selectedIndice.id, from, nextId)}
-                  refusDeStade={(stade) => raisonDeRefus(projet, { registre: 'indices', id: selectedIndice.id, stade })}
+                  refusDeStade={(stade) => raisonDeRefus(projet, { registre: 'indices', id: selectedIndice.id, sous: stade })}
                   refus={raisonDeRefus(projet, { registre: 'indices', id: selectedIndice.id })}
                   onRemove={() => removeIndice(selectedIndice.id)}
                 />
@@ -427,6 +455,41 @@ export function NarratifEditor({ projet, onChange, onClose }: {
                   onRemove={() => removeDocument(selectedDocument.id)}
                 />
               : <p className="empty">Sélectionnez un document à éditer, ou ajoutez-en un.</p>
+          }
+        />
+      )}
+      {tab === 'etats' && (
+        <MasterDetail
+          listLabel="États de campagne"
+          list={
+            <>
+              {narratif.etats.length === 0
+                ? <p className="empty">Aucun état de campagne dans cette campagne.</p>
+                : narratif.etats.map((x) => (
+                    <ListRow key={x.id} selected={x.id === selEtatId} onClick={() => setSelEtatId(x.id)} label={x.label} subtitle={x.id}>
+                      <span className="chip">{FORMES_D_ETAT[x.forme.kind].label}</span>
+                    </ListRow>
+                  ))}
+            </>
+          }
+          action={
+            <button type="button" className="btn small" onClick={addEtat}>
+              <Icon id="ui/add" size="sm" /> Ajouter un état
+            </button>
+          }
+          detail={
+            selectedEtat
+              ? <EtatForm
+                  etat={selectedEtat}
+                  porteurDe={porteurDe('etats', selectedEtat.id)}
+                  refus={raisonDeRefus(projet, { registre: 'etats', id: selectedEtat.id })}
+                  refusDeValeur={(valeur) => raisonDeRefus(projet, { registre: 'etats', id: selectedEtat.id, sous: valeur })}
+                  onRename={(nextId) => renameEtat(selectedEtat.id, nextId)}
+                  onRenameValeur={(from, nextId) => renameValeur(selectedEtat.id, from, nextId)}
+                  onPatch={(patch) => updateEtat(selectedEtat.id, patch)}
+                  onRemove={() => removeEtat(selectedEtat.id)}
+                />
+              : <p className="empty">Sélectionnez un état à éditer, ou ajoutez-en un.</p>
           }
         />
       )}
@@ -478,7 +541,9 @@ export function NarratifEditor({ projet, onChange, onClose }: {
 
 /** CADRE du chapitre (#717) : l'ouverture cérémonielle et la clôture. La Condition de clôture est
  *  bornée aux kinds évaluables hors combat (`CONDITION_KINDS_CARTE`), comme un `when` de carte. */
-function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
+function CadreForm({ narratif, ouverture, cloture, onOuverture, onCloture }: {
+  /** Les états de campagne qu'une clôture peut lire. */
+  narratif: NarratifBlock;
   ouverture?: OuvertureBlock;
   cloture?: ClotureBlock;
   onOuverture: (o: OuvertureBlock | undefined) => void;
@@ -542,7 +607,7 @@ function CadreForm({ ouverture, cloture, onOuverture, onCloture }: {
           {cloture.sousTitre && <ProvenanceDuTexte copie identite="cloture/sous-titre" sujet="du sous-titre de la clôture" value={cloture.sousTitre} onChange={(patch) => patchClo({ sousTitre: { ...cloture.sousTitre!, ...patch } })} />}
           <div className="ed-field">
             Condition de clôture
-            <ConditionEditor cond={cloture.when} kinds={CONDITION_KINDS_CARTE} onChange={(when) => patchClo({ when })} />
+            <ConditionEditor cond={cloture.when} kinds={CONDITION_KINDS_CARTE} narratif={narratif} onChange={(when) => patchClo({ when })} />
           </div>
           <button type="button" className="btn small danger" onClick={() => onCloture(undefined)}>
             <Icon id="ui/delete" size="sm" /> Retirer la clôture
@@ -597,6 +662,78 @@ function DocumentForm({ porteur, doc, porteurDe, refus, onRename, onPatch, onRem
       <ProseField label="Texte (verbatim de la source, Markdown)" value={doc.prose} onChange={(prose) => onPatch({ prose })} />
       <SourceRefField identite={porteur} label="Source" facultative sujet="du document" value={doc.source} onChange={(source) => onPatch({ source })} />
       <BoutonRetirer id={`supprimer-document-${doc.id}`} libelle="Supprimer ce document" refus={refus} onRemove={onRemove} />
+    </div>
+  );
+}
+
+/** La forme NEUVE d'un état de forme `kind` : une forme à valeurs déclarées en porte une, que l'auteur renomme. */
+function formeNeuve(kind: FormeDEtatKind): EtatNarratif['forme'] {
+  return (FORMES_D_ETAT[kind].valeursDeclarees ? { kind, valeurs: [{ id: 'valeur-1', label: 'Valeur 1' }] } : { kind }) as EtatNarratif['forme'];
+}
+
+/** Formulaire d'un ÉTAT DE CAMPAGNE (#2539) : identité, libellé, réf nue du passage, forme (`FORMES_D_ETAT`)
+ *  et, pour une forme qui les déclare, ses valeurs (id stable + libellé). Changer de forme est refusé tant
+ *  qu'une référence désigne l'état (l'usage qu'elle en fait dépend de la forme). */
+function EtatForm({ etat, porteurDe, refus, refusDeValeur, onRename, onRenameValeur, onPatch, onRemove }: {
+  etat: EtatNarratif;
+  porteurDe: (candidat: string) => string | null;
+  refus: string | undefined;
+  /** Raison qui refuse de retirer cette valeur (des références la nomment), ou `undefined`. */
+  refusDeValeur: (valeur: string) => string | undefined;
+  onRename: (nextId: string) => void;
+  /** Renomme une valeur ET propage le renommage aux références qui la nomment. */
+  onRenameValeur: (from: string, nextId: string) => void;
+  onPatch: (patch: Partial<EtatNarratif>) => void;
+  onRemove: () => void;
+}) {
+  const valeurs = valeursDeclarees(etat);
+  const clesValeurs = useClesDeRangees(valeurs);
+  const setValeurs = (vs: readonly { id: string; label: string }[]) => onPatch({ forme: { ...etat.forme, valeurs: [...vs] } as EtatNarratif['forme'] });
+  /** Une forme à valeurs en garde au moins une ; une valeur nommée par une référence ne se retire pas. */
+  const refusDuRetrait = (id: string): string | undefined => (valeurs.length <= 1 ? 'Un état énuméré garde au moins une valeur.' : refusDeValeur(id));
+  const valeurPorteuse = (soi: string, candidat: string): string | null => {
+    const j = valeurs.findIndex((v) => v.id !== soi && v.id === candidat);
+    return j >= 0 ? `la valeur ${j + 1}` : null;
+  };
+  return (
+    <div>
+      <ChampIdStable libelle="Identifiant (id stable)" value={etat.id} porteurDe={porteurDe} onRename={onRename} />
+      <label className="ed-field">
+        Libellé
+        <input value={etat.label} onChange={(e) => onPatch({ label: e.target.value })} />
+      </label>
+      <label className="ed-field">
+        Référence du passage (ex. EDO 02 l.91)
+        <input value={etat.ref} onChange={(e) => onPatch({ ref: e.target.value })} />
+      </label>
+      <label className="ed-field">
+        Forme
+        <select value={etat.forme.kind} disabled={!!refus} title={refus} onChange={(e) => onPatch({ forme: formeNeuve(e.target.value as FormeDEtatKind) })}>
+          {(Object.keys(FORMES_D_ETAT) as FormeDEtatKind[]).map((k) => <option key={k} value={k}>{FORMES_D_ETAT[k].label}</option>)}
+        </select>
+      </label>
+      {FORMES_D_ETAT[etat.forme.kind].valeursDeclarees && (
+        <div className="ed-field">
+          <span>Valeurs</span>
+          {valeurs.map((v, idx) => (
+            <div key={clesValeurs[idx]}>
+              <ChampIdStable
+                libelle={`Id de la valeur ${idx + 1}`} className="ed-subfield" value={v.id}
+                porteurDe={(c) => valeurPorteuse(v.id, c)} onRename={(id) => onRenameValeur(v.id, id)}
+              />
+              <label className="ed-subfield">
+                {`Libellé de la valeur ${idx + 1}`}
+                <input value={v.label} onChange={(e) => setValeurs(valeurs.map((x) => (x.id === v.id ? { ...x, label: e.target.value } : x)))} />
+              </label>
+              <BoutonRetirer id={`supprimer-valeur-${etat.id}-${v.id}`} libelle={`Supprimer la valeur ${idx + 1}`} refus={refusDuRetrait(v.id)} onRemove={() => setValeurs(valeurs.filter((x) => x.id !== v.id))} />
+            </div>
+          ))}
+          <button type="button" className="btn small" onClick={() => setValeurs([...valeurs, { id: idFrais('valeur', valeurs), label: `Valeur ${valeurs.length + 1}` }])}>
+            <Icon id="ui/add" size="sm" /> Ajouter une valeur
+          </button>
+        </div>
+      )}
+      <BoutonRetirer id={`supprimer-etat-${etat.id}`} libelle="Supprimer cet état" refus={refus} onRemove={onRemove} />
     </div>
   );
 }

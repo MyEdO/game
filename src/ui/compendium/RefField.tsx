@@ -374,6 +374,7 @@ export const LIBELLE_NARRATIF: { readonly [R in CleDeRegistreNarratif]: (e: Narr
   presetsPnj: (p) => p.profil?.label ?? (p.base ? creatureLabel(p.base) : p.id),
   objets: (o) => o.label,
   documents: (d) => d.titre,
+  etats: (e) => e.label,
 };
 
 /** Les stades de l'indice `indiceId`, chacun libellé par son RANG (« stade 2 », comme au formulaire de
@@ -392,6 +393,7 @@ export const SOURCE_NARRATIVE: { readonly [R in RegistreReference]: string } = {
   indices: 'indices de la campagne',
   presetsPnj: 'PNJ de la campagne',
   documents: 'documents de la campagne',
+  etats: 'états de la campagne',
 };
 
 /** Les entrées (id + libellé) du registre que désigne `cle`, lu à `REFERENCES_NARRATIVES`. */

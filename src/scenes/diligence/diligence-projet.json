@@ -2599,6 +2599,16 @@
    }
   ],
   "objets": [],
+  "etats": [
+   {
+    "id": "campagne-sosie-heros",
+    "label": "Le sosie de Kastor Lieberung",
+    "ref": "EDO 02 l.91",
+    "forme": {
+     "kind": "heros"
+    }
+   }
+  ],
   "documents": [
    {
     "id": "edo-document-1-on-recherche",
@@ -20812,6 +20822,31 @@
           {
            "kind": "do",
            "effect": {
+            "type": "journal",
+            "desc": "Sous un buisson, un peu à l’écart de la diligence renversée, gît un autre corps : deux carreaux d’arbalète dans le dos, des vêtements de citadin.",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 26,
+             "note": "EDO 02 l.79 · l.89"
+            }
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
+            "type": "designerHeros",
+            "etat": "campagne-sosie-heros",
+            "invite": "En retournant le cadavre, vous découvrez avec stupeur qu’il est le sosie de l’un d’entre vous. Lequel ?",
+            "adapteDe": {
+             "book": "ennemi-dans-l-ombre",
+             "page": 26,
+             "note": "EDO 02 l.91"
+            }
+           }
+          },
+          {
+           "kind": "do",
+           "effect": {
             "type": "setFlag",
             "flag": "edo-ch1-corps-kastor-fouille"
            }
@@ -20821,18 +20856,6 @@
            "effect": {
             "type": "clearObjective",
             "id": "edo-ch1-embuscade"
-           }
-          },
-          {
-           "kind": "do",
-           "effect": {
-            "type": "journal",
-            "desc": "Sous un buisson, un peu à l’écart de la diligence renversée, gît un autre corps : deux carreaux d’arbalète dans le dos, des vêtements de citadin.",
-            "adapteDe": {
-             "book": "ennemi-dans-l-ombre",
-             "page": 26,
-             "note": "EDO 02 l.79 · l.89"
-            }
            }
           }
          ]

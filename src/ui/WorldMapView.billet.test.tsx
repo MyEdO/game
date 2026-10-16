@@ -127,6 +127,7 @@ describe('billet de la diligence — chemin du joueur', () => {
     if (get().travelRecap) get().dismissTravelRecap();
     get().moveParty({ x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
+    get().designerHerosChoisir(get().party[0].id);
     expect(get().flags['edo-ch1-corps-kastor-fouille']).toBe(true);
 
     await act(async () => { root.render(<WorldMapView initialRouteId={T2} />); });

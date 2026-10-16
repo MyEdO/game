@@ -1076,9 +1076,17 @@ export function openSkillTest(
   return true;
 }
 
+/** Ouvre le GESTE JOUEUR `e` (handler `suspensif`) en lui confiant `suite` ; `true` s'il l'a prise. */
+function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number): boolean {
+  const pris = (EFFECT_HANDLERS[e.type] as EffectHandler).apply(e, makeEffectEnv(get, set, sl), suite) === 'suspend';
+  armChapterRecapIfDue(get, set);
+  return pris;
+}
+
 /**
  * Exécute un Flow (logique authorée : séquence/branches/Test) — SOURCE UNIQUE. `do` accumule les
- * Effets et les applique en lot (butin attribuable via `applyEffectsLoot`) ; `if` vide d'abord le lot
+ * Effets et les applique en lot (butin attribuable via `applyEffectsLoot`) — un GESTE JOUEUR (`suspensif`)
+ * vide le lot et prend la pile restante comme suite, comme `test` ; `if` vide d'abord le lot
  * (la condition lit l'état VIVANT — flags/horloge — donc après les Effets émis) puis branche ; `test`
  * vide le lot, ouvre la modale et SUSPEND — la branche choisie + la continuation (reste de la pile)
  * sont reprises par `resolveTest`. Pas de boucle → terminaison garantie.
@@ -1103,9 +1111,16 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
   while (stack.length) {
     const node = stack.shift()!;
     switch (node.kind) {
-      case 'do':
-        batch.push(node.effect);
+      case 'do': {
+        // GESTE JOUEUR (`suspensif`) : même patron que le `test` ci-dessous — le lot se vide d'abord, le
+        // reste de la pile devient la suite que son pending rejouera.
+        if (!(EFFECT_HANDLERS[node.effect.type] as EffectHandler).suspensif) { batch.push(node.effect); break; }
+        if (flush()) return confier(node);
+        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+        if (ouvrirGeste(get, set, node.effect, after, sl)) return undefined;
+        stack.unshift(after);
         break;
+      }
       case 'seq': stack.unshift(...node.steps); break;
       case 'if': {
         if (flush()) return confier(node);
@@ -1125,6 +1140,12 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
   // Vidange FINALE : la pile est vide, il n'y a plus de suite à confier — le signal est rendu tel quel
   // à l'appelant, à qui de décider (c'est lui qui sait s'il enchaîne quelque chose).
   return flush();
+}
+
+/** REPRISE de la suite qu'un GESTE JOUEUR (handler `suspensif`) a portée jusqu'à sa clôture — rien ne
+ *  suit la clôture dans le geste qui l'appelle. */
+export function reprendreLaSuite(get: Get, set: SetFn, suite: Flow | undefined): void {
+  if (suite) jouerFlowEntier(runFlow(get, set, suite));
 }
 
 /**
@@ -1232,8 +1253,9 @@ function choisirHeros(s: GameState, heroId: string | undefined, pick?: (heros: C
 
 const idsDuGroupe = (s: GameState): string[] => s.party.map((h) => h.id);
 
-/** Issue de l'`apply` d'un handler : `'suspend'` STOPPE la boucle `applyEffects` (l'effet a ouvert une
- *  modale/pending qui reprend la suite — extendedTest, forceDoor) ; sinon (void) la boucle continue. */
+/** Issue de l'`apply` d'un handler : `'suspend'` = un GESTE JOUEUR (handler `suspensif`) a pris la `suite`
+ *  qu'on lui a confiée — son pending la rejouera à sa clôture, l'appelant n'a plus rien à jouer ; sinon
+ *  (void) l'application continue. */
 type EffectApplyResult = void | 'suspend';
 
 /** Contexte de validation des réfs d'un effet (id-sets de la scène/projet + bornes de la carte). Fourni
@@ -1274,8 +1296,14 @@ export interface EffectHandler<T extends Effect = Effect> {
   icon: string;
   /** Effet par défaut posé quand l'auteur ajoute ce type. */
   make(): T;
-  /** Conséquence appliquée par `applyEffects`. `'suspend'` = stoppe la boucle (modale/pending ouvert). */
-  apply(e: T, env: EffectEnv): EffectApplyResult;
+  /** GESTE JOUEUR : l'effet ouvre un pending qui CONFIE la suite (patron `openSkillTest(..., after)`) —
+   *  `runFlow` vide son lot AVANT lui et lui passe le reste de sa pile, `applyEffects` le reste de son lot.
+   *  Absent = l'effet s'applique sans rendre la main. */
+  suspensif?: true;
+  /** Conséquence appliquée par `applyEffects`/`runFlow`. Un handler `suspensif` reçoit la `suite` (ce qui
+   *  le suit) et rend `'suspend'` s'il l'a confiée à son pending ; rien s'il n'a rien ouvert (la suite se
+   *  joue aussitôt). */
+  apply(e: T, env: EffectEnv, suite: Flow): EffectApplyResult;
   /** Réfs cassées / valeurs invalides. Absent = rien à valider. */
   refs?(e: T, ctx: EffectRefCtx): EffectRefIssue[];
   /** Le dialogue de la scène que cet effet OUVRE — `validateScene` avertit d'un dialogue qu'aucun
@@ -1381,6 +1409,24 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('setFlag'), icon: 'map-tool/start-flag',
     make: () => ({ type: 'setFlag', flag: '', value: true }),
     apply: (e, env) => { env.set((s: GameState) => ({ flags: { ...s.flags, [e.flag]: e.value ?? true } })); },
+  },
+  // États de campagne (#2539, registre `narratif.etats`) : forme et valeur contrôlées au chargement.
+  poserEtat: {
+    group: 'Narration', label: libelleEffet('poserEtat'), icon: 'map-tool/start-flag',
+    make: () => ({ type: 'poserEtat', etat: '', valeur: '' }),
+    apply: (e, env) => { env.set((s: GameState) => ({ etats: { ...s.etats, [e.etat]: e.valeur } })); },
+  },
+  designerHeros: {
+    group: 'Narration', label: libelleEffet('designerHeros'), icon: 'nav/entry-point',
+    make: () => ({ type: 'designerHeros', etat: '' }),
+    suspensif: true,
+    // EDO 02 l.91 : décision de GROUPE (`pendingDesignationHeros`, modale `designationHeros`) refermée
+    // par `designerHerosChoisir`, qui rejoue la suite ; sans héros vivant, rien à désigner.
+    apply: (e, env, suite) => {
+      if (!env.get().party.some((h) => !h.dead)) return;
+      env.set({ pendingDesignationHeros: { etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite } });
+      return 'suspend';
+    },
   },
   setObjective: {
     group: 'Narration', label: libelleEffet('setObjective'), icon: 'map-tool/start-flag',
@@ -2197,7 +2243,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   extendedTest: {
     group: 'Tests', label: libelleEffet('extendedTest'), icon: 'ui/key',
     make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', targetDR: 5, flag: '', stake: flowStakeRef('extended-test-roll') }),
-    apply: (e, env) => {
+    suspensif: true,
+    apply: (e, env, suite) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres
       // membres capables (+10 chacun, plafond Bonus de Carac — `partyAssisted`). Adjacence (l.196) : même
       // pool `battle.combatants` (héros positionnés) que `openSkillTest` quand un combat est en cours.
@@ -2214,18 +2261,19 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         actor: best.actor, test: { skill: e.skill?.id, char: e.characteristic, spec: e.skill?.spec },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: e.skill ? refLabel('skills', e.skill) : (e.characteristic ?? 'Test'), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}) });
+      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: e.skill ? refLabel('skills', e.skill) : (e.characteristic ?? 'Test'), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },
   forceDoor: {
     group: 'Tests', label: libelleEffet('forceDoor'), icon: 'action/force',
     make: () => ({ type: 'forceDoor', label: 'Porte', doorBE: 3, doorB: 10, flag: '' }),
-    apply: (e, env) => {
+    suspensif: true,
+    apply: (e, env, suite) => {
       // Enfoncer une PORTE/objet à plusieurs (EDO Append. 2) : tout le groupe vivant frappe.
       const heroes = env.get().party.filter((h) => !h.dead).map((h) => h.id);
       if (!heroes.length) return;
-      env.get().startForceDoor({ label: e.label, doorBE: e.doorBE, doorB: e.doorB, heroIds: heroes, flag: e.flag });
+      env.get().startForceDoor({ label: e.label, doorBE: e.doorBE, doorB: e.doorB, heroIds: heroes, flag: e.flag, suite });
       return 'suspend';
     },
   },
@@ -2287,9 +2335,9 @@ for (const kindExposition of WATER_EXPOSURE_KINDS) registerCascadeApplier(kindEx
 });
 
 /**
- * Applique une liste d'Effets via le REGISTRE `EFFECT_HANDLERS` (1 effet = 1 handler). Un handler qui
- * renvoie `'suspend'` (extendedTest/forceDoor → modale/pending) STOPPE la boucle, comme l'ancien
- * `return` au milieu du switch — l'ORDRE, les journaux et les révélations restent identiques.
+ * Applique une liste d'Effets via le REGISTRE `EFFECT_HANDLERS` (1 effet = 1 handler). Un handler
+ * `suspensif` (geste joueur) reçoit le RESTE du lot comme suite : s'il la prend (`'suspend'`), son
+ * pending la rejouera à sa clôture et la boucle s'arrête là — aucun Effet ne se perd.
  */
 export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number): Applique {
   const env = makeEffectEnv(get, set, sl);
@@ -2302,9 +2350,9 @@ export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: numbe
     // est SA suite — même geste que le `case 'test'` du walker de Flow, qui empaquette sa pile. Le
     // signal REMONTE ensuite : ce qui suit CET appel est lui aussi la suite du dé, pas la suite immédiate.
     const differesAvant = comptePasDifferes(get());
-    const issue = handler.apply(e, env);
+    const issue = handler.apply(e, env, handler.suspensif ? flowFromEffects(file) : EMPTY_FLOW);
     if (comptePasDifferes(get()) > differesAvant) { differerLaSuite(set, flowFromEffects(file.splice(0)), 'scene'); differe = OPS_DIFFEREES; break; }
-    if (issue === 'suspend') break;
+    if (issue === 'suspend') { file.splice(0); break; }
   }
   // Couture UNIQUE du cadre de campagne (#717) : la CLÔTURE authorée est une `Condition` — elle se
   // relit après CHAQUE lot d'effets, jamais par un branchement dans `setFlag` (un `when` peut porter
