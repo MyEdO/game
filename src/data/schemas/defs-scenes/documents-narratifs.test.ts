@@ -27,6 +27,7 @@ const ENTREE_DE: { readonly [K in CleDeRegistreNarratif]: (id: string) => Jouet 
   presetsPnj: (id) => ({ id, base: 'gobelin' }),
   objets: (id) => ({ id, label: 'Un objet' }),
   documents: (id) => ({ id, titre: 'Un document', prose: 'Un texte.' }),
+  etats: (id) => ({ id, label: 'Un état', ref: 'EDO 02 l.91', forme: { kind: 'heros' } }),
 };
 
 /** Narratif portant l'affaire socle (à laquelle un indice se rattache) et `over`. */
@@ -156,5 +157,52 @@ describe('références narratives des Effects — résolues au parse du projet',
       declencheurPortant({ type: 'document', documentId: 'doc-lettre' }),
     ] })] }));
     expect(f).toEqual([]);
+  });
+});
+
+// EDO 02 l.91 (référence à un héros) ; EDO 01 l.241 (issue énumérée).
+describe('états de campagne (#2539) — lus et posés résolus au parse du projet', () => {
+  const SOSIE = { id: 'sosie', label: 'Le sosie', ref: 'EDO 02 l.91', forme: { kind: 'heros' } };
+  const ISSUE = { id: 'issue', label: 'Issue', ref: 'EDO 01 l.241', forme: { kind: 'enum', valeurs: [{ id: 'relache', label: 'Relâché' }, { id: 'condamne', label: 'Condamné' }] } };
+  const avecEtats = (scenes: Jouet[]): Jouet =>
+    projet({ narratif: narratif({ documents: [LETTRE], indices: [INDICE], etats: [SOSIE, ISSUE] }), scenes });
+  const declencheur = (when: unknown, effect?: Jouet): Jouet => ({
+    id: 'tr', rect: { x: 0, y: 0, w: 1, h: 1 }, ...(when ? { when } : {}),
+    flow: { kind: 'seq', steps: effect ? [{ kind: 'do', effect }] : [] },
+  });
+  const messages = (p: Jouet): string[] => fautes(p).map((m) => m.split(' :: ')[1]);
+
+  it('un état LU non déclaré (Condition `etat`, sélecteur `who`) est refusé, nommé', () => {
+    expect(messages(avecEtats([scene({ triggers: [declencheur({ kind: 'all', of: [{ kind: 'etat', etat: 'fantome' }, { kind: 'species', id: 'nains', who: { etat: 'spectre' } }] })] })]))).toEqual([
+      'état de campagne non déclaré « fantome » (narratif.etats).',
+      'état de campagne non déclaré « spectre » (narratif.etats).',
+    ]);
+  });
+
+  it('un état POSÉ non déclaré est refusé, nommé', () => {
+    expect(messages(avecEtats([scene({ triggers: [declencheur(undefined, { type: 'designerHeros', etat: 'fantome' })] })])))
+      .toEqual(['état de campagne non déclaré « fantome » (narratif.etats).']);
+  });
+
+  it('une valeur hors des valeurs déclarées est refusée, posée (`poserEtat`) comme comparée (`etat` + `value`)', () => {
+    expect(messages(avecEtats([scene({ triggers: [declencheur({ kind: 'etat', etat: 'issue', value: 'gracie' }, { type: 'poserEtat', etat: 'issue', valeur: 'pendu' })] })])))
+      .toEqual(["valeur non déclarée « pendu » de l'état de campagne « issue ».", "valeur non déclarée « gracie » de l'état de campagne « issue »."]);
+  });
+
+  it('`poserEtat` sur un état de forme `heros` est refusé ; `designerHeros` sur un énuméré aussi', () => {
+    expect(messages(avecEtats([scene({ triggers: [
+      declencheur(undefined, { type: 'poserEtat', etat: 'sosie', valeur: 'h1' }),
+      { ...declencheur(undefined, { type: 'designerHeros', etat: 'issue' }), id: 'tr2' },
+    ] })]))).toEqual([
+      "l'état « sosie » (Héros du groupe) ne se prête pas à : poser une valeur.",
+      "l'état « issue » (Issue énumérée) ne se prête pas à : désigner un héros.",
+    ]);
+  });
+
+  it('les mêmes usages, conformes à leur forme, passent', () => {
+    expect(fautes(avecEtats([scene({ triggers: [
+      declencheur({ kind: 'partyDead', who: { etat: 'sosie' } }, { type: 'designerHeros', etat: 'sosie' }),
+      { ...declencheur({ kind: 'etat', etat: 'issue', value: 'condamne' }, { type: 'poserEtat', etat: 'issue', valeur: 'relache' }), id: 'tr2' },
+    ] })]))).toEqual([]);
   });
 });

@@ -1400,6 +1400,17 @@ export interface PendingForceDoor extends MultiPending<ForceDoorParticipant> {
   doorBmax: number; // Blessures initiales (jauge)
   /** Flag de scène posé quand la porte cède (ouverture en jeu) — optionnel. */
   flag?: string;
+  /** SUITE du Flow qui a ouvert l'enfoncement (Effet `forceDoor`, geste `suspensif`) — rejouée à sa clôture. */
+  suite?: Flow;
+}
+
+/** DÉSIGNATION d'un héros pour l'état de campagne `etat` (Effet `designerHeros`, EDO 02 l.91) : décision
+ *  de GROUPE, non annulable, refermée par `designerHerosChoisir` qui rejoue `suite`. `invite` = la prose
+ *  de l'Effet affichée par la modale. */
+export interface PendingDesignationHeros {
+  etat: string;
+  invite?: string;
+  suite?: Flow;
 }
 
 /** UN dé du lot d'étal : une rangée POSABLE, sans acteur — c'est le MONDE qui le lance. `value` est
@@ -1458,6 +1469,8 @@ export interface PendingExtendedTest extends PendingBase {
   outcome?: { kind: string; meta?: CascadeStepMeta };
   /** ENJEU du Round (#1117) — référence de donnée résolue par `resolveStake`, rendue par la modale. */
   stake?: StakeRef;
+  /** SUITE du Flow qui a ouvert le Test (Effet `extendedTest`, geste `suspensif`) — rejouée à sa clôture. */
+  suite?: Flow;
 }
 
 /** Paramètres SÉRIALISABLES de la conséquence d'une étape (jamais de closure — coop : le pending est

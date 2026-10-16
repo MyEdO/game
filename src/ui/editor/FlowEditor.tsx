@@ -48,7 +48,7 @@ const seqOf = (steps: Flow[]): Flow => ({ kind: 'seq', steps });
 function nodeSummary(node: Flow, ctx: Ctx): string | JSX.Element {
   switch (node.kind) {
     case 'do': return <><Icon id={EFFECT_ICON[node.effect.type]} size="sm" /> {effectSummary(node.effect, ctx)}</>;
-    case 'if': return <><Icon id="ui/branch" size="sm" /> Si {condSummary(node.cond)}{node.else != null ? ' · sinon…' : ''}</>;
+    case 'if': return <><Icon id="ui/branch" size="sm" /> Si {condSummary(node.cond, ctx.narratif)}{node.else != null ? ' · sinon…' : ''}</>;
     case 'test': return <><Icon id="nav/dice" size="sm" /> Test {node.test.skill ? refLabel('skills', node.test.skill) : (node.test.characteristic || '?')} → ✓ / ✗</>;
     case 'choice': return <><Icon id="ui/balance" size="sm" /> Choix{node.advantageCost != null ? ` (${node.advantageCost} Av)` : ''} « {node.prompt} » → ✓ / ✗</>;
     case 'seq': return `▸ ${node.steps.length} bloc(s)`;
@@ -281,7 +281,7 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
           )}
           {node.kind === 'if' && (
             <div className="eff-body flow-branch">
-              <ConditionEditor cond={node.cond} onChange={(c) => updAt(i, { ...node, cond: c })} />
+              <ConditionEditor cond={node.cond} narratif={ctx.narratif} onChange={(c) => updAt(i, { ...node, cond: c })} />
               <div className="branch">
                 <span className="branch-label ok">ALORS :</span>
                 <FlowEditor flow={node.then} ctx={ctx} onChange={(f) => updAt(i, { ...node, then: f })} />

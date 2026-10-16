@@ -115,7 +115,7 @@ export const placePoiSchema = nommerChamps(z
 
 /**
  * Kinds de `Condition` réellement ÉVALUABLES avec le contexte de la CARTE (`condCtx`,
- * `src/state/bourseFlow.ts` : `flags`, `gameTime`, `party`, `money`). Les autres kinds lisent
+ * `src/state/bourseFlow.ts` : `flags`, `etats`, `gameTime`, `party`, `money`). Les autres kinds lisent
  * `target`/`caster`/`sl`/`location`/état de combat — absents ici, et `evalCondition`
  * (`src/engine/flowCore.ts`) les rend alors FAUX : un lieu disparaîtrait de la carte, ou un trajet
  * se fermerait, EN SILENCE et sans qu'aucune donnée ne soit fautive. Le sous-ensemble se vérifie
@@ -124,7 +124,7 @@ export const placePoiSchema = nommerChamps(z
  * (prop `kinds`), au lieu d'une seconde liste recopiée dans l'UI.
  */
 export const CONDITION_KINDS_CARTE: ReadonlySet<Condition['kind']> = new Set<Condition['kind']>([
-  'always', 'flag', 'time', 'hasItem', 'money', 'partyDead',
+  'always', 'flag', 'etat', 'time', 'hasItem', 'money', 'partyDead',
   'skill', 'career', 'species', 'status',
   'all', 'any', 'not',
 ]);
@@ -150,7 +150,7 @@ export const conditionCondCtxSchema = conditionSchema.superRefine((cond, ctx) =>
       code: 'custom',
       message:
         `Condition : « ${hors.join(' », « ')} » n'est pas évaluable au contexte hors combat ` +
-        `(drapeaux, horloge, groupe, bourse — « condCtx », src/state/bourseFlow.ts) : la Condition serait ` +
+        `(drapeaux, états de campagne, horloge, groupe, bourse — « condCtx », src/state/bourseFlow.ts) : la Condition serait ` +
         `FAUSSE en silence. Kinds admis : ${[...CONDITION_KINDS_CARTE].join(', ')}.`,
     });
   }

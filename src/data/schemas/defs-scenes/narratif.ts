@@ -22,6 +22,7 @@ import { findCreatureById, findTrappingById, byId, findTalentById, specResolves,
 import type { CreatureData, TrappingData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
 import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
+import type { FormeDEtatKind } from './formes-d-etat';
 
 /** Un stade RÉVÉLABLE d'un indice : la prose dévoilée à ce palier, le document qu'il croise
  *  (`narratif.documents`, #679), ou les deux — au moins l'un (`raffineNarratif`). */
@@ -86,6 +87,33 @@ function refinePresetAdapte(v: unknown, ctx: z.RefinementCtx): void {
     ctx.addIssue({ code: 'custom', path: ['adapteDe'], message: 'texte adapté, alors que la description du profil est la copie adressée du livre.' });
   }
 }
+
+/** Une valeur d'un état ÉNUMÉRÉ : id STABLE (lu par la logique), libellé d'affichage. */
+export const valeurDEtatSchema = nommerChamps(z.strictObject({
+  id: z.string().min(1, 'id vide.'),
+  label: z.string().min(1, 'libellé vide.'),
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} } });
+
+/** Le schéma de chaque forme d'état (`./formes-d-etat.ts`) — table TOTALE : une forme sans schéma ne compile pas. */
+const SCHEMA_DE_FORME = {
+  heros: nommerChamps(z.strictObject({ kind: z.literal('heros') }), { kind: { label: "type"  } }),
+  enum: nommerChamps(z.strictObject({
+    kind: z.literal('enum'),
+    valeurs: listeCle(valeurDEtatSchema, 'id', { min: { taille: 1, message: 'aucune valeur : un état énuméré en déclare au moins une.' } }),
+  }), { kind: { label: "type"  }, valeurs: { label: "valeurs" } }),
+} as const satisfies { readonly [K in FormeDEtatKind]: z.ZodType<{ kind: K }> };
+
+type SchemaDeForme = (typeof SCHEMA_DE_FORME)[FormeDEtatKind];
+export const formeDEtatSchema = z.discriminatedUnion('kind', Object.values(SCHEMA_DE_FORME) as [SchemaDeForme, ...SchemaDeForme[]]);
+
+/** Un ÉTAT DE CAMPAGNE (#2539) : un choix ou une issue que le récit pose et qu'un chapitre ultérieur lit —
+ *  `ref` = la réf NUE du passage (`EDO 02 l.91`), forme de `reglesOptionnelles.ref`. */
+export const etatNarratifSchema = nommerChamps(z.strictObject({
+  id: z.string().min(1, 'id vide.'),
+  label: z.string().min(1, 'libellé vide.'),
+  ref: z.string().regex(/\S/, 'réf vide.'),
+  forme: formeDEtatSchema,
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, ref: { label: "référence" , texte: { regime: "technique"} }, forme: { label: "forme" } });
 
 /** Une entrée de fiche de dossier de chapitre ÉCARTÉE par l'adaptation (#2290), avec son motif. */
 export const ecartSchema = nommerChamps(z.strictObject({
@@ -208,10 +236,11 @@ const formeNarratif = nommerChamps(z.strictObject({
   presetsPnj: listeCle(presetPnjSchema, 'id'),
   objets: listeCle(z.custom<TrappingData>(), 'id'),
   documents: listeCle(documentNarratifSchema, 'id'),
+  etats: listeCle(etatNarratifSchema, 'id'),
   ouverture: ouvertureSchema.optional(),
   cloture: clotureSchema.optional(),
   ecartes: listeCle(ecartSchema, 'entree').optional(),
-}), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" , texte: { regime: "atelier",usage: "objets embarqués typés au catalogue, onglet en lecture seule"} }, documents: { label: "documents" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
+}), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" , texte: { regime: "atelier",usage: "objets embarqués typés au catalogue, onglet en lecture seule"} }, documents: { label: "documents" }, etats: { label: "états de campagne" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
 
 /** `NarratifBlock` (`state/campaignNarratif.ts`) — forme + sémantique. */
 export const narratifSchema = formeNarratif.superRefine(raffineNarratif);
@@ -220,3 +249,5 @@ nommerNoeud(indiceSchema, { element: 'indice' });
 nommerNoeud(indiceStadeSchema, { element: 'stade' });
 nommerNoeud(presetPnjSchema, { element: 'PNJ' });
 nommerNoeud(documentNarratifSchema, { element: 'document' });
+nommerNoeud(etatNarratifSchema, { element: 'état' });
+nommerNoeud(valeurDEtatSchema, { element: 'valeur' });

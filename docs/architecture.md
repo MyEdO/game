@@ -256,8 +256,8 @@ src/state/
   scene.ts                  SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 43 types exportés,
                             dont 26 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
                             (`CustomStatblock`, `TemporalCondition`) et 1 COMPOSÉ : l'union `Effect`
-                            (55 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
-                            `EffectOp` = 58 membres). Restent 14 MANUSCRITS : `Scene`, `SceneEntity`,
+                            (57 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
+                            `EffectOp` = 60 membres). Restent 14 MANUSCRITS : `Scene`, `SceneEntity`,
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `DelayedEffect`, `PetitePriere`
@@ -589,11 +589,14 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
 
 ## Systèmes clés (état actuel)
 
-- **Schéma de Scène + Effets** (`data/schemas/defs-scenes/`) : `Effect` = setFlag, journal, document, **giveTrapping**
+- **Schéma de Scène + Effets** (`data/schemas/defs-scenes/`) : `Effect` = setFlag, poserEtat/designerHeros (états de
+  campagne du registre `narratif.etats`, formes `defs-scenes/formes-d-etat.ts`), journal, document, **giveTrapping**
   (donner un objet — `trappingId` = id du CATALOGUE → objet à stats ; `custom` = nom libre hors-base → objet
   `misc` ; il n'y a PLUS de `giveItem`/inventaire de groupe), giveMoney, giveXp, startCombat, **transition**
   (scène+entry), startDialogue, **test** (compétence + difficulté + `onSuccess`/`onFailure`),
-  endDialogue. Tout est appliqué par `applyEffects` dans le store.
+  endDialogue. Tout est appliqué par `applyEffects` dans le store. Les sites de Condition et d'Effet d'un paquet
+  s'énumèrent par UN module (`defs-scenes/sites-de-paquet.ts`), que lisent les références narratives et la
+  garde « lu ⇒ produit » (`src/scenes/drapeau-lu-produit.test.ts`).
 - **Moteur de campagne** : transitions de scènes (registre depuis `campaign`), tests de
   compétence interactifs (modal + branches), inventaire/argent/handouts (state party-level).
 - **Inventaire/équipement** : chaque héros a `items: ItemInstance[]` ; `weapons`/`armour`

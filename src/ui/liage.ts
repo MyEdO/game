@@ -80,6 +80,7 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/RevealBody.tsx#Prose.md#1', origine: 'S', note: 'RevealEntry sceneEntry.lines reçoit scenes[].startMessage.texte ; le snapshot ne porte pas l’id du document source.' },
   { cle: 'src/ui/LogDrawer.tsx#Prose.md#1', origine: 'S', note: 'journal runtime matérialise journal.desc/narrative.text ; absence de l’id du document porteur.' },
   { cle: 'src/ui/CascadeModal.tsx#Prose.md#1', origine: 'S', note: 'CascadeStep.label matérialise flow.choice.prompt ; absence de l’id du document porteur.' },
+  { cle: 'src/ui/DesignationHerosModal.tsx#Prose.md#1', origine: 'S', note: 'PendingDesignationHeros.invite matérialise designerHeros.invite ; le pending ne porte pas l’id du document source.' },
   { cle: 'src/ui/ObjectiveBanner.tsx#Prose.md#1', origine: 'S', note: 'Objective.text matérialisé depuis setObjective.desc ; l’id du document porteur est absent du runtime Objective.' },
   { cle: 'src/ui/BackgroundPanel.tsx#Prose.md#1', origine: 'S', note: 'favor.desc projeté depuis grantFavor.desc ou une faveur mécanique de catalogue ; Favor runtime ne porte pas l’id de son document source.' },
   { cle: 'src/ui/CampaignLibraryScreen.tsx#Prose.md#1', origine: 'S', porteur: 'projet.desc' },

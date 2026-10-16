@@ -276,6 +276,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       presetsPnj: [],
       objets: [],
       documents: [],
+      etats: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
       'Bloc narratif › indice « indice-1 » › affaire :: affaire inconnue « affaire-fantome » (narratif.affaires).',
@@ -289,6 +290,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       presetsPnj: [{ id: 'gobelin', base: 'gobelin' }],
       objets: [],
       documents: [],
+      etats: [],
     };
     expect(fautes(projet({ narratif }))).toEqual([
       'Bloc narratif › PNJ « gobelin » › identifiant :: l\'id de preset PNJ « gobelin » collisionne avec un id de la règle globale (créature/possession).',
@@ -296,7 +298,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
   });
 
   it('(b ter) un preset sans base ni profil → rouge nommé (contrat de `presetPnjSchema`)', () => {
-    const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [], documents: [] };
+    const narratif = { affaires: [], indices: [], presetsPnj: [{ id: 'le-borgne' }], objets: [], documents: [], etats: [] };
     expect(fautes(projet({ narratif }))).toEqual([
       'Bloc narratif › PNJ « le-borgne » :: ni base ni profil (au moins l\'un des deux est requis).',
     ]);
@@ -317,6 +319,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
       presetsPnj: [{ id: 'le-borgne', profil: { char: { CC: 40 }, traits: [] } }],
       objets: [],
       documents: [],
+      etats: [],
     };
     expect(projetSchema.safeParse(projet({ scenes, narratif })).success).toBe(true);
   });

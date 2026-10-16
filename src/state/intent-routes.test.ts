@@ -101,7 +101,7 @@ describe('#1051 — frontière table ⇄ REPLI universel', () => {
   it('les routes hors `GUEST_INTENTS` sont conservées et DÉCLARENT leur raison', () => {
     const hors = [...ROUTES.keys()].filter((a) => !GUEST_INTENTS.has(a)).sort();
     expect(hors, 'route hors allowlist : le geste est inatteignable par le réseau (défense en profondeur)')
-      .toEqual(['chooseDialogue', 'closeDialogue', 'interactEntity']);
+      .toEqual(['chooseDialogue', 'closeDialogue', 'designerHerosChoisir', 'interactEntity']);
     for (const a of hors.filter((x) => NOM.includes(x))) {
       expect(ROUTES.get(a)!.horsAllowlist, `${a} : route hors allowlist sans justification`).toBeTruthy();
     }
