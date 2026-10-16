@@ -48,8 +48,10 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     const couverture = couvertureDuBalayage({ nom: 'garde libellé', stock: [...new Set(Object.keys(DETTES_DE_LIBELLE).map(fichierDeDette))], balayes: fichiers, gisements: [CORPUS_RACINE] });
     expect(couverture.gisementsMuets, couverture.gisementsMuets.join('\n')).toEqual([]);
     expect(couverture.entreesDeStockAbsentes, couverture.entreesDeStockAbsentes.join('\n')).toEqual([]);
-    const inventaire = sites.map((s) => `${s.statut.padEnd(7)} ${s.rel}:${s.line} [${s.rule}] ${s.detail}`).join('\n');
-    expect(sites.filter((s) => s.statut === 'nu').map((s) => `${s.rel}:${s.line} [${s.rule}] ${s.detail}`),
+    const ambigue = (s: { rel: string; declaration: string; rule: string; statut: string }) => s.statut === 'nu' && cleDe(s) in RATCHET_EXCEPTIONS;
+    const ligne = (s: (typeof sites)[number]) => `${s.rel}:${s.line} [${s.rule}] ${s.detail}${ambigue(s) ? ` — couture AMBIGUË : « ${cleDe(s)} » portée par plusieurs sites` : ''}`;
+    const inventaire = sites.map((s) => `${s.statut.padEnd(7)} ${ligne(s)}`).join('\n');
+    expect(sites.filter((s) => s.statut === 'nu').map(ligne),
       'Logique par LIBELLÉ hors couture et hors stock — migrer vers un keying par id (la seule couture label→id ' +
         'vit dans `src/data/index.ts`, au CHARGEMENT). Inventaire complet :\n' + inventaire).toEqual([]);
   });
@@ -87,10 +89,15 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     expect(sansTicket, 'Dette(s) sans ticket : la rubrique qui les précède doit nommer le `#N` qui les tue').toEqual([]);
   });
 
-  it('CLIQUET des coutures : toute entrée de RATCHET_EXCEPTIONS désigne un site vu', () => {
-    const vus = new Set(garde().sites.map(cleDe));
-    const perimees = Object.keys(RATCHET_EXCEPTIONS).filter((k) => !vus.has(k));
+  it('CLIQUET des coutures : toute entrée de RATCHET_EXCEPTIONS désigne UN site vu, par une déclaration nommée', () => {
+    const sansDeclaration = Object.keys(RATCHET_EXCEPTIONS).filter((k) => k.split('#')[1] === '');
+    expect(sansDeclaration, 'Couture(s) sans DÉCLARATION nommée — la clé vaudrait clé de fichier :\n' + sansDeclaration.join('\n')).toEqual([]);
+    const vus = garde().sites.map(cleDe);
+    const porteurs = (k: string) => vus.filter((v) => v === k).length;
+    const perimees = Object.keys(RATCHET_EXCEPTIONS).filter((k) => porteurs(k) === 0);
     expect(perimees, 'Couture(s) PÉRIMÉE(s) (site déplacé ou assaini) — retirer/re-pointer ces entrées de RATCHET_EXCEPTIONS :\n' + perimees.join('\n')).toEqual([]);
+    const ambigues = Object.keys(RATCHET_EXCEPTIONS).filter((k) => porteurs(k) > 1);
+    expect(ambigues, 'Couture(s) AMBIGUË(S) (clé portée par plusieurs sites, aucun n’est couture) — distinguer les sites :\n' + ambigues.join('\n')).toEqual([]);
   });
 
   it('CORPUS unique : tout `src/` en `.ts`/`.tsx`, instruments Vitest exclus, rien hors `src/`', { timeout: 60_000 }, () => {

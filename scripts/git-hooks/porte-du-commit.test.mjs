@@ -43,7 +43,7 @@ import {
 } from './porte-du-commit.mjs'
 import { estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
-import { lignesDuContenu } from '../guards/lib/dialecte.mjs'
+import { lignesDuContenu } from '../guards/lib/stock.mjs'
 import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead } from '../guards/lib/gitPorte.mjs'
 import { depotReel, envDeDepotForge, envGitFeint, ENV_GIT_FEINT, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, sousCommande } from '../test/gitDeBanc.mjs'
@@ -1414,7 +1414,7 @@ test('EXEMPTIONS_TOMBALE : stock NOMINATIF au site, borné, chaque entrée justi
   assert.equal(new Set(EXEMPTIONS_TOMBALE.map((e) => e.site)).size, EXEMPTIONS_TOMBALE.length)
 })
 
-test('EXEMPTIONS_TOMBALE : keyée par CONTENU — une ligne insérée en amont ne déplace pas l’exemption (#2200)', () => {
+test('EXEMPTIONS_TOMBALE : keyée par CONTENU — une ligne insérée en amont ne déplace pas l’exemption, et chacune reste NÉCESSAIRE (#2200)', () => {
   for (const { site } of EXEMPTIONS_TOMBALE) {
     const fichier = site.split(' :: ')[0]
     const numeros = [...site.matchAll(/#(\d+)/g)].map((m) => Number(m[1]))
@@ -1423,6 +1423,10 @@ test('EXEMPTIONS_TOMBALE : keyée par CONTENU — une ligne insérée en amont n
       const exemptee = lignesDuContenu(fichier, texte, site)
       const vues = tombalesDansSource(numeros, { fichiers: [fichier], lire: () => texte }).filter((t) => exemptee.includes(t.ligne))
       assert.deepEqual(vues, [], `"${site}" n'exempte plus son site`)
+      const lignes = texte.split('\n')
+      for (const l of exemptee) lignes[l - 1] += ' ¤'
+      const sansExemption = tombalesDansSource(numeros, { fichiers: [fichier], lire: () => lignes.join('\n') }).filter((t) => exemptee.includes(t.ligne))
+      assert.notDeepEqual(sansExemption, [], `exemption INUTILE : sans elle, "${site}" n'est pas une tombale — la retirer`)
     }
   }
 })

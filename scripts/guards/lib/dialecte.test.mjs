@@ -1,7 +1,7 @@
 import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { API, Program } from 'typescript/unstable/sync';
-import { analyserCorpus, analyserTexte, ast, cleDeContenu, declarationQuiPorte, lignesDuContenu, scriptKindDe, typescript } from './dialecte.mjs';
+import { analyserCorpus, analyserTexte, ast, declarationQuiPorte, scriptKindDe, typescript } from './dialecte.mjs';
 import path from 'node:path';
 
 test('une analyse détachée garde son AST et ses diagnostics sans exposer le checker fermé', () => {
@@ -152,11 +152,18 @@ test('declarationQuiPorte : fonction, classe, interface, alias de type et variab
   assert.equal(declarationQuiPorte(ast({ rel: 'decale.ts', text: `\n\n${text}` }), 8), 'I', 'une insertion en amont ne change pas la clé');
 });
 
-test('cleDeContenu / lignesDuContenu : la clé suit le texte, jamais la position ; péremption et ambiguïté se comptent', () => {
-  const text = '  // a\n// b\r\n// a\n';
-  const cle = cleDeContenu('x.mjs', text, 2);
-  assert.equal(cle, 'x.mjs :: // b');
-  assert.deepEqual(lignesDuContenu('x.mjs', `\n${text}`, cle), [3]);
-  assert.deepEqual(lignesDuContenu('x.mjs', text, cleDeContenu('x.mjs', text, 1)), [1, 3], 'ambiguë');
-  assert.deepEqual(lignesDuContenu('x.mjs', text, 'x.mjs :: // c'), [], 'périmée');
+test('declarationQuiPorte : le déclarateur qui CONTIENT la ligne, `export default`, `enum`, espace de noms ; déstructuration sans nom', () => {
+  const cas = [
+    [['export const a = 1,', '  b = x.label === "Épée";'], ['a', 'b']],
+    [['export default function () {', '  return 1;', '}'], ['default', 'default', 'default']],
+    [['export default class {', '}'], ['default', 'default']],
+    [['export default { a: 1 };'], ['default']],
+    [['enum E {', '  A = 1,', '}'], ['E', 'E', 'E']],
+    [['namespace N {', '  export const z = 1;', '}'], ['N', 'N', 'N']],
+    [['const { a, b } = { a: 1, b: 2 };'], ['']],
+  ];
+  for (const [lignes, attendu] of cas) {
+    const sf = ast({ rel: 'cas.ts', text: lignes.join('\n') });
+    assert.deepEqual(lignes.map((_, i) => declarationQuiPorte(sf, i + 1)), attendu, lignes[0]);
+  }
 });

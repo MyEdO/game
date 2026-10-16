@@ -33,8 +33,8 @@ import { cheminAbsent, listerDossier, listerArbre, parUnitesDeCode, parLibelle, 
 import { clotureDImports, estModule } from './importGraph.mjs'
 import { norm } from '../../../src/lib/normalize.ts'
 import { ciblesSurDisque, GENERATORS, NON_GENERATOR_CHECKS } from '../../docs/build-all.mjs'
-import { lintFixtures, directivesLint } from './lint.testkit.mjs'
-import { cleDeContenu, lignesDuContenu } from './dialecte.mjs'
+import { lintFixtures, directivesLint, directivesLintCiblees } from './lint.testkit.mjs'
+import { cleDeContenu, lignesDuContenu } from './stock.mjs'
 import { lancerLint } from './lintStage.mjs'
 import configurationLint, { BLOCS_LINT as configEslint, REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
 
@@ -277,8 +277,9 @@ test('CLÔTURE — aucun module atteint par une racine du registre, hors des glo
 /** Les exemptions AU SITE du mur de l'ordre total, nommées : le crochet de l'enregistreur de lectures
  *  (il POSE le listing), la reproduction du filtre de Vitest (`toLocaleLowerCase`) et l'oracle naïf du
  *  banc de `sourceCorpus` (marche témoin indépendante de `listerArbre`). Une exemption est keyée par
- *  le CONTENU de la ligne qui SUIT la directive (`fichier :: <ligne trimée>`, `cleDeContenu`, #2200) :
- *  le texte de la directive se répète (sept fois le même crochet dans `enregistreur-lectures.mjs`),
+ *  le CONTENU de la ligne que la directive ÉTEINT (`fichier :: <ligne trimée>`, `cleDeContenu`, #2200) :
+ *  la suivante pour `-next-line`, la sienne pour `-line` ; la forme bloc, qui n'éteint pas UNE ligne,
+ *  est refusée. Le texte de la directive se répète (le même crochet dans `enregistreur-lectures.mjs`),
  *  la ligne qu'elle éteint non. */
 const EXEMPTIONS_DU_MUR = [
   "scripts/guards/lib/sourceCorpus.test.mjs :: import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'",
@@ -347,14 +348,19 @@ test('DIRECTIVES — sous les globs du mur, les seules directives qui l’éteig
   const vues = []
   for (const rel of porteurs) {
     const code = readFileSync(join(RACINE_DEPOT, rel), 'utf8')
-    for (const ligne of directivesLint(code, rel, regles)) {
-      const cle = cleDeContenu(rel, code, ligne + 1)
+    for (const { ligne, cible } of directivesLintCiblees(code, rel, regles)) {
+      assert.notEqual(cible, null, `${rel}:${ligne} : directive de forme BLOC — elle n’éteint pas UNE ligne, écrire \`-next-line\` ou \`-line\``)
+      const cle = cleDeContenu(rel, code, cible)
       assert.equal(lignesDuContenu(rel, code, cle).length, 1, `exemption AMBIGUË : « ${cle} » désigne plusieurs lignes`)
       vues.push(cle)
     }
   }
   assert.deepEqual(vues.sort(parUnitesDeCode), [...EXEMPTIONS_DU_MUR].sort(parUnitesDeCode), 'directive hors exemption, ou exemption PÉRIMÉE')
   const plante = code => directivesLint(code,'scripts/docs/zz-plante-directives.mjs',regles)
+  const cibles = code => directivesLintCiblees(code,'scripts/docs/zz-plante-directives.mjs',regles).map(d => d.cible)
+  assert.deepEqual(cibles('// oxlint-disable-next-line murs/ordre-total -- r\nfs.readdirSync(x)\nautre()'),[2],'`-next-line` vise la ligne suivante')
+  assert.deepEqual(cibles('fs.readdirSync(x) // oxlint-disable-line murs/ordre-total -- r\nautre()'),[1],'`-line` vise sa ligne')
+  assert.deepEqual(cibles('/* oxlint-disable murs/ordre-total */\nautre()\nfs.readdirSync(x)'),[null],'la forme bloc ne vise aucune ligne')
   assert.deepEqual(plante('// oxlint-disable-next-line murs/ordre-total -- r\nx()'),[1])
   assert.deepEqual(plante('/* oxlint-disable */\nx()'),[1])
   assert.deepEqual(plante('const re = /eslint-disable/;'),[])

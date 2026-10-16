@@ -174,6 +174,7 @@ function Inner() {
   it('PEUPLEMENT : chaque clé de l\'ALLOWLIST désigne EXACTEMENT un site vu par le scan (sinon exemption périmée ou ambiguë)', () => {
     const vus = nameFieldSites();
     expect(vus.length, 'corpus vide : le cliquet serait vert sans rien scanner').toBeGreaterThan(0);
+    expect(ALLOWLIST.filter((at) => at.endsWith('#')), 'clé sans DÉCLARATION nommée : elle vaudrait clé de fichier').toEqual([]);
     const ambigues = ALLOWLIST.filter((at) => porteurs(vus, at) > 1);
     expect(ambigues, `ces déclarations portent PLUSIEURS champs \`name\` : la clé n'exempte plus aucun site :\n${ambigues.join('\n')}`).toEqual([]);
     const absents = ALLOWLIST.filter((at) => porteurs(vus, at) === 0);

@@ -43,6 +43,8 @@ export type Site = { [C in (typeof CHAMPS_DE_SITE_OBSERVE)[number]]: string };
 export type Echeance = { [C in (typeof CHAMPS_D_ECHEANCE)[number]]: string };
 
 export function cleDeSite(e: EntreeDeSite): string;
+export function cleDeContenu(rel: string, texte: string, ligne: number): string;
+export function lignesDuContenu(rel: string, texte: string, cle: string): number[];
 export function groupeDeSite(e: EntreeDeSite): string;
 export function estEntreeDeSite(e: unknown): e is EntreeDeSite;
 

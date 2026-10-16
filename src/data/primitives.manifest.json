@@ -1552,9 +1552,9 @@
   {
     "id": "cleDeSite",
     "type": "primitives.manifest",
-    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance",
+    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeContenu/lignesDuContenu/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance",
     "fichier": "scripts/guards/lib/stock.mjs",
-    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance",
+    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée) et lignes qu'elle désigne, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance",
     "perimetre": "tout stock de sites (JSON et .mjs) et sa garde",
     "verrou": "cle-de-site-guard.test.ts, stock.test.mjs"
   },
@@ -1606,9 +1606,9 @@
   {
     "id": "ast",
     "type": "primitives.manifest",
-    "label": "analyserCorpus/analyserTexte/ast/declarationQuiPorte/cleDeContenu/lignesDuContenu",
+    "label": "analyserCorpus/analyserTexte/ast/declarationQuiPorte",
     "fichier": "scripts/guards/lib/dialecte.mjs",
-    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés, checker emprunté pendant le parcours et libération de session ; déclaration de premier niveau qui porte une ligne, clé de site keyée par déclaration et lignes qu'elle désigne",
+    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés, checker emprunté pendant le parcours et libération de session ; déclaration de premier niveau qui porte une ligne, clé d'un site keyé par déclaration",
     "perimetre": "toute garde qui parse un fichier",
     "verrou": "—"
   },
