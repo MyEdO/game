@@ -148,8 +148,7 @@ describe('evalCondition — Conditions PARTY-level (#711 : skill/career/species/
   });
 });
 
-// EDO 02 l.91 (le sosie : une RÉFÉRENCE à un héros) ; EDO 01 l.241 (l'issue de Phillipe : un ÉNUMÉRÉ) ;
-// MSR 03 l.165 (« Si “Lieberung” est mort ») ; MSR 07 l.38 (le double de Lieberung tente un Test).
+// EDO 02 l.91 (le sosie : une RÉFÉRENCE à un héros) ; EDO 01 l.241 (l'issue de Phillipe : un ÉNUMÉRÉ).
 describe('evalCondition — états de campagne (#2539 : Condition `etat`, sélecteur `who: {etat}`)', () => {
   const sosie = { id: 'h-sosie', species: REIK, career: 'soldat', skills: [{ id: 'calme', advances: 5 }] };
   const autre = { id: 'h-autre', species: 'nains', career: 'artisan', skills: [] };

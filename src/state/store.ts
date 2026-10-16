@@ -1184,6 +1184,9 @@ export interface GameState extends RollFlowActionsMap {
   /** Applique les dégâts du Round (somme) ; porte à ≤ 0 B → cède (flag posé) ; sinon nouveau Round. */
   forceDoorConfirm: () => void;
   forceDoorCancel: () => void;
+  /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
+   *  à désigner, la suite se joue sans suspension. */
+  designerHerosOuvrir: (p: PendingDesignationHeros) => boolean;
   /** Pose le héros `heroId` (vivant, du groupe) comme désigné par l'état de `pendingDesignationHeros`, puis
    *  rejoue la suite. Sans `heroId`, ne clôt (sans rien désigner) que si plus aucun héros n'est vivant. */
   designerHerosChoisir: (heroId?: string) => void;
@@ -2979,6 +2982,11 @@ export const useGame = create<GameState>((set, get) => ({
     const suite = get().pendingForceDoor?.suite;
     set({ pendingForceDoor: null, pendingCascade: null });
     reprendreLaSuite(get, set, suite);
+  },
+  designerHerosOuvrir: (p) => {
+    if (!get().party.some((h) => !h.dead)) return false;
+    set({ pendingDesignationHeros: p });
+    return true;
   },
   designerHerosChoisir: (heroId) => {
     const p = get().pendingDesignationHeros;

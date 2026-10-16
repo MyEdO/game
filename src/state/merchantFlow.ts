@@ -832,17 +832,14 @@ export function bargainConfirm(get: Get, set: Set): void {
   // journalisé là — ici on acquitte, avant de fermer le pending qui le porte.
   FLOWS.bargain.apply(get);
   const c = pb.contrepartie;
-  if (c.kind === 'billet') {
-    set((s) => ({ pendingBargain: null, marchandagesDeBillet: { ...s.marchandagesDeBillet, [cleDeBillet(c.routeId, c.vehicule, c.depuis)]: outcome } }));
-    return;
-  }
   // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 (symétrique du Succès Stupéfiant
   // +6) → le marchand se méfie de votre monnaie : plus aucun marchandage cette visite.
   const botch = !won && drNet >= SL_ASTOUNDING;
-  const patch = c.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome };
   set((s) => ({
     pendingBargain: null,
-    merchant: s.merchant ? { ...s.merchant, ...patch, soured: s.merchant.soured || botch } : s.merchant,
+    ...(c.kind === 'billet'
+      ? { marchandagesDeBillet: { ...s.marchandagesDeBillet, [cleDeBillet(c.routeId, c.vehicule, c.depuis)]: outcome } }
+      : { merchant: s.merchant ? { ...s.merchant, ...(c.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome }), soured: s.merchant.soured || botch } : s.merchant }),
   }));
 }
 

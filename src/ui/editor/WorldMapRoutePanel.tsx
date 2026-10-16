@@ -218,9 +218,9 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
   );
 }
 
-/** La route dont le billet en `vehicule` couvre `route` dans sa suite — DÉRIVÉE, jamais stockée. */
-function routeQuiCouvre(map: WorldMap, route: MapRoute, vehicule: string): MapRoute | undefined {
-  return map.routes.find((r) => r.billets?.[vehicule]?.suite?.includes(route.id));
+/** La route dont le billet en `vehicule` couvre `couverte` dans sa suite — DÉRIVÉE, jamais stockée. */
+function routeQuiCouvre(map: WorldMap, couverte: MapRoute, vehicule: string): MapRoute | undefined {
+  return map.routes.find((r) => r.billets?.[vehicule]?.suite?.includes(couverte.id));
 }
 
 /** Billet d'auteur d'un véhicule sur la route (`RouteBillet`, EDO 01 l.142) : prix par place de chaque

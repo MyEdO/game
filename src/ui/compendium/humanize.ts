@@ -32,7 +32,7 @@ import {
 import { findFallTable } from '../../data/shipCriticals';
 import { deElide } from '../../i18n';
 import { etatsDeLaCampagne } from '../../state/campaignData';
-import { libelleDEtat, libelleDeValeurDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
+import { etatDeclare, valeurDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
 
 function assertNever(x: never): never {
   throw new Error(`humanize: cas non couvert — ${JSON.stringify(x)}`);
@@ -231,7 +231,7 @@ function dedupSubjects(parts: string[]): string[] {
 export function humanizeCondition(c: Condition, neg = false): string {
   const who = (r: ActorRef) => whoLabel(r);
   const sujetDuGroupe = (w: PartySelector | undefined): string =>
-    w === 'all' ? 'tout le groupe' : typeof w === 'object' ? `le héros désigné par « ${libelleDEtat(etatsDeLaCampagne(), w.etat)} »` : 'un héros';
+    w === 'all' ? 'tout le groupe' : typeof w === 'object' ? `le héros désigné par « ${etatDeclare(etatsDeLaCampagne(), w.etat)?.label ?? w.etat} »` : 'un héros';
   switch (c.kind) {
     case 'always': return neg ? 'jamais' : 'toujours';
     case 'flag': return `${neg ? 'sauf si ' : 'si '}la condition de scénario « ${c.expr} » est ${neg ? 'fausse' : 'remplie'}`;
@@ -247,10 +247,10 @@ export function humanizeCondition(c: Condition, neg = false): string {
     }
     case 'etat': {
       const etats = etatsDeLaCampagne();
-      const nom = libelleDEtat(etats, c.etat);
+      const nom = etatDeclare(etats, c.etat)?.label ?? c.etat;
       return c.value === undefined
         ? `l'état de campagne « ${nom} » ${neg ? "n'est pas" : 'est'} défini`
-        : `l'état de campagne « ${nom} » ${neg ? 'ne vaut pas' : 'vaut'} « ${libelleDeValeurDEtat(etats, c.etat, c.value)} »`;
+        : `l'état de campagne « ${nom} » ${neg ? 'ne vaut pas' : 'vaut'} « ${valeurDEtat(etats, c.etat, c.value)?.label ?? c.value} »`;
     }
     case 'compare': return comparePhrase(c, neg);
     case 'slThreshold': return `la marge ${opWord(c.op, neg)} ${c.value} DR`;

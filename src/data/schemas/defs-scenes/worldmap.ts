@@ -14,7 +14,7 @@ import { conditionSchema } from '../grammaire/mecanique';
 import { enumNomme, sourceRefSchema } from '../grammaire/valeurs';
 import { refuserSansProvenance } from '../grammaire/document';
 import { idDe } from '../grammaire/ref';
-import { listeCle } from '../grammaire/collection-cle';
+import { listeCle, marquerCollection, marqueDeRecord } from '../grammaire/collection-cle';
 import { couvreSchema } from './communs';
 import { findVehicleById } from '../../index';
 import type { Condition } from '../../../engine/flowCore';
@@ -189,7 +189,7 @@ export const routePerilSchema = nommerChamps(z.strictObject({
 }), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
 /** Prix d'un passage par classe du véhicule (`vehicles.json` `travel.classes[].id`), en sous par passager. */
-const prixParClasseSchema = z.record(z.string(), z.number().int().min(0));
+const prixParClasseSchema = marquerCollection(z.record(z.string(), z.number().int().min(0)), marqueDeRecord());
 
 /** `PalierDeBillet` (`engine/travel.ts`) — prix d'un billet marchandé, à partir de `drMin` de DR net gagné. */
 export const palierDeBilletSchema = nommerChamps(z.strictObject({
@@ -238,7 +238,7 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   km: z.number(),
   modes: z.array(travelModeSchema),
   /** Billet d'auteur par véhicule (`EDO 01 l.142`), posé sur la première route du trajet couvert. */
-  billets: z.record(z.string(), routeBilletSchema).optional(),
+  billets: marquerCollection(z.record(z.string(), routeBilletSchema), marqueDeRecord()).optional(),
   /** Déplacement d'auteur par mode (`LDB 51 l.178`). À pied : force la vitesse. */
   speed: z.record(z.string(), z.number()).optional(),
   /** Seuil du d10 quotidien de péripétie (`LDB 51 l.208`) ; 0 = désactivé. */

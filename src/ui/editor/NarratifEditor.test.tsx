@@ -596,7 +596,7 @@ function message(champ: HTMLInputElement | HTMLSelectElement): string | null {
 describe('NarratifEditor — onglet États de campagne (#2539)', () => {
   const issue = (): NarratifBlock => ({
     ...emptyNarratif(),
-    etats: [{ id: 'issue', label: 'Issue', ref: 'EDO 01 l.241', forme: { kind: 'enum', valeurs: [{ id: 'relache', label: 'Relâché' }, { id: 'condamne', label: 'Condamné' }] } }],
+    etats: [{ id: 'issue', label: 'Issue', source: { book: 'ennemi-dans-l-ombre', page: 17, note: 'EDO 01 l.241' }, forme: { kind: 'enum', valeurs: [{ id: 'relache', label: 'Relâché' }, { id: 'condamne', label: 'Condamné' }] } }],
   });
   const tribunal = (): Scene => ({
     ...emptyScene(4, 4),
@@ -613,8 +613,11 @@ describe('NarratifEditor — onglet États de campagne (#2539)', () => {
     mount();
     click(btn('États'));
     click(btn('Ajouter un état'));
-    setValue(field('Référence du passage'), 'EDO 02 l.91');
-    expect(last.etats).toEqual([{ id: 'etat-1', label: 'Nouvel état', ref: 'EDO 02 l.91', forme: { kind: 'heros' } }]);
+    expect(last.etats[0].source, 'un état neuf naît sans source, comme un document neuf').toBeUndefined();
+    setValue(livre('de l’état'), 'ennemi-dans-l-ombre');
+    setValue(note('de l’état'), 'EDO 02 l.91');
+    poserPage('de l’état', '26');
+    expect(last.etats).toEqual([{ id: 'etat-1', label: 'Nouvel état', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } }]);
     setValue(field('Forme'), 'enum');
     click(btn('Ajouter une valeur'));
     expect(last.etats[0].forme).toEqual({ kind: 'enum', valeurs: [{ id: 'valeur-1', label: 'Valeur 1' }, { id: 'valeur-2', label: 'Valeur 2' }] });

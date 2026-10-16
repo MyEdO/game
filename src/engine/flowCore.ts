@@ -123,8 +123,8 @@ export interface ActorView {
 }
 
 /** SÉLECTEUR de héros d'une Condition de groupe : un héros au moins (`any`), tout le groupe (`all`), ou
- *  le héros que DÉSIGNE l'état de campagne `etat` (forme `heros`, `GameState.etats`) — EDO 02 l.91,
- *  MSR 07 l.38. Référence non désignée → le prédicat sélectionné est faux. */
+ *  le héros que DÉSIGNE l'état de campagne `etat` (forme `heros`, `GameState.etats`) — EDO 02 l.91.
+ *  Référence non désignée → le prédicat sélectionné est faux. */
 export type PartySelector = 'any' | 'all' | { etat: string };
 
 export type Condition =
@@ -139,7 +139,7 @@ export type Condition =
   /** La bourse du groupe vaut AU MOINS le seuil `atLeast` (comparaison en sous de cuivre). */
   | { kind: 'money'; atLeast: Purse }
   /** État vital du groupe : `any` = au moins un héros mort, `all` = tous morts, `{etat}` = le héros désigné
-   *  est mort (MSR 03 l.165). */
+   *  est mort. */
   | { kind: 'partyDead'; who: PartySelector }
   /** ÉTAT DE CAMPAGNE `etat` (registre `narratif.etats`, valeur `GameState.etats`) : sans `value`, « est
    *  défini » ; avec `value`, égal à cette valeur — EDO 02 l.27. */

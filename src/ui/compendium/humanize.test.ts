@@ -258,8 +258,8 @@ describe('humanizeCondition — états de campagne (#2539) : libellés de la cam
 
   it('l’état, sa valeur et le héros désigné se disent par leur LIBELLÉ ; « n’est pas mort » sous négation', () => {
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), etats: [
-      { id: 'sosie', label: 'Le sosie', ref: 'EDO 02 l.91', forme: { kind: 'heros' } },
-      { id: 'issue', label: 'Issue du procès', ref: 'EDO 01 l.241', forme: { kind: 'enum', valeurs: [{ id: 'condamne', label: 'Condamné' }] } },
+      { id: 'sosie', label: 'Le sosie', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } },
+      { id: 'issue', label: 'Issue du procès', source: { book: 'ennemi-dans-l-ombre', page: 17, note: 'EDO 01 l.241' }, forme: { kind: 'enum', valeurs: [{ id: 'condamne', label: 'Condamné' }] } },
     ] } });
     expect(humanizeCondition({ kind: 'etat', etat: 'issue', value: 'condamne' })).toBe('l\'état de campagne « Issue du procès » vaut « Condamné »');
     expect(humanizeCondition({ kind: 'not', of: { kind: 'partyDead', who: { etat: 'sosie' } } })).toBe('le héros désigné par « Le sosie » n\'est pas mort');

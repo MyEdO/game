@@ -2603,7 +2603,11 @@
    {
     "id": "campagne-sosie-heros",
     "label": "Le sosie de Kastor Lieberung",
-    "ref": "EDO 02 l.91",
+    "source": {
+     "book": "ennemi-dans-l-ombre",
+     "page": 26,
+     "note": "EDO 02 l.91"
+    },
     "forme": {
      "kind": "heros"
     }

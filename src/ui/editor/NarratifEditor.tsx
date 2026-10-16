@@ -194,6 +194,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   const clesPnj = useClesDeRangees(narratif.presetsPnj);
   const clesIndices = useClesDeRangees(narratif.indices);
   const clesDocuments = useClesDeRangees(narratif.documents);
+  const clesEtats = useClesDeRangees(narratif.etats);
 
   const setAffaires = (affaires: Affaire[]) => poserNarratif({ ...narratif, affaires });
 
@@ -301,7 +302,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
   const setEtats = (etats: EtatNarratif[]) => poserNarratif({ ...narratif, etats });
   const addEtat = () => {
     const id = idFrais('etat', narratif.etats, entreesDuNarratif(narratif));
-    setEtats([...narratif.etats, { id, label: 'Nouvel état', ref: '', forme: formeNeuve('heros') }]);
+    setEtats([...narratif.etats, { id, label: 'Nouvel état', forme: formeNeuve('heros') }]);
     setSelEtatId(id);
   };
   const removeEtat = (id: string) => {
@@ -480,6 +481,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           detail={
             selectedEtat
               ? <EtatForm
+                  porteur={`etat:${clesEtats[narratif.etats.indexOf(selectedEtat)]}`}
                   etat={selectedEtat}
                   porteurDe={porteurDe('etats', selectedEtat.id)}
                   refus={raisonDeRefus(projet, { registre: 'etats', id: selectedEtat.id })}
@@ -674,7 +676,9 @@ function formeNeuve(kind: FormeDEtatKind): EtatNarratif['forme'] {
 /** Formulaire d'un ÉTAT DE CAMPAGNE (#2539) : identité, libellé, réf nue du passage, forme (`FORMES_D_ETAT`)
  *  et, pour une forme qui les déclare, ses valeurs (id stable + libellé). Changer de forme est refusé tant
  *  qu'une référence désigne l'état (l'usage qu'elle en fait dépend de la forme). */
-function EtatForm({ etat, porteurDe, refus, refusDeValeur, onRename, onRenameValeur, onPatch, onRemove }: {
+function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, onRenameValeur, onPatch, onRemove }: {
+  /** Identité STABLE de l'état, tenue par `NarratifEditor` à travers ses renommages. */
+  porteur: string;
   etat: EtatNarratif;
   porteurDe: (candidat: string) => string | null;
   refus: string | undefined;
@@ -702,10 +706,7 @@ function EtatForm({ etat, porteurDe, refus, refusDeValeur, onRename, onRenameVal
         Libellé
         <input value={etat.label} onChange={(e) => onPatch({ label: e.target.value })} />
       </label>
-      <label className="ed-field">
-        Référence du passage (ex. EDO 02 l.91)
-        <input value={etat.ref} onChange={(e) => onPatch({ ref: e.target.value })} />
-      </label>
+      <SourceRefField identite={porteur} label="Source" facultative sujet="de l’état" value={etat.source} onChange={(source) => onPatch({ source })} />
       <label className="ed-field">
         Forme
         <select value={etat.forme.kind} disabled={!!refus} title={refus} onChange={(e) => onPatch({ forme: formeNeuve(e.target.value as FormeDEtatKind) })}>

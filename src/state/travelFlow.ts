@@ -338,21 +338,15 @@ export function startTravel(
   // MILLES, résolution du jour déléguée à `seaVoyageFlow` (météo/vent, Tests d'équipage, événements).
   if (mode === 'mer') {
     if (!route.sea) return;
+    const seaOpts = { pace: opts.seaPace, cadence: opts.cadence };
     // Traversée RAPIDE (MDG 15 l.21-37) : un seul Test de Rude épreuve résout tout le trajet.
-    if (opts.fast) {
-      if (!startFastVoyage(get, set, routeId, from.id, to.id, route, { pace: opts.seaPace, cadence: opts.cadence })) {
-        log(get, set, [t('tf.noVessel')]);
-        return;
-      }
-      set({ billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
-      return;
-    }
-    const seaPlan = buildSeaPlan(get, routeId, from.id, to.id, route, { pace: opts.seaPace, cadence: opts.cadence });
-    if (!seaPlan) {
+    const seaPlan = opts.fast ? null : buildSeaPlan(get, routeId, from.id, to.id, route, seaOpts);
+    if (opts.fast ? !startFastVoyage(get, set, routeId, from.id, to.id, route, seaOpts) : !seaPlan) {
       log(get, set, [t('tf.noVessel')]);
       return;
     }
-    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
+    set({ ...(seaPlan ? { travelPlan: seaPlan, worldMapOpen: false, travelRecap: null } : {}), billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
+    if (!seaPlan) return;
     log(get, set, [t('tf.seaDepart', { ship: seaPlan.vehicle!.label, to: to.label, km: route.km })]);
     runSeaDay(get, set);
     return;

@@ -151,8 +151,8 @@ describe('ConditionEditor — états de campagne (#2539) : offre par USAGE de la
   const narratif = {
     ...emptyNarratif(),
     etats: [
-      { id: 'sosie', label: 'Le sosie', ref: 'EDO 02 l.91', forme: { kind: 'heros' as const } },
-      { id: 'issue', label: 'Issue du procès', ref: 'EDO 01 l.241', forme: { kind: 'enum' as const, valeurs: [{ id: 'condamne', label: 'Condamné' }] } },
+      { id: 'sosie', label: 'Le sosie', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' as const } },
+      { id: 'issue', label: 'Issue du procès', source: { book: 'ennemi-dans-l-ombre', page: 17, note: 'EDO 01 l.241' }, forme: { kind: 'enum' as const, valeurs: [{ id: 'condamne', label: 'Condamné' }] } },
     ],
   };
   const options = (html: string, aria: string): string[] => {

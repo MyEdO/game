@@ -26,7 +26,7 @@ import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { GameOpEditor, opSummary } from './GameOpEditor';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
 import { RefField, RefNarrativeField, SOURCE_NARRATIVE, entreesDeStades, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/RefField';
-import { etatsAdmettant, libelleDeValeurDEtat, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
+import { etatsAdmettant, valeurDEtat, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { NumberField } from '../NumberField';
@@ -209,7 +209,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
   switch (effect.type) {
     case 'journal': return `Journal : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}`;
     case 'setFlag': return `Flag ${e.flag || '?'} = ${e.value === false ? 'faux' : 'vrai'}`;
-    case 'poserEtat': return `État ${ref('etat', e.etat)} = ${e.valeur ? libelleDeValeurDEtat(ctx.narratif?.etats, e.etat, e.valeur) : '?'}`;
+    case 'poserEtat': return `État ${ref('etat', e.etat)} = ${e.valeur ? (valeurDEtat(ctx.narratif?.etats, e.etat, e.valeur)?.label ?? e.valeur) : '?'}`;
     case 'designerHeros': return `Désigner un héros : ${ref('etat', e.etat)}`;
     case 'setObjective': return `Objectif [${e.id || '?'}] : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}${hasSchedule(e) ? ` (échéance ${scheduleSummary(e)})` : ''}`;
     case 'clearObjective': return e.id ? `Retirer l'objectif [${e.id}]` : `Retirer tous les objectifs`;

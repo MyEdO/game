@@ -27,7 +27,7 @@ const ENTREE_DE: { readonly [K in CleDeRegistreNarratif]: (id: string) => Jouet 
   presetsPnj: (id) => ({ id, base: 'gobelin' }),
   objets: (id) => ({ id, label: 'Un objet' }),
   documents: (id) => ({ id, titre: 'Un document', prose: 'Un texte.' }),
-  etats: (id) => ({ id, label: 'Un état', ref: 'EDO 02 l.91', forme: { kind: 'heros' } }),
+  etats: (id) => ({ id, label: 'Un état', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } }),
 };
 
 /** Narratif portant l'affaire socle (à laquelle un indice se rattache) et `over`. */
@@ -162,8 +162,8 @@ describe('références narratives des Effects — résolues au parse du projet',
 
 // EDO 02 l.91 (référence à un héros) ; EDO 01 l.241 (issue énumérée).
 describe('états de campagne (#2539) — lus et posés résolus au parse du projet', () => {
-  const SOSIE = { id: 'sosie', label: 'Le sosie', ref: 'EDO 02 l.91', forme: { kind: 'heros' } };
-  const ISSUE = { id: 'issue', label: 'Issue', ref: 'EDO 01 l.241', forme: { kind: 'enum', valeurs: [{ id: 'relache', label: 'Relâché' }, { id: 'condamne', label: 'Condamné' }] } };
+  const SOSIE = { id: 'sosie', label: 'Le sosie', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } };
+  const ISSUE = { id: 'issue', label: 'Issue', source: { book: 'ennemi-dans-l-ombre', page: 17, note: 'EDO 01 l.241' }, forme: { kind: 'enum', valeurs: [{ id: 'relache', label: 'Relâché' }, { id: 'condamne', label: 'Condamné' }] } };
   const avecEtats = (scenes: Jouet[]): Jouet =>
     projet({ narratif: narratif({ documents: [LETTRE], indices: [INDICE], etats: [SOSIE, ISSUE] }), scenes });
   const declencheur = (when: unknown, effect?: Jouet): Jouet => ({

@@ -47,10 +47,10 @@ export const etatsAdmettant = <E extends EtatDeclare>(etats: readonly E[] | unde
 export const valeursDeclarees = (etat: EtatDeclare | undefined): readonly { readonly id: string; readonly label: string }[] =>
   (etat && FORMES_D_ETAT[etat.forme.kind].valeursDeclarees ? etat.forme.valeurs ?? [] : []);
 
-/** Libellé d'affichage de l'état `id` (repli : l'id). */
-export const libelleDEtat = (etats: readonly EtatDeclare[] | undefined, id: string): string =>
-  etats?.find((e) => e.id === id)?.label ?? id;
+/** L'état déclaré `id` de `etats` (l'affichage lit son `label`). */
+export const etatDeclare = <E extends EtatDeclare>(etats: readonly E[] | undefined, id: string): E | undefined =>
+  etats?.find((e) => e.id === id);
 
-/** Libellé d'affichage de la valeur `valeur` de l'état `id` (repli : l'id de valeur). */
-export const libelleDeValeurDEtat = (etats: readonly EtatDeclare[] | undefined, id: string, valeur: string): string =>
-  valeursDeclarees(etats?.find((e) => e.id === id)).find((v) => v.id === valeur)?.label ?? valeur;
+/** La valeur DÉCLARÉE `valeur` de l'état `id` (l'affichage lit son `label`). */
+export const valeurDEtat = (etats: readonly EtatDeclare[] | undefined, id: string, valeur: string): { readonly id: string; readonly label: string } | undefined =>
+  valeursDeclarees(etatDeclare(etats, id)).find((v) => v.id === valeur);

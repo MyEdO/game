@@ -1258,6 +1258,15 @@ const idsDuGroupe = (s: GameState): string[] => s.party.map((h) => h.id);
  *  (void) l'application continue. */
 type EffectApplyResult = void | 'suspend';
 
+/** Écrit l'entrée `cle` d'un registre clé → valeur de l'état : drapeaux de scénario (`setFlag`), états de
+ *  campagne (`poserEtat`). */
+function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle: string, valeur: GameState[K][string]): void {
+  env.set((s: GameState) => {
+    const registre: GameState[K] = { ...s[champ], [cle]: valeur };
+    return { [champ]: registre } as Partial<GameState>;
+  });
+}
+
 /** Contexte de validation des réfs d'un effet (id-sets de la scène/projet + bornes de la carte). Fourni
  *  par `validateScene` ; `refs` produit des avertissements génériques (sans scope/refId — re-décorés par
  *  l'appelant), ce qui co-localise la validation d'un effet AVEC son application (fin du switch parallèle). */
@@ -1408,13 +1417,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   setFlag: {
     group: 'Narration', label: libelleEffet('setFlag'), icon: 'map-tool/start-flag',
     make: () => ({ type: 'setFlag', flag: '', value: true }),
-    apply: (e, env) => { env.set((s: GameState) => ({ flags: { ...s.flags, [e.flag]: e.value ?? true } })); },
+    apply: (e, env) => ecrireEntree(env, 'flags', e.flag, e.value ?? true),
   },
   // États de campagne (#2539, registre `narratif.etats`) : forme et valeur contrôlées au chargement.
   poserEtat: {
     group: 'Narration', label: libelleEffet('poserEtat'), icon: 'map-tool/start-flag',
     make: () => ({ type: 'poserEtat', etat: '', valeur: '' }),
-    apply: (e, env) => { env.set((s: GameState) => ({ etats: { ...s.etats, [e.etat]: e.valeur } })); },
+    apply: (e, env) => ecrireEntree(env, 'etats', e.etat, e.valeur),
   },
   designerHeros: {
     group: 'Narration', label: libelleEffet('designerHeros'), icon: 'nav/entry-point',
@@ -1422,11 +1431,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     suspensif: true,
     // EDO 02 l.91 : décision de GROUPE (`pendingDesignationHeros`, modale `designationHeros`) refermée
     // par `designerHerosChoisir`, qui rejoue la suite ; sans héros vivant, rien à désigner.
-    apply: (e, env, suite) => {
-      if (!env.get().party.some((h) => !h.dead)) return;
-      env.set({ pendingDesignationHeros: { etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite } });
-      return 'suspend';
-    },
+    apply: (e, env, suite) => (env.get().designerHerosOuvrir({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite }) ? 'suspend' : undefined),
   },
   setObjective: {
     group: 'Narration', label: libelleEffet('setObjective'), icon: 'map-tool/start-flag',
