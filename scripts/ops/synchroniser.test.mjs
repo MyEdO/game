@@ -21,7 +21,8 @@ import {
 } from './synchroniser.mjs'
 import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
 import { renommerResilient } from '../guards/lib/renommageResilient.mjs'
-import { attendreLibre, estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
+import { attendreLibre, sousEcheanceAsync } from '../test/verrou.mjs'
+import { estPidDeProcessus, estPidVivant } from '../guards/lib/pid.mjs'
 import { CODE_DIFFERE, CODE_SOURCE_MODIFIEE } from '../docs/build-all.mjs'
 import { cheminsDeLaReconstruction, demanderLaReconstruction, servirLesDemandes } from '../git-hooks/reconstruction.mjs'
 
@@ -169,7 +170,7 @@ async function consommationFinie(principal, pids = [], { solde: exige = true } =
         if (e.code === 'EPERM') return false
         throw e
       }
-      return attendreLibre({ chemin }).etat === 'libre' && (!exige || du === null || du.echec != null) && !pids.some((pid) => pid && estPidVivant(pid))
+      return attendreLibre({ chemin }).etat === 'libre' && (!exige || du === null || du.echec != null) && !pids.some((pid) => estPidVivant(pid))
     },
     abouti: (fini) => fini,
   })
@@ -609,7 +610,7 @@ process.exitCode = libere ? 0 : 1
         try {
           const etat = JSON.parse(v.stdout)
           const pid = etat?.consommateurs?.pid
-          if (Number.isInteger(pid) && pid > 0) pids.push(pid)
+          if (estPidDeProcessus(pid)) pids.push(pid)
           return etat
         } catch (e) {
           erreursLecture.push(e)
@@ -637,7 +638,7 @@ process.exitCode = libere ? 0 : 1
       assert.equal(head(m.principal), U)
       assert.deepEqual(traces(m.principal), { verrouIndex: false, synchro: false })
       assert.equal(existsSync(join(m.principal, '.git', 'synchro.verrou')), false)
-      assert.equal(pids.some((pid) => pid && estPidVivant(pid)), false)
+      assert.equal(pids.some((pid) => estPidVivant(pid)), false)
     } catch (e) {
       erreurs.push(e)
     } finally {

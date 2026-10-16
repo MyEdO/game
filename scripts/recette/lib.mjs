@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import { attendreSync } from '../guards/lib/spawnResilient.mjs';
 import { TOLERANCE_CREATION_MS } from '../guards/lib/processusWorktrees.mjs';
+import { estPidVivant } from '../guards/lib/pid.mjs';
 import { browserFreezeTimeout, browserUnfreezeTimeout } from '../../src/state/devtoolsTimers.ts';
 import { ENTETE_RACINE, RACINE, normaliserRacine, racineDepuisEntete, urlDev } from '../port-dev.mjs';
 
@@ -2680,20 +2681,6 @@ export function descripteurSession({ pidGardien, session, url, journal, vue, rac
   };
 }
 
-/** Vrai si le process `pid` existe (`kill 0`, sans rien tuer). `ESRCH` = absent ; `EPERM` = il existe,
- *  sous un autre compte ; toute autre erreur remonte. */
-export function processusVivant(pid, { sonder = (p) => process.kill(p, 0) } = {}) {
-  if (!pid) return false;
-  try {
-    sonder(pid);
-    return true;
-  } catch (e) {
-    if (e.code === 'ESRCH') return false;
-    if (e.code === 'EPERM') return true;
-    throw e;
-  }
-}
-
 /** Lecture du journal de console du gardien à partir de l'octet `depuis` : `{ entries, errors(), warnings() }`. */
 export function consoleDuJournal(journal, depuis = 0, { lire = (c) => readFileSync(c) } = {}) {
   const entries = () => lire(journal).subarray(depuis).toString('utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
@@ -2715,7 +2702,7 @@ const cibleDejaPartie = (e) => isNavigationError(e) || /No session with given id
  * Refus NOMMÉS, sans pendre : aucune session, gardien mort (PID absent), CDP muet.
  */
 export async function attacherSession(fichier = fichierDeSession(), {
-  disque = DISQUE, vivant = processusVivant, recuperer = fetch, connecter = (url) => new WebSocket(url), delaiMs = 5000,
+  disque = DISQUE, vivant = estPidVivant, recuperer = fetch, connecter = (url) => new WebSocket(url), delaiMs = 5000,
   taille = (chemin) => statSync(chemin).size, signaler = (chemin) => writeFileSync(chemin, String(Date.now())),
 } = {}) {
   if (!disque.existe(fichier)) throw new Error(`attacherSession : aucune session tenue (${fichier}) — lancer « node scripts/recette/session.mjs ouvrir » en fond`);
@@ -2757,7 +2744,7 @@ export async function attacherSession(fichier = fichierDeSession(), {
  */
 export async function tenirSession(url = DEFAULT_URL, {
   vue = 'bureau', inactiviteMs = 30 * 60 * 1000, fichier = fichierDeSession(), pasMs = 250, timeoutMs = 120000, ouvrir = openApp,
-  disque = DISQUE, vivant = processusVivant,
+  disque = DISQUE, vivant = estPidVivant,
 } = {}) {
   const refusTenue = () => {
     const ancien = JSON.parse(disque.lire(fichier));
@@ -2817,7 +2804,7 @@ export async function tenirSession(url = DEFAULT_URL, {
  *    journal supprimés.
  */
 export async function fermerSession(fichier = fichierDeSession(), {
-  disque = DISQUE, vivant = processusVivant, signaler = (chemin) => writeFileSync(chemin, String(Date.now())), attenteMs = 30000, pasMs = 250,
+  disque = DISQUE, vivant = estPidVivant, signaler = (chemin) => writeFileSync(chemin, String(Date.now())), attenteMs = 30000, pasMs = 250,
 } = {}) {
   if (!disque.existe(fichier)) return { etat: 'aucune' };
   const d = JSON.parse(disque.lire(fichier));
@@ -2862,7 +2849,7 @@ function verrouChrome(profil, { disque = DISQUE } = {}) {
  * — chaque purge est VÉRIFIÉE.
  */
 export async function purgerProfilsOrphelins({
-  dossier = os.tmpdir(), disque = DISQUE, vivant = processusVivant, plateforme = process.platform, hote = os.hostname(),
+  dossier = os.tmpdir(), disque = DISQUE, vivant = estPidVivant, plateforme = process.platform, hote = os.hostname(),
 } = {}) {
   const trouves = disque.lister(dossier).filter((n) => n.startsWith(PREFIXE_PROFIL));
   const bilan = { trouves: trouves.length, purges: 0, vivants: 0, sansPreuve: [], echecs: [] };

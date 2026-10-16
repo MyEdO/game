@@ -9,6 +9,15 @@
     "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
   },
   {
+    "id": "pid",
+    "type": "primitives.manifest",
+    "label": "estPidVivant/estPidDeProcessus",
+    "fichier": "scripts/guards/lib/pid.mjs",
+    "concept": "existence d'un processus par son PID : PID entier de l'int32 strictement positif, sonde unique `kill(pid, 0)` — ESRCH absent, EPERM présent, toute autre erreur levée",
+    "perimetre": "verrous de l'arbre et de la suite, reconstruction des dérivés, publication, synchronisation, recette, lancement détaché",
+    "verrou": "scripts/guards/lib/pid.test.mjs"
+  },
+  {
     "id": "superviserProcessus",
     "type": "primitives.manifest",
     "label": "superviserProcessus/sortieDeSupervision",

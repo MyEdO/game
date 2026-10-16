@@ -33,7 +33,7 @@
 // `--veiller <run>` suit le run nommé par `--detache` (`veillerLeTrain`), sans rien jouer ; `--depuis <seq>`
 // la ré-arme après la dernière transition `#<seq>` lue ; `--constat` la reprend après la sortie de sa veille
 // (#2493), depuis la dernière transition du journal.
-import { optionsDe, idDeRun, runDe, pidDeRun, lancementDe, journalVide, journalInitial, modeDuLog, ouvrirLog, CODE_BORNE_DEPASSEE, entameDuRun, ligneDePublication, codeDeVerdict, cheminsDeJournal, lireJournal, vivant, lancementNpm } from './publicationDonnee.mjs'
+import { optionsDe, idDeRun, runDe, pidDeRun, lancementDe, journalVide, journalInitial, modeDuLog, ouvrirLog, CODE_BORNE_DEPASSEE, entameDuRun, ligneDePublication, codeDeVerdict, cheminsDeJournal, lireJournal, lancementNpm } from './publicationDonnee.mjs'
 import { spawnSync } from 'node:child_process'
 import { appendFileSync, closeSync, existsSync, mkdirSync, readFileSync, writeSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -56,6 +56,7 @@ import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { TIMEOUT_SYNCHRONISEUR } from '../agents/compat-core.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 import { publicationDe } from './publicationIsolee.mjs'
 import { ligneDeLEtat, mesurerPrincipal } from './synchroniser.mjs'
 import { attendreLaReconstruction, demandesDe } from '../git-hooks/reconstruction.mjs'
@@ -115,7 +116,7 @@ const ETAT_DU_VERDICT = Object.freeze({ vert: 'vert', indeterminee: 'indétermin
  * @returns {{etat:string, etape:string|null, rang:number, total:number, run:string|null, seq:number,
  *            etapes:{nom:string, etat:string}[], reprise:string|null}}
  */
-export function etatDuTrain(journal, { teteVivante, noms = ETAPES.map((e) => e.nom), vivant: estVivant = vivant }) {
+export function etatDuTrain(journal, { teteVivante, noms = ETAPES.map((e) => e.nom), vivant: estVivant = estPidVivant }) {
   const run = journal?.run ?? null
   const transitions = Object.entries(journal?.etapes ?? {})
     .filter(([nom, vue]) => run && vue?.run === run && Number.isInteger(vue.seq) && noms.includes(nom))
@@ -274,7 +275,7 @@ const etapeEnVol = (journal) => Object.entries(journal?.etapes ?? {})
  * @param {object|null} journal @param {{vivant?:(pid:number) => boolean, maintenant?:() => number}} [p]
  * @returns {{pid:number, nom:string|null}|null}
  */
-export function mortDuRun(journal, { vivant: estVivant = vivant, maintenant = Date.now } = {}) {
+export function mortDuRun(journal, { vivant: estVivant = estPidVivant, maintenant = Date.now } = {}) {
   if (!journal?.run || journal.verdict) return null
   const pid = journal.pid ?? pidDeRun(journal.run)
   const nom = etapeEnVol(journal)
@@ -292,7 +293,7 @@ export function mortDuRun(journal, { vivant: estVivant = vivant, maintenant = Da
  * @param {{chemins:{json:string, log:string}, par:string, vivant?:(pid:number) => boolean, maintenant?:() => number,
  *          mesurer?:(visee:string|null) => object}} p
  */
-export function constaterLaMort({ chemins, par, vivant: estVivant = vivant, maintenant = Date.now, mesurer = (visee) => mesurerPrincipal({ depuis: RACINE, visee }) }) {
+export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant, maintenant = Date.now, mesurer = (visee) => mesurerPrincipal({ depuis: RACINE, visee }) }) {
   if (!existsSync(chemins.json)) return null
   const verrou = prendreVerrou({
     chemin: `${chemins.json}.constat.verrou`, libelle: 'constat de la mort du train', commande: par,
@@ -355,7 +356,7 @@ export function veillerLeTrain({
   constat = false,
   journal: cheminDuJournal = '',
   pid: pidDeLaVeille = process.pid,
-  vivant: estVivant = vivant,
+  vivant: estVivant = estPidVivant,
   maintenant = Date.now,
   dormir = attendreSync,
   periodeMs = PERIODE_DE_VEILLE_MS,

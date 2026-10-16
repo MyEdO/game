@@ -2,6 +2,7 @@
 // (`./abaisser-priorite.mjs`, #2603) et n'hérite d'aucun jeton de verrou (`PREFIXE_JETON_VERROU`) ni de l'index d'un hook (`GIT_INDEX_FILE`, #2603).
 import { spawn, spawnSync } from 'node:child_process'
 import { PREFIXE_JETON_VERROU } from '../../test/verrou.mjs'
+import { estPidDeProcessus } from './pid.mjs'
 
 /** Le préchargement qui abaisse la priorité du détaché (`node --import`). */
 export const ABAISSER_PRIORITE = Object.freeze(['--import', new URL('./abaisser-priorite.mjs', import.meta.url).href])
@@ -80,7 +81,7 @@ export function lancerDetache({
     { cwd, env, encoding: 'utf8', windowsHide: true },
   )
   const pid = Number(String(vu?.stdout ?? '').trim().split(/\s+/).pop())
-  if (!Number.isInteger(pid) || pid <= 0) {
+  if (!estPidDeProcessus(pid)) {
     throw new Error(
       `[détachement] ${script} : détachement manqué, powershell a rendu « ${String(vu?.stdout ?? '').trim()} » ${String(vu?.stderr ?? '').trim()}`,
     )

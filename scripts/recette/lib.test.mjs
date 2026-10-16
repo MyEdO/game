@@ -67,7 +67,6 @@ import {
   waitForAppSilently,
   espionReseau,
   survoler,
-  processusVivant,
   attendreSelecteur,
   avancerDeRounds,
   appelerWfrp,
@@ -2097,12 +2096,6 @@ test('gestes : une cible en CHAÎNE nue est refusée en nommant les trois formes
   await assert.rejects(() => survoler(session, '+ Op', { attenteMs: 0 }), /survoler : cible "\+ Op" — formes admises : \{ nom.*\{ selecteur.*\{ surface, x, y \}/)
   assert.deepEqual(etat.emis, [])
   assert.deepEqual({ ...(await survoler(session, { nom: '+ Op' }, { attenteMs: 0 })) }, { x: 30, y: 25, label: '+ Op', ferme: null })
-})
-
-test('processusVivant : ESRCH = mort, EPERM = vivant, toute autre erreur remonte', () => {
-  assert.equal(processusVivant(7, { sonder: () => { throw erreurDeCode('ESRCH') } }), false)
-  assert.equal(processusVivant(7, { sonder: () => { throw erreurDeCode('EPERM') } }), true)
-  assert.throws(() => processusVivant(7, { sonder: () => { throw erreurDeCode('EINVAL') } }), /EINVAL/)
 })
 
 test('attendreSelecteur : l’échéance se NOMME ; une évaluation cassée remonte telle quelle', async () => {
