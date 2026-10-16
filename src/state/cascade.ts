@@ -259,8 +259,8 @@ export interface TableStepDef {
 }
 
 /** REGISTRE STATIQUE : les tables dont l'id est ÉCRIT AU CODE (Critiques par Localisation, Incantations
- *  imprévues, Incidents de Tir par Salve, Événements d'interlude…) — une def posée une fois, au
- *  chargement de son module. */
+ *  imparfaites et Colère des dieux, Incidents de Tir par Salve, Événements d'interlude…) — une def
+ *  posée une fois, au chargement de son module. */
 const tableStepStatiques: Record<string, TableStepDef> = {};
 
 /**
