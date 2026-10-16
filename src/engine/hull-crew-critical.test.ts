@@ -3,7 +3,7 @@ import { applyHullCritical, exposedCrew } from './shipCritical';
 import { vehicleCombatant } from './vehicle';
 import { findVehicleById } from '../data';
 import { makeRNG } from './dice';
-import { usesSuddenDeath, isOutOfAction, applyZeroWounds, tickDeath, hasCondition, COND } from './conditions';
+import { usesSuddenDeath, isOutOfAction, applyZeroWounds, tickDeath, hasCondition, addCondition, COND } from './conditions';
 import type { Combatant } from './types';
 
 /** Marin minimal (Combattant de personnage) — assez pour `resolveCritique`/`applyOps`. */
@@ -64,23 +64,26 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
   });
 });
 
-/**
- * Modèle de MORT d'une coque (MDG 13) : une coque N'EST PAS un figurant — pas de « Mort Subite » de
- * mook, pas d'« À Terre »/« Inconscient » ; elle est détruite (hors-jeu) quand ses Blessures tombent à 0.
- */
-describe('Coque — mise hors de combat à 0 PB (ni figurant, ni Inconscient)', () => {
+/** Coque à 0 Blessure : MDG 13 l.656, l.674 ; MSRC 07 l.74. */
+describe('Coque — à 0 PB reste en jeu, ne sort que coulée (ni figurant, ni Inconscient)', () => {
   it("une coque n'utilise jamais la Mort Subite (figurant)", () => {
     expect(usesSuddenDeath(hull())).toBe(false);
   });
-  it('détruite à 0 PB → hors de combat (sans État À Terre ni Inconscient)', () => {
+  it('à 0 PB → toujours en jeu, sans État À Terre ni Inconscient ni horloge de LDB 18 l.15', () => {
     const s = hull();
     s.wounds.current = 0;
     applyZeroWounds(s);
     expect(hasCondition(s, COND.aTerre)).toBe(false);
-    expect(isOutOfAction(s)).toBe(true);
+    expect(isOutOfAction(s)).toBe(false);
     tickDeath(s);
     expect(hasCondition(s, COND.inconscient)).toBe(false);
-    expect(s.roundsAtZero ?? 0).toBe(0); // pas de cascade de mort lente sur une coque
+    expect(s.roundsAtZero ?? 0).toBe(0);
+  });
+  it('coulée (État naufrage, MDG 13 l.674) → hors de combat', () => {
+    const s = hull();
+    s.wounds.current = 0;
+    addCondition(s, 'naufrage');
+    expect(isOutOfAction(s)).toBe(true);
   });
   it('coque intacte (PB > 0) → toujours en combat', () => {
     expect(isOutOfAction(hull())).toBe(false);

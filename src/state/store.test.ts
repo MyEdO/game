@@ -798,7 +798,7 @@ describe('Boucle de jeu (store)', () => {
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y }; // adjacent au héros
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.wounds.current = 0; // un seul ennemi vivant
+    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true; // un seul ennemi vivant
     useGame.setState({
       battle: { ...st.battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingDefense: null,
@@ -825,7 +825,7 @@ describe('Boucle de jeu (store)', () => {
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y };
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.wounds.current = 0;
+    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true;
     // Monture GRANDE sous l'ennemi (Moyenne) : le cavalier frappe le héros (Moyenne < Grande) à +20.
     const horse = {
       id: 'horse-test', label: 'Cheval (test)', kind: 'enemy', size: 'grande', movement: 8,
@@ -879,7 +879,7 @@ describe('Boucle de jeu (store)', () => {
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y }; // adjacent
     E.conditions.push({ id: 'sonne', value: 1 }); // l'ennemi est Sonné
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.wounds.current = 0;
+    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true;
     const woundsBefore = H.wounds.current;
     useGame.setState({
       battle: { ...st.battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
@@ -932,7 +932,7 @@ describe('Boucle de jeu (store)', () => {
     H.pos = { x: 6, y: 10 };
     H.advantage = 0;
     E.pos = { x: 8, y: 10 }; // 2 cases à l'est, couloir libre
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.wounds.current = 0;
+    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true;
     const turn = st.battle!.order.indexOf(H.id);
     useGame.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     vi.clearAllTimers();
@@ -1000,7 +1000,7 @@ describe('Boucle de jeu (store)', () => {
     mount.riderId = rider.id; // #0 = monture
     rider.pos = { x: 7, y: 10 };
     rider.mountId = mount.id; // #1 = cavalier (sur #0)
-    for (const c of enemies.slice(2)) c.wounds.current = 0; // neutralise les autres
+    for (const c of enemies.slice(2)) c.dead = true; // neutralise les autres
     const turn = st.battle!.order.indexOf(H.id);
     useGame.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     // Clic confirmé sur la monture → la modale de choix s'ouvre (pas d'attaque encore).

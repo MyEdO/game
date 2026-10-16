@@ -6,6 +6,7 @@ import { reverseRoll, rollMeleeDefender, type AttackResult } from '../engine/com
 import { isOutOfAction } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
+import { draineCascade } from './cascadeTestKit';
 import { emptyScene } from './scene';
 import type { Combatant, Weapon } from '../engine/types';
 
@@ -163,9 +164,10 @@ describe('chaînage de l’Action « des deux armes »', () => {
   it('main touche et TUE la seule cible à portée → aucun « adversaire disponible » (LDB 10 l.773) : pas de 2ᵉ frappe', () => {
     const { f1, f2 } = setupBattle();
     f2.pos = { x: 7, y: 3 }; // hors d'Allonge de la main secondaire
-    f1.wounds.current = 8; // tombe à 0 PB sans excédent : Mort Subite du figurant, sans Critique
-    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ damage: 8, woundsLost: 8 }), dualMode: true } as any });
+    f1.wounds.current = 8; // dépassement : Mort Subite du figurant (LDB 18 l.46)
+    useGame.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ damage: 9, woundsLost: 9 }), dualMode: true } as any });
     useGame.getState().attackConfirm();
+    draineCascade(useGame.getState); // Blessure Critique du dépassement, Déviation comprise : LDB 18 l.17, LDB 63 l.30
     expect(isOutOfAction(useGame.getState().battle!.combatants.find((c) => c.id === 'f1')!), 'pré-requis : la 1re frappe a tué').toBe(true);
     expect(useGame.getState().pendingDualStrike).toBeNull();
     const h = useGame.getState().battle!.combatants.find((c) => c.id === 'h')!;

@@ -7,6 +7,7 @@ import { toutCoupEstCritique } from '../engine/structures';
 import { setRule, resetRule } from '../engine/policy';
 import type { TestResult } from '../engine/tests';
 import { stepInteraction } from './cascade';
+import { draineCascade } from './cascadeTestKit';
 import { findTableEntry } from '../engine/tables';
 import { STRUCTURE_CRITICALS } from '../data/structureCriticals';
 import { rollStructureCritical } from '../engine/structureCritical';
@@ -330,7 +331,7 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
       giveTurn();
       useGame.getState().battleClickEntity(S!.id, { confirm: true }); // = clic sur l'overlay d'arête de la structure
       if (useGame.getState().pendingAttack) { useGame.getState().attackRoll(); useGame.getState().attackConfirm(); }
-      if (useGame.getState().pendingCascade) { useGame.getState().cascadeResolveAll(); useGame.getState().cascadeFinish(); }
+      draineCascade(useGame.getState);
       const s = live(S!.id);
       if (s && s.wounds.current <= 0) aZeroEnJeu = true;
     }

@@ -39,7 +39,9 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source vivante → RNG déterministe
-    E.important = true; // pas de Mort Subite → À Terre à 0 PB, soumis au Test de Résistance (pas hors-jeu)
+    // Hors Mort Subite, donc en jeu à 0 PB : PNJ important (LDB 18 l.46), à Talent Chanceux (AA 07 l.67).
+    E.important = true;
+    E.talents = [...(E.talents ?? []), { talentId: 'chanceux', times: 1 }];
     E.wounds = { current: 0, max: 20 };
     useGame.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { E };
