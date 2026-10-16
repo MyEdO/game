@@ -33,14 +33,14 @@
 // `--veiller <run>` suit le run nommé par `--detache` (`veillerLeTrain`), sans rien jouer ; `--depuis <seq>`
 // la ré-arme après la dernière transition `#<seq>` lue ; `--constat` la reprend après la sortie de sa veille
 // (#2493), depuis la dernière transition du journal.
-import { optionsDe, idDeRun, runDe, pidDeRun, lancementDe, journalVide, journalInitial, modeDuLog, ouvrirLog, CODE_BORNE_DEPASSEE, entameDuRun, ligneDePublication, codeDeVerdict, cheminsDeJournal, lireJournal, lancementNpm } from './publicationDonnee.mjs'
+import { optionsDe, idDeRun, runDe, runEnVol, lancementDe, journalVide, journalInitial, modeDuLog, ouvrirLog, CODE_BORNE_DEPASSEE, entameDuRun, ligneDePublication, codeDeVerdict, cheminsDeJournal, lireJournal, lancementNpm } from './publicationDonnee.mjs'
 import { spawnSync } from 'node:child_process'
 import { appendFileSync, closeSync, existsSync, mkdirSync, readFileSync, writeSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   GitIndisponible, TRONC, abandonnerFusion, attributsDe, baseCommune, brancheDe, ceQuiChange, cheminsEnConflit, combienDe, commitDe, refusDeGit,
-  conclureFusionSansChemins, depotDe, TIMEOUT_DU_HOOK_MS,
+  conclureFusionSansChemins, depotDe, TIMEOUT_DU_DISTANT_MS, TIMEOUT_DU_HOOK_MS, TIMEOUT_READ_TREE_MS,
   estAncetre, estShaComplet, etatDeLArbre, fetchOrigin, fusionner, indisponible, lireEnLot, origineDe, pousser, racineDe, rebaseEntame, reussi, shaDe,
 } from '../guards/lib/gitPorte.mjs'
 import { BORNE_RAISON, DEPOT, lireTicket, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
@@ -56,7 +56,8 @@ import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { TIMEOUT_SYNCHRONISEUR } from '../agents/compat-core.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
-import { estPidVivant } from '../guards/lib/pid.mjs'
+import { creationMemorisee, estPidVivant } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { publicationDe } from './publicationIsolee.mjs'
 import { ligneDeLEtat, mesurerPrincipal } from './synchroniser.mjs'
 import { attendreLaReconstruction, demandesDe } from '../git-hooks/reconstruction.mjs'
@@ -112,11 +113,12 @@ const ETAT_DU_VERDICT = Object.freeze({ vert: 'vert', indeterminee: 'indétermin
  *   · `mort` : pas de verdict, le pid ne vit pas, pour la tête vivante.
  * `etape` est la dernière TRANSITION du run (`seq` le plus haut), `rang` sa place dans `noms` (1 à
  * `total`, 0 sans transition). `etapes` et `reprise` suivent la règle de tête (`etatDeLEtape`, `planDeReprise`).
- * @param {object|null} journal @param {{teteVivante:string|null, noms?:string[], vivant?:(pid:number) => boolean}} p `noms` : ceux d’`ETAPES`
+ * @param {object|null} journal @param {{teteVivante:string|null, noms?:string[], vivant?:(pid:number) => boolean,
+ *   identite?:typeof IDENTITE_MESUREE}} p `noms` : ceux d’`ETAPES` ; `identite` juge le pid né à sa `naissanceDuPid` (#2603)
  * @returns {{etat:string, etape:string|null, rang:number, total:number, run:string|null, seq:number,
  *            etapes:{nom:string, etat:string}[], reprise:string|null}}
  */
-export function etatDuTrain(journal, { teteVivante, noms = ETAPES.map((e) => e.nom), vivant: estVivant = estPidVivant }) {
+export function etatDuTrain(journal, { teteVivante, noms = ETAPES.map((e) => e.nom), vivant: estVivant = estPidVivant, identite = IDENTITE_MESUREE }) {
   const run = journal?.run ?? null
   const transitions = Object.entries(journal?.etapes ?? {})
     .filter(([nom, vue]) => run && vue?.run === run && Number.isInteger(vue.seq) && noms.includes(nom))
@@ -124,7 +126,7 @@ export function etatDuTrain(journal, { teteVivante, noms = ETAPES.map((e) => e.n
   const etape = transitions[0]?.[0] ?? null
   const verdict = journal?.verdict ?? null
   const etat = !run ? 'aucun'
-    : !verdict && estVivant(journal.pid) ? 'en-vol'
+    : runEnVol(journal, identite, { estVivant }) ? 'en-vol'
       : journal.tete && journal.tete !== teteVivante ? 'périmé'
         : verdict ? ETAT_DU_VERDICT[verdict.etat] ?? 'rouge'
           : 'mort'
@@ -261,6 +263,24 @@ export function jouerLeTrain(ctx, etapes, journal, { sauver = () => {}, journali
 export const PERIODE_DE_VEILLE_MS = 5_000
 
 /**
+ * Échéance d'une veille sans son run au journal, depuis le LANCEMENT : une ESTIMATION, pas une borne (#2603). Elle somme
+ * `ls-remote` et `fetch`, bornés chacun par `TIMEOUT_DU_DISTANT_MS`, et `TIMEOUT_READ_TREE_MS` comme ordre de grandeur de
+ * `worktree add`. Hors de la somme : la mesure de création du `runEnVol` de `preparerPublication`, bornée à 10 s
+ * (`BORNE_DE_MESURE_MS`, `identiteMesuree.mjs`). Termes NON bornés : `worktree add` (`ajouterWorktree`, sans `timeout`),
+ * les lectures git locales (`depotDe`, `brancheDe`, `shaDe`).
+ */
+export const ECHEANCE_SANS_RUN_MS = 2 * TIMEOUT_DU_DISTANT_MS + TIMEOUT_READ_TREE_MS
+
+/**
+ * L'identité de création du train : celle de `identite`, sa mesure gardée par pid (`creationMemorisee`) douze tours de
+ * veille, la mesure étant bornée à 10 s (#2603).
+ * @param {typeof IDENTITE_MESUREE} [identite] @param {() => number} [horloge]
+ * @returns {typeof IDENTITE_MESUREE}
+ */
+export const identiteDuTrain = ({ lireCreation, toleranceMs } = IDENTITE_MESUREE, horloge = Date.now) =>
+  ({ lireCreation: creationMemorisee(lireCreation, { pasMs: 12 * PERIODE_DE_VEILLE_MS, horloge }), toleranceMs })
+
+/**
  * L'étape `en-vol` de plus haut `seq` du run de `journal`, `null` sans étape en vol. PURE.
  * @param {object|null} journal
  */
@@ -270,18 +290,18 @@ const etapeEnVol = (journal) => Object.entries(journal?.etapes ?? {})
 
 /**
  * La MORT du run de `journal` sans verdict (#2493, verdict §2) : son pid ne vit plus, ou son étape `fin` en vol
- * dépasse la borne du synchroniseur (`TIMEOUT_SYNCHRONISEUR`) d'une minute. REND `{ pid, nom }` (`nom` =
- * l'étape en vol, `etapeEnVol`), `null` pour un run vivant, sans run ou déjà jugé. PURE hors de `vivant`.
- * @param {object|null} journal @param {{vivant?:(pid:number) => boolean, maintenant?:() => number}} [p]
- * @returns {{pid:number, nom:string|null}|null}
+ * dépasse la borne du synchroniseur (`TIMEOUT_SYNCHRONISEUR`) d'une minute. REND `{ pid, nom }` (`pid` = celui du
+ * journal, `nom` = l'étape en vol, `etapeEnVol`), `null` pour un run vivant, sans run ou déjà jugé. PURE hors de `vivant`.
+ * La vie du pid est celle de `runEnVol` (#2603).
+ * @param {object|null} journal @param {{vivant?:(pid:number) => boolean, identite?:typeof IDENTITE_MESUREE, maintenant?:() => number}} [p]
+ * @returns {{pid:number|undefined, nom:string|null}|null}
  */
-export function mortDuRun(journal, { vivant: estVivant = estPidVivant, maintenant = Date.now } = {}) {
+export function mortDuRun(journal, { vivant: estVivant = estPidVivant, identite = IDENTITE_MESUREE, maintenant = Date.now } = {}) {
   if (!journal?.run || journal.verdict) return null
-  const pid = journal.pid ?? pidDeRun(journal.run)
   const nom = etapeEnVol(journal)
   const debut = Date.parse(journal.etapes?.fin?.debut ?? '')
   const finEchue = nom === 'fin' && Number.isFinite(debut) && maintenant() - debut > TIMEOUT_SYNCHRONISEUR * 1000 + 60_000
-  return !estVivant(pid) || finEchue ? { pid, nom } : null
+  return !runEnVol(journal, identite, { estVivant }) || finEchue ? { pid: journal.pid, nom } : null
 }
 
 /**
@@ -290,10 +310,10 @@ export function mortDuRun(journal, { vivant: estVivant = estPidVivant, maintenan
  * la publication est faite : transition `fin` VERTE, `INTERROMPUE`, avec la mesure du principal sur la
  * fusion (`mesurer`). Mort ailleurs : transition ROUGE, verdict `rouge moteur`. Le verdict porte
  * `constat: { par, a }` ; journal et log écrits. REND le verdict, `null` sans constat.
- * @param {{chemins:{json:string, log:string}, par:string, vivant?:(pid:number) => boolean, maintenant?:() => number,
+ * @param {{chemins:{json:string, log:string}, par:string, vivant?:(pid:number) => boolean, identite?:typeof IDENTITE_MESUREE, maintenant?:() => number,
  *          mesurer?:(visee:string|null) => object}} p
  */
-export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant, maintenant = Date.now, mesurer = (visee) => mesurerPrincipal({ depuis: RACINE, visee }) }) {
+export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant, identite = IDENTITE_MESUREE, maintenant = Date.now, mesurer = (visee) => mesurerPrincipal({ depuis: RACINE, visee }) }) {
   if (!existsSync(chemins.json)) return null
   const verrou = prendreVerrou({
     chemin: `${chemins.json}.constat.verrou`, libelle: 'constat de la mort du train', commande: par,
@@ -302,9 +322,10 @@ export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant
   if (verrou.etat !== 'pris') return null
   try {
     const journal = lireJournal(chemins.json, null)
-    const mort = mortDuRun(journal, { vivant: estVivant, maintenant })
+    const mort = mortDuRun(journal, { vivant: estVivant, identite, maintenant })
     if (!mort) return null
     const { pid, nom } = mort
+    const train = pid === undefined ? 'train' : `train ${pid}`
     const a = new Date(maintenant()).toISOString()
     const constat = { par, a }
     const precedente = nom ? journal.etapes[nom] : {}
@@ -312,11 +333,11 @@ export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant
     let dit
     if (nom === 'fin') {
       const mesure = mesurer(journal.etapes.file?.detail?.fusion ?? null)
-      dit = `INTERROMPUE : train ${pid} mort sans verdict (constat : ${par}, ${a}) ; principal ${ligneDeLEtat(mesure)}`
+      dit = `INTERROMPUE : ${train} mort sans verdict (constat : ${par}, ${a}) ; principal ${ligneDeLEtat(mesure)}`
       transitionDuRun(journal, nom, { ...precedente, etat: 'vert', fin: a, dit })
       verdict = { etat: 'vert', constat }
     } else {
-      const raison = `train ${pid} mort pendant ${nom ?? 'son entame'} (constat : ${par}, ${a})`
+      const raison = `${train} mort pendant ${nom ?? 'son entame'} (constat : ${par}, ${a})`
       dit = `INTERROMPUE : ${raison}`
       if (nom) transitionDuRun(journal, nom, { ...precedente, etat: 'rouge', fin: a, dit })
       verdict = { etat: 'rouge', etape: 'moteur', raison, constat }
@@ -337,13 +358,13 @@ export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant
  * (course d'ouverture : le run d'avant), elle se tait. Ré-armée (`depuis` = le dernier `#seq` lu), elle ne
  * ré-émet aucune transition ; `constat` (`--constat`, après la sortie d'une veille) part de la dernière
  * transition du journal. Le run mort sans verdict (`mortDuRun`) est CONSTATÉ (`constater`, qui l'écrit au
- * journal), puis relu ; un train mort avant d'écrire son run au journal, relu une fois, sort en
- * `CODE_ARRET_MOTEUR`. La borne (`borneDeVeilleMin` de la borne de file du run, ou de `fileTimeoutMin` tant
+ * journal), puis relu. Sans son run au journal, rien n'est conclu (indéterminé) : `ECHEANCE_SANS_RUN_MS` après le
+ * LANCEMENT du run, la veille sort en `CODE_BORNE_DEPASSEE`, jamais sur la vie de son pid. La borne (`borneDeVeilleMin` de la borne de file du run, ou de `fileTimeoutMin` tant
  * qu'il n'a rien écrit), comptée depuis le LANCEMENT du run (`runDe`), jamais depuis le départ de la veille,
  * passée sans verdict sort en `CODE_BORNE_DEPASSEE`.
  * @param {{run:string, fileTimeoutMin:number, lire:() => object|null, ecrire:(ligne:string) => void,
  *          constater?:() => object|null, depuis?:number, constat?:boolean, journal?:string, pid?:number,
- *          vivant?:(pid:number) => boolean, maintenant?:() => number, dormir?:(ms:number) => void, periodeMs?:number}} p
+ *          vivant?:(pid:number) => boolean, identite?:typeof IDENTITE_MESUREE, maintenant?:() => number, dormir?:(ms:number) => void, periodeMs?:number}} p
  * @returns {number} code de sortie
  */
 export function veillerLeTrain({
@@ -357,11 +378,12 @@ export function veillerLeTrain({
   journal: cheminDuJournal = '',
   pid: pidDeLaVeille = process.pid,
   vivant: estVivant = estPidVivant,
+  identite = IDENTITE_MESUREE,
   maintenant = Date.now,
   dormir = attendreSync,
   periodeMs = PERIODE_DE_VEILLE_MS,
 }) {
-  const { pid, lancement } = runDe(run)
+  const { lancement } = runDe(run)
   ecrire(`[veille] PID ${pidDeLaVeille} veille le run ${run} (journal ${cheminDuJournal})`)
   let seq = depuis
   if (constat) {
@@ -370,7 +392,6 @@ export function veillerLeTrain({
     ecrire(`[veille] constat du run ${run} après la sortie de sa veille`)
   }
   let borneMin = fileTimeoutMin
-  let sansJournal = false
   for (;;) {
     const journal = lire()
     const vu = transitionsDuRun(journal, run, seq)
@@ -381,15 +402,10 @@ export function veillerLeTrain({
       ecrire(ligneDePublication(vu.verdict, journal.tete))
       return codeDeVerdict(vu.verdict)
     }
-    if (vu.courant && mortDuRun(journal, { vivant: estVivant, maintenant }) && constater()) continue
-    if (!vu.courant && !estVivant(pid)) {
-      if (sansJournal) {
-        const verdict = { etat: 'rouge', etape: 'moteur', raison: `train ${pid} mort avant d'écrire son run au journal` }
-        ecrire(ligneDePublication(verdict))
-        return codeDeVerdict(verdict)
-      }
-      sansJournal = true
-      continue
+    if (vu.courant && mortDuRun(journal, { vivant: estVivant, identite, maintenant }) && constater()) continue
+    if (!vu.courant && maintenant() - lancement >= ECHEANCE_SANS_RUN_MS) {
+      ecrire(`[veille] aucun run ${run} au journal ${ECHEANCE_SANS_RUN_MS / 60_000} min après son lancement — \`npm run ops:publier -- --etapes\``)
+      return CODE_BORNE_DEPASSEE
     }
     const borneMs = borneDeVeilleMin(borneMin) * 60_000
     if (maintenant() - lancement >= borneMs) {
@@ -647,7 +663,8 @@ async function main() {
   mkdirSync(chemins.dossier, { recursive: true })
   const surDisque = existsSync(chemins.json) ? lireJournal(chemins.json, branche) : null
   // #2493 : le run mort sans verdict est constaté AVANT tout mode, et avant la rotation du log (`ouvrirLog`).
-  if (surDisque) constaterLaMort({ chemins, par: `publier ${process.argv.slice(2).join(' ') || '(train)'} ${process.pid}` })
+  const identite = identiteDuTrain()
+  if (surDisque) constaterLaMort({ chemins, par: `publier ${process.argv.slice(2).join(' ') || '(train)'} ${process.pid}`, identite })
 
   if (options.veiller) {
     return veillerLeTrain({
@@ -658,7 +675,8 @@ async function main() {
       journal: chemins.json,
       lire: () => lireJournal(chemins.json, branche),
       ecrire: (ligne) => process.stdout.write(`${ligne}\n`),
-      constater: () => constaterLaMort({ chemins, par: `veille ${process.pid}` }),
+      identite,
+      constater: () => constaterLaMort({ chemins, par: `veille ${process.pid}`, identite }),
     })
   }
 
@@ -667,7 +685,7 @@ async function main() {
 
   if (options.etapes) {
     const journal = surDisque ?? journalVide(branche)
-    const train = etatDuTrain(journal, { teteVivante })
+    const train = etatDuTrain(journal, { teteVivante, identite })
     process.stdout.write(
       `publication ${branche} — journal ${chemins.json}\n` +
         `base=${journal.base ?? '—'} tete=${journal.tete ?? '—'} (publiée) · HEAD=${teteVivante ?? '—'} (vivante) ejections=${journal.ejections ?? 0} run=${train.run ?? '—'}\n` +
@@ -689,7 +707,7 @@ async function main() {
   const ctx = contexteDe({ racine: RACINE, branche, options, journaliser, fdLog, publication })
   const { journal, repris, vertes } = journalInitial({ reprendre: options.reprendre, lu: surDisque, branche })
   const lancement = lancementDe(process.env)
-  entameDuRun(journal, { run: idDeRun({ pid: publication?.pid ?? process.pid, lancement }), pid: process.pid, fileTimeoutMin: options.fileTimeoutMin })
+  entameDuRun(journal, { run: idDeRun({ pid: publication?.pid ?? process.pid, lancement }), pid: process.pid, creation: performance.timeOrigin, fileTimeoutMin: options.fileTimeoutMin })
   ecrireJsonAtomique(chemins.json, journal)
   journaliser(`[publier] ${new Date().toISOString()} — branche ${branche}${options.reprendre ? ' (--reprendre)' : ''}\n`)
   journaliser(`[publier] ${repris ? `journal repris (${vertes} étape(s) verte(s))` : 'journal neuf'}\n`)

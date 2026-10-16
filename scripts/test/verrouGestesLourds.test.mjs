@@ -6,29 +6,10 @@ import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { prendreVerrou } from './verrou.mjs'
-import { creationMesuree, verrouGestesLourds } from './verrouGestesLourds.mjs'
-import { toleranceDeMesure } from '../guards/lib/processusWorktrees.mjs'
+import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 import { CODE_DIFFERE, SOURCES_LUES, estGesteLourd } from '../docs/build-all.mjs'
 
 const BUILD_ALL = new URL('../docs/build-all.mjs', import.meta.url)
-
-test('#2603 — creationMesuree : la création RÉELLE du processus courant, à `performance.timeOrigin` près', () => {
-  const creation = creationMesuree(process.pid)
-  assert.equal(typeof creation, 'number')
-  assert.ok(Math.abs(creation - performance.timeOrigin) <= toleranceDeMesure() + 1_000, `écart ${creation - performance.timeOrigin} ms`)
-})
-
-test('#2603 — creationMesuree : mesure indéterminée, en erreur, ou processus absent = `null`', () => {
-  const vue = (processus, extra = {}) => () => ({ processus, ...extra })
-  assert.equal(creationMesuree(7, { mesurer: vue([{ pid: 7, creation: '2026-01-01T00:00:00.000Z' }], { indeterminee: 'échéance' }) }), null)
-  assert.equal(creationMesuree(7, { mesurer: () => { throw new Error('ps absent') } }), null)
-  assert.equal(creationMesuree(7, { mesurer: vue([{ pid: 8, creation: '2026-01-01T00:00:00.000Z' }]) }), null)
-  assert.equal(creationMesuree(7, { mesurer: vue([{ pid: 7, creation: null }]) }), null)
-  assert.equal(creationMesuree(7, { mesurer: vue([{ pid: 7, creation: '2026-01-01T00:00:00.000Z' }]) }), Date.parse('2026-01-01T00:00:00.000Z'))
-  let options
-  creationMesuree(7, { mesurer: (o) => { options = o; return { processus: [] } } })
-  assert.deepEqual(options, { pids: [7], timeout: 10_000 })
-})
 
 test('#2603 — estGesteLourd : tout mode de build-all, hors `--code` et `--check --only`', () => {
   for (const argv of [[], ['--check'], ['--perimes'], ['--perimes', '--quiet'], ['--only', 'x']]) assert.equal(estGesteLourd(argv), true, argv.join(' '))

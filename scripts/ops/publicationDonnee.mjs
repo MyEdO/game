@@ -3,6 +3,7 @@ import { appendFileSync, openSync, readFileSync, renameSync, statSync, writeFile
 import { join } from 'node:path'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
+import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 
 export const FILE_TIMEOUT_MIN = 2 * DELAI_DE_REPONSE_MINUTES
 
@@ -225,14 +226,23 @@ export const CODE_ARRET_MOTEUR = 4
 export const CODE_BORNE_DEPASSEE = 5
 
 /**
- * L'en-tête du run qui PART sur `journal` : son identifiant, son pid, sa borne de file, son compteur de
+ * L'en-tête du run qui PART sur `journal` : son identifiant, son pid et sa `naissance` `{ pid, creation }` (#2603), sa borne de file, son compteur de
  * transitions `seq` à 0 ; le verdict d'un run précédent (journal repris) s'efface. Le journal ainsi estampillé est sauvé AVANT la première
  * étape : c'est lui qui dit à la veille que le run courant a démarré. MUTE `journal`, le rend.
- * @param {object} journal @param {{run:string, pid:number, fileTimeoutMin:number}} p
+ * @param {object} journal @param {{run:string, pid:number, creation?:number, fileTimeoutMin:number}} p
  */
-export function entameDuRun(journal, { run, pid, fileTimeoutMin }) {
-  return Object.assign(journal, { run, pid, fileTimeoutMin, seq: 0, verdict: null })
+export function entameDuRun(journal, { run, pid, creation, fileTimeoutMin }) {
+  return Object.assign(journal, { run, pid, naissance: { pid, creation }, fileTimeoutMin, seq: 0, verdict: null })
 }
+
+/** La `creation` que le pid `pid` a inscrite de lui-même à l'entame de `journal` ; `undefined` si la `naissance` date un autre pid (#2603). PURE. */
+export const naissanceDuPid = (journal, pid) => (journal?.naissance && journal.naissance.pid === pid ? journal.naissance.creation : undefined)
+
+/** Le run SANS VERDICT de `journal` vit-il ? Son `pid`, jugé né à sa `naissanceDuPid` (`estPidVivantDepuis`, #2603). PURE hors de `identite` et `estVivant`.
+ *  @param {object|null} journal @param {{ lireCreation: (pid: number) => number | null, toleranceMs: number }} identite
+ *  @param {{ estVivant?: (pid: number) => boolean }} [options] */
+export const runEnVol = (journal, identite, options) =>
+  !journal?.verdict && estPidVivantDepuis(journal?.pid, naissanceDuPid(journal, journal?.pid), identite, options)
 
 /** La ligne `PUBLICATION:` d'un verdict — la dernière du log du train, et celle de sa veille. PURE. */
 export function ligneDePublication(verdict, tete) {

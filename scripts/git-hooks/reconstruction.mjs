@@ -16,12 +16,12 @@ import { gitDirDe } from '../hooks/barriere-outil.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { depotDe, etatDeLArbre } from '../guards/lib/gitPorte.mjs'
 import { lancerDetache } from '../guards/lib/lancerDetache.mjs'
-import { toleranceDeMesure } from '../guards/lib/processusWorktrees.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
-import { ATTENTE_GESTES_LOURDS, creationMesuree } from '../test/verrouGestesLourds.mjs'
-import { attendreLibre, consignant, nomDesOrphelins, prendreVerrou } from '../test/verrou.mjs'
-import { estPidVivant } from '../guards/lib/pid.mjs'
+import { ATTENTE_GESTES_LOURDS } from '../test/verrouGestesLourds.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
+import { consignant, nomDesOrphelins, prendreVerrou, tenantDe } from '../test/verrou.mjs'
+import { estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { journaliserLeHook } from './journal.mjs'
 
 /** Code d'une reconstruction demandée dont aucun détaché ne vit plus, sans verdict (`EX_SOFTWARE`, sysexits.h). */
@@ -38,6 +38,9 @@ export const ATTENTE_DU_TENANT = Object.freeze({ ...ATTENTE_GESTES_LOURDS, pasMs
 
 /** Les passes rejouées d'une même demande dont la passe rend `CODE_SOURCE_MODIFIEE`. Valeur maison. */
 export const REJEUX_SUR_SOURCE_MODIFIEE = 3
+
+/** Un lancé de `lances` vit-il encore, né à sa `date` d'inscription ? (#2603) */
+const lanceVivant = (l, identite, estVivant) => estPidVivantDepuis(l.pid, Date.parse(l.date), identite, { estVivant })
 
 /** Ce module, point d'entrée du détaché (`--servir`). */
 const SCRIPT = fileURLToPath(import.meta.url)
@@ -152,7 +155,7 @@ export function passeDesDerives({ racine, log, ecrire, env = {}, generateurs = G
  * `REJEUX_SUR_SOURCE_MODIFIEE` fois au plus, puis soldée de ce code. La sortie se décide sous le verrou d'état, où
  * le détaché se retire de `lances`. REND le nombre de passes jouées.
  * @param {{ racine: string, passe?: typeof passeDesDerives, horloge?: () => number, dormir?: (ms: number) => void,
- *   estVivant?: (pid: number) => boolean, attenteArbre?: { echeanceMs: number, pasMs: number },
+ *   estVivant?: (pid: number) => boolean, identite?: typeof IDENTITE_MESUREE, attenteArbre?: { echeanceMs: number, pasMs: number },
  *   attenteTenant?: { echeanceMs: number, pasMs: number, parTenant?: boolean }, operation?: (gitDir: string) => string | null }} p
  */
 export function servirLesDemandes({
@@ -161,6 +164,7 @@ export function servirLesDemandes({
   horloge = Date.now,
   dormir = attendreSync,
   estVivant = estPidVivant,
+  identite = IDENTITE_MESUREE,
   attenteArbre = ATTENTE_DE_L_ARBRE,
   attenteTenant = ATTENTE_DU_TENANT,
   operation = operationEnCours,
@@ -175,7 +179,7 @@ export function servirLesDemandes({
   const iso = () => new Date(horloge()).toISOString()
   const ecrire = (/** @type {string} */ texte) => appendFileSync(log, texte)
   const commande = `reconstruction ${process.pid}`
-  const sansCeDetache = (etat) => ({ ...etat, lances: etat.lances.filter((l) => l.pid !== process.pid && estVivant(l.pid)) })
+  const sansCeDetache = (etat) => ({ ...etat, lances: etat.lances.filter((l) => l.pid !== process.pid && lanceVivant(l, identite, estVivant)) })
   const retirer = () => sousLEtat(chemins, racine, commande, (etat) => ({ ecrire: sansCeDetache(etat) }))
   /** @type {Map<string, any>} */
   const orphelins = new Map()
@@ -184,7 +188,7 @@ export function servirLesDemandes({
     const vu = prendreVerrou({
       chemin: chemins.verrou, libelle: 'reconstruction de l’arbre', commande, cwd: racine, horloge, dormir,
       attente: { ...attenteTenant, annoncer: () => {} },
-      identite: { lireCreation: creationMesuree, toleranceMs: toleranceDeMesure(), pasMs: ATTENTE_GESTES_LOURDS.pasMs },
+      identite: { ...identite, pasMs: ATTENTE_GESTES_LOURDS.pasMs },
       estVivant: consignant(chemins.verrou, null, estVivant, horloge, orphelins),
     })
     if (vu.etat !== 'pris') {
@@ -265,19 +269,21 @@ export function servirLesDemandes({
 /**
  * ATTEND que la demande `seq` de l'arbre `racine` soit soldée. REND `{ etat: 'soldee', ...dernier }` ;
  * `{ etat: 'mort', code: CODE_MORT_SANS_VERDICT, log }` quand ni le tenant du verrou de reconstruction ni
- * aucun pid de `lances` ne vit ; `{ etat: 'en-cours' }` à l'échéance.
+ * aucun pid de `lances` ne vit, sous `identite` ; `{ etat: 'en-cours' }` à l'échéance.
  * @param {string} racine @param {number} seq
- * @param {{ echeanceMs: number, pasMs?: number, horloge?: () => number, dormir?: (ms: number) => void, estVivant?: (pid: number) => boolean }} p
+ * @param {{ echeanceMs: number, pasMs?: number, horloge?: () => number, dormir?: (ms: number) => void, estVivant?: (pid: number) => boolean,
+ *   identite?: typeof IDENTITE_MESUREE }} p
  */
-export function attendreLaReconstruction(racine, seq, { echeanceMs, pasMs = 500, horloge = Date.now, dormir = attendreSync, estVivant = estPidVivant }) {
+export function attendreLaReconstruction(racine, seq, { echeanceMs, pasMs = 500, horloge = Date.now, dormir = attendreSync, estVivant = estPidVivant, identite = IDENTITE_MESUREE }) {
   const chemins = cheminsDeLaReconstruction(racine)
   if (chemins === null) throw new Error(`répertoire git introuvable depuis ${racine}`)
   const echeance = horloge() + echeanceMs
   for (;;) {
     const etat = lireEtat(chemins)
     if (etat.soldees >= seq) return { etat: 'soldee', ...etat.dernier }
-    const tenu = attendreLibre({ chemin: chemins.verrou, estVivant }).etat === 'occupe'
-    if (!tenu && !etat.lances.some((l) => estVivant(l.pid))) {
+    const tenant = tenantDe(chemins.verrou)
+    const tenu = tenant !== null && estPidVivantDepuis(tenant.pid, tenant.creation, identite, { estVivant })
+    if (!tenu && !etat.lances.some((l) => lanceVivant(l, identite, estVivant))) {
       const relu = lireEtat(chemins)
       if (relu.soldees >= seq) return { etat: 'soldee', ...relu.dernier }
       const dernier = relu.lances.at(-1)

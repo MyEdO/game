@@ -37,8 +37,8 @@ import { sousEcheanceAsync } from '../test/verrou.mjs'
 import { estPidVivant } from '../guards/lib/pid.mjs'
 import { mesurerPrincipal, synchroniserPrincipal } from './synchroniser.mjs'
 import { GENERATORS, perimetreDesMixtes } from '../docs/build-all.mjs'
-import { CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE, CODE_INDETERMINEE, ENV_LANCEMENT, FILE_TIMEOUT_MIN, codeDeVerdict, commandeDeVeille, cheminsDeJournal, entameDuRun, envDeLancement, idDeRun, lancementDe, ligneDePublication, pidDeRun, runDe, filetDuTrainEnfant, journalInitial, journalVide, lancementNpm, ligneDeDetachement, lireJournal, modeDuLog, motifDeRotation, nomDeJournal, nomDeRotation, optionsDe, rotationnerLog } from './publicationDonnee.mjs'
-import { RACINE, borneDeVeilleMin, transitionsDuRun, veillerLeTrain, constaterLaMort, contexteDe, etatDeLEtape, etatDuTrain, jouerLeTrain, mortDuRun, planDeReprise, transitionDuRun } from './publierTrain.mjs'
+import { CODE_ARRET_MOTEUR, CODE_BORNE_DEPASSEE, CODE_INDETERMINEE, ENV_LANCEMENT, FILE_TIMEOUT_MIN, codeDeVerdict, commandeDeVeille, cheminsDeJournal, entameDuRun, envDeLancement, idDeRun, lancementDe, ligneDePublication, pidDeRun, runDe, filetDuTrainEnfant, journalInitial, journalVide, lancementNpm, ligneDeDetachement, lireJournal, modeDuLog, motifDeRotation, nomDeJournal, nomDeRotation, optionsDe, rotationnerLog, runEnVol } from './publicationDonnee.mjs'
+import { ECHEANCE_SANS_RUN_MS, RACINE, borneDeVeilleMin, identiteDuTrain, transitionsDuRun, veillerLeTrain, constaterLaMort, contexteDe, etatDeLEtape, etatDuTrain, jouerLeTrain, mortDuRun, planDeReprise, transitionDuRun } from './publierTrain.mjs'
 import {
   BORNE_EJECTIONS,
   ETAPES,
@@ -143,6 +143,15 @@ test('etatDuTrain : le VERDICT pour la tête vivante — vert, rouge, indétermi
   assert.equal(etatDuTrain(journalDuRun({ en: 'rouge', verdict: { etat: 'rouge', etape: NOMS[2] } }), { teteVivante: 'aaa' }).etat, 'rouge')
   assert.equal(etatDuTrain(journalDuRun({ en: 'indéterminée', verdict: { etat: 'indeterminee' } }), { teteVivante: 'aaa' }).etat, 'indéterminée')
   assert.equal(etatDuTrain(journalDuRun({ verdict: { etat: 'rouge', etape: 'moteur' } }), { teteVivante: 'aaa' }).etat, 'rouge')
+})
+
+// #2603
+test('etatDuTrain : un pid vivant né APRÈS la `creation` du journal est réutilisé — `mort`, pas `en-vol` ; sous la tolérance ou indéterminé, en vol', () => {
+  const journal = { ...journalDuRun({ faites: 2 }), naissance: { pid: 7, creation: 5_000 } }
+  const etat = (creation) => etatDuTrain(journal, { teteVivante: 'aaa', vivant: (pid) => pid === 7, identite: { lireCreation: () => creation, toleranceMs: 1_000 } }).etat
+  assert.equal(etat(6_001), 'mort')
+  assert.equal(etat(6_000), 'en-vol')
+  assert.equal(etat(null), 'en-vol')
 })
 
 test('etatDuTrain : un train MORT sur une tête qui n’est plus HEAD est `périmé`, jamais `mort` à vie', () => {
@@ -279,7 +288,8 @@ test('jouerLeTrain : une étape DÉJÀ FAITE s’ENREGISTRE, estampillée à la 
 
 test('jouerLeTrain : le journal est écrit à l’ENTRÉE (`en-vol`) et au VERDICT de chaque étape jouée', () => {
   const sauves = []
-  const journal = entameDuRun(journalVide('b'), { run: '7-1', pid: 7, fileTimeoutMin: 1 })
+  const journal = entameDuRun(journalVide('b'), { run: '7-1', pid: 7, creation: 5_000, fileTimeoutMin: 1 })
+  assert.deepEqual(journal.naissance, { pid: 7, creation: 5_000 }, 'l’entame inscrit la naissance de SON pid (#2603)')
   jouerLeTrain({}, [factice('un', { ok: true, dit: 'fait' }), factice('deux', { ok: false, raison: 'x' })], journal, {
     sauver: (j) => sauves.push(`${Object.entries(j.etapes).map(([n, e]) => `${n}:${e.etat}`).join('+')}`),
   })
@@ -2113,12 +2123,117 @@ test('veillerLeTrain : ARRÊT MOTEUR — verdict `rouge moteur`, ou train mort s
   // Le verdict écrit juste avant la mort gagne : la veille, sans constat, le lit à la relecture.
   const tardif = veille([enVol[1], journauxDuRun([factice('un', { ok: true })]).at(-1)], { vivant: () => false })
   assert.equal(tardif.code, 0)
-  // Un train mort avant d'écrire son run au journal : relu une fois, puis `rouge moteur`.
+})
+
+// #2603
+test('veillerLeTrain : sans son run au journal, rien n’est conclu sur la vie du pid — à l’échéance comptée depuis le LANCEMENT, CODE_BORNE_DEPASSEE', () => {
   const avant = journauxDuRun([factice('un', { ok: true })], { run: AVANT }).at(-1)
-  const sansJournal = veille([avant], { vivant: () => false })
-  assert.equal(sansJournal.code, CODE_ARRET_MOTEUR)
-  assert.equal(sansJournal.lectures, 2)
-  assert.deepEqual(sansJournal.lignes, ['PUBLICATION: rouge moteur — train 4242 mort avant d\'écrire son run au journal'])
+  const ligne = `[veille] aucun run ${RUN} au journal ${ECHEANCE_SANS_RUN_MS / 60_000} min après son lancement — \`npm run ops:publier -- --etapes\``
+  for (const lu of [avant, null]) {
+    const sansRun = veille([lu], { vivant: () => false })
+    assert.equal(sansRun.code, CODE_BORNE_DEPASSEE)
+    assert.equal(sansRun.horloge - LANCEMENT_DU_RUN, ECHEANCE_SANS_RUN_MS)
+    assert.deepEqual(sansRun.lignes, [ligne], 'ni `rouge moteur` ni « mort » avant l’échéance')
+  }
+  assert.ok(ECHEANCE_SANS_RUN_MS < borneDeVeilleMin(10) * 60_000, 'l’échéance sans run passe avant la borne du run')
+  // Le run écrit APRÈS le départ de la veille est suivi jusqu'à son verdict.
+  const courant = journauxDuRun([factice('un', { ok: true, dit: 'neuf' })])
+  const tardif = veille([avant, avant, ...courant], { vivant: () => false })
+  assert.equal(tardif.code, 0)
+})
+
+// #2603
+test('veillerLeTrain : N tours sur le même pid vivant, UNE mesure de création (`identiteDuTrain`) ; re-mesurée au-delà de douze tours', () => {
+  const [entame, enVol, ...fin] = journauxDuRun([factice('un', { ok: true })]).map((j) => ({ ...j, naissance: { pid: 4242, creation: LANCEMENT_DU_RUN } }))
+  const tours = (n) => {
+    let horloge = LANCEMENT_DU_RUN
+    let mesures = 0
+    const lectures = [entame, ...Array(n - 1).fill(enVol), ...fin]
+    let i = 0
+    const code = veillerLeTrain({
+      run: RUN, fileTimeoutMin: 10, ecrire: () => {}, vivant: () => true,
+      lire: () => lectures[Math.min(i++, lectures.length - 1)],
+      identite: identiteDuTrain({ lireCreation: () => { mesures += 1; return LANCEMENT_DU_RUN }, toleranceMs: 1_000 }, () => horloge),
+      maintenant: () => horloge, dormir: (ms) => { horloge += ms },
+    })
+    assert.equal(code, 0)
+    return mesures
+  }
+  assert.equal(tours(10), 1)
+  assert.equal(tours(14), 2)
+})
+
+// #2603
+test('runEnVol : le run SANS VERDICT vit si son pid vit, né à sa naissance ; réutilisé, il est mort (`publier.mjs` `echouer`, `etatDuTrain`, `preparerPublication`)', () => {
+  const journal = { run: RUN, pid: 4242, naissance: { pid: 4242, creation: 5_000 }, verdict: null }
+  const vit = (creation, j = journal, vivant = (pid) => pid === 4242) => runEnVol(j, { lireCreation: () => creation, toleranceMs: 1_000 }, { estVivant: vivant })
+  assert.equal(vit(6_001), false, 'pid réutilisé')
+  assert.equal(vit(6_000), true)
+  assert.equal(vit(null), true, 'mesure indéterminée')
+  assert.equal(vit(6_000, journal, () => false), false, 'pid absent')
+  assert.equal(vit(6_000, { ...journal, verdict: { etat: 'vert' } }), false, 'un run jugé ne vit plus')
+  assert.equal(vit(9_999, { ...journal, naissance: { pid: 100, creation: 5_000 } }), true, 'la naissance d’un AUTRE pid ne juge rien')
+  assert.equal(vit(6_000, null), false, 'aucun journal')
+})
+
+// #2603
+test('mortDuRun : un pid vivant né APRÈS la `creation` du journal est réutilisé, donc mort ; sous la tolérance ou indéterminé, vivant', () => {
+  const journal = { run: RUN, pid: 4242, naissance: { pid: 4242, creation: 5_000 }, verdict: null, etapes: { file: { etat: 'en-vol', run: RUN, seq: 9 } } }
+  const mort = (creation) => mortDuRun(journal, { vivant: (pid) => pid === 4242, identite: { lireCreation: () => creation, toleranceMs: 1_000 } })
+  assert.deepEqual(mort(6_001), { pid: 4242, nom: 'file' })
+  assert.equal(mort(6_000), null)
+  assert.equal(mort(null), null)
+})
+
+// #2603
+test('mortDuRun et etatDuTrain : un journal sans `pid` reçoit le même verdict, quel que soit le pid de son run', () => {
+  const sansPid = { run: RUN, verdict: null, etapes: { file: { etat: 'en-vol', run: RUN, seq: 1 } } }
+  const vivant = (pid) => pid === 4242
+  const identite = { lireCreation: () => null, toleranceMs: 0 }
+  assert.equal(etatDuTrain(sansPid, { teteVivante: null, vivant, identite }).etat, 'mort')
+  assert.deepEqual(mortDuRun(sansPid, { vivant, identite }), { pid: undefined, nom: 'file' })
+})
+
+// #2603
+test('constaterLaMort : un journal sans `pid` est constaté sans pid nommé, aucune ligne ne porte `undefined`', () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'constat-sans-pid-'))
+  try {
+    const chemins = { dossier, json: join(dossier, 'b.json'), log: join(dossier, 'b.log') }
+    writeFileSync(chemins.log, '')
+    ecrireJsonAtomique(chemins.json, { ...journalVide('b'), run: RUN, verdict: null, etapes: { file: { etat: 'en-vol', run: RUN, seq: 1 } } })
+    const verdict = constaterLaMort({ chemins, par: 'veille 1', vivant: (pid) => pid === 4242, identite: { lireCreation: () => null, toleranceMs: 0 }, mesurer: () => assert.fail('aucune mesure hors de `fin`') })
+    assert.equal(verdict.raison, `train mort pendant file (constat : veille 1, ${verdict.constat.a})`)
+    const lignes = [...readFileSync(chemins.log, 'utf8').split('\n'), ...readFileSync(chemins.json, 'utf8').split('\n')]
+    assert.deepEqual(lignes.filter((l) => l.includes('undefined')), [])
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('train vivant lancé APRÈS l’horodatage de son run : ni `mortDuRun` ni `constaterLaMort` ne le jugent mort ; une naissance qui date un AUTRE pid ne juge rien', () => {
+  const run = idDeRun({ pid: 9200, lancement: 1_000 })
+  const identite = { lireCreation: (pid) => (pid === 9200 ? 4_999 : null), toleranceMs: 0 }
+  const vivant = (pid) => pid === 9200
+  const enVol = entameDuRun({ ...journalVide('b'), etapes: { file: { etat: 'en-vol', run, seq: 1 } } }, { run, pid: 9200, creation: 5_000, fileTimeoutMin: 10 })
+  assert.equal(mortDuRun(enVol, { vivant, identite }), null)
+  const parent = entameDuRun({ ...journalVide('b'), etapes: { file: { etat: 'en-vol', run, seq: 1 } } }, { run, pid: 100, creation: 1_000, fileTimeoutMin: 10 })
+  const reecrit = { ...parent, pid: 9200 }
+  const tardif = { lireCreation: (pid) => (pid === 9200 ? 5_000 : null), toleranceMs: 0 }
+  assert.equal(mortDuRun(reecrit, { vivant, identite: tardif }), null, 'la naissance du parent ne date pas le train')
+  assert.equal(etatDuTrain(reecrit, { teteVivante: null, vivant, identite: tardif }).etat, 'en-vol')
+  const dossier = mkdtempSync(join(tmpdir(), 'constat-'))
+  try {
+    const chemins = { dossier, json: join(dossier, 'b.json'), log: join(dossier, 'b.log') }
+    writeFileSync(chemins.log, '')
+    for (const journal of [enVol, reecrit]) {
+      ecrireJsonAtomique(chemins.json, journal)
+      assert.equal(constaterLaMort({ chemins, par: 'veille', vivant, identite: tardif, mesurer: () => assert.fail('aucune mesure') }), null)
+      assert.equal(lireJournal(chemins.json, null).verdict, null)
+    }
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
 })
 
 test('mortDuRun : pid mort, ou `fin` en vol au-delà de la borne du synchroniseur ; rien pour un run jugé ou vivant', () => {
