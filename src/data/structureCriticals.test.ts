@@ -2,11 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { findTableEntry } from '../engine/tables';
 import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
-import { ecartsDeCouverture } from './schemas/grammaire/valeurs';
+import { validateDataset } from './schemas/validate';
+import structureCriticalsJson from './structure-criticals.json';
 
 describe('Blessures critiques sur une Structure (AA 10 l.116-127) — 3ᵉ famille du modèle de coque', () => {
-  it('table contiguë depuis 1, dernière bande « 96 ou plus » sans plafond (AA 10 l.127), chaque entrée nommée + id + note', () => {
-    expect(ecartsDeCouverture(STRUCTURE_CRITICALS, 1, 'ouverte', (e) => e.id)).toEqual([]);
+  it('le schéma accepte la table, et REFUSE une rangée du milieu sans plafond (AA 10 l.116-127)', () => {
+    expect(validateDataset('structure-criticals.json', structureCriticalsJson)).toBeNull();
+    const trouee = structuredClone(structureCriticalsJson);
+    trouee.entries[1].max = null;
+    expect(validateDataset('structure-criticals.json', trouee)).toMatch(/la rangée « secouee » n'a pas de borne haute/);
+  });
+
+  it('dernière bande « 96 ou plus » sans plafond (AA 10 l.127), chaque entrée nommée + id + note', () => {
     for (const x of STRUCTURE_CRITICALS) expect(x.id && x.label && x.note).toBeTruthy();
     expect(findTableEntry(tableDesCritiquesDeStructure(), 140).id, 'un dé effectif au-delà de 100 lit l’Effondrement').toBe('effondrement');
   });
