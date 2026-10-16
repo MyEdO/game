@@ -42,7 +42,7 @@ export const REPORT_DE_COMBATTANT = {
   teamCommanderId: rencontre('AA 13 l.29-35'),
   species: PERSISTE, career: PERSISTE, careerHistory: PERSISTE,
   offTerrain: rencontre(POSITION), size: PERSISTE, footprint: PERSISTE, bodyShape: PERSISTE,
-  structureEdge: rencontre(COQUE), inert: rencontre(COQUE), aiControlled: rencontre('pilotage d’un allié PNJ de la rencontre'),
+  structureEdge: rencontre(COQUE), effondree: rencontre('AA 10 l.127'), inert: rencontre(COQUE), aiControlled: rencontre('pilotage d’un allié PNJ de la rencontre'),
   causesPeur: PERSISTE, causesTerreur: PERSISTE, psychImmune: PERSISTE,
   psychState: rencontre('LDB 21 l.9'),
   groups: PERSISTE, aiDoctrine: PERSISTE, psychTraits: PERSISTE, briseFromTerreur: PERSISTE, traits: PERSISTE, liveTraits: PERSISTE, swarm: PERSISTE,

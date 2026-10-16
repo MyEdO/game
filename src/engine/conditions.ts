@@ -30,7 +30,7 @@ import { hasActiveFlag } from './activeFlags';
 import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
 import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
-import { isInanimate, isStructure } from './structures'; // cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
+import { isInanimate, isStructure, toutCoupEstCritique } from './structures'; // cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
 import { hasTalent } from './magic'; // cycle runtime (magic→combat→conditions) : appelé à la lecture de la Mort subite, jamais à l'init
 import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
 
@@ -667,10 +667,7 @@ export function testStatePenalty(c: Combatant, skill?: string, ctx: Omit<EtatTes
  * SOURCE UNIQUE de la somme (`meleeAttackerBonus`) et de son affichage (chip « +20 À Terre »).
  * Lues en DONNÉES (`incomingAttackMod` des `passive` d'État, kind `etat`). Deux familles :
  *  - INCONDITIONNELS (À Terre/Surpris +20, Aveuglé +10 — `LDB 16 l.35/l.135/l.45`) : le MEILLEUR
- *    seul. Ce non-cumul est un arbitrage MAISON, pas une citation : `LDB 16 l.13` ne régit que les
- *    PÉNALITÉS subies par le porteur, et `l.11` fait au contraire s'accumuler les pions d'un même
- *    État. À Terre et Surpris ne se cumulent de toute façon pas (l.37/l.137) ; Aveuglé, si — le
- *    comportement courant est mesuré et ticketé #1138, et n'est PAS modifié ici.
+ *    seul. `LDB 16 l.13`, `l.37`, `l.137` ; non-cumul sans source : #1138.
  *  - flanc/derrière (Assourdi +10, `flankRear:true`, `LDB 16 l.29`) : bonus SUPPLÉMENTAIRE ADDITIF,
  *    appliqué SEULEMENT si `opts.flankRear` (l'appelant a établi l'angle via le facing) ; « ce bonus
  *    n'est pas augmenté avec de multiples États *Assourdi* » (l.29) → max entre entrées flankRear.
@@ -960,11 +957,16 @@ export function usesSuddenDeath(c: Combatant): boolean {
   return rule('combat-aa-blessures') === 'aa' ? !hasTalent(c, 'chanceux') : !c.important; // AA 07 l.67 ; LDB 18 l.46
 }
 
-/** Le coup ouvre-t-il une Blessure Critique PAR LES BLESSURES (hors double) ? `ldb` : dépassement strict
- *  (LDB 18 l.17) ; `aa` : la cible tombe à 0 ou y était déjà (AA 07 l.25, l.36). `lost` = Blessures du coup,
- *  `current` = Blessures restantes AVANT le coup. */
-export function critiqueParLesBlessures(lost: number, current: number): boolean {
-  return rule('combat-aa-blessures') === 'aa' ? lost >= current : lost > current;
+/** Le coup ouvre-t-il une Blessure Critique ? SOURCE UNIQUE du déclencheur, pour l'arme et la magie.
+ *  `double` = Critique du jet (LDB 13 l.183, LDB 46 l.30) ; `lost` = Blessures du coup ; `current` = Blessures
+ *  restantes AVANT le coup. Structure : AA 10 l.114. Navire : MDG 13 l.656. Bateau fluvial : MSRC 07 l.74.
+ *  Véhicule routier : EDOC 07 l.334. Personnage : LDB 18 l.17 ; AA 07 l.25, l.36. */
+export function declencheUnCritique(c: Combatant, coup: { double: boolean; lost: number; current: number }): boolean {
+  const { double, lost, current } = coup;
+  if (toutCoupEstCritique(c, current)) return true;
+  if (isStructure(c)) return double && lost >= current * 0.25;
+  if (isVehicle(c)) return double;
+  return double || (rule('combat-aa-blessures') === 'aa' ? lost >= current : lost > current);
 }
 
 /** Mort subite qui met hors de combat à 0 Blessure, sans Inconscient : `aa` seulement (AA 07 l.65). En
@@ -1025,10 +1027,8 @@ function horlogeAZeroEcoulee(c: Combatant): boolean {
   return (c.roundsAtZero ?? 0) > bonus(effectiveChar(c, 'endurance'));
 }
 
-/** Circonstance qui entraînerait la mort d'un Personnage, lue pour TOUT porteur : `inDeathCondition` pour un
- *  Personnage ; pour une Structure, qui ne passe jamais Inconsciente, le même compte de Critiques (LDB 18 l.34)
- *  sur la même horloge (LDB 18 l.15), par le renvoi d'AA 10 l.114 → Effondrement. En `aa`, la Structure n'a
- *  pas cette circonstance : AA 06 l.556 remplace l'horloge de LDB 18 l.15 (AA 10 l.127 seul l'effondre). */
+/** Circonstance qui entraînerait la mort d'un Personnage : `inDeathCondition`. Structure : AA 10 l.114, l.127 ;
+ *  #1595 c.6219992594. */
 export function circonstanceMortelle(c: Combatant): boolean {
   if (!isStructure(c)) return inDeathCondition(c);
   if (c.dead || c.outOfRencontre || rule('combat-aa-blessures') === 'aa') return false;
@@ -1058,15 +1058,7 @@ export function loseWounds(c: Combatant, amount: number): number {
   return lost;
 }
 
-/**
- * Upkeep de mort en fin de Round (LDB 18 l.15, l.34) — tout porteur hors coque et objet servi :
- *  - à 0 PB non soigné : roundsAtZero++ ; après (Bonus d'Endurance) Rounds → Inconscient (LDB 18 l.15) ;
- *  - Inconscient + 0 PB + (criticalWounds > BE) → mort.
- * Variante Aux Armes (AA 07 l.5) : le système alternatif REMPLACE ce décompte déterministe → à 0 PB, on ne
- * tombe PAS automatiquement Inconscient ; la chute Inconscient passe par le Test de Résistance de l'État
- * Hémorragique (hook `aa-bleed-unconscious`). On garde le compteur `roundsAtZero` (info) mais on n'applique
- * pas l'Inconscient en mode AA. Retourne le journal.
- */
+/** Upkeep de mort en fin de Round : LDB 18 l.15, l.34 ; AA 07 l.5 ; MDG 13 l.656, l.674. Retourne le journal. */
 export function tickDeath(c: Combatant): string[] {
   const log: string[] = [];
   if (c.dead || c.outOfRencontre || c.inert || isVehicle(c)) return log; // MDG 13 l.656, l.674

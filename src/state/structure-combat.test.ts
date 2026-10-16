@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult, applyStructureCriticalToTarget, collapseStructure, weaponContextOf, resolveRoundBoundary, STRUCTURE_CRIT_TABLE } from './combatFlow';
+import { applyAttackResult, applyStructureCriticalToTarget, applyCriticalToTarget, applyCast, checkBattleOver, collapseStructure, weaponContextOf, resolveRoundBoundary, STRUCTURE_CRIT_TABLE } from './combatFlow';
+import { seedBattleRng } from './battleRng';
+import { evaluateMissile, type CastResult } from '../engine/magic';
+import { findSpellById } from '../data';
 import { isOutOfAction, endState, usesSuddenDeath, inDeathCondition, circonstanceMortelle, tickDeath, hasCondition } from '../engine/conditions';
 import { rederivePassiveAttack } from '../engine/combat';
 import { toutCoupEstCritique } from '../engine/structures';
@@ -21,6 +24,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Weapon, Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { effectiveWeapon } from '../engine/weaponDamage';
+import { spawnEnemy } from './spawn';
 
 /**
  * Structures destructibles JOUABLES en combat (AA 10 l.94-127) : enrôlement depuis les arêtes de mur,
@@ -141,7 +145,7 @@ describe('Structures de siège — Dégâts par le chemin combat', () => {
 
 describe('Structures de siège — à 0 Blessure, la Structure reste debout (AA 10 l.114)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-sudden-death'); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
 
   it('amener une Porte à 0 Blessure (sans double) → elle reste en jeu, l\'arête bloque, aucun Critique', () => {
     const { S, H } = start('porte'); // B 8, Résistant (mêlée passe)
@@ -157,12 +161,18 @@ describe('Structures de siège — à 0 Blessure, la Structure reste debout (AA 
     expect(wallBetween(useGame.getState().scene!, 2, 2, 3, 2)).toBe(true); // pas de brèche
   });
 
-  it('usesSuddenDeath est faux pour une Structure, même en portée « tous » ; vrai pour un PNJ', () => {
-    const { S, b } = start('porte');
-    setRule('combat-sudden-death', 'tous');
-    expect(usesSuddenDeath(S!)).toBe(false);
-    expect(usesSuddenDeath(b.combatants.find((c) => c.kind === 'enemy')!)).toBe(true); // contrôle
-  });
+  for (const mode of ['ldb', 'aa'] as const) {
+    it(`'${mode}' : usesSuddenDeath est faux pour une Structure et un navire ; vrai pour un PNJ non important`, () => {
+      setRule('combat-aa-blessures', mode);
+      const { S, b } = start('porte');
+      const nav = spawnEnemy({ ref: 'cogue' }, 'nav', { x: 9, y: 5 });
+      expect(usesSuddenDeath(S!)).toBe(false);
+      expect(usesSuddenDeath(nav)).toBe(false);
+      const pnj = b.combatants.find((c) => c.kind === 'enemy' && !c.important);
+      expect(pnj, 'un PNJ non important').toBeTruthy();
+      expect(usesSuddenDeath(pnj!), 'contrôle').toBe(true);
+    });
+  }
 
   it('à 0, le coup suivant SANS double est un Critique de Structure ; au-dessus de 0, non', () => {
     const { S, H } = start('porte');
@@ -309,6 +319,63 @@ describe('Structures de siège — cumul de Critiques à 0 Blessure (AA 10 l.114
     expect(live(s.id)).toBeTruthy();
     expect(structureIsDown(useGame.getState().scene!, seg)).toBe(false);
   });
+});
+
+describe('Structures de siège — retrait à UNE couture, filet compris (AA 10 l.127)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+  const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
+
+  it("un Effondrement tiré par le filet d'applyCriticalToTarget retire la Structure et pose la brèche au balayage de checkBattleOver ; un autre Critique la laisse en jeu", () => {
+    let effondree = false;
+    let tenue = false;
+    for (let seed = 1; seed <= 400 && !(effondree && tenue); seed++) {
+      const { S } = start('porte', { seed });
+      S!.wounds.current = 0;
+      seedBattleRng(seed);
+      applyCriticalToTarget(S!, 'corps', false, 0, [], useGame.setState, { get: useGame.getState });
+      const destroyed = !!S!.effondree;
+      if (destroyed ? effondree : tenue) continue;
+      checkBattleOver(useGame.getState, useGame.setState);
+      if (destroyed) {
+        effondree = true;
+        expect(live(S!.id), 'retirée du combat').toBeUndefined();
+        expect(structureIsDown(useGame.getState().scene!, seg)).toBe(true);
+      } else {
+        tenue = true;
+        expect(live(S!.id), 'contrôle : Critique sans Effondrement, la Structure tient').toBeTruthy();
+        expect(structureIsDown(useGame.getState().scene!, seg)).toBe(false);
+      }
+    }
+    expect(effondree && tenue).toBe(true);
+  });
+});
+
+describe('Structures de siège — Projectile magique (AA 10 l.114 ; LDB 18 l.17 ; AA 07 l.36)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
+  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: false, isFumble: false, log: '' };
+  const critiquesAuJournal = (): number =>
+    (useGame.getState().battle?.log ?? []).filter((e) => (typeof e === 'string' ? e : (e as { text?: string }).text ?? '').includes('Critique de Structure')).length;
+  const lancer = (H: Combatant, S: Combatant, lost: number): void => {
+    const spell = findSpellById('flechette')!;
+    applyCast(useGame.getState, useGame.setState, H, S, spell, { ...evaluateMissile(H, S, spell, cr), hit: true, woundsLost: lost }, true, false);
+  };
+
+  for (const mode of ['ldb', 'aa'] as const) {
+    it(`'${mode}' : un Projectile qui dépasse les Blessures d'une Structure au-dessus de 0, sans double → aucun Critique ; à 0 → Critique`, () => {
+      setRule('combat-aa-blessures', mode);
+      const { S, H } = start('porte');
+      expect(S!.wounds.current).toBeGreaterThan(0);
+      lancer(H, S!, S!.wounds.current + 5);
+      const s = live(S!.id)!;
+      expect(s.wounds.current).toBe(0);
+      expect(critiquesAuJournal(), "au-dessus de 0 : la Structure n'a que ses déclencheurs").toBe(0);
+      useGame.setState({ pendingCascade: null });
+      lancer(useGame.getState().battle!.combatants.find((c) => c.id === H.id)!, s, 3);
+      expect(critiquesAuJournal(), 'contrôle : à 0, tout coup qui touche est un Critique').toBe(1);
+    });
+  }
 });
 
 describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête → battleClickEntity → brèche)', () => {

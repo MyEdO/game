@@ -1482,6 +1482,9 @@ export interface Combatant {
    *  Sert à poser la BRÈCHE (`setStructureDown`) à sa destruction. `side` redéclare `state/scene` WallSide ici
    *  (même union) pour ne pas faire dépendre le moteur PUR de l'état. */
   structureEdge?: { x: number; y: number; side: WallEdgeSide; z?: number };
+  /** Structure tirée sur la ligne Effondrement (AA 10 l.127), posé par `applyStructureCriticalToTarget` ; la
+   *  brèche et le retrait suivent au balayage de `checkBattleOver`. */
+  effondree?: boolean;
   /** Objet INERTE explicite (ni structure de siège, ni véhicule-coque) : une pièce SERVIE inanimée — affût
    *  d'artillerie d'un emplacement (AA/MDG 12) — qui se REND par son espèce (engin) mais n'a NI réaction de
    *  combat (Parade/Esquive/Localisation/Engagement, via `isInanimate`) NI tour propre (hors `order`). Son seul

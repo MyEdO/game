@@ -15,7 +15,7 @@ import type { Combatant, ShipPoste, Weapon, ArmourPoints } from '../engine/types
 import type { AttackResult } from '../engine/combat';
 
 /**
- * Le Critique ne dépend pas de la perte de Blessures : LDB 13 l.183, LDB 18 l.23, MDG 13 l.656,
+ * Le Critique ne dépend pas de la perte de Blessures : LDB 13 l.183, LDB 13 l.161 (dépassement) ; AA 07 l.25, MDG 13 l.656,
  * MDG 12 l.232, AA 10 l.114. Un aiguillage par type de cible (Structure, coque, personnage), comme
  * `applyCriticalToTarget`.
  */

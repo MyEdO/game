@@ -64,9 +64,10 @@ export function isInanimate(c: Pick<Combatant, 'bodyShape' | 'inert'>): boolean 
 }
 
 /** Tout coup qui touche cette cible est-il un Critique ? Structure (AA 10 l.114), navire (MDG 13 l.656) ou
- *  bateau fluvial (MSRC 07 l.74) tombé à 0 Blessure ; jamais un véhicule routier (EDOC 07 l.334). */
-export function toutCoupEstCritique(c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'wounds'>): boolean {
-  return (isStructure(c) || estNavire(c)) && c.wounds.current <= 0;
+ *  bateau fluvial (MSRC 07 l.74) tombé à 0 Blessure ; jamais un véhicule routier (EDOC 07 l.334). `current` =
+ *  Blessures restantes AVANT le coup. */
+export function toutCoupEstCritique(c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'wounds'>, current = c.wounds.current): boolean {
+  return (isStructure(c) || estNavire(c)) && current <= 0;
 }
 
 /** L'arme porte-t-elle la capacité de qualité `cap` (`siege`/`ram`) ? Lue dans la DONNÉE (`qualities.json`)

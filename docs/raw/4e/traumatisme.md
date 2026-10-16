@@ -48,7 +48,7 @@ BE et PA réduisent les Dégâts **sauf indication contraire** (certaines règle
 **Voir aussi** : États À Terre / Inconscient → [etats.md](etats.md) (LDB 16) ; [Guérison des PB](#10-guérison-des-points-de-blessure).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.12-19) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +27 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
+- `LDB 18` (l.12-19) → `followsCharacterRules`, `isHealable`, `outOfCombatUpkeep`, `doc`, `estDebout`, `niMortNiATerre`, `HealWoundsOptions`, `needsRecoveryRoll`, `applyHealWounds`, `ACTION_GATES`, +26 — `src/data/index.ts`, `src/data/schemas/defs/etats.ts`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/critical.ts`, `src/engine/healing.ts`, +14 fichiers
 
 ---
 
@@ -72,7 +72,7 @@ Exemple : BE = 4, PB restants = 2, Dégâts = 8 → PB fictifs = −6 → |−6|
 **Voir aussi** : déclenchement du Coup Critique → [combat.md § Critiques](combat.md#critiques-et-frappe-mortelle) (LDB 13/14) ; tableaux complets → [§ 4](#4-tableaux-des-critiques--renvoi).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.17, l.22-38, l.53) → `criticals-ldb-tete`, `CritEntry`, `isHealable`, `blessure-spectaculaire`, `coupure-mineure`, `outOfCombatUpkeep`, `doc`, `coup-a-l-il`, `estDebout`, `niMortNiATerre`, +65 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +25 fichiers
+- `LDB 18` (l.17, l.22-38, l.53) → `criticals-ldb-tete`, `CritEntry`, `isHealable`, `blessure-spectaculaire`, `coupure-mineure`, `outOfCombatUpkeep`, `doc`, `coup-a-l-il`, `estDebout`, `niMortNiATerre`, +64 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/criticals.ts`, `src/data/index.ts`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, +25 fichiers
 
 ---
 
@@ -85,7 +85,7 @@ Exemple : BE = 4, PB restants = 2, Dégâts = 8 → PB fictifs = −6 → |−6|
 **Sources RAW** : `LDB 18 l.30`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.30) → `EtatPanel`, `combat-sudden-death`, `PendingDeviation`, `inDeathCondition`, `circonstanceMortelle`, `appliquerLaTouche`, `appliquerToucheDeProjectile` — `src/data/reglesOptionnelles.json`, `src/engine/conditions.ts`, `src/state/combatFlow.ts`, `src/state/pendings.ts`, `src/ui/EtatPanel.tsx`
+- `LDB 18` (l.30) → `EtatPanel`, `combat-sudden-death`, `PendingDeviation`, `inDeathCondition`, `appliquerLaTouche`, `appliquerToucheDeProjectile` — `src/data/reglesOptionnelles.json`, `src/engine/conditions.ts`, `src/state/combatFlow.ts`, `src/state/pendings.ts`, `src/ui/EtatPanel.tsx`
 
 ---
 
@@ -129,7 +129,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 **Voir aussi** : [Option : Mort Subite](#6-option--mort-subite) ; Destin → [destin.md](destin.md).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.34, l.38-40, l.42-43) → `criticals-ldb-tete`, `blessure-spectaculaire`, `coupure-mineure`, `coup-a-l-il`, `frappe-a-l-oreille`, `coup-percutant`, `il-au-beurre-noir`, `crit-severity`, `crit-row-test`, `critWoundLocation`, +28 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/traumas.json`, +7 fichiers
+- `LDB 18` (l.34, l.38-40, l.42-43) → `criticals-ldb-tete`, `blessure-spectaculaire`, `coupure-mineure`, `coup-a-l-il`, `frappe-a-l-oreille`, `coup-percutant`, `il-au-beurre-noir`, `crit-severity`, `crit-row-test`, `critWoundLocation`, +27 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/traumas.json`, +7 fichiers
 
 ---
 
@@ -142,7 +142,7 @@ Résultat **00** dans l'un des quatre tableaux = **mort instantanée** (Décapit
 **Sources RAW** : `LDB 18 l.44-46`.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `LDB 18` (l.44-46) → `criticals-ldb-tete`, `blessure-spectaculaire`, `coupure-mineure`, `coup-a-l-il`, `frappe-a-l-oreille`, `coup-percutant`, `il-au-beurre-noir`, `crit-severity`, `crit-row-test`, `critWoundLocation`, +26 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/traumas.json`, +6 fichiers
+- `LDB 18` (l.44-46) → `criticals-ldb-tete`, `blessure-spectaculaire`, `coupure-mineure`, `coup-a-l-il`, `frappe-a-l-oreille`, `coup-percutant`, `il-au-beurre-noir`, `crit-severity`, `crit-row-test`, `critWoundLocation`, +25 — `src/data/combat-stakes.json`, `src/data/criticals.json`, `src/data/regles.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/criticals.ts`, `src/data/traumas.json`, +6 fichiers
 
 ---
 

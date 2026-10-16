@@ -6,7 +6,7 @@ import { seedBattleRng } from '../../state/battleRng';
 import { checkBattleOver } from '../../state/combatFlow';
 import { resolveShipUnits } from '../../state/shipCrew';
 import { rederivePassiveAttack } from '../../engine/combat';
-import { loseWounds, isOutOfAction, addCondition, usesSuddenDeath, critiqueParLesBlessures } from '../../engine/conditions';
+import { loseWounds, isOutOfAction, addCondition, usesSuddenDeath, declencheUnCritique } from '../../engine/conditions';
 import { pathTo } from '../../state/path';
 import { moveEnv } from '../../state/combatGeometry';
 import { combatDistance } from '../../state/footprint';
@@ -67,7 +67,7 @@ function meleeDown(attacker: Combatant, target: Combatant): number {
     const res = rederivePassiveAttack(attacker, target, weapon, goodHit, 'melee');
     const before = target.wounds.current;
     if (res.hit && res.woundsLost) loseWounds(target, res.woundsLost);
-    if (res.hit && critiqueParLesBlessures(res.woundsLost ?? 0, before) && usesSuddenDeath(target)) addCondition(target, 'inconscient');
+    if (res.hit && declencheUnCritique(target, { double: false, lost: res.woundsLost ?? 0, current: before }) && usesSuddenDeath(target)) addCondition(target, 'inconscient');
     blows++;
   }
   return blows;

@@ -270,7 +270,7 @@ peut aussi considérer un résultat de 0 comme un succès en fonction des circon
 · [Dégâts aux navires](#infliger-des-dégâts-aux-navires) · [L'équipage comme ressource](#léquipage-comme-ressource--le-round-naval).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.656) → `toutCoupEstCritique`, `WorldMapView`, `resolveShipUnits`, `RepairTick`, `sea-navigation`, `voie-d-eau`, `buildSeaPlan`, `usesSuddenDeath`, `isOutOfAction`, `applyZeroWounds`, +6 — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/shipBuild.ts`, `src/engine/structures.ts`, +6 fichiers
+- `MDG 13` (l.656) → `toutCoupEstCritique`, `WorldMapView`, `resolveShipUnits`, `RepairTick`, `sea-navigation`, `voie-d-eau`, `buildSeaPlan`, `usesSuddenDeath`, `declencheUnCritique`, `isOutOfAction`, +7 — `src/data/etats.json`, `src/data/sea-navigation.json`, `src/engine/combat.ts`, `src/engine/conditions.ts`, `src/engine/shipBuild.ts`, `src/engine/structures.ts`, +6 fichiers
 - `MDG 14` (l.13, l.126-130) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `capitaine-competent`, `faveur-de-manann`, `resolveVolley`, `un-officier-pour-10`, `capitaine-vaillant`, `manoeuvre`, `nourriture-au-dessus-des-rations`, +78 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, +20 fichiers
 
 **État du code.** ✅ **(1)(2)(3)(4-Dégâts)(5)** après refonte : Test d'équipage multi (Artilleur ★) → DR partagé →
@@ -367,6 +367,13 @@ De plus, tous les coups qui touchent une fois que le score de Blessures… est t
 
 > Éclairage VO : Sea of Claws 22 l.484 — la VF dit « le Critique le plus proche en termes de gravité », la VO « the next most serious Critical Hit » ; la valeur reste celle de la VF
 
+**Renvoi d'AA vers le MSRC.** `AA 10 l.13-15` : « mieux vaut utiliser les règles de **L'Ennemi dans l'Ombre -
+Compagnon** (pour les Dégâts infligés aux véhicules) et de **Mort sur le Reik - Compagnon** (pour les Dégâts infligés
+aux navires) ». Bateau fluvial : `MSRC 07 l.74` (« Une fois le bateau réduit à zéro Point de Blessure, chaque nouveau
+coup reçu est considéré comme Critique ») ; `MSRC 07 l.90` (« Il coule en un nombre de minutes égal à son Endurance »).
+Un navire n'a pas d'Effondrement (`AA 10 l.127` vise la Structure) : il coule, `MDG 13 l.674` (« Quand l'Indice devient
+égal au score d'Endurance du navire, il coule. »).
+
 > **Bordée.** Le Test d'équipage de Tir de batterie EST le jet d'attaque de toutes les pièces (`MDG 14 l.128` :
 > « plutôt que de lancer les dés pour toucher pour chaque canon ») ; il est **réussi** à un total ≥ 1 DR
 > (`MDG 14 l.13`). Sur un Test **réussi**, le 1d100 de localisation (`l.571` « ou lancez 1d100 ») **substitue** le
@@ -375,8 +382,10 @@ De plus, tous les coups qui touchent une fois que le score de Blessures… est t
 > **réussi** », « tous les coups qui **touchent** ») sur une touche.
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.654-674) → `CrewTarget`, `ShipStationsPanel`, `bandeDeChuteSchema`, `stationAsPoste`, `toutCoupEstCritique`, `FallHeightBand`, `beginShipwreck`, `scenario`, `ShipCritSet`, `ShipCrewHitValue`, +30 — `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/ship-criticals.ts`, `src/data/schemas/defs/ship-stations.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/sea-navigation.json`, +23 fichiers
+- `AA 10` (l.13-15, l.127) → `StructureCritEntry`, `isHealable`, `woundsFromHit`, `cranDeCouvertEnMoins`, `rollStructureCritical`, `soinMagiqueOperant`, `REPORT_DE_COMBATTANT`, `structureCollapseLog`, `aretesAbritantes`, `BODY_SHAPE_LOC_LABELS`, +28 — `src/data/reglesOptionnelles.json`, `src/data/schemas/defs-scenes/scene.ts`, `src/data/schemas/defs/structure-criticals.ts`, `src/data/structureCriticals.ts`, `src/data/structures.json`, `src/data/trappings.json`, +14 fichiers
+- `MDG 13` (l.654-674) → `CrewTarget`, `ShipStationsPanel`, `bandeDeChuteSchema`, `stationAsPoste`, `toutCoupEstCritique`, `FallHeightBand`, `beginShipwreck`, `scenario`, `ShipCritSet`, `ShipCrewHitValue`, +31 — `src/data/etats.json`, `src/data/reglesOptionnelles.json`, `src/data/schemas/defs/ship-criticals.ts`, `src/data/schemas/defs/ship-stations.ts`, `src/data/schemas/grammaire/mecanique.ts`, `src/data/sea-navigation.json`, +23 fichiers
 - `MDG 14` (l.13, l.128) → `ship-criticals`, `ShipBatteryModal`, `paie-genereuse`, `capitaine-competent`, `faveur-de-manann`, `resolveVolley`, `un-officier-pour-10`, `capitaine-vaillant`, `manoeuvre`, `nourriture-au-dessus-des-rations`, +78 — `src/data/crew-morale.json`, `src/data/crew-test-types.json`, `src/data/etats.json`, `src/data/flow-stakes.json`, `src/data/localisation.json`, `src/data/regles.json`, +20 fichiers
+- `MSRC 7` (l.74, l.90) → `river-criticals`, `cale`, `CrewTarget`, `ShipStationsPanel`, `river-control-repair`, `calme`, `ShipCrewHit`, `groupe`, `debris`, `river-nav`, +51 — `src/data/combat-stakes.json`, `src/data/etats.json`, `src/data/index.ts`, `src/data/naval-traits.json`, `src/data/regles.json`, `src/data/river-criticals.json`, +23 fichiers
 
 **État du code.** ✅ `applyHullCritical` (localisation, Équipage, Éclats, Voie d'eau, En flammes en GameOp, Critiques
 de Coque récursifs). ✅ (R1) **« tout coup à B=0 = Critique »** : `resolveVolley` critique sur `wounds.current ≤ 0`.

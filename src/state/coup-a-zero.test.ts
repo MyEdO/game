@@ -68,8 +68,10 @@ describe('coup sur une coque à 0 Blessure', () => {
     const res = rederivePassiveAttack(h, nav, canon, sansDouble, 'ranged');
     expect(res.hit).toBe(true);
     expect(res.critical).toBe(true);
+    const avant = nav.criticalWounds ?? 0;
     applyAttackResult(useGame.getState, useGame.setState, h, nav, canon, res);
     expect(enJeu('nav'), 'la coque à 0 reste au combat').toBeTruthy();
+    expect(enJeu('nav')!.criticalWounds ?? 0, 'le Critique de navire est appliqué à la coque').toBe(avant + 1);
     expect(journal()).not.toContain(t('cf.coqueSansCritique', { name: nav.label }));
   });
 
