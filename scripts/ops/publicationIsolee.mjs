@@ -5,7 +5,25 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { ajouterWorktree, brancheDe, depotDe, estAncetre, estShaComplet, fetchOrigin, reussi, refusDeGit, retirerWorktree, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
-import { prendreVerrou, estPidVivant } from '../test/verrou.mjs'
+import { prendreVerrou, estPidVivant, tenantDe } from '../test/verrou.mjs'
+import { cheminsDeJournal, lireJournal } from './publicationDonnee.mjs'
+
+function snapshotDe(source, generation) {
+  if (typeof generation !== 'string' || !/^[a-zA-Z0-9-]+$/.test(generation))
+    throw new Error('publication isolée : génération invalide')
+  return join(dirname(source), `${basename(source)}-publication-${generation}`)
+}
+
+function journalDePublication(p, verrou = false) {
+  const chemin = cheminsDeJournal(p.source, p.branche).json
+  if (p.journal !== chemin || p.snapshot !== snapshotDe(p.source, p.generation))
+    throw new Error('publication isolée : identité invalide')
+  return verrou ? `${chemin}.publication.verrou` : chemin
+}
+
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: journalDePublication, namespace: 'node_modules/.cache/publication' },
+]
 
 export const ENV_PUBLICATION = 'WFRP_PUBLICATION_ISOLEE'
 
@@ -24,10 +42,11 @@ export function publicationDe(env, racine) {
       !(p.bail === '' || estShaComplet(p.bail)) || !p.source || !p.journal ||
       !Number.isSafeInteger(p.pid) || !p.generation)
     throw new Error('publication isolée : identité invalide')
-  const tenant = JSON.parse(readFileSync(`${p.journal}.publication.verrou`, 'utf8'))
-  if (tenant.pid !== p.pid || resolve(tenant.cwd ?? '') !== resolve(p.source) || process.ppid !== p.pid)
+  const chemin = journalDePublication(p)
+  const tenant = tenantDe(journalDePublication(p, true))
+  if (tenant?.pid !== p.pid || resolve(tenant.cwd ?? '') !== resolve(p.source) || process.ppid !== p.pid)
     throw new Error('publication isolée : lanceur ou verrou différent')
-  const journal = JSON.parse(readFileSync(p.journal, 'utf8'))
+  const journal = lireJournal(chemin, p.branche)
   if (journal.publication?.generation !== p.generation ||
       journal.publication.snapshot !== p.snapshot ||
       journal.publication.demande !== p.demande ||
@@ -50,7 +69,9 @@ export function preparerPublication({ source, branche, chemins, reprendre, uuid 
     throw new Error(`publication isolée : train ${precedent.pid} encore vivant`)
   if (reprendre && precedent?.publication) {
     const p = precedent.publication
-    if (p.source !== source || p.branche !== branche || !existsSync(join(p.snapshot, '.git')) ||
+    const snapshot = snapshotDe(source, p.generation)
+    if (p.source !== source || p.branche !== branche || p.snapshot !== snapshot || p.journal !== chemins.json ||
+        p.journal !== cheminsDeJournal(source, branche).json || !existsSync(join(snapshot, '.git')) ||
         !estShaComplet(p.demande) || !(p.bail === '' || estShaComplet(p.bail)))
       throw new Error('publication isolée : snapshot de reprise absent ou incohérent')
     if (g.brancheDe(g.depotDe(p.snapshot)) !== null || !ancetreConfirme(g.estAncetre, g.depotDe(p.snapshot), p.demande, 'HEAD'))
@@ -82,7 +103,7 @@ export function preparerPublication({ source, branche, chemins, reprendre, uuid 
     if (!(precedenteSoldee && ancetreConfirme(g.estAncetre, depot, bail, 'origin/main'))) rattraper = bail
   }
   const generation = uuid()
-  const snapshot = join(dirname(source), `${basename(source)}-publication-${generation}`)
+  const snapshot = snapshotDe(source, generation)
   const p = { source, branche, demande, publie: null, bail, snapshot, generation, journal: chemins.json, pid: process.pid, ...(precedente ? { precedente } : {}), ...(rattraper ? { rattraper } : {}) }
   mkdirSync(chemins.dossier, { recursive: true })
   const ajout = g.ajouterWorktree(depot, { chemin: snapshot, depuis: demande, detache: true })

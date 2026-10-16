@@ -291,4 +291,3 @@ export function vivant(pid) {
     return e?.code === 'EPERM'
   }
 }
-

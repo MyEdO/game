@@ -12,6 +12,7 @@ import { ETAPES } from './etapesDuTrain.mjs'
 import { spawnSync } from 'node:child_process'
 import { prendreVerrou } from '../test/verrou.mjs'
 import { contexteDe, RACINE } from './publierTrain.mjs'
+import { cheminsDeJournal } from './publicationDonnee.mjs'
 
 const SHA = 'a'.repeat(40)
 const DISTANT = 'b'.repeat(40)
@@ -22,7 +23,7 @@ function banc(t) {
   t.after(() => rmSync(racine, { recursive: true, force: true }))
   const source = join(racine, 'codeur')
   mkdirSync(source)
-  const chemins = { dossier: join(racine, 'journal'), json: join(racine, 'journal', 'train.json') }
+  const chemins = cheminsDeJournal(source, 'chantier/2626')
   const appels = []
   let tete = SHA
   const gestes = {
@@ -65,6 +66,7 @@ test('git réel : HEAD, index et WIP strictement inchangés ; snapshot depuis le
   git('init', '-b', 'chantier/2626')
   git('config', 'user.name', 'Fixture')
   git('config', 'user.email', 'fixture@example.invalid')
+  writeFileSync(join(b.source, '.git/info/exclude'), 'node_modules/\n')
   writeFileSync(join(b.source, 'generateur.mjs'), 'committé')
   git('add', '--', 'generateur.mjs')
   git('commit', '-m', 'fixture refs #2626')
@@ -97,6 +99,16 @@ test('git réel : HEAD, index et WIP strictement inchangés ; snapshot depuis le
   try {
     const code = `const {publicationDe}=await import(${JSON.stringify(new URL('./publicationIsolee.mjs', import.meta.url).href)}); console.log(publicationDe(process.env, ${JSON.stringify(p.snapshot)}).demande)`
     const enfant = (identite) => spawnSync(process.execPath, ['--input-type=module', '-e', code], { encoding: 'utf8', env: { ...envDeDepotForge(), [ENV_PUBLICATION]: JSON.stringify(identite) } })
+    for (const identite of [
+      { ...p, journal: join(b.source, 'journal-etranger.json') },
+      { ...p, snapshot: join(b.source, 'snapshot-etranger') },
+      { ...p, generation: '../traversee' },
+    ]) {
+      const refuse = enfant(identite)
+      assert.notEqual(refuse.status, 0)
+      assert.match(refuse.stderr, /identité invalide|génération invalide/)
+      assert.doesNotMatch(refuse.stderr, /ENOENT/)
+    }
     const valide = enfant(p)
     assert.equal(valide.status, 0, valide.stderr)
     assert.equal(valide.stdout.trim(), tete)
@@ -146,6 +158,22 @@ test('reprise refuse un snapshot disparu ou attaché à une branche', (t) => {
   b.preparer()
   b.gestes.brancheDe = () => 'chantier/2626'
   assert.throws(() => b.preparer({ reprendre: true }), /snapshot de reprise déplacé/)
+})
+
+test('reprise refuse journal étranger, snapshot étranger et génération traversante', (t) => {
+  const b = banc(t)
+  const p = b.preparer()
+  const journal = JSON.parse(readFileSync(b.chemins.json))
+  mkdirSync(join(b.source, 'snapshot-etranger'))
+  writeFileSync(join(b.source, 'snapshot-etranger', '.git'), 'gitdir: fixture')
+  for (const alteration of [
+    { journal: join(b.source, 'journal-etranger.json') },
+    { snapshot: join(b.source, 'snapshot-etranger') },
+    { generation: '../traversee' },
+  ]) {
+    writeFileSync(b.chemins.json, JSON.stringify({ ...journal, publication: { ...p, ...alteration } }))
+    assert.throws(() => b.preparer({ reprendre: true }), /snapshot de reprise absent ou incohérent|génération invalide/)
+  }
 })
 
 test('deux trains de même branche sont sérialisés avant snapshot et installation', async (t) => {
