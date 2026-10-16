@@ -173,7 +173,7 @@ import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironment
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './zones';
 import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
-import { resolveCritique, jeuDeCritique, critiquesDuCoup, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
+import { resolveCritique, jeuDeCritique, critiquesDuCoup, estUnCoupCritique, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from '../engine/artilleryMisfire';
@@ -2340,7 +2340,7 @@ function apresDeviations(target: Combatant, loc: HitLocation, n: number): Combat
  *  CETTE Localisation (LDB 63 l.78 ; #1595 c.6221792068 Q3). `blessures` = Blessures normales du coup. */
 function compterLesCritiques(
   res: AttackResult, weapon: Weapon, attacker: Combatant, target: Combatant, n: number,
-): { compte: CompteDesCritiques; lieu: HitLocation; relance: boolean; blessures: number } {
+): { compte: CompteDesCritiques; lieu: HitLocation; relance: boolean; blessures: number; coupCritique: boolean } {
   let lieu: HitLocation = res.location ?? 'corps';
   let relance = false;
   let blessures = res.hit && !res.sansPrise ? (res.woundsLost ?? 0) : 0;
@@ -2361,8 +2361,9 @@ function compterLesCritiques(
       return blessures;
     },
   });
-  const critiques = impenetrable ? compte.critiques.filter((c) => c.origine !== 'coup-critique') : compte.critiques;
-  return { compte: { ...compte, critiques }, lieu, relance, blessures };
+  const coupCritique = compte.critiques.some((c) => estUnCoupCritique(c.origine));
+  const critiques = impenetrable ? compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) : compte.critiques;
+  return { compte: { ...compte, critiques }, lieu, relance, blessures, coupCritique };
 }
 
 /**
@@ -2595,8 +2596,8 @@ function appliquerLaTouche(
       refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
     }
   };
-  const { compte, lieu, relance, blessures } = coupCompte;
-  if (res.hit && (blessures || compte.critiques.length || compte.mortSubite)) {
+  const { compte, lieu, relance, blessures, coupCritique } = coupCompte;
+  if (res.hit && (blessures || compte.critiques.length || compte.mortSubite || coupCritique)) {
     // LDB 13 l.161, l.183 ; LDB 18 l.53, l.55 ; AA 07 l.25 ; AA 10 l.105, l.114 ; MDG 13 l.656 ; MDG 12 l.232.
     const currentBefore = target.wounds.current;
     if (relance) { res.critLocation = lieu; res.location = lieu; }
@@ -2607,21 +2608,25 @@ function appliquerLaTouche(
       const reinj = reinjuryBleed(target, lieu);
       if (reinj > 0) { addCondition(target, COND.hemorragique, reinj); critLog.push(tr('cf.reinjuryBleed', { name: target.label, n: reinj, loc: locationLabel(lieu, target.bodyShape) })); }
     }
-    if (compte.critiques.some((c) => c.origine === 'coup-critique')) breakBacleArmour(target, lieu, critLog); // LDB 60 l.50
     if (compte.mortSubite) appliquerMortSubite(target, critLog);
+    // LDB 60 l.50 ; #1595 c.6225326419 : la casse suit le Coup Critique, dévié, subi ou ignoré.
+    let bacle = coupCritique;
+    const casse = (): void => { if (bacle) breakBacleArmour(target, lieu, critLog); bacle = false; };
+    if (!compte.critiques.some((c) => estUnCoupCritique(c.origine))) casse();
     let lethal = false;
     for (let i = 0; i < plan.length && !lethal; i++) {
       const decision = plan[i];
       const entree = compte.critiques[i];
-      if (decision.deviation === 'devier') {
-        if (decision.auto) autoDeviate(set, target, lieu, 0, { attackerId: attacker.id, weapon: weapon?.label }, res.attackerRoll, critLog, attacker.kind === 'hero');
-        else deflectCrit(target, lieu, 0, critLog);
-        continue;
+      const devie = decision.deviation === 'devier' && (decision.auto
+        ? autoDeviate(set, target, lieu, 0, { attackerId: attacker.id, weapon: weapon?.label }, res.attackerRoll, critLog, attacker.kind === 'hero')
+        : deflectCrit(target, lieu, 0, critLog));
+      if (!devie) {
+        // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
+        // (pose du dé, #942 L4) garde sa révélation.
+        lethal = applyCritAndFinalize(get, set, target, lieu, entree.overkill, critLog, ctxCrit, currentBefore, decision.crit, !!decision.crit && !!decision.deviation);
+        apresLeCritique(lethal, lieu, entree.origine);
       }
-      // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
-      // (pose du dé, #942 L4) garde sa révélation.
-      lethal = applyCritAndFinalize(get, set, target, lieu, entree.overkill, critLog, ctxCrit, currentBefore, decision.crit, !!decision.crit && !!decision.deviation);
-      apresLeCritique(lethal, lieu, entree.origine);
+      if (estUnCoupCritique(entree.origine)) casse();
     }
     if (!isStructure(target)) clore(currentBefore);
   }
