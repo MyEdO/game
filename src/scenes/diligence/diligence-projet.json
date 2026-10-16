@@ -39673,6 +39673,41 @@
      "pied",
      "diligence"
     ],
+    "billets": {
+     "diligence": {
+      "prix": {
+       "exterieur": 48,
+       "interieur": 96
+      },
+      "suite": [
+       "route-route-principale-sept-rayons"
+      ],
+      "marchandage": {
+       "presetId": "edo-gunnar-et-hultz",
+       "paliers": [
+        {
+         "drMin": 0,
+         "prix": {
+          "exterieur": 36,
+          "interieur": 72
+         }
+        },
+        {
+         "drMin": 6,
+         "prix": {
+          "exterieur": 24,
+          "interieur": 48
+         }
+        }
+       ]
+      },
+      "source": {
+       "book": "ennemi-dans-l-ombre",
+       "page": 14,
+       "note": "EDO 01 l.142"
+      }
+     }
+    },
     "speed": {
      "diligence": 15
     },

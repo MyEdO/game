@@ -29,8 +29,9 @@ import { buildAuthorPerilSteps, registerPerilInterrupt } from './authorPerils';
 const LAND_PERIL_INTERRUPT = 'travel-land';
 import { openRest, placesOfKind } from './restFlow';
 import { placeById, placeOfScene, otherEnd, type MapRoute, type WorldMap } from './worldMap';
+import { billetApresDepart, offreDePassage } from './billetFlow';
 import {
-  TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, forcedMarchTest, applyTravelFatigue,
+  TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, classeRetenue, forcedMarchTest, applyTravelFatigue,
   vehicleTravel,
 } from '../engine/travel';
 import {
@@ -71,7 +72,7 @@ import type { CascadeStep, PendingCascade } from './pendings';
 import type { RecapLine } from './recapLine';
 import { toRecapLines, phaseOfKind } from './recapLine';
 import { buildSeaPlan, runSeaDay, startFastVoyage, syncHullWoundsFromVessel } from './seaVoyageFlow';
-import { buildRiverPlan, runRiverDays } from './riverVoyageFlow';
+import { buildRiverPlan, descenteJouee, runRiverDays } from './riverVoyageFlow';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { Combatant } from '../engine/types';
 
@@ -291,6 +292,13 @@ export function departWaitDawn(get: Get, set: Set): void {
   openRest(get, set, { places: placesOfKind('camp') });
 }
 
+/** Le départ de `route` en `mode` est-il un passage PAYANT — un billet (EDO 01 l.142 ; implicite,
+ *  LDB 51 l.178) ? Ni la marche, ni la selle, ni le navire de campagne, ni la descente fluviale jouée
+ *  (`descenteJouee`). Lu par l'écran de départ ET par `startTravel`. */
+export function passagePayant(get: Get, route: MapRoute, mode: TravelMode): boolean {
+  return mode !== 'pied' && mode !== 'monture' && mode !== 'mer' && !descenteJouee(get, route, mode);
+}
+
 /** Démarre un voyage depuis le lieu courant le long d'une route de la carte. */
 export function startTravel(
   get: Get, set: Set,
@@ -321,8 +329,7 @@ export function startTravel(
   // Porte d'heure de départ (maison `travel-departure-gate`, #340) : terre (pied/monture) et fleuve
   // JOUÉ ne s'ébranlent que de l'aube au crépuscule. La MER est exemptée (voguer de nuit = équipage +
   // installations, MDG 15 l.76). De nuit → on mémorise le trajet et on propose « Attendre l'aube ».
-  const riverPlayed = !!route.river && mode !== 'pied' && mode !== 'monture' && !!findVehicleById(mode)?.ship;
-  if (mode !== 'mer' && (mode === 'pied' || mode === 'monture' || riverPlayed) && departureGated(get)) {
+  if (mode !== 'mer' && (mode === 'pied' || mode === 'monture' || descenteJouee(get, route, mode)) && departureGated(get)) {
     set({ pendingDeparture: { routeId, mode, opts, dawnAt: get().gameTime + minutesUntilNext(get().gameTime, dawnMinute()) } });
     return;
   }
@@ -335,7 +342,9 @@ export function startTravel(
     if (opts.fast) {
       if (!startFastVoyage(get, set, routeId, from.id, to.id, route, { pace: opts.seaPace, cadence: opts.cadence })) {
         log(get, set, [t('tf.noVessel')]);
+        return;
       }
+      set({ billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
       return;
     }
     const seaPlan = buildSeaPlan(get, routeId, from.id, to.id, route, { pace: opts.seaPace, cadence: opts.cadence });
@@ -343,7 +352,7 @@ export function startTravel(
       log(get, set, [t('tf.noVessel')]);
       return;
     }
-    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null });
+    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
     log(get, set, [t('tf.seaDepart', { ship: seaPlan.vehicle!.label, to: to.label, km: route.km })]);
     runSeaDay(get, set);
     return;
@@ -353,28 +362,34 @@ export function startTravel(
   // Route FLUVIALE JOUÉE (MSRC 7 « Navigation fluviale ») : sur une embarcation (barge…), la descente
   // se JOUE jour par jour (Test de Navigation, table des vents, périls, chavirage) au lieu d'un transport
   // payant. Repli sur le transport payant (« on paie un passeur ») si aucun batelier/embarcation.
-  if (route.river && mode !== 'pied' && mode !== 'monture' && findVehicleById(mode)?.ship) {
-    const riverPlan = buildRiverPlan(get, routeId, from.id, to.id, route, { cadence: opts.cadence });
-    if (riverPlan) {
-      set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null });
-      log(get, set, [t('tf.riverDepart', { ship: riverPlan.vehicle!.label, to: to.label, km: route.km })]);
-      runRiverDays(get, set);
-      return;
-    }
-    // Pas de batelier/embarcation : on retombe sur le transport payant (passeur).
+  const riverPlan = descenteJouee(get, route, mode) ? buildRiverPlan(get, routeId, from.id, to.id, route, { cadence: opts.cadence }) : null;
+  if (riverPlan) {
+    set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: billetApresDepart(get().billetEnMain, routeId, mode) });
+    log(get, set, [t('tf.riverDepart', { ship: riverPlan.vehicle!.label, to: to.label, km: route.km })]);
+    runRiverDays(get, set);
+    return;
   }
 
-  // Transport payant : prix par km PAR PASSAGER (LDB 51 l.178), débité au départ — refus si bourse insuffisante.
-  if (mode !== 'pied' && mode !== 'monture') {
-    const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
-    const cost = transportCost(route.km, mode, opts.classeId ?? '', passengers, route.prices?.[mode]);
-    if (!cost) return; // mode sans facette `travel` (id de véhicule invalide) — rien à débiter, rien à jouer
-    // Dépense de GROUPE (LDB 51 l.178) : passage sans bénéficiaire unique → cotisation gloutonne des bourses.
-    if (!payFromGroup(get, set, cost, { purpose: 'passage' })) {
-      log(get, set, [t('tf.passageTooDear', { mode: travelModeLabels()[mode].toLowerCase(), cost: formatMoney(cost) })]);
-      return;
+  // Transport payant : le billet (EDO 01 l.142 ; implicite, LDB 51 l.178), payé d'avance au départ de
+  // sa première route — refus si bourse insuffisante ; ses routes suivantes partent sans débit.
+  let billet = billetApresDepart(get().billetEnMain, routeId, mode);
+  if (passagePayant(get, route, mode)) {
+    const offre = offreDePassage(worldMap, route, mode, from.id, get().billetEnMain, get().marchandagesDeBillet);
+    if (!offre) return; // mode sans facette `travel` (id de véhicule invalide) — rien à débiter, rien à jouer
+    const modeLabel = travelModeLabels()[mode].toLowerCase();
+    if (offre.couvert) log(get, set, [t('tf.billetPresente', { mode: modeLabel })]);
+    else {
+      const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
+      const classeId = classeRetenue(offre.tarif, opts.classeId ?? '');
+      const cost = transportCost(offre.tarif, classeId, passengers, offre.issue);
+      // Dépense de GROUPE (LDB 51 l.178) : passage sans bénéficiaire unique → cotisation gloutonne des bourses.
+      if (!payFromGroup(get, set, cost, { purpose: 'passage' })) {
+        log(get, set, [t('tf.passageTooDear', { mode: modeLabel, cost: formatMoney(cost) })]);
+        return;
+      }
+      log(get, set, [t('tf.passagePaid', { cost: formatMoney(cost), mode: modeLabel })]);
+      billet = offre.suite.length ? { routeId, vehicule: mode, classeId, routesRestantes: offre.suite } : null;
     }
-    log(get, set, [t('tf.passagePaid', { cost: formatMoney(cost), mode: travelModeLabels()[mode].toLowerCase() })]);
   }
 
   // Allure EDOC (règle `travel-allures`) : en selle, pas/trot/galop (EDOC 07 l.140) ; sur un attelage,
@@ -403,7 +418,7 @@ export function startTravel(
     postes: rule('travel-etapes') ? stageAssignmentFromRoles(party) : undefined,
     ...(vehicle ? { vehicle } : {}),
   };
-  set({ travelPlan: plan, worldMapOpen: false, travelRecap: null });
+  set({ travelPlan: plan, worldMapOpen: false, travelRecap: null, billetEnMain: billet });
   const allureLabel = allure ? t('tf.fragAllure', { allure: allureName(allure).toLowerCase() }) : '';
   log(get, set, [t('tf.depart', { to: to.label, km: route.km, mode: travelModeLabels()[mode].toLowerCase(), allure: allureLabel })]);
   runTravelDays(get, set);

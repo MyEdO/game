@@ -76,6 +76,7 @@ const HORS_SURFACE_UI: Record<string, string> = {
   openWorldMap: MIROIR('carte du monde'),
   closeWorldMap: MIROIR('carte du monde'),
   startTravel: MIROIR('départ en voyage'),
+  startBilletBargain: MIROIR('marchandage du billet de départ'),
   resumeTravel: MIROIR('reprise de voyage'),
   departWaitDawn: MIROIR('départ à l’aube'),
   departCancel: MIROIR('porte de départ'),

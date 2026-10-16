@@ -9,15 +9,15 @@ import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../s
 import { skillBaseValue, testValue } from '../engine/skills';
 import { findMutationById } from '../data';
 import type { Combatant } from '../engine/types';
+import { t } from '../i18n';
 
 const base: PendingBargain = {
   playerId: 'h',
   playerName: 'H',
-  merchantName: 'Armurier',
-  merchantValue: 45,
+  contrepartie: { kind: 'marchand', mode: 'buy', titre: t('out.bargainTitreAchat') },
+  opposant: { label: 'Armurier', valeur: 45 },
   playerSkill: 50,
   playerBase: 50,
-  mode: 'buy',
   negotiator: false,
   roll: null,
   merchantRoll: null,
@@ -26,23 +26,29 @@ const base: PendingBargain = {
 
 const noop = () => {};
 
-/** #1882 — le marchand est un PNJ de scène : sa ligne adverse porte SA fiche (`sceneNpc`), preset compris. */
+/** #1882 — le marchand est un PNJ de scène : sa ligne adverse porte SA fiche (`sceneNpc`), preset compris,
+ *  résolue à l'ouverture (`startBargain`) et lue par la modale dans le pending. */
 describe('BargainModal — le marchand à preset joue sa fiche', () => {
   // Le rendu SERVEUR lit l'état INITIAL du store (patron `refus-au-survol.test.tsx`), les couches hors React l'état courant.
   const initial = useGame.getInitialState() as unknown as Record<string, unknown>;
-  const avant = { pendingBargain: initial.pendingBargain, merchant: initial.merchant, scene: initial.scene, party: initial.party };
-  afterEach(() => { Object.assign(initial, avant); useGame.setState({ campaignNarratif: null }); });
+  const avant = { pendingBargain: initial.pendingBargain, party: initial.party };
+  afterEach(() => { Object.assign(initial, avant); useGame.setState({ campaignNarratif: null, merchant: null, pendingBargain: null }); });
 
   it('le portrait adverse est celui de la fiche du preset, pas d’un profil de repli', () => {
     const scene = {
       type: 'scene', id: 's', label: 'S', dimensions: { w: 4, h: 4 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
       layers: [{ z: 0, tiles: Array(16).fill('herbe') }], dialogues: [], triggers: [], encounters: [], flags: {},
-      entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme' }],
+      entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme', merchant: { archetype: 'armurier' } }],
     } as unknown as Scene;
-    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'marchand-nomme', base: 'nain', profil: { label: 'Gunther le Négociant' } }] } });
-    Object.assign(initial, { scene, merchant: { entityId: 'marchand' }, pendingBargain: base, party: [] });
+    const negociateur = { id: 'h', label: 'H', kind: 'hero', items: [], characteristics: { sociabilite: 40 }, skills: [], talents: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant;
+    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'marchand-nomme', base: 'nain', profil: { label: 'Gunther le Négociant' } }] }, scene, party: [negociateur] });
+    useGame.getState().openMerchant('marchand');
+    useGame.getState().startBargain('buy');
+    const pb = useGame.getState().pendingBargain!;
     const fiche = sceneNpc(scene, 'marchand')!;
     expect(fiche.creatureId).toBe('nain');
+    expect(pb.opposant.portrait?.creatureId).toBe('nain');
+    Object.assign(initial, { pendingBargain: pb, party: [] });
     const html = renderToStaticMarkup(<BargainModal />);
     expect(html).toContain(renderToStaticMarkup(<TeamPortrait combatant={fiche} size={28} />));
   });

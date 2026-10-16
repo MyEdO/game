@@ -69,6 +69,13 @@ persistance — chaque combat spawn une coque fraîche.
 - `sea: true` → voyage joué sur le navire de campagne (`src/state/seaVoyageFlow.ts`, cap `seaHeading`) ;
   `river: true` → descente jouée jour par jour (`src/state/riverVoyageFlow.ts`, `riverPerils`/
   `riverExposure`). Terrestre = table de péripéties + `inns` (relais d'auberge).
+- `billets[véhicule]` (`RouteBillet`) — BILLET d'auteur d'un passage payant, posé sur la PREMIÈRE route du
+  trajet : `prix` par classe du véhicule (sous par place, forfait du trajet), `suite` (routes suivantes
+  couvertes, contiguës, dans le mode), `depuis` (exigé si la route n'a pas de `from`), `marchandage`
+  (`presetId` du vendeur au narratif, `paliers` `{ drMin, prix }` du Test gagné), provenance `source` ∨
+  `maison`. Payé une fois au départ (`src/state/billetFlow.ts`), il couvre sa suite sans débit et
+  s'abandonne si le groupe part ailleurs ou autrement. Sans billet d'auteur, le passage se paie au km
+  de la classe (`billetImplicite`, LDB 51 l.178). Validation au chargement : `worldmap.ts`.
 - Une route `sea: true` REQUIERT un `seaHeading` explicite d'auteur — aucun défaut silencieux :
   `buildSeaPlan` jette si absent (#416). L'éditeur pose `'est'` (neutre) à l'activation du toggle
   « mer » ; à l'auteur de régler le vrai cap. Rappel RAW : la dominante de la Mer des Griffes souffle

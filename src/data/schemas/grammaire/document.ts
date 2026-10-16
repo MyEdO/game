@@ -382,6 +382,18 @@ const DOCUMENT_DE_L_ENTREE_PARTIELLE = new WeakMap<object, z.ZodType<unknown>>()
 export const documentDeLEntreePartielle = (noeud: unknown): z.ZodType<unknown> | undefined =>
   noeud !== null && typeof noeud === 'object' ? DOCUMENT_DE_L_ENTREE_PARTIELLE.get(noeud) : undefined;
 
+/** Les champs de PROVENANCE d'une entrée ou d'une sous-entrée. */
+export interface Provenance { source?: unknown; maison?: unknown }
+
+/** PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE — refine UNIQUE, partagé par la
+ *  fabrique `document()` et toute sous-entrée qui porte sa propre provenance. `sujet` nomme ce qui
+ *  la doit (« de l’entrée », « du billet »). */
+export function refuserSansProvenance(v: Provenance, ctx: z.RefinementCtx, sujet: string): void {
+  if (v.source === undefined && v.maison === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['source'], message: `provenance manquante : cite le livre et la page, ou dis la raison maison ${sujet}.` });
+  }
+}
+
 /**
  * Déclare un document. `champs` = la charge utile propre au type, `meta` = son libellé FR par clé,
  * `exposition` = Codex + éditeur, `options.variantes` = les champs qu'une variante réglée republie —
@@ -511,16 +523,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   // construction, donc rien à éteindre ici (mesuré : un branchement qui l'éteindrait est inobservable).
   const avecProvenance = !exigeSource(type)
     ? corps
-    : (corps.superRefine((v, ctx) => {
-        const d = v as { source?: unknown; maison?: unknown };
-        if (d.source === undefined && d.maison === undefined) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['source'],
-            message: 'provenance manquante : cite le livre et la page, ou dis la raison maison de l’entrée.',
-          });
-        }
-      }) as z.ZodObject<z.ZodRawShape>);
+    : (corps.superRefine((v, ctx) => refuserSansProvenance(v as Provenance, ctx, 'de l’entrée')) as z.ZodObject<z.ZodRawShape>);
   // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V5), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
   const avecProse = avecProvenance.superRefine(

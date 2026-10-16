@@ -1,7 +1,7 @@
 /**
  * LA FICHE d'une entité de scène — projection UNIQUE `SceneEntity` → `Combatant`, lue par le spawn de
  * rencontre (`combatSlice`), la Psychologie à la rencontre (`encounterPsychFlow`) et tous les flux qui
- * font JOUER un PNJ hors combat (table de taverne, marchandage, infirmerie payante). Un PNJ a UNE
+ * font JOUER un PNJ hors combat (table de taverne, marchandage, billet, infirmerie payante). Un PNJ a UNE
  * fiche, quelle que soit la porte par laquelle la partie le rencontre (#1882).
  */
 import type { Combatant } from '../engine/types';
@@ -64,6 +64,14 @@ export function ficheDEntite(ent: SceneEntity): Combatant {
  *  `profilsStandard`), sous le libellé de cette fiche. `undefined` hors des profils standard. */
 export function pnjAuProfil(profil: string, id: string): Combatant | undefined {
   return profilsStandard().includes(profil) ? spawnEnemy({ ref: profil }, id, { x: 0, y: 0 }) : undefined;
+}
+
+/** UN PNJ SANS ENTITÉ DE SCÈNE, nommé par un preset du narratif (#671) — le vendeur d'un billet
+ *  marchandé (`billetFlow`) : sa fiche est celle du preset, sous son libellé. `undefined` si le preset
+ *  ne se résout pas. */
+export function pnjAuPreset(presetId: string, id: string): Combatant | undefined {
+  const preset = resolvePresetCreature(presetId);
+  return preset && spawnEnemy({ presetCreature: preset.creature, presetId }, id, { x: 0, y: 0 }, { appearance: preset.apparence });
 }
 
 /**

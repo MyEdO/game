@@ -285,14 +285,29 @@ export interface PendingStateRecovery {
   success: boolean;
   rerolled?: boolean;
 }
-/** Marchandage en attente (LDB 59 l.43) : Test OPPOSÉ Marchandage (joueur) vs Marchandage (marchand).
- *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance ; gagner réduit le prix de 10 %
- *  (20 % avec Succès Stupéfiant DR≥6 ou le talent Négociateur). 1 jet verrouillé par visite. */
+/** Ce que le Marchandage négocie : les prix d'un marchand (achat ou vente, LDB 59 l.43), ou un
+ *  billet de passage (EDO 01 l.142), avec le titre de sa modale. La confirmation
+ *  (`merchantFlow.bargainConfirm`) y aiguille l'issue. */
+export type ContrepartieDeMarchandage = { titre: PlayerText } & (
+  | { kind: 'marchand'; mode: 'buy' | 'sell' }
+  | { kind: 'billet'; routeId: string; vehicule: string; depuis: string }
+);
+
+/** L'opposant d'un Marchandage, résolu à l'ouverture : son nom, sa valeur de Marchandage NUE (grandeur
+ *  du départage, LDB 12 l.160) et la fiche qui porte son portrait. */
+export interface OpposantDeMarchandage {
+  label: string;
+  valeur: number;
+  portrait?: Combatant;
+}
+
+/** Marchandage en attente (LDB 59 l.43) : Test OPPOSÉ Marchandage (joueur) vs Marchandage (opposant).
+ *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance. 1 jet verrouillé par contrepartie. */
 export interface PendingBargain {
   playerId: string;
   playerName: string;
-  merchantName: string;
-  merchantValue: number; // valeur Marchandage du marchand (opposant)
+  contrepartie: ContrepartieDeMarchandage;
+  opposant: OpposantDeMarchandage;
   playerSkill: number; // valeur Marchandage du meilleur négociateur du groupe (Soutien FONDU)
   /** SOUTIEN (LDB 12) des conseillers du groupe, déjà fondu dans `playerSkill` — porté pour l'affichage. */
   support?: SupportDetail;
@@ -302,12 +317,11 @@ export interface PendingBargain {
    *  `playerSkill` : celle-ci porte le Soutien et TOUS les modificateurs de la valeur de Test
    *  (inventaire exhaustif : `skills.testValueParts`). */
   playerBase: number;
-  mode: 'buy' | 'sell';
-  /** Le négociateur possède-t-il le talent Négociateur (−20 % même sans Succès Stupéfiant) ? */
+  /** Le négociateur possède-t-il le talent Négociateur (LDB 10 l.818) ? */
   negotiator: boolean;
   /** Jet du joueur ; null tant que pas lancé (Chance possible ensuite). */
   roll: TestResult | null;
-  /** Jet du marchand, figé au 1ᵉʳ lancer (les relances Chance ne re-roulent que le joueur). */
+  /** Jet de l'opposant, figé au 1ᵉʳ lancer (les relances Chance ne re-roulent que le joueur). */
   merchantRoll: TestResult | null;
   /** Résultat opposé (joueur = attaquant). */
   result: OpposedResult | null;

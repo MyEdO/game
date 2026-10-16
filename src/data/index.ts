@@ -2965,7 +2965,7 @@ export const peripeties = peripetiesJson as Peripetie[];
  *  routiers ») — catalogue de CALIBRATION d'une `MapRoute` : classes de route et leurs largeurs,
  *  espacement des auberges relais, compagnies de diligences nommées, tarif et espacement des postes
  *  de péage, effectifs de patrouille. Aucun de ces champs n'étend le vocabulaire de `MapRoute` : ils
- *  se posent sur `inns`/`prices`/`speed`/`km` à l'authoring de carte. */
+ *  se posent sur `inns`/`billets`/`speed`/`km` à l'authoring de carte. */
 export interface ReseauRoutierData {
   id: string;
   type: 'reseau-routier';

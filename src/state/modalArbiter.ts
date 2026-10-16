@@ -257,7 +257,7 @@ export interface HorsModalDef {
 }
 
 export const HORS_MODAL = [
-  { key: 'bargain', pendingKey: 'pendingBargain', tientLaMain: true, owner: (s) => s.pendingBargain?.playerId }, // Marchandage (écran Marché)
+  { key: 'bargain', pendingKey: 'pendingBargain', tientLaMain: true, owner: (s) => s.pendingBargain?.playerId }, // Marchandage (écran Marché, billet de la carte du monde)
   { key: 'appraise', pendingKey: 'pendingAppraise', tientLaMain: true, owner: (s) => s.pendingAppraise?.actorId }, // Évaluation/Détection (écran Marché/Compendium)
   { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*' }, // Butin hors victoire : chacun voit qui l'emporte
   { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*' }, // Écran de victoire : `readyBySeat`, unanimité

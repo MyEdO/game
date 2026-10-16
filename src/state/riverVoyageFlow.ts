@@ -31,7 +31,7 @@ import { damageVesselHull, healVesselHull, syncHullWoundsFromVessel, spoilVessel
 import { baseHoursPerDay } from './travelFlow';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines } from './recapLine';
-import { travelSpeed } from '../engine/travel';
+import { travelSpeed, type TravelMode } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
 import { propulsionDuNavire, type PropulsionDuNavire } from '../engine/shipBuild';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
@@ -176,18 +176,29 @@ function aAugmente(c: Combatant, competence: RefDesignee): boolean {
   return possesses(c, competence.id, competence.spec) && (c.skills ?? []).some((s) => refCouvre({ id: competence.id }, s) && s.advances > 0);
 }
 
-/** Construit le TravelPlan d'une DESCENTE fluviale (route `river`, mode barge) — `null` si aucun bateau ou
- *  aucun batelier (→ repli transport payant). PUR de RNG hormis le tirage du vent de départ. */
-export function buildRiverPlan(get: Get, routeId: string, fromPlaceId: string, toPlaceId: string, route: MapRoute, opts: { cadence?: VoyageCadence } = {}): TravelPlan | null {
+/** La coque d'une descente JOUABLE : à flot, avec un batelier — `null` sinon (→ repli transport payant). */
+function coqueJouable(get: Get, route: MapRoute): Combatant | null {
   const hull = riverHull(get, route);
-  if (!hull || hull.coque.wounds.current <= 0) return null;
-  if (!hasBatelier(get().party, riverNavSkill(hull.coque))) return null;
+  return hull && hull.coque.wounds.current > 0 && hasBatelier(get().party, riverNavSkill(hull.coque)) ? hull.coque : null;
+}
+
+/** Le départ de `route` en `mode` est-il une descente fluviale JOUÉE (MSRC 7) : route `river`, véhicule
+ *  bateau, coque jouable ? */
+export function descenteJouee(get: Get, route: MapRoute, mode: TravelMode): boolean {
+  return !!route.river && mode !== 'pied' && mode !== 'monture' && !!findVehicleById(mode)?.ship && !!coqueJouable(get, route);
+}
+
+/** Construit le TravelPlan d'une DESCENTE fluviale (route `river`, mode barge) — `null` sans coque
+ *  jouable (`coqueJouable`). PUR de RNG hormis le tirage du vent de départ. */
+export function buildRiverPlan(get: Get, routeId: string, fromPlaceId: string, toPlaceId: string, route: MapRoute, opts: { cadence?: VoyageCadence } = {}): TravelPlan | null {
+  const coque = coqueJouable(get, route);
+  if (!coque) return null;
   const wind = rollRiverWind(battleRng());
   const orders: VoyageOrders = { cadence: opts.cadence ?? DEFAULT_VOYAGE_ORDERS.cadence };
   return {
     routeId, fromPlaceId, toPlaceId, mode: 'barge', hoursPerDay: 24, km: route.km, kmDone: 0, interrupted: false,
     orders,
-    vehicle: hull.coque,
+    vehicle: coque,
     river: { windForce: wind.force, windDir: wind.dir, daysAfloat: 0 },
   };
 }
