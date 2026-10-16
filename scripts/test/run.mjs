@@ -46,7 +46,7 @@ import {
   TAS_UTILISE,
 } from './partition.mjs'
 import { refusOutillageLocal } from '../outillage-local.mjs'
-import { estPidVivant } from './verrou.mjs'
+import { estPidDeProcessus, estPidVivant } from '../guards/lib/pid.mjs'
 import { attenteDeSuite, prendreVerrouDeSuite, verrouRequis } from './verrouDeSuite.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 
@@ -83,7 +83,7 @@ const supprimer = (cible) => {
 const balayerAteliersMorts = () => {
   for (const nom of fs.existsSync(ATELIERS) ? fs.readdirSync(ATELIERS) : []) {
     const pid = Number(nom)
-    if (!Number.isInteger(pid) || pid === process.pid || estPidVivant(pid)) continue
+    if (!estPidDeProcessus(pid) || pid === process.pid || estPidVivant(pid)) continue
     supprimer(path.join(ATELIERS, nom))
   }
 }

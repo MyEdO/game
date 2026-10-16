@@ -7,20 +7,11 @@
 import { randomUUID } from 'node:crypto'
 import fsReel from 'node:fs'
 import { basename, dirname } from 'node:path'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 /** Préfixe des jetons de verrou d'environnement (#2603) : `lancerDetache` n'en transmet aucun. */
 export const PREFIXE_JETON_VERROU = 'WFRP_VERROU_'
-
-/** Ce PID tourne-t-il ? `process.kill(pid, 0)` ne tue rien : il teste l'existence. */
-export function estPidVivant(pid) {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch {
-    return false
-  }
-}
 
 /** Message de refus : ce que le verrou garde (`libelle`), qui le tient, et les deux sorties. */
 export function refusVerrou({ chemin, tenant, libelle }) {

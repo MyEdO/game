@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { RACINE } from '../hooks/barriere-outil.mjs'
 import { journalDe } from '../git-hooks/journal.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 import { par, quantile } from './cachePromptAnalyses.mjs'
 
 /** @typedef {{ de: number, a: number }} Fenetre bornes en ms epoch, `de` = -Infinity si l'entrée en veille précède la lecture */
@@ -71,16 +72,6 @@ export function statistiques({ termines, ouverts }, fenetres, vivant) {
   })
 }
 
-/** Le processus `pid` existe-t-il ? */
-function processusVivant(pid) {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (e) {
-    return e.code === 'EPERM'
-  }
-}
-
 /** Les événements 506/507 du journal System depuis `depuis` (ms epoch), une lecture ; hors win32, aucun. */
 function evenementsDeVeille(depuis) {
   if (process.platform !== 'win32') return []
@@ -116,7 +107,7 @@ const USAGE = 'usage : npm run ops:journal-hooks [-- --arbre <racine>] [--depuis
  */
 export function executer({
   argv, ecrire = (texte) => process.stdout.write(texte), erreur = (texte) => process.stderr.write(texte), journal = journalDe,
-  lire = lireSurDisque, veille = evenementsDeVeille, vivant = processusVivant, maintenant = Date.now,
+  lire = lireSurDisque, veille = evenementsDeVeille, vivant = estPidVivant, maintenant = Date.now,
 }) {
   let values
   try {

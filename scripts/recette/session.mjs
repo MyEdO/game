@@ -17,7 +17,8 @@
 // Chrome n'est jamais lancé `detached` (`OPTIONS_SPAWN_CHROME`) : un gardien TUÉ emporte son Chrome ;
 // seul son profil reste, que `fermer` purge par son chemin enregistré.
 // Toutes les écritures (fichier de session, journal, signaux, profil) vivent dans `lib.mjs`, sous os.tmpdir().
-import { DEFAULT_URL, fermerSession, fichierDeSession, processusVivant, purgerProfilsOrphelins, tenirSession, DISQUE } from './lib.mjs';
+import { DEFAULT_URL, fermerSession, fichierDeSession, purgerProfilsOrphelins, tenirSession, DISQUE } from './lib.mjs';
+import { estPidVivant } from '../guards/lib/pid.mjs';
 
 const [commande, ...reste] = process.argv.slice(2);
 const option = (nom, defaut) => {
@@ -39,7 +40,7 @@ try {
     if (!DISQUE.existe(fichier)) sortir({ etat: 'aucune', fichier });
     else {
       const d = JSON.parse(DISQUE.lire(fichier));
-      sortir({ etat: processusVivant(d.pidGardien) ? 'tenue' : 'gardien-mort', fichier, ...d });
+      sortir({ etat: estPidVivant(d.pidGardien) ? 'tenue' : 'gardien-mort', fichier, ...d });
     }
   } else if (commande === 'purger') {
     sortir(await purgerProfilsOrphelins());

@@ -280,14 +280,3 @@ export function lireJournal(chemin, branche) {
   }
 }
 
-
-/** Le processus `pid` vit-il ? `kill(pid, 0)` ne signale rien : il sonde (EPERM = vivant, hors de nos droits). */
-export function vivant(pid) {
-  if (!Number.isSafeInteger(pid) || pid <= 0) return false
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (e) {
-    return e?.code === 'EPERM'
-  }
-}
