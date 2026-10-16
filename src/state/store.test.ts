@@ -2498,6 +2498,7 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
 
   it('overkill sur un HÉROS → Blessure critique (compteur++), tombe à 0 PB', () => {
     const { H, E } = combat({ wounds: { current: 2, max: 12 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
+    H.items = (H.items ?? []).filter((i) => i.kind !== 'armor'); // sans armure portée : aucune Déviation (LDB 63 l.30)
     useGame.getState().seedRng(2);
     // L'IA (E) frappe H en mêlée SANS défense opposable (cible sans réaction, cas imposé RAW) :
     // résolution non opposée, DR d'attaque plein → overkill car 2 PB < dégâts.

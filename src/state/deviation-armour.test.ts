@@ -4,7 +4,7 @@ import { tenuParUnHumain } from './netOwnership';
 import { applyAttackResult, resolveDeviation } from './combatFlow';
 import { seedBattleRng, battleRng } from './battleRng';
 import { resetRule } from '../engine/policy';
-import { deviatableArmourAt } from '../engine/items';
+import { deviatableArmourAt, damageArmour, impenetrableAt } from '../engine/items';
 import { attachMutation, nonDeviatableMutationAP } from '../engine/corruption';
 import { mutationById } from '../data/mutations';
 import type { Combatant, Weapon, ItemInstance } from '../engine/types';
@@ -81,24 +81,36 @@ describe('deviatableArmourAt / nonDeviatableMutationAP — PA sacrifiable (LDB 6
 
   it('armure portée seule → PA entièrement déviatable', () => {
     const c = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
-    expect(deviatableArmourAt(c, 'corps')).toBe(3);
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
   });
 
   it('Trait créature Armure (PA de statbloc, LDB 85) → reste DÉVIATABLE (non barré)', () => {
     // PA de profil créature, sans pièce portée ni mutation marquée : aucune exclusion (LDB 85 l.37-39).
     const c = enemy({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
     expect(nonDeviatableMutationAP(c, 'corps')).toBe(0);
-    expect(deviatableArmourAt(c, 'corps')).toBe(3);
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
   });
 
   it('Écailles seule (PA = 1, noDeviation) → PA déviatable NUL (EDO App.2 l.196)', () => {
     const c = avecEcailles(hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 1, jambeG: 0, jambeD: 0 } }));
-    expect(deviatableArmourAt(c, 'corps')).toBe(0);
+    expect(deviatableArmourAt(c, 'corps')).toBe(false);
   });
 
-  it('armure portée (3) + Écailles (1) → seul le PA porté (3) est déviatable', () => {
+  it('armure plate (3) + Écailles (1) → la Localisation reste protégée', () => {
     const c = avecEcailles(hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 } }));
-    expect(deviatableArmourAt(c, 'corps')).toBe(3);
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
+  });
+
+  it('LDB 63 l.19, l.21 : une pièce portée à 0 PA reste déviable ; la Déviation la rend inutilisable', () => {
+    const piece = { ...wornPiece(1), damageTaken: 1, qualities: [{ id: 'impenetrable' }] } as unknown as ItemInstance;
+    const c = hero({ items: [piece] });
+    expect(deviatableArmourAt(c, 'corps')).toBe(true);
+    expect(impenetrableAt(c, 'corps')).toBe(true);
+    expect(damageArmour(c, 'corps')).toBe(true);
+    expect(piece.damageTaken).toBe(2);
+    expect(deviatableArmourAt(c, 'corps')).toBe(false);
+    expect(impenetrableAt(c, 'corps')).toBe(false);
+    expect(damageArmour(c, 'corps')).toBe(false);
   });
 });
 

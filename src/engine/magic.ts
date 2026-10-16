@@ -1068,11 +1068,11 @@ export function magicDeviationEligible(
    *  reflété dans `woundsAtFullPA` par l'appelant, sinon le recalcul à PA−1 perd ce bonus. */
   overcastDamageSteps = 0,
 ): { eligible: boolean; extraWounds: number } {
-  if (deviatableArmourAt(target, loc) <= 0) return { eligible: false, extraWounds: 0 };
+  if (!deviatableArmourAt(target, loc)) return { eligible: false, extraWounds: 0 };
   if (missileDamage(spell)?.ignorePA) return { eligible: false, extraWounds: 0 };
   const totalAP = effectiveArmourAt(target, loc);
   const { apIgnored } = domainMissileMods(target, spell, loc, totalAP);
-  if (totalAP - apIgnored <= 0) return { eligible: false, extraWounds: 0 }; // PA entièrement bypassée → no-op
+  if (apIgnored > 0 && totalAP - apIgnored <= 0) return { eligible: false, extraWounds: 0 }; // PA entièrement bypassée → no-op
   const at1 = evaluateMissile(caster, target, spell, cr, loc, 1, overcastDamageSteps).woundsLost ?? 0; // recalcul à PA−1
   return { eligible: true, extraWounds: Math.max(0, at1 - woundsAtFullPA) };
 }

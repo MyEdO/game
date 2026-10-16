@@ -152,7 +152,7 @@ import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { norm } from '../lib/normalize';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
+import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, piecesPorteesA, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, declencheUnCritique, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
@@ -2097,7 +2097,7 @@ function autoDeviate(
   ctx: { attackerId?: string; weapon?: string }, roll: number, log: string[], heroConcerned: boolean,
 ): boolean {
   if (!rule('combat-critical-deflect')) return false;
-  if (deviatableArmourAt(target, location) <= 0) return false;
+  if (!deviatableArmourAt(target, location)) return false;
   if (!deflectCrit(target, location, extraWounds, log)) return false;
   if (heroConcerned)
     pushReveal(set, {
@@ -2184,11 +2184,11 @@ registerCascadeTableFold('deviation', (step, get) => {
 
 /** Une armure Bâclée frappée par un Coup Critique à sa localisation casse (LDB 60 l.50) — héros (pièces). */
 function breakBacleArmour(target: Combatant, loc: HitLocation, log: string[]): void {
-  const piece = (target.items ?? []).find(
-    (i) => i.equipped && i.kind === 'armor' && i.locs?.includes(loc) && hasQuality(i, 'bacle') && (i.pa ?? 0) - (i.damageTaken ?? 0) > 0,
+  const piece = piecesPorteesA(target, loc).find(
+    (i) => hasQuality(i, 'bacle'),
   );
   if (!piece) return;
-  piece.damageTaken = piece.pa ?? 0; // inutilisable
+  piece.damageTaken = (piece.pa ?? 0) + 1; // LDB 63 l.21
   recomputeLoadout(target);
   log.push(tr('cf.shoddyBreaks', { name: target.label, loc }));
 }
@@ -2219,7 +2219,7 @@ export function applyOpposedCritical(
   const attacker = ctx.attackerId ? inBattleId(get().battle, ctx.attackerId) : undefined;
   const heroConcerned = victim.kind === 'hero' || attacker?.kind === 'hero';
   const c2: DeviationCtx = { ...ctx, attackerKind: attacker?.kind, critTwice: attacker ? critRollTwiceFor(attacker) : undefined };
-  const deviable = !!rule('combat-critical-deflect') && deviatableArmourAt(victim, loc) > 0;
+  const deviable = !!rule('combat-critical-deflect') && deviatableArmourAt(victim, loc);
   if (deviable && !tenuParUnHumain(get(), victim.id)) {
     if (autoDeviate(set, victim, loc, 0, ctx, roll, log, heroConcerned)) return;
   } else if (deviable) {
@@ -2508,7 +2508,7 @@ function appliquerLaTouche(
     // poussée, sinon le dé de sévérité serait tiré puis jeté (`applyCritAndFinalize` est sauté quand la
     // déviation a eu lieu). `tenuParUnHumain` est SEAT-AGNOSTIQUE (le MJ tient ses ennemis) et
     // cadence-AGNOSTIQUE : en Rapide/Auto l'étape s'ouvre et se tranche à son `defaultChoice`.
-    const deviable = !!rule('combat-critical-deflect') && deviatableArmourAt(target, cloc) > 0;
+    const deviable = !!rule('combat-critical-deflect') && deviatableArmourAt(target, cloc);
     const tenu = tenuParUnHumain(get(), target.id);
     if (!(deviable && !tenu)) {
       const offerte = deviable && tenu;
