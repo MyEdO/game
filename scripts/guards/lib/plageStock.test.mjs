@@ -168,6 +168,30 @@ function depotJetable(commits) {
 
 const sourceStock = (entrees) => `export const STOCK = [\n${entrees.join('\n')}\n]\n`
 
+test('#2626 : seuls les commits nouveaux sont jugés, leur cumul exclut le stock déjà publié', async () => {
+  const { repo, shas, git } = depotJetable([
+    { contenu: sourceStock([]), message: 'socle' },
+    { contenu: sourceStock([A]), message: 'ancien stock publié' },
+    { contenu: sourceStock([A, B]), message: 'nouveau stock fautif' },
+    { contenu: sourceStock([A]), message: 'nouveau stock soldé' },
+  ])
+  try {
+    git('update-ref', 'refs/remotes/origin/main', shas[0])
+    const options = { cwd: repo, debut: SHA_NUL, vers: 'refs/heads/chantier/neuve', origineConfirmee: [shas[1]] }
+    const ancien = await croissancesDeLaPlage({ ...options, fin: shas[1] })
+    assert.equal(ancien.commits, 0)
+    assert.deepEqual(ancien.refus, [])
+    const fautif = await croissancesDeLaPlage({ ...options, fin: shas[2] })
+    assert.deepEqual(fautif.refus.map((r) => r.sha), [shas[2]])
+    const solde = await croissancesDeLaPlage({ ...options, fin: shas[3] })
+    assert.equal(solde.commits, 2)
+    assert.deepEqual(solde.refus, [], 'ancien +1 publié puis nouveau +1/-1 : le cumul nouveau est nul')
+    const ci = lectureDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: shas[2], vers: 'refs/heads/chantier/neuve' })
+    assert.ok(ci.commits.some((c) => c.sha === shas[1]), 'la CI sans option explicite garde sa plage')
+    assert.equal(ci.troncDesEres, TRONC.suivi)
+  } finally { rmSync(repo, { recursive: true, force: true }) }
+})
+
 test('C : sur un dépôt réel, la plage voit le commit du MILIEU que `git show HEAD` ne voit pas', async () => {
   const { repo, shas } = depotJetable([
     { contenu: sourceStock([]), message: 'socle' },

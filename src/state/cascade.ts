@@ -28,7 +28,7 @@ import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { resultLines, surfaceOf } from './rollSeam';
 import { WORLD_STEP_OWNER } from './netOwnership';
-import { hoteOrphelin, PENDING_BY_JET } from './stateFields';
+import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './stateFields';
 import { toRecapLines, type RecapLine } from './recapLine';
 import { actorIn } from './combatants';
 import { rollTest, evaluateTest, evaluateCombinedTest, bestForcedRoll, resolveOpposed, opposedBranchSuccess, estJete, refusSansJet, type TestResult } from '../engine/tests';
@@ -518,7 +518,8 @@ export function stepInteraction(step: CascadeStep): 'jet' | 'table' | 'de' | 'ba
 /** L'étape est-elle prête à être validée ? jet → lancée (`result`) ; table → tirée (`table.result`) ;
  *  batch → TOUS les participants INTERACTIFS ont un `result` ; quantité → un nombre est posé
  *  (`amount` — le mint en pose un d'ouverture, cf. `rollSeam.quantityStep`) ; choix → tranchée
- *  (`chosen`) ; affichage → toujours.
+ *  (`chosen`) ; affichage → toujours, sauf une étape HÔTE dont la fenêtre n'a pas rendu sa donnée
+ *  (`stateFields.hoteEnAttente`, #1765).
  *
  *  CONTRAT d'une rangée TÉMOIN (`interactive:false`) : elle NAÎT avec son `result` — c'est son
  *  PRODUCTEUR qui le roule à la construction (`pursuitFlow.pursuitRow`, `ui/opposedFrozen`). Rien ne
@@ -526,7 +527,7 @@ export function stepInteraction(step: CascadeStep): 'jet' | 'table' | 'de' | 'ba
  *  « tout résoudre »/immédiat (`resolveRemainingCascade`/`runCascadeImmediate`). Une témoin sans
  *  `result` n'en obtiendrait donc jamais — et comme elle ne freine pas ce prédicat, son jet serait
  *  simplement PERDU à la validation. */
-export function stepReady(step: CascadeStep): boolean {
+export function stepReady(step: CascadeStep, s: Partial<GameState>): boolean {
   switch (stepInteraction(step)) {
     case 'jet': return !!step.result;
     case 'table': return !!step.table!.result;
@@ -534,7 +535,7 @@ export function stepReady(step: CascadeStep): boolean {
     case 'batch': return step.participants!.every((p) => p.interactive === false || !!p.result);
     case 'quantite': return step.amount != null;
     case 'choix': return step.chosen != null;
-    case 'affichage': return true;
+    case 'affichage': return !hoteEnAttente(s, step);
   }
 }
 
@@ -1552,7 +1553,7 @@ function tirageSansSiege(get: Get, st: CascadeStep | undefined): boolean {
  *
  * DEV : la violation THROW (le producteur fautif se voit au premier passage) ; en PROD elle se
  * journalise et l'étape est FRANCHIE — une partie en cours ne se fige pas sur une fenêtre morte.
- * Prédicat PUR et TOTAL (les neuf `HostJet`) : `stateFields.hoteOrphelin`.
+ * Prédicat PUR et TOTAL (tous les `HostJet`) : `stateFields.hoteOrphelin`.
  *
  * Joué à l'ARRIVÉE du curseur seulement (ouverture, avancée, reprise, et l'append qui tire le curseur
  * hors du bilan) : le curseur POSÉ sur l'étape dont la fenêtre vient de rendre sa donnée n'est pas un
@@ -1657,7 +1658,7 @@ function avanceUnPas(get: Get, set: Set): PendingCascade | null | typeof ENCORE 
   const p = get().pendingCascade;
   if (!p) return null;
   const cur = p.participants[p.cursor];
-  if (cur && !stepReady(cur)) return null; // jet non lancé / choix non tranché → la modale force d'abord
+  if (cur && !stepReady(cur, get())) return null; // jet non lancé / choix non tranché → la modale force d'abord
   let steps = p.participants;
   let suspended = false;
   let fondu: PendingCascade = p; // la séquence ET les bornes des fragments collectés par l'applier
@@ -1767,11 +1768,12 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
     if (stepInteraction(steps[i]) === 'batch') {
       steps = steps.map((x, k) => (k === i ? { ...x, participants: rollBatchParticipants(steps[i]) } : x));
     }
-    if (stepInteraction(steps[i]) === 'choix' && steps[i].chosen == null) {
-      // « Tout résoudre » ne TRANCHE pas un CHOIX du joueur (dévier/subir, piéger…) : on s'arrête dessus.
+    if (!stepReady(steps[i], get())) {
+      // « Tout résoudre » ne TRANCHE pas un CHOIX du joueur (dévier/subir, piéger…) et ne joue pas une
+      // FENÊTRE hôte (la défense d'un maillon, #1765) : on s'arrête dessus.
       set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: i, log } });
       return null;
-    } // affichage : rien à résoudre avant la conséquence
+    }
     const r = commitStep(get, set, steps, i, { seq, purpose: p.purpose });
     steps = r.steps;
     seq = r.seq;
@@ -1885,19 +1887,19 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     if (stepInteraction(cur[i]) === 'batch') {
       cur = cur.map((x, k) => (k === i ? { ...x, participants: rollBatchParticipants(cur[i], true) } : x)); // résolue d'office → étampe de trace (#1281)
     }
-    if (stepInteraction(cur[i]) === 'choix' && cur[i].chosen == null) {
-      const choix = cur[i];
-      if (choix.defaultChoice == null) {
-        // Aucun défaut AUTEURISÉ (patron `resolveRemainingCascade` l.317-320) : on ne tranche PAS en
-        // silence — la cascade s'arrête PENDANTE, surfacée (`pendingCascade`) pour que l'appelant/la
-        // modale la reprenne (devtools `advanceRiverDay`/`skipToArrival`, cadence commandée, tout
-        // futur appelant immédiat).
-        set({ pendingCascade: parquee(i, ctx?.title ?? choix.label ?? 'Choix') });
-        return undefined;
-      }
+    const choix = cur[i];
+    if (stepInteraction(choix) === 'choix' && choix.chosen == null && choix.defaultChoice != null) {
       cur = cur.map((x, k) => (k === i ? { ...x, chosen: choix.defaultChoice! } : x));
-    } // affichage / quantité : rien à résoudre avant la conséquence — une étape de quantité naît avec
-      // son nombre d'ouverture (`quantityStep`), qu'aucun pilote n'a donc à trancher à l'aveugle.
+    }
+    // Prédicat UNIQUE de `resolveRemainingCascade` : un choix sans défaut AUTEURISÉ, une fenêtre hôte
+    // vivante (#1765). On ne tranche PAS en silence — la cascade s'arrête PENDANTE, surfacée
+    // (`pendingCascade`) pour que l'appelant/la modale la reprenne (devtools `advanceRiverDay`/
+    // `skipToArrival`, cadence commandée, tout futur appelant immédiat). Affichage / quantité : rien
+    // à résoudre avant la conséquence (`quantityStep` naît avec son nombre d'ouverture).
+    if (!stepReady(cur[i], get())) {
+      set({ pendingCascade: parquee(i, ctx?.title ?? choix.label ?? 'Choix') });
+      return undefined;
+    }
     const r = commitStep(get, set, cur, i, { seq, purpose: ctx?.purpose, unwitnessed, rowSurface: ctx?.rowSurface });
     cur = r.steps;
     seq = r.seq;

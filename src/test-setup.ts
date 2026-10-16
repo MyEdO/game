@@ -9,7 +9,10 @@
  *    EXTERNES → s'exécutent AVANT le `beforeEach` propre du fichier, qui pose ensuite son décor) :
  *    - le STORE Zustand (`useGame`) : même reset « zéro-maintenance » que `startScene` (le JSON
  *      round-trip retire les fonctions → seules les données sont remises à plat ; le merge partiel de
- *      zustand préserve les actions).
+ *      zustand préserve les actions). Remis à plat AUSSI en fin de FICHIER (`afterAll`) : le corps de
+ *      module du fichier suivant (`const NET0 = useGame.getState().net`) s'évalue HORS de tout
+ *      `beforeEach` : sans ce filet, il lit l'état du DERNIER test du fichier précédent du worker
+ *      (un `gmSeat` posé y surface les ennemis, #1765).
  *    - le REGISTRE DES RÈGLES OPTIONNELLES (`engine/policy`) : `loadRuleOverrides({})` purge toute
  *      surcharge runtime → toutes les règles reviennent à leur défaut RAW (sinon une règle maison
  *      posée par un test — `cleave`, `combat-optional-rules`… — fuit dans un test pur ultérieur).
@@ -89,7 +92,7 @@
  * l'état partagé à vierge, puis JUGENT par un seul `throw` qui joint tous les verdicts. Aucune ne
  * masque l'autre, et aucun résidu ne survit à son verdict pour accuser la victime suivante (#2286).
  */
-import { afterEach, beforeEach, expect, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, expect, vi } from 'vitest';
 import { useGame, resetSceneRegistry, scenesDuRegistre, type GameState } from './state/store';
 import { partagesDeLEtat } from './state/partage.testkit';
 import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
@@ -421,6 +424,10 @@ beforeEach(async () => {
   takeObsoleteNotice();
   await __resetLibraryForTest();
   await __resetTraceLayerForTest();
+});
+
+afterAll(() => {
+  useGame.setState(JSON.parse(PRISTINE_STATE) as Partial<GameState>);
 });
 
 beforeEach(() => {

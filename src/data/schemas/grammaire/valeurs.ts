@@ -598,6 +598,17 @@ export const paletteDEspeceSchema = z.partialRecord(z.enum(GAMMES_PORTEUR), coul
  *  cette liste, `reachIdOf` ne rendrait aucun rang et toute règle d'Allonge se tairait en silence. */
 export const reachSchema = z.enum([REACH_VARIABLE, ...Object.values(REACH_LABELS)]);
 
+/** `WeaponDamageSpec` (`src/engine/types.ts`) — Dégâts d'arme : littéral, ou Bonus de Force + valeur fixe.
+ *  Lu par les armes du catalogue (`trappings`) et les manœuvres qui portent leurs Dégâts (`maneuvers`). ZI */
+export const weaponDamageSpecSchema = z.union([
+  nommerChamps(z.strictObject({ literal: z.string() }), { literal: { label: 'Valeur littérale' } }),
+  nommerChamps(z.strictObject({ plusBF: z.boolean(), flat: z.number(), bare: z.literal(true).optional() }), {
+    plusBF: { label: 'Ajouter le Bonus de Force' },
+    flat: { label: 'Valeur fixe' },
+    bare: { label: 'Mains nues' },
+  }),
+]);
+
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
  *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
 export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });

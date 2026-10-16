@@ -98,6 +98,7 @@ function reprendrePr(pr, course, { appel, maintenant }) {
   if (vue.statut === 'anomalie') return { statut: 'anomalie', raison: vue.raison, entree: vue.entree.id }
   if (vue.statut === 'merged') return { statut: 'merged', raison: 'fusion confirmée' }
   if (vue.statut === 'enqueued') return { statut: 'enqueued', raison: `déjà en file (compte « ${vue.compte} »)`, entree: vue.entree.id }
+  if (vue.statut === 'armed') return { statut: 'armed', raison: `auto-merge armé (compte « ${vue.compte} »)` }
   return { statut: 'a-enfiler', raison: `PR verte à enfiler par le train local (compte « ${vue.compte} ») : npm run ops:publier -- --detache` }
 }
 
@@ -155,7 +156,7 @@ export async function reprendreFile({ appel, evenement = {}, lectureSeule = fals
     const resultat = course.conclusion !== 'success' ? relanceDe(pr, course, { appel, maintenant, lectureSeule })
       : reprendrePr(pr, course, { appel, maintenant })
     if (!resultat) continue
-    if (!lectureSeule && !['ignoree', 'enqueued', 'merged'].includes(resultat.statut)) signaler(pr, course, resultat, appel, veille)
+    if (!lectureSeule && !['ignoree', 'armed', 'enqueued', 'merged'].includes(resultat.statut)) signaler(pr, course, resultat, appel, veille)
     const mesure = { pr: pr.number, sha: pr.head.sha, run: course.id, attempt: course.run_attempt ?? 1, ...resultat }
     resultats.push(mesure)
   }

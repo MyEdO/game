@@ -13,7 +13,7 @@
 //      histoire, elle n'est pas jugée. `refs/heads/chantier/**` en est EXEMPTÉE : une branche de
 //      chantier n'a qu'un écrivain (régime « une session par chantier », 2026-09-01), qui en réécrit
 //      l'histoire à son gré ; le train la pousse sous un `--force-with-lease` dont le bail n'écrase
-//      que ce qu'il vient de lire (`scripts/ops/publier.mjs`, étape `push-branche`).
+//      que ce qu'il vient de lire (`scripts/ops/etapesDuTrain.mjs`, étape `push-branche`).
 //
 // Le quatrième ne porte que sur la ref distante `main` :
 //   4. tout push vers `main` est REFUSÉ : `main` n'avance que par la FILE DE FUSION du serveur
@@ -30,7 +30,7 @@
 import '../node-requis.mjs'
 import { readFileSync } from 'node:fs'
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
-import { TRONC, depotDe, estAncetre, origineDe, refusDeGit, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
+import { TRONC, depotDe, estAncetre, origineDe, refsDistantes, refusDeGit, shaDe, urlOrigineAcceptee } from '../guards/lib/gitPorte.mjs'
 import { DEPOT } from '../guards/lib/ticketsGh.mjs'
 import { croissancesDeLaPlage, raisonDeRefusDePlage } from '../guards/lib/plageStock.mjs'
 import { raisonDeRefusDeReclassement } from '../guards/lib/reclassementCss.mjs'
@@ -64,7 +64,7 @@ export function refsAPousser(stdin) {
 }
 
 /** Verdict COMPLET du hook, une promesse de `{ refus: [], notes: [] }`. Aucune sortie, aucun code — testable. */
-export async function jugerPush({ cwd, stdin }) {
+export async function jugerPush({ cwd, stdin, lireRefs = refsDistantes }) {
   // Les lectures git passent par les questions de l'hôte unique : `null` dit « l'objet n'existe pas »,
   // et une INDISPONIBILITÉ (git absent, hors dépôt) devient un refus NOMMÉ au lieu d'un `fatal:` brut.
   const pannes = []
@@ -77,10 +77,22 @@ export async function jugerPush({ cwd, stdin }) {
   else if (!urlOrigineAcceptee(origine))
     refus.push(`origin = « ${origine || '(absent)'} » : ce hook ne connaît que github.com/${DEPOT}`)
 
-  for (const { refLocale, shaLocal, refDistante, shaDistant } of refsAPousser(stdin)) {
+  const refs = refsAPousser(stdin)
+  const origineConfirmee = []
+  if (!refus.length && refs.length) {
+    const refsDistantes = lireRefs(depot)
+    if (refsDistantes === null) notes.push('références origin illisibles : aucune exclusion distante supplémentaire')
+    else for (const sha of new Set(refsDistantes.values())) {
+      const commit = /^[a-f0-9]{40,64}$/.test(sha) ? shaDe(depot, sha) : null
+      if (commit && !origineConfirmee.includes(commit)) origineConfirmee.push(commit)
+    }
+  }
+  for (const { refLocale, shaLocal, refDistante, shaDistant } of refs) {
     // Stocks nominatifs de la PLAGE poussée : par commit, filtrés par la croissance cumulée.
-    const stocks = await croissancesDeLaPlage({ cwd, debut: shaDistant, fin: shaLocal, vers: refDistante })
+    const stocks = await croissancesDeLaPlage({ cwd, debut: shaDistant, fin: shaLocal, vers: refDistante,
+      ...(origineConfirmee.length ? { origineConfirmee } : {}) })
     for (const n of stocks.notes) notes.push(n)
+    if (stocks.commits !== undefined) notes.push(`origin confirmée : ${origineConfirmee.length} commit(s) connu(s), ${stocks.commits} commit(s) nouveau(x) jugé(s)`)
     if (stocks.indisponible)
       refus.push(`${refLocale} → ${refDistante} : plage \`${stocks.plage}\` illisible : ${stocks.indisponible}`)
     if (stocks.refus.length) refus.push(raisonDeRefusDePlage(stocks.refus))

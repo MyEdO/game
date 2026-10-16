@@ -34,7 +34,8 @@ import { arbrePrincipal, baseCommune, ceQuiChange, depotDe, lireEnLot, listerIma
 import { ancetresDe, LECTURES_DES_DEPENDANCES, selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/selection-des-derives.mjs'
 import { DRAPEAU_REGIME, EMPREINTES_WORKER_MO, PORTEE_LOT_S, capaciteDuLanceur, codeEnfant, environnementDe, maxWorkersMono } from './partition.mjs'
 import { DUREES_CI, dureesValides, memoCiDe, rapatrierDureesCi } from './dureesCi.mjs'
-import { EXTS_LINT, appelDuLint, lancerLint } from '../guards/lib/lintStage.mjs'
+import { EXTENSIONS_DE_SCRIPT } from '../guards/lib/dialecte.mjs'
+import { appelDuLint, lancerLint } from '../guards/lib/lintStage.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
 import { prendreVerrou } from './verrou.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
@@ -705,8 +706,8 @@ export function balayagesNonResolus(racine, { dossierDesMemos = join(racine, CAC
   return nonResolus
 }
 
-/** Les fichiers touchés PRÉSENTS dont l'extension est lintée (`EXTS_LINT`). PURE. */
-const aLinter = (touches, post) => touches.filter((t) => post.includes(t) && EXTS_LINT.some((e) => t.endsWith(e)))
+/** Les fichiers touchés PRÉSENTS dont l'extension est lintée (`EXTENSIONS_DE_SCRIPT`). PURE. */
+const aLinter = (touches, post) => touches.filter((t) => post.includes(t) && EXTENSIONS_DE_SCRIPT.some((e) => t.endsWith(e)))
 
 /**
  * Le LINT des fichiers touchés (`aLinter`) par la couture `lancerLint` : ses défauts et son code de sortie.

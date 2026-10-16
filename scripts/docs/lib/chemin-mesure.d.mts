@@ -1,3 +1,4 @@
+export function estPipeNomme(chemin: string, chemins?: Pick<import('node:path').PlatformPath, 'sep'>): boolean;
 export function ancetreExistant(abs: string, options?: { strict?: boolean }): string | null;
 export function canoniser(chemin: string, options?: { strict?: boolean }): string;
 export function canoniseurParDossier(): (chemin: string, lien?: boolean) => string;

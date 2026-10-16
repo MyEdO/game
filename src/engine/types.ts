@@ -1,4 +1,5 @@
 /** Types partagés du moteur de règles WFRP v4. */
+import type { AttackKind } from './creatureAttacks';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
@@ -1556,7 +1557,7 @@ export interface Combatant {
   shipStation?: string;
   /** File transitoire d'attaques gratuites de créature restant à résoudre ce tour (kinds :
    *  morsure/caudale/pietinement) — pilotée par aiCreatureFreeAttacks à travers la modale de défense. */
-  pendingFreeAttacks?: string[];
+  pendingFreeAttacks?: AttackKind[];
   /** A chargé ce tour → ouvre une Attaque gratuite de Cornes (LDB 85) si la créature a le trait. */
   chargedThisTurn?: boolean;
   /** Déplacements COMPLETS (départ→arrivée) accomplis ce tour, EN ATTENTE du déclencheur d'approche

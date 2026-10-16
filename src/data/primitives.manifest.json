@@ -1,5 +1,23 @@
 [
   {
+    "id": "arbreProcessus",
+    "type": "primitives.manifest",
+    "label": "tuerArbre/descendantsDe/mesurerArbreProcessus/identitePresente/capturerDescendants/tuerCaptures",
+    "fichier": "scripts/guards/lib/arbreProcessus.mjs",
+    "concept": "descendance de processus, identité PID et création, capture des descendants vivants et arrêt après disparition du parent",
+    "perimetre": "gates locales, supervision du push et des hooks, train de publication",
+    "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
+  },
+  {
+    "id": "superviserProcessus",
+    "type": "primitives.manifest",
+    "label": "superviserProcessus/sortieDeSupervision",
+    "fichier": "scripts/guards/lib/superviserProcessus.mjs",
+    "concept": "commande asynchrone avec échéance interne, surveillance du parent et des ancêtres git, interruption et nettoyage des descendants capturés par identité",
+    "perimetre": "gitPorte.pousser, wrapper pre-push, lancement du train de publication",
+    "verrou": "scripts/guards/lib/superviserProcessus.test.mjs"
+  },
+  {
     "id": "screenShell",
     "type": "primitives.manifest",
     "label": "ScreenShell",
@@ -744,13 +762,13 @@
     "verrou": "src/ui/editor/CouvreField.test.tsx ; src/ui/editor/scene-field-editability-guard.test.ts"
   },
   {
-    "id": "freeAttackLabel",
+    "id": "freeAttackWeapon",
     "type": "primitives.manifest",
-    "label": "FREE_ATTACK_LABEL",
+    "label": "freeAttackWeapon",
     "fichier": "src/engine/combat.ts",
-    "concept": "libellé d’attaque gratuite de créature, par freeKind",
-    "perimetre": "toute attaque gratuite affichée",
-    "verrou": "—"
+    "concept": "arme et NOM d’une attaque gratuite de créature : label, Compétence et dégâts de sa manœuvre (`attaqueNaturelle`), lus par la modale d’attaque, la modale de défense et le réticule",
+    "perimetre": "toute attaque gratuite jouée ou affichée",
+    "verrou": "src/state/gratuite-nom-unique.test.ts"
   },
   {
     "id": "gameOpChips",
@@ -1374,7 +1392,7 @@
     "type": "primitives.manifest",
     "label": "gelerProfond/estUneDonneeGelee/GELER_LA_DONNEE/gelerLaConstante",
     "fichier": "src/lib/gelerProfond.ts",
-    "concept": "gel profond de la DONNÉE en développement et en test : une écriture en place dans une donnée gelée lève au site fautif ; `estUneDonneeGelee` dit si un objet a été gelé comme donnée, ce qu'une constante gelée à sa définition n'est pas ; `gelerLaConstante` gèle en profondeur, à sa définition, une constante de module que l'état tient par référence (`EMPTY_FLOW`, `RULE_REF`, `TRAMPLE_WEAPON`)",
+    "concept": "gel profond de la DONNÉE en développement et en test : une écriture en place dans une donnée gelée lève au site fautif ; `estUneDonneeGelee` dit si un objet a été gelé comme donnée, ce qu'une constante gelée à sa définition n'est pas ; `gelerLaConstante` gèle en profondeur, à sa définition, une constante de module que l'état tient par référence (`EMPTY_FLOW`, `RULE_REF`)",
     "perimetre": "clés de `memoByRef` (`state/sceneMemo.ts`), entrées des datasets-tableaux (`data/overrides.ts`), garde de partage des tests (`state/partage.testkit.ts`), constantes de module partagées avec l'état (#2097)",
     "verrou": "garde de partage après chaque test (`src/test-setup.ts`, #2097)"
   },
@@ -1717,7 +1735,7 @@
     "label": "ecrireJsonAtomique/ecrireTexteAtomique",
     "fichier": "scripts/guards/lib/ecritureJsonAtomique.mjs",
     "concept": "écriture d'un texte (ou d'une valeur JSON) en un geste : temporaire propre au processus, puis renommage sur la cible, dossier créé ; un lecteur concurrent ne lit jamais un fichier à moitié écrit",
-    "perimetre": "journal du train (`publier.mjs`), cache de la vigie (`vigie.mjs`), mesures et mémos du périmètre de tests (`perimetre.mjs`), cibles des générateurs (`ecrireDoc`), époque de l'écrivain des dérivés",
+    "perimetre": "journal du train (`publier.mjs`, `publierTrain.mjs`, `publicationIsolee.mjs`), cache de la vigie (`vigie.mjs`), mesures et mémos du périmètre de tests (`perimetre.mjs`), cibles des générateurs (`ecrireDoc`), époque de l'écrivain des dérivés",
     "verrou": "ecritureJsonAtomique.test.mjs"
   },
   {

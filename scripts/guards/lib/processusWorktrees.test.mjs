@@ -10,6 +10,16 @@ import { litteralJs } from './litteralJs.mjs'
 
 const DRIVE = 'C' + ':'
 
+test('#2626 : le mode identités garde PID, parent et création sans lire cwd ni commande', () => {
+  const complet = mesurerProcessusWorktrees({ pids: [process.pid] }).processus[0]
+  const leger = mesurerProcessusWorktrees({ pids: [process.pid], identites: true }).processus[0]
+  assert.equal(leger.pid, process.pid)
+  assert.equal(leger.ppid, process.ppid)
+  assert.equal(leger.creation, complet.creation)
+  assert.ok(!leger.cwd)
+  assert.ok(!leger.commande)
+})
+
 test('jonction réelle extérieure vers arbre : cwd et référence commandée physiques', async () => {
   const terrain = mkdtempSync(join(tmpdir(), 'processus-alias-'))
   const racine = join(terrain, 'arbre')

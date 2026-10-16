@@ -1,5 +1,5 @@
 // LA CI D'UN SHA, ATTENDUE PAR UN PROCESSUS QUI SORT (#2280, V1) — le symétrique, pour la CI d'une
-// branche, de la veille du train (`veillerLeTrain`, publier.mjs) : une session le suit par l'outil Monitor (#2603)
+// branche, de la veille du train (`veillerLeTrain`, publierTrain.mjs) : une session le suit par l'outil Monitor (#2603)
 // et lit sa sortie quand il sort, sans aucun `sleep` ni `gh run` de sa part.
 //
 // `--attendre [<sha>]` attend la course `CI` du sha (défaut : le sha POUSSÉ de la branche de son
@@ -18,7 +18,7 @@ import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { texteDeCi } from '../gates/gatesDeCi.mjs'
 import { DOSSIER, PORTE, branchesDePush } from '../gates/workflowsDuDepot.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
-import { CODE_BORNE_DEPASSEE } from './publier.mjs'
+import { CODE_BORNE_DEPASSEE } from './publicationDonnee.mjs'
 
 /** L'arbre où VIT ce script : sa branche est celle dont on attend la CI. */
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))

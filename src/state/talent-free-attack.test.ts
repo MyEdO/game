@@ -7,11 +7,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { resolveFreeAttacks } from './combatFlow';
+import { avanceEtapeCascade } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
 import type { AttackResult } from '../engine/combat';
 import { resetCadence, setCadence } from '../engine/cadence';
+import { setRule, resetRule } from '../engine/policy';
+import { applySummon } from './summonFlow';
+import { campGain } from './combat/advantagePool';
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
@@ -48,6 +52,27 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     expect(h.freeAttacksThisTurn?.['assaut-feroce']).toBe(1); // le talent a tiré son attaque supplémentaire, 1× ce Round
   });
 
+  // Mode « Avantage de groupe » (AA 11 l.11-13, l.30-38) : une invocation alliée naît projetée sur la
+  // réserve de son camp, et sa porte lit le solde que `campSpend` débite.
+  it('Assaut féroce (mode groupe) : une invocation alliée paie sur la réserve du camp', () => {
+    setRule('combat-aa-avantage-groupe', true);
+    try {
+      useGame.getState().seedRng(2);
+      const { H, E } = setup();
+      campGain(useGame.getState, H, 2);
+      applySummon(useGame.getState, useGame.setState, H, { ref: 'loup' } as never, {});
+      const loup = () => useGame.getState().battle!.combatants.find((c) => c.summon)!;
+      expect(loup().kind).toBe('hero');
+      expect(loup().advantage).toBe(2);
+      loup().talents = [...(loup().talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
+      loup().pos = { x: 11, y: 11 };
+      resolveFreeAttacks(useGame.getState, useGame.setState, loup(), 'onHit', E);
+      expect(loup().freeAttacksThisTurn?.['assaut-feroce']).toBe(1);
+    } finally {
+      resetRule('combat-aa-avantage-groupe');
+    }
+  });
+
   it('sans le talent : une touche ne déclenche AUCUNE attaque supplémentaire', () => {
     useGame.getState().seedRng(2);
     const { H, E } = setup();
@@ -62,16 +87,10 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
   // en cadence MANUELLE, ces deux jets sont CADENCE-AWARE : ils s'ouvrent en étapes de cascade influençables
   // (modale de choix puis Test d'Init), pas en silence — c'est le principe « aucun jet de héros muet ».
   function driveChoice(key: string) {
-    const pc = useGame.getState().pendingCascade!;
-    const cur = pc.participants[pc.cursor];
-    useGame.getState().cascadeChoose(cur.id, key);
-    useGame.getState().cascadeNext();
+    avanceEtapeCascade(useGame.getState, undefined, () => key);
   }
   function driveTest() {
-    const pc = useGame.getState().pendingCascade!;
-    const cur = pc.participants[pc.cursor];
-    useGame.getState().cascadeRoll(cur.id); // jet d'Initiative
-    useGame.getState().cascadeNext(); // applique la branche (success → frappe via le hook)
+    avanceEtapeCascade(useGame.getState);
   }
 
   it('Frappe réactive (onCharged) : héros MANUEL → modale de CHOIX puis Test d’Init INFLUENÇABLE ; succès → riposte', () => {

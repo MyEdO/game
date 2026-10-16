@@ -89,6 +89,7 @@ const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
   { file: 'combatFlow', fn: 'maybeOpenDefense', pred: /defenseSurfaced/ },
   { file: 'combatFlow', fn: 'surfacedDefensePending', pred: /defenseSurfaced/ },
   { file: 'combatFlow', fn: 'openSurfacedDefense', pred: /surfacedDefensePending/ },
+  { file: 'combatFlow', fn: 'resolveDualSecond', pred: /defenseSurfaced/ }, // #998 : la 2ᵉ frappe d'un défenseur surfacé passe par SA fenêtre
   { file: 'combatFlow', fn: 'resolveAttack', pred: /defenseSurfaced/ },
   { file: 'combatFlow', fn: 'autoCleave', pred: /aiDriven/ },
   { file: 'combatFlow', fn: 'maybeHeroCleave', pred: /tenuParUnHumain/ }, // #1426 : la SURFACE, pas l'affordance locale
@@ -114,11 +115,11 @@ const DEFENDER_ROLL_SITES = new Set([
   'resolveAttack',        // repli non surfacé seulement (`defenseSurfaced` → undefined / defense:'none')
   'maybeOpenDefense',     // OUVRE la fenêtre (chemin instantané : IA, gratuites, balayage)
   'openSurfacedDefense',  // OUVRE la fenêtre (chemin piloté : attackConfirm)
-  'resolveDualSecond',    // 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773) — jet de défense NEUF, non surfacé
+  'resolveDualSecond',    // repli non surfacé seulement (2ᵉ frappe, LDB 10 l.773 ; surfacé → `attackConfirm` interpose, #998)
 ]);
 /** Ouvertures de fenêtre attendues sur les chemins d'attaque INSTANTANÉS (le brief #989 : le balayage
  *  et les attaques gratuites ne roulent plus de défense en silence). */
-const DEFENSE_OPENERS = ['runCleaveChain', 'applyFreeAttack', 'applyTalentFreeAttack', 'doAttack'];
+const DEFENSE_OPENERS = ['runCleaveChain', 'applyFreeAttack', 'applyTalentFreeAttack', 'doAttack', 'runPreemptShots'];
 
 /** Nom de la fonction top-level ENGLOBANTE d'un index de caractère (déclarations `function`). */
 function enclosingFn(src: string, at: number): string {
@@ -238,7 +239,7 @@ function behavioralFloor(): void {
     E.advantage = 2; E.characteristics['capacite-de-tir'] = 85; E.characteristics.endurance = 40; E.pos = { x: 5, y: 5 };
     H.pos = { x: 5, y: 8 };
     H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive'); H.conditions = [];
-    set({ battle: { ...get().battle!, acted: true } });
+    set({ battle: { ...get().battle!, turn: get().battle!.order.indexOf(E.id), acted: true } });
     aiCreatureFreeAttacks(get, set, E);
     expect(get().pendingCascade?.participants.some((s) => s.kind === 'maneuverDefense' && s.actorId === H.id), 'défense de manœuvre doit REMONTER').toBeTruthy();
   }

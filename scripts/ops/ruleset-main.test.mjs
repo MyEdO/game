@@ -80,7 +80,7 @@ test('une matrice hors de la forme lue LÈVE : `fail-fast: false` absent, `name:
 test('le corps POSÉ lit les jobs du `ci.yml` du TRONC, jamais ceux de l’arbre', () => {
   const dit = []
   executer({ argv: ['--dry-run'], runner: () => '[]', lireCi, sortie: (s) => dit.push(s) })
-  const corps = JSON.parse(dit[0])
+  const corps = JSON.parse(dit[1])
   assert.deepEqual(corps.rules[0].parameters.required_status_checks, [{ context: 'verif' }, { context: 'migrations' }],
     'un check exigé que `main` ne produit pas encore bloquerait toute entrée dans `main`')
 })
@@ -179,7 +179,7 @@ test('hors `--dry-run`, `--depuis` sur une file VIDE (ou sans file) écrit le ru
     sortie: () => {},
   })
   assert.equal(code, 0)
-  assert.deepEqual(appels.map((a) => a[1]), ['graphql', `repos/${DEPOT}/rulesets`, '-X'])
+  assert.deepEqual(appels.map((a) => a[1]), ['graphql', `repos/${DEPOT}/rulesets`, '-X', '-X'])
 })
 
 test('un job NEUF devient un check requis sans qu’on touche au script', () => {
@@ -297,7 +297,8 @@ test('`--dry-run` n’émet AUCUN appel `gh` — ni lecture, ni écriture — et
   assert.deepEqual(appels, [], 'le mode qui n’écrit rien ne doit pas non plus interroger le dépôt')
   assert.match(dit.join(''), /rien n’a été écrit sur GitHub/)
   assert.match(dit.join(''), /"enforcement": "active"/)
-  assert.equal(JSON.parse(dit[0]).name, NOM)
+  assert.deepEqual(JSON.parse(dit[0]), { allow_auto_merge: true })
+  assert.equal(JSON.parse(dit[1]).name, NOM)
 })
 
 test('la FILE est REFUSÉE tant que le `ci.yml` du tronc ne déclenche pas sur `merge_group` — aucun appel, `--dry-run` compris', () => {
@@ -313,23 +314,31 @@ test('la FILE est REFUSÉE tant que le `ci.yml` du tronc ne déclenche pas sur `
   }
 })
 
-test('hors `--dry-run`, la mise à jour d’un ruleset EXISTANT passe par PUT sur son id — aucun réglage du dépôt', () => {
+test('hors `--dry-run`, le dépôt active auto-merge puis le ruleset EXISTANT passe par PUT sur son id', () => {
   const appels = []
+  const corps = []
   executer({
     argv: [],
-    runner: (args) => { appels.push(args); return JSON.stringify([{ name: NOM, id: 77 }]) },
+    runner: (args) => {
+      appels.push(args)
+      if (args.includes('--input')) corps.push(JSON.parse(readFileSync(args.at(-1), 'utf8')))
+      return JSON.stringify([{ name: NOM, id: 77 }])
+    },
     lireCi,
     sortie: () => {},
   })
   assert.deepEqual(appels[0], ['api', `repos/${DEPOT}/rulesets`])
-  assert.deepEqual(appels[1].slice(0, 4), ['api', '-X', 'PUT', `repos/${DEPOT}/rulesets/77`])
-  assert.equal(appels.length, 2)
+  assert.deepEqual(appels[1].slice(0, 4), ['api', '-X', 'PATCH', `repos/${DEPOT}`])
+  assert.deepEqual(corps[0], { allow_auto_merge: true })
+  assert.equal(corps[1].name, NOM)
+  assert.deepEqual(appels[2].slice(0, 4), ['api', '-X', 'PUT', `repos/${DEPOT}/rulesets/77`])
+  assert.equal(appels.length, 3)
 })
 
 test('hors `--dry-run`, un ruleset ABSENT est CRÉÉ par POST sur la collection', () => {
   const appels = []
   executer({ argv: [], runner: (args) => { appels.push(args); return '[]' }, lireCi, sortie: () => {} })
-  assert.deepEqual(appels[1].slice(0, 4), ['api', '-X', 'POST', `repos/${DEPOT}/rulesets`])
+  assert.deepEqual(appels[2].slice(0, 4), ['api', '-X', 'POST', `repos/${DEPOT}/rulesets`])
 })
 
 test('un échec `gh` rend exit 1 en portant son corps — jamais avalé, jamais une stack Node', () => {

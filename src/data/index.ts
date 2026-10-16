@@ -22,7 +22,7 @@ import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
 import { tableTotale } from '../lib/tableTotale';
 import { effectiveEntry } from '../engine/variants';
-import { CATEGORY_BY_SOURCE_KIND, type EffectSource } from '../engine/types';
+import { CATEGORY_BY_SOURCE_KIND, CHAR_LABELS, type EffectSource } from '../engine/types';
 import type { PairedSense } from '../engine/ops';
 import characteristicsJson from './characteristics.json';
 import speciesJson from './species.json';
@@ -1687,6 +1687,13 @@ export interface ManeuverDef {
   blast?: ManeuverMeasure;
   /** Attaque magique (Souffle, Étreinte glaciale) → soumise à la Résistance à la Magie, etc. */
   magic?: boolean;
+  /** Écart de Taille minimal sur la cible au contact : la manœuvre est ouverte à TOUT combattant, sans
+   *  trait (`attaquesNaturelles`). LDB 85 l.387 ; LDB 85 l.344 */
+  ecartDeTailleMin?: number;
+  /** Groupe d'armes (id de `weaponGroups`) de l'arme synthétisée par `freeAttackWeapon`. */
+  subType?: RefDesignee;
+  /** Dégâts de l'arme synthétisée ; absent = l'Indice du trait qui octroie la manœuvre. */
+  damage?: import('../engine/types').WeaponDamageSpec;
   /** Effets AUTHORÉS (Dégâts `wounds` + États) appliqués quand la manœuvre touche (`onHit`) — MÊME
    *  vocabulaire que les sorts (Flow d'ops), exécutés par `applyTriggeredEffects`. */
   effects?: import('../state/flow').TriggeredEffect[];
@@ -1745,12 +1752,8 @@ export interface TraitCapabilities {
   counterRequiresFastParry?: boolean;
   unstable?: boolean;
   painless?: boolean;
-  /** Se cabrer (LDB 85 l.314) : « Pour une Action de Mouvement, la créature peut effectuer une Attaque
-   *  de Piétinement si elle est plus grande que son adversaire » — SANS le coût d'1 Avantage de l'Action
-   *  gratuite générique (LDB 85 l.387, déjà câblée pour toute créature plus grande). Lu par le coût de
-   *  l'attaque gratuite `pietinement` (`aiCreatureFreeAttacks`) : la condition de Taille reste celle du
-   *  Piétinement générique (`trampleTarget`), inchangée. */
-  freeTrample?: boolean;
+  /** Manœuvre payable par l'Action de Mouvement, lue par `freeAttackCost`. LDB 85 l.314 */
+  freeTrample?: RefDesignee;
   // Psychologie / IA
   psychImmuneIfAhead?: boolean;
   /** Psychologie portée par le trait (LDB 21), lue par `parsePsychTraits` (data-driven). L'Indice
@@ -3567,6 +3570,19 @@ export function qualityRefLabel(q: QualityRef): PlayerText {
 /** Libellé d'affichage d'une `SkillInstance` (id+spec → « Langue (Magick) »). Repli sur l'id. */
 export function skillInstanceLabel(s: { id: string; spec?: string }): PlayerText {
   return refLabel('skills', { id: s.id, spec: s.spec });
+}
+/** La Spé d'une référence vit DANS la référence : `spec` sœur n'existe que sur la branche id. */
+type TestDeclare =
+  | { skill?: string; spec?: string; char?: CharKey }
+  | { skill?: RefASpecialisation; spec?: never; char?: CharKey };
+/** Libellé du Test DÉCLARÉ par ses ids — Compétence (Spé) ou Caractéristique : « Corps à corps (Bagarre) »
+ *  (LDB 14 l.155), « Langue (Magick) » (LDB 46 l.24). La Compétence se donne en id (+ `spec`) ou en
+ *  référence (`refLabel`, emplacement `choix` compris). `undefined` sans l'une ni l'autre : le repli est au site. */
+export function testSkillLabel(test: { skill: string; spec?: string } | { skill: RefASpecialisation; spec?: never } | { char: CharKey }): PlayerText;
+export function testSkillLabel(test: TestDeclare): PlayerText | undefined;
+export function testSkillLabel(test: TestDeclare): PlayerText | undefined {
+  if (test.skill) return typeof test.skill === 'string' ? skillInstanceLabel({ id: test.skill, spec: test.spec }) : refLabel('skills', test.skill);
+  return test.char ? dataLabel(CHAR_LABELS[test.char]) : undefined;
 }
 /** Libellé d'affichage d'une `TalentInstance` (id+spec → « Magie des Arcanes (Bête) »). Repli sur l'id. */
 export function talentConcrete(t: { talentId: string; spec?: string }): PlayerText {

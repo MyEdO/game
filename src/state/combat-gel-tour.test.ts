@@ -10,7 +10,7 @@ import type { CascadeStep } from './pendings';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
-import { cascadeDeTest } from './cascadeTestKit';
+import { avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
 import { fixtureText } from '../i18n/fixtureText';
 
 /**
@@ -191,13 +191,8 @@ function jouerJusquAuBout(borne = 40): { armes: string[]; reperes: string[]; dou
       continue;
     }
     if (pc) {
-      // Étape à CHOIX (Subir / Dévier un Critique, LDB 14) : le joueur tranche avant de continuer.
-      if (cur?.options?.length && !cur.chosen) g().cascadeChoose(cur.id, cur.options[0].key);
-      // « Lancer » de l'étape : jet propre (Test déclenché), table (Blessure critique) ou dé d'affichage.
-      if (cur?.target != null && !cur.result) g().cascadeRoll(cur.id);
-      if (cur?.table && !cur.table.result) g().cascadeTableRoll(cur.id);
-      if (cur?.de && !cur.de.result) g().cascadeDieRoll(cur.id);
-      g().cascadeNext();
+      // « Lancer » (jet, table, dé) puis CHOIX (Subir / Dévier un Critique, LDB 14) : la 1ʳᵉ voie.
+      avanceEtapeCascade(g, undefined, (st) => st.options![0].key);
       continue;
     }
     break;
@@ -291,6 +286,23 @@ describe('#1852 — la PORTE : aucune défense ne s’ouvre par-dessus une défe
     expect(g().battle!.turn, 'le tour a AVANCÉ').not.toBe(0);
   });
 
+  it('riposte `onCharged` fermée AVANT l’échéance du télégraphe : le chargeur porte UN seul Test d’attaque (#1765)', () => {
+    setCadence('auto');
+    const { hero } = setupRiposte();
+    maybeRunEnemyTurn(g, useGame.setState);
+    for (let i = 0; i < 6 && !g().pendingDefense; i++) vi.advanceTimersToNextTimer();
+    expect(g().pendingDefense?.defenderId).toBe(hero.id);
+    const avant = g().battle!.log.length;
+    g().defenseRoll();
+    g().defenseConfirm();
+    jouerJusquAuBout();
+    vi.runAllTimers();
+    jouerJusquAuBout();
+    vi.runAllTimers();
+    const frappes = g().battle!.log.slice(avant).filter((l) => /^h (touche|rate)/.test(String(l.text)));
+    expect(frappes.length, 'le télégraphe échu après la fermeture ne frappe pas une 2ᵉ fois').toBe(1);
+  });
+
   it('aucun état INTERMÉDIAIRE ne pose le curseur sur une étape sans sa donnée (#1852 cond. 3)', () => {
     const { enemy, hero } = setup();
     maybeOpenDefense(g, useGame.setState, enemy, hero, sword);
@@ -323,7 +335,7 @@ describe('#1852 — la file des gratuites S’ARRÊTE à la première fenêtre o
 });
 
 describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s’y pose jamais', () => {
-  const JETS: HostJet[] = ['attack', 'trample', 'defense', 'fumble', 'cast', 'test', 'extended', 'disengage', 'forceDoor'];
+  const JETS: HostJet[] = ['attack', 'defense', 'fumble', 'cast', 'test', 'extended', 'disengage', 'forceDoor'];
 
   // Le prédicat dit « cette étape a de quoi rendre un corps » : il doit couvrir TOUTES les causes de
   // `null` du hook de props du jet (`useXJetProps`), slot ET acteurs, sinon le renderer inconditionnel
@@ -331,7 +343,6 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   const battleDe = (...ids: string[]) => ({ combatants: ids.map((id) => ({ id })) } as never);
   const ETAT_COMPLET: Record<HostJet, Record<string, unknown>> = {
     attack: { battle: battleDe('a', 'h'), pendingAttack: { attackerId: 'a', targetId: 'h' } },
-    trample: { battle: battleDe('a', 'h'), pendingTrample: { attackerId: 'a', targetId: 'h' } },
     defense: { battle: battleDe('a', 'h'), pendingDefense: { attackerId: 'a', defenderId: 'h' } },
     fumble: { battle: battleDe('h') }, // sans slot : la donnée est `step.fumble`
     cast: { pendingCast: {} },
@@ -353,9 +364,9 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   });
 
   it('2ᵉ cause de `null` du hook : l’ACTEUR a quitté le `battle` ⇒ orphelin', () => {
-    // useDefenseJetProps:48 / useAttackJetProps:68 / useTrampleJetProps:34 / useFumbleJetProps:25 /
+    // useDefenseJetProps:48 / useAttackJetProps:68 / useFumbleJetProps:25 /
     // useExtendedTestJetProps:34 — `if (!attacker || !target) return null`.
-    for (const jet of ['attack', 'trample', 'defense', 'fumble', 'extended'] as HostJet[]) {
+    for (const jet of ['attack', 'defense', 'fumble', 'extended'] as HostJet[]) {
       expect(hoteOrphelin({ ...ETAT_COMPLET[jet], battle: battleDe('personne') } as never, etape(jet)), `${jet} sans acteur`).toBe(true);
       expect(hoteOrphelin({ ...ETAT_COMPLET[jet], battle: null } as never, etape(jet)), `${jet} hors combat`).toBe(true);
     }

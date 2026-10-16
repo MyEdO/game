@@ -56,6 +56,12 @@ describe('humanize — registre JOUEUR', () => {
     expect(firstKebab(phrase)).toBeUndefined();
   });
 
+  it('nœud `test` : la préposition s’élide devant une voyelle, jamais « Jet de Endurance »', () => {
+    const rien: Flow = { kind: 'seq', steps: [] };
+    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'endurance' }, success: rien, fail: rien })).toMatch(/^Jet d’Endurance : /);
+    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'force', opposed: { attacker: 'force' } }, success: rien, fail: rien })).toMatch(/^Jet opposé de Force : /);
+  });
+
   it('op `fall` : la CHUTE dit sa table, jamais son id de table (#1657, MDG 13 l.678)', () => {
     const chute = humanizeOp({ op: 'fall', hauteur: { table: { id: 'tomberDuGreement' } } });
     // La HAUTEUR est dite, colonne par colonne, DÉRIVÉE de la table (MDG 13 l.684-688) — une chip qui

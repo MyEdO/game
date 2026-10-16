@@ -33,6 +33,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import './combat/triggeredTest';
+import { OPS_DIFFEREES } from './combatEffects';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;
@@ -197,7 +198,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
 
     const suspendu = applyAttackResult(g, useGame.setState, E[0], cible, hache, critHit('corps'));
 
-    expect(suspendu, 'la résolution est suspendue sur le choix').toBe(true);
+    expect(suspendu, 'la résolution est suspendue sur le choix').toBe(OPS_DIFFEREES);
     expect(parKind('deviation')).toBeTruthy();
   });
 
@@ -210,7 +211,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
 
     const suspendu = applyAttackResult(g, useGame.setState, E[0], cible, hache, critHit('corps'));
 
-    expect(suspendu, 'la résolution est suspendue sur SON choix').toBe(true);
+    expect(suspendu, 'la résolution est suspendue sur SON choix').toBe(OPS_DIFFEREES);
     const dev = parKind('deviation');
     expect(dev, 'l’offre de Déviation existe pour la victime d’un autre siège').toBeTruthy();
     expect(dev!.actorId).toBe(cible.id);
@@ -269,7 +270,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
 
       const suspendu = applyAttackResult(g, useGame.setState, E[0], cible, hache, critHit('corps'));
 
-      expect(suspendu, 'suspendu sur le choix, même en auto').toBe(true);
+      expect(suspendu, 'suspendu sur le choix, même en auto').toBe(OPS_DIFFEREES);
       const dev = parKind('deviation');
       expect(dev, 'l’étape de Déviation EXISTE en cadence auto').toBeTruthy();
       expect(dev!.defaultChoice, 'c’est elle que la cadence retiendra').toBe('devier');

@@ -16,6 +16,7 @@ import { refusNePeutTenter } from '../engine/skills';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { refLabel, skills, specPoolOf } from '../data';
 import { avecActivite } from './activiteMer.testkit';
+import { avanceEtapeCascade } from './cascadeTestKit';
 import type { Combatant } from '../engine/types';
 import type { BatchParticipant } from './pendings';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -52,10 +53,8 @@ function rangeeAuDepart(posting: Parameters<ReturnType<typeof useGame.getState>[
   // La Météo d'Étape ouvre la cascade du jour ; la bande des postes la suit.
   for (let garde = 0; !bande() && garde < 10; garde++) {
     const p = useGame.getState().pendingCascade;
-    const cur = p?.participants[p.cursor];
-    if (!cur) break;
-    if (cur.table && !cur.table.result) useGame.getState().cascadeTableRoll(cur.id);
-    else useGame.getState().cascadeNext();
+    if (!p?.participants[p.cursor]) break;
+    avanceEtapeCascade(useGame.getState);
   }
   return bande()?.participants?.find((p) => p.id === 'h');
 }

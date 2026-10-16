@@ -27,9 +27,8 @@ import { combatTestPenalty } from '../../engine/conditions';
 import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skills';
 import { type OpsCtx, nomDeSource } from '../../engine/ops';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
-import { CHAR_LABELS } from '../../engine/types';
 import type { CharKey, Combatant, Difficulty, EffectSource } from '../../engine/types';
-import { refLabel, derivedStake } from '../../data';
+import { derivedStake, testSkillLabel } from '../../data';
 import { type Flow, type FlowTest, type ConditionCtx, evalCondition, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, resolveTestDifficulty, EMPTY_FLOW } from '../flow';
 import { condCtx } from '../bourseFlow';
 import { buildActorView, combatConditionCtx, flowTestGated } from './flowEval';
@@ -101,7 +100,7 @@ export interface ExecCtx {
 type FreeAttackHook = (
   get: Get, set: SetFn, actor: Combatant, op: Extract<import('../../engine/ops').GameOp, { op: 'grantFreeAttack' }>,
   fa: FreeAttackFreeze,
-) => boolean;
+) => Applique;
 let freeAttackHook: FreeAttackHook | undefined;
 export function setFreeAttackHook(fn: FreeAttackHook): void { freeAttackHook = fn; }
 
@@ -224,7 +223,7 @@ export function withDerivedStake(ft: FlowTest, source: EffectSource | undefined)
 export function simpleTriggeredTestStep(
   c: Combatant, ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow, difficulty: Difficulty, extraMeta: Record<string, unknown> = {},
 ): BuiltCascadeStep | undefined {
-  const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
   return monoStep({
     id: triggeredTestStepId(c, ft.label, skillLabel),
     kind: 'triggeredTest', icon: 'nav/dice', rollLabel: skillLabel,
@@ -299,7 +298,7 @@ export function frozenOpposedBatchStep(
   if (!opp) throw new Error('frozenOpposedBatchStep : le FlowTest doit déclarer son opposition (`opposed`).');
   // Test tagué `menace` : la rangée batch porte le tag ELLE-MÊME (comme l'étape mono), donc le verbe
   // `resist` (Résistance (Menace), LDB 10 l.1016-1020) s'y joue PAR RANGÉE — `FLOWS.cascadeBatch.caps`.
-  const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
   const participants: BatchParticipant[] = [];
   for (const c of defenders) {
     if (flowTestGated(ft, c, combatConditionCtx(c, { caster: attacker }))) continue;
@@ -341,7 +340,7 @@ export function simpleBatchTestStep(
   testers: Combatant[], ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow,
   difficulty: Difficulty, id: string, hullId?: string,
 ): BuiltCascadeStep | undefined {
-  const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
   const participants: BatchParticipant[] = [];
   for (const c of testers) {
     if (flowTestGated(ft, c, combatConditionCtx(c, { caster: c }))) continue;
@@ -561,7 +560,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   //  · Test OPPOSÉ → `base` = `testValue` (porte déjà la pénalité d'État) + aucune pénalité ajoutée (penalty 0).
   const base = opp ? testValue(c, ft.skill?.id, ft.characteristic, ft.skill?.spec) : rawCombatTestBase(c, ft.skill?.id, ft.characteristic, ft.skill?.spec);
   const difficulty: Difficulty = resolveTestDifficulty(ft, cc); // dynamique (Brisé : caché/proche/loin), sinon ft.difficulty
-  const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
   const label = dataLabel(ft.label, skillLabel);
   // Test SIMPLE : `combatTestPenalty` (sur le `base` BRUT → −10 d'État compté une fois). Test OPPOSÉ : 0
   // (l'op `opposedTest` jetait `testValue` brut des deux côtés ; `testValue` porte déjà la pénalité d'État).

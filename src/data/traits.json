@@ -1695,7 +1695,9 @@
       "page": 341
     },
     "capabilities": {
-      "freeTrample": true
+      "freeTrample": {
+        "id": "pietinement"
+      }
     }
   },
   {
@@ -1754,8 +1756,14 @@
     "desc": "Ce Trait représente les créatures dont la taille diffère du standard du jeu (c'est-à-dire environ la taille humaine). Il y a sept catégories de Taille, allant de Minuscule à Monstrueuse.\n\n| Taille | Exemples |\n| --- | --- |\n| Minuscule | Papillon, souris, pigeon |\n| Très petite | Chat, faucon, bébé humain |\n| Petite | Rat géant, halfling, enfant humain |\n| Moyenne | Nain, elfe, humain |\n| Grande | Cheval, ogre, troll |\n| Énorme | Griffon, vouivre, manticore |\n| Monstrueuse | Dragon, géant, Prince démon |\n\n**Modificateurs de Taille en Combat**\n\nSi la créature est plus grande :\n\n-   Ses armes gagnent l'Atout Dévastatrice si la créature est d'une catégorie de Taille supérieure, et Percutante si elle est plus grande d'au moins deux catégories de Taille.\n-   Vous multipliez les Dégâts infligés par le nombre de catégories de Taille supérieures (ainsi, 2 catégories = x2, 3 catégories = x3, et ainsi de suite) : cette multiplication est calculée après l'application des modificateurs.\n-   Toutes les frappes réussies activent la règle optionnelle Frappe Mortelle (voir page 160), même si la cible survit.\n\nSi la créature est plus petite :\n\n-   Elle gagne un bonus de +10 pour toucher.\n\n**Défense contre les grosses créatures**\n\nVous subissez une pénalité de DR -2 pour chaque catégorie de Taille supérieure de votre adversaire, quand vous utilisez la CC pour vous défendre lors d'un Test opposé. Il est conseillé d'esquiver un Géant balançant un arbre plutôt que de le parer.\n\n**Mouvement en Combat**\n\nUne créature plus grande ignore la nécessité de se Désengager pour quitter le combat au Corps à corps. À la place, vous dégagez les combattants de taille inférieure du chemin, vous déplaçant où vous voulez.\n\n**Force opposée**\n\nPendant les Tests opposés de Force (et similaires), si l'une des créatures est supérieure d'au moins deux Tailles, elle gagne automatiquement. Si l'une des créatures est d'une Taille supérieure, la plus petite doit obtenir un Critique sur son jet pour pouvoir s'opposer. Si c'est le cas, le DR est comparé comme d'habitude. Tout autre résultat indique que la plus grande créature l'a emporté.\n\n**Peur et Terreur**\n\nSi la créature est considérée comme agressive, elle provoquera la Peur chez toute créature plus petite qu'elle, et de la Terreur à toute créature plus petite qu'elle d'au moins deux catégories. Le niveau de Peur ou de Terreur égale la différence de catégories de Taille. Ainsi, si elle est de catégorie Grande et son adversaire de catégorie Petite, elle lui cause Terreur 2. Voir page 191.\n\n**Piétinement**\n\nLes créatures plus grandes que leurs adversaires peuvent effectuer une Attaque de Piétinement comme Action gratuite au prix de 1 Avantage lorsqu'elles frappent vers le bas ou un adversaire plus petit. Cette Attaque inflige un nombre de Dégâts égal à votre Bonus de Force +0, et utilise la Compétence Corps à corps (Bagarre).\n\n**Blessures**\n\nLes créatures plus grandes encaissent plus de Blessures.\n\n| Taille | Blessures |\n| --- | --- |\n| Minuscule | 1 |\n| Très petite | Bonus d'Endurance |\n| Petite | (2 x Bonus d'Endurance) + Bonus de Force Mentale |\n| Moyenne | Bonus de Force + (2 x Bonus d'Endurance) + Bonus de Force Mentale |\n| Grande | (Bonus de Force + (2 x Bonus d'Endurance) + Bonus de Force Mentale) x 2 |\n| Énorme | (Bonus de Force + (2 x Bonus d'Endurance) + Bonus de Force Mentale) x 4 |\n| Monstrueuse | (Bonus de Force + (2 x Bonus d'Endurance) + Bonus de Force Mentale) x 8 |",
     "source": {
       "book": "livre-de-base",
-      "page": 342
-    }
+      "page": 342,
+      "note": "LDB 85 l.342"
+    },
+    "grantsManeuvers": [
+      {
+        "id": "pietinement"
+      }
+    ]
   },
   {
     "id": "tentacules",

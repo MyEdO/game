@@ -13,7 +13,7 @@ import {
 import { depotDe } from '../guards/lib/gitPorte.mjs'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
-import { CODE_BORNE_DEPASSEE } from './publier.mjs'
+import { CODE_BORNE_DEPASSEE } from './publicationDonnee.mjs'
 import { PERIODE_SONDE_MS } from './etapesDuTrain.mjs'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 

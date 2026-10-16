@@ -35,7 +35,7 @@
 import type { Get, Set } from './flowTypes';
 import type { GameState } from './store';
 import type { Combatant, CharKey, Difficulty, Weapon } from '../engine/types';
-import { DIFFICULTY_MODIFIERS, CHAR_LABELS } from '../engine/types';
+import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import type { PairedSense, GameOp } from '../engine/ops';
 import type {
   CascadeStep, CascadeStepMeta, BatchParticipant, CascadeAggregate, CascadeSecondRead, PendingCascade, CascadeTableDecl, CascadeTableResult, RevealEntry,
@@ -57,7 +57,7 @@ import { testStatePenaltyParts, testStatePenalty } from '../engine/conditions';
 import { tenuParUnHumain, porteurParId, seatOwns, conduitParLeSiegeDuMonde, WORLD_STEP_OWNER } from './netOwnership';
 import { cadenceAuto } from '../engine/cadence';
 import { resoluSousOrdres } from './voyageCadence';
-import { byId, conditionLabel, dataLabel, type StakeRef } from '../data';
+import { conditionLabel, dataLabel, testSkillLabel, type StakeRef } from '../data';
 import { t, type OutKey, type OutVars } from '../i18n';
 import { rollTest, clampTarget, ligneSansJet, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { defaultRNG, type RNG, type DiceSpec } from '../engine/dice';
@@ -86,7 +86,7 @@ export interface RollRequest {
   actionLabel: string;
   /** Le TEST déclaré — SEULE source des ids compétence/carac (réf structurée, passe telle quelle à
    *  `testValue`). AUCUN champ de texte ici : le libellé de compétence affiché est TOUJOURS DÉRIVÉ de
-   *  `skill`/`char` par `testSkillLabel` (catalogue `byId('skill', …)`/`CHAR_LABELS`) — insurchargeable,
+   *  `skill`/`spec`/`char` par `testSkillLabel` (`data`) — insurchargeable,
    *  un call-site ne peut plus injecter de texte en position de compétence. */
   /** `noSupport` : Test de résistance (maladie/poison/peur/danger…) — coupe le Soutien du côté
    *  `partyBest` (LDB 12 l.197), pour éviter qu'un futur appelant câble un Soutien interdit. */
@@ -119,14 +119,6 @@ export function effectiveTargetClamped(actor: Combatant | undefined, test: RollR
 /** Cible EFFECTIVE seule — pour les sites dont la base ne peut pas franchir les bornes. */
 export function effectiveTarget(actor: Combatant | undefined, test: RollRequest['test'], difficulty: Difficulty, baseOverride?: number): number {
   return effectiveTargetClamped(actor, test, difficulty, baseOverride).target;
-}
-
-/** Libellé de COMPÉTENCE/carac d'un Test DÉCLARÉ — DÉRIVÉ des ids `skill`/`char` (catalogue
- *  `byId('skill', …)`/`CHAR_LABELS`) uniquement, jamais d'un texte libre : `RollRequest['test']` ne porte
- *  aucun champ texte (fix de classe #352), donc AUCUN call-site ne peut se substituer à cette
- *  dérivation. `undefined` si le Test ne porte ni compétence ni caractéristique. */
-export function testSkillLabel(test: RollRequest['test']): string | undefined {
-  return test.skill ? (byId('skill', test.skill)?.label ?? test.skill) : test.char ? CHAR_LABELS[test.char] : undefined;
 }
 
 /**

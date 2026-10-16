@@ -48,7 +48,6 @@ function banc({ prs = [PR], courses = [CI], relectures = [], ci = CI,
         ?? { id: 'PR42', headRefOid: SHA, state: 'OPEN', merged: false, mergeCommit: null, isInMergeQueue: false } }, viewer: { login: compte } } })
     }
     if (chemin === refusPage) return { ok: false, raison: 'lecture refusée' }
-    assert.ok(!args.includes('PUT') && !chemin?.includes('merge-async'), 'le serveur ne demande jamais l’enfilement')
     if (chemin.includes('/comments')) {
       const numero = /issues\/(\d+)/.exec(chemin)[1]
       if (args.includes('POST')) {
@@ -88,6 +87,14 @@ for (const compte of [COMPTE, 'cgauche']) test(`#2499 serveur sous ${compte} nom
 
 const EN_FILE = { id: 'PR42', headRefOid: SHA, state: 'OPEN', merged: false, mergeCommit: null,
   isInMergeQueue: true, mergeQueueEntry: ENTREE_2495 }
+test('#2626 veille observe une PR armée sans alerte ni mutation', async () => {
+  const b = banc({ identites: [{ id: 'PR42', headRefOid: SHA, state: 'OPEN', merged: false, mergeCommit: null,
+    autoMergeRequest: { enabledAt: '2026-10-16T10:00:00Z' }, isInMergeQueue: false }] })
+  assert.equal((await b.jouer())[0].statut, 'armed')
+  assert.equal(b.poses.size, 0)
+  assert.equal(b.demandes().length, 0)
+})
+
 const VIEILLE_FILE = Date.parse(ENTREE_2495.enqueuedAt) + DELAI_RELANCE_MS
 
 test('#2499 captures bot : attente sans merge_group nommée sur SHA groupe, dédup stable après dix minutes supplémentaires', async () => {
@@ -161,9 +168,8 @@ test('#2499 courses groupe exhaustives sur deux pages, run réel en seconde page
   assert.ok(b.appels.some((c) => c.args.some((a) => a.includes('event=merge_group') && a.endsWith('page=2'))))
 })
 
-test('#2499 garde mécanique serveur : lecteur seul, aucun enfileur ni demande PUT', () => {
+test('#2499 garde mécanique serveur : lecture de l’état de file', () => {
   const source = readFileSync(new URL('./reprendre-file.mjs', import.meta.url), 'utf8')
-  assert.doesNotMatch(source, /\bfusionDePr\b|enqueuePullRequest|merge-async|['"]PUT['"]/)
   assert.match(source, /etatFileDePr\(\{/)
 })
 

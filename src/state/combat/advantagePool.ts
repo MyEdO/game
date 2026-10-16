@@ -58,13 +58,37 @@ export function campGain(get: Get, c: Combatant, n = 1): void {
  */
 export function campSpend(get: Get, c: Combatant, n: number): void {
   if (n <= 0) return;
+  const solde = avantageApresDepense(get, c, n);
   const battle = get().battle;
   if (!groupAdvantage() || !battle) {
-    c.advantage = Math.max(0, c.advantage - n);
+    c.advantage = solde;
     return;
   }
   const pools = poolsOf(battle);
-  addToPool(pools, advantageCampOf(c), -n);
+  pools[advantageCampOf(c)] = solde;
+  mirrorPools(pools, battle.combatants);
+}
+
+/** Avantage que `c` lira APRÈS `campSpend(get, c, n)` — le solde que le débit pose, SOURCE UNIQUE du
+ *  débit et de l'aperçu d'un geste qui le paie (le jet se tire sur l'Avantage restant). */
+export function avantageApresDepense(get: Get, c: Combatant, n: number): number {
+  return Math.max(0, spendableAdvantage(get, c) - Math.max(0, n));
+}
+
+/**
+ * RESTITUTION d'Avantage dépensé pour un geste ANNULÉ avant d'être joué — l'inverse exact de
+ * `campSpend` (même réserve, même projection). Ce n'est pas un GAIN : ni Distraire ni le plafond de
+ * gain ne s'y appliquent, l'Avantage rendu sortait déjà de cette réserve.
+ */
+export function campRestitue(get: Get, c: Combatant, n: number): void {
+  if (n <= 0) return;
+  const battle = get().battle;
+  if (!groupAdvantage() || !battle) {
+    c.advantage += n;
+    return;
+  }
+  const pools = poolsOf(battle);
+  addToPool(pools, advantageCampOf(c), n);
   mirrorPools(pools, battle.combatants);
 }
 

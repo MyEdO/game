@@ -27,10 +27,9 @@ const optionsDuNoeud = (noeud: unknown): [string, string][] => Object.entries(va
 
 const ALWAYS: Condition = { kind: 'always' };
 
-/** Kinds d'attaque (cf. `creatureAttackKind`) — libellés du sélecteur de la Condition `attackKind` :
- *  les `AttackKind` catalogués (nœud `attackKindSchema`, `defs/maneuvers.ts`) + `pietinement` (Piétinement =
- *  manœuvre de Taille, hors type `AttackKind` mais valeur runtime de `creatureAttackKind`). */
-const ATTACK_KIND_LABELS: Record<string, string> = { ...(valeursDe(attackKindSchema) ?? {}), pietinement: 'Piétinement' };
+/** Kinds d'attaque (cf. `creatureAttackKind`) — libellés du sélecteur de la Condition `attackKind` : les
+ *  `AttackKind` catalogués (nœud `attackKindSchema`, `defs/maneuvers.ts`). */
+const ATTACK_KIND_LABELS: Record<string, string> = valeursDe(attackKindSchema) ?? {};
 
 const COMPARE_OPS: CompareOp[] = ['>=', '<=', '==', '<', '>'];
 /** Libellé du SUJET/valeur d'une comparaison : donnée fixe, valeur d'un État nommé, ou Caractéristique. */

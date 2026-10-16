@@ -47,9 +47,10 @@ const dart: Weapon = { name: 'Fléchette', label: 'Fléchette', type: 'ranged', 
 
 /** Duel MJ : l'ENNEMI est conduit à la main (siège MJ → attaque PILOTÉE, modale d'attaque) et le
  *  héros défenseur est SURFACÉ (`defenseSurfaced`) — quadrant exact du défaut. */
-function duel(opts?: { gmSeat?: number; heroAi?: boolean; surpris?: boolean; atkWeapons?: Weapon[] }) {
+function duel(opts?: { gmSeat?: number; heroAi?: boolean; surpris?: boolean; atkWeapons?: Weapon[]; atkTraits?: Combatant['traits'] }) {
   const enemy = mk('Rôdeur', 'enemy', { x: 1, y: 0 }, opts?.atkWeapons ?? [sword]);
   const hero = mk('Grunni', 'hero', { x: 0, y: 0 }, [sword]);
+  if (opts?.atkTraits) enemy.traits = opts.atkTraits;
   if (opts?.heroAi) hero.aiControlled = true;
   if (opts?.surpris) addCondition(hero, COND.surpris);
   const battle: BattleState = {
@@ -148,6 +149,20 @@ describe('#1004 modale d’attaque — attente neutre au lieu du verdict', () =>
     act(() => { root.render(<AttackModal />); });
     expect(host.textContent).toContain(pa.result!.log);
     expect(host.textContent).not.toContain('En attente de la Défense');
+  });
+
+  it('l’action dit ce qu’elle fait (#1765) : sous attente, « Passer à la Défense » ; verdict final, « Appliquer »', () => {
+    const boutons = () => [...host.querySelectorAll('button')].map((b) => b.textContent?.trim());
+    playAttack(HIT_SEED);
+    act(() => { root.render(<AttackModal />); });
+    expect(boutons()).toContain('Passer à la Défense');
+    expect(boutons(), 'le clic n’applique rien : il passe la main à la Défense').not.toContain('Appliquer');
+    act(() => root.unmount());
+    root = createRoot(host);
+    playAttack(HIT_SEED, { heroAi: true });
+    act(() => { root.render(<AttackModal />); });
+    expect(boutons()).toContain('Appliquer');
+    expect(boutons()).not.toContain('Passer à la Défense');
   });
 
   it('SOURCE UNIQUE — cas DIVERGENT : défenseur surfacé mais SURPRIS (il ne se défendra pas) → verdict immédiat', () => {
@@ -258,34 +273,23 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
 });
 
 /**
- * T1 — ATTENTE SANS FENÊTRE. `attackConfirm` traite le Tir rapide en INTERRUPTION (LDB 10) dans une
- * branche qui APPLIQUE le tir sans passer par la couture de Défense (#997) : annoncer une attente y
- * serait un mensonge d'écran. Le prédicat porte donc l'exclusion, et le TÉMOIN (même fixture, sans
- * `interrupt`) prouve que la fenêtre s'ouvre pour de vrai autrement — sans lui, un `false` constant
- * passerait le test.
+ * T1 — LE TIR RAPIDE EN INTERRUPTION ATTEND SA DÉFENSE COMME TOUT TIR (#997, LDB 11 l.97-103) : `attackConfirm`
+ * interpose la fenêtre du défenseur surfacé avant d'appliquer le tir. L'attente annoncée et la fenêtre
+ * réellement ouverte se lisent sur la MÊME fixture, interruption ou non.
  */
-describe('#1004 T1 — Tir rapide en interruption : verdict immédiat, aucune fenêtre', () => {
+describe('#1004 T1 / #997 — Tir rapide en interruption : l’attente annoncée est la fenêtre ouverte', () => {
   const RANGED = { atkWeapons: [bow] };
 
-  it('TÉMOIN (tir NORMAL, Bout Portant) : attente affichée ET fenêtre de Défense réellement ouverte', () => {
-    const { enemy, hero, pa } = playAttack(3, { ...RANGED });
-    expect(surfacedDefensePending(useGame.getState(), enemy, hero, attackWeaponOf(useGame.getState().battle!, enemy, hero, pa), pa)).toBe(true);
-    act(() => { root.render(<AttackModal />); });
-    expect(host.textContent).toContain('En attente de la Défense de Grunni.');
-    act(() => { useGame.getState().attackConfirm(); });
-    expect(useGame.getState().pendingDefense, 'la fenêtre annoncée s’ouvre').toBeTruthy();
-  });
-
-  it('INTERRUPTION : aucune attente, verdict immédiat — et `attackConfirm` n’ouvre AUCUNE fenêtre', () => {
-    const { enemy, hero, pa } = playAttack(3, { ...RANGED }, { interrupt: true });
-    expect(surfacedDefensePending(useGame.getState(), enemy, hero, attackWeaponOf(useGame.getState().battle!, enemy, hero, pa), pa),
-      'ce chemin d’application ne passe par aucune couture de Défense (#997)').toBe(false);
-    act(() => { root.render(<AttackModal />); });
-    expect(host.textContent, 'annoncer une Défense qui ne viendra jamais = écran menteur').not.toContain('En attente de la Défense');
-    expect(host.textContent).toContain(pa.result!.log);
-    act(() => { useGame.getState().attackConfirm(); });
-    expect(useGame.getState().pendingDefense, 'et de fait, aucune fenêtre ne s’ouvre').toBeNull();
-  });
+  for (const interrupt of [false, true]) {
+    it(`${interrupt ? 'INTERRUPTION' : 'tir NORMAL'} (Bout Portant) : attente affichée ET fenêtre de Défense réellement ouverte`, () => {
+      const { enemy, hero, pa } = playAttack(3, { ...RANGED }, interrupt ? { interrupt: true } : {});
+      expect(surfacedDefensePending(useGame.getState(), enemy, hero, attackWeaponOf(useGame.getState().battle!, enemy, hero, pa), pa)).toBe(true);
+      act(() => { root.render(<AttackModal />); });
+      expect(host.textContent).toContain('En attente de la Défense de Grunni.');
+      act(() => { useGame.getState().attackConfirm(); });
+      expect(useGame.getState().pendingDefense, 'la fenêtre annoncée s’ouvre').toBeTruthy();
+    });
+  }
 });
 
 /**
@@ -295,7 +299,7 @@ describe('#1004 T1 — Tir rapide en interruption : verdict immédiat, aucune fe
  * OPPOSÉS — l'écran annonçait le verdict chiffré, puis la fenêtre s'ouvrait et l'invalidait.
  */
 describe('#1026 SONDE2 — une seule vérité d’ARME entre l’écran et l’application', () => {
-  const NATURAL = { atkWeapons: [dart] };
+  const NATURAL = { atkWeapons: [dart], atkTraits: [{ id: 'morsure', value: 6 }] };
   const PA = { freeKind: 'morsure', weaponUid: undefined };
 
   it('divergence FORGÉE : les deux résolutions d’arme rendaient des verdicts opposés', () => {

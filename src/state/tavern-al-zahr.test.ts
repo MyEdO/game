@@ -17,6 +17,7 @@ import { findTavernGameById } from '../engine/tavernGame';
 import { resolveSequencePotTurn, sequenceBoardOf } from './sequenceCore';
 import { tavernParams, potProchain } from './tavernFlow';
 import type { Combatant } from '../engine/types';
+import { avanceEtapeCascade } from './cascadeTestKit';
 
 const get = useGame.getState.bind(useGame);
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -57,17 +58,8 @@ async function drain(opts: { des?: number[]; choix?: string } = {}): Promise<{ t
           id: cur.id, kind: cur.kind, manche: enCours?.manche ?? 0, round: get().sequence?.round ?? 0,
           ...(cur.actorId ? { actorId: cur.actorId } : {}),
         });
-        if (cur.table && !cur.table.result) {
-          const pose = des.shift();
-          if (pose != null) get().cascadeTableSetForcedRoll(cur.id, pose);
-          else get().cascadeTableRoll(cur.id);
-        } else if (cur.options && cur.chosen == null) {
-          get().cascadeChoose(cur.id, opts.choix ?? cur.defaultChoice ?? cur.options[0].key);
-        } else if (cur.target != null && !cur.result) {
-          get().cascadeRoll(cur.id);
-        }
       }
-      get().cascadeNext();
+      avanceEtapeCascade(get, (st) => (st.table && !st.table.result ? des.shift() : undefined), () => opts.choix);
     }
     await tick();
     journal = fusionne(journal, get().journal);

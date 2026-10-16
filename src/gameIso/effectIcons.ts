@@ -13,7 +13,7 @@ import { ACTIVITIES } from '../engine/activities';
 import { MISCAST_TABLES } from '../engine/miscast';
 import { slugId } from '../data/slug';
 import { isFrenzied } from '../engine/psychology';
-import { NARRATIVE_MARKERS, conditionSeverity } from '../engine/conditions';
+import { etatConnu, conditionSeverity } from '../engine/conditions';
 import { roundsLabel } from '../engine/duration';
 
 /** Clés STABLES des états-drapeaux (`EffectFlags`) — vocabulaire d'identité partagé par `flagChips`
@@ -68,13 +68,12 @@ export interface EffectChip {
 interface CondMeta { icon: IconId; severity: number; important: boolean; }
 
 /** Icône + sévérité d'AFFICHAGE d'un État — icône lue en DONNÉE (`etats.json`) ou sur un marqueur
- *  narratif (registre UNIQUE `NARRATIVE_MARKERS`, engine ; repli `journal/info`) ; sévérité déléguée
- *  à `conditionSeverity` (même registre). `important` =
+ *  narratif (résolveur UNIQUE `etatConnu`, engine ; repli `journal/info`) ; sévérité déléguée
+ *  à `conditionSeverity` (même résolveur). `important` =
  *  sévérité ≥ 50 (incapacitant, créneau unique de l'ordre de bataille). Clé SLUGIFIÉE → tolère un
  *  libellé ('Pétrifié' → 'petrifie'). */
 export function conditionMeta(name: string): CondMeta {
-  const id = slugId(name);
-  const icon = ((findConditionById(id)?.icon ?? NARRATIVE_MARKERS[id]?.icon) as IconId | undefined) ?? 'journal/info';
+  const icon = (etatConnu(slugId(name))?.icon as IconId | undefined) ?? 'journal/info';
   const severity = conditionSeverity(name);
   return { icon, severity, important: severity >= 50 };
 }

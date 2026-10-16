@@ -19,6 +19,7 @@ import { creatureAttacks } from '../engine/creatureAttacks';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
+import { draineCascade } from './cascadeTestKit';
 
 describe('Défense de manœuvre de zone — cascade influençable (héros) vs silence (IA)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });
@@ -53,7 +54,7 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     }
     h1.pos = { x: 5, y: 8 };
     h2.pos = { x: 5, y: 9 };
-    useGame.setState({ battle: { ...b, acted: true } }); // le Souffle est une attaque GRATUITE (après l'Action)
+    useGame.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: true } }); // le Souffle est une attaque GRATUITE (après l'Action)
     return { E, h1, h2 };
   }
 
@@ -87,11 +88,7 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     expect(live().find((c) => c.id === h2.id)!.wounds.current).toBe(before2);
 
     // Drive de la cascade : chaque héros JETTE sa défense (Esquive) puis on valide.
-    for (let i = 0; i < 2; i++) {
-      const cur = useGame.getState().pendingCascade!.participants[useGame.getState().pendingCascade!.cursor];
-      useGame.getState().cascadeRoll(cur.id);
-      useGame.getState().cascadeNext();
-    }
+    draineCascade(useGame.getState, 2);
     // Après résolution (Esquive ratée → l'attaquant l'emporte) : les DEUX héros ont subi le Souffle.
     expect(live().find((c) => c.id === h1.id)!.wounds.current).toBeLessThan(before1);
     expect(live().find((c) => c.id === h2.id)!.wounds.current).toBeLessThan(before2);

@@ -1,5 +1,6 @@
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';
+import type { PendingCleave } from './pendings';
 import { canTakeAction } from '../engine/conditions';
 
 /**
@@ -20,11 +21,19 @@ export function turnEconomyStamp(b: BattleState): string {
   return `${b.round}|${b.turn}|${b.movementUsed}|${b.acted ? 1 : 0}`;
 }
 
+/** L'Action est-elle PRISE pour le tour ? — `battle.acted`, sauf sous une chaîne de balayage qui porte
+ *  la restitution d'une gratuite (`PendingCleave.restitution`, LDB 85 l.43, LDB 21 l.33) : la chaîne
+ *  rendra `prevActed` à sa fermeture, c'est donc l'état vrai du tour. Source UNIQUE du compteur
+ *  d'Action de la console et du garde-fou ci-dessous. */
+export function actionPrise(battle: BattleState, pendingCleave: PendingCleave | null): boolean {
+  return pendingCleave?.restitution ? pendingCleave.restitution.prevActed : battle.acted;
+}
+
 /** Finir le tour MAINTENANT gâcherait-il l'Action ? (elle est intacte et l'acteur peut encore agir) —
  *  prédicat UNIQUE du garde-fou : l'entrée de registre et la plaque de sortie de la console lisent le
  *  même, elles ne peuvent plus diverger. */
-export function wastesAction(active: Combatant, battle: BattleState): boolean {
-  return !battle.acted && canTakeAction(active);
+export function wastesAction(active: Combatant, battle: BattleState, pendingCleave: PendingCleave | null): boolean {
+  return !actionPrise(battle, pendingCleave) && canTakeAction(active);
 }
 
 /** Le 2ᵉ geste de fin de tour est-il ARMÉ pour l'économie COURANTE ? (`battle.endTurnArmed` porte

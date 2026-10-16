@@ -16,7 +16,7 @@
  */
 import type { GameState } from './store';
 import { WORLD_STEP_OWNER } from './pendings';
-import type { PendingKey } from './stateFields';
+import { sansCorps, type PendingKey } from './stateFields';
 
 /** État partiel accepté par l'arbitre (les tests passent des objets minces). */
 export type ArbiterState = Partial<GameState>;
@@ -69,11 +69,7 @@ export const MODAL_DEFS = [
   // le sentinel `WORLD_STEP_OWNER` (siège MJ s'il existe, hôte sinon), comme toute étape de monde.
   { key: 'etalLot', when: (s) => !!s.pendingEtalLot, owner: () => WORLD_STEP_OWNER, auto: { mode: 'self', drive: ['etalLotConfirm'] }, covers: ['pendingEtalLot'] },
   { key: 'renounce', when: (s) => !!s.pendingRenounce, owner: (s) => s.pendingRenounce?.heroId, auto: { mode: 'choice' }, covers: ['pendingRenounce'] },
-  // (Le Piétinement est une étape `jet:'trample'` de la cascade `combat`, rendue par `cascade` ci-dessous
-  //  (CascadeModal → useTrampleJetProps) — `pendingTrample` coexiste comme porteur de données. Le jet ET
-  //  son Coup Critique vivent dans UNE fenêtre. L'auto-résolution passe donc par `JET_AUTO['trample']`
-  //  (combatAuto), comme l'attaque.)
-  // Battement (LDB 10 l.103) : jet PROPRE de CC (non opposé) → 'self' (Lancer puis Appliquer), comme le Piétinement.
+  // Battement (LDB 10 l.103) : jet PROPRE de CC (non opposé) → 'self' (Lancer puis Appliquer).
   { key: 'battement', when: (s) => !!s.pendingBattement, owner: (s) => s.pendingBattement?.attackerId, auto: { mode: 'self', drive: ['battementRoll', 'battementConfirm'] }, covers: ['pendingBattement'] },
   // Distraire (LDB 10 l.364) : jet PROPRE d'Athlétisme opposé au Calme figé du foe → 'self' (le mover pilote son jet).
   { key: 'distraire', when: (s) => !!s.pendingDistraire, owner: (s) => s.pendingDistraire?.moverId, auto: { mode: 'self', drive: ['distraireRoll', 'distraireConfirm'] }, covers: ['pendingDistraire'] },
@@ -145,6 +141,7 @@ export const MODAL_DEFS = [
   { key: 'cascade', when: (s) => {
     if (!s.pendingCascade) return false;
     const cur = s.pendingCascade.participants[s.pendingCascade.cursor];
+    if (sansCorps(s, cur)) return false;
     if (cur?.jet !== 'cast') return true;
     return !s.pendingCast?.pickingTargets && !s.pendingCast?.zone?.placing;
   }, tientLaMain: (s) => !!s.pendingCascade, owner: (s) => {
@@ -160,7 +157,7 @@ export const MODAL_DEFS = [
     'pendingCascade',
     // Porteurs de données des étapes-jet (cf. `CascadeStep.jet`), rendues par CETTE entrée :
     'pendingTest', 'pendingAttack', 'pendingDefense', 'pendingDisengage', 'pendingCast',
-    'pendingExtendedTest', 'pendingForceDoor', 'pendingTrample',
+    'pendingExtendedTest', 'pendingForceDoor',
     // Coexistent DANS l'étape `jet:'cast'` (Contre-sort/opposition de cible, rendus par CastModal) :
     'pendingCounterspell', 'pendingCastOpposition',
   ] },
