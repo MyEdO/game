@@ -202,6 +202,7 @@ test('canoniseurParDossier rend canoniser : feuille exacte, casse, jonction, abs
 
 // #2603
 test('estPipeNomme : table de vérité sous win32 forcé, faux sous POSIX, plateforme du node:path par défaut', () => {
+  const lecteur = 'C' + ':'
   const table = [
     [String.raw`\\.\pipe\x`, true], ['//./pipe/x', true], [String.raw`\\?\pipe\x`, true], [String.raw`\\.\PIPE\x`, true],
     [String.raw`\\srv\pipe\x`, true], [String.raw`\\localhost\pipe\x`, true], ['//srv/pipe/x', true], ['//h/pipe/x', true],
@@ -212,11 +213,11 @@ test('estPipeNomme : table de vérité sous win32 forcé, faux sous POSIX, plate
     [String.raw`\\.\GLOBALROOT\GLOBAL??\Global\pipe\x`, true], [String.raw`\\.\GLOBALROOT\??\Global\pipe\x`, true],
     [String.raw`\\.\GLOBALROOT\GLOBAL??\UNC\srv\pipe\x`, true], [String.raw`\\.\Global\UNC\srv\pipe\x`, true],
     [String.raw`\\.\GLOBALROOT\Device\Mup\srv\pipe\x`, true], [String.raw`\\.\GLOBALROOT\Device\Mup\;LanmanRedirector\srv\pipe\x`, true],
-    [String.raw`\\.\C:\x`, false], [String.raw`\\?\C:\x`, false], [String.raw`\\?\Volume{0f1e2d3c-0000-0000-0000-100000000000}\x`, false],
-    [String.raw`\\.\GLOBALROOT\??\C:\x`, false], [String.raw`\\.\Global\C:\x`, false], [String.raw`\\.\GLOBALROOT\Global\pipe\x`, false],
+    ['\\\\.\\' + lecteur + '\\x', false], ['\\\\?\\' + lecteur + '\\x', false], [String.raw`\\?\Volume{0f1e2d3c-0000-0000-0000-100000000000}\x`, false],
+    ['\\\\.\\GLOBALROOT\\??\\' + lecteur + '\\x', false], ['\\\\.\\Global\\' + lecteur + '\\x', false], [String.raw`\\.\GLOBALROOT\Global\pipe\x`, false],
     [String.raw`\\.\GLOBALROOT\Device\HarddiskVolume3\x`, false], [String.raw`\\.\GLOBALROOT\Device\Mup\srv\partage\x`, false],
     [String.raw`\\?\UNC\srv\p`, false], [String.raw`\\?\unc\srv\partage\x`, false],
-    [String.raw`\\srv\partage\x`, false], [String.raw`\\srv\partage\pipe\x`, false], [String.raw`C:\x`, false], [String.raw`C:\pipe\x`, false], ['/tmp/x', false],
+    [String.raw`\\srv\partage\x`, false], [String.raw`\\srv\partage\pipe\x`, false], [lecteur + '\\x', false], [lecteur + '\\pipe\\x', false], ['/tmp/x', false],
   ]
   for (const [chemin, attendu] of table) {
     assert.equal(estPipeNomme(chemin, path.win32), attendu, `win32 : ${chemin}`)

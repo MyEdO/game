@@ -288,6 +288,7 @@ const EXEMPTIONS_DU_MUR = [
   'scripts/docs/lib/enregistreur-lectures.mjs :: Object.assign(fs, { readdirSync: synchrone(brut.readdirSync, noterDossier), opendirSync: synchrone(brut.opendirSync, noterDossier), readdir: aRappel(brut.readdir, noterDossier), globSync: avantGlob(brut.globSync), glob: avantGlob(brut.glob) })',
   'scripts/docs/lib/enregistreur-lectures.mjs :: Object.assign(fs, { readdirSync: brut.readdirSync, opendirSync: brut.opendirSync, readdir: brut.readdir, globSync: brut.globSync, glob: brut.glob })',
   "scripts/docs/lib/enregistreur-lectures.test.mjs :: fs.opendirSync(path.join(racine, 'o')).closeSync()",
+  "scripts/docs/lib/enregistreur-lectures.test.mjs :: const globSurPipe = (pipe) => fs.globSync('*', { cwd: pipe })",
   'scripts/test/partition.mjs :: const cible = relative(racine, t).toLocaleLowerCase()',
   'scripts/test/partition.mjs :: return cible.includes(f.toLocaleLowerCase()) || cible.includes(rel.toLocaleLowerCase())',
 ]

@@ -336,7 +336,7 @@ test('POSIX : une écriture dans l’arbre par une URL file://// dont le 2e segm
 // #2603
 test('Windows : une écriture dans l’arbre par un espace étendu de FICHIERS (\\\\.\\C:, GLOBALROOT, Volume{…}) reste refusée', { skip: process.platform !== 'win32' }, () => avecDepot((racine) => {
   const separateur = '\\'
-  const volume = spawnSync('mountvol', [racine.slice(0, 3), '/L'], { encoding: 'utf8' }).stdout.trim()
+  const volume = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', `(Get-CimInstance Win32_Volume | Where-Object DriveLetter -eq '${racine.slice(0, 2)}').DeviceID`], { encoding: 'utf8', windowsHide: true, timeout: 30_000 }).stdout.trim()
   assert.match(volume, /^\\\\\?\\Volume\{[0-9a-f-]+\}\\$/i)
   const formes = {
     point: `${separateur}${separateur}.${separateur}${join(racine, 'poison-point')}`,
