@@ -143,7 +143,7 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
     seedBattleRng(4);
     setRule('combat-aa-blessures', 'aa');
     const H = setupCoop();
-    H.characteristics.endurance = 10; // BE 1 : au 1er Round à 0, `tick-death` (LDB 18 l.15) ne le fait pas encore tomber
+    H.characteristics.endurance = 10; // BE 1 : 1 Round à 0 n’excède pas BE (LDB 18 l.15), `tick-death` le laisse conscient
     H.wounds.current = 0;
     addCondition(H, COND.hemorragique, 1);
 
