@@ -1054,7 +1054,7 @@ export function tickDeath(c: Combatant): string[] {
     return log;
   }
   c.roundsAtZero = (c.roundsAtZero ?? 0) + 1;
-  if (rule('combat-aa-blessures') !== 'aa' && c.roundsAtZero > bonus(effectiveChar(c, 'endurance')) && !hasCondition(c, COND.inconscient)) {
+  if (c.roundsAtZero > bonus(effectiveChar(c, 'endurance')) && !hasCondition(c, COND.inconscient)) {
     addCondition(c, COND.inconscient);
     log.push(t('cond.unconscious', { name: c.label, rounds: c.roundsAtZero }));
   }

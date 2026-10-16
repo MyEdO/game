@@ -6,15 +6,15 @@ import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../battleRng';
 import { ev } from '../combatLog';
 import { addCondition, hasCondition, COND } from '../../engine/conditions';
+import { bonus, effectiveChar } from '../../engine/characteristics';
 import { setRule, resetRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 
 /**
- * #38 — Aux Armes (AA 07 l.5) : en mode AA, à 0 PB un combattant porteur de l'État Hémorragique ne tombe PAS
- * Inconscient d'office (le décompte LDB de `tick-death` est neutralisé) — il fait chaque Round un Test de
- * Résistance Intermédiaire (+0) sous peine de subir l'État Inconscient. Le hook `aa-bleed-unconscious` (résolu
- * AVANT `bleed-death`) porte cette règle pour les ENNEMIS/auto ; le héros manuel passe par la cascade.
+ * #38 — AA 07 l.5 : le Test de Résistance de l'Hémorragique à 0 PB, porté par le hook `aa-bleed-unconscious`
+ * (résolu AVANT `bleed-death`) pour les ENNEMIS/auto ; le héros manuel passe par la cascade. Le décompte de
+ * `tick-death` (LDB 18 l.15) vaut aussi en mode AA : #1595 c.6219559935.
  */
 describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)', () => {
   beforeEach(() => {
@@ -64,7 +64,7 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
     expect(hasCondition(E, COND.inconscient)).toBe(true);
   });
 
-  it('mode AA : Résistance RÉUSSIE (d100 bas) → reste conscient (pas d’Inconscient auto)', () => {
+  it('mode AA : Résistance RÉUSSIE (d100 bas), 1er Round à 0 → reste conscient', () => {
     setRule('combat-aa-blessures', 'aa');
     const { E } = setup();
     seedBattleRng(7); // d100 sous la cible → Test de Résistance réussi
@@ -73,12 +73,20 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
     expect(hasCondition(E, COND.inconscient)).toBe(false);
   });
 
-  it('mode AA : à 0 PB SANS Hémorragique → aucun Test, reste conscient', () => {
+  it('mode AA : à 0 PB SANS Hémorragique, 1er Round à 0 → aucun Test, reste conscient', () => {
     setRule('combat-aa-blessures', 'aa');
     const { E } = setup();
     seedBattleRng(98);
     roundEndHooksOnly(); // pas d'Hémorragique → gate exclut
     expect(hasCondition(E, COND.inconscient)).toBe(false);
+  });
+
+  it('mode AA : à 0 PB SANS Hémorragique depuis BE Rounds → Inconscient par `tick-death` (LDB 18 l.15 ; #1595 c.6219559935)', () => {
+    setRule('combat-aa-blessures', 'aa');
+    const { E } = setup();
+    E.roundsAtZero = bonus(effectiveChar(E, 'endurance'));
+    roundEndHooksOnly();
+    expect(hasCondition(E, COND.inconscient)).toBe(true);
   });
 
   it('mode LDB (défaut) : le hook AA est inerte — pas d’Inconscient par ce chemin (parité, non régressé)', () => {

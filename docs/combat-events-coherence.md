@@ -97,7 +97,8 @@ supprimer + garde de double-exécution).
 ### 4a. Confirmé : acharnement sur un héros à 0 PB pendant plusieurs rounds
 Modèle de mort (RAW LDB 18, `engine/conditions.ts`) :
 - 0 PB → À Terre, **conscient**, `isOutOfAction` FAUX.
-- Passage Inconscient seulement quand `roundsAtZero > BE`, compteur avancé **1×/round** dans `tickDeath`.
+- Passage Inconscient seulement quand `roundsAtZero > BE`, compteur avancé **1×/round** dans `tickDeath`,
+  dans les deux modes de `combat-aa-blessures` (#1595 c.6219559935) ; jamais pour un objet inanimé (`isInanimate`).
 - Mort finalisée seulement si **Inconscient + 0 PB + `criticalWounds > BE`** (`inDeathCondition`),
   vérifiée au franchissement de round (`resolveRoundBoundary`, `state/combatFlow.ts`).
 

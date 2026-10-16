@@ -222,16 +222,13 @@ function aaBleedUnconsciousApply(c: Combatant, success: boolean): string | null 
 // --- Migration ISO-COMPORTEMENT des derniers blocs du franchissement de Round (corps copiés tel quel,
 //     `ctx.sink` remplace `tickLine`). Pas de hook suspensif (aucun pending). ---
 registerCombatHook({
-  id: 'tick-death', // 0 PB → Inconscient après BE Rounds (LDB 18 l.15) — désactivé en mode AA (cf. tickDeath)
+  id: 'tick-death', // LDB 18 l.15, dans les deux modes : #1595 c.6219559935
   phase: 'onRoundEnd',
   order: 76,
   run: ({ battle, sink }) => { for (const c of battle.combatants) tickDeath(c).forEach((l) => sink(l, c)); },
 });
 registerCombatHook({
-  // Aux Armes (AA 07 l.5) : dans le système ALTERNATIF de Blessures, on ne tombe PAS Inconscient d'office à
-  // 0 PB (le décompte LDB de `tick-death` est neutralisé) — c'est l'État Hémorragique qui l'impose : « à
-  // la fin de chaque Tour [modélisé au franchissement de Round, comme tout l'entretien de mort], vous devez
-  // réussir un Test de Résistance Intermédiaire (+0) sous peine de subir immédiatement l'État Inconscient ».
+  // AA 07 l.5, en plus du décompte de `tick-death` (LDB 18 l.15 ; #1595 c.6219559935), qui passe avant (76).
   // RÈGLE DE MORT/machinerie (comme `tick-death`/`bleed-death`) gatée par le mode ; NOMME Hémorragique tout
   // comme `bleed-death`. Résolu AVANT `bleed-death` (77) : un combattant qui tombe Inconscient ICI devient
   // éligible au jet de mort par hémorragie le même Round. Porteur SURFACÉ → différé à la cascade d'entretien

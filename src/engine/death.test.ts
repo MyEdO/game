@@ -77,13 +77,21 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
     tickDeath(h);
     expect(hasCondition(h, 'inconscient')).toBe(true);
   });
-  it('tickDeath : mode AA (AA 07 l.5) — PAS d’Inconscient auto à 0 PB (remplacé par le Test de Résistance Hémorragique)', () => {
+  it('tickDeath : mode AA, à 0 PB, Inconscient après BE Rounds (LDB 18 l.15 ; #1595 c.6219559935)', () => {
     setRule('combat-aa-blessures', 'aa');
     try {
-      const h = mk({ wounds: { current: 0, max: 12 }, roundsAtZero: 9 }); // très au-delà de BE : LDB tomberait Inconscient
+      const h = mk({ wounds: { current: 0, max: 12 }, roundsAtZero: 3 }); // BE=3 ; 3→4 > 3
       tickDeath(h);
-      expect(hasCondition(h, 'inconscient')).toBe(false); // AA : le décompte déterministe est neutralisé
-      expect(h.roundsAtZero).toBe(10); // compteur toujours suivi (info)
+      expect(hasCondition(h, 'inconscient')).toBe(true);
+    } finally { resetRule('combat-aa-blessures'); }
+  });
+  it('tickDeath : mode AA, contrôle sous le seuil — à 0 PB depuis BE Rounds, encore conscient', () => {
+    setRule('combat-aa-blessures', 'aa');
+    try {
+      const h = mk({ wounds: { current: 0, max: 12 }, roundsAtZero: 2 }); // BE=3 ; 2→3, pas > 3
+      tickDeath(h);
+      expect(hasCondition(h, 'inconscient')).toBe(false);
+      expect(h.roundsAtZero).toBe(3);
     } finally { resetRule('combat-aa-blessures'); }
   });
   it('tickDeath : à 0 PB Inconscient + critiques > BE → condition de mort remplie (finalisée par le store)', () => {
