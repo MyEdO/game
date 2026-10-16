@@ -17,3 +17,29 @@ export function estPidVivant(pid, { sonder = (p) => process.kill(p, 0) } = {}) {
     throw e
   }
 }
+
+/** `estPidVivant`, puis la création mesurée confrontée à `naissance` (ms epoch) : postérieure à `naissance + toleranceMs`, pid RÉUTILISÉ ; indéterminée, vivant (#2603).
+ *  @param {unknown} pid @param {number | undefined} naissance
+ *  @param {{ lireCreation: (pid: number) => number | null, toleranceMs: number }} identite
+ *  @param {{ estVivant?: (pid: number) => boolean }} [options] */
+export function estPidVivantDepuis(pid, naissance, { lireCreation, toleranceMs }, { estVivant = estPidVivant } = {}) {
+  if (!estVivant(/** @type {number} */ (pid))) return false
+  if (!Number.isFinite(naissance)) return true
+  const mesure = lireCreation(pid)
+  return mesure === null || mesure <= /** @type {number} */ (naissance) + toleranceMs
+}
+
+/** `lireCreation`, sa mesure gardée par `cle` (le pid par défaut) pendant `pasMs` de `horloge` : la création d'un pid ne change pas tant qu'il vit, et `pasMs` borne la fenêtre d'un pid mort puis réutilisé entre deux sondes (#2603).
+ *  @param {(pid: number) => number | null} lireCreation @param {{ pasMs: number, horloge: () => number }} p
+ *  @returns {(pid: number, cle?: unknown) => number | null} */
+export function creationMemorisee(lireCreation, { pasMs, horloge }) {
+  /** @type {Map<unknown, { mesure: number | null, instant: number }>} */
+  const vus = new Map()
+  return (pid, cle = pid) => {
+    const vu = vus.get(cle)
+    if (vu && horloge() - vu.instant < pasMs) return vu.mesure
+    const mesure = lireCreation(pid)
+    vus.set(cle, { mesure, instant: horloge() })
+    return mesure
+  }
+}

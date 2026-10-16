@@ -60,6 +60,17 @@ test('capture immuable, bail avant fetch, WIP/index/untracked intacts, générat
   assert.equal(JSON.parse(readFileSync(b.chemins.json)).publication.demande, SHA)
 })
 
+// #2603
+test('train précédent : un pid vivant né APRÈS la `creation` du journal est réutilisé — la publication part ; sous la tolérance ou indéterminé, refus', (t) => {
+  const b = banc(t)
+  mkdirSync(b.chemins.dossier, { recursive: true })
+  writeFileSync(b.chemins.json, JSON.stringify({ branche: 'chantier/2626', pid: 4251, naissance: { pid: 4251, creation: 5_000 }, verdict: null, etapes: {} }))
+  const preparer = (creation) => b.preparer({ gestes: { ...b.gestes, estVivant: (pid) => pid === 4251, identite: { lireCreation: () => creation, toleranceMs: 1_000 } } })
+  assert.throws(() => preparer(6_000), /train 4251 encore vivant/)
+  assert.throws(() => preparer(null), /train 4251 encore vivant/)
+  assert.equal(preparer(6_001).demande, SHA)
+})
+
 test('git réel : HEAD, index et WIP strictement inchangés ; snapshot depuis le générateur committé', (t) => {
   const b = banc(t)
   const git = gitDe(b.source, { net: true })

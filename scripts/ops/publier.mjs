@@ -9,9 +9,9 @@ import { ENV_PUBLICATION, publicationDe, publierDepuisSnapshot } from './publica
 import {
   CODE_ARRET_MOTEUR, cheminsDeJournal, codeDeVerdict, commandeDeVeille, entameDuRun,
   envDeLancement, filetDuTrainEnfant, idDeRun, lancementDe, lancementNpm, ligneDeDetachement,
-  ligneDePublication, lireJournal, modeDuLog, ouvrirLog, optionsDe,
+  ligneDePublication, lireJournal, modeDuLog, ouvrirLog, optionsDe, runEnVol,
 } from './publicationDonnee.mjs'
-import { estPidVivant } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -63,7 +63,7 @@ async function main() {
   }
   const entamer = () => {
     const journal = lireJournal(chemins.json, branche)
-    entameDuRun(journal, { run, pid: process.pid, fileTimeoutMin: options.fileTimeoutMin })
+    entameDuRun(journal, { run, pid: process.pid, creation: performance.timeOrigin, fileTimeoutMin: options.fileTimeoutMin })
     ecrireJsonAtomique(chemins.json, journal)
   }
   return publierDepuisSnapshot({
@@ -84,7 +84,7 @@ async function main() {
     },
     echouer: (e) => {
       const journal = lireJournal(chemins.json, branche)
-      if (journal.pid !== process.pid && !journal.verdict && estPidVivant(journal.pid)) {
+      if (journal.pid !== process.pid && runEnVol(journal, IDENTITE_MESUREE)) {
         ecrire(`[publier] REFUS : ${e.message}\n`)
         return CODE_ARRET_MOTEUR
       }

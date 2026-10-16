@@ -7,7 +7,8 @@ import { ajouterWorktree, brancheDe, depotDe, estAncetre, estShaComplet, fetchOr
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { prendreVerrou, tenantDe } from '../test/verrou.mjs'
 import { estPidVivant } from '../guards/lib/pid.mjs'
-import { cheminsDeJournal, lireJournal } from './publicationDonnee.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
+import { cheminsDeJournal, lireJournal, runEnVol } from './publicationDonnee.mjs'
 
 function snapshotDe(source, generation) {
   if (typeof generation !== 'string' || !/^[a-zA-Z0-9-]+$/.test(generation))
@@ -61,12 +62,12 @@ export function publicationDe(env, racine) {
 }
 
 export function preparerPublication({ source, branche, chemins, reprendre, uuid = randomUUID, gestes = {} }) {
-  const g = { depotDe, shaDe, brancheDe, shasDistants, fetchOrigin, estAncetre, ajouterWorktree, ...gestes }
+  const g = { depotDe, shaDe, brancheDe, shasDistants, fetchOrigin, estAncetre, ajouterWorktree, estVivant: estPidVivant, identite: IDENTITE_MESUREE, ...gestes }
   const depot = g.depotDe(source)
   if (!branche || branche === 'HEAD' || branche === 'main' || g.brancheDe(depot) !== branche)
     throw new Error('publication isolée : une branche de chantier est requise')
   const precedent = existsSync(chemins.json) ? JSON.parse(readFileSync(chemins.json, 'utf8')) : null
-  if (!precedent?.verdict && estPidVivant(precedent?.pid))
+  if (runEnVol(precedent, g.identite, { estVivant: g.estVivant }))
     throw new Error(`publication isolée : train ${precedent.pid} encore vivant`)
   if (reprendre && precedent?.publication) {
     const p = precedent.publication

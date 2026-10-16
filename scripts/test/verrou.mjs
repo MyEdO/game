@@ -7,7 +7,7 @@
 import { randomUUID } from 'node:crypto'
 import fsReel from 'node:fs'
 import { basename, dirname } from 'node:path'
-import { estPidVivant } from '../guards/lib/pid.mjs'
+import { creationMemorisee, estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { attendreSync } from '../guards/lib/spawnResilient.mjs'
 
 /** Préfixe des jetons de verrou d'environnement (#2603) : `lancerDetache` n'en transmet aucun. */
@@ -123,18 +123,11 @@ function etapesDePrise({
  */
 function vivantSelon({ estVivant, identite, horloge }) {
   if (!identite) return (/** @type {Tenant} */ tenant) => estVivant(tenant.pid)
-  /** @type {Map<string | undefined, { vivant: boolean, instant: number }>} */
-  const vus = new Map()
-  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => {
-    if (!estVivant(tenant.pid)) return false
-    if (!Number.isFinite(tenant.creation)) return true
-    const vu = vus.get(brut)
-    if (vu && horloge() - vu.instant < identite.pasMs) return vu.vivant
-    const mesure = identite.lireCreation(tenant.pid)
-    const vivant = mesure === null || mesure <= /** @type {number} */ (tenant.creation) + identite.toleranceMs
-    vus.set(brut, { vivant, instant: horloge() })
-    return vivant
-  }
+  const lire = creationMemorisee(identite.lireCreation, { pasMs: identite.pasMs, horloge })
+  return (/** @type {Tenant} */ tenant, /** @type {string | undefined} */ brut) => estPidVivantDepuis(tenant.pid, tenant.creation, {
+    toleranceMs: identite.toleranceMs,
+    lireCreation: (pid) => lire(pid, brut),
+  }, { estVivant })
 }
 
 /** La clé du tenant d'un essai : sa `generation`, à défaut son texte. */
