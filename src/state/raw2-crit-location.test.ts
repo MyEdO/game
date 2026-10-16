@@ -25,14 +25,14 @@ describe('applyCriticalToTarget — la Localisation fournie est utilisée verbat
   it('localisation fournie → le Critique est résolu à cette localisation', () => {
     seedBattleRng(1);
     const log: string[] = [];
-    applyCriticalToTarget(mk(), 'tete', true, 0, log, () => {}, { get: useGame.getState });
+    applyCriticalToTarget(mk(), 'tete', 0, log, () => {}, { get: useGame.getState });
     expect(log.some((l) => l.includes('(Tête)'))).toBe(true); // localisation affichée en FR via locationLabel(loc, shape)
   });
 
   it('un Critique est bien appliqué à la localisation donnée', () => {
     seedBattleRng(1);
     const log: string[] = [];
-    applyCriticalToTarget(mk(), 'corps', true, 0, log, () => {}, { get: useGame.getState });
+    applyCriticalToTarget(mk(), 'corps', 0, log, () => {}, { get: useGame.getState });
     expect(log.some((l) => l.includes('Blessure critique'))).toBe(true);
   });
 });
@@ -43,7 +43,7 @@ describe('applyCriticalToTarget — libellé de localisation adapté à la forme
     const log: string[] = [];
     const t = mk();
     t.bodyShape = 'quadrupede';
-    applyCriticalToTarget(t, 'brasD', true, 0, log, () => {}, { get: useGame.getState }); // localisation fournie pour le déterminisme
+    applyCriticalToTarget(t, 'brasD', 0, log, () => {}, { get: useGame.getState }); // localisation fournie pour le déterminisme
     expect(log.some((l) => l.includes('(Membre antérieur droit)'))).toBe(true);
     expect(log.some((l) => l.includes('(Bras droit)'))).toBe(false);
   });

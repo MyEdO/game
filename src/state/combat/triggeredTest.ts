@@ -601,7 +601,9 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
         ...(ft.menace ? { menace: ft.menace } : {}),
       })
       : simpleTriggeredTestStep(c, ft, { onSuccess: node.success, onFail: node.fail }, after, difficulty, extraMeta);
-    if (step) pushCombatStep(ctx.set, step);
+    // UNE INSTANCE = UN ID : deux Blessures critiques du même coup (LDB 18 l.17, l.53) appendent deux Tests
+    // homonymes au même porteur ; l'INDEX d'append les distingue (patron `pushDeviationStep`).
+    if (step) pushCombatStep(ctx.set, (index) => ({ ...step, id: `${step.id}-${index}` }));
     return;
   }
   // `exec` (get/set [+ freeAttack/bladeTrap]) TOUJOURS fourni : une branche IMPURE (à hook : interruptFocus /

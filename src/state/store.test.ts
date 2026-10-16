@@ -246,7 +246,7 @@ describe('Boucle de jeu (store)', () => {
       size: 'moyenne', weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }], items: [], fate: 0,
     } as unknown as Combatant;
     const enemy = {
-      id: 'e1', label: 'Brute', kind: 'enemy', characteristics: chars, wounds: { current: 40, max: 40 },
+      id: 'e1', label: 'Brute', kind: 'enemy', important: true, characteristics: chars, wounds: { current: 40, max: 40 },
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [], engagedWith: [], pos: { x: 1, y: 0 },
       size: 'moyenne', weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [], criticalWounds: 0,

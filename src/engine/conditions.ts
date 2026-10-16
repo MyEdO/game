@@ -30,7 +30,7 @@ import { hasActiveFlag } from './activeFlags';
 import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
 import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
-import { isInanimate, isStructure, toutCoupEstCritique } from './structures'; // cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
+import { isInanimate } from './structures'; // cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
 import { hasTalent } from './magic'; // cycle runtime (magic→combat→conditions) : appelé à la lecture de la Mort subite, jamais à l'init
 import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
 
@@ -955,18 +955,6 @@ export function usesSuddenDeath(c: Combatant): boolean {
   if (mode === 'off') return false;
   if (mode === 'tous') return true;
   return rule('combat-aa-blessures') === 'aa' ? !hasTalent(c, 'chanceux') : !c.important; // AA 07 l.67 ; LDB 18 l.46
-}
-
-/** Le coup ouvre-t-il une Blessure Critique ? SOURCE UNIQUE du déclencheur, pour l'arme et la magie.
- *  `double` = Critique du jet (LDB 13 l.183, LDB 46 l.30) ; `lost` = Blessures du coup ; `current` = Blessures
- *  restantes AVANT le coup. Structure : AA 10 l.114. Navire : MDG 13 l.656. Bateau fluvial : MSRC 07 l.74.
- *  Véhicule routier : EDOC 07 l.334. Personnage : LDB 18 l.17 ; AA 07 l.25, l.36. */
-export function declencheUnCritique(c: Combatant, coup: { double: boolean; lost: number; current: number }): boolean {
-  const { double, lost, current } = coup;
-  if (toutCoupEstCritique(c, current)) return true;
-  if (isStructure(c)) return double && lost >= current * 0.25;
-  if (isVehicle(c)) return double;
-  return double || (rule('combat-aa-blessures') === 'aa' ? lost >= current : lost > current);
 }
 
 /** Mort subite qui met hors de combat à 0 Blessure, sans Inconscient : `aa` seulement (AA 07 l.65). En

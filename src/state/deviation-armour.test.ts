@@ -35,7 +35,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
 
 const enemy = (p: Partial<Combatant>): Combatant =>
   ({
-    id: 'e1', name: 'Brute', kind: 'enemy', characteristics: CHARS,
+    id: 'e1', name: 'Brute', kind: 'enemy', important: true /* LDB 18 l.44 : hors Mort subite */, characteristics: CHARS,
     wounds: { current: 20, max: 20 }, advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 1, y: 0 }, size: 'moyenne',
     weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as Weapon], items: [],

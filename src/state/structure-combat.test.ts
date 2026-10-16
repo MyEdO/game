@@ -6,7 +6,7 @@ import { evaluateMissile, type CastResult } from '../engine/magic';
 import { findSpellById } from '../data';
 import { isOutOfAction, endState, usesSuddenDeath, inDeathCondition, tickDeath, hasCondition } from '../engine/conditions';
 import { rederivePassiveAttack } from '../engine/combat';
-import { toutCoupEstCritique } from '../engine/structures';
+import { critiquesDuCoup } from '../engine/critical';
 import { setRule, resetRule } from '../engine/policy';
 import type { TestResult } from '../engine/tests';
 import { stepInteraction } from './cascade';
@@ -178,9 +178,9 @@ describe('Structures de siège — à 0 Blessure, la Structure reste debout (AA 
     const { S, H } = start('porte');
     expect(rederivePassiveAttack(H, S!, hache, sansDouble, 'melee').critical, 'contrôle : Structure intacte').toBe(false);
     S!.wounds.current = 0;
-    expect(toutCoupEstCritique(S!)).toBe(true);
+    expect(critiquesDuCoup(S!, { coupCritique: null, prise: true, current: 0, blessures: () => 1 }).critiques.map((c) => c.origine)).toEqual(['a-zero']);
     const res = rederivePassiveAttack(H, S!, hache, sansDouble, 'melee');
-    expect(res.critical).toBe(true);
+    expect(res.critical, 'le Coup Critique seul').toBe(false);
     applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, res);
     expect(etapesDeCritique()).toBe(1);
   });
@@ -343,7 +343,7 @@ describe('Structures de siège — le jet du Critique prend le modificateur du m
     setRule('combat-aa-blessures', 'aa');
     const { S, H } = start('porte');
     S!.wounds.current = 0;
-    applyCriticalToTarget(S!, 'corps', true, 3, [], useGame.setState, { get: useGame.getState, ctx: heros(H) });
+    applyCriticalToTarget(S!, 'corps', 3, [], useGame.setState, { get: useGame.getState, ctx: heros(H) });
     expect(derniereEtape().mod).toBe(30);
   });
 
@@ -379,7 +379,7 @@ describe('Structures de siège — retrait à UNE couture, filet compris (AA 10 
       const { S } = start('porte', { seed });
       S!.wounds.current = 0;
       seedBattleRng(seed);
-      applyCriticalToTarget(S!, 'corps', false, 0, [], useGame.setState, { get: useGame.getState });
+      applyCriticalToTarget(S!, 'corps', 0, [], useGame.setState, { get: useGame.getState });
       const destroyed = !!S!.effondree;
       if (destroyed ? effondree : tenue) continue;
       checkBattleOver(useGame.getState, useGame.setState);

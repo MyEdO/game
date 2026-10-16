@@ -509,7 +509,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
 
   it('(iii) MANIEMENT DE DEUX ARMES : la 2ᵉ frappe s’ouvre à la reprise, avec la valeur du Critique', () => {
     const heros = mk('hero', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
-    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque } as never);
+    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */ } as never);
     setBattle([heros, demon]);
     const critique = { ...touche(), critical: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: demon.id, location: 'corps', dualMode: true, result: critique } as never });

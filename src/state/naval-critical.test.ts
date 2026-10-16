@@ -28,7 +28,7 @@ describe('applyCriticalToTarget — coque/navire (MDG 13) au lieu de Trauma huma
   it('un véhicule ne subit JAMAIS de Trauma humain ; le Critique compte et est journalisé', () => {
     const s = ship();
     const log: string[] = [];
-    applyCriticalToTarget(s, 'corps', true, 0, log, setStub, { get: getHorsBataille });
+    applyCriticalToTarget(s, 'corps', 0, log, setStub, { get: getHorsBataille });
     expect(s.traumas ?? []).toHaveLength(0); // aucune amputation/fracture humaine sur une coque
     expect(s.criticalWounds).toBe(1);
     expect(log.length).toBeGreaterThan(0);
@@ -43,7 +43,7 @@ describe('applyCriticalToTarget — coque/navire (MDG 13) au lieu de Trauma huma
     for (let seed = 1; seed <= 40 && !posed; seed++) {
       seedBattleRng(seed);
       const s = ship();
-      applyCriticalToTarget(s, 'corps', true, 0, [], setStub, { get: getHorsBataille });
+      applyCriticalToTarget(s, 'corps', 0, [], setStub, { get: getHorsBataille });
       if (stacks(s, 'voie-d-eau') > 0 || stacks(s, 'en-flammes-navire') > 0) posed = true;
     }
     expect(posed).toBe(true);
@@ -51,7 +51,7 @@ describe('applyCriticalToTarget — coque/navire (MDG 13) au lieu de Trauma huma
 
   it('renvoie false (la coque ne « meurt » pas d’un Critique — destruction par Blessures/Naufrage)', () => {
     const s: Combatant = ship();
-    expect(applyCriticalToTarget(s, 'corps', true, 0, [], setStub, { get: getHorsBataille })).toBe(false);
+    expect(applyCriticalToTarget(s, 'corps', 0, [], setStub, { get: getHorsBataille })).toBe(false);
   });
 });
 
@@ -66,7 +66,7 @@ describe('applyCriticalToTarget — l’équipage lié (crewIds) encaisse via la
       // La bataille PORTE la file de journal différée : depuis #1657 B3-1/B3-2, le Test de la rangée
       // du Critique encaissé par le marin part par la PORTE — sa voie inline y pousse ses lignes.
       const get = (() => ({ battle: { combatants: crew }, party: [], pendingLogQueue: [] })) as never;
-      applyCriticalToTarget(s, 'corps', true, 0, [], setStub, { get });
+      applyCriticalToTarget(s, 'corps', 0, [], setStub, { get });
       crewTouched = crew.some((c) => c.wounds.current < 13 || (c.traumas?.length ?? 0) > 0 || c.conditions.length > 0);
     }
     expect(crewTouched).toBe(true);
@@ -76,6 +76,6 @@ describe('applyCriticalToTarget — l’équipage lié (crewIds) encaisse via la
     seedBattleRng(1);
     const s = ship();
     s.crewIds = ['m0'];
-    expect(applyCriticalToTarget(s, 'corps', true, 0, [], setStub, { get: getHorsBataille })).toBe(false);
+    expect(applyCriticalToTarget(s, 'corps', 0, [], setStub, { get: getHorsBataille })).toBe(false);
   });
 });

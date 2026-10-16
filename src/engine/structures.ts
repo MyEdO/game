@@ -21,7 +21,7 @@ import { resolveQualities } from './qualities/dispatch';
 import { hasCapability } from './capabilities';
 import { findStructureById } from '../data';
 import { inanimateCombatant } from './inanimate';
-import { isVehicle, estNavire } from './coque';
+import { isVehicle } from './coque';
 import { chebyshev } from './grid';
 import { sizeGap, type SizeCategory } from './size';
 
@@ -61,13 +61,6 @@ export function isDoorEdgeStructure(s: StructureData): boolean {
  *  aux véhicules) → garder `isStructure`/`isVehicle` à ces sites-là. */
 export function isInanimate(c: Pick<Combatant, 'bodyShape' | 'inert'>): boolean {
   return isStructure(c) || isVehicle(c) || !!c.inert;
-}
-
-/** Tout coup qui touche cette cible est-il un Critique ? Structure (AA 10 l.114), navire (MDG 13 l.656) ou
- *  bateau fluvial (MSRC 07 l.74) tombé à 0 Blessure ; jamais un véhicule routier (EDOC 07 l.334). `current` =
- *  Blessures restantes AVANT le coup. */
-export function toutCoupEstCritique(c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'wounds'>, current = c.wounds.current): boolean {
-  return (isStructure(c) || estNavire(c)) && current <= 0;
 }
 
 /** L'arme porte-t-elle la capacité de qualité `cap` (`siege`/`ram`) ? Lue dans la DONNÉE (`qualities.json`)

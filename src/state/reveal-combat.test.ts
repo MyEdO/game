@@ -34,6 +34,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
   it('un Coup Critique ouvre une séquence de conséquence « Coup Critique » (panneau riche)', () => {
     useGame.getState().seedRng(2);
     const { hero, enemy } = battle();
+    enemy.important = true; // LDB 18 l.44 : hors Mort subite
     useGame.setState({ pendingCascade: null });
     const res: AttackResult = {
       hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attacker',

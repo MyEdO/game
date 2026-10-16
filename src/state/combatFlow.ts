@@ -5,7 +5,7 @@
 import type { PlayerText } from '../i18n/playerText';
 import type { GameState, BattleState, RevealEntry, ShootingStanceKey } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { PendingCast, PendingDeviation, PendingCritSeverity, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
+import type { PendingCast, PendingDeviation, PendingCritSeverity, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
@@ -60,6 +60,7 @@ import {
   conditionModLines,
   canFireWhileEngaged,
   freeAttackWeapon,
+  causeDuCoupCritique,
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
@@ -152,10 +153,10 @@ import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { norm } from '../lib/normalize';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, piecesPorteesA, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
+import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, impenetrableAt, piecesPorteesA, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, declencheUnCritique, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
 import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
@@ -172,7 +173,7 @@ import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironment
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './zones';
 import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
-import { resolveCritique, jeuDeCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critSeverityReduction, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
+import { resolveCritique, jeuDeCritique, critiquesDuCoup, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critSeverityReduction, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from '../engine/artilleryMisfire';
@@ -1737,13 +1738,19 @@ export function resolveCritSeverity(
   return { crit, table: { ...decl, forcedRoll: rolled.roll, result: rolled } };
 }
 
+/** Mort subite (LDB 18 l.44, l.46) : l'issue du coup qui dépasse les Blessures d'un figurant (#2654). */
+export function appliquerMortSubite(target: Combatant, log: string[]): void {
+  target.wounds.current = 0;
+  if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
+  log.push(tr('cf.collapse', { name: target.label }));
+}
+
 /** Applique une Blessure critique (Coup Critique ou overkill) à `target` : PB (ignore BE+PA,
- *  plancher 0) + États + compteur. Mort Subite pour les figurants en overkill. RETOURNE `true`
+ *  plancher 0) + États + compteur. RETOURNE `true`
  *  si le résultat est létal (le caller finalise via finalizeHeroDeath). Pousse le journal dans `log`. */
 export function applyCriticalToTarget(
   target: Combatant,
   location: HitLocation,
-  isCoupCritique: boolean,
   overkill: number,
   log: string[],
   set: SetFn,
@@ -1757,33 +1764,22 @@ export function applyCriticalToTarget(
   },
 ): boolean {
   const { ctx, prerolled, suppressReveal, get } = opts;
-  // Structure de siège (AA 10 l.114) : modèle de Critique DISTINCT du personnage — table propre (pas de Trauma
-  // humain) et pas de « Mort » de personnage. Filet de sécurité pour TOUT appelant (opposé/magie) ; le chemin
-  // d'attaque normal passe déjà par `applyStructureCriticalToTarget` (cf. `applyAttackResult`).
-  if (target.bodyShape === 'structure') {
+  // Aiguillage par porteur : `porteurDeCritique` (AA 10 l.114 ; MDG 13 l.656 ; EDOC 07 l.334).
+  const porteur = porteurDeCritique(target);
+  if (porteur === 'structure') {
     applyStructureCriticalToTarget(set, target, { attackerId: ctx?.attackerId, attackerKind: ctx?.attackerKind, weapon: ctx?.weapon }, log, { overkill });
-    return false; // une Structure ne « meurt » pas comme un personnage : sa destruction est l'Effondrement (AA 10 l.127)
+    return false; // AA 10 l.127
   }
-  if (!isCoupCritique && usesSuddenDeath(target)) {
-    // Figurant : Mort Subite (LDB 18 l.46 ; AA 07 l.65) — sortie directe sur la Blessure Critique ouverte par les Blessures.
-    target.wounds.current = 0;
-    if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
-    log.push(tr('cf.collapse', { name: target.label }));
+  if (porteur === 'vehicule-routier') {
+    log.push(tr('cf.coqueSansCritique', { name: target.label })); // EDOC 07 l.334
     return false;
   }
-  // Coque inerte : aucun Trauma humain. Coque sans profil naval (`profilNavalDe`) : EDOC 07 l.334. Navire : tables
-  // de NAVIRE (MDG 13 l.656) via le module FRÈRE `shipCritical` — localisation par gréement (Coque/Gréement/Avirons/…
-  // vs Équipage), effets en `GameOp` (Voie d'eau / En flammes) posés par `applyOps`. (Le `resolveCritique` de
-  // personnage indexerait des Traumatismes humains, hors-sujet pour une coque.)
-  if (isVehicle(target)) {
-    const profil = profilNavalDe(target);
-    if (!profil) {
-      log.push(tr('cf.coqueSansCritique', { name: target.label })); // EDOC 07 l.334
-      return false;
-    }
+  if (porteur === 'navire') {
+    const profil = garanti(profilNavalDe(target), target.creatureId, 'profil naval du navire (MDG 12 l.131)');
     const rig = garanti(rigDuNavire(profil), target.creatureId, 'gréement du navire (schéma `vehicles`, MDG 12 l.131)');
     return applyHullCriticalToTarget(target, rig, log, set, { ctx, suppressReveal, get });
   }
+  if (porteur === 'inerte') throw new Error(`applyCriticalToTarget : « ${target.label} » est inerte, REGIMES_DE_PORTEUR ne lui compte aucune Blessure critique.`);
   // La Localisation est RÉSOLUE par l'appelant (Coup Critique = 1d100 frais via `critWoundLocation`, qui
   // honore aussi la loc choisie « Je ne faillirai pas ! » / le Critique pré-montré ; overkill = loc de
   // touche) et passée telle quelle : `applyCriticalToTarget` ne re-tire JAMAIS la loc → zéro double tirage.
@@ -2074,10 +2070,10 @@ function deflectCrit(target: Combatant, location: HitLocation, extraWounds: numb
  *  une éventuelle mort par le chemin normal. `woundsBefore` = PB AVANT les dégâts de base (passé par
  *  l'appelant → restauration Destin correcte au Subir). */
 function applyCritAndFinalize(
-  get: Get, set: SetFn, target: Combatant, location: HitLocation, isCoupCritique: boolean, overkill: number,
+  get: Get, set: SetFn, target: Combatant, location: HitLocation, overkill: number,
   log: string[], ctx: DeviationCtx, woundsBefore: number, crit?: CriticalResolved, suppressReveal?: boolean,
 ): boolean {
-  const lethal = applyCriticalToTarget(target, location, isCoupCritique, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get });
+  const lethal = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get });
   if (lethal) finalizeHeroDeath(get, set, target, 'hit', woundsBefore, inBattleId(get().battle, ctx.attackerId));
   return lethal;
 }
@@ -2177,7 +2173,7 @@ registerCascadeTableFold('deviation', (step, get) => {
   const reveal = previewCritEntry(target, crit, { attackerId: p.attackerId, weapon: p.weapon?.label });
   const dev: PendingDeviation = {
     mode: 'melee', attackerId: p.attackerId, targetId: p.targetId, weapon: p.weapon, res: p.res,
-    crit, reveal, resumeAfter: true, ...(p.suite ? { suite: p.suite } : {}),
+    crit, decides: p.decides, reveal, resumeAfter: true, ...(p.suite ? { suite: p.suite } : {}),
   };
   return { ...step, deviation: dev, ...(step.options ? { reveal } : {}) };
 });
@@ -2214,6 +2210,9 @@ export function applyOpposedCritical(
   ctx: { attackerId?: string; weapon?: string; weaponObj?: Weapon },
   log: string[],
 ): void {
+  // LDB 14 l.3 : un seul Critique ; LDB 18 l.44, l.46 (Mort subite).
+  const [entree] = critiquesDuCoup(victim, { coupCritique: 'double', prise: true, current: victim.wounds.current, blessures: () => 0 }).critiques;
+  if (!entree) return;
   const loc = critWoundLocation(battleRng(), victim.bodyShape); // LDB 18 l.53 : Coup Critique → 1d100 frais (pas l'inversion de touche)
   // B. de Sauvagerie (LDB 41) : l'attaquant à l'origine du double tire deux lancers de Critique.
   const attacker = ctx.attackerId ? inBattleId(get().battle, ctx.attackerId) : undefined;
@@ -2228,11 +2227,11 @@ export function applyOpposedCritical(
     const reveal = previewCritEntry(victim, crit, ctx);
     pushDeviationStep(set, { targetId: victim.id, offerte: true, pretire: {
       mode: 'self', attackerId: ctx.attackerId ?? '', targetId: victim.id, location: loc, crit,
-      isCoupCritique: true, overkill: 0, deflectExtraWounds: 0, woundsBefore: victim.wounds.current, reveal, resumeAfter: true, ctx: c2,
+      origine: entree.origine, overkill: 0, deflectExtraWounds: 0, woundsBefore: victim.wounds.current, reveal, resumeAfter: true, ctx: c2,
     } });
     return;
   }
-  applyCritAndFinalize(get, set, victim, loc, true, 0, log, c2, victim.wounds.current);
+  applyCritAndFinalize(get, set, victim, loc, 0, log, c2, victim.wounds.current);
   // 7bis (#316) : un Coup Critique OPPOSÉ (LDB 14 l.3) est une Blessure Critique — le bus émet `onCrit`
   // pour l'attaquant, afin que ses effets de donnée « sur Critique » (Taillade → Hémorragique) s'appliquent
   // ici aussi. Chemin mutuellement exclusif de la déviation (self → émis au Subir de resolveDeviation).
@@ -2311,7 +2310,7 @@ registerCascadeApplier('sauvegarde', (get, set, step, porteur) => {
 });
 
 /** RÉ-ENTRE dans le site que la sauvegarde avait suspendu, avec son issue. La décision voyage sur la
- *  TOUCHE elle-même (`AttackResult.sauvegarde`, jumeau de `prerolledCrit`) : elle survit ainsi à la
+ *  TOUCHE elle-même (`AttackResult.sauvegarde`, jumeau des `critiques: DecisionDeCritique[]` de la ré-entrée) : elle survit ainsi à la
  *  fenêtre SUIVANTE (Déviation Critique), qui repasse par le registre sans rejouer de dé. */
 function reprendreApresSauvegarde(get: Get, set: SetFn, suite: SauvegardeSuite, sauve: boolean): string[] {
   if (suite.mode === 'projectile') {
@@ -2327,6 +2326,45 @@ function reprendreApresSauvegarde(get: Get, set: SetFn, suite: SauvegardeSuite, 
   return [];
 }
 
+/** La cible APRÈS `n` Déviations à `loc` (LDB 63 l.19, l.21, l.32), sur une COPIE : le compte se refait
+ *  sans muter la cible avant la dernière décision. */
+function apresDeviations(target: Combatant, loc: HitLocation, n: number): Combatant {
+  if (n === 0) return target;
+  const copie = structuredClone(target);
+  for (let i = 0; i < n; i++) damageArmour(copie, loc);
+  return copie;
+}
+
+/** Le compte d'une touche d'arme sur la cible après `n` Déviations : `critiquesDuCoup`, avec la Localisation
+ *  du Coup Critique relancée puis FIGÉE sur `res.critLocation` (LDB 18 l.53, l.55), et l'Impénétrable lu à
+ *  CETTE Localisation (LDB 63 l.78 ; #1595 c.6221792068 Q3). `blessures` = Blessures normales du coup. */
+function compterLesCritiques(
+  res: AttackResult, weapon: Weapon, attacker: Combatant, target: Combatant, n: number,
+): { compte: CompteDesCritiques; lieu: HitLocation; relance: boolean; blessures: number } {
+  let lieu: HitLocation = res.location ?? 'corps';
+  let relance = false;
+  let blessures = res.hit && !res.sansPrise ? (res.woundsLost ?? 0) : 0;
+  let impenetrable = false;
+  const compte = critiquesDuCoup(target, {
+    coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: target.wounds.current,
+    blessures: (relancee) => {
+      relance = relancee;
+      if (relancee) lieu = res.critLocation ??= critWoundLocation(battleRng(), target.bodyShape);
+      const cible = apresDeviations(target, lieu, n);
+      if (relancee) {
+        impenetrable = res.attackerRoll % 2 === 1 && impenetrableAt(cible, lieu);
+        blessures = woundsAtCritLocation(res, weapon, cible, lieu);
+      } else if (n > 0 && !res.degatsTransferes) {
+        const dmg = res.damage ?? 0;
+        blessures += Math.max(0, woundsFromHit(weapon, cible, lieu, dmg, 0, 1, attacker.size) - woundsFromHit(weapon, target, lieu, dmg, 0, 1, attacker.size));
+      }
+      return blessures;
+    },
+  });
+  const critiques = impenetrable ? compte.critiques.filter((c) => c.origine !== 'coup-critique') : compte.critiques;
+  return { compte: { ...compte, critiques }, lieu, relance, blessures };
+}
+
 /**
  * CE QUI FAIT DE CE COUP CE COUP, à son application — un objet nommé, jamais des positionnels : une
  * valeur d'une position tenait deux faits (attaque standard / sous-attaque), et le premier appelant qui
@@ -2336,10 +2374,9 @@ export interface ApplicationDuCoup {
   /** Sous-attaque résolue d'office (maillon de balayage, attaque gratuite) : ni fenêtre de Déviation
    *  imbriquée, ni retrait de l'État Surpris (LDB 16 l.139 : UN assaut). */
   sousAttaque?: boolean;
-  /** La voie TRANCHÉE à la fenêtre de Déviation (LDB 63 l.30) — posée par sa seule reprise. */
-  deviation?: 'devier' | 'subir';
-  /** Le Critique déjà tiré (fenêtre de Déviation ou de pose du dé) : appliqué sans re-tirer. */
-  prerolledCrit?: CriticalResolved;
+  /** Les Blessures critiques du coup déjà tranchées à leur fenêtre, dans l'ordre (#1426 ; LDB 63 l.30) —
+   *  posées par la seule reprise de la fenêtre. */
+  critiques?: readonly DecisionDeCritique[];
   /** CE QUE L'APPELANT FERA APRÈS CE COUP (#1508) — les drapeaux qui font de ce coup CE coup (Avantage
    *  différé du Maniement de deux armes, Empoignade) et ce qui reste à jouer derrière lui (maillon de
    *  balayage, attaque gratuite, réaction de Porte-Bouclier). Donnée d'ENTRÉE : toute fenêtre ouverte
@@ -2379,9 +2416,9 @@ function appliquerLaTouche(
   res: AttackResult,
   coup: ApplicationDuCoup,
 ): boolean {
-  const { sousAttaque = false, deviation, prerolledCrit, suite } = coup;
-  // Attaque STANDARD : ni sous-attaque, ni reprise d'une fenêtre de Déviation.
-  const standard = !sousAttaque && !deviation;
+  const { sousAttaque = false, critiques: decides = [], suite } = coup;
+  // Attaque STANDARD : ni sous-attaque, ni reprise d'une fenêtre de Blessure critique.
+  const standard = !sousAttaque && decides.length === 0;
   const deferAttackerAdvantage = suite?.deferAttackerAdvantage;
   const grapple = suite?.grapple;
   // SEAM du télégraphe (#1143) : cette fonction est l'entonnoir UNIQUE de résolution d'une attaque —
@@ -2457,84 +2494,50 @@ function appliquerLaTouche(
     checkBattleOver(get, set);
     return false; // application complète (mort-auto) — non suspendu côté cascade d'attaque
   }
-  // Déviation Critique (LDB 63 l.30-32) : un HÉROS subit un Coup Critique à une localisation où il
-  // porte de la PA → on SUSPEND pour son choix Dévier/Subir (modale). AUCUN effet de bord ici ; la
-  // résolution (étape 'deviation', resolveDeviation) rappelle cette fonction avec sa `deviation` tranchée
-  // (early-return sauté → application UNE seule fois). Les sous-attaques (balayage/Piétinement) entrent
-  // `sousAttaque` et se résolvent instantanément (pas de modale imbriquée). Les sorts (applyCast) gèrent leurs Critiques
-  // à part : ils n'atteignent jamais cette fonction, donc pas de garde « arme » nécessaire.
-  // #80 (LDB 18 l.55) : un Coup Critique RE-TIRE sa localisation, et « TOUTE la résolution du coup — Dégâts
-  // non-critiques, DÉVIATION, armure Bâclée, table de Critiques — utilise CETTE localisation ». L'éligibilité
-  // #43.2 à la Déviation (LDB 63 l.30, « emplacement protégé par une armure ») se teste donc sur la
-  // localisation RE-TIRÉE du Critique — là où `deflectCrit` sacrifiera le PA — et NON sur la localisation de
-  // touche, sinon on offrirait au héros une Déviation sans PA sacrifiable à la zone réellement frappée. Figée
-  // ici (réutilisée sans re-tirer par la reprise Dévier/Subir). RNG-neutre : le tirage est seulement AVANCÉ
-  // (aucun `battleRng` intercalé jusqu'à son point d'origine, au bloc Critique ci-dessous).
-  // Blessure Critique = Coup Critique sur double OU dépassement (LDB 18 l.53) — la Déviation couvre LES DEUX
-  // (LDB 63 l.30). `overkill0` = PB COURANTS dépassés par les Dégâts de base (avant re-localisation du Critique).
-  const overkill0 = Math.max(0, (res.woundsLost ?? 0) - target.wounds.current);
-  const critique0 = declencheUnCritique(target, { double: !!res.critical, lost: res.woundsLost ?? 0, current: target.wounds.current });
-  const dloc = (res.critical && standard && target.kind === 'hero')
-    ? (res.critLocation ??= critWoundLocation(battleRng(), target.bodyShape))
-    : (res.location ?? 'corps'); // dépassement (≠ double) : loc de touche, pas de re-tirage
-  // UNE SEULE FENÊTRE pour la Blessure critique (#1426) : le d100 de SÉVÉRITÉ (LDB 18) et la décision
-  // Dévier/Subir (LDB 63 l.30) sont la MÊME étape — le dé se lance (ou se pose, option « Dés fixés »),
-  // le Critique tiré s'affiche, les voies se tranchent dessous. La résolution du coup est SUSPENDUE
-  // jusque-là (aucune mutation de la cible ici) ; l'applier ré-entre avec le Critique construit
-  // (`prerolledCrit`), d'où la garde `!prerolledCrit` — une seule fenêtre par coup.
+  // LES BLESSURES CRITIQUES DU COUP (#1426 ; #1595 c.6220635824) : une fenêtre PAR Blessure critique — le
+  // d100 de SÉVÉRITÉ (LDB 18) et la décision Dévier/Subir (LDB 63 l.30) sont la MÊME étape. Le compte se
+  // refait à chaque entrée sur la cible APRÈS les Déviations déjà tranchées (LDB 63 l.32) : Dévier la
+  // première peut faire naître le dépassement (LDB 18 l.17). Rien n'est muté avant la dernière décision ;
+  // la reprise ré-entre avec `critiques` (une décision de plus).
   //
-  // AUCUNE gate de possession sur le TIRAGE : dès qu'une table est à jouer, l'étape est poussée pour
-  // TOUT porteur, et c'est le SOCLE qui décide de la fenêtre au rang du curseur — un porteur qu'aucun
-  // siège humain ne tient voit sa table résolue D'OFFICE et franchie (`cascade.poserLeCurseur`),
-  // visible au bilan. Même code pour une table de personnage et une table de monde.
-  // La DÉCISION Dévier/Subir, elle, est gatée — parce que le RAW en fait un CHOIX du porteur (LDB 63
-  // l.30) : sans humain pour le tenir, l'automate tranche AVANT toute poussée (`autoDeviate` ci-dessous),
-  // sinon le dé de sévérité serait tiré puis jeté. Le prédicat de cette gate est celui de la TENUE
-  // (`tenuParUnHumain`), le même qui décide si les voies sont OFFERTES : une seule table de vérité.
-  //
-  // `critSeverityInSeam` borne la DÉCLARATION de table au périmètre du seam et de la bifurcation du
-  // moteur : sous la variante Aux Armes (hors Sauvagerie) la sévérité se résout sur les tables AA, qui
-  // ne sont pas déclarées en étapes — l'étape n'y porte alors QUE la décision, sur un Critique tiré au
-  // mint. Coque/Structure ont leurs propres tables (non déclarées ici) → aucune étape ici.
+  // AUCUNE gate de possession sur le TIRAGE : l'étape est poussée pour TOUT porteur, et c'est le SOCLE qui
+  // décide de la fenêtre au rang du curseur (`cascade.poserLeCurseur`). La DÉCISION Dévier/Subir, elle, est
+  // gatée par `tenuParUnHumain` (LDB 63 l.30) : sans humain, l'automate tranche AVANT toute poussée.
+  // `critSeverityInSeam` : sous la variante Aux Armes la sévérité se résout sur les tables AA, non déclarées
+  // en étapes — l'étape n'y porte que la décision, sur un Critique tiré au mint.
   const twice = critRollTwiceFor(attacker);
-  if (standard && !prerolledCrit && res.hit && critique0
-      && !isStructure(target) && !isVehicle(target)) {
-    const cloc = res.critical ? critWoundLocation(battleRng(), target.bodyShape, res.critLocation) : dloc;
-    if (res.critical) res.critLocation = cloc; // LDB 18 l.55 (#80) : loc FIGÉE avant la suspension (jamais re-tirée)
-    // UN SEUL PRÉDICAT (#1426) : la Déviation appartient à la VICTIME (« Cela ne se produit que si vous
-    // le choisissez », LDB 63 l.30) → un porteur TENU par un siège humain reçoit l'étape Dévier/Subir,
-    // quel que soit son kind ; un porteur que personne ne tient voit l'AUTOMATE trancher (`autoDeviate`
-    // plus bas) sans jamais consulter le Tableau des Critiques — sa décision se prend AVANT toute
-    // poussée, sinon le dé de sévérité serait tiré puis jeté (`applyCritAndFinalize` est sauté quand la
-    // déviation a eu lieu). `tenuParUnHumain` est SEAT-AGNOSTIQUE (le MJ tient ses ennemis) et
-    // cadence-AGNOSTIQUE : en Rapide/Auto l'étape s'ouvre et se tranche à son `defaultChoice`.
-    const deviable = !!rule('combat-critical-deflect') && deviatableArmourAt(target, cloc);
-    const tenu = tenuParUnHumain(get(), target.id);
-    if (!(deviable && !tenu)) {
-      const offerte = deviable && tenu;
-      if (critSeverityInSeam(twice)) {
-        pushDeviationStep(set, {
-          targetId: target.id, offerte,
-          severite: {
-            decl: critSeverityDecl(target, cloc, overkill0, twice),
-            charge: { attackerId: attacker.id, targetId: target.id, weapon, res, location: cloc, overkill: overkill0, twice, ...(suite ? { suite } : {}) },
-            label: stepPrecision(tr('step.blessureCritique'), locationLabel(cloc, target.bodyShape)),
-          },
-        });
-        return true; // suspendu — la résolution part de l'applier 'deviation'
-      }
-      if (offerte) {
-        // Aucune table déclarée pour ce cas (variante Aux Armes) : le Critique est tiré au mint par le
-        // seam UNIQUE et voyage dans la charge — la décision se prend quand même devant lui.
-        const crit = resolveCritSeverity(target, cloc, overkill0, twice).crit;
-        const reveal = previewCritEntry(target, crit, { attackerId: attacker.id, weapon: weapon?.label });
-        pushDeviationStep(set, {
-          targetId: target.id, offerte: true,
-          pretire: { mode: 'melee', attackerId: attacker.id, targetId: target.id, weapon, res, crit, reveal, resumeAfter: true, ...(suite ? { suite } : {}) },
-        });
-        return true; // suspendu — la résolution part de l'applier 'deviation'
-      }
+  const regime = regimeDePorteur(target);
+  const tenu = tenuParUnHumain(get(), target.id);
+  const plan: DecisionDeCritique[] = [...decides];
+  const devies = (): number => plan.filter((d) => d.deviation === 'devier').length;
+  const subieLetale = (): boolean => plan.some((d) => d.deviation !== 'devier' && !!d.crit?.lethal); // LDB 18 l.53
+  const recompter = () => compterLesCritiques(res, weapon, attacker, target, devies());
+  let coupCompte = recompter();
+  for (; coupCompte.compte.critiques[plan.length] && !subieLetale(); coupCompte = recompter()) {
+    const entree = coupCompte.compte.critiques[plan.length];
+    const cloc = coupCompte.lieu;
+    const deviable = regime.fenetre && !!rule('combat-critical-deflect') && deviatableArmourAt(apresDeviations(target, cloc, devies()), cloc);
+    if (deviable && !tenu) { plan.push({ deviation: 'devier', auto: true }); continue; }
+    if (sousAttaque || !regime.fenetre) { plan.push({}); continue; }
+    if (critSeverityInSeam(twice)) {
+      pushDeviationStep(set, {
+        targetId: target.id, offerte: deviable,
+        severite: {
+          decl: critSeverityDecl(target, cloc, entree.overkill, twice),
+          charge: { attackerId: attacker.id, targetId: target.id, weapon, res, location: cloc, overkill: entree.overkill, origine: entree.origine, decides: plan, twice, ...(suite ? { suite } : {}) },
+          label: stepPrecision(tr('step.blessureCritique'), locationLabel(cloc, target.bodyShape)),
+        },
+      });
+      return true; // suspendu — la résolution part de l'applier 'deviation'
     }
+    if (!deviable) { plan.push({}); continue; }
+    const crit = resolveCritSeverity(target, cloc, entree.overkill, twice).crit;
+    const reveal = previewCritEntry(target, crit, { attackerId: attacker.id, weapon: weapon?.label });
+    pushDeviationStep(set, {
+      targetId: target.id, offerte: true,
+      pretire: { mode: 'melee', attackerId: attacker.id, targetId: target.id, weapon, res, crit, decides: plan, reveal, resumeAfter: true, ...(suite ? { suite } : {}) },
+    });
+    return true; // suspendu — la résolution part de l'applier 'deviation'
   }
   const battle = get().battle!;
   attacker.aiming = false; // l'attaque consomme la visée (tir : +20 déjà appliqué ; mêlée : visée gâchée)
@@ -2572,13 +2575,13 @@ function appliquerLaTouche(
   const ctxCrit: DeviationCtx = { attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label, critTwice: twice };
   // Blessure Critique INFLIGÉE (`lethal` = rendu d'`applyCritAndFinalize`) : Frappe blessante (LDB 10),
   // puis les effets `onCrit` des données sur un Coup Critique.
-  const apresLeCritique = (lethal: boolean, loc: HitLocation): void => {
+  const apresLeCritique = (lethal: boolean, loc: HitLocation, origine: OrigineCritique): void => {
     const fb = talentCritExtraWounds(attacker);
     if (fb > 0 && !lethal) {
       target.wounds.current = Math.max(0, target.wounds.current - fb);
       critLog.push(tr('cf.woundingStrike', { name: target.label, n: fb }));
     }
-    if (res.critical && !lethal)
+    if (origine === 'coup-critique' && !lethal) // #1595 c.6221792068 Q4, L2
       emitCombatEvent('onCrit', { get, set, battle, self: attacker, sink: (line) => critLog.push(line), triggerCtx: { victim: target, weapon, location: loc, woundsDealt: res.woundsLost, attackType: weapon.type, rng: battleRng() } });
   };
   // Coup finalisé (Blessures de base + Critique + Frappe blessante) : Premier sang (#471), 0 PB → À Terre
@@ -2592,64 +2595,35 @@ function appliquerLaTouche(
       refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
     }
   };
-  if (res.hit && isStructure(target)) {
-    // STRUCTURE de siège (AA 10 l.105/114) : modèle DISTINCT du personnage — pas de Localisation, d'À Terre, de
-    // Déviation d'armure ni de Trauma humain. Les Blessures sont déjà mitigées par `woundsFromHit` (Siège
-    // ×2 / Résistant-Impénétrable-Bélier → 0).
-    const lost = res.woundsLost ?? 0;
-    const before = target.wounds.current;
-    target.wounds.current = Math.max(0, before - lost);
-    // `res.critical` porte la prise de l'arme sur la Structure (ADE II 08 l.296, l.300, `applyHit`).
-    if (res.critical && declencheUnCritique(target, { double: res.critical, lost, current: before }))
-      applyStructureCriticalToTarget(set, target, { attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label }, critLog, { overkill: Math.max(0, lost - before) });
-  } else if (res.hit && isVehicle(target)) {
-    // COQUE : MDG 13 l.656, MSRC 07 l.74 (`res.critical`, posé par `applyHit`), MDG 12 l.232 (aucune Déviation).
-    // Ni Localisation re-tirée ni Blessures recalculées : `res.woundsLost` tel quel. Véhicule routier : EDOC 07 l.334,
-    // refusé par `applyCriticalToTarget`.
+  const { compte, lieu, relance, blessures } = coupCompte;
+  if (res.hit && (blessures || compte.critiques.length || compte.mortSubite)) {
+    // LDB 13 l.161, l.183 ; LDB 18 l.53, l.55 ; AA 07 l.25 ; AA 10 l.105, l.114 ; MDG 13 l.656 ; MDG 12 l.232.
     const currentBefore = target.wounds.current;
-    target.wounds.current = Math.max(0, currentBefore - (res.woundsLost ?? 0));
-    if (res.critical) apresLeCritique(applyCritAndFinalize(get, set, target, 'corps', true, 0, critLog, ctxCrit, currentBefore), 'corps');
-    clore(currentBefore);
-  } else if (res.hit && (res.woundsLost || res.critical)) {
-    // PERSONNAGE : LDB 13 l.183 (double), LDB 13 l.161 (dépassement) ; AA 07 l.25, LDB 18 l.53-55 (`woundsAtCritLocation`).
-    // La localisation est figée sur `res` (location + critLocation) pour l'aval.
-    if (res.critical) {
-      const fresh = critWoundLocation(battleRng(), target.bodyShape, prerolledCrit?.location ?? res.critLocation);
-      res.critLocation = fresh;
-      res.location = fresh;
-      res.woundsLost = woundsAtCritLocation(res, weapon, target, fresh);
+    if (relance) { res.critLocation = lieu; res.location = lieu; }
+    res.woundsLost = blessures;
+    target.wounds.current = Math.max(0, currentBefore - blessures);
+    if (!isInanimate(target)) {
+      // Réouverture d'une plaie critique (LDB 18 / AA 07) — jumeau du Projectile magique (appliquerTouchePourCible).
+      const reinj = reinjuryBleed(target, lieu);
+      if (reinj > 0) { addCondition(target, COND.hemorragique, reinj); critLog.push(tr('cf.reinjuryBleed', { name: target.label, n: reinj, loc: locationLabel(lieu, target.bodyShape) })); }
     }
-    const lost = res.woundsLost ?? 0;
-    const currentBefore = target.wounds.current;
-    const overkill = lost - currentBefore; // LDB 18 l.30
-    const critique = declencheUnCritique(target, { double: !!res.critical, lost, current: currentBefore });
-    target.wounds.current = Math.max(0, currentBefore - lost);
-    const loc = res.location ?? 'corps';
-    // Réouverture d'une plaie critique (LDB 18 / AA 07) — jumeau du Projectile magique (appliquerTouchePourCible).
-    const reinj = reinjuryBleed(target, loc);
-    if (reinj > 0) { addCondition(target, COND.hemorragique, reinj); critLog.push(tr('cf.reinjuryBleed', { name: target.label, n: reinj, loc: locationLabel(loc, target.bodyShape) })); }
-    if (res.critical) breakBacleArmour(target, loc, critLog); // LDB 60 l.50
-    // Blessures supplémentaires d'une Déviation (LDB 63 l.30) : le DELTA à PA−1 (`extraAP:-1`), la PA n'étant
-    // sacrifiée que par `deflectCrit`/`autoDeviate`.
-    const extra = res.degatsTransferes ? 0 : Math.max(0, woundsFromHit(weapon, target, loc, res.damage ?? 0, -1, 1, attacker.size) - lost);
-    // Déviation (LDB 63 l.30-32), MÊME prédicat qu'à la fenêtre ci-dessus : un porteur que personne ne
-    // tient voit l'automate trancher (`autoDeviate`, rule-gated) ; un porteur TENU ne dévie que s'il l'a
-    // CHOISI (`deviation: 'devier'`, `deflectCrit`).
-    let deviationApplied = false;
-    if (critique) {
-      if (!tenuParUnHumain(get(), target.id))
-        deviationApplied = autoDeviate(set, target, loc, extra, { attackerId: attacker.id, weapon: weapon?.label }, prerolledCrit?.roll ?? res.attackerRoll, critLog, attacker.kind === 'hero');
-      else if (deviation === 'devier')
-        deviationApplied = deflectCrit(target, loc, extra, critLog);
+    if (compte.critiques.some((c) => c.origine === 'coup-critique')) breakBacleArmour(target, lieu, critLog); // LDB 60 l.50
+    if (compte.mortSubite) appliquerMortSubite(target, critLog);
+    let lethal = false;
+    for (let i = 0; i < plan.length && !lethal; i++) {
+      const decision = plan[i];
+      const entree = compte.critiques[i];
+      if (decision.deviation === 'devier') {
+        if (decision.auto) autoDeviate(set, target, lieu, 0, { attackerId: attacker.id, weapon: weapon?.label }, res.attackerRoll, critLog, attacker.kind === 'hero');
+        else deflectCrit(target, lieu, 0, critLog);
+        continue;
+      }
+      // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
+      // (pose du dé, #942 L4) garde sa révélation.
+      lethal = applyCritAndFinalize(get, set, target, lieu, entree.overkill, critLog, ctxCrit, currentBefore, decision.crit, !!decision.crit && !!decision.deviation);
+      apresLeCritique(lethal, lieu, entree.origine);
     }
-    if (!deviationApplied && critique) {
-      // « Subir » après déviation proposée : applique LA Blessure Critique déjà montrée (prerolledCrit), sans
-      // re-tirer ni re-révéler. Le pré-tiré qui arrive SANS `deviation` tranchée vient de la fenêtre de pose
-      // du dé (#942 L4) : sa révélation reste due.
-      const lethal = applyCritAndFinalize(get, set, target, loc, !!res.critical, Math.max(0, overkill), critLog, ctxCrit, currentBefore, prerolledCrit, !!prerolledCrit && !!deviation);
-      apresLeCritique(lethal, loc);
-    }
-    clore(currentBefore);
+    if (!isStructure(target)) clore(currentBefore);
   }
   // Critiques du Test opposé (LDB 14 l.3) : « Si vous obtenez un Critique, votre adversaire reçoit
   // immédiatement une Blessure critique […] le DR est calculé comme d'habitude, tout comme la
@@ -4351,8 +4325,7 @@ export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, de
   if (!battle) return;
   if (dev.mode === 'melee') {
     resumeMeleeAfterSuspension(get, set, dev.attackerId, dev.targetId, dev.weapon, dev.res, {
-      deviation: deviate ? 'devier' : 'subir',
-      ...(!deviate && dev.crit ? { prerolledCrit: dev.crit } : {}),
+      critiques: [...dev.decides, deviate ? { deviation: 'devier' } : { crit: dev.crit, deviation: 'subir' }],
       ...(dev.suite ? { suite: dev.suite } : {}),
     });
     return;
@@ -4363,7 +4336,7 @@ export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, de
   const log: string[] = [];
   if (deviate) deflectCrit(target, dev.location, dev.deflectExtraWounds, log); // −1 PA, Critique ignoré, + Blessures recalculées
   else {
-    applyCritAndFinalize(get, set, target, dev.location, dev.isCoupCritique, dev.overkill, log, dev.ctx, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
+    applyCritAndFinalize(get, set, target, dev.location, dev.overkill, log, dev.ctx, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
     // 7bis (#316) : Subir un Critique OPPOSÉ dévié = Blessure Critique → le bus émet `onCrit` pour l'attaquant.
     emitOpposedCrit(get, set, inBattleId(battle, dev.ctx.attackerId), target, dev.location, dev.ctx.weaponObj, log);
   }
@@ -4397,7 +4370,7 @@ registerCascadeApplier('deviation', (get, set, step) => {
   if (!dev) return;
   if (!step.options && dev.mode === 'melee') {
     resumeMeleeAfterSuspension(get, set, dev.attackerId, dev.targetId, dev.weapon, dev.res, {
-      ...(dev.crit ? { prerolledCrit: dev.crit } : {}),
+      critiques: [...dev.decides, { crit: dev.crit }],
       ...(dev.suite ? { suite: dev.suite } : {}),
     });
     return;
@@ -5766,7 +5739,6 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   mres = { ...mres, woundsLost: apresSaves.woundsLost, damage: apresSaves.damage };
   if (!mres.hit || !mres.woundsLost) return { issue: 'appliquee', lignes };
   const currentBefore = cible.wounds.current;
-  const overkill = mres.woundsLost - currentBefore;
   cible.wounds.current = Math.max(0, currentBefore - mres.woundsLost);
   // Réouverture d'une plaie critique (LDB 18 / AA 07) : jumeau du coup physique (applyAttackResult) —
   // un Projectile qui frappe une Localisation déjà porteuse d'une plaie non recousue y ajoute ses États Hémorragique.
@@ -5774,10 +5746,14 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const mReinj = reinjuryBleed(cible, mloc);
   if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.reinjuryBleed', { name: cible.label, n: mReinj, loc: locationLabel(mloc, cible.bodyShape) })); }
   // Blessure Critique : choix « Incantation Critique » du lanceur (LDB 46 l.30), ou overkill.
-  const critWound = ch.critWound;
-  if (declencheUnCritique(cible, { double: critWound, lost: mres.woundsLost, current: currentBefore })) {
+  const woundsLost = mres.woundsLost;
+  const { critiques, mortSubite } = critiquesDuCoup(cible, { coupCritique: ch.critWound ? 'incantation-critique' : null, prise: true, current: currentBefore, blessures: () => woundsLost });
+  if (critiques.length > 1) throw new Error(`Projectile magique : ${critiques.length} Blessures critiques sur « ${cible.label} » — socle B du Projectile (#1595 corrb-3 P5) non posé.`);
+  const [entree] = critiques;
+  if (mortSubite) appliquerMortSubite(cible, lignes);
+  if (entree) {
     const loc = mres.location ?? 'corps'; // double → loc re-tirée (#80) ; dépassement → loc de touche
-    const ovk = Math.max(0, overkill);
+    const ovk = entree.overkill;
     const c2: DeviationCtx = { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: critRollTwiceFor(caster) };
     const heroConcerned = cible.kind === 'hero' || caster.kind === 'hero';
     // Déviation Critique (LDB 63 l.30) : sur double (`critWound`) OU dépassement (`overkill`) — RAW complet,
@@ -5797,18 +5773,18 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
       const cr2 = resolveCritSeverity(cible, loc, ovk, c2.critTwice).crit; // dé de sévérité par l'étape à table (seam UNIQUE)
       pushDeviationStep(set, { targetId: cible.id, offerte: true, pretire: {
         mode: 'self', attackerId: caster.id, targetId: cible.id, location: loc, crit: cr2,
-        isCoupCritique: critWound, overkill: ovk, deflectExtraWounds: elig.extraWounds, woundsBefore: currentBefore,
+        origine: entree.origine, overkill: ovk, deflectExtraWounds: elig.extraWounds, woundsBefore: currentBefore,
         reveal: previewCritEntry(cible, cr2, { attackerId: caster.id, weapon: spell.label }), resumeAfter: true, ctx: c2,
         touche: ch, // la suite DÉCLARÉE par l'appelant (rebond) voyage dans la charge de CETTE fenêtre
       } });
       suspenduParDeviation = true;
     } else {
-      applyCritAndFinalize(get, set, cible, loc, critWound, ovk, lignes, c2, currentBefore);
+      applyCritAndFinalize(get, set, cible, loc, ovk, lignes, c2, currentBefore);
     }
     // 0 PB → À Terre (LDB 18 l.15) — SAUF si suspendu (le Critique du héros n'est pas encore résolu :
     // resolveDeviation `self` s'en charge). Parité avec la mêlée et resolveDeviation.
     if (!suspenduParDeviation && cible.wounds.current <= 0 && !cible.dead && !hasCondition(cible, COND.inconscient)) applyZeroWounds(cible);
-  } else if (cible.wounds.current <= 0) {
+  } else if (cible.wounds.current <= 0 && !hasCondition(cible, COND.inconscient)) {
     applyZeroWounds(cible);
   }
   // Effets ADDITIONNELS d'un Projectile sur la cible (« Grands feux d'U'Zhul » : +2 En flammes, À

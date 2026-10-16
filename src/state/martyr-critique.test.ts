@@ -30,7 +30,8 @@ function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, end
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const [cible, pretre] = b.combatants.filter((c) => c.kind === 'enemy');
-  for (const c of [cible, pretre]) { c.armour = { ...SANS_PA }; c.wounds = { current: 20, max: 20 } as Combatant['wounds']; }
+  for (const c of [cible, pretre]) { c.items = (c.items ?? []).filter((i) => i.kind !== 'armor'); c.armour = { ...SANS_PA }; c.wounds = { current: 20, max: 20 } as Combatant['wounds']; }
+  cible.important = true; // LDB 18 l.44 : hors Mort subite
   cible.armour = { tete: pa, corps: pa, brasG: pa, brasD: pa, jambeG: pa, jambeD: pa };
   if (endurance != null) cible.characteristics = { ...cible.characteristics, endurance };
   if (endurancePretre != null) pretre.characteristics = { ...pretre.characteristics, endurance: endurancePretre };

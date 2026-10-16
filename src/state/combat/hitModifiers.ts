@@ -142,7 +142,7 @@ export function seuilsDeSauvegarde(
  * l.125) : un coup sauvé garde donc son Avantage, son Engagement et sa ligne de journal.
  */
 export function toucheSauvee(res: AttackResult): AttackResult {
-  return { ...res, woundsLost: 0, damage: 0, critical: false, autoKill: false };
+  return { ...res, woundsLost: 0, damage: 0, critical: false, autoKill: false, sansPrise: 'sauvegarde' };
 }
 
 /** Projectile « constitué de matière organique » (Bouclier anti-flèches, LDB 47) — flag maison
@@ -269,7 +269,7 @@ registerHitModifier({
   id: 'ward-saves',
   order: 10,
   apply: ({ get, attacker, target, attaque, res, ouvrirSauvegarde }) => {
-    if (!res.hit || !(res.woundsLost || res.critical)) return res;
+    if (!res.hit || res.sansPrise) return res; // LDB 85 l.98, l.278 : « après chaque coup reçu »
     // Sauvegarde déjà tombée : on APPLIQUE son issue. « le coup est ignoré, même s'il s'agit d'un
     // critique » (LDB 85 l.98) — la ligne du dé, elle, est écrite par la porte (`cascade.lireEnSeuil`).
     if (res.sauvegarde) return res.sauvegarde.sauve ? toucheSauvee(res) : res;
@@ -292,7 +292,7 @@ registerHitModifier({
   apply: ({ get, attacker, target, weapon, attaque, res }) => {
     if (res.hit && attaque === 'ranged' && weapon && organicProjectile(weapon)
       && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', sceneMetresPerTile(get().scene))) {
-      res = { ...res, woundsLost: 0, damage: 0, critical: false, log: t('cf.arrowWardDestroys', { name: target.label }) };
+      res = { ...res, woundsLost: 0, damage: 0, critical: false, sansPrise: 'bouclier-anti-fleches', log: t('cf.arrowWardDestroys', { name: target.label }) };
     }
     return res;
   },
@@ -333,7 +333,7 @@ registerHitModifier({
         const wanted = Math.floor(meters / 2);
         const moved = pushBackTiles(get, attacker, target, wanted);
         res = {
-          ...res, woundsLost: 0, damage: 0, critical: false,
+          ...res, woundsLost: 0, damage: 0, // #1595 c.6221792068 Q2 : le Coup Critique demeure
           log: t('cf.pushback', { name: attacker.label, foe: target.label, meters, bloque: moved < wanted ? t('cf.pushbackBlocked') : '' }),
         };
       }

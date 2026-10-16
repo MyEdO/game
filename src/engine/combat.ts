@@ -11,7 +11,7 @@ import { t } from '../i18n';
 import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, TestResult, type VerdictReason } from './tests';
 import { bonus, effectiveChar, baseWithTraits } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
-import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune, toutCoupEstCritique } from './structures';
+import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune } from './structures';
 import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue } from './skills';
 import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine } from './types';
@@ -38,6 +38,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
+import type { CauseCoupCritique } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -466,6 +467,9 @@ export interface RollBreakdown {
   second?: SecondReadLine;
 }
 
+/** Ce qui ôte au coup toute prise sur sa cible : MDG 13 l.605, l.614 ; ADE II 08 l.296, l.300 ; LDB 85 l.98, l.278 ; LDB 47 l.358. */
+export type SansPrise = 'coque-bloquee' | 'structure-immune' | 'sauvegarde' | 'bouclier-anti-fleches';
+
 export interface AttackResult {
   hit: boolean;
   attackerRoll: number;
@@ -485,7 +489,10 @@ export interface AttackResult {
    *  recalculer les Blessures à la localisation RE-TIRÉE d'un Coup Critique (`woundsAtCritLocation`, LDB 18
    *  l.55), où seule l'ignorance de PA (Partielle / Points faibles) dépend de la localisation. */
   apExternal?: number;
+  /** Coup Critique (LDB 13 l.161 ; LDB 62 l.282) — jamais le dépassement, compté par `critiquesDuCoup`. */
   critical: boolean;
+  /** #1595 c.6221792068 Q2. */
+  sansPrise?: SansPrise;
   /** SAUVEGARDE « 1d10 ≥ Indice » de CE coup, DÉCIDÉE (LDB 85 l.98, LDB 85 l.278, LDB 47 l.410) — posée
    *  par la porte (étape de dé), jamais par le moteur. Sa présence dit que le dé est tombé : le registre
    *  de touche APPLIQUE l'issue au lieu d'en redemander un, et un coup qui repasse par le registre après
@@ -980,9 +987,7 @@ export interface AttackOptions {
   /** Combat monté — CHARGE (LDB 14 l.183) : pour le calcul des DÉGÂTS seulement, on substitue la Force
    *  (Bonus `sb`) et la Taille de la MONTURE à celles du cavalier (le toucher reste la CC du cavalier). */
   dmgProxy?: { sb: number; size: Combatant['size'] };
-  /** « Retenir ses coups » (Aux Armes 07 l.59-61) : maîtriser sans tuer — déclaré AVANT le jet. N'agit
-   *  qu'en MÊLÉE (jamais tir/sort) et pas avec une arme infligeant *En flammes*. Retire Empaleuse/
-   *  Percutante/Perforante + l'Atout Taille du coup, et supprime le Critique SAUF si la cible tombe à 0. */
+  /** « Retenir vos coups », déclaré avant le jet : LDB 18 l.30 ; AA 07 l.59, l.61 (`peutRetenirSesCoups`). */
   withhold?: boolean;
   /** L'attaque frappe par le FLANC ou le DERRIÈRE de la cible (facing établi par combatFlow) : active le
    *  bonus SUPPLÉMENTAIRE d'Assourdi (+10, LDB 16 l.29) dans `meleeAttackerBonus`. Absent = de face. */
@@ -1533,6 +1538,17 @@ export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon
   return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll));
 }
 
+/** LDB 18 l.30 ; AA 07 l.61 ; AA 06 l.556. */
+export function peutRetenirSesCoups(weapon: Weapon): boolean {
+  return rule('combat-aa-blessures') !== 'aa' || (weapon.type === 'melee' && !weaponInflictsFlames(weapon));
+}
+
+/** Cause du Coup Critique d'une touche d'arme (LDB 13 l.161 ; LDB 62 l.282) — le double prime. */
+export function causeDuCoupCritique(res: Pick<AttackResult, 'critical' | 'attackerRoll'>): CauseCoupCritique | null {
+  if (!res.critical) return null;
+  return isDoubleRoll(res.attackerRoll) ? 'double' : 'empaleuse';
+}
+
 /** L'arme inflige-t-elle l'État *En flammes* (un onHitEffect posant la Condition `en-flammes`, ex. Épée
  *  ardente de Rhuin) ? Une telle arme NE peut PAS Retenir ses coups (Aux Armes 07 l.61). */
 export function weaponInflictsFlames(weapon: Weapon): boolean {
@@ -1556,17 +1572,16 @@ function applyHit(
   // Arme usée à +0 → improvisée (LDB 62 l.135). L'enchantement (Magique/Dégâts/onHit) est DÉJÀ replié
   // dans l'arme active par recomputeLoadout (applyEnchants) — porté par l'objet, plus de merge ici.
   weapon = effectiveWeapon(weapon);
-  // Retenir ses coups (Aux Armes 07 l.59-61) : maîtriser sans tuer. N'a d'effet qu'en MÊLÉE, jamais avec
-  // une arme infligeant *En flammes* (l.61). On retire du profil POUR CE COUP (sans muter l'objet
-  // partagé) les qualités déclarant `capabilities.withheldOnRestraint`, et on force `noSize` (ni Atout de
-  // Taille »). Le Critique est ensuite suspendu sauf si la cible tombe à 0 Blessure (calculé plus bas).
-  const withholding = withhold && weapon.type === 'melee' && !weaponInflictsFlames(weapon);
+  // LDB 18 l.30 ; AA 07 l.59, l.61 ; AA 06 l.556. Les qualités `capabilities.withheldOnRestraint` sont
+  // retirées du profil de CE coup, sans muter l'objet partagé.
+  const withholding = withhold && peutRetenirSesCoups(weapon);
+  const perdAtouts = withholding && rule('combat-aa-blessures') === 'aa';
   // `resolveQualities` (avec Groupe) énumère propre+FAMILLE avant filtrage — sinon une qualité retirée
   // portée par la FAMILLE (ex. Empaleuse d'Escrime) survivrait au retrait (elle est absente de la liste
   // propre de l'arme, `resolveQualities` la réinjecterait). `noFamilyQualities` bloque cette ré-injection
   // SANS effacer `subType`/`weaponGroup` — `combatValue` doit voir la MÊME Spé (Retenir ses coups ne
   // change pas la compétence maniée).
-  if (withholding) {
+  if (perdAtouts) {
     const kept = resolveQualities(weapon)
       .filter((r) => !r.caps?.withheldOnRestraint)
       .map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
@@ -1600,7 +1615,7 @@ function applyHit(
   // par la Taille (attaquant plus grand, LDB 85 l.360) fusionnés via `extra` (qualityDamageStep).
   // Une Nuée ignore toutes les règles de Taille (LDB 85 l.253) : ni Atout ni multiplicateur de Taille.
   // Épuisante (LDB 62 l.319) : Percutante/Dévastatrice de l'arme inertes hors Charge (`charged`).
-  const noSize = !!attacker.swarm || !!defender.swarm || withholding || !!hullAdj; // Retenir ses coups perd l'Atout Taille (Aux Armes 07 l.61) ; coque : tableau MDG à la place (l.616)
+  const noSize = !!attacker.swarm || !!defender.swarm || perdAtouts || !!hullAdj; // AA 07 l.61 ; MDG 13 l.616
   const { dmgDR, bonus: dmgBonus } = qualityDamageStep(weapon, { effDR: dr, units, charged: !!attacker.chargedThisTurn }, noSize ? [] : sizeGrantedQualities(dmgSize, defender.size));
   let damage = weaponDmg + Math.max(0, dmgDR) + dmgBonus;
   // Talents de Dégâts (LDB 10) : Coup puissant (mêlée), Tir précis (distance), Combat déloyal
@@ -1611,29 +1626,23 @@ function applyHit(
   // Coque (MDG 13 l.618-637) : le BE ajusté du tableau (« 3 × BE » / « BE−1 ») est appliqué côté
   // Dégâts (mathématiquement identique, sans écraser le clamp de PA) — « 3 × BE » ⇔ −2×BE de plus.
   if (hullAdj && 'extraTB' in hullAdj) damage -= hullAdj.extraTB;
-  // Coup Critique : double réussi (déjà dans `critical`) ou Atout Empaleuse sur un multiple de
-  // 10 (l.282). L'OVERKILL (Blessures perdues > PB COURANTS, LDB 18 l.17) est désormais
-  // géré par le STORE (pipeline de critique), car il dépend des PB courants de la cible — pas des PB max.
-  // Empaleuse déjà retirée du profil si l'on Retient ses coups → `empale` est alors false (pas de Critique
-  // « multiple de 10 » ni de bypass d'armure Empaleuse).
+  // Coup Critique (LDB 13 l.161 ; LDB 62 l.282). Le compte des Blessures critiques, dépassement compris,
+  // vit dans `critiquesDuCoup` (#1595 c.6220635824).
   const empale = qualityCritTriggered(weapon, atkBd.roll);
-  let isCritical = critical || empale;
+  let isCritical = (critical || empale) && !withholding; // LDB 18 l.30 ; AA 07 l.59
   // Impénétrable (LDB 63) : « Toutes les Blessures Critiques causées par un nombre impair pour vous
   // toucher sont ignorées » — pièce Impénétrable à la localisation + jet de toucher impair.
   if (isCritical && atkBd.roll % 2 === 1 && loc && impenetrableAt(defender, loc)) isCritical = false;
-  // Retenir ses coups (Aux Armes 07 l.59) : le coup est non létal — pour le calcul d'armure, on le traite comme NON
-  // critique (les Blessures normales sont infligées comme d'habitude). Le Critique n'est ré-autorisé que si
-  // la cible tombe à 0 Blessure (juste après, sur `defeated`).
-  const critForArmour = withholding ? false : isCritical;
   // Partielle / Points faibles (LDB 63) : PA des pièces concernées ignorés par CETTE touche.
-  const ignoredAP = loc ? ignoredArmourAP(defender, loc, { roll: atkBd.roll, critical: critForArmour, empaleuse: hasQuality(weapon, 'empaleuse') }) : 0;
+  const ignoredAP = loc ? ignoredArmourAP(defender, loc, { roll: atkBd.roll, critical: isCritical, empaleuse: hasQuality(weapon, 'empaleuse') }) : 0;
   // Tir sûr (LDB 10) : ignore niveau PA de la cible au tir.
   const sureShot = weapon.type === 'ranged' ? talentRangedAPIgnore(attacker) : 0;
   // Coque bloquée (MDG 13) : petites armes (l.605) / case « – » du tableau des Tailles (l.614) →
   // AUCUNE Blessure ni Critique de navire ; sinon plancher 0 pour une coque (un coup faible ricoche).
   const hullBlocked = !!hullAdj && 'blocked' in hullAdj;
-  if (hullBlocked) isCritical = false;
-  else if (toutCoupEstCritique(defender) && !structureImmune(weapon, defender)) isCritical = true; // AA 10 l.114 ; MDG 13 l.656 ; MSRC 07 l.74 ; ADE II 08 l.296, l.300
+  const sansPrise: SansPrise | undefined = hullBlocked ? 'coque-bloquee'
+    : isStructure(defender) && structureImmune(weapon, defender) ? 'structure-immune' : undefined;
+  if (sansPrise) isCritical = false;
   const woundsLost = hullBlocked ? 0 : woundsFromHit(weapon, defender, hullAdj ? 'corps' : loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size); // Blindage de la Coque : MDG 12 l.232
   // AA 10 l.98 — terme DIT au journal quand le BE d'une Structure est compté plusieurs fois.
   const beMult = structureEnduranceMult(weapon, defender, attacker.size);
@@ -1643,9 +1652,6 @@ function applyHit(
     : 'BE+PA';
   const newWounds = defender.wounds.current - woundsLost;
   const defeated = newWounds <= 0;
-  // Retenir ses coups (Aux Armes 07 l.59) : « vous N'infligez de Blessure Critique QUE SI votre adversaire tombe à 0
-  // Blessure ». Sinon le Critique est supprimé (les Blessures normales restent infligées).
-  if (withholding) isCritical = isCritical && defeated;
   return {
     hit: true,
     attackerRoll: atkBd.roll,
@@ -1656,6 +1662,7 @@ function applyHit(
     woundsLost,
     apExternal: extraAP - sureShot,
     critical: isCritical,
+    ...(sansPrise ? { sansPrise } : {}),
     advantageTo: 'attacker',
     defenderDefeated: defeated,
     log: hullBlocked

@@ -15,7 +15,7 @@ import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
 import type { TestResult, OpposedResult, EchecSansJet } from '../engine/tests';
 import type { AttackResult, DefenseMode, DifficultyComposition, ModLine } from '../engine/combat';
 import type { AttackKind } from '../engine/creatureAttacks';
-import type { CriticalResolved } from '../engine/critical';
+import type { CriticalResolved, OrigineCritique } from '../engine/critical';
 import type { OupsResolved } from '../engine/oups';
 import type { StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
@@ -805,6 +805,15 @@ export interface DeviationCtx {
   critTwice?: boolean;
 }
 
+/** La décision prise sur UNE Blessure critique d'un coup, au rang de son append (#1426 ; LDB 63 l.30) :
+ *  `crit` = la Blessure tirée à sa fenêtre ; `deviation` = la voie tranchée ; `auto` = tranchée par
+ *  l'automate (`tenuParUnHumain` faux), sa révélation reste due. */
+export interface DecisionDeCritique {
+  crit?: CriticalResolved;
+  deviation?: 'devier' | 'subir';
+  auto?: true;
+}
+
 /** Déviation Critique en attente (LDB 63 l.30) : une victime a subi une Blessure Critique — Coup
  *  Critique sur double OU dépassement — à une localisation où elle porte de la PA ; elle choisit
  *  Dévier (sacrifie 1 PA, ignore le Critique, subit les Blessures recalculées PA−1) ou Subir.
@@ -822,6 +831,8 @@ export type PendingDeviation =
       weapon: Weapon;
       res: AttackResult;
       crit: CriticalResolved;
+      /** Les Blessures critiques du coup déjà tranchées, avant celle-ci (#1595 c.6220635824). */
+      decides: readonly DecisionDeCritique[];
       reveal: RevealEntry;
       resumeAfter: boolean;
       /** Ce que l'appelant fera APRÈS le coup (#1508) : la DÉVIATION est une fenêtre DE PLUS sur le même
@@ -835,7 +846,7 @@ export type PendingDeviation =
       targetId: string;
       location: HitLocation; // loc du Critique : re-tirée pour un double, loc de touche pour un dépassement
       crit: CriticalResolved;
-      isCoupCritique: boolean; // double (true) vs dépassement (false) → applique le bon Critique au Subir
+      origine: OrigineCritique;
       overkill: number; // dépassement (−20 à la table si > BE, LDB 18 l.30)
       deflectExtraWounds: number; // Blessures ajoutées au Dévier (recalcul PA−1 ; 0 pour un critique « sec »)
       woundsBefore: number; // PB avant CE coup → restauration Destin correcte au Subir
@@ -852,7 +863,7 @@ export type PendingDeviation =
  *  Blessures est resté à poser (option « Dés fixés » + siège qui contrôle la victime), donc la
  *  résolution de l'attaque est SUSPENDUE. La charge est sérialisable (coop) et rejoue le MÊME chemin
  *  que la déviation : l'applier re-entre dans `applyAttackResult` avec le Critique construit sur le dé
- *  posé (`prerolledCrit`) — aucune mécanique parallèle. */
+ *  posé (`ApplicationDuCoup.critiques`) — aucune mécanique parallèle. */
 export interface PendingCritSeverity {
   attackerId: string;
   targetId: string;
@@ -860,6 +871,9 @@ export interface PendingCritSeverity {
   res: AttackResult;
   location: HitLocation; // loc du Critique : re-tirée pour un double, loc de touche pour un dépassement
   overkill: number; // dépassement (−20 à la table si > BE, LDB 18 l.17) — porté en `mod` par la déclaration
+  origine: OrigineCritique;
+  /** Les Blessures critiques du coup déjà tranchées, avant celle-ci (#1595 c.6220635824). */
+  decides: readonly DecisionDeCritique[];
   twice?: boolean; // LDB 41 l.170 — pose `keepHighest: 2` sur la déclaration et garde la bifurcation AA
   suite?: SuiteDeCoup; // ce que l'appelant fera APRÈS le coup (#1508) : le PLI post-dé la reconduit dans la `PendingDeviation` qu'il forme
 }

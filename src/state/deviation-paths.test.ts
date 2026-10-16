@@ -22,7 +22,7 @@ const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endu
 
 const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}): Combatant =>
   ({
-    id, name: id, kind, characteristics: { ...CHARS },
+    id, name: id, kind, important: true /* LDB 18 l.44 : hors Mort subite */, characteristics: { ...CHARS },
     wounds: { current: 30, max: 30 }, advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, fate: 0, engagedWith: [], size: 'moyenne',
@@ -136,7 +136,7 @@ describe('Test opposé — HÉROS blindé : étape de déviation `self` (LDB 14 
     const dev = devSteps()[0]?.deviation;
     expect(dev?.mode).toBe('self');
     if (dev?.mode === 'self') {
-      expect(dev.isCoupCritique).toBe(true);
+      expect(dev.origine).toBe('coup-critique');
       expect(dev.overkill).toBe(0);
       expect(dev.deflectExtraWounds).toBe(0);
     }
@@ -236,7 +236,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
     expect(new Set(steps.map((s) => s.deviation!.targetId))).toEqual(new Set(['h1', 'h2']));
   });
 
-  it('OVERKILL (dépassement) héros blindé, sans double → étape `self` (isCoupCritique:false, overkill>0)', () => {
+  it('OVERKILL (dépassement) héros blindé, sans double → étape `self` (origine dépassement, overkill>0)', () => {
     const caster = mage('enemy', 'e-mage');
     const t = mk('hero', 'h-cible', { armour: uniformArmour(4), wounds: { current: 5, max: 30 } as never });
     setBattle([caster, t]);
@@ -244,7 +244,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
     const dev = devSteps()[0]?.deviation;
     expect(dev?.mode).toBe('self');
     if (dev?.mode === 'self') {
-      expect(dev.isCoupCritique).toBe(false);    // dépassement, PAS un double
+      expect(dev.origine).toBe('depassement');
       expect(dev.overkill).toBeGreaterThan(0);   // le Critique d'overkill garde sa sévérité
     }
     expect(live('h-cible').criticalWounds ?? 0).toBe(0); // suspendu

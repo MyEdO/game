@@ -3,10 +3,11 @@ import { useGame } from '../../state/store';
 import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { seedBattleRng } from '../../state/battleRng';
-import { checkBattleOver } from '../../state/combatFlow';
+import { checkBattleOver, appliquerMortSubite } from '../../state/combatFlow';
 import { resolveShipUnits } from '../../state/shipCrew';
 import { rederivePassiveAttack } from '../../engine/combat';
-import { loseWounds, isOutOfAction, addCondition, usesSuddenDeath, declencheUnCritique } from '../../engine/conditions';
+import { loseWounds, isOutOfAction, addCondition } from '../../engine/conditions';
+import { critiquesDuCoup } from '../../engine/critical';
 import { pathTo } from '../../state/path';
 import { moveEnv } from '../../state/combatGeometry';
 import { combatDistance } from '../../state/footprint';
@@ -58,8 +59,8 @@ function boardOnto(battle: BattleState, scene: Scene, mover: Combatant, target: 
 }
 
 /** Le boarder abat une cible au corps à corps (blessures RÉELLES du moteur), jusqu'à ce qu'elle soit hors de
- *  combat : la Mort Subite du figurant sur la Blessure Critique ouverte par les Blessures (LDB 18 l.46 ; AA 07
- *  l.65), mêmes prédicats que `combatFlow`. Renvoie le nombre de coups portés (borné, anti-boucle). */
+ *  combat : LDB 18 l.46 ; AA 07 l.65, par `critiquesDuCoup` et `appliquerMortSubite`. Renvoie le nombre de coups
+ *  portés (borné, anti-boucle). */
 function meleeDown(attacker: Combatant, target: Combatant): number {
   const weapon = (attacker.weapons.find((w) => w.type === 'melee') ?? attacker.weapons[0]) as Weapon;
   let blows = 0;
@@ -67,7 +68,8 @@ function meleeDown(attacker: Combatant, target: Combatant): number {
     const res = rederivePassiveAttack(attacker, target, weapon, goodHit, 'melee');
     const before = target.wounds.current;
     if (res.hit && res.woundsLost) loseWounds(target, res.woundsLost);
-    if (res.hit && declencheUnCritique(target, { double: false, lost: res.woundsLost ?? 0, current: before }) && usesSuddenDeath(target)) addCondition(target, 'inconscient');
+    const lost = res.woundsLost ?? 0;
+    if (res.hit && critiquesDuCoup(target, { coupCritique: null, prise: true, current: before, blessures: () => lost }).mortSubite) appliquerMortSubite(target, []);
     blows++;
   }
   return blows;
@@ -229,7 +231,7 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
     expect(cogue.wounds.current).toBe(0); // coque à 0 par l'artillerie (Dégâts − BE − Blindage)
     // MDG 13 l.656 : à 0, la coque reste en jeu et tout coup est un Critique.
     expect(isOutOfAction(cogue)).toBe(false);
-    expect(rederivePassiveAttack(gunner, cogue, piece, goodHit, 'ranged').critical).toBe(true);
+    expect(critiquesDuCoup(cogue, { coupCritique: null, prise: true, current: 0, blessures: () => 0 }).critiques.map((c) => c.origine)).toEqual(['a-zero']);
     settle();
     expect(useGame.getState().battle!.over).toBeFalsy();
     // MDG 13 l.674 : l'Indice d'Inondation égal à l'Endurance la coule (chaîne Voie d'eau → naufrage : naval-damage.test).

@@ -48,7 +48,7 @@ function startFight(seed = 7) {
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const E = b.combatants.find((c) => c.kind === 'enemy')!;
-  H.armour = { ...SANS_PA }; // aucune PA → la Déviation Critique (LDB 63) ne s'offre pas : on isole la fenêtre de sévérité
+  H.items = (H.items ?? []).filter((i) => i.kind !== 'armor'); H.armour = { ...SANS_PA }; // aucune PA → la Déviation Critique (LDB 63) ne s'offre pas : on isole la fenêtre de sévérité
   return { H, E };
 }
 
@@ -217,8 +217,9 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     // socle la résout au rang du curseur (`cascade.poserLeCurseur`) et le bilan la montre. C'est le
     // MÊME code que pour une table de monde (Météo, événement de bord).
     const { H, E } = startFight();
+    E.important = true; // LDB 18 l.44 : hors Mort subite
     setDesFixes(true);
-    const suspended = applyAttackResult(useGame.getState, useGame.setState, H, E, hache, critHit('corps', 99));
+    const suspended = applyAttackResult(useGame.getState, useGame.setState, H, E, hache, critHit('corps'));
     expect(suspended).toBe(OPS_DIFFEREES);
     const etapes = useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes).toHaveLength(1);

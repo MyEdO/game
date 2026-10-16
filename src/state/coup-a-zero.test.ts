@@ -11,7 +11,7 @@ import { createHero } from '../engine/character';
 import { recomputeLoadout } from '../engine/items';
 import { rederivePassiveAttack } from '../engine/combat';
 import { isOutOfAction, hasCondition } from '../engine/conditions';
-import { toutCoupEstCritique } from '../engine/structures';
+import { critiquesDuCoup } from '../engine/critical';
 import { setRule, resetRule } from '../engine/policy';
 import { t } from '../i18n';
 
@@ -67,7 +67,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     expect(isOutOfAction(nav)).toBe(false);
     const res = rederivePassiveAttack(h, nav, canon, sansDouble, 'ranged');
     expect(res.hit).toBe(true);
-    expect(res.critical).toBe(true);
+    expect(res.critical, 'le Coup Critique seul').toBe(false);
     const avant = nav.criticalWounds ?? 0;
     applyAttackResult(useGame.getState, useGame.setState, h, nav, canon, res);
     expect(enJeu('nav'), 'la coque à 0 reste au combat').toBeTruthy();
@@ -86,8 +86,9 @@ describe('coup sur une coque à 0 Blessure', () => {
     const h = tireur();
     const dil = coque('diligence', 'dil', 0);
     poser([h, dil]);
-    expect(toutCoupEstCritique(dil)).toBe(false);
-    expect(toutCoupEstCritique(coque('cogue', 'nav', 0)), 'contrôle : le navire à 0').toBe(true);
+    const aZero = (c: Combatant) => critiquesDuCoup(c, { coupCritique: null, prise: true, current: 0, blessures: () => 0 }).critiques.length;
+    expect(aZero(dil)).toBe(0);
+    expect(aZero(coque('cogue', 'nav', 0)), 'contrôle : le navire à 0').toBe(1);
     expect(rederivePassiveAttack(h, dil, canon, sansDouble, 'ranged').critical).toBe(false);
     const avant = dil.criticalWounds;
     applyAttackResult(useGame.getState, useGame.setState, h, dil, canon, touche(3, { critical: true, attackerRoll: 22 }));
@@ -107,7 +108,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(useGame.getState().pendingCascade).toBeNull();
     expect(isOutOfAction(apres)).toBe(false);
-    expect(rederivePassiveAttack(h, apres, canon, sansDouble, 'ranged').critical, 'à 0 : chaque nouveau coup est Critique').toBe(true);
+    expect(critiquesDuCoup(apres, { coupCritique: null, prise: true, current: 0, blessures: () => 0 }).critiques.map((c) => c.origine), 'à 0 : chaque nouveau coup est Critique').toEqual(['a-zero']);
   });
 });
 
@@ -123,7 +124,7 @@ describe('Personnage : Critique par les Blessures et Mort subite selon combat-aa
     return f;
   };
 
-  it("'aa' : un coup qui amène à 0 exact ouvre la Blessure Critique → Mort subite du figurant (AA 07 l.36, l.65)", () => {
+  it("'aa' : un coup qui amène à 0 exact met le figurant hors de combat par la Mort subite, sans Critique (AA 07 l.65)", () => {
     setRule('combat-aa-blessures', 'aa');
     const h = tireur(); const f = figurant(5);
     poser([h, f]);
@@ -131,7 +132,7 @@ describe('Personnage : Critique par les Blessures et Mort subite selon combat-aa
     vider();
     const apres = enJeu('fig')!;
     expect(apres.wounds.current).toBe(0);
-    expect(hasCondition(apres, 'inconscient')).toBe(true);
+    expect(apres.criticalWounds ?? 0).toBe(0);
     expect(isOutOfAction(apres)).toBe(true);
   });
 

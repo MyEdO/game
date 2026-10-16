@@ -25,7 +25,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
     const crit = resolveCritique('ldb', gobelin, 'brasD', seq(5), { overkill: 0 });
     expect(crit.entryId).toBe('choc-au-bras');
     const log: string[] = [];
-    applyCriticalToTarget(gobelin, 'brasD', true, 0, log, useGame.setState, { prerolled: crit, get: useGame.getState });
+    applyCriticalToTarget(gobelin, 'brasD', 0, log, useGame.setState, { prerolled: crit, get: useGame.getState });
     expect(log).toContain('  ↳ Gobelin lâche Hachoir.');
     expect(gobelin.weapons.some((w) => w.uid === 's1')).toBe(false);
   });
@@ -36,7 +36,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
     recomputeLoadout(heros);
     const crit = resolveCritique('ldb', heros, 'brasD', seq(5), { overkill: 0 });
     const log: string[] = [];
-    applyCriticalToTarget(heros, 'brasD', true, 0, log, useGame.setState, { prerolled: crit, get: useGame.getState });
+    applyCriticalToTarget(heros, 'brasD', 0, log, useGame.setState, { prerolled: crit, get: useGame.getState });
     const c = useGame.getState().pendingCascade!;
     const reveal = c.participants[c.participants.length - 1].reveal!;
     expect(reveal.crit?.woundsLost).toBe(1);
@@ -50,7 +50,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
     const heros = mk({ id: 'h', label: 'Héros', kind: 'hero', wounds: { current: 12, max: 12 } });
     const crit = resolveCritique('ldb', heros, 'tete', seq(78), { overkill: 0 });
     expect(crit.entryId).toBe('commotion-cerebrale');
-    applyCriticalToTarget(heros, 'tete', true, 0, [], useGame.setState, { prerolled: crit, get: useGame.getState });
+    applyCriticalToTarget(heros, 'tete', 0, [], useGame.setState, { prerolled: crit, get: useGame.getState });
     const sonne = heros.conditions.find((x) => x.id === 'sonne')!.value;
     const c = useGame.getState().pendingCascade!;
     const reveal = c.participants[c.participants.length - 1].reveal!;
