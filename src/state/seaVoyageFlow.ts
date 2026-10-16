@@ -94,7 +94,6 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import { crewRoleValue, crewTestModParts, moraleBand, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
-import { beginShipwreck } from './shipwreck';
 import type { NightEntry } from './restFlow';
 import { toMoney, canAfford, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
@@ -944,14 +943,14 @@ function pushDayEntries(get: Get, set: Set, resolved: CascadeStep[]): void {
 }
 
 /** Construit le TravelPlan d'une TRAVERSÉE (route `sea`) sur le navire de campagne — `null` si aucun
- *  navire (ou coque coulée). La coque de trajet repart des Blessures PERSISTÉES (#30). */
+ *  navire ; une coque à 0 Blessure navigue (MDG 13 l.656, l.674). La coque de trajet repart des Blessures PERSISTÉES (#30). */
 export function buildSeaPlan(
   get: Get, routeId: string, fromPlaceId: string, toPlaceId: string,
   route: { km: number; seaHeading?: WindDirection },
   opts: { pace?: number; cadence?: VoyageCadence } = {},
 ): TravelPlan | null {
   const ship = voyageShip(get);
-  if (!ship || ship.hull.wounds.current <= 0) return null;
+  if (!ship) return null;
   const heading = route.seaHeading;
   if (!heading) throw new Error(`buildSeaPlan: route mer sans seaHeading — cap requis, jamais de défaut silencieux (#416, pit #408)`);
   const rng = battleRng();
@@ -1086,9 +1085,6 @@ function finalizeFastVoyage(get: Get, set: Set): void {
     ]);
   }
   applyFastPalier(get, set, fast.palierId);
-  // NAUFRAGE (MDG 13 l.674) : un palier de voyage rapide a pu couler la coque → survie, jamais l'accostage.
-  const sunk = get().vessel;
-  if (sunk && (sunk.wounds?.current ?? 1) <= 0) { beginShipwreck(get, set); return; }
   patchSea(get, set, { fast: { ...fast, pendingFinalize: false } });
   // Eau douce des tonneaux (MDG 14 l.242) : POPULATION EMBARQUÉE (héros + effectif PNJ, `shipboardSouls`)
   // × régime médian × jours — MÊME couture que le détaillé (`continueSeaDayAfterCascade`), le voyage
@@ -1209,9 +1205,6 @@ export function runSeaDay(get: Get, set: Set): void {
   // Une cascade est déjà active (ou suspendue derrière un combat) : l'arbitre la montre, rien à faire —
   // `resumeTravel` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c).
   if (!plan?.sea || plan.interrupted || get().pendingCrewTest || get().pendingSteamSave || get().pendingCascade) return;
-  // NAUFRAGE (MDG 13 l.674) : coque à 0 (Tourbillon/Collision/usure) → séquence de survie, jamais la
-  // suite de la traversée sur une épave.
-  if (plan.vehicle && plan.vehicle.wounds.current <= 0) { beginShipwreck(get, set); return; }
   const sea = plan.sea;
   const rng = battleRng();
   // VOYAGE RAPIDE (MDG 15 l.21-37) : ce plan ne déroule JAMAIS la journée par étape — le palier

@@ -11,7 +11,7 @@ import { t } from '../i18n';
 import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, TestResult, type VerdictReason } from './tests';
 import { bonus, effectiveChar, baseWithTraits } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
-import { isInanimate, isStructure, structureEnduranceMult, structureTaille } from './structures';
+import { isInanimate, isStructure, structureEnduranceMult, structureTaille, structureImmune, toutCoupEstCritique } from './structures';
 import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue } from './skills';
 import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine } from './types';
@@ -1633,7 +1633,7 @@ function applyHit(
   // AUCUNE Blessure ni Critique de navire ; sinon plancher 0 pour une coque (un coup faible ricoche).
   const hullBlocked = !!hullAdj && 'blocked' in hullAdj;
   if (hullBlocked) isCritical = false;
-  else if (hullAdj && defender.wounds.current <= 0) isCritical = true; // MDG 13 l.656
+  else if (toutCoupEstCritique(defender) && !structureImmune(weapon, defender)) isCritical = true; // AA 10 l.114 ; MDG 13 l.656 ; MSRC 07 l.74 ; ADE II 08 l.296, l.300
   const woundsLost = hullBlocked ? 0 : woundsFromHit(weapon, defender, hullAdj ? 'corps' : loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size); // Blindage de la Coque : MDG 12 l.232
   // AA 10 l.98 — terme DIT au journal quand le BE d'une Structure est compté plusieurs fois.
   const beMult = structureEnduranceMult(weapon, defender, attacker.size);

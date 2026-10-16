@@ -972,8 +972,8 @@ elle reprend à la CONFIRMATION de ces étapes/modales, jamais via `time()`/`res
 |---|---|---|
 | `advanceSeaDay({stopOnEveryEvent?, stopAt?, maxIters?})` | symétrique VOYAGE de `fastForward` : pilote la journée EN COURS (cascade du jour, halte de nuit, Activités hebdo si le palier de 8 jours tombe) jusqu'au JOUR SUIVANT — MÊME machinerie que le joueur (`cascadeResolveAll`/`Finish`, `restSleep`, `seaActivitiesConfirm`), sans les clics | s'arrête sur la cascade `travelDay` FRAÎCHE du jour suivant (déjà ouverte, `cursor:0`, pas encore consommée — le PROCHAIN `advanceSeaDay()`/`roll()`/`skipToArrival()` la joue), jamais un `pendingCascade` à `null` ; `maxIters` (défaut 400) = garde-fou scrutations, `✗ borne atteinte…` = soft-lock probable (`auto()`) ; retourne une `Promise` (`await`). **PORTÉE EXACTE de `stopOnEveryEvent:true` (#380)** : il ne s'arrête QUE sur un événement RACONTÉ (carte-parchemin, `travelDay.events` non vide, testé sur `pendingRest`/`pendingSeaActivities`) — **jamais** sur une étape STRUCTURELLE du jour (Progression, choix de Progression, Orientation, Exposition, Entretien…), que `cascadeResolveAll` traverse aux défauts. L'attendre pour observer une étape a coûté un point de recette. Pour CELA : `stopAt:'<kind>'` (#1117) → s'arrête **avant** de résoudre la cascade qui porte cette étape et rend la main intacte (ex. `advanceSeaDay({stopAt:'sea-progression-choice'})`, puis `__wfrp.modal()`/`roll()`). Même option sur `advanceRiverDay` |
 | `skipToArrival(maxIters=4000)` | comme `advanceSeaDay` mais ROULE jusqu'à l'ACCOSTAGE (`openPortAt`, `travelPlan` vidé) | s'arrête aussi sur un combat (embuscade/abordage), et rend alors « ✓ voyage interrompu par un combat — voir __wfrp.battle() » (même retour pour `advanceSeaDay` et `advanceRiverDay`, `driveSeaVoyage`) — `battle` ouvert, à jouer/`fastForward` séparément ; `Promise` (`await`) |
-| `dealShipDamage(n=5)` | inflige `n` Dégâts de coque HORS COMBAT — VRAI pipeline (`damageVesselHull` si un voyage est en cours sur le navire de campagne, sinon `setVesselHull` directement au port) | symétrique de `dealDamage` (combat) — voir le piège des DEUX copies de coque ci-dessous ; **NE déclenche PAS un naufrage fiable** (voir piège d'ORDONNANCEMENT ci-dessous, `forceShipwreck`) |
-| `forceShipwreck(aboardIds?)` | déclenche `beginShipwreck` DIRECTEMENT (setup ASSUMÉ, PAS le pipeline de dégâts) — coque + cargaison purgées IMMÉDIATEMENT, cascade de survie à la nage (Chance/Pacte/Résilience influençable) ouverte pour les héros à bord | `✗` sans `state.vessel` ; voir piège d'ORDONNANCEMENT ci-dessous |
+| `dealShipDamage(n=5)` | inflige `n` Dégâts de coque HORS COMBAT — VRAI pipeline (`damageVesselHull` si un voyage est en cours sur le navire de campagne, sinon `setVesselHull` directement au port) | symétrique de `dealDamage` (combat) — voir le piège des DEUX copies de coque ci-dessous ; **NE déclenche AUCUN naufrage** : une coque à 0 ne coule pas (MDG 13 l.656, l.674), voir `forceShipwreck` |
+| `forceShipwreck(aboardIds?)` | déclenche `beginShipwreck` DIRECTEMENT (setup ASSUMÉ, PAS le pipeline de dégâts) — coque + cargaison purgées IMMÉDIATEMENT, cascade de survie à la nage (Chance/Pacte/Résilience influençable) ouverte pour les héros à bord | `✗` sans `state.vessel` ; hors combat, c'est la seule entrée du naufrage |
 | `clickRoute(routeId)` | calcule un point ON-PATH CLIQUABLE d'une route depuis ici → `{x, y, etat, note}` ÉCRAN. Le tracé se vise par son id (`data-path-id` du `path` de hit de `MapCanvas`) ; un point est cliquable si `elementFromPoint` y rend un élément du groupe du tracé, sinon d'autres fractions de `getPointAtLength` sont balayées. `etat` : `ouverte` (le clic la sélectionne, départ offert) ou `fermee-consultable` (le clic la sélectionne pour la CONSULTER, départ refusé) | ne clique PAS lui-même (le VRAI clic reste un clic souris réel, `geste` sur `SURFACE_CARTE`) ; au point rendu, `elementFromPoint` peut rendre le TEXTE de la pastille de distance posée sur le tracé — le clic sélectionne bien le tracé ; `✗` NOMMÉ si route inconnue, non cliquable d'ici, tracé absent du DOM, ou si AUCUN point du tracé n'est atteignable (il nomme ce qui recouvre le milieu) — jamais un point muet |
 | `forceSeaWeather({ temperature?, precipitations?, visibilite?, vent? })` | arme la MÉTÉO de mer du jour EN COURS (`travelPlan.sea.weather`) ; aucun dé n'est touché, la journée se joue ensuite (`advanceSeaDay()`) | `✗` sans traversée en cours (`travelPlan.sea`) |
 | `forceOverspeed(overM = 5)` | arme la SURVITESSE du jour de mer : pose le M EFFECTIF du jour (`sea.effMToday`) et les milles parcourus, les deux entrées que lit `buildOverspeedStep` ; `overM` = l'excès VOULU au-dessus du M de conception du navire | `✗` sans traversée en cours |
@@ -1031,16 +1031,11 @@ qu'aucun Dégât/jour n'a encore persisté. `dealShipDamage`/`damageVesselHull`/
 écrivent TOUJOURS les deux (une seule écriture par appel) — jamais un accès `.wounds` direct sur
 l'une des deux copies dans une recette.
 
-**Piège d'ORDONNANCEMENT du naufrage** (#332, symétrique du piège des deux copies ci-dessus) : la
-garde de naufrage (MDG ch.13 l.674, coque à 0 → `beginShipwreck`) n'est évaluée QU'À L'ENTRÉE de
-`runSeaDay` (`state/seaVoyageFlow.ts` : `plan.vehicle.wounds.current <= 0`). Poser
-`dealShipDamage(999)` PUIS rouler le jour avec `advanceSeaDay`/`skipToArrival` ne produit PAS
-mécaniquement un naufrage : si la Réparation de fortune (ou tout autre applier du même jour) répare
-la coque AVANT que `runSeaDay` ne soit re-consulté, les dégâts posés sont EFFACÉS sans que la garde
-n'ait eu l'occasion de s'exécuter — la preuve écran #269 est donc mécaniquement impossible avec ce
-seul enchaînement. `forceShipwreck()` bypass ce piège en appelant `beginShipwreck` DIRECTEMENT
-(MÊME fonction que `runSeaDay`/`checkBattleOver` sur un naufrage réel), sans course contre les
-appliers du jour.
+**Naufrage hors combat** (#332) : une coque à 0 Blessure ne coule pas (MDG 13 l.656 ; « il coule »
+n'est dit que de l'Indice d'Inondation égal à l'Endurance, MDG 13 l.674) — `dealShipDamage(999)` puis
+`advanceSeaDay`/`skipToArrival` poursuit la traversée. Le naufrage réel vient du combat
+(`checkBattleOver`, État `naufrage`) ; la preuve écran #269 passe par `forceShipwreck()`, qui appelle
+`beginShipwreck` DIRECTEMENT (MÊME fonction que `checkBattleOver`).
 
 ## Maladies réactives — trigger `onOwnTestFailed` (Crampes abdominales, MSRC 16)
 

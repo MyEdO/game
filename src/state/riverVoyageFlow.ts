@@ -177,10 +177,10 @@ function aAugmente(c: Combatant, competence: RefDesignee): boolean {
 }
 
 /** Construit le TravelPlan d'une DESCENTE fluviale (route `river`, mode barge) — `null` si aucun bateau ou
- *  aucun batelier (→ repli transport payant). PUR de RNG hormis le tirage du vent de départ. */
+ *  aucun batelier (→ repli transport payant) ; un bateau à 0 Blessure navigue (MSRC 07 l.74, l.90). PUR de RNG hormis le tirage du vent de départ. */
 export function buildRiverPlan(get: Get, routeId: string, fromPlaceId: string, toPlaceId: string, route: MapRoute, opts: { cadence?: VoyageCadence } = {}): TravelPlan | null {
   const hull = riverHull(get, route);
-  if (!hull || hull.coque.wounds.current <= 0) return null;
+  if (!hull) return null;
   if (!hasBatelier(get().party, riverNavSkill(hull.coque))) return null;
   const wind = rollRiverWind(battleRng());
   const orders: VoyageOrders = { cadence: opts.cadence ?? DEFAULT_VOYAGE_ORDERS.cadence };

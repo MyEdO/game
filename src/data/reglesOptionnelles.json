@@ -320,7 +320,7 @@
     "id": "combat-sudden-death",
     "type": "reglesOptionnelles",
     "label": "Mort Subite",
-    "ref": "LDB 18 l.42",
+    "ref": "LDB 18 l.46 / AA 07 l.65",
     "source": {
       "book": "livre-de-base",
       "page": 173
@@ -333,7 +333,18 @@
       "tous",
       "off"
     ],
-    "hint": "Sur un coup fatal (Dégâts > PB), la cible meurt ou tombe Inconsciente sans passer par les Blessures critiques. figurants = figurants seuls (défaut) ; tous = aussi les PNJ importants ; off = personne (tout passe par les critiques). Jamais les PJ."
+    "hint": "La cible sort du combat sans passer par les Blessures critiques. Déclencheur selon « Blessures & Critiques » : Livre de base, « Lorsque votre cible subit plus de Dégâts qu'elle ne possède de Points de Blessure » (LDB 18 l.46) ; Aux Armes, « quand une cible atteint 0 Blessure » (AA 07 l.65). figurants = hors PNJ importants (Livre de base) ou hors PNJ possédant le Talent Chanceux (Aux Armes, l.67) — défaut ; tous = tout PNJ ; off = personne (tout passe par les critiques). Jamais les PJ, ni une Structure ou une coque."
+  },
+  {
+    "id": "structure-soin-magique",
+    "type": "reglesOptionnelles",
+    "label": "Sorts et Miracles de soin sur une Structure (maison)",
+    "ref": "AA 10 l.134",
+    "maison": "AA 10 l.134 laisse au MJ l'effet des Sorts et Miracles sur une Structure (« le MJ peut autoriser l'utilisation créative de certains Sorts ou Miracles pour produire des effets bénéfiques ») : défaut maison `false`, un soin magique ne rend aucune Blessure à une Structure.",
+    "group": "Combat",
+    "kind": "flag",
+    "default": false,
+    "hint": "« La Compétence Guérison, telle qu'elle serait appliquée à des Personnages blessés, n'a aucun effet sur les Structures, mais le MJ peut autoriser l'utilisation créative de certains Sorts ou Miracles pour produire des effets bénéfiques. » (AA 10 l.134). Désactivé (défaut) : un Sort ou un Miracle de soin ne rend aucune Blessure à une Structure. Activé : il les lui rend comme à un Personnage. La Guérison reste sans effet."
   },
   {
     "id": "combat-weapon-reach",

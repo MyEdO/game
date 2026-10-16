@@ -13,6 +13,7 @@ import { rule } from './policy';
 import { t } from '../i18n';
 import type { RNG } from './dice';
 import { chebyshev } from './grid';
+import { isStructure } from './structures';
 
 /** Pions d'un État (local — `stacks` n'est pas exporté par conditions.ts). */
 const condStacks = (c: Combatant, name: string) => c.conditions.find((x) => x.id === name)?.value ?? 0;
@@ -26,12 +27,19 @@ export function hasSurgerySkill(c: Combatant): boolean {
   return hasSurgery(c);
 }
 
-/** Cible soignable : blessée (PB perdus) OU porteuse d'≥1 État Hémorragique OU avec une déchirure traitable ;
- *  ni morte ni éjectée. Les cibles Inconscientes/À Terre sont valides (1 PB lève l'inconscience, LDB 18 l.15). */
+/** Cible soignable par la Guérison : blessée (PB perdus) OU porteuse d'≥1 État Hémorragique OU avec une déchirure
+ *  traitable ; ni morte ni éjectée, ni Structure (AA 10 l.134). Les cibles Inconscientes/À Terre sont valides
+ *  (1 PB lève l'inconscience, LDB 18 l.15). */
 export function isHealable(c: Combatant): boolean {
-  if (c.dead || c.outOfRencontre) return false;
+  if (c.dead || c.outOfRencontre || isStructure(c)) return false;
   return c.wounds.current < c.wounds.max || condStacks(c, 'hemorragique') > 0 || hasTreatableTrauma(c)
     || hasSurgeryTrauma(c) || hasRecoverableTrauma(c) || hasLimbAwaitingAid(c) || hasSurgeryLockedCondition(c);
+}
+
+/** Un soin MAGIQUE (Sort, Miracle) rend-il des Blessures à `c` ? Toujours, hors Structure : règle maison
+ *  `structure-soin-magique` (AA 10 l.134). */
+export function soinMagiqueOperant(c: Combatant): boolean {
+  return !isStructure(c) || rule('structure-soin-magique') === true;
 }
 
 /** `recovery` = Test ÉTENDU de Guérison qui rend l'usage d'un membre désactivé (« Épaule luxée »/« Genou

@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult, applyStructureCriticalToTarget, collapseStructure, weaponContextOf, STRUCTURE_CRIT_TABLE } from './combatFlow';
+import { applyAttackResult, applyStructureCriticalToTarget, collapseStructure, weaponContextOf, resolveRoundBoundary, STRUCTURE_CRIT_TABLE } from './combatFlow';
+import { isOutOfAction, endState, usesSuddenDeath, inDeathCondition, circonstanceMortelle, tickDeath, hasCondition } from '../engine/conditions';
+import { rederivePassiveAttack } from '../engine/combat';
+import { toutCoupEstCritique } from '../engine/structures';
+import { setRule, resetRule } from '../engine/policy';
+import type { TestResult } from '../engine/tests';
 import { stepInteraction } from './cascade';
 import { findTableEntry } from '../engine/tables';
 import { STRUCTURE_CRITICALS } from '../data/structureCriticals';
@@ -54,6 +59,16 @@ function start(structId: string, opts?: { down?: boolean; seed?: number }) {
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   return { S, H, b };
 }
+
+/** Jet de toucher réussi SANS double (AA 10 l.114 : le double est l'autre déclencheur). */
+const sansDouble: TestResult = { roll: 6, target: 70, success: true, sl: 5, isDouble: false } as TestResult;
+
+/** La structure `id` telle que le store la porte (absente = retirée du combat). */
+const live = (id: string): Combatant | undefined => useGame.getState().battle!.combatants.find((c) => c.id === id);
+
+/** Étapes de Critique de Structure empilées dans la cascade courante. */
+const etapesDeCritique = (): number =>
+  (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.table?.tableId === STRUCTURE_CRIT_TABLE).length;
 
 /** Construit un AttackResult de touche dont les Blessures sont calculées par le VRAI résolveur de Dégâts
  *  (`woundsFromHit`) — on teste ainsi le CHEMIN combat (Siège ×2 / immunités) jusqu'à l'application. */
@@ -123,19 +138,53 @@ describe('Structures de siège — Dégâts par le chemin combat', () => {
   });
 });
 
-describe('Structures de siège — BRÈCHE à 0 Blessure', () => {
+describe('Structures de siège — à 0 Blessure, la Structure reste debout (AA 10 l.114)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-sudden-death'); });
 
-  it('amener une Porte à 0 Blessure → structure abattue, retirée du combat, passage rouvert', () => {
+  it('amener une Porte à 0 Blessure (sans double) → elle reste en jeu, l\'arête bloque, aucun Critique', () => {
     const { S, H } = start('porte'); // B 8, Résistant (mêlée passe)
-    expect(wallBetween(useGame.getState().scene!, 2, 2, 3, 2)).toBe(true); // intacte : bloque
-    // Hache (mêlée) 20 Dégâts − BE 2 = 18 ≥ 8 → 0 Blessure → Effondrement.
+    // Hache (mêlée) 20 Dégâts − BE 2 = 18 ≥ 8 → 0 Blessure ; pas de Critique au dépassement (AA 10 l.114).
     applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, hitRes(hache, S!, 20));
-    const after = useGame.getState();
-    expect(structureIsDown(after.scene!, { x: 2, y: 2, side: 'E', structure: 'porte' })).toBe(true);
-    expect(after.battle!.combatants.some((c) => c.id === S!.id)).toBe(false); // retirée
-    expect(wallBetween(after.scene!, 2, 2, 3, 2)).toBe(false); // brèche : passage rouvert
+    const s = live(S!.id);
+    expect(s, 'la Structure à 0 reste au combat').toBeTruthy();
+    expect(s!.wounds.current).toBe(0);
+    expect(isOutOfAction(s!)).toBe(false);
+    expect(endState(s!)).toBe(null);
+    expect(etapesDeCritique()).toBe(0);
+    expect(structureIsDown(useGame.getState().scene!, { x: 2, y: 2, side: 'E', structure: 'porte' })).toBe(false);
+    expect(wallBetween(useGame.getState().scene!, 2, 2, 3, 2)).toBe(true); // pas de brèche
+  });
+
+  it('usesSuddenDeath est faux pour une Structure, même en portée « tous » ; vrai pour un PNJ', () => {
+    const { S, b } = start('porte');
+    setRule('combat-sudden-death', 'tous');
+    expect(usesSuddenDeath(S!)).toBe(false);
+    expect(usesSuddenDeath(b.combatants.find((c) => c.kind === 'enemy')!)).toBe(true); // contrôle
+  });
+
+  it('à 0, le coup suivant SANS double est un Critique de Structure ; au-dessus de 0, non', () => {
+    const { S, H } = start('porte');
+    expect(rederivePassiveAttack(H, S!, hache, sansDouble, 'melee').critical, 'contrôle : Structure intacte').toBe(false);
+    S!.wounds.current = 0;
+    expect(toutCoupEstCritique(S!)).toBe(true);
+    const res = rederivePassiveAttack(H, S!, hache, sansDouble, 'melee');
+    expect(res.critical).toBe(true);
+    applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, res);
+    expect(etapesDeCritique()).toBe(1);
+  });
+
+  it('un double qui fait TOMBER la Structure à 0 donne un Critique (seuil 25 % franchi)', () => {
+    const { S, H } = start('porte');
+    applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, hitRes(hache, S!, 20, { critical: true, attackerRoll: 22 }));
+    expect(etapesDeCritique()).toBe(1);
+  });
+
+  it('un double sur une Structure DÉJÀ à 0 donne UN SEUL Critique', () => {
+    const { S, H } = start('porte');
+    S!.wounds.current = 0;
+    applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, hitRes(hache, S!, 20, { critical: true, attackerRoll: 22 }));
+    expect(etapesDeCritique()).toBe(1);
   });
 });
 
@@ -143,29 +192,32 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  it("Effondrement (forcedRoll 98) → Blessures à 0 puis BRÈCHE via collapseStructure", () => {
+  it("Effondrement (forcedRoll 98) → `destroyed`, Blessures restantes CONSERVÉES (AA 10 l.127), puis BRÈCHE", () => {
     const { S, H } = start('mur-en-pierre');
     const log: string[] = [];
-    applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, log, 98);
-    expect(S!.wounds.current).toBe(0); // Effondrement → détruite
+    const before = S!.wounds.current;
+    expect(applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, log, 98).destroyed).toBe(true);
+    expect(S!.wounds.current).toBe(before);
     expect(S!.criticalWounds).toBe(1);
     collapseStructure(useGame.getState, useGame.setState, S!);
     expect(structureIsDown(useGame.getState().scene!, { x: 2, y: 2, side: 'E', structure: 'mur-en-pierre' })).toBe(true);
     expect(useGame.getState().battle!.combatants.some((c) => c.id === S!.id)).toBe(false);
   });
 
-  it("ligne à Blessures (forcedRoll 40, Secouée = 1) → 1 Blessure retirée", () => {
+  it("ligne à Blessures (forcedRoll 40, Secouée = 1) → 1 Blessure retirée, comptée au cumul, Structure gardée", () => {
     const { S, H } = start('mur-en-pierre');
     const before = S!.wounds.current;
-    applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], 40);
+    expect(applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], 40).destroyed).toBe(false);
     expect(S!.wounds.current).toBe(before - 1);
+    expect(S!.criticalWounds).toBe(1);
   });
 
-  it("Blessure Triviale (forcedRoll 10, Ébréchée) → 0 Blessure retirée", () => {
+  it("Blessure Triviale (forcedRoll 10, Ébréchée) → 0 Blessure retirée, hors du cumul (AA 07 l.79)", () => {
     const { S, H } = start('mur-en-pierre');
     const before = S!.wounds.current;
     applyStructureCriticalToTarget(useGame.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], 10);
     expect(S!.wounds.current).toBe(before);
+    expect(S!.criticalWounds ?? 0).toBe(0);
   });
 
   it("le Critique empile une ÉTAPE À TABLE : le tirage est DÉCLARÉ (table + dé + ligne stable), la séquence l'affiche", () => {
@@ -192,11 +244,77 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
   });
 });
 
+describe('Structures de siège — cumul de Critiques à 0 Blessure (AA 10 l.114 → LDB 18 l.15, l.34)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
+
+  const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
+  /** Porte (BE 2) amenée à 0 par la Hache, puis `critiques` Critiques non triviaux (Secouée) et `rounds`
+   *  franchissements de Round (`tick-death` puis `resolveRoundBoundary`, comme `advanceTurn`). */
+  function porteAZero(critiques: number, rounds: number) {
+    const { S, H } = start('porte');
+    applyAttackResult(useGame.getState, useGame.setState, H, S!, hache, hitRes(hache, S!, 20));
+    const s = live(S!.id)!;
+    for (let i = 0; i < critiques; i++) applyStructureCriticalToTarget(useGame.setState, s, {}, [], 40);
+    useGame.setState({ pendingCascade: null });
+    for (let r = 0; r < rounds; r++) {
+      tickDeath(s);
+      useGame.setState({ pendingCascade: null });
+      resolveRoundBoundary(useGame.getState, useGame.setState);
+    }
+    return s;
+  }
+
+  it('BE 2, à 0 depuis 3 Rounds, 3e Critique → Effondrement à la fin de CE Round : retrait ET brèche', () => {
+    const s = porteAZero(3, 3);
+    expect(live(s.id), 'retirée du combat').toBeUndefined();
+    expect(structureIsDown(useGame.getState().scene!, seg)).toBe(true);
+    expect(wallBetween(useGame.getState().scene!, 2, 2, 3, 2)).toBe(false);
+  });
+
+  it('sous le seuil de Critiques (2 ≤ BE) : la Structure tient', () => {
+    const s = porteAZero(2, 3);
+    expect(circonstanceMortelle(s)).toBe(false);
+    expect(live(s.id)).toBeTruthy();
+    expect(structureIsDown(useGame.getState().scene!, seg)).toBe(false);
+  });
+
+  it('sous le seuil de Rounds (2 ≤ BE) : la Structure tient', () => {
+    const s = porteAZero(3, 2);
+    expect(live(s.id)).toBeTruthy();
+    expect(structureIsDown(useGame.getState().scene!, seg)).toBe(false);
+  });
+
+  it('remontée au-dessus de 0 : l\'horloge repart de zéro', () => {
+    const s = porteAZero(3, 2);
+    expect(s.roundsAtZero).toBe(2);
+    s.wounds.current = 1;
+    tickDeath(s);
+    expect(s.roundsAtZero).toBe(0);
+    expect(circonstanceMortelle(s)).toBe(false);
+  });
+
+  it('une Structure ne passe jamais Inconsciente, ni en circonstance de mort de Personnage', () => {
+    const s = porteAZero(3, 2);
+    tickDeath(s);
+    expect(hasCondition(s, 'inconscient')).toBe(false);
+    expect(inDeathCondition(s)).toBe(false);
+    expect(circonstanceMortelle(s), 'contrôle : la circonstance de la Structure est atteinte').toBe(true);
+  });
+
+  it("mode 'aa' : l'horloge n'effondre pas (AA 06 l.556), seul le 96+ (AA 10 l.127)", () => {
+    setRule('combat-aa-blessures', 'aa');
+    const s = porteAZero(3, 3);
+    expect(live(s.id)).toBeTruthy();
+    expect(structureIsDown(useGame.getState().scene!, seg)).toBe(false);
+  });
+});
+
 describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête → battleClickEntity → brèche)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
-  it("cliquer la porte (battleClickEntity = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à la BRÈCHE", () => {
+  it("cliquer la porte (battleClickEntity = le clic sur l'overlay d'arête) la martèle par le flux d'attaque NORMAL jusqu'à l'Effondrement et la BRÈCHE", () => {
     const { S, H } = start('porte', { seed: 7 });
     const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
     // Héros au CONTACT de l'ancrage (2,2), arme de mêlée, Combat/Force élevés → traverse les 8 Bl (BE 2).
@@ -207,11 +325,16 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
     expect(wallBetween(useGame.getState().scene!, 2, 2, 3, 2)).toBe(true); // porte intacte : bloque
     const giveTurn = () => { const b = useGame.getState().battle!; useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed: 99, acted: false } }); };
     let guard = 0;
-    while (!structureIsDown(useGame.getState().scene!, seg) && guard++ < 12) {
+    let aZeroEnJeu = false;
+    while (!structureIsDown(useGame.getState().scene!, seg) && guard++ < 400) {
       giveTurn();
       useGame.getState().battleClickEntity(S!.id, { confirm: true }); // = clic sur l'overlay d'arête de la structure
       if (useGame.getState().pendingAttack) { useGame.getState().attackRoll(); useGame.getState().attackConfirm(); }
+      if (useGame.getState().pendingCascade) { useGame.getState().cascadeResolveAll(); useGame.getState().cascadeFinish(); }
+      const s = live(S!.id);
+      if (s && s.wounds.current <= 0) aZeroEnJeu = true;
     }
+    expect(aZeroEnJeu, 'la porte a été martelée à 0 sans tomber (AA 10 l.114)').toBe(true);
     const after = useGame.getState();
     expect(structureIsDown(after.scene!, seg)).toBe(true);                    // porte abattue par le clic
     expect(after.battle!.combatants.some((c) => c.id === S!.id)).toBe(false); // retirée du combat

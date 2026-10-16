@@ -30,6 +30,8 @@ import { hasActiveFlag } from './activeFlags';
 import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
 import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
+import { isInanimate, isStructure } from './structures'; // cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
+import { hasTalent } from './magic'; // cycle runtime (magic→combat→conditions) : appelé à la lecture de la Mort subite, jamais à l'init
 import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
 
 /** Les 12 États CANONIQUES (LDB 16) à comportement moteur, par `id` STABLE (slug d'etats.json). Le
@@ -944,29 +946,42 @@ export function bleedDeathRoll(c: Combatant, rng: RNG = defaultRNG): { died: boo
   return { died: false, log: [] };
 }
 
-/** Mort Subite (LDB 18 l.42-46) : sortie directe à 0 PB, sans passer par les Blessures critiques.
- *  Portée réglable (`combat-sudden-death`) — JAMAIS les PJ : 'figurants' (défaut) = figurants seuls ;
- *  'tous' = aussi les PNJ importants ; 'off' = personne (tout passe par les critiques). SOURCE UNIQUE
- *  (consommée par `isOutOfAction` et la résolution de Blessure critique). */
+/** Mort Subite : LDB 18 l.42-46 ; variante `combat-aa-blessures: 'aa'` : AA 07 l.65-67 (AA 06 l.556).
+ *  Portée réglable (`combat-sudden-death`) — JAMAIS les PJ : 'figurants' (défaut) = hors PNJ importants
+ *  (`ldb`) ou hors PNJ à Talent Chanceux (`aa`) ; 'tous' = tout PNJ ; 'off' = personne. Jamais un objet
+ *  inanimé : AA 10 l.114, MDG 13 l.656, MSRC 07 l.74, EDOC 07 l.334. SOURCE UNIQUE (consommée par
+ *  `isOutOfAction`, `endState` et la résolution de Blessure critique). */
 export function usesSuddenDeath(c: Combatant): boolean {
-  if (c.kind === 'hero') return false; // jamais pour les PJ (LDB 18 l.46)
-  if (isVehicle(c)) return false; // MDG 13 l.656
+  if (c.kind === 'hero') return false; // LDB 18 l.46 ; AA 07 l.67
+  if (isInanimate(c)) return false;
   const mode = rule('combat-sudden-death');
   if (mode === 'off') return false;
   if (mode === 'tous') return true;
-  return !c.important; // 'figurants' : figurants seulement
+  return rule('combat-aa-blessures') === 'aa' ? !hasTalent(c, 'chanceux') : !c.important; // AA 07 l.67 ; LDB 18 l.46
 }
 
-/** Hors de combat : mort, ou Inconscient, ou figurant tombé à 0 PB (Mort Subite), ou COQUE à 0 PB
- *  (détruite / coulée). Un héros à 0 PB reste actif (À Terre) — pas hors de combat (LDB 18 l.15). */
+/** Le coup ouvre-t-il une Blessure Critique PAR LES BLESSURES (hors double) ? `ldb` : dépassement strict
+ *  (LDB 18 l.17) ; `aa` : la cible tombe à 0 ou y était déjà (AA 07 l.25, l.36). `lost` = Blessures du coup,
+ *  `current` = Blessures restantes AVANT le coup. */
+export function critiqueParLesBlessures(lost: number, current: number): boolean {
+  return rule('combat-aa-blessures') === 'aa' ? lost >= current : lost > current;
+}
+
+/** Mort subite qui met hors de combat à 0 Blessure, sans Inconscient : `aa` seulement (AA 07 l.65). En
+ *  `ldb`, la sortie passe par le dépassement (LDB 18 l.46), qui pose l'Inconscient. */
+function horsDeCombatParMortSubite(c: Combatant): boolean {
+  return rule('combat-aa-blessures') === 'aa' && usesSuddenDeath(c) && !!c.wounds && c.wounds.current <= 0;
+}
+
+/** Hors de combat : mort, ou Inconscient, ou figurant sorti par la Mort Subite, ou COQUE coulée. Un héros
+ *  à 0 PB reste actif (À Terre) — pas hors de combat (LDB 18 l.15). Une Structure ou une coque à 0 reste
+ *  en jeu (AA 10 l.114, MDG 13 l.656, MSRC 07 l.74). */
 export function isOutOfAction(c: Combatant): boolean {
   // Un OBJET INERTE servi (affût d'artillerie) n'est jamais une PERTE par Blessures (il en a 0, immune) :
   // « hors de combat » seulement s'il est explicitement retiré (détruit hors-combat / éjecté de la rencontre).
   if (c.inert) return c.dead === true || c.outOfRencontre === true;
-  // Coque : détruite à 0 PB (MDG 13 l.656), OU coulée par la Voie d'eau — Inondation ≥ Endurance pose
-  // l'État `naufrage` (MDG 13 l.674 : « il coule »), l'autre voie de coulée que les Blessures à 0.
-  if (isVehicle(c)) return c.dead === true || c.outOfRencontre === true || c.wounds.current <= 0 || hasCondition(c, 'naufrage');
-  return c.dead === true || c.outOfRencontre === true || hasCondition(c, COND.inconscient) || (usesSuddenDeath(c) && c.wounds.current <= 0);
+  if (isVehicle(c)) return c.dead === true || c.outOfRencontre === true || hasCondition(c, 'naufrage'); // MDG 13 l.674
+  return c.dead === true || c.outOfRencontre === true || hasCondition(c, COND.inconscient) || horsDeCombatParMortSubite(c);
 }
 
 /** Catégorie d'état de FIN d'un combattant, pour l'AFFICHAGE (#237). */
@@ -983,8 +998,8 @@ export function endState(c: Combatant): EndState | null {
   if (c.inert) return null;
   if (c.dead) return 'mort';
   if (c.outOfRencontre) return c.exitReason === 'reddition' || c.exitReason === 'prise' ? 'rendu' : 'hors-combat';
-  if (isVehicle(c)) return c.wounds && c.wounds.current <= 0 ? 'hors-combat' : null; // MDG 13
-  if (usesSuddenDeath(c) && c.wounds && c.wounds.current <= 0) return 'hors-combat'; // figurant tombé à 0 PB
+  if (isVehicle(c)) return isOutOfAction(c) ? 'hors-combat' : null; // MDG 13 l.674
+  if (horsDeCombatParMortSubite(c)) return 'hors-combat'; // AA 07 l.65
   if (!c.dead && hasCondition(c, COND.inconscient)) return 'inconscient'; // vivant mais KO (même gate de cycle de vie qu'isOutOfAction)
   return null;
 }
@@ -1005,11 +1020,25 @@ export function inDeathCondition(c: Combatant): boolean {
   return hasCondition(c, COND.inconscient) && c.wounds.current <= 0 && (c.criticalWounds ?? 0) > be;
 }
 
+/** Horloge de LDB 18 l.15 écoulée : à 0 PB depuis plus de BE Rounds (`roundsAtZero`, posé par `tickDeath`). */
+function horlogeAZeroEcoulee(c: Combatant): boolean {
+  return (c.roundsAtZero ?? 0) > bonus(effectiveChar(c, 'endurance'));
+}
+
+/** Circonstance qui entraînerait la mort d'un Personnage, lue pour TOUT porteur : `inDeathCondition` pour un
+ *  Personnage ; pour une Structure, qui ne passe jamais Inconsciente, le même compte de Critiques (LDB 18 l.34)
+ *  sur la même horloge (LDB 18 l.15), par le renvoi d'AA 10 l.114 → Effondrement. En `aa`, la Structure n'a
+ *  pas cette circonstance : AA 06 l.556 remplace l'horloge de LDB 18 l.15 (AA 10 l.127 seul l'effondre). */
+export function circonstanceMortelle(c: Combatant): boolean {
+  if (!isStructure(c)) return inDeathCondition(c);
+  if (c.dead || c.outOfRencontre || rule('combat-aa-blessures') === 'aa') return false;
+  return c.wounds.current <= 0 && horlogeAZeroEcoulee(c) && (c.criticalWounds ?? 0) > bonus(effectiveChar(c, 'endurance'));
+}
+
 /** À 0 PB : gagne l'État À Terre (LDB 18 l.15). À appeler quand un coup non-critique amène à 0.
- *  (Une COQUE ne tombe pas « À Terre » : sa mise hors-jeu à 0 PB est gérée par `isOutOfAction`.) */
+ *  Un objet inanimé (Structure, coque, affût) ne tombe jamais À Terre : AA 10 l.114, MDG 13 l.656. */
 export function applyZeroWounds(c: Combatant): void {
-  if (c.inert) return; // OBJET INERTE (affût d'artillerie) : en permanence à 0 PB, immune aux Blessures → jamais À Terre (cf. isOutOfAction)
-  if (isVehicle(c)) return;
+  if (isInanimate(c)) return;
   if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
 }
 
@@ -1030,7 +1059,7 @@ export function loseWounds(c: Combatant, amount: number): number {
 }
 
 /**
- * Upkeep de mort en fin de Round (LDB 18 l.15, l.34) — héros/importants seulement :
+ * Upkeep de mort en fin de Round (LDB 18 l.15, l.34) — tout porteur hors coque et objet servi :
  *  - à 0 PB non soigné : roundsAtZero++ ; après (Bonus d'Endurance) Rounds → Inconscient (LDB 18 l.15) ;
  *  - Inconscient + 0 PB + (criticalWounds > BE) → mort.
  * Variante Aux Armes (AA 07 l.5) : le système alternatif REMPLACE ce décompte déterministe → à 0 PB, on ne
@@ -1040,14 +1069,14 @@ export function loseWounds(c: Combatant, amount: number): number {
  */
 export function tickDeath(c: Combatant): string[] {
   const log: string[] = [];
-  if (c.dead || c.outOfRencontre || c.inert || usesSuddenDeath(c) || isVehicle(c)) return log; // un OBJET INERTE (affût, 0 PB permanent) et une coque ne « meurent » pas par la cascade Inconscient→mort (cf. isOutOfAction)
-  const be = bonus(effectiveChar(c, 'endurance'));
+  if (c.dead || c.outOfRencontre || c.inert || isVehicle(c)) return log; // MDG 13 l.656, l.674
   if (c.wounds.current > 0) {
     c.roundsAtZero = 0;
     return log;
   }
   c.roundsAtZero = (c.roundsAtZero ?? 0) + 1;
-  if (rule('combat-aa-blessures') !== 'aa' && c.roundsAtZero > be && !hasCondition(c, COND.inconscient)) {
+  // Une Structure compte l'horloge (AA 10 l.114 → LDB 18 l.15, lue par `circonstanceMortelle`) sans jamais perdre connaissance.
+  if (rule('combat-aa-blessures') !== 'aa' && !isStructure(c) && horlogeAZeroEcoulee(c) && !hasCondition(c, COND.inconscient)) {
     addCondition(c, COND.inconscient);
     log.push(t('cond.unconscious', { name: c.label, rounds: c.roundsAtZero }));
   }

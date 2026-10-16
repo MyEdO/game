@@ -155,7 +155,7 @@ import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, isUnarmed, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, usesSuddenDeath, inDeathCondition, circonstanceMortelle, critiqueParLesBlessures, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
 import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
@@ -1761,10 +1761,10 @@ export function applyCriticalToTarget(
   // d'attaque normal passe déjà par `applyStructureCriticalToTarget` (cf. `applyAttackResult`).
   if (target.bodyShape === 'structure') {
     applyStructureCriticalToTarget(set, target, { attackerId: ctx?.attackerId, attackerKind: ctx?.attackerKind, weapon: ctx?.weapon }, log);
-    return false; // une Structure ne « meurt » pas comme un personnage : la destruction = ses Blessures → BRÈCHE
+    return false; // une Structure ne « meurt » pas comme un personnage : sa destruction est l'Effondrement (AA 10 l.127)
   }
-  if (overkill > 0 && !isCoupCritique && usesSuddenDeath(target)) {
-    // Figurant : Mort Subite (LDB 18 l.42-46) — sortie directe.
+  if (!isCoupCritique && usesSuddenDeath(target)) {
+    // Figurant : Mort Subite (LDB 18 l.46 ; AA 07 l.65) — sortie directe sur la Blessure Critique ouverte par les Blessures.
     target.wounds.current = 0;
     if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
     log.push(tr('cf.collapse', { name: target.label }));
@@ -1938,8 +1938,8 @@ registerTableStep(STRUCTURE_CRIT_TABLE, {
  * Critique de Structure (AA 10 l.112-127) — calqué sur `applyHullCriticalToTarget`. Le dé passe par
  * l'étape à TABLE (`rollTableStep`, #942 L2 — site UNIQUE du tirage, `forcedRoll` = l'injection) ; le
  * moteur (`rollStructureCritical`) reste la source du LOOKUP mécanique sur CE dé : Blessures
- * supplémentaires (langue `GameOp`, ignore BE/PA) et, sur un Effondrement (96+), Structure à 0 Blessure
- * (la destruction se matérialise en BRÈCHE par `collapseStructure`, à la clôture de la résolution).
+ * supplémentaires (langue `GameOp`, ignore BE/PA) et, sur un Effondrement (96+), `destroyed` : l'appelant
+ * matérialise la BRÈCHE par `collapseStructure`, Blessures restantes conservées (AA 10 l.127).
  * Empile l'étape « Critique de Structure » (déclaration de table + charge riche) si un héros est
  * concerné. PUR vis-à-vis de la grille (aucun retrait ici).
  */
@@ -1959,9 +1959,8 @@ export function applyStructureCriticalToTarget(
   const table: CascadeTableDecl = { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, forcedRoll };
   const rolled = rollTableStep(table, battleRng());
   const outcome = rollStructureCritical(battleRng(), rolled.die);
-  target.criticalWounds = (target.criticalWounds ?? 0) + 1;
+  if (!outcome.entry.trivial) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // AA 07 l.79
   applyOps(target, outcome.ops, { rng: battleRng() }); // Blessures supplémentaires (GameOp `wounds`, ignore BE+PA)
-  if (outcome.destroyed) target.wounds.current = 0; // Effondrement → la Structure s'écroule (BRÈCHE à la clôture)
   for (const l of outcome.log) log.push(l);
   if (outcome.note) log.push(`  ↳ ${outcome.note}`); // effets verbatim sur les personnes (débris/Tests), non simulés
   if (target.kind === 'hero' || ctx.attackerKind === 'hero') {
@@ -1974,7 +1973,7 @@ export function applyStructureCriticalToTarget(
     // Étape poussée DÉJÀ tirée : le mint fait descendre l'enjeu à la ligne atteinte (`stakeAtTableRow`
     // lit la catégorie déclarée par la table), et porte la charge riche dans son slot `reveal`.
     pushTableDone(set, {
-      id: `cons-critical-structure-${target.id}-${target.criticalWounds}`,
+      id: `cons-critical-structure-${target.id}-${target.criticalWounds ?? 0}-${rolled.roll}`,
       kind: 'critical', actorId: target.id, icon: 'journal/critical', label: dataLabel(entry.title),
       table, result: rolled, reveal: entry, outcome: toRecapLines(rolled.lines),
       stake: combatStakeRef('structureCritical'),
@@ -1983,7 +1982,7 @@ export function applyStructureCriticalToTarget(
   return outcome;
 }
 
-/** Effondrement d'une STRUCTURE de siège tombée à 0 Blessure (AA 10 l.114/127) → BRÈCHE franchissable : pose le flag
+/** Effondrement d'une STRUCTURE de siège (AA 10 l.127) → BRÈCHE franchissable : pose le flag
  *  `structureDown` sur l'arête (`structureEdge`), RETIRE le Combattant inerte de la bataille et re-render
  *  (SCENE_DIRTY). Appelée à la CLÔTURE de la résolution (APRÈS le `set` qui réécrit `battle` depuis sa capture)
  *  → pas de clobber. No-op (réf inchangée pour la scène) si la cible n'a pas d'arête (structure hors scène). */
@@ -2466,6 +2465,7 @@ function appliquerLaTouche(
   // Blessure Critique = Coup Critique sur double OU dépassement (LDB 18 l.53) — la Déviation couvre LES DEUX
   // (LDB 63 l.30). `overkill0` = PB COURANTS dépassés par les Dégâts de base (avant re-localisation du Critique).
   const overkill0 = Math.max(0, (res.woundsLost ?? 0) - target.wounds.current);
+  const critiqueDesBlessures0 = critiqueParLesBlessures(res.woundsLost ?? 0, target.wounds.current); // LDB 18 l.17 ; AA 07 l.36
   const dloc = (res.critical && standard && target.kind === 'hero')
     ? (res.critLocation ??= critWoundLocation(battleRng(), target.bodyShape))
     : (res.location ?? 'corps'); // dépassement (≠ double) : loc de touche, pas de re-tirage
@@ -2489,7 +2489,7 @@ function appliquerLaTouche(
   // ne sont pas déclarées en étapes — l'étape n'y porte alors QUE la décision, sur un Critique tiré au
   // mint. Coque/Structure ont leurs propres tables (non déclarées ici) → aucune étape ici.
   const twice = critRollTwiceFor(attacker);
-  if (standard && !prerolledCrit && res.hit && (res.critical || overkill0 > 0)
+  if (standard && !prerolledCrit && res.hit && (res.critical || critiqueDesBlessures0)
       && !isStructure(target) && !isVehicle(target)) {
     const cloc = res.critical ? critWoundLocation(battleRng(), target.bodyShape, res.critLocation) : dloc;
     if (res.critical) res.critLocation = cloc; // LDB 18 l.55 (#80) : loc FIGÉE avant la suspension (jamais re-tirée)
@@ -2584,19 +2584,22 @@ function appliquerLaTouche(
       refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
     }
   };
+  let effondree = false;
   if (res.hit && isStructure(target)) {
     // STRUCTURE de siège (AA 10 l.105/114) : modèle DISTINCT du personnage — pas de Localisation, d'À Terre, de
     // Déviation d'armure ni de Trauma humain. Les Blessures sont déjà mitigées par `woundsFromHit` (Siège
-    // ×2 / Résistant-Impénétrable-Bélier → 0). La chute à 0 Blessure devient une BRÈCHE (posée par
+    // ×2 / Résistant-Impénétrable-Bélier → 0). Seul l'Effondrement (AA 10 l.127) ouvre la BRÈCHE (posée par
     // `collapseStructure` à la clôture, hors clobber du `set` final).
     const lost = res.woundsLost ?? 0;
     const before = target.wounds.current;
     target.wounds.current = Math.max(0, before - lost);
-    if (res.critical && before > 0 && lost >= before * 0.25 && target.wounds.current > 0)
-      applyStructureCriticalToTarget(set, target, { attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label }, critLog);
+    // AA 10 l.114 : double qui retire ≥ 25 % des Blessures restantes ; à 0 (`toutCoupEstCritique`), le seuil vaut 0.
+    if (res.critical && lost >= before * 0.25)
+      effondree = applyStructureCriticalToTarget(set, target, { attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label }, critLog).destroyed;
   } else if (res.hit && isVehicle(target)) {
-    // COQUE : MDG 13 l.656 (`res.critical`, posé par `applyHit`), MDG 12 l.232 (aucune Déviation). Ni
-    // Localisation re-tirée ni Blessures recalculées : `res.woundsLost` tel quel.
+    // COQUE : MDG 13 l.656, MSRC 07 l.74 (`res.critical`, posé par `applyHit`), MDG 12 l.232 (aucune Déviation).
+    // Ni Localisation re-tirée ni Blessures recalculées : `res.woundsLost` tel quel. Véhicule routier : EDOC 07 l.334,
+    // refusé par `applyCriticalToTarget`.
     const currentBefore = target.wounds.current;
     target.wounds.current = Math.max(0, currentBefore - (res.woundsLost ?? 0));
     if (res.critical) apresLeCritique(applyCritAndFinalize(get, set, target, 'corps', true, 0, critLog, ctxCrit, currentBefore), 'corps');
@@ -2613,6 +2616,7 @@ function appliquerLaTouche(
     const lost = res.woundsLost ?? 0;
     const currentBefore = target.wounds.current;
     const overkill = lost - currentBefore; // LDB 18 l.30
+    const critiqueDesBlessures = critiqueParLesBlessures(lost, currentBefore); // LDB 18 l.17 ; AA 07 l.36
     target.wounds.current = Math.max(0, currentBefore - lost);
     const loc = res.location ?? 'corps';
     // Réouverture d'une plaie critique (LDB 18 / AA 07) — jumeau du Projectile magique (appliquerTouchePourCible).
@@ -2626,13 +2630,13 @@ function appliquerLaTouche(
     // tient voit l'automate trancher (`autoDeviate`, rule-gated) ; un porteur TENU ne dévie que s'il l'a
     // CHOISI (`deviation: 'devier'`, `deflectCrit`).
     let deviationApplied = false;
-    if (res.critical || overkill > 0) {
+    if (res.critical || critiqueDesBlessures) {
       if (!tenuParUnHumain(get(), target.id))
         deviationApplied = autoDeviate(set, target, loc, extra, { attackerId: attacker.id, weapon: weapon?.label }, prerolledCrit?.roll ?? res.attackerRoll, critLog, attacker.kind === 'hero');
       else if (deviation === 'devier')
         deviationApplied = deflectCrit(target, loc, extra, critLog);
     }
-    if (!deviationApplied && (res.critical || overkill > 0)) {
+    if (!deviationApplied && (res.critical || critiqueDesBlessures)) {
       // « Subir » après déviation proposée : applique LA Blessure Critique déjà montrée (prerolledCrit), sans
       // re-tirer ni re-révéler. Le pré-tiré qui arrive SANS `deviation` tranchée vient de la fenêtre de pose
       // du dé (#942 L4) : sa révélation reste due.
@@ -2845,9 +2849,9 @@ function appliquerLaTouche(
   if (res.defenderDetail && !res.defenderDetail.success) log.push(...evLines(fireOwnTestFailed(get, target, { sl: res.defenderDetail.sl, set, rng: battleRng() }), 'condition', target.id));
   log.push(...drainPendingLog(get, set));
   set({ battle: { ...battle, acted: !salvoContinues, action: null, log } });
-  // Structure de siège tombée à 0 Blessure → BRÈCHE : retrait du Combattant inerte + flag d'arête abattue.
+  // Structure EFFONDRÉE (AA 10 l.127) → BRÈCHE : retrait du Combattant inerte + flag d'arête abattue.
   // APRÈS le `set` ci-dessus (qui réécrit `battle` depuis la capture STALE) pour ne pas re-réintroduire la structure.
-  if (isStructure(target) && target.wounds.current <= 0) collapseStructure(get, set, target);
+  if (effondree) collapseStructure(get, set, target);
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return false; // non suspendu : application complète terminée
@@ -5768,7 +5772,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.reinjuryBleed', { name: cible.label, n: mReinj, loc: locationLabel(mloc, cible.bodyShape) })); }
   // Blessure Critique : choix « Incantation Critique » du lanceur (LDB 46 l.30), ou overkill.
   const critWound = ch.critWound;
-  if (critWound || overkill > 0) {
+  if (critWound || critiqueParLesBlessures(mres.woundsLost, currentBefore)) { // LDB 18 l.17 ; AA 07 l.36
     const loc = mres.location ?? 'corps'; // double → loc re-tirée (#80) ; dépassement → loc de touche
     const ovk = Math.max(0, overkill);
     const c2: DeviationCtx = { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: critRollTwiceFor(caster) };
@@ -7392,7 +7396,14 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
     return;
   }
   // (2) Finaliser les morts lentes restantes (héros sans Destin) — + effet « à la mort » (onSlain) éventuel.
-  for (const c of battle.combatants) if (inDeathCondition(c)) { c.dead = true; for (const line of notifySlain(get, set, c)) battle.log.push(ev('death', line, c.id)); }
+  //      Une Structure dans la même circonstance s'effondre (AA 10 l.114 → l.127), après les passes en place ci-dessous.
+  const effondrees: Combatant[] = [];
+  for (const c of battle.combatants) {
+    if (!circonstanceMortelle(c)) continue;
+    if (isStructure(c)) { effondrees.push(c); continue; }
+    c.dead = true;
+    for (const line of notifySlain(get, set, c)) battle.log.push(ev('death', line, c.id));
+  }
   // (2bis) Mort par Hémorragique (LDB 16 l.105) — combattants `bleedDoomed` (jet RNG du hook `bleed-death`).
   //        Un héros à Destin → SUSPEND (pendingFateSave 'slow', re-entre ici après résolution ; le sauvé est
   //        éjecté → filtré) ; sinon mort finalisée (annonce différée + onSlain). Une fois tous résolus, on purge.
@@ -7431,6 +7442,14 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   }
   // « Avantages et Magie » : la convergence de Domaine ne vaut que DANS le Round (LDB 46 l.123-125).
   if (battle.domainCasts?.length) battle.domainCasts = undefined;
+  // (3bis) Effondrement (AA 10 l.127) des Structures relevées en (2) : ligne `destroyed` de la table, puis BRÈCHE.
+  const deEffondrement = garanti(STRUCTURE_CRITICALS.find((e) => e.destroyed), 'destroyed', 'ligne de structure-criticals.json').min;
+  for (const s of effondrees) {
+    const lignes: string[] = [];
+    applyStructureCriticalToTarget(set, s, {}, lignes, deEffondrement);
+    for (const l of lignes) battle.log.push(ev('damage', l, s.id));
+    collapseStructure(get, set, s);
+  }
   // (4) Le combat est-il terminé à ce franchissement ? (morts lentes finalisées ci-dessus → victoire/défaite,
   //     capture des récompenses incluse). On tranche AVANT de proposer la fenêtre d'initiative.
   if (checkBattleOver(get, set)) return;

@@ -18,10 +18,30 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
   it("héros à 0 PB n'est PAS hors de combat (À Terre, agit encore)", () => {
     expect(isOutOfAction(mk({ wounds: { current: 0, max: 12 } }))).toBe(false);
   });
-  it('ennemi à 0 PB est hors de combat (Mort Subite)', () => {
-    const e = mk({ kind: 'enemy', wounds: { current: 0, max: 12 } });
-    expect(usesSuddenDeath(e)).toBe(true);
-    expect(isOutOfAction(e)).toBe(true);
+  describe('figurant à 0 PB exact : la Mort Subite suit le déclencheur du mode', () => {
+    afterEach(() => resetRule('combat-aa-blessures'));
+    const e = () => mk({ kind: 'enemy', wounds: { current: 0, max: 12 } });
+    it("'ldb' : à 0 exact, ni dépassement ni sortie (LDB 18 l.46) — À Terre, horloge de LDB 18 l.15", () => {
+      const f = e();
+      expect(usesSuddenDeath(f)).toBe(true);
+      expect(isOutOfAction(f)).toBe(false);
+      applyZeroWounds(f);
+      expect(hasCondition(f, 'a-terre')).toBe(true);
+      tickDeath(f);
+      expect(f.roundsAtZero).toBe(1);
+    });
+    it("'aa' : atteindre 0 Blessure met hors de combat (AA 07 l.65)", () => {
+      setRule('combat-aa-blessures', 'aa');
+      expect(isOutOfAction(e())).toBe(true);
+    });
+    it("'aa' : un PNJ à Talent Chanceux n'est pas un figurant (AA 07 l.67)", () => {
+      setRule('combat-aa-blessures', 'aa');
+      const chanceux = mk({ kind: 'enemy', important: false, talents: [{ talentId: 'chanceux', times: 1 }], wounds: { current: 0, max: 12 } } as Partial<Combatant>);
+      expect(usesSuddenDeath(chanceux)).toBe(false);
+      expect(isOutOfAction(chanceux)).toBe(false);
+      const important = mk({ kind: 'enemy', important: true, wounds: { current: 0, max: 12 } } as Partial<Combatant>);
+      expect(usesSuddenDeath(important)).toBe(true);
+    });
   });
   describe('Mort Subite — portée réglable (LDB 18 l.42) ; jamais les PJ', () => {
     afterEach(() => resetRule('combat-sudden-death'));

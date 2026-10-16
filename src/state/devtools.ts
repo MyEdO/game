@@ -2345,13 +2345,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE #332 : déclenche `beginShipwreck` DIRECTEMENT (setup ASSUMÉ — PAS le pipeline de dégâts
-     *  `dealShipDamage`/`damageVesselHull`) — la garde de naufrage n'est évaluée QU'À L'ENTRÉE de
-     *  `runSeaDay` (`seaVoyageFlow.ts` : `plan.vehicle.wounds.current <= 0`) : infliger `dealShipDamage(999)`
-     *  puis rouler le jour se fait EFFACER par la Réparation de fortune du MÊME jour AVANT que la garde ne
-     *  soit re-consultée — piège d'ordonnancement documenté `docs/recette-navigateur.md`. Ce helper appelle
-     *  la MÊME fonction que `runSeaDay`/`checkBattleOver` sur naufrage réel, juste sans la course contre
-     *  la Réparation de fortune. `aboardIds` (optionnel) restreint les héros à bord (défaut : tout le
-     *  groupe vivant, cf. signature `beginShipwreck`). */
+     *  `dealShipDamage`/`damageVesselHull`) : une coque à 0 Blessure ne coule pas (MDG 13 l.656, l.674), le
+     *  seul naufrage réel est celui du combat (`checkBattleOver`, État `naufrage`). Ce helper appelle la
+     *  MÊME fonction. `aboardIds` (optionnel) restreint les héros à bord (défaut : tout le groupe vivant,
+     *  cf. signature `beginShipwreck`). */
     /** RECETTE #1117 : arme le CHAVIRAGE de la PROCHAINE journée fluviale — pose le vent Très fort de
      *  CÔTÉ sur `travelPlan.river` (`riverWindEffect` en dérive `capsizeRisk`, la seule combinaison de
      *  la donnée qui le porte). Le jour suivant construit alors son étape « Retirer la voile » ; son
