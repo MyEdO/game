@@ -27,7 +27,7 @@ import type { GameOp } from './ops';
 import type { CreatureAttack } from './creatureAttacks';
 import { SIZE_RANGED_MOD, SIZE_LABEL, SIZE_ORDER, sizeGap, effectiveSize, sizeDamageMultiplier, sizeGrantedQualities } from './size';
 import { groupMatch } from './groups';
-import { ignoredArmourAP, impenetrableAt, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon } from './items';
+import { ignoredArmourAP, loadedAmmo, activeLoadout, unarmedWeapon, buildWeapon } from './items';
 import { incomingAttackMod, incomingDamageNullified, skillDRBonus, offTerrainTestDR } from './ops';
 import { isPsychImmune, psychImmuneToFrom } from './psychology';
 import { qualitySum, attackModQualityIds, qualityCritTriggered, parryDRAdjust, qualityDamageStep, craftTestDRAdjust, hasQuality, canFireWhileEngaged as qCanFireWhileEngaged, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, protectriceAP, rangedOpposeWeapon, isMagicWeapon, resolveQualities } from './qualities/dispatch';
@@ -38,7 +38,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import type { CauseCoupCritique } from './critical';
+import { estUnCoupCritique, type CauseCoupCritique } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -489,7 +489,7 @@ export interface AttackResult {
    *  recalculer les Blessures à la localisation RE-TIRÉE d'un Coup Critique (`woundsAtCritLocation`, LDB 18
    *  l.55), où seule l'ignorance de PA (Partielle / Points faibles) dépend de la localisation. */
   apExternal?: number;
-  /** Coup Critique (LDB 13 l.161 ; LDB 62 l.282) — jamais le dépassement, compté par `critiquesDuCoup`. */
+  /** Coup Critique (LDB 13 l.183 ; LDB 62 l.248) — jamais le dépassement, compté par `critiquesDuCoup`. */
   critical: boolean;
   /** #1595 c.6221792068 Q2. */
   sansPrise?: SansPrise;
@@ -1543,7 +1543,7 @@ export function peutRetenirSesCoups(weapon: Weapon): boolean {
   return rule('combat-aa-blessures') !== 'aa' || (weapon.type === 'melee' && !weaponInflictsFlames(weapon));
 }
 
-/** Cause du Coup Critique d'une touche d'arme (LDB 13 l.161 ; LDB 62 l.282) — le double prime. */
+/** Cause du Coup Critique d'une touche d'arme (LDB 13 l.183 ; LDB 62 l.248) — le double prime. */
 export function causeDuCoupCritique(res: Pick<AttackResult, 'critical' | 'attackerRoll'>): CauseCoupCritique | null {
   if (!res.critical) return null;
   return isDoubleRoll(res.attackerRoll) ? 'double' : 'empaleuse';
@@ -1626,15 +1626,12 @@ function applyHit(
   // Coque (MDG 13 l.618-637) : le BE ajusté du tableau (« 3 × BE » / « BE−1 ») est appliqué côté
   // Dégâts (mathématiquement identique, sans écraser le clamp de PA) — « 3 × BE » ⇔ −2×BE de plus.
   if (hullAdj && 'extraTB' in hullAdj) damage -= hullAdj.extraTB;
-  // Coup Critique (LDB 13 l.161 ; LDB 62 l.282). Le compte des Blessures critiques, dépassement compris,
+  // Coup Critique (LDB 13 l.183 ; LDB 62 l.248). Le compte des Blessures critiques, dépassement compris,
   // vit dans `critiquesDuCoup` (#1595 c.6220635824).
   const empale = qualityCritTriggered(weapon, atkBd.roll);
   let isCritical = (critical || empale) && !withholding; // LDB 18 l.30 ; AA 07 l.59
-  // Impénétrable (LDB 63) : « Toutes les Blessures Critiques causées par un nombre impair pour vous
-  // toucher sont ignorées » — pièce Impénétrable à la localisation + jet de toucher impair.
-  if (isCritical && atkBd.roll % 2 === 1 && loc && impenetrableAt(defender, loc)) isCritical = false;
-  // Partielle / Points faibles (LDB 63) : PA des pièces concernées ignorés par CETTE touche.
-  const ignoredAP = loc ? ignoredArmourAP(defender, loc, { roll: atkBd.roll, critical: isCritical, empaleuse: hasQuality(weapon, 'empaleuse') }) : 0;
+  // LDB 63 l.86, l.90 ; LDB 63 l.78 ; #1595 c.6225326419 R2.
+  const ignoredAP = loc ? ignoredArmourAP(defender, loc, { roll: atkBd.roll, critical: estUnCoupCritique(isCritical ? 'coup-critique' : null), empaleuse: hasQuality(weapon, 'empaleuse') }) : 0;
   // Tir sûr (LDB 10) : ignore niveau PA de la cible au tir.
   const sureShot = weapon.type === 'ranged' ? talentRangedAPIgnore(attacker) : 0;
   // Coque bloquée (MDG 13) : petites armes (l.605) / case « – » du tableau des Tailles (l.614) →

@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { critiquesDuCoup, porteurDeCritique, type CauseCoupCritique, type JeuDeCritique } from './critical';
+import { critiquesDuCoup, estUnCoupCritique, porteurDeCritique, type CauseCoupCritique, type JeuDeCritique } from './critical';
 import { findVehicleById } from '../data';
 import { resetRule, setRule } from './policy';
 import type { Combatant } from './types';
@@ -58,6 +58,10 @@ describe('critiquesDuCoup — porteur × jeu × cause', () => {
   });
   it('aa, Personnage, tomber à 0 suffit (AA 07 l.36)', () => {
     expect(origines(compte(personnage, 'aa', { current: 3, lost: 3 }))).toEqual(['depassement:0']);
+  });
+  it("estUnCoupCritique : le Critique du passage à 0 en aa n'est pas un Coup Critique, celui du double l'est (#1595 c.6225522950)", () => {
+    expect(compte(personnage, 'aa', { current: 3, lost: 3 }).critiques.map((x) => estUnCoupCritique(x.origine))).toEqual([false]);
+    expect(compte(personnage, 'aa', { cc: 'double', current: 3, lost: 7 }).critiques.map((x) => estUnCoupCritique(x.origine))).toEqual([true]);
   });
   it('Perturbante contre un Personnage à 0 : +0 en aa, rien en ldb (#1595 c.6221792068 Q2)', () => {
     expect(origines(compte(personnage, 'aa', { current: 0, lost: 0 }))).toEqual(['depassement:0']);

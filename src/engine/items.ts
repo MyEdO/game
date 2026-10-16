@@ -962,11 +962,7 @@ export function wornArmourPoints(items: ItemInstance[], exclude?: (it: ItemInsta
 }
 
 /**
- * PA portés à `loc` IGNORÉS par cette touche (LDB 63, Qualités des armures) :
- *  - Partielle : « Un adversaire qui obtient un nombre pair pour vous toucher, ou obtient un
- *    Coup Critique, ignore les PA de l'armure Partielle » ;
- *  - Points faibles : « Si votre adversaire possède une arme avec l'Atout Empaleuse et obtient
- *    un Critique, les PA de votre armure sont ignorés ».
+ * PA portés à `loc` IGNORÉS par cette touche : LDB 63 l.86 (Partielle), l.90 (Points faibles).
  * Différence entre les PA dérivés avec et sans les pièces ignorées (gère la superposition Flexible).
  */
 export function ignoredArmourAP(c: Combatant, loc: HitLocation, hit: { roll: number; critical: boolean; empaleuse: boolean }): number {
@@ -980,8 +976,7 @@ export function ignoredArmourAP(c: Combatant, loc: HitLocation, hit: { roll: num
   return Math.max(0, wornArmourPoints(items)[loc] - wornArmourPoints(items, ignored)[loc]);
 }
 
-/** La localisation `loc` est-elle protégée par une pièce Impénétrable (LDB 63 : les Coups
- *  Critiques obtenus sur un jet de toucher IMPAIR sont ignorés) ? */
+/** La localisation `loc` est-elle protégée par une pièce Impénétrable ? LDB 63 l.78. */
 export function impenetrableAt(c: Combatant, loc: HitLocation): boolean {
   return piecesPorteesA(c, loc).some((i) => hasQuality(i, 'impenetrable'));
 }

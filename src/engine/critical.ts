@@ -264,6 +264,13 @@ export type CauseCoupCritique = 'double' | 'empaleuse' | 'incantation-critique';
 export interface CritiqueDuCoup { origine: OrigineCritique; overkill: number }
 export interface CompteDesCritiques { critiques: readonly CritiqueDuCoup[]; mortSubite: boolean }
 
+/** Ce Critique est-il un Coup Critique ? SOURCE UNIQUE des qualités réservées au Coup Critique (Bâclée,
+ *  Partielle, Points faibles, `onCrit` filtré, Seconde main). LDB 13 l.183 ; LDB 14 l.3 ; LDB 18 l.23 ;
+ *  #1595 c.6221792068 Q4, L2 ; c.6225522950. */
+export function estUnCoupCritique(origine: OrigineCritique | null | undefined): boolean {
+  return origine === 'coup-critique';
+}
+
 /** Ce qu'un PORTEUR adresse au compte — table jumelle de `REGIMES_DE_CRITIQUE`. */
 interface RegimeDePorteur {
   /** AA 10 l.114 ; MDG 13 l.656 ; MSRC 07 l.74. */
@@ -367,7 +374,7 @@ export function aaDeathByCriticalCount(inconscient: boolean, wounds: number, cri
 
 /** Ce que l'appelant peut moduler sur un Coup Critique — tout est optionnel, le socle a ses défauts. */
 export interface OptionsCritique {
-  /** PB perdus au-delà des PB courants (LDB 18 l.17 : réduction de sévérité ; AA 07 l.36 : +10 chacun). */
+  /** PB perdus au-delà des PB courants : LDB 18 l.17 ; AA 07 l.36. */
   overkill?: number;
   /** Bénédiction de Sauvagerie (LDB 41 l.170) : deux lancers, le porteur béni CHOISIT lequel. */
   twice?: boolean;

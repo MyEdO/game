@@ -8,17 +8,20 @@ import { setRule, resetRule } from '../engine/policy';
 import { hasCondition } from '../engine/conditions';
 import { critTableRows, critTableKeyFor } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
+import { recomputeLoadout } from '../engine/items';
 import { testScene } from '../scenes/test-fixture';
-import type { Combatant, Weapon } from '../engine/types';
+import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 
 /** Le compte des Blessures critiques d'un coup, joué par le store : LDB 18 l.17, l.44, l.53 ; AA 07 l.36. */
 
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 
-/** Un coup Critique (double 44) qui DÉPASSE les 2 Blessures restantes de la cible, par la couture du jeu
- *  (`rederivePassiveAttack` → `applyAttackResult`), la cascade drainée au dé `de`. */
-function coupQuiDepasse(important: boolean, { chanceux = false, pa = 0, endurance, de = 1 }: { chanceux?: boolean; pa?: number; endurance?: number; de?: number } = {}) {
-  useGame.getState().seedRng(7);
+interface Coup { seed?: number; roll?: number; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number }
+
+/** Un coup de double sur la cible, par la couture du jeu (`rederivePassiveAttack` → `applyAttackResult`),
+ *  la cascade drainée au dé `de`. `pieces` = l'armure portée par la cible, à la place de sa PA plate. */
+function coup({ seed = 7, roll = 44, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1 }: Coup = {}) {
+  useGame.getState().seedRng(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   useGame.getState().startScene(structuredClone(testScene()));
@@ -28,19 +31,31 @@ function coupQuiDepasse(important: boolean, { chanceux = false, pa = 0, enduranc
   const b = useGame.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const cible = b.combatants.find((c) => c.kind === 'enemy')!;
-  cible.items = (cible.items ?? []).filter((i) => i.kind !== 'armor');
+  cible.items = [...(cible.items ?? []).filter((i) => i.kind !== 'armor'), ...structuredClone(pieces)];
   cible.armour = { tete: pa, corps: pa, brasG: pa, brasD: pa, jambeG: pa, jambeD: pa };
+  if (pieces.length) recomputeLoadout(cible);
   if (endurance != null) cible.characteristics = { ...cible.characteristics, endurance };
-  cible.wounds = { current: 2, max: 20 } as Combatant['wounds'];
+  cible.wounds = { current, max: 20 } as Combatant['wounds'];
   cible.important = important;
   if (chanceux) cible.talents = [...(cible.talents ?? []), { talentId: 'chanceux', times: 1 }];
-  const res = rederivePassiveAttack(H, cible, epee, { roll: 44, target: 90, success: true, sl: 0, isDouble: true } as never, 'melee', 'corps');
-  expect(res.critical, 'le double fait le Coup Critique').toBe(true);
-  expect(res.woundsLost ?? 0, 'le coup dépasse les Blessures restantes').toBeGreaterThan(2);
+  const res = rederivePassiveAttack(H, cible, epee, { roll, target: 90, success: true, sl: 0, isDouble: true } as never, 'melee', 'corps');
+  const auJet = { critical: res.critical, woundsLost: res.woundsLost ?? 0 };
   applyAttackResult(useGame.getState, useGame.setState, H, cible, epee, res, {});
   draineCascade(useGame.getState, 200, () => de);
-  return { res, H, cible: useGame.getState().battle!.combatants.find((c) => c.id === cible.id)! };
+  return { res, H, auJet, cible: useGame.getState().battle!.combatants.find((c) => c.id === cible.id)! };
 }
+
+/** Un Coup Critique (double 44) qui DÉPASSE les 2 Blessures restantes de la cible. */
+function coupQuiDepasse(important: boolean, opts: Omit<Coup, 'important'> = {}) {
+  const r = coup({ ...opts, important });
+  expect(r.auJet.critical, 'le double fait le Coup Critique').toBe(true);
+  expect(r.auJet.woundsLost, 'le coup dépasse les Blessures restantes').toBeGreaterThan(2);
+  return r;
+}
+
+const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'] as const;
+const piece = (qualites: string[], pa: number, locs: readonly string[] = LOCS): ItemInstance =>
+  ({ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa, locs: [...locs], qualities: qualites.map((id) => ({ id })) }) as unknown as ItemInstance;
 
 const totalPA = (c: Combatant) => Object.values(c.armour ?? {}).reduce((t, n) => t + n, 0);
 
@@ -97,5 +112,19 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
     expect(useGame.getState().pendingCascade ?? null).toBeNull();
+  });
+
+  it("Impénétrable se lit à la Localisation RELANCÉE du Critique, pas à celle de la touche (LDB 63 l.78 ; LDB 18 l.53)", () => {
+    const { res, auJet, cible } = coup({ seed: 1, roll: 33, current: 20, pieces: [piece(['impenetrable'], 1, ['corps'])] });
+    expect(auJet.critical, 'le double impair reste un Coup Critique au jet').toBe(true);
+    expect(res.critLocation, 'la relance quitte la pièce Impénétrable').not.toBe('corps');
+    expect(cible.criticalWounds).toBe(1);
+  });
+
+  it("Partielle et Impénétrable : le double impair ignore les PA de Partielle et la Blessure critique (LDB 63 l.78, l.86)", () => {
+    const temoin = coup({ roll: 33, current: 20, pieces: [piece(['impenetrable'], 2)] });
+    const partielle = coup({ roll: 33, current: 20, pieces: [piece(['partielle', 'impenetrable'], 2)] });
+    expect(partielle.cible.criticalWounds ?? 0).toBe(0);
+    expect(partielle.auJet.woundsLost).toBe(temoin.auJet.woundsLost + 2);
   });
 });
