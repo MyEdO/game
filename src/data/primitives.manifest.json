@@ -2,9 +2,9 @@
   {
     "id": "arbreProcessus",
     "type": "primitives.manifest",
-    "label": "tuerArbre/descendantsDe/mesurerArbreProcessus/identitePresente/capturerDescendants/tuerCaptures",
+    "label": "tuerArbre/descendantsDe/mesurerArbreProcessus/identitePresente/filiationValide/ancetresValidesDe",
     "fichier": "scripts/guards/lib/arbreProcessus.mjs",
-    "concept": "descendance de processus, identité PID et création, capture des descendants vivants et arrêt après disparition du parent",
+    "concept": "descendance et arrêt des gates, mesure des identités PID et création, chaîne des ancêtres validée par dates et protégée des cycles",
     "perimetre": "gates locales, supervision du push et des hooks, train de publication",
     "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
   },
@@ -13,8 +13,8 @@
     "type": "primitives.manifest",
     "label": "superviserProcessus/sortieDeSupervision",
     "fichier": "scripts/guards/lib/superviserProcessus.mjs",
-    "concept": "commande asynchrone avec échéance interne, surveillance du parent et des ancêtres git, interruption et nettoyage des descendants capturés par identité",
-    "perimetre": "gitPorte.pousser, wrapper pre-push, lancement du train de publication",
+    "concept": "commande asynchrone possédée avant lancement par un hôte OS : Job Windows ou subreaper Linux, worker Node fixe et IPC mémoire séparé de stdin ; environnement et résultat sans persistance, gardiens Git datés, générique sans mesure et nettoyage confirmé avant résultat",
+    "perimetre": "gitPorte.pousser, wrapper pre-push, train de publication ; Job natif partagé scripts/guards/lib/processusJob.cs avec scripts/ops/session-process.ps1 ; hoteSupervision.ps1 et hoteSupervision.py exécutent enfantSupervise.mjs",
     "verrou": "scripts/guards/lib/superviserProcessus.test.mjs"
   },
   {

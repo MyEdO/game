@@ -1,10 +1,10 @@
 // #2626
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, openSync, closeSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { preparerPublication, publierDepuisSnapshot, ENV_PUBLICATION } from './publicationIsolee.mjs'
+import { preparerPublication, publierDepuisSnapshot, lancerProcessus, ENV_PUBLICATION } from './publicationIsolee.mjs'
 import { gitDe } from '../test/gitDeBanc.mjs'
 import { depotDe } from '../guards/lib/gitPorte.mjs'
 import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
@@ -13,9 +13,81 @@ import { spawnSync } from 'node:child_process'
 import { prendreVerrou } from '../test/verrou.mjs'
 import { contexteDe, RACINE } from './publierTrain.mjs'
 import { cheminsDeJournal } from './publicationDonnee.mjs'
+import { pathToFileURL } from 'node:url'
 
 const SHA = 'a'.repeat(40)
 const DISTANT = 'b'.repeat(40)
+
+test('bootstrap réel : seul le superviseur committé du snapshot est chargé malgré SOURCE indirecte puis empoisonnée', { timeout: 30000 }, async (t) => {
+  const b = banc(t)
+  const git = gitDe(b.source, { net: true })
+  git('init', '-b', 'chantier/2626')
+  git('config', 'user.name', 'Fixture')
+  git('config', 'user.email', 'fixture@example.invalid')
+  mkdirSync(join(b.source, 'scripts/ops'), { recursive: true })
+  mkdirSync(join(b.source, 'scripts/guards/lib'), { recursive: true })
+  const sourceModule = new URL('./publicationIsolee.mjs', import.meta.url)
+  const bootstrap = readFileSync(sourceModule, 'utf8').replace(/from '([^']+)'/g, (texte, chemin) =>
+    chemin.startsWith('.') ? "from " + JSON.stringify(new URL(chemin, sourceModule).href) : texte)
+  const moduleSource = join(b.source, 'scripts/ops/publicationIsolee.mjs')
+  const superviseurSource = join(b.source, 'scripts/guards/lib/superviserProcessus.mjs')
+  writeFileSync(moduleSource, bootstrap)
+  writeFileSync(superviseurSource, `import {spawn} from 'node:child_process';import {appendFileSync} from 'node:fs';import {join} from 'node:path';import {fileURLToPath} from 'node:url';
+appendFileSync(fileURLToPath(new URL('../../../chargements.log',import.meta.url)),'committed\\n');
+export async function superviserProcessus({commande,args,cwd,env,shell,stdio}){appendFileSync(join(cwd,'choix.log'),'committed\\n');const p=spawn(commande,args,{cwd,env,shell,stdio:stdio??'inherit'});return await new Promise(ok=>{p.once('error',e=>ok({status:null,signal:null,error:{code:e.code,message:e.message}}));p.once('close',(status,signal)=>ok({status,signal}))})}
+export function sortieDeSupervision(vu){return vu.error?1:vu.status??1}`)
+  writeFileSync(join(b.source, 'scripts/ops/npm-fixture.mjs'), "import {mkdirSync} from 'node:fs';mkdirSync('node_modules',{recursive:true})")
+  writeFileSync(join(b.source, 'scripts/ops/publier.mjs'), `import {readFileSync,writeFileSync} from 'node:fs';const p=JSON.parse(process.env.${ENV_PUBLICATION});if(process.ppid!==p.pid)throw new Error('auth directe committée');const j=JSON.parse(readFileSync(p.journal));j.verdict={etat:'rouge'};writeFileSync(p.journal,JSON.stringify(j));process.exitCode=7`)
+  writeFileSync(join(b.source, 'wip.txt'), 'committé')
+  git('add', '--', 'scripts', 'wip.txt')
+  git('commit', '-m', 'runtime committé refs #2626')
+  const tete = git('rev-parse', 'HEAD')
+  writeFileSync(join(b.source, 'wip.txt'), 'index')
+  git('add', '--', 'wip.txt')
+  writeFileSync(join(b.source, 'wip.txt'), 'WIP')
+  const index = readFileSync(join(b.source, '.git/index'))
+  writeFileSync(superviseurSource, `export {superviserProcessus,sortieDeSupervision} from ${JSON.stringify(new URL('../guards/lib/superviserProcessus.mjs', import.meta.url).href)}`)
+  const indirect = readFileSync(superviseurSource)
+  const module = await import(pathToFileURL(moduleSource).href)
+  let snapshot
+  const publication = (reprendre) => module.publierDepuisSnapshot({
+    source: b.source, branche: 'chantier/2626', chemins: b.chemins, reprendre, args: ['--sans-fetch'],
+    env: envDeDepotForge(), ecrire: () => {},
+    entamer: (p) => { snapshot = p.snapshot },
+    preparer: (p) => module.preparerPublication({
+      ...p, uuid: () => 'runtime-committe',
+      gestes: { depotDe: (cwd) => depotDe(cwd, { env: envDeDepotForge() }), shasDistants: () => new Map(), fetchOrigin: () => vert },
+    }),
+    lancementNpm: () => ({ executable: process.execPath, args: [join(snapshot, 'scripts/ops/npm-fixture.mjs')], shell: false }),
+  })
+  assert.equal(await publication(false), 7)
+  assert.equal(readFileSync(join(snapshot, 'choix.log'), 'utf8'), 'committed\ncommitted\n')
+  assert.equal(readFileSync(join(snapshot, 'chargements.log'), 'utf8'), 'committed\n')
+  assert.deepEqual(readFileSync(superviseurSource), indirect)
+  writeFileSync(superviseurSource, "throw new Error('SOURCE_SUPERVISION_INTERDITE');export {}")
+  const poison = readFileSync(superviseurSource)
+  assert.equal(await publication(true), 7)
+  assert.equal(readFileSync(join(snapshot, 'choix.log'), 'utf8'), 'committed\ncommitted\ncommitted\n')
+  assert.equal(readFileSync(join(snapshot, 'chargements.log'), 'utf8'), 'committed\n')
+  assert.deepEqual(readFileSync(superviseurSource), poison)
+  assert.deepEqual(readFileSync(join(b.source, '.git/index')), index)
+  assert.equal(git('rev-parse', 'HEAD'), tete)
+  assert.equal(readFileSync(join(b.source, 'wip.txt'), 'utf8'), 'WIP')
+})
+
+test('bootstrap : supervision snapshot absente refuse avant installation sans fallback SOURCE', async (t) => {
+  const b = banc(t)
+  let installations = 0; let diagnostic = ''
+  const code = await publierDepuisSnapshot({
+    source: b.source, branche: 'chantier/2626', chemins: b.chemins, reprendre: false, args: [],
+    preparer: () => b.preparer(), lancementNpm: () => { installations += 1; throw new Error('installation interdite') },
+    ecrire: (texte) => { diagnostic += texte },
+  })
+  assert.equal(code, 4)
+  assert.equal(installations, 0)
+  assert.match(diagnostic, /superviserProcessus\.mjs|Cannot find module/)
+})
+
 const vert = { disponible: true, valeur: { status: 0, stdout: '', stderr: '' } }
 
 function banc(t) {
@@ -60,7 +132,7 @@ test('capture immuable, bail avant fetch, WIP/index/untracked intacts, générat
   assert.equal(JSON.parse(readFileSync(b.chemins.json)).publication.demande, SHA)
 })
 
-test('git réel : HEAD, index et WIP strictement inchangés ; snapshot depuis le générateur committé', (t) => {
+test('git réel : HEAD, index et WIP strictement inchangés ; snapshot depuis le générateur committé', async (t) => {
   const b = banc(t)
   const git = gitDe(b.source, { net: true })
   git('init', '-b', 'chantier/2626')
@@ -115,6 +187,21 @@ test('git réel : HEAD, index et WIP strictement inchangés ; snapshot depuis le
     const faux = enfant({ ...p, pid: process.pid + 1 })
     assert.notEqual(faux.status, 0)
     assert.match(faux.stderr, /lanceur ou verrou différent/)
+    const script = join(b.source, 'auteur-publication.mjs')
+    const sortie = join(b.source, 'auteur-publication.log')
+    writeFileSync(script, code)
+    for (const [identite, attendu] of [[p, 0], [{ ...p, pid: process.pid + 1 }, 1]]) {
+      const fd = openSync(sortie, 'w')
+      let execute
+      try {
+        execute = await lancerProcessus(process.execPath, [script], {
+          cwd: p.snapshot, stdio: ['ignore', fd, fd],
+          env: { ...envDeDepotForge(), [ENV_PUBLICATION]: JSON.stringify(identite) },
+        })
+      } finally { closeSync(fd) }
+      assert.equal(execute.code, attendu, readFileSync(sortie, 'utf8'))
+      assert.match(readFileSync(sortie, 'utf8'), attendu === 0 ? new RegExp(tete) : /lanceur ou verrou différent/)
+    }
   } finally { verrou.liberer() }
   const divergent = git('commit-tree', `${tete}^{tree}`, '-m', 'divergent refs #2626')
   assert.throws(() => preparerPublication({
