@@ -139,6 +139,7 @@ const MOTIFS_ABSENT = [
   /no such path/i,
   /No such remote/i,
   /not a tree object/i,
+  /expected commit type, but the object dereferences to (?:blob|tree) type/i,
   /Invalid symmetric difference expression/i,
   /unable to parse object/i,
 ]
@@ -694,13 +695,21 @@ const absentSaufCorrompu = (depot, revisions) => {
 }
 
 /**
+ * La lecture `rev-list <options>` de la plage `revisions`, passées par l'entrée (`--stdin`, `git help
+ * rev-list`) : leur nombre ne borne pas la ligne de commande. `[args, opts]` de `lire`.
+ * @param {readonly string[]} options @param {readonly string[]} revisions @returns {[string[], { entree: string }]}
+ */
+const lectureDePlage = (options, revisions) =>
+  [['rev-list', ...options, '--stdin', '--'], { entree: revisionsDe(revisions).map((r) => `${r}\n`).join('') }]
+
+/**
  * Les SHAS des commits de la plage `revisions` (`git help revisions` : `<a>..<b>`, `^<ref>`, `<sha>^!`),
  * du plus ancien au plus récent. `null` quand git ne rend pas la plage : une plage illisible n'est pas
  * une plage vide.
  * @param {Depot} depot @param {readonly string[]} revisions @returns {string[] | null}
  */
 export function shasDe(depot, revisions) {
-  const brut = lire(depot, ['rev-list', '--reverse', ...revisionsDe(revisions), '--'])
+  const brut = lire(depot, ...lectureDePlage(['--reverse'], revisions))
   return brut === null ? absentSaufCorrompu(depot, revisions) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
 }
 
@@ -740,7 +749,7 @@ const commitsDuGraphe = (brut) => brut.split('\n').map((l) => l.trim()).filter(B
  * @param {Depot} depot @param {readonly string[]} revisions @returns {CommitDuGraphe[] | null}
  */
 export function grapheDe(depot, revisions) {
-  const vu = lireLeGraphe(depot, ['rev-list', '--reverse', '--no-commit-header', FORMAT_DU_GRAPHE, ...revisionsDe(revisions), '--'])
+  const vu = lireLeGraphe(depot, ...lectureDePlage(['--reverse', '--no-commit-header', FORMAT_DU_GRAPHE], revisions))
   const brut = vu.disponible ? sortieOuNull(vu) : confier(depot, vu)
   return brut === null ? absentSaufCorrompu(depot, revisions) : commitsDuGraphe(brut)
 }
@@ -750,29 +759,43 @@ const GIT_NO_COMMIT_HEADER = Object.freeze([2, 33])
 
 /** L'union de lecture du graphe (`FORMAT_DU_GRAPHE`), dont la raison nomme une version de git
  *  insuffisante ou illisible (`versionManquante`). @returns {import('./gitPorte.mjs').ResultatGit} */
-function lireLeGraphe(depot, args) {
-  const vu = interroger(depot, args)
+function lireLeGraphe(depot, args, opts) {
+  const vu = interroger(depot, args, opts)
   if (vu.disponible) return vu
   const raison = versionManquante(depot, GIT_NO_COMMIT_HEADER, 'git rev-list --no-commit-header', 'le graphe des commits n’est pas lisible')
   return raison ? { ...vu, raison } : vu
 }
 
+/** Une ligne d'objet présent de `cat-file --batch-check` : `<sha> <type> <taille>` (`git help cat-file`, BATCH OUTPUT). */
+const LIGNE_D_OBJET = /^([0-9a-f]{40}|[0-9a-f]{64}) ([a-z]+) \d+$/
+
 /**
- * Le COMMIT que nomme chacune des `revisions`, dans leur ordre, en UN lot (`cat-file --batch-check`
- * de `<rev>` puis `<rev>^{commit}`, `git help revisions`) : son sha complet, ou `null` quand le nom
- * ne désigne aucun objet, en désigne PLUSIEURS (`git help cat-file`, « ambiguous » : un préfixe se
- * résout parmi TOUS les objets du dépôt, pas parmi les seuls commits d'un graphe), ou ne se pèle pas
- * en commit. Une indisponibilité suit `lire`, qui rend alors `null` pour chacune.
+ * L'OBJET que nomme chacune des `revisions`, dans leur ordre, et sa cible PELÉE, en UN lot
+ * (`cat-file --batch-check` de `<rev>` puis `<rev>^{}`, `git help revisions`) : `objet` = son sha
+ * complet, `null` quand le nom ne désigne aucun objet ou en désigne PLUSIEURS (`git help cat-file`,
+ * « ambiguous » : un préfixe se résout parmi TOUS les objets du dépôt) ; `pele` = le sha et le type
+ * de l'objet au bout des étiquettes, `null` quand il manque. Une indisponibilité suit `lire`, qui rend
+ * alors `{ objet: null, pele: null }` pour chacune.
+ * @param {Depot} depot @param {readonly string[]} revisions
+ * @returns {{ objet: string | null, pele: { sha: string, type: string } | null }[]}
+ */
+export function objetsNommes(depot, revisions) {
+  if (!revisions.length) return []
+  const brut = lire(depot, ['cat-file', '--batch-check'], { entree: revisionsDe(revisions).map((r) => `${r}\n${r}^{}\n`).join('') })
+  const lignes = (brut ?? '').split('\n').map((l) => l.trim())
+  return revisions.map((_, i) => {
+    const [objet, pele] = brut === null ? [null, null] : [lignes[2 * i], lignes[2 * i + 1]].map((l) => LIGNE_D_OBJET.exec(l ?? ''))
+    return { objet: objet?.[1] ?? null, pele: pele ? { sha: pele[1], type: pele[2] } : null }
+  })
+}
+
+/**
+ * Le COMMIT que nomme chacune des `revisions`, dans leur ordre, en UN lot (`objetsNommes`) : son sha
+ * complet, ou `null` quand le nom ne nomme aucun objet unique ou ne se pèle pas en commit.
  * @param {Depot} depot @param {readonly string[]} revisions @returns {(string | null)[]}
  */
 export function commitsNommes(depot, revisions) {
-  if (!revisions.length) return []
-  const brut = lire(depot, ['cat-file', '--batch-check'], { entree: revisionsDe(revisions).map((r) => `${r}\n${r}^{commit}\n`).join('') })
-  const lignes = (brut ?? '').split('\n')
-  return revisions.map((_, i) => {
-    if (brut === null || / (?:missing|ambiguous)$/.test(lignes[2 * i] ?? ' missing')) return null
-    return /^([0-9a-f]+) commit /.exec(lignes[2 * i + 1] ?? '')?.[1] ?? null
-  })
+  return objetsNommes(depot, revisions).map(({ objet, pele }) => (objet && pele?.type === 'commit' ? pele.sha : null))
 }
 
 /**
@@ -818,7 +841,7 @@ const isoStricte = (date) => date.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
  */
 export function journalDe(depot, revisions, { depuis } = {}) {
   const borne = depuis === undefined ? [] : [`--since=${depuis}`]
-  const brut = lire(depot, ['rev-list', '--reverse', '--no-commit-header', ...borne, `--date=${FORMAT_DE_DATE}`, '--format=%H%x1f%cd%x1f%B%x00', ...revisionsDe(revisions), '--'])
+  const brut = lire(depot, ...lectureDePlage(['--reverse', '--no-commit-header', ...borne, `--date=${FORMAT_DE_DATE}`, '--format=%H%x1f%cd%x1f%B%x00'], revisions))
   if (brut === null) return absentSaufCorrompu(depot, revisions)
   return brut
     .split('\0').map((e) => e.replace(/^\n/, '')).filter(Boolean).map((e) => {
@@ -847,7 +870,7 @@ export function branchesDe(depot) {
  * @param {Depot} depot @param {readonly string[]} revisions @returns {number | null}
  */
 export function combienDe(depot, revisions) {
-  const brut = lire(depot, ['rev-list', '--count', ...revisionsDe(revisions), '--'])
+  const brut = lire(depot, ...lectureDePlage(['--count'], revisions))
   return brut === null ? absentSaufCorrompu(depot, revisions) : Number.parseInt(brut.trim(), 10)
 }
 
@@ -1622,11 +1645,14 @@ export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])
 export const TIMEOUT_DU_DISTANT_MS = 60000
 
 /** Les refs annoncées par l'origine, restreintes si `motifs` est donné (`git help ls-remote`, « <patterns> »),
- *  en UN `ls-remote origin` : une `Map` ref → sha, `null` quand git ne répond pas 0. */
+ *  en UN `ls-remote origin` : une `Map` ref → sha, `null` quand git ne répond pas 0 ou qu'une ligne de
+ *  l'annonce n'est pas `<sha complet> <ref>`. */
 export function refsDistantes(depot, motifs = []) {
   const brut = lire(depot, ['ls-remote', 'origin', ...(motifs.length ? revisionsDe(motifs) : [])], { timeout: TIMEOUT_DU_DISTANT_MS })
   if (brut === null) return null
-  return new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
+  const lignes = brut.split('\n').filter((ligne) => ligne.trim()).map((ligne) => ligne.trim().split(/\s+/))
+  if (lignes.some(([sha, ref, surplus]) => !estShaComplet(sha) || !ref || surplus !== undefined)) return null
+  return new Map(lignes.map(([sha, ref]) => [ref, sha]))
 }
 
 /**
@@ -1902,13 +1928,20 @@ export const reussi = (union) => union.disponible && !union.absent && union.vale
 // l'hôte, la configuration de l'utilisateur (identité, signature, proxy, identifiants) fait foi.
 
 /**
- * MUTATION de refs : met `refs/remotes/origin/<branche>` à jour, par une refspec explicite qu'un
- * clone `--single-branch` ne porte pas. Une panne RÉSEAU rend `indisponible` — la porte qui
- * l'appelle dit « CI non consultable », elle ne conclut pas.
- * @param {Depot} depot @param {{ branche?: string }} [opts]
+ * Acquiert `objets` sans refs ni FETCH_HEAD, ou met `refs/remotes/origin/<branche>` à jour
+ * par refspec explicite. Une panne réseau rend `indisponible`.
+ * @param {Depot} depot @param {{ branche?: string, objets?: never } | { objets: readonly string[], branche?: never }} [opts]
  */
-export const fetchOrigin = (depot, { branche = TRONC.nom } = {}) =>
-  ecrire(depot, ['fetch', '--quiet', '--no-tags', 'origin', `+refs/heads/${revisionsDe([branche])[0]}:refs/remotes/origin/${branche}`], { timeout: TIMEOUT_DU_DISTANT_MS })
+export function fetchOrigin(depot, opts = {}) {
+  if (!opts || typeof opts !== 'object' || Array.isArray(opts) || Object.keys(opts).some((cle) => cle !== 'branche' && cle !== 'objets')) throw new TypeError('fetchOrigin : options invalides')
+  if ('objets' in opts) {
+    if ('branche' in opts || !Array.isArray(opts.objets) || !opts.objets.length || !Array.from(opts.objets).every((sha) => typeof sha === 'string' && estShaComplet(sha)))
+      throw new TypeError('fetchOrigin : objets exige un lot non vide de SHA complets, exclusif de branche')
+    return ecrire(depot, ['fetch', '--quiet', '--no-tags', '--no-write-fetch-head', '--refmap=', 'origin', ...new Set(opts.objets)], { timeout: TIMEOUT_DU_DISTANT_MS })
+  }
+  const { branche = TRONC.nom } = opts
+  return ecrire(depot, ['fetch', '--quiet', '--no-tags', 'origin', `+refs/heads/${revisionsDe([branche])[0]}:refs/remotes/origin/${branche}`], { timeout: TIMEOUT_DU_DISTANT_MS })
+}
 
 /** L'histoire complète d'un clone superficiel (`fetch --unshallow origin`). @param {Depot} depot @param {{ timeout?: number }} [opts] */
 export const approfondir = (depot, { timeout } = {}) => ecrire(depot, ['fetch', '--unshallow', 'origin'], { timeout })
@@ -1987,7 +2020,7 @@ export function pousser(depot, { vers, bail = false }) {
   const ref = revisionsDe([vers])[0]
   if (bail !== false && typeof bail !== 'string') throw new Error('pousser : bail SHA explicite requis')
   const attendu = typeof bail === 'string' ? bail : null
-  if (attendu !== null && attendu !== '' && !/^[a-f0-9]{40,64}$/.test(attendu)) throw new Error('pousser : bail SHA explicite invalide')
+  if (attendu !== null && attendu !== '' && !estShaComplet(attendu)) throw new Error('pousser : bail SHA explicite invalide')
   const lease = attendu !== null ? [`--force-with-lease=${ref.startsWith('refs/') ? ref : `refs/heads/${ref}`}:${attendu}`] : []
   const args = ['push', ...lease, 'origin', `HEAD:${ref}`]
   const { spawn } = lanceurDe(depot)

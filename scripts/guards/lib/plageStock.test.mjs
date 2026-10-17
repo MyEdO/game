@@ -14,7 +14,7 @@ import { bilanDesStocks } from './stocksNominatifs.mjs'
 import { texteDeStock } from './stockDeSites.mjs'
 import { instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs'
-import { gitDe, lancerGit } from '../../test/gitDeBanc.mjs'
+import { gitDe, lancerGit, lancesDeGit } from '../../test/gitDeBanc.mjs'
 import { fileURLToPath } from 'node:url'
 
 /** La racine du dépôt réel. */
@@ -168,12 +168,11 @@ function depotJetable(commits) {
 
 const sourceStock = (entrees) => `export const STOCK = [\n${entrees.join('\n')}\n]\n`
 
-test('#2626 : seuls les commits nouveaux sont jugés, leur cumul exclut le stock déjà publié', async () => {
+test('#2626 : seuls les commits nouveaux sont jugés, le cumul reste celui des états de la plage', async () => {
   const { repo, shas, git } = depotJetable([
     { contenu: sourceStock([]), message: 'socle' },
     { contenu: sourceStock([A]), message: 'ancien stock publié' },
     { contenu: sourceStock([A, B]), message: 'nouveau stock fautif' },
-    { contenu: sourceStock([A]), message: 'nouveau stock soldé' },
   ])
   try {
     git('update-ref', 'refs/remotes/origin/main', shas[0])
@@ -183,12 +182,69 @@ test('#2626 : seuls les commits nouveaux sont jugés, leur cumul exclut le stock
     assert.deepEqual(ancien.refus, [])
     const fautif = await croissancesDeLaPlage({ ...options, fin: shas[2] })
     assert.deepEqual(fautif.refus.map((r) => r.sha), [shas[2]])
-    const solde = await croissancesDeLaPlage({ ...options, fin: shas[3] })
-    assert.equal(solde.commits, 2)
-    assert.deepEqual(solde.refus, [], 'ancien +1 publié puis nouveau +1/-1 : le cumul nouveau est nul')
+    const lu = lectureDeLaPlage({ ...options, fin: shas[2] })
+    assert.deepEqual(lu.commits.map((c) => c.sha), [shas[2]])
     const ci = lectureDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: shas[2], vers: 'refs/heads/chantier/neuve' })
+    assert.deepEqual(lu.cumul, ci.cumul)
     assert.ok(ci.commits.some((c) => c.sha === shas[1]), 'la CI sans option explicite garde sa plage')
     assert.equal(ci.troncDesEres, TRONC.suivi)
+  } finally { rmSync(repo, { recursive: true, force: true }) }
+})
+
+test('#2626 : un ajout puis retrait neufs ne refuse rien après un commit publié anodin', async () => {
+  const { repo, shas, git } = depotJetable([
+    { contenu: sourceStock([]), message: 'socle' },
+    { contenu: `${sourceStock([])}// publié anodin\n`, message: 'publié anodin' },
+    { contenu: sourceStock([A]), message: 'ajout neuf' },
+    { contenu: sourceStock([]), message: 'retrait neuf' },
+  ])
+  try {
+    git('update-ref', 'refs/remotes/origin/main', shas[0])
+    const options = { cwd: repo, debut: SHA_NUL, fin: shas[3], vers: 'refs/heads/chantier/neuve' }
+    const lu = lectureDeLaPlage({ ...options, origineConfirmee: [shas[1]] })
+    assert.deepEqual(lu.commits.map((c) => c.sha), shas.slice(2))
+    assert.deepEqual(lu.cumul, lectureDeLaPlage(options).cumul)
+    assert.ok(lu.cumul.every(({ parCle }) => [...parCle.values()].every((n) => n === 0)))
+    assert.deepEqual((await croissancesDeLaPlage({ ...options, origineConfirmee: [shas[1]] })).refus, [])
+  } finally { rmSync(repo, { recursive: true, force: true }) }
+})
+
+test('#2626 : les exclusions d’origin passent par l’entrée, la ligne de commande ne croît pas avec leur nombre', () => {
+  const { repo, shas, git } = depotJetable([
+    { contenu: sourceStock([]), message: 'socle' },
+    { contenu: sourceStock([A]), message: 'publié' },
+    { contenu: sourceStock([A, B]), message: 'neuf' },
+  ])
+  try {
+    git('update-ref', 'refs/remotes/origin/main', shas[0])
+    const options = { cwd: repo, debut: SHA_NUL, fin: shas[2], vers: 'refs/heads/chantier/neuve' }
+    const [une, milliers] = [1, 4000].map((n) => lancesDeGit(() => lectureDeLaPlage({ ...options, origineConfirmee: Array(n).fill(shas[1]) })))
+    const longueur = ({ lances }) => Math.max(...lances.map((args) => args.join(' ').length))
+    assert.deepEqual(milliers.valeur.commits.map((c) => c.sha), [shas[2]])
+    assert.deepEqual(milliers.valeur.commits.map((c) => c.sha), une.valeur.commits.map((c) => c.sha))
+    assert.equal(longueur(milliers), longueur(une))
+  } finally { rmSync(repo, { recursive: true, force: true }) }
+})
+
+for (const tronc of ['absent', 'disjoint']) test(`#2626 sans borne : A publié, B fautif, C anodin, tronc ${tronc}`, async () => {
+  const { repo, shas, git } = depotJetable([
+    { contenu: sourceStock([A]), message: 'A publié' },
+    { contenu: sourceStock([A, B]), message: 'B non publié sans cliquet' },
+    { contenu: `${sourceStock([A, B])}// C anodin\n`, message: 'C anodin' },
+  ])
+  try {
+    if (tronc === 'disjoint') {
+      const arbre = git('rev-parse', `${shas[0]}^{tree}`).trim()
+      const autre = git('commit-tree', arbre, '-m', 'tronc disjoint').trim()
+      git('update-ref', 'refs/remotes/origin/main', autre)
+    }
+    const options = { cwd: repo, debut: SHA_NUL, fin: shas[2], origineConfirmee: [shas[0]] }
+    const lu = lectureDeLaPlage(options)
+    assert.deepEqual(lu.commits.map((c) => c.sha), shas.slice(1))
+    assert.equal(lu.commits.some((c) => c.sha === shas[0]), false)
+    assert.deepEqual(refusDeLaPlage(lu).map((r) => [r.sha, r.net]), [[shas[1], 1]])
+    const vu = await croissancesDeLaPlage(options)
+    assert.deepEqual(vu.refus.map((r) => [r.sha, r.net]), [[shas[1], 1]])
   } finally { rmSync(repo, { recursive: true, force: true }) }
 })
 
@@ -219,7 +275,7 @@ test('C : la même croissance RETIRÉE plus loin dans la plage ne refuse plus ri
   }
 })
 
-test('C : base NULLE sans tronc lisible → HEAD seul, et la porte le DIT (jamais un silence)', async () => {
+test('C : base NULLE sans tronc lisible, toute l’ascendance est jugée et le milieu fautif est refusé', async () => {
   const { repo, shas } = depotJetable([
     { contenu: sourceStock([]), message: 'socle' },
     { contenu: sourceStock([A, B]), message: 'deux exemptions de plus, sans cliquet' },
@@ -227,11 +283,11 @@ test('C : base NULLE sans tronc lisible → HEAD seul, et la porte le DIT (jamai
   ])
   try {
     const { refus, notes } = await croissancesDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: shas[2] })
-    assert.deepEqual(refus, [], 'la tête seule ne porte aucune croissance')
+    assert.deepEqual(refus.filter((r) => r.fichier === PORTEUR).map((r) => [r.sha, r.net]), [[shas[1], 2]])
+    assert.ok(refus.filter((r) => r.fichier !== PORTEUR).every((r) => r.sha === shas[0]))
     assert.deepEqual(notes, [
       `tronc \`origin/main\` illisible depuis ${shas[2].slice(0, 9)} : ses commits ne sont PAS exclus de la plage`,
-      `plage inconnue : ni sha distant ni tronc — ${shas[2].slice(0, 9)} seul est jugé, sans ses parents`,
-      `${shas[2].slice(0, 9)} sans ère (tronc \`origin/main\` illisible) : jugé(s) par la porte actuelle`,
+      `${shas.map((s) => s.slice(0, 9)).join(', ')} sans ère (tronc \`origin/main\` illisible) : jugé(s) par la porte actuelle`,
     ])
   } finally {
     rmSync(repo, { recursive: true, force: true })
@@ -956,13 +1012,25 @@ function fusionLaterale(d, aPoser) {
   d.git('merge', '-q', '--no-ff', '--no-verify', '-m', 'fusion latérale', 'x')
 }
 
+const verifierCumulAvecOrigine = (d, fin, publie) => {
+  const options = { cwd: d.repo, debut: d.debut, fin, vers: CHANTIER }
+  const historique = lectureDeLaPlage(options)
+  for (const origineConfirmee of [[], [publie]]) {
+    const lu = lectureDeLaPlage({ ...options, origineConfirmee })
+    assert.deepEqual(lu.cumul, historique.cumul)
+    assert.deepEqual(lu.commits.map((c) => c.sha), historique.commits.filter((c) => !origineConfirmee.includes(c.sha)).map((c) => c.sha))
+    assert.deepEqual(refusDeLaPlage(lu), refusDeLaPlage(historique).filter((r) => !origineConfirmee.includes(r.sha)))
+  }
+}
+
 test('CUMUL (E) : un retrait porté par les DEUX parents d’une fusion ne paie pas deux ajouts non déclarés', async () => {
   const d = depotDeChantier({ [PORTEUR]: sourceStock([A, B]) })
   try {
-    d.poser({ [PORTEUR]: sourceStock([B]) }, 'retire A')
+    const publie = d.poser({ [PORTEUR]: sourceStock([B]) }, 'retire A')
     fusionLaterale(d, { [PORTEUR]: sourceStock([B]) })
     const fin = d.poser({ [PORTEUR]: sourceStock([B, A_BIS, "  'src/a.ts', // ter"]) }, 'deux sous a, sans cliquet')
     assert.deepEqual(refusDe(await d.plage(fin)), [[fin, PORTEUR, 2]])
+    verifierCumulAvecOrigine(d, fin, publie)
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
   }
@@ -971,10 +1039,11 @@ test('CUMUL (E) : un retrait porté par les DEUX parents d’une fusion ne paie 
 test('CUMUL (E2) : un ajout porté par les DEUX parents puis retiré une fois ne refuse rien', async () => {
   const d = depotDeChantier({ [PORTEUR]: sourceStock([B]) })
   try {
-    d.poser({ [PORTEUR]: sourceStock([A, B]) }, 'ajoute A')
+    const publie = d.poser({ [PORTEUR]: sourceStock([A, B]) }, 'ajoute A')
     fusionLaterale(d, { [PORTEUR]: sourceStock([A, B]) })
     const fin = d.poser({ [PORTEUR]: sourceStock([B]) }, 'retire A')
     assert.deepEqual((await d.plage(fin)).refus, [])
+    verifierCumulAvecOrigine(d, fin, publie)
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
   }
@@ -984,9 +1053,10 @@ test('CUMUL (B) : une clé renommée sur deux commits (`git mv`, puis le stock s
   const d = depotDeChantier({ [PORTEUR]: sourceStock([A]), 'src/a.ts': 'export const a = 1\n' })
   try {
     d.git('mv', 'src/a.ts', 'src/z.ts')
-    d.poser({}, 'git mv a -> z')
+    const publie = d.poser({}, 'git mv a -> z')
     const fin = d.poser({ [PORTEUR]: sourceStock(["  'src/z.ts',"]) }, 'le stock suit')
     assert.deepEqual((await d.plage(fin)).refus, [])
+    verifierCumulAvecOrigine(d, fin, publie)
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
   }
@@ -996,12 +1066,58 @@ test('CUMUL (C) : un stock DÉPLACÉ d’un porteur à un autre sur deux commits
   const P2 = 'scripts/y.test.mjs'
   const d = depotDeChantier({ [PORTEUR]: sourceStock([A, B]) })
   try {
-    d.poser({ [PORTEUR]: null }, 'supprime le porteur')
+    const publie = d.poser({ [PORTEUR]: null }, 'supprime le porteur')
     const fin = d.poser({ [P2]: sourceStock([A, B]) }, 'recrée le porteur ailleurs')
     assert.deepEqual((await d.plage(fin)).refus, [])
+    verifierCumulAvecOrigine(d, fin, publie)
   } finally {
     rmSync(d.repo, { recursive: true, force: true })
   }
+})
+
+test('#2626 CUMUL : une migration prouvée conserve son bilan avec exclusions', async () => {
+  const ancien = 'src/ancien.test.ts'
+  const nouveau = 'src/nouveau.test.ts'
+  const titre = "it('titre conservé', () => {});\n"
+  const stock = (fichier, neuf = false) => `const PREUVES = [
+    { fichier: '${fichier}', it: 'titre conservé' },
+    ${neuf ? "{ fichier: 'src/neuf.test.ts', it: 'dette neuve' }," : ''}
+  ];\n`
+  for (const neuf of [false, true]) {
+    const d = depotDeChantier({ [PORTEUR]: stock(ancien), [ancien]: titre })
+    try {
+      const publie = d.poser({ 'anodin.txt': 'publié\n' }, 'publié anodin')
+      const fin = d.poser({ [PORTEUR]: stock(nouveau, neuf), [ancien]: null, [nouveau]: titre }, 'migration prouvée')
+      assert.deepEqual(refusDe(await d.plage(fin)), neuf ? [[fin, PORTEUR, 1]] : [])
+      const lu = lectureDeLaPlage({ cwd: d.repo, debut: d.debut, fin, vers: CHANTIER })
+      const bilan = lu.cumul.find(({ fichier }) => fichier === PORTEUR)
+      assert.deepEqual([...bilan.parCle.values()].filter((n) => n !== 0), neuf ? [1] : [])
+      verifierCumulAvecOrigine(d, fin, publie)
+    } finally { rmSync(d.repo, { recursive: true, force: true }) }
+  }
+})
+
+for (const tronc of ['absent', 'disjoint']) test(`#2626 sans borne : retrait commun aux parents puis ajout, tronc ${tronc}`, () => {
+  const d = depotDeChantier({ [PORTEUR]: sourceStock([A]) })
+  try {
+    d.poser({ [PORTEUR]: sourceStock([]) }, 'retire A')
+    fusionLaterale(d, { [PORTEUR]: sourceStock([]) })
+    const fin = d.poser({ [PORTEUR]: sourceStock([A_BIS]) }, 'ajoute A sans cliquet')
+    if (tronc === 'absent') d.git('update-ref', '-d', 'refs/remotes/origin/main')
+    else {
+      const arbre = d.git('rev-parse', `${d.debut}^{tree}`).trim()
+      const autre = d.git('commit-tree', arbre, '-m', 'tronc disjoint').trim()
+      d.git('update-ref', 'refs/remotes/origin/main', autre)
+    }
+    const options = { cwd: d.repo, debut: SHA_NUL, fin, vers: CHANTIER }
+    const historique = lectureDeLaPlage(options)
+    const bilan = historique.cumul.find(({ fichier }) => fichier === PORTEUR)
+    assert.equal([...bilan.parCle.values()].reduce((a, b) => a + b, 0), 1)
+    assert.deepEqual(refusDeLaPlage(historique).filter((r) => r.fichier === PORTEUR).map((r) => [r.sha, r.net]), [[d.debut, 1], [fin, 1]])
+    const lu = lectureDeLaPlage({ ...options, origineConfirmee: [d.debut] })
+    assert.deepEqual(lu.cumul, historique.cumul)
+    assert.deepEqual(refusDeLaPlage(lu).filter((r) => r.fichier === PORTEUR).map((r) => [r.sha, r.net]), [[fin, 1]])
+  } finally { rmSync(d.repo, { recursive: true, force: true }) }
 })
 
 // ── `debut` NUL : ce que la tête apporte au tronc, quelle que soit la ref poussée ────────────────
@@ -1041,11 +1157,13 @@ test('DEBUT NUL : une branche NEUVE juge son apport au tronc, et le cumul le com
   }
 })
 
-test('SEUL : sans aucune borne, une FUSION est jugée seule, sans le côté de son second parent', async () => {
-  const { repo, fusion } = depotAFusion(sourceStock([A, B, C]))
+test('SANS BORNE : l’ascendance d’une fusion est jugée, chaque commit garde son apport propre', async () => {
+  const { repo, socle, fusion } = depotAFusion(sourceStock([A, B, C]))
   try {
     const vu = await croissancesDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: fusion })
-    assert.deepEqual([vu.commits, refusDe(vu)], [1, [[fusion, PORTEUR, 1]]])
+    assert.equal(vu.commits, 4)
+    assert.deepEqual(refusDe(vu).filter(([, fichier]) => fichier === PORTEUR), [[socle, PORTEUR, 1], [fusion, PORTEUR, 1]])
+    assert.ok(vu.refus.filter((r) => r.fichier !== PORTEUR).every((r) => r.sha === socle))
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
@@ -1074,8 +1192,8 @@ test('CUMUL : un `debut` sans ancêtre commun avec le tronc est NOMMÉ, et rien 
   }
 })
 
-test('SEUL : le cumul d’une fusion jugée seule est SON apport, pas le diff de son premier parent', async () => {
-  const { racine: repo } = depotForge({ fichiers: { [PORTEUR]: sourceStock([A, B]), 'autre.txt': 'o\n' }, message: 'socle' })
+test('SANS BORNE : la fusion qui rétablit une entrée garde son apport propre dans le cumul de l’ascendance', async () => {
+  const { racine: repo, sha: socle } = depotForge({ fichiers: { [PORTEUR]: sourceStock([A, B]), 'autre.txt': 'o\n' }, message: 'socle' })
   const git = gitDe(repo)
   try {
     git('checkout', '-q', '-b', 'cote')
@@ -1089,7 +1207,10 @@ test('SEUL : le cumul d’une fusion jugée seule est SON apport, pas le diff de
     git('add', PORTEUR)
     git('commit', '-q', '--no-verify', '-m', 'fusion qui remet b, sans cliquet')
     const fusion = git('rev-parse', 'HEAD').trim()
-    assert.deepEqual(refusDe(await croissancesDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: fusion })), [[fusion, PORTEUR, 1]])
+    const vu = await croissancesDeLaPlage({ cwd: repo, debut: SHA_NUL, fin: fusion })
+    assert.equal(vu.commits, 4)
+    assert.deepEqual(refusDe(vu).filter(([, fichier]) => fichier === PORTEUR), [[socle, PORTEUR, 2], [fusion, PORTEUR, 1]])
+    assert.ok(vu.refus.filter((r) => r.fichier !== PORTEUR).every((r) => r.sha === socle))
   } finally {
     rmSync(repo, { recursive: true, force: true })
   }
