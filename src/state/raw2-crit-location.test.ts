@@ -57,8 +57,8 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     vi.useRealTimers();
   });
 
-  /** Le héros attaque une cible à `current` Blessures, `paBrasG` PA au Bras gauche et `autresPA` ailleurs ; la graine fait rater son jet. */
-  function attaqueRatee(current: number, paBrasG = 0, autresPA = 0) {
+  /** Le héros attaque une cible à `current` Blessures, `paBrasG` PA au Bras gauche et `autresPA` ailleurs, `chanceux` ou sous Mort subite ; la graine fait rater son jet. */
+  function attaqueRatee(current: number, paBrasG = 0, autresPA = 0, chanceux = true) {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
@@ -73,7 +73,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
     E.pos = { x: 11, y: 10 };
     E.wounds = { current, max: 30 } as never;
     E.armour = { tete: autresPA, brasG: paBrasG, brasD: autresPA, corps: autresPA, jambeG: autresPA, jambeD: autresPA };
-    E.talents = [{ talentId: 'chanceux', times: 1 }] as never; // AA 07 l.67
+    E.talents = chanceux ? [{ talentId: 'chanceux', times: 1 }] as never : []; // AA 07 l.67
     useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
     useGame.getState().battleClickEntity(E.id, { confirm: true });
     seedBattleRng(3);
@@ -126,6 +126,15 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
   it('sans Résilience dépensée : aucun choix', () => {
     attaqueRatee(0);
     useGame.getState().attackSetCritLocation('jambeG');
+    expect(useGame.getState().pendingAttack!.result!.critLocation).toBeUndefined();
+  });
+
+  it('cible sous Mort subite, double forcé : aucun choix (LDB 18 l.44 ; AA 07 l.65 ; #1595 c.6219992594)', () => {
+    attaqueRatee(20, 0, 0, false);
+    useGame.getState().attackForceSuccess();
+    useGame.getState().attackSetForcedRoll(11);
+    expect(useGame.getState().pendingAttack!.result!.critical, 'précondition : le double fait le Coup Critique au jet').toBe(true);
+    useGame.getState().attackSetCritLocation('tete');
     expect(useGame.getState().pendingAttack!.result!.critLocation).toBeUndefined();
   });
 });

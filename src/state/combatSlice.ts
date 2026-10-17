@@ -43,8 +43,7 @@ import { refuserGeste } from './refusVisible';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
 import { t, type MsgKey } from '../i18n';
-import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, causeDuCoupCritique, type DefenseMode } from '../engine/combat';
-import { jeuDeCritique, relanceLaLocalisation } from '../engine/critical';
+import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, apercuDesCritiques, coupAApplique, type DefenseMode } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
 import { areGrappling, clearGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -2314,7 +2313,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const pa = get().pendingAttack;
       // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
       const cible = pa ? inBattleId(get().battle, pa.targetId) : undefined;
-      if (!pa || !pa.forced || !pa.result || !cible || !relanceLaLocalisation(cible, causeDuCoupCritique(pa.result), cible.wounds.current, jeuDeCritique())) return;
+      if (!pa || !pa.forced || !pa.result || !cible || !apercuDesCritiques(cible, coupAApplique(pa.result, pa.grapple)).relance) return;
       set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
     },
     attackRoll: () => {

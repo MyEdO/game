@@ -174,7 +174,7 @@ import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironment
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './zones';
 import { carryOverState } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
-import { resolveCritique, jeuDeCritique, critiquesDuCoup, estUnCoupCritique, relanceLaLocalisation, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
+import { resolveCritique, jeuDeCritique, critiquesDuCoup, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type CompteDesCritiques, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE, D10_SALVE_MISFIRE } from '../engine/artilleryMisfire';
@@ -5942,7 +5942,7 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
   // LDB 18 l.53/55 : un Projectile Coup Critique re-tire la Localisation (1d100 frais, MÊME primitive
   // que la mêlée — pas le dé inversé) et RÉ-ÉVALUE ses Dégâts à cette loc AVANT les atténuations
   // magiques ci-dessous (Résistance/Dôme/Martyr).
-  if (relanceLaLocalisation(cible, causeDuProjectile(touche), cible.wounds.current, jeuDeCritique())) mres = evaluateMissile(caster, cible, spell, mres, critWoundLocation(battleRng(), cible.bodyShape), touche.overcastDamageSteps);
+  if (critiquesDuCoup(cible, { coupCritique: causeDuProjectile(touche), prise: true, current: cible.wounds.current, blessures: () => mres.woundsLost ?? 0 }).relance) mres = evaluateMissile(caster, cible, spell, mres, critWoundLocation(battleRng(), cible.bodyShape), touche.overcastDamageSteps);
   // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
   // cible — les Dégâts en découlent (`evaluateMissile`), le plancher de 1 Blessure reste celui du
   // RAW (LDB 13 l.155-163). Le jet figé (roll/Surincantation) n'est pas rejoué : seul le DR change.

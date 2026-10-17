@@ -267,12 +267,13 @@ export type OrigineCritique = 'coup-critique' | 'depassement' | 'a-zero';
 /** Cause d'un Coup Critique : double (LDB 13 l.183), Empaleuse (LDB 62 l.248), Incantation critique (LDB 46 l.28, l.30). */
 export type CauseCoupCritique = 'double' | 'empaleuse' | 'incantation-critique';
 export interface CritiqueDuCoup { origine: OrigineCritique; overkill: number }
-export interface CompteDesCritiques { critiques: readonly CritiqueDuCoup[]; mortSubite: boolean }
+/** `relance` : la Localisation de la Blessure critique se relance (LDB 17 l.68 ; LDB 18 l.53 ; AA 07 l.32). */
+export interface CompteDesCritiques { critiques: readonly CritiqueDuCoup[]; mortSubite: boolean; relance: boolean }
 
 /** Ce Critique est-il un Coup Critique ? SOURCE UNIQUE des lecteurs d'un Critique déjà compté (Bâclée,
  *  `onCrit` filtré, titre). Partielle et Points faibles se lisent AVANT le compte : au jet
  *  (`applyHit`, `AttackResult.critical`) et à la Localisation relancée (`woundsAtCritLocation`), qui
- *  n'existe que par `relanceLaLocalisation`. Relance ⇒ Coup Critique ; pas la réciproque (#1595 c.6226467544,
+ *  n'existe que par `CompteDesCritiques.relance`. Relance ⇒ Coup Critique ; pas la réciproque (#1595 c.6226467544,
  *  branche 2). LDB 13 l.183 ; LDB 14 l.3 ; LDB 18 l.23 ; AA 07 l.34, l.38 ; #1595 c.6226467544. */
 export function estUnCoupCritique(origine: OrigineCritique | null | undefined): boolean {
   return origine === 'coup-critique';
@@ -331,7 +332,7 @@ export function regimeDePorteur(c: Pick<Combatant, 'bodyShape' | 'creatureId' | 
 /** La Localisation de la Blessure critique se relance-t-elle (1d100 frais, jamais l'inversion de la touche) ?
  *  SOURCE UNIQUE du déclencheur de relance. `current` = Blessures AVANT le coup. AA 07 l.25, l.32, l.52 ;
  *  LDB 18 l.53, l.55 ; #1595 c.6226467544, c.6227274650 Q1, Q2, Q4. */
-export function relanceLaLocalisation(
+function relanceLaLocalisation(
   c: Pick<Combatant, 'bodyShape' | 'creatureId' | 'inert' | 'label'>, cause: CauseCoupCritique | null, current: number, jeu: JeuDeCritique,
 ): boolean {
   const R = regimeDePorteur(c);
@@ -356,12 +357,12 @@ export function critiquesDuCoup(
   coup: { coupCritique: CauseCoupCritique | null; prise: boolean; current: number; blessures: (relance: boolean) => number },
   jeu: JeuDeCritique = jeuDeCritique(),
 ): CompteDesCritiques {
-  if (!coup.prise) return { critiques: [], mortSubite: false };
+  if (!coup.prise) return { critiques: [], mortSubite: false, relance: false };
   const R = REGIMES_DE_PORTEUR[porteurDeCritique(c)];
   const { current } = coup;
   if (usesSuddenDeath(c)) {
-    if (!R.depassement || jeu === 'aa') return { critiques: [], mortSubite: false };
-    return { critiques: [], mortSubite: depasse(jeu, coup.blessures(false), current) };
+    if (!R.depassement || jeu === 'aa') return { critiques: [], mortSubite: false, relance: false };
+    return { critiques: [], mortSubite: depasse(jeu, coup.blessures(false), current), relance: false };
   }
   const relance = relanceLaLocalisation(c, coup.coupCritique, current, jeu);
   const lost = coup.blessures(relance);
@@ -371,7 +372,7 @@ export function critiquesDuCoup(
   if (cc) critiques.push({ origine: 'coup-critique', overkill: R.coupCritiqueNu(jeu) ? 0 : overkill });
   else if (R.aZeroToutCoup && current <= 0) critiques.push({ origine: 'a-zero', overkill });
   if (R.depassement && depasse(jeu, lost, current)) critiques.push({ origine: R.passageAZeroEstCoupCritique(jeu) ? 'coup-critique' : 'depassement', overkill });
-  return { critiques: critiques.slice(0, R.plafond(jeu)), mortSubite: false };
+  return { critiques: critiques.slice(0, R.plafond(jeu)), mortSubite: false, relance };
 }
 
 const rangeesOuvertes = memoParVersion(

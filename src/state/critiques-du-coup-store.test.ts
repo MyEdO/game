@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
+import { seedBattleRng } from './battleRng';
 import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type CastCritChoice } from './combatFlow';
 import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascadeTestKit';
 import { createHero } from '../engine/character';
@@ -367,6 +368,20 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     expect(totalPA(apres)).toBe(6);
     expect(kinds.filter((k) => k === 'deviation' || k === 'critical')).toEqual([]);
     expect(hasCondition(apres, 'inconscient')).toBe(true);
+  });
+
+  it('la Localisation de la touche ne se relance pas (LDB 18 l.44, l.53 ; #1595 c.6219992594)', () => {
+    const { mage, cible } = carreauEnCombat();
+    cible.important = false;
+    cible.wounds = { current: 1, max: 20 } as Combatant['wounds'];
+    const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
+    const lieux: (string | undefined)[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; result: MissileResult }) => { if (p.kind === 'spell') lieux.push(p.result.location); });
+    seedBattleRng(1);
+    applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, 'critique');
+    draineCascade(useGame.getState, 200, () => 1);
+    lache();
+    expect(lieux, 'la graine 1 relancerait la Localisation au Corps').toEqual([res.location]);
   });
 });
 

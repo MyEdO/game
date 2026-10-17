@@ -38,7 +38,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { lancerDuTableau, type CauseCoupCritique } from './critical';
+import { lancerDuTableau, critiquesDuCoup, jeuDeCritique, type CauseCoupCritique, type CompteDesCritiques, type JeuDeCritique } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -1574,6 +1574,28 @@ export function peutRetenirSesCoups(weapon: Weapon): boolean {
 export function causeDuCoupCritique(res: Pick<AttackResult, 'critical' | 'attackerRoll' | 'sansPrise'>): CauseCoupCritique | null {
   if (!res.critical || res.sansPrise) return null;
   return isDoubleRoll(res.attackerRoll) ? 'double' : 'empaleuse';
+}
+
+/** Le compte d'une touche d'arme au jet, avant application : `critiquesDuCoup`. LDB 17 l.68 ; LDB 18 l.44 ;
+ *  AA 07 l.65 ; #1595 c.6219992594, c.6228496170 R1. */
+export function apercuDesCritiques(
+  cible: Combatant,
+  res: Pick<AttackResult, 'critical' | 'attackerRoll' | 'sansPrise' | 'hit' | 'woundsLost'>,
+  jeu: JeuDeCritique = jeuDeCritique(),
+): CompteDesCritiques {
+  return critiquesDuCoup(cible, { coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: cible.wounds.current, blessures: () => res.woundsLost ?? 0 }, jeu);
+}
+
+/** Le coup tel qu'il s'appliquera, Empoignade déclarée comprise. LDB 14 l.159. */
+export function coupAApplique(res: AttackResult, grapple: boolean | undefined): AttackResult {
+  return grapple && res.hit ? { ...res, woundsLost: 0, autoKill: false, sansPrise: 'empoignade' } : res;
+}
+
+/** L'issue d'un coup au jet, avant application : la ligne de touche marquée par `apercuDesCritiques`.
+ *  LDB 14 l.159 ; LDB 18 l.44 ; AA 07 l.65. */
+export function issueAuJet(cible: Combatant, res: AttackResult): { ligne: string; compte: CompteDesCritiques } {
+  const compte = apercuDesCritiques(cible, res);
+  return { ligne: res.touche ? phraseDeTouche(res.touche, res, compte.critiques.length > 0) : res.log, compte };
 }
 
 /** L'arme inflige-t-elle l'État *En flammes* (un onHitEffect posant la Condition `en-flammes`, ex. Épée
