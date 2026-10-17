@@ -1480,7 +1480,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', shipMoraleScore(get, ship), navigation, battleRng(), { extraDR: undercrew.dr + extraDR });
       const dr = undercrew.capSuccesMinime ? capToSuccesMinime(crewTest.total) : crewTest.total;
       const suspendu = applyBatteryVolley(get, set, ship, target, side, dr, crewTestSuccess(dr));
-      const bB = get().battle!;
+      const bB = markActed(get, set); // le tour de la coque IA est joué : une fenêtre ouverte le reprend en fin de tour (#1852 ; #1595)
       const gunners = assignments.map((a) => a.crew.id);
       set({ battle: { ...bB, crewActed: withCrewActed(bB.crewActed, shipId, gunners) } }); // équipage engagé ce Round (Manque de bras / cumul, l.53)
       if (!suspendu) checkBattleOver(get, set);
