@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult, applyCast, applyOpposedCritical } from './combatFlow';
+import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type CastCritChoice } from './combatFlow';
 import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack, type AttackResult } from '../engine/combat';
@@ -620,5 +620,98 @@ describe('la ligne de touche du journal dit le coup APPLIQUÉ (LDB 18 l.53, l.55
     expect(r.cible.wounds.current).toBe(20);
     expect(r.ligne).toMatch(/^H touche /);
     expect(r.ligne).not.toMatch(/Blessures|dégâts/);
+  });
+});
+
+describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQUÉ (LDB 18 l.53 ; LDB 63 l.30, l.32)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Le Carreau en Incantation critique, effet `effet`, sur la cible tenue par le siège MJ, debout à 20 PB sous 2 PA ;
+   *  ses lignes de touche après `applyCast`, puis après la cascade drainée au dé 50 et au choix `choix`. */
+  function carreau(effet: CastCritChoice, o: { choix?: 'devier' | 'subir'; demoniaque?: number } = {}) {
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    const { mage, cible } = carreauEnCombat();
+    cible.important = true;
+    cible.items = [...(cible.items ?? []), piece([], 2)];
+    recomputeLoadout(cible);
+    cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+    if (o.demoniaque != null) cible.traits = [...(cible.traits ?? []), { id: 'demoniaque', value: o.demoniaque }] as never;
+    const sort = findSpell('Carreau')!;
+    const touches = () => journal().filter((l) => l.startsWith(`${mage.label} lance ${sort.label} sur ${cible.label}`));
+    const finales: MissileResult[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });
+    try {
+      applyCast(useGame.getState, useGame.setState, mage, cible, sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, effet);
+      const auLancement = touches();
+      draineCascade(useGame.getState, 200, () => 50, o.choix ? () => o.choix! : undefined);
+      return { auLancement, lignes: touches(), finale: finales[0], apres: useGame.getState().battle!.combatants.find((c) => c.id === cible.id)! };
+    } finally { lache(); }
+  }
+
+  it('Critique dévié : une ligne, à la Localisation et aux Blessures appliquées, sans marque Critique', () => {
+    const r = carreau('critique', { choix: 'devier' });
+    expect(journal()).toContain(tr('cf.deflect', { name: r.apres.label }));
+    expect(r.finale.critiques).toBe(0);
+    expect(r.lignes).toHaveLength(1);
+    expect(r.lignes[0]).toContain(`(${locationLabel(r.finale.location!, r.apres.bodyShape)})`);
+    expect(r.lignes[0]).toContain(`= ${20 - r.apres.wounds.current} Blessures.`);
+    expect(r.lignes[0]).not.toContain('CRITIQUE');
+  });
+
+  it('Critique subi : une ligne, marquée Critique une fois', () => {
+    const r = carreau('critique', { choix: 'subir' });
+    expect(r.finale.critiques).toBe(1);
+    expect(r.lignes).toHaveLength(1);
+    expect(r.lignes[0]).toContain(`= ${r.finale.woundsLost} Blessures — CRITIQUE !`);
+    expect(r.lignes[0].split('CRITIQUE').length - 1).toBe(1);
+  });
+
+  it('sauvegarde suspendue (Démoniaque, LDB 85 l.98) : rien au lancement, une ligne après la reprise', () => {
+    const r = carreau('critique', { demoniaque: 1 });
+    expect(r.auLancement).toEqual([]);
+    expect(r.lignes).toHaveLength(1);
+  });
+
+  it('Puissance totale (LDB 46 l.31) : une ligne, sans marque Critique', () => {
+    const r = carreau('puissance');
+    expect(r.lignes).toHaveLength(1);
+    expect(r.lignes[0]).not.toContain('CRITIQUE');
+  });
+});
+
+describe('Tir dans le tas (LDB 14 l.106) : la ligne chiffrée de la victime porte la phrase du tas', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] } as unknown as Weapon;
+
+  it('une touche au hasard : la phrase du tas et la ligne de la victime, une fois chacune', () => {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+    useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
+    useGame.getState().startScene(structuredClone(testScene()));
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const b = useGame.getState().battle!;
+    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const [cible, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+    H.pos = { x: 10, y: 10 };
+    cible.pos = { x: 13, y: 10 };
+    voisin.pos = { x: 13, y: 11 };
+    autres.forEach((c, i) => { c.pos = { x: 1, y: 1 + i }; });
+    let tir: ReturnType<typeof resolveAttack> = null;
+    for (let graine = 1; graine < 60 && !tir?.victim; graine++) {
+      useGame.getState().seedRng(graine);
+      tir = resolveAttack(useGame.getState, H, cible, undefined, false, true, false, arc);
+    }
+    const { victim, res, weapon } = tir!;
+    expect(victim, 'une graine touche le tas').toBeDefined();
+    applyAttackResult(useGame.getState, useGame.setState, H, victim!, weapon, res);
+    draineCascade(useGame.getState, 200, () => 50);
+    const texte = journal().join('\n');
+    expect(texte.split('Tir dans le tas').length - 1).toBe(1);
+    expect(texte.split(`H touche ${victim!.label}`).length - 1).toBe(1);
+    expect(journal().find((l) => l.startsWith(`H touche ${victim!.label}`))).toMatch(/ Blessures.* Tir dans le tas/);
   });
 });

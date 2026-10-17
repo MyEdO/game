@@ -819,7 +819,7 @@ export function resolveAttack(
         const ad = res.attackerDetail!;
         const rescued = res.attackerRoll > ad.target - (cm?.value ?? 0); // aurait échoué sans le bonus → 0 DR (l.146)
         const stray = resolveStrayRangedHit(attacker, victim, weapon, res.attackerRoll, rescued ? res.attackerRoll : ad.target, ad, withhold);
-        stray.log = tr('cf.strayHit', { name: victim.label, rescued: rescued ? tr('cf.fragRescued') : '' });
+        stray.ajouts = [tr('cf.strayHit', { name: victim.label, rescued: rescued ? tr('cf.fragRescued') : '' })];
         return { res: stray, weapon, victim };
       }
       return { res, weapon };
@@ -5829,33 +5829,33 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   if (!caster || !cible) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: ch.spell.label })] };
   const spell = ch.spell;
   let mres = ch.mres;
+  // La touche dans le vocabulaire partagé des touches (`AttackResult`) : l'attaque est MAGIQUE, elle n'a pas d'arme.
+  let coup: AttackResult = {
+    hit: !!mres.hit, attackerRoll: mres.roll ?? 0, netSL: 0, critical: false,
+    advantageTo: null, defenderDefeated: false, log: '',
+    ...(mres.location ? { location: mres.location } : {}),
+    ...(mres.damage != null ? { damage: mres.damage } : {}),
+    ...(mres.woundsLost != null ? { woundsLost: mres.woundsLost } : {}),
+    ...(mres.touche ? { touche: mres.touche } : {}),
+    ...(mres.ajouts ? { ajouts: mres.ajouts } : {}),
+  };
   // Une RÉ-ENTRÉE de fenêtre de Critique porte la touche déjà passée par les sauvegardes.
   if (!ch.critiques) {
     // Sauvegardes « après la touche » — MÊME registre ordonné que le coup physique
     // (`state/combat/hitModifiers`), et c'est SON site unique : Démoniaque/Protection (LDB 85 l.98),
     // Dôme (LDB 47 l.410, qui nomme les attaques magiques), Martyr.
-    // La touche est exprimée dans le vocabulaire partagé des touches (`AttackResult`) ; l'attaque
-    // est MAGIQUE, elle n'a pas d'arme.
-    const touche: AttackResult = {
-      hit: !!mres.hit, attackerRoll: mres.roll ?? 0, netSL: 0, critical: false,
-      advantageTo: null, defenderDefeated: false, log: '',
-      ...(mres.location ? { location: mres.location } : {}),
-      ...(mres.damage != null ? { damage: mres.damage } : {}),
-      ...(mres.woundsLost != null ? { woundsLost: mres.woundsLost } : {}),
-      ...(sauvegarde ? { sauvegarde } : {}),
-    };
     const apresModifiers = runHitModifiers({
-      get, set, attacker: caster, target: cible, res: touche, attaque: 'magique', sink: () => {},
+      get, set, attacker: caster, target: cible, res: sauvegarde ? { ...coup, sauvegarde } : coup, attaque: 'magique', sink: () => {},
       encaisse: (c) => { lignes.push(...checkFocusInterruption(get, set, c)); },
       ouvrirSauvegarde: (seuils) => { pousserSauvegarde(set, cible.id, seuils, { mode: 'projectile', touche: ch }); },
     });
-    const apresSaves = apresModifiers.res;
     if (apresModifiers.suspendu) return { issue: 'suspendue-sauvegarde', lignes }; // suspendu AVANT toute mutation : cette cible reprendra par l'applier
-    const ligne = ligneDuCoup(apresSaves);
-    if (ligne) lignes.push(ligne);
-    mres = { ...mres, woundsLost: apresSaves.woundsLost, damage: apresSaves.damage };
+    coup = apresModifiers.res;
+    mres = { ...mres, woundsLost: coup.woundsLost, damage: coup.damage, touche: coup.touche, ajouts: coup.ajouts };
   }
-  if (!mres.hit || !mres.woundsLost) return clore(get, ch, lignes, mres, 0);
+  // LDB 18 l.53 ; LDB 63 l.32.
+  const avecLaLigne = (applique: AttackResult): string[] => [ligneDuCoup(applique), ...lignes].filter(Boolean);
+  if (!mres.hit || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
   const currentBefore = cible.wounds.current;
   const loc = mres.location ?? 'corps';
   // LDB 63 l.30, l.32 : chaque Déviation retire 1 PA à `loc` ; les Blessures du coup se relisent à PA−n.
@@ -5921,7 +5921,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
   if (isOutOfAction(cible)) lignes.push(tr('cf.outOfAction', { name: cible.label }));
-  return clore(get, ch, lignes, { ...mres, woundsLost: compte.blessures }, infligees);
+  return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.blessures, critiques: infligees }), { ...mres, woundsLost: compte.blessures }, infligees);
 }
 
 /**
@@ -5992,7 +5992,7 @@ function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): string
     // cible — le résultat déjà atténué de la précédente (Résistance à la Magie, loc de Critique) la
     // contaminerait. La cible d'un rebond est HORS de la zone du lancement : elle est SA propre zone.
     const r2 = evaluateMissile(caster, next, spell, rebond.res, undefined, touche.overcastDamageSteps);
-    lignes.push(tr('cf.spellBounces', { spell: spell.label, name: next.label }), r2.log);
+    lignes.push(tr('cf.spellBounces', { spell: spell.label, name: next.label }));
     hitIds = [...hitIds, next.id];
     const maillon = appliquerTouchePourCible(get, set, next, {
       ...touche, de: prev.id, targetId: next.id, mres: r2, zoneTalentMod: talentSpellDRMod(next),
@@ -6092,7 +6092,7 @@ export function applyCast(
       }
     }
   }
-  const logLines: string[] = [res.log];
+  const logLines: string[] = res.touche ? [] : [res.log];
   // Composant d'incantation (LDB 46 l.107-113, règle optionnelle) : consommé UNE fois par lancement
   // d'un Sort d'Arcane/Domaine couvert, « même si aucune Incantation Imparfaite n'a été obtenue »
   // (l.111). `componentUsed` → toute Imparfaite de ce lancement est dégradée (Majeure→Mineure,
@@ -6188,7 +6188,6 @@ export function applyCast(
     for (const t2 of extraTargets) {
       if (!res.cast) break;
       const r2 = evaluateMissile(caster, t2, spell, res, undefined, overcastDamageSteps);
-      logLines.push(r2.log);
       const touche2 = appliquerTouchePourCible(get, set, t2, toucheDe(t2, r2));
       logLines.push(...touche2.lignes);
     }

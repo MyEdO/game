@@ -25,7 +25,7 @@ import { traitCapability } from './traits/dispatch';
 import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
 import { effectiveSkillCharKey, skillBaseValue, soutienBonus } from './skills';
 import { effectivelyHostile } from './relations';
-import { reverseRoll, hitLocationByShape } from './combat';
+import { reverseRoll, hitLocationByShape, phraseDeTouche, type ToucheDuJournal } from './combat';
 import { deviatableArmourAt } from './items';
 import { resolveFormula, skillDRBonus, offTerrainTestDR } from './ops';
 import type { SpellRange, SpellTarget } from './spellRange';
@@ -939,6 +939,10 @@ export interface MissileResult extends CastResult {
   /** Blessures critiques INFLIGÉES, posées à la clôture de la touche (`clore`), seule émission. LDB 18 l.17 ;
    *  LDB 46 l.30 ; LDB 63 l.30. */
   critiques?: number;
+  /** Les termes de la ligne de touche (`ligneDuCoup`), journalisée à l'application. LDB 18 l.53. */
+  touche?: ToucheDuJournal;
+  /** Lignes des sauvegardes de la touche, à la suite de sa ligne (`ligneDuCoup`). */
+  ajouts?: string[];
 }
 
 /** Résout un Projectile magique (Incantation puis Dégâts façon attaque). */
@@ -1019,7 +1023,7 @@ export function evaluateMissile(
   // Sous l'arbitrage NI (#1007), un DR réduit qui retombe sous le NI ne lance rien sur cette cible.
   const sl = spellSLFor(cr.sl, target, cr.zoneSpellDRMod);
   if (!spellLandsOn(cr, target, cr.zoneSpellDRMod)) {
-    return { ...cr, hit: false, defenderDefeated: false };
+    return { ...cr, hit: false, defenderDefeated: false, touche: undefined };
   }
   // Localisation : le jet d'Incantation inversé (LDB 46), SAUF Coup Critique → 1d100 frais (`locOverride`,
   // LDB 18 l.53) ; les Dégâts ci-dessous sont alors RÉ-ÉVALUÉS à cette loc (PA + mods de Domaine, l.55).
@@ -1038,6 +1042,7 @@ export function evaluateMissile(
   const defeated = target.wounds.current - woundsLost <= 0;
   const mitLabel =
     [spellDmg?.ignoreBE ? null : 'BE', spellDmg?.ignorePA ? null : 'PA'].filter(Boolean).join('+') || 'rien';
+  const touche: ToucheDuJournal = { attaquant: caster.label, cible: target.label, forme: target.bodyShape, mitigation: mitLabel, sort: spell.label };
   return {
     ...cr,
     hit: true,
@@ -1045,11 +1050,8 @@ export function evaluateMissile(
     damage,
     woundsLost,
     defenderDefeated: defeated,
-    log:
-      `${caster.label} lance ${spell.label} sur ${target.label} : ` +
-      `${damage} dégâts − ${tb + ap} (${mitLabel}) = ${woundsLost} Blessures` +
-      (cr.isCritical ? ' — CRITIQUE !' : '') +
-      '.',
+    touche,
+    log: phraseDeTouche(touche, { location: loc, damage, woundsLost }, !!cr.isCritical),
   };
 }
 

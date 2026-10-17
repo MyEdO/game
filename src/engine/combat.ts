@@ -1551,8 +1551,6 @@ export function resolveStrayRangedHit(
   };
   const atkBd = bd(`${attackTestLabel(attacker, weapon, 'ranged')} (dévié)`, base, atk, compo);
   const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl), withhold);
-  delete res.touche;
-  res.log = `Le tir dévie dans la mêlée et touche ${victim.label} !`;
   return res;
 }
 
@@ -1611,6 +1609,8 @@ export interface ToucheDuJournal {
   /** Libellé de la mitigation (`BE+PA`, ou le BE multiplié d'une Structure, AA 10 l.98). */
   mitigation: string;
   coque?: 'petites-armes' | 'taille';
+  /** Libellé du Sort d'un Projectile magique (LDB 46 l.30). */
+  sort?: string;
 }
 
 /** La ligne de touche d'un coup : Localisation, Dégâts et Blessures tels que portés par `res`, marque Critique
@@ -1620,17 +1620,18 @@ export function phraseDeTouche(
   res: Pick<AttackResult, 'location' | 'damage' | 'woundsLost' | 'sansPrise' | 'degatsTransferes'>,
   critique: boolean,
 ): string {
+  const tete = t.sort ? `${t.attaquant} lance ${t.sort} sur ${t.cible}` : `${t.attaquant} touche ${t.cible}`;
   if (t.coque) {
-    return `${t.attaquant} touche ${t.cible}, sans effet sur la coque (${t.coque === 'petites-armes'
+    return `${tete}, sans effet sur la coque (${t.coque === 'petites-armes'
       ? 'les tirs de petites armes n’infligent pas assez de Dégâts pour avoir un effet sur un vaisseau'
       : 'trop petit pour entamer cette coque'} — MDG 13).`;
   }
   const lieu = res.location ? ` (${locationLabel(res.location, t.forme)})` : '';
   const marque = critique ? ' — CRITIQUE !' : '';
-  if (res.sansPrise || res.degatsTransferes) return `${t.attaquant} touche ${t.cible}${lieu}${marque}.`;
+  if (res.sansPrise || res.degatsTransferes) return `${tete}${lieu}${marque}.`;
   const damage = res.damage ?? 0;
   const blessures = res.woundsLost ?? 0;
-  return `${t.attaquant} touche ${t.cible}${lieu} : ${damage} dégâts − ${damage - blessures} (${t.mitigation}) = ${blessures} Blessures${marque}.`;
+  return `${tete}${lieu} : ${damage} dégâts − ${damage - blessures} (${t.mitigation}) = ${blessures} Blessures${marque}.`;
 }
 
 /** La ligne de journal d'un coup APPLIQUÉ : la ligne de touche recomposée sur la Localisation, les Blessures
