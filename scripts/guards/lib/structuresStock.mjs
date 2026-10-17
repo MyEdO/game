@@ -120,7 +120,9 @@ export const STRUCTURES_CIBLES = [
   { concept: "palier-de-billet", signature: "drMin,prix", date: "2026-10-16" },
   { concept: "marchandage-de-billet", signature: "paliers,presetId", date: "2026-10-16" },
   { concept: "marchandage-de-billet", signature: "presetId", date: "2026-10-16" },
-  { concept: "forme-d-etat", signature: "+…", date: "2026-10-16" },
+  // #2662 (2026-10-17) — la forme d'un état passe à ses clés RÉELLES, au seul site des projets.
+  { concept: "forme-d-etat", signature: "kind", date: "2026-10-17" },
+  { concept: "forme-d-etat", signature: "kind,valeurs", date: "2026-10-17" },
   { concept: "billet-de-route", signature: "prix", date: "2026-10-16" },
   { concept: "billet-de-route", signature: "prix+…", date: "2026-10-16" },
   // #1389 (épique #1388, 2026-09-07) — l'ADRESSE de prose et son FRAGMENT naissent CIBLES : ce sont

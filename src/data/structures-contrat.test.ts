@@ -30,6 +30,7 @@ import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,
   CONCEPTS,
+  DATASETS_DES_PROJETS,
   LOTS_CONNUS,
   LOTS_DE_PEUPLEMENT,
   LOT_CLE_RESERVEE,
@@ -668,6 +669,18 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
     expect(classerValeur('max,min', cles, { dataset: '', champ: 'params', candidats: ['plage'] })).toMatchObject({ concept: 'plage', statut: 'cible' });
     expect(classerValeur('max,min', cles, { dataset: '', champ: 'params' })).toBeNull();
     expect(classerValeur('manannD10,max,min', ['min', 'max', 'manannD10'], { dataset: '', champ: 'impressed' })).toBeNull();
+  });
+
+  it('la forme d’un état n’est revendiquée qu’au SITE des projets, à ses clés réelles', () => {
+    const projet = DATASETS_DES_PROJETS.find((d) => d === 'diligence-projet.json')!;
+    expect(classement({ kind: 'heros' }, 'forme', projet)).toMatchObject({ concept: 'forme-d-etat', signature: 'kind', statut: 'cible' });
+    expect(classement({ kind: 'enum', valeurs: [] }, 'forme', projet)).toMatchObject({ concept: 'forme-d-etat', signature: 'kind,valeurs', statut: 'cible' });
+    expect(classement({ couleur: 'x', taille: 1 }, 'forme', 'creatures.json')).toBeNull();
+  });
+
+  it('un `prix` hors des projets n’est pas un billet de route', () => {
+    expect(classement({ prix: { exterieur: 1 } }, 'diligence', 'diligence-projet.json')).toMatchObject({ concept: 'billet-de-route', statut: 'cible' });
+    expect(classerValeur('label,prix', ['label', 'prix'], { dataset: 'merchants.json', champ: 'offres' })?.concept).not.toBe('billet-de-route');
   });
 
   it('une clé RÉSERVÉE encore homonyme ne force aucun concept (`count`, `cost`, `skill`)', () => {

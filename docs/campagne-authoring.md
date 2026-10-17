@@ -326,8 +326,9 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   pré-composés (`base` = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`**
   (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,
   `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
-  (règle 5), non vide ; **`etats`** (`{ id, label, source?, forme }`, #2539) — les états de campagne
-  (§ 9), `source` = le passage qui pose l'état (même forme que celle d'un document), `forme` ∈ `heros` | `enum { valeurs }`.
+  (règle 5), non vide ; **`etats`** (`{ id, label, source?, maison?, forme }`, #2539) — les états de campagne
+  (§ 9), provenance `source` (le passage qui pose l'état) OU `maison` (sa raison), exigée comme celle
+  d'un billet (`refuserSansProvenance`), `forme` ∈ `heros` | `enum { valeurs }`.
 - **Registres.** Les listes à `id` du narratif sont déclarées UNE fois, dans `REGISTRES_NARRATIFS`
   (`src/data/schemas/defs-scenes/registres-narratifs.ts`) : schéma (unicité inter-registres,
   anti-collision globale), résolveur (`campaignData.ts`), narratif vide (`emptyNarratif`) et éditeur la

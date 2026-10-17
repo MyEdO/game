@@ -15,7 +15,8 @@ import { useClesDeRangees } from '../useClesDeRangees';
 import { ProseField } from '../ProseField';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { estDerive } from '../compendium/editFields';
-import { LIBELLE_NARRATIF, RefNarrativeField } from '../compendium/RefField';
+import { RefNarrativeField } from '../compendium/RefField';
+import { LIBELLE_NARRATIF } from '../compendium/libellesNarratifs';
 import { ConditionEditor } from './ConditionEditor';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
@@ -673,7 +674,7 @@ function formeNeuve(kind: FormeDEtatKind): EtatNarratif['forme'] {
   return (FORMES_D_ETAT[kind].valeursDeclarees ? { kind, valeurs: [{ id: 'valeur-1', label: 'Valeur 1' }] } : { kind }) as EtatNarratif['forme'];
 }
 
-/** Formulaire d'un ÉTAT DE CAMPAGNE (#2539) : identité, libellé, réf nue du passage, forme (`FORMES_D_ETAT`)
+/** Formulaire d'un ÉTAT DE CAMPAGNE (#2539) : identité, libellé, provenance (source OU raison maison), forme (`FORMES_D_ETAT`)
  *  et, pour une forme qui les déclare, ses valeurs (id stable + libellé). Changer de forme est refusé tant
  *  qu'une référence désigne l'état (l'usage qu'elle en fait dépend de la forme). */
 function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, onRenameValeur, onPatch, onRemove }: {
@@ -707,6 +708,12 @@ function EtatForm({ porteur, etat, porteurDe, refus, refusDeValeur, onRename, on
         <input value={etat.label} onChange={(e) => onPatch({ label: e.target.value })} />
       </label>
       <SourceRefField identite={porteur} label="Source" facultative sujet="de l’état" value={etat.source} onChange={(source) => onPatch({ source })} />
+      <label className="ed-field">Raison maison de l’état (sans source)
+        <input value={etat.maison ?? ''} onChange={(e) => onPatch({ maison: e.target.value || undefined })} />
+      </label>
+      {!etat.source && !etat.maison && (
+        <ChipDeRefus fixe refus={{ message: 'Provenance exigée : la source de l’état, ou sa raison maison ; sans elle le projet est refusé au chargement.' }} />
+      )}
       <label className="ed-field">
         Forme
         <select value={etat.forme.kind} disabled={!!refus} title={refus} onChange={(e) => onPatch({ forme: formeNeuve(e.target.value as FormeDEtatKind) })}>

@@ -43,11 +43,15 @@ export type StatutSignature = 'cible' | 'historique' | 'declaree';
 export type SiteDeSignature = { readonly datasets?: readonly string[]; readonly champs: readonly string[] };
 export type SignatureLexique = { sig: string; statut: StatutSignature; note?: string; site?: SiteDeSignature };
 
+/** Les documents des PROJETS DE CAMPAGNE livrés (`listerProjetsLivres`), par nom de dataset. */
+export const DATASETS_DES_PROJETS: readonly string[] = listerProjetsLivres().map((rel) => basename(rel));
+
 /** Les documents qui portent un STATBLOC à valeurs de Test imprimées : le bestiaire et les statblocs
  *  EMBARQUÉS des projets de scène (`CustomStatblock`). MÊME schéma des deux côtés
  *  (`defs/creatures.ts` et `defs-scenes/communs.ts` composent tous deux `refOuSpec('skill', {value})`). */
+
 export const SITE_STATBLOC: SiteDeSignature = {
-  datasets: ['creatures.json', ...listerProjetsLivres().map((rel) => basename(rel))],
+  datasets: ['creatures.json', ...DATASETS_DES_PROJETS],
   champs: ['skills'],
 };
 
@@ -232,6 +236,12 @@ export type Concept = {
   listeIdsNus?: boolean;
   /** Le concept est nommé par la CLÉ qui le porte — déclaré, jamais mesuré à un seuil. */
   champs?: readonly string[];
+  /**
+   * Documents où le concept vaut, par champ comme par noyau — la moitié dataset du SITE de
+   * `SiteDeSignature`, à l'échelle du concept. Absent = tout document : un champ au nom courant
+   * (`forme`) ou une clé courante (`prix`) revendiquerait alors toute valeur de tout dataset.
+   */
+  datasets?: readonly string[];
   /** Clés dont la présence (au moins `noyauMin`) classe un objet dans le concept. */
   noyau?: readonly string[];
   noyauMin?: number;
@@ -543,24 +553,29 @@ export const CONCEPTS: readonly Concept[] = [
     ],
   },
   // Porte : `formeDEtatSchema` (`src/data/schemas/defs-scenes/narratif.ts`), union discriminée sur `kind`
-  // dont chaque branche est une ligne de `FORMES_D_ETAT` (`formes-d-etat.ts`). Champ MESURÉ sur les 2
-  // racines (2026-10-16) : `forme` ne vit que sous `narratif.etats[]`. EDO 02 l.91 ; EDO 01 l.241.
+  // dont chaque branche est une ligne de `FORMES_D_ETAT` (`formes-d-etat.ts`). SITE : `forme` des documents
+  // de projet (`narratif.etats[]`), MESURÉ sur les 2 racines (2026-10-16). `kind` est un noyau d'ENVELOPPE
+  // (`condition`) : `CLES_DE_VALEUR` l'écarte. EDO 02 l.91 ; EDO 01 l.241.
   {
     id: 'forme-d-etat',
     label: 'forme d’un état de campagne (`heros` | `enum`)',
     strate: 'Valeur',
     champs: ['forme'],
-    // Le discriminant `kind` reste HORS du vocabulaire du concept (patron `fragment`) : `CLES_DE_VALEUR`
-    // en dérive. Les deux formes (`{kind}`, `{kind, valeurs}`) projettent donc `+…`.
-    signatures: [{ sig: '+…', statut: 'cible', note: '`kind` (`heros` | `enum`), plus `valeurs` DÉCLARÉES pour `enum`' }],
+    datasets: DATASETS_DES_PROJETS,
+    signatures: [
+      { sig: 'kind', statut: 'cible', note: '`heros`' },
+      { sig: 'kind,valeurs', statut: 'cible', note: '`enum`, `valeurs` DÉCLARÉES' },
+    ],
   },
   // APRÈS `palier-de-billet` (même clé `prix`, le palier porte `drMin`), et l'ordre décide. Porte :
   // `routeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). Noyau MESURÉ sur les 2 racines
-  // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]`. EDO 01 l.142.
+  // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]` ; SITE : les documents
+  // de projet, seuls porteurs de `worldMap`. EDO 01 l.142.
   {
     id: 'billet-de-route',
     label: 'billet d’auteur d’une route (`RouteBillet`)',
     strate: 'Valeur',
+    datasets: DATASETS_DES_PROJETS,
     signatures: [
       { sig: 'prix', statut: 'cible' },
       { sig: 'prix+…', statut: 'cible', note: '`suite`, `depuis`, `marchandage`, `source` et `maison` sont OPTIONNELS au schéma' },
@@ -872,12 +887,14 @@ export const clesDuRole = (role: RoleEnveloppe): string[] => [...(role.cible ? [
  * mesuré : `tellsDeDocument` (`structures-scan.mts`) compte les clés de CHARGE UTILE hors de ce
  * vocabulaire — y verser les noyaux d'ENVELOPPE (`affaires`, `objets`, `titre`, `kind`…) change le
  * TELL de 44 objets (mesuré 2026-09-01 sur les deux racines : les PIONS de scène
- * `{id, kind, label, pos, ref}`, dont `kind` cesserait de compter comme charge utile).
+ * `{id, kind, label, pos, ref}`, dont `kind` cesserait de compter comme charge utile). Une clé de
+ * noyau d'enveloppe que nomme AUSSI une valeur (`kind`, discriminant de `forme-d-etat`) en est donc
+ * retirée.
  * Garde : `src/data/structures-contrat.test.ts`, sonde C.
  */
+const NOYAUX_D_ENVELOPPE: ReadonlySet<string> = new Set(CONCEPTS.filter((c) => c.strate === 'Document').flatMap((c) => c.noyau ?? []));
 export const CLES_DE_VALEUR: ReadonlySet<string> = new Set(
-  CONCEPTS.filter((c) => c.strate === 'Valeur').flatMap((c) => [
-    ...c.signatures.flatMap((s) => s.sig.split(',')),
-    ...(c.noyau ?? []),
-  ]),
+  CONCEPTS.filter((c) => c.strate === 'Valeur')
+    .flatMap((c) => [...c.signatures.flatMap((s) => s.sig.split(',')), ...(c.noyau ?? [])])
+    .filter((k) => !NOYAUX_D_ENVELOPPE.has(k)),
 );

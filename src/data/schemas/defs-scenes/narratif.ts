@@ -21,6 +21,7 @@ import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
 import type { CreatureData, TrappingData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
+import { refuserSansProvenance } from '../grammaire/document';
 import { fautesDeSites, sitesDuNarratif } from './refs-narratives';
 import type { FormeDEtatKind } from './formes-d-etat';
 
@@ -107,13 +108,15 @@ type SchemaDeForme = (typeof SCHEMA_DE_FORME)[FormeDEtatKind];
 export const formeDEtatSchema = z.discriminatedUnion('kind', Object.values(SCHEMA_DE_FORME) as [SchemaDeForme, ...SchemaDeForme[]]);
 
 /** Un ÉTAT DE CAMPAGNE (#2539) : un choix ou une issue que le récit pose et qu'un chapitre ultérieur lit —
- *  `source` = le passage qui le pose, même forme que la source d'un document. */
+ *  provenance `source` OU `maison`, même forme que celle d'un billet (`routeBilletSchema`). */
 export const etatNarratifSchema = nommerChamps(z.strictObject({
   id: z.string().min(1, 'id vide.'),
   label: z.string().min(1, 'libellé vide.'),
   source: sourceRefSchema.optional(),
+  maison: z.string().min(1).optional(),
   forme: formeDEtatSchema,
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, source: { label: "source" }, forme: { label: "forme" } });
+})
+  .superRefine((etat, ctx) => refuserSansProvenance(etat, ctx, 'de l’état')), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, source: { label: "source" }, maison: { label: "maison" , texte: { regime: "technique"} }, forme: { label: "forme" } });
 
 /** Une entrée de fiche de dossier de chapitre ÉCARTÉE par l'adaptation (#2290), avec son motif. */
 export const ecartSchema = nommerChamps(z.strictObject({

@@ -624,6 +624,18 @@ describe('NarratifEditor — onglet États de campagne (#2539)', () => {
     expect(narratifSchema.safeParse(last).success).toBe(true);
   });
 
+  it('un état neuf naît sans provenance, refusé comme un billet neuf ; la raison maison le rend valide', () => {
+    mount();
+    click(btn('États'));
+    click(btn('Ajouter un état'));
+    expect(narratifSchema.safeParse(last).success).toBe(false);
+    expect(container.textContent).toContain('Provenance exigée : la source de l’état, ou sa raison maison');
+    setValue(field('Raison maison de l’état'), 'issue tranchée par l’adaptation');
+    expect(last.etats[0].maison).toBe('issue tranchée par l’adaptation');
+    expect(container.textContent).not.toContain('Provenance exigée');
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
   it('renommer une valeur propage à la Condition et à l’Effet qui la nomment ; la valeur nommée ne se retire pas', () => {
     mount(issue(), [tribunal()]);
     click(btn('États'));

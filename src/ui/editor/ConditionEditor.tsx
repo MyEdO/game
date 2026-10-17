@@ -11,13 +11,14 @@ import type { NarratifBlock } from '../../state/campaignNarratif';
 import type { TemporalCondition } from '../../state/scene';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
-import { etatDeclare, etatsAdmettant, valeurDEtat, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';
+import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
 import { findTrappingById } from '../../data';
 import { formatMoney } from '../../engine/money';
 import { RefField } from '../compendium/RefField';
+import { libelleDEtat } from '../compendium/libellesNarratifs';
 import { NumberField } from '../NumberField';
 
 /** Libellé d'affichage d'un `trappingId` (objet catalogué) — repli sur l'id brut (objet CUSTOM par nom). */
@@ -31,7 +32,7 @@ const ALWAYS: Condition = { kind: 'always' };
 
 /** Résumé d'un sélecteur de héros. */
 const quiResume = (who: PartySelector | undefined, narratif: NarratifBlock | undefined): string =>
-  who === 'all' ? 'groupe' : typeof who === 'object' ? `héros désigné « ${who.etat ? (etatDeclare(narratif?.etats, who.etat)?.label ?? who.etat) : '?'} »` : 'un héros';
+  who === 'all' ? 'groupe' : typeof who === 'object' ? `héros désigné « ${who.etat ? libelleDEtat(narratif?.etats, who.etat) : '?'} »` : 'un héros';
 
 /** Sélecteur de héros d'une Condition de groupe : le quantificateur (`partyWhoSchema`) ou un état déclaré
  *  par le projet dont la forme admet la sélection (`FORMES_D_ETAT`). */
@@ -133,8 +134,8 @@ export function condSummary(c: Condition | undefined, narratif?: NarratifBlock):
     case 'money': return `bourse ≥ ${formatMoney({ gold: c.atLeast.gold ?? 0, silver: c.atLeast.silver ?? 0, brass: c.atLeast.brass ?? 0 })}`;
     case 'partyDead': return c.who === 'all' ? 'tout le groupe mort' : `${quiResume(c.who, narratif)} mort`;
     case 'etat': {
-      const nom = c.etat ? (etatDeclare(narratif?.etats, c.etat)?.label ?? c.etat) : '?';
-      return c.value === undefined ? `état « ${nom} » défini` : `état « ${nom} » = ${(valeurDEtat(narratif?.etats, c.etat, c.value)?.label ?? c.value)}`;
+      const nom = c.etat ? libelleDEtat(narratif?.etats, c.etat) : '?';
+      return c.value === undefined ? `état « ${nom} » défini` : `état « ${nom} » = ${libelleDEtat(narratif?.etats, c.etat, c.value)}`;
     }
     case 'compare': {
       const val = typeof c.value === 'number' ? `${c.value}` : `${libelleDeValeur(actorRefSchema, c.value.who)} ${subjectLabel(c.value)}`;
