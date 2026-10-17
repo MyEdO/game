@@ -4,7 +4,7 @@
 
 L'hypnotisme est une Compétence Avancée utilisée par certains Saltimbanques et autres Mystiques. Certains pensent qu'elle a des applications médicales.
 
-**Note :** Il est conseillé au MJ de faire preuve de discernement avant de laisser un Joueur utiliser cette Compétence. Assurezvous que le sujet est à l'aise, et réceptif à l'hypnose. Le pouvoir d'altérer les croyances d'un PNJ peut court-circuiter des scénarios intéressants en les rendant trop faciles. Réfléchissez bien avant d'autoriser les Joueurs à s'en servir.
+**Note :** Il est conseillé au MJ de faire preuve de discernement avant de laisser un Joueur utiliser cette Compétence. Assurez-vous que le sujet est à l'aise, et réceptif à l'hypnose. Le pouvoir d'altérer les croyances d'un PNJ peut court-circuiter des scénarios intéressants en les rendant trop faciles. Réfléchissez bien avant d'autoriser les Joueurs à s'en servir.
 
 ### **La Compétence**
 

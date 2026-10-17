@@ -8,7 +8,7 @@ Le village de Wittgendorf, voir la carte p. 71, se trouve sur la rive ouest du R
 
 L'atmosphère de la forêt environnante est oppressante. D'énormes papillons de jour et de nuit boursouflés volent entre les arbres tordus et de grosses larves rampent sur le sol de la forêt. L'air est rempli de bruits inquiétants : on entend constamment des grognements, des sifflements et des cris.
 
-La nuit, les créatures de la forêt sortent pour chasser et les aventuriers sont susceptibles de rencontrer des groupes de mutants et d'hommes-bêtes qui prospèrent dans cette région. Aucun des villageois ne pénètre jamais dans la forêt la nuit, et tous le déconseillent. Si les aventuriers s'y risque malgré tout, reportezvous à *Nuit dans la forêt* (p. 80).
+La nuit, les créatures de la forêt sortent pour chasser et les aventuriers sont susceptibles de rencontrer des groupes de mutants et d'hommes-bêtes qui prospèrent dans cette région. Aucun des villageois ne pénètre jamais dans la forêt la nuit, et tous le déconseillent. Si les aventuriers s'y risque malgré tout, reportez-vous à *Nuit dans la forêt* (p. 80).
 
 L'appontement du village (*Emplacement 1* p. 71) est rarement utilisé de nos jours, le trafic fluvial contournant le village et le château. La circulation est presque inexistante et quiconque se rend de Kemperbad à Nuln doit soit passer par le fleuve, soit suivre la route qui longe la rive est.
 

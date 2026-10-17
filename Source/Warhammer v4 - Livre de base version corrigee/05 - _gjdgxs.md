@@ -884,7 +884,7 @@ Nous sommes la somme de nos expériences ; elles nous façonnent, nous forgent e
 
 La plupart des gens de l'Empire sont polythéistes ; l'existence et la puissance des dieux sont indéniables, et les vénérer est donc une évidence. Ceci dit, tous les dieux ne sont pas adorés de la même façon.
 
-Votre Personnage a-t-il un penchant ou une affinité pour un dieu en particulier ? Croisez-vous les doigts pour avoir de la chance en faisant appel à Ranald ? Faites-vous le signe de la Comète à Deux Queues à votre ennemi, ou murmurezvous une Prière rageuse à Ulric avant une bataille ? Voir le **Chapitre 7 : Religions et Croyances** pour plus de détails sur les dieux et leurs fidèles.
+Votre Personnage a-t-il un penchant ou une affinité pour un dieu en particulier ? Croisez-vous les doigts pour avoir de la chance en faisant appel à Ranald ? Faites-vous le signe de la Comète à Deux Queues à votre ennemi, ou murmurez-vous une Prière rageuse à Ulric avant une bataille ? Voir le **Chapitre 7 : Religions et Croyances** pour plus de détails sur les dieux et leurs fidèles.
 
 ## **Envers qui, ou quoi, êtes-vous loyal ?**
 

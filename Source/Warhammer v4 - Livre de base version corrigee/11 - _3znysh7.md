@@ -225,7 +225,7 @@ Tests simples – page 149 Tests spectaculaires – page 152 Tests opposés – 
 
 Les règles existent pour vous aider à vivre des aventures épiques dans le monde de Warhammer. Elles ne doivent jamais gâcher votre plaisir. Voici donc la règle la plus importante de ce livre :
 
-**Si une règle gâche le plaisir de jouer de votre groupe, modifiezla ou ignorez-la.**
+**Si une règle gâche le plaisir de jouer de votre groupe, modifiez-la ou ignorez-la.**
 
 Cette règle est si importante que vous trouverez au fil de ce livre des règles alternatives et optionnelles qui vous permettront de définir un cadre correspondant parfaitement à votre groupe et votre style de jeu. Au cours de votre première partie, laissez-les de côté le temps de découvrir comment tout fonctionne, et vous pourrez par la suite tester certaines variantes en fonction de vos demandes.
 
