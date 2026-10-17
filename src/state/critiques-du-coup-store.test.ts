@@ -14,7 +14,7 @@ import { recomputeLoadout } from '../engine/items';
 import { testScene } from '../scenes/test-fixture';
 import { spawnEnemy } from './spawn';
 import { t as tr } from '../i18n';
-import type { Combatant, ItemInstance, Weapon } from '../engine/types';
+import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 
 /** Le compte des Blessures critiques d'un coup, joué par le store : LDB 18 l.17, l.44, l.53 ; AA 07 l.36. */
 
@@ -222,8 +222,9 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
   });
 
   it('Bâclée seule, le porteur refuse : la pièce casse, le Critique est subi', () => {
-    const { cible } = coup({ roll: 44, current: 20, tenu: true, choisir: () => 'subir', pieces: [piece(['bacle'], 1)] });
+    const { res, cible } = coup({ roll: 44, current: 20, tenu: true, choisir: () => 'subir', pieces: [piece(['bacle'], 1)] });
     expect(casse(cible, 'p1')).toBe(true);
+    expect(journal()).toContain(tr('cf.shoddyBreaks', { name: cible.label, loc: locationLabel(res.critLocation!, cible.bodyShape) }));
     expect(cible.criticalWounds).toBe(1);
   });
 
@@ -308,7 +309,7 @@ describe("véhicule routier : un Coup Critique n'y fait aucune Blessure critique
     expect(auJet.critical, 'le double fait le Coup Critique au jet').toBe(true);
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(journal()).toContain(tr('cf.coqueSansCritique', { name: cible.label }));
-    expect(journal().filter((l) => l === tr('cf.shoddyBreaks', { name: cible.label, loc: 'corps' }))).toEqual([]);
+    expect(journal().filter((l) => l === tr('cf.shoddyBreaks', { name: cible.label, loc: locationLabel('corps', cible.bodyShape) }))).toEqual([]);
     expect((cible.items ?? []).filter((i) => (i.damageTaken ?? 0) > 0)).toEqual([]);
   });
 });

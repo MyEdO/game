@@ -8,6 +8,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
+import { registerCombatHook } from './combatHooks';
+import type { CombatEventCtx } from './combatEvents';
+import { hasCondition, COND } from '../engine/conditions';
 import { applyAttackResult, applyOpposedCritical, applyCast, resolveDeviation } from './combatFlow';
 import { evaluateMissile, magicDeviationEligible, type CastResult } from '../engine/magic';
 import { seedBattleRng, battleRng } from './battleRng';
@@ -98,21 +101,13 @@ describe('magicDeviationEligible — éligibilité d\'un Projectile (LDB 63 l.30
     expect(magicDeviationEligible(t, 'corps', missileSpell({ domainId: 'metal' }))).toBe(false);
   });
 
-  it('evaluateMissile(apReduction:1) → exactement 1 Blessure de plus quand la PA mitige (recalcul Déviation)', () => {
-    const t = mk('hero', 'T', { armour: uniformArmour(4) });
-    const a0 = evaluateMissile(caster, t, missileSpell(), cr, 'corps', 0).woundsLost ?? 0;
-    const a1 = evaluateMissile(caster, t, missileSpell(), cr, 'corps', 1).woundsLost ?? 0;
-    expect(a1 - a0).toBe(1);
-  });
-
   // Les Blessures d'une touche Déviée se relisent à PA−n avec les MÊMES pas de Dégâts (`VDM 02 l.198`) :
   // l'écart PA−1 ne dépend pas des pas alloués.
   it('avec des pas de Dégâts alloués (Surincantation VDM) → même écart PA−1 qu\'à 0 pas', () => {
     setRule('magic-vdm-incantation', true);
     try {
-      const t = mk('hero', 'T', { armour: uniformArmour(4) });
-      const ecart = (pas: number) => (evaluateMissile(caster, t, missileSpell(), cr, 'corps', 1, pas).woundsLost ?? 0)
-        - (evaluateMissile(caster, t, missileSpell(), cr, 'corps', 0, pas).woundsLost ?? 0);
+      const ecart = (pas: number) => (evaluateMissile(caster, mk('hero', 'T', { armour: uniformArmour(3) }), missileSpell(), cr, 'corps', pas).woundsLost ?? 0)
+        - (evaluateMissile(caster, mk('hero', 'T', { armour: uniformArmour(4) }), missileSpell(), cr, 'corps', pas).woundsLost ?? 0);
       expect(ecart(3)).toBe(ecart(0));
       expect(ecart(3)).toBe(1);
     } finally {
@@ -399,5 +394,61 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
     const temoin = makeRNG(GRAINE);
     temoin.int(1, 100);
     expect(battleRng().int(1, 1_000_000), 'même graine, un seul dé consommé').toBe(temoin.int(1, 1_000_000));
+  });
+});
+
+// ── Après la Blessure critique infligée : une fabrique pour la mêlée, l'opposé, la reprise et le Projectile ──
+// LDB 10 (Frappe blessante) ; LDB 18 l.15 ; #1595 c.6228496170 Q3, Q4b.
+describe('Après la Blessure critique infligée (LDB 10 ; LDB 18 l.15 ; #1595 c.6228496170 Q3, Q4b)', () => {
+  /** Les `onCrit` émis sur le bus (le hook machinerie reçoit le contexte entier de l'événement). */
+  const onCrit: CombatEventCtx[] = [];
+  registerCombatHook({ id: 'test-deviation-paths-oncrit', phase: 'onCrit', run: (ctx) => { onCrit.push(ctx as CombatEventCtx); } });
+  beforeEach(() => { seedBattleRng(7); onCrit.length = 0; });
+
+  /** Le Critique d'un Test opposé (LDB 14 l.3) d'un auteur à `fb` niveaux de Frappe blessante, sur une cible à `pb` PB. */
+  const critiqueOppose = (fb: number, pb: number): Combatant => {
+    seedBattleRng(7);
+    const a = mk('enemy', 'a', { talents: fb ? [{ talentId: 'frappe-blessante', times: fb }] : [] } as never);
+    const v = mk('enemy', 'v', { wounds: { current: pb, max: 30 } as never });
+    setBattle([a, v]);
+    applyOpposedCritical(useGame.getState, useGame.setState, v, 44, { attackerId: 'a' }, []);
+    return live('v');
+  };
+
+  it('la Frappe blessante qui fait tomber à 0 pose À Terre', () => {
+    const temoin = critiqueOppose(0, 30);
+    expect(temoin.dead, 'la graine tire une Blessure critique non létale').toBeFalsy();
+    const rangee = 30 - temoin.wounds.current;
+    const sansFrappe = critiqueOppose(0, rangee + 2);
+    expect(sansFrappe.wounds.current).toBe(2);
+    expect(hasCondition(sansFrappe, COND.aTerre)).toBe(false);
+    const frappe = critiqueOppose(2, rangee + 2);
+    expect(frappe.wounds.current).toBe(0);
+    expect(hasCondition(frappe, COND.aTerre)).toBe(true);
+  });
+
+  it("le Critique d'un Projectile émet `onCrit` pour le lanceur, sans `attackType`", () => {
+    const caster = mage('enemy', 'e-mage');
+    const t = mk('enemy', 'e-cible');
+    setBattle([caster, t]);
+    castMissile(caster, t, missileSpell(), { critical: true });
+    draineCascade(useGame.getState, 200, () => 1);
+    expect(live('e-cible').criticalWounds).toBe(1);
+    expect(onCrit).toHaveLength(1);
+    expect(onCrit[0].self?.id).toBe('e-mage');
+    expect(onCrit[0].triggerCtx?.victim?.id).toBe('e-cible');
+    expect(onCrit[0].triggerCtx?.attackType).toBeUndefined();
+  });
+
+  it("l'automate qui dévie le Critique d'un héros sans siège le révèle, l'auteur fût-il un ennemi", () => {
+    const gourdin: Weapon = { label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] };
+    const e = mk('enemy', 'e1', { weapons: [gourdin], pos: { x: 1, y: 0 } });
+    const h = mk('hero', 'h1', { aiControlled: true, armour: uniformArmour(3) });
+    setBattle([e, h]);
+    applyAttackResult(useGame.getState, useGame.setState, e, h, gourdin,
+      { hit: true, attackerRoll: 44, netSL: 2, location: 'corps', damage: 5, woundsLost: 1, critical: true, advantageTo: null, defenderDefeated: false, log: 'double' });
+    expect(armourSum(live('h1')), 'l’automate a dévié').toBe(17);
+    const reveles = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.reveal?.title === tr('cf.critDeflectedTitle'));
+    expect(reveles).toHaveLength(1);
   });
 });

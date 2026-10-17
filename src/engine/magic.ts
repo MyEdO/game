@@ -1009,7 +1009,6 @@ export function evaluateMissile(
   spell: SpellLike,
   cr: CastResult,
   locOverride?: HitLocation,
-  apReduction = 0, // Déviation Critique (LDB 63) : recalcul des Dégâts à PA−1 quand le défenseur sacrifie 1 PA
   /** DR alloués à la colonne « Dégât en plus » du Tableau de Surincantation (`VDM 02 l.198`). */
   overcastDamageSteps = 0,
 ): MissileResult {
@@ -1026,7 +1025,7 @@ export function evaluateMissile(
   const bfm = bonus(effectiveChar(caster, 'force-mentale'));
   // Attribut de Domaine (LDB 48 — L14) : Métal ignore les PA métalliques ET les ajoute en Dégâts ;
   // Cieux ignore les PA métalliques ; Ombres ignore tous les PA non magiques.
-  const totalAP = Math.max(0, effectiveArmourAt(target, loc) - apReduction); // PA portés + temporisés (Armure Aethyrique), moins le PA sacrifié en Déviation
+  const totalAP = effectiveArmourAt(target, loc); // PA portés + temporisés (Armure Aethyrique)
   const dom = domainMissileMods(target, spell, loc, totalAP);
   const damage = (spellDmg?.damage ?? 0) + missileDamageSL(sl, overcastDamageSteps, overcastSourceOf(spell)) + bfm + dom.bonusDamage;
   // Certains Projectiles ignorent le Bonus d'Endurance et/ou les PA (p.238 + sorts).
