@@ -1,9 +1,6 @@
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { spawnSync } from 'node:child_process'
-
 import { fileURLToPath } from 'node:url'
 
 test('optionalité native : générateur MapSpec conserve desc optionnel et son démarrage compilable', () => {

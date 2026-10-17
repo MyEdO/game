@@ -1,9 +1,8 @@
+// `versionsNonDerivees` (#2226, #2404) : les prédicats sur des fichiers fabriqués, puis sur `src/`
+// (`scripts/corpus/guards/versionsDerivees.test.mjs`).
 import { test, mock } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { API, Snapshot } from 'typescript/unstable/sync'
-
 import { relevePerimetre, versionsNonDerivees } from './versionsDerivees.mjs'
 
 const juge = versionsNonDerivees

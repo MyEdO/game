@@ -1,19 +1,23 @@
+// PORTE DE RÔLE du lecteur à ordre total (#1679 L3b, incident #1620), zéro stock.
+//
+//  (a) PROPRIÉTÉ  : `listerDossier` rend l'ordre des unités de code, quel que soit l'ordre de création.
+//      EFFET      : `listerArbre` rend le MÊME tableau quel que soit l'ordre de création.
+//      Sous NTFS la preuve est TRIVIALE (le système rend déjà un listing trié) ; c'est la CI, sur
+//      ext4 (ordre d'un hash), qui la porte réellement. Le test est ici pour y être JOUÉ, pas pour
+//      être vert sur cette machine.
+//  (b) MUR        : toute racine du registre des générateurs (`GENERATORS` ∪ `NON_GENERATOR_CHECKS`,
+//      `scripts/docs/build-all.mjs`) est SOUS les globs `files:` de chaque bloc du mur « ordre total »
+//      de `oxlint.config.mjs` — les globs se LISENT depuis la config, jamais recopiés ici. Chaque règle
+//      du mur y est déclarée par UN seul bloc, en `error` (UNICITÉ).
+//  (c), IGNORES, DIRECTIVES, (d) : `scripts/corpus/guards/lister.test.mjs`
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
-
 import { tmpdir } from 'node:os'
-
 import { join } from 'node:path'
-
 import { cheminAbsent, listerDossier, listerArbre, parUnitesDeCode, parLibelle, correspondGlob, motifDeGlob } from './lister.mjs'
-
 import { norm } from '../../../src/lib/normalize.ts'
-
 import { BLOCS_LINT as configEslint, REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
-
 import { blocDe, blocsDuMur, couvre, exempte, racinesDuRegistre } from '../../test/lib/bancLister.mjs'
 
 test('cache glob : compilation réutilisée, FIFO borné et expressions publiques isolées', () => {
@@ -74,7 +78,10 @@ test('photographie typée : nature avant/après, lien, dossier vide et absence r
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 
+/** Sous le mur ENTIER (chaque règle l'arme) : la clôture des générateurs. */
 const sousLeMurEntier = (rel) => blocsDuMur().every((c) => couvre(c, rel) && !exempte(c, rel))
+
+// --- (a) PROPRIÉTÉ et EFFET -------------------------------------------------------------------
 
 test('PROPRIÉTÉ — `listerDossier` rend l’ordre des unités de code, jamais celui de la création', () => {
   const dir = mkdtempSync(join(tmpdir(), 'lister-'))

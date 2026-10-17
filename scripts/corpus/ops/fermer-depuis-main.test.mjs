@@ -1,7 +1,5 @@
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { FEUILLES, manquementsDeFeuilles } from '../../guards/lib/modulesFeuilles.mjs'
 
 test('CLIQUET : le module qui FERME est une FEUILLE — aucune source suivie ne l’acquiert par un spécificateur LITTÉRAL', () => {

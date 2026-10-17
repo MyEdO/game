@@ -1,9 +1,6 @@
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { readFileSync } from 'node:fs'
-
 import { manquementsDeFeuilles } from '../../guards/lib/modulesFeuilles.mjs'
 
 test('le train n’IMPORTE pas le module qui FERME — l’invariant tient sur les imports, pas sur les argv', () => {

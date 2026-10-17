@@ -1,14 +1,15 @@
+// CLIQUET du GESTE de fermeture (node --test, sans réseau) : `appel` est FEINT, et le module sous
+// test est une FEUILLE — `scripts/corpus/ops/fermer-depuis-main.test.mjs` le vérifie sur les
+// imports du dépôt.
+// Lancé par `npm run test:ops`.
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { DEPOT, lireTicket } from '../guards/lib/ticketsGh.mjs'
-
 import { readFileSync } from 'node:fs'
-
 import { fermeturesDeLaPlage, marqueDe } from '../guards/lib/plageFermante.mjs'
-
 import { fermerLeTicket, traiterUnTicket } from './fermer-depuis-main.mjs'
+
+// ── LE geste de fermeture, par REST (#1813) ───────────────────────────────────
 
 test('fermerLeTicket : le solde POSTÉ puis l’état PATCHÉ — jamais `gh issue close` (GraphQL)', () => {
   const vus = []
@@ -78,11 +79,16 @@ test('fermerLeTicket n’écrit RIEN sur le disque : aucune fabrique de fichier 
   assert.equal(/mkdtempSync|writeFileSync|mkdirSync|appendFileSync/.test(code), false)
 })
 
+// ── le CÂBLAGE de l’idempotence : la décision PURE devenue geste ──────────────
+
+/** Les dates des commentaires feints : un jour d'écart chacun, à partir du 2026-01-01. */
 const datesDe = (commentaires) => commentaires.map((_, i) => `2026-01-0${i + 1}T00:00:00Z`)
 
+/** Une date d'événement ANTÉRIEURE à tout commentaire feint, et une POSTÉRIEURE. */
 const AVANT = '2025-12-01T00:00:00Z'
 const APRES = '2026-02-01T00:00:00Z'
 
+/** `traiterUnTicket` avec ses quatre coutures feintes ; `gestes` enregistre ce qui a été DEMANDÉ. */
 function traiter({
   etat, commentaires, sha = 'aaa', citants = [sha], emporte = 'VERIFIE: le solde', evenement = 'closed', date = APRES,
 }) {

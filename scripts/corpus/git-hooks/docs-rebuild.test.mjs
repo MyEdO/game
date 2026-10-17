@@ -1,19 +1,15 @@
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { dirname, join } from 'node:path'
-
 import { fileURLToPath } from 'node:url'
-
 import { mesurerEnRendu } from '../../docs/build-all.mjs'
-
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
-
 import { touchesDocSources } from '../../git-hooks/docs-rebuild.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 
+/** Les générateurs dont le rendu lit chaque classe jugée ci-dessous — mémoire, workflows, fiches de
+ *  l'Atlas et `scripts/raw/`, `src/`, tsconfig —, les moins coûteux à mesurer. */
 const MESURES = [
   'scripts/docs/build-doctrines.mjs', 'scripts/docs/build-reprise.mjs', 'scripts/raw/build-atlas-index.mjs',
   'scripts/docs/build-usages-jets.mjs', 'scripts/docs/build-donnees.mjs',

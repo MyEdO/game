@@ -1,8 +1,8 @@
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { FEUILLES, manquementsDeFeuilles, sourcesSuivies } from '../../guards/lib/modulesFeuilles.mjs'
+
+// ── l'arbre RÉEL ──────────────────────────────────────────────────────────────
 
 test('le dépôt n’a AUCUN importeur de feuille, et la garde lit bien ses sources', () => {
   const vu = manquementsDeFeuilles()

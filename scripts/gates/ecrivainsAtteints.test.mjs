@@ -1,14 +1,9 @@
 import test, { mock } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { corpusParGate, transitif } from './ecrivainsAtteints.mjs'
-
 import fsReel, { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { syncBuiltinESMExports } from 'node:module'
-
 import { tmpdir } from 'node:os'
-
 import { join } from 'node:path'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lancesDeGit, sousCommande } from '../test/gitDeBanc.mjs'

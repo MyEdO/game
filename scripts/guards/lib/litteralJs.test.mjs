@@ -1,9 +1,10 @@
+// Contrat de `litteralJs` (node --test) : `eval` du littéral rend la valeur, pour chaque caractère
+// échappé. Garde de la construction `ECHAPPEUR_DE_LITTERAL` sur le périmètre des gardes : l'échappeur
+// du guillemet simple écrit à la main hors de `litteralJs.mjs` (corpus réel :
+// `scripts/corpus/guards/litteralJs.test.mjs`).
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { litteralJs } from './litteralJs.mjs'
-
 import { scanConstructionsReservees, ECHAPPEUR_DE_LITTERAL } from './canonUnique.mjs'
 
 const ECHAPPEUR = { ...ECHAPPEUR_DE_LITTERAL, foyer: 'scripts/guards/lib/litteralJs.mjs' }

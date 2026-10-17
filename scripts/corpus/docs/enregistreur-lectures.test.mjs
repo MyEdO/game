@@ -1,11 +1,15 @@
+// Contrat de la MESURE DES SOURCES (#1679 L1b) : ce qu'un générateur lit se MESURE, et part dans le
+// dérivé local `docs/.sources-lues.json` (#2203).
+//   node --test scripts/corpus/docs/enregistreur-lectures.test.mjs
+//
+// Chaque mesure de générateur ci-dessous est une MORSURE : elle rougit si l'une des trois mécaniques
+// est débranchée — `module.syncBuiltinESMExports()` (les liaisons ESM figées rendent l'enveloppe de
+// `fs` invisible), la propagation par `NODE_OPTIONS` (les dumpers lancés en sous-processus), et
+// l'entrée `tsx/esm` (l'exécutable `tsx` re-spawne un processus qui perd le préchargeur).
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import path from 'node:path'
-
 import { fileURLToPath } from 'node:url'
-
 import { mesurerEnRendu } from '../../docs/build-all.mjs'
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
@@ -13,6 +17,7 @@ const ICI = path.dirname(fileURLToPath(import.meta.url))
 const RACINE = path.resolve(ICI, '..', '..', '..')
 
 const MESURES = mesurerEnRendu(['scripts/docs/build-index-moteur.mjs', 'scripts/docs/build-donnees.mjs', 'scripts/docs/build-structures.mts'], { cwd: RACINE })
+/** Les lectures de `script` (un générateur de `GENERATORS`) par LA mesure rendue (`mesurerEnRendu`). */
 const mesurer = (script) => MESURES.get(script).lues
 
 test('témoin : build-index-moteur mesure plus de 100 sources (liaisons ESM synchronisées)', () => {
@@ -35,6 +40,7 @@ test('runner tsx : build-structures mesure src/data ET src/scenes (entrée tsx/e
   assert.ok(lues.fichiers.some((f) => f.startsWith('src/scenes/')), 'aucune source src/scenes')
 })
 
+// scripts/docs/lib/enregistreur-hooks.mjs (enveloppe de fs du thread des hooks)
 test('thread des hooks : un générateur chargé par tsx mesure tsconfig.json (dérivé cross-OS)', () => {
   const lues = mesurer('scripts/docs/build-structures.mts')
   assert.ok(

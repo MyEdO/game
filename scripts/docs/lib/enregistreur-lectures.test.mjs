@@ -1,30 +1,21 @@
+// Contrat de la MESURE DES SOURCES (#1679 L1b) : ce qu'un générateur lit se MESURE, et part dans le
+// dérivé local `docs/.sources-lues.json` (#2203).
+//   node --test scripts/docs/lib/enregistreur-lectures.test.mjs
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
-
 import { installer } from './enregistreur-lectures.mjs'
-
 import { listerDossier } from '../../guards/lib/lister.mjs'
-
 import { instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
-
 import { tmpdir } from 'node:os'
-
 import path from 'node:path'
-
 import { fileURLToPath, pathToFileURL } from 'node:url'
-
 import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
 import { ignoresGit } from './perimetre-mesure.mjs'
 import { refusSourcesInsuffisantes } from '../build-all.mjs'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
-
 import fs from 'node:fs'
-
 import childProcess, { spawnSync } from 'node:child_process'
-
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
 import { syncBuiltinESMExports } from 'node:module'
 import { servirPipe } from '../../test/pipeNomme.mjs'
@@ -266,6 +257,9 @@ test('`ecrireDoc` écrit le rendu, et n’écrit RIEN à rendu identique (la mti
   }
 })
 
+// #1721 : NTFS est INSENSIBLE à la casse. Une décision « sous la racine » prise sur des octets
+// (`abs.startsWith(base + sep)`) sort de la mesure, sans rien dire, une lecture dont le disque ou un
+// segment ne porte pas la casse de la racine.
 test('casse : une lecture par un chemin à casse différente est COMPTÉE, une lecture hors racine est REJETÉE', (t) => {
   const racine = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'casse-')))
   const dehors = realpathSync.native(mkdtempSync(path.join(tmpdir(), 'dehors-')))
@@ -311,6 +305,7 @@ test('casse : une lecture par un chemin à casse différente est COMPTÉE, une l
   }
 })
 
+// #1769
 test('un dossier IGNORÉ par git, posé dans un dossier lu, ne change ni le listing ni les dossiers', () => {
   const { racine: brute } = instanceDeDepot({
     fichiers: { '.gitignore': '__pycache__/\n*.log\n', 'lib/geometrie.py': 'x = 1\n' },

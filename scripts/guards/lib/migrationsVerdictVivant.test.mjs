@@ -1,13 +1,11 @@
+// Banc de la garde `migrationsVerdictVivant.mjs` : le dépôt réel n'a AUCUNE migration datée qui atteint
+// le verdict vivant (`scripts/corpus/guards/migrationsVerdictVivant.test.mjs`) ; sur une fixture, l'import
+// direct et le ré-export transitif sont vus, `lib/` et les portes `replay*.mjs` ne sont pas des migrations.
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-
 import { tmpdir } from 'node:os'
-
 import { dirname, join } from 'node:path'
-
 import { migrationsAuVerdictVivant } from './migrationsVerdictVivant.mjs'
 
 test('#1887 : fixture — import direct et ré-export transitif vus ; `lib/` et `replay*.mjs` hors garde', () => {

@@ -1,25 +1,14 @@
 import test, { mock } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs'
-
 import { tmpdir } from 'node:os'
-
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
-
 import * as ts from 'typescript/unstable/ast'
-
 import { libererCache } from '../../guards/lib/fieldConsumers.mjs'
-
 import { loadSource, findAlias, aliasDoc, readUnionMembers, indexerConstantes, readZodUnionMembers, noyauZod, estOptionnel, proprietesZod } from './jsdocUnion.mjs'
-
 import { fileExports } from './engineExports.mjs'
-
 import { shellZones, rowZones } from './rollShellUsage.mjs'
-
 import { fileURLToPath } from 'node:url'
-
 import { API } from 'typescript/unstable/sync'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url))

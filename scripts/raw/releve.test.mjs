@@ -1,11 +1,9 @@
+// Banc du RELEVÉ et du PAQUET (#1887, lot 7) : un livre FIXTURE pour chaque origine et chaque
+// compartiment. Sur le CRB RÉEL : `scripts/corpus/raw/releve.test.mjs`.
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { ORIGINES, nomme, preparerLivre, releve } from './releve.mjs'
-
 import { ELISION, paquet, sectionsDuPaquet, taillesDuPaquet } from './paquet.mjs'
-
 import { parseChapitre } from '../../src/data/source/decoupe.ts'
 
 const chapitre = (fichier, lignes) => ({ fichier, parse: parseChapitre(lignes.join('\n')) })
@@ -96,6 +94,9 @@ test('#1887 : le paquet porte le texte RÉSOLU des sections de règle, une seule
   assert.ok(t.parOrigine.mention > 0 && t.parOrigine.renvoi > 0)
 })
 
+// Forme `tri` (lot 8) : une section FORTE (titre) entière, une section à origine `mention` seule réduite
+// à ses phrases et à ses lignes de table qui nomment le terme, jointes par `[…]` là où du texte est élidé,
+// par leur blanc d'origine sinon.
 const FIXTURE_TRI = preparerLivre({
   book: 'fixture-tri',
   langue: 'VO',

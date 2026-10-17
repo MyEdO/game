@@ -1,32 +1,70 @@
+/**
+ * MORSURE — une migration DATÉE n'écrit que ce qu'elle POSSÈDE (#1657).
+ *
+ * Le no-op d'une migration ne peut pas se décider par une égalité à l'OCTET du fichier entier :
+ * plusieurs de ces scripts NORMALISENT l'enveloppe des documents qu'ils rendent (`label` en 2ᵉ clé
+ * pour la vague 10, `id`/`type` en tête pour les vagues 11 et 12, `id`/`type`/`label` en tête pour
+ * les vagues 7a/8a, `ORDRE_DES_CLES` pour `2026-09-02-1680-props-provenance.mjs`). Sur un fichier
+ * dont les clés sont dans un AUTRE ordre, cette normalisation suffit à faire diverger le texte : le
+ * script réécrit un fichier qu'il n'a sémantiquement rien à changer, et `npm run migrations:replay`
+ * rend ROUGE.
+ *
+ * Ce banc vit sous `lib/` : `replay.mjs` scanne le dossier des migrations à PLAT et n'y admet que
+ * des `.mjs` à préfixe DATÉ — un `.test.mjs` posé à côté des migrations y serait rejoué ou refusé.
+ *
+ * Quatre familles de cas, toutes DÉRIVÉES du dossier des migrations — aucune liste cueillie :
+ *
+ *  1. NO-OP SUR CORPUS RENVERSÉ : `src/data` ENTIER est recopié dans un dépôt jetable, clés
+ *     renversées document par document, puis TOUTES les migrations datées y sont rejouées une à une.
+ *     Exigé : zéro réécriture (octet ET horodatage), et sortie 0 partout.
+ *     Il vit dans `scripts/corpus/migrations/idempotence-ordre-des-cles.test.mjs`.
+ *  2. FAIL-FAST `id` HORS TÊTE : pour chaque migration qui porte cette porte (dérivée de la forme
+ *     `Object.keys(e).indexOf('id')`), le premier dataset de sa table reçoit son entrée de tête avec
+ *     `id` repoussé au rang 1. Exigé : sortie 1, message NOMINATIF, fichier ni réécrit ni touché.
+ *  3. Les deux morsures INVERSES — une entrée à `cover` privée de sa `maison`, un
+ *     `steam-breakdown.json` dont `id` n'ouvre plus l'entrée DOIVENT être migrés : un no-op qui
+ *     avale tout ne prouverait rien.
+ *  4. PORTE DE FORME (#1812) : ce qui protège d'un rejeu sur une donnée d'une AUTRE époque est la
+ *     FORME des entrées, jamais leur NOMBRE. Pour chaque migration qui porte cette porte (dérivée de la
+ *     forme de son message), la première entrée de son premier dataset reçoit un `type` ÉTRANGER :
+ *     ni la forme source ni la forme cible. Exigé : sortie 1, message NOMINATIF, rien d'écrit.
+ *     Sa garde de CLASSE — « +1 entrée ne coûte rien » — ne lit pas le code mais fabrique l'ajout et
+ *     rejoue tout : `npm run migrations:replay:croissance` (`lib/croissance.mjs`).
+ */
 import { strict as assert } from 'node:assert'
-
 import fs from 'node:fs'
-
 import os from 'node:os'
-
 import path from 'node:path'
-
 import test from 'node:test'
-
 import { fileURLToPath } from 'node:url'
-
 import { echapperRegex } from '../../../src/lib/regex.ts'
-
 import { ANTIDATE, efface, joue } from './joue.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 
 const MIGRATIONS = path.join(RACINE, 'scripts/migrations');
 
+/** Les migrations DATÉES du dossier, dans l'ordre lexical — le périmètre que `replay.mjs` rejoue. */
 const DATEES = fs
   .readdirSync(MIGRATIONS)
   .filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(f))
   .sort((a, b) => a.localeCompare(b, 'en'));
 
+/** Le texte d'une migration — les dérivations ci-dessous s'y font par regex. */
 const texteDe = (migration) => fs.readFileSync(path.join(MIGRATIONS, migration), 'utf8');
 
+/**
+ * Ce que les migrations mesurées LISENT hors `src/data` : la lib de dérivation des labels d'art et
+ * les defs d'art dont elle tire le label. COPIÉ, jamais monté en lien : le dépôt jetable ne doit
+ * porter aucun chemin qui débouche sur l'arbre réel.
+ */
 const LUS = ['scripts/guards/lib', 'src/gameIso/catalog/decor/defs'];
 
+/**
+ * Dépôt jetable : une COPIE de `src/data` (les migrations y écrivent) et des seuls répertoires que
+ * les migrations lisent. `transforme` reçoit le document lu et rend celui à poser.
+ * REND `{ racine, cible, avant }` — `avant` étant le texte posé, référence de la comparaison.
+ */
 function depotJetable(fichier, transforme) {
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-idem-'));
   fs.mkdirSync(path.join(racine, 'src/data'), { recursive: true });
@@ -41,8 +79,16 @@ function depotJetable(fichier, transforme) {
   return { racine, cible, avant };
 }
 
+// --- 2. FAIL-FAST « `id` HORS TÊTE » -------------------------------------------------------------
+
+/** Les migrations qui portent la porte `id` hors tête — DÉRIVÉES de la forme qui la code. */
 const PORTEURS_ID_EN_TETE = DATEES.filter((m) => /Object\.keys\(e\)\.indexOf\('id'\)/.test(texteDe(m)));
 
+/**
+ * Le PREMIER dataset qu'une migration traite : la première clé de sa table `TYPES`, ou son unique
+ * `FICHIER` quand elle n'en tient qu'un. Rendu `null` si la migration ne déclare ni l'un ni l'autre —
+ * le cas le NOMME plutôt que de le sauter.
+ */
 const premierDataset = (migration) => {
   const texte = texteDe(migration);
   const table = /const TYPES = \{([\s\S]*?)\n\};/.exec(texte);
@@ -83,6 +129,14 @@ for (const migration of PORTEURS_ID_EN_TETE) {
   });
 }
 
+// --- 3. MORSURES INVERSES ------------------------------------------------------------------------
+
+/**
+ * MORSURE INVERSE de la PROMOTION de `id` — `2026-08-28-l1b-12a-entite-type.mjs` DÉCLARE
+ * (`ID_PROMU`) que `steam-breakdown.json` ouvrait ses entrées sur sa fourchette de tirage, `id` au
+ * rang 2. Cette promotion est un geste POSSÉDÉ : elle doit COMPTER dans le cardinal du no-op, sinon
+ * un fichier à `type` déjà posé mais `id` hors tête ressort en no-op muet, sorti 0, jamais promu.
+ */
 test('2026-08-28-l1b-12a-entite-type.mjs : `steam-breakdown.json` à `id` au rang 2 EST migré', (t) => {
   const { racine, cible, avant } = depotJetable('steam-breakdown.json', (doc) => doc.map((e) => {
     const { id, type, ...reste } = e;
@@ -119,6 +173,11 @@ test('2026-09-02-1680-props-provenance.mjs : une entrée à `cover` privée de `
   assert.notEqual(fs.readFileSync(cible, 'utf8'), avant, 'fichier inchangé alors qu’une provenance manquait');
 });
 
+// --- 4. PORTE DE FORME : ni la forme SOURCE, ni la forme CIBLE (#1812) ---------------------------
+
+/** Les migrations qui portent la porte de FORME — DÉRIVÉES du message qui la code. */
+// Le repère est le REFUS que le code prononce (`ARBITRAGE REQUIS — forme INATTENDUE`), jamais une
+// phrase de prose : une porte se reconnaît à ce qu'elle DIT en sortant, pas à son commentaire.
 const PORTEURS_DE_FORME = DATEES.filter((m) => /forme INATTENDUE/.test(texteDe(m)));
 
 test('la porte de FORME est portée par les 4 vagues `entite`', () => {
@@ -128,6 +187,7 @@ test('la porte de FORME est portée par les 4 vagues `entite`', () => {
   }
 });
 
+/** Un `type` qu'AUCUN def ne déclare : ni la forme source (pas de `type`), ni la forme cible. */
 const TYPE_ETRANGER = 'document-d-une-autre-epoque';
 
 for (const migration of PORTEURS_DE_FORME) {

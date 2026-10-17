@@ -2,11 +2,8 @@ import { ast } from '../guards/lib/dialecte.mjs'
 import { readFileSync as lireCalibrage } from 'node:fs'
 const CALIBRAGE = lireCalibrage(new URL('../../.claude/skills/orchestrer-des-agents/SKILL.md', import.meta.url), 'utf8')
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { defautsDesSitesDAgent, lireWorkflow } from '../guards/lib/formeDeWorkflow.mjs'
-
 import { TYPES_DECLARES, TEMOIN, SOURCE_TEMOIN, muter, vus as voirDefauts } from '../test/lib/bancWorkflows.mjs'
 
 const LIST_TYPE = "const LIST = {\n  type: 'object', additionalProperties: false,";

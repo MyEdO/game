@@ -1,17 +1,11 @@
+// #2278
 import test from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
-
 import { dirname, join } from 'node:path'
-
 import { tmpdir } from 'node:os'
-
 import { fileURLToPath } from 'node:url'
-
 import { creerBancLint } from '../guards/lib/lint.testkit.mjs'
-
 import { lancerLint } from '../guards/lib/lintStage.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
@@ -24,8 +18,10 @@ const HORS_COUTURE = join(RACINE, '.claude', 'skills', 'banc', 'hooks', 'module.
 
 const COUTURE = join(RACINE, '.claude', 'skills', 'banc', 'hooks', 'ops.ts')
 
+// #2278
 const module = (corps) => `import type { EngineInterface } from 'claude-code'\nimport { appel } from './ops'\nexport async function f($: EngineInterface, n: number, m: number, t: string, re: RegExp, q: unknown, lignes: string[], ids: string[], id: string, ms: number, i: number, nom: string, e: { at: string, test: string }) {\n${corps}\n}\n`
 
+// #2278
 async function messagesDuMur(source, chemin) {
   const [r] = await lint.lintText(source, { filePath: chemin })
   const fatals = r.messages.filter((m) => m.fatal)

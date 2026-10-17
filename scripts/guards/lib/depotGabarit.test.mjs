@@ -1,27 +1,17 @@
+// Contrat de la fixture de dépôt : une INSTANCE est un dépôt git RÉEL et indépendant, à l'octet
+// près celui du gabarit — c'est ce qui autorise à ne fabriquer l'état de départ qu'une fois.
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { DEPOT } from './ticketsGh.mjs'
-
 import { spawnSync } from 'node:child_process'
-
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-
 import { tmpdir } from 'node:os'
-
 import { isAbsolute, join, sep } from 'node:path'
-
 import { envDeDepotForge, envGitFeint, gabaritDeDepot, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
-
 import { ENV_GIT_FEINT, GitIndisponible, depotDe, shaDe } from './gitPorte.mjs'
-
 import { listerDossier } from './lister.mjs'
-
 import { readCorpus } from './sourceCorpus.mjs'
-
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
-
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 
 const git = (cwd) => (args) => lancerGit(args, { cwd, net: true })
@@ -133,6 +123,14 @@ test('MÉMO : deux appels de mêmes paramètres ne construisent qu’UN gabarit'
   assert.notEqual(autre.sha, un.sha)
 })
 
+// ── Sonde A : une construction qui échoue ne laisse RIEN sous os.tmpdir() ─────────────────────────
+/**
+ * Une construction jouée dans un process ENFANT dont `os.tmpdir()` est un dossier À LUI (`TEMP`/
+ * `TMP`/`TMPDIR`) : ce qui reste dans ce dossier a été laissé par CETTE construction, et par aucune
+ * autre. Le `os.tmpdir()` de la machine est un magasin PARTAGÉ — les fichiers de `test:hooks`
+ * tournent en parallèle et y fabriquent leurs propres gabarits.
+ * @returns {{ sortie: string, restes: string[] }} sortie de l'enfant, enfants du dossier isolé.
+ */
 function constructionIsolee(params) {
   const isole = mkdtempSync(join(tmpdir(), 'isole-'))
   try {
@@ -185,6 +183,7 @@ test('une copie qui ÉCHOUE dit, DANS son message, l’erreur d’origine et l�
   })
 })
 
+// ── Sonde B : l'instance porte l'HISTOIRE, pas une empreinte d'arbre ──────────────────────────────
 test('B : l’instance est un dépôt HISTORIQUE complet (objets, refs, graphe) et sain', () => {
   const { racine, sha } = instanceDeDepot(PARAMS)
   try {
@@ -210,6 +209,13 @@ test('B : l’instance est un dépôt HISTORIQUE complet (objets, refs, graphe) 
   }
 })
 
+// ── Sonde C : un dépôt FORGÉ ne connaît que LUI-MÊME ─────────────────────────────────────────────
+/**
+ * Git exporte `GIT_DIR`, `GIT_INDEX_FILE` et consorts à ses sous-processus (`git rev-parse
+ * --local-env-vars`) : un `git` lancé dans un dossier forgé qui en hérite vise le dépôt de
+ * l'appelant, où que ce dossier soit. La mesure se fait sur un dépôt TÉMOIN jetable — jamais sur un
+ * dépôt de travail — dont le `config` et l'index sont confrontés à l'OCTET, avant et après.
+ */
 test('C : sous `GIT_DIR`/`GIT_INDEX_FILE` d’un TÉMOIN, la fabrication ne le touche pas et l’instance est AUTONOME', () => {
   const temoin = mkdtempSync(join(tmpdir(), 'temoin-'))
   const avant = { GIT_DIR: process.env.GIT_DIR, GIT_INDEX_FILE: process.env.GIT_INDEX_FILE }
@@ -252,27 +258,38 @@ test('C : sous `GIT_DIR`/`GIT_INDEX_FILE` d’un TÉMOIN, la fabrication ne le t
   }
 })
 
+// ── Sonde D : STATIQUE — aucun autre forgeur n'hérite de l'env de git ────────────────────────────
+/** Le fichier qui DÉFINIT l'env isolé : le seul lanceur qui n'a personne à qui le demander. */
 const PRIMITIVE = 'scripts/guards/lib/depotGabarit.mjs'
 
+/** Ce que le détecteur reconnaît d'un dépôt FORGÉ : un `init` cité en tête d'arguments (`(['init'`,
+ *  `('init'`). Sa COUVERTURE s'arrête là — un `init` passé par une variable lui échappe. */
 const FORGE_UN_DEPOT = /[([]\s*['"]init['"]/
 
+/** Un site de lancement de git. La FENÊTRE d'un site est sa ligne et les deux suivantes : l'option
+ *  `env` d'un appel écrit sur plusieurs lignes y tient. */
 const SITE_GIT = /(?:execFileSync|spawnSync)\(\s*['"]git['"]/
 
+/** L'import qui adresse l'env isolé à la primitive. */
 const IMPORTE_L_ENV = /import\s*\{[^}]*\benvDeDepotForge\b[^}]*\}\s*from\s*['"][^'"]*depotGabarit\.mjs['"]/
 
+/** Fichiers du corpus qui forgent un dépôt, hors la primitive. */
 function forgeurs() {
   const corpus = readCorpus(['scripts', 'src'], { exts: ['.mjs', '.mts', '.js', '.ts', '.tsx'], tests: true })
   return corpus.filter((f) => f.rel !== PRIMITIVE && FORGE_UN_DEPOT.test(f.text) && SITE_GIT.test(f.text))
 }
 
+/** Sites de lancement de git d'un texte, la ligne comptée depuis 1. */
 function sitesGit(texte) {
   const lignes = texte.split('\n')
   return lignes.flatMap((ligne, i) =>
     SITE_GIT.test(ligne) ? [{ ligne: i + 1, texte: ligne.trim(), fenetre: lignes.slice(i, i + 3).join('\n') }] : [])
 }
 
+/** L'option `env` d'un site, quand elle ADRESSE la primitive : un `env` quelconque ne vaut rien. */
 const ENV_ISOLE = /\benv\s*:[^\n]*\benvDeDepotForge\(/
 
+/** Les fautes d'UN fichier, s'il forge un dépôt ; aucune s'il n'en forge pas. */
 function fautesDe({ rel, text }) {
   if (!FORGE_UN_DEPOT.test(text) || !SITE_GIT.test(text)) return []
   const fautes = []
@@ -299,6 +316,9 @@ test('D : tout fichier qui FORGE un dépôt passe l’env isolé à CHACUN de se
   assert.deepEqual(forgeurs().flatMap(fautesDe), [])
 })
 
+// La forge est un ÉCRIVAIN ; l'identité qui
+// signe sa fondation est la sienne, posée dans le dépôt : ni l'environnement RÉEL du processus
+// (`GIT_AUTHOR_*`, `GIT_COMMITTER_*`, dates, configuration globale), ni la machine ne l'atteignent.
 test('ÉCRIVAIN sous environnement HOSTILE : la fondation est signée `mesure`, non signée GPG, sur la branche demandée', () => {
   const mesure = mkdtempSync(join(tmpdir(), 'forge-hostile-'))
   const globale = join(mesure, 'globale.gitconfig')

@@ -1,25 +1,16 @@
+// SONDE des TITRES (#1739) : `classer` sur une page forgée et un `.md` forgé qui portent chaque forme.
+// Le corps est l'ancre : chaque titre se juge par la ligne qui précède la 1re ligne de SON corps.
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { spawnSync } from 'node:child_process'
-
 import { existsSync, readFileSync } from 'node:fs'
-
 import { fileURLToPath } from 'node:url'
-
 import { classer, glypheFuite, grasDeTete, plusLongueCroissante, regenerations, sansGlyphe } from './sonde-titres.mjs'
-
 import { infidelite, reparerLivre } from './reparer-titres.mjs'
-
 import { gabaritTitreDe } from './_lib.mjs'
-
 import { ecartDeRegeneration, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
-
 import { lignes } from './lib/colonnes.mjs'
-
 import { echapperRegex } from '../../src/lib/regex.ts'
-
 import { pageCrb } from './lib/fixtures/page-crb.mjs'
 
 const GABARIT = {
@@ -269,6 +260,8 @@ test('#1739 : un titre imprimé sur DEUX lignes (même gabarit, même colonne, i
   assert.deepEqual(r.sites, [])
 })
 
+/** Ligne du PDF forgée : morceaux `[texte, gras]`, `x1` à 4,5 pt par caractère ; `marge` (bord droit de
+ *  la boîte) = `x1` par défaut — la ligne remplit sa boîte. */
 const G = (colonne, y0, morceaux, { x0 = 58, marge = null, police = 'ACaslonPro' } = {}) => {
   const texte = morceaux.map(([t]) => t).join(' ')
   const x1 = x0 + 4.5 * texte.length
@@ -598,6 +591,8 @@ test('#1739 : une ligne de titre de la clé du titre n’est jamais son propre c
   assert.deepEqual([repare.titres[0].forme, repare.sites], ['ok', []], 'réparée en légende `**X**`, la sonde la voit à sa place : la légende n’est pas non plus son propre corps')
 })
 
+/** Une page de CARRIÈRE forgée (CRB p.45) : « Career Path » en capitales, puis les niveaux (glyphe de tête +
+ *  intertitre), chacun suivi de ses libellés. */
 const NIVEAU = (y0, texte) => ({ colonne: 1, x0: 302, y0, texte: `h ${texte}`, spans: [{ texte: 'h', police: 'crossbatstfb', taille: 7 }, { texte: ` ${texte}`, police: 'ACaslonPro-Bold', taille: 10 }] })
 
 const CARRIERE = [{
@@ -611,6 +606,7 @@ const CARRIERE = [{
 
 const carriere = (md) => classer(CARRIERE, [{ nom: '018 - Forge.md', page: 10, pageFin: 10, lignes: md }], GABARIT)
 
+/** L'exemple légendé d'une autre page porte le même « ## **Career Path** », LIBRE : un leurre, loin. */
 const LEURRE = ['## **Career Path**', '', 'Example prose one.', '', 'Example prose two.', '', 'Example prose three.', '', 'Example prose four.', '']
 
 const AIDE = ['**Skills:** Bribery, Charm, Evaluate, Gossip', '', '**Talents:** Beneath Notice, Etiquette', '']

@@ -1,15 +1,11 @@
+// Banc du RELEVÉ et du PAQUET (#1887, lot 7) sur le CRB RÉEL : des INVARIANTS (les comptes
+// s'impriment) et le RAPPEL de `releve-rappel.json` ; les livres FIXTURE : `scripts/raw/releve.test.mjs`.
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { readFileSync } from 'node:fs'
-
 import { ORIGINES, cleDAdresse, livreDuReleve, releve, sortDeLEntree } from '../../raw/releve.mjs'
-
 import { estForte, paquet, passagesDe, releveDesTermes, sectionsDuPaquet, taillesDuPaquet, texteReduit } from '../../raw/paquet.mjs'
-
 import { estErreur, estSeparateur, graphieDuFichier, resoudreAdresse } from '../../../src/data/source/decoupe.ts'
-
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const CRB = livreDuReleve('core-rulebook-5e')
@@ -45,6 +41,8 @@ test('#1887 : CRB — relevé de « poison », « ranged », « advantage » : o
   }
 })
 
+// RAPPEL : `releve-rappel.json` porte, par système, les adresses ATTENDUES qu'un juge a établies au
+// Source sous sa `consigne`, sans lancer le relevé. Ensemble POSITIF : la précision s'imprime.
 const RAPPEL = JSON.parse(readFileSync(new URL('../../raw/releve-rappel.json', import.meta.url), 'utf8'))
 
 const chapitreDe = (livre, ch) => livre.indexe.chapitres.get([...livre.indexe.chapitres.keys()].find((f) => graphieDuFichier(f) === ch))

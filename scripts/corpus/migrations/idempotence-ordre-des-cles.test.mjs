@@ -1,21 +1,30 @@
+/**
+ * MORSURE — une migration DATÉE n'écrit que ce qu'elle POSSÈDE (#1657) : famille 1 du banc
+ * `scripts/migrations/lib/idempotence-ordre-des-cles.test.mjs`.
+ *
+ *  1. NO-OP SUR CORPUS RENVERSÉ : `src/data` ENTIER est recopié dans un dépôt jetable, clés
+ *     renversées document par document, puis TOUTES les migrations datées y sont rejouées une à une.
+ *     Exigé : zéro réécriture (octet ET horodatage), et sortie 0 partout.
+ *
+ * CE QUE LE RENVERSEMENT PRÉSERVE : la TÊTE d'enveloppe, jamais la queue. Sur une entrée de racine
+ * tableau, `id` reste en tête (l'invariant que les vagues 9 à 12 posent et vérifient) ; sur une
+ * racine OBJET, c'est le préfixe de clés d'enveloppe (`CLES_ENVELOPPE`, dérivé de
+ * `src/data/schemas/grammaire/document.ts`) qui reste en place — le défaire mesurerait la violation
+ * d'un invariant que les migrations POSSÈDENT au lieu de l'ordre des AUTRES clés.
+ */
 import { strict as assert } from 'node:assert'
-
 import fs from 'node:fs'
-
 import os from 'node:os'
-
 import path from 'node:path'
-
 import test from 'node:test'
-
 import { fileURLToPath } from 'node:url'
-
 import { ANTIDATE, efface, joue } from '../../migrations/lib/joue.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 
 const MIGRATIONS = path.join(RACINE, 'scripts/migrations');
 
+/** Les migrations DATÉES du dossier, dans l'ordre lexical — le périmètre que `replay.mjs` rejoue. */
 const DATEES = fs
   .readdirSync(MIGRATIONS)
   .filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(f))
@@ -23,6 +32,7 @@ const DATEES = fs
 
 const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
+/** Les clés d'ENVELOPPE, dérivées du texte de la grammaire — jamais recopiées ici. */
 const CLES_ENVELOPPE = (() => {
   const grammaire = fs.readFileSync(path.join(RACINE, 'src/data/schemas/grammaire/document.ts'), 'utf8');
   const m = /export const CLES_ENVELOPPE = \[([^\]]*)\]/.exec(grammaire);
@@ -30,9 +40,11 @@ const CLES_ENVELOPPE = (() => {
   return m[1].split(',').map((s) => s.trim().replace(/^'|'$/gu, '')).filter(Boolean);
 })();
 
+/** Une ENTRÉE aux clés renversées, `id` maintenu en tête (cf. en-tête). */
 const renverseEntree = (e) => (estObjet(e)
   ? Object.fromEntries([['id', e.id], ...Object.entries(e).filter(([k]) => k !== 'id').reverse()]) : e);
 
+/** Une RACINE OBJET aux clés renversées, son préfixe d'enveloppe maintenu en place (cf. en-tête). */
 const renverseRacine = (doc) => {
   const cles = Object.keys(doc);
   let tete = 0;
@@ -43,12 +55,23 @@ const renverseRacine = (doc) => {
   ]);
 };
 
+/** Le document, même contenu, AUTRE sérialisation. Ce qui n'est ni entrée ni racine à `id` passe. */
 const renverse = (doc) => {
   if (Array.isArray(doc)) return doc.map(renverseEntree);
   if (estObjet(doc) && typeof doc.id === 'string') return renverseRacine(doc);
   return doc;
 };
 
+// --- 1. NO-OP SUR LE CORPUS ENTIER, CLÉS RENVERSÉES ---------------------------------------------
+
+/**
+ * Ce que le dépôt jetable doit porter pour qu'une migration échoue sur son CONTRAT et jamais sur une
+ * absence de dépôt : sans `Source/`, des migrations sortent 1 sur une extraction introuvable — une
+ * raison de dépôt, pas de contrat. COPIE PURE : aucun lien.
+ *
+ * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les `.pdf` (lourds,
+ * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
+ */
 const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/gameIso/catalog', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
 
 test('les migrations DATÉES sont NO-OP sur `src/data` ENTIER aux clés renversées', (t) => {

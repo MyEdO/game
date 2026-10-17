@@ -1,21 +1,17 @@
+// SONDE des TITRES (#1739) sur le CRB RÉEL ; les formes forgées : `scripts/raw/sonde-titres.test.mjs`.
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { boitesDuPdf, classer, regenerations } from '../../raw/sonde-titres.mjs'
-
 import { reparerLivre } from '../../raw/reparer-titres.mjs'
-
 import { decoupeDe, gabaritTitreDe, livreExtraitDe, nomsDeLaListe, pdfDe, readText } from '../../raw/_lib.mjs'
-
 import { ecartDeRegeneration, texteEnPlace } from '../../guards/lib/stockDeSites.mjs'
-
 import { lignes } from '../../raw/lib/colonnes.mjs'
-
 import { gitDeLArbreReel, resultatDeLArbreReel } from '../../test/gitDeBanc.mjs'
 
+/** Le PDF du CRB, ou `null` là où il n'est pas (aucun dépôt ne suit un PDF : la CI ne l'a pas). */
 const PDF_CRB = (() => { try { return pdfDe('core-rulebook-5e') } catch { return null } })()
 
+/** Les boîtes du PDF du CRB, lues UNE fois pour les tests qui en ont besoin. */
 let boitesCrb = null
 
 const boitesDuCrb = () => (boitesCrb ??= boitesDuPdf('core-rulebook-5e'))
@@ -30,6 +26,7 @@ test('#1820 stock COMMITTÉ de la sonde (CRB) : chaque site émis hors `colonne`
   }
 })
 
+/** Le lot qui a restauré Dog, Griffon, Varghulf et Skeleton : ses `.md` d'AVANT, lus dans l'historique git. */
 const AVANT_AF2A = 'af2a08ab1^'
 
 const historique = resultatDeLArbreReel(['cat-file', '-e', AVANT_AF2A]).status === 0

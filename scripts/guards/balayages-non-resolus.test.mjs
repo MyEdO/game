@@ -1,7 +1,5 @@
 import { test } from 'node:test'
-
 import assert from 'node:assert/strict'
-
 import { CLASSES, EXEMPTIONS, classer } from './lib/balayagesNonResolus.mjs'
 
 test('classifieur : valeur nulle et module qui balaie la racine exemptés par règle, chaque autre raison prend sa classe, la ref porte helper et raison', () => {
