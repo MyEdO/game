@@ -9,14 +9,15 @@
  * SÉVÉRITÉ du d100 (LDB 18 l.17 ; AA 07 l.36) et le libellé de journal.
  */
 import { d100, d10, RNG, defaultRNG } from './dice';
-import { findTableEntry } from './tables';
+import { findTableEntry, tableOuverte } from './tables';
 import { bonus, effectiveChar } from './characteristics';
 import { hitLocationByShape, locationLabel } from './combat';
 import { BodyShape, Combatant, HitLocation, Trauma } from './types';
 import {
   CRITIQUE_DOCS, critTableKeyFor, critiqueDoc, critiqueTable,
-  type CritEntry, type CritTableKey, type JeuDeCritique,
+  type CritEntry, type CritTable, type CritTableKey, type JeuDeCritique,
 } from '../data/criticals';
+import { memoParVersion } from '../data/versionDataset';
 import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers } from './trauma';
 import { rule } from './policy';
 import { EMPTY_FLOW, poserEnjeu, type Flow, type FlowTestNode } from './flowCore';
@@ -373,9 +374,22 @@ export function critiquesDuCoup(
   return { critiques: critiques.slice(0, R.plafond(jeu)), mortSubite: false };
 }
 
-/** Lignes de la table d'un (jeu, clé) — passées PAR RÉFÉRENCE au registre d'étapes (zéro duplication). */
-export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): CritEntry[] {
-  return critiqueDoc(jeu, key).entries;
+const rangeesOuvertes = memoParVersion(
+  ['criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe', 'aaCriticalsTete', 'aaCriticalsBras', 'aaCriticalsCorps', 'aaCriticalsJambe'],
+  (): Map<CritTable, (CritEntry & { max: number })[]> => new Map(CRITIQUE_DOCS.map((d) => [d.entries, tableOuverte(d.entries)])),
+);
+
+/** Les rangées d'une table de Critiques telles que `findTableEntry` les lit : AA 07 l.105, l.131,
+ *  l.157, l.183 ouverts par `tableOuverte`. Mémoïsées sur les datasets du seam. */
+function rangeesLues(table: CritTable): (CritEntry & { max: number })[] {
+  const rangees = rangeesOuvertes().get(table);
+  if (!rangees) throw new Error('rangeesLues : table de Critiques absente de CRITIQUE_DOCS.');
+  return rangees;
+}
+
+/** Lignes de la table d'un (jeu, clé), lues par `rangeesLues`. */
+export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): (CritEntry & { max: number })[] {
+  return rangeesLues(critiqueDoc(jeu, key).entries);
 }
 
 /**
@@ -384,7 +398,7 @@ export function critTableRows(jeu: JeuDeCritique, key: CritTableKey): CritEntry[
  * Lue par la couche combat pour ne pas incrémenter `criticalWounds`. PUR.
  */
 export function critiqueTriviale(jeu: JeuDeCritique, location: HitLocation, roll: number): boolean {
-  const entry = findTableEntry(critiqueTable(jeu, location), Math.max(1, roll));
+  const entry = findTableEntry(rangeesLues(critiqueTable(jeu, location)), Math.max(1, roll));
   return !entry.lethal && !(entry.ops ?? []).some((o) => o.op === 'wounds');
 }
 
@@ -433,7 +447,7 @@ export function resolveCritique(
   const be = bonus(effectiveChar(target, 'endurance'));
   const raw = forcedRoll ?? (twice ? Math.max(d100(rng), d100(rng)) : d100(rng));
   const roll = Math.max(1, raw + regime.severite(target, overkill));
-  const entry = structuredClone(findTableEntry(critiqueTable(jeu, location), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
+  const entry = structuredClone(findTableEntry(rangeesLues(critiqueTable(jeu, location)), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
   const ops: GameOp[] = [...(entry.ops ?? [])];
   // Nœud `test` de la rangée : FABRIQUÉ à part (enjeu à la LIGNE), jamais roulé — il part par la porte.
   const rangee = noeudDeRangee(entry, jeu, location);

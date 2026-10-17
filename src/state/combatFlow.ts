@@ -1663,7 +1663,8 @@ export function notifySlain(get: Get, set: SetFn, c: Combatant): string[] {
 
 /** Tables d'étape des Blessures critiques du LDB (une par table de rattachement — les six Localisations
  *  s'y projettent par `critTableKeyFor`). Les fourchettes et les ids STABLES viennent de la DONNÉE
- *  (`criticals.json`, passée PAR RÉFÉRENCE) ; la ligne d'affichage est le libellé de l'entrée atteinte. */
+ *  (`criticals.json`, lue par `critTableRows`, famille mémoïsée sur les datasets du seam) ; la ligne
+ *  d'affichage est le libellé de l'entrée atteinte. */
 export const CRIT_TABLE_IDS: Record<CritTableKey, string> = {
   tete: 'criticals-tete', bras: 'criticals-bras', corps: 'criticals-corps', jambe: 'criticals-jambe',
 };
@@ -1672,16 +1673,18 @@ export const CRIT_TABLE_IDS: Record<CritTableKey, string> = {
 const CRIT_TABLE_CATEGORIES: Record<CritTableKey, string> = {
   tete: 'criticalsTete', bras: 'criticalsBras', corps: 'criticalsCorps', jambe: 'criticalsJambe',
 };
-for (const key of Object.keys(CRIT_TABLE_IDS) as CritTableKey[]) {
-  const rows = critTableRows('ldb', key);
-  registerTableStep(CRIT_TABLE_IDS[key], {
-    label: stepDetail(tr('step.blessuresCritiques'), dataLabel(libelleDeValeur(critTableSchema, key))),
-    die: 100,
-    rows,
-    lines: (die) => [findTableEntry(rows, die).label],
-    entryCategory: CRIT_TABLE_CATEGORIES[key],
-  });
-}
+registerTableStepFamily(memoParVersion(['criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe'], () => new Map<string, TableStepDef>(
+  (Object.keys(CRIT_TABLE_IDS) as CritTableKey[]).map((key) => {
+    const rows = critTableRows('ldb', key);
+    return [CRIT_TABLE_IDS[key], {
+      label: stepDetail(tr('step.blessuresCritiques'), dataLabel(libelleDeValeur(critTableSchema, key))),
+      die: 100,
+      rows,
+      lines: (die) => [findTableEntry(rows, die).label],
+      entryCategory: CRIT_TABLE_CATEGORIES[key],
+    }];
+  }),
+)));
 
 /**
  * La SÉVÉRITÉ se tire-t-elle sur les tables LDB (donc par une étape à table) ? Prédicat UNIQUE, qui LIT

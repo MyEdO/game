@@ -26,7 +26,8 @@ export interface CritEntry {
   /** id STABLE (slug) — toute référence passe par l'id, jamais le `label` (affichage). */
   id: string;
   min: number;
-  max: number;
+  /** `null` : AA 07 l.105, l.131, l.157, l.183. */
+  max: number | null;
   label: string;
   /** Effet IMMÉDIAT du coup (PB + États), appliqué par `applyOps`. Absent = aucun effet immédiat (létal). */
   ops?: GameOp[];

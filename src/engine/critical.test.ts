@@ -4,13 +4,14 @@ import type { RNG } from './dice';
 import {
   resolveCritique, jeuDeCritique, critiqueTriviale, aaCriticalOffset, aaDeathByCriticalCount,
   critLocationRoll, critWoundLocation, prendreAmputationsDifferees,
-  critEntryCodexCategory, findCritEntrySuffered,
+  critEntryCodexCategory, findCritEntrySuffered, critTableRows,
 } from './critical';
 import { removeSurgicalTrauma, permanentAmputations } from './trauma';
 import { applyOps, type GameOp } from './ops';
 import { spellOps, type Flow, type FlowTestNode } from './flowCore';
 import { setRule, resetRule } from './policy';
 import { CRITIQUE_DOCS, critiqueTable, type JeuDeCritique } from '../data/criticals';
+import { findTableEntryIndex } from './tables';
 import locJson from '../data/localisation.json';
 import type { Combatant, HitLocation } from './types';
 
@@ -671,5 +672,33 @@ describe('CriticalResolved.naturel : le d100 du tableau, avant le modificateur d
     const r = resolveCritique('ldb', cible(), 'corps', makeRNG(1), { overkill: 1, forcedRoll: 48 });
     expect(r.roll).toBe(28);
     expect(r.naturel).toBe(48);
+  });
+});
+
+describe('Aux Armes : la dernière rangée de chaque table est ouverte (AA 07 l.105, l.131, l.157, l.183)', () => {
+  const OUVERTES: [HitLocation, 'tete' | 'bras' | 'corps' | 'jambe', string][] = [
+    ['tete', 'tete', 'aa-tete-00'], ['brasD', 'bras', 'aa-bras-136'], ['corps', 'corps', 'aa-corps-116'], ['jambeD', 'jambe', 'aa-jambe-126'],
+  ];
+  it.each(OUVERTES)('%s : la donnée écrit `max: null`, les rangées lues l’ouvrent', (_loc, cle, id) => {
+    const rangees = critTableRows('aa', cle);
+    const derniere = critiqueTable('aa', _loc)[critiqueTable('aa', _loc).length - 1];
+    expect(derniere.id).toBe(id);
+    expect(derniere.max).toBeNull();
+    for (const jet of [derniere.min, 150, 1000]) expect(findTableEntryIndex(rangees, jet), `jet ${jet}`).toBe(rangees.length - 1);
+  });
+  it.each(OUVERTES)('%s : 100, 150 et 1000 au-delà du dernier plafond écrit tombent sur la dernière rangée', (loc, _cle, id) => {
+    const derniere = critiqueTable('aa', loc)[critiqueTable('aa', loc).length - 1];
+    for (const jet of [100, 150, 1000].filter((j) => j >= derniere.min)) {
+      const r = resolveCritique('aa', cible(), loc, makeRNG(1), { forcedRoll: jet });
+      expect(r.roll, `jet ${jet}`).toBe(jet);
+      expect(r.entryId, `jet ${jet}`).toBe(id);
+      expect(r.lethal).toBe(true);
+      expect(critiqueTriviale('aa', loc, jet)).toBe(false);
+    }
+  });
+  it.each(OUVERTES)('%s : le plafond de l’avant-dernière rangée reste fermé', (loc) => {
+    const table = critiqueTable('aa', loc);
+    const avantDerniere = table[table.length - 2];
+    expect(resolveCritique('aa', cible(), loc, makeRNG(1), { forcedRoll: avantDerniere.max! }).entryId).toBe(avantDerniere.id);
   });
 });

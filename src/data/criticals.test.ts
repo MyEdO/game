@@ -50,13 +50,13 @@ describe.each(JEUX)('espace de tirage d100 (%s) — chaque table couvre 1..100 s
       const table = critiqueTable(jeu, loc);
       expect(table.length).toBeGreaterThan(0);
       const couvert = new Array(101).fill(0); // index 1..100
-      for (const e of table) for (let r = e.min; r <= Math.min(e.max, 100); r++) couvert[r]++;
+      for (const e of table) for (let r = e.min; r <= Math.min(e.max ?? 100, 100); r++) couvert[r]++;
       for (let r = 1; r <= 100; r++) expect(couvert[r], `roll ${r} sur ${jeu}/${loc}`).toBe(1);
     });
-    it(`${loc} : exactement une entrée létale, ouverte au plafond (« 00 »)`, () => {
+    it(`${loc} : exactement une entrée létale, au plafond (« 00 ») ou ouverte`, () => {
       const letales = critiqueTable(jeu, loc).filter((e) => e.lethal);
       expect(letales.length).toBe(1);
-      expect(letales[0].max).toBeGreaterThanOrEqual(100); // « 00 » = 100 ; AA ouvre au-delà (décalage +10/Blessure)
+      expect(letales[0].max).toBe(jeu === 'aa' ? null : 100); // LDB 18 ; AA 07 l.105, l.131, l.157, l.183
     });
   }
 });

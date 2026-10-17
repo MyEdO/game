@@ -41,7 +41,7 @@ const deux = (n: number) => (n === 100 ? '00' : String(n).padStart(2, '0'));
  *  pour une bande ouverte) et le libellé de la rangée ; à égalité (même fourchette, même libellé dans
  *  deux tables), celle qui porte aussi l'ouverture de sa `desc`. */
 function lignesDeRangee(jeu: JeuDeCritique, r: CritEntry): number[] {
-  const fourchette = r.min === r.max ? deux(r.min) : `${deux(r.min)}(?:[-–]${deux(r.max)}| ou plus)`;
+  const fourchette = r.max === null ? `${deux(r.min)} ou plus` : r.min === r.max ? deux(r.min) : `${deux(r.min)}[-–]${deux(r.max)}`;
   const re = new RegExp(`(^|[|*\\s])${fourchette}([|*\\s])`);
   const lignes = lignesDe(jeu).map((l, i) => ({ l: aPlat(l), n: i + 1 }));
   let c = lignes.filter(({ l }) => re.test(l) && l.includes(r.label));

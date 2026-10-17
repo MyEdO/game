@@ -3,7 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { suiteAvecPas } from '../grammaire/cle-d-espace';
-import { difficultySchema, enumNomme, hitLocationSchema, plageSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
+import { difficultySchema, enumNomme, hitLocationSchema, plageOuverteSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
 import { gameOpSchema, flowSchema, noeudTest } from '../grammaire/mecanique';
 
 
@@ -90,7 +90,7 @@ export const amputationSchema = nommerChamps(z.strictObject({
 });
 
 const critEntrySchema = nommerChamps(z.strictObject({
-  ...plageSchema.shape,
+  ...plageOuverteSchema.shape,
   id: z.string(),
   label: z.string(),
   ops: z.array(gameOpSchema).optional(),
@@ -104,7 +104,7 @@ const critEntrySchema = nommerChamps(z.strictObject({
   desc: z.string(),
   source: sourceRefSchema,
 }), {
-  ...metaDesChamps(plageSchema, { exigees: true }),
+  ...metaDesChamps(plageOuverteSchema, { exigees: true }),
   id: { label: 'identifiant' },
   label: { label: 'libellé' },
   ops: { label: 'opérations' },

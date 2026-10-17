@@ -69,18 +69,18 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     expect(desFixes()).toBe(false);
   });
 
-  it('registre : une table déclarée par TABLE de rattachement, lignes = la DONNÉE `criticals.json` (par référence)', () => {
+  it('registre : une table déclarée par TABLE de rattachement, lignes = la DONNÉE `criticals.json` lue par `critTableRows`', () => {
     for (const key of ['tete', 'bras', 'corps', 'jambe'] as const) {
       const def = tableStepDef(CRIT_TABLE_IDS[key])!;
       expect(def, `table « ${key} » non enregistrée`).toBeDefined();
-      expect(def.rows).toBe(critTableRows('ldb', key)); // par RÉFÉRENCE : zéro duplication de fourchettes
+      expect(def.rows).toBe(critTableRows('ldb', key));
       expect(def.die).toBe(100);
     }
     // La projection Localisation → table est celle du moteur (repli Bras compris) : un seul chemin.
-    for (const loc of LOCS) expect(critTableRows('ldb', critTableKeyFor(loc))).toBe(critiqueTable('ldb', loc));
+    for (const loc of LOCS) expect(critTableRows('ldb', critTableKeyFor(loc)).map((r) => r.id)).toEqual(critiqueTable('ldb', loc).map((r) => r.id));
     // La ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
     expect(rollTableStep({ tableId: CRIT_TABLE_IDS.corps, forcedRoll: 46 }, makeRNG(1)).lines[0])
-      .toBe(findTableEntry(critiqueTable('ldb', 'corps'), 46).label);
+      .toBe(findTableEntry(critTableRows('ldb', 'corps'), 46).label);
   });
 
   it('déclaration : le −20 de 0 < dépassement < BE est un `mod` NÉGATIF, et la table BORNE à 01 (LDB 18 l.17 ; #1595 c.6222318751)', () => {
@@ -97,7 +97,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     // que le lookup moteur (qui fait son propre `Math.max(1, …)`).
     const rolled = rollTableStep({ ...decl, forcedRoll: 7 }, makeRNG(1));
     expect(rolled).toMatchObject({ roll: 7, die: 1 });
-    expect(rolled.id).toBe(findTableEntry(critiqueTable('ldb', 'corps'), 1).id);
+    expect(rolled.id).toBe(findTableEntry(critTableRows('ldb', 'corps'), 1).id);
     seedBattleRng(3);
     expect(resolveCritique('ldb', H, 'corps', battleRng(), { overkill: petit, forcedRoll: 7 }).roll).toBe(1);
   });
@@ -276,7 +276,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
       const { crit, table } = resolveCritSeverity(H, 'corps', 0, true);
       expect(table!.result!.roll).toBe(Math.max(a, b));
       expect(crit.roll).toBe(Math.max(a, b));
-      expect(crit.entryId).toBe(findTableEntry(critiqueTable('ldb', 'corps'), Math.max(a, b)).id);
+      expect(crit.entryId).toBe(findTableEntry(critTableRows('ldb', 'corps'), Math.max(a, b)).id);
     }
   });
 
@@ -291,7 +291,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     seedBattleRng(5);
     const { crit } = resolveCritSeverity(H, 'corps', 0, true, 42);
     expect(crit.roll, 'le dé posé a été écrasé par le multiplicateur de lancers').toBe(42);
-    expect(crit.entryId).toBe(findTableEntry(critiqueTable('ldb', 'corps'), 42).id);
+    expect(crit.entryId).toBe(findTableEntry(critTableRows('ldb', 'corps'), 42).id);
   });
 
   /**
