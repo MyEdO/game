@@ -12,13 +12,14 @@
  * (`ItemInstance.cargo` d'une bête/véhicule, `primaryCargoCarrier`, #327) et lit `MapPlace.market`
  * (LandMarketProfile). Fusionner
  * les deux imposerait une union `sea|land` et des branches partout → on garde deux flux fins sur le même socle
- * `cargo.ts`. Le Marchandage (Test opposé ±10 %/±20 %) réutilise le MÊME patron que `portFlow`.
+ * `cargo.ts`. Le Marchandage (Test opposé, ±`bargainPct`) réutilise le MÊME patron que `portFlow`.
  */
 import { battleRng } from './battleRng';
 import { placeOfScene } from './worldMap';
 import { dayIndex } from './upkeep';
 import { partyAssisted, partyBest, testValue, skillBaseValue } from '../engine/skills';
-import { opposedTest, SL_ASTOUNDING, shiftDifficulty, type OpposedResult } from '../engine/tests';
+import { opposedTest, shiftDifficulty, type OpposedResult } from '../engine/tests';
+import { bargainPct } from '../engine/bargain';
 import { type RNG } from '../engine/dice';
 import { ouvrirEtal, registerEtalGenerateur } from './etalLotFlow';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
@@ -233,11 +234,6 @@ export function moveCargo(get: Get, set: Set, fromId: string, toId: string, carg
   log(get, set, [`${res.moved} Enc de ${label} transférés de ${from.label} vers ${to.label}.`]);
 }
 
-/** Magnitude d'un Marchandage gagné (LDB 60, cité MSRC 13 l.127) : ±10 %, ±20 % si Négociateur ou DR net Stupéfiant. */
-function bargainPct(winnerNegotiator: boolean, netSL: number): number {
-  return winnerNegotiator || netSL >= SL_ASTOUNDING ? 20 : 10;
-}
-
 /** Marchandage OPPOSÉ terrestre (MSRC 13 l.127) : les deux camps jettent, `opposedTest` est le SEUL
  *  juge (LDB 12 l.160) — le meneur y oppose son Niveau de Compétence NU, lu à l'accesseur canon
  *  (`skillBaseValue`, `LDB 09 l.17`) et non reconstitué par soustraction : sa valeur de jet
@@ -278,8 +274,8 @@ export function landBuyCargo(get: Get, set: Set, cargoId: string, enc: number): 
   if (best) {
     const opp = bargainOpposed(best, merchant, rng);
     const netSL = opp.netSL;
-    if (opp.winner === 'attacker') pct = -bargainPct(hasBargainBonus(best.actor), netSL); // remise à l'acheteur
-    else if (opp.winner === 'defender') pct = bargainPct(false, netSL); // le marchand monte le prix
+    if (opp.winner === 'attacker') pct = -bargainPct(true, netSL, hasBargainBonus(best.actor)); // remise à l'acheteur
+    else if (opp.winner === 'defender') pct = bargainPct(true, netSL, false); // le marchand monte le prix
     bargainLine = `${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${pct === 0 ? 'prix inchangé' : pct < 0 ? `remise de ${-pct} %` : `surcoût de ${pct} %`}.`;
   }
   // Lot PARTIEL (l.131) : acheter moins que le stock du marchand → +10 % par 10 Enc sur le prix de base.
@@ -377,8 +373,8 @@ function finishLandSale(get: Get, set: Set, carrierId: string, cargoIndex: numbe
   if (best) {
     const opp = bargainOpposed(best, merchant, rng);
     const netSL = opp.netSL;
-    if (opp.winner === 'attacker') bargainPctVal = bargainPct(hasBargainBonus(best.actor), netSL); // le PJ monte le prix
-    else if (opp.winner === 'defender') bargainPctVal = -bargainPct(false, netSL); // l'acheteur le baisse
+    if (opp.winner === 'attacker') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(best.actor)); // le PJ monte le prix
+    else if (opp.winner === 'defender') bargainPctVal = -bargainPct(true, netSL, false); // l'acheteur le baisse
     bargainLine = `${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${bargainPctVal === 0 ? 'sans effet' : bargainPctVal > 0 ? `+${bargainPctVal} %` : `${bargainPctVal} %`}.`;
   }
   // Rumeur commerciale (l.180) : une rumeur du board visant CE Lieu et CE bien le fait vendre au DOUBLE du

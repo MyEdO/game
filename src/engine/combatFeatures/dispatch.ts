@@ -335,8 +335,7 @@ export function talentFearIndice(c: Combatant): number {
   return levelSum(c, (d) => !!d.causesFear);
 }
 
-/** Négociateur (LDB 59 l.43) : un Marchandage gagné réduit le prix de 20 % même sans Succès
- *  Stupéfiant. Lu par merchantFlow à la conclusion. */
+/** Négociateur : LDB 10 l.818 ; appliqué par `engine/bargain`. */
 export function hasBargainBonus(c: Combatant): boolean {
   return featuresOf(c).some(({ def }) => def.bargainBonus);
 }
