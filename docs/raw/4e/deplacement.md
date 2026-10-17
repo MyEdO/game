@@ -920,7 +920,7 @@ Force du vent tirée au début, mise à jour à l'aube/midi/crépuscule/minuit (
 **Voir aussi :** [Météo de la Mer des Griffes (MDG)](#météo-de-la-mer-des-griffes-mdg), [Détroits et tourbillons (MDG)](#détroits-et-tourbillons-mdg).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
-- `MDG 13` (l.246-304) → `basculesDeForce`, `sea-weather`, `windAspectSchema`, `windDirectionSchema`, `SeaVoyageBody`, `construireCarte`, `WorldMapRoutePanel`, `OrientationOutcome`, `orientationOutcome`, `SeaVoyageState`, +33 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +10 fichiers
+- `MDG 13` (l.246-304) → `basculesDeForce`, `sea-weather`, `windAspectSchema`, `windDirectionSchema`, `SeaVoyageBody`, `construireCarte`, `OrientationOutcome`, `WorldMapRoutePanel`, `orientationOutcome`, `SeaVoyageState`, +33 — `src/data/flow-stakes.json`, `src/data/schemas/defs-scenes/worldmap.ts`, `src/data/schemas/defs/sea-navigation.ts`, `src/data/schemas/defs/sea-weather.ts`, `src/data/sea-navigation.json`, `src/data/sea-weather.json`, +10 fichiers
 
 ---
 
