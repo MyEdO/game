@@ -28,6 +28,7 @@ import { addCondition } from './conditions';
 import { encumbrancePenalties } from './encumbrance';
 import { slowestMovement } from './movement';
 import { Money, fromBrass } from './money';
+import { bargainBuyFactor } from './bargain';
 import { rule } from './policy';
 import {
   type Allure, ALLURE_KMH_PER_M, mountedSpeedKmh, partyMounts, mountProfileById, lameLedCapKmh,
@@ -76,7 +77,7 @@ export function distanceUnit(sea: boolean | undefined): 'milles' | 'km' {
 /** Libellé complet « <valeur> <unité> » d'une distance de route (`Math.round` : les valeurs
  *  calculées peuvent porter des décimales). */
 export function routeDistanceLabel(km: number, sea: boolean | undefined): string {
-  return `${Math.round(km)} ${distanceUnit(sea)}`;
+  return `${Math.round(km)} ${distanceUnit(sea)}`;
 }
 
 /** `IconId` du pictogramme d'un mode de voyage (registre `src/ui/icons/`, famille `travel/*`) :
@@ -147,22 +148,93 @@ export function travelPlanCalc(km: number, kmh: number, hoursPerDay: number): Tr
   return { days, hoursLastDay, travelMinutes: Math.round(totalHours * 60) };
 }
 
-/** Coût d'un transport payant : prix/km × km × passagers (LDB 51 l.178 « par kilomètre parcouru »).
- *  `brassPerKmOverride` = prix d'auteur sur la route (défaut : classe RAW). `null` si `mode` n'a
- *  pas de facette `travel` (ex. `'mer'` = navire de campagne, pas un passage payant à la classe). */
-export function transportCost(
-  km: number,
-  mode: Exclude<TravelMode, 'pied'>,
-  classeId: string,
-  passengers: number,
-  brassPerKmOverride?: number,
-): Money | null {
+/** TARIF d'un billet de passage : prix en sous par passager et par classe (`id` de classe du véhicule,
+ *  classe absente = non offerte), forfait du trajet entier ; `paliers` = prix obtenus par un Marchandage
+ *  gagné, au DR net minimal. Le billet d'auteur (`RouteBillet`) en est une instance (`billetFlow`). */
+export interface TarifDeBillet {
+  readonly prix: Readonly<Record<string, number>>;
+  readonly paliers?: readonly { readonly drMin: number; readonly prix: Readonly<Record<string, number>> }[];
+}
+
+/** Issue d'un Test opposé de Marchandage, vue de l'acheteur (`merchantFlow.bargainConfirm`). */
+export interface IssueDeMarchandage {
+  won: boolean;
+  drNet: number;
+  negotiator: boolean;
+}
+
+/** Billet IMPLICITE d'une route sans billet d'auteur : la classe RAW au km sur `km` (LDB 51 l.178),
+ *  arrondie au sou. `null` si `mode` n'a pas de facette `travel` (ex. `'mer'`). */
+export function billetImplicite(km: number, mode: TravelMode): TarifDeBillet | null {
   const travel = vehicleTravel(mode);
   if (!travel) return null;
-  const classes = travel.classes;
-  const cls = classes.find((c) => c.id === classeId) ?? classes[0];
-  const perKm = brassPerKmOverride ?? cls.brassPerKm;
-  return fromBrass(Math.ceil(perKm * km) * Math.max(1, passengers));
+  return { prix: Object.fromEntries(travel.classes.map((c) => [c.id, Math.ceil(c.brassPerKm * km)])) };
+}
+
+/** Prix par passager d'une classe du billet après Marchandage. Paliers d'auteur : le palier de plus
+ *  grand `drMin` ≤ DR net (EDO 01 l.142) ; sans paliers : `bargainBuyFactor` (LDB 59 l.43) ; Négociateur
+ *  sur un palier : LDB 10 l.818. `null` si le billet n'offre pas la classe. */
+export function prixParPassager(billet: TarifDeBillet, classeId: string, issue?: IssueDeMarchandage): number | null {
+  const base = billet.prix[classeId];
+  if (base == null) return null;
+  if (!issue?.won) return base;
+  const paliers = billet.paliers;
+  if (!paliers?.length) return Math.ceil(base * bargainBuyFactor(issue.won, issue.drNet, issue.negotiator));
+  const palier = paliers.filter((p) => p.drMin <= issue.drNet).sort((a, b) => b.drMin - a.drMin)[0];
+  const prix = palier?.prix[classeId] ?? base;
+  return issue.negotiator ? Math.ceil(prix * 0.9) : prix; // LDB 10 l.818
+}
+
+/** Classes OFFERTES par le billet, dans l'ordre du véhicule, chacune à son prix par passager. */
+export function classesDuBillet(billet: TarifDeBillet, mode: TravelMode, issue?: IssueDeMarchandage): { id: string; label: string; prix: number }[] {
+  return (vehicleTravel(mode)?.classes ?? []).flatMap((c) => {
+    const prix = prixParPassager(billet, c.id, issue);
+    return prix == null ? [] : [{ id: c.id, label: c.label, prix }];
+  });
+}
+
+/** Ce que le parcours d'un billet lit d'une route de la carte (`MapRoute`). */
+export interface TronconDeBillet {
+  id: string;
+  a: string;
+  b: string;
+  from?: string;
+  km: number;
+  modes: TravelMode[];
+}
+
+/** Parcours d'un billet posé sur `premiere`, au départ de `depart` : chaque route de `suite` part du lieu
+ *  où arrive la précédente, dans son sens d'initiation, et porte `mode`. Faute = rang dans `suite`
+ *  (`-1` : la première route) et sa raison. */
+export type ParcoursDuBillet<T extends TronconDeBillet> =
+  | { ok: true; routes: T[]; depart: string; arrivee: string; km: number }
+  | { ok: false; rang: number; raison: string };
+
+export function parcoursDuBillet<T extends TronconDeBillet>(
+  routes: readonly T[], premiere: T, depart: string | undefined, suite: readonly string[], mode: TravelMode,
+): ParcoursDuBillet<T> {
+  if (depart == null) return { ok: false, rang: -1, raison: 'route à double sens : « depuis » doit nommer le lieu de départ du billet.' };
+  if (depart !== premiere.a && depart !== premiere.b) return { ok: false, rang: -1, raison: `« depuis » (${depart}) n'est pas une extrémité de la route.` };
+  if (premiere.from != null && premiere.from !== depart) return { ok: false, rang: -1, raison: `la route ne s'emprunte que depuis « ${premiere.from} ».` };
+  const parcours = [premiere];
+  let lieu = premiere.a === depart ? premiere.b : premiere.a;
+  for (const [rang, id] of suite.entries()) {
+    const r = routes.find((x) => x.id === id);
+    if (!r) return { ok: false, rang, raison: `route « ${id} » inconnue.` };
+    if (parcours.some((p) => p.id === id)) return { ok: false, rang, raison: `la route « ${id} » est déjà parcourue par ce billet.` };
+    if (!r.modes.includes(mode)) return { ok: false, rang, raison: `la route « ${id} » n'offre pas le mode « ${mode} ».` };
+    if (r.a !== lieu && r.b !== lieu) return { ok: false, rang, raison: `la route « ${id} » ne part pas de « ${lieu} », où arrive la précédente.` };
+    if (r.from != null && r.from !== lieu) return { ok: false, rang, raison: `la route « ${id} » ne s'emprunte que depuis « ${r.from} ».` };
+    parcours.push(r);
+    lieu = r.a === lieu ? r.b : r.a;
+  }
+  return { ok: true, routes: parcours, depart, arrivee: lieu, km: parcours.reduce((s, r) => s + r.km, 0) };
+}
+
+/** Total d'un billet : prix par passager × passagers (LDB 51 l.178, EDO 01 l.142 « par personne »). */
+export function prixDuBillet(billet: TarifDeBillet, classeId: string, passengers: number, issue?: IssueDeMarchandage): Money | null {
+  const prix = prixParPassager(billet, classeId, issue);
+  return prix == null ? null : fromBrass(prix * Math.max(1, passengers));
 }
 
 /** Résultat STRUCTURÉ de la marche forcée : le jet s'affiche en RollLine (recap de voyage),

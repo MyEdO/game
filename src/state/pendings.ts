@@ -27,6 +27,8 @@ import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFacto
 import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail } from '../engine/skills';
+import type { TravelMode } from '../engine/travel';
+import { t } from '../i18n';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -290,14 +292,57 @@ export interface PendingStateRecovery {
   success: boolean;
   rerolled?: boolean;
 }
-/** Marchandage en attente (LDB 59 l.43) : Test OPPOSÉ Marchandage (joueur) vs Marchandage (marchand).
- *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance ; gagner réduit le prix de 10 %
- *  (20 % avec Succès Stupéfiant DR≥6 ou le talent Négociateur). 1 jet verrouillé par visite. */
+/** Ce que le Marchandage négocie : l'achat ou la vente chez le marchand ouvert (LDB 59 l.43), ou le
+ *  billet d'un passage (EDO 01 l.142, `billetFlow`), clé `routeId`/`mode` de `MapRoute.billets`. Elle ne
+ *  résout que l'OPPOSANT à l'ouverture ; l'issue d'un Test joué se consigne chez elle. */
+export type ContrepartieDeMarchandage =
+  | { kind: 'marchand'; mode: 'buy' | 'sell' }
+  | { kind: 'billet'; routeId: string; mode: TravelMode };
+
+/** L'opposant RÉSOLU à l'ouverture : son nom, sa valeur de Marchandage NUE (grandeur du départage,
+ *  `LDB 12 l.160`) et sa fiche pour le portrait de la rangée adverse. */
+export interface OpposantDeMarchandage { label: string; valeur: number; portrait?: Combatant }
+
+/** Les PRIX en jeu d'un Marchandage, en clair : le prix obtenu s'il est gagné, par palier de DR net
+ *  (`drMin` croissant, le premier à 0), le prix s'il est perdu, et si une défaite de `SL_ASTOUNDING` DR
+ *  rend la contrepartie méfiante (LDB 59 l.43). Source unique de l'enjeu et du verdict. */
+export interface PrixDuMarchandage {
+  gagne: { drMin: number; prix: string }[];
+  perdu: string;
+  mefiance: boolean;
+}
+
+/** Paliers du prix obtenu par un Marchandage gagné aux seuils `seuils` de DR net (0 compris) : un seuil
+ *  qui ne change pas le prix du précédent n'est pas répété. */
+export function paliersDeGain(seuils: readonly number[], prixA: (drNet: number) => string): PrixDuMarchandage['gagne'] {
+  return [...new Set([0, ...seuils])].sort((a, b) => a - b)
+    .map((drMin) => ({ drMin, prix: prixA(drMin) }))
+    .filter((p, i, tous) => i === 0 || p.prix !== tous[i - 1].prix);
+}
+
+/** Les prix obtenus d'un Marchandage gagné, palier par palier, en clair (enjeu de la modale). */
+export function prixGagnesEnClair(prix: PrixDuMarchandage): string {
+  return prix.gagne.map((p) => (p.drMin <= 0 ? p.prix : t('out.bargainStakeAuDR', { dr: p.drMin, prix: p.prix }))).join(' ; ');
+}
+
+/** Les TERMES d'un Marchandage selon que le marchandeur est Négociateur (LDB 59 l.43) : l'enjeu
+ *  annoncé avant le jet et les prix qui tranchent le verdict. */
+export interface TermesDeMarchandage { enjeu: StakeRef; prix: PrixDuMarchandage }
+
+/** Ce que résout une contrepartie à l'ouverture du Marchandage : son opposant, et ses termes. */
+export interface OuvertureDeMarchandage { opposant: OpposantDeMarchandage; termes: (negotiator: boolean) => TermesDeMarchandage }
+
+/** Marchandage en attente (LDB 59 l.43) : Test OPPOSÉ Marchandage (joueur) vs Marchandage (opposant).
+ *  La modale affiche « Lancer » (2 jets), puis le verdict + Chance. 1 jet verrouillé par contrepartie. */
 export interface PendingBargain {
   playerId: string;
   playerName: string;
-  merchantName: string;
-  merchantValue: number; // valeur Marchandage du marchand (opposant)
+  contrepartie: ContrepartieDeMarchandage;
+  opposant: OpposantDeMarchandage;
+  /** ENJEU du Test (zone Z3b de `RollShell`), résolu à l'ouverture par la contrepartie. */
+  enjeu: StakeRef;
+  /** Prix en jeu, résolus avec l'enjeu : le verdict dit le prix obtenu (`describeBargain`). */
+  prix: PrixDuMarchandage;
   playerSkill: number; // valeur Marchandage du meilleur négociateur du groupe (Soutien FONDU)
   /** SOUTIEN (LDB 12) des conseillers du groupe, déjà fondu dans `playerSkill` — porté pour l'affichage. */
   support?: SupportDetail;
@@ -307,13 +352,12 @@ export interface PendingBargain {
    *  `playerSkill` : celle-ci porte le Soutien et TOUS les modificateurs de la valeur de Test
    *  (inventaire exhaustif : `skills.testValueParts`). */
   playerBase: number;
-  mode: 'buy' | 'sell';
-  /** Le négociateur possède-t-il le talent Négociateur (−20 % même sans Succès Stupéfiant) ? */
+  /** Le négociateur possède-t-il le talent Négociateur (LDB 10 l.818) ? */
   negotiator: boolean;
   /** Jet du joueur ; null tant que pas lancé (Chance possible ensuite). */
   roll: TestResult | null;
-  /** Jet du marchand, figé au 1ᵉʳ lancer (les relances Chance ne re-roulent que le joueur). */
-  merchantRoll: TestResult | null;
+  /** Jet de l'opposant, figé au 1ᵉʳ lancer (les relances Chance ne re-roulent que le joueur). */
+  opposantRoll: TestResult | null;
   /** Résultat opposé (joueur = attaquant). */
   result: OpposedResult | null;
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */

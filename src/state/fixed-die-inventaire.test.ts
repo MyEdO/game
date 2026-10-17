@@ -171,7 +171,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   },
   recover: { state: { pendingStateRecovery: { actorId: 'H', state: 'sonne', skillValue: T, difficulty: 'intermediaire', roll: rateTR } }, read: trRead('pendingStateRecovery') },
   bargain: {
-    state: { pendingBargain: { playerId: 'H', merchantId: 'm', playerSkill: T, merchantRoll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, roll: rateTR } },
+    state: { pendingBargain: { playerId: 'H', playerSkill: T, opposantRoll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, roll: rateTR } },
     read: trRead('pendingBargain'),
   },
   frenzy: { state: { pendingFrenzy: { combatantId: 'H', result: rate } }, read: resultRead('pendingFrenzy') },

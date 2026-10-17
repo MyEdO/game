@@ -30,7 +30,7 @@ const LAND_PERIL_INTERRUPT = 'travel-land';
 import { openRest, placesOfKind } from './restFlow';
 import { placeById, placeOfScene, otherEnd, type MapRoute, type WorldMap } from './worldMap';
 import {
-  TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, transportCost, forcedMarchTest, applyTravelFatigue,
+  TravelMode, TRAVEL_DEFAULTS, travelModeLabels, travelSpeed, forcedMarchTest, applyTravelFatigue,
   vehicleTravel,
 } from '../engine/travel';
 import {
@@ -54,8 +54,8 @@ import { PERIPETIES } from '../data/peripeties';
 import { rollTest, testDetail } from '../engine/tests';
 import { partyAssisted, supportSplit, type SupportDetail } from '../engine/skills';
 import { addCondition, removeCondition, stacks } from '../engine/conditions';
-import { formatMoney } from '../engine/money';
-import { condCtx, payFromGroup } from './bourseFlow';
+import { condCtx } from './bourseFlow';
+import { payerLePassage } from './billetFlow';
 import { evalCondition } from '../engine/flowCore';
 import { d10, d100 } from '../engine/dice';
 import { rule } from '../engine/policy';
@@ -135,8 +135,8 @@ export interface TravelRecap {
 }
 
 /** Voyage en cours / interrompu (persiste pour « Reprendre le voyage »). La classe du transport payant
- *  (`interieur`/`exterieur`, `cabine`/`pont`) n'entre QUE dans le prix du passage, débité à l'ouverture
- *  par `transportCost` : le plan n'en porte pas trace, aucune reprise ne la relit. */
+ *  (`interieur`/`exterieur`, `cabine`/`pont`) n'entre QUE dans le prix du billet, débité à l'ouverture
+ *  par `payerLePassage` : le plan n'en porte pas trace, aucune reprise ne la relit. */
 export interface TravelPlan {
   routeId: string;
   fromPlaceId: string;
@@ -335,7 +335,7 @@ export function startTravel(
     if (opts.fast) {
       if (!startFastVoyage(get, set, routeId, from.id, to.id, route, { pace: opts.seaPace, cadence: opts.cadence })) {
         log(get, set, [t('tf.noVessel')]);
-      }
+      } else set({ billetEnMain: null });
       return;
     }
     const seaPlan = buildSeaPlan(get, routeId, from.id, to.id, route, { pace: opts.seaPace, cadence: opts.cadence });
@@ -343,7 +343,7 @@ export function startTravel(
       log(get, set, [t('tf.noVessel')]);
       return;
     }
-    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null });
+    set({ travelPlan: seaPlan, worldMapOpen: false, travelRecap: null, billetEnMain: null });
     log(get, set, [t('tf.seaDepart', { ship: seaPlan.vehicle!.label, to: to.label, km: route.km })]);
     runSeaDay(get, set);
     return;
@@ -356,7 +356,7 @@ export function startTravel(
   if (route.river && mode !== 'pied' && mode !== 'monture' && findVehicleById(mode)?.ship) {
     const riverPlan = buildRiverPlan(get, routeId, from.id, to.id, route, { cadence: opts.cadence });
     if (riverPlan) {
-      set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null });
+      set({ travelPlan: riverPlan, worldMapOpen: false, travelRecap: null, billetEnMain: null });
       log(get, set, [t('tf.riverDepart', { ship: riverPlan.vehicle!.label, to: to.label, km: route.km })]);
       runRiverDays(get, set);
       return;
@@ -364,18 +364,14 @@ export function startTravel(
     // Pas de batelier/embarcation : on retombe sur le transport payant (passeur).
   }
 
-  // Transport payant : prix par km PAR PASSAGER (LDB 51 l.178), débité au départ — refus si bourse insuffisante.
+  // Transport payant : le BILLET du passage (`billetFlow`, EDO 01 l.142 ; implicite LDB 51 l.178), payé
+  // d'avance ou couvert par le billet en main — refus si bourse insuffisante. À pied, en selle : le
+  // billet en main est abandonné.
   if (mode !== 'pied' && mode !== 'monture') {
-    const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
-    const cost = transportCost(route.km, mode, opts.classeId ?? '', passengers, route.prices?.[mode]);
-    if (!cost) return; // mode sans facette `travel` (id de véhicule invalide) — rien à débiter, rien à jouer
-    // Dépense de GROUPE (LDB 51 l.178) : passage sans bénéficiaire unique → cotisation gloutonne des bourses.
-    if (!payFromGroup(get, set, cost, { purpose: 'passage' })) {
-      log(get, set, [t('tf.passageTooDear', { mode: travelModeLabels()[mode].toLowerCase(), cost: formatMoney(cost) })]);
-      return;
-    }
-    log(get, set, [t('tf.passagePaid', { cost: formatMoney(cost), mode: travelModeLabels()[mode].toLowerCase() })]);
-  }
+    const paye = payerLePassage(get, set, route, from.id, mode, opts.classeId);
+    if (paye.ligne) log(get, set, [paye.ligne]);
+    if (!paye.ok) return;
+  } else set({ billetEnMain: null });
 
   // Allure EDOC (règle `travel-allures`) : en selle, pas/trot/galop (EDOC 07 l.140) ; sur un attelage,
   // « pas de course » forcé (EDOC 07 l.229) — seulement si le véhicule a un attelage (`travel.draft`).

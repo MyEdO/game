@@ -3382,7 +3382,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     useGame.getState().closeMerchant(); // quitte SANS payer
     useGame.getState().openMerchant('pnj'); // réouverture (même réassort)
     expect(useGame.getState().merchant!.bargainLocked).toBe(true); // l'info est gardée
-    useGame.getState().startBargain('buy');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
     expect(useGame.getState().pendingBargain).toBeNull(); // le marchand refuse de marchander
   });
 
@@ -3398,7 +3398,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     expect(st.merchant!.bargainBuy ?? null).toBeNull(); // remise annulée
     expect(st.merchant!.bargainLocked).toBe(true);
     // verrou PARTAGÉ : la VENTE est aussi bloquée
-    useGame.getState().startBargain('sell');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'sell' });
     expect(useGame.getState().pendingBargain).toBeNull();
     useGame.getState().closeMerchant();
     useGame.getState().openMerchant('pnj');
@@ -3413,7 +3413,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const st = useGame.getState();
     expect(st.merchant!.bargainSell ?? null).toBeNull();
     expect(st.merchant!.bargainLocked).toBe(true);
-    useGame.getState().startBargain('buy'); // achat aussi bloqué
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' }); // achat aussi bloqué
     expect(useGame.getState().pendingBargain).toBeNull();
   });
 
@@ -3514,43 +3514,59 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
   it('startBargain : crée un pendingBargain (marchand = bargainSkill de l’archétype) (#2c)', () => {
     useGame.setState({ party: [negotiator()], scene: merchantScene() });
     useGame.getState().openMerchant('pnj');
-    useGame.getState().startBargain('buy');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
     const pb = useGame.getState().pendingBargain!;
     expect(pb).toBeTruthy();
     expect(pb.playerId).toBe('h');
-    expect(pb.merchantValue).toBe(45); // armurier.bargainSkill
+    expect(pb.opposant.valeur).toBe(45); // armurier.bargainSkill
   });
 
   it('bargainConfirm : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
     useGame.setState({ party: [negotiator()], scene: merchantScene() });
     useGame.getState().openMerchant('pnj');
-    useGame.getState().startBargain('buy');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
     // force un résultat gagné, sans RNG
     const pb = useGame.getState().pendingBargain!;
     const win = { roll: 10, target: 40, success: true, sl: 3, isDouble: false };
     const lose = { roll: 80, target: 45, success: false, sl: -3, isDouble: false };
-    useGame.setState({ pendingBargain: { ...pb, roll: win, merchantRoll: lose, result: { attacker: win, defender: lose, winner: 'attacker', attackerWins: true, netSL: 6, decidedBy: 'dr' } } });
+    useGame.setState({ pendingBargain: { ...pb, roll: win, opposantRoll: lose, result: { attacker: win, defender: lose, winner: 'attacker', attackerWins: true, netSL: 6, decidedBy: 'dr' } } });
     useGame.getState().bargainConfirm();
     expect(useGame.getState().pendingBargain).toBeNull();
     expect(useGame.getState().merchant!.bargainBuy).toEqual({ won: true, drNet: 6, negotiator: false });
     expect(useGame.getState().merchant!.soured).toBeFalsy(); // gagné → pas de méfiance
-    useGame.getState().startBargain('buy'); // achat déjà négocié → no-op
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' }); // achat déjà négocié → no-op
     expect(useGame.getState().pendingBargain).toBeNull();
-    useGame.getState().startBargain('sell'); // la vente est une négociation DISTINCTE → s'ouvre
-    expect(useGame.getState().pendingBargain?.mode).toBe('sell');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'sell' }); // la vente est une négociation DISTINCTE → s'ouvre
+    expect(useGame.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell' });
+  });
+
+  it('bargainCancel : avant le jet, rien n’est consigné ; après le jet, le Test JOUÉ est consigné comme à « Conclure »', () => {
+    useGame.setState({ party: [negotiator()], scene: merchantScene() });
+    useGame.getState().openMerchant('pnj');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
+    useGame.getState().bargainCancel(); // pas joué
+    expect(useGame.getState().merchant!.bargainBuy).toBeFalsy();
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
+    useGame.getState().bargainRoll();
+    const joue = useGame.getState().pendingBargain!.result!;
+    useGame.getState().bargainCancel();
+    expect(useGame.getState().pendingBargain).toBeNull();
+    expect(useGame.getState().merchant!.bargainBuy).toEqual({ won: joue.attackerWins, drNet: joue.netSL, negotiator: false });
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' }); // un seul Test par mode
+    expect(useGame.getState().pendingBargain).toBeNull();
   });
 
   it('bargainConfirm : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
     useGame.setState({ party: [negotiator()], scene: merchantScene() });
     useGame.getState().openMerchant('pnj');
-    useGame.getState().startBargain('buy');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
     const pb = useGame.getState().pendingBargain!;
     const lose = { roll: 90, target: 40, success: false, sl: -5, isDouble: false };
     const win = { roll: 10, target: 45, success: true, sl: 3, isDouble: false };
-    useGame.setState({ pendingBargain: { ...pb, roll: lose, merchantRoll: win, result: { attacker: lose, defender: win, winner: 'defender', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
+    useGame.setState({ pendingBargain: { ...pb, roll: lose, opposantRoll: win, result: { attacker: lose, defender: win, winner: 'defender', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
     useGame.getState().bargainConfirm();
     expect(useGame.getState().merchant!.soured).toBe(true);
-    useGame.getState().startBargain('sell'); // marchand méfiant → toute négociation bloquée
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'sell' }); // marchand méfiant → toute négociation bloquée
     expect(useGame.getState().pendingBargain).toBeNull();
   });
 
@@ -3739,11 +3755,11 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
   it("market-mode 'sans-marchandage' : startBargain ne propose plus de Marchandage", () => {
     useGame.setState({ party: [hero()], scene: merchantScene() });
     useGame.getState().openMerchant('pnj');
-    useGame.getState().startBargain('buy');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
     expect(useGame.getState().pendingBargain).not.toBeNull(); // complet : Marchandage proposé
     useGame.setState({ pendingBargain: null });
     setRule('market-mode', 'sans-marchandage');
-    useGame.getState().startBargain('buy');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
     expect(useGame.getState().pendingBargain).toBeNull(); // désactivé
   });
 

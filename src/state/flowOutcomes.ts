@@ -165,15 +165,22 @@ export function describeActivity(pa: PendingActivity): string {
   }
 }
 
-/** Marchandage (LDB 59 l.43) : VERDICT du Test opposé (source unique popin ↔ journal). */
+/** Marchandage (LDB 59 l.43 ; EDO 01 l.142) : VERDICT du Test opposé, qui dit le prix obtenu (source
+ *  unique popin ↔ journal). */
 export function describeBargain(pb: PendingBargain): string {
   const won = pb.result?.attackerWins ?? false;
   const drNet = pb.result?.netSL ?? 0;
-  const discount = won ? (drNet >= SL_ASTOUNDING || pb.negotiator ? t('out.fragDiscount20') : t('out.fragDiscount10')) : '—';
-  // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 → le marchand se méfie.
-  if (!won && drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious');
-  if (won) return pb.mode === 'buy' ? t('out.bargainWonBuy', { discount }) : t('out.bargainWonSell');
-  return pb.mode === 'buy' ? t('out.bargainLostBuy') : t('out.bargainLostSell');
+  if (!won) return pb.prix.mefiance && drNet >= SL_ASTOUNDING ? t('out.bargainSuspicious') : t('out.bargainLost', { prix: pb.prix.perdu });
+  const atteints = pb.prix.gagne.filter((p) => drNet >= p.drMin);
+  const obtenu = atteints[atteints.length - 1] ?? pb.prix.gagne[0];
+  return t('out.bargainWon', { prix: obtenu.prix });
+}
+
+/** Titre de la modale de Marchandage, selon ce qui se négocie (source unique, lue par `BargainModal`). */
+export function bargainTitle(pb: PendingBargain): string {
+  const c = pb.contrepartie;
+  if (c.kind === 'billet') return t('out.bargainTitleTicket');
+  return c.mode === 'buy' ? t('out.bargainTitleBuy') : t('out.bargainTitleSell');
 }
 
 /** Évaluation / Détection d'artefact (LDB 59 l.41 / 10 l.310-312) : issue de la popin. La VALIDATION

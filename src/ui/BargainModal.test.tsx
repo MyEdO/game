@@ -1,50 +1,70 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { BargainModal, BargainModalView } from './BargainModal';
+import { BargainModalView } from './BargainModal';
 import { TeamPortrait } from './TeamPortrait';
 import { useGame, type PendingBargain } from '../state/store';
 import { sceneNpc } from '../state/sceneNpc';
 import { emptyNarratif } from '../state/campaignNarratif';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../state/scene';
 import { skillBaseValue, testValue } from '../engine/skills';
-import { findMutationById } from '../data';
+import { findMutationById, flowStakeRef } from '../data';
 import type { Combatant } from '../engine/types';
 
 const base: PendingBargain = {
   playerId: 'h',
   playerName: 'H',
-  merchantName: 'Armurier',
-  merchantValue: 45,
+  contrepartie: { kind: 'marchand', mode: 'buy' },
+  opposant: { label: 'Armurier', valeur: 45 },
+  enjeu: flowStakeRef('bargain-marchand', { values: { gagne: '−10 % à l’achat', perdu: 'prix plein à l’achat', botch: 6 } }),
+  prix: { gagne: [{ drMin: 0, prix: '−10 % à l’achat' }, { drMin: 6, prix: '−20 % à l’achat' }], perdu: 'prix plein à l’achat', mefiance: true },
   playerSkill: 50,
   playerBase: 50,
-  mode: 'buy',
   negotiator: false,
   roll: null,
-  merchantRoll: null,
+  opposantRoll: null,
   result: null,
 };
 
 const noop = () => {};
 
-/** #1882 — le marchand est un PNJ de scène : sa ligne adverse porte SA fiche (`sceneNpc`), preset compris. */
+/** #1882 — le marchand est un PNJ de scène : `startBargain` résout sa fiche (`sceneNpc`), preset compris, dans
+ *  l'opposant du pending ; la ligne adverse de la modale la porte. */
 describe('BargainModal — le marchand à preset joue sa fiche', () => {
-  // Le rendu SERVEUR lit l'état INITIAL du store (patron `refus-au-survol.test.tsx`), les couches hors React l'état courant.
-  const initial = useGame.getInitialState() as unknown as Record<string, unknown>;
-  const avant = { pendingBargain: initial.pendingBargain, merchant: initial.merchant, scene: initial.scene, party: initial.party };
-  afterEach(() => { Object.assign(initial, avant); useGame.setState({ campaignNarratif: null }); });
+  afterEach(() => useGame.setState({ campaignNarratif: null, pendingBargain: null, merchant: null }));
 
   it('le portrait adverse est celui de la fiche du preset, pas d’un profil de repli', () => {
     const scene = {
       type: 'scene', id: 's', label: 'S', dimensions: { w: 4, h: 4 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
       layers: [{ z: 0, tiles: Array(16).fill('herbe') }], dialogues: [], triggers: [], encounters: [], flags: {},
-      entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme' }],
+      entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme', merchant: { archetype: 'armurier' } }],
     } as unknown as Scene;
-    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'marchand-nomme', base: 'nain', profil: { label: 'Gunther le Négociant' } }] } });
-    Object.assign(initial, { scene, merchant: { entityId: 'marchand' }, pendingBargain: base, party: [] });
+    const heros = { id: 'h', label: 'H', kind: 'hero', characteristics: { sociabilite: 40 }, skills: [], talents: [], items: [], conditions: [], advantage: 0 } as unknown as Combatant;
+    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'marchand-nomme', base: 'nain', profil: { label: 'Gunther le Négociant' } }] }, scene, party: [heros], merchant: null, merchantStocks: {}, pendingBargain: null });
+    useGame.getState().openMerchant('marchand');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
+    const pb = useGame.getState().pendingBargain!;
     const fiche = sceneNpc(scene, 'marchand')!;
     expect(fiche.creatureId).toBe('nain');
-    const html = renderToStaticMarkup(<BargainModal />);
+    expect(pb.opposant.portrait?.creatureId).toBe('nain');
+    const html = renderToStaticMarkup(<BargainModalView pb={pb} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />);
     expect(html).toContain(renderToStaticMarkup(<TeamPortrait combatant={fiche} size={28} />));
+  });
+
+  it('avant le jet : la modale nomme le héros qui marchande et l’ENJEU de l’achat (zone Z3b)', () => {
+    const scene = {
+      type: 'scene', id: 's', label: 'S', dimensions: { w: 4, h: 4 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+      layers: [{ z: 0, tiles: Array(16).fill('herbe') }], dialogues: [], triggers: [], encounters: [], flags: {},
+      entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, merchant: { archetype: 'armurier' } }],
+    } as unknown as Scene;
+    const heros = { id: 'h', label: 'Gretchen', kind: 'hero', characteristics: { sociabilite: 40 }, skills: [], talents: [], items: [], conditions: [], advantage: 0 } as unknown as Combatant;
+    useGame.setState({ scene, party: [heros], merchant: null, merchantStocks: {}, pendingBargain: null });
+    useGame.getState().openMerchant('marchand');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
+    const pb = useGame.getState().pendingBargain!;
+    const html = renderToStaticMarkup(<BargainModalView pb={pb} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />);
+    expect(html).toContain('Gretchen — Marchandage, contre Armurier');
+    expect(html).toContain('class="rm-stake"');
+    expect(html).toContain('Marchandage gagné : −10 % à l’achat ; 6 DR ou plus : −20 % à l’achat. Perdu : prix plein à l’achat.');
   });
 });
 
@@ -95,7 +115,7 @@ describe('BargainModal (#2c)', () => {
     const pb: PendingBargain = {
       ...base, playerSkill: 35, playerBase: 55, support: { count: 1, bonus: 10, ids: ['h2'] },
       roll: { roll: 20, target: 35, success: true, sl: 3, isDouble: false },
-      merchantRoll: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
+      opposantRoll: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
       result: {
         attacker: { roll: 20, target: 35, success: true, sl: 3, isDouble: false },
         defender: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
@@ -121,7 +141,7 @@ describe('BargainModal (#2c)', () => {
     const pb: PendingBargain = {
       ...base,
       roll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false },
-      merchantRoll: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
+      opposantRoll: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
       result: {
         attacker: { roll: 20, target: 50, success: true, sl: 3, isDouble: false },
         defender: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
@@ -135,6 +155,10 @@ describe('BargainModal (#2c)', () => {
       <BargainModalView pb={pb} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
     expect(html).toMatch(/Conclure/);
-    expect(html).toContain('Gagné');
+    expect(html).toContain('Gagné : −10 % à l’achat'); // le verdict dit le prix obtenu, au palier de 4 DR nets
+    const large = renderToStaticMarkup(
+      <BargainModalView pb={{ ...pb, result: { ...pb.result!, netSL: 7 } }} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
+    );
+    expect(large).toContain('Gagné : −20 % à l’achat'); // 6 DR ou plus : le palier suivant
   });
 });

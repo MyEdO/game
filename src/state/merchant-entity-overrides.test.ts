@@ -29,7 +29,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
   it('marketMode : override "sans-marchandage" prime alors que le global reste "complet"', () => {
     useGame.setState({ party: [hero()], scene: sceneWith({ marketMode: 'sans-marchandage' }) });
     useGame.getState().openMerchant('pnj');
-    useGame.getState().startBargain('buy');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
     expect(useGame.getState().pendingBargain).toBeNull(); // override local désactive le Marchandage
   });
 
@@ -37,7 +37,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
     useGame.setState({ party: [hero()], scene: sceneWith({}) });
     setRule('market-mode', 'sans-marchandage');
     useGame.getState().openMerchant('pnj');
-    useGame.getState().startBargain('buy');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
     expect(useGame.getState().pendingBargain).toBeNull(); // hérité du global, pas un 3ᵉ état
   });
 
@@ -45,7 +45,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
     useGame.setState({ party: [hero()], scene: sceneWith({ marketMode: 'complet' }) });
     setRule('market-mode', 'sans-marchandage');
     useGame.getState().openMerchant('pnj');
-    useGame.getState().startBargain('buy');
+    useGame.getState().startBargain({ kind: 'marchand', mode: 'buy' });
     expect(useGame.getState().pendingBargain).not.toBeNull(); // l'override local rouvre le Marchandage
   });
 

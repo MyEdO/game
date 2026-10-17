@@ -2869,8 +2869,8 @@ export function seasonLabel(id: string): PlayerText {
 }
 
 /** Nature d'une entité dont l'ABSENCE est atteignable en jeu (#1906) : héros sorti du groupe, combattant
- *  sorti du combat, lieu effacé de la carte, navire retiré du catalogue, saison sans fiche météo. */
-export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere';
+ *  sorti du combat, lieu ou route effacé de la carte, navire retiré du catalogue, saison sans fiche météo. */
+export type NatureAbsente = 'heros' | 'combattant' | 'lieu' | 'troncon' | 'navire' | 'saison' | 'mois' | 'race' | 'carriere';
 /** Le libellé d'une entité résolue, ou son ABSENCE nommée en français de joueur par sa nature (#1906) —
  *  jamais un littéral qui la masque. Une absence IMPOSSIBLE ne passe pas ici : elle lève. */
 export function libelleOuAbsence(e: { label: string } | undefined, nature: NatureAbsente, id: string): PlayerText {
@@ -2960,7 +2960,7 @@ export const peripeties = peripetiesJson as Peripetie[];
  *  routiers ») — catalogue de CALIBRATION d'une `MapRoute` : classes de route et leurs largeurs,
  *  espacement des auberges relais, compagnies de diligences nommées, tarif et espacement des postes
  *  de péage, effectifs de patrouille. Aucun de ces champs n'étend le vocabulaire de `MapRoute` : ils
- *  se posent sur `inns`/`prices`/`speed`/`km` à l'authoring de carte. */
+ *  se posent sur `inns`/`billets`/`speed`/`km` à l'authoring de carte. */
 export interface ReseauRoutierData {
   id: string;
   type: 'reseau-routier';

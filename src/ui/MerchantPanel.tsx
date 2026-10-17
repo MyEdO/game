@@ -749,7 +749,7 @@ export function MerchantPanel() {
       onAddToCart={addToCart} onDecCart={decFromCart} onRemoveCart={removeFromCart} onClearCart={clearCart} onRefuse={refuseBargain} onPay={payCart}
       onAssignDist={assignDistribution} onConfirmDist={confirmDistribution}
       onAddToSellCart={addToSellCart} onRemoveSellCart={removeFromSellCart} onClearSellCart={clearSellCart} onConfirmSell={confirmSell}
-      onRepair={repairItem} onBargain={startBargain} onAppraise={appraiseItem} onClose={closeMerchant}
+      onRepair={repairItem} onBargain={(mode) => startBargain({ kind: 'marchand', mode })} onAppraise={appraiseItem} onClose={closeMerchant}
       onSellHalving={setSellHalving} onBarter={barterExchange} onSearchAvailability={searchAvailability}
     />
   );

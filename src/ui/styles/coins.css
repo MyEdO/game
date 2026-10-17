@@ -3,6 +3,10 @@
    le séparateur de la notation « S/C ». Identité entière ici (#1806 2a, arbitrage A1 du
    2026-09-18) — un écran qui affiche un montant COMPOSE la primitive et, s'il lui faut un autre
    ton, passe par `ton` (`data-ton`), jamais par un descendant qui la repeint. ══ */
+/* Un montant est INSÉCABLE : « 1 CO 18/4 » ne se coupe jamais entre ses dénominations. */
+.coins {
+  white-space: nowrap;
+}
 /* Ton DISCRET : le montant est une information de contexte, pas le sujet de la ligne (bourse
    rappelée en tête d'une modale de service). Remplace le repeint `.purse .coins` de l'écran. */
 .coins[data-ton='discret'] {

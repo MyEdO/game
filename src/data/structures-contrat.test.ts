@@ -817,6 +817,8 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
         // SEUL débordement, et il est LÉGITIME : une Condition posée sous `cond` reste une Condition
         // — c'est le noyau qui la reconnaît, pas le nom du champ (cf. sonde A).
         'condition | loup-et-saumure-projet.json › cond | expr,kind',
+        'billet-de-route | diligence-projet.json › diligence | prix,source+…',
+        'palier-de-marchandage | diligence-projet.json › paliers | drMin,prix',
       ]),
     );
     expect(
@@ -926,13 +928,18 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       // La CONTREPARTIE : chaque gain sort du NON-CLASSÉ. 12 lignes d'invisibles s'éteignent (les
       // objets qu'aucun concept ne reconnaissait) et 1 orpheline (`diligence-projet.json › ouverture`,
       // dont la clé `source` déclenchait le motif `clé réservée`) — la projection réunit les deux
-      // buckets qu'un optionnel peuplé séparait. Somme = les gains, à l'unité près.
+      // buckets qu'un optionnel peuplé séparait. Le billet de route (`diligence-projet.json ›
+      // diligence`, #2534) s'éteint au même motif : classé, il n'est plus orphelin de sa `source`.
+      // Somme = les gains, à l'unité près.
       expect(diff.invisiblesNees, 'la strate `Document` rend un objet INVISIBLE : elle en perd un au lieu d’en classer.').toEqual([]);
       expect(diff.orphelinesNees, 'la strate `Document` fabrique une ORPHELINE : elle en perd une au lieu d’en classer.').toEqual([]);
       expect(
         diff.orphelinesEteintes,
         'l’orpheline soldée par la strate `Document` n’est plus celle que le stock nomme (`structuresStock.mjs`, en-tête des concepts d’enveloppe).',
-      ).toEqual(['diligence-projet.json › ouverture | ambiance,chapitre,pitch,source,sousTitre,surtitre,titre | clé réservée | 1']);
+      ).toEqual(lignes([
+        'diligence-projet.json › diligence | paliers,presetId,prix,source,suite | clé réservée | 1',
+        'diligence-projet.json › ouverture | ambiance,chapitre,pitch,source,sousTitre,surtitre,titre | clé réservée | 1',
+      ]));
       expect(
         diff.invisiblesEteintes.length + diff.orphelinesEteintes.length,
         'le compte ne se referme plus : un gain de la strate `Document` ne vient ni d’un invisible ni d’une orpheline — il vient donc d’ailleurs.',

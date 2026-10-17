@@ -557,7 +557,7 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | lancer un scénario, une campagne | `__wfrp.scenario(id, seed?)` · `campaign(id)` · `demarrer({ scenario, combat })` (`setup.mjs`) · squelette : `gabarit.mjs` |
 | lancer un combat et l'ouvrir | `__wfrp.fight(id)` puis `ouvrirRound` (« Commencer le combat ») |
 | donner des PX | `__wfrp.xp(n)` |
-| donner de l'or, un objet | `__wfrp.give(co)` · `giveTrapping(heroId, trappingId, qty?)` |
+| donner de l'or (ou un montant exact en sous), un objet | `__wfrp.give(co)` · `give(0, { brass: 160 })` · `giveTrapping(heroId, trappingId, qty?)` |
 | poser la faim, la soif, la Chance | `__wfrp.faim(id, etat)` · `soif(id, etat)` · `chance(id, n)` |
 | poser un talent, un État, une maladie | `__wfrp.talent(id, talentId)` · `condition(id, nom, n)` · `disease(heroId, maladieId)` |
 | ouvrir une Défense | `__wfrp.attaque(attaquantId, defenseurId)` |
@@ -726,7 +726,7 @@ pas la cible d'UX.
 
 | Helper | Usage | Limites connues |
 |---|---|---|
-| `give(gold=10)` | crédite la bourse | — |
+| `give(gold=10, { silver?, brass? }?)` | crédite la bourse ; l'appoint pose des pistoles et sous exacts (`give(0, { brass: 160 })`) | — |
 | `xp()` / `xp(n)` | `xp()` LIT les PX de chaque héros là où le jeu lit (`[{ id, label, xp }]`, combattant en combat) ; `xp(n)` donne d'abord n PX au groupe par l'effet `giveXp` (MISE EN PLACE « donner des PX »), puis lit | — |
 | `faim(id, etat?)` / `soif(id, etat?)` | FAIM / SOIF d'un combattant (`Combatant.hunger` / `thirst`), lues là où le jeu lit (`actorIn`) : sans `etat`, OBSERVE ; avec, POSE d'abord l'état par `ecrireActeur` (en combat comme hors combat), puis lit. `etat` PARTIEL (`{ days, tests, failures }`), complété à zéro ; `null` = champ absent (nourri, désaltéré) | MISE EN PLACE ; `✗` si le combattant est introuvable, ou si un compte n'est pas un entier positif ou nul |
 | `chance(id, n?)` | points de CHANCE d'un combattant (`Combatant.fortune`), lus avec son Destin : `chance(id)` OBSERVE → `{ id, label, fortune, fate }` ; `chance(id, n)` POSE d'abord n points par `ecrireActeur` (en combat comme hors combat), puis lit | MISE EN PLACE ; `✗` si le combattant est introuvable, ou si `n` n'est pas un entier positif ou nul |

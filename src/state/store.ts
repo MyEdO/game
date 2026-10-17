@@ -1009,8 +1009,8 @@ export interface GameState extends RollFlowActionsMap {
   /** Réparation chez l'artisan : remet damageTaken à 0 contre le coût unifié — armure 10 %/PA (LDB 63 l.64)
    *  ou arme 10 %/point de Dégâts (LDB 62 l.135). Arme improvisée = irréparable. */
   repairItem: (uid: string, heroId: string) => void;
-  /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix de 10-20 %. */
-  startBargain: (mode: 'buy' | 'sell') => void;
+  /** Marchandage (LDB 59 l.43 ; billet : EDO 01 l.142) : ouvre le Test opposé de sa contrepartie. */
+  startBargain: (contrepartie: import('./pendings').ContrepartieDeMarchandage) => void;
   // bargain{Roll,Reroll,BonusSL,DarkPact} : générés (RollFlowActionsMap).
   bargainConfirm: () => void;
   bargainCancel: () => void;
@@ -1509,6 +1509,11 @@ export interface GameState extends RollFlowActionsMap {
   setGameMenu: (open: boolean) => void;
   /** Voyage en cours/interrompu (progression km — « Reprendre le voyage » après une embuscade). */
   travelPlan: import('./travelFlow').TravelPlan | null;
+  /** Billet d'auteur payé qui couvre encore des routes (`billetFlow`, EDO 01 l.142). Survit au
+   *  `transitionTo` du virage : hors `stateFields`. */
+  billetEnMain: import('./billetFlow').BilletEnMain | null;
+  /** Issue du Marchandage de chaque billet d'auteur, par `cleDeBillet` : UN Test par billet. */
+  marchandagesDeBillet: Record<string, import('../engine/travel').IssueDeMarchandage>;
   /** Récapitulatif du dernier segment de voyage (audit M4) — modale à l'arrivée/interruption. */
   travelRecap: import('./travelFlow').TravelRecap | null;
   dismissTravelRecap: () => void;
@@ -1893,6 +1898,8 @@ export const useGame = create<GameState>((set, get) => ({
   worldMapOpen: false,
   gameMenuOpen: false,
   travelPlan: null,
+  billetEnMain: null,
+  marchandagesDeBillet: {},
   travelRecap: null,
   party: [],
   scene: null,
@@ -2739,9 +2746,10 @@ export const useGame = create<GameState>((set, get) => ({
   clearSellCart: () => merchantFlow.clearSellCart(get, set),
   confirmSell: () => merchantFlow.confirmSell(get, set),
   repairItem: (uid, heroId) => merchantFlow.repairItem(get, set, uid, heroId),
-  startBargain: (mode) => merchantFlow.startBargain(get, set, mode),
+  startBargain: (contrepartie) => merchantFlow.startBargain(get, set, contrepartie),
   bargainConfirm: () => merchantFlow.bargainConfirm(get, set),
-  bargainCancel: () => set({ pendingBargain: null }),
+  // Un Test JOUÉ est consigné : après le jet, annuler range l'issue par la couture de « Conclure ».
+  bargainCancel: () => (get().pendingBargain?.result ? merchantFlow.bargainConfirm(get, set) : set({ pendingBargain: null })),
 
   appraiseItem: (uid, heroId, mode) => merchantFlow.appraiseItem(get, set, uid, heroId, mode),
   appraiseGear: (scope, index, mode) => merchantFlow.appraiseGear(get, set, scope, index, mode),

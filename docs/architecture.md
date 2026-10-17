@@ -311,6 +311,8 @@ src/state/
   partyFlow.ts                équipement, avancement PX, consommables de fiche, butin
   merchantFlow.ts             marchand : réassort, panier, achat/vente/réparation, Marchandage, Évaluation
   travelFlow.ts               voyage jour par jour (temps, fatigue, péripéties d10+auteur, interruption/reprise)
+  billetFlow.ts               billet d'un passage payant : devis (écran ET débit), billet en main sur les routes
+                              suivantes, Marchandage du billet contre son vendeur (#2534)
   upkeep.ts                   entretien QUOTIDIEN (#T3 cascade : rations/faim + maladies + convalescence
                               des critiques, jours CALENDAIRES) + purge des effets a duree d'horloge
                               (castPenalties/ActiveEffect.untilTime) — anti-double-comptage lastUpkeepDay

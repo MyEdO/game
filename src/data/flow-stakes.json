@@ -516,5 +516,33 @@
     },
     "rule": "disponibilite-des-biens",
     "ruleCategory": "regles"
+  },
+  {
+    "id": "bargain-marchand",
+    "type": "flow-stakes",
+    "label": "Marchandage chez un marchand",
+    "template": "Marchandage gagné : {gagne}. Perdu : {perdu}. Perdu de {botch} DR ou plus : le marchand se méfie et ne marchande plus.",
+    "form": "descripteur",
+    "rule": "marchandage",
+    "ruleCategory": "skills",
+    "source": {
+      "book": "livre-de-base",
+      "page": 289,
+      "note": "LDB 59 l.43, l.53"
+    }
+  },
+  {
+    "id": "bargain-billet",
+    "type": "flow-stakes",
+    "label": "Marchandage d’un billet",
+    "template": "Prix demandé : {actuel}. Marchandage gagné : {gagne}.",
+    "form": "descripteur",
+    "rule": "marchandage",
+    "ruleCategory": "skills",
+    "source": {
+      "book": "ennemi-dans-l-ombre",
+      "page": 14,
+      "note": "EDO 01 l.142"
+    }
   }
 ]

@@ -63,6 +63,14 @@ persistance — chaque combat spawn une coque fraîche.
 - `a`/`b` bidirectionnels, `km` (MILLES si `sea`), `modes`, `perils` (péripéties d'auteur `chancePct`),
   `perilDie` (seuil d10 RAW). DEUX routes entre les mêmes lieux sont OK (seul `id` est une clé) — le
   « sens » n'est qu'un nommage d'auteur, pas une contrainte mécanique.
+- `billets: { <véhicule>: RouteBillet }` — le prix d'AUTEUR d'un passage (patron EDO 01 l.142), posé sur
+  la PREMIÈRE route du trajet : `prix` par classe du véhicule (sous par passager, forfait du trajet
+  entier), `suite` (routes suivantes couvertes, contiguës, même véhicule), `depuis` (lieu de départ,
+  exigé sur une route à double sens), `presetId` (vendeur = preset du narratif : présent, le billet
+  se négocie par Test Opposé contre lui), `paliers` `{ drMin, prix }` (exigent `presetId` ; sans paliers,
+  remise `bargainBuyFactor`), provenance `source` OU `maison`.
+  Payé d'avance une fois, il couvre la `suite` sans redébit. Sans billet, une route paie le billet
+  IMPLICITE au km (LDB 51 l.178). Validation au chargement : `routeBilletSchema`/`worldMapSchema`.
 - `ambush: { scene, encounter, at? }` — cible du « Attaqués ! ». En MER, `at` (fraction 0-1, défaut 0.5)
   ANCRE l'embuscade de façon DÉTERMINISTE : elle se déclenche quand la distance franchit `at × km`, une
   fois par traversée, hors RNG (#212).

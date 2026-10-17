@@ -17,13 +17,16 @@ import { profilsStandard, refEntiteResolue } from '../data';
  *  statbloc, puis réf, dans cet ordre ; `undefined` si elle n'en porte aucun, ou si son preset ou sa réf
  *  ne se résout pas (#1882). */
 function porteurDeFiche(ent: SceneEntity): { porteur: PorteurDeFiche; appearance?: EntityAppearance } | undefined {
-  if (ent.presetId) { // `''` n'est pas un porteur (`typeNonNomme`, `defs-scenes/scene.ts`)
-    const preset = resolvePresetCreature(ent.presetId);
-    return preset && { porteur: { presetCreature: preset.creature, presetId: ent.presetId }, appearance: preset.apparence ?? ent.appearance };
-  }
+  if (ent.presetId) return porteurDePreset(ent.presetId, ent.appearance); // `''` n'est pas un porteur (`typeNonNomme`, `defs-scenes/scene.ts`)
   if (ent.statblock) return { porteur: { statblock: ent.statblock }, appearance: ent.appearance };
   if (ent.ref) return refEntiteResolue(ent.ref) ? { porteur: { ref: ent.ref }, appearance: ent.appearance } : undefined;
   return undefined;
+}
+
+/** Le porteur de fiche d'un preset de PNJ nommé (#671) ; son apparence prime sur `appearance`. */
+function porteurDePreset(presetId: string, appearance?: EntityAppearance): { porteur: PorteurDeFiche; appearance?: EntityAppearance } | undefined {
+  const preset = resolvePresetCreature(presetId);
+  return preset && { porteur: { presetCreature: preset.creature, presetId }, appearance: preset.apparence ?? appearance };
 }
 
 /** La fiche sous le NOM de l'entité (#1463 S3, #1882) : la fiche donne les valeurs, l'entité le nom —
@@ -64,6 +67,14 @@ export function ficheDEntite(ent: SceneEntity): Combatant {
  *  `profilsStandard`), sous le libellé de cette fiche. `undefined` hors des profils standard. */
 export function pnjAuProfil(profil: string, id: string): Combatant | undefined {
   return profilsStandard().includes(profil) ? spawnEnemy({ ref: profil }, id, { x: 0, y: 0 }) : undefined;
+}
+
+/** UN PNJ SANS ENTITÉ DE SCÈNE tiré d'un PRESET du narratif (#671) — le vendeur d'un billet (#2534) :
+ *  le MÊME porteur qu'une entité qui porte ce `presetId` (`porteurDePreset`). `undefined` si le preset
+ *  ne se résout pas. */
+export function pnjDePreset(presetId: string): Combatant | undefined {
+  const p = porteurDePreset(presetId);
+  return p && spawnEnemy(p.porteur, presetId, { x: 0, y: 0 }, { appearance: p.appearance });
 }
 
 /**

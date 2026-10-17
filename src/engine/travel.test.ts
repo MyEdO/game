@@ -3,7 +3,8 @@ import { Characteristics, Combatant, ItemInstance } from './types';
 import { makeRNG } from './dice';
 import { stacks } from './conditions';
 import {
-  partyWalkSpeed, travelSpeed, travelPlanCalc, transportCost, forcedMarchTest, applyTravelFatigue,
+  partyWalkSpeed, travelSpeed, travelPlanCalc, forcedMarchTest, applyTravelFatigue,
+  billetImplicite, prixDuBillet, prixParPassager, parcoursDuBillet, type TarifDeBillet,
   vehicleTravel, TRAVEL_DEFAULTS, distanceUnit, routeDistanceLabel,
 } from './travel';
 import { toBrass } from './money';
@@ -64,23 +65,81 @@ describe('travelPlanCalc (LDB 51 l.195 : 6 h/jour sans Test)', () => {
   });
 });
 
-describe('transportCost (LDB 51 l.180-189 : prix par km par passager)', () => {
+describe('billet implicite (LDB 51 l.180-189 : prix par km par passager)', () => {
+  const total = (km: number, mode: string, classe: string, n: number) => toBrass(prixDuBillet(billetImplicite(km, mode)!, classe, n)!);
   it('diligence Intérieur 2 sous/km : 10 km × 4 passagers = 80 sous', () => {
-    expect(toBrass(transportCost(10, 'diligence', 'interieur', 4)!)).toBe(80);
+    expect(total(10, 'diligence', 'interieur', 4)).toBe(80);
   });
   it('diligence Extérieur 1 sou/km ; barge Cabine 5 / Pont 2', () => {
-    expect(toBrass(transportCost(10, 'diligence', 'exterieur', 1)!)).toBe(10);
-    expect(toBrass(transportCost(10, 'barge', 'cabine', 1)!)).toBe(50);
-    expect(toBrass(transportCost(10, 'barge', 'pont', 1)!)).toBe(20);
-  });
-  it('prix d’auteur (override par route) respecté', () => {
-    expect(toBrass(transportCost(10, 'diligence', 'interieur', 1, 4)!)).toBe(40);
+    expect(total(10, 'diligence', 'exterieur', 1)).toBe(10);
+    expect(total(10, 'barge', 'cabine', 1)).toBe(50);
+    expect(total(10, 'barge', 'pont', 1)).toBe(20);
   });
   it('km fractionnaires arrondis au sou supérieur', () => {
-    expect(toBrass(transportCost(2.5, 'diligence', 'exterieur', 1)!)).toBe(3);
+    expect(total(2.5, 'diligence', 'exterieur', 1)).toBe(3);
   });
   it('mode « mer » (navire de campagne, pas un passage payant à la classe) → null, jamais de throw', () => {
-    expect(transportCost(100, 'mer', '', 1)).toBeNull();
+    expect(billetImplicite(100, 'mer')).toBeNull();
+  });
+});
+
+/** EDO 01 l.142 : « 4/ par personne pour faire le chemin sur le toit, mais descendront à 3/- sur un Test
+ *  Opposé de Marchandage réussi, et avec au moins 6 DR, ils se contenteront de 2/-. Le prix est doublé
+ *  pour des places en intérieur. » — `exterieur` = le toit (`vehicles.json`, LDB : bagages « arrimés au toit »). */
+describe('billet d’auteur à paliers (EDO 01 l.142)', () => {
+  const gunnarEtHultz: TarifDeBillet = {
+    prix: { exterieur: 48, interieur: 96 },
+    paliers: [{ drMin: 0, prix: { exterieur: 36, interieur: 72 } }, { drMin: 6, prix: { exterieur: 24, interieur: 48 } }],
+  };
+  const issue = (won: boolean, drNet: number, negotiator = false) => ({ won, drNet, negotiator });
+  it('Marchandage perdu ou absent : 4/- sur le toit', () => {
+    expect(prixParPassager(gunnarEtHultz, 'exterieur')).toBe(48);
+    expect(prixParPassager(gunnarEtHultz, 'exterieur', issue(false, 3))).toBe(48);
+  });
+  it('Marchandage gagné : 3/- sur le toit', () => {
+    expect(prixParPassager(gunnarEtHultz, 'exterieur', issue(true, 2))).toBe(36);
+  });
+  it('gagné avec au moins 6 DR : 2/- sur le toit', () => {
+    expect(prixParPassager(gunnarEtHultz, 'exterieur', issue(true, 6))).toBe(24);
+    expect(prixParPassager(gunnarEtHultz, 'exterieur', issue(true, 9))).toBe(24);
+  });
+  it('intérieur : le double à chaque palier', () => {
+    expect([undefined, issue(true, 1), issue(true, 6)].map((i) => prixParPassager(gunnarEtHultz, 'interieur', i))).toEqual([96, 72, 48]);
+  });
+  it('Négociateur (LDB 10 l.818) : 10 % de plus sur le palier gagné, au sou supérieur', () => {
+    expect(prixParPassager(gunnarEtHultz, 'exterieur', issue(true, 2, true))).toBe(33); // 36 × 0,9 = 32,4
+    expect(prixParPassager(gunnarEtHultz, 'exterieur', issue(false, 0, true))).toBe(48); // perdu : rien
+  });
+  it('sans paliers : remise de Marchandage `bargainBuyFactor` (LDB 59 l.43)', () => {
+    expect(prixParPassager({ prix: { exterieur: 48 } }, 'exterieur', issue(true, 2))).toBe(44); // 43,2 → 44
+  });
+  it('total = prix par passager × passagers ; classe non offerte → null', () => {
+    expect(toBrass(prixDuBillet(gunnarEtHultz, 'exterieur', 4, issue(true, 2))!)).toBe(144);
+    expect(prixDuBillet({ prix: { exterieur: 48 } }, 'interieur', 4)).toBeNull();
+  });
+});
+
+describe('parcoursDuBillet : suite contiguë et départ', () => {
+  const r = (id: string, a: string, b: string, km: number, from?: string, modes = ['pied', 'diligence']) => ({ id, a, b, km, from, modes });
+  const routes = [r('r1', 'A', 'B', 40, 'A'), r('r2', 'B', 'C', 35, 'B'), r('r3', 'D', 'E', 10), r('r4', 'C', 'D', 5, undefined, ['pied'])];
+  it('suite contiguë : arrivée au bout de la dernière route, km cumulés', () => {
+    expect(parcoursDuBillet(routes, routes[0], 'A', ['r2'], 'diligence')).toMatchObject({ ok: true, arrivee: 'C', km: 75 });
+  });
+  it('route qui ne part pas du lieu d’arrivée de la précédente : refusée à son rang', () => {
+    expect(parcoursDuBillet(routes, routes[0], 'A', ['r3'], 'diligence')).toMatchObject({ ok: false, rang: 0 });
+  });
+  it('route qui n’offre pas le mode du billet : refusée', () => {
+    expect(parcoursDuBillet(routes, routes[0], 'A', ['r2', 'r4'], 'diligence')).toMatchObject({ ok: false, rang: 1 });
+  });
+  it('route à double sens sans « depuis » : refusée ; avec, acceptée', () => {
+    expect(parcoursDuBillet(routes, routes[2], undefined, [], 'diligence')).toMatchObject({ ok: false, rang: -1 });
+    expect(parcoursDuBillet(routes, routes[2], 'E', [], 'diligence')).toMatchObject({ ok: true, arrivee: 'D' });
+  });
+  it('« depuis » contraire au sens unique de la route : refusé', () => {
+    expect(parcoursDuBillet(routes, routes[0], 'B', [], 'diligence')).toMatchObject({ ok: false, rang: -1 });
+  });
+  it('route déjà parcourue par le billet (aller-retour) : refusée à son rang', () => {
+    expect(parcoursDuBillet(routes, routes[2], 'E', ['r3'], 'diligence')).toMatchObject({ ok: false, rang: 0 });
   });
 });
 
@@ -137,7 +196,7 @@ describe('unité de distance (#231 : MapRoute.km porte des MILLES en route sea)'
     expect(distanceUnit(true)).toBe('milles');
   });
   it('routeDistanceLabel arrondit et pose la bonne unité', () => {
-    expect(routeDistanceLabel(18, false)).toBe('18 km');
-    expect(routeDistanceLabel(480.4, true)).toBe('480 milles');
+    expect(routeDistanceLabel(18, false)).toBe('18 km'); // insécable : le nombre ne quitte pas son unité
+    expect(routeDistanceLabel(480.4, true)).toBe('480 milles');
   });
 });

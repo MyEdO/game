@@ -13,9 +13,12 @@ import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionSchema } from '../grammaire/mecanique';
 import { enumNomme } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
-import { listeCle } from '../grammaire/collection-cle';
+import { listeCle, marquerCollection, marqueDeRecord } from '../grammaire/collection-cle';
 import { couvreSchema } from './communs';
 import type { Condition } from '../../../engine/flowCore';
+import { parcoursDuBillet } from '../../../engine/travel';
+import { findVehicleById } from '../../index';
+import { sourceRefSchema } from '../grammaire/valeurs';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
 export const travelModeSchema = z.string();
@@ -186,6 +189,53 @@ export const routePerilSchema = nommerChamps(z.strictObject({
   effects: z.array(effectSchema),
 }), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
+/** Prix d'un billet : sous par passager, keyés par `id` de classe du véhicule (`vehicles.json`). */
+const prixParClasseSchema = marquerCollection(z.record(z.string(), z.number().int().min(0)), marqueDeRecord());
+
+/** `RouteBillet` (`src/state/worldMap.ts`) — billet d'AUTEUR d'un trajet, posé sur sa première route.
+ *  Provenance `source` (`sourceRefSchema`) ∨ `maison` (raison), comme l'enveloppe des documents
+ *  (`grammaire/document.ts`). `presetId` : le vendeur (billet négociable par Test Opposé, EDO 01 l.142),
+ *  preset du narratif, FK de la porte du projet (`refs-narratives.ts`) ; `paliers` exige `presetId`. Contiguïté de `suite` et classes : `worldMapSchema` ci-dessous. */
+export const routeBilletSchema = nommerChamps(z
+  .strictObject({
+    prix: prixParClasseSchema,
+    suite: z.array(z.string()).optional(),
+    depuis: z.string().optional(),
+    presetId: z.string().optional(),
+    paliers: z.array(nommerChamps(z.strictObject({ drMin: z.number().int().min(0), prix: prixParClasseSchema }), { drMin: { label: 'DR net minimal' }, prix: { label: 'prix', texte: { regime: 'technique' } } })).optional(),
+    source: sourceRefSchema.optional(),
+    maison: z.string().min(1).optional(),
+  })
+  .superRefine((billet, ctx) => {
+    if ((billet.source === undefined) === (billet.maison === undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['source'], message: 'provenance du billet : cite le livre et la page, OU dis la raison maison — l’un des deux, jamais ni l’un ni l’autre.' });
+    }
+    if (billet.paliers !== undefined && billet.presetId === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['paliers'], message: 'paliers de marchandage sans vendeur : nomme le preset du vendeur (`presetId`), ou retire les paliers.' });
+    }
+  }), { prix: { label: 'prix', texte: { regime: 'technique' } }, suite: { label: 'routes suivantes', texte: { regime: 'technique' } }, depuis: { label: 'départ', texte: { regime: 'technique' } }, presetId: { label: 'vendeur', texte: { regime: 'technique' } }, paliers: { label: 'paliers de marchandage' }, source: { label: 'source' }, maison: { label: 'maison', texte: { regime: 'technique', usage: 'raison maison du billet' } } });
+
+/** Fautes des billets d'une carte : parcours (`parcoursDuBillet`), mode porté par la route, classes du
+ *  véhicule. */
+function fautesDesBillets(carte: { routes: z.infer<typeof mapRouteSchema>[] }, ctx: z.RefinementCtx): void {
+  carte.routes.forEach((route, i) => {
+    for (const [mode, billet] of Object.entries(route.billets ?? {})) {
+      if (!billet) continue;
+      const chemin = ['routes', i, 'billets', mode];
+      if (!route.modes.includes(mode)) ctx.addIssue({ code: 'custom', path: chemin, message: `billet « ${mode} » sur une route qui n'offre pas ce mode.` });
+      const classes = new Set((findVehicleById(mode)?.travel?.classes ?? []).map((c) => c.id));
+      if (!classes.size) ctx.addIssue({ code: 'custom', path: chemin, message: `« ${mode} » n'est pas un véhicule à passage payant (vehicles.json).` });
+      const tables = [billet.prix, ...(billet.paliers ?? []).map((p) => p.prix)];
+      for (const id of new Set(tables.flatMap((t) => Object.keys(t)))) {
+        if (classes.size && !classes.has(id)) ctx.addIssue({ code: 'custom', path: [...chemin, 'prix'], message: `classe « ${id} » inconnue du véhicule « ${mode} » (${[...classes].join(', ')}).` });
+      }
+      // `depuis` AVANT `from` : un `depuis` contraire au sens de la route est refusé par le parcours même.
+      const p = parcoursDuBillet(carte.routes, route, billet.depuis ?? route.from, billet.suite ?? [], mode);
+      if (!p.ok) ctx.addIssue({ code: 'custom', path: p.rang < 0 ? [...chemin, 'depuis'] : [...chemin, 'suite', p.rang], message: p.raison });
+    }
+  });
+}
+
 /** `MapRoute` — route entre deux lieux, bidirectionnelle sauf `from` (sens unique d'initiation). */
 export const mapRouteSchema = nommerChamps(z.strictObject({
   id: z.string(),
@@ -195,8 +245,9 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   /** Distance en kilomètres (`LDB 51 l.178`) — en MILLES sur une route `sea`. */
   km: z.number(),
   modes: z.array(travelModeSchema),
-  /** Prix d'auteur (sous/PA par km par passager) par mode payant — défaut : classe RAW. */
-  prices: z.record(z.string(), z.number()).optional(),
+  /** Billet d'auteur par véhicule payant, posé sur la première route du trajet (`EDO 01 l.142`) —
+   *  défaut : billet implicite au km (`LDB 51 l.178`). */
+  billets: marquerCollection(z.record(z.string(), routeBilletSchema), marqueDeRecord()).optional(),
   /** Déplacement d'auteur par mode (`LDB 51 l.178`). À pied : force la vitesse. */
   speed: z.record(z.string(), z.number()).optional(),
   /** Seuil du d10 quotidien de péripétie (`LDB 51 l.208`) ; 0 = désactivé. */
@@ -238,7 +289,7 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
         message: "« when » posé sans « refus » — un trajet fermable doit dire au JOUEUR pourquoi il l'est (infobulle « GatedAction »).",
       });
     }
-  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, prices: { label: "prix" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, when: { label: "condition" }, refus: { label: "refus" }, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** `WorldMapParams` — réglages RAW de voyage au niveau CARTE, tous paramétrables. */
 export const worldMapParamsSchema = nommerChamps(z.strictObject({
@@ -272,4 +323,5 @@ export const worldMapSchema = nommerChamps(z
         else lieuDuPoi.set(poi.id, lieu.id);
       });
     });
+    fautesDesBillets(carte, ctx);
   }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, params: { label: "paramètres" }, background: { label: "arrière-plan" , texte: { regime: "technique"} }, places: { label: "lieux" }, routes: { label: "routes" } });

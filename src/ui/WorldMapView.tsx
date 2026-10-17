@@ -4,7 +4,7 @@ import { useGame } from '../state/store';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../state/worldMap';
 import { baseHoursPerDay, maxHoursPerDay } from '../state/travelFlow';
 import {
-  TravelMode, travelModeLabels, vehicleTravel, travelModeIcon, travelSpeed, travelPlanCalc, transportCost,
+  TravelMode, travelModeLabels, vehicleTravel, travelModeIcon, travelSpeed, travelPlanCalc,
   routeDistanceLabel,
 } from '../engine/travel';
 import {
@@ -13,7 +13,8 @@ import {
 import { rationCount, provisioningManifest } from '../engine/provisions';
 import { cargoOverload, cargoTotalEnc } from '../engine/seaVoyage';
 import { findVehicleById } from '../data';
-import { formatMoney, canAfford } from '../engine/money';
+import { formatMoney, canAfford, fromBrass } from '../engine/money';
+import { devisDuPassage, modeDuBilletEnMain, passagers } from '../state/billetFlow';
 import { partyMoneyTotal, condCtx } from '../state/bourseFlow';
 import { Coins } from './Coins';
 import { GatedAction } from './GatedAction';
@@ -78,6 +79,9 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const gameTime = useGame((s) => s.gameTime);
   const travelPlan = useGame((s) => s.travelPlan);
+  const billetEnMain = useGame((s) => s.billetEnMain);
+  const marchandagesDeBillet = useGame((s) => s.marchandagesDeBillet);
+  const startBargain = useGame((s) => s.startBargain);
   const close = useGame((s) => s.closeWorldMap);
   const startTravel = useGame((s) => s.startTravel);
   const resumeTravel = useGame((s) => s.resumeTravel);
@@ -89,7 +93,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // groupe et résout des journées entières — audit Lot 4, arbitrage V1 « exploration = miroir »).
   const isGuest = useGame((s) => s.net.mode) === 'guest';
   const [selId, setSelId] = useState<string | null>(initialRouteId ?? null);
-  const [mode, setMode] = useState<TravelMode>('pied');
+  const [mode, setMode] = useState<TravelMode>(() => modeDuBilletEnMain(useGame.getState().billetEnMain, initialRouteId) ?? 'pied');
   const [classeId, setClasseId] = useState('');
   const [forced, setForced] = useState(false);
   /** Allure en selle (EDOC 07 l.140) — règle optionnelle `travel-allures`. */
@@ -175,9 +179,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const selectRoute = (r: MapRoute) => {
     setSelId(r.id);
     setFarId(null);
-    const m = r.modes[0] ?? 'pied';
-    setMode(m);
-    setClasseId(vehicleTravel(m)?.classes[0].id ?? '');
+    setMode(modeDuBilletEnMain(billetEnMain, r.id) ?? r.modes[0] ?? 'pied');
+    setClasseId(''); // classe par défaut : la moins chère du devis (`devisDuPassage`)
     setForced(false);
     setAllure('pas');
     setForceGallop(false);
@@ -185,7 +188,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   };
   const pickMode = (m: TravelMode) => {
     setMode(m);
-    setClasseId(vehicleTravel(m)?.classes[0].id ?? '');
+    setClasseId('');
     setAllure('pas');
     setForceGallop(false);
     setSeaPace(0);
@@ -227,14 +230,18 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Estimations du trajet sélectionné (mêmes formules que le flux — RAW l.207-224).
   const base = baseHoursPerDay(map);
   const maxH = maxHoursPerDay(map);
-  const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
+  const passengers = passagers(party);
   const effAllure: Allure | undefined = mode === 'monture' ? allure : forceGallop ? 'galop' : undefined;
   const kmh = selRoute ? travelSpeed(party, possessions, mode, selRoute.speed?.[mode], effAllure) : 0;
   const hours = mode === 'pied' && forced ? maxH : mode === 'monture' && forced ? 12 : base;
   const plan = selRoute && kmh > 0 ? travelPlanCalc(selRoute.km, kmh, hours) : null;
-  const cost = selRoute && mode !== 'pied' && mode !== 'monture' && mode !== 'mer'
-    ? transportCost(selRoute.km, mode, classeId, passengers, selRoute.prices?.[mode])
+  // Billet du passage : MÊME devis que le débit du flux (`billetFlow.payerLePassage`).
+  const devis = selRoute && here && mode !== 'pied' && mode !== 'monture' && mode !== 'mer'
+    ? devisDuPassage({ worldMap: map, billetEnMain, marchandagesDeBillet }, selRoute, here.id, mode, classeId || undefined, passengers)
     : null;
+  const passage = devis?.passage;
+  const cost = devis?.total ?? null;
+  const arriveeBillet = passage ? placeById(map, passage.arrivee)?.label ?? passage.arrivee : '';
   const affordable = !cost || canAfford(money, cost);
   const rationsOwned = party.reduce((s, h) => s + (h.dead ? 0 : rationCount(h)), 0);
   const rationsNeeded = plan ? Math.max(0, (plan.days - 1) * passengers) : 0; // les nuits en route mangent
@@ -243,8 +250,10 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const seaDaysEstimated = mode === 'mer' && selRoute && seaM > 0 ? Math.max(1, Math.ceil(selRoute.km / (18 * seaM))) : 0;
   const provisions = mode === 'mer' && seaDaysEstimated > 0 ? provisioningManifest(party, vessel?.waterLitres, seaDaysEstimated, { count: seaCrewCount, provisions: vessel?.provisions }) : null;
 
+  const departLabel = mode === 'mer' && provisions && !provisions.suffisant ? 'Appareiller quand même' : cost ? 'Payer et partir' : 'Partir';
+
   const fmtDuration = (p: NonNullable<typeof plan>) =>
-    p.days <= 1 ? `≈ ${Math.max(1, Math.round(p.travelMinutes / 60))} h` : `${p.days} jours (${hours} h de route/jour)`;
+    p.days <= 1 ? `≈ ${Math.max(1, Math.round(p.travelMinutes / 60))} h` : `${p.days} jours (${hours} h de route/jour)`;
 
   // Reprise d'un voyage interrompu.
   const resumeDest = travelPlan?.interrupted ? placeById(map, travelPlan.toPlaceId) : undefined;
@@ -470,7 +479,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
       {!travelPlan?.interrupted && selRoute && dest && here && (
         <div className="worldmap-panel">
           <div className="wm-trip">
-            <span className="wm-trip-route"><b>{here.label}</b> <span className="wm-arrow">→</span> <b>{dest.label}</b> · {routeDistanceLabel(selRoute.km, selRoute.sea)}</span>
+            <span className="wm-trip-route"><b>{here.label}</b> <span className="wm-arrow">→</span> <b>{dest.label}</b>{' '}· {routeDistanceLabel(selRoute.km, selRoute.sea)}</span>
             {/* Choix du MODE de voyage = un état, pas une action — segmented control (#362 : « En mer »
                 stylé `.btn-primary` concurrençait visuellement « Partir »). */}
             <OptionChooser
@@ -506,17 +515,38 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               </label>
             </>
           )}
-          {vehicleTravel(mode) && (
-            <label className="wm-opt">
-              Classe{' '}
-              <select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
-                {(vehicleTravel(mode)?.classes ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label} ({selRoute.prices?.[mode] ?? c.brassPerKm} sou(s)/km/passager)
-                  </option>
-                ))}
-              </select>
-            </label>
+          {passage?.couvert && <p className="wm-est">Billet payé ({passage.classe}) jusqu’à {arriveeBillet}</p>}
+          {devis && passage && !passage.couvert && (
+            <>
+              <p className="wm-est">Billet jusqu’à {arriveeBillet} ({routeDistanceLabel(passage.km, false)})</p>
+              {/* Classes du billet, prix PAR PLACE (négocié une fois le Marchandage gagné). */}
+              <OptionChooser
+                layout="seg"
+                options={devis.classes.map((c) => ({
+                  key: c.id,
+                  label: c.label,
+                  selected: devis.classeId === c.id,
+                  content: <>{c.label}{' '}·{' '}<Coins money={fromBrass(c.prix)} />{' '}la{' '}place</>,
+                  onSelect: () => setClasseId(c.id),
+                }))}
+              />
+              {passage.issue && (
+                <p className="wm-est">{passage.issue.won ? 'Prix marchandé (Marchandage gagné).' : 'Prix demandé maintenu (Marchandage perdu).'}</p>
+              )}
+              {passage.auteur?.presetId && (
+                <Row justify="start">
+                  <GatedAction
+                    id="worldmap-marchander-billet"
+                    primary={false}
+                    label={<><Icon id="merchant/haggle" size="sm" /> Marchander</>}
+                    ariaLabel="Marchander le billet"
+                    enabled={!isGuest && !passage.issue}
+                    reason={isGuest ? 'L’hôte décide des départs.' : 'Le prix de ce billet est déjà marchandé : un seul Test par billet.'}
+                    onClick={() => startBargain({ kind: 'billet', routeId: selRoute.id, mode })}
+                  />
+                </Row>
+              )}
+            </>
           )}
           {mode === 'mer' && vessel && seaM > 0 && (
             <div className="wm-modes">
@@ -587,8 +617,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               )
             ) : kmh > 0 ? (
               <>
-                Allure {kmh} km/h · Durée {plan ? fmtDuration(plan) : '—'}
-                {cost && <> · Prix <Coins money={cost} />{!affordable && ' (bourse insuffisante)'}</>}
+                Allure {kmh}{' '}km/h · Durée {plan ? fmtDuration(plan) : '—'}
                 {mode === 'pied' && plan && plan.days > 1 && (
                   <> · Rations pour les nuits : {rationsNeeded} (le groupe en porte {rationsOwned})</>
                 )}
@@ -597,6 +626,15 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               <>Le groupe ne peut pas avancer (surcharge) — allégez les sacs.</>
             )}
           </p>
+          {/* Total du passage : cartouche à part ; une bourse trop courte se dit au refus de « Payer et partir ». */}
+          {cost && kmh > 0 && (
+            <Row justify="start">
+              <span className="stat-chip">
+                <span className="sc-label">Prix ({passengers}{' '}{passengers > 1 ? 'places' : 'place'})</span>
+                <span className="sc-value"><Coins money={cost} /></span>
+              </span>
+            </Row>
+          )}
           {mode === 'mer' && provisions && (
             <div className="wm-provision">
               <span className={`wm-provision-item ${provisions.rationsDispo < provisions.rationsRequises ? 'short' : ''}`}>
@@ -623,8 +661,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                 sa raison que sur une action FERMÉE (#1689 T2). */}
             <GatedAction
               id="worldmap-depart"
-              label={<><Icon id="scenario/travel" size="sm" /> {mode === 'mer' && provisions && !provisions.suffisant ? 'Appareiller quand même' : 'Partir'}</>}
-              ariaLabel={mode === 'mer' && provisions && !provisions.suffisant ? 'Appareiller quand même' : 'Partir'}
+              label={<><Icon id="scenario/travel" size="sm" /> {departLabel}</>}
+              ariaLabel={departLabel}
               enabled={!isGuest && (mode === 'mer'
                 ? !!vessel && seaM > 0 && !(seaOverload != null && !seaOverload.canSail)
                 : kmh > 0 && affordable)}
@@ -651,7 +689,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
       {!travelPlan?.interrupted && selFerme && destFermee && here && (
         <div className="worldmap-panel">
           <div className="wm-trip">
-            <span className="wm-trip-route"><b>{here.label}</b> <span className="wm-arrow">→</span> <b>{destFermee.label}</b> · {routeDistanceLabel(selFerme.km, selFerme.sea)}</span>
+            <span className="wm-trip-route"><b>{here.label}</b> <span className="wm-arrow">→</span> <b>{destFermee.label}</b>{' '}· {routeDistanceLabel(selFerme.km, selFerme.sea)}</span>
           </div>
           <Row justify="end">
             <button type="button" className="btn" onClick={() => setSelId(null)}>Annuler</button>

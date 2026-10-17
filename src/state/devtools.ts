@@ -214,7 +214,8 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.combatEnd({…}) → arme les conséquences de fin de combat (critique infectant + exposition
  *                           Corruption) puis termine le combat en LAISSANT la cascade ouverte (influençable)
  *   __wfrp.healParty()    → groupe à neuf (PB max, états/critiques/maladies purgés)
- *   __wfrp.give(co)       → crédite la bourse (couronnes d'or) ; __wfrp.xp(n) → +PX au groupe
+ *   __wfrp.give(co, { silver?, brass? }?) → crédite la bourse (couronnes d'or, plus l'appoint exact en
+ *                           pistoles/sous : `give(0, { brass: 160 })`) ; __wfrp.xp(n) → +PX au groupe
  *   __wfrp.faim(id, etat?) / soif(id, etat?) / chance(id, n?) → sans valeur : OBSERVE ; avec : pose
  *                           faim, soif ou points de Chance (`ecrireActeur`), puis lit
  *   __wfrp.giveTrapping(heroId, trappingId, qty?) → donne un objet de catalogue à un héros (VRAI
@@ -1510,9 +1511,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ groupe soigné (${g().party.length} héros)`;
     },
 
-    /** RECETTE : crédite les bourses du groupe (couronnes d'or, réparties par tête). */
-    give: (gold = 10) => {
-      distributeCredit(g, useGame.setState, { gold, silver: 0, brass: 0 });
+    /** RECETTE : crédite les bourses du groupe (réparties par tête) — `gold` couronnes d'or, plus
+     *  `appoint` en pistoles et sous exacts : `give(0, { brass: 160 })` pose 160 sous. */
+    give: (gold = 10, appoint: { silver?: number; brass?: number } = {}) => {
+      distributeCredit(g, useGame.setState, { gold, silver: appoint.silver ?? 0, brass: appoint.brass ?? 0 });
       return partyMoneyTotal(g);
     },
 

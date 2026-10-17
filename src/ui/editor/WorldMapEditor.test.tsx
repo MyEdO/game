@@ -51,18 +51,18 @@ function baseMap(): WorldMap {
   return { ...m, places: [place, place2], routes: [route] };
 }
 
-function Harness({ narratif }: { narratif: NarratifBlock }) {
-  const [m, setM] = useState<WorldMap | null>(baseMap());
+function Harness({ narratif, carte }: { narratif: NarratifBlock; carte: WorldMap }) {
+  const [m, setM] = useState<WorldMap | null>(carte);
   const [axes, setAxes] = useState<string[] | undefined>(undefined);
   lastMap = m;
   return <WorldMapEditor map={m} setMap={setM} scenes={scenes()} narratif={narratif} onClose={() => {}} activeAxes={axes} setActiveAxes={setAxes} />;
 }
 
-function mount(narratif: NarratifBlock = emptyNarratif()) {
+function mount(narratif: NarratifBlock = emptyNarratif(), carte: WorldMap = baseMap()) {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  act(() => { root.render(<Harness narratif={narratif} />); });
+  act(() => { root.render(<Harness narratif={narratif} carte={carte} />); });
 }
 
 afterEach(() => {
@@ -237,7 +237,7 @@ describe('WorldMapEditor — panneau Lieu / Plan du hub (#419)', () => {
 });
 
 describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
-  it('édite distance, sens, modes de voyage, prix/vitesse par mode, seuil de péripétie et auberges', () => {
+  it('édite distance, sens, modes de voyage, billet/vitesse par mode, seuil de péripétie et auberges', () => {
     mount();
     click(routeG());
     setValue(input('Distance (km)'), '42');
@@ -249,8 +249,15 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
     click(checkbox('Diligence'));
     expect(lastMap!.routes[0].modes).toContain('diligence');
 
-    setValue(input('Diligence — prix'), '12');
-    expect(lastMap!.routes[0].prices?.diligence).toBe(12);
+    // Billet d'auteur (EDO 01 l.142) : créé au tarif implicite de la route, puis édité par classe.
+    const ajout = [...container.querySelectorAll('button')].find((e) => (e.textContent ?? '').includes('Billet de passage (Diligence)'));
+    if (!ajout) throw new Error('bouton « + Billet de passage » introuvable');
+    click(ajout);
+    expect(lastMap!.routes[0].billets?.diligence?.prix).toEqual({ interieur: 84, exterieur: 42 });
+    setValue(input('Extérieur'), '48');
+    expect(lastMap!.routes[0].billets?.diligence?.prix.exterieur).toBe(48);
+    // Le prix saisi en sous se lit en monnaie impériale à côté du champ (`Coins`) : 48 = 4/–.
+    expect(fieldWrap('Extérieur').querySelector('.coins')?.textContent).toBe('4/–');
 
     setValue(input('Diligence — Déplacement'), '9');
     expect(lastMap!.routes[0].speed?.diligence).toBe(9);
@@ -260,6 +267,48 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
 
     click(checkbox('Relais d'));
     expect(lastMap!.routes[0].inns).toBe(true);
+  });
+
+  it('route couverte par le billet d’une autre : lecture seule, la route porteuse nommée par ses lieux', () => {
+    const m = emptyWorldMap();
+    const lieux: MapPlace[] = [
+      { id: 'p1', label: 'Altdorf', pos: { x: 10, y: 10 }, scene: 's1' },
+      { id: 'p2', label: 'Marienburg', pos: { x: 40, y: 20 }, scene: 's2' },
+      { id: 'p3', label: 'Bögenhafen', pos: { x: 60, y: 40 }, scene: 's2' },
+    ];
+    const r1: MapRoute = { id: 'r1', a: 'p1', b: 'p2', from: 'p1', km: 20, modes: ['diligence'], billets: { diligence: { prix: { exterieur: 48 }, suite: ['r2'], maison: 'test' } } };
+    const r2: MapRoute = { id: 'r2', a: 'p2', b: 'p3', from: 'p2', km: 10, modes: ['diligence'] };
+    mount(emptyNarratif(), { ...m, places: lieux, routes: [r1, r2] });
+    const gs = [...container.querySelectorAll('svg g[style*="cursor: pointer"]')];
+    click(gs[1]);
+    expect(container.textContent).toContain('couverte par le billet de « Altdorf → Marienburg »');
+    expect([...container.querySelectorAll('button')].some((b) => (b.textContent ?? '').includes('Billet de passage'))).toBe(false);
+  });
+
+  it('billet de passage : sous-section `.panel.sunken`, chaque palier est un `.panel` titré aux champs étiquetés visibles', () => {
+    const m = baseMap();
+    const r1: MapRoute = { ...m.routes[0], from: 'p1', modes: ['diligence'], billets: { diligence: { prix: { exterieur: 48 }, presetId: 'vendeur', paliers: [{ drMin: 6, prix: { exterieur: 24 } }], maison: 'test' } } };
+    mount(emptyNarratif(), { ...m, routes: [r1] });
+    click(routeG());
+    const billet = [...container.querySelectorAll('.panel.sunken')].find((p) => p.querySelector('.mini-title')?.textContent?.includes('billet de passage'));
+    expect(billet?.querySelector('.mini-title')?.textContent).toBe('Diligence — billet de passage (forfait par passager, en sous)');
+    expect(container.querySelector('.wme-peril .mini-title')?.textContent ?? '').not.toContain('billet');
+    const palier = billet?.querySelector(':scope > .panel');
+    expect(palier?.querySelector('.mini-title')?.textContent).toBe('Palier : DR net ≥ 6');
+    const etiquettes = [...(palier?.querySelectorAll(':scope > label.ed-field') ?? [])].map((l) => l.firstChild?.textContent?.trim());
+    expect(etiquettes).toEqual(['DR net minimal', 'Intérieur', 'Extérieur']);
+    expect(palier?.querySelector('.coins')?.textContent).toBe('2/–'); // 24 sous
+  });
+
+  it('billet vendu sans palier : bouton « + Palier » nu, la règle sans palier dans l’aide du champ', () => {
+    const m = baseMap();
+    const r1: MapRoute = { ...m.routes[0], from: 'p1', modes: ['diligence'], billets: { diligence: { prix: { exterieur: 48 }, presetId: 'vendeur', maison: 'test' } } };
+    mount(emptyNarratif(), { ...m, routes: [r1] });
+    click(routeG());
+    expect([...container.querySelectorAll('button')].some((b) => b.textContent?.trim() === '+ Palier')).toBe(true);
+    const aide = container.querySelector('.ed-hint')?.textContent ?? '';
+    expect(aide).toBe('Sans palier, un Marchandage gagné applique la remise de Marchandage.');
+    expect(container.textContent).not.toContain('LDB 59');
   });
 
   it('active la route maritime et le cap', () => {

@@ -2,7 +2,7 @@
  * Schéma de `reseau-routier.json` — le réseau routier impérial d'EDOC 3 (`EDOC 06`) et 6
  * (`EDOC 10`) : classes de route du décret de 2453, auberges relais, compagnies de diligences,
  * postes de péage et effectifs de patrouille. Donnée de CALIBRATION d'une `MapRoute` (`inns`,
- * `prices`, `speed`, distance des étapes) : rien ici n'ajoute de vocabulaire à `MapRoute` — les
+ * `billets`, `speed`, distance des étapes) : rien ici n'ajoute de vocabulaire à `MapRoute` — les
  * valeurs se posent à l'authoring de carte (#684).
  *
  * Le tarif de péage se lit en `brass` (sous de cuivre), l'unité déjà employée par `vehicles.json`

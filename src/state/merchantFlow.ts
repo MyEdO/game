@@ -4,6 +4,10 @@
  * (Test opposé), Évaluation.
  */
 import type { GameState } from './store';
+import { paliersDeGain, prixGagnesEnClair, type ContrepartieDeMarchandage, type OuvertureDeMarchandage, type PrixDuMarchandage, type TermesDeMarchandage } from './pendings';
+import type { IssueDeMarchandage } from '../engine/travel';
+import { cleDeBillet, ouvertureDuBillet } from './billetFlow';
+import { sceneNpc } from './sceneNpc';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
@@ -37,7 +41,7 @@ import { addPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
 
 import type { Get, Set } from './flowTypes';
-import { dataLabel, refLabel } from '../data';
+import { dataLabel, flowStakeRef, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 
 /** Issue d'un Marchandage conclu (achat OU vente) — module les prix de la visite. */
@@ -794,31 +798,73 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
   get().log(msg('mf.repairDone', { label: item.label }));
 }
 
-export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
-  const m = get().merchant; if (!m) return;
+/** TERMES du Marchandage chez le marchand, en `mode` (LDB 59 l.43, l.53) : à l'achat, le rabais obtenu
+ *  à chaque seuil de DR (`bargainBuyFactor`) ou le prix plein ; à la vente, la moitié ou le quart du
+ *  prix listé ; la méfiance au-delà de `SL_ASTOUNDING` DR de défaite. */
+function termesDuMarchand(mode: 'buy' | 'sell', negotiator: boolean): TermesDeMarchandage {
+  const prix: PrixDuMarchandage = mode === 'buy'
+    ? {
+      gagne: paliersDeGain([SL_ASTOUNDING], (dr) => t('out.bargainPrixAchatRabais', { pct: Math.round((1 - bargainBuyFactor(true, dr, negotiator)) * 100) })),
+      perdu: t('out.bargainPrixAchatPlein'),
+      mefiance: true,
+    }
+    : { gagne: [{ drMin: 0, prix: t('out.bargainPrixVenteMoitie') }], perdu: t('out.bargainPrixVenteQuart'), mefiance: true };
+  return { enjeu: flowStakeRef('bargain-marchand', { values: { gagne: prixGagnesEnClair(prix), perdu: prix.perdu, botch: SL_ASTOUNDING } }), prix };
+}
+
+/** Ouverture du Marchandage chez le marchand ouvert, en `mode` (LDB 59 l.43) : l'opposant et l'enjeu.
+ *  `null` : Marchandage désactivé, marchand méfiant ou verrouillé, ou ce mode déjà marchandé à cette
+ *  visite. */
+function ouvertureDuMarchand(get: Get, mode: 'buy' | 'sell'): OuvertureDeMarchandage | null {
+  const m = get().merchant; if (!m) return null;
   const ent = get().scene?.entities.find((e) => e.id === m.entityId);
   const mkt = marketRule(ent, 'marketMode') as string;
-  if (mkt === 'sans-marchandage' || mkt === 'simplifie') return; // Marchandage désactivé (règle optionnelle LDB 59 l.15)
-  if (m.soured) return; // botch antérieur : le marchand se méfie, plus de marchandage (LDB 59 l.43)
-  if (m.bargainLocked) return; // VERROU PARTAGÉ : a refusé/renié un marché (achat OU vente) → plus de négociation jusqu'au réassort
-  if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return; // 1 marchandage par MODE et par visite (achat ≠ vente)
+  if (mkt === 'sans-marchandage' || mkt === 'simplifie') return null; // Marchandage désactivé (règle optionnelle LDB 59 l.15)
+  if (m.soured) return null; // botch antérieur : le marchand se méfie, plus de marchandage (LDB 59 l.43)
+  if (m.bargainLocked) return null; // VERROU PARTAGÉ : a refusé/renié un marché (achat OU vente) → plus de négociation jusqu'au réassort
+  if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return null; // 1 marchandage par MODE et par visite (achat ≠ vente)
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
   const arch = garanti(MERCHANTS[m.archetype], m.archetype, 'marchandage');
+  return {
+    // Le marchand est un PNJ de scène : sa fiche porte le portrait de la rangée adverse.
+    opposant: { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId) },
+    termes: (negotiator) => termesDuMarchand(mode, negotiator),
+  };
+}
+
+/** Ouvre le Marchandage de sa contrepartie — constructeur UNIQUE du pending : la contrepartie ne
+ *  résout que l'OPPOSANT et l'ENJEU (le marchand ouvert, LDB 59 l.43 ; le vendeur d'un billet, EDO 01
+ *  l.142). */
+export function startBargain(get: Get, set: Set, contrepartie: ContrepartieDeMarchandage): void {
+  const ouverture = contrepartie.kind === 'billet'
+    ? ouvertureDuBillet(get, contrepartie.routeId, contrepartie.mode)
+    : ouvertureDuMarchand(get, contrepartie.mode);
+  if (!ouverture) return;
   const best = partyAssisted(get().party, 'marchandage', 'sociabilite'); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
   const negotiator = hasBargainBonus(best.actor); // Négociateur → registre de talents (jamais un name-match)
   set({ pendingBargain: {
     playerId: best.actor.id, playerName: best.actor.label,
-    merchantName: arch.label, merchantValue: arch.bargainSkill,
+    contrepartie, opposant: ouverture.opposant, ...ouverture.termes(negotiator),
     playerSkill: best.value, support: best.support,
     // Grandeur du départage à DR égal (`LDB 12 l.160`) : le Niveau de Compétence NU, à l'accesseur
     // canon — `best.value` est la valeur de TEST, qui porte en plus le Soutien et TOUT modificateur du
     // Marchandage (États, mutation Visage inversé, objet Laid… — cf. `skills.testValueParts`).
     playerBase: skillBaseValue(best.actor, 'marchandage', undefined, 'sociabilite'),
-    mode, negotiator, roll: null, merchantRoll: null, result: null,
+    negotiator, roll: null, opposantRoll: null, result: null,
   } });
 }
 
-/** « Conclure » le Marchandage : fige l'issue sur la visite (prix modulés) — LDB 59 l.43. */
+/** Où se CONSIGNE l'issue d'un Marchandage joué : sur la visite du marchand (prix modulés, méfiance
+ *  au botch — LDB 59 l.43), ou sous la clé du billet, lue par `devisDuPassage` (EDO 01 l.142). */
+function issueConsignee(s: GameState, c: ContrepartieDeMarchandage, outcome: IssueDeMarchandage, botch: boolean): Partial<GameState> {
+  if (c.kind === 'billet') return { marchandagesDeBillet: { ...s.marchandagesDeBillet, [cleDeBillet(c.routeId, c.mode)]: outcome } };
+  const patch = c.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome };
+  return { merchant: s.merchant ? { ...s.merchant, ...patch, soured: s.merchant.soured || botch } : s.merchant };
+}
+
+/** Ferme le Marchandage JOUÉ et CONSIGNE son issue chez la contrepartie — couture unique de
+ *  « Conclure » et de l'annulation après le jet (`store.bargainCancel`) : un Test joué est consigné,
+ *  il ne se rejoue pas (LDB 59 l.43 ; EDO 01 l.142). Aucun achat, aucun paiement. */
 export function bargainConfirm(get: Get, set: Set): void {
   const pb = get().pendingBargain;
   if (!pb || !pb.result) return; // pas d'acquittement avant le jet
@@ -828,14 +874,10 @@ export function bargainConfirm(get: Get, set: Set): void {
   // +6 qui donne −20 %) → le marchand se méfie de votre monnaie : plus aucun marchandage cette visite.
   const botch = !won && drNet >= SL_ASTOUNDING;
   const outcome = { won, drNet, negotiator: pb.negotiator };
-  const patch = pb.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome };
   // ACQUITTEMENT par le goulot (`FLOWS.bargain.apply`) : le verdict est déclaré AU FLUX (`spec.issue`),
   // journalisé là — ici on acquitte, avant de fermer le pending qui le porte.
   FLOWS.bargain.apply(get);
-  set((s) => ({
-    pendingBargain: null,
-    merchant: s.merchant ? { ...s.merchant, ...patch, soured: s.merchant.soured || botch } : s.merchant,
-  }));
+  set((s) => ({ pendingBargain: null, ...issueConsignee(s, pb.contrepartie, outcome, botch) }));
 }
 
 /** Talent « Détection d'artefact » (LDB 10 l.336) : Test d'Intuition au toucher — succès =

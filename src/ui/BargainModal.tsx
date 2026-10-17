@@ -1,6 +1,5 @@
 import { useGame, type PendingBargain } from '../state/store';
 import type { Combatant } from '../engine/types';
-import { sceneNpc } from '../state/sceneNpc';
 import { influencesLocally } from '../state/netOwnership';
 import { RollShell, type RollAction } from './RollShell';
 import { soutienMod, opposedLines } from './breakdown';
@@ -9,13 +8,13 @@ import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../state/combatLog';
-import { describeBargain } from '../state/flowOutcomes';
+import { bargainTitle, describeBargain } from '../state/flowOutcomes';
+import { t } from '../i18n';
 
 /** Vue pure de la modale de Marchandage (Test OPPOSÉ, testable sans store). */
 export function BargainModalView({
   pb,
   actor,
-  merchant,
   fortune,
   onRoll,
   onReroll,
@@ -28,8 +27,6 @@ export function BargainModalView({
   pb: PendingBargain;
   /** Négociateur du groupe (portrait, ligne joueur). */
   actor?: Combatant;
-  /** Le marchand, dérivé de l'entité de scène → portrait de la ligne adverse. */
-  merchant?: Combatant;
   fortune: number;
   onRoll: () => void;
   onReroll: () => void;
@@ -52,16 +49,18 @@ export function BargainModalView({
   // que le résolveur a roulée — et `base + Σ mods` la retrouve exactement (invariant du décomposeur).
   const soutien = soutienMod(pb.support);
   const playerMods = [...(soutien ? [soutien] : []), ...(actor ? testValueParts(actor, 'marchandage', 'sociabilite') : [])];
-  // Jet OPPOSÉ de Marchandage rendu façon Défense : 2 lignes à portrait (joueur + marchand), vainqueur
-  // accentué, Difficulté DÉCLARÉE UNE fois pour l'opposition (LDB 12 l.166). Le Marchandage du marchand
+  // Jet OPPOSÉ de Marchandage rendu façon Défense : 2 lignes à portrait (joueur + opposant), vainqueur
+  // accentué, Difficulté DÉCLARÉE UNE fois pour l'opposition (LDB 12 l.166). Le Marchandage de l'opposant
   // reste OPAQUE → `mask:'value'` (portrait + dé + DR, sans base/cible).
-  const [playerLine, merchantLine] = opposedLines([
+  const [playerLine, opposantLine] = opposedLines([
     { label: 'Marchandage', base: pb.playerBase, r: pb.roll, target: pb.playerSkill, mods: playerMods },
-    { label: 'Marchandage', base: pb.merchantValue, r: rolled ? pb.merchantRoll : undefined, mask: 'value' },
+    { label: 'Marchandage', base: pb.opposant.valeur, r: rolled ? pb.opposantRoll : undefined, mask: 'value' },
   ]);
+  // L'opposant est résolu à l'ouverture (`PendingBargain.opposant`) : sa fiche porte le portrait adverse.
+  const opposant = pb.opposant.portrait;
   const playerD = playerLine.d;
-  const merchantD = merchantLine.d ?? null;
-  const opposed = rolled && !!actor && !!merchant && !!playerD && !!merchantD;
+  const opposantD = opposantLine.d ?? null;
+  const opposed = rolled && !!actor && !!opposant && !!playerD && !!opposantD;
 
   // Rangée INTERACTIVE du négociateur (pré-jet en attente puis résultat), porteuse de son influence.
   const actorRow: BuiltRollRow = buildRollRow({
@@ -80,14 +79,14 @@ export function BargainModalView({
     interactive: owned,
     fortune,
   });
-  // Rangée TÉMOIN du marchand — PRÉSENTE DÈS L'OUVERTURE, portrait compris (arbitrage user 2026-07-30,
+  // Rangée TÉMOIN de l'opposant — PRÉSENTE DÈS L'OUVERTURE, portrait compris (arbitrage user 2026-07-30,
   // #990, patron `frozenOpposedRow` des 7 autres sites à jet figé) : son Marchandage est connu du
-  // pending (`merchantValue`) mais reste OPAQUE (`mask:'value'`, on ne lit pas la fiche d'un inconnu) et
+  // pending (`opposant.valeur`) mais reste OPAQUE (`mask:'value'`, on ne lit pas la fiche d'un inconnu) et
   // le calendrier le masque ENTIÈREMENT (`mask:'roll'`, strictement plus fort) tant que le négociateur
   // n'a pas répondu ; à son jet, la rangée retombe sur l'opacité de valeur seule.
-  const merchantRow: BuiltRollRow = frozenOpposedRow(useGame.getState(), {
+  const opposantRow: BuiltRollRow = frozenOpposedRow(useGame.getState(), {
     responded: opposedResponded(useGame.getState(), [{ id: pb.playerId, interactive: true, result: pb.roll ?? undefined }]),
-    row: { combatant: merchant, ...(merchantD ? { d: merchantD } : { pending: merchantLine.pending }) },
+    row: { combatant: opposant, ...(opposantD ? { d: opposantD } : { pending: opposantLine.pending }) },
   });
   const winnerIndex = opposed ? (pb.result!.attackerWins ? 0 : 1) : null;
 
@@ -101,10 +100,11 @@ export function BargainModalView({
   return (
     <RollShell
       flowKey="bargain"
-      title={pb.mode === 'buy' ? 'Marchander l’achat' : 'Marchander la vente'}
+      title={bargainTitle(pb)}
       /* Test OPPOSÉ : 2 lignes à portrait DÈS L'OUVERTURE (#990), l'adverse masquée jusqu'au jet. */
-      subtitle={<>{pb.merchantName}{pb.negotiator ? <> · Négociateur</> : null}</>}
-      rows={[actorRow, merchantRow]}
+      subtitle={<>{t('out.bargainSubtitle', { name: pb.playerName, opposant: pb.opposant.label })}{pb.negotiator ? <> · Négociateur</> : null}</>}
+      stake={pb.enjeu}
+      rows={[actorRow, opposantRow]}
       rolled={rolled}
       winnerIndex={winnerIndex}
       netSL={opposed ? pb.result!.netSL : undefined}
@@ -116,16 +116,14 @@ export function BargainModalView({
 }
 
 /**
- * Marchandage (LDB 59 l.43 : « réduire le prix de 10 % … 20 % avec un Succès Stupéfiant ou Négociateur »).
- * Test OPPOSÉ Marchandage (le meilleur négociateur du groupe) contre le Marchandage du marchand. « Lancer »
- * fait les deux jets, une Chance est possible avant de conclure (relance/+1 DR côté joueur). Le résultat est
- * verrouillé pour la visite (1 marchandage) et module les prix d'achat (−10/−20 %) et de vente (½ ou ¼).
+ * Marchandage — LDB 59 l.43 ; billet : EDO 01 l.142.
+ * Test OPPOSÉ Marchandage (le meilleur négociateur du groupe) contre le Marchandage de l'opposant. « Lancer »
+ * fait les deux jets, une Chance est possible avant de conclure (relance/+1 DR côté joueur). Le Test joué est
+ * consigné chez sa contrepartie (`merchantFlow.bargainConfirm`).
  */
 export function BargainModal() {
   const pb = useGame((s) => s.pendingBargain);
   const party = useGame((s) => s.party);
-  const scene = useGame((s) => s.scene);
-  const merchantState = useGame((s) => s.merchant);
   const roll = useGame((s) => s.bargainRoll);
   const reroll = useGame((s) => s.bargainReroll);
   const bonusSL = useGame((s) => s.bargainBonusSL);
@@ -137,10 +135,8 @@ export function BargainModal() {
   useGame((s) => s.net);
   if (!pb) return null;
   const actor = party.find((c) => c.id === pb.playerId);
-  // Le marchand est un PNJ de scène : sa fiche (portrait de la ligne adverse).
-  const merchant = merchantState ? sceneNpc(scene, merchantState.entityId) : undefined;
   // Le Marchandage se joue ENTIER par le siège du négociateur — MÊME prédicat que la validation
   // d'intent côté hôte (`intentAllowedFor` → `seatInfluences`) : afficher et agir répondent pareil.
   const owned = influencesLocally(useGame.getState(), pb.playerId);
-  return <BargainModalView pb={pb} actor={actor} merchant={merchant} fortune={actor?.fortune ?? 0} onRoll={roll} onReroll={reroll} onBonusSL={bonusSL} onDarkPact={darkPact} onConfirm={confirm} onCancel={cancel} owned={owned} />;
+  return <BargainModalView pb={pb} actor={actor} fortune={actor?.fortune ?? 0} onRoll={roll} onReroll={reroll} onBonusSL={bonusSL} onDarkPact={darkPact} onConfirm={confirm} onCancel={cancel} owned={owned} />;
 }

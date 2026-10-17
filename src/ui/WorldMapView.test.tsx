@@ -47,7 +47,7 @@ describe('WorldMapView — carte de campagne cliquable et lisible', () => {
     const html = renduDeLaCarte({ hereSceneId: 'arene-hub', initialRouteId: 'route-futaie' });
     expect(html).toContain('Le Bourg de l’Arène');
     expect(html).toContain('La Vieille Futaie');
-    expect(html).toContain('18 km');
+    expect(html).toContain('18&nbsp;km'); // insécable, échappé par le rendu statique
     expect(html).toContain('Marche forcée');
     expect(html).toContain('Partir');
   });

@@ -4,15 +4,15 @@
  * rien n'est codé en dur. Le voyage RAW (vitesses, 6 h/jour, coûts, péripéties) est résolu par
  * `engine/travel.ts` + `state/travelFlow.ts` ; ce module ne porte que le schéma et ses helpers purs.
  *
- * Tous les réglages RAW sont PARAMÉTRABLES par l'auteur : km, modes autorisés, prix par mode
- * (sous/km — défauts RAW LDB 51 l.178-189), Déplacement du véhicule (modèles rapides/lents, M ±1, LDB 51 l.178),
+ * Tous les réglages RAW sont PARAMÉTRABLES par l'auteur : km, modes autorisés, billet par véhicule
+ * (défaut : billet implicite au km, LDB 51 l.178-189), Déplacement du véhicule (modèles rapides/lents, M ±1, LDB 51 l.178),
  * seuil du d10 de péripétie (défaut 8, LDB 51 l.208 ; 0 = désactivé), péripéties d'auteur (probabilité
  * par jour + Effects), cible d'embuscade du « Attaqués ! », heures de voyage/jour et plafond de
  * marche forcée au niveau carte.
  */
 import type { Effect, Scene } from './scene';
 import type { z } from 'zod';
-import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
+import type { refusRouteSchema, routeBilletSchema } from '../data/schemas/defs-scenes/worldmap';
 import { garanti } from './combatants';
 import { normalizeScene } from './scene';
 import type { TravelMode } from '../engine/travel';
@@ -20,7 +20,7 @@ import type { PortProfile } from '../engine/seaVoyage';
 import type { LandMarketProfile } from '../engine/landCargo';
 import type { RestPlaces } from './restFlow';
 import { evalCondition, type Condition, type ConditionCtx } from '../engine/flowCore';
-import { findNavalPortById, findLieuServiceById, coreAxisIds } from '../data';
+import { findNavalPortById, findLieuServiceById, coreAxisIds, libelleOuAbsence } from '../data';
 
 /** Lieu posé sur la carte. Être dans `scene` = être à ce lieu ; y arriver → transition vers elle. */
 export interface MapPlace {
@@ -126,9 +126,9 @@ export interface MapRouteTrace {
   km: number;
   /** Modes de voyage offerts sur cette route. */
   modes: TravelMode[];
-  /** Prix d'auteur (sous/PA par km par passager) pour un transport payant (`id` de `vehicles.json`)
-   *  — défaut : classe RAW. */
-  prices?: Partial<Record<Exclude<TravelMode, 'pied'>, number>>;
+  /** Billet d'AUTEUR par véhicule (`id` de `vehicles.json`), posé sur la PREMIÈRE route du trajet qu'il
+   *  couvre. Sans billet, le passage paie le billet implicite au km (`billetImplicite`, LDB 51 l.178). */
+  billets?: Partial<Record<Exclude<TravelMode, 'pied'>, RouteBillet>>;
   /** Déplacement d'auteur par mode (modèle rapide/lent : M ±1, LDB 51 l.178). À pied : force la vitesse. */
   speed?: Partial<Record<TravelMode, number>>;
   /** Seuil du d10 quotidien de péripétie RAW (LDB 51 l.208 « sur un résultat de 8 ») ; 0 = désactivé.
@@ -166,6 +166,10 @@ export interface MapRouteTrace {
   /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
   couvre?: string[];
 }
+
+/** Billet d'auteur d'un trajet (`routeBilletSchema`) : forfait par passager et par classe, payé d'avance
+ *  une fois au départ de sa route, couvrant la `suite` de routes contiguës du même véhicule. */
+export type RouteBillet = z.infer<typeof routeBilletSchema>;
 
 export interface WorldMapParams {
   /** Heures de voyage par jour sans Test (RAW LDB 51 l.195, défaut 6). */
@@ -437,6 +441,17 @@ export function visiblePlaces(map: WorldMap, ctx?: ConditionCtx): MapPlace[] {
 /** L'autre extrémité d'une route. */
 export function otherEnd(route: MapRoute, placeId: string): string {
   return route.a === placeId ? route.b : route.a;
+}
+
+/** LIBELLÉ de la route `routeId` : ses deux lieux, dans le sens d'initiation (`→`) quand elle en a un,
+ *  sinon `↔`. Une route ou un lieu absent de la carte se dit absent (`libelleOuAbsence`), jamais par
+ *  son id brut. */
+export function libelleDeRoute(map: WorldMap, routeId: string): string {
+  const route = map.routes.find((r) => r.id === routeId);
+  if (!route) return libelleOuAbsence(undefined, 'troncon', routeId);
+  const depart = route.from ?? route.a;
+  const lieu = (id: string) => libelleOuAbsence(placeById(map, id), 'lieu', id);
+  return `${lieu(depart)} ${route.from ? '→' : '↔'} ${lieu(depart === route.a ? route.b : route.a)}`;
 }
 
 // ── Anti-chevauchement des médaillons (rendu seulement — n'affecte JAMAIS `pos`) ─────────────

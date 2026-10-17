@@ -253,7 +253,7 @@ function forceD100(...dice: number[]): void {
 function marchanderEgalite(): void {
   const { leader, helper } = pairAvecSoutien(40);
   setupAmbulant([leader, helper]);
-  get().startBargain('buy');
+  get().startBargain({ kind: 'marchand', mode: 'buy' });
   forceD100(30, 20); // joueur 30 sur cible 50 → DR 2 ; marchand 20 sur cible 45 → DR 2
   get().bargainRoll();
 }
@@ -265,18 +265,18 @@ describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.
   it('CÂBLAGE : `startBargain` fond le Soutien dans `playerSkill` et en porte le détail (`support`)', () => {
     const { leader, helper } = pairAvecSoutien(40);
     setupAmbulant([leader, helper]);
-    get().startBargain('buy');
+    get().startBargain({ kind: 'marchand', mode: 'buy' });
     const pb = get().pendingBargain!;
     expect(pb.support?.bonus).toBe(10); // 1 soutien éligible (l.189-190)
     expect(pb.playerSkill).toBe(50); // 40 (Compétence) + 10 (Soutien) — FONDU par `partyAssisted`
-    expect(pb.merchantValue).toBe(45); // armurier.bargainSkill
+    expect(pb.opposant.valeur).toBe(45); // armurier.bargainSkill
   });
 
   it('DR égal : la Compétence NUE (40) perd contre le marchand (45) — la valeur SOUTENUE (50) ne vole pas la victoire', () => {
     marchanderEgalite();
     const pb = get().pendingBargain!;
-    expect([pb.roll!.roll, pb.merchantRoll!.roll]).toEqual([30, 20]); // dés imposés
-    expect(pb.roll!.sl).toBe(pb.merchantRoll!.sl); // sans égalité de DR, le départage ne se voit pas
+    expect([pb.roll!.roll, pb.opposantRoll!.roll]).toEqual([30, 20]); // dés imposés
+    expect(pb.roll!.sl).toBe(pb.opposantRoll!.sl); // sans égalité de DR, le départage ne se voit pas
     expect(pb.roll!.target).toBe(50); // le Soutien reste un MODIFICATEUR du Test (l.189-190)
     expect(pb.roll!.base).toBe(40); // …mais la grandeur qui départage est la Compétence NUE (l.160)
     expect(pb.result!.decidedBy).toBe('valeur');

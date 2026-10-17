@@ -6,7 +6,8 @@
  * UN visiteur (`sitesDuProjet`) énumère chaque référence d'un projet, à son chemin complet :
  *  - scènes : entités (`presetId`), chaque RACINE de Flow (`racinesDeFlow`), l'arbre entier par
  *    `walkFlow`, et les Flows PORTÉS par une feuille par `carriedFlows` (`src/engine/flowCore.ts`) ;
- *  - carte du monde : Effects des péripéties de route (`worldMap.routes[].perils[].effects`) ;
+ *  - carte du monde : Effects des péripéties de route (`worldMap.routes[].perils[].effects`), vendeur
+ *    d'un billet (`worldMap.routes[].billets[].presetId`) ;
  *  - narratif : `indices[].affaireId` et `indices[].stades[].documentId`.
  *
  * Lecteurs : la porte du projet (`refsNarrativesPendantes`, `./projet.ts`), le raffinage du narratif
@@ -94,11 +95,12 @@ export function sitesDeScene(scene: unknown, chemin: Chemin = []): SiteDeRef[] {
 /** Les références de la carte du monde, chemins préfixés de `chemin`. */
 export function sitesDeCarte(worldMap: unknown, chemin: Chemin = []): SiteDeRef[] {
   const out: SiteDeRef[] = [];
-  liste(objet(worldMap).routes).forEach((route, i) =>
+  liste(objet(worldMap).routes).forEach((route, i) => {
     liste(objet(route).perils).forEach((peril, j) =>
       liste(objet(peril).effects).forEach((effet, k) => sitesDEffet(effet, [...chemin, 'routes', i, 'perils', j, 'effects', k], out)),
-    ),
-  );
+    );
+    for (const [mode, billet] of Object.entries(objet(objet(route).billets))) sitesDuPorteur(objet(billet), [...chemin, 'routes', i, 'billets', mode], out);
+  });
   return out;
 }
 

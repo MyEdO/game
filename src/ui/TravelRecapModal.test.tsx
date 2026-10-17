@@ -32,7 +32,7 @@ describe('TravelRecapModal', () => {
   it('interruption : km restants + reprise par la carte + déroulé du jour (péripéties)', () => {
     const html = renderToStaticMarkup(<TravelRecapModal seam={{ ...base, status: 'interrupted', kmDone: 10, days: [{ kmFrom: 0, kmTo: 10, hours: 2.5, lines: [{ text: 'Péripétie : Un colporteur partage la route.' }, { text: 'Péripétie : Brigands !' }] }] }} />);
     expect(html).toContain('Voyage interrompu');
-    expect(html).toContain('14 km restants');
+    expect(html).toContain('14 km restants');
     expect(html).toContain('colporteur');
     expect(html).toContain('reprendre depuis la carte');
     expect(html).toContain('Ouvrir la carte');
