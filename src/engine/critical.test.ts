@@ -660,3 +660,16 @@ describe('critWoundLocation — règle UNIQUE de localisation du Coup Critique (
     expect(critWoundLocation(makeRNG(7), 'serpent', 'jambeD')).toBe('jambeD');
   });
 });
+
+describe('CriticalResolved.naturel : le d100 du tableau, avant le modificateur de sévérité (LDB 10 l.773 ; #1595 c.6227274650 Q3)', () => {
+  it('aa, 8 Blessures au-delà de 0 : roll 128, naturel 48 (AA 07 l.36)', () => {
+    const r = resolveCritique('aa', cible(), 'corps', makeRNG(1), { overkill: 8, forcedRoll: 48 });
+    expect(r.roll).toBe(128);
+    expect(r.naturel).toBe(48);
+  });
+  it('ldb, dépassement sous le BE : roll 28, naturel 48 (LDB 18 l.17)', () => {
+    const r = resolveCritique('ldb', cible(), 'corps', makeRNG(1), { overkill: 1, forcedRoll: 48 });
+    expect(r.roll).toBe(28);
+    expect(r.naturel).toBe(48);
+  });
+});

@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { critiquesDuCoup, estUnCoupCritique, porteurDeCritique, type CauseCoupCritique, type JeuDeCritique } from './critical';
+import { critiquesDuCoup, estUnCoupCritique, porteurDeCritique, relanceLaLocalisation, type CauseCoupCritique, type JeuDeCritique } from './critical';
 import { resetRule, setRule } from './policy';
 import type { Combatant } from './types';
 
@@ -54,14 +54,16 @@ describe('critiquesDuCoup — porteur × jeu × cause', () => {
     expect(origines(compte(personnage, 'aa', { cc: 'double', current: 3, lost: 7 }))).toEqual(['coup-critique:4']);
   });
   it('aa, Personnage, tomber à 0 suffit (AA 07 l.36)', () => {
-    expect(origines(compte(personnage, 'aa', { current: 3, lost: 3 }))).toEqual(['depassement:0']);
+    expect(origines(compte(personnage, 'aa', { current: 3, lost: 3 }))).toEqual(['coup-critique:0']);
   });
-  it("estUnCoupCritique : le Critique du passage à 0 en aa n'est pas un Coup Critique, celui du double l'est (#1595 c.6225522950)", () => {
-    expect(compte(personnage, 'aa', { current: 3, lost: 3 }).critiques.map((x) => estUnCoupCritique(x.origine))).toEqual([false]);
+  it("estUnCoupCritique : en aa, le Critique du passage à 0 d'un Personnage est un Coup Critique ; en ldb, le dépassement ne l'est pas (AA 07 l.34, l.38 ; LDB 18 l.23 ; #1595 c.6226467544)", () => {
+    expect(compte(personnage, 'aa', { current: 3, lost: 3 }).critiques.map((x) => estUnCoupCritique(x.origine))).toEqual([true]);
+    expect(compte(personnage, 'aa', { current: 0, lost: 5 }).critiques.map((x) => estUnCoupCritique(x.origine))).toEqual([true]);
     expect(compte(personnage, 'aa', { cc: 'double', current: 3, lost: 7 }).critiques.map((x) => estUnCoupCritique(x.origine))).toEqual([true]);
+    expect(compte(personnage, 'ldb', { current: 3, lost: 5 }).critiques.map((x) => estUnCoupCritique(x.origine))).toEqual([false]);
   });
-  it('Perturbante contre un Personnage à 0 : +0 en aa, rien en ldb (#1595 c.6221792068 Q2)', () => {
-    expect(origines(compte(personnage, 'aa', { current: 0, lost: 0 }))).toEqual(['depassement:0']);
+  it('Inoffensive contre un Personnage à 0 : +0 en aa, rien en ldb (#1595 c.6221792068 Q2, c.6227274650 Q1)', () => {
+    expect(origines(compte(personnage, 'aa', { current: 0, lost: 0 }))).toEqual(['coup-critique:0']);
     expect(origines(compte(personnage, 'ldb', { current: 0, lost: 0 }))).toEqual([]);
   });
 
@@ -94,6 +96,46 @@ describe('critiquesDuCoup — porteur × jeu × cause', () => {
   it('coup sans prise (sauvegarde, Bouclier anti-flèches, immunité, coque bloquée) : rien, sur tout porteur', () => {
     for (const c of [personnage, structure, navire, routier])
       expect(compte(c, 'ldb', { cc: 'double', prise: false, current: 0, lost: 9 })).toEqual({ critiques: [], mortSubite: false });
+  });
+});
+
+describe('relanceLaLocalisation — la relance suit le Coup Critique du Personnage (AA 07 l.25, l.32 ; LDB 18 l.53 ; #1595 c.6226467544)', () => {
+  it.each([
+    [personnage, 'aa', null, 0, true],
+    [personnage, 'aa', null, -2, true],
+    [personnage, 'aa', null, 3, false],
+    [personnage, 'ldb', null, 0, false],
+    [personnage, 'ldb', 'double', 3, true],
+    [personnage, 'aa', 'empaleuse', 3, true],
+    [structure, 'aa', null, 0, false],
+    [structure, 'aa', 'double', 3, false],
+    [navire, 'aa', null, 0, false],
+    [navire, 'aa', 'incantation-critique', 3, false],
+    [routier, 'aa', null, 0, false],
+  ] as const)('%#', (c, jeu, cause, current, attendu) => {
+    expect(relanceLaLocalisation(c, cause, current, jeu)).toBe(attendu);
+  });
+
+  it.each([
+    ['aa', 0, [true]],
+    ['aa', 3, [false]],
+    ['ldb', 0, [false]],
+  ] as const)('critiquesDuCoup, Personnage, %s, %i PB, sans cause : relance %j', (jeu, current, attendu) => {
+    const relances: boolean[] = [];
+    critiquesDuCoup(personnage, { coupCritique: null, prise: true, current, blessures: (rel) => { relances.push(rel); return 5; } }, jeu);
+    expect(relances).toEqual(attendu);
+  });
+});
+
+describe("Le Coup Critique du passage à 0 reste au Personnage, en aa (#1595 c.6227274650 Q4)", () => {
+  it.each([[structure], [navire], [bateauFluvial]])('%#, structure ou navire : aucun coup-critique sans cause, a-zero inchangé', (c) => {
+    const r0 = compte(c, 'aa', { current: 0, lost: 3 });
+    expect(r0.critiques.map((x) => x.origine)).toEqual(['a-zero']);
+    expect(compte(c, 'aa', { current: 3, lost: 9 }).critiques).toEqual([]);
+  });
+  it('véhicule routier : aucun coup-critique sans cause', () => {
+    for (const current of [0, 3])
+      expect(compte(routier, 'aa', { current, lost: 9 }).critiques.some((x) => estUnCoupCritique(x.origine))).toBe(false);
   });
 });
 

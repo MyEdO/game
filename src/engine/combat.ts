@@ -38,7 +38,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { estUnCoupCritique, type CauseCoupCritique } from './critical';
+import type { CauseCoupCritique } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -491,6 +491,8 @@ export interface AttackResult {
   apExternal?: number;
   /** Coup Critique (LDB 13 l.183 ; LDB 62 l.248) — jamais le dépassement, compté par `critiquesDuCoup`. */
   critical: boolean;
+  /** Retenir ses coups effectif sur CE coup (`profilDuCoup`). LDB 18 l.30 ; AA 07 l.59, l.61. */
+  retenu?: true;
   /** #1595 c.6221792068 Q2. */
   sansPrise?: SansPrise;
   /** SAUVEGARDE « 1d10 ≥ Indice » de CE coup, DÉCIDÉE (LDB 85 l.98, LDB 85 l.278, LDB 47 l.410) — posée
@@ -1132,7 +1134,7 @@ export function finishMelee(
   dodgeMods: ModLine[] = [],
   dmgProxy?: AttackOptions['dmgProxy'], // Charge montée : Force+Taille de la monture pour les dégâts (LDB 14 l.183)
   parryWeapon: Weapon | undefined = defender.weapons[0], // arme de parade choisie (spé + Atouts + pénalité main 2nde)
-  withhold = false, // « Retenir ses coups » (Aux Armes 07 l.59-61)
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59, l.61
   sub?: DefenseSub, // substitution sociale (mode 'social') : base + libellé de la Compétence substituée
   compo?: DifficultyComposition, // Difficulté FIGÉE par la résolution d'origine (#1153 L4) ; absente = composée ici
 ): AttackResult {
@@ -1246,7 +1248,7 @@ export function resolveMeleePassive(
   location?: HitLocation,
   env: ModLine[] = [],
   dmgProxy?: AttackOptions['dmgProxy'], // Charge montée : Force+Taille de la monture pour les dégâts (LDB 14 l.183)
-  withhold = false, // « Retenir ses coups » (Aux Armes 07 l.59-61)
+  withhold = false, // LDB 18 l.30 ; AA 07 l.59, l.61
   compo?: DifficultyComposition, // Difficulté FIGÉE par l'orchestrateur (#1153 L4) ; absente = composée ici
 ): AttackResult {
   const atkBd = bd(attackTestLabel(attacker, weapon, 'melee'), combatValue(attacker, 'melee', weapon), atk, compo ?? composeAttack(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env })));
@@ -1560,6 +1562,25 @@ export function weaponInflictsFlames(weapon: Weapon): boolean {
   );
 }
 
+/** Le profil de l'arme pour CE coup, sans muter l'objet partagé — SOURCE UNIQUE d'`applyHit` et de
+ *  `woundsAtCritLocation`. `retenu` = Retenir ses coups effectif (`AttackResult.retenu`).
+ *  LDB 62 l.135 ; LDB 18 l.30 ; AA 07 l.59, l.61 ; AA 06 l.556. */
+export function profilDuCoup(weapon: Weapon, retenu: boolean): Weapon {
+  // Arme usée à +0 → improvisée. L'enchantement (Magique/Dégâts/onHit) est DÉJÀ replié dans l'arme active
+  // par recomputeLoadout (applyEnchants) — porté par l'objet, plus de merge ici.
+  const w = effectiveWeapon(weapon);
+  if (!retenu || rule('combat-aa-blessures') !== 'aa') return w;
+  // `resolveQualities` (avec Groupe) énumère propre+FAMILLE avant filtrage — sinon une qualité retirée
+  // portée par la FAMILLE (ex. Empaleuse d'Escrime) survivrait au retrait (elle est absente de la liste
+  // propre de l'arme, `resolveQualities` la réinjecterait). `noFamilyQualities` bloque cette ré-injection
+  // SANS effacer `subType`/`weaponGroup` — `combatValue` doit voir la MÊME Spé (Retenir ses coups ne
+  // change pas la compétence maniée).
+  const kept = resolveQualities(w)
+    .filter((r) => !r.caps?.withheldOnRestraint)
+    .map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
+  return { ...w, qualities: kept, noFamilyQualities: true };
+}
+
 function applyHit(
   attacker: Combatant,
   defender: Combatant,
@@ -1572,24 +1593,10 @@ function applyHit(
   extraAP = 0, // PA conférés par l'arme d'opposition du défenseur (Protectrice, LDB 62 l.296)
   withhold = false, // LDB 18 l.30 ; AA 07 l.59
 ): AttackResult {
-  // Arme usée à +0 → improvisée (LDB 62 l.135). L'enchantement (Magique/Dégâts/onHit) est DÉJÀ replié
-  // dans l'arme active par recomputeLoadout (applyEnchants) — porté par l'objet, plus de merge ici.
-  weapon = effectiveWeapon(weapon);
-  // LDB 18 l.30 ; AA 07 l.59, l.61 ; AA 06 l.556. Les qualités `capabilities.withheldOnRestraint` sont
-  // retirées du profil de CE coup, sans muter l'objet partagé.
-  const withholding = withhold && peutRetenirSesCoups(weapon);
+  // LDB 18 l.30 ; AA 07 l.59, l.61.
+  const withholding = withhold && peutRetenirSesCoups(effectiveWeapon(weapon));
   const perdAtouts = withholding && rule('combat-aa-blessures') === 'aa';
-  // `resolveQualities` (avec Groupe) énumère propre+FAMILLE avant filtrage — sinon une qualité retirée
-  // portée par la FAMILLE (ex. Empaleuse d'Escrime) survivrait au retrait (elle est absente de la liste
-  // propre de l'arme, `resolveQualities` la réinjecterait). `noFamilyQualities` bloque cette ré-injection
-  // SANS effacer `subType`/`weaponGroup` — `combatValue` doit voir la MÊME Spé (Retenir ses coups ne
-  // change pas la compétence maniée).
-  if (perdAtouts) {
-    const kept = resolveQualities(weapon)
-      .filter((r) => !r.caps?.withheldOnRestraint)
-      .map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
-    weapon = { ...weapon, qualities: kept, noFamilyQualities: true };
-  }
+  weapon = profilDuCoup(weapon, withholding);
   // Un OBJET INANIMÉ (structure/véhicule/affût) n'a PAS de Tableau de Localisation → aucune localisation
   // (l'affichage omet alors le membre, et le résolveur de Blessures l'ignore déjà : armure 0 partout).
   const loc = isInanimate(defender) ? undefined : (forcedLoc ?? hitLocationByShape(reverseRoll(atkBd.roll), defender.bodyShape));
@@ -1598,7 +1605,7 @@ function applyHit(
   if (incomingDamageNullified(defender, attacker, isMagicWeapon(weapon))) {
     return {
       hit: true, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, location: loc,
-      damage: 0, woundsLost: 0, critical: false, advantageTo: 'attacker', defenderDefeated: false,
+      damage: 0, woundsLost: 0, critical: false, ...(withholding ? { retenu: true as const } : {}), advantageTo: 'attacker', defenderDefeated: false,
       log: `${attacker.label} touche ${defender.label}… mais le coup passe au travers (Éthéré — seules les attaques magiques la blessent).`,
     };
   }
@@ -1634,7 +1641,7 @@ function applyHit(
   const empale = qualityCritTriggered(weapon, atkBd.roll);
   let isCritical = (critical || empale) && !withholding; // LDB 18 l.30 ; AA 07 l.59
   // LDB 63 l.86, l.90 ; LDB 63 l.78 ; #1595 c.6225326419 R2.
-  const ignoredAP = loc ? ignoredArmourAP(defender, loc, { roll: atkBd.roll, critical: estUnCoupCritique(isCritical ? 'coup-critique' : null), empaleuse: hasQuality(weapon, 'empaleuse') }) : 0;
+  const ignoredAP = loc ? ignoredArmourAP(defender, loc, { roll: atkBd.roll, critical: isCritical, empaleuse: hasQuality(weapon, 'empaleuse') }) : 0;
   // Tir sûr (LDB 10) : ignore niveau PA de la cible au tir.
   const sureShot = weapon.type === 'ranged' ? talentRangedAPIgnore(attacker) : 0;
   // Coque bloquée (MDG 13) : petites armes (l.605) / case « – » du tableau des Tailles (l.614) →
@@ -1662,6 +1669,7 @@ function applyHit(
     woundsLost,
     apExternal: extraAP - sureShot,
     critical: isCritical,
+    ...(withholding ? { retenu: true as const } : {}),
     ...(sansPrise ? { sansPrise } : {}),
     advantageTo: 'attacker',
     defenderDefeated: defeated,
@@ -1690,8 +1698,10 @@ export function woundsAtCritLocation(res: AttackResult, weapon: Weapon, defender
   // l'attaquant (`AA 10 l.98`) n'y a donc aucun terme à compter (passée `undefined`, jamais omise).
   if (isStructure(defender)) throw new Error(`woundsAtCritLocation : ${defender.label} est une Structure — AA 10 l.105.`);
   if (res.degatsTransferes) return 0;
-  const ignoredAP = ignoredArmourAP(defender, location, { roll: res.attackerRoll, critical: true, empaleuse: hasQuality(weapon, 'empaleuse') });
-  return woundsFromHit(weapon, defender, location, res.damage ?? 0, (res.apExternal ?? 0) - ignoredAP, 1, undefined);
+  const profil = profilDuCoup(weapon, !!res.retenu);
+  // `relanceLaLocalisation` : la Localisation relancée est celle d'un Coup Critique. LDB 63 l.86, l.90.
+  const ignoredAP = ignoredArmourAP(defender, location, { roll: res.attackerRoll, critical: true, empaleuse: hasQuality(profil, 'empaleuse') });
+  return woundsFromHit(profil, defender, location, res.damage ?? 0, (res.apExternal ?? 0) - ignoredAP, 1, undefined);
 }
 
 

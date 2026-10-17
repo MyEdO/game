@@ -79,7 +79,9 @@ describe('invariance du RNG des Blessures critiques — référence figée AVANT
         for (const jeu of ['ldb', 'aa'] as JeuDeCritique[]) {
           const overkill = seed % 2 === 0 ? DEPASSEMENT[jeu] : 0;
           const cle = `${jeu}|${seed}|${loc}|${overkill}`;
-          const obtenu = JSON.stringify(stable(resolveCritique(jeu, cible(), loc, makeRNG(seed), { overkill })));
+          const { naturel, ...resolu } = resolveCritique(jeu, cible(), loc, makeRNG(seed), { overkill });
+          if (overkill === 0 && naturel !== resolu.roll) divergences.push(`${cle} : naturel ${naturel} ≠ roll ${resolu.roll} sans modificateur`);
+          const obtenu = JSON.stringify(stable(resolu));
           const attendu = JSON.stringify(stable(REFERENCE[cle]));
           if (obtenu !== attendu) divergences.push(`${cle}\n    attendu : ${attendu}\n    obtenu  : ${obtenu}`);
         }

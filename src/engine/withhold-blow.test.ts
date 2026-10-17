@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames, causeDuCoupCritique, resolveRanged, finishRanged, resolveStrayRangedHit } from './combat';
+import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames, causeDuCoupCritique, resolveRanged, finishRanged, resolveStrayRangedHit, woundsAtCritLocation } from './combat';
 import type { RNG } from './dice';
 import { critiquesDuCoup } from './critical';
 import { setRule, resetRule } from './policy';
@@ -66,13 +66,40 @@ describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61
     expect(withheld.woundsLost).toBeGreaterThan(0);
   });
 
-  it('même coup mais la cible tombe à 0 → le Coup Critique reste ignoré, la Blessure critique de la mise à 0 demeure', () => {
+  it('même coup mais la cible tombe à 0 → le Coup Critique du double reste ignoré, celui de la mise à 0 demeure (#1595 c.6226467544)', () => {
     const lowHP = mk({ wounds: { current: 4, max: 12 }, kind: 'hero' }); // 4 PB ; le coup (≈7) la met à 0 ; AA 07 l.67 : hors Mort subite
     const withheld = resolveMeleePassive(att(), lowHP, empaleuseSword, dbl, undefined, [], undefined, true);
     expect(withheld.defenderDefeated).toBe(true);
     expect(withheld.critical).toBe(false);
     const compte = critiquesDuCoup(lowHP, { coupCritique: causeDuCoupCritique(withheld), prise: true, current: 4, blessures: () => withheld.woundsLost ?? 0 });
-    expect(compte.critiques.map((c) => c.origine)).toEqual(['depassement']);
+    expect(compte.critiques.map((c) => c.origine)).toEqual(['coup-critique']);
+  });
+});
+
+describe('Retenir ses coups sur une cible déjà à 0 : la Localisation relancée garde le profil retenu (AA 07 l.59, l.61 ; #1595 c.6227274650 Q2)', () => {
+  enAA();
+  const aZero = (over: Partial<Combatant> = {}) => mk({ wounds: { current: 0, max: 12 }, kind: 'hero', ...over });
+  const atk = evaluateTest(35, 60);
+
+  it('Estoc Perforante contre PA 2 : la Localisation relancée ne compte pas Perforante', () => {
+    const armure = { tete: 0, brasG: 2, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
+    const normal = resolveMeleePassive(att(), aZero({ armour: armure }), perforanteSword, atk, 'corps', [], undefined, false);
+    const retenu = resolveMeleePassive(att(), aZero({ armour: armure }), perforanteSword, atk, 'corps', [], undefined, true);
+    expect(retenu.retenu).toBe(true);
+    expect(normal.retenu).toBeUndefined();
+    expect(retenu.damage).toBe(normal.damage);
+    const cible = aZero({ armour: armure });
+    expect(woundsAtCritLocation(retenu, perforanteSword, cible, 'brasG')).toBe(woundsAtCritLocation(retenu, plainSword, cible, 'brasG'));
+    expect(woundsAtCritLocation(normal, perforanteSword, cible, 'brasG') - woundsAtCritLocation(retenu, perforanteSword, cible, 'brasG')).toBe(1);
+  });
+
+  it('arme Empaleuse contre une pièce Points faibles : les PA de la Localisation relancée ne sont pas ignorés', () => {
+    const items = [{ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa: 2, locs: ['brasG'], qualities: [{ id: 'points-faibles' }] }];
+    const cible = aZero({ armour: { tete: 0, brasG: 2, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items } as never);
+    const normal = resolveMeleePassive(att(), cible, empaleuseSword, atk, 'corps', [], undefined, false);
+    const retenu = resolveMeleePassive(att(), cible, empaleuseSword, atk, 'corps', [], undefined, true);
+    expect(retenu.damage).toBe(normal.damage);
+    expect(woundsAtCritLocation(normal, empaleuseSword, cible, 'brasG') - woundsAtCritLocation(retenu, empaleuseSword, cible, 'brasG')).toBe(2);
   });
 });
 
