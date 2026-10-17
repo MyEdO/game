@@ -495,6 +495,8 @@ Les sorts indiqués *Projectile magique* suivent des règles de résolution spé
 2. **Dégâts totaux** = Dégâts du sort + DR du Test de Langue (Magick) + Bonus de Force Mentale du lanceur.
 3. Ces Dégâts sont **réduits normalement** par le Bonus d'Endurance et les PA de la cible.
 
+- **Déviation d'un Critique de Projectile, RAW déduit, évaluation d'arbitre révisable, non entérinée** (#1595 c.6231943159, feuille 5) : la Blessure critique d'une Incantation Critique (« si le Sort inflige des Dégâts, il inflige également une Blessure Critique » — `LDB 46 l.30`) portée par un *Projectile magique* se dévie. La Déviation exige « une Blessure Critique issue d'une attaque visant un emplacement protégé par une armure » (`LDB 63 l.30`) ; le livre range les sorts parmi les attaques (« contre les Attaques magiques ou à distance » — `LDB 47 l.410`), le Projectile touche une Localisation et ses Dégâts « sont réduits normalement par l'Endurance et les PA de la cible » (`LDB 46 l.101`). La Blessure supplémentaire suit le recompte des Dégâts du sort à PA−n (voir `combat.md` [§ 5 Déviation Critique par l'armure](combat.md#5-déviation-critique-par-larmure-ldb-63)) ; un sort qui ignore les PA n'en ajoute aucune.
+
 > **Verbatim** (l.101) : « Quand un Projectile magique est lancé avec succès et qu'il cible un autre Personnage, la Localisation atteinte est déterminée en inversant les dés lancés pour le Test de Langue (Magick). […] Le DR du Test de Langue (Magick) est ajouté aux Dégâts du Sort et à votre Bonus de Force Mentale pour déterminer le total de Dégâts infligés. Ces Dégâts sont réduits normalement par l'Endurance et les PA de la cible. »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_

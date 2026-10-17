@@ -675,7 +675,10 @@ Une Blessure critique frappant une localisation **protégée par une armure** pe
 
 > « Si vous subissez une Blessure Critique issue d'une attaque visant un emplacement protégé par une armure, vous pouvez choisir de laisser votre armure être endommagée de 1 PA dans le but d'ignorer la Blessure Critique. » — `LDB 63 l.30`
 
-On subit toujours les **Dégâts normaux** (et probablement 1 PB de plus, les PA étant réduits de 1), mais on évite les effets de la Blessure critique.
+> « Vous subissez toujours les Blessures normales (et étant donné que vos PA sont à présent réduits de 1 Point, vous subissez probablement une Blessure supplémentaire), mais vous évitez les effets de la Blessure Critique, car le coup est absorbé par votre armure à présent endommagée. » — `LDB 63 l.32`
+
+- **La Blessure supplémentaire est un recompte, pas un +1 fixe** (#1595 c.6231943159) : les Blessures normales du même coup se relisent à PA−n (« vos PA sont à présent réduits de 1 Point » — `LDB 63 l.32`). Le « probablement » tient au plancher (« Si le résultat est de 0 ou moins, votre adversaire a évité le pire de l'attaque et ne perd qu'un seul Point de Blessure. » — `LDB 13 l.159`) et aux PA que ce coup ignore déjà (Partielle, Points faibles, sort qui ignore les PA, pièce déjà à 0 PA) : retirer 1 PA n'y change alors rien.
+- **Plusieurs Déviations sur le même coup** : une Déviation par Blessure critique, une à la fois, chacune retirant 1 PA (« Chaque fois qu'une pièce d'armure est endommagée, les PA de l'emplacement endommagé sont réduits de 1. » — `LDB 63 l.19`) ; les Blessures normales se relisent à PA−n (#1595 c.6231943159). Sans objet en `aa` (« chaque coup ne peut infliger qu'une seule Blessure Critique » — `AA 07 l.42`).
 
 - **Ce que la Déviation efface** : la Blessure critique et ses effets (« dans le but d'ignorer la Blessure Critique » — `LDB 63 l.30` ; « mais vous évitez les effets de la Blessure Critique, car le coup est absorbé par votre armure à présent endommagée » — `LDB 63 l.32`). Le texte n'efface ni le Critique **obtenu** par l'attaquant (son double réussi, `LDB 13 l.183`) ni le lancer fait : la seconde frappe du *Maniement de deux armes* garde « le lancer du tableau des Critiques » (`LDB 10 l.773`, voir [Talent *Maniement de deux armes*](#talent-maniement-de-deux-armes--ldb-10-l773)).
 - **Silence du texte** : `LDB 63 l.30` ne place pas le moment du choix par rapport au d100 du Tableau des Critiques (avant ou après ce jet). Il suppose la Localisation connue (« une attaque visant un emplacement protégé par une armure » — `LDB 63 l.30`), donc la procédure du Coup Critique entamée (`LDB 18 l.53`), dont le second d100 est le lancer du tableau.
@@ -710,7 +713,7 @@ Ces tables **remplacent** celles du LDB. Les **quatre tableaux complets** (Tête
 - `LDB 18 l.17` — overkill : **−20** au Tableau des Critiques (min 01) si le nombre de Points de Blessure passés en négatif est strictement inférieur au BE (#1595 c.6222318751).
 - `LDB 18 l.53-55` — résolution du Coup Critique : localisation par **2ᵉ d100**, PB perdus **en ignorant BE et PA**, Effets supplémentaires, **00 = mort** ; Dégâts non critiques recalculés sur la nouvelle localisation.
 - `LDB 18 l.56-187` — en-têtes et bornes des quatre Tableaux des Critiques LDB (Tête/Bras/Corps/Jambe), `01-10` → `00` (mort).
-- `LDB 63 l.29-32` — **Déviation Critique** : sacrifier 1 PA pour ignorer une Blessure critique sur une localisation protégée.
+- `LDB 63 l.30-32` — **Déviation Critique** : sacrifier 1 PA pour ignorer une Blessure critique sur une localisation protégée.
 - `AA 07 l.25-79` — système alternatif d'*Aux Armes* : 2 voies de déclenchement (double avec PB restants ; +10/Blessure au-delà de 0), un seul Critique par coup, valeurs « T » triviales, « Retenir vos coups ».
 - `AA 07 l.82-104 / 2568-2622 / 2625-2682 / 2684-2729` — tables alternatives Tête / Bras / Torse / Jambe (transcrites verbatim ci-dessus ; **remplacent** les tables LDB).
 - `EDO 11 l.237-239` — Trait *Dédoublement* : une Blessure critique (ou 0 Blessure) scinde la créature en deux Horreurs Bleues non blessées.
@@ -2604,12 +2607,13 @@ Les Armures sont généralement endommagées de **deux** façons :
 
 > Note de recoupement : l'Atout d'arme **Taille** (LDB 62/63 l.7-8) endommage aussi l'armure — *« Si vous touchez un adversaire, vous Endommagez de 1 Point une pièce d'armure ou un Bouclier frappé tout en blessant la cible. »*
 
-### Déviation Critique (LDB 63 l.29-32)
+### Déviation Critique (LDB 63 l.30-32)
 
-**Cela ne se produit que si vous le choisissez.** Si vous subissez une **Blessure Critique** issue d'une attaque visant un emplacement protégé par une armure, vous pouvez choisir de laisser votre armure être **endommagée de 1 PA** dans le but d'**ignorer la Blessure Critique**.
+> « Cela ne se produit que si vous le choisissez. Si vous subissez une Blessure Critique issue d'une attaque visant un emplacement protégé par une armure, vous pouvez choisir de laisser votre armure être endommagée de 1 PA dans le but d'ignorer la Blessure Critique. » — `LDB 63 l.30`
 
-- Vous subissez **toujours les Blessures normales** (les PB ordinaires sont infligés quoi qu'il arrive).
-- Étant donné que vos PA sont à présent réduits de 1 Point, **vous subissez probablement une Blessure supplémentaire**, mais vous **évitez les effets de la Blessure Critique** (la table de Critique), car le coup est absorbé par votre armure à présent endommagée.
+> « Vous subissez toujours les Blessures normales (et étant donné que vos PA sont à présent réduits de 1 Point, vous subissez probablement une Blessure supplémentaire), mais vous évitez les effets de la Blessure Critique, car le coup est absorbé par votre armure à présent endommagée. » — `LDB 63 l.32`
+
+Lecture de la Blessure supplémentaire et des Déviations multiples : [§ 5 Déviation Critique par l'armure](#5-déviation-critique-par-larmure-ldb-63).
 
 ### Atout d'armure — Flexible (LDB 63 l.73-74)
 
@@ -2617,7 +2621,9 @@ Une armure **Flexible** peut être portée **sous une couche d'armure non Flexib
 
 ### Atout d'armure — Impénétrable (LDB 63 l.77-78)
 
-L'armure est particulièrement résistante : la plupart des attaques ne peuvent tout simplement pas la pénétrer. **Toutes les Blessures Critiques causées par un nombre impair pour vous toucher, tel que 11 ou 33, sont ignorées.** (On regarde le jet de toucher de l'attaquant : si le d100 obtenu est impair, le Critique est annulé.) Dans la table, la plate (Brassards, Heaume, Jambières d'acier, Plastron) porte cet Atout.
+> « L'armure est particulièrement résistante, ce qui signifie que la plupart des attaques ne peuvent tout simplement pas la pénétrer. Toutes les Blessures Critiques causées par un nombre impair pour vous toucher, tel que 11 ou 33, sont ignorées. » — `LDB 63 l.78`
+
+Dans la table, la plate (Brassards, Heaume, Jambières d'acier, Plastron) porte cet Atout.
 
 ### Défaut d'armure — Partielle (LDB 63 l.85-86)
 
@@ -2642,10 +2648,10 @@ Certaines sources naturelles de PA **ne peuvent pas servir à la Déviation Crit
 - `LDB 63 l.7-15` — Schéma de description d'une armure (Type, Prix, Enc, Pénalité, Emplacement, PA, Atouts et Défauts).
 - `LDB 63 l.38-61` — Table des Armures complète (cuir souple, cuir bouilli, mailles, plate : Prix/Enc/Disponibilité/Pénalité/Emplacements/PA/Atouts-Défauts) + les deux notes de port (\* cuir souple sous autre armure sans pénalité ; \*\* maille/plate = -10 Discrétion).
 - `LDB 63 l.18-27` — Dégâts d'Armure : chaque coup endommageant retire 1 PA ; PA < 0 = armure inutilisable ; deux sources (capacité spéciale ; Blessure Critique déviée).
-- `LDB 63 l.29-32` — Déviation Critique : choix de sacrifier 1 PA à la localisation pour ignorer la Blessure Critique ; PB normaux toujours subis (et probablement +1 Blessure car PA réduits).
+- `LDB 63 l.30-32` — Déviation Critique : choix de sacrifier 1 PA à la localisation pour ignorer la Blessure Critique ; Blessures normales toujours subies, relues à PA réduits (recompte, pas +1 fixe : #1595 c.6231943159).
 - `LDB 63 l.63-66` — Réparer une Armure : 10 % du prix de base par PA perdu ; 30 % si pièce complètement brisée ; auto-réparation possible (Métier + Outils + atelier pour la plate).
 - `LDB 63 l.73-74` — Atout Flexible : portable sous une couche non Flexible, bénéfices des deux (PA cumulés).
-- `LDB 63 l.77-78` — Atout Impénétrable : Critiques causés par un jet de toucher impair (11, 33…) ignorés.
+- `LDB 63 l.77-78` — Atout Impénétrable : « Toutes les Blessures Critiques causées par un nombre impair pour vous toucher, tel que 11 ou 33, sont ignorées. »
 - `LDB 63 l.85-86` — Défaut Partielle : jet de toucher pair OU Coup Critique → PA de la pièce Partielle ignorés.
 - `LDB 63 l.89-90` — Défaut Points Faibles : arme Empaleuse + Critique → PA ignorés.
 - `LDB 62 l.307` — Atout d'arme Taille : une touche endommage de 1 Point une pièce d'armure ou un Bouclier frappé (autre source de Dégâts d'Armure).
@@ -6311,7 +6317,6 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 - NON VÉRIFIABLE — Pétards NADJ (ch.08 l.159-160) : le contenu de la ligne 160 est « Omitted long matching line » dans tous les outils disponibles. Les stats revendiquées (Projectiles (Explosifs), CC 50, Explosion 1, Dangereuse, 5 % En flammes) ne peuvent pas être confirmées ou infirmées.
 
 ### Armures : table, PA, dégâts et réparation ⚠
-- Déviation Critique (LDB 63 l.32) : la source dit « Vous subissez toujours les Blessures normales (et étant donné que vos PA sont à présent réduits de 1 Point, vous subissez probablement une Blessure supplémentaire) », en un seul membre de phrase. Le markdown sépare en deux bullets distincts (« les PB ordinaires sont infligés quoi qu'il arrive » + « vous subissez probablement une Blessure supplémentaire ») et reformule l'intérieur de la parenthèse. La substance est préservée mais la structure source n'est pas respectée verbatim.
 - Atout Flexible (LDB 63 l.73-74) : la source dit uniquement « vous gagnez les bénéfices des deux ». Le markdown ajoute une précision éditoriale non présente dans la source : « les PA de la pièce Flexible et ceux de la pièce rigide se cumulent à l'emplacement commun ». L'interprétation est correcte mais ce n'est pas du verbatim sourcé.
 - Règle de port — section éditoriale (note * LDB 63 l.60) : la phrase « seul l'Atout Flexible autorise une superposition cumulant les PA » est une inférence non présente dans le texte source. La source ne dit pas explicitement que c'est le seul cas ; c'est une extrapolation logique du texte Flexible.
 
