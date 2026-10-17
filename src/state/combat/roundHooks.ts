@@ -256,15 +256,11 @@ registerCombatHook({
   phase: 'onRoundEnd',
   order: 77,
   run: ({ battle, sink }) => {
-    // Aux Armes (l.2451) : le jet de mort par hémorragie (10 %/pion) exige d'être à la fois Inconscient ET
-    // Hémorragique. LDB (l.105, hook d'origine) : jet pour tout bleeder encore actif (isOutOfAction exclut
-    // déjà l'Inconscient). La coagulation sur un double (retire 1 pion, +Exténué si vidé) est identique aux
-    // deux systèmes → même `bleedDeathRoll`, seul le prédicat d'éligibilité diffère selon le mode.
-    const aa = rule('combat-aa-blessures') === 'aa';
+    // LDB 16 l.105 ; AA 07 l.7 ; #1595 c.6240485441
     const doomed: { id: string; deathLine: string }[] = [];
     for (const c of battle.combatants) {
-      if (c.dead || c.outOfRencontre || !stacks(c, COND.hemorragique)) continue;
-      if (aa ? !hasCondition(c, COND.inconscient) : isOutOfAction(c)) continue;
+      const eligible = !c.dead && !c.outOfRencontre && c.wounds.current <= 0 && hasCondition(c, COND.inconscient) && stacks(c, COND.hemorragique) > 0;
+      if (!eligible) continue;
       const bd = bleedDeathRoll(c, battleRng());
       if (bd.died) doomed.push({ id: c.id, deathLine: bd.log[0] }); // annonce différée (après le jet de Destin)
       else bd.log.forEach((l) => sink(l, c)); // coagulation (double) : retrait + éventuel Exténué, visible de suite

@@ -7574,12 +7574,10 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
     c.dead = true;
     for (const line of notifySlain(get, set, c)) battle.log.push(ev('death', line, c.id));
   }
-  // (2bis) Mort par Hémorragique (LDB 16 l.105) — combattants `bleedDoomed` (jet RNG du hook `bleed-death`).
-  //        Un héros à Destin → SUSPEND (pendingFateSave 'slow', re-entre ici après résolution ; le sauvé est
-  //        éjecté → filtré) ; sinon mort finalisée (annonce différée + onSlain). Une fois tous résolus, on purge.
+  // (2bis) LDB 16 l.105 ; AA 07 l.7 ; LDB 17 l.29 ; #1595 c.6240485441
   const doomedBleed = (battle.bleedDoomed ?? [])
     .map((d) => ({ c: inBattleId(battle, d.id), line: d.deathLine }))
-    .filter((d): d is { c: Combatant; line: string } => !!d.c && !isOutOfAction(d.c));
+    .filter((d): d is { c: Combatant; line: string } => !!d.c && !d.c.dead && !d.c.outOfRencontre);
   const bleedFateHero = doomedBleed.find((d) => d.c.kind === 'hero' && (d.c.fate ?? 0) > 0);
   if (bleedFateHero) { set({ pendingFateSave: { heroId: bleedFateHero.c.id, source: 'slow' } }); return; }
   for (const d of doomedBleed) { d.c.dead = true; battle.log.push(ev('death', d.line, d.c.id)); for (const line of notifySlain(get, set, d.c)) battle.log.push(ev('death', line, d.c.id)); }

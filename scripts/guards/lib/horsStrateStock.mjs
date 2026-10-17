@@ -216,7 +216,6 @@ export const HORS_STRATE_RATCHET = [
   { fichier: 'src/data/etats.json', ref: 'of | kind,of', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'of | kind,op,subject,value', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'ops | amount,apFrom,ignoreAP,ignoreTB,min,op', occurrence: 1 },
-  { fichier: 'src/data/etats.json', ref: 'ops | amount,ignoreAP,ignoreTB,min,op', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'ops | amount,ignoreAP,ignoreTB,op', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'passive | amount,exceptSkills,op', occurrence: 1 },
   { fichier: 'src/data/etats.json', ref: 'passive | amount,movementOnly,op', occurrence: 1 },

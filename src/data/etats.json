@@ -793,7 +793,6 @@
                 "amount": {
                   "stacks": "self"
                 },
-                "min": 1,
                 "ignoreTB": true,
                 "ignoreAP": true
               }
