@@ -15,7 +15,7 @@ import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import tablesJson from '../../tables.json';
 import traitsJson from '../../traits.json';
-import { document, documentDeLEntreePartielle, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
+import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
 import { libelleDeValeur, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
@@ -27,6 +27,7 @@ import { byId, type SkillData, type TypeResolu } from '../../index';
 import { avancement } from './avancement';
 import { SANS_LIVRE } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
+import { entreePartielle as creaturePartielle } from '../defs/creatures';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { poserRegimeVivant } from './idsVivants';
 import { defDe, enfantsDe } from './descente';
@@ -244,6 +245,25 @@ describe('document() — enveloppe posée par la fabrique', () => {
     const parse: z.infer<typeof fiche.entree> = fiche.entree.parse(DOC_COMPLET);
     expect((parse as { max: number }).max).toBe(2);
     expect(fiche.entree.safeParse({ ...DOC_COMPLET, max: 'deux' }).success).toBe(false);
+  });
+
+  it('`adressesDesEntreesEmbarquees` : les adresses où un schéma embarque une entrée partielle, et elles seules (#2206)', () => {
+    const avec = z.strictObject({ a: z.array(z.strictObject({ fiche: (creaturePartielle as z.ZodType).optional() })), b: z.strictObject({ autre: creaturePartielle as z.ZodType }) });
+    const sans = z.strictObject({ a: z.array(z.strictObject({ fiche: z.unknown().optional() })) });
+    expect(adressesDesEntreesEmbarquees([avec])).toEqual(['a[].fiche', 'b.autre']);
+    expect(adressesDesEntreesEmbarquees([sans])).toEqual([]);
+  });
+
+  it('`exclusiviteAdapteDe` : `adapteDe` refusé quand une entrée embarquée ADRESSE sa prose, la clé fautive nommée (#2206)', () => {
+    const objet = z.strictObject({ fiche: (creaturePartielle as z.ZodType).optional(), adapteDe: sourceRefSchema.optional() });
+    const schema = objet.superRefine(exclusiviteAdapteDe(objet));
+    const disque = JSON.parse(readFileSync(fileURLToPath(new URL('../../../scenes/diligence/diligence-projet.json', import.meta.url)), 'utf8')) as { narratif: { presetsPnj: { profil?: { descRef?: unknown } }[] } };
+    const descRef = disque.narratif.presetsPnj.map((p) => p.profil?.descRef).find((r) => r !== undefined);
+    const ko = schema.safeParse({ fiche: { descRef }, adapteDe: SOURCE_REELLE });
+    expect(ko.error?.issues.map((i) => ({ path: i.path, message: i.message }))).toEqual([
+      { path: ['adapteDe'], message: 'texte adapté, alors que la description de « fiche » est la copie adressée du livre.' },
+    ]);
+    expect(schema.safeParse({ fiche: { desc: 'Un texte adapté.' }, adapteDe: SOURCE_REELLE }).success).toBe(true);
   });
 
   it('marque l’entrée PARTIELLE de son document — et elle seule', () => {
@@ -1327,6 +1347,26 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
     expect(ko.success).toBe(false);
     expect(ko.error!.issues.map((i) => i.path.join('.'))).toContain('descRef');
     expect(ko.error!.issues.map((i) => i.message)).toContain('texte en double : saisi ici et adressé au livre — garde l’un ou l’autre.');
+  });
+
+  it('l’entrée PARTIELLE porte les verrous de prose, sans obligation (#2206)', () => {
+    const partielle = jouet(HORS_STOCK).entreePartielle;
+    const doubleKo = partielle.safeParse({ desc: 'Une prose.', descRef: ADRESSE });
+    expect(doubleKo.success, 'V1 : desc et descRef ensemble').toBe(false);
+    expect(doubleKo.error!.issues.map((i) => i.path.join('.'))).toContain('descRef');
+    const livreKo = partielle.safeParse({ descRef: ADRESSE_IRRESOLUBLE });
+    expect(livreKo.success, 'V2 : livre non extrait').toBe(false);
+    expect(livreKo.error!.issues.map((i) => i.path.join('.'))).toContain('descRef.book');
+    expect(partielle.safeParse({ label: 'X' }).success, 'sans prose : rien n’est exigé').toBe(true);
+  });
+
+  it('les profils de preset du disque passent les verrous de la partielle de créature (#2206)', () => {
+    const disque = JSON.parse(readFileSync(fileURLToPath(new URL('../../../scenes/diligence/diligence-projet.json', import.meta.url)), 'utf8')) as { narratif: { presetsPnj: { id: string; profil?: unknown }[] } };
+    const profils = disque.narratif.presetsPnj.filter((p) => p.profil !== undefined);
+    expect(profils.length).toBeGreaterThan(0);
+    expect(profils.filter((p) => !creaturePartielle.safeParse(p.profil).success).map((p) => p.id)).toEqual([]);
+    const adresse = profils.map((p) => (p.profil as { descRef?: unknown }).descRef).find((r) => r !== undefined);
+    expect(creaturePartielle.safeParse({ desc: 'Une prose.', descRef: adresse }).success, 'V1 sur la partielle de créature').toBe(false);
   });
 
   it('V2b — la `source` et l’adresse doivent citer le MÊME livre', () => {

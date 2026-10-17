@@ -15,6 +15,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Prose } from '../Prose';
 import { CODEX, combatantSections, type CodexRow, type CodexSection } from './registry';
 import { CHEMINS_ADRESSES } from '../liage';
+import { adressesDesEntreesEmbarquees } from '../../data/schemas/grammaire/document';
+import { projetSchema } from '../../data/schemas/defs-scenes/projet';
 import { porteurDeRangee } from './CodexEntry'; // la SEULE composition rangée+entrée — celle du rendu
 import { pregen, PREGEN } from '../../data/pregens';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
@@ -118,10 +120,13 @@ describe('câblage `CHEMINS_ADRESSES` ⇄ porteurs réellement émis (#1392 §10
     () => new Set(cheminsProseNommee(DEFS_SCENES())),
   );
 
-  it('chaque chemin de PROJET est composé par `proseNommee()` dans une def de scène', () => {
+  it('chaque chemin de PROJET est composé par `proseNommee()` dans une def de scène, hors enveloppes des entrées embarquées', () => {
+    const embarquees = adressesDesEntreesEmbarquees([projetSchema]);
+    expect(embarquees.length, 'la projection des entrées embarquées est vide').toBeGreaterThan(0);
     const projets = CHEMINS_ADRESSES.filter((c) => c.type === 'projet').map((c) => c.chemin);
-    expect(projets.length).toBeGreaterThan(0);
-    expect(projets.filter((c) => !DECLARES().has(c)).sort()).toEqual([]);
+    expect(projets.some((c) => DECLARES().has(c))).toBe(true);
+    const enveloppes = embarquees.flatMap((a) => CHEMINS_ADRESSES.filter((x) => x.type === '*').map((x) => `${a}.${x.chemin}`));
+    expect(projets.filter((c) => !DECLARES().has(c)).sort()).toEqual(enveloppes.sort());
   });
 
   it('aucune def de scène ne déclare un chemin HORS inventaire', () => {

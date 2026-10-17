@@ -46,7 +46,7 @@ function launch(advances: number, seed: number): void {
   seedBattleRng(seed);
   const g = get();
   g.setParty([hero(advances)]);
-  g.loadProject([scene()], 'auberge-a', tavernMap());
+  g.loadProject({ scenes: [scene()], entryId: 'auberge-a', worldMap: tavernMap(), projet: null });
   set({ tradeRumours: [], journal: [] });
 }
 

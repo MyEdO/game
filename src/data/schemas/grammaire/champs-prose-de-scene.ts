@@ -1,4 +1,4 @@
-/** #2427 — chemins en notation `scripts/source/adresses.mjs`. */
+/** #2427 ; #2684. */
 export const PROSES_NOMMEES = {
   'narratif.ouverture.pitch': { champ: 'pitch', label: 'texte', regime: 'narration', presence: 'requis', porteur: 'folio' },
   'narratif.indices[].stades[].prose': { champ: 'prose', label: 'texte', regime: 'narration', presence: 'optionnel', porteur: 'folio' },

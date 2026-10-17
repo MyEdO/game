@@ -143,7 +143,7 @@ describe('P5 — un preset ADAPTÉ dont le profil ADRESSE sa description est ref
     const r = refus(() => parseProject(doc));
     expect(r.cause).toBe('schema');
     expect(r.fautes.map((f) => ({ chemin: f.chemin, message: f.message }))).toEqual([
-      { chemin: ['narratif', 'presetsPnj', i, 'adapteDe'], message: 'texte adapté, alors que la description du profil est la copie adressée du livre.' },
+      { chemin: ['narratif', 'presetsPnj', i, 'adapteDe'], message: 'texte adapté, alors que la description de « profil » est la copie adressée du livre.' },
     ]);
   });
 });

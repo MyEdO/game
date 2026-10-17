@@ -2016,12 +2016,11 @@ Pièges vécus À L'ÉDITEUR (deux recettes, 2026-09-21) — tous re-mesurés au
   `button.listrow` rendus SEULEMENT une fois le `<details>` ouvert, dans une `BoiteAncree` portée HORS du
   `<details>` (`createPortal`) : ouvrir le sommaire, puis viser l'item dans `{ dans: '.eff-add-menu' }`,
   jamais dans le `<details>`. Même structure pour « + Bloc » (ci-dessous).
-- **Le montage d'un PNJ n'a PAS de « Détacher »** : sa provenance (`src/ui/editor/NarratifEditor.tsx:820`)
-  est celle du PRESET, posée en `copie` ; le bouton « Détacher » n'est rendu que sur un site SANS `copie`
-  qui reçoit une adresse — réplique, ligne de journal (`src/ui/editor/ProvenanceDuTexte.tsx:53`). Quand
-  la description du profil est la copie adressée du livre, c'est l'option « Adapté » qui est REFUSÉE,
-  avec sa raison (« La description du profil est la copie adressée du livre. ») : `mesurerProvenance` y
-  rend `detacher: null` et le `refus` de cette option.
+- **Le montage d'un PNJ porte un « Détacher »** quand la description du profil est la copie adressée
+  du livre (`descRef`) : sa provenance est celle du PRESET, posée en `copie`, et tant que l'adresse
+  tient, « Adapté » et « Maison » sont REFUSÉES avec leur raison. « Détacher » (`ProvenanceDuTexte`,
+  adresse embarquée) reporte la `source` du preset sur `adapteDe` en un seul patch : `mesurerProvenance`
+  rend alors `mode` « Adapté », `reference` « Adapté de », et `detacher: null` (#2206).
 
 Une op mécanique ne s'atteint pas depuis la Scène : elle vit dans un bloc d'effets de trigger.
 Chemin mesuré en recette (2026-09-18, #1789) jusqu'à l'éditeur d'une op :
