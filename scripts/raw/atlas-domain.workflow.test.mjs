@@ -390,6 +390,7 @@ const RENDU_A_REPRENDRE = () => ({
   lastAuditDry: true,
   surveyCounts: [{ book: 'BKA', hits: 2 }, { book: 'SPG', hits: 0 }],
   sourceAbimee: [{ phase: 'Synthese', ref: 'BKA 05 l.7', constat: 'phrase tronquee en fin de fichier' }],
+  agentsSansRendu: [`${LOT[0]}:survey:SPG — rien rendu`, `${LOT[0]}:verif:jamais-juge — échec : API morte`],
 })
 const ARGS_DE_REPRISE = (rendu = RENDU_A_REPRENDRE()) => ({ ...PERIMETRE(), reprise: rendu })
 /** Les phases de DÉCOUVERTE : aucune ne doit être atteinte par une reprise. */
@@ -411,7 +412,25 @@ test('workflow Atlas : une REPRISE ne lance AUCUN agent de découverte, et ne re
   assert.equal(d.inventoryCount, 4)
   assert.deepEqual(d.surveyCounts, RENDU_A_REPRENDRE().surveyCounts)
   assert.deepEqual(d.topics.map((t) => [t.topicId, t.faithful]), [['deja-prouve', true], ['jamais-juge', true]])
+  assert.deepEqual(d.agentsSansRendu, [`${LOT[0]}:survey:SPG — rien rendu`], 'la verif rejugee sort des trous ; la decouverte perdue y reste')
   assert.equal(rendu.coeur, 'alpha')
+})
+
+test('workflow Atlas : un agent qui LÈVE est capturé — sa cause se nomme au saut ou aux trous du domaine, le run continue (#2721)', async () => {
+  const leve = (phase) => (prompt, opts) => (opts.phase === phase ? Promise.reject(new Error('API morte')) : repondreAvec(false)(prompt, opts))
+  for (const [phase, saute] of [['Cadrage', `cadrage SANS RENDU : ${LOT[0]}:cadrage — échec : API morte`], ['Taxonomie', `taxonomie SANS RENDU : ${LOT[0]}:taxo — échec : API morte`]]) {
+    const { rendu } = await jouerWorkflow(SCRIPT, PERIMETRE(), leve(phase))
+    assert.deepEqual([rendu.domains, rendu.sautes], [[], [{ domain: LOT[0], raison: saute }]], phase)
+  }
+  const audit = await jouerWorkflow(SCRIPT, PERIMETRE(), leve('Audit'))
+  const d = audit.rendu.domains[0]
+  assert.deepEqual(d.agentsSansRendu, [`${LOT[0]}:audit#1 — échec : API morte`])
+  assert.equal(d.lastAuditDry, false, 'un audit sans rendu ne prouve pas la completude')
+  assert.ok(audit.promptsParLabel.has(`Verif:${LOT[0]}:verif:topic-un`), 'la fidelite se juge quand meme')
+  const synthese = await jouerWorkflow(SCRIPT, PERIMETRE(), leve('Synthese'))
+  assert.deepEqual(synthese.rendu.domains[0].agentsSansRendu, [`${LOT[0]}:synth:topic-un — échec : API morte`])
+  const nominal = await jouerWorkflow(SCRIPT, PERIMETRE(), repondreAvec(false))
+  assert.deepEqual(nominal.rendu.domains[0].agentsSansRendu, [], 'témoin : un run sans perte n a aucun trou')
 })
 
 test('workflow Atlas : en REPRISE, une fidélité REFUSÉE ouvre la correction puis la re-vérif', async () => {
@@ -455,6 +474,7 @@ test('workflow Atlas : en REPRISE, un agent MUET laisse le verdict antérieur IN
   assert.match(refuse.markdown, /Un corps\./)
   // Le topic JAMAIS jugé reste sans verdict : on n'en invente pas un.
   assert.equal(topics.find((t) => t.topicId === 'jamais-juge').faithful, null)
+  assert.ok(sorti.domains[0].agentsSansRendu.includes(`${LOT[0]}:verif:juge-refuse — échec : agent mort`), 'la re-verif muette se nomme aux trous')
   assert.equal(topics.find((t) => t.topicId === 'deja-prouve').faithful, true)
 })
 

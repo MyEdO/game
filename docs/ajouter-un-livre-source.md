@@ -588,6 +588,8 @@ La chaîne, dans l'ordre — **périmètre → workflow → assemble → apply �
    jamais — un agent qui corrige la source qu'il cite ensuite fabrique sa propre preuve. APRÈS un
    run, `git status --porcelain` du worktree doit donc être IDENTIQUE à ce qu'il était AVANT : toute
    écriture apparue rend le rendu suspect (une preuve a pu être fabriquée) et se remonte au ticket.
+   Un agent qui échoue ne coupe pas le run : il entre au rendu du domaine (`agentsSansRendu`, chacun
+   `<label> — <cause>`), ou à la raison de son saut ; une liste non vide se rejoue avant d'assembler.
    Il rend `{ coeur, supplements, domains: […], sautes: [{ domain, raison }] }` —
    `sautes` nomme les domaines qu'il n'a PAS traités (cadrage, inventaire ou taxonomie vides), et
    `assemble-domain` refuse un rendu qui en porte : une fiche absente ne doit pas pouvoir se lire

@@ -1,6 +1,6 @@
 export const meta = {
   name: 'atlas-raw-fanout',
-  description: "Atlas RAW AUTONOME. Le PERIMETRE (coeur de regles + livres, avec leur langue) ENTRE par `args`, projete de src/data/books.json par `node scripts/raw/workflow-args.mjs <coeur>` : le script ne nomme aucun livre. Par domaine : Cadrage (auto-decouverte des chapitres) -> Cartographie -> Taxonomie -> Survey de tous les livres du perimetre -> Synthese (tables verbatim) -> Boucle d'audit completude+dedup (loop-until-dry) -> Verif fidelite -> correction fidelite. Le champ Implemente des fiches est DERIVE du code par build-implemente (#487) — le workflow ne pose qu'un placeholder. Le LOT de domaines a traiter et la CARTE des domaines du coeur entrent par le meme `args` (--domaines a,b) : le script ne nomme aucun domaine. Un domaine SAUTE sort dans `sautes`, avec sa raison, jamais en silence. Mode de REPRISE (`args.reprise` = le rendu d UN domaine, --reprise <rendu.json>) : ne rejoue que Verif -> correction de fidelite -> re-verif sur les topics non prouves fideles, et rend le rendu complete. Zero config par domaine.",
+  description: "Atlas RAW AUTONOME. Le PERIMETRE (coeur de regles + livres, avec leur langue) ENTRE par `args`, projete de src/data/books.json par `node scripts/raw/workflow-args.mjs <coeur>` : le script ne nomme aucun livre. Par domaine : Cadrage (auto-decouverte des chapitres) -> Cartographie -> Taxonomie -> Survey de tous les livres du perimetre -> Synthese (tables verbatim) -> Boucle d'audit completude+dedup (loop-until-dry) -> Verif fidelite -> correction fidelite. Le champ Implemente des fiches est DERIVE du code par build-implemente (#487) — le workflow ne pose qu'un placeholder. Le LOT de domaines a traiter et la CARTE des domaines du coeur entrent par le meme `args` (--domaines a,b) : le script ne nomme aucun domaine. Un domaine SAUTE sort dans `sautes`, avec sa raison, jamais en silence ; un agent qui echoue ne coupe pas le run : il entre, sous son label et sa cause, aux `agentsSansRendu` du domaine, ou a la raison de son saut. Mode de REPRISE (`args.reprise` = le rendu d UN domaine, --reprise <rendu.json>) : ne rejoue que Verif -> correction de fidelite -> re-verif sur les topics non prouves fideles, et rend le rendu complete. Zero config par domaine.",
   phases: [
     { title: 'Cadrage', detail: 'auto-decouverte des chapitres du domaine (index)', model: 'sonnet' },
     { title: 'Cartographie', detail: 'inventaire exhaustif a couvrir', model: 'sonnet' },
@@ -114,7 +114,27 @@ const recolter = (rendu, phase) => {
   }
   return rendu
 }
-const LANGUES = [...new Set(BOOKS.map((b) => b.language))].join(', ')
+
+// ── Appels d'agent : un échec se NOMME (#2721) ─────────────────────────────────────────────────
+/** L'appel `lancer()`, qui ne lève jamais : `{ rendu, cause: null }`, ou `{ rendu: null, cause }` — l'erreur
+ *  levée (schéma non tenu après les essais du harnais, erreur d'API) ou l'absence de rendu. */
+const capturer = async (lancer) => {
+  try {
+    const rendu = await lancer()
+    return rendu ? { rendu, cause: null } : { rendu: null, cause: 'rien rendu' }
+  } catch (erreur) {
+    return { rendu: null, cause: `échec : ${erreur?.message ?? String(erreur)}` }
+  }
+}
+/** Les appels sans rendu du domaine COURANT, chacun `<label> — <cause>`. */
+let SANS_RENDU = []
+/** Le rendu de `lancer()`, ou `null` : un appel sans rendu entre, sous son label et sa cause, aux trous du domaine. */
+const rendre = async (etiquette, lancer) => {
+  const { rendu, cause } = await capturer(lancer)
+  if (!rendu) SANS_RENDU.push(etiquette + ' — ' + cause)
+  return rendu
+}
+const LANGUES =[...new Set(BOOKS.map((b) => b.language))].join(', ')
 // #1816 — fiche `user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`.
 const LANGUE_FICHE = 'LANGUE DE LA FICHE : la SYNTHESE que tu rediges est en FRANCAIS parfaitement accentue.'
 // Deux clauses, parce que deux gestes : REPERER du texte (inventorier, juger) et le TRANSCRIRE
@@ -264,7 +284,8 @@ async function applyGaps(dom, entries, gaps) {
     const existing = info.isNew ? null : entries.find((e) => e.topicId === info.topicId)
     const title = info.isNew ? info.title : (existing ? existing.title : info.topicId)
     const tid = info.isNew ? slug(info.title) : info.topicId
-    return agent(augmentPrompt(dom, existing ? existing.markdown : null, title, tid, info.gaps), { label: dom.domain + ':augment:' + tid, phase: 'Correction', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
+    const etiquette = dom.domain + ':augment:' + tid
+    return rendre(etiquette, () => agent(augmentPrompt(dom, existing ? existing.markdown : null, title, tid, info.gaps), { label: etiquette, phase: 'Correction', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA }))
       .then((rendu) => ficheDe(recolter(rendu, 'Correction'), tid))
   }))
   const map = new Map(entries.map((e) => [e.topicId, e]))
@@ -275,9 +296,11 @@ async function applyGaps(dom, entries, gaps) {
 /** Les verdicts de fidelite d un jeu d entrees, KEYES PAR L ENTREE JUGEE (`e.topicId`) : la reponse
  *  d un verificateur ne porte aucun id (VERIFY_SCHEMA). */
 async function verdictsDeFidelite(dom, entries, etiquette) {
-  const rendus = await parallel(entries.map((e) => () =>
-    agent(verifyPrompt(dom, e), { label: dom.domain + ':' + etiquette + ':' + e.topicId, phase: 'Verif', agentType: 'juge-de-source', model: 'opus', effort: 'high', schema: VERIFY_SCHEMA })
-      .then((v) => ({ e, v: recolter(v, 'Verif') }))))
+  const rendus = await parallel(entries.map((e) => () => {
+    const labelDeVerif = dom.domain + ':' + etiquette + ':' + e.topicId
+    return rendre(labelDeVerif, () => agent(verifyPrompt(dom, e), { label: labelDeVerif, phase: 'Verif', agentType: 'juge-de-source', model: 'opus', effort: 'high', schema: VERIFY_SCHEMA }))
+      .then((v) => ({ e, v: recolter(v, 'Verif') }))
+  }))
   const parId = {}
   rendus.forEach((x) => { if (x && x.v) parId[x.e.topicId] = { faithful: x.v.faithful, issues: x.v.issues || [] } })
   return parId
@@ -324,7 +347,15 @@ function renduDeDomaine(dom, entries, issuesById, mesures) {
     // Ce qu une source a d ABIME, SIGNALE et jamais repare : ce qui ENTRE (une reprise garde les
     // signalements deja rendus) plus ce que CE passage d agents a recolte.
     sourceAbimee: (mesures.sourceAbimee || []).concat(ABIMEES),
+    // Les appels sans rendu, chacun sous son label et sa cause : ce qui ENTRE, hors la verif d un topic
+    // qu une reprise a depuis juge, plus ce que CE passage d agents a perdu.
+    agentsSansRendu: (mesures.agentsSansRendu || []).filter((ligne) => !verifRejugee(ligne, dom, issuesById)).concat(SANS_RENDU),
   }
+}
+/** Une ligne `<domaine>:verif|reverif:<topic> — <cause>` dont le topic porte desormais un verdict. */
+const verifRejugee = (ligne, dom, issuesById) => {
+  const m = new RegExp('^' + dom.domain + ':(?:re)?verif:(.+?) — ').exec(ligne)
+  return !!(m && issuesById[m[1]])
 }
 
 /**
@@ -334,6 +365,7 @@ function renduDeDomaine(dom, entries, issuesById, mesures) {
  */
 async function reprendreDomaine(rendu) {
   ABIMEES = []
+  SANS_RENDU = []
   const declare = DOMAINES.find((d) => d.cle === rendu.domain)
   const dom = { domain: rendu.domain, title: declare.titre }
   const entries = rendu.topics.map((t) => ({ topicId: t.topicId, title: t.title, markdown: t.markdown, refs: t.refs || [], codeHint: t.codeHint || '' }))
@@ -350,6 +382,7 @@ async function reprendreDomaine(rendu) {
     lastAuditDry: rendu.lastAuditDry === undefined ? false : rendu.lastAuditDry,
     surveyCounts: rendu.surveyCounts || [],
     sourceAbimee: rendu.sourceAbimee || [],
+    agentsSansRendu: rendu.agentsSansRendu || [],
   }
   const aJuger = entries.filter((e) => !(issuesById[e.topicId] && issuesById[e.topicId].faithful === true))
   if (!aJuger.length) {
@@ -367,34 +400,45 @@ async function reprendreDomaine(rendu) {
  */
 async function runDomain(domain) {
   ABIMEES = []
+  SANS_RENDU = []
   const declare = DOMAINES.find((d) => d.cle === domain)
   const dom = { domain, title: declare.titre }
 
   phase('Cadrage')
-  const cad = await agent(cadragePrompt(dom), { label: dom.domain + ':cadrage', phase: 'Cadrage', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: CADRAGE_SCHEMA })
+  const etiquetteDeCadrage = dom.domain + ':cadrage'
+  const cad = await rendre(etiquetteDeCadrage, () => agent(cadragePrompt(dom), { label: etiquetteDeCadrage, phase: 'Cadrage', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: CADRAGE_SCHEMA }))
+  if (!cad) return { saute: 'cadrage SANS RENDU : ' + SANS_RENDU.join(' ; ') }
   recolter(cad, 'Cadrage')
-  const COVERAGE = (cad && cad.coverageRefs) || []
+  const COVERAGE = cad.coverageRefs || []
   if (!COVERAGE.length) return { saute: 'cadrage VIDE : aucun chapitre dedie rendu par l agent de cadrage' }
   log(dom.title + ' — cadrage : ' + COVERAGE.map((r) => r.ab + r.nn).join(','))
 
   phase('Cartographie')
-  const invRes = await parallel(COVERAGE.map((r) => () => agent(cartoPrompt(dom, r), { label: dom.domain + ':carto:' + r.ab + '-' + r.nn, phase: 'Cartographie', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: INVENTORY_SCHEMA })
-    .then((rendu) => recolter(rendu, 'Cartographie'))))
+  const invRes = await parallel(COVERAGE.map((r) => () => {
+    const etiquette = dom.domain + ':carto:' + r.ab + '-' + r.nn
+    return rendre(etiquette, () => agent(cartoPrompt(dom, r), { label: etiquette, phase: 'Cartographie', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: INVENTORY_SCHEMA }))
+      .then((rendu) => recolter(rendu, 'Cartographie'))
+  }))
   const inventory = []
   invRes.forEach((x, i) => { if (x && x.items) for (const it of x.items) inventory.push({ item: it.item, kind: it.kind, ref: it.ref, gist: it.gist, src: COVERAGE[i].ab + ' ' + COVERAGE[i].nn }) })
-  if (!inventory.length) return { saute: 'inventaire VIDE : la cartographie n a rapporte aucune regle sur ' + COVERAGE.map((r) => r.ab + ' ' + r.nn).join(', ') }
+  if (!inventory.length) return { saute: 'inventaire VIDE : la cartographie n a rapporte aucune regle sur ' + COVERAGE.map((r) => r.ab + ' ' + r.nn).join(', ') + (SANS_RENDU.length ? ' — sans rendu : ' + SANS_RENDU.join(' ; ') : '') }
   log(dom.title + ' — inventaire : ' + inventory.length + ' elements')
 
   phase('Taxonomie')
-  const taxo = await agent(taxoPrompt(dom, inventory), { label: dom.domain + ':taxo', phase: 'Taxonomie', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: TAXO_SCHEMA })
+  const etiquetteDeTaxonomie = dom.domain + ':taxo'
+  const taxo = await rendre(etiquetteDeTaxonomie, () => agent(taxoPrompt(dom, inventory), { label: etiquetteDeTaxonomie, phase: 'Taxonomie', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: TAXO_SCHEMA }))
+  if (!taxo) return { saute: 'taxonomie SANS RENDU : ' + SANS_RENDU.filter((l) => l.startsWith(etiquetteDeTaxonomie + ' — ')).join(' ; ') }
   recolter(taxo, 'Taxonomie')
-  const TOPICS = (taxo && taxo.topics) || []
+  const TOPICS = taxo.topics || []
   if (!TOPICS.length) return { saute: 'taxonomie VIDE : aucun topic decoupe sur ' + inventory.length + ' elements inventories' }
   log(dom.title + ' — ' + TOPICS.length + ' topics')
 
   phase('Survey')
-  const surveyRes = await parallel(BOOKS.map((b) => () => agent(surveyPrompt(dom, b, TOPICS), { label: dom.domain + ':survey:' + b.ab, phase: 'Survey', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: SURVEY_SCHEMA })
-    .then((rendu) => recolter(rendu, 'Survey'))))
+  const surveyRes = await parallel(BOOKS.map((b) => () => {
+    const etiquette = dom.domain + ':survey:' + b.ab
+    return rendre(etiquette, () => agent(surveyPrompt(dom, b, TOPICS), { label: etiquette, phase: 'Survey', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: SURVEY_SCHEMA }))
+      .then((rendu) => recolter(rendu, 'Survey'))
+  }))
   const byTopic = {}
   TOPICS.forEach((t) => { byTopic[t.id] = [] })
   const autre = []
@@ -402,15 +446,23 @@ async function runDomain(domain) {
   log(dom.title + ' — survey : ' + Object.values(byTopic).reduce((n, a) => n + a.length, 0) + ' passages ; ' + autre.length + ' hors-taxo')
 
   phase('Synthese')
-  let entries = (await parallel(TOPICS.map((t) => () => agent(synthPrompt(dom, t, byTopic[t.id] || [], t.covers), { label: dom.domain + ':synth:' + t.id, phase: 'Synthese', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
-    .then((rendu) => ficheDe(recolter(rendu, 'Synthese'), t.id))))).filter(Boolean)
+  let entries = (await parallel(TOPICS.map((t) => () => {
+    const etiquette = dom.domain + ':synth:' + t.id
+    return rendre(etiquette, () => agent(synthPrompt(dom, t, byTopic[t.id] || [], t.covers), { label: etiquette, phase: 'Synthese', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA }))
+      .then((rendu) => ficheDe(recolter(rendu, 'Synthese'), t.id))
+  }))).filter(Boolean)
 
   let loops = 0
   let lastDry = false
   while (loops < MAXLOOPS) {
     phase('Audit')
     // L audit CONFRONTE les entrees a la source et refute : c est un JUGEMENT, pas une redaction.
-    const audit = await agent(auditPrompt(dom, entries, inventory, autre), { label: dom.domain + ':audit#' + (loops + 1), phase: 'Audit', agentType: 'juge-de-source', model: 'opus', effort: 'high', schema: AUDIT_SCHEMA })
+    const etiquette = dom.domain + ':audit#' + (loops + 1)
+    const audit = await rendre(etiquette, () => agent(auditPrompt(dom, entries, inventory, autre), { label: etiquette, phase: 'Audit', agentType: 'juge-de-source', model: 'opus', effort: 'high', schema: AUDIT_SCHEMA }))
+    if (!audit) {
+      log(dom.title + ' — audit #' + (loops + 1) + ' SANS RENDU : la completude n est pas prouvee')
+      break
+    }
     recolter(audit, 'Audit')
     const gaps = (audit && audit.gaps) || []
     lastDry = !!(audit && audit.dry)

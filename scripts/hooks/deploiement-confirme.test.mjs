@@ -9,7 +9,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
 const lireJson = (url) => JSON.parse(readFileSync(url, 'utf8'))
-const ASK = lireJson(new URL('../../.claude/settings.json', import.meta.url)).permissions.ask
+const { ask: ASK, allow: ALLOW } = lireJson(new URL('../../.claude/settings.json', import.meta.url)).permissions
 const RACINE = lireJson(new URL('../../package.json', import.meta.url)).scripts
 const SERVEUR = lireJson(new URL('../../server/package.json', import.meta.url)).scripts
 
@@ -40,6 +40,15 @@ test('chaque écriture d’une commande npm ou wrangler qui déploie en producti
   const commandes = commandesQuiDeploient()
   assert.ok(commandes.includes('npm run relay:deploy'), 'la dérivation doit trouver le relais du serveur coop')
   assert.deepEqual(commandes.filter((c) => !confirme(c)), [])
+})
+
+/** Les outils lean-ctx qui EXÉCUTENT une commande : `ask` ne couvre que l'outil Bash (#2721). */
+const SHELLS_LEAN_CTX = ['ctx_shell', 'ctx_shell_background', 'ctx_call', 'shell'].map((outil) => `mcp__lean-ctx__${outil}`)
+
+test('aucun shell hors Bash n’est pré-approuvé : un déploiement par `ctx_shell` passerait sans confirmation', () => {
+  const ouvre = (regle, outil) => regle === outil || regle === 'mcp__lean-ctx' || (regle.endsWith('*') && outil.startsWith(regle.slice(0, -1)))
+  assert.deepEqual(SHELLS_LEAN_CTX.filter((outil) => ALLOW.some((regle) => ouvre(regle, outil))), [])
+  assert.ok(ALLOW.includes('mcp__lean-ctx__ctx_read'), 'témoin : la lecture lean-ctx reste pré-approuvée')
 })
 
 test('le déclenchement d’un workflow par le connecteur GitHub est sous `permissions.ask`', () => {
