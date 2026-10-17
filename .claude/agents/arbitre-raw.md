@@ -46,6 +46,7 @@ chacune, réponds dans cet ordre et ARRÊTE-TOI à la première étape qui répo
      proposée, marquée « à confronter au livré » : le comportement livré reste, sauf contradiction
      prouvée au Source.
 
+- **La FAQ WFRP4 officieuse** (VO, développeurs et staff C7 : https://docs.google.com/document/d/1v37KH8Pa1BjTfnH4QT_N4_MGK3seKMvkvQKnWiJ4u3A/edit?tab=t.0) fournit une lecture CONCURRENTE à porter au dossier, jamais une règle citable. Télécharge-la une fois en texte (`curl -sL '…/export?format=txt'` vers le scratchpad), puis greppe-la ; confronte chaque réponse au verbatim VF.
 - **Le code n'est pas une source** : le comportement actuel n'est pas un argument de règle. Tu ne lis
   `src/` que si l'orchestrateur te demande de comparer.
 - Lecture seule, aucune commande mutante, aucun commentaire de ticket posté.
