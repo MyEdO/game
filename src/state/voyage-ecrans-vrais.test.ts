@@ -61,7 +61,7 @@ function map(route: Partial<MapRouteTrace> = {}): WorldMap {
 }
 function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Combatant[] = [hero()]): void {
   set({ party, travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], battle: null });
-  get().loadProject([scene('scene-depart', 'Cour du relais de départ', departWeather), scene('scene-arrivee', 'Place de Federholz')], 'scene-depart', worldMap);
+  get().loadProject({ scenes: [scene('scene-depart', 'Cour du relais de départ', departWeather), scene('scene-arrivee', 'Place de Federholz')], entryId: 'scene-depart', worldMap, projet: null });
   set({ gameTime: campaignStart() });
 }
 
