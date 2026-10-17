@@ -51,7 +51,7 @@ export function CampaignOpeningScreen() {
         </>
       }
     >
-      {ouv.sousTitre && <Prose md={ouv.sousTitre.texte} />}
+      {ouv.sousTitre && <Prose md={ouv.sousTitre.texte} porteur={porteurDeProjet({ campaignDoc }, 'narratif.ouverture.sousTitre.texte')} />}
       {ouv.surtitre && <p className="section-label">{ouv.surtitre}</p>}
       <RuleDivider />
       {ouv.chapitre && <p className="subtitle">{ouv.chapitre}</p>}

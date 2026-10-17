@@ -6,6 +6,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
 import { poserScenario } from '../state/scenarioFlow';
+import { lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
+import { makePregens } from '../data/pregens';
 import { scenario } from '../scenes/test-scenarios/96-presets-edo';
 import { presetPnjById, mergeCreatureProfile } from '../state/campaignData';
 import { sceneNpc } from '../state/sceneNpc';
@@ -21,6 +23,11 @@ import { porteurDuNarratif } from './porteurDeProjet';
 import { CHEMINS_ADRESSES, type Porteur } from './liage';
 import { InspectPanel } from './InspectPanel';
 import { CampaignView } from './CampaignView';
+import { Inspector } from './editor/Inspector';
+import { addEnemyMember } from '../state/sceneEdit';
+import { placeEntity } from './editor/editorState';
+import { emptyScene } from '../state/scene';
+import type { NarratifBlock } from '../state/campaignNarratif';
 import { useGameKeyboard } from './useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { DELAI_APPUI_LONG } from './useLongPress';
@@ -155,6 +162,68 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
     expect(liens(pane)).toEqual(attendus);
   });
 
+  it('un personnage POSÉ à l’éditeur puis passé au preset se nomme du preset — titre de l’inspection et frise ; un nom d’auteur l’emporte (#1463 S3)', () => {
+    const narratif: NarratifBlock = { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-tavernier', base: 'humain', profil: { label: 'Le Tavernier' } }] };
+    const vide = emptyScene(8, 8);
+    vide.id = 'sc-pose';
+    vide.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 1, y: 1 } });
+    const posee = placeEntity(vide, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 5, y: 4 });
+    const pose = addEnemyMember(posee.scene, '', 'humain', { x: 5, y: 4 });
+    expect(pose.entityId, 'l’outil de combat enrôle le personnage posé').toBe(posee.id);
+    let scene = pose.scene;
+    const editer = (geste: (racine: HTMLElement) => void): void => {
+      const rendre = (sc: Scene) => root!.render(
+        <Inspector
+          scene={sc} otherScenes={[]} worldMap={null}
+          setScene={(next) => { scene = next; act(() => rendre(next)); }}
+          sel={{ type: 'entity', id: pose.entityId }} setSel={() => undefined}
+          enemyCreatures={[{ id: 'humain', label: 'Humain' }]} openLogic={() => undefined} resizeScene={() => undefined}
+          narratif={narratif} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
+        />,
+      );
+      const racine = monter(<></>);
+      act(() => rendre(scene));
+      geste(racine);
+      act(() => { root!.unmount(); });
+      host?.remove();
+      host = null; root = null;
+    };
+    const saisir = (el: HTMLInputElement | HTMLSelectElement, v: string) => act(() => {
+      Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), 'value')!.set!.call(el, v);
+      el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }));
+    });
+    const titreDeFrise = (nom: string): HTMLElement | null => {
+      useGame.getState().setParty(makePregens().slice(0, 1));
+      useGame.getState().loadProject({ scenes: [scene], entryId: scene.id, narratif, projet: null });
+      useGame.getState().startCombat(pose.encId, undefined, { noSurprise: true });
+      useGame.setState({ inspectId: null });
+      const el = monter(<CampaignView />);
+      return el.querySelector<HTMLElement>(`.initiative-strip [title="${nom}"]`);
+    };
+
+    expect(scene.entities.find((e) => e.id === pose.entityId)).not.toHaveProperty('label');
+    editer((racine) => {
+      const preset = [...racine.querySelectorAll('select')].find((el) => el.closest('label')?.textContent?.includes('Preset PNJ'))!;
+      saisir(preset, 'pnj-tavernier');
+      expect(racine.querySelector('.insp-title')?.textContent, 'titre de l’inspecteur de l’éditeur').toContain('Le Tavernier');
+    });
+    const portrait = titreDeFrise('Le Tavernier');
+    expect(portrait, 'frise : le nom du preset').toBeTruthy();
+    clicDroit(portrait!);
+    expect(dialogue().querySelector('h3')?.textContent).toBe('Le Tavernier');
+    act(() => { root!.unmount(); });
+    host?.remove();
+    host = null; root = null;
+
+    editer((racine) => {
+      const libelle = [...racine.querySelectorAll('input')].find((el) => el.closest('label')?.textContent?.startsWith('Libellé'))!;
+      expect(libelle.placeholder).toBe('Le Tavernier');
+      saisir(libelle, 'Hans');
+    });
+    clicDroit(titreDeFrise('Hans')!);
+    expect(dialogue().querySelector('h3')?.textContent).toBe('Hans');
+  });
+
   it('EN SCÉNARIO, la même Description reste NUE : aucun document de projet, aucun lien', () => {
     combatKnud();
     useGame.setState({ inspectId: null });
@@ -260,7 +329,7 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
   it('EN SCÉNARIO, la desc du même profil est NUE', () => {
     const knud = combatKnud();
     const p = proseDeFiche(knud, presetPnjById, duNarratif)!;
-    expect(p.section.rows).toEqual([{ t: 'text', text: DESC_KNUD(), porteur: { chemin: 'desc' } }]);
+    expect(p.section.rows).toEqual([{ t: 'text', text: DESC_KNUD(), porteur: undefined }]);
     expect(p.entree).toBeUndefined();
   });
 
@@ -292,14 +361,14 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
     const presetDe = (id: string) => (id === 'pnj-fige' ? { id, base: 'squelette', profil: { desc: 'Le texte du profil, depuis réécrit.' } } : undefined);
     const p = proseDeFiche(c, presetDe, enCampagne)!;
     expect(findCreatureById('squelette')?.desc).toBeTruthy();
-    expect(p.section.rows).toEqual([{ t: 'text', text: 'Un texte écrit ailleurs.', porteur: { chemin: 'desc' } }]);
+    expect(p.section.rows).toEqual([{ t: 'text', text: 'Un texte écrit ailleurs.', porteur: undefined }]);
     expect(p.entree).toBeUndefined();
   });
 
   it('preset que `presetDe` ne résout pas : prose NUE', () => {
     const c = spawnEnemy({ presetCreature: findCreatureById('squelette')!, presetId: 'pnj-inconnu' }, 'i', { x: 0, y: 0 });
     const p = proseDeFiche(c, () => undefined, duNarratif)!;
-    expect(p.section.rows).toEqual([{ t: 'text', text: findCreatureById('squelette')!.desc, porteur: { chemin: 'desc' } }]);
+    expect(p.section.rows).toEqual([{ t: 'text', text: findCreatureById('squelette')!.desc, porteur: undefined }]);
     expect(p.entree).toBeUndefined();
   });
 
@@ -309,6 +378,34 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
       section: { title: '', layout: 'list', rows: [{ t: 'text', text: findCreatureById('mutant')!.desc, porteur: { chemin: 'desc' } }] },
       entree: { type: 'creatures', id: 'mutant' },
     });
+  });
+});
+
+describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée par le projet', () => {
+  it('campagne lancée par `lancerCampagne` : la desc de SON profil, rendue par `Prose` sous `narratif.presetsPnj[1].profil.desc`', () => {
+    useGame.setState(useGame.getInitialState());
+    useGame.getState().setParty(makePregens().slice(0, 1));
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
+    const gustav = sceneNpc(sceneAuPreset('edo-gustav-fondleburger'), 'pnj')!;
+    const desc = presetPnjById('edo-gustav-fondleburger')!.profil!.desc!;
+    const porteur: Porteur = { type: 'projet', id: 'la-diligence', chemin: 'narratif.presetsPnj[1].profil.desc' };
+    expect(proseDeFiche(gustav, presetPnjById, duNarratif)!.section.rows).toEqual([{ t: 'text', text: desc, porteur }]);
+    const pane = ouvrirDescription(monter(<InspectPanel combatant={gustav} onClose={() => {}} />).ownerDocument.body);
+    expect(pane.textContent).toContain(extrait(desc));
+    expect(liens(pane)).toEqual(liensSous(desc, porteur));
+  });
+
+  it('même chemin pour `edo-mutant-terenz` (rang 14), dont la desc cite le Codex : liens armés', () => {
+    useGame.setState(useGame.getInitialState());
+    useGame.getState().setParty(makePregens().slice(0, 1));
+    expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
+    const terenz = sceneNpc(sceneAuPreset('edo-mutant-terenz'), 'pnj')!;
+    const desc = presetPnjById('edo-mutant-terenz')!.profil!.desc!;
+    const porteur: Porteur = { type: 'projet', id: 'la-diligence', chemin: 'narratif.presetsPnj[14].profil.desc' };
+    expect(proseDeFiche(terenz, presetPnjById, duNarratif)!.section.rows).toEqual([{ t: 'text', text: desc, porteur }]);
+    expect(liensSous(desc, porteur).length, 'la desc de Terenz cite une entrée du Codex').toBeGreaterThan(0);
+    const pane = ouvrirDescription(monter(<InspectPanel combatant={terenz} onClose={() => {}} />).ownerDocument.body);
+    expect(liens(pane)).toEqual(liensSous(desc, porteur));
   });
 });
 

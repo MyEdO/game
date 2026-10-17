@@ -84,7 +84,7 @@ describe('preset : `adapteDe` et profil ADRESSÉ s’excluent', () => {
   it('profil adressé + `adapteDe` : refusé au chemin `adapteDe` ; sans adresse, l’adapté parse', () => {
     const r = presetPnjSchema.safeParse({ id: 'pnj', base: 'humain', adapteDe: ADAPTE, profil: { descRef: DESC_REF } });
     expect(r.error?.issues.map((i) => ({ path: i.path, message: i.message }))).toEqual([
-      { path: ['adapteDe'], message: 'texte adapté, alors que la description du profil est la copie adressée du livre.' },
+      { path: ['adapteDe'], message: 'texte adapté, alors que la description de « profil » est la copie adressée du livre.' },
     ]);
     expect(presetPnjSchema.safeParse({ id: 'pnj', base: 'humain', adapteDe: ADAPTE, profil: { desc: 'Un cocher bourru.' } }).error).toBeUndefined();
     expect(presetPnjSchema.safeParse({ id: 'pnj', base: 'humain', source: SOURCE, profil: { descRef: DESC_REF } }).error).toBeUndefined();

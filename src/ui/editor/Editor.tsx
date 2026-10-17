@@ -640,9 +640,9 @@ export function Editor({
 
   // Avertissements de LA scène éditée + ceux de la carte du monde.
   const warnings = useMemo(
-    () => validateScene(scenesDuProjet, worldMap)
+    () => validateScene(scenesDuProjet, worldMap, narratif)
       .filter((w) => w.sceneId === scene.id || w.scope === 'worldMap'),
-    [scenesDuProjet, scene.id, worldMap],
+    [scenesDuProjet, scene.id, worldMap, narratif],
   );
   // Cases fautives à allumer MAINTENANT : re-résolution du défaut suivi contre les avertissements frais.
   const planFocus = useMemo(() => planFocusAt(warnings, planFocusKey), [warnings, planFocusKey]);
@@ -824,7 +824,7 @@ export function Editor({
       });
       return;
     }
-    // #2206 G2 : un projet jamais enregistré est testé sous l'id que porte son document à cet instant.
+    // #2206 G2
     const doc = documentCourant(projectName, projectId ?? scenesDuProjet[0].id);
     const refus = refusDeLaPorte(doc, 'test');
     if (refus) {

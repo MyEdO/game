@@ -62,7 +62,7 @@ describe('jour SOUS ORDRES — d’un bloc en local ; en coop ou jour par jour, 
     fleuve: (cadence: VoyageCadence) => {
       seedBattleRng(7);
       get().setParty(riverCrew());
-      get().loadProject([quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], 'quai-a', riverMap(45));
+      get().loadProject({ scenes: [quai('quai-a', 'Grünburg'), quai('quai-b', 'Altdorf')], entryId: 'quai-a', worldMap: riverMap(45), projet: null });
       set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] } as never);
       creditBourse(get, set, get().party[0].id, { gold: 500, silver: 0, brass: 0 });
       return () => get().startTravel('r-reik', 'barge', { cadence });

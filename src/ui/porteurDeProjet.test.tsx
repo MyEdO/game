@@ -22,10 +22,12 @@ import { buildApi } from '../state/devtools';
 import { addCondition } from '../engine/conditions';
 import { makePregens, makeShowcaseParty } from '../data/pregens';
 import { builtinCampaigns, campagneDuJeu, diligenceCampaign, documentDuJeu, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
-import { porteurDeProjet, porteurDuNarratif } from './porteurDeProjet';
+import { porteurDeProjet, porteurDuNarratif, porteurDeScene } from './porteurDeProjet';
 import { CHEMINS_ADRESSES, type Porteur } from './liage';
 import { Prose } from './Prose';
 import { CampaignOpeningScreen } from './CampaignOpeningScreen';
+import { ChapterRecapScreen } from './ChapterRecapScreen';
+import { RevealBody } from './RevealBody';
 import { CarnetScreen } from './CarnetScreen';
 import { DocumentModal } from './DocumentModal';
 import { Editor } from './editor/Editor';
@@ -215,6 +217,39 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
     applyEffects(get, useGame.setState, [{ type: 'document', documentId: 'doc-cible' }]);
     await monter(<DocumentModal />);
     expect(liensDe(document.querySelector('.parchment-card')!)).toEqual(enCampagne ? ['Peur'] : []);
+  });
+
+  it.each([[true], [false]])('ouverture, sous-titre (`narratif.ouverture.sousTitre.texte`), en campagne = %s', async (enCampagne) => {
+    useGame.setState({ party: makePregens().slice(0, 1), battle: null });
+    get().loadProject({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: { ...narratif, ouverture: { titre: 'Chapitre', pitch: NEUTRE, sousTitre: { texte: TEXTE } } }, projet: enCampagne ? { id: PROJET } : null });
+    await monter(<CampaignOpeningScreen />);
+    expect(container.textContent).toContain(TEXTE);
+    expect(liensDe(container)).toEqual(enCampagne ? ['Peur'] : []);
+  });
+
+  it.each([[true], [false]])('récapitulatif de chapitre, sous-titre (`narratif.cloture.sousTitre.texte`), en campagne = %s', async (enCampagne) => {
+    useGame.setState({ party: makePregens().slice(0, 1), battle: null });
+    const clos: NarratifBlock = { ...narratif, ouverture: undefined, cloture: { when: { kind: 'flag', expr: 'fin' }, titre: 'Fin', sousTitre: { texte: TEXTE } } };
+    get().loadProject({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: clos, projet: enCampagne ? { id: PROJET } : null });
+    applyEffects(get, useGame.setState, [{ type: 'setFlag', flag: 'fin' }]);
+    expect(get().pendingChapterRecap?.sousTitre).toBe(TEXTE);
+    await monter(<ChapterRecapScreen />);
+    expect(liensDe(container)).toEqual(enCampagne ? ['Peur'] : []);
+  });
+
+  it.each([[true], [false]])('entrée de zone (`scenes[].startMessage.texte`, `RevealBody`), en campagne = %s', async (enCampagne) => {
+    useGame.setState({ party: makePregens().slice(0, 1), battle: null });
+    const autre = sceneDuTest();
+    autre.id = 'scene-autre';
+    const cible = sceneDuTest();
+    cible.startMessage = { texte: TEXTE };
+    get().loadProject({ scenes: [autre, cible], entryId: 'scene-porteur', narratif, projet: enCampagne ? { id: PROJET } : null });
+    const entree = [get().pendingCascade, ...get().suspendedCascades].flatMap((c) => c?.participants ?? []).map((st) => st.reveal).find((r) => r?.kind === 'sceneEntry');
+    expect(entree?.sceneId).toBe('scene-porteur');
+    expect(porteurDeScene(get(), 'scene-porteur', 'startMessage.texte')).toEqual(enCampagne ? { type: 'projet', id: PROJET, chemin: 'scenes[1].startMessage.texte' } : undefined);
+    await monter(<RevealBody entry={entree!} />);
+    expect(container.textContent).toContain(TEXTE);
+    expect(liensDe(container)).toEqual(enCampagne ? ['Peur'] : []);
   });
 
   it('rapport de naufrage EN CAMPAGNE (`DocumentModal`, texte runtime) : NU, même s’il cite un terme du Codex', async () => {

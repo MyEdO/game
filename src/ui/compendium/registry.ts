@@ -2731,7 +2731,7 @@ export function combatantSections(c: Combatant): CodexSection[] {
 /** Catégorie Codex des créatures (`CODEX`, clé `creatures`) : le `type` du porteur de leur `desc`. */
 const CATEGORIE_DES_CREATURES = 'creatures';
 
-const sectionDescription = (text: string, porteur: PorteurDeRangee = { chemin: 'desc' }): CodexSection =>
+const sectionDescription = (text: string, porteur: PorteurDeRangee | undefined): CodexSection =>
   ({ title: '', layout: 'list', rows: [{ t: 'text', text, porteur }] });
 
 /**
@@ -2758,12 +2758,12 @@ export function proseDeFiche(
     if (preset?.profil?.desc === text) return { section: sectionDescription(text, porteurDuNarratif('presetsPnj', p.presetId, 'profil.desc')) };
     const base = preset?.base;
     return base && findCreatureById(base)?.desc === text
-      ? { section: sectionDescription(text), entree: { type: CATEGORIE_DES_CREATURES, id: base } }
-      : { section: sectionDescription(text) };
+      ? { section: sectionDescription(text, { chemin: 'desc' }), entree: { type: CATEGORIE_DES_CREATURES, id: base } }
+      : { section: sectionDescription(text, undefined) };
   }
   if (p?.ref !== undefined) {
     const desc = findCreatureById(p.ref)?.desc;
-    return desc ? { section: sectionDescription(desc), entree: { type: CATEGORIE_DES_CREATURES, id: p.ref } } : null;
+    return desc ? { section: sectionDescription(desc, { chemin: 'desc' }), entree: { type: CATEGORIE_DES_CREATURES, id: p.ref } } : null;
   }
   return null;
 }

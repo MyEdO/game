@@ -377,7 +377,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     seedBattleRng(1);
     const h = hero({ id: 'h', aiControlled: true, conditions: [{ id: 'inconscient', value: 1 }] as never, skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
     useGame.setState({ party: [h], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
-    get().loadProject([sceneA(), sceneB()], 'lieu-a-scene', forcedRoute(20));
+    get().loadProject({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: forcedRoute(20), projet: null });
     useGame.setState({ gameTime: campaignStart() });
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
     get().startTravel('r1', 'diligence', { allure: 'galop' });
