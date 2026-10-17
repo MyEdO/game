@@ -18,6 +18,10 @@
       "mcp__Claude_Browser__read_network_requests",
       "mcp__Claude_Browser__preview_logs",
       "mcp__ccd_session_mgmt__list_events"
+    ],
+    "ask": [
+      "Bash(gh workflow run deploy.yml *)",
+      "mcp__github__actions_run_trigger"
     ]
   },
   "hooks": {
@@ -64,6 +68,21 @@
             ],
             "timeout": 325,
             "statusMessage": "Conformité du conteneur distant (hooks git, docs, gh)"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/scripts/hooks/rappel-methode.mjs"
+            ],
+            "timeout": 5,
+            "statusMessage": "Rappel de méthode"
           }
         ]
       }

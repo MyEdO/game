@@ -224,12 +224,16 @@ export const ENTREES_OUTIL = [
  *
  * La synchronisation du principal (`scripts/hooks/synchroniser-principal.mjs`, #2187) : surface Codex
  * seule, EN TÊTE ; côté Claude, le mod `harnais` (`suivi.ts`, `session.start`).
+ *
+ * Le rappel de méthode (`scripts/hooks/rappel-methode.mjs`) : `UserPromptSubmit`, surface Claude seule,
+ * qui porte le skill `aborder-un-sujet` qu'il nomme.
  */
 export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'synchroniser-principal.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: TIMEOUT_SYNCHRONISEUR, statusMessage: 'Synchronisation du principal sur origin/main' },
   { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
   { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
   { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
+  { phase: 'UserPromptSubmit', script: 'rappel-methode.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 5, statusMessage: 'Rappel de méthode' },
 ];
 
 /**
