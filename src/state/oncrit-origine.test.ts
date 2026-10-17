@@ -10,7 +10,7 @@ import { itemFromTrappingById, weaponFromItem } from '../engine/items';
 import type { Combatant, Weapon } from '../engine/types';
 import { applyAttackResult } from './combatFlow';
 import type { AttackResult } from '../engine/combat';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 
 /** Un arc qui porte Taillade (toute Blessure critique) et Empaleuse (le seul Coup Critique). */
 function arcTailladeEmpaleuse(): Weapon {
@@ -77,5 +77,17 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
     applyAttackResult(useGame.getState, useGame.setState, H, E, arcTailladeEmpaleuse(), touche({ critical: true }));
     expect(offreDeTaillade()).toBeDefined();
     expect(munitions(cible(E.id))).toBe(1);
+  });
+
+  it('Poings d’ignominie : maladie au seul Coup Critique, rien au dépassement (VDM 12 l.910, l.916)', () => {
+    const poings = () => weaponFromItem(itemFromTrappingById('poings-d-ignominie')!);
+    let { H, E } = setup(); E.pos = { x: 11, y: 10 }; E.wounds.current = 2;
+    applyAttackResult(useGame.getState, useGame.setState, H, E, poings(), touche({ woundsLost: 3 }));
+    draineCascade(useGame.getState);
+    expect(cible(H.id)?.diseases ?? [], 'le dépassement a déclenché la malédiction').toEqual([]);
+    ({ H, E } = setup()); E.pos = { x: 11, y: 10 };
+    applyAttackResult(useGame.getState, useGame.setState, H, E, poings(), touche({ critical: true }));
+    draineCascade(useGame.getState);
+    expect(cible(H.id)?.diseases?.length).toBe(1);
   });
 });

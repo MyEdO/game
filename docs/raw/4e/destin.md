@@ -293,7 +293,7 @@ Autres exemples listés : Perfectionniste, Protectrice, Homme de paix, Martyr p�
 Le Chapitre 18 (Traumatisme) précise l'usage du Destin face à la mort lors des Critiques :
 
 > « Enfin, certains résultats du Tableau des Critiques peuvent mener à la mort. Si c'est ce qui est sur le point de se produire, il est temps de dépenser un Point de Destin s'il vous en reste (voir Destin à la page 170). »
-> — LDB 18 l.38
+> — LDB 18 l.38, l.40
 
 Cette mention renvoie directement aux deux options « Meurs un autre jour » et « Comment ça a pu rater ? » décrites dans le Chapitre 17. Il n'y a pas d'option supplémentaire au Chapitre 18 : c'est le même mécanisme, déclenché par un résultat mortel sur le Tableau des Critiques.
 
@@ -301,7 +301,7 @@ La mort survient sans dépense de Destin dans ces cas :
 - État *Inconscient* + 0 Point de Blessure + total de Blessures critiques > Bonus d'Endurance → mort à la fin du Round (sauf soin d'une Blessure critique).
 - Résultat 00 sur les Tableaux de Critiques (Décapitation, Démembrement brutal, Éventré, Bassin fracassé) → mort immédiate.
 
-**Sources RAW** : `LDB 18 l.40`, `LDB 18 l.42-43`
+**Sources RAW** : `LDB 18 l.34`, `LDB 18 l.38`, `LDB 18 l.40`
 
 **Voir aussi** : [`traumatisme.md`](traumatisme.md) pour le fonctionnement complet des Blessures critiques et de la mort.
 
