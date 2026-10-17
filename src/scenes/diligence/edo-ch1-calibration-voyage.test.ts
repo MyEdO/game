@@ -84,6 +84,11 @@ describe('Chapitre 1 de jeu (EDO) — la chaîne La Diligence → Altdorf tient 
     expect(jours('diligence')).toBeLessThanOrEqual(2.5);
   });
 
+  // `LDB 51 l.208`, `EDO 02 l.180`, `EDO 02 l.189` (#2533).
+  it('les trois tronçons ont le d10 de péripétie éteint (`perilDie: 0`)', () => {
+    expect(troncons.map((r) => r.perilDie)).toEqual([0, 0, 0]);
+  });
+
   it('à pied (Mouvement 4) : 7,92 journées, dans la fourchette 6 à 8 (EDO 01 l.13) — vitesse NON surchargée', () => {
     for (const r of troncons) expect(r.speed?.pied, r.id).toBeUndefined();
     expect(jours('pied')).toBeCloseTo(7.92, 2);

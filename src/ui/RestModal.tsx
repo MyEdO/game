@@ -8,7 +8,9 @@ import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
 import { lodgingOptions, foodOptions, restCost, type PendingRest, type RestLodging, type RestFood } from '../state/restFlow';
 import { partyMoneyTotal } from '../state/bourseFlow';
-import { weatherExposure, exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
+import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
+import { activeExposureSeverity, nuitDispenseeParPleinAir } from '../state/combatFlow';
+import { t } from '../i18n';
 import { hasCondition } from '../engine/conditions';
 import { toBrass } from '../engine/money';
 import { ownsLocal } from './ownership';
@@ -58,25 +60,25 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const p = useGame((s) => s.pendingRest);
   const party = useGame((s) => s.party);
   const money = partyMoneyTotal(useGame.getState); // somme des bourses (le groupe est abonné via `party`)
-  const scene = useGame((s) => s.scene);
   const net = useGame((s) => s.net);
   const restSet = useGame((s) => s.restSet);
   const restSleep = useGame((s) => s.restSleep);
   const restCancel = useGame((s) => s.restCancel);
   const restReady = useGame((s) => s.restReady);
+  const severity = useGame((s) => activeExposureSeverity(() => s));
+  const pleinAir = useGame((s) => nuitDispenseeParPleinAir(() => s));
   const state = useGame();
   // Héros PERSONNALISÉS (détachés du choix maître de troupe) — le reste SUIT la troupe. Arbitrage user
   // 2026-07-11 : « ≠ personnaliser » déplie les contrôles du héros seul, « ↺ » le rend au choix de troupe.
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   if (!p) return null;
 
-  // Titre FRANC (arbitrage user 2026-07-11) : la nature de la halte + le lieu (`scene.label`) quand il existe.
-  const lieu = scene?.label ? <> — {scene.label}</> : null;
+  // Titre FRANC (arbitrage user 2026-07-11) : la nature de la halte + le lieu nommé par l'appelant d'`openRest`.
+  const lieu = <> — {p.lieu}</>;
   const title = p.places.auberge ? <><Icon id="rest/bed" size="sm" /> Nuit à l’auberge{lieu}</> : p.places.maison ? <><Icon id="time/night" size="sm" /> Nuit chez soi{lieu}</> : p.places.bord ? <><Icon id="travel/sail-ship" size="sm" /> Nuit à bord{lieu}</> : <><Icon id="rest/camp" size="sm" /> À la belle étoile{lieu}</>;
 
   // ── Phase RÉGLAGES ──
   const cost = restCost(p, party);
-  const severity = weatherExposure(scene?.weather);
   const sheltered = exposureShelterFromTent(party);
   const exposureTests = exposureTestCount(severity, sheltered);
   const online = net.mode !== 'local';
@@ -108,6 +110,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
       {/* Panneau de nuit = la DÉCISION seule (vague « lisibilité du voyage » 2/2) : le BILAN du jour
           (km, péripéties, jets) est sorti d'ici — il vit dans la CHRONIQUE du hub, sélectionnable
           comme un jour passé (`VoyageScreen`/`voyageDayCards`), pas re-déroulé ici. */}
+      {pleinAir && <p className="rest-weather"><Icon id="expedition/outdoors" size="sm" /> {t('rf.pleinAirDispense')}</p>}
       {severity !== 'clement' && (
         <p className="rest-weather">{severity === 'extreme' ? <><Icon id="rest/storm" size="sm" /> Temps de chien</> : <><Icon id="rest/rain" size="sm" /> Mauvais temps</>}{sheltered ? ' — la tente abritera le camp' : ''}</p>
       )}

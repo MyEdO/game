@@ -18,7 +18,7 @@
  *  - Prix (LDB 66 l.5-28) : chambre commune 10 sc/pers · privée 10 pa pour 2 (la grande pour 4
  *    coûte le double → regrouper par paires est équivalent, coût auto) · repas 1 pa ; PIÈTRE = ½
  *    prix, et la nourriture piètre expose à la Courante galopante (10 %, LDB 66 l.5) ;
- *  - Dehors : Exposition (LDB 18 l.327-334 — engine/exposure) selon la MÉTÉO de la scène ;
+ *  - Dehors : Exposition (LDB 18 l.327-334 — engine/exposure) selon `activeExposureSeverity` (combatFlow) ;
  *  - Faim (LDB 18 l.337-343) : un héros sans pitance ne récupère pas (engine/provisions).
  */
 import type { Combatant } from '../engine/types';
@@ -37,7 +37,7 @@ import { rule } from '../engine/policy';
 import { type Difficulty } from '../engine/types';
 import { applyFractureEnd } from '../engine/trauma';
 import type { DeferredUpkeepTest } from './upkeep';
-import { weatherExposure, exposureTestCount, expireOnRespite, exposureShelterFromTent, applyExposureFailure, exposureCoatMods, heaviestPossession, dropHeaviestPossession, type ExposureSeverity, type ExposureKind } from '../engine/exposure';
+import { exposureTestCount, expireOnRespite, exposureShelterFromTent, applyExposureFailure, exposureCoatMods, heaviestPossession, dropHeaviestPossession, type ExposureSeverity, type ExposureKind } from '../engine/exposure';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { applyForcedMarch } from '../engine/travel';
 import { registerCascadeApplier, startCascade, runCascadeImmediate } from './cascade';
@@ -47,11 +47,12 @@ import type { CascadeStepMeta } from './pendings';
 import { isRation, feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { toBrass, fromBrass, formatMoney, priceToMoney, type Money } from '../engine/money';
 import { payFromGroup } from './bourseFlow';
-import { findTrappingById, nightStakeRef, refLabel, type StakeRef } from '../data';
+import { findTrappingById, nightStakeRef, refLabel, libelleOuAbsence, type StakeRef } from '../data';
 import { diseaseLabel } from '../data';
 import { minutesUntilNext, dawnMinute, MINUTES_PER_DAY } from '../engine/clock';
 import { runDailyUpkeep, dayIndex } from './upkeep';
 import { continueTravelAfterNight } from './travelFlow';
+import { activeExposureSeverity } from './combatFlow';
 import { bus, EVT } from './bus';
 import type { GameState } from './store';
 
@@ -75,6 +76,20 @@ export interface RestPlaces {
  *  on peut manger à l'auberge et dormir à la belle étoile). */
 export function placesOfKind(kind: RestKind): RestPlaces {
   return kind === 'auberge' ? { auberge: true, camp: true } : kind === 'maison' ? { maison: true, camp: true } : { camp: true };
+}
+
+/** Le lieu de la scène COURANTE, pour une nuit qui s'y passe (bouton de Repos, hôtellerie de ville,
+ *  effet `rest`, attente de l'aube au départ). */
+export function sceneLieu(get: Get): PlayerText {
+  return dataLabel(garanti(get().scene, undefined, 'scène de la nuit').label);
+}
+
+/** Le lieu d'une halte de nuit SUR LA ROUTE du voyage (terre et fleuve), nommée par ses deux extrémités —
+ *  la forme de l'en-tête de l'écran de voyage (`VoyageScreen`). */
+export function routeLieu(worldMap: WorldMap, plan: { fromPlaceId: string; toPlaceId: string }): PlayerText {
+  const from = libelleOuAbsence(placeById(worldMap, plan.fromPlaceId), 'lieu', plan.fromPlaceId);
+  const to = libelleOuAbsence(placeById(worldMap, plan.toPlaceId), 'lieu', plan.toPlaceId);
+  return t('rf.lieuRoute', { from, to });
 }
 
 /** Entrée du PROCÈS-VERBAL (bilan multi-jets, réutilisable : jour de mer #232, chronique de voyage…).
@@ -108,6 +123,9 @@ export interface NightEntry {
 
 export interface PendingRest extends PendingBase {
   places: RestPlaces;
+  /** OÙ le groupe passe la nuit, nommé par l'APPELANT d'`openRest` (relais ou bivouac de la route,
+   *  bord du bateau, scène courante) — seul lieu du titre de la modale. */
+  lieu: PlayerText;
   /** Piètre : ½ prix, nourriture à risque (Courante galopante 10 %) — LDB 66. */
   quality: 'normale' | 'pietre';
   days: number;
@@ -118,9 +136,6 @@ export interface PendingRest extends PendingBase {
   /** Halte de NUIT d'un voyage (travelFlow) : portée par la DERNIÈRE cascade de nuit du séjour
    *  (`openRestNight`) — sa clôture reprend la route (`dispatchCascadeDone`, `combatSlice.ts`). */
   travelHalt?: boolean;
-  /** HALTE de voyage : le RAPPORT DU JOUR (km, jets, péripéties) — affiché en tête de la modale
-   *  (la journée se lit le soir même, le recap final ne re-déroule plus tout le trajet). */
-  travelDay?: import('./travelFlow').TravelRecapDay;
   /** HALTE de voyage À PIED au-delà des heures RAW : héros à tester en MARCHE FORCÉE (LDB 51 l.195) — leurs
    *  jets ouvrent la cascade de la nuit (influençables), avant l'abri/la récupération. */
   travelMarch?: string[];
@@ -130,7 +145,10 @@ import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
+import { placeById, type WorldMap } from './worldMap';
+import { garanti } from './combatants';
 import { stepPrecision } from './rollSeam';
+import type { PlayerText } from '../i18n/playerText';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -544,7 +562,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   }
   // Campement : Exposition (intempéries) — abri de fortune (STEP) → insère les jets d'Exposition.
   const campers = party.filter((h) => !h.dead && p.perHero[h.id]?.lodging === 'dehors');
-  const severity = weatherExposure(get().scene?.weather);
+  const severity = activeExposureSeverity(get);
   if (campers.length && severity !== 'clement') {
     const camperIds = campers.map((h) => h.id);
     if (exposureShelterFromTent(party)) {
@@ -677,11 +695,23 @@ export function restPlacesHere(st: GameState): { places: RestPlaces; quality: 'n
   return { places, quality: zone?.quality ?? sc.rest?.quality ?? 'normale' };
 }
 
+/** Options d'`openRest` : l'APPELANT dit où le groupe dort (`places` = l'offre, `lieu` = son nom). */
+export interface OpenRestOpts {
+  lieu: PlayerText;
+  places?: RestPlaces;
+  quality?: 'normale' | 'pietre';
+  days?: number;
+  travelHalt?: boolean;
+  /** Le jour de voyage CLOS par cette halte — rejoint `travelPlan.log`, sa seule demeure. */
+  travelDay?: import('./travelFlow').TravelRecapDay;
+  travelMarch?: string[];
+}
+
 /** Ouvre la modale de Repos avec une OFFRE de lieux (effet, halte de voyage, bouton de Repos). */
-export function openRest(get: Get, set: Set, opts?: { places?: RestPlaces; quality?: 'normale' | 'pietre'; days?: number; travelHalt?: boolean; travelDay?: import('./travelFlow').TravelRecapDay; travelMarch?: string[] }): void {
+export function openRest(get: Get, set: Set, opts: OpenRestOpts): void {
   const st = get();
   if (st.battle || st.pendingRest) return;
-  const places = opts?.places ?? { maison: true, camp: true };
+  const places = opts.places ?? { maison: true, camp: true };
   const perHero: PendingRest['perHero'] = {};
   for (const h of st.party) {
     if (h.dead) continue;
@@ -690,10 +720,10 @@ export function openRest(get: Get, set: Set, opts?: { places?: RestPlaces; quali
   // CHRONIQUE de voyage (#333) : une halte de voyage porte le jour FINALISÉ — on l'accumule sur le plan
   // (même `set` que la modale) pour que l'écran-hub (`VoyageScreen`) en tienne le journal (une carte par
   // jour passé), source unique (STRUCTURE `TravelRecapDay`, jamais une chaîne recomposée). No-op hors halte.
-  const logPatch = opts?.travelDay && st.travelPlan
+  const logPatch = opts.travelDay && st.travelPlan
     ? { travelPlan: { ...st.travelPlan, log: [...(st.travelPlan.log ?? []), opts.travelDay] } }
     : {};
-  set({ ...logPatch, pendingRest: { places, quality: opts?.quality ?? 'normale', days: Math.max(1, opts?.days ?? 1), perHero, phase: 'setup', travelHalt: opts?.travelHalt, travelDay: opts?.travelDay, travelMarch: opts?.travelMarch } });
+  set({ ...logPatch, pendingRest: { places, lieu: opts.lieu, quality: opts.quality ?? 'normale', days: Math.max(1, opts.days ?? 1), perHero, phase: 'setup', travelHalt: opts.travelHalt, travelMarch: opts.travelMarch } });
 }
 
 export function restSet(get: Get, set: Set, heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>): void {

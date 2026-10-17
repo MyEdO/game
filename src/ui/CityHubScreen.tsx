@@ -6,6 +6,7 @@ import type { Scene } from '../state/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { restServicePrice, type RestPlaces } from '../state/restFlow';
+import { libelleOuAbsence } from '../data';
 import { findLandCargoById, findLandCargoEntryById } from '../engine/landCargo';
 import { findCargoEntryById, isEchangeable } from '../engine/seaVoyage';
 import { isTradeHubEntry } from '../engine/cargo';
@@ -146,7 +147,7 @@ export function CityHubScreen({
           porteur={porteurSvc}
           actions={
             <>
-              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => openRest({ places: svc.rest, quality: rest?.quality })}>Dormir</button>}
+              {svc.rest && <button type="button" className="btn btn-primary" onClick={() => openRest({ places: svc.rest, lieu: libelleOuAbsence(place, 'lieu', place.id), quality: rest?.quality })}>Dormir</button>}
               <button type="button" className="btn btn-primary" onClick={gatherInnInfo}>
                 Recueillir des informations (≈{Math.round(innGatherInfoMinutes() / 60)} h)
               </button>

@@ -209,9 +209,11 @@ import { groupMatch } from '../engine/groups';
 import { sceneCombatModifiers } from './sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
-  weatherLightningNervous, weatherRef,
+  weatherLightningNervous, weatherRef, stageWeatherExposure,
   type Weather,
 } from '../engine/travelStages';
+import { weatherExposure, type ExposureSeverity } from '../engine/exposure';
+import type { TravelRecapDay } from './travelFlow';
 import { weaponGroupKey } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, chebyshev, tileKey, tileFromKey, Pt, climbTraverseFor } from './path';
 import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './ai';
@@ -580,11 +582,32 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
 
 /** Météo du JOUR de voyage EN COURS (EDOC 8) portée par le plan de voyage — contexte de « conditions
  *  du jour » COMMUN aux Activités de l'Étape ET au combat qui s'ouvre pendant la journée (embuscade sous
- *  l'orage). `undefined` hors voyage terrestre / règle Étapes éteinte. SOURCE unique de lecture. */
+ *  l'orage). `undefined` hors voyage terrestre / règle Étapes éteinte. SOURCE unique de lecture.
+ *  Le jour EN COURS vit sur `plan.recap`, interruption comprise (l'embuscade se joue sous sa météo) ;
+ *  à la halte de nuit, `plan.recap` est effacé et ce même jour est le dernier de `plan.log` (`openRest`). */
 export function activeDayWeather(get: Get): Weather | undefined {
+  return activeTravelDay(get)?.weather?.id;
+}
+
+/** Le jour de voyage EN COURS (`activeDayWeather`), ou le dernier jour clos à la halte de nuit. */
+function activeTravelDay(get: Get): TravelRecapDay | undefined {
   const plan = get().travelPlan;
-  const w = plan?.recap?.days[plan.recap.days.length - 1]?.weather ?? get().pendingRest?.travelDay?.weather;
-  return w?.id;
+  if (!plan) return undefined;
+  return plan.recap ? plan.recap.days[plan.recap.days.length - 1] : plan.log?.[plan.log.length - 1];
+}
+
+/** « Plein air » réussi à l'Étape du jour : la nuit n'a pas d'Exposition due au mauvais temps (EDOC 08 l.141). */
+export function nuitDispenseeParPleinAir(get: Get): boolean {
+  return activeTravelDay(get)?.pleinAir === true;
+}
+
+/** Sévérité d'Exposition du lieu où le groupe passe la nuit : la météo du JOUR de voyage
+ *  (`activeDayWeather`, convertie par `stageWeatherExposure`) quand elle existe, sinon la météo
+ *  authored de la scène. SOURCE unique de l'Exposition de nuit (`buildNightCascade`, `RestBody`). */
+export function activeExposureSeverity(get: Get): ExposureSeverity {
+  if (nuitDispenseeParPleinAir(get)) return 'clement';
+  const w = activeDayWeather(get);
+  return w ? stageWeatherExposure(w) : weatherExposure(get().scene?.weather); // #2533 c.6071899887
 }
 
 /** Estampille la météo du JOUR (`activeDayWeather`) sur CHAQUE combattant à l'ouverture du combat (#341) —

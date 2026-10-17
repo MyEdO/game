@@ -4,7 +4,9 @@ import { MultiRollList } from './MultiRollList';
 import { RecapLineSections } from './RecapLine';
 import { travelModeLabels, routeDistanceLabel } from '../engine/travel';
 import type { TravelRecap } from '../state/travelFlow';
-import { GameDate } from './GameDate';
+import { GameDate, gameDateText } from './GameDate';
+import { elision } from '../i18n';
+import { clockLabel } from '../engine/duration';
 import { SeaVoyageBody } from './SeaVoyageScreen';
 import { Icon } from './Icon';
 
@@ -73,8 +75,8 @@ export function TravelRecapModal({ seam }: { seam?: TravelRecap } = {}) {
           hub. `interrupted`/`stalled` GARDENT le déroulé : seule trace de la raison de l'arrêt. */}
       {recap.status === 'arrived' ? (
         <p className="travel-recap-foot">
-          Voyage de {recap.daysTotal ?? recap.days.length} jour{(recap.daysTotal ?? recap.days.length) > 1 ? 's' : ''}.
-          {' '}Le groupe arrive le <GameDate time={gameTime} />.
+          {recap.dureeMin != null && recap.dureeMin > 0 && <>Voyage de {clockLabel(recap.dureeMin, { exact: true })}.{' '}</>}
+          Le groupe arrive {elision('le', gameDateText(gameTime))}<GameDate time={gameTime} />.
         </p>
       ) : (
         <ol className="travel-recap-days">

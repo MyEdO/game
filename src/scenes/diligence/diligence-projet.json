@@ -39676,6 +39676,7 @@
     "speed": {
      "diligence": 15
     },
+    "perilDie": 0,
     "inns": true,
     "when": {
      "kind": "flag",
@@ -39703,6 +39704,7 @@
     "speed": {
      "diligence": 15
     },
+    "perilDie": 0,
     "inns": true,
     "when": {
      "kind": "flag",
@@ -39730,6 +39732,7 @@
     "speed": {
      "diligence": 15
     },
+    "perilDie": 0,
     "inns": true
    }
   ]

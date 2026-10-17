@@ -207,6 +207,15 @@
     "verrou": "table-lookup-guard.test.ts"
   },
   {
+    "id": "clockLabel",
+    "type": "primitives.manifest",
+    "label": "clockLabel",
+    "fichier": "src/engine/duration.ts",
+    "concept": "libellé d'une durée d'HORLOGE en minutes de jeu : reste d'un effet (forme courte, une unité arrondie au-dessus) ou durée écoulée/estimée (`exact` : « 2 h 40 », « 1 j 6 h »)",
+    "perimetre": "échéance d'un effet (`EtatPanel`), estimation de trajet de la carte (`WorldMapView`), durée du récapitulatif de voyage (`TravelRecapModal`)",
+    "verrou": "src/engine/duration.test.ts"
+  },
+  {
     "id": "baseTestMods",
     "type": "primitives.manifest",
     "label": "baseTestMods",

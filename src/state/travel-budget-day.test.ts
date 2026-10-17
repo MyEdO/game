@@ -3,8 +3,8 @@
  *
  * Le budget RAW de 6 h sans Test (LDB 51 l.195) se compte PAR JOUR, pas par trajet : des trajets à pied
  * ENCHAÎNÉS le même jour cumulent leur budget (l'accumulateur unique `store.travelDayHours` keyé sur
- * `dayIndex(gameTime)`), déclenchent la marche forcée dès que le cumul dépasse 6 h (un seul Test/jour) et
- * butent sur le plafond dur maison (10 h). Portes maison : départ terrestre/fluvial de l'aube au crépuscule
+ * `dayIndex(gameTime)`) ; l'allure choisie au départ borne la journée, et la marche forcée (case cochée)
+ * se teste dès que le cumul dépasse 6 h (un seul Test/jour). Portes maison : départ terrestre/fluvial de l'aube au crépuscule
  * (`travel-departure-gate`), privation de sommeil au jour franchi sans nuit (`travel-sleep-forced`).
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -12,6 +12,8 @@ import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
 import { emptyScene, Scene } from './scene';
 import { WorldMap } from './worldMap';
+import { maxHoursPerDay } from './travelFlow';
+import { sceneLieu } from './restFlow';
 import { campaignStart } from '../engine/clock';
 import { setRule, resetRule, rule } from '../engine/policy';
 import { stacks } from '../engine/conditions';
@@ -45,34 +47,67 @@ function setup(km = 16, party: Combatant[] = [hero()]): void {
 beforeEach(() => { seedBattleRng(1); });
 afterEach(() => { resetRule('travel-sleep-forced'); resetRule('travel-departure-gate'); resetRule('sea-night-sailing'); });
 
-describe('#340 — budget d’heures PAR JOUR CALENDAIRE (marche forcée sur le CUMUL)', () => {
-  it('3×4 h à pied le même jour : marche forcée au-delà de 6 h, un seul Test/jour, plafond dur à 10 h', () => {
-    // Palefroi absent : à pied, 4 km/h (Mouvement 4). Route 16 km = 4 h par trajet.
+describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)', () => {
+  // `LDB 51 l.195` — le groupe ne dépasse le budget que s'il l'a CHOISI au départ (case « marche forcée »).
+  it('case NON cochée : un 2ᵉ tronçon le même jour s’arrête au budget de 6 h — halte, aucun Test de marche forcée', () => {
+    // À pied, 4 km/h (Mouvement 4). Route 16 km = 4 h par trajet.
     setup(16);
 
-    // Trajet 1 (08:00 → 12:00) : cumul 4 h ≤ 6 h → pas de marche forcée.
+    // Trajet 1 (08:00 → 12:00) : cumul 4 h.
     get().startTravel('r1', 'pied');
     expect(get().travelDayHours.foot).toBeCloseTo(4, 1);
+
+    // Trajet 2 : il RESTE 2 h au jour — le groupe marche 2 h (8 km) puis fait halte.
+    get().startTravel('r1', 'pied');
+    expect(get().travelDayHours.foot).toBeCloseTo(6, 1);
+    expect(get().travelPlan?.kmDone).toBeCloseTo(8, 1);
+    expect(get().travelDayHours.marched).toBe(false);
+    const halte = get().pendingRest!;
+    expect(halte.travelHalt).toBe(true);
+    expect(halte.travelMarch ?? []).toEqual([]); // aucun Test de Résistance : 6 h n'ont pas été dépassées
+  });
+
+  it('case NON cochée, budget du jour déjà épuisé au DÉPART d’un tronçon : nuit sur place, aucun jour de 0 h', () => {
+    setup(24);
+    get().startTravel('r1', 'pied'); // 24 km = 6 h : arrivée, budget du jour épuisé
+    expect(get().travelDayHours.foot).toBeCloseTo(6, 1);
+    const t0 = get().gameTime;
+    const sceneArrivee = get().scene?.id;
+    get().startTravel('r1', 'pied');
+    expect(get().gameTime).toBe(t0); // aucune minute de marche
+    expect(get().travelPlan).toBeNull(); // aucun « Étape 0 »
+    expect(get().pendingCascade).toBeNull(); // ni météo ni péripétie d'un jour vide
+    expect(get().pendingDeparture?.cause).toBe('budget');
+    get().departWaitDawn(); // patron de la porte de départ : la nuit se passe SUR PLACE
+    const nuit = get().pendingRest!;
+    expect(nuit.lieu).toBe(sceneLieu(get));
+    expect(nuit.travelHalt).toBeFalsy();
+    expect(get().scene?.id).toBe(sceneArrivee);
+  });
+
+  it('case COCHÉE : Test au-delà de 6 h CUMULÉES, un seul par jour', () => {
+    setup(16);
+    const forcee = maxHoursPerDay(get().worldMap); // ce que la case envoie (`WorldMapView`)
+    get().startTravel('r1', 'pied', { hoursPerDay: forcee }); // 4 h
     expect(get().travelDayHours.marched).toBe(false);
 
-    // Trajet 2 (12:00 → 16:00) : cumul 8 h > 6 h → marche forcée TESTÉE (7ᵉ heure), marquée pour le jour.
-    get().startTravel('r1', 'pied');
+    // Trajet 2 : cumul 8 h > 6 h → marche forcée TESTÉE, marquée pour le jour.
+    get().startTravel('r1', 'pied', { hoursPerDay: forcee });
     expect(get().travelDayHours.foot).toBeCloseTo(8, 1);
     expect(get().travelDayHours.marched).toBe(true);
 
-    // Trajet 3 (16:00 → …) : le plafond dur maison (10 h) borne la journée à 2 h de plus → halte de nuit
-    // avant l'arrivée ; la marche forcée n'est PAS re-testée (un seul Test par jour calendaire).
-    const marchedBefore = get().travelDayHours.marched;
-    get().startTravel('r1', 'pied');
-    expect(get().travelDayHours.foot).toBeCloseTo(10, 1);
-    expect(get().pendingRest).not.toBeNull(); // plafond atteint → halte forcée
-    expect(marchedBefore).toBe(true);
+    // Trajet 3 : il reste 2 h à l'allure choisie → halte de nuit ; pas de second Test ce jour-là.
+    get().startTravel('r1', 'pied', { hoursPerDay: forcee });
+    expect(get().travelDayHours.foot).toBeCloseTo(forcee, 1);
+    expect(get().pendingRest?.travelHalt).toBe(true);
+    expect(get().pendingRest?.travelMarch ?? []).toEqual([]);
   });
 
   it('le budget est remis à neuf au jour calendaire suivant', () => {
     setup(16);
-    get().startTravel('r1', 'pied'); // 4 h
-    get().startTravel('r1', 'pied'); // cumul 8 h, même jour
+    const forcee = maxHoursPerDay(get().worldMap);
+    get().startTravel('r1', 'pied', { hoursPerDay: forcee }); // 4 h
+    get().startTravel('r1', 'pied', { hoursPerDay: forcee }); // cumul 8 h, même jour
     expect(get().travelDayHours.foot).toBeCloseTo(8, 1);
     const day0 = get().travelDayHours.day;
 

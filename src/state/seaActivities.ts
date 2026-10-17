@@ -34,7 +34,6 @@
  * `continueSeaActivitiesAfterCascade` jusqu'à la halte de nuit.
  */
 import { battleRng } from './battleRng';
-import { openRest, placesOfKind } from './restFlow';
 import { activityById, activitiesFor, travelActivitySpec, applyTravelActivityResult, type ActivityDef } from '../engine/activities';
 import { applyOps } from '../engine/ops';
 import { itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
@@ -50,7 +49,7 @@ import type { Get, Set } from './flowTypes';
 import type { BuiltCascadeStep } from './stepBrand';
 import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, type RollRequest } from './rollSeam';
 import { registerCascadeApplier, registerExtendedTestOutcome } from './cascade';
-import { noteSeaLine, patchSea } from './seaVoyageFlow';
+import { noteSeaLine, patchSea, openSeaHalt } from './seaVoyageFlow';
 import { actorIn, garanti } from './combatants';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
@@ -228,9 +227,7 @@ export function continueSeaActivitiesAfterCascade(get: Get, set: Set): void {
   const day: TravelRecapDay = { ...pending.day, lines: [...pending.day.lines, ...toRecapLines(activityLines)] };
   if (plan?.sea) patchSea(get, set, { lines: [] });
   set({ pendingSeaActivities: null });
-  // Halte de nuit (machinerie EXISTANTE) — le recap du jour, Activités comprises, s'y lit. En mer, on
-  // dort à bord (hamacs, MDG 03 l.71) : couchage unique et abrité.
-  openRest(get, set, { places: get().vessel ? { bord: true } : placesOfKind('camp'), travelHalt: true, travelDay: day });
+  openSeaHalt(get, set, day); // le recap du jour, Activités comprises, s'y lit
 }
 
 /** Catalogue 'mer' (source UNIQUE `activities.json`) — pour la modale. */

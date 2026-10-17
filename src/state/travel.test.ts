@@ -16,6 +16,7 @@ import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
 import { draineCascade } from './cascadeTestKit';
+import { dayIndex } from './upkeep';
 
 const ration = (uid: string): ItemInstance => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false });
 
@@ -232,6 +233,9 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     const wm = useGame.getState().worldMap!;
     useGame.setState({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
     useGame.getState().resumeTravel();
+    // Les 6 h du jour sont déjà marchées (LDB 51 l.195) : le groupe fait halte, il repart au matin.
+    expect(useGame.getState().pendingRest?.travelHalt).toBe(true);
+    sleepThroughHalt();
     st = useGame.getState();
     expect(st.travelPlan).toBeNull();
     expect(st.scene?.id).toBe('lieu-b-scene');
@@ -337,6 +341,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     const wm = useGame.getState().worldMap!;
     useGame.setState({ worldMap: { ...wm, routes: wm.routes.map((x) => ({ ...x, perils: [] })) } });
     useGame.getState().resumeTravel();
+    sleepThroughHalt(); // budget du jour épuisé (LDB 51 l.195) : halte, puis la route au matin
     r = useGame.getState().travelRecap!;
     expect(r.status).toBe('arrived');
     expect(useGame.getState().scene?.id).toBe('lieu-b-scene');
@@ -605,6 +610,23 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     expect(st.scene?.id).toBe('lieu-b-scene');
     expect(st.gameTime - t0).toBe(Math.round((12 / 17.5) * 60)); // 41 min
     expect(st.journal.some((l) => l.includes('en selle') && l.includes('trot'))).toBe(true);
+  });
+
+  it('budget EN SELLE (LDB 51 l.195) : les heures déjà chevauchées du jour l’épuisent, pas celles marchées', () => {
+    setRule('travel-allures', true);
+    const h = hero();
+    setup(map(), [h], [mountPossession('m1', h.id)]);
+    const jour = dayIndex(useGame.getState().gameTime);
+    // 6 h déjà chevauchées aujourd'hui : l'allure de base est épuisée → nuit sur place, aucun jour de 0 h.
+    useGame.setState({ travelDayHours: { day: jour, foot: 0, mount: 6, marched: false } });
+    useGame.getState().startTravel('r1', 'monture', { allure: 'trot' });
+    expect(useGame.getState().travelPlan).toBeNull();
+    expect(useGame.getState().pendingDeparture?.cause).toBe('budget');
+    // Test opposé : 6 h MARCHÉES n'usent pas le budget en selle — le groupe monté part et arrive.
+    useGame.setState({ pendingDeparture: null, travelDayHours: { day: jour, foot: 6, mount: 0, marched: false } });
+    useGame.getState().startTravel('r1', 'monture', { allure: 'trot' });
+    expect(useGame.getState().pendingDeparture).toBeNull();
+    expect(useGame.getState().scene?.id).toBe('lieu-b-scene');
   });
 
   it('sur-endurance au galop (Chien BE 2, 6 h) : la bête s’épuise — Incident de monte ou effondrement', () => {

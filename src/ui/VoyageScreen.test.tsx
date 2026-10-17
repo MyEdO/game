@@ -3,7 +3,8 @@ import type { CampaignVessel } from '../state/store';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan } from '../state/travelFlow';
 import { rollSeaWeather } from '../engine/seaWeather';
-import { voyageMode, voyageTiles, voyageDayCards, dayAgenda } from './VoyageScreen';
+import { voyageMode, voyageTiles, voyageDayCards, dayAgenda, etaLabel, etaJours } from './VoyageScreen';
+import type { TravelRecapDay } from '../state/travelFlow';
 import { moraleBand } from '../engine/crewMorale';
 import { voyageStepPending } from '../state/modalArbiter';
 import type { PendingCascade, CascadeStep } from '../state/pendings';
@@ -102,21 +103,45 @@ describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
     expect(cards[2].dayLabel).toBe('Jour 3');
   });
 
-  // Vague « lisibilité du voyage » 2/2 : le bilan du jour CLOS d'une halte de nuit EN COURS sort du
-  // panneau de nuit — il devient une carte SÉLECTIONNABLE (comme un jour passé) ; `current` bascule sur
-  // la Nuit elle-même (aucun doublon jour/nuit sous un même index).
-  it('chronique : une halte de nuit EN COURS ajoute une carte SÉLECTIONNABLE pour le jour clos, « Nuit » devient la carte current', () => {
+  // Halte de nuit EN COURS : le jour qu'elle clot est DÉJÀ le dernier de `plan.log` (`openRest` l'y
+  // range) — UNE carte sélectionnable pour lui, et `current` est la Nuit elle-même (#2533 : jamais
+  // deux cartes pour un même jour).
+  it('chronique : une halte de nuit EN COURS — le jour clos a UNE carte, « Nuit » est la carte current', () => {
     const plan: TravelPlan = { ...seaPlan(), log: [
       { kmFrom: 0, kmTo: 32, hours: 24, lines: [{ text: 'Départ, vent portant' }], entries: [] },
+      { kmFrom: 32, kmTo: 60, hours: 24, lines: [{ text: 'Grain — voiles ✓' }], entries: [] },
     ] };
-    const pendingDay = { kmFrom: 32, kmTo: 60, hours: 24, lines: [{ text: 'Grain — voiles ✓' }], entries: [] };
-    const cards = voyageDayCards(plan, 'mer', 'Jour', true, [], pendingDay);
-    expect(cards).toHaveLength(3); // Jour 1 (log) + Jour 2 (clos, en attente de la nuit) + Nuit (current)
+    const cards = voyageDayCards(plan, 'mer', 'Jour', true, [], true);
+    expect(cards).toHaveLength(3); // Jour 1 + Jour 2 (clos par la halte) + Nuit (current)
     expect(cards[1].dayLabel).toBe('Jour 2');
     expect(cards[1].summary).toBe('Grain — voiles ✓');
     expect(cards[1].current).toBeUndefined();
     expect(cards[2].dayLabel).toBe('Nuit');
     expect(cards[2].current).toBe(true);
+  });
+});
+
+describe('etaJours — une seule source, qui ne clignote pas (#2533)', () => {
+  const jour = (kmFrom: number, kmTo: number) => ({ kmFrom, kmTo } as TravelRecapDay);
+  it('péripéties du PREMIER jour (aucun jour clos) : les km déjà faits ce jour-là donnent l’allure', () => {
+    expect(etaJours({ km: 35, kmDone: 18, log: [] })).toBe(1);
+  });
+  it('le même jour clos à la halte : même compte — le compteur ne disparaît ni ne change', () => {
+    expect(etaJours({ km: 35, kmDone: 18, log: [jour(0, 18)] })).toBe(1);
+  });
+  it('matin du jour suivant, avant la marche : l’allure du dernier jour clos', () => {
+    expect(etaJours({ km: 60, kmDone: 18, log: [jour(0, 18)] })).toBe(3);
+  });
+  it('aucun jour n’a encore avancé : pas d’estimation', () => {
+    expect(etaJours({ km: 35, kmDone: 0, log: [] })).toBeNull();
+  });
+});
+
+describe('etaLabel — jours restants, pluriel et zéro (#2533)', () => {
+  it('« dernier jour », « ~1 jour restant », « ~2 jours restants » — jamais « ~0 jour(s) »', () => {
+    expect(etaLabel(0)).toBe('dernier jour');
+    expect(etaLabel(1)).toBe('~1 jour restant');
+    expect(etaLabel(2)).toBe('~2 jours restants');
   });
 });
 
@@ -139,6 +164,11 @@ describe('dayAgenda — sous-phases du jour EN COURS (arbitrage user verbatim)',
     const agenda = dayAgenda(cascade([cascadeStep('landPeril')], 0), null);
     expect(agenda.some((a) => a.key === 'activites')).toBe(false);
     expect(agenda.some((a) => a.key === 'route')).toBe(false);
+  });
+
+  it('jour d’ARRIVÉE (#2533) : la Nuit n’est pas une phase à venir — aucune halte ce soir-là', () => {
+    const agenda = dayAgenda(cascade([cascadeStep('landPeril')], 0), null, true);
+    expect(agenda.map((a) => a.key)).toEqual(['rencontre']);
   });
 
   it('halte de nuit en cours : Route faite, Nuit en cours (plus de cascade active)', () => {

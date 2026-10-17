@@ -31,7 +31,7 @@
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { bus, EVT } from './bus';
-import { openRest, placesOfKind } from './restFlow';
+import { openRest } from './restFlow';
 import { dayIndex } from './upkeep';
 import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
@@ -1717,9 +1717,14 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
     set({ pendingSeaActivities: { picks: {}, day: recapDay } });
     return;
   }
-  // Halte de nuit (machinerie de repos EXISTANTE — le recap du jour s'y lit, patron travelFlow). EN MER,
-  // on dort À BORD (hamacs, MDG 03 l.71) : couchage unique et abrité — pas de tente sur l'eau.
-  openRest(get, set, { places: get().vessel ? { bord: true } : placesOfKind('camp'), travelHalt: true, travelDay: recapDay });
+  openSeaHalt(get, set, recapDay);
+}
+
+/** Halte de nuit EN MER (machinerie de repos, patron travelFlow) : on dort À BORD (hamacs, MDG 03
+ *  l.71), couchage unique et abrité — pas de tente sur l'eau. `travelDay` = le jour qu'elle clot. */
+export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void {
+  const vessel = garanti(get().vessel, get().travelPlan?.routeId, 'navire de campagne');
+  openRest(get, set, { places: { bord: true }, lieu: nomDuNavire(vessel), travelHalt: true, travelDay });
 }
 
 // ── Registre `cascadeAppliers` des Tests d'équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL,

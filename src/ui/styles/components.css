@@ -693,11 +693,13 @@ button.chip:hover {
   font-size: 11px;
   color: var(--muted);
 }
+/* EN LIGNE, jamais `inline-flex` : la date vit au milieu d'une phrase, et un conteneur flex rend ses
+   enfants BLOCS (sauts de ligne au texte lu, au copier-coller, au lecteur d'écran). */
 .game-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline;
+  white-space: nowrap;
 }
+.game-date > .icon { margin-right: 6px; }
 
 /* ── BANDEAU D'INTERLOCUTEUR (primitive SpeakerBanner.tsx, #371) — portrait + nom + réplique.
    `.dialogue-box` = surface + position ; en overlay de dialogue (variant `dialogue`, DialogueBox.tsx) elle

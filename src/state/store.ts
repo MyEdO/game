@@ -146,7 +146,7 @@ import * as medicFlow from './medicFlow';
 import type { MedicState, MedicNpc } from './medicFlow';
 export type { MedicState, MedicNpc } from './medicFlow';
 import * as restFlow from './restFlow';
-import type { PendingRest, RestPlaces, RestLodging, RestFood } from './restFlow';
+import type { PendingRest, RestLodging, RestFood } from './restFlow';
 export type { PendingRest, RestPlaces } from './restFlow';
 import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
 import type { PendingCouncil } from './shipCrew';
@@ -1066,7 +1066,7 @@ export interface GameState extends RollFlowActionsMap {
   closeMedic: () => void;
   /** REPOS (state/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
-  openRest: (opts?: { places?: RestPlaces; quality?: 'normale' | 'pietre'; days?: number; travelHalt?: boolean }) => void;
+  openRest: (opts: restFlow.OpenRestOpts) => void;
   restSet: (heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
   restReady: (seat: number) => void;
   restSleep: () => void;
@@ -1545,7 +1545,7 @@ export interface GameState extends RollFlowActionsMap {
   lastNightDay: number;
   /** Départ de voyage BLOQUÉ par la porte d'heure (maison `travel-departure-gate`, #340) : terre/fleuve
    *  de nuit → « Attendre l'aube » (nuit jouée) ou annuler. `null` = pas de départ en attente. */
-  pendingDeparture: { routeId: string; mode: import('../engine/travel').TravelMode; opts: { classeId?: string; hoursPerDay?: number; allure?: import('../engine/mountTravel').Allure; seaPace?: number; fast?: boolean; cadence?: import('./voyageCadence').VoyageCadence }; dawnAt: number } | null;
+  pendingDeparture: { routeId: string; mode: import('../engine/travel').TravelMode; opts: { classeId?: string; hoursPerDay?: number; allure?: import('../engine/mountTravel').Allure; seaPace?: number; fast?: boolean; cadence?: import('./voyageCadence').VoyageCadence }; cause: 'nuit' | 'budget'; dawnAt: number } | null;
   /** « Attendre l'aube » : joue une nuit (repos) puis efface la porte — le groupe repart au matin. */
   departWaitDawn: () => void;
   /** « Annuler » le départ nocturne bloqué par la porte. */

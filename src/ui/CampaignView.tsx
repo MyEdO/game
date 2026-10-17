@@ -23,6 +23,7 @@ import { CombatBanner } from './CombatBanner';
 import { ActiveModal } from './ActiveModal'; // arbitre R2 : une seule modale de combat à la fois
 import { VictoryScreen } from './VictoryScreen';
 import { CampaignOpeningScreen } from './CampaignOpeningScreen';
+import { t } from '../i18n';
 import { ChapterRecapScreen } from './ChapterRecapScreen';
 import { BargainModal } from './BargainModal';
 import { AppraiseModal } from './AppraiseModal';
@@ -57,7 +58,7 @@ import { CarnetScreen } from './CarnetScreen';
 import { DialogueHistoryScreen } from './DialogueHistoryScreen';
 import { voyageHubActive, voyageStepPending } from '../state/modalArbiter';
 import { placeOfScene, atLocationPlace, placeServices } from '../state/worldMap';
-import { restPlacesHere } from '../state/restFlow';
+import { restPlacesHere, sceneLieu } from '../state/restFlow';
 import { roomFocusAt } from '../state/rooms';
 import { hoverClickCommits } from './pointerCaps';
 import { controlsActive, controlsCombatant } from '../state/netOwnership';
@@ -312,7 +313,7 @@ export function CampaignView() {
             rest={!travelPlan && restHere && !hubPlace
               ? {
                   title: restHere.places.auberge ? 'Dormir — auberge ou belle étoile' : restHere.places.maison ? 'Dormir — chez soi' : 'Camper — dormir sur place jusqu’à l’aube',
-                  onOpen: () => openRest({ places: restHere.places, quality: restHere.quality }),
+                  onOpen: () => openRest({ places: restHere.places, lieu: sceneLieu(useGame.getState), quality: restHere.quality }),
                 }
               : undefined}
             onFouiller={dansUnePiece ? fouillerLaPiece : undefined}
@@ -403,7 +404,7 @@ export function CampaignView() {
         {dossierOpen && vessel && <ShipDossier onClose={() => setDossierOpen(false)} />}
         {/* Écran-hub de voyage (#333) : plein-champ pendant tout voyage EN COURS ; héberge la cascade
             du jour EN SON CENTRE (l'arbitre supprime la modale flottante). */}
-        {showVoyage && <VoyageScreen onClose={() => setVoyageMin(true)} />}
+        {showVoyage && <VoyageScreen onClose={() => { if (!voyageStepUp) setVoyageMin(true); }} reduireRefus={voyageStepUp ? t('vs.reduireRefus') : undefined} />}
         {/* Hub de ville (#343) : écran-lieu plein-champ. Cédé aux écrans plein-champ qu'il ouvre
             (carte du monde, port, marché) — « Entrer » ferme le hub avant de les ouvrir. Cédé aussi à
             la modale de repos (`pendingRest` → `ActiveModal` clé `rest`) : « Dormir » depuis le panneau

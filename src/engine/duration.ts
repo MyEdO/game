@@ -40,12 +40,30 @@ export function roundsLabel(n: number, opts?: { short?: boolean }): string {
  *  l'échelle `clock`, posé auprès du modèle comme `roundsLabel` l'est pour l'échelle tactique. L'unité
  *  suit la grandeur (minutes < 1 h, heures < 1 j, sinon jours), arrondie au cran SUPÉRIEUR : une
  *  fenêtre « moins d'une minute » reste « 1 min » tant qu'elle n'est pas échue. À échéance ou au-delà :
- *  `undefined` (il n'y a plus de reste à dire — la purge d'horloge va l'emporter). */
-export function clockLabel(minutesLeft: number): string | undefined {
+ *  `undefined` (il n'y a plus de reste à dire — la purge d'horloge va l'emporter).
+ *
+ *  `exact` : forme DÉCOMPOSÉE d'une durée ÉCOULÉE ou estimée (« 2 h 40 min », « 1 j 6 h », « 3 j ») — l'unité de chaque part toujours dite : « 1 j 22 h 10 » se
+ *  lirait comme une heure, arrondie à
+ *  la minute — mêmes unités que la forme courte (le voyage : estimation d'avant départ et durée
+ *  réelle du récapitulatif). Une seule fonction porte les deux formes, comme `roundsLabel`. */
+export function clockLabel(minutesLeft: number, opts?: { exact?: boolean }): string | undefined {
   if (minutesLeft <= 0) return undefined;
+  if (opts?.exact) return exactClockLabel(Math.max(1, Math.round(minutesLeft)));
   if (minutesLeft < 60) return `${Math.ceil(minutesLeft)} min`;
   if (minutesLeft < 24 * 60) return `${Math.ceil(minutesLeft / 60)} h`;
   return `${Math.ceil(minutesLeft / (24 * 60))} j`;
+}
+
+function exactClockLabel(minutes: number): string {
+  const days = Math.floor(minutes / (24 * 60));
+  const hours = Math.floor((minutes % (24 * 60)) / 60);
+  const mins = minutes % 60;
+  if (days === 0 && hours === 0) return `${mins} min`;
+  const parts: string[] = [];
+  if (days) parts.push(`${days} j`);
+  if (hours) parts.push(`${hours} h`);
+  if (mins) parts.push(`${mins} min`);
+  return parts.join(' ');
 }
 
 /** Avance une durée d'UN Round. Les échelles `clock`/`permanent`/`adventure` sont inertes au tick de Round. */

@@ -149,7 +149,7 @@ describe('#296 — state.vessel SOURCE UNIQUE de la coque de trajet (non-diverge
       if (!get().pendingCascade) break;
       stepCascade();
     }
-    const day = get().pendingRest!.travelDay!;
+    const day = get().travelPlan!.log!.slice(-1)[0]!;
     expect(day.sea!.hullDelta).toBe(-10); // ce que la journée a coûté à la coque
     // Réparation APRÈS la clôture : la surface vive suit, et la chronique du jour clos garde son delta.
     healVesselHull(get, set, get().travelPlan!.vehicle!, 10);

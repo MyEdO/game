@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import { nomDuNavire } from '../state/carriers';
 import { useGame } from '../state/store';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../state/worldMap';
-import { baseHoursPerDay, maxHoursPerDay } from '../state/travelFlow';
+import { baseHoursPerDay, maxHoursPerDay, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../state/travelFlow';
+import { clockLabel } from '../engine/duration';
+import { t } from '../i18n';
 import {
   TravelMode, travelModeLabels, vehicleTravel, travelModeIcon, travelSpeed, travelPlanCalc, transportCost,
   routeDistanceLabel,
@@ -77,6 +79,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   // Bourse de groupe = somme des bourses personnelles (T-bourse #531) ; recalculée quand le groupe change.
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const gameTime = useGame((s) => s.gameTime);
+  const travelDayHours = useGame((s) => s.travelDayHours);
   const travelPlan = useGame((s) => s.travelPlan);
   const close = useGame((s) => s.closeWorldMap);
   const startTravel = useGame((s) => s.startTravel);
@@ -230,8 +233,13 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const passengers = party.filter((h) => !h.dead && !h.outOfRencontre).length;
   const effAllure: Allure | undefined = mode === 'monture' ? allure : forceGallop ? 'galop' : undefined;
   const kmh = selRoute ? travelSpeed(party, possessions, mode, selRoute.speed?.[mode], effAllure) : 0;
-  const hours = mode === 'pied' && forced ? maxH : mode === 'monture' && forced ? 12 : base;
-  const plan = selRoute && kmh > 0 ? travelPlanCalc(selRoute.km, kmh, hours) : null;
+  const hours = mode === 'pied' && forced ? maxH : mode === 'monture' && forced ? MOUNT_MAX_HOURS : base;
+  // Le premier jour n'a que ce qu'il RESTE du budget d'aujourd'hui — même calcul que le flux.
+  const prior = hoursTravelledToday({ gameTime, travelDayHours });
+  const firstDay = travelDayBudget(mode, hours, prior);
+  // Route du jour FAITE : le départ attendra l'aube — dit AVANT le clic, même source que la porte du flux.
+  const aLAube = routeDuJourFaite(mode, hours, prior);
+  const plan = selRoute && kmh > 0 ? travelPlanCalc(selRoute.km, kmh, hours, firstDay) : null;
   const cost = selRoute && mode !== 'pied' && mode !== 'monture' && mode !== 'mer'
     ? transportCost(selRoute.km, mode, classeId, passengers, selRoute.prices?.[mode])
     : null;
@@ -244,7 +252,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   const provisions = mode === 'mer' && seaDaysEstimated > 0 ? provisioningManifest(party, vessel?.waterLitres, seaDaysEstimated, { count: seaCrewCount, provisions: vessel?.provisions }) : null;
 
   const fmtDuration = (p: NonNullable<typeof plan>) =>
-    p.days <= 1 ? `≈ ${Math.max(1, Math.round(p.travelMinutes / 60))} h` : `${p.days} jours (${hours} h de route/jour)`;
+    p.days <= 1 ? `≈ ${clockLabel(p.travelMinutes, { exact: true })}` : `${p.days} jours (${clockLabel(hours * 60, { exact: true })} de route/jour)`;
 
   // Reprise d'un voyage interrompu.
   const resumeDest = travelPlan?.interrupted ? placeById(map, travelPlan.toPlaceId) : undefined;
@@ -467,7 +475,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
       )}
 
       {/* Panneau de départ */}
-      {!travelPlan?.interrupted && selRoute && dest && here && (
+      {!travelPlan?.interrupted && !(pendingDeparture && !isGuest) && selRoute && dest && here && (
         <div className="worldmap-panel">
           <div className="wm-trip">
             <span className="wm-trip-route"><b>{here.label}</b> <span className="wm-arrow">→</span> <b>{dest.label}</b> · {routeDistanceLabel(selRoute.km, selRoute.sea)}</span>
@@ -587,6 +595,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               )
             ) : kmh > 0 ? (
               <>
+                {aLAube && <>{t('tf.departAvantAube')}{' '}</>}
                 Allure {kmh} km/h · Durée {plan ? fmtDuration(plan) : '—'}
                 {cost && <> · Prix <Coins money={cost} />{!affordable && ' (bourse insuffisante)'}</>}
                 {mode === 'pied' && plan && plan.days > 1 && (
@@ -623,8 +632,8 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                 sa raison que sur une action FERMÉE (#1689 T2). */}
             <GatedAction
               id="worldmap-depart"
-              label={<><Icon id="scenario/travel" size="sm" /> {mode === 'mer' && provisions && !provisions.suffisant ? 'Appareiller quand même' : 'Partir'}</>}
-              ariaLabel={mode === 'mer' && provisions && !provisions.suffisant ? 'Appareiller quand même' : 'Partir'}
+              label={<><Icon id="scenario/travel" size="sm" /> {aLAube ? t('tf.attendreAube') : mode === 'mer' && provisions && !provisions.suffisant ? 'Appareiller quand même' : 'Partir'}</>}
+              ariaLabel={aLAube ? t('tf.attendreAube') : mode === 'mer' && provisions && !provisions.suffisant ? 'Appareiller quand même' : 'Partir'}
               enabled={!isGuest && (mode === 'mer'
                 ? !!vessel && seaM > 0 && !(seaOverload != null && !seaOverload.canSail)
                 : kmh > 0 && affordable)}
@@ -633,14 +642,17 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
                 : mode === 'mer' ? `Cale surchargée à ${seaOverload?.ratioPct ?? 0} % — impossible de prendre la mer. Allégez la cale.`
                 : kmh <= 0 ? 'Le groupe est trop chargé pour avancer — allégez les sacs.'
                 : `Bourse insuffisante (${cost ? formatMoney(cost) : ''}).`}
-              onClick={() => startTravel(selRoute.id, mode, {
-                classeId: classeId || undefined,
-                hoursPerDay: forced ? (mode === 'pied' ? maxH : mode === 'monture' ? 12 : undefined) : undefined,
-                allure: effAllure,
-                seaPace: mode === 'mer' && !seaFast && seaPace > 0 ? seaPace : undefined,
-                fast: mode === 'mer' && seaFast ? true : undefined,
-                cadence: mode === 'mer' && !seaFast ? seaCadence : undefined,
-              })}
+              onClick={() => {
+                startTravel(selRoute.id, mode, {
+                  classeId: classeId || undefined,
+                  hoursPerDay: forced ? (mode === 'pied' ? maxH : mode === 'monture' ? 12 : undefined) : undefined,
+                  allure: effAllure,
+                  seaPace: mode === 'mer' && !seaFast && seaPace > 0 ? seaPace : undefined,
+                  fast: mode === 'mer' && seaFast ? true : undefined,
+                  cadence: mode === 'mer' && !seaFast ? seaCadence : undefined,
+                });
+                if (aLAube) departWaitDawn(); // la porte a différé le départ : la nuit se passe sur place, d'un geste
+              }}
             />
           </Row>
         </div>
@@ -682,15 +694,19 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
       )}
 
       {pendingDeparture && !isGuest && (
-        <div className="worldmap-panel" role="alertdialog" aria-label="Départ de nuit">
-          <p>
-            La nuit est tombée — un voyage {pendingDeparture.mode === 'monture' ? 'en selle' : pendingDeparture.mode === 'pied' ? 'à pied' : 'sur le fleuve'} ne
-            s'ébranle qu'au grand jour. Prochain départ possible à l'aube ({formatImperial(pendingDeparture.dawnAt)}).
-          </p>
-          <div className="bar">
-            <button className="btn btn-primary" onClick={departWaitDawn}>Attendre l'aube</button>
-            <button className="btn" onClick={departCancel}>Annuler</button>
-          </div>
+        <div className="worldmap-panel" role="alertdialog" aria-label={t(pendingDeparture.cause === 'budget' ? 'tf.departBudgetTitre' : 'tf.departNuitTitre')}>
+          {pendingDeparture.cause === 'budget' ? (
+            <p>{t('tf.departBudget', { dawn: formatImperial(pendingDeparture.dawnAt) })}</p>
+          ) : (
+            <p>{t('tf.departNuit', {
+              maniere: t(pendingDeparture.mode === 'monture' ? 'tf.maniereSelle' : pendingDeparture.mode === 'pied' ? 'tf.manierePied' : 'tf.maniereFleuve'),
+              dawn: formatImperial(pendingDeparture.dawnAt),
+            })}</p>
+          )}
+          <Row justify="end">
+            <button type="button" className="btn" onClick={departCancel}>Annuler</button>
+            <button type="button" className="btn btn-primary" onClick={departWaitDawn}>{t('tf.attendreAube')}</button>
+          </Row>
         </div>
       )}
       </aside>

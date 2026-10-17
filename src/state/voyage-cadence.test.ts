@@ -72,7 +72,7 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
     expect(get().pendingCascade).toBeNull();
     expect(get().pendingRest).toBeTruthy();
     expect(get().travelPlan!.sea!.daysAtSea).toBe(1);
-    const day = get().pendingRest!.travelDay!;
+    const day = get().travelPlan!.log!.slice(-1)[0]!;
     // PV structuré : une ligne de JET par contributeur des Tests de routine (chaque jet a sa trace).
     expect((day.entries?.length ?? 0)).toBeGreaterThan(0);
     for (const e of day.entries!) expect(e.d).toBeTruthy(); // anatomie de jet (RollRow), pas du texte muet
@@ -89,7 +89,7 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
 
   it('chaque ligne du PV NOMME la Compétence lancée (Z5), DIT sa Difficulté, et porte le rôle en PROVENANCE (#1112 G5)', () => {
     get().startTravel('r1', 'mer', { cadence: 'commande' });
-    const day = get().pendingRest!.travelDay!;
+    const day = get().travelPlan!.log!.slice(-1)[0]!;
     const crewLines = day.entries!.filter((e) => (e.id ?? '').startsWith('sea-progression'));
     expect(crewLines.length).toBeGreaterThan(0);
     const skillLabels = new Set(SKILLS.map((s) => s.label));
@@ -109,7 +109,7 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
 
   it('aucun jet silencieux : chaque Test de routine du jour a au moins une ligne au PV (lignes ≥ jets)', () => {
     get().startTravel('r1', 'mer', { cadence: 'commande' });
-    const day = get().pendingRest!.travelDay!;
+    const day = get().travelPlan!.log!.slice(-1)[0]!;
     // Un RÉSUMÉ DR par Test (ligne « … : DR … → succès/échec ») au journal du jour, + les entrées.
     const drLines = day.lines.filter((l) => /DR .* → (succès|échec)/.test(l.text)).length;
     const kinds = new Set(day.entries!.map((e) => (e.id ?? '').split('-')[1]));
@@ -126,7 +126,7 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
     // Rythme FORCÉ à +1 M (MDG 13 l.95-107 : à la voile, seul +1 est jouable) → un mono `sea-force-pace`
     // rejoint le tableau du jour, aux côtés des bandes Progression/Orientation.
     get().startTravel('r1', 'mer', { cadence: 'commande', seaPace: 1 });
-    const day = get().pendingRest!.travelDay!;
+    const day = get().travelPlan!.log!.slice(-1)[0]!;
     const journal = get().journal;
     const rows = (day.entries ?? []).filter((e) => e.d);
     expect(rows.length).toBeGreaterThan(0);

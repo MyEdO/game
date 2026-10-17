@@ -56,6 +56,7 @@ export function ScreenShell({
   title,
   onClose,
   closeLabel = '✕ Fermer',
+  closeRefus,
   meta,
   actions,
   tabs,
@@ -72,6 +73,9 @@ export function ScreenShell({
   onClose: () => void;
   /** Libellé du bouton de fermeture (défaut « ✕ Fermer »). */
   closeLabel?: ReactNode;
+  /** Raison pour laquelle la fermeture est INDISPONIBLE : le bouton se grise et la dit au survol
+   *  (`GatedAction`). Absente = fermeture offerte. */
+  closeRefus?: string;
   /** Slot d'en-tête STANDARD date/bourse (opt-in) — `time` = instant de campagne, `money` = bourse du groupe. */
   meta?: { time?: number; money?: Money };
   /** Boutons d'en-tête AVANT la fermeture (rendus à droite, à côté du bouton Fermer). */
@@ -102,7 +106,7 @@ export function ScreenShell({
         <Row justify="end" className="worldmap-head-actions">
           <ScreenMeta meta={meta} />
           {actions}
-          <CadreFermer onClose={onClose}>{closeLabel}</CadreFermer>
+          <CadreFermer onClose={onClose} refus={closeRefus ? { id: `${titreId}-fermer`, raison: closeRefus } : undefined}>{closeLabel}</CadreFermer>
         </Row>
       </Row>
       {tabs != null && <Row className="screen-toolbar">{tabs}</Row>}

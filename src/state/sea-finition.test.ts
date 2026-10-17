@@ -126,7 +126,7 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     await runOneSeaDay();
     // Le recap du jour (halte de nuit) porte la journée ENTIÈRE — le journal, capé à 40 lignes,
     // évince les lignes précoces comme « Forcer le rythme ».
-    const day = get().pendingRest!.travelDay!.lines.map((l) => l.text).join('\n');
+    const day = get().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text).join('\n');
     expect(day).toMatch(/Forcer le rythme/);
     expect(day).toMatch(/Épuisement.*rythme forcé/);
   });

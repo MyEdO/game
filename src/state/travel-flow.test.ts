@@ -13,6 +13,7 @@ import { seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { stageWeatherRows } from './travelFlow';
+import { PERIPETIES } from '../data/peripeties';
 import { emptyScene, Scene } from './scene';
 import { buildEncounter } from './encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from './worldMap';
@@ -464,17 +465,13 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
  * nue (`skillBaseValue`) de la valeur jetée (`testValue`), qu'une base fondue confondrait.
  */
 describe('Péripétie terrestre — base NUE + Soutien NOMMÉ, cible invariante (#1153 L2bis)', () => {
-  /** Rejoue `landPeril` en cherchant le tirage qui donne « Voyage éreintant » (1d10 = 4, l.237) :
-   *  la table est tirée sur le RNG de bataille, donc c'est la GRAINE qui choisit — jamais un stub. */
-  const perilInsert = (kind: string) => {
-    const step = { id: 'p', kind: 'landPeril', meta: { destLabel: 'B' } } as never;
-    for (let seed = 1; seed <= 400; seed++) {
-      seedBattleRng(seed);
-      const out = cascadeAppliers.landPeril.apply(get, set, step, undefined, { steps: [step], index: 0 });
-      const found = (out?.insert ?? []).find((s) => s.kind === kind);
-      if (found) return found;
-    }
-    return undefined;
+  /** Le d10 de la table des péripéties (`landPerilTable`, LDB 51 l.210-221) POSÉ sur la rangée de la
+   *  péripétie `peripetieKind` : son applier insère l'étape-jet de kind `kind`. */
+  const perilInsert = (peripetieKind: string, kind: string) => {
+    const p = PERIPETIES.find((x) => x.kind === peripetieKind)!;
+    const step = { id: 'p', kind: 'landPerilTable', table: { tableId: 'land-peril-table', result: { id: p.id, roll: p.roll, lines: [] } }, meta: { destLabel: 'B' } } as never;
+    const out = cascadeAppliers.landPerilTable.apply(get, set, step, undefined, { steps: [step], index: 0 });
+    return (out?.insert ?? []).find((s) => s.kind === kind);
   };
 
   it('« Voyage éreintant » : `base` = Survie NUE du meneur EMPOISONNÉ, chip « Soutien », cible = valeur soutenue', () => {
@@ -492,7 +489,7 @@ describe('Péripétie terrestre — base NUE + Soutien NOMMÉ, cible invariante 
     const soutien = soutienDetail(get().party, lead, 'survie-en-exterieur');
     expect(soutien.bonus, 'le camarade éligible soutient (l.195)').toBeGreaterThan(0);
 
-    const st = perilInsert('landPerilSurvie')!;
+    const st = perilInsert('ereintant', 'landPerilSurvie')!;
     expect(st, 'la péripétie « éreintant » insère bien son Test').toBeTruthy();
     expect(st.actorId).toBe('lead');
     expect(st.base, 'Niveau de Compétence NU (LDB 09 l.17)').toBe(nue);
