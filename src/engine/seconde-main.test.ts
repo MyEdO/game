@@ -1,6 +1,6 @@
 // LDB 10 l.773 ; LDB 41 l.170 ; #1595 c.6229550544.
 import { describe, it, expect } from 'vitest';
-import { lancerDeLaSecondeMain, reverseRoll } from './combat';
+import { lancerDeLaSecondeMain, reverseRoll, causeDuCoupCritique } from './combat';
 import type { RNG } from './dice';
 
 function rngImpose(tirages: number[]): RNG & { tires: number } {
@@ -46,5 +46,21 @@ describe('lancerDeLaSecondeMain', () => {
     const premierHaut = rngImpose([87, 12]);
     expect(lancerDeLaSecondeMain({ critical: true }, 34, premierHaut, true)).toBe(87);
     expect(premierHaut.tires).toBe(2);
+  });
+
+  // LDB 85 l.98, l.134.
+  it('Critique obtenu sur une touche sans prise : la Seconde main reçoit toujours le d100', () => {
+    const touche = { critical: true, attackerRoll: 33, sansPrise: 'ethere' as const };
+    const rng = rngImpose([71]);
+    expect(lancerDeLaSecondeMain(touche, 33, rng, false)).toBe(71);
+    expect(rng.tires).toBe(1);
+  });
+});
+
+describe('causeDuCoupCritique', () => {
+  // LDB 85 l.98 ; #1595 c.6229550544.
+  it('un coup sans prise ne cause aucun Coup Critique, le Critique obtenu reste', () => {
+    expect(causeDuCoupCritique({ critical: true, attackerRoll: 33, sansPrise: 'ethere' })).toBeNull();
+    expect(causeDuCoupCritique({ critical: true, attackerRoll: 33 })).toBe('double');
   });
 });

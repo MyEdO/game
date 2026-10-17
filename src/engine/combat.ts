@@ -1565,9 +1565,10 @@ export function peutRetenirSesCoups(weapon: Weapon): boolean {
   return rule('combat-aa-blessures') !== 'aa' || (weapon.type === 'melee' && !weaponInflictsFlames(weapon));
 }
 
-/** Cause du Coup Critique d'une touche d'arme (LDB 13 l.183 ; LDB 62 l.248) — le double prime. */
-export function causeDuCoupCritique(res: Pick<AttackResult, 'critical' | 'attackerRoll'>): CauseCoupCritique | null {
-  if (!res.critical) return null;
+/** Cause du Coup Critique d'une touche d'arme (LDB 13 l.183 ; LDB 62 l.248) — le double prime.
+ *  LDB 85 l.98 ; #1595 c.6229550544. */
+export function causeDuCoupCritique(res: Pick<AttackResult, 'critical' | 'attackerRoll' | 'sansPrise'>): CauseCoupCritique | null {
+  if (!res.critical || res.sansPrise) return null;
   return isDoubleRoll(res.attackerRoll) ? 'double' : 'empaleuse';
 }
 
