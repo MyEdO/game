@@ -15,6 +15,9 @@ const liste = (valeur) => (valeur === undefined ? null : valeur.split(',').map((
 /** Une entrée de `disallowedTools` couvre-t-elle `outil` ? Un suffixe `*` couvre son préfixe. */
 const couvre = (motif, outil) => (motif.endsWith('*') ? outil.startsWith(motif.slice(0, -1)) : motif === outil)
 
+/** Le type de `fiche` dispose-t-il de `outil` ? Sans `tools`, il hérite de tout ; `disallowedTools` retranche. */
+export const outilAccorde = (fiche, outil) => (fiche.tools === null || fiche.tools.includes(outil)) && !fiche.disallowedTools.some((motif) => couvre(motif, outil))
+
 /**
  * La fiche d'un type, lue à son frontmatter (`readFrontmatter`). PURE.
  * `tools` vaut `null` quand le champ est absent : le type hérite alors de TOUS les outils ; `model` et

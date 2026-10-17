@@ -164,14 +164,26 @@ test('Post terminal : transitoire disparu ou image inaccessible conserve poison 
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
 
-test('une garde qui LÈVE ne fait pas perdre le `deny` d’une autre : sa panne part en contexte, jamais en refus', async () => {
-  const verdicts = await evaluerGardes([
-    factice('casse', () => { throw new Error('boum') }),
-    factice('refus', () => ({ decision: 'deny', raison: 'non' })),
-  ], shell('ls'), construireContexte(shell('ls')))
-  const cumul = cumuler(verdicts)
-  assert.deepEqual(cumul.decision, { decision: 'deny', reason: 'non' })
-  assert.equal(cumul.contexte, 'garde casse en panne : boum')
+// #2712, leçon 1.5 du guide de certification.
+test('une garde qui LÈVE refuse l’appel en PreToolUse, avec le geste qui la répare ; en PostToolUse sa panne part en contexte', async () => {
+  const casse = factice('casse', () => { throw new Error('boum') })
+  const pre = cumuler(await evaluerGardes([casse, factice('refus', () => ({ decision: 'deny', raison: 'non' }))], shell('ls'), construireContexte(shell('ls'))))
+  assert.equal(pre.decision.decision, 'deny')
+  assert.match(pre.decision.reason, /^⛔ garde casse en panne : boum — non retentable : corriger le module en panne \(nommé : [^)]*scripts\/hooks\/repartiteur[^)]*\) par une édition de fichier, seul geste admis en session principale\.$/)
+  const post = cumuler(await evaluerGardes([casse], shell('ls', { hook_event_name: 'PostToolUse' }), construireContexte(shell('ls'))))
+  assert.equal(post.decision, null)
+  assert.equal(post.contexte, 'garde casse en panne : boum')
+})
+
+test('une garde qui LÈVE laisse passer les éditions de la session principale, pas celles d’un sous-agent', async () => {
+  const leve = factice('casse', () => { throw new Error('boum') })
+  leve.outils = ['Edit', 'Bash']
+  const appel = (tool_name, tool_input, autres = {}) => ({ hook_event_name: 'PreToolUse', tool_name, tool_input, cwd: process.cwd(), ...autres })
+  const admis = cumuler(await evaluerGardes([leve], appel('Edit', { file_path: 'src/x.ts' }), {}))
+  assert.equal(admis.decision, null)
+  assert.match(admis.contexte, /garde casse en panne : boum/)
+  assert.match(cumuler(await evaluerGardes([leve], appel('Bash', { command: 'ls' }), {})).decision.reason, /corriger le module en panne/)
+  assert.match(cumuler(await evaluerGardes([leve], appel('Edit', { file_path: 'src/x.ts' }, { agent_id: 'a1' }), {})).decision.reason, /garde casse en panne/)
 })
 
 test('un `deny` court-circuite les gardes suivantes', async () => {
