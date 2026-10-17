@@ -69,6 +69,7 @@ LDB compris ; la garde imprime le compte de dossiers hors format à chaque exéc
 | GRAIN | un fichier porte **UNE section** du livre et **OUVRE** sur le titre que la LISTE DE DÉCOUPE lui donne (`ouverture`) | livre AVEC liste : rouge nommé, sans stock — livre SANS liste : `sans-decoupe` |
 | Mobilier de page | aucun chiffre d'**onglet** de chapitre ni **folio** mêlé au texte | livre dont la liste porte des `onglets` : `mobilier`, rouge nommé, sans stock |
 | Titres d'entrée | aucun gras de tête soudé à une ligne, aucune ligne de titre à deux groupes gras | livre dont la liste porte un `gabaritTitre` : `titre-soude`, rouge nommé, sans stock |
+| Trait d'union verbe-pronom | aucun pronom soudé à son verbe (`rappelezvous`) ni détaché d'une espace (`rappelez- vous`) ; un mot du livre qui y tombe s'exempte AU SITE dans `scripts/guards/lib/imperatifSoude.mjs` | tout dossier FR : `imperatif-soude`, rouge nommé, sans stock |
 
 **Le GRAIN, et son régime.** Arbitrage utilisateur du 2026-09-21, verbatim : « Oui : un fichier par
 section majeure ». Le grain d'un livre est sa **LISTE DE DÉCOUPE** (§ 2,
