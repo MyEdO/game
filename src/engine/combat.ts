@@ -504,8 +504,8 @@ export interface AttackResult {
   critical: boolean;
   /** Retenir ses coups effectif sur CE coup (`profilDuCoup`). LDB 18 l.30 ; AA 07 l.59, l.61. */
   retenu?: true;
-  /** Blessures critiques comptées par CE coup, écrites à l'application (`critiquesDuCoup`). LDB 18 l.17 ;
-   *  AA 07 l.42. */
+  /** Blessures critiques INFLIGÉES par CE coup, écrites à l'application (`appliquerLesCritiques`). LDB 18
+   *  l.17 ; AA 07 l.42 ; LDB 63 l.30. */
   critiques?: number;
   /** d100 nu du tableau des Critiques du Coup Critique de CE coup, quand une table l'a tiré. LDB 10 l.773 ;
    *  LDB 18 l.53. */

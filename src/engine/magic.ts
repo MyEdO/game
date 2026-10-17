@@ -936,7 +936,8 @@ export interface MissileResult extends CastResult {
   damage?: number; // dégâts bruts (avant mitigation)
   woundsLost?: number; // Blessures réellement perdues
   defenderDefeated: boolean;
-  /** Posé à la clôture de la touche (`clore`), seule émission. LDB 18 l.17 ; LDB 46 l.30. */
+  /** Blessures critiques INFLIGÉES, posées à la clôture de la touche (`clore`), seule émission. LDB 18 l.17 ;
+   *  LDB 46 l.30 ; LDB 63 l.30. */
   critiques?: number;
 }
 

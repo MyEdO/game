@@ -2476,8 +2476,9 @@ interface ApplicationDesCritiques {
 /** APPLIQUE le plan des Blessures critiques d'un coup, Blessures du coup déjà retirées : Mort subite, puis
  *  chaque décision dans l'ordre — Dévier (LDB 63 l.30 ; son échec applique la Blessure) ou Subir —, la
  *  casse de la pièce Bâclée après le Coup Critique. S'arrête à la première Blessure létale (LDB 18 l.53).
- *  Rend le d100 nu du tableau du Coup Critique, quand une table l'a tiré : LDB 10 l.773 ; LDB 18 l.53. */
-function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: number } {
+ *  Rend le d100 nu du tableau du Coup Critique, quand une table l'a tiré : LDB 10 l.773 ; LDB 18 l.53.
+ *  Rend `infligees`, le nombre de Blessures critiques appliquées : LDB 63 l.30, l.32. */
+function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: number; infligees: number } {
   const { target, log, ctx } = a;
   const { compte, lieu, coupCritique } = a.compte;
   const heroConcerne = target.kind === 'hero' || ctx.attackerKind === 'hero';
@@ -2488,6 +2489,7 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
   if (!compte.critiques.some((c) => estUnCoupCritique(c.origine))) casse();
   let lethal = false;
   let lancerDuTableau: number | undefined;
+  let infligees = 0;
   for (let i = 0; i < a.plan.length && !lethal; i++) {
     const decision = a.plan[i];
     const entree = compte.critiques[i];
@@ -2501,10 +2503,11 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
       // (pose du dé, #942 L4) garde sa révélation.
       lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.currentBefore, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
       a.apres?.(lethal, entree.origine);
+      infligees++;
     }
     if (coupCritiqueEntree) casse();
   }
-  return lancerDuTableau == null ? {} : { lancerDuTableau };
+  return lancerDuTableau == null ? { infligees } : { lancerDuTableau, infligees };
 }
 
 /**
@@ -2699,17 +2702,17 @@ function appliquerLaTouche(
     const currentBefore = target.wounds.current;
     if (relance) { res.critLocation = lieu; res.location = lieu; }
     res.woundsLost = blessures;
-    res.critiques = compte.critiques.length;
     target.wounds.current = Math.max(0, currentBefore - blessures);
     if (!isInanimate(target)) {
       // Réouverture d'une plaie critique (LDB 18 / AA 07) — jumeau du Projectile magique (appliquerTouchePourCible).
       const reinj = reinjuryBleed(target, lieu);
       if (reinj > 0) { addCondition(target, COND.hemorragique, reinj); critLog.push(tr('cf.reinjuryBleed', { name: target.label, n: reinj, loc: locationLabel(lieu, target.bodyShape) })); }
     }
-    const { lancerDuTableau } = appliquerLesCritiques({
+    const { lancerDuTableau, infligees } = appliquerLesCritiques({
       get, set, target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, currentBefore,
       roll: res.attackerRoll, apres: apresLeCritiqueDe({ get, set, auteur: attacker, cible: target, lieu, log: critLog, arme: weapon, woundsDealt: blessures }),
     });
+    res.critiques = infligees;
     if (lancerDuTableau != null) res.lancerDuTableau = lancerDuTableau;
     if (regimeDePorteur(target).clore) clore(currentBefore);
   }
@@ -5874,7 +5877,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // Réouverture d'une plaie critique (LDB 18 / AA 07) : jumeau du coup physique (applyAttackResult).
   const mReinj = reinjuryBleed(cible, loc);
   if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.reinjuryBleed', { name: cible.label, n: mReinj, loc: locationLabel(loc, cible.bodyShape) })); }
-  appliquerLesCritiques({
+  const { infligees } = appliquerLesCritiques({
     get, set, target: cible, compte, plan, log: lignes, currentBefore, roll: mres.roll ?? 0,
     ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: { degats: mres.damage ?? 0, cause } },
     apres: apresLeCritiqueDe({ get, set, auteur: caster, cible, lieu: loc, log: lignes, woundsDealt: compte.blessures }),
@@ -5916,7 +5919,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
   if (isOutOfAction(cible)) lignes.push(tr('cf.outOfAction', { name: cible.label }));
-  return clore(get, ch, lignes, { ...mres, woundsLost: compte.blessures }, compte.compte.critiques.length);
+  return clore(get, ch, lignes, { ...mres, woundsLost: compte.blessures }, infligees);
 }
 
 /**

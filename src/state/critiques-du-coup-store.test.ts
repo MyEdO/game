@@ -504,3 +504,63 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
     expect(emis).toEqual([1]);
   });
 });
+
+describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les déviées (LDB 63 l.30, l.32)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
+  afterEach(() => { resetRule('combat-aa-blessures'); vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Le coup du store, avec les `critiques` de ses `ANIM_ATTACK` de mêlée. */
+  function emisDuCoup(o: Coup) {
+    const emis: (number | undefined)[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; result: AttackResult }) => { if (p.kind === 'melee') emis.push(p.result.critiques); });
+    try { return { ...coup(o), emis }; } finally { lache(); }
+  }
+  const aaChanceux = (choix: 'devier' | 'subir'): Coup => ({ roll: 21, double: false, current: 1, chanceux: true, tenu: true, choisir: () => choix, pieces: [piece(['bacle'], 2)] });
+
+  it("'aa', Chanceux, passage à 0 dévié : `critiques: 0`, la Bâclée casse", () => {
+    setRule('combat-aa-blessures', 'aa');
+    const { auJet, emis, cible } = emisDuCoup(aaChanceux('devier'));
+    expect(auJet.woundsLost, 'le coup fait passer à 0').toBeGreaterThanOrEqual(1);
+    expect(journal()).toContain(tr('cf.deflect', { name: cible.label }));
+    expect(cible.criticalWounds ?? 0).toBe(0);
+    expect(casse(cible, 'p1')).toBe(true);
+    expect(emis).toEqual([0]);
+  });
+
+  it("'aa', Chanceux, passage à 0 subi : `critiques: 1`", () => {
+    setRule('combat-aa-blessures', 'aa');
+    const { emis, cible } = emisDuCoup(aaChanceux('subir'));
+    expect(cible.criticalWounds).toBe(1);
+    expect(emis).toEqual([1]);
+  });
+
+  it("'ldb', cible importante, double 33 dévié : `critiques: 0`", () => {
+    const { auJet, emis, cible } = emisDuCoup({ roll: 33, current: 18, pa: 2, tenu: true, choisir: () => 'devier' });
+    expect(auJet.critical).toBe(true);
+    expect(journal()).toContain(tr('cf.deflect', { name: cible.label }));
+    expect(cible.criticalWounds ?? 0).toBe(0);
+    expect(emis).toEqual([0]);
+  });
+
+  it("Projectile en Incantation critique, Critique dévié : `ANIM_ATTACK` émet `critiques: 0`", () => {
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    const { mage, cible } = carreauEnCombat();
+    cible.important = true;
+    cible.items = [...(cible.items ?? []), piece([], 2)];
+    recomputeLoadout(cible);
+    cible.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+    const emis: (number | undefined)[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) emis.push(p.result.critiques); });
+    let kinds: string[];
+    try {
+      const res = evaluateMissile(mage, cible, findSpell('Carreau')!, incantationCritique);
+      applyCast(useGame.getState, useGame.setState, mage, cible, findSpell('Carreau')!, res, true, false, 'critique');
+      kinds = draineCascade(useGame.getState, 200, () => 50, () => 'devier');
+    } finally { lache(); }
+    const apres = useGame.getState().battle!.combatants.find((c) => c.id === cible.id)!;
+    expect(kinds).toContain('deviation');
+    expect(journal()).toContain(tr('cf.deflect', { name: apres.label }));
+    expect(apres.criticalWounds ?? 0).toBe(0);
+    expect(emis).toEqual([0]);
+  });
+});
