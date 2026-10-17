@@ -83,7 +83,7 @@ import { reachTiles } from '../engine/engagement';
 import { canonEdge } from './sceneEdit';
 import type { CellSide } from './scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
-import { shipHitLocation } from '../engine/combat';
+import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
 import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
@@ -1756,11 +1756,12 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      * Le VRAI pipeline s'applique (`applyHullCriticalToTarget` → `applyHullCritical`) : seul le dé de
      * LOCALISATION est imposé, par la même porte que le moteur expose déjà à ses tests. Le d100 voulu se
      * CHERCHE sur la fonction PURE de localisation (`shipHitLocation`) — une prédiction, sans effet — et
-     * l'application, elle, reste celle du jeu.
+     * l'application, elle, reste celle du jeu. `attackerId` porte le coup qui frappe la coque, au d100 posé
+     * `jet` (1 par défaut) : le marin d'un Critique d'Équipage l'encaisse (MDG 13 l.584).
      */
-    shipCrit: (location = 'greement', opts: { hullId?: string; forcedCritRoll?: number } = {}) => {
+    shipCrit: (location = 'greement', opts: { hullId?: string; forcedCritRoll?: number; attackerId?: string; jet?: number } = {}) => {
       const s = g();
-      const { hullId, forcedCritRoll } = opts;
+      const { hullId, forcedCritRoll, attackerId, jet = 1 } = opts;
       const enJeu = (s.battle?.combatants ?? []).filter(estNavire);
       // Par DÉFAUT, la coque des HÉROS — jamais « la première trouvée » : en combat naval, la première
       // est souvent le navire ENNEMI, et la recette frappait le mauvais bord. L'ordre de recherche suit
@@ -1783,8 +1784,16 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       let de: number | undefined;
       for (let d = 1; d <= 100 && de === undefined; d++) if (shipHitLocation(gree, d, table) === location) de = d;
       if (de === undefined) return `✗ « ${location} » n'est pas une Localisation de ce gréement (${gree})`;
+      const auteur = attackerId ? inBattleId(s.battle, attackerId) : undefined;
+      if (attackerId && !auteur?.weapons[0]) return `✗ attaquant « ${attackerId} » introuvable en jeu, ou sans arme`;
+      if (location === 'equipage' && !auteur) return "✗ un Critique d'Équipage frappe un marin du coup qui le porte : nomme son auteur, shipCrit('equipage', { attackerId })";
+      const arme = auteur?.weapons[0];
+      const ctx = auteur && arme ? {
+        attackerId: auteur.id, attackerKind: auteur.kind, weapon: arme.label,
+        coup: { mode: 'melee' as const, weapon: arme, res: toucheAuJetPose(auteur, coque, arme, { label: arme.label, base: 100, modifier: 0, target: 100, roll: jet, success: true, sl: 0 }, 0) },
+      } : undefined;
       const log: string[] = [];
-      applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll, ctx: { coup: { degats: 0, cause: null } } });
+      applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll, ...(ctx ? { ctx } : {}) });
       for (const l of log) useGame.getState().log(l);
       return [`✓ Critique de navire « ${location} » (d100 imposé ${de}) sur ${coque.label}`, ...log];
     },

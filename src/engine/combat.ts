@@ -504,6 +504,8 @@ export interface AttackResult {
   critical: boolean;
   /** Retenir ses coups effectif sur CE coup (`profilDuCoup`). LDB 18 l.30 ; AA 07 l.59, l.61. */
   retenu?: true;
+  /** Charge montée de CE coup (`AttackOptions.dmgProxy`) : LDB 14 l.183. */
+  dmgProxy?: AttackOptions['dmgProxy'];
   /** Blessures critiques INFLIGÉES par CE coup, écrites à l'application (`appliquerLesCritiques`). LDB 18
    *  l.17 ; AA 07 l.42 ; LDB 63 l.30. */
   critiques?: number;
@@ -1571,10 +1573,10 @@ export function resolveStrayRangedHit(
  * Touche dont le jet pour toucher est DÉJÀ POSÉ (`atkBd`) : tir dévié (LDB 14 l.136), pièce d'une bordée
  * (MDG 14 l.128). Réussi → `applyHit` ; Critique : LDB 13 l.183, MDG 13 l.656.
  */
-export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number, withhold = false): AttackResult {
+export function toucheAuJetPose(attacker: Combatant, defender: Combatant, weapon: Weapon, atkBd: RollBreakdown, dr: number, withhold = false, dmgProxy?: AttackOptions['dmgProxy']): AttackResult {
   // Arbitrage A6 du 2026-10-13 (#1765, commentaire 6142721431).
   if (!atkBd.success) return { hit: false, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, critical: false, advantageTo: null, defenderDefeated: false, log: `${attacker.label} manque ${defender.label}.` };
-  return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll), undefined, undefined, 0, withhold);
+  return applyHit(attacker, defender, weapon, atkBd, dr, isDoubleRoll(atkBd.roll), undefined, dmgProxy, 0, withhold);
 }
 
 /** Touche d'une frappe passive, portée par le Test de défense GAGNÉ (`defBd`) au DR du Test opposé. Le
@@ -1658,23 +1660,21 @@ export interface ToucheDuJournal {
 /** La ligne de touche d'un coup : Localisation, Dégâts et Blessures tels que portés par `res`, marque Critique
  *  selon `critique`. Sans prise ni Dégâts sur la cible, la ligne ne chiffre rien. LDB 14 l.159 ; LDB 43 l.107. */
 export function phraseDeTouche(
-  t: ToucheDuJournal,
+  touche: ToucheDuJournal,
   res: Pick<AttackResult, 'location' | 'damage' | 'woundsLost' | 'sansPrise' | 'degatsTransferes'>,
   critique: boolean,
 ): string {
-  const tete = t.sort ? `${t.attaquant} lance ${t.sort} sur ${t.cible}` : `${t.attaquant} touche ${t.cible}`;
-  if (t.coque) {
-    return `${tete}, sans effet sur la coque (${t.coque === 'petites-armes'
-      ? 'les tirs de petites armes n’infligent pas assez de Dégâts pour avoir un effet sur un vaisseau'
-      : 'trop petit pour entamer cette coque'} — MDG 13).`;
+  const tete = touche.sort ? `${touche.attaquant} lance ${touche.sort} sur ${touche.cible}` : `${touche.attaquant} touche ${touche.cible}`;
+  if (touche.coque) {
+    return t('touche.sansEffetCoque', { tete, raison: t(touche.coque === 'petites-armes' ? 'touche.coquePetitesArmes' : 'touche.coqueTropPetit') });
   }
-  const lieu = res.location ? ` (${locationLabel(res.location, t.forme)})` : '';
+  const lieu = res.location ? ` (${locationLabel(res.location, touche.forme)})` : '';
   const marque = critique ? ' — CRITIQUE !' : '';
   const close = (phrase: string): string => (/[!?…]$/.test(phrase) ? phrase : `${phrase}.`);
   if (res.sansPrise || res.degatsTransferes) return close(`${tete}${lieu}${marque}`);
   const damage = res.damage ?? 0;
   const blessures = res.woundsLost ?? 0;
-  return close(`${tete}${lieu} : ${damage} dégâts − ${damage - blessures} (${t.mitigation}) = ${blessures} Blessures${marque}`);
+  return close(`${tete}${lieu} : ${damage} dégâts − ${damage - blessures} (${touche.mitigation}) = ${blessures} Blessures${marque}`);
 }
 
 /** La ligne de journal d'un coup APPLIQUÉ : la ligne de touche recomposée sur la Localisation, les Blessures
@@ -1777,6 +1777,7 @@ function applyHit(
     apExternal: extraAP - sureShot,
     critical: isCritical,
     ...(withholding ? { retenu: true as const } : {}),
+    ...(dmgProxy ? { dmgProxy } : {}),
     ...(sansPrise ? { sansPrise } : {}),
     advantageTo: 'attacker',
     defenderDefeated: defeated,

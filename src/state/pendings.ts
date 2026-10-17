@@ -16,7 +16,6 @@ import type { TestResult, OpposedResult, EchecSansJet } from '../engine/tests';
 import type { AttackResult, DefenseMode, DifficultyComposition, ModLine } from '../engine/combat';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { CriticalResolved, OrigineCritique } from '../engine/critical';
-import type { CoupSurLaCoque } from '../engine/shipCritical';
 import type { OupsResolved } from '../engine/oups';
 import type { StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
@@ -808,7 +807,7 @@ export interface DeviationCtx {
   weaponObj?: Weapon;
   critTwice?: boolean;
   /** Le coup qui porte le Critique, pour le marin d'un Critique de coque à l'Équipage (MDG 13 l.584). */
-  coup?: CoupSurLaCoque;
+  coup?: CoupSuspendu;
 }
 
 /** La décision prise sur UNE Blessure critique d'un coup, au rang de son append (#1426 ; LDB 63 l.30) :
@@ -845,6 +844,10 @@ export type CoupSuspendu =
       res?: never;
       suite?: never;
     };
+
+/** Le coup qu'encaisse le marin d'un Critique de coque à l'Équipage, sa touche calculée contre LUI : MDG 13
+ *  l.584 ; LDB 85 l.360-361. Donnée SÉRIALISABLE, que le pipeline du marin ré-entre. */
+export type CoupDuMarin = CoupSuspendu & { attackerId: string; marinId: string };
 
 /** Déviation Critique en attente (LDB 63 l.30) : une victime a subi une Blessure Critique — Coup
  *  Critique OU dépassement — à une localisation où elle porte de la PA ; elle choisit Dévier (sacrifie

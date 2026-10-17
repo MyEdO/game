@@ -5,7 +5,7 @@
 import type { PlayerText } from '../i18n/playerText';
 import type { GameState, BattleState, RevealEntry, ShootingStanceKey } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
+import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
@@ -40,6 +40,7 @@ import {
   lancerDeLaSecondeMain,
   woundsFromHit,
   woundsAtCritLocation,
+  toucheAuJetPose,
   rangeBandModifier,
   rangeBandName,
   belowMinRangeBand,
@@ -1294,7 +1295,7 @@ export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
   // via l'étape `jet:'disengage'`). `pendingDisengage` reste le porteur de données/phases ; les
   // résolveurs ferment LES DEUX. La ligne d'attaque figée du foe et les portraits restent inchangés.
   const step = hostStep(get, { id: 'disengage', kind: 'disengageStep', jet: 'disengage', actorId: mover.id });
-  if (step) openSequence(get, set, { title: 'Se désengager', icon: '↩', purpose: 'combat', steps: [step] });
+  if (step) openSequence(get, set, { title: tr('step.seDesengager'), icon: '↩', purpose: 'combat', steps: [step] });
 }
 
 /**
@@ -1860,9 +1861,9 @@ export function applyCriticalToTarget(
 /**
  * Critique encaissé par un NAVIRE (`profilNavalDe`) — MDG 13-14. Le gréement `rig` (`rigDuNavire`, résolu à
  * l'aiguillage d'`applyCriticalToTarget`) donne la colonne de Localisation, puis on DÉLÈGUE au résolveur engine
- * PUR `applyHullCritical`, qui pose les États NAVALS sur la coque (`GameOp`) ET répercute sur l'ÉQUIPAGE : un coup
- * « Équipage » devient un Critique de PERSONNAGE sur un marin exposé, les Éclats infligent 9 Dégâts à autant de
- * marins. L'équipage est résolu depuis `target.crewIds` via la bataille (`get`) ; absent → effets de coque seuls.
+ * PUR `applyHullCritical`, qui pose les États NAVALS sur la coque (`GameOp`) ET répercute sur l'ÉQUIPAGE : à
+ * l'« Équipage », le marin exposé encaisse le coup par le pipeline des Critiques (`encaisserLeCoupDuMarin`,
+ * MDG 13 l.584) ; les Éclats infligent 9 Dégâts à autant de marins. L'équipage est résolu depuis `target.crewIds` via la bataille (`get`) ; absent → effets de coque seuls.
  * La destruction de la coque NE passe PAS par un « Mort » de Critique mais par ses Blessures / l'État Naufrage —
  * on renvoie donc toujours `false`.
  */
@@ -1882,29 +1883,30 @@ export function applyHullCriticalToTarget(
   // Les dés IMPOSÉS sont ceux que le moteur accepte déjà (`applyHullCritical`) : la recette s'en sert
   // pour atteindre une Localisation VOULUE sans chemin parallèle — le jeu applique le sien.
   const outcome = applyHullCritical(target, crew, rig, battleRng(), forcedLocRoll, forcedCritRoll, {
-    locationTable: hull?.locationTable, criticalTable: hull?.criticalTable, coup: ctx?.coup,
+    locationTable: hull?.locationTable, criticalTable: hull?.criticalTable,
   });
-  target.criticalWounds = (target.criticalWounds ?? 0) + 1;
+  if (!outcome.marinId) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // MDG 13 l.584
   for (const l of outcome.lines) log.push(l);
   const heroConcerned = target.kind === 'hero' || ctx?.attackerKind === 'hero'
     || crew.some((c) => c.kind === 'hero');
   if (!suppressReveal && heroConcerned) {
     pushReveal(set, {
-      kind: 'critical', title: 'Critique de navire', dice: outcome.crewCrit[0]?.crit.roll ?? 0, lines: outcome.lines,
+      kind: 'critical', title: tr('step.critiqueNavire'), dice: 0, lines: outcome.lines,
       subjectId: target.id, severity: 'grave', actorId: ctx?.attackerId, weapon: ctx?.weapon, details: [],
     });
   }
-  // Les Test(s) que la rangée impose passent par la PORTE canonique, APRÈS la révélation — mêmes deux
-  // voies que `applyCriticalToTarget`, et le socle seul décide de la surface :
-  //  · Localisation « Équipage » → le marin encaisse un Critique de PERSONNAGE, dont le nœud de rangée
-  //    (LDB 18) est celui de `resolveCritique` ;
-  //  · sinon → le coup à l'équipage de la rangée (MSRC 07 l.78/l.94, MDG 13 l.763) sur N marins :
-  //    UNE bande de N rangées pour ceux que des sièges tiennent, voie inline pour les autres.
+  if (outcome.marinId) {
+    const lire = garanti(get, target.id, "lecture de la bataille d'un Critique d'Équipage (MDG 13 l.584)");
+    const coup = garanti(ctx?.coup, target.id, "coup qui porte le Critique d'Équipage (MDG 13 l.584)");
+    const attaquant = garanti(inBattleId(lire().battle, ctx?.attackerId), ctx?.attackerId, "auteur du coup qui porte le Critique d'Équipage");
+    const marin = garanti(crew.find((c) => c.id === outcome.marinId), outcome.marinId, "marin d'un Critique d'Équipage");
+    for (const l of encaisserLeCoupDuMarin(lire, set, naissanceDuCoupDuMarin(coup, attaquant, marin), [])) log.push(l);
+    return false;
+  }
+  // Le coup à l'équipage de la rangée (MSRC 07 l.78/l.94, MDG 13 l.763) sur N marins passe par la PORTE
+  // canonique, APRÈS la révélation : UNE bande de N rangées pour ceux que des sièges tiennent, voie inline
+  // pour les autres.
   if (get) {
-    for (const { crewId, crit } of outcome.crewCrit) {
-      const blesse = crew.find((c) => c.id === crewId);
-      if (crit.testFlow && !crit.lethal && blesse) routeTriggeredTest(get, set, blesse, blesse, crit.testFlow, { label: crit.label });
-    }
     const coup = outcome.crewHit;
     if (coup?.testFlow) {
       const victimes = coup.victims.map((id) => crew.find((c) => c.id === id)).filter(Boolean) as Combatant[];
@@ -1968,7 +1970,7 @@ export function applyStructureCriticalToTarget(
     // Étape à TABLE de la séquence : `table` DÉCLARE le tirage (id de ligne stable, dé naturel/effectif),
     // `reveal` porte le rendu détaillé partagé (`CriticalBody` : qui inflige → arme → victime).
     const entry: RevealEntry = {
-      kind: 'critical', title: 'Critique de Structure', dice: rolled.roll, lines: rolled.lines,
+      kind: 'critical', title: tr('step.critiqueStructure'), dice: rolled.roll, lines: rolled.lines,
       subjectId: target.id, severity: outcome.destroyed ? 'grave' : 'minor', actorId: ctx.attackerId, weapon: ctx.weapon, details: [],
     };
     // Étape poussée DÉJÀ tirée : le mint fait descendre l'enjeu à la ligne atteinte (`stakeAtTableRow`
@@ -2221,7 +2223,7 @@ export function applyOpposedCritical(
   // B. de Sauvagerie (LDB 41) : l'attaquant à l'origine du double tire deux lancers de Critique.
   const attacker = ctx.attackerId ? inBattleId(get().battle, ctx.attackerId) : undefined;
   const heroConcerned = victim.kind === 'hero' || attacker?.kind === 'hero';
-  const c2: DeviationCtx = { ...ctx, attackerKind: attacker?.kind, critTwice: attacker ? critRollTwiceFor(attacker) : undefined, coup: { degats: 0, cause: 'double' } };
+  const c2: DeviationCtx = { ...ctx, attackerKind: attacker?.kind, critTwice: attacker ? critRollTwiceFor(attacker) : undefined };
   const deviable = !!rule('combat-critical-deflect') && deviatableArmourAt(victim, loc);
   if (deviable && !tenuParUnHumain(get(), victim.id)) {
     if (autoDeviate(set, victim, loc, ctx, roll, log, heroConcerned)) { breakBacleArmour(victim, loc, log); return; }
@@ -2396,6 +2398,26 @@ function compterLesCritiques(
   return { compte: relance ? sansLeCoupCritiqueIgnore(compte, res.attackerRoll, devie, lieu) : compte, lieu, relance, blessures, coupCritique };
 }
 
+/** Le compte d'une touche de Projectile sur la cible après `n` Déviations, ses Blessures relues à PA−n à sa
+ *  Localisation : LDB 63 l.30, l.32 ; LDB 18 l.53 ; LDB 63 l.78. */
+function compterLesCritiquesDuProjectile(touche: ToucheDeProjectile, caster: Combatant, cible: Combatant, n: number): CompteDuCoup {
+  const { mres, spell, overcastDamageSteps } = touche;
+  const loc = mres.location ?? 'corps';
+  const woundsLost = mres.woundsLost ?? 0;
+  const blessures = (casse: boolean): number => {
+    if (n === 0 && !casse) return woundsLost;
+    const aPleinesPA = evaluateMissile(caster, cible, spell, mres, loc, overcastDamageSteps).woundsLost ?? 0;
+    return woundsLost + Math.max(0, (evaluateMissile(caster, apresDeviations(cible, loc, n, { casse }), spell, mres, loc, overcastDamageSteps).woundsLost ?? 0) - aPleinesPA);
+  };
+  let relancee = false;
+  let lues: number | undefined;
+  const compte = critiquesDuCoup(cible, { coupCritique: causeDuProjectile(touche), prise: true, current: cible.wounds.current, blessures: (r) => { relancee = r; return (lues = blessures(r)); } });
+  return {
+    compte: relancee ? sansLeCoupCritiqueIgnore(compte, mres.roll ?? 0, apresDeviations(cible, loc, n), loc) : compte,
+    lieu: loc, blessures: lues ?? blessures(false), coupCritique: compte.critiques.some((c) => estUnCoupCritique(c.origine)),
+  };
+}
+
 /** Le compte d'un coup après ses Déviations : les Critiques, leur Localisation UNIQUE (LDB 18 l.53, l.55),
  *  les Blessures du coup, et s'il porte un Coup Critique AVANT tout filtre (Bâclée, LDB 60 l.50). */
 interface CompteDuCoup { compte: CompteDesCritiques; lieu: HitLocation; blessures: number; coupCritique: boolean }
@@ -2524,6 +2546,93 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
     if (coupCritiqueEntree) casse();
   }
   return lancerDuTableau == null ? { infligees } : { lancerDuTableau, infligees };
+}
+
+/** Ce que lit l'encaissement d'un coup d'arme planifié. */
+interface EncaissementDuCoup {
+  get: Get;
+  set: SetFn;
+  auteur: Combatant;
+  cible: Combatant;
+  compte: CompteDuCoup;
+  plan: readonly DecisionDeCritique[];
+  log: string[];
+  ctx: DeviationCtx;
+  /** Le jet de toucher (révélation d'une Déviation de l'automate). */
+  roll: number;
+  arme?: Weapon;
+}
+
+/** Les Blessures d'un coup d'arme, puis ses Blessures critiques planifiées, sur la cible : LDB 13 l.161 ;
+ *  LDB 18 l.53 ; AA 07 l.25. */
+function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; infligees: number } {
+  const { get, set, cible, log } = e;
+  const { lieu, blessures } = e.compte;
+  const currentBefore = cible.wounds.current;
+  cible.wounds.current = Math.max(0, currentBefore - blessures);
+  if (!isInanimate(cible)) {
+    // Réouverture d’une plaie critique (LDB 18 / AA 07).
+    const reinj = reinjuryBleed(cible, lieu);
+    if (reinj > 0) { addCondition(cible, COND.hemorragique, reinj); log.push(tr('cf.reinjuryBleed', { name: cible.label, n: reinj, loc: locationLabel(lieu, cible.bodyShape) })); }
+  }
+  const applique = appliquerLesCritiques({
+    get, set, target: cible, compte: e.compte, plan: e.plan, log, ctx: e.ctx, currentBefore, roll: e.roll,
+    apres: apresLeCritiqueDe({ get, set, auteur: e.auteur, cible, lieu, log, arme: e.arme, woundsDealt: blessures }),
+  });
+  if (regimeDePorteur(cible).clore) cloreLeCoup(get, cible, currentBefore, log);
+  return applique;
+}
+
+/** Coup finalisé : Premier sang (#471), 0 PB → À Terre (LDB 18 l.15), puis levée des liens d'une cible hors
+ *  de combat (LDB 13). */
+function cloreLeCoup(get: Get, cible: Combatant, currentBefore: number, log: string[]): void {
+  const battle = get().battle!;
+  resolveFirstBlood(cible, battle.victoryCondition, currentBefore - cible.wounds.current, log);
+  if (cible.wounds.current <= 0 && !cible.dead && !hasCondition(cible, COND.inconscient)) applyZeroWounds(cible);
+  if (isOutOfAction(cible)) {
+    clearEngagementOf(battle.combatants, cible.id);
+    clearPsychOf(battle.combatants, cible.id);
+    refreshAllDefendedPsych(battle.combatants); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
+  }
+}
+
+/** La touche du marin d'un Critique de coque à l'Équipage, calculée contre LUI depuis le coup qui porte le
+ *  Critique : MDG 13 l.584 ; LDB 85 l.360-361 ; LDB 14 l.183 ; #1595 c.6228605059 (b). */
+function naissanceDuCoupDuMarin(coup: CoupSuspendu, attaquant: Combatant, marin: Combatant): CoupDuMarin {
+  const qui = { attackerId: attaquant.id, marinId: marin.id };
+  if (coup.mode === 'melee') {
+    const { res, weapon } = coup;
+    const jet = garanti(res.attackerDetail, attaquant.id, "jet d'attaque du coup qui porte le Critique d'Équipage (MDG 13 l.584)");
+    return { ...qui, mode: 'melee', weapon, res: toucheAuJetPose(attaquant, marin, weapon, jet, res.netSL, !!res.retenu, res.dmgProxy) };
+  }
+  const { touche } = coup;
+  const mres = evaluateMissile(attaquant, marin, touche.spell, touche.mres, undefined, touche.overcastDamageSteps);
+  return { ...qui, mode: 'projectile', touche: { ...touche, targetId: marin.id, mres, critiques: undefined } };
+}
+
+/** LE COUP ENCAISSÉ PAR LE MARIN d'un Critique de coque à l'Équipage (MDG 13 l.584), par le pipeline des
+ *  Critiques du coup : compte, plan, application. Ré-entrant : `coup` est une donnée sérialisable, `decides`
+ *  les Blessures critiques déjà tranchées. Rend les lignes du journal. */
+function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides: readonly DecisionDeCritique[]): string[] {
+  const battle = get().battle;
+  const attaquant = garanti(inBattleId(battle, coup.attackerId), coup.attackerId, "auteur du coup qui porte le Critique d'Équipage");
+  const marin = garanti(inBattleId(battle, coup.marinId), coup.marinId, "marin d'un Critique d'Équipage (MDG 13 l.584)");
+  const touche = coup.mode === 'melee'
+    ? { hit: coup.res.hit, roll: coup.res.attackerRoll, arme: coup.weapon as Weapon | undefined, libelle: coup.weapon.label, recompter: (n: number): CompteDuCoup => compterLesCritiques(coup.res, coup.weapon, attaquant, marin, n) }
+    : { hit: !!coup.touche.mres.hit, roll: coup.touche.mres.roll ?? 0, arme: undefined, libelle: coup.touche.spell.label, recompter: (n: number): CompteDuCoup => compterLesCritiquesDuProjectile(coup.touche, attaquant, marin, n) };
+  const lignes: string[] = [];
+  if (!touche.hit) return lignes;
+  const twice = critRollTwiceFor(attaquant);
+  const planifie = garanti(planifierLesCritiques(get, set, {
+    attacker: attaquant, target: marin, coup, decides, sousAttaque: true, twice, recompter: touche.recompter,
+    deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(marin, lieu, n, { casse }), lieu),
+  }), marin.id, "plan des Blessures critiques du marin, sous-attaque sans fenêtre (#1595 c.6228605059 (b))");
+  if (planifie.compte.blessures > 0) lignes.push(tr('op.wounds', { name: marin.label, n: planifie.compte.blessures, mitig: '' }));
+  encaisserLeCoup({
+    get, set, auteur: attaquant, cible: marin, compte: planifie.compte, plan: planifie.plan, log: lignes, roll: touche.roll, arme: touche.arme,
+    ctx: { attackerId: attaquant.id, attackerKind: attaquant.kind, weapon: touche.libelle, ...(touche.arme ? { weaponObj: touche.arme } : {}), critTwice: twice },
+  });
+  return lignes;
 }
 
 /**
@@ -2657,8 +2766,9 @@ function appliquerLaTouche(
   }
   // LES BLESSURES CRITIQUES DU COUP : `planifierLesCritiques`.
   const twice = critRollTwiceFor(attacker);
+  const suspendu: CoupSuspendu = { mode: 'melee', weapon, res, ...(suite ? { suite } : {}) };
   const planifie = planifierLesCritiques(get, set, {
-    attacker, target, coup: { mode: 'melee', weapon, res, ...(suite ? { suite } : {}) }, decides, sousAttaque, twice,
+    attacker, target, coup: suspendu, decides, sousAttaque, twice,
     recompter: (n) => compterLesCritiques(res, weapon, attacker, target, n),
     deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(target, lieu, n, { casse }), lieu),
   });
@@ -2701,39 +2811,18 @@ function appliquerLaTouche(
     critLog.push(tr('cf.grappleInit', { name: attacker.label, foe: target.label }));
   }
   const ctxCrit: DeviationCtx = {
-    attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label, critTwice: twice,
-    coup: { degats: res.damage ?? 0, cause: causeDuCoupCritique(res), arme: weapon },
-  };
-  // Coup finalisé (Blessures de base + Critique + Frappe blessante) : Premier sang (#471), 0 PB → À Terre
-  // (LDB 18 l.15), puis levée des liens d'une cible hors de combat (LDB 13).
-  const clore = (currentBefore: number): void => {
-    resolveFirstBlood(target, battle.victoryCondition, currentBefore - target.wounds.current, critLog);
-    if (target.wounds.current <= 0 && !target.dead && !hasCondition(target, COND.inconscient)) applyZeroWounds(target);
-    if (isOutOfAction(target)) {
-      clearEngagementOf(get().battle?.combatants ?? [], target.id);
-      clearPsychOf(get().battle?.combatants ?? [], target.id);
-      refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
-    }
+    attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label, critTwice: twice, coup: suspendu,
   };
   const { compte, lieu, relance, blessures, coupCritique } = coupCompte;
   if (res.hit && (blessures || compte.critiques.length || compte.mortSubite || coupCritique)) {
     // LDB 13 l.161, l.183 ; LDB 18 l.53, l.55 ; AA 07 l.25 ; AA 10 l.105, l.114 ; MDG 13 l.656 ; MDG 12 l.232.
-    const currentBefore = target.wounds.current;
     if (relance) { res.critLocation = lieu; res.location = lieu; }
     res.woundsLost = blessures;
-    target.wounds.current = Math.max(0, currentBefore - blessures);
-    if (!isInanimate(target)) {
-      // Réouverture d'une plaie critique (LDB 18 / AA 07) — jumeau du Projectile magique (appliquerTouchePourCible).
-      const reinj = reinjuryBleed(target, lieu);
-      if (reinj > 0) { addCondition(target, COND.hemorragique, reinj); critLog.push(tr('cf.reinjuryBleed', { name: target.label, n: reinj, loc: locationLabel(lieu, target.bodyShape) })); }
-    }
-    const { lancerDuTableau, infligees } = appliquerLesCritiques({
-      get, set, target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, currentBefore,
-      roll: res.attackerRoll, apres: apresLeCritiqueDe({ get, set, auteur: attacker, cible: target, lieu, log: critLog, arme: weapon, woundsDealt: blessures }),
+    const { lancerDuTableau, infligees } = encaisserLeCoup({
+      get, set, auteur: attacker, cible: target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, roll: res.attackerRoll, arme: weapon,
     });
     res.critiques = infligees;
     if (lancerDuTableau != null) res.lancerDuTableau = lancerDuTableau;
-    if (regimeDePorteur(target).clore) clore(currentBefore);
   }
   // Critiques du Test opposé : LDB 14 l.3 ; LDB 13 l.183.
   // (Pas de garde `deviation` : une 1ʳᵉ entrée qui SUSPEND (déviation) fait son early-return AVANT ce
@@ -2746,8 +2835,7 @@ function appliquerLaTouche(
       critLog.push(tr('cf.critDespiteLoss', { name: attacker.label }));
       applyOpposedCritical(get, set, target, ad.roll, { attackerId: attacker.id, weapon: weapon?.label, weaponObj: weapon }, critLog);
     }
-    // (b) Défenseur : LDB 13 l.183 ; LDB 62 l.278. `res.parryWeapon` n'est posé qu'en Parade (finishMelee). Un HÉROS qui PARE avec une arme Piège-lame face
-    // à une lame peut choisir de PIÉGER à la place (LDB 62 l.278) → étape de séquence.
+    // (b) Défenseur : LDB 13 l.183 ; LDB 62 l.278. `res.parryWeapon` n'est posé qu'en Parade (finishMelee).
     if (dd.success && isDoubleRoll(dd.roll) && !isOutOfAction(attacker) && res.parryWeapon) {
       if (target.kind === 'hero' && res.parryWeapon && hasBladeTrap(res.parryWeapon) && weaponHasBlade(weapon)) {
         // Folding P3b : le choix Piéger/Critique devient une ÉTAPE de la séquence (texte + options),
@@ -2759,8 +2847,8 @@ function appliquerLaTouche(
           options: [{ key: 'trap', label: tr('opt.piegerLame') }, { key: 'crit', label: tr('opt.coupCritique') }],
           defaultChoice: 'crit', bladeTrap: pbt,
           outcome: toRecapLines([
-            `${target.label} place un Critique en parant avec ${res.parryWeapon.label} — la lame de ${attacker.label} (${weapon.label}) est à portée.`,
-            `Piéger : Test opposé de Force (+${dd.sl} DR). Succès → ${attacker.label} lâche sa lame (Stupéfiant → brisée).`,
+            tr('cf.piegeLamePortee', { name: target.label, parade: res.parryWeapon.label, foe: attacker.label, weapon: weapon.label }),
+            tr('cf.piegeLameIssue', { dr: dd.sl, foe: attacker.label }),
           ]),
         });
       } else {
@@ -3562,7 +3650,7 @@ function openDefenseCascade(get: Get, set: SetFn, target: Combatant): boolean {
   // séquence d'accueil (#1852).
   const step = hostStep(get, { id: idDansLaSequence(get, 'defense-jet', 'combat'), kind: 'defenseJet', jet: 'defense', actorId: target.id });
   if (!step) return false;
-  openSequence(get, set, { title: 'Défense', icon: 'action/defend', purpose: 'combat', steps: [step] });
+  openSequence(get, set, { title: tr('step.defense'), icon: 'action/defend', purpose: 'combat', steps: [step] });
   return true;
 }
 
@@ -5355,7 +5443,7 @@ export function openCastCascade(get: Get, set: SetFn, caster: Combatant): boolea
     ...(caster.kind === 'enemy' ? { groupOwner: true } : {}),
   });
   if (!step) return false;
-  openSequence(get, set, { title: 'Incantation', icon: 'action/cast', purpose: 'combat', steps: [step] });
+  openSequence(get, set, { title: tr('step.incantation'), icon: 'action/cast', purpose: 'combat', steps: [step] });
   return true;
 }
 
@@ -5872,24 +5960,12 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   if (!mres.hit || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
   const currentBefore = cible.wounds.current;
   const loc = mres.location ?? 'corps';
-  // LDB 63 l.30, l.32 : chaque Déviation retire 1 PA à `loc` ; les Blessures du coup se relisent à PA−n.
-  const woundsLost = mres.woundsLost;
-  const aPleinesPA = evaluateMissile(caster, cible, spell, mres, loc, ch.overcastDamageSteps).woundsLost ?? 0;
-  const blessures = (n: number, casse: boolean): number => (n === 0 && !casse ? woundsLost
-    : woundsLost + Math.max(0, (evaluateMissile(caster, apresDeviations(cible, loc, n, { casse }), spell, mres, loc, ch.overcastDamageSteps).woundsLost ?? 0) - aPleinesPA));
-  const cause = causeDuProjectile(ch);
   const twice = critRollTwiceFor(caster);
+  const touche: ToucheDeProjectile = { ...ch, mres };
+  const suspendu: CoupSuspendu = { mode: 'projectile', touche };
   const planifie = planifierLesCritiques(get, set, {
-    attacker: caster, target: cible, coup: { mode: 'projectile', touche: { ...ch, mres } }, decides: ch.critiques ?? [], sousAttaque: false, twice,
-    recompter: (n) => {
-      let relancee = false;
-      let lues: number | undefined;
-      const compte = critiquesDuCoup(cible, { coupCritique: cause, prise: true, current: currentBefore, blessures: (r) => { relancee = r; return (lues = blessures(n, r)); } });
-      return {
-        compte: relancee ? sansLeCoupCritiqueIgnore(compte, mres.roll ?? 0, apresDeviations(cible, loc, n), loc) : compte,
-        lieu: loc, blessures: lues ?? blessures(n, false), coupCritique: compte.critiques.some((c) => estUnCoupCritique(c.origine)),
-      };
-    },
+    attacker: caster, target: cible, coup: suspendu, decides: ch.critiques ?? [], sousAttaque: false, twice,
+    recompter: (n) => compterLesCritiquesDuProjectile(touche, caster, cible, n),
     deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(cible, lieu, n, { casse }), lieu),
   });
   if (!planifie) return { issue: 'suspendue-deviation', lignes };
@@ -5900,7 +5976,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.reinjuryBleed', { name: cible.label, n: mReinj, loc: locationLabel(loc, cible.bodyShape) })); }
   const { infligees } = appliquerLesCritiques({
     get, set, target: cible, compte, plan, log: lignes, currentBefore, roll: mres.roll ?? 0,
-    ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: { degats: mres.damage ?? 0, cause } },
+    ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: suspendu },
     apres: apresLeCritiqueDe({ get, set, auteur: caster, cible, lieu: loc, log: lignes, woundsDealt: compte.blessures }),
   });
   // 0 PB → À Terre (LDB 18 l.15).
@@ -6793,7 +6869,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
   // TOUTE la séquence est MINTÉE : les jets bâtis ici (`monoStep`, `combatEndBands`/`splitBandRows` →
   // `bandStep`) comme ceux venus de la file, qui est elle-même typée à la marque (#1262 V2) — la dernière
   // ouverture de combat par littéral passe donc par la porte.
-  if (steps.length) openSequence(get, set, { title: 'Conséquences du combat', icon: 'condition/bleeding', purpose: 'combat', steps, combatEndBoundary: true });
+  if (steps.length) openSequence(get, set, { title: tr('step.consequencesDuCombat'), icon: 'condition/bleeding', purpose: 'combat', steps, combatEndBoundary: true });
   // La BORNE porte sur la cascade RÉELLEMENT ouverte : un Test d'amputation surfacé peut l'avoir ouverte
   // à lui seul (`startCascade` renonce sur `steps` vide). Sans elle, sa fermeture rappellerait
   // `openCombatEndCascade` et rejouerait l'Exposition à la Corruption, dont le Degré n'est pas un marqueur.
@@ -7930,7 +8006,7 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
     set({ battle: { ...b, log: [...b.log, ...upkeepLines.map((u) => ev('condition', u.line, u.id))] } });
   }
   if (!steps.length) return;
-  openSequence(get, set, { title: 'Fin de Round', icon: 'time/clock', purpose: 'combat', steps, roundBoundary: true });
+  openSequence(get, set, { title: tr('step.finDeRound'), icon: 'time/clock', purpose: 'combat', steps, roundBoundary: true });
 }
 
 /**

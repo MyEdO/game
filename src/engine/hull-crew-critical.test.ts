@@ -6,7 +6,7 @@ import { makeRNG } from './dice';
 import { usesSuddenDeath, isOutOfAction, applyZeroWounds, tickDeath, hasCondition, addCondition, COND } from './conditions';
 import type { Combatant } from './types';
 
-/** Marin minimal (Combattant de personnage) — assez pour `resolveCritique`/`applyOps`. */
+/** Marin minimal (Combattant de personnage) — assez pour les Éclats (`applyOps`). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
   id, name: id, kind: 'npc', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
@@ -16,47 +16,28 @@ const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
 const hull = () => vehicleCombatant(findVehicleById('cogue')!)!; // rig 'voile'
 
 /**
- * Liaison ÉQUIPAGE↔COQUE (MDG 13-14) : un Critique encaissé par un navire RÉPERCUTE sur de VRAIS marins —
- * coup à l'Équipage = Critique de PERSONNAGE sur un marin exposé ; Éclats = 9 Dégâts à autant de marins.
+ * Liaison ÉQUIPAGE↔COQUE (MDG 13-14) : le coup à l'Équipage DÉSIGNE le marin exposé qui encaisse le coup
+ * (sa résolution vit au flux : `applyHullCriticalToTarget`) ; Éclats = 9 Dégâts à autant de marins.
  */
 describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un journal)', () => {
-  // MDG 13 l.584, l.660 ; LDB 18 l.44, l.46 ; #1595 c.6221792068 Q7. Marin : BE 3, PA 0, 13 Blessures.
-  it('marin figurant : il encaisse les Dégâts du coup ; un coup qui dépasse ses Blessures le met en Mort subite, sans Critique', () => {
-    const crew = [sailor('marin-1')];
-    expect(usesSuddenDeath(crew[0])).toBe(true);
-    const r = applyHullCritical(hull(), crew, 'voile', makeRNG(2), 5, undefined, { coup: { degats: 20, cause: 'double' } });
-    expect(r.location).toBe('equipage');
-    expect(r.crewCrit).toEqual([]);
-    expect(crew[0].wounds.current).toBe(0);
-    expect(hasCondition(crew[0], COND.inconscient), 'la Mort subite n’a pas été appliquée').toBe(true);
-  });
-
-  it('marin figurant, coup qui ne dépasse pas : il perd les Blessures du coup (Dégâts − BE − PA), sans Critique', () => {
-    const crew = [sailor('marin-1')];
-    const r = applyHullCritical(hull(), crew, 'voile', makeRNG(2), 5, undefined, { coup: { degats: 8, cause: 'double' } });
-    expect(r.crewCrit).toEqual([]);
-    expect(crew[0].wounds.current).toBe(8);
-    expect(hasCondition(crew[0], COND.inconscient)).toBe(false);
-  });
-
-  it("marin hors Mort subite, coup sans Coup Critique qui ne dépasse pas : aucune Blessure critique (la cause est celle du coup)", () => {
-    const crew = [sailor('marin-1', { important: true })];
-    const r = applyHullCritical(hull(), crew, 'voile', makeRNG(2), 5, undefined, { coup: { degats: 8, cause: null } });
-    expect(r.crewCrit).toEqual([]);
-    expect(crew[0].wounds.current).toBe(8);
-  });
-
-  it("marin hors Mort subite, Coup Critique qui dépasse : les Blessures critiques du coup, dépassement compris (LDB 18 l.17)", () => {
+  // MDG 13 l.584 ; #1595 c.6228605059 (b).
+  it('Équipage : le moteur désigne le premier marin exposé et ne résout rien sur lui', () => {
     const ship = hull();
-    const crew = [sailor('marin-1', { important: true }), sailor('marin-2')];
-    const r = applyHullCritical(ship, crew, 'voile', makeRNG(2), 5, undefined, { coup: { degats: 20, cause: 'double' } });
+    const crew = [sailor('mort', { dead: true }), sailor('marin-1', { label: 'Marin' }), sailor('marin-2')];
+    const r = applyHullCritical(ship, crew, 'voile', makeRNG(2), 5);
     expect(r.location).toBe('equipage');
-    expect(r.crewCrit.map((c) => c.crewId)).toEqual(r.crewCrit[0]?.crit.lethal ? ['marin-1'] : ['marin-1', 'marin-1']);
-    expect(crew[0].wounds.current).toBe(0);
+    expect(r.marinId).toBe('marin-1');
+    expect(r.hullOps).toEqual([]);
+    expect(r.shrapnel).toEqual([]);
+    expect(crew[1].wounds.current).toBe(13);
+    expect(crew[1].conditions).toEqual([]);
+    expect(r.lines.join(' ')).toMatch(/Équipage touché : Marin encaisse le coup/);
   });
 
-  it('un coup à l’Équipage sans le coup qui le porte lève', () => {
-    expect(() => applyHullCritical(hull(), [sailor('marin-1')], 'voile', makeRNG(2), 5)).toThrow(/sans le coup qui le porte/);
+  it('hors Équipage : aucun marin désigné', () => {
+    const r = applyHullCritical(hull(), [sailor('marin-1')], 'voile', makeRNG(1), 50, 8);
+    expect(r.location).toBe('coque');
+    expect(r.marinId).toBeUndefined();
   });
 
   it('Coque (d100=50, d10=8) → Voie d’eau sur la coque + Éclats 6 : 6 marins encaissent l’effet (9 Dégâts − BE)', () => {
@@ -85,7 +66,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
     const dead = [sailor('mort', { dead: true })];
     expect(exposedCrew(dead)).toHaveLength(0);
     const r = applyHullCritical(ship, dead, 'voile', makeRNG(2), 5);
-    expect(r.crewCrit).toEqual([]);
+    expect(r.marinId).toBeUndefined();
     expect(r.lines.join(' ')).toMatch(/aucun marin exposé/);
   });
 });

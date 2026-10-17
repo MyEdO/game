@@ -4,7 +4,8 @@ import { seedBattleRng } from './battleRng';
 import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
 import { stacks } from '../engine/conditions';
-import type { Combatant } from '../engine/types';
+import { toucheAuJetPose } from '../engine/combat';
+import type { Combatant, Weapon } from '../engine/types';
 
 /**
  * Branchement combat ↔ naval : `applyCriticalToTarget` route une COQUE (`bodyShape:'vehicule'`) vers les
@@ -21,6 +22,8 @@ const sailor = (id: string): Combatant => ({
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
   armour: { corps: 0 }, wounds: { current: 13, max: 13, base: 13 }, advantage: 0,
 }) as unknown as Combatant;
+const hache = { label: 'Hache', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
+const jet = { label: 'CC', base: 60, modifier: 0, target: 60, roll: 44, success: true, sl: 2 };
 
 describe('applyCriticalToTarget — coque/navire (MDG 13) au lieu de Trauma humain', () => {
   beforeEach(() => seedBattleRng(1));
@@ -65,8 +68,10 @@ describe('applyCriticalToTarget — l’équipage lié (crewIds) encaisse via la
       s.crewIds = crew.map((c) => c.id);
       // La bataille PORTE la file de journal différée : depuis #1657 B3-1/B3-2, le Test de la rangée
       // du Critique encaissé par le marin part par la PORTE — sa voie inline y pousse ses lignes.
-      const get = (() => ({ battle: { combatants: crew }, party: [], pendingLogQueue: [] })) as never;
-      applyCriticalToTarget(s, 'corps', 0, [], setStub, { get, ctx: { coup: { degats: 12, cause: 'double' } } }); // le coup qui porte le Critique (MDG 13 l.584)
+      const auteur = sailor('auteur');
+      const get = (() => ({ battle: { combatants: [auteur, s, ...crew] }, party: [], pendingLogQueue: [] })) as never;
+      const coup = { mode: 'melee' as const, weapon: hache, res: toucheAuJetPose(auteur, s, hache, jet, 2) }; // le coup qui porte le Critique (MDG 13 l.584)
+      applyCriticalToTarget(s, 'corps', 0, [], setStub, { get, ctx: { attackerId: auteur.id, attackerKind: 'npc', weapon: hache.label, coup } });
       crewTouched = crew.some((c) => c.wounds.current < 13 || (c.traumas?.length ?? 0) > 0 || c.conditions.length > 0);
     }
     expect(crewTouched).toBe(true);

@@ -8,21 +8,19 @@
  *    appliqués par `applyOps` → posent les États NAVALS data-driven d'`etats.json` (mêmes briques que
  *    `critical.ts` qui pose Sonné/Inconscient) ;
  *  - `findTableEntry` pour le lookup d10 ;
- *  - l'Équipage touché suit les Critiques de PERSONNAGE (`critical.ts`) — aucune table dupliquée.
+ *  - l'Équipage touché désigne le marin qui encaisse le coup : l'appelant le résout par le pipeline des
+ *    Critiques de PERSONNAGE (MDG 13 l.584) — aucune table dupliquée.
  * Les Éclats (Indice → équipage) et les Critiques de Coque supplémentaires sont RENDUS (l'équipage et la
  * récursion de Coque relèvent de la boucle de combat naval, qui connaît l'équipage du navire).
  */
 import { d10, d100, rollDice, parseDice, type RNG, defaultRNG } from './dice';
 import { findTableEntry } from './tables';
 import { applyOps, type GameOp } from './ops';
-import { shipHitLocation, hitLocation, type ShipRig, type ShipLocation } from './combat';
-import { resolveCritique, jeuDeCritique, critiquesDuCoup, type CriticalResolved, type CauseCoupCritique } from './critical';
-import { woundsFromHit } from './woundsCalc';
-import { appliquerMortSubite } from './conditions';
+import { shipHitLocation, type ShipRig, type ShipLocation } from './combat';
 import { poserEnjeu, type FlowTestNode } from './flowCore';
 import { combatStakeRef, findShipStation, type StakeRef } from '../data';
 import { hullNavalTraits, shipHasNavalTrait } from './navalTraits';
-import type { Combatant, NavalTraitRef, Weapon } from './types';
+import type { Combatant, NavalTraitRef } from './types';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, shipCritSet, type ShipCritSet, type ShipCritKey, type ShipCrewHit, type CrewTarget } from '../data/shipCriticals';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
@@ -42,10 +40,7 @@ export const shipLocationLabel = (loc: ShipLocation): PlayerText => t(SHIP_LOC_K
 
 /** Réfs de tables data-driven d'une coque (MDG naval par défaut / MSRC fluvial) — `hull.locationTable` (colonne
  *  de Localisation) + `hull.criticalTable` (jeu de Critiques). Absentes → jeu naval MDG (comportement historique). */
-export interface HullCritOpts { locationTable?: string | null; criticalTable?: string | null; coup?: CoupSurLaCoque }
-
-/** Le coup qui porte le Critique de coque : ce qu'encaisse le marin à l'Équipage (MDG 13 l.584). */
-export interface CoupSurLaCoque { degats: number; cause: CauseCoupCritique | null; arme?: Weapon }
+export interface HullCritOpts { locationTable?: string | null; criticalTable?: string | null }
 
 /** Catégorie Codex EXACTE (`registry.ts`) d'une rangée de Critique de coque, par jeu × Localisation —
  *  jumelle de `critEntryCodexCategory` (`critical.ts`). Table CLOSE : une Localisation absente du jeu
@@ -94,7 +89,7 @@ export interface ShipCriticalResolved {
 }
 
 /** Résout un Critique de navire sur la `location` touchée (Localisation déterminée en amont via
- *  `shipHitLocation` ; l'Équipage, lui, passe par `resolveCritique`). `forcedRoll` = d10 imposé (tests). PUR. */
+ *  `shipHitLocation` ; l'Équipage, lui, passe par le marin qui encaisse le coup). `forcedRoll` = d10 imposé (tests). PUR. */
 export function rollShipCritical(location: ShipCritKey, rng: RNG = defaultRNG, forcedRoll?: number, set: ShipCritSet = SHIP_CRIT_SET): ShipCriticalResolved {
   const roll = forcedRoll ?? d10(rng);
   const table = set.tables[location];
@@ -121,7 +116,7 @@ export function rollShipCritical(location: ShipCritKey, rng: RNG = defaultRNG, f
 }
 
 /** Résultat d'un Critique encaissé par un NAVIRE : la Localisation touchée, et soit un coup à l'ÉQUIPAGE
- *  (résolu par l'appelant en Critique de PERSONNAGE — `resolveCritique` — sur un marin exposé), soit un
+ *  (résolu par l'appelant, sur un marin exposé, par le pipeline des Critiques de PERSONNAGE), soit un
  *  Critique de Coque (`crit`). */
 export interface ShipCriticalHit {
   location: ShipLocation;
@@ -157,8 +152,8 @@ export interface HullCriticalOutcome {
   location: ShipLocation;
   /** États NAVALS posés sur la coque (Voie d'eau / En flammes) — déjà appliqués. */
   hullOps: GameOp[];
-  /** Localisation « Équipage » : un marin exposé encaisse un Critique de PERSONNAGE (déjà appliqué). */
-  crewCrit: { crewId: string; crit: CriticalResolved }[];
+  /** Localisation « Équipage » : le marin exposé qui encaisse le coup, que l'appelant résout (MDG 13 l.584). */
+  marinId?: string;
   /** Éclats : marins touchés (effet data `SHRAPNEL_HIT` déjà appliqué — le Dégât réel, mitigé BE/PA, est
    *  journalisé par l'op `wounds` dans `lines`, pas réintrospecté ici). */
   shrapnel: { crewId: string }[];
@@ -259,10 +254,10 @@ export function applyCrewHit(hull: Combatant, crew: Combatant[], crewHit: ShipCr
 
 /**
  * APPLIQUE un coup critique encaissé par une COQUE à elle-même ET à son ÉQUIPAGE (MDG 13-14) — la
- * brique qui fait que `crewIds` touche de VRAIS marins. PUR (mute la coque + les marins via `applyOps` /
- * `resolveCritique`, RNG injecté) :
- *  - Localisation « Équipage » → un marin EXPOSÉ encaisse un Critique de PERSONNAGE (table LDB/AA via
- *    `resolveCritique`, aucune table dupliquée) ;
+ * brique qui fait que `crewIds` touche de VRAIS marins. PUR (mute la coque + les marins via `applyOps`, RNG
+ * injecté) :
+ *  - Localisation « Équipage » → le marin EXPOSÉ qui encaisse le coup (`marinId`), rien n'est résolu ici :
+ *    MDG 13 l.584 ;
  *  - sinon → les États navals de la table sont posés sur la coque ; les Éclats infligent 9 Dégâts à
  *    autant de marins exposés ; les Critiques de Coque supplémentaires (1d10…) sont résolus sur la coque.
  */
@@ -284,27 +279,9 @@ export function applyHullCritical(
   }
 
   if (hit.crewHit) {
-    const sailor = exposed[0]!;
-    const coup = opts?.coup;
-    if (!coup) throw new Error(`applyHullCritical : coup à l'Équipage de « ${hull.label} » sans le coup qui le porte (HullCritOpts.coup).`);
-    // MDG 13 l.584, l.660 ; LDB 18 l.53, l.55 ; LDB 14 l.3 ; #1595 c.6221792068 Q7.
-    const loc = hitLocation(d100(rng));
-    const current = sailor.wounds.current;
-    const lost = coup.degats > 0 ? woundsFromHit(coup.arme, sailor, loc, coup.degats, 0, 1, undefined) : 0;
-    const compte = critiquesDuCoup(sailor, { coupCritique: coup.cause, prise: true, current, blessures: () => lost });
-    sailor.wounds.current = Math.max(0, current - lost);
-    lines.push(t('shipCrit.crewBlesse', { name: sailor.label, n: lost }));
-    if (compte.mortSubite) appliquerMortSubite(sailor, lines);
-    const crewCrit: HullCriticalOutcome['crewCrit'] = [];
-    for (const entree of compte.critiques) {
-      const crit = resolveCritique(jeuDeCritique(), sailor, loc, rng, { overkill: entree.overkill });
-      applyOps(sailor, crit.ops, { rng });
-      if (crit.traumas.length) sailor.traumas = [...(sailor.traumas ?? []), ...crit.traumas];
-      lines.push(t('shipCrit.crewHit', { name: sailor.label, label: crit.label }));
-      crewCrit.push({ crewId: sailor.id, crit });
-      if (crit.lethal) { sailor.wounds.current = 0; sailor.dead = true; break; } // LDB 18 l.53
-    }
-    return { location: 'equipage', hullOps: [], shrapnel: [], extraHullCrits: [], crewCrit, lines };
+    const marin = exposed[0]!;
+    lines.push(t('shipCrit.crewExpose', { name: marin.label })); // MDG 13 l.584
+    return { location: 'equipage', hullOps: [], shrapnel: [], extraHullCrits: [], marinId: marin.id, lines };
   }
 
   const crit = hit.crit!;
@@ -353,5 +330,5 @@ export function applyHullCritical(
   }
   if (extraHullCrits.length) lines.push(t('shipCrit.extraHull', { n: extraHullCrits.length }));
 
-  return { location: crit.location, hullOps: crit.ops, shrapnel, extraHullCrits, crewCrit: [], ...(crewHitOut ? { crewHit: crewHitOut } : {}), lines };
+  return { location: crit.location, hullOps: crit.ops, shrapnel, extraHullCrits, ...(crewHitOut ? { crewHit: crewHitOut } : {}), lines };
 }

@@ -44,6 +44,10 @@ export const fr = {
   // Modes de défense (LDB 13) — lu par `DEFENSE_LABEL` (`engine/combat.ts`).
   'defense.parade': 'Parade',
   'defense.esquive': 'Esquive',
+  // Ligne de touche sans effet sur une coque (MDG 13) — lue par `phraseDeTouche` (`engine/combat.ts`).
+  'touche.sansEffetCoque': '{tete}, sans effet sur la coque ({raison} — MDG 13).',
+  'touche.coquePetitesArmes': 'les tirs de petites armes n’infligent pas assez de Dégâts pour avoir un effet sur un vaisseau',
+  'touche.coqueTropPetit': 'trop petit pour entamer cette coque',
   // Attente d'une Défense qui va s'interposer (#1004, libellé validé 2026-07-31) — la modale d'attaque
   // tait sa résolution `defense:'none'` tant que le défenseur surfacé n'a pas joué.
   'defense.awaiting': 'En attente de la Défense de {cible}.',
@@ -794,6 +798,8 @@ export const fr = {
   'cf.firstBlood': 'Premier sang : {name} est vaincu(e).',
   'cf.critDespiteLoss': "{name} place un Critique malgré l'échange perdu.",
   'cf.critOnDefense': '{name} place un Critique sur sa défense.',
+  'cf.piegeLamePortee': '{name} place un Critique en parant avec {parade} — la lame de {foe} ({weapon}) est à portée.',
+  'cf.piegeLameIssue': 'Piéger : Test opposé de Force (+{dr} DR). Succès → {foe} lâche sa lame (Stupéfiant → brisée).',
   'cf.riposte': '{name} contre-attaque en défendant.',
   'cf.shieldReactionPush': '{name} pousse {foe} de son bouclier (2 m) et se désengage.',
   'cf.shieldReactionDamage': '{name} riposte du bouclier comme si c’était son Action.',
@@ -1322,6 +1328,13 @@ export const fr = {
   'step.critDevier': 'Coup Critique — dévier ?',
   'step.paradePiegerLame': 'Parade — piéger la lame ?',
   'step.blessureCritique': 'Blessure critique',
+  'step.critiqueNavire': 'Critique de navire',
+  'step.critiqueStructure': 'Critique de Structure',
+  'step.seDesengager': 'Se désengager',
+  'step.defense': 'Défense',
+  'step.incantation': 'Incantation',
+  'step.consequencesDuCombat': 'Conséquences du combat',
+  'step.finDeRound': 'Fin de Round',
   'step.coupCritique': 'Coup Critique',
   'step.blessuresCritiques': 'Blessures critiques',
   'step.sauvegarde': 'Sauvegarde',
@@ -2137,8 +2150,7 @@ export const fr = {
   'shipCrit.fragExtraHull': ' — {n} Critique(s) de Coque',
   'shipCrit.crewNoneExposed': "Coup à l'Équipage, aucun marin exposé : le coup porte sur {loc}.",
   'shipCrit.stationFermee': "Coup à l'Équipage sur {loc}, que ce bateau n'a pas : personne n'est touché.",
-  'shipCrit.crewHit': 'Équipage touché : {name} encaisse un Critique — {label}.',
-  'shipCrit.crewBlesse': 'Équipage touché : {name} perd {n} Blessure(s).',
+  'shipCrit.crewExpose': 'Équipage touché : {name} encaisse le coup.',
   'shipCrit.crewTakes': "{n} membre(s) d'équipage encaisse(nt) le Critique ({label}).",
   'cascade.coqueDisparue': 'Conséquence de « {label} » non appliquée : le bateau concerné n’est plus en jeu.',
   'cascade.cibleDisparue': 'Conséquence de « {label} » non appliquée : la cible n’est plus en jeu.',
