@@ -205,19 +205,24 @@ export function shieldReactionCost(c: Combatant, parryWeapon: Weapon | undefined
   return 0;
 }
 
-/** Contre-attaque sur Test opposé de DÉFENSE gagné en mêlée — lue en DONNÉES, traits ET talents
- *  confondus (capacité GÉNÉRIQUE `counterOnDefenseWin`). Champion (LDB 85) : sans condition d'arme.
- *  Riposte (LDB 10) : exige une arme de PARADE Rapide (`counterRequiresFastParry`). */
-export function canCounterOnDefenseWin(c: Combatant, parryWeapon: Weapon | undefined): boolean {
+/** Contre-attaque sur un Test opposé de défense gagné en mêlée : `choisie` = le porteur peut la refuser ;
+ *  `plafond` = nombre par Round (absent : sans plafond). */
+export interface ContreSurDefense { choisie: boolean; plafond?: number }
+
+/** Contre-attaque sur Test opposé de DÉFENSE gagné en mêlée — lue en DONNÉES (capacité GÉNÉRIQUE
+ *  `counterOnDefenseWin`), arme de PARADE Rapide exigée par `counterRequiresFastParry`. Trait : LDB 85
+ *  l.71. Talent : LDB 10 l.1037 (plafond = Niveau). Le trait prime. */
+export function contreSurDefenseGagnee(c: Combatant, parryWeapon: Weapon | undefined): ContreSurDefense | null {
   const fast = canStrikeFirst(parryWeapon ? [parryWeapon] : []);
   for (const t of c.traits ?? []) {
     const cap = findTraitById(t.id)?.capabilities;
-    if (cap?.counterOnDefenseWin && (!cap.counterRequiresFastParry || fast)) return true;
+    if (cap?.counterOnDefenseWin && (!cap.counterRequiresFastParry || fast)) return { choisie: false };
   }
-  for (const { def } of featuresOf(c)) {
-    if (def.counterOnDefenseWin && (!def.counterRequiresFastParry || fast)) return true;
+  let plafond = 0;
+  for (const { def, ctx } of featuresOf(c)) {
+    if (def.counterOnDefenseWin && (!def.counterRequiresFastParry || fast)) plafond += ctx.level;
   }
-  return false;
+  return plafond > 0 ? { choisie: true, plafond } : null;
 }
 
 /** Renversement (LDB 10) : vole TOUS les Avantages adverses au lieu de +1 sur un opposé gagné. */

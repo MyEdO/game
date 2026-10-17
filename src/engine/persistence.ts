@@ -79,7 +79,7 @@ export const REPORT_DE_COMBATTANT = {
   shotsThisTurn: rencontre(TOUR), pushbackMode: rencontre('LDB 62 l.272-274'), auraMods: rencontre('LDB 85 l.262'),
   xp: PERSISTE, charAdvances: PERSISTE, careerLevel: PERSISTE, careerSlotChoices: PERSISTE,
   pos: rencontre(POSITION), initiative: rencontre('Initiative de la rencontre'),
-  gainedAdvThisRound: rencontre(TOUR), usedShieldReactionRound: rencontre(TOUR), distractedRounds: rencontre(TOUR),
+  gainedAdvThisRound: rencontre(TOUR), usedShieldReactionRound: rencontre(TOUR), ripostesThisRound: rencontre(TOUR), distractedRounds: rencontre(TOUR),
   defensiveStance: rencontre(TOUR), dualStrikeDefensePenalty: rencontre(TOUR), aiming: rencontre(TOUR),
   envWeather: rencontre('EDOC 8 l.82'), envPrecipitation: rencontre('MDG 13 l.185'),
   engagedWith: rencontre(RELATION, []), meleeThisRound: rencontre(RELATION, []), attackedThisRound: rencontre(RELATION),

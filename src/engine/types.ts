@@ -1806,6 +1806,9 @@ export interface Combatant {
   /** Réaction de Porte-Bouclier (variante AA 13 l.84) déjà employée ce Round : « une fois par Round ».
    *  Posé par `applyShieldReaction`, purgé au franchissement de Round. */
   usedShieldReactionRound?: boolean;
+  /** Ripostes jouées ce Round, plafonnées par `ContreSurDefense.plafond` (LDB 10 l.1037). Purgé au
+   *  franchissement de Round. */
+  ripostesThisRound?: number;
   /** Distraire (LDB 10 l.364 / AA 13 l.51) : distrait par un adversaire → ne peut gagner AUCUN Avantage
    *  (mode groupe : sa réserve) jusqu'à la FIN de ce Round de bataille. Compteur de Rounds restants
    *  décrémenté au franchissement de Round (2 = « jusqu'à la fin du PROCHAIN Round » quand posé en cours

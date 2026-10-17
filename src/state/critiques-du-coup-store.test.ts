@@ -704,7 +704,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
   });
 });
 
-describe('Tir dans le tas (LDB 14 l.106) : la ligne chiffrée de la victime porte la phrase du tas', () => {
+describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime porte la phrase de la déviation', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
@@ -737,5 +737,35 @@ describe('Tir dans le tas (LDB 14 l.106) : la ligne chiffrée de la victime port
     expect(texte.split('Tir dans le tas').length - 1).toBe(1);
     expect(texte.split(`H touche ${victim!.label}`).length - 1).toBe(1);
     expect(journal().find((l) => l.startsWith(`H touche ${victim!.label}`))).toMatch(/ Blessures.* Tir dans le tas/);
+  });
+
+  it('tir dévié dans la mêlée (LDB 14 l.116) : la phrase de la déviation et la ligne de l’allié touché, une fois chacune', () => {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+    useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
+    useGame.getState().startScene(structuredClone(testScene()));
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const b = useGame.getState().battle!;
+    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const [tireur, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+    H.pos = { x: 10, y: 10 };
+    voisin.pos = { x: 11, y: 10 };
+    tireur.pos = { x: 14, y: 10 };
+    H.engagedWith = [voisin.id];
+    voisin.engagedWith = [H.id];
+    autres.forEach((c, i) => { c.pos = { x: 1, y: 1 + i }; });
+    let tir: ReturnType<typeof resolveAttack> = null;
+    for (let graine = 1; graine < 200 && !tir?.victim; graine++) {
+      useGame.getState().seedRng(graine);
+      tir = resolveAttack(useGame.getState, tireur, H, undefined, false, false, false, arc);
+    }
+    const { victim, res, weapon } = tir!;
+    expect(victim?.id, 'une graine dévie sur l’allié').toBe(voisin.id);
+    applyAttackResult(useGame.getState, useGame.setState, tireur, victim!, weapon, res);
+    draineCascade(useGame.getState, 200, () => 50);
+    const texte = journal().join('\n');
+    expect(texte.split(tr('cf.strayMelee', { name: voisin.label })).length - 1).toBe(1);
+    expect(texte.split(`${tireur.label} touche ${voisin.label}`).length - 1).toBe(1);
   });
 });

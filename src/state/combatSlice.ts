@@ -2469,6 +2469,7 @@ export function createCombatSlice(get: Get, set: Set) {
           enchainement: !fumbled && !isDualMain && !isDualSecond ? { mode: 'hero', wasChain } : { mode: 'aucun' },
           ...(isDualMain && off?.uid && mainRoll != null ? { dualMain: { offWeaponUid: off.uid, mainRoll } } : {}),
           ...(pa.reaction ? { reaction: pa.reaction } : {}),
+          ...(pa.riposte != null ? { riposte: pa.riposte } : {}),
         };
         jouerFlowEntier(applyAttackResult(get, set, attacker, victim, weapon, pa.result, { suite }));
       }
@@ -2607,6 +2608,12 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!pd) return;
       set({ pendingDefense: { ...pd, shieldReaction: kind ?? undefined } });
     },
+    // Riposte (LDB 10 l.1037) déclarée ou refusée avant l'Appliquer.
+    defenseSetRiposte: (riposte: boolean) => {
+      const pd = get().pendingDefense;
+      if (!pd) return;
+      set({ pendingDefense: { ...pd, riposte } });
+    },
     // Cycle unifié (spec `defense`) : jet initial = résolution pure (`atk` figé) ; Chance/Pacte ici,
     // Résilience (forceSuccess/setForcedRoll) plus bas. PAS de `cancel` : le RAW n'offre aucun « Subir »
     // volontaire (mêlée = Test opposé, LDB 13 l.123) → une fois offerte, la défense est obligatoire.
@@ -2653,15 +2660,16 @@ export function createCombatSlice(get: Get, set: Set) {
       // Réaction de Porte-Bouclier (variante AA 13 l.84) DÉCLARÉE à cette fenêtre : elle entre avec le
       // coup, et son temps d'après-coup la joue APRÈS l'application.
       const reaction = pd.shieldReaction && pd.mode === 'parade' ? pd.shieldReaction : undefined;
+      const riposte = pd.riposte != null ? { riposte: pd.riposte } : {};
       if (suite.mode === 'pilotee' && attacker && defender) {
-        set({ pendingAttack: { ...suite.pa, result: pd.result, location: pd.result.location ?? suite.pa.location, ...(reaction ? { reaction } : {}) } });
+        set({ pendingAttack: { ...suite.pa, result: pd.result, location: pd.result.location ?? suite.pa.location, ...(reaction ? { reaction } : {}), ...riposte } });
         get().attackConfirm();
         return;
       }
       // Le coup ENTIER (application + après-coup) : `true` = une fenêtre tient la main (sauvegarde,
       // Déviation, Maladresse, dé de casse), et c'est sa reprise qui jouera le reste.
       const tient = suite.mode === 'machine' && !!attacker && !!defender
-        && applyAttackResult(get, set, attacker, defender, pd.weapon, pd.result, { suite: { ...suite.coup, ...(reaction ? { reaction } : {}) } });
+        && applyAttackResult(get, set, attacker, defender, pd.weapon, pd.result, { suite: { ...suite.coup, ...(reaction ? { reaction } : {}), ...riposte } });
       // Attaques GRATUITES de l'attaquant après CE coup : d'Arme « disponibles » (Frénésie LDB 21 l.33)
       // — jamais après une gratuite, que la suite de la fenêtre nomme — puis celles de créature. UNE file,
       // qui S'ARRÊTE à la première fenêtre ouverte : la fenêtre qui suit est celle de la gratuite

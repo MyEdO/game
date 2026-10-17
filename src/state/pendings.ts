@@ -425,6 +425,8 @@ export interface PendingAttack {
   /** Réaction de Porte-Bouclier déclarée par le défenseur SURFACÉ (`AA 13 l.84`) : la fenêtre de défense
    *  la rend ici avec le résultat opposé, et `attackConfirm` la verse dans la `SuiteDeCoup`. */
   reaction?: 'damage' | 'push';
+  /** Riposte refusée par le défenseur SURFACÉ (LDB 10 l.1037), rendue comme `reaction`. */
+  riposte?: boolean;
   /** PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : POINT D'IMPACT choisi au sol. Présent → la
    *  touche DÉTONE sur cette case (Explosion/Tir de zone uniforme sur le rayon, RAW LDB 62 l.254), AUCUNE touche
    *  directe « primaire » ni Critique par victime ; `targetId` n'est que la cible-REPÈRE de la bande de
@@ -964,7 +966,9 @@ export interface ToucheDeProjectile {
  *    tireurs déjà passés ce Round ;
  *  - `aucun` : le site d'origine a tranché qu'AUCUN balayage ne suit ce coup — Maladresse de
  *    l'attaquant, frappe du Maniement de deux armes ;
- *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee`.
+ *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee` ;
+ *  - `apresCoup` : la frappe passive d'un défenseur (`jouerLaFrappePassive`) rend la main à l'après-coup
+ *    du coup qui l'a provoquée, au temps porté par `queue`. LDB 10 l.1037 ; LDB 85 l.71.
  */
 export type EnchainementDuCoup =
   | { mode: 'hero'; wasChain: boolean }
@@ -972,7 +976,8 @@ export type EnchainementDuCoup =
   | ({ mode: 'bordee' } & TirsDeBordee)
   | { mode: 'auto' }
   | { mode: 'tirRapide'; faits: string[] }
-  | { mode: 'aucun' };
+  | { mode: 'aucun' }
+  | { mode: 'apresCoup'; queue: QueueDuCoup };
 
 /** Coups d'une bordée encore à appliquer, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
  *  navire avant la bordée, rendu après chaque coup — la bordée est une tâche d'équipage (MDG 14 l.37). */
@@ -1017,6 +1022,8 @@ export interface SuiteDeCoup {
   /** Réaction de Porte-Bouclier DÉCLARÉE par le défenseur qui a paré (variante `AA 13 l.84`) : jouée
    *  au temps `reaction` de l'après-coup, APRÈS l'application — suspendue ou non. */
   reaction?: 'damage' | 'push';
+  /** Riposte du défenseur (LDB 10 l.1037) : `false` = refusée à sa fenêtre ; absente = déclarée. */
+  riposte?: boolean;
 }
 
 /**
@@ -1201,6 +1208,8 @@ export interface PendingDefense {
    *  Bouclier : 'damage' = causer des Dégâts « comme s'il s'agissait de son Action » ; 'push' = repousser
    *  l'attaquant de 2 m et se désengager. Appliquée à l'Appliquer (`applyShieldReaction`), coût débité alors. */
   shieldReaction?: 'damage' | 'push';
+  /** Riposte (LDB 10 l.1037) : `false` = refusée ; absente = déclarée. */
+  riposte?: boolean;
   /** CE QUE LA FERMETURE JOUERA (#1858) : déclaré par le producteur qui ouvre la fenêtre, jamais patché
    *  après coup ni deviné à la fermeture. */
   suite: SuiteDeDefense;

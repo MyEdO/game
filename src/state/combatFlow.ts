@@ -45,6 +45,7 @@ import {
   belowMinRangeBand,
   resolveStrayRangedHit,
   resolveMeleePassive,
+  coupAApplique,
   finishMelee,
   rollMeleeDefender,
   AttackResult,
@@ -74,7 +75,7 @@ import { sizeGap } from '../engine/size';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
 import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed } from './triggeredEffects';
-import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, canCounterOnDefenseWin, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, retreatAdvantageCost, canDisengageWithLessAdvantage, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
+import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, retreatAdvantageCost, canDisengageWithLessAdvantage, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
   flyMeters, runMultiplier,
@@ -841,7 +842,11 @@ export function resolveAttack(
     // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
     if (inMelee && !res.hit) {
       const ally = strayShotVictim(res, attacker, target, battle);
-      if (ally) return { res: resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target + 20, res.attackerDetail, withhold), weapon, victim: ally };
+      if (ally) {
+        const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target + 20, res.attackerDetail, withhold);
+        stray.ajouts = [tr('cf.strayMelee', { name: ally.label })];
+        return { res: stray, weapon, victim: ally };
+      }
     }
     return { res, weapon };
   }
@@ -2609,7 +2614,7 @@ function appliquerLaTouche(
   // résolution repart de l'applier 'sauvegarde', qui rejouera la chaîne ENTIÈRE une fois la touche connue.
   if (apresModifiers.suspendu) return null;
   // Empoignade : LDB 14 l.159. La pose de l'Empoignade et de l'État *Empêtré* suit l'Engagement, plus bas.
-  if (grapple && res.hit) res = { ...res, woundsLost: 0, autoKill: false, sansPrise: 'empoignade' };
+  res = coupAApplique(res, grapple);
   // Cible Inconsciente — règle optionnelle « mort-auto » (LDB 16 l.113) : en CORPS À CORPS la cible est
   // tuée automatiquement. On applique la mort par le MÊME chemin que les morts normales (`finalizeHeroDeath`
   // → un héros à Destin est suspendu via pendingFateSave, sinon `dead = true`), pas un early-return brutal.
@@ -2649,8 +2654,11 @@ function appliquerLaTouche(
   if (!planifie) return null; // suspendu — la résolution part de l'applier 'deviation'
   const { plan, compte: coupCompte } = planifie;
   const battle = get().battle!;
-  attacker.aiming = false; // l'attaque consomme la visée (tir : +20 déjà appliqué ; mêlée : visée gâchée)
-  if (attacker.nextActionPenalty) attacker.nextActionPenalty = undefined; // pénalité de Maladresse consommée par ce Test
+  // LDB 10 l.1037 ; LDB 85 l.71 : la frappe passive se joue sur le Test de défense, pas sur un Test d'Action.
+  if (suite?.enchainement?.mode !== 'apresCoup') {
+    attacker.aiming = false; // l'attaque consomme la visée (tir : +20 déjà appliqué ; mêlée : visée gâchée)
+    if (attacker.nextActionPenalty) attacker.nextActionPenalty = undefined; // pénalité de Maladresse consommée par ce Test
+  }
 
   if (weapon.type === 'melee' && !isInanimate(target)) engage(attacker, target); // Engagé symétrique sur toute attaque de mêlée (LDB 13 l.169-171) — jamais avec un objet INANIMÉ
   if (!isInanimate(target)) markAttacked(attacker, target); // trace orientée du Round (LDB 85 l.383, `agressifEnvers`) — tir compris
@@ -2751,30 +2759,6 @@ function appliquerLaTouche(
       } else {
         critLog.push(tr('cf.critOnDefense', { name: target.label }));
         applyOpposedCritical(get, set, attacker, dd.roll, { attackerId: target.id, weapon: res.parryWeapon?.label, weaponObj: res.parryWeapon }, critLog);
-      }
-    }
-  }
-  // Contre-attaque sur Test opposé de défense GAGNÉ en mêlée (Champion LDB 85 « cause autant de Dégâts
-  // que si elle était l'attaquant » ; Riposte LDB 10 avec arme Rapide). « Qui peut contrer » lu en DONNÉES
-  // (`canCounterOnDefenseWin` → capacité générique `counterOnDefenseWin`) ; la RÉSOLUTION (frappe avec le
-  // jet de défense gagnant) reste machinerie (règle universelle).
-  if (weapon.type === 'melee' && res.advantageTo === 'defender' && res.netSL > 0
-      && canCounterOnDefenseWin(target, res.parryWeapon)
-      && !isOutOfAction(target) && target.weapons[0]) {
-    // La cible de cette frappe EST celle du jet de défense gagnant : les modificateurs à annoncer sont
-    // donc ceux de la DÉFENSE (`defenderDetail`), pas ceux d'une attaque que personne n'a roulée.
-    const riposte = resolveMeleePassive(target, attacker, target.weapons[0],
-      { roll: res.defenderRoll ?? 1, target: res.defenderDetail?.target ?? 1, success: true, sl: res.netSL, isDouble: false },
-      undefined, [], undefined, false, frozenDifficulty(res.defenderDetail));
-    if (riposte.hit && riposte.woundsLost) {
-      const before = attacker.wounds.current;
-      attacker.wounds.current = Math.max(0, before - riposte.woundsLost);
-      critLog.push(tr('cf.riposte', { name: target.label, n: riposte.woundsLost }));
-      if (attacker.wounds.current <= 0 && !attacker.dead && !hasCondition(attacker, COND.inconscient)) applyZeroWounds(attacker);
-      if (isOutOfAction(attacker)) {
-        clearEngagementOf(get().battle?.combatants ?? [], attacker.id);
-        clearPsychOf(get().battle?.combatants ?? [], attacker.id);
-      refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
       }
     }
   }
@@ -2952,6 +2936,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
         if (maladresseDuDefenseur(get, set, target, q.res, suivant)) return true;
         break;
       case 'reaction':
+        if (riposteDeclaree(attacker, target, q)) return jouerLaFrappePassive(get, set, attacker, target, q, suivant);
         if (q.suite?.reaction && q.res.parryWeapon) applyShieldReaction(get, set, target, attacker, q.suite.reaction, q.res.parryWeapon);
         break;
       case 'suite':
@@ -2960,6 +2945,33 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
     }
   }
   return false;
+}
+
+/** La frappe passive du défenseur est-elle due sur ce coup ? Test opposé de défense GAGNÉ en mêlée, à
+ *  l'arme qui a paré, plafond du Round non atteint, déclarée quand le porteur la choisit. LDB 10 l.1032,
+ *  l.1037 ; LDB 85 l.71 ; LDB 13 l.123. */
+function riposteDeclaree(attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
+  const { res } = q;
+  if (q.weapon.type !== 'melee' || res.advantageTo !== 'defender' || res.netSL <= 0 || !res.parryWeapon) return false;
+  if (isOutOfAction(target) || isOutOfAction(attacker)) return false;
+  const contre = contreSurDefenseGagnee(target, res.parryWeapon);
+  if (!contre) return false;
+  if (contre.plafond != null && (target.ripostesThisRound ?? 0) >= contre.plafond) return false;
+  return !contre.choisie || q.suite?.riposte !== false;
+}
+
+/** LA FRAPPE PASSIVE d'un défenseur, portée par son Test de défense gagné — appliquée comme toute touche
+ *  (`applyAttackResult`), puis rend la main à l'après-coup du coup qui l'a provoquée (`suivant`). Rend
+ *  `true` quand une fenêtre tient la main. LDB 10 l.1037 ; LDB 85 l.71 ; LDB 13 l.151 ; LDB 14 l.3 ;
+ *  LDB 14 l.208-209 ; #1595 c.6234104573. */
+function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defenseur: Combatant, q: QueueDuCoup, suivant: QueueDuCoup): boolean {
+  const arme = q.res.parryWeapon!;
+  if (contreSurDefenseGagnee(defenseur, arme)?.plafond != null) defenseur.ripostesThisRound = (defenseur.ripostesThisRound ?? 0) + 1;
+  const frappe = resolveMeleePassive(defenseur, attacker, arme,
+    { roll: q.res.defenderRoll ?? 1, target: q.res.defenderDetail?.target ?? 1, success: true, sl: q.res.netSL, isDouble: false },
+    undefined, [], undefined, false, frozenDifficulty(q.res.defenderDetail));
+  const res: AttackResult = { ...frappe, advantageTo: null, ajouts: [...(frappe.ajouts ?? []), tr('cf.riposte', { name: defenseur.label })] };
+  return applyAttackResult(get, set, defenseur, attacker, arme, res, { suite: { enchainement: { mode: 'apresCoup', queue: suivant } } }) === OPS_DIFFEREES;
 }
 
 /** ÉCRIT la Maladresse de `porteur` sur `arme` (LDB 14 l.19) — ÉCRITURE UNIQUE des deux temps de
@@ -4038,6 +4050,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
     case 'auto': suspendu = autoCleave(get, set, attacker, target, touche, restitution); break; // balayage d'un attaquant conduit par l'IA
     case 'tirRapide': suspendu = runPreemptShots(get, set, enchainement.faits); break; // la boucle des tireurs reprend (#997)
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
+    case 'apresCoup': suspendu = jouerLApresCoup(get, set, enchainement.queue); break; // LDB 10 l.1037 ; LDB 85 l.71
   }
   if (suspendu) return true;
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
@@ -7496,6 +7509,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
     if (!groupAdvantage() && !isOutOfAction(c) && c.advantage > 0 && !c.gainedAdvThisRound) c.advantage -= 1;
     c.gainedAdvThisRound = false;
     c.usedShieldReactionRound = false; // Porte-Bouclier (variante AA 13 l.84) : « une fois par Round »
+    c.ripostesThisRound = undefined; // LDB 10 l.1037
     if (c.distractedRounds) c.distractedRounds = c.distractedRounds > 1 ? c.distractedRounds - 1 : undefined; // Distraire (LDB 10 l.364) : expire en fin de Round
     c.dispelledThisRound = undefined; // Dissipation : « un seul Sort chaque Round » (LDB 46 l.156)
   }
