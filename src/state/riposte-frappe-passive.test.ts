@@ -225,4 +225,13 @@ describe('frappe passive — Champion (LDB 85 l.71), arbitre c.6237601266', () =
     expect(cur('a').wounds.current).toBeLessThan(30);
     expect(cur('a').criticalWounds ?? 0).toBe(0);
   });
+
+  it('Empaleuse, défense sociale réussie sur un multiple de 10 : frappe sans Critique (LDB 13 l.161-167, l.183 ; LDB 62 l.248)', () => {
+    const empaleuse = arme('estoc', 3, [{ id: 'empaleuse' }]);
+    monte({ pbAttaquant: 30, champion: true, armes: [empaleuse] });
+    const sociale = esquiveGagnee(30);
+    coup({ ...sociale, defenderDetail: { ...sociale.defenderDetail!, label: 'Intimidation', mode: 'social' } }); draine();
+    expect(cur('a').wounds.current).toBeLessThan(30);
+    expect(cur('a').criticalWounds ?? 0).toBe(0);
+  });
 });

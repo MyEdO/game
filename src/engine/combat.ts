@@ -956,6 +956,11 @@ function defenseTestSkill(mode: DefenseMode): string | undefined {
   return mode === 'parade' ? 'corps-a-corps' : mode === 'esquive' ? 'esquive' : undefined;
 }
 
+/** Le jet est-il le Test d'attaque, ou un Test de défense de Corps à corps ? LDB 13 l.183 ; LDB 62 l.248. */
+function testDArmeOuDeCorpsACorps(b: RollBreakdown): boolean {
+  return !b.mode || defenseTestSkill(b.mode) === 'corps-a-corps';
+}
+
 /** Caractéristique RÉELLE d'un mode de défense (Parade = Test de CC, Esquive = Agilité) — pour le canal météo
  *  « Tests physiques » (EDOC 8 l.82). La substitution sociale n'est PAS un Test physique → `null` (aucune). */
 function defenseTestChar(mode: DefenseMode): CharKey | null {
@@ -1665,10 +1670,11 @@ export function phraseDeTouche(
   }
   const lieu = res.location ? ` (${locationLabel(res.location, t.forme)})` : '';
   const marque = critique ? ' — CRITIQUE !' : '';
-  if (res.sansPrise || res.degatsTransferes) return `${tete}${lieu}${marque}.`;
+  const close = (phrase: string): string => (/[!?…]$/.test(phrase) ? phrase : `${phrase}.`);
+  if (res.sansPrise || res.degatsTransferes) return close(`${tete}${lieu}${marque}`);
   const damage = res.damage ?? 0;
   const blessures = res.woundsLost ?? 0;
-  return `${tete}${lieu} : ${damage} dégâts − ${damage - blessures} (${t.mitigation}) = ${blessures} Blessures${marque}.`;
+  return close(`${tete}${lieu} : ${damage} dégâts − ${damage - blessures} (${t.mitigation}) = ${blessures} Blessures${marque}`);
 }
 
 /** La ligne de journal d'un coup APPLIQUÉ : la ligne de touche recomposée sur la Localisation, les Blessures
@@ -1699,7 +1705,7 @@ function applyHit(
   const loc = isInanimate(defender) ? undefined : (forcedLoc ?? hitLocationByShape(reverseRoll(atkBd.roll), defender.bodyShape));
   // Coup Critique (LDB 13 l.183 ; LDB 62 l.248). Le compte des Blessures critiques, dépassement compris,
   // vit dans `critiquesDuCoup` (#1595 c.6220635824).
-  const empale = atkBd.success && atkBd.mode !== 'esquive' && qualityCritTriggered(weapon, atkBd.roll);
+  const empale = atkBd.success && testDArmeOuDeCorpsACorps(atkBd) && qualityCritTriggered(weapon, atkBd.roll);
   const isCritical = (critical || empale) && !withholding; // LDB 18 l.30 ; AA 07 l.59
   // Éthéré (LDB 85 l.134) : « ne peut être blessée que par les Attaques magiques » — une attaque
   // non magique (créature non Magique/Démoniaque, arme non magique) passe au travers : 0 Blessure.

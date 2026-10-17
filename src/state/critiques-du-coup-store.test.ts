@@ -60,15 +60,17 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   applyAttackResult(useGame.getState, useGame.setState, H, cible, arme, res, { ...(sousAttaque ? { sousAttaque: true } : {}), ...(grapple ? { suite: { grapple: true } } : {}) });
   const kinds: string[] = [];
   const origines: (string | undefined)[] = [];
+  const offres = new Map<string, boolean>();
   for (let i = 0; i < 200 && useGame.getState().pendingCascade; i++) {
     const p = useGame.getState().pendingCascade!;
     const etape = p.participants[p.cursor];
     if (etape?.kind === 'critical') origines.push(etape.reveal?.origine);
+    if (etape?.kind === 'deviation') offres.set(etape.id, !!etape.options?.some((o) => o.key === 'devier'));
     const k = avanceEtapeCascade(useGame.getState, () => de, choisir);
     if (k !== undefined) kinds.push(k);
   }
   const apres = useGame.getState().battle!.combatants;
-  return { res, H, auJet, kinds, origines, cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)! };
+  return { res, H, auJet, kinds, origines, offres: [...offres.values()], cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)! };
 }
 
 /** Un Coup Critique (double 44) qui DÉPASSE les 2 Blessures restantes de la cible. */
@@ -262,6 +264,58 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
     expect(casse(cible, 'p1')).toBe(false);
   });
 
+  const subi = { tenu: true, choisir: () => 'subir' } as const;
+  /** Les Blessures appliquées du même coup (double 44, graine 7) sur la cible sans armure. */
+  const nu = (o: Coup = {}) => coup({ roll: 44, current: 20, ...subi, ...o }).res.woundsLost!;
+
+  it("'ldb' : les PA de la Bâclée cassée ne comptent pas dans les Blessures du coup, le dépassement en naît (LDB 18 l.53, l.55 ; LDB 60 l.50 ; #1595 c.6228496170 Q1)", () => {
+    const w = nu();
+    const { res, cible } = coup({ roll: 44, current: w - 1, ...subi, pieces: [piece(['bacle'], 2)] });
+    expect(res.woundsLost).toBe(w);
+    expect(res.critiques, 'Coup Critique et dépassement').toBe(2);
+    expect(casse(cible, 'p1')).toBe(true);
+  });
+
+  it("'aa' : mêmes Blessures, une seule Blessure critique (AA 07 l.42 ; #1595 c.6228496170 Q1)", () => {
+    setRule('combat-aa-blessures', 'aa');
+    try {
+      const w = nu({ chanceux: true });
+      const { res, cible } = coup({ roll: 44, current: w - 1, chanceux: true, ...subi, pieces: [piece(['bacle'], 2)] });
+      expect(res.woundsLost).toBe(w);
+      expect(res.critiques).toBe(1);
+      expect(casse(cible, 'p1')).toBe(true);
+    } finally { resetRule('combat-aa-blessures'); }
+  });
+
+  it('une Bâclée hors de la Localisation relancée reste entière (LDB 60 l.50 ; LDB 18 l.53)', () => {
+    const temoin = coup({ roll: 44, current: 20, ...subi });
+    const lieu = temoin.res.critLocation!;
+    const { res, cible } = coup({ roll: 44, current: 20, ...subi, pieces: [piece(['bacle'], 2, LOCS.filter((l) => l !== lieu))] });
+    expect(res.critLocation).toBe(lieu);
+    expect(res.woundsLost).toBe(temoin.res.woundsLost);
+    expect(casse(cible, 'p1')).toBe(false);
+  });
+
+  it("Bâclée seule : le second Critique n'offre aucune Déviation, la pièce est cassée (LDB 60 l.50 ; LDB 63 l.30)", () => {
+    const { res, offres } = coup({ roll: 44, current: 1, ...subi, pieces: [piece(['bacle'], 1)] });
+    expect(res.critiques).toBe(2);
+    expect(offres[0], 'le Coup Critique est offert').toBe(true);
+    expect(offres.slice(1)).not.toContain(true);
+  });
+
+  it('Bâclée et couche Flexible : le second Critique est encore offert (LDB 63 l.30)', () => {
+    const { res, offres } = coup({ roll: 44, current: 1, ...subi, pieces: [piece(['bacle'], 1), { ...piece(['flexible'], 1), uid: 'p2' } as ItemInstance] });
+    expect(res.critiques).toBe(2);
+    expect(offres).toEqual([true, true]);
+  });
+
+  it('R1 : la Bâclée dévie son propre Coup Critique, puis casse (LDB 60 l.50 ; LDB 63 l.30 ; #1595 c.6228496170 R1)', () => {
+    const { cible } = coup({ roll: 44, current: 1, tenu: true, choisir: () => 'devier', pieces: [piece(['bacle'], 1)] });
+    expect(journal()).toContain(tr('cf.deflect', { name: cible.label }));
+    expect(cible.criticalWounds, 'le dépassement reste').toBe(1);
+    expect(casse(cible, 'p1')).toBe(true);
+  });
+
   it('Bâclée et Impénétrable, double impair : la Blessure critique est ignorée, la pièce casse (LDB 63 l.78)', () => {
     const { auJet, cible } = coup({ roll: 33, current: 20, pieces: [piece(['bacle', 'impenetrable'], 1)] });
     expect(auJet.critical).toBe(true);
@@ -282,7 +336,8 @@ describe("'aa' : le Critique du passage à 0 est un Coup Critique (AA 07 l.25, l
   it("passage à 0 sur un impair : Impénétrable à la Localisation de touche n'ignore pas la Blessure, la Bâclée casse (LDB 63 l.78 ; LDB 60 l.50 ; #1595 c.6228496170 R2)", () => {
     const { auJet, res, cible } = coup({ roll: 45, double: false, current: 2, chanceux: true, ...subi, pieces: [piece(['bacle', 'impenetrable'], 1, ['corps'])] });
     expect(auJet.critical, 'aucun double').toBe(false);
-    expect(auJet.woundsLost, 'le coup fait passer à 0').toBeGreaterThanOrEqual(2);
+    expect(res.woundsLost, 'les Blessures appliquées font passer à 0').toBeGreaterThanOrEqual(2);
+    expect(cible.wounds.current).toBe(0);
     expect(res.critLocation, 'la Localisation de touche est gardée').toBeUndefined();
     expect(cible.criticalWounds).toBe(1);
     expect(casse(cible, 'p1')).toBe(true);
@@ -316,6 +371,73 @@ describe("'aa' : le Critique du passage à 0 est un Coup Critique (AA 07 l.25, l
       expect(blessures({ arme }).woundsLost, `${atout} joue sans la retenue`).toBeGreaterThan(temoin.woundsLost!);
     });
   }
+});
+
+describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 63 l.78 ; LDB 60 l.50 ; LDB 14 l.3 ; #1595 c.6228496170 Q3, Q4a)", () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-critical-deflect'); });
+
+  const bacle = piece(['bacle'], 1);
+  const impenetrable = (locs: readonly string[] = LOCS) => ({ ...piece(['impenetrable'], 1, locs), uid: 'p2' }) as ItemInstance;
+
+  /** Le Carreau en Incantation critique au jet `roll`, sur la cible tenue à 1 PB sous `pieces(Localisation de touche)`, Critiques subis. */
+  function carreauSur(roll: number, pieces: (touche: string) => ItemInstance[]) {
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    const { mage, cible } = carreauEnCombat();
+    const sort = findSpell('Carreau')!;
+    const touche = evaluateMissile(mage, cible, sort, { ...incantationCritique, roll });
+    cible.important = true;
+    cible.items = [...(cible.items ?? []), ...structuredClone(pieces(touche.location!))];
+    recomputeLoadout(cible);
+    cible.wounds = { current: 1, max: 20 } as Combatant['wounds'];
+    const finales: MissileResult[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });
+    try {
+      applyCast(useGame.getState, useGame.setState, mage, cible, sort, evaluateMissile(mage, cible, sort, { ...incantationCritique, roll }), true, false, 'critique');
+      draineCascade(useGame.getState, 200, () => 1, () => 'subir');
+      return { touche: touche.location!, finale: finales[0], apres: useGame.getState().battle!.combatants.find((c) => c.id === cible.id)! };
+    } finally { lache(); }
+  }
+
+  it('Projectile, double impair, Impénétrable à la Localisation relancée : le Coup Critique est ignoré, le dépassement reste, la Bâclée casse', () => {
+    const { apres } = carreauSur(33, () => [bacle, impenetrable()]);
+    expect(apres.criticalWounds).toBe(1);
+    expect(casse(apres, 'p1')).toBe(true);
+  });
+
+  it('Projectile, double pair : le Coup Critique est subi', () => {
+    const { apres } = carreauSur(44, () => [bacle, impenetrable()]);
+    expect(apres.criticalWounds).toBe(2);
+    expect(casse(apres, 'p1')).toBe(true);
+  });
+
+  it('Projectile, double impair, Impénétrable à la seule Localisation de touche : le Coup Critique est subi', () => {
+    const { touche, finale, apres } = carreauSur(33, (t) => [impenetrable([t])]);
+    expect(finale.location, 'la relance quitte la pièce Impénétrable').not.toBe(touche);
+    expect(apres.criticalWounds).toBe(2);
+  });
+
+  /** Le Critique d'un Test opposé au double `roll` sur la cible sous Bâclée et Impénétrable, Déviation coupée. */
+  function oppose(roll: number) {
+    setRule('combat-critical-deflect', false);
+    const { H, cible } = coup({ roll: 45, double: false, current: 20, pieces: [bacle, impenetrable()] });
+    const log: string[] = [];
+    applyOpposedCritical(useGame.getState, useGame.setState, cible, roll, { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);
+    return { cible, log };
+  }
+
+  it('Critique opposé, double 33 et Impénétrable : aucune Blessure critique, une ligne, la Bâclée casse', () => {
+    const { cible, log } = oppose(33);
+    expect(cible.criticalWounds ?? 0).toBe(0);
+    expect(log.filter((l) => l.startsWith(`L'armure Impénétrable de ${cible.label}`))).toHaveLength(1);
+    expect(casse(cible, 'p1')).toBe(true);
+  });
+
+  it('Critique opposé, double 44 : la Blessure critique est subie, la Bâclée casse', () => {
+    const { cible } = oppose(44);
+    expect(cible.criticalWounds).toBe(1);
+    expect(casse(cible, 'p1')).toBe(true);
+  });
 });
 
 describe('véhicule routier : la coque refuse le Critique (EDOC 07 l.334)', () => {
@@ -688,6 +810,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
     expect(r.finale.critiques).toBe(1);
     expect(r.lignes).toHaveLength(1);
     expect(r.lignes[0]).toContain(`= ${r.finale.woundsLost} Blessures — CRITIQUE !`);
+    expect(r.lignes[0], 'aucun point après « ! »').not.toContain('!.');
     expect(r.lignes[0].split('CRITIQUE').length - 1).toBe(1);
   });
 

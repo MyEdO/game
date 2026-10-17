@@ -2208,16 +2208,23 @@ export function applyOpposedCritical(
   log: string[],
 ): void {
   // LDB 14 l.3 : un seul Critique ; LDB 18 l.44, l.46 (Mort subite).
-  const [entree] = critiquesDuCoup(victim, { coupCritique: 'double', prise: true, current: victim.wounds.current, blessures: () => 0 }).critiques;
+  const compte = critiquesDuCoup(victim, { coupCritique: 'double', prise: true, current: victim.wounds.current, blessures: () => 0 });
+  const [entree] = compte.critiques;
   if (!entree) return;
   const loc = critWoundLocation(battleRng(), victim.bodyShape); // LDB 18 l.53 : Coup Critique → 1d100 frais (pas l'inversion de touche)
+  // LDB 60 l.50 ; LDB 63 l.78 ; #1595 c.6228496170 Q4a.
+  if (!sansLeCoupCritiqueIgnore({ ...compte, critiques: [entree] }, roll, victim, loc).critiques.length) {
+    log.push(tr('cf.critImpenetrable', { name: victim.label, loc: locationLabel(loc, victim.bodyShape) }));
+    breakBacleArmour(victim, loc, log);
+    return;
+  }
   // B. de Sauvagerie (LDB 41) : l'attaquant à l'origine du double tire deux lancers de Critique.
   const attacker = ctx.attackerId ? inBattleId(get().battle, ctx.attackerId) : undefined;
   const heroConcerned = victim.kind === 'hero' || attacker?.kind === 'hero';
   const c2: DeviationCtx = { ...ctx, attackerKind: attacker?.kind, critTwice: attacker ? critRollTwiceFor(attacker) : undefined, coup: { degats: 0, cause: 'double' } };
   const deviable = !!rule('combat-critical-deflect') && deviatableArmourAt(victim, loc);
   if (deviable && !tenuParUnHumain(get(), victim.id)) {
-    if (autoDeviate(set, victim, loc, ctx, roll, log, heroConcerned)) return;
+    if (autoDeviate(set, victim, loc, ctx, roll, log, heroConcerned)) { breakBacleArmour(victim, loc, log); return; }
   } else if (deviable) {
     // Porteur blindé TENU : on SUSPEND pour son choix Dévier/Subir (étape `self`, Critique « sec » pré-tiré).
     const { crit } = resolveCritSeverity(victim, loc, 0, c2.critTwice); // dé de sévérité par l'étape à table (seam UNIQUE)
@@ -2229,6 +2236,7 @@ export function applyOpposedCritical(
     return;
   }
   const lethal = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, victim.wounds.current);
+  breakBacleArmour(victim, loc, log); // LDB 60 l.50
   apresLeCritiqueDe({ get, set, auteur: attacker, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(lethal, entree.origine); // #316
 }
 
@@ -2340,13 +2348,22 @@ function reprendreApresSauvegarde(get: Get, set: SetFn, suite: SauvegardeSuite, 
   return [];
 }
 
-/** La cible APRÈS `n` Déviations à `loc` (LDB 63 l.19, l.21, l.32), sur une COPIE : le compte se refait
- *  sans muter la cible avant la dernière décision. */
-function apresDeviations(target: Combatant, loc: HitLocation, n: number): Combatant {
-  if (n === 0) return target;
+/** La cible APRÈS `n` Déviations à `loc` (LDB 63 l.19, l.21, l.32), puis la casse de sa pièce Bâclée sous
+ *  `casse` (LDB 60 l.50 ; #1595 c.6228496170 Q1), sur une COPIE : le compte se refait sans muter la cible
+ *  avant la dernière décision. */
+function apresDeviations(target: Combatant, loc: HitLocation, n: number, opts: { casse?: boolean } = {}): Combatant {
+  if (n === 0 && !opts.casse) return target;
   const copie = structuredClone(target);
   for (let i = 0; i < n; i++) damageArmour(copie, loc);
+  if (opts.casse) breakBacleArmour(copie, loc, []);
   return copie;
+}
+
+/** Le compte sans le Coup Critique qu'une pièce Impénétrable ignore à `lieu` sur le jet impair `jet` :
+ *  LDB 63 l.78 ; #1595 c.6221792068 Q3, c.6228496170 Q3, Q4a. */
+function sansLeCoupCritiqueIgnore(compte: CompteDesCritiques, jet: number, cible: Combatant, lieu: HitLocation): CompteDesCritiques {
+  if (jet % 2 !== 1 || !impenetrableAt(cible, lieu)) return compte;
+  return { ...compte, critiques: compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) };
 }
 
 /** Le compte d'une touche d'arme sur la cible après `n` Déviations : `critiquesDuCoup`, avec la Localisation
@@ -2358,16 +2375,16 @@ function compterLesCritiques(
   let lieu: HitLocation = res.location ?? 'corps';
   let relance = false;
   let blessures = res.hit && !res.sansPrise ? (res.woundsLost ?? 0) : 0;
-  let impenetrable = false;
+  let devie = target;
   const compte = critiquesDuCoup(target, {
     coupCritique: causeDuCoupCritique(res), prise: res.hit && !res.sansPrise, current: target.wounds.current,
     blessures: (relancee) => {
       relance = relancee;
       if (relancee) lieu = res.critLocation ??= critWoundLocation(battleRng(), target.bodyShape);
       const cible = apresDeviations(target, lieu, n);
+      devie = cible;
       if (relancee) {
-        impenetrable = res.attackerRoll % 2 === 1 && impenetrableAt(cible, lieu);
-        blessures = woundsAtCritLocation(res, weapon, cible, lieu);
+        blessures = woundsAtCritLocation(res, weapon, apresDeviations(target, lieu, n, { casse: true }), lieu);
       } else if (n > 0 && !res.degatsTransferes) {
         const dmg = res.damage ?? 0;
         blessures += Math.max(0, woundsFromHit(weapon, cible, lieu, dmg, 0, 1, attacker.size) - woundsFromHit(weapon, target, lieu, dmg, 0, 1, attacker.size));
@@ -2376,8 +2393,7 @@ function compterLesCritiques(
     },
   });
   const coupCritique = compte.critiques.some((c) => estUnCoupCritique(c.origine));
-  const critiques = impenetrable ? compte.critiques.filter((c) => !estUnCoupCritique(c.origine)) : compte.critiques;
-  return { compte: { ...compte, critiques }, lieu, relance, blessures, coupCritique };
+  return { compte: relance ? sansLeCoupCritiqueIgnore(compte, res.attackerRoll, devie, lieu) : compte, lieu, relance, blessures, coupCritique };
 }
 
 /** Le compte d'un coup après ses Déviations : les Critiques, leur Localisation UNIQUE (LDB 18 l.53, l.55),
@@ -2397,8 +2413,9 @@ interface PlanDesCritiques<C extends CompteDuCoup> {
   twice: boolean;
   /** Le compte après `n` Déviations, sur la cible intacte (`apresDeviations`). */
   recompter: (n: number) => C;
-  /** Une Déviation de plus est-elle possible à `lieu` après `n` Déviations ? (LDB 63 l.30) */
-  deviable: (lieu: HitLocation, n: number) => boolean;
+  /** Une Déviation de plus est-elle possible à `lieu` après `n` Déviations, la pièce Bâclée cassée sous
+   *  `cassee` ? LDB 63 l.30 ; LDB 60 l.50 ; #1595 c.6228496170 Q1. */
+  deviable: (lieu: HitLocation, n: number, cassee: boolean) => boolean;
 }
 
 const libelleDuCoup = (coup: CoupSuspendu): string | undefined => (coup.mode === 'melee' ? coup.weapon?.label : coup.touche.spell.label);
@@ -2429,7 +2446,9 @@ function planifierLesCritiques<C extends CompteDuCoup>(
   for (; compte.compte.critiques[plan.length] && !subieLetale(); compte = p.recompter(devies())) {
     const entree = compte.compte.critiques[plan.length];
     const cloc = compte.lieu;
-    const deviable = regime.fenetre && !!rule('combat-critical-deflect') && p.deviable(cloc, devies());
+    // La casse suit le Coup Critique : l'entrée qui le porte voit encore sa pièce (`appliquerLesCritiques`).
+    const cassee = compte.coupCritique && !compte.compte.critiques.slice(plan.length).some((c) => estUnCoupCritique(c.origine));
+    const deviable = regime.fenetre && !!rule('combat-critical-deflect') && p.deviable(cloc, devies(), cassee);
     if (deviable && !tenu) { plan.push({ deviation: 'devier', auto: true }); continue; }
     if (p.sousAttaque || !regime.fenetre) { plan.push({}); continue; }
     const fenetre = { attackerId: p.attacker.id, targetId: target.id, decides: plan };
@@ -2641,7 +2660,7 @@ function appliquerLaTouche(
   const planifie = planifierLesCritiques(get, set, {
     attacker, target, coup: { mode: 'melee', weapon, res, ...(suite ? { suite } : {}) }, decides, sousAttaque, twice,
     recompter: (n) => compterLesCritiques(res, weapon, attacker, target, n),
-    deviable: (lieu, n) => deviatableArmourAt(apresDeviations(target, lieu, n), lieu),
+    deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(target, lieu, n, { casse }), lieu),
   });
   if (!planifie) return null; // suspendu — la résolution part de l'applier 'deviation'
   const { plan, compte: coupCompte } = planifie;
@@ -2716,9 +2735,7 @@ function appliquerLaTouche(
     if (lancerDuTableau != null) res.lancerDuTableau = lancerDuTableau;
     if (regimeDePorteur(target).clore) clore(currentBefore);
   }
-  // Critiques du Test opposé (LDB 14 l.3) : « Si vous obtenez un Critique, votre adversaire reçoit
-  // immédiatement une Blessure critique […] le DR est calculé comme d'habitude, tout comme la
-  // détermination du vainqueur. » Un double RÉUSSI inflige donc un Critique même sans gagner l'échange.
+  // Critiques du Test opposé : LDB 14 l.3 ; LDB 13 l.183.
   // (Pas de garde `deviation` : une 1ʳᵉ entrée qui SUSPEND (déviation) fait son early-return AVANT ce
   // bloc — la reprise « Dévier »/« Subir » l'exécute donc UNE seule fois, comme les sous-attaques.)
   if (weapon.type === 'melee' && res.defenderDetail) {
@@ -2729,9 +2746,7 @@ function appliquerLaTouche(
       critLog.push(tr('cf.critDespiteLoss', { name: attacker.label }));
       applyOpposedCritical(get, set, target, ad.roll, { attackerId: attacker.id, weapon: weapon?.label, weaponObj: weapon }, critLog);
     }
-    // (b) Défenseur : Critique sur sa défense → l'attaquant subit un Critique sec — UNIQUEMENT en PARADE
-    // (« Test de Corps à corps », LDB 13 l.183) ; l'Esquive est un Test d'AGILITÉ → ne génère PAS de Critique.
-    // `res.parryWeapon` n'est posé qu'en Parade (finishMelee). Un HÉROS qui PARE avec une arme Piège-lame face
+    // (b) Défenseur : LDB 13 l.183 ; LDB 62 l.278. `res.parryWeapon` n'est posé qu'en Parade (finishMelee). Un HÉROS qui PARE avec une arme Piège-lame face
     // à une lame peut choisir de PIÉGER à la place (LDB 62 l.278) → étape de séquence.
     if (dd.success && isDoubleRoll(dd.roll) && !isOutOfAction(attacker) && res.parryWeapon) {
       if (target.kind === 'hero' && res.parryWeapon && hasBladeTrap(res.parryWeapon) && weaponHasBlade(weapon)) {
@@ -4420,6 +4435,7 @@ export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, de
     const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
     apresLeCritiqueDe({ get, set, auteur: inBattleId(battle, dev.ctx.attackerId), cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
   }
+  if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
   // 0 PB → À Terre (LDB 18 l.15).
   if (target.wounds.current <= 0 && !target.dead && !hasCondition(target, COND.inconscient)) applyZeroWounds(target);
   cloreLaReprise(get, set, target, log, dev.attackerId);
@@ -5859,17 +5875,22 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // LDB 63 l.30, l.32 : chaque Déviation retire 1 PA à `loc` ; les Blessures du coup se relisent à PA−n.
   const woundsLost = mres.woundsLost;
   const aPleinesPA = evaluateMissile(caster, cible, spell, mres, loc, ch.overcastDamageSteps).woundsLost ?? 0;
-  const blessures = (n: number): number => (n === 0 ? woundsLost
-    : woundsLost + Math.max(0, (evaluateMissile(caster, apresDeviations(cible, loc, n), spell, mres, loc, ch.overcastDamageSteps).woundsLost ?? 0) - aPleinesPA));
+  const blessures = (n: number, casse: boolean): number => (n === 0 && !casse ? woundsLost
+    : woundsLost + Math.max(0, (evaluateMissile(caster, apresDeviations(cible, loc, n, { casse }), spell, mres, loc, ch.overcastDamageSteps).woundsLost ?? 0) - aPleinesPA));
   const cause = causeDuProjectile(ch);
   const twice = critRollTwiceFor(caster);
   const planifie = planifierLesCritiques(get, set, {
     attacker: caster, target: cible, coup: { mode: 'projectile', touche: { ...ch, mres } }, decides: ch.critiques ?? [], sousAttaque: false, twice,
     recompter: (n) => {
-      const compte = critiquesDuCoup(cible, { coupCritique: cause, prise: true, current: currentBefore, blessures: () => blessures(n) });
-      return { compte, lieu: loc, blessures: blessures(n), coupCritique: compte.critiques.some((c) => estUnCoupCritique(c.origine)) };
+      let relancee = false;
+      let lues: number | undefined;
+      const compte = critiquesDuCoup(cible, { coupCritique: cause, prise: true, current: currentBefore, blessures: (r) => { relancee = r; return (lues = blessures(n, r)); } });
+      return {
+        compte: relancee ? sansLeCoupCritiqueIgnore(compte, mres.roll ?? 0, apresDeviations(cible, loc, n), loc) : compte,
+        lieu: loc, blessures: lues ?? blessures(n, false), coupCritique: compte.critiques.some((c) => estUnCoupCritique(c.origine)),
+      };
     },
-    deviable: (lieu, n) => deviatableArmourAt(apresDeviations(cible, lieu, n), lieu),
+    deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(cible, lieu, n, { casse }), lieu),
   });
   if (!planifie) return { issue: 'suspendue-deviation', lignes };
   const { plan, compte } = planifie;

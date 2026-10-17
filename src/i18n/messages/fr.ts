@@ -784,6 +784,7 @@ export const fr = {
   'cf.gangwayCollapseSansSurface': "{name} chute de la passerelle qui s'effondre : rien de praticable dessous, il gît au pied de la case.",
   'cf.deflect': '{name} dévie le Critique sur son armure (−1 PA, Critique ignoré).',
   'cf.shoddyBreaks': "L'armure Bâclée de {name} ({loc}) se brise sous le Coup Critique.",
+  'cf.critImpenetrable': "L'armure Impénétrable de {name} ({loc}) ignore la Blessure critique du coup impair.",
   'cf.critDeflectedTitle': 'Blessure Critique déviée',
   'cf.critDeflectedReveal': 'Blessure Critique ({loc}) — déviée.',
   'cf.finishHelpless': '{name} achève {foe}, sans défense.',
