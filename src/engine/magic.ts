@@ -936,8 +936,7 @@ export interface MissileResult extends CastResult {
   damage?: number; // dégâts bruts (avant mitigation)
   woundsLost?: number; // Blessures réellement perdues
   defenderDefeated: boolean;
-  /** Blessures critiques comptées par la touche, écrites par `applyCast` avant l'émission de son
-   *  `ANIM_ATTACK` : 0 pour une touche suspendue, qui n'a pas encore de compte. LDB 18 l.17 ; AA 07 l.42. */
+  /** Posé à la clôture de la touche (`clore`), seule émission. LDB 18 l.17 ; LDB 46 l.30. */
   critiques?: number;
 }
 

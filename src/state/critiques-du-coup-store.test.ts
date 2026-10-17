@@ -3,11 +3,11 @@ import { useGame } from './store';
 import { applyAttackResult, applyCast, applyOpposedCritical } from './combatFlow';
 import { draineCascade, type ChoisitCle } from './cascadeTestKit';
 import { createHero } from '../engine/character';
-import { rederivePassiveAttack } from '../engine/combat';
+import { rederivePassiveAttack, type AttackResult } from '../engine/combat';
 import { setRule, resetRule } from '../engine/policy';
 import { evaluateMissile, type CastResult, type MissileResult } from '../engine/magic';
 import { bus, EVT } from './bus';
-import { findSpell } from '../data';
+import { findSpell, type SpellData } from '../data';
 import { hasCondition } from '../engine/conditions';
 import { critTableRows, critTableKeyFor } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
@@ -396,10 +396,85 @@ describe("'aa' : l'Incantation critique d'un Projectile sur une cible debout (LD
 });
 
 describe("Projectile magique : l'animation de la touche porte son compte de Blessures critiques (LDB 46 l.30 ; LDB 18 l.17)", () => {
-  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); setRule('combat-aa-blessures', 'aa'); });
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
   afterEach(() => { resetRule('combat-aa-blessures'); vi.clearAllTimers(); vi.useRealTimers(); });
 
+  interface Emission { phase: 'applyCast' | 'drain'; to: string; critiques?: number; woundsLost?: number; cwAuMoment: number }
+  /** Les `ANIM_ATTACK` de sort, chacune avec la phase où elle tombe et les Blessures critiques de sa cible à cet instant. */
+  function ecoute() {
+    const phase: { v: Emission['phase'] } = { v: 'applyCast' };
+    const emis: Emission[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => {
+      if (p.kind !== 'spell') return;
+      const cw = useGame.getState().battle?.combatants.find((c) => c.id === p.to)?.criticalWounds ?? 0;
+      emis.push({ phase: phase.v, to: p.to, critiques: p.result.critiques, woundsLost: p.result.woundsLost, cwAuMoment: cw });
+    });
+    return { phase, emis, lache };
+  }
+
+  /** Une cible de la rencontre debout à 20 PB, PA 0, que personne ne tient. */
+  function debout(c: Combatant) {
+    c.items = (c.items ?? []).filter((i) => i.kind !== 'armor');
+    c.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
+    c.important = true;
+    c.wounds = { current: 20, max: 20 } as Combatant['wounds'];
+  }
+
+  /** Le Projectile en Incantation critique (`'critique'`) par `applyCast`, la cascade drainée au dé 50. */
+  function lance(prepare: (cible: Combatant, autre: Combatant) => void = () => {}, opts: { surincante?: boolean; sort?: SpellData } = {}) {
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
+    const { mage, cible } = carreauEnCombat();
+    const autre = useGame.getState().battle!.combatants.filter((c) => c.kind === 'enemy')[1];
+    autre.pos = { x: 12, y: 11 };
+    debout(cible); debout(autre);
+    prepare(cible, autre);
+    const sort = opts.sort ?? findSpell('Carreau')!;
+    const res = evaluateMissile(mage, cible, sort, incantationCritique);
+    const { phase, emis, lache } = ecoute();
+    try {
+      applyCast(useGame.getState, useGame.setState, mage, cible, sort, res, true, false, 'critique', opts.surincante ? { extraTargets: [autre] } : undefined);
+      phase.v = 'drain';
+      draineCascade(useGame.getState, 200, () => 50);
+    } finally { lache(); }
+    return { emis, res, cible, autre };
+  }
+
+  it("'ldb', cible debout : la touche s'annonce une fois, à sa clôture, Critique compris", () => {
+    const { emis, res, cible } = lance();
+    expect(res.woundsLost, 'la touche blesse').toBeGreaterThan(0);
+    expect(emis).toEqual([{ phase: 'drain', to: cible.id, critiques: 1, woundsLost: res.woundsLost, cwAuMoment: 1 }]);
+  });
+
+  it("sauvegarde (Démoniaque, LDB 85 l.98) : rien avant le dé, une émission après, avec la Blessure réellement retirée", () => {
+    const { emis, res, cible } = lance((c) => { c.traits = [...(c.traits ?? []), { id: 'demoniaque', value: 1 }] as never; });
+    expect(res.woundsLost, 'la touche blessait avant la sauvegarde').toBeGreaterThan(0);
+    expect(emis).toEqual([{ phase: 'drain', to: cible.id, critiques: 0, woundsLost: 0, cwAuMoment: 0 }]);
+  });
+
+  it("Surincantation « Cible » (LDB 47 l.28) : une émission par cible, après sa fenêtre, initiale d'abord", () => {
+    const { emis, cible, autre } = lance(() => {}, { surincante: true });
+    expect(emis.map((e) => [e.phase, e.to, e.critiques, e.cwAuMoment])).toEqual([['drain', cible.id, 1, 1], ['drain', autre.id, 1, 1]]);
+  });
+
+  it("immunité de Domaine (Manifestation de Ghur) : une émission, sans Blessure ni Critique", () => {
+    const bete = { ...findSpell('Carreau')!, domainId: 'bete' };
+    const { emis, cible } = lance((c) => { c.traits = [...(c.traits ?? []), { id: 'manifestation-de-ghur' }] as never; }, { sort: bete });
+    expect(emis).toEqual([{ phase: 'applyCast', to: cible.id, critiques: 0, woundsLost: 0, cwAuMoment: 0 }]);
+  });
+
+  it("parité mêlée, 'ldb', double sur une cible debout : une émission, après le Critique", () => {
+    const melee: { to: string; critiques?: number; cw: number }[] = [];
+    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: AttackResult }) => {
+      if (p.kind === 'melee') melee.push({ to: p.to, critiques: p.result.critiques, cw: useGame.getState().battle?.combatants.find((c) => c.id === p.to)?.criticalWounds ?? 0 });
+    });
+    let cible: Combatant;
+    try { ({ cible } = coup({ current: 20 })); } finally { lache(); }
+    expect(cible.criticalWounds).toBe(1);
+    expect(melee).toEqual([{ to: cible.id, critiques: 1, cw: 1 }]);
+  });
+
   it("'aa', Incantation critique qui fait passer à 0, appliquée sans fenêtre : `ANIM_ATTACK` émet `critiques: 1` (AA 07 l.36, l.42)", () => {
+    setRule('combat-aa-blessures', 'aa');
     const { mage, cible } = carreauEnCombat();
     cible.important = true;
     cible.talents = [{ talentId: 'chanceux', times: 1 }] as never; // AA 07 l.67

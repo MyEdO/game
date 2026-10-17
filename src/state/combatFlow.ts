@@ -5782,9 +5782,13 @@ type IssueDeTouche = 'appliquee' | 'suspendue-sauvegarde' | 'suspendue-deviation
 interface ToucheAppliquee {
   issue: IssueDeTouche;
   lignes: string[];
-  /** Blessures critiques comptées par la touche (`critiquesDuCoup`), 0 tant qu'elle n'est pas appliquée :
-   *  une touche suspendue n'a pas encore de compte à l'émission de son `ANIM_ATTACK`. LDB 18 l.17 ; AA 07 l.42. */
-  critiques: number;
+}
+
+/** LA CLÔTURE d'une touche de Projectile, seul émetteur de son `ANIM_ATTACK`. LDB 46 l.30 ; LDB 18 l.17. */
+function clore(get: Get, touche: ToucheDeProjectile, lignes: string[], resultat: CastResult & Partial<MissileResult>, critiques: number): ToucheAppliquee {
+  const result = { ...resultat, critiques };
+  if (get().battle) bus.emit(EVT.ANIM_ATTACK, { from: touche.de, to: touche.targetId, result, kind: 'spell', spell: touche.spell.label, defense: 'none' });
+  return { issue: 'appliquee', lignes };
 }
 
 /** Cause du Coup Critique d'une touche de Projectile. LDB 46 l.30. */
@@ -5814,7 +5818,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const caster = actorIn(get(), ch.casterId);
   const cible = actorIn(get(), ch.targetId);
   // Protagoniste disparu entre l'ouverture du dé et sa reprise : la conséquence se DIT (patron `opsDe`).
-  if (!caster || !cible) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: ch.spell.label })], critiques: 0 };
+  if (!caster || !cible) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: ch.spell.label })] };
   const spell = ch.spell;
   let mres = ch.mres;
   // Une RÉ-ENTRÉE de fenêtre de Critique porte la touche déjà passée par les sauvegardes.
@@ -5838,11 +5842,11 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
       ouvrirSauvegarde: (seuils) => { pousserSauvegarde(set, cible.id, seuils, { mode: 'projectile', touche: ch }); },
     });
     const apresSaves = apresModifiers.res;
-    if (apresModifiers.suspendu) return { issue: 'suspendue-sauvegarde', lignes, critiques: 0 }; // suspendu AVANT toute mutation : cette cible reprendra par l'applier
+    if (apresModifiers.suspendu) return { issue: 'suspendue-sauvegarde', lignes }; // suspendu AVANT toute mutation : cette cible reprendra par l'applier
     if (apresSaves.log) lignes.push(apresSaves.log);
     mres = { ...mres, woundsLost: apresSaves.woundsLost, damage: apresSaves.damage };
   }
-  if (!mres.hit || !mres.woundsLost) return { issue: 'appliquee', lignes, critiques: 0 };
+  if (!mres.hit || !mres.woundsLost) return clore(get, ch, lignes, mres, 0);
   const currentBefore = cible.wounds.current;
   const loc = mres.location ?? 'corps';
   // LDB 63 l.30, l.32 : chaque Déviation retire 1 PA à `loc` ; les Blessures du coup se relisent à PA−n.
@@ -5860,9 +5864,8 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     },
     deviable: (lieu, n) => magicDeviationEligible(apresDeviations(cible, lieu, n), lieu, spell),
   });
-  if (!planifie) return { issue: 'suspendue-deviation', lignes, critiques: 0 };
+  if (!planifie) return { issue: 'suspendue-deviation', lignes };
   const { plan, compte } = planifie;
-  const critiques = compte.compte.critiques.length;
   cible.wounds.current = Math.max(0, currentBefore - compte.blessures);
   // Réouverture d'une plaie critique (LDB 18 / AA 07) : jumeau du coup physique (applyAttackResult).
   const mReinj = reinjuryBleed(cible, loc);
@@ -5909,7 +5912,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
   if (isOutOfAction(cible)) lignes.push(tr('cf.outOfAction', { name: cible.label }));
-  return { issue: 'appliquee', lignes, critiques };
+  return clore(get, ch, lignes, { ...mres, woundsLost: compte.blessures }, compte.compte.critiques.length);
 }
 
 /**
@@ -5921,11 +5924,11 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
  */
 function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche: ToucheDeProjectile): ToucheAppliquee {
   const caster = actorIn(get(), touche.casterId);
-  if (!caster) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: touche.spell.label })], critiques: 0 };
+  if (!caster) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: touche.spell.label })] };
   const spell = touche.spell;
   // Manifestation de Ghur (Middenheim, #18) : un Projectile du Domaine de la Bête n'affecte PAS le
   // porteur — ses Dégâts ET ses effets (effets négatifs du Sort de la Bête) sont sautés sur cette cible.
-  if (immuneToSpellDomain(cible.traits, spell.domainId)) return { issue: 'appliquee', lignes: [tr('cf.spellDomainImmune', { name: cible.label, spell: spell.label })], critiques: 0 };
+  if (immuneToSpellDomain(cible.traits, spell.domainId)) return clore(get, touche, [tr('cf.spellDomainImmune', { name: cible.label, spell: spell.label })], { ...touche.mres, woundsLost: 0 }, 0);
   const lignes: string[] = [];
   let mres = touche.mres;
   // LDB 18 l.53/55 : un Projectile Coup Critique re-tire la Localisation (1d100 frais, MÊME primitive
@@ -5940,12 +5943,12 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
     lignes.push(tr('cf.resistMagic', { name: cible.label, mr: -drMod }));
     if (!spellLandsOn(mres, cible, touche.zoneTalentMod)) {
       lignes.push(tr('cf.resistMagicNI', { name: cible.label, spell: spell.label, dr: spellSLFor(mres.sl, cible, touche.zoneTalentMod), ni: mres.niRequired ?? 0 }));
-      return { issue: 'appliquee', lignes, critiques: 0 };
+      return clore(get, touche, lignes, { ...mres, woundsLost: 0 }, 0);
     }
     mres = evaluateMissile(caster, cible, spell, { ...mres, zoneSpellDRMod: touche.zoneTalentMod }, mres.location, touche.overcastDamageSteps);
   }
   const appliquee = appliquerToucheDeProjectile(get, set, { ...touche, mres });
-  return { issue: appliquee.issue, lignes: [...lignes, ...appliquee.lignes], critiques: appliquee.critiques };
+  return { issue: appliquee.issue, lignes: [...lignes, ...appliquee.lignes] };
 }
 
 /**
@@ -5983,12 +5986,10 @@ function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): string
     lignes.push(tr('cf.spellBounces', { spell: spell.label, name: next.label }), r2.log);
     hitIds = [...hitIds, next.id];
     const maillon = appliquerTouchePourCible(get, set, next, {
-      ...touche, targetId: next.id, mres: r2, zoneTalentMod: talentSpellDRMod(next),
+      ...touche, de: prev.id, targetId: next.id, mres: r2, zoneTalentMod: talentSpellDRMod(next),
       rebond: { ...rebond, bounce: bounce + 1, hitIds },
     });
     lignes.push(...maillon.lignes);
-    r2.critiques = maillon.critiques;
-    bus.emit(EVT.ANIM_ATTACK, { from: prev.id, to: next.id, result: r2, kind: 'spell', spell: spell.label, defense: 'none' });
     if (maillon.issue !== 'appliquee') return lignes; // la reprise de cette fenêtre jouera le reste
     prevId = next.id;
   }
@@ -6141,7 +6142,7 @@ export function applyCast(
     /** LA TOUCHE telle qu'elle voyage — bâtie ICI pour les trois sites de cible (initiale, cible
      *  supplémentaire de Surincantation, maillon de rebond), jamais recomposée à la reprise. */
     const toucheDe = (t: Combatant, mres: CastResult & Partial<MissileResult>, rebond?: RebondDeChaine): ToucheDeProjectile => ({
-      casterId: caster.id, targetId: t.id, spell: structuredClone(spell), mres, zoneTalentMod: zoneMod(t), // #2097
+      casterId: caster.id, de: caster.id, targetId: t.id, spell: structuredClone(spell), mres, zoneTalentMod: zoneMod(t), // #2097
       // `crit` = double d'Incantation, `choice` = Incantation Critique (LDB 46 l.30).
       critWound: !!(crit && choice === 'critique'),
       overcastDamageSteps, overcastDurationSteps,
@@ -6162,6 +6163,10 @@ export function applyCast(
         initialRange: spellRangeTiles(spell.range, caster), res,
       }
       : undefined;
+    // Sort offensif : lanceur vers la cible, cible vers le lanceur.
+    if (caster.pos && target.pos && caster.id !== target.id) {
+      set((s: GameState) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!), [target.id]: facingToward(target.pos!, caster.pos!) } }));
+    }
     const toucheInitiale = toucheDe(target, res, rebond);
     const initiale = appliquerTouchePourCible(get, set, target, toucheInitiale);
     logLines.push(...initiale.lignes);
@@ -6177,8 +6182,6 @@ export function applyCast(
       logLines.push(r2.log);
       const touche2 = appliquerTouchePourCible(get, set, t2, toucheDe(t2, r2));
       logLines.push(...touche2.lignes);
-      r2.critiques = touche2.critiques;
-      if (battle) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: t2.id, result: r2, kind: 'spell', spell: spell.label, defense: 'none' });
     }
     // Le rebond DÉCLARÉ plus haut ne se joue ICI que si la touche initiale est CLOSE : suspendue
     // (sauvegarde, Déviation Critique), c'est SA reprise qui le jouera, sur des PB frais.
@@ -6191,12 +6194,6 @@ export function applyCast(
     if (res.isFumble && !malevolentHandled) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
     else if (focusedNI0 && !res.cast && !malevolentHandled) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined }));
     applyExtraMiscast(); // Règle du 8 / Sorcellerie (LDB 46 l.89 / LDB 49)
-    // Sort offensif : lanceur vers la cible, cible vers le lanceur.
-    if (caster.pos && target.pos && caster.id !== target.id) {
-      set((s: GameState) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!), [target.id]: facingToward(target.pos!, caster.pos!) } }));
-    }
-    res.critiques = initiale.critiques;
-    bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: target.id, result: res, kind: 'spell', spell: spell.label, defense: 'none' });
   } else {
     if (res.cast) {
       // Effets structurés du sort (spec curée du registre, sinon repli regex sur la

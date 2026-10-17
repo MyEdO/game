@@ -922,6 +922,8 @@ export interface RebondDeChaine {
  */
 export interface ToucheDeProjectile {
   casterId: string;
+  /** D'où part la touche à l'écran : le lanceur, ou la cible précédente d'un rebond (LDB 47 l.340). */
+  de: string;
   targetId: string;
   spell: SpellData;
   mres: CastResult & Partial<MissileResult>;
