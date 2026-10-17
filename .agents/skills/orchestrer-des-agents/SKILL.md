@@ -12,10 +12,14 @@ gates.
 
 ## Suivi
 
-- **Le suivi de vague `.git/suivi/<N>.json` est la SEULE source du plan et du prochain geste**, un
-  par épique (utilisateur, 2026-09-28 : « Il faut absoluelement faire un truc pour ce fichier de suivis,
-  c'est vital si on veux éviter la dérive »). Il se relit EN PREMIER à toute reprise : `npm run ops:suivi
-  -- <N>` (situation), `-- <N> --rendu` (suivi entier), `-- <N> --mesurer [--sans-fetch]` (mesure).
+- **Le suivi de vague `.git/suivi/<N>.json` est, sur le poste, la SEULE source du plan et du prochain
+  geste**, un par épique (utilisateur, 2026-09-28 : « Il faut absoluelement faire un truc pour ce fichier
+  de suivis, c'est vital si on veux éviter la dérive »). Il se relit EN PREMIER à toute reprise : `npm run
+  ops:suivi -- <N>` (situation), `-- <N> --rendu` (suivi entier), `-- <N> --mesurer [--sans-fetch]` (mesure).
+- **Il vit dans le `.git` du POSTE, jamais versionné** : une épique ne se REPREND que sur le poste. Une
+  session hors du poste (cloud) exécute le lot que nomme son ticket et consigne au TICKET, en commentaire
+  daté, ce qu'elle décide ; à la reprise sur le poste, ces commentaires entrent au suivi par son outil
+  (`--arbitrer`, `--ajouter-etape`, `--signaler`) avant tout autre geste.
 - **Il ne s'écrit que par son outil** (utilisateur, 2026-10-07, #2460 : « Ca aurait du etre un json
   modifiable que via des outils adaptés, histoire d'éviter de faire n'importe quoi dessus, non ? ») :
   `mcp__harnais__suivi` ou `npm run ops:suivi -- <N> --<geste> <args>…` (gestes de

@@ -40,4 +40,5 @@ description: À charger dès qu'on travaille sur le MONDE Foundry VTT distant «
 - 2026-09-16 : « Quand tu fais une modification, il est super important que tu mette le comportement attendu de la V5 mais aussi que tu supprime l'état qu'on ne veut plus de la V4, pour éviter d'avoir un mixe des 2. »
 - 2026-09-16 : « Oublie si ca n'existe pas »
 - 2026-09-16 : « En cas de conflit, c'est la description de l'état qui gagne. » — CRB `036 - Attacking.md` l.159-169 contre `042 - Conditions.md` : Surpris → +2 DR en mêlée (l.123), À terre → Avantage (l.109).
+- 2026-10-17 (carte de décision, portée de la préséance de l'État) : « Foundry seulement » — le jeu web n'est pas concerné.
 - 2026-09-16 : « Pas de Momentum, on reste sur les avantages de groupe. » — `useGroupAdvantage` `true`, `autoFillAdvantage` `false` (CRB `037 - Momentum.md`) ; « gagner du Momentum » = générer de l'Avantage pour son camp ; Talents/Traits qui en dépensent : arbitrage MJ. L'inversion 5e est déjà basculée (`5e — Canal unique (DR et inversion)`, solde `data.__solde5e` → `preData.reversal`) : ne la repropose pas.

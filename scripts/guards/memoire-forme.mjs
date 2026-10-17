@@ -2,12 +2,12 @@
 // credo) porte une RÈGLE, pas un RÉCIT. Le récit (ce qui a été vécu, mesuré, daté) est de l'histoire :
 // git la porte. Une fiche qui raconte grossit à chaque relecture et personne ne la relit.
 //
-// PÉRIMÈTRE JUGÉ (six familles) :
+// PÉRIMÈTRE JUGÉ (cinq familles) :
 //   0. `.claude/memory/*.md` qui n'est ni `user-*.md` ni `MEMORY.md` — REFUSÉ, sans liste : une fiche
 //      ne naît que `user-*`, pour un verbatim daté ; toute autre consigne va à son porteur (règle,
 //      skill, agent, doc : `.claude/rules/contexte-agents.md`).
-//   I. `.claude/memory/MEMORY.md` — l'en-tête de ROUTAGE, plafonné à `INDEX_LIGNES_MAX` lignes ; son
-//      poids entre au budget du contexte permanent (`budget-contexte.mjs`).
+//   I. `.claude/memory/MEMORY.md` — l'en-tête de ROUTAGE, sous `PLAFONDS_DE_L_INDEX` (lignes, octets,
+//      caractères) ; sa croissance entre au budget du contexte permanent (`budget-contexte.mjs`).
 //   A. `.claude/memory/user-*.md` —
 //      1. corps > TAILLE_MAX octets, frontmatter exclu ET TEXTE CITÉ (`« … »`) EXCLU : la PROSE se
 //         plafonne, jamais les mots de l'utilisateur. « Tout arbitrage UTILISATEUR consigné (doc,
@@ -17,10 +17,12 @@
 //         même ligne comme ailleurs : un seul mot cité n'exempte pas la ligne qui le porte ;
 //      2. toute date ISO (`AAAA-MM-JJ`) dans le corps HORS d'une ligne de citation verbatim
 //         (celle qui porte les guillemets `«` : un arbitrage consigné DOIT porter sa date) ;
-//      3. les motifs de RÉCIT.
+//      3. toute ligne qui CITE L'UTILISATEUR (`CITATION_DE_L_UTILISATEUR`) sans sa date ISO, la même
+//         règle de CLAUDE.md ;
+//      4. les motifs de RÉCIT.
 //   R. `.claude/rules/*.md` — 1. fichier entier > REGLE_TAILLE_MAX octets (« 4 Ko maximum par fichier »,
-//      .claude/rules/contexte-agents.md) ; 2. la date hors citation de A.2, frontmatter `paths:` exclu ;
-//      3. les motifs de RÉCIT.
+//      .claude/rules/contexte-agents.md) ; 2. et 3. ceux de A, frontmatter `paths:` exclu ;
+//      4. les motifs de RÉCIT.
 //   B. `.claude/skills/*/SKILL.md`, `.claude/agents/*.md`, `.claude/credo.md` — les motifs de RÉCIT
 //      seulement : ces fichiers n'ont pas de plafond de taille ici (leur `description:` est plafonnée
 //      par `budget-contexte.mjs`, leur corps est chargé à la demande).
@@ -29,7 +31,10 @@
 // fiche juste et dense passe tant qu'elle tient) ; une date dans un NOM DE FICHIER n'est pas jugée ;
 // une date dans le FRONTMATTER (`description`, `metadata`) n'est pas jugée ; les motifs de récit sont
 // une liste FERMÉE, pas une détection sémantique — un récit qui n'emploie aucun de ces mots passe ; un
-// texte de la session placé tout entier entre `« »` passe pour une citation.
+// texte de la session placé tout entier entre `« »` passe pour une citation ; une parole de l'utilisateur
+// citée sans marqueur d'attribution (`Verbatim`, `utilisateur`) suivi de `:` puis `«` n'est pas vue citée ;
+// à l'inverse, un livre ou un tiers cité sous la même forme (`Verbatim : « … »`) est jugé comme une parole
+// de l'utilisateur et doit porter une date.
 import { Buffer } from 'node:buffer'
 
 /** Plafond du CORPS d'une fiche de mémoire, en octets. Une règle tient ; un récit non. */
@@ -38,8 +43,6 @@ export const TAILLE_MAX = 1200
 /** Plafond d'une règle `.claude/rules/*.md`, fichier entier, en octets : .claude/rules/contexte-agents.md. */
 export const REGLE_TAILLE_MAX = 4096
 
-/** Plafond de `MEMORY.md`, en lignes : un en-tête de routage, jamais un index de fiches. */
-export const INDEX_LIGNES_MAX = 10
 
 /** Le NOM d'un fichier admis à plat sous `.claude/memory/` : l'en-tête `MEMORY.md` ou une fiche `user-*`. PURE. */
 export const estNomDeMemoireAdmis = (nom) => nom === 'MEMORY.md' || /^user-[a-z0-9-]+\.md$/.test(String(nom ?? ''))
@@ -59,6 +62,22 @@ export const MOTIFS_DE_RECIT = [
 
 /** Une date ISO `AAAA-MM-JJ`, celle que porte une ligne de citation verbatim. */
 export const DATE = /20\d\d-\d\d-\d\d/
+
+/**
+ * Une ligne qui CITE l'utilisateur : un marqueur d'attribution (`Verbatim`, `Verbatims`, `utilisateur`),
+ * au plus 40 caractères (date, contexte, gras), puis `:` et la citation `«`.
+ */
+export const CITATION_DE_L_UTILISATEUR = /\b(verbatims?|utilisateur)\b[^«:\n]{0,40}:\s*«/i
+
+/**
+ * Plafonds de CHARGEMENT de l'index. Doc memory : « The first 200 lines of `MEMORY.md`, or the first
+ * 25KB, whichever comes first, are loaded at the start of every conversation. » Doc hooks : la sortie
+ * d'un hook (`additionalContext`, stdout) est « capped at 10,000 characters » ; au-delà elle est remplacée
+ * par un aperçu. En conteneur distant, c'est un hook qui porte l'index au contexte (#2710) : `caracteres`
+ * lui laisse 500 caractères pour son en-tête et ses lignes de constat. `lignes` est plus strict que le
+ * chargement (200) : `MEMORY.md` est un en-tête de ROUTAGE (.claude/rules/contexte-agents.md).
+ */
+export const PLAFONDS_DE_L_INDEX = Object.freeze({ lignes: 10, octets: 25_000, caracteres: 9_500 })
 
 /** Le CORPS d'un document : ce qui suit le frontmatter YAML, ou tout le texte s'il n'y en a pas. PURE. */
 export function corpsDe(texte) {
@@ -100,16 +119,7 @@ export function defautsDeForme(chemin, texte) {
         + 'une autre consigne va à son porteur (règle, skill, agent, doc : .claude/rules/contexte-agents.md).',
     }]
   }
-  if (famille === 'index') {
-    const n = String(texte ?? '').replace(/\r\n/g, '\n').replace(/\n$/, '').split('\n').length
-    if (n <= INDEX_LIGNES_MAX) return []
-    return [{
-      ligne: INDEX_LIGNES_MAX + 1,
-      quoi: 'index trop long',
-      detail: `${n} lignes pour un plafond de ${INDEX_LIGNES_MAX} — MEMORY.md est un en-tête de ROUTAGE ; `
-        + 'les doctrines vivent dans docs/doctrines.md, les consignes chez leur porteur.',
-    }]
-  }
+  if (famille === 'index') return defautsDIndex(texte)
   const { corps, premiereLigne } = corpsDe(texte)
   const defauts = []
   if (famille === 'regle') {
@@ -156,6 +166,17 @@ export function defautsDeForme(chemin, texte) {
       })
     })
   }
+  if (famille === 'fiche' || famille === 'regle') {
+    lignes.forEach((l, i) => {
+      if (!CITATION_DE_L_UTILISATEUR.test(l) || DATE.test(l)) return
+      defauts.push({
+        ligne: premiereLigne + i,
+        quoi: 'citation sans date',
+        detail: 'une parole de l\'utilisateur se consigne avec sa date AAAA-MM-JJ sur la ligne qui la cite ; '
+          + 'introuvable, la date du commit qui l\'a versée au dépôt (`git log -S`) la borne : « au plus tard le … ».',
+      })
+    })
+  }
   lignes.forEach((l, i) => {
     for (const m of MOTIFS_DE_RECIT) {
       if (!m.re.test(l)) continue
@@ -167,6 +188,24 @@ export function defautsDeForme(chemin, texte) {
     }
   })
   return defauts
+}
+
+/** Les dépassements de `PLAFONDS_DE_L_INDEX` par le texte de l'index, ligne 1. PURE. */
+function defautsDIndex(texte) {
+  const normalise = String(texte ?? '').replace(/\r\n/g, '\n')
+  const mesure = {
+    lignes: normalise.split('\n').length - (normalise.endsWith('\n') ? 1 : 0),
+    octets: Buffer.byteLength(normalise, 'utf8'),
+    caracteres: [...normalise].length,
+  }
+  return Object.entries(PLAFONDS_DE_L_INDEX)
+    .filter(([unite, plafond]) => mesure[unite] > plafond)
+    .map(([unite, plafond]) => ({
+      ligne: 1,
+      quoi: 'index hors plafond',
+      detail: `${mesure[unite]} ${unite} pour un plafond de ${plafond} — MEMORY.md est un en-tête de ROUTAGE ; `
+        + 'les doctrines vivent dans docs/doctrines.md, les consignes chez leur porteur.',
+    }))
 }
 
 /** Le refus, prêt à être joint aux autres refus d'une porte. `null` si rien. PURE. */
