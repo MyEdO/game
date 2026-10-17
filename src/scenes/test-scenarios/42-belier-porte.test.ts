@@ -92,10 +92,10 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     placeCombatant(ram, scene, ram.pos);
     soldat.characteristics.force = 90; // Test quasi-garanti (Force très haute), aucune Spé requise (raw characteristic)
     seedBattleRng(1);
-    // weaponUid EXPLICITE (Bélier) : le Soldat garde SON arme personnelle en plus du poste servi (kind-agnostique,
+    // Arme EXPLICITE (Bélier) : le Soldat garde SON arme personnelle en plus du poste servi (kind-agnostique,
     // comme un canonnier qui garde sa dague) — l'auto-sélection `attackWeapon` prendrait sinon sa propre arme.
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const r = resolveAttack(() => useGame.getState(), soldat, porte, undefined, false, false, false, belier.uid);
+    const r = resolveAttack(() => useGame.getState(), soldat, porte, undefined, false, false, false, firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants));
     expect(r).not.toBeNull();
     expect(r!.weapon.resolveChar).toBe('force'); // le jet qui vient de se résoudre était bien un Test de Force
     expect(r!.res.hit).toBe(true); // Force 90 → Test quasi-garanti
@@ -253,7 +253,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(ram.pos).toEqual({ x: 4, y: 5 }); // formation rigide : offset chef↔engin inchangé après 2 poussées cumulées
     seedBattleRng(1);
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
-    const r = resolveAttack(() => useGame.getState(), soldat, porte, undefined, false, false, false, belier.uid);
+    const r = resolveAttack(() => useGame.getState(), soldat, porte, undefined, false, false, false, firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants));
     expect(r).not.toBeNull();
     expect(r!.res.hit).toBe(true); // Force 90 → Test quasi-garanti
     expect(r!.res.woundsLost ?? 0).toBeGreaterThan(0); // la porte encaisse RÉELLEMENT, après le trajet poussé

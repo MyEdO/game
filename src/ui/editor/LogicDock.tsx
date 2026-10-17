@@ -158,7 +158,7 @@ function TriggersTab({
             key={x.id}
             selected={x.id === sel}
             onClick={() => setSel(x.id)}
-            label={<><b>{x.id}</b> ({x.rect.x},{x.rect.y}) {x.rect.w}×{x.rect.h}{condSummary(x.when) ? ` · si ${condSummary(x.when)}` : ''}</>}
+            label={<><b>{x.id}</b> ({x.rect.x},{x.rect.y}) {x.rect.w}×{x.rect.h}{condSummary(x.when, ctx.narratif) ? ` · si ${condSummary(x.when, ctx.narratif)}` : ''}</>}
           >
             <LayerChip z={x.rect.z} layers={sceneLayerZs(scene)} />
             <span className="count">{flowEffectCount(x.flow)}</span>
@@ -204,7 +204,7 @@ function TriggersTab({
           </Row>
           <CouvreField value={t.couvre} sujet="du déclencheur" onChange={(couvre) => upd({ couvre })} />
           <div className="mini-title" title="Le trigger ne se déclenche qu'en entrant dans la zone si la condition est vraie (flag, créneau horaire, ET/OU/NON).">Condition de déclenchement</div>
-          <WhenEditor when={t.when} onChange={(when) => upd({ when })} />
+          <WhenEditor when={t.when} narratif={ctx.narratif} onChange={(when) => upd({ when })} />
           <div className="mini-title">Au déclenchement (effets · conditions · tests)</div>
           <FlowEditor flow={t.flow} onChange={(flow) => upd({ flow })} ctx={ctx} />
         </div>

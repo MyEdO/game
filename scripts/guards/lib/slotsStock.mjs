@@ -25,7 +25,6 @@
  *  occurrences — mesurés par `occurrencesInatteignables` (`scripts/docs/lib/slots-registre.mts`). */
 export const SLOTS_INATTEIGNABLES = [
   { dataset: "careerLevels.json", champ: "trappings", occurrences: 14, lot: "L2/L3 #1473", date: "2026-09-23" }, // `{choice:[…]}` : les feuilles comptent sous `careerLevels.json | choice`
-  { dataset: "creatures.json", champ: "spec", occurrences: 1, lot: "L2/L3 #1473", date: "2026-09-23" }, // `spec: "art"` de `{id:"savoir", spec:"art"}` (`[119].skills[15]`, `[129].skills[14]`), homonyme de l'id `art` de `skills.json`, rangé par le scan sous le champ `spec` ; sa seule case est une clé de `CLES_DE_SPECIALISATION`. Solde : #1904
   { dataset: "species.json", champ: "of", occurrences: 2, lot: "L2/L3 #1473", date: "2026-09-23" }, // `{random:N}`
   { dataset: "species.json", champ: "talents", occurrences: 19, lot: "L2/L3 #1473", date: "2026-09-23" }, // `{random:N}`
 ];
@@ -101,7 +100,6 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "creatures.json", champ: "appearance", occurrences: 456, lot: "L2/L3 #1473", date: "2026-08-27" },
   { dataset: "creatures.json", champ: "features", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "creatures.json", champ: "grant", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "creatures.json", champ: "spec", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-30" }, // spécialisation homonyme d'un id, comptée comme référence par le scan. Solde : #1904
   { dataset: "creatures.json", champ: "grantGroups", occurrences: 90, lot: "L2/L3 #1473", date: "2026-08-26" }, // +2 : Mouton + Cochon ("bete"), EDOC 07 folio 24 (#673) ; +1 : Chien de trait, EDOC 07 folio 22, #673
   { dataset: "creatures.json", champ: "monster", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "creatures.json", champ: "optionals", occurrences: 649, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -224,7 +222,7 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "raceAppearance.json", champ: "head", occurrences: 7, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "raceAppearance.json", champ: "tenue", occurrences: 14, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "reglesOptionnelles.json", champ: "default", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "reglesOptionnelles.json", champ: "options", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "reglesOptionnelles.json", champ: "options", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" }, // 3 → 4 : Difficultés de `sea-salissures-difficulty` (MDG 13 l.148, #1595)
   { dataset: "river-criticals.json", champ: "ops", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "sea-events.json", champ: "escalation", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "sea-events.json", champ: "params", occurrences: 9, lot: "L2/L3 #1473", date: "2026-08-26" },
@@ -293,7 +291,6 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "traits.json", champ: "cond", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "escapeStrength", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "grantGroups", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "traits.json", champ: "grantsManeuvers", occurrences: 20, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "markMutations", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "of", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traits.json", champ: "ops", occurrences: 21, lot: "L2/L3 #1473", date: "2026-08-31" }, // VDM 09 l.280
@@ -316,12 +313,12 @@ export const SLOTS_SANS_DECLARATION = [
   { dataset: "trappings.json", champ: "weaponGroup", occurrences: 22, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "byProsthesis", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "escalade", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "traumas.json", champ: "ops", occurrences: 16, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "traumas.json", champ: "ops", occurrences: 17, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "prosthesis", occurrences: 9, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "traumas.json", champ: "rig", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "vehicles.json", champ: "draft", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "voyage-stakes.json", champ: "kind", occurrences: 15, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "voyage-stakes.json", champ: "rule", occurrences: 32, lot: "L2/L3 #1473", date: "2026-08-26" },
+  { dataset: "voyage-stakes.json", champ: "kind", occurrences: 17, lot: "L2/L3 #1473", date: "2026-08-26" }, // 15 → 17 : enjeux `sea-degagement-debris` (MDG 13 l.487-491) et `sea-salissures` (MDG 13 l.148), #1595
+  { dataset: "voyage-stakes.json", champ: "rule", occurrences: 33, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "water-exposure.json", champ: "auto", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "weaponGroups.json", champ: "qualities", occurrences: 5, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "weather.json", champ: "physicalTestChars", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },

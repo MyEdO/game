@@ -31,7 +31,7 @@
 // Échappement documenté : `SKIP_NEW_SRC_GUARD=1` laisse passer et TRACE la dérogation (stderr +
 // `.claude/logs/new-src-guard-skips.log`, gitignoré).
 import { existsSync, readFileSync } from 'node:fs'
-import { OUTILS_CREATION, cheminVise, ecritLeFichierEntier, ecrituresDe } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_CREATION, cheminVise, ecritLeFichierEntier, ecrituresDe, fichierExistait } from '../guards/lib/contratGarde.mjs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve, relative, isAbsolute } from 'node:path'
 
@@ -147,7 +147,7 @@ export const RAPPEL_SRC = (rel) =>
  *  `WFRP_REGISTRE_ECRANS` ; la dérogation prise demande sa TRACE au journal. */
 function verdictsDe(ecrit, env) {
   const fp = String(cheminVise(ecrit) ?? '')
-  if (!fp || existsSync(fp)) return null
+  if (!fp || fichierExistait(ecrit, () => existsSync(fp))) return null
   const rel = relPath(fp)
   if (!rel || !rel.startsWith('src/')) return null // hors du dépôt, ou hors de src/
   const verdicts = []

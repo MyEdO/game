@@ -16,7 +16,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { Get, Set } from './flowTypes';
 import { Combatant } from '../engine/types';
 import { Scene } from './scene';
-import type { CascadeStep, BatchParticipant, CascadeRoll } from './pendings';
+import type { CascadeStep, BatchParticipant } from './pendings';
 import { ficheDEntite } from './sceneNpc';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, cibleLabel, PsychType, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych } from '../engine/psychology';
@@ -42,7 +42,7 @@ export interface PendingEncounterPsych {
   sourceName: string;
   indice: number;
   cible?: string;
-  result: { roll: number; success: boolean; brise?: number; target?: number; sl?: number } | null;
+  result: { success: boolean; brise?: number; sl?: number } | null;
   rerolled?: boolean;
 }
 
@@ -177,7 +177,7 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
  * génériques d'`applyOps` sont couvertes par ce verdict rédigé). PUR vis-à-vis du store (mute le
  * héros, ne lit rien d'autre) : la rangée porte tout son contexte.
  */
-function resolvePsychRow(hero: Combatant, ep: PsychBandDecl, r: CascadeRoll, immune: boolean): Consequence[] {
+function resolvePsychRow(hero: Combatant, ep: PsychBandDecl, r: { success: boolean; sl: number }, immune: boolean): Consequence[] {
   // DÉTERMINATION (LDB 17 l.59) : immunité TEMPORAIRE (« Demeurer immunisé à Psychologie jusqu'à la fin
   // du prochain Round »). Pour un Test de rencontre ONE-SHOT (pas de Test étendu), « immune » ≈ « inerte »
   // = même état final qu'un succès (la source ne se re-déclenche pas) : on applique les ops de la branche
@@ -195,7 +195,7 @@ function resolvePsychRow(hero: Combatant, ep: PsychBandDecl, r: CascadeRoll, imm
   applyOps(hero, psychBranchOps(ep, { success: r.success, calmeDR: r.success ? ep.indice : 0 }), { sl: r.sl, source: { kind: 'psychology', id: ep.kind } });
   const pe: PendingEncounterPsych = {
     heroId: hero.id, kind: ep.kind, sourceId: ep.sourceId, sourceName: ep.sourceName, indice: ep.indice, cible: ep.cible,
-    result: { roll: r.roll, success: r.success, brise, target: r.target, sl: r.sl },
+    result: { success: r.success, brise, sl: r.sl },
   };
   // Immunités croisées (LDB 21) : un effet psy dominant (Peur/Terreur) annule l'Animosité/Préjugé.
   return freeCons([describeEncounterPsych(pe, hero.label), ...supersededLines(hero, hero.label)]);

@@ -22,12 +22,13 @@ import { etapeProfilee } from '../etape-profilee.mjs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-import { GitIndisponible, TIMEOUT_DU_HOOK_MS, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, natureDuChemin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, TIMEOUT_DU_HOOK_MS, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
+import { natureDuChemin } from '../guards/lib/natureDuChemin.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
+import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
 import { annonceEspacee, synchroniserPrincipal, verrouDuConsommateur } from './synchroniser.mjs'
 import { attendreLibre } from '../test/verrou.mjs'
 import { GENERATORS, NON_GENERATOR_CHECKS, SOURCES_LUES, ciblesPures, ciblesSurDisque, estCiblePure, generateurDe } from '../docs/build-all.mjs'
-import { selectionDesGenerateurs } from '../git-hooks/docs-rebuild.mjs'
 import { copierDocsFrais } from '../docs/lib/fraicheur-docs.mjs'
 
 /** Racine de l'arbre qui porte CE script. */
@@ -134,12 +135,6 @@ export function equipementsDesPrerequis(ecritLu) {
  */
 export const EQUIPEMENTS = [EQUIPEMENT_RACINE, ...equipementsDesPrerequis(ECRIT_LU), EQUIPEMENT_DOCS]
 
-/** Nom de branche d'un chantier. PURE. */
-export const brancheDe = (nom) => `chantier/${nom}`
-
-/** Chemin du worktree d'un chantier dans `racine`. PURE (hors `join`). */
-export const cibleDe = (racine, nom) => join(racine, `.wt-${nom}`)
-
 /**
  * Ce que l'ouverture IMPRIME en fin : les quatre faits dont la session a besoin tout de suite. PURE.
  * @param {{cible: string, branche: string, base: string, port: number, url?: string}} chantier
@@ -215,14 +210,15 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
     if (args.includes('docs:build')) {
       const copie = etape('copie des docs dérivés', () => copierDocs({
         principal, cible, generateurs: GENERATORS, verificateurs: NON_GENERATOR_CHECKS,
-        ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, sourcesLues: SOURCES_LUES, selecteur: selectionDesGenerateurs,
+        ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, sourcesLues: SOURCES_LUES,
       }))
       if (copie.ok) {
         ;(annoncer ?? ((texte) => process.stderr.write(texte)))(`[chantier] docs dérivés copiés : ${copie.copies}\n`)
         if (!copie.scriptsARegenerer?.length) continue
-        args = [...argsEquipe, '--', '--only', ...copie.scriptsARegenerer]
+        args = [...argsEquipe, '--', '--perimes']
       } else {
         ;(annoncer ?? ((texte) => process.stderr.write(texte)))(`[chantier] repli docs:build : ${copie.raison}\n`)
+        args = [...argsEquipe, '--', '--perimes']
       }
     }
     const vuNpm = etape(`${relance}${ou}`, () => npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, {

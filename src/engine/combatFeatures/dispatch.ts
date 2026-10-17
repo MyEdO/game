@@ -11,6 +11,7 @@ import { canStrikeFirst } from '../qualities/dispatch';
 import { effectiveEntry } from '../variants';
 import { weaponLoaded } from '../weaponLoad';
 import type { CombatFeature, CombatFeatureCtx, CastingKind } from './types';
+import { refCouvre } from '../../data/schemas/grammaire/ref';
 
 /** Famille d'incantation d'un Talent par son `id` STABLE (« magie-mineure », « beni ») via sa DONNÉE
  *  EFFECTIVE (`effectiveEntry`, #563/#564 — `combat` est republiable par variante réglée, comme pour
@@ -348,7 +349,7 @@ export function talentReverseFailed(c: Combatant, q: { skill?: string; spec?: st
   for (const { def } of featuresOf(c)) {
     const rf = def.reverseFailed;
     if (!rf) continue;
-    if (rf.skills.some((s) => s.id === q.skill && (s.spec == null || s.spec === q.spec))) return { capDR: rf.capDR };
+    if (rf.skills.some((s) => refCouvre(s, { id: q.skill, spec: q.spec }))) return { capDR: rf.capDR };
   }
   return null;
 }

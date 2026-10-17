@@ -1,8 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { gitDe } from '../test/gitDeBanc.mjs'
@@ -10,6 +11,24 @@ import { gitDe } from '../test/gitDeBanc.mjs'
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const SETUP = new URL('./vitestSansEcriture.mjs', import.meta.url).href
 const CLI = join(RACINE, 'node_modules/vitest/vitest.mjs')
+const ENTREE = join(RACINE, 'node_modules/vitest/dist/index.js')
+
+function empreintesSansLiens(racine) {
+  const fichiers = {}
+  if (!existsSync(racine)) return fichiers
+  const visiter = (dossier) => {
+    for (const nom of readdirSync(dossier).sort()) {
+      const chemin = join(dossier, nom)
+      const etat = lstatSync(chemin)
+      assert.equal(etat.isSymbolicLink(), false, chemin)
+      if (etat.isDirectory()) visiter(chemin)
+      else fichiers[relative(racine, chemin)] = createHash('sha256').update(readFileSync(chemin)).digest('hex')
+    }
+  }
+  visiter(racine)
+  return fichiers
+}
+
 
 test('la configuration Vitest réelle protège les suites avant leur import', async () => {
   const { default: config } = await import('../../vite.config.ts')
@@ -17,16 +36,18 @@ test('la configuration Vitest réelle protège les suites avant leur import', as
 })
 
 test('Vitest installe la garde avant import, transmet aux enfants et restaure entre suites', () => {
-  const racine = mkdtempSync(join(tmpdir(), 'vitest-sans-ecriture-'))
+  const racine = resolve(mkdtempSync(join(tmpdir(), 'vitest-sans-ecriture-')))
+  const cache = join(racine, 'cache-vitest')
+  const cacheInstalle = join(RACINE, 'node_modules/.vite')
+  const avant = empreintesSansLiens(cacheInstalle)
   try {
     const git = gitDe(racine)
     git('init', '-q'); git('config', 'user.name', 'banc'); git('config', 'user.email', 'banc@local')
     mkdirSync(join(racine, 'scripts/map'), { recursive: true })
-    symlinkSync(join(RACINE, 'node_modules'), join(racine, 'node_modules'), 'junction')
-    writeFileSync(join(racine, '.gitignore'), 'node_modules\n')
+    writeFileSync(join(racine, '.gitignore'), 'cache-vitest\n')
     const setup = join(racine, 'setup.mjs')
     writeFileSync(setup, `import { protegerSuiteVitest } from ${JSON.stringify(SETUP)}; await protegerSuiteVitest(${JSON.stringify(racine)});`)
-    writeFileSync(join(racine, 'vitest.config.mjs'), `export default {test:{include:['scripts/map/*.test.ts','src/*.test.ts'],setupFiles:[${JSON.stringify(setup)}],pool:'forks',maxWorkers:1,isolate:false}};`)
+    writeFileSync(join(racine, 'vitest.config.mjs'), `export default {cacheDir:${JSON.stringify(cache)},resolve:{alias:[{find:/^vitest$/,replacement:${JSON.stringify(ENTREE)}}]},test:{include:['scripts/map/*.test.ts','src/*.test.ts'],setupFiles:[${JSON.stringify(setup)}],pool:'forks',maxWorkers:1,isolate:false}};`)
     const fichier = join(racine, 'scripts/map/banc.test.ts')
     const jouer = (source) => {
       writeFileSync(fichier, source)
@@ -47,5 +68,13 @@ test('Vitest installe la garde avant import, transmet aux enfants et restaure en
     const vert = jouer(`${imports} import {mkdtempSync,rmSync} from 'node:fs'; import {tmpdir} from 'node:os'; import {join} from 'node:path'; test('temporaire',()=>{expect(process.env.PYTHONDONTWRITEBYTECODE).toBe('1');const d=mkdtempSync(join(tmpdir(),'vitest-banc-'));try{writeFileSync(join(d,'permis'),'ok');expect(1).toBe(1)}finally{rmSync(d,{recursive:true,force:true})}});`)
     assert.equal(vert.status, 0, vert.stdout + vert.stderr)
     assert.throws(() => readFileSync(join(racine, 'pollution')), /ENOENT/)
-  } finally { rmSync(racine, { recursive: true, force: true }) }
+    assert.ok(Object.keys(empreintesSansLiens(cache)).some(chemin => chemin.endsWith('results.json')))
+    empreintesSansLiens(racine)
+    assert.deepEqual(empreintesSansLiens(cacheInstalle), avant)
+  } finally {
+    const depuisTemporaire = relative(resolve(tmpdir()), racine)
+    assert.ok(depuisTemporaire && !depuisTemporaire.startsWith('..') && !isAbsolute(depuisTemporaire), racine)
+    empreintesSansLiens(racine)
+    rmSync(racine, { recursive: true, force: true })
+  }
 })

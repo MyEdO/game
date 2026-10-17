@@ -9,24 +9,32 @@
 export const DELAI_STDIN_MS = 8000
 
 /**
- * Le stdin entier, en UTF-8 ; `''` sur une erreur de flux. Sort en exit 0 si `end` n'arrive pas avant
+ * Le stdin entier, en UTF-8 ; `''` sur une erreur de flux ou dépassement de limite. Sort en exit 0 si `end` n'arrive pas avant
  * `delaiMs`.
  * @param {number} [delaiMs] injectable pour le test seulement
  * @returns {Promise<string>}
  */
-export function lireStdinBorne(delaiMs = DELAI_STDIN_MS) {
+export function lireStdinBorne(delaiMs = DELAI_STDIN_MS, { stdin = process.stdin, limite = Infinity } = {}) {
   const minuteur = setTimeout(() => process.exit(0), delaiMs).unref()
   return new Promise((resoudre) => {
-    let brut = ''
+    let brut = '', taille = 0
     const finir = (texte) => {
       clearTimeout(minuteur)
+      stdin.removeListener('data', lire)
+      stdin.removeListener('end', termine)
+      stdin.removeListener('error', erreur)
       resoudre(texte)
     }
-    process.stdin.setEncoding('utf8')
-    process.stdin.on('data', (morceau) => {
+    const lire = (morceau) => {
+      taille += Buffer.byteLength(morceau, 'utf8')
+      if (taille > limite) { finir(''); stdin.destroy(); return }
       brut += morceau
-    })
-    process.stdin.on('end', () => finir(brut))
-    process.stdin.on('error', () => finir(''))
+    }
+    const termine = () => finir(brut), erreur = () => finir('')
+    stdin.setEncoding('utf8')
+    stdin.on('data', lire)
+    stdin.once('end', termine)
+    stdin.once('error', erreur)
+    if (stdin.readableEnded) finir('')
   })
 }

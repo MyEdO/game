@@ -1,7 +1,7 @@
 import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { API, Program } from 'typescript/unstable/sync';
-import { analyserCorpus, analyserTexte, ast, scriptKindDe, typescript } from './dialecte.mjs';
+import { analyserCorpus, analyserTexte, ast, declarationQuiPorte, scriptKindDe, typescript } from './dialecte.mjs';
 import path from 'node:path';
 
 test('une analyse détachée garde son AST et ses diagnostics sans exposer le checker fermé', () => {
@@ -50,7 +50,7 @@ for (const [rel, text] of [
 ]) test(`parité native texte, positions UTF16, dialecte et diagnostics : ${rel}`, () => {
   const { sourceFile: sf, diagnostics } = analyserTexte({ rel, text });
   assert.equal(sf.text, text);
-  assert.equal(sf.fileName, path.resolve(rel).replaceAll('\\', '/'));
+  assert.equal(sf.fileName, path.resolve(virtuel(rel)).replaceAll('\\', '/'));
   assert.equal(sf.end, text.length);
   assert.equal(sf.scriptKind, scriptKindDe(rel));
   for (const n of sf.statements) assert.equal(n.getText(sf), text.slice(n.getStart(sf), n.end));
@@ -64,6 +64,9 @@ for (const [rel, text] of [
   } else assert.deepEqual(diagnostics, []);
 });
 
+/** Le nom virtuel d'un `rel` au corpus : son extension de dialecte en minuscules (`analyserCorpus`). */
+function virtuel(rel) { return rel.replace(/\.[^./]+$/, (ext) => ext.toLowerCase()); }
+
 test('la casse des noms originaux reste distincte dans le même corpus', () => {
   const fichiers = [
     { rel: 'EntreeMajuscule.TS', text: 'export const premier = "😀";' },
@@ -73,7 +76,7 @@ test('la casse des noms originaux reste distincte dans le même corpus', () => {
   assert.equal(analyses.length, fichiers.length);
   for (let i = 0; i < fichiers.length; i++) {
     assert.equal(analyses[i].fichier, fichiers[i]);
-    assert.equal(analyses[i].sourceFile.fileName, path.resolve(fichiers[i].rel).replaceAll('\\', '/'));
+    assert.equal(analyses[i].sourceFile.fileName, path.resolve(virtuel(fichiers[i].rel)).replaceAll('\\', '/'));
     assert.equal(analyses[i].sourceFile.text, fichiers[i].text);
     assert.deepEqual(analyses[i].diagnostics, []);
   }
@@ -139,4 +142,28 @@ for (const mode of ['épuisement', 'break', 'exception']) test(`une API par corp
     assert.equal(snapshot.mock.callCount(), 1);
     assert.equal(spy.mock.callCount(), 1);
   } finally { snapshot.mock.restore(); spy.mock.restore(); for (const instance of instances) close.call(instance); }
+});
+
+test('declarationQuiPorte : fonction, classe, interface, alias de type et variable nomment leur site ; hors déclaration, rien', () => {
+  const text = ['export function f() {', '  return 1;', '}', 'class C { x = 1; }', 'export interface I {', '  name: string;', '}',
+    'type T = { name: string };', 'const v = 2, w = 3;', 'f();'].join('\n');
+  const sf = ast({ rel: 'sites.ts', text });
+  assert.deepEqual([2, 4, 6, 8, 9, 10].map((l) => declarationQuiPorte(sf, l)), ['f', 'C', 'I', 'T', 'v', '']);
+  assert.equal(declarationQuiPorte(ast({ rel: 'decale.ts', text: `\n\n${text}` }), 8), 'I', 'une insertion en amont ne change pas la clé');
+});
+
+test('declarationQuiPorte : le déclarateur qui CONTIENT la ligne, `export default`, `enum`, espace de noms ; déstructuration sans nom', () => {
+  const cas = [
+    [['export const a = 1,', '  b = x.label === "Épée";'], ['a', 'b']],
+    [['export default function () {', '  return 1;', '}'], ['default', 'default', 'default']],
+    [['export default class {', '}'], ['default', 'default']],
+    [['export default { a: 1 };'], ['default']],
+    [['enum E {', '  A = 1,', '}'], ['E', 'E', 'E']],
+    [['namespace N {', '  export const z = 1;', '}'], ['N', 'N', 'N']],
+    [['const { a, b } = { a: 1, b: 2 };'], ['']],
+  ];
+  for (const [lignes, attendu] of cas) {
+    const sf = ast({ rel: 'cas.ts', text: lignes.join('\n') });
+    assert.deepEqual(lignes.map((_, i) => declarationQuiPorte(sf, i + 1)), attendu, lignes[0]);
+  }
 });

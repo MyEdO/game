@@ -20,15 +20,16 @@
 // rend ce refus à la session au premier outil qu'il garde (son `matcher`) ; un outil que nul hook ne
 // garde ne le déclenche pas.
 import '../node-requis.mjs'
-import { spawn, spawnSync } from 'node:child_process'
-import { closeSync, existsSync, mkdirSync, openSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { verrouOutillageDe } from './barriere-outil.mjs'
-import { attendreLibre, prendreVerrou } from '../test/verrou.mjs'
+import { prendreVerrou } from '../test/verrou.mjs'
 import { SOURCES_LUES } from '../docs/build-all.mjs'
+import { demanderLaReconstruction } from '../git-hooks/reconstruction.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
-import { BUDGET_CONSTAT, JOURNAL_DOCS, PREREQUIS } from './bootstrap-prerequis.mjs'
+import { BUDGET_CONSTAT, PREREQUIS } from './bootstrap-prerequis.mjs'
+import { entreeHookNative, produireRecuSessionStart } from '../ops/session-start.mjs'
 
 /** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */
 export const estConteneurDistant = (env) => env.CLAUDE_CODE_REMOTE === 'true'
@@ -57,47 +58,13 @@ export function lancer(exe, args, { budget = BUDGET_CONSTAT, ...options } = {}) 
   }
 }
 
-/** VERROU du `docs:build` détaché, relatif à la racine (`scripts/test/verrou.mjs`) : tenu par le
- *  constructeur détaché lui-même (`construireDocs`), le temps du build. */
-export const VERROU_DOCS = 'node_modules/.cache/bootstrap-docs-build.verrou'
-
-/** Le module de CE hook, que le constructeur détaché relance en mode `--docs-build`. */
-const MODULE = fileURLToPath(import.meta.url)
-
 /**
- * Le CONSTRUCTEUR détaché : il PREND `VERROU_DOCS` à son propre PID, puis seulement ouvre `JOURNAL_DOCS`
- * et joue `docs:build` ; un constructeur qui perd la prise sort sans toucher au journal. REND le code du
- * build, `null` sans prise. `lancer` s'injecte (mesure).
+ * Demande la reconstruction DÉTACHÉE des dérivés de `racine` (`demanderLaReconstruction`, #2603 : elle dépasse le
+ * budget du hook), son journal ouvert par le détaché. Rend la forme de `lancer`, `valeur` = `seq=<N>`.
  */
-export function construireDocs(racine, { lancer = spawnSync } = {}) {
-  const prise = prendreVerrou({ chemin: join(racine, VERROU_DOCS), libelle: 'docs:build détaché', commande: 'bootstrap-conteneur --docs-build', cwd: racine })
-  if (prise.etat !== 'pris') return null
+export function demanderLesDerives(racine, { demander = demanderLaReconstruction } = {}) {
   try {
-    const fd = openSync(join(racine, JOURNAL_DOCS), 'w')
-    try {
-      return lancer(process.execPath, [join(racine, 'scripts', 'docs', 'build-all.mjs'), '--quiet'], { cwd: racine, stdio: ['ignore', fd, fd], windowsHide: true }).status
-    } finally {
-      closeSync(fd)
-    }
-  } finally {
-    prise.liberer()
-  }
-}
-
-/**
- * Lance `docs:build` DÉTACHÉ (il dépasse le budget du hook) : le constructeur (`construireDocs`), si
- * `VERROU_DOCS` est libre au premier essai ; rend la forme de `lancer`, `valeur` = son pid. Verrou tenu
- * par un vivant : rien n'est lancé, `valeur` = le pid du constructeur en cours.
- */
-export function docsBuildDetache(racine) {
-  const verrou = join(racine, VERROU_DOCS)
-  const vu = attendreLibre({ chemin: verrou })
-  if (vu.etat !== 'libre') return { ok: true, valeur: String(vu.tenant.pid), rapport: '' }
-  try {
-    mkdirSync(dirname(verrou), { recursive: true })
-    const enfant = spawn(process.execPath, [MODULE, '--docs-build', racine], { cwd: racine, detached: true, stdio: 'ignore', windowsHide: true })
-    enfant.unref()
-    return { ok: true, valeur: String(enfant.pid ?? ''), rapport: '' }
+    return { ok: true, valeur: `seq=${demander(racine)}`, rapport: '' }
   } catch (e) {
     return { ok: false, valeur: '', rapport: borner(e.message) }
   }
@@ -120,12 +87,12 @@ export function sousOutillage(racine, geste) {
 }
 
 /** Les GESTES des prérequis — ceux de l'hôte au dépôt (`gitPorte.mjs`), la mesure des docs dérivés,
- *  leur `docs:build` détaché et le verrou d'outillage : injectables (mesure). Une pose rend la forme de `lancer`. */
+ *  la reconstruction demandée et le verrou d'outillage : injectables (mesure). Une pose rend la forme de `lancer`. */
 export const GESTES_DU_CONTENEUR = Object.freeze({
   estSuperficiel, dossierDesHooks,
   approfondir: (depot, options) => renduDeGit(approfondir(depot, options)),
   docsMesures: (racine) => existsSync(join(racine, SOURCES_LUES)),
-  docsBuildDetache,
+  demanderLesDerives,
   sousOutillage,
 })
 
@@ -169,8 +136,14 @@ export function bootstrap(env = process.env, racine = process.cwd(), run = lance
   return mettreEnConformite({ racine, run, gestes, pannes, depot: depotDe(racine, { enPanne: (raison) => pannes.push(raison) }) })
 }
 
-if (import.meta.main && process.argv[2] === '--docs-build') process.exitCode = construireDocs(process.argv[3]) ?? 0
-else if (import.meta.main) {
-  const lignes = bootstrap(process.env, process.env.CLAUDE_PROJECT_DIR || process.cwd())
-  if (lignes.length) process.stdout.write(`${lignes.join('\n')}\n`)
+export function bootstrapSessionStart({ env = process.env, racine = process.cwd(), entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
+  const lignes = bootstrap(env, racine, run, gestes)
+  if (lignes.length) output.write(`${lignes.join('\n')}\n`)
+  produireRecuSessionStart({ surface: 'claude', entree, env, worktree: racine })
+  return lignes
+}
+
+if (import.meta.main) {
+  try { bootstrapSessionStart({ racine: process.env.CLAUDE_PROJECT_DIR || process.cwd(), entree: await entreeHookNative() }) }
+  catch (e) { process.stderr.write(`${e.message}\n`); process.exitCode = 1 }
 }

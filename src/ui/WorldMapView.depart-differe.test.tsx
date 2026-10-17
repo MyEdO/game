@@ -57,9 +57,9 @@ describe('WorldMapView — départ différé à l’aube', () => {
     const { gameTime } = useGame.getState();
     useGame.setState({ worldMap: carte, scene: auberge(), party: marcheur(), pendingDeparture: null, pendingRest: null, travelDayHours: { day: dayIndex(gameTime), foot: 24, mount: 0, marched: true } });
     await monter();
-    expect(container.textContent).toContain(t('tf.departAvantAube'));
+    expect(container.textContent).toContain(t('wm.departAvantAube'));
     expect(boutons('Partir')).toBe(0);
-    const attendre = [...container.querySelectorAll('button')].find((b) => b.textContent?.trim() === t('tf.attendreAube'))!;
+    const attendre = [...container.querySelectorAll('button')].find((b) => b.textContent?.trim() === t('wm.attendreAube'))!;
     await act(async () => { attendre.click(); });
     expect(useGame.getState().pendingDeparture).toBeNull();
     expect(useGame.getState().pendingRest, 'la nuit se passe sur place, d’un geste').not.toBeNull();
@@ -69,7 +69,7 @@ describe('WorldMapView — départ différé à l’aube', () => {
     const { gameTime } = useGame.getState();
     useGame.setState({ worldMap: carte, party: marcheur(), pendingDeparture: null, travelDayHours: { day: dayIndex(gameTime), foot: 0, mount: 0, marched: false } });
     await monter();
-    expect(container.textContent).not.toContain(t('tf.departAvantAube'));
+    expect(container.textContent).not.toContain(t('wm.departAvantAube'));
     expect(boutons('Partir')).toBe(1);
   });
 
@@ -77,16 +77,16 @@ describe('WorldMapView — départ différé à l’aube', () => {
     useGame.setState({ worldMap: carte, pendingDeparture: null });
     await monter();
     expect(boutons('Annuler')).toBe(1);
-    expect(boutons(t('tf.attendreAube'))).toBe(0);
+    expect(boutons(t('wm.attendreAube'))).toBe(0);
   });
 
   for (const cause of ['budget', 'nuit'] as const) {
     it(`cause « ${cause} » : le panneau d’attente remplace celui du départ — un seul « Annuler »`, async () => {
-      useGame.setState({ worldMap: carte, pendingDeparture: { routeId: 'auberge-altdorf', mode: 'pied', opts: {}, cause, dawnAt: 0 } });
+      useGame.setState({ worldMap: carte, pendingDeparture: { mode: 'pied', cause, dawnAt: 0 } });
       await monter();
       expect(boutons('Annuler')).toBe(1);
-      expect(boutons(t('tf.attendreAube'))).toBe(1);
-      const titre = t(cause === 'budget' ? 'tf.departBudgetTitre' : 'tf.departNuitTitre');
+      expect(boutons(t('wm.attendreAube'))).toBe(1);
+      const titre = t(cause === 'budget' ? 'wm.departBudgetTitre' : 'wm.departDeNuit');
       expect(container.querySelector(`[role="alertdialog"][aria-label="${titre}"]`)).not.toBeNull();
     });
   }

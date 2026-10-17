@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { startCascade, pushStep, registerTableStep, registerCascadeApplier, suspendActiveCascade, resumeSuspendedCascade, stepInteraction, stepReady } from './cascade';
-import { tableStep, displayStep, resolveSurface, surfaceOf, type RollRequest } from './rollSeam';
+import { tableStep, displayStep, monoStep, worldStep, surfaceDeLEtape, surfaceOf } from './rollSeam';
 import { stepForcedDie } from '../ui/forcedDieRow';
 import { actorIn } from './combatants';
 import { WORLD_STEP_OWNER, canFixDie, seatInfluences } from './netOwnership';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixtureText } from '../i18n/fixtureText';
+import { t } from '../i18n';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng, battleRng } from './battleRng';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
@@ -57,6 +58,19 @@ function etapeTable(porteur: Porteur, heroId: string, id = 'parite-1'): CascadeS
   };
   return (porteur === 'heros' ? tableStep({ ...commun, actorId: heroId }) : tableStep({ ...commun, worldOwner: true }))!;
 }
+
+/** LE jet ouvert SEUL, tel que ses ouvreurs le montent — `openRoll` (`monoStep` du héros) ou
+ *  `openWorldTest` (`worldStep`) : seule la possession change. */
+function etapeMono(porteur: Porteur, heroId: string, kind: string): CascadeStep {
+  const id = `parite-mono-${kind}`;
+  const actor = get().party.find((h) => h.id === heroId)!;
+  return porteur === 'heros'
+    ? monoStep({ id, kind, label: fixtureText('Jet'), difficulty: 'intermediaire', actor, ligne: { valeur: 40 }, stake: { key: { dataset: 'combat', kind: 'mutation' } } })!
+    : worldStep({ id, kind, label: fixtureText('Jet'), cible: 40, verdict: { reussite: t('seuil.sousLeSeuil'), echec: t('seuil.auDessus') } });
+}
+
+/** La surface d'un jet ouvert seul : la couture de ses ouvreurs (`surfaceDeLEtape`, cf. `ouvrirLEtape`). */
+const surfaceMono = (st: CascadeStep) => surfaceDeLEtape(get, st);
 
 const etapeMuette = (porteur: Porteur, heroId: string, id: string, kind = 'parite-affichage'): CascadeStep =>
   porteur === 'heros'
@@ -137,7 +151,7 @@ function mesure(trace: number[]): Observation {
   get().cascadeNext();
   const obs: Observation = {
     interaction: st ? stepInteraction(st) : 'aucune',
-    prete: !!st && stepReady(st),
+    prete: !!st && stepReady(st, useGame.getState()),
     tiree: !!st?.table?.result,
     pose,
     curseurAvant: avant,
@@ -229,20 +243,16 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
   });
 
   /**
-   * PARITÉ DU MONO — la porte des jets (`resolveSurface`) est l'AUTRE porte du même invariant : un jet
-   * de MONDE et un jet de HÉROS y traversent le même prédicat de surface (`surfaceOf`, keyé par le
-   * porteur). Même montage, mêmes politiques, même série attendue.
+   * PARITÉ DU MONO — la porte des jets (`surfaceDeLEtape`) est l'AUTRE porte du même invariant : un
+   * jet de MONDE (`worldStep`) et un jet de HÉROS (`monoStep`) y traversent le même prédicat de surface (`surfaceOf`,
+   * keyé par le porteur). Même montage, mêmes politiques, même série attendue.
    */
-  it('MONO — `resolveSurface` rend la MÊME série pour un porteur MONDE et un porteur HÉROS', () => {
+  it('MONO — `surfaceDeLEtape` rend la MÊME série pour un porteur MONDE et un porteur HÉROS', () => {
     const heroId = montage();
-    const requetes: Record<Porteur, () => RollRequest> = {
-      heros: () => ({ side: { actorId: heroId }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire' }),
-      monde: () => ({ side: { worldSide: 'world' }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire' }),
-    };
     const serie = (porteur: Porteur) => POLITIQUES.map((pol) => {
       setDesFixes(pol.pose);
       setCadence(pol.cadence);
-      return { surface: resolveSurface(get, requetes[porteur](), 'parite'), pose: canFixDie(get(), porteur === 'heros' ? heroId : WORLD_STEP_OWNER) };
+      return { surface: surfaceMono(etapeMono(porteur, heroId, 'parite')), pose: canFixDie(get(), porteur === 'heros' ? heroId : WORLD_STEP_OWNER) };
     });
     const monde = serie('monde');
     const heros = serie('heros');
@@ -253,7 +263,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
 
   /**
    * PARITÉ SUR L'AXE « CADENCE DE VOYAGE » — la route COMMANDÉE auto-résout les Tests de ROUTINE
-   * (`voyageCadence.seaAutoResolves`, liste fermée `SEA_KINDS_SOUS_ORDRES`). C'est une politique du JET,
+   * (`voyageCadence.resoluSousOrdres`, liste fermée `KINDS_SOUS_ORDRES`). C'est une politique du JET,
    * pas une propriété du porteur : un dé de MONDE d'un `kind` de routine se tait comme celui d'un
    * héros, et un `kind` HORS routine garde sa fenêtre des deux côtés. Un côté monde qui ignorerait
    * `autoV` ouvrirait une fenêtre par jour de traversal commandée là où le héros se tait — la branche
@@ -262,12 +272,8 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
   it('MONO/CADENCE DE VOYAGE — `autoV` (route commandée × kind de routine) traite le MONDE comme un HÉROS', () => {
     const heroId = montage();
     set({ travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'sea', hoursPerDay: 8, km: 0, kmDone: 0, interrupted: false, orders: { cadence: 'commande' } } as never });
-    const requetes: Record<Porteur, () => RollRequest> = {
-      heros: () => ({ side: { actorId: heroId }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire' }),
-      monde: () => ({ side: { worldSide: 'world' }, actionLabel: 'Jet', test: {}, difficulty: 'intermediaire' }),
-    };
-    // `progression` ∈ SEA_KINDS_SOUS_ORDRES ; `tourbillon` n'y est pas (une CRISE interrompt toujours).
-    const serie = (porteur: Porteur) => ['progression', 'tourbillon'].map((kind) => resolveSurface(get, requetes[porteur](), kind));
+    // `progression` ∈ KINDS_SOUS_ORDRES ; `tourbillon` n'y est pas (une CRISE interrompt toujours).
+    const serie = (porteur: Porteur) => ['progression', 'tourbillon'].map((kind) => surfaceMono(etapeMono(porteur, heroId, kind)));
     const monde = serie('monde');
     expect(monde, 'une surface qui diverge par le PORTEUR est une branche « spéciale monde »').toEqual(serie('heros'));
     expect(monde, 'et la série discrimine la routine de voyage').toEqual(['I', 'M']);

@@ -1,7 +1,7 @@
 // Garde PreToolUse des CANAUX d'outil (#2180) : tout outil lean-ctx est CLASSÉ dans une famille gardée
 // (`FAMILLES_LEAN_CTX`, `scripts/guards/lib/contratGarde.mjs`) ou REFUSÉ, direct avec ses actions
 // refusées ; la passerelle n'appelle qu'un outil de `LECTURES_LIBRES`, quelle que soit la forme de ses
-// arguments (lean-ctx `LEAN_CTX_VERSION`, module `server::dispatch` : « agents also *flatten* the call »),
+// arguments (lean-ctx `LEAN_CTX_VERSION`, `registered/ctx_call.rs` l.75 : « Preserve the existing flattened-call contract »),
 // tout autre outil s'appelle DIRECTEMENT ; une écriture que les gardes d'écriture ne sauraient juger
 // (sans chemin, texte remplacé non résoluble, lot `ops` ambigu) est REFUSÉE, comme une entrée `ctx_patch` qui
 // porte une clé que son op ne consomme pas (`OPS_CTX_PATCH`), ou un shell lean-ctx qui porte une clé hors de

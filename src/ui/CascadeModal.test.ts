@@ -1,18 +1,18 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect } from 'vitest';
 import { jetStepPresentable, witnessRowKey } from './CascadeModal';
-import type { CascadeStep } from '../state/pendings';
+import type { CascadeStep, CascadeTestStep } from '../state/pendings';
 import type { Combatant } from '../engine/types';
 
 /**
- * #P0-2 (recette d'écran 2026-07-10) : une étape-JET `worldOwner` (seam #275 Décision 3 —
- * désertion/Moral, `src/state/rollSeam.ts:183`) n'a AUCUN `actorId` par conception — le vieux garde
+ * #P0-2 (recette d'écran 2026-07-10) : une étape-JET `worldOwner` (seam #275 Décision 3 — Test du
+ * navire, `sea-salissures`) n'a AUCUN `actorId` par conception — le vieux garde
  * `if (!actor) return null` de `CascadeModal` rendait `null` pour TOUS les sièges, y compris l'owner
  * MJ (l'état disait « surfacé », l'écran ne montrait rien). `jetStepPresentable` est le prédicat
  * extrait qui remplace ce garde — testé ici en isolation (pas de harnais de rendu React dans ce repo).
  */
-function baseStep(overrides: Partial<CascadeStep> = {}): CascadeStep {
-  return { id: 's1', kind: 'sea-desertion', label: fixtureText('Désertion'), rollLabel: 'Désertion', target: 50, result: null, ...overrides };
+function baseStep(overrides: Partial<CascadeTestStep> = {}): CascadeStep {
+  return { id: 's1', kind: 'sea-salissures', label: fixtureText('Salissures'), rollLabel: 'Endurance', target: 50, result: null, ...overrides };
 }
 
 describe('jetStepPresentable — présentabilité d’une étape-JET de cascade', () => {

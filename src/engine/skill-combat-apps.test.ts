@@ -79,7 +79,7 @@ describe('Mode de défense « social » branché dans le moteur (LDB 09 l.287)',
     expect(defenseValue(defender(), 'social', undefined, undefined)).toBe(0);
   });
   it('defenseModifiers(social) : ni « Main secondaire », ni « Neige », ni « Maniement deux armes »', () => {
-    const mods = defenseModifiers(defender(), 'social', -30 /*neige ignorée*/, defender().weapons[0]);
+    const mods = defenseModifiers(defender(), 'social', [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }] /*neige ignorée*/, defender().weapons[0]);
     expect(mods.some((m) => m.label === 'Maniement deux armes')).toBe(false);
     expect(mods.some((m) => m.label === 'Main secondaire')).toBe(false);
     expect(mods.some((m) => m.label === 'Neige épaisse')).toBe(false);
@@ -87,9 +87,9 @@ describe('Mode de défense « social » branché dans le moteur (LDB 09 l.287)',
   it('finishMelee(social) : le breakdown défenseur porte le libellé + la base de la Compétence', () => {
     const def = defender(); const atk = attacker();
     const sub = combatSubstitute(def, atk, 'defense')!;
-    const dRoll = rollMeleeDefender(def, 'social', makeRNG(1), 0, undefined, atk.weapons[0], { base: sub.value, label: 'Intimidation' });
+    const dRoll = rollMeleeDefender(def, 'social', makeRNG(1), [], undefined, atk.weapons[0], { base: sub.value, label: 'Intimidation' });
     const aRoll = { roll: 55, target: 40, success: false, sl: -1, isDouble: false };
-    const res = finishMelee(atk, def, atk.weapons[0], aRoll, dRoll, 'social', undefined, [], 0, undefined, undefined, false, { base: sub.value, label: 'Intimidation' });
+    const res = finishMelee(atk, def, atk.weapons[0], aRoll, dRoll, 'social', undefined, [], [], undefined, undefined, false, { base: sub.value, label: 'Intimidation' });
     expect(res.defenderDetail?.mode).toBe('social');
     expect(res.defenderDetail?.label).toBe('Intimidation');
     expect(res.defenderDetail?.base).toBe(sub.value); // = F + Augmentations d'Intimidation

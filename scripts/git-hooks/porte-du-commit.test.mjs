@@ -43,6 +43,7 @@ import {
 } from './porte-du-commit.mjs'
 import { estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
+import { lignesDuContenu } from '../guards/lib/stock.mjs'
 import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead } from '../guards/lib/gitPorte.mjs'
 import { depotReel, envDeDepotForge, envGitFeint, ENV_GIT_FEINT, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, sousCommande } from '../test/gitDeBanc.mjs'
@@ -1400,13 +1401,34 @@ test('soldesEmportes : 1 ou 3 soldes se lisent en autant de processus git (#2294
   }
 })
 
-test('EXEMPTIONS_TOMBALE : stock NOMINATIF au site, borné, chaque entrée justifiée', () => {
-  assert.ok(EXEMPTIONS_TOMBALE.length <= 5, `stock d'exemption à ${EXEMPTIONS_TOMBALE.length} — il DÉCROÎT`)
+test('EXEMPTIONS_TOMBALE : stock NOMINATIF au site, borné, chaque entrée justifiée, ni périmée ni ambiguë', () => {
+  assert.ok(EXEMPTIONS_TOMBALE.length <= 3, `stock d'exemption à ${EXEMPTIONS_TOMBALE.length} — il DÉCROÎT`)
   for (const { site, raison } of EXEMPTIONS_TOMBALE) {
-    assert.match(site, /^[\w./-]+:\d+$/, `exemption non ancrée à un SITE : "${site}" (jamais un fichier entier)`)
+    const [, fichier, ligne] = site.match(/^([\w./-]+) :: (.+)$/) ?? []
+    assert.ok(fichier && ligne, `exemption non ancrée à un SITE : "${site}" (jamais un fichier entier)`)
     assert.ok(raison.length >= 30, `exemption "${site}" sans raison lisible`)
+    const porteurs = lignesDuContenu(fichier, readFileSync(join(RACINE, fichier), 'utf8'), site)
+    assert.notEqual(porteurs.length, 0, `exemption PÉRIMÉE : "${site}" ne désigne plus aucune ligne`)
+    assert.equal(porteurs.length, 1, `exemption AMBIGUË : "${site}" désigne les lignes ${porteurs.join(', ')}`)
   }
   assert.equal(new Set(EXEMPTIONS_TOMBALE.map((e) => e.site)).size, EXEMPTIONS_TOMBALE.length)
+})
+
+test('EXEMPTIONS_TOMBALE : keyée par CONTENU — une ligne insérée en amont ne déplace pas l’exemption, et chacune reste NÉCESSAIRE (#2200)', () => {
+  for (const { site } of EXEMPTIONS_TOMBALE) {
+    const fichier = site.split(' :: ')[0]
+    const numeros = [...site.matchAll(/#(\d+)/g)].map((m) => Number(m[1]))
+    const src = readFileSync(join(RACINE, fichier), 'utf8')
+    for (const texte of [src, `\n${src}`]) {
+      const exemptee = lignesDuContenu(fichier, texte, site)
+      const vues = tombalesDansSource(numeros, { fichiers: [fichier], lire: () => texte }).filter((t) => exemptee.includes(t.ligne))
+      assert.deepEqual(vues, [], `"${site}" n'exempte plus son site`)
+      const lignes = texte.split('\n')
+      for (const l of exemptee) lignes[l - 1] += ' ¤'
+      const sansExemption = tombalesDansSource(numeros, { fichiers: [fichier], lire: () => lignes.join('\n') }).filter((t) => exemptee.includes(t.ligne))
+      assert.notDeepEqual(sansExemption, [], `exemption INUTILE : sans elle, "${site}" n'est pas une tombale — la retirer`)
+    }
+  }
 })
 
 test('tombalesDansSource : un mot d\'ÉTAT du domaine n\'est pas une dette', () => {
@@ -1784,4 +1806,68 @@ test('#2328 D2 — une fusion en cours qu’aucune fusion automatique ne rejoue 
     const refus = await evaluer('merge: intègre main')
     assert.match(refus?.reason ?? '', /⛔ lecture git indisponible : mesure \(status \?\) — fusion en cours à 3 parents/)
   } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+// ── NATURE de la fermeture (`scripts/guards/lib/nature.mjs`) : sa preuve au solde (#2561) ──────────
+const SHA_SONDE = 'abc1234def'
+const SONDE_OK = `\n## Sonde\nNon reproduit à ${SHA_SONDE}.\n\n\`\`\`\nnode scripts/sonde.mjs\n\`\`\`\n\n\`\`\`\n0 trouvaille\n\`\`\`\n`
+const DECISION_OK = '\n## Décision\n« On abandonne cette piste. » (utilisateur, 2026-10-09)\n'
+/** Un solde conforme qui porte `nature` (ligne `NATURE:` omise si `null`) et `sections` avant « ## Réfutation ». */
+const soldeDeNature = (nature, sections = '') =>
+  `${VERIFIE_OK}\n${nature === null ? '' : `NATURE: ${nature}\n`}\n## Restes\nRAS\n${sections}\n## Réfutation\nverdict: CONFIRMÉ\n${REFUTATION_OK}\n\n(${TODAY})\n`
+const problemesDe = (contenu, ctx) => validateSolde(contenu, TODAY, ctx).problems.join(' ; ')
+
+test('NATURE caduc : sans « ## Sonde » → refus', () => {
+  assert.match(problemesDe(soldeDeNature('caduc'), { numero: 10 }), /"NATURE: caduc" sans section "## Sonde"/)
+})
+
+test('NATURE caduc : une « ## Sonde » à UN seul bloc de code → refus (la commande PUIS sa sortie)', () => {
+  const unBloc = `\n## Sonde\nNon reproduit à ${SHA_SONDE}.\n\n\`\`\`\nnode scripts/sonde.mjs\n\`\`\`\n`
+  assert.match(problemesDe(soldeDeNature('caduc', unBloc), { numero: 10 }), /porte 1 bloc\(s\) de code/)
+})
+
+test('NATURE caduc : « ## Sonde » dont aucun sha n’est un ANCÊTRE de HEAD → refus', () => {
+  const vus = []
+  const r = problemesDe(soldeDeNature('caduc', SONDE_OK), { numero: 10, commitEstAncetre: (sha) => { vus.push(sha); return false } })
+  assert.match(r, /ne nomme aucun commit ANCÊTRE de HEAD \(abc1234def\)/)
+  assert.deepEqual(vus, [SHA_SONDE])
+})
+
+test('NATURE caduc : sonde complète, sha ancêtre → conforme ; le sha est ANNONCÉ à l’histoire (`shasCitesDuSolde`)', () => {
+  const contenu = soldeDeNature('caduc', SONDE_OK)
+  assert.deepEqual(shasCitesDuSolde(contenu), [SHA_SONDE])
+  assert.deepEqual(shasCitesDuSolde(soldeDeNature(null, SONDE_OK)), [], 'hors `caduc`, la sonde n’est pas une citation')
+  const annonces = []
+  const vu = evaluate({
+    message: 'corrige #10', today: TODAY, readSoldes: parTicket(() => contenu),
+    contexteSolde: { histoireDe: (shas) => { annonces.push(shas); return { commitEstAncetre: (sha) => sha === SHA_SONDE } } },
+  })
+  assert.equal(vu, null, JSON.stringify(vu))
+  assert.deepEqual(annonces, [[SHA_SONDE]])
+})
+
+test('NATURE doublon : sans `#M` → refus, et le refus énonce la ligne `NATURE:` et ses sections', () => {
+  const vu = evaluate({ message: 'corrige #10', today: TODAY, readSoldes: parTicket(() => soldeDeNature('doublon')) })
+  assert.match(vu?.reason ?? '', /#10 \(\.claude\/soldes\/10\.md\) — "NATURE: doublon" sans "#M"/)
+  assert.match(vu.reason, /"NATURE: corrigé \| doublon #M \| caduc \| décidé" en tête de ligne/)
+  assert.match(vu.reason, /"## Sonde"/)
+  assert.match(vu.reason, /"## Décision"/)
+})
+
+test('NATURE doublon : `#M` qui nomme le ticket fermé lui-même → refus (le numéro vient d’`evaluate`)', () => {
+  const vu = evaluate({ message: 'corrige #12', today: TODAY, readSoldes: parTicket(() => soldeDeNature('doublon #12')) })
+  assert.match(vu?.reason ?? '', /"NATURE: doublon #12" nomme le ticket fermé lui-même/)
+})
+
+test('NATURE décidé : sans « ## Décision », ou sans date SUR la ligne du verbatim → refus ; complète → conforme', () => {
+  assert.match(problemesDe(soldeDeNature('décidé'), { numero: 10 }), /"NATURE: décidé" sans section "## Décision"/)
+  const dateAilleurs = '\n## Décision\n« On abandonne cette piste. » (utilisateur)\nle 2026-10-09\n'
+  assert.match(problemesDe(soldeDeNature('décidé', dateAilleurs), { numero: 10 }), /sans ligne qui cite la décision « … » ET porte sa date/)
+  assert.equal(problemesDe(soldeDeNature('décidé', DECISION_OK), { numero: 10 }), '')
+})
+
+test('NATURE : un commit ferme #10 (corrigé) et #12 (doublon #10) — chaque ticket porte la sienne', () => {
+  const soldes = { 10: soldeDeNature(null), 12: soldeDeNature('doublon #10') }
+  const vu = evaluate({ message: 'corrige #10 ; corrige #12', today: TODAY, readSoldes: parTicket((n) => soldes[n]) })
+  assert.equal(vu, null, JSON.stringify(vu))
 })

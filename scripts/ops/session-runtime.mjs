@@ -8,6 +8,8 @@ import { prendreVerrou } from '../test/verrou.mjs'
 import { depotDe, arbrePrincipal, brancheDe, shaDe } from '../guards/lib/gitPorte.mjs'
 import { citerArgv } from '../guards/lib/lancerDetache.mjs'
 import { BORNE_RAISON } from '../guards/lib/ticketsGh.mjs'
+import { preflightSessionStart, contexteRecu, validerRecuSessionStart, PreuveSessionStart } from './session-start.mjs'
+import { ecrireJsonAtomique as sauver } from '../guards/lib/ecritureJsonAtomique.mjs'
 
 export const PRODUCTEUR = 'ops:session'
 const terminaux = new Set(['fermee', 'echec-reservation', 'echec-controle'])
@@ -17,6 +19,9 @@ const CarteSession = z.object({
   agent: z.enum(['claude', 'codex']), consigne: z.string().refine(isAbsolute), worktree: z.string().refine(isAbsolute), racine: z.string().refine(isAbsolute),
   branche: z.string().min(1), head: z.string().regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/), date: z.iso.datetime(), reserveJusqua: z.number(),
   lanceur: Identite, empreinteJeton: z.string().regex(/^[0-9a-f]{64}$/), empreinteNonce: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  empreinteNonceHook: z.string().regex(/^[0-9a-f]{64}$/), demarrageJusqua: z.number(),
+  hooks: z.object({ empreinteCanon: z.string().regex(/^[0-9a-f]{64}$/), empreinteCredo: z.string().regex(/^[0-9a-f]{64}$/).optional(), delaiMs: z.number().positive() }).strict(),
+  recuSessionStart: PreuveSessionStart.optional(),
   etat: z.enum(['reservee', 'vivante', 'arret-demande', 'nettoyage', 'fermee', 'echec-reservation', 'echec-controle']),
   controleur: Identite.optional(), jobHost: Identite.optional(), agentProcessus: Identite.optional(),
   evenements: z.array(z.object({ ticket: z.number().int().positive(), nom: z.string(), sessionId: z.uuid(), date: z.iso.datetime(), type: z.enum(['lancement', 'clôture', 'échec']) })),
@@ -26,7 +31,7 @@ const CarteSession = z.object({
   if (['nettoyage', 'fermee'].includes(c.etat) && !['sortie', 'echec'].includes(c.issueSortie)) ctx.addIssue({ code: 'custom', message: 'issue de sortie requise' })
   if (c.etat === 'echec-controle' && c.codeEnveloppe !== undefined) ctx.addIssue({ code: 'custom', message: 'sortie enveloppe inconnue' })
 })
-const PolitiqueSession = z.object({ sandbox: z.enum(['danger-full-access']), approvalPolicy: z.enum(['never']), ignoreUserConfig: z.literal(true), model: z.enum(['gpt-6.1-sol']), reasoningEffort: z.enum(['medium']) }).strict()
+const PolitiqueSession = z.object({ sandbox: z.enum(['danger-full-access']), approvalPolicy: z.enum(['never']), model: z.enum(['gpt-6.1-sol']), reasoningEffort: z.enum(['medium']) }).strict()
 const validerPolitique = (brut) => {
   const vu = PolitiqueSession.safeParse(brut)
   if (!vu.success) throw new Error(`POLITIQUE INVALIDE : ${vu.error.issues.map((e) => `${e.path.join('.') || e.keys?.join(',') || '—'}: ${e.message}`).join('; ')}`)
@@ -37,19 +42,12 @@ const empreinte = (secret) => createHash('sha256').update(secret).digest('hex')
 const identique = (a, b) => !!a && !!b && a.pid === b.pid && a.creation === b.creation
 const sommeil = (ms) => new Promise((r) => setTimeout(r, ms))
 const lireJSON = (chemin) => JSON.parse(fs.readFileSync(chemin, 'utf8'))
-const sauver = (chemin, valeur) => {
-  const temporaire = `${chemin}.${randomUUID()}.tmp`
-  try { fs.writeFileSync(temporaire, `${JSON.stringify(valeur, null, 2)}\n`, { flag: 'wx' }); fs.renameSync(temporaire, chemin) }
-  finally { fs.rmSync(temporaire, { force: true }) }
-}
 
 export function envAgent(env) {
   const propre = { ...env }
   delete propre.WFRP_SESSION_JETON
   delete propre.WFRP_SESSION_REVENDICATION
   delete propre.CLAUDE_CODE_CHILD_SESSION
-  delete propre.GH_TOKEN
-  delete propre.GITHUB_TOKEN
   return propre
 }
 
@@ -79,15 +77,15 @@ export function planAgent(carte, { natif, consigne, rapport, schema, politique }
   if (carte.agent === 'claude') return { executable: natif, args: [consigne], shell: false }
   if (carte.agent !== 'codex') throw new Error('AGENT INCONNU')
   const p = validerPolitique(politique)
-  return { executable: natif, shell: false, args: ['exec', '--ignore-user-config', '-m', p.model, '-c', `model_reasoning_effort="${p.reasoningEffort}"`, '-c', `approval_policy="${p.approvalPolicy}"`, '-c', `sandbox_mode="${p.sandbox}"`, '-C', carte.worktree, '-o', rapport, '--output-schema', schema, consigne] }
+  return { executable: natif, shell: false, args: ['exec', '-m', p.model, '-c', `model_reasoning_effort="${p.reasoningEffort}"`, '-c', `approval_policy="${p.approvalPolicy}"`, '-c', `sandbox_mode="${p.sandbox}"`, '-c', 'features.hooks=true', '--dangerously-bypass-hook-trust', '-C', carte.worktree, '-o', rapport, '--output-schema', schema, consigne] }
 }
 
 export const contratCodex = ({ sessionId, ticket, worktree }) => `Rapport final JSON : sessionId=${sessionId}, ticket=${ticket}, worktree=${worktree} ; atterrissage = sha du commit d'atterrissage sur main si ta publication est MERGED, sinon null ; resume décrit le résultat.`
 
 export const consigneAgent = (carte, texte) => carte.agent === 'codex' ? `${texte}\n\n${contratCodex({ sessionId: carte.sessionId, ticket: carte.ticket, worktree: carte.worktree })}` : texte
 
-export function lancerAgent(plan, carte, { journal, lancer = spawn, echo = (morceau) => process.stderr.write(morceau), delaiMs = 2_000 }) {
-  const child = lancer(plan.executable, plan.args, { cwd: carte.worktree, shell: false, stdio: carte.agent === 'codex' ? ['inherit', 'inherit', 'pipe'] : 'inherit', env: envAgent(process.env) })
+export function lancerAgent(plan, carte, { journal, lancer = spawn, echo = (morceau) => process.stderr.write(morceau), delaiMs = 2_000, env = process.env }) {
+  const child = lancer(plan.executable, plan.args, { cwd: carte.worktree, shell: false, stdio: carte.agent === 'codex' ? ['inherit', 'inherit', 'pipe'] : 'inherit', env: envAgent(env) })
   child.stderr?.on('data', (morceau) => { echo(morceau); fs.appendFileSync(journal, morceau) })
   const ferme = new Promise((ok) => { if (!child.stderr) return ok(); child.stderr.once('close', ok); child.stderr.once('error', ok) })
   const cause = async () => {
@@ -142,6 +140,7 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const chemin = (id) => { if (!/^[\w-]+$/.test(id)) throw new Error('IDENTITÉ INVALIDE'); return join(dossier, `${id}.json`) }
   const stop = (id) => join(dossier, `${id}.stop`)
   const bootstrap = (id) => join(dossier, `${id}.bootstrap`)
+  const recu = (id) => join(dossier, `${id}.sessionstart`)
   const validerCarte = (brut, fichier) => {
     if (!brut || typeof brut !== 'object' || Array.isArray(brut) || typeof brut.producteur !== 'string' || !brut.producteur) throw new Error(`CARTE INVALIDE : ${fichier}`)
     if (brut.producteur !== PRODUCTEUR) return brut
@@ -176,6 +175,8 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
   const libererReservation = (c, etat, raison) => {
     c.etat = etat; delete c.empreinteNonce; delete c.codeEnveloppe
     fs.rmSync(bootstrap(c.sessionId), { force: true })
+    fs.rmSync(join(dossier, `${c.sessionId}.hook-context`), { force: true })
+    fs.rmSync(recu(c.sessionId), { force: true })
     const date = maintenant()
     if (raison) signalerEchec(c, raison)
     if (etat === 'fermee') { c.fermeeLe = date; c.issueSortie = c.raison ? 'echec' : 'sortie' }
@@ -249,17 +250,27 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
     fs.rmSync(bootstrap(id), { force: true })
     return c
   })
+  const constaterRecu = (id) => {
+    const c = lire(id)
+    if (c.recuSessionStart) return { ok: true }
+    let validation
+    try { validation = validerRecuSessionStart(lireJSON(recu(id)), c) }
+    catch (e) { return { ok: false, raison: e.code === 'ENOENT' ? 'REÇU SESSIONSTART ABSENT' : `REÇU SESSIONSTART ILLISIBLE : ${e.message}` } }
+    if (validation.ok) muter(id, (carte) => { const { nonce: _nonce, ...preuve } = validation.recu; carte.recuSessionStart = preuve })
+    return validation
+  }
   const api = {
-    lire, ecrireCarte, muter,
+    lire, ecrireCarte, muter, constaterRecu,
     reserver(p) {
       const vue = reconcilier()
       return sousVerrou(() => {
         if (collection().cartes.some((c) => c.producteur === PRODUCTEUR && !terminaux.has(c.etat) && (c.ticket === p.ticket || c.nom === p.nom))) throw new Error('COLLISION : ticket ou nom déjà réservé')
-        const sessionId = randomUUID(), jeton = randomBytes(32).toString('hex'), nonce = randomBytes(32).toString('hex')
-        const carte = { ...p, sessionId, producteur: PRODUCTEUR, lanceur: lanceur ? lanceur() : vue.processus.get(process.pid), date: maintenant(), reserveJusqua: horloge() + 60_000, empreinteJeton: empreinte(jeton), empreinteNonce: empreinte(nonce), etat: 'reservee', evenements: [{ ticket: p.ticket, nom: p.nom, sessionId, date: maintenant(), type: 'lancement' }] }
+        const sessionId = randomUUID(), jeton = randomBytes(32).toString('hex'), nonce = randomBytes(32).toString('hex'), nonceHook = randomBytes(32).toString('hex')
+        const carte = { ...p, sessionId, producteur: PRODUCTEUR, lanceur: lanceur ? lanceur() : vue.processus.get(process.pid), date: maintenant(), reserveJusqua: horloge() + 60_000, demarrageJusqua: horloge() + (p.hooks?.delaiMs ?? 60_000), empreinteNonceHook: empreinte(nonceHook), empreinteJeton: empreinte(jeton), empreinteNonce: empreinte(nonce), etat: 'reservee', evenements: [{ ticket: p.ticket, nom: p.nom, sessionId, date: maintenant(), type: 'lancement' }] }
         validerCarte(carte, `${sessionId}.json`)
         sauver(chemin(sessionId), carte)
         sauver(bootstrap(sessionId), { nonce })
+        sauver(join(dossier, `${sessionId}.hook-context`), contexteRecu(carte, dossier, nonceHook))
         return { carte, jeton, nonce }
       })
     },
@@ -296,12 +307,16 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
       return (await api.fermer(id, jeton)).carte ?? lire(id)
     },
     async attenteDemarrage(id, jeton) {
-      const limite = lire(id).reserveJusqua
+      const limite = lire(id).demarrageJusqua
       do {
         reconcilier()
         const c = lire(id)
-        if (c.etat !== 'reservee') return c
-        if (horloge() >= limite) return api.echecDemarrage(id, jeton, 'CONTRÔLEUR NON DÉMARRÉ')
+        if (c.recuSessionStart) return c
+        const validation = constaterRecu(id)
+        if (validation.ok) return lire(id)
+        if (validation.raison !== 'REÇU SESSIONSTART ABSENT') return api.echecDemarrage(id, jeton, validation.raison)
+        if (c.etat !== 'reservee' && c.etat !== 'vivante') return api.echecDemarrage(id, jeton, 'REÇU SESSIONSTART ABSENT : agent sorti avant le hook natif')
+        if (horloge() >= limite) return api.echecDemarrage(id, jeton, c.etat === 'reservee' ? 'CONTRÔLEUR NON DÉMARRÉ' : 'REÇU SESSIONSTART ABSENT : délai du hook natif dépassé')
         await dormir(Math.min(100, limite - horloge()))
       } while (true)
     },
@@ -359,9 +374,11 @@ export function creerSessions({ dossier, horloge = Date.now, processus = mesurer
         }, periodeMs)
         const fin = await fini
         let rapport, raison
+        const recuNatif = constaterRecu(id)
+        if (!recuNatif.ok) raison = recuNatif.raison
         if (lire(id).etat === 'arret-demande') arret = true
-        if (causeSortie && fin.codeAgent !== 0 && !arret) { const cause = await causeSortie(); raison = `AGENT SORTI EN ${fin.codeAgent ?? fin.signal}${cause ? ` : ${cause}` : ''}` }
-        if (initiale.agent === 'codex' && fin.codeAgent === 0 && !arret) {
+        if (recuNatif.ok && causeSortie && fin.codeAgent !== 0 && !arret) { const cause = await causeSortie(); raison = `AGENT SORTI EN ${fin.codeAgent ?? fin.signal}${cause ? ` : ${cause}` : ''}` }
+        if (recuNatif.ok && initiale.agent === 'codex' && fin.codeAgent === 0 && !arret) {
           try { const lu = lireRapport(), validation = validerRapport(lu, initiale); if (validation.ok) rapport = lu; else raison = validation.raison }
           catch (e) { raison = e.message }
         }
@@ -399,19 +416,22 @@ export function contexteSessions(worktree) {
   return { racine: principal.valeur, gitCommun: join(principal.valeur, '.git'), worktree: resolve(worktree), branche: brancheDe(depot), head: shaDe(depot, 'HEAD') }
 }
 
-export async function piloterAgent({ sessions, dossier, carte, consigne, lancer, retirer = (fichier) => fs.rmSync(fichier, { force: true }) }) {
+export async function piloterAgent({ sessions, dossier, carte, consigne, lancer, preflight = preflightSessionStart, retirer = (fichier) => fs.rmSync(fichier, { force: true }) }) {
   const id = carte.sessionId, rapport = join(dossier, `${id}.rapport`), journal = join(dossier, `${id}.stderr`)
   let agent
   try {
+    const actuel = await preflight(carte.worktree, carte.agent)
+    if (actuel.empreinteCanon !== carte.hooks?.empreinteCanon || actuel.empreinteCredo !== carte.hooks?.empreinteCredo) throw new Error('HOOKS : EMPREINTE CHANGÉE AVANT SPAWN')
+    const contexte = lireJSON(join(dossier, `${id}.hook-context`))
     const plan = planAgent(carte, { natif: carte.executable, consigne: consigneAgent(carte, consigne), rapport, schema: SCHEMA_RAPPORT, politique: lirePolitique() })
     return await sessions.superviser(id, {
-      lancer: () => { agent = lancerAgent(plan, carte, { journal, lancer }); return agent.child },
+      lancer: () => { agent = lancerAgent(plan, carte, { journal, lancer, env: { ...process.env, WFRP_SESSION_START: Buffer.from(JSON.stringify(contexte)).toString('base64') } }); return agent.child },
       causeSortie: () => agent.cause(),
       lireRapport: () => lireRapportDe(rapport),
     })
   } finally {
     if (agent) await agent.cause()
-    for (const fichier of [rapport, journal]) { try { retirer(fichier) } catch (e) { process.stderr.write(`[session] PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
+    for (const fichier of [rapport, journal, join(dossier, `${id}.hook-context`), join(dossier, `${id}.sessionstart`)]) { try { retirer(fichier) } catch (e) { process.stderr.write(`[session] PURGE IMPOSSIBLE : ${fichier} — ${e.code ?? e.message}\n`) } }
   }
 }
 

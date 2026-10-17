@@ -30,6 +30,7 @@ import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,
   CONCEPTS,
+  DATASETS_DES_PROJETS,
   LOTS_CONNUS,
   LOTS_DE_PEUPLEMENT,
   LOT_CLE_RESERVEE,
@@ -644,6 +645,14 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
     expect(classement({ book: 'ldb', page: 12 })).toMatchObject({ concept: 'source', statut: 'cible' });
   });
 
+  it('les deux branches de `weaponDamageSpecSchema` sont des Dégâts d’arme CIBLES, et `plusBF` étalé sur un op n’en est pas', () => {
+    expect(classement({ plusBF: true, flat: 4 }, 'damage')).toMatchObject({ concept: 'degats-arme', statut: 'cible' });
+    expect(classement({ plusBF: true, flat: 0, bare: true }, 'damage')).toMatchObject({ concept: 'degats-arme', statut: 'cible' });
+    expect(classement({ literal: '2d10' }, 'damage')).toMatchObject({ concept: 'degats-arme', statut: 'cible' });
+    expect(classement({ op: 'grantNaturalWeapon', label: 'x', damage: 1, plusBF: true, bare: true, qualities: [] }, 'passive')).toBeNull();
+    expect(classement({ sign: 1, flat: 2, d10: 1 }, 'effect')).toBeNull();
+  });
+
   it('un coefficient saisonnier sous `price` est un PRIX déclaré, jamais une monnaie à éteindre', () => {
     expect(classement({ printemps: 1, ete: 0.5, automne: 0.25, hiver: 0.5 }, 'price')).toMatchObject({
       concept: 'prix',
@@ -660,6 +669,18 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
     expect(classerValeur('max,min', cles, { dataset: '', champ: 'params', candidats: ['plage'] })).toMatchObject({ concept: 'plage', statut: 'cible' });
     expect(classerValeur('max,min', cles, { dataset: '', champ: 'params' })).toBeNull();
     expect(classerValeur('manannD10,max,min', ['min', 'max', 'manannD10'], { dataset: '', champ: 'impressed' })).toBeNull();
+  });
+
+  it('la forme d’un état n’est revendiquée qu’au SITE des projets, à ses clés réelles', () => {
+    const projet = DATASETS_DES_PROJETS.find((d) => d === 'diligence-projet.json')!;
+    expect(classement({ kind: 'heros' }, 'forme', projet)).toMatchObject({ concept: 'forme-d-etat', signature: 'kind', statut: 'cible' });
+    expect(classement({ kind: 'enum', valeurs: [] }, 'forme', projet)).toMatchObject({ concept: 'forme-d-etat', signature: 'kind,valeurs', statut: 'cible' });
+    expect(classement({ couleur: 'x', taille: 1 }, 'forme', 'creatures.json')).toBeNull();
+  });
+
+  it('un `prix` hors des projets n’est pas un billet de route', () => {
+    expect(classement({ prix: { exterieur: 1 } }, 'diligence', 'diligence-projet.json')).toMatchObject({ concept: 'billet-de-route', statut: 'cible' });
+    expect(classerValeur('label,prix', ['label', 'prix'], { dataset: 'merchants.json', champ: 'offres' })?.concept).not.toBe('billet-de-route');
   });
 
   it('une clé RÉSERVÉE encore homonyme ne force aucun concept (`count`, `cost`, `skill`)', () => {
@@ -802,10 +823,11 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
         'prose-nommee | barge-du-sel-projet.json › sousTitre | texte',
         'prose-nommee | diligence-projet.json › refus | texte+…',
         'prose-nommee | diligence-projet.json › sousTitre | texte+…',
-        'narratif | arene-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
-        'narratif | loup-et-saumure-projet.json › narratif | affaires,documents,indices,objets,presetsPnj',
-        'narratif | barge-du-sel-projet.json › narratif | affaires,documents,indices,objets,presetsPnj+…',
-        'narratif | diligence-projet.json › narratif | affaires,documents,indices,objets,presetsPnj+…',
+        'narratif | arene-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj',
+        'narratif | loup-et-saumure-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj',
+        'narratif | barge-du-sel-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj+…',
+        'narratif | diligence-projet.json › narratif | affaires,documents,etats,indices,objets,presetsPnj+…',
+        'effet-d-etat | diligence-projet.json › effect | etat,invite,type+…',
         'ouverture | barge-du-sel-projet.json › ouverture | pitch,titre+…',
         'ouverture | diligence-projet.json › ouverture | pitch,titre+…',
         'cloture | barge-du-sel-projet.json › cloture | titre,when+…',

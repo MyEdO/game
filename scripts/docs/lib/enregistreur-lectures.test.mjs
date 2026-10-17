@@ -16,12 +16,36 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { ecrireDoc, existeFichier, fusionnerLectures, serialiserSourcesLues } from './ecriture-derives.mjs'
-import { ignoresGit } from './chemin-mesure.mjs'
+import { ignoresGit } from './perimetre-mesure.mjs'
 import { mesurerEnRendu, refusSourcesInsuffisantes } from '../build-all.mjs'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
 import fs from 'node:fs'
 import childProcess, { spawnSync } from 'node:child_process'
 import { depotDe, relireRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
+import { syncBuiltinESMExports } from 'node:module'
+import { servirPipe } from '../../test/pipeNomme.mjs'
+
+test('admission collecteur : glob ignoré propre et autre, FILE DIR LINK', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'admission-collecteur-'))
+  mkdirSync(path.join(racine, 'data'))
+  for (const producteur of ['own', 'other']) {
+    writeFileSync(path.join(racine, `data/${producteur}-file.generated.ts`), producteur)
+    mkdirSync(path.join(racine, `data/${producteur}-dir.generated.ts`))
+    fs.symlinkSync(path.join(racine, 'data'), path.join(racine, `data/${producteur}-link.generated.ts`), process.platform === 'win32' ? 'junction' : 'dir')
+  }
+  const c = installer({ racine, ignores: new Set(['own', 'other'].flatMap(p => ['file', 'dir', 'link'].map(n => `data/${p}-${n}.generated.ts`))), motifsPropres: ['data/own-*.generated.ts'], motifsDeclares: ['data/*.generated.ts'] })
+  try {
+    listerDossier(path.join(racine, 'data'))
+    statSync(path.join(racine, 'data/own-dir.generated.ts'))
+    readFileSync(path.join(racine, 'data/other-file.generated.ts'))
+    const vu = c.rendu()
+    assert.deepEqual(vu.dossiers.data.entrees.map(e => [e.nom, e.nature]), [
+      ['other-dir.generated.ts', 'directory'], ['other-file.generated.ts', 'file'], ['other-link.generated.ts', 'link'], ['own-dir.generated.ts', 'directory'], ['own-link.generated.ts', 'link'],
+    ])
+    assert.ok(vu.sondes.some(q => q.chemin === 'data/own-dir.generated.ts' && q.nature === 'directory'))
+    assert.ok(vu.fichiers.includes('data/other-file.generated.ts'))
+  } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }
+})
 
 const ICI = path.dirname(fileURLToPath(import.meta.url))
 const RACINE = path.resolve(ICI, '..', '..', '..')
@@ -107,10 +131,12 @@ test('mesure 2456 : fusion et sérialisation conservent sondes, Git et refus', (
   const q = { args: ['ls-files'], cwd: '', status: 0, stdout: 'a.md\n', stderr: '' }
   const s = { chemin: 'absent', type: 'exists', existe: false, nature: null }
   try {
-    writeFileSync(path.join(dossier, 'a.1.json'), JSON.stringify({ git: [q], sondes: [s], incomplet: ['refus'] }))
+    const photographie = { nature: 'directory', entrees: [{ nom: 'a.md', nature: 'file' }] }
+    writeFileSync(path.join(dossier, 'a.1.json'), JSON.stringify({ git: [q], sondes: [s], incomplet: ['refus'], dossiers: { gen: photographie } }))
     writeFileSync(path.join(dossier, 'a.1.hooks-mesures.jsonl'), `${JSON.stringify({ git: [q] })}\n${JSON.stringify({ sondes: [s] })}\n`)
     const lues = fusionnerLectures(dossier)
     assert.deepEqual(lues.git, [q]); assert.deepEqual(lues.sondes, [s]); assert.deepEqual(lues.incomplet, ['refus'])
+    assert.deepEqual(lues.dossiers.get('gen'), photographie)
     const entree = { cibles: [], fichiers: [], dossiers: [], git: lues.git, sondes: lues.sondes, incomplet: lues.incomplet }
     assert.deepEqual(JSON.parse(serialiserSourcesLues({ g: entree })).g, entree)
   } finally { rmSync(dossier, { recursive: true, force: true }) }
@@ -128,7 +154,27 @@ test('mesure 2456 : un dérivé ignoré lu est source, les cibles propres et cac
     fs.readFileSync(path.join(racine, 'node_modules/cache.ts'))
     listerDossier(path.join(racine, 'gen'))
     assert.deepEqual(c.rendu().fichiers, ['gen/autre.ts'])
-    assert.deepEqual(c.rendu().dossiers.gen, ['autre.ts', 'nonlu.ts', 'propre.ts'])
+    assert.deepEqual(c.rendu().dossiers.gen, { nature: 'directory', entrees: [{ nom: 'autre.ts', nature: 'file' }, { nom: 'nonlu.ts', nature: 'file' }] })
+  } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('collecteur froid : glob futur propre absent puis créé, sondes exclues et dossier propre conservé', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'collecteur-froid-'))
+  mkdirSync(path.join(racine, 'data'))
+  mkdirSync(path.join(racine, 'data/dossier.generated.ts'))
+  writeFileSync(path.join(racine, 'data/source.txt'), 'source')
+  const c = installer({ racine, ignores: new Set(), motifsPropres: ['data/*.generated.ts'] })
+  try {
+    fs.existsSync(path.join(racine, 'data/froid.generated.ts'))
+    assert.throws(() => fs.statSync(path.join(racine, 'data/froid.generated.ts')), { code: 'ENOENT' })
+    const avant = listerDossier(path.join(racine, 'data'), { avecTypes: true })
+    fs.writeFileSync(path.join(racine, 'data/froid.generated.ts'), 'produit')
+    fs.readFileSync(path.join(racine, 'data/froid.generated.ts'))
+    fs.statSync(path.join(racine, 'data/dossier.generated.ts'))
+    assert.deepEqual(c.rendu().fichiers, [])
+    assert.deepEqual(c.rendu().sondes.map(q => q.chemin), ['data/dossier.generated.ts'])
+    assert.deepEqual(c.rendu().dossiers.data, avant)
+    assert.equal(avant.entrees.some(e => e.nom === 'froid.generated.ts'), false)
   } finally { c.restaurer(); rmSync(racine, { recursive: true, force: true }) }
 })
 
@@ -250,15 +296,14 @@ test('casse : une lecture par un chemin à casse différente est COMPTÉE, une l
   }
 })
 
-// #1769 : un script Python pose `__pycache__/` (ignoré par git) dans un dossier que les générateurs
-// listent. Enregistré, il faisait dépendre la mesure de l'état local du disque.
+// #1769
 test('un dossier IGNORÉ par git, posé dans un dossier lu, ne change ni le listing ni les dossiers', () => {
   const { racine: brute } = instanceDeDepot({
     fichiers: { '.gitignore': '__pycache__/\n*.log\n', 'lib/geometrie.py': 'x = 1\n' },
   })
   const racine = realpathSync.native(brute)
   try {
-    // Un fichier SUIVI qui répond pourtant à un motif de `.gitignore` : il reste dans le plan git.
+    // #1769
     writeFileSync(path.join(racine, 'lib', 'suivi.log'), 'trace\n')
     lancerGit(['add', '-f', 'lib/suivi.log'], { cwd: racine })
     const cache = path.join(racine, 'lib', '__pycache__')
@@ -282,7 +327,7 @@ test('un dossier IGNORÉ par git, posé dans un dossier lu, ne change ni le list
 
     const propre = mesurerLib()
     assert.deepEqual(propre.rendu.fichiers, ['lib/geometrie.py', 'lib/suivi.log'], 'le fichier SUIVI sous motif ignoré est sorti de la mesure')
-    assert.deepEqual(propre.rendu.dossiers, { lib: ['geometrie.py', 'suivi.log'] })
+    assert.deepEqual(propre.rendu.dossiers, { lib: { nature: 'directory', entrees: [{ nom: 'geometrie.py', nature: 'file' }, { nom: 'suivi.log', nature: 'file' }] } })
 
     mkdirSync(cache)
     writeFileSync(path.join(cache, 'geometrie.pyc'), 'bytecode')
@@ -298,7 +343,7 @@ test('un `installer` SANS ensemble `ignores` refuse de s\'installer, au lieu d\'
   const fs = await import('node:fs')
   const avant = fs.default.readFileSync
   for (const ignores of [undefined, ['node_modules']]) {
-    assert.throws(() => installer({ racine: RACINE, ignores }), /`ignores` \(ensemble `ignoresGit`\) absent/)
+    assert.throws(() => installer({ racine: RACINE, ignores }), /`ignores` \(ensemble du périmètre de mesure\) absent/)
     assert.equal(fs.default.readFileSync, avant, 'l\'enveloppe de `fs` a été posée malgré le refus')
   }
 })
@@ -316,4 +361,129 @@ test('le compteur de rejets voyage avec la mesure fusionnée (un rejet muet = un
   } finally {
     rmSync(sortie, { recursive: true, force: true })
   }
+})
+
+// #2603
+test('canaux bouchés : lstat, access, opendir, readdir à rappel, glob (synchrone, à rappel, promesse) et lecture d’un absent (readFileSync, openSync, promises.readFile) laissent leur trace', async () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'canaux-'))
+  mkdirSync(path.join(racine, 'a/b'), { recursive: true })
+  mkdirSync(path.join(racine, 'o'))
+  mkdirSync(path.join(racine, 'r'))
+  mkdirSync(path.join(racine, 'p'))
+  writeFileSync(path.join(racine, 'a/b/x.md'), 'x')
+  writeFileSync(path.join(racine, 'f.md'), 'x')
+  const c = installer({ racine, ignores: new Set() })
+  try {
+    fs.lstatSync(path.join(racine, 'f.md'))
+    await fs.promises.lstat(path.join(racine, 'a'))
+    assert.throws(() => fs.accessSync(path.join(racine, 'absent.md')), { code: 'ENOENT' })
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
+    fs.opendirSync(path.join(racine, 'o')).closeSync()
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
+    await (await fs.promises.opendir(path.join(racine, 'p'))).close()
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
+    await new Promise((fin, echec) => fs.readdir(path.join(racine, 'r'), (e) => (e ? echec(e) : fin())))
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
+    assert.deepEqual(fs.globSync('a/**/*.md', { cwd: racine }).map((p) => p.split(path.sep).join('/')), ['a/b/x.md'])
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
+    assert.deepEqual(fs.globSync('neuf/*.md', { cwd: racine }), [])
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
+    assert.deepEqual(await new Promise((fin, echec) => fs.glob('rappel/*.md', { cwd: racine }, (e, r) => (e ? echec(e) : fin(r)))), [])
+    // eslint-disable-next-line murs/ordre-total -- le test APPELLE chaque canal de listing pour prouver que le crochet le mesure ; aucun ordre n'est consommé
+    assert.deepEqual(await Array.fromAsync(fs.promises.glob('promesse/*.md', { cwd: racine })), [])
+    assert.throws(() => fs.readFileSync(path.join(racine, 'lu-absent.md')), { code: 'ENOENT' })
+    assert.throws(() => fs.openSync(path.join(racine, 'ouvert-absent.md'), 'r'), { code: 'ENOENT' })
+    await assert.rejects(fs.promises.readFile(path.join(racine, 'promis-absent.md')), { code: 'ENOENT' })
+    const { sondes, dossiers } = c.rendu()
+    assert.ok(sondes.some((s) => s.chemin === 'f.md' && s.type === 'lstat' && s.nature === 'file'))
+    assert.ok(sondes.some((s) => s.chemin === 'a' && s.type === 'lstat' && s.nature === 'directory'))
+    assert.ok(sondes.some((s) => s.chemin === 'absent.md' && s.type === 'access' && !s.existe))
+    assert.ok(sondes.some((s) => s.chemin === 'lu-absent.md' && s.type === 'stat' && !s.existe && s.code === 'ENOENT'))
+    assert.ok(sondes.some((s) => s.chemin === 'neuf' && s.type === 'exists' && !s.existe))
+    for (const d of ['rappel', 'promesse']) assert.ok(sondes.some((s) => s.chemin === d && s.type === 'exists' && !s.existe), `glob ${d} non mesuré`)
+    for (const f of ['ouvert-absent.md', 'promis-absent.md']) assert.ok(sondes.some((s) => s.chemin === f && s.type === 'stat' && !s.existe && s.code === 'ENOENT'), `échec ${f} non mesuré`)
+    for (const d of ['o', 'p', 'r', 'a', 'a/b']) assert.ok(Object.hasOwn(dossiers, d), `listing ${d} non mesuré : ${Object.keys(dossiers)}`)
+  } finally {
+    c.restaurer()
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+/** Enveloppe `statSync`, `lstatSync`, `existsSync` et `realpathSync.native` AVANT `installer()` (ils deviennent
+ *  son `brut`) : `vus` reçoit chaque appel dont le chemin satisfait `filtre`. */
+const compterSondesBrutes = (filtre) => {
+  const vus = []
+  const originaux = { statSync: fs.statSync, lstatSync: fs.lstatSync, existsSync: fs.existsSync, native: fs.realpathSync.native }
+  const compte = (nom, original) => function (p, ...a) { if (filtre(String(p))) vus.push(`${nom} ${p}`); return original.call(this, p, ...a) }
+  Object.assign(fs, { statSync: compte('stat', originaux.statSync), lstatSync: compte('lstat', originaux.lstatSync), existsSync: compte('exists', originaux.existsSync) })
+  fs.realpathSync.native = compte('realpath', originaux.native)
+  syncBuiltinESMExports()
+  return { vus, restaurer: () => {
+    Object.assign(fs, { statSync: originaux.statSync, lstatSync: originaux.lstatSync, existsSync: originaux.existsSync })
+    fs.realpathSync.native = originaux.native
+    syncBuiltinESMExports()
+  } }
+}
+
+// #2603
+test('lecture échouée HORS racine : aucune sonde stat brute sur son chemin ; SOUS racine, la sonde stat reste', () => {
+  const racine = mkdtempSync(path.join(tmpdir(), 'echec-'))
+  const dehors = mkdtempSync(path.join(tmpdir(), 'echec-dehors-'))
+  const absentDehors = path.join(dehors, 'absent.md')
+  const absentDedans = path.join(racine, 'absent.md')
+  const compteur = compterSondesBrutes((p) => p === absentDehors || p === absentDedans)
+  let c
+  try {
+    c = installer({ racine, ignores: new Set() })
+    assert.throws(() => fs.openSync(absentDehors, 'r'), { code: 'ENOENT' })
+    assert.throws(() => fs.openSync(absentDedans, 'r'), { code: 'ENOENT' })
+    assert.deepEqual(compteur.vus.filter((v) => v.startsWith('stat ')), [`stat ${absentDedans}`])
+    assert.ok(c.rendu().sondes.some((s) => s.chemin === 'absent.md' && s.type === 'stat' && !s.existe && s.code === 'ENOENT'))
+  } finally {
+    c?.restaurer()
+    compteur.restaurer()
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(dehors, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('pipe nommé ouvert sous l’enregistreur : seule la connexion de l’appelant, aucune sonde brute, absent compris', { skip: process.platform !== 'win32' }, async (t) => {
+  const { pipe, nom, connexionsHorsTemoin } = await servirPipe(t, 'wfrp-2603-enreg')
+  const absent = `${pipe}-absent`
+  const racine = mkdtempSync(path.join(tmpdir(), 'pipe-'))
+  const compteur = compterSondesBrutes((p) => p.includes(nom))
+  let c
+  try {
+    c = installer({ racine, ignores: new Set() })
+    assert.throws(() => fs.openSync(absent, 'r+'), { code: 'ENOENT' })
+    fs.closeSync(fs.openSync(pipe, 'r+'))
+  } finally {
+    c?.restaurer()
+    compteur.restaurer()
+    rmSync(racine, { recursive: true, force: true })
+  }
+  assert.deepEqual(compteur.vus, [])
+  assert.equal(await connexionsHorsTemoin(), 1, 'la seule connexion attendue est celle de l’appelant')
+})
+
+// #2603
+test('glob dont le dossier de départ est un pipe nommé : l’enregistreur n’ajoute aucune connexion à celles du glob seul', { skip: process.platform !== 'win32' }, async (t) => {
+  // eslint-disable-next-line murs/ordre-total -- le test APPELLE le glob pour compter ses connexions ; aucun ordre n'est consommé
+  const globSurPipe = (pipe) => fs.globSync('*', { cwd: pipe })
+  const seul = await servirPipe(t, 'wfrp-2603-glob-seul')
+  globSurPipe(seul.pipe)
+  const attendu = await seul.connexionsHorsTemoin()
+  const mesure = await servirPipe(t, 'wfrp-2603-glob-mesure')
+  const racine = mkdtempSync(path.join(tmpdir(), 'glob-pipe-'))
+  let c
+  try {
+    c = installer({ racine, ignores: new Set() })
+    globSurPipe(mesure.pipe)
+    assert.deepEqual(c.rendu().incomplet, [])
+  } finally {
+    c?.restaurer()
+    rmSync(racine, { recursive: true, force: true })
+  }
+  assert.equal(await mesure.connexionsHorsTemoin(), attendu, 'connexions du glob sous l’enregistreur, comparées au glob seul')
 })

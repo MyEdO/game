@@ -31,7 +31,7 @@ import { landCargoes, findLandCargoById, type LandCargoDef } from '../engine/lan
 import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
-  tickRiverWind, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods, rowingAgilityDifficulty,
+  tickRiverWind, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods,
   capsizeRightDifficulty, capsizeRightCumulative, type RiverWindForceId,
 } from '../engine/riverNavigation';
 import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/seaWeather';
@@ -312,7 +312,6 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
       ...fiche,
       windForces: fiche.windForces.map((f, i) => (i === 1 ? { ...f, id: 'brise-qc' } : f)),
       navBaseDifficulty: 'difficile', tackDifficulty: 'difficile', driftPctOfSpeed: 40, driftNavPenalty: -30,
-      rowingAgility: { ...fiche.rowingAgility, difficulty: 'difficile' },
       capsize: { ...fiche.capsize, rightDifficulty: 'difficile', rightCumulativePenalty: -15 },
     });
     expect(tickRiverWind(calme.id as RiverWindForceId, deFixe(1))).toBe('brise-qc');
@@ -320,7 +319,6 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(tackDifficulty()).toBe('difficile');
     expect(driftPctOfSpeed()).toBe(40);
     expect(navPenaltyMods({ drift: true })[0].value).toBe(-30);
-    expect(rowingAgilityDifficulty()).toBe('difficile');
     expect(capsizeRightDifficulty()).toBe('difficile');
     expect(capsizeRightCumulative()).toBe(-15);
   });

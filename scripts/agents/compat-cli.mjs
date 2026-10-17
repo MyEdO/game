@@ -2,7 +2,8 @@ import { readdir, readFile, mkdir, rename, rm, writeFile } from 'node:fs/promise
 import { randomUUID } from 'node:crypto';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateRolePairs } from './compat-core.mjs';
+import { DESTINATIONS, ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, buildExpectedOutputs, collectDiffs, validateRolePairs } from './compat-core.mjs';
+import { INDEX, depotDe, ecrireBlob, lireEnLot, listerImage, poserDansIndex, refusDeGit, reussi } from '../guards/lib/gitPorte.mjs';
 
 const CE_MODULE = fileURLToPath(import.meta.url);
 const RACINE_DU_DEPOT = join(dirname(CE_MODULE), '..', '..');
@@ -13,6 +14,13 @@ const DOSSIER_DES_REGISTRES = posix(relative(RACINE_DU_DEPOT, join(dirname(CE_MO
 /** Ce que `snapshot` lit : des fichiers, et des dossiers parcourus en entier. */
 const FICHIERS_LUS = ['CLAUDE.md', 'AGENTS.md', '.claude/credo.md', '.codex/credo.md', SURFACE_CLAUDE, SURFACE_CODEX];
 const DOSSIERS_LUS = ['.claude/skills', '.agents/skills', '.claude/agents', '.codex/agents'];
+/** Les entrées NON-JS d'une production : ce que `snapshot` lit hors des `DESTINATIONS`. */
+export const ENTREES_DU_PRODUCTEUR = [...FICHIERS_LUS, ...DOSSIERS_LUS].filter((rel) => !DESTINATIONS.some((r) => rel === r || rel.startsWith(`${r}/`)));
+/** Les modules des registres (`chargerRegistres`), relatifs à la racine du dépôt. */
+export const MODULES_DES_REGISTRES = ENTREES_OUTIL.map(({ module }) => `${DOSSIER_DES_REGISTRES}/${module}`);
+/** Les racines du CODE d'une production : leur clôture d'imports (`clotureDImports`) en est la source ;
+ *  les registres y sont nommés, chargés par un import calculé (`chargerRegistres`). */
+export const RACINES_DU_PRODUCTEUR = [posix(relative(RACINE_DU_DEPOT, CE_MODULE)), ...MODULES_DES_REGISTRES];
 
 /** Les registres des points d'entrée (`ENTREES_OUTIL`), lus dans les modules de `scripts/hooks/`. */
 export async function chargerRegistres(dossierHooks = join(RACINE_DU_DEPOT, DOSSIER_DES_REGISTRES)) {
@@ -35,6 +43,49 @@ async function snapshot(root) {
   }
   for (const rel of DOSSIERS_LUS) await visit(rel);
   return files;
+}
+
+/**
+ * Les dépendances de `runCompat` qui jouent la production sur l'INDEX du dépôt de `cwd` (celui que lit
+ * git sous `env`, `GIT_INDEX_FILE` compris) : `snapshot` lit les blobs de l'index, `atomicWrite` et
+ * `rm` posent (retirent) l'entrée dans l'index, puis sur le disque si le disque suivait l'index.
+ * @param {{ cwd: string, env?: NodeJS.ProcessEnv }} lieu
+ */
+export function dependancesDeLIndex({ cwd, env }) {
+  const depot = depotDe(cwd, { env });
+  let lu = new Map();
+  /** Le disque de `rel` porte-t-il le blob de l'index lu ? Sinon, un travail non stagé y vit : il reste. */
+  const disqueSuitLIndex = async (rel) => {
+    const disque = await readFile(join(depot.cwd, rel)).catch(() => null);
+    const index = lu.get(rel) ?? null;
+    return disque === null || index === null ? disque === index : disque.equals(index);
+  };
+  return {
+    async snapshot() {
+      const chemins = [...new Set(listerImage(depot, INDEX, ...FICHIERS_LUS, ...DOSSIERS_LUS))];
+      const textes = lireEnLot(depot, INDEX, chemins);
+      lu = new Map([...textes].filter(([, texte]) => texte !== null).map(([rel, texte]) => [rel, Buffer.from(texte, 'utf8')]));
+      return lu;
+    },
+    async atomicWrite(root, rel, data) {
+      const surDisque = await disqueSuitLIndex(rel);
+      const sha = exiger(ecrireBlob(depot, data), `blob de ${rel}`).trim();
+      exiger(poserDansIndex(depot, { index: undefined, entrees: [{ chemin: rel, mode: '100644', sha }] }), `index de ${rel}`);
+      if (surDisque) await atomicWrite(root, rel, data);
+    },
+    async rm(chemin, options) {
+      const rel = posix(relative(depot.cwd, chemin));
+      const surDisque = await disqueSuitLIndex(rel);
+      exiger(poserDansIndex(depot, { index: undefined, entrees: [{ chemin: rel, retirer: true }] }), `index de ${rel}`);
+      if (surDisque) await rm(chemin, options);
+    },
+  };
+}
+
+/** La sortie d'une écriture git réussie ; un refus LÈVE, nommé par `quoi`. */
+function exiger(union, quoi) {
+  if (!reussi(union)) throw new Error(`${quoi} : ${refusDeGit(union)}`);
+  return union.valeur.stdout;
 }
 
 function validationDiagnostics(files) {

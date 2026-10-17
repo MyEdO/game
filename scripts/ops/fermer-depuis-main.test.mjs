@@ -13,7 +13,7 @@ import { fermerLeTicket, traiterUnTicket } from './fermer-depuis-main.mjs'
 
 test('fermerLeTicket : le solde POSTÉ puis l’état PATCHÉ — jamais `gh issue close` (GraphQL)', () => {
   const vus = []
-  const vu = fermerLeTicket({ numero: '1813', corps: 'le solde', appel: (args, o) => {
+  const vu = fermerLeTicket({ numero: '1813', corps: 'le solde', raison: 'completed', appel: (args, o) => {
     vus.push({ args, o })
     return { ok: true, stdout: '{}' }
   } })
@@ -28,36 +28,36 @@ test('fermerLeTicket : le solde POSTÉ puis l’état PATCHÉ — jamais `gh iss
   for (const v of vus) assert.equal(v.args.includes('issue'), false)
 })
 
-test('fermerLeTicket : `poser: false` rejoue le SEUL patch — un solde déjà au fil ne se redouble pas', () => {
+test('fermerLeTicket : `poser: false` rejoue le SEUL patch, sous la raison donnée — un solde déjà au fil ne se redouble pas', () => {
   const vus = []
-  const vu = fermerLeTicket({ numero: '1813', corps: 'le solde', poser: false, appel: (args) => {
+  const vu = fermerLeTicket({ numero: '1813', corps: 'le solde', raison: 'not_planned', poser: false, appel: (args) => {
     vus.push(args)
     return { ok: true, stdout: '{}' }
   } })
   assert.deepEqual(vu, { ok: true })
   assert.equal(vus.length, 1)
-  assert.deepEqual(vus[0], ['api', `repos/${DEPOT}/issues/1813`, '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=completed'])
+  assert.deepEqual(vus[0], ['api', `repos/${DEPOT}/issues/1813`, '-X', 'PATCH', '-f', 'state=closed', '-f', 'state_reason=not_planned'])
 })
 
-test('fermerLeTicket : la RAISON de fermeture est posée EXPLICITEMENT, et vaut `completed`', () => {
+test('fermerLeTicket : la RAISON de fermeture est un CHAMP `state_reason`, celle qu’on lui donne', () => {
   // Le PATCH REST porte `state` et `state_reason` en deux champs : la doc de
   // `PATCH /repos/{owner}/{repo}/issues/{n}` ne définit AUCUNE valeur de `state_reason` pour un
-  // `state=closed` sans raison. Les 100 dernières fermetures du dépôt portent `completed` (sonde du
-  // 2026-09-18) — ce que posait `gh issue close --reason completed` ; sans ce cas, la retirer serait
-  // muette, et le dépôt se mettrait à fermer des tickets sous une raison décidée ailleurs.
-  const vus = []
-  fermerLeTicket({ numero: '1813', corps: 'le solde', poser: false, appel: (args) => {
-    vus.push(args)
-    return { ok: true, stdout: '{}' }
-  } })
-  const i = vus[0].indexOf('state_reason=completed')
-  assert.notEqual(i, -1, 'la raison de fermeture n’est plus passée : le défaut de l’API déciderait')
-  assert.equal(vus[0][i - 1], '-f', '`state_reason` doit être un CHAMP, jamais un fragment de query')
+  // `state=closed` sans raison — le défaut de l’API ne décide jamais.
+  for (const raison of ['completed', 'duplicate', 'not_planned']) {
+    const vus = []
+    fermerLeTicket({ numero: '1813', corps: 'le solde', raison, poser: false, appel: (args) => {
+      vus.push(args)
+      return { ok: true, stdout: '{}' }
+    } })
+    const i = vus[0].indexOf(`state_reason=${raison}`)
+    assert.notEqual(i, -1, `la raison ${raison} n’est pas passée`)
+    assert.equal(vus[0][i - 1], '-f', '`state_reason` doit être un CHAMP, jamais un fragment de query')
+  }
 })
 
 test('fermerLeTicket : commentaire refusé → AUCUN patch — un ticket fermé sans son solde est la fuite', () => {
   const vus = []
-  const vu = fermerLeTicket({ numero: '1813', corps: 'le solde', appel: (args) => {
+  const vu = fermerLeTicket({ numero: '1813', corps: 'le solde', raison: 'completed', appel: (args) => {
     vus.push(args)
     return { ok: false, raison: 'gh: Not Found (HTTP 404)' }
   } })
@@ -67,7 +67,7 @@ test('fermerLeTicket : commentaire refusé → AUCUN patch — un ticket fermé 
 })
 
 test('fermerLeTicket : un PATCH refusé est NOMMÉ, jamais avalé', () => {
-  const vu = fermerLeTicket({ numero: '1813', corps: 'le solde', appel: (args) =>
+  const vu = fermerLeTicket({ numero: '1813', corps: 'le solde', raison: 'completed', appel: (args) =>
     (args.includes('PATCH') ? { ok: false, raison: 'HTTP 403' } : { ok: true, stdout: '{}' }) })
   assert.deepEqual(vu, { ok: false, raison: 'HTTP 403' })
 })
@@ -239,6 +239,35 @@ test('solde ABSENT du commit : le corps le DIT, et la fermeture a lieu quand mê
   const { vu, gestes } = traiter({ etat: 'open', commentaires: [], emporte: null })
   assert.match(gestes[0].corps, /aucun solde emporté/)
   assert.match(vu.dit, /ABSENT/)
+})
+
+test('NATURE du solde → `state_reason` du geste : corrigé → completed, doublon → duplicate, caduc/décidé → not_planned, sans solde → completed', () => {
+  for (const [emporte, raison] of [
+    ['VERIFIE: le solde', 'completed'],
+    ['VERIFIE: le solde\nNATURE: corrigé\n', 'completed'],
+    ['VERIFIE: le solde\nNATURE: doublon #1700\n', 'duplicate'],
+    ['VERIFIE: le solde\nNATURE: caduc\n', 'not_planned'],
+    ['VERIFIE: le solde\nNATURE: décidé\n', 'not_planned'],
+    [null, 'completed'],
+  ]) {
+    const { vu, gestes } = traiter({ etat: 'open', commentaires: [], emporte })
+    assert.equal(vu.ok, true)
+    assert.equal(gestes[0].raison, raison, `${emporte} → ${raison}`)
+  }
+})
+
+test('NATURE : le chemin `patcher` (solde déjà au fil) porte la raison du solde', () => {
+  const { gestes } = traiter({ etat: 'open', commentaires: [`solde\n${marqueDe('aaa')}`], emporte: 'VERIFIE: le solde\nNATURE: caduc\n' })
+  assert.equal(gestes.length, 1)
+  assert.equal(gestes[0].poser, false)
+  assert.equal(gestes[0].raison, 'not_planned')
+})
+
+test('NATURE illisible au solde publié : AVERTI, aucun geste — jamais fermé sous une raison devinée', () => {
+  const { vu, gestes } = traiter({ etat: 'open', commentaires: [], emporte: 'VERIFIE: le solde\nNATURE: abandonné' })
+  assert.deepEqual(gestes, [])
+  assert.equal(vu.ok, true)
+  assert.match(vu.avertissement, /^::warning::\[fermetures\] #1813 intraitable — solde de aaa : "NATURE: abandonné/)
 })
 
 test('CLIQUET : le module qui FERME est une FEUILLE — aucune source suivie ne l’acquiert par un spécificateur LITTÉRAL', () => {

@@ -8,15 +8,16 @@ import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
-import { bargainBuyFactor, bargainSellFactor } from '../engine/bargain';
-import { SL_ASTOUNDING } from '../engine/tests';
+import { bargainBuyFactor, bargainSellFactor, type BargainOutcome } from '../engine/bargain';
+import { SL_ASTOUNDING, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
 import type { SceneEntity } from './scene';
-import { partyAssisted, skillBaseValue, type SupportDetail } from '../engine/skills';
+import { partyAssisted, skillBaseValue, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
+import { hasTalent } from '../engine/magic';
 import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
@@ -25,27 +26,21 @@ import { bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse } fr
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
-import { slugId } from '../data/slug';
 import { MERCHANTS } from './merchants/index';
 import type { UniteAchetable } from './merchants/types';
 import { FLOWS } from './rollFlowSpecs';
 import { registerCascadeApplier, startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
 import { actorIn, ecrireActeur, garanti } from './combatants';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
+import { sceneNpc } from './sceneNpc';
+import { cleDeBillet } from './worldMap';
 import { addPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
 
 import type { Get, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
-
-/** Issue d'un Marchandage conclu (achat OU vente) — module les prix de la visite. */
-export interface BargainOutcome {
-  won: boolean;
-  drNet: number;
-  negotiator: boolean;
-}
 
 /** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {
@@ -367,7 +362,7 @@ registerCascadeApplier(MERCHANT_RAGOT_KIND, (get, set, step) => {
   return {
     consequences: freeCons([stepDetail(
       actor ? dataLabel(actor.label) : t('eff.party'),
-      t(gossipDay ? 'mf.searchOk' : 'mf.searchKo', { roll: step.result.roll }),
+      estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo', { roll: step.result.roll }) : t('mf.searchSansJet'),
     )]),
   };
 });
@@ -794,6 +789,23 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
   get().log(msg('mf.repairDone', { label: item.label }));
 }
 
+/** Ouvre le Marchandage du meilleur négociateur du groupe (Soutien, LDB 12) contre `opposant`, pour
+ *  `contrepartie` — porte UNIQUE des deux contreparties (marchand, billet). */
+export function ouvrirMarchandage(get: Get, set: Set, contrepartie: ContrepartieDeMarchandage, opposant: OpposantDeMarchandage): void {
+  const best = partyAssisted(get().party, 'marchandage', 'sociabilite'); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
+  set({ pendingBargain: {
+    playerId: best.actor.id, playerName: best.actor.label,
+    contrepartie, opposant,
+    playerSkill: best.value, support: best.support,
+    // Grandeur du départage à DR égal (`LDB 12 l.160`) : le Niveau de Compétence NU, à l'accesseur
+    // canon — `best.value` est la valeur de TEST, qui porte en plus le Soutien et TOUT modificateur du
+    // Marchandage (États, mutation Visage inversé, objet Laid… — cf. `skills.testValueParts`).
+    playerBase: skillBaseValue(best.actor, 'marchandage', undefined, 'sociabilite'),
+    negotiator: hasBargainBonus(best.actor), // Négociateur → registre de talents (jamais un name-match)
+    roll: null, merchantRoll: null, result: null,
+  } });
+}
+
 export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
   const m = get().merchant; if (!m) return;
   const ent = get().scene?.entities.find((e) => e.id === m.entityId);
@@ -804,43 +816,35 @@ export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
   if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return; // 1 marchandage par MODE et par visite (achat ≠ vente)
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
   const arch = garanti(MERCHANTS[m.archetype], m.archetype, 'marchandage');
-  const best = partyAssisted(get().party, 'marchandage', 'sociabilite'); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
-  const negotiator = hasBargainBonus(best.actor); // Négociateur → registre de talents (jamais un name-match)
-  set({ pendingBargain: {
-    playerId: best.actor.id, playerName: best.actor.label,
-    merchantName: arch.label, merchantValue: arch.bargainSkill,
-    playerSkill: best.value, support: best.support,
-    // Grandeur du départage à DR égal (`LDB 12 l.160`) : le Niveau de Compétence NU, à l'accesseur
-    // canon — `best.value` est la valeur de TEST, qui porte en plus le Soutien et TOUT modificateur du
-    // Marchandage (États, mutation Visage inversé, objet Laid… — cf. `skills.testValueParts`).
-    playerBase: skillBaseValue(best.actor, 'marchandage', undefined, 'sociabilite'),
-    mode, negotiator, roll: null, merchantRoll: null, result: null,
-  } });
+  // Le marchand est un PNJ de scène : sa fiche porte le portrait de la ligne adverse.
+  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'buy' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId) });
 }
 
-/** « Conclure » le Marchandage : fige l'issue sur la visite (prix modulés) — LDB 59 l.43. */
+/** « Conclure » le Marchandage : fige l'issue sur sa contrepartie — les prix de la visite du marchand
+ *  (LDB 59 l.43), ou le billet (`marchandagesDeBillet`, EDO 01 l.142). */
 export function bargainConfirm(get: Get, set: Set): void {
   const pb = get().pendingBargain;
   if (!pb || !pb.result) return; // pas d'acquittement avant le jet
   const won = pb.result.attackerWins; // le joueur est l'attaquant
   const drNet = pb.result.netSL;
-  // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 (symétrique du Succès Stupéfiant
-  // +6 qui donne −20 %) → le marchand se méfie de votre monnaie : plus aucun marchandage cette visite.
-  const botch = !won && drNet >= SL_ASTOUNDING;
   const outcome = { won, drNet, negotiator: pb.negotiator };
-  const patch = pb.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome };
   // ACQUITTEMENT par le goulot (`FLOWS.bargain.apply`) : le verdict est déclaré AU FLUX (`spec.issue`),
   // journalisé là — ici on acquitte, avant de fermer le pending qui le porte.
   FLOWS.bargain.apply(get);
+  const c = pb.contrepartie;
+  // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 (symétrique du Succès Stupéfiant
+  // +6) → le marchand se méfie de votre monnaie : plus aucun marchandage cette visite.
+  const botch = !won && drNet >= SL_ASTOUNDING;
   set((s) => ({
     pendingBargain: null,
-    merchant: s.merchant ? { ...s.merchant, ...patch, soured: s.merchant.soured || botch } : s.merchant,
+    ...(c.kind === 'billet'
+      ? { marchandagesDeBillet: { ...s.marchandagesDeBillet, [cleDeBillet(c.routeId, c.vehicule, c.depuis)]: outcome } }
+      : { merchant: s.merchant ? { ...s.merchant, ...(c.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome }), soured: s.merchant.soured || botch } : s.merchant }),
   }));
 }
 
-/** Talent « Détection d'artefact » (LDB 10 l.336) : Test d'Intuition au toucher — succès =
- *  l'objet est senti magique, chaque DR apprend une règle spéciale ; UNE tentative par artefact. */
-export const DETECT_TALENT = "Détection d'artefact";
+/** Talent « Détection d'artefact », id stable — LDB 10 l.336. */
+const DETECT_TALENT = 'detection-d-artefact';
 
 /** Compétence testée par CHAQUE mode de la fenêtre Évaluation/Détection, par id STABLE — SOURCE
  *  UNIQUE lue par l'ouverture du jet (`bestDetector`/`openAppraise`) ET par la modale qui décompose
@@ -853,11 +857,26 @@ export const APPRAISE_SKILL = {
 
 /** Meilleur détecteur du groupe : meilleure Intuition PARMI les porteurs du Talent (c'est LUI qui
  *  touche l'objet — pas un partyBest global comme l'Évaluation). null si personne ne l'a. */
-export function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
-  const holders = party.filter((h) => !h.dead && h.talents.some((t) => t.talentId === slugId(DETECT_TALENT) && (t.times ?? 1) >= 1));
-  if (!holders.length) return null;
+function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
+  const holders = party.filter((h) => hasTalent(h, DETECT_TALENT));
   const best = partyAssisted(holders, APPRAISE_SKILL.detect.skill, APPRAISE_SKILL.detect.characteristic); // Soutien (LDB 12)
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
+}
+
+/** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection (`bestDetector`) ; `null` = personne qui puisse tenter. */
+function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect'): { actor: Combatant; value: number; support: SupportDetail } | null {
+  return mode === 'detect' ? bestDetector(party) : partyAssisted(party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic);
+}
+
+/** Détection : le refus nomme le Talent, pas la Compétence — LDB 10 l.336. */
+const appraiseNobody = (mode: 'evaluate' | 'detect'): string => refusPersonneNePeutTenter(
+  mode === 'detect' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
+);
+
+/** Refus NOMMÉ d'une Évaluation/Détection que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste
+ *  de l'UI en dérive. */
+export function appraiseRefus(party: Combatant[], mode: 'evaluate' | 'detect' = 'evaluate'): string | null {
+  return appraiseLeader(party, mode) ? null : appraiseNobody(mode);
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
@@ -867,8 +886,8 @@ function openAppraise(
   target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; index: number } },
   itemName: string, mode: 'evaluate' | 'detect', trappingId?: string,
 ): void {
-  const best = mode === 'detect' ? bestDetector(get().party) : partyAssisted(get().party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic); // Soutien (LDB 12)
-  if (!best) return;
+  const best = appraiseLeader(get().party, mode);
+  if (!best) { get().log(appraiseNobody(mode)); return; }
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   set({ pendingAppraise: {
     actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,

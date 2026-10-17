@@ -4,9 +4,9 @@ Jeu de rôle vidéoludique **100 % web, en français**, type *Neverwinter Nights
 règles de **Warhammer Fantasy Roleplay 4ᵉ édition**. On contrôle un groupe de 4 aventuriers
 (créés un par un ou pré-tirés) à travers la campagne impériale **L'Ennemi Intérieur**.
 
-> Toutes les règles et le contenu proviennent des fichiers sources (`Source/`). La base de
-> jeu (`src/data/*.json`) est **générée** depuis ces sources — limitée au Livre de base et aux
-> Archives de l'Empire I & II — et n'est jamais le fichier source brut.
+> Les règles sont vérifiées dans les livres autorisés sous `Source/`, répertoriés dans
+> [les sources VF](docs/sources-vf.md). La base de jeu (`src/data/*.json`) est la source
+> app-owned, commitée, éditable dans le Compendium et curée à la main.
 
 ## Fonctionnalités (PR1 — fondations + tranche jouable)
 
@@ -36,12 +36,12 @@ règles de **Warhammer Fantasy Roleplay 4ᵉ édition**. On contrôle un groupe 
 
 ## Démarrage
 
+Sous Linux, les commandes supervisées (push et publication) requièrent `python3` dans le PATH de l’appelant, avec sa bibliothèque standard. Sous Windows, elles utilisent Windows PowerShell et le Job Object natif ; Python n’est pas requis.
+
 ```bash
 npm install
 npm run dev          # serveur de développement
 ```
-
-`src/data/*.json` sont la source app-owned (commitée, éditée dans le Compendium), curée à la main.
 
 Autres scripts : `npm test` (suite complète), `npm run build` (build de production),
 `npm run typecheck`.

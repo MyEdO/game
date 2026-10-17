@@ -6,7 +6,7 @@
  * du jour se clôt sur le calcul de la progression puis enchaîne la halte
  * de nuit / l'arrivée. La marche forcée reste une étape de la cascade de NUIT (inchangée).
  */
-import { resolveStake, weather } from '../data';
+import { refLabel, resolveStake, weather } from '../data';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from './battleRng';
@@ -92,7 +92,7 @@ function passerLaMeteo(): void {
 
   it('la Météo d’Étape déclare la table de SA SAISON, SANS modificateur (#1426)', () => {
     seedBattleRng(1);
-    setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: 'approvisionnement', items: [] })]);
+    setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: { activityId: 'approvisionnement' }, items: [] })]);
     get().startTravel('r1', 'pied');
     const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'stageWeather')!;
     expect(meteo, 'la Météo est une étape à TABLE de monde').toBeTruthy();
@@ -137,7 +137,7 @@ function passerLaMeteo(): void {
 
   it('les postes AVEC Test = UN pas BATCH (arbitrage user : jets indépendants), une rangée par héros', () => {
     seedBattleRng(1);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     const pc0 = get().pendingCascade;
@@ -153,7 +153,7 @@ function passerLaMeteo(): void {
 
   it('la Résilience force la réussite d’une RANGÉE du batch (mécanisme UNIQUE de cascade)', () => {
     seedBattleRng(5); // seed où l'Approvisionnement échoue (parité : 78/70)
-    const h = hero({ id: 'h', travelRole: 'approvisionnement', resilience: 2, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ id: 'h', travelRole: { activityId: 'approvisionnement' }, resilience: 2, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     expect(get().pendingCascade!.purpose).toBe('travelDay');
@@ -174,7 +174,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Approvisionnement seed 1 : fourrage réussi (DR 7), 1 ration reçue', () => {
     setRule('travel-etapes', true);
     seedBattleRng(1);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -191,7 +191,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Approvisionnement seed 5 : échec 78/70 → Exténué, 0 ration', () => {
     setRule('travel-etapes', true);
     seedBattleRng(5);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -206,7 +206,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Exposition seed 2 : transi → escalade de froid (3 effets exposition-froid, rang 1)', () => {
     setRule('travel-etapes', true); setRule('travel-attraper-froid', true);
     seedBattleRng(2);
-    const h = hero({ travelRole: 'recuperer' });
+    const h = hero({ travelRole: { activityId: 'recuperer' } });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -258,7 +258,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Rencontre seed 7 : Succès Impressionnant → « fullRecovery », soigne toutes les Blessures (routé par applyHealWounds, #473)', () => {
     setRule('travel-etapes', true);
     seedBattleRng(7);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 } });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 } });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -270,7 +270,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Rencontre seed 7 : « fullRecovery » avec munition logée → soin plafonné (LDB 62 l.250)', () => {
     setRule('travel-etapes', true);
     seedBattleRng(7);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: { current: 5, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -281,7 +281,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   it('Rencontre seed 2 : échec d’Approvisionnement → Rencontre dangereuse (texte verbatim)', () => {
     setRule('travel-etapes', true);
     seedBattleRng(2);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     drainCascade();
@@ -297,7 +297,7 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
   it('trajet long (30 km) avec Étapes : le jour ouvre la cascade, sa clôture pose la halte de nuit', () => {
     setRule('travel-etapes', true);
     seedBattleRng(1);
-    const h = hero({ travelRole: 'approvisionnement', items: [ration('r1'), ration('r2')], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [ration('r1'), ration('r2')], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 30, perilDie: 0 }), [h]);
     get().startTravel('r1', 'pied');
     // Le jour ouvre la cascade travelDay ; sa clôture pose la halte de nuit (30 km > 24 km/jour).
@@ -372,6 +372,20 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     if (pc) expect(pc.participants.some((s) => s.kind === 'landForcedPace')).toBe(false);
     expect(get().journal.join('\n')).toMatch(/Conduite d'attelage \(allure forcée\)/);
   });
+
+  it('aucun conducteur ne peut tenter la Conduite d’attelage (Inconscient) → la journée suit la cadence de base (LDB 16 l.113)', () => {
+    setRule('travel-allures', true);
+    seedBattleRng(1);
+    const h = hero({ id: 'h', aiControlled: true, conditions: [{ id: 'inconscient', value: 1 }] as never, skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
+    useGame.setState({ party: [h], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
+    get().loadProject([sceneA(), sceneB()], 'lieu-a-scene', forcedRoute(20));
+    useGame.setState({ gameTime: campaignStart() });
+    creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
+    get().startTravel('r1', 'diligence', { allure: 'galop' });
+    const pc = get().pendingCascade;
+    if (pc) expect(pc.participants.some((s) => s.kind === 'landForcedPace'), 'aucun km au pas de course').toBe(false);
+    expect(get().journal.join('\n'), 'aucun Test de Conduite d’attelage au pas de course').not.toMatch(/Conduite d'attelage \(allure forcée\)/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -421,8 +435,8 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
 describe('#341 — breakdown de mods sur les rangées BATCH d’activité (source unique avec le mono)', () => {
   it('Pluie diluvienne : Plein air porte la ligne « Météo » ; carto (Métier=Dex) la ligne « Tests physiques »', () => {
     setRule('travel-etapes', true);
-    const hOut = hero({ id: 'hOut', travelRole: 'plein-air', skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
-    const hCarto = hero({ id: 'hCarto', travelRole: 'etablir-cartes', skills: [{ id: 'metier', spec: 'Cartographe', advances: 20 } as never] });
+    const hOut = hero({ id: 'hOut', travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
+    const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 20 } as never] });
     set({ party: [hOut, hCarto], travelPlan: {
       routeId: 'r1', fromPlaceId: 'pa', toPlaceId: 'pb', mode: 'pied', hoursPerDay: 6, km: 12, kmDone: 0, interrupted: false,
       postes: { hOut: { activityId: 'plein-air' }, hCarto: { activityId: 'etablir-cartes' } },
@@ -431,8 +445,9 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
     const batch = steps.find((s) => s.kind === 'stagePosteBatch')!;
     const outPart = batch.participants!.find((p) => p.id === 'hOut')!;
     const cartoPart = batch.participants!.find((p) => p.id === 'hCarto')!;
-    expect(outPart.mods?.some((m) => typeof m.label === 'string' && m.label.startsWith('Météo'))).toBe(true); // Plein air -20 (l.106)
-    expect(cartoPart.mods?.some((m) => m.label === 'Tests physiques' && m.value === -10)).toBe(true); // pluie diluvienne l.82, carac Dex
+    expect(cartoPart.label).toBe(refLabel('skills', { id: 'metier', spec: 'cartographe' }));
+    expect(outPart.mods?.filter((m) => m.ref?.category === 'weatherConditions').map((m) => m.value)).toEqual([-20]); // Plein air -20 (l.106)
+    expect(cartoPart.mods?.filter((m) => m.ref?.category === 'weatherConditions' && m.ref.id === 'pluie-diluvienne').map((m) => m.value)).toEqual([-10]); // EDOC 8 l.82, carac Dex
     resetRule('travel-etapes');
   });
 
@@ -440,8 +455,8 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
    *  APRÈS l'étalement l'écrasait, et l'écart météo repartait en chip « autres ». */
   it('la rangée d’Étape n’a AUCUNE part anonyme : base nue, chips météo, cible et écrêtage du monteur', () => {
     setRule('travel-etapes', true);
-    const hOut = hero({ id: 'hOut', travelRole: 'plein-air', skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
-    const hCarto = hero({ id: 'hCarto', travelRole: 'etablir-cartes', skills: [{ id: 'metier', spec: 'Cartographe', advances: 20 } as never] });
+    const hOut = hero({ id: 'hOut', travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
+    const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 20 } as never] });
     set({ party: [hOut, hCarto], travelPlan: {
       routeId: 'r1', fromPlaceId: 'pa', toPlaceId: 'pb', mode: 'pied', hoursPerDay: 6, km: 12, kmDone: 0, interrupted: false,
       postes: { hOut: { activityId: 'plein-air' }, hCarto: { activityId: 'etablir-cartes' } },
@@ -600,6 +615,28 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     const n = Number(/(\d+) Blessures/.exec(blessee!)![1]);
     expect(n).toBeGreaterThanOrEqual(1);
     expect(n).toBeLessThanOrEqual(6);
+  });
+
+  it('EDOC 07 l.284 — plus personne ne peut tenir les rênes : l’attelage Incontrôlable devient un Accident, sans jet', () => {
+    ouvreJournee();
+    const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
+    // Le conducteur et son aide tombent Inconscients pendant le km (LDB 16 l.113).
+    useGame.setState({ party: get().party.map((h) => ({ ...h, conditions: [...h.conditions, { id: 'inconscient', value: 1 }] })) });
+    const avant = useGame.getState();
+    let lignes: string[] = [];
+    let insert: readonly unknown[] = [];
+    for (let seed = 1; seed <= 200 && !lignes.some((l) => l.includes('Incontrôlable')); seed++) {
+      useGame.setState(avant, true);
+      seedBattleRng(seed);
+      const rate = { ...st, result: { roll: 99, target: st.target!, sl: -6, success: false } } as typeof st;
+      const out = cascadeAppliers.landForcedPace.apply(get, set, rate, get().party[0], { steps: [rate], index: 0 });
+      lignes = (out?.consequences ?? []).map((c) => String((c as { vars?: { text?: string } }).vars?.text ?? ''));
+      insert = out?.insert ?? [];
+    }
+    expect(lignes.some((l) => l.includes('Incontrôlable')), 'le cas « Incontrôlable » est atteignable').toBe(true);
+    expect(insert, 'aucune reprise de contrôle à jouer').toEqual([]);
+    expect(lignes.some((l) => l.includes('tente de reprendre le contrôle')), 'aucun jet de reprise').toBe(false);
+    expect(lignes).toContain('Personne ne peut tenir les rênes : ACCIDENT !');
   });
 
   it('reprise de contrôle : MÊME conducteur soutenu que le km, sur les DEUX surfaces (B4)', () => {

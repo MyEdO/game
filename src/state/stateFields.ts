@@ -65,6 +65,8 @@ const STATE_FIELDS = {
   /** LOT DE DÉS d'un étal (#1426) : ouvert AVANT l'écran de marché/port, refermé à sa validation. */
   pendingEtalLot: { init: null, resetOn: ['scene'] },
   pendingForceDoor: { init: null, resetOn: [] },
+  // Désignation NON annulable (EDO 02 l.91) : elle survit au changement de scène jusqu'au choix.
+  pendingDesignationHeros: { init: null, resetOn: [] },
   pendingCascade: { init: null, resetOn: ['scene', 'combatStart'] },
   // Pile de cascades SUSPENDUES (state/cascade.ts) : DOIT survivre à `scene`/`combatStart` (c'est
   // PRÉCISÉMENT à ces cadres que la suspension pousse une entrée — un reset ICI la perdrait aussitôt).
@@ -84,7 +86,6 @@ const STATE_FIELDS = {
   pendingDualStrike: { init: null, resetOn: ['scene'] },
   pendingLogQueue: { init: [], resetOn: ['scene', 'combatStart'] },
   scheduledEffects: { init: [], resetOn: [] },
-  pendingTrample: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingBattement: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingDistraire: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingManeuver: { init: null, resetOn: ['scene', 'combatStart'] },
@@ -172,7 +173,6 @@ export type HostJet = NonNullable<CascadeStep['jet']>;
  */
 export const PENDING_BY_JET: Record<HostJet, PendingKey | null> = {
   attack: 'pendingAttack',
-  trample: 'pendingTrample',
   defense: 'pendingDefense',
   fumble: null,
   cast: 'pendingCast',
@@ -191,16 +191,26 @@ export const PENDING_BY_JET: Record<HostJet, PendingKey | null> = {
  * Trois causes, toutes portées ici — le slot VIDE, l'ACTEUR sorti du `battle`, et la donnée portée par
  * l'ÉTAPE (Maladresse : `PENDING_BY_JET.fumble` est `null`, son corps vit dans `step.fumble`).
  * Une étape déjà VALIDÉE (`committed`) est hors sujet : elle a rendu sa donnée et se ferme.
- * Prédicat PUR (aucun runtime importé) et TOTAL sur les neuf `HostJet`.
+ * Prédicat PUR (aucun runtime importé) et TOTAL sur les `HostJet`.
  */
 export function hoteOrphelin(s: Partial<GameState>, step: CascadeStep | undefined): boolean {
-  if (!step?.jet || step.committed) return false;
+  return !!step && !step.committed && sansCorps(s, step);
+}
+
+/**
+ * SANS CORPS (#1765) — « cette étape-jet n'a rien à rendre », validée ou non : le corps d'un jet hôte ne
+ * tient qu'à son slot, à ses acteurs ou à la donnée de l'étape. Lu par `hoteOrphelin` (porte du curseur)
+ * et par l'ÉLECTION de la cascade (`modalArbiter`) : une étape-jet dont le slot s'est vidé pendant
+ * qu'un enchaînement hors modale tient la main (`pendingDualStrike`, `pendingCleave`) n'élit aucune
+ * fenêtre.
+ */
+export function sansCorps(s: Partial<GameState>, step: CascadeStep | undefined): boolean {
+  if (!step?.jet) return false;
   const slot = PENDING_BY_JET[step.jet];
   if (slot && s[slot] == null) return true;
   const present = (id: string | undefined): boolean => !!id && !!s.battle?.combatants.some((c) => c.id === id);
   switch (step.jet) {
     case 'attack': return !present(s.pendingAttack?.attackerId) || !present(s.pendingAttack?.targetId);
-    case 'trample': return !present(s.pendingTrample?.attackerId) || !present(s.pendingTrample?.targetId);
     case 'defense': return !present(s.pendingDefense?.attackerId) || !present(s.pendingDefense?.defenderId);
     case 'fumble': return !step.fumble || !present(step.actorId);
     // Épreuve étendue : hors combat, l'acteur se lit au GROUPE (même pool que `useExtendedTestJetProps`).
@@ -211,6 +221,18 @@ export function hoteOrphelin(s: Partial<GameState>, step: CascadeStep | undefine
     }
     default: return false; // cast / test / disengage / forceDoor : leur corps ne tient qu'au slot
   }
+}
+
+/**
+ * HÔTE EN ATTENTE (#1765) — « cette étape-jet attend que sa fenêtre rende sa donnée » : son slot vit et elle
+ * n'est pas validée (`committed`). Le curseur ne la franchit pas — ni par un « Suivant », ni par « Tout
+ * lancer » : c'est sa fenêtre qui la rend (`defenseConfirm` pose `committed`, `attackConfirm` vide son
+ * slot). Prédicat PUR et TOTAL sur les `HostJet`, lu par `cascade.stepReady`.
+ */
+export function hoteEnAttente(s: Partial<GameState>, step: CascadeStep): boolean {
+  if (!step.jet || step.committed) return false;
+  const slot = PENDING_BY_JET[step.jet];
+  return slot != null && s[slot] != null;
 }
 
 /** Bloc complet `{ champ: init }` des champs transitoires — assemblé dans l'état initial du store. */

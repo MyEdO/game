@@ -32,7 +32,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     H.conditions = [{ id: 'surpris', value: 1 }]; // Surpris → ne se défend pas → résolution instantanée
     E.pos = { x: 11, y: 10 }; E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 85; E.characteristics.force = 45;
-    useGame.setState({ battle: { ...b, acted: false } });
+    useGame.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: false } });
     return { H, E };
   }
 
@@ -55,6 +55,31 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 2; E.characteristics['capacite-de-combat'] = 1; // rate → pas de +1 du vainqueur
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
     expect(useGame.getState().battle!.combatants.find((c) => c.id === E.id)!.advantage).toBeLessThan(2);
+  });
+
+  it('cible Surprise, Morsure RATÉE : raté sans effet, aucun Avantage ne bouge hors du coût (LDB 16 l.135 ; arbitrage A6 2026-10-13)', () => {
+    useGame.getState().seedRng(2);
+    const { H, E } = setup();
+    E.size = 'moyenne';
+    E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 3; E.characteristics['capacite-de-combat'] = 1;
+    H.advantage = 0;
+    aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
+    const b = useGame.getState().battle!;
+    expect(b.combatants.find((c) => c.id === H.id)!.advantage, 'la cible ne s’est pas défendue : rien ne lui revient').toBe(0);
+    expect(b.combatants.find((c) => c.id === E.id)!.advantage, '3 − 1 (coût), et rien d’autre').toBe(2);
+  });
+
+  it('cible Surprise, Morsure qui retire des Blessures : la cible perd TOUT son Avantage (LDB 14 l.219)', () => {
+    useGame.getState().seedRng(2);
+    const { H, E } = setup();
+    E.size = 'moyenne';
+    E.traits = [{ id: 'morsure', value: 14 }]; E.advantage = 1;
+    H.advantage = 3;
+    const before = H.wounds.current;
+    aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);
+    const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(h.wounds.current).toBeLessThan(before);
+    expect(h.advantage).toBe(0);
   });
 
   it('Attaque caudale : cible de Taille INFÉRIEURE qui perd des PB → À Terre (LDB 85 l.47)', () => {
@@ -267,7 +292,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     useGame.getState().seedRng(2);
     const { H, E } = setup();
     E.traits = [{ id: 'tentacules', count: 1, value: 9 }]; E.advantage = 0;
-    E.characteristics['capacite-de-combat'] = 1; E.characteristics.force = 90; // le tentacule RATE (CC 1) → seuls les Dégâts d'Empoignade comptent ; Force écrasante
+    E.characteristics.force = 90; // Force écrasante
     H.characteristics.force = 1; // la proie perd le Test opposé de Force
     H.wounds = { current: 50, max: 50, base: 50 } as Combatant['wounds'];
     setGrapple(E, H); // prise déjà établie (tour précédent)
@@ -278,5 +303,20 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     expect(st.battle!.acted).toBe(false); // résolution GRATUITE : la créature CONSERVE son Action (PAS verrouillée)
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before); // Dégâts d'Empoignade (BF+DR, PA ignorés)
     expect(st.battle!.log.some((l) => l.text.includes('écrase'))).toBe(true); // ligne du Test opposé GAGNÉ
+  });
+
+  // LDB 85 l.405 : « Gagnez une Action d'Attaque gratuite par tentacule » ; la résolution en consomme une.
+  it('Empoignade par un Tentacule : la résolution consomme LA gratuite du tentacule — pas de 2ᵉ frappe', () => {
+    useGame.getState().seedRng(4);
+    const { H, E } = setup();
+    E.traits = [{ id: 'tentacules', count: 1, value: 4 }]; E.advantage = 0;
+    H.wounds = { current: 300, max: 300, base: 300 } as Combatant['wounds'];
+    H.conditions = []; // la proie se défendrait d'une frappe : toute frappe ouvrirait sa défense
+    setGrapple(E, H);
+    expect(aiCreatureFreeAttacks(useGame.getState, useGame.setState, E), 'aucune défense ouverte').toBe(false);
+    const e = useGame.getState().battle!.combatants.find((c) => c.id === E.id)!;
+    expect(e.freeAttacksThisTurn?.tentacules, 'une gratuite par tentacule').toBe(1);
+    expect(useGame.getState().pendingDefense ?? null, 'aucune frappe de tentacule en plus').toBeNull();
+    expect(e.pendingFreeAttacks ?? [], 'la file ne porte plus de tentacule').not.toContain('tentacules');
   });
 });

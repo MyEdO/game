@@ -23,11 +23,8 @@
 //     `detecteurs-pont.mjs`, testés à fixtures par `test:recette`.
 //
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, decrireChoix, ouvrirRound, VUES_RECETTE } from './lib.mjs';
+import { openApp, evaluate, setViewport, sleep, cliquerSelecteur, resoudreModales, ouvrirRound, VUES_RECETTE, FN_NOMMER_ELEMENT } from './lib.mjs';
 import { surfaceOcculteeParUnPont, elementsHorsFenetre } from './detecteurs-pont.mjs';
-
-/** Les CHOIX faits à la place du joueur par les résolutions de fenêtres : imprimés au rapport. */
-const choixFaits = [];
 
 /** VUES de la passe EXPLORATION : les trois vues JUGÉES (bureau, portable, mobile), lues à leur
  *  source UNIQUE `vues-recette.json` — jamais recopiées. Le pont léger n'a qu'une forme : ce qui
@@ -54,7 +51,8 @@ function parseArgs(argv) {
 }
 
 /** Sonde DOM : toutes les mesures d'une forme, en UN aller-retour. */
-const PROBE = `(() => {
+export const PROBE = `(() => {
+  const nommer = ${FN_NOMMER_ELEMENT};
   const box = (r) => r ? { x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), bottom: +r.bottom.toFixed(1), right: +r.right.toFixed(1) } : null;
   const rect = (sel) => { const e = document.querySelector(sel); return e ? box(e.getBoundingClientRect()) : null; };
   const debord = (sel) => {
@@ -118,20 +116,20 @@ const PROBE = `(() => {
   };
   const horsFenetre = [...document.querySelectorAll('body *')]
     .filter((e) => !(e instanceof SVGElement) && e.getClientRects().length && !dansUnScrollport(e))
-    .map((e) => { const r = e.getBoundingClientRect(); return { nom: (e.getAttribute('data-cell') || e.getAttribute('data-action') || e.className || e.tagName).toString().slice(0, 32), left: +r.left.toFixed(1), right: +r.right.toFixed(1) }; })
+    .map((e) => { const r = e.getBoundingClientRect(); return { nom: (e.getAttribute('data-cell') || e.getAttribute('data-action') || nommer(e)).slice(0, 32), left: +r.left.toFixed(1), right: +r.right.toFixed(1) }; })
     .filter((e) => e.right > window.innerWidth + 1 || e.left < -1);
   // DE PART ET D'AUTRE DE L'ARCHE, c'est le PLATEAU : en forme spectatrice le pont ne prend aucun
   // clic hors de son arche (le monde reste jouable pendant le tour d'un adversaire).
   const flancs = archeBox ? [archeBox.x / 2, (archeBox.right + window.innerWidth) / 2].map((x) => {
     const y = archeBox.y + archeBox.h / 2;
     const hit = document.elementFromPoint(x, Math.min(y, window.innerHeight - 1));
-    return { x: +x.toFixed(1), quoi: hit ? (hit.closest('.combat-console') ? 'pont' : (hit.closest('.iso-stage') ? 'plateau' : (hit.className || hit.tagName).toString().slice(0, 28))) : 'rien' };
+    return { x: +x.toFixed(1), quoi: hit ? (hit.closest('.combat-console') ? 'pont' : (hit.closest('.iso-stage') ? 'plateau' : nommer(hit).slice(0, 28))) : 'rien' };
   }) : [];
   // CONTRÔLES du pont : tout ce qu'un joueur doit pouvoir viser, plus les textes gravés dont la
   // coupe est un défaut de rendu (nom du porteur, libellés de plaque).
   const controles = [...document.querySelectorAll('.combat-console button, .combat-console .cc-arch-name, .combat-console [data-nom]')].map((e) => {
     const r = e.getBoundingClientRect();
-    return { quoi: (e.getAttribute('data-cell') || e.getAttribute('data-action') || e.className || e.tagName).slice(0, 28), rect: box(r) };
+    return { quoi: (e.getAttribute('data-cell') || e.getAttribute('data-action') || nommer(e)).slice(0, 28), rect: box(r) };
   });
   return {
     forme: pont ? pont.getAttribute('data-forme') : null,
@@ -166,7 +164,7 @@ const PROBE = `(() => {
       const a = document.querySelector('.cc-arch');
       if (!a) return null;
       const cs = getComputedStyle(a);
-      const enfants = [...a.children].map((e) => ({ q: (e.className || e.tagName).toString().slice(0, 22), h: +e.getBoundingClientRect().height.toFixed(1) }));
+      const enfants = [...a.children].map((e) => ({ q: nommer(e).slice(0, 22), h: +e.getBoundingClientRect().height.toFixed(1) }));
       const portrait = a.querySelector('.ptile');
       return { h: +a.getBoundingClientRect().height.toFixed(1), pad: cs.paddingTop + '/' + cs.paddingBottom, gap: cs.rowGap, enfants, portrait: portrait ? +portrait.getBoundingClientRect().height.toFixed(1) : null };
     })(),
@@ -208,12 +206,12 @@ const PROBE = `(() => {
 /** Amène le combat jusqu'aux CASES du tour d'un héros (le pont COMPLET). */
 async function jusquAuTourDuJoueur(session) {
   for (let i = 0; i < 6; i++) {
-    choixFaits.push(...(await resoudreModales(session, 'mise en place')));
+    await resoudreModales(session, 'mise en place', { dans: '.modal-overlay' });
     if (await evaluate(session, `!!document.querySelector('.combat-console button.cc-cell')`)) return;
     if (await evaluate(session, `!!document.querySelector(".cc-phase [data-action='round-start']:not(:disabled)")`)) {
       await ouvrirRound(session);
       await sleep(800);
-      choixFaits.push(...(await resoudreModales(session, 'ouverture de Round')));
+      await resoudreModales(session, 'ouverture de Round', { dans: '.modal-overlay' });
       continue;
     }
     await evaluate(session, AU_TOUR_DU_JOUEUR);
@@ -406,7 +404,7 @@ async function main() {
   try {
     await evaluate(session, `window.__wfrp.scenario('embuscade', 7)`);
     await sleep(1500);
-    choixFaits.push(...(await resoudreModales(session, 'ouverture')));
+    await resoudreModales(session, 'ouverture', { dans: '.modal-overlay' });
     // ── PASSE EXPLORATION, AVANT tout combat : le pont LÉGER porte le même invariant que le pont de
     //    combat, et c'est SOUS LUI que le défaut fondateur du ticket a été vu. Trois vues jugées.
     for (const [w, h] of VUES_EXPLORATION) {
@@ -436,7 +434,7 @@ async function main() {
     await setViewport(session, VUES[0][0], VUES[0][1]);
     await evaluate(session, `window.__wfrp.fight('enc-mutants')`);
     await sleep(1500);
-    choixFaits.push(...(await resoudreModales(session, 'ouverture de combat')));
+    await resoudreModales(session, 'ouverture de combat', { dans: '.modal-overlay' });
     await jusquAuTourDuJoueur(session);
     // STRESS : le CONTENU de l'arche dérive (une rangée de plus, un chrome mal calibré) SANS que sa
     // déclaration bouge, et on exige que la sonde le voie. Faire dériver le TOKEN ne prouverait
@@ -454,7 +452,7 @@ async function main() {
       // Chaque largeur repart du TOUR DU JOUEUR : les deux autres formes sont posées par-dessus.
       await evaluate(session, AU_TOUR_DU_JOUEUR);
       await sleep(300);
-      choixFaits.push(...(await resoudreModales(session, `largeur ${w}`)));
+      await resoudreModales(session, `largeur ${w}`, { dans: '.modal-overlay' });
       const formes = await mesurer(session, w);
       const z = formes['ouverture'];
       if (args.mesures && formes['pont complet'].arche) console.log(`    arche ${JSON.stringify(formes['pont complet'].arche)}`);
@@ -478,7 +476,6 @@ async function main() {
       }
     }
   } finally {
-    console.log(`\n${decrireChoix(choixFaits)}`);
     await session.close();
   }
 
@@ -503,7 +500,10 @@ Sonde RÉFUTABLE : +${args.stress}px dans l'arche produisent ${echecs.length} d�
   console.log('\nPont de console : aucune amputation, bande stable dans les trois formes, bandeau d’ouverture dégagé.');
 }
 
-main().catch((e) => {
-  console.error(`ERR ${e.message}`);
-  process.exit(1);
-});
+// La SONDE (`PROBE`) s'importe pour être testée en jsdom ; le script ne s'OUVRE que lancé en CLI.
+if (import.meta.main) {
+  main().catch((e) => {
+    console.error(`ERR ${e.message}`);
+    process.exit(1);
+  });
+}

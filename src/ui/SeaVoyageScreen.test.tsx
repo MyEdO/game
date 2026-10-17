@@ -8,6 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { SeaVoyageBody } from './SeaVoyageScreen';
 import type { TravelRecapDay } from '../state/travelFlow';
 import type { SeaRecapChrome } from '../state/seaVoyageFlow';
+import { t } from '../i18n';
 
 const chrome: SeaRecapChrome = {
   weatherLabel: 'Ciel dégagé', windForce: 'vent-modere', windFrom: 'ouest', heading: 'est',
@@ -30,5 +31,16 @@ describe('SeaVoyageBody — événement de bord raconté en carte-parchemin', ()
     expect(html).toContain('Calme plat');
     expect(html).toContain('Les vents vous abandonnent pour les prochains 1d10 jours.');
     expect(html).toContain('parchment-seal'); // sceau : tirage capturé
+  });
+});
+
+describe('SeaVoyageBody — vent relatif au cap (#1935)', () => {
+  it.each([
+    ['ouest', 'est', 'vent arrière'],
+    ['est', 'est', 'vent de face'],
+    ['nord', 'est', 'vent latéral'],
+  ] as const)('vent d%s, cap %s → cartouche « Vent relatif » = %s', (windFrom, heading, aspect) => {
+    const html = renderToStaticMarkup(<SeaVoyageBody day={{ ...day([]), sea: { ...chrome, windFrom, heading } }} />);
+    expect(html).toContain(`<span class="sc-label">${t('sv.ventRelatif')}</span><span class="sc-value">${aspect}</span>`);
   });
 });

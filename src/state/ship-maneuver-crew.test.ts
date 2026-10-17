@@ -25,8 +25,8 @@ describe('Manœuvre = Test d’équipage (MDG 14)', () => {
 
   it('deriveManeuverFromCrew : navDR = total équipage ; virage réussit si DR final ≥ 1 (ch.14)', () => {
     const ship = mkShip();
-    expect(deriveManeuverFromCrew(ship, 5).navDR).toBe(5);
-    expect(deriveManeuverFromCrew(ship, 20).success).toBe(true);  // large total → succès
-    expect(deriveManeuverFromCrew(ship, -20).success).toBe(false); // très négatif → le cap tient
+    expect(deriveManeuverFromCrew(ship, 5, 'maritime').navDR).toBe(5);
+    expect(deriveManeuverFromCrew(ship, 20, 'maritime').success).toBe(true);  // large total → succès
+    expect(deriveManeuverFromCrew(ship, -20, 'maritime').success).toBe(false); // très négatif → le cap tient
   });
 });

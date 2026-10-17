@@ -1,14 +1,17 @@
-// #2329
+// #2329, #2603
 import '../node-requis.mjs'
-import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { ciblesSurDisque, GENERATORS, generateursDeCode, genererCode, perimetreDesMixtes, SOURCES_LUES } from '../docs/build-all.mjs'
-import { correspondGlob } from '../guards/lib/lister.mjs'
+import { CODE_DIFFERE, GENERATORS, generateursDeCode } from '../docs/build-all.mjs'
+import { cheminsDeLEcrivain, preempterLesDerives } from '../docs/lib/ecrivain-derives.mjs'
 import { etapeProfilee } from '../etape-profilee.mjs'
-import { ceQuEmporteLIndex, ceQuiChange, depotDe, estAncetre, etatDeLArbre, fusionnesEnCours, parentsDe, racineDe, refusDeGit, shaDe, shaPrecedentDeHead } from '../guards/lib/gitPorte.mjs'
+import { ceQuEmporteLIndex, ceQuiChange, depotDe, estAncetre, fusionnesEnCours, parentsDe, racineDe, refusDeGit, shaDe, shaPrecedentDeHead, TIMEOUT_DU_HOOK_MS } from '../guards/lib/gitPorte.mjs'
 import { journaliserLeHook } from './journal.mjs'
-import { verrouOutillageDe } from '../hooks/barriere-outil.mjs'
+import { jouerLesMiroirs } from './miroirs-d-agents.mjs'
+import { attendreLaReconstruction, CODE_MORT_SANS_VERDICT, demanderLaReconstruction, ligneDeDemande } from './reconstruction.mjs'
+import { selectionDesGenerateurs, sourcesMesurees } from './selection-des-derives.mjs'
+import { gitDirDe, verrouOutillageDe } from '../hooks/barriere-outil.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
 
 /** L'attente du verrou d'outillage avant un `npm ci`. Valeur maison. */
@@ -49,132 +52,65 @@ export function lotDuPostMerge(cwd, { squash = false } = {}) {
   return panne ? null : lot
 }
 
-/** Consigne d'un arbre SANS mesure (worktree neuf) : ses docs purs sont absents, rien ne les a produits. */
-export const CONSIGNE_SANS_MESURE =
-  'docs dérivés absents ou non mesurés (docs/.sources-lues.json) : `npm run docs:build` les produit\n'
-
-/**
- * Décision de post-checkout (`avant`, `apres` : les HEAD que git passe au hook). HEAD immobile :
- * `rien` ; arbre sans mesure : `consigne` — un changement de branche ne bloque jamais sur un
- * `docs:build` complet ; sinon la sélection de post-merge (`touchesDocSources`). PURE.
- * @returns {'rien'|'consigne'|'regenerer'}
- */
-export function planDuCheckout({ avant, apres, mesure, lot }) {
-  if (avant === apres) return 'rien'
-  if (mesure === null) return 'consigne'
-  return touchesDocSources(lot, mesure) ? 'regenerer' : 'rien'
-}
-
-/** Les sources MESURÉES de l'arbre (`docs/.sources-lues.json`), ou `null` si le dérivé est illisible. */
-export function sourcesMesurees(racine) {
-  try { return JSON.parse(readFileSync(join(racine, SOURCES_LUES), 'utf8')) } catch { return null }
-}
-
-/** Les manifestes de dépendances : leurs lectures ne sont pas mesurées, un changement invalide toute
- *  sélection par lectures (docs dérivés, périmètre de tests). */
-export const LECTURES_DES_DEPENDANCES = Object.freeze(['package.json', 'package-lock.json', 'server/package.json', 'server/package-lock.json'])
-
-const parentDe = (chemin) => (chemin.includes('/') ? chemin.slice(0, chemin.lastIndexOf('/')) : '')
-
-/** Les dossiers qui contiennent `chemin`, du parent à la racine (`''`) comprise. */
-export function ancetresDe(chemin) {
-  const ancetres = [parentDe(chemin)]
-  while (ancetres.at(-1) !== '') ancetres.push(parentDe(ancetres.at(-1)))
-  return ancetres
+/** Les cibles de CODE de l'arbre `cwd` (`build-all --code --sans-certifier` de l'arbre, hors verrou des gestes
+ *  lourds) : REND son code de sortie. */
+const codeDeLArbre = (cwd) => {
+  const vu = spawnSync(process.execPath, [join(cwd, 'scripts/docs/build-all.mjs'), '--code', '--sans-certifier'], { cwd, stdio: ['ignore', 'inherit', 'inherit'] })
+  return vu.error ? 1 : vu.status ?? 1
 }
 
 /**
- * Vrai si le lot peut avoir périmé un doc dérivé. La réponse se DÉRIVE de la mesure
- * (`docs/.sources-lues.json`, #1773). Quatre façons, pour un lot, de périmer un doc dérivé :
- *   1. le chemin EST une source lue, ou une cible ;
- *   2. un de ses ANCÊTRES est un dossier LISTÉ — un fichier posé dans un dossier NEUF change le
- *      listing du premier ancêtre qui existait (#2193) ;
- *   3. son dossier parent contient déjà une source lue — c'est le frère AJOUTÉ ou RETIRÉ d'une
- *      source, que la mesure d'un générateur qui énumère sans lister ne peut pas dire autrement ;
- *   4. sans restriction par générateur, il vit sous `docs/`.
- * Lot inconnu ou mesure illisible → régénération conservatrice.
- * `seulement` (des `script` de `GENERATORS`) restreint la mesure aux entrées de ces générateurs ; un
- * membre SANS entrée fait régénérer, comme une mesure illisible (#2193).
+ * La partie SYNCHRONE d'un post-hook : le lot, puis, la passe des dérivés PRÉEMPTÉE (`preempterLesDerives`), les
+ * `npm ci` sous le verrou d'outillage et les cibles de CODE si la sélection (`selectionDesGenerateurs`) en
+ * contient un générateur sans `npm ci` racine ; enfin la DEMANDE de reconstruction (`demanderLaReconstruction`).
+ * REND `{ code, seq }` : `seq` le numéro demandé, `null` sans demande.
  */
-export function touchesDocSources(chemins, mesure, { seulement = null } = {}) {
-  if (chemins === null || mesure === null) return true
-  if (seulement && seulement.some((script) => !Object.hasOwn(mesure, script))) return true
-  const fichiers = new Set()
-  const dossiers = new Set()
-  const dossiersDeSources = new Set()
-  for (const e of seulement ? seulement.map((script) => mesure[script]) : Object.values(mesure)) {
-    for (const f of e.fichiers ?? []) {
-      fichiers.add(f)
-      dossiersDeSources.add(parentDe(f))
-    }
-    for (const c of e.cibles ?? []) fichiers.add(c)
-    for (const d of e.dossiers ?? []) dossiers.add(d)
-  }
-  return chemins.some((brut) => {
-    const chemin = brut.split('\\').join('/')
-    const parent = parentDe(chemin)
-    return fichiers.has(chemin) || (!seulement && chemin.startsWith('docs/')) || ancetresDe(chemin).some((a) => dossiers.has(a)) ||
-      (parent !== '' && dossiersDeSources.has(parent))
-  })
-}
-
-export function selectionDesGenerateurs({ lot, mesure, cwd, generateurs = GENERATORS, scriptsInitiaux = null }) {
-  const tous = (raison) => ({ scripts: generateurs.map((g) => g.script), complete: true, raison })
-  if (scriptsInitiaux === null && lot === null) return tous('plage Git inconnue')
-  if (scriptsInitiaux === null && lot.some((f) => LECTURES_DES_DEPENDANCES.includes(f))) return tous('toolchain modifiée : lectures des dépendances non mesurées')
-  if (!mesure || generateurs.some((g) => !Array.isArray(mesure[g.script]?.fichiers) || !Array.isArray(mesure[g.script]?.dossiers) || !Array.isArray(mesure[g.script]?.cibles))) return tous('mesure absente ou incomplète')
-  if (scriptsInitiaux === null && lot.some((f) => ['scripts/docs/build-all.mjs', 'scripts/git-hooks/docs-rebuild.mjs'].includes(f) || f.startsWith('scripts/docs/lib/'))) return tous('graphe ou outil de mesure modifié')
-  if (scriptsInitiaux === null && generateurs.some((g) => mesure[g.script].cibles.some((c) => !existsSync(join(cwd, c))) ||
-    [...g.targets, ...(g.injecte ?? [])].some((c) => !c.includes('*') && !existsSync(join(cwd, c))))) return tous('cible absente')
-  if (scriptsInitiaux && scriptsInitiaux.some((s) => !generateurs.some((g) => g.script === s))) return tous('générateur initial inconnu')
-  const selection = new Set(scriptsInitiaux ?? generateurs.filter((g) => touchesDocSources(lot, mesure, { seulement: [g.script] })).map((g) => g.script))
-  const sorties = (g) => [...g.targets, ...(g.injecte ?? [])]
-  let changement = true
-  while (changement) {
-    const avant = selection.size
-    if (generateursDeCode(generateurs).some((g) => selection.has(g.script)))
-      for (const g of perimetreDesMixtes(generateurs)) selection.add(g.script)
-    for (const g of generateurs) {
-      if (selection.has(g.script)) {
-        for (const producteur of generateurs)
-          if (producteur !== g && mesure[g.script].fichiers.some((f) => sorties(producteur).some((c) => correspondGlob(f, c)))) selection.add(producteur.script)
-        if (perimetreDesMixtes(generateurs).includes(g) && (g.injecte ?? []).length)
-          for (const code of generateursDeCode(generateurs)) selection.add(code.script)
-      } else if (generateurs.some((producteur) => selection.has(producteur.script) &&
-        (mesure[g.script].fichiers.some((f) => sorties(producteur).some((c) => correspondGlob(f, c))) ||
-          touchesDocSources(ciblesSurDisque(sorties(producteur), cwd), mesure, { seulement: [g.script] })))) selection.add(g.script)
-    }
-    changement = selection.size !== avant
-  }
-  return { scripts: generateurs.filter((g) => selection.has(g.script)).map((g) => g.script), complete: false, raison: 'sources mesurées et préalables' }
-}
-
-export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync, code = genererCode, docs = execFileSync, annoncer = (texte) => process.stderr.write(texte), horloge, generateurs = GENERATORS }) {
+export function reconstruireApresGit({
+  cwd, hook, avant, apres, npm = spawnSync, code = codeDeLArbre, demander = demanderLaReconstruction,
+  annoncer = (texte) => process.stderr.write(texte), horloge, mesurer = () => {}, generateurs = GENERATORS,
+}) {
+  const rendu = (sortie, seq = null) => ({ code: sortie, seq })
   let lot
   if (hook === 'post-commit') {
     const depot = depotDe(cwd, { enPanne: (_raison, vu) => annoncer(`[${hook}] lecture Git indisponible : ${refusDeGit(vu)}\n`) })
     const parents = parentsDe(depot, 'HEAD')
-    if (parents !== null && parents.length < 2) return 0
-    const nouveau = shaDe(depot, 'HEAD')
-    const ancien = shaPrecedentDeHead(depot)
-    lot = parents === null || nouveau === null || ancien === null ? null : touchedFiles(cwd, { de: ancien, a: nouveau })
+    if (parents !== null && parents.length < 2) lot = []
+    else {
+      const nouveau = shaDe(depot, 'HEAD')
+      const ancien = shaPrecedentDeHead(depot)
+      lot = parents === null || nouveau === null || ancien === null ? null : touchedFiles(cwd, { de: ancien, a: nouveau })
+    }
   } else lot = hook === 'post-checkout' ? (avant === apres ? [] : touchedFiles(cwd, { de: avant, a: apres }))
     : hook === 'post-merge' ? lotDuPostMerge(cwd, { squash: avant === '1' }) : touchedFiles(cwd)
   const mesure = sourcesMesurees(cwd)
-  const etape = (nom, geste) => etapeProfilee(`[${hook}] ${nom}`, geste, { annoncer, horloge })
+  const etape = (nom, geste) => etapeProfilee(`[${hook}] ${nom}`, geste, { annoncer, horloge, mesurer })
   if (hook === 'post-checkout' && avant === '0'.repeat(40) && mesure === null) {
     annoncer(`[${hook}] worktree neuf : préparation requise par ops:chantier (\`npm ci\`, \`npm --prefix server ci\`, \`npm run docs:build\`)\n`)
-    return 0
+    return rendu(0)
   }
-  const selection = selectionDesGenerateurs({ lot, mesure, cwd, generateurs })
-  const selectionnes = generateurs.filter((g) => selection.scripts.includes(g.script))
-  if (selection.scripts.length) annoncer(`[${hook}] docs : ${selection.complete ? 'génération complète' : 'sélection'} (${selection.scripts.length}/${generateurs.length}) — ${selection.raison}\n`)
   if (lot === null) annoncer(`[${hook}] plage Git inconnue : npm ci racine et server requis avant génération\n`)
-  let codeProduit = false
+  const installations = ['', 'server/'].filter((prefixe) => lot === null || lot.includes(`${prefixe}package-lock.json`))
+  const selection = generateurs.length ? selectionDesGenerateurs({ lot, mesure, cwd, generateurs }).scripts : []
+  const codeSelectionne = generateursDeCode(generateurs).some((g) => selection.includes(g.script))
+  if (installations.length || codeSelectionne) {
+    const ecrit = preempterLesDerives(cheminsDeLEcrivain(gitDirDe(cwd)), `docs-rebuild ${hook}`,
+      () => ecrireLesCibles({ cwd, hook, lot, installations, codeSelectionne, npm, code, annoncer, etape }))
+    if (typeof ecrit === 'object') annoncer(`[${hook}] écrivain des dérivés tenu à l'échéance : ${ecrit.refus} ; générations arrêtées\n`)
+    if (ecrit !== 0) return rendu(1)
+  }
+  if (!generateurs.length) return rendu(0)
+  const seq = demander(cwd)
+  annoncer(`[${hook}] docs dérivés : reconstruction en fond, demande ${seq} (\`node scripts/git-hooks/docs-rebuild.mjs ${hook} --attendre\` attend)\n`)
+  return rendu(0, seq)
+}
+
+/** Les `npm ci` de `installations` sous le verrou d'outillage, puis les cibles de CODE (`code`) si
+ *  `codeSelectionne` sans `npm ci` racine. REND 0, ou 1 au premier rouge, annoncé. */
+function ecrireLesCibles({ cwd, hook, lot, installations, codeSelectionne, npm, code, annoncer, etape }) {
   let outillage = null
+  let racineInstallee = false
   try {
-    for (const prefixe of ['', 'server/']) {
-      if (lot !== null && !lot.includes(`${prefixe}package-lock.json`)) continue
+    for (const prefixe of installations) {
       if (!existsSync(join(cwd, `${prefixe}package-lock.json`))) {
         if (lot?.includes(`${prefixe}package-lock.json`)) {
           annoncer(`[${hook}] lockfile ${prefixe}package-lock.json absent : réparer puis relancer \`npm ${prefixe ? '--prefix server ' : ''}ci\` ; générations arrêtées\n`)
@@ -194,38 +130,40 @@ export function reconstruireApresGit({ cwd, hook, avant, apres, npm = spawnSync,
         annoncer(`[${hook}] fusion effectuée, équipement incomplet : relancer \`${relance}\` dans ${cwd} (${vu?.error?.message ?? `code ${vu?.status}`}) ; générations arrêtées\n`)
         return 1
       }
-      if (!prefixe) codeProduit = true
+      if (!prefixe) racineInstallee = true
     }
   } finally {
     outillage?.liberer?.()
   }
-  if (!codeProduit && generateursDeCode(selectionnes).length > 0 && etape('cibles de code', () => code({ cwd, quiet: false, generateurs: selectionnes })) !== 0) {
-    annoncer(`[${hook}] génération de code interrompue : docs non régénérés\n`)
-    return 1
-  }
-  if (hook === 'post-checkout') {
-    const plan = planDuCheckout({ avant, apres, mesure, lot })
-    if (plan === 'consigne') annoncer(CONSIGNE_SANS_MESURE)
-    if (plan !== 'regenerer') return 0
-  }
-  if (!selection.scripts.length) return 0
-  try {
-    etape('docs dérivés', () => docs(process.execPath, ['scripts/docs/build-all.mjs', '--verifier-code', ...(selection.complete ? [] : ['--only', ...selection.scripts])], { cwd, stdio: 'inherit' }))
-  } catch (e) {
-    annoncer(`[${hook}] docs — régénération INTERROMPUE : corriger le diagnostic puis relancer \`npm run docs:build\` (${e.status ?? e.message})\n`)
-    return 1
-  }
-  const changed = etatDeLArbre(depotDe(cwd))
-    .filter((e) => e.etat !== '??' && e.etat[1] !== ' ' && e.chemins[0].startsWith('docs/'))
-    .map((e) => e.chemins[0])
-  if (changed.length) annoncer(`docs régénérés : à committer (${changed.length}) :\n${changed.map((f) => `  ${f}`).join('\n')}\n`)
-  return 0
+  if (racineInstallee || !codeSelectionne) return 0
+  const sortie = etape('cibles de code', () => code(cwd))
+  if (sortie === 0) return 0
+  annoncer(`[${hook}] cibles de code INTERROMPUES : corriger le diagnostic puis relancer \`npm run gen\` (code ${sortie}) ; générations arrêtées\n`)
+  return 1
 }
 
-function main([hook, avant, apres] = process.argv.slice(2)) {
-  journaliserLeHook(hook)
+/** Le code d'une reconstruction attendue (`attendreLaReconstruction`) : `CODE_DIFFERE` en cours à l'échéance. PURE. */
+export const codeDeLaPasse = (passe) => (passe.etat === 'en-cours' ? CODE_DIFFERE : passe.etat === 'mort' ? CODE_MORT_SANS_VERDICT : passe.code)
+
+/**
+ * UN processus par post-hook (#2603) : `jouerLesMiroirs` (sauf `post-checkout`), puis `reconstruireApresGit` ; une
+ * demande imprime `ligneDeDemande` sur stdout. `--attendre` attend la passe et rend son code.
+ */
+async function main(argv = process.argv.slice(2)) {
+  const attendre = argv.includes('--attendre')
+  const [hook, avant, apres] = argv.filter((a) => a !== '--attendre')
+  const journal = journaliserLeHook(hook)
+  if (hook !== 'post-checkout') await jouerLesMiroirs(hook)
   const cwd = racineDe(depotDe(process.cwd()))
-  if (cwd) process.exitCode = reconstruireApresGit({ cwd, hook, avant, apres })
+  if (!cwd) return
+  const { code, seq } = reconstruireApresGit({ cwd, hook, avant, apres, mesurer: journal.etape })
+  process.exitCode = code
+  if (seq === null) return
+  process.stdout.write(ligneDeDemande(seq))
+  if (!attendre) return
+  const passe = attendreLaReconstruction(cwd, seq, { echeanceMs: TIMEOUT_DU_HOOK_MS })
+  process.stderr.write(`[${hook}] reconstruction ${seq} : ${passe.etat}${passe.log ? `, journal ${passe.log}` : ''}\n`)
+  process.exitCode = codeDeLaPasse(passe)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) await main()

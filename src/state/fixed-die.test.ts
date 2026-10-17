@@ -43,7 +43,7 @@ function setupAttack(attackerOver: Partial<Combatant> = {}, targetOver: Partial<
     pendingAttack: {
       attackerId: attacker.id, targetId: target.id, location: null,
       result: {
-        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defender',
+        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: null,
         defenderDefeated: false, log: 'raté',
         attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 88, success: false, sl: -4 },
       } as never,
@@ -56,7 +56,7 @@ const attackRoll = () => useGame.getState().pendingAttack!.result!.attackerRoll;
 beforeEach(() => {
   resetDesFixes();
   useGame.setState({
-    pendingAttack: null, pendingDefense: null, pendingCast: null, pendingTrample: null, battle: null,
+    pendingAttack: null, pendingDefense: null, pendingCast: null, battle: null,
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
   });
 });
@@ -88,7 +88,7 @@ describe('option OFF — aucun sélecteur « dé fixé » nulle part, aucun effe
     const row = { actor: useGame.getState().battle!.combatants[0], rolled: true } as never;
     // La couture (`RollShell`) dérive pour TOUT flux : on l'interroge sur les six chemins historiques
     // ET sur des flux qui n'ont jamais eu de code picker — aucun ne doit offrir de dé fixé, option OFF.
-    for (const k of ['attack', 'defense', 'cast', 'trample', 'flee', 'cascade', 'reload', 'heal', 'surgery', 'test'] as const) {
+    for (const k of ['attack', 'defense', 'cast', 'flee', 'cascade', 'reload', 'heal', 'surgery', 'test'] as const) {
       const die = rowForcedDie(useGame.getState(), k, row, true);
       expect(die.forcedRoll?.fixed, k).toBeFalsy();
     }

@@ -1,4 +1,9 @@
-/** Le SUFFIXE d'une SUITE, source de regex SANS ancre (`.test.` + tous les dialectes du dépôt) :
+/** Le MOTIF d'une extension de script, source de regex SANS ancre : groupe NON CAPTURANT construit depuis
+ *  `EXTENSIONS_DE_SCRIPT` (`dialecte.mjs`), qui reconnaît exactement ces 8 fins. `SUFFIXE_SUITE`,
+ *  `SUFFIXE_INSTRUMENT` et `SUFFIXE_KIT` le composent. */
+export const MOTIF_D_EXTENSION: string;
+
+/** Le SUFFIXE d'une SUITE, source de regex SANS ancre (`.test.` + `MOTIF_D_EXTENSION`) :
  *  les sites qui ont besoin d'un motif PLUS LARGE (chemin, racine, nom dans la prose) le COMPOSENT
  *  au lieu de le recopier. `EST_SUITE_VITEST` en est DÉRIVÉ. */
 export const SUFFIXE_SUITE: string;
@@ -26,6 +31,15 @@ export const EST_SUITE_VITEST: RegExp;
  *  seulement » — sélectionner les suites, les compter, en refuser une dans une liste. Un banc répond
  *  NON : il n'est ni joué en suite ni de la production. */
 export function estSuiteVitest(rel: string): boolean;
+
+/** Le SUFFIXE d'un KIT de test (`.testkit.` + `MOTIF_D_EXTENSION`), source de `EST_KIT_DE_TEST`. */
+export const SUFFIXE_KIT: string;
+
+/** Un KIT de test en FIN de nom : ni une suite (`x.testkit.test.ts`), ni sa déclaration (`.testkit.d.mts`). */
+export const EST_KIT_DE_TEST: RegExp;
+
+/** Ce chemin désigne-t-il un KIT de test — ni joué, ni de la PRODUCTION ? */
+export function estKitDeTest(rel: string): boolean;
 
 /** Le séparateur d'un glob d'`include` : DOSSIER à gauche, FIN de nom à droite. */
 export const SEPARATEUR_GLOB: string;

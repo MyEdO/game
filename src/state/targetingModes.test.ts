@@ -147,6 +147,20 @@ describe('candidates des modes à liste', () => {
   });
 });
 
+// LDB 85 l.387 ; LDB 14 l.155.
+describe('réticule du Piétinement', () => {
+  it('le réticule nomme Corps à corps (Bagarre), la Spé que le jet tire', () => {
+    const { hero, e1 } = combat();
+    hero.size = 'grande';
+    hero.advantage = 2;
+    useGame.setState({ battle: { ...useGame.getState().battle! } });
+    useGame.getState().battleSelectAttack('pietinement');
+    const r = currentTargetingMode(useGame.getState).affordance!(useGame.getState, hero, e1);
+    expect(r.kind).toBe('ok');
+    expect((r as { skill: string }).skill).toBe('Corps à corps (Bagarre)');
+  });
+});
+
 describe('TILE_MODES — garde structurelle : aperçu non-vide sur une tuile valide (#198)', () => {
   beforeEach(() => { useGame.setState({ battle: null, party: [], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null }); });
 

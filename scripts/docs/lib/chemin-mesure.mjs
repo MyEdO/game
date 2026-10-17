@@ -9,9 +9,26 @@
 // Décision « ce chemin sous la racine entre-t-il dans la mesure ? » (#1769) — même feuille : la mesure
 // est celle du plan GIT. Ce que git IGNORE (un `__pycache__` posé par un script Python, `node_modules`)
 // n'est ni un fichier lu, ni un dossier listé, ni une entrée de listing : un clone propre ne l'a pas.
-import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import { cheminAbsent, correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
+import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
+
+const HOTE_PIPE = String.raw`[^\\/]+[\\/]pipe[\\/]`
+const SAUTS_VERS_DOSDEVICES = String.raw`(?:GLOBALROOT[\\/](?:\?\?|GLOBAL\?\?|DosDevices)[\\/]|Global[\\/])*`
+const PIPE_NOMME = new RegExp(String.raw`^[\\/]{2}(?:[.?][\\/]${SAUTS_VERS_DOSDEVICES}(?:pipe[\\/]|UNC[\\/]${HOTE_PIPE}|GLOBALROOT[\\/]Device[\\/](?:NamedPipe[\\/]|Mup[\\/](?:;[^\\/]*[\\/])*${HOTE_PIPE}))|${HOTE_PIPE})`, 'i')
+
+/**
+ * Chemin du namespace Windows des PIPES NOMMÉS, casse indifférente : un appel `fs` sur lui OUVRE le
+ * pipe, +1 connexion par appel (#2603). Formes mesurées : `\\<hôte>\pipe\` ; `\\.\` ou `\\?\`, des
+ * sauts de liens du gestionnaire d'objets (`GLOBALROOT\??`, `GLOBALROOT\GLOBAL??`,
+ * `GLOBALROOT\DosDevices`, `Global`), puis `pipe\` ou `UNC\<hôte>\pipe\` ; `GLOBALROOT\Device\NamedPipe\`
+ * et `GLOBALROOT\Device\Mup\[;<fournisseur>\]<hôte>\pipe\`. Faux hors de la plateforme win32 de
+ * `chemins` : le `node:path` de ce module, `path.win32` sous `plateforme-win32-hooks.mjs`.
+ */
+export function estPipeNomme(chemin, chemins = path) {
+  return chemins.sep === '\\' && PIPE_NOMME.test(chemin)
+}
 
 /** Ancêtre EXISTANT le plus proche d'un chemin absolu (lui-même s'il existe), ou `null` quand rien
  *  n'existe jusqu'à la racine (lecteur absent). */
@@ -21,7 +38,7 @@ export function ancetreExistant(abs, { strict = false } = {}) {
     if (strict) {
       try { fs.statSync(ancetre); return ancetre }
       catch (e) {
-        if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw new Error(`ancêtre illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
+        if (!cheminAbsent(e)) throw new Error(`ancêtre illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
       }
     } else if (fs.existsSync(ancetre)) return ancetre
     const parent = path.dirname(ancetre)
@@ -35,7 +52,7 @@ export function ancetreExistant(abs, { strict = false } = {}) {
  * et suit jonctions et noms courts 8.3. Un chemin ABSENT du disque (le fichier d'un Write de
  * création) se canonise par son ancêtre EXISTANT le plus proche, le reste recollé tel quel : la
  * jonction traversée en amont est suivie quand même (#1973). Sans `strict`, une lecture illisible
- * garde la forme lexicale ; avec `strict`, seuls ENOENT et ENOTDIR permettent la remontée.
+ * garde la forme lexicale ; avec `strict`, seul un ancêtre `cheminAbsent` permet la remontée.
  *
  * DIRECTION de ce que suivre une jonction change : un fichier lu SOUS la racine par une jonction qui
  * pointe HORS d'elle devient un chemin hors racine — il est compté REJETÉ, pas retenu (mesuré sur une
@@ -44,18 +61,59 @@ export function ancetreExistant(abs, { strict = false } = {}) {
  */
 export function canoniser(chemin, { strict = false } = {}) {
   const abs = path.resolve(chemin)
+  if (estPipeNomme(abs)) return abs
   let ancetre = ancetreExistant(abs, { strict })
   while (ancetre !== null) {
     try { return path.join(fs.realpathSync.native(ancetre), path.relative(ancetre, abs)) }
     catch (e) {
       if (!strict) return abs
-      if (!['ENOENT', 'ENOTDIR'].includes(e.code)) throw new Error(`canonisation physique illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
+      if (!cheminAbsent(e)) throw new Error(`canonisation physique illisible : ${ancetre} — ${e.code ?? e.message}`, { cause: e })
       const parent = path.dirname(ancetre)
       if (parent === ancetre) return abs
       ancetre = ancetreExistant(parent, { strict })
     }
   }
   return abs
+}
+
+/**
+ * `canoniser` (non strict) MÉMORISÉ PAR DOSSIER (#2603) : le dossier parent se canonise une fois, la
+ * feuille se cherche dans les noms mémorisés de ce dossier. Une feuille absente sous son nom exact,
+ * ou qui est un lien (jonction comprise), repasse par `canoniser`. `lien` est le verdict « lien »
+ * d'un `lstatSync` que l'appelant vient de faire sur la feuille (échec compris) : il remplace le
+ * sien. Une mémoire vit le temps d'UNE vue ou d'UNE mesure : le disque qu'elle a lu ne s'y relit plus.
+ */
+export function canoniseurParDossier() {
+  const dossiers = new Map()
+  const noms = new Map()
+  const dossierCanonique = (dossier) => {
+    let canonique = dossiers.get(dossier)
+    if (canonique === undefined) dossiers.set(dossier, (canonique = canoniser(dossier)))
+    return canonique
+  }
+  const nomsDe = (dossier) => {
+    let presents = noms.get(dossier)
+    if (presents === undefined) {
+      try { presents = new Set(listerDossier(dossier)) } catch { presents = new Set() }
+      noms.set(dossier, presents)
+    }
+    return presents
+  }
+  const estLien = (abs) => { try { return fs.lstatSync(abs).isSymbolicLink() } catch { return true } }
+  const canoniques = new Map()
+  const canoniserFeuille = (abs, lien) => {
+    if (estPipeNomme(abs)) return canoniser(abs)
+    const dossier = path.dirname(abs)
+    const feuille = path.basename(abs)
+    if (dossier === abs || !nomsDe(dossier).has(feuille) || (lien ?? estLien(abs))) return canoniser(abs)
+    return path.join(dossierCanonique(dossier), feuille)
+  }
+  return (chemin, lien) => {
+    const abs = path.resolve(chemin)
+    let canonique = canoniques.get(abs)
+    if (canonique === undefined) canoniques.set(abs, (canonique = canoniserFeuille(abs, lien)))
+    return canonique
+  }
 }
 
 /**
@@ -71,31 +129,29 @@ export function relatifSousRacine(racineCanonique, chemin, canoniserChemin = can
   return rel.split(path.sep).join('/')
 }
 
-/**
- * Chemins IGNORÉS par git sous la racine, en UNE invocation : `--directory` rend un dossier ignoré en
- * entier sous son seul nom (`scripts/raw/lib/__pycache__`), sans descendre dedans. Un fichier SUIVI
- * n'y figure jamais, même s'il répond à un motif de `.gitignore`. Coût mesuré (2026-09-26, worktree,
- * Windows, 10 appels) : 56 à 693 ms selon la charge, d'où un seul appel par `docs:build`, transmis aux processus mesurés.
- */
-export function ignoresGit(racine) {
-  const sortie = execFileSync(
-    'git',
-    ['-c', 'core.quotepath=false', 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'],
-    { cwd: racine, encoding: 'utf8', maxBuffer: 1 << 28 },
-  )
-  return new Set(sortie.split('\0').filter(Boolean).map((p) => p.replace(/\/$/, '')))
-}
+export const EXCLUSIONS_FIXES = ['.git', 'node_modules', path.posix.dirname(CACHE_FRAICHEUR)].sort()
 
-/**
- * Le chemin RELATIF POSIX (`relatifSousRacine`) entre-t-il dans la mesure ? Non s'il est ignoré par
- * git (`ignoresGit`), lui ou l'un de ses dossiers parents, ni s'il est sous `.git` — le dépôt lui-même,
- * que `ls-files` ne rend jamais. SEULE décision du périmètre : fichier lu, dossier listé et entrée de
- * listing passent tous ici.
- */
-export function dansLaMesure(rel, ignores) {
-  if (rel === '.git' || rel.startsWith('.git/')) return false
+/** Segment qu'aucun chemin suivi ne porte, à toute profondeur (`git help gitrepository-layout`). */
+const SEGMENT_GIT = '.git'
+
+/** #2475 / #2477 */
+export function dansLaMesure(rel, ignores, derivees = new Set(), motifsDeclares = []) {
+  if (EXCLUSIONS_FIXES.some((p) => rel === p || rel.startsWith(`${p}/`))) return false
+  if (rel.split('/').includes(SEGMENT_GIT)) return false
+  if (motifsDeclares.some((motif) => correspondGlob(rel, motif))) return true
+  if (derivees.has(rel)) return true
+  const prefixe = `${rel}/`
+  for (const p of derivees) if (p.startsWith(prefixe)) return true
   for (let fin = rel.length; fin > 0; fin = rel.lastIndexOf('/', fin - 1)) if (ignores.has(rel.slice(0, fin))) return false
   return true
 }
 
-export const CONTRATS_DE_DERIVATION = [{ fonction: ancetreExistant, lectures: 'corpus' }, { fonction: canoniser, lectures: 'corpus' }]
+export function projeterListingMesure(rel, snapshot, ignores, derivees = new Set(), propres = [], motifsDeclares = []) {
+  if (!snapshot || !['directory', 'absent', 'other'].includes(snapshot.nature) || !Array.isArray(snapshot.entrees)) throw new Error('listing sans photographie typée')
+  return { nature: snapshot.nature, entrees: snapshot.entrees.filter((e) => {
+    const chemin = rel ? `${rel}/${e.nom}` : e.nom
+    return dansLaMesure(chemin, ignores, derivees, motifsDeclares) && !(e.nature === 'file' && propres.some((motif) => correspondGlob(chemin, motif)))
+  }) }
+}
+
+export const CONTRATS_DE_DERIVATION = [{ fonction: ancetreExistant, lectures: 'corpus', retour: 'corpus' }, { fonction: canoniser, lectures: 'corpus', retour: 'corpus' }]

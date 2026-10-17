@@ -18,7 +18,7 @@
  *
  *   `score = clamp01( skillPart + talentPart × TALENT_BONUS_WEIGHT )`
  *   - skillPart = la MEILLEURE (`Math.max`, un pic de spécialisation) valeur normalisée parmi les
- *     `skills` GATÉES par `possesses` (`skillCombatApps.ts` — SOURCE UNIQUE de la distinction
+ *     `skills` GATÉES par `possesses` (`skills.ts` — SOURCE UNIQUE de la distinction
  *     Base/Avancée, réutilisée telle quelle, jamais réimplémentée) : Compétence de Base → toujours
  *     testable (Caractéristique nue + avances éventuelles) ; Compétence Avancée SANS Augmentation →
  *     EXCLUE (contribution 0, jamais un repli sur la Caractéristique). La valeur RETENUE est
@@ -45,8 +45,8 @@
  */
 import type { Combatant } from './types';
 import { skillBaseValue } from './skills';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import { possesses } from './skillCombatApps';
+import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { possesses } from './skills';
 import type { AxisData } from '../data';
 
 const SKILL_VALUE_MIN = 15;
@@ -68,8 +68,7 @@ function skillContribution(hero: Combatant, ref: RefDesignee): number {
 function talentContribution(hero: Combatant, ref: RefDesignee): number {
   let best = 0;
   for (const t of hero.talents) {
-    if (t.talentId !== ref.id) continue;
-    if (ref.spec && t.spec !== ref.spec) continue;
+    if (!refCouvre(ref, { id: t.talentId, spec: t.spec })) continue;
     best = Math.max(best, Math.min(1, TALENT_BASE + TALENT_STEP * (Math.max(1, t.times) - 1)));
   }
   return best;

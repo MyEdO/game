@@ -5,7 +5,7 @@ export const meta = {
     { title: 'Cadrage', detail: 'auto-decouverte des chapitres du domaine (index)', model: 'sonnet' },
     { title: 'Cartographie', detail: 'inventaire exhaustif a couvrir', model: 'sonnet' },
     { title: 'Taxonomie', detail: 'topics couvrant tout l inventaire', model: 'opus' },
-    { title: 'Survey', detail: 'consolidation de tous les livres du perimetre', model: 'haiku/sonnet' },
+    { title: 'Survey', detail: 'consolidation de tous les livres du perimetre', model: 'sonnet' },
     { title: 'Synthese', detail: 'entrees autosuffisantes, tables verbatim', model: 'opus' },
     { title: 'Audit', detail: 'completude+dedup en boucle (loop-until-dry)', model: 'opus' },
     { title: 'Correction', detail: 'augmentation des entrees : trous d audit, infidelites', model: 'opus' },
@@ -101,7 +101,7 @@ const MAPPING_LIVRES = BOOKS.map((b) => '- ' + b.ab + ' = ' + b.dir + ' (langue 
 const LECTURE_SEULE = 'LECTURE SEULE — tu n ECRIS, ne modifies, ne crees et ne supprimes AUCUN fichier, nulle part : ni un fichier de source, ni une fiche, ni un brouillon, ni un scratch. Lire et rendre ta reponse structuree sont tes SEULS gestes.'
   + '\n' + 'Un passage de la source TRONQUE, fusionne, duplique ou visiblement abime ne se REPARE JAMAIS : tu le SIGNALES dans le champ `sourceAbimee` de ta reponse ([{ ref, constat }]), et tu cites la regle TELLE QUE le fichier la porte, troncature comprise. Reparer la source que tu cites, c est fabriquer ta preuve.'
 // Types d agent en LECTURE SEULE declares au depot (`.claude/agents/`) : leurs outils n incluent ni
-// Edit ni Write. REPERER et REDIGER lisent (`lecteur`) ; JUGER la completude ou la fidelite refute
+// Edit ni Write. REPERER lit (`lecteur`) ; REDIGER redige (`redacteur`) ; JUGER la completude ou la fidelite refute
 // (`juge`). Regime de chaque phase : `scripts/ops/workflows.test.mjs`.
 /** Les signalements de source ABIMEE du domaine COURANT. */
 let ABIMEES = []
@@ -127,7 +127,7 @@ const slug = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().rep
 // Le SIGNALEMENT d une source abimee : le champ que la clause de lecture seule promet a l agent.
 // Hors `required` — la plupart des passages vont bien, et un champ exige ferait inventer un constat.
 const ABIMEE = { type: 'array', items: { type: 'object', properties: { ref: { type: 'string' }, constat: { type: 'string' } }, required: ['ref', 'constat'] } }
-const CADRAGE_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, coverageRefs: { type: 'array', items: { type: 'object', properties: { ab: { type: 'string' }, nn: { type: 'string' } }, required: ['ab', 'nn'] } }, sonnetBooks: { type: 'array', items: { type: 'string' } } }, required: ['coverageRefs', 'sonnetBooks'] }
+const CADRAGE_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, coverageRefs: { type: 'array', items: { type: 'object', properties: { ab: { type: 'string' }, nn: { type: 'string' } }, required: ['ab', 'nn'] } } }, required: ['coverageRefs'] }
 const INVENTORY_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, items: { type: 'array', items: { type: 'object', properties: { item: { type: 'string' }, kind: { type: 'string' }, ref: { type: 'string' }, gist: { type: 'string' } }, required: ['item', 'ref'] } } }, required: ['items'] }
 const TAXO_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, topics: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, t: { type: 'string' }, hint: { type: 'string' }, covers: { type: 'array', items: { type: 'string' } } }, required: ['id', 't', 'hint'] } } }, required: ['topics'] }
 const SURVEY_SCHEMA = { type: 'object', additionalProperties: false, properties: { sourceAbimee: ABIMEE, hits: { type: 'array', items: { type: 'object', properties: { topicId: { type: 'string' }, ref: { type: 'string' }, gist: { type: 'string' } }, required: ['topicId', 'ref', 'gist'] } } }, required: ['hits'] }
@@ -156,8 +156,8 @@ function cadragePrompt(dom) {
     + '\n' + MAPPING_LIVRES
     + '\n\n' + 'Les domaines de l Atlas — le TIEN est "' + dom.domain + '" ; les chapitres-FOYERS de tout AUTRE domaine sont HORS de ton perimetre :'
     + '\n' + CARTE_DOMAINES
-    + '\n\n' + 'Renvoie coverageRefs = SEULEMENT le(s) chapitre(s) DEDIE(s) au domaine (1 a 3 MAXIMUM, nn = prefixe du fichier). EXCLUS imperativement tout chapitre qui est le FOYER d un AUTRE domaine de la liste ci-dessus : ces regles voisines seront cross-referencees en « Voir aussi », jamais re-couvertes ici. Ajoute uniquement un chapitre de SUPPLEMENT vraiment dedie au domaine (p. ex. un systeme alternatif). Le but est un domaine ETROIT, sans chevauchement. sonnetBooks = livres DENSES pour CE domaine.'
-    + '\n' + 'Renvoie { coverageRefs, sonnetBooks }.'
+    + '\n\n' + 'Renvoie coverageRefs = SEULEMENT le(s) chapitre(s) DEDIE(s) au domaine (1 a 3 MAXIMUM, nn = prefixe du fichier). EXCLUS imperativement tout chapitre qui est le FOYER d un AUTRE domaine de la liste ci-dessus : ces regles voisines seront cross-referencees en « Voir aussi », jamais re-couvertes ici. Ajoute uniquement un chapitre de SUPPLEMENT vraiment dedie au domaine (p. ex. un systeme alternatif). Le but est un domaine ETROIT, sans chevauchement.'
+    + '\n' + 'Renvoie { coverageRefs }.'
     + '\n' + LECTURE_SEULE
 }
 
@@ -264,7 +264,7 @@ async function applyGaps(dom, entries, gaps) {
     const existing = info.isNew ? null : entries.find((e) => e.topicId === info.topicId)
     const title = info.isNew ? info.title : (existing ? existing.title : info.topicId)
     const tid = info.isNew ? slug(info.title) : info.topicId
-    return agent(augmentPrompt(dom, existing ? existing.markdown : null, title, tid, info.gaps), { label: dom.domain + ':augment:' + tid, phase: 'Correction', agentType: 'lecteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
+    return agent(augmentPrompt(dom, existing ? existing.markdown : null, title, tid, info.gaps), { label: dom.domain + ':augment:' + tid, phase: 'Correction', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
       .then((rendu) => ficheDe(recolter(rendu, 'Correction'), tid))
   }))
   const map = new Map(entries.map((e) => [e.topicId, e]))
@@ -375,8 +375,7 @@ async function runDomain(domain) {
   recolter(cad, 'Cadrage')
   const COVERAGE = (cad && cad.coverageRefs) || []
   if (!COVERAGE.length) return { saute: 'cadrage VIDE : aucun chapitre dedie rendu par l agent de cadrage' }
-  const SONNET = new Set([REFERENCE.ab, ...((cad && cad.sonnetBooks) || [])])
-  log(dom.title + ' — cadrage : ' + COVERAGE.map((r) => r.ab + r.nn).join(',') + ' ; denses=' + [...SONNET].join(','))
+  log(dom.title + ' — cadrage : ' + COVERAGE.map((r) => r.ab + r.nn).join(','))
 
   phase('Cartographie')
   const invRes = await parallel(COVERAGE.map((r) => () => agent(cartoPrompt(dom, r), { label: dom.domain + ':carto:' + r.ab + '-' + r.nn, phase: 'Cartographie', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: INVENTORY_SCHEMA })
@@ -387,23 +386,15 @@ async function runDomain(domain) {
   log(dom.title + ' — inventaire : ' + inventory.length + ' elements')
 
   phase('Taxonomie')
-  const taxo = await agent(taxoPrompt(dom, inventory), { label: dom.domain + ':taxo', phase: 'Taxonomie', agentType: 'lecteur', model: 'opus', effort: 'medium', schema: TAXO_SCHEMA })
+  const taxo = await agent(taxoPrompt(dom, inventory), { label: dom.domain + ':taxo', phase: 'Taxonomie', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: TAXO_SCHEMA })
   recolter(taxo, 'Taxonomie')
   const TOPICS = (taxo && taxo.topics) || []
   if (!TOPICS.length) return { saute: 'taxonomie VIDE : aucun topic decoupe sur ' + inventory.length + ' elements inventories' }
   log(dom.title + ' — ' + TOPICS.length + ' topics')
 
   phase('Survey')
-  const surveyRes = await parallel(BOOKS.map((b) => () => {
-    // Livre DENSE pour ce domaine (cadrage) : sonnet ; les autres, haiku.
-    if (SONNET.has(b.ab)) {
-      return agent(surveyPrompt(dom, b, TOPICS), { label: dom.domain + ':survey:' + b.ab, phase: 'Survey', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: SURVEY_SCHEMA })
-        .then((rendu) => recolter(rendu, 'Survey'))
-    } else {
-      return agent(surveyPrompt(dom, b, TOPICS), { label: dom.domain + ':survey:' + b.ab, phase: 'Survey', agentType: 'lecteur', model: 'haiku', effort: 'medium', schema: SURVEY_SCHEMA })
-        .then((rendu) => recolter(rendu, 'Survey'))
-    }
-  }))
+  const surveyRes = await parallel(BOOKS.map((b) => () => agent(surveyPrompt(dom, b, TOPICS), { label: dom.domain + ':survey:' + b.ab, phase: 'Survey', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: SURVEY_SCHEMA })
+    .then((rendu) => recolter(rendu, 'Survey'))))
   const byTopic = {}
   TOPICS.forEach((t) => { byTopic[t.id] = [] })
   const autre = []
@@ -411,7 +402,7 @@ async function runDomain(domain) {
   log(dom.title + ' — survey : ' + Object.values(byTopic).reduce((n, a) => n + a.length, 0) + ' passages ; ' + autre.length + ' hors-taxo')
 
   phase('Synthese')
-  let entries = (await parallel(TOPICS.map((t) => () => agent(synthPrompt(dom, t, byTopic[t.id] || [], t.covers), { label: dom.domain + ':synth:' + t.id, phase: 'Synthese', agentType: 'lecteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
+  let entries = (await parallel(TOPICS.map((t) => () => agent(synthPrompt(dom, t, byTopic[t.id] || [], t.covers), { label: dom.domain + ':synth:' + t.id, phase: 'Synthese', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA })
     .then((rendu) => ficheDe(recolter(rendu, 'Synthese'), t.id))))).filter(Boolean)
 
   let loops = 0

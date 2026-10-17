@@ -1,6 +1,6 @@
 /**
- * RÉSOLVEUR D'AIRE des munitions/armes à effet de zone — SOURCE UNIQUE partagée par le tir individuel
- * (`combatFlow.applyAttackResult`) ET la bordée navale (`combatSlice.shipBatteryConfirm`). Module FEUILLE
+ * RÉSOLVEUR D'AIRE des munitions/armes à effet de zone — SOURCE UNIQUE, appelée par la couture du coup
+ * (`combatFlow.applyAttackResult`), bordée comprise, et par le pilonnage indirect. Module FEUILLE
  * (convention « baril ») : n'importe RIEN de combatFlow ; combatFlow le ré-exporte (`export * from './combatArea'`).
  *
  * Lit GÉNÉRIQUEMENT les capacités d'arme (`resolveQualities` → `caps`) — aucun id d'arme ni chemin naval bespoke :
@@ -14,9 +14,10 @@
  *
  * SOURCE DES CIBLES SECONDAIRES — DEUX branches PROPRES dans `areaTargets`, dispatchées sur la NATURE de la
  * cible primaire (composition LITTÉRALE de deux règles RAW, aucune invention) :
- *  - **cible = personnage (terre)** : rayon métrique Chebyshev autour de la cible, converti à l'échelle de la
- *    scène (`metresPerTile`, 2 m person-scale) — PAS le « 2 m » codé en dur ;
- *  - **cible = navire (mer, `bodyShape:'vehicule'`)** : COMPOSITION de MDG 13 (un coup à la Localisation
+ *  - **cible qui n'est pas un navire** (personnage, créature, véhicule routier — EDOC 07 l.332 « résolues
+ *    normalement ») : rayon métrique Chebyshev autour de la cible, converti à l'échelle de la scène
+ *    (`metresPerTile`, 2 m person-scale) — PAS le « 2 m » codé en dur ;
+ *  - **cible = navire (`estNavire`)** : COMPOSITION de MDG 13 l.584 (un coup à la Localisation
  *    « Équipage » touche un marin EXPOSÉ « comme un combat normal ») × MDG 12 l.466-472 / LDB 62 l.254 (Tir de
  *    zone ajoute les Indice plus proches ; Explosion touche tous dans le rayon) → l'aire balaie l'ÉQUIPAGE
  *    EXPOSÉ du navire (`exposedCrew`, MÊME précédent que les Éclats d'un Critique de coque), car à l'échelle
@@ -27,6 +28,7 @@
  */
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Combatant, Weapon, HitLocation } from '../engine/types';
+import { estNavire } from '../engine/coque';
 import { woundsFromHit, rangeBandName } from '../engine/combat';
 import { sceneMetresPerTile } from './scene';
 import { bonus, effectiveChar } from '../engine/characteristics';
@@ -92,19 +94,16 @@ export function blastRadiusTiles(weapon: Weapon, metresPerTile: number): number 
   return indice > 0 ? metresToTiles(indice, metresPerTile) : 0;
 }
 
-/** Un porteur de navire (carène) — détecté par `bodyShape:'vehicule'` (≠ personnage). */
-const isShip = (c: Combatant): boolean => c.bodyShape === 'vehicule';
-
 /**
  * SOURCE des cibles secondaires — DEUX branches RAW (cf. en-tête) dispatchées sur la cible primaire :
- *  - personnage → les combattants vivants d'un AUTRE camp que l'attaquant à ≤ `indice` mètres (Chebyshev, échelle `metresPerTile`), du plus proche au plus loin ;
- *  - navire (`bodyShape:'vehicule'`) → son ÉQUIPAGE EXPOSÉ (`crewOf` → `exposedCrew`) ; le rayon métrique ne
+ *  - autre qu'un navire → les combattants vivants d'un AUTRE camp que l'attaquant à ≤ `indice` mètres (Chebyshev, échelle `metresPerTile`), du plus proche au plus loin ;
+ *  - navire (`estNavire`) → son ÉQUIPAGE EXPOSÉ (`crewOf` → `exposedCrew`) ; le rayon métrique ne
  *    s'applique pas (10 m/case → < 1 case). Le plafond d'Indice (Tir de zone) est appliqué par `resolveWeaponArea`.
  * `crewOf` résout les `crewIds` d'un navire en combattants (le caller le fournit ; combatFlow renvoie [] : pas d'équipage en person-scale).
  */
 export function areaTargets(combatants: Combatant[], metresPerTile: number, crewOf: (ship: Combatant) => Combatant[] = () => []): (indice: number) => AreaTargets {
   return (indice) => (hit) => {
-    if (hit.primaryTarget && isShip(hit.primaryTarget)) return exposedCrew(crewOf(hit.primaryTarget)); // mer : balaie le pont (Éclats-like)
+    if (hit.primaryTarget && estNavire(hit.primaryTarget)) return exposedCrew(crewOf(hit.primaryTarget)); // MDG 13 l.584
     // Centre : le point d'impact CHOISI (pilonnage indirect) sinon la position de la primaire (tir direct/bordée).
     const center = hit.center ?? hit.primaryTarget?.pos;
     if (!center) return [];

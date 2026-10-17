@@ -15,11 +15,10 @@ import { describe, it, expect } from 'vitest';
 import type { RNG } from './dice';
 import { toBrass } from './money';
 import { AVAILABILITIES } from './types';
-import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, bankWithdrawOutcome, statusIncome, ACTIVITIES, activitiesFor, activityById, resolveTravelActivity,
-  resolveStageActivities, aggregateActivityOutcomes, STAGE_OUTCOME_AGG, type TravelActivityResult,
+import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, bankWithdrawOutcome, statusIncome, ACTIVITIES, activitiesFor, activityById,
+  aggregateActivityOutcomes, STAGE_OUTCOME_AGG, type TravelActivityResult,
   defaultTravelRole, stageAssignmentFromRoles, matchOutcomes, activityAvailableAt } from './activities';
 import { byId } from '../data';
-import { testValue } from './skills';
 
 function seq(values: number[]): RNG {
   let i = 0;
@@ -90,7 +89,6 @@ describe('statusIncome — « Gagner de l’argent grâce au Statut » (LDB 08 l
 // ── Catalogues UI (sélecteurs alimentés par la donnée — audit POC→produit) ──────────────────
 import { craftSpecOf, craftCatalog, learnableTalents, orderBlockOf, orderCatalog, tutorCostRange, metierOf } from './activities';
 import { createHero } from './character';
-import { makeRNG } from './dice';
 import { findTrappingById, skillInstanceLabel, talentConcrete, trappings } from '../data';
 import { priceToMoney } from './money';
 
@@ -191,7 +189,7 @@ describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.
   });
   it('metierOf : Compétence Métier avec avances seulement', () => {
     expect(metierOf(hero)).toBeUndefined();
-    hero.skills.push({ id: 'metier', spec: 'Forgeron', characteristic: 'dexterite', advances: 5 });
+    hero.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 5 });
     expect(skillInstanceLabel(metierOf(hero)!)).toBe('Métier (Forgeron)');
   });
 });
@@ -221,7 +219,7 @@ describe('catalogue d’Activités data-driven (activities.json)', () => {
 
   it('chaque Activité a un mode de Test cohérent (skills, freeSkill, ou sans Test)', () => {
     for (const a of activitiesFor('voyage')) {
-      const hasTest = (a.skills?.length ?? 0) > 0 || a.freeSkill === true;
+      const hasTest = (a.skills?.length ?? 0) > 0 || (a.freeSkill?.length ?? 0) > 0;
       // Une Activité sans Test (Récupérer) ne déclare pas failExtenue (pas de jet à rater).
       if (!hasTest) expect(a.failExtenue, a.id).toBeUndefined();
       else expect(a.failExtenue, a.id).toBe(true);
@@ -238,75 +236,11 @@ describe('catalogue d’Activités data-driven (activities.json)', () => {
   });
 });
 
-describe('resolveTravelActivity — résolveur PUR par POSTE (un héros désigné, EDOC 8 l.131)', () => {
-  const mk = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
-
-  it('Activité SANS Test (Récupérer) : succès direct + stageOutcome pour l’acteur désigné', () => {
-    const hero = mk();
-    const r = resolveTravelActivity(hero, activityById('recuperer')!, makeRNG(1));
-    expect(r.success).toBe(true);
-    expect(r.stageOutcome).toBe('countsAsRest');
-    expect(r.actorId).toBe(hero.id); // le poste a TOUJOURS un titulaire désigné
-    expect(r.ops).toEqual([]);
-  });
-
-  it('cohérence du Test : success ⇔ roll ≤ target ; échec ⇒ Exténué POUR CET acteur (l.133)', () => {
-    const hero = mk();
-    const r = resolveTravelActivity(hero, activityById('rester-aux-aguets')!, makeRNG(42));
-    expect(r.actorId).toBe(hero.id);
-    expect(r.success).toBe((r.roll ?? 999) <= (r.target ?? 0));
-    expect(r.extenue).toBe(!r.success); // rester-aux-aguets a failExtenue
-    if (r.success) expect(r.stageOutcome).toBe('noSurprise');
-  });
-
-  it('compétence « au choix » spec-aware : la MEILLEURE de L’ACTEUR l’emporte (Cartographe vs Dessin)', () => {
-    const hero = mk();
-    hero.skills.push({ id: 'metier', spec: 'cartographe', characteristic: 'dexterite', advances: 60 });
-    hero.skills.push({ id: 'art', spec: 'dessin', characteristic: 'dexterite', advances: 10 });
-    const r = resolveTravelActivity(hero, activityById('etablir-cartes')!, makeRNG(5), { stages: 3 });
-    // cible = meilleure des DEUX spec de l'acteur (Cartographe +60 > Dessin +10), Difficulté Intermédiaire (+0).
-    // Les specs se demandent par ID (#1341) : par libellé, `testValue` ne trouvait RIEN et l'attendu
-    // tombait sur la caractéristique nue — l'égalité tenait entre deux valeurs FAUSSES.
-    const expected = Math.max(
-      testValue(hero, 'metier', undefined, 'cartographe'),
-      testValue(hero, 'art', undefined, 'dessin'),
-    );
-    expect(r.target).toBe(expected);
-    expect(r.drTarget).toBe(6); // Test étendu : drPerStage(2) × Étapes(3)
-  });
-
-  it('Approvisionnement : passe par le résolveur bespoke « forage » (réutilise forageYield)', () => {
-    const r = resolveTravelActivity(mk(), activityById('approvisionnement')!, makeRNG(9));
-    expect(r.resolver).toBe('forage');
-  });
-
-  it('le modificateur de compétence (météo) décale la cible du Test', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 2 });
-    const a = resolveTravelActivity(hero, activityById('plein-air')!, makeRNG(7), { skillMod: 0 });
-    const b = resolveTravelActivity(hero, activityById('plein-air')!, makeRNG(7), { skillMod: -30 });
-    expect(b.target, 'prémisse : la cible −30 reste au-dessus du plancher de 1').toBeGreaterThan(1);
-    expect((a.target ?? 0) - (b.target ?? 0)).toBe(30); // même jet, cible −30
-  });
-});
-
-describe('postes d’Étape : assignation héros → Activité + agrégation (EDOC 8 l.131)', () => {
-  const mk = (n: string) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: n, seed: 3 });
-
+describe('postes d’Étape : agrégation des issues (EDOC 8 l.131)', () => {
   it('toute issue d’ACTIVITÉ de voyage a une classification d’agrégation', () => {
     for (const a of activitiesFor('voyage')) {
       if (a.stageOutcome) expect(STAGE_OUTCOME_AGG[a.stageOutcome], `${a.id} → ${a.stageOutcome}`).toBeDefined();
     }
-  });
-
-  it('un héros tient au plus un poste ; un héros sans poste ou un poste inconnu sont ignorés', () => {
-    const a = mk('A'), b = mk('B'), c = mk('C');
-    const res = resolveStageActivities([a, b, c], {
-      [a.id]: { activityId: 'rester-aux-aguets' },
-      [b.id]: { activityId: 'rester-aux-aguets' }, // 2 héros au MÊME poste : OK
-      [c.id]: { activityId: 'activite-fantome' },   // poste inconnu : ignoré
-      // (un 4e héros non listé n'aurait simplement pas de poste)
-    }, makeRNG(11));
-    expect(res.map((r) => r.actorId).sort()).toEqual([a.id, b.id].sort());
   });
 
   it('agrégation : porte (1 succès suffit) / cumul (Σ DR) / individuel (par héros)', () => {
@@ -339,17 +273,26 @@ describe('rôle de marche persistant (travelRole) — « les mêmes au même pos
     expect(['plein-air', 'approvisionnement', 'monter-camp']).toContain(defaultTravelRole(survivant));
   });
 
+  // EDOC 8 l.131 ; LDB 09 l.30 ; #2588.
+  it('defaultTravelRole : un héros qui ne peut tenter aucun poste n’en reçoit aucun d’office', () => {
+    const ko = mk('K');
+    ko.skills.push({ id: 'perception', characteristic: 'initiative', advances: 80 });
+    ko.conditions.push({ id: 'inconscient', value: 1 });
+    expect(defaultTravelRole(ko)).toBeNull();
+    expect(stageAssignmentFromRoles([ko])).toEqual({});
+  });
+
   it("l'assignation d'Étape est initialisée depuis les rôles (0 clic) ; travelRole épinglé prime", () => {
     const a = mk('A'), b = mk('B');
     a.skills.push({ id: 'perception', characteristic: 'initiative', advances: 80 });
-    b.travelRole = 'recuperer'; // épinglé par le joueur → prime sur l'inférence
+    b.travelRole = { activityId: 'recuperer' }; // épinglé par le joueur → prime sur l'inférence
     const asg = stageAssignmentFromRoles([a, b]);
     expect(asg[a.id].activityId).toBe('rester-aux-aguets'); // inféré
     expect(asg[b.id].activityId).toBe('recuperer');         // épinglé
   });
 
   it('le rôle persistant se répète : même assignation à chaque Étape sans ré-saisie', () => {
-    const a = mk('A'); a.travelRole = 'approvisionnement';
+    const a = mk('A'); a.travelRole = { activityId: 'approvisionnement' };
     const s1 = stageAssignmentFromRoles([a]);
     const s2 = stageAssignmentFromRoles([a]); // « étape suivante » : aucun nouveau choix
     expect(s2).toEqual(s1);

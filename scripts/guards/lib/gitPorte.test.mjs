@@ -12,16 +12,18 @@ import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
-  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, dossierGitCommun, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, urlOrigineAcceptee, worktreesDe,
+  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, dossierGitCommun, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
+  fusionner, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refsDistantes, objetsNommes, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, tetesDistantes, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
+import { estRepertoire, natureDuChemin } from './natureDuChemin.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
 import { listerDossier, parUnitesDeCode } from './lister.mjs'
 import { gitDe, lancerGit, lancesDeGit, sousCommande } from '../../test/gitDeBanc.mjs'
 import { createHash } from 'node:crypto'
-import { relireRequeteMesuree, normaliserRequeteMesuree } from './gitPorte.mjs'
+import { relireRequeteMesuree } from './gitPorte.mjs'
+import { normaliserRequeteMesuree } from './requeteMesuree.mjs'
 
 test('mesure 2456 : requêtes de cache hostiles refusées avant tout processus', () => {
   let appels = 0
@@ -65,6 +67,108 @@ const depotFeint = (cwd, repondre, enPanne) => depotDe(cwd, { enPanne, spawn: (_
 
 /** Un git MUET : code 1, rien sur aucun flux. */
 const muet = (cwd = tmpdir()) => depotFeint(cwd, () => ({ status: 1, stdout: '', stderr: '' }))
+
+// #2475 / #2477
+test('politique Git : absent, vide, valeurs multiples et chemins relatifs sont distincts', t => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '', 'suivi.log': 'suivi' } })
+  t.after(() => jeter(racine))
+  writeFileSync(join(racine, '.gitignore'), '*.log\n')
+  const env = { ...envDeDepotForge(), HOME: join(racine, 'home distinct'), XDG_CONFIG_HOME: join(racine, 'xdg avec espaces') }
+  const d = depotDe(racine, { env })
+  const standard = politiqueExclusionsDe(d)
+  assert.deepEqual(standard.global, { configuration: [], origine: 'standard', chemin: join(env.XDG_CONFIG_HOME, 'git', 'ignore') })
+  assert.equal(standard.exclude.chemin, join(racine, '.git', 'info', 'exclude'))
+  const valeurs = ['premier avec espaces', 'second\navec retour']
+  for (const valeur of valeurs) lancerGit(['config', '--add', 'core.excludesFile', valeur], { cwd: racine, env })
+  assert.deepEqual(politiqueExclusionsDe(d).global, { configuration: valeurs, origine: 'configuree', chemin: join(racine, valeurs[1]) })
+  lancerGit(['config', '--add', 'core.excludesFile', ''], { cwd: racine, env })
+  assert.deepEqual(politiqueExclusionsDe(d).global, { configuration: [...valeurs, ''], origine: 'desactivee', chemin: null })
+  writeFileSync(join(racine, 'non-suivi.log'), 'ignoré')
+  assert.deepEqual([...nonSuivisIgnoresDe(d)], ['non-suivi.log'])
+})
+
+// #2475 / #2477
+test('politique Git : HOME, XDG et expansion Git partagent un environnement injecté ou fourni', t => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' } })
+  t.after(() => jeter(racine))
+  const env = { ...envDeDepotForge(), HOME: join(racine, 'home injecté') }
+  delete env.XDG_CONFIG_HOME
+  assert.equal(politiqueExclusionsDe(depotDe(racine, { env })).global.chemin, join(env.HOME, '.config', 'git', 'ignore'))
+  lancerGit(['config', 'core.excludesFile', '~/exclusion avec espaces'], { cwd: racine, env })
+  assert.equal(politiqueExclusionsDe(depotDe(racine, { env })).global.chemin.replaceAll('\\', '/'), join(env.HOME, 'exclusion avec espaces').replaceAll('\\', '/'))
+  let resolutions = 0
+  const vus = []
+  const d = depotDe(racine, { env: () => { resolutions++; return { HOME: env.HOME, XDG_CONFIG_HOME: 'xdg relatif' } }, spawn: (_git, args, opts) => {
+    vus.push(opts.env)
+    return { status: 0, stdout: args.includes('config') ? '' : (args.includes('--show-toplevel') ? racine : join(racine, '.git', 'info', 'exclude')) + '\n', stderr: '' }
+  } })
+  assert.equal(politiqueExclusionsDe(d).global.chemin, join(racine, 'xdg relatif', 'git', 'ignore'))
+  assert.equal(resolutions, 1)
+  assert.equal(vus.length, 3)
+  assert.ok(vus.every(v => v === vus[0]))
+  assert.equal(vus[0].HOME, env.HOME)
+})
+
+// #2475 / #2477
+test('politique Git : info/exclude du common worktree est un chemin effectif absolu', t => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' } })
+  const lie = join(mkdtempSync(join(tmpdir(), 'politique-lie-')), 'arbre')
+  t.after(() => { jeter(join(lie, '..')); jeter(racine) })
+  lancerGit(['worktree', 'add', '--detach', lie, 'HEAD'], { cwd: racine })
+  const premier = politiqueExclusionsDe(forge(racine))
+  const second = politiqueExclusionsDe(forge(lie))
+  assert.equal(second.exclude.chemin, premier.exclude.chemin)
+})
+
+// #2475 / #2477
+test('politique Git : panne, signal et statut inattendu lèvent même sous enPanne', () => {
+  for (const resultat of [{ status: 1, stdout: '', stderr: '' }, { status: null, signal: 'SIGTERM', stdout: '', stderr: 'interrompu' }, { status: 128, stdout: '', stderr: 'configuration malformée' }, { status: null, stdout: '', stderr: '' }]) {
+    for (const question of [politiqueExclusionsDe, nonSuivisIgnoresDe]) {
+      const pannes = []
+      const d = depotFeint(tmpdir(), () => resultat, (raison) => pannes.push(raison))
+      assert.throws(() => question(d), e => e instanceof GitIndisponible && e.diagnostic.status === resultat.status && (resultat.signal ? e.diagnostic.signal === resultat.signal : true))
+      assert.deepEqual(pannes, [])
+    }
+  }
+})
+
+// #2475 / #2477
+test('politique Git : NUL conserve espaces et retours, config invalide reste une panne réelle', t => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' } })
+  t.after(() => jeter(racine))
+  const d = depotFeint(racine, args => ({ status: 0, stdout: args[0] === 'ls-files' ? 'avec espaces\0avec\nretour\0cache/\0' : 'core.excludesfile\nincomplet', stderr: '' }))
+  assert.deepEqual([...nonSuivisIgnoresDe(d)], ['avec espaces', 'avec\nretour', 'cache'])
+  assert.throws(() => politiqueExclusionsDe(d), e => e instanceof GitIndisponible && e.diagnostic.status === 0 && e.diagnostic.stdout === 'core.excludesfile\nincomplet')
+  writeFileSync(join(racine, '.git', 'config'), '[section invalide\n')
+  assert.throws(() => politiqueExclusionsDe(forge(racine)), e => e instanceof GitIndisponible && /bad config|config.*invalid|invalid.*config/i.test(e.message) && e.diagnostic.status !== 0)
+})
+
+// #2475 / #2477
+test('politique Git : bare sans égal est invalide, vide avec égal désactive réellement', t => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a' } })
+  t.after(() => jeter(racine))
+  const fichier = join(racine, '.git', 'config')
+  const original = readFileSync(fichier)
+  writeFileSync(fichier, Buffer.concat([original, Buffer.from('\n[core]\nexcludesFile\n')]))
+  const predicate = e => e instanceof GitIndisponible && e.diagnostic.status === 128 && /missing value.*core.excludesfile/.test(e.diagnostic.stderr)
+  assert.throws(() => politiqueExclusionsDe(forge(racine)), predicate)
+  assert.throws(() => nonSuivisIgnoresDe(forge(racine)), predicate)
+  writeFileSync(fichier, Buffer.concat([original, Buffer.from('\n[core]\nexcludesFile =\n')]))
+  assert.deepEqual(politiqueExclusionsDe(forge(racine)).global, { configuration: [''], origine: 'desactivee', chemin: null })
+  assert.deepEqual([...nonSuivisIgnoresDe(forge(racine))], [])
+})
+
+// #2475 / #2477
+test('racineDe stricte : aucune panne, réponse relative ou vide ne replie sur le cwd', () => {
+  for (const resultat of [{ status: 1, stdout: '', stderr: '' }, { status: 128, stdout: '', stderr: 'racine refusée' }, { status: 0, stdout: 'relatif\n', stderr: '' }, { status: 0, stdout: '', stderr: '' }]) {
+    const pannes = []
+    const d = depotFeint(tmpdir(), () => resultat, raison => pannes.push(raison))
+    assert.throws(() => racineDe(d, { strict: true, environnement: {} }), e => e instanceof GitIndisponible && e.diagnostic.status === resultat.status && e.diagnostic.stdout === resultat.stdout)
+    assert.deepEqual(pannes, [])
+  }
+  const chemin = join(tmpdir(), 'racine avec espace final ')
+  assert.equal(racineDe(depotFeint(tmpdir(), () => ({ status: 0, stdout: chemin + '\n', stderr: '' })), { strict: true }), chemin)
+})
 
 test('appliquerCorrectif garde ses arguments et distingue application et présence inverse', () => {
   const cible = { patch: 'patches/correctif.patch', include: 'node_modules/paquet/fichier.js' }
@@ -569,6 +673,57 @@ test('fetchOrigin : une origine LOCALE réelle met `origin/main` à jour ; sans 
   }
 })
 
+test('#2626 pousser : bail SHA exactement 40 ou 64, aucune longueur intermédiaire', () => {
+  const appels = []
+  const d = depotFeint(tmpdir(), (args) => { appels.push(args); return { status: 0, stdout: '', stderr: '' } })
+  for (const n of [40, 64]) assert.equal(reussi(pousser(d, { vers: 'chantier/2626', bail: 'a'.repeat(n) })), true)
+  for (const n of [39, ...Array.from({ length: 23 }, (_, i) => i + 41), 65])
+    assert.throws(() => pousser(d, { vers: 'chantier/2626', bail: 'a'.repeat(n) }), /bail SHA explicite invalide/)
+  assert.equal(appels.length, 2)
+})
+
+test('#2626 fetchOrigin objets : lot exclusif dédupliqué, SHA complets et borne distante', () => {
+  const appels = []
+  const d = depotDe(tmpdir(), { spawn: (_git, args, opts) => { appels.push({ args, timeout: opts.timeout }); return { status: 0, stdout: '', stderr: '' } } })
+  const a = 'a'.repeat(40), b = 'b'.repeat(64)
+  assert.equal(reussi(fetchOrigin(d, { objets: [a, b, a] })), true)
+  assert.deepEqual(appels, [{ args: ['fetch', '--quiet', '--no-tags', '--no-write-fetch-head', '--refmap=', 'origin', a, b], timeout: 60000 }])
+  for (const opts of [{ objets: [] }, { objets: [a], branche: undefined }, { objets: 'a' }, { objets: [null] }, ...[39, 41, 63, 65].map((n) => ({ objets: ['a'.repeat(n)] }))])
+    assert.throws(() => fetchOrigin(d, opts), /objets/)
+  assert.equal(appels.length, 1)
+})
+
+test('#2626 refsDistantes : une annonce malformée reste illisible', () => {
+  for (const stdout of ['illisible\n', `${'a'.repeat(41)}\trefs/heads/x\n`, `${'a'.repeat(40)}\n`, `${'a'.repeat(40)} refs/heads/x surplus\n`]) {
+    const d = depotFeint(tmpdir(), () => ({ status: 0, stdout, stderr: '' }))
+    assert.equal(refsDistantes(d), null)
+  }
+  const sha = 'b'.repeat(64)
+  const d = depotFeint(tmpdir(), () => ({ status: 0, stdout: `${sha}\trefs/heads/x\n`, stderr: '' }))
+  assert.deepEqual(refsDistantes(d), new Map([['refs/heads/x', sha]]))
+})
+
+test('#2626 objetsNommes : objet et cible pelée en UN lot — étiquette vers blob, blob, commit, absent, ambigu', () => {
+  const d = depotDHistoire()
+  try {
+    const { dansHead, commun } = poserUnePaireAmbigue(d, d.racine)
+    const blob = d.git('rev-parse', 'HEAD:scripts/racine.txt')
+    d.git('tag', '-a', 'blob', '-m', 'blob', blob)
+    const tag = d.git('rev-parse', 'refs/tags/blob')
+    const { valeur, lances } = lancesDeGit(() => objetsNommes(d.depot(), [tag, blob, dansHead, 'f'.repeat(40), dansHead.slice(0, commun)]))
+    assert.deepEqual(valeur, [
+      { objet: tag, pele: { sha: blob, type: 'blob' } },
+      { objet: blob, pele: { sha: blob, type: 'blob' } },
+      { objet: dansHead, pele: { sha: dansHead, type: 'commit' } },
+      { objet: null, pele: null },
+      { objet: null, pele: null },
+    ])
+    assert.equal(lances.length, 1, `lancements : ${JSON.stringify(lances)}`)
+    assert.deepEqual(objetsNommes(d.depot(), []), [])
+    assert.equal(shaDe(d.depot(), blob), null)
+  } finally { d.jeter() }
+})
+
 test('shasDistants : UN `ls-remote` rend le sha de chaque ref de l’origine, `null` pour l’absente, sans poser AUCUNE ref locale', () => {
   const amont = depot()
   const aval = mkdtempSync(join(tmpdir(), 'git-aval-'))
@@ -583,6 +738,29 @@ test('shasDistants : UN `ls-remote` rend le sha de chaque ref de l’origine, `n
     assert.throws(() => shasDistants(forge(amont.racine), ['refs/heads/main']), GitIndisponible, 'sans origine : une panne nommée, jamais « absente »')
     assert.throws(() => shasDistants(d, ['--upload-pack=x']), /ni vide ni un drapeau/)
     assert.equal(argv.length, 1, 'une ref-drapeau n’atteint pas git')
+  } finally {
+    jeter(amont.racine)
+    jeter(aval)
+  }
+})
+
+test('tetesDistantes : UN `ls-remote` rend TOUTES les têtes de l’origine, et elles seules, sans poser AUCUNE ref locale', () => {
+  const amont = depot()
+  const aval = mkdtempSync(join(tmpdir(), 'git-aval-'))
+  try {
+    amont.g('branch', 'chantier/9', amont.premier)
+    amont.g('tag', 'v1', amont.premier)
+    lancerGit(['clone', '-q', '--no-local', amont.racine, aval])
+    lancerGit(['update-ref', '-d', 'refs/remotes/origin/main'], { cwd: aval })
+    const argv = []
+    const d = depotDe(aval, { env: envDeDepotForge(), spawn: (git, args, o) => { argv.push(args.slice(OPTIONS_DE_L_HOTE.length)); return spawnSync(git, args, o) } })
+    assert.deepEqual(tetesDistantes(d), new Map([['refs/heads/chantier/9', amont.premier], ['refs/heads/main', amont.second]]))
+    assert.deepEqual(argv, [['ls-remote', 'origin', 'refs/heads/*']])
+    argv.length = 0
+    assert.equal(refsDistantes(d).get('refs/tags/v1'), amont.premier)
+    assert.deepEqual(argv, [['ls-remote', 'origin']])
+    assert.equal(shaDe(forge(aval), 'origin/main'), null, 'une LECTURE : la ref de suivi supprimée le reste')
+    assert.throws(() => tetesDistantes(forge(amont.racine)), GitIndisponible, 'sans origine : une panne nommée, jamais « aucune tête »')
   } finally {
     jeter(amont.racine)
     jeter(aval)
@@ -1407,8 +1585,11 @@ test('ÉCRIVAINS : l’argv EXACT que git reçoit de chacun — aucune option de
       ['fusionner', () => fusionner(d, { de: 'origin/main', message: 'm #1' }), [['merge', '--no-ff', '-m', 'm #1', 'origin/main']]],
       ['abandonnerFusion', () => abandonnerFusion(d), [['merge', '--abort']]],
       ['conclureFusionSansChemins', () => conclureFusionSansChemins(d, { chemins: ['a.txt'], message: 'm' }), [['--literal-pathspecs', 'rm', '-q', '--cached', '--', 'a.txt'], ['commit', '-q', '-F', '-']]],
-      ['pousser', () => pousser(d, { vers: 'refs/heads/x', bail: true }), [['push', '--force-with-lease', 'origin', 'HEAD:refs/heads/x']]],
+      ['pousser', () => pousser(d, { vers: 'refs/heads/x' }), [['push', 'origin', 'HEAD:refs/heads/x']]],
+      ['pousser bail SHA', () => pousser(d, { vers: 'x', bail: 'a'.repeat(40) }), [['push', `--force-with-lease=refs/heads/x:${'a'.repeat(40)}`, 'origin', 'HEAD:x']]],
+      ['pousser ref absente', () => pousser(d, { vers: 'x', bail: '' }), [['push', '--force-with-lease=refs/heads/x:', 'origin', 'HEAD:x']]],
       ['ajouterWorktree', () => ajouterWorktree(d, { chemin: '/w', branche: 'b', depuis: 'origin/main' }), [['worktree', 'add', '-b', 'b', '--', '/w', 'origin/main']]],
+      ['ajouterWorktree détaché', () => ajouterWorktree(d, { chemin: '/w', depuis: 'abc', detache: true }), [['worktree', 'add', '--detach', '--', '/w', 'abc']]],
       ['retirerWorktree', () => retirerWorktree(d, '/w', { mesurer: () => ({ ok: true }), residu: () => {} }), [['worktree', 'remove', '--', '/w']]],
       ['supprimerBranche', () => supprimerBranche(d, 'b'), [['branch', '-d', '--', 'b']]],
       ['elaguerWorktrees', () => elaguerWorktrees(d), [['worktree', 'prune']]],

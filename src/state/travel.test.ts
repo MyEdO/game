@@ -186,7 +186,7 @@ describe('startTravel — transports payants (LDB 51 l.178-189)', () => {
   });
 
   it('bourse insuffisante → voyage refusé', () => {
-    setup(map({ modes: ['diligence'], prices: { diligence: 100 } })); // 1200 PA ≫ 60 PA
+    setup(map({ km: 600, modes: ['diligence'] })); // Intérieur 2 sous/km × 600 km = 1200 PA ≫ 60 PA
     useGame.getState().startTravel('r1', 'diligence', { classeId: 'interieur' });
     const st = useGame.getState();
     expect(st.scene?.id).toBe('lieu-a-scene'); // pas parti
@@ -399,7 +399,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     setRule('travel-etapes', true);
     // Héros au poste Récupérer (sans Test, n'ouvre PAS la porte « Plein air ») → l'Exposition resterait
     // possible si le flag était mis, mais il ne l'est pas ici.
-    const h = hero({ travelRole: 'recuperer', items: [ration('r1')] });
+    const h = hero({ travelRole: { activityId: 'recuperer' }, items: [ration('r1')] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     useGame.getState().startTravel('r1', 'pied');
     drainCascade(); // cascade travelDay (poste Récupérer) → drainer
@@ -411,7 +411,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
 
   it('ON : un héros au poste Approvisionnement fourrage (Test de Survie en extérieur, EDOC 8 l.145)', () => {
     setRule('travel-etapes', true);
-    const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any] });
+    const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     useGame.getState().startTravel('r1', 'pied');
     drainCascade(); // cascade travelDay (poste Approvisionnement) → drainer
@@ -434,7 +434,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       seedBattleRng(seed);
       const winter = campaignStart() + 0; // la date par défaut (fin Jahrdrung) suffit : printemps a aussi pluie/neige
       // Poste Récupérer : pas de « Plein air » → la porte `suppressExposure` reste fermée, l'Exposition se joue.
-      setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: 'recuperer' })]);
+      setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: { activityId: 'recuperer' } })]);
       useGame.setState({ gameTime: winter });
       useGame.getState().startTravel('r1', 'pied');
       drainCascade(); // cascade travelDay (poste + Exposition insérée) → drainer
@@ -449,7 +449,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     let sick: { id: string; phase: string; minutesLeft: number; durationMinutes: number } | undefined;
     for (let seed = 1; seed <= 40 && !sick; seed++) {
       seedBattleRng(seed);
-      setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: 'recuperer' })]);
+      setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: { activityId: 'recuperer' } })]);
       useGame.setState({ gameTime: campaignStart() }); // fin Jahrdrung = printemps, saison froide
       useGame.getState().startTravel('r1', 'pied');
       drainCascade();
@@ -473,7 +473,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     for (let seed = 1; seed <= 40 && !mesure; seed++) {
       seedBattleRng(seed);
       // Rhume DÉJÀ actif au départ (5 jours restants) : il ne se re-contracte pas, il s'allonge.
-      const porteur = hero({ travelRole: 'recuperer' });
+      const porteur = hero({ travelRole: { activityId: 'recuperer' } });
       porteur.diseases = [{ id: 'rhume-commun', symptoms: [], phase: 'active', minutesLeft: 5 * JOUR, durationMinutes: 5 * JOUR }];
       setup(map({ km: 12, perilDie: 0 }), [porteur]);
       useGame.setState({ gameTime: campaignStart() });
@@ -497,7 +497,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     let suppressed = false;
     for (let seed = 1; seed <= 20 && !suppressed; seed++) {
       seedBattleRng(seed);
-      const h = hero({ travelRole: 'plein-air', skills: [{ id: 'survie-en-exterieur', advances: 60 } as any] });
+      const h = hero({ travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 60 } as any] });
       setup(map({ km: 12, perilDie: 0 }), [h]);
       useGame.setState({ gameTime: campaignStart() });
       useGame.getState().startTravel('r1', 'pied');
@@ -514,7 +514,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
 
   it('poste Établir des cartes : Test ÉTENDU de cartographie cumulé via extendedTestStep (EDOC 8 l.161)', () => {
     setRule('travel-etapes', true);
-    const h = hero({ travelRole: 'etablir-cartes', skills: [{ id: 'metier', spec: 'Cartographe', advances: 80 } as any] });
+    const h = hero({ travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 80 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     useGame.getState().startTravel('r1', 'pied');
     drainCascade(); // cascade travelDay (poste Établir des cartes, Test étendu) → drainer
@@ -549,7 +549,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     let met = false;
     for (let seed = 1; seed <= 20 && !met; seed++) {
       seedBattleRng(seed);
-      const h = hero({ travelRole: 'approvisionnement', items: [], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] });
+      const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] });
       setup(map({ km: 12, perilDie: 0 }), [h]);
       useGame.getState().startTravel('r1', 'pied');
       drainCascade(); // cascade travelDay (échec de poste → Rencontre à l'agrégation) → drainer
@@ -560,8 +560,8 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
 
   it('setTravelRole épingle puis détache le rôle de marche PERSISTANT', () => {
     setup(map(), [hero({ id: 'h1' })]);
-    useGame.getState().setTravelRole('h1', 'plein-air');
-    expect(useGame.getState().party[0].travelRole).toBe('plein-air');
+    useGame.getState().setTravelRole('h1', { activityId: 'plein-air' });
+    expect(useGame.getState().party[0].travelRole).toEqual({ activityId: 'plein-air' });
     useGame.getState().setTravelRole('h1', null);
     expect(useGame.getState().party[0].travelRole).toBeUndefined();
   });
@@ -724,7 +724,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     let problem = false;
     for (let seed = 1; seed <= 30 && !problem; seed++) {
       seedBattleRng(seed);
-      setup(map({ km: 30, modes: ['diligence'], prices: { diligence: 1 } }));
+      setup(map({ km: 30, modes: ['diligence'] }));
       useGame.getState().startTravel('r1', 'diligence', { classeId: 'exterieur', allure: 'galop' });
       drainCascade(); // #270 : le Test de Conduite d'attelage au km est une étape influençable (conducteur piloté par un humain)
       const st = useGame.getState();
@@ -743,7 +743,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
     let lame = false;
     for (let seed = 1; seed <= 60 && !lame; seed++) {
       seedBattleRng(seed);
-      setup(map({ km: 200, modes: ['diligence'], prices: { diligence: 1 } }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')] })]);
+      setup(map({ km: 200, modes: ['diligence'] }), [hero({ items: [ration('r1'), ration('r2'), ration('r3')] })]);
       creditBourse(useGame.getState, useGame.setState, 'h', { gold: 5, silver: 0, brass: 0 });
       useGame.getState().startTravel('r1', 'diligence', { classeId: 'exterieur', allure: 'galop' });
       drainCascade(); // #270 : le Test de Conduite d'attelage au km est une étape influençable (conducteur piloté par un humain)

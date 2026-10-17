@@ -38,19 +38,6 @@ const champs = {
   navBaseDifficulty: difficultySchema,
   tackDifficulty: difficultySchema,
   savoirVoiesFluvialesDR: z.number(),
-  rowingAgility: nommerChamps(z.strictObject({
-    difficulty: difficultySchema,
-    failSpeedPct: z.number(),
-    spectacularSL: z.number(),
-    spectacularSpeedFactor: z.number(),
-    source: sourceRefSchema,
-  }), {
-    difficulty: { label: 'Difficulté' },
-    failSpeedPct: { label: 'Vitesse à l’échec (%)' },
-    spectacularSL: { label: 'Seuil de DR spectaculaire' },
-    spectacularSpeedFactor: { label: 'Facteur de vitesse spectaculaire' },
-    source: { label: 'Source' },
-  }),
   capsize: nommerChamps(z.strictObject({
     removeSailDifficulty: difficultySchema,
     rightDifficulty: difficultySchema,
@@ -83,7 +70,7 @@ const doc = document(
   champs,
   {
     windForces: { label: 'Forces de vent', hint: 'Table de tirage d10 des forces de vent fluviales' },
-    windDirections: { label: 'Directions de vent', hint: 'Table de tirage d10 des directions de vent relatives au bateau' },
+    windDirections: { label: 'Vent relatif', hint: 'Table de tirage d10 du vent relatif au bateau' },
     windTickThreshold: {
       label: 'Résultat de bascule du vent',
       hint: 'Résultat exact du d10 qui fait changer la FORCE du vent d’un cran (la direction n’est tirée qu’au départ)',
@@ -95,10 +82,6 @@ const doc = document(
     navBaseDifficulty: { label: 'Difficulté de base', hint: 'Difficulté de base du Test de Navigation fluviale' },
     tackDifficulty: { label: 'Difficulté du louvoyage', hint: 'Difficulté du Test pour louvoyer contre le vent' },
     savoirVoiesFluvialesDR: { label: 'DR Savoir (Voies fluviales)', hint: 'Bonus de DR apporté par cette spécialisation' },
-    rowingAgility: {
-      label: "Test d'Agilité de rame (du jour)",
-      hint: 'Difficulté, malus de vitesse à l’échec, seuil et facteur d’ÉCHEC spectaculaire (DR ≤ −6 → vitesse ÷2)',
-    },
     capsize: { label: 'Chavirage', hint: 'Difficultés d’amener la voile et de redresser, pénalité cumulative' },
     outOfControl: { label: 'Hors de contrôle', hint: 'Malus au Test de Navigation quand le bateau est hors de contrôle' },
     echouage: { label: 'Échouage', hint: 'Dégâts de coque infligés par un échouage' },

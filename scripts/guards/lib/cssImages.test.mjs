@@ -3,10 +3,14 @@
 import { test, mock } from 'node:test'
 import { API } from 'typescript/unstable/sync'
 import assert from 'node:assert/strict'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CHEMIN_MANIFESTE } from './cssCouches.mjs'
 import { COLLECTIONS_VENTILEES, coteCss, importsDansLArbre, stockCssDe } from './cssImages.mjs'
+import { DOSSIER_DES_MEMOS, memosDAnalyse, versionDesMemos } from './memosDAnalyse.mjs'
+import { instanceDeDepot } from './depotGabarit.mjs'
+import { depotDe } from './gitPorte.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -97,4 +101,81 @@ test('stockCssDe : les deux volets ventilés du stock écrit ; une collection ab
     new RegExp(`illisible à HEAD : collection\\(s\\) ${COLLECTIONS_VENTILEES.espacement} introuvable`))
   assert.throws(() => stockCssDe(texte('[{ fichier: 1 }]', '[]'), 'à v1'),
     new RegExp(`illisible à v1 : collection\\(s\\) ${COLLECTIONS_VENTILEES.identite} introuvable`))
+})
+
+/** Les mémos d'analyse (`memosDAnalyse`) d'un dépôt neuf, résolus contre ce dépôt-ci (`RACINE`). */
+const memosNeufs = (racine) => memosDAnalyse(depotDe(racine), { racine: RACINE })
+const fichierDesMemos = (racine) => join(racine, '.git', DOSSIER_DES_MEMOS, `specificateurs-typage.${versionDesMemos(RACINE)}.json`)
+const IMPORTE = importeursDe("import { RollShell } from './RollShell'\n", "import './RollShell'\n")
+
+/** Le côté `coteCss` de `source` sous `memos`, et le nombre d'analyses (`API.close`) qu'il a coûtées. */
+function coteMesure(source, memos) {
+  const close = API.prototype.close
+  const spy = mock.method(API.prototype, 'close', function () { return close.call(this) })
+  try {
+    const reutilisesVus = [...coteCss(source, { racine: RACINE, specificateurs: memos.specificateurs }).reutilises]
+    memos.sauver()
+    return { reutilises: reutilisesVus, analyses: spy.mock.callCount() }
+  } finally { spy.mock.restore() }
+}
+
+test('#2603 — memosDAnalyse : verdict identique avec et sans mémo ; un texte mémoïsé ne se reparse pas, d’un processus à l’autre (git-common-dir)', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  try {
+    const sans = reutilises(sourceDe(IMPORTE))
+    const premier = coteMesure(sourceDe(IMPORTE), memosNeufs(racine))
+    assert.deepEqual(premier.reutilises, sans)
+    assert.equal(premier.analyses, 1)
+    assert.ok(existsSync(fichierDesMemos(racine)), 'le mémo vit sous le répertoire git commun')
+    const second = coteMesure(sourceDe(IMPORTE), memosNeufs(racine))
+    assert.deepEqual(second, { reutilises: sans, analyses: 0 })
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2603 — memosDAnalyse : un texte changé, ou un analyseur changé (version), se recalcule', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  try {
+    coteMesure(sourceDe(IMPORTE), memosNeufs(racine))
+    const change = importeursDe("import { RollShell } from './RollShell'\n", "const p = './RollShell'\n")
+    assert.deepEqual(coteMesure(sourceDe(change), memosNeufs(racine)), { reutilises: [], analyses: 1 }, 'texte changé : recalcul')
+    const lu = JSON.parse(readFileSync(fichierDesMemos(racine), 'utf8'))
+    writeFileSync(fichierDesMemos(racine), JSON.stringify({ ...lu, version: 'un-autre-analyseur' }))
+    assert.deepEqual(coteMesure(sourceDe(IMPORTE), memosNeufs(racine)), { reutilises: [COMPOSANT], analyses: 1 }, 'analyseur changé : recalcul')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2603 — memosDAnalyse : un mémo corrompu est ignoré, le verdict reste celui de l’analyse', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  try {
+    mkdirSync(dirname(fichierDesMemos(racine)), { recursive: true })
+    writeFileSync(fichierDesMemos(racine), '{ tronqué')
+    assert.deepEqual(coteMesure(sourceDe(IMPORTE), memosNeufs(racine)), { reutilises: [COMPOSANT], analyses: 1 })
+    assert.deepEqual(coteMesure(sourceDe(IMPORTE), memosNeufs(racine)), { reutilises: [COMPOSANT], analyses: 0 }, 'réécrit, il resert')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2603 — memosDAnalyse : mémo de la bonne version mais de forme fausse ⇒ même verdict que sans mémo', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  try {
+    const sans = reutilises(sourceDe(IMPORTE))
+    coteMesure(sourceDe(IMPORTE), memosNeufs(racine))
+    const lu = JSON.parse(readFileSync(fichierDesMemos(racine), 'utf8'))
+    writeFileSync(fichierDesMemos(racine), JSON.stringify({ ...lu, memos: tableTotale(Object.keys(lu.memos), () => 42) }))
+    assert.deepEqual(coteMesure(sourceDe(IMPORTE), memosNeufs(racine)), { reutilises: sans, analyses: 1 })
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2603 — memosDAnalyse : écriture des mémos impossible ⇒ même verdict que sans mémo, rien ne lève', () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
+  const avertir = mock.method(process.stderr, 'write', () => true)
+  try {
+    const sans = reutilises(sourceDe(IMPORTE))
+    mkdirSync(join(racine, '.git', 'hooks-git'), { recursive: true })
+    writeFileSync(join(racine, '.git', DOSSIER_DES_MEMOS), 'un fichier, pas un dossier')
+    assert.deepEqual(coteMesure(sourceDe(IMPORTE), memosNeufs(racine)), { reutilises: sans, analyses: 1 })
+    assert.equal(avertir.mock.callCount(), 1)
+  } finally {
+    avertir.mock.restore()
+    rmSync(racine, { recursive: true, force: true })
+  }
 })

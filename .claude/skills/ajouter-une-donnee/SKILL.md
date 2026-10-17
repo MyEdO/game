@@ -16,5 +16,6 @@ d'homonymes). En un mot :
    n'est PAS un trapping).
 3. **Chaque champ = Source RAW ⊕ convention voisine** — jamais d'invention, jamais d'inflexion RAW
    silencieuse (ticket ou valeur `maison` taguée).
-4. **Canonicaliser via `serializeDataset`** + `npm test` + `npm run typecheck` verts ; recette navigateur
+4. **Canonicaliser via `serializeDataset`** + `npm run typecheck:fast` + `npm run test:perimetre` verts (suite et typecheck complets : CI de
+   branche) ; recette navigateur
    si visible au Codex.

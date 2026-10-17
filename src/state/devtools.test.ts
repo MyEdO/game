@@ -27,6 +27,147 @@ import { __setFabriqueIdbForTest } from '../lib/indexedDb';
 import { brancherBasesSimulees } from '../lib/indexedDb.testkit';
 import { parseProject } from './worldMap';
 import { cascadeDeTest } from './cascadeTestKit';
+import { t } from '../i18n';
+import { OPTIONAL_RULES } from '../engine/policy';
+import { collectionDuDataset } from '../data/overrides';
+import { trappingsInstanciables, psychologies } from '../data';
+import { traumaById } from '../engine/trauma';
+import { browserUnfreezeTimeout } from './devtoolsTimers';
+
+describe('__wfrp — setup #1561', () => {
+  beforeEach(() => {
+    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    useGame.setState({ battle: null, party: [hero], pendingTest: null, pendingCascade: null, flags: {} });
+  });
+
+  it('flag refuse une règle optionnelle en nommant rules et ne modifie pas les drapeaux', () => {
+    const api = buildApi();
+    expect(() => api.flag(OPTIONAL_RULES[0].id)).toThrow(/rules/);
+    expect(useGame.getState().flags).toEqual({});
+    expect(api.flag('porte-recette')).toEqual({ 'porte-recette': true });
+  });
+
+  it('entree lit les clés de schéma, les catégories nichées et refuse les datasets/ids/formes inconnus, en copie détachée', () => {
+    const api = buildApi();
+    const skills = collectionDuDataset('skills') as { id: string; label: string }[];
+    const first = skills[0];
+    const copy = api.entree('skills', first.id) as typeof first;
+    expect(copy).toEqual(first);
+    copy.label = 'copie';
+    expect(first.label).not.toBe('copie');
+    const crits = collectionDuDataset('aaCriticalsBras') as { id: string }[];
+    expect(api.entree('aaCriticalsBras', crits[0].id)).toEqual(crits[0]);
+    expect(() => api.entree('absent', 'id')).toThrow(/dataset.*absent.*inconnu/);
+    expect(() => api.entree('skills', 'absent')).toThrow(/introuvable/);
+    expect(() => api.entree('details', 'absent')).toThrow(/collection|forme/);
+  });
+
+  it('entree observe aussi un trapping non instanciable en copie détachée sans créer de possession', () => {
+    const instanciables = new Set(trappingsInstanciables().map((v) => v.id));
+    const brut = collectionDuDataset('trappings') as { id: string; label: string }[];
+    const concept = brut.find((v) => !instanciables.has(v.id))!;
+    expect(concept).toBeDefined();
+    const avant = useGame.getState().party[0].items;
+    const copie = buildApi().entree('trappings', concept.id) as typeof concept;
+    expect(copie).toEqual(concept);
+    expect(copie).not.toBe(concept);
+    copie.label = 'copie';
+    expect(concept.label).not.toBe('copie');
+    expect(useGame.getState().party[0].items).toBe(avant);
+  });
+
+  it('trauma instancie la factory et écrit le même acteur dans le groupe et le combat', () => {
+    const hero = useGame.getState().party[0];
+    useGame.getState().startScene(testScene());
+    useGame.getState().startCombat('enc-mutants');
+    const traumaId = 'dechirure-autre-mineure';
+    const opts = { be: 3 };
+    const expected = traumaById(traumaId, opts, 'brasG');
+    const out = buildApi().trauma(hero.id, traumaId, opts, 'brasG');
+    expect(out).toEqual(expected);
+    expect(useGame.getState().party[0].traumas).toContainEqual(expected);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!.traumas).toContainEqual(expected);
+    out.label = 'copie';
+    expect(useGame.getState().party[0].traumas![0].label).toBe(expected.label);
+    expect(() => buildApi().trauma('absent', traumaId)).toThrow(/combattant.*absent/);
+    expect(() => buildApi().trauma(hero.id, 'absent')).toThrow();
+    useGame.setState({ battle: null });
+  });
+
+  it('testCompetence ouvre le Test canonique pour l’acteur imposé sans le lancer', () => {
+    const hero = useGame.getState().party[0];
+    const api = buildApi();
+    expect(api.testCompetence(hero.id, { skill: { id: 'calme' }, stake: { authored: 'Setup de recette.' } })).toContain('ouvert');
+    const pending = useGame.getState().pendingTest!;
+    expect(pending.actorId).toBe(hero.id);
+    expect(pending.skillId).toBe('calme');
+    expect(pending.roll).toBeNull();
+    expect(() => api.testCompetence(hero.id, { skill: { id: 'calme' }, stake: { authored: 'Setup de recette.' } })).toThrow(/déjà ouvert/);
+    useGame.setState({ pendingTest: null });
+    expect(() => api.testCompetence('absent', { skill: { id: 'calme' } })).toThrow(/combattant/);
+    expect(() => api.testCompetence(hero.id, { skill: { id: 'calme' } })).toThrow(/enjeu/);
+  });
+
+  it('les wrappers timer retardent chaque callback à 60000 ms par défaut puis restaurent sans le perdre', () => {
+    vi.useFakeTimers();
+    const api = buildApi();
+    const call = vi.fn();
+    try {
+      api.freezeTimeout();
+      setTimeout(call, 0);
+      vi.advanceTimersByTime(25);
+      expect(call).not.toHaveBeenCalled();
+      api.unfreezeTimeout();
+      setTimeout(call, 5);
+      vi.advanceTimersByTime(5);
+      expect(call).toHaveBeenCalledOnce();
+      vi.advanceTimersByTime(59970);
+      expect(call).toHaveBeenCalledTimes(2);
+    } finally {
+      browserUnfreezeTimeout();
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('__wfrp.auto — observation des interactions de cascade', () => {
+  afterEach(() => { useGame.setState({ pendingCascade: null }); });
+
+  it('classe un kind inconnu par ses options sans choisir ni changer aucun état', () => {
+    const pendingCascade = cascadeDeTest([{ id: 'choix-inconnu', kind: 'recette-kind-neuf', options: [{ key: 'a', label: t('opt.piegerLame') }] }]);
+    useGame.setState({ battle: null, pendingCascade });
+    const avant = useGame.getState();
+    const copie = structuredClone(pendingCascade);
+    expect(buildApi().auto().cascade).toEqual({ id: 'choix-inconnu', kind: 'recette-kind-neuf', interaction: 'choix', ready: false, chosen: null, amount: null });
+    expect(useGame.getState()).toBe(avant);
+    expect(useGame.getState().pendingCascade).toEqual(copie);
+    useGame.setState({ pendingCascade: cascadeDeTest([{ ...pendingCascade.participants[0], chosen: 'a' }]) });
+    expect(buildApi().auto().cascade).toMatchObject({ interaction: 'choix', ready: true, chosen: 'a' });
+  });
+
+  it('observe une quantité prête avec sa valeur zéro sans la valider', () => {
+    useGame.setState({ battle: null, pendingCascade: cascadeDeTest([{ id: 'quantite', kind: 'autre-kind-neuf', quantity: { min: 0, max: 10 }, amount: 0 }]) });
+    const avant = useGame.getState();
+    expect(buildApi().auto().cascade).toEqual({ id: 'quantite', kind: 'autre-kind-neuf', interaction: 'quantite', ready: true, chosen: null, amount: 0 });
+    expect(useGame.getState()).toBe(avant);
+  });
+
+  it('observe le jet courant à son curseur sans le lancer', () => {
+    useGame.setState({ battle: null, pendingCascade: cascadeDeTest([{ id: 'avant', kind: 'autre' }, { id: 'jet', kind: 'jet-neuf', target: 40, rollLabel: t('step.paradePiegerLame') }], { cursor: 1 }) });
+    const avant = useGame.getState();
+    expect(buildApi().auto().cascade).toEqual({ id: 'jet', kind: 'jet-neuf', interaction: 'jet', ready: false, chosen: null, amount: null });
+    expect(useGame.getState()).toBe(avant);
+  });
+
+  it('rend null sans cascade ou sans étape courante', () => {
+    useGame.setState({ battle: null, pendingCascade: null });
+    expect(buildApi().auto().cascade).toBeNull();
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'termine', kind: 'autre' }], { cursor: 1 }) });
+    const avant = useGame.getState();
+    expect(buildApi().auto().cascade).toBeNull();
+    expect(useGame.getState()).toBe(avant);
+  });
+});
 
 describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, victoire normale)', () => {
   beforeEach(() => {
@@ -115,6 +256,66 @@ describe('__wfrp — autres commandes de recette', () => {
     expect(porteur.traits?.some((t) => t.id === 'marque-de-tzeentch')).toBe(true);
     expect(careerTalentAdditions(porteur).map((r) => r.id)).toContain('magie-des-arcanes');
     expect(buildApi().trait(hero.id, 'trait-inexistant')).toContain('✗');
+  });
+
+  it('trait (#555) : EN COMBAT, pose le Trait en un appel sur un ennemi puis sur le héros, relu au combattant', () => {
+    const hero = useGame.getState().party[0];
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const relu = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
+    const ennemi = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(buildApi().trait(ennemi.id, 'creature-marine')).toMatch(/^✓/);
+    expect(relu(ennemi.id).traits?.some((t) => t.id === 'creature-marine')).toBe(true);
+    expect(buildApi().trait(hero.id, 'creature-marine')).toMatch(/^✓/);
+    expect(relu(hero.id).traits?.some((t) => t.id === 'creature-marine')).toBe(true);
+  });
+
+  it('psych : EN COMBAT, pose l’état psychologique par l’op beginPsych, relu au combattant', () => {
+    const hero = useGame.getState().party[0];
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const relu = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
+    expect(buildApi().psych(hero.id, 'frenesie')).toMatch(/^✓/);
+    expect(relu(hero.id).psychState?.filter((p) => p.type === 'frenesie')).toHaveLength(1);
+  });
+
+  it('psych : refuse un type absent de psychology.json en listant les ids valides, sans rien poser', () => {
+    const hero = useGame.getState().party[0];
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const avant = structuredClone(useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!.psychState ?? []);
+    const rendu = buildApi().psych(hero.id, 'Frénésie');
+    expect(rendu).toMatch(/^✗/);
+    for (const p of psychologies) expect(rendu).toContain(p.id);
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!.psychState ?? []).toEqual(avant);
+  });
+
+  it('condition : refuse un id d’État hors catalogue (un libellé) en listant les ids valides, sans rien poser', () => {
+    const hero = useGame.getState().party[0];
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const relu = () => useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!;
+    const avant = structuredClone(relu().conditions);
+    const rendu = buildApi().condition(hero.id, 'Frénésie');
+    expect(rendu).toMatch(/^✗/);
+    for (const id of ['sonne', 'petrifie']) expect(rendu).toContain(id);
+    expect(relu().conditions).toEqual(avant);
+  });
+
+  it('condition : pose un État du catalogue (sonne) comme un marqueur narratif (petrifie), relus au combattant', () => {
+    const hero = useGame.getState().party[0];
+    useGame.getState().startCombat('enc-mutants');
+    useGame.getState().confirmRoundStart();
+    vi.clearAllTimers();
+    const relu = () => useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!;
+    for (const id of ['sonne', 'petrifie']) {
+      expect(buildApi().condition(hero.id, id)).toMatch(/^✓/);
+      expect(relu().conditions.some((x) => x.id === id), id).toBe(true);
+    }
   });
 
   it('spell : chaque raison se rend DISTINCTEMENT, au verdict `verdictApprentissage` (LDB 46 l.14, #2312)', () => {
@@ -432,6 +633,107 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(useGame.getState().pendingDefense).toBeNull();
   });
 
+  it('attaqueGratuite : la file de production des gratuites d’IA OUVRE la modale de Défense du héros, refus nommés sinon', () => {
+    const api = buildApi();
+    ouvrirLeRoundAuHeros(api);
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(api.attaqueGratuite(mutant.id, heroId), 'aucun trait d’attaque gratuite').toMatch(/^✗ .*aucune attaque gratuite disponible/);
+    expect(api.trait(mutant.id, 'morsure', { value: 7 })).toMatch(/^✓/);
+    expect(api.attaqueGratuite(mutant.id, heroId, 'caudale')).toMatch(/^✗ « caudale » .*disponibles : morsure/);
+    expect(api.attaqueGratuite(mutant.id, heroId), 'mutant loin du héros').toMatch(/^✗ .*hors de portée/);
+    const h = combattant().pos!;
+    api.place(mutant.id, { x: h.x + 1, y: h.y });
+    expect(api.quality(mutant.id, null, 0)).toMatch(/^✓/);
+    expect(api.attaqueGratuite(mutant.id, heroId), 'Avantage sous le coût').toMatch(/^✗ la file a écarté morsure .*0 Avantage pour un coût de 1/);
+    let s = useGame.getState();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.battle!.order[s.battle!.turn], 'le tour est rendu au héros').toBe(heroId);
+    expect(api.quality(mutant.id, null, 1)).toMatch(/^✓/);
+    expect(api.attaqueGratuite(mutant.id, heroId)).toMatch(/^✓ .*morsure/);
+    s = useGame.getState();
+    expect(s.pendingDefense).toMatchObject({ attackerId: mutant.id, defenderId: heroId, weapon: { attackKind: 'morsure' } });
+    expect(s.battle!.order[s.battle!.turn], 'le tour est celui de l’attaquant').toBe(mutant.id);
+    expect(s.battle!.combatants.find((c) => c.id === mutant.id)!.advantage, 'coût payé').toBe(0);
+    expect(api.attaqueGratuite(mutant.id, heroId)).toMatch(/^✗ /);
+  });
+
+  it('attaqueGratuite : la file vise un AUTRE adversaire au contact, la gratuite part et se suspend sur sa sauvegarde → ✓', () => {
+    const api = buildApi();
+    ouvrirLeRoundAuHeros(api);
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(api.trait(mutant.id, 'morsure', { value: 7 })).toMatch(/^✓/);
+    const h = combattant().pos!;
+    api.place(mutant.id, { x: h.x + 1, y: h.y });
+    expect(api.quality(mutant.id, null, 1)).toMatch(/^✓/);
+    useGame.getState().battle!.combatants.find((c) => c.id === mutant.id)!.characteristics['capacite-de-combat'] = 95;
+    const tireur = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 2 });
+    tireur.aiControlled = true;
+    tireur.pos = { x: h.x + 2, y: h.y };
+    tireur.traits = [{ id: 'demoniaque', value: 9 }];
+    tireur.conditions = [{ id: 'surpris', value: 1 }];
+    const b = useGame.getState().battle!;
+    useGame.setState({ battle: { ...b, combatants: [tireur, ...b.combatants] } });
+    expect(api.attaqueGratuite(mutant.id, heroId)).toMatch(/^✓ .*morsure : coup suspendu sur l'étape sauvegarde/);
+    const s = useGame.getState();
+    expect(s.pendingDefense, 'aucune fenêtre de Défense : Tireur est piloté par l’IA').toBeNull();
+    expect(s.battle!.combatants.find((c) => c.id === mutant.id)!.freeAttacksThisTurn?.morsure, 'la Morsure est déclarée').toBe(1);
+  });
+
+  const mutantMordantAuContact = (api: ReturnType<typeof buildApi>) => {
+    ouvrirLeRoundAuHeros(api);
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(api.trait(mutant.id, 'morsure', { value: 7 })).toMatch(/^✓/);
+    const h = combattant().pos!;
+    api.place(mutant.id, { x: h.x + 1, y: h.y });
+    expect(api.quality(mutant.id, null, 1)).toMatch(/^✓/);
+    const tireur = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 2 });
+    tireur.pos = { x: h.x + 2, y: h.y };
+    return { mutant, tireur };
+  };
+
+  it('attaqueGratuite : la file vise un AUTRE héros surfacé au contact → ✓ nommant la fenêtre ouverte sur lui', () => {
+    const api = buildApi();
+    const { mutant, tireur } = mutantMordantAuContact(api);
+    const b = useGame.getState().battle!;
+    useGame.setState({ battle: { ...b, combatants: [tireur, ...b.combatants] }, party: [...useGame.getState().party, tireur] });
+    expect(api.attaqueGratuite(mutant.id, heroId)).toMatch(/^✓ .* déclare morsure sur Tireur — modale de Défense ouverte \(premier adversaire au contact, pas H\)$/);
+    expect(useGame.getState().pendingDefense).toMatchObject({ attackerId: mutant.id, defenderId: tireur.id });
+  });
+
+  it('attaqueGratuite : la file vise un adversaire piloté par l’IA, sans étape à suspendre → ✓ coup joué sans fenêtre', () => {
+    const api = buildApi();
+    const { mutant, tireur } = mutantMordantAuContact(api);
+    tireur.aiControlled = true;
+    const b = useGame.getState().battle!;
+    useGame.setState({ battle: { ...b, combatants: [tireur, ...b.combatants] } });
+    expect(api.attaqueGratuite(mutant.id, heroId)).toMatch(/^✓ .* déclare morsure : coup joué sans fenêtre sur le premier adversaire au contact/);
+    const s = useGame.getState();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.pendingCascade).toBeNull();
+    expect(s.battle!.combatants.find((c) => c.id === mutant.id)!.freeAttacksThisTurn?.morsure, 'la Morsure est déclarée').toBe(1);
+  });
+
+  it('attaqueGratuite : la file vise un héros surfacé mais Surpris (`cannotDefend`) → ✓ coup joué sans fenêtre', () => {
+    const api = buildApi();
+    const { mutant, tireur } = mutantMordantAuContact(api);
+    tireur.conditions = [{ id: 'surpris', value: 1 }];
+    const b = useGame.getState().battle!;
+    useGame.setState({ battle: { ...b, combatants: [tireur, ...b.combatants] }, party: [...useGame.getState().party, tireur] });
+    expect(api.attaqueGratuite(mutant.id, heroId)).toMatch(/^✓ .* déclare morsure : coup joué sans fenêtre sur le premier adversaire au contact/);
+    const s = useGame.getState();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.pendingCascade).toBeNull();
+  });
+
+  it('quality : `null` (un `undefined` passé par CDP) vaut absent — qualité par défaut, Avantage inchangé', () => {
+    const api = buildApi();
+    const avant = combattant().advantage;
+    expect(api.quality(heroId, null, null)).toMatch(/^✓ .*Déstabilisante/);
+    expect(combattant().advantage).toBe(avant);
+    expect(api.quality(heroId, null, 3)).toMatch(/^✓ .*Déstabilisante · 3 Av/);
+    expect(combattant().advantage).toBe(3);
+  });
+
   it('gesteCarteAttendu : pose de zone, pilonnage, choix de cibles — lus aux prédicats du jeu', () => {
     const api = buildApi();
     expect(api.gesteCarteAttendu()).toBeNull();
@@ -675,7 +977,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('advanceSeaDay() fait avancer d’UN jour (cascade + halte de nuit résolues), s’arrête sur la cascade FRAÎCHE du jour suivant', async () => {
-    useGame.getState().startTravel('r1', 'mer');
+    useGame.getState().startTravel('r1', 'mer', { cadence: 'jour-par-jour' });
     const p = buildApi().advanceSeaDay();
     await vi.runAllTimersAsync();
     const msg = await p;
@@ -728,7 +1030,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   // `clickRoute` accède au DOM (`document.querySelectorAll`) au-delà de la validation route/carte —
-  // comme `screenPos`/`hover`, non couvert en environnement 'node' (vitest) : recette navigateur seule.
+  // comme `hover`, non couvert en environnement 'node' (vitest) : recette navigateur seule.
   it('clickRoute() : route invalide → refus explicite (validation AVANT tout accès DOM)', () => {
     expect(buildApi().clickRoute('r-inconnue')).toContain('✗');
   });

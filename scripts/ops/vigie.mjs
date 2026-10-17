@@ -3,22 +3,27 @@
 // INVARIANT (ticket #2280) : « L'état de la CI (sur `main` et sur la branche du chantier) et celui du
 // train de publication (`ops:publier`) se MESURENT une fois, à un seul endroit. »
 //
-// Un tick compose les lecteurs canoniques : `shasDistants` (UN `ls-remote` pour `main` et la branche),
-// `coursesCi` + `verdictJuge` par sha (la CI de `main` au sha d'`origin/main`, celle de la branche au
-// sha POUSSÉ), `etatDuTrain` sur le journal du train. Un verdict `verte` est gardé
-// sous `<.git commun>/vigie/` (partagé entre worktrees, hors de `node_modules`) ; tout autre verdict se
-// relit. La sortie `--json` est `{ ligne, transitions, etat }` : `etat`, opaque, se repasse en
+// Un tick compose les lecteurs canoniques : `tetesDistantes` (les têtes de l'origine, dont `main` et la
+// branche), `coursesCi` + `verdictJuge` par sha (la CI de `main` au sha d'`origin/main`, celle de la
+// branche au sha POUSSÉ), `etatDuTrain` sur le journal du train. Chaque mesure DISTANTE vit dans une
+// mémoire machine (`memoireMachine`) sous `<.git commun>/vigie/` (partagée entre worktrees, hors de
+// `node_modules`) : les têtes dans `distants.json`, le verdict d'un sha dans `<sha>.json`, reprises tant
+// qu'elles ont moins de `FRAICHEUR_MS` (un verdict `verte`, sans limite), remesurées par UN seul tick
+// de la machine (#2603). La sortie `--json` est `{ ligne, transitions, etat }` : `etat`, opaque, se repasse en
 // `--depuis` au tick suivant, et les `transitions` se calculent depuis lui. Une panne sort non nulle,
 // son motif sur stderr.
 //
 // Usage : node scripts/ops/vigie.mjs --json --arbre <racine> [--depuis <etat>]
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { GitIndisponible, TRONC, arbrePrincipal, brancheDe, depotDe, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
+import { basename, dirname, join } from 'node:path'
+import { GitIndisponible, TRONC, arbrePrincipal, brancheDe, depotDe, shaDe, tetesDistantes } from '../guards/lib/gitPorte.mjs'
 import { coursesCi, jobsEnEchecDe, verdictJuge } from '../guards/lib/coursesCi.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
-import { cheminsDeJournal, etatDuTrain, lireJournal } from './publier.mjs'
+import { cheminsDeJournal, lireJournal } from './publicationDonnee.mjs'
+import { etatDuTrain } from './publierTrain.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
+import { prendreVerrou } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 
 /** Symbole de chaque verdict de CI dans la ligne ; `null` (rien de poussé) se lit `—`. */
 export const SYMBOLES_DE_CI = Object.freeze({ verte: '✓', rouge: '✗', annulee: '⊘', 'en-vol': '…', absente: '∅' })
@@ -120,55 +125,106 @@ export function ligneDe(etat) {
 /** Une mesure de CI qui n'a pas eu lieu (`gh` indisponible) : la vigie ne juge pas sur rien. */
 export class CiIllisible extends Error {}
 
-/** Le fichier de cache d'un sha. */
-const fichierDuCache = (dossier, sha) => join(dossier, `${sha}.json`)
+/** Fraîcheur d'une mesure distante gardée en mémoire machine, en millisecondes : valeur maison, #2603 constat 20. */
+export const FRAICHEUR_MS = 60_000
 
-/** Motif des fichiers du cache, pour la péremption : le verdict d'un sha, et le temporaire de `ecrireJsonAtomique`
- *  qu'un tick tué entre l'écriture et le renommage laisse derrière lui. */
-const MOTIF_DU_CACHE = /^[0-9a-f]{40,64}\.json(?:\.\d+\.tmp)?$/
+/** Motif des fichiers de `<.git commun>/vigie/` pour la péremption : une mesure (`<sha>.json`, `distants.json`),
+ *  le temporaire de `ecrireJsonAtomique` (`<cible>.<uuid>.tmp`), le verrou de `prendreVerrou` et ses restes. */
+const MOTIF_DU_CACHE = /^(?:[0-9a-f]{40,64}|distants)\.json(?:\.[0-9a-f-]{36}\.tmp|\.verrou(?:\.reprise|\.\d+\.[0-9a-f-]{36})?)?$/
 
-/** Le CACHE porte-t-il `verte` pour ce chemin ? Un fichier absent, vide ou illisible est un cache ABSENT,
- *  jamais une panne : le verdict se relit. */
-function verteAuCache(chemin) {
+/** La mesure gardée sous `chemin`, `{ mesureA, valeur }` ; un fichier absent, vide ou d'une autre forme est
+ *  une mémoire ABSENTE, jamais une panne. */
+function memoireDe(chemin) {
   try {
-    return JSON.parse(readFileSync(chemin, 'utf8'))?.verdict === 'verte'
+    const lu = JSON.parse(readFileSync(chemin, 'utf8'))
+    return Number.isFinite(lu?.mesureA) && 'valeur' in lu ? lu : null
   } catch (e) {
-    if (e instanceof SyntaxError || e?.code === 'ENOENT') return false
+    if (e instanceof SyntaxError || e?.code === 'ENOENT') return null
     throw e
   }
 }
 
 /**
- * Le verdict de CI de `sha` : lu au CACHE s'il y est `verte` (`verteAuCache`), sinon par `lire(sha)` (une
- * union de `coursesCi`) et `verdictJuge` ; un `verte` neuf s'écrit au cache par l'écriture ATOMIQUE
- * `ecrireJsonAtomique`, que huit sessions partagent sans lire un fichier à moitié écrit. Le cache ne garde
- * que le verdict : un sha vu `verte` n'appelle plus `gh`.
+ * La MÉMOIRE MACHINE de `chemin` : la valeur gardée si elle a moins de `FRAICHEUR_MS` ou si `perenne(valeur)`,
+ * sinon `mesurer()` sous le verrou `<chemin>.verrou` (`prendreVerrou`, un essai), écrite avec son
+ * horodatage par `ecrireJsonAtomique`. Le perdant du verrou ne mesure pas : il rend la valeur gardée, même
+ * périmée ; sans valeur gardée, il mesure. Un verrou d'un PID mort se reprend (`prendreVerrou`). Une
+ * mesure qui LÈVE ne s'écrit pas.
+ * @template T
+ * @param {{chemin:string, mesurer:() => T, perenne?:(valeur:T) => boolean, horloge?:() => number, estVivant?:(pid:number) => boolean}} p
+ * @returns {T}
+ */
+export function memoireMachine({ chemin, mesurer, perenne = () => false, horloge = Date.now, estVivant = estPidVivant }) {
+  const fraiche = (lu) => lu !== null && (perenne(lu.valeur) || horloge() - lu.mesureA < FRAICHEUR_MS)
+  const avant = memoireDe(chemin)
+  if (fraiche(avant)) return avant.valeur
+  const ecrire = () => {
+    const valeur = mesurer()
+    ecrireJsonAtomique(chemin, { mesureA: horloge(), valeur })
+    purgerPerimes({ dossier: dirname(chemin), motif: MOTIF_DU_CACHE, ageMs: PEREMPTION_MS })
+    return valeur
+  }
+  const prise = prendreVerrou({ chemin: `${chemin}.verrou`, libelle: `vigie, ${basename(chemin)}`, commande: 'scripts/ops/vigie.mjs', estVivant })
+  if (prise.etat !== 'pris') return avant ? avant.valeur : ecrire()
+  try {
+    const relu = memoireDe(chemin)
+    return fraiche(relu) ? relu.valeur : ecrire()
+  } finally {
+    prise.liberer()
+  }
+}
+
+/**
+ * Le verdict de CI de `sha`, en mémoire machine (`memoireMachine`) sous `<dossier>/<sha>.json`, `verte`
+ * pérenne ; à la mesure, `lire(sha)` (une union de `coursesCi`) et `verdictJuge`.
  * Une course `rouge` se juge sur ses jobs (`jobs(id, attempt)`, `verdictJuge`) : sans job rouge et avec un job
  * annulé, elle est `annulee` ; des jobs illisibles la laissent `rouge`. Une lecture de courses indisponible
  * LÈVE `CiIllisible`.
- * @param {{sha:string|null, dossier:string, lire:(sha:string) => object, jobs:(id:number, attempt:number|null) => object}} p
+ * @param {{sha:string|null, dossier:string, lire:(sha:string) => object, jobs?:(id:number, attempt:number|null) => object, horloge?:() => number, estVivant?:(pid:number) => boolean}} p
  * @returns {string|null}
  */
-export function verdictDeCi({ sha, dossier, lire, jobs }) {
+export function verdictDeCi({ sha, dossier, lire, jobs, horloge, estVivant }) {
   if (!sha) return null
-  const chemin = fichierDuCache(dossier, sha)
-  if (verteAuCache(chemin)) return 'verte'
-  const vues = lire(sha)
-  if (!vues.disponible) throw new CiIllisible(`courses de ${sha.slice(0, 9)} illisibles : ${vues.raison}`)
-  const vu = verdictJuge(vues.valeur, sha, jobs)
-  if (vu.etat === 'verte') {
-    ecrireJsonAtomique(chemin, { verdict: 'verte' })
-    purgerPerimes({ dossier, motif: MOTIF_DU_CACHE, ageMs: PEREMPTION_MS })
-  }
-  return vu.etat
+  return memoireMachine({
+    chemin: join(dossier, `${sha}.json`),
+    perenne: (verdict) => verdict === 'verte',
+    horloge,
+    estVivant,
+    mesurer: () => {
+      const vues = lire(sha)
+      if (!vues.disponible) throw new CiIllisible(`courses de ${sha.slice(0, 9)} illisibles : ${vues.raison}`)
+      return verdictJuge(vues.valeur, sha, jobs).etat
+    },
+  })
+}
+
+/**
+ * Les têtes de l'origine `{ <ref complète>: sha }`, en mémoire machine (`memoireMachine`) sous
+ * `<dossier>/distants.json` ; à la mesure, UN `tetesDistantes`.
+ * @param {{depot:object, dossier:string, horloge?:() => number, estVivant?:(pid:number) => boolean}} p
+ * @returns {Record<string, string>}
+ */
+export function tetesDeLOrigine({ depot, dossier, horloge, estVivant }) {
+  return memoireMachine({
+    chemin: join(dossier, 'distants.json'),
+    horloge,
+    estVivant,
+    mesurer: () => {
+      const tetes = tetesDistantes(depot)
+      if (!tetes) throw new GitIndisponible('ls-remote origin n’a rendu aucune tête')
+      return Object.fromEntries(tetes)
+    },
+  })
 }
 
 /**
  * Le TICK : mesure l'arbre `arbre`, puis rend `{ ligne, transitions, etat }` depuis l'état `depuis`.
- * @param {{arbre:string, depuis?:string|null, lire?:(sha:string) => object}} p
+ * `horloge` et `estVivant` vont aux mémoires machine (`memoireMachine`).
+ * @param {{arbre:string, depuis?:string|null, lire?:(sha:string) => object, jobs?:Function, horloge?:() => number, estVivant?:(pid:number) => boolean}} p
  */
 export function tick({
   arbre, depuis = null, lire = (sha) => coursesCi({ cwd: arbre, commit: sha, limit: 30 }), jobs = (id, attempt) => jobsEnEchecDe({ cwd: arbre, id, attempt }),
+  horloge, estVivant,
 }) {
   const depot = depotDe(arbre)
   const principal = arbrePrincipal(depot)
@@ -176,11 +232,12 @@ export function tick({
   const dossier = join(principal.valeur, '.git', 'vigie')
   const nom = brancheDe(depot)
   const teteVivante = shaDe(depot, 'HEAD')
-  const refs = [TRONC.branche, ...(nom && nom !== TRONC.nom ? [`refs/heads/${nom}`] : [])]
-  const distants = shasDistants(depot, refs)
-  if (!distants) throw new GitIndisponible(`ls-remote origin n’a rien rendu pour ${refs.join(', ')}`)
-  const main = { sha: distants.get(TRONC.branche), verdict: verdictDeCi({ sha: distants.get(TRONC.branche), dossier, lire, jobs }) }
-  const branche = refs[1] ? { nom, sha: distants.get(refs[1]), verdict: verdictDeCi({ sha: distants.get(refs[1]), dossier, lire, jobs }) } : null
+  const tetes = tetesDeLOrigine({ depot, dossier, horloge, estVivant })
+  const verdict = (sha) => verdictDeCi({ sha, dossier, lire, jobs, horloge, estVivant })
+  const shaDeMain = tetes[TRONC.branche] ?? null
+  const main = { sha: shaDeMain, verdict: verdict(shaDeMain) }
+  const shaDeBranche = tetes[`refs/heads/${nom}`] ?? null
+  const branche = nom && nom !== TRONC.nom ? { nom, sha: shaDeBranche, verdict: verdict(shaDeBranche) } : null
   const { json } = cheminsDeJournal(arbre, nom ?? 'HEAD')
   const train = etatDuTrain(existsSync(json) ? lireJournal(json, nom) : null, { teteVivante })
   const vu = { main, branche, train }

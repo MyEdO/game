@@ -113,9 +113,9 @@ export function makePregens(): Combatant[] {
  *    (Jalon 2 : Armes d'hast ≠ Base).
  *  • Chasseur (Elfe sylvain) — Projectiles (Fronde) + munitions (Pierre ×10) → bandes de portée,
  *    rechargement, Spécialisation de tir. Seul porteur d'arme à distance du groupe.
- * Marchandage/Évaluation n'existent sur aucune carrière martiale de Niveau 1 : `partyBest` retombe
- * sur la Caractéristique brute (Soc/Int) — le marchand reste pleinement jouable (le Sorcier, Int
- * élevée, évalue le butin magique).
+ * Marchandage/Évaluation n'existent sur aucune carrière martiale de Niveau 1 : Marchandage (Base) se
+ * tente sur la Sociabilité nue ; Évaluation (Avancée) ne se tente pas sans Augmentation (LDB 09 l.30,
+ * `peutTenter`).
  */
 /**
  * Sélection d'un groupe de scénario — API UNIQUE et intention-révélante. Remplace les patterns fragiles

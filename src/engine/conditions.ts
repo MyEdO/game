@@ -12,11 +12,11 @@ import { slugId } from '../data/slug';
 import { t } from '../i18n';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
-import { bonus, effectiveChar } from './characteristics';
+import { bonus, effectiveChar, effectPool, retenirParPool } from './characteristics';
 import { d100, RNG, defaultRNG } from './dice';
 import { passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
 import { memeSource } from './suspension';
-import type { GameOp } from './ops';
+import type { GameOp, PairedSense } from './ops';
 import type { CodexTarget } from './ruleRefs';
 import { rollTest, isDoubleRoll, type TestResult } from './tests';
 import { dropExpiredGrantedTraits } from './grantedTraits';
@@ -27,6 +27,7 @@ import { recomputeLoadout } from './items';
 import { refreshWounds } from './characteristics';
 import { restoreSuppressedPsych } from './psychology';
 import { hasActiveFlag } from './activeFlags';
+import { isVehicle } from './coque';
 import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
 import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
 import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
@@ -54,12 +55,26 @@ export function etatNonCumulable(id: string): boolean {
 }
 
 /** Marqueurs NARRATIFS hors LDB 16 (PAS des États `etats.json`, cf. `data-wellformed.test`) : Pétrifié
- *  (LDB 85), sans entrée catalogue — REGISTRE UNIQUE de l'exception (libellé, sévérité, icone) : la
- *  sévérité (`conditionSeverity`), l'icone (`gameIso/effectIcons.conditionMeta`) et le nom scanné dans
- *  le journal (`conditionIdInText`) le COMPOSENT, aucun n'en garde de copie. */
-export const NARRATIVE_MARKERS: Record<string, { label: string; severity: number; icon: string }> = {
-  petrifie: { label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
-};
+ *  (LDB 85), sans entrée catalogue — REGISTRE UNIQUE de l'exception (libellé, sévérité, icone) : le
+ *  résolveur `etatConnu` et le nom scanné dans le journal (`conditionIdInText`) le COMPOSENT, aucun
+ *  n'en garde de copie. */
+export const NARRATIVE_MARKERS: readonly { id: string; label: string; severity: number; icon: string }[] = [
+  { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
+];
+
+const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
+
+/** État RÉSOLU par son id STABLE : catalogue VIVANT (`etats.json`) ∪ marqueurs narratifs
+ *  (`NARRATIVE_MARKERS`), `undefined` hors des deux. SOURCE UNIQUE du jeu d'ids d'État connus : le
+ *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`, garde FK
+ *  `refs-migrated.test`), la sévérité (`conditionSeverity`) et l'icone
+ *  (`gameIso/effectIcons.conditionMeta`) le composent. */
+export function etatConnu(id: string): { label: string; severity?: number; icon?: string } | undefined {
+  return findConditionById(id) ?? marqueurParId(id);
+}
+
+/** Ids que `etatConnu` résout, catalogue vivant puis marqueurs — la liste rendue par un refus. */
+export const etatIdsConnus = (): string[] => [...conditionIds(), ...NARRATIVE_MARKERS.map((m) => m.id)];
 
 /** id de l'État NOMMÉ dans un texte de journal (jeu de noms FERMÉ : catalogue VIVANT + marqueurs
  *  narratifs), `undefined` sinon — la logique reste keyée par ID, le libellé n'est que le motif
@@ -67,7 +82,7 @@ export const NARRATIVE_MARKERS: Record<string, { label: string; severity: number
  *  (`state/combatLog`) et son icone (`gameIso/combatNarration`) ; meurt avec le journal STRUCTURÉ (#1330). */
 export function conditionIdInText(text: string): string | undefined {
   for (const id of conditionIds()) if (text.includes(conditionLabel(id))) return id;
-  for (const [id, marqueur] of Object.entries(NARRATIVE_MARKERS)) if (text.includes(marqueur.label)) return id;
+  for (const marqueur of NARRATIVE_MARKERS) if (text.includes(marqueur.label)) return marqueur.id;
   return undefined;
 }
 
@@ -76,8 +91,7 @@ export function conditionIdInText(text: string): string | undefined {
  *  (`gameIso/effectIcons.conditionMeta`, `important` = sévérité ≥ 50) ET l'importance d'un évènement de
  *  combat pour le bandeau/la cadence (`state/combatLog.isImportantEvent`). */
 export function conditionSeverity(name: string): number {
-  const id = slugId(name);
-  return findConditionById(id)?.severity ?? NARRATIVE_MARKERS[id]?.severity ?? 10;
+  return etatConnu(slugId(name))?.severity ?? 10;
 }
 
 /**
@@ -441,14 +455,19 @@ export function wakeSleeper(c: Combatant): void {
   if (inc) removeCondition(c, COND.inconscient, inc.value);
 }
 
-/** Le `testMod` GLOBAL porté par UN effet actif — CRITÈRE UNIQUE, partagé par les deux détails
- *  nommés (`combatTestPenaltyParts` en combat, `testStatePenaltyParts` hors combat). EXCLUT les mods
- *  char-QUALIFIÉS (`testModChar` — Mystracine ±10 par Caractéristique), lus par `testValue` pour la
- *  seule carac visée. Modificateur GLOBAL de Sort (Malédiction de malchance −10, etc.) : SOMMÉ par
- *  ces détails (sources distinctes qui stackent), appliqué PAR-DESSUS la pénalité d'État (≠ État :
- *  ni non-cumul l.20, ni effacé par `ignoreStatePenalties`). */
+/** Le `testMod` GLOBAL porté par UN effet actif — CRITÈRE UNIQUE. EXCLUT les mods char-QUALIFIÉS
+ *  (`testModChar` — Mystracine ±10 par Caractéristique), lus par `testValue` pour la seule carac visée. */
 function effectGlobalTestMod(e: ActiveEffect): number {
   return e.testModChar == null ? (e.testMod ?? 0) : 0;
+}
+
+/** Lignes des `testMod` GLOBAUX d'effets actifs, partagées par les deux détails nommés : les Sorts
+ *  entre eux (LDB 46 l.119) et une même Prière (LDB 40 l.19) gardent meilleur bonus et pire pénalité
+ *  (`retenirParPool`) ; le reste se somme (LDB 14 l.95). Hors du pool des États (LDB 16 l.13) et
+ *  du gate `ignoreStatePenalties`. */
+function effectGlobalTestLines(c: Combatant): ModLine[] {
+  const lignes: (ModLine & { pool?: string })[] = (c.activeEffects ?? []).map((e) => ({ label: e.label, value: effectGlobalTestMod(e), famille: 'jet', ref: effectRef(e), pool: effectPool(e) }));
+  return retenirParPool(lignes).map(({ pool: _pool, ...ligne }) => ligne);
 }
 
 /** Les `testMod` portés par les États du combattant (kind `etat`), déjà ×pions (perStack) par le
@@ -512,37 +531,34 @@ export { effectRef } from './types';
 /**
  * Pénalité aux Tests de COMBAT (LDB 16), DÉCOMPOSÉE en lignes nommées — SOURCE UNIQUE du calcul ET
  * de son affichage. Trois familles, jamais fondues sous un même intitulé :
- *  1. le POOL non-cumul (l.20) — États, états psychologiques et auras de trait : UNE ligne, celle du
- *     gagnant, au nom de SON entité (« −30 Brisé ») avec son renvoi Codex ;
- *  2. les effets ACTIFS à `testMod` global (Malédiction de malchance) : une ligne PAR effet, à son nom ;
- *  3. les `testMod` globaux de symptôme (Crampes abdominales, MSRC 16 l.152) : une ligne PAR symptôme.
- * Les familles 2 et 3 STACKENT avec 1 (hors pool, et hors du gate `ignoreStatePenalties`).
+ *  1. le POOL des États (LDB 16 l.13) — États et états psychologiques : UNE ligne, celle du gagnant,
+ *     au nom de SON entité (« −30 Brisé ») avec son renvoi Codex ;
+ *  2. le POOL des auras de trait (LDB 85 l.262, « une seule fois ») : UNE ligne, la pire ;
+ *  3. les effets ACTIFS à `testMod` global (`effectGlobalTestLines`) ;
+ *  4. les `testMod` globaux de symptôme (Crampes abdominales, MSRC 16 l.152) : une ligne PAR symptôme.
+ * Les familles se SOMMENT entre elles (LDB 14 l.95).
  */
-export function combatTestPenaltyParts(c: Combatant): ModLine[] {
+export function combatTestPenaltyParts(c: Combatant, ctx: EtatTestCtx = {}): ModLine[] {
   let cand: PoolCandidate[] = [];
   // Endurance de l'anachorète (LDB 42) : « ne subit aucune pénalité causée par les États » —
   // n'efface QUE les pénalités d'État (l'aura Perturbante est un trait, pas un État).
   if (!hasActiveFlag(c, 'ignoreStatePenalties')) {
     for (const m of etatTestMods(c)) {
-      if (m.op.movementOnly) continue; // pénalité de DÉPLACEMENT (À Terre/Empêtré) — pas un Test de combat
-      if (m.op.hearingOnly) continue; // pénalité d'AUDITION (Assourdi) — pas un Test de combat (l.29)
+      if (m.op.movementOnly && !impliqueDeplacement(ctx)) continue; // LDB 16 l.35, l.64
+      if (!etatScopeApplies(m.op, ctx)) continue;
       cand.push({ amount: m.op.amount, nature: 'État', src: m.src }); // magnitude/portée en données (etats.json) ; déjà ×pions (Exténué)
     }
     cand = dropWorst(cand, ignoredStatesCount(c)); // « peut ignorer un État » (MDG 09 l.244)
   }
-  // Auras de combat (Perturbant : −20 à BE m, LDB 85 l.262) — `testMod` projetés dans `auraMods` par le hook
-  // `recompute-auras`. HORS du gate `ignoreStatePenalties` : une aura est un TRAIT, pas un État (Endurance de
-  // l'anachorète ne l'annule pas, LDB 42). Non-cumul = même pool (« une seule fois », LDB 85 l.262).
-  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.char == null) cand.push({ amount: m.op.amount, nature: 'Aura', src: m.src });
+  // Auras de combat (`auraMods`, hook `recompute-auras`) : un TRAIT, pas un État — hors du gate
+  // `ignoreStatePenalties` (LDB 42) et dans leur PROPRE pool (LDB 85 l.262).
+  const auras: PoolCandidate[] = [];
+  for (const m of c.auraMods ?? []) if (m.op.op === 'testMod' && m.op.char == null) auras.push({ amount: m.op.amount, nature: 'Aura', src: m.src });
   const out: ModLine[] = [];
-  const best = poolWinner(cand);
-  if (best?.amount) out.push({ label: srcLabel(best.src, best.nature), value: best.amount, famille: 'jet', ref: best.src });
-  // Modificateur de Sort (Malédiction de malchance) + pénalité GLOBALE de maladie (Crampes abdominales −20,
-  // MSRC 16 l.152) : STACKENT tous deux avec l'État (hors pool non-cumul des États, LDB 16 l.13).
-  for (const e of c.activeEffects ?? []) {
-    const amount = effectGlobalTestMod(e);
-    if (amount) out.push({ label: e.label, value: amount, famille: 'jet', ref: effectRef(e) });
+  for (const best of [poolWinner(cand), poolWinner(auras)]) {
+    if (best?.amount) out.push({ label: srcLabel(best.src, best.nature), value: best.amount, famille: 'jet', ref: best.src });
   }
+  out.push(...effectGlobalTestLines(c));
   for (const m of passiveGlobalTestParts(c)) {
     const { amount } = m.op as Extract<GameOp, { op: 'testMod' }>;
     if (amount) out.push(passivePartLine(m, amount)); // nommé par le SYMPTÔME émetteur (`src`), jamais « Symptôme »
@@ -552,19 +568,36 @@ export function combatTestPenaltyParts(c: Combatant): ModLine[] {
 
 /** Σ de `combatTestPenaltyParts` — la VALEUR que roule le résolveur (l'affichage et le jet ne peuvent
  *  pas diverger : ils lisent les mêmes composantes). */
-export function combatTestPenalty(c: Combatant): number {
-  return combatTestPenaltyParts(c).reduce((s, p) => s + p.value, 0);
+export function combatTestPenalty(c: Combatant, ctx: EtatTestCtx = {}): number {
+  return combatTestPenaltyParts(c, ctx).reduce((s, p) => s + p.value, 0);
 }
 
 // Tests « impliquant un déplacement » (LDB 16 l.35/l.64) — classification DÉRIVÉE de la donnée
 // (`SkillData.movement`, éditable au Codex), jamais une liste d'ids en dur. Acrobaties (spé de
 // Représentation) non classables à l'id de base → non couvertes.
 const competenceParId = indexParId('skills', skills);
-// Tests « impliquant l'audition » (Assourdi −10, LDB 16 l.29) — même patron DONNÉE (`SkillData.hearing`).
 /** Le Test `skill` est-il classé « déplacement » (`SkillData.movement`) ? Réutilisée par #193
  *  (Épaule luxée/Genou démis : `testMod.movementOnly` = MÊME catégorie que l'État À Terre/Empêtré). */
 export function isMovementSkill(skill?: string): boolean {
   return !!competenceParId(skill)?.movement;
+}
+
+/** CONTEXTE d'un Test lu par le pool d'États (LDB 16 l.13) : Compétence testée, sens sollicité,
+ *  maladie à laquelle le Test résiste, déplacement déclaré. */
+export interface EtatTestCtx { skill?: string; sense?: PairedSense; disease?: string; movement?: boolean }
+
+/** Le Test implique-t-il un déplacement (LDB 16 l.35, l.64) ? Compétence classée `movement`, ou Test que
+ *  l'appelant déclare tel (`movement` — l'Empoignade, LDB 16 l.64). */
+function impliqueDeplacement(ctx: EtatTestCtx): boolean {
+  return !!ctx.movement || isMovementSkill(ctx.skill);
+}
+
+/** Une pénalité d'État RESTREINTE pèse-t-elle sur ce Test ? Sens (LDB 16 l.29, l.45) : la Compétence
+ *  l'implique (`SkillData.senses`) et le Test, s'il nomme son sens, nomme celui-là. Maladie
+ *  (LDB 16 l.105) : le Test résiste à l'une des maladies visées. */
+function etatScopeApplies(op: Extract<GameOp, { op: 'testMod' }>, ctx: EtatTestCtx): boolean {
+  if (op.sense && !(competenceParId(ctx.skill)?.senses?.includes(op.sense) && (ctx.sense == null || ctx.sense === op.sense))) return false;
+  return !op.diseases || (ctx.disease != null && op.diseases.includes(ctx.disease));
 }
 
 /** Σ des `testMod` char-QUALIFIÉS ACTIFS (op `testMod{char}` exécutée, #193) pour la Caractéristique
@@ -589,25 +622,23 @@ export function activeCharTestMod(c: Combatant, ck: import('./types').CharKey, c
 }
 /**
  * Pénalité d'États aux Tests HORS COMBAT (LDB 16), DÉCOMPOSÉE en lignes nommées — JUMELLE exacte de
- * `combatTestPenaltyParts` pour les Tests « dans le monde », mêmes trois familles (pool non-cumul l.20,
- * effets ACTIFS à `testMod` global, `testMod` globaux de symptôme) et même provenance de LIBELLÉ : le
+ * `combatTestPenaltyParts` pour les Tests « dans le monde », mêmes familles hors auras (pool des États
+ * LDB 16 l.13, effets ACTIFS à `testMod` global, `testMod` globaux de symptôme) et même provenance de LIBELLÉ : le
  * `src` que le collecteur `passiveMods` porte sur chaque `PassiveMod` (donnée `etats.json` →
  * `refLabel`), JAMAIS un branchement par nom d'entité. SOURCE UNIQUE du calcul ET de son affichage :
  * `testStatePenalty` en est seulement la somme.
- * Magnitudes/portées en DONNÉES (`etats.json` passive `testMod` : `combatOnly`/`movementOnly`/
- * `hearingOnly`/`exceptSkills`). Les États non classables hors combat (Aveuglé=vue, `combatOnly`) sont
- * exclus ici.
+ * Magnitudes/portées en DONNÉES (`etats.json` passive `testMod` : `movementOnly`/`sense`/`diseases`/
+ * `exceptSkills`), portées lues contre le CONTEXTE du Test (`etatScopeApplies`).
  */
-export function testStatePenaltyParts(c: Combatant, skill?: string): ModLine[] {
+export function testStatePenaltyParts(c: Combatant, skill?: string, ctx: Omit<EtatTestCtx, 'skill'> = {}): ModLine[] {
   const out: ModLine[] = [];
   let cand: PoolCandidate[] = [];
   // Endurance de l'anachorète (LDB 42) : aucune pénalité d'État pour la durée (les modificateurs de
   // Sort/symptôme restent). Pas d'État du tout : rien à mettre au pool non plus.
   if (c.conditions?.length && !hasActiveFlag(c, 'ignoreStatePenalties')) {
     for (const m of etatTestMods(c)) {
-      if (m.op.combatOnly) continue; // Aveuglé (vue) : non classé hors combat (faute de classification du Test)
-      if (m.op.movementOnly && !competenceParId(skill)?.movement) continue; // À Terre/Empêtré : Tests de déplacement seuls
-      if (m.op.hearingOnly && !competenceParId(skill)?.hearing) continue; // Assourdi : Tests d'audition seuls (Perception)
+      if (m.op.movementOnly && !impliqueDeplacement({ ...ctx, skill })) continue; // LDB 16 l.35, l.64
+      if (!etatScopeApplies(m.op, { ...ctx, skill })) continue;
       if (m.op.exceptSkills?.some((r) => r.id === skill)) continue; // LDB 16 l.52
       cand.push({ amount: m.op.amount, nature: 'État', src: m.src });
     }
@@ -615,12 +646,7 @@ export function testStatePenaltyParts(c: Combatant, skill?: string): ModLine[] {
   }
   const best = poolWinner(cand);
   if (best?.amount) out.push({ label: srcLabel(best.src, best.nature), value: best.amount, famille: 'jet', ref: best.src });
-  // Modificateur de Sort + pénalité GLOBALE de maladie (Crampes abdominales −20, MSRC 16 l.152) : STACKENT,
-  // hors du non-cumul des États — présents même sans État et malgré Endurance de l'anachorète (LDB 42).
-  for (const e of c.activeEffects ?? []) {
-    const amount = effectGlobalTestMod(e);
-    if (amount) out.push({ label: e.label, value: amount, famille: 'jet', ref: effectRef(e) });
-  }
+  out.push(...effectGlobalTestLines(c));
   for (const m of passiveGlobalTestParts(c)) {
     const { amount } = m.op as Extract<GameOp, { op: 'testMod' }>;
     if (amount) out.push(passivePartLine(m, amount)); // nommé par le SYMPTÔME émetteur (`src`), jamais « Symptôme »
@@ -630,8 +656,8 @@ export function testStatePenaltyParts(c: Combatant, skill?: string): ModLine[] {
 
 /** Σ de `testStatePenaltyParts` — la VALEUR que roule `testValue` (l'affichage et le jet ne peuvent
  *  pas diverger : ils lisent les mêmes composantes), miroir de `combatTestPenalty`. */
-export function testStatePenalty(c: Combatant, skill?: string): number {
-  return testStatePenaltyParts(c, skill).reduce((s, p) => s + p.value, 0);
+export function testStatePenalty(c: Combatant, skill?: string, ctx: Omit<EtatTestCtx, 'skill'> = {}): number {
+  return testStatePenaltyParts(c, skill, ctx).reduce((s, p) => s + p.value, 0);
 }
 
 /**
@@ -924,7 +950,7 @@ export function bleedDeathRoll(c: Combatant, rng: RNG = defaultRNG): { died: boo
  *  (consommée par `isOutOfAction` et la résolution de Blessure critique). */
 export function usesSuddenDeath(c: Combatant): boolean {
   if (c.kind === 'hero') return false; // jamais pour les PJ (LDB 18 l.46)
-  if (c.bodyShape === 'vehicule') return false; // une COQUE n'est pas un figurant : sa destruction passe par ses Blessures (Naufrage) et les Critiques NAVALS — pas de « Mort Subite » de mook (MDG 13)
+  if (isVehicle(c)) return false; // MDG 13 l.656
   const mode = rule('combat-sudden-death');
   if (mode === 'off') return false;
   if (mode === 'tous') return true;
@@ -939,7 +965,7 @@ export function isOutOfAction(c: Combatant): boolean {
   if (c.inert) return c.dead === true || c.outOfRencontre === true;
   // Coque : détruite à 0 PB (MDG 13 l.656), OU coulée par la Voie d'eau — Inondation ≥ Endurance pose
   // l'État `naufrage` (MDG 13 l.674 : « il coule »), l'autre voie de coulée que les Blessures à 0.
-  if (c.bodyShape === 'vehicule') return c.dead === true || c.outOfRencontre === true || c.wounds.current <= 0 || hasCondition(c, 'naufrage');
+  if (isVehicle(c)) return c.dead === true || c.outOfRencontre === true || c.wounds.current <= 0 || hasCondition(c, 'naufrage');
   return c.dead === true || c.outOfRencontre === true || hasCondition(c, COND.inconscient) || (usesSuddenDeath(c) && c.wounds.current <= 0);
 }
 
@@ -957,7 +983,7 @@ export function endState(c: Combatant): EndState | null {
   if (c.inert) return null;
   if (c.dead) return 'mort';
   if (c.outOfRencontre) return c.exitReason === 'reddition' || c.exitReason === 'prise' ? 'rendu' : 'hors-combat';
-  if (c.bodyShape === 'vehicule') return c.wounds && c.wounds.current <= 0 ? 'hors-combat' : null; // coque coulée (MDG 13)
+  if (isVehicle(c)) return c.wounds && c.wounds.current <= 0 ? 'hors-combat' : null; // MDG 13
   if (usesSuddenDeath(c) && c.wounds && c.wounds.current <= 0) return 'hors-combat'; // figurant tombé à 0 PB
   if (!c.dead && hasCondition(c, COND.inconscient)) return 'inconscient'; // vivant mais KO (même gate de cycle de vie qu'isOutOfAction)
   return null;
@@ -983,7 +1009,7 @@ export function inDeathCondition(c: Combatant): boolean {
  *  (Une COQUE ne tombe pas « À Terre » : sa mise hors-jeu à 0 PB est gérée par `isOutOfAction`.) */
 export function applyZeroWounds(c: Combatant): void {
   if (c.inert) return; // OBJET INERTE (affût d'artillerie) : en permanence à 0 PB, immune aux Blessures → jamais À Terre (cf. isOutOfAction)
-  if (c.bodyShape === 'vehicule') return;
+  if (isVehicle(c)) return;
   if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
 }
 
@@ -1014,7 +1040,7 @@ export function loseWounds(c: Combatant, amount: number): number {
  */
 export function tickDeath(c: Combatant): string[] {
   const log: string[] = [];
-  if (c.dead || c.outOfRencontre || c.inert || usesSuddenDeath(c) || c.bodyShape === 'vehicule') return log; // un OBJET INERTE (affût, 0 PB permanent) et une coque ne « meurent » pas par la cascade Inconscient→mort (cf. isOutOfAction)
+  if (c.dead || c.outOfRencontre || c.inert || usesSuddenDeath(c) || isVehicle(c)) return log; // un OBJET INERTE (affût, 0 PB permanent) et une coque ne « meurent » pas par la cascade Inconscient→mort (cf. isOutOfAction)
   const be = bonus(effectiveChar(c, 'endurance'));
   if (c.wounds.current > 0) {
     c.roundsAtZero = 0;

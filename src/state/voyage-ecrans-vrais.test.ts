@@ -136,8 +136,8 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
   });
 });
 
-describe('#2533 — reprise après interruption : le jour interrompu reste le jour en cours', () => {
-  it('l’embuscade se joue sous la météo du jour, et la halte du soir clôt CE jour', () => {
+describe('#2533 — interruption puis reprise à budget nul : le jour interrompu est FINI, la halte suit', () => {
+  it('l’embuscade se joue sous la météo du jour ; la reprise clôt ce jour au log, puis la halte du soir', () => {
     setRule('travel-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
@@ -157,10 +157,52 @@ describe('#2533 — reprise après interruption : le jour interrompu reste le jo
     expect(get().pendingCascade, 'aucun jour de 0 h : ni météo ni péripétie').toBeNull();
     expect(get().pendingRest?.travelHalt).toBe(true);
     const log = get().travelPlan!.log!;
-    expect(log, 'la halte clôt le jour interrompu').toHaveLength(1);
+    expect(log, 'la reprise a clos le jour interrompu au log').toHaveLength(1);
     expect(log[0].weather?.id).toBe('pluie-diluvienne');
     expect(log[0].hours).toBeCloseTo(6, 1);
     expect(activeExposureSeverity(get), 'la nuit passe sous l’averse du jour, pas sous le ciel clair du départ').toBe('extreme');
+  });
+});
+
+describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halte (2026-10-09 01:51)', () => {
+  /** Interruption à pied sous l'averse (6 h marchées), victoire simulée : rend le jour interrompu. */
+  function jourInterrompu(): unknown {
+    setRule('travel-etapes', true);
+    setDesFixes(true);
+    setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
+    get().startTravel('r1', 'pied');
+    poseMeteo('pluie-diluvienne');
+    draineCascade(get);
+    const jours = get().travelPlan!.recap!.days;
+    const jour = structuredClone(jours[jours.length - 1]);
+    get().dismissTravelRecap();
+    set({ battle: null, mode: 'exploration' });
+    const wm = get().worldMap!;
+    set({ worldMap: { ...wm, routes: wm.routes.map((r) => ({ ...r, perils: [] })) } });
+    return jour;
+  }
+
+  it('budget nul : le jour interrompu est le dernier du log, `recap` effacé, halte de route sans marche forcée', () => {
+    const jour = jourInterrompu();
+    get().resumeTravel();
+    const plan = get().travelPlan!;
+    const halte = get().pendingRest!;
+    expect(plan.log).toEqual([jour]);
+    expect(plan.recap).toBeUndefined();
+    expect(get().pendingCascade).toBeNull();
+    expect(halte.travelHalt).toBe(true);
+    expect(halte.travelMarch).toEqual([]);
+    expect(activeDayWeather(get)).toBe('pluie-diluvienne');
+    expect(voyageDayCards(plan, 'terre', 'Étape', true, [], true).map((c) => c.dayLabel)).toEqual(['Étape 1', t('vs.phaseNuit')]);
+  });
+
+  it('un repos déjà ouvert refuse la halte : le jour interrompu reste au log quand même', () => {
+    const jour = jourInterrompu();
+    get().openRest({ lieu: sceneLieu(get), places: { camp: true } });
+    get().resumeTravel();
+    const plan = get().travelPlan!;
+    expect(plan.log, 'le jour interrompu est perdu si sa clôture attend `openRest`').toEqual([jour]);
+    expect(plan.recap).toBeUndefined();
   });
 });
 
@@ -229,11 +271,11 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
     setRule('travel-etapes', true);
     setRule('travel-attraper-froid', true);
     setDesFixes(true);
-    setup(map(), 'clair', [hero({ travelRole: 'plein-air' })]);
+    setup(map(), 'clair', [hero({ travelRole: { activityId: 'plein-air' } })]);
     get().startTravel('r1', 'pied');
     poseMeteo('pluie-diluvienne');
     const jour: string[] = [];
-    draineCascade(get, 200, (step) => { jour.push(step.kind); return issue; });
+    draineCascade(get, 200, (step) => { jour.push(step.kind); return step.table || step.de ? undefined : issue; });
     expect(get().pendingRest?.travelHalt).toBe(true);
     return jour;
   }

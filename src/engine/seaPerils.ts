@@ -22,6 +22,9 @@ import { type RNG, defaultRNG } from './dice';
 import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ShipSize } from '../data';
+import type { ModLine } from './combat';
+import type { CodexTarget } from './ruleRefs';
+import { t } from '../i18n';
 
 const SIZE_ORDER: ShipSize[] = ['minuscule', 'tres-petite', 'petite', 'moyenne', 'grande', 'enorme', 'monstrueuse'];
 
@@ -92,6 +95,13 @@ export function perilManagement(distanceM: number): { spot: Difficulty; avoid: D
  *  de points d'Encombrement du navire et de sa cargaison ». PUR. */
 export function strandingPenalty(shipEnc: number, cargoEnc: number): number {
   return -(Math.max(0, shipEnc) + Math.max(0, cargoEnc));
+}
+
+/** Ligne de `strandingPenalty` sur la cible du Test de dégagement — SOURCE UNIQUE de la mer (MDG 13 l.473)
+ *  et du fleuve (MSRC 7 l.99), `ref` = la règle du milieu. `null` sans Encombrement. PUR. */
+export function strandingPenaltyLine(shipEnc: number, cargoEnc: number, ref: CodexTarget): ModLine | null {
+  const value = strandingPenalty(shipEnc, cargoEnc);
+  return value ? { label: t('tp.modStranding'), value, famille: 'circonstance', ref } : null;
 }
 
 /** Le navire s'échoue-t-il sur ce péril (Rochers 20 % / Bas-fonds 40 %, MDG 13 l.497+499) ? PUR, le dé

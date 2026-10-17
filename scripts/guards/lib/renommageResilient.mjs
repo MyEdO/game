@@ -1,6 +1,5 @@
 // RENOMMAGE RÉSILIENT (#2493) : un `rename` que Windows refuse pendant qu'un autre processus tient la cible
-// ouverte, rejoué sous les paliers `BACKOFFS_MS`. Appelants : `ecrireJsonAtomique` (`ecritureJsonAtomique.mjs`)
-// et le remplacement de l'index du principal (`scripts/ops/synchroniser.mjs`).
+// ouverte, rejoué sous les paliers `BACKOFFS_MS`.
 import { renameSync } from 'node:fs'
 import { BACKOFFS_MS, attendreSync } from './spawnResilient.mjs'
 

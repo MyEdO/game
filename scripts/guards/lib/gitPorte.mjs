@@ -38,14 +38,18 @@
 // Une question épingle `OPTIONS_DE_L_HOTE` ; un écrivain ne pose rien, la configuration de
 // l'utilisateur (identité, signature, proxy, identifiants) fait foi.
 import { mesurerProtectionWorktree, retirerResiduelVide } from './protectionWorktree.mjs'
+import { natureDuChemin } from './natureDuChemin.mjs'
+import { MARQUE_RACINE_MESUREE, normaliserRequeteMesuree, porteUnControle, verifierRequeteMesuree } from './requeteMesuree.mjs'
 import { Buffer } from 'node:buffer'
 import { spawn as spawnAsync, spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { normaliserRacine } from '../../port-dev.mjs'
 import { BACKOFFS_MS, MARQUE_REJEU, attendreSync, estEchecDeChargement, rejeux } from './spawnResilient.mjs'
 import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { DEPOT } from './ticketsGh.mjs'
+import { fileURLToPath } from 'node:url'
 
 /** Borne de présentation de `raisonCourte`. */
 const RAISON_MAX = 200
@@ -136,6 +140,7 @@ const MOTIFS_ABSENT = [
   /no such path/i,
   /No such remote/i,
   /not a tree object/i,
+  /expected commit type, but the object dereferences to (?:blob|tree) type/i,
   /Invalid symmetric difference expression/i,
   /unable to parse object/i,
 ]
@@ -213,21 +218,6 @@ function lancer(commande, args, { cwd, spawn = spawnSync, attendre = attendreSyn
     attendre(BACKOFFS_MS[essai])
   }
 }
-
-/**
- * Ce qu'un chemin EST pour un `cwd` de sous-processus : `'repertoire'`, `'fichier'` (tout nœud qui
- * n'est pas un répertoire) ou `'absent'`. SOURCE UNIQUE de la question « ce chemin peut-il servir de
- * cwd ? ».
- * @param {string} chemin @returns {'repertoire'|'fichier'|'absent'}
- */
-export function natureDuChemin(chemin) {
-  const vu = statSync(chemin, { throwIfNoEntry: false })
-  if (!vu) return 'absent'
-  return vu.isDirectory() ? 'repertoire' : 'fichier'
-}
-
-/** `true` si `chemin` est un RÉPERTOIRE existant — le seul chemin utilisable comme `cwd`. */
-export const estRepertoire = (chemin) => natureDuChemin(chemin) === 'repertoire'
 
 /**
  * Un SPAWN QUI N'A PAS DÉMARRÉ (`error` posé, `status` nul) : TROIS causes, que le message de node
@@ -335,44 +325,6 @@ function lanceurDe(depot) {
   return lanceur
 }
 
-export const MARQUE_RACINE_MESUREE = '<RACINE>'
-
-export function normaliserRequeteMesuree(racine, requete) {
-  const base = resolve(racine).replace(/\\/g, '/').replace(/\/$/, '')
-  const motif = new RegExp(base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=/|$|[\\s\'"\\x00])', process.platform === 'win32' ? 'gi' : 'g')
-  const normaliser = (s) => String(s ?? '').replace(/\\/g, '/').replace(motif, MARQUE_RACINE_MESUREE)
-  return { args: requete.args.map(normaliser), cwd: requete.cwd, ...(requete.canal === 'stdout' ? { canal: 'stdout' } : {}), status: requete.status ?? null,
-    stdout: normaliser(requete.stdout), stderr: normaliser(requete.stderr) }
-}
-
-export function verifierRequeteMesuree(requete) {
-  const refus = (raison) => { throw new TypeError(`requête Git mesurée non certifiable : ${raison}`) }
-  if (requete?.canal !== undefined && requete.canal !== 'stdout') refus('canal inconnu')
-  if (!Array.isArray(requete?.args) || !requete.args.length || requete.args.some((a) => typeof a !== 'string' || porteUnControle(a))) refus('arguments invalides')
-  if (typeof requete.cwd !== 'string' || requete.cwd.includes('\\') || isAbsolute(requete.cwd) || requete.cwd.split('/').includes('..') || porteUnControle(requete.cwd)) refus('cwd hors racine')
-  const args = [...requete.args]
-  while (args[0] === '-c') {
-    args.shift()
-    if (!['core.quotepath=false', 'merge.conflictstyle=merge', 'i18n.logoutputencoding=utf-8'].includes(String(args.shift()).toLowerCase())) refus('configuration non autorisée')
-  }
-  if (args[0] === '--literal-pathspecs') args.shift()
-  const commande = args.shift()
-  const drapeaux = {
-    'ls-files': /^(?:-z|--cached|--stage|--others|--ignored|--exclude-standard|--directory|--full-name)$/,
-    'log': /^(?:-1|--no-renames|--name-only|--diff-filter=[ACDMRTUXB*]+|--format=(?:%[a-zA-Z]|[^%\r\n])*)$/,
-    'rev-parse': /^(?:--show-toplevel|--verify|--quiet|--short(?:=\d+)?|--is-shallow-repository)$/,
-  }[commande]
-  if (!drapeaux) refus(`commande ${commande ?? '<absente>'}`)
-  let chemins = false
-  for (const a of args) {
-    if (a === '--') { chemins = true; continue }
-    if (!chemins && a.startsWith('-')) { if (!drapeaux.test(a)) refus(`drapeau ${a}`); continue }
-    const p = a.replaceAll(MARQUE_RACINE_MESUREE, '')
-    if (p.split(/[\\/]/).includes('..') || (!a.startsWith(MARQUE_RACINE_MESUREE) && (isAbsolute(a) || /^[A-Za-z]:/.test(a)))) refus(`chemin hors racine ${a}`)
-  }
-  return true
-}
-
 export function relireRequeteMesuree(depot, requete) {
   verifierRequeteMesuree(requete)
   const hote = lanceurDe(depot)
@@ -434,12 +386,9 @@ function feinteDeGit(env, argv, site, journal = process.stderr) {
   return regle.absent ? spawnIntrouvable('git') : { status: regle.status, stdout: regle.stdout ?? '', stderr: regle.stderr ?? '' }
 }
 
-/** `git <args>` dans le dépôt, en union à trois issues. `options` : `OPTIONS_DE_L_HOTE` pour une
- *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. `index` : le
- *  `GIT_INDEX_FILE` de CETTE commande seule (`git help git`, « ENVIRONMENT VARIABLES »), `INDEX_DU_DEPOT`
- *  le retire de son environnement ; `encodage` : `'buffer'` rend `stdout` en octets. */
-function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE, index, encodage } = {}) {
-  const { cwd, env, spawn, attendre } = lanceurDe(depot)
+// #2475 / #2477
+function environnementDe(depot) {
+  const { env } = lanceurDe(depot)
   const fournisseur = typeof env === 'function'
   const environnement = fournisseur ? env() : env
   if (fournisseur && (typeof environnement?.then === 'function'
@@ -447,6 +396,15 @@ function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE,
     || Object.values(environnement).some((valeur) => valeur !== undefined && typeof valeur !== 'string'))) {
     throw new TypeError('gitPorte : fournisseur env — un objet environnement synchrone est attendu, sans promesse ni valeur absente ou invalide')
   }
+  return environnement
+}
+
+/** `git <args>` dans le dépôt, en union à trois issues. `options` : `OPTIONS_DE_L_HOTE` pour une
+ *  lecture, `[]` pour un écrivain, qui garde la configuration de l'utilisateur. `index` : le
+ *  `GIT_INDEX_FILE` de CETTE commande seule (`git help git`, « ENVIRONMENT VARIABLES »), `INDEX_DU_DEPOT`
+ *  le retire de son environnement ; `encodage` : `'buffer'` rend `stdout` en octets. */
+function interroger(depot, args, { entree, timeout, options = OPTIONS_DE_L_HOTE, index, encodage, environnement = environnementDe(depot) } = {}) {
+  const { cwd, spawn, attendre } = lanceurDe(depot)
   const argv = [...options, ...args]
   const site = `git ${args[0]}`
   const envDeLaCommande = index === undefined ? environnement
@@ -507,10 +465,11 @@ function lire(depot, args, opts) {
  * absent ou code non nul : un lot que git ne rend pas n'est le vide d'AUCUN de ses éléments, et le
  * rendre vide ferait passer chacun pour « ne change rien ». `quoi` nomme le lot dans la levée.
  * @param {Depot} depot @param {string[]} args @param {Parameters<typeof interroger>[2]} opts @param {string} quoi
+ * @param {(texte: string) => boolean} [valider]
  * @returns {string}
  * @throws {GitIndisponible}
  */
-function lireLeLotOuLever(depot, args, opts, quoi) {
+function lireLeLotOuLever(depot, args, opts, quoi, valider) {
   const vu = interroger(depot, args, opts)
   if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
     const motif = !vu.disponible ? vu.raison : vu.absent ? 'un objet manque' : `git ${args[0]} sort en ${vu.valeur.status}`
@@ -520,6 +479,7 @@ function lireLeLotOuLever(depot, args, opts, quoi) {
       issue: !vu.disponible ? vu.issue : vu.absent ? 'mesure' : 'refus', diagnostic,
     }))
   }
+  if (valider && !valider(vu.valeur.stdout)) throw new GitIndisponible(indisponible(`${quoi} illisible : format de réponse inattendu`, { diagnostic: vu.valeur }))
   return vu.valeur.stdout
 }
 
@@ -649,10 +609,6 @@ const ETATS_EN_CONFLIT = new Set(['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'])
 /** Les chemins NON FUSIONNÉS de l'arbre (`etatDeLArbre`). @param {Depot} depot @returns {string[]} */
 export const cheminsEnConflit = (depot) => etatDeLArbre(depot).filter((e) => ETATS_EN_CONFLIT.has(e.etat)).map((e) => e.chemins[0])
 
-/** Un texte qui porte un caractère de CONTRÔLE (C0 ou DEL) : il ne tient pas sur UNE ligne d'un lot
- *  `cat-file --batch`/`--batch-check`, une requête par ligne (`git help cat-file`, « BATCH OUTPUT »). */
-const porteUnControle = (texte) => [...texte].some((c) => c < ' ' || c === '\x7f')
-
 /** Une révision que l'hôte ne pose pas à git (`revisionsDe`). */
 const revisionFautive = (r) => typeof r !== 'string' || !r || r.startsWith('-') || porteUnControle(r) || r.includes('@{')
 
@@ -725,13 +681,21 @@ const absentSaufCorrompu = (depot, revisions) => {
 }
 
 /**
+ * La lecture `rev-list <options>` de la plage `revisions`, passées par l'entrée (`--stdin`, `git help
+ * rev-list`) : leur nombre ne borne pas la ligne de commande. `[args, opts]` de `lire`.
+ * @param {readonly string[]} options @param {readonly string[]} revisions @returns {[string[], { entree: string }]}
+ */
+const lectureDePlage = (options, revisions) =>
+  [['rev-list', ...options, '--stdin', '--'], { entree: revisionsDe(revisions).map((r) => `${r}\n`).join('') }]
+
+/**
  * Les SHAS des commits de la plage `revisions` (`git help revisions` : `<a>..<b>`, `^<ref>`, `<sha>^!`),
  * du plus ancien au plus récent. `null` quand git ne rend pas la plage : une plage illisible n'est pas
  * une plage vide.
  * @param {Depot} depot @param {readonly string[]} revisions @returns {string[] | null}
  */
 export function shasDe(depot, revisions) {
-  const brut = lire(depot, ['rev-list', '--reverse', ...revisionsDe(revisions), '--'])
+  const brut = lire(depot, ...lectureDePlage(['--reverse'], revisions))
   return brut === null ? absentSaufCorrompu(depot, revisions) : brut.split('\n').map((l) => l.trim()).filter(Boolean)
 }
 
@@ -771,7 +735,7 @@ const commitsDuGraphe = (brut) => brut.split('\n').map((l) => l.trim()).filter(B
  * @param {Depot} depot @param {readonly string[]} revisions @returns {CommitDuGraphe[] | null}
  */
 export function grapheDe(depot, revisions) {
-  const vu = lireLeGraphe(depot, ['rev-list', '--reverse', '--no-commit-header', FORMAT_DU_GRAPHE, ...revisionsDe(revisions), '--'])
+  const vu = lireLeGraphe(depot, ...lectureDePlage(['--reverse', '--no-commit-header', FORMAT_DU_GRAPHE], revisions))
   const brut = vu.disponible ? sortieOuNull(vu) : confier(depot, vu)
   return brut === null ? absentSaufCorrompu(depot, revisions) : commitsDuGraphe(brut)
 }
@@ -781,29 +745,43 @@ const GIT_NO_COMMIT_HEADER = Object.freeze([2, 33])
 
 /** L'union de lecture du graphe (`FORMAT_DU_GRAPHE`), dont la raison nomme une version de git
  *  insuffisante ou illisible (`versionManquante`). @returns {import('./gitPorte.mjs').ResultatGit} */
-function lireLeGraphe(depot, args) {
-  const vu = interroger(depot, args)
+function lireLeGraphe(depot, args, opts) {
+  const vu = interroger(depot, args, opts)
   if (vu.disponible) return vu
   const raison = versionManquante(depot, GIT_NO_COMMIT_HEADER, 'git rev-list --no-commit-header', 'le graphe des commits n’est pas lisible')
   return raison ? { ...vu, raison } : vu
 }
 
+/** Une ligne d'objet présent de `cat-file --batch-check` : `<sha> <type> <taille>` (`git help cat-file`, BATCH OUTPUT). */
+const LIGNE_D_OBJET = /^([0-9a-f]{40}|[0-9a-f]{64}) ([a-z]+) \d+$/
+
 /**
- * Le COMMIT que nomme chacune des `revisions`, dans leur ordre, en UN lot (`cat-file --batch-check`
- * de `<rev>` puis `<rev>^{commit}`, `git help revisions`) : son sha complet, ou `null` quand le nom
- * ne désigne aucun objet, en désigne PLUSIEURS (`git help cat-file`, « ambiguous » : un préfixe se
- * résout parmi TOUS les objets du dépôt, pas parmi les seuls commits d'un graphe), ou ne se pèle pas
- * en commit. Une indisponibilité suit `lire`, qui rend alors `null` pour chacune.
+ * L'OBJET que nomme chacune des `revisions`, dans leur ordre, et sa cible PELÉE, en UN lot
+ * (`cat-file --batch-check` de `<rev>` puis `<rev>^{}`, `git help revisions`) : `objet` = son sha
+ * complet, `null` quand le nom ne désigne aucun objet ou en désigne PLUSIEURS (`git help cat-file`,
+ * « ambiguous » : un préfixe se résout parmi TOUS les objets du dépôt) ; `pele` = le sha et le type
+ * de l'objet au bout des étiquettes, `null` quand il manque. Une indisponibilité suit `lire`, qui rend
+ * alors `{ objet: null, pele: null }` pour chacune.
+ * @param {Depot} depot @param {readonly string[]} revisions
+ * @returns {{ objet: string | null, pele: { sha: string, type: string } | null }[]}
+ */
+export function objetsNommes(depot, revisions) {
+  if (!revisions.length) return []
+  const brut = lire(depot, ['cat-file', '--batch-check'], { entree: revisionsDe(revisions).map((r) => `${r}\n${r}^{}\n`).join('') })
+  const lignes = (brut ?? '').split('\n').map((l) => l.trim())
+  return revisions.map((_, i) => {
+    const [objet, pele] = brut === null ? [null, null] : [lignes[2 * i], lignes[2 * i + 1]].map((l) => LIGNE_D_OBJET.exec(l ?? ''))
+    return { objet: objet?.[1] ?? null, pele: pele ? { sha: pele[1], type: pele[2] } : null }
+  })
+}
+
+/**
+ * Le COMMIT que nomme chacune des `revisions`, dans leur ordre, en UN lot (`objetsNommes`) : son sha
+ * complet, ou `null` quand le nom ne nomme aucun objet unique ou ne se pèle pas en commit.
  * @param {Depot} depot @param {readonly string[]} revisions @returns {(string | null)[]}
  */
 export function commitsNommes(depot, revisions) {
-  if (!revisions.length) return []
-  const brut = lire(depot, ['cat-file', '--batch-check'], { entree: revisionsDe(revisions).map((r) => `${r}\n${r}^{commit}\n`).join('') })
-  const lignes = (brut ?? '').split('\n')
-  return revisions.map((_, i) => {
-    if (brut === null || / (?:missing|ambiguous)$/.test(lignes[2 * i] ?? ' missing')) return null
-    return /^([0-9a-f]+) commit /.exec(lignes[2 * i + 1] ?? '')?.[1] ?? null
-  })
+  return objetsNommes(depot, revisions).map(({ objet, pele }) => (objet && pele?.type === 'commit' ? pele.sha : null))
 }
 
 /**
@@ -849,7 +827,7 @@ const isoStricte = (date) => date.replace(/([+-]\d{2})(\d{2})$/, '$1:$2')
  */
 export function journalDe(depot, revisions, { depuis } = {}) {
   const borne = depuis === undefined ? [] : [`--since=${depuis}`]
-  const brut = lire(depot, ['rev-list', '--reverse', '--no-commit-header', ...borne, `--date=${FORMAT_DE_DATE}`, '--format=%H%x1f%cd%x1f%B%x00', ...revisionsDe(revisions), '--'])
+  const brut = lire(depot, ...lectureDePlage(['--reverse', '--no-commit-header', ...borne, `--date=${FORMAT_DE_DATE}`, '--format=%H%x1f%cd%x1f%B%x00'], revisions))
   if (brut === null) return absentSaufCorrompu(depot, revisions)
   return brut
     .split('\0').map((e) => e.replace(/^\n/, '')).filter(Boolean).map((e) => {
@@ -878,7 +856,7 @@ export function branchesDe(depot) {
  * @param {Depot} depot @param {readonly string[]} revisions @returns {number | null}
  */
 export function combienDe(depot, revisions) {
-  const brut = lire(depot, ['rev-list', '--count', ...revisionsDe(revisions), '--'])
+  const brut = lire(depot, ...lectureDePlage(['--count'], revisions))
   return brut === null ? absentSaufCorrompu(depot, revisions) : Number.parseInt(brut.trim(), 10)
 }
 
@@ -1333,6 +1311,13 @@ export function eolsDe(depot, chemins) {
 }
 
 /**
+ * Les chemins SUIVIS dont l'arbre de travail s'écarte de l'index (`diff --name-only`, `git help diff`,
+ * « git diff [<options>] [--] [<path>...] »), suppressions comprises, sous `pathspecs` (tout l'arbre sans).
+ * @param {Depot} depot @param {...string} pathspecs @returns {string[]}
+ */
+export const ecartsDuTravail = (depot, ...pathspecs) => enregistrementsDe(depot, ['diff', '--name-only', '--no-renames', '--', ...pathspecs])
+
+/**
  * Les FICHIERS qu'une IMAGE git porte sous `dossiers` (tout l'arbre sans dossier), chemins POSIX complets — l'unique listeur
  * d'image des portes : `arbre` = une ref (`ls-tree -r`), `INDEX` (`ls-files --cached`, ce que le
  * commit emporte), `SUIVI` (les mêmes chemins privés de ceux que le disque a perdus, `ls-files
@@ -1501,7 +1486,11 @@ export function arbrePrincipal(depot) {
   return commun.disponible ? { ...commun, valeur: dirname(commun.valeur) } : commun
 }
 
-export const CONTRATS_DE_DERIVATION = [{ fonction: dossierGitCommun, namespace: '.git', champ: 'valeur' }]
+export const CONTRATS_DE_DERIVATION = [
+  { fonction: dossierGitCommun, namespace: '.git', champ: 'valeur' },
+  { fonction: politiqueExclusionsDe, lectures: 'corpus', retour: { exclude: { chemin: 'corpus' }, global: { chemin: 'corpus' } } },
+  { fonction: nonSuivisIgnoresDe, lectures: 'corpus', retour: 'corpus' },
+]
 
 /** Le dépôt de ce projet (`DEPOT`), en https comme en ssh, avec ou sans `.git`, casse ignorée comme
  *  GitHub l'ignore. Notion d'ORIGINE, donc hôte des lectures git : la porte au push et la préflight
@@ -1540,8 +1529,9 @@ const HORS_ARBRE = /not a git repository|must be run in a work tree/i
 
 /** La RACINE de l'arbre de travail (`rev-parse --show-toplevel`), `null` hors d'un arbre ; toute
  *  autre indisponibilité va à `confier`.
- *  @param {Depot} depot @returns {string | null} */
-export function racineDe(depot) {
+ *  @param {Depot} depot @param {{ strict?: boolean, environnement?: NodeJS.ProcessEnv }} [opts] @returns {string | null} */
+export function racineDe(depot, { strict = false, environnement } = {}) {
+  if (strict) return lireLeLotOuLever(depot, ['rev-parse', '--show-toplevel'], { environnement }, 'racine Git', (s) => s.endsWith('\n') && !s.includes('\0') && isAbsolute(s.replace(/\r?\n$/, ''))).replace(/\r?\n$/, '')
   const vu = interroger(depot, ['rev-parse', '--show-toplevel'])
   if (vu.disponible) return sortieOuNull(vu)?.trim() || null
   return HORS_ARBRE.test(vu.raison) ? null : confier(depot, vu)
@@ -1637,8 +1627,27 @@ export const caractereDeCommentaire = (depot) => (lire(depot, ['config', '-z', '
  *  @param {Depot} depot @returns {string | null} */
 export const origineDe = (depot) => lire(depot, ['remote', 'get-url', 'origin'])?.trim() || null
 
-/** Borne d'un `ls-remote` (`shasDistants`), en millisecondes : celle de `fetchOrigin`. */
+/** Borne d'un `ls-remote` (`shasDistants`, `tetesDistantes`), en millisecondes : celle de `fetchOrigin`. */
 export const TIMEOUT_DU_DISTANT_MS = 60000
+
+/** Les refs annoncées par l'origine, restreintes si `motifs` est donné (`git help ls-remote`, « <patterns> »),
+ *  en UN `ls-remote origin` : une `Map` ref → sha, `null` quand git ne répond pas 0 ou qu'une ligne de
+ *  l'annonce n'est pas `<sha complet> <ref>`. */
+export function refsDistantes(depot, motifs = []) {
+  const brut = lire(depot, ['ls-remote', 'origin', ...(motifs.length ? revisionsDe(motifs) : [])], { timeout: TIMEOUT_DU_DISTANT_MS })
+  if (brut === null) return null
+  const lignes = brut.split('\n').filter((ligne) => ligne.trim()).map((ligne) => ligne.trim().split(/\s+/))
+  if (lignes.some(([sha, ref, surplus]) => !estShaComplet(sha) || !ref || surplus !== undefined)) return null
+  return new Map(lignes.map(([sha, ref]) => [ref, sha]))
+}
+
+/**
+ * TOUTES les têtes de l'origine (`refs/heads/*`), en UN `ls-remote origin` (`refsDistantes`), une
+ * LECTURE : une `Map` ref complète → sha, `null` quand git ne répond pas 0 ; une indisponibilité va à
+ * `confier`.
+ * @param {Depot} depot @returns {Map<string, string> | null}
+ */
+export const tetesDistantes = (depot) => refsDistantes(depot, ['refs/heads/*'])
 
 /**
  * Les SHAS que l'origine porte pour `refs` (noms COMPLETS, `refs/heads/<branche>`), en UN
@@ -1650,9 +1659,8 @@ export const TIMEOUT_DU_DISTANT_MS = 60000
  * @param {Depot} depot @param {readonly string[]} refs @returns {Map<string, string | null> | null}
  */
 export function shasDistants(depot, refs) {
-  const brut = lire(depot, ['ls-remote', 'origin', ...revisionsDe(refs)], { timeout: TIMEOUT_DU_DISTANT_MS })
-  if (brut === null) return null
-  const lus = new Map(brut.split('\n').map((l) => l.trim().split(/\s+/)).filter(([sha, ref]) => sha && ref).map(([sha, ref]) => [ref, sha]))
+  const lus = refsDistantes(depot, refs)
+  if (lus === null) return null
   return new Map(refs.map((ref) => [ref, lus.get(ref) ?? null]))
 }
 
@@ -1667,6 +1675,39 @@ export function cheminsIgnores(depot, chemins, { suivisCompris = false } = {}) {
   if (!chemins.length) return new Set()
   const brut = lire(depot, ['check-ignore', '--stdin', '-z', ...(suivisCompris ? ['--no-index'] : [])], { entree: chemins.map((c) => `${c}\0`).join('') })
   return new Set((brut ?? '').split('\0').filter(Boolean))
+}
+
+// git-scm.com/docs/gitignore ; git-scm.com/docs/git-config
+export function nonSuivisIgnoresDe(depot) {
+  const brut = lireLeLotOuLever(depot, ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'], {}, 'non suivis ignorés', (s) => !s || s.endsWith('\0'))
+  return new Set(brut.split('\0').filter(Boolean).map((p) => p.replace(/\/$/, '')))
+}
+
+/** La configuration BRUTE (`config --null --list`, git-scm.com/docs/git-config) : une entrée
+ *  `clé\nvaleur` par champ terminé par NUL, includes résolus. Toute indisponibilité LÈVE.
+ *  @param {Depot} depot @param {{ environnement?: NodeJS.ProcessEnv }} [opts] @returns {string} */
+export function configurationDe(depot, { environnement } = {}) {
+  return lireLeLotOuLever(depot, ['config', '--null', '--list'], environnement ? { environnement } : {}, 'configuration', (s) => !s || s.endsWith('\0'))
+}
+
+// git-scm.com/docs/gitignore ; git-scm.com/docs/git-config
+export function politiqueExclusionsDe(depot) {
+  const environnement = { ...(environnementDe(depot) ?? process.env) }
+  const opts = { environnement }
+  const { cwd } = lanceurDe(depot)
+  const brut = configurationDe(depot, opts)
+  const configuration = brut.split('\0').filter((s) => s.toLowerCase().startsWith('core.excludesfile\n') || s.toLowerCase() === 'core.excludesfile')
+    .map((s) => s.includes('\n') ? s.slice(s.indexOf('\n') + 1) : '')
+  const excludeBrut = lireLeLotOuLever(depot, ['rev-parse', '--path-format=absolute', '--git-path', 'info/exclude'], opts, 'info/exclude', (s) => s.length > 1 && !s.includes('\0') && s.endsWith('\n'))
+  const exclude = { chemin: resolve(cwd, excludeBrut.replace(/\r?\n$/, '')) }
+  if (configuration.length && configuration.at(-1) === '') return { exclude, global: { configuration, origine: 'desactivee', chemin: null } }
+  const racineGit = racineDe(depot, { strict: true, environnement })
+  if (configuration.length) {
+    const chemin = lireLeLotOuLever(depot, ['config', '--null', '--path', '--get', 'core.excludesFile'], opts, 'chemin global des exclusions', (s) => s.length > 1 && s.endsWith('\0') && !s.slice(0, -1).includes('\0'))
+    return { exclude, global: { configuration, origine: 'configuree', chemin: resolve(racineGit, chemin.slice(0, -1)) } }
+  }
+  const base = environnement.XDG_CONFIG_HOME || join(environnement.HOME || environnement.USERPROFILE || homedir(), '.config')
+  return { exclude, global: { configuration, origine: 'standard', chemin: resolve(racineGit, base, 'git', 'ignore') } }
 }
 
 /** `chemin` est-il IGNORÉ ? `cheminsIgnores` d'un seul chemin.
@@ -1873,13 +1914,20 @@ export const reussi = (union) => union.disponible && !union.absent && union.vale
 // l'hôte, la configuration de l'utilisateur (identité, signature, proxy, identifiants) fait foi.
 
 /**
- * MUTATION de refs : met `refs/remotes/origin/<branche>` à jour, par une refspec explicite qu'un
- * clone `--single-branch` ne porte pas. Une panne RÉSEAU rend `indisponible` — la porte qui
- * l'appelle dit « CI non consultable », elle ne conclut pas.
- * @param {Depot} depot @param {{ branche?: string }} [opts]
+ * Acquiert `objets` sans refs ni FETCH_HEAD, ou met `refs/remotes/origin/<branche>` à jour
+ * par refspec explicite. Une panne réseau rend `indisponible`.
+ * @param {Depot} depot @param {{ branche?: string, objets?: never } | { objets: readonly string[], branche?: never }} [opts]
  */
-export const fetchOrigin = (depot, { branche = TRONC.nom } = {}) =>
-  ecrire(depot, ['fetch', '--quiet', '--no-tags', 'origin', `+refs/heads/${revisionsDe([branche])[0]}:refs/remotes/origin/${branche}`], { timeout: TIMEOUT_DU_DISTANT_MS })
+export function fetchOrigin(depot, opts = {}) {
+  if (!opts || typeof opts !== 'object' || Array.isArray(opts) || Object.keys(opts).some((cle) => cle !== 'branche' && cle !== 'objets')) throw new TypeError('fetchOrigin : options invalides')
+  if ('objets' in opts) {
+    if ('branche' in opts || !Array.isArray(opts.objets) || !opts.objets.length || !Array.from(opts.objets).every((sha) => typeof sha === 'string' && estShaComplet(sha)))
+      throw new TypeError('fetchOrigin : objets exige un lot non vide de SHA complets, exclusif de branche')
+    return ecrire(depot, ['fetch', '--quiet', '--no-tags', '--no-write-fetch-head', '--refmap=', 'origin', ...new Set(opts.objets)], { timeout: TIMEOUT_DU_DISTANT_MS })
+  }
+  const { branche = TRONC.nom } = opts
+  return ecrire(depot, ['fetch', '--quiet', '--no-tags', 'origin', `+refs/heads/${revisionsDe([branche])[0]}:refs/remotes/origin/${branche}`], { timeout: TIMEOUT_DU_DISTANT_MS })
+}
 
 /** L'histoire complète d'un clone superficiel (`fetch --unshallow origin`). @param {Depot} depot @param {{ timeout?: number }} [opts] */
 export const approfondir = (depot, { timeout } = {}) => ecrire(depot, ['fetch', '--unshallow', 'origin'], { timeout })
@@ -1950,25 +1998,45 @@ export function conclureFusionSansChemins(depot, { chemins, message }) {
  * HEAD poussé vers la branche `vers` de l'origine. `bail` = `--force-with-lease`, qui n'écrase que ce
  * que le dépôt vient de lire. Jamais vers le tronc : `main` n'avance que par la file de fusion
  * (scripts/ops/ruleset-main.mjs).
- * @param {Depot} depot @param {{ vers: string, bail?: boolean }} p
+ * @param {Depot} depot @param {{ vers: string, bail?: false | string }} p
  * @throws {Error} `vers` = `TRONC`.
  */
 export function pousser(depot, { vers, bail = false }) {
   if ([TRONC.nom, TRONC.branche].includes(vers)) throw new Error('`git push` vers `main` : main n’avance que par la file de fusion (`npm run ops:publier`)')
-  return ecrire(depot, ['push', ...(bail ? ['--force-with-lease'] : []), 'origin', `HEAD:${revisionsDe([vers])[0]}`], { timeout: 600_000 })
+  const ref = revisionsDe([vers])[0]
+  if (bail !== false && typeof bail !== 'string') throw new Error('pousser : bail SHA explicite requis')
+  const attendu = typeof bail === 'string' ? bail : null
+  if (attendu !== null && attendu !== '' && !estShaComplet(attendu)) throw new Error('pousser : bail SHA explicite invalide')
+  const lease = attendu !== null ? [`--force-with-lease=${ref.startsWith('refs/') ? ref : `refs/heads/${ref}`}:${attendu}`] : []
+  const args = ['push', ...lease, 'origin', `HEAD:${ref}`]
+  const { spawn } = lanceurDe(depot)
+  if (spawn && spawn !== spawnSync) return ecrire(depot, args, { timeout: 600_000 })
+  const cwd = lanceurDe(depot).cwd
+  const env = environnementDe(depot)
+  const feinte = feinteDeGit(env ?? process.env, args, 'git push')
+  if (feinte) return classer(feinte, { cwd })
+  const options = Buffer.from(JSON.stringify({ commande: 'git', args, cwd, timeout: 600_000 })).toString('base64')
+  const superviseur = lancer(process.execPath, [fileURLToPath(new URL('./superviserProcessus.mjs', import.meta.url)), options], { cwd, env })
+  if (superviseur.status !== 0) return classer(superviseur, { cwd })
+  try {
+    const vu = JSON.parse(superviseur.stdout)
+    if (vu.error) vu.error = Object.assign(new Error(vu.error.message), { code: vu.error.code })
+    return classer(vu, { cwd })
+  } catch (e) { return indisponible('superviseur push illisible : ' + e.message) }
 }
 
-/** Un worktree neuf en `chemin`, sur la branche NEUVE `branche` partie de `depuis` (`worktree add -b`).
- *  @param {Depot} depot @param {{ chemin: string, branche: string, depuis: string }} p */
-export const ajouterWorktree = (depot, { chemin, branche, depuis }) => {
-  const [nom, base] = revisionsDe([branche, depuis])
-  return ecrire(depot, ['worktree', 'add', '-b', nom, '--', chemin, base])
+/** Un worktree neuf en `chemin`, depuis `depuis`, détaché ou sur une branche neuve.
+ *  @param {Depot} depot @param {{ chemin: string, branche?: string, depuis: string, detache?: boolean }} p */
+export const ajouterWorktree = (depot, { chemin, branche, depuis, detache = false }) => {
+  if (detache && branche) throw new Error('ajouterWorktree : détaché sans branche')
+  const [base] = revisionsDe([depuis])
+  return ecrire(depot, ['worktree', 'add', ...(detache ? ['--detach'] : ['-b', revisionsDe([branche])[0]]), '--', chemin, base])
 }
 
 /** Le worktree `chemin`, retiré sans forcer (`worktree remove`). @param {Depot} depot @param {string} chemin */
 export function retirerWorktree(depot, chemin, { mesurer = mesurerProtectionWorktree, residu = retirerResiduelVide } = {}) {
   const protection = mesurer(chemin)
-  if (!protection.ok) return indisponible(protection.refus.join(' ; '), { issue: 'refus' })
+  if (!protection.ok) return indisponible([...protection.refus, ...protection.indeterminees].join(' ; '), { issue: 'refus' })
   const vu = ecrire(depot, ['worktree', 'remove', '--', chemin])
   if (!reussi(vu)) return vu
   try { residu(chemin) }

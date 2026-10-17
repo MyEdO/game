@@ -20,6 +20,7 @@ import { useGame } from '../state/store';
 import { seedBattleRng } from '../state/battleRng';
 import { scenario } from '../scenes/test-scenarios/13-bataille-de-masse';
 import { MassBattleView } from './MassBattleView';
+import { addCondition } from '../engine/conditions';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -112,5 +113,16 @@ describe('MassBattleView — affectation aux Scènes (ADE II 8)', () => {
     expect(premierAjout(el), 'ouvert tant que le Round se joue').toBeTruthy();
     act(() => { useGame.setState({ massBattle: { ...useGame.getState().massBattle!, awaitingNext: true } }); });
     expect(premierAjout(el), 'figé : plus d’ajout offert').toBeNull();
+  });
+
+  it('5. personne en état de tenter la Scène (LDB 09 l.30) : « Résoudre » fermé, sa raison NOMMÉE', () => {
+    const resoudre = (el: HTMLElement) => el.querySelector('.mb-scene .mb-actions button') as HTMLButtonElement;
+    const offert = monter();
+    expect(resoudre(offert).getAttribute('aria-disabled'), 'un groupe valide : la Scène est offerte').toBeNull();
+    act(() => root?.unmount()); container?.remove();
+    useGame.setState({ party: useGame.getState().party.map((h) => { const c = structuredClone(h); addCondition(c, 'inconscient'); return c; }) });
+    const el = monter();
+    expect(resoudre(el).getAttribute('aria-disabled')).toBe('true');
+    expect(el.querySelector('.mb-scene .mb-actions .hors-ecran')?.textContent).toMatch(/^Personne dans le groupe ne peut tenter « .+ »\.$/);
   });
 });

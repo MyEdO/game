@@ -8,6 +8,7 @@ import { pushChoice } from '../rollSeam';
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../battleRng';
 import { resolveOpposed } from '../../engine/tests';
+import { jete } from '../../engine/tests.testkit';
 import { skillBaseValue } from '../../engine/skills';
 
 import { testScene } from '../../scenes/test-fixture';
@@ -111,7 +112,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     const aT = step.meta!.opposed!.aT;
 
     useGame.getState().cascadeRoll(step.id);
-    const rolled = useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result!;
+    const rolled = jete(useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     const o = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false });
     expect(o.winner).not.toBe('attacker'); // le défenseur l’emporte (Force écrasante)
     useGame.getState().cascadeNext();
@@ -138,7 +139,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     const aT = step.meta!.opposed!.aT;
     const outcome = resolveTestOutcome(step.id);
 
-    const rolled = useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result!;
+    const rolled = jete(useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     const net = rolled.sl + 8 - aT.sl; // marge nette recomposée comme la conséquence
     expect(net).toBeGreaterThanOrEqual(6);
 
@@ -192,7 +193,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     expect(step.meta?.opposed?.defenderMustWin, 'Piège-lame : le jeteur doit REMPORTER').toBe(true);
 
     useGame.getState().cascadeRoll(step.id);
-    const rolled = useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result!;
+    const rolled = jete(useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('tie');
     expect(rolled.success, 'égalité ≠ victoire du piégeur : la branche `breakBlade` n’est pas prise').toBe(false);
     expect(rolled.statuQuo, 'statu quo étampé : ce n’est pas un Test raté (aucun `onOwnTestFailed`)').toBe(true);
@@ -215,7 +216,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     const step = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
     const aT = step.meta!.opposed!.aT;
     useGame.getState().cascadeRoll(step.id);
-    const rolled = useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result!;
+    const rolled = jete(useGame.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner).toBe('attacker');
     useGame.getState().cascadeNext();
 

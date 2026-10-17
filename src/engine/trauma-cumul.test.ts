@@ -82,7 +82,7 @@ describe('AXE `parPalier` — l’effet est l’op déclarée, à l’échelle d
   it('les ops de BASE (non palières) survivent au comptage : l’œil garde sa perte de sens', () => {
     const ops = traumaCumulOps(traumaFicheById('oeil-perdu'), 2);
     expect(ops).toContainEqual({ op: 'senseLoss', sense: 'vue' });
-    expect(ops).toContainEqual({ op: 'charMod', char: 'sociabilite', mod: -10 }); // −5 par orbite vide (l.273)
+    expect(ops).toContainEqual({ op: 'testMod', amount: -10, char: 'sociabilite' }); // −5 par orbite vide (l.273)
   });
 });
 

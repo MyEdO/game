@@ -1,9 +1,14 @@
 import type { ReactNode } from 'react';
 import { Stack } from './Layout';
 import type { Combatant } from '../engine/types';
-import { refLabel } from '../data';
+import { refLabel, findCrewRoleById } from '../data';
 import type { PanelRowData } from './RollPanel';
 import { participantRow, type BuiltRollRow } from './rollRowBuild';
+import { refusSansJet, easeDifficulty, type EchecSansJet } from '../engine/tests';
+import type { PlayerText } from '../i18n/playerText';
+import type { ShipManeuverParticipant } from '../state/pendings';
+import { crewRoleValue, crewRoleTestMods } from '../engine/crewMorale';
+import { testBreakdown, testPending } from './breakdown';
 
 /**
  * SOURCE UNIQUE des rangées-participants d'une modale MULTI (#328) : `CascadeModal` batch,
@@ -22,8 +27,13 @@ export interface ParticipantRow {
   spec?: string;
   interactive?: boolean;
   rerolled?: boolean;
-  result: { roll: number; target: number; sl: number; success?: boolean } | null;
+  /** `EchecSansJet` : ligne non tentable, résolue sans dé (LDB 09 l.30) — la rangée rend son `refus`. */
+  result: { roll: number; target: number; sl: number; success?: boolean } | EchecSansJet | null;
+  refus?: PlayerText;
 }
+
+/** Issue d'une rangée dont le dé est TOMBÉ (ou pas encore) — jamais la ligne non tentable. */
+type ResultatJete<P extends ParticipantRow> = Exclude<P['result'], EchecSansJet>;
 
 export interface ParticipantRowBundle<P extends ParticipantRow> {
   /** Actions de flux du domaine (routées par id de participant). */
@@ -33,16 +43,16 @@ export interface ParticipantRowBundle<P extends ParticipantRow> {
   onDarkPact: (id: string) => void;
   onForce: (id: string) => void;
   /** PRÉSENTATION de la rangée (pré-jet en attente puis résultat) — propre au vocabulaire de la modale. */
-  row: (part: P, actor: Combatant, res: P['result']) => PanelRowData;
+  row: (part: P, actor: Combatant, res: ResultatJete<P>) => PanelRowData;
   /** Rangée INTERACTIVE ? (défaut : `part.interactive !== false`). Le naval y greffe le gate `owns`. */
   interactiveOf?: (part: P, actor: Combatant) => boolean;
   /** Issue courte sous la ligne (DR ×2 essentiel…) — rendue APRÈS le jet seulement, dans le CANAL
    *  UNIQUE de sous-ligne (`PanelRowData.note`, `.rr-note`). */
-  note?: (part: P, actor: Combatant, res: NonNullable<P['result']>) => ReactNode;
+  note?: (part: P, actor: Combatant, res: NonNullable<ResultatJete<P>>) => ReactNode;
   /** ISSUES de la rangée (#1117) — les deux branches annoncées AVANT le jet, la branche réalisée APRÈS :
    *  rendue aux DEUX phases (c'est ce qui la distingue de `note`, qui ne dit que la conséquence subie).
    *  Elle occupe la MÊME sous-ligne, en tête ; un site qui fournit les deux les empile dans cet ordre. */
-  issues?: (part: P, actor: Combatant, res: P['result']) => ReactNode;
+  issues?: (part: P, actor: Combatant, res: ResultatJete<P>) => ReactNode;
   /** DONNÉE de Test ÉTENDU d'une rangée (cartographie de voyage…) : la barre est rendue par `RollRow`
    *  (site UNIQUE), visible avant/après le jet et persistante. Le bundle ne pose que la donnée. */
   extendedDrOf?: (part: P, actor: Combatant) => { cum: number; target: number } | undefined;
@@ -62,6 +72,13 @@ export function rollAllUnrolledRows<P extends ParticipantRow>(
   return unrolled.length >= 2 ? () => unrolled.forEach((p) => roll(p.id)) : null;
 }
 
+/** Rangée TÉMOIN d'une ligne née sans jet (`refusSansJet`) : ni dé ni influence, son refus NOMMÉ en note.
+ *  `undefined` pour une ligne tentable. Rendu UNIQUE des rangées multi et de l'étape mono (`CascadeModal`). */
+export function rangeeSansJet(key: string, actor: Combatant | undefined, ligne: { result?: object | null; refus?: PlayerText }): BuiltRollRow | undefined {
+  const refus = refusSansJet(ligne);
+  return refus == null ? undefined : participantRow({ key, actor, row: { combatant: actor, note: refus }, interactive: false });
+}
+
 export function buildParticipantRows<P extends ParticipantRow>(
   participants: P[],
   pool: Combatant[],
@@ -70,7 +87,9 @@ export function buildParticipantRows<P extends ParticipantRow>(
   return participants.flatMap((part) => {
     const actor = pool.find((c) => c.id === part.id);
     if (!actor) return [];
-    const res = part.result;
+    const temoin = rangeeSansJet(part.id, actor, part);
+    if (temoin) return [temoin];
+    const res = part.result as ResultatJete<P>;
     const extendedDr = bundle.extendedDrOf?.(part, actor);
     // Z5 (docs/charte-ui.md) — SOURCE UNIQUE du libellé de LIGNE d'une rangée-participant : la
     // Compétence lancée, DÉRIVÉE de la paire `{skillId, spec}` par le résolveur canonique (« Voile
@@ -108,4 +127,22 @@ export function buildParticipantRows<P extends ParticipantRow>(
       ...(extendedDr ? { extendedDr } : {}),
     })];
   });
+}
+
+/** PRÉSENTATION d'une rangée de Test d'équipage par rôle (MDG 14) — les trois modales navales
+ *  (`CrewTestModal`, `ShipBatteryModal`, `ShipManeuverModal`). Une rangée dont le rôle est non tentable
+ *  (`crewRoleValue`, la source que lit `rollCrewRole`) MONTRE son refus, dé jeté ou non : `CrewRoleValue`
+ *  interdit sa valeur, il n'y a donc ni valeur 0 ni dé contre une cible (LDB 09 l.30 ; #2588 Q1). Sinon,
+ *  un dé déjà JETÉ s'affiche tel qu'il est tombé, contre sa cible. Manque de bras : MDG 14 l.53. */
+export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res: { roll: number; target: number; sl: number } | null): PanelRowData {
+  const role = findCrewRoleById(part.roleId);
+  if (!role) return { combatant: actor };
+  const rv = crewRoleValue(actor, role, part.navigation, part.sense);
+  const label = `${role.label}${part.essential ? ' ★' : ''}`;
+  const difficulty = part.cumul ? easeDifficulty('intermediaire', -2) : undefined;
+  if (rv.refus != null) return { combatant: actor, note: rv.refus };
+  const mods = crewRoleTestMods(actor, role, part.navigation, part.sense);
+  return res
+    ? { combatant: actor, d: testBreakdown(label, rv.value, { roll: res.roll, target: res.target, sl: res.sl }, difficulty, mods) }
+    : { combatant: actor, pending: testPending(label, rv.value, undefined, difficulty, mods) };
 }

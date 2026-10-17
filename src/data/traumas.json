@@ -485,9 +485,9 @@
         "taille": 1,
         "ops": [
           {
-            "op": "charMod",
-            "char": "sociabilite",
-            "mod": -5
+            "op": "testMod",
+            "amount": -5,
+            "char": "sociabilite"
           }
         ]
       },
@@ -531,9 +531,9 @@
         "taille": 1,
         "ops": [
           {
-            "op": "charMod",
-            "char": "sociabilite",
-            "mod": -5
+            "op": "testMod",
+            "amount": -5,
+            "char": "sociabilite"
           }
         ]
       },
@@ -599,14 +599,14 @@
     },
     "ops": [
       {
-        "op": "charMod",
-        "char": "capacite-de-combat",
-        "mod": -30
+        "op": "testMod",
+        "amount": -30,
+        "char": "capacite-de-combat"
       },
       {
-        "op": "charMod",
-        "char": "capacite-de-tir",
-        "mod": -30
+        "op": "testMod",
+        "amount": -30,
+        "char": "capacite-de-tir"
       },
       {
         "op": "skillMod",
@@ -621,6 +621,14 @@
           "id": "chevaucher"
         },
         "mod": -30
+      },
+      {
+        "op": "skillMod",
+        "skill": {
+          "id": "perception"
+        },
+        "mod": -30,
+        "sense": "vue"
       }
     ],
     "desc": "Si vous avez la malchance de perdre vos deux yeux, subissez une pénalité de -30 à tous les Tests en rapport avec la vue, comme les Tests d’Arme, les Tests d’Esquive, les Tests de Chevaucher, et autres.",

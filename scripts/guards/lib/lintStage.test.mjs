@@ -7,8 +7,9 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { CONFIG_LINT, defautsDeRapport, fermetureDeConfig, lancerLint, lintDeLIndex, lotsDeLigne } from './lintStage.mjs'
+import { CONFIG_LINT, appelDuLint, defautsDeRapport, fermetureDeConfig, lancerLint, lintDeLIndex, lotsDeLigne } from './lintStage.mjs'
 import { depotReel, envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
+import { clotureDImports } from './importGraph.mjs'
 import { installer } from '../../docs/lib/enregistreur-lectures.mjs'
 import configurationLint from '../../../oxlint.config.mjs'
 import { gitDeLArbreReel, lancerGit } from '../../test/gitDeBanc.mjs'
@@ -49,19 +50,14 @@ test('FAIL-CLOSED — un rapport pollué par stderr rend un défaut NOMMÉ, jama
 })
 
 test('FAIL-CLOSED — oxlint qui échoue SANS rapport (outil absent) est un refus nommé', () => {
-  // Arbre COMPLET du lanceur (ses quatre modules) mais sans `node_modules/oxlint` : le refus vient de
+  // Arbre COMPLET du lanceur (sa clôture d'imports, #2603) mais sans `node_modules/oxlint` : le refus vient de
   // la décision d'outillage, jamais d'un import manquant — c'est le refus que la porte doit NOMMER.
   const racine = mkdtempSync(join(tmpdir(), 'lint-sans-outil-'))
   try {
-    mkdirSync(join(racine, 'scripts', 'guards', 'lib'), { recursive: true })
-    mkdirSync(join(racine, 'scripts', 'test'), { recursive: true })
-    for (const rel of [
-      ['scripts', 'lancer-local.mjs'],
-      ['scripts', 'outillage-local.mjs'],
-      ['scripts', 'test', 'partition.mjs'],
-      ['scripts', 'guards', 'lib', 'invocation.mjs'],
-    ])
-      copyFileSync(join(RACINE, ...rel), join(racine, ...rel))
+    for (const rel of [...clotureDImports(['scripts/lancer-local.mjs'], { racine: RACINE }), 'package.json']) {
+      mkdirSync(dirname(join(racine, rel)), { recursive: true })
+      copyFileSync(join(RACINE, rel), join(racine, rel))
+    }
     writeFileSync(join(racine, 'a.ts'), 'export const a = 1\n')
     const { defauts } = lancerLint(racine, ['a.ts'], { cwd: racine })
     assert.equal(defauts.length, 1)
@@ -132,6 +128,25 @@ test('configuration fournie : une écriture .lint- dans la fixture temporaire, s
   } finally {
     collecteur.restaurer()
     rmSync(dossier, { recursive: true, force: true })
+  }
+})
+
+test('appelDuLint : le script `lint` de package.json sans sa cible `.` ; un script hors forme est une panne NOMMÉE de lancerLint', () => {
+  const racine = dossierDeFixtures()
+  try {
+    const poser = (lint) => writeFileSync(join(racine, 'package.json'), JSON.stringify({ scripts: { lint } }))
+    poser('node l.mjs ox -- ox --config c.mjs --x . --max-warnings 0')
+    assert.deepEqual(appelDuLint(racine), ['node', 'l.mjs', 'ox', '--', 'ox', '--config', 'c.mjs', '--x', '--max-warnings', '0'])
+    for (const horsForme of ['node l.mjs ox -- ox --config c.mjs src', 'ox --config c.mjs .', 'node l.mjs ox -- ox .']) {
+      poser(horsForme)
+      assert.throws(() => appelDuLint(racine), /script `lint` hors de la forme/, horsForme)
+      writeFileSync(join(racine, 'a.ts'), 'export const a = 1\n')
+      const { defauts, codeSortie } = lancerLint(racine, ['a.ts'], { cwd: racine })
+      assert.deepEqual([defauts.map((d) => [d.site, d.regle]), codeSortie], [[['(lint)', '(outillage)']], 1], horsForme)
+      assert.match(defauts[0].message, /^script lint illisible — script `lint` hors de la forme/)
+    }
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
 })
 
@@ -260,7 +275,7 @@ test('aucun chemin à extension jugée : rien n’est lu ni lancé', () => {
 })
 
 test('PANNE — oxlint absent de l’arbre jugé : défaut d’outillage NOMMÉ, jamais un lot vide', () => {
-  const { racine, depot } = forge({ index: { 'a.ts': PROPRE }, config: false })
+  const { racine, depot } = forge({ index: { 'a.ts': PROPRE }, disque: { 'package.json': readFileSync(join(RACINE, 'package.json'), 'utf8') }, config: false })
   try {
     const { defauts } = lintDeLIndex(racine, depot, ['a.ts'])
     assert.equal(defauts.length, 1)

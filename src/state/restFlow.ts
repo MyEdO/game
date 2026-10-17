@@ -26,10 +26,10 @@ import type { RNG } from '../engine/dice';
 import type { RollBreakdown } from '../engine/combat';
 import type { RecapTone } from './recapLine';
 import { battleRng } from './battleRng';
-import { partyAssisted, testValue } from '../engine/skills';
-import { hasHealSkill } from '../engine/healing';
+import { partyAssisted, peutTenter, testValue } from '../engine/skills';
+import { HEAL_SKILL } from '../engine/healing';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
-import { isOutOfAction, addCondition, loseWounds, addClockCondition } from '../engine/conditions';
+import { addCondition, loseWounds, addClockCondition } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, type RestRoll } from '../engine/rest';
 import { rollContraction, diseaseDefs, contagiousDiseases, contractionDue, applyContraction, applyDiseaseGangrene, diseaseTestModLines } from '../engine/disease';
 import { applyOps } from '../engine/ops';
@@ -42,12 +42,12 @@ import { effectiveChar, bonus } from '../engine/characteristics';
 import { applyForcedMarch } from '../engine/travel';
 import { registerCascadeApplier, startCascade, runCascadeImmediate } from './cascade';
 import { nightBands, registerNightBandApplier, nightRowId, genuineExposureFail, nextExposureWave, exposureWaveBand, EXPOSURE_BAND_KINDS } from './nightBands';
-import { freeCons, testSkillLabel, monoStep, choiceStep, pousseSi, type BuiltCascadeStep } from './rollSeam';
+import { freeCons, monoStep, choiceStep, pousseSi, type BuiltCascadeStep } from './rollSeam';
 import type { CascadeStepMeta } from './pendings';
 import { isRation, feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { toBrass, fromBrass, formatMoney, priceToMoney, type Money } from '../engine/money';
 import { payFromGroup } from './bourseFlow';
-import { findTrappingById, nightStakeRef, refLabel, libelleOuAbsence, type StakeRef } from '../data';
+import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbsence, type StakeRef } from '../data';
 import { diseaseLabel } from '../data';
 import { minutesUntilNext, dawnMinute, MINUTES_PER_DAY } from '../engine/clock';
 import { runDailyUpkeep, dayIndex } from './upkeep';
@@ -174,7 +174,7 @@ export function sleepParty(
   const journal: string[] = [];
 
   // Soins prolongés (LDB 09) : présence d'un soignant valide (Guérison) → −1 jour/jour par maladie.
-  const caredFor = get().party.some((h) => hasHealSkill(h) && !h.dead && !isOutOfAction(h));
+  const caredFor = get().party.some((h) => peutTenter(h, HEAL_SKILL));
   // La nuit passe — chaque journée de repos se termine à l'AUBE, UNE NUIT À LA FOIS : n nuits dormies
   // sont n RÉVEILS (`lastNightDay` posé à chaque aube atteinte, avant l'entretien de cette journée-là),
   // donc n émissions d'`onWake`. Un séjour de 7 nuits qui n'aurait sauté qu'à l'aube finale ne
@@ -197,7 +197,7 @@ export function sleepParty(
       entries.push({ actorId: get().party.find((h) => text.startsWith(h.label))?.id, icon: 'time/calendar', label: 'Entretien quotidien', text, tone: 'info' });
     }
     const steps = nightBands(deferredUpkeepSteps(get().party, deferred));
-    if (steps.length) runCascadeImmediate(get, set, steps);
+    if (steps.length && !runCascadeImmediate(get, set, steps)) return entries;
   }
 
   // Récupération + cauchemars, héros par héros (jets structurés pour le bilan).
@@ -519,7 +519,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Entretien quotidien (#T3) — la partie SANS jet est eager (rations consommées, jours décomptés) ;
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en
   // étape influençable (sinon il serait pré-résolu dans le journal AVANT que le joueur n'agisse).
-  const caredFor = party.some((h) => hasHealSkill(h) && !h.dead && !isOutOfAction(h));
+  const caredFor = party.some((h) => peutTenter(h, HEAL_SKILL));
   const deferred: DeferredUpkeepTest[] = [];
   // `runDailyUpkeep` journalise DÉJÀ ses propres lignes (upkeep.ts, source unique anti-double-comptage,
   // #216) : on les garde dans `log` (retourné pour le bilan/la modale de cascade) SANS les re-journaliser
@@ -570,7 +570,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       const count = exposureTestCount(severity, true); // tente : extrême → rythme difficile, difficile → 0
       if (count > 0) steps.push(...buildExposureBand(party, camperIds, count));
     } else {
-      const best = partyAssisted(party.filter((h) => !h.dead), 'survie-en-exterieur'); // Soutien (LDB 12)
+      const best = partyAssisted(party, 'survie-en-exterieur'); // Soutien (LDB 12)
       if (best) {
         const st = monoStep({ id: 'abri', kind: 'shelter', actor: best.actor, label: t('step.abriDeFortune'), icon: 'rest/camp',
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'intermediaire',

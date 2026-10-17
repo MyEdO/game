@@ -30,7 +30,7 @@ export function partyMoneyTotal(get: Get): Money {
  *  au lieu du `s.money` inexistant que `conditionCtx` attend en toute généralité. Tout appelant lisant
  *  l'état de scène (triggers, `if`, choix de dialogue) route DESSUS. */
 export function condCtx(get: Get): ConditionCtx {
-  return conditionCtx({ flags: get().flags, gameTime: get().gameTime, party: get().party, money: partyMoneyTotal(get) });
+  return conditionCtx({ flags: get().flags, gameTime: get().gameTime, party: get().party, money: partyMoneyTotal(get), etats: get().etats });
 }
 
 /** Pose les Bourses : le montant se calcule UNE fois sur l'acteur lu (`actorIn`), l'instance Bourse

@@ -75,7 +75,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
 
   // Titre FRANC (arbitrage user 2026-07-11) : la nature de la halte + le lieu nommé par l'appelant d'`openRest`.
   const lieu = <> — {p.lieu}</>;
-  const title = p.places.auberge ? <><Icon id="rest/bed" size="sm" /> Nuit à l’auberge{lieu}</> : p.places.maison ? <><Icon id="time/night" size="sm" /> Nuit chez soi{lieu}</> : p.places.bord ? <><Icon id="travel/sail-ship" size="sm" /> Nuit à bord{lieu}</> : <><Icon id="rest/camp" size="sm" /> À la belle étoile{lieu}</>;
+  const title = p.places.auberge ? <><Icon id="rest/bed" size="sm" /> {t('rf.nightInn')}{lieu}</> : p.places.maison ? <><Icon id="time/night" size="sm" /> {t('rf.nightHome')}{lieu}</> : p.places.bord ? <><Icon id="travel/sail-ship" size="sm" /> {t('rf.nightAboard')}{lieu}</> : <><Icon id="rest/camp" size="sm" /> {t('rf.nightStars')}{lieu}</>;
 
   // ── Phase RÉGLAGES ──
   const cost = restCost(p, party);
@@ -112,7 +112,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
           comme un jour passé (`VoyageScreen`/`voyageDayCards`), pas re-déroulé ici. */}
       {pleinAir && <p className="rest-weather"><Icon id="expedition/outdoors" size="sm" /> {t('rf.pleinAirDispense')}</p>}
       {severity !== 'clement' && (
-        <p className="rest-weather">{severity === 'extreme' ? <><Icon id="rest/storm" size="sm" /> Temps de chien</> : <><Icon id="rest/rain" size="sm" /> Mauvais temps</>}{sheltered ? ' — la tente abritera le camp' : ''}</p>
+        <p className="rest-weather">{severity === 'extreme' ? <><Icon id="rest/storm" size="sm" /> {t('rf.tempsDeChien')}</> : <><Icon id="rest/rain" size="sm" /> {t('rf.mauvaisTemps')}</>}{sheltered ? <> — {t('rf.tenteAbrite')}</> : ''}</p>
       )}
       {/* CHOIX MAÎTRE « Pour toute la troupe » (arbitrage user 2026-07-11) : Couchage + Pitance appliqués
           d'un coup à tous les héros non personnalisés. */}

@@ -5,7 +5,7 @@ import { armChapterRecapIfDue } from './chapitreRecap';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, PendingCascade, PendingTest, ScheduledEffect } from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
-import { Combatant, CHAR_LABELS, type ModLine } from '../engine/types';
+import { Combatant, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, defaultRNG, roll as rollDice } from '../engine/dice';
@@ -19,7 +19,7 @@ import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './sceneNpc';
 import { buildActorView } from './combat/flowEval';
-import { partyBest, partyAssisted, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
+import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue, actorHasSkill } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { parseStatus } from '../engine/creation';
 import { easeDifficulty } from '../engine/tests';
@@ -29,16 +29,16 @@ import { traumaOnImpossibleAmbition } from '../engine/psychology';
 import { itemFromGive, giveTrappingLabel, withGiveQualities, avecObjet } from '../engine/items';
 import { trappingById, indiceById, documentById } from './campaignData';
 import { revealClue, discreditClue } from './clues';
-import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef } from '../data';
+import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
 import { clampSaboteurDR } from './shipCrew';
 import { harvestSizeOf, harvestYield } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
-import { hasHealSkill, HEAL_SKILL, type HealMode } from '../engine/healing';
+import { HEAL_SKILL, type HealMode } from '../engine/healing';
 import { openMedic } from './medicFlow';
-import { seaWeatherTestMod, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
+import { activeSeaPrecipitation, openPortAt, vesselManann, setVesselHull } from './seaVoyageFlow';
 import { applyManannFactor, addManann, findManannFactor } from '../engine/seaVoyage';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
@@ -76,7 +76,7 @@ import { possessionLabel, type Possession, type LivingRef } from '../engine/poss
 import { ev } from './combatLog';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
-import { dataLabel } from '../data';
+import { dataLabel, type WaterExposureMode } from '../data';
 import { actionsAuthorees, type Drapeaux } from './usable';
 import type { SceneEntity } from './scene';
 
@@ -411,6 +411,13 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * la fin de sa fonction. Une déférance laisse simplement la cascade OUVERTE — le dé se joue, sa
  * conséquence se dit, et il n'y a aucune suite à confier.
  *
+ * Exceptions nommées, toutes deux une avance du CURSEUR de la cascade après l'appel :
+ * - `advanceCombatJet` (`attackConfirm`). Il retient le curseur tant qu'une fenêtre `pending*` est
+ *   ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde, Déviation) l'a poussée dans la cascade, et le
+ *   curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
+ * - `cascadeNext()` qui clôt l'étape COURANTE (`fumbleConfirm`, la Maladresse) : l'après-coup qui tient
+ *   la main a poussé ses étapes DERRIÈRE elle, et le curseur avance dessus.
+ *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
  * c'est une `Cloture`, différée avec la continuation.
  *
@@ -422,8 +429,8 @@ export function jouerFlowEntier(_applique: Applique): void {
 
 /**
  * CONSOMME le signal d'un lot qui NE PEUT PAS ouvrir de dé (#1508) — le site applique une donnée
- * LITTÉRALE dont le type d'Effet n'a pas de canal de dés (`giveMoney`, `giveTrapping`,
- * `waterExposure`), et ce qui le suit ne pourrait donc jamais passer devant un dé.
+ * LITTÉRALE dont le type d'Effet n'a pas de canal de dés (`giveMoney`, `giveTrapping`, `giveXp`…), et
+ * ce qui le suit ne pourrait donc jamais passer devant un dé.
  *
  * Ce n'est pas une exemption, c'est un FAIL-FAST : si un jour ce lot atteint la porte, il lève ICI,
  * nommément, au lieu d'inverser l'ordre en silence. Un site qui « ne devrait pas » différer et le
@@ -981,16 +988,7 @@ export function openSkillTest(
       ? refLabel('skills', { id: spec.easierIf!.hasSkill.id, spec: spec.easierIf!.hasSkill.spec })
       : refLabel('talents', { id: spec.easierIf!.hasTalent! }))
     : undefined;
-  // Météo maritime ACTIVE (Précipitations, MDG 13 l.187-201) — POINT UNIQUE d'injection des mods
-  // d'environnement dans un Test : même malus pour tout le monde (indépendant du candidat), au même
-  // titre que le mod social ou le Soutien. `undefined` hors voyage en mer / Test de Caractéristique.
-  const env = seaWeatherTestMod(get().travelPlan?.sea, spec.skill?.id, spec.skill?.spec);
-  // Canal `surLaCible` du monteur : le malus pèse sur la CIBLE, pas sur la valeur (le pending le porte
-  // toujours à part, `envMod`/`envLabel`). Même mod pour tous les candidats — monté une fois. La ligne
-  // porte sa fiche : la table de météo maritime (MDG 13) d'où sort la Précipitation.
-  const envLines: ModLine[] = env
-    ? [{ label: env.label, value: env.mod, famille: 'jet', ref: RULE_REF['meteo-maritime'] }]
-    : [];
+  const pont = activeSeaPrecipitation(get); // MDG 13 l.185
   // Pool des héros AVEC leur position à jour si un combat est en cours (`battle.combatants` — `party` seule
   // ne porte pas `pos`, LDB 12 l.196 « adjacent »). Même patron que `effectTargets` ci-dessus.
   const battle = get().battle;
@@ -1001,7 +999,7 @@ export function openSkillTest(
   // `opts.actorId`). Un Test qu'on ne peut pas soutenir se déclare `noSupport` (l.197), il ne se
   // dérive pas de la restriction du lanceur.
   const allies = (a: Combatant): Combatant[] => pool.filter((c) => c.kind === a.kind && !c.dead);
-  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && !c.dead);
+  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && peutTenter(c, spec.skill?.id, spec.skill?.spec));
   const candidates = runners.map((actor) => {
     const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
@@ -1028,7 +1026,7 @@ export function openSkillTest(
       valeur: value,
       ...(soutD ? { soutien: soutD } : {}),
       ...(social ? { dansLaValeur: socialLines(actor) } : {}),
-      ...(envLines.length ? { surLaCible: envLines } : {}),
+      pont,
     });
     return {
       id: actor.id, label: actor.label, value,
@@ -1047,7 +1045,7 @@ export function openSkillTest(
   const def = candidates.find((c) => c.id === best.actor.id) ?? candidates[0];
   if (!def) return false;
   // Compétence/Caractéristique RÉELLE (cadre de jet) ≠ intitulé de situation (titre). Char → libellé long.
-  const skill = spec.skill ? refLabel('skills', spec.skill) : (spec.characteristic ? CHAR_LABELS[spec.characteristic] : undefined);
+  const skill = testSkillLabel({ skill: spec.skill, char: spec.characteristic });
   const label = spec.label || skill || 'Test';
   set({
     pendingTest: {
@@ -1056,7 +1054,6 @@ export function openSkillTest(
       requireSL: spec.requireSL ?? 0, target: def.target, clamped: def.clamped, base: def.base, mods: def.mods, psychMod: def.psychMod, psychDetail: def.psychDetail,
       itemUid: def.itemUid, isDouble: false, roll: null, success: false, sl: 0,
       support: def.support, easedBy,
-      envMod: env?.mod, envLabel: env?.label,
       capriciousRoll, capriciousDR: capDR || undefined,
       ...structuredClone({ onSuccess, onFailure, after }), // #2097
       candidates: candidates.length > 1 ? candidates : undefined,
@@ -1079,9 +1076,17 @@ export function openSkillTest(
   return true;
 }
 
+/** Ouvre le GESTE JOUEUR `e` (handler `suspensif`) en lui confiant `suite` ; `true` s'il l'a prise. */
+function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number): boolean {
+  const pris = (EFFECT_HANDLERS[e.type] as EffectHandler).apply(e, makeEffectEnv(get, set, sl), suite) === 'suspend';
+  armChapterRecapIfDue(get, set);
+  return pris;
+}
+
 /**
  * Exécute un Flow (logique authorée : séquence/branches/Test) — SOURCE UNIQUE. `do` accumule les
- * Effets et les applique en lot (butin attribuable via `applyEffectsLoot`) ; `if` vide d'abord le lot
+ * Effets et les applique en lot (butin attribuable via `applyEffectsLoot`) — un GESTE JOUEUR (`suspensif`)
+ * vide le lot et prend la pile restante comme suite, comme `test` ; `if` vide d'abord le lot
  * (la condition lit l'état VIVANT — flags/horloge — donc après les Effets émis) puis branche ; `test`
  * vide le lot, ouvre la modale et SUSPEND — la branche choisie + la continuation (reste de la pile)
  * sont reprises par `resolveTest`. Pas de boucle → terminaison garantie.
@@ -1095,7 +1100,9 @@ export function openSkillTest(
 export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.flowTitle'), sl?: number): Applique {
   const stack: Flow[] = [structuredClone(flow)]; // #2097
   const batch: Effect[] = [];
-  const flush = (): Applique => (batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined);
+  const flush = (): Applique => {
+    return batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined;
+  };
   /** Le lot vient d'ouvrir un dé : `node` (non consommé) et le reste de la pile deviennent SA suite. */
   const confier = (node?: Flow): Applique => {
     differerLaSuite(set, { kind: 'seq', steps: [...(node ? [node] : []), ...stack.splice(0)] }, 'scene', label);
@@ -1104,9 +1111,16 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
   while (stack.length) {
     const node = stack.shift()!;
     switch (node.kind) {
-      case 'do':
-        batch.push(node.effect);
+      case 'do': {
+        // GESTE JOUEUR (`suspensif`) : même patron que le `test` ci-dessous — le lot se vide d'abord, le
+        // reste de la pile devient la suite que son pending rejouera.
+        if (!(EFFECT_HANDLERS[node.effect.type] as EffectHandler).suspensif) { batch.push(node.effect); break; }
+        if (flush()) return confier(node);
+        const after: Flow = { kind: 'seq', steps: stack.splice(0) };
+        if (ouvrirGeste(get, set, node.effect, after, sl)) return undefined;
+        stack.unshift(after);
         break;
+      }
       case 'seq': stack.unshift(...node.steps); break;
       case 'if': {
         if (flush()) return confier(node);
@@ -1126,6 +1140,12 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
   // Vidange FINALE : la pile est vide, il n'y a plus de suite à confier — le signal est rendu tel quel
   // à l'appelant, à qui de décider (c'est lui qui sait s'il enchaîne quelque chose).
   return flush();
+}
+
+/** REPRISE de la suite qu'un GESTE JOUEUR (handler `suspensif`) a portée jusqu'à sa clôture — rien ne
+ *  suit la clôture dans le geste qui l'appelle. */
+export function reprendreLaSuite(get: Get, set: SetFn, suite: Flow | undefined): void {
+  if (suite) jouerFlowEntier(runFlow(get, set, suite));
 }
 
 /**
@@ -1233,9 +1253,19 @@ function choisirHeros(s: GameState, heroId: string | undefined, pick?: (heros: C
 
 const idsDuGroupe = (s: GameState): string[] => s.party.map((h) => h.id);
 
-/** Issue de l'`apply` d'un handler : `'suspend'` STOPPE la boucle `applyEffects` (l'effet a ouvert une
- *  modale/pending qui reprend la suite — extendedTest, forceDoor) ; sinon (void) la boucle continue. */
+/** Issue de l'`apply` d'un handler : `'suspend'` = un GESTE JOUEUR (handler `suspensif`) a pris la `suite`
+ *  qu'on lui a confiée — son pending la rejouera à sa clôture, l'appelant n'a plus rien à jouer ; sinon
+ *  (void) l'application continue. */
 type EffectApplyResult = void | 'suspend';
+
+/** Écrit l'entrée `cle` d'un registre clé → valeur de l'état : drapeaux de scénario (`setFlag`), états de
+ *  campagne (`poserEtat`). */
+function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle: string, valeur: GameState[K][string]): void {
+  env.set((s: GameState) => {
+    const registre: GameState[K] = { ...s[champ], [cle]: valeur };
+    return { [champ]: registre } as Partial<GameState>;
+  });
+}
 
 /** Contexte de validation des réfs d'un effet (id-sets de la scène/projet + bornes de la carte). Fourni
  *  par `validateScene` ; `refs` produit des avertissements génériques (sans scope/refId — re-décorés par
@@ -1275,8 +1305,14 @@ export interface EffectHandler<T extends Effect = Effect> {
   icon: string;
   /** Effet par défaut posé quand l'auteur ajoute ce type. */
   make(): T;
-  /** Conséquence appliquée par `applyEffects`. `'suspend'` = stoppe la boucle (modale/pending ouvert). */
-  apply(e: T, env: EffectEnv): EffectApplyResult;
+  /** GESTE JOUEUR : l'effet ouvre un pending qui CONFIE la suite (patron `openSkillTest(..., after)`) —
+   *  `runFlow` vide son lot AVANT lui et lui passe le reste de sa pile, `applyEffects` le reste de son lot.
+   *  Absent = l'effet s'applique sans rendre la main. */
+  suspensif?: true;
+  /** Conséquence appliquée par `applyEffects`/`runFlow`. Un handler `suspensif` reçoit la `suite` (ce qui
+   *  le suit) et rend `'suspend'` s'il l'a confiée à son pending ; rien s'il n'a rien ouvert (la suite se
+   *  joue aussitôt). */
+  apply(e: T, env: EffectEnv, suite: Flow): EffectApplyResult;
   /** Réfs cassées / valeurs invalides. Absent = rien à valider. */
   refs?(e: T, ctx: EffectRefCtx): EffectRefIssue[];
   /** Le dialogue de la scène que cet effet OUVRE — `validateScene` avertit d'un dialogue qu'aucun
@@ -1381,7 +1417,21 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   setFlag: {
     group: 'Narration', label: libelleEffet('setFlag'), icon: 'map-tool/start-flag',
     make: () => ({ type: 'setFlag', flag: '', value: true }),
-    apply: (e, env) => { env.set((s: GameState) => ({ flags: { ...s.flags, [e.flag]: e.value ?? true } })); },
+    apply: (e, env) => ecrireEntree(env, 'flags', e.flag, e.value ?? true),
+  },
+  // États de campagne (#2539, registre `narratif.etats`) : forme et valeur contrôlées au chargement.
+  poserEtat: {
+    group: 'Narration', label: libelleEffet('poserEtat'), icon: 'map-tool/start-flag',
+    make: () => ({ type: 'poserEtat', etat: '', valeur: '' }),
+    apply: (e, env) => ecrireEntree(env, 'etats', e.etat, e.valeur),
+  },
+  designerHeros: {
+    group: 'Narration', label: libelleEffet('designerHeros'), icon: 'nav/entry-point',
+    make: () => ({ type: 'designerHeros', etat: '' }),
+    suspensif: true,
+    // EDO 02 l.91 : décision de GROUPE (`pendingDesignationHeros`, modale `designationHeros`) refermée
+    // par `designerHerosChoisir`, qui rejoue la suite ; sans héros vivant, rien à désigner.
+    apply: (e, env, suite) => (env.get().designerHerosOuvrir({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite }) ? 'suspend' : undefined),
   },
   setObjective: {
     group: 'Narration', label: libelleEffet('setObjective'), icon: 'map-tool/start-flag',
@@ -1912,39 +1962,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   waterExposure: {
     group: 'Afflictions', label: libelleEffet('waterExposure'), icon: 'travel/wave',
     make: () => ({ type: 'waterExposure', mode: 'ingestion', target: 'hero' }),
-    apply: (e, env) => {
-      // « Maladies transmises par l'eau » (MSRC 16 l.13) : UN Test de Résistance Intermédiaire (+0) modifié
-      // PAR HÉROS exposé — étape de cascade influençable (jamais de jet silencieux). Modificateurs
-      // cumulés : tableau 1 « Source d'eau » (choix d'auteur `e.source`, ingestion ET immersion) +
-      // tableau 2 « Blessures et États » (DÉRIVÉ du héros, immersion seule). La conséquence (d100
-      // « +10/DR négatif » → contraction DIRECTE) vit dans l'applier `waterExposure`.
-      const heroes = env.targets(e.target ?? 'hero', e.heroId);
-      if (!heroes.length) return;
-      const src = sourceExposureMod(e.source);
-      const steps = heroes.flatMap((h) => {
-        const auto = autoExposureMods(h, e.mode); // tableau 2 (gate `appliesTo` interne : immersion seule)
-        const parts = [...(src ? [src] : []), ...auto]; // tableau 1 : « à l'ingestion et à l'immersion »
-        const detail = parts.map((m) => `${m.label} ${m.mod > 0 ? '+' : ''}${m.mod}`).join(' · ');
-        // Ligne montée par le MONTEUR CANONIQUE (dans le mint) : la base est le Niveau de Résistance NU,
-        // et les deux tableaux d'exposition sont des lignes NOMMÉES sur la cible, chacune liée à la
-        // fiche qui les octroie (MSRC 16).
-        const step = monoStep({
-          id: `waterExposure-${h.id}`, kind: 'waterExposure', actor: h, icon: 'travel/wave',
-          rollLabel: refLabel('skills', WATER_EXPOSURE.test.skill),
-          label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
-          difficulty: WATER_EXPOSURE.test.difficulty,
-          ligne: {
-            test: { skill: WATER_EXPOSURE.test.skill.id, spec: WATER_EXPOSURE.test.skill.spec },
-            surLaCible: parts.map((m): ModLine => ({
-              label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
-            })),
-          },
-          stake: combatStakeRef('waterExposure'),
-        });
-        return step ? [step] : [];
-      });
-      if (steps.length) openSequence(env.get, env.set, { title: t('eff.waterTitle'), icon: 'travel/wave', purpose: 'test', steps });
-    },
+    apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'hero', e.heroId), e, 'waterExposure'),
   },
 
   // ── Temps & repos ──────────────────────────────────────────────────────
@@ -2189,7 +2207,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!ctx.entityIds.has(e.entityId)) return [{ level: 'error', message: `Soins payants → PNJ soigneur inexistant « ${e.entityId || '(aucun)'} »` }];
       const npc = ctx.npcSheet(e.entityId);
       if (!npc) return [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » n'a aucune fiche (ni réf de bestiaire, ni profil, ni preset)` }];
-      return hasHealSkill(npc) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
+      return possesses(npc, HEAL_SKILL) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
     },
   },
   castSpell: {
@@ -2230,7 +2248,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   extendedTest: {
     group: 'Tests', label: libelleEffet('extendedTest'), icon: 'ui/key',
     make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', targetDR: 5, flag: '', stake: flowStakeRef('extended-test-roll') }),
-    apply: (e, env) => {
+    suspensif: true,
+    apply: (e, env, suite) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres
       // membres capables (+10 chacun, plafond Bonus de Carac — `partyAssisted`). Adjacence (l.196) : même
       // pool `battle.combatants` (héros positionnés) que `openSkillTest` quand un combat est en cours.
@@ -2247,28 +2266,66 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         actor: best.actor, test: { skill: e.skill?.id, char: e.characteristic, spec: e.skill?.spec },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: e.skill ? refLabel('skills', e.skill) : (e.characteristic ?? 'Test'), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}) });
+      env.get().startExtendedTest({ actorId: best.actor.id, label: e.label, skillLabel: e.skill ? refLabel('skills', e.skill) : (e.characteristic ?? 'Test'), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },
   forceDoor: {
     group: 'Tests', label: libelleEffet('forceDoor'), icon: 'action/force',
     make: () => ({ type: 'forceDoor', label: 'Porte', doorBE: 3, doorB: 10, flag: '' }),
-    apply: (e, env) => {
+    suspensif: true,
+    apply: (e, env, suite) => {
       // Enfoncer une PORTE/objet à plusieurs (EDO Append. 2) : tout le groupe vivant frappe.
       const heroes = env.get().party.filter((h) => !h.dead).map((h) => h.id);
       if (!heroes.length) return;
-      env.get().startForceDoor({ label: e.label, doorBE: e.doorBE, doorB: e.doorB, heroIds: heroes, flag: e.flag });
+      env.get().startForceDoor({ label: e.label, doorBE: e.doorBE, doorB: e.doorB, heroIds: heroes, flag: e.flag, suite });
       return 'suspend';
     },
   },
 };
 
+/** Les `kind` de l'étape de Test d'Exposition HYDRIQUE (MSRC 16 l.13) — MÊME règle, MÊME applier, DEUX
+ *  routes qui la posent : l'Effet de scène (`waterExposure`) et la descente (`river-exposition`, seule
+ *  couverte par les ORDRES d'une traversée, cf. `voyageCadence.KINDS_SOUS_ORDRES`). */
+export const WATER_EXPOSURE_KINDS = ['waterExposure', 'river-exposition'] as const;
+export type WaterExposureKind = (typeof WATER_EXPOSURE_KINDS)[number];
+
+/** Ouvre le Test d'Exposition HYDRIQUE (MSRC 16 l.5-13) des `heroes`, sous le `kind` de la route qui le pose. */
+export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combatant[], e: { mode: WaterExposureMode; source?: string }, kind: WaterExposureKind): void {
+  // MSRC 16 l.13 : une étape par héros exposé ; tableau 1 (`e.source`) et tableau 2 (`autoExposureMods`).
+  // Conséquence : l'applier de `WATER_EXPOSURE_KINDS`.
+  if (!heroes.length) return;
+  const src = sourceExposureMod(e.source);
+  const steps = heroes.flatMap((h) => {
+    const auto = autoExposureMods(h, e.mode); // tableau 2 (gate `appliesTo` interne : immersion seule)
+    const parts = [...(src ? [src] : []), ...auto]; // tableau 1 : « à l'ingestion et à l'immersion »
+    const detail = parts.map((m) => `${m.label} ${m.mod > 0 ? '+' : ''}${m.mod}`).join(' · ');
+    // Ligne montée par le MONTEUR CANONIQUE (dans le mint) : la base est le Niveau de Résistance NU,
+    // et les deux tableaux d'exposition sont des lignes NOMMÉES sur la cible, chacune liée à la
+    // fiche qui les octroie (MSRC 16).
+    const step = monoStep({
+      id: `${kind}-${h.id}`, kind, actor: h, icon: 'travel/wave',
+      rollLabel: refLabel('skills', WATER_EXPOSURE.test.skill),
+      label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
+      difficulty: WATER_EXPOSURE.test.difficulty,
+      ligne: {
+        test: { skill: WATER_EXPOSURE.test.skill.id, spec: WATER_EXPOSURE.test.skill.spec },
+        surLaCible: parts.map((m): ModLine => ({
+          label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
+        })),
+      },
+      stake: combatStakeRef('waterExposure'),
+    });
+    return step ? [step] : [];
+  });
+  if (steps.length) openSequence(get, set, { title: t('eff.waterTitle'), icon: 'travel/wave', purpose: 'test', steps });
+}
+
 /** Étape de cascade `waterExposure` (MSRC 16 l.49) : Test raté → d100 « avec un modificateur de +10
  *  pour chaque DR négatif » → maladie CONTRACTÉE directement (`applyContraction`, incubation normale —
  *  le Test d'exposition EST le test, jamais un second Test de Contraction). « Relancez si le Personnage
  *  n'est pas blessé » honoré par `drawWaterDisease`. Déjà porteur → rien de neuf (dédoublonnée). */
-registerCascadeApplier('waterExposure', (_get, _set, step, hero) => {
+for (const kindExposition of WATER_EXPOSURE_KINDS) registerCascadeApplier(kindExposition, (_get, _set, step, hero) => {
   if (!hero || !step.result) return;
   if (step.result.success) return { consequences: freeCons([t('eff.waterSafe', { name: hero.label })]) };
   const draw = drawWaterDisease(Math.max(0, -step.result.sl), isWounded(hero), battleRng());
@@ -2283,9 +2340,9 @@ registerCascadeApplier('waterExposure', (_get, _set, step, hero) => {
 });
 
 /**
- * Applique une liste d'Effets via le REGISTRE `EFFECT_HANDLERS` (1 effet = 1 handler). Un handler qui
- * renvoie `'suspend'` (extendedTest/forceDoor → modale/pending) STOPPE la boucle, comme l'ancien
- * `return` au milieu du switch — l'ORDRE, les journaux et les révélations restent identiques.
+ * Applique une liste d'Effets via le REGISTRE `EFFECT_HANDLERS` (1 effet = 1 handler). Un handler
+ * `suspensif` (geste joueur) reçoit le RESTE du lot comme suite : s'il la prend (`'suspend'`), son
+ * pending la rejouera à sa clôture et la boucle s'arrête là — aucun Effet ne se perd.
  */
 export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number): Applique {
   const env = makeEffectEnv(get, set, sl);
@@ -2298,9 +2355,9 @@ export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: numbe
     // est SA suite — même geste que le `case 'test'` du walker de Flow, qui empaquette sa pile. Le
     // signal REMONTE ensuite : ce qui suit CET appel est lui aussi la suite du dé, pas la suite immédiate.
     const differesAvant = comptePasDifferes(get());
-    const issue = handler.apply(e, env);
+    const issue = handler.apply(e, env, handler.suspensif ? flowFromEffects(file) : EMPTY_FLOW);
     if (comptePasDifferes(get()) > differesAvant) { differerLaSuite(set, flowFromEffects(file.splice(0)), 'scene'); differe = OPS_DIFFEREES; break; }
-    if (issue === 'suspend') break;
+    if (issue === 'suspend') { file.splice(0); break; }
   }
   // Couture UNIQUE du cadre de campagne (#717) : la CLÔTURE authorée est une `Condition` — elle se
   // relit après CHAQUE lot d'effets, jamais par un branchement dans `setFlag` (un `when` peut porter
@@ -2323,7 +2380,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
   const npc = sceneNpc(get().scene, e.entityId);
   if (!npc) { get().log(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
-  if (!hasHealSkill(npc)) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
+  if (!possesses(npc, HEAL_SKILL)) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
   openMedic(get, set, {
     npc: {
       id: e.entityId,

@@ -78,7 +78,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     // être achetées avant le début de l'Activité » ; l.78 : « Test étendu de Métier » ; l.102 : « Chaque
     // Activité […] vous permet d'effectuer un lancer pour votre Test étendu ».
     const h = hero();
-    h.skills.push({ id: 'metier', spec: 'Forgeron', characteristic: 'dexterite', advances: 10 });
+    h.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
     const itl0 = useGame.getState().interlude!;
     itl0.perHero[h.id] = { ...st(), fx: undefined, left: 3 };
     useGame.setState({ interlude: { ...itl0 } });

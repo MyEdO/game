@@ -7,6 +7,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { charKeySchema, enumNomme, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
+import { senseSchema } from '../grammaire/mecanique';
 
 export const file = 'skills.json';
 export const famille = 'entite';
@@ -21,8 +22,10 @@ const doc = document(
     specs: specsSchema.optional(),
     specsSource: specsSourceSchema.optional(),
     specsOpen: z.boolean().optional(),
+    /** LDB 09 l.571 */
+    specsSoeursDeBase: z.boolean().optional(),
     movement: z.boolean().optional(),
-    hearing: z.boolean().optional(),
+    senses: z.array(senseSchema).optional(),
     /** Caractéristique ALTERNATIVE sous règle optionnelle (`SkillData.altChar`, lu par `altCharKey`) :
      *  `gatedByRule` = id d'`OptionalRule` (FK validée par `variants-integrity.test.ts`), `from` = carac de
      *  base à laquelle la substitution s'applique (absente = toute carac), `chars` = la carac à utiliser
@@ -56,13 +59,17 @@ const doc = document(
     specs: { label: 'Spécialisations', hint: 'Liste fermée de spécialisations proposées' },
     specsSource: { label: 'Registre de spécialisations' },
     specsOpen: { label: 'Spécialisation ouverte' },
+    specsSoeursDeBase: {
+      label: 'Autres Spécialisations de Base',
+      hint: 'Posséder une Spécialisation de cette Compétence rend les autres de Base pour le porteur',
+    },
     movement: {
       label: 'Compétence de déplacement',
       hint: 'Classée « déplacement » : gate les Tests visés par un blocage de Mouvement',
     },
-    hearing: {
-      label: 'Compétence auditive',
-      hint: 'Classée « implique l’audition » : pénalisée par l’État Assourdi',
+    senses: {
+      label: 'Sens sollicités',
+      hint: 'Sens qu’implique un Test de cette Compétence : ciblé par les pénalités restreintes à un sens (Aveuglé, Assourdi, Cécité)',
     },
     altChar: { label: 'Caractéristique alternative', hint: 'Substitution de Caractéristique sous règle optionnelle' },
     combatAdvantage: {

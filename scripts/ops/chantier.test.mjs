@@ -11,12 +11,14 @@ import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
 import {
-  ATTENTE_DU_CONSOMMATEUR_MS, EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, attendreLeConsommateur, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis,
+  ATTENTE_DU_CONSOMMATEUR_MS, EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, attendreLeConsommateur, creerChantier, equipementsDesPrerequis,
   nomValide, ouvrirChantier, refusDeCreation, relancerChantier, resumeDeChantier,
 } from './chantier.mjs'
+import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
 import { synchroniserPrincipal } from './synchroniser.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
-import { estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
+import { sousEcheanceAsync } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 
 /** Le script du consommateur du post-merge, celui de CET arbre : un principal jetable n'en porte pas. */
 const SYNCHRONISEUR = join(import.meta.dirname, 'synchroniser.mjs')
@@ -305,7 +307,7 @@ test('équipement : npm ci à la RACINE puis dans server/, puis docs:build, dans
     assert.deepEqual(appels.map((a) => a.args), [
       ['ci', '--no-audit', '--no-fund'],
       ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'],
-      ['run', 'docs:build'],
+      ['run', 'docs:build', '--', '--perimes'],
     ])
     assert.deepEqual([...new Set(appels.map((a) => a.cwd))], [cibleDe(racine, '47')],
       'tous se jouent DANS le worktree neuf (le sous-projet par --prefix, jamais par un cwd)')
@@ -374,7 +376,7 @@ test('origin injoignable : refus qui NOMME la raison, et aucun worktree posé', 
   } finally { jeter() }
 })
 
-test('docs ciblés : copie puis docs:build --only, ordre et cwd conservés', () => {
+test('docs ciblés : copie puis docs:build --perimes, ordre et cwd conservés', () => {
   const { racine, jeter } = depotAvecOrigin()
   try {
     const appels = []
@@ -386,7 +388,7 @@ test('docs ciblés : copie puis docs:build --only, ordre et cwd conservés', () 
     })
     assert.equal(vu.ok, true, vu.refus)
     assert.equal(appels.length, 3)
-    assert.deepEqual(appels[2], { args: ['run', 'docs:build', '--', '--only', ...scripts], cwd: cibleDe(racine, '2456-selection') })
+    assert.deepEqual(appels[2], { args: ['run', 'docs:build', '--', '--perimes'], cwd: cibleDe(racine, '2456-selection') })
   } finally { jeter() }
 })
 

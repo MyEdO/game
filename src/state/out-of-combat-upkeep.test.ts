@@ -54,6 +54,13 @@ describe('outOfCombatUpkeep — États qui tickent HORS COMBAT (couture A, LDB 1
     expect(hasCondition(c, 'extenue')).toBe(true);     // vidé → 1 Exténué
   });
 
+  it('Inconscient ET Empoisonné : le Test de Résistance SUBI se lance toujours (LDB 16 l.74)', () => {
+    const c = mk({ current: 8, conditions: [{ id: 'empoisonne', value: 1 }, { id: 'inconscient', value: 1 }] });
+    outOfCombatUpkeep([c], 1, fixed(5));
+    expect(hasCondition(c, 'empoisonne')).toBe(false);
+    expect(hasCondition(c, 'extenue')).toBe(true);
+  });
+
   it('aucun effet périodique ni 0 PB → no-op (rien ne ticke)', () => {
     const c = mk({ current: 8 });
     expect(outOfCombatUpkeep([c], 10, fixed(50))).toEqual([]);

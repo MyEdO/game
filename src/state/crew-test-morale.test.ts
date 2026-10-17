@@ -6,6 +6,10 @@ import { makeRNG } from '../engine/dice';
 import { shipSaboteurDR } from './shipCrew';
 import { maneuverCrewTotal } from './shipManeuver';
 import type { Combatant, SkillInstance } from '../engine/types';
+import { propulsionDuNavire } from '../engine/shipBuild';
+
+/** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
+const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 /**
  * #26/#65 — MORAL D'ÉQUIPAGE EN COMBAT (MDG 14) :
@@ -111,8 +115,8 @@ describe('Sabotage des Tests d’équipage (MDG 14 l.45-47 : −1..−5 DR)', ()
 
   it('resolveCrewTestByRoles (résolveur PUR tout-PNJ) applique aussi extraDR', () => {
     const marin = { ...cook(), id: 'npc-cook', kind: 'npc' } as Combatant;
-    const base = resolveCrewTestByRoles([{ crew: marin, roleId: 'cuisinier' }], 'rude-epreuve', 'intermediaire', 75, makeRNG(3));
-    const sabote = resolveCrewTestByRoles([{ crew: marin, roleId: 'cuisinier' }], 'rude-epreuve', 'intermediaire', 75, makeRNG(3), { extraDR: -2 });
+    const base = resolveCrewTestByRoles([{ crew: marin, roleId: 'cuisinier' }], 'rude-epreuve', 'intermediaire', 75, NAVIGATION, makeRNG(3));
+    const sabote = resolveCrewTestByRoles([{ crew: marin, roleId: 'cuisinier' }], 'rude-epreuve', 'intermediaire', 75, NAVIGATION, makeRNG(3), { extraDR: -2 });
     expect(sabote.total).toBe(base.total - 2);
     expect(sabote.lines.some((l) => l.includes('-2 DR'))).toBe(true);
   });

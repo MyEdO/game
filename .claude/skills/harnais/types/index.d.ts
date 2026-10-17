@@ -13,7 +13,6 @@ export type HarnaisEtatDeSession = {
   suivis: HarnaisSuiviLie[]
   contexte: string
   ajout: string
-  cle: string
   /** Les épiques dont la confrontation demande une mesure (absente, illisible, périmée, portée changée). */
   aMesurer: number[]
 }
@@ -21,21 +20,14 @@ export type HarnaisEtatDeSession = {
 /** L'outil MCP que décrit `suivi.mjs --outil --json` (`OUTIL_SUIVI`, scripts/ops/suiviDonnee.mjs) : son schéma est dérivé de la donnée. */
 export type HarnaisOutil = { name: string; description: string; inputSchema: Record<string, unknown> }
 
-/** Une situation datée rendue par le lecteur, en attente du prochain tour, et la clé qu'elle porte. */
-export type HarnaisAjout = { ajout: string; cle: string }
-
 /**
  * L'atome UNIQUE de la fonction `suivi`, modifié par une seule `update` à chaque transition :
  * - `etat` : le dernier état de session VALIDE lu (`null` avant toute lecture réussie) ;
- * - `cle` : la clé du dernier état porté en contexte, ajouté ou rendu par l'outil, le `--depuis` du lecteur ;
- * - `enAttente` : la situation datée que le lecteur a rendue depuis `cle`, en attente du prochain tour ;
- * - `generation` : le jeton, tiré neuf, de la dernière transition qui a retenu une clé ; une relecture
- *   lancée sous une autre génération est ignorée.
+ * - `generation` : le jeton, tiré neuf, de la dernière édition par l'outil ; une relecture lancée sous une
+ *   autre génération est ignorée.
  */
 export type HarnaisSuivi = {
   etat: HarnaisEtatDeSession | null
-  cle: string | null
-  enAttente: HarnaisAjout | null
   generation: string
 }
 

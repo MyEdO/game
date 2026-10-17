@@ -176,6 +176,39 @@ describe('Balayage en combat (store)', () => {
     expect(useGame.getState().battle!.combatants.find((c) => c.id === E2.id)!.wounds.current).toBeLessThan(e2Before);
   });
 
+  it('Héros plus grand, manœuvre gratuite (Morsure) : pendingCleave s’ouvre après la touche, comme pour une attaque (LDB 14 l.9, LDB 85 l.362)', () => {
+    useGame.getState().seedRng(2);
+    const b = setupBattle(1);
+    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const [E1, E2] = enemies;
+    enemies.slice(2).forEach((e) => (e.dead = true));
+    H.size = 'grande';
+    H.traits = [{ id: 'morsure', value: 10 }];
+    H.advantage = 2;
+    H.characteristics['capacite-de-combat'] = 85;
+    H.characteristics.force = 45;
+    H.pos = { x: 10, y: 10 };
+    E1.pos = { x: 9, y: 10 };
+    E2.pos = { x: 11, y: 10 };
+    for (const e of [E1, E2]) {
+      e.wounds = { current: 40, max: 40, base: 40 } as Combatant['wounds'];
+      e.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
+    }
+    const turn = b.order.indexOf(H.id);
+    useGame.setState({ battle: { ...b, turn, action: null, movementUsed: 99, acted: false } });
+
+    useGame.getState().battleSelectAttack('morsure');
+    useGame.getState().battleClickEntity(E1.id, { confirm: true });
+    expect(useGame.getState().pendingAttack!.freeKind).toBe('morsure');
+    useGame.getState().attackRoll();
+    expect(useGame.getState().pendingAttack!.result!.hit).toBe(true);
+    useGame.getState().attackConfirm();
+    const pc = useGame.getState().pendingCleave;
+    expect(pc).toBeTruthy();
+    expect(pc!.hitIds).toEqual([E1.id]);
+  });
+
   it('borne BCC : cleaveAttack refusé une fois le quota d’enchaînements atteint ; cleaveEnd ferme', () => {
     const b = setupBattle(1);
     const H = b.combatants.find((c) => c.kind === 'hero')!;

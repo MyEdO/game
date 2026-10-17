@@ -1,7 +1,7 @@
 import { useGame } from '../state/store';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import type { PendingAuContact } from '../state/pendings';
-import { baseTestModLines, combatValue } from '../engine/combat';
+import { baseTestModLines, combatValue, weaponSkillId } from '../engine/combat';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
@@ -51,8 +51,8 @@ export function AuContactModal() {
   // Les modificateurs du jet (Avantage, États, météo) sont NOMMÉS sur la ligne — même source que celle
   // que roule `rollDisengageAttack` (`baseTestMods`) : aucun +N anonyme dans la cible.
   const [foeLine, moverLine] = opposedLines([
-    { label: 'Corps à corps', base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat') },
-    { label: 'Corps à corps', base: combatValue(mover, 'melee'), r: pd.def, mods: baseTestModLines(mover, 'capacite-de-combat') },
+    { label: 'Corps à corps', base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
+    { label: 'Corps à corps', base: combatValue(mover, 'melee'), r: pd.def, mods: baseTestModLines(mover, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
   ]);
   // Rangée TÉMOIN : Corps à corps du foe, figé à l'ouverture (jamais relancé, aucun bouton) — MASQUÉ
   // tant que le mover n'a pas répondu (#990 : `pd.def` est SA réponse).

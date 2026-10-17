@@ -12,6 +12,7 @@ export interface ResultatLint {
   errorCount: number
 }
 export interface FixtureLint { filePath: string; code: string }
+export function directivesLintCiblees(texte: string, fichier: string, regles: string[]): { ligne: number; cible: number | null }[]
 export function directivesLint(texte: string, fichier: string, regles: string[]): number[]
 export function configPourFichier(fichier: string): { rules: Record<string, unknown> }
 export function lintFixtures(fixtures: FixtureLint[], configuration?: object): ResultatLint[]

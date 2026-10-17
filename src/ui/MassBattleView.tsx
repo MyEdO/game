@@ -9,13 +9,14 @@ import { AssignRow } from './AssignRow';
 import { battleScenesToStations, type Station } from '../state/stations';
 import {
   massBattleThreatPenalty, armyMight, armyStartMight,
-  battleSceneById, battleSceneEffectLabel,
+  battleSceneById, battleSceneEffectLabel, battleActionRefus,
   type MassBattleState, type MassBattleArmy,
 } from '../state/massBattleFlow';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
 import type { Combatant } from '../engine/types';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
 import { Grid } from './Layout';
+import { t } from '../i18n';
 
 /**
  * Écran de Combat de masse / Puissance de Bataille (ADE II 08). Il ne gère QUE les Rounds ('round') et
@@ -152,7 +153,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
       {mb.awaitingNext ? (
         <div className="bar mb-actions mb-clash-actions">
           {woundedRally && (
-            <button className="btn small" onClick={rally} title="Test de Résistance de guérison (l.122)">Rassemblement (Résistance)</button>
+            <button className="btn small" onClick={rally}>{t('mbf.rallyLabel')}</button>
           )}
           <button className="btn btn-primary" onClick={advance}>Round suivant</button>
         </div>
@@ -196,9 +197,11 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
   const posted = postedIds.map((id) => living.find((h) => h.id === id)).filter((h): h is Combatant => !!h);
   // Un combat (Scène 'combat'/'threat', incl. le Duel) engage tout le groupe → PAS de garde « plus de PJ libre ».
   const isCombat = sc.sceneKind === 'combat' || sc.sceneKind === 'threat';
+  const broken = sc.sceneKind === 'hold' && !!hold?.broken;
+  const refusTenter = isCombat ? null : battleActionRefus(mb, available, sc);
   const disabled = resolved || mb.awaitingNext
     || (!isCombat && remaining === 0)
-    || (sc.sceneKind === 'hold' && !!hold?.broken);
+    || broken || !!refusTenter;
   return (
     <div className={`mb-scene${resolved ? ' mb-scene-done' : ''}`}>
       <div className="bar mb-scene-head">
@@ -232,10 +235,11 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
           id={`mb-scene-${sceneId}`}
           label={resolved ? 'Scène résolue' : isCombat ? 'Engager le combat' : 'Résoudre'}
           enabled={!disabled}
-          reason={resolved ? 'Cette Scène est déjà résolue.'
+          {...raisonSi(resolved ? 'Cette Scène est déjà résolue.'
             : mb.awaitingNext ? 'Résolvez le Round en cours avant d’engager une Scène.'
             : !isCombat && remaining === 0 ? 'Plus aucun Personnage libre ce Round.'
-            : 'La position est perdue — cette Scène ne se tient plus.'}
+            : broken ? 'La position est perdue — cette Scène ne se tient plus.'
+            : refusTenter)}
           onClick={() => chooseScene(sceneId)}
           btnClassName="small"
         />

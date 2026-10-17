@@ -52,4 +52,11 @@ describe('resolveManeuver — zone (Souffle Fumée, z-blindness #798)', () => {
     expect(zoneCovers(zone, { x: 5, y: 5, z: 0 })).toBe(false); // étage 0 : PAS couvert
     expect(zoneCovers(zone, { x: 5, y: 5, z: 1 })).toBe(true); // étage 1 (celui du centre) : couvert
   });
+  it('BE 0 : la Fumée dure 0 Round — aucune zone posée (LDB 85 l.329, #1817)', () => {
+    const attacker = { ...mk('atk', 'hero', 3, 5, 0), characteristics: { ...mk('x', 'hero', 0, 0, 0).characteristics, endurance: 9 } } as Combatant;
+    const target = mk('tgt', 'enemy', 5, 5, 0);
+    const { get, set } = mountBattle([attacker, target]);
+    resolveManeuver(get, set, attacker, findManeuverById('souffle-fumee')!, 0, null, 0, target);
+    expect(get().battle!.zones).toEqual([]);
+  });
 });

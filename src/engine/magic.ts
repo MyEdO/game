@@ -19,6 +19,7 @@
 import { RNG, defaultRNG } from './dice';
 import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, TestResult } from './tests';
 import { getTestPolicy } from './testPolicy';
+import { refCouvre } from '../data/schemas/grammaire/ref';
 import { rule } from './policy';
 import { traitCapability } from './traits/dispatch';
 import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
@@ -31,6 +32,7 @@ import type { SpellRange, SpellTarget } from './spellRange';
 import type { SpellDuration } from './spellDuration';
 import { type OvercastSource, effectiveRangeMetres, missileOvercastDamageBonus, overcastSourceOf } from './overcast';
 import { arcaneDomainIdOf, castingKindOf, featuresOf, chaosDomainOf } from './combatFeatures/dispatch';
+import { isPrayerFamily } from './combatFeatures/types';
 import { domainMissileMods, domainSeaFocalisationDR, domainSeaFocalisationDoubled, domainSeaIncantationDR, domainSeaWidensCritFumble, domainWindDR } from './domainAttributes';
 import type { WindContext } from './domainAttributes';
 import { environmentTestDR, environmentWidensCrit, environmentNIMods } from './magicEnvironment';
@@ -96,7 +98,7 @@ export interface CastInfo {
 /** Le sort relève-t-il d'une Prière (Bénédiction/Miracle) ? Discriminant UNIQUE : la `family`
  *  (id stable, multilangue), requise au schéma de `spells.json`. `LDB 40 l.13` */
 export function castInfoIsPrayer(spell: SpellLike): boolean {
-  return spell.family === 'beni' || spell.family === 'invocation';
+  return isPrayerFamily(spell.family);
 }
 
 /** Détermine la branche (et donc la Compétence) selon le sort : Prière vs Sort. `LDB 40 l.13` */
@@ -277,14 +279,12 @@ export function focusWindLabel(spell: SpellLike): string | undefined {
   return spec ? (findDomainById(spec)?.wind ?? findDomainById(spec)?.label ?? spec) : undefined;
 }
 
-/** Compétence Focalisation utilisable pour CE sort : spécialisation du Vent
- *  correspondante (LDB 46 — Focalisation est spécialisée par Domaine). Une
- *  compétence SANS spécialisation (données historiques) reste acceptée. */
+/** Compétence Focalisation utilisable pour CE sort (LDB 46 ; `refCouvre`, LDB 09 l.44). Sort sans
+ *  Domaine : toute Focalisation. Focalisation sans spécialisation portée par la donnée :
+ *  `creatures.json`, `careerLevels.json` (#1927). */
 export function focusSkillFor(c: Combatant, spell: SpellLike) {
   const spec = focusSpecOf(spell);
-  return c.skills.find(
-    (s) => s.id === 'focalisation' && s.advances >= 1 && (s.spec == null || spec == null || s.spec === spec),
-  );
+  return c.skills.find((s) => s.advances >= 1 && refCouvre(s, { id: 'focalisation', spec: spec ?? s.spec }));
 }
 
 /**
@@ -302,7 +302,7 @@ export function knowsCastingSkill(c: Combatant, skillName: string, spec?: string
   if (traitCapability(c.traits, 'spellcaster')) return true;
   // `skillName` EST déjà l'id stable de la Compétence (skills.json) — lookup direct.
   return c.skills.some(
-    (s) => s.id === skillName && (spec == null || s.spec === spec) && s.advances >= 1,
+    (s) => refCouvre({ id: skillName, spec }, s) && s.advances >= 1,
   );
 }
 

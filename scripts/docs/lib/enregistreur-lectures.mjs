@@ -10,7 +10,7 @@
 // (2026-09-02) : 5 lectures capturées sans l'appel, 1 006 avec.
 //
 // Périmètre : chemins sous `WFRP_LECTURES_RACINE` qui entrent dans la mesure (`dansLaMesure`, sur
-// l'ensemble `ignoresGit` calculé une fois par l'appelant et passé en JSON par `WFRP_LECTURES_IGNORES`,
+// l'ensemble `perimetreDeMesure().ignores` calculé une fois par l'appelant et passé en JSON par `WFRP_LECTURES_IGNORES`,
 // #1769), hors les cibles écrites par le générateur (`WFRP_LECTURES_CIBLE`, séparées par des virgules — un
 // générateur relit son propre .md en mode `--check`).
 // Un `readdirSync` enregistre le DOSSIER et son listing trié, restreint à la mesure : un fichier ajouté au dossier
@@ -24,10 +24,11 @@ import fs from 'node:fs'
 import childProcess from 'node:child_process'
 import path from 'node:path'
 import { register, syncBuiltinESMExports } from 'node:module'
+import { fileURLToPath } from 'node:url'
 import { isMainThread } from 'node:worker_threads'
-import { canoniser, dansLaMesure, relatifSousRacine } from './chemin-mesure.mjs'
-import { normaliserRequeteMesuree, verifierRequeteMesuree } from '../../guards/lib/gitPorte.mjs'
-import { parUnitesDeCode } from '../../guards/lib/lister.mjs'
+import { canoniser, canoniseurParDossier, dansLaMesure, estPipeNomme, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { normaliserRequeteMesuree, verifierRequeteMesuree } from '../../guards/lib/requeteMesuree.mjs'
+import { cheminAbsent, correspondGlob, parUnitesDeCode } from '../../guards/lib/lister.mjs'
 
 const MARQUE = Symbol.for('wfrp.enregistreur-lectures')
 const RACINE = process.env.WFRP_LECTURES_RACINE
@@ -35,19 +36,14 @@ const SORTIE = process.env.WFRP_LECTURES_SORTIE
 const IGNORES = process.env.WFRP_LECTURES_IGNORES
 
 /** Enveloppe `fs` et rend le collecteur — exporté pour que le test monte la mécanique à nu.
- *  `ignores` : l'ensemble `ignoresGit` de la racine. */
-export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], observer }) {
-  if (!(ignores instanceof Set)) throw new TypeError('enregistreur-lectures : `ignores` (ensemble `ignoresGit`) absent — sans lui, chaque lecture serait écartée en silence')
+ *  `ignores` : l'ensemble `perimetreDeMesure().ignores` de la racine. */
+export function installer({ racine, ignores, cibles = [], motifsPropres = [], motifsDeclares = [], ciblesDerivees = [], observer }) {
+  if (!(ignores instanceof Set)) throw new TypeError('enregistreur-lectures : `ignores` (ensemble du périmètre de mesure) absent — sans lui, chaque lecture serait écartée en silence')
   if (!Array.isArray(ciblesDerivees) || ciblesDerivees.some((p) => typeof p !== 'string' || !p || p.includes('\\') || path.isAbsolute(p) || p.split('/').includes('..'))) throw new TypeError('enregistreur-lectures : cibles dérivées hors racine')
   const base = canoniser(racine)
   const exclues = new Set(cibles)
   const derivees = new Set(ciblesDerivees)
-  const parentsDerives = new Set(ciblesDerivees.flatMap((p) => {
-    const parents = []
-    for (let d = path.posix.dirname(p); d !== '.'; d = path.posix.dirname(d)) parents.push(d)
-    return parents
-  }))
-  const admissible = (rel) => rel !== '.git' && !rel.startsWith('.git/') && rel !== 'node_modules' && !rel.startsWith('node_modules/') && (dansLaMesure(rel, ignores) || derivees.has(rel) || parentsDerives.has(rel))
+  const admissible = (rel) => dansLaMesure(rel, ignores, derivees, motifsDeclares)
   const fichiers = new Set()
   const dossiers = new Map()
   const git = new Map()
@@ -69,12 +65,7 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
   const cheminsRejetes = new Set()
   // Un `realpathSync.native` est un appel système (0,048 ms mesuré) et un générateur relit les mêmes
   // chemins des milliers de fois : la canonisation se mémorise pour la durée de la mesure.
-  const canoniques = new Map()
-  const canoniserMemo = (p) => {
-    let c = canoniques.get(p)
-    if (c === undefined) canoniques.set(p, (c = canoniser(p)))
-    return c
-  }
+  const canoniserMemo = canoniseurParDossier()
 
   /**
    * Chemin RELATIF POSIX retenu, ou `null` (hors racine, exclu, cible, ou descripteur de fichier).
@@ -83,19 +74,23 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
    */
   const retenu = (p, rejets) => {
     if (typeof p === 'number') return null
-    const brut =
+    const cheminBrut =
       typeof p === 'string' ? p
       : Buffer.isBuffer(p) ? p.toString('utf8')
       : p instanceof URL && p.protocol === 'file:' ? decodeURIComponent(p.pathname).replace(/^\/([A-Za-z]:)/, '$1')
       : null
-    if (!brut) return null
-    const abs = path.resolve(base, brut)
+    if (!cheminBrut) return null
+    const abs = path.resolve(base, cheminBrut)
     const rel = relatifSousRacine(base, abs, canoniserMemo)
     if (rel === null) {
       rejets?.add(canoniserMemo(abs))
       return null
     }
-    if (!rel || !admissible(rel) || exclues.has(rel)) return null
+    if (!rel || !admissible(rel)) return null
+    if (exclues.has(rel) || motifsPropres.some((motif) => correspondGlob(rel, motif))) {
+      try { if (brut.lstatSync(abs).isFile()) return null }
+      catch (e) { if (cheminAbsent(e)) return null; throw e }
+    }
     return rel
   }
 
@@ -103,17 +98,20 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
   const brut = {
     readFileSync: fs.readFileSync,
     // eslint-disable-next-line murs/ordre-total -- crochet : il POSE le listing, il ne le consomme pas
-    readdirSync: fs.readdirSync,
+    readdirSync: fs.readdirSync, opendirSync: fs.opendirSync, readdir: fs.readdir, globSync: fs.globSync, glob: fs.glob,
+    // eslint-disable-next-line murs/ordre-total -- crochet : il POSE le listing, il ne le consomme pas
+    promisesReaddir: fs.promises.readdir, promisesOpendir: fs.promises.opendir, promisesGlob: fs.promises.glob,
     openSync: fs.openSync,
     writeFileSync: fs.writeFileSync,
     appendFileSync: fs.appendFileSync,
     promisesReadFile: fs.promises.readFile,
-    // eslint-disable-next-line murs/ordre-total -- crochet : il POSE le listing, il ne le consomme pas
-    promisesReaddir: fs.promises.readdir,
     promisesWriteFile: fs.promises.writeFile,
     existsSync: fs.existsSync,
     statSync: fs.statSync,
+    lstatSync: fs.lstatSync,
+    accessSync: fs.accessSync,
     promisesStat: fs.promises.stat,
+    promisesLstat: fs.promises.lstat,
     execFileSync: childProcess.execFileSync,
     spawnSync: childProcess.spawnSync,
   }
@@ -133,24 +131,81 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
       if (rel) { ecrits.add(rel); return { ecrits: [rel] } }
     })
   }
+  /** Entrées TYPÉES et triées d'un dossier, lues sans l'enveloppe. */
+  // eslint-disable-next-line murs/ordre-total -- lecture PRISTINE du crochet : passer par `listerDossier` rappellerait l'enveloppe
+  const entreesDe = (abs) => brut.readdirSync(abs, { withFileTypes: true }).map((e) => ({ nom: e.name, nature: e.isSymbolicLink() ? 'link' : e.isFile() ? 'file' : e.isDirectory() ? 'directory' : 'other' })).sort((a, b) => parUnitesDeCode(a.nom, b.nom))
+  /** Listing projeté de `rel`, ou `null` s'il est déjà mesuré. */
+  const listingNeuf = (rel) => {
+    if (dossiers.has(rel)) return null
+    dossiers.set(rel, projeterListingMesure(rel, { nature: 'directory', entrees: entreesDe(path.resolve(base, rel)) }, ignores, derivees, [...cibles, ...motifsPropres], motifsDeclares))
+    return dossiers.get(rel)
+  }
   const noterDossier = (p) => {
     mesurer(() => {
       const rel = retenu(p, cheminsRejetes)
-      if (rel === null || dossiers.has(rel)) return
-      // eslint-disable-next-line murs/ordre-total -- lecture PRISTINE du crochet : passer par `listerDossier` rappellerait l'enveloppe
-      dossiers.set(rel, brut.readdirSync(path.resolve(base, rel)).map(String).filter((n) => admissible(`${rel}/${n}`)).sort())
-      return { dossiers: { [rel]: dossiers.get(rel) } }
+      const listing = rel === null ? null : listingNeuf(rel)
+      if (listing) return { dossiers: { [rel]: listing } }
     })
   }
 
-  const noterSonde = (p, type, valeur, erreur) => mesurer(() => {
-    const chemin = retenu(p, cheminsRejetes)
-    if (chemin === null) return
-    const nature = type === 'exists' ? null : valeur?.isFile() ? 'file' : valeur?.isDirectory() ? 'directory' : valeur ? 'other' : null
-    const sonde = { chemin, type, existe: type === 'exists' ? valeur : Boolean(valeur), nature,
+  /** Sonde neuve sur un chemin RETENU, ou `null` si elle est déjà mesurée. `extra` : paramètres rejoués (`mode` d'un `access`). */
+  const sondeNeuve = (chemin, type, valeur, erreur, extra = {}) => {
+    const nature = type === 'exists' || type === 'access' ? null : valeur?.isFile() ? 'file' : valeur?.isDirectory() ? 'directory' : valeur ? 'other' : null
+    const sonde = { chemin, type, existe: type === 'exists' || type === 'access' ? valeur : Boolean(valeur), nature, ...extra,
       ...(erreur?.code ? { code: erreur.code } : {}) }
     const cle = JSON.stringify(sonde)
-    if (!sondes.has(cle)) { sondes.set(cle, sonde); return { sondes: [sonde] } }
+    if (sondes.has(cle)) return null
+    sondes.set(cle, sonde)
+    return sonde
+  }
+  const noterSonde = (p, type, valeur, erreur, extra) => mesurer(() => {
+    const chemin = retenu(p, cheminsRejetes)
+    const sonde = chemin === null ? null : sondeNeuve(chemin, type, valeur, erreur, extra)
+    if (sonde) return { sondes: [sonde] }
+  })
+  /** Une lecture ou un listing qui ÉCHOUE n'a pas de contenu à hasher : son issue tient à l'existence et à la nature
+   *  du chemin, que la sonde `stat` porte et que la certification rejoue. */
+  const noterEchec = (p) => mesurer(() => {
+    const chemin = retenu(p, cheminsRejetes)
+    if (chemin === null) return
+    let r, erreur
+    try { r = brut.statSync(p) } catch (e) { erreur = e }
+    const sonde = sondeNeuve(chemin, 'stat', r, erreur)
+    if (sonde) return { sondes: [sonde] }
+  })
+  /**
+   * Un glob énumère sans lister : chaque dossier qu'il PARCOURT, depuis le préfixe statique du motif,
+   * entre en `dossiers` (profondeur bornée par le motif, sauf `**`) ; un préfixe absent est une sonde.
+   */
+  const noterGlob = (motifs, options) => mesurer(() => {
+    const delta = { dossiers: {}, sondes: [] }
+    const depart = options?.cwd instanceof URL ? fileURLToPath(options.cwd) : path.resolve(options?.cwd ?? process.cwd())
+    const parcourir = (abs, profondeur) => {
+      if (estPipeNomme(abs)) return
+      const rel = retenu(abs, cheminsRejetes)
+      let entrees
+      try { entrees = entreesDe(abs) } catch (e) {
+        if (!cheminAbsent(e)) throw e
+        const sonde = rel === null ? null : sondeNeuve(rel, 'exists', false)
+        if (sonde) delta.sondes.push(sonde)
+        return
+      }
+      const listing = rel === null ? null : listingNeuf(rel)
+      if (listing) delta.dossiers[rel] = listing
+      if (profondeur > 1)
+        for (const e of entrees) if (e.nature === 'directory' && (rel === null || retenu(path.join(abs, e.nom)) !== null)) parcourir(path.join(abs, e.nom), profondeur - 1)
+    }
+    for (const motif of [motifs].flat().map(String)) {
+      const segments = motif.split(/[\\/]/)
+      const joker = segments.findIndex((s) => /[*?[{]/.test(s))
+      const statique = path.resolve(depart, segments.slice(0, joker < 0 ? segments.length : joker).join('/') || '.')
+      if (joker < 0) {
+        const chemin = retenu(statique, cheminsRejetes)
+        const sonde = chemin === null ? null : sondeNeuve(chemin, 'exists', brut.existsSync(statique))
+        if (sonde) delta.sondes.push(sonde)
+      } else parcourir(statique, segments.slice(joker).includes('**') ? Infinity : segments.length - joker)
+    }
+    return delta
   })
   const noterGit = (commande, args, options, vu) => {
     if (!/(?:^|[\\/])git(?:\.exe)?$/i.test(String(commande))) return
@@ -166,15 +221,36 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
     })
   }
 
-  // Une lecture qui ÉCHOUE n'est pas une source : un `.npmrc` sondé et absent n'a pas de blob à
-  // hasher. Chaque enveloppe note APRÈS coup, sur le chemin qui a rendu un résultat.
-  fs.readFileSync = function (p, ...a) { const r = brut.readFileSync.call(this, p, ...a); noterFichier(p); return r }
+  // Chaque enveloppe note APRÈS coup : une source sur le chemin qui a rendu un résultat, une sonde (`noterEchec`)
+  // sur celui qui a échoué.
+  /** Appel synchrone : `succes` sur le résultat, `noterEchec` puis relève sur l'erreur. */
+  const synchrone = (original, succes) => function (p, ...a) {
+    let r
+    try { r = original.call(this, p, ...a) } catch (e) { noterEchec(p, e); throw e }
+    succes(p, r, a)
+    return r
+  }
+  const promesse = (original, succes) => function (p, ...a) {
+    return original.call(this, p, ...a).then((r) => { succes(p, r, a); return r }, (e) => { noterEchec(p, e); throw e })
+  }
+  fs.readFileSync = synchrone(brut.readFileSync, noterFichier)
+  fs.openSync = function (p, d, ...a) {
+    let r
+    try { r = brut.openSync.call(this, p, d, ...a) } catch (e) { if (estLecture(d)) noterEchec(p, e); throw e }
+    ;(estLecture(d) ? noterFichier : noterEcriture)(p)
+    return r
+  }
+  fs.promises.readFile = promesse(brut.promisesReadFile, noterFichier)
+  /** Appel à rappel final : `succes` ou `noterEchec` avant de rendre la main au rappel. */
+  const aRappel = (original, succes) => function (p, ...a) {
+    const rappel = a.pop()
+    return original.call(this, p, ...a, (e, r) => { if (e) noterEchec(p, e); else succes(p, r, a); rappel(e, r) })
+  }
+  /** Un glob se mesure AVANT l'appel (`noterGlob`) : synchrone, à rappel ou itérateur. */
+  const avantGlob = (original) => function (motifs, ...a) { noterGlob(motifs, typeof a[0] === 'function' ? undefined : a[0]); return original.call(this, motifs, ...a) }
   // eslint-disable-next-line murs/ordre-total -- crochet : il POSE le listing, il ne le consomme pas
-  fs.readdirSync = function (p, ...a) { const r = brut.readdirSync.call(this, p, ...a); noterDossier(p); return r }
-  fs.openSync = function (p, d, ...a) { const r = brut.openSync.call(this, p, d, ...a); (estLecture(d) ? noterFichier : noterEcriture)(p); return r }
-  fs.promises.readFile = function (p, ...a) { return brut.promisesReadFile.call(this, p, ...a).then((r) => { noterFichier(p); return r }) }
-  // eslint-disable-next-line murs/ordre-total -- crochet : il POSE le listing, il ne le consomme pas
-  fs.promises.readdir = function (p, ...a) { return brut.promisesReaddir.call(this, p, ...a).then((r) => { noterDossier(p); return r }) }
+  Object.assign(fs, { readdirSync: synchrone(brut.readdirSync, noterDossier), opendirSync: synchrone(brut.opendirSync, noterDossier), readdir: aRappel(brut.readdir, noterDossier), globSync: avantGlob(brut.globSync), glob: avantGlob(brut.glob) })
+  Object.assign(fs.promises, { readdir: promesse(brut.promisesReaddir, noterDossier), opendir: promesse(brut.promisesOpendir, noterDossier), glob: avantGlob(brut.promisesGlob) })
   fs.writeFileSync = function (p, ...a) { const r = brut.writeFileSync.call(this, p, ...a); noterEcriture(p); return r }
   fs.appendFileSync = function (p, ...a) { const r = brut.appendFileSync.call(this, p, ...a); noterEcriture(p); return r }
   fs.promises.writeFile = function (p, ...a) { return brut.promisesWriteFile.call(this, p, ...a).then((r) => { noterEcriture(p); return r }) }
@@ -184,6 +260,16 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
     catch (e) { noterSonde(p, 'stat', undefined, e); throw e }
   }
   fs.promises.stat = function (p, ...a) { return brut.promisesStat.call(this, p, ...a).then((r) => { noterSonde(p, 'stat', r); return r }, (e) => { noterSonde(p, 'stat', undefined, e); throw e }) }
+  fs.lstatSync = function (p, ...a) {
+    try { const r = brut.lstatSync.call(this, p, ...a); noterSonde(p, 'lstat', r); return r }
+    catch (e) { noterSonde(p, 'lstat', undefined, e); throw e }
+  }
+  fs.promises.lstat = function (p, ...a) { return brut.promisesLstat.call(this, p, ...a).then((r) => { noterSonde(p, 'lstat', r); return r }, (e) => { noterSonde(p, 'lstat', undefined, e); throw e }) }
+  fs.accessSync = function (p, mode) {
+    const extra = mode === undefined ? {} : { mode }
+    try { const r = brut.accessSync.call(this, p, mode); noterSonde(p, 'access', true, undefined, extra); return r }
+    catch (e) { noterSonde(p, 'access', false, e, extra); throw e }
+  }
   childProcess.execFileSync = function (commande, args, options) {
     try { const r = brut.execFileSync.call(this, commande, args, options); noterGit(commande, args, options, { canal: 'stdout', status: 0, stdout: r, stderr: '' }); return r }
     catch (e) { noterGit(commande, args, options, e); throw e }
@@ -195,17 +281,19 @@ export function installer({ racine, ignores, cibles = [], ciblesDerivees = [], o
   const restaurer = () => {
     fs.readFileSync = brut.readFileSync
     // eslint-disable-next-line murs/ordre-total -- crochet : il POSE le listing, il ne le consomme pas
-    fs.readdirSync = brut.readdirSync
+    Object.assign(fs, { readdirSync: brut.readdirSync, opendirSync: brut.opendirSync, readdir: brut.readdir, globSync: brut.globSync, glob: brut.glob })
+    Object.assign(fs.promises, { readdir: brut.promisesReaddir, opendir: brut.promisesOpendir, glob: brut.promisesGlob })
     fs.openSync = brut.openSync
     fs.writeFileSync = brut.writeFileSync
     fs.appendFileSync = brut.appendFileSync
     fs.promises.readFile = brut.promisesReadFile
-    // eslint-disable-next-line murs/ordre-total -- crochet : il POSE le listing, il ne le consomme pas
-    fs.promises.readdir = brut.promisesReaddir
     fs.promises.writeFile = brut.promisesWriteFile
     fs.existsSync = brut.existsSync
     fs.statSync = brut.statSync
+    fs.lstatSync = brut.lstatSync
+    fs.accessSync = brut.accessSync
     fs.promises.stat = brut.promisesStat
+    fs.promises.lstat = brut.promisesLstat
     childProcess.execFileSync = brut.execFileSync
     childProcess.spawnSync = brut.spawnSync
     syncBuiltinESMExports()
@@ -241,6 +329,8 @@ if (isMainThread && RACINE && SORTIE && !globalThis[MARQUE]) {
     ignores: new Set(ignores),
     cibles: (process.env.WFRP_LECTURES_CIBLE ?? '').split(',').filter(Boolean),
     ciblesDerivees,
+    motifsPropres: JSON.parse(process.env.WFRP_LECTURES_MOTIFS_PROPRES ?? '[]'),
+    motifsDeclares: JSON.parse(process.env.WFRP_LECTURES_MOTIFS_DECLARES ?? '[]'),
   })
   // Ce qu'un THREAD DE HOOKS (tsx) charge et lit échappe à l'enveloppe de `fs` posée ici : le volet
   // `enregistreur-hooks.mjs` enregistre depuis ce thread-là les modules ET les fichiers lus.
@@ -251,6 +341,8 @@ if (isMainThread && RACINE && SORTIE && !globalThis[MARQUE]) {
       ignores,
       cibles: (process.env.WFRP_LECTURES_CIBLE ?? '').split(',').filter(Boolean),
       ciblesDerivees,
+      motifsPropres: JSON.parse(process.env.WFRP_LECTURES_MOTIFS_PROPRES ?? '[]'),
+      motifsDeclares: JSON.parse(process.env.WFRP_LECTURES_MOTIFS_DECLARES ?? '[]'),
     },
   })
   process.on('exit', () => {

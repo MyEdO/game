@@ -30,12 +30,12 @@ describe('spawn — Blindage (Amélioration d’instance) → PA de coque', () =
 
   it('« Coque de course » → 2×M de manœuvre, op moveScale APPLIQUÉE dans shipManeuverParams (MSRC 12 l.27)', () => {
     // cogue à voile : M de base 5 ; Coque de course multiplie APRÈS les moveMod additifs → 10.
-    expect(shipManeuverParams(spawnEnemy({ ref: 'cogue' }, 'h-nue2', at)).baseM).toBe(5);
+    expect(shipManeuverParams(spawnEnemy({ ref: 'cogue' }, 'h-nue2', at), 'maritime').baseM).toBe(5);
     const hull = spawnEnemy({ ref: 'cogue' }, 'h-course', at, { upgrades: [{ id: 'coque-de-course' }] });
-    expect(shipManeuverParams(hull).baseM).toBe(10);
+    expect(shipManeuverParams(hull, 'maritime').baseM).toBe(10);
     // combinée à Lissage (moveMod +1) : (5 + 1) × 2 = 12 — l'additif précède le facteur (ordre canonique).
     const hull2 = spawnEnemy({ ref: 'cogue' }, 'h-course-liss', at, { upgrades: [{ id: 'coque-de-course' }, { id: 'lissage' }] });
-    expect(shipManeuverParams(hull2).baseM).toBe(12);
+    expect(shipManeuverParams(hull2, 'maritime').baseM).toBe(12);
   });
 });
 
@@ -45,7 +45,7 @@ describe('SURCHARGE de la cale (MDG 12 l.70-75) → shipManeuverParams (M ET Man
   it('cale sous la Contenance → aucun effet de surcharge', () => {
     const hull = spawnEnemy({ ref: 'cogue' }, 'ov-0', at);
     hull.cargoEnc = 300; // 100 % pile
-    const p = shipManeuverParams(hull);
+    const p = shipManeuverParams(hull, 'maritime');
     expect(p.baseM).toBe(5);
     expect(p.manoeuvre).toBe(-1);
   });
@@ -53,7 +53,7 @@ describe('SURCHARGE de la cale (MDG 12 l.70-75) → shipManeuverParams (M ET Man
   it('> 100 % (palier 1) → −1 M et −1 DR Manœuvre cumulés', () => {
     const hull = spawnEnemy({ ref: 'cogue' }, 'ov-1', at);
     hull.cargoEnc = 330; // 110 %
-    const p = shipManeuverParams(hull);
+    const p = shipManeuverParams(hull, 'maritime');
     expect(p.baseM).toBe(4); // 5 − 1
     expect(p.manoeuvre).toBe(-2); // −1 (Cogue) − 1 (surcharge)
   });
@@ -61,7 +61,7 @@ describe('SURCHARGE de la cale (MDG 12 l.70-75) → shipManeuverParams (M ET Man
   it('> 140 % (palier 3) → −3 M et −3 DR Manœuvre', () => {
     const hull = spawnEnemy({ ref: 'cogue' }, 'ov-3', at);
     hull.cargoEnc = 450; // 150 %
-    const p = shipManeuverParams(hull);
+    const p = shipManeuverParams(hull, 'maritime');
     expect(p.baseM).toBe(2); // 5 − 3
     expect(p.manoeuvre).toBe(-4); // −1 − 3
   });

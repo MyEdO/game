@@ -43,11 +43,15 @@ export type StatutSignature = 'cible' | 'historique' | 'declaree';
 export type SiteDeSignature = { readonly datasets?: readonly string[]; readonly champs: readonly string[] };
 export type SignatureLexique = { sig: string; statut: StatutSignature; note?: string; site?: SiteDeSignature };
 
+/** Les documents des PROJETS DE CAMPAGNE livrés (`listerProjetsLivres`), par nom de dataset. */
+export const DATASETS_DES_PROJETS: readonly string[] = listerProjetsLivres().map((rel) => basename(rel));
+
 /** Les documents qui portent un STATBLOC à valeurs de Test imprimées : le bestiaire et les statblocs
  *  EMBARQUÉS des projets de scène (`CustomStatblock`). MÊME schéma des deux côtés
  *  (`defs/creatures.ts` et `defs-scenes/communs.ts` composent tous deux `refOuSpec('skill', {value})`). */
+
 export const SITE_STATBLOC: SiteDeSignature = {
-  datasets: ['creatures.json', ...listerProjetsLivres().map((rel) => basename(rel))],
+  datasets: ['creatures.json', ...DATASETS_DES_PROJETS],
   champs: ['skills'],
 };
 
@@ -117,7 +121,7 @@ export const ANGLES_MORTS: readonly string[] = [
   'Le partage d’un SITE tranche entre référence cassée et document embarqué, mais les TELLS de document passent avant le ratio (`label` + `source`, ou `label` + ≥ 2 clés de charge utile) et l’égalité tranche pour le DOCUMENT ; un site à UNE seule valeur est un document, sauf si la clé est `…Id`/`…Ids`/`…Ref`.',
   'L’ORDRE DES PASSES est un angle mort déclaré : l’index est complété par les documents EMBARQUÉS (passe 3) AVANT que la résolution ne soit mesurée (passe 4) — un site comme `arene-projet.json › members {entityId}` ne résout que grâce à cet ordre.',
   'Une clé dont la valeur est un LITTÉRAL D’ENUM du schéma zod du document n’ouvre jamais de référence (discriminants `kind`/`type`/`class`/`op`…). Depuis #1466 L1a les DEUX racines sont au registre (`SCHEMA_DEFS` + `SCHEMA_DEFS_SCENES`, joints par BASENAME) : les discriminants des scènes sont fermés comme les autres. La fermeture reste bornée à ce que l’introspection atteint — un littéral sous une enveloppe qu’`enfantsDe` ne traverse pas y échappe.',
-  'Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Deux familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679).',
+  'Une clé de RÉFÉRENCE SCOPÉE (`CLES_REFERENCE_SCOPEE`) n’ouvre jamais de référence vers l’index des ids : sa valeur nomme une identité d’un espace CLOS tenu par un document, dont la porte de ce document garde la résolution. Trois familles : `entry` (lieu de carte, embuscade de route, effet `transition`), dont la cible est une CLÉ de `scenes[].entryPoints` — le scan n’indexant que des VALEURS porteuses d’identité, toute résolution de `entry` contre l’index serait une HOMONYMIE par construction (mesuré 2026-09-06 : `arene-projet.json › entry: "route"` classé référence vers `terrains.json`) ; les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `src/data/schemas/defs-scenes/registres-narratifs.ts` : `documentId`, `indiceId`, `presetId`, `affaireId`), dont la cible est une entrée d’un registre du `narratif` du même projet, résolue par `projetSchema` (#679) ; `suite` (billet de route), dont la cible est un `id` de `worldMap.routes[]` du même projet, résolu par `worldMapSchema` (#2534).',
   'Les clés de PROSE `label`/`nom`/`desc`/`title` n’ouvrent jamais de référence ; `text` sous un champ de dotation est l’exception unique (résolution NARRATIVE #624). Le porteur ADRESSÉ de la prose (`descRef`, #1389) suit la même règle, `descRef>book` compris : `book` désigne un LIVRE, pas un document indexé — une adresse de prose n’ouvre aucune référence.',
   'La strate `Instance` du design v2 (SkillInstance, ItemInstance, saves) est DÉCLARÉE HORS PÉRIMÈTRE, pas absente : elle existe en SNAPSHOTS nommés dans la racine `src/scenes` — `barge-du-sel-projet.json` et `loup-et-saumure-projet.json` sous `scenes[].entities[].postes[].ammo[]` (des `ItemInstance` recopiées par `src/engine/items.ts`). Ces chemins ne sont pas mesurés ; `saves` a en outre sa propre politique de version (`src/state/saves.ts`).',
   'Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` et `source` partout, `label` sur les familles `entité`/`table`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.',
@@ -232,14 +236,23 @@ export type Concept = {
   listeIdsNus?: boolean;
   /** Le concept est nommé par la CLÉ qui le porte — déclaré, jamais mesuré à un seuil. */
   champs?: readonly string[];
+  /**
+   * Documents où le concept vaut, par champ comme par noyau — la moitié dataset du SITE de
+   * `SiteDeSignature`, à l'échelle du concept. Absent = tout document : un champ au nom courant
+   * (`forme`) ou une clé courante (`prix`) revendiquerait alors toute valeur de tout dataset.
+   */
+  datasets?: readonly string[];
   /** Clés dont la présence (au moins `noyauMin`) classe un objet dans le concept. */
   noyau?: readonly string[];
   noyauMin?: number;
   /**
-   * Clés dont la CO-PRÉSENCE (au moins une) est EXIGÉE en plus du noyau. Discrimine deux concepts
-   * qui partagent le même noyau : le plus contraint se déclare AVANT, et l'objet qui ne porte
-   * aucune de ces clés retombe sur le suivant. Attribut DÉCLARÉ sur l'entrée du registre (#842),
-   * jamais un test d'identité au call-site.
+   * Clés dont la CO-PRÉSENCE (au moins une) est EXIGÉE en plus du noyau : l'objet qui porte le noyau
+   * sans aucune de ces clés n'est PAS une instance du concept. Une seule mécanique, deux usages :
+   * discriminer deux concepts au même noyau (le plus contraint se déclare AVANT, l'objet écarté
+   * retombe sur le suivant), et écarter un PORTEUR HORS CONCEPT qui partage une clé du noyau. Sur un
+   * concept en UNION (`noyauMin` sous la taille du noyau), la liste nomme une clé que porte chaque
+   * branche : un objet qui n'a que la clé partagée par le porteur hors concept est écarté. Attribut
+   * DÉCLARÉ sur l'entrée du registre (#842), jamais un test d'identité au call-site.
    */
   coPresence?: readonly string[];
   /** Le concept n'est candidat que si le SITE d'appel l'a mesuré (cf. `contexte.candidats`). */
@@ -383,6 +396,17 @@ export const CONCEPTS: readonly Concept[] = [
     ],
   },
   {
+    id: 'profil-de-propulsion',
+    label: 'profil de propulsion d’un navire (Mouvement, équipage, Spécialisation de Voile)',
+    strate: 'Valeur',
+    // Porte : `vehicles.ts › ship.sail`/`ship.oars` ; MDG 12 l.131 ; MDG 13 l.18.
+    champs: ['sail', 'oars'],
+    signatures: [
+      { sig: 'crew,m', statut: 'cible', note: 'avirons, ou voile d’un plan de construction (`ship-construction.json`)' },
+      { sig: 'crew,m,spec', statut: 'cible', note: 'voile d’un navire : `spec` = sa Spécialisation de Voile (MDG 13 l.18 ; LDB 09 l.571)' },
+    ],
+  },
+  {
     id: 'de',
     label: 'lancer de dés',
     strate: 'Valeur',
@@ -507,6 +531,76 @@ export const CONCEPTS: readonly Concept[] = [
     ],
     noyau: ['fixed'],
   },
+  // Porte : `palierDeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). EDO 01 l.142.
+  // Noyau MESURÉ sur les 2 racines (2026-10-16) : `drMin` ne vit que sous `billets.*.marchandage.paliers[]`.
+  {
+    id: 'palier-de-billet',
+    label: 'palier d’un billet marchandé (`PalierDeBillet`)',
+    strate: 'Valeur',
+    signatures: [{ sig: 'drMin,prix', statut: 'cible' }],
+    noyau: ['drMin', 'prix'],
+  },
+  // Porte : `routeBilletSchema.marchandage` (`src/data/schemas/defs-scenes/worldmap.ts`) ; `presetId` est
+  // une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). EDO 01 l.142.
+  {
+    id: 'marchandage-de-billet',
+    label: 'marchandage d’un billet (vendeur + paliers)',
+    strate: 'Valeur',
+    champs: ['marchandage'],
+    signatures: [
+      { sig: 'paliers,presetId', statut: 'cible' },
+      { sig: 'presetId', statut: 'cible', note: '`paliers` est OPTIONNEL au schéma' },
+    ],
+  },
+  // Porte : `formeDEtatSchema` (`src/data/schemas/defs-scenes/narratif.ts`), union discriminée sur `kind`
+  // dont chaque branche est une ligne de `FORMES_D_ETAT` (`formes-d-etat.ts`). SITE : `forme` des documents
+  // de projet (`narratif.etats[]`), MESURÉ sur les 2 racines (2026-10-16). `kind` est un noyau d'ENVELOPPE
+  // (`condition`) : `CLES_DE_VALEUR` l'écarte. EDO 02 l.91 ; EDO 01 l.241.
+  {
+    id: 'forme-d-etat',
+    label: 'forme d’un état de campagne (`heros` | `enum`)',
+    strate: 'Valeur',
+    champs: ['forme'],
+    datasets: DATASETS_DES_PROJETS,
+    signatures: [
+      { sig: 'kind', statut: 'cible', note: '`heros`' },
+      { sig: 'kind,valeurs', statut: 'cible', note: '`enum`, `valeurs` DÉCLARÉES' },
+    ],
+  },
+  // APRÈS `palier-de-billet` (même clé `prix`, le palier porte `drMin`), et l'ordre décide. Porte :
+  // `routeBilletSchema` (`src/data/schemas/defs-scenes/worldmap.ts`). Noyau MESURÉ sur les 2 racines
+  // (2026-10-16) : `prix` ne vit que sous `billets.*` et `billets.*.marchandage.paliers[]` ; SITE : les documents
+  // de projet, seuls porteurs de `worldMap`. EDO 01 l.142.
+  {
+    id: 'billet-de-route',
+    label: 'billet d’auteur d’une route (`RouteBillet`)',
+    strate: 'Valeur',
+    datasets: DATASETS_DES_PROJETS,
+    signatures: [
+      { sig: 'prix', statut: 'cible' },
+      { sig: 'prix+…', statut: 'cible', note: '`suite`, `depuis`, `marchandage`, `source` et `maison` sont OPTIONNELS au schéma' },
+    ],
+    noyau: ['prix'],
+  },
+  // Porte : `weaponDamageSpecSchema` (`src/data/schemas/grammaire/valeurs.ts`), union de deux branches
+  // aux clés DISJOINTES, `{literal}` et `{plusBF, flat, bare?}` — d'où `noyauMin: 1`. `flat` n'est pas
+  // au noyau : `sea-events › effect {d10, flat, sign}` (`manannFactor`) le porte aussi. La
+  // `coPresence` écarte `plusBF` SANS `flat` : les `grantNaturalWeapon` (`mutations`, `traits`,
+  // `grammaire/mecanique.ts`) l'étalent sur l'op, mesurés au stock des ops. `literal` ne vit que sous
+  // `trappings › damage` (mesuré 2026-10-13 sur les 2 racines) : aucun site.
+  {
+    id: 'degats-arme',
+    label: 'Dégâts d’arme (`WeaponDamageSpec`)',
+    strate: 'Valeur',
+    signatures: [
+      { sig: 'flat,plusBF', statut: 'cible' },
+      { sig: 'bare,flat,plusBF', statut: 'cible', note: '`bare` optionnel : Mains nues' },
+      { sig: 'literal', statut: 'cible' },
+    ],
+    noyau: ['plusBF', 'literal'],
+    noyauMin: 1,
+    coPresence: ['flat', 'literal'],
+  },
   // DERNIER concept de la strate, et le RANG décide (patron `bornes` avant `plage`) : `difficulty`
   // est une VALEUR de Difficulté (`difficultySchema`, `src/data/schemas/grammaire/valeurs.ts`) qu'un
   // porteur pose À CÔTÉ d'autre chose aussi souvent qu'un jet la porte. Deux discriminants :
@@ -591,10 +685,10 @@ export const CONCEPTS: readonly Concept[] = [
     // Porte : `formeNarratif` (`src/data/schemas/defs-scenes/narratif.ts`), dont `narratifSchema`
     // n'est que la variante SÉMANTIQUE (`superRefine`) — la FORME est celle-là.
     signatures: [
-      { sig: 'affaires,documents,indices,objets,presetsPnj', statut: 'cible' },
-      { sig: 'affaires,documents,indices,objets,presetsPnj+…', statut: 'cible', note: '`ouverture` et `cloture` sont OPTIONNELLES au schéma (#717) : un projet qui pose son cadre de chapitre projette `+…`' },
+      { sig: 'affaires,documents,etats,indices,objets,presetsPnj', statut: 'cible' },
+      { sig: 'affaires,documents,etats,indices,objets,presetsPnj+…', statut: 'cible', note: '`ouverture` et `cloture` sont OPTIONNELLES au schéma (#717) : un projet qui pose son cadre de chapitre projette `+…`' },
     ],
-    noyau: ['affaires', 'documents', 'indices', 'objets', 'presetsPnj'],
+    noyau: ['affaires', 'documents', 'etats', 'indices', 'objets', 'presetsPnj'],
   },
   {
     id: 'condition',
@@ -611,6 +705,23 @@ export const CONCEPTS: readonly Concept[] = [
     // distinguerait est la VALEUR du discriminant, que le lexique ne lit pas.
     signatures: [{ sig: 'expr,kind', statut: 'cible' }],
     noyau: ['expr', 'kind'],
+  },
+  {
+    id: 'effet-d-etat',
+    label: 'Effet qui ÉCRIT un état de campagne (`type` + `etat`)',
+    strate: 'Document',
+    // Porte : `poserEtatSchema` et `designerHerosSchema` (`src/data/schemas/defs-scenes/effets.ts`) ;
+    // `etat` est une RÉFÉRENCE NARRATIVE (`CLES_REFERENCE_SCOPEE`). Noyau MESURÉ sur les 2 racines
+    // (2026-10-16). EDO 02 l.91.
+    signatures: [
+      { sig: 'etat,type,valeur', statut: 'cible', note: '`poserEtat`' },
+      { sig: 'etat,invite,type', statut: 'cible', note: '`designerHeros`' },
+      { sig: 'etat,invite,type+…', statut: 'cible', note: '`designerHeros` à prose adaptée : `adapteDe` est OPTIONNEL au schéma (`proseNommee`)' },
+    ],
+    noyau: ['etat', 'type'],
+    // `systemes.manifest.json` porte `etat` + `type` à sa racine (statut d'un système) : la co-présence
+    // de la charge d'une variante (`invite` ou `valeur`) l'écarte.
+    coPresence: ['invite', 'valeur'],
   },
 ];
 
@@ -657,12 +768,17 @@ export const CLES_PROSE_SANS_REFERENCE = ['label', 'nom', 'desc', 'title'] as co
  * "route"` classé référence vers `terrains.json` à l'entrée du dataset des sols (#1690), le seul
  * remède eût été de renommer un point d'arrivée d'auteur pour contenter la MESURE.
  *
+ * `suite` (`defs-scenes/worldmap.ts` : `routeBilletSchema`) nomme les routes suivantes couvertes par un
+ * billet, des `id` de `worldMap.routes[]` du MÊME projet ; `worldMapSchema` en garde la résolution
+ * (`parcoursDuBillet`).
+ *
  * Les RÉFÉRENCES NARRATIVES (`REFERENCES_NARRATIVES`, `defs-scenes/registres-narratifs.ts`, table
  * source) nomment une entrée d'un registre du `narratif` du MÊME projet ; `projetSchema` en garde la
  * résolution (`refsNarrativesPendantes`, `raffineNarratif`, FK `presetId`).
  */
 export const CLES_REFERENCE_SCOPEE: Readonly<Record<string, string>> = {
   entry: 'entryPoints',
+  suite: 'worldMap.routes',
   ...Object.fromEntries(Object.entries(REFERENCES_NARRATIVES).map(([cle, registre]) => [cle, `narratif.${registre}`])),
 };
 
@@ -771,12 +887,14 @@ export const clesDuRole = (role: RoleEnveloppe): string[] => [...(role.cible ? [
  * mesuré : `tellsDeDocument` (`structures-scan.mts`) compte les clés de CHARGE UTILE hors de ce
  * vocabulaire — y verser les noyaux d'ENVELOPPE (`affaires`, `objets`, `titre`, `kind`…) change le
  * TELL de 44 objets (mesuré 2026-09-01 sur les deux racines : les PIONS de scène
- * `{id, kind, label, pos, ref}`, dont `kind` cesserait de compter comme charge utile).
+ * `{id, kind, label, pos, ref}`, dont `kind` cesserait de compter comme charge utile). Une clé de
+ * noyau d'enveloppe que nomme AUSSI une valeur (`kind`, discriminant de `forme-d-etat`) en est donc
+ * retirée.
  * Garde : `src/data/structures-contrat.test.ts`, sonde C.
  */
+const NOYAUX_D_ENVELOPPE: ReadonlySet<string> = new Set(CONCEPTS.filter((c) => c.strate === 'Document').flatMap((c) => c.noyau ?? []));
 export const CLES_DE_VALEUR: ReadonlySet<string> = new Set(
-  CONCEPTS.filter((c) => c.strate === 'Valeur').flatMap((c) => [
-    ...c.signatures.flatMap((s) => s.sig.split(',')),
-    ...(c.noyau ?? []),
-  ]),
+  CONCEPTS.filter((c) => c.strate === 'Valeur')
+    .flatMap((c) => [...c.signatures.flatMap((s) => s.sig.split(',')), ...(c.noyau ?? [])])
+    .filter((k) => !NOYAUX_D_ENVELOPPE.has(k)),
 );

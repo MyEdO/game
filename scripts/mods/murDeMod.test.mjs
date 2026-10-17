@@ -125,6 +125,15 @@ for (const [corps, forme] of ROUGES)
     for (const m of msgs) assert.match(m.message, /le calcul va à un script de `scripts\/`, le mod rend/, 'chaque message porte le remède')
   })
 
+// #2596
+test('ROUGE hors couture — `$.session.append` : un mod n’écrit jamais dans l’historique de la session', async () => {
+  for (const corps of ['await $.session.append({})', "await $.session.append({ message: { type: 'user', content: [] } })", 'const ajouter = $.session.append']) {
+    const msgs = await messagesDuMur(module(corps), HORS_COUTURE)
+    assert.ok(msgs.some((m) => /#2596/.test(m.message) && /cache de prompt/.test(m.message) && /au bandeau, en résultat d'outil ou en bloc `prompt\.context`/.test(m.message)),
+      `${corps} : ${JSON.stringify(msgs.map((m) => m.message))}`)
+  }
+})
+
 const VERTS = [
   ["const lu = await $.process.run(...appel($.plugin.root, 'suivi', ['--json']))", 'idiome'],
   ["const lu = await $.process.run(\n  ...appel(\n    $.plugin.root,\n    'suivi',\n    ['--json'],\n  ),\n)", 'idiome sur plusieurs lignes'],
@@ -135,7 +144,7 @@ const VERTS = [
   ["if (t === 'ajouter-item') q = 1", 'égalité de chaînes'],
   ["const s = 'a' + nom", 'concaténation de chaînes'],
   ["$.ui.invalidate('ui.render')", 'invalidate d’un événement de rendu'],
-  ["$.ui.log('x', { to: 'debug' })\nawait $.state.get('k')\nawait $.tool.register({})\n$.clock.every(PERIODE, () => {})\nawait $.session.append({})", 'accès à liste blanche'],
+  ["$.ui.log('x', { to: 'debug' })\nawait $.state.get('k')\nawait $.tool.register({})\n$.clock.every(PERIODE, () => {})", 'accès à liste blanche'],
   ['const PERIODE = 1', 'constante sans seuil'],
   ['const v = e.at', 'N6 lecture d’un champ nommé `at`'],
   ['const v = e.test', 'N6 lecture d’un champ nommé `test`'],

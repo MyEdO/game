@@ -58,7 +58,6 @@ const BASELINES: Record<string, number> = {
   'src/ui/jetProps/useAttackJetProps.tsx': 2,
   'src/ui/jetProps/useDefenseJetProps.tsx': 2,
   'src/ui/jetProps/useFumbleJetProps.tsx': 1,
-  'src/ui/jetProps/useTrampleJetProps.tsx': 2,
   'src/ui/ManeuverModal.tsx': 1,
   'src/ui/MountTargetModal.tsx': 2,
   'src/ui/ReloadModal.tsx': 1,

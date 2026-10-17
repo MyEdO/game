@@ -25,6 +25,8 @@ import type { RefusIHM } from './refusVisible';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { EtatDeSequence } from './sequenceCore';
 import { applyShipCollision } from './shipCollision';
+import { milieuDuVoyage } from '../engine/shipBuild';
+import { estNavire } from '../engine/coque';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
 import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
@@ -42,7 +44,7 @@ import { quorumAtteint, decidingSeat } from './netOwnership';
 import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
-export { activeCombatant, entityPickables, trampleTarget } from './combatFlow';
+export { activeCombatant, entityPickables } from './combatFlow';
 import { markActed } from './combatFlow';
 import { EMPTY_FLOW, type Flow } from './flow';
 import { moveEnv, type MoveSnapshot } from './combatGeometry';
@@ -134,13 +136,14 @@ import type { MerchantState, MerchantStocks } from './merchantFlow';
 import * as tavernFlow from './tavernFlow';
 import type {
   PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain,
-  PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingTrample, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
+  PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
   PendingFrenzy, PendingRenounce, PendingDefense,
-  PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
+  PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
   PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, EtatDialogue, CascadeStepMeta, Cloture, CounterDeclaration,
 } from './pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { toMoney } from '../engine/money';
+import { postingTenu } from '../engine/activities';
 import { payFromGroup } from './bourseFlow';
 import * as medicFlow from './medicFlow';
 import type { MedicState, MedicNpc } from './medicFlow';
@@ -166,6 +169,7 @@ import { snapshotChapitre } from './chapitreRecap';
 import { dayIndex, runDailyUpkeep, purgeSurAvanceDHorloge } from './upkeep';
 import type { DeferredUpkeepTest } from './upkeep';
 import * as travelFlow from './travelFlow';
+import * as billetFlow from './billetFlow';
 import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
 import { appliquerLotEtal } from './etalLotFlow';
 import * as portFlow from './portFlow';
@@ -175,7 +179,7 @@ import * as seaActivities from './seaActivities';
 import * as seaVoyageFlow from './seaVoyageFlow';
 import { applyLandCargoRaid } from './carriers';
 import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from './cascade';
-import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute } from './combatEffects';
+import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite } from './combatEffects';
 import { flowFromEffects } from './flow';
 import { nightBands } from './nightBands';
 import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
@@ -242,7 +246,7 @@ export interface BattleState {
   selectedSpellId: string | null;
   /** Attaque ARMÉE pour le clic-ennemi (id d'`AttackOption` : 'arme' | 'morsure' | … — cf. `availableAttacks`).
    *  Défaut 'arme' ; vivante seulement quand `action===null`. Source UNIQUE qui remplace l'attaque d'arme
-   *  implicite + le mode manœuvre/tentacule/trample armé. */
+   *  implicite + le mode manœuvre/tentacule armé. */
   selectedAttack?: string;
   reachable: Map<string, number>;
   /** Cases de Mouvement déjà parcourues ce Tour. Le Mouvement est DÉCOMPOSABLE (règle maison : on peut
@@ -499,6 +503,10 @@ export interface GameState extends RollFlowActionsMap {
    *  (horloge/ambiance). Posé par l'Effet `setLight`, lu par le rendu (overlay d'assombrissement). */
   lightLevel: number | null;
   flags: Record<string, boolean>;
+  /** ÉTATS DE CAMPAGNE (registre `narratif.etats`) : id d'état → id du héros désigné (forme `heros`) ou id
+   *  de la valeur posée (forme `enum`). Posés par les Effets `designerHeros`/`poserEtat`, lus par la
+   *  Condition `etat` et le sélecteur `{etat}`. Traversent les scènes ; vidés en nouvelle partie. */
+  etats: Record<string, string>;
   /** PILE d'objectifs courants (« je fais quoi maintenant ? »), keyés par id STABLE — posés/mis à jour/
    *  retirés par les Effets `setObjective`/`clearObjective`. Le HUD affiche le plus récent (dernier de
    *  la pile). PERSISTE entre transitions de scène (hors `stateFields`, comme `flags`) — un objectif
@@ -622,6 +630,8 @@ export interface GameState extends RollFlowActionsMap {
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2 : objet BE/B) : flux multi PARALLÈLE — chaque
    *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `forceDoorConfirm`. */
   pendingForceDoor: PendingForceDoor | null;
+  /** DÉSIGNATION d'un héros pour un état de campagne (Effet `designerHeros`, EDO 02 l.91). */
+  pendingDesignationHeros: PendingDesignationHeros | null;
   /** LOT DE DÉS d'un étal (#1426) : les tirages d'ouverture d'un marché/port, posables d'un bloc. */
   pendingEtalLot: PendingEtalLot | null;
   /** CASCADE séquentielle influençable (jets de NUIT / VOYAGE) : une étape à la fois (`FLOWS.cascade`),
@@ -696,8 +706,6 @@ export interface GameState extends RollFlowActionsMap {
   /** File d'effets PROGRAMMÉS (minuteries `delayedEffect`) — déclenchés au franchissement de
    *  leur échéance dans `advanceTime`. */
   scheduledEffects: ScheduledEffect[];
-  /** Piétinement en cours (modale interactive). */
-  pendingTrample: PendingTrample | null;
   /** Battement en cours (LDB 10 l.103 — modale de jet de CC non opposé retirant l'Avantage adverse). */
   pendingBattement: PendingBattement | null;
   /** Distraire en cours (LDB 10 l.364 — modale de Test opposé Athlétisme vs Calme). */
@@ -1009,7 +1017,7 @@ export interface GameState extends RollFlowActionsMap {
   /** Réparation chez l'artisan : remet damageTaken à 0 contre le coût unifié — armure 10 %/PA (LDB 63 l.64)
    *  ou arme 10 %/point de Dégâts (LDB 62 l.135). Arme improvisée = irréparable. */
   repairItem: (uid: string, heroId: string) => void;
-  /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix de 10-20 %. */
+  /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix (`bargainBuyFactor`). */
   startBargain: (mode: 'buy' | 'sell') => void;
   // bargain{Roll,Reroll,BonusSL,DarkPact} : générés (RollFlowActionsMap).
   bargainConfirm: () => void;
@@ -1165,17 +1173,23 @@ export interface GameState extends RollFlowActionsMap {
   /** « Laisser passer » : aucun Contre-sort retenu → le Sort se résout tel quel (castConfirm). */
   counterspellCancel: () => void;
   /** Test Étendu SÉQUENTIEL (LDB 12) : ouvre le flux (ex. crocheter DR 5) ; un Round à la fois. */
-  startExtendedTest: (opts: { actorId: string; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: string; label: string }; outcome?: { kind: string; meta?: CascadeStepMeta }; stake?: StakeRef }) => void;
+  startExtendedTest: (opts: { actorId: string; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: string; label: string }; outcome?: { kind: string; meta?: CascadeStepMeta }; stake?: StakeRef; suite?: Flow }) => void;
   // extendedTest{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
   /** Cumule le DR du Round courant (LDB 12 l.174) ; total < 0 → recommence ; total ≥ cible → réussite. */
   extendedTestNext: () => void;
   extendedTestCancel: () => void;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2) : ouvre le flux (objet BE/B) ; chacun frappe. */
-  startForceDoor: (opts: { label: string; doorBE: number; doorB: number; heroIds: string[]; flag?: string }) => void;
+  startForceDoor: (opts: { label: string; doorBE: number; doorB: number; heroIds: string[]; flag?: string; suite?: Flow }) => void;
   // forceDoor{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
   /** Applique les dégâts du Round (somme) ; porte à ≤ 0 B → cède (flag posé) ; sinon nouveau Round. */
   forceDoorConfirm: () => void;
   forceDoorCancel: () => void;
+  /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
+   *  à désigner, la suite se joue sans suspension. */
+  designerHerosOuvrir: (p: PendingDesignationHeros) => boolean;
+  /** Pose le héros `heroId` (vivant, du groupe) comme désigné par l'état de `pendingDesignationHeros`, puis
+   *  rejoue la suite. Sans `heroId`, ne clôt (sans rien désigner) que si plus aucun héros n'est vivant. */
+  designerHerosChoisir: (heroId?: string) => void;
   /** LOT DE DÉS d'un étal (#1426) : valide le lot d'un bloc (rejoue le générateur avec les dés posés,
    *  puis ouvre l'écran) / renonce (l'étal reste celui des dés naturels). */
   etalLotConfirm: () => void;
@@ -1296,11 +1310,8 @@ export interface GameState extends RollFlowActionsMap {
   dualStrikeAttack: (targetId: string, skipGate?: boolean) => void;
   /** Renonce à la 2ᵉ frappe (« peut viser » = optionnel) → pas de 2ᵉ attaque, pas d'Avantage. */
   dualStrikeSkip: () => void;
-  /** Piétinement (LDB 85 l.320-321) : action gratuite (1 Avantage) contre un adversaire adjacent
-   *  plus petit. Ne consomme pas l'Action. */
-  battleTrample: (targetId: string) => void;
   /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
-   *  — source UNIQUE qui remplace l'arme implicite + l'ancien mode manœuvre/tentacule/trample. Toggle → 'arme'.
+   *  — source UNIQUE de l'attaque armée. Toggle → 'arme'.
    *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (battleClickEntity). */
   battleSelectAttack: (id: string) => void;
   /** Manœuvre de ZONE / soi immédiate (Souffle/Vomi/Langue/Hurlement/Regard/Étreinte) : résolution
@@ -1309,10 +1320,6 @@ export interface GameState extends RollFlowActionsMap {
   /** Capacité SUR SOI octroyée par un trait (Métamorphose humain↔hybride de l'Enfant d'Ulric) : résout la
    *  manœuvre `targeting:'self'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */
   battleSelfManeuver: (maneuverId: string) => void;
-  /** Piétinement par modale (LDB 85 l.320-321) : Lancer le jet, dépenser une Chance, appliquer (gratuit). */
-  // trample{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap).
-  trampleConfirm: () => void;
-  trampleCancel: () => void;
   /** Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant de
    *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via `battementSetFoe`). */
   battleBattement: (foeId?: string) => void;
@@ -1465,7 +1472,7 @@ export interface GameState extends RollFlowActionsMap {
   disengageRoll: () => void; // Esquiver (lance le Test opposé)
   // disengage{Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
   // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) + « vous choisissez le résultat » (dé forcé) :
-  // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast,trample}SetForcedRoll sont aussi générés.
+  // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast}SetForcedRoll sont aussi générés.
   disengageConfirm: () => void; // Appliquer l'issue de l'Esquive
   disengageFlee: () => void; // Fuir : ouvre le flux MULTI `flee` (coup dans le dos du frappeur + Calme du fuyard)
   // flee{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll}(pid) : générés (RollFlowActionsMap) — `pid` = id de l'acteur du slot.
@@ -1509,6 +1516,12 @@ export interface GameState extends RollFlowActionsMap {
   setGameMenu: (open: boolean) => void;
   /** Voyage en cours/interrompu (progression km — « Reprendre le voyage » après une embuscade). */
   travelPlan: import('./travelFlow').TravelPlan | null;
+  /** Billet payé dont il reste des tronçons (EDO 01 l.142) — consommé au départ de chacun, sans débit. */
+  billetEnMain: import('./billetFlow').BilletEnMain | null;
+  /** Issue du Marchandage de chaque billet, par `cleDeBillet` — un Test par billet (EDO 01 l.142). */
+  marchandagesDeBillet: Record<string, import('../engine/bargain').BargainOutcome>;
+  /** « Marchander » le billet de `routeId` en `vehicule` depuis le lieu courant (`billetFlow`). */
+  startBilletBargain: (routeId: string, vehicule: string) => void;
   /** Récapitulatif du dernier segment de voyage (audit M4) — modale à l'arrivée/interruption. */
   travelRecap: import('./travelFlow').TravelRecap | null;
   dismissTravelRecap: () => void;
@@ -1519,9 +1532,9 @@ export interface GameState extends RollFlowActionsMap {
   /** Bascule la CADENCE des ordres de la traversée en cours (couche `voyageCadence`) — « Passer en
    *  jour-par-jour » de l'écran de traversée, ou retour en commandée. */
   setVoyageCadence: (cadence: import('./voyageCadence').VoyageCadence) => void;
-  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, id d'Activité de voyage EDOC 8),
+  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage EDOC 8),
    *  ou le détache (`null` ⇒ rôle inféré). Réutilisé au départ de chaque trajet (0 ré-assignation/jour). */
-  setTravelRole: (heroId: string, role: string | null) => void;
+  setTravelRole: (heroId: string, role: import('../engine/activities').StagePosting | null) => void;
   /** Épingle (`role`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) — interface de gestion
    *  du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
   setShipRole: (crewId: string, role: string | null) => void;
@@ -1545,7 +1558,7 @@ export interface GameState extends RollFlowActionsMap {
   lastNightDay: number;
   /** Départ de voyage BLOQUÉ par la porte d'heure (maison `travel-departure-gate`, #340) : terre/fleuve
    *  de nuit → « Attendre l'aube » (nuit jouée) ou annuler. `null` = pas de départ en attente. */
-  pendingDeparture: { routeId: string; mode: import('../engine/travel').TravelMode; opts: { classeId?: string; hoursPerDay?: number; allure?: import('../engine/mountTravel').Allure; seaPace?: number; fast?: boolean; cadence?: import('./voyageCadence').VoyageCadence }; cause: 'nuit' | 'budget'; dawnAt: number } | null;
+  pendingDeparture: { mode: import('../engine/travel').TravelMode; cause: 'nuit' | 'budget'; dawnAt: number } | null;
   /** « Attendre l'aube » : joue une nuit (repos) puis efface la porte — le groupe repart au matin. */
   departWaitDawn: () => void;
   /** « Annuler » le départ nocturne bloqué par la porte. */
@@ -1893,6 +1906,8 @@ export const useGame = create<GameState>((set, get) => ({
   worldMapOpen: false,
   gameMenuOpen: false,
   travelPlan: null,
+  billetEnMain: null,
+  marchandagesDeBillet: {},
   travelRecap: null,
   party: [],
   scene: null,
@@ -1958,9 +1973,9 @@ export const useGame = create<GameState>((set, get) => ({
     if (!battle || !hull?.pos || !dir) return 0;
     const d = DIR8_DELTA[dir];
     const w = scene?.dimensions.w ?? Infinity, h = scene?.dimensions.h ?? Infinity;
-    // Autres COQUES (jetons-navires) percutables (≠ self, pos connue) : une tuile occupée par une coque arrête
-    // l'avance ADJACENT (pas de chevauchement) et déclenche la collision (MDG 13).
-    const otherHulls = battle.combatants.filter((c) => c.id !== shipId && c.bodyShape === 'vehicule' && c.pos);
+    // Autres NAVIRES percutables (≠ self, pos connue) : une tuile occupée par un navire arrête l'avance ADJACENT
+    // (pas de chevauchement) et déclenche la collision (MDG 13 l.423-465).
+    const otherHulls = battle.combatants.filter((c) => c.id !== shipId && estNavire(c) && c.pos);
     const hullAt = (x: number, y: number) => otherHulls.find((c) => footprintTiles(c.pos!, footprintN(c)).some((t) => t.x === x && t.y === y));
     // Avance PAS-À-PAS le long du cap (coque 1×1) : on s'arrête au dernier pas libre — sortie de scène OU coque devant.
     let moved = 0;
@@ -1992,7 +2007,7 @@ export const useGame = create<GameState>((set, get) => ({
       const opp = rotateDir8(dir, 4);
       const vf = facing[victim.id];
       const frontal = vf === opp || vf === rotateDir8(opp, 1) || vf === rotateDir8(opp, -1);
-      for (const line of applyShipCollision(hull, victim, { ramProue: true, frontal }).lines) get().log(line);
+      for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }).lines) get().log(line);
     }
     if (moved > 0 || victim) { set({ battle: { ...battle } }); bus.emit(EVT.SCENE_DIRTY); }
     return moved;
@@ -2042,6 +2057,7 @@ export const useGame = create<GameState>((set, get) => ({
   partyPos: { x: 0, y: 0 },
   lightLevel: null,
   flags: {},
+  etats: {},
   objectives: [],
   objectifsSoldes: [],
   chapitreDepuis: null,
@@ -2917,15 +2933,22 @@ export const useGame = create<GameState>((set, get) => ({
         const line = out?.consequences ? resultLine(out.consequences) : '';
         if (line) get().log(line);
       }
+      reprendreLaSuite(get, set, p.suite);
       return;
     }
     // Round suivant : la cascade-hôte (1 étape) reste, seul `pendingExtendedTest` gagne un Round (re-rendu).
     set({ pendingExtendedTest: { ...p, total, rounds: [...p.rounds, { id: `round-${p.rounds.length + 1}`, interactive: true, result: null }] } });
   },
-  extendedTestCancel: () => { set({ pendingExtendedTest: null, pendingCascade: null }); },
+  // Renoncer CLÔT le Test (sans réussite) : la suite du Flow qui l'a ouvert se joue, comme après un Test raté.
+  extendedTestCancel: () => {
+    const suite = get().pendingExtendedTest?.suite;
+    set({ pendingExtendedTest: null, pendingCascade: null });
+    reprendreLaSuite(get, set, suite);
+  },
   // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
   startForceDoor: (opts) => {
     set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
+      ...(opts.suite ? { suite: opts.suite } : {}),
       participants: opts.heroIds.map((id) => ({ id, interactive: true, result: null })) } });
     // « Une situation = une modale » : l'enfoncement est hôté dans la cascade (rendu par CascadeModal
     // via l'étape `jet:'forceDoor'`). `pendingForceDoor` reste le porteur des données/participants ;
@@ -2947,13 +2970,32 @@ export const useGame = create<GameState>((set, get) => ({
       set({ pendingForceDoor: null, pendingCascade: null }); // la porte cède → ferme la situation (data + cascade hôte)
       get().log(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
       if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
+      reprendreLaSuite(get, set, p.suite);
     } else {
       // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
       set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
       get().log(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
     }
   },
-  forceDoorCancel: () => { set({ pendingForceDoor: null, pendingCascade: null }); }, // renonce : ferme data + cascade hôte
+  // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
+  forceDoorCancel: () => {
+    const suite = get().pendingForceDoor?.suite;
+    set({ pendingForceDoor: null, pendingCascade: null });
+    reprendreLaSuite(get, set, suite);
+  },
+  designerHerosOuvrir: (p) => {
+    if (!get().party.some((h) => !h.dead)) return false;
+    set({ pendingDesignationHeros: p });
+    return true;
+  },
+  designerHerosChoisir: (heroId) => {
+    const p = get().pendingDesignationHeros;
+    if (!p) return;
+    const vivants = get().party.filter((h) => !h.dead);
+    if (heroId === undefined ? vivants.length > 0 : !vivants.some((h) => h.id === heroId)) return;
+    set((st) => ({ etats: heroId === undefined ? st.etats : { ...st.etats, [p.etat]: heroId }, pendingDesignationHeros: null }));
+    reprendreLaSuite(get, set, p.suite);
+  },
 
   // LOT DE DÉS d'un étal (#1426) — les deux gestes de BLOC. « Valider » rejoue le générateur avec les
   // dés du lot (posés ou naturels) : c'est le MÊME code que l'ouverture sans fenêtre, nourri par un rng
@@ -3126,6 +3168,7 @@ export const useGame = create<GameState>((set, get) => ({
   closeWorldMap: () => set({ worldMapOpen: false }),
   setGameMenu: (open) => set({ gameMenuOpen: open }),
   startTravel: (routeId, mode, opts) => travelFlow.startTravel(get, set, routeId, mode, opts),
+  startBilletBargain: (routeId, vehicule) => billetFlow.startBilletBargain(get, set, routeId, vehicule),
   resumeTravel: () => travelFlow.resumeTravel(get, set),
   departWaitDawn: () => travelFlow.departWaitDawn(get, set),
   departCancel: () => set({ pendingDeparture: null }),
@@ -3151,7 +3194,7 @@ export const useGame = create<GameState>((set, get) => ({
   seaActivitiesConfirm: (picks) => seaActivities.seaActivitiesConfirm(get, set, picks),
   resolveManannPriest: (pay) => seaVoyageFlow.resolveManannPriest(get, set, pay),
   resolveShoreLeave: (allow) => seaVoyageFlow.resolveShoreLeave(get, set, allow),
-  setTravelRole: (heroId, role) => set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role || undefined }))),
+  setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
   setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
   setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
   setPosteAmmo: (shipId, posteUid, ammoUid) => {

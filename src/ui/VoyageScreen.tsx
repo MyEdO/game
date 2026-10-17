@@ -46,15 +46,29 @@ import type { IconIdInput } from './icons';
  */
 
 /** Une TUILE d'état du mode (patron `PosteSheet` paramétré) : chip + valeur, éventuellement une jauge à
- *  crans (`NotchGauge`), cliquable vers l'écran de consultation quand il en existe un. */
+ *  crans (`NotchGauge`, qui porte alors seule le libellé et la valeur), cliquable vers l'écran de
+ *  consultation quand il en existe un. */
 export interface VoyageTile {
   key: string;
   icon: IconIdInput;
   label: string;
-  value: ReactNode;
-  gauge?: { value: number; max: number; min?: number; marks?: number[]; tone?: GaugeTone | ((v: number, m: number) => GaugeTone); format?: (v: number) => string };
+  value: string;
+  gauge?: { value: number; max: number; min?: number; marks?: number[]; tone?: GaugeTone | ((v: number, m: number) => GaugeTone) };
   onClick?: () => void;
   title?: string;
+}
+
+/** Rendu d'UNE tuile : un seul rendu par valeur — la jauge, quand il y en a une, porte libellé et valeur. */
+export function VoyageTileView({ tile: t }: { tile: VoyageTile }) {
+  const inner = t.gauge
+    ? <NotchGauge icon={<Icon id={t.icon} size="sm" />} label={t.label} value={t.gauge.value} max={t.gauge.max} min={t.gauge.min} marks={t.gauge.marks} tone={t.gauge.tone} format={() => t.value} stacked />
+    : <>
+      <span className="voyage-tile-label"><Icon id={t.icon} size="sm" /> {t.label}</span>
+      <span className="voyage-tile-value">{t.value}</span>
+    </>;
+  return t.onClick
+    ? <button type="button" className="voyage-tile clickable" onClick={t.onClick} title={t.title}>{inner}</button>
+    : <div className="voyage-tile">{inner}</div>;
 }
 
 /** Une carte de la CHRONIQUE (gabarit #257) : un jour/Étape passé, ou le jour EN COURS. */
@@ -104,16 +118,15 @@ export function dayAgenda(pendingCascade: PendingCascade | null | undefined, pen
       const jets = idxs.reduce((n, i) => n + diceOf(pendingCascade.participants[i]), 0);
       items.push({ key: phase.key, label: phase.label, state, jets });
     }
-    if (!arriveCeJour) items.push({ key: 'nuit', label: 'Nuit', state: 'pending' }); // le jour d'arrivée n'a pas de halte
+    if (!arriveCeJour) items.push({ key: 'nuit', label: t('vs.phaseNuit'), state: 'pending' }); // le jour d'arrivée n'a pas de halte
   } else if (pendingRest) {
     // La cascade du jour a déjà clos (Route/Activités/Rencontre faites) — la halte de nuit est la phase active.
-    items.push({ key: 'route', label: 'Route', state: 'done' });
-    items.push({ key: 'nuit', label: 'Nuit', state: 'current' });
+    items.push({ key: 'route', label: t('vs.phaseRoute'), state: 'done' });
+    items.push({ key: 'nuit', label: t('vs.phaseNuit'), state: 'current' });
   }
   return items;
 }
 
-/** Jours de route restants estimés : « dernier jour », « ~1 jour restant », « ~N jours restants ». */
 /** Jours restants : distance restante ÷ km du DERNIER JOUR MARCHÉ — celui en cours s'il a déjà avancé,
  *  sinon le dernier clos. Une seule source, du flux (aucune vitesse inventée) : le compteur ne clignote ni
  *  pendant les péripéties du jour, ni à sa clôture. `null` tant qu'aucun jour n'a avancé. */
@@ -124,6 +137,7 @@ export function etaJours(plan: Pick<TravelPlan, 'km' | 'kmDone' | 'log'>): numbe
   return rate > 0.5 ? Math.ceil(Math.max(0, plan.km - plan.kmDone) / rate) : null;
 }
 
+/** Jours de route restants estimés : « dernier jour », « ~1 jour restant », « ~N jours restants ». */
 export function etaLabel(jours: number): string {
   return jours <= 0 ? t('vs.etaDernier') : jours === 1 ? t('vs.etaUn') : t('vs.etaPlusieurs', { n: jours });
 }
@@ -264,8 +278,9 @@ export function voyageTiles(
 /** CHRONIQUE (gabarit #257) : une carte par jour CLOS (`plan.log`) + le jour EN COURS (`current`).
  *  `stepWord` = « Jour » (mer/fleuve) ou « Étape » (terre) ; `pendingActive` = une étape attend ;
  *  `agenda` = ses sous-phases (fait/en cours/à venir, cf. `dayAgenda`) — carte `current` seulement.
- *  `nightHalt` : une halte de nuit est EN COURS — le jour qu'elle clot est DÉJÀ le dernier de `plan.log`
- *  (`openRest`), une carte sélectionnable comme tout jour passé, et `current` est la Nuit elle-même. */
+ *  `nightHalt` : une halte de nuit est EN COURS — le jour qu'elle clôt est DÉJÀ le dernier de `plan.log`
+ *  (`openRest`, ou `resumeTravel` pour un jour interrompu), une carte sélectionnable comme tout jour
+ *  passé, et `current` est la Nuit elle-même. */
 export function voyageDayCards(
   plan: TravelPlan, sub: 'mer' | 'fleuve' | 'terre', stepWord: string, pendingActive: boolean,
   agenda: DayAgendaItem[] = [], nightHalt = false,
@@ -275,8 +290,8 @@ export function voyageDayCards(
   cards.push({
     key: 'current',
     seal: nightHalt ? '•' : String(log.length + 1),
-    dayLabel: nightHalt ? 'Nuit' : `${stepWord} ${log.length + 1}`,
-    summary: pendingActive ? 'EN COURS…' : 'La traversée suit son cours.',
+    dayLabel: nightHalt ? t('vs.phaseNuit') : `${stepWord} ${log.length + 1}`,
+    summary: pendingActive ? t('vs.enCours') : t('vs.suitSonCours'),
     current: true,
     agenda,
   });
@@ -304,10 +319,10 @@ export function VoyageScreen({ onClose, reduireRefus }: { onClose: () => void; r
   const fromLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.fromPlaceId) : undefined, 'lieu', plan.fromPlaceId);
   const toLabel = libelleOuAbsence(worldMap ? placeById(worldMap, plan.toPlaceId) : undefined, 'lieu', plan.toPlaceId);
   const log = plan.log ?? [];
-  // Halte de nuit EN COURS : le jour qu'elle clot est déjà le dernier de `plan.log` (`openRest`).
+  // Halte de nuit EN COURS : le jour qu'elle clôt est déjà le dernier de `plan.log` (`openRest`, `resumeTravel`).
   const nightHalt = !!pendingRest?.travelHalt;
   const dayNum = nightHalt ? log.length : log.length + 1;
-  const stepWord = sub === 'terre' ? 'Étape' : 'Jour';
+  const stepWord = sub === 'terre' ? t('vs.motEtape') : t('vs.motJour');
   const kmLeft = Math.max(0, plan.km - plan.kmDone);
   const etaDays = etaJours(plan);
 
@@ -319,7 +334,7 @@ export function VoyageScreen({ onClose, reduireRefus }: { onClose: () => void; r
   const days = voyageDayCards(plan, sub, stepWord, !!pendingCascade || !!pendingRest, agenda, nightHalt);
   const selectedKey = selDay == null ? 'current' : `d${selDay}`;
   // Clic d'une SOUS-RANGÉE de phase (jour EN COURS) : phase COURANTE → centre live (relâche/nuit/cascade) ;
-  // phase CLOSE d'une nuit de halte → le jour qu'elle clot, le dernier de `plan.log` ;
+  // phase CLOSE d'une nuit de halte → le jour qu'elle clôt, le dernier de `plan.log` ;
   // sinon (cascade en vol) → le centre live où les phases faites sont des rangées-témoins.
   const closedDayIdx = nightHalt && log.length ? log.length - 1 : null;
   const onPhase = (a: DayAgendaItem) => {
@@ -339,7 +354,7 @@ export function VoyageScreen({ onClose, reduireRefus }: { onClose: () => void; r
   } else if (pendingCascade) {
     center = <CascadeBody embedded />; // étape du jour incrustée (MÊME rendu que la modale)
   } else {
-    center = <p className="voyage-hint">La traversée suit son cours — la prochaine étape s’ouvrira ici.</p>;
+    center = <p className="voyage-hint">{t('vs.prochaineEtape')}</p>;
   }
 
   return (
@@ -348,13 +363,13 @@ export function VoyageScreen({ onClose, reduireRefus }: { onClose: () => void; r
         className="voyage-screen"
         title={<>
           <Icon id={sea ? 'travel/sail-ship' : sub === 'fleuve' ? 'travel/sail-ship' : 'travel/mount'} size="sm" />
-          {' '}{sub === 'mer' ? 'Traversée' : sub === 'fleuve' ? 'Descente' : 'Route'} — {fromLabel} → <b>{toLabel}</b>
+          {' '}{t(sub === 'mer' ? 'vs.titreMer' : sub === 'fleuve' ? 'vs.titreFleuve' : 'vs.titreTerre')} — {fromLabel} → <b>{toLabel}</b>
         </>}
         onClose={onClose}
-        closeLabel="Réduire"
+        closeLabel={t('vs.reduire')}
         closeRefus={reduireRefus}
         meta={{ time: gameTime }}
-        actions={dossier && <button type="button" className="btn small" onClick={dossier}>Dossier navire</button>}
+        actions={dossier && <button type="button" className="btn small" onClick={dossier}>{t('vs.dossierNavire')}</button>}
       >
         <div className="voyage-body">
           <div className="voyage-head">
@@ -364,16 +379,7 @@ export function VoyageScreen({ onClose, reduireRefus }: { onClose: () => void; r
             <div className="voyage-progress" aria-hidden><div className="voyage-progress-fill" style={{ width: `${plan.km > 0 ? Math.min(100, Math.round((plan.kmDone / plan.km) * 100)) : 0}%` }} /></div>
           </div>
           <div className="voyage-tiles">
-            {tiles.map((t) => {
-              const inner = <>
-                <span className="voyage-tile-label"><Icon id={t.icon} size="sm" /> {t.label}</span>
-                <span className="voyage-tile-value">{t.value}</span>
-                {t.gauge && <NotchGauge label={t.label} value={t.gauge.value} max={t.gauge.max} min={t.gauge.min} marks={t.gauge.marks} tone={t.gauge.tone} format={t.gauge.format} stacked />}
-              </>;
-              return t.onClick
-                ? <button key={t.key} type="button" className="voyage-tile clickable" onClick={t.onClick} title={t.title}>{inner}</button>
-                : <div key={t.key} className="voyage-tile">{inner}</div>;
-            })}
+            {tiles.map((t) => <VoyageTileView key={t.key} tile={t} />)}
           </div>
           <MasterDetail
             className="voyage-master"

@@ -6,6 +6,8 @@ import {
   domains, spells, etats, talents, traits, groups, maladies, symptoms, skills, creatures,
 } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
+import { useGame } from '../../state/store';
+import { emptyNarratif } from '../../state/campaignNarratif';
 import { OPTIONAL_RULES, setRule, resetRule } from '../../engine/policy';
 import { walkFlow, type Flow, type Condition, type EffectOp } from '../../state/flow';
 import type { GameOp, Formula } from '../../engine/ops';
@@ -54,6 +56,12 @@ describe('humanize — registre JOUEUR', () => {
     expect(phrase).not.toContain('->');
     expect(phrase).not.toContain('NON(');
     expect(firstKebab(phrase)).toBeUndefined();
+  });
+
+  it('nœud `test` : la préposition s’élide devant une voyelle, jamais « Jet de Endurance »', () => {
+    const rien: Flow = { kind: 'seq', steps: [] };
+    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'endurance' }, success: rien, fail: rien })).toMatch(/^Jet d’Endurance : /);
+    expect(humanizeFlowSentence({ kind: 'test', test: { characteristic: 'force', opposed: { attacker: 'force' } }, success: rien, fail: rien })).toMatch(/^Jet opposé de Force : /);
   });
 
   it('op `fall` : la CHUTE dit sa table, jamais son id de table (#1657, MDG 13 l.678)', () => {
@@ -242,5 +250,19 @@ describe('humanizeOp — grantTrait à Portée (LDB 85 l.209 ; LDB 79 l.142)', (
 
   it('un Indice Formula suit le nom du Trait', () => {
     expect(humanizeOp({ op: 'grantTrait', traitId: 'vol', indice: { charOf: 'agilite' } })).toBe(`gagne le Trait Vol ${humanizeFormula({ charOf: 'agilite' })}`);
+  });
+});
+
+describe('humanizeCondition — états de campagne (#2539) : libellés de la campagne chargée, négation naturelle', () => {
+  afterEach(() => useGame.setState({ campaignNarratif: null }));
+
+  it('l’état, sa valeur et le héros désigné se disent par leur LIBELLÉ ; « n’est pas mort » sous négation', () => {
+    useGame.setState({ campaignNarratif: { ...emptyNarratif(), etats: [
+      { id: 'sosie', label: 'Le sosie', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } },
+      { id: 'issue', label: 'Issue du procès', source: { book: 'ennemi-dans-l-ombre', page: 17, note: 'EDO 01 l.241' }, forme: { kind: 'enum', valeurs: [{ id: 'condamne', label: 'Condamné' }] } },
+    ] } });
+    expect(humanizeCondition({ kind: 'etat', etat: 'issue', value: 'condamne' })).toBe('l\'état de campagne « Issue du procès » vaut « Condamné »');
+    expect(humanizeCondition({ kind: 'not', of: { kind: 'partyDead', who: { etat: 'sosie' } } })).toBe('le héros désigné par « Le sosie » n\'est pas mort');
+    expect(humanizeCondition({ kind: 'not', of: { kind: 'partyDead', who: 'any' } })).toBe('aucun héros n\'est mort');
   });
 });

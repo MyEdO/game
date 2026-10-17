@@ -4,14 +4,16 @@
 // (`barriere-outil.mjs`, #2187) et passe par `executer`. Contrat
 // d'une garde : `scripts/guards/lib/contratGarde.mjs`. Déclarations : `scripts/agents/compat-core.mjs`.
 import '../node-requis.mjs'
-import { appendFileSync, mkdirSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, resolve } from 'node:path'
 import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import {
-  EDITION, SHELL, cheminVise, commandeDe, decisionCumulee, ecrituresDe, entreeDOutil, familleLeanCtx, nomLeanCtx, outilCouvert,
+  EDITION, SHELL, cheminVise, commandeDe, decisionCumulee, ecrituresDe, entreeDOutil, familleLeanCtx, nomLeanCtx, normaliserNomOutil, outilCouvert,
 } from '../guards/lib/contratGarde.mjs'
+import { normaliserPatchCodex, resoudreCheminPatchCodex } from '../guards/lib/patchCodex.mjs'
 import { racineNpmDe, sousRacineNpm } from '../guards/lib/racineNpm.mjs'
-import { arbrePrincipal, depotDe, estRepertoire } from '../guards/lib/gitPorte.mjs'
+import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
+import { estRepertoire } from '../guards/lib/natureDuChemin.mjs'
 import { canoniser, relatifSousRacine } from '../docs/lib/chemin-mesure.mjs'
 import {
   NOM_NON_LITTERAL, affectationsDEnvironnement, canauxDesMessages, cibleDeLaCommande, commandeDeLecture, configsGitDeLaCommande, gitSubcommand,
@@ -221,10 +223,12 @@ function refusDesLieuxPoses(command, poses) {
  * `null` quand ce n'est pas jugeable, avec `nonJugeable` = `{ raison,
  * canal }` (refusé par `canal-outil-guard.mjs`) — lieu non jugeable, ou ce que la commande pose
  * (`lieuxPosesParLaCommande`). `racineNpm` = la racine npm de `dir` (`racineNpmDe`), où `npm run <x>`
- * se résout. `cibleIgnoree` = ce que la commande nommait sans que ce soit un répertoire réel.
+ * se résout. `cibleIgnoree` = ce que la commande nommait sans que ce soit un répertoire réel. `platform` =
+ * la plateforme où la commande s'exécute, injectée par l'appelant.
  */
 export function construireContexte(entree, { env = process.env, cwd = process.cwd(), platform = process.platform } = {}) {
-  const commun = { env }
+  const commun = { env, platform }
+  if (entree?.nonJugeable) return { ...commun, baseDeLAppel: null, dir: null, racineNpm: null, cibleIgnoree: null, nonJugeable: entree.nonJugeable }
   const lieu = baseDeLAppel(entree, cwd, platform)
   if (lieu.nonJugeable) return { ...commun, baseDeLAppel: null, dir: null, racineNpm: null, cibleIgnoree: null, nonJugeable: lieu.nonJugeable }
   const command = commandeDe(entree)
@@ -290,7 +294,7 @@ export function projeter({ decision, contexte }, evenement, surface) {
  * Stdin illisible, ou aucune garde pour l'événement et l'outil : rien.
  * @param {Record<string, Array<{ nom: string, outils: string[], evaluer: Function }>>} registre
  */
-export async function repartir(registre, brut, { env = process.env, cwd = process.cwd() } = {}) {
+export async function repartir(registre, brut, { env = process.env, cwd = process.cwd(), platform = process.platform, resoudrePatch = resoudreCheminPatchCodex } = {}) {
   let entree
   try {
     entree = JSON.parse(brut)
@@ -298,14 +302,26 @@ export async function repartir(registre, brut, { env = process.env, cwd = proces
     return { sortie: null, traces: [] }
   }
   const evenement = entree?.hook_event_name
+  entree = { ...entree, tool_name: normaliserNomOutil(entree?.tool_name) }
+  if (entree.tool_name === 'apply_patch') {
+    const { base } = baseDeLAppel(entree, cwd, platform)
+    entree = normaliserPatchCodex(entree, {
+      base,
+      resoudre: (path) => resoudrePatch(resolve(base, versCheminNatif(path, platform)), { evenement }),
+      lire: (path) => {
+        try { return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(readFileSync(path)) } catch (e) { if (e.code === 'ENOENT') return null; throw e }
+      },
+    })
+  }
   const gardes = (registre[evenement] ?? []).filter((g) => outilCouvert(g.outils, entree?.tool_name))
   if (gardes.length === 0) return { sortie: null, traces: [] }
   let cumul
   try {
-    cumul = cumuler(await evaluerGardes(gardes, entree, construireContexte(entree, { env, cwd })))
+    cumul = cumuler(await evaluerGardes(gardes, entree, construireContexte(entree, { env, cwd, platform })))
   } catch (e) {
     cumul = { decision: null, contexte: `répartiteur en panne : ${e?.message ?? e}`, traces: [] }
   }
+  if (entree.diagnosticPost) cumul.contexte = [cumul.contexte, entree.diagnosticPost].filter(Boolean).join('\n\n')
   return { sortie: projeter(cumul, evenement, surfaceDe(env)), traces: cumul.traces }
 }
 

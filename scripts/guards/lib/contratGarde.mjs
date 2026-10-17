@@ -12,10 +12,24 @@ import { depotAuxPannes, estIgnore, racineSurDisque } from './gitPorte.mjs'
 import { versCheminNatif } from './commandeShell.mjs'
 
 /** La commande shell d'une entrée de hook (`''` sans commande). */
-export const commandeDe = (entree) => String(entree?.tool_input?.command ?? '')
+export const commandeDe = (entree) => entree?.tool_name === 'apply_patch' ? '' : String(entree?.tool_input?.command ?? '')
+
+/** `true` si l'entrée de hook vient d'un SOUS-AGENT : son `agent_id`, jamais son `agent_type`, que porte aussi une
+ *  session lancée sous `--agent` (doc des hooks Claude Code, « Common input fields »). PURE. */
+export const sousAgent = (entree) => Boolean(entree?.agent_id)
 
 /** Le `tool_input` d'une entrée de hook, `null` s'il n'est pas un objet. */
 export const entreeDOutil = (entree) => (entree?.tool_input && typeof entree.tool_input === 'object' ? entree.tool_input : null)
+
+/** L'échéance d'un appel Bash ou PowerShell au premier plan sans `timeout` (schéma des outils de Claude Code). */
+export const ECHEANCE_PAR_DEFAUT_MS = 120_000
+
+/** Le `timeout` d'un `tool_input` en ms, nombre ou chaîne numérique ; `null` sinon. PURE. */
+export function timeoutDe(input) {
+  const brut = input?.timeout
+  if (typeof brut === 'number') return brut
+  return typeof brut === 'string' && brut.trim() !== '' && Number.isFinite(Number(brut)) ? Number(brut) : null
+}
 
 /** Les familles d'outil : LECTURE passe sans garde, hors ses actions refusées ; ÉDITION est jugée par
  *  les gardes d'écriture, SHELL (un `tool_input` à champ `command`) par les gardes de commande ; la
@@ -25,7 +39,8 @@ export const EDITION = 'edition'
 export const SHELL = 'shell'
 export const PASSERELLE = 'passerelle'
 
-const PREFIXE_LEAN_CTX = 'mcp__lean-ctx__'
+export const PREFIXES_LEAN_CTX = Object.freeze({ claude: 'mcp__lean-ctx__', codex: 'mcp__lean_ctx__' })
+const PREFIXE_LEAN_CTX = PREFIXES_LEAN_CTX.claude
 
 /** Motif de matcher qui couvre TOUT outil lean-ctx : un outil non classé y passe, et se fait refuser
  *  (garde `canal-outil`). */
@@ -37,7 +52,7 @@ const L = classe(LECTURE)
 
 /** La version de lean-ctx, et son tag, aux sources de laquelle `FAMILLES_LEAN_CTX` et `OPS_CTX_PATCH` sont
  *  audités ; le binaire de l'hôte y est confronté (`scripts/hooks/canal-outil-guard.test.mjs`). */
-export const LEAN_CTX_VERSION = Object.freeze({ version: '3.10.5', tag: '516c76e96' })
+export const LEAN_CTX_VERSION = Object.freeze({ version: '3.11.4', tag: '1074255e5' })
 
 /**
  * CLASSEMENT des outils de lean-ctx `LEAN_CTX_VERSION`, par nom nu :
@@ -46,12 +61,13 @@ export const LEAN_CTX_VERSION = Object.freeze({ version: '3.10.5', tag: '516c76e
  * lui, IMPORTE un fichier désigné dans cet état ou lance un programme est REFUSÉE. Sources au tag de
  * `LEAN_CTX_VERSION` : ctx_fill (`tools/ctx_fill.rs` l.31) et ctx_benchmark (`tools/ctx_benchmark.rs` l.12)
  * lisent un `path` comme ctx_read ; ctx_compress n'écrit que sa session (`tools/ctx_compress.rs`
- * l.205) ; ctx_plan, ctx_response, ctx_discover n'écrivent rien. Chaînes du binaire :
+ * l.205) ; ctx_verify que son index de sessions (`tools/ctx_verify.rs` l.1-40, `core/session/persistence.rs`
+ * l.265-317) ; ctx_plan, ctx_response, ctx_discover n'écrivent rien.
+ * Chaînes du binaire :
  * - ctx_knowledge : « export/import: bundle directory (OKF) or file path », « ERROR: import requires
  *   `path` (a file or an OKF directory) » ;
  * - ctx_session : « ctx_session.export », « Export write failed: », « ERROR: path is required for
  *   action=import » ;
- * - ctx_verify : « action=proof|v2 for Lean4 proof verification » ;
  * - ctx_graph, ctx_index, ctx_impact, ctx_search : « graphs », « bm25_index.bin.zst » (`~/.config/lean-ctx/`) ;
  * - ctx_cache : « ANTIPATTERN: does NOT affect disk files ».
  */
@@ -64,7 +80,7 @@ export const FAMILLES_LEAN_CTX = Object.freeze({
   ctx_session: classe(LECTURE, 'export', 'import'),
   ctx_summary: L, ctx_memory: L, ctx_cache: L, ctx_index: L, ctx_context: L, ctx_metrics: L, ctx_gain: L,
   ctx_heatmap: L, ctx_cost: L, ctx_perf: L,
-  ctx_verify: classe(LECTURE, 'proof', 'v2'),
+  ctx_verify: L,
   ctx_compare: L, ctx_analyze: L, ctx_benchmark: L, ctx_discover: L, ctx_discover_tools: L,
   ctx_load_tools: L, ctx_plan: L, ctx_fill: L, ctx_compress: L, ctx_response: L,
   ctx_patch: classe(EDITION),
@@ -73,7 +89,14 @@ export const FAMILLES_LEAN_CTX = Object.freeze({
 })
 
 /** Le nom nu d'un outil lean-ctx, `null` hors lean-ctx. */
-export const nomLeanCtx = (outil) => (String(outil).startsWith(PREFIXE_LEAN_CTX) ? String(outil).slice(PREFIXE_LEAN_CTX.length) : null)
+export const nomLeanCtx = (outil) => {
+  const prefixe = Object.values(PREFIXES_LEAN_CTX).find((p) => String(outil).startsWith(p))
+  return prefixe ? String(outil).slice(prefixe.length) : null
+}
+
+export const normaliserNomOutil = (outil) => nomLeanCtx(outil) === null ? outil : PREFIXE_LEAN_CTX + nomLeanCtx(outil)
+
+export const nomOutilDeSurface = (outil, surface) => nomLeanCtx(outil) === null ? outil : PREFIXES_LEAN_CTX[surface] + nomLeanCtx(outil)
 
 const classement = (nu) => (Object.hasOwn(FAMILLES_LEAN_CTX, nu) ? FAMILLES_LEAN_CTX[nu] : null)
 
@@ -99,16 +122,16 @@ const outilsDeFamille = (famille) => Object.keys(FAMILLES_LEAN_CTX).filter((nu) 
 /** Les canaux shell : Bash, PowerShell, et la famille SHELL de lean-ctx. */
 export const OUTILS_SHELL = ['Bash', 'PowerShell', ...outilsDeFamille(SHELL)]
 
-/** Les canaux d'écriture de fichier : Write, Edit, et la famille ÉDITION de lean-ctx (`ctx_patch`, le
- *  canal prescrit par `~/.claude/CLAUDE.md`). */
-export const OUTILS_ECRITURE = ['Write', 'Edit', ...outilsDeFamille(EDITION)]
+/** Les canaux d'écriture de fichier : Write, Edit, NotebookEdit, apply_patch, et la famille ÉDITION de lean-ctx
+ *  (`ctx_patch`, le canal prescrit par `~/.claude/CLAUDE.md`). */
+export const OUTILS_ECRITURE = ['Write', 'Edit', 'NotebookEdit', 'apply_patch', ...outilsDeFamille(EDITION)]
 
-/** Les canaux d'écriture qui CRÉENT un fichier : `Edit` n'en crée pas. */
-export const OUTILS_CREATION = OUTILS_ECRITURE.filter((outil) => outil !== 'Edit')
+/** Les canaux d'écriture qui CRÉENT un fichier : `Edit` n'en crée pas, `NotebookEdit` crée une cellule. */
+export const OUTILS_CREATION = OUTILS_ECRITURE.filter((outil) => outil !== 'Edit' && outil !== 'NotebookEdit')
 
 /** L'outil `nom` est-il couvert par `outils` ? Une entrée `….*` (`MOTIF_LEAN_CTX`) couvre son préfixe. */
 export const outilCouvert = (outils, nom) =>
-  outils.some((o) => (o.endsWith('.*') ? String(nom).startsWith(o.slice(0, -2)) : o === nom))
+  outils.some((o) => (o.endsWith('.*') ? String(normaliserNomOutil(nom)).startsWith(o.slice(0, -2)) : o === normaliserNomOutil(nom)))
 
 const echapper = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
@@ -118,13 +141,16 @@ const echapper = (texte) => texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
  * `Edit` couvre `NotebookEdit`) : les noms hors lean-ctx et les lean-ctx de `LECTURES_LIBRES` nommés,
  * puis, avec le motif, tout outil lean-ctx hors `LECTURES_LIBRES` — par lookahead si le moteur le sait
  * (`lookaround`), sinon tout outil lean-ctx.
- * @param {string[]} outils @param {{ lookaround: boolean, listeExacte: RegExp | null }} moteur
+ * @param {string[]} outils @param {{ lookaround: boolean, listeExacte: RegExp | null, surface?: 'claude'|'codex' }} moteur
  */
-export function matcherDOutils(outils, { lookaround, listeExacte }) {
-  if (!outils.includes(MOTIF_LEAN_CTX)) return listeExacte ? outils.join('|') : `^(?:${outils.map(echapper).join('|')})$`
-  const nommes = outils.filter((o) => o !== MOTIF_LEAN_CTX && (nomLeanCtx(o) === null || LECTURES_LIBRES.includes(nomLeanCtx(o))))
+export function matcherDOutils(outils, { lookaround, listeExacte, surface = 'claude' }) {
+  const prefixe = PREFIXES_LEAN_CTX[surface]
+  outils = outils.map((o) => nomOutilDeSurface(o, surface))
+  const motif = prefixe + '.*'
+  if (!outils.includes(motif)) return listeExacte ? outils.join('|') : `^(?:${outils.map(echapper).join('|')})$`
+  const nommes = outils.filter((o) => o !== motif && (nomLeanCtx(o) === null || LECTURES_LIBRES.includes(nomLeanCtx(o))))
   const horsLecture = lookaround ? `(?!(?:${LECTURES_LIBRES.map(echapper).join('|')})$)` : ''
-  return `^(?:${[...nommes.map(echapper), `${echapper(PREFIXE_LEAN_CTX)}${horsLecture}.+`].join('|')})$`
+  return `^(?:${[...nommes.map(echapper), `${echapper(prefixe)}${horsLecture}.+`].join('|')})$`
 }
 
 /** Les clés de l'outil appelé par la passerelle : `name` (schéma de `ctx_call`), `tool` (chaîne du
@@ -150,6 +176,7 @@ export function outilAppele(entree) {
  * @returns {object[]}
  */
 export function ecrituresDe(entree) {
+  if (Array.isArray(entree?.ecritures)) return entree.ecritures
   const input = entreeDOutil(entree)
   if (input === null) return []
   if (familleLeanCtx(nomLeanCtx(entree.tool_name)) !== EDITION) return [input]
@@ -174,13 +201,13 @@ const opCtxPatch = (formes, { neuf = 'new_text', remplace = null, enLot = true, 
  * Les ops de `ctx_patch`, lean-ctx `LEAN_CTX_VERSION` : la seule déclaration de ses clés. `formes` :
  * les jeux de clés que l'op CONSOMME, hors `path` — une entrée porte les clés d'UNE forme ; `neuf`,
  * `remplace` : la clé de son texte posé, de son texte remplacé ; `enLot` : admise dans `ops[]`
- * (`registered/ctx_patch.rs` l.196-200 pour les refusées) ; `deleguee` : appliquée à l'état laissé par
- * les ops qui la précèdent (l.183-187, l.228-255), là où une op ANCRÉE se juge contre la préimage de son
+ * (`registered/ctx_patch.rs` l.229-233 pour les refusées) ; `deleguee` : appliquée à l'état laissé par
+ * les ops qui la précèdent (l.216-220, l.261-285), là où une op ANCRÉE se juge contre la préimage de son
  * run (`ctx_patch/apply.rs` l.127).
- * - schéma MCP, `registered/ctx_patch.rs` l.58-69 (`if`/`then`) ;
+ * - schéma MCP, `registered/ctx_patch.rs` l.59-70 (`if`/`then`) ;
  * - set_line, replace_lines, insert_after, delete, create : `ctx_patch/anchors.rs` l.94-180 ;
  * - replace_symbol : `ctx_patch/symbol.rs` l.35-58 ;
- * - replace_unique : `registered/ctx_patch.rs` l.348-366 ; replace_all : l.599-623.
+ * - replace_unique : `registered/ctx_patch.rs` l.397-415 ; replace_all : l.661-695.
  */
 export const OPS_CTX_PATCH = Object.freeze({
   set_line: opCtxPatch([['line', 'hash', 'new_text']]),
@@ -194,7 +221,7 @@ export const OPS_CTX_PATCH = Object.freeze({
 })
 
 /** Les clés communes à toute op : `path` ; en tête seulement, `dry_run` (`registered/ctx_patch.rs`
- *  l.276-294 : l'élément délégué garde le sien sur celui de tête). */
+ *  l.325-343 : l'élément délégué garde le sien sur celui de tête). */
 const COMMUNES_OP = ['path']
 const COMMUNES_TETE = ['path', 'dry_run']
 
@@ -202,9 +229,9 @@ const opDe = (objet) => (typeof objet?.op === 'string' && Object.hasOwn(OPS_CTX_
 
 /** Le lot `ops` de `ctx_patch` est-il ambigu ? Oui s'il n'est pas un tableau, si l'un de ses éléments
  *  n'est pas un objet, s'il nomme plus d'un `path` (le sien, celui de tête à défaut) : lean-ctx groupe
- *  un lot par `path` BRUT (`registered/ctx_patch.rs` l.428, `group_ops_by_path`) et applique chaque
- *  groupe à l'état laissé par le précédent (l.148-166, `ctx_patch/mod.rs` l.112) : deux `path` d'un même
- *  fichier y font deux préimages ; ou si une op NON déléguée suit une op déléguée (l.228-255). */
+ *  un lot par `path` BRUT (`registered/ctx_patch.rs` l.477, `group_ops_by_path`) et applique chaque
+ *  groupe à l'état laissé par le précédent (l.152-171, `ctx_patch/mod.rs` l.112) : deux `path` d'un même
+ *  fichier y font deux préimages ; ou si une op NON déléguée suit une op déléguée (l.261-285). */
 export const lotAmbigu = (input) =>
   input?.ops !== undefined &&
   (!Array.isArray(input.ops) ||
@@ -213,7 +240,7 @@ export const lotAmbigu = (input) =>
     input.ops.some((op, i) => !opDe(op)?.deleguee && input.ops.slice(0, i).some((precedente) => opDe(precedente)?.deleguee)))
 
 /** Les clés de texte (`remplace`, `neuf`) d'une op DÉLÉGUÉE de `ops[]` qui la font échouer après l'écriture
- *  du run ancré qui la précède (`registered/ctx_patch.rs` l.236-251, l.349-357) : absente, non-chaîne,
+ *  du run ancré qui la précède (`registered/ctx_patch.rs` l.269-281, l.398-406) : absente, non-chaîne,
  *  ou `remplace` vide. */
 const textesInvalides = (objet, spec) =>
   [spec.remplace, spec.neuf].filter(Boolean).flatMap((cle) => {
@@ -254,10 +281,10 @@ const texteDeLOp = (ecrit, role) => {
   return cle ? ecrit[cle] : undefined
 }
 
-/** Le chemin visé : `file_path` (`Write`, `Edit`), `path` (`ctx_patch`) ; `undefined` sans chemin, ou
- *  fait de blancs. */
+/** Le chemin visé : `file_path` (`Write`, `Edit`), `notebook_path` (`NotebookEdit`), `path` (`ctx_patch`) ;
+ *  `undefined` sans chemin, ou fait de blancs. */
 export const cheminVise = (ecrit) => {
-  const chemin = ecrit?.file_path ?? ecrit?.path
+  const chemin = ecrit?.file_path ?? ecrit?.notebook_path ?? ecrit?.path
   return typeof chemin === 'string' && chemin.trim() !== '' ? chemin : undefined
 }
 
@@ -304,28 +331,52 @@ export function cheminDEcriture(toolInput, { base, platform = process.platform }
  *  git ne reconnaît pas : aucune preuve, `false` — le hook garde (`gitPorte.mjs`, `estIgnore`). */
 const ignoreParGit = (reel, racine) => estIgnore(depotAuxPannes(racine, []), reel)
 
-/** Le texte posé : `new_string` (`Edit`), `content` (`Write`), la clé `neuf` de son op (`ctx_patch`,
- *  `OPS_CTX_PATCH`). */
-export const texteNeuf = (ecrit) => ecrit?.new_string ?? ecrit?.content ?? texteDeLOp(ecrit, 'neuf')
+/** L'écriture vise-t-elle une cellule de carnet (`NotebookEdit`, `notebook_path`) ? */
+const estCellule = (ecrit) => typeof ecrit?.notebook_path === 'string'
 
-/** Le texte remplacé, quand l'écriture le porte : `old_string` (`Edit`), la clé `remplace` de son op
- *  (`ctx_patch`, `OPS_CTX_PATCH`). */
-export const texteRemplace = (ecrit) => ecrit?.old_string ?? texteDeLOp(ecrit, 'remplace')
+/** Le texte posé : `new_string` (`Edit`), `content` (`Write`), `new_source` (`NotebookEdit`, `''` en
+ *  `edit_mode` `delete`), la clé `neuf` de son op (`ctx_patch`, `OPS_CTX_PATCH`). */
+export const texteNeuf = (ecrit) =>
+  estCellule(ecrit) ? (ecrit.edit_mode === 'delete' ? '' : ecrit.new_source) : ecrit?.new_string ?? ecrit?.content ?? texteDeLOp(ecrit, 'neuf')
+
+/** Le texte remplacé, quand l'écriture le porte : `old_string` (`Edit`), `''` pour une cellule insérée
+ *  (`NotebookEdit` `edit_mode` `insert`), la clé `remplace` de son op (`ctx_patch`, `OPS_CTX_PATCH`). */
+export const texteRemplace = (ecrit) =>
+  estCellule(ecrit) && ecrit.edit_mode === 'insert' ? '' : ecrit?.old_string ?? texteDeLOp(ecrit, 'remplace')
 
 /** L'écriture pose-t-elle le fichier ENTIER ? `Write` (`content`), `ctx_patch` op `create`. */
 export const ecritLeFichierEntier = (ecrit) => typeof ecrit?.content === 'string' || ecrit?.op === 'create'
 
+export const fichierExistait = (ecrit, lireExistence) => typeof ecrit?.existeAvant === 'boolean' ? ecrit.existeAvant : lireExistence()
+
 /** Les ops ANCRÉES de `ctx_patch` qui remplacent des lignes : `line`, ou `start_line`..`end_line`. */
 const OPS_DE_LIGNES = new Set(['set_line', 'replace_lines', 'delete'])
 
-/** Le texte que l'écriture remplace se RÉSOUT-il ? Porté, fichier entier, ou op ancrée
- *  (`insert_after` compris) ; sinon (`replace_symbol`, op inconnue) l'écriture n'est pas jugeable. */
+/** Le texte que l'écriture remplace se RÉSOUT-il ? Porté, fichier entier, op ancrée (`insert_after`
+ *  compris) ou cellule nommée par `cell_id` ; sinon (`replace_symbol`, op inconnue) l'écriture n'est pas jugeable. */
 export const remplaceResoluble = (ecrit) =>
   texteRemplace(ecrit) !== undefined || ecritLeFichierEntier(ecrit) || ecrit?.op === 'insert_after' || OPS_DE_LIGNES.has(ecrit?.op)
+  || (estCellule(ecrit) && typeof ecrit.cell_id === 'string')
 
-/** Les lignes que vise une op ancrée dans `contenu` (le fichier AVANT écriture) ; `''` pour
- *  `insert_after`, qui n'en remplace aucune ; `undefined` hors op ancrée ou ancre illisible. */
+/** La source de la cellule `cell_id` du carnet `contenu` (JSON nbformat) : la cellule d'`id` `cell_id`, sinon
+ *  `cell-<N>` vise la N-ième cellule si elle n'a pas d'`id` (la graphie `<cell id="cell-<N>">` du `Read`, que la
+ *  description de `NotebookEdit` donne pour `cell_id`) ; `undefined` sans elle. */
+function celluleVisee(ecrit, contenu) {
+  if (typeof ecrit.cell_id !== 'string') return undefined
+  let carnet
+  try { carnet = JSON.parse(String(contenu ?? '')) } catch { return undefined }
+  const cellules = Array.isArray(carnet?.cells) ? carnet.cells : []
+  const rang = /^cell-(\d+)$/.exec(ecrit.cell_id)?.[1]
+  const cellule = cellules.find((c) => c?.id === ecrit.cell_id) ?? (rang === undefined || cellules[Number(rang)]?.id !== undefined ? undefined : cellules[Number(rang)])
+  const source = cellule?.source
+  return Array.isArray(source) ? source.join('') : typeof source === 'string' ? source : undefined
+}
+
+/** Les lignes que vise une op ancrée dans `contenu` (le fichier AVANT écriture), ou la source de la
+ *  cellule visée (`NotebookEdit`) ; `''` pour `insert_after`, qui n'en remplace aucune ; `undefined` hors
+ *  op ancrée ou ancre illisible. */
 export function lignesVisees(ecrit, contenu) {
+  if (estCellule(ecrit)) return celluleVisee(ecrit, contenu)
   if (ecrit?.op === 'insert_after') return ''
   if (!OPS_DE_LIGNES.has(ecrit?.op)) return undefined
   const debut = Number(ecrit.start_line ?? ecrit.line)
@@ -335,7 +386,8 @@ export function lignesVisees(ecrit, contenu) {
 }
 
 /** Le texte que l'écriture remplace, AVANT elle : le texte remplacé qu'elle porte, sinon le fichier
- *  entier (`Write`, `create`) ou les lignes visées (op ancrée) lus par `lire()`, sinon `''`. */
+ *  entier (`Write`, `create`), les lignes visées (op ancrée) ou la cellule visée (`NotebookEdit`) lus par
+ *  `lire()`, sinon `''`. */
 export function texteAvant(ecrit, lire) {
   const remplace = texteRemplace(ecrit)
   if (remplace !== undefined) return remplace

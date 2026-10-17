@@ -90,7 +90,7 @@ test('deux reporters fichier et stdout sont relayés, puis apprendre lit le chem
   assert.equal(resultat.status, 0, lancement.stderr)
   assert.match(resultat.stdout, /propre/)
   assert.equal(existsSync(un), false, 'apprendre consomme le rapport relocalisé')
-  assert.equal(typeof JSON.parse(readFileSync(deux, 'utf8'))[join(racine, 'propre.test.mjs')], 'number')
+  assert.equal(typeof JSON.parse(readFileSync(deux, 'utf8')).durees[join(racine, 'propre.test.mjs')], 'number')
   assert.equal(typeof mesure.appris['propre.test.mjs'], 'number')
   assert.equal(mesure.memo, mesure.appris['propre.test.mjs'])
   assert.equal(mesure.workers, 1)
@@ -100,7 +100,9 @@ test('un enfant rouge restitue aussi ses durées et garde son verdict', () => av
   const destination = join(racine, 'rapports', 'rouge.json')
   const lancement = parent(racine, ['--test', `--test-reporter=${REPORTER}`, `--test-reporter-destination=${destination}`, 'rouge.test.mjs'])
   assert.equal(JSON.parse(lancement.stdout.trim()).status, 1)
-  assert.equal(typeof JSON.parse(readFileSync(destination, 'utf8'))[join(racine, 'rouge.test.mjs')], 'number')
+  const rapport = JSON.parse(readFileSync(destination, 'utf8'))
+  assert.equal(typeof rapport.durees[join(racine, 'rouge.test.mjs')], 'number')
+  assert.deepEqual(rapport.echecs, [join(racine, 'rouge.test.mjs')])
 }))
 
 test('une restitution impossible refuse un enfant vert et conserve un enfant déjà rouge', () => avecDepot((racine) => {

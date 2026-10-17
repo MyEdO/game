@@ -22,14 +22,14 @@ import { battleRng } from './battleRng';
 import { evLines } from './combatLog';
 import type { RNG } from '../engine/dice';
 import { combatValue, combatBaseValue, defenseValue, defenseBaseValue, DEFENSE_LABEL } from '../engine/combat';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle } from '../engine/coque';
 import { isInanimate } from '../engine/structures';
-import { rollTest, resolveOpposed, hydrateTR, type TestResult } from '../engine/tests';
+import { rollTest, resolveOpposed, hydrateTR, estJete, type TestResult } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
-import { isBestial, traitCapability } from '../engine/traits/dispatch';
+import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
-import { creatureAttacks, type AttackKind } from '../engine/creatureAttacks';
+import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../data/schemas/defs/maneuvers';
 import { findTalentById, findPsychologyById, findManeuverById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
@@ -113,9 +113,9 @@ export function applyManeuverEffects(
   return lines;
 }
 
-/** Cible de Piétinement valide pour `c` (LDB 85 l.320-321) : adversaire ADJACENT, encore actif et
- *  PLUS PETIT (`sizeGap >= 1`). `targetId` borne la recherche à une cible précise (clic du joueur). */
-export function trampleTarget(battle: BattleState, c: Combatant, targetId?: string): Combatant | undefined {
+/** Adversaire ADJACENT, encore actif, plus petit que `c` d'au moins `ecart` catégories de Taille.
+ *  `targetId` borne la recherche à une cible précise (clic du joueur). LDB 85 l.387 */
+export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: number, targetId?: string): Combatant | undefined {
   return battle.combatants.find(
     (t) =>
       (targetId ? t.id === targetId : true) &&
@@ -124,8 +124,31 @@ export function trampleTarget(battle: BattleState, c: Combatant, targetId?: stri
       !!t.pos &&
       !!c.pos &&
       combatDistance(c, t) <= 1 &&
-      sizeGap(c.size, t.size) >= 1,
+      sizeGap(c.size, t.size) >= ecart,
   );
+}
+
+/** PRIX d'une attaque gratuite `def` pour `c` — SOURCE UNIQUE lue par `availableAttacks` (option du héros,
+ *  débitée au commit) et par l'IA (`aiCreatureFreeAttacks`). LDB 85 l.387 ; LDB 85 l.314 */
+export function freeAttackCost(battle: BattleState, c: Combatant, def: ManeuverDef): { advantage: number; movement: boolean } {
+  return maneuverPaidByMovement(c.traits, def.id) && battle.movementUsed === 0 ? { advantage: 0, movement: true } : { advantage: def.advantageCost, movement: false };
+}
+
+/** PLAFOND par tour d'une attaque gratuite de créature, DÉRIVÉ de la donnée : `count` pour une attaque
+ *  `perTentacle`, sinon 1 (Piétinement, toute attaque sans donnée de compte). SOURCE UNIQUE lue par
+ *  `availableAttacks` (héros) et `aiCreatureFreeAttacks` (IA). LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.387 ; LDB 85 l.405 */
+export const plafondParTour = (a?: Pick<CreatureAttack, 'perTentacle' | 'count'>): number => (a?.perTentacle ? (a.count ?? 1) : 1);
+
+/** Attaques gratuites `kind` qu'il RESTE à `c` ce tour : `plafondParTour(a)` moins le compteur partagé
+ *  `freeAttacksThisTurn[kind]`. */
+export const gratuitesRestantes = (c: Combatant, kind: AttackKind, a?: Pick<CreatureAttack, 'perTentacle' | 'count'>): number =>
+  Math.max(0, plafondParTour(a) - (c.freeAttacksThisTurn?.[kind] ?? 0));
+
+/** `target` est-elle une cible VALIDE de l'attaque gratuite `kind` de `c` ? SOURCE UNIQUE du survol, du
+ *  clic et de l'IA. LDB 85 l.387 */
+export function freeAttackTargetOk(battle: BattleState, c: Combatant, kind: AttackKind, target: Combatant): boolean {
+  const ecart = attaqueNaturelle(c.traits ?? [], kind)?.def.ecartDeTailleMin;
+  return ecart == null || !!cibleDEcartDeTaille(battle, c, ecart, target.id);
 }
 
 /** Icône par type de manœuvre (id du registre `src/ui/icons/` — la hotbar rend `<Icon id>`).
@@ -134,29 +157,31 @@ export const MANEUVER_ICON: Record<AttackKind, IconId> = {
   arme: 'action/attack', morsure: 'creature/bite', caudale: 'creature/tail', cornes: 'creature/horns',
   souffle: 'creature/breath', vomi: 'creature/vomit', tentacules: 'creature/tentacles',
   etreinte: 'creature/squeeze', regard: 'creature/gaze', langue: 'creature/tongue', hurlement: 'creature/scream',
+  pietinement: 'journal/charge',
 };
 
 /** Manœuvres de mêlée résolues comme un COUP D'ARME (via `pendingAttack` + `freeKind` →
  *  `applyAttackResult` : localisation/critique/FX/défense). Les autres (zone) passent par `pendingManeuver`
  *  (résolution propre). Classifieur partagé : `availableAttacks` (targeting melee/zone) + le survol. */
-export const MELEE_MANEUVER_KINDS: AttackKind[] = ['morsure', 'caudale', 'tentacules'];
+export const MELEE_MANEUVER_KINDS: AttackKind[] = ['morsure', 'caudale', 'tentacules', 'pietinement'];
 
 /** ATTAQUE activable par le héros actif — descripteur UNIFIÉ (arme tenue + attaques gratuites/zone),
  *  SOURCE UNIQUE de la liste d'attaques (hotbar) ET de la résolution (`battleClickEntity`). `targeting`
  *  pilote la résolution : 'melee' → approche-puis-frappe (attackPlan + pendingAttack) ; 'zone' →
- *  resolveManeuver (pendingManeuver) ; 'trample' → battleTrample. `cost.action` = coûte l'Action (Arme),
- *  sinon gratuite. `reach`/`forceMelee` = Allonge de l'attaque (gratuites de mêlée = 1 ; Arme absente →
- *  attackPlan lit l'arme tenue). `freeKind`/`weaponUid` = charge utile de frappe (mêlée). */
+ *  resolveManeuver (pendingManeuver). `cost.action` = coûte l'Action (Arme), sinon gratuite ;
+ *  `cost.movement` = paie l'Action de Mouvement (`freeAttackCost`). `reach`/`forceMelee` = Allonge de
+ *  l'attaque (gratuites de mêlée = 1 ; Arme absente → attackPlan lit l'arme tenue). `freeKind`/`weaponUid`
+ *  = charge utile de frappe (mêlée). */
 export interface AttackOption {
   id: string;
   kind?: AttackKind;
   label: string;
   /** Id d'icône du registre `src/ui/icons/` (la hotbar rend `<Icon id>`). */
   icon: IconId;
-  targeting: 'melee' | 'zone' | 'trample' | 'aucontact' | 'grapple';
+  targeting: 'melee' | 'zone' | 'aucontact' | 'grapple';
   reach?: number;
   forceMelee?: boolean;
-  cost: { action: boolean; advantage: number };
+  cost: { action: boolean; advantage: number; movement?: boolean };
   weaponUid?: string;
   freeKind?: AttackKind;
   /** Pièce d'artillerie SERVIE à TIR INDIRECT (mortier/catapulte, `Weapon.indirect`) : le tir vise une CASE
@@ -210,8 +235,8 @@ export function grappleActionEligible(mover: Combatant, foe: Combatant): boolean
 }
 
 /** Attaques que le héros ACTIF peut lancer MAINTENANT — UNE liste à coût (Arme d'abord, puis gratuites/
- *  zone abordables, Piétinement, mutation Tentacule). Subsume l'attaque d'arme implicite ET la garde de
- *  Frénésie. Source : `active.weapons` (Arme) + `creatureAttacks` (gratuites) + les prédicats existants. */
+ *  zone abordables, mutation Tentacule). Subsume l'attaque d'arme implicite ET la garde de Frénésie.
+ *  Source : `active.weapons` (Arme) + `attaquesNaturelles` (gratuites) + les prédicats existants. */
 export function availableAttacks(active: Combatant, battle: BattleState): AttackOption[] {
   // KIND-AGNOSTIQUE (un ennemi conduit par le MJ a le MÊME jeu d'attaques qu'un héros — bac-à-sable). Seul un
   // NAVIRE (`kind:'hero'`/`enemy`, MDG 13) est exclu : il n'a PAS d'attaque-arme PERSONNELLE (`active.weapons`
@@ -225,37 +250,36 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
   const freeWeapon = hasFreeWeaponAttack(active);
   if ((!battle.acted && canTakeAction(active)) || freeWeapon)
     out.push({ id: 'arme', kind: 'arme', label: libelleDeValeur(attackKindSchema, 'arme'), icon: MANEUVER_ICON.arme, targeting: 'melee', cost: { action: !freeWeapon, advantage: 0 } });
-  // (1) Attaques de trait : gratuites de MÊLÉE (Morsure/Caudale/Tentacules) ou SPÉCIALES de zone (Souffle/
-  //     Vomi/Langue/Regard/Étreinte/Hurlement). 'arme' (ci-dessus) et 'charge' (Cornes, auto) exclues.
-  //     Mêmes prédicats d'abordabilité (Avantage RAW ou 1 si variable ; Action si trigger='action').
-  for (const a of creatureAttacks(active.traits ?? [])) {
+  // (1) Attaques naturelles (`attaquesNaturelles`) : gratuites de MÊLÉE ou SPÉCIALES de zone. 'arme'
+  //     (ci-dessus) et 'charge' (Cornes, auto) exclues. Mêmes prédicats d'abordabilité (Avantage RAW ou 1 si
+  //     variable ; Action si trigger='action') ; une manœuvre d'écart de Taille exige sa cible au contact.
+  for (const a of attaquesNaturelles(active.traits ?? [])) {
     if (a.kind === 'arme' || a.trigger === 'charge' || a.def.targeting === 'self') continue; // self : `selfManeuversOf`/battleSelfManeuver (flux dédié, hors attaque)
-    const minAdv = a.advantageMode === 'variable' ? 1 : a.avantage;
+    if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
+    const cout = freeAttackCost(battle, active, a.def); // LDB 85 l.387 ; LDB 85 l.314
+    const prix = cout.advantage;
+    const minAdv = a.advantageMode === 'variable' ? 1 : prix;
     if (active.advantage < minAdv) continue;
     if (a.trigger === 'action' && (battle.acted || !canTakeAction(active))) continue;
-    // RAW LDB 85 l.237 : « pendant son tour, la créature peut effectuer UNE Attaque gratuite » → 1/tour ;
-    // exception « une Attaque gratuite par tentacule » (l.355) → `count`/tour. Plafond DÉRIVÉ de la donnée
-    // (`perTentacle`/`count`), compteur partagé `freeAttacksThisTurn` — pas de limite par type en dur.
-    if (a.trigger === 'free' && (active.freeAttacksThisTurn?.[a.kind] ?? 0) >= (a.perTentacle ? (a.count ?? 1) : 1)) continue;
+    if (a.trigger === 'free' && gratuitesRestantes(active, a.kind, a) === 0) continue; // LDB 85 l.237 ; LDB 85 l.405
     const melee = MELEE_MANEUVER_KINDS.includes(a.kind);
     out.push({
       id: a.def.id, kind: a.kind, label: a.def.label, icon: MANEUVER_ICON[a.kind],
       targeting: melee ? 'melee' : 'zone',
       ...(melee ? { reach: 1, forceMelee: true, freeKind: a.kind } : { def: a.def, advantageMode: a.advantageMode }),
-      cost: { action: a.trigger === 'action', advantage: a.avantage },
+      cost: { action: a.trigger === 'action', advantage: prix, ...(cout.movement ? { movement: true } : {}) },
     });
   }
-  // (2) Piétinement (Taille, LDB 85 l.320-321) : adversaire adjacent plus petit, ≥1 Avantage. Flux dédié.
-  if (active.advantage >= 1 && trampleTarget(battle, active))
-    out.push({ id: 'pietinement', label: 'Piétiner', icon: 'journal/charge', targeting: 'trample', cost: { action: false, advantage: 1 } });
-  // (3) Mutation Tentacule (arme `nat-tentacule`, LDB 85 l.405) : 1/tour (compteur partagé), 0 Avantage. Comme
-  //     toute attaque de mêlée, elle s'APPROCHE (charge/rejoindre) → dispo dès qu'un ennemi existe (adjacence non requise).
+  // (2) Arme `nat-tentacule` du trait Tentacules (LDB 85 l.405) : plafond du trait qui l'octroie (`plafondParTour`,
+  //     compteur partagé), 0 Avantage. Comme toute attaque de mêlée, elle s'APPROCHE (charge/rejoindre) → dispo dès
+  //     qu'un ennemi existe (adjacence non requise).
   if (
-    (active.freeAttacksThisTurn?.['tentacules'] ?? 0) < 1 && active.weapons.some((w) => w.uid === 'nat-tentacule') && !!active.pos &&
+    gratuitesRestantes(active, 'tentacules', creatureAttacks(active.traits ?? []).find((a) => a.kind === 'tentacules')) > 0 &&
+    active.weapons.some((w) => w.uid === 'nat-tentacule') && !!active.pos &&
     battle.combatants.some((c) => c.kind !== active.kind && !isOutOfAction(c) && c.pos)
   )
     out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacles', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: 'nat-tentacule', freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
-  // (4) Poste d'artillerie SERVI (`mannedPoste`, MDG 12-13) : « servir la pièce » = attaque DÉDIÉE portant
+  // (3) Poste d'artillerie SERVI (`mannedPoste`, MDG 12-13) : « servir la pièce » = attaque DÉDIÉE portant
   //     l'arme du poste (`weaponUid` → canon ÉPINGLÉ, même si le servant porte une arme perso de mêlée pour
   //     l'abordage). Arc + portée INTRINSÈQUES (firedAttackBlock garde déjà l'arc de `w.mountSide`). Coûte
   //     l'Action ; `targeting:'melee'` = chemin approche-puis-frappe commun (une arme à distance y tire en
@@ -267,18 +291,17 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     // (AA 10 l.169/171). DIRECTE (canon/baliste) : ciblage de combattant classique. Flag DONNÉE, zéro liste en dur.
     if (w) out.push({ id: 'poste', label: `Servir ${w.label}`, icon: 'action/serve-engine', targeting: 'melee', weaponUid: w.uid, cost: { action: true, advantage: 0 }, ...(w.indirect ? { indirect: true } : {}) });
   }
-  // (5) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-weapon-reach`) :
+  // (4) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-weapon-reach`) :
   //     Test opposé de Corps à corps pour entrer dans la longueur d'arme. Dispo si la règle est ON, l'Action
   //     dispo, et un adversaire Engagé présente une différence d'allonge pertinente. Choix EXPLICITE de
   //     l'« Attaque ▾ », pas une frappe.
   if (rule('combat-weapon-reach') && !battle.acted && canTakeAction(active) && battle.combatants.some((c) => auContactEligible(active, c)))
     out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attack', targeting: 'aucontact', cost: { action: true, advantage: 0 } });
-  // (6) Empoignade EN COURS (LDB 14 l.161) : action à son tour entre deux Empoignés — Test opposé de Force
+  // (5) Empoignade EN COURS (LDB 14 l.161) : action à son tour entre deux Empoignés — Test opposé de Force
   //     (Dégâts / Empêtré) ou « Briser » (Avantage supérieur). Dispo si l'Action est dispo et un adversaire
   //     est Empoigné. Choix EXPLICITE de l'« Attaque ▾ ».
   if (!battle.acted && canTakeAction(active) && battle.combatants.some((c) => grappleActionEligible(active, c)))
     out.push({ id: 'grapple', label: 'Empoignade', icon: 'creature/squeeze', targeting: 'grapple', cost: { action: true, advantage: 0 } });
-  // Déduplique par id (la mutation Tentacule et le trait Tentacules ne coexistent pas, mais garde-fou).
   return out.filter((m, i) => out.findIndex((n) => n.id === m.id) === i);
 }
 
@@ -357,6 +380,69 @@ function emitAoe(get: Get, center: Pt, radius: number, kind: AttackKind, type?: 
   bus.emit(EVT.ANIM_AOE, { tiles, kind, type });
 }
 
+/** Ce que la GÉOMÉTRIE d'une manœuvre résout (cibles affectées, centre de zone ou cible unique, rayon
+ *  d'impact ou de population) — pure, partagée par la résolution (`resolveManeuver`) et l'affichage
+ *  (`maneuverDefensePending`). `chosenTarget` = clic joueur ; absent ou écarté → le plus proche. */
+interface CiblesDeManoeuvre { affected: Combatant[]; center: Combatant | null; blast?: number; radius?: number }
+function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: ManeuverDef, chosenTarget?: Combatant): CiblesDeManoeuvre {
+  const alive = (c: Combatant) => c.kind !== attacker.kind && !isOutOfAction(c) && !!c.pos;
+  const inPlay = (c: Combatant) => c.id !== attacker.id && !isOutOfAction(c) && !!c.pos; // population SANS camp (`allAround`)
+  const nearest = (cands: Combatant[]) => cands.reduce((p, c) => (chebyshev(attacker.pos!, p.pos!) <= chebyshev(attacker.pos!, c.pos!) ? p : c));
+  if (def.targeting === 'self') return { affected: [], center: null };
+  if (def.targeting === 'zone') {
+    const rangeTiles = tilesOf(measureMeters(def.range, attacker)) ?? Math.max(1, Math.ceil(bonus(effectiveChar(attacker, 'endurance')) / 2));
+    const foes = combatantsWithinRadius(attacker.pos!, rangeTiles, battle.combatants, alive);
+    const center = chosenTarget && alive(chosenTarget) && chebyshev(attacker.pos!, chosenTarget.pos!) <= rangeTiles
+      ? chosenTarget : foes[0] ?? null; // `foes` est trié par distance (combatantsWithinRadius) → le plus proche d'abord
+    if (!center) return { affected: [], center: null };
+    // Rayon de Souffle : `blast` résolu contre la CIBLE au centre (« Bonus de Force » → BF de la cible, RAW l.251 ;
+    // Vomi « 2 mètres » → littéral, 1 case). Aucune regex `/force/i` — la mesure structurée porte le référent.
+    const blast = tilesOf(measureMeters(def.blast, center)) ?? 1;
+    return { affected: combatantsWithinRadius(center.pos!, blast, battle.combatants, alive), center, blast };
+  }
+  if (def.targeting === 'allFoes' || def.targeting === 'allAround') {
+    // Hurlement fantomatique (LDB 85 l.170) : « Toutes les créatures vivantes (ne possédant pas le trait
+    // Mort-vivant) se trouvant à un nombre de mètres égal à l'Initiative » → `allAround`, aucun camp. Le
+    // Mort-vivant se lit au TRAIT (capability `undead`), PAS au Groupe bestiaire (folder « Morts sans
+    // repos » sans le Trait, ex. Goule de crypte, reste ciblable — cf. domainAttributes.test.ts).
+    // `allFoes` sert les textes qui DÉSIGNENT le camp (Hurlement de la Bête indomptable, Middenheim 04
+    // l.11 : « effectuer une attaque gratuite de hurlement contre ses ennemis »).
+    // « créatures vivantes » exclut aussi l'objet INANIMÉ (structure de siège, véhicule-coque) — dans les
+    // DEUX populations : un chariot n'entend pas un hurlement.
+    const radius = Math.max(1, Math.ceil(effectiveChar(attacker, 'initiative') / 2));
+    const pop = def.targeting === 'allAround' ? inPlay : alive;
+    const affected = combatantsWithinRadius(attacker.pos!, radius, battle.combatants, (c) => pop(c) && !isInanimate(c) && !traitCapability(c.traits, 'undead'));
+    return { affected, center: null, radius };
+  }
+  // melee / ranged : cible unique (clic joueur, ou la plus proche pour l'IA/auto).
+  const foes = battle.combatants.filter(alive);
+  const tgt = chosenTarget && alive(chosenTarget) ? chosenTarget : foes.length ? nearest(foes) : null;
+  return { affected: tgt ? [tgt] : [], center: tgt };
+}
+
+/** Les défenseurs SURFACÉS d'une manœuvre — influençables, ils jouent leur défense en cascade
+ *  (`maneuverDefense`) et rien ne leur est appliqué à la résolution. MÊME prédicat que TOUTES les autres
+ *  défenses (`defenseSurfaced`, #989). Opposition réelle exigée : jet d'attaquant présent, défense ≠
+ *  `resist`, effets à subir (pas de fumée pure) ; un défenseur Surpris (`cannotDefend`) ne réagit pas. */
+function defenseursSurfacesDeManoeuvre(s: GameState, def: ManeuverDef, atk: TestResult | null, affected: Combatant[]): Combatant[] {
+  const canDefend = !!atk && !!def.defense && def.defense !== 'resist' && (def.effects?.length ?? 0) > 0;
+  return canDefend ? affected.filter((t) => defenseSurfaced(s, t) && !isOutOfAction(t) && !cannotDefend(t)) : [];
+}
+
+/** La manœuvre DÉCLARÉE (`pendingManeuver`) passe-t-elle la main à la défense d'un défenseur surfacé ?
+ *  Patron `surfacedDefensePending` : source unique, partagée par l'affichage et la résolution. */
+export function maneuverDefensePending(s: GameState): boolean {
+  const pm = s.pendingManeuver;
+  const battle = s.battle;
+  if (!pm?.result || !battle) return false;
+  const attacker = inBattleId(battle, pm.attackerId);
+  if (!attacker?.pos) return false;
+  const def = creatureAttacks(attacker.traits ?? []).find((x) => x.def.id === pm.maneuverId)?.def;
+  if (!def) return false;
+  const chosen = pm.targetId ? inBattleId(battle, pm.targetId) : undefined;
+  return defenseursSurfacesDeManoeuvre(s, def, pm.result, ciblesDeManoeuvre(battle, attacker, def, chosen).affected).length > 0;
+}
+
 /**
  * RÉSOLVEUR UNIQUE de manœuvre — joue ENTIÈREMENT une `ManeuverDef` (remplace applyMan{Area,Tongue,
  * Wail,Gaze,ChillGrasp}). `atk` = jet d'attaquant FIGÉ (influencé par la modale joueur ; null = pas de
@@ -372,9 +458,7 @@ export function resolveManeuver(
   if (!battle || battle.over || !attacker.pos) return false;
   campSpend(get, attacker, spent); // dépense l'Avantage : réserve du camp (mode groupe AA 11 l.30-38) / le combattant (LDB)
   const rng = battleRng();
-  // Libellé de feed = celui de la manœuvre (« Souffle (Feu) ») s'il enrichit le geste, sinon le libellé
-  // canonique du geste (`libelleDeValeur(attackKindSchema, def.kind)`). Aucune LOGIQUE sur le label — pur affichage.
-  const lines: string[] = [t('manv.trigger', { name: attacker.label, label: def.label || libelleDeValeur(attackKindSchema, def.kind) })];
+  const lines: string[] = [t('manv.trigger', { name: attacker.label, label: def.label })];
   // Orientation du geste : l'attaquant vise le centre RÉELLEMENT résolu plus bas (la cible cliquée peut
   // être écartée — morte, hors portée — et le souffle recentré sur le plus proche). UNE écriture par
   // manœuvre ; cible = SOI (transformation) ou case identique ⇒ delta nul, facing inchangé ; population
@@ -387,9 +471,6 @@ export function resolveManeuver(
     set((s: GameState) => ({ facing: { ...s.facing, [attacker.id]: facingToward(from, to) } }));
   };
   emitCreatureAttackAnim(attacker, def.kind);
-  const alive = (c: Combatant) => c.kind !== attacker.kind && !isOutOfAction(c) && !!c.pos;
-  const inPlay = (c: Combatant) => c.id !== attacker.id && !isOutOfAction(c) && !!c.pos; // population SANS camp (`allAround`)
-  const nearest = (cands: Combatant[]) => cands.reduce((p, c) => (chebyshev(attacker.pos!, p.pos!) <= chebyshev(attacker.pos!, c.pos!) ? p : c));
   const flushLog = () => {
     set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lines, 'attack', attacker.id)] } });
     bus.emit(EVT.SCENE_DIRTY);
@@ -417,24 +498,17 @@ export function resolveManeuver(
     return false;
   }
 
-  // Cibles AFFECTÉES + émissions propres à la géométrie (identiques à avant).
-  let affected: Combatant[];
+  // Cibles AFFECTÉES (`ciblesDeManoeuvre`, la géométrie partagée avec l'affichage) + émissions propres
+  // à la géométrie.
+  const { affected, center, blast, radius } = ciblesDeManoeuvre(battle, attacker, def, chosenTarget);
   if (def.targeting === 'zone') {
-    const rangeTiles = tilesOf(measureMeters(def.range, attacker)) ?? Math.max(1, Math.ceil(bonus(effectiveChar(attacker, 'endurance')) / 2));
-    const foes = combatantsWithinRadius(attacker.pos!, rangeTiles, battle.combatants, alive);
-    const center = chosenTarget && alive(chosenTarget) && chebyshev(attacker.pos!, chosenTarget.pos!) <= rangeTiles
-      ? chosenTarget : foes[0] ?? null; // `foes` est trié par distance (combatantsWithinRadius) → le plus proche d'abord
     if (!center) { flushLog(); return false; }
     faceTarget(center); // le centre de la zone = ce que l'attaquant vise (cliqué, ou recentré sur le plus proche)
-    // Rayon de Souffle : `blast` résolu contre la CIBLE au centre (« Bonus de Force » → BF de la cible, RAW l.251 ;
-    // Vomi « 2 mètres » → littéral, 1 case). Aucune regex `/force/i` — la mesure structurée porte le référent.
-    const blast = tilesOf(measureMeters(def.blast, center)) ?? 1;
-    emitAoe(get, center.pos!, blast, def.kind, def.label);
-    affected = combatantsWithinRadius(center.pos!, blast, battle.combatants, alive);
-    // Fumée (souffle-fumee) : la zone bloque les Lignes de vue pendant BE Rounds — GÉOMÉTRIE moteur (pas un GameOp).
-    if (def.id === 'souffle-fumee') {
-      const dur = Math.max(1, bonus(effectiveChar(attacker, 'endurance')));
-      const rawTiles = clampZoneTiles(smokeZone(attacker.pos!, center.pos!, blast), get().scene?.dimensions); // bornée à la carte au site d'écriture
+    emitAoe(get, center.pos!, blast!, def.kind, def.label);
+    // Fumée (souffle-fumee, LDB 85 l.329) : GÉOMÉTRIE moteur (pas un GameOp) ; aucune zone à BE 0.
+    const dur = def.id === 'souffle-fumee' ? bonus(effectiveChar(attacker, 'endurance')) : 0;
+    if (dur > 0) {
+      const rawTiles = clampZoneTiles(smokeZone(attacker.pos!, center.pos!, blast!), get().scene?.dimensions); // bornée à la carte au site d'écriture
       // z propagé (cf. placeZoneFromOp/combatFlow, zoneAreaTiles §782/#799) : la fumée posée à l'étage du centre
       // ne bloque pas la Ligne de Vue à un autre étage de même (x,y).
       const cz = center.pos!.z;
@@ -444,24 +518,9 @@ export function resolveManeuver(
       set({ battle: { ...get().battle!, zones } });
     }
   } else if (def.targeting === 'allFoes' || def.targeting === 'allAround') {
-    // Hurlement fantomatique (LDB 85 l.170) : « Toutes les créatures vivantes (ne possédant pas le trait
-    // Mort-vivant) se trouvant à un nombre de mètres égal à l'Initiative » → `allAround`, aucun camp. Le
-    // Mort-vivant se lit au TRAIT (capability `undead`), PAS au Groupe bestiaire (folder « Morts sans
-    // repos » sans le Trait, ex. Goule de crypte, reste ciblable — cf. domainAttributes.test.ts).
-    // `allFoes` sert les textes qui DÉSIGNENT le camp (Hurlement de la Bête indomptable, Middenheim 04
-    // l.11 : « effectuer une attaque gratuite de hurlement contre ses ennemis »).
-    // « créatures vivantes » exclut aussi l'objet INANIMÉ (structure de siège, véhicule-coque) — dans les
-    // DEUX populations : un chariot n'entend pas un hurlement.
-    const radius = Math.max(1, Math.ceil(effectiveChar(attacker, 'initiative') / 2));
-    const pop = def.targeting === 'allAround' ? inPlay : alive;
-    affected = combatantsWithinRadius(attacker.pos!, radius, battle.combatants, (c) => pop(c) && !isInanimate(c) && !traitCapability(c.traits, 'undead'));
-    emitAoe(get, attacker.pos, radius, def.kind, def.label);
+    emitAoe(get, attacker.pos, radius!, def.kind, def.label);
   } else {
-    // melee / ranged : cible unique (clic joueur, ou la plus proche pour l'IA/auto).
-    const foes = battle.combatants.filter(alive);
-    const tgt = chosenTarget && alive(chosenTarget) ? chosenTarget : foes.length ? nearest(foes) : null;
-    affected = tgt ? [tgt] : [];
-    faceTarget(tgt);
+    faceTarget(center);
   }
   // Trace orientée du Round (LDB 85 l.383, `agressifEnvers`) — MÊME garde qu'aux deux sites de `applyAttackResult` :
   // jamais contre un objet INANIMÉ (il n'a ni psychologie ni Engagement).
@@ -471,10 +530,7 @@ export function resolveManeuver(
   // (silencieux, IA en masse). MÊME prédicat que TOUTES les autres défenses (`defenseSurfaced`, #989 —
   // un siège humain QUELCONQUE tient le défenseur, fût-il distant) : c'est la parité `maybeOpenDefense`
   // annoncée ci-dessus, et une défense de zone ne peut pas répondre depuis une autre table de vérité.
-  // Un défenseur Surpris (`cannotDefend`) ne peut pas réagir → silence. Gate : jet d'attaquant présent,
-  // opposition réelle (defense ≠ resist), et effets à subir (pas de fumée pure).
-  const canDefend = !!atk && !!def.defense && def.defense !== 'resist' && (def.effects?.length ?? 0) > 0;
-  const heroDefenders = canDefend ? affected.filter((t) => defenseSurfaced(get(), t) && !isOutOfAction(t) && !cannotDefend(t)) : [];
+  const heroDefenders = defenseursSurfacesDeManoeuvre(get(), def, atk, affected);
   for (const tgt of affected) if (!heroDefenders.includes(tgt)) hitOne(tgt);
   flushLog();
   if (heroDefenders.length) {
@@ -514,15 +570,7 @@ function maneuverDefenseLabel(tgt: Combatant, defense: NonNullable<ManeuverDef['
 function openManeuverDefenseCascade(
   get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, indice: number, atk: TestResult, spent: number, heroes: Combatant[],
 ): void {
-  // Texte AUTHORÉ (`ManeuverDef.label`, `maneuvers.json`) → minteur du texte de donnée. La dégradation
-  // passe par `||` et non par le `repli` de `dataLabel` : `label` est un `string` REQUIS, donc seul le
-  // vide (jamais `null`/`undefined`) peut manquer — le `??` du repli ne le verrait pas.
-  // DETTE — le repli est un libellé de FAMILLE : `attackKindSchema` nomme la FAMILLE
-  // (`data/schemas/defs/maneuvers.ts`), plusieurs `ManeuverDef` partageant un `kind`.
-  // S'il servait, le titre de cascade dirait la famille (« Souffle ») et non la manœuvre (« Souffle
-  // (Feu) »). Chemin INERTE : les 20 entrées de `maneuvers.json` portent toutes un `label` non vide
-  // (mesuré, 11 `kind` pour 20 entrées). Une manœuvre authorée sans `label` afficherait la famille.
-  const attackerLabel = dataLabel(def.label || libelleDeValeur(attackKindSchema, def.kind));
+  const attackerLabel = dataLabel(def.label);
   const steps: CascadeStep[] = heroes.map((h) => {
     const base = maneuverDefenseValue(h, def.defense!);
     return {
@@ -551,7 +599,7 @@ function openManeuverDefenseCascade(
  *  Avantage variable) → effets via `applyManeuverEffects` (le MÊME que le chemin silencieux). Le Critique se
  *  FOLDE dans la MÊME cascade (les ops de Dégâts poussent une révélation → `pushReveal` l'append). */
 registerCascadeApplier('maneuverDefense', (get, set, step, hero) => {
-  if (!hero || !step.result) return;
+  if (!hero || !estJete(step.result)) return;
   const md = step.meta?.maneuverDefense;
   const opp = step.meta?.opposed;
   if (!md || !opp) return;
@@ -661,7 +709,7 @@ export function distraireFoes(mover: Combatant, battle: BattleState): Combatant[
 }
 
 /** Ouvre la modale de Battement d'un héros (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps
- *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`battementRoll`). Calque `battleTrample`. */
+ *  NON opposé. AUCUN jet ici — il se fait au « Lancer » (`battementRoll`). */
 export function startBattement(_get: Get, set: SetFn, attacker: Combatant, foe: Combatant): void {
   set({ pendingBattement: { attackerId: attacker.id, foeId: foe.id, result: null } });
 }

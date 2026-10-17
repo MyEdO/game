@@ -9,6 +9,7 @@ import type { AttackResult } from '../engine/combat';
 import { resolveMelee } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
 import { emptyScene } from './scene';
+import { OPS_DIFFEREES } from './combatEffects';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -84,7 +85,7 @@ describe('combat-critical-deflect — offre de Déviation Critique (LDB 63 l.30)
     const h = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
     setBattle([e, h]);
     const suspended = applyAttackResult(useGame.getState, useGame.setState, e, h, critWeapon, critRes());
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     const dev = useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation');
     expect(dev).toBeTruthy();
   });
@@ -97,7 +98,7 @@ describe('combat-critical-deflect — offre de Déviation Critique (LDB 63 l.30)
     const suspended = applyAttackResult(useGame.getState, useGame.setState, e, h, critWeapon, critRes());
     // La sévérité se tire toujours dans SA fenêtre (#1426) ; c'est la DÉCISION qui disparaît : l'étape
     // ne porte AUCUNE voie, donc le Critique est subi tel quel.
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     const dev = useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(dev).toHaveLength(1);
     expect(dev[0].options, 'règle désactivée → aucune voie de Déviation').toBeUndefined();
@@ -213,7 +214,7 @@ describe('combat-helpless-mode — cible Inconsciente (LDB 16 l.113)', () => {
       critical: true, advantageTo: null, defenderDefeated: false, autoKill: true, log: 'Achève',
     };
     const suspended = applyAttackResult(useGame.getState, useGame.setState, atk, victim, sword, res);
-    expect(suspended).toBe(false);
+    expect(suspended).toBeUndefined();
     const v = useGame.getState().battle!.combatants.find((c) => c.id === 'e1')!;
     expect(v.dead).toBe(true);            // mort par le chemin normal (finalizeHeroDeath)
     expect(v.wounds.current).toBe(0);
@@ -230,7 +231,7 @@ describe('combat-helpless-mode — cible Inconsciente (LDB 16 l.113)', () => {
       critical: true, advantageTo: null, defenderDefeated: false, autoKill: true, log: 'Achève',
     };
     const suspended = applyAttackResult(useGame.getState, useGame.setState, atk, victim, sword, res);
-    expect(suspended).toBe(false);
+    expect(suspended).toBeUndefined();
     const v = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(v.dead).toBeFalsy();                                    // pas de mort sèche
     expect(useGame.getState().pendingFateSave).not.toBeNull();    // sauvetage par Destin proposé

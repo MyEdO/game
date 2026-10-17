@@ -50,6 +50,7 @@ import { transferPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
 import type { GameState } from './store';
+import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 
 /** Recalcule les Blessures max (BF + 2·BE + BFM × Taille + Dur à cuire) après une Augmentation
  *  de Caractéristique ou un nouveau Talent ; un gain de max augmente aussi le courant (mute). */
@@ -386,7 +387,7 @@ export function buySkillAdvance(get: Get, set: Set, heroId: string, skillId: str
     const clone: Combatant = structuredClone(h);
     const ctx = careerCtx(clone);
     const skillLabel = byId('skill', skillId)?.label ?? skillId; // AFFICHAGE (messages) + conversion pour le moteur
-    const known = clone.skills.some((sk) => sk.id === skillId && (sk.spec ?? '') === (spec ?? ''));
+    const known = clone.skills.some((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec));
     const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
     const inC = status != null;
     if (known && mentorBlocks(inC, rule('advancement-mentor') === true, !!get().flags['mentor'])) {

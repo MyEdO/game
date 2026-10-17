@@ -4,12 +4,17 @@
  * peintre d'arêtes, `gameIso/stage/AreteOverlay`) et `__wfrp.editorWorldMap` (le brouillon de carte du
  * monde publié au pont de l'éditeur, `state/editeurBridge`).
  */
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { buildApi } from './devtools';
+import { buildApi, setDialogueProbe, setCodexProbe } from './devtools';
+import { categoryByKey } from '../ui/compendium/registry';
+import { dialogueDuDessus, useDismissLayer, resetDismissLayers } from '../ui/useDismissLayer';
+import { useRef } from 'react';
+import { getStagePan, poserPan, resetStagePan } from './stagePan';
+import { stageCamAffine } from '../gameIso/stage/stageCam';
 import { useGame } from './store';
-import { viewYawDeg } from './stageYaw';
+import { viewYawDeg, poserYaw, resetStageYaw, SENSIBILITE_DRAG_DEG_PX, lacetActif, demarrerLacet } from './stageYaw';
 import { AreteOverlay } from '../gameIso/stage/AreteOverlay';
 import { scèneÀDeuxPièces, aretesDePortes } from '../gameIso/stage/arete-dans-la-chaine.fixture';
 import { Editor } from '../ui/editor/Editor';
@@ -33,6 +38,12 @@ afterEach(async () => {
   container = null;
   useGame.setState({ scene: null });
   __setFabriqueIdbForTest(null);
+  setDialogueProbe(null);
+  setCodexProbe(null);
+  resetStageYaw();
+  resetDismissLayers();
+  resetStagePan();
+  vi.unstubAllGlobals();
 });
 
 async function monter(el: React.ReactElement): Promise<HTMLDivElement> {
@@ -42,6 +53,179 @@ async function monter(el: React.ReactElement): Promise<HTMLDivElement> {
   await act(async () => { root!.render(el); });
   return container;
 }
+
+describe('__wfrp — observation du Codex et de la caméra', () => {
+  const brancherCodex = () => setCodexProbe((id) => {
+    const cat = categoryByKey(id);
+    return cat ? { tab: cat.label, group: cat.group, cluster: cat.cluster ?? null } : null;
+  });
+
+  it('localise skills et weather par le registre vivant, en copie détachée et sans changer l’état', () => {
+    brancherCodex();
+    const api = buildApi();
+    const avant = useGame.getState();
+    expect(api.codexLocate('skills')).toEqual({ tab: 'Compétences', group: 'Compétences', cluster: null });
+    expect(api.codexLocate('weather')).toEqual({ tab: 'Météo de voyage', group: 'Tables', cluster: 'Voyage terrestre' });
+    const copie = api.codexLocate('skills');
+    copie.tab = 'copie';
+    expect(api.codexLocate('skills').tab).toBe(categoryByKey('skills')!.label);
+    const stable = api.codexLocate('skills');
+    setCodexProbe(() => stable);
+    const detachee = api.codexLocate('skills');
+    detachee.tab = 'copie';
+    expect(stable.tab).toBe(categoryByKey('skills')!.label);
+    expect(useGame.getState()).toBe(avant);
+  });
+
+  it('refuse une catégorie inconnue en la nommant sans changer l’état', () => {
+    brancherCodex();
+    const avant = useGame.getState();
+    expect(() => buildApi().codexLocate('absent-recette')).toThrow(/codexLocate.*absent-recette/);
+    expect(useGame.getState()).toBe(avant);
+  });
+
+  it('observe le lacet cranté et continu et la sensibilité canonique sans stage ni écriture', () => {
+    useGame.setState({ scene: null, camRot: 1, camEdge: true });
+    poserYaw(17.5);
+    const avant = useGame.getState();
+    expect(buildApi().camera()).toEqual({ deg: 152.5, active: lacetActif(), sensibilite: SENSIBILITE_DRAG_DEG_PX });
+    expect(useGame.getState()).toBe(avant);
+    poserYaw(-30);
+    expect(buildApi().camera().deg).toBe(105);
+    vi.stubGlobal('requestAnimationFrame', () => 1);
+    demarrerLacet(1);
+    expect(buildApi().camera().active).toBe(true);
+    expect(useGame.getState()).toBe(avant);
+  });
+});
+
+describe('__wfrp — observation du dialogue et panoramique #1561', () => {
+  it('désigne la boîte modale supérieure réelle par plan, ignore les popovers et renouvelle la marque éphémère', async () => {
+    function Couche({ kind, plan, popover = false }: { kind: string; plan: 'scene' | 'application'; popover?: boolean }) {
+      const boite = useRef<HTMLDivElement>(null);
+      useDismissLayer({ kind, plan, nature: popover ? 'popover' : 'modale', boite }, null);
+      return <div ref={boite} role={popover ? undefined : 'dialog'} aria-label={kind}>{kind}</div>;
+    }
+    setDialogueProbe(dialogueDuDessus);
+    expect(buildApi().dialogueDuDessus()).toBeNull();
+    const c = await monter(<><Couche kind="conversation" plan="scene" /><Couche kind="fiche" plan="application" /><Couche kind="bulle" plan="application" popover /></>);
+    const dessus = buildApi().dialogueDuDessus()!;
+    expect(dessus).toEqual({ kind: 'fiche', plan: 'application', nom: 'fiche', selecteur: '[data-wfrp-dialogue-dessus]' });
+    expect(c.querySelectorAll(dessus.selecteur)).toHaveLength(1);
+    expect(c.querySelector(dessus.selecteur)?.getAttribute('aria-label')).toBe('fiche');
+    await act(async () => { root!.render(<Couche kind="conversation" plan="scene" />); });
+    expect(buildApi().dialogueDuDessus()).toMatchObject({ kind: 'conversation', plan: 'scene' });
+    expect(c.querySelectorAll(dessus.selecteur)).toHaveLength(1);
+    await act(async () => { root!.render(null); });
+    expect(buildApi().dialogueDuDessus()).toBeNull();
+    expect(document.querySelector(dessus.selecteur)).toBeNull();
+  });
+
+  it('panTo convertit le centre via CTM au pan vivant, mesure le rendu, et refuse la rotation transitoire', async () => {
+    vi.stubGlobal('DOMPoint', class {
+      constructor(public x: number, public y: number) {}
+      matrixTransform(m: { a: number; b: number; c: number; d: number; e: number; f: number }) {
+        return { x: m.a * this.x + m.c * this.y + m.e, y: m.b * this.x + m.d * this.y + m.f };
+      }
+    });
+    vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => { fn(0); return 1; });
+    useGame.setState({ scene: emptyScene(8, 8), camRot: 0, camEdge: false, camPan: { x: 10, y: 20 } });
+    poserPan(40, 70);
+    const c = await monter(<svg className="iso-stage"><g style={{ opacity: 1 }} /></svg>);
+    const svg = c.querySelector('svg')!;
+    const group = c.querySelector('g')!;
+    svg.getBoundingClientRect = () => ({ x: 60, y: 90, width: 500, height: 300 }) as DOMRect;
+    const st = useGame.getState();
+    const dims: Dims = { ...st.scene!.dimensions, rot: st.camRot, view: st.viewMode, edge: st.camEdge, yawDeg: viewYawDeg(st.camRot, st.camEdge) };
+    const corner = (await import('../geometry/iso')).diamondCorners(3, 4, dims, 0);
+    const tx = (corner.top[0] + corner.bot[0]) / 2, ty = (corner.top[1] + corner.bot[1]) / 2;
+    group.getScreenCTM = () => {
+      const committed = useGame.getState().camPan;
+      const pan = committed.x === 10 && committed.y === 20 ? { x: 40, y: 70 } : committed;
+      const affine = stageCamAffine(pan, 2);
+      const a = affine.k * 1.3, d = affine.k * 0.8;
+      const e = 60 + affine.tx * 1.3, f = 90 + affine.ty * 0.8;
+      return { a, b: 0, c: 0, d, e, f, inverse: () => ({ a: 1 / a, b: 0, c: 0, d: 1 / d, e: -e / a, f: -f / d }) } as DOMMatrix;
+    };
+    const initial = group.getScreenCTM()!;
+    const expectedPan = { x: 40 + (310 - initial.e) / initial.a - tx, y: 70 + (240 - initial.f) / initial.d - ty };
+    const position = buildApi().tileScreenPos({ x: 3, y: 4, z: 0.5 })!;
+    expect(Object.keys(position).sort()).toEqual(['height', 'width', 'x', 'y']);
+    expect(Object.values(position).every(Number.isFinite)).toBe(true);
+    const cameraAvant = { ...useGame.getState().camPan };
+    for (const tile of [7, { x: NaN, y: 4 }, { x: 3, y: Infinity }, { x: 3, y: 4, z: NaN }, { x: 3, y: 4, z: Infinity }]) {
+      expect(() => buildApi().tileScreenPos(tile as { x: number; y: number; z?: number })).toThrow(/tileScreenPos.*coordonnées invalides/);
+      expect(useGame.getState().camPan).toEqual(cameraAvant);
+    }
+    for (const z of [NaN, Infinity, -Infinity]) {
+      const before = { ...useGame.getState().camPan };
+      try {
+        const refusal = await buildApi().panTo({ x: 3, y: 4, z }).then(() => null, (e: unknown) => e);
+        expect(useGame.getState().camPan).toEqual(before);
+        expect(refusal).toBeInstanceOf(Error);
+        expect((refusal as Error).message).toContain('coordonnées invalides');
+      } finally {
+        useGame.setState({ camPan: before });
+      }
+    }
+    const out = await buildApi().panTo({ x: 3, y: 4 });
+    expect(out.pan.x).toBeCloseTo(expectedPan.x);
+    expect(out.pan.y).toBeCloseTo(expectedPan.y);
+    expect(out.centre.x).toBeCloseTo(310);
+    expect(out.centre.y).toBeCloseTo(240);
+    group.style.opacity = '0.6';
+    await expect(buildApi().panTo({ x: 3, y: 4 })).rejects.toThrow(/rotation en cours/);
+    await expect(buildApi().panTo('absent')).rejects.toThrow(/cible/);
+  });
+
+  it.each(['focale', 'reset'] as const)('panTo mesure et corrige le rendu pendant une évolution de %s', async (evolution) => {
+    vi.stubGlobal('DOMPoint', class {
+      constructor(public x: number, public y: number) {}
+      matrixTransform(m: { a: number; b: number; c: number; d: number; e: number; f: number }) {
+        return { x: m.a * this.x + m.c * this.y + m.e, y: m.b * this.x + m.d * this.y + m.f };
+      }
+    });
+    useGame.setState({ scene: emptyScene(8, 8), camRot: 0, camEdge: false, camPan: { x: 10, y: 20 } });
+    poserPan(40, 70);
+    const c = await monter(<svg className="iso-stage"><g style={{ opacity: 1 }} /></svg>);
+    const svg = c.querySelector('svg')!;
+    const group = c.querySelector('g')!;
+    svg.getBoundingClientRect = () => ({ x: 60, y: 90, width: 500, height: 300 }) as DOMRect;
+    let frame = 0;
+    let focal = { x: 0, y: 0 };
+    let resetApplique = false;
+    vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => {
+      frame++;
+      const committed = useGame.getState().camPan;
+      const live = getStagePan();
+      poserPan(live.x + (committed.x - live.x) * 0.25, live.y + (committed.y - live.y) * 0.25);
+      if (evolution === 'focale') focal = { x: Math.min(frame, 18) * 5, y: Math.min(frame, 18) * 2.5 };
+      if (evolution === 'reset' && frame === 7) {
+        useGame.getState().setCamPan(0, 0);
+        poserPan(0, 0);
+        resetApplique = true;
+      }
+      fn(frame);
+      return frame;
+    });
+    group.getScreenCTM = () => {
+      const pan = getStagePan();
+      const affine = stageCamAffine({ x: pan.x + focal.x, y: pan.y + focal.y }, 2);
+      const a = affine.k * 1.3, d = affine.k * 0.8;
+      const e = 60 + affine.tx * 1.3, f = 90 + affine.ty * 0.8;
+      return { a, b: 0, c: 0, d, e, f, inverse: () => ({ a: 1 / a, b: 0, c: 0, d: 1 / d, e: -e / a, f: -f / d }) } as DOMMatrix;
+    };
+    const api = buildApi();
+    const out = await api.panTo({ x: 3, y: 4 });
+    const observed = api.tileScreenPos({ x: 3, y: 4 })!;
+    expect(Math.hypot(observed.x + observed.width / 2 - 310, observed.y + observed.height / 2 - 240)).toBeLessThanOrEqual(2);
+    expect(out.centre.x).toBeCloseTo(observed.x + observed.width / 2);
+    expect(out.centre.y).toBeCloseTo(observed.y + observed.height / 2);
+    expect(frame).toBeLessThanOrEqual(122);
+    if (evolution === 'focale') expect(focal).toEqual({ x: 90, y: 45 });
+    else expect(resetApplique).toBe(true);
+  });
+});
 
 describe('__wfrp.areteScreenPos — le trait de prise du peintre, au pixel (#2306)', () => {
   it('rend le centre ÉCRAN du trait de l’arête visée, quel que soit le côté nommé, et son libellé', async () => {

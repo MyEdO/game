@@ -214,10 +214,10 @@ describe('#1262 lot 2 — les deux prédicats du circuit sont COUPLÉS (le déca
  * (`testValue`), et seule la RÉPARTITION base/lignes nommées change (base NUE, États en chips).
  *
  * Le porteur est chargé d'États choisis pour que le CANAL de la ligne se voie à la CIBLE, pas
- * seulement au découpage : 2 Sonné (−10/pion) et 3 Aveuglé (−10/pion, `combatOnly`). Hors canal
- * combat — celui du montage manuscrit — le pool non-cumul retient le Sonné (−20) et ignore l'Aveuglé ;
- * le canal `combat` retiendrait l'Aveuglé (−30). Une ligne montée sur l'autre canal rate donc la cible
- * de 10 points, et ces tests tombent.
+ * seulement au découpage : 2 Sonné (−10/pion) et une aura de combat −20 (LDB 85 l.262). Hors canal
+ * combat — celui du montage manuscrit — le pool retient le Sonné (−20) et ignore l'aura ; le canal
+ * `combat` y somme l'aura, son propre pool (LDB 14 l.95). Une ligne montée sur l'autre canal rate donc
+ * la cible de 20 points, et ces tests tombent.
  */
 describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la base se DÉCOMPOSE', () => {
   /** Le porteur du lot, à États actifs (cf. en-tête). Le collecteur est appelé DIRECTEMENT : c'est le
@@ -226,7 +226,7 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
     const H = setupCoop();
     H.characteristics.endurance = 45;
     addCondition(H, COND.sonne, 2);
-    addCondition(H, COND.aveugle, 3);
+    H.auraMods = [{ op: { op: 'testMod', amount: -20 } }];
     return H;
   }
   /** `base + Σ mods` — l'invariant du monteur canonique, Difficulté Intermédiaire (+0) comprise. */

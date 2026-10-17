@@ -383,7 +383,7 @@ test('#2187 — `lanceLaSuite` reconnaît le lanceur de la suite, et lui seul', 
   assert.equal(lanceLaSuite(undefined), false)
 })
 
-test('#2187 — la gate qui lance la suite ATTEND le verrou de suite HORS de son chronomètre, et son enfant part sous l’opt-out', async () => {
+test('#2187 — la gate qui lance la suite ATTEND le verrou de suite HORS de son chronomètre, et son enfant part sous l’opt-out', async (t) => {
   const { racine } = depotDeGates([
     { nom: 'suite', fichier: 'scripts/test/run.mjs', corps: "console.log(`opt-out=${process.env.WFRP_SUITE_LOCK}`)\n" },
   ])
@@ -399,16 +399,21 @@ test('#2187 — la gate qui lance la suite ATTEND le verrou de suite HORS de son
   // `arret` posé à la PAS_TENUS-ième annonce du tenant : l'attente compte ces pas, la gate n'en compte aucun.
   const PAS_TENUS = 20
   let annonces = 0
+  let horloge = 0
   try {
     writeFileSync(chemin, JSON.stringify({ pid: tenant.pid, commande: 'tenant du banc', cwd: dossier }))
     const lignes = []
+    t.mock.method(Date, 'now', () => horloge)
     const code = await principal({
       racine,
       machine: MACHINE_A_LANES,
       argv: ['node', 'toutes.mjs'],
       journal: (t) => {
         lignes.push(t)
-        if (t.includes(`attente du verrou de suite :`) && t.includes(`PID ${tenant.pid}`) && ++annonces === PAS_TENUS) writeFileSync(arret, '')
+        if (t.includes(`attente du verrou de suite :`) && t.includes(`PID ${tenant.pid}`)) {
+          horloge += 100
+          if (++annonces === PAS_TENUS) writeFileSync(arret, '')
+        }
       },
       ecritLu: tableTotale(['suite'], () => ({ ecrit: [], lit: ['src/'] })),
       verrouSuite: { chemin, libelle: 'suite du banc', attente: { pasMs: 100, echeanceMs: 20_000 } },
@@ -419,11 +424,12 @@ test('#2187 — la gate qui lance la suite ATTEND le verrou de suite HORS de son
     const attente = Number(/\[gates\] suite — ([\d.]+) s d'attente du verrou de suite \(hors chronomètre\)/.exec(sortie)?.[1])
     const duree = Number(/\[gates\] suite — vert \(exit 0\) en ([\d.]+) s/.exec(sortie)?.[1])
     assert.ok(annonces >= PAS_TENUS, `annonces du tenant : ${annonces}`)
-    assert.ok(attente > 0, `attente mesurée : ${attente} s`)
-    assert.ok(duree < attente, `la durée de la gate (${duree} s) ne compte pas l’attente (${attente} s)`)
+    assert.equal(attente, annonces / 10, 'l’attente compte les pas de l’horloge pendant le verrou')
+    assert.equal(duree, 0, 'la gate ne compte aucun pas de l’horloge pendant le verrou')
     assert.match(readFileSync(/\[gates\] suite — vert \(exit 0\) en [\d.]+ s · (.+)\n/.exec(sortie)?.[1] ?? '', 'utf8'), /opt-out=0/, 'l’enfant part sous WFRP_SUITE_LOCK=0')
     assert.equal(existsSync(chemin), false, 'le verrou est rendu après la gate')
   } finally {
+    t.mock.restoreAll()
     writeFileSync(arret, '')
     tenant.kill()
     rmSync(dossier, { recursive: true, force: true })

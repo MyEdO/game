@@ -66,14 +66,17 @@ import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, e
 import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
+import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
+import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from './terrain';
 import { sceneToAscii } from './sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
-import { startCascade } from './cascade';
+import { startCascade, stepInteraction, stepReady } from './cascade';
 import { routeDistanceLabel } from '../engine/travel';
-import { actorIn, ecrireActeur, inBattleId } from './combatants';
+import { mirrorPools } from '../engine/advantagePool';
+import { actorIn, ecrireActeur, inBattleId, garanti } from './combatants';
 import { touchActors } from './combatOrParty';
-import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, type PlacingZone } from './combatFlow';
+import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
 import { defenseSurfaced } from './netOwnership';
 import { combatDistance } from './footprint';
 import { reachTiles } from '../engine/engagement';
@@ -85,13 +88,13 @@ import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
 import { pushChoice } from './rollSeam';
-import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById } from '../data';
+import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById, findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { verdictApprentissage } from '../engine/grimoire';
 import { spawnEnemy } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
 import { ev } from './combatLog';
-import { isOutOfAction, syncDerivedConditions, cannotDefend } from '../engine/conditions';
+import { isOutOfAction, syncDerivedConditions, cannotDefend, etatConnu, etatIdsConnus } from '../engine/conditions';
 import { tickDisease } from '../engine/disease';
 import { battleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
@@ -118,7 +121,8 @@ import { willAutoResolve } from './combatAuto';
 import { aiDriven, combatAdvanceBlocked } from './combatGate';
 import { endTurnArmed } from './endTurnGuard';
 import { activeLoadout, isShieldItem, loadoutLabel, formeResolue } from '../engine/items';
-import { bestDefenseMode } from './combatManeuvers';
+import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, MELEE_MANEUVER_KINDS } from './combatManeuvers';
+import { attaquesNaturelles, attaqueNaturelle, type AttackKind } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
 import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
@@ -131,6 +135,79 @@ import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene
 import { scheduleFlowTimer } from './combatTimers';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../lib/stockageWeb';
+import { browserFreezeTimeout, browserUnfreezeTimeout } from './devtoolsTimers';
+import { modaleDuDessus, type LayerPlan } from './dismissStack';
+import { getStagePan } from './stagePan';
+import { lacetActif, SENSIBILITE_DRAG_DEG_PX } from './stageYaw';
+import { CLES_DE_DATASET, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
+import { collectionDuDataset, datasetSerializeRoot, datasetObjectSerializeRoot, OBJECT_DATASET_KEYS, type DatasetKey, type ObjectDatasetKey } from '../data/overrides';
+import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../data/schemas/exposition-derivee';
+import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
+import { collectionALaCle } from '../data/schemas/grammaire/collection-cle';
+import { traumaById } from '../engine/trauma';
+import type { HitLocation } from '../engine/types';
+import { openSkillTest } from './combatEffects';
+import { EMPTY_FLOW, type FlowTest } from './flow';
+
+function entreeDeRecette(dataset: string, id: string): unknown {
+  if (!(CLES_DE_DATASET as readonly string[]).includes(dataset))
+    throw new Error(`__wfrp.entree : dataset « ${dataset} » inconnu — clés : ${CLES_DE_DATASET.join(', ')}`);
+  const cle = dataset as CleDeDataset;
+  const valeur = collectionDuDataset(cle);
+  const schema = SCHEMA_DEFS.find((d) => d.file === DATASET_FICHIER_DERIVE[cle])?.schema;
+  const racine = (OBJECT_DATASET_KEYS as readonly string[]).includes(cle)
+    ? datasetObjectSerializeRoot(cle as ObjectDatasetKey)
+    : datasetSerializeRoot(cle as DatasetKey);
+  let marque;
+  try { marque = collectionALaCle(schema, racine, DATASET_SUITE_DERIVE[cle] ?? '').marque; }
+  catch { throw new Error(`__wfrp.entree : « ${dataset} » ne porte pas de collection à clé déclarée`); }
+  let entree: unknown;
+  if (marque.forme === 'liste' && Array.isArray(valeur)) {
+    const matches = valeur.filter((v) => marque.de(v) === id);
+    if (matches.length > 1) throw new Error(`__wfrp.entree : « ${dataset}/${id} » ambigu (${matches.length} entrées)`);
+    entree = matches[0];
+  } else if (marque.forme === 'record' && !marque.sous && valeur && typeof valeur === 'object' && !Array.isArray(valeur)) {
+    entree = Object.prototype.hasOwnProperty.call(valeur, id) ? (valeur as Record<string, unknown>)[id] : undefined;
+  } else throw new Error(`__wfrp.entree : forme de « ${dataset} » non prise en charge`);
+  if (entree === undefined) throw new Error(`__wfrp.entree : « ${dataset}/${id} » introuvable`);
+  return structuredClone(entree);
+}
+
+function coordonneesFinies(tile: unknown): tile is { x: number; y: number; z?: number } {
+  if (tile === null || typeof tile !== 'object') return false;
+  const point = tile as Record<string, unknown>;
+  return Number.isFinite(point.x) && Number.isFinite(point.y) && (point.z === undefined || Number.isFinite(point.z));
+}
+
+export type CodexLocation = { tab: string; group: string; cluster: string | null };
+export type CodexProbe = (categoryId: string) => CodexLocation | null;
+let lireCodex: CodexProbe | null = null;
+
+export function setCodexProbe(probe: CodexProbe | null): void {
+  lireCodex = probe;
+}
+
+let lireDialogue: (() => HTMLElement | null) | null = null;
+let dialogueMarque: HTMLElement | null = null;
+
+export function setDialogueProbe(probe: (() => HTMLElement | null) | null): void {
+  dialogueMarque?.removeAttribute('data-wfrp-dialogue-dessus');
+  dialogueMarque = null;
+  lireDialogue = probe;
+}
+
+function observerDialogueDuDessus(): { kind: string; plan: LayerPlan; nom: string; selecteur: string } | null {
+  dialogueMarque?.removeAttribute('data-wfrp-dialogue-dessus');
+  dialogueMarque = null;
+  const couche = modaleDuDessus();
+  const boite = couche && lireDialogue?.();
+  if (!couche || !boite?.isConnected) return null;
+  boite.setAttribute('data-wfrp-dialogue-dessus', '');
+  dialogueMarque = boite;
+  const nom = boite.getAttribute('aria-label') ?? (boite.getAttribute('aria-labelledby') ?? '')
+    .split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? '').join(' ').trim();
+  return { kind: couche.kind, plan: couche.plan, nom, selecteur: '[data-wfrp-dialogue-dessus]' };
+}
 
 /** Trace du DERNIER Test résolu (`resolveTest`, `EVT.TEST_RESOLVED`) — observation pure pour la
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
@@ -165,10 +242,8 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.entities()     → liste des entités de la scène + leur mode d'accès
  *   __wfrp.routes()       → liste les routes CLIQUABLES de la carte du monde courante (id/from/to/
  *                           distanceLabel) — cibler `clickRoute(id)` sans deviner parmi des chips ambigus
- *   __wfrp.screenPos('id') → bounding box ÉCRAN du token (combat ET exploration, `data-cid`) — LECTURE
- *                           seule (`getBoundingClientRect`), `null` si absent du DOM
- *   __wfrp.tileScreenPos({x,y,z?}) → même bounding box ÉCRAN pour une CASE (vide comprise), là où
- *                           `screenPos` exige un token `data-cid` — viser un déplacement au clic réel
+ *   __wfrp.tileScreenPos({x,y,z?}) → bounding box ÉCRAN projetée d'une CASE (vide comprise)
+ *                           — viser un déplacement au clic réel
  *   __wfrp.areteScreenPos(x,y,z,dir) → centre ÉCRAN du trait de chaque geste d'arête offert sur ce côté
  *                           de case (`[{x,y,libelle,capacite}]`) — viser un geste d'arête au clic réel
  *   __wfrp.pickTileAt({x,y}) → l'INVERSE : ce que le PICKING RÉEL résoudrait sous ce pixel écran
@@ -204,6 +279,10 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.aiLog(n)       → DIAGNOSTIC IA : action choisie + classement des candidats (intention) par tour
  *   __wfrp.turn('id')     → TRICHE : donne le tour à un combattant ; __wfrp.place('id',{x,y}) → téléporte
  *   __wfrp.attaque(a, d)  → SETUP : pose l'attaque de l'IA `a` sur `d` et OUVRE la modale de Défense de `d`
+ *   __wfrp.attaqueGratuite(a, d, type?) → SETUP : l'ennemi `a` déclare une attaque GRATUITE de créature sur `d`
+ *                           (file de production `aiCreatureFreeAttacks`) ; ✓ quand la file la déclare : modale de
+ *                           Défense ouverte (sur `d` ou le premier adversaire au contact, nommé), coup suspendu
+ *                           sur une étape, ou coup joué sans fenêtre ; ✗ si rien ne part
  *   __wfrp.turnShip('id', 'tribord'|'babord'|crans) → vire le cap d'un NAVIRE (manœuvre) → re-mappe ses bordées
  *   __wfrp.modal()        → modale(s) ouvertes ; __wfrp.roll()/confirm()/cancel() → pilote LA modale
  *                           (convention <flux>Roll/Confirm/Cancel ; reveals/Round ont leur verbe propre)
@@ -225,6 +304,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.flags()        → drapeaux de scénario ; __wfrp.flag('id', true) → force un drapeau
  *   __wfrp.go('scene-id') → saute vers une scène du projet ; __wfrp.fight() → liste/lance une rencontre
  *   __wfrp.fear(h,e,i?)   → pose une Peur (Indice) de h envers e puis simule l'approche (Test de Calme ou Brisé)
+ *   __wfrp.psych(id,type) → pose l'état psychologique `type` (op `beginPsych`) ; type hors psychology.json → ✗ + ids valides
  *   __wfrp.time(min)      → avance l'horloge ; __wfrp.rest(jours) → dort (cascade quotidienne #T3)
  *   __wfrp.quality(id,label,av?) → ajoute un Atout d'arme à l'arme active + Avantages (test renversement…)
  *   __wfrp.seed(n)        → ré-ensemence le RNG de bataille (déterminisme, EN COURS de combat)
@@ -592,6 +672,78 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     return `✓ scénario « ${sc.title} » lancé${sc.autoCombat ? ' (combat direct, prêt à jouer)' : ''}`;
   };
   return {
+    dialogueDuDessus: observerDialogueDuDessus,
+    codexLocate: (categoryId: string): CodexLocation => {
+      const location = lireCodex?.(categoryId);
+      if (!location) throw new Error(`__wfrp.codexLocate : catégorie « ${categoryId} » inconnue`);
+      return { ...location };
+    },
+    camera: () => {
+      const s = g();
+      return { deg: viewYawDeg(s.camRot, s.camEdge), active: lacetActif(), sensibilite: SENSIBILITE_DRAG_DEG_PX };
+    },
+    freezeTimeout: (delays = [60000]) => {
+      const forced = browserFreezeTimeout(delays);
+      return forced.delays.length ? `✓ délais des nouveaux setTimeout forcés : ${forced.delays.join(', ')} ms (dernier réutilisé)` : '✓ délais des nouveaux setTimeout inchangés';
+    },
+    unfreezeTimeout: () => browserUnfreezeTimeout() ? '✓ setTimeout rétabli' : '✓ aucun délai de setTimeout forcé',
+
+    entree: entreeDeRecette,
+
+    trauma: (id: string, traumaId: string, opts?: { be?: number; d10?: number }, location?: HitLocation) => {
+      if (!actorIn(g(), id)) throw new Error(`__wfrp.trauma : combattant « ${id} » introuvable`);
+      const trauma = traumaById(traumaId, opts, location);
+      useGame.setState((s) => ecrireActeur(s, id, (c) => ({ ...c, traumas: [...(c.traumas ?? []), trauma] })));
+      return structuredClone(trauma);
+    },
+
+    testCompetence: (actorId: string, spec: FlowTest) => {
+      if (!actorIn(g(), actorId)) throw new Error(`__wfrp.testCompetence : combattant « ${actorId} » introuvable`);
+      if (!!spec.skill === !!spec.characteristic) throw new Error('__wfrp.testCompetence : fournir une compétence ou une caractéristique');
+      if (!spec.stake) throw new Error('__wfrp.testCompetence : fournir l’enjeu du Test (stake)');
+      if (g().pendingTest || g().pendingCascade) throw new Error('__wfrp.testCompetence : un Test est déjà ouvert');
+      if (!openSkillTest(g, useGame.setState, structuredClone(spec), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId }))
+        throw new Error(`__wfrp.testCompetence : ouverture refusée pour « ${actorId} »`);
+      return '✓ Test ouvert';
+    },
+
+    panTo: async (idOrXY: string | { x: number; y: number; z?: number }) => {
+      const tile: { x: number; y: number; z?: number } | undefined = typeof idOrXY === 'string' ? actorIn(g(), idOrXY)?.pos ?? find(idOrXY)?.pos : idOrXY;
+      if (!coordonneesFinies(tile)) throw new Error('__wfrp.panTo : cible introuvable ou coordonnées invalides');
+      if (lacetActif()) throw new Error('__wfrp.panTo : rotation en cours');
+      if (!projectionDuStage()) throw new Error('__wfrp.panTo : stage non monté');
+      const sceneId = g().scene?.id;
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      for (let frame = 0; frame < 120; frame++) {
+        const current = projectionDuStage();
+        const matrix = current?.camGroup.getScreenCTM();
+        const svg = current?.camGroup.ownerSVGElement;
+        if (!current || !matrix || !svg || g().scene?.id !== sceneId) throw new Error('__wfrp.panTo : stage démonté');
+        const opacity = Number.parseFloat(getComputedStyle(current.camGroup).opacity);
+        if (lacetActif() || opacity < 1) throw new Error('__wfrp.panTo : rotation en cours pendant le cadrage');
+        const b = svg.getBoundingClientRect();
+        if (b.width <= 0 || b.height <= 0) throw new Error('__wfrp.panTo : stage sans dimensions');
+        if (![opacity, b.x, b.y, b.width, b.height, matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].every(Number.isFinite))
+          throw new Error('__wfrp.panTo : projection non finie');
+        const d = diamondCorners(tile.x, tile.y, current.dims, tile.z ?? 0);
+        const target = { x: (d.top[0] + d.bot[0]) / 2, y: (d.top[1] + d.bot[1]) / 2 };
+        const point = new DOMPoint(target.x, target.y).matrixTransform(matrix);
+        if (!coordonneesFinies(point)) throw new Error('__wfrp.panTo : projection non finie');
+        const centre = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+        if (Math.hypot(point.x - centre.x, point.y - centre.y) <= 2)
+          return { tile: { ...tile }, pan: { ...g().camPan }, centre: { x: point.x, y: point.y } };
+        const local = new DOMPoint(centre.x, centre.y).matrixTransform(matrix.inverse());
+        const pan = getStagePan();
+        const next = { x: pan.x + local.x - target.x, y: pan.y + local.y - target.y };
+        if (!coordonneesFinies(local) || !coordonneesFinies(pan) || !coordonneesFinies(next))
+          throw new Error('__wfrp.panTo : projection non finie');
+        g().setCamPan(next.x, next.y);
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      }
+      throw new Error('__wfrp.panTo : centre non atteint après 120 images');
+    },
+
     /** Le store brut (sélecteurs, getState, setState) — pour les cas non couverts par les helpers. */
     store: useGame,
 
@@ -658,23 +810,13 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }));
     },
 
-    /** OBSERVATION seule : bounding box ÉCRAN du token `id` (combat ET exploration — même canal
-     *  `data-cid`, #226) via `getBoundingClientRect`. `null` si le token n'est pas dans le DOM
-     *  (hors vue, scène/combat sans ce token). Zéro action — ne pilote rien. */
-    screenPos: (id: string): { x: number; y: number; width: number; height: number } | null => {
-      const el = document.querySelector(`[data-cid="${id}"]`);
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { x: r.x, y: r.y, width: r.width, height: r.height };
-    },
-
-    /** OBSERVATION seule : bounding box ÉCRAN d'une CASE — le symétrique de `screenPos`, qui ne sait
-     *  servir qu'un token porteur de `data-cid`. Une case VIDE n'a pas de nœud DOM propre : elle est
+    /** OBSERVATION seule : bounding box ÉCRAN d'une CASE. Une case VIDE n'a pas de nœud DOM propre : elle est
      *  projetée par `diamondCorners` (`geometry/iso`, la géométrie du RENDU lui-même), puis la
      *  transformée caméra est lue sur la CTM du groupe qui la porte — zoom, panoramique et rotation
      *  viennent donc du DOM, pas d'un second calcul à tenir à jour. `z` = étage visé (défaut 0).
      *  `null` hors scène ou tant que le stage n'est pas monté. Zéro action — ne pilote rien. */
     tileScreenPos: (tile: { x: number; y: number; z?: number }): { x: number; y: number; width: number; height: number } | null => {
+      if (!coordonneesFinies(tile)) throw new Error('__wfrp.tileScreenPos : coordonnées invalides — fournir un objet {x, y, z?} fini');
       const proj = projectionDuStage();
       const ctm = proj?.camGroup.getScreenCTM();
       if (!proj || !ctm) return null;
@@ -1269,6 +1411,63 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
     },
 
+    /** SETUP de recette : l'ennemi `attaquantId` (piloté par l'IA) déclare une ATTAQUE GRATUITE de créature
+     *  (`type` : morsure, caudale, tentacules, cornes, pietinement ; défaut = la première disponible) sur
+     *  `defenseurId`, par la file de PRODUCTION (`combatFlow.ts:aiCreatureFreeAttacks`, reprise d'une file
+     *  DÉFINIE) posée à cette seule unité, au tour de l'attaquant, qui lui est donné AVANT (Action et
+     *  Mouvement du tour lus par la file). La fenêtre de Défense surfacée est celle du jeu ; sa fermeture
+     *  reprend ce tour comme après une gratuite d'IA. Refus NOMMÉS, sans rien toucher : les refus de
+     *  `attaque`, attaquant non ennemi, aucune gratuite disponible (ou `type` absent de ses gratuites),
+     *  défenseur hors de portée, non surfacé, incapable de se défendre ; puis, si la file écarte l'unité, le
+     *  tour est rendu et la raison nommée (Avantage sous le coût). Une gratuite DÉCLARÉE par la file rend ✓,
+     *  qu'elle ouvre une fenêtre de Défense (sur `defenseurId` ou le premier adversaire au contact), soit
+     *  suspendue sur une étape (sauvegarde…) ou jouée sans fenêtre. */
+    attaqueGratuite: (attaquantId: string, defenseurId: string, type?: string | null) => {
+      const b = g().battle;
+      if (!b || b.over) return '✗ pas de combat en cours';
+      if (g().pendingRoundStart) return '✗ pause de début de Round : ouvrir le Round d\'abord (__wfrp.confirm())';
+      const actif = inBattleId(b, b.order[b.turn]);
+      if (actif && aiDriven(g(), actif)) return `✗ tour de ${actif.label}, piloté par l'IA (minuteurs en vol) : attendre la main d'un joueur (__wfrp.fastForward())`;
+      const att = inBattleId(b, attaquantId);
+      const def = inBattleId(b, defenseurId);
+      if (!att || !def) return `✗ attaquant/défenseur introuvable (${attaquantId}/${defenseurId}) — voir __wfrp.battle()`;
+      const horsDeCombat = [att, def].find(isOutOfAction);
+      if (horsDeCombat) return `✗ ${horsDeCombat.label} est hors de combat`;
+      const idx = b.order.indexOf(att.id);
+      if (idx < 0) return `✗ ${att.label} est absent de l'ordre d'initiative`;
+      if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : ses gratuites passent par la barre d'actions`;
+      if (att.kind !== 'enemy') return `✗ ${att.label} n'est pas un ennemi : la file des gratuites de créature ne joue que les ennemis`;
+      if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
+      const atks = attaquesNaturelles(att.traits ?? []);
+      const disponibles: AttackKind[] = [
+        ...(att.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes' as const] : []),
+        ...atks.filter((a) => a.trigger === 'free' && MELEE_MANEUVER_KINDS.includes(a.kind) && freeAttackTargetOk(b, att, a.kind, def)).map((a) => a.kind),
+      ];
+      if (!disponibles.length) return `✗ ${att.label} n'a aucune attaque gratuite disponible contre ${def.label} (Morsure, Attaque caudale, Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact) — __wfrp.trait() d'abord`;
+      const kind = disponibles.find((k) => k === (type ?? disponibles[0]));
+      if (!kind) return `✗ « ${type} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
+      if (combatDistance(att, def) > 1) return `✗ ${def.label} est hors de portée de ${att.label} (distance ${combatDistance(att, def)} > 1) — __wfrp.place() d'abord`;
+      if (!defenseSurfaced(g(), def)) return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
+      if (cannotDefend(def)) return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
+      donnerLeTour(b, idx);
+      const auTour = g().battle!;
+      const porteur = inBattleId(auTour, att.id)!;
+      porteur.pendingFreeAttacks = [kind];
+      const declarees = porteur.freeAttacksThisTurn?.[kind] ?? 0;
+      const suspendue = aiCreatureFreeAttacks(() => useGame.getState(), useGame.setState, porteur);
+      if ((porteur.freeAttacksThisTurn?.[kind] ?? 0) > declarees) {
+        const ouverte = g().pendingDefense;
+        const visee = ouverte ? inBattleId(g().battle, ouverte.defenderId)?.label ?? ouverte.defenderId : null;
+        if (visee !== null) return `✓ ${att.label} déclare ${kind} sur ${visee} — modale de Défense ouverte${ouverte!.defenderId === def.id ? '' : ` (premier adversaire au contact, pas ${def.label})`}`;
+        const etape = g().pendingCascade;
+        if (suspendue) return `✓ ${att.label} déclare ${kind} : coup suspendu${etape ? ` sur l'étape ${etape.participants[etape.cursor]?.kind ?? '?'}` : ''} — __wfrp.modal()`;
+        return `✓ ${att.label} déclare ${kind} : coup joué sans fenêtre sur le premier adversaire au contact — __wfrp.log()`;
+      }
+      if (g().battle === auTour) useGame.setState({ battle: b });
+      const cout = freeAttackCost(b, att, attaqueNaturelle(att.traits ?? [], kind)!.def).advantage;
+      return `✗ la file a écarté ${kind} de ${att.label} : ${att.advantage} Avantage pour un coût de ${cout} — __wfrp.quality('${att.id}', null, ${cout}) d'abord`;
+    },
+
     /** TRICHE de recette : téléporte un COMBATTANT (mise en place de situations LdV/portée). Cible une
      *  COQUE à postes (`postes` non vide) ou un membre d'ÉQUIPAGE de poste (`ShipPoste.crewIds`) →
      *  déplace la FORMATION SOLIDAIRE (coque + tout l'équipage des postes de la coque, MÊME delta —
@@ -1316,7 +1515,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** Recette : MANŒUVRE un navire (MDG 13) — le barreur (meilleur en Voile/Ramer de l'équipage, ou
-     *  `helmsmanId`) jette un Test de Navigation → `resolveShipManeuver` → vire SUR RÉUSSITE. `side` =
+     *  `helmsmanId`) jette un Test de Navigation → `maneuverShip` → vire sur réussite du Test. `side` =
      *  'tribord'/'babord' (90°) ou crans. Contrairement à `turnShip` (triche), ce virage PEUT échouer. */
     maneuver: (shipId: string, side: 'tribord' | 'babord' | number = 'tribord', helmsmanId?: string) => {
       const b = g().battle;
@@ -1563,8 +1762,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     shipCrit: (location = 'greement', opts: { hullId?: string; forcedCritRoll?: number } = {}) => {
       const s = g();
       const { hullId, forcedCritRoll } = opts;
-      const estCoque = (c: Combatant): boolean => !!findVehicleById(c.creatureId ?? '')?.hull;
-      const enJeu = (s.battle?.combatants ?? []).filter(estCoque);
+      const enJeu = (s.battle?.combatants ?? []).filter(estNavire);
       // Par DÉFAUT, la coque des HÉROS — jamais « la première trouvée » : en combat naval, la première
       // est souvent le navire ENNEMI, et la recette frappait le mauvais bord. L'ordre de recherche suit
       // ce que le jeu appelle « notre navire » : la coque du plan de voyage, puis celle qui porte un
@@ -1573,19 +1771,21 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         (c.crewIds ?? []).some((id) => (s.party.some((h) => h.id === id)) || inBattleId(s.battle, id)?.kind === 'hero');
       const coque = hullId
         ? (enJeu.find((c) => c.id === hullId) ?? (s.travelPlan?.vehicle?.id === hullId ? s.travelPlan.vehicle : undefined))
-        : (s.travelPlan?.vehicle ?? enJeu.find(desHeros) ?? (enJeu.length === 1 ? enJeu[0] : undefined));
+        : ((s.travelPlan?.vehicle && estNavire(s.travelPlan.vehicle) ? s.travelPlan.vehicle : undefined) ?? enJeu.find(desHeros) ?? (enJeu.length === 1 ? enJeu[0] : undefined));
       if (!coque) {
         if (hullId) return `✗ coque « ${hullId} » introuvable — en jeu : ${enJeu.map((c) => c.id).join(', ') || '(aucune)'}`;
         if (enJeu.length > 1) return `✗ PLUSIEURS coques et aucune n'est celle des héros — nomme-la : shipCrit('${location}', { hullId }) parmi ${enJeu.map((c) => c.id).join(', ')}`;
-        return '✗ aucune COQUE en jeu (lance un scénario naval, ou appareille)';
+        return '✗ aucune coque de NAVIRE en jeu (lance un scénario naval, ou appareille)';
       }
-      const gree = findVehicleById(coque.creatureId ?? '')?.hull?.rig ?? 'mixte';
+      const profil = profilNavalDe(coque);
+      if (!profil) return `✗ « ${coque.label} » n'est pas une coque de NAVIRE : aucun Critique de navire`;
+      const gree = garanti(rigDuNavire(profil), coque.creatureId, 'gréement du navire (schéma `vehicles`, MDG 12 l.131)');
       const table = findVehicleById(coque.creatureId ?? '')?.hull?.locationTable ?? 'navire';
       let de: number | undefined;
       for (let d = 1; d <= 100 && de === undefined; d++) if (shipHitLocation(gree, d, table) === location) de = d;
       if (de === undefined) return `✗ « ${location} » n'est pas une Localisation de ce gréement (${gree})`;
       const log: string[] = [];
-      applyHullCriticalToTarget(coque, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll });
+      applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll });
       for (const l of log) useGame.getState().log(l);
       return [`✓ Critique de navire « ${location} » (d100 imposé ${de}) sur ${coque.label}`, ...log];
     },
@@ -1643,6 +1843,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** RECETTE : drapeaux de scénario (portes de l'arène, etc.). */
     flags: () => g().flags,
     flag: (id: string, value = true) => {
+      if (ruleDef(id)) throw new Error(`__wfrp.flag : « ${id} » est une règle optionnelle — utiliser __wfrp.rules('${id}', ${value})`);
       useGame.setState((s) => ({ flags: { ...s.flags, [id]: value } }));
       return g().flags;
     },
@@ -1749,8 +1950,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE : ajoute un Atout/Défaut (par libellé OU id de qualité) à l'arme ACTIVE d'un combattant
      *  et, optionnellement, lui crédite des Avantages — ex. `quality('hero-1','Déstabilisante',2)` pour
-     *  tester le renversement onHit influençable. La qualité est reconnue label/id/casse (resolveQualities). */
-    quality: (id: string, label = 'Déstabilisante', advantage?: number) => {
+     *  tester le renversement onHit influençable. La qualité est reconnue label/id/casse (resolveQualities).
+     *  `null` vaut absent (un `undefined` passé par CDP arrive `null`) : qualité par défaut, aucun Avantage. */
+    quality: (id: string, qualite?: string | null, advantage?: number | null) => {
+      const label = qualite ?? 'Déstabilisante';
       const tweak = (c: Combatant): Combatant => {
         const weapons = (c.weapons ?? []).map((w, i) => (i === 0 ? { ...w, qualities: [...(w.qualities ?? []), parseQualityInstance(label) ?? { id: label }] } : w));
         return { ...c, weapons, ...(advantage != null ? { advantage } : {}) };
@@ -1760,10 +1963,12 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return c ? `✓ ${c.label} : arme « ${c.weapons?.[0]?.label} » + ${label}${advantage != null ? ` · ${advantage} Av` : ''}` : `✗ ${id} introuvable`;
     },
 
-    /** RECETTE : applique un État à un combattant (par id) par l'effet `ops` (op `condition`). */
+    /** RECETTE : applique un État à un combattant (par id) par l'effet `ops` (op `condition`) ; un id
+     *  hors `etatConnu` (catalogue vivant ∪ marqueurs narratifs) → ✗ + ids valides, rien de posé. */
     condition: (id: string, name = 'sonne', n = 1) => {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
+      if (!etatConnu(name)) return `✗ État « ${name} » inconnu — ids valides : ${etatIdsConnus().join(', ')}`;
       nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'condition', id: name, value: n }] }]), 'devtools.condition');
       return `✓ ${c.label} : +${n} ${name}`;
     },
@@ -1818,6 +2023,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const side = opts?.side ?? 'enemy';
       if (side === 'hero') { c.kind = 'hero'; c.aiControlled = true; }
       else if (side === 'npc') c.kind = 'npc';
+      if (b.advantagePools) mirrorPools(b.advantagePools, [c]); // AA 11 l.11-13
       useGame.setState({ battle: { ...b, combatants: [...b.combatants, c], order: [...b.order, id] } });
       bus.emit(EVT.SCENE_DIRTY);
       return `✓ ${c.label} (${creatureId}) apparu — ${side}, (${basePos.x},${basePos.y})`;
@@ -1848,9 +2054,6 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ Piège-lame : ${defender.label} pare ${attacker.label} (${weapon.label}, +${defSL} DR) → choix Piéger/Critique`;
     },
 
-    /** RECETTE : met un combattant en FOCALISATION (DR cumulé sur un sort) — `focus('hero-1')` →
-     *  Armure Aethyrique DR 3. Frapper ensuite le focaliseur (attaque ennemie / `__wfrp.condition` +
-     *  dégâts) déclenche `checkFocusInterruption` : Test de Calme Difficile INFLUENÇABLE (héros manuel). */
     focus: (id: string, spell = 'armure-aethyrique', dr = 3) => {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
@@ -1858,10 +2061,6 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ ${c.label} : Focalisation ${spell} (DR ${dr})`;
     },
 
-    /** RECETTE : pose une Peur active de `heroId` envers `enemyId` (Indice) puis simule l'APPROCHE de la
-     *  source (LDB 21 l.27) — `fear('hero-1','enemy-1', 2)`. C'est le MÊME appel que le mouvement d'IA quand
-     *  une source de Peur se rapproche (`approachFearTrigger`) : le héros doit réussir un Test de Calme
-     *  Intermédiaire (héros manuel → étape de cascade INFLUENÇABLE) ou gagner un État Brisé. */
     fear: (heroId: string, enemyId: string, indice = 2) => {
       const b = g().battle;
       if (!b || b.over) return '✗ pas de combat en cours';
@@ -1871,7 +2070,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!hero.pos || !enemy.pos) return '✗ positions inconnues';
       hero.psychState = [
         ...(hero.psychState ?? []).filter((p) => !(p.type === 'peur' && p.sourceId === enemyId)),
-        { type: 'peur', sourceId: enemyId, indice, calmeDR: 0 }, // Peur active (non vaincue) envers la source
+        { type: 'peur', sourceId: enemyId, indice, calmeDR: 0 },
       ];
       // `fromPos` plus loin que la position actuelle → l'approche est mesurée comme un rapprochement réel.
       const fromPos = { x: enemy.pos.x + Math.sign(enemy.pos.x - hero.pos.x || 1) * 5, y: enemy.pos.y };
@@ -1879,6 +2078,16 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       approachFearTrigger(() => useGame.getState(), useGame.setState, enemy, fromPos);
       bus.emit(EVT.SCENE_DIRTY);
       return `✓ ${enemy.label} (Peur ${indice}) s'approche de ${hero.label} → Test de Calme ou Brisé`;
+    },
+
+    /** RECETTE : pose l'état psychologique `type` (id de `psychology.json`) sur un combattant par l'op
+     *  `beginPsych` (effet `ops`, même chemin que `condition`). */
+    psych: (id: string, type: string) => {
+      const c = actorIn(g(), id);
+      if (!c) return `✗ combattant ${id} introuvable`;
+      if (!findPsychologyById(type)) return `✗ état psychologique « ${type} » inconnu — ids valides : ${psychologies.map((p) => p.id).join(', ')}`;
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'beginPsych', type }] }]), 'devtools.psych');
+      return `✓ ${c.label} : ${psychologyLabel(type)}`;
     },
 
     /** RECETTE : saute vers une scène du projet/de la campagne par id (machinerie de transition). */
@@ -1975,9 +2184,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const b = s.battle;
       const act = b && !b.over ? inBattleId(b, b.order[b.turn]) : undefined;
       const key = pickActiveModalKey(s);
+      const cur = s.pendingCascade?.participants[s.pendingCascade.cursor];
       return {
         cadence: cadence(),
         activeModal: key,
+        cascade: cur ? { id: cur.id, kind: cur.kind, interaction: stepInteraction(cur), ready: stepReady(cur, s), chosen: cur.chosen ?? null, amount: cur.amount ?? null } : null,
         policy: autoPolicyOf(s)?.mode ?? null,
         willAutoResolve: willAutoResolve(s),
         openPendings: open,
@@ -2181,9 +2392,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     forceOverspeed: (overM = 5) => {
       const plan = g().travelPlan;
       if (!plan?.sea) return '✗ aucune traversée en cours (travelPlan.sea)';
-      const vd = plan.vehicle ? findVehicleById(plan.vehicle.creatureId ?? '')?.ship : undefined;
-      const baseM = vd?.sail?.m ?? vd?.oars?.m ?? 0;
-      if (!baseM) return '✗ M de conception introuvable sur le navire de campagne';
+      if (!plan.vehicle) return '✗ aucun navire de campagne (travelPlan.vehicle)';
+      const baseM = garanti(propulsionDuNavire(plan.vehicle.creatureId, plan.vehicle.upgrades, milieuDuVoyage(plan)), plan.vehicle.creatureId, 'propulsion du navire').m;
       const effMToday = baseM + Math.max(1, overM);
       useGame.setState({ travelPlan: { ...plan, sea: { ...plan.sea, effMToday, milesToday: Math.max(1, plan.sea.milesToday) } } });
       return `✓ survitesse armée : M ${baseM} → ${effMToday} (M+${effMToday - baseM}) — dérouler avec __wfrp.advanceSeaDay()`;

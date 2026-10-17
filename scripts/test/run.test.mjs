@@ -37,6 +37,8 @@ import {
   partieDe,
   refusDePartie,
   trancher,
+  ateliersMorts,
+  nomDAtelier,
 } from './partition.mjs'
 
 // `filterFiles` de Vitest résout ses filtres relatifs contre le CWD (`relative(dir, f)`) : la
@@ -564,4 +566,15 @@ test('partie : la tranche est triée par unité de code, son empreinte ne dépen
   for (const i of [1, 3]) assert.equal(trancher(liste, { i, k: 3 }).empreinteListe, t.empreinteListe, 'les K parties portent la même empreinte de liste')
   assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'l’ordre d’énumération change l’empreinte de liste')
   assert.notEqual(trancher(liste.slice(1), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'une liste amputée garde son empreinte')
+})
+
+// #2603
+test('ateliersMorts : un pid RÉUTILISÉ (création postérieure à la naissance du nom + tolérance) balaie l’atelier ; sous la tolérance ou indéterminé, il reste', () => {
+  assert.equal(nomDAtelier(4242, 5_000.7), '4242-5000')
+  const juge = (creation) => ({ pid: 1, estVivant: (pid) => pid === 4242, identite: { lireCreation: () => creation, toleranceMs: 1_000 } })
+  assert.deepEqual(ateliersMorts([nomDAtelier(4242, 5_000)], juge(6_001)), ['4242-5000'])
+  assert.deepEqual(ateliersMorts([nomDAtelier(4242, 5_000)], juge(6_000)), [])
+  assert.deepEqual(ateliersMorts([nomDAtelier(4242, 5_000)], juge(null)), [])
+  assert.deepEqual(ateliersMorts(['4242', '4243-5000', '4243', '1-5000', '1', 'fichiers.json', '0', '-4242'], juge(6_001)), ['4243-5000', '4243'],
+    'sans naissance, le pid seul ; le lanceur et les noms hors forme restent')
 })

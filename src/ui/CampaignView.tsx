@@ -17,7 +17,7 @@ import { MerchantPanel } from './MerchantPanel';
 import { TavernGameModal } from './TavernGameModal';
 import { CombatConsole } from './CombatConsole';
 import { PosteSheet } from './ShipSheet';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle } from '../engine/coque';
 import { isEngin } from '../engine/structures';
 import { CombatBanner } from './CombatBanner';
 import { ActiveModal } from './ActiveModal'; // arbitre R2 : une seule modale de combat à la fois
@@ -312,7 +312,7 @@ export function CampaignView() {
                groupe, sinon de la scène. À un lieu, le repos vit DANS le hub. */
             rest={!travelPlan && restHere && !hubPlace
               ? {
-                  title: restHere.places.auberge ? 'Dormir — auberge ou belle étoile' : restHere.places.maison ? 'Dormir — chez soi' : 'Camper — dormir sur place jusqu’à l’aube',
+                  title: t(restHere.places.auberge ? 'cv.dormirAuberge' : restHere.places.maison ? 'cv.dormirChezSoi' : 'cv.camperSurPlace'),
                   onOpen: () => openRest({ places: restHere.places, lieu: sceneLieu(useGame.getState), quality: restHere.quality }),
                 }
               : undefined}

@@ -73,7 +73,7 @@ let root: Root;
 beforeEach(() => {
   resetDesFixes();
   useGame.setState({
-    pendingAttack: null, pendingDefense: null, pendingCast: null, pendingTrample: null, battle: null,
+    pendingAttack: null, pendingDefense: null, pendingCast: null, battle: null,
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
   });
   host = document.createElement('div');

@@ -212,14 +212,12 @@ const isGameOp = (o) => typeof o.op === 'string' && !('kind' in o);
  * Scan des références d'ops d'un corpus de documents.
  * `sources` : `[{ file, data }]`. `resolvers` : `{ <registre>: (id) => boolean }` — un registre visé
  * par la table sans résolveur fourni est rapporté en `missingResolvers` (jamais ignoré en silence).
- * `softIds` : `{ <registre>: ids[] }`, marqueurs NARRATIFS d'un registre sans entrée d'entité, injectés
- * par le consommateur depuis leur registre unique — valides partout où ce registre est visé.
  * `champsASlot` : clés `op.champ` des champs d'op à slot, jamais jugées ici (le parse les juge).
  * Retourne `{ offenders, missingResolvers, noeudsDOp }` : TOUTE valeur d'un champ à `registry` qui ne
- * résout pas, hors `softIds`, est un offenseur — la garde n'accorde aucun budget. `noeudsDOp` : chaque
+ * résout pas est un offenseur — la garde n'accorde aucun budget. `noeudsDOp` : chaque
  * nœud `GameOp` visité (`{ file, path, op, noeud }`), que le consommateur joint au parse de mesure.
  */
-export function scanGameOpRefs({ sources, resolvers, softIds = {}, champsASlot = [] }) {
+export function scanGameOpRefs({ sources, resolvers, champsASlot = [] }) {
   const aSlot = new Set(champsASlot);
   const missingResolvers = new Set();
   const found = []; // { file, path, op, field, value, registry }
@@ -236,11 +234,9 @@ export function scanGameOpRefs({ sources, resolvers, softIds = {}, champsASlot =
         if (!target || !target.registry) continue;
         const resolve = resolvers[target.registry];
         if (!resolve) { missingResolvers.add(target.registry); continue; }
-        const soft = softIds[target.registry] ?? [];
         const values = Array.isArray(raw) ? raw : [raw];
         values.forEach((v, i) => {
           if (typeof v !== 'string') return;
-          if (soft.includes(v)) return;
           if (resolve(v)) return;
           const at = Array.isArray(raw) ? `${where}.${field}[${i}]` : `${where}.${field}`;
           found.push({ file, path: at, op, field, value: v, registry: target.registry, key: `${op}.${field}` });

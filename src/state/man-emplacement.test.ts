@@ -119,7 +119,7 @@ describe('(B) Service — `serveAtPoste` rend chef tout combattant (mannedPoste,
     const w = firedWeapon(gunner, cible, poste.item.uid, all);
     expect(w.uid).toBe(poste.item.uid); // c'est bien la baliste servie qui tire
     const get = mkGet(groundScene(), all, { gunner: 'N' });
-    const r = resolveAttack(get, gunner, cible, undefined, false, false, false, poste.item.uid);
+    const r = resolveAttack(get, gunner, cible, undefined, false, false, false, w);
     expect(r).not.toBeNull();
     expect(r!.res.hit).toBe(true);
     expect(r!.res.woundsLost ?? 0).toBeGreaterThan(0);

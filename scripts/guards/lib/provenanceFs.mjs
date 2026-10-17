@@ -30,16 +30,21 @@ export function creerProvenanceFs({ sourceFile, checker, ts }) {
   const fsSource = (n) => ['fs', 'node:fs', 'fs/promises', 'node:fs/promises'].includes(litteral(n))
   const provenance = (n, vus = new Set()) => {
     if (!n) return null
-    if (ts.isParenthesizedExpression(n)) return provenance(n.expression, vus)
+    if (ts.isParenthesizedExpression(n) || ts.isAwaitExpression(n)) return provenance(n.expression, vus)
+    if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword && fsSource(n.arguments[0])) return { fs: true }
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'require' && !symbole(n.expression)?.declarations?.some(d => !d.resolve().getSourceFile().isDeclarationFile) && fsSource(n.arguments[0])) return { fs: true }
     if (ts.isPropertyAccessExpression(n)) {
       const base = provenance(n.expression, vus)
-      if (base?.fs) return n.name.text === 'promises' ? base : { operation: n.name.text }
+      if (base?.fs) return n.name.text === 'promises' || n.name.text === 'default' ? base : { operation: n.name.text }
+      if (base?.operation === 'realpathSync' && n.name.text === 'native') return base
       return null
     }
-    if (ts.isElementAccessExpression(n) && provenance(n.expression, vus)?.fs) {
+    if (ts.isElementAccessExpression(n)) {
+      const base = provenance(n.expression, vus)
       const operation = litteral(n.argumentExpression)
-      return operation === 'promises' ? { fs: true } : { operation }
+      if (base?.fs) return operation === 'promises' || operation === 'default' ? { fs: true } : { operation }
+      if (base?.operation === 'realpathSync' && operation === 'native') return base
+      return null
     }
     if (!ts.isIdentifier(n)) return null
     const s = symbole(n)
@@ -51,7 +56,7 @@ export function creerProvenanceFs({ sourceFile, checker, ts }) {
     if (ts.isBindingElement(d)) {
       const declaration = d.parent.parent
       const operation = (d.propertyName ?? d.name).text
-      return ts.isVariableDeclaration(declaration) && provenance(declaration.initializer, suite)?.fs ? operation === 'promises' ? { fs: true } : { operation } : null
+      return ts.isVariableDeclaration(declaration) && provenance(declaration.initializer, suite)?.fs ? operation === 'promises' || operation === 'default' ? { fs: true } : { operation } : null
     }
     if (ts.isNamespaceImport(d) || ts.isImportClause(d) || ts.isImportSpecifier(d)) {
       let p = d

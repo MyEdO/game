@@ -1,0 +1,1232 @@
+{
+  "posix": {
+    "source": "POSIX.1-2024 (IEEE Std 1003.1-2024, Issue 8), XCU, idx/utilities.html",
+    "utilitaires": {
+      "admin": "ecrivain",
+      "alias": "état du shell courant (builtin), aucun fichier",
+      "ar": "ecrivain",
+      "asa": "lit ses entrées, écrit sur la sortie standard",
+      "at": "ecrivain",
+      "awk": "ecrivain",
+      "basename": "lit ses entrées, écrit sur la sortie standard",
+      "batch": "ecrivain",
+      "bc": "interpréteur : le code qu'il lit est jugé par sa famille (`argumentChaine`), hors de la table des écrivains nommés",
+      "bg": "état du shell courant (builtin), aucun fichier",
+      "c17": "ecrivain",
+      "cal": "interroge le système ou la session, écrit sur la sortie standard",
+      "cat": "lit ses entrées, écrit sur la sortie standard",
+      "cd": "état du shell courant (builtin), aucun fichier",
+      "cflow": "lit ses entrées, écrit sur la sortie standard",
+      "chgrp": "ecrivain",
+      "chmod": "ecrivain",
+      "chown": "ecrivain",
+      "cksum": "lit ses entrées, écrit sur la sortie standard",
+      "cmp": "lit ses entrées, écrit sur la sortie standard",
+      "comm": "lit ses entrées, écrit sur la sortie standard",
+      "command": "état du shell courant (builtin), aucun fichier",
+      "compress": "ecrivain",
+      "cp": "ecrivain",
+      "crontab": "ecrivain",
+      "csplit": "ecrivain",
+      "ctags": "ecrivain",
+      "cut": "lit ses entrées, écrit sur la sortie standard",
+      "cxref": "ecrivain",
+      "date": "interroge le système ou la session, écrit sur la sortie standard",
+      "dd": "ecrivain",
+      "delta": "ecrivain",
+      "df": "interroge le système ou la session, écrit sur la sortie standard",
+      "diff": "lit ses entrées, écrit sur la sortie standard",
+      "dirname": "lit ses entrées, écrit sur la sortie standard",
+      "du": "lit ses entrées, écrit sur la sortie standard",
+      "echo": "lit ses entrées, écrit sur la sortie standard",
+      "ed": "ecrivain",
+      "env": "enveloppe : la commande qu'il lance est jugée comme un segment (`epluchageTete`)",
+      "ex": "ecrivain",
+      "expand": "lit ses entrées, écrit sur la sortie standard",
+      "expr": "lit ses entrées, écrit sur la sortie standard",
+      "false": "état du shell courant (builtin), aucun fichier",
+      "fc": "état du shell courant (builtin), aucun fichier",
+      "fg": "état du shell courant (builtin), aucun fichier",
+      "file": "lit ses entrées, écrit sur la sortie standard",
+      "find": "ecrivain",
+      "fold": "lit ses entrées, écrit sur la sortie standard",
+      "fuser": "processus, terminal ou utilisateur, aucun fichier",
+      "gencat": "ecrivain",
+      "get": "ecrivain",
+      "getconf": "interroge le système ou la session, écrit sur la sortie standard",
+      "getopts": "état du shell courant (builtin), aucun fichier",
+      "gettext": "lit ses entrées, écrit sur la sortie standard",
+      "grep": "lit ses entrées, écrit sur la sortie standard",
+      "hash": "état du shell courant (builtin), aucun fichier",
+      "head": "lit ses entrées, écrit sur la sortie standard",
+      "iconv": "ecrivain",
+      "id": "interroge le système ou la session, écrit sur la sortie standard",
+      "ipcrm": "processus, terminal ou utilisateur, aucun fichier",
+      "ipcs": "processus, terminal ou utilisateur, aucun fichier",
+      "jobs": "état du shell courant (builtin), aucun fichier",
+      "join": "lit ses entrées, écrit sur la sortie standard",
+      "kill": "processus, terminal ou utilisateur, aucun fichier",
+      "lex": "ecrivain",
+      "link": "ecrivain",
+      "ln": "ecrivain",
+      "locale": "interroge le système ou la session, écrit sur la sortie standard",
+      "localedef": "ecrivain",
+      "logger": "service hors de l'arbre (impression, journal système, courrier, exécution distante), aucun fichier nommé",
+      "logname": "interroge le système ou la session, écrit sur la sortie standard",
+      "lp": "service hors de l'arbre (impression, journal système, courrier, exécution distante), aucun fichier nommé",
+      "ls": "lit ses entrées, écrit sur la sortie standard",
+      "m4": "lit ses entrées, écrit sur la sortie standard",
+      "mailx": "service hors de l'arbre (impression, journal système, courrier, exécution distante), aucun fichier nommé",
+      "make": "ecrivain",
+      "man": "lecteur interactif de documentation ou de texte",
+      "mesg": "processus, terminal ou utilisateur, aucun fichier",
+      "mkdir": "ecrivain",
+      "mkfifo": "ecrivain",
+      "more": "lecteur interactif de documentation ou de texte",
+      "msgfmt": "ecrivain",
+      "mv": "ecrivain",
+      "newgrp": "état du shell courant (builtin), aucun fichier",
+      "ngettext": "lit ses entrées, écrit sur la sortie standard",
+      "nice": "enveloppe : la commande qu'il lance est jugée comme un segment (`epluchageTete`)",
+      "nl": "lit ses entrées, écrit sur la sortie standard",
+      "nm": "lit ses entrées, écrit sur la sortie standard",
+      "nohup": "enveloppe : la commande qu'il lance est jugée comme un segment (`epluchageTete`)",
+      "od": "lit ses entrées, écrit sur la sortie standard",
+      "paste": "lit ses entrées, écrit sur la sortie standard",
+      "patch": "ecrivain",
+      "pathchk": "lit ses entrées, écrit sur la sortie standard",
+      "pax": "ecrivain",
+      "pr": "lit ses entrées, écrit sur la sortie standard",
+      "printf": "lit ses entrées, écrit sur la sortie standard",
+      "prs": "lit ses entrées, écrit sur la sortie standard",
+      "ps": "interroge le système ou la session, écrit sur la sortie standard",
+      "pwd": "interroge le système ou la session, écrit sur la sortie standard",
+      "read": "état du shell courant (builtin), aucun fichier",
+      "readlink": "lit ses entrées, écrit sur la sortie standard",
+      "realpath": "lit ses entrées, écrit sur la sortie standard",
+      "renice": "processus, terminal ou utilisateur, aucun fichier",
+      "rm": "ecrivain",
+      "rmdel": "ecrivain",
+      "rmdir": "ecrivain",
+      "sact": "lit ses entrées, écrit sur la sortie standard",
+      "sccs": "ecrivain",
+      "sed": "ecrivain",
+      "sh": "interpréteur : le code qu'il lit est jugé par sa famille (`argumentChaine`), hors de la table des écrivains nommés",
+      "sleep": "processus, terminal ou utilisateur, aucun fichier",
+      "sort": "ecrivain",
+      "split": "ecrivain",
+      "strings": "lit ses entrées, écrit sur la sortie standard",
+      "strip": "ecrivain",
+      "stty": "processus, terminal ou utilisateur, aucun fichier",
+      "tabs": "processus, terminal ou utilisateur, aucun fichier",
+      "tail": "lit ses entrées, écrit sur la sortie standard",
+      "talk": "processus, terminal ou utilisateur, aucun fichier",
+      "tee": "ecrivain",
+      "test": "état du shell courant (builtin), aucun fichier",
+      "time": "enveloppe : la commande qu'il lance est jugée comme un segment (`epluchageTete`)",
+      "timeout": "enveloppe : la commande qu'il lance est jugée comme un segment (`epluchageTete`)",
+      "touch": "ecrivain",
+      "tput": "processus, terminal ou utilisateur, aucun fichier",
+      "tr": "lit ses entrées, écrit sur la sortie standard",
+      "true": "état du shell courant (builtin), aucun fichier",
+      "tsort": "lit ses entrées, écrit sur la sortie standard",
+      "tty": "interroge le système ou la session, écrit sur la sortie standard",
+      "type": "état du shell courant (builtin), aucun fichier",
+      "ulimit": "état du shell courant (builtin), aucun fichier",
+      "umask": "état du shell courant (builtin), aucun fichier",
+      "unalias": "état du shell courant (builtin), aucun fichier",
+      "uname": "interroge le système ou la session, écrit sur la sortie standard",
+      "uncompress": "ecrivain",
+      "unexpand": "lit ses entrées, écrit sur la sortie standard",
+      "unget": "ecrivain",
+      "uniq": "ecrivain",
+      "unlink": "ecrivain",
+      "uucp": "ecrivain",
+      "uudecode": "ecrivain",
+      "uuencode": "lit ses entrées, écrit sur la sortie standard",
+      "uustat": "interroge le système ou la session, écrit sur la sortie standard",
+      "uux": "service hors de l'arbre (impression, journal système, courrier, exécution distante), aucun fichier nommé",
+      "val": "lit ses entrées, écrit sur la sortie standard",
+      "vi": "ecrivain",
+      "wait": "état du shell courant (builtin), aucun fichier",
+      "wc": "lit ses entrées, écrit sur la sortie standard",
+      "what": "lit ses entrées, écrit sur la sortie standard",
+      "who": "interroge le système ou la session, écrit sur la sortie standard",
+      "write": "processus, terminal ou utilisateur, aucun fichier",
+      "xargs": "enveloppe : la commande qu'il lance est jugée comme un segment (`epluchageTete`)",
+      "xgettext": "ecrivain",
+      "yacc": "ecrivain",
+      "zcat": "lit ses entrées, écrit sur la sortie standard"
+    }
+  },
+  "horsPosix": {
+    "source": "commandes Bash/PowerShell des sous-agents, 14 jours au 2026-10-13 : segments dont c'est l'exécutable de tête",
+    "commandes": {
+      "bunzip2": 0,
+      "bzip2": 0,
+      "curl": 171,
+      "gawk": 0,
+      "gh": 1545,
+      "git": 17225,
+      "gunzip": 1,
+      "gzip": 0,
+      "install": 0,
+      "md": 0,
+      "mklink": 32,
+      "mktemp": 9,
+      "npm": 2233,
+      "npx": 0,
+      "perl": 105,
+      "rsync": 0,
+      "ruby": 0,
+      "shred": 0,
+      "tar": 107,
+      "truncate": 0,
+      "unxz": 0,
+      "unzip": 0,
+      "wget": 0,
+      "xz": 0,
+      "zip": 0,
+      "zstd": 0
+    }
+  },
+  "powershell": {
+    "source": "Get-Command -Verb Add,Backup,Block,Checkpoint,Clear,Compress,Copy,Dismount,Edit,Expand,Export,Grant,Initialize,Install,Invoke,Merge,Mount,Move,New,Out,Protect,Publish,Register,Remove,Rename,Reset,Restore,Revoke,Save,Set,Start,Sync,Tee,Unblock,Uninstall,Unprotect,Unpublish,Unregister,Update,Write -Module Microsoft.PowerShell.*",
+    "version": "7.5.5",
+    "verbes": [
+      "Add",
+      "Backup",
+      "Block",
+      "Checkpoint",
+      "Clear",
+      "Compress",
+      "Copy",
+      "Dismount",
+      "Edit",
+      "Expand",
+      "Export",
+      "Grant",
+      "Initialize",
+      "Install",
+      "Invoke",
+      "Merge",
+      "Mount",
+      "Move",
+      "New",
+      "Out",
+      "Protect",
+      "Publish",
+      "Register",
+      "Remove",
+      "Rename",
+      "Reset",
+      "Restore",
+      "Revoke",
+      "Save",
+      "Set",
+      "Start",
+      "Sync",
+      "Tee",
+      "Unblock",
+      "Uninstall",
+      "Unprotect",
+      "Unpublish",
+      "Unregister",
+      "Update",
+      "Write"
+    ],
+    "cmdlets": [
+      {
+        "nom": "Add-Content",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "ac"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Add-History",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Add-LocalGroupMember",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "algm"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Add-Member",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Add-Type",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Clear-Content",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "clc"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Clear-History",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "clhy"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Clear-Item",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "cli"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Clear-ItemProperty",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "clp"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Clear-RecycleBin",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Clear-Variable",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "clv"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Compress-Archive",
+        "module": "Microsoft.PowerShell.Archive",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Compress-PSResource",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [
+          "cmres"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Copy-Item",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "copy",
+          "cp",
+          "cpi"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Copy-ItemProperty",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "cpp"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Expand-Archive",
+        "module": "Microsoft.PowerShell.Archive",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Export-Alias",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "epal"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Export-Clixml",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Export-Csv",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "epcsv"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Export-FormatData",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Export-ModuleMember",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Export-ODataEndpointProxy",
+        "module": "Microsoft.PowerShell.ODataUtils",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Export-PSSession",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Install-PSResource",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [
+          "isres"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Invoke-Command",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "icm"
+        ],
+        "verdict": "exécute du code ou lance un programme : le texte lancé n'est pas un écrivain nommé de la table"
+      },
+      {
+        "nom": "Invoke-Expression",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "iex"
+        ],
+        "verdict": "exécute du code ou lance un programme : le texte lancé n'est pas un écrivain nommé de la table"
+      },
+      {
+        "nom": "Invoke-History",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "ihy",
+          "r"
+        ],
+        "verdict": "exécute du code ou lance un programme : le texte lancé n'est pas un écrivain nommé de la table"
+      },
+      {
+        "nom": "Invoke-Item",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "ii"
+        ],
+        "verdict": "exécute du code ou lance un programme : le texte lancé n'est pas un écrivain nommé de la table"
+      },
+      {
+        "nom": "Invoke-OperationValidation",
+        "module": "Microsoft.PowerShell.Operation.Validation",
+        "alias": [],
+        "verdict": "exécute du code ou lance un programme : le texte lancé n'est pas un écrivain nommé de la table"
+      },
+      {
+        "nom": "Invoke-RestMethod",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "irm"
+        ],
+        "verdict": "écrit par `-OutFile`, lu pour toute commande (`ciblesDuWriter`)"
+      },
+      {
+        "nom": "Invoke-WebRequest",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "iwr"
+        ],
+        "verdict": "écrit par `-OutFile`, lu pour toute commande (`ciblesDuWriter`)"
+      },
+      {
+        "nom": "Move-Item",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "mi",
+          "move",
+          "mv"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Move-ItemProperty",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "mp"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "New-Alias",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "nal"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-Event",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-FileCatalog",
+        "module": "Microsoft.PowerShell.Security",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "New-Guid",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-Item",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "ni"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "New-ItemProperty",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "New-LocalGroup",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "nlg"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "New-LocalUser",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "nlu"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "New-Module",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "nmo"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-ModuleManifest",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "New-Object",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-PSDrive",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "mount",
+          "ndr"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-PSRoleCapabilityFile",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "New-PSScriptFileInfo",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "New-PSSession",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "nsn"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-PSSessionConfigurationFile",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "New-PSSessionOption",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-PSTransportOption",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-Service",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "New-TemporaryFile",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "New-TimeSpan",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-Variable",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "nv"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "New-WinEvent",
+        "module": "Microsoft.PowerShell.Diagnostics",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Out-Default",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Out-File",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Out-GridView",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "ogv"
+        ],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Out-Host",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "oh"
+        ],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Out-Null",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Out-Printer",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Out-String",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Protect-CmsMessage",
+        "module": "Microsoft.PowerShell.Security",
+        "alias": [],
+        "verdict": "écrit par `-OutFile`, lu pour toute commande (`ciblesDuWriter`)"
+      },
+      {
+        "nom": "Publish-PSResource",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [
+          "pbres"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Register-ArgumentCompleter",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Register-EngineEvent",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Register-ObjectEvent",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Register-PSResourceRepository",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Register-PSSessionConfiguration",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Remove-Alias",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Remove-Event",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Remove-Item",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "del",
+          "erase",
+          "rd",
+          "ri",
+          "rm",
+          "rmdir"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Remove-ItemProperty",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "rp"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Remove-Job",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "rjb"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Remove-LocalGroup",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "rlg"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Remove-LocalGroupMember",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "rlgm"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Remove-LocalUser",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "rlu"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Remove-Module",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "rmo"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Remove-PSBreakpoint",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "rbp"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Remove-PSDrive",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "rdr"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Remove-PSSession",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "rsn"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Remove-Service",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Remove-TypeData",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Remove-Variable",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "rv"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Rename-Computer",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Rename-Item",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "ren",
+          "rni"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Rename-ItemProperty",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "rnp"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Rename-LocalGroup",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "rnlg"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Rename-LocalUser",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "rnlu"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Save-Help",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Save-PSResource",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Set-Acl",
+        "module": "Microsoft.PowerShell.Security",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Set-Alias",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "sal"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Set-AuthenticodeSignature",
+        "module": "Microsoft.PowerShell.Security",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Set-Clipboard",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "scb"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Set-Content",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Set-Date",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Set-ExecutionPolicy",
+        "module": "Microsoft.PowerShell.Security",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Set-Item",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "si"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Set-ItemProperty",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "sp"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Set-LocalGroup",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "slg"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Set-LocalUser",
+        "module": "Microsoft.PowerShell.LocalAccounts",
+        "alias": [
+          "slu"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Set-Location",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "cd",
+          "chdir",
+          "sl"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Set-MarkdownOption",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Set-PSBreakpoint",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "sbp"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Set-PSDebug",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Set-PSResourceRepository",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Set-PSSessionConfiguration",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Set-Service",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Set-StrictMode",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Set-TimeZone",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "stz"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Set-TraceSource",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Set-Variable",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "set",
+          "sv"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Start-Job",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [
+          "sajb"
+        ],
+        "verdict": "exécute du code ou lance un programme : le texte lancé n'est pas un écrivain nommé de la table"
+      },
+      {
+        "nom": "Start-Process",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "saps",
+          "start"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Start-Service",
+        "module": "Microsoft.PowerShell.Management",
+        "alias": [
+          "sasv"
+        ],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Start-Sleep",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "sleep"
+        ],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Start-Transcript",
+        "module": "Microsoft.PowerShell.Host",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Tee-Object",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "tee"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Unblock-File",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Uninstall-PSResource",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Unprotect-CmsMessage",
+        "module": "Microsoft.PowerShell.Security",
+        "alias": [],
+        "verdict": "écrit par `-OutFile`, lu pour toute commande (`ciblesDuWriter`)"
+      },
+      {
+        "nom": "Unregister-Event",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Unregister-PSResourceRepository",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Unregister-PSSessionConfiguration",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "système hors fichier (comptes, services, horloge, registre, journal, presse-papiers, configuration WinRM)"
+      },
+      {
+        "nom": "Update-FormatData",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Update-Help",
+        "module": "Microsoft.PowerShell.Core",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Update-List",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Update-PSModuleManifest",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Update-PSResource",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [
+          "udres"
+        ],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Update-PSScriptFileInfo",
+        "module": "Microsoft.PowerShell.PSResourceGet",
+        "alias": [],
+        "verdict": "ecrivain"
+      },
+      {
+        "nom": "Update-TypeData",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "session PowerShell (historique, variables, alias, modules, événements, objets), aucun fichier"
+      },
+      {
+        "nom": "Write-Debug",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Write-Error",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Write-Host",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Write-Information",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Write-Output",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [
+          "echo",
+          "write"
+        ],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Write-Progress",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Write-Verbose",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      },
+      {
+        "nom": "Write-Warning",
+        "module": "Microsoft.PowerShell.Utility",
+        "alias": [],
+        "verdict": "flux de sortie (hôte, pipeline, imprimante, grille), aucun fichier"
+      }
+    ]
+  }
+}

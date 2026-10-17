@@ -69,7 +69,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
     H[0].characteristics.agilite = 1;
     H[0].skills = H[0].skills.filter((s) => s.id !== 'esquive');
     H[0].conditions = [];
-    set({ battle: { ...g().battle!, acted: true } });
+    set({ battle: { ...g().battle!, turn: g().battle!.order.indexOf(E[0].id), acted: true } });
 
     aiCreatureFreeAttacks(g, set, E[0]);
 

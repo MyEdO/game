@@ -33,7 +33,7 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
   'battleClickEntity', 'battleClickTile', 'battleEndTurn', 'armEndTurn', 'cancelMove', 'battleSelectAction',
   // actions de la hotbar — rendues dès `controlsCombatant` (le combattant ACTIF), et autorisées par
   // le REPLI universel de `intentAllowedFor` (aucune modale ouverte → le propriétaire de l'actif).
-  'battleAim', 'battleDefendTotal', 'battleDisengage', 'battleRun', 'battleTrample',
+  'battleAim', 'battleDefendTotal', 'battleDisengage', 'battleRun',
   'battleFrenzy', 'battleFocusSpell', 'battleHeal', 'battleReload', 'battleRecoverState',
   'battleStandUp', 'battlePickup', 'battleUseItem', 'battleSelectSpell', 'battleSelectAmmo',
   'battleSpendResolve', 'battleTogglePushback', 'battleToggleStance', 'battleSwitchLoadout', 'battleMount',
@@ -82,7 +82,6 @@ export const MANUAL_COMBAT_INTENTS: readonly string[] = [
   // combat monté
   'mountTargetSelect', 'mountTargetCancel',
   // résolutions/annulations des flux de jet en combat (le verbe de jet est dérivé, pas l'appliquer)
-  'trampleConfirm', 'trampleCancel',
   'maneuverConfirm', 'maneuverCancel', 'maneuverSetAvantage',
   // Tour de NAVIRE (couche Mer, MDG 13-14) : le contrôleur de la coque OUVRE ; CHAQUE participant
   // (héros à un rôle) roule SA rangée, routée par la possession de son id (cf. `intentAllowedFor`,

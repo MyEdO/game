@@ -20,7 +20,12 @@ installErrorCollector();
 // `installDevtools` RÉASSIGNE `window.__wfrp` en bloc — la fusion des helpers d'erreurs se refait
 // APRÈS pour ne pas être écrasée (installErrorCollector avait déjà posé la sienne avant ce chargement
 // async, insuffisant si ce module résout après).
-if (import.meta.env.DEV) import('./state/devtools').then((m) => {
+if (import.meta.env.DEV) Promise.all([import('./state/devtools'), import('./ui/useDismissLayer'), import('./ui/compendium/registry')]).then(([m, couches, codex]) => {
+  m.setDialogueProbe(couches.dialogueDuDessus);
+  m.setCodexProbe((id) => {
+    const cat = codex.categoryByKey(id);
+    return cat ? { tab: cat.label, group: cat.group, cluster: cat.cluster ?? null } : null;
+  });
   m.installDevtools();
   const w = window as unknown as { __wfrp?: Record<string, unknown> };
   w.__wfrp = { ...w.__wfrp, ...wfrpErrorsApi };

@@ -3,8 +3,9 @@ import type { CampaignVessel } from '../state/store';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan } from '../state/travelFlow';
 import { rollSeaWeather } from '../engine/seaWeather';
-import { voyageMode, voyageTiles, voyageDayCards, dayAgenda, etaLabel, etaJours } from './VoyageScreen';
+import { voyageMode, voyageTiles, voyageDayCards, dayAgenda, etaLabel, etaJours, VoyageTileView } from './VoyageScreen';
 import type { TravelRecapDay } from '../state/travelFlow';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { moraleBand } from '../engine/crewMorale';
 import { voyageStepPending } from '../state/modalArbiter';
 import type { PendingCascade, CascadeStep } from '../state/pendings';
@@ -75,6 +76,14 @@ describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
     expect(moral.value).toBe(`120 — ${band.label}`);
   });
 
+  it('tuiles MER à jauge (Coque, Moral, Cale) : libellé et valeur rendus UNE fois, par la jauge', () => {
+    for (const tile of voyageTiles('mer', seaPlan(), vessel(), [hero('h1')], [], 0).filter((t) => t.gauge)) {
+      const html = renderToStaticMarkup(<VoyageTileView tile={tile} />);
+      expect(html.split(tile.value).length - 1, `${tile.key} : « ${tile.value} »`).toBe(1);
+      expect(html.split(`>${tile.label}<`).length - 1, `${tile.key} : libellé`).toBe(1);
+    }
+  });
+
   it('tuiles TERRE : allure et saison (sans navire ni bêtes)', () => {
     const keys = voyageTiles('terre', landPlan(), null, [hero('h1')], [], 0).map((t) => t.key);
     expect(keys).toEqual(expect.arrayContaining(['allure', 'saison']));
@@ -103,8 +112,8 @@ describe('VoyageScreen — hub de voyage paramétré par mode (#333)', () => {
     expect(cards[2].dayLabel).toBe('Jour 3');
   });
 
-  // Halte de nuit EN COURS : le jour qu'elle clot est DÉJÀ le dernier de `plan.log` (`openRest` l'y
-  // range) — UNE carte sélectionnable pour lui, et `current` est la Nuit elle-même (#2533 : jamais
+  // Halte de nuit EN COURS : le jour qu'elle clôt est DÉJÀ le dernier de `plan.log` (`openRest` ou
+  // `resumeTravel` l'y range) — UNE carte sélectionnable pour lui, et `current` est la Nuit elle-même (#2533 : jamais
   // deux cartes pour un même jour).
   it('chronique : une halte de nuit EN COURS — le jour clos a UNE carte, « Nuit » est la carte current', () => {
     const plan: TravelPlan = { ...seaPlan(), log: [

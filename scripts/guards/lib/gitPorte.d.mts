@@ -1,4 +1,5 @@
 /** Déclarations des questions git consommées depuis TypeScript (`cssCouchesAudit.ts`, `horsStrateAudit.ts`, `cssImages.d.mts`, `regenStock.mts`). */
+import type { RequeteMesuree } from './requeteMesuree.mjs';
 
 /** La marque d'une poignée `depotDe` (`gitPorte.mjs`, `MARQUE_DEPOT`). */
 declare const MARQUE_DEPOT: unique symbol;
@@ -6,10 +7,6 @@ declare const MARQUE_DEPOT: unique symbol;
 /** Le DÉPÔT git d'un `cwd` (`depotDe`) : une poignée opaque et MARQUÉE, premier paramètre de chaque
  *  question ; un `{ cwd }` écrit à la main n'en est pas une. */
 export type Depot = Readonly<{ cwd: string; [MARQUE_DEPOT]: true }>;
-export type RequeteMesuree = { args: string[]; cwd: string; canal?: 'stdout'; status: number | null; stdout: string; stderr: string };
-export const MARQUE_RACINE_MESUREE: '<RACINE>';
-export function verifierRequeteMesuree(requete: RequeteMesuree): true;
-export function normaliserRequeteMesuree(racine: string, requete: RequeteMesuree): RequeteMesuree;
 export function relireRequeteMesuree(depot: Depot, requete: RequeteMesuree): RequeteMesuree;
 
 export type DiagnosticGit = {
@@ -43,8 +40,8 @@ export class GitIndisponible extends Error {
 }
 export function reussi(union: ResultatGit): boolean;
 export function refusDeGit(vu: ResultatGit | GitIndisponible): string;
-export function pousser(depot: Depot, geste: { vers: string; bail?: boolean }): ResultatGit;
-export function fetchOrigin(depot: Depot, opts?: { branche?: string }): ResultatGit;
+export function pousser(depot: Depot, geste: { vers: string; bail?: false | string }): ResultatGit;
+export function fetchOrigin(depot: Depot, opts?: { branche?: string; objets?: never } | { objets: readonly string[]; branche?: never }): ResultatGit;
 
 /** Le dépôt git de `cwd`. */
 export function depotDe(
@@ -58,6 +55,8 @@ export function depotDe(
 ): Depot;
 /** La racine de l'arbre de travail, `null` hors d'un arbre. */
 export function racineDe(depot: Depot): string | null;
+/** La configuration brute (`config --null --list`) ; toute indisponibilité lève. */
+export function configurationDe(depot: Depot, opts?: { environnement?: NodeJS.ProcessEnv }): string;
 /** La valeur de l'attribut `nom` sur `chemin` (`check-attr`), `null` si git ne répond pas. */
 export function attributDe(depot: Depot, chemin: string, nom: string): string | null;
 export const INDEX: string;

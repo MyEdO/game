@@ -9,7 +9,8 @@
 //     objet rendu s'évalue champ par champ (déstructuration, accès de propriété, défaut d'un champ
 //     absent) ; `map`/`flatMap` rendent les valeurs de leur rappel (`PROJECTIONS`) ; une boucle `for…of`,
 //     déstructurée ou non, parcourt les valeurs de son tableau ; le champ absent d'un objet étalé se lit
-//     dans ses étalements, l'argument absent prend le défaut de son paramètre.
+//     dans ses étalements, l'argument absent prend le défaut de son paramètre. L'appel de la primitive du
+//     dossier git (`DOSSIER_GIT`) vaut `<racine>/.git`, sans évaluer ses retours.
 //   · Une liaison RÉAFFECTÉE vaut sa valeur initiale et le membre droit de chaque `=` (`??=`, `||=`, `&&=`)
 //     qui la vise ; une réaffectation illisible rend `<nom> réaffectée`, un membre droit qui revient à la
 //     liaison `<nom> réaffectée en récurrence`.
@@ -32,6 +33,11 @@ const PORTES_GIT = Object.freeze({
   listerImage: Object.freeze({ depot: 0, depuis: 2, chemins: 'reste' }),
   lireEnLot: Object.freeze({ depot: 0, depuis: 2, chemins: 'argument' }),
 })
+
+/** La primitive canonique du DOSSIER GIT d'une racine (`<module>#<fonction>`) : le modèle la pose en `<x>/.git`, la
+ *  valeur réelle d'un worktree lié est `<commun>/worktrees/<nom>` ; dans les deux cas une racine exacte que rien
+ *  de suivi n'habite, `git help gitrepository-layout`. */
+const DOSSIER_GIT = 'scripts/hooks/barriere-outil.mjs#gitDirDe'
 
 /** Préfiltre textuel : un module sans appel nommé d'une lecture n'a aucun site de base. */
 export const APPEL_DE_LECTURE = new RegExp(`\\bCONTRATS_DE_DERIVATION\\b|\\b(?:${[...PRIMITIVES, ...Object.keys(PORTES_GIT)].join('|')})\\s*\\(`)
@@ -418,13 +424,21 @@ export function lectureDeModule(rel, arbre) {
     }
   }
   const declaration = exports.CONTRATS_DE_DERIVATION
+  const resumeDeRetour = (e, origine) => {
+    if (e?.k === 'lit' && e.v === 'corpus') return { k: 'couverture', origine, raison: 'résumé de retour déclaré à la source' }
+    if (e?.k !== 'objet' || e.etales?.length || !Object.keys(e.v).length) return null
+    const v = Object.fromEntries(Object.entries(e.v).map(([nom, champ]) => [nom, resumeDeRetour(champ, `${origine}.${nom}`)]))
+    return Object.values(v).every(Boolean) ? { k: 'objet', v, ferme: true } : null
+  }
   if (declaration?.k === 'liste') for (const descriptor of declaration.v) {
     if (descriptor.k !== 'objet') continue
-    const { fonction, namespace, champ, lectures } = descriptor.v
+    const { fonction, namespace, champ, lectures, retour } = descriptor.v
     if (fonction?.k !== 'fn' || !Object.hasOwn(fonctions, fonction.id)) continue
     if (namespace?.k === 'lit' && typeof namespace.v === 'string' && namespace.v && !namespace.v.split('/').includes('..'))
       fonctions[fonction.id].contrat = { namespace: namespace.v, ...(champ?.k === 'lit' ? { champ: champ.v } : {}) }
-    else if (lectures?.k === 'lit' && lectures.v === 'corpus') fonctions[fonction.id].contrat = { lectures: 'corpus' }
+    if (lectures?.k === 'lit' && lectures.v === 'corpus') fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, lectures: 'corpus' }
+    const resume = resumeDeRetour(retour, `${rel}#${fonction.id}:retour`)
+    if (resume) fonctions[fonction.id].contrat = { ...fonctions[fonction.id].contrat, retour: resume }
   }
   return { sites, fonctions, exports, etoiles }
 }
@@ -541,7 +555,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
       case 'importe': return importe(ctx.f, e.spec, e.nom)
       case 'fn': return [{ fn: { f: ctx.f, id: e.id } }]
       case 'lambda': return [{ lambda: e, ctx }]
-      case 'objet': return [{ objet: e.v, ctx, ...(e.etales ? { etales: e.etales } : {}) }]
+      case 'objet': return [{ objet: e.v, ctx, ...(e.etales ? { etales: e.etales } : {}), ...(e.ferme ? { ferme: true } : {}) }]
       case 'param': {
         if (ctx.env?.fn !== e.fn) return [{ non: `paramètre ${e.nom}` }]
         if (!ctx.env.args) return [{ relais: `${ctx.f}#${e.fn}` }]
@@ -554,11 +568,14 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
       case 'champ': return valeurs(e.de, ctx).flatMap((o) => 'fragment' in o && e.nom === 'name' ? [o] : 'objet' in o && Object.hasOwn(o.objet, e.nom) ? valeurs(o.objet[e.nom], o.ctx)
         : 'objet' in o && o.etales ? uniques(o.etales.flatMap((x) => valeurs({ k: 'champ', de: x, nom: e.nom, texte: e.texte }, o.ctx))
           .flatMap((v) => 'absent' in v && e.defaut ? valeurs(e.defaut, ctx) : [v]))
+        : 'objet' in o && o.ferme ? [{ non: `propriété ${e.texte}` }]
         : 'objet' in o || 'absent' in o ? (e.defaut ? valeurs(e.defaut, ctx) : [{ absent: true }])
-        : 'non' in o || 'relais' in o || 'hors' in o || 'couvertureCorpusEntier' in o ? [o] : [{ non: `propriété ${e.texte}` }])
+        : 'non' in o || 'relais' in o || 'hors' in o ? [o] : [{ non: `propriété ${e.texte}` }])
       case 'appel': {
         const args = e.args.map((a) => valeurs(a, ctx))
-        return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c ? retour(c.fn, args) : 'lambda' in c ? rendusDeLambda(c, e.texte)
+        return valeurs(e.cible, ctx).flatMap((c) => 'fn' in c && `${c.fn.f}#${c.fn.id}` === DOSSIER_GIT
+          ? (e.args[0] ? valeurs({ k: 'join', v: [e.args[0], { k: 'lit', v: '.git' }] }, ctx) : [{ non: 'argument absent' }])
+          : 'fn' in c ? retour(c.fn, args) : 'lambda' in c ? rendusDeLambda(c, e.texte)
           : 'relais' in c ? [c] : [{ non: `appel ${e.texte}` }])
       }
       case 'dir': return valeurs(e.v, ctx).map((v) => 'espace' in v ? parentExterne(v) : 'chemin' in v ? borne(posix.dirname(v.chemin || '.')) : 'texte' in v ? { texte: posix.dirname(v.texte) } : v)
@@ -571,6 +588,11 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
           const presente = suite.some((x) => !('absent' in x))
           const vus = new Map()
           for (const a of acc) {
+            if ('couvertureCorpusEntier' in a || suite.some((x) => 'couvertureCorpusEntier' in x)) {
+              for (const x of suite) for (const v of [a, x])
+                if (['couvertureCorpusEntier', 'non', 'relais', 'absent'].some((k) => k in v)) vus.set(cleDe(v), v)
+              continue
+            }
             if (['relais', 'non', 'absent'].some((k) => k in a)) {
               if (presente) vus.set(cleDe(a), a)
               if (absente) vus.set(cleDe(absente), absente)
@@ -621,6 +643,7 @@ export function evaluateurDuDepot({ lecture: lectureDe, cible: cibleDe, peutLire
   const retour = (fn, args) => sousPile(`retour ${fn.f}#${fn.id}`, args, fn.id, () => {
     const decl = lecture(fn.f)?.fonctions[fn.id]
     if (!decl) return [{ non: `fonction ${fn.id} illisible` }]
+    if (decl.contrat?.retour) return valeurs(decl.contrat.retour, { f: fn.f, env: { fn: fn.id, args } })
     if (decl.contrat?.namespace) {
       const rendu = { k: 'espace', racine: `${fn.f}#${fn.id}:${decl.contrat.namespace}`, chemin: '' }
       return decl.contrat.champ ? valeurs({ k: 'objet', v: { [decl.contrat.champ]: rendu } }, { f: fn.f, env: null }) : valeurs(rendu, { f: fn.f, env: null })

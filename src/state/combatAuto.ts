@@ -34,7 +34,6 @@ import { fateSaveOptions } from '../engine/fortune';
  */
 export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
   attack: { mode: 'self', drive: ['attackRoll', 'attackConfirm'] },
-  trample: { mode: 'self', drive: ['trampleRoll', 'trampleConfirm'] }, // Piétinement : jet propre → Lancer puis Appliquer (comme l'attaque)
   defense: { mode: 'self', drive: ['defenseRoll', 'defenseConfirm'] },
   fumble: { mode: 'self', drive: ['fumbleRoll', 'fumbleConfirm'] },
   test: { mode: 'self', drive: ['testRoll', 'resolveTest'] },

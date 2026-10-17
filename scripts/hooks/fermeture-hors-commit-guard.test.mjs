@@ -19,6 +19,7 @@ test('evaluateFermetureHorsCommit : `gh issue close` refusé, y compris derrièr
     assert.ok(d, `passé en silence : ${cmd}`)
     assert.deepEqual(Object.keys(d), ['reason'])
     assert.match(d.reason, /la fermeture passe par un commit/)
+    assert.match(d.reason, /"NATURE: corrigé \| doublon #M \| caduc \| décidé" de son solde/, 'le refus nomme la voie de sortie sans objet')
   }
 })
 

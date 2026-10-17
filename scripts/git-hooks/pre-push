@@ -1,6 +1,3 @@
 #!/bin/sh
-# scripts/git-hooks/pre-push — porte au PUSH : origin, stock nominatif de la plage, fast-forward
-# (hors chantier/**), run CI vert pour main. Toute la logique vit dans pre-push.mjs.
-# Même contrat que pre-commit : ce hook DOIT pouvoir refuser le push (exit != 0). Les refs à pousser
-# arrivent sur stdin, que `exec` transmet tel quel.
-exec "${npm_node_execpath:-node}" "$(dirname "$0")/pre-push.mjs" "$@"
+# #1776 ; #2626
+exec "${npm_node_execpath:-node}" "$(dirname "$0")/pre-push-supervise.mjs" "$@"

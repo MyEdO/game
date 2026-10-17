@@ -12,6 +12,7 @@ import { bulkCarriers, type CarrierStateSlice, nomDuNavire } from '../state/carr
 import { Coins } from './Coins';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { rigSchema } from '../data/schemas/defs/vehicles';
+import { rigDuNavire } from '../engine/shipBuild';
 import { Icon } from './Icon';
 import { NotchGauge, type GaugeTone } from './NotchGauge';
 import { moraleTone, crewRoleLabel } from './shipStatus';
@@ -73,7 +74,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
   if (!vd?.ship) return null;
 
   const name = nomDuNavire(vessel);
-  const rig = vd.hull?.rig;
+  const rig = rigDuNavire(vd.ship);
   const woundsMax = vessel.wounds?.max ?? vd.hull?.char.B ?? 0;
   const woundsCur = vessel.wounds?.current ?? woundsMax;
   const missing = woundsMax - woundsCur;

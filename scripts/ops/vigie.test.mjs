@@ -1,14 +1,15 @@
 // La vigie (#2280, V4) : la mesure instantanée `{ ligne, transitions, etat }`, ses transitions calculées
-// depuis l'état décodé, et son cache des seuls verdicts `verte`.
+// depuis l'état décodé, et ses mémoires machine des mesures distantes (#2603).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { CiIllisible, decoder, executer, encoder, ligneDe, optionsDe, tick, transitionsDe, verdictDeCi } from './vigie.mjs'
-import { cheminsDeJournal, journalVide } from './publier.mjs'
+import { CiIllisible, FRAICHEUR_MS, decoder, executer, encoder, ligneDe, memoireMachine, optionsDe, tick, transitionsDe, verdictDeCi } from './vigie.mjs'
+import { cheminsDeJournal, journalVide } from './publicationDonnee.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
@@ -69,23 +70,22 @@ test('verdictDeCi : une course en échec SANS job rouge, un job annulé, est `an
   try {
     const ids = []
     const annules = (id) => { ids.push(id); return { disponible: true, valeur: { rouges: [], annules: ['docs', 'suite 1/3'] } } }
-    assert.equal(verdictDeCi({ sha: A, dossier, lire: echec, jobs: annules }), 'annulee')
+    assert.equal(verdictDeCi({ sha: A, dossier, lire: echec, jobs: annules, horloge: () => 0 }), 'annulee')
     assert.deepEqual(ids, [37371342026])
-    assert.equal(verdictDeCi({ sha: A, dossier, lire: echec, jobs: () => ({ disponible: false, raison: 'gh absent' }) }), 'rouge')
-    assert.equal(existsSync(dossier), false, 'une annulée ne se garde pas : sa relance se relit')
+    assert.equal(verdictDeCi({ sha: A, dossier, lire: echec, jobs: () => ({ disponible: false, raison: 'gh absent' }), horloge: () => FRAICHEUR_MS }), 'rouge')
   } finally { jeter(join(dossier, '..')) }
 })
 
-test('verdictDeCi : un cache VIDE ou illisible (écriture tronquée) est un cache absent — le verdict se relit et se réécrit, jamais une panne', () => {
+test('verdictDeCi : un cache VIDE, illisible ou d’une autre forme est un cache absent — le verdict se relit et se réécrit, jamais une panne', () => {
   const dossier = join(mkdtempSync(join(tmpdir(), 'vigie-cache-')), 'vigie')
   try {
     mkdirSync(dossier)
-    for (const contenu of ['', '{"verdict":', '"verte"']) {
+    for (const contenu of ['', '{"mesureA":', '"verte"', '{"verdict":"verte"}', '{"valeur":"verte"}']) {
       writeFileSync(join(dossier, `${A}.json`), contenu)
       let lus = 0
-      const vu = verdictDeCi({ sha: A, dossier, lire: () => { lus += 1; return { disponible: true, valeur: [{ headSha: A, workflowName: 'CI', status: 'completed', conclusion: 'success', databaseId: 5 }] } } })
+      const vu = verdictDeCi({ sha: A, dossier, horloge: () => 7, lire: () => { lus += 1; return { disponible: true, valeur: [{ headSha: A, workflowName: 'CI', status: 'completed', conclusion: 'success', databaseId: 5 }] } } })
       assert.deepEqual([vu, lus], ['verte', 1], JSON.stringify(contenu))
-      assert.deepEqual(JSON.parse(readFileSync(join(dossier, `${A}.json`), 'utf8')), { verdict: 'verte' })
+      assert.deepEqual(JSON.parse(readFileSync(join(dossier, `${A}.json`), 'utf8')), { mesureA: 7, valeur: 'verte' })
     }
   } finally { jeter(join(dossier, '..')) }
 })
@@ -99,22 +99,68 @@ test('ligneDe : `CI main <s> · <branche> <s> · train : <étape k/n>`', () => {
   assert.equal(ligneDe(mesure({ branche: { nom: 'b', sha: B, verdict: 'absente' }, t: train('rouge') })), 'CI main ✓ · b ∅ · train : ✗ pr 4/7')
 })
 
-test('verdictDeCi : seul un `verte` se garde au cache ; rouge et en vol se relisent ; une lecture illisible LÈVE', () => {
+test('verdictDeCi : un rouge se reprend à moins de `FRAICHEUR_MS` et se relit après ; un `verte` se garde sans limite ; une lecture illisible LÈVE', () => {
   const dossier = join(mkdtempSync(join(tmpdir(), 'vigie-cache-')), 'vigie')
   const course = (conclusion, attempt = 1) => ({ disponible: true, valeur: [{ headSha: A, workflowName: 'CI', status: 'completed', conclusion, databaseId: 5, attempt }] })
   try {
     let lus = 0
     const rouges = () => ({ disponible: true, valeur: { rouges: ['suite'], annules: [] } })
-    assert.equal(verdictDeCi({ sha: A, dossier, lire: () => { lus += 1; return course('failure') }, jobs: rouges }), 'rouge')
-    assert.equal(existsSync(dossier), false, 'un rouge ne s’écrit pas : sa relance le reverdit')
-    assert.equal(verdictDeCi({ sha: A, dossier, lire: () => { lus += 1; return course('success', 2) } }), 'verte')
-    assert.deepEqual(JSON.parse(readFileSync(join(dossier, `${A}.json`), 'utf8')), { verdict: 'verte' })
-    assert.deepEqual(readdirSync(dossier), [`${A}.json`], 'le temporaire de l’écriture atomique est renommé')
-    assert.equal(verdictDeCi({ sha: A, dossier, lire: () => assert.fail('un verte gardé ne se relit pas') }), 'verte')
+    assert.equal(verdictDeCi({ sha: A, dossier, horloge: () => 1000, lire: () => { lus += 1; return course('failure') }, jobs: rouges }), 'rouge')
+    assert.equal(verdictDeCi({ sha: A, dossier, horloge: () => 1000 + FRAICHEUR_MS - 1, lire: () => assert.fail('un rouge frais ne se relit pas') }), 'rouge')
+    assert.equal(verdictDeCi({ sha: A, dossier, horloge: () => 1000 + FRAICHEUR_MS, lire: () => { lus += 1; return course('success', 2) } }), 'verte')
+    assert.deepEqual(JSON.parse(readFileSync(join(dossier, `${A}.json`), 'utf8')), { mesureA: 1000 + FRAICHEUR_MS, valeur: 'verte' })
+    assert.deepEqual(readdirSync(dossier), [`${A}.json`], 'le temporaire de l’écriture atomique est renommé, le verrou libéré')
+    assert.equal(verdictDeCi({ sha: A, dossier, horloge: () => 1e12, lire: () => assert.fail('un verte gardé ne se relit pas') }), 'verte')
     assert.equal(lus, 2)
     assert.equal(verdictDeCi({ sha: null, dossier, lire: () => assert.fail('rien de poussé, rien à lire') }), null)
     assert.throws(() => verdictDeCi({ sha: B, dossier, lire: () => ({ disponible: false, raison: 'gh absent' }) }), (e) => e instanceof CiIllisible && /gh absent/.test(e.message))
+    assert.equal(existsSync(join(dossier, `${B}.json`)), false, 'une mesure qui lève ne s’écrit pas')
   } finally { jeter(join(dossier, '..')) }
+})
+
+test('memoireMachine : deux lectures à moins de `FRAICHEUR_MS` font UNE mesure ; au-delà, une seconde', () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'vigie-memoire-'))
+  const chemin = join(dossier, 'distants.json')
+  try {
+    let mesures = 0
+    const mesurer = () => { mesures += 1; return { 'refs/heads/main': A, n: mesures } }
+    assert.deepEqual(memoireMachine({ chemin, mesurer, horloge: () => 0 }), { 'refs/heads/main': A, n: 1 })
+    assert.deepEqual(memoireMachine({ chemin, mesurer, horloge: () => FRAICHEUR_MS - 1 }), { 'refs/heads/main': A, n: 1 })
+    assert.equal(mesures, 1)
+    assert.deepEqual(memoireMachine({ chemin, mesurer, horloge: () => FRAICHEUR_MS }), { 'refs/heads/main': A, n: 2 })
+    assert.equal(mesures, 2)
+    assert.deepEqual(readdirSync(dossier), ['distants.json'])
+  } finally { jeter(dossier) }
+})
+
+test('memoireMachine : le verrou TENU par un vivant fait servir la mémoire périmée sans mesurer, ou mesurer sans mémoire ; un verrou d’un PID mort se reprend', () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'vigie-memoire-'))
+  const chemin = join(dossier, 'distants.json')
+  const verrou = `${chemin}.verrou`
+  const tenu = (pid) => writeFileSync(verrou, JSON.stringify({ pid, commande: 'scripts/ops/vigie.mjs', cwd: '', date: '' }))
+  try {
+    tenu(4242)
+    assert.equal(memoireMachine({ chemin, mesurer: () => 'premiere', horloge: () => 0, estVivant: () => true }), 'premiere', 'sans mémoire, le perdant mesure')
+    assert.equal(memoireMachine({ chemin, mesurer: () => assert.fail('le perdant ne mesure pas'), horloge: () => 5 * FRAICHEUR_MS, estVivant: () => true }), 'premiere')
+    assert.equal(readFileSync(verrou, 'utf8').includes('4242'), true, 'le verrou du vivant reste en place')
+    assert.equal(memoireMachine({ chemin, mesurer: () => 'reprise', horloge: () => 5 * FRAICHEUR_MS, estVivant: (pid) => pid !== 4242 }), 'reprise')
+    assert.equal(existsSync(verrou), false, 'le verrou repris est libéré')
+    assert.deepEqual(JSON.parse(readFileSync(chemin, 'utf8')), { mesureA: 5 * FRAICHEUR_MS, valeur: 'reprise' })
+  } finally { jeter(dossier) }
+})
+
+test('memoireMachine : une écriture purge le temporaire d’`ecrireJsonAtomique` (`<cible>.<uuid>.tmp`) et le verrou laissés par un tick tué, périmés', () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'vigie-memoire-'))
+  try {
+    const vieux = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
+    const restes = [`${A}.json.${randomUUID()}.tmp`, `distants.json.${randomUUID()}.tmp`, `${B}.json.verrou`, `${B}.json.verrou.4242.${randomUUID()}`, `${B}.json.verrou.reprise`]
+    for (const nom of [...restes, 'autre.json']) {
+      writeFileSync(join(dossier, nom), '{}')
+      utimesSync(join(dossier, nom), vieux, vieux)
+    }
+    memoireMachine({ chemin: join(dossier, 'distants.json'), mesurer: () => ({}), horloge: () => 0 })
+    assert.deepEqual(readdirSync(dossier).sort(), ['autre.json', 'distants.json'])
+  } finally { jeter(dossier) }
 })
 
 /** Un dépôt `amont` (l'origine) et son clone `aval` sur la branche `chantier/9` poussée. */
@@ -130,7 +176,7 @@ function depotsDuTick() {
   return { amont: amont.racine, aval, main: amont.sha, branche: g('rev-parse', 'HEAD') }
 }
 
-test('câblage : `tick` lit l’origine par UN ls-remote, la CI par sha, le journal du train de l’arbre ; le `--depuis` rendu calcule la transition suivante', () => {
+test('câblage : `tick` lit les têtes de l’origine, la CI par sha, le journal du train de l’arbre ; le `--depuis` rendu calcule la transition suivante', () => {
   const { amont, aval, main, branche } = depotsDuTick()
   try {
     const verdicts = new Map([[main, 'success'], [branche, '']])
@@ -141,20 +187,38 @@ test('câblage : `tick` lit l’origine par UN ls-remote, la CI par sha, le jour
       return { disponible: true, valeur: [{ headSha: sha, workflowName: 'CI', status: conclusion ? 'completed' : 'in_progress', conclusion, databaseId: 1, attempt: 1 }] }
     }
     const rougesDuTick = () => ({ disponible: true, valeur: { rouges: ['suite'], annules: [] } })
-    const premier = tick({ arbre: aval, lire, jobs: rougesDuTick })
+    const premier = tick({ arbre: aval, lire, jobs: rougesDuTick, horloge: () => 0 })
     assert.equal(premier.ligne, 'CI main ✓ · chantier/9 … · train : —')
     assert.deepEqual(premier.transitions, [])
     assert.deepEqual(lus, [main, branche])
-    assert.deepEqual(readdirSync(join(aval, '.git', 'vigie')), [`${main}.json`], 'le cache vit sous le .git commun')
+    assert.deepEqual(readdirSync(join(aval, '.git', 'vigie')).sort(), [`${branche}.json`, `${main}.json`, 'distants.json'].sort(), 'les mémoires vivent sous le .git commun')
 
     const { json } = cheminsDeJournal(aval, 'chantier/9')
     ecrireJsonAtomique(json, { ...journalVide('chantier/9'), tete: branche, run: `${process.pid}-1`, pid: process.pid, seq: 1, etapes: { preflight: { etat: 'en-vol', run: `${process.pid}-1`, seq: 1, tete: branche } } })
     verdicts.set(branche, 'failure')
-    const second = tick({ arbre: aval, depuis: premier.etat, lire, jobs: rougesDuTick })
+    const second = tick({ arbre: aval, depuis: premier.etat, lire, jobs: rougesDuTick, horloge: () => FRAICHEUR_MS })
     assert.deepEqual(lus, [main, branche, branche], 'main, verte au cache, ne se relit pas')
     assert.equal(second.ligne, 'CI main ✓ · chantier/9 ✗ · train : preflight 1/7', 'le pid du run vit : en vol')
     assert.equal(second.transitions[0], `CI chantier/9 ROUGE (${branche.slice(0, 9)})`)
-    assert.deepEqual(tick({ arbre: aval, depuis: second.etat, lire, jobs: rougesDuTick }).transitions.filter((t) => t.startsWith('CI')), [], 'le rouge rendu au `--depuis` ne se redit pas')
+    assert.deepEqual(tick({ arbre: aval, depuis: second.etat, lire, jobs: rougesDuTick, horloge: () => FRAICHEUR_MS }).transitions.filter((t) => t.startsWith('CI')), [], 'le rouge rendu au `--depuis` ne se redit pas')
+  } finally {
+    jeter(amont)
+    jeter(aval)
+  }
+})
+
+test('câblage : deux ticks à moins de `FRAICHEUR_MS` font UN `ls-remote` — une tête poussée entre eux ne se voit qu’au tick d’après la péremption', () => {
+  const { amont, aval, main } = depotsDuTick()
+  try {
+    const lire = (sha) => ({ disponible: true, valeur: [{ headSha: sha, workflowName: 'CI', status: 'completed', conclusion: 'success', databaseId: 1, attempt: 1 }] })
+    const shaDeMain = (horloge) => decoder(tick({ arbre: aval, lire, horloge }).etat).main.sha
+    assert.equal(shaDeMain(() => 0), main)
+    const g = gitDe(amont)
+    writeFileSync(join(amont, 'c.txt'), 'c\n')
+    g('add', 'c.txt'); g('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'trois')
+    const neuf = g('rev-parse', 'HEAD').trim()
+    assert.equal(shaDeMain(() => FRAICHEUR_MS - 1), main, 'la mémoire fraîche sert : aucun ls-remote')
+    assert.equal(shaDeMain(() => FRAICHEUR_MS), neuf, 'la mémoire périmée se remesure')
   } finally {
     jeter(amont)
     jeter(aval)

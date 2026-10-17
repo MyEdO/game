@@ -50,8 +50,11 @@ export function recopieDeCanon(p: {
 }): Construction & { readonly indice: (texte: string) => boolean };
 export const FORMULE_DE_CHEBYSHEV: Construction;
 export const ECHAPPEUR_DE_LITTERAL: Construction;
+export const COUVERTURE_DE_SPEC: Construction;
+export const IDENTITE_D_INSTANCE: Construction;
 export const CONSTRUCTION_DE_PROGRAMME: Construction;
 export const ECRITURE_DE_STOCK_JSON: Construction;
+export const SONDE_D_EXISTENCE: Construction;
 export const CONSTRUCTION_DE_TABLE_TOTALE: Construction;
 export function constructionDeFragment(p: {
   nom: string;
