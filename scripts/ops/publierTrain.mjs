@@ -29,11 +29,11 @@
 // `worktree remove --force`, `checkout` ou `restore`.
 // Un rebase INTERROMPU trouvé sur disque à la préflight est NOMMÉ, jamais avorté d'office.
 //
-// Usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run> [--depuis <seq>] [--constat]]
+// Usage : `refusDOptions` (`publicationDonnee.mjs`).
 // `--veiller <run>` suit le run nommé par `--detache` (`veillerLeTrain`), sans rien jouer ; `--depuis <seq>`
 // la ré-arme après la dernière transition `#<seq>` lue ; `--constat` la reprend après la sortie de sa veille
 // (#2493), depuis la dernière transition du journal.
-import { optionsDe, idDeRun, runDe, runEnVol, lancementDe, journalVide, journalInitial, modeDuLog, ouvrirLog, CODE_BORNE_DEPASSEE, entameDuRun, ligneDePublication, codeDeVerdict, cheminsDeJournal, lireJournal, lancementNpm } from './publicationDonnee.mjs'
+import { optionsDe, idDeRun, runDe, runEnVol, lancementDe, journalVide, journalInitial, modeDuLog, ouvrirLog, CODE_BORNE_DEPASSEE, entameDuRun, ligneDePublication, codeDeVerdict, cheminsDeJournal, lireJournal, lancementNpm, verdictDeTrace, chuteMoteur, raisonDeLErreur, refusDOptions } from './publicationDonnee.mjs'
 import { spawnSync } from 'node:child_process'
 import { appendFileSync, closeSync, existsSync, mkdirSync, readFileSync, writeSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -268,6 +268,10 @@ export const PERIODE_DE_VEILLE_MS = 5_000
  * `worktree add`. Hors de la somme : la mesure de création du `runEnVol` de `preparerPublication`, bornée à 10 s
  * (`BORNE_DE_MESURE_MS`, `identiteMesuree.mjs`). Termes NON bornés : `worktree add` (`ajouterWorktree`, sans `timeout`),
  * les lectures git locales (`depotDe`, `brancheDe`, `shaDe`).
+ * Toute sortie de l'enfant laisse une trace (`sortirHorsJournal`), l'option inconnue comprise. Elle ne juge donc que ses
+ * morts BRUTALES, sans run au journal NI trace : tué sans état avant son entame
+ * (`taskkill /F`, SIGKILL, arrêt de la machine), mort de node hors JavaScript (mémoire, abandon natif), module qui ne
+ * se charge pas avant son filet (`filetDuTrainEnfant`), écriture de la trace refusée (disque, droits).
  */
 export const ECHEANCE_SANS_RUN_MS = 2 * TIMEOUT_DU_DISTANT_MS + TIMEOUT_READ_TREE_MS
 
@@ -358,12 +362,13 @@ export function constaterLaMort({ chemins, par, vivant: estVivant = estPidVivant
  * (course d'ouverture : le run d'avant), elle se tait. Ré-armée (`depuis` = le dernier `#seq` lu), elle ne
  * ré-émet aucune transition ; `constat` (`--constat`, après la sortie d'une veille) part de la dernière
  * transition du journal. Le run mort sans verdict (`mortDuRun`) est CONSTATÉ (`constater`, qui l'écrit au
- * journal), puis relu. Sans son run au journal, rien n'est conclu (indéterminé) : `ECHEANCE_SANS_RUN_MS` après le
- * LANCEMENT du run, la veille sort en `CODE_BORNE_DEPASSEE`, jamais sur la vie de son pid. La borne (`borneDeVeilleMin` de la borne de file du run, ou de `fileTimeoutMin` tant
+ * journal), puis relu. Sans son run au journal, la TRACE du run (`trace`, `verdictDeTrace`) fait le verdict : sa raison,
+ * sa ligne `PUBLICATION:`, son code. Ni run ni trace : rien n'est conclu (indéterminé), `ECHEANCE_SANS_RUN_MS` après le
+ * LANCEMENT du run, la veille sort en `CODE_BORNE_DEPASSEE`, jamais sur la vie d'un pid. La borne (`borneDeVeilleMin` de la borne de file du run, ou de `fileTimeoutMin` tant
  * qu'il n'a rien écrit), comptée depuis le LANCEMENT du run (`runDe`), jamais depuis le départ de la veille,
  * passée sans verdict sort en `CODE_BORNE_DEPASSEE`.
  * @param {{run:string, fileTimeoutMin:number, lire:() => object|null, ecrire:(ligne:string) => void,
- *          constater?:() => object|null, depuis?:number, constat?:boolean, journal?:string, pid?:number,
+ *          constater?:() => object|null, trace?:() => object|null, depuis?:number, constat?:boolean, journal?:string, pid?:number,
  *          vivant?:(pid:number) => boolean, identite?:typeof IDENTITE_MESUREE, maintenant?:() => number, dormir?:(ms:number) => void, periodeMs?:number}} p
  * @returns {number} code de sortie
  */
@@ -373,6 +378,7 @@ export function veillerLeTrain({
   lire,
   ecrire,
   constater = () => null,
+  trace = () => null,
   depuis = 0,
   constat = false,
   journal: cheminDuJournal = '',
@@ -403,6 +409,12 @@ export function veillerLeTrain({
       return codeDeVerdict(vu.verdict)
     }
     if (vu.courant && mortDuRun(journal, { vivant: estVivant, identite, maintenant }) && constater()) continue
+    const sortie = vu.courant ? null : trace()
+    if (sortie) {
+      ecrire(sortie.raison)
+      ecrire(ligneDePublication(sortie))
+      return codeDeVerdict(sortie)
+    }
     if (!vu.courant && maintenant() - lancement >= ECHEANCE_SANS_RUN_MS) {
       ecrire(`[veille] aucun run ${run} au journal ${ECHEANCE_SANS_RUN_MS / 60_000} min après son lancement — \`npm run ops:publier -- --etapes\``)
       return CODE_BORNE_DEPASSEE
@@ -648,7 +660,7 @@ export function contexteDe({ racine, branche, options, journaliser, fdLog, publi
 async function main() {
   const options = optionsDe(process.argv.slice(2))
   if (options.inconnus.length) {
-    process.stderr.write(`[publier] option inconnue : ${options.inconnus.join(' ')}\n  usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run> [--depuis <seq>] [--constat]]\n`)
+    process.stderr.write(`${refusDOptions(options.inconnus)}\n`)
     process.exit(1)
   }
   const depot = depotDuTrain(RACINE)
@@ -677,6 +689,7 @@ async function main() {
       ecrire: (ligne) => process.stdout.write(`${ligne}\n`),
       identite,
       constater: () => constaterLaMort({ chemins, par: `veille ${process.pid}`, identite }),
+      trace: () => verdictDeTrace(chemins.dossier, options.veiller),
     })
   }
 
@@ -733,18 +746,17 @@ async function main() {
 
 /**
  * `main`, dont une panne de git AVANT le train (racine, branche, tête vivante) sort en ligne finale
- * NOMMÉE — au log de l'enfant détaché, sur stderr sinon —, jamais en pile brute.
+ * NOMMÉE (`chuteMoteur`) sur stderr, jamais en pile brute. Le train du snapshot a pour stderr le log de l'enfant
+ * (`publierDepuisSnapshot`, #2603).
  * @returns {number}
  */
 export async function executerPublication() {
   try {
     return await main()
   } catch (e) {
-    const verdict = { etat: 'rouge', etape: 'moteur', raison: e instanceof GitIndisponible ? refusDeGit(e) : String(e?.message ?? e) }
-    const ligne = `${verdict.raison}\n${ligneDePublication(verdict)}\n`
-    if (process.env.WFRP_PUBLIER_ENFANT === '1' && process.env.WFRP_PUBLIER_LOG) appendFileSync(process.env.WFRP_PUBLIER_LOG, ligne)
-    else process.stderr.write(ligne)
-    return codeDeVerdict(verdict)
+    const { texte, code } = chuteMoteur(raisonDeLErreur(e))
+    process.stderr.write(texte)
+    return code
   }
 }
 
