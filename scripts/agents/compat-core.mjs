@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer';
-import { matcherDOutils } from '../guards/lib/contratGarde.mjs';
+import { EDITION, LECTURE, SHELL, familleLeanCtx, matcherDOutils, nomLeanCtx } from '../guards/lib/contratGarde.mjs';
 import { TIMEOUT_DU_HOOK } from '../hooks/bootstrap-prerequis.mjs';
 import { racinesDeModsParmi } from '../mods/racines.mjs';
 
@@ -129,6 +129,21 @@ export function transformSkillTree(sourceFiles) {
 // #2537
 export const OUTILS_NON_RESOLUS = Object.freeze(['StructuredOutput', 'TodoWrite', 'TaskCreate', 'TaskGet', 'TaskUpdate', 'TaskList', 'SendFeedback', 'ScheduleWakeup', 'EnterPlanMode', 'ExitPlanMode', 'AskUserQuestion']);
 
+// #2710 : un outil lean-ctx ou PowerShell manque hors du poste qui le porte, sans erreur au lancement de l'agent.
+export const EQUIVALENTS_INTEGRES = Object.freeze({ [LECTURE]: 'Read', [EDITION]: 'Edit', [SHELL]: 'Bash' });
+
+/** L'outil intégré qui rend la capacité de `outil` sans serveur MCP ni hôte propre, ou `null`. PURE. */
+export const equivalentIntegre = (outil) => {
+  if (outil === 'PowerShell') return EQUIVALENTS_INTEGRES[SHELL];
+  const nu = nomLeanCtx(outil);
+  const famille = nu === null ? null : familleLeanCtx(nu);
+  return famille !== null && Object.hasOwn(EQUIVALENTS_INTEGRES, famille) ? EQUIVALENTS_INTEGRES[famille] : null;
+};
+
+/** Les outils intégrés que `outils` doit lister pour garder ses capacités hors du poste. PURE. */
+export const equivalentsManquants = (outils) =>
+  [...new Set(outils.map(equivalentIntegre).filter(Boolean))].filter((integre) => !outils.includes(integre));
+
 export function validateRolePairs(claudeProfiles, codexProfiles) {
   const diagnostics = [];
   for (const role of new Set([...claudeProfiles.keys(), ...codexProfiles.keys()])) {
@@ -148,6 +163,8 @@ export function validateRolePairs(claudeProfiles, codexProfiles) {
       for (const outil of (frontmatter.attributes.get('tools') ?? '').split(',').map((entree) => entree.trim()))
         if (OUTILS_NON_RESOLUS.includes(outil))
           diagnostics.push({ family: 'agent', destination: role, type: 'tools', message: `outil « ${outil} » hors du pool des sous-agents` });
+      for (const integre of equivalentsManquants((frontmatter.attributes.get('tools') ?? '').split(',').map((entree) => entree.trim()).filter(Boolean)))
+        diagnostics.push({ family: 'agent', destination: role, type: 'tools', message: `outil intégré « ${integre} » absent : sans lui, l'agent perd cette capacité hors du poste qui porte son équivalent` });
       if (frontmatter.attributes.get('description') !== description)
         diagnostics.push({ family: 'agent', destination: role, type: 'content', message: 'description fonctionnelle divergente' });
       const expected = referencesIn(adapt(frontmatter.body).split('.claude/skills/').join('.agents/skills/'));

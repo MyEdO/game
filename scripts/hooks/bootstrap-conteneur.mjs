@@ -19,13 +19,16 @@
 // `SessionStart` en sortie 2 ne montre son stderr qu'à l'utilisateur, et chaque hook `PreToolUse`
 // rend ce refus à la session au premier outil qu'il garde (son `matcher`) ; un outil que nul hook ne
 // garde ne le déclenche pas.
+//
+// Il imprime aussi l'index de la mémoire committée (`INDEX_MEMOIRE`), que seule une session locale
+// charge : c'est sa seule sortie quand le conteneur est conforme (#2710).
 import '../node-requis.mjs'
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { verrouOutillageDe } from './barriere-outil.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
-import { SOURCES_LUES } from '../docs/build-all.mjs'
+import { GENERATORS, ciblesLitterales } from '../docs/build-all.mjs'
 import { demanderLaReconstruction } from '../git-hooks/reconstruction.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
 import { BUDGET_CONSTAT, PREREQUIS } from './bootstrap-prerequis.mjs'
@@ -91,7 +94,8 @@ export function sousOutillage(racine, geste) {
 export const GESTES_DU_CONTENEUR = Object.freeze({
   estSuperficiel, dossierDesHooks,
   approfondir: (depot, options) => renduDeGit(approfondir(depot, options)),
-  docsMesures: (racine) => existsSync(join(racine, SOURCES_LUES)),
+  // #2710 : le `postinstall` écrit `SOURCES_LUES` pour les seuls générateurs de code ; la mesure lit les cibles.
+  docsMesures: (racine) => ciblesLitterales(GENERATORS.flatMap((g) => g.targets)).every((cible) => existsSync(join(racine, cible))),
   demanderLesDerives,
   sousOutillage,
 })
@@ -136,9 +140,21 @@ export function bootstrap(env = process.env, racine = process.cwd(), run = lance
   return mettreEnConformite({ racine, run, gestes, pannes, depot: depotDe(racine, { enPanne: (raison) => pannes.push(raison) }) })
 }
 
+/** L'index de la mémoire committée, que seule une session locale charge (doc memory : « Auto memory is
+ *  machine-local ») : en conteneur distant, la sortie du hook le porte au contexte (#2710). */
+export const INDEX_MEMOIRE = '.claude/memory/MEMORY.md'
+
+export function memoireDuConteneur(env = process.env, racine = process.cwd()) {
+  const chemin = join(racine, INDEX_MEMOIRE)
+  if (!estConteneurDistant(env) || !existsSync(chemin)) return ''
+  return `[conteneur] mémoire du dépôt (\`${INDEX_MEMOIRE}\`, fiches sous \`.claude/memory/\`) :\n${readFileSync(chemin, 'utf8').trim()}\n`
+}
+
 export function bootstrapSessionStart({ env = process.env, racine = process.cwd(), entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
   const lignes = bootstrap(env, racine, run, gestes)
   if (lignes.length) output.write(`${lignes.join('\n')}\n`)
+  const memoire = memoireDuConteneur(env, racine)
+  if (memoire) output.write(memoire)
   produireRecuSessionStart({ surface: 'claude', entree, env, worktree: racine })
   return lignes
 }

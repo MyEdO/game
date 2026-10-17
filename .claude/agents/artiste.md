@@ -1,7 +1,7 @@
 ---
 name: artiste
 description: Geste d'ART sur le rig SVG (une part, un trait, une déclinaison de vues, un lot de tenues) intégralement spécifié par l'orchestrateur. À utiliser pour tout tracé/retouche d'art vectoriel.
-tools: Read, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_patch, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, Write, Bash, PowerShell
+tools: Read, Edit, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_patch, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, Write, Bash, PowerShell
 model: opus
 effort: medium
 ---

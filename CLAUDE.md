@@ -14,7 +14,7 @@ choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 Ce dossier EST un vrai projet logiciel (`MyEdO/game`) : commits + push attendus, tronc `main`
 (trunk-based). Le `Foundry/CLAUDE.md` parent ne s'applique PAS ici.
 
-Mémoire committée `.claude/memory/` (index `MEMORY.md` + fiches) : injectée en session locale, à LIRE
+Mémoire committée `.claude/memory/` (index `MEMORY.md` + fiches) : injectée en local, son index seul
 en cloud ; se committe comme du code, jamais de git destructif dessus.
 
 ## Table de routage — lire le bon doc AU MOMENT du déclencheur
