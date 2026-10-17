@@ -491,7 +491,7 @@ export interface AttackResult {
    *  — court-circuite le tirage aléatoire dans `applyCriticalToTarget`. Absente = localisation au hasard. */
   critLocation?: HitLocation;
   damage?: number; // dégâts bruts (avant mitigation)
-  woundsLost?: number; // Blessures réellement perdues
+  woundsLost?: number; // Blessures du coup, non plafonnées aux PB — LDB 13 l.159
   /** Dégâts de la touche encaissés par un TIERS (Martyr, LDB 43 l.107) : la cible n'en reçoit aucun, ni à la
    *  Localisation du Critique (`woundsAtCritLocation`) ni en surcroît de Déviation (LDB 63 l.30). Posé une fois,
    *  il voyage avec la touche : un coup qui ré-entre après une fenêtre ne les transfère pas deux fois. */
@@ -512,6 +512,11 @@ export interface AttackResult {
   lancerDuTableau?: number;
   /** #1595 c.6221792068 Q2. */
   sansPrise?: SansPrise;
+  /** Les termes de la ligne de touche hors chiffres du coup : `log` en est l'aperçu au jet, `ligneDuCoup` la
+   *  recompose à l'application. Absent quand `log` n'est pas une ligne de touche. */
+  touche?: ToucheDuJournal;
+  /** Lignes posées par les modifiers de touche après le jet, journalisées à la suite de la ligne du coup. */
+  ajouts?: string[];
   /** SAUVEGARDE « 1d10 ≥ Indice » de CE coup, DÉCIDÉE (LDB 85 l.98, LDB 85 l.278, LDB 47 l.410) — posée
    *  par la porte (étape de dé), jamais par le moteur. Sa présence dit que le dé est tombé : le registre
    *  de touche APPLIQUE l'issue au lieu d'en redemander un, et un coup qui repasse par le registre après
@@ -1546,6 +1551,7 @@ export function resolveStrayRangedHit(
   };
   const atkBd = bd(`${attackTestLabel(attacker, weapon, 'ranged')} (dévié)`, base, atk, compo);
   const res = toucheAuJetPose(attacker, victim, weapon, atkBd, Math.max(0, atk.sl), withhold);
+  delete res.touche;
   res.log = `Le tir dévie dans la mêlée et touche ${victim.label} !`;
   return res;
 }
@@ -1595,6 +1601,43 @@ export function profilDuCoup(weapon: Weapon, retenu: boolean): Weapon {
     .filter((r) => !r.caps?.withheldOnRestraint)
     .map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
   return { ...w, qualities: kept, noFamilyQualities: true };
+}
+
+/** Les termes d'une ligne de touche que l'application ne change pas. MDG 13 l.605, l.614. */
+export interface ToucheDuJournal {
+  attaquant: string;
+  cible: string;
+  forme?: BodyShape;
+  /** Libellé de la mitigation (`BE+PA`, ou le BE multiplié d'une Structure, AA 10 l.98). */
+  mitigation: string;
+  coque?: 'petites-armes' | 'taille';
+}
+
+/** La ligne de touche d'un coup : Localisation, Dégâts et Blessures tels que portés par `res`, marque Critique
+ *  selon `critique`. Sans prise ni Dégâts sur la cible, la ligne ne chiffre rien. LDB 14 l.159 ; LDB 43 l.107. */
+export function phraseDeTouche(
+  t: ToucheDuJournal,
+  res: Pick<AttackResult, 'location' | 'damage' | 'woundsLost' | 'sansPrise' | 'degatsTransferes'>,
+  critique: boolean,
+): string {
+  if (t.coque) {
+    return `${t.attaquant} touche ${t.cible}, sans effet sur la coque (${t.coque === 'petites-armes'
+      ? 'les tirs de petites armes n’infligent pas assez de Dégâts pour avoir un effet sur un vaisseau'
+      : 'trop petit pour entamer cette coque'} — MDG 13).`;
+  }
+  const lieu = res.location ? ` (${locationLabel(res.location, t.forme)})` : '';
+  const marque = critique ? ' — CRITIQUE !' : '';
+  if (res.sansPrise || res.degatsTransferes) return `${t.attaquant} touche ${t.cible}${lieu}${marque}.`;
+  const damage = res.damage ?? 0;
+  const blessures = res.woundsLost ?? 0;
+  return `${t.attaquant} touche ${t.cible}${lieu} : ${damage} dégâts − ${damage - blessures} (${t.mitigation}) = ${blessures} Blessures${marque}.`;
+}
+
+/** La ligne de journal d'un coup APPLIQUÉ : la ligne de touche recomposée sur la Localisation, les Blessures
+ *  et les Blessures critiques infligées (`critiques`), suivie des `ajouts`. LDB 18 l.53, l.55 ; LDB 63 l.32. */
+export function ligneDuCoup(res: AttackResult): string {
+  const tete = res.touche ? phraseDeTouche(res.touche, res, (res.critiques ?? 0) > 0) : res.log;
+  return [tete, ...(res.ajouts ?? [])].filter(Boolean).join(' ');
 }
 
 function applyHit(
@@ -1674,6 +1717,11 @@ function applyHit(
     : 'BE+PA';
   const newWounds = defender.wounds.current - woundsLost;
   const defeated = newWounds <= 0;
+  const touche: ToucheDuJournal = {
+    attaquant: attacker.label, cible: defender.label, forme: defender.bodyShape, mitigation: mitLabel,
+    ...(hullBlocked ? { coque: hullAdj.blocked === 'petites-armes' ? 'petites-armes' as const : 'taille' as const } : {}),
+  };
+  const apercu = { location: loc, damage, woundsLost, ...(sansPrise ? { sansPrise } : {}) };
   return {
     hit: true,
     attackerRoll: atkBd.roll,
@@ -1688,18 +1736,12 @@ function applyHit(
     ...(sansPrise ? { sansPrise } : {}),
     advantageTo: 'attacker',
     defenderDefeated: defeated,
-    log: hullBlocked
-      ? `${attacker.label} touche ${defender.label}, sans effet sur la coque (${hullAdj.blocked === 'petites-armes'
-          ? 'les tirs de petites armes n’infligent pas assez de Dégâts pour avoir un effet sur un vaisseau'
-          : 'trop petit pour entamer cette coque'} — MDG 13).`
-      : `${attacker.label} touche ${defender.label}${loc ? ` (${locationLabel(loc, defender.bodyShape)})` : ''} : ` +
-        `${damage} dégâts − ${damage - woundsLost} (${mitLabel}) = ${woundsLost} Blessures` +
-        (isCritical && !sansPrise ? ' — CRITIQUE !' : '') +
-        '.',
+    touche,
+    log: phraseDeTouche(touche, apercu, isCritical && !sansPrise),
   };
 }
 
-/** Blessures non critiques à la Localisation relancée (`relanceLaLocalisation`) ; queue d'`applyHit`.
+/** Blessures non critiques à la Localisation relancée (`CompteDesCritiques.relance`) ; queue d'`applyHit`.
  *  LDB 18 l.53, l.55 ; LDB 62 l.135 ; LDB 63 l.86, l.90. */
 export function woundsAtCritLocation(res: AttackResult, weapon: Weapon, defender: Combatant, location: HitLocation): number {
   // AA 10 l.105 — ce site re-tire une Localisation : une Structure ne peut pas y passer, et la Taille de

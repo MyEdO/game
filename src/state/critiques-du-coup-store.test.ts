@@ -21,13 +21,13 @@ import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '.
 
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 
-interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number; sousAttaque?: boolean; arme?: Weapon; retenu?: boolean; vehicule?: string }
+interface Coup { seed?: number; roll?: number; double?: boolean; current?: number; important?: boolean; chanceux?: boolean; pa?: number; endurance?: number; pieces?: ItemInstance[]; de?: number; tenu?: boolean; choisir?: ChoisitCle; martyr?: boolean; demoniaque?: number; sousAttaque?: boolean; arme?: Weapon; retenu?: boolean; vehicule?: string; grapple?: boolean }
 
 /** Un coup (de double, sauf `double: false`) sur la cible, par la couture du jeu (`rederivePassiveAttack` → `applyAttackResult`),
  *  la cascade drainée au dé `de` et au choix `choisir`. `tenu` = un siège MJ tient la cible. `pieces` = l'armure portée par la cible, à la place de sa PA plate.
  *  `martyr` = l'autre ennemi la garde (LDB 43 l.107) ; `demoniaque` = l'Indice de sa sauvegarde (LDB 85 l.98). `sousAttaque` = le coup d'une sous-attaque.
- *  `arme` = l'arme du coup ; `retenu` = Retenir ses coups (LDB 18 l.30 ; AA 07 l.59) ; `vehicule` = la cible est ce véhicule, tel que le jeu le fait naître. */
-function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule }: Coup = {}) {
+ *  `arme` = l'arme du coup ; `retenu` = Retenir ses coups (LDB 18 l.30 ; AA 07 l.59) ; `vehicule` = la cible est ce véhicule, tel que le jeu le fait naître ; `grapple` = une Empoignade (LDB 14 l.159). */
+function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule, grapple = false }: Coup = {}) {
   useGame.getState().seedRng(seed);
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
@@ -56,7 +56,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   }
   const res = rederivePassiveAttack(H, cible, arme, { roll, target: 90, success: true, sl: 0, isDouble: double } as never, 'melee', 'corps', retenu);
   const auJet = { critical: res.critical, woundsLost: res.woundsLost ?? 0 };
-  applyAttackResult(useGame.getState, useGame.setState, H, cible, arme, res, sousAttaque ? { sousAttaque: true } : {});
+  applyAttackResult(useGame.getState, useGame.setState, H, cible, arme, res, { ...(sousAttaque ? { sousAttaque: true } : {}), ...(grapple ? { suite: { grapple: true } } : {}) });
   const kinds: string[] = [];
   const origines: (string | undefined)[] = [];
   for (let i = 0; i < 200 && useGame.getState().pendingCascade; i++) {
@@ -562,5 +562,63 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     expect(journal()).toContain(tr('cf.deflect', { name: apres.label }));
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(emis).toEqual([0]);
+  });
+});
+
+describe('la ligne de touche du journal dit le coup APPLIQUÉ (LDB 18 l.53, l.55 ; LDB 63 l.30, l.32)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
+
+  /** Le coup joué, la touche FINALE émise à l'application, et la ligne de touche du journal. */
+  function joue(opts: Coup) {
+    const emis: AttackResult[] = [];
+    const h = (p: { result: AttackResult }) => { emis.push(p.result); };
+    bus.on(EVT.ANIM_ATTACK, h as never);
+    try {
+      const r = coup(opts);
+      const ligne = journal().find((l) => l.startsWith('H touche'));
+      return { ...r, finale: emis[0], ligne: ligne ?? '' };
+    } finally { bus.off(EVT.ANIM_ATTACK, h as never); }
+  }
+  const lieu = (c: Combatant, res: AttackResult) => locationLabel(res.location!, c.bodyShape);
+
+  it("'ldb' : Dévier le Coup Critique — Localisation relancée, Blessures recomptées à PA−1, sans marque Critique", () => {
+    const r = joue({ pa: 2, current: 20, tenu: true, choisir: () => 'devier' });
+    expect(totalPA(r.cible), 'un PA sacrifié').toBe(11);
+    expect(r.finale.critiques).toBe(0);
+    expect(r.ligne).toContain(`(${lieu(r.cible, r.finale)})`);
+    expect(r.ligne).toContain(`= ${20 - r.cible.wounds.current} Blessures`);
+    expect(r.ligne).not.toContain('CRITIQUE');
+  });
+
+  it("'ldb' : Subir le Coup Critique — la ligne porte la marque Critique", () => {
+    const r = joue({ pa: 2, current: 20, tenu: true, choisir: () => 'subir' });
+    expect(r.finale.critiques).toBe(1);
+    expect(r.ligne).toContain(`(${lieu(r.cible, r.finale)})`);
+    expect(r.ligne).toContain(`= ${r.finale.woundsLost} Blessures — CRITIQUE !`);
+  });
+
+  it("'aa' : le Chanceux dévie le Critique de la chute à 0 — les Blessures recomptées à PA−1 (AA 07 l.36 ; LDB 63 l.32)", () => {
+    setRule('combat-aa-blessures', 'aa');
+    const temoin = joue({ pa: 2, endurance: 10, current: 3, double: false, roll: 21, chanceux: true, tenu: true, choisir: () => 'subir' });
+    const r = joue({ pa: 2, endurance: 10, current: 3, double: false, roll: 21, chanceux: true, tenu: true, choisir: () => 'devier' });
+    expect(temoin.finale.critiques, "le témoin subit le Critique de la chute à 0").toBe(1);
+    expect(r.finale.woundsLost).toBe((temoin.finale.woundsLost ?? 0) + 1);
+    expect(r.ligne).toContain(`= ${r.finale.woundsLost} Blessures.`);
+    expect(r.ligne).not.toContain('CRITIQUE');
+  });
+
+  it("'ldb' : le figurant tombe par la Mort subite — aucune marque Critique (LDB 18 l.44)", () => {
+    const r = joue({ important: false });
+    expect(r.auJet.critical).toBe(true);
+    expect(r.cible.criticalWounds ?? 0).toBe(0);
+    expect(r.ligne).not.toContain('CRITIQUE');
+  });
+
+  it('Empoignade réussie : la ligne ne chiffre ni Dégâts ni Blessures (LDB 14 l.159)', () => {
+    const r = joue({ current: 20, double: false, roll: 45, grapple: true });
+    expect(r.cible.wounds.current).toBe(20);
+    expect(r.ligne).toMatch(/^H touche /);
+    expect(r.ligne).not.toMatch(/Blessures|dégâts/);
   });
 });

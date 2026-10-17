@@ -60,6 +60,7 @@ import {
   attackHandGate,
   conditionModLines,
   canFireWhileEngaged,
+  ligneDuCoup,
   freeAttackWeapon,
   causeDuCoupCritique,
 } from '../engine/combat';
@@ -2584,8 +2585,8 @@ function appliquerLaTouche(
   // Chaque modifier RE-TESTE l'état courant de `res` et le TRANSFORME — ordre encodé par `order`.
   // Un modifier ne suspend RIEN lui-même : il DÉCLARE (`ouvrirSauvegarde`), c'est ICI que l'étape est
   // poussée et la résolution suspendue ; autoKill et l'offre de Déviation Critique restent INLINE
-  // ci-dessous. Les saves posent leur ligne dans `res.log` (journalisé par l'`ev(evKind, res.log, …)`
-  // final) → `sink` no-op ici. `encaisse` : ce qu'un TIERS a pris (Martyr) — l'interruption de
+  // ci-dessous. Les saves posent leur ligne dans `res.ajouts` (journalisé par `ligneDuCoup`
+  // en fin de coup) → `sink` no-op ici. `encaisse` : ce qu'un TIERS a pris (Martyr) — l'interruption de
   // Focalisation du prêtre vit ici, le registre n'important rien de ce module.
   const tiersLog: string[] = [];
   // La SAUVEGARDE « 1d10 ≥ Indice » (LDB 85 l.98 / l.278, LDB 47 l.410) ne se roule plus ici : le registre
@@ -2863,7 +2864,7 @@ function appliquerLaTouche(
   // bouclier) — pas ceux de l'arme principale.
   bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: target.id, result: res, kind, defense, weapon, parryWeapon: res.parryWeapon, creatureAttack: creatureAttackKind(weapon) });
   const evKind: CombatEventKind = weapon.type === 'ranged' ? 'shoot' : 'attack';
-  const log = [...battle.log, ev(evKind, res.log, attacker.id, target.id)];
+  const log = [...battle.log, ev(evKind, ligneDuCoup(res), attacker.id, target.id)];
   // Dispersion (LDB 14 l.144-151) : une arme de JET (Portée `{bf}`) dont le Test de Projectiles (Lancer)
   // ÉCHOUE dévie vers une tuile (1d10 direction / 9 = pieds du lanceur / 10 = pieds de la cible, 2d10 m
   // plafonnés à la demi-distance). Le jeu ne modélise pas l'arme au sol → l'effet visible RAW = la tuile
@@ -5850,7 +5851,8 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     });
     const apresSaves = apresModifiers.res;
     if (apresModifiers.suspendu) return { issue: 'suspendue-sauvegarde', lignes }; // suspendu AVANT toute mutation : cette cible reprendra par l'applier
-    if (apresSaves.log) lignes.push(apresSaves.log);
+    const ligne = ligneDuCoup(apresSaves);
+    if (ligne) lignes.push(ligne);
     mres = { ...mres, woundsLost: apresSaves.woundsLost, damage: apresSaves.damage };
   }
   if (!mres.hit || !mres.woundsLost) return clore(get, ch, lignes, mres, 0);

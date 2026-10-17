@@ -154,7 +154,7 @@ export function organicProjectile(w: Weapon): boolean {
 // ── Registre ──────────────────────────────────────────────────────────────────────────────────────
 
 /** Contexte d'un modifier de touche : l'état (get/set), les protagonistes, le `res` COURANT, et un
- *  `sink(line)` pour journaliser (les sauvegardes posent leur ligne dans `res.log`, pas via `sink` —
+ *  `sink(line)` pour journaliser (les sauvegardes posent leur ligne dans `res.ajouts`, pas via `sink` —
  *  `sink` reste disponible pour un futur modifier qui en aurait besoin). */
 export interface HitModifierCtx {
   get: Get;
@@ -253,7 +253,7 @@ registerHitModifier({
   apply: ({ attacker, target, res }) => {
     if (res.hit && isMagicallyAsleep(target) && !traitCapability(attacker.traits, 'wakelessBite')) {
       wakeSleeper(target);
-      res = { ...res, autoKill: false, log: `${res.log ? res.log + ' ' : ''}${t('cf.wakeSleeper', { name: attacker.label, foe: target.label })}` };
+      res = { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.wakeSleeper', { name: attacker.label, foe: target.label })] };
     }
     return res;
   },
@@ -292,7 +292,7 @@ registerHitModifier({
   apply: ({ get, attacker, target, weapon, attaque, res }) => {
     if (res.hit && attaque === 'ranged' && weapon && organicProjectile(weapon)
       && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', sceneMetresPerTile(get().scene))) {
-      res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', log: t('cf.arrowWardDestroys', { name: target.label }) };
+      res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.arrowWardDestroys', { name: target.label }) };
     }
     return res;
   },
@@ -313,7 +313,7 @@ registerHitModifier({
         loseWounds(priest, taken);
         if (priest.wounds.current <= 0) applyZeroWounds(priest);
         encaisse?.(priest, taken);
-        res = { ...res, woundsLost: 0, degatsTransferes: true, log: `${res.log ? res.log + ' ' : ''}${t('cf.martyrTakes', { priest: priest.label, name: target.label, taken })}` };
+        res = { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrTakes', { priest: priest.label, name: target.label, taken })] };
       }
     }
     return res;
@@ -333,7 +333,7 @@ registerHitModifier({
         const wanted = Math.floor(meters / 2);
         const moved = pushBackTiles(get, attacker, target, wanted);
         res = {
-          ...res, woundsLost: 0, damage: 0, // #1595 c.6221792068 Q2 : le Coup Critique demeure
+          ...res, woundsLost: 0, damage: 0, touche: undefined, // #1595 c.6221792068 Q2 : le Coup Critique demeure
           log: t('cf.pushback', { name: attacker.label, foe: target.label, meters, bloque: moved < wanted ? t('cf.pushbackBlocked') : '' }),
         };
       }
