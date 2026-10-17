@@ -5,14 +5,14 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import os from 'node:os'
 import { relative, isAbsolute, join } from 'node:path'
-import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 
 /** Le nom de l'atelier du lanceur `pid` né à `naissance` (ms epoch) : `<pid>-<naissance>`, la naissance écrite par le lanceur lui-même (#2603). PURE. */
 export const nomDAtelier = (pid, naissance) => `${pid}-${Math.floor(naissance)}`
 
 /**
  * Les ateliers de `noms` dont le lanceur ne vit plus : `<pid>-<naissance>` (`nomDAtelier`) jugé né à sa naissance
- * (`estPidVivantDepuis`), `<pid>` sans naissance jugé sur son seul pid ; ni celui du lanceur `pid`, ni un nom hors forme (#2603).
+ * (`estPidVivantDepuis`), `<pid>` sans naissance jugé sur son existence seule (`NAISSANCE_ABSENTE`) ; ni celui du lanceur `pid`, ni un nom hors forme (#2603).
  * PURE hors de `estVivant` et `identite`.
  * @param {string[]} noms
  * @param {{ pid: number, estVivant?: (pid: number) => boolean, identite: { lireCreation: (pid: number) => number | null, toleranceMs: number } }} juge
@@ -21,7 +21,7 @@ export const nomDAtelier = (pid, naissance) => `${pid}-${Math.floor(naissance)}`
 export function ateliersMorts(noms, { pid, estVivant, identite }) {
   return noms.filter((nom) => {
     const vu = /^([1-9]\d*)(?:-(\d+))?$/.exec(nom)
-    return vu !== null && Number(vu[1]) !== pid && !estPidVivantDepuis(Number(vu[1]), vu[2] === undefined ? undefined : Number(vu[2]), identite, { estVivant })
+    return vu !== null && Number(vu[1]) !== pid && !estPidVivantDepuis(Number(vu[1]), vu[2] === undefined ? NAISSANCE_ABSENTE : Number(vu[2]), identite, { estVivant })
   })
 }
 

@@ -2041,7 +2041,7 @@ const AVANT = '4100-1780000000000'
  *  écrits par le MOTEUR réel (`jouerLeTrain`), puis le verdict tel que `main` le pose. */
 function journauxDuRun(etapes, { run = RUN, journal = journalVide('b') } = {}) {
   const vus = []
-  entameDuRun(journal, { run, pid: pidDeRun(run), fileTimeoutMin: 10 })
+  entameDuRun(journal, { run, pid: pidDeRun(run), creation: runDe(run).lancement, fileTimeoutMin: 10 })
   vus.push(structuredClone(journal))
   let verdict
   try {
@@ -2054,7 +2054,7 @@ function journauxDuRun(etapes, { run = RUN, journal = journalVide('b') } = {}) {
   return vus
 }
 
-/** La veille sur une suite de lectures (la dernière se répète), horloge et sommeil injectés ; l'horloge
+/** La veille sur une suite de lectures (la dernière se répète), horloge, sommeil et identité (indéterminée) injectés ; l'horloge
  *  part du LANCEMENT_DU_RUN du run, sauf `depart`. Sa première ligne (#2493) est vérifiée, puis retirée. */
 function veille(lectures, { depart = LANCEMENT_DU_RUN, ...o } = {}) {
   const lignes = []
@@ -2068,6 +2068,7 @@ function veille(lectures, { depart = LANCEMENT_DU_RUN, ...o } = {}) {
     journal: 'j.json',
     pid: 99,
     vivant: () => true,
+    identite: { lireCreation: () => null, toleranceMs: 0 },
     maintenant: () => horloge,
     dormir: (ms) => {
       horloge += ms
@@ -2292,7 +2293,7 @@ test('option inconnue : le parent refuse AVANT de détacher ; l’enfant qui la 
 
 // #2603
 test('veillerLeTrain : N tours sur le même pid vivant, UNE mesure de création (`identiteDuTrain`) ; re-mesurée au-delà de douze tours', () => {
-  const [entame, enVol, ...fin] = journauxDuRun([factice('un', { ok: true })]).map((j) => ({ ...j, naissance: { pid: 4242, creation: LANCEMENT_DU_RUN } }))
+  const [entame, enVol, ...fin] = journauxDuRun([factice('un', { ok: true })])
   const tours = (n) => {
     let horloge = LANCEMENT_DU_RUN
     let mesures = 0
@@ -2321,6 +2322,8 @@ test('runEnVol : le run SANS VERDICT vit si son pid vit, né à sa naissance ; r
   assert.equal(vit(6_000, journal, () => false), false, 'pid absent')
   assert.equal(vit(6_000, { ...journal, verdict: { etat: 'vert' } }), false, 'un run jugé ne vit plus')
   assert.equal(vit(9_999, { ...journal, naissance: { pid: 100, creation: 5_000 } }), true, 'la naissance d’un AUTRE pid ne juge rien')
+  assert.equal(vit(9_999, { ...journal, naissance: undefined }), true, 'journal d’avant la naissance : l’existence seule (`NAISSANCE_ABSENTE`)')
+  assert.equal(vit(9_999, { ...journal, naissance: undefined }, () => false), false)
   assert.equal(vit(6_000, null), false, 'aucun journal')
 })
 

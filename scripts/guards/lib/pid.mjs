@@ -18,13 +18,20 @@ export function estPidVivant(pid, { sonder = (p) => process.kill(p, 0) } = {}) {
   }
 }
 
-/** `estPidVivant`, puis la création mesurée confrontée à `naissance` (ms epoch) : postérieure à `naissance + toleranceMs`, pid RÉUTILISÉ ; indéterminée, vivant (#2603).
- *  @param {unknown} pid @param {number | undefined} naissance
+/** La naissance d'un pid dont la SOURCE n'en inscrit aucune : `estPidVivantDepuis` le juge sur sa seule existence (#2603). */
+export const NAISSANCE_ABSENTE = Symbol('NAISSANCE_ABSENTE')
+
+/** `estPidVivant`, puis la création mesurée confrontée à `naissance` (ms epoch) : postérieure à `naissance + toleranceMs`, pid RÉUTILISÉ ; indéterminée, vivant.
+ *  `NAISSANCE_ABSENTE` : l'existence seule ; toute autre naissance non finie LÈVE (#2603).
+ *  @param {unknown} pid @param {number | typeof NAISSANCE_ABSENTE} naissance
  *  @param {{ lireCreation: (pid: number) => number | null, toleranceMs: number }} identite
  *  @param {{ estVivant?: (pid: number) => boolean }} [options] */
 export function estPidVivantDepuis(pid, naissance, { lireCreation, toleranceMs }, { estVivant = estPidVivant } = {}) {
+  if (naissance !== NAISSANCE_ABSENTE && !Number.isFinite(naissance)) {
+    throw new TypeError(`[pid] naissance ${String(naissance)} du pid ${String(pid)} : un nombre fini (ms epoch), ou NAISSANCE_ABSENTE (#2603)`)
+  }
   if (!estVivant(/** @type {number} */ (pid))) return false
-  if (!Number.isFinite(naissance)) return true
+  if (naissance === NAISSANCE_ABSENTE) return true
   const mesure = lireCreation(pid)
   return mesure === null || mesure <= /** @type {number} */ (naissance) + toleranceMs
 }
