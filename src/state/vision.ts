@@ -267,15 +267,18 @@ export function combatantLights(c: {
   return rM > 0 ? [{ pos: c.pos, z: c.pos.z, radiusTiles: rayonEnCases(rM, mpt), srcId: c.id, carried: true, tone }] : [];
 }
 
-/** Portée de vision dans le noir (cases) d'un combattant : max des `darkSightTiles` de ses traits
- *  (Infravision illimité, Vision nocturne 10) ; le talent Vision nocturne réutilise la valeur du trait
- *  homonyme (donnée, pas de littéral). 0 = aveugle dans le noir. */
+/** Portée de vision dans le noir (cases) d'un combattant : max des `darkSightTiles` de ses traits ;
+ *  le talent Vision nocturne réutilise la valeur du trait homonyme. `null` : LDB 85 l.191, portée du
+ *  niveau de lumière `jour`. 0 = aveugle dans le noir. */
 export function darkSightTiles(c: { traits?: { id: string }[]; talents?: { talentId: string }[] }): number {
+  const porteeDuTrait = (id: string): number => {
+    const caps = findTraitById(id)?.capabilities;
+    if (caps?.darkSightTiles === null) return findLightLevelById('jour')!.baseSightTiles;
+    return caps?.darkSightTiles ?? 0;
+  };
   let m = 0;
-  for (const t of c.traits ?? []) m = Math.max(m, findTraitById(t.id)?.capabilities?.darkSightTiles ?? 0);
-  if ((c.talents ?? []).some((t) => t.talentId === 'vision-nocturne')) {
-    m = Math.max(m, findTraitById('vision-nocturne')?.capabilities?.darkSightTiles ?? 0);
-  }
+  for (const t of c.traits ?? []) m = Math.max(m, porteeDuTrait(t.id));
+  if ((c.talents ?? []).some((t) => t.talentId === 'vision-nocturne')) m = Math.max(m, porteeDuTrait('vision-nocturne'));
   return m;
 }
 

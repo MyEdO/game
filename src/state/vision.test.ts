@@ -3,7 +3,7 @@ import { computeVisible, computeLightField, ambientScalar, baseSightTiles, comba
 import { Scene, WallSeg, emptyScene, sceneMetresPerTile, wallBetween } from './scene';
 import { couvertDArete, losClear } from './lineOfSight';
 import { pathTo } from './path';
-import { structures } from '../data';
+import { findLightLevelById, structures } from '../data';
 import { couvertDepuisDifficulte, cranDeCouvertEnMoins } from '../engine/cover';
 import { METRES_PER_LEVEL } from './relief';
 import { computeStateVisible } from './visionState';
@@ -214,8 +214,10 @@ describe('baseSightTiles — rayon de vue de base du niveau (MAISON, dataset)', 
 describe('darkSightTiles — vision nocturne (capability data)', () => {
   const c = (traits: string[] = [], talents: string[] = []) =>
     ({ traits: traits.map((id) => ({ id })), talents: talents.map((talentId) => ({ talentId })) }) as any;
-  it('Infravision → illimité (grande portée)', () => {
-    expect(darkSightTiles(c(['infravision']))).toBeGreaterThanOrEqual(100);
+  it('Infravision → portée du plein jour lue dans la donnée (LDB 85 l.191)', () => {
+    const jour = findLightLevelById('jour')!.baseSightTiles;
+    expect(jour).toBeGreaterThan(0);
+    expect(darkSightTiles(c(['infravision']))).toBe(jour);
   });
   it('trait Vision nocturne → 10 cases (20 m canon)', () => {
     expect(darkSightTiles(c(['vision-nocturne']))).toBe(10);

@@ -66,7 +66,7 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   climbFullSpeed: z.boolean().optional(),
   noRun: z.boolean().optional(),
   seesInDark: z.boolean().optional(),
-  darkSightTiles: z.number().optional(),
+  darkSightTiles: z.number().nullable().optional(),
   wakelessBite: z.boolean().optional(),
   /** ADE II 2 l.708 */
   encumbranceFactor: z.number().optional(),
@@ -112,7 +112,7 @@ const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   climbFullSpeed: { label: 'Escalade à pleine vitesse' },
   noRun: { label: 'Course interdite' },
   seesInDark: { label: 'Vision dans l’obscurité' },
-  darkSightTiles: { label: 'Portée de vision nocturne (cases)' },
+  darkSightTiles: { label: 'Portée de vision nocturne (cases)', hint: 'Vide (null) : portée du plein jour (niveau de lumière « jour »)' },
   wakelessBite: { label: 'Morsure sans réveil' },
   encumbranceFactor: { label: 'Facteur d’Encombrement' },
   consumptionFactor: { label: 'Facteur de consommation' },
