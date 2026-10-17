@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { testValue, partyBest, partyAssisted, skillCharKeyById, resolveSkillBest, bestForSkills, bestForCombined, bestAssistedOption } from './skills';
-import { makeRNG } from './dice';
+import { testValue, partyBest, partyAssisted, skillCharKeyById, bestForSkills, bestForCombined, bestAssistedOption, skillBaseValue, possesses } from './skills';
 import { Combatant, SkillInstance } from './types';
 
 const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advances: number; spec?: string }[] = []): Combatant =>
   ({
+    kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [],
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
   }) as unknown as Combatant;
@@ -31,11 +31,11 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
   });
   it('partyBest transmet la spécialisation à testValue (bonne instance de Métier)', () => {
     const h = mk({}, [
-      { id: 'metier', advances: 10, spec: 'Forgeron' },
-      { id: 'metier', advances: 40, spec: 'Serrurier' },
+      { id: 'metier', advances: 10, spec: 'forgeron' },
+      { id: 'metier', advances: 40, spec: 'serrurier' },
     ]);
-    const forgeron = partyBest([h], 'metier', undefined, undefined, 'Forgeron')!;
-    const serrurier = partyBest([h], 'metier', undefined, undefined, 'Serrurier')!;
+    const forgeron = partyBest([h], 'metier', undefined, undefined, 'forgeron')!;
+    const serrurier = partyBest([h], 'metier', undefined, undefined, 'serrurier')!;
     expect(serrurier.value - forgeron.value).toBe(30); // 40 − 10 d'avances, même caractéristique de base
   });
   it('partyAssisted — carac pure : tous soutiennent ; meneur + n×10 plafonné au Bonus de Carac', () => {
@@ -84,9 +84,9 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
     expect(r.value).toBe(70); // aucun +10
   });
   it('partyAssisted — spec ciblée : l’Augmentation compte DANS cette spécialisation (l.195)', () => {
-    const lead = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 30, spec: 'Serrurier' }]), id: 'L' }; // 70
-    const autre = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 20, spec: 'Forgeron' }, { id: 'metier', advances: 0, spec: 'Serrurier' }]), id: 'a' };
-    const r = partyAssisted([lead, autre], 'metier', undefined, undefined, 'Serrurier')!;
+    const lead = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 30, spec: 'serrurier' }]), id: 'L' }; // 70
+    const autre = { ...mk({ dexterite: 40 }, [{ id: 'metier', advances: 20, spec: 'forgeron' }, { id: 'metier', advances: 0, spec: 'serrurier' }]), id: 'a' };
+    const r = partyAssisted([lead, autre], 'metier', undefined, undefined, 'serrurier')!;
     expect(r.support).toEqual({ count: 0, bonus: 0, ids: [] });
   });
   it('soutienBonus/partyAssisted — filtre `eligible` (adjacence, LDB 12 l.196) exclut un membre capable écarté', () => {
@@ -107,31 +107,6 @@ describe('skills — testValue / partyBest / skillCharKeyById', () => {
   });
   it('skillCharKeyById : compétence inconnue → undefined', () => {
     expect(skillCharKeyById('competence-totalement-imaginaire')).toBeUndefined();
-  });
-});
-
-describe('resolveSkillBest — Test du meilleur parmi N compétences (primitive NEUTRE poste/voyage/naval)', () => {
-  it('prend la compétence où l’acteur est le meilleur (spec-aware) + cible = sa valeur', () => {
-    const hero = mk({ dexterite: 30 }, [
-      { id: 'metier', spec: 'Cartographe', advances: 60 },
-      { id: 'art', spec: 'Dessin', advances: 10 },
-    ]);
-    const r = resolveSkillBest(hero, [
-      { id: 'metier', spec: 'Cartographe' },
-      { id: 'art', spec: 'Dessin' },
-    ], 'intermediaire', makeRNG(5));
-    expect(r.used).toEqual({ id: 'metier', spec: 'Cartographe' }); // 30+60 > 30+10
-    expect(r.value).toBe(testValue(hero, 'metier', undefined, 'Cartographe'));
-    expect(r.target).toBe(r.value); // Difficulté Intermédiaire (+0), pas de mod
-    expect(r.success).toBe(r.roll <= r.target);
-  });
-
-  it('le modificateur décale la cible ; option unique = cette compétence', () => {
-    const hero = mk({ initiative: 40 }, [{ id: 'perception', advances: 20 }]);
-    const a = resolveSkillBest(hero, [{ id: 'perception' }], 'intermediaire', makeRNG(7), 0);
-    const b = resolveSkillBest(hero, [{ id: 'perception' }], 'intermediaire', makeRNG(7), -30);
-    expect(a.target - b.target).toBe(30);
-    expect(a.used).toEqual({ id: 'perception' });
   });
 });
 
@@ -201,5 +176,38 @@ describe('bestForCombined — Test COMBINÉ : facteur limitant le plus élevé',
   });
   it('groupe vide → null', () => {
     expect(bestForCombined([], { id: 'discretion' }, { id: 'perception' }, undefined)).toBeNull();
+  });
+});
+
+/** Marin à Agilité 40 dont les Voiles se testent sur l'Agilité. */
+const marin = (skills: { id: string; advances: number; spec?: string }[]): Combatant => {
+  const c = mk({ agilite: 40 });
+  return { ...c, skills: skills.map((s) => ({ ...s, characteristic: 'agilite' }) as SkillInstance) } as Combatant;
+};
+
+describe('Spécialisation de Voile du navire (LDB 09 l.30, l.571 ; MDG 13 l.18)', () => {
+  const caravelle = marin([{ id: 'voile', spec: 'caravelle', advances: 20 }]);
+  const chaland = marin([{ id: 'voile', spec: 'chaland', advances: 15 }]);
+  const sansVoile = marin([]);
+  const sansAugmentation = marin([{ id: 'voile', spec: 'caravelle', advances: 0 }]);
+
+  it('la Spécialisation sœur se teste sur la Caractéristique nue ; la sienne, avec ses Augmentations', () => {
+    expect(skillBaseValue(caravelle, 'voile', 'chaland')).toBe(40);
+    expect(testValue(caravelle, 'voile', undefined, 'chaland')).toBe(40);
+    expect(skillBaseValue(caravelle, 'voile', 'caravelle')).toBe(60);
+  });
+
+  it('une Augmentation de Voile, quelle que soit sa Spécialisation, ouvre le Test ; sans elle, il ne se tente pas', () => {
+    expect(possesses(caravelle, 'voile', 'chaland')).toBe(true);
+    expect(possesses(sansVoile, 'voile', 'chaland')).toBe(false);
+    expect(possesses(sansAugmentation, 'voile', 'chaland')).toBe(false);
+  });
+
+  it('le barreur se choisit sur la Spécialisation du navire, sans Soutien de la sœur (LDB 12 l.195)', () => {
+    const surChaland = partyAssisted([caravelle, chaland], 'voile', undefined, undefined, 'chaland')!;
+    expect([surChaland.actor, surChaland.value, surChaland.support.count]).toEqual([chaland, 55, 0]);
+    const surCaravelle = partyAssisted([caravelle, chaland], 'voile', undefined, undefined, 'caravelle')!;
+    expect([surCaravelle.actor, surCaravelle.value]).toEqual([caravelle, 60]);
+    expect(partyAssisted([sansVoile], 'voile', undefined, undefined, 'chaland')).toBeNull();
   });
 });

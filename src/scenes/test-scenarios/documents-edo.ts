@@ -92,8 +92,8 @@ function construireScene(documents: readonly DocumentNarratif[]): Scene {
     ambiance: 'interieur',
     heroStart: [1, 2],
     startMessage:
-      'Un cabinet de lecture. Sur le bureau, une liasse réunit les documents de L’Ennemi dans l’Ombre, ' +
-      'rangés par chapitre.',
+      { texte: 'Un cabinet de lecture. Sur le bureau, une liasse réunit les documents de L’Ennemi dans l’Ombre, ' +
+      'rangés par chapitre.' },
     entities: [
       {
         id: 'liasse-edo', kind: 'prop', ref: 'bureau', pos: { x: 3, y: 2 }, label: 'Liasse de documents',

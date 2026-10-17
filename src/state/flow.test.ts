@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Effect } from './scene';
 import {
-  evalCondition, flattenFlow, flowFromEffects, flowHasTest, sanitizeFlow, EMPTY_FLOW, conditionCtx, type Condition, type Flow,
+  evalCondition, flattenFlow, flowFromEffects, flowHasTest, EMPTY_FLOW, conditionCtx, type Condition, type Flow,
 } from './flow';
 import { createHero } from '../engine/character';
 
@@ -105,9 +105,9 @@ describe('evalCondition — Conditions PARTY-level (#711 : skill/career/species/
     expect(evalCondition({ kind: 'skill', id: 'dresser' }, base)).toBe(false); // pas de groupe → false
   });
   it('skill : spec distingue les instances (Métier (Serrurier) ≠ Métier (Brasseur))', () => {
-    const party = [{ skills: [{ id: 'metier', spec: 'Serrurier', advances: 1 }] }];
-    expect(evalCondition({ kind: 'skill', id: 'metier', spec: 'Serrurier' }, { ...base, party })).toBe(true);
-    expect(evalCondition({ kind: 'skill', id: 'metier', spec: 'Brasseur' }, { ...base, party })).toBe(false);
+    const party = [{ skills: [{ id: 'metier', spec: 'serrurier', advances: 1 }] }];
+    expect(evalCondition({ kind: 'skill', id: 'metier', spec: 'serrurier' }, { ...base, party })).toBe(true);
+    expect(evalCondition({ kind: 'skill', id: 'metier', spec: 'brasseur' }, { ...base, party })).toBe(false);
   });
   it('career : match par id, any/all', () => {
     const party = [{ career: 'soldat' }, { career: 'artisan' }];
@@ -148,6 +148,49 @@ describe('evalCondition — Conditions PARTY-level (#711 : skill/career/species/
   });
 });
 
+// EDO 02 l.91 (le sosie : une RÉFÉRENCE à un héros) ; EDO 01 l.241 (l'issue de Phillipe : un ÉNUMÉRÉ).
+describe('evalCondition — états de campagne (#2539 : Condition `etat`, sélecteur `who: {etat}`)', () => {
+  const sosie = { id: 'h-sosie', species: REIK, career: 'soldat', skills: [{ id: 'calme', advances: 5 }] };
+  const autre = { id: 'h-autre', species: 'nains', career: 'artisan', skills: [] };
+  const ctx = (etats: Record<string, string>, party: { id: string; dead?: boolean; species?: string; career?: string }[] = [sosie, autre]) =>
+    conditionCtx({ flags: {}, gameTime: 0, party, etats });
+
+  it('`etat` sans valeur : défini / non défini', () => {
+    expect(evalCondition({ kind: 'etat', etat: 'campagne-sosie-heros' }, ctx({ 'campagne-sosie-heros': 'h-sosie' }))).toBe(true);
+    expect(evalCondition({ kind: 'etat', etat: 'campagne-sosie-heros' }, ctx({}))).toBe(false);
+  });
+
+  it('`etat` avec `value` sur l’énuméré : la valeur posée seule', () => {
+    const c = ctx({ 'issue-enumeree': 'condamne' });
+    expect(evalCondition({ kind: 'etat', etat: 'issue-enumeree', value: 'condamne' }, c)).toBe(true);
+    expect(evalCondition({ kind: 'etat', etat: 'issue-enumeree', value: 'relache' }, c)).toBe(false);
+    expect(evalCondition({ kind: 'etat', etat: 'issue-enumeree', value: 'condamne' }, ctx({}))).toBe(false);
+  });
+
+  it('`who: {etat}` sélectionne le SEUL héros désigné (species / status)', () => {
+    const c = ctx({ 'campagne-sosie-heros': 'h-sosie' });
+    const designe = { etat: 'campagne-sosie-heros' };
+    expect(evalCondition({ kind: 'species', id: REIK, who: designe }, c)).toBe(true);
+    expect(evalCondition({ kind: 'species', id: 'nains', who: designe }, c)).toBe(false); // l'autre héros ne compte pas
+    const hero = { ...createHero({ speciesId: REIK, careerId: 'soldat', label: 'S', seed: 3 }), id: 'h-sosie' };
+    expect(evalCondition({ kind: 'status', atLeast: 'Argent 1', who: designe }, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [hero]))).toBe(true);
+    expect(evalCondition({ kind: 'status', atLeast: 'Or 1', who: designe }, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [hero]))).toBe(false);
+  });
+
+  it('`partyDead {who: {etat}}` : vrai quand le sosie est mort, faux quand un AUTRE l’est', () => {
+    const designe = { kind: 'partyDead', who: { etat: 'campagne-sosie-heros' } } as const;
+    expect(evalCondition(designe, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [{ ...sosie, dead: true }, autre]))).toBe(true);
+    expect(evalCondition(designe, ctx({ 'campagne-sosie-heros': 'h-sosie' }, [sosie, { ...autre, dead: true }]))).toBe(false);
+  });
+
+  it('référence NON désignée : tout prédicat sélectionné est faux', () => {
+    const designe = { etat: 'campagne-sosie-heros' };
+    expect(evalCondition({ kind: 'species', id: REIK, who: designe }, ctx({}))).toBe(false);
+    expect(evalCondition({ kind: 'partyDead', who: designe }, ctx({}, [{ ...sosie, dead: true }]))).toBe(false);
+    expect(evalCondition({ kind: 'skill', id: 'calme', who: designe }, ctx({ 'campagne-sosie-heros': 'h-absent' }))).toBe(false);
+  });
+});
+
 describe('flowFromEffects / flattenFlow — séquence + branches if résolues', () => {
   const fx = (flag: string): Effect => ({ type: 'setFlag', flag });
   it('flowFromEffects enveloppe une liste en seq de do', () => {
@@ -185,25 +228,5 @@ describe('flowHasTest / flattenFlow refuse les nœuds interactifs', () => {
   });
   it('flattenFlow lève sur un nœud test (interactif → store)', () => {
     expect(() => flattenFlow(test, { flags: {}, gameTime: 0 })).toThrow(/interactif/);
-  });
-});
-
-describe('sanitizeFlow — purge des nœuds `null` inexprimables (document ANCIEN, crash n°2 éditeur)', () => {
-  it('purge les entrées `null` d’un `seq.steps` (JSON sérialise `undefined` en `null`)', () => {
-    const corrupted = { kind: 'seq', steps: [null, { kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, null] } as unknown as Flow;
-    expect(sanitizeFlow(corrupted)).toEqual({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }] });
-  });
-  it('recurse dans les branches if/test/choice sans inventer de branche manquante', () => {
-    const withNullStep: Flow = { kind: 'if', cond: { kind: 'always' }, then: { kind: 'seq', steps: [null as unknown as Flow, { kind: 'do', effect: { type: 'setFlag', flag: 'y' } }] } };
-    expect(sanitizeFlow(withNullStep)).toEqual({ kind: 'if', cond: { kind: 'always' }, then: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'y' } }] } });
-  });
-  it('laisse `undefined`/`null` de premier niveau tel quel (à la charge de la validation)', () => {
-    expect(sanitizeFlow(undefined)).toBeUndefined();
-    expect(sanitizeFlow(null as unknown as Flow)).toBeNull();
-  });
-  it('un nœud `test` sans branche `success` (réf pendante) traverse sans throw ni invention', () => {
-    const dangling = { kind: 'test', test: { skill: 'perception' }, fail: EMPTY_FLOW } as unknown as Flow;
-    expect(() => sanitizeFlow(dangling)).not.toThrow();
-    expect((sanitizeFlow(dangling) as { success?: unknown }).success).toBeUndefined();
   });
 });

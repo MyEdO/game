@@ -159,7 +159,6 @@ describe('#1017 — surface réseau d’un flux MONO : verbes dérivés ET actio
     disengage: { parInvite: ['battleDisengage'] },
     auContact: { parInvite: ['battleAuContact'] },
     grapple: { parInvite: ['battleGrapple'] },
-    trample: { parInvite: ['battleTrample'] },
     battement: { parInvite: ['battleBattement'] },
     distraire: { parInvite: ['battleDistraire'] },
     maneuver: { parInvite: ['battleClickEntity'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)

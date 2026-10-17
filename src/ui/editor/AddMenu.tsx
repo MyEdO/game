@@ -8,6 +8,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { ListRow } from '../ListRow';
 import { BoiteAncree, usePlacementAncre } from '../BoiteAncree';
+import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 
 /** VOCABULAIRE d'un menu : les types offerts, groupés, SANS action. Un registre le publie une fois
  *  (`EFFECT_MENU_GROUPS`, `OP_MENU_GROUPS`) et tous ses menus le partagent — c'est ce qui garantit
@@ -74,16 +75,37 @@ export function AddMenu({ label, groups }: { label: string; groups: AddMenuGroup
   );
 }
 
+/** `desc` ATTACHÉE à l'adresse (`descRef`) que la mémoire retient, vue d'un `bloc` dont le type ne
+ *  déclare pas `descRef` : `convertTo` ne la lui reporte pas, `memoriser` ne la lui fait céder qu'à un
+ *  texte non vide. */
+const descAttachee = (key: string, bloc: object, memoire: Record<string, unknown>): boolean =>
+  key === 'desc' && adresseUnPassage(memoire.descRef) && !('descRef' in bloc);
+
 /** Report des valeurs connues sur un bloc NEUF : le type visé décide des champs qui existent, la
  *  mémoire fournit leurs valeurs. Le discriminant reste celui du type visé. Pure, donc vérifiable
  *  sans navigateur. */
 export function convertTo<T extends object>(fresh: T, memoire: Record<string, unknown>, discriminant: string): T {
   const out: Record<string, unknown> = { ...(fresh as Record<string, unknown>) };
   for (const key of Object.keys(out)) {
-    if (key === discriminant) continue;
+    if (key === discriminant || descAttachee(key, out, memoire)) continue;
     if (memoire[key] !== undefined) out[key] = memoire[key];
   }
   return out as T;
+}
+
+/** Mémoire de la rangée après le bloc `value` : ses champs remplacent ceux retenus. Une `desc` attachée
+ *  (`descAttachee`) n'est remplacée que par une chaîne non vide, qui retire alors `descRef` de la mémoire.
+ *  Pure. */
+export function memoriser(memoire: Record<string, unknown>, value: object): Record<string, unknown> {
+  const out = { ...memoire };
+  for (const [key, v] of Object.entries(value)) {
+    if (!descAttachee(key, value, memoire)) out[key] = v;
+    else if (typeof v === 'string' && v !== '') {
+      out[key] = v;
+      delete out.descRef;
+    }
+  }
+  return out;
 }
 
 /** CHANGER le type d'un bloc déjà authoré. Même primitive, même vocabulaire et même geste
@@ -112,7 +134,7 @@ export function TypeMenu<T extends object>({
     <AddMenu
       label={`Type : ${currentLabel}`}
       groups={pickable(groups, (key) => {
-        memoire.current = { ...memoire.current, ...(value as Record<string, unknown>) };
+        memoire.current = memoriser(memoire.current, value);
         onChange(convertTo(make(key), memoire.current, discriminant));
       })}
     />

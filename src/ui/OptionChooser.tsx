@@ -138,6 +138,7 @@ export function OptionChooser({
   layout,
   groupLabel,
   idPrefix = 'opt',
+  empile,
 }: {
   /** Mini-titre du groupe (surtout layout `seg`) — ex. « Réaction ». */
   groupLabel?: ReactNode;
@@ -147,6 +148,9 @@ export function OptionChooser({
    *  pour que deux INSTANCES du même appelant, qui partagent forcément le même préfixe, restent
    *  distinctes. */
   idPrefix?: string;
+  /** Rangée EMPILÉE (layout `seg`) : libellé au-dessus du segment, à la largeur de son contenu plafonnée
+   *  à celle de son hôte, sans jamais être rogné (hôte étroit : tuile, panneau latéral). */
+  empile?: boolean;
 } & (
   | { layout: 'grid'; options: RollGridOption[] }
   | { layout: 'seg'; options: RollSegOption[] }
@@ -156,7 +160,7 @@ export function OptionChooser({
 
   if (layout === 'seg') {
     return (
-      <div className="rm-loc-inline">
+      <div className="rm-loc-inline" data-empile={empile ? '' : undefined}>
         {groupLabel != null && <span className="mini-title">{groupLabel}</span>}
         <div className="seg">
           {(shown as RollSegOption[]).map((o) => (

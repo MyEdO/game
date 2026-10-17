@@ -1,0 +1,322 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import path, { resolve } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { cheminsDe } from './commandeShell.mjs'
+import { ciblesDEcritureDeCommande, ECRIVAINS } from './ecrituresShell.mjs'
+import { ciblesDEcritureJS, OPERATIONS_FS } from './ecrituresFichiers.mjs'
+
+const base = resolve('fixture-ecritures')
+const cibles = commande => ciblesDEcritureDeCommande(commande, { base }).filter(c => !c.inconnue).map(c => c.chemin)
+test('rôles des chemins : copie lit source, déplacement modifie source et destination', () => {
+  assert.deepEqual(cibles('cp .superpowers/source.md ailleurs.md'), [resolve(base, 'ailleurs.md')])
+  assert.deepEqual(cibles('cp source.md .superpowers/dest.md'), [resolve(base, '.superpowers/dest.md')])
+  assert.deepEqual(cibles('mv source.md dest.md'), [resolve(base, 'source.md'), resolve(base, 'dest.md')])
+  assert.deepEqual(cibles('Set-Content -LiteralPath .superpowers/x.md -Value "texte cité"'), [resolve(base, '.superpowers/x.md')])
+  assert.deepEqual(cibles('Copy-Item -LiteralPath .superpowers/source -Destination autre'), [resolve(base, 'autre')])
+  assert.deepEqual(cibles('Move-Item -LiteralPath .superpowers/source -Destination autre'), [resolve(base, '.superpowers/source'), resolve(base, 'autre')])
+  assert.deepEqual(cibles('Set-Content ailleurs ".superpowers/texte"'), [resolve(base, 'ailleurs')])
+  assert.deepEqual(cibles('Set-Content -Path ailleurs ".superpowers/texte"'), [resolve(base, 'ailleurs')])
+  assert.deepEqual(cibles('Copy-Item -Path source dest'), [resolve(base, 'dest')])
+  assert.deepEqual(cibles('New-Item -ItemType Directory -Name .superpowers'), [resolve(base, '.superpowers')])
+  assert.deepEqual(cibles('Rename-Item -Path dossier/source -NewName nouveau'), [resolve(base, 'dossier/source'), resolve(base, 'dossier/nouveau')])
+  assert.deepEqual(cibles('cp -f source .superpowers/x'), [resolve(base, '.superpowers/x')])
+  assert.deepEqual(cibles('rm -f .superpowers/x'), [resolve(base, '.superpowers/x')])
+  assert.deepEqual(cibles('mv -f .superpowers/x ailleurs'), [resolve(base, '.superpowers/x'), resolve(base, 'ailleurs')])
+  assert.deepEqual(cibles('cp -s source .superpowers/x'), [resolve(base, '.superpowers/x')])
+  assert.deepEqual(cibles('mv -t .superpowers source'), [resolve(base, 'source'), resolve(base, '.superpowers')])
+  assert.deepEqual(cibles('uniq -f 1 source dest'), [resolve(base, 'dest')])
+  assert.deepEqual(cibles("awk 'BEGIN {print \"a\" > \".superpowers/x\"}'"), [resolve(base, '.superpowers/x')])
+})
+test('cwd chronologique et isolé dans les sous-shells', () => {
+  assert.deepEqual(cibles('echo x > alias/x; cd ailleurs'), [resolve(base, 'alias/x')])
+  assert.deepEqual(cibles('cd alias; echo x > x; cd ailleurs'), [resolve(base, 'alias/x')])
+  assert.deepEqual(cibles('(cd alias; echo x > x); echo x > parent'), [resolve(base, 'alias/x'), resolve(base, 'parent')])
+  assert.equal(ciblesDEcritureDeCommande('cd "$EXTERNE"; echo x > x', { base })[0].inconnue, true)
+  assert.deepEqual(cibles('Set-Location -LiteralPath alias; echo x > x'), [resolve(base, 'alias/x')])
+  assert.deepEqual(cibles('cd -- alias; echo x > x'), [resolve(base, 'alias/x')])
+  assert.deepEqual(cibles(`cd "$EXTERNE"; cd "${base.replaceAll('\\', '/')}"; echo x > x`), [resolve(base, 'x')])
+})
+test('affectation autonome, préfixe et portée sous-shell', () => {
+  assert.deepEqual(cibles('P=.superpowers; echo x > $P/x'), [resolve(base, '.superpowers/x')])
+  assert.equal(ciblesDEcritureDeCommande('P=.superpowers echo x > $P/x', { base })[0].inconnue, true)
+  assert.deepEqual(cibles('$P = ".superpowers"; echo x > $P/x'), [resolve(base, '.superpowers/x')])
+  assert.equal(ciblesDEcritureDeCommande('(P=.superpowers; echo x > $P/x); echo x > $P/y', { base }).at(-1).inconnue, true)
+  assert.equal(ciblesDEcritureDeCommande('P=.superpowers echo ok; echo x > "$P/x"', { base }).at(-1).inconnue, true)
+  assert.deepEqual(cibles("P=.superpowers; echo x > '$P/x'"), [resolve(base, '$P/x')])
+})
+test('AST : identité fs, alias, ombre, réaffectation et rôles', () => {
+  const chemins = texte => ciblesDEcritureJS([{ texte }])[0].map(c => c.chemin)
+  assert.deepEqual(chemins("require('fs').readFileSync('.superpowers/x')"), [])
+  assert.deepEqual(chemins("require('fs').openSync('x', 'r')"), [])
+  assert.deepEqual(chemins("require('fs').openSync('x', 0)"), [])
+  assert.deepEqual(chemins("require('fs').openSync('x', 'r+')"), ['x'])
+  assert.deepEqual(chemins("require('fs').openSync('x', 2)"), ['x'])
+  assert.deepEqual(chemins("require('fs').toString('.superpowers/x')"), [])
+  assert.deepEqual(chemins("require('fs').writeFileSync('.superpowers/x', 'a')"), ['.superpowers/x'])
+  assert.deepEqual(chemins("const fs=require('node:fs'); const alias=fs; alias.copyFileSync('source', 'dest')"), ['dest'])
+  assert.deepEqual(chemins("const {writeFileSync: w}=require('fs'); w('dest','a')"), ['dest'])
+  assert.deepEqual(chemins("import {writeFile as w} from 'node:fs/promises'; w('dest','a')"), ['dest'])
+  assert.deepEqual(chemins("const {promises: p}=require('fs'); p.writeFile('dest','a')"), ['dest'])
+  assert.deepEqual(chemins("import {promises as p} from 'node:fs'; p.writeFile('dest','a')"), ['dest'])
+  assert.deepEqual(chemins("const fs={writeFileSync(){}}; fs.writeFileSync('x','a')"), [])
+  assert.deepEqual(chemins("const fs=require('fs'); function f(fs){fs.writeFileSync('x','a')}"), [])
+  assert.deepEqual(chemins("let fs=require('fs'); fs={}; fs.writeFileSync('x','a')"), [])
+  assert.deepEqual(chemins("const fs=require('fs'); fs.writeFileSync=()=>{}; fs.writeFileSync('x','a')"), [])
+  assert.deepEqual(chemins("const fs=require('fs'); const a=fs; a.writeFileSync=()=>{}; fs.writeFileSync('x','a')"), [])
+  assert.deepEqual(chemins("const fs=require('fs'); fs['writeFileSync']=()=>{}; fs.writeFileSync('x','a')"), [])
+  assert.deepEqual(chemins("const fs=require('fs'); const a=fs; a['writeFileSync']=()=>{}; fs.writeFileSync('x','a')"), [])
+  assert.deepEqual(chemins("function require(){return {writeFileSync(){}}}; require('fs').writeFileSync('x','a')"), [])
+  assert.equal(ciblesDEcritureJS([{ texte: "require('fs').writeFileSync(calcul(), 'a')" }])[0][0].inconnue, true)
+  assert.deepEqual(chemins("require('fs').writeFileSync(7, 'a')"), [null])
+  assert.deepEqual(Object.entries(OPERATIONS_FS).filter(([, op]) => op.detecteeParGateHistorique).map(([nom]) => nom).sort(), ['writeFileSync', 'writeFile', 'createWriteStream', 'appendFileSync', 'appendFile', 'mkdirSync', 'mkdir', 'rmSync', 'rmdirSync', 'unlinkSync', 'renameSync', 'rename', 'cpSync', 'copyFileSync', 'truncateSync'].sort())
+  assert.deepEqual(chemins("const fs=require('fs/promises'); fs.unlink('x'); fs.rm('y'); fs.copyFile('source', 'dest'); fs.rename('a', 'b')"), ['x', 'y', 'dest', 'a', 'b'])
+  assert.deepEqual(chemins("const fs=require('fs/promises'); fs.link('source','dest'); fs.symlink('source','autre'); fs.cp('source','copie')"), ['dest', 'autre', 'copie'])
+})
+test('interpréteur, script cité et lecture ne deviennent pas cibles', () => {
+  for (const commande of ['node .superpowers/script.mjs', 'cat .superpowers/x', 'gh issue comment 2498 --body "voir .superpowers/x"', `node -e "require('fs').readFileSync('.superpowers/x')"`]) assert.deepEqual(cibles(commande), [])
+  assert.deepEqual(cibles(`node -e 'require("fs").writeFileSync(".superpowers/$X", "a")'`), [resolve(base, '.superpowers/$X')])
+})
+
+test('Node inline collé : CLI réel, provenance des quotes et frontière script', () => {
+  for (const option of ['--eval=']) {
+    const reel = spawnSync(process.execPath, [`${option}process.stdout.write("preuve-node-inline")`], { encoding: 'utf8' })
+    assert.equal(reel.status, 0, reel.stderr)
+    assert.match(reel.stdout, /preuve-node-inline/, option)
+    assert.deepEqual(cibles(`node ${option}'require("fs").writeFileSync(".superpowers/$X", "a")'`), [resolve(base, '.superpowers/$X')])
+    assert.deepEqual(cibles(`node ${option}'require("fs").readFileSync(".superpowers/x")'`), [])
+    assert.deepEqual(cibles(`node ${option}'require("fs").writeFileSync("$P/x", "a")'`), [resolve(base, '$P/x')])
+  }
+  const imprime = spawnSync(process.execPath, ['--print=process.stdout.write("preuve-node-inline")'], { encoding: 'utf8' })
+  assert.equal(imprime.status, 0, imprime.stderr)
+  assert.equal(imprime.stdout.trim(), 'undefined')
+  assert.deepEqual(cibles(`node --print='require("fs").writeFileSync(".superpowers/x", "a")'`), [])
+  for (const option of ['-e', '-p']) {
+    const invalide = spawnSync(process.execPath, [`${option}process.stdout.write("preuve-node-inline")`], { encoding: 'utf8' })
+    assert.equal(invalide.status, 9)
+    assert.match(invalide.stderr, /bad option/)
+    assert.deepEqual(cibles(`node ${option}'require("fs").writeFileSync(".superpowers/x", "a")'`), [])
+  }
+  assert.deepEqual(cibles(`P=.superpowers; node --eval="require('fs').writeFileSync('$P/x', 'a')"`), [resolve(base, '.superpowers/x')])
+  assert.deepEqual(cibles(`node '--eval=require("fs").writeFileSync(".superpowers/$X", "a")'`), [resolve(base, '.superpowers/$X')])
+  assert.deepEqual(cibles(`node '--eval=require("fs").writeFileSync("$P/x", "a")'`), [resolve(base, '$P/x')])
+  assert.deepEqual(cibles(`P=.superpowers; node "--eval=require('fs').writeFileSync('$P/x', 'a')"`), [resolve(base, '.superpowers/x')])
+  assert.equal(ciblesDEcritureDeCommande(`node --eval="require('fs').writeFileSync('$EXTERNE/x', 'a')"`, { base })[0].inconnue, true)
+  assert.deepEqual(cibles(`node script.mjs --eval='require("fs").writeFileSync(".superpowers/x", "a")'`), [])
+  assert.deepEqual(cibles(`node -- --eval='require("fs").writeFileSync(".superpowers/x", "a")'`), [])
+})
+/** Une base forgée par plateforme, ses attendus par le `node:path` de la plateforme jouée, sur tout hôte. */
+const BASES = { win32: cheminsDe('win32').join('C:', '/banc'), linux: '/banc' }
+test('puits, base du segment et lancements de scripts (#2537)', () => {
+  const W = cheminsDe('win32'), baseW = BASES.win32
+  const brut = (commande, options = {}) => ciblesDEcritureDeCommande(commande, { base: baseW, platform: 'win32', ...options })
+    .map(({ chemin, inconnue, operation, puits }) => ({ chemin, inconnue, operation, puits }))
+  assert.deepEqual(brut('echo x > /dev/null'), [{ chemin: W.resolve(baseW, '/dev/null'), inconnue: false, operation: 'redirection', puits: true }])
+  assert.deepEqual(brut('dir 2>NUL'), [{ chemin: W.resolve(baseW, 'NUL'), inconnue: false, operation: 'redirection', puits: true }])
+  assert.deepEqual(brut('echo x > /dev/null', { base: BASES.linux, platform: 'linux' }), [{ chemin: '/dev/null', inconnue: false, operation: 'redirection', puits: true }])
+  assert.deepEqual(brut('dir 2>NUL', { base: BASES.linux, platform: 'linux' }).map(c => c.puits), [false])
+  assert.deepEqual(brut('Get-ChildItem 2>$null'), [{ chemin: null, inconnue: false, operation: 'redirection', puits: true }])
+  assert.deepEqual(brut("Get-ChildItem 2>'$null'").map(c => c.puits), [false])
+  assert.equal(ciblesDEcritureDeCommande('cd sous && echo x > y', { base })[0].base, resolve(base, 'sous'))
+  assert.deepEqual(brut('node a.mjs'), [])
+  const lances = (commande) => brut(commande, { scripts: true }).map(c => [c.operation, c.chemin, c.inconnue])
+  assert.deepEqual(lances('node a.mjs --x'), [['script', W.resolve(baseW, 'a.mjs'), false]])
+  assert.deepEqual(lances('node -r dotenv/config --import tsx b.mjs'), [['script', W.resolve(baseW, 'b.mjs'), false]])
+  assert.deepEqual(lances('npx --yes tsx c.ts'), [['script', W.resolve(baseW, 'c.ts'), false]])
+  assert.deepEqual(lances('tsx d.ts'), [['script', W.resolve(baseW, 'd.ts'), false]])
+  assert.deepEqual(lances('node -e "1" e.mjs'), [['script', null, false]])
+  assert.deepEqual(ciblesDEcritureDeCommande('node -e "1" e.mjs', { base: baseW, platform: 'win32', scripts: true }).map((c) => c.enLigne), ['1'])
+  assert.deepEqual(lances('node -pe 1'), [['script', null, false]])
+  const balayes = (commande) => ciblesDEcritureDeCommande(commande, { base, scripts: true }).map(c => [c.chemin, c.config ? 'config' : c.dossier ? 'dossier' : c.operation, c.filtres])
+  assert.deepEqual(balayes('npx vitest run'), [[base, 'dossier', []]])
+  assert.deepEqual(balayes('npx vitest run a-sonde'), [[base, 'dossier', ['a-sonde']]])
+  assert.deepEqual(balayes('npx vitest run sous -c v.config.mjs'), [[resolve(base, 'v.config.mjs'), 'config', ['sous']]])
+  assert.deepEqual(balayes('npx vitest run --dir d "$INCONNUE" x'), [[resolve(base, 'd'), 'dossier', [null, 'x']]])
+  assert.deepEqual(balayes('npx vitest run --root r --dir d'), [[resolve(base, 'd'), 'dossier', []]])
+  assert.deepEqual(balayes('npx vitest run --dir=d -r r'), [[resolve(base, 'd'), 'dossier', []]])
+  assert.deepEqual(balayes('npx vitest run --root=r'), [[resolve(base, 'r'), 'dossier', []]])
+  assert.deepEqual(lances('python3 -c "print(1)"'), [])
+  assert.deepEqual(lances('sh x.sh'), [])
+})
+test('#2537 — la table FERMÉE des écrivains : `ecrivain` sur leur cible inconnue, jamais sur une redirection', () => {
+  const ecrivains = (commande, options = {}) => ciblesDEcritureDeCommande(commande, { base, ...options }).filter((c) => c.inconnue && c.ecrivain).map((c) => c.operation)
+  assert.deepEqual(ecrivains('echo x > "$INCONNUE/x"'), [])
+  assert.deepEqual(ecrivains('rm -f "$INCONNUE/x"'), ['rm'])
+  assert.deepEqual(ecrivains("'git' 'show' $argument_non_constant"), [])
+  assert.deepEqual(ecrivains("'rm' $argument_non_constant"), ['rm'])
+  for (const nonConstante of ["'git' $argument_non_constant", "'git' '-C' 'x' $argument_non_constant", 'git $SOUS', "'npm.cmd' $argument_non_constant", "'npx' $argument_non_constant", "'gh' $argument_non_constant", "'gh' 'issue' $argument_non_constant"]) {
+    assert.deepEqual(ecrivains(nonConstante), [], nonConstante)
+  }
+  assert.deepEqual(ecrivains("'gh' 'pr' 'checkout' $argument_non_constant"), ['gh pr checkout $argument_non_constant'])
+  assert.deepEqual(ecrivains("'git' 'commit' $argument_non_constant"), ['git commit'])
+  assert.deepEqual(ecrivains('git reflog HEAD -5'), [])
+  assert.deepEqual(ecrivains('git reflog drop --all'), ['git reflog'])
+  assert.deepEqual(ecrivains('gh -R o/r issue view 1'), [])
+  assert.deepEqual(ecrivains('gh api repos/o/r --method=GET -f a=b'), [])
+  assert.deepEqual(ecrivains('gh api graphql -f query=x'), [])
+  assert.deepEqual(ecrivains('gh api graphql -f "query=mutation { x }"').length, 1)
+  assert.deepEqual(ecrivains('gh api graphql -f query=@q.graphql').length, 1)
+  for (const aide of ['gh pr merge --help', 'git commit --help', 'git push -h', 'npm install --help', 'npx tsc --help']) assert.deepEqual(ecrivains(aide), [], aide)
+  assert.deepEqual(ecrivains('npm test -- --help'), [])
+  assert.deepEqual(ecrivains('npx knip'), [])
+  assert.deepEqual(ecrivains('npx knip --fix').length, 1)
+  assert.deepEqual(ecrivains('gh release download v1'), ['gh release download v1'])
+  assert.deepEqual(ecrivains('npx tsc --noEmit --incremental false'), [])
+  assert.deepEqual(ecrivains('npx tsc --noEmit --incremental'), ['npx tsc --noEmit --incremental'])
+  assert.deepEqual(ecrivains('npx prettier --check src'), [])
+  assert.deepEqual(ecrivains('npm run typecheck'), [])
+  assert.deepEqual(ecrivains('npm install'), ['npm install'])
+  const chemins = (commande) => ciblesDEcritureDeCommande(commande, { base }).filter((c) => !c.inconnue).map((c) => [c.operation, c.chemin])
+  assert.deepEqual(chemins('wget -q https://x/y'), [['wget', base]])
+  assert.deepEqual(chemins('wget -O - https://x/y'), [])
+  assert.deepEqual(chemins('wget -Psortie -o log.txt https://x/y'), [['wget', resolve(base, 'sortie')], ['wget', resolve(base, 'log.txt')]])
+  assert.deepEqual(chemins('curl -sofichier https://x'), [['curl', resolve(base, 'fichier')]])
+  assert.deepEqual(chemins('npx vitest run --outputFile.json=r.json --coverage'), [['vitest', resolve(base, 'r.json')], ['vitest', resolve(base, 'coverage')]])
+  assert.deepEqual(chemins('node --test --test-reporter-destination=stderr a.test.mjs'), [])
+  assert.deepEqual(ciblesDEcritureDeCommande(`cd sous\\; echo x > y`, { base, powershell: true }).map((c) => c.chemin), [resolve(base, 'sous', 'y')])
+  assert.deepEqual(ciblesDEcritureDeCommande(`cd sous\\; echo x > y`, { base }).map((c) => c.chemin), [resolve(base, 'y')])
+  for (const [platform, racine, P] of [['linux', '/b', path.posix], ['win32', path.win32.join('C:', '/b'), path.win32]]) {
+    assert.deepEqual(ciblesDEcritureDeCommande(`cd sous\\; echo x > y`, { base: racine, platform, powershell: true }).map((c) => c.chemin), [P.resolve(racine, 'sous', 'y')], platform)
+    assert.deepEqual(ciblesDEcritureDeCommande('echo x > sous\\y', { base: racine, platform, powershell: true }).map((c) => c.chemin), [P.resolve(racine, 'sous', 'y')], platform)
+  }
+})
+test('le texte écrit par `cat > f <<\'MOT\'` : le corps du heredoc à mot quoté, jamais celui d’un mot nu (#2537)', () => {
+  const contenus = commande => ciblesDEcritureDeCommande(commande, { base }).map(c => c.contenu)
+  assert.deepEqual(contenus("cat > a.mjs <<'EOF'\nconsole.log($X)\nEOF\nnode a.mjs"), ['console.log($X)\n'])
+  assert.deepEqual(contenus('cat > a.mjs <<"EOF"\nun\ndeux\nEOF'), ['un\ndeux\n'])
+  assert.deepEqual(contenus("cat > a.mjs <<-'EOF'\n\tun\n\tEOF"), ['un\n'])
+  assert.deepEqual(contenus("cat > a.mjs <<'EOF'\njamais fermé"), ['jamais fermé'])
+  assert.deepEqual(contenus('cat > a.mjs <<EOF\n$X\nEOF'), [undefined])
+  assert.deepEqual(contenus("cat b.mjs > a.mjs <<'EOF'\nx\nEOF"), [undefined])
+  assert.deepEqual(contenus("tee a.mjs <<'EOF'\nx\nEOF"), [undefined])
+})
+
+test('#2537 — la table des écrivains concorde avec ses trois sources figées, et l’en-tête avec la table', () => {
+  const sources = JSON.parse(readFileSync(new URL('./fixtures/ecrivains-sources.json', import.meta.url), 'utf8'))
+  const nomsDeCmdlet = (c) => [c.nom, ...c.alias].map((n) => n.toLowerCase())
+  const posix = Object.entries(sources.posix.utilitaires)
+  const ecrivainsPosix = posix.filter(([, verdict]) => verdict === 'ecrivain').map(([nom]) => nom)
+  const horsPosix = Object.keys(sources.horsPosix.commandes)
+  const ecrivains = new Set([...ecrivainsPosix, ...horsPosix, ...sources.powershell.cmdlets.filter((c) => c.verdict === 'ecrivain').flatMap(nomsDeCmdlet)])
+  const exclus = [...posix.filter(([, verdict]) => verdict !== 'ecrivain').map(([nom]) => nom), ...sources.powershell.cmdlets.filter((c) => c.verdict !== 'ecrivain').flatMap(nomsDeCmdlet)]
+  assert.deepEqual([...ECRIVAINS].filter((nom) => !ecrivains.has(nom)), [], 'écrivain de la table hors des sources')
+  assert.deepEqual([...ecrivains].filter((nom) => !ECRIVAINS.has(nom)), [], 'écrivain des sources hors de la table')
+  assert.deepEqual(exclus.filter((nom) => ECRIVAINS.has(nom)), [], 'exclusion des sources dans la table')
+  assert.equal(posix.length, 155)
+  const entete = readFileSync(new URL('./ecrituresShell.mjs', import.meta.url), 'utf8')
+  const ligne = (etiquette) => entete.match(new RegExp(`^ \\* ${etiquette} : (.*)$`, 'm'))[1].split(', ')
+  assert.deepEqual(ligne('POSIX'), [...ecrivainsPosix].sort())
+  assert.deepEqual(ligne('hors POSIX'), [...horsPosix].sort())
+})
+test('#2537 palier 6 — écrivains complétés, enveloppes, aide et `tsc` prouvé', () => {
+  const W = cheminsDe('win32'), baseW = BASES.win32
+  const vus = (commande, options = {}) => ciblesDEcritureDeCommande(commande, { base: baseW, platform: 'win32', ...options }).map((c) => [c.operation, c.chemin, c.inconnue])
+  assert.deepEqual(vus('exec rm -f x'), [['rm', W.resolve(baseW, 'x'), false]])
+  assert.deepEqual(vus('exec -a nom rm x'), [['rm', W.resolve(baseW, 'x'), false]])
+  assert.deepEqual(vus('node scripts/lancer-local.mjs vite -- vite build'), [['vite build', null, true]])
+  assert.deepEqual(vus('node scripts/lancer-local.mjs vite --cwd sous -- vite preview'), [])
+  for (const lanceur of ['vite build', 'npx vite build']) assert.deepEqual(vus(lanceur), [[lanceur, null, true]], lanceur)
+  const tsconfigs = { 'tsconfig.json': '{ "compilerOptions": { "noEmit": true } }', 'emet.json': '{ "compilerOptions": { "outDir": "d" } }', 'herite.json': '{ "extends": "./tsconfig.json" }' }
+  const lireTexte = (chemin) => tsconfigs[W.relative(baseW, chemin)]
+  for (const lit of ['tsc', 'npx tsc -p .', 'tsc -p herite.json', 'tsc -p absent.json', 'tsc --noEmit -p emet.json']) assert.deepEqual(vus(lit, { lireTexte }), [], lit)
+  for (const ecrit of ['tsc -p emet.json', 'tsc --outDir x', 'tsc -b', 'tsc --declaration', 'tsc a.ts']) assert.deepEqual(vus(ecrit, { lireTexte }), [[ecrit, null, true]], ecrit)
+  for (const aide of ['split --help', 'split -h', 'rm --help']) assert.deepEqual(vus(aide), [], aide)
+  assert.deepEqual(vus('chown -h u x'), [['chown', W.resolve(baseW, 'x'), false]])
+  assert.deepEqual(vus('sc stop service', { powershell: true }), [])
+  assert.deepEqual(vus('md x', { powershell: true }), [['md', W.resolve(baseW, 'x'), false]])
+  assert.deepEqual(vus('Save-PSResource Az', { powershell: true }), [['save-psresource', baseW, false]])
+  assert.deepEqual(vus('Add-Type -TypeDefinition $c -OutputAssembly a.dll', { powershell: true }), [['add-type', W.resolve(baseW, 'a.dll'), false]])
+  assert.deepEqual(vus('Start-Transcript', { powershell: true }), [['start-transcript', null, true]])
+  assert.deepEqual(vus('start -RedirectStandardOutput o.txt x.exe', { powershell: true }), [['start', W.resolve(baseW, 'o.txt'), false]])
+  assert.deepEqual(vus('c17 -c a.c'), [['c17', W.resolve(baseW, 'a.o'), false]])
+  assert.deepEqual(vus('msgfmt -o x.mo x.po'), [['msgfmt', W.resolve(baseW, 'x.mo'), false]])
+  assert.deepEqual(vus('xgettext -o x.pot a.c'), [['xgettext', W.resolve(baseW, 'x.pot'), false]])
+  assert.deepEqual(vus('gencat cat.cat msg'), [['gencat', W.resolve(baseW, 'cat.cat'), false]])
+  assert.deepEqual(vus('localedef -f UTF-8 fr_FR'), [['localedef', null, true]])
+  for (const lien of ['mklink /J lien cible', 'cmd //c mklink /J lien cible', 'cmd //c mklink //J lien cible']) assert.deepEqual(vus(lien), [['mklink', W.resolve(baseW, 'lien'), false]], lien)
+  assert.deepEqual(vus('make'), [['make', null, true]])
+  assert.deepEqual(vus('make -n'), [])
+  const temp = W.join('C:', '/banc-tmp')
+  assert.deepEqual(vus('mktemp -d', { env: { TEMP: temp } }), [['mktemp', temp, false]])
+  assert.deepEqual(vus('mktemp -p sous'), [['mktemp', W.resolve(baseW, 'sous'), false]])
+  assert.deepEqual(vus('mktemp sous/x.XXXX'), [['mktemp', W.resolve(baseW, 'sous'), false]])
+  assert.deepEqual(vus('mktemp -u'), [])
+})
+test('#2537 — `[IO.File]::` s’ouvre dans le code : une chaîne ou une here-string qui le cite est une donnée', () => {
+  const W = cheminsDe('win32'), baseW = BASES.win32
+  const vus = (commande) => ciblesDEcritureDeCommande(commande, { base: baseW, platform: 'win32', powershell: true }).map((c) => [c.operation, c.chemin, c.inconnue])
+  const ecrit = [['dotnet', W.resolve(baseW, 'a'), false]]
+  assert.deepEqual(vus("[IO.File]::WriteAllText('a', 'x')"), ecrit)
+  assert.deepEqual(vus("[IO.File]::WriteAllText( 'a' , 'x' )"), ecrit)
+  assert.deepEqual(vus("echo \"$([IO.File]::WriteAllText('a', 'x'))\""), ecrit)
+  assert.deepEqual(vus("$t = @\"\n$([IO.File]::WriteAllText('a', 'x'))\n\"@"), ecrit)
+  assert.deepEqual(vus("Write-Output '[IO.File]::WriteAllText(\"$X\", \"x\")'"), [])
+  assert.deepEqual(vus("$t = @'\n[IO.File]::WriteAllText(\"$X\", \"x\")\n'@\n[IO.File]::WriteAllText('a', $t)"), ecrit)
+})
+test('#2537 G8 — `execFile`/`spawn` : options en 2e argument, `shell: true`, tableau `const` littéral', () => {
+  const lancees = (texte) => ciblesDEcritureJS([{ texte: `import { execFileSync, spawnSync } from 'node:child_process'\n${texte}` }])[0].map((c) => c.commande)
+  assert.deepEqual(lancees("execFileSync('rm', { stdio: 'inherit' })"), ["'rm'"])
+  assert.deepEqual(lancees("spawnSync('rm -f x', { shell: true })"), ['rm -f x'])
+  assert.deepEqual(lancees("spawnSync('rm', ['-f', 'x y'], { shell: true })"), ['rm -f x y'])
+  assert.deepEqual(lancees("const a = ['-f', 'x']\nexecFileSync('rm', a)"), ["'rm' '-f' 'x'"])
+  assert.deepEqual(lancees("const a = ['-f', 'x']\na.push('y')\nexecFileSync('rm', a)"), ["'rm' $argument_non_constant"])
+})
+
+test('#2537 — l’environnement d’un script lancé : affectations de tête, `env`, `+=`, et `$env:NOM` de PowerShell', () => {
+  const temp = (commande, { env = {}, powershell = false } = {}) => ciblesDEcritureDeCommande(commande, { base, env, powershell, scripts: true })
+    .filter((c) => c.operation === 'script').map((c) => c.env.TEMP)
+  assert.deepEqual(temp('TEMP=T node a.mjs'), ['T'])
+  assert.deepEqual(temp('env TEMP=T node a.mjs'), ['T'])
+  assert.deepEqual(temp('TEMP+=/x node a.mjs', { env: { TEMP: 'U' } }), ['U/x'])
+  assert.deepEqual(temp('TEMP+=/x node a.mjs'), [null])
+  assert.deepEqual(temp('TEMP=T; node a.mjs', { env: { TEMP: 'U' } }), ['T'])
+  assert.deepEqual(temp("$env:TEMP = 'T'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['T'])
+  assert.deepEqual(temp("${env:TEMP} = 'T'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['T'])
+  assert.deepEqual(temp("$Env:temp='T'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['T'])
+  assert.deepEqual(temp("$env:TEMP += '/x'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['U/x'])
+  assert.deepEqual(temp("$TEMP = 'T'; node a.mjs", { env: { TEMP: 'U' }, powershell: true }), ['U'])
+})
+
+test('#2537 — une base inconnue (`cd` non résolu) se propage à la commande imbriquée : ses cibles relatives sont non résolues', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux' }).map((c) => c.chemin)
+  assert.deepEqual(cibles('cd "$U"; find . -exec rm y \\;'), [null])
+  assert.deepEqual(cibles('cd "$U"; find /h -exec rm /h/y \\;'), ['/h/y'])
+  assert.deepEqual(cibles('find . -exec rm y \\;'), ['/b/y'])
+})
+
+test('#2537 — un splat PowerShell `@nom` n’est pas un chemin ; `vitest --root` résout le `--config` et fixe le dossier balayé', () => {
+  const cibles = (commande, options = {}) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', ...options }).map((c) => [c.chemin, c.inconnue])
+  assert.deepEqual(cibles('Remove-Item @cibles', { powershell: true }), [[null, true]])
+  assert.deepEqual(cibles("Remove-Item '@cibles'", { powershell: true }), [['/b/@cibles', false]])
+  const configs = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', scripts: true }).filter((c) => c.config).map((c) => [c.chemin, c.dossierFixeParLaLigne])
+  assert.deepEqual(configs('npx vitest run --root r -c v.config.mjs'), [['/b/r/v.config.mjs', true]])
+  assert.deepEqual(configs('npx vitest run --root r -c /abs/v.config.mjs'), [['/abs/v.config.mjs', true]])
+  assert.deepEqual(configs('npx vitest run --dir d -c v.config.mjs'), [['/b/v.config.mjs', true]])
+  assert.deepEqual(configs('npx vitest run -c v.config.mjs'), [['/b/v.config.mjs', false]])
+})
+
+test('#2537 — un tableau PowerShell en argument (`a,b`, `a, b`) nomme chacun de ses éléments (about_Arrays, about_Parsing)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => [c.chemin, c.inconnue])
+  for (const [commande, attendu] of [
+    ['Remove-Item P/a,/h/b', [['/b/P/a', false], ['/h/b', false]]],
+    ['Remove-Item a, /h/b, /h/c -Force', [['/b/a', false], ['/h/b', false], ['/h/c', false]]],
+    ['Remove-Item a , /h/b', [['/b/a', false], ['/h/b', false]]],
+    ["Remove-Item 'a',\"/h/b\"", [['/b/a', false], ['/h/b', false]]],
+    ['Remove-Item -Path:a,/h/b', [['/b/a', false], ['/h/b', false]]],
+    ['Remove-Item $x,/h/b', [[null, true], ['/h/b', false]]],
+    ['Copy-Item a, b /h/d', [['/h/d', false]]],
+    ["Remove-Item 'a,b'", [['/b/a,b', false]]],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+  assert.deepEqual(ciblesDEcritureDeCommande('rm a,b', { base: '/b', platform: 'linux' }).map((c) => c.chemin), ['/b/a,b'])
+})
+
+test('#2537 — une virgule échappée par l’accent grave PowerShell est littérale (about_Special_Characters)', () => {
+  const cibles = (commande) => ciblesDEcritureDeCommande(commande, { base: '/b', platform: 'linux', powershell: true }).map((c) => [c.chemin, c.inconnue])
+  for (const [commande, attendu] of [
+    ['Remove-Item a`,b', [['/b/a,b', false]]],
+    ['Remove-Item /h/a`,b', [['/h/a,b', false]]],
+    ['Remove-Item a`,b,/h/c', [['/b/a,b', false], ['/h/c', false]]],
+    ['Remove-Item a`$x', [[null, true]]],
+  ]) assert.deepEqual(cibles(commande), attendu, commande)
+})

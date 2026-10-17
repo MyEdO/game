@@ -58,7 +58,7 @@ describe('weather.json — COMPLÉTUDE des conditions (l’alphabet vit au SCHÉ
     vide.conditions = vide.conditions.map((c) => (c.id === 'pluie' ? { ...c, label: '' } : c));
     const err = validateDataset('weather.json', vide);
     expect(err, 'label vide accepté — la tuile Météo afficherait une chaîne nue').toBeTruthy();
-    expect(err).toContain('conditions « pluie » › label');
+    expect(err).toContain('Conditions météo « pluie » › Libellé');
   });
 
   it('un id EN DOUBLE est refusé, l’id dupliqué NOMMÉ', () => {
@@ -68,7 +68,7 @@ describe('weather.json — COMPLÉTUDE des conditions (l’alphabet vit au SCHÉ
     double.conditions = [...double.conditions, { ...double.conditions[0] }];
     const err = validateDataset('weather.json', double);
     expect(err, 'doublon accepté — une fiche inerte, sans un mot').toBeTruthy();
-    expect(err).toContain('conditions « sec »');
+    expect(err).toContain('Conditions météo « sec »');
     expect(err).toContain('« sec » dupliqué');
     expect(err!.split('\n').filter((l) => l.startsWith('  - ')), 'un doublon, une faute').toHaveLength(1);
   });

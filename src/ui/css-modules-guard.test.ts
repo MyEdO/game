@@ -1,10 +1,25 @@
-import { describe, it, expect } from 'vitest';
+import { afterAll, beforeEach, vi, describe, it, expect } from 'vitest';
+import * as cssImages from '../../scripts/guards/lib/cssImages.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { reglesCss, FEUILLES_PARTAGEES, declarations, estPlacement, modulesDePrimitive } from '../../scripts/guards/lib/cssCouches.mjs';
+import { reglesCss, FEUILLES_PARTAGEES, declarations, estPlacement, modulesDePrimitive, type ImageCss } from '../../scripts/guards/lib/cssCouches.mjs';
 import { imageDuDisque } from '../../scripts/guards/lib/cssCouchesAudit.js';
 import { OWNERS, CADRES } from '../../scripts/guards/lib/marqueursPossedes.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+const lecturesImage = { nombre: 0 };
+const originalImageCss = cssImages.imageCss;
+const compterImage: typeof cssImages.imageCss = (...args) => {
+  lecturesImage.nombre++;
+  return originalImageCss(...args);
+};
+let espionImage = vi.spyOn(cssImages, 'imageCss').mockImplementation(compterImage);
+beforeEach(() => {
+  espionImage = vi.spyOn(cssImages, 'imageCss').mockImplementation(compterImage);
+});
+afterAll(() => {
+  try { expect(lecturesImage.nombre).toBe(1); }
+  finally { espionImage.mockRestore(); }
+});
 
 /**
  * #1806 — le module CSS d'une PRIMITIVE est le SEUL foyer de ce qu'elle peint (règle A1,
@@ -60,9 +75,9 @@ function classesDefinies(rel: string): Set<string> {
 }
 
 /** classe → feuille PROPRIÉTAIRE (couche partagée d'abord, puis modules de primitive). */
-function proprietaires(): Map<string, string> {
+function proprietaires(manifeste: ImageCss['manifeste']): Map<string, string> {
   const map = new Map<string, string>();
-  for (const f of [...FEUILLES_PARTAGEES, ...modulesDePrimitive(imageDuDisque().manifeste)]) {
+  for (const f of [...FEUILLES_PARTAGEES, ...modulesDePrimitive(manifeste)]) {
     if (!existsSync(`${RACINE}${f}`)) continue;
     for (const c of classesDefinies(f)) if (!map.has(c)) map.set(c, f);
   }
@@ -107,9 +122,9 @@ const REPEINTS_STOCK: readonly string[] = [
 ];
 
 /** Un site de repeint mesuré : `feuille|sélecteur` + la feuille qui possède la classe. */
-export function sitesRepeint(feuilles: readonly { rel: string; text: string }[]): string[] {
-  const proprio = proprietaires();
-  const primitives = modulesDePrimitive(imageDuDisque().manifeste);
+export function sitesRepeint(feuilles: readonly { rel: string; text: string }[], manifeste: ImageCss['manifeste']): string[] {
+  const proprio = proprietaires(manifeste);
+  const primitives = modulesDePrimitive(manifeste);
   const classesDePrimitive = new Set([...primitives].filter((f) => existsSync(`${RACINE}${f}`)).flatMap((f) => [...classesDefinies(f)]));
   const out: string[] = [];
   for (const { rel, text } of feuilles) {
@@ -140,8 +155,7 @@ export function sitesRepeint(feuilles: readonly { rel: string; text: string }[])
  * sinon celles qui la définissent. Ailleurs, la nommer — sujet, contexte ou argument de `:has()`,
  * placement compris — est un site. Tolérance zéro, sans stock.
  */
-export function sitesCadreVise(feuilles: readonly { rel: string; text: string }[]): string[] {
-  const manifeste = imageDuDisque().manifeste;
+export function sitesCadreVise(feuilles: readonly { rel: string; text: string }[], manifeste: ImageCss['manifeste']): string[] {
   const cssDe = new Map(manifeste.flatMap((e) => (e.fichier && e.css ? [[e.fichier, e.css] as const] : [])));
   const definies = new Map<string, Set<string>>();
   for (const { rel, text } of feuilles) {
@@ -350,8 +364,8 @@ const FAMILLE_EXEMPT_SITES = new Map<string, string>([
 ]);
 
 /** Les classes d'une famille JET définies dans un module d'ÉCRAN, avec leur destination. */
-export function sitesFamilleEgaree(feuilles: readonly { rel: string; text: string }[]): string[] {
-  const primitives = modulesDePrimitive(imageDuDisque().manifeste);
+export function sitesFamilleEgaree(feuilles: readonly { rel: string; text: string }[], manifeste: ImageCss['manifeste']): string[] {
+  const primitives = modulesDePrimitive(manifeste);
   const out: string[] = [];
   for (const { rel, text } of feuilles) {
     if (FEUILLES_PARTAGEES.includes(rel) || primitives.has(rel)) continue;
@@ -370,10 +384,24 @@ export function sitesFamilleEgaree(feuilles: readonly { rel: string; text: strin
 }
 
 describe('#1806 — un module de primitive est le seul foyer de ce qu’il peint', () => {
-  const feuilles = imageDuDisque().fichiers;
+  const image = imageDuDisque();
+  expect(lecturesImage.nombre).toBe(1);
+  const feuilles = image.fichiers;
+
+  it('utilise une seule image capturée et le manifeste injecté sans reconstruire dans les helpers', () => {
+    expect(lecturesImage.nombre).toBe(1);
+    const foyer = 'src/ui/styles/foyer-injecte.css';
+    const faux = [{ rel: foyer, text: '.cadre-pied { margin-top: 0; }' }];
+    const manifeste = image.manifeste.map((e) => e.fichier === 'src/ui/Cadre.tsx' ? { ...e, css: foyer } : e);
+    expect(sitesCadreVise(faux, image.manifeste)).toEqual([`${foyer}|.cadre-pied`]);
+    expect(sitesCadreVise(faux, manifeste)).toEqual([]);
+    expect(sitesRepeint([], image.manifeste)).toEqual([]);
+    expect(sitesFamilleEgaree([], image.manifeste)).toEqual([]);
+    expect(lecturesImage.nombre).toBe(1);
+  });
 
   it('§5.3 aucun REPEINT neuf d’une classe possédée ailleurs (stock nominatif)', { timeout: 30_000 }, () => {
-    const mesures = sitesRepeint(feuilles);
+    const mesures = sitesRepeint(feuilles, image.manifeste);
     const neufs = mesures.filter((s) => !REPEINTS_STOCK.includes(s));
     expect(neufs, `Classe REPEINTE hors de son module propriétaire — la matière doit rester UNIQUE :\n${neufs.join('\n')}`).toEqual([]);
     const soldes = REPEINTS_STOCK.filter((s) => !mesures.includes(s));
@@ -382,20 +410,20 @@ describe('#1806 — un module de primitive est le seul foyer de ce qu’il peint
 
   it('§5.3 preuve par mutation — un écran qui repeint une classe partagée rougit', { timeout: 60_000 }, () => {
     const faux = [{ rel: 'src/ui/styles/faux-ecran.css', text: '.faux-panneau .btn { color: var(--gold) }' }];
-    expect(sitesRepeint(faux)).toEqual(['src/ui/styles/faux-ecran.css|.faux-panneau .btn']);
+    expect(sitesRepeint(faux, image.manifeste)).toEqual(['src/ui/styles/faux-ecran.css|.faux-panneau .btn']);
     const placement = [{ rel: 'src/ui/styles/faux-ecran.css', text: '.faux-panneau .btn { margin-top: var(--sp-md) }' }];
-    expect(placement.length && sitesRepeint(placement), 'un PLACEMENT sous contexte d’écran reste légitime').toEqual([]);
+    expect(placement.length && sitesRepeint(placement, image.manifeste), 'un PLACEMENT sous contexte d’écran reste légitime').toEqual([]);
   });
 
   it('§5.3 le SUJET d’une règle n’est pas ce que son `:has()` nomme', { timeout: 30_000 }, () => {
     // `label:has(> .btn)` peint le LABEL, pas le bouton : compter `.btn` pour sujet inventerait un
     // repeint (et la découpe naïve sur `,` inventait en plus une règle « `> .btn)` »).
     const faux = [{ rel: 'src/ui/styles/faux-ecran.css', text: "label:has(> a, > .btn) { color: var(--gold) }" }];
-    expect(sitesRepeint(faux)).toEqual([]);
+    expect(sitesRepeint(faux, image.manifeste)).toEqual([]);
   });
 
   it('§5.3 étendue aux CADRES : aucune feuille hors de leur foyer ne vise leurs classes, placement compris', () => {
-    const sites = sitesCadreVise(feuilles);
+    const sites = sitesCadreVise(feuilles, image.manifeste);
     expect(sites, `Classe d'un CADRE visée hors de son foyer — passer par un état \`data-*\` du cadre :\n${sites.join('\n')}`).toEqual([]);
   });
 
@@ -405,7 +433,7 @@ describe('#1806 — un module de primitive est le seul foyer de ce qu’il peint
       { rel: 'src/ui/styles/faux-ecran2.css', text: '.faux:has(> .modal-body) { gap: 4px }' },
       { rel: 'src/ui/styles/faux-ecran3.css', text: '.faux-panneau .btn { margin-top: 0 }' },
     ];
-    expect(sitesCadreVise(faux)).toEqual([
+    expect(sitesCadreVise(faux, image.manifeste)).toEqual([
       'src/ui/styles/faux-ecran.css|.faux-panneau .cadre-pied',
       'src/ui/styles/faux-ecran2.css|.faux:has(> .modal-body)',
     ]);
@@ -488,13 +516,13 @@ describe('#1806 — un module de primitive est le seul foyer de ce qu’il peint
   });
 
   it('§5.4 aucune famille JET recréée dans un module d’écran', () => {
-    const egarees = sitesFamilleEgaree(feuilles);
+    const egarees = sitesFamilleEgaree(feuilles, image.manifeste);
     expect(egarees, `Famille migrée RECRÉÉE hors du module de sa primitive — sa destination est nommée :\n${egarees.join('\n')}`).toEqual([]);
   });
 
   it('§5.4 preuve par mutation — une classe de la famille JET dans un module d’écran rougit', () => {
     const faux = [{ rel: 'src/ui/styles/faux-ecran.css', text: '.rm-neuf { color: var(--gold) }' }];
-    expect(sitesFamilleEgaree(faux).length, 'la famille `.rm-*` doit être renvoyée à son module').toBe(1);
+    expect(sitesFamilleEgaree(faux, image.manifeste).length, 'la famille `.rm-*` doit être renvoyée à son module').toBe(1);
   });
 
   it('§5.4 chaque exemption est un SITE encore RÉEL — une ligne périmée se retire', () => {

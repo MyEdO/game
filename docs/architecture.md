@@ -34,9 +34,28 @@ par `npm run docs:build`. Aucune ne se fusionne.
 (heading porteur), donc une section ajoutée par l'entrant garde SON champ ; un conflit restant est un
 vrai conflit humain.
 
-Après toute fusion ou tout rebase : les hooks `post-merge`/`post-rewrite` régénèrent les cibles de
-code et les docs dont une source a bougé (`scripts/git-hooks/docs-rebuild.mjs`) ; un MIXTE réécrit
-reste à committer.
+Après tout commit, toute fusion ou tout rebase : les hooks `post-commit`/`post-merge`/`post-rewrite`
+choisissent les générateurs dont une source a bougé (`scripts/git-hooks/selection-des-derives.mjs`) ;
+`scripts/git-hooks/docs-rebuild.mjs` régénère les cibles de code avant de rendre la main
+(`build-all --code --sans-certifier` : leurs certificats invalidés, la passe les certifie) et DEMANDE la
+reconstruction des docs, jouée en fond par un détaché par arbre (`scripts/git-hooks/reconstruction.mjs`,
+journal `.git/hooks-git/reconstruction/<pid>.log`) une fois l'arbre libre de toute opération git ;
+`--attendre` attend sa fin. Un MIXTE réécrit reste à committer. Les dérivés et le cache de fraîcheur n'ont
+qu'UN écrivain à la fois (`scripts/docs/lib/ecrivain-derives.mjs`) : tout écrivain de cibles de code hors passe
+PRÉEMPTE la passe en cours (époque neuve sous verrou), dont toute écriture suivante est refusée, puis la passe est rejouée ; une écriture de la
+passe pendant une opération git (checkout, rebase, fusion) la préempte de même ; toute autre écriture prend le
+verrou.
+
+**Miroirs d'agents** (#2578, `DESTINATIONS` de `scripts/agents/compat-core.mjs`) : produits sur
+l'INDEX par l'unique producteur `runCompat` (`scripts/agents/compat-cli.mjs`). Le `pre-commit` les
+produit dans le commit ; les post-hooks (`scripts/git-hooks/miroirs-d-agents.mjs`) rattrapent ce que
+le `pre-commit` ne joue pas (fusion, rebase, `--no-verify`) — le `post-commit` seulement si l'index
+s'écarte de HEAD sur une destination, ou si le commit a touché une destination, une entrée non-JS du
+producteur (`ENTREES_DU_PRODUCTEUR`) ou un membre, données JSON comprises, de la clôture d'imports de
+son code (`RACINES_DU_PRODUCTEUR`, `clotureDImports`, spécificateurs mémoïsés par contenu :
+`specificateursMemoises` de `scripts/test/perimetre.mjs`) — et annoncent sur stderr « À COMMETTRE » ce que HEAD ne porte pas. L'étape
+`docs` du train les commet ; un `.claude/settings.json` sale n'y est dérivé que si seule sa clé
+`hooks` s'écarte de HEAD (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`).
 
 **Fusion des stocks de sites** (`.gitattributes`, section « Stocks : fusion par groupe de site »,
 pilote `scripts/git-hooks/merge-stocks.mjs` déclaré par `npm run postinstall`, `merge=stocks`) :
@@ -86,10 +105,6 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             (#1692) ; deux gardes structurelles le tiennent : `index-vivant-guard.test.ts`
                             (aucun index figé à l'import sur un dataset du seam) et
                             `seam-ecriture-guard.test.ts` (aucun `push`/`splice` hors `overrides.ts`)
-  migrationsDeProjet.ts       `PROJECT_MIGRATIONS` : les migrations de forme du document de projet,
-                              keyées par `schema` de départ, et leurs aides ; `SCHEMA_PROJET`
-                              (`schemas/defs-scenes/projet.ts`) en dérive (#2226). Une valeur que
-                              la migration tenait de `src/state` y est figée à son commit
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
                               `defs-scenes/<nom>.ts`) qui DÉCLARE son document par la fabrique
                               `document()` (`grammaire/document.ts`) : enveloppe commune posée par la
@@ -163,17 +178,20 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             de chaînes ou de fragments de regex (`alternationDe`, `alternationDeRegex`),
                             `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
                             son chemin relatif, extension comprise.
-                            `indexedDb.ts` : bases IndexedDB (disponibilité, ouverture bornée #776 par
-                            `{ nom, migrations }`, une connexion par opération) et leur poignée
-                            `accesBase` (magasins typés, `vider`) ; doublure `indexedDb.testkit.ts`
-                            (`brancherBasesSimulees`).
+                            `indexedDb.ts` : bases IndexedDB DÉCLARÉES `{ nom, magasins: { [nom]:
+                            { keyPath } } }`, ouvertes SANS version (#2404) : une base neuve reçoit ses
+                            magasins de la déclaration, une base existante qui s'en écarte (magasin
+                            manquant ou en trop, `keyPath` différente) est supprimée puis recréée, ses
+                            données perdues ; ouverture bornée #776, une connexion par opération ; leur
+                            poignée `accesBase` (magasins typés, `vider`) ; doublure
+                            `indexedDb.testkit.ts` (`brancherBasesSimulees`).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
-                            (`stockageWeb`).
+                            (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire`,
+                            chaque VALEUR validée par son lecteur contre son registre (#2404). Les clés
+                            de stockage ne portent aucun numéro de version (`wfrp4.prefs`, pas
+                            `wfrp4.prefs.v1`).
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
-                            `versionCourante.ts` : la version courante d'une forme persistée, dérivée
-                            de sa table de migrations keyée par version de DÉPART, en valeur et en type
-                            littéral (#2226).
 src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
@@ -238,8 +256,8 @@ src/state/
   scene.ts                  SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 43 types exportés,
                             dont 26 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
                             (`CustomStatblock`, `TemporalCondition`) et 1 COMPOSÉ : l'union `Effect`
-                            (55 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
-                            `EffectOp` = 58 membres). Restent 14 MANUSCRITS : `Scene`, `SceneEntity`,
+                            (57 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
+                            `EffectOp` = 60 membres). Restent 14 MANUSCRITS : `Scene`, `SceneEntity`,
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `DelayedEffect`, `PetitePriere`
@@ -255,8 +273,9 @@ src/state/
                             et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
                             `CellSide` = l'ARÊTE d'une case (quel bord porte un mur) ; le CAP, lui, vit
                             au foyer des caps (`state/dir8.ts`)
-  worldMap.ts               SCHÉMA DE CARTE DU MONDE (#T2) : lieux/routes au niveau projet + format projet v2
-                            (`ProjectDoc`, `activeAxes?: string[]` #409 — axes de forces/faiblesses ACTIFS de
+  worldMap.ts               SCHÉMA DE CARTE DU MONDE (#T2) : lieux/routes au niveau projet + format projet
+                            (`ProjectDoc`, porte `parseProject` : `projetSchema` SEUL contrôle de forme, aucun
+                            numéro de version, toute autre forme REFUSÉE — #2404 ; `activeAxes?: string[]` #409 — axes de forces/faiblesses ACTIFS de
                             la campagne, ids de `data/axes.json`, défaut `coreAxisIds` via `resolveActiveAxes`).
                             DONNÉES DE LIEU (#343) : le nœud `MapPlace` est LA source des services d'un lieu —
                             `port` (schéma riche + catalogue `naval-ports.json`), `market` (LandMarketProfile) et
@@ -292,7 +311,7 @@ src/state/
                               (previewAttack/Defense) : il partage attackEnv/bestDefenseMode avec la
                               résolution → cycle. La cohésion preview↔résolution est voulue.
   rollFlowFactory.ts / rollFlowSpecs.ts  FABRIQUE générique des flux de jet différé (« une situation = une modale ») +
-                              specs des flux (attack/defense/cast/disengage/trample/run/focus/psych/
+                              specs des flux (attack/defense/cast/disengage/run/focus/psych/
                               frenzy/approach/test/heal + reload/recover/activity/corruption/appraise/
                               bargain) — un nouveau jet = 1 spec + 1 xConfirm. Résilience « Je ne
                               faillirai pas ! » (LDB 17 l.68, GLOBALE) : mécanisme UNIQUE (factory
@@ -311,6 +330,7 @@ src/state/
   partyFlow.ts                équipement, avancement PX, consommables de fiche, butin
   merchantFlow.ts             marchand : réassort, panier, achat/vente/réparation, Marchandage, Évaluation
   travelFlow.ts               voyage jour par jour (temps, fatigue, péripéties d10+auteur, interruption/reprise)
+  billetFlow.ts               billet d'un passage payant : offre de départ (estimation = débit), billet en main, Marchandage du billet
   upkeep.ts                   entretien QUOTIDIEN (#T3 cascade : rations/faim + maladies + convalescence
                               des critiques, jours CALENDAIRES) + purge des effets a duree d'horloge
                               (castPenalties/ActiveEffect.untilTime) — anti-double-comptage lastUpkeepDay
@@ -326,19 +346,11 @@ src/state/
   combatLog.ts                CombatEvent/CombatEventKind + CombatTone/toneOf/isImportantEvent/
                               lastEventTone (#161 : cadence des beats, `gameIso/combatNarration` les
                               réutilise pour l'icône/la coloration par camp, hors du périmètre `state`)
-  migrateDoc.ts                PRIMITIVE GÉNÉRIQUE de migration séquentielle de document versionné
-                              (`{version, ...}` → `MigrationMap` chaînée jusqu'à sa `versionCourante` ;
-                              refuse net — jamais ne corrompt — objet malformé/version future/trou
-                              dans la chaîne). Consommée par `roster.ts` (`ROSTER_MIGRATIONS`) et
-                              `worldMap.ts` (`PROJECT_MIGRATIONS`) ; PAS par les saves de partie
   saves.ts                    Sauvegarde/chargement de partie (localStorage 3 slots + export/import
-                              JSON). POLITIQUE DE VERSION (arbitrage utilisateur 2026-08-17) : un
-                              changement de forme persistée bump `SAVE_VERSION` et RIEN d'autre —
-                              aucune chaîne de migration, aucune fixture golden. Une save dont la
-                              version diffère de `SAVE_VERSION` est REJETÉE et RETIRÉE du stockage
-                              par `readSlot` (clé stable ET clés versionnées historiques), et le
-                              témoin `takeObsoleteNotice` fait afficher le message au joueur par
-                              `ui/SaveLoadModal`.
+                              JSON). `version` vaut `FORMAT_SAVE` (FORMATS PERSISTÉS, plus bas) ;
+                              une save d'un autre format ou illisible est REJETÉE et RETIRÉE du
+                              stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
+                              le message au joueur par `ui/SaveLoadModal`.
                               Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
                               (`store.ts`, snapshotté via `stateFields`) embarque le DOCUMENT SOURCE du
                               paquet chargé (scènes + carte + narratif + scène d'entrée). Au chargement,
@@ -347,10 +359,12 @@ src/state/
                               module ne connaîtrait que l'Arène + la scène courante et les transitions
                               vers les AUTRES scènes du paquet échoueraient en silence. `campaignNarratif`
                               reste NON persisté (re-dérivé de `campaignDoc`).
-  roster.ts                   Roster persistant (localStorage) des personnages créés au créateur —
-                              son propre couple `EXPORT_VERSION`/`ROSTER_MIGRATIONS` (même primitive
-                              `migrateDoc`), indépendant de `saves.ts` (le roster ne voyage PAS dans
-                              la save de partie)
+  roster.ts                   Roster persistant (localStorage) des personnages créés au créateur, et
+                              export/import d'un héros en fichier : enveloppes `RosterStocke` et
+                              `ExportDeHeros`, sous `FORMAT_ROSTER` et `FORMAT_EXPORT_HEROS`. Un
+                              roster d'un autre format est retiré (témoin `takeRosterNotice`, rendu
+                              par `ui/PartyScreen`) ; un export d'un autre format est refusé. Le
+                              roster ne voyage PAS dans la save de partie
   seating.ts                  ASSISE — source UNIQUE des places assises d'une Scène : `seatSlotsOf`
                               (places déclarées par le TYPE de décor → abord EFFECTIF, jamais partagé
                               avec une autre place de la scène), `seatIsOccupiable`/`seatPoseOf`,
@@ -365,7 +379,33 @@ src/state/
                               chargé une fois par `initLibrary()` (awaité dans `main.tsx` avant le
                               premier rendu). Réconciliation localStorage⇄IndexedDB PAR ID à CHAQUE
                               `initLibrary` (jamais un flag one-shot, #776) ; `indexedDB` absent
-                              (test/SSR) → repli localStorage.
+                              (test/SSR) → repli localStorage. L'enveloppe d'une entrée est prouvée
+                              par `savedProjectSchema` ; son projet passe `parseProject` au GESTE
+                              (`projetDeLEntree` : ouvrir, jouer, exporter) : une entrée d'un autre
+                              format, enveloppe comprise, reste LISTÉE dès qu'un `id` la désigne, son
+                              refus affiché au geste, et sa suppression reste un geste de l'auteur ;
+                              une entrée sans `id` est journalisée et CONSERVÉE telle quelle au miroir
+                              (#2404).
+                              FORMATS PERSISTÉS (#2404) : aucun ne porte de chaîne de migration de
+                              chargement ni de numéro écrit à la main ; une donnée d'une autre forme
+                              est REFUSÉE à la lecture, avec un message clair, et le contenu commité
+                              (`src/scenes/**`) se réécrit dans le MÊME commit que le changement de
+                              forme. Un changement de SENS à forme égale RENOMME sa clé (précédent
+                              #1507 : `light.radiusTiles` devenu `light.radiusM`, le rayon du folio en mètres) : sans
+                              renommage, l'ancienne valeur passerait le schéma et serait lue faux.
+                              Un format À SCHÉMA (projet) se reconnaît à son schéma zod. Un format SANS
+                              schéma porte le FORMAT de son type sérialisé : `scripts/gen-formats.mjs`
+                              (cible de code de `build-all --code`) DÉCLARE ses racines (`RACINES` : la
+                              save `SaveGame`, le roster `RosterStocke`, l'export `ExportDeHeros`, le
+                              calque `CalqueStocke`) et écrit `src/state/formats.generated.ts`
+                              (gitignoré) : une forme canonique du graphe des types (propriétés triées,
+                              `?` porté, unions triées, fonctions nues sautées ; `any`/`unknown` ou un
+                              drapeau de type non traité ÉCHOUE), indépendante des ids internes
+                              et de l'ordre de chargement, hachée. L'écrivain du format y STAMPE sa
+                              constante ; le lecteur compare, refuse et retire, puis prévient. Le coop
+                              compare `FORMAT_SAVE` au `hello`. LIMITE EN DEV : `registryGen`
+                              (`vite.config.ts`) ne régénère qu'au démarrage et sur ajout/suppression de
+                              fichier ; un format reste PÉRIMÉ jusqu'au redémarrage du serveur.
 src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE three.js ; les surcouches
                             de jeu sont du SVG posé sur son canevas. Pipeline détaillé (pivot, peintres,
                             matériaux, QC) : docs/rendu-pipeline.md
@@ -487,17 +527,18 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   l'idiome UNIQUE `$.process.run(...appel($.plugin.root, …)`. Raison, `claude plugin validate` 2.1.289 :
   « $ is followed only into a function declared in this same file, never across an import ; $ is
   always spelled $.noun.event(...) at the call site » — la couture ne peut pas recevoir `$`. Le
-  régime se lit par un LECTEUR `--json` en lecture seule, jamais par `ops:suivi -- N`, qui mesure
-  puis réécrit le suivi.
-- **Mur** `murs/mod-sans-regle` (`VERROU_MOD` d'`eslint.config.js`, joué par la garde `lint`, banc
+  régime se lit par un LECTEUR `--json` en lecture seule ; l'outil du suivi s'obtient par
+  `suivi.mjs --outil --json`, son schéma dérivé de la donnée (`scripts/ops/suiviDonnee.mjs`).
+- **Mur** `murs/mod-sans-regle` (`VERROU_MOD` d'`oxlint.config.mjs`, joué par la garde `lint`, banc
   `scripts/mods/murDeMod.test.mjs` sur la config résolue) : son périmètre est l'`include` du tsconfig
   que pose le moteur (`hooks`, `types`, `tests` de chaque `.claude/skills/<x>/`, en `.ts`/`.mts`),
   hors bancs `*.test.ts` ; le reste de `.claude/` reste ignoré, et tout module hors `.ts` (`.js`, `.mjs`,
   `.cjs`, `.cts`, `.jsx`, `.tsx`, bancs compris) y est refusé.
   Un import relatif n'en sort pas (`claude-code`, `./x`, `../types` et `../hooks` restent permis).
   Hors couture, `$` n'a que ses places : objet d'un accès ni calculé ni optionnel à liste blanche
-  (`ui.resolve`, `ui.log`, `ui.invalidate`, `state.*`, `session.id`, `session.append`,
-  `tool.register`, `clock.every`) ou de l'idiome, argument d'une fonction appelée par son nom,
+  (`ui.resolve`, `ui.log`, `ui.invalidate`, `ui.status`, `ui.toast`, `state.*`, `session.id`,
+  `session.root`, `tool.register`, `clock.every`) ou de l'idiome, argument d'une
+  fonction appelée par son nom,
   paramètre, `typeof $.x` en type. Il reste `$` dans la fonction qui le reçoit : `any` est refusé, et
   une liaison typée `EngineInterface` ou `typeof $` (paramètre, cast, alias, contrainte) se nomme `$`
   sans déstructuration ; le tsconfig posé par le moteur est `strict`, donc `tsc` refuse un paramètre
@@ -506,7 +547,8 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
   composée, égalité ou `case` numérique, `Math`, `++`/`--`) ; le parsing (appel d'une méthode de
   découpe ou de recherche de chaîne, `parseInt`, `parseFloat`, `Number`, `RegExp`, littéral regex,
   `Date.parse`, `new Date(x)`, `new URL(x)`, `JSON.parse`) ; `ask` en clé ou en littéral ;
-  `$.ui.invalidate` hors de `'ui.render'` (`RenderEventName`, types 2.1.289). Dans la couture : aucun
+  `$.ui.invalidate` hors de `'ui.render'` (`RenderEventName`, types 2.1.289) ; `$.session.append`, l'écriture
+  dans l'historique de la session, qui réécrit le cache de prompt au tour suivant (#2596). Dans la couture : aucun
   `$`, et les mêmes refus, sauf `JSON.parse`. Le mur NE GARDE PAS l'évasion délibérée (`'a' + 'sk'`,
   clé calculée, type dérivé de `On`) ; l'appelé IMPORTÉ qui reçoit `$` (le moteur le refuse, la garde
   `mods:check` le prouve par `claude plugin validate --strict`) ; un `../x` depuis un sous-dossier de
@@ -529,16 +571,18 @@ art-ref/                    Illustrations extraites des PDFs + mapping.json (GIT
 Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit — RESTENT en l'état
 (lever = travail coop futur, hors #254 qui ferme sur DOCUMENTATION seule) :
 
-- **Cadence COMMANDÉE désactivée hors mode local** — `src/state/seaVoyageFlow.ts` l.876 et l.1541
-  gatent la résolution immédiate/headless d'une journée de routine (`runCascadeImmediate`) par
-  `get().net.mode === 'local'` (en plus de `seaAutoResolves`/`seaDayAllRoutine`) ; en coop la cadence
-  reste JOUR-PAR-JOUR quels que soient les ordres (commentaire au site : « coop = cadence manuelle,
-  pas d'auto-pilote des postes d'autrui »). Raison technique : la résolution immédiate est un bloc
-  synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales (`modalArbiter.ts`)
-  — elle piloterait donc silencieusement les Tests de routine des postes tenus par des PERSONNAGES
-  D'INVITÉS sans leur passer la main (contradiction avec le gating spectateur/ownership déjà posé
-  ailleurs, `netOwnership.controlsActive`), même si le résultat reste tracé au PV. Lever ⇒ router les
-  Tests de routine par owner de poste comme le fait déjà le registre de modales pour les interruptions.
+- **Cadence COMMANDÉE désactivée hors mode local** — `src/state/voyageCadence.ts` (`traverseeCommandee`)
+  est la source unique de « commandée ET locale » : elle garde la résolution d'un bloc du jour
+  (`runCascadeImmediate`, dans `riverVoyageFlow.resolveRiverDay` et, avec `seaDayAllRoutine`, dans
+  `seaVoyageFlow.runSeaDay`/`continueSeaDayFromPostProgression`) ET la porte d'un jet sous ordres
+  (`rollSeam.surfaceDesTenus`, via `resoluSousOrdres`). En coop, la cadence reste JOUR-PAR-JOUR quels que
+  soient les ordres : chaque jet de route ouvre la fenêtre de son porteur. Raison technique : la résolution
+  immédiate est un bloc synchrone HÔTE-SEUL qui ne passe par AUCUN owner/intent du registre de modales
+  (`modalArbiter.ts`) — elle piloterait donc silencieusement les Tests de routine des postes tenus par des
+  PERSONNAGES D'INVITÉS sans leur passer la main (contradiction avec le gating spectateur/ownership,
+  `netOwnership.controlsActive`). Garde : `src/state/jets-sans-classe.test.ts` (coop × commandée),
+  `src/state/voyage-cadence.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
+  owner de poste comme le fait déjà le registre de modales pour les interruptions.
 - **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `src/state/modalArbiter.ts` l.110-112 :
   décision de bourse PARTAGÉE (argent du groupe) → seul l'hôte la tranche, comme les autres actions à
   l'argent du groupe (achat/vente marchand…) ; aucun routage d'intent coop pour cette décision. Lever
@@ -546,11 +590,14 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
 
 ## Systèmes clés (état actuel)
 
-- **Schéma de Scène + Effets** (`data/schemas/defs-scenes/`) : `Effect` = setFlag, journal, document, **giveTrapping**
+- **Schéma de Scène + Effets** (`data/schemas/defs-scenes/`) : `Effect` = setFlag, poserEtat/designerHeros (états de
+  campagne du registre `narratif.etats`, formes `defs-scenes/formes-d-etat.ts`), journal, document, **giveTrapping**
   (donner un objet — `trappingId` = id du CATALOGUE → objet à stats ; `custom` = nom libre hors-base → objet
   `misc` ; il n'y a PLUS de `giveItem`/inventaire de groupe), giveMoney, giveXp, startCombat, **transition**
   (scène+entry), startDialogue, **test** (compétence + difficulté + `onSuccess`/`onFailure`),
-  endDialogue. Tout est appliqué par `applyEffects` dans le store.
+  endDialogue. Tout est appliqué par `applyEffects` dans le store. Les sites de Condition et d'Effet d'un paquet
+  s'énumèrent par UN module (`defs-scenes/sites-de-paquet.ts`), que lisent les références narratives et la
+  garde « lu ⇒ produit » (`src/scenes/drapeau-lu-produit.test.ts`).
 - **Moteur de campagne** : transitions de scènes (registre depuis `campaign`), tests de
   compétence interactifs (modal + branches), inventaire/argent/handouts (state party-level).
 - **Inventaire/équipement** : chaque héros a `items: ItemInstance[]` ; `weapons`/`armour`
@@ -573,7 +620,8 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
 - **Passifs unifiés + corruption data-driven** (réf. **`docs/systeme-passifs.md`**) : tout modificateur
   PASSIF continu (trait/mutation/qualité/trauma/maladie/faim/sort) = une liste de `GameOp` lue par UN
   collecteur `passiveMods(c)` (`engine/trauma.ts`), emballée en `PassiveMod{op, kind}` — le `kind` porte
-  l'annulation ET la combinaison (`intrinsèque` = Σ dans la base / autres = pool non-cumul). `charMod` =
+  l'annulation ; la combinaison suit la SOURCE (`intrinsèque` = Σ dans la base ; États = pool LDB 16 l.13 ;
+  Sorts = pool LDB 46 l.119 ; même Prière = pool LDB 40 l.19 ; le reste = Σ, LDB 14 l.95). `charMod` =
   SEUL op de modif de carac (passif ET sort) ; `moveMod` pour le Mouvement (≠ carac : `M` ∉ `CharKey`).
   Traits de profil appliqués `spawn→live` (`Combatant.liveTraits` + `baseWithTraits`, sans double-compte
   du profil bestiaire imprimé FINAL). **Édité en DONNÉES au Codex** : `TraitData`/`QualityData`/`Mutation`

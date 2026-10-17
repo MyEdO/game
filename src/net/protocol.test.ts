@@ -15,6 +15,8 @@ describe('protocole coop (net/protocol)', () => {
       { kind: 'intent', action: 'battleClickEntity', args: ['enemy-1', { confirm: true }], seat: 1 },
       { kind: 'snapshot', data: { gameTime: 42, party: [] } },
       { kind: 'assign', heroId: 'pregen-101', seat: 2 },
+      { kind: 'error', reason: 'protocol-mismatch', expected: 1, got: 2 },
+      { kind: 'error', reason: 'format-mismatch', expected: 'a1', got: 'b2' },
       { kind: 'bye' },
     ];
     for (const m of msgs) {
@@ -25,7 +27,8 @@ describe('protocole coop (net/protocol)', () => {
   it('rejette les messages malformés sans lever', () => {
     for (const bad of ['', 'null', '42', '"x"', '{}', '{"kind":"inconnu"}', '{"kind":"intent"}',
       '{"kind":"intent","action":7,"args":[],"seat":1}', '{"kind":"hello","protocol":"x"}',
-      '{kind:intent}', '{"kind":"assign","heroId":3,"seat":1}']) {
+      '{kind:intent}', '{"kind":"assign","heroId":3,"seat":1}',
+      '{"kind":"error","reason":"format-mismatch","expected":1,"got":2}']) {
       expect(parseMessage(bad), bad).toBeNull();
     }
   });

@@ -8,10 +8,20 @@ import assert from 'node:assert/strict'
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
+import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-import { EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, brancheDe, cibleDe, creerChantier, equipementsDesPrerequis, nomValide, refusDeCreation, resumeDeChantier } from './chantier.mjs'
+import {
+  ATTENTE_DU_CONSOMMATEUR_MS, EQUIPEMENTS, GESTES_DU_CHANTIER, argumentsDe, attendreLeConsommateur, creerChantier, equipementsDesPrerequis,
+  nomValide, ouvrirChantier, refusDeCreation, relancerChantier, resumeDeChantier,
+} from './chantier.mjs'
+import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
+import { synchroniserPrincipal } from './synchroniser.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
+import { sousEcheanceAsync } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
+
+/** Le script du consommateur du post-merge, celui de CET arbre : un principal jetable n'en porte pas. */
+const SYNCHRONISEUR = join(import.meta.dirname, 'synchroniser.mjs')
 
 test('un nom de chantier est un numéro de ticket, avec un slug optionnel en minuscules', () => {
   for (const bon of ['1736', '42', '1732-1734-outillage', '1736-publication', '12-a', '12-a1-b2']) {
@@ -79,6 +89,102 @@ function depotAvecOrigin() {
   git('push', '-q', 'origin', 'main')
   return { racine, nu, git, jeter: () => { for (const d of [racine, nu]) rmSync(d, { recursive: true, force: true }) } }
 }
+
+describe('#2187 matrice 18 : le principal synchronisé d’abord, relance sur `avance`', () => {
+  const ARGS = { nom: '18', sansCi: true }
+  const pas = (nom) => () => { throw new Error(`${nom} ne doit pas être appelé`) }
+
+  test('relance RÉELLE : principal en retard → avance, une relance aux mêmes arguments, la seconde exécution mesure a-jour et crée', async () => {
+    const { racine, nu, jeter } = depotAvecOrigin()
+    const autre = mkdtempSync(join(tmpdir(), 'autre-clone-'))
+    try {
+      lancerGit(['clone', '-q', nu, autre])
+      writeFileSync(join(autre, 'b.txt'), 'b')
+      const gitAutre = gitDe(autre)
+      gitAutre('add', 'b.txt'); gitAutre('-c', 'user.name=banc', '-c', 'user.email=banc@banc.invalid', 'commit', '-q', '-m', 'amont'); gitAutre('push', '-q', 'origin', 'main')
+      const consommateurs = []
+      const synchroniser = async () => {
+        const vu = await synchroniserPrincipal({ depuis: racine, env: envDeDepotForge(), consommateur: SYNCHRONISEUR })
+        consommateurs.push(vu.consommateurs)
+        return vu
+      }
+      const attendreConsommateur = (c, o) => attendreLeConsommateur(c, { ...o, racine })
+      const creer = (args) => creerChantier({ racine, ...args })
+      const relances = []
+      const dits = []
+      try {
+        const code = await ouvrirChantier(ARGS, {
+          synchroniser, attendreConsommateur, creer: pas('creer avant la relance'), dire: (t) => dits.push(t), imprimer: () => {},
+          relancer: (args) => {
+            relances.push(args)
+            return ouvrirChantier(args, { synchroniser, attendreConsommateur, creer, relancer: pas('une seconde relance'), dire: (t) => dits.push(t), imprimer: () => {} })
+          },
+        })
+        assert.deepEqual(relances, [ARGS])
+        assert.equal(await code, 0, dits.join(''))
+        assert.equal(existsSync(join(racine, 'b.txt')), true, 'le principal a avancé')
+        assert.equal(existsSync(cibleDe(racine, '18')), true, 'la seconde exécution crée le chantier')
+        assert.match(dits.join(''), /principal avancé .*relance `npm run ops:chantier -- 18 --sans-ci`/)
+        assert.equal(consommateurs[0]?.etat, 'en-cours', 'le post-merge de l’avance court en fond')
+      } finally {
+        for (const pid of consommateurs.map((c) => c?.pid).filter(Boolean)) {
+          assert.equal(await sousEcheanceAsync({ attente: { echeanceMs: 60_000, pasMs: 50 }, essai: () => estPidVivant(pid), abouti: (vit) => !vit }), false, `consommateur ${pid} vivant`)
+        }
+      }
+    } finally {
+      rmSync(autre, { recursive: true, force: true })
+      jeter()
+    }
+  })
+
+  test('#2493 post-merge du principal en fond : attendu AVANT la règle ; attente échue → annoncée, le chantier part d’origin/main', async () => {
+    const enCours = { etat: 'en-cours', pid: 7, depuis: '2026-10-08T10:00:00.000Z', ageS: 1, de: 'a'.repeat(40), vers: 'b'.repeat(40), log: '/l/7.log' }
+    const avance = { etat: 'avance', de: 'a'.repeat(40), vers: 'b'.repeat(40), configurationClientChangee: [], consommateurs: enCours }
+    const attendus = []
+    const relances = []
+    const code = await ouvrirChantier(ARGS, {
+      synchroniser: async () => avance, attendreConsommateur: (c) => { attendus.push(c); return true },
+      relancer: (args) => { relances.push(args); return 0 }, creer: pas('creer'), dire: () => {}, imprimer: () => {},
+    })
+    assert.deepEqual([code, attendus, relances], [0, [enCours], [ARGS]])
+    const dits = []
+    const echu = await ouvrirChantier(ARGS, {
+      synchroniser: async () => avance, attendreConsommateur: () => false, relancer: pas('relancer'),
+      creer: () => ({ ok: true, resume: 'worktree=x' }), dire: (t) => dits.push(t), imprimer: () => {},
+    })
+    assert.equal(echu, 0)
+    assert.equal(dits.join(''), `[chantier] post-merge aaaaaaaaa..bbbbbbbbb du principal toujours en cours après ${ATTENTE_DU_CONSOMMATEUR_MS / 60_000} min : le chantier part d’origin/main\n`)
+  })
+
+  test('refus nommé (divergent) : annoncé tel quel, le chantier se crée depuis origin, aucune relance', async () => {
+    const dits = []
+    const refus = { etat: 'divergent', de: 'a', vers: 'b', cerise: [] }
+    const code = await ouvrirChantier(ARGS, {
+      synchroniser: async () => refus, relancer: pas('relancer'), dire: (t) => dits.push(t), imprimer: () => {},
+      creer: () => ({ ok: true, resume: 'worktree=x' }),
+    })
+    assert.equal(code, 0)
+    assert.equal(dits.join(''), `[chantier] principal : ${JSON.stringify(refus)} ; le chantier part d’origin/main\n`)
+  })
+
+  test('exception de la synchronisation : dite à part, aucun état fabriqué ; le chantier se crée depuis origin (#2187 commentaire 6029118597, C5)', async () => {
+    const dits = []
+    const code = await ouvrirChantier(ARGS, {
+      synchroniser: async () => { throw new Error('boum') }, relancer: pas('relancer'), dire: (t) => dits.push(t), imprimer: () => {},
+      creer: () => ({ ok: true, resume: 'worktree=x' }),
+    })
+    assert.equal(code, 0)
+    assert.equal(dits.join(''), '[chantier] synchronisation du principal en exception : boum ; le chantier part d’origin/main\n')
+  })
+
+  test('nom invalide : rien n’est synchronisé ; relance = `npm run ops:chantier -- <args>` depuis la racine, son code rendu', async () => {
+    assert.equal(await ouvrirChantier({ nom: 'X', sansCi: false }, { synchroniser: pas('synchroniser'), dire: () => {} }), 1)
+    const vus = []
+    assert.equal(relancerChantier(ARGS, { cwd: '/r', npm: (...a) => { vus.push(a); return { status: 3 } } }), 3)
+    assert.deepEqual(vus[0][1], ['run', 'ops:chantier', '--', '18', '--sans-ci'])
+    assert.equal(vus[0][2].cwd, '/r')
+  })
+})
 
 test('progression avant fetch, création et chaque équipement ; durée après leurs retours', () => {
   const { racine, jeter } = depotAvecOrigin()
@@ -201,7 +307,7 @@ test('équipement : npm ci à la RACINE puis dans server/, puis docs:build, dans
     assert.deepEqual(appels.map((a) => a.args), [
       ['ci', '--no-audit', '--no-fund'],
       ['--prefix', 'server', 'ci', '--no-audit', '--no-fund'],
-      ['run', 'docs:build'],
+      ['run', 'docs:build', '--', '--perimes'],
     ])
     assert.deepEqual([...new Set(appels.map((a) => a.cwd))], [cibleDe(racine, '47')],
       'tous se jouent DANS le worktree neuf (le sous-projet par --prefix, jamais par un cwd)')
@@ -268,4 +374,53 @@ test('origin injoignable : refus qui NOMME la raison, et aucun worktree posé', 
     assert.match(vu.refus, /réseau coupé/)
     assert.equal(existsSync(cibleDe(racine, '46')), false)
   } finally { jeter() }
+})
+
+test('docs ciblés : copie puis docs:build --perimes, ordre et cwd conservés', () => {
+  const { racine, jeter } = depotAvecOrigin()
+  try {
+    const appels = []
+    const scripts = ['scripts/docs/build-primitives.mjs', 'scripts/docs/build-doctrines.mjs']
+    const vu = creerChantier({
+      racine, nom: '2456-selection',
+      npm: (_cmd, args, opts) => { appels.push({ args, cwd: opts.cwd }); return { status: 0 } },
+      copierDocs: () => ({ ok: true, copies: 30, scriptsARegenerer: scripts }),
+    })
+    assert.equal(vu.ok, true, vu.refus)
+    assert.equal(appels.length, 3)
+    assert.deepEqual(appels[2], { args: ['run', 'docs:build', '--', '--perimes'], cwd: cibleDe(racine, '2456-selection') })
+  } finally { jeter() }
+})
+
+test('docs frais : copie équipée après npm ci, aucun npm docs:build ; repli rouge conserve son diagnostic', () => {
+  for (const frais of [true, false]) {
+    const { racine, jeter } = depotAvecOrigin()
+    try {
+      const appels = []
+      const annonces = []
+      let copieVue
+      const vu = creerChantier({
+        racine, nom: '2456-banc', annoncer: (texte) => annonces.push(texte),
+        npm: (_cmd, args) => {
+          appels.push(args)
+          return { status: args.includes('docs:build') ? 9 : 0 }
+        },
+        copierDocs: (params) => {
+          assert.equal(appels.length, 2)
+          copieVue = params
+          return frais ? { ok: true, copies: 12 } : { ok: false, raison: 'docs absents' }
+        },
+      })
+      assert.equal(copieVue.principal.replaceAll('\\', '/'), racine.replaceAll('\\', '/'))
+      assert.equal(copieVue.cible, cibleDe(racine, '2456-banc'))
+      assert.equal(typeof copieVue.ciblesPures, 'function')
+      assert.equal(vu.ok, frais)
+      assert.equal(appels.length, frais ? 2 : 3)
+      if (frais) assert.match(annonces.join(''), /docs dérivés copiés : 12/)
+      else {
+        assert.match(annonces.join(''), /repli docs:build : docs absents/)
+        assert.match(vu.refus, /docs:build rouge.*code 9/)
+      }
+    } finally { jeter() }
+  }
 })

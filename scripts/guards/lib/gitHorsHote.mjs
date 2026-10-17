@@ -27,14 +27,20 @@
 //   · `lanceur`  — un appel dont le premier argument est l'exécutable `git` (`execFileSync('git', …)`,
 //     `run('git', …)`), ou un `exec`/`execSync` dont la ligne de commande commence par `git ` : git
 //     lancé sans l'hôte ;
-//   · `decoupe`  — un `split` sur NUL : la découpe d'une sortie `-z` hors de l'hôte ;
+//   · `decoupe`  — un `split` sur NUL hors lecture de donnée FS prouvée ;
+//     une origine inconnue est refusée ;
 //   · `forme`    — une option qui produit des CHEMINS (`--name-only`, `--name-status`, `--numstat`,
 //     `ls-files`, `ls-tree`, `-z`) : une QUESTION de l'hôte la fixe elle-même, aucun appelant ne l'écrit.
+//     Un élément d'une TABLE n'est pas un site : `const <nom> = new Set([…])` non exportée, `Set` global, chaque
+//     référence à `<nom>` — un `export { <nom> }` et une propriété raccourcie `{ <nom> }` compris — étant un appel
+//     `<nom>.has(…)` ; une CLÉ chaîne d'un `{…}` lu par indexation seule, `{…}[x]` ou `const <nom>` aux mêmes conditions (`elementsDeTables`).
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { INDEX, depotDe, fichiersDuGrep, listerImage } from './gitPorte.mjs'
 import { estFichierVitest } from './fichierVitest.mjs'
+import { analyserCorpus, typescript } from './dialecte.mjs'
+import { creerProvenanceFs } from './provenanceFs.mjs'
 
 /** L'arbre lu par défaut : celui où VIT ce module. */
 export const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -47,7 +53,7 @@ export const HOTE = 'scripts/guards/lib/gitPorte.mjs'
 
 const MODULE = /\.(?:mjs|cjs|mts|cts|ts|js)$/
 const LANCEUR = /[\w$]\s*\(\s*(['"`])git\1|\bexec(?:Sync)?\(\s*(['"`])git\s/g
-const DECOUPE = /split\(\s*(['"`])(?:\\0|\\x00|\\u0000)\1\s*\)/g
+const CANDIDAT_DECOUPE = /\bsplit\s*\(\s*(['"`])(?:\\0|\\x00|\\u0000)\1/
 const FORME = /(['"`])(--name-only|--name-status|--numstat|ls-files|ls-tree|-z)\1/g
 
 /** Un import statique de l'hôte (`-E` de `git grep`). */
@@ -76,9 +82,79 @@ export function sitesHorsHote(chemin, texte) {
   const sites = []
   const noter = (forme, i) => sites.push({ chemin, ligne: ligneDe(i), forme, extrait: lignes[ligneDe(i) - 1].trim().slice(0, 120) })
   for (const m of code.matchAll(LANCEUR)) noter('lanceur', m.index)
-  for (const m of code.matchAll(DECOUPE)) noter('decoupe', m.index)
-  for (const m of code.matchAll(FORME)) noter('forme', m.index)
+  if (CANDIDAT_DECOUPE.test(code)) for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel: chemin, text: texte }])) {
+    const ts = typescript()
+    if (!sourceFile || diagnostics.length) throw new Error(`sitesHorsHote : syntaxe indéterminée pour ${chemin} : ${diagnostics.map(d => d.text).join('; ')}`)
+    const provenance = creerProvenanceFs({ sourceFile, checker, ts })
+    const parcourir = (n, visiter) => { visiter(n); n.forEachChild(c => parcourir(c, visiter)) }
+    const donneeFichier = n => {
+      if (!n) return false
+      if (ts.isParenthesizedExpression(n) || ts.isAwaitExpression(n)) return donneeFichier(n.expression)
+      if (ts.isCallExpression(n)) {
+        const operation = provenance(n.expression)?.operation
+        if (operation === 'readFileSync' || operation === 'readFile') return true
+        return ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'toString' && donneeFichier(n.expression.expression)
+      }
+      return false
+    }
+    parcourir(sourceFile, n => {
+      if (!ts.isCallExpression(n) || !ts.isPropertyAccessExpression(n.expression) || n.expression.name.text !== 'split') return
+      const separateur = n.arguments[0]
+      if (!separateur || !ts.isStringLiteralLikeNode(separateur) || separateur.text !== '\0') return
+      if (!donneeFichier(n.expression.expression)) noter('decoupe', n.expression.name.getStart(sourceFile))
+    })
+  }
+  const formes = [...code.matchAll(FORME)]
+  const tables = formes.length ? elementsDeTables(chemin, texte) : new Set()
+  for (const m of formes) if (!tables.has(m.index)) noter('forme', m.index)
   return sites.sort((a, b) => a.ligne - b.ligne)
+}
+
+/** Les positions des littéraux chaîne éléments d'une TABLE, consultée seulement, sous deux formes :
+ *  · `const <nom> = new Set([…])` non exportée, `Set` n'ayant aucune déclaration hors d'un `.d.ts`, dont chaque référence
+ *    est un appel `<nom>.has(…)` : ses éléments chaînes ;
+ *  · un littéral `{…}` indexé sur-le-champ en lecture (`{…}[x]`), ou `const <nom> = {…}` non exportée dont chaque référence
+ *    est une lecture `<nom>[x]` : les CLÉS chaînes de ses `PropertyAssignment`, ses valeurs restant des sites.
+ *  La valeur d'une propriété raccourcie (`getShorthandAssignmentValueSymbol`) et la cible locale d'un `export { <nom> }`
+ *  (`getExportSpecifierLocalTargetSymbol`) sont des références. */
+function elementsDeTables(chemin, texte) {
+  const ts = typescript()
+  const positions = new Set()
+  for (const { sourceFile, diagnostics, checker } of analyserCorpus([{ rel: chemin, text: texte }])) {
+    if (!sourceFile || diagnostics.length) throw new Error(`sitesHorsHote : syntaxe indéterminée pour ${chemin} : ${diagnostics.map(d => d.text).join('; ')}`)
+    const global = (id) => (checker.getSymbolAtLocation(id)?.declarations ?? []).every((d) => /\.d\.[cm]?ts$/.test(d.path))
+    const references = new Map()
+    const parcourir = (n, visiter) => { visiter(n); n.forEachChild((c) => parcourir(c, visiter)) }
+    parcourir(sourceFile, (n) => {
+      if (!ts.isIdentifier(n)) return
+      const symbole = ts.isShorthandPropertyAssignment(n.parent) && n.parent.name === n ? checker.getShorthandAssignmentValueSymbol(n.parent)
+        : ts.isExportSpecifier(n.parent) ? checker.getExportSpecifierLocalTargetSymbol(n.parent)
+          : checker.getSymbolAtLocation(n)
+      if (symbole) references.set(symbole, [...(references.get(symbole) ?? []), n])
+    })
+    const consulteeSeulement = (nom, consultation) => (references.get(checker.getSymbolAtLocation(nom)) ?? []).every((r) => r === nom || consultation(r))
+    const parSet = (r) => ts.isPropertyAccessExpression(r.parent) && r.parent.expression === r && r.parent.name.text === 'has' && ts.isCallExpression(r.parent.parent) && r.parent.parent.expression === r.parent
+    const exterieur = (n) => ts.isParenthesizedExpression(n.parent) ? exterieur(n.parent) : n
+    const ecrit = (n) => {
+      const e = exterieur(n), p = e.parent
+      return (ts.isBinaryExpression(p) && p.left === e && p.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && p.operatorToken.kind <= ts.SyntaxKind.LastAssignment)
+        || ((ts.isPrefixUnaryExpression(p) || ts.isPostfixUnaryExpression(p)) && (p.operator === ts.SyntaxKind.PlusPlusToken || p.operator === ts.SyntaxKind.MinusMinusToken))
+        || ts.isDeleteExpression(p)
+    }
+    const parIndex = (r) => { const e = exterieur(r), p = e.parent; return ts.isElementAccessExpression(p) && p.expression === e && !ecrit(p) }
+    const cles = (objet) => { for (const p of objet.properties) if (ts.isPropertyAssignment(p) && ts.isStringLiteral(p.name)) positions.add(p.name.getStart(sourceFile)) }
+    parcourir(sourceFile, (n) => {
+      if (ts.isObjectLiteralExpression(n) && parIndex(n)) return cles(n)
+      if (!ts.isVariableDeclaration(n) || !ts.isIdentifier(n.name) || !/^const\b/.test(n.parent.getText(sourceFile))) return
+      if ((n.parent.parent.modifiers ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) return
+      const table = n.initializer
+      if (table && ts.isObjectLiteralExpression(table) && consulteeSeulement(n.name, parIndex)) return cles(table)
+      if (!table || !ts.isNewExpression(table) || !ts.isIdentifier(table.expression) || table.expression.text !== 'Set' || !global(table.expression)) return
+      if (!table.arguments?.[0] || !ts.isArrayLiteralExpression(table.arguments[0]) || !consulteeSeulement(n.name, parSet)) return
+      for (const e of table.arguments[0].elements) if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) positions.add(e.getStart(sourceFile))
+    })
+  }
+  return positions
 }
 
 /** Le module de banc : le lanceur git des tests de `scripts/`, hors du périmètre des portes. */

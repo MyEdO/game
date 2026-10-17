@@ -1,0 +1,2 @@
+suite 1/3	UNKNOWN STEP	2026-10-07T22:21:59.8888635Z  ❯ src/data/schemas/grammaire/op-defs.test.ts (14 tests | 1 failed) 105ms 654 MB heap used
+suite 1/3	UNKNOWN STEP	2026-10-07T22:21:59.8896162Z      × une op NON TYPÉE garde la forme loose 15ms 655 MB heap used

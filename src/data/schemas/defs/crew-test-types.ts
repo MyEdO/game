@@ -1,7 +1,5 @@
-/**
- * Schéma de `crew-test-types.json` — types de Test d'équipage, MDG 14. Consommé par `src/data/index.ts` (`CrewTestTypeData`),
- * `findCrewTestTypeById`) et `src/engine/crewMorale.ts`/`src/state/shipCrew.ts`.
- */
+import { nommerChamps } from '../grammaire/meta';
+/** MDG 14. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { sourceRefSchema } from '../grammaire/valeurs';
@@ -15,19 +13,27 @@ const doc = document(
   famille,
   {
   types: listeCle(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
       roles: z.array(z.string()),
       essential: z.string(),
-      /** Fiche `regles.json` qui ADRESSE le passage MDG 14 du Test. L'enjeu AFFICHÉ vient de
-       *  `voyage-stakes.json`. */
+      /** MDG 14. */
       rule: z.string().optional(),
       /** MDG 14 l.110. */
       moraleOnNegativeDR: z.boolean().optional(),
-      /** Test d'équipage qui DIRIGE le navire — MSRC 12 l.66/140. */
+      /** MSRC 12 l.66/140. */
       steering: z.boolean().optional(),
       source: sourceRefSchema,
+    }), {
+      id: { label: 'identifiant' },
+      label: { label: 'libellé' },
+      roles: { label: 'rôles' },
+      essential: { label: 'rôle essentiel' },
+      rule: { label: 'règle' },
+      moraleOnNegativeDR: { label: 'moral sur DR négatifs' },
+      steering: { label: 'gouverne' },
+      source: { label: 'source' },
     }),
     'id',
   ),

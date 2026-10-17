@@ -3,18 +3,15 @@
  * au registre `keybindings` : évite tout cycle d'import (le store charge ces overrides à l'init, et
  * `keybindings`/le hook les consomment via `effectiveCodes`). `id de raccourci → event.code`.
  */
-import { stockageWeb } from '../lib/stockageWeb';
+import { lireDictionnaire, stockageWeb } from '../lib/stockageWeb';
 
-const OVERRIDES_KEY = 'wfrp4.keys.v1';
+const OVERRIDES_KEY = 'wfrp4.keys';
 
+/** Les surcharges persistées dont la valeur est une chaîne non vide. L'id et la combinaison se
+ *  valident contre le registre à la LECTURE (`surchargeDe`, `keybindings.ts`). */
 export function loadKeyOverrides(): Record<string, string> {
-  try {
-    const raw = stockageWeb('localStorage')?.getItem(OVERRIDES_KEY);
-    const o = raw ? JSON.parse(raw) : {};
-    return o && typeof o === 'object' ? (o as Record<string, string>) : {};
-  } catch {
-    return {};
-  }
+  const o = lireDictionnaire('localStorage', OVERRIDES_KEY) ?? {};
+  return Object.fromEntries(Object.entries(o).filter((e): e is [string, string] => typeof e[1] === 'string' && e[1] !== ''));
 }
 
 export function saveKeyOverrides(o: Record<string, string>): void {

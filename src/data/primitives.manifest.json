@@ -1,5 +1,32 @@
 [
   {
+    "id": "arbreProcessus",
+    "type": "primitives.manifest",
+    "label": "tuerArbre/descendantsDe/mesurerArbreProcessus/identitePresente/filiationValide/ancetresValidesDe",
+    "fichier": "scripts/guards/lib/arbreProcessus.mjs",
+    "concept": "descendance et arrêt des gates, mesure des identités PID et création, chaîne des ancêtres validée par dates et protégée des cycles",
+    "perimetre": "gates locales, supervision du push et des hooks, train de publication",
+    "verrou": "scripts/gates/toutes.test.mjs, scripts/guards/lib/superviserProcessus.test.mjs"
+  },
+  {
+    "id": "pid",
+    "type": "primitives.manifest",
+    "label": "estPidVivant/estPidDeProcessus",
+    "fichier": "scripts/guards/lib/pid.mjs",
+    "concept": "existence d'un processus par son PID : PID entier de l'int32 strictement positif, sonde unique `kill(pid, 0)` — ESRCH absent, EPERM présent, toute autre erreur levée",
+    "perimetre": "verrous de l'arbre et de la suite, reconstruction des dérivés, publication, synchronisation, recette, lancement détaché",
+    "verrou": "scripts/guards/lib/pid.test.mjs"
+  },
+  {
+    "id": "superviserProcessus",
+    "type": "primitives.manifest",
+    "label": "superviserProcessus/sortieDeSupervision",
+    "fichier": "scripts/guards/lib/superviserProcessus.mjs",
+    "concept": "commande asynchrone possédée avant lancement par un hôte OS : Job Windows ou subreaper Linux, worker Node fixe et IPC mémoire séparé de stdin ; environnement et résultat sans persistance, gardiens Git datés, générique sans mesure et nettoyage confirmé avant résultat",
+    "perimetre": "gitPorte.pousser, wrapper pre-push, train de publication ; Job natif partagé scripts/guards/lib/processusJob.cs avec scripts/ops/session-process.ps1 ; hoteSupervision.ps1 et hoteSupervision.py exécutent enfantSupervise.mjs",
+    "verrou": "scripts/guards/lib/superviserProcessus.test.mjs"
+  },
+  {
     "id": "screenShell",
     "type": "primitives.manifest",
     "label": "ScreenShell",
@@ -122,11 +149,20 @@
   {
     "id": "rollSeam",
     "type": "primitives.manifest",
-    "label": "openRoll/resolveSurface",
+    "label": "openRoll/surfaceDeLEtape",
     "fichier": "src/state/rollSeam.ts",
     "concept": "surface DÉRIVÉE des porteurs : tenue × cadence × ordres de traversée → Modale/Visible-MJ/Interne, un seul site",
     "perimetre": "porte de résolution de tout Test influençable",
     "verrou": "roll-seam-exclusivity-guard.test.ts"
+  },
+  {
+    "id": "echecSansJet",
+    "type": "primitives.manifest",
+    "label": "ECHEC_SANS_JET/estJete",
+    "fichier": "src/engine/tests.ts",
+    "concept": "issue d'un Test que son porteur ne peut pas tenter (LDB 09 l.30 ; #2588 Q1) : ÉCHEC, DR 0, sans dé, refus nommé sur la ligne ; `estJete` sépare un dé tombé de cette issue, `jete` (`src/engine/tests.testkit.ts`) l'exige en test",
+    "perimetre": "`rollStep` (`refus`), rangées d'équipage (`crewRoleValue`, `rollCrewRole`, `openCrewTestPending`), barre sans barreur (`rollShipManeuver`, voyage fluvial), rangée témoin de `buildParticipantRows`",
+    "verrou": "sea-voyage-flow.test.ts, ship-maneuver.test.ts, peut-tenter.test.ts"
   },
   {
     "id": "optionChooser",
@@ -218,11 +254,38 @@
   {
     "id": "actorIn",
     "type": "primitives.manifest",
-    "label": "actorIn/inBattleId",
+    "label": "actorIn/inBattleId/ecrireActeur",
     "fichier": "src/state/combatants.ts",
-    "concept": "combattant par id — combat-ou-groupe vs en-combat-seulement",
-    "perimetre": "toute résolution d'acteur",
+    "concept": "combattant par id — combat-ou-groupe vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
+    "perimetre": "toute résolution d'acteur ; toute écriture d'un héros ou d'un combattant par id (#2312)",
     "verrou": "in-battle-find-guard.test.ts"
+  },
+  {
+    "id": "touchActors",
+    "type": "primitives.manifest",
+    "label": "touchActors",
+    "fichier": "src/state/combatOrParty.ts",
+    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe",
+    "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
+    "verrou": "couture-de-retour.test.ts"
+  },
+  {
+    "id": "depenserPx",
+    "type": "primitives.manifest",
+    "label": "depenserPx/refusDepensePx",
+    "fichier": "src/state/partyFlow.ts",
+    "concept": "dépense de PX d'un héros : refus en combat, puis écriture par id",
+    "perimetre": "tout achat de progression, rachat de prothèse, changement de Carrière (#2312)",
+    "verrou": "couture-de-retour.test.ts"
+  },
+  {
+    "id": "corpsDeLActeur",
+    "type": "primitives.manifest",
+    "label": "estCorps/corpsDeLActeur",
+    "fichier": "src/gameIso/stage/corpsActeur.ts",
+    "concept": "corps d'acteur dans une image three rendue — quad de billboard, visible, dont l'identité décodée porte l'id (seul ou couple monté)",
+    "perimetre": "banc volumique (quads, corpsDessines), sonde de recette __wfrp.corps, tests de rétention de montage",
+    "verrou": "corps-sonde.test.tsx"
   },
   {
     "id": "meneurDuMonde",
@@ -337,16 +400,26 @@
     "type": "primitives.manifest",
     "label": "ProseField",
     "fichier": "src/ui/ProseField.tsx",
-    "concept": "saisie d'une prose verbatim multi-paragraphes (zone haute, agrandissable)",
-    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue, message d'introduction de scène",
+    "concept": "saisie d'une prose verbatim multi-paragraphes (zone haute, agrandissable), ou sa LECTURE (`lecture` : prose rendue sous le même libellé, à la même place que la zone)",
+    "perimetre": "narratif (accroche, description d'affaire, texte de document, prose de stade), description et textes longs du Codex, réplique de dialogue et ligne de journal (lues tant qu'elles adressent un passage, `descRef`), message d'introduction de scène, description du terrain de bataille",
     "verrou": "ui-ratchets.test.ts"
+  },
+  {
+    "id": "proseNommee",
+    "type": "primitives.manifest",
+    "label": "proseNommee/declarationProseNommee",
+    "fichier": "src/data/schemas/grammaire/prose.ts",
+    "concept": "composition d'une prose nommée et de sa provenance locale depuis le registre PROSES_NOMMEES, avec exclusivité automatique pour la narration et source seule pour un document ; lecture de la déclaration pendant la co-descente",
+    "perimetre": "ouverture, stade d'indice, document narratif, terrain de bataille, introduction, refus de route, sous-titres d'ouverture et clôture, objectif, faveur, enjeu, narration d'op, invite de choix, réplique et journal ; porteurs folio ou adresse ; gardes des projets livrés et classifications locales des schémas",
+    "verrou": "src/data/schemas/grammaire/prose-nommee.test.ts, src/scenes/bundled-projects.test.ts"
   },
   {
     "id": "prose",
     "type": "primitives.manifest",
     "label": "Prose",
     "fichier": "src/ui/Prose.tsx",
-    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé)",
+    "css": "src/ui/styles/team-segments.css",
+    "concept": "rendu de prose Markdown verbatim (HTML brut neutralisé), annotations de camp sur les positions de ses feuilles texte ; variante compact explicite à blocs conservés et espacement au pas xs ; liens Markdown soulignés dans la couleur héritée",
     "perimetre": "tout champ de prose RAW",
     "verrou": "no-html-in-prose.test.ts"
   },
@@ -394,7 +467,16 @@
     "fichier": "scripts/gen-registry.mjs",
     "concept": "registre-par-defs auto-chargé (dépose un fichier → intégré)",
     "perimetre": "tout dataset extensible (créatures, tenues, armes, sons, icônes…)",
-    "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/build-all.mjs)"
+    "verrou": "npm run docs:check (ligne `GENERATORS` de scripts/docs/lib/cibles-generees.mjs)"
+  },
+  {
+    "id": "genFormats",
+    "type": "primitives.manifest",
+    "label": "gen-formats (formats.generated)",
+    "fichier": "scripts/gen-formats.mjs",
+    "concept": "format d'une donnée persistée SANS schéma, dérivé de la forme canonique de son type sérialisé (racines déclarées dans `RACINES`) : la constante que l'écrivain stampe dans `version` et que le lecteur compare (#2404)",
+    "perimetre": "save de partie, roster, export de héros, calques de trace, `hello` coop",
+    "verrou": "scripts/gen-formats.test.mjs, P3 de scripts/guards/lib/versionsDerivees.mjs"
   },
   {
     "id": "pointDEntree",
@@ -408,9 +490,9 @@
   {
     "id": "descendre",
     "type": "primitives.manifest",
-    "label": "descendre/enfantsDe",
+    "label": "descendre/enfantsDe/declarerEnfants/declarationDEnfants",
     "fichier": "src/data/schemas/grammaire/descente.ts",
-    "concept": "descente d'un arbre de schémas zod : enfants d'un nœud avec leur segment de path, parcours en largeur, identité par appel, élagage ou arrêt par le visiteur",
+    "concept": "descente d'un arbre de schémas zod : enfants natifs et déclarés d'un nœud avec leur segment de path, parcours en largeur, identité par appel, élagage ou arrêt par le visiteur",
     "perimetre": "toute lecture qui marche un schéma zod : validation, introspection des docs générés, gardes de grammaire, Codex",
     "verrou": "src/data/schemas/grammaire/descente.test.ts"
   },
@@ -422,6 +504,24 @@
     "concept": "co-descente d'une donnée et de son schéma zod : à chaque point de la donnée, ses nœuds de schéma ouverts (enveloppes, intersections, branches d'union filtrées par le discriminant de la donnée), sa valeur et son chemin, sans valider",
     "perimetre": "toute lecture qui retrouve le schéma d'un point de donnée : collections à clé d'un document, lieu d'une faute",
     "verrou": "src/data/schemas/grammaire/co-descente.test.ts"
+  },
+  {
+    "id": "nommerChamps",
+    "type": "primitives.manifest",
+    "label": "nommerChamps/metaDesChamps/nommerNoeud/nomDeNoeud/metasExtra",
+    "fichier": "src/data/schemas/grammaire/meta.ts",
+    "concept": "noms français totaux des champs portés par leur objet final ; metaDesChamps optionnel en introspection, total avec { exigees: true } après contrôle partagé de présence, exhaustivité et absence d'orphelins ; noms des éléments et variantes, transparence portée par la méta du champ parent, préservation des métadonnées et de l'identité du nœud",
+    "perimetre": "déclaration des objets de schéma et lecture des chemins d'auteur",
+    "verrou": "src/data/schemas/grammaire/chemins-nommes.test.ts"
+  },
+  {
+    "id": "lieuDe",
+    "type": "primitives.manifest",
+    "label": "lieuDe/cheminLisible",
+    "fichier": "src/data/schemas/validate.ts",
+    "concept": "lieu d'auteur depuis un chemin technique, les métadonnées du schéma et la valeur, même absente ; champs nommés, éléments à clé, rangs ordinaux et enveloppes transparentes",
+    "perimetre": "portes de projet, panneau Validation et validation du Codex",
+    "verrou": "src/data/schemas/grammaire/chemins-nommes.test.ts"
   },
   {
     "id": "sousListesNommees",
@@ -440,6 +540,24 @@
     "concept": "une sous-liste de feuille `idDe` jugée partout par la même définition : sur l'ENTRÉE résolue (`dansLaSousListe`, `refusDeLEntree`, via `porteLeChampMarqueur`), en ids admis du registre (`idsDeLaSousListe`), en déclaration d'une feuille (`declarationDeFeuilleDId`)",
     "perimetre": "producteurs d'ids qui énumèrent une sous-liste (Sorts mineurs de la création), instanciation d'un trapping, sélecteurs du Codex et de l'éditeur",
     "verrou": "src/data/trappings-instanciables.test.ts, src/engine/petty-spells-sous-liste.test.ts, src/ui/compendium/ref-field-sous-liste.test.tsx"
+  },
+  {
+    "id": "refCouvre",
+    "type": "primitives.manifest",
+    "label": "refCouvre",
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "concept": "une référence de Compétence ou de Talent couvre une entrée du même id : sans `spec`, toutes ses Spécialisations ; avec `spec`, la sienne seule (LDB 09 l.44) — l'adressage d'UNE convention, la construction `COUVERTURE_DE_SPEC` en garde la recopie",
+    "perimetre": "listes de références qui désignent des Compétences ou Talents (Activités, rôles d'équipage, Précipitations, ops `skillDRBonus`, jetons d'inversion, `reverseFailed`), recherche d'une Compétence sur la fiche",
+    "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
+  },
+  {
+    "id": "memeSpecialisation",
+    "type": "primitives.manifest",
+    "label": "memeSpecialisation",
+    "fichier": "src/data/schemas/grammaire/ref.ts",
+    "concept": "deux Spécialisations désignent la même instance d'une Compétence ou d'un Talent, absente et vide confondues — l'identité d'instance, la construction `IDENTITE_D_INSTANCE` en garde la recopie",
+    "perimetre": "recherche d'une instance possédée sur la fiche (Compétences, Talents), dédoublonnage des options d'avancement, d'entraînement et de Carrière",
+    "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
   },
   {
     "id": "trappingsInstanciables",
@@ -519,7 +637,7 @@
     "label": "useRamenerEnVue / ramenerEnVue",
     "fichier": "src/ui/useRamenerEnVue.ts",
     "concept": "ramener un élément en vue dans son conteneur défilant : 'nearest' par défaut, 'smooth' seulement hors prefers-reduced-motion, appel protégé (scrollIntoView absent en jsdom)",
-    "perimetre": "rangée qui roule, acteur au trait de la frise, détail empilé du master-detail, badge de zone de la fiche",
+    "perimetre": "rangée qui roule, acteur au trait de la frise, détail empilé du master-detail, badge de zone de la fiche, pastille de `ChipDeRefus` (portée par la primitive, aucun site ne l’appelle)",
     "verrou": "aucun `scrollIntoView` écrit à la main : le geste, ses défauts et la préférence système vivent en UN point"
   },
   {
@@ -630,18 +748,36 @@
     "type": "primitives.manifest",
     "label": "SourceRefField",
     "fichier": "src/ui/SourceRefField.tsx",
-    "concept": "édition d'une réf de source {book, page, note?} : livre choisi au registre (RefField), page, note ; seule une réf complète (livre et page ≥ 1) est émise, le brouillon incomplet reste à l'écran et se dit incomplet (aria-invalid sur le seul champ manquant, décrit par le message) ; exigée, ou facultative : « aucun » au livre retire alors la source en un geste ; `identite` REQUISE (entité + chemin du champ) : la changer repart de la valeur, jamais du brouillon d'un autre porteur ; une saisie non enregistrée remonte au porteur du geste d'enregistrement (SuiviDesSaisies / useSuiviDesSaisies côté porteur, useSaisieEnCours côté champ), qui s'en bloque",
-    "perimetre": "atelier du Codex (champ source, emplacements secondaires, variantes), éditeur narratif (ouverture, document, stade, PNJ)",
+    "concept": "édition d'une réf de source {book, page, note?} : livre choisi au registre (RefField), page, note ; seule une réf complète (livre et page ≥ 1) est émise, le brouillon incomplet reste à l'écran et, dès qu'une saisie l'a rendu différent de la valeur reçue, se dit incomplet (aria-invalid sur le seul champ manquant, décrit par le message) — une valeur reçue incomplète (livre amorcé), non touchée, ne signale rien ; exigée, ou facultative : « aucun » au livre retire alors la source en un geste ; `identite` REQUISE (entité + chemin du champ) : la changer repart de la valeur, jamais du brouillon d'un autre porteur ; une saisie non enregistrée remonte au porteur du geste d'enregistrement (SuiviDesSaisies / useSuiviDesSaisies côté porteur, useSaisieEnCours côté champ), qui s'en bloque",
+    "perimetre": "atelier du Codex (champ source, emplacements secondaires, variantes), éditeur narratif (document) ; à travers ProvenanceDuTexte : ouverture, stade, PNJ, réplique, journal, terrain, introduction, refus de route, sous-titres, objectif, faveur, enjeu, narration d'op et invite de choix",
     "verrou": "src/ui/SourceRefField.test.tsx"
   },
   {
-    "id": "freeAttackLabel",
+    "id": "provenanceDuTexte",
     "type": "primitives.manifest",
-    "label": "FREE_ATTACK_LABEL",
+    "label": "ProvenanceDuTexte",
+    "fichier": "src/ui/editor/ProvenanceDuTexte.tsx",
+    "concept": "provenance d'un texte de campagne en trois états — copie d'un passage (source), adapté d'un passage (adapteDe), maison — choisie au seg (OptionChooser) et référencée par SourceRefField facultative ; basculer reporte la référence d'une clé à l'autre, « Maison » la retire, jamais les deux clés en sortie ; un site dont la copie est une adresse (descRef) n'offre pas la copie",
+    "perimetre": "éditeur narratif (ouverture, sous-titres, stade, PNJ), réplique (DialogueDetail), journal, objectif, faveur et terrain (EffectFields), introduction (Inspector), refus (WorldMapRoutePanel), enjeu et choix (FlowEditor), narration (GameOpEditor)",
+    "verrou": "src/ui/editor/ProvenanceDuTexte.test.tsx"
+  },
+  {
+    "id": "couvreField",
+    "type": "primitives.manifest",
+    "label": "CouvreField / SelecteurDEntreeDeFiche",
+    "fichier": "src/ui/editor/CouvreField.tsx",
+    "concept": "lien d'un élément du paquet de campagne vers les entrées des fiches de dossier de chapitre commitées (docs/dossiers/<ABBR>/<NN>.json, validées par ficheDeDossier) : CouvreField édite `couvre` (rangées entrée + retrait, sélecteur d'ajout, liste vide qui se dit vide, liste vidée retirée) ; SelecteurDEntreeDeFiche choisit UNE entrée (groupes par fiche et famille, id global + texte court, entrée introuvable affichée comme telle)",
+    "perimetre": "inspecteur de scène (entité, zone d'effet, scène), panneau Logique (déclencheur, dialogue, rencontre), carte du monde (lieu, route), éditeur narratif (indice, PNJ, onglet Écarts)",
+    "verrou": "src/ui/editor/CouvreField.test.tsx ; src/ui/editor/scene-field-editability-guard.test.ts"
+  },
+  {
+    "id": "freeAttackWeapon",
+    "type": "primitives.manifest",
+    "label": "freeAttackWeapon",
     "fichier": "src/engine/combat.ts",
-    "concept": "libellé d’attaque gratuite de créature, par freeKind",
-    "perimetre": "toute attaque gratuite affichée",
-    "verrou": "—"
+    "concept": "arme et NOM d’une attaque gratuite de créature : label, Compétence et dégâts de sa manœuvre (`attaqueNaturelle`), lus par la modale d’attaque, la modale de défense et le réticule",
+    "perimetre": "toute attaque gratuite jouée ou affichée",
+    "verrou": "src/state/gratuite-nom-unique.test.ts"
   },
   {
     "id": "gameOpChips",
@@ -696,6 +832,15 @@
     "concept": "action dont l’indisponibilité porte sa raison au survol, au focus et au tap ; `classeBouton(ton)` compose la classe de tout bouton d'action (`btn`, ton primaire, variantes nue et tactile, classe de l'appelant), lue par `GatedAction`, `OptionChooser` et `RollShell`",
     "perimetre": "toute action refusable de la console et des écrans",
     "verrou": "aria-disabled et jamais disabled ; raison inline seulement sur opt-in"
+  },
+  {
+    "id": "chipDeRefus",
+    "type": "primitives.manifest",
+    "label": "ChipDeRefus",
+    "fichier": "src/ui/ChipDeRefus.tsx",
+    "concept": "message d'un REFUS ou d'un état perdu (donnée d'un autre format retirée, geste refusé) en `role=\"alert\"`, en `role=\"status\"` pour l'état permanent d'un champ (`fixe`) : la phrase en `.chip.tone-danger.chip-phrase`, pastille ajustée à son texte, le rapport technique replié en `.fold` ; `id` nomme le message que désigne l'`aria-describedby` d'un champ ; ramenée EN VUE par la primitive (`useRamenerEnVue`) au montage et à chaque changement de `message` / `detail`, jamais à un simple rendu de l'hôte ; `cle` remplace ce déclencheur (refus neuf au texte identique, modales Ouvrir / Enregistrer le projet) ; `fixe` le coupe et pose `role=\"status\"` pour l'état permanent d'un champ en saisie (inspecteur : porte secrète, allège, décor ; narratif : motif d'écart ; carte du monde : raison du refus ; spécimens de galerie)",
+    "perimetre": "témoins de format (save, roster, import de héros, calque, bibliothèque de campagnes, « Ouvrir » de l'éditeur), refus des gestes de projet, refus de saisie de l'éditeur (inspecteur, narratif, carte du monde, places assises), erreur de connexion du lobby coop",
+    "verrou": "src/ui/ChipDeRefus.test.tsx, src/ui/editor/ProjectModals.test.tsx, src/ui/saveload-message-obsolete.test.tsx ; src/ui/ui-ratchets.test.ts (xxiv) — aucun `chip` + `tone-danger` hors de la primitive, exclusions au site"
   },
   {
     "id": "roseAxes",
@@ -913,7 +1058,7 @@
     "label": "RecapLine",
     "fichier": "src/ui/RecapLine.tsx",
     "css": "src/ui/styles/recap-line.css",
-    "concept": "ligne de récap structurée : trio de tons ok/bad/info et étiquette de phase",
+    "concept": "ligne de récap structurée : Row sans enroulement, icône et prose compacte, trio de tons ok/bad/info et étiquette de phase",
     "perimetre": "issue d’une fenêtre de jet, chronique d’un écran, carte-parchemin",
     "verrou": "state/recapLine.ts — un site fournit la DONNÉE, jamais le markup (#1078)"
   },
@@ -942,8 +1087,7 @@
     "type": "primitives.manifest",
     "label": "TeamSegments",
     "fichier": "src/ui/TeamSegments.tsx",
-    "css": "src/ui/styles/team-segments.css",
-    "concept": "texte découpé en segments TONÉS PAR CAMP : les noms cités en gras, allié ou ennemi",
+    "concept": "segments tonés par camp réunis en Markdown complet, rendu compact par Prose avec annotations allié ou ennemi",
     "perimetre": "journal de combat, ligne de récap, fil d’événements",
     "verrou": "les deux vocabulaires de segments (NarratedSegment, RecapSegment) passent par ce rendu"
   },
@@ -1230,7 +1374,7 @@
     "type": "primitives.manifest",
     "label": "accesBase / brancherBasesSimulees",
     "fichier": "src/lib/indexedDb.ts",
-    "concept": "base locale IndexedDB `{ nom, migrations }`, sa version dérivée de ses migrations keyées par version de départ (`migrerBase`, `versionCourante`) : disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture sur une base simulée par nom, à transactions atomiques et pannes ciblées, derrière la seule couture `__setOuvertureIdbForTest`",
+    "concept": "base locale IndexedDB DÉCLARÉE `{ nom, magasins: { [nom]: { keyPath } } }`, ouverte sans version : base neuve créée depuis la déclaration, base existante qui s'en écarte (magasins, `keyPath`) supprimée puis recréée une fois, `BaseIdbNonConforme` au second écart (#2404) ; disponibilité, ouverture bornée (délai, bloqué, un seul règlement, #776), une connexion par opération ; sa poignée `accesBase` rend ses magasins typés (`lire`, `lireTout`, `ecrire`, `supprimer`, clé composée comprise) et la vide en une transaction (`vider`) ; sa doublure de test `brancherBasesSimulees` (`src/lib/indexedDb.testkit.ts`) route toute ouverture et toute suppression sur une base simulée par nom, à `keyPath` observable, transactions atomiques et pannes ciblées, derrière la seule couture `__setFabriqueIdbForTest`",
     "perimetre": "tout magasin IndexedDB : bibliothèque de projets, calque de référence, sauvegarde automatique de l'éditeur, dossier src/data de l'atelier du Codex",
     "verrou": "src/lib/indexedDb.test.ts"
   },
@@ -1257,7 +1401,7 @@
     "type": "primitives.manifest",
     "label": "gelerProfond/estUneDonneeGelee/GELER_LA_DONNEE/gelerLaConstante",
     "fichier": "src/lib/gelerProfond.ts",
-    "concept": "gel profond de la DONNÉE en développement et en test : une écriture en place dans une donnée gelée lève au site fautif ; `estUneDonneeGelee` dit si un objet a été gelé comme donnée, ce qu'une constante gelée à sa définition n'est pas ; `gelerLaConstante` gèle en profondeur, à sa définition, une constante de module que l'état tient par référence (`EMPTY_FLOW`, `RULE_REF`, `TRAMPLE_WEAPON`)",
+    "concept": "gel profond de la DONNÉE en développement et en test : une écriture en place dans une donnée gelée lève au site fautif ; `estUneDonneeGelee` dit si un objet a été gelé comme donnée, ce qu'une constante gelée à sa définition n'est pas ; `gelerLaConstante` gèle en profondeur, à sa définition, une constante de module que l'état tient par référence (`EMPTY_FLOW`, `RULE_REF`)",
     "perimetre": "clés de `memoByRef` (`state/sceneMemo.ts`), entrées des datasets-tableaux (`data/overrides.ts`), garde de partage des tests (`state/partage.testkit.ts`), constantes de module partagées avec l'état (#2097)",
     "verrou": "garde de partage après chaque test (`src/test-setup.ts`, #2097)"
   },
@@ -1406,15 +1550,6 @@
     "verrou": "lectures de canonUnique.mjs (CONSTRUCTION_DE_TABLE_TOTALE), tableTotale.test.ts"
   },
   {
-    "id": "versionCourante",
-    "type": "primitives.manifest",
-    "label": "versionCourante",
-    "fichier": "src/lib/versionCourante.ts",
-    "concept": "version courante d'une forme persistée, dérivée de sa table de migrations (littéral objet keyé par version de DÉPART, clés contiguës) : plus grande clé + 1, en valeur et en type littéral (#2226)",
-    "perimetre": "toute version de forme persistée : saves, export du roster, schéma de projet, format des choix de création, bases IndexedDB",
-    "verrou": "src/lib/versionCourante.test.ts"
-  },
-  {
     "id": "isDrawnView",
     "type": "primitives.manifest",
     "label": "isDrawnView",
@@ -1444,9 +1579,9 @@
   {
     "id": "cleDeSite",
     "type": "primitives.manifest",
-    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance",
+    "label": "SEPARATEUR_DE_CLE/SEPARATEUR_DE_REMEDE/CHAMPS_DE_GROUPE/CHAMP_D_OCCURRENCE/CHAMPS_DE_CLE/CHAMPS_REQUIS/CHAMPS_D_ECHEANCE/CHAMPS_DE_SITE_OBSERVE/EntreeDeSite/Site/Echeance/cleDeSite/cleDeContenu/lignesDuContenu/groupeDeSite/estEntreeDeSite/estNeuveOuAccrue/sitesEnEntrees/survieDeLecheance",
     "fichier": "scripts/guards/lib/stock.mjs",
-    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance",
+    "concept": "clé d'une entrée de stock de sites (famille, fichier, ref, occurrence), ses séparateurs, clé de contenu d'un site (fichier, ligne trimée) et lignes qu'elle désigne, son échéance et son site observé ; le groupe d'une entrée, sa forme, sa croissance ; les sites mis en entrées et la survie de leur échéance",
     "perimetre": "tout stock de sites (JSON et .mjs) et sa garde",
     "verrou": "cle-de-site-guard.test.ts, stock.test.mjs"
   },
@@ -1498,11 +1633,20 @@
   {
     "id": "ast",
     "type": "primitives.manifest",
-    "label": "analyserCorpus/analyserTexte/ast",
+    "label": "analyserCorpus/analyserTexte/ast/declarationQuiPorte",
     "fichier": "scripts/guards/lib/dialecte.mjs",
-    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés, checker emprunté pendant le parcours et libération de session",
+    "concept": "analyses syntaxiques natives par corpus, diagnostics séparés, checker emprunté pendant le parcours et libération de session ; déclaration de premier niveau qui porte une ligne, clé d'un site keyé par déclaration",
     "perimetre": "toute garde qui parse un fichier",
     "verrou": "—"
+  },
+  {
+    "id": "noyauZod",
+    "type": "primitives.manifest",
+    "label": "indexerConstantes/proprietesZod/noyauZod/estOptionnel",
+    "fichier": "scripts/docs/lib/jsdocUnion.mjs",
+    "concept": "lecture AST des schémas Zod et de leurs métadonnées canoniques, propriétés de sortie des compositions de prose résolues par leur propriétaire et figées avant libération du programme sémantique",
+    "perimetre": "générateurs build-effects, build-map-authoring, build-sort et build-vocabulaire",
+    "verrou": "scripts/docs/lib/jsdocUnion.test.mjs"
   },
   {
     "id": "perimetreDUneDeclaration",
@@ -1516,20 +1660,128 @@
   {
     "id": "grapheDImports",
     "type": "primitives.manifest",
-    "label": "sitesDeModule/liaisonsDe/chargementsDe/specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports",
+    "label": "sitesDeModule/liaisonsDe/chargementsDe/specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports/globsDe/grapheInverse",
     "fichier": "scripts/guards/lib/importGraph.mjs",
-    "concept": "sites de module et liaisons avec noms, rôles et positions, chargements littéraux ou calculés, résolution et clôture des imports, lecture après effacement des types",
+    "concept": "sites de module et liaisons avec noms, rôles et positions, chargements littéraux ou calculés, résolution et clôture des imports contre le disque ou un ensemble de fichiers, motifs d'import.meta.glob, graphe inverse, lecture après effacement des types",
     "perimetre": "toute lecture de noms, de chargements ou de spécificateurs de module, ou marche d'import dans les gardes et générateurs",
     "verrou": "importGraph.test.mjs"
   },
   {
+    "id": "racinesBalayees",
+    "type": "primitives.manifest",
+    "label": "lectureDeModule/lecteurDExpressions/evaluateurDuDepot/evaluer/APPEL_DE_LECTURE/requeteDe/partiesDeRequete",
+    "fichier": "scripts/guards/lib/racinesBalayees.mjs",
+    "concept": "racines balayées que lisent les modules d'un dépôt, par évaluation interprocédurale : lectures de base (primitives fs, portes git), relais dérivés par paramètre, valeurs de retour, déstructuration, projections map/flatMap et boucles ; lecture d'une expression de chemin (littéral, join, gabarit, URL du module, constante locale ou importée) ; contrats déclarés à la source pour namespaces bornés et résumés de lectures ; sortie d'une borne ou suffixe indéterminé couverts par le corpus entier avec origine et raison traçables ; requêtes tracées d'une évaluation, clé de son mémo",
+    "perimetre": "toute dérivation des dossiers ou fichiers qu'un module lit par listage, et toute lecture statique d'une expression de chemin",
+    "verrou": "racinesBalayees.test.mjs"
+  },
+  {
+    "id": "ciblesDEcritureDeCommande",
+    "type": "primitives.manifest",
+    "label": "ciblesDEcritureDeCommande",
+    "fichier": "scripts/guards/lib/ecrituresShell.mjs",
+    "concept": "cibles possibles des opérations shell reconnues : rôles des chemins, redirections et Node inline ; cwd chronologique et variables littérales prouvées par scope ; expressions non résolues conservées comme inconnues",
+    "perimetre": "gardes d'écriture shell des stockages protégés ; extraction statique sans exécution de la commande",
+    "verrou": "ecrituresShell.test.mjs, superpowers-ecriture-guard.test.mjs, suivi-ecriture-guard.test.mjs"
+  },
+  {
+    "id": "commandeShell",
+    "type": "primitives.manifest",
+    "label": "pipelinesProfonds/pipelinesDeJetons/texteDuSegment/jetonNu/sansRedirections/ciblesDeRedirection/ciblesDeRedirectionAvecProvenance/cibleDeLaCommande/affectationPowerShell/CHANGEMENTS_DE_REPERTOIRE",
+    "fichier": "scripts/guards/lib/commandeShell.mjs",
+    "concept": "lecture canonique des commandes shell : jetons avec provenance des quotes, pipelines profonds et identité des scopes ; texte d'un segment conservant les raw des jetons ; arguments et cibles de redirection, avec provenance ; cwd nommé par la commande et affectations PowerShell ; les valeurs persistantes d'un segment distinguent affectation autonome et préfixe d'environnement",
+    "perimetre": "toutes gardes et portes qui interprètent une commande shell, ses chemins, ses porteurs ou ses redirections",
+    "verrou": "commandeShell.test.mjs, ecrituresShell.test.mjs, repartiteur.test.mjs"
+  },
+  {
+    "id": "provenanceFs",
+    "type": "primitives.manifest",
+    "label": "creerProvenanceFs",
+    "fichier": "scripts/guards/lib/provenanceFs.mjs",
+    "concept": "provenance des bindings des API fs : imports, require, alias, destructuration et promises ; identité des symboles et mutations contrôlées sans politique de lecture ou d’écriture",
+    "perimetre": "lecteurs et écrivains AST utilisant les API natives fs ; bindings immuables et ombres lexicales vérifiées par le checker natif",
+    "verrou": "gitHorsHote.test.mjs, ecrituresFichiers.test.mjs"
+  },
+  {
+    "id": "ciblesDEcritureJS",
+    "type": "primitives.manifest",
+    "label": "ciblesDEcritureJS/OPERATIONS_FS",
+    "fichier": "scripts/guards/lib/ecrituresFichiers.mjs",
+    "concept": "métadonnées uniques des opérations FS et positions des chemins modifiés ; extraction AST des cibles littérales sous provenance fs/node:fs/promises, alias et portée vérifiés, diagnostics contrôlés et cibles inconnues explicites",
+    "perimetre": "Node inline des gardes shell et liste des noms détectés par la gate des écrivains atteints",
+    "verrou": "ecrituresFichiers.test.mjs, ecrituresShell.test.mjs, ecrivainsAtteints.test.mjs"
+  },
+  {
+    "id": "protectionWorktree",
+    "type": "primitives.manifest",
+    "label": "mesurerProtectionWorktree/ignoresAuthores/retirerResiduelVide",
+    "fichier": "scripts/guards/lib/protectionWorktree.mjs",
+    "concept": "protection d'un worktree mesurée depuis processus, état Git, ignorés authorés et cartes de session ; retrait non récursif d'un résidu vide absolu, sans suivre un lien",
+    "perimetre": "inventaire et porte de retrait d'un worktree ; traces de publication préservées parmi les ignorés",
+    "verrou": "protectionWorktree.test.mjs, gitPorte.test.mjs, worktrees.test.mjs"
+  },
+  {
+    "id": "processusWorktrees",
+    "type": "primitives.manifest",
+    "label": "mesurerProcessusWorktrees/liensProcessus/porteeProcessus/toleranceDeMesure",
+    "fichier": "scripts/guards/lib/processusWorktrees.mjs",
+    "concept": "mesure Windows/Linux des identités (création en date ISO UTC), propriétaires, commandes et cwd, restreinte aux `pids` demandés et bornée par `timeout` (échéance = vue `indeterminee`) ; précision de la création par source (`TOLERANCE_CREATION_MS`) ; liens au worktree ; indétermination des processus utilisateur et portée exclue par propriétaire rendues explicitement",
+    "perimetre": "protection des worktrees contre les processus vivants, inventaire lisible de la portée mesurée, identité du détenteur d'un verrou (PID réutilisé)",
+    "verrou": "processusWorktrees.test.mjs, protectionWorktree.test.mjs, verrouGestesLourds.test.mjs"
+  },
+  {
+    "id": "ciblesGenerees",
+    "type": "primitives.manifest",
+    "label": "estCiblePure/GENERATORS",
+    "fichier": "scripts/docs/lib/cibles-generees.mjs",
+    "concept": "registre unique des générateurs et de leurs cibles entièrement reconstructibles ; reconnaissance des cibles pures sans charger les générateurs",
+    "perimetre": "construction documentaire, fraîcheur des dérivés et classification des ignorés de worktree",
+    "verrou": "cibles-pures.test.mjs, generateurs-contrat.test.mjs, protectionWorktree.test.mjs"
+  },
+  {
+    "id": "ecritureJsonAtomique",
+    "type": "primitives.manifest",
+    "label": "ecrireJsonAtomique/ecrireTexteAtomique",
+    "fichier": "scripts/guards/lib/ecritureJsonAtomique.mjs",
+    "concept": "écriture d'un texte (ou d'une valeur JSON) en un geste : temporaire propre au processus, puis renommage sur la cible, dossier créé ; un lecteur concurrent ne lit jamais un fichier à moitié écrit",
+    "perimetre": "journal du train (`publier.mjs`, `publierTrain.mjs`, `publicationIsolee.mjs`), cache de la vigie (`vigie.mjs`), mesures et mémos du périmètre de tests (`perimetre.mjs`), cibles des générateurs (`ecrireDoc`), époque de l'écrivain des dérivés",
+    "verrou": "ecritureJsonAtomique.test.mjs"
+  },
+  {
+    "id": "ecrivainDesDerives",
+    "type": "primitives.manifest",
+    "label": "preempterLesDerives/sousLEpoque/envDeLaPasse",
+    "fichier": "scripts/docs/lib/ecrivain-derives.mjs",
+    "concept": "écrivain UNIQUE des dérivés d'un arbre : verrou et époque sous `.git/hooks-git/` ; le post-hook et `build-all --code` préemptent (époque neuve, puis écrivent), la passe détachée écrit sous l'époque lue à son début et toute écriture d'une passe préemptée, ou pendant une opération git, lève ; toute autre écriture prend le verrou",
+    "perimetre": "post-hooks (`docs-rebuild.mjs`), `executer --code` (`build-all.mjs`), passe détachée (`reconstruction.mjs`), écriture des cibles (`ecrireDoc`) et du cache de fraîcheur (`fraicheur-docs.mjs`)",
+    "verrou": "ecrivain-derives.test.mjs"
+  },
+  {
+    "id": "capaciteDuLanceur",
+    "type": "primitives.manifest",
+    "label": "capaciteDuLanceur",
+    "fichier": "scripts/test/partition.mjs",
+    "concept": "capacité servie par le lanceur de tests sous un environnement et un régime de lancement (`lot` / `suite`, `EMPREINTES_WORKER_MO`) : cœurs, mémoire disponible, empreinte d’un worker",
+    "perimetre": "workers de `run.mjs` et mur estimé de `perimetre.mjs`",
+    "verrou": "—"
+  },
+  {
+    "id": "ancetresDe",
+    "type": "primitives.manifest",
+    "label": "ancetresDe/LECTURES_DES_DEPENDANCES",
+    "fichier": "scripts/git-hooks/selection-des-derives.mjs",
+    "concept": "dossiers qui contiennent un chemin, du parent à la racine du dépôt ; manifestes de dépendances dont les lectures ne sont pas mesurées",
+    "perimetre": "sélection des docs dérivés par lectures (`selection-des-derives.mjs`) et périmètre de tests (`perimetre.mjs`)",
+    "verrou": "docs-rebuild.test.mjs"
+  },
+  {
     "id": "constructionsReservees",
     "type": "primitives.manifest",
-    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports",
+    "label": "scanConstructionsReservees/FORMULE_DE_CHEBYSHEV/ECHAPPEUR_DE_LITTERAL/COUVERTURE_DE_SPEC/IDENTITE_D_INSTANCE/CONSTRUCTION_DE_PROGRAMME/ECRITURE_DE_STOCK_JSON/CONSTRUCTION_DE_TABLE_TOTALE/recopieDeCanon/cleEnLigne/lectureBruteDeCollection/comparaisonDAppel/constructionDeFragment/estAppelDeclare/origineImportee/liaisonImportee/contexteImports/sansDeclarationsDeMetadonnees",
     "fichier": "scripts/guards/lib/canonUnique.mjs",
     "concept": "construction réservée à son foyer : le scan unique, ses constructions déclarées, les fabriques de recopie d'un canon, de clé en ligne, de lecture brute d'une collection (admise à des sites nommés par leur déclaration englobante), de comparaison en ligne du rendu d'une fonction déclarée et de construction d'un fragment d'adresse hors de ses constructeurs, l'appel à une fonction déclarée et la liaison d'import canonique par symbole local dans la portée de chaque occurrence ; contexteImports obligatoire partagé par parcours, lié à l'identité du SourceFile, index des imports de tête par nom local et checker natif emprunté au parcours de la session",
     "perimetre": "toute garde de canon unique",
-    "verrou": "canonUnique.test.mjs, unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts"
+    "verrou": "canonUnique.test.mjs, unions-canon.test.ts, grid.test.ts, cle-de-site-guard.test.ts, texte-normalise-guard.test.ts, ts-program-fabrique-guard.test.ts, trappings-vue-guard.test.ts, construction-de-fragment-guard.test.ts, ref-couvre.test.ts"
   },
   {
     "id": "tsProgram",
@@ -1599,7 +1851,7 @@
     "type": "primitives.manifest",
     "label": "stockageWeb",
     "fichier": "src/lib/stockageWeb.ts",
-    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` relit une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
     "verrou": "src/lib/stockageWeb.test.ts ; src/stockage-web-exclusivity-guard.test.ts (aucun accès au stockage web hors src/lib/stockageWeb.ts ; une clé de stockage écrite une fois)"
   },
@@ -1624,11 +1876,20 @@
   {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
-    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale/formeResolue",
+    "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
     "fichier": "src/gameIso/rig/parts/equipment.ts",
-    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`forme` par `formeResolue`, l'UNIQUE résolution de forme au catalogue courant ; `bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
+    "concept": "équipement DESSINÉ d'un porteur : PROJECTION de son état sur les clés que le rig lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`forme` par `formeResolue`, `engine/items.ts` ; `bouclier`, `materiau`) — l'identité de dessin hache cette projection et elle seule",
     "perimetre": "tout producteur d'équipement de rig (`equipPorte`, `enemyRigProfile`, `entityRigProfile`, galeries), tout lecteur du rig (forme, maniement, clips, pièces)",
     "verrou": "src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
+  },
+  {
+    "id": "formeResolue",
+    "type": "primitives.manifest",
+    "label": "formeResolue/SourceDeForme",
+    "fichier": "src/engine/items.ts",
+    "concept": "FORME d'un objet porté résolue au catalogue courant par id stable (arme naturelle, arme invoquée `form`, `formeChoisie` parmi les `formChoices`, `shape` du trapping) — l'UNIQUE résolution de forme, jamais recopiée dans une instance (#2113)",
+    "perimetre": "tout lecteur d'une forme d'arme ou de bouclier : rig (`armeDeDessin`, `bouclierDeDessin`), icône d'inventaire, sélecteur de forme de la fiche, outillage de recette (`__wfrp.battle`)",
+    "verrou": "src/engine/rendu-pur-jamais-recopie.test.ts, src/state/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {
     "id": "successionDesCorps",

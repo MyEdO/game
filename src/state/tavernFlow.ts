@@ -23,14 +23,14 @@
  *
  * Réservé aux tables qui activent l'option `tavern-games`.
  */
-import { CHAR_LABELS, DIFFICULTY_LABELS, type CharKey, type Combatant, type Difficulty } from '../engine/types';
+import { DIFFICULTY_LABELS, type CharKey, type Combatant, type Difficulty } from '../engine/types';
 import type { Get, Set } from './flowTypes';
 import {
   findTavernGameById, resolveTavernRound, rollTavernTest, tavernOpposedLog, tavernExtendedLog, roundSL,
   TAVERN_GAMES, TAVERN_TEST_DIFFICULTY, type TavernGame, type TavernGameResult,
 } from '../engine/tavernGame';
 import { findTableEntry } from '../engine/tables';
-import { resolveOpposed, isDoubleRoll, evaluateCombinedTest, type TestResult } from '../engine/tests';
+import { resolveOpposed, isDoubleRoll, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
 import { applyOps } from '../engine/ops';
@@ -40,13 +40,13 @@ import { battleRng } from './battleRng';
 import { toBrass, fromBrass, formatMoney } from '../engine/money';
 import { bourseOf, creditBourse, payWithAllocation, soloPayer } from './bourseFlow';
 import {
-  freeCons, testSkillLabel, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget,
+  freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget,
   tableStep, displayStep,
   type BuiltCascadeStep, type Consequence,
 } from './rollSeam';
 import type { CascadeSecondRead, CascadeStep, CascadeStepMeta, CascadeTableDecl } from './pendings';
 import { advantageModLine, type ModLine } from '../engine/combat';
-import type { BatchParticipant } from './pendings';
+import type { BatchParticipant, CascadeRoll } from './pendings';
 import { registerCascadeApplier, rollBatchParticipant, pushStep, registerTableStepFamily, rollTableStep, type TableStepDef } from './cascade';
 import { combatStakeRef, refLabel } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
@@ -67,7 +67,7 @@ import type { Scene } from './scene';
 import { jetSurfaced } from './netOwnership';
 import { cadenceAuto } from '../engine/cadence';
 import { t, interpolate } from '../i18n';
-import { dataLabel } from '../data';
+import { dataLabel, testSkillLabel } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 
@@ -181,6 +181,12 @@ export function closeTavernGames(_get: Get, set: Set): void {
 
 /** Id de la définition de séquence des jeux de taverne (donnée : écrit dans les saves). */
 export const TAVERN_SEQUENCE = 'tavern';
+
+declare module './sequenceContract' {
+  interface SequenceFamilies {
+    [TAVERN_SEQUENCE]: TavernPayload;
+  }
+}
 
 /** Kind de l'étape-jet d'une manche (bande OU mono) — UNIQUE depuis #1279 S1. */
 export const TAVERN_ROUND_KIND = 'tavern-round';
@@ -534,7 +540,7 @@ function tavernOptionRound(get: Get, seq: SequenceState<TavernPayload>, game: Ta
     actorId: h.id,
     options: (game.options ?? []).map((o, i) => ({
       key: String(i),
-      label: o.skill ? refLabel('skills', o.skill) : dataLabel(CHAR_LABELS[o.char ?? 'intelligence']),
+      label: testSkillLabel({ skill: o.skill, char: o.char ?? 'intelligence' }),
       detail: DIFFICULTY_LABELS[o.difficulty],
     })),
     defaultChoice: '0',
@@ -751,12 +757,12 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   const lanceur = p.throwers?.[seq.round - 1];
   const jet = rows.find((r) => r.id === lanceur?.id);
   const danseur = rows.find((r) => r.id.startsWith('danseur-'));
-  if (!lanceur || !jet?.result || !danseur?.result) return [];
-  const asTest = (r: BatchParticipant): TestResult => ({
-    roll: r.result!.roll, target: r.result!.target, base: r.base,
-    success: r.result!.roll <= r.result!.target, sl: r.result!.sl, isDouble: false,
+  if (!lanceur || !jet || !danseur || !estJete(jet.result) || !estJete(danseur.result)) return [];
+  const asTest = (r: CascadeRoll, base: number): TestResult => ({
+    roll: r.roll, target: r.target, base,
+    success: r.roll <= r.target, sl: r.sl, isDouble: false,
   });
-  if (resolveOpposed(asTest(jet), asTest(danseur)).attackerWins) return [];
+  if (resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base)).attackerWins) return [];
   const heros = actorIn(get(), lanceur.id);
   const id = `${TAVERN_DRINK_KIND}-${seq.round}`;
   const etape = heros && !cadenceAuto() && jetSurfaced(get(), heros)
@@ -971,13 +977,13 @@ function tavernSides(ctx: SequenceCloseCtx<TavernPayload>): {
   if (step.participants) {
     const mien = step.participants.find((r) => r.id === p.challengerId);
     const sien = step.participants.find((r) => r.id === p.opponentId);
-    if (!mien?.result || !sien?.result) return undefined;
+    if (!mien || !sien || !estJete(mien.result) || !estJete(sien.result)) return undefined;
     return {
       player: asTest(mien.result, mien.base), opponent: asTest(sien.result, sien.base),
       playerActor: tavernActor(get, p.challengerId), opponentActor: tavernActor(get, p.opponentId),
     };
   }
-  if (!step.result) return undefined;
+  if (!estJete(step.result)) return undefined;
   return {
     player: asTest(step.result, step.base),
     opponent: step.meta?.opposed?.aT ?? rollTavernTest(p.opponentValue, ctx.rng),
@@ -1006,12 +1012,12 @@ function torchonClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tav
   const danseur = band.participants.find((r) => r.id.startsWith('danseur-'));
   const cum = { ...seq.cum };
   const log: string[] = [];
-  const asTest = (r: BatchParticipant): TestResult => ({
-    roll: r.result!.roll, target: r.result!.target, base: r.base,
-    success: r.result!.roll <= r.result!.target, sl: r.result!.sl, isDouble: false,
+  const asTest = (r: CascadeRoll, base: number): TestResult => ({
+    roll: r.roll, target: r.target, base,
+    success: r.roll <= r.target, sl: r.sl, isDouble: false,
   });
-  if (jet?.result && danseur?.result) {
-    const opp = resolveOpposed(asTest(jet), asTest(danseur));
+  if (jet && danseur && estJete(jet.result) && estJete(danseur.result)) {
+    const opp = resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base));
     if (opp.attackerWins) {
       const ligne = sequenceTableRow(seq.params, opp.netSL);
       const touche = garanti(ligne, opp.netSL, 'ligne de touche');
@@ -1916,7 +1922,7 @@ function volleyTurnOf(get: Get, seq: SequenceState<TavernPayload>, step: Cascade
   const v = seq.params.volley;
   const st = p.volley;
   const jet = step.participants?.[0];
-  if (!v || !st || !jet?.result) return undefined;
+  if (!v || !st || !jet || !estJete(jet.result)) return undefined;
   const camp = step.meta?.camp === CAMP_OPPONENT ? CAMP_OPPONENT : CAMP_PLAYER;
   const acteur = actorIn(get(), jet.id);
   const tr: TestResult = {
@@ -2436,7 +2442,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
 /** APPLIER de l'effacement : la clôture seule en tire les conséquences (patron du réducteur unique). */
 registerCascadeApplier(TAVERN_ERASE_KIND, () => ({}));
 
-registerSequence<TavernPayload>(TAVERN_SEQUENCE, {
+registerSequence(TAVERN_SEQUENCE, {
   round: tavernRound, close: tavernClose, settle: tavernSettle, board: tavernBoard,
 });
 

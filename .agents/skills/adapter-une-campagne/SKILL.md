@@ -32,53 +32,77 @@ https://github.com/MyEdO/game/issues/665#issuecomment-5849927764. Cette skill la
 - `user-doctrine-cadence-portes-de-gout-une-par-acte` : une porte de goût par acte (arbitrage 3 du
   pilotage ci-dessus).
 
+## Charte d'adaptation
+
+Tirée des réponses de l'utilisateur au pilotage du 2026-09-26 (#665, issuecomment-5849927764), portées
+par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranche ne monte à aucune porte.
+
+- **Piliers de plaisir.** « le but principale c'est que le jeu soit plaisant et respecte au lieu l'esprit
+  du JDR et de la campagne, comme font toutes adaptations de JDR papier en jeu vidéo comme les Pathfinder »
+  (2026-09-26). La référence est le CRPG adapté d'un module papier : réactivité (chaque geste rend un
+  retour visible), densité (chaque lieu offre quelque chose à faire ou à apprendre), et la réponse du
+  genre quand le livre ne dit rien.
+- **Politique de média.** Chaque beat reçoit un média : scène jouée, dialogue, interlude, résumé, coupé. Le
+  découpage d'un acte se valide à sa porte : « Chaque séance groupe trois choses : jouer la tranche
+  livrée, valider le découpage de l'acte suivant, trancher les exceptions » (2026-09-26). Les textes
+  suivent la règle 5 de campagne (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`).
+- **Points au MJ.** « le livre laisse énormement de place au MJ et n'indique que quelque éléments
+  importants a l'histoire et le MJ fait le reste avec quelques indices/impératifs a suivre » (2026-09-26).
+  Trois familles :
+  - les **impératifs** du livre (éléments importants, indices, « doivent absolument ») sont des
+    INVARIANTS, cités au `Source/` et implémentés ;
+  - une **règle de jeu** laissée au MJ reçoit un arbitrage EXPLICITE (AGENTS.md règle 7) : donnée maison
+    éditable, ou choix du joueur, avec la cérémonie du credo (verbatim et date au ticket) ;
+  - le **reste narratif** se conçoit comme un MJ, en puisant dans les compagnons (« péages, les
+    PNJs/scénarios annexes et autres, mais pas que »), et chaque ajout est tagué `maison`.
+- **Budget d'art.** « aucune vague d'art sans demande » (méthode validée le 2026-09-26, étape 8). C'est un
+  défaut : l'utilisateur le lève quand il le veut.
+
 ## Les étapes et leurs outils
 
-0. **Cadre** — doctrines consignées ; skill `creer-une-campagne` ; charte d'adaptation (piliers de
-   plaisir dont réactivité et densité, politique de média, typologie des points au MJ).
+0. **Cadre** — doctrines consignées ; skill `creer-une-campagne` ; la charte d'adaptation ci-dessus.
 1. **Ré-ancrage de l'épique** — tri des tickets ouverts du label de campagne, commentaire de pilotage ;
    ni code ni salve de tickets.
 2. **Trame des cinq tomes, avant tout chapitre** — fils transversaux, états et compteurs de campagne lus
    en aval, chapitre propriétaire de chaque état ; déclarés DANS le paquet de campagne.
-3. **Dossier de chapitre** — workflow `dossier-de-chapitre`, args
-   `{ livre, chapitre, fichiers, compagnons?, worktree, date }` (`?` = facultatif). Tout agent exécute par
-   `ctx_shell`, `cwd` = l'arbre, une commande simple par appel, un seul appel par message, et n'écrit
-   aucun fichier.
-   - Lecture : lentilles parallèles au `Source/` — impératifs, beats, points au MJ, indices, secrets et
-     DÉCLENCHEURS (événements à l'initiative d'un PNJ ou du monde) ; PNJ, lieux, textes ; tests,
-     rencontres, durée et difficulté, récompenses, états ; matière des compagnons si fournis. Un id de
-     beat ou de déclencheur vide ou en double est une anomalie de lecture.
-   - Confrontation : chaque besoin confronté au code d'`origin/main` (existe / partiel / manque).
-     Familles de besoin : PNJ, lieu, texte, test, rencontre, récompense, état, point au MJ, déclencheur,
-     compagnon ; durée et difficulté sont rendues, jamais confrontées.
+3. **Dossier de chapitre** — la moitié LIVRE, en donnée commitée : la fiche `docs/dossiers/<ABBR>/<NN>.json`,
+   au schéma unique `ficheDeDossier` (`src/data/source/dossier.ts`).
+   - Lecture : workflow `dossier-de-chapitre`, args projetés par
+     `node scripts/raw/workflow-args.mjs dossier-de-chapitre <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> [--compagnons <ABBR>-<NN>,…]`
+     (fichiers du chapitre, tête de l'arbre lu, familles et formes d'entrée de la fiche). Tout agent
+     exécute par `ctx_shell`, `cwd` = l'arbre, une commande simple par appel, un seul appel par message,
+     et n'écrit aucun fichier. Lentilles parallèles au `Source/` — impératifs, beats, points au MJ,
+     indices, secrets et DÉCLENCHEURS (événements à l'initiative d'un PNJ ou du monde) ; PNJ, lieux,
+     textes ; tests, rencontres, durée et difficulté, récompenses, états ; matière des compagnons si
+     fournis. Le script pose chaque id, `<préfixe><rang>`.
    - Complétude : un juge relit le chapitre et rend ses corrections — oubli, réf fausse, contenu faux
-     (un attribut de l'entrée hors id, réf et classement, validé contre sa forme), classement faux —,
-     chacune visée par champ et id. Le script les APPLIQUE : le dossier rendu est le dossier CORRIGÉ,
-     `corrections` en est la trace. Une correction à cible inconnue, ambiguë, déjà prise ou déjà
-     corrigée, à attribut hors de son champ ou à valeur hors de sa forme, ne s'applique pas :
-     `anomaliesDeCorrection` la nomme.
-   - Confrontation après corrections : tout besoin né d'un oubli, ou dont la famille, le texte ou la réf
-     a changé sans que le juge l'ait classé, est confronté à nouveau. Un besoin qui reste
-     `non-confronte` (lot sans rendu, nommé dans `lotsSansRendu`, ou verdict absent) fait tomber le
-     verdict.
-   - Retour : `livre`, `chapitre`, impératifs, beats, points au MJ, indices, secrets, déclencheurs, PNJ,
-     besoins, états, durée et difficulté, matière des compagnons, `trous`, commits confrontés,
-     `corrections`, synthèse, agents.
-   - Verdicts : dérivés de `trous`, une liste par espèce. `DOSSIER` (toutes vides : seul verdict qui arme
-     une table) ; sinon la première espèce trouée le nomme — `LECTURE INVALIDE` (`anomaliesDeLecture`),
-     `LECTURE INCOMPLÈTE` (`lentillesSansRendu`), `DOSSIER SANS COMPLÉTUDE` (`completudeSansRendu`),
-     `CORRECTIONS INAPPLICABLES` (`anomaliesDeCorrection`), `CONFRONTATION INCOMPLÈTE` (`lotsSansRendu`,
-     `besoinsNonConfrontes`). `ARRÊT` : argument manquant, mêmes clés vides. Aucun verdict autre que
-     `DOSSIER` n'arme de table : le dossier se refait.
+     (tout attribut de l'entrée hors réf, classement compris, validé contre sa forme) —, chacune visée par
+     famille et id. Le script les APPLIQUE : la fiche rendue est la fiche CORRIGÉE, `corrections` en est la
+     trace. Une correction à cible inconnue ou déjà corrigée, à attribut hors de sa famille ou à valeur
+     hors de sa forme, ne s'applique pas : `anomaliesDeCorrection` la nomme.
+   - Verdicts : dérivés de `trous`, une liste par espèce. `DOSSIER` (toutes vides) ; sinon la première
+     espèce trouée le nomme — `LECTURE INCOMPLÈTE` (`lentillesSansRendu`), `DOSSIER SANS COMPLÉTUDE`
+     (`completudeSansRendu`), `CORRECTIONS INAPPLICABLES` (`anomaliesDeCorrection`). `ARRÊT` : argument
+     manquant. Un verdict autre que `DOSSIER` se refait.
+   - Fiche : `node scripts/raw/workflow-args.mjs ecrire-fiche <rendu.json>` écrit la fiche d'un run au
+     verdict `DOSSIER`, validée par le schéma et les gardes du chargeur (`chargerDossiers`), et refuse
+     tout autre run : personne n'écrit ce JSON à la main. Puis `npm run test:raw` (gardes des fiches et des
+     réfs citées), et commit de la fiche.
+   - État des lieux : dans l'éditeur, chaque élément du paquet de campagne pose `couvre` (les entrées de
+     fiche qu'il couvre, `<ABBR>-<NN>#<id>`), et le narratif tient `ecartes` (une entrée écartée, avec son
+     motif : adaptation libre, jamais une dette). L'état couvert / écarté / non couvert se lit dans
+     `docs/dossiers-de-chapitre.md` après `npm run docs:build`.
 4. **Table papier simulée** (chapitres à forte ambiguïté ; Tome 1 : 1, 2, 6, 8) — workflow
    `table-simulee`, APRÈS le dossier, qu'elle consomme : args
-   `{ livre, chapitre, fichiers, dossier, seed, maxEchanges?, personas?, worktree, date }`,
-   `dossier` = le rendu du workflow précédent au verdict `DOSSIER`, `trous` présents et vides (sinon `ARRÊT`).
+   `{ livre, chapitre, fichiers, dossier, seed, maxEchanges?, personas?, worktree, date }` projetés par
+   `node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine>`
+   (`--max-echanges`, `--personas` facultatifs) : `dossier` = l'objet de la fiche commitée du chapitre,
+   chargé et gardé par le lanceur ; sans fiche, le lanceur refuse.
    `maxEchanges` absent = 3 échanges par beat du dossier (mesure #1993 : ≈2 par beat atteint) ; chaque
    échange coûte ≈ 5 agents (1 MJ + 4 joueurs). Explicite, il prime (entier ≥ 1, sinon `ARRÊT`).
    - Préparation : fiches des 4 PJ par un lecteur qui ignore le chapitre (un id de PJ vide ou en double
      = `ARRÊT`) ; sosie désigné sur le dossier et la liste des PJ — `motif` toujours renseigné (pourquoi ce
-     PJ, ou pourquoi aucun), `ref` vide sans sosie ; la fiche du MJ est TIRÉE du dossier corrigé.
+     PJ, ou pourquoi aucun), `ref` vide sans sosie ; la fiche du MJ est TIRÉE de la fiche commitée.
    - Partie : MJ agent qui cite le livre ou déclare IMPRO, résout chaque intention et rend le sort de
      chaque déclencheur en attente (joué, non échu, écarté), 4 joueurs cloisonnés à personas, dés tirés
      par le moteur (une commande simple par jet, par `ctx_shell`, `cwd` = l'arbre). Le MJ ignore le
@@ -136,13 +160,16 @@ https://github.com/MyEdO/game/issues/665#issuecomment-5849927764. Cette skill la
 ## Où vit quoi
 
 - **État du chantier** : le dernier commentaire de pilotage de l'épique.
-- **Dossiers de chapitre, journaux de table, verdicts de goût** : commentaires de ticket.
+- **Dossiers de chapitre** : fiches commitées `docs/dossiers/<ABBR>/<NN>.json` ; leur état des lieux,
+  `docs/dossiers-de-chapitre.md` (dérivé, `npm run docs:build`).
+- **Journaux de table, verdicts de goût** : commentaires de ticket.
 - **Contenu** : le paquet de campagne manuscrit `src/scenes/<campagne>/<campagne>-projet.json`, états de
   campagne compris.
 
 ## Chapitre terminé
 
-- Besoins obligatoires couverts, ou classés « blanc voulu » / « hors adaptation », motivés.
+- Entrées de la fiche couvertes (`couvre`), ou écartées avec motif (`ecartes`) : aucune « non couverte » dans
+  `docs/dossiers-de-chapitre.md`.
 - Média de chaque beat décidé.
 - Gardes et recette PREUVE vertes, console à 0 erreur.
 - 0 porte fermée en silence ; 0 thème « m'aurait fait quitter ».

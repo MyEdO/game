@@ -316,35 +316,41 @@ describe('useEditorView — CÂBLAGE des surcouches sur le cadrage', () => {
 
 // Maillon amont de la chaîne : `panelRef` doit rendre la BOÎTE du panneau lui-même. Sans lui, le
 // cadrage n'a aucune obstruction basse à éviter et la case fautive reste sous le panneau (clic mort).
+const noop = () => {};
+/** Panneau DÉPLIÉ sans calque chargé : la branche où se lit le témoin de retrait. */
+const PANNEAU_SANS_CALQUE = {
+  hasLayer: false,
+  ecarte: false,
+  visible: false,
+  opacity: 0.6,
+  calibStep: 'idle',
+  position: 'above',
+  allowRotation: false,
+  contraste: false,
+  layerZ: 0,
+  expanded: true,
+  onLoadFile: noop,
+  onToggleVisible: noop,
+  onOpacityChange: noop,
+  onPositionChange: noop,
+  onAllowRotationChange: noop,
+  onContrasteChange: noop,
+  onToggleExpanded: noop,
+  onStartCalibration: noop,
+  onCancelCalibration: noop,
+  onRemove: noop,
+} as const;
+
 describe('TraceLayerPanel — `panelRef` rend le panneau MESURABLE', () => {
   it('reçoit l’élément racine du panneau (celui que la CSS ancre en bas-gauche)', async () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
     let recu: HTMLElement | null = null;
-    const noop = () => {};
     await act(async () =>
       root.render(
         createElement(TraceLayerPanel, {
-          hasLayer: false,
-          visible: false,
-          opacity: 0.6,
-          calibStep: 'idle',
-          position: 'above',
-          allowRotation: false,
-          contraste: false,
-          layerZ: 0,
-          expanded: true,
-          onLoadFile: noop,
-          onToggleVisible: noop,
-          onOpacityChange: noop,
-          onPositionChange: noop,
-          onAllowRotationChange: noop,
-          onContrasteChange: noop,
-          onToggleExpanded: noop,
-          onStartCalibration: noop,
-          onCancelCalibration: noop,
-          onRemove: noop,
+          ...PANNEAU_SANS_CALQUE,
           panelRef: (el) => {
             recu = el;
           },
@@ -358,5 +364,23 @@ describe('TraceLayerPanel — `panelRef` rend le panneau MESURABLE', () => {
 
     await act(async () => root.unmount());
     container.remove();
+  });
+});
+
+describe('TraceLayerPanel — le calque retiré pour un autre format se DIT (#2404)', () => {
+  async function temoin(ecarte: boolean): Promise<string | null> {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => root.render(createElement(TraceLayerPanel, { ...PANNEAU_SANS_CALQUE, ecarte })));
+    const texte = container.querySelector('[role="alert"] .chip-phrase')?.textContent ?? null;
+    await act(async () => root.unmount());
+    container.remove();
+    return texte;
+  }
+
+  it('un calque écarté pose son refus par `ChipDeRefus` ; sans retrait, aucun', async () => {
+    expect(await temoin(true)).toMatch(/autre format/);
+    expect(await temoin(false)).toBeNull();
   });
 });

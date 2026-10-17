@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `speciesRace.json` — règles ORDONNÉES espèce (slug/libellé) → race-id du rig
  * (carrure/palette/features/posture), consommé
@@ -13,12 +14,18 @@ import { document } from '../grammaire/document';
 export const file = 'speciesRace.json';
 export const famille = 'config';
 
-const speciesRuleSchema = z.strictObject({
+const speciesRuleSchema = nommerChamps(z.strictObject({
   prefix: z.array(z.string()).optional(),
   includes: z.array(z.string()).optional(),
   all: z.array(z.string()).optional(),
   any: z.array(z.string()).optional(),
   race: z.string(),
+}), {
+  prefix: { label: 'Préfixe' },
+  includes: { label: 'Contient' },
+  all: { label: 'Toutes les conditions' },
+  any: { label: 'Au moins une condition' },
+  race: { label: 'Race' },
 });
 
 const doc = document(

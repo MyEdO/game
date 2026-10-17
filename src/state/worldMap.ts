@@ -11,9 +11,11 @@
  * marche forcée au niveau carte.
  */
 import type { Effect, Scene } from './scene';
+import type { z } from 'zod';
+import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
 import { garanti } from './combatants';
 import { normalizeScene } from './scene';
-import type { TravelMode } from '../engine/travel';
+import type { TravelMode, PalierDeBillet } from '../engine/travel';
 import type { PortProfile } from '../engine/seaVoyage';
 import type { LandMarketProfile } from '../engine/landCargo';
 import type { RestPlaces } from './restFlow';
@@ -62,6 +64,8 @@ export interface MapPlace {
    *  narratif : une destination n'apparaît qu'une fois RÉVÉLÉE par le récit (`setFlag`). Absente =
    *  toujours visible. Lue par `visiblePlaces` (le rendu et le cadrage consomment la liste FILTRÉE). */
   when?: Condition;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 /** Un POI de PLAN (#345 phase 5) : cible EXCLUSIVE `sceneId` (transition vers une scène du projet,
@@ -105,8 +109,29 @@ export type MapRoute = MapRouteTrace & Praticabilite;
  *  raison JOUEUR de l'indisponibilité portée par `GatedAction` (infobulle — arbitrage 2026-08-24, jamais
  *  inline par défaut). Lue par `routesFrom`. */
 export type Praticabilite =
-  | { when?: undefined; refus?: undefined }
-  | { when: Condition; refus: string };
+  | { when?: undefined; refus?: z.infer<typeof refusRouteSchema> }
+  | { when: Condition; refus: z.infer<typeof refusRouteSchema> };
+
+/** Billet d'auteur d'un passage payant (EDO 01 l.142) : un forfait par place, payé une fois, d'avance,
+ *  au départ de la route qui le porte, valable pour elle et pour sa `suite`. */
+export interface RouteBillet {
+  /** Sous par passager, par classe du véhicule, pour le trajet entier. */
+  prix: Partial<Record<string, number>>;
+  /** Routes suivantes couvertes, dans l'ordre du trajet, chacune partant du lieu d'arrivée de la précédente. */
+  suite?: string[];
+  /** Lieu de départ du billet — exigé sur une route sans `from` (à double sens). */
+  depuis?: string;
+  /** Le billet se marchande : Test opposé contre le PNJ `presetId` du narratif (EDO 01 l.142). */
+  marchandage?: { presetId: string; paliers?: PalierDeBillet[] };
+  source?: SourceRef;
+  maison?: string;
+}
+
+/** Clé d'un billet : sa première route, son véhicule et son lieu de départ — un billet se marchande
+ *  UNE fois (EDO 01 l.142). */
+export function cleDeBillet(routeId: string, vehicule: string, depuis: string): string {
+  return `${routeId}|${vehicule}|${depuis}`;
+}
 
 /** Le tracé d'une route, hors praticabilité. */
 export interface MapRouteTrace {
@@ -122,9 +147,9 @@ export interface MapRouteTrace {
   km: number;
   /** Modes de voyage offerts sur cette route. */
   modes: TravelMode[];
-  /** Prix d'auteur (sous/PA par km par passager) pour un transport payant (`id` de `vehicles.json`)
-   *  — défaut : classe RAW. */
-  prices?: Partial<Record<Exclude<TravelMode, 'pied'>, number>>;
+  /** Billet d'auteur par véhicule (`id` de `vehicles.json`), posé sur la PREMIÈRE route du trajet
+   *  qu'il couvre (EDO 01 l.142). Absent pour un véhicule : billet implicite (`billetImplicite`). */
+  billets?: Partial<Record<Exclude<TravelMode, 'pied'>, RouteBillet>>;
   /** Déplacement d'auteur par mode (modèle rapide/lent : M ±1, LDB 51 l.178). À pied : force la vitesse. */
   speed?: Partial<Record<TravelMode, number>>;
   /** Seuil du d10 quotidien de péripétie RAW (LDB 51 l.208 « sur un résultat de 8 ») ; 0 = désactivé.
@@ -144,7 +169,7 @@ export interface MapRouteTrace {
   /** Route MARITIME (MDG 13-15) : se voyage sur le NAVIRE DE CAMPAGNE (`state.vessel`) ; `km` est
    *  alors en MILLES (les tables RAW — 18 milles/jour par M, distances ch.15 l.40-47 — sont en milles). */
   sea?: boolean;
-  /** Cap DOMINANT du trajet (aspect du vent, MDG 13 l.262-270) — défaut 'ouest'. */
+  /** Cap DOMINANT du trajet (vent relatif, MDG 13 l.262-270) — défaut 'ouest'. */
   seaHeading?: import('../engine/seaWeather').WindDirection;
   /** Route FLUVIALE JOUÉE (MSRC 7 « Navigation fluviale ») : en mode `barge`, la descente se joue jour par
    *  jour (Test de Navigation, table des vents, périls, chavirage) au lieu d'un transport payant. Repli
@@ -154,11 +179,13 @@ export interface MapRouteTrace {
    *  `perilId` (débris/rochers/eaux-peu-profondes/barrage) tiré à `chancePct` %. Data-driven, éditable. */
   riverPerils?: { perilId: string; chancePct: number }[];
   /** Exposition HYDRIQUE de la descente (MSRC 16 « Maladies transmises par l'eau », l.5-13) : à chaque
-   *  étape à flot, un tirage à `chancePct` % déclenche l'Effet EXISTANT `waterExposure` (Test de Résistance
-   *  modifié → maladie contractée). `source` = id du tableau 1 « Source d'eau » (choix d'auteur de la
+   *  étape à flot, un tirage à `chancePct` % pose le Test d'Exposition de la descente
+   *  (`riverVoyageFlow.openRiverExposureChance`). `source` = id du tableau 1 « Source d'eau » (choix d'auteur de la
    *  portion de fleuve : `grande-ville-marais`, `aval-grande-ville-8km`…), `mode` = `ingestion` (boire l'eau
    *  du fleuve non bouillie, l.5) / `immersion` (chute\nage, blessures ouvertes, l.7-9). Data-driven, éditable. */
   riverExposure?: { source?: string; mode: import('../data').WaterExposureMode; chancePct: number };
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 export interface WorldMapParams {
@@ -500,18 +527,15 @@ export function declutterPositions(
 }
 
 // ── Format de PROJET (export/import éditeur) ────────────────────────────────────────────────
-// Format courant : `{ type: 'projet', schema: SCHEMA_PROJET, id, label, versionContenu, scenes, worldMap?, narratif }`
-// (paquet de campagne auto-suffisant, #765 ; enveloppe PLATE depuis #1467 L1b, posée par la
-// fabrique `document()` depuis #1552). Chaîné par la primitive générique `migrateDoc` sur
-// `PROJECT_MIGRATIONS` (`data/migrationsDeProjet.ts`) — `schema` joue le rôle de `version`.
-import { migrateDoc, type RaisonDeRefus } from './migrateDoc';
-import { PROJECT_MIGRATIONS } from '../data/migrationsDeProjet';
+// `{ type: 'projet', id, label, versionContenu, scenes, worldMap?, narratif }` (paquet de campagne
+// auto-suffisant, #765 ; enveloppe PLATE depuis #1467 L1b, posée par la fabrique `document()` depuis
+// #1552). Aucun numéro de forme : `projetSchema` est le contrôle de format (#2404).
 import { type NarratifBlock } from './campaignNarratif';
-import { validateDocument, rapportDeFautes, type Faute } from '../data/schemas/validate';
-import { projetSchema, SCHEMA_PROJET } from '../data/schemas/defs-scenes/projet';
+import { validerFormeVivante, rapportDeFautes, lieuDe, cheminLisible, type Faute, type RefusDeFormeVivante } from '../data/schemas/validate';
+import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema } from '../data/schemas/defs-scenes/scene';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
-import { proseNonMaterialisee, versDisque } from '../data/schemas/grammaire/prose';
+import { versDisque } from '../data/schemas/grammaire/prose';
 import { tableTotale } from '../lib/tableTotale';
 
 /** Identité de campagne pour la bibliothèque (#766) — PLATE à la racine du document depuis #1467
@@ -524,7 +548,7 @@ export interface ProjectIdentite {
   id: string;
   label: string;
   icon?: string;
-  /** Numéro de CONTENU de l'auteur — la version de FORME du document est `schema`. */
+  /** Numéro de CONTENU de l'auteur, jamais un numéro de forme. */
   versionContenu: number;
   desc?: string;
   auteur?: string;
@@ -535,7 +559,6 @@ export interface ProjectIdentite {
 }
 
 export interface ProjectDoc extends ProjectIdentite {
-  schema: typeof SCHEMA_PROJET;
   scenes: Scene[];
   worldMap?: WorldMap;
   /** Axes de forces/faiblesses ACTIFS de la campagne (#409, ids de `src/data/axes.json`) — un
@@ -554,20 +577,16 @@ export function resolveActiveAxes(doc: { activeAxes?: string[] }): string[] {
   return doc.activeAxes && doc.activeAxes.length > 0 ? doc.activeAxes : coreAxisIds();
 }
 
-/** Version de FORME courante — DÉCLARÉE au document (`defs-scenes/projet.ts`), jamais re-tapée ici :
- *  le littéral `schema` du schéma et cette borne de migration ne peuvent pas diverger. */
-export const CURRENT_PROJECT_SCHEMA = SCHEMA_PROJET;
-
 /**
  * LE constructeur du document de projet — l'unique enveloppe que l'application ÉCRIT, quelle que
  * soit la sortie : « Enregistrer » et « Exporter JSON » de l'éditeur, import d'un fichier à la
- * bibliothèque, export d'une entrée. Il vit ICI, avec `ProjectDoc`, `CURRENT_PROJECT_SCHEMA` et la
- * porte `parseProject` : ce qu'on écrit et ce qu'on relit ont un seul propriétaire.
+ * bibliothèque, export d'une entrée. Il vit ICI, avec `ProjectDoc` et la porte `parseProject` : ce
+ * qu'on écrit et ce qu'on relit ont un seul propriétaire.
  *
  * Les générateurs de campagne y DÉLÈGUENT aussi (`projectDoc`, `scripts/campagne/lib.mjs`) : une
  * seule fabrique de la forme (credo.md:3-4).
  *
- * ORDRE D'ÉCRITURE : `id`, `type`, `label`, `schema`, le reste de l'identité, `narratif`, `scenes`,
+ * ORDRE D'ÉCRITURE : `id`, `type`, `label`, le reste de l'identité, `narratif`, `scenes`,
  * puis `worldMap` et `activeAxes` — l'ordre des paquets GÉNÉRÉS, figé à l'octet par
  * `src/scenes/generateurs-byte-stables.test.ts`. Les clés optionnelles ne s'écrivent que FOURNIES :
  * un `worldMap: undefined` posé se lirait « carte effacée » au diff du document, là où son absence
@@ -583,7 +602,6 @@ export function documentDeProjet(
     id,
     type,
     label,
-    schema: CURRENT_PROJECT_SCHEMA,
     ...resteDeLIdentite,
     narratif,
     scenes,
@@ -596,15 +614,16 @@ export function documentDeProjet(
  *  y vaut `unknown` (cf. `grammaire/document.ts`) —, la vue se pose donc ici, une fois. */
 type ProjetProuve = { [K in keyof ProjectDoc]: ProjectDoc[K] };
 
-/** Étape de la porte qui a refusé : document mal formé (illisible comme projet, ou que la migration
- *  n'a pas pu traverser), version sans migration, schéma, prose adressée non matérialisée (la FORME
- *  DISQUE d'un projet livré, `proseNonMaterialisee`), ou entrée de bibliothèque
- *  (`campagneDeLEntree`, #1627). */
-export type CauseDeRefus = 'mal-forme' | 'version' | 'schema' | 'prose-non-materialisee' | 'entree';
+/** Étape de la porte qui a refusé : document d'un autre format ou mal formé (`projetSchema`), prose
+ *  adressée non matérialisée (la FORME DISQUE d'un projet livré, `proseNonMaterialisee`), ou entrée de
+ *  bibliothèque (`campagneDeLEntree`, #1627). */
+export type CauseDeRefus = 'schema' | 'prose-non-materialisee' | 'entree';
 
-/** Un chemin brut en notation JSON (`narratif.presetsPnj[3].profil`). */
-const cheminJson = (chemin: readonly (string | number)[]): string =>
-  chemin.map((s, i) => (typeof s === 'number' ? `[${s}]` : i === 0 ? s : `.${s}`)).join('') || '(racine)';
+/** LE terme d'un projet, puis d'une scène, que la porte refuse : sans numéro de version, un document
+ *  d'un autre format et un document fautif se refusent par le MÊME schéma (#2404). Sujet du rapport de
+ *  la porte, et dit par chaque écran qui montre un refus. */
+export const PROJET_AUTRE_FORMAT = 'Projet d’un autre format, ou mal formé';
+export const SCENE_AUTRE_FORMAT = 'Scène d’un autre format, ou mal formée';
 
 /** Refus de la porte `parseProject`, MESURÉ : la cause et les fautes (chemin + message), à charge de
  *  l'appelant de les dire à sa surface. Le `message` reste le rapport TECHNIQUE de la porte. Patron :
@@ -629,110 +648,51 @@ export function exigerUnRefus(err: unknown): asserts err is ProjetRefuse {
 
 /** Refus hors schéma : une seule faute, rapportée `Projet invalide : <faute>.` */
 export function refusDeForme(cause: CauseDeRefus, chemin: readonly (string | number)[], faute: string): ProjetRefuse {
-  return new ProjetRefuse(cause, [{ chemin, lieu: chemin, message: faute, code: cause }], `Projet invalide : ${faute}.`);
+  return new ProjetRefuse(cause, [{ chemin, lieu: lieuDe(projetSchema, undefined, chemin), message: faute, code: cause }], `Projet invalide : ${faute}.`);
 }
 
-/** Ce que la porte dit d'un refus de MIGRATION, par la raison que `migrateDoc` NOMME : un numéro
- *  absent ou illisible et un document que les migrations ne savent pas lire sont des documents mal
- *  formés ; une version future ou sans chemin de migration est une affaire de version. */
-const REFUS_DE_MIGRATION: Record<RaisonDeRefus, { cause: CauseDeRefus; chemin: readonly string[]; faute: (schema: string, detail?: string) => string }> = {
-  'non-objet': { cause: 'mal-forme', chemin: [], faute: () => 'document absent ou mal formé' },
-  'version-absente': { cause: 'mal-forme', chemin: ['schema'], faute: (s) => `« schema » absent ou non numérique (schema=${s})` },
-  'version-future': {
-    cause: 'version',
-    chemin: ['schema'],
-    faute: (s) => `version future (schema=${s}) : cette version du jeu lit jusqu'au schema ${CURRENT_PROJECT_SCHEMA}`,
-  },
-  'migrateur-manquant': {
-    cause: 'version',
-    chemin: ['schema'],
-    faute: (s) => `version non supportée (schema=${s}) : aucune migration depuis ce schema vers le schema ${CURRENT_PROJECT_SCHEMA}`,
-  },
-  'migrateur-en-echec': { cause: 'mal-forme', chemin: [], faute: (_s, detail) => `document mal formé (${detail})` },
-};
-
-function refusDeMigration(raison: RaisonDeRefus, schema: unknown, detail?: string): ProjetRefuse {
-  const { cause, chemin, faute } = REFUS_DE_MIGRATION[raison];
-  return refusDeForme(cause, chemin, faute(JSON.stringify(schema), detail));
+/** Une scène persistée HORS de son projet (filet de crash de l'éditeur, `editorAutosave.ts`), PROUVÉE
+ *  par la porte de `parseProject` (`validerFormeVivante`, sur `sceneSchema`), puis `normalizeScene`. Les
+ *  FK intra-document de `projetSchema` (`entity.presetId` → `narratif.presetsPnj`, références narratives
+ *  des Effects) restent à la porte du projet : une scène seule n'a pas de narratif. Ce qui suit la porte
+ *  est une faute du jeu, et se propage. */
+export function parseSceneDeProjet(scene: unknown): Scene {
+  const refus = validerFormeVivante(sceneSchema, scene);
+  if (refus) throw refusDeFormeVivante('Scène', refus);
+  return normalizeScene(scene as Scene);
 }
 
-/** La chaîne de FORME du projet (`PROJECT_MIGRATIONS`), SEULE : le document monté au format courant,
- *  AVANT la porte du schéma. `version` est la clé de travail de `migrateDoc` : le `schema` du document
- *  y est recopié, et en revient à la sortie. Seul `null`/`undefined` n'a pas de champ à lire ; tout le
- *  reste, `migrateDoc` le juge. Refus NOMMÉ (`ProjetRefuse`, `REFUS_DE_MIGRATION`). Partagée par
- *  `parseProject` et `migreSceneDeProjet`. */
-function migreFormeDeProjet(data: unknown): Record<string, unknown> {
-  const obj = data as Record<string, unknown> | null | undefined;
-  const issue = migrateDoc(obj == null ? obj : { ...obj, version: obj.schema }, PROJECT_MIGRATIONS);
-  if (!issue.ok) throw refusDeMigration(issue.raison, issue.version, issue.detail);
-  return { ...issue.doc, schema: issue.doc.version };
+function refusDeFormeVivante(sujet: 'Projet' | 'Scène', { cause, fautes }: RefusDeFormeVivante): ProjetRefuse {
+  if (cause === 'schema') return new ProjetRefuse(cause, fautes, rapportDeFautes(sujet === 'Projet' ? PROJET_AUTRE_FORMAT : SCENE_AUTRE_FORMAT, fautes));
+  return new ProjetRefuse(cause, fautes, `${sujet} invalide : ${fautes.map((f) => cheminLisible(f.lieu)).join(', ')} — ${fautes[0].message}`);
 }
 
-/** Une scène persistée HORS de son projet (filet de crash de l'éditeur, `editorAutosave.ts`), au
- *  `schema` de projet qu'elle portait à l'écriture : montée au format courant par la MÊME chaîne que
- *  `parseProject`, PROUVÉE par `sceneSchema`, puis `normalizeScene`. Sans `schema` lisible, la chaîne
- *  refuse (`version-absente`) : aucune version n'est supposée. Les FK intra-document de `projetSchema`
- *  (`entity.presetId` → `narratif.presetsPnj`, références narratives des Effects) restent à la porte
- *  du projet : une scène seule n'a pas de narratif. Pour la même raison, une scène dont la montée
- *  soulèverait un document (`PROJECT_MIGRATIONS[17]`) est REFUSÉE, nommément — jamais tronquée. Ce qui
- *  suit le schéma est une faute du jeu, et se propage. */
-export function migreSceneDeProjet(scene: unknown, schema: unknown): Scene {
-  const monte = (migreFormeDeProjet({ schema, scenes: [scene] }).scenes as unknown[])[0];
-  const fautes = validateDocument(sceneSchema, monte);
-  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes('Scène', fautes));
-  return normalizeScene(monte as Scene);
-}
-
-/** Parse un document de projet, migrant au besoin via `migrateDoc`. Refus EXPLICITE (`ProjetRefuse`,
- *  jamais un throw sec sans espoir de migration), dont la cause se LIT : la raison d'un refus de
- *  migration est celle que `migrateDoc` nomme (`REFUS_DE_MIGRATION`) ; puis forme finale invalide
- *  (`scenes` absent/non-tableau), schéma enfreint, ou prose adressée sans son texte (la forme
- *  disque d'un projet livré : un lecteur Node passe par `lireProjetLivre`). Les anciens formats (tableau de scènes nu,
- *  scène unique) restent refusés : ils n'ont jamais porté de `schema`. Chaque scène ressort passée
- *  par `normalizeScene` (`scene.ts`) : les collections requises absentes d'un document ancien (même
- *  schema 2) sont complétées ici, au SEUL point d'entrée, jamais par un `?? []` dispersé côté
- *  consommateur. La porte n'altère JAMAIS ce qu'on lui passe. Ce qui suit le schéma travaille sur
- *  un document PROUVÉ : une exception y est une faute du jeu, pas de l'auteur, et se propage.
- *  Inverse : `projetVersDepot`. */
-export function parseProject(data: unknown): Omit<ProjectDoc, 'schema'> {
-  const migrated = migreFormeDeProjet(data);
-  if (!Array.isArray(migrated.scenes)) {
-    throw refusDeForme('mal-forme', ['scenes'], '« scenes » absent ou non-tableau');
-  }
-  // Porte UNIQUE du document (#1466) : `projetSchema` porte la FORME et les sémantiques du seam —
-  // FK `activeAxes` → `axes.json`, FK `worldMap.places[].port.ref` → `naval-ports.json`, invariants
-  // du bloc narratif, FK intra-document `entity.presetId` → `narratif.presetsPnj`, invariant
-  // d'identité. Validé AVANT `resolvePortRef` et `normalizeScene` : le schéma voit le document tel
-  // qu'il est authoré. `version` est la clé de travail de `migrateDoc`, pas un champ du document :
-  // elle ne lui est pas soumise.
-  const { version: _version, ...doc } = migrated;
-  const fautes = validateDocument(projetSchema, doc);
-  if (fautes) throw new ProjetRefuse('schema', fautes, rapportDeFautes('Projet', fautes));
-  // Un nœud ADRESSÉ sans son texte est la forme disque : le lire tel quel perdrait la prose en silence.
-  const nus = proseNonMaterialisee(doc);
-  if (nus.length > 0) {
-    const cause = 'prose-non-materialisee';
-    const message = 'prose adressée (`descRef`) sans son texte (`desc`)';
-    throw new ProjetRefuse(
-      cause,
-      nus.map((chemin) => ({ chemin, lieu: chemin, message, code: cause })),
-      `Projet invalide : ${message} — ${nus.map(cheminJson).join(', ')}.`,
-    );
-  }
+/** Parse un document de projet. `validerFormeVivante` (`projetSchema` sur la forme disque, puis la
+ *  complétude de la prose sur le reçu, #2001) est le SEUL contrôle de forme (#2404) : un document d'un
+ *  autre format, ou fautif, est REFUSÉ (`ProjetRefuse`, cause `schema`, rapport zod), jamais migré ; une
+ *  prose adressée sans son texte (la forme disque d'un projet livré : un lecteur Node passe par
+ *  `lireProjetLivre`) l'est sous la cause `prose-non-materialisee`. `projetSchema` porte la FORME et les
+ *  sémantiques du seam — FK `activeAxes` → `axes.json`, FK `worldMap.places[].port.ref` →
+ *  `naval-ports.json`, invariants du bloc narratif, FK intra-document `entity.presetId` →
+ *  `narratif.presetsPnj`, invariant d'identité —, validé AVANT `resolvePortRef` et `normalizeScene`.
+ *  Chaque scène ressort passée par `normalizeScene` (`scene.ts`), au SEUL point d'entrée. La porte
+ *  n'altère JAMAIS ce qu'on lui passe. Ce qui suit la porte travaille sur un document PROUVÉ : une
+ *  exception y est une faute du jeu, pas de l'auteur, et se propage. Inverse : `projetVersDepot`. */
+export function parseProject(data: unknown): ProjectDoc {
+  const refus = validerFormeVivante(projetSchema, data);
+  if (refus) throw refusDeFormeVivante('Projet', refus);
+  // La porte VIENT de prouver la forme : le document se relit donc sous sa VUE TS, en une conversion
+  // (`ProjetProuve`, ci-dessus) plutôt que par un aller-retour `unknown`. Les champs d'identité sortent
+  // du RESTE, typés : rien de ce que le document porte en plus ne peut s'y glisser muet.
+  const doc = data as ProjetProuve;
 
   // Carte et lieux NEUFS : les ports se résolvent sur la copie, jamais sur le document reçu.
-  const carteRecue = migrated.worldMap as WorldMap | undefined;
+  const { scenes, worldMap: carteRecue, activeAxes, narratif, ...identite } = doc;
   const worldMap = carteRecue && {
     ...carteRecue,
     places: carteRecue.places.map((p) => (p.port ? { ...p, port: resolvePortRef(p.port) } : p)),
   };
-  const activeAxes = (migrated.activeAxes as string[] | undefined) ?? undefined;
-  const narratif = migrated.narratif as NarratifBlock;
-  // Le schéma VIENT de prouver la forme : le document se relit donc sous sa VUE TS, en une conversion
-  // (`ProjetProuve`, ci-dessus) plutôt que par un aller-retour `unknown`. Les champs d'identité sortent
-  // du RESTE, typés : rien de ce que le document porte en plus ne peut s'y glisser muet.
-  const { schema: _schema, scenes: _scenes, worldMap: _wm, activeAxes: _aa, narratif: _na, ...identite } = doc as ProjetProuve;
-  return { ...identite, scenes: (migrated.scenes as Scene[]).map(normalizeScene), worldMap, activeAxes, narratif };
+  return { ...identite, scenes: scenes.map(normalizeScene), worldMap, activeAxes, narratif };
 }
 
 /**

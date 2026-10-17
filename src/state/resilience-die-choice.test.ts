@@ -174,28 +174,3 @@ describe('defenseSetForcedRoll — même choix sur une DÉFENSE forcée', () => 
   });
 });
 
-describe('trampleSetForcedRoll — même choix sur un PIÉTINEMENT forcé (fabrique rollFlow)', () => {
-  it('11 → Coup Critique ; valeur > cible refusée', () => {
-    seedBattleRng(7);
-    const attacker = C({ id: 'A', label: 'Ogre', resilience: 2 });
-    const target = C({ id: 'B', label: 'Gnoblar', kind: 'enemy', pos: { x: 1, y: 0 } });
-    useGame.setState({
-      battle: { combatants: [attacker, target], log: [] } as never,
-      pendingTrample: {
-        attackerId: 'A', targetId: 'B',
-        result: {
-          hit: false, attackerRoll: 90, netSL: -5, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'raté',
-          attackerDetail: { label: 'Bagarre', base: 45, modifier: 0, target: 45, roll: 90, success: false, sl: -5 },
-        },
-      } as never,
-    });
-    useGame.getState().trampleForceSuccess();
-    expect(useGame.getState().pendingTrample!.forced).toBe(true);
-    useGame.getState().trampleSetForcedRoll(11);
-    const res = useGame.getState().pendingTrample!.result!;
-    expect(res.attackerRoll).toBe(11);
-    expect(res.critical).toBe(true);
-    useGame.getState().trampleSetForcedRoll(66); // > cible (45) : refusé
-    expect(useGame.getState().pendingTrample!.result!.attackerRoll).toBe(11);
-  });
-});

@@ -198,7 +198,7 @@ describe('runPreemptShots — le Tir rapide de l\'IA joue le MÊME Test de Main 
     useGame.setState({
       scene: { ...emptyScene(10, 8), weather: 'clair', layers: [{ z: 0, tiles }] },
       gameTime: 0,
-      battle: { combatants: [sh, near, far], order: ['f', 'near', 'far'], turn: 0, round: 1, log: [],
+      battle: { combatants: [sh, near, far], order: ['near', 'far', 'f'], turn: 0, round: 1, log: [], // tireur DERNIER : la boucle finie ouvre le Round (`ouvrirLeRound`), qui consommerait son dû
         acted: false, movementUsed: 0, movedPreAction: false, loadoutSwapped: false, reachable: new Map() } as never,
     });
     seedBattleRng(6); // seed où le Test PASSE : l'ancien code re-gaterait le 2ᵉ candidat (2 lignes)

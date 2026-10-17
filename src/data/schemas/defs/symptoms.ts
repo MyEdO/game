@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `symptoms.json` — dérivé de l'inventaire COMPLET des clés (script node, n=16/16) et de
  * `SymptomData`/`SymptomCapabilities` (`src/data/index.ts`).
@@ -15,38 +16,40 @@ const difficultySchemaLocal = z.enum([
 ]);
 
 /** `SymptomCapabilities` (`src/data/index.ts`) — sac de flags CLOS. */
-const symptomCapabilitiesSchema = z.strictObject({
+const symptomCapabilitiesSchema = nommerChamps(z.strictObject({
   blocksHealing: z.boolean().optional(),
   amputation: z.boolean().optional(),
   contagious: z.boolean().optional(),
   nausea: z.boolean().optional(),
   endTest: z.boolean().optional(),
   persistentActive: z.boolean().optional(),
+}), {
+  blocksHealing: { label: 'Soins bloqués' },
+  amputation: { label: 'Amputation' },
+  contagious: { label: 'Contagieux' },
+  nausea: { label: 'Nausée' },
+  endTest: { label: 'Test de fin' },
+  persistentActive: { label: 'Actif en permanence' },
 });
 
 const hitLocationSchema = z.enum(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD']);
 
-/** Le JET du cycle et sa CONSÉQUENCE : le nœud `test` du Flow, difficulté REQUISE (LDB 20 l.212). */
+/** LDB 20 l.212 */
 const noeudDuCycle = noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true });
 
-/**
- * Cycle de PHASE ACTIVE d'un symptôme. Le porteur dit QUAND (`afterDays`/`once`, ordonnancement) et
- * CE QUE la sévérité de l'instance change (`difficultyBySeverity`) ; le JET et sa conséquence vivent
- * dans le nœud `test`. Un cycle SANS jet (MSRC 16 l.142) n'est pas une épreuve : il porte `ops`, la
- * liste de `GameOp` CERTAINS — même graphie que `passive`/`passiveBySeverity`/`visiblePassive`.
- */
-const onTickSchema = z
+/** MSRC 16 l.142 */
+const onTickSchema = nommerChamps(z
   .strictObject({
     test: noeudDuCycle.optional(),
     ops: z.array(gameOpSchema).optional(),
-    /** Toxine (LDB 20 l.215) : Modéré→Facile, Grave→Accessible — lu par `symptomOnTick`. */
-    difficultyBySeverity: z
+    /** LDB 20 l.215 */
+    difficultyBySeverity: nommerChamps(z
       .strictObject({
         moderee: difficultySchemaLocal.optional(),
         grave: difficultySchemaLocal.optional(),
-      })
+      }), { moderee: { label: 'Modérée' }, grave: { label: 'Grave' } })
       .optional(),
-    /** Ne démarre qu'au Nᵉ jour de PHASE ACTIVE (Vers de carie J+7, Vers du Reik 7ᵉ jour — MSRC 16). */
+    /** MSRC 16 */
     afterDays: z.number().optional(),
     /** UNE seule fois (au jour `afterDays` exact — Vers du Reik) ; absent = quotidien (Vers de carie). */
     once: z.boolean().optional(),
@@ -65,29 +68,30 @@ const onTickSchema = z
         message: '`difficultyBySeverity` indexe la Difficulté d’une épreuve — un cycle sans `test` n’en a aucune.',
       });
     }
-  });
+  }), {
+  test: { label: 'Test' },
+  ops: { label: 'Opérations' },
+  difficultyBySeverity: { label: 'Difficulté par gravité' },
+  afterDays: { label: 'Délai en jours' },
+  once: { label: 'Une seule fois' },
+});
 
 const doc = document(
   'symptoms',
   famille,
   {
     passive: z.array(gameOpSchema).optional(),
-    /** Passifs qui S'AJOUTENT à `passive` dès que l'instance atteint ce palier de sévérité (échelle
-     *  `moderee` → `grave`) — même indexation que `onTick.difficultyBySeverity`. La MAGNITUDE d'une
-     *  pénalité de palier est ABSOLUE (le pool de `effectiveChar` retient la pire, elles ne s'additionnent
-     *  pas) : un palier ne REDIT que ce qu'il change. LDB 20 l.157 (Convulsions Modéré −20), l.170
-     *  (Fièvre Grave : un État, les −10 de base tenant sans être recopiés). */
-    passiveBySeverity: z
+    /** LDB 20 l.157 */
+    passiveBySeverity: nommerChamps(z
       .strictObject({
         moderee: z.array(gameOpSchema).optional(),
         grave: z.array(gameOpSchema).optional(),
-      })
+      }), { moderee: { label: 'Modérée' }, grave: { label: 'Grave' } })
       .optional(),
-    /** Effets DÉCLENCHÉS du symptôme (Crampes abdominales `onOwnTestFailed`, MSRC 16) — MÊME schéma que
-     *  Traits/Atouts (`triggeredEffectSchema`) ; source du dispatcher via `effectSourcesOf`. */
+    /** MSRC 16 */
     effects: z.array(triggeredEffectSchema).optional(),
     onTick: onTickSchema.optional(),
-    /** Passifs gatés sur la VISIBILITÉ de la lésion (Vers du Reik −10 Soc, MSRC 16 l.140). */
+    /** MSRC 16 l.140 */
     visiblePassive: z.array(gameOpSchema).optional(),
     /** Localisations VISIBLES (`maison`) qui activent `visiblePassive`. */
     visibleLocations: z.array(hitLocationSchema).optional(),

@@ -10,7 +10,7 @@
  */
 import { CustomStatblock } from '../../state/scene';
 import { CHAR_KEYS, CHAR_LABELS, CharKey } from '../../engine/types';
-import { creatures, findCreatureById, skillRefLabel, tailleDuProfil, talentRefLabel } from '../../data';
+import { charAbr, creatures, findCreatureById, skillRefLabel, tailleDuProfil, talentRefLabel } from '../../data';
 import { woundsForSize, resizeBySteps, stepSize, SIZE_LABEL, SIZE_ORDER } from '../../engine/size';
 import { bonus } from '../../engine/characteristics';
 import { SpellsField } from './OptionalTraitsPicker';
@@ -87,7 +87,7 @@ export function StatblockEditor({ stat, onChange }: { stat: CustomStatblock; onC
       <div className="statblock-grid">
         {(CHAR_KEYS as CharKey[]).map((k) => (
           <label key={k} className="ed-subfield" title={CHAR_LABELS[k]}>
-            {k}
+            {charAbr(k)}
             <NumberField variant="nu" label={CHAR_LABELS[k]} value={stat.char[k] ?? 30} onChange={(v) => setChar(k, v)} />
           </label>
         ))}

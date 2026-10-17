@@ -18,15 +18,8 @@ import { findCreatureById, refEntiteResolue, structures } from './data';
 /** Les réfs MORTES que leur test PROUVE (refus, repli signalé) — `fichier|ligne du site` (texte, espaces réduits). */
 const MORTES_PROUVEES = new Set<string>([
   "src/gameIso/tokenBodyKind.test.ts|const r = tokenBodyKind({ kind: 'sceneEntity', ent: ent({ id: 'e', kind: 'personnage', ref: 'ref-totalement-inconnue' }) });",
-  "src/scenes/migrations-format-projet.test.ts|{ id: 't', flow: { kind: 'do', effect: { type: 'startPursuit', foes: [{ ref: { creatureId: '' } }] } } },",
   "src/state/give-possession-effect.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: '' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « (aucune) »' }]);",
   "src/state/give-possession-effect.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { creatureId: 'licorne-mauve' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « licorne-mauve »' }]);",
-  "src/state/projet-migration-12-vers-13.test.ts|{ id: 'a', kind: 'personnage', ref: '', pos: { x: 0, y: 0 }, appearance: { species: ESPECE } },",
-  "src/state/projet-migration-12-vers-13.test.ts|{ id: 'b', kind: 'personnage', ref: '', presetId: '', pos: { x: 0, y: 0 } },",
-  "src/state/projet-migration-13-vers-14.test.ts|{ kind: 'do', effect: { type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { creatureId: '' } }], encounter: '' } },",
-  "src/state/projet-migration-13-vers-14.test.ts|{ kind: 'do', effect: { type: 'givePossession', nature: 'bete', ref: { creatureId: '' } } },",
-  "src/state/projet-migration-13-vers-14.test.ts|const PERIL_POSSESSION = { type: 'givePossession', nature: 'bete', ref: { creatureId: '' } };",
-  "src/state/projet-migration-13-vers-14.test.ts|const PERIL_POURSUITE = { type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { creatureId: '' } }], encounter: '' };",
   "src/state/validateScene-contenu.test.ts|expect(() => spawnEnemy({ ref: 'ref-qui-nexiste-nulle-part' }, 'e-1', { x: 2, y: 2 })).toThrow(RefIrresoluble);",
   "src/ui/editor/editorState.test.ts|expect(() => placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))",
 ]);

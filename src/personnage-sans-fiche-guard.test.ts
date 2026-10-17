@@ -4,7 +4,6 @@ import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { typeNonNomme } from './data/schemas/defs-scenes/scene';
-import { CURRENT_PROJECT_SCHEMA } from './state/worldMap';
 import { detenteur } from './detenteur.testkit';
 
 /**
@@ -15,15 +14,13 @@ import { detenteur } from './detenteur.testkit';
 const GARDE = {
   question:
     'Quelle fixture de test pose un personnage de scène qui ne NOMME aucune fiche ? Réponse attendue : ' +
-    'aucune, hors les tests dont il est le SUJET et les documents d’un format antérieur.',
+    'aucune, hors les tests dont il est le SUJET.',
   primitive:
     'Parcours AST (`typescript`) des suites de `src/**` (`readCorpus`, `estSuiteVitest`) : tout littéral ' +
     'objet `kind: \'personnage\'` + `pos` est jugé par `typeNonNomme` (`defs-scenes/scene.ts`), la source ' +
     'unique du schéma et de `validateScene` — aucune liste de porteurs recopiée ici.',
   perimetre:
-    'Les suites Vitest de `src/**`. Exemptés par FORME : une entité au chemin `scenes[].entities[]` d’un ' +
-    'document au `schema` littéral antérieur à `CURRENT_PROJECT_SCHEMA` (entrée de migration). Exemptés au SITE : ' +
-    '`SANS_FICHE_PROUVES`, chacun dans le `it` dont il est le sujet.',
+    'Les suites Vitest de `src/**`. Exemptés au SITE : `SANS_FICHE_PROUVES`, chacun dans le `it` dont il est le sujet.',
   angleMort: [
     'Un littéral à ÉTALEMENT (`{ ...over, kind, pos }`) est indécidable sans le vérificateur de types : ' +
       'il n’est pas jugé — la fabrique qui le porte doit le typer elle-même.',
@@ -37,16 +34,15 @@ const GARDE = {
   ticket: '#1882',
 } as const;
 
-/** Les tests dont le personnage sans fiche est le SUJET (refus, transition jugée, migration à la
- *  lecture) — le littéral fautif est ce qu'ils prouvent. */
+/** Les tests dont le personnage sans fiche est le SUJET (refus, transition jugée) — le littéral fautif
+ *  est ce qu'ils prouvent. */
 const SANS_FICHE_PROUVES: readonly { fichier: string; it: string }[] = [
   { fichier: 'src/state/validateScene-contenu.test.ts', it: 'un PERSONNAGE sans fiche est une erreur nommée ; chaque porteur SEUL (réf, statbloc, preset) la lève (#1882)' },
   { fichier: 'src/state/spawn-fallback.test.ts', it: 'une entité sans porteur qui franchit la porte est un BOGUE, dit par `FicheAbsente` en nommant l’entité' },
-  { fichier: 'src/state/projet-migration-12-vers-13.test.ts', it: 'au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin `ref`' },
-  { fichier: 'src/state/projet-migration-12-vers-13.test.ts', it: 'au SCHÉMA : une réf VIDE est une absence, une réf MORTE est refusée en la nommant (#1882)' },
-  { fichier: 'src/state/projet-migration-12-vers-13.test.ts', it: 'au SCHÉMA : la famille est CELLE du spawn — un équipement sans affut, un véhicule sans coque sont refusés au PARSE (#1882)' },
+  { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin `ref`' },
+  { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : une réf VIDE est une absence, une réf MORTE est refusée en la nommant (#1882)' },
+  { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : la famille est CELLE du spawn — un équipement sans affut, un véhicule sans coque sont refusés au PARSE (#1882)' },
   { fichier: 'src/state/sceneEdit.test.ts', it: 'un patch sans rapport sur une entité DÉJÀ sans type passe ; `validateScene` la nomme' },
-  { fichier: 'src/state/editorAutosave.test.ts', it: 'un autosave au format 12 est restauré TYPÉ par la migration, et un patch de cap passe' },
 ];
 
 type Site = { rel: string; ligne: number; it?: string; faute: string };
@@ -71,25 +67,6 @@ const champs = (o: ts.ObjectLiteralExpression): Map<string, ts.Expression | unde
   return m;
 };
 
-/** Remonte d'un élément de tableau littéral à l'objet qui porte ce tableau sous la clé `cle`. */
-function porteurDuTableau(element: ts.Node, cle: string): ts.ObjectLiteralExpression | undefined {
-  const tableau = element.parent;
-  if (!tableau || !ts.isArrayLiteralExpression(tableau)) return undefined;
-  const prop = tableau.parent;
-  if (!prop || !ts.isPropertyAssignment(prop) || !('name' in prop && ts.isIdentifier(prop.name)) || prop.name.text !== cle) return undefined;
-  return ts.isObjectLiteralExpression(prop.parent) ? prop.parent : undefined;
-}
-
-/** L'entité est-elle au chemin `scenes[].entities[]` d'un document au format ANTÉRIEUR
- *  (`schema: <n>`, n < courant) ? */
-function dansUnFormatAnterieur(node: ts.Node): boolean {
-  const scene = porteurDuTableau(node, 'entities');
-  const doc = scene && porteurDuTableau(scene, 'scenes');
-  const schema = doc && champs(doc).get('schema');
-  const e = schema && sansEnrobage(schema);
-  return !!e && ts.isNumericLiteral(e) && Number(e.text) < CURRENT_PROJECT_SCHEMA;
-}
-
 /** Titre du `it(...)`/`test(...)` qui contient le nœud. */
 function itEnglobant(node: ts.Node): string | undefined {
   for (let p = node.parent; p; p = p.parent) {
@@ -107,7 +84,7 @@ export function personnagesSansFiche(rel: string, raw: string, sf = ast({ rel, t
     if (ts.isObjectLiteralExpression(node) && !node.properties.some(ts.isSpreadAssignment)) {
       const c = champs(node);
       const kind = c.get('kind');
-      if (kind && texteLitteral(kind) === 'personnage' && c.has('pos') && !dansUnFormatAnterieur(node)) {
+      if (kind && texteLitteral(kind) === 'personnage' && c.has('pos')) {
         const porte = (cle: string) => {
           const v = c.get(cle);
           const e = v && sansEnrobage(v);
@@ -155,19 +132,8 @@ describe('personnage-sans-fiche-guard : aucune fixture ne pose un personnage san
     ["{ id: 'a', kind: 'personnage', pos: P, statblock: SB }", 'statbloc'],
     ["{ id: 'a', kind: 'personnage', pos: P, presetId: 'baron' }", 'preset'],
     ["{ id: 'a', kind: 'prop', pos: P, ref: 'tonneau' }", 'autre kind'],
-    ["{ schema: 12, scenes: [{ entities: [{ id: 'a', kind: 'personnage', pos: P }] }] }", 'document au format antérieur'],
   ])('le détecteur laisse passer %s (%s)', (litteral) => {
     expect(personnagesSansFiche('x.test.ts', `const v = ${litteral};`)).toEqual([]);
-  });
-
-  it('l’exemption se borne au chemin `scenes[].entities[]` du document antérieur', () => {
-    const horsChemin = "const v = { schema: 12, fixtures: [{ id: 'a', kind: 'personnage', pos: P }] };";
-    expect(personnagesSansFiche('x.test.ts', horsChemin)).toHaveLength(1);
-  });
-
-  it('un document au format COURANT n’est pas exempté', () => {
-    const src = `const v = { schema: ${CURRENT_PROJECT_SCHEMA}, scenes: [{ entities: [{ id: 'a', kind: 'personnage', pos: P }] }] };`;
-    expect(personnagesSansFiche('x.test.ts', src)).toHaveLength(1);
   });
 
   it('aucune fixture de test ne pose un personnage sans fiche', { timeout: 60_000 }, () => {

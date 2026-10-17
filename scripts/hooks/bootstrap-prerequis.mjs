@@ -6,9 +6,6 @@
 /** Budget d'un CONSTAT : trois commandes courtes (`git rev-parse`, `git config`, `gh --version`). */
 export const BUDGET_CONSTAT = 10
 
-/** Journal du `docs:build` DÉTACHÉ d'un conteneur neuf, relatif à la racine. */
-export const JOURNAL_DOCS = 'node_modules/.cache/bootstrap-docs-build.log'
-
 /** Ce que le canon exige d'un arbre de travail, et comment le poser. `manque` MESURE, `poser` agit :
  *  un prérequis déjà satisfait ne fait rien. `budget` borne le temps total de `poser`, en secondes. */
 export const PREREQUIS = [
@@ -28,18 +25,19 @@ export const PREREQUIS = [
     // fusion (fiches MIXTES, stocks), puis produit les cibles de code ; sans lui, aucune garde de
     // commit ne joue.
     manque: ({ depot, gestes }) => gestes.dossierDesHooks(depot) !== 'scripts/git-hooks',
-    poser: ({ racine, run, budget }) =>
-      run('npm', ['install', '--no-audit', '--no-fund'], { cwd: racine, budget }),
+    // Sous le verrou d'outillage de l'arbre (#2187) : la barrière des hooks d'outil l'attend.
+    poser: ({ racine, run, budget, gestes }) =>
+      gestes.sousOutillage(racine, () => run('npm', ['install', '--no-audit', '--no-fund'], { cwd: racine, budget })),
     geste: 'npm install',
     budget: 90,
   },
   {
     nom: 'docs dérivés',
     // Les docs PURS ne sont pas commités (#2203) : un clone neuf ne les porte pas, et `docs:build`
-    // dépasse le budget du hook — il part DÉTACHÉ, son journal nommé.
+    // dépasse le budget du hook — la reconstruction part DÉTACHÉE, son journal nommé.
     manque: ({ racine, gestes }) => !gestes.docsMesures(racine),
-    poser: ({ racine, gestes }) => gestes.docsBuildDetache(racine),
-    geste: `npm run docs:build, détaché (journal ${JOURNAL_DOCS})`,
+    poser: ({ racine, gestes }) => gestes.demanderLesDerives(racine),
+    geste: 'reconstruction détachée des dérivés (journal .git/hooks-git/reconstruction/<pid>.log)',
     budget: 5,
   },
   {

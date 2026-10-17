@@ -15,7 +15,7 @@ import type { TravelPlan } from './travelFlow';
 
 /**
  * PARITÉ de la cible d'un Test de scène : le calcul HISTORIQUE d'`openSkillTest`
- * (`value + DIFFICULTY_MODIFIERS[difficulty] + envMod`, borné par `clampTarget`) et le MONTEUR
+ * (`value + DIFFICULTY_MODIFIERS[difficulty] + météo`, borné par `clampTarget`) et le MONTEUR
  * canonique (`rollStep`, `rollSeam.ts`) rendent la MÊME cible ET le MÊME écrêtage — sur les quatre
  * régimes que ce site fait vivre : acteur sain, acteur à États + Soutien + malus social FONDUS,
  * allègement de Difficulté (`easierIf`), météo maritime SUR la cible. Le 5ᵉ cas exerce l'écrêtage.
@@ -52,8 +52,8 @@ const seaPlan = (precip: 'legeres' | 'abondantes' | 'tres-abondantes'): TravelPl
 } as unknown as TravelPlan);
 
 /** La cible HISTORIQUE, telle que le site la calculait avant le monteur (oracle de la parité). */
-function cibleHistorique(value: number, difficulty: keyof typeof DIFFICULTY_MODIFIERS, envMod = 0): { target: number; clamped?: number } {
-  return clampTarget(value + DIFFICULTY_MODIFIERS[difficulty] + envMod);
+function cibleHistorique(value: number, difficulty: keyof typeof DIFFICULTY_MODIFIERS, meteo = 0): { target: number; clamped?: number } {
+  return clampTarget(value + DIFFICULTY_MODIFIERS[difficulty] + meteo);
 }
 
 /** Les deux montages d'une même situation, comparés champ à champ (cible ET écrêtage). */
@@ -141,17 +141,18 @@ describe('openSkillTest × monteur canonique — la cible est BIT-IDENTIQUE (#11
     expect([pt.target, pt.clamped]).toEqual([monteur.target, monteur.clamped]);
   });
 
-  it('(d) météo maritime (`envMod`) : le mod reste SUR LA CIBLE, hors de la valeur', () => {
+  it('(d) météo maritime : le mod reste SUR LA CIBLE, hors de la valeur', () => {
     const h = hero('h1', { skills: [{ id: 'athletisme', characteristic: 'agilite', advances: 0 }] } as Partial<Combatant>);
     useGame.setState({ party: [h], travelPlan: seaPlan('abondantes') });
     runFlow(useGame.getState, useGame.setState, testFlow({ skill: { id: 'athletisme' }, difficulty: 'intermediaire', requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const pt = useGame.getState().pendingTest!;
-    expect(pt.envMod).toBe(-20);
+    const meteo = (pt.mods ?? []).filter((m) => m.ref === RULE_REF['meteo-maritime']);
+    expect(meteo.map((m) => m.value)).toEqual([-20]);
     expect(pt.skillValue).toBe(40); // la météo n'entre PAS dans la valeur
-    const vieux = cibleHistorique(pt.skillValue, 'intermediaire', pt.envMod!);
+    const vieux = cibleHistorique(pt.skillValue, 'intermediaire', -20);
     const monteur = rollStep({
       actor: h, test: { skill: 'athletisme' }, difficulty: 'intermediaire', valeur: pt.skillValue,
-      surLaCible: [{ label: pt.envLabel!, value: pt.envMod!, famille: 'jet' }] as ModLine[],
+      surLaCible: meteo as ModLine[],
     });
     memeCible(vieux, monteur);
     expect([pt.target, pt.clamped]).toEqual([monteur.target, monteur.clamped]);

@@ -4,47 +4,26 @@
 // capture au réglage par défaut puis aux deux extrêmes du curseur d'opacité du gabarit.
 //
 // Usage : node scripts/recette/shot-editor-lower-layer-gabarit.mjs [--url <url>] [--out dir]
-import { openApp, gotoScreen, evaluate, waitFor, sleep, consoleGuard, shot, VUE_REFERENCE } from './lib.mjs';
+import { DOSSIER_CAPTURES, validerDossierCaptures, openApp, gotoScreen, evaluate, waitFor, sleep, shot, VUE_REFERENCE, clickButtonByText, champParLibelle, selectOption } from './lib.mjs';
 
-function parseArgs(argv) {
-  const out = { url: undefined, out: process.cwd() };
+export function parseArgs(argv) {
+  const out = { url: undefined, out: DOSSIER_CAPTURES };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--url') out.url = argv[++i];
     else if (argv[i] === '--out') out.out = argv[++i];
   }
+  out.out = validerDossierCaptures(out.out);
   return out;
 }
 
-async function clickRowOuvrir(session, needle) {
-  const rect = await evaluate(session, `(() => {
-    const rows = Array.from(document.querySelectorAll('.listrow'));
-    const row = rows.find((r) => (r.textContent || '').includes(${JSON.stringify(needle)}));
-    if (!row) return null;
-    row.scrollIntoView({ block: 'center' });
-    const btn = Array.from(row.querySelectorAll('button')).find((b) => (b.textContent || '').includes('Ouvrir'));
-    if (!btn) return null;
-    const r = btn.getBoundingClientRect();
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  })()`);
-  if (!rect) throw new Error(`clickRowOuvrir : rangée/bouton introuvable pour « ${needle} »`);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
+export async function choisirEtage(session, z) {
+  const selecteur = await champParLibelle(session, 'Étage', { dans: '.ed-level-bar' });
+  if (!selecteur) throw new Error('choisirEtage : contrôle Étage absent');
+  await selectOption(session, selecteur, String(z), { par: 'valeur' });
+  await waitFor(session, `document.querySelector(${JSON.stringify(selecteur)})?.value === ${JSON.stringify(String(z))}`);
 }
 
-async function clickButtonText(session, texte) {
-  const rect = await evaluate(session, `(() => {
-    const norm = (s) => (s || '').replace(/\\s+/g, ' ').trim();
-    const el = Array.from(document.querySelectorAll('button')).find((b) => norm(b.textContent).includes(${JSON.stringify(texte)}));
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-  })()`);
-  if (!rect) throw new Error(`clickButtonText : aucun bouton ne matche « ${texte} »`);
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
-  await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y, button: 'left', clickCount: 1 });
-}
-
-/** Fixe la valeur du curseur `input.ed-subfield input[type=range]` (le gabarit, seul range de la
+/** Fixe la valeur du curseur `.ed-subfield input[type=range]` (le gabarit, seul range de la
  *  barre d'étages) en dispatchant `input`+`change` — React écoute `onChange`. */
 async function setGabaritSlider(session, pct) {
   await evaluate(session, `(() => {
@@ -61,35 +40,24 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   // Ce script OUVRE un écran pour le juger à l'œil : il le cadre à la vue de référence des recettes
   // (`vues-recette.json`), pas à un couple qui lui serait propre.
-  const session = await openApp(args.url ?? undefined, { width: VUE_REFERENCE.largeur, height: VUE_REFERENCE.hauteur });
+  const session = await openApp(args.url ?? undefined, { width: VUE_REFERENCE.largeur, height: VUE_REFERENCE.hauteur, console: true });
   try {
-    const guard = consoleGuard(session);
+    const guard = session.console;
 
     await gotoScreen(session, 'editor');
     await waitFor(session, `!!document.querySelector('svg.editor-iso')`);
 
-    await clickButtonText(session, 'Fichier');
+    await clickButtonByText(session, 'Fichier', { exact: false });
     await sleep(150);
-    await clickButtonText(session, 'Ouvrir');
+    await clickButtonByText(session, 'Ouvrir', { exact: false });
     await waitFor(session, `!!document.querySelector('.listrow')`);
-    await clickRowOuvrir(session, 'La Diligence');
+    await clickButtonByText(session, 'Ouvrir', { rangee: 'La Diligence — exploration', dans: '.modal-overlay' });
     await waitFor(session, `!!document.querySelector('svg.editor-iso') && !document.querySelector('.wide')`);
     // Tracé réel dessiné (pas une carte vide) — attendre le nombre de formes, jamais un délai fixe.
     await waitFor(session, `document.querySelectorAll('svg.editor-iso path, svg.editor-iso polygon').length > 200`, { timeoutMs: 10000 });
 
-    // Couche 1 (bouton ▲ « Couche supérieure ») — scopé à `.ed-level-bar` (CrewPicker réutilise le
-    // même glyphe ailleurs dans l'éditeur, jamais monté ici sans sélection de véhicule).
-    const layerBtn = await evaluate(session, `(() => {
-      const btn = Array.from(document.querySelectorAll('.ed-level-bar button')).find((b) => b.title === 'Couche supérieure');
-      if (!btn) return null;
-      const r = btn.getBoundingClientRect();
-      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-    })()`);
-    if (!layerBtn) throw new Error('bouton « Couche supérieure » introuvable');
-    await session.rpc('Input.dispatchMouseEvent', { type: 'mousePressed', x: layerBtn.x, y: layerBtn.y, button: 'left', clickCount: 1 });
-    await session.rpc('Input.dispatchMouseEvent', { type: 'mouseReleased', x: layerBtn.x, y: layerBtn.y, button: 'left', clickCount: 1 });
-    await waitFor(session, `document.querySelector('.ed-level-z')?.textContent?.includes('Couche 1')`);
-    console.log('couche active :', await evaluate(session, `document.querySelector('.ed-level-z')?.textContent`));
+    await choisirEtage(session, 1);
+    console.log('étage actif : 1');
     await sleep(200);
 
     const shapeCount = await evaluate(session, `document.querySelectorAll('svg.editor-iso path, svg.editor-iso polygon').length`);
@@ -124,7 +92,7 @@ async function main() {
   }
 }
 
-main().catch((e) => {
+if (import.meta.main) main().catch((e) => {
   console.error(`ERR ${e.message}`);
   process.exit(1);
 });

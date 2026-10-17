@@ -34,7 +34,7 @@ function explorationNue() {
   useGame.setState({
     scene: testScene(), mode: 'exploration', battle: null, povActive: false,
     worldMap: null, travelPlan: null, vessel: null, campaignNarratif: null,
-    port: null, landMarket: null, travelRecap: null,
+    port: null, landMarket: null, travelRecap: null, clues: {},
   });
 }
 
@@ -120,6 +120,29 @@ describe('Zone 11 — les 7 ouvreurs vivent SUR le pont, avec leurs conditions',
       });
     });
     expect(ouvreurs()).toEqual(['Possessions du groupe', 'Carnet d’enquête', 'Camper — dormir sur place jusqu’à l’aube']);
+  });
+
+  it('carnet d’enquête : en `.attention`, nom accessible augmenté, SEULEMENT quand un indice est nouveau POUR CE SIÈGE (#2415)', () => {
+    const enquete = {
+      ...emptyNarratif(),
+      affaires: [{ id: 'aff', titre: 'Affaire' }],
+      indices: [{ id: 'ind', affaireId: 'aff', kind: 'indice', titre: 'Indice', stades: [{ id: 's1', prose: 'Prose.' }] }],
+    } satisfies NarratifBlock;
+    const neuf = { stadeCourant: 's1', statut: 'révélé' as const, historique: [{ stade: 's1', at: 0 }] };
+    const net = useGame.getState().net;
+    useGame.setState({ campaignNarratif: enquete, clues: { ind: { ...neuf, vuParSiège: { 0: true } } }, net: { ...net, mySeat: 0 } });
+    monter();
+    const carnet = () => [...host.querySelectorAll('.exploration-dock .worldmap-btn')]
+      .find((b) => b.getAttribute('title') === t('pont.carnet') || b.getAttribute('title') === t('pont.carnetNouveau'))!;
+    expect(carnet().getAttribute('title')).toBe(t('pont.carnet'));
+    expect(carnet().classList.contains('attention')).toBe(false);
+    act(() => { useGame.setState({ clues: { ind: neuf } }); });
+    expect(carnet().getAttribute('title')).toBe(t('pont.carnetNouveau'));
+    expect(carnet().classList.contains('attention')).toBe(true);
+    // Vu par le siège 0 seulement : le pont du siège 1 garde l'alerte.
+    act(() => { useGame.setState({ clues: { ind: { ...neuf, vuParSiège: { 0: true } } }, net: { ...net, mySeat: 1 } }); });
+    expect(carnet().classList.contains('attention'), 'la vue du siège 0 a éteint l’alerte du siège 1').toBe(true);
+    act(() => { useGame.setState({ net }); });
   });
 
   it('CONDITIONNEL — carte du monde : offerte seulement quand la scène EST un lieu connu', () => {
@@ -461,12 +484,12 @@ describe('Zone 11 — la tôle du pont est une PEAU partagée, jamais un scope d
 });
 
 describe('Zone 11 — le journal est SUR le pont hors combat, au RAIL en combat', () => {
-  it('EXPLORATION : le tiroir est la dernière entrée de la rangée, et le rail n’est pas monté', () => {
+  it('EXPLORATION : le tiroir est le dernier enfant du pont, hors de la rangée défilante, et le rail n’est pas monté', () => {
     const el = monter();
     expect(el.querySelector('.hud-rail'), 'hors combat, une seule plaque : le pont').toBeNull();
     const rangee = el.querySelector('.xd-openers')!;
-    expect(rangee.querySelector('.log-drawer'), 'le tiroir est assis DANS la rangée d’ouvreurs').not.toBeNull();
-    expect(rangee.lastElementChild!.classList.contains('log-drawer')).toBe(true);
+    expect(rangee.querySelector('.log-drawer'), 'le panneau reste hors du défileur des ouvreurs').toBeNull();
+    expect(dock()!.lastElementChild!.classList.contains('log-drawer')).toBe(true);
     // Aucun tiroir hors du pont : plus de boîte flottante au coin du champ.
     expect(el.querySelectorAll('.log-drawer')).toHaveLength(el.querySelectorAll('.exploration-dock .log-drawer').length);
   });

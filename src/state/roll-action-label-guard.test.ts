@@ -12,9 +12,11 @@ import { fr } from '../i18n/messages/fr';
  * lui-même l'un de ces deux signes rend la même ligne ambiguë : « Ilsa — Mal de mer — mauvais temps
  * (Résistance) », « Ilsa — Tonneau d'eau (boire) (Résistance) ».
  *
- * COUVERTURE (un détecteur ne mesure que la sienne) : les deux entrées du slot ACTION, en LITTÉRAL —
- * `actionLabel:` (`RollRequest`/`openPartyTest`/`openWorldTest`) et le 2ᵉ argument de
- * `composeRollLabel(`. Ce que ce scan ne voit PAS : un libellé venu de la DONNÉE (`def.label` d'une
+ * COUVERTURE (un détecteur ne mesure que la sienne) : les trois entrées du slot ACTION —
+ * `actionLabel:` (`RollRequest`/`openPartyTest`/`openWorldTest`), le 2ᵉ argument de
+ * `composeRollLabel(` et le `label:` du `FlowTest` littéral passé à `openSkillTest(` (titre Z0 de la
+ * modale de Test : `useTestJetProps`, `title: pt.label`) —, en LITTÉRAL et en CLÉ de catalogue (`t('cle')`/`tr('cle')`, résolue au
+ * catalogue FR : c'est le texte rendu qui compte). Ce que ce scan ne voit PAS : un libellé venu de la DONNÉE (`def.label` d'une
  * Activité, `game.label` d'un jeu de taverne, `hazard.label` d'un péril) — mesuré à la main au
  * 2026-08-05, conforme côté `activities.json` (contexte `mer`) et `tavernGames.json` ; les deux
  * libellés à tiret d'`activities.json` (`semer-dissension-*`) sont de contexte `interlude`, qui
@@ -26,10 +28,18 @@ import { fr } from '../i18n/messages/fr';
  *  au Source en porte (« Ça va lâcher, capitaine ! », MDG 13 l.121). */
 const RESERVED = /[()—]/;
 
-/** Littéraux en position de LIBELLÉ D'ACTION : `actionLabel: '…'` et `composeRollLabel(x, '…', …)`.
- *  Les trois formes de chaîne sont couvertes ; une interpolation `${…}` n'est PAS un signe réservé
- *  (« Évaluer ${offer.label} » est conforme), seuls les signes ÉCRITS comptent. */
-const ACTION_LABEL_RX = /(?:actionLabel:\s*|composeRollLabel\(\s*[^,()]+,\s*)(['"`])((?:\\.|(?!\1)[\s\S])*?)\1/g;
+/** Les trois ANCRES du slot ACTION. Celle d'`openSkillTest(get, set, { … label: … })` lit le `label:` de
+ *  PREMIER niveau du `FlowTest` littéral (deux niveaux d'objets imbriqués franchis : `skill: { id }`,
+ *  `stake: combatStakeRef(…, { values: { … } })`) ; un `FlowTest` passé par variable n'est pas lu ici. */
+const ACTION_SLOT = String.raw`(?:actionLabel:\s*|composeRollLabel\(\s*[^,()]+,\s*|openSkillTest\(\s*[^,()]+,\s*[^,()]+,\s*\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*?\blabel:\s*)`;
+
+/** Littéraux en position de LIBELLÉ D'ACTION (`ACTION_SLOT`). Les trois formes de chaîne sont
+ *  couvertes ; une interpolation `${…}` n'est PAS un signe réservé (« Évaluer ${offer.label} » est
+ *  conforme), seuls les signes ÉCRITS comptent. */
+const ACTION_LABEL_RX = new RegExp(ACTION_SLOT + String.raw`(['"${'`'}])((?:\\.|(?!\1)[\s\S])*?)\1`, 'g');
+
+/** Le MÊME slot en CLÉ de catalogue, paramétrée ou non, alias `tr(` compris (forme de `ROLL_LABEL_KEY_RX`). */
+const ACTION_LABEL_KEY_RX = new RegExp(ACTION_SLOT + String.raw`t\s*r?\(\s*'([^']+)'\s*[,)]`, 'g');
 
 export interface ActionLabelHit { line: number; text: string }
 
@@ -42,28 +52,19 @@ export function scanActionLabels(src: string): ActionLabelHit[] {
     if (!RESERVED.test(m[2])) continue;
     hits.push({ line: src.slice(0, m.index).split('\n').length, text: m[2] });
   }
+  for (const m of src.matchAll(ACTION_LABEL_KEY_RX)) {
+    const text = (fr as Record<string, string>)[m[1]];
+    if (text == null || !RESERVED.test(text)) continue;
+    hits.push({ line: src.slice(0, m.index).split('\n').length, text });
+  }
   return hits;
 }
 
-/**
- * EXEMPTION AU SITE (jamais au fichier) — un seul site, motivé : le péril à dégager est une DONNÉE
- * (`sea-perils.json` : Iceberg / Débris marins / Rocher / Bas-fonds) sans article, et aucune
- * composition nominale ne le recolle sans en inventer un. Le libellé reste tel quel tant que
- * l'arbitrage n'est pas rendu ; l'entrée porte le FICHIER et le TEXTE exact (pas une ligne, qui
- * dérive, ni un fichier entier, qui blanchirait tout ce qu'il contiendra).
- */
-const ACTION_LABEL_STOCK: { file: string; text: string }[] = [
-  { file: 'src/state/seaVoyageFlow.ts', text: 'Dégagement — ${label}' },
-];
-
 describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse ni tiret long (#1078)', () => {
-  it('aucun libellé d’action hors stock ne porte un signe réservé', () => {
+  it('aucun libellé d’action ne porte un signe réservé', () => {
     const offenders: string[] = [];
     for (const { rel, text } of readCorpus(['src'])) {
-      for (const h of scanActionLabels(text)) {
-        if (ACTION_LABEL_STOCK.some((s) => s.file === rel && s.text === h.text)) continue;
-        offenders.push(`${rel}:${h.line} — « ${h.text} »`);
-      }
+      for (const h of scanActionLabels(text)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
     }
     expect(
       offenders,
@@ -74,6 +75,20 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
   it('fail-closed : une parenthèse d’usage SYNTHÉTIQUE est détectée', () => {
     expect(scanActionLabels(`label: composeRollLabel(h, "Tonneau d'eau (boire)", test),`)).toHaveLength(1);
     expect(scanActionLabels(`  actionLabel: 'Recherche active (au port)',`)).toHaveLength(1);
+  });
+
+  it('fail-closed : une CLÉ de catalogue dont le texte porte un signe réservé est détectée, dans les deux entrées du slot', () => {
+    expect(scanActionLabels("label: composeRollLabel(force.actor, t('difficulty.intermediaire', { label }), test),")).toHaveLength(1);
+    expect(scanActionLabels("  actionLabel: tr('difficulty.intermediaire'),")).toHaveLength(1);
+    expect(scanActionLabels("label: composeRollLabel(force.actor, t('sv.degagement'), test),")).toEqual([]);
+  });
+
+  it('fail-closed : le `label` du FlowTest littéral d’`openSkillTest` est le slot ACTION', () => {
+    expect(scanActionLabels("openSkillTest(get, set,\n  { skill: { id: skillId }, difficulty: 'intermediaire', label: `Avantage — ${skillLabel}`, stake: combatStakeRef('x', { values: { capChar } }) },\n  EMPTY_FLOW)")).toHaveLength(1);
+    expect(scanActionLabels("openSkillTest(get, set, { stake: combatStakeRef('x', { values: { a: 1 } }), label: 'Recherche (au port)' }, EMPTY_FLOW)"), 'après deux niveaux imbriqués').toHaveLength(1);
+    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'x' }, label: t('difficulty.intermediaire') }, EMPTY_FLOW)"), 'clé de catalogue').toHaveLength(1);
+    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'commandement' }, label: t('step.contagion') }, EMPTY_FLOW)")).toEqual([]);
+    expect(scanActionLabels("openSkillTest(get, set, { skill: { id: 'x', label: 'Voile (Chaland)' } }, EMPTY_FLOW)"), 'un `label:` imbriqué n’est pas le slot').toEqual([]);
   });
 
   it('fail-closed : un tiret long de situation SYNTHÉTIQUE est détecté', () => {
@@ -97,13 +112,11 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
  * BOUTON « Lancer », `RollRowProps` — autre champ, hors périmètre) doit être un libellé du CATALOGUE
  * — compétence (`skills`), caractéristique (`CHAR_LABELS`), ou compétence + spécialisation entre
  * parenthèses (« Métier (Cartographe) ») — apostrophes normalisées (le catalogue écrit `'`, les sites
- * écrivent parfois `’`). Sinon : entrée NOMINATIVE au stock ci-dessous, plafond COLLÉ et décroissant.
+ * écrivent parfois `’`).
  *
- * ANGLE MORT assumé du volet : un `rollLabel` CALCULÉ (`refLabel(…)`, ternaire, variable) n'est pas lu
- * par ce scan lexical. Il n'est PAS pour autant sûr : un libellé calculé peut venir d'un AUTRE
- * catalogue que les compétences — précédent MESURÉ, les rôles d'équipage (`findCrewRoleById(…).label`
- * servait de libellé de LIGNE au procès-verbal de mer, #1112). Le volet 3 ci-dessous couvre cette
- * famille du côté des lignes de jet fabriquées dans `src/state`.
+ * Un `rollLabel` CALCULÉ par `refLabel(…)` se mesure à part : il doit nommer le catalogue `skills`
+ * (assertion ci-dessous). Ternaire et variable restent hors de ce scan lexical. Précédent d'un autre
+ * catalogue : les rôles d'équipage (`findCrewRoleById(…).label`, #1112), couverts par le volet 3.
  */
 const norm = (s: string): string => s.replace(/[’‘]/g, "'").trim();
 const CATALOGUE_LABELS = new Set<string>([...skills.map((s) => norm(s.label)), ...Object.values(CHAR_LABELS).map(norm)]);
@@ -142,20 +155,6 @@ export function scanRollLabels(src: string): ActionLabelHit[] {
   return hits;
 }
 
-/** STOCK NOMINATIF (#1109) — les six sites mesurés le 2026-08-05, chacun nommé par son fichier et son
- *  TEXTE exact. Plafond COLLÉ (longueur exacte) : un site assaini l'abaisse, un site neuf rougit nominativement.
- *  #1318 V8c₃ : le stock est passé au catalogue (`sv.*`) SANS changer un octet de son texte — il est
- *  donc TOUJOURS LÀ, et le scan le suit désormais jusqu'à sa clé. */
-const ROLL_LABEL_SITUATION_STOCK: { file: string; text: string }[] = [
-  { file: 'src/state/seaVoyageFlow.ts', text: 'Tonneau contaminé' },
-  { file: 'src/state/seaVoyageFlow.ts', text: "Tonneau d'eau" },
-];
-// Sortis du stock, MÊME RAISON à chaque fois : « Mal de mer » (premier voyage / mauvais temps), puis
-// « Scorbut » et « Épuisement » (#1479) — le Test est devenu une BANDE (une fenêtre, une rangée par
-// porteur) et la SITUATION y est portée par le libellé de la bande, la rangée nommant la Compétence,
-// comme le veut Z5.
-const ROLL_LABEL_SITUATION_PLAFOND = 2;
-
 describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#1109)', () => {
   const situationSites = (): string[] => {
     const out: string[] = [];
@@ -165,18 +164,23 @@ describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#11
     return out;
   };
 
-  it('aucun site NEUF : tout `rollLabel`-situation est au stock nominatif', () => {
-    const inconnus = situationSites().filter(
-      (s) => !ROLL_LABEL_SITUATION_STOCK.some((k) => s.startsWith(`${k.file}:`) && s.endsWith(`— « ${k.text} »`)),
-    );
+  it('aucun `rollLabel` ne nomme une situation', () => {
+    const sites = situationSites();
     expect(
-      inconnus,
-      '`rollLabel` qui nomme une SITUATION hors stock — la ligne du jet dit la Compétence lancée (Z5, docs/charte-ui.md ; dette #1109) :\n' + inconnus.join('\n'),
+      sites,
+      '`rollLabel` qui nomme une SITUATION — la ligne du jet dit la Compétence lancée (Z5, docs/charte-ui.md) :\n' + sites.join('\n'),
     ).toEqual([]);
   });
 
-  it('plafond COLLÉ et décroissant (#1109)', () => {
-    expect(situationSites(), 'Stock #1109 : assainir un site ABAISSE ce plafond, jamais l’inverse.').toHaveLength(ROLL_LABEL_SITUATION_PLAFOND);
+  it('un `rollLabel` calculé par `refLabel(` nomme le catalogue `skills`', () => {
+    const autres: string[] = [];
+    for (const { rel, text } of readCorpus(['src'])) {
+      for (const [i, ligne] of text.split('\n').entries()) {
+        if (!/\brollLabel:/.test(ligne)) continue;
+        for (const m of ligne.matchAll(/\brefLabel\(\s*(['"])([^'"]+)\1/g)) if (m[2] !== 'skills') autres.push(`${rel}:${i + 1} — ${m[2]}`);
+      }
+    }
+    expect(autres, '`rollLabel` résolu hors du catalogue des Compétences :\n' + autres.join('\n')).toEqual([]);
   });
 
   it('fail-closed : un `rollLabel`-situation SYNTHÉTIQUE est détecté, une Compétence passe', () => {
@@ -273,5 +277,193 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
     expect(scanRollLineLabels(roleLine).filter((h) => !h.computed && !isCompetenceLabel(h.text))).toHaveLength(1);
     expect(scanRollLineLabels(skillLine).filter((h) => !h.computed && !isCompetenceLabel(h.text))).toEqual([]);
     expect(scanRollLineLabels(computedRole).filter((h) => h.computed && CREW_CATALOGUE_RX.test(h.text))).toHaveLength(1);
+  });
+});
+
+/**
+ * VOLET 4 (#1111) — la forme « Action (Compétence) » du sous-titre Z1 (`docs/charte-ui.md`, « Contrat
+ * d'affichage d'un jet ») n'a qu'un composeur, `composeRollLabel` (`src/state/rollSeam.ts`). Une
+ * PARENTHÈSE remplie d'un libellé de Compétence ou de Caractéristique hors de lui est une seconde
+ * source de la même forme (précédent : `riverVoyageFlow.ts`, étape `river-nav`, #1111).
+ *
+ * MESURE : les quatre portes d'une parenthèse de libellé — la fabrique `stepPrecision(sujet, precision)`,
+ * tout gabarit de LIBELLÉ D'ÉTAPE du catalogue FR (`step.*`, `i18n/messages/fr.ts`) dont un
+ * paramètre est écrit entre parenthèses (`'{sujet} ({precision})'`), appelé par `t(`/`tr(`, le gabarit
+ * LITTÉRAL (`` `… (${…})` ``) et la CONCATÉNATION (`' (' + … + ')'`) —, dont l'argument de la parenthèse
+ * est un libellé du catalogue des Compétences/Caractéristiques : appel `refLabel('skills', …)`,
+ * `testSkillLabel(…)`, `skillRefLabel(…)`, `CHAR_LABELS[…]`, littéral, ou clé de catalogue dont le
+ * texte en est un (`isCompetenceLabel`). Une variable nue n'est PAS lue. Cinquième porte : toute VALEUR du
+ * catalogue FR qui ÉCRIT la parenthèse en dur (« manœuvre d'évitement (Navigation) », #1111).
+ */
+const SKILL_LABEL_CALL_RX = /^(?:refLabel\(\s*['"]skills['"]|testSkillLabel\(|skillRefLabel\(|CHAR_LABELS\[)/;
+
+/** L'expression ÉCRITE nomme-t-elle une Compétence/Caractéristique du catalogue ? */
+function isSkillLabelExpr(expr: string): boolean {
+  const e = expr.trim();
+  if (SKILL_LABEL_CALL_RX.test(e)) return true;
+  const literal = /^(['"`])((?:\.|(?!\1)[\s\S])*)\1$/.exec(e);
+  if (literal) return !literal[2].includes('${') && isCompetenceLabel(literal[2]);
+  const key = /^t\s*r?\(\s*'([^']+)'\s*\)$/.exec(e);
+  if (key) {
+    const text = (fr as Record<string, string>)[key[1]];
+    return text != null && isCompetenceLabel(text);
+  }
+  return false;
+}
+
+/** Arguments de PREMIER niveau d'un appel dont `open` indexe la parenthèse ouvrante (chaînes et
+ *  imbrications `()[]{}` franchies). `undefined` si l'appel ne se ferme pas. */
+function topLevelArgs(src: string, open: number): string[] | undefined {
+  const args: string[] = [];
+  let depth = 0;
+  let from = open + 1;
+  for (let j = open; j < src.length; j++) {
+    const ch = src[j];
+    if (ch === "'" || ch === '"' || ch === '`') {
+      const end = src.indexOf(ch, j + 1);
+      if (end < 0) return undefined;
+      j = end;
+    } else if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') {
+      depth--;
+      if (depth === 0) { args.push(src.slice(from, j)); return args; }
+    } else if (ch === ',' && depth === 1) { args.push(src.slice(from, j)); from = j + 1; }
+  }
+  return undefined;
+}
+
+/** Les paramètres que le texte FR d'une clé de libellé d'étape (`step.*`) écrit ENTRE PARENTHÈSES. */
+const PARENTHESIZED_PARAMS = new Map<string, string[]>(
+  Object.entries(fr as Record<string, string>)
+    .filter(([k]) => k.startsWith('step.'))
+    .map(([k, v]): [string, string[]] => [k, [...v.matchAll(/\(\{(\w+)\}\)/g)].map((m) => m[1])])
+    .filter(([, ps]) => ps.length > 0),
+);
+
+/** Rend les parenthèses de libellé remplies d'une Compétence/Caractéristique hors `composeRollLabel`
+ *  (exporté pour la preuve fail-closed). */
+export function scanManualSkillParenthesis(src: string): ActionLabelHit[] {
+  const hits: ActionLabelHit[] = [];
+  const at = (i: number): number => src.slice(0, i).split('\n').length;
+  for (const m of src.matchAll(/\bstepPrecision\(/g)) {
+    const args = topLevelArgs(src, m.index! + m[0].length - 1);
+    if (args?.[1] != null && isSkillLabelExpr(args[1])) hits.push({ line: at(m.index!), text: args[1].trim() });
+  }
+  for (const m of src.matchAll(/\bt\s*r?\(\s*'([^']+)'\s*,/g)) {
+    const params = PARENTHESIZED_PARAMS.get(m[1]);
+    if (!params) continue;
+    const args = topLevelArgs(src, src.indexOf('(', m.index!));
+    const obj = args?.[1]?.trim();
+    if (!obj?.startsWith('{')) continue;
+    const fields = topLevelArgs(obj, 0) ?? [];
+    for (const field of fields) {
+      const kv = /^\s*(\w+)\s*:\s*([\s\S]+)$/.exec(field);
+      if (kv && params.includes(kv[1]) && isSkillLabelExpr(kv[2])) hits.push({ line: at(m.index!), text: `${m[1]} ← ${kv[2].trim()}` });
+    }
+  }
+  // Gabarit LITTÉRAL : `(${expr})`, l'interpolation seule entre les parenthèses.
+  for (const m of src.matchAll(/\(\$\{/g)) {
+    const open = m.index! + 2;
+    const close = closingBrace(src, open);
+    if (close < 0 || src[close + 1] !== ')') continue;
+    const expr = src.slice(open + 1, close);
+    if (isSkillLabelExpr(expr)) hits.push({ line: at(m.index!), text: expr.trim() });
+  }
+  // CONCATÉNATION : une chaîne qui finit par `(`, puis `+ expr`.
+  for (const m of src.matchAll(/\((['"`])\s*\+\s*/g)) {
+    const expr = concatOperand(src, m.index! + m[0].length);
+    if (isSkillLabelExpr(expr)) hits.push({ line: at(m.index!), text: expr.trim() });
+  }
+  return hits;
+}
+
+/** Index de l'accolade qui ferme celle ouverte à `open` (chaînes franchies), `-1` sinon. */
+function closingBrace(src: string, open: number): number {
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    const ch = src[j];
+    if (ch === "'" || ch === '"') { const end = src.indexOf(ch, j + 1); if (end < 0) return -1; j = end; }
+    else if (ch === '{') depth++;
+    else if (ch === '}') { depth--; if (depth === 0) return j; }
+  }
+  return -1;
+}
+
+/** L'opérande d'une concaténation qui commence à `from` : jusqu'au `+`, `)`, `,` ou `;` de PREMIER niveau. */
+function concatOperand(src: string, from: number): string {
+  let depth = 0;
+  for (let j = from; j < src.length; j++) {
+    const ch = src[j];
+    if (ch === "'" || ch === '"' || ch === '`') { const end = src.indexOf(ch, j + 1); if (end < 0) return src.slice(from); j = end; }
+    else if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if ((ch === ')' || ch === ']' || ch === '}') && depth > 0) depth--;
+    else if (depth === 0 && (ch === '+' || ch === ')' || ch === ',' || ch === ';' || ch === '\n')) return src.slice(from, j);
+  }
+  return src.slice(from);
+}
+
+/** Sites où la parenthèse précise un MODIFICATEUR, pas une Action : clé `fichier — expression`. */
+const PARENTHESE_HORS_ACTION = new Map<string, string>([
+  ['src/engine/ops.ts — CHAR_LABELS[o.char]', 'op.testMod : « +10 (Force) » nomme la Caractéristique du modificateur, aucun jet n’est libellé'],
+]);
+
+/** Le Test de Navigation (MDG 13 l.18-19) : nom de famille du Test de Voile/Ramer, qu'une parenthèse
+ *  écrite en dur substitue à la Compétence réellement lancée. */
+const TEST_DE_NAVIGATION = norm((fr as Record<string, string>)['sv.navigation']);
+
+/** Les parenthèses ÉCRITES EN DUR dans une valeur du catalogue (`cle → texte`) dont le contenu est un libellé
+ *  de Compétence/Caractéristique, ou le Test de Navigation (exporté pour la preuve fail-closed). */
+export function scanCatalogueSkillParenthesis(catalogue: Record<string, string>): string[] {
+  const hits: string[] = [];
+  for (const [cle, texte] of Object.entries(catalogue)) {
+    for (const m of texte.matchAll(/\(([^(){}]+)\)/g)) {
+      if (isCompetenceLabel(m[1]) || norm(m[1]) === TEST_DE_NAVIGATION) hits.push(`${cle} — « ${texte} »`);
+    }
+  }
+  return hits;
+}
+
+describe('CLIQUET — « Action (Compétence) » n’est composé que par `composeRollLabel` (#1111)', () => {
+  it('aucune valeur du catalogue FR n’écrit « (Compétence) » en dur', () => {
+    const bad = scanCatalogueSkillParenthesis(fr as Record<string, string>);
+    expect(bad, ['« (Compétence) » écrit en dur au catalogue — la Compétence se DÉRIVE (`composeRollLabel`, Z1, docs/charte-ui.md) :', ...bad].join('\n')).toEqual([]);
+  });
+
+  it('fail-closed : une valeur SYNTHÉTIQUE à « (Compétence) » en dur est détectée, une parenthèse d’autre nature passe', () => {
+    expect(scanCatalogueSkillParenthesis({ x: "{peril} — manœuvre d'évitement (Navigation) : {issue}" })).toHaveLength(1);
+    expect(scanCatalogueSkillParenthesis({ x: 'Test (Force Mentale)' }), 'caractéristique').toHaveLength(1);
+    expect(scanCatalogueSkillParenthesis({ x: '{sujet} ({precision})' }), 'paramètre').toEqual([]);
+    expect(scanCatalogueSkillParenthesis({ x: 'Rocher (2 coups)' }), 'parenthèse d’autre nature').toEqual([]);
+  });
+
+  it('aucune parenthèse de libellé remplie d’une Compétence hors du composeur', () => {
+    const bad: string[] = [];
+    const exemptions = new Set<string>();
+    for (const { rel, text } of readCorpus(['src'])) {
+      for (const h of scanManualSkillParenthesis(text)) {
+        const site = `${rel} — ${h.text}`;
+        if (PARENTHESE_HORS_ACTION.has(site)) exemptions.add(site);
+        else bad.push(`${rel}:${h.line} — ${h.text}`);
+      }
+    }
+    expect([...PARENTHESE_HORS_ACTION.keys()].filter((k) => !exemptions.has(k)), 'exemption sans site vivant').toEqual([]);
+    expect(bad, ['« Action (Compétence) » composé hors de `composeRollLabel` (Z1, docs/charte-ui.md) :', ...bad].join('\n')).toEqual([]);
+  });
+
+  it('fail-closed : chaque porte SYNTHÉTIQUE est détectée, une parenthèse qui n’est pas une Compétence passe', () => {
+    expect(scanManualSkillParenthesis("label: stepPrecision(t('step.navigation'), refLabel('skills', { id: skillId })),")).toHaveLength(1);
+    expect(scanManualSkillParenthesis('label: stepPrecision(t(\'step.navigation\'), testSkillLabel({ skill: "voile" })),')).toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: stepPrecision(t('step.navigation'), 'Voile'),"), 'littéral du catalogue').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: stepPrecision(t('step.navigation'), t('char.force')),"), 'clé de caractéristique').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: t('step.sujetPrecision', { sujet: t('step.navigation'), precision: refLabel('skills', { id: 'voile' }) }),"), 'gabarit du catalogue').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: tr('step.sujetPrecision', { sujet: x, precision: CHAR_LABELS[c] }),"), 'alias `tr(`').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: stepPrecision(tr('step.blessureCritique'), locationLabel(cloc, target.bodyShape)),"), 'localisation').toEqual([]);
+    expect(scanManualSkillParenthesis("t('step.sujetPrecision', { sujet: refLabel('skills', { id: 'natation' }), precision: DIFFICULTY_LABELS[diff] })"), 'la Compétence en SUJET n’est pas la parenthèse').toEqual([]);
+    expect(scanManualSkillParenthesis("label: composeRollLabel(undefined, t('step.navigation'), { skill: skillId }),"), 'le composeur').toEqual([]);
+    expect(scanManualSkillParenthesis("descOfferte={npc ? `${npc.label} (${skillRefLabel(npc.skill)})` : undefined}"), 'gabarit littéral').toHaveLength(1);
+    expect(scanManualSkillParenthesis("const l = `${action} (${CHAR_LABELS[c]})`;"), 'gabarit littéral, caractéristique').toHaveLength(1);
+    expect(scanManualSkillParenthesis("label: h.label + ' (' + refLabel('skills', { id: 'voile' }) + ')',"), 'concaténation').toHaveLength(1);
+    expect(scanManualSkillParenthesis("const l = `${sujet} (${locationLabel(loc)})`;"), 'gabarit littéral, localisation').toEqual([]);
+    expect(scanManualSkillParenthesis("label: h.label + ' (' + h.role + ')',"), 'concaténation, variable nue').toEqual([]);
   });
 });

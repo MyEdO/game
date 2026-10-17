@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { sceneCombatModifiers, entityBlockedAt } from './sceneRules';
 import { Scene, SceneEntity, isWalkable } from './scene';
 import { attackModifiers, defenseModifiers, combineMods } from '../engine/combat';
+import { defenseDodgeMods } from './combatFlow';
 import type { Combatant, Weapon } from '../engine/types';
 
 const sc = (over: Partial<Scene>): Scene => ({ ambiance: 'exterieur', ...over } as Scene);
@@ -55,9 +56,16 @@ describe('Exemple RAW LDB 14 l.96 — « -30 plus +20 font -10 » (chaîne réel
     expect(combineMods(mods)).toBe(-10);
   });
   it('l’esquive de la cible prise dans la même neige subit le -30 (« Attaquer ou esquiver »)', () => {
-    const sc = sceneCombatModifiers({ ambiance: 'exterieur', weather: 'neige' } as Scene, DAY);
-    expect(combineMods(defenseModifiers(mkc(), 'esquive', sc.dodgeMod))).toBe(-30);
-    expect(combineMods(defenseModifiers(mkc(), 'parade', sc.dodgeMod))).toBe(0);
+    const dodge = defenseDodgeMods({ scene: { ambiance: 'exterieur', weather: 'neige' } as Scene, gameTime: DAY }, mkc());
+    expect(combineMods(defenseModifiers(mkc(), 'esquive', dodge))).toBe(-30);
+    expect(combineMods(defenseModifiers(mkc(), 'parade', dodge))).toBe(0);
+  });
+  it('Esquive MONTÉE : la neige et la monte portent chacune SA ligne sourcée (LDB 14 l.82, l.184)', () => {
+    const rider = mkc({ mountId: 'h' });
+    const lignes = (weather: Scene['weather']) => defenseModifiers(rider, 'esquive', defenseDodgeMods({ scene: { ambiance: 'exterieur', weather } as Scene, gameTime: DAY }, rider))
+      .filter((m) => m.value < 0).map((m) => [m.label, m.value, m.ref?.id]);
+    expect(lignes('clair')).toEqual([['Esquive à cheval', -20, 'combat-monte']]);
+    expect(lignes('neige')).toEqual([['Neige épaisse', -30, undefined], ['Esquive à cheval', -20, 'combat-monte']]);
   });
 });
 

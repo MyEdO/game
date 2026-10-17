@@ -1,11 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { weaponFromTrait, renderWeaponsFromTraits, weaponsFromTraits, armourFromTraits, weaponFromId } from './creatureEquip';
-import { emptyArmour, hydratePoste, itemFromTrappingById, mannedPosteWeapon, recomputeLoadout } from './items';
+import { emptyArmour, hydratePoste, itemFromTrappingById, mannedPosteWeapon, recomputeLoadout, formeResolue } from './items';
 import type { Combatant, Weapon } from './types';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandModifier } from './combat';
 import type { TraitInstance } from './statEntry';
-import { formeResolue } from '../gameIso/rig/parts/equipment';
 
 const t = (o: { id: string; arg?: string; value?: number; range?: number; natural?: boolean }): TraitInstance => o as TraitInstance;
 

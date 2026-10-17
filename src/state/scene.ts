@@ -8,13 +8,13 @@
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../engine/types';
 import type { EntityAppearance } from '../engine/authoringAppearance';
-import { sanitizeFlow, type Flow, type EffectOp } from './flow';
+import type { Flow, EffectOp } from './flow';
 import { type ScheduleSpec } from '../engine/clock';
 // Les FORMES des 57 variantes d'`Effect` vivent en zod (`data/schemas/defs-scenes/effets.ts`) ;
 // l'union ci-dessous les compose par `z.infer`. Import de TYPE seul — aucun cycle runtime.
 import type { z } from 'zod';
 import type {
-  setFlagSchema, setObjectiveSchema, clearObjectiveSchema, giveTrappingSchema, givePossessionSchema,
+  setFlagSchema, poserEtatSchema, designerHerosSchema, setObjectiveSchema, clearObjectiveSchema, giveTrappingSchema, givePossessionSchema,
   giveMoneySchema, giveXpSchema, startCombatSchema, startMassBattleSchema, transitionSchema,
   transitionBackSchema, startDialogueSchema, journalSchema, documentSchema, revealClueSchema,
   discreditClueSchema, forceDoorSchema, setTimeSchema, openMerchantSchema,
@@ -35,7 +35,7 @@ import type {
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
   facadeSectionSchema, layerSchema, reliefDefaultsSchema, roofDefaultsSchema, sceneRoofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
-  victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, PORTEURS_DU_TYPE,
+  victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, messageIntroductionSchema, PORTEURS_DU_TYPE,
 } from '../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../data/schemas/defs-scenes/communs';
 // Seul import runtime de ce module vers `src/data` : l'opacité d'une arête est une propriété de sa
@@ -90,9 +90,8 @@ export interface ActionAuthoree {
 }
 
 /** RESTE MANUSCRIT (les 22 autres formes de la scène sont des `z.infer` de
- *  `data/schemas/defs-scenes/scene.ts`) — deux écarts MESURÉS avec `sceneEntitySchema` :
- *  `foot` n'existe QUE sur le schéma (fossile toléré au parse, dépouillé par `stripLegacyFoot`,
- *  gaté `@fossile` — il n'a jamais eu de champ ici) ; `appearance` porte ici `EntityAppearance`
+ *  `data/schemas/defs-scenes/scene.ts`) — un écart MESURÉ avec `sceneEntitySchema` :
+ *  `appearance` porte ici `EntityAppearance`
  *  (`engine/authoringAppearance`) là où le schéma compose `entityAppearanceSchema`, nœud-FRONTIÈRE
  *  du vocabulaire partagé. */
 export interface SceneEntity {
@@ -186,6 +185,8 @@ export interface SceneEntity {
      *  qui devient hostile au déclenchement. */
     hiddenUntilCombat?: boolean;
   };
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 /** Un porteur de fiche d'entité PRÉSENT au moins — dérivé de `PORTEURS_DU_TYPE.personnage` (#1882),
@@ -220,13 +221,15 @@ export type DelayedEffect = { type: 'delayedEffect'; flow: Flow; cancelFlag?: st
 export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow };
 
 /**
- * Union des 57 variantes d'effet de scène + la feuille `ops` = 58 membres. La FORME de chaque
+ * Union des 59 variantes d'effet de scène + la feuille `ops` = 60 membres. La FORME de chaque
  * variante — champs, optionalités, mécanique, réfs RAW — vit dans
  * `src/data/schemas/defs-scenes/effets.ts` ; ici on ne compose que les noms. `EffectOp`
  * (`type:'ops'`) est le membre POSSÉDÉ par le moteur (feuille par défaut du `Flow<E>` générique).
  */
 export type Effect =
   | z.infer<typeof setFlagSchema>
+  | z.infer<typeof poserEtatSchema>
+  | z.infer<typeof designerHerosSchema>
   | z.infer<typeof setObjectiveSchema>
   | z.infer<typeof clearObjectiveSchema>
   | z.infer<typeof giveTrappingSchema>
@@ -361,6 +364,8 @@ export interface SceneEffectZone {
   /** Étage de la zone — défaut 0 (plan de combat). Les zones DESCRIPTIVES de pièce portent le z de leur
    *  étage pour l'affichage/atteignabilité par niveau ; le combat (2D) l'ignore. */
   z?: number;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 /** Une zone d'effet est DESCRIPTIVE (nom de pièce) quand elle ne porte AUCUN champ mécanique — filtre
@@ -471,7 +476,9 @@ export interface Scene {
    *  cf. `normalizeScene`) — une transition vers un étage doit pouvoir NOMMER cet étage (#835 FU-5). */
   entryPoints?: Record<string, { x: number; y: number; z?: number }>;
   /** Scène de départ pour la campagne enchaînée. */
-  startMessage?: string;
+  startMessage?: z.infer<typeof messageIntroductionSchema>;
+  /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
+  couvre?: string[];
 }
 
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
@@ -966,53 +973,19 @@ export function emptyScene(w = 20, h = 15): Scene {
   };
 }
 
-/** Assainit une feuille `Effect` d'un Flow de scène : recurse dans le Flow imbriqué d'un
- *  `delayedEffect` (le seul cas d'un Flow porté par une feuille, plutôt qu'un nœud de structure —
- *  `sanitizeFlow` de l'engine ne connaît que la forme générique `Flow<E>`, pas cette feuille state). */
-function sanitizeEffectLeaf(e: Effect): Effect {
-  return e.type === 'delayedEffect' ? { ...e, flow: sanitizeFlow(e.flow, sanitizeEffectLeaf) } : e;
-}
-
-/** Assainit un Flow de scène (purge des nœuds `null` inexprimables, cf. `sanitizeFlow`) — `undefined`
- *  passe tel quel (un Flow requis mais absent sur un document ANCIEN reste à la charge de la
- *  validation, jamais d'une invention silencieuse). */
-function sanitizeSceneFlow(flow: Flow | undefined): Flow | undefined {
-  return flow == null ? flow : sanitizeFlow(flow, sanitizeEffectLeaf);
-}
-
-/** Un projet sauvegardé avant la migration porte une empreinte D'INSTANCE (`foot`) : elle est
- *  DÉPOUILLÉE au chargement, jamais recopiée ni interprétée — la physique d'un décor vient du
- *  catalogue courant (`PropData.foot`), vérité unique de ses dimensions. */
-function stripLegacyFoot(e: SceneEntity): SceneEntity {
-  if (!('foot' in e)) return e;
-  const { foot: _legacy, ...reste } = e as SceneEntity & { foot?: unknown };
-  return reste;
-}
-
 /**
  * Complète les COLLECTIONS qu'une Scène PROUVÉE peut omettre (optionnelles à `sceneSchema`, requises
- * sur `Scene`), et assainit les FLOWS portés (triggers/dialogues/rencontres/entités) — purge des nœuds
- * `null` inexprimables (`sanitizeSceneFlow`) ; une réf pendante ou un Flow entièrement absent reste
- * rapportée par `validateScene`, jamais réparée en silence. Appelée APRÈS la porte du schéma, par
- * `parseProject` (`projetSchema`) et `migreSceneDeProjet` (`sceneSchema`) (`worldMap.ts`) : jamais
- * un `?? []` saupoudré côté consommateur. PUR — ne mute pas `s`. */
+ * sur `Scene`). Appelée APRÈS la porte du schéma, par `parseProject` (`projetSchema`) et
+ * `parseSceneDeProjet` (`sceneSchema`) (`worldMap.ts`) : jamais un `?? []` saupoudré côté
+ * consommateur. PUR — ne mute pas `s`. */
 export function normalizeScene(s: Scene): Scene {
   return {
     ...s,
     layers: s.layers ?? emptyScene(s.dimensions.w, s.dimensions.h).layers,
-    entities: (s.entities ?? []).map((e) => stripLegacyFoot(
-      e.usable?.actions
-      ? { ...e, usable: { ...e.usable, actions: e.usable.actions.map((a) => ({ ...a, flow: sanitizeSceneFlow(a.flow) as Flow })) } }
-      : e)),
-    dialogues: (s.dialogues ?? []).map((d) => ({
-      ...d,
-      nodes: d.nodes.map((n) => ({
-        ...n,
-        choices: n.choices.map((c) => (c.flow ? { ...c, flow: sanitizeSceneFlow(c.flow) } : c)),
-      })),
-    })),
-    triggers: (s.triggers ?? []).map((t) => ({ ...t, flow: sanitizeSceneFlow(t.flow) as Flow })),
-    encounters: (s.encounters ?? []).map((e) => (e.onVictory ? { ...e, onVictory: sanitizeSceneFlow(e.onVictory) } : e)),
+    entities: s.entities ?? [],
+    dialogues: s.dialogues ?? [],
+    triggers: s.triggers ?? [],
+    encounters: s.encounters ?? [],
     flags: s.flags ?? {},
   };
 }

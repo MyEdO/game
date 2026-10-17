@@ -31,32 +31,71 @@ let sondeDePicking: PickProbe | null = null;
 export function setPickProbe(p: PickProbe | null): void {
   sondeDePicking = p;
 }
+
+/** Le geste attendu SUR LA CARTE (`__wfrp.gesteCarteAttendu`) : une pose de zone (`PlacingZone` sans sa
+ *  `source`, rendue en `kind`) ou un choix de cibles d'incantation. */
+export type GesteCarteAttendu =
+  | ({ kind: 'zone' | 'siege' } & Omit<PlacingZone, 'source'>)
+  | { kind: 'cibles'; label: string; casterId: string; cibles: string[] };
+
+/** Une IMAGE RENDUE, que le rendu déclare juste après `renderer.render` (`gameIso/stage/GameStage3D`) :
+ *  son canevas, son numéro (`canvas.dataset.rendus`) et la lecture de ses corps d'acteur
+ *  (`gameIso/stage/corpsActeur.ts:corpsDeLActeur`). Forme ÉCRITE ici, conformité tenue côté rendu
+ *  (`gameIso/stage/corps-sonde.test.tsx`) : la frontière `src/state ↛ src/gameIso` (#2198). */
+export type ImageRendue = { toile: object; rendus: number; corps(id: string): number };
+
+/** Un échantillon : le numéro de l'image rendue et le compte de corps de l'acteur à cette image. */
+export type EchantillonDeCorps = { image: number; corps: number };
+
+let derniereImage: ImageRendue | null = null;
+let echantillonnage: { id: string; toile: object | null; tampon: EchantillonDeCorps[] } | null = null;
+
+/** Le rendu déclare CHAQUE image rendue ; un échantillonnage armé la lit sur-le-champ, et ne retient
+ *  que le canevas de sa première image (une seule numérotation `rendus`). */
+export function setImageRendue(image: ImageRendue): void {
+  derniereImage = image;
+  const e = echantillonnage;
+  if (!e) return;
+  e.toile ??= image.toile;
+  if (e.toile === image.toile) e.tampon.push({ image: image.rendus, corps: image.corps(e.id) });
+}
 import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageVesselHull, setVesselHull } from './seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from './shipwreck';
 import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from './worldMap';
-import { MAISON_PROJET_AUTHORE } from '../data/migrationsDeProjet';
+import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from './riverVoyageFlow';
 import { findVehicleById } from '../data';
+import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
+import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from './terrain';
 import { sceneToAscii } from './sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
-import { startCascade } from './cascade';
+import { startCascade, stepInteraction, stepReady } from './cascade';
 import { routeDistanceLabel } from '../engine/travel';
-import { actorIn, inBattleId } from './combatants';
-import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget } from './combatFlow';
+import { mirrorPools } from '../engine/advantagePool';
+import { actorIn, ecrireActeur, inBattleId, garanti } from './combatants';
+import { touchActors } from './combatOrParty';
+import { checkBattleOver, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
+import { defenseSurfaced } from './netOwnership';
+import { combatDistance } from './footprint';
+import { reachTiles } from '../engine/engagement';
+import { canonEdge } from './sceneEdit';
+import type { CellSide } from './scene';
+import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation } from '../engine/combat';
 import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
 import { pushChoice } from './rollSeam';
-import { trappingsInstanciables, findCreatureById, findTraitById } from '../data';
+import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById, findPsychologyById, psychologies, psychologyLabel } from '../data';
+import { verdictApprentissage } from '../engine/grimoire';
 import { spawnEnemy } from './spawn';
 import type { PendingBladeTrap } from './pendings';
 import { bus, EVT } from './bus';
 import { ev } from './combatLog';
-import { isOutOfAction, addCondition, syncDerivedConditions } from '../engine/conditions';
-import { contractDisease, tickDisease } from '../engine/disease';
+import { isOutOfAction, syncDerivedConditions, cannotDefend, etatConnu, etatIdsConnus } from '../engine/conditions';
+import { tickDisease } from '../engine/disease';
 import { battleRng } from './battleRng';
 import { applyOps } from '../engine/ops';
 import { acquerirTalent } from '../engine/careerSlots';
@@ -65,7 +104,7 @@ import { parseQualityInstance } from '../engine/qualities/normalize';
 import { formatImperial } from '../engine/clock';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
 import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
-import { projectsLoad, projectSave, type SavedProject } from './projectLibrary';
+import { projectsLoad, projectSave, type EntreeEcrite, type SavedProject } from './projectLibrary';
 import { emptyNarratif } from './campaignNarratif';
 import { makeShowcaseParty } from '../data/pregens';
 import { hoverTargeting } from './targeting';
@@ -80,18 +119,95 @@ import { PREFERENCES, preferenceDef, setPreference, resetPreference, type PrefVa
 import { pickActiveModalKey, autoPolicyOf } from './modalArbiter';
 import { willAutoResolve } from './combatAuto';
 import { aiDriven, combatAdvanceBlocked } from './combatGate';
+import { endTurnArmed } from './endTurnGuard';
+import { activeLoadout, isShieldItem, loadoutLabel, formeResolue } from '../engine/items';
+import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, MELEE_MANEUVER_KINDS } from './combatManeuvers';
+import { attaquesNaturelles, attaqueNaturelle, type AttackKind } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
 import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
 import { demarrerScenario, poserScenario } from './scenarioFlow';
 import { t } from '../i18n';
-import { diamondCorners, type Dims } from '../geometry/iso';
+import { diamondCorners, tileEdge, type Dims } from '../geometry/iso';
 import { chebyshev } from '../engine/grid';
 import { actionsDe } from './usable';
 import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene';
 import { scheduleFlowTimer } from './combatTimers';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../lib/stockageWeb';
+import { browserFreezeTimeout, browserUnfreezeTimeout } from './devtoolsTimers';
+import { modaleDuDessus, type LayerPlan } from './dismissStack';
+import { getStagePan } from './stagePan';
+import { lacetActif, SENSIBILITE_DRAG_DEG_PX } from './stageYaw';
+import { CLES_DE_DATASET, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
+import { collectionDuDataset, datasetSerializeRoot, datasetObjectSerializeRoot, OBJECT_DATASET_KEYS, type DatasetKey, type ObjectDatasetKey } from '../data/overrides';
+import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../data/schemas/exposition-derivee';
+import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
+import { collectionALaCle } from '../data/schemas/grammaire/collection-cle';
+import { traumaById } from '../engine/trauma';
+import type { HitLocation } from '../engine/types';
+import { openSkillTest } from './combatEffects';
+import { EMPTY_FLOW, type FlowTest } from './flow';
+
+function entreeDeRecette(dataset: string, id: string): unknown {
+  if (!(CLES_DE_DATASET as readonly string[]).includes(dataset))
+    throw new Error(`__wfrp.entree : dataset « ${dataset} » inconnu — clés : ${CLES_DE_DATASET.join(', ')}`);
+  const cle = dataset as CleDeDataset;
+  const valeur = collectionDuDataset(cle);
+  const schema = SCHEMA_DEFS.find((d) => d.file === DATASET_FICHIER_DERIVE[cle])?.schema;
+  const racine = (OBJECT_DATASET_KEYS as readonly string[]).includes(cle)
+    ? datasetObjectSerializeRoot(cle as ObjectDatasetKey)
+    : datasetSerializeRoot(cle as DatasetKey);
+  let marque;
+  try { marque = collectionALaCle(schema, racine, DATASET_SUITE_DERIVE[cle] ?? '').marque; }
+  catch { throw new Error(`__wfrp.entree : « ${dataset} » ne porte pas de collection à clé déclarée`); }
+  let entree: unknown;
+  if (marque.forme === 'liste' && Array.isArray(valeur)) {
+    const matches = valeur.filter((v) => marque.de(v) === id);
+    if (matches.length > 1) throw new Error(`__wfrp.entree : « ${dataset}/${id} » ambigu (${matches.length} entrées)`);
+    entree = matches[0];
+  } else if (marque.forme === 'record' && !marque.sous && valeur && typeof valeur === 'object' && !Array.isArray(valeur)) {
+    entree = Object.prototype.hasOwnProperty.call(valeur, id) ? (valeur as Record<string, unknown>)[id] : undefined;
+  } else throw new Error(`__wfrp.entree : forme de « ${dataset} » non prise en charge`);
+  if (entree === undefined) throw new Error(`__wfrp.entree : « ${dataset}/${id} » introuvable`);
+  return structuredClone(entree);
+}
+
+function coordonneesFinies(tile: unknown): tile is { x: number; y: number; z?: number } {
+  if (tile === null || typeof tile !== 'object') return false;
+  const point = tile as Record<string, unknown>;
+  return Number.isFinite(point.x) && Number.isFinite(point.y) && (point.z === undefined || Number.isFinite(point.z));
+}
+
+export type CodexLocation = { tab: string; group: string; cluster: string | null };
+export type CodexProbe = (categoryId: string) => CodexLocation | null;
+let lireCodex: CodexProbe | null = null;
+
+export function setCodexProbe(probe: CodexProbe | null): void {
+  lireCodex = probe;
+}
+
+let lireDialogue: (() => HTMLElement | null) | null = null;
+let dialogueMarque: HTMLElement | null = null;
+
+export function setDialogueProbe(probe: (() => HTMLElement | null) | null): void {
+  dialogueMarque?.removeAttribute('data-wfrp-dialogue-dessus');
+  dialogueMarque = null;
+  lireDialogue = probe;
+}
+
+function observerDialogueDuDessus(): { kind: string; plan: LayerPlan; nom: string; selecteur: string } | null {
+  dialogueMarque?.removeAttribute('data-wfrp-dialogue-dessus');
+  dialogueMarque = null;
+  const couche = modaleDuDessus();
+  const boite = couche && lireDialogue?.();
+  if (!couche || !boite?.isConnected) return null;
+  boite.setAttribute('data-wfrp-dialogue-dessus', '');
+  dialogueMarque = boite;
+  const nom = boite.getAttribute('aria-label') ?? (boite.getAttribute('aria-labelledby') ?? '')
+    .split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? '').join(' ').trim();
+  return { kind: couche.kind, plan: couche.plan, nom, selecteur: '[data-wfrp-dialogue-dessus]' };
+}
 
 /** Trace du DERNIER Test résolu (`resolveTest`, `EVT.TEST_RESOLVED`) — observation pure pour la
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
@@ -126,14 +242,17 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.entities()     → liste des entités de la scène + leur mode d'accès
  *   __wfrp.routes()       → liste les routes CLIQUABLES de la carte du monde courante (id/from/to/
  *                           distanceLabel) — cibler `clickRoute(id)` sans deviner parmi des chips ambigus
- *   __wfrp.screenPos('id') → bounding box ÉCRAN du token (combat ET exploration, `data-cid`) — LECTURE
- *                           seule (`getBoundingClientRect`), `null` si absent du DOM
- *   __wfrp.tileScreenPos({x,y,z?}) → même bounding box ÉCRAN pour une CASE (vide comprise), là où
- *                           `screenPos` exige un token `data-cid` — viser un déplacement au clic réel
+ *   __wfrp.tileScreenPos({x,y,z?}) → bounding box ÉCRAN projetée d'une CASE (vide comprise)
+ *                           — viser un déplacement au clic réel
+ *   __wfrp.areteScreenPos(x,y,z,dir) → centre ÉCRAN du trait de chaque geste d'arête offert sur ce côté
+ *                           de case (`[{x,y,libelle,capacite}]`) — viser un geste d'arête au clic réel
  *   __wfrp.pickTileAt({x,y}) → l'INVERSE : ce que le PICKING RÉEL résoudrait sous ce pixel écran
  *                           ({tile, cid, via:'sprite'|'decor'|'meuble'|'pas-etage'|'sol'|'aucune',
  *                           nature, geste:{entId?}} — `geste.entId` = l'entité qu'un clic traiterait)
  *                           — lecture seule, aucun clic
+ *   __wfrp.corps(id)      → corps VISIBLES de l'acteur à la dernière image rendue (null avant la 1re)
+ *   __wfrp.echantillonner('corps', id) puis __wfrp.echantillons() → une entrée {image, corps} PAR IMAGE
+ *                           rendue, relue puis vidée (un rechargement Vite l'efface)
  *   __wfrp.talk('id')     → téléporte le groupe à côté de l'entité et l'interpelle (dialogue/marchand)
  *   __wfrp.goto('id')     → place le groupe sur la case de l'entité (déclenche portes/triggers au pas)
  *   __wfrp.screen('menu') → navigue vers un écran
@@ -152,12 +271,18 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.aim('id')      → vérité state du ciblage (ok/invalid + raison, compétence, dégâts)
  *   __wfrp.pad('A'|'B'|…) → simule un BOUTON de manette (Playwright n'a pas l'API Gamepad) — MÊME chemin
  *                           que le pad réel ; __wfrp.padDir('up'|'down'|'left'|'right') → croix/stick
- *   __wfrp.battle()       → snapshot combat (round, actif, modales, combattants en une ligne chacun)
+ *   __wfrp.battle()       → snapshot combat (round, actif, modales, combattants en une ligne chacun, armes
+ *                           tenues par `trappingId`/`formeChoisie`/`formeResolue`)
  *   __wfrp.lastRoll()     → DERNIER Test résolu {actorId,success,sl,roll,target} (observation pure,
  *                           lecture seule, `null` si aucun depuis le chargement) — jamais une regex sur `innerText`
  *   __wfrp.log(n)         → queue lisible des journaux (exploration + feed de combat)
  *   __wfrp.aiLog(n)       → DIAGNOSTIC IA : action choisie + classement des candidats (intention) par tour
  *   __wfrp.turn('id')     → TRICHE : donne le tour à un combattant ; __wfrp.place('id',{x,y}) → téléporte
+ *   __wfrp.attaque(a, d)  → SETUP : pose l'attaque de l'IA `a` sur `d` et OUVRE la modale de Défense de `d`
+ *   __wfrp.attaqueGratuite(a, d, type?) → SETUP : l'ennemi `a` déclare une attaque GRATUITE de créature sur `d`
+ *                           (file de production `aiCreatureFreeAttacks`) ; ✓ quand la file la déclare : modale de
+ *                           Défense ouverte (sur `d` ou le premier adversaire au contact, nommé), coup suspendu
+ *                           sur une étape, ou coup joué sans fenêtre ; ✗ si rien ne part
  *   __wfrp.turnShip('id', 'tribord'|'babord'|crans) → vire le cap d'un NAVIRE (manœuvre) → re-mappe ses bordées
  *   __wfrp.modal()        → modale(s) ouvertes ; __wfrp.roll()/confirm()/cancel() → pilote LA modale
  *                           (convention <flux>Roll/Confirm/Cancel ; reveals/Round ont leur verbe propre)
@@ -169,14 +294,17 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           Corruption) puis termine le combat en LAISSANT la cascade ouverte (influençable)
  *   __wfrp.healParty()    → groupe à neuf (PB max, états/critiques/maladies purgés)
  *   __wfrp.give(co)       → crédite la bourse (couronnes d'or) ; __wfrp.xp(n) → +PX au groupe
+ *   __wfrp.faim(id, etat?) / soif(id, etat?) / chance(id, n?) → sans valeur : OBSERVE ; avec : pose
+ *                           faim, soif ou points de Chance (`ecrireActeur`), puis lit
  *   __wfrp.giveTrapping(heroId, trappingId, qty?) → donne un objet de catalogue à un héros (VRAI
  *                           pipeline giveTrapping : item bien formé, qualités comprises)
- *   __wfrp.disease(heroId, maladieId, { phase? }) → contracte une maladie via le VRAI cycle
- *                           (contractDisease + tickDisease de l'incubation) ; `phase:'active'` la déclare
+ *   __wfrp.disease(heroId, maladieId, { phase? }) → contracte une maladie par l'effet `inflictDisease`
+ *                           (+ tickDisease de l'incubation) ; `phase:'active'` la déclare
  *                           en avançant son horloge (jamais un état forgé)
  *   __wfrp.flags()        → drapeaux de scénario ; __wfrp.flag('id', true) → force un drapeau
  *   __wfrp.go('scene-id') → saute vers une scène du projet ; __wfrp.fight() → liste/lance une rencontre
  *   __wfrp.fear(h,e,i?)   → pose une Peur (Indice) de h envers e puis simule l'approche (Test de Calme ou Brisé)
+ *   __wfrp.psych(id,type) → pose l'état psychologique `type` (op `beginPsych`) ; type hors psychology.json → ✗ + ids valides
  *   __wfrp.time(min)      → avance l'horloge ; __wfrp.rest(jours) → dort (cascade quotidienne #T3)
  *   __wfrp.quality(id,label,av?) → ajoute un Atout d'arme à l'arme active + Avantages (test renversement…)
  *   __wfrp.seed(n)        → ré-ensemence le RNG de bataille (déterminisme, EN COURS de combat)
@@ -313,7 +441,7 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
     const tick = () => {
       try {
         const s = useGame.getState();
-        if (s.battle) { resolve('✗ combat en cours (issu du voyage) — voir __wfrp.battle()'); return; }
+        if (s.battle) { resolve('✓ voyage interrompu par un combat — voir __wfrp.battle()'); return; }
         const plan = s.travelPlan;
         // Mer OU fleuve : même machinerie de cascade du JOUR (`purpose:'travelDay'`), même halte, même
         // reprise — `advanceRiverDay` réutilise ce pilote (le fleuve enchaîne en plus la cascade
@@ -478,6 +606,41 @@ async function attendreCommandeEditeur(helper: string, commande: keyof Commandes
 export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
   const g = () => useGame.getState();
   const find = (id: string) => g().scene?.entities.find((e) => e.id === id);
+  /** La projection du stage lue au store (dimensions, rotation, vue, lacet) et le groupe caméra qui la
+   *  porte au DOM : la source de `tileScreenPos` et d'`areteScreenPos`. `null` hors scène ou stage non monté. */
+  const projectionDuStage = (): { dims: Dims; camGroup: SVGGraphicsElement } | null => {
+    const st = g();
+    if (!st.scene) return null;
+    const camGroup = document.querySelector('svg.iso-stage > g') as SVGGraphicsElement | null;
+    if (!camGroup) return null;
+    return { dims: { ...st.scene.dimensions, rot: st.camRot, view: st.viewMode, edge: st.camEdge, yawDeg: viewYawDeg(st.camRot, st.camEdge) }, camGroup };
+  };
+  /** Faim ou soif d'un combattant (`faim`, `soif`) : pose l'état par `ecrireActeur` s'il est donné
+   *  (`null` = champ absent), puis le lit au combattant (`actorIn`). */
+  const besoin = (id: string, cle: 'hunger' | 'thirst', etat: Partial<HungerState> | Partial<ThirstState> | null | undefined) => {
+    if (!actorIn(g(), id)) return `✗ combattant « ${id} » introuvable`;
+    if (etat !== undefined) {
+      const cles: readonly string[] = cle === 'hunger' ? ['days', 'tests', 'failures', 'coveredDay'] : ['days', 'tests', 'failures'];
+      const inconnue = etat && Object.keys(etat).find((k) => !cles.includes(k));
+      if (inconnue) return `✗ ${cle} : clé « ${inconnue} » inconnue — clés : ${cles.join(', ')}`;
+      const compte = etat && (['days', 'tests', 'failures'] as const).find((k) => etat[k] !== undefined && (!Number.isInteger(etat[k]) || etat[k]! < 0));
+      if (compte) return `✗ ${cle}.${compte} « ${etat![compte]} » : un entier positif ou nul`;
+      useGame.setState((s) => ecrireActeur(s, id, (c) => {
+        const pose = { ...c };
+        if (etat === null) delete pose[cle];
+        else pose[cle] = { days: 0, tests: 0, failures: 0, ...etat };
+        return pose;
+      }));
+    }
+    return actorIn(g(), id)![cle] ?? null;
+  };
+  /** Donne le TOUR à un combattant de l'ordre d'initiative (Action/Mouvement du tour remis à zéro). */
+  const donnerLeTour = (b: NonNullable<ReturnType<typeof g>['battle']>, idx: number) => {
+    useGame.setState({
+      battle: { ...b, turn: idx, acted: false, movementUsed: 0, movedPreAction: false, action: null, selectedSpellId: null, preview: null, reachable: new Map(), moveSnapshot: null },
+    });
+    bus.emit(EVT.SCENE_DIRTY);
+  };
 
   const runScenario = (id?: string, seed?: number) => {
     if (!id) return scenarios.map((sc) => `${sc.id} — ${sc.title}`);
@@ -508,6 +671,78 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     return `✓ scénario « ${sc.title} » lancé${sc.autoCombat ? ' (combat direct, prêt à jouer)' : ''}`;
   };
   return {
+    dialogueDuDessus: observerDialogueDuDessus,
+    codexLocate: (categoryId: string): CodexLocation => {
+      const location = lireCodex?.(categoryId);
+      if (!location) throw new Error(`__wfrp.codexLocate : catégorie « ${categoryId} » inconnue`);
+      return { ...location };
+    },
+    camera: () => {
+      const s = g();
+      return { deg: viewYawDeg(s.camRot, s.camEdge), active: lacetActif(), sensibilite: SENSIBILITE_DRAG_DEG_PX };
+    },
+    freezeTimeout: (delays = [60000]) => {
+      const forced = browserFreezeTimeout(delays);
+      return forced.delays.length ? `✓ délais des nouveaux setTimeout forcés : ${forced.delays.join(', ')} ms (dernier réutilisé)` : '✓ délais des nouveaux setTimeout inchangés';
+    },
+    unfreezeTimeout: () => browserUnfreezeTimeout() ? '✓ setTimeout rétabli' : '✓ aucun délai de setTimeout forcé',
+
+    entree: entreeDeRecette,
+
+    trauma: (id: string, traumaId: string, opts?: { be?: number; d10?: number }, location?: HitLocation) => {
+      if (!actorIn(g(), id)) throw new Error(`__wfrp.trauma : combattant « ${id} » introuvable`);
+      const trauma = traumaById(traumaId, opts, location);
+      useGame.setState((s) => ecrireActeur(s, id, (c) => ({ ...c, traumas: [...(c.traumas ?? []), trauma] })));
+      return structuredClone(trauma);
+    },
+
+    testCompetence: (actorId: string, spec: FlowTest) => {
+      if (!actorIn(g(), actorId)) throw new Error(`__wfrp.testCompetence : combattant « ${actorId} » introuvable`);
+      if (!!spec.skill === !!spec.characteristic) throw new Error('__wfrp.testCompetence : fournir une compétence ou une caractéristique');
+      if (!spec.stake) throw new Error('__wfrp.testCompetence : fournir l’enjeu du Test (stake)');
+      if (g().pendingTest || g().pendingCascade) throw new Error('__wfrp.testCompetence : un Test est déjà ouvert');
+      if (!openSkillTest(g, useGame.setState, structuredClone(spec), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId }))
+        throw new Error(`__wfrp.testCompetence : ouverture refusée pour « ${actorId} »`);
+      return '✓ Test ouvert';
+    },
+
+    panTo: async (idOrXY: string | { x: number; y: number; z?: number }) => {
+      const tile: { x: number; y: number; z?: number } | undefined = typeof idOrXY === 'string' ? actorIn(g(), idOrXY)?.pos ?? find(idOrXY)?.pos : idOrXY;
+      if (!coordonneesFinies(tile)) throw new Error('__wfrp.panTo : cible introuvable ou coordonnées invalides');
+      if (lacetActif()) throw new Error('__wfrp.panTo : rotation en cours');
+      if (!projectionDuStage()) throw new Error('__wfrp.panTo : stage non monté');
+      const sceneId = g().scene?.id;
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      for (let frame = 0; frame < 120; frame++) {
+        const current = projectionDuStage();
+        const matrix = current?.camGroup.getScreenCTM();
+        const svg = current?.camGroup.ownerSVGElement;
+        if (!current || !matrix || !svg || g().scene?.id !== sceneId) throw new Error('__wfrp.panTo : stage démonté');
+        const opacity = Number.parseFloat(getComputedStyle(current.camGroup).opacity);
+        if (lacetActif() || opacity < 1) throw new Error('__wfrp.panTo : rotation en cours pendant le cadrage');
+        const b = svg.getBoundingClientRect();
+        if (b.width <= 0 || b.height <= 0) throw new Error('__wfrp.panTo : stage sans dimensions');
+        if (![opacity, b.x, b.y, b.width, b.height, matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].every(Number.isFinite))
+          throw new Error('__wfrp.panTo : projection non finie');
+        const d = diamondCorners(tile.x, tile.y, current.dims, tile.z ?? 0);
+        const target = { x: (d.top[0] + d.bot[0]) / 2, y: (d.top[1] + d.bot[1]) / 2 };
+        const point = new DOMPoint(target.x, target.y).matrixTransform(matrix);
+        if (!coordonneesFinies(point)) throw new Error('__wfrp.panTo : projection non finie');
+        const centre = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+        if (Math.hypot(point.x - centre.x, point.y - centre.y) <= 2)
+          return { tile: { ...tile }, pan: { ...g().camPan }, centre: { x: point.x, y: point.y } };
+        const local = new DOMPoint(centre.x, centre.y).matrixTransform(matrix.inverse());
+        const pan = getStagePan();
+        const next = { x: pan.x + local.x - target.x, y: pan.y + local.y - target.y };
+        if (!coordonneesFinies(local) || !coordonneesFinies(pan) || !coordonneesFinies(next))
+          throw new Error('__wfrp.panTo : projection non finie');
+        g().setCamPan(next.x, next.y);
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      }
+      throw new Error('__wfrp.panTo : centre non atteint après 120 images');
+    },
+
     /** Le store brut (sélecteurs, getState, setState) — pour les cas non couverts par les helpers. */
     store: useGame,
 
@@ -574,34 +809,47 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }));
     },
 
-    /** OBSERVATION seule : bounding box ÉCRAN du token `id` (combat ET exploration — même canal
-     *  `data-cid`, #226) via `getBoundingClientRect`. `null` si le token n'est pas dans le DOM
-     *  (hors vue, scène/combat sans ce token). Zéro action — ne pilote rien. */
-    screenPos: (id: string): { x: number; y: number; width: number; height: number } | null => {
-      const el = document.querySelector(`[data-cid="${id}"]`);
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { x: r.x, y: r.y, width: r.width, height: r.height };
-    },
-
-    /** OBSERVATION seule : bounding box ÉCRAN d'une CASE — le symétrique de `screenPos`, qui ne sait
-     *  servir qu'un token porteur de `data-cid`. Une case VIDE n'a pas de nœud DOM propre : elle est
+    /** OBSERVATION seule : bounding box ÉCRAN d'une CASE. Une case VIDE n'a pas de nœud DOM propre : elle est
      *  projetée par `diamondCorners` (`geometry/iso`, la géométrie du RENDU lui-même), puis la
      *  transformée caméra est lue sur la CTM du groupe qui la porte — zoom, panoramique et rotation
      *  viennent donc du DOM, pas d'un second calcul à tenir à jour. `z` = étage visé (défaut 0).
      *  `null` hors scène ou tant que le stage n'est pas monté. Zéro action — ne pilote rien. */
     tileScreenPos: (tile: { x: number; y: number; z?: number }): { x: number; y: number; width: number; height: number } | null => {
-      const st = useGame.getState();
-      if (!st.scene) return null;
-      const camGroup = document.querySelector('svg.iso-stage > g') as SVGGraphicsElement | null;
-      const ctm = camGroup?.getScreenCTM();
-      if (!ctm) return null;
-      const dims: Dims = { ...st.scene.dimensions, rot: st.camRot, view: st.viewMode, edge: st.camEdge, yawDeg: viewYawDeg(st.camRot, st.camEdge) };
-      const c = diamondCorners(tile.x, tile.y, dims, tile.z ?? 0);
+      if (!coordonneesFinies(tile)) throw new Error('__wfrp.tileScreenPos : coordonnées invalides — fournir un objet {x, y, z?} fini');
+      const proj = projectionDuStage();
+      const ctm = proj?.camGroup.getScreenCTM();
+      if (!proj || !ctm) return null;
+      const c = diamondCorners(tile.x, tile.y, proj.dims, tile.z ?? 0);
       const pts = [c.top, c.right, c.bot, c.left].map(([x, y]) => new DOMPoint(x, y).matrixTransform(ctm));
       const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
       const x = Math.min(...xs), y = Math.min(...ys);
       return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
+    },
+
+    /** OBSERVATION seule : position ÉCRAN (centre) du marqueur de l'arête `dir` de la case (x, y) à
+     *  l'étage `z` — le trait de prise `line[data-arete-cible]` du peintre (`gameIso/stage/AreteOverlay`),
+     *  celui qu'un clic réel vise. L'arête se ramène à sa forme canonique (`canonEdge`), se projette par
+     *  `tileEdge` (`geometry/iso`, la géométrie du peintre) sur la projection de `tileScreenPos`, et le
+     *  traits retenus sont ceux du MÊME segment au DOM (le relief ne décale que la hauteur d'écran), du
+     *  plus proche au plus éloigné de l'étage `z`. Rend un élément PAR geste offert sur cette arête :
+     *  `{ x, y, libelle, capacite }`, `libelle` = l'`aria-label` du trait. Refus NOMMÉS : hors scène,
+     *  stage non monté, aucune arête utilisable à cet endroit. */
+    areteScreenPos: (x: number, y: number, z: number, dir: CellSide): { x: number; y: number; libelle: string; capacite: string }[] | string => {
+      if (!g().scene) return '✗ aucune scène';
+      const proj = projectionDuStage();
+      if (!proj) return '✗ stage non monté (svg.iso-stage absent du DOM)';
+      const e = canonEdge(x, y, dir);
+      const [a, b] = tileEdge(e.x, e.y, e.side, proj.dims, z);
+      const attr = (l: Element, k: string) => Number(l.getAttribute(k));
+      const proche = (u: number, v: number) => Math.abs(u - v) < 0.5;
+      const memeSegment = Array.from(proj.camGroup.querySelectorAll('line[data-arete-cible]')).filter((l) =>
+        proche(attr(l, 'x1'), a.cx) && proche(attr(l, 'x2'), b.cx) && proche(attr(l, 'y2') - attr(l, 'y1'), b.cy - a.cy));
+      if (!memeSegment.length) return `✗ aucune arête utilisable en (${x},${y},z${z}) côté ${dir} — aucun geste offert ici dans l'état courant (brouillard, contrôleur, étage actif)`;
+      const ecart = (l: Element) => Math.abs(attr(l, 'y1') - a.cy);
+      return memeSegment.sort((l, m) => ecart(l) - ecart(m)).map((l) => {
+        const r = l.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2, libelle: l.getAttribute('aria-label') ?? '', capacite: l.getAttribute('data-arete-cible') ?? '' };
+      });
     },
 
     /** OBSERVATION seule : CE QUE LE PICKING RÉEL RÉSOUDRAIT sous un pixel d'écran — l'INVERSE exact de
@@ -615,6 +863,25 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  ne dépend jamais de `src/gameIso` (règle 3). `null` tant que le stage n'est pas monté.
      */
     pickTileAt: (px: { x: number; y: number }) => (sondeDePicking ? sondeDePicking(px) : null),
+
+    /** OBSERVATION : corps VISIBLES de l'acteur `id` à la dernière image rendue (`setImageRendue`).
+     *  `null` tant qu'aucune image n'est rendue. */
+    corps: (id: string) => (derniereImage ? derniereImage.corps(id) : null),
+
+    /** OBSERVATION : arme l'échantillonnage — une entrée PAR IMAGE RENDUE, numérotée par
+     *  `canvas.dataset.rendus`. Un rechargement Vite l'efface. */
+    echantillonner: (quoi: 'corps', id: string) => {
+      echantillonnage = { id, toile: null, tampon: [] };
+      return `✓ échantillonnage des ${quoi} de « ${id} » armé`;
+    },
+
+    /** OBSERVATION : relit puis vide le tampon de l'échantillonnage armé. */
+    echantillons: (): EchantillonDeCorps[] => {
+      if (!echantillonnage) return [];
+      const lus = echantillonnage.tampon;
+      echantillonnage.tampon = [];
+      return lus;
+    },
 
     /** ACCÈS DIRECT : ouvre le dialogue/marchand d'une entité (téléporte le groupe à côté puis interagit). */
     talk: (id: string) => {
@@ -931,12 +1198,14 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** PRÉPARE l'état d'une entité de la scène OUVERTE à l'éditeur (#877) : patch PARTIEL, une clé à
-     *  `undefined` vaut ABSENTE — c'est ainsi qu'on fabrique l'état fautif (« décor sans type ») qu'une
-     *  porte doit refuser. SETUP seulement : le patch passe par le pont d'INTENTION
-     *  (`state/editeurBridge`, commande `patcherEntite`) — la MÊME voie qu'`editorOpen`, jamais un
-     *  accès direct à l'état React d'un panneau. Trois refus NOMMÉS : éditeur non monté (rejet,
-     *  borne `montageMs`), entité inconnue (`✗ …` portant les ids de la scène), clé d'IDENTITÉ
-     *  (`id`, `kind`) qu'aucun patch ne touche. */
+     *  `undefined` vaut ABSENTE. Le patch passe la porte d'authoring (`state/sceneEdit.ts:editEntity`) :
+     *  l'état fautif qu'une porte doit refuser se fabrique par un type INCONNU du catalogue
+     *  (`{ ref: 'decor-absent' }`), jamais en retirant le type (#1882). SETUP seulement : le patch passe
+     *  par le pont d'INTENTION (`state/editeurBridge`, commande `patcherEntite`) — la MÊME voie
+     *  qu'`editorOpen`, jamais un accès direct à l'état React d'un panneau. Quatre refus NOMMÉS :
+     *  éditeur non monté (rejet, borne `montageMs`), entité inconnue (`✗ …` portant les ids de la
+     *  scène), clé d'IDENTITÉ (`id`, `kind`) qu'aucun patch ne touche, type retiré (`✗ …` nommant le
+     *  porteur absent). */
     editorPatchEntity: async (entityId: string, patch: Record<string, unknown>, montageMs = 3000) => {
       await attendreCommandeEditeur('editorPatchEntity', 'patcherEntite', montageMs);
       return editeur.patcherEntite!(entityId, patch);
@@ -952,11 +1221,30 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return editeur.listerEntites!();
     },
 
+    /** LECTURE SEULE du BROUILLON de carte du monde ouvert à l'éditeur (#2306) : `{ id, label, lieux,
+     *  routes }` — lieux `{ id, label, scene, pos, when? }`, routes `{ id, a, b, km, when?, refus? }` —,
+     *  `null` si le projet n'en porte aucune. ATTENTION : `__wfrp.routes()` lit la carte du STORE DE JEU,
+     *  pas le brouillon. Même voie et même attente qu'`editorEntities` ; rejet NOMMÉ si l'éditeur ne se
+     *  monte pas. */
+    editorWorldMap: async (montageMs = 3000) => {
+      await attendreCommandeEditeur('editorWorldMap', 'lireCarteDuMonde', montageMs);
+      return editeur.lireCarteDuMonde!();
+    },
+
+    /** OBSERVATION : point ÉCRAN du milieu de l'arête `dir` de la case (x, y) à l'étage `z` dans le
+     *  canevas de l'ÉDITEUR, par la projection de sa vue (rotation, plan/iso, zoom, panoramique) — là où
+     *  un VRAI clic de l'outil murs résout cette arête. Symétrique éditeur d'`areteScreenPos`. Même voie
+     *  et même attente qu'`editorEntities` ; refus NOMMÉ si le canevas n'est pas monté. */
+    editorAreteScreenPos: async (x: number, y: number, z: number, dir: CellSide, montageMs = 3000) => {
+      await attendreCommandeEditeur('editorAreteScreenPos', 'positionEcranArete', montageMs);
+      return editeur.positionEcranArete!(x, y, z, dir) ?? '✗ canevas de l\'éditeur non monté (aucune CTM)';
+    },
+
     /** Entrée de BIBLIOTHÈQUE DE PROJETS minimale et VALIDE (#1343) : une scène vide (`emptyScene`)
      *  enveloppée par le constructeur UNIQUE du document (`documentDeProjet`), identité d'un projet
      *  d'auteur (`MAISON_PROJET_AUTHORE`) — elle passe `parseProject`. Rien n'est écrit : la recette la
      *  DÉFORME pour son cas, puis la pose par `projectSave`. */
-    projectMinimal: (id = 'projet-recette', label = 'Projet de recette'): SavedProject => {
+    projectMinimal: (id = 'projet-recette', label = 'Projet de recette'): EntreeEcrite => {
       const scene = emptyScene();
       const project = documentDeProjet(
         { type: 'projet', id, label, versionContenu: 1, maison: MAISON_PROJET_AUTHORE },
@@ -1031,7 +1319,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ interlude ouvert (${weeks} sem., ${after.party.length} héros, ${budget} Activité(s) max/héros) — catalogue réel, écran 'interlude' (à conduire à la main)`;
     },
 
-    /** Snapshot COMBAT compact : round, actif, modales ouvertes, et chaque combattant en une ligne. */
+    /** Snapshot COMBAT compact : round, actif, modales ouvertes, et chaque combattant en une ligne
+     *  (armes tenues comprises : `trappingId`, `formeChoisie`, `formeResolue`). */
     battle: () => {
       const s = g();
       const b = s.battle;
@@ -1048,11 +1337,14 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         // lui que le 2e clic commet (`targetingModes.samePreview`), donc la seule façon de vérifier
         // qu'un 1er clic a bien armé le geste qu'on croit.
         preview: b.preview,
+        endTurnArmed: endTurnArmed(b),
         modales: pendings,
         combatants: b.combatants.map((c) => ({
           id: c.id, name: c.label, kind: c.kind, pos: c.pos,
           pb: `${c.wounds.current}/${c.wounds.max}`,
           états: (c.conditions ?? []).map((x) => `${x.id}${x.value > 1 ? ` ×${x.value}` : ''}`),
+          // Armes TENUES (`weapons`, dérivées) : id de catalogue, forme CHOISIE, forme RÉSOLUE (`formeResolue`).
+          armes: (c.weapons ?? []).map((w) => ({ label: w.label, trappingId: w.trappingId ?? null, formeChoisie: w.formeChoisie ?? null, formeResolue: formeResolue(w) ?? null })),
         })),
       };
     },
@@ -1072,11 +1364,107 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const c = inBattleId(b, id);
       if (idx < 0 || !c) return `✗ « ${id} » absent de l'ordre d'initiative`;
       if (isOutOfAction(c)) return `✗ ${c.label} est hors de combat`;
-      useGame.setState({
-        battle: { ...b, turn: idx, acted: false, movementUsed: 0, movedPreAction: false, action: null, selectedSpellId: null, preview: null, reachable: new Map(), moveSnapshot: null },
-      });
-      bus.emit(EVT.SCENE_DIRTY);
+      if (g().pendingRoundStart) return '✗ pause de début de Round : ouvrir le Round d\'abord (__wfrp.confirm())';
+      donnerLeTour(b, idx);
       return `✓ au tour de ${c.label}`;
+    },
+
+    /** SETUP de recette : POSE l'attaque de `attaquantId` (piloté par l'IA) sur `defenseurId` et OUVRE la
+     *  modale de Défense — c'est son CONTENU qu'on recette. La fenêtre s'ouvre par la couture de la
+     *  déclaration d'attaque de l'IA (`combatFlow.ts:maybeOpenDefense`, appelée par `doAttack`), au tour de
+     *  l'attaquant, qui lui est donné si besoin : sa fermeture reprend ce tour comme après une attaque
+     *  d'IA. Elle SAUTE les portes préalables de `doAttack` (Bénédiction de Protection `attackWardGate`,
+     *  Main ensanglantée `aiHandGate`), qui jettent des dés et peuvent faire renoncer au coup : la
+     *  recette porte sur la fenêtre de Défense, pas sur ces Tests. Refus NOMMÉS, sans rien toucher : pas
+     *  de combat, pause de début de Round (la pause n'a aucun actif), tour d'un combattant piloté par
+     *  l'IA (ses minuteurs de tour sont en vol, `maybeRunEnemyTurn`), combattant introuvable ou hors de
+     *  combat, attaquant hors de l'ordre d'initiative ou piloté par un joueur, Défense déjà ouverte ;
+     *  puis, si la couture ne l'ouvre pas, la raison : défenseur non surfacé, pas au contact, défenseur
+     *  incapable de se défendre, tir sans Défense opposable. */
+    attaque: (attaquantId: string, defenseurId: string) => {
+      const b = g().battle;
+      if (!b || b.over) return '✗ pas de combat en cours';
+      if (g().pendingRoundStart) return '✗ pause de début de Round : ouvrir le Round d\'abord (__wfrp.confirm())';
+      const actif = inBattleId(b, b.order[b.turn]);
+      if (actif && aiDriven(g(), actif)) return `✗ tour de ${actif.label}, piloté par l'IA (minuteurs en vol) : attendre la main d'un joueur (__wfrp.fastForward())`;
+      const att = inBattleId(b, attaquantId);
+      const def = inBattleId(b, defenseurId);
+      if (!att || !def) return `✗ attaquant/défenseur introuvable (${attaquantId}/${defenseurId}) — voir __wfrp.battle()`;
+      const horsDeCombat = [att, def].find(isOutOfAction);
+      if (horsDeCombat) return `✗ ${horsDeCombat.label} est hors de combat`;
+      const idx = b.order.indexOf(att.id);
+      if (idx < 0) return `✗ ${att.label} est absent de l'ordre d'initiative`;
+      if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : son attaque passe par la modale d'attaque`;
+      if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
+      if (maybeOpenDefense(() => useGame.getState(), useGame.setState, att, def, undefined, undefined, att.chargedThisTurn)) {
+        const apres = g().battle!;
+        if (apres.turn !== idx) donnerLeTour(apres, idx);
+        return `✓ ${att.label} attaque ${def.label} — modale de Défense ouverte`;
+      }
+      const arme = att.weapons[0];
+      if (!defenseSurfaced(g(), def)) return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
+      if (arme?.type === 'melee' && combatDistance(att, def) > reachTiles(arme)) {
+        return `✗ ${att.label} n'est pas au contact de ${def.label} (distance ${combatDistance(att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      }
+      if (cannotDefend(def)) return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
+      return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
+    },
+
+    /** SETUP de recette : l'ennemi `attaquantId` (piloté par l'IA) déclare une ATTAQUE GRATUITE de créature
+     *  (`type` : morsure, caudale, tentacules, cornes, pietinement ; défaut = la première disponible) sur
+     *  `defenseurId`, par la file de PRODUCTION (`combatFlow.ts:aiCreatureFreeAttacks`, reprise d'une file
+     *  DÉFINIE) posée à cette seule unité, au tour de l'attaquant, qui lui est donné AVANT (Action et
+     *  Mouvement du tour lus par la file). La fenêtre de Défense surfacée est celle du jeu ; sa fermeture
+     *  reprend ce tour comme après une gratuite d'IA. Refus NOMMÉS, sans rien toucher : les refus de
+     *  `attaque`, attaquant non ennemi, aucune gratuite disponible (ou `type` absent de ses gratuites),
+     *  défenseur hors de portée, non surfacé, incapable de se défendre ; puis, si la file écarte l'unité, le
+     *  tour est rendu et la raison nommée (Avantage sous le coût). Une gratuite DÉCLARÉE par la file rend ✓,
+     *  qu'elle ouvre une fenêtre de Défense (sur `defenseurId` ou le premier adversaire au contact), soit
+     *  suspendue sur une étape (sauvegarde…) ou jouée sans fenêtre. */
+    attaqueGratuite: (attaquantId: string, defenseurId: string, type?: string | null) => {
+      const b = g().battle;
+      if (!b || b.over) return '✗ pas de combat en cours';
+      if (g().pendingRoundStart) return '✗ pause de début de Round : ouvrir le Round d\'abord (__wfrp.confirm())';
+      const actif = inBattleId(b, b.order[b.turn]);
+      if (actif && aiDriven(g(), actif)) return `✗ tour de ${actif.label}, piloté par l'IA (minuteurs en vol) : attendre la main d'un joueur (__wfrp.fastForward())`;
+      const att = inBattleId(b, attaquantId);
+      const def = inBattleId(b, defenseurId);
+      if (!att || !def) return `✗ attaquant/défenseur introuvable (${attaquantId}/${defenseurId}) — voir __wfrp.battle()`;
+      const horsDeCombat = [att, def].find(isOutOfAction);
+      if (horsDeCombat) return `✗ ${horsDeCombat.label} est hors de combat`;
+      const idx = b.order.indexOf(att.id);
+      if (idx < 0) return `✗ ${att.label} est absent de l'ordre d'initiative`;
+      if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : ses gratuites passent par la barre d'actions`;
+      if (att.kind !== 'enemy') return `✗ ${att.label} n'est pas un ennemi : la file des gratuites de créature ne joue que les ennemis`;
+      if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
+      const atks = attaquesNaturelles(att.traits ?? []);
+      const disponibles: AttackKind[] = [
+        ...(att.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes' as const] : []),
+        ...atks.filter((a) => a.trigger === 'free' && MELEE_MANEUVER_KINDS.includes(a.kind) && freeAttackTargetOk(b, att, a.kind, def)).map((a) => a.kind),
+      ];
+      if (!disponibles.length) return `✗ ${att.label} n'a aucune attaque gratuite disponible contre ${def.label} (Morsure, Attaque caudale, Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact) — __wfrp.trait() d'abord`;
+      const kind = disponibles.find((k) => k === (type ?? disponibles[0]));
+      if (!kind) return `✗ « ${type} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
+      if (combatDistance(att, def) > 1) return `✗ ${def.label} est hors de portée de ${att.label} (distance ${combatDistance(att, def)} > 1) — __wfrp.place() d'abord`;
+      if (!defenseSurfaced(g(), def)) return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
+      if (cannotDefend(def)) return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
+      donnerLeTour(b, idx);
+      const auTour = g().battle!;
+      const porteur = inBattleId(auTour, att.id)!;
+      porteur.pendingFreeAttacks = [kind];
+      const declarees = porteur.freeAttacksThisTurn?.[kind] ?? 0;
+      const suspendue = aiCreatureFreeAttacks(() => useGame.getState(), useGame.setState, porteur);
+      if ((porteur.freeAttacksThisTurn?.[kind] ?? 0) > declarees) {
+        const ouverte = g().pendingDefense;
+        const visee = ouverte ? inBattleId(g().battle, ouverte.defenderId)?.label ?? ouverte.defenderId : null;
+        if (visee !== null) return `✓ ${att.label} déclare ${kind} sur ${visee} — modale de Défense ouverte${ouverte!.defenderId === def.id ? '' : ` (premier adversaire au contact, pas ${def.label})`}`;
+        const etape = g().pendingCascade;
+        if (suspendue) return `✓ ${att.label} déclare ${kind} : coup suspendu${etape ? ` sur l'étape ${etape.participants[etape.cursor]?.kind ?? '?'}` : ''} — __wfrp.modal()`;
+        return `✓ ${att.label} déclare ${kind} : coup joué sans fenêtre sur le premier adversaire au contact — __wfrp.log()`;
+      }
+      if (g().battle === auTour) useGame.setState({ battle: b });
+      const cout = freeAttackCost(b, att, attaqueNaturelle(att.traits ?? [], kind)!.def).advantage;
+      return `✗ la file a écarté ${kind} de ${att.label} : ${att.advantage} Avantage pour un coût de ${cout} — __wfrp.quality('${att.id}', null, ${cout}) d'abord`;
     },
 
     /** TRICHE de recette : téléporte un COMBATTANT (mise en place de situations LdV/portée). Cible une
@@ -1126,7 +1514,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** Recette : MANŒUVRE un navire (MDG 13) — le barreur (meilleur en Voile/Ramer de l'équipage, ou
-     *  `helmsmanId`) jette un Test de Navigation → `resolveShipManeuver` → vire SUR RÉUSSITE. `side` =
+     *  `helmsmanId`) jette un Test de Navigation → `maneuverShip` → vire sur réussite du Test. `side` =
      *  'tribord'/'babord' (90°) ou crans. Contrairement à `turnShip` (triche), ce virage PEUT échouer. */
     maneuver: (shipId: string, side: 'tribord' | 'babord' | number = 'tribord', helmsmanId?: string) => {
       const b = g().battle;
@@ -1137,7 +1525,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!r) return '✗ manœuvre impossible';
       return r.success
         ? `✓ ${ship.label} vire (DR ${r.dr}, barreur ${r.helmsman ?? '—'}) : ${before} → ${g().facing[shipId]}`
-        : `✗ ${ship.label} rate la manœuvre (DR ${r.dr}) — cap ${before} inchangé`;
+        : `✓ Test joué : ${ship.label} rate la manœuvre (DR ${r.dr}) — cap ${before} inchangé`;
     },
 
     /** Queue LISIBLE des journaux : les `n` dernières lignes du journal d'exploration ET du
@@ -1165,6 +1553,23 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const flux = devFluxOf(open);
       const names = flux ? ['Roll', 'Confirm', 'Cancel'].map((v) => flux + v).filter((n) => typeof s[n] === 'function') : [];
       return { open, pilote: flux ? names : open.includes('pendingRoundStart') ? ['confirmRoundStart'] : [] };
+    },
+
+    /** OBSERVATION : le GESTE que la partie attend SUR LA CARTE, fenêtre masquée — `null` s'il n'y en a
+     *  aucun. Lu aux prédicats du jeu : la pose de zone d'un sort ou d'un pilonnage (`placingZoneOf`,
+     *  `kind` = `'zone'` ou `'siege'`, rayon et portée en cases depuis l'ancre `casterId`) puis le
+     *  choix des cibles supplémentaires d'une incantation (`pendingCast.pickingTargets`, `kind:'cibles'`,
+     *  cibles déjà retenues `extraTargetIds`). */
+    gesteCarteAttendu: (): GesteCarteAttendu | null => {
+      const s = g();
+      const zone = placingZoneOf(s);
+      if (zone) {
+        const { source, ...pose } = zone;
+        return { kind: source === 'siege' ? 'siege' : 'zone', ...pose };
+      }
+      const pc = s.pendingCast;
+      if (pc?.pickingTargets) return { kind: 'cibles', label: effectiveSpellOf(pc)?.label ?? pc.spellId, casterId: pc.casterId, cibles: [...(pc.extraTargetIds ?? [])] };
+      return null;
     },
 
     /** Lance le jet de LA modale ouverte (convention <flux>Roll) */
@@ -1286,7 +1691,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE : remet le groupe à neuf — PB max, états purgés, critiques/maladies effacés,
-     *  morts relevés (party ET clones du combat en cours). */
+     *  morts relevés (`ecrireActeur` : groupe et file de combat). */
     healParty: () => {
       const fix = (c: Combatant): Combatant => ({
         ...c,
@@ -1297,12 +1702,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         dead: false,
         outOfRencontre: false,
       });
-      useGame.setState((s) => ({
-        party: s.party.map(fix),
-        battle: s.battle
-          ? { ...s.battle, combatants: s.battle.combatants.map((c) => (c.kind === 'hero' ? fix(c) : c)) }
-          : s.battle,
-      }));
+      useGame.setState((s) => ecrireActeur(s, [
+        ...s.party.map((h) => h.id),
+        ...(s.battle?.combatants ?? []).filter((c) => c.kind === 'hero').map((c) => c.id),
+      ], fix));
       return `✓ groupe soigné (${g().party.length} héros)`;
     },
 
@@ -1323,10 +1726,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       // Une feuille `giveTrapping` LITTÉRALE ne porte aucun canal de dés (#1508) : la relecture de
       // l'objet donné qui suit ne peut donc pas passer devant un dé — et si ça changeait, ça lèverait.
       nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'giveTrapping', trappingId, heroId: hero.id }]), 'devtools.giveTrapping');
-      const after = useGame.getState().party.find((h) => h.id === hero.id);
+      const after = actorIn(useGame.getState(), hero.id);
       const it = [...(after?.items ?? [])].reverse().find((i) => i.trappingId === trappingId);
       if (!it) return `✗ don échoué (trappingId « ${trappingId} » inconnu au catalogue ?)`;
-      if (qty != null) { it.qty = qty; useGame.setState((st) => ({ party: [...st.party] })); }
+      if (qty != null) useGame.setState((st) => ecrireActeur(st, hero.id, (h) => ({ ...h, items: (h.items ?? []).map((i) => (i.uid === it.uid ? { ...i, qty } : i)) })));
       return `✓ ${after!.label} reçoit « ${it.label} »${qty != null ? ` ×${qty}` : ''}`;
     },
 
@@ -1358,8 +1761,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     shipCrit: (location = 'greement', opts: { hullId?: string; forcedCritRoll?: number } = {}) => {
       const s = g();
       const { hullId, forcedCritRoll } = opts;
-      const estCoque = (c: Combatant): boolean => !!findVehicleById(c.creatureId ?? '')?.hull;
-      const enJeu = (s.battle?.combatants ?? []).filter(estCoque);
+      const enJeu = (s.battle?.combatants ?? []).filter(estNavire);
       // Par DÉFAUT, la coque des HÉROS — jamais « la première trouvée » : en combat naval, la première
       // est souvent le navire ENNEMI, et la recette frappait le mauvais bord. L'ordre de recherche suit
       // ce que le jeu appelle « notre navire » : la coque du plan de voyage, puis celle qui porte un
@@ -1368,32 +1770,79 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         (c.crewIds ?? []).some((id) => (s.party.some((h) => h.id === id)) || inBattleId(s.battle, id)?.kind === 'hero');
       const coque = hullId
         ? (enJeu.find((c) => c.id === hullId) ?? (s.travelPlan?.vehicle?.id === hullId ? s.travelPlan.vehicle : undefined))
-        : (s.travelPlan?.vehicle ?? enJeu.find(desHeros) ?? (enJeu.length === 1 ? enJeu[0] : undefined));
+        : ((s.travelPlan?.vehicle && estNavire(s.travelPlan.vehicle) ? s.travelPlan.vehicle : undefined) ?? enJeu.find(desHeros) ?? (enJeu.length === 1 ? enJeu[0] : undefined));
       if (!coque) {
         if (hullId) return `✗ coque « ${hullId} » introuvable — en jeu : ${enJeu.map((c) => c.id).join(', ') || '(aucune)'}`;
         if (enJeu.length > 1) return `✗ PLUSIEURS coques et aucune n'est celle des héros — nomme-la : shipCrit('${location}', { hullId }) parmi ${enJeu.map((c) => c.id).join(', ')}`;
-        return '✗ aucune COQUE en jeu (lance un scénario naval, ou appareille)';
+        return '✗ aucune coque de NAVIRE en jeu (lance un scénario naval, ou appareille)';
       }
-      const gree = findVehicleById(coque.creatureId ?? '')?.hull?.rig ?? 'mixte';
+      const profil = profilNavalDe(coque);
+      if (!profil) return `✗ « ${coque.label} » n'est pas une coque de NAVIRE : aucun Critique de navire`;
+      const gree = garanti(rigDuNavire(profil), coque.creatureId, 'gréement du navire (schéma `vehicles`, MDG 12 l.131)');
       const table = findVehicleById(coque.creatureId ?? '')?.hull?.locationTable ?? 'navire';
       let de: number | undefined;
       for (let d = 1; d <= 100 && de === undefined; d++) if (shipHitLocation(gree, d, table) === location) de = d;
       if (de === undefined) return `✗ « ${location} » n'est pas une Localisation de ce gréement (${gree})`;
       const log: string[] = [];
-      applyHullCriticalToTarget(coque, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll });
+      applyHullCriticalToTarget(coque, gree, log, useGame.setState, { get: () => useGame.getState(), forcedLocRoll: de, forcedCritRoll });
       for (const l of log) useGame.getState().log(l);
       return [`✓ Critique de navire « ${location} » (d100 imposé ${de}) sur ${coque.label}`, ...log];
     },
 
-    /** RECETTE : +PX à tout le groupe (teste l'avancement). */
-    xp: (amount = 100) => {
-      useGame.setState((s) => ({ party: s.party.map((h) => ({ ...h, xp: (h.xp ?? 0) + amount })) }));
-      return g().party.map((h) => `${h.label} : ${h.xp} PX`);
+    /** PX du groupe, LUS là où le jeu lit (`actorIn`) : `xp()` OBSERVE ; `xp(n)` donne d'abord n PX à
+     *  tout le groupe par l'effet `giveXp` (mise en place), puis lit. */
+    xp: (amount?: number) => {
+      if (amount !== undefined) nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'giveXp', amount }]), 'devtools.xp');
+      return g().party.map((h) => ({ id: h.id, label: h.label, xp: actorIn(g(), h.id)?.xp ?? 0 }));
+    },
+
+    /** OBSERVATION du set d'armes d'un héros, lu là où le jeu lit (`actorIn`) : le set actif
+     *  (`activeLoadout`, `loadoutLabel`), son arme principale et sa seconde main (bouclier ou non,
+     *  `isShieldItem`), les armes TENUES (`weapons`, dérivées), l'arme qui pare par défaut (la première
+     *  tenue, `resolveMelee`) et la défense que le défenseur choisirait (`bestDefenseMode`). */
+    loadout: (heroId: string) => {
+      const c = actorIn(g(), heroId);
+      if (!c) return `✗ combattant « ${heroId} » introuvable`;
+      const lo = activeLoadout(c);
+      const objet = (uid?: string) => {
+        const it = uid ? (c.items ?? []).find((i) => i.uid === uid) : undefined;
+        return it ? { uid: it.uid, trappingId: it.trappingId ?? null, label: it.label, bouclier: isShieldItem(it) } : null;
+      };
+      return {
+        set: lo ? loadoutLabel(lo, c) : null,
+        principale: objet(lo?.main),
+        seconde: objet(lo?.off),
+        tenues: (c.weapons ?? []).map((w) => ({ uid: w.uid ?? null, label: w.label, type: w.type })),
+        armeDeParade: c.weapons?.[0]?.label ?? null,
+        defense: bestDefenseMode(c),
+      };
+    },
+
+    /** FAIM d'un combattant (`Combatant.hunger`), lue là où le jeu lit (`actorIn`) : `faim(id)` OBSERVE ;
+     *  `faim(id, etat)` pose d'abord l'état par `ecrireActeur` (mise en place, en combat comme hors
+     *  combat), puis lit. `etat` partiel, complété à zéro ; `null` = champ absent (nourri). */
+    faim: (id: string, etat?: Partial<HungerState> | null) => besoin(id, 'hunger', etat),
+
+    /** SOIF d'un combattant (`Combatant.thirst`) : même contrat que `faim` ; `null` = désaltéré. */
+    soif: (id: string, etat?: Partial<ThirstState> | null) => besoin(id, 'thirst', etat),
+
+    /** Points de CHANCE d'un combattant (`Combatant.fortune`), lus au combattant (`actorIn`) avec son
+     *  Destin (`fate`) : `chance(id)` OBSERVE ; `chance(id, n)` pose d'abord n points par `ecrireActeur`
+     *  (mise en place, en combat comme hors combat), puis lit. */
+    chance: (id: string, n?: number) => {
+      if (!actorIn(g(), id)) return `✗ combattant « ${id} » introuvable`;
+      if (n !== undefined) {
+        if (!Number.isInteger(n) || n < 0) return `✗ Chance « ${n} » : un entier positif ou nul`;
+        useGame.setState((s) => ecrireActeur(s, id, (c) => ({ ...c, fortune: n })));
+      }
+      const c = actorIn(g(), id)!;
+      return { id, label: c.label, fortune: c.fortune ?? 0, fate: c.fate ?? 0 };
     },
 
     /** RECETTE : drapeaux de scénario (portes de l'arène, etc.). */
     flags: () => g().flags,
     flag: (id: string, value = true) => {
+      if (ruleDef(id)) throw new Error(`__wfrp.flag : « ${id} » est une règle optionnelle — utiliser __wfrp.rules('${id}', ${value})`);
       useGame.setState((s) => ({ flags: { ...s.flags, [id]: value } }));
       return g().flags;
     },
@@ -1420,14 +1869,21 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return v ? '✓ siège MJ posé (siège 0)' : '✓ siège MJ retiré (IA)';
     },
 
-    /** RECETTE : MÉMORISE un sort au grimoire d'un héros (par id) — jumeau de `talent()` pour la magie.
-     *  Passe par l'EFFET MOTEUR `learnSpell` (`state/combatEffects`, trouvaille de campagne, sans PX),
-     *  jamais par une écriture parallèle de `c.spells` : ce que la console pose est ce que le jeu pose. */
+    /** RECETTE : MÉMORISE un sort au grimoire d'un héros (par id), par l'effet `learnSpell` ; la raison
+     *  se lit au verdict `verdictApprentissage` (#2312). */
     spell: (heroId: string, spellId: string) => {
+      const sp = findSpellById(spellId);
+      if (!sp) return `✗ sort « ${spellId} » inconnu`;
+      const lu = () => (g().party.some((h) => h.id === heroId) ? actorIn(g(), heroId) : undefined);
+      const avant = lu();
+      if (!avant) return `✗ héros « ${heroId} » introuvable — ${g().party.map((h) => h.id).join(', ')}`;
+      const verdict = verdictApprentissage(avant, sp);
+      if (verdict === 'deja-connu') return `✗ ${avant.label} connaît déjà « ${spellId} »`;
+      if (verdict === 'non-eligible') return `✗ ${avant.label} n'a aucun Talent de lanceur pour « ${spellId} »`;
       nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'learnSpell', spell: spellId, heroId }]), 'devtools.spell');
-      const who = actorIn(useGame.getState(), heroId);
-      return who && (who.spells ?? []).includes(spellId)
-        ? `✓ ${who.label} mémorise « ${spellId} »`
+      const apres = lu();
+      return apres && verdictApprentissage(apres, sp) === 'deja-connu'
+        ? `✓ ${apres.label} mémorise « ${spellId} »`
         : `✗ sort « ${spellId} » non mémorisé — voir le journal`;
     },
 
@@ -1439,15 +1895,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     talent: (id: string, talentId: string, opts: number | { spec?: string; times?: number } = 1) => {
       const { spec, times } = typeof opts === 'number' ? { spec: undefined, times: opts } : { spec: opts.spec, times: opts.times ?? 1 };
       const grant = (c: Combatant): Combatant => {
-        if (c.id !== id) return c;
-        const acquis = { ...c };
+        const acquis = structuredClone(c);
         for (let i = 0; i < times; i++) acquerirTalent(acquis, { id: talentId, ...(spec != null ? { spec } : {}) });
         return acquis;
       };
-      useGame.setState((s) => ({
-        party: s.party.map(grant),
-        battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
-      }));
+      useGame.setState((s) => ecrireActeur(s, id, grant));
       const pose = actorIn(useGame.getState(), id)?.talents?.find((t) => t.talentId === talentId && (t.spec ?? null) === (spec ?? null));
       return pose
         ? `✓ ${id} → ${talentId}${spec ? ` (spec ${spec})` : ''} ×${pose.times}`
@@ -1462,15 +1914,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!findTraitById(traitId)) return `✗ trait « ${traitId} » inconnu`;
       const instance = { id: traitId, ...(opts.arg != null ? { arg: opts.arg } : {}), ...(opts.value != null ? { value: opts.value } : {}) };
       const grant = (c: Combatant): Combatant => {
-        if (c.id !== id) return c;
-        const porteur = { ...c };
+        const porteur = structuredClone(c);
         grantTrait(porteur, instance);
         return porteur;
       };
-      useGame.setState((s) => ({
-        party: s.party.map(grant),
-        battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(grant) } : s.battle,
-      }));
+      useGame.setState((s) => ecrireActeur(s, id, grant));
       const pose = actorIn(useGame.getState(), id)?.traits?.some((t) => t.id === traitId && (t.arg ?? null) === (opts.arg ?? null));
       return pose ? `✓ ${id} → trait ${traitId}${opts.arg ? ` (${opts.arg})` : ''}` : `✗ ${id} : trait « ${traitId} » non posé (combattant absent)`;
     },
@@ -1501,59 +1949,55 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE : ajoute un Atout/Défaut (par libellé OU id de qualité) à l'arme ACTIVE d'un combattant
      *  et, optionnellement, lui crédite des Avantages — ex. `quality('hero-1','Déstabilisante',2)` pour
-     *  tester le renversement onHit influençable. La qualité est reconnue label/id/casse (resolveQualities). */
-    quality: (id: string, label = 'Déstabilisante', advantage?: number) => {
+     *  tester le renversement onHit influençable. La qualité est reconnue label/id/casse (resolveQualities).
+     *  `null` vaut absent (un `undefined` passé par CDP arrive `null`) : qualité par défaut, aucun Avantage. */
+    quality: (id: string, qualite?: string | null, advantage?: number | null) => {
+      const label = qualite ?? 'Déstabilisante';
       const tweak = (c: Combatant): Combatant => {
-        if (c.id !== id) return c;
         const weapons = (c.weapons ?? []).map((w, i) => (i === 0 ? { ...w, qualities: [...(w.qualities ?? []), parseQualityInstance(label) ?? { id: label }] } : w));
         return { ...c, weapons, ...(advantage != null ? { advantage } : {}) };
       };
-      useGame.setState((s) => ({
-        party: s.party.map(tweak),
-        battle: s.battle ? { ...s.battle, combatants: s.battle.combatants.map(tweak) } : s.battle,
-      }));
+      useGame.setState((s) => ecrireActeur(s, id, tweak));
       const c = actorIn(g(), id);
       return c ? `✓ ${c.label} : arme « ${c.weapons?.[0]?.label} » + ${label}${advantage != null ? ` · ${advantage} Av` : ''}` : `✗ ${id} introuvable`;
     },
 
-    /** RECETTE : applique un État à un combattant (par id) via le VRAI addCondition → déclenche les
-     *  triggers onGainCondition (Mâchoires d'acier ouvre alors sa modale de Résistance influençable). */
+    /** RECETTE : applique un État à un combattant (par id) par l'effet `ops` (op `condition`) ; un id
+     *  hors `etatConnu` (catalogue vivant ∪ marqueurs narratifs) → ✗ + ids valides, rien de posé. */
     condition: (id: string, name = 'sonne', n = 1) => {
-      const s = g();
-      const c = actorIn(s, id);
+      const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
-      addCondition(c, name, n);
-      useGame.setState((st) => ({
-        party: [...st.party],
-        battle: st.battle ? { ...st.battle, combatants: [...st.battle.combatants] } : st.battle,
-      }));
+      if (!etatConnu(name)) return `✗ État « ${name} » inconnu — ids valides : ${etatIdsConnus().join(', ')}`;
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'condition', id: name, value: n }] }]), 'devtools.condition');
       return `✓ ${c.label} : +${n} ${name}`;
     },
 
-    /** RECETTE : contracte une MALADIE sur un héros via le VRAI cycle (`contractDisease`) — jamais un état
+    /** RECETTE : contracte une MALADIE sur un héros par l'effet `inflictDisease` — jamais un état
      *  forgé. `disease('hero-1','vers-de-carie', { phase:'active' })` fait AVANCER l'horloge de la maladie
      *  (`tickDisease` sur son incubation) pour la déclarer, avec le vrai jet de Localisation / transitions.
      *  Défaut : phase d'incubation (comme à la contraction réelle). */
     disease: (heroId: string, maladieId: string, opts?: { phase?: 'incubation' | 'active' }) => {
-      const c = actorIn(g(), heroId);
-      if (!c) return `✗ combattant ${heroId} introuvable`;
-      const dz = contractDisease(maladieId, battleRng());
-      if (!dz) return `✗ maladie inconnue : ${maladieId}`;
-      c.diseases = [...(c.diseases ?? []), dz];
-      // `phase:'active'` : on AVANCE le cycle réel de l'incubation (jamais `phase='active'` posé à la main)
-      // → transition, jet de Localisation de la cloque, infectedMinutes… exactement comme le temps qui passe.
-      // Les Tests du cycle ne se roulent PLUS nulle part (#1657 B3-3) : la triche les COMPTE et le dit
-      // — ils se jouent à la nuit/l'avance d'horloge, par la porte. (Une incubation n'en doit aucun.)
+      if (!actorIn(g(), heroId)) return `✗ combattant ${heroId} introuvable`;
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'inflictDisease', disease: maladieId, heroId }]), 'devtools.disease');
+      const c = actorIn(g(), heroId)!;
+      const dz = c.diseases?.find((d) => d.id === maladieId);
+      if (!dz) return `✗ maladie « ${maladieId} » non contractée (inconnue, ou combattant hors du groupe) — voir le journal`;
+      // `phase:'active'` : le cycle RÉEL avance de l'incubation (#1657 B3-3) ; ses Tests dus se comptent.
+      // Les dés se tirent UNE fois, sur l'acteur lu ; la valeur s'écrit par `ecrireActeur`.
       const dus: string[] = [];
-      if (opts?.phase === 'active' && dz.phase === 'incubation') tickDisease(c, dz.minutesLeft, battleRng(), (spec) => dus.push(spec.kind));
-      // Les États PORTÉS par les passifs des symptômes (op `condition` — Fièvre (Grave) → Inconscient)
-      // sont MATÉRIALISÉS par la réconciliation : sans elle, la triche rendrait un état à moitié vrai.
-      syncDerivedConditions(c);
-      useGame.setState((st) => ({
-        party: [...st.party],
-        battle: st.battle ? { ...st.battle, combatants: [...st.battle.combatants] } : st.battle,
-      }));
-      return `✓ ${c.label} : ${maladieId} (${c.diseases[c.diseases.length - 1].phase})${dus.length ? ` — ${dus.length} Test(s) dû(s) à la prochaine nuit : ${dus.join(', ')}` : ''}`;
+      if (opts?.phase === 'active' && dz.phase === 'incubation') {
+        const lu = structuredClone(c);
+        tickDisease(lu, dz.minutesLeft, battleRng(), (spec) => dus.push(spec.kind));
+        useGame.setState((st) => ecrireActeur(st, heroId, (h) => {
+          const porteur = structuredClone(h);
+          porteur.diseases = structuredClone(lu.diseases);
+          porteur.residualDiseaseTestMod = lu.residualDiseaseTestMod;
+          syncDerivedConditions(porteur);
+          return porteur;
+        }));
+      }
+      const phase = actorIn(g(), heroId)?.diseases?.find((d) => d.id === maladieId)?.phase;
+      return `✓ ${c.label} : ${maladieId} (${phase})${dus.length ? ` — ${dus.length} Test(s) dû(s) à la prochaine nuit : ${dus.join(', ')}` : ''}`;
     },
 
     /** RECETTE : instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — VRAI
@@ -1578,6 +2022,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const side = opts?.side ?? 'enemy';
       if (side === 'hero') { c.kind = 'hero'; c.aiControlled = true; }
       else if (side === 'npc') c.kind = 'npc';
+      if (b.advantagePools) mirrorPools(b.advantagePools, [c]); // AA 11 l.11-13
       useGame.setState({ battle: { ...b, combatants: [...b.combatants, c], order: [...b.order, id] } });
       bus.emit(EVT.SCENE_DIRTY);
       return `✓ ${c.label} (${creatureId}) apparu — ${side}, (${basePos.x},${basePos.y})`;
@@ -1604,29 +2049,17 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         options: [{ key: 'trap', label: t('opt.piegerLame') }, { key: 'crit', label: t('opt.coupCritique') }],
         defaultChoice: 'crit', bladeTrap: pbt,
       });
-      useGame.setState((s) => ({ battle: s.battle ? { ...s.battle, combatants: [...s.battle.combatants] } : s.battle }));
+      useGame.setState(touchActors);
       return `✓ Piège-lame : ${defender.label} pare ${attacker.label} (${weapon.label}, +${defSL} DR) → choix Piéger/Critique`;
     },
 
-    /** RECETTE : met un combattant en FOCALISATION (DR cumulé sur un sort) — `focus('hero-1')` →
-     *  Armure Aethyrique DR 3. Frapper ensuite le focaliseur (attaque ennemie / `__wfrp.condition` +
-     *  dégâts) déclenche `checkFocusInterruption` : Test de Calme Difficile INFLUENÇABLE (héros manuel). */
     focus: (id: string, spell = 'armure-aethyrique', dr = 3) => {
-      const s = g();
-      const c = actorIn(s, id);
+      const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
-      c.focus = { spell, dr };
-      useGame.setState((st) => ({
-        party: [...st.party],
-        battle: st.battle ? { ...st.battle, combatants: [...st.battle.combatants] } : st.battle,
-      }));
+      useGame.setState((st) => ecrireActeur(st, id, (h) => ({ ...h, focus: { spell, dr } })));
       return `✓ ${c.label} : Focalisation ${spell} (DR ${dr})`;
     },
 
-    /** RECETTE : pose une Peur active de `heroId` envers `enemyId` (Indice) puis simule l'APPROCHE de la
-     *  source (LDB 21 l.27) — `fear('hero-1','enemy-1', 2)`. C'est le MÊME appel que le mouvement d'IA quand
-     *  une source de Peur se rapproche (`approachFearTrigger`) : le héros doit réussir un Test de Calme
-     *  Intermédiaire (héros manuel → étape de cascade INFLUENÇABLE) ou gagner un État Brisé. */
     fear: (heroId: string, enemyId: string, indice = 2) => {
       const b = g().battle;
       if (!b || b.over) return '✗ pas de combat en cours';
@@ -1636,14 +2069,24 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!hero.pos || !enemy.pos) return '✗ positions inconnues';
       hero.psychState = [
         ...(hero.psychState ?? []).filter((p) => !(p.type === 'peur' && p.sourceId === enemyId)),
-        { type: 'peur', sourceId: enemyId, indice, calmeDR: 0 }, // Peur active (non vaincue) envers la source
+        { type: 'peur', sourceId: enemyId, indice, calmeDR: 0 },
       ];
       // `fromPos` plus loin que la position actuelle → l'approche est mesurée comme un rapprochement réel.
       const fromPos = { x: enemy.pos.x + Math.sign(enemy.pos.x - hero.pos.x || 1) * 5, y: enemy.pos.y };
-      useGame.setState((s) => ({ battle: s.battle ? { ...s.battle, combatants: [...s.battle.combatants] } : s.battle }));
+      useGame.setState(touchActors);
       approachFearTrigger(() => useGame.getState(), useGame.setState, enemy, fromPos);
       bus.emit(EVT.SCENE_DIRTY);
       return `✓ ${enemy.label} (Peur ${indice}) s'approche de ${hero.label} → Test de Calme ou Brisé`;
+    },
+
+    /** RECETTE : pose l'état psychologique `type` (id de `psychology.json`) sur un combattant par l'op
+     *  `beginPsych` (effet `ops`, même chemin que `condition`). */
+    psych: (id: string, type: string) => {
+      const c = actorIn(g(), id);
+      if (!c) return `✗ combattant ${id} introuvable`;
+      if (!findPsychologyById(type)) return `✗ état psychologique « ${type} » inconnu — ids valides : ${psychologies.map((p) => p.id).join(', ')}`;
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'beginPsych', type }] }]), 'devtools.psych');
+      return `✓ ${c.label} : ${psychologyLabel(type)}`;
     },
 
     /** RECETTE : saute vers une scène du projet/de la campagne par id (machinerie de transition). */
@@ -1740,15 +2183,18 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const b = s.battle;
       const act = b && !b.over ? inBattleId(b, b.order[b.turn]) : undefined;
       const key = pickActiveModalKey(s);
+      const cur = s.pendingCascade?.participants[s.pendingCascade.cursor];
       return {
         cadence: cadence(),
         activeModal: key,
+        cascade: cur ? { id: cur.id, kind: cur.kind, interaction: stepInteraction(cur), ready: stepReady(cur, s), chosen: cur.chosen ?? null, amount: cur.amount ?? null } : null,
         policy: autoPolicyOf(s)?.mode ?? null,
         willAutoResolve: willAutoResolve(s),
         openPendings: open,
         roundPause: !!s.pendingRoundStart,
         medic: !!s.medic,
         active: act ? { id: act.id, kind: act.kind, aiDriven: aiDriven(s, act), acted: !!b!.acted } : null,
+        endTurnArmed: b ? endTurnArmed(b) : false,
       };
     },
 
@@ -1945,9 +2391,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     forceOverspeed: (overM = 5) => {
       const plan = g().travelPlan;
       if (!plan?.sea) return '✗ aucune traversée en cours (travelPlan.sea)';
-      const vd = plan.vehicle ? findVehicleById(plan.vehicle.creatureId ?? '')?.ship : undefined;
-      const baseM = vd?.sail?.m ?? vd?.oars?.m ?? 0;
-      if (!baseM) return '✗ M de conception introuvable sur le navire de campagne';
+      if (!plan.vehicle) return '✗ aucun navire de campagne (travelPlan.vehicle)';
+      const baseM = garanti(propulsionDuNavire(plan.vehicle.creatureId, plan.vehicle.upgrades, milieuDuVoyage(plan)), plan.vehicle.creatureId, 'propulsion du navire').m;
       const effMToday = baseM + Math.max(1, overM);
       useGame.setState({ travelPlan: { ...plan, sea: { ...plan.sea, effMToday, milesToday: Math.max(1, plan.sea.milesToday) } } });
       return `✓ survitesse armée : M ${baseM} → ${effMToday} (M+${effMToday - baseM}) — dérouler avec __wfrp.advanceSeaDay()`;
@@ -1988,42 +2433,37 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const route = map.routes.find((r) => r.id === routeId);
       if (!route) return `✗ route « ${routeId} » introuvable — ids : ${map.routes.map((r) => r.id).join(', ')}`;
       const here = placeOfScene(map, s.scene.id);
-      // Seules les routes RENDUES portent un tracé de hit-test (`WorldMapView.tsx`) — MÊMES prédicats,
-      // MÊME ordre : extrémités révélées + offerte depuis ici. Une route qui part vers un lieu caché
-      // n'a pas de tracé : la compter décalerait l'index et cliquerait une AUTRE route (#684).
-      const clickable = routesRendues(map, s.scene.id);
-      const idx = clickable.findIndex((e) => e.route.id === routeId);
-      if (idx < 0) return `✗ route « ${routeId} » non cliquable depuis ici (${here?.label ?? '?'})`;
-      // La bande CLIQUABLE d'une route est le `path` de HIT de `MapCanvas` (`stroke="transparent"`,
-      // `pointer-events: stroke`) — sélecteur RE-MESURÉ au rendu réel en recette #1117 : l'ancien
-      // `path[stroke-opacity="0"]` ne correspondait à rien et rendait le helper muet.
-      const paths = Array.from(document.querySelectorAll<SVGPathElement>('svg.wm-map path[stroke="transparent"][pointer-events="stroke"]'));
-      const path = paths[idx];
+      // Seules les routes RENDUES portent un tracé de hit-test (`WorldMapView.tsx`) : extrémités
+      // révélées + offerte depuis ici, ouverte OU fermée-consultable (`routesRendues`).
+      const rendue = routesRendues(map, s.scene.id).find((e) => e.route.id === routeId);
+      if (!rendue) return `✗ route « ${routeId} » non cliquable depuis ici (${here?.label ?? '?'})`;
+      const etat = rendue.ouverte ? 'ouverte' : 'fermee-consultable';
+      // La bande CLIQUABLE d'une route est le `path` de HIT de `MapCanvas`, qui porte l'id de son tracé
+      // (`data-path-id`) : aucun index à recompter.
+      const path = document.querySelector<SVGPathElement>(`svg.wm-map path[data-path-id="${CSS.escape(routeId)}"]`);
       if (!path) return `✗ tracé SVG introuvable pour « ${routeId} » (carte du monde fermée à l'écran ?)`;
+      const tracé = path.parentElement;
       const ctm = path.getScreenCTM();
       if (!ctm) return '✗ getScreenCTM indisponible (carte hors DOM)';
       const total = path.getTotalLength();
       const toScreen = (pt: DOMPoint) => ({ x: Math.round(pt.x * ctm.a + pt.y * ctm.c + ctm.e), y: Math.round(pt.x * ctm.b + pt.y * ctm.d + ctm.f) });
-      // Un point est CLIQUABLE si l'élément sous le curseur (ou un de ses ancêtres) porte `cursor:pointer`
-      // — la route (ou la couche interactive) le déclare ; un décor transparent interposé ne l'a pas.
-      const clickableAt = (x: number, y: number): boolean => {
-        let el: Element | null = document.elementFromPoint(x, y);
-        while (el) {
-          if (getComputedStyle(el).cursor === 'pointer') return true;
-          el = el.parentElement;
-        }
-        return false;
+      // Un point est CLIQUABLE si l'élément sous le curseur appartient au groupe du tracé (bande de hit
+      // ou trait dessiné) : c'est lui qui porte le `onClick` de la route — un décor interposé, non.
+      const atteint = (x: number, y: number): boolean => {
+        const el = document.elementFromPoint(x, y);
+        return !!el && !!tracé && tracé.contains(el);
       };
-      // Milieu d'abord (comportement historique), puis fractions balayées de part et d'autre.
+      // Milieu d'abord, puis fractions balayées de part et d'autre.
       const fractions = [0.5, 0.45, 0.55, 0.4, 0.6, 0.35, 0.65, 0.3, 0.7, 0.25, 0.75, 0.2, 0.8];
       for (const f of fractions) {
         const pt = toScreen(path.getPointAtLength(total * f));
-        if (clickableAt(pt.x, pt.y)) {
-          return { ...pt, note: `point ON-PATH cliquable (fraction ${f} — chaîne d'ancêtres porte cursor:pointer) : cliquer ces coordonnées ÉCRAN avec un VRAI clic souris (page.mouse.click)` };
+        if (atteint(pt.x, pt.y)) {
+          return { ...pt, etat, note: `point du tracé (fraction ${f}) : cliquer ces coordonnées ÉCRAN avec un VRAI clic souris — route ${etat === 'ouverte' ? 'OUVERTE (le clic la sélectionne, départ offert)' : 'FERMÉE (le clic la sélectionne pour la CONSULTER, départ refusé)'}` };
         }
       }
       const mid = toScreen(path.getPointAtLength(total / 2));
-      return { ...mid, note: 'AUCUNE fraction du tracé ne teste cliquable (elementFromPoint sans cursor:pointer) — la carte est peut-être masquée/hors premier plan ; milieu renvoyé par défaut' };
+      const dessus = document.elementFromPoint(mid.x, mid.y);
+      return `✗ route « ${routeId} » : aucun point du tracé n'est atteignable — au milieu (${mid.x}, ${mid.y}), « ${dessus ? dessus.tagName.toLowerCase() + (dessus.getAttribute('class') ? '.' + dessus.getAttribute('class') : '') : 'rien'} » le recouvre (carte masquée, ou décor interposé)`;
     },
 
     /** RECETTE #518 : remplit le brouillon du créateur de personnage OUVERT avec des défauts VALIDES

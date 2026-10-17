@@ -4,54 +4,79 @@
  * typés et son vidage. Couche neutre : la donnée (`src/data`) et le store (`src/state`) l'importent
  * tous deux.
  *
+ * Une base se DÉCLARE (ses magasins et leur `keyPath`) et s'ouvre SANS version (#2404) : une base
+ * neuve reçoit ses magasins de la déclaration ; une base existante qui s'en écarte est supprimée puis
+ * recréée, ses données perdues.
+ *
  * Politique de connexion : chaque opération ouvre sa connexion et la FERME à son règlement
  * (`avecConnexion`) ; une ouverture réussie APRÈS le règlement de `ouvrirBase` est
- * refermée aussitôt. Aucune connexion ne survit à son opération, donc aucune ne bloque la migration de
- * version d'un autre onglet.
+ * refermée aussitôt. Aucune connexion ne survit à son opération, donc aucune ne bloque la suppression
+ * de la base par un autre onglet.
  */
-import { versionCourante } from './versionCourante';
 
-/** Les migrations d'une base (`onupgradeneeded`), keyées par version de DÉPART, 0 pour une base neuve :
- *  la version de la base en dérive (`versionCourante`, #2226). */
-export type MigrationsIdb = Readonly<Record<number, (db: IDBDatabase) => void>>;
-
-/** Une base : son nom et ses migrations. */
-export interface BaseIdb {
-  readonly nom: string;
-  readonly migrations: MigrationsIdb;
+/** Un magasin déclaré : sa `keyPath`, absente pour un magasin à clés externes. */
+export interface MagasinDeclare {
+  readonly keyPath?: string | string[];
 }
 
-/** Joue sur `db`, en cours de migration, les migrations de `migrations` depuis `ancienneVersion`. */
-export function migrerBase(migrations: MigrationsIdb, db: IDBDatabase, ancienneVersion: number): void {
-  for (let v = ancienneVersion; v < versionCourante(migrations); v++) migrations[v](db);
+/** Une base : son nom et ses magasins déclarés, par nom. */
+export interface BaseIdb {
+  readonly nom: string;
+  readonly magasins: Readonly<Record<string, MagasinDeclare>>;
+}
+
+/** Une base encore non conforme à sa déclaration après sa recréation. */
+export class BaseIdbNonConforme extends Error {
+  constructor(nom: string) {
+    super(`IndexedDB : la base « ${nom} » recréée ne porte toujours pas les magasins déclarés`);
+    this.name = 'BaseIdbNonConforme';
+  }
 }
 
 /** #776 */
 const IDB_OPEN_TIMEOUT_MS = 3000;
 
-type OuvertureIdb = (nom: string, version: number) => IDBOpenDBRequest;
+/** Ce que la plomberie appelle d'IndexedDB. */
+export type FabriqueIdb = Pick<IDBFactory, 'open' | 'deleteDatabase'>;
 
-const ouvertureNative: OuvertureIdb = (nom, version) => indexedDB.open(nom, version);
-let ouverture: OuvertureIdb = ouvertureNative;
-let ouvertureSubstituee = false;
+let fabriqueSubstituee: FabriqueIdb | null = null;
 
-/** Substitue l'ouverture de TOUTES les bases (`null` rétablit l'ouverture native) : une ouverture
- *  substituée rend IndexedDB disponible (`idbDisponible`), jsdom et node n'ayant pas `indexedDB`. */
-export function __setOuvertureIdbForTest(fn: OuvertureIdb | null): void {
-  ouverture = fn ?? ouvertureNative;
-  ouvertureSubstituee = fn !== null;
+/** Substitue l'ouverture et la suppression de TOUTES les bases (`null` rétablit `indexedDB`) : une
+ *  fabrique substituée rend IndexedDB disponible (`idbDisponible`), jsdom et node n'ayant pas `indexedDB`. */
+export function __setFabriqueIdbForTest(fabrique: FabriqueIdb | null): void {
+  fabriqueSubstituee = fabrique;
 }
 
-/** `indexedDB` présent, ou ouverture substituée. */
+const fabriqueIdb = (): FabriqueIdb => fabriqueSubstituee ?? indexedDB;
+
+/** `indexedDB` présent, ou fabrique substituée. */
 export function idbDisponible(): boolean {
-  return ouvertureSubstituee || typeof indexedDB !== 'undefined';
+  return fabriqueSubstituee !== null || typeof indexedDB !== 'undefined';
 }
 
-/** Ouvre `base`. Se règle UNE fois : succès, erreur, `blocked` ou délai `IDB_OPEN_TIMEOUT_MS` (#776) ;
- *  une connexion qui aboutit après ce règlement est refermée. */
+const cleDeChemin = (keyPath: string | string[] | null | undefined): string => JSON.stringify(keyPath ?? null);
+
+/** Les magasins de `db` sont exactement ceux de `base`, chacun à sa `keyPath` déclarée. */
+function conforme(base: BaseIdb, db: IDBDatabase): boolean {
+  const declares = Object.keys(base.magasins);
+  if (db.objectStoreNames.length !== declares.length || !declares.every((nom) => db.objectStoreNames.contains(nom))) return false;
+  if (declares.length === 0) return true;
+  const tx = db.transaction(declares, 'readonly');
+  return declares.every((nom) => cleDeChemin(tx.objectStore(nom).keyPath) === cleDeChemin(base.magasins[nom].keyPath));
+}
+
+/** Crée dans `db`, base neuve en cours de création, les magasins déclarés de `base`. */
+function creerMagasins(base: BaseIdb, db: IDBDatabase): void {
+  for (const [nom, { keyPath }] of Object.entries(base.magasins)) {
+    db.createObjectStore(nom, keyPath === undefined ? undefined : { keyPath });
+  }
+}
+
+/** Ouvre `base`, conforme à sa déclaration, la recréant UNE fois au besoin. Se règle UNE fois : succès,
+ *  erreur, `blocked` ou délai `IDB_OPEN_TIMEOUT_MS` (#776) ; une connexion qui aboutit après ce
+ *  règlement est refermée. */
 function ouvrirBase(base: BaseIdb): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = ouverture(base.nom, versionCourante(base.migrations));
     let regle = false;
     const regler = (geste: () => void): boolean => {
       if (regle) return false;
@@ -60,13 +85,31 @@ function ouvrirBase(base: BaseIdb): Promise<IDBDatabase> {
       geste();
       return true;
     };
-    const timer = setTimeout(() => regler(() => reject(new Error('IndexedDB open : délai dépassé'))), IDB_OPEN_TIMEOUT_MS);
-    req.onupgradeneeded = (e) => migrerBase(base.migrations, req.result, e.oldVersion);
-    req.onblocked = () => regler(() => reject(new Error('IndexedDB open : bloqué par une autre connexion ouverte')));
-    req.onsuccess = () => {
-      if (!regler(() => resolve(req.result))) req.result.close();
+    const echouer = (erreur: unknown) => regler(() => reject(erreur));
+    const timer = setTimeout(() => echouer(new Error('IndexedDB open : délai dépassé')), IDB_OPEN_TIMEOUT_MS);
+    const recreer = () => {
+      const req = fabriqueIdb().deleteDatabase(base.nom);
+      req.onblocked = () => echouer(new Error('IndexedDB delete : bloqué par une autre connexion ouverte'));
+      req.onsuccess = () => {
+        if (!regle) ouvrir(false);
+      };
+      req.onerror = () => echouer(req.error);
     };
-    req.onerror = () => regler(() => reject(req.error));
+    const ouvrir = (recreable: boolean) => {
+      const req = fabriqueIdb().open(base.nom);
+      req.onupgradeneeded = () => creerMagasins(base, req.result);
+      req.onblocked = () => echouer(new Error('IndexedDB open : bloqué par une autre connexion ouverte'));
+      req.onsuccess = () => {
+        const db = req.result;
+        if (regle) return db.close();
+        if (conforme(base, db)) return void regler(() => resolve(db));
+        db.close();
+        if (recreable) recreer();
+        else echouer(new BaseIdbNonConforme(base.nom));
+      };
+      req.onerror = () => echouer(req.error);
+    };
+    ouvrir(true);
   });
 }
 

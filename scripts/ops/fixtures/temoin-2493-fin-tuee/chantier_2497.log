@@ -1,0 +1,33 @@
+[publier] détaché — pid=42408 log=C:\Users\gauch\PhpstormProjects\Foundry\Game\.wt-2497\node_modules\.cache\publication\chantier_2497.log args=
+[publier] 2026-10-08T11:13:16.546Z — branche chantier/2497
+[publier] journal neuf
+[publier] preflight — début
+[publier] preflight — vert (1.0 s) : arbre propre, origin consultable, outillage local posé, base aa3e992e7
+[publier] docs — début
+[publier] docs — vert (0.1 s) : aucune source de mixte dans la plage, arbre propre : docs inchangés
+[publier] push-branche — déjà faite
+[publier] pr — début
+[publier] pr — vert (3.2 s) : PR #2515 ouverte sur 565f26dfc
+[publier] file — début
+[publier] file — ouverte (PR #2515)
+[publier] file — demande de fusion sous le compte « cgauche »
+[publier] file — ouverte (PR #2515)
+[publier] file — PR #2515 : course de file en-vol
+[publier] file — ouverte (PR #2515)
+[publier] file — PR #2515 : course de file en-vol
+[publier] file — ouverte (PR #2515)
+[publier] file — PR #2515 : course de file en-vol
+[publier] file — ouverte (PR #2515)
+[publier] file — PR #2515 : course de file en-vol
+[publier] file — ouverte (PR #2515)
+[publier] file — PR #2515 : course de file en-vol
+[publier] file — ouverte (PR #2515)
+[publier] file — PR #2515 : course de file en-vol
+[publier] file — ouverte (PR #2515)
+[publier] file — PR #2515 : course de file en-vol
+[publier] file — PR illisible : spawnSync gh ETIMEDOUT
+[publier] file — fusionnee (PR #2515)
+[publier] file — vert (987.4 s) : PR #2515 fusionnée en 6ba0f7685
+[publier] pilotage — début
+[publier] pilotage — vert (5.1 s) : 2 commentaire(s) posé(s) sur 2 ticket(s) cité(s)
+[publier] fin — début

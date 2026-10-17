@@ -15,7 +15,7 @@ import {
   type PursuitPayload,
 } from './pursuitFlow';
 import type { PursuitFoe } from '../engine/pursuit';
-import { closeSequenceRound, type SequenceState, type MancheClose } from './sequenceCore';
+import { closeSequenceRound, type EtatDeFamille, type MancheClose } from './sequenceCore';
 import { startCascade } from './cascade';
 import { monoStep, displayStep, type BuiltCascadeStep } from './rollSeam';
 import { combatStakeRef } from '../data';
@@ -26,6 +26,7 @@ import { modalOwnerOf } from './modalArbiter';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { CascadeStep } from './pendings';
+import { avanceEtapeCascade } from './cascadeTestKit';
 
 function heroes() {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
@@ -49,7 +50,7 @@ function doneRound(party: { id: string }[], sl: number): MancheClose {
 
 /** SÉQUENCE de poursuite EN COURS — l'état vit dans le socle (`sequence`), la poursuite en est la
  *  charge utile ; les formules de score de camp (l.93) sont des PARAMÈTRES, comme à l'ouverture. */
-function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): SequenceState<PursuitPayload> {
+function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): EtatDeFamille<'pursuit'> {
   return {
     def: 'pursuit', round: p.manche ?? 1, cum: {},
     params: { score: { fleeing: 'min', pursuers: 'max' } },
@@ -241,11 +242,8 @@ describe('Poursuite terrestre (#95)', () => {
     for (let guard = 0; guard < 40 && useGame.getState().pendingCascade; guard++) {
       const casc = useGame.getState().pendingCascade!;
       manches.push(casc.participants.length);
-      const cur = casc.participants[casc.cursor];
-      for (const row of cur?.participants ?? []) if (!row.result) useGame.getState().cascadeBatchRoll(row.id);
       // Fenêtre de DÉCISION (rattrapés, l.94) : le pilote tranche la 1ʳᵉ voie — la boucle ne s'arrête pas dessus.
-      if (cur?.options?.length && cur.chosen == null) useGame.getState().cascadeChoose(cur.id, cur.options[0].key);
-      useGame.getState().cascadeNext();
+      avanceEtapeCascade(useGame.getState, undefined, (st) => st.options![0].key);
     }
     // Chaque manche est UNE fenêtre (le « 1/8 » du signal utilisateur ne peut plus se produire).
     expect(manches.every((n) => n === 1)).toBe(true);

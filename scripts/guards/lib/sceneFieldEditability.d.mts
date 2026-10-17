@@ -26,15 +26,6 @@ export interface FieldEditability {
   pipeline: string[];
 }
 
-/** Registre NOMINATIF des fossiles tolérés au parse et hors périmètre éditable — gate bidirectionnel. */
-export const FOSSILES: string[];
-
-/** Gate `@fossile` : un tag hors registre, une entrée sans tag — les deux sens sont des rouges. */
-export function fossileAudit(
-  program: SessionProgramme,
-  root: string
-): { taguesHorsListe: string[]; entreesSansTag: string[] };
-
 /** Ensemble d'IDENTITÉS du document : les déclarations de propriété des shapes atteints depuis
  *  `sceneSchema`, nœuds-frontière exclus. */
 export function documentDeclarations(program: SessionProgramme, root: string): Set<Node>;

@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `donnees.manifest.json` — manifeste éditorial de l'atlas des données (#903), consommé
  * par `scripts/docs/build-donnees.mjs` pour générer `docs/donnees.md`. Vocabulaire app-interne
@@ -9,29 +10,38 @@ import { document } from '../grammaire/document';
 export const file = 'donnees.manifest.json';
 export const famille = 'config';
 
-const entreeSchema = z.strictObject({
+const entreeSchema = nommerChamps(z.strictObject({
   files: z.array(z.string()),
   desc: z.string(),
-});
+}), { files: { label: 'fichiers' }, desc: { label: 'texte' } });
 
-const rubriqueSchema = z.strictObject({
+const rubriqueSchema = nommerChamps(z.strictObject({
   id: z.string().min(1),
   label: z.string().min(1),
   /** Note de rubrique imprimée sous son tableau (`build-donnees.mjs`) — CHAMP, jamais un cas
    *  particulier câblé dans le générateur : toute rubrique peut en porter une. */
   note: z.string().min(1).optional(),
   entrees: z.array(entreeSchema),
+}), {
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  note: { label: 'note' },
+  entrees: { label: 'entrées' },
 });
 
-const homonymeEntreeSchema = z.strictObject({
+const homonymeEntreeSchema = nommerChamps(z.strictObject({
   file: z.string(),
   desc: z.string(),
-});
+}), { file: { label: 'fichier' }, desc: { label: 'texte' } });
 
-const homonymeCasSchema = z.strictObject({
+const homonymeCasSchema = nommerChamps(z.strictObject({
   mot: z.string(),
   entrees: z.array(homonymeEntreeSchema),
   lecon: z.string(),
+}), {
+  mot: { label: 'mot' },
+  entrees: { label: 'entrées' },
+  lecon: { label: 'leçon' },
 });
 
 const doc = document(
@@ -40,10 +50,10 @@ const doc = document(
   {
     reglesOr: z.string(),
     rubriques: z.array(rubriqueSchema),
-    homonymes: z.strictObject({
+    homonymes: nommerChamps(z.strictObject({
       intro: z.string(),
       cas: z.array(homonymeCasSchema),
-    }),
+    }), { intro: { label: 'introduction' }, cas: { label: 'cas' } }),
   },
   {
     reglesOr: { label: 'Règles d’or', hint: 'Principes éditoriaux de l’atlas des données' },

@@ -472,7 +472,7 @@ Trois points d'enregistrement, dans cet ordre :
    qui n'a pas d'entrée propre (la plus spécifique l'emporte), et `raw:reconcile` CRÉDITE les
    chapitres de cœur dont toutes les fiches qui les décrivent sont ainsi déclarées : aucune entrée
    `B2 <ABRÉV> <ch>` à écrire au stock. L'entrée vit aussi longtemps que son ticket
-   (`scripts/hooks/solde-ticket-guard.mjs`, `evaluateRegistresPorteurs`, qui boucle sur les registres
+   (`scripts/git-hooks/porte-du-commit.mjs`, `evaluateRegistresPorteurs`, qui boucle sur les registres
    PORTEURS de ticket listés par `scripts/hooks/registres-porteurs.json`) : à la fermeture elle part,
    et tout topic encore non implémenté redevient orphelin, à ticketer nommément.
 2. **`docs/raw/sources.md`** — la page des sources est TRANSVERSE : elle vit à la racine de l'Atlas et
@@ -542,7 +542,7 @@ plus `"ticket": "#N"` — la dette d'EXTRACTION, due par le chantier qui extrait
 écrite). L'index du cœur la rend alors SANS lien, avec son ticket : lier une fiche absente serait un
 lien mort. La marque se RETIRE dans le commit qui publie la fiche — une entrée qui a sa fiche ET un
 `ticket` est refusée, comme une entrée sans fiche ni `ticket`. Tant qu'une aire porte `#N`, la
-garde de solde (`scripts/hooks/solde-ticket-guard.mjs`, PreToolUse) REFUSE de fermer `#N` (même
+porte du commit (`scripts/git-hooks/porte-du-commit.mjs`, hook git `commit-msg`) REFUSE de fermer `#N` (même
 garde que pour le manifeste : `registres-porteurs.json`).
 
 Un `titre` d'aire ne porte **aucun `#`** : le hook de fermeture scanne les registres porteurs à la

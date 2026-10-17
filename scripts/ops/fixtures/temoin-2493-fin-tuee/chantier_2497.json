@@ -1,0 +1,102 @@
+{
+  "branche": "chantier/2497",
+  "base": "aa3e992e7da3db84ea7407a1e50eb6c8b478ddbc",
+  "tete": "565f26dfc4784f5a237d97cedb80df14c72eb4ee",
+  "ejections": 0,
+  "etapes": {
+    "preflight": {
+      "etat": "vert",
+      "debut": "2026-10-08T11:13:16.547Z",
+      "fin": "2026-10-08T11:13:17.574Z",
+      "detail": {
+        "derivesSales": [],
+        "base": "aa3e992e7da3db84ea7407a1e50eb6c8b478ddbc"
+      },
+      "tete": "565f26dfc4784f5a237d97cedb80df14c72eb4ee",
+      "dit": "arbre propre, origin consultable, outillage local posé, base aa3e992e7",
+      "run": "42408-1791457996063",
+      "seq": 2
+    },
+    "docs": {
+      "etat": "vert",
+      "debut": "2026-10-08T11:13:17.597Z",
+      "fin": "2026-10-08T11:13:17.726Z",
+      "detail": null,
+      "tete": "565f26dfc4784f5a237d97cedb80df14c72eb4ee",
+      "dit": "aucune source de mixte dans la plage, arbre propre : docs inchangés",
+      "run": "42408-1791457996063",
+      "seq": 4
+    },
+    "push-branche": {
+      "etat": "vert",
+      "debut": "2026-10-08T11:13:17.772Z",
+      "fin": "2026-10-08T11:13:17.772Z",
+      "detail": {
+        "dejaFaite": true
+      },
+      "tete": "565f26dfc4784f5a237d97cedb80df14c72eb4ee",
+      "dit": "déjà faite",
+      "run": "42408-1791457996063",
+      "seq": 5
+    },
+    "pr": {
+      "etat": "vert",
+      "debut": "2026-10-08T11:13:18.331Z",
+      "fin": "2026-10-08T11:13:21.516Z",
+      "detail": {
+        "pr": 2515
+      },
+      "tete": "565f26dfc4784f5a237d97cedb80df14c72eb4ee",
+      "dit": "PR #2515 ouverte sur 565f26dfc",
+      "run": "42408-1791457996063",
+      "seq": 7
+    },
+    "file": {
+      "etat": "vert",
+      "debut": "2026-10-08T11:13:21.541Z",
+      "fin": "2026-10-08T11:29:48.957Z",
+      "detail": {
+        "pr": 2515,
+        "fusion": "6ba0f76854c6b26f37ea532bd3bddd6a437a0e17",
+        "compte": "cgauche",
+        "attenteSecondes": 987.388
+      },
+      "tete": "565f26dfc4784f5a237d97cedb80df14c72eb4ee",
+      "dit": "PR #2515 fusionnée en 6ba0f7685",
+      "run": "42408-1791457996063",
+      "seq": 9
+    },
+    "pilotage": {
+      "etat": "vert",
+      "debut": "2026-10-08T11:29:48.983Z",
+      "fin": "2026-10-08T11:29:54.070Z",
+      "detail": {
+        "poses": [
+          "2497",
+          "2474"
+        ],
+        "numeros": [
+          "2497",
+          "2474"
+        ]
+      },
+      "tete": "565f26dfc4784f5a237d97cedb80df14c72eb4ee",
+      "dit": "2 commentaire(s) posé(s) sur 2 ticket(s) cité(s)",
+      "run": "42408-1791457996063",
+      "seq": 11
+    },
+    "fin": {
+      "etat": "en-vol",
+      "debut": "2026-10-08T11:29:54.094Z",
+      "detail": null,
+      "tete": "565f26dfc4784f5a237d97cedb80df14c72eb4ee",
+      "run": "42408-1791457996063",
+      "seq": 12
+    }
+  },
+  "run": "42408-1791457996063",
+  "pid": 42408,
+  "fileTimeoutMin": 120,
+  "seq": 12,
+  "verdict": null
+}

@@ -11,7 +11,7 @@ import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 import { REGISTRE } from './registre.mjs'
 import {
   estComposantUI, estDeclare, relPath, cheminEntree, maquetteEntree, REGISTRE_DEFAUT, cheminRegistre,
-  MANIFESTE_PRIMITIVES, garde,
+  MANIFESTE_PRIMITIVES, garde, cheminJournal, JOURNAL,
 } from './new-src-file-guard.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -22,6 +22,20 @@ const LECTEUR_C = 'C' + ':'
 const LECTEUR_D = 'D' + ':'
 const FANTOME = 'src/ui/FantomeGardeV5.tsx'
 const FANTOME_ISO = 'src/gameIso/stage/FantomeStageV5.tsx'
+
+test('existence virtuelle : Delete/Add et Add/Update gardent chaque opération sur son état préalable', () => {
+  const path = join(REPO, FANTOME)
+  const op = (content, existeAvant) => ({ path, content, old_string: '', existeAvant })
+  const evaluer = (ecritures) => garde.evaluer({ tool_name: 'apply_patch', ecritures }, { env: {} })
+  assert.deepEqual(evaluer([op('export {}\n', true)]), [], 'Update virtuel sur fichier présent, même si absent du disque')
+  const recreation = evaluer([op('', true), op('export {}\n', false)])
+  assert.equal(recreation.length, 1)
+  assert.equal(recreation[0].decision, 'deny')
+  assert.match(recreation[0].raison, /NON DÉCLARÉ/)
+  const creationPuisEdition = evaluer([op('export {}\n', false), op('export const a = 1\n', true)])
+  assert.equal(creationPuisEdition.length, 1)
+  assert.equal(creationPuisEdition[0].decision, 'deny')
+})
 
 /** Le répartiteur réel sur un `Write` (ou un `ctx_patch` s'il porte `op`) : code, sorties, décision. */
 function lanceAvec(tool_input, env = {}) {
@@ -128,11 +142,20 @@ test('une maquette de RÉSERVATION (« TODO ») ne déclare rien', () => {
 })
 
 test('échappement SKIP_NEW_SRC_GUARD=1 → passe, et LOGGUE la dérogation', () => {
-  const r = lance(join(REPO, FANTOME), { SKIP_NEW_SRC_GUARD: '1' })
-  assert.equal(r.code, 0)
-  assert.match(r.err, /\[trace\] .*new-src-guard-skips\.log : .* SKIP_NEW_SRC_GUARD=1 /)
-  assert.match(r.err, new RegExp(FANTOME))
-  assert.match(r.out, /additionalContext/)
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-journal-garde-'))
+  const journal = join(dossier, 'new-src-guard-skips.log')
+  try {
+    const r = lance(join(REPO, FANTOME), { SKIP_NEW_SRC_GUARD: '1', WFRP_JOURNAL_NEW_SRC_GUARD: journal })
+    assert.equal(r.code, 0)
+    assert.match(r.err, /\[trace\] .*new-src-guard-skips\.log : .* SKIP_NEW_SRC_GUARD=1 /)
+    assert.match(r.err, new RegExp(FANTOME))
+    assert.match(r.out, /additionalContext/)
+    assert.match(readFileSync(journal, 'utf8'), new RegExp(`^.* SKIP_NEW_SRC_GUARD=1 ${FANTOME}\\n$`))
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+  assert.equal(cheminJournal({}), JOURNAL)
+  assert.equal(cheminJournal({ WFRP_JOURNAL_NEW_SRC_GUARD: 'X' }), 'X')
 })
 
 test('un harnais .test.tsx et un fichier hors src/ui ne sont pas bloqués', () => {

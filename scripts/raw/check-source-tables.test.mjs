@@ -13,7 +13,7 @@ import {
 import {
   comptesParFamille, ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, naissanceEnPlace, texteEnPlace, texteRegenere,
 } from '../guards/lib/stockDeSites.mjs'
-import { cleDeSite, ecartDuVolet, naissanceDu } from '../guards/lib/stock.mjs'
+import { cleDeSite, ecartsDeStock, ecartDuVolet, naissanceDu } from '../guards/lib/stock.mjs'
 import { BOOKS } from './_lib.mjs'
 import { parseChapitre, tablesOf } from '../../src/data/source/decoupe.ts'
 
@@ -280,32 +280,138 @@ test('#1825 le rendu du stock est INDIFFÉRENT à l’ordre du registre (registr
   assert.deepEqual(rendu(inverse), rendu(BOOKS))
 })
 
-// PLAFOND de la dette (jamais dans la lib de stock : il vit ICI, cf. `scripts/guards/lib/stock.mjs`).
-// Il ne monte QUE par une édition de cette ligne, sous `CLIQUET:` — il n'est pas le compte du jour,
-// il est la borne que le jour ne doit pas franchir.
-const PLAFOND = 680
+const SITES_PROUVES = [
+  {
+    famille: 'banniere-suspecte',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/117 - Appendix II.md',
+    ref: 'individual-characteristic-advances#1 :: |cost of advance (+1)|',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/002 - Contents.md',
+    ref: 'contents#1 :: introduction|bounty hunter53|townsman100|',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/002 - Contents.md',
+    ref: 'contents#1 :: making medicine153|characteristic advances191|miracles of taal227|',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/002 - Contents.md',
+    ref: 'contents#1 :: using the rules265|armour and size306|the restless dead338|',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/007 - Character Sheet Explained.md',
+    ref: 'character-sheet-explained#1 :: |wealth|encumbrance||||||corruption & mutation|||||',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/027 - Theft and Skullduggery.md',
+    ref: 'sneaking-around#1 :: difficulty|action',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/028 - Flattery, Bribery, and Status.md',
+    ref: 'status-and-social-standing#1 :: difficulty|action',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/029 - Nosing Around.md',
+    ref: 'hiding-clues#1 :: difficulty|action',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/031 - Cunning Crafts.md',
+    ref: 'concocting-poison#1 :: name|source|resistance test|effect',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/032 - Getting Around.md',
+    ref: 'leaping#1 :: difficulty|action',
+    occurrence: 1
+  },
+  {
+    famille: 'br-litteral',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/087 - Armour.md',
+    ref: 'quick-armour#1 :: armour|price|enc when worn|availability|penalty|locations|ap|qualities and flaws',
+    occurrence: 1
+  },
+  {
+    famille: 'cle-de-ligne-ambigue',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/122 - Character Sheet.md',
+    ref: '#1 :: name',
+    occurrence: 1
+  },
+  {
+    famille: 'donnee-en-tete',
+    fichier: 'Source/Warhammer Fantasy Roleplay 5e Core Rulebook/036 - Attacking.md',
+    ref: 'scatter#1 :: 1|2|3',
+    occurrence: 1
+  }
+]
 
-// PLAFOND de la DETTE, distinct du précédent : le fichier de stock est un INVENTAIRE des sites
-// mesurés (il ne décroît qu'en corrigeant `Source/`), la dette est ce qui reste À TRIER — les entrées
-// sans `preuve`. Celle-là descend à CHAQUE preuve lue au PDF, et ne monte que sous `CLIQUET:`.
-const PLAFOND_A_TRIER = 667
+const ecartsDesPreuves = (stock, sites = SITES_PROUVES) => {
+  const parSite = new Map(stock.map((e) => [cleDeSite(e), e]))
+  return ecartsDeStock({
+    observe: stock.filter((e) => typeof e.preuve === 'string' && e.preuve.trim()),
+    stock: sites,
+    cle: cleDeSite,
+    remede: {
+      neuve: (cle) => `${cle} — Déclarer ce site prouvé dans SITES_PROUVES.`,
+      perimee: (cle) => parSite.has(cle)
+        ? `${cle} — Restituer la preuve lue au PDF sur ce site encore présent.`
+        : `${cle} — Retirer ce site disparu de SITES_PROUVES.`,
+    },
+  })
+}
 
-test('stock COMMITTÉ : PLAFOND de la DETTE — « à trier » (entrées sans preuve) ne remonte jamais', () => {
-  const stock = lireEntreesDeSite(STOCK_PATH)
-  const { aTrier, verifies } = comptesDeTri(stock)
-  assert.ok(
-    aTrier <= PLAFOND_A_TRIER,
-    `${aTrier} entrée(s) à trier pour un plafond de ${PLAFOND_A_TRIER} : une dette ne grossit pas`,
-  )
-  assert.equal(aTrier + verifies, stock.length, 'toute entrée est soit à trier, soit vérifiée')
+const verifierPreuves = (stock, sites = SITES_PROUVES) => {
+  const ecarts = ecartsDesPreuves(stock, sites)
+  assert.equal(ecarts.taille, sites.length, 'site(s) prouvé(s) dupliqué(s) dans SITES_PROUVES')
+  assert.deepEqual(ecarts.neuves, [], `preuve(s) non déclarée(s) :\n${ecarts.neuves.join('\n')}`)
+  assert.deepEqual(ecarts.perimees, [], `site(s) prouvé(s) périmé(s) :\n${ecarts.perimees.join('\n')}`)
+}
+
+test('stock COMMITTÉ : les preuves correspondent aux sites déclarés', () => {
+  verifierPreuves(lireEntreesDeSite(STOCK_PATH))
 })
 
-test('stock COMMITTÉ : PLAFOND de l’INVENTAIRE — le relever exige de changer CE test', () => {
+test('contrat des preuves : acquisition, perte, disparition, curage et doublons', () => {
+  const sites = [{ famille: 'br-litteral', fichier: 'Source/Fixture/01 - Table.md', ref: 'table#1', occurrence: 1 }]
+  const stock = sites.map((e) => ({ ...e, preuve: 'PDF p.1 : fixture' }))
+  const cle = cleDeSite(sites[0])
+  const future = { ...sites[0], ref: 'future#1' }
+  const cleFuture = cleDeSite(future)
+  const augmente = [...stock, { ...future, preuve: 'PDF p.2 : fixture' }]
+  const declares = [...sites, future]
+  assert.deepEqual(ecartsDesPreuves(augmente, sites).neuves, [`${cleFuture} — Déclarer ce site prouvé dans SITES_PROUVES.`])
+  assert.throws(() => verifierPreuves(augmente, sites), /Déclarer ce site prouvé/)
+  assert.doesNotThrow(() => verifierPreuves(augmente, declares))
+  const sansPreuve = [...stock, future]
+  assert.equal(sansPreuve.length, augmente.length)
+  assert.deepEqual(ecartsDesPreuves(sansPreuve, declares).perimees, [`${cleFuture} — Restituer la preuve lue au PDF sur ce site encore présent.`])
+  assert.throws(() => verifierPreuves(sansPreuve, declares), /Restituer la preuve/)
+  assert.deepEqual(ecartsDesPreuves(stock, declares).perimees, [`${cleFuture} — Retirer ce site disparu de SITES_PROUVES.`])
+  assert.throws(() => verifierPreuves(stock, declares), /Retirer ce site disparu/)
+  assert.doesNotThrow(() => verifierPreuves(stock, sites))
+  assert.deepEqual(ecartsDesPreuves([], sites).perimees, [`${cle} — Retirer ce site disparu de SITES_PROUVES.`])
+  assert.doesNotThrow(() => verifierPreuves([], []))
+  assert.throws(() => verifierPreuves(stock, [...sites, ...sites]), /dupliqué/)
+})
+
+test('stock COMMITTÉ : chaque entrée nomme sa famille, son chapitre et sa référence', () => {
   const entrees = lireEntreesDeSite(STOCK_PATH)
-  assert.ok(
-    entrees.length <= PLAFOND,
-    `${entrees.length} entrée(s) pour un plafond de ${PLAFOND} : une dette de forme ne grossit pas`,
-  )
   for (const e of entrees) {
     assert.ok(FAMILLES.includes(e.famille), `famille inconnue : ${JSON.stringify(e)}`)
     assert.match(e.fichier, /^Source\/.+\.md$/, `entrée sans chapitre extrait : ${JSON.stringify(e)}`)

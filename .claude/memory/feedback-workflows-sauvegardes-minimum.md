@@ -12,7 +12,7 @@ Verbatims de l'utilisateur :
 **Why:** chaque workflow sauvegardé entre sous la garde de forme (`scripts/ops/workflows.test.mjs`, `scripts/guards/lib/jouer-workflow.mjs`) et ses bancs (`scripts/ops/workflows-joues.test.mjs`). Chacun coûte donc à chaque revue et à chaque évolution de la garde. `audit-poison`, que plus rien ne lançait, a été corrigé trois fois pendant #1993.
 
 **How to apply:**
-- On ne sauvegarde un workflow que s'il porte une méthode lancée pour de vrai et de façon répétée : l'atlas RAW, `dossier-de-chapitre` et `table-simulee` pour chaque chapitre.
+- On ne sauvegarde un workflow que s'il porte une méthode lancée pour de vrai et de façon répétée : l'atlas RAW, `dossier-de-chapitre` (lecture et juge de complétude, dont la fiche s'écrit en donnée commitée `docs/dossiers/`) et `table-simulee` pour chaque chapitre.
 - Une revue ou un jugement se fait par des agents `juge` dépêchés, ou par un workflow inline non sauvegardé.
 - Avant de corriger un workflow sauvegardé, vérifier qu'un consommateur le lance encore (skill, doc). S'il est orphelin, proposer sa suppression.
 - Voir [[feedback-garder-objectif-macro]].

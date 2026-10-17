@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import type { ZodType } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
@@ -8,25 +9,26 @@ import { livreExtraitDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { parseProject, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
 import { validateScene } from '../state/validateScene';
 import { emptyScene } from '../state/scene';
+import { emptyNarratif } from '../state/campaignNarratif';
 import { books, buildings, findCrewRoleById, findNavalTrait, findVehicleById } from '../data';
 import { findManannFactor } from '../engine/seaVoyage';
 import { MERCHANTS } from '../state/merchants';
 import { rigSpeciesVocab } from '../gameIso/rig/appearance';
 import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
 import type { Effect } from '../state/scene';
-import { carriedFlows, racinesDeFlow, walkFlow, type Flow } from '../state/flow';
+import { carriedFlows, flowFromEffects, racinesDeFlow, walkFlow, type Flow } from '../state/flow';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
-import { auPlusProcheAncetre, coDescendre, type PointDeDonnee } from '../data/schemas/grammaire/descente';
+import { coDescendre, type PointDeDonnee } from '../data/schemas/grammaire/descente';
+import { declarationProseNommee, sourceHeritee } from '../data/schemas/grammaire/prose';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 
 /**
  * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
  * le modèle COURANT — `parseProject` sans lever, avec une IDENTITÉ valide (`id`/`label`/
  * `versionContenu`, plats à la racine depuis #1467 L1b). Couvre TOUT paquet présent OU futur (glob
- * récursif de `src/scenes`, jamais une liste de noms en dur) : `scripts/arene/generate.mjs` était le
- * DERNIER générateur à écrire un littéral `schema: 2` sans identité (au lieu de `projectDoc()`,
- * `scripts/campagne/lib.mjs`) — cette garde empêche cette classe de dérive de revenir, pour ce
- * paquet comme pour tout futur paquet de campagne.
+ * récursif de `src/scenes`, jamais une liste de noms en dur), puis `validateScene` sans erreur. C'est
+ * la garde du contenu COMMITÉ au format courant (#2404) : aucun chargement ne migre, un paquet d'une
+ * autre forme rougit ici avant d'atteindre un joueur.
  */
 const bundledFiles = listerProjetsLivres();
 
@@ -87,8 +89,6 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(typeof doc.label).toBe('string');
     expect(doc.label!.length).toBeGreaterThan(0);
     expect(typeof doc.versionContenu).toBe('number');
-    // L'identité est PLATE : la poche `meta` d'avant #1467 L1b ne survit nulle part.
-    expect('meta' in (doc as Record<string, unknown>)).toBe(false);
   });
 
   /**
@@ -244,12 +244,12 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     for (const sc of doc.scenes)
       for (const d of sc.dialogues)
         for (const n of d.nodes) {
-          if (jargon.test(n.desc)) fautifs.push(`${sc.id}/${d.id}/${n.id} : node.desc`);
+          if (n.desc && jargon.test(n.desc)) fautifs.push(`${sc.id}/${d.id}/${n.id} : node.desc`);
           for (const c of n.choices) if (jargon.test(c.label)) fautifs.push(`${sc.id}/${d.id}/${n.id} : choix « ${c.label} »`);
         }
     for (const { sceneId, eff } of effetsDuProjet(doc)) {
-      if (eff.type === 'journal' && jargon.test(eff.desc)) fautifs.push(`${sceneId} : journal « ${eff.desc} »`);
-      if (eff.type === 'setObjective' && jargon.test(eff.desc)) fautifs.push(`${sceneId} : objectif « ${eff.desc} »`);
+      if (eff.type === 'journal' && eff.desc && jargon.test(eff.desc)) fautifs.push(`${sceneId} : journal « ${eff.desc} »`);
+      if (eff.type === 'setObjective' && eff.desc && jargon.test(eff.desc)) fautifs.push(`${sceneId} : objectif « ${eff.desc} »`);
     }
     // Les modales document lisent le registre (#679) : tout document du paquet, remis ou non.
     for (const d of doc.narratif.documents)
@@ -280,17 +280,34 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(erreurs.some((m) => m.includes(sceneId) && m.includes(entityId) && m.includes('creature-qui-n-existe-pas'))).toBe(true);
   });
 
+  it('CONTRE-PREUVE : une transition vers une scène inconnue glissée dans une COPIE d’un paquet livré rougit `validateScene`, en NOMMANT la cible', () => {
+    // ⚠ copie EN MÉMOIRE — aucun fichier touché. Le schéma ne lit pas la cible d'une transition : seule
+    // cette garde la juge.
+    const CIBLE = 'scene-qui-n-existe-pas';
+    const trouve = bundledFiles
+      .map((file) => parseProject(lireProjetLivre(file)))
+      .flatMap((doc) => effetsDuProjet(doc).filter(({ eff }) => eff.type === 'transition').map(({ eff }) => ({ doc, eff })))[0];
+    expect(trouve, 'aucun paquet livré ne porte de transition — la contre-preuve n’a plus de sujet').toBeTruthy();
+    const { doc, eff } = trouve!;
+    (eff as Extract<Effect, { type: 'transition' }>).scene = CIBLE;
+    expect(erreursDe(doc).some((m) => m.includes(CIBLE)), 'la transition pendante n’est pas rapportée').toBe(true);
+  });
+
   /**
    * CONTRE-PREUVE de la PORTE d'identité (`parseProject`, `src/state/worldMap.ts`), sur une enveloppe
-   * CONSTRUITE — aucun paquet livré n'en est le sujet. La scène est dépouillée de son `type` : au
-   * format 2 une scène ne s'annonçait pas, c'est `PROJECT_MIGRATIONS[6]` qui le pose (#1552).
-   * L'enveloppe est COMPLÈTE par ailleurs (`label`, `versionContenu`) : seule l'identité manque, et le
-   * refus porte une faute au chemin `id` — lue dans ses FAUTES, jamais dans le texte du rapport.
+   * CONSTRUITE — aucun paquet livré n'en est le sujet. L'enveloppe est COMPLÈTE par ailleurs (`label`,
+   * `versionContenu`, provenance, narratif) : seule l'identité manque, et le refus porte une faute au
+   * chemin `id` — lue dans ses FAUTES, jamais dans le texte du rapport.
    */
-  const ENVELOPPE_SCHEMA_2 = (identite: Record<string, unknown>) => {
-    const { type: _type, ...sceneSansType } = emptyScene(4, 4) as unknown as Record<string, unknown>;
-    return { schema: 2, scenes: [{ ...sceneSansType, id: 'fixture-scene', label: 'Fixture' }], label: 'Fixture', versionContenu: 1, ...identite };
-  };
+  const ENVELOPPE = (identite: Record<string, unknown>) => ({
+    type: 'projet',
+    label: 'Fixture',
+    versionContenu: 1,
+    maison: 'fixture de test',
+    narratif: emptyNarratif(),
+    scenes: [{ ...emptyScene(4, 4), id: 'fixture-scene', label: 'Fixture' }],
+    ...identite,
+  });
   /** Le refus de la porte pour ce document, ou `null` s'il passe. */
   const refusDe = (doc: unknown): ProjetRefuse | null => {
     try {
@@ -303,15 +320,14 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   };
 
   it('la même enveloppe AVEC son identité passe la porte — la contre-preuve ci-dessous ne mesure que l’identité', () => {
-    expect(() => parseProject(ENVELOPPE_SCHEMA_2({ id: 'fixture-schema-2' }))).not.toThrow();
+    expect(() => parseProject(ENVELOPPE({ id: 'fixture-enveloppe' }))).not.toThrow();
   });
 
-  it('CONTRE-PREUVE : un paquet ramené au format PRÉCÉDENT (schema 2, sans identité) est REFUSÉ À LA PORTE, qui NOMME `id`', () => {
-    // La migration monte la forme 2→7 mais n'INVENTE aucune identité : la porte refuse, en la nommant.
-    const refus = refusDe(ENVELOPPE_SCHEMA_2({}));
+  it('CONTRE-PREUVE : un paquet SANS identité est REFUSÉ À LA PORTE, qui NOMME `id`', () => {
+    const refus = refusDe(ENVELOPPE({}));
     expect(refus?.cause).toBe('schema');
     expect(refus?.fautes.some((f) => f.chemin.join('.') === 'id'), 'une faute au chemin `id`').toBe(true);
-    expect(refus?.message, 'le rapport des scripts nomme toujours le champ').toMatch(/^\s*- id: /m);
+    expect(refus?.message, 'le rapport des scripts nomme toujours le champ').toMatch(/^\s*- Identifiant: /m);
   });
 
   /**
@@ -321,14 +337,10 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
    * ce test laisse intacte — la contre-preuve porte sur une fixture, jamais sur `diligence-projet.json`.
    */
   const PAQUET_ARCHITECTURE = (styles: (string | undefined)[]) => {
-    const { type: _type, ...sceneSansType } = emptyScene(6, 6) as unknown as Record<string, unknown>;
     return {
-      schema: 2,
-      id: 'fixture-architecture',
-      label: 'Fixture',
-      versionContenu: 1,
+      ...ENVELOPPE({ id: 'fixture-architecture' }),
       scenes: [{
-        ...sceneSansType,
+        ...emptyScene(6, 6),
         id: 'fixture-scene',
         label: 'Fixture',
         architecture: styles.map((style, i) => ({
@@ -366,9 +378,6 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
  * paquets livrés, aucune scène ni aucun titre nommé.
  */
 const REPO_ROOT = join(__dirname, '..', '..');
-/** Champs de PROSE VERBATIM du bloc narratif (`state/campaignNarratif.ts`) : `OuvertureBlock.pitch`,
- *  `IndiceStade.prose`, `DocumentNarratif.prose`, `PresetPnj.profil.desc`. */
-const PROSE_KEYS = ['pitch', 'prose', 'desc'] as const;
 
 interface ProseSourcee {
   chemin: string;
@@ -390,18 +399,20 @@ const cheminDe = (p: PointDeDonnee): string =>
     })
     .join('');
 
-/** Toute prose du bloc narratif qui porte un `source`, le sien ou celui de son plus proche ancêtre qui
- *  en porte un (`auPlusProcheAncetre` : `PresetPnj.source` pour `profil.desc`) — la prose SANS source est
- *  authorée maison, hors sujet. Co-descente du schéma de projet (`coDescendre`). */
-function proseSourcees(narratif: unknown, fichier: string, out: ProseSourcee[]): void {
-  coDescendre(projetSchema, { narratif }, (p) => {
+/** #2427 — co-descente du projet et déclarations de prose. */
+function proseSourcees(projet: unknown, fichier: string, out: ProseSourcee[]): void {
+  coDescendre(projetSchema, projet, (p) => {
+    if (p.chemin.length === 0) return;
     const rec = p.valeur;
     if (rec == null || typeof rec !== 'object' || Array.isArray(rec)) return;
-    const propre = (rec as { source?: unknown }).source;
-    const source = estSource(propre) ? propre : auPlusProcheAncetre(p, (o) => (estSource(o.source) ? o.source : undefined));
+    const n = rec as Record<string, unknown>;
+    const nommee = p.noeuds.map(declarationProseNommee).find((d) => d !== undefined);
+    if (n.adapteDe !== undefined) return;
+    const source = estSource(n.source) ? n.source : nommee ? undefined : sourceHeritee(p);
     if (!source) return;
-    for (const key of PROSE_KEYS) {
-      const texte = (rec as Record<string, unknown>)[key];
+    const champs = nommee ? [nommee.champ] : ['desc'];
+    for (const key of champs) {
+      const texte = n[key];
       if (typeof texte === 'string') out.push({ chemin: `${fichier}${cheminDe(p)}.${key}`, texte, source });
     }
   });
@@ -424,7 +435,7 @@ function texteDuLivre(bookId: string): string {
 
 const prosesSourcees = bundledFiles.flatMap((file) => {
   const out: ProseSourcee[] = [];
-  proseSourcees(parseProject(lireProjetLivre(file)).narratif, file, out);
+  proseSourcees(parseProject(lireProjetLivre(file)), file, out);
   return out;
 });
 
@@ -470,5 +481,174 @@ describe('prose de campagne SOURCÉE — copiée À L’OCTET du livre déclaré
         .map((paragraphe) => `${p.chemin} → ${p.source.book} : « ${coupeAuMot(paragraphe, 60)} » absent du livre (reformulation ou typographie « corrigée »)`);
     });
     expect(introuvables).toEqual([]);
+  });
+});
+
+type DocDeProvenance = Pick<ProjectDoc, 'source' | 'scenes' | 'narratif'>;
+
+/** #2001 ; #2427. */
+function fautesDeProvenance(doc: DocDeProvenance, fichier: string): string[] {
+  const livres = new Set(books.map((b) => b.id));
+  const fautes: string[] = [];
+  const marche = (v: unknown, chemin: string): void => {
+    if (Array.isArray(v)) return v.forEach((x, i) => marche(x, `${chemin}[${i}]`));
+    if (v == null || typeof v !== 'object') return;
+    const adapte = (v as { adapteDe?: { book?: unknown } }).adapteDe;
+    if (adapte !== undefined && !(typeof adapte.book === 'string' && livres.has(adapte.book))) {
+      fautes.push(`${fichier}${chemin}.adapteDe : book « ${String(adapte.book)} » absent de books.json`);
+    }
+    for (const [k, x] of Object.entries(v)) marche(x, `${chemin}.${k}`);
+  };
+  marche(doc, '');
+  coDescendre(projetSchema, doc, (p) => {
+    const schema = p.noeuds.find((n): n is ZodType => declarationProseNommee(n)?.regime === 'document');
+    if (!schema) return;
+    const resultat = schema.safeParse(p.valeur);
+    if (!resultat.success) for (const issue of resultat.error.issues) {
+      fautes.push(`${fichier}${cheminDe(p)}${issue.path.length ? '.' + issue.path.join('.') : ''} : ${issue.message}`);
+    }
+  });
+  return fautes;
+}
+
+describe('provenance locale, références présentes résolubles et régime documentaire canonique (#2001)', () => {
+  it.each(bundledFiles.map((f) => [f] as const))('%s : provenance locale, références présentes résolubles et régime documentaire canonique', (file) => {
+    expect(fautesDeProvenance(parseProject(lireProjetLivre(file)), file)).toEqual([]);
+  });
+
+  const SOURCE = { book: 'ennemi-dans-l-ombre', page: 12 };
+  const ADAPTE = { adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } };
+  const NU = { desc: 'Réplique maison.' };
+  const paquet = (node: Record<string, unknown>, journal: Record<string, unknown>, source: typeof SOURCE | null = SOURCE): DocDeProvenance => {
+    const sc = emptyScene(4, 4);
+    sc.id = 'sc';
+    sc.dialogues = [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...node }] }];
+    sc.triggers = [{ id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'journal', ...journal }]) }];
+    return { ...(source ? { source } : {}), scenes: [sc], narratif: emptyNarratif() };
+  };
+
+  it('la prose Maison coupe la source documentaire racine', () => {
+    expect(fautesDeProvenance(paquet(NU, NU), 'f')).toEqual([]);
+  });
+
+  it('les mêmes, ADRESSÉS (`descRef`), passent : l’adresse est leur verbatim', () => {
+    const ADRESSE = { descRef: { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] } };
+    expect(fautesDeProvenance(paquet({ ...NU, ...ADRESSE }, { ...NU, ...ADRESSE }), 'f')).toEqual([]);
+  });
+
+  it('les mêmes, `adapteDe`, passent ; un paquet sans racine `source` n’exige rien', () => {
+    expect(fautesDeProvenance(paquet({ ...NU, ...ADAPTE }, { ...NU, ...ADAPTE }), 'f')).toEqual([]);
+    expect(fautesDeProvenance(paquet(NU, NU, null), 'f')).toEqual([]);
+  });
+
+  it('un `adapteDe.book` inconnu est nommé, même hors racine `source`', () => {
+    const inconnu = { ...NU, adapteDe: { book: 'livre-fantome', page: 1 } };
+    expect(fautesDeProvenance(paquet(inconnu, { ...NU, ...ADAPTE }, null), 'f')).toEqual([
+      'f.scenes[0].dialogues[0].nodes[0].adapteDe : book « livre-fantome » absent de books.json',
+    ]);
+  });
+
+  const terrainDans = (battle: Record<string, unknown>, source: typeof SOURCE | null = SOURCE): DocDeProvenance => {
+    const doc = paquet({ ...NU, ...ADAPTE }, { ...NU, ...ADAPTE }, source);
+    doc.scenes[0].triggers.push({
+      id: 'bataille', rect: { x: 0, y: 0, w: 1, h: 1 },
+      flow: { kind: 'seq', steps: [{ kind: 'seq', steps: [
+        { kind: 'do', effect: { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, ...battle } } },
+      ] }] },
+    });
+    return doc;
+  };
+
+  it('le terrain Maison reste local sous une racine sourcée', () => {
+    const fautes = fautesDeProvenance(terrainDans({ terrain: 'Terrain maison.' }), 'f');
+    expect(fautes).toEqual([]);
+    expect(fautesDeProvenance(terrainDans({}), 'f')).toEqual([]);
+    expect(fautesDeProvenance(terrainDans({ terrain: 'Terrain maison.' }, null), 'f')).toEqual([]);
+    expect(fautesDeProvenance(terrainDans({ terrain: 'Terrain adapté.', ...ADAPTE }), 'f')).toEqual([]);
+    expect(fautesDeProvenance(terrainDans({ terrain: 'Terrain copié.', source: SOURCE }), 'f')).toEqual([]);
+  });
+
+  it('un stade document et un document Maison sont admis ; Adapté est refusé par le document canonique', () => {
+    const doc = terrainDans({});
+    doc.narratif.indices = [{ id: 'indice', affaireId: 'affaire', titre: 'Indice', kind: 'indice', stades: [{ id: 'stade', documentId: 'lettre' }] }];
+    doc.narratif.documents = [{ id: 'lettre', titre: 'Lettre', prose: 'Texte.' }];
+    expect(fautesDeProvenance(doc, 'f')).toEqual([]);
+    doc.narratif.documents[0].source = SOURCE;
+    expect(fautesDeProvenance(doc, 'f')).toEqual([]);
+    expect(fautesDeProvenance({ ...doc, narratif: { ...doc.narratif, documents: [{ ...doc.narratif.documents[0], source: undefined, ...ADAPTE }] } }, 'f'))
+      .toEqual(['f.narratif.documents[lettre] : Clé non reconnue : "adapteDe"']);
+  });
+
+  it('les refus et sous-titres Maison sous racine sourcée restent locaux', () => {
+    const doc = paquet(NU, NU);
+    const valeur = {
+      ...doc,
+      worldMap: { routes: [{ id: 'a', refus: { texte: 'Refus Maison.' } }, { id: 'b', refus: { texte: 'Autre refus Maison.' } }] },
+      narratif: { ...doc.narratif,
+        ouverture: { titre: 'Ouverture', pitch: 'Maison.', sousTitre: { texte: 'Sous-titre Maison.' } },
+        cloture: { titre: 'Clôture', when: { kind: 'always' }, sousTitre: { texte: 'Clôture Maison.' } },
+      },
+    };
+    expect(fautesDeProvenance(valeur as DocDeProvenance, 'f')).toEqual([]);
+    const out: ProseSourcee[] = [];
+    proseSourcees(valeur, 'f', out);
+    expect(out).toEqual([]);
+  });
+
+  it('un document Maison accepte les deux racines et conserve sa copie locale ; Adapté est refusé par son canon', () => {
+    for (const source of [SOURCE, null]) {
+      const doc = paquet(NU, NU, source);
+      doc.narratif.documents = [{ id: 'lettre', titre: 'Lettre', prose: 'Texte.' }];
+      expect(fautesDeProvenance(doc, 'f')).toEqual([]);
+      doc.narratif.documents[0].source = SOURCE;
+      expect(fautesDeProvenance(doc, 'f')).toEqual([]);
+      const out: ProseSourcee[] = [];
+      proseSourcees(doc, 'f', out);
+      expect(out).toEqual([{ chemin: 'f.narratif.documents[lettre].prose', texte: 'Texte.', source: SOURCE }]);
+      expect(fautesDeProvenance({ ...doc, narratif: { ...doc.narratif, documents: [{ ...doc.narratif.documents[0], ...ADAPTE }] } }, 'f'))
+        .toEqual(['f.narratif.documents[lettre] : Clé non reconnue : "adapteDe"']);
+    }
+  });
+
+  it('les copies suivent la provenance locale du terrain, jamais celle de la racine', () => {
+    const SOURCE_LOCALE = { book: 'ennemi-dans-l-ombre', page: 15 };
+    const lire = (doc: unknown) => { const out: ProseSourcee[] = []; proseSourcees(doc, 'f', out); return out; };
+    expect(lire(terrainDans({ terrain: 'Maison.' }))).toEqual([]);
+    expect(lire(terrainDans({ terrain: 'Adapté.', ...ADAPTE }))).toEqual([]);
+    const copies = lire(terrainDans({ terrain: 'Copié.', source: SOURCE_LOCALE }));
+    expect(copies).toHaveLength(1);
+    expect(copies[0]).toMatchObject({ texte: 'Copié.', source: SOURCE_LOCALE });
+    expect(copies[0].chemin).toContain('.battle.terrain');
+  });
+
+  it('l’ouverture maison coupe la racine ; le profil conserve la source du preset et adapteDe coupe celle-ci', () => {
+    const doc = terrainDans({});
+    doc.narratif.ouverture = { titre: 'Ouverture', pitch: 'Maison.' };
+    doc.narratif.presetsPnj = [
+      { id: 'copie', source: SOURCE, profil: { desc: 'Profil copié.' } },
+      { id: 'adapte', ...ADAPTE, profil: { desc: 'Profil adapté.' } },
+    ];
+    const out: ProseSourcee[] = [];
+    proseSourcees(doc, 'f', out);
+    expect(out.map((p) => [p.chemin, p.texte, p.source])).toEqual([
+      ['f.narratif.presetsPnj[copie].profil.desc', 'Profil copié.', SOURCE],
+    ]);
+  });
+
+  it('la description de projet n’est pas une copie ; l’objet embarqué conserve sa source propre et l’objet maison n’hérite pas de la racine', () => {
+    const doc = terrainDans({});
+    const out: ProseSourcee[] = [];
+    proseSourcees({
+      ...doc,
+      desc: 'Présentation maison du projet sourcé.',
+      narratif: { ...doc.narratif, objets: [
+        { id: 'copie', desc: 'Description copiée.', source: SOURCE },
+        { id: 'maison', desc: 'Description maison.' },
+        { id: 'adapte', desc: 'Description adaptée.', ...ADAPTE },
+      ] },
+    }, 'f', out);
+    expect(out.map((p) => [p.chemin, p.texte, p.source])).toEqual([
+      ['f.narratif.objets[copie].desc', 'Description copiée.', SOURCE],
+    ]);
   });
 });

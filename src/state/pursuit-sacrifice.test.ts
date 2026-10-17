@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { pursuitOf, PURSUIT_POLICY_DEFAUT, type PursuitPayload } from './pursuitFlow';
 import type { PursuitFoe } from '../engine/pursuit';
-import { closeSequenceRound, type SequenceState, type MancheClose } from './sequenceCore';
+import { closeSequenceRound, type EtatDeFamille, type MancheClose } from './sequenceCore';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
@@ -32,7 +32,7 @@ function heroes(): Combatant[] {
 }
 
 /** SÉQUENCE de poursuite en cours (l'état vit dans le socle). */
-function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): SequenceState<PursuitPayload> {
+function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): EtatDeFamille<'pursuit'> {
   return {
     def: 'pursuit', round: 1, cum: {},
     params: { score: { fleeing: 'min', pursuers: 'max' } },

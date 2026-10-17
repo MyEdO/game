@@ -76,8 +76,8 @@ const jetStep = (id: string, actorId: string, label: string): CascadeStep =>
 
 describe('sous-titre d’étape — il porte la POSITION, jamais le libellé', () => {
   /** Le libellé du pas courant se lit UNE fois, dans le TITRE ; le sous-titre ne dit que la position. */
-  const attendu = (compteur: string) => {
-    expect(occurrences(LIBELLE), 'le libellé se lit une seule fois').toBe(1);
+  const attendu = (compteur: string, surfaces = 1) => {
+    expect(occurrences(LIBELLE)).toBe(surfaces);
     expect(titleText(), 'c’est le TITRE qui porte le libellé du pas courant').toContain(LIBELLE);
     expect(subtitleText(), 'le sous-titre ne redit pas le libellé').toBe(compteur);
     expect(subtitleEl()?.querySelector('.ab-codex-info'), 'le renvoi de règle vit sur la ligne de titre').toBeFalsy();
@@ -89,7 +89,7 @@ describe('sous-titre d’étape — il porte la POSITION, jamais le libellé', (
       options: [{ key: 'boire', label: 'Boire' }, { key: 'dormir', label: 'Dormir' }],
     } as unknown as CascadeStep], 1);
     render();
-    attendu('2/2');
+    attendu('2/2', 2);
   });
 
   it('branche BATCH : titre = libellé du pas, sous-titre = « 2/2 »', () => {

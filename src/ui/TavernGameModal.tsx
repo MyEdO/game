@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../state/store';
 import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, TAVERN_TEST_DIFFICULTY, type TavernGame } from '../engine/tavernGame';
-import { CHAR_LABELS, DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
+import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { HABITUE, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type TavernOpponent } from '../state/tavernFlow';
 import { pnjAuProfil, sceneNpc } from '../state/sceneNpc';
 import { pickActiveModalKey } from '../state/modalArbiter';
 import { Row } from './Layout';
 import { bourseOf } from '../state/bourseFlow';
-import { creatureLabel, profilsStandard, refLabel } from '../data/index';
+import { creatureLabel, profilsStandard, refLabel, testSkillLabel } from '../data/index';
 import { PA_PER_SC, toBrass, fromBrass } from '../engine/money';
 import { Modal } from './Modal';
 import { OptionChooser } from './OptionChooser';
@@ -112,7 +112,7 @@ export function TavernGameModal() {
   //  · rapide (`NADJ 16 l.11`) : le Test que la projection a retenu, à Intermédiaire (+0) ;
   //  · complet : le Test de la PREMIÈRE option quand l'entrée en déclare (Cerevis « Pari Accessible
   //    (+20) », Middenball), sinon celui du jeu à sa Difficulté de manche.
-  // Le nom d'une Caractéristique passe par `CHAR_LABELS` : un id moteur (« force ») n'est pas un
+  // Le nom du Test passe par `testSkillLabel` : un id moteur (« force ») n'est pas un
   // libellé d'écran (doctrine « on ne manipule que des ids, on n'AFFICHE que des labels »).
   const rapide = tavernFastRegime();
   const opt = !rapide ? game?.options?.[0] : undefined;
@@ -121,11 +121,7 @@ export function TavernGameModal() {
     char: opt?.char ?? (opt?.skill ? undefined : game?.characteristic),
   };
   const difficulteAffichee: Difficulty = rapide ? TAVERN_TEST_DIFFICULTY : (opt?.difficulty ?? TAVERN_TEST_DIFFICULTY);
-  const nomDuTest = testAffiche.skill
-    ? refLabel('skills', testAffiche.skill)
-    : testAffiche.char
-      ? CHAR_LABELS[testAffiche.char]
-      : refLabel('skills', { id: 'pari' });
+  const nomDuTest = testSkillLabel(testAffiche) ?? refLabel('skills', { id: 'pari' });
   const skillLine = game ? `${nomDuTest} ${DIFFICULTY_LABELS[difficulteAffichee]}` : '';
   const challengerVal = game && challenger ? tavernGameValue(challenger, game) : 0;
   const habitue = pnjAuProfil(profilId, HABITUE);

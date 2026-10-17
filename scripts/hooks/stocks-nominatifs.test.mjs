@@ -1,20 +1,21 @@
 // PORTE A POSTERIORI (node --test, sans réseau) — un STOCK NOMINATIF qui naît ou grandit dans la
 // PLAGE POUSSÉE sans que le message de son commit le dise.
 //
-// Le garde `solde-ticket-guard` pose la même règle AU COMMIT, mais il vit dans le hook PreToolUse :
-// un commit fait hors de ce canal (autre outil, autre machine, hook non installé) n'y passe pas.
+// La porte du commit (`scripts/git-hooks/porte-du-commit.mjs`) pose la même règle AU COMMIT, dans le
+// hook git `commit-msg` : un commit fait hors de ce canal (autre machine, hook non installé) n'y passe pas.
 // Cette mesure relit les commits une fois posés — même règle, mêmes libs (`stocksNominatifs.mjs`,
 // `plageStock.mjs`), un seul endroit où elle est écrite. Lancée par `npm run test:hooks`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
   apportDeFusion, croissanceDesStocks, croissancesNonCouvertes, cliquetsDuMessage, declarationsDuMessage, entreesNominatives,
   estEntreeNominative, estPorteurDeStock, fichierNommePar, raisonDeRefus,
 } from '../guards/lib/stocksNominatifs.mjs'
-import { croissancesDeLaPlage, raisonDeRefusDePlage, SHA_NUL } from '../guards/lib/plageStock.mjs'
+import { croissancesDeLaPlage, lectureDeLaPlage, raisonDeRefusDePlage, refusDeLaPlage, SHA_NUL } from '../guards/lib/plageStock.mjs'
 import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -30,21 +31,10 @@ function exigerHistoireComplete() {
   )
 }
 
-/** La porte était-elle EN VIGUEUR dans le commit jugé ? (sa lib y est-elle ?) Une porte juge les
- *  commits qui la PORTENT ; condamner l'histoire d'avant serait un verdict rétroactif, et l'échapper
- *  par un stock de shas rendrait à cette porte le vice qu'elle combat. Rien à tenir à jour : la
- *  condition s'éteint d'elle-même dès le premier commit qui embarque la lib. */
-function porteEnVigueur() {
-  try {
-    git('cat-file', '-e', 'HEAD:scripts/guards/lib/stocksNominatifs.mjs')
-    return true
-  } catch { return false }
-}
-
 /** Début de la plage à juger. En CI, l'événement de push le porte (`GITHUB_EVENT_PATH` → `before`) ;
  *  `origin/main` n'y a PAS de reflog, il ne peut donc pas servir de début. Sans événement lisible, le
- *  début reste nul : `croissancesDeLaPlage` n'exclut alors que le tronc, ou juge HEAD seul en le
- *  DISANT (jamais un silence). */
+ *  début reste nul : `croissancesDeLaPlage` n'exclut alors que le tronc ; sans tronc lisible, elle juge
+ *  toute l'ascendance de HEAD et le DIT dans ses notes (jamais un silence). */
 function debutDeLaPlage(env = process.env) {
   if (!env.GITHUB_EVENT_PATH) return SHA_NUL
   try {
@@ -435,10 +425,8 @@ test('entrée MULTILIGNE — un champ NON nommant modifié (la date) ne rend RIE
   )
 })
 
-// L'ÉCHANGE EN PLACE — réécrire le `fichier` d'une entrée pour couvrir un AUTRE site — fait naître
-// une entrée sous une clé neuve (#2223) : l'entrée se compte sur les deux IMAGES, jamais sur la
-// ligne touchée du diff.
-test('entrée MULTILIGNE — la ligne `fichier` REMPLACÉE fait naître une entrée sous sa clé neuve (échange en place)', () => {
+// #2472
+test('entrée MULTILIGNE — remplacer la ligne fichier échange une entrée à net nul', () => {
   const a = entreeFolio(CHAPITRE, 'LDB 8 65→67')
   const b = entreeFolio(CHAPITRE_ACE, 'ACE 12 3→5')
   const avant = stockFolio(a, b)
@@ -453,8 +441,8 @@ test('entrée MULTILIGNE — la ligne `fichier` REMPLACÉE fait naître une entr
   }])
   assert.deepEqual(
     croissanceDesStocks(diff, { lirePostImage: () => apres, lirePreImage: () => avant }).map((c) => [c.fichier, c.ajoutees, c.retirees, c.net]),
-    [[FOLIO, 1, 1, 1]],
-    'l’entrée née sous `CHAPITRE_ACE` ne se paie pas de celle morte sous `CHAPITRE` (#1806 D5″)',
+    [],
+    'une entrée ajoutée moins une entrée retirée',
   )
 })
 
@@ -490,13 +478,13 @@ test('croissance — un stock qui NAÎT est une croissance nette, avec ses exemp
   assert.deepEqual(c.exemples, [ENTREE_A.trim(), ENTREE_B.trim()])
 })
 
-test('croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se cache pas derrière une clé qui baisse (#1806 D5″)', () => {
+test('croissance — un stock qui décroît ou échange ses entrées ne dit rien', () => {
   const porteur = 'scripts/guards/lib/folioRatchetStock.mjs'
   assert.deepEqual(croissanceDesStocks(diffDe(porteur, [], [ENTREE_A, ENTREE_B]), REPLI), [])
   assert.deepEqual(
     croissanceDesStocks(diffDe(porteur, [ENTREE_A], [ENTREE_B]), REPLI).map((c) => [c.fichier, c.ajoutees, c.retirees, c.net, c.exemples]),
-    [[porteur, 1, 1, 1, [ENTREE_A.trim()]]],
-    'B sort, A entre : la dette de A est NEUVE',
+    [],
+    'B sort, A entre : net nul',
   )
   const renommages = new Map([['src/ui/CampaignView.test.tsx', 'src/state/combatSlice.ts']])
   assert.deepEqual(croissanceDesStocks(diffDe(porteur, [ENTREE_A], [ENTREE_B]), { ...REPLI, renommages }), [],
@@ -505,7 +493,7 @@ test('croissance — un stock qui DÉCROÎT ne dit rien ; une clé neuve ne se c
     'une entrée qui change de place sous la même clé ne grandit rien')
 })
 
-test('croissance par CLÉ (#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derrière Q −3 dans le même porteur exige `CLIQUET: +3`', () => {
+test('croissance par porteur : X +3 moins Q −3 donne zéro, X +3 seul exige un cliquet', () => {
   const F = 'scripts/guards/lib/cssCouchesStock.mjs'
   const e = (f, r) => `  { fichier: '${f}', ref: '${r}', occurrence: 1 },`
   const Q = 'src/ui/styles/ecran-q.css'
@@ -518,7 +506,7 @@ test('croissance par CLÉ (#1806 D5″, sonde `j3-cliquet-net.mjs`) : X +3 derri
   const pre = tete([...qs, ...xs])
   const images = (post) => ({ lirePreImage: (f) => (f === F ? pre : null), lirePostImage: (f) => (f === F ? post : null) })
   const deplace = `diff --git a/${F} b/${F}\n--- a/${F}\n+++ b/${F}\n@@ -3,3 +2,0 @@\n${qs.map((l) => `-${l}`).join('\n')}\n@@ -8,0 +6,3 @@\n${xs2.map((l) => `+${l}`).join('\n')}\n`
-  assert.deepEqual(croissancesNonCouvertes({ diff: deplace, message: 'refactor' }, images(tete([...xs, ...xs2]))).map((c) => [c.fichier, c.net]), [[F, 3]])
+  assert.deepEqual(croissancesNonCouvertes({ diff: deplace, message: 'refactor' }, images(tete([...xs, ...xs2]))), [])
   const seul = `diff --git a/${F} b/${F}\n--- a/${F}\n+++ b/${F}\n@@ -8,0 +9,3 @@\n${xs2.map((l) => `+${l}`).join('\n')}\n`
   assert.deepEqual(croissancesNonCouvertes({ diff: seul, message: 'refactor' }, images(tete([...qs, ...xs, ...xs2]))).map((c) => [c.fichier, c.net]), [[F, 3]],
     'témoin positif : X +3 sans sortie de Q, même compte')
@@ -1090,6 +1078,9 @@ test('stock `.mjs` nominatif — une entrée AJOUTÉE est vue par la porte de pl
 const FENETRE_STOCKS = { avant: '571f54287', apres: '02cc09c04' }
 const FENETRE_REGISTRE = { debut: '2c11fdd9a', fin: 'c8d3105ae' }
 const FENETRE_STOCK_OBJET = { debut: 'da3acf95c', fin: 'a9b7edf17' }
+/** Une FENÊTRE mesure la porte ACTUELLE sur l'histoire : sa lecture va à `refusDeLaPlage`, jamais au
+ *  juge de l'ère de ses commits (#2503). */
+const refusDeLaFenetre = (fenetre) => refusDeLaPlage(lectureDeLaPlage({ cwd: RACINE, ...fenetre }))
 const gitOuNull = (...args) => {
   try { return git(...args) } catch { return null }
 }
@@ -1125,7 +1116,7 @@ test('fenêtre — un stock JSON RÉORDONNÉ ne grandit pas : l’entrée se com
 })
 
 test('fenêtre — les croissances non couvertes de la plage, par commit', (t) => {
-  const { refus } = croissancesDeLaPlage({ cwd: RACINE, ...FENETRE_REGISTRE })
+  const refus = refusDeLaFenetre(FENETRE_REGISTRE)
   const vus = refus.map((r) => `${r.sha.slice(0, 9)} ${r.fichier} +${r.net}`)
   for (const v of vus) t.diagnostic(v)
   assert.ok(
@@ -1141,7 +1132,7 @@ test('fenêtre — les croissances non couvertes de la plage, par commit', (t) =
 })
 
 test('fenêtre — un stock OBJET dont les valeurs sont des tableaux est rendu, avec son déclaré', () => {
-  const { refus } = croissancesDeLaPlage({ cwd: RACINE, ...FENETRE_STOCK_OBJET })
+  const refus = refusDeLaFenetre(FENETRE_STOCK_OBJET)
   const ecrivains = refus.find((r) => r.fichier === 'scripts/gates/ecrivainsAtteints.test.mjs')
   assert.deepEqual(
     [ecrivains?.sha.slice(0, 9), ecrivains?.net, ecrivains?.declare], ['a9b7edf17', 63, 53],
@@ -1151,17 +1142,12 @@ test('fenêtre — un stock OBJET dont les valeurs sont des tableaux est rendu, 
 
 // ── La mesure sur le dépôt RÉEL ───────────────────────────────────────────────────────────────────
 
-test('CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence', (t) => {
-  if (!porteEnVigueur()) {
-    t.diagnostic(
-      `HEAD (${git('rev-parse', '--short', 'HEAD').trim()}) est ANTÉRIEUR à cette porte : sa lib n'y ` +
-        'est pas, la règle ne juge que les commits qui la portent.',
-    )
-    return
-  }
+test('CLIQUET stocks : la PLAGE POUSSÉE ne fait grossir aucun stock en silence', async (t) => {
   exigerHistoireComplete()
-  const { refus, notes, commits } = croissancesDeLaPlage({
-    cwd: RACINE, debut: debutDeLaPlage(), fin: git('rev-parse', 'HEAD').trim(), vers: refPoussee(),
+  const dossierDesMemos = mkdtempSync(join(tmpdir(), 'stocks-memos-'))
+  t.after(() => rmSync(dossierDesMemos, { recursive: true, force: true }))
+  const { refus, notes, commits } = await croissancesDeLaPlage({
+    cwd: RACINE, debut: debutDeLaPlage(), fin: git('rev-parse', 'HEAD').trim(), vers: refPoussee(), dossierDesMemos,
   })
   for (const n of notes) t.diagnostic(n)
   if (commits !== undefined) t.diagnostic(`${commits} commit(s) jugé(s)`)
@@ -1255,7 +1241,7 @@ test('argument — sept FAÇADES d’une ligne ne cachent pas un stock qui NOMME
 })
 
 // FRONTIÈRE mesurée : un ÉLÉMENT de stock qui nomme son fichier À TRAVERS un appel reste une
-// entrée — `scripts/test/run.test.mjs:78` (`node: [abs('src/i18n/labels.test.ts'), …]`) est un
+// entrée — `scripts/test/run.test.mjs:83` (`node: [abs('src/i18n/labels.test.ts'), …]`) est un
 // stock nominatif à part entière. La règle porte sur le PORTEUR en position d'argument :
 // il n'est exempt que s'il ne nomme AUCUN fichier — un élément qui en nomme un le rend porteur.
 test('argument — un ÉLÉMENT de stock qui nomme son fichier via un appel reste une entrée', () => {
@@ -1307,12 +1293,14 @@ function croissanceReelle(pre, post, fichier = 'scripts/guards/lib/x.mjs') {
 const dictionnaire = (ligne) => `export const T = {\n  ${ligne}\n}\n`
 const carte = (ligne) => `export const M = new Map([\n  ${ligne}\n])\n`
 
-test('#2223 IDENTITÉ — dictionnaire : la valeur repointée vers un AUTRE fichier fait naître une entrée', () => {
-  assert.deepEqual(croissanceReelle(dictionnaire("regle: 'src/a.ts',"), dictionnaire("regle: 'src/b.ts',")), [1])
+test('#2223 IDENTITÉ — dictionnaire : repointer la valeur échange une entrée à net nul', () => {
+  assert.notEqual(fichierNommePar("regle: 'src/a.ts',"), fichierNommePar("regle: 'src/b.ts',"))
+  assert.deepEqual(croissanceReelle(dictionnaire("regle: 'src/a.ts',"), dictionnaire("regle: 'src/b.ts',")), [])
 })
 
-test('#2223 IDENTITÉ — Map : la valeur repointée vers un AUTRE fichier fait naître une entrée', () => {
-  assert.deepEqual(croissanceReelle(carte("['k', 'src/a.ts'],"), carte("['k', 'src/b.ts'],")), [1])
+test('#2223 IDENTITÉ — Map : repointer la valeur échange une entrée à net nul', () => {
+  assert.notEqual(fichierNommePar("['k', 'src/a.ts'],"), fichierNommePar("['k', 'src/b.ts'],"))
+  assert.deepEqual(croissanceReelle(carte("['k', 'src/a.ts'],"), carte("['k', 'src/b.ts'],")), [])
 })
 
 test('#2223 IDENTITÉ — dictionnaire : la clé renommée, la valeur égale, ne fait rien naître', () => {
@@ -1330,21 +1318,25 @@ test('#2223 IDENTITÉ — repli MIXTE : image post lisible, pré-image `null`, u
   assert.deepEqual(croissanceDesStocks(diff, { lirePostImage: () => post, lirePreImage: () => null }), [],
     'l’entrée retirée (repli de ligne) et l’ajoutée (image) ont la même identité')
   assert.deepEqual(croissanceDesStocks(diff.replace("+  'src/os/bones.ts',", "+  'src/os/autre.ts',"), { lirePostImage: () => post.replace('bones.ts', 'autre.ts'), lirePreImage: () => null })
-    .map((c) => c.net), [1], 'témoin positif : un autre fichier naît')
+    .map((c) => c.net), [], 'un ajout et un retrait : net nul')
 })
 
 const liste = (ligne) => `export const L = [\n  ${ligne}\n]\n`
 
 test('#2223 IDENTITÉ — l’extension fait partie du fichier nommé : deux chemins à extension sont deux fichiers', () => {
-  assert.deepEqual(croissanceReelle(liste("'src/a.ts',"), liste("'src/a.json',")), [1], 'a.ts → a.json')
-  assert.deepEqual(croissanceReelle(liste("'src/ui/X.css',"), liste("'src/ui/X.tsx',")), [1], 'X.css → X.tsx')
-  assert.deepEqual(croissanceReelle(liste("'src/ui/editor/vue.ts',"), liste("'src/ui/editor/vue.tsx',")), [1], 'vue.ts → vue.tsx')
+  for (const [a, b] of [['src/a.ts', 'src/a.json'], ['src/ui/X.css', 'src/ui/X.tsx'], ['src/ui/editor/vue.ts', 'src/ui/editor/vue.tsx']]) {
+    assert.notEqual(fichierNommePar(JSON.stringify(a)), fichierNommePar(JSON.stringify(b)))
+  }
+  assert.deepEqual(croissanceReelle(liste("'src/a.ts',"), liste("'src/a.json',")), [], 'a.ts → a.json')
+  assert.deepEqual(croissanceReelle(liste("'src/ui/X.css',"), liste("'src/ui/X.tsx',")), [], 'X.css → X.tsx')
+  assert.deepEqual(croissanceReelle(liste("'src/ui/editor/vue.ts',"), liste("'src/ui/editor/vue.tsx',")), [], 'vue.ts → vue.tsx')
 })
 
-test('#2223 IDENTITÉ — un stock de structures repointé de `criticals.json` vers `criticals.ts` fait naître une entrée', () => {
+test('#2223 IDENTITÉ — un stock de structures repointé échange une entrée à net nul', () => {
   const ligne = (dataset, champ) =>
     `{ concept: "reference", dataset: "${dataset}", champ: "${champ}", signature: "versTraumaId+…", statut: "divergente", strate: "Référence", occurrences: 2 },`
-  assert.deepEqual(croissanceReelle(liste(ligne('criticals.json', 'apresDelai')), liste(ligne('criticals.ts', 'champNeuf'))), [1])
+  assert.notEqual(fichierNommePar(ligne('criticals.json', 'apresDelai')), fichierNommePar(ligne('criticals.ts', 'champNeuf')))
+  assert.deepEqual(croissanceReelle(liste(ligne('criticals.json', 'apresDelai')), liste(ligne('criticals.ts', 'champNeuf'))), [])
   assert.deepEqual(croissanceReelle(liste(ligne('criticals.json', 'apresDelai')), liste(ligne('criticals.json', 'champNeuf'))), [],
     'témoin : le même fichier, un autre champ, ne fait rien naître')
 })

@@ -153,7 +153,7 @@ describe('recomposition du groupe — l’emplacement dont le corps change se l�
     data.party = data.party.slice(0, 1);
 
     useGame.setState({ party: [], scene: null });
-    expect(useGame.getState().importGame(JSON.stringify(save))).toBe(true);
+    expect(useGame.getState().importGame(JSON.stringify(save))).toBeNull();
     expect(useGame.getState().party.map((h) => h.id)).toEqual(['h1']);
     expect(poseDe(2)).toBeNull();
     expect(placesDeGroupe()).toEqual([]);

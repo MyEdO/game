@@ -381,7 +381,7 @@ export function setPosteEngine(scene: Scene, entityId: string, trappingId: strin
   return editEntity(scene, entityId, {
     label: t.label,
     ref: trappingId,
-    postes: ent.postes!.map((p, i) => (i === 0 ? { ...p, trappingId, item: undefined } : p)),
+    postes: ent.postes!.map((p, i) => (i === 0 ? { ...p, trappingId } : p)),
   });
 }
 

@@ -12,6 +12,7 @@ import { envDeDepotForge, envGitFeint, gabaritDeDepot, instanceDeDepot, sousGitF
 import { ENV_GIT_FEINT, GitIndisponible, TRAVAIL, depotDe, listerImage, shaDe } from './gitPorte.mjs'
 import { listerDossier } from './lister.mjs'
 import { ast, typescript } from './dialecte.mjs'
+import { MOTIF_D_EXTENSION } from './fichierVitest.mjs'
 import { readCorpus } from './sourceCorpus.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
@@ -412,6 +413,8 @@ const SURCHARGES_HORS_CLASSE = [
   { fichier: 'scripts/lancer-local.test.mjs', ancre: 'const env = envIsole(', sites: 1, raison: 'mesure `envIsole`, qui recompose le PATH d’un enfant' },
   { fichier: 'scripts/lancer-local.test.mjs', ancre: "['sonde', '--', 'sonde', '3', 'suite']", sites: 2, raison: 'mesure que le lanceur local ignore un PATH étranger' },
   { fichier: 'scripts/test/run.test.mjs', ancre: 'const env = envEnfant(', sites: 1, raison: 'mesure `envEnfant`, qui transmet le PATH' },
+  { fichier: 'scripts/guards/lib/superviserProcessus.test.mjs', ancre: 'args: [cible, ...args], env: { PATH: chemin,', sites: 1, raison: 'mesure la transmission exacte du PATH arbitraire au processus Node réel désigné par `process.execPath` absolu' },
+  { fichier: 'scripts/guards/lib/superviserProcessus.test.mjs', ancre: "commande: 'absent-2626-impossible', env: { PATH: '' }", sites: 1, raison: 'mesure ENOENT avec un PATH vide, sans installer de faux exécutable' },
   { fichier: 'scripts/mods/verifier.mjs', ancre: "PATH: 'trouver `claude`", sites: 1, raison: 'clé de la liste blanche `ENV_HERITE` (#2278), qui transmet le PATH hérité' },
   { fichier: 'scripts/mods/verifier.mjs', ancre: "Path: 'graphie win32 de PATH", sites: 1, raison: 'clé de la liste blanche `ENV_HERITE` (#2278), qui transmet le Path hérité sous win32' },
   { fichier: 'scripts/mods/verifier.test.mjs', ancre: "PATH: '/bin', GARDEE_NON", sites: 1, raison: 'env de base du banc de `envBlanc` (#2278), qui mesure que le PATH passe' },
@@ -437,7 +440,7 @@ test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pa
   }
   const racine = fileURLToPath(new URL('../../..', import.meta.url))
   const sites = listerImage(depotDe(racine), TRAVAIL, 'scripts')
-    .filter((f) => /\.[cm]?[jt]sx?$/.test(f))
+    .filter((f) => new RegExp(`${MOTIF_D_EXTENSION}$`).test(f))
     .flatMap((f) => surchargesDe(f, readFileSync(join(racine, f), 'utf8')).map((s) => ({ fichier: f, ...s })))
   const restants = sites.filter((s) => !SURCHARGES_HORS_CLASSE.some((e) => e.fichier === s.fichier && s.texte.includes(e.ancre)))
   assert.deepEqual(restants.map((s) => `${s.fichier}:${s.ligne} ${s.texte}`), [])
@@ -450,7 +453,7 @@ test('aucun banc ne SURCHARGE `PATH` pour caler un binaire — win32 ne lance pa
 for (const [nom, stderr] of [
   ['newline', 'fatal: panne simulée\n'],
   ['cause tardive', `${'note de refus\n'.repeat(50)}fatal: cause tardive\n`],
-]) test(`sousGitFeint : la feinte vaut dans CE processus pendant \`fn\`, et se retire même sur une levée — ${nom}`, () => {
+]) test(`sousGitFeint : la feinte vaut dans CE processus pendant \`fn\`, et se retire même sur une levée — ${nom}`, async () => {
   const { racine } = instanceDeDepot({ fichiers: { 'a.txt': 'a\n' } })
   try {
     const depot = depotDe(racine, { env: envDeDepotForge })
@@ -461,8 +464,13 @@ for (const [nom, stderr] of [
     assert.equal(process.env[ENV_GIT_FEINT], undefined)
     assert.equal(shaDe(depot, 'HEAD'), avant)
     assert.deepEqual(envGitFeint([{ si: [], status: 1 }]), { [ENV_GIT_FEINT]: '[{"si":[],"status":1}]' })
-    assert.throws(() => sousGitFeint([], async () => shaDe(depot, 'HEAD')), /sousGitFeint : `fn` rend une promesse/)
-    assert.equal(process.env[ENV_GIT_FEINT], undefined, 'la feinte est retirée après le refus')
+    const enVol = sousGitFeint([{ si: ['rev-parse'], status: 128, stderr }], async () => {
+      await new Promise((fin) => setImmediate(fin))
+      return shaDe(depot, 'HEAD')
+    })
+    assert.ok(process.env[ENV_GIT_FEINT], 'une promesse en vol garde la feinte')
+    await assert.rejects(enVol, (e) => e instanceof GitIndisponible && e.raison === stderr)
+    assert.equal(process.env[ENV_GIT_FEINT], undefined, 'la feinte est retirée quand la promesse se règle')
   } finally {
     jeter(racine)
   }

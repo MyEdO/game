@@ -1,7 +1,4 @@
-/* ══════════════════ Segments TONÉS PAR CAMP (`TeamSegments.tsx`) ══════════════════
-   Le rendu UNIQUE d'un texte découpé en segments : les noms cités s'affichent en gras, allié ou
-   ennemi, le reste en texte neutre. Composé par le journal (`NarratedLine`), la ligne de récap
-   (`RecapLineRow`) et le fil d'événements (`CombatBanner`). */
+/* #2001 */
 .nm-ally {
   color: var(--ok-bright);
   font-weight: 700;

@@ -454,7 +454,9 @@ export function buildRoutes(...groupes: readonly (readonly (readonly [string, Ro
 
 const idArg = (a: unknown): string | undefined => (typeof a === 'string' ? a : undefined);
 
-/** Le siège agit toujours (marquage de SON propre siège). */
+/** Aucune possession en jeu, tout siège agit en tout temps : le geste marque le SIEN (siège lu au
+ *  transport, `decidingSeat`, jamais dans les arguments) ou annote un état de GROUPE sans porteur ni
+ *  effet de règle (épingle du carnet, #670). */
 const TOUJOURS: Route = { rule: () => true };
 /** Possession du combattant désigné par le 1ᵉʳ argument. */
 const PAR_ARG0: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[0])) };
@@ -571,6 +573,10 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['victoryReady', TOUJOURS],
     ['raiseHand', TOUJOURS],
     ['lowerHand', TOUJOURS],
+    // Carnet d'enquête (#670) : `toggleCluePin` annote l'épingle de GROUPE ; `markCluesSeen` marque la
+    // nouveauté vue par le siège qui l'émet, lu au transport (`decidingSeat`).
+    ['toggleCluePin', TOUJOURS],
+    ['markCluesSeen', TOUJOURS],
     // Butin de victoire : un siège n'attribue qu'à SES héros (le bénéficiaire est le 2ᵉ argument).
     ['assignVictoryGear', { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[1])) }],
     // Composition du groupe : un siège remplit SES emplacements (quota attribué par l'hôte) et
@@ -634,10 +640,10 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // #669 — Dialogue = décision de GROUPE (jeton unique d'exploration, piloté par l'hôte/MJ) : l'hôte choisit
     // la réponse, les autres LISENT. Un Test social DANS un dialogue reste arbitré par le propriétaire du héros
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).
-    ...(['chooseDialogue', 'closeDialogue', 'interactEntity'] as const).map(
+    ...(['chooseDialogue', 'closeDialogue', 'interactEntity', 'designerHerosChoisir'] as const).map(
       (a) => [a, {
         rule: (s: GameState, seat: number) => seat === (s.net.gmSeat ?? 0),
-        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `HostSession` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer ; `closeDialogue` : aucun)',
+        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `HostSession` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal ; `closeDialogue` : aucun)',
       }] as readonly [string, Route],
     ),
   ],
@@ -651,10 +657,10 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
 );
 
 /**
- * REPLI UNIVERSEL — la règle de TOUT geste non routé (172 des 417 intents invités, plus tout intent
- * inconnu) : modale ouverte → seul son concerné agit ('*' = tous) ; sinon → seul le propriétaire du
- * combattant ACTIF agit. Ce n'est PAS une entrée de `ROUTES` (aucune clé ne le nomme) : c'est la
- * décision par défaut, appliquée dès qu'aucune route ne tranche.
+ * REPLI UNIVERSEL — la règle de TOUT geste non routé, intent inconnu compris : modale ouverte → seul
+ * son concerné agit ('*' = tous) ; sinon → seul le propriétaire du combattant ACTIF agit. Ce n'est PAS
+ * une entrée de `ROUTES` (aucune clé ne le nomme) : c'est la décision par défaut, appliquée dès
+ * qu'aucune route ne tranche.
  */
 function repliUniversel(s: GameState, seat: number): boolean {
   const owner = modalOwnerOf(s);

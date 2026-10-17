@@ -23,7 +23,10 @@ import type { CombatCursor, ScreenDir } from './combatCursor';
 import type { LocalIntent } from './localIntent';
 import type { RefusIHM } from './refusVisible';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
+import type { EtatDeSequence } from './sequenceCore';
 import { applyShipCollision } from './shipCollision';
+import { milieuDuVoyage } from '../engine/shipBuild';
+import { estNavire } from '../engine/coque';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
 import { findFreeTile, removeEntity, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
@@ -41,7 +44,7 @@ import { quorumAtteint, decidingSeat } from './netOwnership';
 import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
-export { activeCombatant, entityPickables, trampleTarget } from './combatFlow';
+export { activeCombatant, entityPickables } from './combatFlow';
 import { markActed } from './combatFlow';
 import { EMPTY_FLOW, type Flow } from './flow';
 import { moveEnv, type MoveSnapshot } from './combatGeometry';
@@ -65,8 +68,8 @@ import { initialFields, resetFields } from './stateFields';
 import { captureMutation, applyMutation as applySceneMutation, type SceneMutation } from './sceneInstance';
 import { assignSeat, memeCase, placesJouables, pruneSeatAssignments, RANG_MENEUR, releaseRecomposedRanks, releaseSeat, seatPoseOf, type SeatPose } from './seating';
 import { actionsDe, actionsAuthorees, cleActionJouee, estCapacite, type CapaciteId } from './usable';
-import type { ClueState } from './clues';
-import { togglePin } from './clues';
+import type { ClueState, IndiceAffiché } from './clues';
+import { togglePin, marquerVus } from './clues';
 import type { CodexFocus } from './codexFocus';
 
 /** Onglets de la fiche de personnage (`CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
@@ -88,15 +91,10 @@ export function reposerPaquetDeCampagne(doc: CampaignDoc | null | undefined): Pa
 function applyLoadedSave(set: (s: Partial<GameState>) => void, save: SaveGame): void {
   const base = JSON.parse(JSON.stringify(useGame.getInitialState())) as Partial<GameState>;
   const data = { ...(save.data as Partial<GameState>) };
-  // La save chargée est TOUJOURS à `SAVE_VERSION` (toute autre version est jetée, `saves.ts`) :
+  // La save chargée est TOUJOURS à `FORMAT_SAVE` (toute autre forme est jetée, `saves.ts`) :
   // `save.data` a donc la forme courante, sans remise à niveau à faire ici.
   // `net` : la SESSION coop courante prime sur celle figée dans la save (ne pas ressusciter un
   // salon mort, ne pas dissoudre un salon vivant — l'hôte peut charger une save en ligne).
-  // `camEdge` : une save d'avant la restriction aux quatre vues diagonales (#1289) peut porter une vue
-  // de FACE ; la partie chargée repart du cran diagonal, comme à l'entrée de scène. Chemin d'état NON
-  // rattrapé : `applyNetSnapshot` (`netFlow.ts`), où l'invité adopte l'état de l'hôte en bloc — aucun
-  // écrivain de `camEdge: true` ne subsiste dans l'arbre, seul un hôte tournant un build ANTÉRIEUR au
-  // lot pourrait en émettre un.
   // ASSISE : la scène persistée peut porter des places dont le meuble, le slot ou le héros n'existent
   // plus dans CE snapshot (paquet de campagne édité, groupe recomposé) — élaguée AVANT d'entrer en
   // état, par la même source unique que la superposition de mutation.
@@ -106,11 +104,10 @@ function applyLoadedSave(set: (s: Partial<GameState>) => void, save: SaveGame): 
   const scene = chargee?.seatAssignments
     ? { ...chargee, seatAssignments: pruneSeatAssignments(chargee, (data.party ?? []).length) }
     : chargee;
-  set({ ...base, ...data, ...(chargee ? { scene } : {}), screen: 'campaign', camEdge: false, net: useGame.getState().net });
+  set({ ...base, ...data, ...(chargee ? { scene } : {}), screen: 'campaign', net: useGame.getState().net });
   set(reposerPaquetDeCampagne(data.campaignDoc as CampaignDoc | null | undefined));
   // Règles maison de la save : on les applique au registre (parité avec la partie sauvegardée).
-  // Save d'avant ce champ (rules absent) → on garde les règles courantes de la machine.
-  if (save.rules) loadRuleOverrides(save.rules);
+  loadRuleOverrides(save.rules);
   bus.emit(EVT.SCENE_DIRTY);
 }
 import { ev, type CombatEvent, type ActorAim } from './combatLog';
@@ -124,7 +121,7 @@ import { TIME_COST } from '../engine/timeCost';
 import { outOfCombatUpkeep } from './outOfCombatUpkeep';
 import { checkPartyWiped } from './partyWipe';
 import { touchActors } from './combatOrParty';
-import { capDuGroupe, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from './combatants';
+import { actorIn, capDuGroupe, ecrireActeur, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from './combatants';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
 import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot } from './corruptionFlow';
@@ -139,13 +136,14 @@ import type { MerchantState, MerchantStocks } from './merchantFlow';
 import * as tavernFlow from './tavernFlow';
 import type {
   PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain,
-  PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingTrample, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
+  PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
   PendingFrenzy, PendingRenounce, PendingDefense,
-  PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
+  PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
   PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, EtatDialogue, CascadeStepMeta, Cloture, CounterDeclaration,
 } from './pendings';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { toMoney } from '../engine/money';
+import { postingTenu } from '../engine/activities';
 import { payFromGroup } from './bourseFlow';
 import * as medicFlow from './medicFlow';
 import type { MedicState, MedicNpc } from './medicFlow';
@@ -171,6 +169,7 @@ import { snapshotChapitre } from './chapitreRecap';
 import { dayIndex, runDailyUpkeep, purgeSurAvanceDHorloge } from './upkeep';
 import type { DeferredUpkeepTest } from './upkeep';
 import * as travelFlow from './travelFlow';
+import * as billetFlow from './billetFlow';
 import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
 import { appliquerLotEtal } from './etalLotFlow';
 import * as portFlow from './portFlow';
@@ -180,7 +179,7 @@ import * as seaActivities from './seaActivities';
 import * as seaVoyageFlow from './seaVoyageFlow';
 import { applyLandCargoRaid } from './carriers';
 import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from './cascade';
-import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute } from './combatEffects';
+import { differerLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite } from './combatEffects';
 import { flowFromEffects } from './flow';
 import { nightBands } from './nightBands';
 import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from './rollSeam';
@@ -247,7 +246,7 @@ export interface BattleState {
   selectedSpellId: string | null;
   /** Attaque ARMÉE pour le clic-ennemi (id d'`AttackOption` : 'arme' | 'morsure' | … — cf. `availableAttacks`).
    *  Défaut 'arme' ; vivante seulement quand `action===null`. Source UNIQUE qui remplace l'attaque d'arme
-   *  implicite + le mode manœuvre/tentacule/trample armé. */
+   *  implicite + le mode manœuvre/tentacule armé. */
   selectedAttack?: string;
   reachable: Map<string, number>;
   /** Cases de Mouvement déjà parcourues ce Tour. Le Mouvement est DÉCOMPOSABLE (règle maison : on peut
@@ -517,6 +516,10 @@ export interface GameState extends RollFlowActionsMap {
    *  (horloge/ambiance). Posé par l'Effet `setLight`, lu par le rendu (overlay d'assombrissement). */
   lightLevel: number | null;
   flags: Record<string, boolean>;
+  /** ÉTATS DE CAMPAGNE (registre `narratif.etats`) : id d'état → id du héros désigné (forme `heros`) ou id
+   *  de la valeur posée (forme `enum`). Posés par les Effets `designerHeros`/`poserEtat`, lus par la
+   *  Condition `etat` et le sélecteur `{etat}`. Traversent les scènes ; vidés en nouvelle partie. */
+  etats: Record<string, string>;
   /** PILE d'objectifs courants (« je fais quoi maintenant ? »), keyés par id STABLE — posés/mis à jour/
    *  retirés par les Effets `setObjective`/`clearObjective`. Le HUD affiche le plus récent (dernier de
    *  la pile). PERSISTE entre transitions de scène (hors `stateFields`, comme `flags`) — un objectif
@@ -554,6 +557,8 @@ export interface GameState extends RollFlowActionsMap {
   clues: Record<string, ClueState>;
   /** Épingle/désépingle un indice du carnet (suivi joueur, no-op si l'indice est encore caché). */
   toggleCluePin: (indiceId: string) => void;
+  /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
+  markCluesSeen: (affichés: readonly IndiceAffiché[]) => void;
   /** Brouillard de guerre : cases déjà explorées par scène (`sceneId` → clés "x,y,z"). PERSISTE entre
    *  transitions (hors manifeste de reset `stateFields`) ; vidé en nouvelle partie (`startScene`). */
   explored: Record<string, string[]>;
@@ -638,6 +643,8 @@ export interface GameState extends RollFlowActionsMap {
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2 : objet BE/B) : flux multi PARALLÈLE — chaque
    *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `forceDoorConfirm`. */
   pendingForceDoor: PendingForceDoor | null;
+  /** DÉSIGNATION d'un héros pour un état de campagne (Effet `designerHeros`, EDO 02 l.91). */
+  pendingDesignationHeros: PendingDesignationHeros | null;
   /** LOT DE DÉS d'un étal (#1426) : les tirages d'ouverture d'un marché/port, posables d'un bloc. */
   pendingEtalLot: PendingEtalLot | null;
   /** CASCADE séquentielle influençable (jets de NUIT / VOYAGE) : une étape à la fois (`FLOWS.cascade`),
@@ -659,7 +666,7 @@ export interface GameState extends RollFlowActionsMap {
    *  jusqu'à une issue — poursuite terrestre (LDB 15), jeu de taverne opposé (NADJ 16), demain les
    *  crises de mer. État GÉNÉRIQUE (id de définition, rang de manche, cumuls par camp, paramètres
    *  d'auteur) + la charge utile du domaine ; persisté entre les manches. `null` hors séquence. */
-  sequence: import('./sequenceCore').SequenceState | null;
+  sequence: EtatDeSequence | null;
   /** Abandon de la poursuite terrestre (le groupe renonce à fuir/traquer). */
   pursuitAbandon: () => void;
   /** Incantation OPPOSÉE (`spec.opposed`) : chaque CIBLE oppose son Test (FM/Int) à l'incantation
@@ -712,8 +719,6 @@ export interface GameState extends RollFlowActionsMap {
   /** File d'effets PROGRAMMÉS (minuteries `delayedEffect`) — déclenchés au franchissement de
    *  leur échéance dans `advanceTime`. */
   scheduledEffects: ScheduledEffect[];
-  /** Piétinement en cours (modale interactive). */
-  pendingTrample: PendingTrample | null;
   /** Battement en cours (LDB 10 l.103 — modale de jet de CC non opposé retirant l'Avantage adverse). */
   pendingBattement: PendingBattement | null;
   /** Distraire en cours (LDB 10 l.364 — modale de Test opposé Athlétisme vs Calme). */
@@ -898,7 +903,8 @@ export interface GameState extends RollFlowActionsMap {
   /** Charge un slot (manuel OU auto) : reset zéro-maintenance + données de la save (écran campagne). */
   loadGame: (slot: AnySlot) => boolean;
   /** Applique une save importée (export/import JSON). */
-  importGame: (json: string) => boolean;
+  /** Importe une save : `null` quand elle est appliquée, sinon la cause de son refus. */
+  importGame: (json: string) => import('./saves').ObsoleteCause | null;
   setParty: (p: Combatant[]) => void;
   toggleEquip: (heroId: string, uid: string) => void;
   /** Range (`containerUid`) ou sort (null) un objet d'un héros d'un contenant (LDB 64). */
@@ -1027,7 +1033,7 @@ export interface GameState extends RollFlowActionsMap {
   /** Réparation chez l'artisan : remet damageTaken à 0 contre le coût unifié — armure 10 %/PA (LDB 63 l.64)
    *  ou arme 10 %/point de Dégâts (LDB 62 l.135). Arme improvisée = irréparable. */
   repairItem: (uid: string, heroId: string) => void;
-  /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix de 10-20 %. */
+  /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix (`bargainBuyFactor`). */
   startBargain: (mode: 'buy' | 'sell') => void;
   // bargain{Roll,Reroll,BonusSL,DarkPact} : générés (RollFlowActionsMap).
   bargainConfirm: () => void;
@@ -1183,17 +1189,23 @@ export interface GameState extends RollFlowActionsMap {
   /** « Laisser passer » : aucun Contre-sort retenu → le Sort se résout tel quel (castConfirm). */
   counterspellCancel: () => void;
   /** Test Étendu SÉQUENTIEL (LDB 12) : ouvre le flux (ex. crocheter DR 5) ; un Round à la fois. */
-  startExtendedTest: (opts: { actorId: string; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: string; label: string }; outcome?: { kind: string; meta?: CascadeStepMeta }; stake?: StakeRef }) => void;
+  startExtendedTest: (opts: { actorId: string; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: string; label: string }; outcome?: { kind: string; meta?: CascadeStepMeta }; stake?: StakeRef; suite?: Flow }) => void;
   // extendedTest{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
   /** Cumule le DR du Round courant (LDB 12 l.174) ; total < 0 → recommence ; total ≥ cible → réussite. */
   extendedTestNext: () => void;
   extendedTestCancel: () => void;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2) : ouvre le flux (objet BE/B) ; chacun frappe. */
-  startForceDoor: (opts: { label: string; doorBE: number; doorB: number; heroIds: string[]; flag?: string }) => void;
+  startForceDoor: (opts: { label: string; doorBE: number; doorB: number; heroIds: string[]; flag?: string; suite?: Flow }) => void;
   // forceDoor{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
   /** Applique les dégâts du Round (somme) ; porte à ≤ 0 B → cède (flag posé) ; sinon nouveau Round. */
   forceDoorConfirm: () => void;
   forceDoorCancel: () => void;
+  /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
+   *  à désigner, la suite se joue sans suspension. */
+  designerHerosOuvrir: (p: PendingDesignationHeros) => boolean;
+  /** Pose le héros `heroId` (vivant, du groupe) comme désigné par l'état de `pendingDesignationHeros`, puis
+   *  rejoue la suite. Sans `heroId`, ne clôt (sans rien désigner) que si plus aucun héros n'est vivant. */
+  designerHerosChoisir: (heroId?: string) => void;
   /** LOT DE DÉS d'un étal (#1426) : valide le lot d'un bloc (rejoue le générateur avec les dés posés,
    *  puis ouvre l'écran) / renonce (l'étal reste celui des dés naturels). */
   etalLotConfirm: () => void;
@@ -1314,11 +1326,8 @@ export interface GameState extends RollFlowActionsMap {
   dualStrikeAttack: (targetId: string, skipGate?: boolean) => void;
   /** Renonce à la 2ᵉ frappe (« peut viser » = optionnel) → pas de 2ᵉ attaque, pas d'Avantage. */
   dualStrikeSkip: () => void;
-  /** Piétinement (LDB 85 l.320-321) : action gratuite (1 Avantage) contre un adversaire adjacent
-   *  plus petit. Ne consomme pas l'Action. */
-  battleTrample: (targetId: string) => void;
   /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
-   *  — source UNIQUE qui remplace l'arme implicite + l'ancien mode manœuvre/tentacule/trample. Toggle → 'arme'.
+   *  — source UNIQUE de l'attaque armée. Toggle → 'arme'.
    *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (battleClickEntity). */
   battleSelectAttack: (id: string) => void;
   /** Manœuvre de ZONE / soi immédiate (Souffle/Vomi/Langue/Hurlement/Regard/Étreinte) : résolution
@@ -1327,10 +1336,6 @@ export interface GameState extends RollFlowActionsMap {
   /** Capacité SUR SOI octroyée par un trait (Métamorphose humain↔hybride de l'Enfant d'Ulric) : résout la
    *  manœuvre `targeting:'self'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */
   battleSelfManeuver: (maneuverId: string) => void;
-  /** Piétinement par modale (LDB 85 l.320-321) : Lancer le jet, dépenser une Chance, appliquer (gratuit). */
-  // trample{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap).
-  trampleConfirm: () => void;
-  trampleCancel: () => void;
   /** Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant de
    *  l'Avantage adverse. `foeId` absent = 1er éligible (picker via `battementSetFoe`). */
   battleBattement: (foeId?: string) => void;
@@ -1483,7 +1488,7 @@ export interface GameState extends RollFlowActionsMap {
   disengageRoll: () => void; // Esquiver (lance le Test opposé)
   // disengage{Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
   // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) + « vous choisissez le résultat » (dé forcé) :
-  // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast,trample}SetForcedRoll sont aussi générés.
+  // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast}SetForcedRoll sont aussi générés.
   disengageConfirm: () => void; // Appliquer l'issue de l'Esquive
   disengageFlee: () => void; // Fuir : ouvre le flux MULTI `flee` (coup dans le dos du frappeur + Calme du fuyard)
   // flee{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll}(pid) : générés (RollFlowActionsMap) — `pid` = id de l'acteur du slot.
@@ -1527,6 +1532,12 @@ export interface GameState extends RollFlowActionsMap {
   setGameMenu: (open: boolean) => void;
   /** Voyage en cours/interrompu (progression km — « Reprendre le voyage » après une embuscade). */
   travelPlan: import('./travelFlow').TravelPlan | null;
+  /** Billet payé dont il reste des tronçons (EDO 01 l.142) — consommé au départ de chacun, sans débit. */
+  billetEnMain: import('./billetFlow').BilletEnMain | null;
+  /** Issue du Marchandage de chaque billet, par `cleDeBillet` — un Test par billet (EDO 01 l.142). */
+  marchandagesDeBillet: Record<string, import('../engine/bargain').BargainOutcome>;
+  /** « Marchander » le billet de `routeId` en `vehicule` depuis le lieu courant (`billetFlow`). */
+  startBilletBargain: (routeId: string, vehicule: string) => void;
   /** Récapitulatif du dernier segment de voyage (audit M4) — modale à l'arrivée/interruption. */
   travelRecap: import('./travelFlow').TravelRecap | null;
   dismissTravelRecap: () => void;
@@ -1537,9 +1548,9 @@ export interface GameState extends RollFlowActionsMap {
   /** Bascule la CADENCE des ordres de la traversée en cours (couche `voyageCadence`) — « Passer en
    *  jour-par-jour » de l'écran de traversée, ou retour en commandée. */
   setVoyageCadence: (cadence: import('./voyageCadence').VoyageCadence) => void;
-  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, id d'Activité de voyage EDOC 8),
+  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage EDOC 8),
    *  ou le détache (`null` ⇒ rôle inféré). Réutilisé au départ de chaque trajet (0 ré-assignation/jour). */
-  setTravelRole: (heroId: string, role: string | null) => void;
+  setTravelRole: (heroId: string, role: import('../engine/activities').StagePosting | null) => void;
   /** Épingle (`role`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) — interface de gestion
    *  du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
   setShipRole: (crewId: string, role: string | null) => void;
@@ -1911,6 +1922,8 @@ export const useGame = create<GameState>((set, get) => ({
   worldMapOpen: false,
   gameMenuOpen: false,
   travelPlan: null,
+  billetEnMain: null,
+  marchandagesDeBillet: {},
   travelRecap: null,
   party: [],
   scene: null,
@@ -1920,7 +1933,7 @@ export const useGame = create<GameState>((set, get) => ({
   camRot: 0,
   camEdge: false, // vue de COIN (losange) : le SEUL régime du chemin joueur ; la vue de face (+45°) reste une géométrie servie à la caméra libre DEV
   // QUATRE crans (90°, les vues diagonales — #1289) : le chemin joueur saute les états de face, donc
-  // `camEdge` en ressort toujours faux — y compris depuis une vue de face restaurée d'une sauvegarde.
+  // `camEdge` en ressort toujours faux.
   rotateCam: (dir) => {
     // Re-centre sur le point focal à chaque cran : sinon le décalage manuel (camPan) persiste à
     // travers le changement de projection (coin↔face, origines très différentes) → vue « téléportée ».
@@ -1976,9 +1989,9 @@ export const useGame = create<GameState>((set, get) => ({
     if (!battle || !hull?.pos || !dir) return 0;
     const d = DIR8_DELTA[dir];
     const w = scene?.dimensions.w ?? Infinity, h = scene?.dimensions.h ?? Infinity;
-    // Autres COQUES (jetons-navires) percutables (≠ self, pos connue) : une tuile occupée par une coque arrête
-    // l'avance ADJACENT (pas de chevauchement) et déclenche la collision (MDG 13).
-    const otherHulls = battle.combatants.filter((c) => c.id !== shipId && c.bodyShape === 'vehicule' && c.pos);
+    // Autres NAVIRES percutables (≠ self, pos connue) : une tuile occupée par un navire arrête l'avance ADJACENT
+    // (pas de chevauchement) et déclenche la collision (MDG 13 l.423-465).
+    const otherHulls = battle.combatants.filter((c) => c.id !== shipId && estNavire(c) && c.pos);
     const hullAt = (x: number, y: number) => otherHulls.find((c) => footprintTiles(c.pos!, footprintN(c)).some((t) => t.x === x && t.y === y));
     // Avance PAS-À-PAS le long du cap (coque 1×1) : on s'arrête au dernier pas libre — sortie de scène OU coque devant.
     let moved = 0;
@@ -2010,7 +2023,7 @@ export const useGame = create<GameState>((set, get) => ({
       const opp = rotateDir8(dir, 4);
       const vf = facing[victim.id];
       const frontal = vf === opp || vf === rotateDir8(opp, 1) || vf === rotateDir8(opp, -1);
-      for (const line of applyShipCollision(hull, victim, { ramProue: true, frontal }).lines) get().log(line);
+      for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }).lines) get().log(line);
     }
     if (moved > 0 || victim) { set({ battle: { ...battle } }); bus.emit(EVT.SCENE_DIRTY); }
     return moved;
@@ -2060,6 +2073,7 @@ export const useGame = create<GameState>((set, get) => ({
   partyPos: { x: 0, y: 0 },
   lightLevel: null,
   flags: {},
+  etats: {},
   objectives: [],
   objectifsSoldes: [],
   chapitreDepuis: null,
@@ -2073,6 +2087,14 @@ export const useGame = create<GameState>((set, get) => ({
   ajournerChapterRecap: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null })),
   clues: {},
   toggleCluePin: (indiceId) => set((s) => ({ clues: togglePin(s.clues, indiceId) })),
+  /** NOUVEAUTÉ VUE, MARQUÉE PAR SON SIÈGE : le siège vient de `decidingSeat` (le siège agissant quand
+   *  l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — un siège ne
+   *  marque vu que pour lui-même. */
+  markCluesSeen: (affichés) => {
+    const s = get();
+    const clues = marquerVus(s.clues, affichés, decidingSeat(s));
+    if (clues !== s.clues) set({ clues });
+  },
   explored: {},
   markExplored: (keys) => visionStateMod.recordExplored(get, set, keys),
   journal: [],
@@ -2192,9 +2214,9 @@ export const useGame = create<GameState>((set, get) => ({
   },
   importGame: (json) => {
     const save = importSave(json);
-    if (!save) return false;
+    if (typeof save === 'string') return save;
     applyLoadedSave(set, save);
-    return true;
+    return null;
   },
 
   // ── Actions GROUPE (équipement / avancement) : déléguées à partyFlow ──
@@ -2216,10 +2238,10 @@ export const useGame = create<GameState>((set, get) => ({
   buySpell: (heroId, spellId) => {
     const r = partyFlow.buySpell(get, set, heroId, spellId);
     if (r.ok && r.chaos) {
-      const hero = get().party.find((h) => h.id === heroId);
+      const hero = actorIn(get(), heroId);
       if (hero) {
         for (const l of gainCorruption(get, set, hero, 1)) get().log(l);
-        set({ party: [...get().party] });
+        set(touchActors(get()));
       }
     }
   },
@@ -2258,7 +2280,7 @@ export const useGame = create<GameState>((set, get) => ({
       facing: poserCapDuGroupe({}, capEntrant),
       flags: { ...scene.flags },
       campaignSceneId: scene.id,
-      journal: scene.startMessage ? [scene.startMessage] : [],
+      journal: scene.startMessage ? [scene.startMessage.texte] : [],
       campaignNarratif: narratif ?? null,
     });
     // Gestes VIVANTS de la frontière (`stageGestes`) : la carte s'ouvre à son cran, CENTRÉE, et sans
@@ -2276,7 +2298,7 @@ export const useGame = create<GameState>((set, get) => ({
     // skippable ; le Journal garde l'archive consultable. Poussée APRÈS `openEncounterPsych` et en
     // séquence PROPRE (`own`) : la carte passe DEVANT les Tests de Sang-froid de la rencontre, qui
     // sont parqués par la doctrine du slot et repris à la clôture de la carte — jamais perdus.
-    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage] }, { own: true });
+    if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte] }, { own: true });
   },
 
   loadProject: ({ scenes, entryId, worldMap, narratif, projet }) => {
@@ -2362,7 +2384,7 @@ export const useGame = create<GameState>((set, get) => ({
     }));
     resetStageGestes(); // idem `startScene` : la scène d'arrivée se regarde depuis SON cran, depuis son centre, et la
                         // touche encore enfoncée n'y marche pas (la main a armé ce geste dans la scène de départ)
-    if (target.startMessage) get().log(target.startMessage);
+    if (target.startMessage) get().log(target.startMessage.texte);
     get().advanceTime(TIME_COST.sceneTransition); // seam « tout est horodaté » : 0 en intérieur (paramétrable, #T2 extérieur/voyage)
     bus.emit(EVT.SCENE_DIRTY);
     get().autoSave(); // checkpoint d'ENTRÉE de scène (hors combat) — avant qu'une rencontre ne démarre le combat
@@ -2370,7 +2392,7 @@ export const useGame = create<GameState>((set, get) => ({
     // N1 : entrée de zone (transition) en MODALE — étape d'AFFICHAGE skippable (Journal = archive),
     // poussée APRÈS `openEncounterPsych` et en séquence PROPRE (`own`), pour la même raison qu'à
     // `startScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
-    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage] }, { own: true });
+    if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte] }, { own: true });
   },
 
   moveParty: (pt) => {
@@ -2916,7 +2938,7 @@ export const useGame = create<GameState>((set, get) => ({
         // DISSIPATION réussie (LDB 46 l.160) : retire tous les effets du Sort de tous ses porteurs.
         const b = get().battle;
         const n = b ? dissipateSpell(b.combatants, p.dispel.spellId, p.dispel.casterId) : 0;
-        if (b) set({ battle: { ...b, combatants: [...b.combatants] } });
+        set(touchActors(get()));
         get().log(t('cs.dispelDone', { spell: p.dispel.label, extra: n > 1 ? t('cs.fragDispelFreed', { n }) : '' }));
       }
       if (done && p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // gate la suite (porte/serrure d'éditeur)
@@ -2927,15 +2949,22 @@ export const useGame = create<GameState>((set, get) => ({
         const line = out?.consequences ? resultLine(out.consequences) : '';
         if (line) get().log(line);
       }
+      reprendreLaSuite(get, set, p.suite);
       return;
     }
     // Round suivant : la cascade-hôte (1 étape) reste, seul `pendingExtendedTest` gagne un Round (re-rendu).
     set({ pendingExtendedTest: { ...p, total, rounds: [...p.rounds, { id: `round-${p.rounds.length + 1}`, interactive: true, result: null }] } });
   },
-  extendedTestCancel: () => { set({ pendingExtendedTest: null, pendingCascade: null }); },
+  // Renoncer CLÔT le Test (sans réussite) : la suite du Flow qui l'a ouvert se joue, comme après un Test raté.
+  extendedTestCancel: () => {
+    const suite = get().pendingExtendedTest?.suite;
+    set({ pendingExtendedTest: null, pendingCascade: null });
+    reprendreLaSuite(get, set, suite);
+  },
   // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
   startForceDoor: (opts) => {
     set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
+      ...(opts.suite ? { suite: opts.suite } : {}),
       participants: opts.heroIds.map((id) => ({ id, interactive: true, result: null })) } });
     // « Une situation = une modale » : l'enfoncement est hôté dans la cascade (rendu par CascadeModal
     // via l'étape `jet:'forceDoor'`). `pendingForceDoor` reste le porteur des données/participants ;
@@ -2957,13 +2986,32 @@ export const useGame = create<GameState>((set, get) => ({
       set({ pendingForceDoor: null, pendingCascade: null }); // la porte cède → ferme la situation (data + cascade hôte)
       get().log(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
       if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
+      reprendreLaSuite(get, set, p.suite);
     } else {
       // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
       set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
       get().log(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
     }
   },
-  forceDoorCancel: () => { set({ pendingForceDoor: null, pendingCascade: null }); }, // renonce : ferme data + cascade hôte
+  // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
+  forceDoorCancel: () => {
+    const suite = get().pendingForceDoor?.suite;
+    set({ pendingForceDoor: null, pendingCascade: null });
+    reprendreLaSuite(get, set, suite);
+  },
+  designerHerosOuvrir: (p) => {
+    if (!get().party.some((h) => !h.dead)) return false;
+    set({ pendingDesignationHeros: p });
+    return true;
+  },
+  designerHerosChoisir: (heroId) => {
+    const p = get().pendingDesignationHeros;
+    if (!p) return;
+    const vivants = get().party.filter((h) => !h.dead);
+    if (heroId === undefined ? vivants.length > 0 : !vivants.some((h) => h.id === heroId)) return;
+    set((st) => ({ etats: heroId === undefined ? st.etats : { ...st.etats, [p.etat]: heroId }, pendingDesignationHeros: null }));
+    reprendreLaSuite(get, set, p.suite);
+  },
 
   // LOT DE DÉS d'un étal (#1426) — les deux gestes de BLOC. « Valider » rejoue le générateur avec les
   // dés du lot (posés ou naturels) : c'est le MÊME code que l'ouverture sans fenêtre, nourri par un rng
@@ -3049,7 +3097,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (ca && battle) {
       const c = inBattleId(battle, ca.combatantId);
       if (c && effSuccess && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
-      set({ battle: { ...markActed(get, set, battle), action: null } });
+      set({ battle: { ...markActed(get, set), action: null } });
     }
     // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
     // marcheur qui parle LEUR vocabulaire — même aiguillage que `rejouerLaSuite` sur `meta.apresMode` :
@@ -3136,6 +3184,7 @@ export const useGame = create<GameState>((set, get) => ({
   closeWorldMap: () => set({ worldMapOpen: false }),
   setGameMenu: (open) => set({ gameMenuOpen: open }),
   startTravel: (routeId, mode, opts) => travelFlow.startTravel(get, set, routeId, mode, opts),
+  startBilletBargain: (routeId, vehicule) => billetFlow.startBilletBargain(get, set, routeId, vehicule),
   resumeTravel: () => travelFlow.resumeTravel(get, set),
   departWaitDawn: () => travelFlow.departWaitDawn(get, set),
   departCancel: () => set({ pendingDeparture: null }),
@@ -3161,25 +3210,9 @@ export const useGame = create<GameState>((set, get) => ({
   seaActivitiesConfirm: (picks) => seaActivities.seaActivitiesConfirm(get, set, picks),
   resolveManannPriest: (pay) => seaVoyageFlow.resolveManannPriest(get, set, pay),
   resolveShoreLeave: (allow) => seaVoyageFlow.resolveShoreLeave(get, set, allow),
-  setTravelRole: (heroId, role) => set({
-    party: get().party.map((h) => h.id === heroId ? { ...h, ...(role ? { travelRole: role } : { travelRole: undefined }) } : h),
-  }),
-  setShipRole: (crewId, role) => {
-    const b = get().battle;
-    const patch = (c: Combatant) => c.id === crewId ? { ...c, ...(role ? { shipRole: role } : { shipRole: undefined }) } : c;
-    set({
-      party: get().party.map(patch),
-      ...(b ? { battle: { ...b, combatants: b.combatants.map(patch) } } : {}),
-    });
-  },
-  setShipStation: (crewId, station) => {
-    const b = get().battle;
-    const patch = (c: Combatant) => c.id === crewId ? { ...c, ...(station ? { shipStation: station } : { shipStation: undefined }) } : c;
-    set({
-      party: get().party.map(patch),
-      ...(b ? { battle: { ...b, combatants: b.combatants.map(patch) } } : {}),
-    });
-  },
+  setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
+  setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
+  setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
   setPosteAmmo: (shipId, posteUid, ammoUid) => {
     const b = get().battle;
     const ship = inBattleId(b, shipId);

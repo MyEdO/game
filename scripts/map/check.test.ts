@@ -16,7 +16,9 @@ import { locateGrid } from './locate';
 import { codedSites } from './sites';
 import { zonesFromSeeds, type ZoneSeed } from '../../src/state/asciiMap';
 import { findMap, findMaps, type MapSource } from './registry';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEffectZone, type WallSeg } from '../../src/state/scene';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, emptyScene, type Scene, type SceneEffectZone, type WallSeg } from '../../src/state/scene';
+import { documentDeProjet, type ProjectIdentite } from '../../src/state/worldMap';
+import { emptyNarratif } from '../../src/state/campaignNarratif';
 
 /** « La Diligence » — paquet ÉDITEUR (`src/scenes/diligence/diligence-projet.json`) : la Scène y est
  *  déjà compilée, `findMaps` la relit par `parseProject` sans rien rebâtir. */
@@ -200,6 +202,14 @@ describe('mesures INFORMATIVES sur les scènes réelles (non contractuelles — 
   });
 });
 
+/** Projet exporté MINIMAL, écrit par l'enveloppe de l'application (`documentDeProjet`) autour d'UNE scène. */
+function ecrireProjet(dir: string, fichier: string, scene: Scene): string {
+  const identite: ProjectIdentite = { type: 'projet', id: 'fixture-carte', label: 'Fixture de carte', versionContenu: 1, maison: 'fixture de test' };
+  const path = join(dir, fichier);
+  writeFileSync(path, JSON.stringify(documentDeProjet(identite, [scene], { narratif: emptyNarratif() })));
+  return path;
+}
+
 describe('mode PROJET — une carte authorée dans l\'éditeur se contrôle sans passer par le registre', () => {
   /** Projet exporté MINIMAL : corps bâti (x=0..1) sur plancher, appentis (le reste de la largeur) posé
    *  sur `route`, aucun mur nulle part. Le document porte la Scène DÉJÀ compilée — l'outil ne rebâtit
@@ -209,25 +219,13 @@ describe('mode PROJET — une carte authorée dans l\'éditeur se contrôle sans
     const h = 3;
     const z0 = Array.from({ length: w * h }, (_, i) => (i % w <= 1 ? 'plancher' : 'route'));
     const z1 = Array.from({ length: w * h }, (_, i) => (detache && i % w <= 1 ? 'vide' : 'plancher'));
-    const doc = {
-      schema: 3,
-      // Identité REQUISE depuis #1552 — au format 3 elle vit dans la poche `meta`, que la
-      // migration 4→5 aplatit ; aucune migration ne l'invente.
-      meta: { id: 'fixture-carte', label: 'Fixture de carte', version: 1 },
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
-      scenes: [{
-        id: 'appentis', nom: 'Appentis sur cour', desc: 'Appentis sur cour — fixture.',
-        dimensions: { w, h },
-        reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
-        layers: [{ z: 0, tiles: z0 }, { z: 1, tiles: z1 }],
-        walls: [],
-        effectZones: [{ id: 'salle', label: 'Salle commune', presentation: 'interior', area: { kind: 'rect', x: 0, y: 0, w, h }, z: 0 }],
-        entities: [], dialogues: [], triggers: [], encounters: [], flags: {},
-      }],
-    };
-    const path = join(dir, 'appentis-projet.json');
-    writeFileSync(path, JSON.stringify(doc));
-    return path;
+    return ecrireProjet(dir, 'appentis-projet.json', {
+      ...emptyScene(w, h),
+      id: 'appentis', label: 'Appentis sur cour', desc: 'Appentis sur cour — fixture.',
+      layers: [{ z: 0, tiles: z0 }, { z: 1, tiles: z1 }],
+      walls: [],
+      effectZones: [{ id: 'salle', label: 'Salle commune', presentation: 'interior', area: { kind: 'rect', x: 0, y: 0, w, h }, z: 0 }],
+    });
   }
 
   function withTempDir<T>(fn: (dir: string) => T): T {
@@ -296,52 +294,28 @@ describe('RAPPORT — ce qui n\'a pas été mesuré ne se totalise pas', () => {
    *  ligne y=0) : la famille `mur-arrete-au-bord` y MESURE 2 défauts sans le moindre second étage. */
   function writeSingleFloorProject(dir: string): string {
     const w = 4, h = 3;
-    const doc = {
-      schema: 3,
-      // Identité REQUISE depuis #1552 — au format 3 elle vit dans la poche `meta`, que la
-      // migration 4→5 aplatit ; aucune migration ne l'invente.
-      meta: { id: 'fixture-carte', label: 'Fixture de carte', version: 1 },
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
-      scenes: [{
-        id: 'quai', nom: 'Quai de plain-pied', desc: 'Quai de plain-pied — fixture.',
-        dimensions: { w, h },
-        reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
-        layers: [{ z: 0, tiles: new Array(w * h).fill('plancher') }],
-        walls: [{ x: 0, y: 0, side: 'N' }],
-        effectZones: [{ id: 'quai-z', label: 'Quai', presentation: 'exterior', area: { kind: 'rect', x: 0, y: 0, w, h }, z: 0 }],
-        entities: [], dialogues: [], triggers: [], encounters: [], flags: {},
-      }],
-    };
-    const path = join(dir, 'quai-projet.json');
-    writeFileSync(path, JSON.stringify(doc));
-    return path;
+    return ecrireProjet(dir, 'quai-projet.json', {
+      ...emptyScene(w, h),
+      id: 'quai', label: 'Quai de plain-pied', desc: 'Quai de plain-pied — fixture.',
+      layers: [{ z: 0, tiles: new Array(w * h).fill('plancher') }],
+      walls: [{ x: 0, y: 0, side: 'N' }],
+      effectZones: [{ id: 'quai-z', label: 'Quai', presentation: 'exterior', area: { kind: 'rect', x: 0, y: 0, w, h }, z: 0 }],
+    });
   }
 
   /** Le MÊME projet avec une dalle d'étage : les cinq familles retrouvent leur sujet. */
   function writeTwoFloorProject(dir: string): string {
     const w = 4, h = 3;
-    const doc = {
-      schema: 3,
-      // Identité REQUISE depuis #1552 — au format 3 elle vit dans la poche `meta`, que la
-      // migration 4→5 aplatit ; aucune migration ne l'invente.
-      meta: { id: 'fixture-carte', label: 'Fixture de carte', version: 1 },
-      narratif: { affaires: [], indices: [], presetsPnj: [], objets: [] },
-      scenes: [{
-        id: 'quai', nom: 'Quai avec étage', desc: 'Quai avec étage — fixture.',
-        dimensions: { w, h },
-        reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
-        layers: [
-          { z: 0, tiles: new Array(w * h).fill('plancher') },
-          { z: 1, tiles: Array.from({ length: w * h }, (_, i) => (i % w <= 1 ? 'plancher' : 'vide')) },
-        ],
-        walls: [],
-        effectZones: [{ id: 'quai-z', label: 'Quai', presentation: 'interior', area: { kind: 'rect', x: 0, y: 0, w, h }, z: 0 }],
-        entities: [], dialogues: [], triggers: [], encounters: [], flags: {},
-      }],
-    };
-    const path = join(dir, 'quai-etage-projet.json');
-    writeFileSync(path, JSON.stringify(doc));
-    return path;
+    return ecrireProjet(dir, 'quai-etage-projet.json', {
+      ...emptyScene(w, h),
+      id: 'quai', label: 'Quai avec étage', desc: 'Quai avec étage — fixture.',
+      layers: [
+        { z: 0, tiles: new Array(w * h).fill('plancher') },
+        { z: 1, tiles: Array.from({ length: w * h }, (_, i) => (i % w <= 1 ? 'plancher' : 'vide')) },
+      ],
+      walls: [],
+      effectZones: [{ id: 'quai-z', label: 'Quai', presentation: 'interior', area: { kind: 'rect', x: 0, y: 0, w, h }, z: 0 }],
+    });
   }
 
   function runCli(path: string): string {

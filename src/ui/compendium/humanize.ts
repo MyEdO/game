@@ -13,7 +13,7 @@
  * `charAbr`/`traitLabelById`/`groupLabel`/`psychologyLabel`/`symptomLabel`/`creatureLabel`), jamais une
  * table id→label parallèle. PUR (structure → string) — testable sans DOM.
  */
-import type { Flow, Condition, EffectOp } from '../../state/flow';
+import type { Flow, Condition, EffectOp, PartySelector } from '../../state/flow';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
@@ -27,9 +27,12 @@ import { formatMoney } from '../../engine/money';
 import { rule, ruleDef } from '../../engine/policy';
 import {
   conditionLabel, psychologyLabel, groupLabel, symptomLabel, creatureLabel,
-  diseaseLabel, refLabel, qualityRefLabel,
+  diseaseLabel, refLabel, qualityRefLabel, testSkillLabel,
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
+import { deElide } from '../../i18n';
+import { etatsDeLaCampagne } from '../../state/campaignData';
+import { libelleDEtat } from './libellesNarratifs';
 
 function assertNever(x: never): never {
   throw new Error(`humanize: cas non couvert — ${JSON.stringify(x)}`);
@@ -227,6 +230,8 @@ function dedupSubjects(parts: string[]): string[] {
  *  De Morgan sur `all`/`any` — au lieu d'un « NON( … ) » d'atelier). SOURCE UNIQUE joueur des Conditions. */
 export function humanizeCondition(c: Condition, neg = false): string {
   const who = (r: ActorRef) => whoLabel(r);
+  const sujetDuGroupe = (w: PartySelector | undefined): string =>
+    w === 'all' ? 'tout le groupe' : typeof w === 'object' ? `le héros désigné par « ${libelleDEtat(etatsDeLaCampagne(), w.etat)} »` : 'un héros';
   switch (c.kind) {
     case 'always': return neg ? 'jamais' : 'toujours';
     case 'flag': return `${neg ? 'sauf si ' : 'si '}la condition de scénario « ${c.expr} » est ${neg ? 'fausse' : 'remplie'}`;
@@ -237,8 +242,15 @@ export function humanizeCondition(c: Condition, neg = false): string {
     }
     case 'money': return `la bourse du groupe ${neg ? "n'atteint pas" : 'atteint'} ${formatMoney({ gold: c.atLeast.gold ?? 0, silver: c.atLeast.silver ?? 0, brass: c.atLeast.brass ?? 0 })}`;
     case 'partyDead': {
-      const subj = c.who === 'all' ? 'tout le groupe' : 'un héros';
-      return neg ? `${subj} ${c.who === 'all' ? "n'est pas entièrement mort" : "n'est mort"}` : `${subj} est mort`;
+      if (!neg) return `${sujetDuGroupe(c.who)} est mort`;
+      return c.who === 'all' ? "le groupe n'est pas entièrement mort" : c.who === 'any' ? "aucun héros n'est mort" : `${sujetDuGroupe(c.who)} n'est pas mort`;
+    }
+    case 'etat': {
+      const etats = etatsDeLaCampagne();
+      const nom = libelleDEtat(etats, c.etat);
+      return c.value === undefined
+        ? `l'état de campagne « ${nom} » ${neg ? "n'est pas" : 'est'} défini`
+        : `l'état de campagne « ${nom} » ${neg ? 'ne vaut pas' : 'vaut'} « ${libelleDEtat(etats, c.etat, c.value)} »`;
     }
     case 'compare': return comparePhrase(c, neg);
     case 'slThreshold': return `la marge ${opWord(c.op, neg)} ${c.value} DR`;
@@ -265,19 +277,19 @@ export function humanizeCondition(c: Condition, neg = false): string {
     case 'casterChaosDomain': return `le Domaine du Chaos du lanceur ${neg ? "n'est pas" : 'est'} ${refLabel('gods', { id: c.is })}`;
     case 'visiblePassive': return `${who(c.who)} ${neg ? 'ne porte aucune' : 'porte une'} atteinte VISIBLE`;
     case 'skill': {
-      const subj = c.who === 'all' ? 'tout le groupe' : 'un héros';
+      const subj = sujetDuGroupe(c.who);
       return `${subj} ${neg ? 'ne possède pas' : 'possède'} la Compétence ${refLabel('skills', { id: c.id, spec: c.spec })}${c.advances ? ` (≥${c.advances})` : ''}`;
     }
     case 'career': {
-      const subj = c.who === 'all' ? 'tout le groupe' : 'un héros';
+      const subj = sujetDuGroupe(c.who);
       return `${subj} ${neg ? "n'exerce pas" : 'exerce'} la carrière ${refLabel('careers', { id: c.id })}`;
     }
     case 'species': {
-      const subj = c.who === 'all' ? 'tout le groupe' : 'un héros';
+      const subj = sujetDuGroupe(c.who);
       return `${subj} ${neg ? "n'est pas" : 'est'} de l'espèce ${refLabel('races', { id: c.id })}`;
     }
     case 'status': {
-      const subj = c.who === 'all' ? 'tout le groupe' : 'un héros';
+      const subj = sujetDuGroupe(c.who);
       return `${subj} a un Statut ${neg ? 'inférieur à' : 'au moins'} « ${c.atLeast} »`;
     }
     // De Morgan : NON(A ET B) = (NON A) OU (NON B) ; NON(A OU B) = (NON A) ET (NON B).
@@ -533,9 +545,9 @@ export function humanizeFlow(f: Flow): string {
       return f.else ? `${base} ; sinon ${humanizeFlow(f.else)}` : base;
     }
     case 'test': {
-      const who = f.test.skill ? refLabel('skills', f.test.skill) : (f.test.characteristic ? CHAR_LABELS[f.test.characteristic] : 'un Test');
+      const who = testSkillLabel({ skill: f.test.skill, char: f.test.characteristic }) ?? 'un Test';
       const opp = f.test.opposed ? ' opposé' : '';
-      return `Jet${opp} de ${who} : en cas de réussite, ${humanizeFlow(f.success)} ; en cas d'échec, ${humanizeFlow(f.fail)}`;
+      return `Jet${opp} ${deElide(who)} : en cas de réussite, ${humanizeFlow(f.success)} ; en cas d'échec, ${humanizeFlow(f.fail)}`;
     }
     case 'choice': {
       const cout = coutAvantageTexte(f.advantageCost);

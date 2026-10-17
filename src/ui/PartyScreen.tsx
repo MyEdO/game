@@ -4,7 +4,7 @@ import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../state/netFlow';
 import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
-import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport } from '../state/roster';
+import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRosterNotice } from '../state/roster';
 import { PARTY_MAX } from '../state/combatants';
 import { downloadText, fileSlug } from '../lib/fileIo';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
@@ -18,7 +18,8 @@ import { ActiveModal } from './ActiveModal';
 import { HeroPresentation } from './HeroPresentation';
 import { Modal } from './Modal';
 import { ScreenShell } from './ScreenShell';
-import { GatedAction } from './GatedAction';
+import { GatedAction, raisonSi } from './GatedAction';
+import { refusComposition } from '../state/partyFlow';
 import { RoseAxes } from './RoseAxes';
 import { DetailFrame } from './DetailFrame';
 import { HeroSheet } from './HeroSheet';
@@ -29,6 +30,7 @@ import { coreAxisIds } from '../data';
 import { resolveActiveAxes } from '../state/worldMap';
 import { t } from '../i18n';
 import { Row, Stack } from './Layout';
+import { ChipDeRefus } from './ChipDeRefus';
 
 /**
  * Écran d'équipe — solo ET coop. En coop, l'hôte attribue chaque SIÈGE (`net.slots`) ; chaque joueur
@@ -83,6 +85,7 @@ export function PartyScreen() {
   const addHero = useGame((s) => s.partyAddHero);
   const removeHero = useGame((s) => s.partyRemoveHero);
   const replaceHero = useGame((s) => s.partyReplaceHero);
+  const refusDeComposition = useGame(refusComposition);
   const setEditingHero = useGame((s) => s.setEditingHero);
   const assignSlot = useGame((s) => s.netAssignSlot);
   const leave = useGame((s) => s.netLeave);
@@ -119,6 +122,7 @@ export function PartyScreen() {
         onQuitCoop={() => { leave(); setScreen('menu'); }}
         onCreate={() => { setEditingHero(null); setScreen('creator'); }}
         onEditHero={(id) => { setEditingHero(id); setScreen('creator'); }}
+        refusComposition={refusDeComposition}
         onAddHero={addHero}
         onRemoveHero={removeHero}
         onReplaceHero={(oldId, hero) => {
@@ -147,7 +151,7 @@ export function PartyScreen() {
             </button>
           }
         >
-          <p className="chip tone-danger" role="alert">{refusLancement}</p>
+          <ChipDeRefus refus={{ message: refusLancement }} />
         </Modal>
       )}
     </>
@@ -178,7 +182,7 @@ function CampaignSelect({ currentId, onClose }: { currentId: string; onClose: ()
   };
   return (
     <Modal title={t('party.campaign.pick.title')} onClose={onClose} backdropClose>
-        {refusEntree && <p className="chip tone-danger" role="alert">{refusEntree}</p>}
+        {refusEntree && <ChipDeRefus refus={{ message: refusEntree }} />}
         <div className="pregen-list">
           <div className="pregen-row">
             <span className="campaign-row-name"><Icon id="scenario/arena" size="sm" /> {t('campaign.builtin')}</span>
@@ -339,6 +343,7 @@ export function PartyScreenView({
   onAssignSlot,
   onStart,
   onResume,
+  refusComposition: refus = null,
 }: {
   party: Combatant[];
   net: NetState;
@@ -368,6 +373,9 @@ export function PartyScreenView({
   onAssignSlot: (slot: number, seat: number) => void;
   onStart: () => void;
   onResume?: () => void;
+  /** Raison du refus de composition (`refusComposition`, en combat) : Créer, Choisir, Modifier, Remplacer
+   *  et Retirer se ferment sur elle, le sélecteur ne s'ouvre pas. Absent = composition ouverte. */
+  refusComposition?: string | null;
 }) {
   // Sélecteur dédié ouvert (recrutement d'un siège vide OU remplacement ciblé).
   const [selector, setSelector] = useState<SelectorTarget | null>(null);
@@ -451,6 +459,7 @@ export function PartyScreenView({
           <span className="hint"><Icon id="ui/wait" size="sm" /> {t('party.guest.waiting')}</span>
         )}
       </header>
+      {refus && <p className="hint party-coop-hint" role="status">{refus}</p>}
       {isHost && guestPending && (
         <p className="hint party-coop-hint"><Icon id="ui/wait" size="sm" /> {t('party.coop.pending')}</p>
       )}
@@ -515,12 +524,15 @@ export function PartyScreenView({
                     actions={ownsHero(h.id) && (
                       <>
                         {onEditHero && (
-                          <button className="btn small ghost" onClick={() => onEditHero(h.id)}>{t('party.hero.edit')}</button>
+                          <GatedAction id={`party-edit-${h.id}`} primary={false} btnClassName="small ghost" enabled={!refus} {...raisonSi(refus)}
+                            onClick={() => onEditHero(h.id)} label={t('party.hero.edit')} />
                         )}
                         {onReplaceHero && (
-                          <button className="btn small ghost" onClick={() => setSelector({ mode: 'replace', heroId: h.id })}>{t('party.hero.replace')}</button>
+                          <GatedAction id={`party-replace-${h.id}`} primary={false} btnClassName="small ghost" enabled={!refus} {...raisonSi(refus)}
+                            onClick={() => setSelector({ mode: 'replace', heroId: h.id })} label={t('party.hero.replace')} />
                         )}
-                        <button className="btn small ghost danger" onClick={() => onRemoveHero(h.id)}>{t('party.hero.remove')}</button>
+                        <GatedAction id={`party-remove-${h.id}`} primary={false} btnClassName="small ghost danger" enabled={!refus} {...raisonSi(refus)}
+                          onClick={() => onRemoveHero(h.id)} label={t('party.hero.remove')} />
                       </>
                     )}
                   />
@@ -533,8 +545,10 @@ export function PartyScreenView({
                     </span>
                     {mine && (
                       <Row className="seat-empty-actions">
-                        <button className="btn small" onClick={onCreate}>{t('party.seat.create')}</button>
-                        <button className="btn small btn-primary" onClick={() => setSelector({ mode: 'recruit' })}>{t('party.seat.choose')}</button>
+                        <GatedAction id={`party-create-${i}`} primary={false} btnClassName="small" enabled={!refus} {...raisonSi(refus)}
+                          onClick={onCreate} label={t('party.seat.create')} />
+                        <GatedAction id={`party-choose-${i}`} btnClassName="small" enabled={!refus} {...raisonSi(refus)}
+                          onClick={() => setSelector({ mode: 'recruit' })} label={t('party.seat.choose')} />
                       </Row>
                     )}
                   </div>
@@ -673,6 +687,11 @@ export function CandidatePool({
   const [roster, setRoster] = useState(() => rosterLoad());
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');
   const [importErr, setImportErr] = useState<string | null>(null);
+  // Le témoin de `rosterLoad` (roster d'un autre format retiré) devient le message au joueur ; consommé
+  // dans un EFFET, jamais à l'initialisation du rendu (double passe de `<React.StrictMode>`).
+  useEffect(() => {
+    if (takeRosterNotice()) setImportErr(t('picker.roster.retire'));
+  }, []);
   // Candidat ÉLU (déplié dans l'ACTE DE PRÉSENTATION, `DetailFrame`) — plus de modale (#417,
   // planche ratifiée d'équipe §B « la présentation intégrée au sélecteur »).
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -725,6 +744,11 @@ export function CandidatePool({
             onChange={setTab}
           />
         </Row>
+        {importErr && (
+          <Row justify="center">
+            <ChipDeRefus refus={{ message: importErr }} />
+          </Row>
+        )}
 
         <MasterDetail
           className="candidate-master-detail"
@@ -775,7 +799,6 @@ export function CandidatePool({
           }
         />
       </Stack>
-      {importErr && <p className="hint danger candidate-import-err">{importErr}</p>}
       <input
         ref={fileRef}
         type="file"

@@ -8,7 +8,7 @@
  */
 import { registerCombatHook } from '../combatHooks';
 import { registerCascadeApplier } from '../cascade';
-import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type BuiltCascadeStep } from '../rollSeam';
+import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type BuiltCascadeStep, type RollRequest } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
@@ -22,6 +22,7 @@ import { purgeExpiredSummons } from '../summonFlow';
 import { fireTriggers } from '../triggeredEffects';
 import { collectRoundEndTestSteps } from './triggeredTest';
 import { inBattleId } from '../combatants';
+import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
 import { groupMatch } from '../../engine/groups';
 import { outnumberCountBonus } from '../../engine/combatFeatures/dispatch';
@@ -31,12 +32,16 @@ import { rule } from '../../engine/policy';
 import { rollWindsOfMagic, hasSecondeVue } from '../../engine/windsOfMagic';
 import { groupAdvantage } from '../../engine/advantagePool';
 import { combatStakeRef } from '../../data';
-import { t } from '../../i18n';
+import { t, deElide } from '../../i18n';
 import type { Combatant, ActiveEffect } from '../../engine/types';
 import type { CascadeStep } from '../pendings';
-import type { Get, Set as SetFn } from '../flowTypes';
-import { dataLabel } from '../../data';
+import type { Get } from '../flowTypes';
+import { dataLabel, testSkillLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
+
+/** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
+ *  l'étape héros (`spellPlusTest`) et du libellé de son choix (`opt.tenterProlonger`). */
+const TEST_PROLONGATION = { char: 'force-mentale' } as const satisfies RollRequest['test'];
 
 // ============================================================================================
 // Séquence RAW de franchissement de Round, migrée ISO-COMPORTEMENT depuis advanceTurn (corps copiés
@@ -73,7 +78,7 @@ registerCombatHook({
       // Résilience), collectée par `collectHeroRoundEndUpkeep` — MIROIR strict de son prédicat.
       if (!surfaceOf(get, c.id)) {
         for (const e of pendingPlusExtensions(c)) {
-          const res = rollSansPilote(get, c, testValue(c, undefined, 'force-mentale'), 'intermediaire', battleRng());
+          const res = rollSansPilote(get, c, testValue(c, undefined, TEST_PROLONGATION.char), 'intermediaire', battleRng());
           resolvePlusExtension(c, e, res.success).forEach((l) => sink(l, c));
         }
       }
@@ -129,7 +134,7 @@ registerCombatHook({
 registerCombatHook({
   // Auras de combat — machinerie GÉOMÉTRIQUE GÉNÉRIQUE : projette les `passive` de toute `TraitData.aura`
   // (Perturbant : −20 aux Tests à BE mètres, LDB 85 l.260-262) sur les combattants à portée, accumulés dans
-  // `auraMods` (lus par `combatTestPenaltyParts` — pool non-cumul, LDB 16 l.13 — et par `skillDRBonus`/
+  // `auraMods` (lus par `combatTestPenaltyParts` — pool des auras, LDB 85 l.262 — et par `skillDRBonus`/
   // `charDRBonusOf`, qui les SOMMENT). Aucun trait nommé en dur ; recalcul/Round.
   id: 'recompute-auras',
   phase: 'onRoundEnd',
@@ -311,11 +316,10 @@ registerCombatHook({
   order: 79.5,
   run: ({ battle, sink }) => { purgeExpiredSummons(battle, battle.round + 1).forEach((l) => sink(l)); },
 });
-/** Règle optionnelle « Se fatiguer » (LDB 16 l.97). Inerte tant que `combat-se-fatiguer` est inactive
- *  (aucun tirage RNG consommé → franchissement de Round iso-comportement). */
-/** Seuil de « se-fatiguer » : Bonus d'Endurance Rounds d'effort cumulés (min 1) avant un Test (LDB 16 l.97). */
+/** Seuil de la règle optionnelle « Se fatiguer » (LDB 16 l.97). Inerte tant que `combat-se-fatiguer` est
+ *  inactive (aucun tirage RNG consommé → franchissement de Round iso-comportement). */
 function fatigueThreshold(c: Combatant): number {
-  return Math.max(1, bonus(effectiveChar(c, 'endurance')));
+  return bonus(effectiveChar(c, 'endurance'));
 }
 /** Conséquence d'un Test de Résistance « se-fatiguer » (LDB 16 l.97) — partagée par le hook (ENNEMIS)
  *  et l'applier (HÉROS). */
@@ -417,20 +421,13 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant, _sink: (line: 
     const choix = choiceStep({
       id: `spellPlusChoice-${c.id}-${spellId}`, kind: 'spellPlusChoice', actorId: c.id,
       icon: 'ui/think', label: stepProlonger(dataLabel(e.label), true),
-      options: [{ key: 'yes', label: t('opt.tenterProlonger', { quoi: e.label }) }, { key: 'no', label: t('opt.renoncer') }],
+      options: [{ key: 'yes', label: t('opt.tenterProlonger', { de: deElide(testSkillLabel(TEST_PROLONGATION)!), quoi: e.label }) }, { key: 'no', label: t('opt.renoncer') }],
       defaultChoice: 'no',
       meta: { sourceSpellId: spellId },
     });
     pousseSi(steps, choix);
   }
   return steps;
-}
-
-/** Applique la conséquence d'une étape d'upkeep (mute le héros, renvoie les lignes de journal). Mirroir
- *  du refresh d'état de `combatPsych` (le collecteur ne possède pas `set`, l'applier oui). */
-function syncCombatant(get: Get, set: SetFn): void {
-  set({ party: [...get().party] });
-  if (get().battle) set({ battle: { ...get().battle!, combatants: [...get().battle!.combatants] } });
 }
 
 // (La Résistance à l'Empoisonné passe par l'applier GÉNÉRIQUE : son étape est de kind `triggeredTest`,
@@ -444,13 +441,13 @@ function syncCombatant(get: Get, set: SetFn): void {
 registerCascadeApplier('fatigue', (get, set, step, hero) => {
   if (!hero || !step.result) return;
   const line = fatigueApply(hero, step.result.success, step.result.sl);
-  syncCombatant(get, set);
+  set(touchActors(get()));
   return { consequences: freeCons([line ?? t('turn.effortHeld', { name: hero.label })]) };
 });
 registerCascadeApplier('aaBleedUnconscious', (get, set, step, hero) => {
   if (!hero || !step.result) return;
   const line = aaBleedUnconsciousApply(hero, step.result.success);
-  syncCombatant(get, set);
+  set(touchActors(get()));
   return { consequences: freeCons([line ?? t('cond.aaBleedHold', { name: hero.label })]) };
 });
 
@@ -479,14 +476,14 @@ registerCascadeApplier('spellPlusChoice', (get, set, step, hero) => {
     // pas. Difficulté : aucune n'est indiquée (LDB 47 l.311) → Intermédiaire.
     pushMono(set, {
       id: `spellPlusTest-${hero.id}-${spellId}`, kind: 'spellPlusTest',
-      actor: hero, ligne: { test: { char: 'force-mentale' } }, difficulty: 'intermediaire',
+      actor: hero, ligne: { test: TEST_PROLONGATION }, difficulty: 'intermediaire',
       icon: 'nav/dice', label: stepProlonger(dataLabel(effect.label)),
       meta: { sourceSpellId: spellId }, stake: combatStakeRef('spellPlusTest', { entryId: spellId }),
     });
     return;
   }
   const lines = resolvePlusExtension(hero, effect, false);
-  syncCombatant(get, set);
+  set(touchActors(get()));
   return { consequences: freeCons(lines) };
 });
 
@@ -498,6 +495,6 @@ registerCascadeApplier('spellPlusTest', (get, set, step, hero) => {
   const effect = findAwaitingExtension(hero, step);
   if (!effect) return;
   const lines = resolvePlusExtension(hero, effect, step.result.success);
-  syncCombatant(get, set);
+  set(touchActors(get()));
   return { consequences: freeCons(lines) };
 });

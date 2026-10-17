@@ -3,23 +3,25 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
   construireContexte, cumuler, evaluerGardes, projeter, repartir, surfaceDe,
-} from './repartiteur.mjs'
+} from './repartition.mjs'
 import { REGISTRE } from './registre.mjs'
-import { REGISTRE_SOLDE } from './solde-ticket-hook.mjs'
-import { gitSubcommand } from './solde-ticket-guard.mjs'
+import { gitSubcommand } from '../guards/lib/commandeShell.mjs'
 import { garde as commandePiege } from './commande-piege-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
 import { garde as codeurGates } from './codeur-gates-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
-import { ENTREES_OUTIL, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
+import { ENTREES_OUTIL, MOTEUR_DE_SURFACE, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
+import { nomOutilDeSurface } from '../guards/lib/contratGarde.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { lancerGit } from '../test/gitDeBanc.mjs'
+import { lancerHook } from '../guards/lib/lancerHook.mjs'
+import { resoudreCheminPatchCodex } from '../guards/lib/patchCodex.mjs'
 
 const HOOKS = fileURLToPath(new URL('.', import.meta.url))
 const REPO = fileURLToPath(new URL('../..', import.meta.url))
@@ -27,6 +29,140 @@ const CLAUDE = { CLAUDE_PROJECT_DIR: REPO }
 const CODEX = {}
 const shell = (command, extra = {}) => ({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, ...extra })
 const factice = (nom, evaluer) => ({ nom, outils: ['Bash'], evaluer })
+
+const patchNatif = (corps, cwd = REPO, phase = 'PreToolUse') => ({ hook_event_name: phase, tool_name: 'apply_patch', cwd, tool_input: { command: `*** Begin Patch\n${corps}\n*** End Patch` } })
+const specifiqueNatif = async (entree) => (await repartir(REGISTRE, JSON.stringify(entree), { env: CODEX })).sortie?.hookSpecificOutput
+
+test('feuille répartiteur : helper production refuse liens et erreurs Pre avant écriture', async () => {
+  const { racine } = instanceDeDepot({ fichiers: { f: 'avant\n' } })
+  try {
+    const entree = patchNatif('*** Delete File: f\n*** Add File: f\n+neuf', racine)
+    for (const code of ['lien', 'EACCES', 'ENOTDIR']) {
+      const resoudrePatch = (path, options) => resoudreCheminPatchCodex(path, { ...options, lstat: () => {
+        if (code === 'lien') return { isSymbolicLink: () => true }
+        throw Object.assign(new Error(code), { code })
+      } })
+      const sortie = (await repartir(REGISTRE, JSON.stringify(entree), { env: CODEX, resoudrePatch })).sortie?.hookSpecificOutput
+      assert.equal(sortie.permissionDecision, 'deny')
+      assert.match(sortie.permissionDecisionReason, code === 'lien' ? /feuille symbolique/ : new RegExp(`feuille illisible.*${code}`))
+      assert.match(sortie.permissionDecisionReason, /ctx_patch.*préimage ancrée/)
+      assert.equal(readFileSync(join(racine, 'f'), 'utf8'), 'avant\n')
+    }
+  } finally { rmSync(racine, { recursive: true }) }
+})
+
+test('feuille répartiteur : symlink fichier réel refusé si autorisé par Windows', async (t) => {
+  const { racine } = instanceDeDepot({ fichiers: { cible: 'avant\n' } })
+  const lien = join(racine, 'f')
+  let cree = false
+  try {
+    try { symlinkSync(join(racine, 'cible'), lien, 'file'); cree = true }
+    catch (e) { if (e.code === 'EPERM') { t.skip(`Windows symlink fichier indisponible : ${e.code}`); return } throw e }
+    const sortie = await specifiqueNatif(patchNatif('*** Delete File: f\n*** Add File: f\n+neuf', racine))
+    assert.equal(sortie.permissionDecision, 'deny')
+    assert.match(sortie.permissionDecisionReason, /feuille symbolique/)
+    assert.equal(readFileSync(join(racine, 'cible'), 'utf8'), 'avant\n')
+  } finally { if (cree) unlinkSync(lien); rmSync(racine, { recursive: true }) }
+})
+
+test('outils natifs MCP : les deux graphies déclenchent le même refus, un outil inconnu est refusé', async () => {
+  for (const prefixe of ['mcp__lean-ctx__', 'mcp__lean_ctx__']) {
+    const refus = await specifiqueNatif({ ...shell('git show -- 9e7f46725'), cwd: REPO, tool_name: prefixe + 'ctx_shell', tool_input: { command: 'git show -- 9e7f46725', cwd: REPO } })
+    assert.equal(refus.permissionDecision, 'deny')
+    assert.match(refus.permissionDecisionReason, /git show/)
+    const inconnu = await specifiqueNatif({ ...shell(''), tool_name: prefixe + 'ctx_execute', tool_input: { code: 'x' } })
+    assert.equal(inconnu.permissionDecision, 'deny')
+    assert.match(inconnu.permissionDecisionReason, /non classé/)
+  }
+})
+
+test('apply_patch : tout le lot multifichier est refusé quand Add ou Move crée un composant non déclaré', async () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'source.txt': 'avant\n' } })
+  try {
+    const destination = join(REPO, 'src', 'ui', 'temoin-natif-2527.tsx')
+    const lot = await specifiqueNatif(patchNatif(`*** Add File: ${join(racine, 'note.md')}\n+note\n*** Add File: ${destination}\n+export const X = 1`))
+    assert.equal(lot.permissionDecision, 'deny')
+    assert.match(lot.permissionDecisionReason, /NON DÉCLARÉ/)
+    const move = await specifiqueNatif(patchNatif(`*** Update File: ${join(racine, 'source.txt')}\n*** Move to: ${destination}\n@@\n-avant\n+après`))
+    assert.equal(move.permissionDecision, 'deny')
+    assert.match(move.permissionDecisionReason, /NON DÉCLARÉ/)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('apply_patch : JSON, baseline multi-hunk et mémoire utilisent les images complètes', async () => {
+  const { racine } = instanceDeDepot({ fichiers: {
+    'src/data/sonde.json': '{}\n',
+    'run-guard.test.mjs': "const a = 1\nconst W = { 'a.ts': 2 }\nconst b = 2\n",
+    '.claude/memory/fiche.md': 'Une phrase continue\nancien\nfin\n',
+  } })
+  try {
+    const data = await specifiqueNatif(patchNatif('*** Update File: src/data/sonde.json\n@@\n-{}\n+[]', racine))
+    assert.match(data.additionalContext, /Donnée app-owned/)
+    const baseline = await specifiqueNatif(patchNatif("*** Update File: run-guard.test.mjs\n@@\n-const a = 1\n+const a = 3\n@@\n-const b = 2\n+const b = 4", racine))
+    assert.equal(baseline, undefined, 'baseline hors hunk conservée sans fausse hausse')
+    const hausse = await specifiqueNatif(patchNatif("*** Update File: run-guard.test.mjs\n@@\n-const W = { 'a.ts': 2 }\n+const W = { 'a.ts': 3 }", racine))
+    assert.match(hausse.additionalContext, /HAUSSE de baseline/)
+    const continuation = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/fiche.md\n@@\n-ancien\n+obsolète dans cette phrase', racine))
+    assert.equal(continuation, undefined, 'ligne précédente hors hunk : continuation, pas un en-tête')
+    const entete = await specifiqueNatif(patchNatif('*** Update File: .claude/memory/fiche.md\n@@\n-ancien\n+## OBSOLÈTE', racine))
+    assert.equal(entete.permissionDecision, 'deny')
+    assert.match(entete.permissionDecisionReason, /SUPERSESSION/)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('apply_patch : Delete et Move ne contournent ni suivi ni .superpowers ; erreur syntaxe/préimage refuse avant tout garde', async () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.superpowers/note.md': 'a\n' } })
+  try {
+    mkdirSync(join(racine, '.git', 'suivi'), { recursive: true })
+    writeFileSync(join(racine, '.git', 'suivi', '2527.json'), '{}\n')
+    for (const path of ['.superpowers/note.md', '.git/suivi/2527.json']) {
+      for (const corps of [`*** Delete File: ${path}`, `*** Update File: ${path}\n*** Move to: sortie.txt\n@@\n-${path.endsWith('json') ? '{}' : 'a'}\n+b`]) {
+        const refuse = await specifiqueNatif(patchNatif(corps, racine))
+        assert.equal(refuse.permissionDecision, 'deny', corps)
+        assert.match(refuse.permissionDecisionReason, /superpowers|suivi de vague/)
+      }
+    }
+    for (const corps of ['???', '*** Update File: absent\n@@\n-a\n+b']) {
+      const refuse = await specifiqueNatif(patchNatif(corps, racine))
+      assert.equal(refuse.permissionDecision, 'deny')
+      assert.match(refuse.permissionDecisionReason, /non jugeable.*apply_patch/)
+      assert.match(refuse.permissionDecisionReason, /ctx_patch/)
+    }
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('apply_patch Post : poison du résultat réel et pointeurs jugés contre l’index', async () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'scripts/x.mjs': 'export const a = 1\n', 'docs/architecture.md': 'avant\n' } })
+  try {
+    const poison = '// ancien' + 'nement dans foo.mjs\nexport const a = 1\n'
+    writeFileSync(join(racine, 'scripts', 'x.mjs'), poison)
+    const p = await specifiqueNatif(patchNatif('*** Update File: scripts/x.mjs\n@@\n-préimage absente du résultat\n+neuf', racine, 'PostToolUse'))
+    assert.match(p.additionalContext, /POISON pierre tombale/)
+    writeFileSync(join(racine, 'docs', 'architecture.md'), 'voir #999999\n')
+    const note = await specifiqueNatif(patchNatif('*** Update File: docs/architecture.md\n@@\n-avant\n+voir #999999', racine, 'PostToolUse'))
+    assert.match(note.additionalContext, /POINTEUR DÉRÉFÉRENCÉ/)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('Post terminal : transitoire disparu ou image inaccessible conserve poison et diagnostic sans décision', async () => {
+  const { racine } = instanceDeDepot({ fichiers: { 'scripts/g.mjs': 'export const a = 1\n' } })
+  try {
+    writeFileSync(join(racine, 'scripts', 'g.mjs'), '// ancien' + 'nement dans foo.mjs\nexport const a = 1\n')
+    for (const préfixe of [
+      '*** Add File: f\n+x\n*** Delete File: f',
+      '*** Update File: f\n@@\n-a\n+b\n*** Update File: f\n*** Move to: scripts/g.mjs\n@@\n-b\n+c',
+      '*** Add File: absent\n+x',
+    ]) {
+      const p = await specifiqueNatif(patchNatif(`${préfixe}\n*** Update File: scripts/g.mjs\n@@\n-initial\n+final`, racine, 'PostToolUse'))
+      assert.match(p.additionalContext, /POISON pierre tombale/)
+      assert.equal(p.permissionDecision, undefined)
+      if (préfixe.includes('absent')) assert.match(p.additionalContext, /apply_patch PostToolUse.*absent/)
+    }
+    const syntaxe = await specifiqueNatif(patchNatif('???', racine, 'PostToolUse'))
+    assert.match(syntaxe.additionalContext, /apply_patch PostToolUse/)
+    assert.equal(syntaxe.permissionDecision, undefined)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
 
 test('une garde qui LÈVE ne fait pas perdre le `deny` d’une autre : sa panne part en contexte, jamais en refus', async () => {
   const verdicts = await evaluerGardes([
@@ -108,10 +244,13 @@ test('contexte : la cible PROUVÉE par la commande, sinon le `cwd` de l’entré
     const cible = join(REPO, 'scripts')
     const cdCible = `cd "${cible.replace(/\\/g, '/')}" && ls`
     assert.equal(construireContexte(shell(cdCible, { cwd: base }), { cwd: REPO }).dir, cible)
+    assert.equal(construireContexte(shell(cdCible, { cwd: base }), { cwd: REPO }).baseDeLAppel, base)
+    assert.equal(construireContexte(shell(`(${cdCible}); echo x > dehors`, { cwd: base }), { cwd: REPO }).baseDeLAppel, base)
     assert.equal(construireContexte(shell('ls'), { cwd: REPO }).dir, REPO)
     const absent = construireContexte(shell('cd /nulle/part && ls', { cwd: base }), { cwd: REPO })
     assert.equal(absent.dir, base, 'un répertoire absent n’est pas retenu')
     assert.ok(absent.cibleIgnoree)
+    assert.equal(absent.baseDeLAppel, base)
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
@@ -144,7 +283,7 @@ test('`npm run <x>` se lit dans le `cwd` de `ctx_shell`, garde par garde (comman
 })
 
 test('aucune garde n’a d’effet à l’import : les registres ENTIERS, importés dans un seul processus, rendent la main sans rien écrire', () => {
-  const code = ['registre.mjs', 'solde-ticket-hook.mjs'].map((m) => `await import(${JSON.stringify(pathToFileURL(join(HOOKS, m)).href)})`).join(';') + ";console.log('ok')"
+  const code = ['registre.mjs', 'repartition.mjs'].map((m) => `await import(${JSON.stringify(pathToFileURL(join(HOOKS, m)).href)})`).join(';') + ";console.log('ok')"
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', code], { encoding: 'utf8', timeout: 30_000, stdio: ['pipe', 'pipe', 'pipe'] })
   assert.equal(r.signal, null, 'le processus a été tué par la coupe : un import attend son stdin')
   assert.equal(r.status, 0, r.stderr)
@@ -152,7 +291,7 @@ test('aucune garde n’a d’effet à l’import : les registres ENTIERS, import
 })
 
 test('câblage : chaque module de scripts/hooks/ qui exporte une `garde` est au registre d’un point d’entrée', async () => {
-  const inscrites = new Set([...Object.values(REGISTRE), ...Object.values(REGISTRE_SOLDE)].flat())
+  const inscrites = new Set(Object.values(REGISTRE).flat())
   const modules = readdirSync(HOOKS).filter((f) => f.endsWith('.mjs') && !f.endsWith('.test.mjs'))
   const absentes = []
   for (const m of modules) {
@@ -163,7 +302,7 @@ test('câblage : chaque module de scripts/hooks/ qui exporte une `garde` est au 
 })
 
 test('câblage : le matcher déclaré de chaque point d’entrée couvre les `outils` de ses gardes, sur les deux surfaces', () => {
-  const registres = new Map([['repartiteur.mjs', REGISTRE], ['solde-ticket-hook.mjs', REGISTRE_SOLDE]])
+  const registres = new Map([['repartiteur.mjs', REGISTRE]])
   for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
     const declares = aplatirHooks(JSON.parse(readFileSync(join(REPO, surface), 'utf8')), surface)
     for (const { script } of ENTREES_OUTIL) {
@@ -173,7 +312,7 @@ test('câblage : le matcher déclaré de chaque point d’entrée couvre les `ou
         const couvre = compilerMatcher(declare.matcher, surface)
         for (const g of gardes) for (const outil of g.outils) {
           const exemple = outil.endsWith('.*') ? `${outil.slice(0, -2)}ctx_outil_inconnu` : outil
-          assert.ok(couvre(exemple), `${surface} ${phase} ${script} : ${g.nom} / ${outil}`)
+          assert.ok(couvre(nomOutilDeSurface(exemple, MOTEUR_DE_SURFACE[surface].surface)), `${surface} ${phase} ${script} : ${g.nom} / ${outil}`)
         }
       }
     }
@@ -181,7 +320,7 @@ test('câblage : le matcher déclaré de chaque point d’entrée couvre les `ou
 })
 
 test('cumuler : un contexte ENTIER déjà rendu par la même garde ne se répète pas ; une ligne commune à deux contextes distincts survit', async () => {
-  const { cumuler } = await import('./repartiteur.mjs')
+  const { cumuler } = await import('./repartition.mjs')
   const a = 'POINTEUR DÉRÉFÉRENCÉ (1 ligne(s) écrite(s) dans .claude/memory/a.md) : recoller le TITRE.\n  voir #1234'
   const b = 'POINTEUR DÉRÉFÉRENCÉ (1 ligne(s) écrite(s) dans .claude/memory/b.md) : recoller le TITRE.\n  voir #1234'
   assert.equal(cumuler([{ garde: 'poison-postcheck', contexte: a }, { garde: 'poison-postcheck', contexte: b }]).contexte, `${a}\n\n${b}`)
@@ -429,7 +568,7 @@ test('#2224 `declare`/`typeset`/`local` de `PATH` ou `ENV`, avec ou sans `-x` : 
     for (const command of ['declare PATH=./faux:$PATH; npm test', 'typeset PATH=./faux; npm test', 'local -x PATH=./faux; npm test', 'declare ENV=./x.sh; sh -c "npm test"']) {
       assert.match(await raison(racine, 'Bash', { command }), /(PATH|ENV) : /, command)
     }
-    assert.equal(await decision(racine, 'Bash', { command: 'declare WFRP_TEST_COEURS=4; npm test' }), null)
+    assert.equal(await decision(racine, 'Bash', { command: 'declare WFRP_TEST_COEURS=4; node --test scripts/a.test.mjs' }), null)
   })
 })
 
@@ -612,4 +751,9 @@ test('#2224 contrat positif : Bash sans `cd` jugé à son `cwd` ; ctx_shell à `
     }
     assert.equal(construireContexte({ tool_name: 'Bash', cwd: racine, tool_input: { command: 'ls' } }).dir, resolve(racine))
   })
+})
+
+test('#1062 : `gh api … -F body=@fichier` passe le répartiteur réel en silence (le `-F` de `gh` n’est pas celui de `git commit`)', () => {
+  const command = 'gh api repos/o/r/issues/comments/1 -X PATCH -F body=@corps.md --jq .html_url'
+  assert.equal(lancerHook('repartiteur.mjs', shell(command)).specifique, null)
 })

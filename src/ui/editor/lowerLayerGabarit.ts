@@ -72,17 +72,17 @@ function clamp01(v: number): number {
 }
 
 const opacityAtom = persistedAtom(
-  'wfrp4.editor.lowerLayerOpacity.v1',
+  'wfrp4.editor.lowerLayerOpacity',
   DEFAULT_LOWER_LAYER_OPACITY,
   (raw) => {
     const parsed = Number(raw);
-    return Number.isFinite(parsed) ? clamp01(parsed) : DEFAULT_LOWER_LAYER_OPACITY;
+    return raw !== '' && parsed >= 0 && parsed <= 1 ? parsed : DEFAULT_LOWER_LAYER_OPACITY;
   },
   String,
 );
 
 const modeAtom = persistedAtom<LowerLayerMode>(
-  'wfrp4.editor.lowerLayerMode.v1',
+  'wfrp4.editor.lowerLayerMode',
   DEFAULT_LOWER_LAYER_MODE,
   (raw) => (raw === 'isolee' ? 'isolee' : 'gabarit'),
   (v) => v,

@@ -5,15 +5,12 @@ metadata:
   type: user
 ---
 
-Arbitrage 1 du pilotage https://github.com/cgauche/game/issues/665#issuecomment-5849927764.
-*Question posée (AskUserQuestion, non-verbatim utilisateur) : répliques des PNJ — la règle 5 exige le verbatim, mais le livre donne surtout des motivations pour le MJ. Quelle politique ?*
+Arbitrage : https://github.com/cgauche/game/issues/665#issuecomment-5849927764.
+Question (non-verbatim utilisateur) : répliques à partir des motivations du MJ.
 
 **Verbatim —** option retenue (2026-09-26) : « **Narration reformulée aussi** » : « Comme la réplique maison, et les descriptions destinées au MJ peuvent en plus être reformulées en texte lu à l'écran. La règle 5 ne tiendrait plus que pour les documents et les règles. »
-*Réplique maison, option à laquelle elle renvoie (non-verbatim utilisateur) : verbatim d'abord ; sinon donnée éditable taguée maison, avec la réf du passage source, jugée par un juge esprit.*
+Option Réplique maison (non-verbatim utilisateur) : verbatim d'abord ; sinon texte éditable maison, référencé et jugé. Sans MJ, sa narration se lit à l'écran.
 
-**Why :** sans MJ, ce que le livre confie au MJ doit être dit à l'écran.
-**How to apply :**
-- Une réplique absente du livre s'authore maison ; une narration destinée au MJ peut se reformuler en texte lu à l'écran, même portée par le livre, sans `source`.
-- Prose `narratif` SANS `source` = maison ; AVEC, chaque paragraphe est copié à l'octet (`proseSourcees`, `src/scenes/bundled-projects.test.ts`).
-- Tout texte maison passe un juge esprit (skill `adapter-une-campagne`). La prose de `src/data` n'est pas concernée.
-- Réf du passage d'un texte maison : #2001 (un texte MAISON n'a aucun champ pour la référence du passage dont il dérive).
+- Les proses de campagne composent `proseNommee`/`PROSES_NOMMEES`. Provenance locale : `source` = copie par folio ; réplique/journal/objectif/faveur : copie adressée `descRef` ; `adapteDe` = adaptation ; aucune = Maison. Document : Maison ou copie `source`, jamais Adapté. `adapteDe` exclut `source` et `descRef`.
+- La source racine est documentaire ; elle ne porte ni n'alimente la prose. Une frontière locale coupe l'héritage, même Maison ; preset→profil subsiste, adapté coupe.
+- Garde de copie par folio : `proseSourcees` (`src/scenes/bundled-projects.test.ts`) cherche chaque paragraphe trimé dans le livre entier ; elle ne prouve ni folio, ni ordre ou adjacence d'un passage complet. Maison : juge esprit (`adapter-une-campagne`). La prose de `src/data` reste hors arbitrage.

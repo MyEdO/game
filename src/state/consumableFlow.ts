@@ -146,7 +146,7 @@ export function battleConsumeItem(get: Get, set: SetFn, active: Combatant, it: I
   const queued = drainPendingLog(get, set); // lignes du Flow (inline) → événements du log de bataille
   set({
     battle: {
-      ...markActed(get, set, battle), action: null,
+      ...markActed(get, set), action: null,
       log: [...battle.log, ev('item', t('cs.useConsumable', { name: active.label, item: it.label }), active.id), ...queued],
     },
   });

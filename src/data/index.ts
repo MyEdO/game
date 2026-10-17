@@ -22,7 +22,8 @@ import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
 import { tableTotale } from '../lib/tableTotale';
 import { effectiveEntry } from '../engine/variants';
-import { CATEGORY_BY_SOURCE_KIND, type EffectSource } from '../engine/types';
+import { CATEGORY_BY_SOURCE_KIND, CHAR_LABELS, type EffectSource } from '../engine/types';
+import type { PairedSense } from '../engine/ops';
 import characteristicsJson from './characteristics.json';
 import speciesJson from './species.json';
 import speciesRaceJson from './speciesRace.json';
@@ -395,6 +396,8 @@ export interface CatalogStake {
  *  document ne renvoie à aucune fiche Codex. */
 export interface AuthoredStake {
   authored: string;
+  source?: SourceRef;
+  adapteDe?: SourceRef;
   key?: never;
   values?: never;
   from?: never;
@@ -974,17 +977,18 @@ export interface SkillData {
    *  `specs[]` n'est qu'un historique/suggestions, pas une liste fermée. Absent/`false` = FERMÉ — la
    *  valeur `spec` d'une instance DOIT être un id de `specs[]` (garde-fou `refs-migrated.test.ts`). */
   specsOpen?: boolean;
+  /** Posséder une Spécialisation rend les autres de Base (`possesses`). LDB 09 l.571. */
+  specsSoeursDeBase?: boolean;
   desc: string;
   source: SourceRef;
   /** Test « impliquant un déplacement » (LDB 16 l.35/64) : ciblé par les pénalités d'État À Terre /
    *  Empêtré (`movementOnly`). Classification de COMPÉTENCE portée par la DONNÉE (éditable au Codex),
    *  lue par `engine/conditions.testStatePenalty`, jamais par une liste d'ids en dur. */
   movement?: boolean;
-  /** Test « impliquant l'audition » (LDB 16 l.29) : ciblé par la pénalité d'État Assourdi (`hearingOnly`).
-   *  Classification de COMPÉTENCE portée par la DONNÉE (Perception — l'ouïe est un de ses sens), lue par
-   *  `engine/conditions.testStatePenalty`. Approximation assumée : le −10 d'Assourdi ne s'applique qu'aux
-   *  Tests des Compétences marquées `hearing` (faute d'un tag « ce Test précis fait appel à l'ouïe »). */
-  hearing?: boolean;
+  /** Sens qu'implique un Test de cette Compétence (LDB 16 l.29, l.45 ; LDB 18 l.273) : ciblé par les
+   *  pénalités restreintes à un sens (`testMod.sense`). Classification portée par la DONNÉE, lue par
+   *  `engine/conditions`. LDB 18 l.273 « et autres » : seules les Compétences qu'il nomme sont classées. */
+  senses?: PairedSense[];
   /** Caractéristique ALTERNATIVE de cette Compétence sous RÈGLE OPTIONNELLE (Métier comme Savoir → Int,
    *  `LDB 09 l.358` ; Intimidation → FM/Int, `LDB 09 l.294`) : `gatedByRule` = id d'`OptionalRule`
    *  (FK anti-fantôme `data/variants-integrity.test.ts`), `from` = Caractéristique de base à laquelle la
@@ -1212,8 +1216,8 @@ export interface TrappingData {
   siegeFootprint?: number;
   /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art d'arme/bouclier (rig),
    *  ≠ libellé. Posé à la migration par jointure `norm(label)` → forme. Absent pour munitions/armes de
-   *  siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance : le rig le résout par
-   *  `trappingId` (`formeResolue`, #2113). */
+   *  siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance : `formeResolue` (`engine/items`) le
+   *  résout par `trappingId` (#2113). */
   shape?: string;
   /** Cette entrée EST l'arme « Mains nues » du catalogue (`LDB 62 l.28`) : marque STABLE et multilangue,
    *  SEULE lecture de `isUnarmed`/`isUnarmedTrapping` (`engine/items`) — les poings ne comptent pas comme
@@ -1683,6 +1687,13 @@ export interface ManeuverDef {
   blast?: ManeuverMeasure;
   /** Attaque magique (Souffle, Étreinte glaciale) → soumise à la Résistance à la Magie, etc. */
   magic?: boolean;
+  /** Écart de Taille minimal sur la cible au contact : la manœuvre est ouverte à TOUT combattant, sans
+   *  trait (`attaquesNaturelles`). LDB 85 l.387 ; LDB 85 l.344 */
+  ecartDeTailleMin?: number;
+  /** Groupe d'armes (id de `weaponGroups`) de l'arme synthétisée par `freeAttackWeapon`. */
+  subType?: RefDesignee;
+  /** Dégâts de l'arme synthétisée ; absent = l'Indice du trait qui octroie la manœuvre. */
+  damage?: import('../engine/types').WeaponDamageSpec;
   /** Effets AUTHORÉS (Dégâts `wounds` + États) appliqués quand la manœuvre touche (`onHit`) — MÊME
    *  vocabulaire que les sorts (Flow d'ops), exécutés par `applyTriggeredEffects`. */
   effects?: import('../state/flow').TriggeredEffect[];
@@ -1741,12 +1752,8 @@ export interface TraitCapabilities {
   counterRequiresFastParry?: boolean;
   unstable?: boolean;
   painless?: boolean;
-  /** Se cabrer (LDB 85 l.314) : « Pour une Action de Mouvement, la créature peut effectuer une Attaque
-   *  de Piétinement si elle est plus grande que son adversaire » — SANS le coût d'1 Avantage de l'Action
-   *  gratuite générique (LDB 85 l.387, déjà câblée pour toute créature plus grande). Lu par le coût de
-   *  l'attaque gratuite `pietinement` (`aiCreatureFreeAttacks`) : la condition de Taille reste celle du
-   *  Piétinement générique (`trampleTarget`), inchangée. */
-  freeTrample?: boolean;
+  /** Manœuvre payable par l'Action de Mouvement, lue par `freeAttackCost`. LDB 85 l.314 */
+  freeTrample?: RefDesignee;
   // Psychologie / IA
   psychImmuneIfAhead?: boolean;
   /** Psychologie portée par le trait (LDB 21), lue par `parsePsychTraits` (data-driven). L'Indice
@@ -1975,9 +1982,9 @@ export interface SymptomCapabilities {
   persistentActive?: boolean; // Vers de carie : la phase active NE guérit JAMAIS naturellement (dégénérescence quotidienne jusqu'à la Mort, MSRC 16 l.90-101)
 }
 /** Symptôme de maladie (LDB 20) — entité de DONNÉE éditable au Codex, mécaniques en GameOp / 3 canaux
- *  (comme un trait/qualité). `passive` = pénalités continues (charMod) ; `passiveBySeverity` S'AJOUTE à
- *  `passive` pour chaque palier ATTEINT par l'instance, en magnitude ABSOLUE — la pire pénalité l'emporte
- *  (LDB 20 l.157/l.170) ; `onTick` = Test de cycle quotidien +
+ *  (comme un trait/qualité). `passive` = pénalités continues (charMod) ; `passiveBySeverity` = ops de
+ *  chaque palier ATTEINT par l'instance, l'op de même cible REMPLACÉE (`symptomPassive`,
+ *  LDB 20 l.157/l.170) ; `onTick` = Test de cycle quotidien +
  *  conséquence GameOp appliquée par la cascade (différée/influençable) ; `capabilities` = règles
  *  irréductibles lues par la machinerie de maladie. */
 export interface SymptomData {
@@ -2958,7 +2965,7 @@ export const peripeties = peripetiesJson as Peripetie[];
  *  routiers ») — catalogue de CALIBRATION d'une `MapRoute` : classes de route et leurs largeurs,
  *  espacement des auberges relais, compagnies de diligences nommées, tarif et espacement des postes
  *  de péage, effectifs de patrouille. Aucun de ces champs n'étend le vocabulaire de `MapRoute` : ils
- *  se posent sur `inns`/`prices`/`speed`/`km` à l'authoring de carte. */
+ *  se posent sur `inns`/`billets`/`speed`/`km` à l'authoring de carte. */
 export interface ReseauRoutierData {
   id: string;
   type: 'reseau-routier';
@@ -3048,8 +3055,7 @@ export const premierOffert = (catalogue: readonly { id: string }[], quoi: string
   if (!premier) throw new Error(`${quoi} : le catalogue est VIDE — l’outil n’a plus de pinceau dérivable.`);
   return premier.id;
 };
-/** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`) — et ce que
- *  reçoit un `creatureId`/`vehicleId` VIDE semé avant #1882 (`PROJECT_MIGRATIONS[13]`). */
+/** Ce qu'un effet NEUF sème avant tout choix d'auteur (`givePossession`, `startPursuit`, `setVessel`). */
 export const creatureSemee = (): string => premierOffert(creatures, 'Créature semée par un effet neuf');
 export const vehiculeSeme = (): string => premierOffert(vehicles, 'Véhicule semé par un effet neuf');
 export const navireSeme = (): string => premierOffert(vehicles.filter((v) => v.ship), 'Navire semé par un effet neuf');
@@ -3564,6 +3570,19 @@ export function qualityRefLabel(q: QualityRef): PlayerText {
 /** Libellé d'affichage d'une `SkillInstance` (id+spec → « Langue (Magick) »). Repli sur l'id. */
 export function skillInstanceLabel(s: { id: string; spec?: string }): PlayerText {
   return refLabel('skills', { id: s.id, spec: s.spec });
+}
+/** La Spé d'une référence vit DANS la référence : `spec` sœur n'existe que sur la branche id. */
+type TestDeclare =
+  | { skill?: string; spec?: string; char?: CharKey }
+  | { skill?: RefASpecialisation; spec?: never; char?: CharKey };
+/** Libellé du Test DÉCLARÉ par ses ids — Compétence (Spé) ou Caractéristique : « Corps à corps (Bagarre) »
+ *  (LDB 14 l.155), « Langue (Magick) » (LDB 46 l.24). La Compétence se donne en id (+ `spec`) ou en
+ *  référence (`refLabel`, emplacement `choix` compris). `undefined` sans l'une ni l'autre : le repli est au site. */
+export function testSkillLabel(test: { skill: string; spec?: string } | { skill: RefASpecialisation; spec?: never } | { char: CharKey }): PlayerText;
+export function testSkillLabel(test: TestDeclare): PlayerText | undefined;
+export function testSkillLabel(test: TestDeclare): PlayerText | undefined {
+  if (test.skill) return typeof test.skill === 'string' ? skillInstanceLabel({ id: test.skill, spec: test.spec }) : refLabel('skills', test.skill);
+  return test.char ? dataLabel(CHAR_LABELS[test.char]) : undefined;
 }
 /** Libellé d'affichage d'une `TalentInstance` (id+spec → « Magie des Arcanes (Bête) »). Repli sur l'id. */
 export function talentConcrete(t: { talentId: string; spec?: string }): PlayerText {

@@ -129,6 +129,23 @@ export function naissanceDu(quoi, familles) {
  */
 export const cleDeSite = (e) => CHAMPS_DE_CLE.map((c) => e[c]).join(SEPARATEUR_DE_CLE);
 
+const cleDeLigne = (rel, ligne) => `${rel}${SEPARATEUR_DE_CLE}${ligne.trim()}`;
+
+/** CLÉ DE CONTENU d'un site sans entrée de stock ni déclaration englobante (prose, ligne de
+ *  commentaire, ligne qu'éteint une directive) : `fichier :: <ligne trimée>` — le contenu, jamais la
+ *  position (#2200). PURE.
+ *  @param {string} rel @param {string} texte @param {number} ligne 1-based @returns {string} */
+export function cleDeContenu(rel, texte, ligne) {
+  return cleDeLigne(rel, texte.split('\n')[ligne - 1] ?? '');
+}
+
+/** Les lignes (1-based) de `texte` dont la clé de contenu est `cle` : aucune = exemption PÉRIMÉE,
+ *  plusieurs = exemption AMBIGUË. PURE. @param {string} rel @param {string} texte @param {string} cle
+ *  @returns {number[]} */
+export function lignesDuContenu(rel, texte, cle) {
+  return texte.split('\n').flatMap((l, i) => (cleDeLigne(rel, l) === cle ? [i + 1] : []));
+}
+
 /** CLÉ DE GROUPE d'une entrée : sa clé de site sans l'occurrence — les homonymes d'un fichier. PURE.
  *  @param {import('./stock.mjs').EntreeDeSite} e */
 export const groupeDeSite = (e) => CHAMPS_DE_GROUPE.map((c) => e[c]).join(SEPARATEUR_DE_CLE);
@@ -222,7 +239,7 @@ const cleOuEntree = (cle, entree) => (entree?.fichier || entree?.ref ? cle : JSO
 /**
  * VERDICT d'un volet à stock de sites : les deux sens, en phrases prêtes à afficher. Le calcul est
  * celui de `ecartsDeStock` ; ce qui vit ici est le REMÈDE — ce que le lecteur doit faire de chaque
- * ligne. Le PLAFOND n'y est pas : il vit dans le test de la garde.
+ * ligne.
  * ANGLE MORT DIT, À LA PORTE DE PLAGE : un ÉCHANGE EN PLACE à total constant sous le MÊME fichier,
  * extension comprise — réécrire la `ref` d'une entrée existante pour couvrir un site neuf pendant qu'un
  * autre est soldé, dans le MÊME commit — rend `[]` à `croissanceDesStocks`, qui identifie toute entrée
@@ -231,10 +248,10 @@ const cleOuEntree = (cle, entree) => (entree?.fichier || entree?.ref ? cle : JSO
  * entrée ; seul `p` sans extension repointé vers `p.<ext>` n'en fait naître aucune. Cette garde-ci,
  * elle, voit toujours l'échange (la clé a changé des deux côtés) : c'est la SUITE qui tient ce cas, pas
  * la porte de plage.
- * @param {{ sites: import('./stock.mjs').Site[], stock: Iterable<object>, ou?: string }} p
+ * @param {{ sites: import('./stock.mjs').Site[], stock: Iterable<object>, ou?: string, remede?: { neuve?: (cle: string, entree: import('./stock.mjs').EntreeDeSite) => string } }} p
  *   `ou` nomme le fichier de stock dans le remède.
  */
-export function ecartDuVolet({ sites, stock, ou }) {
+export function ecartDuVolet({ sites, stock, ou, remede = {} }) {
   const observe = sitesEnEntrees(sites);
   const tenues = [...stock];
   const ecart = ecartsDeStock({
@@ -242,7 +259,7 @@ export function ecartDuVolet({ sites, stock, ou }) {
     stock: tenues,
     cle: cleDeSite,
     remede: {
-      neuve: (k) => `${k}${SEPARATEUR_DE_REMEDE}site NEUF : corriger la réf, ou déclarer une entrée dans ${ou} et la porter au message par \`CLIQUET:\`.`,
+      neuve: remede.neuve ?? ((k) => `${k}${SEPARATEUR_DE_REMEDE}site NEUF : corriger la réf, ou déclarer une entrée dans ${ou} et la porter au message par \`CLIQUET:\`.`),
       perimee: (k, e) => `${cleOuEntree(k, e)}${SEPARATEUR_DE_REMEDE}entrée SOLDÉE : le site a disparu, retirer cette entrée de ${ou}.`,
     },
   });

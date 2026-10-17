@@ -1,7 +1,5 @@
-/**
- * Schéma de `steam-breakdown.json` — Panne de Vapeur (MDG 12 l.313-352), `SteamBreakdownEntry`
- * (`src/engine/shipBuild.ts`), consommée par `steamBreakdownFor` (le dé vient du canal).
- */
+import { nommerChamps } from '../grammaire/meta';
+/** MDG 12 l.313-352 */
 import { z } from 'zod';
 import { charKeySchema, difficultySchema, plageSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
@@ -25,11 +23,16 @@ const doc = document(
     coolMinutes: z.string().optional(),
     restart: z
       .array(
-        z.strictObject({
+        nommerChamps(z.strictObject({
           skill: refOuSpec('skill').optional(),
           char: charKeySchema.optional(),
           difficulty: difficultySchema,
           extendedDR: z.number().optional(),
+        }), {
+          skill: { label: 'Compétence' },
+          char: { label: 'Caractéristique' },
+          difficulty: { label: 'Difficulté' },
+          extendedDR: { label: 'DR du Test étendu' },
         }),
       )
       .optional(),

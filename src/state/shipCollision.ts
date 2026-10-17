@@ -8,17 +8,16 @@
 import type { Combatant } from '../engine/types';
 import { collisionIndex, resolveCollision, type CollisionShip, type CollisionDamage } from '../engine/collision';
 import { belierRam, hullNavalTraits } from '../engine/navalTraits';
-import { findVehicleById } from '../data';
 import { applyOps } from '../engine/ops';
 import { defaultRNG, type RNG } from '../engine/dice';
-import { vesselPropulsion } from '../engine/shipBuild';
+import { propulsionDuNavire, type MilieuDeNavigation } from '../engine/shipBuild';
+import { garanti } from './combatants';
 
 /** Mappe une coque-`Combatant` en `CollisionShip` (vue Dégâts) : IC = `collisionIndex` (Bonus d'Endurance +
- *  Bonus de Blessures) ; M = `sail`/`oars` du TYPE (`findVehicleById`, comme `maneuverShip`) ; Bélier lu dans
+ *  Bonus de Blessures) ; M = `propulsionDuNavire` dans le `milieu` du flux ; Bélier lu dans
  *  les Traits du TYPE + Améliorations d'INSTANCE (`belierRam`). PUR. */
-function toCollisionShip(hull: Combatant): CollisionShip {
-  const vd = hull.creatureId ? findVehicleById(hull.creatureId)?.ship : undefined;
-  const m = vesselPropulsion(vd)?.m ?? 0;
+function toCollisionShip(hull: Combatant, milieu: MilieuDeNavigation): CollisionShip {
+  const m = garanti(propulsionDuNavire(hull.creatureId, hull.upgrades, milieu), hull.creatureId, 'propulsion du navire').m;
   return { ic: collisionIndex(hull), m, belier: belierRam(hullNavalTraits(hull)) };
 }
 
@@ -29,9 +28,9 @@ function toCollisionShip(hull: Combatant): CollisionShip {
  * deux coques (RNG injecté ; les montants sont constants → déterministe). Renvoie les lignes + les Dégâts résolus.
  */
 export function applyShipCollision(
-  causer: Combatant, victim: Combatant, opts: { frontal?: boolean; ramProue?: boolean } = {}, rng: RNG = defaultRNG,
+  causer: Combatant, victim: Combatant, milieu: MilieuDeNavigation, opts: { frontal?: boolean; ramProue?: boolean } = {}, rng: RNG = defaultRNG,
 ): { lines: string[]; causer: CollisionDamage; victim: CollisionDamage } {
-  const res = resolveCollision(toCollisionShip(causer), toCollisionShip(victim), opts);
+  const res = resolveCollision(toCollisionShip(causer, milieu), toCollisionShip(victim, milieu), opts);
   const lines = [`${causer.label} percute ${victim.label}${opts.frontal ? ' de plein fouet' : ''} !`];
   // Dégâts sur la Coque (l.464), mitigés DANS l'op : BE + PA de coque + extraAP (armorBonus situationnel).
   lines.push(...applyOps(victim, [{ op: 'wounds', amount: res.victim.damage, ignoreTB: false, ignoreAP: false, extraAP: res.victim.armorBonus }], { rng }));

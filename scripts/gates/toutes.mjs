@@ -38,7 +38,11 @@
 // `--liste` n'imprime que le plan (ce qui serait joué) sans rien jouer ; `--serie` joue tout en une
 // lane ; `--gates a,b` restreint la liste.
 import '../node-requis.mjs'
+import { photoArbre } from '../guards/lib/photoArbre.mjs'
+export { photoArbre } from '../guards/lib/photoArbre.mjs'
 import { spawn, spawnSync } from 'node:child_process'
+import { tuerArbre } from '../guards/lib/arbreProcessus.mjs'
+export { tuerArbre, descendantsDe } from '../guards/lib/arbreProcessus.mjs'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { availableParallelism } from 'node:os'
@@ -47,12 +51,14 @@ import { enteteArbre } from '../guards/lib/enteteArbre.mjs'
 import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
 import {
   compterRejeux,
-  execFileResilient,
   reessayerAuChargement,
   rejeux,
 } from '../guards/lib/spawnResilient.mjs'
 import { codeEnfant } from '../test/partition.mjs'
+import { prendreVerrouAsync } from '../test/verrou.mjs'
+import { OPT_OUT_SUITE, VERROU_SUITE, attenteDeSuite, prendreVerrouDeSuite } from '../test/verrouDeSuite.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
+import { CACHE_FRAICHEUR } from '../docs/lib/cache-fraicheur.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
@@ -81,11 +87,13 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * avec la PORTE qui ferme le cas, nommée au chemin (jamais à la gate). Aucune écriture n'est
  * effacée de la table pour faire passer une lane : elle change de champ, en disant pourquoi.
  */
+const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide appelle rmdirSync seulement depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables. "
+
 export const ECRIT_LU = {
   'agents:check': {
     ecrit: [],
     lit: ['.claude/', '.agents/', '.codex/', 'AGENTS.md', 'CLAUDE.md', 'scripts/agents/'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'mode `check` : `runCompat` n’écrit que sous `mode === "sync"` (`runCompat`, scripts/agents/compat-cli.mjs) ; ' +
       'les 48 lectures mesurées sont les DEUX côtés de la compat — .claude/ (source) et .agents/ + .codex/ + ' +
       'AGENTS.md + CLAUDE.md (miroirs comparés), plus son propre code',
@@ -93,7 +101,7 @@ export const ECRIT_LU = {
   'test:agents': {
     ecrit: [],
     lit: ['.claude/', '.codex/', 'scripts/agents/', 'scripts/hooks/', 'AGENTS.md', 'CLAUDE.md'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'les écritures sont INJECTÉES et comptées, jamais faites (`atomicWrite` injecté, scripts/agents/compat.test.mjs) ; ' +
       'LIT les DEUX côtés de la compat sur l’arbre RÉEL, racine `new URL("../../", import.meta.url)` — ' +
       '.claude/settings.json et .codex/hooks.json, CLAUDE.md (contrat sur la ligne `@.claude/credo.md`) ' +
@@ -104,41 +112,36 @@ export const ECRIT_LU = {
   'test:hooks': {
     ecrit: [],
     ecritFerme: {
-      '.lint-':
-        'configuration temporaire de lancerLint (scripts/guards/lib/lintStage.mjs) dans son cwd, la racine quand un test la lui passe ; ' +
-        'nom .lint-PID-aléatoire.config.mjs, supprimé par unlinkSync en finally ; oxlint.config.mjs ignore *.config.*',
       'node_modules/typescript/dist/api/node/wtf8.js':
         'contrat d’installation TypeScript (scripts/guards/contrat-typescript.mjs) : appliquerCorrectif de scripts/guards/lib/gitPorte.mjs ' +
         'borne git apply à cet unique --include ; postinstall exécute verifierContratTypeScript avant les générateurs et hooks, donc le banc réel ' +
         'rencontre le SDK déjà corrigé : --reverse --check puis return false sans écriture, éprouvé par le banc d’idempotence ; ' +
         'node_modules/ est gitignoré et reste hors des clés de contenu, mais les gates natives lisent ce SDK',
-      '.claude/logs/new-src-guard-skips.log':
-        'journal d’urgences du garde de nouveaux fichiers (`JOURNAL`, scripts/hooks/new-src-file-guard.mjs, écrit par ' +
-        'scripts/hooks/repartiteur.mjs) : il est ' +
-        'GITIGNORÉ (motif `.claude/*` de .gitignore, sans négation pour `logs/`), donc il n’entre dans aucune des ' +
-        'deux clés de contenu et ne salit pas l’arbre ; aucune gate ne le lit',
     },
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
       'CLAUDE.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
     ],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
+      'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
+      'patchCodex.test.mjs écrit son fichier et sa jonction réels uniquement sous mkdtempSync de os.tmpdir(), puis unlinkSync et rmSync en finally ; ' +
+      'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
+      'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
-      'les autres fixtures vivent sous os.tmpdir() ; lancerLint peut écrire sa configuration temporaire .lint- à la racine et la supprime en finally ; ' +
+      'le journal de dérogations est injecté par WFRP_JOURNAL_NEW_SRC_GUARD (`cheminJournal`), écrit et vérifié sous os.tmpdir() ; ' +
+      'sonde #2489 du 2026-10-08 : journal réel seul pollueur des sept suites avant correction, paire hook/générateurs corrigée sans changement de l’arbre ; ' +
+      '`testsSansEcriture.mjs` refuse les mutations fs des processus Node héritant du préchargeur dans la racine, ignorés compris, et photographie état et empreintes avant/après la suite ; ' +
+      'les autres fixtures vivent sous os.tmpdir() ; le banc de configuration de lancerLint copie le fichier jugé dans sa fixture temporaire, ' +
+      'y écrit .lint-PID-aléatoire.config.mjs et y mesure cette écriture avec le collecteur de lectures, puis exige la suppression de la configuration ; ' +
       'enregistreur-lectures.mjs n’écrit sa sortie que si WFRP_LECTURES_RACINE et WFRP_LECTURES_SORTIE sont fournis, avec WFRP_LECTURES_IGNORES requis ; ' +
-      'ces variables sont absentes du banc lintStage : installer rend un collecteur restauré en finally, ses wrappers transmettent l’écriture .lint- déjà déclarée ; ' +
+      'ces variables sont absentes du banc lintStage : installer rend un collecteur sur la fixture temporaire, restauré en finally avant son retrait ; ' +
       'les sorties de l’instrumentation sont dirigées vers les fixtures temporaires par ces variables ; ' +
       'le contrat d’installation TypeScript lit le patch réel sous patches/ et peut corriger uniquement node_modules/typescript/dist/api/node/wtf8.js ; ' +
-      '`guards/lib/versionsDerivees-collision.test.mjs` écrit ses ' +
-      'trois cas Git dans une instance jetable : `canoniser` et `relatifSousRacine` prouvent os.tmpdir() hors ' +
-      'de la racine avant `instanceDeDepot`, puis l’instance et le fichier écrit hors arbre ; le finally ' +
-      'supprime l’instance et exige son absence. TMP/TEMP dans la racine est refusé avant création ; ' +
       'LIT src/ massivement (3 888 chemins) — les gardes de la ' +
       'gate balaient l’arbre réel (stocks nominatifs, garde des nouveaux fichiers, budget de contexte) ; ' +
-      'LIT docs/ sur deux sites : le listing de docs/raw, et docs/.sources-lues.json (banc de ' +
-      'scripts/git-hooks/, sélection de `docs-rebuild.mjs`) ; ' +
+      'LIT docs/ pour le listing de docs/raw ; le banc de scripts/git-hooks/ injecte sa mesure par mesurerEnRendu ; ' +
       'LIT Source/ parce que `idempotence-ordre-des-cles.test.mjs` copie le corpus (Source/ moins les ' +
       '`.pdf`, écartés par extension : sans les extractions quatre migrations sortent 1 faute de livres) sous ' +
       'os.tmpdir() avant de rejouer les 89 migrations — cette copie passe par `cpSync`, que l’enveloppe de la ' +
@@ -169,17 +172,29 @@ export const ECRIT_LU = {
       '(kill-pid.mjs, knip-exports-baseline.json, vite.config.ts) ; +1 écrivain le 2026-09-27 (#1806) : ' +
       '`git-hooks/docs-rebuild.test.mjs` pose une cale `git` (`mkdtempSync` + `writeFileSync` sous ' +
       'os.tmpdir(), `rmSync` en finally) sur le dépôt jetable de `instanceDeDepot` — sonde ' +
-      '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +3 écrivains le ' +
+      '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +1 écrivain le ' +
+      '2026-10-15 (#2603) : `git-hooks/reconstruction.mjs`, atteint par ' +
+      '`docs-rebuild.mjs` : l’état, les verrous et les journaux de la reconstruction sous `.git/hooks-git/` des dépôts ' +
+      '`instanceDeDepot` sous os.tmpdir() ; ' +
+      '`guards/lib/cssImages.test.mjs` (#2603) sauve les mémos d’analyse sous `.git/hooks-git/memos-analyse/` de dépôts ' +
+      '`instanceDeDepot` sous os.tmpdir(), retirés en finally ; `guards/lib/memosDAnalyse.test.mjs` (#2603) écrit ses mémos ' +
+      'sous des `mkdtempSync` d’os.tmpdir(), retirés par `t.after` ; `hooks/stocks-nominatifs.test.mjs` (#2603, 2026-10-16) ' +
+      'sauve les mémos d’analyse de la plage du dépôt réel sous un `mkdtempSync` d’os.tmpdir(), retiré par `t.after` ; +3 écrivains le ' +
       '2026-09-30 (#2132) : `hooks/suivi-lien-guard.test.mjs` et `hooks/inject-suivi.test.mjs` forgent un dépôt ' +
       'jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), et le second y écrit `.git/suivi` ' +
-      '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, n’écrit que derrière sa porte ' +
+      '(suivi et journal `.journal`) ; `ops/suivi.mjs`, que le lien de session importe, et `ops/suiviFichiers.mjs` (#2460), son écriture atomique, n’écrivent que derrière sa porte ' +
       '`import.meta.main` — sonde `git status --porcelain --ignored` avant/après identique, sur le worktree et ' +
-      'sur l’arbre principal ; +2 écrivains le 2026-10-04 (#2278) : ' +
+      'sur l’arbre principal ; +1 écrivain le 2026-10-07 (#2460) : `hooks/suivi-ecriture-guard.test.mjs` forge un ' +
+      'dépôt jetable (`instanceDeDepot`, sous os.tmpdir(), `rmSync` en finally), la garde n’y écrit rien ; +2 écrivains le 2026-10-04 (#2278) : ' +
       '`mods/verifier.test.mjs` forge ses mods sous `mkdtempSync` de os.tmpdir() (`rmSync` en `t.after`), et ' +
       '`mods/verifier.mjs`, qu’il importe, copie sous un `mkdtempSync` de os.tmpdir() effacé en finally ; ' +
+      '`scripts/guards/budget-contexte.test.mjs` forge ses fixtures avec instanceDeDepot sous os.tmpdir(), ' +
+      'écrit son evenement.json sous cette racine temporaire et la nettoie par rmSync en finally ; ' +
       '`mods/murDeMod.test.mjs` crée ses fichiers de sélection native par mkdirSync/writeFileSync ' +
       'sous mkdtempSync(join(os.tmpdir(), "lint-mod-perimetre-")), puis rmSync en finally ; ' +
-      'lancerLint y crée sa configuration temporaire .lint- et la retire en finally',
+      'lancerLint y crée sa configuration temporaire .lint- et la retire en finally ; +1 écrivain le 2026-10-07 (#2187) : ' +
+      '`hooks/barriere-outil.test.mjs` forge ses arbres (`.git` dossier ou fichier `gitdir:`, LF et CRLF, sous-module) ' +
+      'et y écrit le verrou d’outillage sous `mkdtempSync` de os.tmpdir() (`rmSync` en finally) — l’arbre n’est jamais écrit',
   },
   'mods:check': {
     ecrit: [],
@@ -196,7 +211,7 @@ export const ECRIT_LU = {
   'livraison:plage': {
     ecrit: [],
     lit: ['.claude/soldes/', 'scripts/guards/livraison-plage.mjs', 'scripts/guards/lib/', 'scripts/node-requis.mjs', 'scripts/port-dev.mjs', 'src/lib/coupeAuMot.mjs', 'package.json'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'aucune écriture : la porte de publication (#2328, scripts/guards/lib/livraison.mjs) lit l’HISTOIRE par git — ' +
       'le graphe de `merge-base origin/main..HEAD`, le patch de chaque fusion contre sa fusion automatique ' +
       '(`merge-tree --write-tree`, dont les objets inaccessibles vont à l’odb, jamais à l’arbre), le journal ' +
@@ -205,8 +220,14 @@ export const ECRIT_LU = {
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
-    raison:
+    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.codex/credo.md', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    raison: RETRAIT_WORKTREE_FERME +
+      'session-start.test.mjs copie les configurations et credos réels .claude/settings.json, .claude/credo.md, .codex/hooks.json et .codex/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credos et reçus restent dans ces fixtures ; ' +
+      'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
+      'les CLI réellement lancés par session-start.test.mjs sont inject-project-credo.mjs et bootstrap-conteneur.mjs, avec cwd, CLAUDE_PROJECT_DIR et chemin de reçu dans la fixture temporaire ; CLAUDE_CODE_REMOTE=false ferme bootstrap avant tout prérequis ; seul le reçu natif valide est écrit dans la fixture, son absence hors ops et après panne étant éprouvée ; ' +
+      'session-runtime.mjs écrit cartes, bootstrap, demande d’arrêt et temporaires dans le registre machine .git/sessions ; session.test.mjs lui injecte uniquement des dossiers mkdtempSync sous os.tmpdir(), supprimés en after ; ' +
+      'son JobHost Windows ne lance au banc que des enfants Node neutres sous ces dossiers temporaires, jamais Windows Terminal ni un agent ; le lancement WT et l’inventaire sont injectés, et lancerAgent ne lance au banc que des enfants Node neutres sous os.tmpdir() ; ' +
+      'fraicheur-docs.mjs ne reçoit des bancs chantier que leurs dépôts jetables sous os.tmpdir(), ou un copierDocs injecté ; aucun ledger du principal réel n’est écrit ; ' +
       'aucun module atteint n’écrit DANS l’arbre (la liste des écrivains atteints vit au cliquet ' +
       '`ecrivainsAtteints.test.mjs`, pas ici) : les bancs écrivent sous os.tmpdir() — leurs dossiers de ' +
       '`mkdtempSync`, ou les dépôts jetables de `depotGabarit.mjs`, dont toutes les écritures visent ' +
@@ -214,10 +235,17 @@ export const ECRIT_LU = {
       '`import.meta.main`. Les cas qui demandent une explication : `knip-exports-ratchet.mjs` (seul ' +
       '`--sync`, sous la porte de `main()`, écrirait la baseline), `ruleset-main.mjs` (le corps du ruleset ' +
       'part par un fichier de os.tmpdir(), depuis `executer`, que les tests n’appellent jamais), ' +
-      '`suivi.mjs` (il écrit `.git/suivi/<N>.md`, dans le répertoire git COMMUN et ' +
+      '`suivi.mjs` et `suiviFichiers.mjs` (#2460) (ils écrivent `.git/suivi/<N>.json` et `<N>.mesure.json`, dans le répertoire git COMMUN et ' +
       'non dans l’arbre, sous sa porte ; ses tests lui passent un dossier de `mkdtempSync`), et `test/verrou.mjs` ' +
-      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<N>.md.verrou` voisin du suivi, son temporaire et sa reprise, dans ce même ' +
-      'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; ' +
+      'qu’il atteint (+1 écrivain le 2026-10-05, #2279 : le verrou `.<nom>.verrou` voisin du fichier écrit, le verrou de mesure `.<N>.mesure.verrou` (#2460), leur temporaire et leur reprise, dans ce même ' +
+      'dossier, sous cette même porte, et sous `mkdtempSync` en test) ; `synchroniser.mjs` (#2187 : il avance ' +
+      'l’arbre PRINCIPAL — fichiers W′, `.git/index`, `.git/index.lock`, `.git/synchro/`, `.git/synchro-conflits/` — ' +
+      'sous sa porte `import.meta.main` ; son banc ne le joue que sur des dépôts `instanceDeDepot` sous os.tmpdir()) ; ' +
+      '`reconstruction.mjs` (#2603), atteint par `synchroniser.mjs` et `bootstrap-conteneur.mjs` : son état, ses verrous et ses ' +
+      'journaux vivent sous `.git/hooks-git/`, hors de l’arbre, et ses bancs ne le jouent que sur des dépôts `instanceDeDepot` ' +
+      'sous os.tmpdir() ; `ecritureJsonAtomique.mjs` (scripts/guards/lib), atteint par `publier.mjs`, ' +
+      'pour `vigie.mjs` (#2280, #2603 : les mémoires machine des verdicts et des têtes de l’origine, et leurs verrous, sous `<arbre principal>/.git/vigie/`, répertoire git ' +
+      'COMMUN, hors de l’arbre ; ses bancs `vigie.test.mjs` et `ci.test.mjs` n’écrivent que sous `mkdtempSync`) ; ' +
       '`reprendre-file.mjs` ne peut ajouter au résumé GitHub que sous sa porte CLI ' +
       '`import.meta.main` ET si `GITHUB_STEP_SUMMARY` est défini ; ' +
       'le runner fournit ce fichier hors du dépôt, et le banc CLI le remplace par un fichier de ' +
@@ -242,13 +270,24 @@ export const ECRIT_LU = {
   'test:runner': {
     ecrit: [],
     lit: ['scripts/', 'package.json', '.npmrc', '.claude/settings.json', '.codex/hooks.json'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
+      'gitDeBanc.test.mjs importe installer du collecteur et ses dépendances sous scripts/ : aucune SORTIE fournie, aucun flush appelé ; ' +
+      'ses captures Git restent en mémoire sur des dépôts instanceDeDepot sous os.tmpdir(), restaurés puis supprimés en finally ; ' +
       'chaque cas fabrique son arbre sous os.tmpdir() (`mkdtempSync`), y compris son node_modules/.cache ; ' +
       'LIT package.json (les scripts que le runner relaie) et .npmrc (copié par scripts/node-requis.test.mjs ' +
       'dans son faux arbre, le 2026-09-24, #1801), et les deux configurations de hooks d’agent ' +
       '(.claude/settings.json, .codex/hooks.json : scripts/node-requis.test.mjs y lit les modules lancés, ' +
       'le 2026-09-27, #1801) ; +1 écrivain le 2026-10-05 (#2279 N0) : `test/verrou.test.mjs` fait se disputer ' +
-      'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally)',
+      'le verrou par des processus réels sous un `mkdtempSync` de os.tmpdir() (`rmSync` en finally) ; ' +
+      '`scripts/test/perimetre.test.mjs` forge ses dépôts avec mkdtempSync(tmpdir()), mémos compris, et les nettoie par t.after ; ' +
+      '+1 écrivain le 2026-10-07 (#2400) : `lintStage.mjs`, atteint par `perimetre.mjs`, dont le banc injecte le lanceur de lint ; ' +
+      '+1 le 2026-10-07 (#2404) : `scripts/gen-formats.test.mjs` atteint `ecrireOuVerifier` par le générateur, ' +
+      'sans jamais passer sa porte d’écriture `import.meta.main` (formats calculés en mémoire) ; +1 le 2026-10-07 (#2400, fusion de #2456) : ' +
+      '`fraicheur-docs.mjs`, atteint par `perimetre.mjs` → `selection-des-derives.mjs` → `build-all.mjs`, n’écrit sa preuve ' +
+      '(node_modules/.cache/docs-fraicheur.json) que depuis `executer` sous la porte `import.meta.main` de build-all.mjs, ' +
+      'que les bancs de la gate n’appellent pas ; +1 le 2026-10-15 (#2603) : `purgerPerimes.mjs`, atteint par `perimetre.mjs` → ' +
+      '`memosDAnalyse.mjs`, ne purge que le dossier de mémos de son appelant (node_modules/.cache/perimetre, ou un ' +
+      '`mkdtempSync` d’os.tmpdir() des bancs)',
   },
   'test:docs': {
     ecrit: [],
@@ -256,10 +295,18 @@ export const ECRIT_LU = {
       'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
       'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md',
       'scripts/etape-profilee.mjs',
+      'scripts/git-hooks/', 'scripts/hooks/',
+      'scripts/test/verrou.mjs', 'scripts/test/verrouDeSuite.mjs', 'scripts/test/verrouGestesLourds.mjs', 'scripts/test/gitDeBanc.mjs',
+      'scripts/test/node-tests.mjs', 'scripts/node-requis.mjs',
       'scripts/raw/', 'scripts/gen-registry.mjs', 'Source/',
+      'scripts/gates/', 'scripts/ops/reprendre-file.mjs', 'scripts/ops/ruleset-main.mjs',
+      'scripts/art-ref/',
+      '.claude/settings.json', '.github/workflows/', '.gitignore', 'package.json', 'patches/',
     ],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT scripts/etape-profilee.mjs : build-all partage les annonces de progression et leur mesure avec les gestes ops ; ' +
+      'les bancs fraîcheur écrivent leur cache dans leurs dépôts sous os.tmpdir(), supprimés en finally ; ' +
+      'ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), atteint par les bancs de certification, écrit uniquement leurs caches de fixtures sous os.tmpdir() ; ' +
       'fixtures sous os.tmpdir(), dont celles de scripts/docs/lib/jsdocUnion.test.mjs ' +
       '(jsdoc-native-, zod-native-, union-optional-native-, supprimées en finally) ; ' +
       'scripts/docs/lib/plateforme-win32-fs.test.mjs écrit ses douze fixtures de décodage sous os.tmpdir(), préfixe plateforme-win32-decodage-, ' +
@@ -279,7 +326,18 @@ export const ECRIT_LU = {
       '(`## Table de routage`) et `routedFlatDocs` en dérive les docs à plat atteignables ; LIT scripts/raw/, ' +
       'scripts/gen-registry.mjs et Source/ (#2203) : `citations-rendues.test.mjs` rend chaque cible ' +
       '(`rendreCible` ; build-all.mjs importe gen-registry.mjs et scripts/raw/), et ses générateurs lisent ' +
-      'l’Atlas et Source/ — rien n’est écrit',
+      'l’Atlas et Source/ — rien n’est écrit ; LIT les sources, configurations et inventaires du runbook ' +
+      'par `build-reprise.test.mjs` et `rendre` (sonde du 2026-10-07, #2499 : zéro écriture mesurée). ' +
+      '`scripts/gates/toutes.mjs` atteint `purgerPerimes`, mais `principal` reste derrière `import.meta.main` ; ' +
+      'ni ses mkdir/writeFile ni sa purge ne sont appelés. `scripts/ops/reprendre-file.mjs` garde sa CLI ' +
+      'derrière `import.meta.main` : `reprendreFile` et appendFileSync sous GITHUB_STEP_SUMMARY ne sont pas appelés. ' +
+      'Les seules sorties de la sonde de lectures sont archivées hors arbre ; +2 écrivains le 2026-10-15 (#2603) : ' +
+      '`docs/lib/ecrivain-derives.test.mjs` joue la course passe/post-hook dans un dépôt `instanceDeDepot` sous os.tmpdir() ' +
+      '(générateur lent et signaux sous `mkdtempSync`, `rmSync` en finally) ; il importe `docs-rebuild.mjs`, qui atteint ' +
+      '`reconstruction.mjs` (état, verrous et journaux sous `.git/hooks-git/` des seuls dépôts jetables) ; ' +
+      '`miroirs-d-agents.mjs` y atteint `memosDAnalyse.mjs`, dont les ' +
+      'mémos ne s’écrivent que sous `<git-common-dir>/hooks-git/memos-analyse/`, hors de l’arbre, et seulement par un post-hook ' +
+      'ou une porte que les bancs ne jouent que dans des dépôts `instanceDeDepot` sous os.tmpdir()'
   },
   'deps:unused': {
     ecrit: [],
@@ -297,7 +355,7 @@ export const ECRIT_LU = {
   'test:recette': {
     ecrit: [],
     lit: ['scripts/recette/', 'scripts/port-dev.mjs'],
-    raison: 'le profil de navigateur et les captures vivent hors de l’arbre ; LIT le dériveur de port qu’il éprouve',
+    raison: RETRAIT_WORKTREE_FERME + 'le profil de navigateur et les captures vivent hors de l’arbre (le banc capture sous os.tmpdir() et l’efface) ; LIT le dériveur de port qu’il éprouve',
   },
   typecheck: {
     ecrit: [],
@@ -345,9 +403,15 @@ export const ECRIT_LU = {
   build: {
     ecrit: [],
     ecritFerme: {
+      [CACHE_FRAICHEUR]:
+        '`build-all.mjs --code` invalide puis certifie ses écritures par ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), temporaire propre au PID puis renommage ; ' +
+        'destination sous docs/.cache/ gitignoré, hors arbre versionné ; les seuls lecteurs réels build/docs:build sont dans le même job/lane docs de ci.yml, ' +
+        'séquentiels par jouerLane ; les autres lanes ne lisent que leurs caches de fixtures sous os.tmpdir()',
       'src/':
         'les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs) sont produites AVANT toute gate ' +
         '(`npm run gen`, ci-dessous) : `ecrireOuVerifier` ne réécrit pas un rendu identique',
+      'docs/.sources-lues.json':
+        '`build-all.mjs --code` conserve les mesures des autres générateurs et enregistre celles des cibles de code ; seuls build et docs:build lisent cette mesure réelle dans le même job/lane docs, séquentiels par jouerLane ; les autres lanes utilisent leurs mesures de fixtures sous os.tmpdir()',
       'vite.config.ts.timestamp-':
         'Vite recompile sa config dans un module horodaté posé à côté d’elle, puis l’efface — mesuré ' +
         '(`vite.config.ts.timestamp-1788894628882-….mjs`, sonde 2026-09-08). LA PORTE : AUCUNE gate ne lit ' +
@@ -356,8 +420,8 @@ export const ECRIT_LU = {
         'il ne salit pas l’arbre. `ecrit` le dirait CHEVAUCHANT `vite.config.ts` (recouvrement par PRÉFIXE), ' +
         'que `test` et `typecheck` lisent depuis d’autres lanes : ce serait un faux conflit',
     },
-    lit: ['src/', 'scripts/', 'Source/', 'tsconfig.json', 'vite.config.ts', 'package.json', 'index.html'],
-    raison:
+    lit: ['src/', 'scripts/', 'Source/', 'tsconfig.json', 'vite.config.ts', 'package.json', 'index.html', CACHE_FRAICHEUR],
+    raison: RETRAIT_WORKTREE_FERME +
       '`gen && vite build` : le typage est jugé par la gate `typecheck` (step `npm run typecheck` de ci.yml, avant `build`), ' +
       '`build` juge que le bundle se construit, et `dist/` n’est lu par aucune gate ; LIT tsconfig.json ' +
       'parce que `transformWithOxc` de Vite 8.3.2 résout la configuration TypeScript pendant la transformation ' +
@@ -371,7 +435,11 @@ export const ECRIT_LU = {
   'docs:build': {
     ecrit: [],
     ecritFerme: {
+      [CACHE_FRAICHEUR]:
+        'certificat écrit par ecrireJsonAtomique (scripts/guards/lib/ecritureJsonAtomique.mjs), temporaire propre au PID puis renommage sur ce cache gitignoré sous docs/.cache/, hors arbre versionné ; seuls build et docs:build lisent celui de la racine réelle : ' +
+        'même job/lane docs de ci.yml, joués séquentiellement par jouerLane ; les autres lanes ne lisent que leurs caches de fixtures sous os.tmpdir()',
       'docs/':
+        'les mesures docs/.sources-lues.json sont écrites par build-all.mjs ; ' +
         'les cibles PURES de `GENERATORS` ne sont pas commitées (#2203 A2) : leurs lecteurs les RENDENT ' +
         '(`rendreCible`, scripts/docs/build-all.mjs), jamais du disque ; un MIXTE (`injecte`) n’est réécrit que ' +
         'si son rendu diffère (`ecrireOuVerifier`), ce que `Arbre inchangé` refuse dans le même job',
@@ -379,11 +447,13 @@ export const ECRIT_LU = {
         'les cibles de CODE sont produites AVANT toute gate (`npm run gen`, ci-dessous) : `ecrireOuVerifier` ' +
         'ne réécrit pas un rendu identique',
     },
-    lit: ['docs/', 'src/', 'scripts/', 'Source/', '.claude/memory/'],
+    lit: ['docs/', 'src/', 'scripts/', 'Source/', '.claude/memory/', CACHE_FRAICHEUR],
     raison:
       'chaque générateur de `GENERATORS` joué en écriture, puis les vérificateurs purs ; LIT Source/ ' +
       '(catalogues et rapports d’Atlas) et .claude/memory/ parce que `build-doctrines.mjs` dérive ' +
-      '`docs/doctrines.md` des fiches `.claude/memory/user-*.md` SUIVIES par git (`fichesSuivies`)',
+      '`docs/doctrines.md` des fiches `.claude/memory/user-*.md` SUIVIES par git (`fichesSuivies`) ; ' +
+      'protectionWorktree.mjs est acquis par gitPorte.mjs : son unique écrivain retirerResiduelVide appelle rmdirSync, ' +
+      'uniquement depuis retirerWorktree ; aucun générateur de docs:build ne demande un retrait de worktree',
   },
   'test:raw': {
     ecrit: [],
@@ -394,7 +464,7 @@ export const ECRIT_LU = {
       // scripts/docs/build-all.mjs).
       'docs/raw/**/00-index.md':
         '`build-atlas-index.test.mjs` IMPORTE l’écrivain des blocs des index de l’Atlas (cœurs du ' +
-        'routeur, domaines de chaque cœur) ; son unique `writeFileSync` vit dans `main()`, sous sa ' +
+        'routeur, domaines de chaque cœur) ; son unique écriture (`ecrireDoc`) vit dans `main()`, sous sa ' +
         'porte `import.meta.main` (scripts/raw/build-atlas-index.mjs), et le banc n’appelle que ses fonctions ' +
         'PURES (`lignesDesCoeurs`, `lignesDesDomaines`, `blocsDeLAtlas`, `injecter`). Le cas `--check` ' +
         'le LANCE, mais dans un arbre JETABLE de `os.tmpdir()` dont il est le cwd : ce sont ces ' +
@@ -423,7 +493,7 @@ export const ECRIT_LU = {
         '`rawDir` — les pages du dépôt ne sont jamais écrites',
     },
     lit: ['docs/raw/', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/', 'scripts/port-dev.mjs', 'Source/', 'src/', '.claude/agents/'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'harnais de l’Atlas : il lit les fiches que les trois rapports écrivent ; éprouvant les scripts ' +
       'eux-mêmes, il LIT ce qu’ils lisent — Source/ et src/ ; ses deux bancs ' +
       'écrivains (`check-source-format.test.mjs`, `lib/marker-pages.test.mjs`) ne posent que des dossiers ' +
@@ -433,32 +503,38 @@ export const ECRIT_LU = {
       'dans `assemble()`, appelée par le seul `main()`, sous sa porte `import.meta.main` ; +4 le 2026-09-20 ' +
       '(#1825) : la fabrique d’Atlas jetable (`atlasFixture.mjs`) et les deux bancs qui la ' +
       'prennent (`_lib.test.mjs`, `build-atlas-index.test.mjs`), même régime os.tmpdir(), et ' +
-      '`build-atlas-index.mjs`, ACQUIS par l’import de son banc — son `writeFileSync` vit dans ' +
+      '`build-atlas-index.mjs`, ACQUIS par l’import de son banc — son écriture (`ecrireDoc`) vit dans ' +
       '`main()`, sous sa porte `import.meta.main` ; +1 lecture le 2026-09-22 (#1873) : ' +
       '`atlas-domain.workflow.test.mjs` lit les fiches d’agent de .claude/agents/ (frontmatter `tools:`) ' +
-      'pour tenir la liste des types SANS outil d’écriture (`typesEnLectureSeule` de scripts/raw/atlas-domain.workflow.test.mjs) — ' +
+      'pour tenir la liste des types SANS outil d’écriture (`typesEnLectureSeule` de scripts/guards/lib/typesDAgent.mjs) — ' +
       'la gate n’est plus sautable : un push qui donne `Edit` à `lecteur` doit la jouer ; +1 écrivain le ' +
       '2026-09-23 (#1739) : `pdf-de.test.mjs`, même régime os.tmpdir() (`avecSource`) — son PDF et ses dossiers de sortie Marker ' +
-      'factices ne naissent que sous la racine `source` INJECTÉE dans la couture (scripts/raw/_lib.mjs)',
+      'factices ne naissent que sous la racine `source` INJECTÉE dans la couture (scripts/raw/_lib.mjs) ; +3 écrivains le ' +
+      '2026-10-15 (#2603) : `ecritureJsonAtomique.mjs`, `renommageResilient.mjs` et `test/verrou.mjs`, ACQUIS par ' +
+      '`ecriture-derives.mjs` → `ecrivain-derives.mjs` (l’écrivain unique des dérivés) — `ecrireDoc` n’est appelé que ' +
+      'sous la porte `import.meta.main` des scripts de scripts/raw/, que les bancs de la gate n’appellent pas',
   },
   'raw:check-refs': {
     ecrit: [],
     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'aucune écriture dans les scripts atteints ; LIT le registre de livres et le normaliseur de références ' +
       '(src/data/books.json, src/data/source/normalize.ts) et son stock scripts/raw/dead-refs-stock.json, absent quand il est soldé',
   },
   'raw:check-code-refs': {
     ecrit: [],
     lit: ['docs/raw/', 'src/', 'Source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
-      'aucune écriture dans les scripts atteints ; LIT Source/, les stocks scripts/raw/dead-code-refs-stock.json et ' +
+    raison: RETRAIT_WORKTREE_FERME +
+      'aucune écriture dans l’arbre : `ecritureJsonAtomique.mjs`, `renommageResilient.mjs` et `test/verrou.mjs`, ACQUIS (#2603) par ' +
+      '`build-implemente.mjs` → `ecriture-derives.mjs` → `ecrivain-derives.mjs` (l’écrivain unique des dérivés), n’écrivent ' +
+      'que sous la porte `import.meta.main` de scripts/raw/build-implemente.mjs, que la gate n’appelle pas ; ' +
+      'LIT Source/, les stocks scripts/raw/dead-code-refs-stock.json et ' +
       'scripts/raw/empty-line-code-refs-stock.json, absents quand ils sont soldés, et scripts/raw/graphy-stock.json (sites différés)',
   },
   'raw:check-ancres': {
     ecrit: [],
     lit: ['docs/raw/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'aucune écriture, et AUCUN stock : l’ancre d’un titre se CALCULE (scripts/raw/lib/ancres.mjs), '
       + 'donc un renvoi mort est un renvoi faux, jamais un héritage à geler. LIT les pages de l’Atlas, '
       + 'le registre de livres (énumération des cœurs, `pagesDeLAtlas`) et l’extracteur de liens partagé '
@@ -468,7 +544,7 @@ export const ECRIT_LU = {
   'raw:check-folio-continuity': {
     ecrit: [],
     lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, le normaliseur de références, ' +
       'le stock NOMINATIF des sauts de folio (scripts/raw/folio-gaps-stock.json) et les deux stocks des ancres ' +
       'sans contenu (scripts/raw/empty-folios-perdues-stock.json, scripts/raw/empty-folios-benignes-stock.json) ; ' +
@@ -477,7 +553,7 @@ export const ECRIT_LU = {
   'raw:check-source-tables': {
     ecrit: [],
     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, le parseur de tables (src/data/source/decoupe.ts), les dossiers à `dir` de ' +
       'Source/ et son stock nominatif scripts/raw/source-tables-stock.json ; aucune écriture ' +
       'n’est atteinte',
@@ -485,7 +561,7 @@ export const ECRIT_LU = {
   'raw:check-source-puces': {
     ecrit: [],
     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, le normaliseur de citations (src/data/source/decoupe.ts), les dossiers ' +
       'à `dir` de Source/ et son stock nominatif scripts/raw/source-puces-stock.json ; aucune écriture ' +
       'n’est atteinte',
@@ -493,7 +569,7 @@ export const ECRIT_LU = {
   'raw:check-renvois': {
     ecrit: [],
     lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/data/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, les chapitres des livres couverts par le lecteur fs (scripts/source/lecteur-fs.mjs), ' +
       'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; aucune ' +
       'écriture n’est atteinte',
@@ -501,7 +577,7 @@ export const ECRIT_LU = {
   'raw:check-source-format': {
     ecrit: [],
     lit: ['Source/', 'src/data/books.json', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/source/nom-ascii.mjs', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres et les dossiers FR de Source/ (ceux à `dir` plus les ' +
       'pré-pipeline atteints par balayage), ainsi que son stock nominatif ' +
       'scripts/raw/source-format-stock.json ; aucune écriture n’est atteinte',
@@ -622,7 +698,7 @@ export const prerequisAbsents = (entree, racine) =>
   (entree?.prerequis ?? []).filter(({ chemin }) => !existsSync(join(racine, chemin)))
 
 /** Ce qu'un refus de prérequis écrit dans la sortie de la gate — c'est cette queue que le résumé
- *  imprime, et le MÊME texte que la préflight de `scripts/ops/publier.mjs` rend AVANT la série. PURE. */
+ *  imprime, et le MÊME texte que la préflight de `scripts/ops/etapesDuTrain.mjs` rend AVANT la série. PURE. */
 export const refusDePrerequis = (nom, absents) =>
   `${absents
     .map(({ chemin, pose }) => `[gates] ${nom} — prérequis absent : \`${chemin}\` (le pose : \`${pose}\`)`)
@@ -667,89 +743,6 @@ export function refusDeCouverture(noms, ecritLu = ECRIT_LU) {
   return refus
 }
 
-/**
- * Le refus du VERROU DE SUITE (`scripts/test/verrou.mjs`) : quand une autre session joue déjà une
- * suite complète, `npm test` sort en 2 SANS avoir rien joué. Reconnu par sa SORTIE, jamais par le
- * code seul — un 2 est aussi ce que rend une invocation mal formée du lanceur.
- */
-export const estRefusDuVerrou = (code, sortie) =>
-  code === 2 && /^\[verrou\] (?:une suite complète tourne déjà|verrou disputé)/m.test(sortie)
-
-/** Pas et borne de l'attente du verrou de suite. Au-delà, c'est un rouge : une suite qui n'a pas
- *  tourné ne justifie rien, et attendre sans fin ne le dirait jamais. */
-export const ATTENTE_VERROU = { pasMs: 15_000, borneMs: 20 * 60 * 1000 }
-
-/**
- * Tue l'ARBRE d'un enfant. Un `kill` sur le seul PID laisse vivre `npm`, `vitest` et leurs workers :
- * ils garderaient le verrou de suite et les cœurs après un Ctrl-C.
- *
- * LE GROUPE NE SUFFIT PAS, et c'est mesuré : `process.kill(-pid)` ne frappe que le groupe du fils,
- * or un descendant posé avec `detached: true` reçoit SON PROPRE groupe (`setsid`) et sort de portée.
- * Sous Windows le défaut ne se voyait pas — `taskkill /T` suit la FILIATION, pas la session — d'où un
- * vert local et un rouge sur la CI ubuntu (run 33866600011, `toutes.test.mjs` : « le PETIT-FILS écrit
- * encore »). Sur POSIX on énumère donc la descendance par `ps`, on tue les FEUILLES d'abord, puis le
- * fils, puis son groupe — ce dernier tir rattrapant tout processus né après l'instantané de `ps`.
- * Patron `tree-kill`, sans la dépendance. `lister`/`tuer`/`plateforme` sont injectés pour la mesure.
- */
-export function tuerArbre(pid, { plateforme = process.platform, lister = listerProcessus, tuer = tuerUnPid } = {}) {
-  if (!pid) return
-  // `taskkill /T` suit la filiation PARENT-ENFANT, quelle que soit la session : rien à énumérer.
-  if (plateforme === 'win32') {
-    spawnSync('taskkill', ['/T', '/F', '/PID', String(pid)], { stdio: 'ignore' })
-    return
-  }
-  // Feuilles d'abord, puis le fils, PUIS son groupe : un descendant tué avant son parent ne peut pas
-  // être ré-adopté par init et survivre à la bataille.
-  for (const descendant of descendantsDe(pid, lister())) tuer(descendant)
-  tuer(pid)
-  tuer(-pid)
-}
-
-/** Envoie SIGKILL à un pid (ou à un groupe, pid négatif). Un pid déjà mort n'est pas une erreur. */
-function tuerUnPid(pid) {
-  try {
-    process.kill(pid, 'SIGKILL')
-  } catch {
-    /* déjà mort, ou hors de notre portée : le suivant tranchera */
-  }
-}
-
-/** Table `pid ppid` de TOUS les processus (POSIX). Vide si `ps` manque : on retombe sur le groupe. */
-function listerProcessus() {
-  const ps = spawnSync('ps', ['-A', '-o', 'pid=,ppid='], { encoding: 'utf8' })
-  return ps.stdout ?? ''
-}
-
-/**
- * Descendance TRANSITIVE de `pid` d'après une sortie `ps -A -o pid=,ppid=`, LES FEUILLES D'ABORD.
- * `vus` ferme les cycles que `ps` peut rendre (un processus dont le ppid est lui-même, ou 0 adopté
- * par 1) : sans lui, l'énumération ne s'arrêterait pas.
- */
-export function descendantsDe(pid, sortiePs) {
-  const enfantsDe = new Map()
-  for (const ligne of String(sortiePs).split('\n')) {
-    const m = /^\s*(\d+)\s+(\d+)\s*$/.exec(ligne)
-    if (!m) continue
-    const [fils, parent] = [Number(m[1]), Number(m[2])]
-    if (!enfantsDe.has(parent)) enfantsDe.set(parent, [])
-    enfantsDe.get(parent).push(fils)
-  }
-  const parGeneration = []
-  const vus = new Set([pid])
-  let front = [pid]
-  while (front.length) {
-    const suivante = []
-    for (const parent of front)
-      for (const fils of enfantsDe.get(parent) ?? [])
-        if (!vus.has(fils)) {
-          vus.add(fils)
-          suivante.push(fils)
-        }
-    if (suivante.length) parGeneration.push(suivante)
-    front = suivante
-  }
-  return parGeneration.reverse().flat()
-}
 
 /** Plafond d'une gate, en millisecondes. */
 export const limiteDe = (gate) => (TIMEOUTS[gate] ?? TIMEOUTS.defaut) * 1000
@@ -823,26 +816,13 @@ export const queue = (texte, n) =>
 /** Lignes de queue imprimées sous chaque rouge du résumé. */
 const LIGNES_DE_QUEUE = 40
 
-/**
- * `git status --porcelain` en ENTIER (docs compris). NE LÈVE PAS : le 2026-09-04, cet appel a rendu
- * `STATUS_DLL_INIT_FAILED` après sept minutes de gates et l'exception a emporté le processus AVANT le
- * résumé — vingt-deux verdicts payés, aucun imprimé. Une photo impossible est une LIGNE du résumé.
- * REND `{ texte, erreur }`.
- */
-export function photoArbre(racine) {
-  try {
-    return {
-      texte: execFileResilient('git', ['status', '--porcelain'], { cwd: racine, encoding: 'utf8', maxBuffer: 1 << 28 }, {
-        site: 'toutes.mjs/photoArbre',
-      }),
-      erreur: null,
-    }
-  } catch (e) {
-    return { texte: null, erreur: e.message }
-  }
-}
-
 const secondesDepuis = (debut) => (Date.now() - debut) / 1000
+
+/** Le script de `package.json` que joue une gate (`npm test` → `test`, `npm run x` → `x`). */
+const scriptDeGate = (gate) => (gate.nom === 'test' ? 'test' : gate.nom)
+
+/** Ce script lance-t-il la suite complète (`scripts/test/run.mjs`, preneur du verrou de suite) ? */
+export const lanceLaSuite = (script) => /(?:^|\s)(?:\.\/)?scripts\/test\/run\.mjs(?:\s|$)/.test(script ?? '')
 
 /**
  * Joue toutes les gates exigées. `racine`, `argv` et `journal` sont INJECTÉS : sans cela, ni la
@@ -855,6 +835,7 @@ export async function principal({
   journal = (t) => process.stderr.write(t),
   ecritLu = ECRIT_LU,
   machine = availableParallelism(),
+  verrouSuite = VERROU_SUITE,
 } = {}) {
   const LISTE = argv.includes('--liste')
   const SERIE = argv.includes('--serie') || !lanesPortees(machine)
@@ -943,39 +924,43 @@ export async function principal({
   // verdict. AUCUN verdict de gate n'arrête quoi que ce soit, pas même un refus de prérequis : les
   // autres gates lisent le même arbre propre, et chacune teste SES PROPRES prérequis
   // (`prerequisAbsents`), donc leur verdict est juste.
+  /** Verrous de suite tenus par ce run, libérés à l'arrêt sur signal. */
+  const verrousTenus = new Set()
   const arreterSurSignal = (signal) => {
     journal(
       `\n[gates] ${signal} — arrêt : l'ARBRE de chaque gate en cours est tué (un enfant survivant garderait ` +
         'le verrou de suite et des cœurs).\n',
     )
     for (const pid of vivants.values()) tuerArbre(pid)
+    for (const tenu of verrousTenus) tenu.liberer()
     process.exit(130)
   }
   process.on('SIGINT', () => arreterSurSignal('SIGINT'))
   process.on('SIGTERM', () => arreterSurSignal('SIGTERM'))
 
+  /** Un ROUGE de gate rendu SANS spawn : `sortie` écrite dans le fichier de la gate. */
+  const rougeSansSpawn = (gate, sortie, code = 1) => {
+    const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
+    writeFileSync(fichier, sortie)
+    return { code, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
+  }
+
   /** Joue UNE gate, sortie dans son fichier, bornée par son plafond, rejouée si elle n'a pas démarré. */
-  const jouerUneFois = async (gate, coeurs) => {
+  const jouerGate = async (gate, coeurs, envEnPlus) => {
     const fichier = join(dossierSorties(racine), fichierDeSortie(gate.nom, process.pid))
     // PRÉREQUIS D'ABORD : jouer une gate dont le prérequis manque rend l'erreur brute de son outil
     // (un TS2688 pour `server:typecheck`), qui ne nomme ni le dossier absent ni la commande qui le
     // pose. Le verdict est le même ROUGE, mais il DIT quoi faire — et rien n'est spawné. Ce refus ne
     // pèse que sur CE rejeu local : la gate reste jouée, elle, par le run CI de la branche.
     const absents = prerequisAbsents(ecritLu[gate.nom], racine)
-    if (absents.length) {
-      const sortie = refusDePrerequis(gate.nom, absents)
-      writeFileSync(fichier, sortie)
-      return { code: 1, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
-    }
+    if (absents.length) return rougeSansSpawn(gate, refusDePrerequis(gate.nom, absents))
     // La commande est celle de `ci.yml`, TELLE QUELLE : ce qui se rejoue ici est ce que la CI joue.
     // Un script absent de `package.json` est un rouge NOMMÉ, pas un `npm` qui se plaint tout seul.
-    const script = gate.nom === 'test' ? 'test' : gate.nom
+    const script = scriptDeGate(gate)
     if (!scripts[script]) {
-      const sortie = `[gates] ${gate.nom} — aucun script « ${script} » dans package.json (step de ci.yml : ${gate.commande})\n`
-      writeFileSync(fichier, sortie)
-      return { code: 1, expiree: false, fichier, sortie, limiteMs: limiteDe(gate.nom) }
+      return rougeSansSpawn(gate, `[gates] ${gate.nom} — aucun script « ${script} » dans package.json (step de ci.yml : ${gate.commande})\n`)
     }
-    const env = { ...process.env }
+    const env = { ...process.env, ...envEnPlus }
     if (coeurs && !process.env.WFRP_TEST_COEURS) env.WFRP_TEST_COEURS = String(coeurs)
     const [commande, ...args] = gate.commande.split(' ')
     const r = await spawnBorne({
@@ -992,29 +977,6 @@ export async function principal({
     return r
   }
 
-  let attenteVerrouMs = 0
-  /** Joue une gate, en ATTENDANT quand le verrou de suite d'un autre arbre la refuse sans rien jouer. */
-  const jouerGate = async (gate, coeurs) => {
-    const debutAttente = Date.now()
-    for (;;) {
-      const r = await jouerUneFois(gate, coeurs)
-      if (!estRefusDuVerrou(r.code, r.sortie)) return r
-      attenteVerrouMs = Math.max(attenteVerrouMs, Date.now() - debutAttente)
-      if (Date.now() - debutAttente >= ATTENTE_VERROU.borneMs) {
-        journal(
-          `[gates] ${gate.nom} — verrou de suite tenu depuis ${(ATTENTE_VERROU.borneMs / 60000).toFixed(0)} min : ` +
-            'abandon (une suite qui n’a pas tourné ne justifie rien).\n',
-        )
-        return r
-      }
-      journal(
-        `[gates] ${gate.nom} — suite d'un autre arbre en cours : attente ` +
-          `${(ATTENTE_VERROU.pasMs / 1000).toFixed(0)} s (déjà ${((Date.now() - debutAttente) / 1000).toFixed(0)} s)\n`,
-      )
-      await new Promise((patienter) => setTimeout(patienter, ATTENTE_VERROU.pasMs))
-    }
-  }
-
   /** Pose le verdict d'une gate. Aucun verdict n'ARME quoi que ce soit : le résumé compte tout
    *  verdict non vert, et les lanes vont au bout. */
   const poser = (nom, r) => {
@@ -1028,11 +990,34 @@ export async function principal({
   const jouerLane = async (lane) => {
     const debut = Date.now()
     for (const nom of lane.gates) {
+      const gate = aJouerParNom.get(nom)
+      // Le verrou de suite se prend ICI, hors du chronomètre de la gate et de son plafond (`TIMEOUTS`) ;
+      // l'enfant, qui l'aurait repris, part sous l'opt-out explicite.
+      const suite = lanceLaSuite(scripts[scriptDeGate(gate)])
+      const debutAttente = Date.now()
+      const verrou = suite
+        ? await prendreVerrouDeSuite({
+            verrou: verrouSuite,
+            prendre: prendreVerrouAsync,
+            commande: `${process.execPath} scripts/gates/toutes.mjs (gate ${nom})`,
+            cwd: racine,
+            annoncer: (tenant) => journal(`[gates] ${nom} — attente du verrou de suite : ${attenteDeSuite(tenant)}\n`),
+          })
+        : null
+      if (verrou?.liberer) verrousTenus.add(verrou)
+      if (suite) journal(`[gates] ${nom} — ${((Date.now() - debutAttente) / 1000).toFixed(1)} s d'attente du verrou de suite (hors chronomètre)\n`)
       const debutGate = Date.now()
-      // En série (`--serie`, ou machine qui ne porte pas les lanes) la suite n'est PAS bornée : rien ne
-      // tourne à côté d'elle, et la brider fausserait la seule mesure de référence du lanceur.
-      const r = await jouerGate(aJouerParNom.get(nom), !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null)
-      poser(nom, { ...r, debut: debutGate })
+      try {
+        // En série (`--serie`, ou machine qui ne porte pas les lanes) la suite n'est PAS bornée : rien ne
+        // tourne à côté d'elle, et la brider fausserait la seule mesure de référence du lanceur.
+        const r = verrou?.etat === 'refus'
+          ? rougeSansSpawn(gate, `${verrou.message}\n`, 2)
+          : await jouerGate(gate, !SERIE && nom === 'test' ? COEURS_SUITE_EN_LANES : null, suite ? { [OPT_OUT_SUITE]: '0' } : {})
+        poser(nom, { ...r, debut: debutGate })
+      } finally {
+        verrou?.liberer?.()
+        verrousTenus.delete(verrou)
+      }
     }
     return { nom: lane.nom, secondes: secondesDepuis(debut) }
   }
@@ -1071,7 +1056,6 @@ export async function principal({
       ? `[gates] ${totalRejeux} spawn(s) rejoué(s) — pression système (le processus n'avait pas démarré)\n`
       : '[gates] 0 spawn rejoué — aucune pression de chargement\n',
   )
-  if (attenteVerrouMs) journal(`[gates] dont ${(attenteVerrouMs / 1000).toFixed(0)} s d'attente du verrou de suite\n`)
 
   // Les durées de CE run sont la mesure des LANES et des TIMEOUTS — écriture au mieux, jamais un verdict.
   try {

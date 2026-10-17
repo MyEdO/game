@@ -24,7 +24,8 @@ import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
 import { ALL_MAGIC } from './types';
-import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
+import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import { bypassedAP } from './armourBypass';
 import { grantTrait, grantPsychTrait, removeGrantedTraitsFrom, dropExpiredGrantedTraits, sameInstance } from './grantedTraits';
 import { rollObsession } from '../data/obsessions';
@@ -244,9 +245,7 @@ export function formulaExpectation(f: Formula, ref: Combatant): number {
  *  `skillMod` (valeur du Test) — consommée au calcul du DR d'un Test
  *  RÉUSSI (Discrétion de la Surprise, incantation, attaque, Test générique). */
 export function skillDRBonus(c: Combatant, skillId: string, spec?: string): number {
-  // Une op SANS `spec` s'applique à toute spécialisation (Furtif → Discrétion) ; une op AVEC `spec` ne
-  // s'applique qu'à cette spécialisation (Aura de Dhar → Langue (Magick) seulement, pas Langue (Bretonnien)).
-  const matches = (s?: { id: string; spec?: string }) => s?.id === skillId && (s.spec == null || s.spec === spec);
+  const matches = (s?: RefDesignee) => s != null && refCouvre(s, { id: skillId, spec });
   let n = 0;
   for (const t of c.traits ?? []) {
     for (const op of findTraitById(t.id)?.passive ?? []) {
@@ -497,8 +496,8 @@ export type GameOp =
    *  dernier Test). Champ absent = INCHANGÉ sur une entrée existante. Journalisé via `t()` ; une
    *  entrée `active:false` est un marqueur inerte (aucune ligne). */
   | { op: 'beginPsych'; type: string; cible?: string; sourceId?: string; indice?: Formula; calmeDR?: Formula; active?: boolean; lastTestRound?: number; fromTest?: boolean }
-  /** Modificateur de caractéristique temporisé (ActiveEffect — meilleur bonus +
-   *  pire pénalité sans cumul, LDB 16 l.13). `durationRounds` absent = durée du
+  /** Modificateur de caractéristique temporisé (ActiveEffect, pool `poolDeNonCumul`).
+   *  `durationRounds` absent = durée du
    *  contexte (sort : Rounds, horloge, ou permanent — cf. `durationFromCtx`).
    *  `durationHours`/`durationMinutes` : durée d'HORLOGE intrinsèque (Aux Armes « −10 Agilité pendant
    *  1d10 jours », `durationHours` = jours×24) — même patron que `condition.durationHours`, résolue
@@ -765,7 +764,7 @@ export type GameOp =
    *  aux Tests classés « déplacement » (`SkillData.movement` — Athlétisme/Chevaucher/Escalade/Esquive/Natation,
    *  MÊME catégorie que l'État À Terre/Empêtré) — lu par `testValue`/`defenseValue` (Esquive). Absent des deux
    *  = comportement historique (global, comme avant #193). */
-  | { op: 'testMod'; amount: number; char?: CharKey; combatOnly?: boolean; movementOnly?: boolean; hearingOnly?: boolean; exceptSkills?: { id: string }[]; weaponHand?: 'main' | 'off' }
+  | { op: 'testMod'; amount: number; char?: CharKey; movementOnly?: boolean; sense?: PairedSense; diseases?: string[]; exceptSkills?: { id: string }[]; weaponHand?: 'main' | 'off' }
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête) tant que le Sort dure — Peau de loup
    *  d'hiver (Ulric), Protection contre la pluie. Lu par `exposureNight` (engine/exposure). */
   | { op: 'weatherWard' }
@@ -1142,8 +1141,8 @@ export type GameOp =
    *  −10 aux CC/CT/Ag/Dex/Int (plafond −30), et Ivresse (1d10) au seuil BE. Posé sur la branche `fail`
    *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
   | { op: 'intoxicate' }
-  /** Effet non modélisé : journalisé verbatim, arbitrage MJ (rien d'inventé). */
-  | { op: 'narrative'; text: string };
+  /** Narration de campagne : texte Markdown et provenance locale. #2001. */
+  | { op: 'narrative'; text: string; source?: SourceRef; adapteDe?: SourceRef };
 
 /** Profil d'ANNULATION d'un effet PASSIF (système unifié) — le « flag de typage » qui dit CE QUI le neutralise.
  *  Porté par chaque `PassiveMod` ; une table `kind → annulateurs` (engine/trauma) applique le gating. */
@@ -1154,30 +1153,14 @@ export type PassiveKind =
   | 'sensoriel'    // organe perdu : rien
   | 'maladie'      // symptôme de maladie : Détermination SEULE (pas Insensible)
   | 'faim'         // pénalité de Faim : « Plus besoin de manger »
-  | 'magique'      // effet de SORT actif (ActiveEffect) : inconditionnel mais combiné en POOL non-cumul ; expire seul
-  | 'etat'         // pénalité/effet d'un État (LDB 16) : pool NON-CUMUL, le pire seul (l.20) ; Exténué ×stacks
-  | 'ivresse'      // pénalité d'Ivresse (LDB 09 l.475) : pool non-cumul ; ignorée 1 Round par la Détermination (flag `drunkIgnore`)
+  | 'magique'      // effet ACTIF (ActiveEffect) : inconditionnel ; pool selon sa SOURCE (`poolDeNonCumul` : Sorts LDB 46 l.119, même Prière LDB 40 l.19), sinon sommé ; expire seul
+  | 'etat'         // pénalité/effet d'un État (LDB 16) : pool NON-CUMUL, le pire seul (LDB 16 l.13) ; Exténué ×stacks
+  | 'ivresse'      // pénalité d'Ivresse (LDB 09 l.475) : sommée (LDB 14 l.95) ; ignorée 1 Round par la Détermination (flag `drunkIgnore`)
   | 'intrinseque'; // trait/mutation/qualité : inconditionnel ET ADDITIF (Σ dans la base — corps/équipement permanent)
 
 /** Attribut visé par `attrMod` → sa CLÉ d'affichage (#1318 V8c₅, 8ᵉ forme) : le nom rendu au joueur
  *  passait en paramètre de `t()` sous forme de littéral FR — il s'affichait donc hors catalogue. */
 const ATTR_KEY = { wounds: 'op.attrWounds', fortune: 'op.attrFortune', resolve: 'op.attrResolve' } as const satisfies Record<string, MsgKey>;
-
-/** Ramène un `PassiveKind` à sa forme COURANTE : deux valeurs sont passées de l'id accentué à l'id ASCII
- *  (#1318 V8c₅) et ce `kind` est PERSISTÉ (`Trauma.passiveKind`). Une SAVE d'avant le renommage n'arrive
- *  plus jusqu'ici (politique de version 2026-08-17 : une save dont la version diffère de `SAVE_VERSION`
- *  est refusée à la lecture) ; les portes qui restent OUVERTES sont NON versionnées — un export de
- *  ROSTER (`state/roster.ts`) et un document réécrit à la main. D'où ce FILET, lu par le collecteur
- *  passif (`engine/trauma.ts`) : il empêche à la fois le crash (`PASSIVE_CANCELLERS[kind]` indéfini) et
- *  la dérive silencieuse (un kind non reconnu quitterait la somme additive sans un signe). `undefined`
- *  reste `undefined` ; une valeur déjà courante (ou inconnue) ressort telle quelle. Deux `if` plutôt
- *  qu'une table : la correspondance est fermée et se lit d'un coup d'œil. */
-export function normalizePassiveKind(kind: string | undefined): PassiveKind | undefined {
-  if (kind == null) return undefined;
-  if (kind === 'mobilité') return 'mobilite';
-  if (kind === 'intrinsèque') return 'intrinseque';
-  return kind as PassiveKind;
-}
 
 /** Effet PASSIF porté par un élément (trauma/trait/mutation/qualité…) : une op + son profil d'annulation.
  *  Unité du collecteur unifié `passiveMods` ; `kind` absent ⇒ `intrinseque`.
@@ -1406,8 +1389,6 @@ export function messagePorteSansDuree(id: string): string {
   return t('op.err.porteSansDuree', { id });
 }
 
-/** Applique un effet actif sans cumul : un seul bonus (le meilleur) ET une seule
- *  pénalité (la pire) coexistent par caractéristique (Livre de base l.168). */
 /** Pose un effet actif porteur d'ops RÉCURRENTES (re-jouées chaque fin de Round par `endOfRound`).
  *  Durée : celle que l'op PORTE (`duration` — « un minimum de 1d10 Rounds » d'une rangée de table,
  *  `LDB 40 l.75`), sinon celle du sort (`ctx`), Surincantation de Durée incluse. Les `ops` doivent
@@ -1421,19 +1402,14 @@ function pushPerRound(target: Combatant, ops: GameOp[], ctx: OpsCtx, duration?: 
   });
 }
 
+/** Pose un effet actif ; un même Sort d'un même lanceur reste UNIQUE par Caractéristique (LDB 46 l.119).
+ *  La combinaison (pools de non-cumul, somme) se lit à `effectiveChar`. */
 export function applyActiveEffect(target: Combatant, effect: ActiveEffect) {
   target.activeEffects = target.activeEffects ?? [];
-  // On ne dédoublonne qu'entre effets de MÊME signe (bonus vs pénalité séparés) :
-  // un bonus et une pénalité sur la même caractéristique s'additionnent (effectiveChar).
-  const sameSign = (b: number) => b >= 0 === effect.bonus >= 0;
-  const idx = target.activeEffects.findIndex((e) => e.char === effect.char && effect.char != null && sameSign(e.bonus));
-  if (idx >= 0) {
-    const cur = target.activeEffects[idx].bonus;
-    const better = effect.bonus >= 0 ? effect.bonus >= cur : effect.bonus <= cur;
-    if (better) target.activeEffects[idx] = effect;
-  } else {
-    target.activeEffects.push(effect);
-  }
+  const sp = effect.spell;
+  const idx = sp ? target.activeEffects.findIndex((e) => e.char === effect.char && e.spell?.spellId === sp.spellId && e.spell.casterId === sp.casterId) : -1;
+  if (idx >= 0) target.activeEffects[idx] = effect;
+  else target.activeEffects.push(effect);
   // Les Blessures dérivent de F/E/FM (LDB 85) → un buff de ces caractéristiques recale les PB max + courants.
   if (effect.char === 'force' || effect.char === 'endurance' || effect.char === 'force-mentale') refreshWounds(target);
 }
@@ -1949,6 +1925,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
         const dur: Duration = durationFromOp(o, ctx, ref, rng);
         applyActiveEffect(target, {
           label: nomDeSource(ctx), char: o.char, bonus: o.mod, duration: dur,
+          ...(ctx.sourceSpell ? { spell: ctx.sourceSpell } : {}),
+          ...(ctx.sourceSpellId ? { sourceSpellId: ctx.sourceSpellId } : {}),
+          ...(source ? { source } : {}),
         });
         charParts.push(`${o.mod >= 0 ? '+' : ''}${o.mod} ${CHAR_LABELS[o.char]}`);
         charRounds = dur.scale === 'rounds' ? dur.left : null;

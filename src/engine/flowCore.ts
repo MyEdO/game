@@ -27,7 +27,8 @@ import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
 import { opDemandeUnDe, type GameOp, type PairedSense } from './ops';
-import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 // Type SEUL (effacé à la compilation — aucun cycle runtime) : `StakeRef` est la forme canonique de la
 // zone d'enjeu, et la redéclarer ici serait la 2ᵉ source du même vocabulaire que #1117 combat.
 import type { StakeRef } from '../data';
@@ -121,6 +122,11 @@ export interface ActorView {
   visiblePassive?: boolean;
 }
 
+/** SÉLECTEUR de héros d'une Condition de groupe : un héros au moins (`any`), tout le groupe (`all`), ou
+ *  le héros que DÉSIGNE l'état de campagne `etat` (forme `heros`, `GameState.etats`) — EDO 02 l.91.
+ *  Référence non désignée → le prédicat sélectionné est faux. */
+export type PartySelector = 'any' | 'all' | { etat: string };
+
 export type Condition =
   | { kind: 'always' }
   /** ET de drapeaux avec négation : « v1,!v2 » ⇔ flags.v1 && !flags.v2 (sémantique `condMet`). */
@@ -132,18 +138,22 @@ export type Condition =
   | { kind: 'hasItem'; trappingId: string; count?: number }
   /** La bourse du groupe vaut AU MOINS le seuil `atLeast` (comparaison en sous de cuivre). */
   | { kind: 'money'; atLeast: Purse }
-  /** État vital du groupe : `any` = au moins un héros mort, `all` = tous morts. */
-  | { kind: 'partyDead'; who: 'any' | 'all' }
+  /** État vital du groupe : `any` = au moins un héros mort, `all` = tous morts, `{etat}` = le héros désigné
+   *  est mort. */
+  | { kind: 'partyDead'; who: PartySelector }
+  /** ÉTAT DE CAMPAGNE `etat` (registre `narratif.etats`, valeur `GameState.etats`) : sans `value`, « est
+   *  défini » ; avec `value`, égal à cette valeur — EDO 02 l.27. */
+  | { kind: 'etat'; etat: string; value?: string }
   /** Un héros du groupe (`any`) OU tous (`all`, défaut `any`) possède la Compétence `id` (`spec` éventuel)
    *  avec au moins `advances` avances (défaut 0 = simple possession) — #711, gate de dialogue party-level. */
-  | { kind: 'skill'; id: string; spec?: string; advances?: number; who?: 'any' | 'all' }
+  | { kind: 'skill'; id: string; spec?: string; advances?: number; who?: PartySelector }
   /** Un héros du groupe (`any`/`all`) exerce la carrière `id` (`Combatant.career`) — #711. */
-  | { kind: 'career'; id: string; who?: 'any' | 'all' }
+  | { kind: 'career'; id: string; who?: PartySelector }
   /** Un héros du groupe (`any`/`all`) est de l'espèce `id` (`Combatant.species`) — #711. */
-  | { kind: 'species'; id: string; who?: 'any' | 'all' }
+  | { kind: 'species'; id: string; who?: PartySelector }
   /** Un héros du groupe (`any`/`all`) a un Statut (LDB 08, `actorStatus`) au moins `atLeast`
    *  (« Argent 2 », `parseStatus`) — #711. */
-  | { kind: 'status'; atLeast: string; who?: 'any' | 'all' }
+  | { kind: 'status'; atLeast: string; who?: PartySelector }
   /** COMPARAISON sur un ACTEUR du Flow (cible OU lanceur) — UNIQUE Condition « données d'acteur » :
    *  `subject` (`who` × donnée fixe OU valeur d'un État) · `op` (≥ ≤ = < >) · `value`. `value` est une
    *  CONSTANTE ou le champ d'un AUTRE acteur (« cible plus petite que l'attaquant » ⇔
@@ -227,13 +237,16 @@ export type Condition =
 export interface ConditionCtx {
   flags: Record<string, boolean>;
   gameTime: number;
-  party?: { dead?: boolean; items?: { label: string; trappingId?: string }[];
+  party?: { id?: string; dead?: boolean; items?: { label: string; trappingId?: string }[];
     /** Compétences possédées (#711 `skill`) — instances brutes, comme `Combatant.skills`. */
     skills?: { id: string; spec?: string; advances?: number }[];
     /** Carrière/espèce/niveau de carrière courants (#711 `career`/`species`/`status`) — bruts,
      *  comme `Combatant.career`/`species`/`careerLevel`. */
     career?: string; species?: string; careerLevel?: number }[];
   money?: Purse;
+  /** ÉTATS DE CAMPAGNE posés (`GameState.etats` : id d'état → id de héros ou de valeur) — lus par la
+   *  Condition `etat` et le sélecteur `{etat}`. Absent → aucun état n'est défini. */
+  etats?: Record<string, string>;
   /** Acteurs du Flow lus par la Condition `compare` (`conditions` = stacks par nom d'État, 0 si absent).
    *  `target` = l'unité affectée (la « cible » du sous-Flow) ; `caster` = le lanceur/porteur. */
   target?: ActorView;
@@ -270,10 +283,24 @@ export interface ConditionCtx {
 /** Évalue une Condition — SOURCE UNIQUE de l'évaluation des conditions (triggers, choix de dialogue,
  *  nœuds `if`). PURE. `flag` : ET de drapeaux avec négation (« v1,!v2 », tolère les espaces) ; `time` :
  *  fenêtre horaire (heure-du-jour, `before` EXCLUSIF). */
-/** Un membre VIVANT du groupe (`any`) ou TOUS les vivants (`all`, aucun vivant → false) satisfont
- *  `pred` — helper commun des Conditions party-level (#711 : `skill`/`career`/`species`/`status`).
- *  Un héros TOMBÉ ne prête pas sa compétence/carrière/espèce/statut à un choix (gate sur les vivants). */
-function matchParty(ctx: ConditionCtx, who: 'any' | 'all', pred: (m: NonNullable<ConditionCtx['party']>[number]) => boolean): boolean {
+type MembreDuGroupe = NonNullable<ConditionCtx['party']>[number];
+
+/** Le membre du groupe que désigne l'état `etat`, mort ou vif — `undefined` si la référence n'est pas
+ *  désignée ou ne résout aucun membre. */
+function membreDesigne(ctx: ConditionCtx, etat: string): MembreDuGroupe | undefined {
+  const id = ctx.etats?.[etat];
+  return id === undefined ? undefined : (ctx.party ?? []).find((m) => m.id === id);
+}
+
+/** Un membre VIVANT du groupe (`any`), TOUS les vivants (`all`, aucun vivant → false) ou le héros VIVANT
+ *  que désigne l'état `{etat}` satisfont `pred` — helper commun des Conditions party-level (#711 :
+ *  `skill`/`career`/`species`/`status`). Un héros TOMBÉ ne prête pas sa compétence/carrière/espèce/statut
+ *  à un choix (gate sur les vivants). */
+function matchParty(ctx: ConditionCtx, who: PartySelector, pred: (m: MembreDuGroupe) => boolean): boolean {
+  if (typeof who === 'object') {
+    const m = membreDesigne(ctx, who.etat);
+    return !!m && !m.dead && pred(m);
+  }
   const list = (ctx.party ?? []).filter((m) => !m.dead);
   return who === 'all' ? list.length > 0 && list.every(pred) : list.some(pred);
 }
@@ -309,8 +336,13 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     }
     case 'money': return ctx.money ? brassValue(ctx.money) >= brassValue(cond.atLeast) : false;
     case 'partyDead': {
+      if (typeof cond.who === 'object') return membreDesigne(ctx, cond.who.etat)?.dead === true;
       const party = ctx.party ?? [];
       return party.length > 0 && (cond.who === 'all' ? party.every((h) => h.dead) : party.some((h) => h.dead));
+    }
+    case 'etat': {
+      const v = ctx.etats?.[cond.etat];
+      return v !== undefined && (cond.value === undefined || v === cond.value);
     }
     case 'compare': {
       // Lecture d'un côté de la comparaison : valeur d'un État (par nom), Caractéristique (+Bonus), ou champ fixe.
@@ -354,7 +386,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
       const a = cond.who === 'caster' ? ctx.caster : ctx.target;
       if (!a) return false;
       if (cond.what === 'group') return groupMatch(cond.value, a.groups);
-      if (cond.what === 'talent') return a.talents.some((t) => t.id === cond.value && (!cond.spec || t.spec === cond.spec));
+      if (cond.what === 'talent') return a.talents.some((t) => refCouvre({ id: cond.value, spec: cond.spec }, t));
       if (cond.what === 'psych') return (a.psych ?? []).includes(cond.value);
       return a.traits.includes(cond.value);
     }
@@ -362,7 +394,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     case 'visiblePassive': return (cond.who === 'caster' ? ctx.caster : ctx.target)?.visiblePassive === true;
     case 'skill':
       return matchParty(ctx, cond.who ?? 'any', (m) => (m.skills ?? []).some((s) =>
-        s.id === cond.id && (cond.spec ? s.spec === cond.spec : true) && (s.advances ?? 0) >= (cond.advances ?? 0)));
+        refCouvre({ id: cond.id, spec: cond.spec }, s) && (s.advances ?? 0) >= (cond.advances ?? 0)));
     case 'career': return matchParty(ctx, cond.who ?? 'any', (m) => m.career === cond.id);
     case 'species': return matchParty(ctx, cond.who ?? 'any', (m) => m.species === cond.id);
     case 'status': return matchParty(ctx, cond.who ?? 'any', (m) => statusMeets(statusOf(m.career, m.careerLevel), cond.atLeast));
@@ -374,8 +406,8 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
 
 /** Construit le contexte d'évaluation depuis l'état de jeu (drapeaux/horloge/groupe/bourse) — source
  *  UNIQUE pour que tous les sites (triggers, `if`, choix de dialogue) lisent le MÊME état. */
-export function conditionCtx(s: { flags: Record<string, boolean>; gameTime: number; party?: ConditionCtx['party']; money?: Purse }): ConditionCtx {
-  return { flags: s.flags, gameTime: s.gameTime, party: s.party, money: s.money };
+export function conditionCtx(s: { flags: Record<string, boolean>; gameTime: number; party?: ConditionCtx['party']; money?: Purse; etats?: Record<string, string> }): ConditionCtx {
+  return { flags: s.flags, gameTime: s.gameTime, party: s.party, money: s.money, etats: s.etats };
 }
 
 /** Difficulté EFFECTIVE d'un `FlowTest` : la PREMIÈRE entrée `difficultyBy` dont la Condition est vraie
@@ -509,7 +541,7 @@ export type Flow<E = EffectOp> =
   | { kind: 'do'; effect: E }
   | { kind: 'if'; cond: Condition; then: Flow<E>; else?: Flow<E> }
   | { kind: 'test'; test: FlowTest; success: Flow<E>; fail: Flow<E> }
-  | { kind: 'choice'; prompt: string; advantageCost?: number | IndiceTemplate; icon?: string; yes: Flow<E>; no?: Flow<E> };
+  | { kind: 'choice'; prompt: string; source?: SourceRef; adapteDe?: SourceRef; advantageCost?: number | IndiceTemplate; icon?: string; yes: Flow<E>; no?: Flow<E> };
 
 /** TEMPLATE d'instance du coût d'Avantage d'un `choice` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
  *  `AA 08 l.87`), substitué par `withArg` (`state/triggeredEffects`) avant exécution. Resté tel quel, le
@@ -854,39 +886,6 @@ export function testFlow<E = EffectOp>(test: FlowTest, success: Flow<E>, fail: F
 export function poserEnjeu(test: FlowTest, stake: StakeRef | undefined): FlowTest {
   if (test.stake || !stake) return test;
   return { ...test, stake };
-}
-
-/** Assainit un Flow chargé depuis un document ANCIEN : purge les entrées `null` (JSON n'a pas
- *  `undefined` — un pas d'étape non-écrit sérialise en `null`) des tableaux `seq.steps`, structurellement
- *  INEXPRIMABLES dans l'éditeur (une étape ne peut pas être « vide »). Ne touche à RIEN d'autre — pas
- *  d'invention de branche manquante (`if.then`, `test.success/fail`…) : une réf pendante ou un nœud
- *  malformé reste la charge de la VALIDATION (`checkFlow`), jamais d'une purge silencieuse de données
- *  (un jet de contenu authoré serait un jet silencieux). `sanitizeLeaf` recurse dans une feuille `do`
- *  (ex. le Flow imbriqué d'un `delayedEffect`, propre à la couche `state`). `flow` absent (`null`/
- *  `undefined`) est renvoyé tel quel — la validation le rapportera. */
-export function sanitizeFlow<E = EffectOp>(flow: Flow<E>, sanitizeLeaf?: (e: E) => E): Flow<E>;
-export function sanitizeFlow<E = EffectOp>(flow: Flow<E> | null | undefined, sanitizeLeaf?: (e: E) => E): Flow<E> | null | undefined;
-export function sanitizeFlow<E = EffectOp>(flow: Flow<E> | null | undefined, sanitizeLeaf?: (e: E) => E): Flow<E> | null | undefined {
-  if (flow == null) return flow;
-  switch (flow.kind) {
-    case 'seq':
-      return {
-        ...flow,
-        steps: (flow.steps ?? [])
-          .filter((s): s is Flow<E> => s != null)
-          .map((s) => sanitizeFlow(s, sanitizeLeaf)),
-      };
-    case 'do':
-      return sanitizeLeaf ? { ...flow, effect: sanitizeLeaf(flow.effect) } : flow;
-    case 'if':
-      return { ...flow, then: sanitizeFlow(flow.then, sanitizeLeaf), ...(flow.else != null ? { else: sanitizeFlow(flow.else, sanitizeLeaf) } : {}) };
-    case 'test':
-      return { ...flow, success: sanitizeFlow(flow.success, sanitizeLeaf), fail: sanitizeFlow(flow.fail, sanitizeLeaf) };
-    case 'choice':
-      return { ...flow, yes: sanitizeFlow(flow.yes, sanitizeLeaf), ...(flow.no != null ? { no: sanitizeFlow(flow.no, sanitizeLeaf) } : {}) };
-    default:
-      return flow;
-  }
 }
 
 /** Champ COMPAGNON obligatoire de chaque forme de nœud (`Flow`) — le second critère de reconnaissance :

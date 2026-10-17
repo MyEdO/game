@@ -9,7 +9,7 @@ import type { IconIdInput } from './icons';
  * et même liseré que le pont de combat (tokens `--cc-*`), à hauteur d'une rangée d'icônes : la
  * transition combat↔exploration change le CONTENU du pont, jamais son existence.
  *
- * Extrémité DROITE = la rangée d'icônes-écrans, tiroir-journal compris (§1c-ter : une plaque unique,
+ * Extrémité DROITE = la rangée d'icônes-écrans et son voisin tiroir-journal (§1c-ter : une plaque unique,
  * jamais des éléments épars — hors combat le rail d'outils ne se rend pas). Les ÉTATS d'ouverture
  * (dossier, carnet, hub…) restent chez `CampaignView` : ici, une entrée est OFFERTE quand son rappel
  * est fourni — la condition d'apparition vit au call site, jamais dupliquée.
@@ -25,8 +25,8 @@ import type { IconIdInput } from './icons';
 export type ExplorationDockProps = {
   /** Possessions du groupe (#762) — gestion des bêtes/véhicules/navires/serviteurs. */
   onPossessions: () => void;
-  /** Carnet d'enquête (#670). */
-  onCarnet?: () => void;
+  /** Carnet d'enquête (#670) — `nouveau` : un indice a changé depuis le dernier affichage (#2415). */
+  carnet?: { onOpen: () => void; nouveau: boolean };
   /** Dossier du navire (#227). */
   onShipDossier?: () => void;
   /** Écran-hub de voyage RÉDUIT (#333) : le rouvrir. */
@@ -39,11 +39,11 @@ export type ExplorationDockProps = {
   rest?: { title: string; onOpen: () => void };
   /** Fouiller la pièce où se tient le groupe (`fouillerLaPiece`) — offert DANS une pièce. */
   onFouiller?: () => void;
-  /** Tiroir-journal (`LogDrawer`) : DERNIÈRE entrée de la rangée hors combat. */
+  /** Tiroir-journal (`LogDrawer`) : DERNIER enfant du pont hors combat. */
   journal?: ReactNode;
 };
 
-export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoyage, worldMap, hub, rest, onFouiller, journal }: ExplorationDockProps) {
+export function ExplorationDock({ onPossessions, carnet, onShipDossier, onVoyage, worldMap, hub, rest, onFouiller, journal }: ExplorationDockProps) {
   return (
     <div className="exploration-dock skin-pont" data-deck="exploration">
       {onFouiller && (
@@ -57,9 +57,15 @@ export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoya
         <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onPossessions} title={t('pont.possessions')}>
           <Icon id="travel/mount" size="lg" />
         </button>
-        {onCarnet && (
-          <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onCarnet} title={t('pont.carnet')}>
-            <Icon id="nav/compendium" size="lg" />
+        {carnet && (
+          <button
+            type="button"
+            className={`worldmap-btn skin-tole ${carnet.nouveau ? 'attention' : ''}`}
+            data-ton="laiton"
+            onClick={carnet.onOpen}
+            title={t(carnet.nouveau ? 'pont.carnetNouveau' : 'pont.carnet')}
+          >
+            <Icon id="nav/carnet" size="lg" />
           </button>
         )}
         {onShipDossier && (
@@ -94,8 +100,8 @@ export function ExplorationDock({ onPossessions, onCarnet, onShipDossier, onVoya
             <Icon id="nav/rest" size="lg" />
           </button>
         )}
-        {journal}
       </div>
+      {journal}
     </div>
   );
 }

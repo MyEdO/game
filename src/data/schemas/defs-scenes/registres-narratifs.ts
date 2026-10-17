@@ -15,9 +15,9 @@
  */
 import type { NarratifBlock } from '../../../state/campaignNarratif';
 
-/** Clés de `NarratifBlock` dont la valeur est une liste d'entrées. */
-type ClesDeListe<T> = { [K in keyof T]-?: NonNullable<T[K]> extends readonly unknown[] ? K : never }[keyof T];
-export type CleDeRegistreNarratif = ClesDeListe<NarratifBlock>;
+/** Clés de `NarratifBlock` dont la valeur est une liste d'entrées à `id` (`ecartes` se clé par `entree`). */
+type ClesDeListeAId<T> = { [K in keyof T]-?: NonNullable<T[K]> extends readonly { id: string }[] ? K : never }[keyof T];
+export type CleDeRegistreNarratif = ClesDeListeAId<NarratifBlock>;
 
 /** Une ligne de registre : sa clé dans `NarratifBlock`, le complément de nom de ses messages de faute
  *  (« l'id d'affaire »), le nom d'une de ses entrées pour l'auteur (« l'affaire »), le sujet d'une
@@ -41,6 +41,7 @@ const TABLE: { readonly [K in CleDeRegistreNarratif]: Omit<RegistreNarratif, 'cl
   indices: { de: 'd\'indice', nom: 'l\'indice', inconnu: 'indice inconnu', aucun: 'aucun indice choisi', idAuSchema: true },
   presetsPnj: { de: 'de preset PNJ', nom: 'le PNJ', inconnu: 'preset de PNJ inconnu', aucun: 'aucun preset de PNJ choisi', idAuSchema: true },
   objets: { de: 'd\'objet', nom: 'l\'objet', inconnu: 'objet inconnu', aucun: 'aucun objet choisi', idAuSchema: false },
+  etats: { de: 'd\'état de campagne', nom: 'l\'état de campagne', inconnu: 'état de campagne non déclaré', aucun: 'aucun état de campagne choisi', idAuSchema: true },
   documents: { de: 'de document', nom: 'le document', inconnu: 'document inconnu', aucun: 'aucun document choisi', idAuSchema: true },
 };
 
@@ -56,6 +57,7 @@ export const REFERENCES_NARRATIVES = {
   indiceId: 'indices',
   presetId: 'presetsPnj',
   documentId: 'documents',
+  etat: 'etats',
 } as const satisfies Readonly<Record<string, CleDeRegistreNarratif>>;
 
 /** Registre désigné par une référence narrative. */
@@ -66,3 +68,6 @@ export const inconnuDe = (registre: CleDeRegistreNarratif): string => TABLE[regi
 
 /** Le sujet d'une référence encore VIDE vers `registre` (« aucun document choisi »). */
 export const aucunDe = (registre: CleDeRegistreNarratif): string => TABLE[registre].aucun;
+
+/** Le nom d'une entrée de `registre` pour l'auteur (« l'indice »). */
+export const nomDe = (registre: CleDeRegistreNarratif): string => TABLE[registre].nom;

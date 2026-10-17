@@ -1,13 +1,5 @@
-/**
- * Schéma de `qualities.json` — Atouts/Défauts d'arme/armure/objet (LDB 62-63), `QualityData`
- * (`src/data/index.ts`). `capabilities` = `QualityCapabilities` (drapeaux IRRÉDUCTIBLES,
- * `src/data/index.ts`) ; `effects`/`passive` = MÊME vocabulaire `TriggeredEffect`/`GameOp` que
- * les Traits et les sorts, PROMU dans `grammaire/mecanique.ts` (`conditionSchema`/`flowSchema`/`triggeredEffectSchema`
- * — partagés avec `maneuvers.ts`).
- *
- * `alsoIn` (clé d'ENVELOPPE) porte les emplacements SECONDAIRES (#563) — ex. `tir-de-zone` AA folio 89
- * ET MDG folio 102 (réimprime AA verbatim).
- */
+import { nommerChamps } from '../grammaire/meta';
+/** LDB 62-63 ; AA ; MDG */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { gameOpSchema, triggeredEffectSchema } from '../grammaire/mecanique';
@@ -18,7 +10,7 @@ export const famille = 'entite';
 /** `QualityCapabilities` (`src/data/index.ts`) — clés OBSERVÉES dans `qualities.json` (52
  *  entrées) sauf `slowStrike`/`layerable`/`apIgnoredOnImpaleCrit` (présents dans l'interface, absents
  *  des 52 entrées actuelles — conservés car le TYPE source fait foi, pas l'échantillon courant). */
-const qualityCapabilities = z.strictObject({
+const qualityCapabilities = nommerChamps(z.strictObject({
   fastStrike: z.boolean().optional(),
   slowStrike: z.boolean().optional(),
   fumbleOn9: z.boolean().optional(),
@@ -45,17 +37,40 @@ const qualityCapabilities = z.strictObject({
   magic: z.boolean().optional(),
   withheldOnRestraint: z.boolean().optional(),
   beats: z.array(z.string()).optional(),
+}), {
+  fastStrike: { label: 'Frappe rapide' },
+  slowStrike: { label: 'Frappe lente' },
+  fumbleOn9: { label: 'Maladresse sur un 9' },
+  fumbleDigits: { label: 'Chiffres de maladresse' },
+  pushback: { label: 'Repousse' },
+  bladeTrap: { label: 'Piège-lame' },
+  damagesArmour: { label: 'Dommages à l’armure' },
+  firearm: { label: 'Arme à feu' },
+  canFireWhileEngaged: { label: 'Tir au contact' },
+  magazine: { label: 'Chargeur' },
+  salvo: { label: 'Salve' },
+  areaFire: { label: 'Tir de zone' },
+  explosion: { label: 'Explosion' },
+  crewedTeam: { label: 'Équipe de servants' },
+  parryAP: { label: 'Armure de parade' },
+  encDelta: { label: 'Variation d’Encombrement' },
+  layerable: { label: 'Superposable' },
+  critImmuneOdd: { label: 'Immunité aux critiques impairs' },
+  apIgnoredOnEven: { label: 'Armure ignorée sur un résultat pair' },
+  apIgnoredOnImpaleCrit: { label: 'Armure ignorée sur un critique d’empalement' },
+  siege: { label: 'Siège' },
+  ram: { label: 'Éperonnage' },
+  unbreakable: { label: 'Incassable' },
+  magic: { label: 'Magique' },
+  withheldOnRestraint: { label: 'Neutralisé pendant la retenue' },
+  beats: { label: 'Qualités supplantées' },
 });
 
 const doc = document(
   'qualities',
   famille,
   {
-    /** POLARITÉ de la Qualité — Atout (bénéfique) / Défaut (handicap). Trois PAIRES de rubriques selon
-     *  le sous-type : objet `LDB 60 l.9`/`l.40`, arme `LDB 62 l.217`/`l.309`, armure `LDB 63 l.68`/`l.80`.
-     *  Observée sur 59/59 entrées : 40 `atout`, 19 `defaut`. Lue par `isAtoutQuality` — cible des champs
-     *  d'op `augmentWeapon.removeType`/`Weapon.removedTypes`, dont le NOM est persisté en donnée
-     *  (1 porteur mesuré, `spells.json`) : leur rename appartient au lot des ops, #1468 (L1c). */
+    /** LDB 60 l.9/l.40 ; LDB 62 l.217/l.309 ; LDB 63 l.68/l.80 */
     polarite: z.enum(['atout', 'defaut']),
     /** `subType` observé : 'arme' | 'armure' | 'objet' (59/59) ; `QualityData.subType` autorise aussi
      *  `null` (TS `string | null`), non vu dans les 59 entrées actuelles mais le type source fait foi. */
@@ -63,10 +78,8 @@ const doc = document(
     effects: z.array(triggeredEffectSchema).optional(),
     passive: z.array(gameOpSchema).optional(),
     capabilities: qualityCapabilities.optional(),
-    /** Cette qualité est INDICÉE (LDB 60 l.28) — forme de `TraitData.indice`/`traits.ts`, plus l'UNITÉ
-     *  que le livre imprime avec la valeur quand il y en a une (`AA 08 l.87` « Taillade (XA) », l.136
-     *  « Taillade (1A) » ; `LDB 62 l.66` « Recharge 1 » n'en a aucune). Lue par `qualityRefLabel`. */
-    indice: z.strictObject({ label: z.string(), unite: z.string().optional() }).optional(),
+    /** LDB 60 l.28 ; AA 08 l.87 ; LDB 62 l.66 */
+    indice: nommerChamps(z.strictObject({ label: z.string(), unite: z.string().optional() }), { label: { label: 'Libellé' }, unite: { label: 'Unité' } }).optional(),
   },
   {
     polarite: { label: 'Polarité', hint: 'Atout ou Défaut' },

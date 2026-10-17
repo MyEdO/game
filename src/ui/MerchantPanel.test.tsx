@@ -154,3 +154,22 @@ describe('MerchantPanel (#2 — panier)', () => {
     expect(soured).toContain('méfiant');
   });
 });
+
+describe('MerchantPanel — « Évaluer » à la vente suit qui peut tenter le Test (LDB 09 l.30)', () => {
+  const inconnu = { uid: 'x', trappingId: 'dague', label: 'Dague', kind: 'melee', qualities: [], enc: 0, equipped: false, identified: false } as unknown as ItemInstance;
+  const vente = (h: Combatant) => renderToStaticMarkup(<MerchantPanelView merchant={base} party={[h]} money={{ gold: 1, silver: 0, brass: 0 }} {...noop} initialTab="sell" />);
+  const evaluer = (html: string) => new RegExp('<button[^>]*>Évaluer</button>').exec(html)?.[0] ?? '';
+
+  it('un vendeur avec une Augmentation en Évaluation : le geste est offert', () => {
+    const h = { ...stubHero('h', 'H', [inconnu]), skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as Combatant;
+    const html = vente(h);
+    expect(evaluer(html), 'le bouton est rendu').toBeTruthy();
+    expect(evaluer(html)).not.toContain('aria-disabled');
+  });
+
+  it('personne qui l’ait : le geste est fermé, sa raison NOMMÉE', () => {
+    const html = vente(stubHero('h', 'H', [inconnu]));
+    expect(evaluer(html)).toContain('aria-disabled="true"');
+    expect(html).toContain('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
+  });
+});

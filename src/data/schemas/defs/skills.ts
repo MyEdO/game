@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `skills.json` — dérivé de l'inventaire COMPLET des clés (script node, n=46/46), de
  * l'interface `SkillData` (`src/data/index.ts`) et de ses consommateurs (`ItemCapabilities`,
@@ -6,6 +7,7 @@
 import { z } from 'zod';
 import { charKeySchema, enumNomme, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
+import { senseSchema } from '../grammaire/mecanique';
 
 export const file = 'skills.json';
 export const famille = 'entite';
@@ -15,35 +17,38 @@ const doc = document(
   famille,
   {
     characteristic: charKeySchema,
-    /** ACCÈS à la Compétence (`LDB 09 l.25/l.30`) : `base` = testable sans formation, sur la
-     *  Caractéristique nue ; `avancee` = exige au moins une Augmentation, sinon le Test est impossible.
-     *  DISCRIMINANT DE LOGIQUE, jamais un libellé : lu par `possesses` (`engine/skillCombatApps.ts`) et
-     *  par la fourchette de tuteur de l'Entraînement (`engine/activities.ts`). Mesuré : 25 / 23 sur 48. */
+    /** LDB 09 l.25/l.30 */
     acces: enumNomme({ base: 'Base', avancee: 'Avancée' }),
     specs: specsSchema.optional(),
     specsSource: specsSourceSchema.optional(),
     specsOpen: z.boolean().optional(),
+    /** LDB 09 l.571 */
+    specsSoeursDeBase: z.boolean().optional(),
     movement: z.boolean().optional(),
-    hearing: z.boolean().optional(),
+    senses: z.array(senseSchema).optional(),
     /** Caractéristique ALTERNATIVE sous règle optionnelle (`SkillData.altChar`, lu par `altCharKey`) :
      *  `gatedByRule` = id d'`OptionalRule` (FK validée par `variants-integrity.test.ts`), `from` = carac de
      *  base à laquelle la substitution s'applique (absente = toute carac), `chars` = la carac à utiliser
      *  PAR VALEUR de la règle (clé = valeur rendue par `rule()`, en chaîne — `"true"` pour un interrupteur ;
      *  une LISTE = la meilleure des caracs citées chez le porteur). */
-    altChar: z.strictObject({
+    altChar: nommerChamps(z.strictObject({
       gatedByRule: z.string(),
       from: charKeySchema.optional(),
       chars: z.record(z.string(), z.union([charKeySchema, z.array(charKeySchema)])),
+    }), {
+      gatedByRule: { label: 'Règle optionnelle requise' },
+      from: { label: 'Caractéristique d’origine' },
+      chars: { label: 'Caractéristiques' },
     }).optional(),
-    combatAdvantage: z.strictObject({ cap: charKeySchema }).optional(),
-    combatSubstitute: z.strictObject({
+    combatAdvantage: nommerChamps(z.strictObject({ cap: charKeySchema }), { cap: { label: 'Plafond' } }).optional(),
+    combatSubstitute: nommerChamps(z.strictObject({
       role: z.enum(['defense', 'attack', 'both']),
       gate: z.literal('fear'),
-    }).optional(),
+    }), { role: { label: 'Rôle' }, gate: { label: 'Condition d’accès' } }).optional(),
     /** `capability` = clé de `ItemCapabilities` (`src/data/index.ts`) — sac de flags fermé côté TS ;
      *  laissé en `z.string()` ici (référence croisée hors périmètre d'un seul dataset, cf. `tool.json`
      *  n'existe pas comme catalogue séparé — c'est un type TS, pas une donnée). */
-    tool: z.strictObject({ capability: z.string(), withoutMod: z.number() }).optional(),
+    tool: nommerChamps(z.strictObject({ capability: z.string(), withoutMod: z.number() }), { capability: { label: 'Capacité' }, withoutMod: { label: 'Modificateur sans outil' } }).optional(),
   },
   {
     characteristic: { label: 'Caractéristique' },
@@ -54,13 +59,17 @@ const doc = document(
     specs: { label: 'Spécialisations', hint: 'Liste fermée de spécialisations proposées' },
     specsSource: { label: 'Registre de spécialisations' },
     specsOpen: { label: 'Spécialisation ouverte' },
+    specsSoeursDeBase: {
+      label: 'Autres Spécialisations de Base',
+      hint: 'Posséder une Spécialisation de cette Compétence rend les autres de Base pour le porteur',
+    },
     movement: {
       label: 'Compétence de déplacement',
       hint: 'Classée « déplacement » : gate les Tests visés par un blocage de Mouvement',
     },
-    hearing: {
-      label: 'Compétence auditive',
-      hint: 'Classée « implique l’audition » : pénalisée par l’État Assourdi',
+    senses: {
+      label: 'Sens sollicités',
+      hint: 'Sens qu’implique un Test de cette Compétence : ciblé par les pénalités restreintes à un sens (Aveuglé, Assourdi, Cécité)',
     },
     altChar: { label: 'Caractéristique alternative', hint: 'Substitution de Caractéristique sous règle optionnelle' },
     combatAdvantage: {
@@ -77,7 +86,7 @@ const doc = document(
     codex: { keys: ['skills'] },
     edit: { dataset: 'skills' },
   },
-  // `specsOpen` : `LDB 09 l.40`, lu par `entreeOuverte` (`grammaire/ref.ts`).
+  /** LDB 09 l.40 */
   { exiges: ['desc', 'source'], espace: { marqueurs: ['specsOpen'] } },
 );
 

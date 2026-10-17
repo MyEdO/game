@@ -5,16 +5,22 @@
  * de sites, et la SEULE commande de sa régénération :
  *
  *   npx tsx scripts/guards/lib/regenStock.mts <module qui mesure> [--check] [--amorce] [--lot <#N …>]
+ *   npm run stocks:regen [-- --check] [-- --lot <#N …>]   (`--tous`)
  *
  * Le module qui mesure déclare sa régénération (`regenerations()`, une liste de
  * `RegenerationDeStock`) ; la commande l'importe sans l'exécuter, et refuse un chemin de stock dont
- * l'attribut git `merge` n'est pas `stocks` (le pilote de fusion, `.gitattributes`).
+ * l'attribut git `merge` n'est pas `stocks` (le pilote de fusion, `.gitattributes`). `--tous` joue
+ * chaque module qui mesure (`modulesQuiMesurent`, sur l'arbre syntaxique) et rend le plus grand code :
+ * c'est la régénération au point fixe du train après une fusion du tronc (`etapesDuTrain.mjs`, #2525).
  */
-import { existsSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { RACINE } from './bindingsVivants.mjs';
-import { attributDe, depotDe, refusDeGit } from './gitPorte.mjs';
+import { analyserCorpus, typescript } from './dialecte.mjs';
+import { estFichierVitest } from './fichierVitest.mjs';
+import { attributDe, depotDe, listerImage, refusDeGit, SUIVI } from './gitPorte.mjs';
+import { estModule } from './importGraph.mjs';
 import { ecartDeRegeneration, texteEnPlace, texteRegenere, type RegenerationDeStock } from './stockDeSites.mjs';
 
 /** Le lot du chantier passé par `--lot <#N …>`, ou `null`. */
@@ -89,19 +95,58 @@ function regenererUn(
   return 0;
 }
 
-const USAGE = 'Usage : npx tsx scripts/guards/lib/regenStock.mts <module qui mesure> [--check] [--amorce] [--lot <#N …>]';
+const USAGE = 'Usage : npx tsx scripts/guards/lib/regenStock.mts <module qui mesure> | --tous [--check] [--amorce] [--lot <#N …>]';
 
-/** Les arguments de la commande : le module (seul positionnel), ou `null` si la ligne est hors usage. */
-function moduleDeLaLigne(args: readonly string[]): string | null {
+/** Les arguments de la commande : le module (seul positionnel), `TOUS` sous `--tous` sans positionnel,
+ *  ou `null` si la ligne est hors usage. */
+const TOUS = Symbol('tous');
+function moduleDeLaLigne(args: readonly string[]): string | typeof TOUS | null {
   const positionnels: string[] = [];
+  let tous = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--check' || a === '--amorce') continue;
+    if (a === '--tous') { tous = true; continue; }
     if (a === '--lot') { i++; continue; }
     if (a.startsWith('--')) return null;
     positionnels.push(a);
   }
+  if (tous) return positionnels.length === 0 ? TOUS : null;
   return positionnels.length === 1 ? positionnels[0] : null;
+}
+
+/**
+ * Les modules qui MESURENT parmi `fichiers` : ceux qui exportent une liaison `regenerations`
+ * (`export const`, `export function`, `export async function`), lus sur l'arbre syntaxique. Une
+ * déclaration de types (`.d.mts`), un instrument (`estFichierVitest`) ou un fichier hors `estModule`
+ * n'en est pas un. PUR.
+ */
+export function modulesQuiMesurent(fichiers: Iterable<{ rel: string; text: string }>): string[] {
+  const ts = typescript();
+  const estExporte = (st: { modifiers?: readonly { kind: number }[] }) => Boolean(st.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword));
+  const candidats = [...fichiers].filter((f) => estModule(f.rel) && !/\.d\.[cm]?ts$/.test(f.rel) && !estFichierVitest(f.rel));
+  const vus: string[] = [];
+  for (const { fichier, sourceFile } of analyserCorpus(candidats)) {
+    const exporte = sourceFile?.statements.some((st) => {
+      if (ts.isFunctionDeclaration(st)) return estExporte(st) && st.name?.text === 'regenerations';
+      return ts.isVariableStatement(st) && estExporte(st) && st.declarationList.declarations.some((d) => ts.isIdentifier(d.name) && d.name.text === 'regenerations');
+    });
+    if (exporte) vus.push(fichier.rel);
+  }
+  return vus;
+}
+
+/** Les modules qui mesurent parmi les fichiers SUIVIS de `scripts/` (`listerImage`, `SUIVI`). */
+function modulesQuiMesurentDuDepot(depot: ReturnType<typeof depotDe>): string[] {
+  const suivis = listerImage(depot, SUIVI, 'scripts').filter((rel: string) => estModule(rel));
+  return modulesQuiMesurent(suivis.map((rel) => ({ rel, text: readFileSync(resolve(RACINE, rel), 'utf8') })));
+}
+
+/** Joue chaque module de `modules` (`jouerModule`), dans son ordre, et rend le PLUS GRAND code. */
+export async function jouerModules(modules: readonly string[], args: readonly string[]): Promise<number> {
+  let code = 0;
+  for (const module of modules) code = Math.max(code, await jouerModule(module, args));
+  return code;
 }
 
 async function main(): Promise<number> {
@@ -111,6 +156,12 @@ async function main(): Promise<number> {
     console.error(USAGE);
     return 2;
   }
+  if (module !== TOUS) return jouerModule(module, args);
+  return jouerModules(modulesQuiMesurentDuDepot(depotDe(RACINE)), args);
+}
+
+/** Régénère (ou juge) les stocks que déclare `module` ; 2 sur un module ou un chemin refusé. */
+async function jouerModule(module: string, args: readonly string[]): Promise<number> {
   const M = await import(pathToFileURL(resolve(RACINE, module)).href);
   if (typeof M.regenerations !== 'function') {
     console.error(`${module} : aucun export \`regenerations\`.`);

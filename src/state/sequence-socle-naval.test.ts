@@ -99,11 +99,18 @@ interface SeaCrisisPayload {
 
 const NAVAL = 'test-crise-navale';
 
+declare module './sequenceContract' {
+  interface SequenceFamilies {
+    [NAVAL]: SeaCrisisPayload;
+    'test-boucle-infinie': { n: number };
+  }
+}
+
 /** Ce que le socle a REDONNÉ au domaine à chaque ouverture de manche — la preuve que l'état a persisté
  *  d'une manche à l'autre (rang, cumuls, charge navale). */
 const traceNavale: { round: number; metres: number; cum: Record<string, number> }[] = [];
 
-registerSequence<SeaCrisisPayload>(NAVAL, {
+registerSequence(NAVAL, {
   round: (get, seq): SequenceRound<SeaCrisisPayload> | undefined => {
     const barreur = get().party[0];
     if (!barreur) return undefined;
@@ -179,7 +186,7 @@ describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 m
   it('la BORNE anti-boucle est un invariant du CONTRAT, jamais un compteur par système', () => {
     expect(SEQUENCE_MAX_ROUNDS).toBe(50);
     let manches = 0;
-    registerSequence<{ n: number }>('test-boucle-infinie', {
+    registerSequence('test-boucle-infinie', {
       round: (get, seq) => {
         manches = seq.round;
         const h = get().party[0];

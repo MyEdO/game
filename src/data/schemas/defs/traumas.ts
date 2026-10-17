@@ -1,34 +1,46 @@
-/**
- * Schéma de `traumas.json` — Traumatismes (LDB 18). Dérivé du contenu RÉEL (23 fiches) et de son
- * consommateur typé `TraumaFiche` (`src/engine/trauma.ts`). `ops` = `GameOp[]` (vocab partagé) ;
- * `cosmetic`/`passiveKind` : cicatrices post-guérison (LDB 18 l.61/72, #192) — `maison` est une clé
- * d'ENVELOPPE, posée par la fabrique.
- */
+import { nommerChamps } from '../grammaire/meta';
+/** LDB 18 ; LDB 18 l.61/72 */
 import { z } from 'zod';
 import { formulaSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { gameOpSchema } from '../grammaire/mecanique';
 
-/** Règle de COMPTAGE/AGRÉGATION d'une séquelle cumulative (`TraumaCumul`, `src/engine/trauma.ts`) —
- *  LDB 18 l.247/251/273/277/281. */
-const cumulSchema = z.strictObject({
+/** LDB 18 l.247/251/273/277/281 */
+const cumulSchema = nommerChamps(z.strictObject({
   portee: z.enum(['localisation', 'porteur']),
   unite: formulaSchema.optional(),
-  parPalier: z.strictObject({ taille: z.number(), ops: z.array(gameOpSchema) }).optional(),
-  escalade: z
-    .strictObject({ atLeast: z.number(), versTraumaId: z.string(), mode: z.enum(['remplace', 'ajoute']) })
+  parPalier: nommerChamps(z.strictObject({ taille: z.number(), ops: z.array(gameOpSchema) }), { taille: { label: 'Taille' }, ops: { label: 'Opérations' } }).optional(),
+  escalade: nommerChamps(z
+    .strictObject({ atLeast: z.number(), versTraumaId: z.string(), mode: z.enum(['remplace', 'ajoute']) }), {
+    atLeast: { label: 'Minimum' },
+    versTraumaId: { label: 'Traumatisme associé' },
+    mode: { label: 'Mode' },
+  })
     .optional(),
+}), {
+  portee: { label: 'Portée' },
+  unite: { label: 'Unité' },
+  parPalier: { label: 'Par palier' },
+  escalade: { label: 'Escalade' },
 });
 
-/** Routage d'APPARENCE de la séquelle sur le rig (`TraumaRig`, `src/engine/trauma.ts`) — LDB 18 / LDB 73. */
-const rigSchema = z.strictObject({
+/** LDB 18 ; LDB 73 */
+const rigSchema = nommerChamps(z.strictObject({
   bone: z.string(),
   lateral: z.boolean().optional(),
   art: z.string().optional(),
-  byProsthesis: z.array(z.strictObject({ trappingId: z.string(), art: z.string() })).optional(),
+  byProsthesis: z.array(nommerChamps(z.strictObject({ trappingId: z.string(), art: z.string() }), { trappingId: { label: 'Objet' }, art: { label: 'Apparence' } })).optional(),
   hidesBone: z.string().optional(),
   view: z.literal('front').optional(),
   replace: z.boolean().optional(),
+}), {
+  bone: { label: 'Os' },
+  lateral: { label: 'Latéral' },
+  art: { label: 'Apparence' },
+  byProsthesis: { label: 'Par prothèse' },
+  hidesBone: { label: 'Os masqué' },
+  view: { label: 'Vue' },
+  replace: { label: 'Remplacement' },
 });
 
 export const file = 'traumas.json';
@@ -43,10 +55,10 @@ const doc = document(
     severity: z.enum(['mineur', 'majeur']).optional(),
     prosthesis: z
       .array(
-        z.strictObject({
+        nommerChamps(z.strictObject({
           trappingId: z.string(),
           cancels: z.enum(['all', 'movement']),
-        }),
+        }), { trappingId: { label: 'Objet' }, cancels: { label: 'Annulations' } }),
       )
       .optional(),
     cumul: cumulSchema.optional(),

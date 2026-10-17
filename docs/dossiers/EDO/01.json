@@ -1,0 +1,2630 @@
+{
+  "lecture": {
+    "date": "2026-10-04",
+    "commit": "f6e343dc8abf36a9d34cc3fd13de60af3d9ac894"
+  },
+  "imperatifs": [
+    {
+      "id": "imp1",
+      "texte": "Les PJ découvrent sur le cadavre de Kastor Lieberung (Magister impedimentae de la Main Pourpre) un élément leur permettant de s'enrichir rapidement ; ils ignorent qui est le mort (contrainte pour la suite de la campagne).",
+      "ref": [
+        "EDO 01 l.7"
+      ]
+    },
+    {
+      "id": "imp2",
+      "texte": "Les PJ doivent tenter de trouver une diligence pour Altdorf : ils ne doivent disposer d'aucun cheval ni pouvoir en acquérir avant Bögenhafen (Cavalier/Écuyer : à régler avec le joueur).",
+      "ref": [
+        "EDO 01 l.124"
+      ]
+    },
+    {
+      "id": "imp3",
+      "texte": "Scénario calé à la fin du mois de Jahrdrung, à environ deux jours (diligence) d'Altdorf, après Delbren.",
+      "ref": [
+        "EDO 01 l.11"
+      ]
+    },
+    {
+      "id": "imp4",
+      "texte": "Ernst Heidlemann est un personnage récurrent, qu'on retrouvera plus tard dans la campagne (il refait surface dans Mort sur le Reik) : le MJ doit faire de son mieux pour le garder en vie pour le moment.",
+      "ref": [
+        "EDO 01 l.513"
+      ]
+    },
+    {
+      "id": "imp5",
+      "texte": "Pour la rencontre principale avec les mutants (chapitre 2), il doit être évident que les PJ sont les seuls capables de défendre la diligence ; aucun PNJ compagnon de voyage ne doit être utile en combat.",
+      "ref": [
+        "EDO 01 l.329"
+      ]
+    },
+    {
+      "id": "imp6",
+      "texte": "Quelle que soit la façon dont les PJ continuent leur chemin, ils rencontrent quelque chose de déplaisant sur la route.",
+      "ref": [
+        "EDO 01 l.342"
+      ]
+    },
+    {
+      "id": "imp7",
+      "texte": "Les PJ tombent sur l'affiche Document 1 (Prince Héritier Hergard, mission dans les Montagnes Grises, 8 Couronnes par personne et par jour) à La Diligence ou dans une autre auberge.",
+      "ref": [
+        "EDO 01 l.206"
+      ]
+    },
+    {
+      "id": "imp8",
+      "texte": "Dans l'option du mage rival, Ernst ne voyage pas jusqu'à Altdorf avec les PJ ; il refera surface dans Mort sur le Reik.",
+      "ref": [
+        "EDO 01 l.292"
+      ]
+    }
+  ],
+  "beats": [
+    {
+      "id": "b1",
+      "titre": "Début de l'aventure : les PJ se dirigent vers Altdorf",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Le livre laisse le MJ définir les raisons du voyage, sans le qualifier : « Nous vous laissons définir les raisons exactes de ce voyage » (EDO 01 l.11).",
+      "mediasCandidats": [
+        "resume",
+        "dialogue",
+        "interlude"
+      ],
+      "ref": [
+        "EDO 01 l.9-13"
+      ]
+    },
+    {
+      "id": "b2",
+      "titre": "Description de l'auberge-relais La Diligence (plan, 12 zones)",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; le livre dit « il est utile de prendre le temps de bien la décrire » (EDO 01 l.17).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "resume",
+        "interlude"
+      ],
+      "ref": [
+        "EDO 01 l.15-72"
+      ]
+    },
+    {
+      "id": "b3",
+      "titre": "L'approche : la diligence des Quatre Saisons franchit le portail",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; « On suppose que les Personnages arrivent en début de soirée » (EDO 01 l.77), heure modifiable.",
+      "mediasCandidats": [
+        "scene-jouee",
+        "interlude",
+        "resume"
+      ],
+      "ref": [
+        "EDO 01 l.75-79"
+      ]
+    },
+    {
+      "id": "b4",
+      "titre": "La cour et la diligence des Lignes du Rochet (charpente pourrie)",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; l'examen de la diligence dépend d'un Test de Perception ou Métier (EDO 01 l.87).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "resume"
+      ],
+      "ref": [
+        "EDO 01 l.81-87"
+      ]
+    },
+    {
+      "id": "b5",
+      "titre": "Dans l'auberge : arrivée, Gustav et Noiraud, tableau des PNJ",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; Gustav s'approche des PJ « Avant que les Personnages puissent faire quoi que ce soit » (EDO 01 l.95).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "dialogue"
+      ],
+      "ref": [
+        "EDO 01 l.91-100"
+      ]
+    },
+    {
+      "id": "b6",
+      "titre": "Le mors aux dents : pas de chevaux, il faut une diligence",
+      "statut": "obligatoire",
+      "preuveDuStatut": "« il est important que les Personnages tentent de trouver une diligence pour Altdorf. Ce qui implique qu'ils ne doivent pas disposer de chevaux » (EDO 01 l.124).",
+      "mediasCandidats": [
+        "dialogue",
+        "resume",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.122-128"
+      ]
+    },
+    {
+      "id": "b7",
+      "titre": "Marchander avec les cochers Gunnar et Hultz un trajet vers l'auberge des Sept Rayons",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; « si l'un des aventuriers demande aux cochers de les emmener à Altdorf, vous devrez les interpréter » (EDO 01 l.112).",
+      "mediasCandidats": [
+        "dialogue",
+        "scene-jouee",
+        "resume"
+      ],
+      "ref": [
+        "EDO 01 l.138-142"
+      ]
+    },
+    {
+      "id": "b8",
+      "titre": "Dame Isolde, Janna, Marie et Ernst : interactions facultatives dans la salle",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; les PNJ « ne parlent pas tant qu'ils n'ont pas été abordés » (EDO 01 l.112).",
+      "mediasCandidats": [
+        "dialogue",
+        "scene-jouee",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.144-146",
+        "EDO 01 l.186-190"
+      ]
+    },
+    {
+      "id": "b9",
+      "titre": "Une partie de cartes ? Phillipe Descartes et l'Impératrice Écarlate",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; Phillipe prend l'initiative (EDO 01 l.112, EDO 01 l.200) sans que le livre dise la scène obligatoire.",
+      "mediasCandidats": [
+        "scene-jouee",
+        "dialogue"
+      ],
+      "ref": [
+        "EDO 01 l.198-202"
+      ]
+    },
+    {
+      "id": "b10",
+      "titre": "Document 1 : l'affiche « On recherche ! Aventuriers courageux ! »",
+      "statut": "obligatoire",
+      "preuveDuStatut": "Le livre l'énonce comme un fait, pas comme une option : « À La Diligence, ou dans une autre auberge sur le chemin, les Personnages tombent sur une affiche » (EDO 01 l.206). Le lieu est au choix, la découverte non. Le dossier en fait lui-même l'impératif imp7.",
+      "mediasCandidats": [
+        "interlude",
+        "resume",
+        "scene-jouee"
+      ],
+      "ref": [
+        "EDO 01 l.204-218"
+      ]
+    },
+    {
+      "id": "b11",
+      "titre": "Phillipe triche, est démasqué, tire et fuit ; Gustav tire à son tour ; saut par la fenêtre",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; dépend de la tricherie découverte : « Phillipe peut être démasqué » (EDO 01 l.220) ; « Si personne ne le perce à jour, Phillipe se retire » (EDO 01 l.220).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.220-233"
+      ]
+    },
+    {
+      "id": "b12",
+      "titre": "Haute sécurité : sort de Phillipe capturé, procès, vengeance",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; « Ce que les Personnages font de Phillipe (s'ils l'attrapent) ne dépend que d'eux » (EDO 01 l.237).",
+      "mediasCandidats": [
+        "dialogue",
+        "resume",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.235-243"
+      ]
+    },
+    {
+      "id": "b13",
+      "titre": "Debout là-dedans ! Matin, cochers à la gueule de bois, problème de places",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; présenté comme déroulement normal (« Le lendemain matin », EDO 01 l.247).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "dialogue",
+        "resume"
+      ],
+      "ref": [
+        "EDO 01 l.249-257"
+      ]
+    },
+    {
+      "id": "b14",
+      "titre": "Option : à la recherche d'un tricheur (Phillipe joue honnêtement)",
+      "statut": "optionnel",
+      "preuveDuStatut": "Encart titré « OPTIONS : À LA RECHERCHE D'UN TRICHEUR » (EDO 01 l.260).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.260-262"
+      ]
+    },
+    {
+      "id": "b15",
+      "titre": "Option : Un problème de bandits (Gustav ou les cochers complices)",
+      "statut": "optionnel",
+      "preuveDuStatut": "Sous l'en-tête « OPTIONS » (EDO 01 l.260) ; « Mais peut-être que… » (EDO 01 l.270), « Ou alors… » (EDO 01 l.272).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "dialogue",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.264-272"
+      ]
+    },
+    {
+      "id": "b16",
+      "titre": "Option : La fugueuse (Dame Isolde et son frère Lukas)",
+      "statut": "optionnel",
+      "preuveDuStatut": "Sous l'en-tête « OPTIONS » (EDO 01 l.260).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "dialogue",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.274-276"
+      ]
+    },
+    {
+      "id": "b17",
+      "titre": "Option : Le mage rival (Noiraud, Ernst, Fhluger'dagh)",
+      "statut": "optionnel",
+      "preuveDuStatut": "« Cette option est un peu plus extrême, et ne devrait être utilisée que si vous êtes sûr qu'elle ne détournera pas le groupe de l'intrigue en cours » (EDO 01 l.280).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.278-294"
+      ]
+    },
+    {
+      "id": "b18",
+      "titre": "Attendre la prochaine diligence / convaincre Dame Isolde / Un léger contretemps",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; alternatives ouvertes : attendre (EDO 01 l.297), convaincre Isolde « peu probable » (EDO 01 l.299), vol de la diligence (EDO 01 l.305).",
+      "mediasCandidats": [
+        "dialogue",
+        "resume",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.297-305"
+      ]
+    },
+    {
+      "id": "b19",
+      "titre": "Le voyage commence : allure de 3 km/h, conduite d'attelage, diligence dans le fossé",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; l'accident n'arrive que sur un échec avec un DR de -2 ou moins (EDO 01 l.311).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "resume",
+        "interlude"
+      ],
+      "ref": [
+        "EDO 01 l.307-315"
+      ]
+    },
+    {
+      "id": "b20",
+      "titre": "Option : compagnons de voyage modifiés ou remplacés",
+      "statut": "optionnel",
+      "preuveDuStatut": "Encart titré « OPTIONS : COMPAGNONS DE VOYAGE » (EDO 01 l.325) ; « vous pouvez modifier ces PNJ ou les remplacer » (EDO 01 l.327).",
+      "mediasCandidats": [
+        "dialogue",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.325-331"
+      ]
+    },
+    {
+      "id": "b21",
+      "titre": "Chantons sous la pluie ! Bagarre pour entrer dans la cabine",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; la pluie survient « Une vingtaine de minutes après » le départ (EDO 01 l.319) ; le combat dépend du choix des PJ (EDO 01 l.323-334).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "resume",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.317-336"
+      ]
+    },
+    {
+      "id": "b22",
+      "titre": "À la croisée des chemins : borne Altdorf 180 km, Gîte des Cinq Frères",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Non qualifié ; « Quelle que soit la façon dont les Personnages continuent leur chemin, ils rencontreront quelque chose de déplaisant sur la route » (EDO 01 l.342).",
+      "mediasCandidats": [
+        "scene-jouee",
+        "resume",
+        "interlude"
+      ],
+      "ref": [
+        "EDO 01 l.338-342"
+      ]
+    },
+    {
+      "id": "b23",
+      "titre": "Conclusion : récompenses en PX",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "« devraient être accordées » (EDO 01 l.348) ; aucune qualification obligatoire/optionnel de scène.",
+      "mediasCandidats": [
+        "resume",
+        "coupe"
+      ],
+      "ref": [
+        "EDO 01 l.344-354"
+      ]
+    },
+    {
+      "id": "b24",
+      "titre": "Hébergement : quatre chambres prises par les passagers, deux libres pour les PJ, ou la salle commune avec les cochers",
+      "statut": "non-qualifie",
+      "preuveDuStatut": "Le livre décrit seulement qui occupe quoi : « Ce qui en laisse deux à disposition des Personnages, à moins qu'ils ne préfèrent rester dans la salle commune avec les deux cochers » (EDO 01 l.104).",
+      "mediasCandidats": [
+        "resume",
+        "dialogue"
+      ],
+      "ref": [
+        "EDO 01 l.102-104"
+      ]
+    }
+  ],
+  "pointsAuMJ": [
+    {
+      "id": "mj1",
+      "texte": "Rumeurs : pas associées à des PNJ ; le MJ choisit qui les livre et quand ; déconseillé de toutes les utiliser dans l'auberge ; Test de Ragot facultatif.",
+      "type": "rythme-deblocage",
+      "ref": [
+        "EDO 01 l.151-153"
+      ]
+    },
+    {
+      "id": "mj2",
+      "texte": "Rumeur Blutroch (maladie, plaques rouges) : ambiance seulement, vraie ou fausse au choix du MJ.",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.157-158"
+      ]
+    },
+    {
+      "id": "mj3",
+      "texte": "Rumeur sœur cachée de l'Empereur au Grand Hospice : partiellement vraie, une résidente le prétend ; au MJ de décider si c'est le cas.",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.159"
+      ]
+    },
+    {
+      "id": "mj4",
+      "texte": "Rumeur loup blanc sacré d'Ulric dans la Drakwald : à vous de voir si vraie ou non.",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.162"
+      ]
+    },
+    {
+      "id": "mj5",
+      "texte": "Rumeur Teufelfeuer incendié par le répurgateur Fabergus Heinzdork : annonce des événements à venir ; à vous de voir si vraie.",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.163-164"
+      ]
+    },
+    {
+      "id": "mj6",
+      "texte": "Rumeur maire de Grunburg mis au bûcher : humour d'ambiance, au MJ de décider si fondée.",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.176-177"
+      ]
+    },
+    {
+      "id": "mj7",
+      "texte": "Rumeur lumières dans le ciel vers l'est : pose le décor, véracité à décider par le MJ.",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.178"
+      ]
+    },
+    {
+      "id": "mj8",
+      "texte": "Rumeur sur les patrouilleurs routiers corrompus : partiellement vraie, ne doit pas venir de Gustav.",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.180-181"
+      ]
+    },
+    {
+      "id": "mj9",
+      "texte": "Rumeurs dont le livre fixe la véracité : bandits sur la route d'Altdorf (exact), Altdorf et les sorciers (partiel), zoo/Griffe Mortelle (exact), bois dangereux (souvent exact), colonel Sievers (peaux-vertes non battues).",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.160-179"
+      ]
+    },
+    {
+      "id": "mj10",
+      "texte": "Phillipe accusé de tricherie : il nie, bluffe, puis tire et fuit ; acculé, il préfère Retenir ses coups ; il se rend à 3 Blessures ou moins.",
+      "type": "variante-pnj",
+      "ref": [
+        "EDO 01 l.222-231"
+      ]
+    },
+    {
+      "id": "mj11",
+      "texte": "Phillipe condamné : vengeance dont la forme et le moment dépendent entièrement du MJ (gros bras, assassinats un par un).",
+      "type": "consequence-ouverte",
+      "ref": [
+        "EDO 01 l.241-243"
+      ]
+    },
+    {
+      "id": "mj12",
+      "texte": "Phillipe capturé : procès long et coûteux, probablement perdu sans pots-de-vin ; Gustav le relâche sauf bonne raison.",
+      "type": "consequence-ouverte",
+      "ref": [
+        "EDO 01 l.237-239"
+      ]
+    },
+    {
+      "id": "mj13",
+      "texte": "Cavalier/Écuyer parmi les PJ : le MJ décide comment expliquer l'absence de chevaux, en posant la question au joueur.",
+      "type": "variante-pnj",
+      "ref": [
+        "EDO 01 l.128"
+      ]
+    },
+    {
+      "id": "mj14",
+      "texte": "Heure d'arrivée modifiable : si les PJ arrivent à un autre moment, adapter les informations.",
+      "type": "rythme-deblocage",
+      "ref": [
+        "EDO 01 l.77"
+      ]
+    },
+    {
+      "id": "mj15",
+      "texte": "Actions imprévues (voler un PNJ, devenir gardes du corps d'Isolde) : à traiter avec les règles et l'imagination du MJ.",
+      "type": "consequence-ouverte",
+      "ref": [
+        "EDO 01 l.196"
+      ]
+    },
+    {
+      "id": "mj16",
+      "texte": "PNJ modifiables ou enrichissables ; PNJ secondaires seulement évoqués en ambiance.",
+      "type": "variante-pnj",
+      "ref": [
+        "EDO 01 l.112-114"
+      ]
+    },
+    {
+      "id": "mj17",
+      "texte": "Encart Un problème de bandits : Gustav complice, ou otage (famille retenue, récompense), ou cochers bandits déguisés.",
+      "type": "encart-optionnel",
+      "ref": [
+        "EDO 01 l.266-272"
+      ]
+    },
+    {
+      "id": "mj18",
+      "texte": "Encart La fugueuse : Lukas et ses gros bras arrivent ; si aidée, Isolde donne 2 CO et peut devenir un contact utile.",
+      "type": "encart-optionnel",
+      "ref": [
+        "EDO 01 l.276"
+      ]
+    },
+    {
+      "id": "mj19",
+      "texte": "Encart Le mage rival : Noiraud fait apparaître un démon mineur du livre d'Ernst ; Ernst s'enfuit ; au MJ de réutiliser Noiraud.",
+      "type": "encart-optionnel",
+      "ref": [
+        "EDO 01 l.282-294"
+      ]
+    },
+    {
+      "id": "mj20",
+      "texte": "Encart À la recherche d'un tricheur : Phillipe joue honnêtement, surprises en arrière-plan.",
+      "type": "encart-optionnel",
+      "ref": [
+        "EDO 01 l.262"
+      ]
+    },
+    {
+      "id": "mj21",
+      "texte": "Encart Compagnons de voyage : créer, modifier ou échanger des éléments de PNJ (Isolde ou Janna à la place d'Ernst).",
+      "type": "encart-optionnel",
+      "ref": [
+        "EDO 01 l.327-331"
+      ]
+    },
+    {
+      "id": "mj22",
+      "texte": "Isolde accepte les PJ puis s'en repent : s'ils n'obéissent pas, elle est de mauvaise humeur et les insulte.",
+      "type": "consequence-ouverte",
+      "ref": [
+        "EDO 01 l.299"
+      ]
+    },
+    {
+      "id": "mj23",
+      "texte": "Noiraud : au MJ de voir s'il est réutilisé (envoyé pour gêner les agents de la Couronne Rouge).",
+      "type": "variante-pnj",
+      "ref": [
+        "EDO 01 l.294"
+      ]
+    },
+    {
+      "id": "mj24",
+      "texte": "PX : en plus de 30 à 50 PX d'interprétation ; ajustables par le MJ.",
+      "type": "consequence-ouverte",
+      "ref": [
+        "EDO 01 l.348-354"
+      ]
+    },
+    {
+      "id": "mj25",
+      "texte": "Vol de la diligence : indignation, patrouilleurs routiers à leurs trousses.",
+      "type": "consequence-ouverte",
+      "ref": [
+        "EDO 01 l.305"
+      ]
+    },
+    {
+      "id": "mj26",
+      "texte": "Rumeurs : toutes mélangent le vrai et le faux, sont exagérées mais ont toutes une part de vérité ; les PNJ qui les racontent y croient dur comme fer et peuvent se vexer si on les met en doute ou si on se moque d'eux.",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.155"
+      ]
+    },
+    {
+      "id": "mj27",
+      "texte": "Rumeurs dont le livre fixe la véracité et que mj9 omet : routes mal entretenues et Ubersreik (vrai : trois régiments sont stationnés à Ubersreik), pluie demain (probablement vrai, peut-être de la neige), Schaffenfest (tout le monde en parle).",
+      "type": "veracite-rumeur",
+      "ref": [
+        "EDO 01 l.165-183"
+      ]
+    },
+    {
+      "id": "mj28",
+      "texte": "Chevaux : faire en sorte qu'il soit très difficile d'en acquérir autrement (par le vol, par exemple) et rappeler aux joueurs les risques des actes illégaux.",
+      "type": "rythme-deblocage",
+      "ref": [
+        "EDO 01 l.126"
+      ]
+    },
+    {
+      "id": "mj29",
+      "texte": "Procès de Phillipe : un PJ juriste réduit fortement le coût ; Phillipe plaide la légitime défense, et les cochers et passagers n'ont vu que les PJ en train de le menacer.",
+      "type": "consequence-ouverte",
+      "ref": [
+        "EDO 01 l.239"
+      ]
+    }
+  ],
+  "indices": [
+    {
+      "id": "ind1",
+      "texte": "La diligence des Lignes du Rochet est vermoulue sous la peinture (Perception +0 ou Métier Charpentier +40).",
+      "ref": [
+        "EDO 01 l.87"
+      ]
+    },
+    {
+      "id": "ind2",
+      "texte": "Phillipe observe les PJ dès leur arrivée et se frotte le nez avant de proposer la partie.",
+      "ref": [
+        "EDO 01 l.97",
+        "EDO 01 l.200"
+      ]
+    },
+    {
+      "id": "ind3",
+      "texte": "Phillipe peut être surpris en train de tricher (Test opposé Perception/Escamotage, fait en secret) ; il possède des dés (2 paires dont 1 pipée) et un jeu de cartes marquées (avec 5 as en plus).",
+      "ref": [
+        "EDO 01 l.220"
+      ]
+    },
+    {
+      "id": "ind4",
+      "texte": "Le livre d'Ernst a une fausse couverture (Des Sangsues…) ; son vrai titre est De Vitae Occultae Daemoniis.",
+      "ref": [
+        "EDO 01 l.507"
+      ]
+    },
+    {
+      "id": "ind5",
+      "texte": "Compartiment secret du sac d'Ernst : six fioles vertes bouillonnantes ; Apothicaire +0 ou Chimie -10 révèle des potions contre la paralysie.",
+      "ref": [
+        "EDO 01 l.509-511"
+      ]
+    },
+    {
+      "id": "ind6",
+      "texte": "Ernst évite les conversations et prétexte un examen universitaire.",
+      "ref": [
+        "EDO 01 l.190"
+      ]
+    },
+    {
+      "id": "ind7",
+      "texte": "Gustav est source d'informations (rumeurs) ; les cochers deviennent bavards après une ou deux bières.",
+      "ref": [
+        "EDO 01 l.364-415"
+      ]
+    },
+    {
+      "id": "ind8",
+      "texte": "Savoir (Loi) +60 ou Intelligence +0 fait comprendre que le procès contre Phillipe sera perdu.",
+      "ref": [
+        "EDO 01 l.239"
+      ]
+    },
+    {
+      "id": "ind9",
+      "texte": "Véracité des rumeurs fixée par le livre : bandits sur la route d'Altdorf (exact), zoo fermé / Griffe Mortelle (exact), bois dangereux (bien trop souvent exact), pluie demain (probablement vrai), Altdorf « bizarre » et patrouilleurs corrompus (partiellement vrais). La rumeur du colonel Sievers est FAUSSE dans sa conclusion : les peaux-vertes n'ont pas été battues.",
+      "ref": [
+        "EDO 01 l.160-179"
+      ]
+    },
+    {
+      "id": "ind10",
+      "texte": "Témoins du procès : les deux cochers et les autres passagers n'ont vu que les aventuriers en train de menacer Phillipe, qui plaide la légitime défense.",
+      "ref": [
+        "EDO 01 l.239"
+      ]
+    }
+  ],
+  "secrets": [
+    {
+      "id": "sec1",
+      "texte": "Le mort de la diligence est Kastor Lieberung, Magister impedimentae de la Main Pourpre, adorateur du Chaos de haut rang.",
+      "ref": [
+        "EDO 01 l.7"
+      ]
+    },
+    {
+      "id": "sec2",
+      "texte": "Ernst Heidlemann est membre de la Couronne Rouge (secte de Tzeentch hostile à la Main Pourpre) ; il apporte des préparations à un démoniste à Altdorf ; il tentera d'éliminer les PJ s'ils découvrent sa mission. Corruption 6.",
+      "ref": [
+        "EDO 01 l.486-488"
+      ]
+    },
+    {
+      "id": "sec3",
+      "texte": "Le livre d'Ernst est De Vitae Occultae Daemoniis : base de connaissance des démons, Exposition Mineure à la Corruption (Calme +0 ou 1 point).",
+      "ref": [
+        "EDO 01 l.507"
+      ]
+    },
+    {
+      "id": "sec4",
+      "texte": "Ernst ne sait pas à quoi servent les fioles (livraison au doktor Schmidt, Université d'Altdorf) ; avaler deux substances inflige (1d10 - BE) États Empoisonné.",
+      "ref": [
+        "EDO 01 l.511"
+      ]
+    },
+    {
+      "id": "sec5",
+      "texte": "Phillipe est un tricheur : perd les deux premières mains, utilise Tricheur et Chanceux, cartes marquées.",
+      "ref": [
+        "EDO 01 l.202"
+      ]
+    },
+    {
+      "id": "sec6",
+      "texte": "Phillipe : Bretonnien de Parravon, ancien sergent mercenaire déserteur ; prétend visiter un vieil ami à Altdorf.",
+      "ref": [
+        "EDO 01 l.517"
+      ]
+    },
+    {
+      "id": "sec7",
+      "texte": "Option : Gustav agit pour une bande de bandits, ses bavardages servent à évaluer les clients.",
+      "ref": [
+        "EDO 01 l.266"
+      ]
+    },
+    {
+      "id": "sec8",
+      "texte": "Option : Gunnar et Hultz pourraient être des bandits déguisés feignant l'ivresse.",
+      "ref": [
+        "EDO 01 l.272"
+      ]
+    },
+    {
+      "id": "sec9",
+      "texte": "Dame Isolde fuit un mariage arrangé pour raisons politiques.",
+      "ref": [
+        "EDO 01 l.276"
+      ]
+    },
+    {
+      "id": "sec10",
+      "texte": "Option : Noiraud est un agent envoyé pour gêner la Couronne Rouge et peut lire un démon hors du livre d'Ernst.",
+      "ref": [
+        "EDO 01 l.282-294"
+      ]
+    },
+    {
+      "id": "sec11",
+      "texte": "Coffre d'Isolde dans sa chambre : serrure Complexe (-10), +2 DR, vêtements et bijoux de 7 CO.",
+      "ref": [
+        "EDO 01 l.439"
+      ]
+    },
+    {
+      "id": "sec12",
+      "texte": "Rumeurs : quelque chose se passe à Altdorf, l'Empereur évite son griffon pour une raison révélée plus tard, orcs et gobelins se rassemblent au sud du Col du Feu Noir.",
+      "ref": [
+        "EDO 01 l.169-179"
+      ]
+    },
+    {
+      "id": "sec13",
+      "texte": "Option bandits : la femme et les enfants de Gustav sont absents de l'auberge pendant le passage des PJ (retenus par les bandits).",
+      "ref": [
+        "EDO 01 l.270"
+      ]
+    },
+    {
+      "id": "sec14",
+      "texte": "Phillipe ne va voir aucun vieil ami à Altdorf : il parcourt les routes de l'Empire pour exercer son art dans les auberges.",
+      "ref": [
+        "EDO 01 l.517"
+      ]
+    }
+  ],
+  "declencheurs": [
+    {
+      "id": "d1",
+      "evenement": "Une diligence des Quatre Saisons franchit le portail à vive allure et ne s'arrête pour personne ; le cocher fait claquer son fouet, le garde menace du tromblon.",
+      "condition": "Quand les PJ approchent de l'auberge, en début de soirée.",
+      "ref": [
+        "EDO 01 l.77-79"
+      ]
+    },
+    {
+      "id": "d2",
+      "evenement": "Gustav s'approche en se dandinant et accueille les PJ avec un flot de paroles.",
+      "condition": "Avant que les PJ puissent faire quoi que ce soit, à leur entrée.",
+      "ref": [
+        "EDO 01 l.95"
+      ]
+    },
+    {
+      "id": "d3",
+      "evenement": "Phillipe Descartes s'approche de la table des PJ, frotte son nez, offre à boire et propose une partie d'Impératrice Écarlate.",
+      "condition": "S'ils l'ignorent, au bout d'une demi-heure environ.",
+      "ref": [
+        "EDO 01 l.200"
+      ]
+    },
+    {
+      "id": "d4",
+      "evenement": "Dame Isolde et son entourage se retirent dans leurs chambres.",
+      "condition": "Si les aventuriers persistent à lui parler.",
+      "ref": [
+        "EDO 01 l.186"
+      ]
+    },
+    {
+      "id": "d5",
+      "evenement": "Gunnar et Hultz vont se coucher en titubant.",
+      "condition": "Après avoir vidé encore quelques verres, au cours de la soirée.",
+      "ref": [
+        "EDO 01 l.140"
+      ]
+    },
+    {
+      "id": "d6",
+      "evenement": "Phillipe se retire et va se coucher avec tout l'argent gagné.",
+      "condition": "Si personne ne le perce à jour pendant la partie.",
+      "ref": [
+        "EDO 01 l.220"
+      ]
+    },
+    {
+      "id": "d7",
+      "evenement": "Phillipe sort son pistolet, fait feu et se rue à l'étage dans le nuage de fumée.",
+      "condition": "S'il est accusé de tricherie et que les choses semblent mal tourner.",
+      "ref": [
+        "EDO 01 l.222"
+      ]
+    },
+    {
+      "id": "d8",
+      "evenement": "Gustav, fébrile, brandit son tromblon et tire sur quiconque continue à bouger, tombant à la renverse.",
+      "condition": "Quand les PJ poursuivent Phillipe dans l'escalier.",
+      "ref": [
+        "EDO 01 l.226"
+      ]
+    },
+    {
+      "id": "d9",
+      "evenement": "Phillipe saute par la fenêtre vers les écuries (4 m) puis s'enfuit pour Altdorf sur un cheval du propriétaire.",
+      "condition": "Une fois en haut des escaliers ; il s'enfuit s'il n'est pas rattrapé.",
+      "ref": [
+        "EDO 01 l.229-233"
+      ]
+    },
+    {
+      "id": "d10",
+      "evenement": "Gustav relâche Phillipe.",
+      "condition": "Dès que les aventuriers sont partis, sauf bonne raison de ne pas le faire.",
+      "ref": [
+        "EDO 01 l.237"
+      ]
+    },
+    {
+      "id": "d11",
+      "evenement": "Phillipe cherche à se venger et poursuit les PJ sans relâche.",
+      "condition": "S'il est condamné.",
+      "ref": [
+        "EDO 01 l.241-243"
+      ]
+    },
+    {
+      "id": "d12",
+      "evenement": "Lukas, frère d'Isolde, fait irruption dans l'auberge avec des gros bras pour la ramener de force.",
+      "condition": "Option La fugueuse ; tard dans la soirée.",
+      "ref": [
+        "EDO 01 l.276"
+      ]
+    },
+    {
+      "id": "d13",
+      "evenement": "Noiraud se perche au-dessus d'Ernst et lit à voix haute ; un Démon Mineur se forme en 1 Round puis attaque le PJ le plus proche ; Ernst s'enfuit en abandonnant ses bagages ; Noiraud s'envole.",
+      "condition": "Option Le mage rival ; une fois que les PJ ont appris à ignorer ses pitreries.",
+      "ref": [
+        "EDO 01 l.282-294"
+      ]
+    },
+    {
+      "id": "d14",
+      "evenement": "Les bandits arrêtent la diligence des PJ, sachant où sont les bijoux d'Isolde et les objets de valeur de chacun.",
+      "condition": "Option Un problème de bandits ; après le départ des PJ, avant la rencontre avec les mutants.",
+      "ref": [
+        "EDO 01 l.268"
+      ]
+    },
+    {
+      "id": "d15",
+      "evenement": "Les cochers restent introuvables et ne préparent pas la diligence ; petit déjeuner à 8 heures, diligence prête vers 10 heures.",
+      "condition": "Le lendemain matin ; à 9 heures il est évident que les cochers ne se montrent pas.",
+      "ref": [
+        "EDO 01 l.251-255"
+      ]
+    },
+    {
+      "id": "d16",
+      "evenement": "Dame Isolde refuse d'être entassée avec des roturiers et menace de représailles.",
+      "condition": "Si les PJ cherchent à entrer dans la diligence ou à y entasser des passagers.",
+      "ref": [
+        "EDO 01 l.255-257"
+      ]
+    },
+    {
+      "id": "d17",
+      "evenement": "Un cocher s'enferme aux latrines pendant au moins 20 minutes ; l'autre ronfle sur son siège.",
+      "condition": "Une fois que tous les passagers sont prêts.",
+      "ref": [
+        "EDO 01 l.303-305"
+      ]
+    },
+    {
+      "id": "d18",
+      "evenement": "Dame Isolde ordonne aux PJ de sortir, sinon elle est d'humeur massacrante.",
+      "condition": "Si les PJ ont convaincu Isolde de les laisser s'installer (hypothèse peu probable).",
+      "ref": [
+        "EDO 01 l.299"
+      ]
+    },
+    {
+      "id": "d19",
+      "evenement": "Il se met à pleuvoir, pluie torrentielle qui trempe les PJ à l'extérieur.",
+      "condition": "Une vingtaine de minutes après que la diligence est repartie.",
+      "ref": [
+        "EDO 01 l.319"
+      ]
+    },
+    {
+      "id": "d20",
+      "evenement": "Marie frappe du pied le PJ qui s'introduit dans la cabine ; les PNJ à l'intérieur tentent de l'expulser.",
+      "condition": "Quand un PJ parvient à se glisser dans le véhicule en mouvement.",
+      "ref": [
+        "EDO 01 l.321-334"
+      ]
+    },
+    {
+      "id": "d21",
+      "evenement": "Les cochers demandent d'arrêter puis menacent d'un tromblon (ne fonctionne que sur un résultat pair à cause de la pluie).",
+      "condition": "Si les aventuriers commencent à endommager la diligence.",
+      "ref": [
+        "EDO 01 l.336"
+      ]
+    },
+    {
+      "id": "d22",
+      "evenement": "La pluie cesse peu avant le croisement avec la route principale (borne Altdorf 180 km).",
+      "condition": "Au bout de quelques heures de voyage.",
+      "ref": [
+        "EDO 01 l.340"
+      ]
+    },
+    {
+      "id": "d23",
+      "evenement": "Gustav informe les PJ qu'aucune diligence n'est prévue avant deux jours.",
+      "condition": "Si le groupe envisage d'attendre la prochaine diligence.",
+      "ref": [
+        "EDO 01 l.297"
+      ]
+    },
+    {
+      "id": "d24",
+      "evenement": "Le conducteur arrête l'attelage.",
+      "condition": "Quand un PJ rate son Test d'Athlétisme et tombe sur la route en voulant entrer dans la diligence.",
+      "ref": [
+        "EDO 01 l.321"
+      ]
+    },
+    {
+      "id": "d25",
+      "evenement": "Phillipe se met à tricher (cartes empalmées, as subtilisés ou cachés dans sa manche).",
+      "condition": "S'il perd trois parties d'affilée en jouant honnêtement.",
+      "ref": [
+        "EDO 01 l.202"
+      ]
+    },
+    {
+      "id": "d26",
+      "evenement": "Ernst essaie d'éliminer les PJ, seul ou avec des hommes de main.",
+      "condition": "Si les PJ découvrent sa véritable mission.",
+      "ref": [
+        "EDO 01 l.488"
+      ]
+    },
+    {
+      "id": "d27",
+      "evenement": "Gustav se met en colère et demande aux PJ de déguerpir.",
+      "condition": "S'il est menacé physiquement ou si les PJ ne se comportent pas « comme des gens civilisés ».",
+      "ref": [
+        "EDO 01 l.120"
+      ]
+    },
+    {
+      "id": "d28",
+      "evenement": "Gunnar et Hultz deviennent vite très amicaux et livrent des informations (rumeurs).",
+      "condition": "Si les PJ leur offrent une ou deux bières (de préférence plus).",
+      "ref": [
+        "EDO 01 l.415"
+      ]
+    },
+    {
+      "id": "d29",
+      "evenement": "Phillipe se rend et rend tout l'argent gagné au jeu.",
+      "condition": "Quand ses Blessures tombent à 3 ou moins.",
+      "ref": [
+        "EDO 01 l.231"
+      ]
+    }
+  ],
+  "pnj": [
+    {
+      "id": "pnj1",
+      "nom": "Gustav Fondleburger",
+      "role": "Aubergiste bavard de La Diligence, premier contact ; bourgeois humain Argent 2 ; tromblon sous le comptoir. Option : informateur de bandits.",
+      "motivation": "Accueille et parle sans cesse (santé, destination, chambres, météo, routes), ravi d'avoir une noble cliente ; se fâche si menacé physiquement ; fébrile, tire au tromblon dans l'escalier après la fuite de Phillipe. Option bandits : renseigne la bande, peut-être sous la menace de sa famille retenue.",
+      "ref": [
+        "EDO 01 l.95",
+        "EDO 01 l.118-120",
+        "EDO 01 l.226",
+        "EDO 01 l.266-270",
+        "EDO 01 l.364-376"
+      ]
+    },
+    {
+      "id": "pnj2",
+      "nom": "Herpin Stiggerwurt",
+      "role": "Barman, villageois humain Bronze 3, originaire de Moersum, accent du Middenland",
+      "motivation": "Reste derrière le comptoir ou à la cave et prépare les boissons que Gustav sert ; taciturne, aucun effort d'accueil.",
+      "ref": [
+        "EDO 01 l.136",
+        "EDO 01 l.399-409"
+      ]
+    },
+    {
+      "id": "pnj3",
+      "nom": "Noiraud (corbeau)",
+      "role": "Corbeau apprivoisé de Gustav, imite sa voix en mélangeant les mots. Option : agent envoyé pour gêner la Couronne Rouge, lit le grimoire d'Ernst à voix haute.",
+      "motivation": "Imitation comique de Gustav ; option : fait apparaître le Démon Mineur Fhluger'dagh puis s'envole en riant ; a remplacé le corbeau d'origine.",
+      "ref": [
+        "EDO 01 l.95",
+        "EDO 01 l.282-294",
+        "EDO 01 l.378-395"
+      ]
+    },
+    {
+      "id": "pnj4",
+      "nom": "Fhluger'dagh (Démon Mineur)",
+      "role": "Démon invoqué de l'option « Le mage rival » : 1 Round pour se former, attaque le Personnage le plus proche",
+      "motivation": "Aucune donnée narrative ; statblock du livre seulement (Peur 2, Démoniaque 9+, Corruption Modérée).",
+      "ref": [
+        "EDO 01 l.282-290"
+      ]
+    },
+    {
+      "id": "pnj5",
+      "nom": "Phillipe Descartes",
+      "role": "Joueur bretonnien (profil « Prostitué humain Bronze 1 »), ex-sergent mercenaire déserteur de Parravon ; tricheur aux cartes (Impératrice Écarlate) ; fuit par la fenêtre puis à cheval",
+      "motivation": "Prend l'initiative : observe les PJ, offre à boire, propose une partie, perd deux mains, monte la mise jusqu'à ~8/- puis triche (Escamotage) ; nie si accusé, tire au pistolet pour fuir ; combat à contrecœur en Retenant ses coups, se rend à 3 Blessures ou moins ; ne garde pas rancune si relâché, se venge sans relâche si condamné.",
+      "ref": [
+        "EDO 01 l.132",
+        "EDO 01 l.200-202",
+        "EDO 01 l.220-243",
+        "EDO 01 l.515-537"
+      ]
+    },
+    {
+      "id": "pnj6",
+      "nom": "Gunnar et Hultz (cochers)",
+      "role": "Cochers humains Argent 2 des Lignes du Rochet ; ivres le soir, la gueule de bois le matin ; tromblon. Option : bandits déguisés.",
+      "motivation": "Boivent et plaisantent ; acceptent d'emmener le groupe jusqu'à l'auberge des Sept Rayons (~75 km) contre 4/- (3/- ou 2/- au Marchandage), payés d'avance, dépensé en alcool ; ne se mêlent pas de la bagarre sauf dégâts à la diligence ; tromblon en dernier recours.",
+      "ref": [
+        "EDO 01 l.100",
+        "EDO 01 l.138-142",
+        "EDO 01 l.251",
+        "EDO 01 l.272",
+        "EDO 01 l.303-311",
+        "EDO 01 l.336",
+        "EDO 01 l.411-427"
+      ]
+    },
+    {
+      "id": "pnj7",
+      "nom": "Dame Isolde von Strudeldorf",
+      "role": "Noble de la Drakwald, jeune (âge non chiffré ; les 16 ans sont ceux de Janna), passagère, héritière humaine Or 1 ; luth, boîtes à chapeaux. Option : fugueuse d'un mariage arrangé.",
+      "motivation": "Méprise les roturiers, n'adresse pas la parole aux PJ, refuse d'être entassée, menace de représailles de ses parents d'Altdorf ; cache son manque d'assurance. Option : fuit un mariage arrangé, récompense de 2 CO si aidée contre son frère Lukas.",
+      "ref": [
+        "EDO 01 l.93",
+        "EDO 01 l.146-186",
+        "EDO 01 l.255-257",
+        "EDO 01 l.276",
+        "EDO 01 l.299",
+        "EDO 01 l.435-439",
+        "EDO 01 l.442-452"
+      ]
+    },
+    {
+      "id": "pnj8",
+      "nom": "Janna Alleiner (Elleiner)",
+      "role": "Servante d'Isolde, 16 ans, serviteur humain Argent 3 (orthographe du livre variable)",
+      "motivation": "Parle très peu, transmet les ordres d'Isolde, mal à l'aise ; travaille bien.",
+      "ref": [
+        "EDO 01 l.93",
+        "EDO 01 l.146",
+        "EDO 01 l.437",
+        "EDO 01 l.454-464"
+      ]
+    },
+    {
+      "id": "pnj9",
+      "nom": "Marie Schultz",
+      "role": "Garde du corps d'Isolde (garde d'honneur humain Argent 3), trentaine, au service des von Strudeldorf depuis 15 ans",
+      "motivation": "Protéger Isolde avant tout, reste sur la défensive, parle peu (« Ne dérangez pas la maîtresse ») ; frappe du pied les PJ qui entrent dans la diligence en marche (Bagarre).",
+      "ref": [
+        "EDO 01 l.93",
+        "EDO 01 l.146",
+        "EDO 01 l.321-323",
+        "EDO 01 l.466-480"
+      ]
+    },
+    {
+      "id": "pnj10",
+      "nom": "Ernst Heidlemann",
+      "role": "Apprenti/étudiant en médecine apparent, en réalité sorcier novice de la Couronne Rouge (secte de Tzeentch hostile à la Main Pourpre) ; personnage récurrent (Mort sur le Reik)",
+      "motivation": "Lit toute la soirée, évite les conversations (prétexte d'examen) ; va à Altdorf livrer des préparations à un démoniste, le doktor Schmidt, et étudier la magie noire ; tente d'éliminer qui découvre sa mission ; à garder en vie.",
+      "ref": [
+        "EDO 01 l.93",
+        "EDO 01 l.190",
+        "EDO 01 l.282-292",
+        "EDO 01 l.331",
+        "EDO 01 l.484-513"
+      ]
+    },
+    {
+      "id": "pnj11",
+      "nom": "Lukas (frère d'Isolde)",
+      "role": "Option « La fugueuse » : arrive tard dans la soirée avec une bande de gros bras",
+      "motivation": "Ramener Isolde de force chez eux.",
+      "ref": [
+        "EDO 01 l.276"
+      ]
+    },
+    {
+      "id": "pnj12",
+      "nom": "Fredrick (portier) et Artur (forgeron)",
+      "role": "Personnel de l'auberge, sans profil propre",
+      "motivation": "Aucune donnée ; profils génériques Caractéristiques 30, Compétences 40.",
+      "ref": [
+        "EDO 01 l.360"
+      ]
+    },
+    {
+      "id": "pnj13",
+      "nom": "Kastor Lieberung",
+      "role": "Cadavre sur la route (Magister impedimentae de la Main Pourpre), mentionné dans l'introduction",
+      "motivation": "Aucune (mort) ; les PJ ignorent son identité.",
+      "ref": [
+        "EDO 01 l.7"
+      ]
+    },
+    {
+      "id": "pnj14",
+      "nom": "Hergard von Tasseninck, Prince Héritier d'Ostland",
+      "role": "Commanditaire de l'affiche (Document 1)",
+      "motivation": "Engager un groupe d'aventuriers chevronnés pour une mission périlleuse et discrète dans les Montagnes Grises.",
+      "ref": [
+        "EDO 01 l.210-218"
+      ]
+    },
+    {
+      "id": "pnj15",
+      "nom": "Conducteur de la diligence des Quatre Saisons",
+      "role": "Cocher pressé qui quitte l'auberge à l'arrivée des PJ, avec un garde au tromblon",
+      "motivation": "Rattraper le temps perdu ; fouette ou tire (Projectiles Difficile -20) sur qui bloque la route.",
+      "ref": [
+        "EDO 01 l.77-79"
+      ]
+    },
+    {
+      "id": "pnj16",
+      "nom": "Doktor Schmidt",
+      "role": "Destinataire, à l'Université d'Altdorf, des préparations qu'Ernst transporte",
+      "motivation": "Aucune donnée au chapitre ; seulement nommé comme destinataire des fioles.",
+      "ref": [
+        "EDO 01 l.511"
+      ]
+    },
+    {
+      "id": "pnj17",
+      "nom": "Femme et enfants de Gustav",
+      "role": "Option « Un problème de bandits » : peut-être retenus par les bandits, absents de l'auberge",
+      "motivation": "Aucune (otages) ; s'il est découvert, Gustav pourrait offrir une récompense pour qu'on les sauve.",
+      "ref": [
+        "EDO 01 l.270"
+      ]
+    },
+    {
+      "id": "pnj18",
+      "nom": "Bande de bandits des environs",
+      "role": "Option « Un problème de bandits » : arrête la diligence des PJ, renseignée par Gustav ou par les cochers",
+      "motivation": "Dépouiller les passagers ; ils savent où Isolde cache ses bijoux et ce que possède chacun.",
+      "ref": [
+        "EDO 01 l.266-272"
+      ]
+    },
+    {
+      "id": "pnj19",
+      "nom": "Palefreniers, cuisiniers et serviteurs de l'auberge",
+      "role": "Personnel sans nom ; deux palefreniers bouchonnent un attelage dans la cour",
+      "motivation": "Aucune donnée ; profils génériques (Caractéristiques 30, Compétences 40).",
+      "ref": [
+        "EDO 01 l.81",
+        "EDO 01 l.360"
+      ]
+    }
+  ],
+  "lieux": [
+    {
+      "id": "lieu1",
+      "texte": "Route vers Altdorf à environ deux jours de l'auberge (point de départ des PJ, depuis Delbren ; mutants et diligence renversée annoncés en introduction)",
+      "ref": [
+        "EDO 01 l.5-11"
+      ]
+    },
+    {
+      "id": "lieu2",
+      "texte": "Auberge-relais La Diligence : mur extérieur et portail (ouvert le jour)",
+      "ref": [
+        "EDO 01 l.25-27"
+      ]
+    },
+    {
+      "id": "lieu3",
+      "texte": "La Diligence : portier",
+      "ref": [
+        "EDO 01 l.29-31"
+      ]
+    },
+    {
+      "id": "lieu4",
+      "texte": "La Diligence : cour pavée (diligence des Lignes du Rochet garée devant la remise, deux palefreniers, arrivée de la diligence des Quatre Saisons)",
+      "ref": [
+        "EDO 01 l.33-35",
+        "EDO 01 l.77-87"
+      ]
+    },
+    {
+      "id": "lieu5",
+      "texte": "La Diligence : grande salle / salle de bar (Gustav, Herpin, Noiraud, clients, partie de cartes ; prix des repas et boissons)",
+      "ref": [
+        "EDO 01 l.37-39",
+        "EDO 01 l.93-100",
+        "EDO 01 l.198-222"
+      ]
+    },
+    {
+      "id": "lieu6",
+      "texte": "La Diligence : écuries et remise",
+      "ref": [
+        "EDO 01 l.42-44"
+      ]
+    },
+    {
+      "id": "lieu7",
+      "texte": "La Diligence : forge",
+      "ref": [
+        "EDO 01 l.46-48"
+      ]
+    },
+    {
+      "id": "lieu8",
+      "texte": "La Diligence : réserves",
+      "ref": [
+        "EDO 01 l.50-52"
+      ]
+    },
+    {
+      "id": "lieu9",
+      "texte": "La Diligence : brasserie",
+      "ref": [
+        "EDO 01 l.54-56"
+      ]
+    },
+    {
+      "id": "lieu10",
+      "texte": "La Diligence : salle commune (dortoir, 15sc ou 10sc sans lit)",
+      "ref": [
+        "EDO 01 l.58-60",
+        "EDO 01 l.104"
+      ]
+    },
+    {
+      "id": "lieu11",
+      "texte": "La Diligence : chambres (10/- la nuit, serrure Crochetage Intermédiaire +0, 2 DR ; quatre occupées ; coffre d'Isolde Complexe -10, +2 DR, 7 CO)",
+      "ref": [
+        "EDO 01 l.62-64",
+        "EDO 01 l.104",
+        "EDO 01 l.439"
+      ]
+    },
+    {
+      "id": "lieu12",
+      "texte": "La Diligence : quartiers des serviteurs",
+      "ref": [
+        "EDO 01 l.66-68"
+      ]
+    },
+    {
+      "id": "lieu13",
+      "texte": "La Diligence : chambres des patrouilleurs routiers",
+      "ref": [
+        "EDO 01 l.70-72"
+      ]
+    },
+    {
+      "id": "lieu14",
+      "texte": "La Diligence : escalier et fenêtre donnant sur les écuries, 4 m de chute (poursuite de Phillipe)",
+      "ref": [
+        "EDO 01 l.222-233"
+      ]
+    },
+    {
+      "id": "lieu15",
+      "texte": "Latrines de l'auberge (contretemps du départ)",
+      "ref": [
+        "EDO 01 l.303"
+      ]
+    },
+    {
+      "id": "lieu16",
+      "texte": "La diligence des Lignes du Rochet (intérieur 6 places, toit ; scènes de pluie, de bagarre, de conduite, de fossé)",
+      "ref": [
+        "EDO 01 l.85-87",
+        "EDO 01 l.255-257",
+        "EDO 01 l.309-323",
+        "EDO 01 l.334-336"
+      ]
+    },
+    {
+      "id": "lieu17",
+      "texte": "Route de Delbren / route de l'auberge, pluie après 20 minutes, fossé en cas de mauvaise conduite",
+      "ref": [
+        "EDO 01 l.27",
+        "EDO 01 l.311-321"
+      ]
+    },
+    {
+      "id": "lieu18",
+      "texte": "Croisement avec la route Middenheim-Altdorf : borne « Altdorf, 180 km » et Gîte des Cinq Frères (auberge des Quatre Saisons)",
+      "ref": [
+        "EDO 01 l.340-342"
+      ]
+    },
+    {
+      "id": "lieu19",
+      "texte": "Auberge des Sept Rayons, à environ 75 km (prochaine auberge des Lignes du Rochet)",
+      "ref": [
+        "EDO 01 l.142"
+      ]
+    },
+    {
+      "id": "lieu20",
+      "texte": "Auberges-relais comme cellules de détention des patrouilleurs routiers pour les criminels capturés sur les routes (sort possible de Phillipe capturé)",
+      "ref": [
+        "EDO 01 l.19"
+      ]
+    }
+  ],
+  "textes": [
+    {
+      "id": "txt1",
+      "texte": "On recherche ! Aventuriers courageux ! — Son Excellence le Prince Héritier Hergard von Tasseninck de la Grande Principauté d'Ostland, fait savoir par la présente qu'il réside actuellement à Altdorf et souhaite s'attacher les services d'un groupe d'aventuriers chevronnés. L'engagement prendra effet dès que possible, pour une période indéterminée. / Que les postulants soient avisés qu'il leur sera demandé d'entreprendre une mission des plus périlleuses dans les régions inexplorées des Montagnes Grises. L'objet de la mission est très délicat et la plus haute discrétion est impérative en ce qui concerne sa nature précise. / La rémunération est négociable et dépendra de l'expérience des candidats, mais un minimum de 8 Couronnes par personne et par jour est assuré. De plus, une prime généreuse sera accordée une fois la mission accomplie. Couards, traînards et nains s'abstenir. / Signé Scribe personnel du Prince Héritier Hergard",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.204-218"
+      ]
+    },
+    {
+      "id": "txt2",
+      "texte": "« Bonsoir ! Bienvenue à la Diligence. Prenez un siège. Tiens, celui-là près du feu, vous serez bien au chaud. Voulez-vous à manger et à boire ? Oui ? Bien sûr, à boire d'abord. Quel idiot je fais. »",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.95"
+      ]
+    },
+    {
+      "id": "txt3",
+      "texte": "Noiraud : « Bienvenue à la chaise ? Asseyez-vous près de l'idiot ? Voulez-vous boire des chevaux ? »",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.95"
+      ]
+    },
+    {
+      "id": "txt4",
+      "texte": "Noiraud : « Eh bien, bienvenue, vous partez déjà, quel plaisir de vous voir, voulez-vous une route à parcourir ou est-ce que vous venez d'arriver ? Oh, bien sûr que vous venez d'arriver ! Vous boirez bien un p'tit poulet ! »",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.380"
+      ]
+    },
+    {
+      "id": "txt5",
+      "texte": "Gustav : « Il n'y en n'a pas de prévue avant deux jours, et elle sera sans doute aussi bondée que celle-ci. Quoique celle qui a précédé celle-ci était encore plus pleine ! Ils étaient entassés sur le toit, et d'autres s'accrochaient aux rebords aussi… »",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.297"
+      ]
+    },
+    {
+      "id": "txt6",
+      "texte": "Rumeurs (15 entrées, chacune une phrase entre guillemets, avec sa note de véracité : Blutroch, sœur cachée de l'Empereur, bandits sur la route d'Altdorf, loup blanc d'Ulric, Teufelfeuer/Heinzdork, routes et Ubersreik, sorciers d'Altdorf, zoo et Griffe Mortelle, pluie demain, ne pas quitter la route, maire de Grunburg, lumières à l'est, colonel Sievers, patrouilleurs corrompus, Schaffenfest)",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.157-183"
+      ]
+    },
+    {
+      "id": "txt7",
+      "texte": "Titre du grimoire d'Ernst : fausse couverture « Des Sangsues et de leurs propriétés curatives », vrai titre De Vitae Occultae Daemoniis (« La Vie Secrète des Démons »), rédigé en Classique (aide de jeu lue par les PJ)",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.507"
+      ]
+    },
+    {
+      "id": "txt8",
+      "texte": "Dame Isolde : « entassée avec des roturiers », « c'est déjà bien assez de devoir voyager avec la racaille, sans avoir à recevoir leurs coudes et leurs genoux dans la figure. » (réplique citée par le livre)",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.255"
+      ]
+    },
+    {
+      "id": "txt9",
+      "texte": "Marie : « Ne dérangez pas la maîtresse » (réplique citée par le livre)",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.468"
+      ]
+    },
+    {
+      "id": "txt10",
+      "texte": "Gustav demande de déguerpir aux incapables de se comporter « comme des gens civilisés. » (citation du livre)",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.120"
+      ]
+    },
+    {
+      "id": "txt11",
+      "texte": "Destinées gravées sur les fiches : Gustav « L'escroc, le cerf et le loup dans la nuit » ; Isolde « Les cornes du taureau mettront fin à ton règne » ; Janna « Prend garde au sabot, à la griffe et à l'ongle » ; Marie « C'est à la fin que ta vie commence » ; Ernst « Viser trop haut te fera chuter au plus bas »",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.374",
+        "EDO 01 l.450",
+        "EDO 01 l.462",
+        "EDO 01 l.478",
+        "EDO 01 l.498"
+      ]
+    },
+    {
+      "id": "txt12",
+      "texte": "Phillipe : accent bretonnien, grands gestes, frotte le bout de son nez ; propose une partie d'Impératrice Écarlate ; nie farouchement, paraît outré d'être accusé",
+      "nature": "motivation-a-authorer",
+      "ref": [
+        "EDO 01 l.132",
+        "EDO 01 l.200",
+        "EDO 01 l.222"
+      ]
+    },
+    {
+      "id": "txt13",
+      "texte": "Gustav : bavardage sans fin sur le métier, la météo, l'état de la route, enthousiasme pour la noble cliente ; excuses quand il comprend la situation après son tir",
+      "nature": "motivation-a-authorer",
+      "ref": [
+        "EDO 01 l.118-120",
+        "EDO 01 l.226"
+      ]
+    },
+    {
+      "id": "txt14",
+      "texte": "Herpin : taciturne, accent du Middenland, sert via Gustav",
+      "nature": "motivation-a-authorer",
+      "ref": [
+        "EDO 01 l.136",
+        "EDO 01 l.399"
+      ]
+    },
+    {
+      "id": "txt15",
+      "texte": "Gunnar et Hultz : marchandage du prix de la place sur le toit (4/-, 3/-, 2/-), paiement d'avance ; marmonnent à cause de la gueule de bois ; deviennent amicaux et donnent des rumeurs si on leur offre des bières",
+      "nature": "motivation-a-authorer",
+      "ref": [
+        "EDO 01 l.142",
+        "EDO 01 l.251",
+        "EDO 01 l.415"
+      ]
+    },
+    {
+      "id": "txt16",
+      "texte": "Dame Isolde : refuse de parler aux PJ, fait dire à Janna de la laisser tranquille ; refuse l'entassement, menace de représailles ; d'une humeur massacrante, insultes si les PJ restent dans la diligence malgré son ordre",
+      "nature": "motivation-a-authorer",
+      "ref": [
+        "EDO 01 l.146-186",
+        "EDO 01 l.255-257",
+        "EDO 01 l.299"
+      ]
+    },
+    {
+      "id": "txt17",
+      "texte": "Ernst : répond d'un air distrait, demande qu'on le laisse tranquille pour réviser son examen d'entrée à l'université ; crie et s'enfuit à la vue du démon (option)",
+      "nature": "motivation-a-authorer",
+      "ref": [
+        "EDO 01 l.190",
+        "EDO 01 l.292"
+      ]
+    },
+    {
+      "id": "txt18",
+      "texte": "Marie : regard menaçant puis coup de pied contre qui s'introduit dans la diligence",
+      "nature": "motivation-a-authorer",
+      "ref": [
+        "EDO 01 l.186",
+        "EDO 01 l.321-323"
+      ]
+    },
+    {
+      "id": "txt19",
+      "texte": "Cocher de la diligence des Quatre Saisons : le garde crie de s'écarter et tire",
+      "nature": "motivation-a-authorer",
+      "ref": [
+        "EDO 01 l.79"
+      ]
+    },
+    {
+      "id": "txt20",
+      "texte": "Option bandits : Gustav craque et offre une récompense pour libérer sa famille ; option fugueuse : Isolde reconnaissante offre 2 CO ; Phillipe condamné jure vengeance",
+      "nature": "motivation-a-authorer",
+      "ref": [
+        "EDO 01 l.241",
+        "EDO 01 l.270",
+        "EDO 01 l.276"
+      ]
+    },
+    {
+      "id": "txt21",
+      "texte": "Introduction : voyage vers Altdorf interrompu par une diligence renversée et des mutants ; un corps porte un objet permettant de s'enrichir (Kastor Lieberung, Main Pourpre) ; l'aventure commence fin Jahrdrung, à deux jours d'Altdorf",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.5-13"
+      ]
+    },
+    {
+      "id": "txt22",
+      "texte": "Description de l'auberge-relais et de ses salles (mur, portier, cour, grande salle, écuries, forge, réserves, brasserie, salle commune, chambres, quartiers, patrouilleurs)",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.19-72"
+      ]
+    },
+    {
+      "id": "txt23",
+      "texte": "Approche de l'auberge : diligence des Quatre Saisons qui sort au galop ; cour fourmillante, odeur de crottin, palefreniers bouchonnant quatre chevaux, effluves de cuisine et rires",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.77-81"
+      ]
+    },
+    {
+      "id": "txt24",
+      "texte": "Diligence des Lignes du Rochet : en apparence en bon état, charpente pourrie sous la peinture (Perception Intermédiaire +0 ou Métier Charpentier Facile +40)",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.85-87"
+      ]
+    },
+    {
+      "id": "txt25",
+      "texte": "Entrée dans la salle de bar : odeurs, cochers qui rient, regard glacial d'Isolde, Marie, Janna, Ernst lisant, Phillipe au comptoir, Herpin, Gustav, Noiraud sur sa poutre",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.93-100"
+      ]
+    },
+    {
+      "id": "txt26",
+      "texte": "Matin brumeux, petit déjeuner à 8 h, cochers introuvables, départ vers 10 h, diligence de six places, toit réservé aux PJ",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.251-257"
+      ]
+    },
+    {
+      "id": "txt27",
+      "texte": "Option mage rival : le corbeau lit à voix haute, fumée noire du livre prenant forme de Démon Mineur, fuite d'Ernst et du corbeau",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.282-294"
+      ]
+    },
+    {
+      "id": "txt28",
+      "texte": "Un léger contretemps : cocher aux latrines 20 minutes, l'autre ronfle ; voyage à 3 km/h ; conduite d'attelage, fossé, redressement de la diligence, roue à remettre",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.303-315"
+      ]
+    },
+    {
+      "id": "txt29",
+      "texte": "Chantons sous la pluie : pluie torrentielle, tentative d'entrer dans la diligence en marche, chute possible, bagarre de cabine, tromblon des cochers (résultat pair/impair)",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.319-336"
+      ]
+    },
+    {
+      "id": "txt30",
+      "texte": "À la croisée des chemins : fin de la pluie, borne « Altdorf, 180 km », Gîte des Cinq Frères, diligences suivantes à 2 h et 4 h (10/- sur le toit), « quelque chose de déplaisant sur la route »",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.340-342"
+      ]
+    },
+    {
+      "id": "txt31",
+      "texte": "Descriptions physiques des PNJ (Gustav, Herpin, Gunnar et Hultz, Isolde, Janna, Marie, Ernst, Phillipe)",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.364",
+        "EDO 01 l.399",
+        "EDO 01 l.415",
+        "EDO 01 l.435-437",
+        "EDO 01 l.468",
+        "EDO 01 l.486",
+        "EDO 01 l.517"
+      ]
+    },
+    {
+      "id": "txt32",
+      "texte": "Contenu du sac d'Ernst : six fioles vertes bouillonnantes, poudres colorées, destinées au doktor Schmidt (potions contre la paralysie, Apothicaire ou Savoir Chimie), danger d'empoisonnement",
+      "nature": "narration-a-reformuler",
+      "ref": [
+        "EDO 01 l.509-511"
+      ]
+    },
+    {
+      "id": "txt33",
+      "texte": "Borne sur le bas-côté : « Altdorf, 180 km »",
+      "nature": "document-verbatim",
+      "ref": [
+        "EDO 01 l.340"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "test1",
+      "texte": "Serrures standards des chambres : Test de Crochetage, 2 DR nécessaires pour ouvrir",
+      "competence": "Crochetage",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.64"
+      ]
+    },
+    {
+      "id": "test2",
+      "texte": "Cocher de la diligence Quatre Saisons : tir au tromblon sur ceux qui tentent de l'arrêter (Test du cocher, profil p.21)",
+      "competence": "Projectiles (Poudre Noire)",
+      "difficulte": "Difficile (-20)",
+      "ref": [
+        "EDO 01 l.79"
+      ]
+    },
+    {
+      "id": "test3",
+      "texte": "Plonger à l'abri de la diligence qui roule sur les Personnages ; échec : 1d10+6 Blessures (modifiés par l'Endurance, pas par les PA)",
+      "competence": "Esquive",
+      "difficulte": "Accessible (+20)",
+      "ref": [
+        "EDO 01 l.79"
+      ]
+    },
+    {
+      "id": "test4",
+      "texte": "Examiner la diligence des Lignes du Rochet : remarquer qu'elle est vieille et branlante (charpente pourrie)",
+      "competence": "Perception",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.87"
+      ]
+    },
+    {
+      "id": "test5",
+      "texte": "Idem, alternative : examiner la diligence",
+      "competence": "Métier (Charpentier ou équivalent)",
+      "difficulte": "Facile (+40)",
+      "ref": [
+        "EDO 01 l.87"
+      ]
+    },
+    {
+      "id": "test6",
+      "texte": "Marchander le prix de la place sur le toit avec les cochers : 4/- par personne, 3/- sur Test Opposé réussi, 2/- avec au moins 6 DR ; prix doublé en intérieur",
+      "competence": "Marchandage (Test Opposé)",
+      "difficulte": "Opposé (aucun modificateur écrit)",
+      "ref": [
+        "EDO 01 l.142"
+      ]
+    },
+    {
+      "id": "test7",
+      "texte": "Partie d'Impératrice Écarlate : chaque Personnage impliqué teste, plus grand DR gagne ; Phillipe perd volontairement les deux premières mains, puis +2 DR (Tricheur), relances Chanceux (3 niveaux)",
+      "competence": "Pari",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.202"
+      ]
+    },
+    {
+      "id": "test8",
+      "texte": "Triche de Phillipe : sur réussite, inverse le résultat d'un Test de Pari ou substitue son DR à celui de Pari",
+      "competence": "Escamotage",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.220"
+      ]
+    },
+    {
+      "id": "test9",
+      "texte": "Démasquer Phillipe : Test secret du MJ, Opposé Perception/Escamotage ; DR supérieur au sien repère la triche",
+      "competence": "Perception (Test Opposé à Escamotage)",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.220"
+      ]
+    },
+    {
+      "id": "test10",
+      "texte": "Phillipe saute par la fenêtre (4 m) : réussite réduit la chute de 1+DR ; sinon 1d10+3 Blessures par mètre ; À terre si Blessures > Bonus d'Endurance",
+      "competence": "Athlétisme",
+      "difficulte": "Accessible (+20)",
+      "ref": [
+        "EDO 01 l.229"
+      ]
+    },
+    {
+      "id": "test11",
+      "texte": "Se rendre compte que le procès contre Phillipe sera sans doute perdu sans pots-de-vin",
+      "competence": "Savoir (Loi)",
+      "difficulte": "Très Facile (+60)",
+      "ref": [
+        "EDO 01 l.239"
+      ]
+    },
+    {
+      "id": "test12",
+      "texte": "Idem, alternative : prendre conscience que le procès sera perdu",
+      "competence": "Intelligence (caractéristique)",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.239"
+      ]
+    },
+    {
+      "id": "test13",
+      "texte": "Conduire la diligence à une vitesse raisonnable pour qui n'a pas la Compétence ; sinon voyage lent. Échec avec DR -2 ou moins : roue arrachée, fossé, 1 dégât à tous les passagers",
+      "competence": "Conduite d'attelage",
+      "difficulte": "Accessible (+20)",
+      "ref": [
+        "EDO 01 l.311"
+      ]
+    },
+    {
+      "id": "test14",
+      "texte": "Redresser la diligence : total de 100 points de Force requis, chaque participant apporte +10 au Test",
+      "competence": "Force (caractéristique)",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.315"
+      ]
+    },
+    {
+      "id": "test15",
+      "texte": "Remettre la roue en place (10 minutes)",
+      "competence": "Conduite d'attelage",
+      "difficulte": "Accessible (+20)",
+      "ref": [
+        "EDO 01 l.315"
+      ]
+    },
+    {
+      "id": "test16",
+      "texte": "Idem, alternative : remettre la roue en place (10 minutes)",
+      "competence": "Métier (Charpentier)",
+      "difficulte": "Très Facile (+60)",
+      "ref": [
+        "EDO 01 l.315"
+      ]
+    },
+    {
+      "id": "test17",
+      "texte": "Se glisser sur le côté de la diligence en marche ; échec : chute de 2 m + 1d10+3 de vitesse, soit 2d10+6 dégâts",
+      "competence": "Athlétisme",
+      "difficulte": "Complexe (-10)",
+      "ref": [
+        "EDO 01 l.321"
+      ]
+    },
+    {
+      "id": "test18",
+      "texte": "Ouvrir la porte de la diligence en marche, après le Test d'Athlétisme",
+      "competence": "Force (caractéristique)",
+      "difficulte": "Très Facile (+60)",
+      "ref": [
+        "EDO 01 l.321"
+      ]
+    },
+    {
+      "id": "test19",
+      "texte": "Marie frappe (Corps à corps (Bagarre)) en opposition à l'Esquive ou au Corps à corps (Bagarre) du PJ",
+      "competence": "Esquive ou Corps à corps (Bagarre) (Test Opposé)",
+      "difficulte": "Complexe (-10)",
+      "ref": [
+        "EDO 01 l.323"
+      ]
+    },
+    {
+      "id": "test20",
+      "texte": "PJ touché par Marie : éviter de tomber sur la route",
+      "competence": "Force (caractéristique)",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.323"
+      ]
+    },
+    {
+      "id": "test21",
+      "texte": "Rumeurs : le MJ peut demander un Test de Ragot au préalable (facultatif)",
+      "competence": "Ragot",
+      "difficulte": "non écrite",
+      "ref": [
+        "EDO 01 l.153"
+      ]
+    },
+    {
+      "id": "test22",
+      "texte": "Coffre de Dame Isolde : serrure ouverte avec +2 DR",
+      "competence": "Crochetage (implicite, non nommé)",
+      "difficulte": "Complexe (-10)",
+      "ref": [
+        "EDO 01 l.439"
+      ]
+    },
+    {
+      "id": "test23",
+      "texte": "Lire le livre d'Ernst : Exposition Mineure à la Corruption, sinon gagne 1 point de Corruption",
+      "competence": "Calme",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.507"
+      ]
+    },
+    {
+      "id": "test24",
+      "texte": "Identifier les préparations d'Ernst comme potions contre la paralysie",
+      "competence": "Métier (Apothicaire)",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.511"
+      ]
+    },
+    {
+      "id": "test25",
+      "texte": "Idem, alternative : identifier les préparations",
+      "competence": "Savoir (Chimie)",
+      "difficulte": "Complexe (-10)",
+      "ref": [
+        "EDO 01 l.511"
+      ]
+    },
+    {
+      "id": "test26",
+      "texte": "Avaler deux des substances : (1d10 - Bonus d'Endurance) États Empoisonné (minimum 1), à résister",
+      "competence": "Résistance",
+      "difficulte": "Intermédiaire (+0)",
+      "ref": [
+        "EDO 01 l.511"
+      ]
+    },
+    {
+      "id": "test27",
+      "texte": "Suivre Phillipe par la fenêtre : mêmes règles que lui (chute de 4 m réduite de 1+DR, 1d10+3 par mètre, À terre si Blessures > BE), ou se suspendre d'abord (chute ramenée à 2 m, mais Phillipe prend de l'avance)",
+      "competence": "Athlétisme",
+      "difficulte": "Accessible (+20)",
+      "ref": [
+        "EDO 01 l.229-231"
+      ]
+    }
+  ],
+  "rencontres": [
+    {
+      "id": "renc1",
+      "texte": "Phillipe Descartes (Prostitué humain Bronze 1), un seul adversaire : accusé de triche, tire au pistolet pour intimider, fuit par la fenêtre ; acculé il combat à contrecœur, Retient ses coups (sauf face à deux Personnages), Talent Désarmer ; se rend à 3 Blessures ou moins et restitue le gain. Fuite à cheval possible",
+      "ref": [
+        "EDO 01 l.222"
+      ]
+    },
+    {
+      "id": "renc2",
+      "texte": "Gustav (tromblon) en haut des escaliers : tire sur quiconque continue à bouger, tombe à la renverse, s'excuse ensuite",
+      "ref": [
+        "EDO 01 l.226"
+      ]
+    },
+    {
+      "id": "renc3",
+      "texte": "Diligence Quatre Saisons : cocher au tromblon + diligence qui écrase les Personnages qui l'arrêtent (jet non combat)",
+      "ref": [
+        "EDO 01 l.79"
+      ]
+    },
+    {
+      "id": "renc4",
+      "texte": "Bagarre dans la cabine : Marie (Garde d'honneur, Argent 3) frappe qui monte ; les PNJ intérieurs (Isolde, Janna, Ernst, peut-être Phillipe) expulsent les PJ ; malus -20 pour toucher sauf poings ou dague. Cochers Gunnar et Hultz n'interviennent pas sauf dégâts à la diligence, puis tromblon (fonctionne sur résultat pair seulement, sinon à recharger)",
+      "ref": [
+        "EDO 01 l.334"
+      ]
+    },
+    {
+      "id": "renc5",
+      "texte": "Option Bandits : embuscade de bandits (effectif non donné) contre la diligence, Gustav informateur ou cochers complices",
+      "ref": [
+        "EDO 01 l.268"
+      ]
+    },
+    {
+      "id": "renc6",
+      "texte": "Option La fugueuse : Lukas, frère d'Isolde, et une bande de gros bras (effectif non donné) viennent la ramener de force",
+      "ref": [
+        "EDO 01 l.276"
+      ]
+    },
+    {
+      "id": "renc7",
+      "texte": "Option Le mage rival : Fhluger'dagh, Démon Mineur (1 démon), forme son corps en 1 Round puis attaque le Personnage le plus proche ; Ernst s'enfuit",
+      "ref": [
+        "EDO 01 l.282"
+      ]
+    },
+    {
+      "id": "renc8",
+      "texte": "Vengeance de Phillipe si condamné : bande de gros bras ou assassinats un par un, au choix du MJ",
+      "ref": [
+        "EDO 01 l.243"
+      ]
+    },
+    {
+      "id": "renc9",
+      "texte": "Annonce de la rencontre principale avec les mutants (chapitre suivant) sur la route : le chapitre n'en détaille ni effectif ni profil",
+      "ref": [
+        "EDO 01 l.342"
+      ]
+    },
+    {
+      "id": "renc10",
+      "texte": "Ernst Heidlemann (Sorcier novice humain, Bronze 3, Magie mineure Choc et Putréfaction), seul ou avec des hommes de main (effectif non écrit), tente d'éliminer les PJ qui découvrent sa mission",
+      "ref": [
+        "EDO 01 l.488"
+      ]
+    }
+  ],
+  "recompenses": [
+    {
+      "id": "rec1",
+      "texte": "PX de séance pour bonne interprétation et bonnes idées : 30 à 50 PX en général",
+      "ref": [
+        "EDO 01 l.348"
+      ]
+    },
+    {
+      "id": "rec2",
+      "texte": "10 points pour surprendre Phillipe en train de tricher",
+      "ref": [
+        "EDO 01 l.350"
+      ]
+    },
+    {
+      "id": "rec3",
+      "texte": "20 points par Personnage pour avoir capturé Phillipe",
+      "ref": [
+        "EDO 01 l.351"
+      ]
+    },
+    {
+      "id": "rec4",
+      "texte": "5-20 points pour persuader Dame Isolde de les laisser monter dans la diligence",
+      "ref": [
+        "EDO 01 l.352"
+      ]
+    },
+    {
+      "id": "rec5",
+      "texte": "Phillipe vaincu à 3 Blessures ou moins restitue tout l'argent gagné au jeu",
+      "ref": [
+        "EDO 01 l.231"
+      ]
+    },
+    {
+      "id": "rec6",
+      "texte": "Option fugueuse : récompense de 2 CO au groupe et Isolde comme contact utile",
+      "ref": [
+        "EDO 01 l.276"
+      ]
+    },
+    {
+      "id": "rec7",
+      "texte": "Option bandits : Gustav, si ses proches sont retenus, peut offrir une récompense (montant non écrit)",
+      "ref": [
+        "EDO 01 l.270"
+      ]
+    },
+    {
+      "id": "rec8",
+      "texte": "Coffre d'Isolde : vêtements somptueux et bijoux pour 7 CO",
+      "ref": [
+        "EDO 01 l.439"
+      ]
+    },
+    {
+      "id": "rec9",
+      "texte": "Affiche : minimum 8 Couronnes par personne et par jour plus prime généreuse à l'accomplissement (offre du Prince Héritier Hergard)",
+      "ref": [
+        "EDO 01 l.214"
+      ]
+    },
+    {
+      "id": "rec10",
+      "texte": "Livre d'Ernst : connaissance de base des démons (Bestiaire WFJDR) ; six fioles de préparations",
+      "ref": [
+        "EDO 01 l.507"
+      ]
+    },
+    {
+      "id": "rec11",
+      "texte": "Option mage rival : Ernst s'enfuit en abandonnant tous ses bagages (livre, sac et fioles) à l'auberge",
+      "ref": [
+        "EDO 01 l.292"
+      ]
+    },
+    {
+      "id": "rec12",
+      "texte": "Possessions de Phillipe s'il est pris : 49/67, dés (2 paires dont 1 pipée), jeu de cartes marquées (avec 5 as en plus)",
+      "ref": [
+        "EDO 01 l.537"
+      ]
+    }
+  ],
+  "etats": [
+    {
+      "id": "etat1",
+      "texte": "Point de départ du groupe : a quitté Delbren, route principale Middenheim-Altdorf, vers Altdorf ; aucun cheval (Cavalier ou Écuyer : le MJ élabore une histoire avec le joueur)",
+      "sens": "lu",
+      "portee": "chapitre",
+      "ref": [
+        "EDO 01 l.11"
+      ]
+    },
+    {
+      "id": "etat2",
+      "texte": "Aucun PJ ne dispose de chevaux ni ne peut en acquérir avant Bögenhafen",
+      "sens": "lu",
+      "portee": "campagne",
+      "ref": [
+        "EDO 01 l.124"
+      ]
+    },
+    {
+      "id": "etat3",
+      "texte": "Affiche du Prince Héritier Hergard von Tasseninck découverte (Document 1) : mission dans les Montagnes Grises, 8 Couronnes par personne et par jour",
+      "sens": "produit",
+      "portee": "campagne",
+      "ref": [
+        "EDO 01 l.206"
+      ]
+    },
+    {
+      "id": "etat4",
+      "texte": "Phillipe : triche démasquée ou non, capturé, relâché ou condamné ; condamné il poursuit les Personnages en vengeance",
+      "sens": "produit",
+      "portee": "campagne",
+      "ref": [
+        "EDO 01 l.241"
+      ]
+    },
+    {
+      "id": "etat5",
+      "texte": "Dame Isolde persuadée ou non de laisser les PJ monter dans la diligence (humeur et insultes pendant le voyage ; contact utile en option fugueuse)",
+      "sens": "produit",
+      "portee": "chapitre",
+      "ref": [
+        "EDO 01 l.299"
+      ]
+    },
+    {
+      "id": "etat6",
+      "texte": "Ernst Heidlemann : secte de la Couronne Rouge ; s'il est percé à jour il tente d'éliminer les PJ ; personnage récurrent à garder en vie, rencontré de nouveau dans Mort sur le Reik ; en option mage rival il s'enfuit sans voyager avec le groupe",
+      "sens": "produit",
+      "portee": "campagne",
+      "ref": [
+        "EDO 01 l.513"
+      ]
+    },
+    {
+      "id": "etat7",
+      "texte": "Annoncé par l'introduction pour la suite : sur la route, les PJ trouveront sur le corps de Kastor Lieberung (Magister impedimentae de la Main Pourpre) un élément pour s'enrichir vite, sans savoir qui est le mort. La découverte se fait au chapitre suivant, pas dans ce chapitre.",
+      "sens": "produit",
+      "portee": "campagne",
+      "ref": [
+        "EDO 01 l.7"
+      ]
+    },
+    {
+      "id": "etat8",
+      "texte": "Identité du transport au départ de la scène suivante : diligence des Lignes du Rochet, passagers Isolde, Janna, Marie, Ernst, peut-être Phillipe",
+      "sens": "produit",
+      "portee": "chapitre",
+      "ref": [
+        "EDO 01 l.251"
+      ]
+    },
+    {
+      "id": "etat9",
+      "texte": "Option bandits/Gustav complice : drapeau maison du MJ (Gustav ou cochers complices) lu par la rencontre suivante",
+      "sens": "produit",
+      "portee": "chapitre",
+      "ref": [
+        "EDO 01 l.268"
+      ]
+    },
+    {
+      "id": "etat10",
+      "texte": "Corruption : lecture du livre d'Ernst, 1 point de Corruption sur échec ; Ernst a Corruption 6",
+      "sens": "produit",
+      "portee": "campagne",
+      "ref": [
+        "EDO 01 l.507"
+      ]
+    },
+    {
+      "id": "etat11",
+      "texte": "Rumeurs entendues (liste de 15) dont certaines annoncent des volets futurs (Altdorf, griffon, colonel Sievers, Schaffenfest)",
+      "sens": "produit",
+      "portee": "campagne",
+      "ref": [
+        "EDO 01 l.157"
+      ]
+    },
+    {
+      "id": "etat12",
+      "texte": "Passage par le carrefour (borne Altdorf 180 km, Gîte des Cinq Frères) : quelle que soit la route suivie, rencontre avec les mutants",
+      "sens": "produit",
+      "portee": "chapitre",
+      "ref": [
+        "EDO 01 l.342"
+      ]
+    },
+    {
+      "id": "etat13",
+      "texte": "Diligence volée par les PJ : indignation des passagers, PJ recherchés par les patrouilleurs routiers",
+      "sens": "produit",
+      "portee": "campagne",
+      "ref": [
+        "EDO 01 l.305"
+      ]
+    },
+    {
+      "id": "etat14",
+      "texte": "Option fugueuse : Isolde aidée contre Lukas, reconnaissante, peut devenir un contact utile plus tard",
+      "sens": "produit",
+      "portee": "campagne",
+      "ref": [
+        "EDO 01 l.276"
+      ]
+    },
+    {
+      "id": "etat15",
+      "texte": "Place des PJ dans la diligence : toit ou intérieur, prix payé d'avance aux cochers (4/-, 3/- ou 2/-, doublé à l'intérieur)",
+      "sens": "produit",
+      "portee": "chapitre",
+      "ref": [
+        "EDO 01 l.142"
+      ]
+    }
+  ],
+  "dureeEtDifficulte": [
+    {
+      "id": "dur1",
+      "texte": "Scénario commençant idéalement à la fin du mois de Jahrdrung, à environ deux jours de diligence d'Altdorf (une semaine à pied)",
+      "ref": [
+        "EDO 01 l.11"
+      ]
+    },
+    {
+      "id": "dur2",
+      "texte": "Arrivée en début de soirée à l'auberge ; petit déjeuner 8 h, départ vers 10 h, diligence à 3 km/h au plus, n'atteint pas l'auberge des Sept Rayons (75 km) avant la nuit",
+      "ref": [
+        "EDO 01 l.251"
+      ]
+    },
+    {
+      "id": "dur3",
+      "texte": "Rythme : la soirée d'auberge est conçue pour les joueurs débutants et MJ débutants (interactions sociales, interprétation de PNJ)",
+      "ref": [
+        "EDO 01 l.194"
+      ]
+    },
+    {
+      "id": "dur4",
+      "texte": "Procès de Phillipe à Altdorf : au moins 3d10 jours, 50 à 100 pistoles par semaine (réduit par un juriste)",
+      "ref": [
+        "EDO 01 l.239"
+      ]
+    },
+    {
+      "id": "dur5",
+      "texte": "Prochaine diligence en attente : aucune avant deux jours, probablement bondée ; au carrefour, 2 h puis 4 h d'attente, 10/- par personne sur le toit",
+      "ref": [
+        "EDO 01 l.297"
+      ]
+    },
+    {
+      "id": "dur6",
+      "texte": "Aucune durée de séances écrite pour le chapitre ; seule indication de volume : 30 à 50 PX de récompense de séance en général",
+      "ref": [
+        "EDO 01 l.348"
+      ]
+    },
+    {
+      "id": "dur7",
+      "texte": "Rythme minuté du départ : Phillipe aborde les PJ au bout d'une demi-heure environ ; un cocher reste au moins 20 minutes aux latrines ; il faut 10 minutes pour remettre la roue ; la pluie commence une vingtaine de minutes après le départ et cesse au bout de quelques heures",
+      "ref": [
+        "EDO 01 l.200",
+        "EDO 01 l.303",
+        "EDO 01 l.315",
+        "EDO 01 l.319",
+        "EDO 01 l.340"
+      ]
+    }
+  ],
+  "matiereCompagnons": [
+    {
+      "id": "comp1",
+      "texte": "Postes de péage : tenus par les patrouilleurs routiers (membres les moins gradés ou impopulaires), un tous les 30 à 60 km, placés aux ponts, gués, défilés ; coût typique de 1 à 4 sous de cuivre par jambe, moins cher sur routes fréquentées ; couple de gardiens, parfois tourelles, parfois caserne/prison.",
+      "categorie": "peage",
+      "pourCeChapitre": "Péage optionnel sur la route entre La Diligence et la croisée avec la route Middenheim-Altdorf (EDO 01 l.307-342). Le chapitre ne porte aucun péage.",
+      "ref": [
+        "EDOC 10 l.26-32"
+      ]
+    },
+    {
+      "id": "comp2",
+      "texte": "Rencontre fortuite 66-75 « Route à péage » : noble local ou « entreprise privée » installe un péage ; payer selon le Statut social ou tenter d'échapper aux autorités ; renvoi aux Postes de péage.",
+      "categorie": "peage",
+      "pourCeChapitre": "Tirage ou choix sur le trajet en diligence (EDO 01 l.307-342), avant « quelque chose de déplaisant » (EDO 01 l.342).",
+      "ref": [
+        "EDOC 08 l.213"
+      ]
+    },
+    {
+      "id": "comp3",
+      "texte": "Johann Hindersson, péager (Bronze 5, profil complet EDOC 10 l.42-54) : colosse de 1m90 et 130 kg, gourdin et arbalète. Hook « Lourdes taxes » : il extorque les voyageurs car il a été cambriolé pendant qu'il somnolait, et récompense qui retrouve la bourse.",
+      "categorie": "pnj",
+      "pourCeChapitre": "Péager à la croisée ou sur la route de la diligence (EDO 01 l.338-342) ; les cochers ivres (EDO 01 l.139-142) payent ou non le péage.",
+      "ref": [
+        "EDOC 10 l.34-54"
+      ]
+    },
+    {
+      "id": "comp4",
+      "texte": "Aleanora « Al » Basfond, péager halfling (Bronze 5, profil EDOC 10 l.83-95) : escroque les passants avec sourire et arbalète chargée. Le compagnon la propose pour L'Ennemi dans l'Ombre « partout et à tout moment » quand les Personnages voyagent par voie terrestre, pour initier les joueurs novices au voyage. Hook « Une porte de sortie » : elle veut se ranger et paie qui perturbe les affaires de sa famille.",
+      "categorie": "pnj",
+      "pourCeChapitre": "Péage-tutoriel sur la route de la diligence (EDO 01 l.307-342), joueurs novices (EDO 01 l.17, EDO 01 l.194).",
+      "ref": [
+        "EDOC 10 l.56-63",
+        "EDOC 10 l.81-95"
+      ]
+    },
+    {
+      "id": "comp5",
+      "texte": "Usage de Basfond dans L'Ennemi dans l'Ombre : extorsion de « taxes » avec sourire et badinage, mains jouant avec l'arbalète chargée.",
+      "categorie": "pnj",
+      "pourCeChapitre": "Même insertion que ci-dessus : trajet entre l'auberge et la croisée (EDO 01 l.307-342).",
+      "ref": [
+        "EDOC 10 l.79-81"
+      ]
+    },
+    {
+      "id": "comp6",
+      "texte": "Patrouilles routières : 4 à 6 patrouilleurs sous un sergent sur route commerciale, effectifs doublés en zone dangereuse, un ou deux seulement sur routes isolées ; autorité sur toutes les routes de l'Empire ; casernes, et pièces d'auberge avec cellule, aubergistes et patrouilleurs échangeant ragots et « compréhension ».",
+      "categorie": "regle",
+      "pourCeChapitre": "Chambre des patrouilleurs routiers de La Diligence (EDO 01 l.70-72), cellule de l'auberge (EDO 01 l.19), conséquences du vol de la diligence (EDO 01 l.305).",
+      "ref": [
+        "EDOC 10 l.7-24"
+      ]
+    },
+    {
+      "id": "comp7",
+      "texte": "Les Justiciers (3e régiment de cavalerie d'Altdorf) : enquêtent sur crimes graves et corruption de patrouilleurs, badge à balance, dévots de Verena, réputés incorruptibles.",
+      "categorie": "pnj",
+      "pourCeChapitre": "Arbitre possible si les Personnages traduisent Phillipe en justice ou volent la diligence (EDO 01 l.237-241, EDO 01 l.305) ; contrepoint à la rumeur « patrouilleurs corrompus » (EDO 01 l.180).",
+      "ref": [
+        "EDOC 10 l.15"
+      ]
+    },
+    {
+      "id": "comp8",
+      "texte": "Charlotte-Samantha Maiers, sergent patrouilleur (Argent 4, profil EDOC 10 l.98-110) : escadron de 5 patrouilleurs, ancienne éclaireuse. Hook « Vengeance ciblée » : elle cherche des fripouilles dignes de confiance pour se venger de ses supérieurs.",
+      "categorie": "pnj",
+      "pourCeChapitre": "Patrouille croisée sur la route (EDO 01 l.307-342) ou arrivant à La Diligence ; rumeur patrouilleurs corrompus (EDO 01 l.180) ; Phillipe capturé (EDO 01 l.237).",
+      "ref": [
+        "EDOC 10 l.71-77"
+      ]
+    },
+    {
+      "id": "comp9",
+      "texte": "Heinrich Steele, capitaine patrouilleur (Or 1, profil EDOC 10 l.122-132) : réputation irréprochable mais loyautés cachées envers le Chaos ; hook « D'acier rouillé » : ses subordonnés envoient les Personnages enquêter, sans savoir si c'est pour le bien de l'Empire ou un plan dans un plan.",
+      "categorie": "pnj",
+      "pourCeChapitre": "Accroche annexe liée à l'intrigue de la secte (Main Pourpre/Couronne Rouge, EDO 01 l.7, EDO 01 l.486) ; patrouille rencontrée sur la route (EDO 01 l.307-342).",
+      "ref": [
+        "EDOC 10 l.112-120"
+      ]
+    },
+    {
+      "id": "comp10",
+      "texte": "Accroche « Un carrosse trop loin » : bande de bandits avec fausse diligence « Lygnes Rotchet » (héraldique et uniformes imités), prix très bas, vol des passagers en route. Le compagnon propose que ces faux cochers remplacent les cochers au début de L'Ennemi dans l'Ombre, pour des combats sur une diligence en marche.",
+      "categorie": "scenario-annexe",
+      "pourCeChapitre": "Variante de l'option « Un problème de bandits » : cochers déguisés (EDO 01 l.264-272) ; diligence des Lignes du Rochet de la cour (EDO 01 l.85) ; cochers Gunnar et Hultz (EDO 01 l.138-142).",
+      "ref": [
+        "EDOC 06 l.69-73"
+      ]
+    },
+    {
+      "id": "comp11",
+      "texte": "Compagnies de diligences : liste (Lignes Rochet, Cartak, Flèche rouge, Tour du Roc, Loup coureur, Cannon Ball, Express impérial, Tunnel de Talabheim) ; Quatre Saisons en expansion avec réseau d'auberges exclusives ; Tour du Roc couvre Altdorf-Middenheim ; Lignes Rochet : vieille compagnie, prix +10 %, réservation, affrètements nobles, service hebdomadaire vers Helmgart.",
+      "categorie": "lieu",
+      "pourCeChapitre": "Diligence des Quatre Saisons qui quitte l'auberge (EDO 01 l.77), diligence des Lignes du Rochet (EDO 01 l.85), auberge des Sept Rayons (EDO 01 l.142), Gîte des Cinq Frères des Quatre Saisons (EDO 01 l.342), Dame Isolde et les Rochet (EDO 01 l.255).",
+      "ref": [
+        "EDOC 06 l.21-61"
+      ]
+    },
+    {
+      "id": "comp12",
+      "texte": "Auberges relais : espacées d'environ 50 km (demi-journée de diligence), La Diligence citée comme modèle d'auberge relais impériale, variations locales de nourriture, boissons, propreté, prix et accueil ; renvoi au Pégase bondissant (Bâtiments du Reikland).",
+      "categorie": "lieu",
+      "pourCeChapitre": "L'auberge La Diligence (EDO 01 l.15-72), ses prix (EDO 01 l.39, EDO 01 l.60, EDO 01 l.64) et la distance jusqu'à l'auberge des Sept Rayons (EDO 01 l.142).",
+      "ref": [
+        "EDOC 06 l.63-67"
+      ]
+    },
+    {
+      "id": "comp13",
+      "texte": "Types de routes : impériale (6 m, pierre, bombée), principale (2,5 à 3,5 m, entretenue par les communautés, financée par péages), secondaire (piste de terre).",
+      "categorie": "regle",
+      "pourCeChapitre": "Route de Delbren par les contreforts des Cinq Sœurs (EDO 01 l.27), route principale Middenheim-Altdorf à la croisée (EDO 01 l.340).",
+      "ref": [
+        "EDOC 06 l.11-19"
+      ]
+    },
+    {
+      "id": "comp14",
+      "texte": "Diligence : véhicule à quatre roues, deux à six chevaux ; diligence commerciale = six passagers à l'intérieur, quatre sur le toit avec les bagages, cocher plus assistant armé d'une arbalète ou d'un tromblon ; carrosse noble six passagers, sans bagages sur le toit.",
+      "categorie": "regle",
+      "pourCeChapitre": "Diligence de six places, passagers sur le toit et refus d'Isolde (EDO 01 l.255-257), garde au tromblon (EDO 01 l.79, EDO 01 l.336).",
+      "ref": [
+        "EDOC 07 l.200-204"
+      ]
+    },
+    {
+      "id": "comp15",
+      "texte": "Tableau des véhicules : diligence 150 CO, Encombrement 100, Chargement 80, 2-4 animaux, Endurance 45, Blessures 50 ; Charrette ; Chariots (léger, moyen, lourd) avec leurs Endurance et Blessures.",
+      "categorie": "regle",
+      "pourCeChapitre": "Diligence des Lignes du Rochet à charpente vermoulue (EDO 01 l.87), diligence heurtant un obstacle (EDO 01 l.311), tromblon contre la diligence (EDO 01 l.336).",
+      "ref": [
+        "EDOC 07 l.233-250"
+      ]
+    },
+    {
+      "id": "comp16",
+      "texte": "Vitesse de voyage : chaque point de Mouvement = 1,5 km/h au pas, 2,5 au trot, 3 au galop ; monture au pas 12 h sans repos ; Exténué par heure d'excès, Résistance Intermédiaire, effondrement si Exténué dépasse le Bonus d'Endurance.",
+      "categorie": "regle",
+      "pourCeChapitre": "Allure de la diligence (3 km/h, EDO 01 l.309) et durée du trajet de 2 jours vers Altdorf (EDO 01 l.13) ; chevaux de Gustav pour la fuite de Phillipe (EDO 01 l.233).",
+      "ref": [
+        "EDOC 07 l.140-146"
+      ]
+    },
+    {
+      "id": "comp17",
+      "texte": "Vitesse des véhicules : animaux attelés au pas ou au trot ; pas de course sur Test de Conduite d'attelage Intermédiaire (+0) chaque kilomètre avec -10 cumulé, repli au pas et Test de Résistance ou Exténué ; Échec Stupéfiant (-6 DR) du conducteur déclenche le tableau des Problèmes de véhicule.",
+      "categorie": "regle",
+      "pourCeChapitre": "Test de Conduite d'attelage Accessible (+20) quand un Personnage prend les rênes (EDO 01 l.311) et dégâts du fossé (EDO 01 l.311).",
+      "ref": [
+        "EDOC 07 l.225-229"
+      ]
+    },
+    {
+      "id": "comp18",
+      "texte": "Problèmes de véhicule (1d100) : Incontrôlable 01-50, Endommagé 51-79, Cassé 80-95, Accident 96-00 ; Accident : 2d10 Blessures aux occupants (Bonus d'Endurance et PA), 2d10 au véhicule ; Cassé : roue/essieu/harnais, Test d'Athlétisme Intermédiaire (+0) du conducteur, une Blessure aux occupants.",
+      "categorie": "regle",
+      "pourCeChapitre": "Roue qui vole et diligence dans le fossé, 1 dégât à tous (EDO 01 l.311) ; chute de la diligence en pleine pluie (EDO 01 l.321).",
+      "ref": [
+        "EDOC 07 l.253-286"
+      ]
+    },
+    {
+      "id": "comp19",
+      "texte": "Réparation des véhicules : Test de Métier (Charpentier ou Charron), une heure restaure 1d10 + DR de Dégâts ; roues de secours posées avec Conduite d'attelage ou Métier ; forgeron d'auberge relais pour fers et rafistolage.",
+      "categorie": "regle",
+      "pourCeChapitre": "Remise en place de la roue (Test de Conduite d'attelage Accessible ou Métier (Charpentier) Très Facile, EDO 01 l.315) ; forge de l'auberge (EDO 01 l.46-48).",
+      "ref": [
+        "EDOC 07 l.255"
+      ]
+    },
+    {
+      "id": "comp20",
+      "texte": "Réparation : Test de Métier, une heure, 1d10 + DR de Dégâts restaurés, forgeron d'auberge relais pour les fers.",
+      "categorie": "regle",
+      "pourCeChapitre": "Forge et forgeron Artur (EDO 01 l.46-48, EDO 01 l.360) ; roue de la diligence (EDO 01 l.315).",
+      "ref": [
+        "EDOC 07 l.349-355"
+      ]
+    },
+    {
+      "id": "comp21",
+      "texte": "Attaques sur les véhicules : mêlée automatique contre véhicule immobile, tir ciblé à -20 si en mouvement, Test opposé de Corps à Corps contre le conducteur ; cibles Grande (+20) ; Endurance et Blessures du véhicule ; Blessures Critiques ciblées : Harnachement (Incontrôlable), Roues, Sièges/chargement ; conducteur doit réussir Conduite d'attelage Difficile (-20) ou Problème de véhicule.",
+      "categorie": "regle",
+      "pourCeChapitre": "Menace de dommages à la diligence (découper le toit) et tromblon de cocher (EDO 01 l.336) ; stupéfaction du tir sur la diligence des Quatre Saisons (EDO 01 l.79).",
+      "ref": [
+        "EDOC 07 l.312-347"
+      ]
+    },
+    {
+      "id": "comp22",
+      "texte": "« On ne s'arrête pas ! » : sauter sur un véhicule/monture en mouvement par Test d'Athlétisme Intermédiaire (+0), échec = chute de 2 m ; Test opposé de Chevaucher contre un cavalier existant ; -20 depuis une position à l'arrêt.",
+      "categorie": "regle",
+      "pourCeChapitre": "Se glisser dans la diligence en marche sous la pluie (Athlétisme Complexe, chute de 2 m, EDO 01 l.321) ; poursuite de Phillipe à cheval (EDO 01 l.233).",
+      "ref": [
+        "EDOC 07 l.326-330"
+      ]
+    },
+    {
+      "id": "comp23",
+      "texte": "Incidents de monte (1d100) : sangle cassée 01-40, perte d'un fer 41-85, boiteux 86-98, patte brisée 99-00 ; Test de Chevaucher Complexe (-10) ou chute de 2 m ; Traîné au sol sur Échec Stupéfiant (Esquive Intermédiaire, pied dans l'étrier).",
+      "categorie": "regle",
+      "pourCeChapitre": "Poursuite de Phillipe sur un cheval du propriétaire (EDO 01 l.233) ; Personnages cavaliers sans leurs chevaux (EDO 01 l.124-128).",
+      "ref": [
+        "EDOC 07 l.148-182"
+      ]
+    },
+    {
+      "id": "comp24",
+      "texte": "Animaux : profils et prix (cheval de monte 15 CO, cheval de guerre léger 70 CO, poney 10 CO, âne ou mule 5 CO), tableau de Mouvement des montures, Trait Entêté des ânes et mules.",
+      "categorie": "regle",
+      "pourCeChapitre": "Interdiction d'acheter des chevaux avant Bögenhafen (« Le mors aux dents », EDO 01 l.124-128), chevaux du propriétaire (EDO 01 l.233), attelage de la diligence (EDO 01 l.81).",
+      "ref": [
+        "EDOC 07 l.95-130"
+      ]
+    },
+    {
+      "id": "comp25",
+      "texte": "Accroche « Le tonnerre des roues noires » : carrosses noirs à deux chevaux filant la nuit sur les routes impériales ; le capitaine Sigrid Wachsam, qui a étudié les observations depuis un an et identifié un tronçon près du château de Grauenburg, veut engager des non-patrouilleurs pour enquêter.",
+      "categorie": "scenario-annexe",
+      "pourCeChapitre": "Résonance avec la diligence des Quatre Saisons lancée au galop (EDO 01 l.77) ; « quelque chose de déplaisant » sur la route (EDO 01 l.342) ; rumeurs (EDO 01 l.149-183).",
+      "ref": [
+        "EDOC 07 l.196-198"
+      ]
+    },
+    {
+      "id": "comp26",
+      "texte": "Étapes du voyage : nombre fixé par le MJ, modifié par le Mouvement le plus faible (augmentation de 1 ou 2 si <=3, moitié si tous les Mouvements >=6) ; Test d'Orientation Intermédiaire (+0) ou de Savoir pour réduire d'une étape (+20 avec carte) ; chaque étape : Météo, Activités, Rencontres, Phase d'arrivée.",
+      "categorie": "regle",
+      "pourCeChapitre": "Trajet à pied d'environ une semaine contre deux jours de diligence (EDO 01 l.13) ; voyage de 180 km vers Altdorf (EDO 01 l.340) ; trajet jusqu'aux Sept Rayons, 75 km (EDO 01 l.142).",
+      "ref": [
+        "EDOC 08 l.21-29"
+      ]
+    },
+    {
+      "id": "comp27",
+      "texte": "Météo (tableau par saison, 1d100), avec effets : Pluie (visibilité 25 m, armes à distance -10), Pluie diluvienne (-10 aux Tests physiques, -20 à distance, poudre exposée inutilisable, animaux Nerveux effrayés), Neige, Blizzard, Temps sec ; Activité Plein air (Survie en extérieur, -10 par degré) pour éviter l'Exposition.",
+      "categorie": "regle",
+      "pourCeChapitre": "Pluie dès vingt minutes après le départ (EDO 01 l.319) ; tromblon des cochers qui ne tire que sur un résultat pair (EDO 01 l.336) ; saison hivernale (EDO 01 l.173).",
+      "ref": [
+        "EDOC 08 l.48-86"
+      ]
+    },
+    {
+      "id": "comp28",
+      "texte": "Option « Attraper froid » : Test d'Exposition à la fin de l'étape sous pluie/neige sans manteau ni tente (Complexe -10 sans l'un, Difficile -20 sans les deux) ; rhume en hiver ou au printemps ; Rhume commun (incubation 20 + 4d10 h, durée 1d10 jours) et Pneumonie.",
+      "categorie": "regle",
+      "pourCeChapitre": "Personnages trempés sur le toit de la diligence (EDO 01 l.319, EDO 01 l.257), repliés sous la pluie torrentielle (EDO 01 l.321).",
+      "ref": [
+        "EDOC 08 l.88-122"
+      ]
+    },
+    {
+      "id": "comp29",
+      "texte": "Activités de voyage (une par étape, Exténué sur échec) : Plein air, Approvisionnement, Recueillir des informations (Ragot Intermédiaire, questions égales aux DR), Rester aux aguets (Perception, pas de surprise), Établir des cartes, Pratiquer une Compétence, Récupérer, Monter un camp.",
+      "categorie": "regle",
+      "pourCeChapitre": "Voyage en diligence (EDO 01 l.307-342) ; Rester aux aguets avant l'embuscade de bandits optionnelle (EDO 01 l.268) ; Recueillir des informations pour les rumeurs (EDO 01 l.149-155) ; nourriture et ragots à l'auberge (EDO 01 l.39, EDO 01 l.93).",
+      "ref": [
+        "EDOC 08 l.129-180"
+      ]
+    },
+    {
+      "id": "comp30",
+      "texte": "Nourriture en voyage : 1 Encombrement par jour pour 2/-, nourriture avariée = risque de Courante galopante.",
+      "categorie": "regle",
+      "pourCeChapitre": "Prix des repas à La Diligence (EDO 01 l.39) ; trajet à pied de plusieurs jours (EDO 01 l.13).",
+      "ref": [
+        "EDOC 08 l.46"
+      ]
+    },
+    {
+      "id": "comp31",
+      "texte": "Rencontres positives (1d100) : bonne compagnie, voilà qui est utile, merveilleux hébergement, temps libre, mot gentil, raccourci, voyage tranquille (guérison totale).",
+      "categorie": "rencontre",
+      "pourCeChapitre": "Récompense optionnelle d'un trajet réussi vers la croisée (EDO 01 l.338-342), PNJ rencontrant le groupe ; extension de « Compagnons de voyage » (EDO 01 l.325-331).",
+      "ref": [
+        "EDOC 08 l.186-198"
+      ]
+    },
+    {
+      "id": "comp32",
+      "texte": "Rencontres fortuites (1d100) : environnement suspect, champ de bataille, déplacement de masse, « Oh non, pas eux ! », tentations sur la route, mauvaise influence (rumeurs sur le groupe), route à péage, la chose qui ne devrait pas être, La Providence (signes divins), un ami dans le besoin.",
+      "categorie": "rencontre",
+      "pourCeChapitre": "Trajet de la diligence (EDO 01 l.307-342), avant le renvoi à « quelque chose de déplaisant » (EDO 01 l.342) ; rumeurs sur la route (EDO 01 l.174-175).",
+      "ref": [
+        "EDOC 08 l.201-216"
+      ]
+    },
+    {
+      "id": "comp33",
+      "texte": "Rencontres dangereuses (1d100) : route bloquée, Voleurs (renvoi à Wolmar Rotte, Wilhelm Kind), territoire hostile (Discrétion Rural Intermédiaire ou embuscade), terre empoisonnée, nature hostile, très mauvais temps (+40 à la Météo), équipement endommagé, Vérole du Tanneur, monture en fuite.",
+      "categorie": "rencontre",
+      "pourCeChapitre": "Embuscade à venir avant la rencontre avec les mutants (chapitre 2, EDO 01 l.268, EDO 01 l.342) ; rumeur des bandits sur la route d'Altdorf (EDO 01 l.160) ; vol de biens dans l'auberge (EDO 01 l.196, EDO 01 l.52).",
+      "ref": [
+        "EDOC 08 l.219-233"
+      ]
+    },
+    {
+      "id": "comp34",
+      "texte": "Rencontre « Voleurs ! » : le voleur est aperçu juste devant à la phase d'arrivée avec les biens ; renvois à Wolmar Rotte (page 47) et Wilhelm Kind (page 53), PNJ d'un autre chapitre du compagnon.",
+      "categorie": "rencontre",
+      "pourCeChapitre": "Vol nocturne imaginable à l'auberge (EDO 01 l.196, EDO 01 l.52) ; Phillipe voleur de cheval (EDO 01 l.233).",
+      "ref": [
+        "EDOC 08 l.226"
+      ]
+    },
+    {
+      "id": "comp35",
+      "texte": "Emmaretta, chasseuse (Bronze 4, profil EDOC 14 l.19-30), voyageuse solitaire sur la route avec arc court et deux dagues, qui apporte la caution de son compagnon Klaus emprisonné ; félin-garou accompagnée de deux grands félins (profil EDOC 14 l.49-59) ; Test de Savoir (Astronomie/Astrologie) Accessible pour la pleine Mannslieb ; elle voyage volontiers avec les Personnages et les aide si bandits (EDOC 14 l.63).",
+      "categorie": "pnj",
+      "pourCeChapitre": "Passagère croisée sur la route en dehors de la diligence (EDO 01 l.307-342) ou à pied vers Altdorf (EDO 01 l.13) ; alliée contre l'embuscade de bandits optionnelle (EDO 01 l.264-268) ; ne doit pas être utile en combat dans la diligence (EDO 01 l.329).",
+      "ref": [
+        "EDOC 14 l.7-30"
+      ]
+    },
+    {
+      "id": "comp36",
+      "texte": "Trait Métamorphe (création) : transformation en un round, Test de Force Mentale Accessible (+20) au crépuscule à Mannslieb pleine ; Grand félin (profil), Traits et Frappe mortelle contre tous les adversaires.",
+      "categorie": "regle",
+      "pourCeChapitre": "Félins dans les bois cités dans la rumeur « ne quittez pas la route » (EDO 01 l.174) ; grondement dans l'obscurité du trajet nocturne (EDOC 14 l.76).",
+      "ref": [
+        "EDOC 14 l.37-61"
+      ]
+    },
+    {
+      "id": "comp37",
+      "texte": "Emmaretta : variantes proposées (garde corrompu qui garde l'argent, attaque de bandits avec félins en renfort, voyageur PNJ qui l'harcèle, loups-garous à la place, malédiction d'un sorcier).",
+      "categorie": "scenario-annexe",
+      "pourCeChapitre": "Attaque des bandits en option (EDO 01 l.264-272) ; PNJ voyageurs conflictuels (EDO 01 l.329).",
+      "ref": [
+        "EDOC 14 l.63-67"
+      ]
+    },
+    {
+      "id": "comp38",
+      "texte": "« Un ami dans le besoin » : voyage de nuit sur une route hantée (peut être la route de Helmgart), aubergiste dissuasif, bruine, torches impossibles, sanctuaire de Taal à minuit, fantôme de Johann Gespenst (Peur 2, profil EDOC 14 l.86-95), ossements à enterrer, tombe de 2 CO, récompense de quatre rubis de 15 CO par Greta.",
+      "categorie": "scenario-annexe",
+      "pourCeChapitre": "Voyage de nuit après un départ tardif (EDO 01 l.251-255, EDO 01 l.309), si les Personnages ratent la diligence et partent à pied vers Altdorf (EDO 01 l.13, EDO 01 l.297) ; aubergiste bavard (EDO 01 l.118-120).",
+      "ref": [
+        "EDOC 14 l.70-108"
+      ]
+    },
+    {
+      "id": "comp39",
+      "texte": "Johann Gespenst, fantôme marchand assassiné à l'auberge précédente et jeté près du sanctuaire ; renvoi à l'auberge que les Personnages ont quittée comme lieu du crime.",
+      "categorie": "pnj",
+      "pourCeChapitre": "Pourrait lier La Diligence (EDO 01 l.15-17) et un meurtre de voyageur (EDO 01 l.52) ; option bandits d'auberge (EDO 01 l.266).",
+      "ref": [
+        "EDOC 14 l.98"
+      ]
+    }
+  ]
+}

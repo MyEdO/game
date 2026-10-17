@@ -50,7 +50,7 @@ const FORME_DE_CLE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 /** Un `ticket` DÉSIGNE une issue, à la MÊME graphie que celui du manifeste RAW : `#<numéro>`. */
 const FORME_DE_TICKET = /^#\d+$/
 /** Un `#` dans un `titre` serait lu comme un ticket PORTÉ par le registre : le scanner d'octets du
- *  hook de fermeture (`solde-ticket-guard`) y verrait `#N` et refuserait de fermer une issue qui
+ *  hook de fermeture (`evaluateRegistresPorteurs`, `scripts/git-hooks/porte-du-commit.mjs`) y verrait `#N` et refuserait de fermer une issue qui
  *  n'a rien à voir — un refus incompréhensible, sur une cause invisible. Un titre de fiche n'a
  *  aucun besoin de `#` : la contrainte ne coûte rien. */
 const MARQUE_DE_TICKET = /#/

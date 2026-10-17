@@ -66,7 +66,8 @@ describe('atelier du Codex — la pose mémoire est TRANSACTIONNELLE (#1530)', (
 
     expect(container.textContent, 'le refus du schéma n’est pas affiché — le save n’a pas suivi le chemin mesuré')
       .toContain('sea-shanties.json');
-    expect(container.textContent, 'le refus affiché ne nomme pas le champ violé').toContain('desc');
+    expect(container.querySelector('.codex-edit-errors')?.textContent, 'le refus affiché ne nomme pas le champ violé')
+      .toContain(`élément « ${cible.id} » › Description: texte vide.`);
     expect(
       datasetArray('seaShanties'),
       'le dataset mémoire a gardé une édition que le disque n’a jamais reçue',

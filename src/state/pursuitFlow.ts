@@ -136,6 +136,12 @@ export type PursuitSequence = SequenceState<PursuitPayload>;
 /** Id de la définition de séquence de la poursuite (donnée : il est écrit dans les sauvegardes). */
 export const PURSUIT_SEQUENCE = 'pursuit';
 
+declare module './sequenceContract' {
+  interface SequenceFamilies {
+    [PURSUIT_SEQUENCE]: PursuitPayload;
+  }
+}
+
 const PURSUIT_MOVE_KIND = 'pursuitMove';
 const PURSUIT_CHOICE_KIND = 'pursuitChoice';
 
@@ -520,7 +526,7 @@ function pursuitSettle(get: Get, _set: Set, seq: PursuitSequence, outcome: strin
   if (p.encounter) get().startCombat(p.encounter);
 }
 
-registerSequence<PursuitPayload>(PURSUIT_SEQUENCE, {
+registerSequence(PURSUIT_SEQUENCE, {
   round: (get, seq) => pursuitRoundFactory(get, seq),
   close: (ctx) => pursuitClose(ctx),
   settle: (get, set, seq, outcome) => pursuitSettle(get, set, seq, outcome),

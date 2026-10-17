@@ -5,7 +5,8 @@
 // rouge ne mesure rien, un détecteur sans cas vert crie sur tout.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { defauts, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice } from './hud-clickables.mjs'
+import { JSDOM } from 'jsdom'
+import { defauts, defautsMatrice, defautsMatriceGroupe, defautsTactile, defautsCompacite, trancheMatrice, FN_REACHES, FN_NOM_ATTEINT } from './hud-clickables.mjs'
 
 /** Mesure de COMBAT sans aucun défaut (le cas vert de référence). */
 const combat = () => ({
@@ -14,6 +15,7 @@ const combat = () => ({
   grossier: false,
   cibles: null,
   combat: true,
+  navire: true,
   rail: { dissous: true, ouvreurs: [{ i: 0, label: 'Dossier du navire', position: 'absolute', ok: true, hitBy: 'rien', rect: { x: 300, y: 400, w: 44, h: 44 } }] },
   frise: { rect: { x: 58, y: 34, w: 298, h: 52 }, roundPremier: true, roundDansColonne: true, courantEntier: true,
     defilable: true, suivants: { attendus: 3, entiers: 3 },
@@ -27,7 +29,7 @@ const combat = () => ({
   objectif: null,
   feedXfrise: null,
   piste: { scrollWidth: 633, clientWidth: 294, bande: 294, defile: true, tientDansLaBande: true },
-  tiroir: { ouvert: true, rect: { x: 200, y: 120, w: 160, h: 240 }, surPont: null },
+  tiroir: journalOuvert(),
   dock: { rect: { x: 0, y: 380, w: 360, h: 260 } },
   dockBtns: [{ i: 0, label: 'Attaquer', rendu: true, ok: true, entier: true, hitBy: 'rien', rect: { x: 8, y: 400, w: 60, h: 40 } }],
 })
@@ -39,6 +41,7 @@ const exploration = () => ({
   grossier: false,
   cibles: null,
   combat: false,
+  navire: false,
   rail: null,
   frise: null,
   groupe: { cartes: 4, lignes: 1, poignee: null, total: 4, defilementSecours: true, defile: false, bas: 30, replie: false,
@@ -47,10 +50,15 @@ const exploration = () => ({
   objectif: { marge: 0, avale: false, hitBy: 'boîte au ras de la tête (aucune marge morte)' },
   feedXfrise: null,
   piste: null,
-  tiroir: { ouvert: false, rect: null, surPont: null },
+  tiroir: journalOuvert(),
   dock: null,
   dockBtns: [],
 })
+
+function journalOuvert() {
+  return { panneau: true, ouvert: true, rect: { x: 200, y: 120, w: 160, h: 240 }, surPont: null,
+    points: [0.1, 0.5, 0.9].map((hauteur) => ({ hauteur, x: 280, y: 120 + 240 * hauteur, ok: true, hitBy: 'div.ld-panel' })) }
+}
 
 /** La mesure `m` doit lever EXACTEMENT un défaut, dont le texte porte `motif`. */
 function rouge(m, phase, motif) {
@@ -81,6 +89,71 @@ test('rail dissous SANS aucun ouvreur : la sonde se déclare AVEUGLE, elle ne se
   rouge(m, 'combat', /le rail d'outils est dissous et ne porte aucun ouvreur d'écran — sonde aveugle/)
 })
 
+test('exploration sans navire : rail non monté, accès au navire non mesuré, aucun défaut inventé', () => {
+  const m = exploration()
+  assert.equal(m.navire, false)
+  assert.equal(m.rail, null)
+  assert.deepEqual(defauts(m, 'exploration'), [])
+})
+
+test('exploration AVEC navire : le rail n’existe qu’en combat, l’ouvreur du navire n’y est pas attendu (#1868)', () => {
+  const m = exploration()
+  m.navire = true
+  assert.deepEqual(defauts(m, 'exploration'), [])
+  const c = combat()
+  c.rail = null
+  rouge(c, 'combat', /ouvreur attendu du navire absent/)
+})
+
+test('point de sonde du journal HORS FENÊTRE : verdict nommé, jamais « recouvert par rien » (#1868)', () => {
+  const m = combat()
+  m.tiroir.points[0] = { ...m.tiroir.points[0], x: 527, y: -6.7, horsFenetre: true, ok: false, hitBy: 'rien' }
+  rouge(m, 'combat', /le panneau du journal à 10 % est HORS FENÊTRE \(527, -6\.7\)/)
+})
+
+test('recouvrant SANS TEXTE ni classe : nommé par son tag, son id et sa classe, jamais un libellé vide', () => {
+  const dom = new JSDOM('<p></p><p id="voile"></p><div class="a  b"></div><svg class="iso-stage"></svg>', { runScripts: 'outside-only' })
+  const doc = dom.window.document
+  const cn = dom.window.eval(`(${FN_NOM_ATTEINT})`)
+  assert.deepEqual([...doc.body.children].map(cn), ['p', 'p#voile', 'div.a.b', 'svg.iso-stage'])
+  assert.equal(cn(null), 'rien')
+  const m = combat()
+  m.rail.ouvreurs[0] = { ...m.rail.ouvreurs[0], ok: false, hitBy: cn(doc.querySelector('p')) }
+  rouge(m, 'combat', /l'ouvreur « Dossier du navire » .* ne reçoit pas son clic — recouvert par p$/)
+})
+
+test('`reaches` HORS FENÊTRE : portrait, case, ouvreur et poignée disent HORS FENÊTRE, jamais « recouvert par rien »', () => {
+  const dom = new JSDOM('<button class="ptile">Ulrika</button>', { runScripts: 'outside-only' })
+  const doc = dom.window.document
+  doc.querySelector('.ptile').getBoundingClientRect = () => ({ x: 520, y: -40, width: 40, height: 20 })
+  doc.elementFromPoint = (x, y) => (x >= 0 && y >= 0 && x < dom.window.innerWidth && y < dom.window.innerHeight ? doc.body : null)
+  const cn = (e) => (e ? e.tagName : 'rien')
+  const box = (r) => ({ x: r.x, y: r.y, w: r.width, h: r.height })
+  const hors = { ...dom.window.eval(`(${FN_REACHES})`)(doc.querySelector('.ptile'), cn, box) }
+  assert.deepEqual(hors, { rendu: true, horsFenetre: true, ok: false, hitBy: null, rect: { x: 520, y: -40, w: 40, h: 20 } })
+  const motif = / est HORS FENÊTRE \{"x":520,"y":-40,"w":40,"h":20\} — aucun clic n'y arrive$/
+  const portrait = combat()
+  portrait.portraits[0] = { i: 0, ...hors }
+  rouge(portrait, 'combat', motif)
+  const kase = combat()
+  kase.dockBtns[0] = { ...kase.dockBtns[0], ...hors }
+  rouge(kase, 'combat', motif)
+  const ouvreur = combat()
+  ouvreur.rail.ouvreurs[0] = { ...ouvreur.rail.ouvreurs[0], ...hors }
+  rouge(ouvreur, 'combat', motif)
+  const poignee = exploration()
+  poignee.groupe = { cartes: 0, lignes: 0, poignee: hors }
+  poignee.portraits = []
+  const d = defauts(poignee, 'exploration')
+  assert.ok(d.some((l) => motif.test(l)), d.join(' | '))
+})
+
+test('navire présent et rail absent : refus nommé, aucun vert par vacuité', () => {
+  const m = combat()
+  m.rail = null
+  rouge(m, 'combat', /ouvreur attendu du navire absent/)
+})
+
 test('rail NON dissous : la position en flux ne dit rien (le rail porte alors l’ancrage)', () => {
   const m = combat()
   m.rail.dissous = false
@@ -91,8 +164,8 @@ test('rail NON dissous : la position en flux ne dit rien (le rail porte alors l�
 test('ouvreur du rail RECOUVERT : défaut nommé, recouvrant compris', () => {
   const m = combat()
   m.rail.ouvreurs[0].ok = false
-  m.rail.ouvreurs[0].hitBy = 'combat-feed <DIV>'
-  rouge(m, 'combat', /ne reçoit pas son clic — recouvert par combat-feed/)
+  m.rail.ouvreurs[0].hitBy = 'div.combat-feed'
+  rouge(m, 'combat', /ne reçoit pas son clic — recouvert par div\.combat-feed/)
 })
 
 // ── Bande de groupe : UNE ligne ──────────────────────────────────────────────────────────────────
@@ -109,7 +182,7 @@ test('piste du groupe ENROULÉE : défaut nommé, aux deux phases', () => {
 test('bande REPLIÉE dont la poignée reçoit son clic : aucun défaut', () => {
   const m = exploration()
   m.groupe = { cartes: 0, lignes: 0, poignee: { rendu: true, ok: true, hitBy: 'rien', rect: { x: 65, y: 10, w: 122, h: 20 } } }
-  m.portraits = m.portraits.map((p) => ({ ...p, rendu: false, ok: false, hitBy: 'iso-stage <svg>', rect: { x: 0, y: 0, w: 0, h: 0 } }))
+  m.portraits = m.portraits.map((p) => ({ ...p, rendu: false, ok: false, hitBy: 'svg.iso-stage', rect: { x: 0, y: 0, w: 0, h: 0 } }))
   assert.deepEqual(defauts(m, 'exploration'), [])
 })
 
@@ -124,8 +197,8 @@ test('bande REPLIÉE dont la poignée n’est PAS RENDUE : le groupe est hors d�
 
 test('bande REPLIÉE dont la poignée est RECOUVERTE : défaut nommé', () => {
   const m = exploration()
-  m.groupe = { cartes: 0, lignes: 0, poignee: { rendu: true, ok: false, hitBy: 'iso-stage <svg>', rect: { x: 65, y: 10, w: 122, h: 20 } } }
-  m.portraits = m.portraits.map((p) => ({ ...p, rendu: false, ok: false, hitBy: 'iso-stage <svg>', rect: { x: 0, y: 0, w: 0, h: 0 } }))
+  m.groupe = { cartes: 0, lignes: 0, poignee: { rendu: true, ok: false, hitBy: 'svg.iso-stage', rect: { x: 65, y: 10, w: 122, h: 20 } } }
+  m.portraits = m.portraits.map((p) => ({ ...p, rendu: false, ok: false, hitBy: 'svg.iso-stage', rect: { x: 0, y: 0, w: 0, h: 0 } }))
   rouge(m, 'exploration', /la poignée du groupe replié .* ne reçoit pas son clic/)
 })
 
@@ -138,7 +211,7 @@ test('bande sans carte rendue NI poignée : le groupe est hors d’atteinte', ()
 test('portrait NON RENDU : jamais « recouvert » (faux positif de bande repliée)', () => {
   const m = exploration()
   m.groupe = { cartes: 0, lignes: 0, poignee: { rendu: true, ok: true, hitBy: 'rien', rect: {} } }
-  m.portraits = [{ i: 0, rendu: false, ok: false, hitBy: 'iso-stage <svg>', rect: { x: 0, y: 0, w: 0, h: 0 } }]
+  m.portraits = [{ i: 0, rendu: false, ok: false, hitBy: 'svg.iso-stage', rect: { x: 0, y: 0, w: 0, h: 0 } }]
   assert.deepEqual(defauts(m, 'exploration'), [])
 })
 
@@ -306,8 +379,8 @@ test('console SANS case : sonde aveugle', () => {
 test('case de console RECOUVERTE : défaut nommé', () => {
   const m = combat()
   m.dockBtns[0].ok = false
-  m.dockBtns[0].hitBy = 'initiative-strip <DIV>'
-  rouge(m, 'combat', /la case « Attaquer ».*recouverte par initiative-strip/)
+  m.dockBtns[0].hitBy = 'div.initiative-strip'
+  rouge(m, 'combat', /la case « Attaquer ».*recouverte par div\.initiative-strip/)
 })
 
 // ── Tiroir du journal : sa réserve du bas se juge OUVERT ───────────────────────────────
@@ -319,14 +392,47 @@ test('tiroir du journal OUVERT qui recouvre la console : défaut chiffré', () =
 
 test('tiroir du journal qui ne s’ouvre pas : sonde aveugle sur sa réserve', () => {
   const m = combat()
-  m.tiroir = { ouvert: false, rect: null, surPont: null }
+  m.tiroir = { panneau: false, ouvert: false, rect: null, points: [], surPont: null }
   rouge(m, 'combat', /le tiroir du journal ne s'ouvre pas/)
 })
 
-test('aucun tiroir monté : rien à dire (l’écran ne le porte pas)', () => {
+test('aucun tiroir monté : sonde aveugle explicite', () => {
   const m = combat()
   m.tiroir = null
-  assert.deepEqual(defauts(m, 'combat'), [])
+  rouge(m, 'combat', /aucun tiroir du journal — sonde aveugle/)
+})
+
+test('journal : chaque point géométrique est exigé aux deux phases et aux petites largeurs', () => {
+  for (const [phase, fixture] of [['combat', combat], ['exploration', exploration]]) {
+    for (const largeur of [360, 560, 700]) for (const hauteur of [0.1, 0.5, 0.9]) {
+      const m = fixture()
+      m.largeur = largeur
+      const point = m.tiroir.points.find((p) => p.hauteur === hauteur)
+      point.ok = false
+      point.hitBy = 'svg.iso-stage'
+      rouge(m, phase, new RegExp(`journal à ${hauteur * 100} %.*iso-stage`))
+      point.ok = true
+      assert.deepEqual(defauts(m, phase), [])
+    }
+  }
+})
+
+test('journal : panneau absent, rect nul et mesures manquantes sont explicites aux deux phases', () => {
+  for (const [phase, fixture] of [['combat', combat], ['exploration', exploration]]) {
+    const m = fixture()
+    m.tiroir.panneau = false
+    rouge(m, phase, /panneau absent/)
+    m.tiroir.panneau = true
+    m.tiroir.ouvert = false
+    m.tiroir.rect = { x: 0, y: 0, w: 0, h: 0 }
+    rouge(m, phase, /panneau non rendu/)
+    m.tiroir = journalOuvert()
+    m.tiroir.points.pop()
+    rouge(m, phase, /trois points.*sonde aveugle/)
+    m.tiroir = journalOuvert()
+    m.tiroir.points[2].hauteur = 0.5
+    rouge(m, phase, /trois points.*sonde aveugle/)
+  }
 })
 
 // ── Fil, piste ───────────────────────────────────────────────────────────────────────────────────
@@ -364,7 +470,7 @@ test('bandeau d’objectif ABSENT : sonde aveugle sur la zone morte', () => {
 
 test('zone morte de l’objectif qui AVALE le clic : défaut chiffré', () => {
   const m = exploration()
-  m.objectif = { marge: 420, avale: true, hitBy: 'objective-banner <DIV>' }
+  m.objectif = { marge: 420, avale: true, hitBy: 'div.objective-banner' }
   rouge(m, 'exploration', /420px de carte à droite de l'objectif avalent les clics/)
 })
 
@@ -377,15 +483,15 @@ test('aucun portrait de groupe : sonde aveugle', () => {
 test('portrait de groupe RECOUVERT EN COMBAT (volet déplié sous le fil) : défaut nommé', () => {
   const m = combat()
   m.portraits[0].ok = false
-  m.portraits[0].hitBy = 'combat-feed <DIV>'
-  rouge(m, 'combat', /le portrait 0 du groupe ne reçoit pas son clic — recouvert par combat-feed/)
+  m.portraits[0].hitBy = 'div.combat-feed'
+  rouge(m, 'combat', /le portrait 0 du groupe {"x":10,"y":140,"w":44,"h":44} ne reçoit pas son clic — recouvert par div\.combat-feed/)
 })
 
 test('portrait de groupe RECOUVERT : défaut nommé', () => {
   const m = exploration()
   m.portraits[0].ok = false
-  m.portraits[0].hitBy = 'objective-banner <DIV>'
-  rouge(m, 'exploration', /le portrait 0 du groupe ne reçoit pas son clic/)
+  m.portraits[0].hitBy = 'div.objective-banner'
+  rouge(m, 'exploration', /le portrait 0 du groupe {"x":10,"y":10,"w":44,"h":44} ne reçoit pas son clic — recouvert par div\.objective-banner/)
 })
 
 // ══ MATRICE RESPONSIVE §12 (docs/superpowers/specs/2026-07-31-hud-combat-exploration-design.md) ══

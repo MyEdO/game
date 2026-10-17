@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RelayClient, RoomGuest, RoomHost, type SocketLike } from './relay';
+import { RELAY_URL_PROD, relayHttpUrl, roomWsUrl, RelayClient, RoomGuest, RoomHost, type SocketLike } from './relay';
 import { inflateB64 } from './compress';
 import { GuestSession, HostSession } from './session';
 import type { NetMessage } from './protocol';
@@ -119,7 +119,42 @@ function resumedHostSession() {
 }
 
 beforeEach(() => vi.useFakeTimers());
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+});
+
+describe('URL du relais selon le mode Vite', () => {
+  it.each(['test', 'development'])('sans override en mode %s : HTTP et WS locaux', (mode) => {
+    vi.stubEnv('MODE', mode);
+    vi.stubEnv('PROD', false);
+    vi.stubEnv('VITE_RELAY_URL', undefined);
+    expect(relayHttpUrl()).toBe('http://localhost:8787');
+    const ws = new URL(roomWsUrl('ABC234', { role: 'guest', name: 'Anne & Bob' }));
+    expect(ws.origin).toBe('ws://localhost:8787');
+    expect(ws.pathname).toBe('/room/ABC234');
+    expect([...ws.searchParams]).toEqual([['role', 'guest'], ['name', 'Anne & Bob']]);
+  });
+
+  it('sans override en production : HTTP et WS du Worker', () => {
+    vi.stubEnv('PROD', true);
+    vi.stubEnv('VITE_RELAY_URL', undefined);
+    expect(relayHttpUrl()).toBe(RELAY_URL_PROD);
+    const ws = new URL(roomWsUrl('ABC234', { role: 'host', token: 'test-token' }));
+    expect(ws.origin).toBe(new URL(RELAY_URL_PROD).origin.replace(/^https/, 'wss'));
+    expect(ws.pathname).toBe('/room/ABC234');
+    expect(ws.searchParams.get('token')).toBe('test-token');
+  });
+
+  it.each([false, true])('override explicite prioritaire (PROD=%s)', (prod) => {
+    vi.stubEnv('PROD', prod);
+    vi.stubEnv('VITE_RELAY_URL', 'http://localhost:8799');
+    expect(relayHttpUrl()).toBe('http://localhost:8799');
+    expect(new URL(roomWsUrl('ABC234', { role: 'host' })).origin).toBe('ws://localhost:8799');
+    vi.stubEnv('VITE_RELAY_URL', RELAY_URL_PROD);
+    expect(relayHttpUrl()).toBe(RELAY_URL_PROD);
+  });
+});
 
 describe('RelayClient (heartbeat + reconnexion)', () => {
   it('ping toutes les 10 s ; silence > 25 s → fermeture puis reconnexion à backoff', () => {

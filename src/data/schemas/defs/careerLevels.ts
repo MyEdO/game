@@ -1,16 +1,4 @@
-/**
- * Schéma de `careerLevels.json` — dérivé du contenu RÉEL (432 entrées, script d'inventaire) et de
- * `CareerLevelData` (`src/data/index.ts`). `skills`/`talents` = emplacements d'avancement
- * (`grammaire/avancement.ts` : référence à spécialisation facultative, `{pick, of}`, `{random}`),
- * `trappings` = `TrappingRef[]`, `characteristics` = `CharKey[]`. Ces formes et l'énum `CharKey`
- * vivent dans la grammaire (`grammaire/avancement.ts`, `grammaire/reference.ts`,
- * `grammaire/valeurs.ts`), partagées avec `species.ts`/`classes.ts`.
- *
- * `id` (composite `<career>-<level>`, 432/432 distincts), `label`, `labelF` (forme féminine MAISON —
- * le LDB n'imprime que le masculin ; omise = forme épicène) et `source` (dérivée de `CareerData.source`,
- * #309 : chaque niveau appartient à une Carrière déjà citée, ancre = folio de la Carrière parente,
- * LDB 7-08) sont des clés d'ENVELOPPE, posées par la fabrique.
- */
+/** LDB 7. */
 import { z } from 'zod';
 import { charKeySchema } from '../grammaire/valeurs';
 import { trappingRefSchema } from '../grammaire/reference';

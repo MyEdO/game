@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NarratedSegments } from './NarratedLine';
 import { Icon } from './Icon';
 import type { CombatEvent } from '../state/combatLog';
+import { Prose } from './Prose';
 
 /** Forme minimale acceptée pour les combattants (suffit à `narrateEvent` — id/label/kind). */
 interface ComLite { id: string; label: string; kind: string; }
@@ -32,12 +33,12 @@ export function LogDrawer({ battle, journal, initialOpen = false, onOpenHistory 
           )}
           {battle
             ? battle.log.slice(-30).map((l, i) => (
-                <p key={i} className="jr-line">
+                <div key={i} className="jr-line">
                   <NarratedSegments event={l} combatants={battle.combatants} />
-                </p>
+                </div>
               ))
             : journal.slice(-30).map((l, i) => (
-                <p key={i} className="jr-line"><span className="jr-tx">{l}</span></p>
+                <div key={i} className="jr-line"><div className="jr-tx"><Prose md={l} compact /></div></div>
               ))}
           {!battle && journal.length === 0 && <p className="empty">— rien à signaler —</p>}
         </div>

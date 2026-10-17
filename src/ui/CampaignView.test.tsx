@@ -221,7 +221,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
 
 // #1692
 describe('CampaignView — le refus du repli de défaite vit le temps de la modale', () => {
-  const MESSAGE = 'Cette campagne ne peut pas être jouée en l’état. Demandez-en une nouvelle version à son auteur.';
+  const MESSAGE = 'Projet d’un autre format, ou mal formé : cette campagne ne peut pas être jouée.';
 
   function defaite(party: Combatant[]): BattleState {
     return {

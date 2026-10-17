@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `merchantFamilies.json` — familles de PRÉSENTATION du stock marchand, miroir de
  * `MerchantFamilyData` (`src/data/index.ts`). Consommé par `ui/MerchantPanel.tsx` (`FAMILIES`,
@@ -13,11 +14,15 @@ const doc = document(
   'merchantFamilies',
   famille,
   {
-    match: z.strictObject({
+    match: nommerChamps(z.strictObject({
       /** CATÉGORIE de catalogue classée par cette famille (`TrappingData.categorie`). */
       categorie: z.string().optional(),
       shield: z.boolean().optional(),
       unit: z.boolean().optional(),
+    }), {
+      categorie: { label: 'catégorie' },
+      shield: { label: 'bouclier' },
+      unit: { label: 'unité' },
     }),
     columns: z.array(z.string()),
   },

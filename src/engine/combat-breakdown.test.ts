@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { parseQualityInstance } from './qualities/normalize';
-import { resolveMelee, resolveRanged, rangeBandModifier, rangeBandName, attackModifiers, psychDRAdjust, resolveStrayRangedHit, defenseModifiers, rollMeleeDefender, finishMelee, resolveMeleePassive, resolveTrample, resolveBackstabAttack, rederivePassiveAttack, frozenDifficulty, REDERIVATIONS, attackTestLabel, type ModLine, type RollBreakdown } from './combat';
+import { resolveMelee, resolveRanged, rangeBandModifier, rangeBandName, attackModifiers, psychDRAdjust, resolveStrayRangedHit, defenseModifiers, rollMeleeDefender, finishMelee, resolveMeleePassive, freeAttackWeapon, resolveBackstabAttack, rederivePassiveAttack, frozenDifficulty, REDERIVATIONS, attackTestLabel, type ModLine, type RollBreakdown } from './combat';
 import { RULE_REF } from './ruleRefs';
 import { evaluateTest, hydrateTR, bumpSL } from './tests';
 import { makeRNG } from './dice';
 import { Combatant, Weapon, DIFFICULTY_MODIFIERS } from './types';
+import { attaqueNaturelle } from './creatureAttacks';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -31,8 +32,8 @@ describe('rollMeleeDefender : pénalité de main secondaire APPLIQUÉE au jet de
   const off: Weapon = { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: 'off', hands: 1, uid: 'o' };
   it('parer avec l’arme de main secondaire (non Parade) → cible du jet -20 vs main principale', () => {
     const d = mk({ weapons: [main, off] });
-    const withMain = rollMeleeDefender(d, 'parade', makeRNG(1), 0, main).target;
-    const withOff = rollMeleeDefender(d, 'parade', makeRNG(1), 0, off).target;
+    const withMain = rollMeleeDefender(d, 'parade', makeRNG(1), [], main).target;
+    const withOff = rollMeleeDefender(d, 'parade', makeRNG(1), [], off).target;
     expect(withMain - withOff).toBe(20);
   });
 });
@@ -58,15 +59,15 @@ describe('parade : pénalité de main secondaire + exception Parade/Défensive (
   const parrySpec = { id: 'corps-a-corps', spec: 'parade', characteristic: 'capacite-de-combat', advances: 0 } as any;
   const offShield: Weapon = { label: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'defensive' }], hand: 'off', hands: 1 };
   it('parade main secondaire : bouclier Défensive + spé Parade → AUCUNE pénalité', () => {
-    const mods = defenseModifiers(mk({ skills: [parrySpec] }), 'parade', 0, offShield);
+    const mods = defenseModifiers(mk({ skills: [parrySpec] }), 'parade', [], offShield);
     expect(mods.some((m) => m.label === 'Main secondaire')).toBe(false);
   });
   it('parade main secondaire SANS spé Parade → -20', () => {
-    const mods = defenseModifiers(mk({ skills: [] }), 'parade', 0, offShield);
+    const mods = defenseModifiers(mk({ skills: [] }), 'parade', [], offShield);
     expect(mods.find((m) => m.label === 'Main secondaire')?.value).toBe(-20);
   });
   it('parade main principale → aucune pénalité', () => {
-    const mods = defenseModifiers(mk(), 'parade', 0, { ...offShield, hand: 'main' });
+    const mods = defenseModifiers(mk(), 'parade', [], { ...offShield, hand: 'main' });
     expect(mods.some((m) => m.label === 'Main secondaire')).toBe(false);
   });
 });
@@ -115,13 +116,13 @@ describe('Taille en combat (T1) + env injecté — attackModifiers (LDB 14 l.118
 
 describe('Esquive dans une haute épaisseur de neige −30 (LDB 14 l.82)', () => {
   it('defenseModifiers : −30 en esquive seulement (pas en parade)', () => {
-    expect(defenseModifiers(mk(), 'esquive', -30).some((m) => m.value === -30)).toBe(true);
-    expect(defenseModifiers(mk(), 'parade', -30).some((m) => m.value === -30)).toBe(false);
+    expect(defenseModifiers(mk(), 'esquive', [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]).some((m) => m.value === -30)).toBe(true);
+    expect(defenseModifiers(mk(), 'parade', [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]).some((m) => m.value === -30)).toBe(false);
   });
   it('rollMeleeDefender : la neige abaisse la cible de l’esquive, pas de la parade', () => {
     const d = mk();
-    expect(rollMeleeDefender(d, 'esquive', makeRNG(1), -30).target).toBe(rollMeleeDefender(d, 'esquive', makeRNG(1)).target - 30);
-    expect(rollMeleeDefender(d, 'parade', makeRNG(1), -30).target).toBe(rollMeleeDefender(d, 'parade', makeRNG(1)).target);
+    expect(rollMeleeDefender(d, 'esquive', makeRNG(1), [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]).target).toBe(rollMeleeDefender(d, 'esquive', makeRNG(1)).target - 30);
+    expect(rollMeleeDefender(d, 'parade', makeRNG(1), [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }]).target).toBe(rollMeleeDefender(d, 'parade', makeRNG(1)).target);
   });
 });
 
@@ -154,9 +155,17 @@ describe('Taille — Frappe Mortelle (cleave) + Piétinement (LDB 85 l.362/387)'
   it('pas de cleave si l’attaquant n’est pas plus grand', () => {
     expect(resolveMeleePassive(mk(), mk(), sword, hit).cleave).toBeFalsy();
   });
-  it('resolveTrample : attaque CC qui se résout', () => {
-    const r = resolveTrample(mk({ size: 'enorme', characteristics: { ...mk().characteristics, 'capacite-de-combat': 60 } }), mk({ size: 'moyenne' }), makeRNG(3));
-    expect(typeof r.hit).toBe('boolean');
+  it('Piétinement : Test OPPOSÉ de Corps à corps (Bagarre) — LDB 13 l.123 ; LDB 85 l.387', () => {
+    const grand = mk({
+      size: 'enorme', characteristics: { ...mk().characteristics, 'capacite-de-combat': 60 },
+      skills: [
+        { id: 'corps-a-corps', spec: 'base', characteristic: 'capacite-de-combat', advances: 5 },
+        { id: 'corps-a-corps', spec: 'bagarre', characteristic: 'capacite-de-combat', advances: 20 },
+      ],
+    } as never);
+    const r = resolveMelee(grand, mk({ size: 'moyenne', weapons: [sword] }), freeAttackWeapon(attaqueNaturelle([], 'pietinement')!), makeRNG(3), { defense: 'parade' });
+    expect(r.defenderDetail, 'le défenseur oppose sa Parade').toBeDefined();
+    expect(r.attackerDetail!.base, 'la Spé Bagarre, jamais la meilleure Spé').toBe(80);
   });
 });
 
@@ -278,13 +287,19 @@ describe('AttackResult — la RAISON du départage voyage sur le détail de lign
 describe('attackTestLabel — libellé du Test SUIT combatValue, ne ment jamais (#203)', () => {
   const belier: Weapon = { label: 'Bélier', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], resolveChar: 'force' };
   it('arme à Résolution alternative (bélier → Force, ADE II 8 l.233) → libellé de la Carac', () => {
-    expect(attackTestLabel(belier, 'melee')).toBe('Force');
+    expect(attackTestLabel(mk(), belier, 'melee')).toBe('Force');
   });
-  it('arme de mêlée normale (épée) → « Corps à corps »', () => {
-    expect(attackTestLabel(sword, 'melee')).toBe('Corps à corps');
+  it('arme sans Groupe → la Compétence nue', () => {
+    expect(attackTestLabel(mk(), sword, 'melee')).toBe('Corps à corps');
+    expect(attackTestLabel(mk(), bow, 'ranged')).toBe('Projectiles');
   });
-  it('arme à distance normale (arc) → « Projectiles »', () => {
-    expect(attackTestLabel(bow, 'ranged')).toBe('Projectiles');
+  it('Piétinement → « Corps à corps (Bagarre) », la Spé du Groupe que le jet résout (LDB 85 l.387)', () => {
+    const avecSpe = mk({ skills: [{ id: 'corps-a-corps', spec: 'bagarre', characteristic: 'capacite-de-combat', advances: 3 }] });
+    expect(attackTestLabel(avecSpe, freeAttackWeapon(attaqueNaturelle([], 'pietinement')!), 'melee')).toBe('Corps à corps (Bagarre)');
+    expect(attackTestLabel(mk(), freeAttackWeapon(attaqueNaturelle([], 'pietinement')!), 'melee')).toBe('Corps à corps (Bagarre)');
+  });
+  it('arc de Groupe Arc → « Projectiles (Arc) »', () => {
+    expect(attackTestLabel(mk(), { ...bow, subType: 'arc' }, 'ranged')).toBe('Projectiles (Arc)');
   });
   it('resolveMeleePassive avec un bélier : le breakdown affiche « Force », pas « Corps à corps »', () => {
     const hit = evaluateTest(20, 60);
@@ -441,7 +456,7 @@ describe('MÊLÉE + Chance : le surnombre survit au re-jet (#1153 L4)', () => {
     expect(inexplique(origine)).toBe(0);
     const re = finishMelee(
       a, b, sword, bumpSL(hydrateTR(origine)), hydrateTR(r.defenderDetail!), 'parade',
-      undefined, [], 0, undefined, undefined, false, undefined, frozenDifficulty(origine),
+      undefined, [], [], undefined, undefined, false, undefined, frozenDifficulty(origine),
     );
     expect(dit(re.attackerDetail!)).toEqual(dit(origine));
     expect(inexplique(re.attackerDetail!)).toBe(0);
@@ -468,7 +483,7 @@ describe('COUP DANS LE DOS : le +20 est NOMMÉ à sa cause (#1153 L4, #1218)', (
 
 describe('PIÉTINEMENT et TIR DÉVIÉ : la ligne s’explique aussi (#1153 L4)', () => {
   it('Piétinement : la Difficulté est celle des mods qui ont fait la cible', () => {
-    const d = resolveTrample(mk({ id: 'a', size: 'enorme' } as never), mk({ id: 'c' }), makeRNG(5)).attackerDetail!;
+    const d = resolveMelee(mk({ id: 'a', size: 'enorme' } as never), mk({ id: 'c' }), freeAttackWeapon(attaqueNaturelle([], 'pietinement')!), makeRNG(5)).attackerDetail!;
     expect(inexplique(d)).toBe(0);
   });
 
@@ -486,3 +501,58 @@ describe('PIÉTINEMENT et TIR DÉVIÉ : la ligne s’explique aussi (#1153 L4)',
 /* Le CÂBLAGE des re-dérivations du produit (la Chance passe-t-elle vraiment la composition figée ?)
    se mesure à l'EXÉCUTION, sur le chemin réel du flux : `preview-attack.test.ts`. Un scan de source
    dirait « transport présent » d'un argument nommé `compo` qui vaudrait `undefined`. */
+
+describe('Re-dérivation passive = résolution passive au même dé (LDB 85 l.362, LDB 62 l.323, LDB 17 l.68)', () => {
+  const imprecise = (type: 'melee' | 'ranged'): Weapon => ({
+    label: 'Imprécise', type, damage: { plusBF: type === 'melee', flat: 4 }, ...(type === 'ranged' ? { range: 60 } : {}),
+    qualities: [parseQualityInstance('Imprécise')!],
+  });
+  const grand = () => mk({ id: 'g', size: 'enorme' });
+  const cible = () => mk({ id: 'c', size: 'moyenne' });
+  for (const [nom, de] of [['touche', 22], ['échec', 88]] as const) {
+    it(`mêlée, ${nom} : balayage de Taille et ajustements de DR identiques`, () => {
+      const w = imprecise('melee');
+      const atk = evaluateTest(de, 60);
+      const origine = resolveMeleePassive(grand(), cible(), w, atk);
+      if (atk.success) expect(origine.cleave, 'la fixture doit VRAIMENT poser le balayage').toBe(true);
+      const compo = frozenDifficulty(origine.attackerDetail);
+      expect(rederivePassiveAttack(grand(), cible(), w, atk, 'melee', undefined, false, compo))
+        .toEqual(resolveMeleePassive(grand(), cible(), w, atk, undefined, [], undefined, false, compo));
+    });
+  }
+  it('tir passif : ajustements de DR identiques à `resolveRanged`', () => {
+    const w = imprecise('ranged');
+    const a = mk({ id: 'a', weapons: [w] });
+    const c = cible();
+    const rng = makeRNG(5);
+    let origine = resolveRanged(a, c, w, rng, 10);
+    while (!origine.hit) origine = resolveRanged(a, c, w, rng, 10);
+    const re = rederivePassiveAttack(a, c, w, hydrateTR(origine.attackerDetail!), 'ranged', undefined, false, frozenDifficulty(origine.attackerDetail));
+    expect(re).toEqual(origine);
+  });
+});
+
+describe('Re-dérivation passive au même dé : Charge montée, Pratique/Peu fiable', () => {
+  const cible = () => mk({ id: 'c', size: 'moyenne' });
+  it('Charge montée (LDB 14 l.183) : la re-dérivation garde Force et Taille de la monture', () => {
+    const epee: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
+    const atk = evaluateTest(22, 60);
+    const proxy = { sb: 6, size: 'grande' as const };
+    const a = mk({ id: 'a', size: 'moyenne' });
+    const origine = resolveMeleePassive(a, cible(), epee, atk, undefined, [], proxy);
+    expect(origine.cleave, 'la Taille de la monture pose le balayage').toBe(true);
+    expect(rederivePassiveAttack(a, cible(), epee, atk, 'melee', undefined, false, frozenDifficulty(origine.attackerDetail), proxy)).toEqual(origine);
+  });
+  for (const [q, delta] of [['Pratique', 1], ['Peu fiable', -1]] as const) {
+    it(`${q} (LDB 60) : un tir passif RATÉ reçoit ${delta > 0 ? '+' : ''}${delta} DR`, () => {
+      const arc: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [parseQualityInstance(q)!] };
+      const a = mk({ id: 'a', weapons: [arc] });
+      const rng = makeRNG(5);
+      let o = resolveRanged(a, cible(), arc, rng, 10);
+      while (o.hit) o = resolveRanged(a, cible(), arc, rng, 10);
+      expect(o.netSL).toBe(o.attackerDetail!.sl + delta);
+      const re = rederivePassiveAttack(a, cible(), arc, hydrateTR(o.attackerDetail!), 'ranged', undefined, false, frozenDifficulty(o.attackerDetail));
+      expect(re).toEqual(o);
+    });
+  }
+});

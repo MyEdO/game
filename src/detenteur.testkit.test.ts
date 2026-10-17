@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -8,11 +8,8 @@ import { VARIABLE_PARTIE } from '../scripts/test/partition.mjs';
 import { tuerArbre } from '../scripts/gates/toutes.mjs';
 import { detenteur, enCollecte } from './detenteur.testkit';
 
-const registre = await vi.hoisted(async () => {
-  const precharge = await import('./detenteur.testkit');
-  vi.resetModules();
-  return { precharge };
-});
+const PRECHARGE = './detenteur.testkit?precharge';
+const registre = { precharge: (await import(/* @vite-ignore */ PRECHARGE)) as typeof import('./detenteur.testkit') };
 
 /* Portée MODULE. Sous `sequence.hooks: 'stack'` (défaut de vitest), les `afterAll` d'une même portée
  * s'exécutent dans l'ordre INVERSE de leur enregistrement : celui-ci, posé AVANT l'appel de

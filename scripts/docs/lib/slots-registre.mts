@@ -12,7 +12,7 @@ import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
 import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
 import type { SchemaDef } from '../../../src/data/schemas/types';
 import { estFeuilleDId, mesureDuParse, reperesDuParse, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
-import { defDe, descendre, enfantsDe } from '../../../src/data/schemas/grammaire/descente';
+import { defDe, descendre, enfantsDe, declarationDEnfants } from '../../../src/data/schemas/grammaire/descente';
 import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { nomDeDocument, type OccurrenceDeReference, type ReferencesParPorteur } from './structures-scan.mjs';
 import { parUnitesDeCode } from '../../guards/lib/lister.mjs';
@@ -107,8 +107,7 @@ export function opsDuParse(scan: Pick<ScanDesReferences, 'brutParNom'>, defs: re
 /**
  * CHAMPS D'OP À SLOT, lus STATIQUEMENT sur `OP_DEFS` : pour chaque op (chaque membre objet d'une union
  * comprise), chaque champ dont le sous-arbre porte une feuille `idDe`. Une op IMBRIQUÉE (`z.lazy` vers
- * `gameOpSchema`) n'y compte pas : son payload est lu par un raffinement, pas par un enfant du schéma
- * (`grammaire/descente.ts › enfantsDe`), et chaque op a son entrée ici.
+ * `gameOpSchema`) n'y compte pas : chaque op a son entrée ici.
  * Clé : `op.champ`, la graphie de `GAMEOP_FIELD_TARGETS` (`scripts/guards/lib/gameOpRefFk.mjs`).
  */
 export function champsDOpASlot(opDefs: Readonly<Record<string, unknown>> = OP_DEFS): Set<string> {
@@ -120,6 +119,7 @@ export function champsDOpASlot(opDefs: Readonly<Record<string, unknown>> = OP_DE
         if (champ.cle === undefined || champ.cle === 'op') continue;
         let aFeuille = false;
         descendre([champ.noeud], ({ noeud }) => {
+          if (declarationDEnfants(noeud)?.nature === 'payloads-op') return 'elaguer';
           if (estFeuilleDId(noeud)) aFeuille = true;
         });
         if (aFeuille) out.add(`${op}.${champ.cle}`);

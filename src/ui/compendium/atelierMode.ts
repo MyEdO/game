@@ -7,7 +7,7 @@
 import { persistedAtom } from '../persistedAtom';
 
 const atelierAtom = persistedAtom(
-  'wfrp4.compendium.atelier.v1',
+  'wfrp4.compendium.atelier',
   false,
   (raw) => raw === '1',
   (on) => (on ? '1' : '0'),

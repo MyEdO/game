@@ -47,3 +47,24 @@ describe('Exemple RAW LDB 14 l.95 — « le Test devient simplement Très Diffic
     expect(combineMods(mods)).toBe(-30); // le plafond mord réellement
   });
 });
+
+describe('Obscurité (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le plafond Très Difficile −30 (LDB 14 l.95)', () => {
+  const nightScene = (weather: 'tempete' | 'neige'): Scene => ({ ...fogScene(), ambiance: 'exterieur', weather }) as unknown as Scene;
+  const lignes = (weather: 'tempete' | 'neige') => {
+    const attacker = mk('att', 'hero', 5);
+    const target = mk('tgt', 'enemy', 8);
+    const get = (() => ({ scene: nightScene(weather), battle: { combatants: [attacker, target], movementUsed: 0 }, facing: {}, gameTime: 23 * 60 })) as unknown as Get;
+    const env = attackEnv(get, attacker, target, bow, { heldGround: true }).env;
+    return { env, total: combineMods(attackModifiers(attacker, target, bow, { kind: 'ranged', env })) };
+  };
+  it('nuit + tempête : deux lignes (−20, −20), plafonnées à −30', () => {
+    const { env, total } = lignes('tempete');
+    expect(env.filter((m) => m.value < 0).map((m) => [m.label, m.value])).toEqual([['Obscurité', -20], ['Tempête', -20]]);
+    expect(total).toBe(-30);
+  });
+  it('nuit + neige : deux lignes (−20, −30), plafonnées à −30', () => {
+    const { env, total } = lignes('neige');
+    expect(env.filter((m) => m.value < 0).map((m) => [m.label, m.value])).toEqual([['Obscurité', -20], ['Neige épaisse', -30]]);
+    expect(total).toBe(-30);
+  });
+});

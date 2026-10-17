@@ -40,26 +40,26 @@ describe('semences-de-scene.json — le schéma refuse une semence qui mentirait
   });
 
   it('un ÉCLAIRAGE qui n’est pas un palier de `lightLevels.json` est refusé — `auto` COMPRIS', () => {
-    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'plein-jour-inconnu' })).toContain('ambientLight');
+    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'plein-jour-inconnu' })).toContain('Éclairage');
     // La sentinelle « suit l'horloge » est l'ABSENCE du champ, jamais une valeur : `auto` n'est pas un
     // palier de `lightLevels.json`, et un champ typé `idDe('lightLevel')` le refuse comme tout autre
     // id mort — `emptyScene` rend `auto` sur la SCÈNE, dont le champ est une chaîne libre.
-    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'auto' })).toContain('ambientLight');
+    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'auto' })).toContain('Éclairage');
     expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'nuit' })).toBeNull();
   });
 
   it('une PENTE de toiture hors de la plage du schéma de scène est refusée', () => {
     const erreur = validateDataset(FICHIER, { ...LIVRE, roofDefaults: { ...LIVRE.roofDefaults, pitchDeg: 80 } });
-    expect(erreur).toContain('pitchDeg');
+    expect(erreur).toContain('Toiture par défaut › pente en degrés');
   });
 
   it('une MATIÈRE de relief hors de la sous-liste `relief` est refusée', () => {
     const erreur = validateDataset(FICHIER, { ...LIVRE, reliefDefaults: { ...LIVRE.reliefDefaults, cliff: 'toit-ardoise' } });
-    expect(erreur).toContain('cliff');
+    expect(erreur).toContain('Matières de relief › falaise');
   });
 
   it('une AMBIANCE hors du vocabulaire de la scène est refusée (même énumération que `Scene.ambiance`)', () => {
-    expect(validateDataset(FICHIER, { ...LIVRE, ambiance: 'souterrain' })).toContain('ambiance');
+    expect(validateDataset(FICHIER, { ...LIVRE, ambiance: 'souterrain' })).toContain('Ambiance');
   });
 
   it('ÉCLAIRAGE absent de la semence → la scène neuve porte `auto` EN CLAIR (#841 FU-A tenu)', () => {

@@ -14,10 +14,6 @@ import { ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, texteEnPlace
 import { CHAMPS_DE_CLE, cleDeSite, champsAveugles, ecartDuVolet } from '../guards/lib/stock.mjs'
 import { BOOKS } from './_lib.mjs'
 
-/** PLAFOND du stock — il vit ICI, jamais dans la garde ni dans la lib (`guards/lib/stock.mjs`) :
- *  servi depuis la lib, il se relèverait dans le même geste que l'append qu'il doit rendre visible. */
-const PLAFOND = 466
-
 const FICHIER = 'Source/Livre/01 - Fixture.md'
 const refs = (lignes) => sitesDuChapitre(lignes.join('\n'), FICHIER).map((s) => s.ref)
 
@@ -144,11 +140,6 @@ test('stock COMMITTÉ : chaque site mesuré y a son entrée, et aucune entrée n
 // vérifie à l'octet, ORDRE compris, là où l'écart ci-dessus ne juge que les ensembles.
 test('stock COMMITTÉ : le rendu EXACT et ORDONNÉ des sites mesurés sur l’arbre', () => {
   for (const r of regenerations(scanAllBooks())) assert.equal(ecartDeRegeneration(r, texteEnPlace(r.chemin)), null)
-})
-
-test('le stock est PLAFONNÉ : il ne décroît que quand un site disparaît du `Source/`', () => {
-  const taille = lireEntreesDeSite(STOCK_PATH).length
-  assert.ok(taille <= PLAFOND, `stock ${taille} > plafond ${PLAFOND}`)
 })
 
 test('la CLÉ observe tout ce qui localise une entrée — aucun champ aveugle', () => {

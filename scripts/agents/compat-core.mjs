@@ -126,6 +126,9 @@ export function transformSkillTree(sourceFiles) {
   return outputs;
 }
 
+// #2537
+export const OUTILS_NON_RESOLUS = Object.freeze(['StructuredOutput', 'TodoWrite', 'TaskCreate', 'TaskGet', 'TaskUpdate', 'TaskList', 'SendFeedback', 'ScheduleWakeup', 'EnterPlanMode', 'ExitPlanMode', 'AskUserQuestion']);
+
 export function validateRolePairs(claudeProfiles, codexProfiles) {
   const diagnostics = [];
   for (const role of new Set([...claudeProfiles.keys(), ...codexProfiles.keys()])) {
@@ -142,6 +145,9 @@ export function validateRolePairs(claudeProfiles, codexProfiles) {
       const instructions = readTomlStringField(toml, 'developer_instructions', `${role}.toml`);
       if (frontmatter.attributes.get('name') !== role || name !== role)
         diagnostics.push({ family: 'agent', destination: role, type: 'parse', message: 'name différent du nom de fichier' });
+      for (const outil of (frontmatter.attributes.get('tools') ?? '').split(',').map((entree) => entree.trim()))
+        if (OUTILS_NON_RESOLUS.includes(outil))
+          diagnostics.push({ family: 'agent', destination: role, type: 'tools', message: `outil « ${outil} » hors du pool des sous-agents` });
       if (frontmatter.attributes.get('description') !== description)
         diagnostics.push({ family: 'agent', destination: role, type: 'content', message: 'description fonctionnelle divergente' });
       const expected = referencesIn(adapt(frontmatter.body).split('.claude/skills/').join('.agents/skills/'));
@@ -170,8 +176,8 @@ export const SURFACE_CODEX = '.codex/hooks.json';
  * supported » ; « invalid matcher ·· in ·· »).
  */
 export const MOTEUR_DE_SURFACE = Object.freeze({
-  [SURFACE_CLAUDE]: { lookaround: true, listeExacte: /^[A-Za-z0-9_ ,|-]*$/ },
-  [SURFACE_CODEX]: { lookaround: false, listeExacte: null },
+  [SURFACE_CLAUDE]: { lookaround: true, listeExacte: /^[A-Za-z0-9_ ,|-]*$/, surface: 'claude' },
+  [SURFACE_CODEX]: { lookaround: false, listeExacte: null, surface: 'codex' },
 });
 
 /** Le matcher `matcher` de `surface`, compilé comme la surface le lit : `(nomDOutil) => boolean`. */
@@ -186,15 +192,19 @@ export function compilerMatcher(matcher, surface) {
 }
 
 /**
+ * Le `timeout` (s) du hook de synchronisation du principal : l'attente de ses verrous
+ * (`ATTENTE`, `scripts/ops/synchroniser.mjs`), le `fetch`, l'avance git ; le `post-merge` court en fond
+ * (`--consommer`, #2493). Valeur maison.
+ */
+export const TIMEOUT_SYNCHRONISEUR = 300
+
+/**
  * Les points d'entrée des hooks d'APPEL D'OUTIL (#2125) : `script` de `scripts/hooks/`, le `module` qui
  * exporte son registre (`exporte` : événement → gardes), son `timeout` (s) et son message. Le
- * répartiteur porte toutes les gardes ; la porte de fermeture a le sien, parce qu'un commit de
- * fermeture la fait durer plusieurs secondes et qu'un dépassement jetterait la sortie de toutes les
- * gardes d'un même processus.
+ * répartiteur porte toutes les gardes.
  */
 export const ENTREES_OUTIL = [
   { script: 'repartiteur.mjs', module: 'registre.mjs', exporte: 'REGISTRE', timeout: 10, statusMessage: 'Gardes des appels d’outil (répartiteur)' },
-  { script: 'solde-ticket-hook.mjs', module: 'solde-ticket-hook.mjs', exporte: 'REGISTRE_SOLDE', timeout: 10, statusMessage: 'Fermeture de ticket au commit = solde écrit obligatoire' },
 ];
 
 /**
@@ -211,8 +221,12 @@ export const ENTREES_OUTIL = [
  *
  * Le suivi de vague (`scripts/hooks/inject-suivi.mjs`, #2132) : surface Codex seule. Côté Claude, le mod
  * `harnais` (`.claude/skills/harnais/hooks/suivi.ts`, #2279) le porte : une seule injection par surface.
+ *
+ * La synchronisation du principal (`scripts/hooks/synchroniser-principal.mjs`, #2187) : surface Codex
+ * seule, EN TÊTE ; côté Claude, le mod `harnais` (`suivi.ts`, `session.start`).
  */
 export const HOOKS_DE_SESSION = [
+  { phase: 'SessionStart', script: 'synchroniser-principal.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: TIMEOUT_SYNCHRONISEUR, statusMessage: 'Synchronisation du principal sur origin/main' },
   { phase: 'SessionStart', script: 'inject-project-credo.mjs', arguments: ['codex'], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Injection du credo de travail' },
   { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
   { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
@@ -327,10 +341,16 @@ export function remplacerCleJson(texte, cle, valeur) {
   return `${avant}${separateur}\n${unite}${JSON.stringify(cle)}: ${serialise}\n${texte.slice(fin)}`;
 }
 
-/** Les racines que `agents:sync` POSSÈDE — source unique, lue ici (`managedRoots`) et par le train
- *  de publication (`scripts/ops/publier.mjs`, `estDocDerive`) : ces chemins sont DÉRIVÉS de
- *  `CLAUDE.md` et des fiches, donc committables avec les docs. */
+/** Les racines que `agents:sync` POSSÈDE en entier : ce qui y vit hors des sorties attendues est
+ *  orphelin (`managedRoots`, `collectDiffs`). */
 export const MANAGED_ROOTS = ['AGENTS.md', '.agents/skills', '.codex/credo.md'];
+
+/** Les surfaces dont `buildExpectedOutputs` dérive les déclarations de hooks (`hooksAttendus`). */
+export const SURFACES_DE_HOOKS = [SURFACE_CLAUDE, SURFACE_CODEX];
+
+/** Les DESTINATIONS de `buildExpectedOutputs` : tout chemin qu'il écrit ou retire est l'une d'elles ou
+ *  vit sous l'une d'elles. Lues par l'étape `docs` du train (`estDocDerive`, `scripts/ops/etapesDuTrain.mjs`). */
+export const DESTINATIONS = [...MANAGED_ROOTS, ...SURFACES_DE_HOOKS];
 
 /**
  * Les sorties attendues de `snapshot`. `registres` (script de `ENTREES_OUTIL` → registre) dérive les
@@ -353,7 +373,7 @@ export function buildExpectedOutputs(snapshot, registres) {
   for (const [destination, bytes] of transformSkillTree(snapshot)) files.set(destination, bytes);
   const credo = snapshot.get('.claude/credo.md');
   if (credo) files.set('.codex/credo.md', Buffer.from(`${GENERATED_PREFIX}.claude/credo.md -->\n${adapt(utf8.decode(credo))}`));
-  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+  for (const surface of SURFACES_DE_HOOKS) {
     try {
       const valeur = hooksAttendus(registres, surface);
       const cle = SORTIES_PAR_CLE.get(surface);

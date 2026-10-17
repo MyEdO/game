@@ -14,14 +14,22 @@
 // Rien n'est jamais détruit : ni `--force`, ni suppression. Un équipement rouge (`npm ci`, `docs:build`)
 // LAISSE le worktree et le dit — c'est un équipement qui manque, pas un chantier à défaire.
 //
+// Le principal se synchronise d'abord (`ouvrirChantier`, #2187).
+//
 // Usage : `npm run ops:chantier -- <nom> [--sans-ci]`, `nom` = numéro de ticket + slug optionnel.
 import { spawnSync } from 'node:child_process'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ECRIT_LU } from '../gates/toutes.mjs'
-import { GitIndisponible, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, natureDuChemin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, TIMEOUT_DU_HOOK_MS, TRONC, ajouterWorktree, arbrePrincipal, depotDe, fetchOrigin, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
+import { natureDuChemin } from '../guards/lib/natureDuChemin.mjs'
 import { portDev, urlDev } from '../port-dev.mjs'
+import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
+import { annonceEspacee, synchroniserPrincipal, verrouDuConsommateur } from './synchroniser.mjs'
+import { attendreLibre } from '../test/verrou.mjs'
+import { GENERATORS, NON_GENERATOR_CHECKS, SOURCES_LUES, ciblesPures, ciblesSurDisque, estCiblePure, generateurDe } from '../docs/build-all.mjs'
+import { copierDocsFrais } from '../docs/lib/fraicheur-docs.mjs'
 
 /** Racine de l'arbre qui porte CE script. */
 export const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -127,12 +135,6 @@ export function equipementsDesPrerequis(ecritLu) {
  */
 export const EQUIPEMENTS = [EQUIPEMENT_RACINE, ...equipementsDesPrerequis(ECRIT_LU), EQUIPEMENT_DOCS]
 
-/** Nom de branche d'un chantier. PURE. */
-export const brancheDe = (nom) => `chantier/${nom}`
-
-/** Chemin du worktree d'un chantier dans `racine`. PURE (hors `join`). */
-export const cibleDe = (racine, nom) => join(racine, `.wt-${nom}`)
-
 /**
  * Ce que l'ouverture IMPRIME en fin : les quatre faits dont la session a besoin tout de suite. PURE.
  * @param {{cible: string, branche: string, base: string, port: number, url?: string}} chantier
@@ -157,7 +159,7 @@ export const GESTES_DU_CHANTIER = Object.freeze({ arbrePrincipal, shaDe, fetchOr
  * @returns {{ok: true, cible: string, branche: string, base: string, resume: string, npmJoue: boolean}
  *   | {ok: false, refus: string, cible?: string, branche?: string}}
  */
-export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync, annoncer, horloge }) {
+export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = GESTES_DU_CHANTIER, npm = spawnSync, annoncer, horloge, copierDocs = copierDocsFrais }) {
   const etape = (nomEtape, geste) => etapeProfilee(`[chantier] ${nomEtape}`, geste, { annoncer, horloge })
   if (!nomValide(nom)) {
     return { ok: false, refus: `nom de chantier invalide : « ${nom} » — forme attendue : ${FORME_DITE}` }
@@ -203,7 +205,22 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   // `shell: true` MESURÉ nécessaire : `spawnSync('npm.cmd', …, { shell: false })` rend
   // `EINVAL` sous Node v22.20.0 / win32 (mesure du 2026-09-14). Aucun argument ne porte d'espace,
   // et le `cwd` ne passe pas par la ligne de commande — il n'y a donc rien à citer.
-  for (const { args, ou, relance } of EQUIPEMENTS) {
+  for (const { args: argsEquipe, ou, relance } of EQUIPEMENTS) {
+    let args = argsEquipe
+    if (args.includes('docs:build')) {
+      const copie = etape('copie des docs dérivés', () => copierDocs({
+        principal, cible, generateurs: GENERATORS, verificateurs: NON_GENERATOR_CHECKS,
+        ciblesPures, ciblesSurDisque, estCiblePure, generateurDe, sourcesLues: SOURCES_LUES,
+      }))
+      if (copie.ok) {
+        ;(annoncer ?? ((texte) => process.stderr.write(texte)))(`[chantier] docs dérivés copiés : ${copie.copies}\n`)
+        if (!copie.scriptsARegenerer?.length) continue
+        args = [...argsEquipe, '--', '--perimes']
+      } else {
+        ;(annoncer ?? ((texte) => process.stderr.write(texte)))(`[chantier] repli docs:build : ${copie.raison}\n`)
+        args = [...argsEquipe, '--', '--perimes']
+      }
+    }
     const vuNpm = etape(`${relance}${ou}`, () => npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, {
       cwd: cible, stdio: 'inherit', shell: true,
     }))
@@ -220,18 +237,90 @@ export function creerChantier({ racine = RACINE, nom, sansCi = false, gestes = G
   return { ok: true, cible, branche, base, resume, npmJoue: true }
 }
 
-function main() {
+/** Les arguments de la ligne de commande qui portent `args` (`argumentsDe`). PURE. */
+export const argvDe = ({ nom, sansCi }) => [nom, ...(sansCi ? ['--sans-ci'] : [])]
+
+/**
+ * La RELANCE de l'ouverture par `npm run ops:chantier -- <args>` depuis `cwd` (#2187, verdict
+ * 6026872846 point 3) : le code du principal avancé. REND son code de sortie.
+ * @param {{nom: string, sansCi: boolean}} args
+ */
+export function relancerChantier(args, { npm = spawnSync, cwd = RACINE } = {}) {
+  const vu = npm(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'ops:chantier', '--', ...argvDe(args)], { cwd, stdio: 'inherit', shell: true })
+  return vu?.error ? 1 : vu?.status ?? 1
+}
+
+/** La borne (ms) de l'attente du consommateur du post-merge (`attendreLeConsommateur`). */
+export const ATTENTE_DU_CONSOMMATEUR_MS = TIMEOUT_DU_HOOK_MS + 60_000
+
+/**
+ * L'ATTENTE du consommateur du post-merge `consommateurs` (`en-cours`, #2493) : son verrou attendu libre
+ * (`attendreLibre`) sous `ATTENTE_DU_CONSOMMATEUR_MS`, annoncée toutes les 30 s. REND `true` libre, `false` sinon.
+ * @param {{pid:number, depuis:string, log:string}} consommateurs
+ * @param {{dire:(texte:string) => void, racine?:string, horloge?:() => number, borneMs?:number}} p
+ */
+export function attendreLeConsommateur(consommateurs, { dire, racine = RACINE, horloge = Date.now, borneMs = ATTENTE_DU_CONSOMMATEUR_MS }) {
+  const principal = arbrePrincipal(depotDe(racine))
+  if (!principal.disponible) return false
+  const { pid, depuis, log } = consommateurs
+  const annoncer = annonceEspacee(dire, horloge, 30_000)
+  const age = () => Math.round((horloge() - Date.parse(depuis)) / 1000)
+  const vu = attendreLibre({
+    chemin: verrouDuConsommateur(join(principal.valeur, '.git')), horloge,
+    attente: { echeanceMs: borneMs, pasMs: 1_000, annoncer: () => annoncer(`[chantier] post-merge du principal en fond : PID ${pid} depuis ${depuis} (${age()} s), issue : ${log} — attente\n`) },
+  })
+  return vu.etat === 'libre'
+}
+
+/**
+ * L'ouverture depuis la ligne de commande : le principal SYNCHRONISÉ d'abord (`synchroniserPrincipal`,
+ * #2187), son post-merge en fond attendu (`attendreLeConsommateur`, #2493) ; `avance` → `relancer(args)`, dont
+ * le code est rendu ; tout autre état est annoncé tel quel, une exception ou une attente échue à part, et le
+ * chantier se crée depuis `origin/main`. Un nom invalide ne synchronise rien. REND le code de sortie.
+ * @param {{nom: string, sansCi: boolean}} args
+ */
+export async function ouvrirChantier(args, {
+  synchroniser = () => synchroniserPrincipal({ depuis: RACINE, annoncer: (texte) => process.stderr.write(`${texte}\n`) }),
+  attendreConsommateur = attendreLeConsommateur,
+  relancer = relancerChantier,
+  creer = creerChantier,
+  dire = (texte) => process.stderr.write(texte),
+  imprimer = (texte) => process.stdout.write(texte),
+} = {}) {
+  if (nomValide(args.nom)) {
+    let vu = null
+    try {
+      vu = await synchroniser()
+    } catch (e) {
+      dire(`[chantier] synchronisation du principal en exception : ${/** @type {any} */ (e)?.message ?? e} ; le chantier part d’origin/main\n`)
+    }
+    const consommateurs = vu?.consommateurs
+    if (consommateurs?.etat === 'en-cours' && !attendreConsommateur(consommateurs, { dire })) {
+      dire(`[chantier] post-merge ${String(consommateurs.de).slice(0, 9)}..${String(consommateurs.vers).slice(0, 9)} du principal toujours en cours après ${ATTENTE_DU_CONSOMMATEUR_MS / 60_000} min : le chantier part d’origin/main\n`)
+      vu = null
+    }
+    if (vu?.etat === 'avance') {
+      dire(`[chantier] principal avancé (${JSON.stringify(vu)}) : relance \`npm run ops:chantier -- ${argvDe(args).join(' ')}\`\n`)
+      return relancer(args)
+    }
+    if (vu && vu.etat !== 'a-jour') dire(`[chantier] principal : ${JSON.stringify(vu)} ; le chantier part d’origin/main\n`)
+  }
+  const vu = creer(args)
+  if (!vu.ok) {
+    dire(`[chantier] ${vu.refus}\n`)
+    return 1
+  }
+  imprimer(`${vu.resume}\n`)
+  return 0
+}
+
+async function main() {
   const args = argumentsDe(process.argv.slice(2))
   if (!args) {
     process.stderr.write(`[chantier] usage : npm run ops:chantier -- ${FORME_DITE} [--sans-ci]\n`)
-    process.exit(1)
+    return 1
   }
-  const vu = creerChantier(args)
-  if (!vu.ok) {
-    process.stderr.write(`[chantier] ${vu.refus}\n`)
-    process.exit(1)
-  }
-  process.stdout.write(`${vu.resume}\n`)
+  return ouvrirChantier(args)
 }
 
-if (import.meta.main) main()
+if (import.meta.main) process.exitCode = await main()

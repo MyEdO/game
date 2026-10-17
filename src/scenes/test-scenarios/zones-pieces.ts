@@ -30,7 +30,7 @@ const construireScene = (): Scene => buildScene({
   terrain: 'herbe',
   ambiance: 'exterieur',
   heroStart: [0, 3],
-  startMessage: 'Une masure aux volets clos. La porte ouest est entrebâillée.',
+  startMessage: { texte: 'Une masure aux volets clos. La porte ouest est entrebâillée.' },
   terrainRects: [{ rect: [FOOT.x, FOOT.y, FOOT.w, FOOT.h], terrain: 'plancher' }],
   walls: [...PERIMETER_WALLS, ...INTERIOR_WALLS],
   architecture: [{

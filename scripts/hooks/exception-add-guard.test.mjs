@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { AVERTISSEMENT, entries, evaluate } from './exception-add-guard.mjs'
+import { AVERTISSEMENT, entries, evaluate, readWrite } from './exception-add-guard.mjs'
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 
@@ -18,6 +18,25 @@ const avertit = (d) => {
   assert.equal(d.decision, undefined, 'un avertissement ne décide rien')
 }
 const silent = (d) => assert.equal(d, null, `attendu : silence, obtenu : ${d?.contexte}`)
+
+test('images complètes canoniques : avant virtuel et existence explicite, sans déduire du contenu vide', () => {
+  const avant = "const B = { 'garde': 3 }\n"
+  const canon = (old_string, content, existeAvant) => readWrite({ path: GUARD, old_string, content, existeAvant })
+  const conservée = canon(avant, avant, true)
+  assert.equal(conservée.before, avant, 'le fichier disque inexistant ne remplace pas la préimage virtuelle')
+  assert.equal(conservée.exists, true)
+  silent(evaluate(conservée))
+  const hausse = canon(avant, "const B = { 'garde': 4 }\n", true)
+  assert.match(evaluate(hausse).contexte, /HAUSSE de baseline/)
+  const création = canon('', avant, false)
+  assert.equal(création.exists, false)
+  silent(evaluate(création))
+  const videExistant = canon('', avant, true)
+  assert.equal(videExistant.exists, true)
+  avertit(evaluate(videExistant))
+  silent(evaluate(canon(avant, '', true)))
+  silent(evaluate(canon('', avant, false)))
+})
 
 // ── Contournements PROUVÉS (doivent AVERTIR) ─────────────────────────────────────────────────────
 test('bypass (a) : deux entrées quotées PACKÉES sur une seule ligne → détecté', () => {
@@ -148,7 +167,7 @@ test('DRIVER : une op ANCRÉE qui ré-écrit une entrée déjà présente → si
   }
 })
 
-test('DRIVER : un lot `ops` que lean-ctx n’applique pas à UNE préimage (op déléguée, ou deux `path` d’un même fichier) est REFUSÉ ; un lot ancré à un `path` reste jugé — surfaces claude et codex', () => {
+test('DRIVER : un lot `ops` que lean-ctx n’applique pas à UNE préimage (op ancrée après une déléguée, ou deux `path` d’un même fichier) est REFUSÉ ; un lot ancré à un `path`, ou ancré puis délégué, reste jugé — surfaces claude et codex', () => {
   const { racine } = instanceDeDepot()
   try {
     const cible = join(racine, 'tables-guard.test.mjs')
@@ -178,6 +197,12 @@ test('DRIVER : un lot `ops` que lean-ctx n’applique pas à UNE préimage (op d
       const ancre = sortie({ path: cible, ops: [{ op: 'replace_lines', start_line: 1, end_line: 2, new_text: "export const EXC_B = [\n  'src/b.ts',\n  'src/a.ts'," }] })
       assert.equal(ancre.permissionDecision, undefined, `${surface} : lot ancré`)
       assert.ok((ancre.additionalContext ?? '').includes(AVERTISSEMENT), `${surface} : lot ancré jugé : ${ancre.additionalContext}`)
+      const ancreePuisDeleguee = sortie({ path: cible, ops: [
+        { op: 'set_line', line: 1, hash: '00', new_text: 'export const EXC_B = [' },
+        { op: 'replace_unique', old_text: "export const EXC_A = [\n  'src/a.ts',", new_text: "export const EXC_A = [\n  'src/a.ts',\n  'src/c.ts'," },
+      ] })
+      assert.equal(ancreePuisDeleguee.permissionDecision, undefined, `${surface} : ancrée puis déléguée`)
+      assert.ok((ancreePuisDeleguee.additionalContext ?? '').includes(AVERTISSEMENT), `${surface} : déléguée jugée : ${ancreePuisDeleguee.additionalContext}`)
     }
   } finally {
     rmSync(racine, { recursive: true, force: true })

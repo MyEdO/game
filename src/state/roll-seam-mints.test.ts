@@ -20,7 +20,7 @@ import { pushStep, registerTableStep, stepInteraction, registerCascadeTableFold,
 import { pushCombatStep } from './combatEffects';
 import { modalOwnerOf } from './modalArbiter';
 import { ownsLocally, seatOwns } from './netOwnership';
-import type { PendingKey } from './stateFields';
+import { PENDING_BY_JET, type PendingKey } from './stateFields';
 import type { CascadeStep } from './pendings';
 import type { GameState } from './store';
 import { nightBands } from './nightBands';
@@ -194,28 +194,10 @@ describe('#1262 — tableStep / tableStepDone : DEUX entrées, jamais un drapeau
   });
 });
 
-/** Miroir de `PENDING_BY_JET` (privé au mint) — TOTAL par le type : un `jet` de plus dans l'union
- *  ne compile plus sans sa ligne ici, comme dans le mint. */
-const SLOT_ATTENDU: Record<HostJet, PendingKey | null> = {
-  attack: 'pendingAttack',
-  trample: 'pendingTrample',
-  defense: 'pendingDefense',
-  fumble: null,
-  cast: 'pendingCast',
-  test: 'pendingTest',
-  extended: 'pendingExtendedTest',
-  disengage: 'pendingDisengage',
-  forceDoor: 'pendingForceDoor',
-};
-
 const ARME = { label: 'Épée', damage: 4 } as unknown as Weapon;
 
 describe('#1262 — hostStep : jamais de fenêtre sans la donnée qu’elle rend', () => {
-  it('les NEUF jets sont couverts (union fermée × table totale)', () => {
-    expect(Object.keys(SLOT_ATTENDU)).toHaveLength(9);
-  });
-
-  for (const [jet, slot] of Object.entries(SLOT_ATTENDU) as [HostJet, PendingKey | null][]) {
+  for (const [jet, slot] of Object.entries(PENDING_BY_JET) as [HostJet, PendingKey | null][]) {
     if (!slot) continue;
     it(`jet:'${jet}' sans \`${slot}\` → refusé (DEV : throw) — la cadence auto validerait la fenêtre à vide`, () => {
       expect(() => hostStep(useGame.getState, { id: 'h', kind: 'k', jet, actorId: 'H1' } as never)).toThrow(new RegExp(slot));

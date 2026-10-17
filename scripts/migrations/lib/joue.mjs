@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { clotureDImports } from '../../guards/lib/importGraph.mjs';
 
 const MIGRATIONS = fileURLToPath(new URL('../', import.meta.url));
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
@@ -70,12 +71,19 @@ export function crees(racine, avant, dossier) {
 }
 
 /** La migration jouée dans le dépôt jetable `racine`, copiée s'il ne la porte pas déjà.
+ *  Ses dépendances statiques sont lues depuis l'arbre réel ; les fichiers déjà posés sont conservés.
  *  REND `{ code, stdout, stderr, sortie }` — `sortie` : les deux flux mis bout à bout. */
 export function joue(racine, migration) {
   const cible = path.join(racine, 'scripts/migrations', migration);
   if (!fs.existsSync(cible)) {
     fs.mkdirSync(path.dirname(cible), { recursive: true });
     fs.copyFileSync(path.join(MIGRATIONS, migration), cible);
+  }
+  for (const rel of clotureDImports([path.relative(racine, cible)], { racine: RACINE, dynamiques: false, typesEffaces: true })) {
+    const destination = path.join(racine, rel);
+    if (fs.existsSync(destination)) continue;
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(path.join(RACINE, rel), destination);
   }
   const r = spawnSync(process.execPath, [cible], { encoding: 'utf8' });
   const stdout = r.stdout ?? '';

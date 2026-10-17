@@ -365,7 +365,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'disponibilite') add('dispoPct', 'barterRatios');
   // #422 : Navigation fluviale (`riverNavigation`, mode 'single', patron `waterExposure`) —
   // `windForces`/`windDirections` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
-  // `windEffect`/`capsize`/`rowingAgility`/`outOfControl`/`echouage`/`temporaryRepair` sont des objets
+  // `windEffect`/`capsize`/`outOfControl`/`echouage`/`temporaryRepair` sont des objets
   // (hétérogènes ou Record de Record) déjà couverts par le sous-formulaire récursif (`ObjectField`).
   if (categoryKey === 'riverNavigation') add('windForces', 'windDirections');
   // Fourchettes à DEUX bornes (#1659) — toutes servies par la MÊME primitive (`PlageField`) : la
@@ -377,7 +377,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // #168 : Activité — Test « posté » (contexts/skills « au choix »/char/difficulty) + table d'issues
   // `outcomes` (OutcomeBand[]) → éditeurs dédiés ; `onSuccess` couvert par opsFieldsOf ci-dessus.
   // `resolver` (#1318 V6) : vocabulaire FERMÉ → sélecteur dédié, jamais le champ texte générique.
-  if (categoryKey === 'activities') add('contexts', 'skills', 'char', 'difficulty', 'outcomes', 'resolver');
+  if (categoryKey === 'activities') add('contexts', 'skills', 'freeSkill', 'char', 'difficulty', 'outcomes', 'resolver');
   // #1612 : `testMods` (modificateurs de situation) et `worldRolls` (dés de MONDE après le Test) sont des
   // tableaux top-level d'objets HOMOGÈNES → éditeur GÉNÉRIQUE commun (`GenericArrayField`), MEME patron
   // que la rubrique de Vent et les options de jeu de taverne — jamais le repli JSON.
@@ -1280,7 +1280,7 @@ function AlsoInField({ chemin, value, onChange }: { chemin: string; value: Secon
       {rangees.map((r, i) => (
         <div className="ed-field" key={r.cle}>
           <SourceRefField identite={`${chemin}/${r.cle}`} label={`Emplacement ${i + 1}`} sujet={`de l'emplacement ${i + 1}`} value={r.valeur} onChange={(v) => poser(remplacer(r.cle, { cle: r.cle, valeur: r.valeur || !r.quote ? v : { ...v, quote: r.quote } }), true)} />
-          <div className="de-reflrow">
+          <div className="fieldrow">
             <input aria-label={`Citation de l'emplacement ${i + 1}`} placeholder="citation verbatim — preuve du span (obligatoire si le label n'y est pas imprimé)" value={(r.valeur ? r.valeur.quote : r.quote) ?? ''} onChange={(e) => {
               const quote = e.target.value || undefined;
               poser(remplacer(r.cle, r.valeur ? { cle: r.cle, valeur: { ...r.valeur, quote } } : { cle: r.cle, quote }), r.valeur !== undefined);
@@ -1484,9 +1484,12 @@ const BATTLE_TARGET_OPTIONS = optionsDuNoeud(battleOutcomeTargetSchema);
 const BATTLE_SCALE_OPTIONS = optionsDuNoeud(battleOutcomeScaleSchema);
 const BATTLE_SIDE_OPTIONS = optionsDuNoeud(battleSideSchema);
 
+const LIBRE = metaPourFichier('activities.json')!.freeSkill;
+
 /** Test « posté » d'une Activité (`TestSpec` — LDB 12) : contextes de proposition + compétence(s) « au
- *  choix » (la meilleure de l'acteur est retenue) + caractéristique de repli + Difficulté. Réutilise
- *  `SkillSpecListField` (mêmes `{id,spec?}[]` que les Rôles d'équipage). Vide = Activité SANS Test. */
+ *  choix » (la meilleure de l'acteur est retenue) + compétence libre (`freeSkill`, EDOC 8 l.172) +
+ *  caractéristique de repli + Difficulté. Réutilise `SkillSpecListField` (mêmes `{id,spec?}[]` que les
+ *  Rôles d'équipage). Vide = Activité SANS Test. */
 function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, v: unknown) => void }) {
   return (
     <div className="ed-field">
@@ -1495,6 +1498,7 @@ function ActivityTestField({ entry, edit }: { entry: Entry; edit: (key: string, 
         facultatif={admetLAbsence(noeudDuChamp('activities.json', 'contexts')) ?? false} onChange={(next) => edit('contexts', next)} />
       <span>Test « posté » — compétence(s) « au choix » + caractéristique de repli + Difficulté (laisser vide = Activité SANS Test)</span>
       <SkillSpecListField value={entry.skills as RefDesignee[] | undefined} onChange={(v) => edit('skills', v.length ? v : undefined)} />
+      <SkillSpecListField hint={[LIBRE.label, LIBRE.hint].filter(Boolean).join(' — ')} value={entry.freeSkill as RefDesignee[] | undefined} onChange={(v) => edit('freeSkill', v.length ? v : undefined)} />
       <div className="tf-row">
         <label className="dr">Caractéristique (repli)
           <select value={(entry.char as string) ?? ''} onChange={(e) => edit('char', e.target.value || undefined)}>
@@ -1549,7 +1553,7 @@ function ChainsField({ value, onChange }: { value: string[] | undefined; onChang
     <div className="ed-subfield">
       <span>scènes enchaînées (imposées au Round suivant) — ids de rencontre/scène</span>
       {list.map((c, i) => (
-        <div className="de-reflrow" key={i}>
+        <div className="fieldrow" key={i}>
           <input value={c} onChange={(e) => onChange(list.map((x, j) => (j === i ? e.target.value : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
@@ -1729,7 +1733,7 @@ const DETAIL_TEXT_LABEL: Record<string, string> = {
 
 /** Éditeur du bloc `details.texts` (objet `details.json`) — pour chaque entrée d'aide : un texte GLOBAL
  *  (`all`) + des surcharges PAR ESPÈCE (`bySpecies`, clé = id `RaceKey`). HTML léger autorisé (rendu via
- *  LoreText au Codex). Réutilise le motif `de-reflrow` (rangée + ✕ + « + »). Sort `texts` du repli JSON. */
+ *  LoreText au Codex). Réutilise le motif `fieldrow` (rangée + ✕ + « + »). Sort `texts` du repli JSON. */
 export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | undefined; onChange: (v: DetailsTexts) => void }) {
   const texts = value ?? {};
   const EMPTY_TEXT: DetailText = { all: '', bySpecies: {} };
@@ -1758,7 +1762,7 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
             <Grid min="md" stackBelow={700}>
               {Object.keys(t.bySpecies ?? {}).map((sp) => (
                 <div className="ed-field" key={sp}>
-                  <div className="de-reflrow">
+                  <div className="fieldrow">
                     <select aria-label={`Espèce de la surcharge — ${DETAIL_TEXT_LABEL[key] ?? key}`} value={sp} onChange={(e) => renameSpecies(key, sp, e.target.value)}>
                       {clesLibres(key, sp).map((k) => <option key={k} value={k}>{k}</option>)}
                     </select>
@@ -1797,7 +1801,7 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
       <div className="ed-field">
         <span>{label}{refDs && libelleDeDataset(refDs) && <em className="ed-hint"> (suggestions : {libelleDeDataset(refDs)})</em>}</span>
         {list.map((item, i) => (
-          <div key={i} className="de-reflrow">
+          <div key={i} className="fieldrow">
             <input aria-label={`${nom} — valeur ${i + 1}`} value={item} list={refDs ? `dl-${refDs}` : undefined}
               onChange={(e) => set(list.map((x, j) => (j === i ? e.target.value : x)))} />
             <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
@@ -1815,7 +1819,7 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
       <div className="ed-field">
         <span>{label}</span>
         {list.map((item, i) => (
-          <div key={i} className="de-reflrow">
+          <div key={i} className="fieldrow">
             <NumberField variant="nu" label={`${nom} — valeur ${i + 1}`} value={item} onChange={(n) => set(list.map((x, j) => (j === i ? n : x)))} />
             <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
@@ -1947,7 +1951,7 @@ function RecordTextField({ label, nom, value, onChange }: { label: string; nom: 
         const message = `${base}-conflit-${i}`;
         return (
           <Fragment key={cles[i]}>
-            <div className="de-reflrow">
+            <div className="fieldrow">
               <input
                 aria-label={`${nom} — clé ${i + 1}`} style={{ width: 140 }} value={r.saisie}
                 aria-invalid={conflit ? true : undefined} aria-describedby={conflit ? message : undefined}

@@ -4,7 +4,8 @@ import { seedBattleRng } from '../../state/battleRng';
 import { scenario } from './duel-naval';
 import { targetArc, headingToBear } from '../../state/fireArc';
 import { bearingPostes, mostArmedSide } from '../../state/shipBattery';
-import { shipHelmsman, maneuverShip } from '../../state/shipManeuver';
+import { maneuverShip, shipManeuverParams } from '../../state/shipManeuver';
+import { refusPersonneNePeutTenter } from '../../engine/skills';
 import { facingToward, DIR8_ORDER } from '../../state/dir8';
 import { isMerScene, sceneMetresPerTile } from '../../state/scene';
 import { chebyshev } from '../../state/path';
@@ -60,14 +61,13 @@ function shipAct(shipId: string, targetId: string): 'fire' | 'maneuver' {
     settleCascade();
     return 'fire';
   }
-  const helm = shipHelmsman(s.battle!.combatants, sh);
   const maxRange = Math.max(0, ...(sh.postes ?? []).filter((p) => p.loaded !== false).map(rangeM));
   const primary = mostArmedSide(sh);
   const desired = maxRange > 0 && dist <= maxRange && primary
     ? headingToBear(primary, facingToward(sh.pos!, tg.pos!))
     : facingToward(sh.pos!, tg.pos!);
   const d = (DIR8_ORDER.indexOf(desired) - DIR8_ORDER.indexOf(heading) + 8) % 8;
-  maneuverShip(useGame.getState, shipId, Math.max(-2, Math.min(2, d <= 4 ? d : d - 8)), helm?.id);
+  maneuverShip(useGame.getState, shipId, Math.max(-2, Math.min(2, d <= 4 ? d : d - 8)));
   settleCascade();
   checkBattleOver(useGame.getState, useGame.setState); // fin de tour : le vrai flux passe par advanceTurn
   return 'maneuver';
@@ -134,5 +134,23 @@ describe('Duel naval (échelle Mer) — modèle DEUX-ÉCHELLES jouable (MDG 13-1
     const manquees = deLaCogue.filter((l) => gabarit('cs.bordeeManque').test(l));
     expect(reussies.length + manquees.length, 'une et une seule bordée décidée et résolue').toBe(1);
     expect(ship('grimm-duel').wounds.current < before).toBe(reussies.length === 1);
+  });
+
+  it('IA DE COQUE sans barreur apte : échec sans jet, refus nommé au journal, la coque avance de M exactement sans virer, Man ignoré (LDB 09 l.30 ; MDG 12 l.50 ; MDG 13 l.68-75, l.119)', () => {
+    const b = useGame.getState().battle!;
+    const cogue = ship('cogue-duel');
+    const ko = new Set(cogue.crewIds ?? []);
+    // Coque d'esquif (Man +1), sans pièce qui la déséquilibre : une barre sans jet modifiée par Man avancerait de M+1.
+    const combatants = b.combatants.map((c) => (ko.has(c.id) ? { ...c, conditions: [...c.conditions, { id: 'inconscient', value: 1 }] }
+      : c.id === 'cogue-duel' ? { ...c, creatureId: 'esquif', postes: [] } : c));
+    useGame.setState({ battle: { ...b, combatants, turn: b.order.indexOf('cogue-duel') }, journal: [] } as never);
+    const cap = useGame.getState().facing['cogue-duel'];
+    const avant = { ...ship('cogue-duel').pos! };
+    runEnemyAI(useGame.getState, useGame.setState, 'cogue-duel');
+    expect(useGame.getState().journal).toContain(refusPersonneNePeutTenter({ skill: shipManeuverParams(ship('cogue-duel'), 'maritime').competence.id, spec: shipManeuverParams(ship('cogue-duel'), 'maritime').competence.spec }));
+    expect(useGame.getState().facing['cogue-duel'], 'échec : le cap tient').toBe(cap);
+    const { baseM, manoeuvre } = shipManeuverParams(ship('cogue-duel'), 'maritime');
+    expect(manoeuvre).toBeGreaterThan(0);
+    expect(chebyshev(avant, ship('cogue-duel').pos!), 'la coque avance de M, ni plus ni moins').toBe(baseM);
   });
 });

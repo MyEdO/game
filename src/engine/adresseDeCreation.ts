@@ -15,8 +15,8 @@
  * `[s]`) et tout objet intermédiaire à clés littérales ; un libellé y passe. Aucun typage simple ne le
  * refuse (un gabarit `` `dotation:${number}` `` non plus). Ces entrées ne sont sûres qu'aux minteurs.
  *
- * Trois minteurs : les fabriques de `adresseDeCreation` ; `adresseLue` à la couture de chargement d'un
- * JSON persisté (`brouillonRelu`, `state/roster.ts`) ; le cast de chargement des pré-tirés
+ * Trois minteurs : les fabriques de `adresseDeCreation` ; le cast de chargement du roster (`rosterLoad`,
+ * `state/roster.ts`), sous l'empreinte de son type (#2404) ; le cast de chargement des pré-tirés
  * (`pregens`, `data/index.ts`), qui ne lit pas ses clés. Celles-ci sont lues par `adresseLue` au PARSE
  * du schéma `parAdresse` (`data/schemas/grammaire/choixDeCreation.ts`), à chaque porte de
  * `validateDataset` (`data/schemas/validate.ts`) : les tests (`data/schema-contract.test.ts`,

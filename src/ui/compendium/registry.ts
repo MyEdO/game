@@ -20,7 +20,7 @@ import {
   SYMPTOM_SEVERITIES,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
-  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil,
+  conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
 } from '../../data';
 // #157 (audit d'exposition Codex) : catalogues app-owned chargés par un module dédié plutôt que la
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
@@ -790,7 +790,7 @@ function crewTargetLabel(cible: CrewTarget): string {
 function shipCritEntryItem(e: ShipCritEntry): CodexItem {
   const ch = e.crewHit;
   const jet = ch?.test?.test;
-  const sujet = jet && (jet.skill ? refLabel('skills', jet.skill) : jet.characteristic ? CHAR_LABELS[jet.characteristic] : '');
+  const sujet = jet && (testSkillLabel({ skill: jet.skill, char: jet.characteristic }) ?? '');
   return depuisEnveloppe(e, {
     sub: `d10 ${e.min}–${e.max}`,
     desc: e.note,
@@ -999,7 +999,7 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
 /** Section « Test imbriqué » d'une entrée miscast (« Résistance Accessible ou Sonné »), palier
  *  `onFailHard` inclus (« si vous échouez avec DR ≤ N → EN PLUS »). */
 function miscastTestSection(t: NonNullable<MiscastRowEntry['test']>): CodexSection {
-  const who = t.skill ? refLabel('skills', t.skill) : t.characteristic ? CHAR_LABELS[t.characteristic as keyof typeof CHAR_LABELS] : 'Test';
+  const who = testSkillLabel({ skill: t.skill, char: t.characteristic as CharKey | undefined }) ?? 'Test';
   const rows: CodexRow[] = [
     { t: 'kv', k: 'Test', v: `${who} ${DIFFICULTY_LABELS[t.difficulty as keyof typeof DIFFICULTY_LABELS]}` },
     { t: 'sub', label: 'Échec' },
@@ -1265,14 +1265,6 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             rows: n.windForces.flatMap((f) => n.windDirections.map((d) => ({
               t: 'kv', k: `${forceLabel.get(f.id)} · ${dirLabel.get(d.id)}`, v: effectText(n.windEffect[f.id]?.[d.id as 'arriere' | 'cote' | 'contraire']),
             } as CodexRow))),
-          },
-          {
-            title: 'Agilité de rame (Test quotidien)', layout: 'list',
-            rows: [
-              { t: 'kv', k: 'Difficulté', v: DIFFICULTY_LABELS[n.rowingAgility.difficulty] } as CodexRow,
-              { t: 'kv', k: 'Échec', v: `${n.rowingAgility.failSpeedPct} % vitesse` } as CodexRow,
-              { t: 'kv', k: `Échec spectaculaire (DR ≤ ${n.rowingAgility.spectacularSL})`, v: `×${n.rowingAgility.spectacularSpeedFactor} vitesse` } as CodexRow,
-            ],
           },
           {
             title: 'Chavirage (Très fort de côté)', layout: 'list',
@@ -1865,7 +1857,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       sub: a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', '),
       meta: facts(
         fact('Contextes', a.contexts.map((c) => valeurFR('activities.json', 'contexts', c)).join(', ')),
-        fact('Compétence(s)', a.skills?.length ? a.skills.map((s) => refLabel('skills', { id: s.id, spec: s.spec })).join(' / ') : (a.freeSkill ? 'Au choix (libre)' : null)),
+        fact('Compétence(s)', a.skills?.length ? a.skills.map((s) => refLabel('skills', { id: s.id, spec: s.spec })).join(' / ') : null),
         fact('Caractéristique', a.char ? CHAR_LABELS[a.char] : null),
         fact('Difficulté', a.difficulty ? DIFFICULTY_LABELS[a.difficulty] : null),
         fact('Test étendu', a.extended ? `${a.extended.drPerStage} DR / Étape` : null),
@@ -1873,6 +1865,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       ),
       sections: sections(
         chips('Compétences (au choix)', (a.skills ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
+        chips('Compétence libre', (a.freeSkill ?? []).map((s) => idRefRow('skills', s.id, s.spec))),
         passiveSection(a.onSuccess, 'Effet de réussite'),
         outcomeBandsSection(a.outcomes),
       ),

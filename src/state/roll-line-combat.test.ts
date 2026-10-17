@@ -20,6 +20,10 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { propulsionDuNavire } from '../engine/shipBuild';
+
+/** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
+const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 /**
  * MONTEUR CANONIQUE — les sites de COMBAT (#1153 L1b). Chaque site migré est jugé sur DEUX grandeurs
@@ -143,20 +147,20 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
 });
 
 describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
-  it('Contraction hors combat (`openContractionCascade`) : base NUE, cible = Résistance + Difficulté', () => {
+  it('Contraction hors combat (`openContractionCascade`) : base NUE, Hémorragique −10 à résister à l’Infection mineure (LDB 16 l.105)', () => {
     const patient = hero({
-      id: 'pa', label: 'Patient', conditions: ETAT,
+      id: 'pa', label: 'Patient', conditions: [{ id: 'hemorragique', value: 1 }] as never,
       skills: [{ id: 'resistance', advances: 10, characteristic: 'endurance' }] as never,
     });
     useGame.setState({ party: [patient], battle: null, pendingCascade: null } as never);
     const resVal = effectiveChar(patient, 'endurance') + 10; // `combatEndResistVal` : E effective + avances
-    const diff: Difficulty = 'tresFacile';
+    const diff: Difficulty = 'difficile';
 
-    openContractionCascade(get, set, patient, 'courante-galopante', diff, 'Infection');
+    openContractionCascade(get, set, patient, 'infection-mineure', diff, 'Infection');
     // #1117 L4 : bande d'UN porteur — l'arithmétique du jet vit sur la RANGÉE.
     const row = get().pendingCascade!.participants[0].participants![0];
     expect(row.base).toBe(resVal);
-    expect(row.target).toBe(clampTarget(resVal + DIFFICULTY_MODIFIERS[diff]).target);
+    expect(row.target).toBe(clampTarget(resVal + DIFFICULTY_MODIFIERS[diff] - 10).target);
     expect(inexplique(row), 'aucune chip « autres »').toBe(0);
   });
 
@@ -183,13 +187,8 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     }
     const corruption = steps.find((s) => s.kind === 'combatEndCorruption')?.participants?.find((r) => r.id === 'sv');
     if (corruption) {
-      const res = testValue(survivant, 'resistance');
       expect(corruption.base, 'base = Niveau de Compétence NU (l’État sort en chip)').toBe(skillBaseValue(survivant, 'resistance'));
-      // ⚠ CIBLE = la formule de HEAD, DOUBLE-COMPTE CONNU : l'État pèse une fois DANS `testValue`
-      // (pénalité hors combat) et une fois de plus via `combatTestPenalty`. Ce lot est à INVARIANCE
-      // STRICTE : il rend le double-compte VISIBLE (deux chips nommées au lieu d'un écart muet) sans
-      // le corriger. Correction et choix du canal → L3, dossier au ticket #1153.
-      expect(corruption.target).toBe(clampTarget(res + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
+      expect(corruption.target, 'pénalité de combat comptée UNE fois').toBe(clampTarget(rawCombatTestBase(survivant, 'resistance') + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
       expect(inexplique(corruption)).toBe(0);
     }
     // Les DEUX familles de BANDE doivent être produites, chacune avec la rangée du survivant (#1117 L4).
@@ -226,13 +225,13 @@ describe('Résilience d’un contributeur d’équipage (shipManeuver) — cible
   it('cible = valeur du rôle + Difficulté (cumul : 2 crans plus dur), écrêtée comme `rollTest`', () => {
     const marin = hero({
       id: 'ma', label: 'Marin', conditions: ETAT,
-      skills: [{ id: 'voile', advances: 15, characteristic: 'agilite' }] as never,
+      skills: [{ id: 'voile', spec: 'cogue', advances: 15, characteristic: 'agilite' }] as never,
     });
     const role = findCrewRoleById('timonier')!;
-    const v = crewRoleValue(marin, role).value;
+    const v = crewRoleValue(marin, role, NAVIGATION).value!;
 
-    expect(forceCrewRole(marin, 'timonier')!.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS.intermediaire).target);
-    const cumule = forceCrewRole(marin, 'timonier', true)!;
+    expect(forceCrewRole(marin, 'timonier', NAVIGATION)!.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS.intermediaire).target);
+    const cumule = forceCrewRole(marin, 'timonier', NAVIGATION, true)!;
     expect(cumule.target).toBeLessThan(v);
     expect(inexplique({ base: v, target: cumule.target, mods: [{ label: 'Manque de bras', value: cumule.target - v, famille: 'jet' }] })).toBe(0);
   });
@@ -245,12 +244,12 @@ describe('Résilience d’un contributeur d’équipage (shipManeuver) — cible
     const barreur = hero({
       id: 'ba', label: 'Barreur', conditions: ETAT,
       characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 35, endurance: 40, initiative: 30, agilite: 105, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
-      skills: [{ id: 'voile', advances: 15, characteristic: 'agilite' }] as never,
+      skills: [{ id: 'voile', spec: 'cogue', advances: 15, characteristic: 'agilite' }] as never,
     });
     const role = findCrewRoleById('timonier')!;
-    expect(crewRoleValue(barreur, role).value, 'la fixture doit VRAIMENT franchir le plafond').toBe(110);
+    expect(crewRoleValue(barreur, role, NAVIGATION).value, 'la fixture doit VRAIMENT franchir le plafond').toBe(110);
 
-    const forcee = forceCrewRole(barreur, 'timonier')!;
+    const forcee = forceCrewRole(barreur, 'timonier', NAVIGATION)!;
     expect(forcee.target, 'plafond 99 — la même cible que celle du jet roulé').toBe(99);
     expect(forcee.sl, 'DR 9 : les dizaines de la cible ÉCRÊTÉE (99) moins celles du dé forcé').toBe(9);
   });

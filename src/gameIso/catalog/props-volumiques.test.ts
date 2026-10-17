@@ -433,7 +433,7 @@ describe('décor volumique — le cap DIAGONAL est refusé de bout en bout', () 
     const scene = sceneWith(propEntity({ id: 'e-1', ref: 'table-ronde-4-tabourets', pos: { x: 2, y: 2 }, facing: 'N' }));
     const diagonale = { ...scene, entities: [{ ...scene.entities[0], facing: 'NE' as const }] };
     expect(validateScene([diagonale]).filter((w) => w.level === 'error').map((w) => w.message)).toEqual([
-      "e-1 › facing : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
+      "entité « e-1 » › orientation : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
     ]);
     expect(validateScene([scene])).toEqual([]);
   });
@@ -446,7 +446,7 @@ describe('décor volumique — le cap DIAGONAL est refusé de bout en bout', () 
     expect(fautif.ref, 'le type n’est pas dessiné : l’art billboard d’un volumique ferait passer la faute pour une pose').toBeUndefined();
     expect(propSvg(fautif.ref)).toBe(missingPropSvg(undefined));
     expect(validateScene([diagonale]).map((w) => w.message)).toContain(
-      "e-1 › facing : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
+      "entité « e-1 » › orientation : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)",
     );
     const billboard = sceneWith({ ...propEntity({ id: 'e-2', ref: 'brasero', pos: { x: 2, y: 2 }, facing: 'N' }), facing: 'NE' } as SceneEntity);
     const [braise] = buildProps(billboard).filter((el) => el.entId === 'e-2');

@@ -25,10 +25,10 @@ describe('validateScene', () => {
       s.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, appearance });
       return msgs(validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'pnj' && x.level === 'error'));
     };
-    expect(avec({ species: 'zorglub' })).toEqual(["pnj › appearance.species : espèce « zorglub » inconnue : ni espèce jouable, ni espèce dessinée — le personnage s'affiche en silhouette d'erreur."]);
-    expect(avec({ hairstyle: 'zzz', sex: 'M' })).toEqual(['pnj › appearance.hairstyle : coiffure « zzz » inconnue : absente du catalogue des coiffures.']);
-    expect(avec({ hairstyle: 'queue-de-cheval-haute-f' })).toEqual(['pnj › appearance.hairstyle : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sans sexe posé — poser le sexe Féminin, ou retirer la coiffure.']);
-    expect(avec({ hairstyle: 'queue-de-cheval-haute-f', sex: 'M' })).toEqual(['pnj › appearance.hairstyle : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sur le sexe Masculin.']);
+    expect(avec({ species: 'zorglub' })).toEqual(["entité « pnj » › apparence › espèce : espèce « zorglub » inconnue : ni espèce jouable, ni espèce dessinée — le personnage s'affiche en silhouette d'erreur."]);
+    expect(avec({ hairstyle: 'zzz', sex: 'M' })).toEqual(['entité « pnj » › apparence › coiffure : coiffure « zzz » inconnue : absente du catalogue des coiffures.']);
+    expect(avec({ hairstyle: 'queue-de-cheval-haute-f' })).toEqual(['entité « pnj » › apparence › coiffure : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sans sexe posé — poser le sexe Féminin, ou retirer la coiffure.']);
+    expect(avec({ hairstyle: 'queue-de-cheval-haute-f', sex: 'M' })).toEqual(['entité « pnj » › apparence › coiffure : coiffure « queue-de-cheval-haute-f » (sexe : Féminin) imposée sur le sexe Masculin.']);
     // Domaine admis : espèce jouable, def de créature, forme de nuée ; coiffure au sexe posé.
     for (const ok of [{ species: 'humains-reiklander' }, { species: 'amibe' }, { species: 'rats' }, { hairstyle: 'queue-de-cheval-haute-f', sex: 'F' }])
       expect(avec(ok), JSON.stringify(ok)).toEqual([]);
@@ -51,7 +51,7 @@ describe('validateScene', () => {
     const s = base();
     s.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'NE' });
     const w = validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'table' && x.level === 'error');
-    expect(msgs(w)).toEqual(['table › facing : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu\'un cap cardinal (N/E/S/O)']);
+    expect(msgs(w)).toEqual(['entité « table » › orientation : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu\'un cap cardinal (N/E/S/O)']);
 
     const cardinal = base();
     cardinal.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'E' });
@@ -210,10 +210,10 @@ describe('validateScene', () => {
   it.each([
     ['offset négatif', { offset: -0.1 }, /offset/],
     ['offset supérieur à 1', { offset: 1.1 }, /offset/],
-    ['offset non fini', { offset: Number.NaN }, /offset/],
+    ['offset non fini', { offset: Number.NaN }, /décalage/],
     ['largeur nulle', { width: 0 }, /largeur/],
     ['largeur négative', { width: -1 }, /largeur/],
-    ['largeur non finie', { width: Number.POSITIVE_INFINITY }, /width/],
+    ['largeur non finie', { width: Number.POSITIVE_INFINITY }, /largeur/],
   ])('architecture : refuse une feature avec %s', (_label, patch, champ) => {
     const s = base();
     s.architecture = [{
@@ -496,38 +496,6 @@ describe('validateScene', () => {
   });
 });
 
-describe('validateScene — Flow corrompu (crash n°2 éditeur, document ANCIEN)', () => {
-  it("trigger avec un flow ENTIÈREMENT ABSENT (document pré-migration Flow) → warning « corrompu », ne throw pas", () => {
-    const s = base();
-    // `flow` est requis par le type `Trigger` mais un document ANCIEN peut ne pas le porter — reproduit
-    // sans passer par normalizeScene (le crash rapporté se produit malgré ce garde-fou).
-    s.triggers.push({ id: 't-corrompu', rect: { x: 0, y: 0, w: 1, h: 1 } } as unknown as (typeof s.triggers)[number]);
-    let w: Warning[] = [];
-    expect(() => { w = validateScene([s]); }).not.toThrow();
-    expect(w.some((x) => x.scope === 'trigger' && x.refId === 't-corrompu' && /corrompu/.test(x.message))).toBe(true);
-  });
-
-  it('un flow avec un nœud `null` (JSON sérialise `undefined` en `null`) → warning « corrompu », ne throw pas', () => {
-    const s = base();
-    const corrupted = { kind: 'seq', steps: [null, { kind: 'do', effect: { type: 'ops', ops: [] } }] };
-    s.triggers.push({ id: 't-null', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: corrupted as unknown as (typeof s.triggers)[number]['flow'] });
-    let w: Warning[] = [];
-    expect(() => { w = validateScene([s]); }).not.toThrow();
-    expect(w.some((x) => x.scope === 'trigger' && x.refId === 't-null' && /corrompu/.test(x.message))).toBe(true);
-  });
-
-  it('un flow avec une réf PENDANTE (nœud `test` sans branche `success`) → warning « corrompu », les AUTRES flows restent validés', () => {
-    const s = base();
-    const dangling = { kind: 'test', test: { skill: 'perception' }, fail: EMPTY_FLOW } as unknown as ReturnType<typeof testFlow>;
-    s.triggers.push({ id: 't-pendant', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: dangling });
-    s.triggers.push({ id: 't-sain', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'transition', scene: 'nope' }]) });
-    let w: Warning[] = [];
-    expect(() => { w = validateScene([s]); }).not.toThrow();
-    expect(w.some((x) => x.scope === 'trigger' && x.refId === 't-pendant' && /corrompu/.test(x.message))).toBe(true);
-    expect(w.some((x) => x.scope === 'trigger' && x.refId === 't-sain' && /scène inexistante/.test(x.message))).toBe(true);
-  });
-});
-
 describe('validateScene — POI de plan (#345 phase 5)', () => {
   // `services` : le lieu doit RÉSOUDRE (`placeServices`) la cible d'un POI de service (#360 — un POI
   // peut aussi cibler le port/marché AUTOMATIQUES du lieu, `'port'`/`'marche'`, pas que le catalogue).
@@ -566,7 +534,7 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
       { id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, serviceKind: 'auberge' },
     ], [{ kind: 'auberge' }]));
     expect(w.filter((x) => x.level === 'error')).toEqual([
-      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'B : « poi-1 » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.' }),
+      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'points d’intérêt « B » : « poi-1 » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.' }),
     ]);
   });
 
@@ -579,7 +547,7 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
       ],
     });
     expect(w.filter((x) => x.level === 'error')).toEqual([
-      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'B : POI « poi-1 » déjà posé au lieu « lieu-1 » : un id de POI est unique sur la carte.' }),
+      expect.objectContaining({ scope: 'worldMap', refId: 'poi-1', message: 'points d’intérêt « B » : POI « poi-1 » déjà posé au lieu « lieu-1 » : un id de POI est unique sur la carte.' }),
     ]);
   });
 

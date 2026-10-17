@@ -3,6 +3,7 @@ import { CALIB_INSTRUCTIONS, type CalibStep } from '../../state/traceCalibration
 import { OptionChooser } from '../OptionChooser';
 import { layerLabel } from './LayerField';
 import { Row } from '../Layout';
+import { ChipDeRefus } from '../ChipDeRefus';
 
 /**
  * Panneau flottant du CALQUE DE RÉFÉRENCE (#830) — décalquer une planche de livre sous la grille de
@@ -21,6 +22,7 @@ import { Row } from '../Layout';
  */
 export function TraceLayerPanel({
   hasLayer,
+  ecarte,
   visible,
   opacity,
   calibStep,
@@ -42,6 +44,8 @@ export function TraceLayerPanel({
   panelRef,
 }: {
   hasLayer: boolean;
+  /** Le calque enregistré de cette (scène, couche) était d'un autre format et a été retiré (#2404). */
+  ecarte: boolean;
   visible: boolean;
   opacity: number;
   calibStep: CalibStep;
@@ -111,6 +115,7 @@ export function TraceLayerPanel({
         </>
       ) : !hasLayer ? (
         <>
+          {ecarte && <ChipDeRefus refus={{ message: 'Calque de cet étage d’un autre format : il a été retiré.' }} />}
           <p className="hint">Décalquer une planche de livre (image locale) sous la grille.</p>
           <button
             className="btn small"

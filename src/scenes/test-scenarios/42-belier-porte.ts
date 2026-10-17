@@ -1,5 +1,4 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
 import { buildScene } from '../../state/mapSpec';
 import { crewFormationSlots } from '../../state/shipPostes';
 import { setEncounters } from './_shared';
@@ -59,7 +58,7 @@ function construireScene(): Scene {
     ambiance: 'exterieur',
     ambientLight: 'jour',
     heroStart: [4, 8], // le Soldat (1er du groupe) atterrit en (3,8) — flanc gauche de la formation, à 3 cases de la porte
-    startMessage: "Le Soldat sert le bélier (poste, Équipe de 6) : poussez-le jusqu'à la porte (Action « Pousser », mouvement simple) puis enfoncez-la (Test de Force) — la VICTOIRE se joue sur la porte ABATTUE, pas sur le défenseur qui la garde.",
+    startMessage: { texte: "Le Soldat sert le bélier (poste, Équipe de 6) : poussez-le jusqu'à la porte (Action « Pousser », mouvement simple) puis enfoncez-la (Test de Force) — la VICTOIRE se joue sur la porte ABATTUE, pas sur le défenseur qui la garde." },
     walls: [{ x: 5, y: 4, side: 'N', structure: 'porte-de-ville' }],
   });
   setEncounters(scene, [
@@ -77,7 +76,7 @@ function construireScene(): Scene {
         // `siegeRig`), orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
         {
           ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
-          postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
+          postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
         },
         // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le
         // Soldat, crewIds[0] ci-dessus) — en FORMATION autour de l'affût (`crewFormationSlots`, jamais

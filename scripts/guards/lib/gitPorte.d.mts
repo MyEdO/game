@@ -1,4 +1,5 @@
 /** Déclarations des questions git consommées depuis TypeScript (`cssCouchesAudit.ts`, `horsStrateAudit.ts`, `cssImages.d.mts`, `regenStock.mts`). */
+import type { RequeteMesuree } from './requeteMesuree.mjs';
 
 /** La marque d'une poignée `depotDe` (`gitPorte.mjs`, `MARQUE_DEPOT`). */
 declare const MARQUE_DEPOT: unique symbol;
@@ -6,6 +7,7 @@ declare const MARQUE_DEPOT: unique symbol;
 /** Le DÉPÔT git d'un `cwd` (`depotDe`) : une poignée opaque et MARQUÉE, premier paramètre de chaque
  *  question ; un `{ cwd }` écrit à la main n'en est pas une. */
 export type Depot = Readonly<{ cwd: string; [MARQUE_DEPOT]: true }>;
+export function relireRequeteMesuree(depot: Depot, requete: RequeteMesuree): RequeteMesuree;
 
 export type DiagnosticGit = {
   status: number | null;
@@ -38,8 +40,8 @@ export class GitIndisponible extends Error {
 }
 export function reussi(union: ResultatGit): boolean;
 export function refusDeGit(vu: ResultatGit | GitIndisponible): string;
-export function pousser(depot: Depot, geste: { vers: string; bail?: boolean }): ResultatGit;
-export function fetchOrigin(depot: Depot, opts?: { branche?: string }): ResultatGit;
+export function pousser(depot: Depot, geste: { vers: string; bail?: false | string }): ResultatGit;
+export function fetchOrigin(depot: Depot, opts?: { branche?: string; objets?: never } | { objets: readonly string[]; branche?: never }): ResultatGit;
 
 /** Le dépôt git de `cwd`. */
 export function depotDe(
@@ -53,8 +55,61 @@ export function depotDe(
 ): Depot;
 /** La racine de l'arbre de travail, `null` hors d'un arbre. */
 export function racineDe(depot: Depot): string | null;
+/** La configuration brute (`config --null --list`) ; toute indisponibilité lève. */
+export function configurationDe(depot: Depot, opts?: { environnement?: NodeJS.ProcessEnv }): string;
 /** La valeur de l'attribut `nom` sur `chemin` (`check-attr`), `null` si git ne répond pas. */
 export function attributDe(depot: Depot, chemin: string, nom: string): string | null;
 export const INDEX: string;
 export const SUIVI: string;
 export const TRAVAIL: string;
+/** Les fichiers que l'image `arbre` (une ref, `INDEX`, `SUIVI` ou `TRAVAIL`) porte sous `dossiers`, chemins POSIX. */
+export function listerImage(depot: Depot, arbre: string, ...dossiers: string[]): string[];
+
+/** Une entrée d'image (`entreesDe`) : mode et sha du blob. */
+export type EntreeDImage = { mode: string; sha: string };
+/** La valeur de l'attribut `nom` sur chacun des `chemins` (`check-attr --stdin`). */
+export function attributsDe(depot: Depot, chemins: readonly string[], nom: string): Map<string, string>;
+/** Les entrées de `chemins` dans l'image `arbre` (une ref, ou `INDEX`). */
+export function entreesDe(depot: Depot, arbre: string, chemins: readonly string[], opts?: { index?: string | null }): Map<string, EntreeDImage>;
+/** Le dernier commit de `de..vers` qui ajoute `chemin`, `null` sans lui. */
+export function ajoutDe(depot: Depot, de: string, vers: string, chemin: string): string | null;
+/** Les commits de `tete` absents de `amont` (`git cherry`). */
+export function ceriseDe(depot: Depot, amont: string, tete: string): { signe: '+' | '-'; sha: string }[];
+/** Le contenu du blob `sha`, en octets ; sous `chemin`, filtré pour l'arbre de travail. */
+export function contenuDuBlob(depot: Depot, sha: string, opts?: { chemin?: string }): Buffer;
+/** Le sha de blob de chacun des fichiers `chemins` de l'arbre de travail. */
+export function shasDuTravail(depot: Depot, chemins: readonly string[]): Map<string, string>;
+/** La fusion à trois au style diff3, marqueurs de `taille` caractères, ou `{ binaire: true }`. */
+export function fusionDiff3(
+  depot: Depot,
+  fichiers: { ours: string; base: string; theirs: string },
+  labels: { ours: string; base: string; theirs: string },
+  taille: number,
+): { texte: string; conflit: boolean } | { binaire: true };
+/** Un blob écrit tel quel dans la base d'objets. */
+export function ecrireBlob(depot: Depot, contenu: Buffer | string): ResultatGit;
+/** Des entrées posées ou retirées dans l'index `index`. */
+export function poserDansIndex(
+  depot: Depot,
+  p: { index: string; entrees: readonly ({ chemin: string; mode: string; sha: string } | { chemin: string; retirer: true })[] },
+): ResultatGit;
+/** Les entrées aux stats périmées de l'index `index`, rafraîchies. */
+export function rafraichirIndex(depot: Depot, p: { index: string }): ResultatGit;
+/** L'arbre de travail et l'index `index` avancés de `de` à `vers` (`read-tree -m -u`). */
+export function avancerArbre(depot: Depot, p: { index: string; de: string; vers: string }): ResultatGit;
+/** Le hook `nom` joué sur `args`. */
+export function lancerHook(depot: Depot, nom: string, args: readonly string[]): ResultatGit;
+/** Le résultat d'un ordre de transaction de refs. */
+export type OrdreDeRefs = { ok: true } | { ok: false; raison: string };
+/** Une transaction de refs gardée ouverte (`update-ref --stdin`). */
+export function transactionDeRefs(
+  depot: Depot,
+  p: { message: string },
+): {
+  pid: number | undefined;
+  start(): Promise<OrdreDeRefs>;
+  update(ref: string, nouveau: string, ancien: string): Promise<OrdreDeRefs>;
+  prepare(): Promise<OrdreDeRefs>;
+  commit(): Promise<OrdreDeRefs>;
+  abort(): Promise<OrdreDeRefs>;
+};

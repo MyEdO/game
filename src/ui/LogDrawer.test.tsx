@@ -20,6 +20,13 @@ describe('LogDrawer', () => {
     const html = renderToStaticMarkup(<LogDrawer battle={null} journal={['Vous entrez dans la taverne.']} initialOpen />);
     expect(html).toContain('taverne');
   });
+  it('le journal libre rend le Markdown dans un bloc valide', () => {
+    const html = renderToStaticMarkup(<LogDrawer battle={null} journal={['**Le groupe** entre.\n\n- Une porte']} initialOpen />);
+    expect(html).toContain('<strong>Le groupe</strong>');
+    expect(html).toContain('<li>Une porte</li>');
+    expect(html).not.toContain('**Le groupe**');
+    expect(html).not.toMatch(/<p[^>]*>\s*<div/);
+  });
 
   it('ouvert en combat : événements narrés (icône par kind, nom coloré par camp)', () => {
     const battle = { log: [ev('attack', 'Gunnar attaque Brigand', 'h1', 'e1')], combatants: COMBATANTS };

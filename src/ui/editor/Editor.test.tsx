@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { __resetAutosaveForTest, autosaveSave } from '../../state/editorAutosave';
-import { __resetLibraryForTest, initLibrary, type SavedProject } from '../../state/projectLibrary';
-import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { initLibrary, type SavedProject } from '../../state/projectLibrary';
+import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees, type BaseSimulee, type BasesSimulees } from '../../lib/indexedDb.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -24,6 +24,8 @@ import { emptyNarratif } from '../../state/campaignNarratif';
 import { basculerSur, boutonParTitre, scenesDuSelecteur, selecteurDeScene } from './editeur.testkit';
 import { parseProject } from '../../state/worldMap';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
+import { traceLayerSave } from '../../state/traceLayer';
+import { identityTransform } from '../../state/traceCalibration';
 
 const BIBLIOTHEQUE = 'wfrp4-library';
 const AUTOSAVE = 'wfrp4-editor-autosave';
@@ -164,14 +166,13 @@ describe('Editor v2 — scènes du projet : la suppression garde l’ordre (#199
 });
 
 describe('Editor v2 — un renommage au Narratif depuis une scène non-entrée (#679)', () => {
-  afterEach(async () => {
+  afterEach(() => {
     demonterRacines();
-    await __resetLibraryForTest();
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
   });
 
   it('garde la scène active, l’ordre des scènes, et réécrit l’Effet des voisines AVANT et APRÈS', async () => {
-    const base = brancherBasesSimulees().amorcer(BIBLIOTHEQUE, 1, { projects: { keyPath: 'id' } });
+    const base = brancherBasesSimulees().amorcer(BIBLIOTHEQUE, { projects: { keyPath: 'id' } });
     const { container, rendre } = monterRacine(null);
     const cite: Scene = {
       ...emptyScene(4, 4), id: 'a', label: 'A',
@@ -259,7 +260,7 @@ describe('Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478)'
   it('un projet enregistré que la porte `parseProject` REFUSE rend ✗ avec le motif, jamais ✓', async () => {
     // Une entrée de bibliothèque dont le document n'a AUCUNE identité : la porte unique la refuse.
     const entree = { id: 'proj-casse', label: 'Projet cassé', startSceneId: 's', savedAt: 0, published: false, project: { scenes: [] } } as unknown as SavedProject;
-    brancherBasesSimulees().amorcer(BIBLIOTHEQUE, 1, { projects: { keyPath: 'id' } }).magasins.get('projects')!.contenu.set(entree.id, entree);
+    brancherBasesSimulees().amorcer(BIBLIOTHEQUE, { projects: { keyPath: 'id' } }).magasins.get('projects')!.contenu.set(entree.id, entree);
     await initLibrary();
 
     const container = document.createElement('div');
@@ -281,8 +282,7 @@ describe('Editor v2 — `editeur.ouvrir` : ouvrir par id sans la modale (#1478)'
       root.unmount();
     });
     container.remove();
-    await __resetLibraryForTest();
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
   });
 });
 
@@ -685,12 +685,12 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
 
   beforeEach(async () => {
     bases = brancherBasesSimulees();
-    bases.amorcer(AUTOSAVE, 1, { autosave: { keyPath: 'sceneId' } });
+    bases.amorcer(AUTOSAVE, { autosave: { keyPath: 'sceneId' } });
     await __resetAutosaveForTest();
   });
 
   afterEach(() => {
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
   });
 
   it('Échap sur la modale de reprise ne détruit PAS la sauvegarde locale, et la proposition peut revenir (pt. A)', async () => {
@@ -847,7 +847,7 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
 
 describe('Editor v2 — #811 échec de sauvegarde REMONTÉ à l’auteur', () => {
   afterEach(() => {
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
     vi.unstubAllGlobals();
   });
 
@@ -959,7 +959,7 @@ describe('Editor v2 — le défaut mis en évidence est VIVANT (re-résolution c
  */
 describe('Editor v2 — le document ÉCRIT s’ouvre sur son identité (`id`, `type`, `label`)', () => {
   afterEach(() => {
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
   });
 
   it('« Fichier → Enregistrer » couche un projet dont les 3 premières clés sont `id`, `type`, `label`', async () => {
@@ -987,5 +987,31 @@ describe('Editor v2 — le document ÉCRIT s’ouvre sur son identité (`id`, `t
 
     await act(async () => { root.unmount(); });
     container.remove();
+  });
+});
+
+describe('Editor v2 — le calque d’un autre format, retiré au chargement, est DIT au panneau (#2404)', () => {
+  let bases: BasesSimulees;
+  beforeEach(async () => {
+    bases = brancherBasesSimulees();
+  });
+  afterEach(() => {
+    demonterRacines();
+    __setFabriqueIdbForTest(null);
+  });
+
+  it('le témoin de `traceLayerLoad` atteint `TraceLayerPanel` de la (scène, couche) ouverte', async () => {
+    await traceLayerSave({
+      sceneId: 'scene-calque', z: 0, imageDataUrl: 'data:image/png;base64,AAAA', naturalWidth: 8, naturalHeight: 6,
+      opacity: 0.6, visible: true, position: 'above', allowRotation: false, contraste: false, transform: identityTransform(), savedAt: 1,
+    });
+    const contenu = bases.base('wfrp4-trace-layers').magasins.get('layers')!.contenu;
+    for (const [cle, v] of contenu) contenu.set(cle, { ...(v as object), version: 'autre-format' });
+    const { container, rendre } = monterRacine(null);
+    await act(async () => { rendre(<Editor initialScene={{ ...emptyScene(4, 4), id: 'scene-calque', label: 'Calque' }} />); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    const temoin = container.querySelector('.trace-layer-panel [role="alert"] p.chip.tone-danger.chip-phrase');
+    expect(temoin?.textContent, 'le témoin rendu par `ChipDeRefus`').toBe('Calque de cet étage d’un autre format : il a été retiré.');
+    expect(contenu.size, 'le calque d’un autre format est retiré du stockage').toBe(0);
   });
 });

@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `structureAppearance.json` — apparence PARTAGÉE d'une structure d'arête (mur/porte),
  * consommée comme `StructureAppearanceDef[]` (`src/gameIso/catalog/structures/types.ts`). Chaque champ
@@ -35,9 +36,11 @@ export const RELIEF_PART_KEYS = WALL_PART_KEYS.filter(
 ) as Exclude<(typeof WALL_PART_KEYS)[number], 'face' | 'poteau' | 'couronnement' | 'jambage' | 'parapet' | 'arase' | 'merlon'>[];
 
 /** Profondeur (m) par partie, toutes optionnelles, AUCUNE clé étrangère (`strictObject`). */
-const reliefParPartie = z.strictObject(
+const reliefParPartie = nommerChamps(z.strictObject(
   tableTotale(RELIEF_PART_KEYS, () => z.number().optional()),
-);
+), {
+  ...tableTotale(RELIEF_PART_KEYS, (partie) => ({ label: { panneau: 'Panneau', moulure: 'Moulure', plinthe: 'Plinthe', chambranle: 'Chambranle', vantail: 'Vantail', 'vantail-planche': 'Planche de vantail', poignee: 'Poignée', vitre: 'Vitre', meneau: 'Meneau', bande: 'Bande', linteau: 'Linteau', 'herse-barreau': 'Barreau de herse', 'herse-traverse': 'Traverse de herse', seuil: 'Seuil', gravats: 'Gravats', 'gravats-tas': 'Tas de gravats' }[partie] })),
+});
 
 const doc = document(
   'structureAppearance',
@@ -53,7 +56,7 @@ const doc = document(
     rubble: z.string().optional(),
     rubbleHi: z.string().optional(),
     recess: z.string().optional(),
-    wood: z
+    wood: nommerChamps(z
       .strictObject({
         inset: z.string(),
         frame: z.string(),
@@ -61,9 +64,16 @@ const doc = document(
         skirt: z.string(),
         rubble: z.string(),
         rubbleHi: z.string(),
-      })
+      }), {
+      inset: { label: 'Panneau' },
+      frame: { label: 'Cadre' },
+      cap: { label: 'Couronnement' },
+      skirt: { label: 'Plinthe' },
+      rubble: { label: 'Gravats' },
+      rubbleHi: { label: 'Gravats clairs' },
+    })
       .optional(),
-    parapet: z
+    parapet: nommerChamps(z
       .strictObject({
         heightLevelFrac: z.number(),
         merlonCount: z.number(),
@@ -73,9 +83,18 @@ const doc = document(
         bandThickPx: z.number(),
         parapetBandFrac: z.number(),
         arasePx: z.number(),
-      })
+      }), {
+      heightLevelFrac: { label: 'Hauteur (fraction de niveau)' },
+      merlonCount: { label: 'Nombre de merlons' },
+      merlonStep: { label: 'Espacement des merlons' },
+      merlonHeightPx: { label: 'Hauteur des merlons (px)' },
+      bands: { label: 'Bandes' },
+      bandThickPx: { label: 'Épaisseur des bandes (px)' },
+      parapetBandFrac: { label: 'Bande de parapet (fraction)' },
+      arasePx: { label: 'Arase (px)' },
+    })
       .optional(),
-    door: z
+    door: nommerChamps(z
       .strictObject({
         openingFrac: z.number(),
         lintelPx: z.number(),
@@ -84,35 +103,54 @@ const doc = document(
         leaf: z.string().optional(),
         plank: z.string().optional(),
         handle: z.string().optional(),
-        herse: z
+        herse: nommerChamps(z
           .strictObject({
             bars: z.number(),
             topFrac: z.number(),
             traverseFracs: z.array(z.number()),
             traverseColor: z.string(),
-          })
+          }), {
+          bars: { label: 'Barreaux' },
+          topFrac: { label: 'Sommet (fraction)' },
+          traverseFracs: { label: 'Traverses (fractions)' },
+          traverseColor: { label: 'Couleur des traverses' },
+        })
           .optional(),
-      })
+      }), {
+      openingFrac: { label: 'Ouverture (fraction)' },
+      lintelPx: { label: 'Linteau (px)' },
+      jamb: { label: 'Jambage' },
+      jambCap: { label: 'Couronnement du jambage' },
+      leaf: { label: 'Vantail' },
+      plank: { label: 'Planche' },
+      handle: { label: 'Poignée' },
+      herse: { label: 'Herse' },
+    })
       .optional(),
-    window: z
+    window: nommerChamps(z
       .strictObject({
         glass: z.string(),
         lit: z.string(),
         frame: z.string(),
         mullion: z.string(),
-      })
+      }), {
+      glass: { label: 'Vitre' },
+      lit: { label: 'Éclairée' },
+      frame: { label: 'Cadre' },
+      mullion: { label: 'Meneau' },
+    })
       .optional(),
     // RELIEF MINCE (m) par partie de mur : `jut` = saillie par côté, `thick` = épaisseur totale d'une
     // partie traversante (`wallPartDepthM`), `wallM` = épaisseur de la MATIÈRE PLEINE de cette
     // apparence (le défaut est `WALL_MATTER_M`, `catalog/structures`). Les clés de `jut`/`thick` sont
     // CONTRAINTES aux parties RÉELLEMENT surchargeables (`RELIEF_PART_KEYS`) — une clé fautive, comme
     // une clé inerte, échoue au CHARGEMENT au lieu d'être ignorée en silence.
-    relief: z
+    relief: nommerChamps(z
       .strictObject({
         jut: reliefParPartie.optional(),
         thick: reliefParPartie.optional(),
         wallM: z.number().positive().optional(),
-      })
+      }), { jut: { label: 'Saillie' }, thick: { label: 'Épaisseur' }, wallM: { label: 'Épaisseur du mur (m)' } })
       .optional(),
   },
   {

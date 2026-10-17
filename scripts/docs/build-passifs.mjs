@@ -327,7 +327,7 @@ function renduDuProgramme(session) {
   // ── Rendu ────────────────────────────────────────────────────────────────────────────────────────
 
   const table = (rows, entete, l) => `| ${entete.join(' | ')} |\n|${entete.map(() => '---').join('|')}|\n${rows.map(l).join('\n')}`
-  const combinaison = (k) => (k === ADDITIF ? 'Σ dans la BASE (additif)' : 'pool non-cumul (meilleur bonus + pire malus)')
+  const combinaison = (k) => (k === ADDITIF ? 'Σ dans la BASE (additif)' : 'volatile — Σ (LDB 14 l.95), sauf pool déduit de la SOURCE (`poolDeNonCumul`) ; les États : pool LDB 16 l.13 au consommateur')
 
   const out = `# Système de passifs unifié & Corruption
 
@@ -359,8 +359,8 @@ les sorts.
 Un passif est une liste de \`GameOp\` : **le même vocabulaire que les sorts**, catalogué dans
 \`docs/vocabulaire-mecanique.md\` (y chercher l'op AVANT de conclure qu'elle manque). Au runtime, le
 collecteur emballe chaque op dans un \`PassiveMod = { op, kind?, src?, label? }\` (\`${OPS}\`) :
-\`kind\` porte le profil d'annulation ET de combinaison ; \`src\`/\`label\` NOMMENT l'entité émettrice
-pour l'affichage d'une composante de jet, et ne sont jamais lus par le calcul.
+\`kind\` porte le profil d'annulation et sépare la BASE additive du volatil ; \`src\` désigne l'entité
+émettrice, dont le calcul déduit le pool de non-cumul (\`poolDeNonCumul\`), et NOMME avec \`label\` la composante de jet.
 
 ## 2. \`PassiveKind\` — annulation et combinaison
 

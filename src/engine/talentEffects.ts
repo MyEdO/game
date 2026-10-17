@@ -32,6 +32,7 @@ import { findTalentById, findTraitById, blessingsOf } from '../data';
 import { wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import type { PassiveMod } from './ops';
+import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 
 /**
  * Valeur « base + bonus permanents de talents » pour une CharKey, SANS les modificateurs
@@ -203,7 +204,7 @@ function deplierAjouts(ajouts: RefASpecialisation[], kind: 'skill' | 'talent'): 
 
 /** L'ajout désigne-t-il exactement (id, spec) ? */
 function ajoutCouvre(ajouts: RefDesignee[], id: string, spec: string | undefined): boolean {
-  return ajouts.some((a) => a.id === id && (a.spec ?? '') === (spec ?? ''));
+  return ajouts.some((a) => a.id === id && memeSpecialisation(a.spec, spec));
 }
 
 /** Statut « en carrière » d'une Compétence (LDB 07 l.76 ; LDB 10 l.745) : un emplacement cumulé la couvre
@@ -285,8 +286,8 @@ export function effectiveTalents(c: Combatant): TalentInstance[] {
   const own = c.talents ?? [];
   const granted: RefDesignee[] = [];
   for (const g of [...traitGrantedTalents(c), ...effectGrantedTalents(c)]) {
-    const already = own.some((t) => t.talentId === g.id && (t.spec ?? '') === (g.spec ?? ''))
-      || granted.some((k) => k.id === g.id && (k.spec ?? '') === (g.spec ?? ''));
+    const already = own.some((t) => t.talentId === g.id && memeSpecialisation(t.spec, g.spec))
+      || granted.some((k) => k.id === g.id && memeSpecialisation(k.spec, g.spec));
     if (!already) granted.push(g);
   }
   return [...own, ...granted.map((g) => ({ talentId: g.id, spec: g.spec, times: 1 }))];

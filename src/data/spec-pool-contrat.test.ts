@@ -11,6 +11,7 @@ import tavernGamesJson from './tavernGames.json';
 import crewRolesJson from './crew-roles.json';
 import { estSpecialisable, refOuSpec } from './schemas/grammaire/ref';
 import { norm } from '../lib/normalize';
+import { nommerNoeud } from './schemas/grammaire/meta';
 
 /**
  * CONTRAT DE DONNÉE #1342 L3 — deux axes ORTHOGONAUX sur une entrée `specs[]` : `source` dit d'où
@@ -269,7 +270,7 @@ describe('L2 #1548 — aucune `spec` de Compétence ni de Talent écrite en LIBE
 describe('L2 #1548 — `refOuSpec` refuse la sentinelle AU PARSE (`ref.ts#SENTINELLE_DE_SPEC`)', () => {
   /** LE nœud du statbloc de créature : `refOuSpec('skill', { value }, 'specOuChoixFacultatifs')`
    *  (`defs/creatures.ts`, porteur d'EMPLACEMENT) — la sonde porte donc sa `value`. */
-  const skillRef = refOuSpec('skill', { value: z.number().optional() }, 'specOuChoixFacultatifs');
+  const skillRef = refOuSpec('skill', { value: nommerNoeud(z.number().optional(), { nom: 'valeur' }) }, 'specOuChoixFacultatifs');
 
   it('refuse le littéral « au choix » posé en `spec` d’une Compétence spécialisable', () => {
     const r = skillRef.safeParse({ id: 'savoir', spec: 'au choix', value: 65 });

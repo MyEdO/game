@@ -1,0 +1,5 @@
+{
+  "timestamp": "2026-10-07T18:02:51.661Z",
+  "commande": "gh api graphql -f 'query=query($owner:String!,$name:String!){repository(owner:$owner,name:$name){pullRequest(number:2495){mergeQueueEntry{enqueuedAt enqueuer{login} state headCommit{oid}}}}}' -f owner=MyEdO -f name=game",
+  "ligne": 441
+}

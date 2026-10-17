@@ -58,6 +58,26 @@ afterEach(() => {
 const render = () => act(() => { root.render(<CascadeBody />); });
 
 describe('étape de révélation — le sujet et la barre de temps', () => {
+  it('l’introduction rend le Markdown complet sans paragraphes imbriqués', () => {
+    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: ['**Le groupe** entre.\n\n- Une porte'], severity: 'minor' }));
+    render();
+    expect(host.querySelector('.modal-log strong')?.textContent).toBe('Le groupe');
+    expect(host.querySelector('.modal-log li')?.textContent).toBe('Une porte');
+    expect(host.textContent).not.toContain('**Le groupe**');
+    expect(host.querySelector('p .prose, p p, p ul')).toBeNull();
+  });
+  it('le choix rend son prompt Markdown dans le corps et ses aperçus en texte', () => {
+    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: [], severity: 'minor' }));
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'choix', kind: 'choix', label: fixtureText('**Entrer** par [la porte](https://example.com) ?'),
+      options: [{ key: 'yes', label: fixtureText('**Oui**'), detail: '*Entrer*' }, { key: 'no', label: fixtureText('Non') }] }], { title: 'Choix', purpose: 'affichage' }) });
+    render();
+    expect(host.querySelector('strong')?.textContent).toBe('Entrer');
+    expect(host.querySelector('a')?.getAttribute('href')).toBe('https://example.com');
+    expect(host.querySelector('h3')?.textContent).not.toContain('**');
+    expect(host.querySelector('button strong, h3 strong, p p')).toBeNull();
+    expect([...host.querySelectorAll('button')].some(b => b.textContent?.trim() === 'Oui')).toBe(true);
+    expect(host.textContent).not.toContain('**Oui**');
+  });
   it('une révélation à `subjectId` MONTRE le concerné (portrait du sujet dans la fenêtre)', () => {
     openReveal((id) => ({ kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['Des écailles poussent.'], subjectId: id, severity: 'grave' }));
     render();

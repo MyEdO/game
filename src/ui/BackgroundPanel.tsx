@@ -6,6 +6,7 @@ import { BackgroundFields } from './BackgroundFields';
 import { Icon } from './Icon';
 import { ChoiceButtons } from './OptionChooser';
 import { GatedAction } from './GatedAction';
+import { Prose } from './Prose';
 import { Row } from './Layout';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -89,7 +90,7 @@ function FavorRow({ favor, disabled, onBreak }: { favor: Favor; disabled: boolea
       <span className="sc-label" title={`${libelleDeValeur(favorLevelSchema, favor.level)} envers ${favor.owedTo}`}>
         {libelleDeValeur(favorLevelSchema, favor.level)} envers {favor.owedTo}
       </span>
-      <span className="sc-value">{favor.desc}</span>
+      <div className="sc-value"><Prose md={favor.desc} /></div>
       <span className="bg-hint">
         {required != null
           ? `${favor.progress}/${required} Activité${required > 1 ? 's' : ''} consécutive${required > 1 ? 's' : ''} pour l'acquitter (Entre deux aventures)`

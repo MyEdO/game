@@ -9,6 +9,7 @@ import { BackgroundPanel } from './BackgroundPanel';
 import { casterTalents } from '../engine/grimoire';
 import { findTrappingById } from '../data';
 import { useGame } from '../state/store';
+import { t } from '../i18n';
 
 /** Héros « Agitateur » niveau 1 (« Pamphlétaire ») avec 1000 PX, Charme (in-carrière) + Esquive (hors). */
 const hero = (): Combatant =>
@@ -68,6 +69,33 @@ describe('AdvancementPanel (rendu)', () => {
     const broke = { ...hero(), xp: 5 } as Combatant;
     const html = renderToStaticMarkup(<AdvancementPanel hero={broke} />);
     expect(html).toContain('disabled'); // boutons d'achat désactivés (coût > 5 PX)
+  });
+});
+
+/** Boutons d'un rendu CLIENT (la fiche lit `useGame`) : texte, `aria-disabled`, et texte de la raison que
+ *  désigne `aria-describedby`. */
+function boutons(racine: HTMLElement): { texte: string; ferme: boolean; raison: string | null }[] {
+  return [...racine.querySelectorAll('button')].map((b) => {
+    const id = b.getAttribute('aria-describedby');
+    return { texte: b.textContent ?? '', ferme: b.getAttribute('aria-disabled') === 'true', raison: id ? racine.ownerDocument.getElementById(id)?.textContent ?? null : null };
+  });
+}
+
+describe('AdvancementPanel en combat : chaque dépense de PX porte la raison de son refus', () => {
+  afterEach(() => { demonterRacines(); useGame.setState({ battle: null }); });
+
+  it('tout bouton qui coûte des PX est fermé ET porte la raison (infobulle au survol et au focus)', () => {
+    useGame.setState({ battle: { combatants: [] } as never });
+    const porteur = { ...hero(), items: [{ ...findTrappingById('fausse-jambe'), uid: 'fj', trappingId: 'fausse-jambe', label: 'Fausse jambe', kind: 'misc', subType: 'protheses', qualities: [], equipped: true }] } as unknown as Combatant;
+    const depenses = boutons(monterRacine(<AdvancementPanel hero={porteur} />).container).filter((b) => /PX/.test(b.texte));
+    expect(depenses.some((b) => /Entraîner/.test(b.texte))).toBe(true);
+    expect(depenses.filter((b) => !b.ferme || b.raison !== t('pf.xpInCombat')).map((b) => b.texte)).toEqual([]);
+  });
+
+  it('hors combat, la raison de combat ne ferme rien', () => {
+    const tous = boutons(monterRacine(<AdvancementPanel hero={hero()} />).container);
+    expect(tous.length).toBeGreaterThan(0);
+    expect(tous.some((b) => b.raison === t('pf.xpInCombat'))).toBe(false);
   });
 });
 
@@ -317,6 +345,38 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
       loadouts: [{ id: 'lo1', main: null, off: null }],
       activeLoadoutId: 'lo1',
     }) as unknown as Combatant;
+
+  describe('Évaluer / Détecter suivent qui peut tenter le Test (LDB 09 l.30) : offerts, ou fermés et NOMMÉS', () => {
+    const inconnu = { uid: 'u1', label: 'Épée', kind: 'melee', qualities: [], enc: 1, equipped: false, identified: false };
+    const etat = (h: Combatant, label: 'Évaluer' | 'Détecter', id: string) => {
+      useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
+      const el = mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
+      // Le geste du joueur : élire la rangée de l’objet déplie sa barre d’actions.
+      act(() => { ([...el.querySelectorAll('.plaque-row')].find((r) => r.textContent?.includes('Épée')) as HTMLButtonElement).click(); });
+      const bouton = [...el.querySelectorAll('button')].find((b) => b.textContent === label);
+      return { rendu: !!bouton, ferme: bouton?.getAttribute('aria-disabled') ?? null, raison: el.querySelector(`#${id}-reason`)?.textContent ?? null };
+    };
+
+    it('« Évaluer » : offert avec une Augmentation en Évaluation', () => {
+      const evaluateur = { ...hero(), id: 'e', items: [inconnu], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as unknown as Combatant;
+      expect(etat(evaluateur, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: null, raison: null });
+    });
+
+    it('« Évaluer » : fermé et NOMMÉ sans Augmentation', () => {
+      const profane = { ...hero(), id: 'p', items: [inconnu] } as unknown as Combatant;
+      expect(etat(profane, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: 'Personne dans le groupe ne peut tenter le Test d’Évaluation.' });
+    });
+
+    it('« Détecter » : offert quand un héros porte le Talent Détection d’artefact (LDB 10 l.336)', () => {
+      const detecteur = { ...hero(), id: 'd', items: [inconnu], talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as unknown as Combatant;
+      expect(etat(detecteur, 'Détecter', 'sheet-detect-u1')).toEqual({ rendu: true, ferme: null, raison: null });
+    });
+
+    it('« Détecter » : fermé, sa raison nomme le Talent, quand personne ne le porte', () => {
+      const profane = { ...hero(), id: 'p', items: [inconnu] } as unknown as Combatant;
+      expect(etat(profane, 'Détecter', 'sheet-detect-u1')).toEqual({ rendu: true, ferme: 'true', raison: "Personne dans le groupe ne peut tenter « Détection d'artefact »." });
+    });
+  });
 
   it('la plaque ENC. de tête MEURT (arbitrage en vol 2026-07-17) — aucun remplaçant dans ce geste', () => {
     const h = heroWithItems();

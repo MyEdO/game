@@ -22,8 +22,7 @@
 // CONSÉQUENCE DITE : replacer le MÊME en-tête dans `old_string` le rend silencieux — la ligne n'est
 // plus ajoutée. Le garde arbitre l'ÉCRITURE d'un en-tête, il n'inspecte pas la fiche existante.
 import { readFileSync } from 'node:fs'
-import { OUTILS_ECRITURE, cheminVise, ecrituresDe, texteAvant, texteNeuf, verdictDe } from '../guards/lib/contratGarde.mjs'
-import { cheminDEcriture } from './solde-ticket-guard.mjs'
+import { OUTILS_ECRITURE, cheminDEcriture, cheminVise, ecrituresDe, texteAvant, texteNeuf, verdictDe } from '../guards/lib/contratGarde.mjs'
 
 /** Ligne débarrassée de ses ornements de tête (citation, puce, titre, gras, avertissement). */
 const nu = (ligne) => ligne.replace(/⚠|️/gu, ' ').replace(/^[\s>#*_~–—•!-]+/u, '').trim()
@@ -107,7 +106,7 @@ export function evaluate(input, lireDisque = () => '') {
       decision: 'deny',
       reason:
         '⛔ En-tête de SUPERSESSION ajouté à une fiche de mémoire (« ' + entete + ' ») : un en-tête ' +
-        'posé AU-DESSUS du faux laisse le faux se relire comme une vérité (règle 6c, tolérance zéro). ' +
+        'posé AU-DESSUS du faux laisse le faux se relire comme une vérité (règle 6, tolérance zéro). ' +
         'Geste : RÉÉCRIS le corps de la fiche au présent, ou SUPPRIME la fiche (git porte l\'historique) ; ' +
         'si la ligne nomme le porteur actuel de l\'invariant, écris-la `PORTÉ PAR <porteur>`.',
     }

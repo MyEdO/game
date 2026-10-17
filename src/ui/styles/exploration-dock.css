@@ -46,9 +46,8 @@
   /* DELTA de la peau : l'ombre PORTÉE sur le terrain, comme le pont de combat. */
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.55);
 }
-/* Rangée d'icônes-écrans : à l'extrémité DROITE du pont, jamais au milieu du champ. Le tiroir-journal
-   en est le DERNIER élément hors combat (§1c-ter : une plaque unique, jamais des éléments épars) ;
-   son ancrage sur le pont vit ci-dessous. Les ouvreurs portent la peau PARTAGÉE « tôle vissée »
+/* Rangée d'icônes-écrans : à l'extrémité DROITE du pont, avant le tiroir-journal voisin.
+   Les ouvreurs portent la peau PARTAGÉE « tôle vissée »
    (`.skin-tole[data-ton='laiton']`, components.css) : aucune propriété de bouton n'est réécrite
    depuis ce module d'écran. */
 .xd-openers {
@@ -66,11 +65,12 @@
 /* LE TIROIR-JOURNAL SUR LE PONT (§1c-ter : une plaque unique, jamais des éléments épars) — le PONT
    porte l'ancrage, comme le rail en combat. Hors toute tranche : sans cette remise à zéro, le
    calage de coin du tiroir (log-drawer.css, ancré au bas de la rangée du monde) le renverrait
-   flotter au-dessus du pont alors que son bouton est assis dans la rangée d'ouvreurs. */
+   flotter au-dessus du pont alors que son bouton est assis à côté de la rangée d'ouvreurs. */
 .exploration-dock .log-drawer {
   position: relative;
   inset: auto;
   align-items: flex-end;
+  flex: 0 0 auto;
 }
 /* Le panneau naît de son bouton et s'ouvre VERS LE HAUT, borné par la bande de terrain disponible :
    il lit la hauteur de SA PROPRE bande (`--xd-deck-h`, ci-dessus — il naît dessus) et la réserve du

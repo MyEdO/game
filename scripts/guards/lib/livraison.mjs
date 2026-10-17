@@ -1,5 +1,5 @@
 // LA LIVRAISON : ce qu'exigent les trailers de livraison (`JUGE:`, `REFUTATION:`, `JUGE-VISION:`), au
-// commit (`scripts/hooks/solde-ticket-guard.mjs`) et à la PUBLICATION (`fusionsNonJugees`, gate
+// commit (`scripts/git-hooks/porte-du-commit.mjs`) et à la PUBLICATION (`fusionsNonJugees`, gate
 // `livraison:plage`, #2328 A3).
 // Ticket #2328, Attendu, verbatim : « Ceux-ci restent exigés là où la livraison se juge : commit de
 // solde, porte de publication. » Une fusion se COMMITE sans eux (lot 1) ; la résolution qu'elle porte
@@ -46,7 +46,7 @@ export function sectionDe(content, titre) {
 
 /** Le corps de la section du trailer `nom` (`TRAILERS`) dans un solde, sans ses blancs de bord, `null`
  *  sans elle : l'UNIQUE lecture d'une section de livraison, au commit (`validateJugeFile`,
- *  `validateJugeVisionFile` de scripts/hooks/solde-ticket-guard.mjs) comme à la publication. PURE. */
+ *  `validateJugeVisionFile` de scripts/git-hooks/porte-du-commit.mjs) comme à la publication. PURE. */
 export const corpsDuTrailer = (contenu, nom) => sectionDe(contenu, TRAILERS[nom].section)?.trim() ?? null
 
 /** Le plus court sha qui NOMME un commit dans un trailer. */

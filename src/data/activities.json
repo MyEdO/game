@@ -151,10 +151,156 @@
       "book": "ennemi-dans-l-ombre-compagnon",
       "page": 35
     },
-    "freeSkill": true,
+    "freeSkill": [
+      {
+        "id": "art"
+      },
+      {
+        "id": "athletisme"
+      },
+      {
+        "id": "calme"
+      },
+      {
+        "id": "charme"
+      },
+      {
+        "id": "chevaucher"
+      },
+      {
+        "id": "commandement"
+      },
+      {
+        "id": "conduite-d-attelage"
+      },
+      {
+        "id": "corps-a-corps"
+      },
+      {
+        "id": "crochetage"
+      },
+      {
+        "id": "discretion"
+      },
+      {
+        "id": "divertissement"
+      },
+      {
+        "id": "dressage"
+      },
+      {
+        "id": "emprise-sur-les-animaux"
+      },
+      {
+        "id": "escalade"
+      },
+      {
+        "id": "escamotage"
+      },
+      {
+        "id": "esquive"
+      },
+      {
+        "id": "evaluation"
+      },
+      {
+        "id": "focalisation"
+      },
+      {
+        "id": "hypnotisme"
+      },
+      {
+        "id": "guerison"
+      },
+      {
+        "id": "intimidation"
+      },
+      {
+        "id": "intuition"
+      },
+      {
+        "id": "langue"
+      },
+      {
+        "id": "marchandage"
+      },
+      {
+        "id": "metier"
+      },
+      {
+        "id": "musicien"
+      },
+      {
+        "id": "natation"
+      },
+      {
+        "id": "orientation"
+      },
+      {
+        "id": "pari"
+      },
+      {
+        "id": "perception"
+      },
+      {
+        "id": "piegeage"
+      },
+      {
+        "id": "pistage"
+      },
+      {
+        "id": "priere"
+      },
+      {
+        "id": "projectiles"
+      },
+      {
+        "id": "ragot"
+      },
+      {
+        "id": "ramer"
+      },
+      {
+        "id": "recherche"
+      },
+      {
+        "id": "representation"
+      },
+      {
+        "id": "resistance"
+      },
+      {
+        "id": "resistance-a-l-alcool"
+      },
+      {
+        "id": "savoir"
+      },
+      {
+        "id": "signes-secrets"
+      },
+      {
+        "id": "soin-aux-animaux"
+      },
+      {
+        "id": "subornation"
+      },
+      {
+        "id": "survie-en-exterieur"
+      },
+      {
+        "id": "voile"
+      },
+      {
+        "id": "augure"
+      },
+      {
+        "id": "psychometrie"
+      }
+    ],
     "difficulty": "intermediaire",
     "failExtenue": true,
     "stageOutcome": "rerollToken",
+    "maison": "La liste des Compétences « qu'il est possible de pratiquer en voyageant » est ouverte (« etc. », EDOC 8 l.172) : par défaut, toutes les Compétences du catalogue, chacune offerte si le Personnage peut la tenter (LDB 09 l.30), une Spécialisation à la fois (LDB 09 l.44).",
     "desc": "La monotonie du voyage représente pour de nombreux Personnages le moment idéal pour pratiquer leurs Compétences en vue des épreuves à venir. Un Personnage peut effectuer un Test **Intermédiaire (+0)** d'une seule Compétence qu'il est possible de pratiquer en voyageant : Orientation, Métier (Herboristerie), Langue (Wastelander), etc. Une Réussite signifie que le Personnage peut inverser le résultat d'un Test en utilisant cette Compétence au cours de l'aventure suivante, ou de toute étape ultérieure du voyage.",
     "stake": "Réussite : la Compétence pratiquée devient inversable plus tard — jeton non posé, le moteur ne fait que l'annoncer. Échec : un État Exténué.",
     "stakeForm": "descripteur"

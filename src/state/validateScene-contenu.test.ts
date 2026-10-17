@@ -115,7 +115,7 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
       statblock: { type: 'statblock', label: 'Brigand', char: { B: 10 } },
     });
     expect(validateScene([custom]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['e-1 › ref : « gobelin-des-cavernes-oublie » ni créature, ni coque de véhicule, ni engin de siège']);
+      .toEqual(['entité « e-1 » › référence : « gobelin-des-cavernes-oublie » ni créature, ni coque de véhicule, ni engin de siège']);
   });
 
   it('un PNJ nommé (`presetId`) passe sans réf ; sa réf MORTE est dite (#1882)', () => {
@@ -132,19 +132,19 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
     const morte = scene();
     morte.entities.push({ id: 'p-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'tonneau-imaginaire' });
     expect(validateScene([morte]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['p-1 › ref : « tonneau-imaginaire » est absent du catalogue des décors (props.json).']);
+      .toEqual(['entité « p-1 » › référence : « tonneau-imaginaire » est absent du catalogue des décors (props.json).']);
 
     const sansType = scene();
     sansType.entities.push({ id: 'p-2', kind: 'prop', pos: { x: 2, y: 2 } });
     expect(validateScene([sansType]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['p-2 › ref : « ref » absente — un décor NOMME son type au catalogue (props.json)']);
+      .toEqual(['entité « p-2 » › référence : « ref » absente — un décor NOMME son type au catalogue (props.json)']);
   });
 
   it('un décor LIBELLÉ se nomme UNE fois, par son libellé, et la faute se rattache à son id (#1897)', () => {
     const nomme = scene();
     nomme.entities.push({ id: 'p-1', kind: 'prop', pos: { x: 2, y: 2 }, label: 'Tonneau' });
     expect(validateScene([nomme]).filter((w) => w.level === 'error')).toEqual([
-      expect.objectContaining({ scope: 'entity', refId: 'p-1', message: 'Tonneau › ref : « ref » absente — un décor NOMME son type au catalogue (props.json)' }),
+      expect.objectContaining({ scope: 'entity', refId: 'p-1', message: 'entité « Tonneau » › référence : « ref » absente — un décor NOMME son type au catalogue (props.json)' }),
     ]);
   });
 
@@ -152,7 +152,7 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
     const sansFiche = scene();
     sansFiche.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, label: 'Aubergiste' });
     expect(validateScene([sansFiche]).filter((w) => w.level === 'error').map((w) => `${w.refId} ${w.message}`))
-      .toEqual(['e-1 Aubergiste › ref : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
+      .toEqual(['e-1 entité « Aubergiste » › référence : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
 
     for (const porteur of [
       { ref: REF_CREATURE },
@@ -169,7 +169,7 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
     const vide = scene();
     vide.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ref: '' });
     expect(validateScene([vide]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['e-1 › ref : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
+      .toEqual(['entité « e-1 » › référence : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
   });
 });
 
@@ -277,7 +277,8 @@ describe('le SCHÉMA de scène se joue sur une scène VIVANTE (#877, #1897)', ()
   it('un SORT d’auteur mort est une erreur, rattachée à son entité', () => {
     expect(erreurs(aSortMort())).toEqual([{
       level: 'error', sceneId: 'S', scope: 'entity', refId: 'mage',
-      message: 'Mage › combat.spells.0 : « sort-fantome » est absent du catalogue des sorts (spells.json).',
+      message: 'entité « Mage » › combat › sorts 1 : « sort-fantome » est absent du catalogue des sorts (spells.json).',
+      architectureRef: undefined,
     }]);
   });
 

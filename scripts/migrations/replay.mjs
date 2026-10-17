@@ -29,15 +29,10 @@
  * L'ordre lexical NE SUIT PLUS le numéro de vague depuis la vague 10 : `10a`, `11a` trient AVANT
  * `6a`…`9c` (comparaison de chaînes, pas d'entiers).
  *
- * L'ORDRE EST PORTEUR dès que deux migrations écrivent le MÊME fichier, et c'est le cas des trois
- * migrations de FORME du document de projet (`…-3i-…` 3→4, `…-13-…` 4→5, `…-15b-…` 5→6), qui écrivent
- * toutes les quatre `src/scenes/<c>/<c>-projet.json`. Elles composent une CHAÎNE : chacune n'accepte
- * en entrée que le `schema` que la précédente rend. La CONDITION qui rend l'ordre lexical suffisant
- * est donc que, pour un même fichier, le tri lexical des noms coïncide avec l'ordre des bumps — ici
- * `3i < 13 < 15b`. Elle n'est PAS gratuite : jouée la première sur un document `schema: 3`, la 15b
- * sort 1 (mesuré, `src/scenes/migrations-format-projet.test.ts` cas `S4`). Ajouter une migration qui
- * touche un fichier déjà migré exige donc de VÉRIFIER ce tri, pas de le supposer. Pour tous les autres
- * scripts du lot, les fichiers écrits sont DISJOINTS et aucun ordre n'est requis.
+ * L'ORDRE EST PORTEUR dès que deux migrations écrivent le MÊME fichier et que l'une n'accepte en
+ * entrée que ce que l'autre rend. La CONDITION qui rend l'ordre lexical suffisant est alors que, pour
+ * un même fichier, le tri lexical des noms coïncide avec l'ordre des gestes. Ajouter une migration qui
+ * touche un fichier déjà migré exige donc de VÉRIFIER ce tri, pas de le supposer.
  *
  * La porte ci-dessus rejoue dans l'ordre lexical, quel qu'il soit. Le NO-OP d'une migration se décide
  * sur le CARDINAL du geste qu'elle POSSÈDE : zéro geste à faire = rien n'est écrit et la sortie est 0,
@@ -62,7 +57,7 @@ const declareSesEntrees = (texte) => /ENTR[ÉE]ES?\s*[:(]/i.test(enTete(texte));
 
 /**
  * Une migration se RECONNAÎT à son préfixe DATÉ (`<AAAA-MM-JJ>-….mjs`, la convention de nommage du
- * lot ci-dessus) — 88 des 90 `.mjs` du dossier.
+ * lot ci-dessus).
  */
 export const estUneMigration = (nom) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(nom);
 

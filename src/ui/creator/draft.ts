@@ -53,7 +53,6 @@ import {
   speciesSkillDefaults,
   designer,
   poolDuJoker,
-  FORMAT_DES_CHOIX,
   fluxDeCreation,
   cleDOption,
   type ChoixDeCreation,
@@ -63,7 +62,7 @@ import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from
 import { emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import { findSpeciesById, findTalentById, specPoolOf, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
-import { estSpecialisable, type RefDesignee, type RefASpecialisation } from '../../data/schemas/grammaire/ref';
+import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../gameIso/rig/appearance';
 
 export type CharMode = 'rolled' | 'reassigned' | 'pointBuy';
@@ -81,8 +80,6 @@ export const CAREER_CHAR_ADVANCES = 5;
 export interface CreatorDraft
   extends Required<Pick<ChoixDeCreation, 'seed' | 'specChoices' | 'speciesTalentChoices' | 'randomSpecPicks' | 'talentRerolls' | 'skillAdvances' | 'pettySpells'>>,
     Pick<ChoixDeCreation, 'careerTalent' | 'trappingChoices' | 'talentsRolled'> {
-  /** Format des choix (`FORMAT_DES_CHOIX`) — un brouillon persisté sans lui n'est pas relu. */
-  v: typeof FORMAT_DES_CHOIX;
   // 1) Espèce
   /** `id` STABLE de l'espèce (`SpeciesData.id`) — ≠ libellé. */
   speciesId: string;
@@ -157,7 +154,6 @@ export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff
   // Page blanche cérémonielle (arbitrage 2026-07-13) : aucune race/carrière pré-tirée — l'id vide
   // signifie « non choisi », la fiche vivante démarre grisée et se remplit choix par choix.
   return {
-    v: FORMAT_DES_CHOIX,
     seed,
     speciesId: '',
     careerId: '',
@@ -552,7 +548,7 @@ export function speciesSkillRefs(d: CreatorDraft): RefASpecialisation[] {
 /** La Compétence retenue qui occupe l'emplacement d'espèce `ref` : même (id, spec) pour un emplacement
  *  fixe ; même id, hors des spécialisations fixes de la liste, pour un joker. */
 function occupe(d: CreatorDraft, ref: RefASpecialisation): (r: RefDesignee) => boolean {
-  if (ref.choix == null) return (r) => r.id === ref.id && (r.spec ?? '') === (ref.spec ?? '');
+  if (ref.choix == null) return (r) => r.id === ref.id && memeSpecialisation(r.spec, ref.spec);
   const fixes = speciesSkillRefs(d).filter((x) => x.choix == null && x.id === ref.id).map((x) => x.spec ?? '');
   return (r) => r.id === ref.id && !fixes.includes(r.spec ?? '');
 }

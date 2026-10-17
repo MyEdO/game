@@ -31,6 +31,7 @@ import { intentAllowedFor, modalOwnerOf, seatInfluences } from './netOwnership';
 import { GUEST_INTENTS } from '../net/intents';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascadeTestKit';
+import { PENDING_BY_JET, type HostJet } from './stateFields';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; jetOwner?: JetOwnerRef; resolution?: readonly string[] };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
@@ -54,7 +55,6 @@ const INVENTORY: Record<string, readonly string[]> = {
   disengage:  ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   auContact:  ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   grapple:    ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
-  trample:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   battement:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   distraire:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
   maneuver:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'],
@@ -91,6 +91,10 @@ const H_HOST = 'h1'; // héros du siège 0 (hôte)
 const H_GUEST = 'h2'; // héros du siège 1
 const ENEMY = 'e1';
 
+/** L'étape-hôte qui rend le jet porté par `pending` (`PENDING_BY_JET`) : une cascade PARTAGÉE dont le
+ *  corps est ce slot. Un pending hors cascade garde l'étape d'incantation. */
+const jetHote = (pending: string): HostJet =>
+  (Object.entries(PENDING_BY_JET) as [HostJet, string | null][]).find(([, slot]) => slot === pending)?.[0] ?? 'cast';
 /** Fenêtre du flux `jet` OUVERTE sur `ownerId` (son pending posé selon `jetOwner`), étape de cascade
  *  PARTAGÉE (owner de modale '*'). Le pending est POSÉ PAR LA TABLE : ajouter un `jetOwner` à un flux
  *  l'amène dans la garde sans une ligne de fixture. */
@@ -101,7 +105,7 @@ const state = (jet: JetOwnerRef, ownerId: string, over: Partial<GameState> = {})
     battle: { order: [H_HOST, H_GUEST, ENEMY], turn: 0, combatants: [
       { id: H_HOST, kind: 'hero' }, { id: H_GUEST, kind: 'hero' }, { id: ENEMY, kind: 'enemy' },
     ] },
-    pendingCascade: cascadeDeTest([{ id: 's0', kind: 'castJet', jet: 'cast', groupOwner: true }]),
+    pendingCascade: cascadeDeTest([{ id: 's0', kind: `${jetHote(jet.pending)}Jet`, jet: jetHote(jet.pending), groupOwner: true }]),
     [jet.pending]: { [jet.field]: ownerId, targetId: H_HOST, spellId: 'drain', result: null },
     ...over,
   }) as unknown as GameState;

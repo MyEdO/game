@@ -4,6 +4,7 @@ import type { Objective } from '../state/store';
 import { Icon } from './Icon';
 import { formatImperial } from '../engine/clock';
 import { t } from '../i18n';
+import { Prose, mdToText } from './Prose';
 
 /** Libellé de compte à rebours (#668) — dérivé de `deadline - now` en MINUTES, aux mêmes seuils que
  *  les clés `countdown.*` (i18n/messages/fr.ts). */
@@ -31,7 +32,7 @@ export function ObjectiveBanner({ objectives, now }: { objectives: Objective[]; 
   const head = (
     <>
       <Icon id="map-tool/start-flag" size="sm" />
-      <span className="objective-text">{current.text}</span>
+      <span className="objective-text">{mdToText(current.text)}</span>
       {current.deadline != null && (
         <span className="objective-deadline" title={formatImperial(current.deadline)}>
           {countdownLabel(current.deadline, now)}
@@ -58,7 +59,7 @@ export function ObjectiveBanner({ objectives, now }: { objectives: Objective[]; 
       {open && rest.length > 0 && (
         <ul className="objective-list">
           {[...rest].reverse().map((o) => (
-            <li key={o.id}>{o.text}</li>
+            <li key={o.id}><Prose md={o.text} /></li>
           ))}
         </ul>
       )}

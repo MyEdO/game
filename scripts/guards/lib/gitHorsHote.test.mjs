@@ -14,7 +14,7 @@ test('l’arbre : aucun module de porte ne lit git hors de l’hôte, aucun test
 
 test('le périmètre : les sources suivies des dossiers de portes et les importeurs de l’hôte, hors instruments Vitest et hors l’hôte', () => {
   const sources = sourcesDesPortes()
-  assert.ok(sources.includes('scripts/hooks/solde-ticket-guard.mjs'))
+  assert.ok(sources.includes('scripts/git-hooks/porte-du-commit.mjs'))
   assert.ok(sources.includes('scripts/git-hooks/pre-commit.mjs'))
   assert.ok(sources.includes('scripts/guards/lib/plageStock.mjs'))
   assert.ok(!sources.includes(HOTE), 'l’hôte est la définition, pas un site')
@@ -27,7 +27,7 @@ test('le périmètre : les sources suivies des dossiers de portes et les importe
 
 test('les tests de `scripts/` : suivis, instruments seulement, et le banc hors d’eux comme hors des portes (#2155)', () => {
   const tests = testsDeScripts()
-  assert.ok(tests.includes('scripts/hooks/solde-ticket-guard-driver.test.mjs'))
+  assert.ok(tests.includes('scripts/git-hooks/porte-du-commit.test.mjs'))
   assert.ok(tests.includes('scripts/test/run.test.mjs'))
   assert.ok(tests.every((f) => f.startsWith('scripts/') && estFichierVitest(f)))
   assert.ok(existsSync(join(RACINE, BANC)), `le module de banc ${BANC} est absent`)
@@ -59,9 +59,63 @@ test('découpe : un split sur NUL hors de l’hôte', () => {
   assert.deepEqual(formes("sortie.split('\\n')"), [])
 })
 
+test('les données NUL de fs se distinguent des sorties Git par leur provenance', () => {
+  for (const texte of [
+    "import { readFileSync as lire } from 'node:fs'; lire('/proc/123/cmdline', 'utf8').split('\\0')",
+    "import fs from 'fs'; fs.readFileSync('/proc/123/cmdline').toString().split('\\x00')",
+    "import * as disque from 'node:fs'; disque.readFileSync('/proc/123/cmdline', 'utf8').split('\\u0000')",
+    "import fs from 'node:fs'; const lire = fs.readFileSync; lire('/proc/123/cmdline', 'utf8').split('\\0')",
+    "const { readFileSync: lire } = require('fs'); (lire('/proc/123/cmdline', 'utf8')).split('\\0')",
+    "const fs = require('node:fs'); fs.readFileSync('/proc/123/cmdline', 'utf8').split('\\0')",
+    "import { readFile } from 'node:fs/promises'; (await readFile('/proc/123/cmdline', 'utf8')).split('\\0')",
+    "import fs from 'node:fs'; const promises = fs.promises; (await promises.readFile('/proc/123/cmdline')).toString().split('\\0')",
+  ]) assert.deepEqual(formes(texte), [], texte)
+  for (const texte of [
+    "import { readFileSync as lire } from './autre.mjs'; lire('x').split('\\0')",
+    "import fs from 'node:fs'; function f(fs) { return fs.readFileSync('x').split('\\0') }",
+    "import fs from 'node:fs'; let lire = fs.readFileSync; lire = autre; lire('x').split('\\0')",
+    "import fs from 'node:fs'; const lire = fs.readFileSync; lire = autre; lire('x').split('\\0')",
+    "function require() { return autre }; require('node:fs').readFileSync('x').split('\\0')",
+    "import fs from 'node:fs'; const contenu = fs.readFileSync('x'); contenu = sortieGit; contenu.split('\\0')",
+    "import fs from 'node:fs'; const contenu = fs.readFileSync('x'); contenu.split('\\0')",
+    "import fs from 'node:fs'; const contenu = fs.readFileSync('x'); contenu.toString = () => sortieGit; contenu.toString().split('\\0')",
+    "import fs from 'node:fs'; fs['readFileSync'] = autre; fs.readFileSync('x').split('\\0')",
+    "import fs from 'node:fs'; fs.readFileSync('x').split('\\0'); git(['status']).split('\\0')",
+    "git(['status']).toString().split('\\0')",
+    "inconnu().split('\\0')",
+  ]) assert.deepEqual(formes(texte), [[1, 'decoupe']], texte)
+})
+
+test('une syntaxe invalide ne blanchit pas une découpe NUL', () => {
+  assert.throws(() => formes("const = ; sortie.split('\\0')"), /syntaxe indéterminée.*x\.mjs/)
+})
+
 test('forme : une option qui produit des chemins, où qu’elle soit écrite hors de l’hôte', () => {
   assert.deepEqual(formes("lire(['diff', '--cached', '--name-only']).split('\\n')"), [[1, 'forme']])
   assert.deepEqual(formes("const args = ['ls-files', '-z']"), [[1, 'forme'], [1, 'forme']])
   assert.deepEqual(formes("git(['show', '--numstat', sha])"), [[1, 'forme']])
   assert.deepEqual(formes("eolsDe(git, ['ls-files', '--eol', '--cached'])"), [[1, 'forme']], 'une question qui fixe sa commande ne reçoit pas de forme')
+  assert.deepEqual(formes("const LECTURES = new Set(['log', 'ls-files', 'ls-tree'])\nLECTURES.has(sub)"), [], 'une table se consulte, elle ne se passe pas à git')
+  assert.deepEqual(formes("const t = new Set(['log'])\ngit(['ls-files', '-z'])"), [[2, 'forme'], [2, 'forme']], 'hors de la table, la forme reste un site')
+  assert.deepEqual(formes("const A = new Set(['ls-files', '-z'])\ngit([...A])"), [[1, 'forme'], [1, 'forme']], 'une table étalée se passe à git')
+  assert.deepEqual(formes("const A = new Set(['--name-only'])\nquestion(Array.from(A))"), [[1, 'forme']], 'une table convertie se passe à git')
+  assert.deepEqual(formes("question([...new Set(['ls-tree', '-z'])])"), [[1, 'forme'], [1, 'forme']], 'un Set sans nom n’est pas une table')
+  assert.deepEqual(formes("class Set { constructor(a) { return a } }\nconst A = new Set(['ls-files'])\nA.has(x)"), [[2, 'forme']], 'un Set local n’est pas le global')
+  assert.deepEqual(formes("export const A = new Set(['ls-files', '-z'])\nA.has(x)"), [[1, 'forme'], [1, 'forme']], 'une table exportée se passe hors du module')
+  assert.deepEqual(formes("const A = new Set(['ls-files'])\nA.has(x)\nexport { A as B }"), [[1, 'forme']], 'un `export { A }` n’est pas une consultation')
+  assert.deepEqual(formes("const A = new Set(['ls-files'])\nA.has(x)\nconst o = { A }"), [[1, 'forme']], 'une propriété raccourcie n’est pas une consultation')
+})
+
+test('forme : la CLÉ d’une table d’objet consultée seulement par indexation n’est pas un site, sa valeur et la même clé passée ailleurs le restent (#2603)', () => {
+  assert.deepEqual(formes("const drapeaux = { 'ls-files': /^(?:-z)$/, \"ls-tree\": /x/ }[commande]"), [], 'une table indexée sur-le-champ se consulte')
+  assert.deepEqual(formes("const D = { 'ls-files': /x/ }\nconst d = D[commande]"), [], 'une table nommée lue par indexation se consulte')
+  assert.deepEqual(formes("({ 'ls-files': ['-z'] })[commande]"), [[1, 'forme']], 'la valeur d’une table reste un site')
+  assert.deepEqual(formes("const o = { 'ls-files': 1 }\nquestion(Object.keys(o))"), [[1, 'forme']], 'une table dont les clés deviennent argv se passe à git')
+  assert.deepEqual(formes("const o = { 'ls-files': 1 }\nconst d = o[c]\nquestion(o)"), [[1, 'forme']], 'une table passée ailleurs n’est plus consultée seulement')
+  assert.deepEqual(formes("export const D = { 'ls-files': 1 }\nD[c]"), [[1, 'forme']], 'une table d’objet exportée se passe hors du module')
+  assert.deepEqual(formes("const D = { 'ls-files': 1 }\nD[c] = 2"), [[1, 'forme']], 'une indexation écrite n’est pas une consultation')
+  assert.deepEqual(formes("const q = { args: ['ls-files', '-z'] }"), [[1, 'forme'], [1, 'forme']])
+  assert.deepEqual(formes("const c = court ? '--name-only' : '--name-status'"), [[1, 'forme'], [1, 'forme']])
+  assert.deepEqual(formes("const t = { ['ls-tree']: 1 }[c]"), [[1, 'forme']], 'un nom calculé reste une valeur')
+  assert.throws(() => formes("const = ; ({ 'ls-files': 1 })"), /syntaxe indéterminée.*x\.mjs/)
 })

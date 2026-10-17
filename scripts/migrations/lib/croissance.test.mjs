@@ -68,7 +68,7 @@ test('croitreDocuments : les documents grandissent, le NON CANONIQUE reste INTAC
   fs.writeFileSync(path.join(racine, 'src/data/exemple.json'), JSON.stringify(canonique, null, 2), 'utf8');
   fs.writeFileSync(path.join(racine, 'src/data/reflow.json'), brutNonCanonique, 'utf8');
   fs.writeFileSync(path.join(racine, 'src/data/objet.json'), JSON.stringify({ a: 1 }, null, 2), 'utf8');
-  const projet = { schema: 12, scenes: [{ id: 's1', entities: [] }] };
+  const projet = { scenes: [{ id: 's1', entities: [] }] };
   fs.writeFileSync(path.join(racine, 'src/scenes/arene/arene-projet.json'), `${JSON.stringify(projet, null, 1)}\n`, 'utf8');
 
   const { faits, sautes } = croitreDocuments(racine);

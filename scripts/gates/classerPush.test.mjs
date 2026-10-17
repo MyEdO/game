@@ -175,13 +175,23 @@ test('le prologue classe le push AVANT `npm ci`, et expose ce classement en `pro
 /** Les jetons de `DOCUMENTAIRE` tels qu'une ligne de code les NOMME (sans le `/` final). */
 const JETONS = Object.keys(DOCUMENTAIRE).map((p) => p.replace(/\/$/, ''))
 
-/** Le premier jeton documentaire NOMMÉ par cette ligne, dans une chaîne ou un `new URL(`. */
+/** Le premier jeton documentaire NOMMÉ par cette ligne, dans une chaîne ou un `new URL(`, comme
+ *  SEGMENT de chemin entier : ni précédé ni suivi d'un caractère d'identifiant (`[\w-]`) — un
+ *  sélecteur CSS (`.codex-search`, `.screen.codex`) n'est pas le dossier `.codex`. */
 function jetonNomme(ligne) {
   return JETONS.find((jeton) => {
     const echappe = jeton.replace(/\./g, '\\.')
-    return new RegExp(`(?:['"\`]|new URL\\(\\s*['"\`])[^'"\`\\n]*${echappe}`).test(ligne)
+    return new RegExp(`(?:['"\`]|new URL\\(\\s*['"\`])[^'"\`\\n]*(?<![\\w-])${echappe}(?![\\w-])`).test(ligne)
   })
 }
+
+test('jetonNomme : un jeton se nomme comme SEGMENT de chemin entier — jamais dans un sélecteur CSS', () => {
+  assert.equal(jetonNomme("const h = join(racine, '.codex/hooks.json')"), '.codex')
+  assert.equal(jetonNomme("readFileSync('.codex')"), '.codex')
+  assert.equal(jetonNomme("typeInField(session, '.codex-search', entree)"), undefined)
+  assert.equal(jetonNomme("document.querySelector('.screen.codex')"), undefined)
+  assert.equal(jetonNomme("'.codex-rows button.listrow'"), undefined)
+})
 
 test('aucune gate SAUTABLE ne nomme un chemin DOCUMENTAIRE dans le code qu’elle atteint', () => {
   const corpus = corpusParGate(RACINE)

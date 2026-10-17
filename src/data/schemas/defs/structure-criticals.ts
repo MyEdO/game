@@ -1,8 +1,5 @@
-/**
- * Schéma de `structure-criticals.json` — Blessures critiques sur une Structure (Aux Armes, p.120).
- * Reflet de `StructureCritEntry` (`src/data/structureCriticals.ts`), 3ᵉ famille du modèle de coque
- * (Structure/Véhicule/Navire, AA 10 l.13/116).
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** AA 10 l.13/116 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { plageSchema } from '../grammaire/valeurs';
@@ -10,7 +7,7 @@ import { plageSchema } from '../grammaire/valeurs';
 export const file = 'structure-criticals.json';
 export const famille = 'config';
 
-const structureCritEntrySchema = z.strictObject({
+const structureCritEntrySchema = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   id: z.string(),
   label: z.string(),
@@ -19,6 +16,14 @@ const structureCritEntrySchema = z.strictObject({
   trivial: z.boolean().optional(),
   destroyed: z.boolean().optional(),
   note: z.string(),
+}), {
+  ...metaDesChamps(plageSchema, { exigees: true }),
+  id: { label: 'Identifiant' },
+  label: { label: 'Libellé' },
+  wounds: { label: 'Blessures' },
+  trivial: { label: 'Trivial' },
+  destroyed: { label: 'Détruit' },
+  note: { label: 'Note' },
 });
 
 const doc = document(

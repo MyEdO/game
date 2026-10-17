@@ -1,13 +1,5 @@
-/**
- * Schéma de `river-criticals.json` — Critiques de coque fluviale (Mort sur le Reik Compagnon ch.5,
- * p.29). MÊME patron que `ship-criticals.json` (`ShipCritSet`, `src/data/shipCriticals.ts`), PROMU
- * dans `grammaire/mecanique.ts` (`shipCritEntrySchema`/`shipCrewHitSchema`), mais 5 Localisations DISTINCTES
- * (greement/avirons/gouvernail/coque/superstructure — pas de cargaison ni d'équipements côté
- * fluvial), sans `die` (absent du JSON, à la différence du jeu MDG) et sans `shrapnelHit` : MSRC
- * n'emploie JAMAIS le mot-clé « Éclats ». Le Gouvernail porte donc un coup CERTAIN à son servant,
- * `crewHit {role}` (MSRC 07 l.86, #1657 B3-2b-a). Une rangée fluviale qui gagnerait un Indice
- * d'Éclats sans table est une anomalie NOMMÉE par `applyHullCritical` (`src/engine/shipCritical.ts`).
- */
+import { nommerChamps } from '../grammaire/meta';
+/** MDG ; MSRC ; MSRC 07 l.86 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { shipCritEntrySchema } from '../grammaire/mecanique';
@@ -23,12 +15,18 @@ const doc = document(
   famille,
   {
     replisSansExpose: replisSansExposeSchema,
-    tables: z.strictObject({
+    tables: nommerChamps(z.strictObject({
       greement: listeCle(shipCritEntrySchema, 'id'),
       avirons: listeCle(shipCritEntrySchema, 'id'),
       gouvernail: listeCle(shipCritEntrySchema, 'id'),
       coque: listeCle(shipCritEntrySchema, 'id'),
       superstructure: listeCle(shipCritEntrySchema, 'id'),
+    }), {
+      greement: { label: 'Gréement' },
+      avirons: { label: 'Avirons' },
+      gouvernail: { label: 'Gouvernail' },
+      coque: { label: 'Coque' },
+      superstructure: { label: 'Superstructure' },
     }),
   },
   {

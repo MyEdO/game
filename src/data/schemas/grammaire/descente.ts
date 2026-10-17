@@ -45,6 +45,22 @@ export interface EnfantZod {
   readonly segment: string;
 }
 
+export interface DeclarationDEnfants {
+  readonly nature: 'payloads-op';
+  readonly enfants: readonly EnfantZod[];
+  readonly choisir: (valeur: unknown) => readonly unknown[];
+}
+const ENFANTS_DECLARES = new WeakMap<object, DeclarationDEnfants>();
+
+export function declarerEnfants<N extends object>(noeud: N, enfants: readonly EnfantZod[], choisir: (valeur: unknown) => readonly unknown[], nature: DeclarationDEnfants['nature']): N {
+  ENFANTS_DECLARES.set(noeud, { enfants, choisir, nature });
+  return noeud;
+}
+
+export function declarationDEnfants(noeud: unknown): DeclarationDEnfants | undefined {
+  return noeud !== null && typeof noeud === 'object' ? ENFANTS_DECLARES.get(noeud) : undefined;
+}
+
 /** L'instance qu'exécute le parse d'un `z.lazy`, `undefined` si son getter lève. */
 function cibleDuLazy(noeud: unknown): unknown {
   try {
@@ -99,6 +115,7 @@ export function enfantsDe(noeud: unknown): EnfantZod[] {
     const cible = cibleDuLazy(noeud);
     if (cible !== undefined) enfants.push({ noeud: cible, segment: '' });
   }
+  enfants.push(...(ENFANTS_DECLARES.get(noeud as object)?.enfants ?? []));
   return enfants;
 }
 
@@ -165,12 +182,15 @@ export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[]
     vus.add(n);
     const discriminant = defDe(n)?.discriminator;
     const enfants = enfantsDe(n);
+    const declares = ENFANTS_DECLARES.get(n);
+    if (declares) file.push(...(valeur === undefined ? declares.enfants.map(e => e.noeud) : declares.choisir(valeur)));
     const lu = discriminant !== undefined && estObjet(valeur) ? valeur[discriminant] : undefined;
     const absentAdmis =
       lu === undefined && discriminant !== undefined && estObjet(valeur) && enfants.some((e) => e.segment.startsWith('|') && brancheAdmet(e.noeud, discriminant, undefined));
+    const connu = discriminant !== undefined && enfants.some(e => e.segment.startsWith('|') && brancheAdmet(e.noeud, discriminant, lu));
     for (const e of enfants) {
       if (e.segment === '' || e.segment.startsWith('&')) file.push(e.noeud);
-      else if (e.segment.startsWith('|') && ((lu === undefined && !absentAdmis) || brancheAdmet(e.noeud, discriminant!, lu))) file.push(e.noeud);
+      else if (e.segment.startsWith('|') && ((!connu && !absentAdmis) || brancheAdmet(e.noeud, discriminant!, lu))) file.push(e.noeud);
     }
   }
   return [...vus];

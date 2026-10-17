@@ -5,7 +5,7 @@
 //
 // La forme d'un nœud se lit par `defDe`, ses enfants par `enfantsDe` (`src/data/schemas/grammaire/descente.ts`).
 import type { SchemaDef } from '../../../src/data/schemas/types';
-import { defDe, descendre, enfantsDe } from '../../../src/data/schemas/grammaire/descente';
+import { defDe, descendre, enfantsDe, declarationDEnfants } from '../../../src/data/schemas/grammaire/descente';
 import { valeursDe } from '../../../src/data/schemas/grammaire/meta';
 import { parUnitesDeCode } from '../../guards/lib/lister.mjs';
 
@@ -221,6 +221,7 @@ export function choixDeclares(defs: readonly SchemaDef[]): Map<string, Map<strin
       }
     };
     descendre([schema], ({ noeud }) => {
+      if (declarationDEnfants(noeud)?.nature === 'payloads-op') return 'elaguer';
       for (const { cle: k, noeud: v } of enfantsDe(noeud)) {
         if (k === undefined) continue;
         for (const lit of litteraux(v)) {

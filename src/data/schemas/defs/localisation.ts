@@ -1,10 +1,5 @@
-/**
- * Schéma de `localisation.json` — tables de Localisation des coups, FOYER UNIQUE data-driven
- * (`src/engine/combat.ts`). Deux familles : `personnage` (Localisation humaine/créature par
- * FORME de corps, LDB 13 l.137-145 / LDB 76 l.15-29 — `BODY_SHAPES`, clé = `BodyShape`, valeurs = `HitLocation`) et
- * `navire`/`navire-fluvial` (Localisation navale par gréement, MDG 13 / MSRC 7 — `ShipLocation`).
- * `HitLocation`/`ShipLocation` : `src/engine/types.ts` / `src/engine/combat.ts`.
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** LDB 13 l.137-145 ; LDB 76 l.15-29 ; MDG 13 ; MSRC 7. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { plageSchema, sourceRefSchema } from '../grammaire/valeurs';
@@ -26,33 +21,46 @@ const shipLocation = z.enum([
   'superstructure',
 ]);
 
-const bodyLocEntry = z.strictObject({ ...plageSchema.shape, loc: hitLocation });
-const shipLocEntry = z.strictObject({
+const bodyLocEntry = nommerChamps(z.strictObject({ ...plageSchema.shape, loc: hitLocation }), { ...metaDesChamps(plageSchema, { exigees: true }), loc: { label: 'localisation' } });
+const shipLocEntry = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   avirons: shipLocation,
   voile: shipLocation,
   mixte: shipLocation,
+}), {
+  ...metaDesChamps(plageSchema, { exigees: true }),
+  avirons: { label: 'navire à avirons' },
+  voile: { label: 'navire à voile' },
+  mixte: { label: 'navire mixte' },
 });
 
 const doc = document(
   'localisation',
   famille,
   {
-  personnage: z.strictObject({
+  personnage: nommerChamps(z.strictObject({
     source: sourceRefSchema,
     /** Clé = `BodyShape` (`src/engine/types.ts`) — seules `humanoide`/`serpent`/`araignee` sont
      *  présentes dans le JSON (les autres formes retombent sur `humanoide`, cf. `hitLocationByShape`). */
     shapes: z.record(z.string(), z.array(bodyLocEntry)),
-  }),
-  navire: z.strictObject({
+  }), { source: { label: 'source' }, shapes: { label: 'formes corporelles' } }),
+  navire: nommerChamps(z.strictObject({
     source: sourceRefSchema,
     rigs: z.array(z.string()),
     entries: z.array(shipLocEntry),
+  }), {
+    source: { label: 'source' },
+    rigs: { label: 'gréements' },
+    entries: { label: 'rangées' },
   }),
-  'navire-fluvial': z.strictObject({
+  'navire-fluvial': nommerChamps(z.strictObject({
     source: sourceRefSchema,
     rigs: z.array(z.string()),
     entries: z.array(shipLocEntry),
+  }), {
+    source: { label: 'source' },
+    rigs: { label: 'gréements' },
+    entries: { label: 'rangées' },
   }),
   },
   {

@@ -1,0 +1,1469 @@
+{
+  "quoi": "Balayages NON RÉSOLUS de la dérivation du périmètre de tests (#2400) : une ENTRÉE par valeur de site de lecture ou de listage que `scripts/test/perimetre.mjs` ne rattache à aucune racine, `famille` = sa classe (`CLASSES`, `scripts/guards/lib/balayagesNonResolus.mjs`), `ref` = helper et raison. Compte par famille à la naissance : sortie de processus 123, paramètre non lié 321, appel non suivi 879, forme non évaluée 57, déstructuration de tableau 69, variable sans valeur initiale 0, import non suivi 107, URL 33, environnement de processus 28, identifiant introuvable 2, chemin absolu 11, propriété non suivie 3, cycle d'appels 3378, profondeur d'appels 200, autre 311. Une entrée se solde en rendant le site RÉSOLUBLE (forme lisible par `racinesBalayees.mjs`), puis en régénérant : `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/balayagesNonResolus.mjs`.",
+  "entrees": [
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL('AGENTS.md', racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL('CLAUDE.md', racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(SURFACE_CLAUDE, racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(SURFACE_CODEX, racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(`../../${SURFACE_CLAUDE}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(`../../${surface}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(`../../${surface}`, import.meta.url)",
+      "occurrence": 2
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/agents/compat.test.mjs",
+      "ref": "readFile : URL new URL(s, racine)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/docs/lib/plateforme-win32-hooks.mjs",
+      "ref": "existsSync : URL new URL('./.wfrp-win32-sdk-bridge.mjs', reel.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/hooks/inject-project-credo.test.mjs",
+      "ref": "injectProjectCredo : URL new URL(`file:///${join(root, 'scripts/hooks/inject-project-credo.mjs').replaceAll('\\\\', '/')}`)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/raw/lib/fixtures/page-crb.mjs",
+      "ref": "readFileSync : URL new URL(`./pages-crb/p${n}.json`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "scripts/source/nom-ascii.test.mjs",
+      "ref": "readFileSync : URL new URL(rel, new URL('file:///' + RACINE.replace(/\\\\/g, '/')))",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/data/cargo-avail-raw.test.ts",
+      "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/data/cargo-avail-refine.test.ts",
+      "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/data/schemas/grammaire/grammaire.test.ts",
+      "ref": "readFileSync : URL new URL(f, dossier)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/data/schemas/grammaire/grammaire.test.ts",
+      "ref": "readFileSync : URL new URL(fichier, RACINE)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "ref": "listerDossier : URL new URL(`./${part}/defs`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
+      "ref": "readFileSync : URL new URL(`./${part}/defs`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/gameIso/rig/quadruped/quad-vues-ratchet.test.ts",
+      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "lireEntreesDeSite : URL new URL(`../${STOCK_NOM}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "texteEnPlace : URL new URL(`../${STOCK_NOM}`, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/action-atteignabilite.test.ts",
+      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/posture-tir.test.ts",
+      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/roll-modal-invariant.test.ts",
+      "ref": "existsSync : URL new URL(f, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/roll-modal-invariant.test.ts",
+      "ref": "readFileSync : URL new URL(f, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/sequence-socle-naval.test.ts",
+      "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/state/sieges-requis.test.ts",
+      "ref": "readFileSync : URL new URL(rel, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/ui/OptionChooser.test.tsx",
+      "ref": "readFileSync : URL new URL(f, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
+      "fichier": "src/ui/camera-sans-plaque.test.ts",
+      "ref": "readFileSync : URL new URL(p, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.test.mjs",
+      "ref": "readFile : appel path.relative",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/gen-espaces.mts",
+      "ref": "readFileSync : appel import",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/folioLineAlign.mjs",
+      "ref": "makeChapterReader : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/new-src-file-guard.mjs",
+      "ref": "existsSync : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/hooks/new-src-file-guard.mjs",
+      "ref": "verdictsDe : appel String",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session-runtime.mjs",
+      "ref": "controleur : appel sessions.lire",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/ops/session-runtime.mjs",
+      "ref": "readFileSync : appel sessions.lire",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "chapterLinesOf : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "lineCount : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/lib/fichiersCitants.mjs",
+      "ref": "listerArbre : appel [racines].flat",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDe : appel source",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDuSigle : appel source",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDuSigle : appel source",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfDuSigle : appel source",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfRequisDe : appel source",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "pdfRequisDe : appel source",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 4
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "sortieMarkerDe : appel source",
+      "occurrence": 5
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/raw/releve.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/source/lecteur-fs.mjs",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/source/prose-source-plugin.mjs",
+      "ref": "readText : appel corpus.chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "scripts/source/prose-source-plugin.mjs",
+      "ref": "readText : appel corpus.chemin",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/criticals-folio.test.ts",
+      "ref": "makeChapterReader : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/night-stake-form.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/night-stakes-rules.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/regles-soudures.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/data/source/index-imprime.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readFileSync : appel JSON.parse",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 2
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : appel _chapterCache.get",
+      "occurrence": 3
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/zod-retire-guard.test.ts",
+      "ref": "readFileSync : appel createRequire(import.meta.url).resolve",
+      "occurrence": 1
+    },
+    {
+      "famille": "appel non suivi",
+      "fichier": "src/zod-retire-guard.test.ts",
+      "ref": "readFileSync : appel createRequire(import.meta.url).resolve",
+      "occurrence": 2
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.test.mjs",
+      "ref": "readFile : chemin absolu C:\\depot\\src\\é.ts",
+      "occurrence": 1
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/guards/lib/reclassementCss.test.mjs",
+      "ref": "deplaceLaFrontiere : chemin absolu /r/tsconfig.json",
+      "occurrence": 1
+    },
+    {
+      "famille": "chemin absolu",
+      "fichier": "scripts/guards/lib/reclassementCss.test.mjs",
+      "ref": "deplaceLaFrontiere : chemin absolu /r/tsconfig.json",
+      "occurrence": 2
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "borderColorOf : cycle d'appels parseColor",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "borderColorOf : cycle d'appels parseColor",
+      "occurrence": 2
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "borderColorOf : cycle d'appels parseColor",
+      "occurrence": 3
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "colorsIn : cycle d'appels parseColor",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "colorsIn : cycle d'appels parseColor",
+      "occurrence": 2
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "colorsIn : cycle d'appels parseColor",
+      "occurrence": 3
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "colorsIn : cycle d'appels parseColor",
+      "occurrence": 4
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "colorsIn : cycle d'appels parseColor",
+      "occurrence": 5
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "colorsIn : cycle d'appels parseColor",
+      "occurrence": 6
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "colorsIn : cycle d'appels parseColor",
+      "occurrence": 7
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "colorsIn : cycle d'appels parseColor",
+      "occurrence": 8
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 2
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 3
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 4
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 5
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 6
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 7
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 8
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 9
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 10
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 11
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 12
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 13
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 14
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 15
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 16
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 17
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "evalLen : cycle d'appels evalLen",
+      "occurrence": 18
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 1
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 2
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 3
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 4
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 5
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 6
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 7
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 8
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 9
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 10
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 11
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 12
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 13
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 14
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 15
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 16
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 17
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 18
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 19
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 20
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 21
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 22
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 23
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 24
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 25
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 26
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 27
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 28
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 29
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 30
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 31
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 32
+    },
+    {
+      "famille": "cycle d'appels",
+      "fichier": "src/ui/CombatConsole.test.tsx",
+      "ref": "parseColor : cycle d'appels parseColor",
+      "occurrence": 33
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.test.mjs",
+      "ref": "readFile : déstructuration de tableau entree",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/gen-espaces.mts",
+      "ref": "ecrire : déstructuration de tableau chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/gen-espaces.mts",
+      "ref": "existsSync : déstructuration de tableau chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-docs.mjs",
+      "ref": "readFileSync : déstructuration de tableau A",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-docs.mjs",
+      "ref": "readFileSync : déstructuration de tableau B",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-docs.mjs",
+      "ref": "readFileSync : déstructuration de tableau O",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-stocks.mjs",
+      "ref": "readFileSync : déstructuration de tableau A",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-stocks.mjs",
+      "ref": "readFileSync : déstructuration de tableau B",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-stocks.mjs",
+      "ref": "readFileSync : déstructuration de tableau O",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/git-hooks/merge-stocks.test.mjs",
+      "ref": "readFileSync : déstructuration de tableau fA",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/assemble-domain.mjs",
+      "ref": "readFileSync : déstructuration de tableau jsonPath",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "existsSync : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "listerDossier : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-folio-continuity.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-folio-continuity.mjs",
+      "ref": "scanEmptyFoliosInBook : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-source-puces.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-source-puces.test.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-source-tables.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/check-source-tables.test.mjs",
+      "ref": "scanBookDir : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/raw/tri.mjs",
+      "ref": "readFileSync : déstructuration de tableau fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/test/verrou.mjs",
+      "ref": "etapesDePrise : déstructuration de tableau prise",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "scripts/test/verrou.mjs",
+      "ref": "etapesDePrise : déstructuration de tableau prise",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/plage-bornes-contrat.test.ts",
+      "ref": "readFileSync : déstructuration de tableau chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/spec-pool-contrat.test.ts",
+      "ref": "fichiersDeDonnees : déstructuration de tableau dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/spec-pool-contrat.test.ts",
+      "ref": "fichiersDeDonnees : déstructuration de tableau dir",
+      "occurrence": 2
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/data/spec-pool-contrat.test.ts",
+      "ref": "fichiersDeDonnees : déstructuration de tableau dir",
+      "occurrence": 3
+    },
+    {
+      "famille": "déstructuration de tableau",
+      "fichier": "src/gameIso/rig/parts/tenues/palette-literal.test.ts",
+      "ref": "texteEnPlace : déstructuration de tableau regeneration",
+      "occurrence": 1
+    },
+    {
+      "famille": "environnement de processus",
+      "fichier": "scripts/ops/reprendre-file.mjs",
+      "ref": "readFileSync : process introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "scripts/ops/session-runtime.mjs",
+      "ref": "controleur : forme ElementAccessExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "forme non évaluée",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "readFileSync : forme NewExpression",
+      "occurrence": 1
+    },
+    {
+      "famille": "identifiant introuvable",
+      "fichier": "scripts/guards/lib/racineNpm.mjs",
+      "ref": "existsSync : courant introuvable",
+      "occurrence": 1
+    },
+    {
+      "famille": "identifiant introuvable",
+      "fichier": "scripts/guards/lib/racineNpm.mjs",
+      "ref": "existsSync : courant introuvable",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/guards/lib/rawRefIntegrity.mjs",
+      "ref": "chapterLinesOf : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/guards/lib/tsProgram.test.mjs",
+      "ref": "existsSync : import par défaut ou espace path",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/build-catalogs.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "chapterLinesOf : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/check-code-refs.mjs",
+      "ref": "lineCount : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/raw/releve.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/source/lecteur-fs.mjs",
+      "ref": "listerDossier : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "scripts/source/lecteur-fs.mjs",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/night-stake-form.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/night-stakes-rules.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/racines-vivantes.test.ts",
+      "ref": "readFileSync : import ./schemas/_registry.generated non résolu",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/regles-soudures.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/data/source/index-imprime.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 1
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 2
+    },
+    {
+      "famille": "import non suivi",
+      "fichier": "src/raw-ref-integrity.test.ts",
+      "ref": "readText : import par défaut ou espace booksData",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "listerDossier : paramètre nom",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "readFileSync : paramètre nom",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "statSync : paramètre nom",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "statSync : paramètre nom",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/lib/plateforme-win32-fs.mjs",
+      "ref": "statSync : paramètre nom",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/docs/rendre-cible.test.mjs",
+      "ref": "existsSync : paramètre c",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/git-hooks/commit-msg.mjs",
+      "ref": "readFileSync : paramètre c",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/genericDomainImport.mjs",
+      "ref": "readFileSync : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/importGraph.mjs",
+      "ref": "readFileSync : paramètre abss",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/guards/lib/lintStage.mjs",
+      "ref": "readFileSync : paramètre fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/bootstrap-conteneur.mjs",
+      "ref": "existsSync : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/hooks/fermeture-hors-commit-guard.mjs",
+      "ref": "readFileSync : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/etapesDuTrain.mjs",
+      "ref": "resoudreOutilLocal : paramètre ctx",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/etapesDuTrain.mjs",
+      "ref": "sourcesMesurees : paramètre ctx",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/etapesDuTrain.test.mjs",
+      "ref": "readFileSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/knip-exports-ratchet.test.mjs",
+      "ref": "existsSync : paramètre from",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/knip-exports-ratchet.test.mjs",
+      "ref": "readdirSync : paramètre d",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/knip-exports-ratchet.test.mjs",
+      "ref": "statSync : paramètre d",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/ops/knip-exports-ratchet.test.mjs",
+      "ref": "statSync : paramètre from",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/build-catalogs.test.mjs",
+      "ref": "readFileSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/check-ancres.test.mjs",
+      "ref": "pagesAvecAncres : paramètre rawDir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/pdf-de.test.mjs",
+      "ref": "existsSync : paramètre racine",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "readFileSync : paramètre rawDir",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "reparer : paramètre rawDir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "reparer : paramètre rawDir",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "reparer : paramètre rawDir",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/raw/reparer-ancres.test.mjs",
+      "ref": "reparer : paramètre rawDir",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/recette/lib.mjs",
+      "ref": "readFileSync : paramètre c",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/recette/lib.mjs",
+      "ref": "readFileSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/recette/lib.mjs",
+      "ref": "statSync : paramètre chemin",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/recette/lib.mjs",
+      "ref": "statSync : paramètre chemin",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "scripts/test/partition.mjs",
+      "ref": "readFileSync : paramètre f",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "server/src/no-math-random-guard.test.ts",
+      "ref": "readdirSync : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "server/src/no-math-random-guard.test.ts",
+      "ref": "statSync : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 2
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 3
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 4
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/generic-domain-import-guard.test.ts",
+      "ref": "scanAllPrimitives : paramètre p",
+      "occurrence": 5
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/data/plage-bornes-contrat.test.ts",
+      "ref": "listerArbre : paramètre dir",
+      "occurrence": 1
+    },
+    {
+      "famille": "paramètre non lié",
+      "fichier": "src/state/built-brand-lint.test.ts",
+      "ref": "readFileSync : paramètre fichier",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/build-doctrines.mjs",
+      "ref": "ecrireOuVerifier : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/build-doctrines.mjs",
+      "ref": "rendu : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/cibles-pures.test.mjs",
+      "ref": "ciblesPures : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/cibles-pures.test.mjs",
+      "ref": "ciblesPures : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 2
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/cibles-pures.test.mjs",
+      "ref": "ciblesPures : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 3
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "scripts/docs/cibles-pures.test.mjs",
+      "ref": "readFileSync : appel gitDeLArbreReel(undefined, { net: true })",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/schemas/grammaire/collection-cle.test.ts",
+      "ref": "scanDuCorpus : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    },
+    {
+      "famille": "sortie de processus",
+      "fichier": "src/data/schemas/grammaire/parse-de-mesure.test.ts",
+      "ref": "scanDuCorpus : appel execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim",
+      "occurrence": 1
+    }
+  ]
+}

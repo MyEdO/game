@@ -17,15 +17,18 @@
 //      Node refusé ;
 //   6. le LECTEUR (`specificateursDe`) lit l'arbre syntaxique : une chaîne, un gabarit, un commentaire,
 //      une regex littérale ou du JSX n'est pas un import ;
-//   7. la marche rend des chemins RELATIFS à `racine`, et un membre hors de `racine` lève.
+//   7. la marche rend des chemins RELATIFS à `racine`, et un membre hors de `racine` lève ;
+//   8. un ENSEMBLE de fichiers (`arbre`) remplace le disque : résolution, lecture, motifs d'`import.meta.glob` ;
+//      les spécificateurs non résolus se mémoïsent (`specificateurs`), et le graphe INVERSE se lit sur le cache.
 import { test, mock } from 'node:test'
 import { API } from 'typescript/unstable/sync'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { aliasDe, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, liaisonsDe, resolveImport, sitesDeModule, specificateursDe, sourceALExecution } from './importGraph.mjs'
+import { aliasDe, arcsDe, chargementsDe, clotureDImports, closureOf, directImportsOf, estModule, globsDe, grapheInverse, liaisonsDe, resolveImport, sitesDeModule, specificateursDe, sourceALExecution } from './importGraph.mjs'
 import { ast, analyserTexte, analyserCorpus } from './dialecte.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -779,4 +782,115 @@ test('cache de marche : partagé entre le défaut et `dynamiques: false`, il ren
     rmSync(racine, { recursive: true, force: true })
     rmSync(autre, { recursive: true, force: true })
   }
+})
+
+/** Un ensemble de fichiers en mémoire, sous une racine qui n'existe pas sur le disque. */
+function ensembleEnMemoire(textes) {
+  const racine = resolve(tmpdir(), 'import-graph-ensemble-absent').split('\\').join('/')
+  const abs = (rel) => `${racine}/${rel}`
+  const parAbs = new Map(Object.entries(textes).map(([rel, texte]) => [abs(rel), texte]))
+  return {
+    racine,
+    abs,
+    arbre: { existe: (a) => parAbs.has(a), lire: (abss) => new Map(abss.map((a) => [a, parAbs.get(a) ?? null])), fichiers: [...parAbs.keys()] },
+  }
+}
+
+test('résolution ESM : query et fragment suivent la source physique, alias et replis compris', () => {
+  const { abs, arbre } = ensembleEnMemoire({
+    'a.mjs': '', 'cible.mjs': '', 'cible#nom.mjs': '', 'cible%nom.mjs': '',
+    'lib/remplace.mts': '', 'lib/remplace-js.ts': '', 'lib/dossier/index.mjs': '',
+  })
+  const alias = [{ prefixe: '@/', vers: abs('lib') + '/' }]
+  for (const [spec, cible] of [
+    ['./cible.mjs?hote#instance', 'cible.mjs'], ['./cible%23nom.mjs?hote#instance', 'cible#nom.mjs'],
+    ['./cible%25nom.mjs#instance', 'cible%nom.mjs'], ['@/remplace.mjs?hote#instance', 'lib/remplace.mts'],
+    ['@/remplace-js.js?hote#instance', 'lib/remplace-js.ts'], ['@/dossier?hote#instance', 'lib/dossier/index.mjs'],
+  ]) assert.equal(resolveImport(abs('a.mjs'), spec, arbre.existe, alias), abs(cible), spec)
+  assert.equal(resolveImport(abs('a.mjs'), 'paquet?hote#instance', arbre.existe, alias), null)
+})
+
+test('résolution require : les noms # et % restent littéraux dans les arcs et la clôture', () => {
+  const texte = "const a = require('./literal#nom.cjs'); const b = require('./literal%23nom.cjs');"
+  const { racine, abs, arbre } = ensembleEnMemoire({
+    'a.cjs': texte, 'literal#nom.cjs': 'module.exports = 1', 'literal%23nom.cjs': 'module.exports = 2',
+  })
+  const arcs = arcsDe(abs('a.cjs'), texte, { existe: arbre.existe, alias: [] })
+  assert.deepEqual(arcs.map(({ spec, nature, cible }) => [spec, nature, cible]), [
+    ['./literal#nom.cjs', 'require', abs('literal#nom.cjs')], ['./literal%23nom.cjs', 'require', abs('literal%23nom.cjs')],
+  ])
+  assert.deepEqual([...clotureDImports([abs('a.cjs')], { racine, arbre })].sort(), ['a.cjs', 'literal#nom.cjs', 'literal%23nom.cjs'])
+})
+
+test('les alias gardent la substitution de préfixe fichier et le slash initial du suffixe', () => {
+  const { abs, arbre } = ensembleEnMemoire({ 'a.mjs': '', 'lib/prefix-cible.mts': '', 'lib/dossier/cible.mjs': '' })
+  const alias = [{ prefixe: '@f/', vers: abs('lib/prefix-') }, { prefixe: '@d/', vers: abs('lib/dossier') }]
+  assert.equal(resolveImport(abs('a.mjs'), '@f/cible.mjs?hote#instance', arbre.existe, alias), abs('lib/prefix-cible.mts'))
+  assert.equal(resolveImport(abs('a.mjs'), '@d//cible.mjs?hote#instance', arbre.existe, alias), abs('lib/dossier/cible.mjs'))
+})
+
+test('la résolution ESM utilise NodeURL même si URL globale est remplacée', () => {
+  const { abs, arbre } = ensembleEnMemoire({ 'a.mjs': '', 'cible.mjs': '' })
+  const avant = globalThis.URL
+  try {
+    globalThis.URL = class { constructor() { throw new Error('URL globale de navigateur') } }
+    assert.equal(resolveImport(abs('a.mjs'), './cible.mjs?hote#instance', arbre.existe, []), abs('cible.mjs'))
+  } finally { globalThis.URL = avant }
+})
+
+test('une clôture ESM à query et fragment se copie en fichiers physiques et reste chargeable', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'import-query-'))
+  const copie = mkdtempSync(join(tmpdir(), 'import-query-copie-'))
+  try {
+    const texte = "import { x as a } from './cible%23nom.mjs?hote#instance'; import { x as b } from './cible%23nom.mjs?autre#instance'; console.log(a + b);"
+    writeFileSync(join(racine, 'a.mjs'), texte)
+    writeFileSync(join(racine, 'cible#nom.mjs'), 'export const x = 21')
+    const arcs = arcsDe(join(racine, 'a.mjs'), texte, { alias: [] })
+    assert.deepEqual(arcs.map(({ spec }) => spec), ['./cible%23nom.mjs?hote#instance', './cible%23nom.mjs?autre#instance'])
+    const cloture = [...clotureDImports(['a.mjs'], { racine, dynamiques: false })].sort()
+    assert.deepEqual(cloture, ['a.mjs', 'cible#nom.mjs'])
+    for (const rel of cloture) copyFileSync(join(racine, rel), join(copie, rel))
+    assert.equal(readFileSync(join(copie, 'a.mjs'), 'utf8'), texte)
+    const vu = spawnSync(process.execPath, ['a.mjs'], { cwd: copie, encoding: 'utf8' })
+    assert.equal(vu.status, 0, vu.stderr)
+    assert.equal(vu.stdout.trim(), '42')
+  } finally { rmSync(racine, { recursive: true, force: true }); rmSync(copie, { recursive: true, force: true }) }
+})
+
+test('arbre injecté : la marche résout et lit contre l’ENSEMBLE, jamais le disque ; un membre sans texte (supprimé) garde ses importeurs', () => {
+  const { racine, abs, arbre } = ensembleEnMemoire({ 'a.mjs': "import './b.mjs'\nimport './parti.mjs'\n", 'b.mjs': 'export const b = 1\n', 'parti.mjs': null })
+  const cache = new Map()
+  assert.deepEqual([...clotureDImports([abs('a.mjs')], { racine, cache, arbre })].sort(), ['a.mjs', 'b.mjs', 'parti.mjs'])
+  assert.deepEqual(cache.get(abs('parti.mjs')), [])
+  assert.deepEqual(grapheInverse(cache).get(abs('parti.mjs')).map((arc) => [arc.importeur, arc.spec]), [[abs('a.mjs'), './parti.mjs']])
+  assert.throws(() => clotureDImports([abs('a.mjs')], { racine, cache }), /cache rempli contre un autre ensemble de fichiers/)
+})
+
+test('import.meta.glob : un arc `glob` par membre visé de l’ensemble, `!` exclu ; sans `fichiers`, aucun', () => {
+  const textes = {
+    'src/f.ts': "const x = import.meta.glob(['./jeux/*.json', '!./jeux/b.json'])\nconst y = import.meta.glob('/src/parts/*/{index,_registry.generated}.ts')\n",
+    'src/jeux/a.json': '{}', 'src/jeux/b.json': '{}', 'src/parts/p/index.ts': '', 'src/parts/p/_registry.generated.ts': '', 'src/parts/p/autre.ts': '',
+  }
+  const { racine, abs, arbre } = ensembleEnMemoire(textes)
+  assert.deepEqual([...clotureDImports([abs('src/f.ts')], { racine, arbre })].sort(),
+    ['src/f.ts', 'src/jeux/a.json', 'src/parts/p/_registry.generated.ts', 'src/parts/p/index.ts'])
+  const { fichiers: _fichiers, ...sansFichiers } = arbre
+  assert.deepEqual([...clotureDImports([abs('src/f.ts')], { racine, arbre: sansFichiers })], ['src/f.ts'])
+})
+
+test('globsDe : motifs littéraux seuls, chaîne ou tableau ; un motif calculé ne rend rien', () => {
+  const { sourceFile } = analyserTexte({ rel: 'g.ts', text: "import.meta.glob('./a/*.ts')\nimport.meta.glob(['./b/*', '!./b/c'])\nimport.meta.glob(motif)\nobjet.glob('./d/*')\n" })
+  assert.deepEqual(globsDe(sourceFile), [{ motifs: ['./a/*.ts'], ligne: 1 }, { motifs: ['./b/*', '!./b/c'], ligne: 2 }])
+})
+
+test('specificateurs : la marche lit le mémo par texte et n’écrit que ce qu’elle analyse ; la résolution se refait', () => {
+  const { racine, abs, arbre } = ensembleEnMemoire({ 'a.mjs': "import './b.mjs'\n", 'b.mjs': 'export const b = 1\n' })
+  const memo = new Map()
+  const ecrits = []
+  const specificateurs = { lire: (_a, texte) => memo.get(texte), ecrire: (a, texte, sites) => { ecrits.push(a); memo.set(texte, sites) } }
+  clotureDImports([abs('a.mjs')], { racine, arbre, specificateurs })
+  assert.deepEqual(ecrits.sort(), [abs('a.mjs'), abs('b.mjs')])
+  const autre = { ...arbre, existe: (a) => a !== abs('b.mjs') && arbre.existe(a) }
+  assert.deepEqual([...clotureDImports([abs('a.mjs')], { racine, arbre: autre, specificateurs })], ['a.mjs'])
+  assert.equal(ecrits.length, 2)
 })

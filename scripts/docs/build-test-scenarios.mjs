@@ -50,15 +50,41 @@ function rendu() {
       .filter((f) => /\.tsx?$/.test(f) && !f.startsWith('_') && !estFichierVitest(f) && !f.endsWith('.ascii.ts') && f !== 'index.ts')
   }
 
-  /** Évalue une expression de chaîne STATIQUE (littéral, ou concaténation `+` de littéraux/gabarits
-   *  sans substitution) — la seule forme admise dans la FICHE d'un scénario pour les champs
-   *  `id`/`title`/`tests`/`partyNote`. `null` si la forme n'est pas reconnue (fail-fast en amont). */
-  function evalStaticString(node) {
+  /** Évalue une expression de chaîne STATIQUE — littéral, gabarit, concaténation `+`, ou nom d'une
+   *  `const` de MODULE (`sf`) elle-même statique, ces formes composées entre elles — la seule forme
+   *  admise dans la FICHE d'un scénario pour les champs `id`/`title`/`tests`/`partyNote`. `null` si
+   *  la forme n'est pas reconnue (fail-fast en amont). */
+  function evalStaticString(node, sf, vus = new Set()) {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text
+    if (ts.isParenthesizedExpression(node)) return evalStaticString(node.expression, sf, vus)
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
-      const left = evalStaticString(node.left)
-      const right = evalStaticString(node.right)
+      const left = evalStaticString(node.left, sf, vus)
+      const right = evalStaticString(node.right, sf, vus)
       return left != null && right != null ? left + right : null
+    }
+    if (ts.isTemplateExpression(node)) {
+      let texte = node.head.text
+      for (const span of node.templateSpans) {
+        const valeur = evalStaticString(span.expression, sf, vus)
+        if (valeur == null) return null
+        texte += valeur + span.literal.text
+      }
+      return texte
+    }
+    if (ts.isIdentifier(node) && !vus.has(node.text)) {
+      const init = constDeModule(sf, node.text)
+      return init ? evalStaticString(init, sf, new Set([...vus, node.text])) : null
+    }
+    return null
+  }
+
+  /** Initialiseur de la `const` de MODULE `nom` de `sf` (`null` si absente, ou `let`/`var`). */
+  function constDeModule(sf, nom) {
+    for (const node of sf.statements) {
+      if (!ts.isVariableStatement(node) || !(node.declarationList.flags & ts.NodeFlags.Const)) continue
+      for (const decl of node.declarationList.declarations) {
+        if (ts.isIdentifier(decl.name) && decl.name.text === nom && decl.initializer) return decl.initializer
+      }
     }
     return null
   }
@@ -99,7 +125,7 @@ function rendu() {
       const key = prop.name.text
       if (!FIELDS.includes(key)) continue
       if (!ts.isPropertyAssignment(prop)) continue
-      row[key] = key === 'order' ? evalNumber(prop.initializer) : evalStaticString(prop.initializer)
+      row[key] = key === 'order' ? evalNumber(prop.initializer) : evalStaticString(prop.initializer, sf)
     }
     for (const key of FIELDS) {
       if (row[key] == null) {
@@ -162,19 +188,27 @@ function rendu() {
     '',
     "**Angle mort du catalogue, mesuré (recette #1852, 2026-09-21)** : AUCUN scénario n'isole « une",
     "créature à attaque gratuite face à un héros ». Tant qu'il n'existe pas, la composition MINIMALE qui",
-    'le monte, au kit de recette (helpers de `src/state/devtools.ts`, vérifiés au code) :',
+    "la monte et OUVRE la fenêtre de Défense de la gratuite, au kit de recette (helpers de",
+    '`src/state/devtools.ts`, vérifiés au code) :',
     '',
     '```js',
     "await evaluate(session, `window.__wfrp.scenario('entrainement')`);        // terrain nu, groupe complet",
     "await evaluate(session, `window.__wfrp.fight('enc-entrainement')`);       // l'affrontement du scénario",
-    "await evaluate(session, `window.__wfrp.spawn('ours', { x: 8, y: 5 }, { side: 'enemy' })`);",
-    "await evaluate(session, `window.__wfrp.quality('hero-1', undefined, 3)`); // 3 Avantages au héros",
+    "// ouvrir le Round et avoir la main d'un héros, puis :",
+    "// { x, y } = une case au contact du héros visé (positions : __wfrp.battle())",
+    "await evaluate(session, `window.__wfrp.spawn('ours', { x: 8, y: 5 }, { side: 'enemy', id: 'ours' })`);",
+    "await evaluate(session, `window.__wfrp.quality('ours', null, 1)`);       // 1 Avantage = coût de la Morsure",
+    "await evaluate(session, `window.__wfrp.attaqueGratuite('ours', 'hero-1')`); // modale de Défense ouverte",
     '```',
     '',
-    "`spawn(creatureId, pos, { side })` prend un id de `src/data/creatures.json` (`'ours'`, pas son",
-    "libellé) ; `quality(id, label, advantage)` crédite les Avantages — son 2ᵉ argument RESTE une qualité",
-    "d'arme (défaut « Déstabilisante »), passer `undefined` la laisse au défaut, ça n'annule rien. C'est",
-    'du MONTAGE d\'état : le geste TESTÉ, lui, se joue au clic et au clavier.',
+    "`attaqueGratuite(attaquantId, defenseurId, type?)` fait déclarer à l'ennemi une gratuite de créature",
+    "(`morsure`, `caudale`, `tentacules`, `cornes`, `pietinement` ; défaut = la première disponible) par la",
+    "file de production `aiCreatureFreeAttacks`, au tour de l'attaquant ; elle refuse en nommant ce qui",
+    "manque (aucune gratuite disponible, hors de portée, Avantage sous le coût…). La fenêtre se joue ensuite",
+    "aux clics. `spawn(creatureId, pos, { side, id })` prend un id de `src/data/creatures.json` (`'ours'`,",
+    "pas son libellé) ; `quality(id, label, advantage)` crédite les Avantages — son 2ᵉ argument RESTE une",
+    "qualité d'arme : `null` ou `undefined` (arrivé `null` par CDP) la laisse au défaut « Déstabilisante »,",
+    "ça n'annule rien. C'est du MONTAGE d'état : le geste TESTÉ, lui, se joue au clic et au clavier.",
     '',
     '## Ajouter un scénario = un fichier',
     '',

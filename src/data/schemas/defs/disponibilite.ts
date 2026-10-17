@@ -1,10 +1,5 @@
-/**
- * Schéma de `disponibilite.json` — les deux tables numériques de « Faire son marché » (LDB 59)
- * en donnée éditable (#366) : `dispoPct` (Tableau de Disponibilité, folio 290 l.25-30) et
- * `barterRatios` (RATIOS DE TROC, folio 291 l.68-76). Consommé par `src/engine/disponibilite.ts`
- * (`dispoPct` / `barterRatios`). `availability` = `Availability` (`src/engine/types.ts`), clé
- * STABLE ; `village`/`ville`/`cite` = `Settlement`.
- */
+import { nommerChamps, libelleDeValeur } from '../grammaire/meta';
+/** LDB 59. */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -14,33 +9,41 @@ import { AVAILABILITIES } from '../../../engine/types';
 export const file = 'disponibilite.json';
 export const famille = 'config';
 
-/** Les Disponibilités qui portent un % (LDB 59 l.25-30) — SÉLECTION du canon, pas une union recopiée :
- *  `extract` borne son argument aux paliers de `availabilitySchema`. Jumeau runtime de
- *  `TestedAvailability` (`src/engine/types.ts`), égalité verrouillée par `unions-canon.test.ts`. */
+/** LDB 59 l.25-30. */
 export const dispoPctAvailabilitySchema = availabilitySchema.extract(['Limitée', 'Rare']);
 
-const ratioSchema = z.strictObject({ give: z.number(), get: z.number() });
+const ratioSchema = nommerChamps(z.strictObject({ give: z.number(), get: z.number() }), { give: { label: 'donné' }, get: { label: 'reçu' } });
 
 const doc = document(
   'disponibilite',
   famille,
   {
-  /** Tableau de Disponibilité — % de réussite du Test (d100 ≤ %) par taille de colonie. Commune
-   *  (toujours en stock) et Exotique (jamais) n'ont pas de %, donc absentes de la table. */
+
   dispoPct: z.array(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       availability: dispoPctAvailabilitySchema,
-      pct: z.strictObject({ village: z.number(), ville: z.number(), cite: z.number() }),
+      pct: nommerChamps(z.strictObject({ village: z.number(), ville: z.number(), cite: z.number() }), {
+        village: { label: 'village' },
+        ville: { label: 'ville' },
+        cite: { label: 'cité' },
+      }),
       source: sourceRefSchema,
+    }), {
+      availability: { label: 'disponibilité' },
+      pct: { label: 'pourcentage' },
+      source: { label: 'source' },
     }),
   ),
-  /** RATIOS DE TROC — une entrée par Disponibilité de l'objet DONNÉ (`give`), portant le ratio
-   *  `{give,get}` contre chaque Disponibilité d'objet ACQUIS. */
+
   barterRatios: z.array(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       give: availabilitySchema,
-      ratios: z.strictObject(tableTotale(AVAILABILITIES, () => ratioSchema)),
+      ratios: nommerChamps(z.strictObject(tableTotale(AVAILABILITIES, () => ratioSchema)), { ...tableTotale(AVAILABILITIES, disponibilite => ({ label: libelleDeValeur(availabilitySchema, disponibilite) })) }),
       source: sourceRefSchema,
+    }), {
+      give: { label: 'donné' },
+      ratios: { label: 'ratios' },
+      source: { label: 'source' },
     }),
   ),
   },

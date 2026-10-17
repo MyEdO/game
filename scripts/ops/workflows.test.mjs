@@ -1,4 +1,4 @@
-import { ast } from '../guards/lib/dialecte.mjs';
+import { analyserTexte, ast } from '../guards/lib/dialecte.mjs';
 // PORTE DE FORME DES SCRIPTS DE WORKFLOW DU DÉPÔT — reconnus à leur CONTENU par l'AST
 // (`lireWorkflow`, scripts/guards/lib/formeDeWorkflow.mjs : `export const meta` de premier niveau),
 // jamais à leur dossier. Chaque table ci-dessous se keye sur le chemin RELATIF à la racine.
@@ -34,13 +34,15 @@ import { ast } from '../guards/lib/dialecte.mjs';
 // (`prompt-non-resolu`), jamais passé en silence.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { typescript } from '../guards/lib/dialecte.mjs';
 import {
-  declarationsDuFichier, defautsDeRacine, estReference, exportDeMeta, lireWorkflow, referencesLibres,
+  apercu, declarationsDuFichier, defautsDeRacine, defautsDesSitesDAgent, estReference, estTexte, exportDeMeta, fermer, lireWorkflow,
+  optionDuSite, sitesDAgent,
 } from '../guards/lib/formeDeWorkflow.mjs';
+import { fichesDAgent } from '../guards/lib/typesDAgent.mjs';
 import { bancsDeWorkflowDuDepot, reconnaissanceDuDepot } from '../guards/lib/jouer-workflow.mjs';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));
@@ -48,8 +50,8 @@ const CE_FICHIER = fileURLToPath(import.meta.url);
 const ts = typescript();
 
 /** RÉGIMES des phases, déclarés par script et par phase ; une phase absente est MÉCANIQUE. Un
- *  régime porte son type, son modèle et son effort (table de calibrage de
- *  `.claude/skills/orchestrer-des-agents/SKILL.md`). Le type porte les outils (et, pour `juge`, le
+ *  régime porte son type ; son modèle et son effort se lisent au frontmatter de ce type (`fichesDAgent`,
+ *  aucun étage ne les surcharge). Le type porte les outils (et, pour `juge`, le
  *  prompt adversarial de `.claude/agents/juge.md`) ; le modèle ÉCRIT empêche un sous-agent
  *  d'hériter du modèle de session et fait coïncider l'affichage avec le fait — des agents EN ATTENTE
  *  s'affichaient « Fable » là où les transcripts disaient `claude-opus-5` (observation utilisateur
@@ -57,9 +59,16 @@ const ts = typescript();
  *  phase est déclarée ET portée par un SITE `agent(` (`defautsDesTables`) — un `phase(…)` de
  *  progression n'en est pas un : une phase de jugement renommée ou rétrogradée ne retombe pas en
  *  silence dans le régime MÉCANIQUE. */
+const FICHES = fichesDAgent(RACINE);
+/** L'étage `nom` du type `type`, au `model`/`effort` de sa fiche ; une fiche sans eux casse le chargement. */
+const etage = (nom, type) => {
+  const { model, effort } = FICHES.get(type) ?? {};
+  if (!model || !effort) throw new Error(`étage ${nom} : \`.claude/agents/${type}.md\` sans \`model\` ou \`effort\` au frontmatter`);
+  return { nom, type, modele: model, effort };
+};
 const ETAGES = {
-  jugement: { nom: 'JUGEMENT', type: 'juge', modele: 'opus', effort: 'medium' },
-  redaction: { nom: 'RÉDACTION', type: 'lecteur', modele: 'opus', effort: 'medium' },
+  jugement: etage('JUGEMENT', 'juge'),
+  redaction: etage('RÉDACTION', 'redacteur'),
 };
 const REGIMES = {
   '.claude/workflows/dossier-de-chapitre.js': { Complétude: 'jugement' },
@@ -69,13 +78,31 @@ const REGIMES = {
 
 const TYPES_MECANIQUES = ['lecteur', 'verif-mecanique'];
 /** Exceptions des étages MÉCANIQUES, nominatives, avec leur raison : dans UNE phase d'UN script, un
- *  type d'agent permis en plus des mécaniques, ou `type: null` quand `agentType` peut être absent.
+ *  type d'agent permis en plus des mécaniques. `agentType` n'est jamais absent (`defautsDesSitesDAgent`).
  *  Cliquet (`defautsDesTables`) : plafond, liste NOMMÉE, phase déclarée ET portée par un site. */
 const EXCEPTIONS_MECANIQUES = [
   { fichier: '.claude/workflows/table-simulee.js', phase: 'Partie', type: 'joueur', raison: 'joueurs cloisonnés : un seul outil, ni lecture, ni shell, ni web (`.claude/agents/joueur.md`)' },
 ];
-const MODELES_MECANIQUES = ['sonnet', 'haiku'];
+/** Les couples (type, modèle) de la table « Calibrage » de `.claude/skills/orchestrer-des-agents/SKILL.md`, seule source
+ *  du modèle d'un type (#2537). PUR.
+ *  @param {string} skill @returns {{ type: string, modele: string }[]} */
+const couplesDuCalibrage = (skill) => {
+  const section = skill.split(/^## /m).find((s) => s.startsWith('Calibrage\n')) ?? '';
+  return [...section.matchAll(/^\|[^|\n]*\|\s*`([^`]+)`\s*\|\s*([^|\s]+)\s*\|/gm)].map(([, type, modele]) => ({ type, modele }));
+};
+/** Les types déclarés sous `.claude/agents/` (`name:` du frontmatter). */
+const TYPES_DECLARES = new Set(FICHES.keys());
+/** Les couples du calibrage permis en phase MÉCANIQUE : tous, sauf ceux d'un étage de `ETAGES`. */
+const COUPLES_MECANIQUES = couplesDuCalibrage(readFileSync(join(RACINE, '.claude/skills/orchestrer-des-agents/SKILL.md'), 'utf8'))
+  .filter((c) => !Object.values(ETAGES).some((e) => e.type === c.type && e.modele === c.modele));
 const RUNNERS_INTERDITS = ['npm test', 'npm run gates', 'vitest run'];
+
+/** La couche DÉPÔT de `defautsDesSitesDAgent` pour `fichier` : l'étage de chaque phase déclarée
+ *  (`null` pour un régime inconnu, que `defautsDesTables` nomme), sinon le régime MÉCANIQUE. PUR. */
+const regimesDe = (fichier, tables) => ({
+  phases: Object.fromEntries(Object.entries(tables.regimes[fichier] ?? {}).map(([phase, regime]) => [phase, Object.hasOwn(ETAGES, regime) ? ETAGES[regime] : null])),
+  mecanique: { types: TYPES_MECANIQUES, couples: COUPLES_MECANIQUES, exceptions: tables.exceptions.filter((e) => e.fichier === fichier) },
+});
 
 const TABLES = {
   regimes: REGIMES,
@@ -88,36 +115,9 @@ const TABLES = {
   ],
 };
 
-const estTexte = (n) => Boolean(n) && (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n));
 const nomDe = (p) => (('name' in p && ts.isIdentifier(p.name)) || ts.isStringLiteral(p.name) ? p.name.text : null);
 const propriete = (obj, nom) => obj.properties.find((p) => ts.isPropertyAssignment(p) && nomDe(p) === nom);
 const sansParentheses = (n) => (n && ts.isParenthesizedExpression(n) ? sansParentheses(n.expression) : n);
-const apercu = (n, sf) => n.getText(sf).replace(/\s+/g, ' ').slice(0, 60);
-
-/**
- * Un objet littéral FERMÉ : chaque membre est une affectation ou un raccourci, à clé non calculée,
- * sans doublon, sans `__proto__`. PUR.
- * @returns {{ membres: Map<string, { noeud: any, valeur: any }>, ouvertures: [any, string][] }}
- */
-function fermer(obj, sf) {
-  const membres = new Map();
-  const ouvertures = [];
-  for (const p of obj.properties) {
-    if (!ts.isPropertyAssignment(p) && !ts.isShorthandPropertyAssignment(p)) {
-      ouvertures.push([p, ts.isSpreadAssignment(p) ? `spread \`${apercu(p, sf)}\`` : `méthode ou accesseur \`${apercu(p, sf)}\``]);
-      continue;
-    }
-    if (ts.isComputedPropertyName(p.name)) {
-      ouvertures.push([p, `clé calculée \`${apercu(p.name, sf)}\``]);
-      continue;
-    }
-    const cle = p.name.text;
-    if (cle === '__proto__') ouvertures.push([p, '`__proto__`']);
-    else if (membres.has(cle)) ouvertures.push([p, `clé « ${cle} » en double`]);
-    else membres.set(cle, { noeud: p, valeur: ts.isShorthandPropertyAssignment(p) ? p.name : p.initializer });
-  }
-  return { membres, ouvertures };
-}
 
 /**
  * Analyse de forme d'un script de workflow. PUR.
@@ -125,7 +125,7 @@ function fermer(obj, sf) {
  *   `deSites` = les phases d'au moins un SITE `agent(` — un `phase(…)` de progression n'en est pas un
  */
 function analyser(source, fichier, tables = TABLES) {
-  const sf = ast({ rel: fichier, text: String(source) });
+  const { sourceFile: sf, diagnostics } = analyserTexte({ rel: fichier, text: String(source) });
   const defauts = [];
   const ligne = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
   const ligneDePosition = (pos) => sf.getLineAndCharacterOfPosition(Math.min(pos, String(source).length)).line + 1;
@@ -137,14 +137,18 @@ function analyser(source, fichier, tables = TABLES) {
   const rendre = () => ({ defauts, declarees: new Set(phasesDeclarees), deSites: phasesDesSites, sites });
 
   // ── SYNTAXE ──────────────────────────────────────────────────────────────────────
-  for (const d of sf.parseDiagnostics ?? []) {
-    const texte = ts.flattenDiagnosticMessageText(d.messageText, ' ');
-    defauts.push({ regle: 'syntaxe', message: `${fichier}:${ligneDePosition(d.start ?? 0)} — ${texte}` });
+  for (const d of diagnostics) {
+    defauts.push({ regle: 'syntaxe', message: `${fichier}:${ligneDePosition(d.pos)} — ${d.text}` });
   }
-  if ((sf.parseDiagnostics ?? []).length) return rendre(); // un arbre cassé ne se juge pas plus loin
+  if (diagnostics.length) return rendre(); // un arbre cassé ne se juge pas plus loin
 
   // ── RECONNAISSANCE (A2) ────────────────────────────────────────────────────────────
   for (const message of lireWorkflow(source, fichier).defauts) defauts.push({ regle: 'reconnaissance', message });
+
+  // ── PAR APPEL : options fermées, type déclaré, étage (`defautsDesSitesDAgent`) ─────────────────────
+  const sitesDuScript = sitesDAgent(sf);
+  defauts.push(...defautsDesSitesDAgent(sf, { typesDeclares: TYPES_DECLARES, regimes: regimesDe(fichier, tables), sites: sitesDuScript }));
+  const sitesParAppel = new Map(sitesDuScript.map((site) => [site.appel, site]));
 
   // ── `export const meta`, LITTÉRAL ────────────────────────────────────────────────────────────
   const meta = exportDeMeta(sf)?.parent.declarationList.declarations
@@ -362,37 +366,18 @@ function analyser(source, fichier, tables = TABLES) {
     }
   };
 
-  /** Un site `agent(prompt, options)` : options FERMÉES (B3), racine (B4), régime et effort (B7, B8). */
+  /** Un site `agent(prompt, options)` : prompt résolu, racine du schéma (B4), schéma lu, phase déclarée ;
+   *  options et étage : `defautsDesSitesDAgent`. */
   const visiterSite = (n) => {
     sites++;
-    const [prompt, options] = n.arguments ?? [];
-    const resolu = resoudre(prompt);
-    alerterRunner(prompt ?? n, resolu.texte, 'le prompt RÉSOLU');
+    const site = sitesParAppel.get(n);
+    const resolu = resoudre(site.prompt);
+    alerterRunner(site.prompt ?? n, resolu.texte, 'le prompt RÉSOLU');
     for (const inconnu of resolu.inconnus) {
-      dire('prompt-non-resolu', prompt ?? n, `prompt non résolu : ${inconnu} — la porte ne peut pas lire ce qui part`);
+      dire('prompt-non-resolu', site.prompt ?? n, `prompt non résolu : ${inconnu} — la porte ne peut pas lire ce qui part`);
     }
-    if (!options || !ts.isObjectLiteralExpression(options)) {
-      dire('options', options ?? n, "options de l'agent non littérales — la porte ne peut pas lire son étage");
-      return;
-    }
-    const { membres, ouvertures } = fermer(options, sf);
-    for (const [noeud, pourquoi] of ouvertures) dire('options', noeud, `options non fermées : ${pourquoi}`);
-    const litteral = (champ) => {
-      const m = membres.get(champ);
-      if (!m) return { present: false, valeur: null, noeud: options };
-      if (!estTexte(m.valeur)) {
-        dire('options', m.noeud, `\`${champ}\` non littéral — un étage d'agent se lit à la forme du script, jamais à l'exécution`);
-        return { present: true, valeur: null, noeud: m.noeud };
-      }
-      return { present: true, valeur: m.valeur.text, noeud: m.noeud };
-    };
-    const phase = litteral('phase');
-    const agentType = litteral('agentType');
-    const modele = litteral('model');
-    const effort = litteral('effort');
-    const lisible = (x) => !(x.present && x.valeur === null); // un non-littéral est déjà nommé
-    const vu = (x) => (x.present ? `\`${x.valeur}\`` : 'absent');
-    const schema = membres.get('schema');
+    if (site.membres === null) return;
+    const schema = site.membres.get('schema');
     if (!schema) {
       dire('agent', n, '`schema` absent — le rendu d\'un agent de workflow est un OBJET validé, jamais de la prose à interpréter');
     } else {
@@ -407,68 +392,20 @@ function analyser(source, fichier, tables = TABLES) {
         }
       }
     }
-    if (!phase.present) {
-      dire('agent', n, '`phase` absente — c\'est la clé STABLE de la porte (le `label` est de l\'affichage)');
-      return;
-    }
+    const phase = optionDuSite(site, 'phase');
     if (phase.valeur === null) return;
     phasesEmployees.add(phase.valeur);
     phasesDesSites.add(phase.valeur);
     if (phasesDeclarees.length && !phasesDeclarees.includes(phase.valeur)) {
       dire('phase-declaree', phase.noeud, `phase \`${phase.valeur}\` jamais déclarée dans \`meta.phases\``);
     }
-    const regimes = tables.regimes[fichier] ?? {};
-    const regime = Object.hasOwn(regimes, phase.valeur) ? regimes[phase.valeur] : null;
-    if (regime !== null && !Object.hasOwn(ETAGES, regime)) return; // régime inconnu : `defautsDesTables` le nomme
-    const etage = regime === null ? null : ETAGES[regime];
-    if (etage) {
-      if (lisible(agentType) && agentType.valeur !== etage.type) {
-        dire('agent', agentType.noeud, `phase de ${etage.nom} \`${phase.valeur}\` : \`agentType: '${etage.type}'\` exigé (lu : ${vu(agentType)})`);
-      }
-      if (lisible(modele) && modele.valeur !== etage.modele) {
-        dire('agent', modele.noeud, `phase de ${etage.nom} \`${phase.valeur}\` : \`model: '${etage.modele}'\` exigé AUSSI (lu : ${vu(modele)}) — un sous-agent ne tourne jamais sur le modèle de session`);
-      }
-      if (lisible(effort) && effort.valeur !== etage.effort) {
-        dire('agent', effort.noeud, `phase de ${etage.nom} \`${phase.valeur}\` : \`effort: '${etage.effort}'\` exigé AUSSI (lu : ${vu(effort)})`);
-      }
-      return;
-    }
-    if (lisible(modele) && !MODELES_MECANIQUES.includes(modele.valeur)) {
-      dire('agent', modele.noeud, `phase MÉCANIQUE \`${phase.valeur}\` : \`model\` littéral parmi ${MODELES_MECANIQUES.join('/')} exigé (lu : ${vu(modele)})`);
-    }
-    if (!effort.present) {
-      dire('agent', options, `phase MÉCANIQUE \`${phase.valeur}\` : \`effort\` littéral exigé (lu : absent)`);
-    }
-    const exceptions = tables.exceptions.filter((e) => e.fichier === fichier && e.phase === phase.valeur);
-    const permis = [...TYPES_MECANIQUES, ...exceptions.filter((e) => e.type !== null).map((e) => e.type)];
-    const absencePermise = exceptions.some((e) => e.type === null);
-    if (lisible(agentType) && (agentType.present ? !permis.includes(agentType.valeur) : !absencePermise)) {
-      dire('agent', agentType.noeud, `phase MÉCANIQUE \`${phase.valeur}\` : \`agentType\` littéral parmi ${permis.join('/')} exigé (lu : ${vu(agentType)})`);
-    }
   };
-
-  // ── Portée STATIQUE (B1) et identifiant `agent` (B2) ────────────────────────────────────────
-  const evalsLibres = new Set(referencesLibres(sf, 'eval'));
-  /** `arguments` que seule l'enveloppe lie : aucune fonction NON fléchée ne l'englobe (une flèche n'en a pas). */
-  const argumentsDeLEnveloppe = new Set(referencesLibres(sf, 'arguments').filter((id) => {
-    for (let a = id.parent; a; a = a.parent) if (ts.isFunctionLikeDeclaration(a) && !ts.isArrowFunction(a)) return false;
-    return true;
-  }));
-  for (const id of declarations.get('agent') ?? []) {
-    dire('agent-direct', id, 'déclaration qui lie le nom `agent` — l’identifiant du harnais ne se masque pas');
-  }
 
   const visiter = (n) => {
     // Tout TEXTE du fichier, à n'importe quelle profondeur : une consigne portée par un tableau et
     // le corps d'une fonction qui rend un prompt ne passent par aucun site d'appel littéral.
     if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) alerterRunner(n, n.text, 'un texte du script');
     if (ts.isTemplateHead(n) || ts.isTemplateMiddle(n) || ts.isTemplateTail(n)) alerterRunner(n, n.text, 'un texte du script');
-    if (ts.isWithStatement(n)) dire('portee', n, 'instruction `with` — la liaison des noms ne se lit plus à la forme');
-    if (ts.isIdentifier(n) && evalsLibres.has(n)) dire('portee', n, '`eval` — du code que la forme ne lit pas');
-    if (ts.isIdentifier(n) && argumentsDeLEnveloppe.has(n)) dire('portee', n, '`arguments` — alias des doublures du harnais, que la forme ne lit pas');
-    if (ts.isIdentifier(n) && n.text === 'agent' && estReference(n) && !(ts.isCallExpression(n.parent) && n.parent.expression === n)) {
-      dire('agent-direct', n, `\`agent\` non appelé directement (${ts.SyntaxKind[n.parent.kind]}) — seul un appel \`agent(…)\` est un site que la porte lit`);
-    }
     // Horloge et aléa : ils cassent la reprise (`resumeFromRunId`).
     if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'Date' && !(n.arguments ?? []).length) {
       dire('horloge', n, '`new Date()` sans argument — la date vient de `args`, sinon la reprise ne rend pas le même run');
@@ -513,10 +450,10 @@ export const defautsDuScript = (source, fichier, tables = TABLES) => analyser(so
 /**
  * Défauts des TABLES de la porte (B7, B8). PUR.
  * @param {typeof TABLES} tables
- * @param {{ scripts: string[], phases: Map<string, { declarees: Set<string>, deSites: Set<string> }>, agentExiste: (type: string) => boolean }} contexte
+ * @param {{ scripts: string[], phases: Map<string, { declarees: Set<string>, deSites: Set<string> }>, typesDeclares: Set<string> }} contexte
  * @returns {string[]}
  */
-export function defautsDesTables(tables, { scripts, phases, agentExiste }) {
+export function defautsDesTables(tables, { scripts, phases, typesDeclares }) {
   const defauts = [];
   /** Une phase des tables est déclarée ET portée par au moins un SITE `agent(` : le régime ne vaut que là. */
   const declareeEtDeSite = (ou, fichier, phase) => {
@@ -537,7 +474,7 @@ export function defautsDesTables(tables, { scripts, phases, agentExiste }) {
       declareeEtDeSite(`REGIMES[${fichier}]`, fichier, phase);
     }
   }
-  const noms = tables.exceptions.map((e) => `${e.fichier} / ${e.phase} / ${e.type ?? 'absent'}`);
+  const noms = tables.exceptions.map((e) => `${e.fichier} / ${e.phase} / ${e.type}`);
   if (noms.length > tables.plafond) defauts.push(`EXCEPTIONS_MECANIQUES : ${noms.length} entrées pour ${tables.plafond} au plus — en retirer est libre, en ajouter se justifie au commit`);
   if (JSON.stringify(noms) !== JSON.stringify(tables.nommees)) defauts.push(`EXCEPTIONS_MECANIQUES : ${JSON.stringify(noms)} diffère des exceptions NOMMÉES ${JSON.stringify(tables.nommees)}`);
   for (const e of tables.exceptions) {
@@ -548,7 +485,7 @@ export function defautsDesTables(tables, { scripts, phases, agentExiste }) {
     }
     declareeEtDeSite(ou, e.fichier, e.phase);
     if (String(e.raison ?? '').length < 20) defauts.push(`${ou} : raison de moins de 20 caractères`);
-    if (e.type !== null && !agentExiste(e.type)) defauts.push(`${ou} : type \`${e.type}\` sans \`.claude/agents/${e.type}.md\``);
+    if (!typesDeclares.has(e.type)) defauts.push(`${ou} : type \`${e.type}\` non déclaré sous \`.claude/agents/\` (\`name:\` du frontmatter)`);
   }
   return defauts;
 }
@@ -584,7 +521,7 @@ const parRegle = (regle) => [...analyses.values()].flatMap((a) => a.defauts).fil
 const contexteReel = (phases = analyses) => ({
   scripts,
   phases,
-  agentExiste: (type) => existsSync(join(RACINE, '.claude', 'agents', `${type}.md`)),
+  typesDeclares: TYPES_DECLARES,
 });
 /** Les bancs du dépôt, hors CETTE porte (ses tables nomment chaque script). */
 const bancs = bancsDeWorkflowDuDepot(RACINE).filter((f) => f !== CE_FICHIER).map((f) => ({ fichier: relatif(f), source: readFileSync(f, 'utf8') }));
@@ -695,7 +632,7 @@ function verifyPrompt(f) {
 }
 
 const scout = await agent('Liste les fichiers et les docs.',
-  { label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' })
+  { label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })
 
 const STATS_VIDES = { lots: 0 }
 if (!scout) return { verdict: 'ARRÊT', stats: STATS_VIDES }
@@ -707,10 +644,10 @@ const trouvees = await parallel(lots.map((files) => () => agent('Lis ' + files.j
 const verdicts = await parallel(trouvees.filter(Boolean).flatMap((r) => r.findings).map((f) => async () => {
   const etiquette = 'verify:' + f.file
   const lue = f.quote
-    ? await agent(verifyPrompt(f), { label: etiquette, phase: 'Verify', schema: LECTURE, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' })
+    ? await agent(verifyPrompt(f), { label: etiquette, phase: 'Verify', schema: LECTURE, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })
     : null
   return lue && lue.citationPresente
-    ? agent('Réfute : ' + f.claim, { label: etiquette, phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'medium' })
+    ? agent('Réfute : ' + f.claim, { label: etiquette, phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'high' })
     : null
 }))
 return { verdict: 'AUDIT', verdicts, stats: STATS_VIDES }
@@ -735,7 +672,7 @@ const LIST_DOCS = "docs: { type: 'array', items: { type: 'string' } } },";
 const LIST_REQUIS = "  required: ['rawFiles', 'docs'],\n}";
 const SCOUT = "{ label: 'scout', phase: 'Scout', schema: LIST,";
 const STATS = 'const STATS_VIDES = ';
-const JUGEMENT = "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'medium' }";
+const JUGEMENT = "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'high' }";
 const NON_UNIQUE = (n) => `racine : racine non littérale — \`schema\` : \`LIST\` ne se résout pas en \`const\` de premier niveau, UNIQUE, initialisée d’un objet littéral (${n} déclaration(s) du nom)`;
 const ATTEIGNABLE = (parent) => `maillon : \`LIST\` : maillon de racine atteignable par le code (${parent}) — un maillon n'est lu que comme valeur de \`schema:\` ou d'un autre maillon`;
 const NON_DIRECT = (parent) => `agent-direct : \`agent\` non appelé directement (${parent}) — seul un appel \`agent(…)\` est un site que la porte lit`;
@@ -853,7 +790,7 @@ test('a20 — BOM, `export const meta` indenté et `agent (` : reconnu, sans dé
 });
 
 test('a21 — `arguments`, lié à l’enveloppe, est un alias de `agent` : portée non statique', () => {
-  const site = "await lire('p', { label: 'x', phase: 'Scout', schema: { type: 'object', additionalProperties: false, properties: { t: { type: 'string' } }, required: ['t'] }, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' })";
+  const site = "await lire('p', { label: 'x', phase: 'Scout', schema: { type: 'object', additionalProperties: false, properties: { t: { type: 'string' } }, required: ['t'] }, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })";
   assert.deepEqual(vus(muter(TEMOIN, STATS, `const lire = arguments[0]\n${site}\n${STATS}`)), [
     'portee : `arguments` — alias des doublures du harnais, que la forme ne lit pas',
   ]);
@@ -921,9 +858,9 @@ test('la porte MORD quand le schéma cesse d’exiger la clé que le script lit'
 
 test('la porte MORD quand une phase de RÉDACTION part sur un autre type ou un autre modèle', () => {
   const fichier = 'scripts/raw/atlas-domain.workflow.js';
-  const mute = muter(fichier, "phase: 'Synthese', agentType: 'lecteur', model: 'opus'", "phase: 'Synthese', agentType: 'juge', model: 'sonnet'");
+  const mute = muter(fichier, "phase: 'Synthese', agentType: 'redacteur', model: 'opus'", "phase: 'Synthese', agentType: 'juge', model: 'sonnet'");
   assert.deepEqual(vus(mute, fichier), [
-    "agent : phase de RÉDACTION `Synthese` : `agentType: 'lecteur'` exigé (lu : `juge`)",
+    "agent : phase de RÉDACTION `Synthese` : `agentType: 'redacteur'` exigé (lu : `juge`)",
     "agent : phase de RÉDACTION `Synthese` : `model: 'opus'` exigé AUSSI (lu : `sonnet`) — un sous-agent ne tourne jamais sur le modèle de session",
   ]);
 });
@@ -935,14 +872,14 @@ test('défaut 28 — l’effort est LITTÉRAL et présent à chaque site, et vau
   );
   assert.deepEqual(
     vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus' }")),
-    ["agent : phase de JUGEMENT `Jugement` : `effort: 'medium'` exigé AUSSI (lu : absent)"],
+    ["agent : phase de JUGEMENT `Jugement` : `effort: 'high'` exigé AUSSI (lu : absent)"],
   );
   assert.deepEqual(
     vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'juge', model: 'opus', effort: 'low' }")),
-    ["agent : phase de JUGEMENT `Jugement` : `effort: 'medium'` exigé AUSSI (lu : `low`)"],
+    ["agent : phase de JUGEMENT `Jugement` : `effort: 'high'` exigé AUSSI (lu : `low`)"],
   );
   assert.deepEqual(
-    vus(muter(TEMOIN, "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'haiku', effort: 'low' }", "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'haiku' }")),
+    vus(muter(TEMOIN, "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' }", "{ label: 'scout', phase: 'Scout', schema: LIST, agentType: 'verif-mecanique', model: 'claude-haiku-5-5' }")),
     ['agent : phase MÉCANIQUE `Scout` : `effort` littéral exigé (lu : absent)'],
   );
 });
@@ -961,6 +898,13 @@ test('défaut 8 — une phase de JUGEMENT renommée et rétrogradée rougit la p
   ]);
   const orpheline = { ...TABLES, regimes: { ...REGIMES, '.claude/workflows/disparu.js': { Jugement: 'jugement' } } };
   assert.deepEqual(defautsDesTables(orpheline, contexteReel()), ['REGIMES : clé .claude/workflows/disparu.js, qui n’est pas un script de workflow reconnu']);
+});
+
+test('dossier-de-chapitre : la racine de chaque schéma reste LITTÉRALE, seule la forme d’une entrée vient de `args` — une famille prise dans `args` à la racine rougit la porte', () => {
+  const fichier = '.claude/workflows/dossier-de-chapitre.js';
+  assert.deepEqual(vus(sources.get(fichier), fichier), [], 'témoin : la source réelle');
+  const mute = muter(fichier, "    lieux: { type: 'array', minItems: MINIMA.lieux, items: ENTREES.lieux },", '    lieux: FAMILLES.lieux,');
+  assert.deepEqual(vus(mute, fichier), ['racine : racine non littérale — propriété racine « lieux » : PropertyAccessExpression `FAMILLES.lieux`']);
 });
 
 test('une phase de REGIMES n’est employée que par le `phase:` d’un SITE — un `phase(…)` de progression ne la couvre pas', () => {
@@ -994,10 +938,49 @@ test('un type d’EXCEPTION ne vaut que dans la phase qui le déclare', () => {
   assert.deepEqual(vus(mute, fichier), ['agent : phase MÉCANIQUE `Préparation` : `agentType` littéral parmi lecteur/verif-mecanique exigé (lu : `joueur`)']);
 });
 
+test('#2537 — en phase MÉCANIQUE, le modèle se lit au couple (type, modèle) du Calibrage, jamais à une liste plate', () => {
+  assert.deepEqual(
+    vus(muter(TEMOIN, "agentType: 'verif-mecanique', model: 'claude-haiku-5-5', effort: 'low' })\n\nconst STATS_VIDES", "agentType: 'verif-mecanique', model: 'sonnet', effort: 'low' })\n\nconst STATS_VIDES")),
+    ["agent : phase MÉCANIQUE `Scout` : `model` littéral parmi claude-haiku-5-5 exigé pour verif-mecanique (lu : `sonnet`)"],
+  );
+  assert.deepEqual(
+    vus(muter(TEMOIN, "phase: 'Find', schema: FINDINGS, agentType: 'lecteur', model: 'sonnet'", "phase: 'Find', schema: FINDINGS, agentType: 'lecteur', model: 'claude-haiku-5-5'")),
+    ["agent : phase MÉCANIQUE `Find` : `model` littéral parmi sonnet exigé pour lecteur (lu : `claude-haiku-5-5`)"],
+  );
+});
+
 test('B9 — retirer d’un banc le littéral qui nomme un script le laisse SANS banc', () => {
   const banc = bancs.find((b) => b.fichier === 'scripts/ops/workflows-joues.test.mjs');
   assert.ok(banc, 'le banc des workflows de .claude/workflows/');
   const source = banc.source.replaceAll("'table-simulee.js'", "'table' + '-simulee.js'");
   assert.notEqual(source, banc.source, 'la mutation s’applique — sinon ce test ne prouve rien');
   assert.deepEqual(scriptsSansBanc(scripts, bancs.map((b) => (b === banc ? { ...b, source } : b))), ['.claude/workflows/table-simulee.js']);
+});
+
+test('#2537 — `agentType` absent ou non déclaré sous `.claude/agents/` : défaut universel', () => {
+  const declares = [...TYPES_DECLARES].join('/');
+  assert.deepEqual(
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, model: 'opus', effort: 'high' }")),
+    [`agent : \`agentType\` absent — un agent de workflow nomme un type déclaré sous \`.claude/agents/\` (${declares})`],
+  );
+  assert.deepEqual(
+    vus(muter(TEMOIN, JUGEMENT, "phase: 'Jugement', schema: VERDICT, agentType: 'general-purpose', model: 'opus', effort: 'high' }")),
+    [
+      `agent : \`agentType\` \`general-purpose\` : aucun type de ce nom déclaré sous \`.claude/agents/\` (${declares})`,
+      "agent : phase de JUGEMENT `Jugement` : `agentType: 'juge'` exigé (lu : `general-purpose`)",
+    ],
+  );
+});
+
+test('#2537 — la couche UNIVERSELLE seule (la garde de l’outil `Workflow`) n’exige ni phase, ni modèle, ni effort', () => {
+  const universel = (source) => defautsDesSitesDAgent(ast({ rel: 'w.js', text: source }), { typesDeclares: TYPES_DECLARES }).map((d) => sansLieu(d.message));
+  assert.deepEqual(universel("await agent('p', { agentType: 'lecteur' })"), []);
+  assert.deepEqual(universel(muter(TEMOIN, JUGEMENT, "schema: VERDICT, agentType: 'juge' }")), []);
+  assert.deepEqual(universel("await agent('p', { label: 'x' })"), [`\`agentType\` absent — un agent de workflow nomme un type déclaré sous \`.claude/agents/\` (${[...TYPES_DECLARES].join('/')})`]);
+  assert.deepEqual(universel("await agent('p', { agentType: T })"), ["`agentType` non littéral — un étage d'agent se lit à la forme du script, jamais à l'exécution"]);
+  assert.deepEqual(universel("await agent('p', OPTIONS)"), ["options de l'agent non littérales — la porte ne peut pas lire son étage"]);
+});
+
+test('#2537 — un script qui ne PARSE pas : chaque diagnostic du parseur est un défaut `syntaxe`, et rien d’autre ne se juge', () => {
+  assert.deepEqual(vus(muter(TEMOIN, STATS, `const = 1\n${STATS}`)), ['syntaxe : Variable declaration expected.', 'syntaxe : Variable declaration expected.']);
 });

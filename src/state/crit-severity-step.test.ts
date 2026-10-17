@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS } from './combatFlow';
+import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS, STRUCTURE_CRIT_TABLE } from './combatFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { stepInteraction, rollTableStep, tableStepDef } from './cascade';
 import { draineCascade } from './cascadeTestKit';
@@ -21,6 +21,7 @@ import type { Weapon, Combatant, HitLocation, ArmourPoints } from '../engine/typ
 const lastCrit = (c: Combatant): string | undefined => (c.critEntriesSuffered ?? [])[(c.critEntriesSuffered ?? []).length - 1];
 const SANS_PA: ArmourPoints = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
 import type { AttackResult } from '../engine/combat';
+import { OPS_DIFFEREES } from './combatEffects';
 
 /**
  * SÉVÉRITÉ d'une Blessure critique en SEAM (#942 L4) — le d100 du Tableau des Critiques (LDB 18) est
@@ -122,7 +123,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     // l'option « Dés fixés » n'ajoute que la POSE du dé, jamais l'existence de l'étape.
     const { H, E } = startFight();
     const suspended = applyAttackResult(useGame.getState, useGame.setState, E, H, hache, critHit('corps'));
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     const etapes = useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes).toHaveLength(1);
     expect(etapes[0].table!.tableId).toBe(CRIT_TABLE_IDS.corps);
@@ -142,7 +143,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     setDesFixes(true);
     const avant = { pb: H.wounds.current, crits: H.criticalWounds ?? 0 };
     const suspended = applyAttackResult(useGame.getState, useGame.setState, E, H, hache, critHit('corps'));
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     const step = useGame.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('deviation');
     expect(stepInteraction(step)).toBe('table'); // dé À POSER → les deux affordances de la modale
@@ -218,7 +219,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     const { H, E } = startFight();
     setDesFixes(true);
     const suspended = applyAttackResult(useGame.getState, useGame.setState, H, E, hache, critHit('corps', 99));
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     const etapes = useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes).toHaveLength(1);
     expect(etapes[0].table!.result, 'aucun siège ne la tient → le socle a tiré au rang du curseur').toBeTruthy();
@@ -241,7 +242,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
       // le résolveur AA n'appliquerait pas → levée, jamais un dé posé silencieusement ignoré.
       expect(() => critSeverityDecl(H, 'corps', 0, false)).toThrow(/combat-aa-blessures/);
       const suspended = applyAttackResult(useGame.getState, useGame.setState, E, H, hache, critHit('corps'));
-      expect(suspended, 'fenêtre LDB ouverte sous la variante AA').toBe(false);
+      expect(suspended, 'fenêtre LDB ouverte sous la variante AA').toBeUndefined();
       expect(useGame.getState().pendingCascade!.participants.some((s) => s.table?.tableId === CRIT_TABLE_IDS.corps && s.kind === 'deviation')).toBe(false);
       // Le Critique appliqué vient bien des tables AA (id absent des tables LDB de la localisation).
       const victime = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -342,5 +343,16 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     const committee = useGame.getState().pendingCascade!.participants[0];
     expect(committee.committed).toBe(true);
     expect(committee.foldMemo, 'mémo survivant au commit').toBeUndefined();
+  });
+});
+
+describe('libellé de la rangée de tirage des tables de Blessures critiques', () => {
+  it('par Localisation : « Blessures critiques — <Localisation> », la Localisation lue au schéma', () => {
+    expect(Object.values(CRIT_TABLE_IDS).map((id) => tableStepDef(id)?.label)).toEqual([
+      'Blessures critiques — Tête', 'Blessures critiques — Bras', 'Blessures critiques — Corps', 'Blessures critiques — Jambe',
+    ]);
+  });
+  it('sur une Structure : le libellé de la table, lu à la donnée (structure-criticals.json)', () => {
+    expect(tableStepDef(STRUCTURE_CRIT_TABLE)?.label).toBe('Blessures critiques sur une Structure');
   });
 });

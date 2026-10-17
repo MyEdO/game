@@ -1,7 +1,7 @@
 ---
 name: joueur
 description: Joueur cloisonné d'une table papier simulée (workflow `table-simulee`).
-tools: TodoWrite
+tools: CronList
 disallowedTools: Read, Grep, Glob, LSP, Bash, PowerShell, Edit, Write, NotebookEdit, WebFetch, WebSearch, Skill, ToolSearch, Monitor, Agent, Workflow, mcp__*
 model: sonnet
 effort: low

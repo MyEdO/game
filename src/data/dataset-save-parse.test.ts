@@ -114,7 +114,7 @@ describe('sauvegarde éditeur — chaque clé de dataset résout un fichier REGI
 
     // MORDANT : sans ce passage, c'est la forme RUNTIME qui partirait au disque — et le schéma la refuse.
     expect(validateDataset('psychology.json', disque)).toBeNull();
-    expect(validateDataset('psychology.json', runtime)).toMatch(/un texte, un porteur/);
+    expect(validateDataset('psychology.json', runtime)).toMatch(/texte en double/);
   });
 
   it('branche dataset-OBJET : la seconde porte de sauvegarde rend la FORME DISQUE, pas la racine vivante', () => {

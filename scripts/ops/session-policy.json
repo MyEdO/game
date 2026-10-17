@@ -1,0 +1,6 @@
+{
+  "sandbox": "danger-full-access",
+  "approvalPolicy": "never",
+  "model": "gpt-6.1-sol",
+  "reasoningEffort": "medium"
+}

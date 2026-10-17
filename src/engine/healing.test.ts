@@ -1,11 +1,12 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import type { Combatant } from './types';
 import {
-  hasHealSkill, isHealable, availableHealModes, healableTargets,
+  HEAL_SKILL, isHealable, availableHealModes, healableTargets,
   healWoundsDelta, stopBleedOutcome, applyHealWounds, applyStopBleed,
   lodgedAmmoCount, resolveExtractLodgedAmmo, healDifficulty,
 } from './healing';
 import { setRule, resetRule } from './policy';
+import { possesses } from './skills';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -19,9 +20,10 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 }
 
 describe('engine/healing — gate compétence & cibles', () => {
-  it('hasHealSkill : vrai si Compétence Guérison possédée, faux sinon (Avancée, LDB 09 l.254)', () => {
-    expect(hasHealSkill(hero())).toBe(true);
-    expect(hasHealSkill(hero({ skills: [] }))).toBe(false);
+  it('Guérison est Avancée : sans Augmentation, le soigneur ne la possède pas (LDB 09 l.30)', () => {
+    expect(possesses(hero(), HEAL_SKILL)).toBe(true);
+    expect(possesses(hero({ skills: [{ id: HEAL_SKILL, characteristic: 'intelligence', advances: 0 }] }), HEAL_SKILL)).toBe(false);
+    expect(possesses(hero({ skills: [] }), HEAL_SKILL)).toBe(false);
   });
 
   it('isHealable : blessé OU hémorragique ; pas mort/éjecté', () => {

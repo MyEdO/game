@@ -11,6 +11,7 @@ import advancementCostsJson from '../data/advancementCosts.json';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';
+import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 
 /**
  * Détection « in-carrière » (LDB 07 l.91) : une Augmentation est au coût standard si la
@@ -77,7 +78,7 @@ export function buyCharAdvance(hero: Combatant, char: CharKey, inCareer = true):
 /** Achète UNE Augmentation pour une Compétence DÉJÀ connue — identité (name, spec) : chaque
  *  Spécialisation est une Compétence distincte (LDB 09 l.42). */
 export function buySkillAdvance(hero: Combatant, skillId: string, spec: string | undefined, inCareer = true, discount = 0): AdvanceResult {
-  const skill = hero.skills.find((s) => s.id === skillId && (s.spec ?? '') === (spec ?? ''));
+  const skill = hero.skills.find((s) => s.id === skillId && memeSpecialisation(s.spec, spec));
   if (!skill) return { ok: false, cost: 0, reason: t('adv.unknownSkill') };
   const cost = advanceCost(skill.advances, 'skill', inCareer, discount);
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
@@ -150,7 +151,7 @@ export function isCareerLevelComplete(
   for (const slot of opts.skillSlots) {
     const ref = slotRef(slot, opts.designations);
     if (!ref) continue;
-    const adv = hero.skills.find((s) => s.id === ref.id && (s.spec ?? '') === (ref.spec ?? ''))?.advances ?? 0;
+    const adv = hero.skills.find((s) => s.id === ref.id && memeSpecialisation(s.spec, ref.spec))?.advances ?? 0;
     if (adv >= req) held += 1;
   }
   if (held < 8) return false;
@@ -158,7 +159,7 @@ export function isCareerLevelComplete(
   return opts.talentSlots.some((slot) => {
     const ref = slotRef(slot, opts.designations);
     if (!ref) return false;
-    return hero.talents.some((t) => t.talentId === ref.id && (t.spec ?? '') === (ref.spec ?? '') && t.times > 0);
+    return hero.talents.some((t) => t.talentId === ref.id && memeSpecialisation(t.spec, ref.spec) && t.times > 0);
   });
 }
 

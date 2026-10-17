@@ -15,7 +15,7 @@
 // par `lancer` (`gitPorte.mjs`), qui appelle `spawnSync` à liaison vive, et la garde `gitHorsHote`
 // attrape le littéral `'git'` lancé hors de l'hôte et du banc.
 import { createRequire, syncBuiltinESMExports } from 'node:module'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { ENV_GIT_FEINT, envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { estEchecDeChargement } from '../guards/lib/spawnResilient.mjs'
 
@@ -34,7 +34,7 @@ const stdioDe = (input) => /** @type {const} */ ([input === undefined ? 'ignore'
 export function lancerGit(args, { cwd, env = envDeDepotForge(), input, net = false } = {}) {
   let sortie
   try {
-    sortie = execFileSync('git', args, { cwd, env, input, encoding: 'utf8', maxBuffer: SORTIE_MAX, stdio: stdioDe(input) })
+    sortie = execFileSync('git', args, { cwd, ...(env === process.env ? {} : { env }), input, encoding: 'utf8', maxBuffer: SORTIE_MAX, stdio: stdioDe(input) })
   } catch (e) {
     throw echecDeGit(args, cwd, e)
   }
@@ -60,6 +60,12 @@ function echecDeGit(args, cwd, e) {
 export const gitDe = (cwd, options = {}) => (...args) => lancerGit(args, { ...options, cwd })
 
 /**
+ * `git <args>` lancé EN FOND dans `cwd`, stdio ignoré, sous `envDeDepotForge()` : l'opération git concurrente d'un banc.
+ * @param {string[]} args @param {{ cwd?: string, env?: NodeJS.ProcessEnv }} [options] @returns {import('node:child_process').ChildProcess}
+ */
+export const gitEnFond = (args, { cwd, env = envDeDepotForge() } = {}) => spawn('git', args, { cwd, env, stdio: 'ignore' })
+
+/**
  * `gitDe` sous l'env HÉRITÉ du processus : la lecture de l'arbre réel du dépôt.
  * @param {string | undefined} cwd @param {Omit<OptionsDeBanc, 'env'>} [options] @returns {(...args: string[]) => string}
  */
@@ -71,7 +77,7 @@ export const gitDeLArbreReel = (cwd, options = {}) => gitDe(cwd, { ...options, e
  * @param {string[]} args @param {{ cwd?: string, env?: NodeJS.ProcessEnv, input?: string }} [options]
  */
 export const resultatDeGit = (args, { cwd, env = envDeDepotForge(), input } = {}) =>
-  spawnSync('git', args, { cwd, env, input, encoding: 'utf8', maxBuffer: SORTIE_MAX, stdio: stdioDe(input) })
+  spawnSync('git', args, { cwd, ...(env === process.env ? {} : { env }), input, encoding: 'utf8', maxBuffer: SORTIE_MAX, stdio: stdioDe(input) })
 
 /**
  * `resultatDeGit` sous l'env HÉRITÉ du processus : le site dont le code de sortie, lu dans l'arbre

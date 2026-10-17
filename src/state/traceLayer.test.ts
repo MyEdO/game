@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   traceLayerLoad,
+  takeCalqueEcarte,
   traceLayerSave,
   traceLayerDelete,
   panelExpandedLoad,
   panelExpandedSave,
-  __resetTraceLayerForTest,
   type TraceLayerRecord,
-  MIGRATIONS_CALQUES,
 } from './traceLayer';
-import { __setOuvertureIdbForTest, migrerBase } from '../lib/indexedDb';
-import { baseSimulee, brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
+import { __setFabriqueIdbForTest } from '../lib/indexedDb';
+import { brancherBasesSimulees, type BasesSimulees } from '../lib/indexedDb.testkit';
 import { identityTransform } from './traceCalibration';
+import { FORMAT_CALQUE } from './formats.generated';
 
 const NOM = 'wfrp4-trace-layers';
 let bases: BasesSimulees;
@@ -19,7 +19,7 @@ let bases: BasesSimulees;
 beforeEach(() => {
   bases = brancherBasesSimulees();
 });
-afterEach(() => __setOuvertureIdbForTest(null));
+afterEach(() => __setFabriqueIdbForTest(null));
 
 const record = (sceneId: string, z = 0): TraceLayerRecord => ({
   sceneId,
@@ -37,10 +37,6 @@ const record = (sceneId: string, z = 0): TraceLayerRecord => ({
 });
 
 describe('traceLayer — persistance PAR (SCÈNE, COUCHE) du calque de référence', () => {
-  beforeEach(async () => {
-    await __resetTraceLayerForTest();
-  });
-
   it('charge null pour une (scène, couche) sans calque enregistré', async () => {
     expect(await traceLayerLoad('scene-1', 0)).toBeNull();
   });
@@ -96,11 +92,33 @@ describe('traceLayer — persistance PAR (SCÈNE, COUCHE) du calque de référen
   });
 });
 
-describe('panelExpanded — repli/dépli du panneau, PAR SCÈNE (survit à un changement de couche)', () => {
-  beforeEach(async () => {
-    await __resetTraceLayerForTest();
+describe('traceLayer — l’enregistrement porte le format des calques (#2404)', () => {
+  it('l’écriture stampe `FORMAT_CALQUE` ; la lecture rend le calque sans elle', async () => {
+    await traceLayerSave(record('scene-1', 0));
+    const [stocke] = [...bases.base(NOM).magasins.get('layers')!.contenu.values()];
+    expect(stocke).toEqual({ ...record('scene-1', 0), version: FORMAT_CALQUE });
+    expect(await traceLayerLoad('scene-1', 0)).toEqual(record('scene-1', 0));
   });
 
+  it('un enregistrement d’un autre format est ÉCARTÉ et RETIRÉ', async () => {
+    await traceLayerSave(record('scene-1', 0));
+    const contenu = bases.base(NOM).magasins.get('layers')!.contenu;
+    for (const [cle, v] of contenu) contenu.set(cle, { ...(v as object), version: 'autre-format' });
+    expect(await traceLayerLoad('scene-1', 0)).toBeNull();
+    expect(contenu.size).toBe(0);
+    expect(takeCalqueEcarte('scene-1', 1)).toBe(false); // le témoin est keyé (scène, couche)
+    expect(takeCalqueEcarte('scene-1', 0)).toBe(true);
+    expect(takeCalqueEcarte('scene-1', 0)).toBe(false); // témoin à usage unique
+  });
+
+  it('un calque à le format courant ne pose aucun témoin', async () => {
+    await traceLayerSave(record('scene-1', 0));
+    expect(await traceLayerLoad('scene-1', 0)).not.toBeNull();
+    expect(takeCalqueEcarte('scene-1', 0)).toBe(false);
+  });
+});
+
+describe('panelExpanded — repli/dépli du panneau, PAR SCÈNE (survit à un changement de couche)', () => {
   it('vaut null (jamais réglé) tant que rien n’a été sauvegardé — l’appelant applique son défaut', async () => {
     expect(await panelExpandedLoad('scene-1')).toBeNull();
   });
@@ -118,37 +136,16 @@ describe('panelExpanded — repli/dépli du panneau, PAR SCÈNE (survit à un ch
   });
 });
 
-describe('MIGRATIONS_CALQUES — migration de `wfrp4-trace-layers` vers v2 (#830)', () => {
-  it('base neuve (v0) : crée `layers` keyé (sceneId, z) et `panelExpanded` keyé sceneId', () => {
-    const base = baseSimulee();
-    migrerBase(MIGRATIONS_CALQUES, base.db, 0);
-    expect(base.magasins.get('layers')?.keyPath).toEqual(['sceneId', 'z']);
-    expect(base.magasins.get('panelExpanded')?.keyPath).toBe('sceneId');
-  });
-
-  it('v1 → v2 : `layers` (keyé sceneId) est RECRÉÉ keyé (sceneId, z), `panelExpanded` garde son contenu', () => {
-    const base = baseSimulee({ layers: { keyPath: 'sceneId' }, panelExpanded: { keyPath: 'sceneId' } });
-    base.magasins.get('layers')!.contenu.set('scene-1', record('scene-1'));
-    base.magasins.get('panelExpanded')!.contenu.set('scene-1', { sceneId: 'scene-1', expanded: false });
-    migrerBase(MIGRATIONS_CALQUES, base.db, 1);
-    expect(base.magasins.get('layers')?.keyPath).toEqual(['sceneId', 'z']);
-    expect(base.magasins.get('layers')?.contenu.size).toBe(0);
-    expect(base.magasins.get('panelExpanded')?.contenu.size).toBe(1);
-  });
-
-  it('v1 sans `panelExpanded` → v2 : le magasin du panneau est créé', () => {
-    const base = baseSimulee({ layers: { keyPath: 'sceneId' } });
-    migrerBase(MIGRATIONS_CALQUES, base.db, 1);
-    expect(base.magasins.get('panelExpanded')?.keyPath).toBe('sceneId');
-  });
-
-  it('une base v1 ouverte monte en v2 : le panneau garde son contenu, les calques repartent keyés (sceneId, z)', async () => {
-    const v1 = bases.amorcer(NOM, 1, { layers: { keyPath: 'sceneId' }, panelExpanded: { keyPath: 'sceneId' } });
-    v1.magasins.get('layers')!.contenu.set('scene-1', record('scene-1'));
-    v1.magasins.get('panelExpanded')!.contenu.set('scene-1', { sceneId: 'scene-1', expanded: false });
-    expect(await panelExpandedLoad('scene-1')).toBe(false);
+describe('`wfrp4-trace-layers` — déclarée, recréée si elle s’en écarte (#2404)', () => {
+  it('une base où `layers` est keyé sceneId est recréée : calques et panneaux perdus, `layers` keyé (sceneId, z)', async () => {
+    const ancienne = bases.amorcer(NOM, { layers: { keyPath: 'sceneId' }, panelExpanded: { keyPath: 'sceneId' } });
+    ancienne.magasins.get('layers')!.contenu.set('scene-1', record('scene-1'));
+    ancienne.magasins.get('panelExpanded')!.contenu.set('scene-1', { sceneId: 'scene-1', expanded: false });
+    expect(await panelExpandedLoad('scene-1')).toBeNull();
     expect(await traceLayerLoad('scene-1', 0)).toBeNull();
-    expect(v1.magasins.get('layers')?.keyPath).toEqual(['sceneId', 'z']);
+    expect(bases.suppressions).toEqual([NOM]);
+    expect(bases.base(NOM).magasins.get('layers')?.keyPath).toEqual(['sceneId', 'z']);
+    expect(bases.base(NOM).magasins.get('panelExpanded')?.keyPath).toBe('sceneId');
   });
 
   it('une base neuve passe deux couches de la même scène, clé composite', async () => {
@@ -159,6 +156,6 @@ describe('MIGRATIONS_CALQUES — migration de `wfrp4-trace-layers` vers v2 (#830
     expect((await traceLayerLoad('scene-1', 1))?.opacity).toBe(0.3);
     expect((await traceLayerLoad('scene-1', 0))?.opacity).toBe(0.6);
     expect(await panelExpandedLoad('scene-1')).toBe(false);
-    expect(base.fermetures).toBe(base.transactions.length);
+    expect(base.fermetures).toBe(base.ouvertures);
   });
 });

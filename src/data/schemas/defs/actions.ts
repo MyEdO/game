@@ -1,18 +1,7 @@
-/**
- * Schéma de `actions.json` — REGISTRE UNIQUE des actions de combat (spec HUD, « Zone 12 »).
- * Une entrée = un acte OFFERT au joueur pendant un combat, avec son identité STABLE (sans préfixe
- * de position), son affichage (`label`/`icon`), sa RÈGLE (`rule`/`ruleCategory` → Codex), son COÛT,
- * sa surface d'accueil par défaut, et les IDS de code qui l'exécutent (`gate`/`candidates`/`run`/
- * `mode`/`armed`, tous résolus par `src/state/actionRegistry.ts` — jamais de code en JSON).
- *
- * COÛTS — guideline RAW (`LDB 13 l.106`, verbatim : « C'est le MJ qui va décider ce qui vous coûtera
- * votre Action, et ce que vous pouvez faire au cours d'un Round. On part en général du principe que
- * si un acte nécessite un Test, c'est que c'est une Action plutôt qu'une Action gratuite. ») : elle
- * sert de DÉFAUT de remplissage. Tout coût qui n'en découle pas et qu'aucun verbatim ne porte porte
- * sa RAISON en clair dans `maison` (champ d'enveloppe, #1467 L1b).
- */
+/** LDB 13 l.106. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { blocageDeLivraison } from '../grammaire/valeurs';
 
 export const file = 'actions.json';
 export const famille = 'entite';
@@ -98,13 +87,10 @@ const doc = document(
     rule: z.string().optional(),
     /** Catégorie Codex du foyer (`'regles'`, `'talents'`, `'etats'`…) — exigée avec `rule`. */
     ruleCategory: z.string().optional(),
-    /** Clés de SURFACE historiques (cases `CombatConsole`) couvertes par cette
-     *  action, tant que les espaces d'ids sont forkés. Une clé template (`sort-${id}`) se déclare
-     *  par son PRÉFIXE littéral. Liste DÉCROISSANTE : le lot branchements remplace ces clés par
-     *  l'id d'action lui-même. Consommée par `src/state/action-atteignabilite.test.ts`. */
+
     keys: z.array(z.string()).optional(),
     /** Dette BLOQUANTE : l'action est déclarée mais aucun dispatcher ne l'exécute encore. */
-    blocked: z.strictObject({ ticket: z.string(), raison: z.string() }).optional(),
+    blocked: blocageDeLivraison.optional(),
     /** SORTIE D'INTERLUDE ATTEIGNABLE À ÉCHAP (`surface: 'interlude'` uniquement) : `false` = son
      *  dispatcher COMMET quelque chose (un renoncement, un placement) — la touche d'annulation ne
      *  doit jamais le déclencher, seul le clic explicite le fait. `true` = la sortie ne perd rien

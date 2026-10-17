@@ -2,10 +2,169 @@
 // suivie), le reste recollé tel quel (#1973). Fixtures sous `os.tmpdir()`, `rmSync` en finally.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
+import fs from 'node:fs'
+import { mkdirSync, mkdtempSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { ancetreExistant, canoniser } from './chemin-mesure.mjs'
+import path, { join } from 'node:path'
+import { ancetreExistant, canoniser, canoniseurParDossier, dansLaMesure, estPipeNomme, projeterListingMesure, relatifSousRacine } from './chemin-mesure.mjs'
+import { perimetreDeMesure } from './perimetre-mesure.mjs'
+import { envDeDepotForge, instanceDeDepot } from '../../guards/lib/depotGabarit.mjs'
+import { depotDe, politiqueExclusionsDe } from '../../guards/lib/gitPorte.mjs'
+import { lancerGit, resultatDeGit } from '../../test/gitDeBanc.mjs'
+import { servirPipe } from '../../test/pipeNomme.mjs'
+import { tableTotale } from '../../../src/lib/tableTotale.ts'
+
+test('signature Git : lien ignoré POSIX sans suivre sa cible ni lui ajouter un slash', { skip: process.platform === 'win32' }, () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'unused-link\n', 'source.txt': 'source' } })
+  const externe = mkdtempSync(join(tmpdir(), 'politique-lien-externe-'))
+  try {
+    writeFileSync(join(externe, '.gitignore'), 'première politique\n')
+    symlinkSync(externe, join(racine, 'unused-link'), 'dir')
+    const avant = perimetreDeMesure(racine)
+    assert.equal(avant.ignores.has('unused-link'), true)
+    assert.equal(avant.signature.fichiers.some(([rel]) => rel.startsWith('unused-link/')), false)
+    writeFileSync(join(externe, '.gitignore'), 'seconde politique\n')
+    assert.deepEqual(perimetreDeMesure(racine).signature, avant.signature)
+    writeFileSync(join(racine, '.gitignore'), 'unused-link\n*.tmp\n')
+    assert.notDeepEqual(perimetreDeMesure(racine).signature, avant.signature)
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+    rmSync(externe, { recursive: true, force: true })
+  }
+})
+
+test('admission déclarée : endpoints glob ignorés, natures et frontières', () => {
+  const motifs = ['data/*.generated.ts', 'node_modules/*.generated.ts', '.git/*.generated.ts', 'docs/.cache/*.generated.ts']
+  const ignores = new Set(['data', 'node_modules', '.git', 'docs/.cache'])
+  for (const nature of ['file', 'directory', 'link', 'other']) {
+    const snapshot = { nature: 'directory', entrees: [{ nom: 'own.generated.ts', nature }, { nom: 'other.generated.ts', nature }, { nom: 'foreign.cache', nature }] }
+    const projection = projeterListingMesure('data', snapshot, ignores, new Set(), ['data/own.generated.ts'], motifs)
+    assert.deepEqual(projection.entrees, nature === 'file' ? [snapshot.entrees[1]] : snapshot.entrees.slice(0, 2))
+  }
+  assert.equal(dansLaMesure('data/own.generated.ts', ignores, new Set(), motifs), true)
+  assert.equal(dansLaMesure('data/own.generated.ts/foreign.txt', ignores, new Set(), motifs), false)
+  for (const rel of ['node_modules/a.generated.ts', '.git/a.generated.ts', 'docs/.cache/a.generated.ts', 'data/foreign.cache']) assert.equal(dansLaMesure(rel, ignores, new Set(), motifs), false)
+})
+
+test('#2603 — un segment .git, à toute profondeur, n’est jamais dans la mesure ; un nom qui le contient y reste', () => {
+  for (const rel of ['src/.git', 'src/.git/HEAD', 'a/b/.git']) assert.equal(dansLaMesure(rel, new Set()), false, rel)
+  for (const rel of ['src/.gitignore', 'src/a.git', 'src/.github/x.yml']) assert.equal(dansLaMesure(rel, new Set()), true, rel)
+})
+
+test('projection froide : seuls les fichiers propres sortent, dossiers, liens et autre producteur restent', () => {
+  const snapshot = { nature: 'directory', entrees: [
+    { nom: 'a.generated.ts', nature: 'file' }, { nom: 'b.generated.ts', nature: 'directory' },
+    { nom: 'c.generated.ts', nature: 'link' }, { nom: 'autre.ts', nature: 'file' }, { nom: 'cache', nature: 'directory' },
+  ] }
+  const copie = JSON.stringify(snapshot)
+  const derivees = new Set(['data/a.generated.ts', 'data/b.generated.ts', 'data/c.generated.ts', 'data/autre.ts'])
+  assert.deepEqual(projeterListingMesure('data', snapshot, new Set(['data/cache']), derivees, ['data/*.generated.ts']), {
+    nature: 'directory', entrees: snapshot.entrees.slice(1, 4),
+  })
+  assert.equal(JSON.stringify(snapshot), copie)
+  assert.throws(() => projeterListingMesure('data', [], new Set()), /photographie typée/)
+})
+
+// #2475 / #2477
+function bancAdresses(run) {
+  const owner = mkdtempSync(join(tmpdir(), 'politique-adresses-'))
+  const initial = instanceDeDepot({ fichiers: { 'a.txt': 'a' } }).racine
+  const racine = join(owner, 'depot')
+  renameSync(initial, racine)
+  const sub = join(racine, 'sub')
+  const lexical = join(owner, 'lexical')
+  const alias = join(lexical, 'alias')
+  mkdirSync(sub)
+  mkdirSync(lexical)
+  symlinkSync(sub, alias, 'junction')
+  const avant = tableTotale(['HOME', 'XDG_CONFIG_HOME', 'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM'], k => process.env[k])
+  const env = envDeDepotForge()
+  for (const k of Object.keys(avant)) { if (env[k] === undefined) delete process.env[k]; else process.env[k] = env[k] }
+  try {
+    for (const nom of ['root.tmp', 'sub.tmp', 'parent.tmp', 'lexical.tmp']) writeFileSync(join(sub, nom), nom)
+    const inventaire = cwd => {
+      const vu = resultatDeGit(['ls-files', '--others', '--ignored', '--exclude-standard', '-z'], { cwd, env: process.env })
+      assert.equal(vu.status, 0, vu.stderr)
+      assert.equal(vu.stderr, '')
+      return vu.stdout.split('\0').filter(Boolean)
+    }
+    run({ owner, racine, sub, lexical, alias, inventaire })
+  } finally {
+    for (const [k, v] of Object.entries(avant)) { if (v === undefined) delete process.env[k]; else process.env[k] = v }
+    rmSync(owner, { recursive: true, force: true })
+  }
+}
+
+for (const valeur of ['global', '../global']) {
+  // #2475 / #2477
+  test(`adresse effective : ${valeur} depuis root, sub et alias signe le fichier lu par Git`, () => bancAdresses(({ owner, racine, sub, lexical, alias, inventaire }) => {
+    lancerGit(['config', 'core.excludesFile', valeur], { cwd: racine })
+    const effectif = valeur === 'global' ? join(racine, 'global') : join(owner, 'global')
+    const motif = valeur === 'global' ? 'root.tmp' : 'parent.tmp'
+    for (const present of [true, false]) {
+      for (const [chemin, contenu] of [[join(racine, 'global'), 'root.tmp\n'], [join(sub, 'global'), 'sub.tmp\n'], [join(owner, 'global'), 'parent.tmp\n'], [join(lexical, 'global'), 'lexical.tmp\n']]) writeFileSync(chemin, contenu)
+      if (!present) fs.unlinkSync(effectif)
+      for (const cwd of [racine, sub, alias]) {
+        const vus = inventaire(cwd)
+        assert.deepEqual(vus, present ? [cwd === racine ? `sub/${motif}` : motif] : [])
+        const global = perimetreDeMesure(cwd).signature.global
+        assert.equal(global.chemin, effectif)
+        assert.equal(global.hash, present ? createHash('sha256').update(fs.readFileSync(effectif)).digest('hex') : null)
+        const avant = global.hash
+        writeFileSync(join(sub, 'global'), 'autre.tmp\n')
+        assert.equal(perimetreDeMesure(cwd).signature.global.hash, avant)
+      }
+    }
+  }))
+}
+
+// #2475 / #2477
+test('adresse effective : HOME et XDG relatifs suivent la racine Git physique', () => bancAdresses(({ owner, racine, sub, lexical, alias, inventaire }) => {
+  for (const type of ['HOME', 'XDG']) {
+    process.env.HOME = type === 'HOME' ? 'home' : join(owner, 'home-absolu')
+    if (type === 'XDG') process.env.XDG_CONFIG_HOME = 'cfg'
+    else delete process.env.XDG_CONFIG_HOME
+    const suffixe = type === 'XDG' ? 'cfg/git/ignore' : 'home/.config/git/ignore'
+    for (const [base, motif] of [[racine, 'root.tmp'], [sub, 'sub.tmp'], [lexical, 'lexical.tmp']]) {
+      const chemin = join(base, suffixe)
+      mkdirSync(join(chemin, '..'), { recursive: true })
+      writeFileSync(chemin, motif + '\n')
+    }
+    for (const cwd of [racine, sub, alias]) {
+      assert.deepEqual(inventaire(cwd), [cwd === racine ? 'sub/root.tmp' : 'root.tmp'])
+      assert.equal(politiqueExclusionsDe(depotDe(cwd)).global.chemin, join(racine, suffixe))
+    }
+  }
+}))
+
+test('canonisation stricte : absence normale, ancêtre et cible physique illisibles', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-strict-'))
+  const stat = fs.statSync
+  const realpath = fs.realpathSync.native
+  try {
+    assert.equal(canoniser(join(base, 'absent/x'), { strict: true }), join(realpath(base), 'absent/x'))
+    for (const code of ['EACCES', 'EPERM']) {
+      fs.statSync = () => { throw Object.assign(new Error('banc'), { code }) }
+      assert.throws(() => ancetreExistant(base, { strict: true }), new RegExp(`ancêtre illisible.*${code}`))
+      fs.statSync = stat
+      fs.realpathSync.native = () => { throw Object.assign(new Error('banc'), { code }) }
+      assert.throws(() => canoniser(base, { strict: true }), new RegExp(`canonisation physique illisible.*${code}`))
+      assert.equal(canoniser(base), base)
+      fs.realpathSync.native = realpath
+    }
+    fs.realpathSync.native = (chemin) => {
+      if (chemin === base) throw Object.assign(new Error('disparu'), { code: 'ENOENT' })
+      return realpath(chemin)
+    }
+    assert.equal(canoniser(base, { strict: true }), join(realpath(join(base, '..')), base.split(/[\\/]/).at(-1)))
+  } finally {
+    fs.statSync = stat
+    fs.realpathSync.native = realpath
+    rmSync(base, { recursive: true, force: true })
+  }
+})
 
 test('canoniser : un chemin absent SOUS une jonction rend la cible réelle + le reste', () => {
   const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-'))
@@ -20,6 +179,124 @@ test('canoniser : un chemin absent SOUS une jonction rend la cible réelle + le 
   }
 })
 
+// #2603
+test('canoniseurParDossier rend canoniser : feuille exacte, casse, jonction, absente, sous jonction, dossier absent, racine', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-memo-'))
+  try {
+    const cible = join(base, 'cible')
+    mkdirSync(cible)
+    writeFileSync(join(cible, 'Casse.md'), 'casse')
+    symlinkSync(cible, join(base, 'lien'), 'junction')
+    const chemins = [
+      join(cible, 'Casse.md'), join(cible, 'casse.md'), join(base, 'lien'), join(base, 'LIEN'), join(cible, 'absent.md'),
+      join(base, 'lien', 'Casse.md'), join(base, 'lien', 'absent', 'x.md'), join(base, 'absent', 'x.md'), base, cible,
+      join(tmpdir(), '..'), join(base, '..', '..'), base.split(/[\\/]/)[0] + '/',
+    ]
+    const canon = canoniseurParDossier()
+    for (const passe of [1, 2]) for (const chemin of chemins) assert.equal(canon(chemin), canoniser(chemin), `${passe} : ${chemin}`)
+    assert.equal(canon(join(base, 'lien', 'Casse.md')), join(realpathSync.native(cible), 'Casse.md'))
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+// #2603
+test('estPipeNomme : table de vérité sous win32 forcé, faux sous POSIX, plateforme du node:path par défaut', () => {
+  const lecteur = 'C' + ':'
+  const table = [
+    [String.raw`\\.\pipe\x`, true], ['//./pipe/x', true], [String.raw`\\?\pipe\x`, true], [String.raw`\\.\PIPE\x`, true],
+    [String.raw`\\srv\pipe\x`, true], [String.raw`\\localhost\pipe\x`, true], ['//srv/pipe/x', true], ['//h/pipe/x', true],
+    [String.raw`\\?\UNC\srv\pipe\x`, true], [String.raw`\\?\unc\srv\pipe\x`, true], ['//?/UNC/srv/pipe/x', true], [String.raw`\\.\UNC\srv\pipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\Device\NamedPipe\x`, true], [String.raw`\\?\GLOBALROOT\Device\NamedPipe\x`, true], [String.raw`\\.\GLOBALROOT\device\namedpipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\GLOBAL??\PIPE\x`, true], [String.raw`\\.\GLOBALROOT\??\PIPE\x`, true], [String.raw`\\.\GLOBALROOT\DosDevices\pipe\x`, true],
+    [String.raw`\\.\Global\pipe\x`, true], [String.raw`\\?\Global\pipe\x`, true], [String.raw`\\.\Global\Global\pipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\GLOBAL??\Global\pipe\x`, true], [String.raw`\\.\GLOBALROOT\??\Global\pipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\GLOBAL??\UNC\srv\pipe\x`, true], [String.raw`\\.\Global\UNC\srv\pipe\x`, true],
+    [String.raw`\\.\GLOBALROOT\Device\Mup\srv\pipe\x`, true], [String.raw`\\.\GLOBALROOT\Device\Mup\;LanmanRedirector\srv\pipe\x`, true],
+    ['\\\\.\\' + lecteur + '\\x', false], ['\\\\?\\' + lecteur + '\\x', false], [String.raw`\\?\Volume{0f1e2d3c-0000-0000-0000-100000000000}\x`, false],
+    ['\\\\.\\GLOBALROOT\\??\\' + lecteur + '\\x', false], ['\\\\.\\Global\\' + lecteur + '\\x', false], [String.raw`\\.\GLOBALROOT\Global\pipe\x`, false],
+    [String.raw`\\.\GLOBALROOT\Device\HarddiskVolume3\x`, false], [String.raw`\\.\GLOBALROOT\Device\Mup\srv\partage\x`, false],
+    [String.raw`\\?\UNC\srv\p`, false], [String.raw`\\?\unc\srv\partage\x`, false],
+    [String.raw`\\srv\partage\x`, false], [String.raw`\\srv\partage\pipe\x`, false], [lecteur + '\\x', false], [lecteur + '\\pipe\\x', false], ['/tmp/x', false],
+  ]
+  for (const [chemin, attendu] of table) {
+    assert.equal(estPipeNomme(chemin, path.win32), attendu, `win32 : ${chemin}`)
+    assert.equal(estPipeNomme(chemin, path.posix), false, `POSIX : ${chemin}`)
+    assert.equal(estPipeNomme(chemin), attendu && path.sep === '\\', `node:path : ${chemin}`)
+  }
+})
+
+// #2603
+test('pipe nommé : canoniser, canoniseurParDossier et relatifSousRacine ne l’ouvrent jamais', { skip: process.platform !== 'win32' }, async (t) => {
+  const { pipe, nom, connexionsHorsTemoin } = await servirPipe(t, 'wfrp-2603-canon')
+  const formes = [pipe, ...[
+    'localhost/pipe', '?/UNC/localhost/pipe', './GLOBALROOT/Device/NamedPipe', '?/GLOBALROOT/Device/NamedPipe', './GLOBALROOT/GLOBAL??/PIPE', './Global/pipe',
+  ].map((prefixe) => path.win32.join('\\\\' + prefixe.split('/').join('\\'), nom))]
+  const racine = canoniser(tmpdir())
+  for (const forme of formes) {
+    assert.equal(canoniser(forme), forme)
+    assert.equal(canoniseurParDossier()(forme), forme)
+    assert.equal(relatifSousRacine(racine, forme), null, forme)
+  }
+  assert.equal(await connexionsHorsTemoin(), 0, 'connexions ouvertes par la canonisation')
+})
+
+test('ancetreExistant : racine existante, lecteur absent et préfixes UNC', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-racines-'))
+  try {
+    const script = join(base, 'racines.mjs')
+    writeFileSync(script, [
+      "import assert from 'node:assert/strict'",
+      "import fs from 'node:fs'",
+      "import path from 'node:path'",
+      "import { tmpdir } from 'node:os'",
+      `import { ancetreExistant } from ${JSON.stringify(new URL('./chemin-mesure.mjs', import.meta.url).href)}`,
+      'const racine = path.resolve(tmpdir(), path.sep)',
+      'assert.equal(ancetreExistant(racine), racine)',
+      "assert.equal(ancetreExistant(path.join(racine, 'wfrp-absent-' + process.pid, 'a', 'b')), racine)",
+      "if (process.platform === 'win32') {",
+      "  const absent = ['Z:\\\\', 'Y:\\\\', 'X:\\\\'].find((r) => !fs.existsSync(r))",
+      '  assert.ok(absent)',
+      '  assert.equal(ancetreExistant(absent), null)',
+      "  assert.equal(ancetreExistant(path.join(absent, 'wfrp', 'absent')), null)",
+      "  const probes = []; const original = fs.existsSync",
+      "  fs.existsSync = (p) => { probes.push(p); return p === '\\\\\\\\serveur\\\\partage\\\\' }",
+      "  try { assert.equal(ancetreExistant('\\\\\\\\serveur\\\\partage\\\\a\\\\b'), '\\\\\\\\serveur\\\\partage\\\\') } finally { fs.existsSync = original }",
+      "  assert.deepEqual(probes, ['\\\\\\\\serveur\\\\partage\\\\a\\\\b', '\\\\\\\\serveur\\\\partage\\\\a', '\\\\\\\\serveur\\\\partage\\\\'])",
+      '}',
+    ].join('\n'))
+    const vu = spawnSync(process.execPath, [script], { encoding: 'utf8' })
+    assert.equal(vu.status, 0, `${vu.stdout}${vu.stderr}`)
+  } finally { rmSync(base, { recursive: true, force: true }) }
+})
+
+test('canonisation stricte : un composant de 300 caractères est ABSENT, sur le disque et sous ENAMETOOLONG (#2603)', () => {
+  const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-long-'))
+  const stat = fs.statSync
+  const realpath = fs.realpathSync.native
+  const long = join(base, 'JAB'.repeat(100), 'x.md')
+  const attendu = join(realpath(base), 'JAB'.repeat(100), 'x.md')
+  try {
+    assert.equal(ancetreExistant(long, { strict: true }), base)
+    assert.equal(canoniser(long, { strict: true }), attendu)
+    const tropLong = (chemin) => chemin.split(/[\\/]/).some((segment) => segment.length > 255)
+    fs.statSync = (chemin, ...reste) => {
+      if (tropLong(chemin)) throw Object.assign(new Error('banc'), { code: 'ENAMETOOLONG' })
+      return stat(chemin, ...reste)
+    }
+    fs.realpathSync.native = (chemin, ...reste) => {
+      if (tropLong(chemin)) throw Object.assign(new Error('banc'), { code: 'ENAMETOOLONG' })
+      return realpath(chemin, ...reste)
+    }
+    assert.equal(ancetreExistant(long, { strict: true }), base)
+    assert.equal(canoniser(long, { strict: true }), attendu)
+  } finally {
+    fs.statSync = stat
+    fs.realpathSync.native = realpath
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('ancetreExistant : le chemin lui-même s’il existe, son ancêtre sinon', () => {
   const base = mkdtempSync(join(tmpdir(), 'wfrp-canon-'))
   try {
@@ -28,4 +305,151 @@ test('ancetreExistant : le chemin lui-même s’il existe, son ancêtre sinon', 
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
+})
+
+test('politique : sorties ignorées stables, règles imbriquées et exclude attestés', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': 'cache/\n*.md\n', 'data/source.txt': 'source' } })
+  try {
+    const signature = () => perimetreDeMesure(racine).signature
+    const initiale = signature()
+    mkdirSync(join(racine, 'cache'))
+    writeFileSync(join(racine, 'cache', 'sortie.md'), 'sortie')
+    writeFileSync(join(racine, 'doc.md'), 'doc')
+    assert.deepEqual(signature(), initiale)
+    writeFileSync(join(racine, 'data', '.gitignore'), '*.txt\n!source.txt\n')
+    const imbriquee = signature()
+    assert.notDeepEqual(imbriquee, initiale)
+    writeFileSync(join(racine, 'data', '.gitignore'), '*.txt\n')
+    assert.notDeepEqual(signature(), imbriquee)
+    const avantExclude = signature()
+    writeFileSync(join(racine, '.git', 'info', 'exclude'), 'autre/\n')
+    assert.notDeepEqual(signature(), avantExclude)
+    assert.equal(dansLaMesure('node_modules/paquet.mjs', new Set(), new Set(['node_modules/paquet.mjs'])), false)
+    assert.equal(dansLaMesure('cache/code.ts', new Set(['cache']), new Set(['cache/code.ts'])), true)
+    assert.equal(dansLaMesure('cache', new Set(['cache']), new Set(['cache/code.ts'])), true)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('politique : global configuré avec espaces, valeur vide et standard XDG attestés', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '', 'source.txt': 'source' } })
+  const ancienXdg = process.env.XDG_CONFIG_HOME
+  try {
+    const xdg = join(racine, 'standard avec espaces')
+    process.env.XDG_CONFIG_HOME = xdg
+    mkdirSync(join(xdg, 'git'), { recursive: true })
+    const signature = () => perimetreDeMesure(racine).signature
+    const absente = signature()
+    writeFileSync(join(xdg, 'git', 'ignore'), '*.tmp\n')
+    assert.notDeepEqual(signature(), absente)
+    const global = join(racine, 'global avec espaces')
+    writeFileSync(global, '*.cache\n')
+    lancerGit(['config', 'core.excludesFile', global], { cwd: racine })
+    const configuree = signature()
+    writeFileSync(global, '*.autre\n')
+    assert.notDeepEqual(signature(), configuree)
+    lancerGit(['config', 'core.excludesFile', ''], { cwd: racine })
+    const vide = signature()
+    assert.deepEqual(vide.global.configuration, [''])
+    lancerGit(['config', '--unset', 'core.excludesFile'], { cwd: racine })
+    assert.notDeepEqual(signature(), vide)
+  } finally {
+    if (ancienXdg === undefined) delete process.env.XDG_CONFIG_HOME
+    else process.env.XDG_CONFIG_HOME = ancienXdg
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('politique : .gitignore ignoré dans un dossier admissible reste attesté', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '**/.gitignore\n!/.gitignore\n', 'source.txt': 'source' } })
+  try {
+    mkdirSync(join(racine, 'neuf'))
+    writeFileSync(join(racine, 'neuf', '.gitignore'), '*.txt\n')
+    const avant = perimetreDeMesure(racine).signature
+    writeFileSync(join(racine, 'neuf', '.gitignore'), '*.md\n')
+    assert.notDeepEqual(perimetreDeMesure(racine).signature, avant)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('politique : racine imbriquée signe tous les .gitignore ancêtres, jonction entrante identique', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '*.tmp\n', 'a/.gitignore': '*.cache\n', 'a/b/source.txt': 'source' } })
+  const alias = mkdtempSync(join(tmpdir(), 'politique-alias-'))
+  try {
+    const imbriquee = join(racine, 'a', 'b')
+    const signature = perimetreDeMesure(imbriquee).signature
+    assert.deepEqual(signature.fichiers.map(([rel]) => rel), ['.gitignore', 'a/.gitignore', 'a/b/.gitignore'])
+    symlinkSync(imbriquee, join(alias, 'entrant'), 'junction')
+    assert.deepEqual(perimetreDeMesure(join(alias, 'entrant')).signature, signature)
+    writeFileSync(join(racine, '.gitignore'), '*.autre\n')
+    assert.notDeepEqual(perimetreDeMesure(imbriquee).signature, signature)
+  } finally { rmSync(alias, { recursive: true, force: true }); rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('politique : worktree lié partage le chemin effectif info/exclude et son hash', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '.wt-banc/\n', 'source.txt': 'source' } })
+  try {
+    const cible = join(racine, '.wt-banc')
+    lancerGit(['worktree', 'add', '-q', '-b', 'chantier/politique', cible, 'HEAD'], { cwd: racine })
+    const avant = perimetreDeMesure(racine).signature
+    assert.deepEqual(perimetreDeMesure(cible).signature, avant)
+    writeFileSync(join(racine, '.git', 'info', 'exclude'), '*.cache\n')
+    const apres = perimetreDeMesure(cible).signature
+    assert.notDeepEqual(apres, avant)
+    assert.deepEqual(apres, perimetreDeMesure(racine).signature)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('politique : standard HOME sans XDG et .gitignore symbolique non suivi', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '', 'source.txt': 'source' } })
+  const maison = mkdtempSync(join(tmpdir(), 'politique-home-'))
+  const ancienHome = process.env.HOME
+  const ancienXdg = process.env.XDG_CONFIG_HOME
+  try {
+    process.env.HOME = maison
+    delete process.env.XDG_CONFIG_HOME
+    mkdirSync(join(maison, '.config', 'git'), { recursive: true })
+    writeFileSync(join(maison, '.config', 'git', 'ignore'), '*.tmp\n')
+    const avant = perimetreDeMesure(racine).signature
+    assert.equal(avant.global.chemin, join(maison, '.config', 'git', 'ignore'))
+    writeFileSync(join(maison, '.config', 'git', 'ignore'), '*.cache\n')
+    assert.notDeepEqual(perimetreDeMesure(racine).signature, avant)
+    mkdirSync(join(racine, 'symbolique'))
+    symlinkSync(maison, join(racine, 'symbolique', '.gitignore'), 'junction')
+    const symbolique = perimetreDeMesure(racine).signature
+    assert.deepEqual(symbolique.fichiers.find(([rel]) => rel === 'symbolique/.gitignore')[1], { lien: fs.readlinkSync(join(racine, 'symbolique', '.gitignore')) })
+    writeFileSync(join(maison, 'cible.txt'), 'changement externe')
+    assert.deepEqual(perimetreDeMesure(racine).signature, symbolique)
+  } finally {
+    if (ancienHome === undefined) delete process.env.HOME; else process.env.HOME = ancienHome
+    if (ancienXdg === undefined) delete process.env.XDG_CONFIG_HOME; else process.env.XDG_CONFIG_HOME = ancienXdg
+    rmSync(racine, { recursive: true, force: true }); rmSync(maison, { recursive: true, force: true })
+  }
+})
+
+test('politique : lecture et configuration refusées ne deviennent pas des absences', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '', 'source.txt': 'source' } })
+  const lire = fs.readFileSync
+  try {
+    fs.readFileSync = function (p, ...args) {
+      if (String(p) === join(racine, '.gitignore')) throw Object.assign(new Error('témoin EACCES'), { code: 'EACCES' })
+      return lire.call(this, p, ...args)
+    }
+    assert.throws(() => perimetreDeMesure(racine), /témoin EACCES/)
+    fs.readFileSync = lire
+    writeFileSync(join(racine, '.git', 'config'), '[configuration invalide\n')
+    assert.throws(() => perimetreDeMesure(racine))
+  } finally { fs.readFileSync = lire; rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('confinement : jonction sortante rejetée et ses règles jamais lues', () => {
+  const { racine } = instanceDeDepot({ fichiers: { '.gitignore': '', 'source.txt': 'source' } })
+  const dehors = mkdtempSync(join(tmpdir(), 'politique-dehors-'))
+  try {
+    writeFileSync(join(dehors, '.gitignore'), '*.cache\n')
+    symlinkSync(dehors, join(racine, 'sortant'), 'junction')
+    assert.equal(relatifSousRacine(canoniser(racine), join(racine, 'sortant', '.gitignore')), null)
+    const avant = perimetreDeMesure(racine).signature
+    writeFileSync(join(dehors, '.gitignore'), '*.autre\n')
+    assert.deepEqual(perimetreDeMesure(racine).signature, avant)
+    assert.ok(!avant.fichiers.some(([rel]) => rel === 'sortant/.gitignore'))
+  } finally { rmSync(racine, { recursive: true, force: true }); rmSync(dehors, { recursive: true, force: true }) }
 })

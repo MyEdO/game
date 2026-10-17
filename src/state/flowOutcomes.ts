@@ -34,6 +34,7 @@ import { estCibleType, cibleLabel } from '../engine/psychology';
 import { activityById, matchOutcomes } from '../engine/activities';
 import { isFumble } from '../engine/oups';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure, SL_ASTOUNDING } from '../engine/tests';
+import { bargainBuyDiscountPct } from '../engine/bargain';
 import { healWoundsDelta, cappedHealAmount } from '../engine/healing';
 import { corruptionGain } from '../engine/corruption';
 import type { Combatant } from '../engine/types';
@@ -169,11 +170,13 @@ export function describeActivity(pa: PendingActivity): string {
 export function describeBargain(pb: PendingBargain): string {
   const won = pb.result?.attackerWins ?? false;
   const drNet = pb.result?.netSL ?? 0;
-  const discount = won ? (drNet >= SL_ASTOUNDING || pb.negotiator ? t('out.fragDiscount20') : t('out.fragDiscount10')) : '—';
-  // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 → le marchand se méfie.
-  if (!won && drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious');
-  if (won) return pb.mode === 'buy' ? t('out.bargainWonBuy', { discount }) : t('out.bargainWonSell');
-  return pb.mode === 'buy' ? t('out.bargainLostBuy') : t('out.bargainLostSell');
+  // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 → le vendeur se méfie.
+  if (!won && drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious', { who: pb.opposant.label });
+  const c = pb.contrepartie;
+  if (c.kind === 'billet') return won ? t('out.bargainWonBillet') : t('out.bargainLostBillet');
+  const discount = t('out.fragDiscount', { pct: bargainBuyDiscountPct(won, drNet, pb.negotiator) });
+  if (won) return c.mode === 'buy' ? t('out.bargainWonBuy', { discount }) : t('out.bargainWonSell');
+  return c.mode === 'buy' ? t('out.bargainLostBuy') : t('out.bargainLostSell');
 }
 
 /** Évaluation / Détection d'artefact (LDB 59 l.41 / 10 l.310-312) : issue de la popin. La VALIDATION

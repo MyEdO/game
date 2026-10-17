@@ -10,7 +10,7 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { restesRoutants } from './solde-ticket-guard.mjs'
+import { restesRoutants } from '../git-hooks/porte-du-commit.mjs'
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const SOLDES = join(RACINE, '.claude', 'soldes')

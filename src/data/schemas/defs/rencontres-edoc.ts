@@ -1,11 +1,5 @@
-/**
- * Schéma de `rencontres-edoc.json` — Rencontres de voyage EDOC 8 (d100, 3 tables), miroir de
- * `TravelTableEntry` (`src/engine/travelTables.ts`) + l'enveloppe `{ id, label, die, source,
- * tables }` (voir `EncounterCategory` de `travelTables.ts`).
- *
- * `travelTableEntrySchema` est PROMU dans `grammaire/mecanique.ts` — MÊME forme que les entrées de
- * `incidents-monture.json`/`problemes-vehicule.json` (les trois miroitent `TravelTableEntry`).
- */
+import { nommerChamps } from '../grammaire/meta';
+/** EDOC 8 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { travelTableEntrySchema } from '../grammaire/mecanique';
@@ -19,10 +13,14 @@ const doc = document(
   famille,
   {
     die: z.string(),
-    tables: z.strictObject({
+    tables: nommerChamps(z.strictObject({
       positives: listeCle(travelTableEntrySchema, 'id'),
       fortuites: listeCle(travelTableEntrySchema, 'id'),
       dangereuses: listeCle(travelTableEntrySchema, 'id'),
+    }), {
+      positives: { label: 'Positives' },
+      fortuites: { label: 'Fortuites' },
+      dangereuses: { label: 'Dangereuses' },
     }),
   },
   {

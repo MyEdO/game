@@ -29,8 +29,8 @@ function construireScene(): Scene {
     walls: [{ x: 5, y: 3, side: 'N', climb: { kind: 'surface' } }],
     heroStart: [5, 1], // le Chasseur, sur le plateau, hors d'atteinte au sol
     startMessage:
-      "Vous tenez le plateau : l'araignée géante, en contrebas, ne peut vous rejoindre qu'en escaladant " +
-      "l'unique paroi praticable (Trait Grimpant : elle grimpe sans effort, à pleine vitesse).",
+      { texte: "Vous tenez le plateau : l'araignée géante, en contrebas, ne peut vous rejoindre qu'en escaladant " +
+      "l'unique paroi praticable (Trait Grimpant : elle grimpe sans effort, à pleine vitesse)." },
   });
   setEncounters(scene, [
     { id: 'enc-grimpant', enemies: [{ ref: 'araignee-geante', pos: { x: 5, y: 8 }, facing: 'N' }] },

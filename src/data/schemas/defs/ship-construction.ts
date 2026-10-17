@@ -1,31 +1,25 @@
-/**
- * Schéma de `ship-construction.json` — CONSTRUIRE UN NAVIRE (MDG 12 l.108-193). Consommé par
- * `src/engine/shipBuild.ts` (`DATA as unknown as { ... }`, cast inline reflété ICI 1:1) : tableau
- * CARACTÉRISTIQUES DE BATEAU STANDARD, Propulsion, Manœuvrabilité, Traits de vitesse, Traits de
- * construction. `size` = `ShipSize` (`src/data/index.ts`).
- */
+import { nommerChamps } from '../grammaire/meta';
+/** MDG 12 l.108-193 */
 import { z } from 'zod';
 import { document, type EnveloppeDocument } from '../grammaire/document';
-import { ecartsDeCouverture, plageOuverteSchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { ecartsDeCouverture, plageOuverteSchema, profilDePropulsionSchema, shipSizeSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle, marquerCollection, marqueDeListe } from '../grammaire/collection-cle';
 
 export const file = 'ship-construction.json';
 export const famille = 'config';
 
-const propulsionRow = z.strictObject({ m: z.number(), crew: z.number() });
-
 const champs = {
   standard: marquerCollection(
     z.array(
-      z.strictObject({
+      nommerChamps(z.strictObject({
         /** id STABLE = `size` (déjà une clé fermée à 7 valeurs) — identité d'entrée pour le Codex (#422). */
         id: z.string(),
         size: shipSizeSchema,
         costGold: z.number(),
         crew: z.number(),
         /** Absent pour les catégories non propulsables à la voile/à la rame (l.133). */
-        sail: propulsionRow.optional(),
-        oars: propulsionRow.optional(),
+        sail: profilDePropulsionSchema.optional(),
+        oars: profilDePropulsionSchema.optional(),
         /** Colonne « Taille » du tableau standard (l.122-129), en mètres : une FOURCHETTE `{min, max}`
          *  que `findTableEntry` (`src/engine/tables.ts`) lit. La dernière bande est OUVERTE — le livre
          *  imprime « 81+ » (l.129) et aucun plafond (`plageOuverteSchema`). */
@@ -34,6 +28,18 @@ const champs = {
         b: z.number(),
         capacity: z.number(),
         source: sourceRefSchema,
+      }), {
+        id: { label: 'Identifiant' },
+        size: { label: 'Taille' },
+        costGold: { label: 'Coût en couronnes d’or' },
+        crew: { label: 'Équipage' },
+        sail: { label: 'Voile' },
+        oars: { label: 'Avirons' },
+        lengthM: { label: 'Longueur (m)' },
+        e: { label: 'Endurance' },
+        b: { label: 'Extrémité d’arrivée' },
+        capacity: { label: 'Capacité' },
+        source: { label: 'Source' },
       }),
     ).superRefine((rangees, ctx) => {
       // CONTIGUÏTÉ des longueurs — invariant du TABLEAU, pas d'une rangée : une taille seule ne sait
@@ -55,10 +61,14 @@ const champs = {
     }),
     marqueDeListe<{ id: string }>('id'),
   ),
-  propulsion: z.strictObject({ secondaryMalus: z.number(), secondaryMinM: z.number(), source: sourceRefSchema }),
-  manoeuvrability: z.array(z.strictObject({ manDR: z.number(), costPct: z.number(), source: sourceRefSchema })),
+  propulsion: nommerChamps(z.strictObject({ secondaryMalus: z.number(), secondaryMinM: z.number(), source: sourceRefSchema }), {
+    secondaryMalus: { label: 'Malus du mode secondaire' },
+    secondaryMinM: { label: 'Mouvement minimal du mode secondaire' },
+    source: { label: 'Source' },
+  }),
+  manoeuvrability: z.array(nommerChamps(z.strictObject({ manDR: z.number(), costPct: z.number(), source: sourceRefSchema }), { manDR: { label: 'DR de manœuvre' }, costPct: { label: 'Coût (%)' }, source: { label: 'Source' } })),
   speedTraits: listeCle(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
       mMod: z.number(),
@@ -66,11 +76,19 @@ const champs = {
       manDR: z.number(),
       costPct: z.number(),
       source: sourceRefSchema,
+    }), {
+      id: { label: 'Identifiant' },
+      label: { label: 'Libellé' },
+      mMod: { label: 'Modificateur de Mouvement' },
+      capacityPct: { label: 'Capacité (%)' },
+      manDR: { label: 'DR de manœuvre' },
+      costPct: { label: 'Coût (%)' },
+      source: { label: 'Source' },
     }),
     'id',
   ),
   constructionTraits: listeCle(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       id: z.string(),
       maxLevel: z.number(),
       costPctPerLevel: z.number(),
@@ -78,6 +96,14 @@ const champs = {
       bPctPerLevel: z.number().optional(),
       capacityPctPerLevel: z.number().optional(),
       source: sourceRefSchema,
+    }), {
+      id: { label: 'Identifiant' },
+      maxLevel: { label: 'Niveau maximal' },
+      costPctPerLevel: { label: 'Coût par niveau (%)' },
+      ePerLevel: { label: 'Endurance par niveau' },
+      bPctPerLevel: { label: 'Blessures par niveau (%)' },
+      capacityPctPerLevel: { label: 'Capacité par niveau (%)' },
+      source: { label: 'Source' },
     }),
     'id',
   ),

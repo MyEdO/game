@@ -36,11 +36,11 @@ const construireScene = (): Scene => buildScene({
   terrain: 'planches',
   heroStart: [3, 7],
   startMessage:
-    'Le batelier hurle et pointe l’aval : « Pirates à bâbord — et quelque chose de gros remue sous l’eau ! » Une ' +
+    { texte: 'Le batelier hurle et pointe l’aval : « Pirates à bâbord — et quelque chose de gros remue sous l’eau ! » Une ' +
     'barque hérissée de rames fond sur la barge, son équipage prêt à l’abordage. Entre les deux coques, l’onde se ' +
     'creuse : une anguille du Reik, énorme, s’enroule déjà autour d’un espar. Un Coup Critique sur le bois de la ' +
     'barge peut briser le gréement, les rames ou le gouvernail, envoyer des éclats voler ou ouvrir une voie d’eau — ' +
-    'gare à quiconque reste sur le pont. Repoussez l’abordage et abattez l’anguille !',
+    'gare à quiconque reste sur le pont. Repoussez l’abordage et abattez l’anguille !' },
   encounters: [
     {
       id: 'enc-fluvial',

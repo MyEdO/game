@@ -1,3 +1,4 @@
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /**
  * Schéma de `tables.json` — Tables d'EFFETS référençables (`EffectTable`, `src/data/effectTables.ts`).
  * Rangées `[min,max] → GameOp[]` tirées par l'op `rollTable` variante `tableId`. Miroir de `mutationTables`
@@ -17,11 +18,11 @@ const doc = document(
   {
     die: deDeTableSchema,
     rows: z.array(
-      z.strictObject({
+      nommerChamps(z.strictObject({
         ...plageSchema.shape,
         label: z.string().optional(),
         ops: z.array(gameOpSchema),
-      }),
+      }), { ...metaDesChamps(plageSchema, { exigees: true }), label: { label: 'Libellé' }, ops: { label: 'Opérations' } }),
     ),
   },
   {

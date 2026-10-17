@@ -31,7 +31,7 @@
 // Échappement documenté : `SKIP_NEW_SRC_GUARD=1` laisse passer et TRACE la dérogation (stderr +
 // `.claude/logs/new-src-guard-skips.log`, gitignoré).
 import { existsSync, readFileSync } from 'node:fs'
-import { OUTILS_CREATION, cheminVise, ecritLeFichierEntier, ecrituresDe } from '../guards/lib/contratGarde.mjs'
+import { OUTILS_CREATION, cheminVise, ecritLeFichierEntier, ecrituresDe, fichierExistait } from '../guards/lib/contratGarde.mjs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve, relative, isAbsolute } from 'node:path'
 
@@ -46,6 +46,7 @@ export const JOURNAL = join(REPO, '.claude', 'logs', 'new-src-guard-skips.log')
  *  entrée fantôme laissée dans l'arbre, deux tests rouges en cascade et un arbre sale pour toutes les
  *  gates). Un test ne rend pas l'arbre de travail écrivable : il se donne son propre registre. */
 export const cheminRegistre = (env = process.env) => env.WFRP_REGISTRE_ECRANS || REGISTRE_DEFAUT
+export const cheminJournal = (env = process.env) => env.WFRP_JOURNAL_NEW_SRC_GUARD || JOURNAL
 
 /**
  * Chemin relatif à la RACINE DU DÉPÔT, séparateurs POSIX — `null` si le fichier vit hors du dépôt
@@ -79,7 +80,7 @@ const MAQUETTE_RESERVEE = /^(?:(?:todo|à faire|a faire|tbd|fixme)\b|[-–—?.�
  *
  *  CE QUE CETTE PORTE PROUVE : qu'une trace de validation a été ÉCRITE — garde-fou d'ÉTOURDERIE
  *  (déclaration oubliée, réservation laissée en place), PAS de CONTREFAÇON (même statut que le
- *  contrôle de capture de `solde-ticket-guard`). Rien ici ne dit que la maquette a été vue : c'est la
+ *  contrôle de capture de `verifierCaptures`, `scripts/git-hooks/porte-du-commit.mjs`). Rien ici ne dit que la maquette a été vue : c'est la
  *  revue qui le juge. */
 export const maquetteEntree = (e) => {
   if (typeof e === 'string') return ''
@@ -146,14 +147,14 @@ export const RAPPEL_SRC = (rel) =>
  *  `WFRP_REGISTRE_ECRANS` ; la dérogation prise demande sa TRACE au journal. */
 function verdictsDe(ecrit, env) {
   const fp = String(cheminVise(ecrit) ?? '')
-  if (!fp || existsSync(fp)) return null
+  if (!fp || fichierExistait(ecrit, () => existsSync(fp))) return null
   const rel = relPath(fp)
   if (!rel || !rel.startsWith('src/')) return null // hors du dépôt, ou hors de src/
   const verdicts = []
 
   if (estComposantUI(rel)) {
     // Registre ou manifeste illisible → on REFUSE (fail-closed) : une garde qui lève rend un contexte
-    // de panne (`scripts/hooks/repartiteur.mjs`), jamais un refus — la garde passerait à vide.
+    // de panne (`scripts/hooks/repartition.mjs`), jamais un refus — la garde passerait à vide.
     let déclaré = false
     let panne = null
     try {
@@ -166,7 +167,7 @@ function verdictsDe(ecrit, env) {
     }
     if (!déclaré) {
       if (env.SKIP_NEW_SRC_GUARD !== '1') return { decision: 'deny', raison: panne ? messageRegistreCasse(rel, panne) : messageRefus(rel) }
-      verdicts.push({ trace: { fichier: JOURNAL, ligne: `${new Date().toISOString()} SKIP_NEW_SRC_GUARD=1 ${rel}\n` } })
+      verdicts.push({ trace: { fichier: cheminJournal(env), ligne: `${new Date().toISOString()} SKIP_NEW_SRC_GUARD=1 ${rel}\n` } })
     }
   }
   return [...verdicts, { contexte: RAPPEL_SRC(rel) }]

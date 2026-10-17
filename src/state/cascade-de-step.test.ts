@@ -39,7 +39,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
   it('(i) une étape `de` mintée n’est PAS prête, et `cascadeDieRoll` pose un total DANS la plage naturelle', () => {
     const st = chute('d1');
     expect(stepInteraction(st)).toBe('de');
-    expect(stepReady(st)).toBe(false);
+    expect(stepReady(st, useGame.getState())).toBe(false);
     useGame.getState().seedRng(4);
     startCascade(useGame.getState, useGame.setState, { title: 'Chute', purpose: 'test', steps: [st] });
     useGame.getState().cascadeNext(); // pas encore tiré → no-op : la fenêtre force d'abord le dé
@@ -51,7 +51,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
     expect(res.roll).toBeGreaterThanOrEqual(plage.min);
     expect(res.roll).toBeLessThanOrEqual(plage.max);
     expect(res.total, 'sans mod ni plus, le total EST le naturel').toBe(res.roll);
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(true);
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(true);
     useGame.getState().cascadeNext();
     expect(tombes).toEqual([{ roll: res.roll, total: res.total }]);
     expect(useGame.getState().pendingCascade).toBeNull();
@@ -98,7 +98,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
 
   it('(iv) `runCascadeImmediate` résout un `de` d’office ET le JOURNALISE (dé + total avec son unité)', () => {
     useGame.getState().seedRng(9);
-    const out = runCascadeImmediate(useGame.getState, useGame.setState, [chute('d3', { forcedRoll: 13 })]);
+    const out = runCascadeImmediate(useGame.getState, useGame.setState, [chute('d3', { forcedRoll: 13 })])!;
     expect(out[0].de!.result).toEqual({ roll: 13, total: 13 });
     expect(tombes).toEqual([{ roll: 13, total: 13 }]);
     const lignes = useGame.getState().journal.filter((l) => /Hauteur de chute/.test(l));

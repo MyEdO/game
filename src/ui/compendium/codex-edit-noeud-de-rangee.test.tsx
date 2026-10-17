@@ -142,7 +142,7 @@ describe('atelier du Codex — nœud de la RANGÉE d’une catégorie éditable 
     const cible = marqueurs[marqueurs.length - 1];
     setDataset('landCargo', cargaisons.map((c) => (c === cible ? { ...c, echangeable: '' } : c)) as never);
     const ecran = monter('landCargo', cible);
-    const faute = (sujet: string) => [`${sujet} — JSON invalide contre son schéma :`, '  - echangeable: Entrée invalide'];
+    const faute = (sujet: string) => [`${sujet} — JSON invalide contre son schéma :`, '  - échangeable: Entrée invalide'];
     expect(fautesDe(ecran)).toEqual(faute(cible.label));
 
     saisir([...ecran.querySelectorAll<HTMLInputElement>('.codex-edit-form input')].find((i) => i.value === cible.label)!, `${cible.label} bis`);

@@ -1,10 +1,5 @@
-/**
- * Schéma de `driving-mishap.json` — Tableau des Accidents de Conduite d'attelage EN SCÈNE
- * (LDB 09 l.140-149), 1d10. Reflet de `MishapEntry`/`DrivingMishapOutcome`. L'ISSUE tirée est
- * `outcome` — graphie du dépôt pour une issue de table (`sea-navigation.json::orientation.reperes`,
- * `mecanique.ts::travelTableEntry.mount.outcome`), la MÉCANIQUE exécutable restant `ops`
- * (`src/engine/drivingMishap.ts`).
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** LDB 09 l.140-149. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme, plageSchema } from '../grammaire/valeurs';
@@ -21,12 +16,18 @@ export const file = 'driving-mishap.json';
 export const famille = 'config';
 
 /** Une rangée du 1d10 : `outcome` = identifiant de l'ISSUE tirée. */
-const mishapEntrySchema = z.strictObject({
+const mishapEntrySchema = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   id: z.string(),
   label: z.string(),
   outcome: drivingMishapOutcomeSchema,
   desc: z.string(),
+}), {
+  ...metaDesChamps(plageSchema, { exigees: true }),
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  outcome: { label: 'issue' },
+  desc: { label: 'texte' },
 });
 
 const doc = document(

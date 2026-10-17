@@ -25,16 +25,24 @@ import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun,
 import { DOCUMENTAIRE, gatesSautables } from '../gates/classerPush.mjs'
 import { REGEN_RECIPE } from '../guards/lib/npmLockHoisted.mjs'
 import { SURFACE_CLAUDE, aplatirHooks } from '../agents/compat-core.mjs'
+import { PLAFOND_RELANCES } from '../guards/lib/coursesCi.mjs'
+import { DELAI_RELANCE_MS } from '../ops/reprendre-file.mjs'
+import { DELAI_FILE_MS } from '../guards/lib/fusionPr.mjs'
+
+const OUTIL = 'build-reprise'
+
+function abandon(msg) {
+  console.error(`${OUTIL} — ${msg}`)
+  process.exit(1)
+}
+
+function chemin(p) {
+  if (!existsSync(p)) abandon(`chemin « ${p} » introuvable (déplacé/supprimé ?)`)
+  return p
+}
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
-  const OUTIL = 'build-reprise'
-
-  function abandon(msg) {
-    console.error(`${OUTIL} — ${msg}`)
-    process.exit(1)
-  }
-
   // ── Sources FACTUELLES ───────────────────────────────────────────────────────────────────────────
 
   const PKG = JSON.parse(readFileSync('package.json', 'utf8'))
@@ -44,12 +52,6 @@ function rendu() {
     const v = PKG.scripts?.[nom]
     if (!v) abandon(`script npm « ${nom} » absent de package.json (renommé/supprimé ?)`)
     return v
-  }
-
-  /** Chemin qui doit exister sur disque (fail-fast). */
-  function chemin(p) {
-    if (!existsSync(p)) abandon(`chemin « ${p} » introuvable (déplacé/supprimé ?)`)
-    return p
   }
 
   // Clés `git config` posées par `postinstall` — dédupliquées sur leur préfixe `<section>.<nom>`.
@@ -201,7 +203,6 @@ function rendu() {
 
   const SRC_GATES = readFileSync(chemin('scripts/gates/toutes.mjs'), 'utf8')
   const SRC_PREPUSH = readFileSync(chemin('scripts/git-hooks/pre-push.mjs'), 'utf8')
-  const SRC_RULESET = readFileSync(chemin('scripts/ops/ruleset-main.mjs'), 'utf8')
 
   /** Options de `npm run gates`, DÉRIVÉES du lanceur : `argv.includes` (drapeau) ET `argv.indexOf`
    *  (option à valeur, comme `--gates a,b`) — ne lire que le premier en oubliait la moitié. */
@@ -213,12 +214,6 @@ function rendu() {
   /** Variable qui borne la suite pendant les lanes (nommée par le lanceur lui-même). */
   const BORNE_SUITE = (SRC_GATES.match(/\bWFRP_[A-Z_]+COEURS\b/) ?? [])[0]
   if (!BORNE_SUITE) abandon('scripts/gates/toutes.mjs ne borne plus la suite par une variable `WFRP_*COEURS`')
-
-  /** Régime de push : sa date et son verbatim, lus AU RULESET — c'est lui la porte (#1776). */
-  const REGIME = /Décision utilisateur du (\d{4}-\d{2}-\d{2}), verbatim : «\s*([^»]+?)\s*»/.exec(
-    SRC_RULESET.replace(/^\/\/ ?/gm, '').replace(/\s*\n\s*/g, ' '),
-  )
-  if (!REGIME) abandon('scripts/ops/ruleset-main.mjs ne porte plus la décision utilisateur datée en verbatim')
 
   /** Nombre de refus que le hook `pre-push` NOMME — lu au hook, jamais recopié. */
   const NB_REFUS_PREPUSH = (SRC_PREPUSH.match(/^\/\/\s+\d\.\s/gm) ?? []).length
@@ -258,20 +253,24 @@ function rendu() {
       texte: () =>
         `\`core.hooksPath\` → \`scripts/git-hooks\` : les hooks ${listeCode(HOOKS_GIT)} ne tournent plus. Le
    \`pre-commit\` REFUSE au nom de l'intégrité (arbre imbriqué, lock npm amputé, fins de ligne) et
-    AVERTIT sur la forme, que la CI refuse ; les tests liés au diff se jouent à la main
-    (\`npm run test:lies\`). \`post-checkout\`,
+    AVERTIT sur la forme, que la CI refuse ; les tests du périmètre se jouent à la main
+    (\`npm run test:perimetre\`). \`post-checkout\`,
     \`post-merge\` et \`post-rewrite\` lisent d'abord la plage Git reçue. \`post-commit\` traite les
     commits de fusion résolus manuellement, depuis l'ancien HEAD du reflog vers le nouveau HEAD ;
     un amend du seul message ne réinstalle rien. Un reflog absent impose la réparation conservatrice
     annoncée ; un commit ordinaire ne lance aucun équipement. Un lockfile modifié impose
     \`npm ci\` dans sa racine (racine ou \`server/\`) avant toute génération ; un échec nomme la
     réparation à rejouer et arrête les générations, sans annuler la fusion déjà effectuée. Les docs
-    se régénèrent par sélection des sources mesurées, préalables et lecteurs aval ; une mesure
-    absente/incomplète, une cible absente ou un outil de mesure modifié impose le lot complet,
-    annoncé. Les générateurs de CODE suivent eux aussi cette sélection et ses préalables ; un lot
-    vide ou sans source pertinente ne les rejoue pas. Un changement de toolchain impose le lot
-    complet, car les lectures de dépendances ne sont pas mesurées. Les cibles de code déjà produites
-    se vérifient sans réécriture pendant cette passe.
+    se régénèrent uniquement lorsque leur attestation est périmée. La passe \`--perimes\` consulte
+    chaque certificat au rang du registre canonique, puis renouvelle sa vue après écriture : une
+    sortie identique laisse son lecteur frais. L'attestation couvre aussi la clôture des imports des
+    outils de génération, de mesure et de certification. La plage Git décide de l'équipement npm ;
+    les sources, sondes, listings, sorties et outils mesurés décident des générations. Tous les modes
+    d'écriture, code et mixtes compris, mesurent et certifient ; une fusion déjà attestée ne rejoue
+    aucun générateur lors du commit de fusion. Un commit ordinaire examine aussi l'attestation de
+    l'arbre courant, sans équipement npm. Un arbre neuf conserve sa consigne d'équipement.
+    Une préparation illisible ou une certification impossible arrête la passe en erreur avant
+    le générateur suivant ; une source ou un outil changé pendant la passe invalide son attestation.
     Chaque étape annonce début, fin et durée. La fermeture des issues suit la PUBLICATION : job
    \`fermetures\` de
    \`.github/workflows/fermetures.yml\`, sur chaque push de \`main\` dont les checks requis sont verts, qui joue
@@ -290,7 +289,9 @@ function rendu() {
       texte: (module) =>
         `Le pilote de fusion des stocks de sites (${listeCode(pilotesDe(module))}), déclaré par
    \`.gitattributes\` et servi par \`${module}\` : fusion par groupe de site ; sans lui, deux soldes
-   de groupes disjoints d'un même stock rouvrent un conflit. Un stock se régénère par la commande
+   de groupes disjoints d'un même stock rouvrent un conflit. Le serveur (GitHub) n'exécute aucun pilote
+   de fusion : une PR en conflit se reprend par le train (étape \`file\`, #2525). Tous les stocks se
+   régénèrent par \`npm run stocks:regen\`, un seul par
    \`npx tsx scripts/guards/lib/regenStock.mts <module qui mesure>\`, jamais par \`docs:build\`.`,
     },
   ].map((f) => ({ ...f, porte: f.porte ?? clePiloteDe(f.module) }))
@@ -349,7 +350,7 @@ function rendu() {
     {
       quoi: `Sorties de QC (\`${motif('public/qc/*')}\`)`,
       pourquoi: 'planches de revue régénérables — pas du source',
-      acces: `régénérables par les scripts \`scripts/qc/\` ; deux exceptions restent VERSIONNÉES : \`${motif('!public/qc/baseline-affine/')}\` (baseline affine, #1176 C3) et \`${motif('!public/qc/soldes/')}\` (les captures que cite le champ \`capture:\` d'un solde — la porte \`verifierCapture\` de \`scripts/hooks/solde-ticket-guard.mjs\` refuse une capture ignorée par git)`,
+      acces: `régénérables par les scripts \`scripts/qc/\` ; deux exceptions restent VERSIONNÉES : \`${motif('!public/qc/baseline-affine/')}\` (baseline affine, #1176 C3) et \`${motif('!public/qc/soldes/')}\` (les captures que cite le champ \`capture:\` d'un solde — la porte \`verifierCapture\` de \`scripts/git-hooks/porte-du-commit.mjs\` refuse une capture ignorée par git)`,
     },
     {
       quoi: `Réglages Claude Code personnels (\`${motif('.claude/*')}\`)`,
@@ -395,33 +396,65 @@ npm run dev     # http://localhost:5173 (un CLONE garde le port historique)
 **Chantier et publication.** \`npm run ops:chantier -- <N>\` (\`${script('ops:chantier')}\`) ouvre le
 chantier du ticket \`<N>\` depuis n'importe quel worktree du dépôt (le chantier se pose à côté de
 l'arbre principal) : il pose le worktree lié \`.wt-<N>\` sur \`origin/main\`, crée la branche
-\`chantier/<N>\`, y joue \`npm ci\` et imprime le port dev dérivé. \`npm run ops:publier -- --detache\`
+\`chantier/<N>\`, y joue \`npm ci\` et imprime le port dev dérivé. L’équipement final copie les docs
+Markdown dérivés depuis le principal lorsque les deux HEAD complets concordent. Chaque générateur
+porte son certificat local dans \`docs/.cache/docs-fraicheur.json\` : fichiers réellement lus,
+listings réellement parcourus, requêtes Git et sondes de présence, outillage et sorties. Pour chaque
+doc, des sources et sorties valides permettent la copie. Un certificat absent laisse les autres
+docs frais copiables ; les certificats locaux du code produit par \`npm ci\` sont conservés. Le code
+et les fichiers mixtes ne sont jamais copiés. La finalisation \`docs:build --perimes\` examine la
+fraîcheur au rang, y compris après une copie impossible ou interrompue, avec sa raison. Les modes
+sélectifs conservent les autres mesures et certificats. Un générateur rouge perd son seul certificat
+avant écriture ; une génération réussie reçoit sa nouvelle preuve. La certification exige des sources
+stables pendant la génération et au contrôle final. Les captures temporaires vivent dans
+\`docs/.cache/lectures/<PID>\`. Un export sans dépôt Git capture l'arbre physique, en excluant
+\`node_modules\` et \`docs/.cache\` ; un marqueur \`.git\` défectueux refuse la certification.
+Une sélection de code ou de fichiers mixtes vide n'écrit rien. \`docs:check\` rejoue toujours les générateurs et
+vérificateurs, sans écrire de preuve ni modifier les docs. \`npm run ops:publier -- --detache\`
 (\`${script('ops:publier')}\`) joue ensuite le train de publication ENTIER depuis ce worktree, détaché
-du harnais, et imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte
-(\`node <racine>/scripts/ops/publier.mjs --veiller <run>\`) qui SUIT ce run jusqu'au verdict — elle lit le
-journal JSON, émet une ligne par transition d'étape, finit sur la ligne \`PUBLICATION:\` et sort en 0
-(vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur, borne dépassée). C'est la seule
-veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne porte le numéro
-\`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par la même commande suivie de
-\`--depuis <dernier seq lu>\`, sans rien ré-émettre, et sa borne court depuis le LANCEMENT du run. Le train régénère et commet les docs MIXTES (\`node scripts/docs/build-all.mjs --mixtes\`), POUSSE la branche
-de chantier, ouvre sa PR vers \`main\` et l'ARME ; la FILE DE FUSION du serveur la juge sur son commit de
-file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). Aucun rebase : une
-PR éjectée de la file pour un conflit ou un dérivé périmé se reprend par une FUSION d'\`origin/main\`
-dans la branche, une fois ; un run neuf rotationne le log
+du harnais. Le train capture la tête committée dans un worktree détaché isolé, installe ses dépendances par \`npm ci\` et y exécute les imports, générateurs et étapes. Le WIP, l’index, HEAD et la branche locale du codeur restent intacts. La ref distante reste la branche de chantier originale ; son SHA est capturé avant fetch et sert de bail explicite à chaque push. Une avance concurrente est refusée. Le journal de l’arbre source porte les SHA demandé et publié ainsi que le snapshot, repris par \`--reprendre\` tant que le train n’est pas soldé. Un verrou par branche sérialise les trains ; le snapshot n’est retiré sans forcer qu’après fusion constatée. Une nouvelle tête peut remplacer un train arrêté : son journal est archivé et son snapshot conservé. Si l’ancienne tête publiée porte des commits absents du correctif, le train les fusionne dans le nouveau snapshot avant les docs et le push, sous le bail capturé ; une avance distante étrangère reste refusée. \`--etapes\` et \`--veiller\` ne créent aucun snapshot. Le lanceur imprime son \`pid\`, son \`log\` et sa \`veille\` : la commande exacte, COMPOSITE
+(\`node <racine>/scripts/ops/publier.mjs --veiller <run>; node <racine>/scripts/ops/publier.mjs --veiller <run> --constat\`),
+qui SUIT ce run jusqu'au verdict — elle lit le journal JSON, émet une ligne par transition d'étape, finit sur
+la ligne \`PUBLICATION:\` et sort en 0 (vert), 1 (rouge) ou sur un code nommé (indéterminée, arrêt moteur,
+borne dépassée), jamais 127 : une veille tuée, son \`--constat\` reprend depuis la dernière transition du
+journal et rend le code du verdict. Un train mort sans verdict est CONSTATÉ au journal par sa veille ou par le
+prochain \`ops:publier\` : mort en \`fin\`, la publication est verte (\`INTERROMPUE\`, avec la mesure du
+principal). C'est la seule veille d'un train : jamais un filtre du log texte écrit à la main. Chaque ligne
+porte le numéro \`#<seq>\` de sa transition ; une veille interrompue se RÉ-ARME par
+\`… --veiller <run> --depuis <dernier seq lu>; … --veiller <run> --constat\`, sans rien ré-émettre, et sa
+borne court depuis le LANCEMENT du run. La CI d'une
+branche poussée s'attend de même, en fond : \`npm run ops:ci -- --attendre [<sha>]\` (\`${script('ops:ci')}\`)
+attend la course \`CI\` du sha poussé et sort sur son verdict, un code par verdict (verte 0, rouge 1, annulée,
+absente, borne dépassée), en nommant sur un rouge les tests en échec de chaque job rouge ; \`--echecs <run>\`
+rend cette extraction pour une course nommée. Le train régénère et commet les docs MIXTES (\`node scripts/docs/build-all.mjs --mixtes\`), POUSSE la branche
+de chantier, ouvre sa PR vers \`main\` et ARME l’auto-merge à l’étape \`pr\` par \`gh pr merge --auto --match-head-commit <sha>\`, avant l’attente de la CI. \`ops:ruleset\` active \`allow_auto_merge: true\` sur le dépôt. Après un refus explicite d’auto-merge journalisé, le train utilise le repli \`enqueuePullRequest\`. La FILE DE FUSION du serveur la juge sur son commit de
+file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). L'étape \`file\`
+journalise le compte qui demande la fusion ; une course de branche ANNULÉE s'attend, sa relance appartenant à
+la reprise serveur, jusqu'à son ${PLAFOND_RELANCES}ᵉ essai, où le train rend la main avec le geste
+\`gh run rerun <id> --failed\`. Aucun rebase : l'étape \`file\` reprend une PR par une FUSION
+d'\`origin/main\` dans la branche, une fois, si elle est en CONFLIT avec la base (vu sur la PR avant la
+demande, ou relu après un refus de la demande) ou éjectée de la file par une course rouge qui lui est
+ATTRIBUÉE ; l'étape \`docs\` régénère alors les stocks de sites (\`npm run stocks:regen\`) et les commet
+(\`chore(stocks)\`, #2525) ; un refus sans conflit reste rouge ; une PR éjectée par une course de file
+ANNULÉE se redemande sur la même tête, sans fusion, dans la même borne ; un run neuf rotationne le log
 précédent en \`<branche>.<AAAAMMJJ-HHMMSS>.log\` (péremption 7 jours) — ce n'est pas une archive, le
 \`npm ci\` d'\`ops:chantier\` efface \`node_modules/.cache/\`.
 
-**Reprise serveur de file.** Le workflow \`reprise-file.yml\` reprend les PR ouvertes par le train de \`chantier/**\` vers \`main\` après une CI verte, même après la mort du train et un rerun. Leur corps porte la signature canonique écrite par le train. Il lit exclusivement le code de \`main\`, relit la tête avant la demande REST \`merge-async\`, suit une réponse \`pending\` pendant au plus 12 sondes espacées de 5 secondes et ne dit « en file » que sur \`enqueued\`. Une réconciliation toutes les 10 minutes couvre une PR ouverte après la CI ; GitHub peut retarder une course planifiée. Le résumé du run et les commentaires sur la PR et ses tickets cités portent le SHA, le run/attempt et le résultat ; les commentaires lient la course CI et la veille serveur. Un refus ou une indétermination donne la commande \`npm run ops:publier -- --detache\`. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit les candidates sans demander de fusion ni commenter.
+**Reprise serveur de file.** Le workflow \`reprise-file.yml\` lit exclusivement le code de \`main\`. Il ne met jamais de PR en file : sous \`GITHUB_TOKEN\`, une entrée ne déclenche pas de workflow \`merge_group\` ([documentation GitHub](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)). Une PR armée est observée sans alerte ; seule une PR verte du train non armée et hors file est nommée avec le geste \`npm run ops:publier -- --detache\`, une seule fois par PR et tête. Le lecteur partagé avec le train local contrôle la tête publiée et l’entrée GraphQL ; une entrée \`AWAITING_CHECKS\` âgée de ${DELAI_FILE_MS / 60_000} minutes sans course CI \`merge_group\` pour sa tête de groupe est nommée après relecture de la même entrée. Une lecture refusée ou non exhaustive reste indéterminée. Une course de branche annulée, sans job rouge, est relancée par \`rerun-failed-jobs\` ${DELAI_RELANCE_MS / 60_000} minutes après sa dernière mise à jour ; à son ${PLAFOND_RELANCES}ᵉ essai, le geste devient \`gh run rerun <id> --failed\`. Une course rouge reste ignorée. Les commentaires sur la PR et ses tickets cités portent le SHA et le run/attempt ; les relances sont dédupliquées par course et essai. La réconciliation toutes les 10 minutes couvre les PR ouvertes après la CI et les courses annulées. La sonde \`node scripts/ops/reprendre-file.mjs --lecture-seule\` lit ces états sans relancer ni commenter.
 
 **Suivi de vague.** Toute reprise (compaction, lendemain, pause) commence par RELIRE
-\`.git/suivi/<N>.md\`, le suivi de l'épique \`<N>\` : seule source du plan et du prochain geste, il vit
-dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas.
-\`npm run ops:suivi -- <N>\` (\`${script('ops:suivi')}\`) en rafraîchit la zone mesurée (branche,
-avance, état d'issue de chaque ticket prévu) et l'imprime ; \`-- <N> --creer\` pose le suivi d'une
-vague neuve, et sans \`<N>\` il liste les suivis présents.
+\`.git/suivi/<N>.json\`, le suivi de l'épique \`<N>\` : seule source du plan et du prochain geste, il vit
+dans le répertoire git COMMUN, hors versionnement — un clone frais ne l'a pas. Il ne s'écrit que par
+\`npm run ops:suivi -- <N> --<geste> …\` (\`${script('ops:suivi')}\`) ou l'outil du mod \`harnais\` ;
+\`-- <N>\` en imprime la situation, \`-- <N> --rendu\` le suivi entier, \`-- <N> --mesurer\` mesure
+branche, avance et état d'issue de chaque ticket dans \`<N>.mesure.json\`, \`-- <N> --creer <titre>\` pose le
+suivi d'une vague neuve, et sans \`<N>\` il liste les suivis présents. À la relecture, le suivi est CONFRONTÉ à
+sa mesure : une mesure absente, périmée ou d'une autre portée, et chaque anomalie (ticket fermé, chantier
+qu'aucun suivi ne nomme…), se disent en tête ; sous Claude, le mod relance la mesure, sous Codex
+\`-- <N> --mesurer\` le fait à la main.
 
 \`ops:chantier\` annonce le fetch, la création du worktree et chaque équipement avant de les
-lancer ; \`ops:suivi\` annonce chaque geste de sa mesure, puis imprime son profil final. Ces
+lancer ; \`ops:suivi -- <N> --mesurer\` annonce chaque geste de sa mesure, puis imprime son profil final. Ces
 annonces portent début, fin et durée sur stderr ; la sortie des équipements reste visible.
 Lors du \`post-checkout\` initial d'un worktree (ancien SHA de quarante zéros et mesure absente),
 le hook annonce cet équipement requis et laisse \`ops:chantier\` le jouer une seule fois.
@@ -444,8 +477,9 @@ ${lignesFamilles}
 Le partage de la suite (\`${script('test')}\`) est décidé par \`repartitionWorkers\` : en dessous de
 ${SEUIL} cœurs, un seul processus Vitest ; au-delà, un processus \`node\` et un processus \`jsdom\`. Les
 cœurs servis sont bornés par la mémoire DISPONIBLE au lancement (\`capacite\`) : autant de workers que
-la mémoire en porte, à l'empreinte mesurée d'un worker sous sa borne de tas, une réserve déduite par
-processus Vitest. Les variables
+la mémoire en porte, à l'empreinte d'un worker de son régime (\`EMPREINTES_WORKER_MO\`, \`--regime\` de
+\`scripts/test/run.mjs\`), jamais moins que \`PLANCHER_WORKERS\` quand les cœurs le permettent, une réserve
+(\`PARENT_MO\`) déduite par processus Vitest. Les variables
 d'environnement \`WFRP_TEST_COEURS\` et \`WFRP_TEST_MEMOIRE_MO\` forcent ces deux mesures (seule façon
 de jouer l'autre chemin sur une machine quelconque).
 
@@ -555,7 +589,7 @@ et son journal sépare le temps machine LOCAL du temps d'ATTENTE de GitHub.
 
 ## 6. Gates et livraison
 
-**Régime** (arbitrage utilisateur ${REGIME[1]} : « ${REGIME[2]} ») : une branche \`chantier/**\` se
+**Régime** (\`scripts/ops/ruleset-main.mjs\`, #2178) : une branche \`chantier/**\` se
 pousse **LIBREMENT**, aussi souvent qu'on veut — c'est le push qui déclenche la CI, et la CI joue les
 mêmes gates que la file. \`main\` n'avance que par la **FILE DE FUSION**, et c'est le SERVEUR qui la
 tient et la SÉRIALISE : le ruleset \`main\` (\`${script('ops:ruleset')}\`, mode \`active\`) exige une PR,
@@ -567,6 +601,14 @@ nomme ${NB_REFUS_PREPUSH} refus, dont celui de TOUT push vers la ref \`main\`.
 Ajouter une gate, c'est ajouter UN step à \`ci.yml\` — rien d'autre ne la récite.
 
 **Rejeu LOCAL \`npm run gates\`** (\`${script('gates')}\`), un confort de diagnostic, jamais une porte :
+Les gates de \`ECRIT_LU\` sont refusées à tous les appelants locaux par \`codeur-gates-guard\`.
+Pousser la branche puis lire la CI avec \`gh run watch\` ou \`gh run view --log-failed\`.
+Les tests de périmètre et \`typecheck:fast\` restent locaux. Sur demande explicite de l'utilisateur,
+\`node scripts/gates/sur-demande-utilisateur.mjs --raison "texte de la demande" --gates lint\`
+annonce le rejeu exceptionnel et sa raison avant de déléguer au lanceur canonique ; l'exemption
+porte sur cet appel seul. Une sonde Vitest sans filtre exige une configuration externe ou ignorée
+non suivie, statiquement vérifiable, dont \`test.include\` nomme un seul fichier sans glob.
+
 ${NB_GATES_CLASSEES} gates en ${LANES_CI.length} lanes parallèles de LECTEURS — aucune gate
 n'écrit dans l'arbre hors de sa porte (\`ecritFerme\`) :
 

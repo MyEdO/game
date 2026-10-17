@@ -9,6 +9,9 @@
 // `WFRP_TEST_PARTIE=i/K` ne joue que la tranche `i` de la suite (`trancher`, partition.mjs), sous
 // le même choix partagé/mono : c'est le job matrice `suite` de `.github/workflows/ci.yml`.
 //
+// `--regime=lot|suite` (`regimeDeArgv`, partition.mjs ; `suite` par défaut) choisit l'empreinte d'un worker
+// (`EMPREINTES_WORKER_MO`) qui borne les workers ; il n'est jamais transmis à Vitest.
+//
 // La sortie des enfants est relayée telle quelle ET tee-ée AU FIL DE L'EAU dans
 // `node_modules/.cache/vitest-run-<pid>.txt` : un run tué (timeout, coupure) laisse quand même son
 // début, et le fichier porte LUI-MÊME son `status:` — seul artefact hors du pont d'outillage.
@@ -21,14 +24,14 @@ import {
   argumentsEnfant,
   bilanDiagnostic,
   bornesWorkers,
-  capacite,
-  coeurs,
+  capaciteDuLanceur,
   codeAgrege,
   codeEnfant,
   compterSentinelles,
   enteteCapture,
   envEnfant,
   partieDe,
+  regimeDeArgv,
   partitionner,
   porteBilan,
   refusDePartie,
@@ -38,13 +41,15 @@ import {
   resumeLancement,
   SENTINELLES,
   cotesRequis,
-  memoireDisponibleMo,
   separerArguments,
   cheminsGlobSuspects,
   TAS_UTILISE,
+  ateliersMorts,
+  nomDAtelier,
 } from './partition.mjs'
 import { refusOutillageLocal } from '../outillage-local.mjs'
-import { estPidVivant, prendreVerrou, verrouRequis } from './verrou.mjs'
+import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
+import { attenteDeSuite, prendreVerrouDeSuite, verrouRequis } from './verrouDeSuite.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
@@ -60,7 +65,7 @@ if (refusVitest) {
 // hors de l'arbre versionné, mais SOUS le projet — les configs générées y résolvent
 // `vite`/`@vitejs/plugin-react` par remontée normale de `node_modules`.
 const ATELIERS = path.join(RACINE, 'node_modules/.vitest-split')
-const ATELIER = path.join(ATELIERS, String(process.pid))
+const ATELIER = path.join(ATELIERS, nomDAtelier(process.pid, performance.timeOrigin))
 const CACHE = path.join(RACINE, 'node_modules/.cache')
 // Un fichier PAR PID : deux sessions concurrentes ne s'écrasent pas.
 const CAPTURE = path.join(CACHE, `vitest-run-${process.pid}.txt`)
@@ -78,20 +83,23 @@ const supprimer = (cible) => {
 /** Ateliers des lanceurs morts (suppression refusée sur le coup, machine éteinte en plein run) :
  *  le lanceur suivant les balaie, ceux des lanceurs vivants restent intacts. */
 const balayerAteliersMorts = () => {
-  for (const nom of fs.existsSync(ATELIERS) ? fs.readdirSync(ATELIERS) : []) {
-    const pid = Number(nom)
-    if (!Number.isInteger(pid) || pid === process.pid || estPidVivant(pid)) continue
-    supprimer(path.join(ATELIERS, nom))
-  }
+  const noms = fs.existsSync(ATELIERS) ? fs.readdirSync(ATELIERS) : []
+  for (const nom of ateliersMorts(noms, { pid: process.pid, identite: IDENTITE_MESUREE })) supprimer(path.join(ATELIERS, nom))
 }
 
 const posix = (p) => p.split(path.sep).join('/')
 
 const DEBUT = Date.now()
-const ARGV = process.argv.slice(2)
+const ARGV_DU_LANCEUR = process.argv.slice(2)
+const REGIME = regimeDeArgv(ARGV_DU_LANCEUR)
+if (REGIME.refus) {
+  console.error(`[test] REFUS — ${REGIME.refus}`)
+  process.exit(2)
+}
+const ARGV = REGIME.argv
 const { filtres, mono } = separerArguments(ARGV, (t) => fs.existsSync(path.resolve(RACINE, t)))
 const PARTIE = partieDe(process.env[VARIABLE_PARTIE])
-const refusPartie = PARTIE?.refus ?? (PARTIE ? refusDePartie({ filtres, argv: ARGV }) : null)
+const refusPartie = PARTIE?.refus ?? (PARTIE ? refusDePartie({ filtres, argv: ARGV_DU_LANCEUR }) : null)
 if (refusPartie) {
   console.error(`[test] REFUS — ${refusPartie}`)
   process.exit(2)
@@ -106,13 +114,12 @@ const estFichier = (t) => {
     return false
   }
 }
-const verrou = !verrouRequis(filtres, estFichier)
-  ? { etat: 'ignore' }
-  : prendreVerrou({
-      commande: [process.execPath, ...process.argv.slice(1)].join(' '),
-      cwd: RACINE,
-      estVivant: estPidVivant,
-    })
+const verrou = prendreVerrouDeSuite({
+  requis: verrouRequis(filtres, estFichier),
+  commande: [process.execPath, ...process.argv.slice(1)].join(' '),
+  cwd: RACINE,
+  annoncer: (tenant) => console.error(`[verrou] ${attenteDeSuite(tenant)}`),
+})
 if (verrou.etat === 'refus') {
   console.error(verrou.message)
   process.exit(2)
@@ -121,10 +128,7 @@ if (verrou.avertissement) console.error(verrou.avertissement)
 const ENV = envEnfant(process.env)
 // Mémoire DISPONIBLE, pas totale : ce que ce processus peut encore obtenir au lancement, limite de
 // cgroup et autres processus déjà servis — c'est elle que les workers se partagent (#1801).
-const CAPACITE = capacite(
-  coeurs(process.env, () => os.availableParallelism()),
-  memoireDisponibleMo(process.env),
-)
+const CAPACITE = capaciteDuLanceur(process.env, REGIME.regime)
 const CPUS = CAPACITE.servis
 const WORKERS = repartitionWorkers(CPUS)
 // Mode RÉELLEMENT servi : le partage se décide au-delà du seuil, mais se retire encore après coup

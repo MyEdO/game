@@ -25,8 +25,10 @@ import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs'
 const ROOT = fileURLToPath(new URL('..', import.meta.url)); // racine du projet (src/ → ..)
 
 const VI = 'vi';
-/** Appels de mock de MODULE (composés, cf. #828) — la famille dont la liaison dépend de l'ordre. */
-const MODULE_MOCK_CALLS = [`${VI}.mock(`, `${VI}.doMock(`];
+/** Appels qui touchent au registre de modules du worker (composés, cf. #828) — le mock de MODULE, dont la
+ *  liaison dépend de l'ordre, et la remise à zéro du registre, qui fait réévaluer aux fichiers suivants
+ *  du worker des modules déjà chargés (deux instances d'un même singleton). */
+const MODULE_MOCK_CALLS = [`${VI}.mock(`, `${VI}.doMock(`, `${VI}.resetModules(`];
 
 /** `file:line` de chaque appel de mock de module d'une source. */
 export function moduleMockHits(source: string, label: string): string[] {
@@ -62,6 +64,7 @@ describe('garde-fou — mock de module interdit tant que la suite partage son gr
     const planted = ['const x = 1;', `${VI}.mock('./career', () => ({}));`].join('\n');
     expect(moduleMockHits(planted, 'plante.test.ts')[0]).toContain('plante.test.ts:2');
     expect(moduleMockHits(`${VI}.doMock('./x');`, 'p.test.ts')).toHaveLength(1);
+    expect(moduleMockHits(`  ${VI}.resetModules();`, 'p.test.ts')[0]).toContain('p.test.ts:1');
   });
 
   it('faux positif écarté : un espion ou une assertion typée ne sont pas des mocks de module', () => {

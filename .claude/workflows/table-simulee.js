@@ -1,7 +1,7 @@
 export const meta = {
   name: 'table-simulee',
-  description: "Table papier SIMULÉE d'un chapitre de campagne, sur son DOSSIER : un lecteur prépare les 4 PJ du groupe prétiré canonique (sans rien savoir du chapitre), un autre désigne le sosie sur le dossier et la liste des PJ ; la fiche du MJ est tirée du dossier. Puis une partie de `maxEchanges` échanges au plus (défaut : 3 par beat du dossier ; chaque échange coûte ≈ 5 agents, 1 MJ + 4 joueurs), plafond que le MJ ignore — un MJ agent qui cite le livre ou déclare IMPRO, tire chaque jet par l'outil de dés du moteur et rend le sort de chaque déclencheur, quatre joueurs CLOISONNÉS à personas (dont deux adverses), que le MJ et les autres joueurs ne connaissent que par leur PJ —, enfin un juge classe chaque intention et chaque déclencheur non joué ou écarté, mesure les temps morts en beats, relève chaque secret que la narration du MJ a fui, et le script calcule le verdict et les besoins retenus. Toute sortie d'agent qui désigne un membre d'un ensemble fermé (PJ, déclencheur en attente, beat, persona, secret, échange, id du sosie) est contrainte par le SCHÉMA de son appel — enum, ou objet dont les clés sont exactement les membres qui doivent chacun recevoir une entrée —, jamais re-vérifiée par le script. Le verdict se DÉRIVE de `trous`, une liste par espèce : SIGNAL ou THÉÂTRE quand toutes sont vides, sinon la première espèce trouée le nomme — INTERROMPU (le MJ n'a rien rendu, à quelque échange que ce soit), PARTIE INCOMPLÈTE (un joueur sans rendu), PARTIE ANOMALE (sosie à id vide qui cite un passage, tirage hors suite, déclencheur non joué sans motif, secret fui par la narration du MJ), SANS ANALYSE (juge sans rendu) ; ARRÊT avant la partie. Rend le journal complet (base de rejeu), l'analyse, les déclencheurs non joués et écartés. args : { livre, chapitre, fichiers, dossier, seed, maxEchanges?, personas?, worktree, date } — `dossier` = le rendu de `dossier-de-chapitre` du même chapitre, au verdict DOSSIER.",
-  whenToUse: "Sur un chapitre à forte ambiguïté (méthode de #665, étape 4), APRÈS son dossier de chapitre, qu'elle consomme : pour mesurer ce que des joueurs FONT du chapitre — intentions prévues, improvisées, refusées, hors livre — avant d'en décider les médias et les besoins. Le verdict THÉÂTRE dit que les personas adverses n'ont pas joué : le run ne prouve rien.",
+  description: "Table papier SIMULÉE d'un chapitre de campagne, sur son DOSSIER : un lecteur prépare les 4 PJ du groupe prétiré canonique (sans rien savoir du chapitre), un autre désigne le sosie sur le dossier et la liste des PJ ; la fiche du MJ est tirée du dossier. Puis une partie de `maxEchanges` échanges au plus (défaut : 3 par beat du dossier ; chaque échange coûte ≈ 5 agents, 1 MJ + 4 joueurs), plafond que le MJ ignore — un MJ agent qui cite le livre ou déclare IMPRO, tire chaque jet par l'outil de dés du moteur et rend le sort de chaque déclencheur, quatre joueurs CLOISONNÉS à personas (dont deux adverses), que le MJ et les autres joueurs ne connaissent que par leur PJ —, enfin un juge classe chaque intention et chaque déclencheur non joué ou écarté, mesure les temps morts en beats, relève chaque secret que la narration du MJ a fui, et le script calcule le verdict et les besoins retenus. Toute sortie d'agent qui désigne un membre d'un ensemble fermé (PJ, déclencheur en attente, beat, persona, secret, échange, id du sosie) est contrainte par le SCHÉMA de son appel — enum, ou objet dont les clés sont exactement les membres qui doivent chacun recevoir une entrée —, jamais re-vérifiée par le script. Le verdict se DÉRIVE de `trous`, une liste par espèce : SIGNAL ou THÉÂTRE quand toutes sont vides, sinon la première espèce trouée le nomme — INTERROMPU (le MJ n'a rien rendu, à quelque échange que ce soit), PARTIE INCOMPLÈTE (un joueur sans rendu), PARTIE ANOMALE (sosie à id vide qui cite un passage, tirage hors suite, déclencheur non joué sans motif, secret fui par la narration du MJ), SANS ANALYSE (juge sans rendu) ; ARRÊT avant la partie. Rend le journal complet (base de rejeu), l'analyse, les déclencheurs non joués et écartés. args : { livre, chapitre, fichiers, dossier, seed, maxEchanges?, personas?, worktree, date } — `dossier` = l'OBJET de la fiche commitée du chapitre (`docs/dossiers/<livre>/<chapitre>.json`, schéma `ficheDeDossier`), chargé et gardé par le lanceur : `node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine>`.",
+  whenToUse: "Sur un chapitre à forte ambiguïté (méthode de #665, étape 4), APRÈS la fiche commitée de son dossier de chapitre, qu'elle consomme : pour mesurer ce que des joueurs FONT du chapitre — intentions prévues, improvisées, refusées, hors livre — avant d'en décider les médias et les besoins. Le verdict THÉÂTRE dit que les personas adverses n'ont pas joué : le run ne prouve rien.",
   phases: [
     { title: 'Préparation', detail: 'fiches des 4 PJ au groupe canonique, puis sosie désigné sur le dossier et la liste des PJ — le lecteur des fiches des PJ ne voit pas le chapitre ; la fiche du MJ vient du dossier' },
     { title: 'Partie', detail: 'boucle MJ puis joueurs cloisonnés en parallèle, dés tirés par le moteur' },
@@ -37,33 +37,18 @@ const DERNIERS_ECHANGES = 3
 /** Plafond par beat du dossier quand `args.maxEchanges` est absent. Mesure #1993 (EDO 01, 2026-09-29) : ≈2 échanges
  *  par beat atteint, MJ sans plafond ; 3 laisse la marge d'un beat qui en prend beaucoup plus. */
 const ECHANGES_PAR_BEAT = 3
-/** Ce que la fiche du MJ tire du dossier de chapitre (`dossier-de-chapitre.js`, sa forme de retour). */
+/** Ce que la fiche du MJ tire de la fiche de dossier du chapitre (`ficheDeDossier`, `src/data/source/dossier.ts`). */
 const CHAMPS_DE_LA_FICHE = ['imperatifs', 'beats', 'pnj', 'indices', 'secrets', 'pointsAuMJ', 'declencheurs']
-/** Le verdict d'un dossier relu par son juge de complétude — le seul qui arme une table. */
-const VERDICT_DE_DOSSIER_COMPLET = 'DOSSIER'
-/** Les espèces de trous qu'un dossier au contrat porte (`dossier-de-chapitre.js`, `trous`), chacune vide
- *  sous le verdict DOSSIER : un dossier qui en omet une est antérieur au contrat. */
-const TROUS_DU_DOSSIER = ['anomaliesDeLecture', 'lentillesSansRendu', 'completudeSansRendu', 'anomaliesDeCorrection', 'lotsSansRendu', 'besoinsNonConfrontes']
+/** Le lanceur qui projette `args`, dont la fiche du chapitre. */
+const LANCEUR = 'node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine>'
 /** Les déclencheurs d'une partie qui n'a pas eu lieu : la forme du retour ne change pas. */
 const SANS_DECLENCHEURS = { declencheursNonJoues: [], declencheursEcartes: [] }
 
-/** Ce que les trous d'un dossier au verdict DOSSIER disent de son contrat : une espèce absente, ou un trou. */
-function manquesDesTrous(trous) {
-  if (!trous || typeof trous !== 'object') return ['args.dossier.trous absent — dossier antérieur au contrat de la table, à refaire']
-  return [
-    ...TROUS_DU_DOSSIER.filter((espece) => !Array.isArray(trous[espece])).map((espece) => `args.dossier.trous.${espece} absent — dossier antérieur au contrat de la table, à refaire`),
-    ...Object.entries(trous).filter(([, liste]) => Array.isArray(liste) && liste.length).map(([espece, liste]) => `args.dossier.trous.${espece} : ${liste.join(', ')} — un dossier troué n'arme pas une table`),
-  ]
-}
-
 /** Ce qui manque au dossier reçu pour armer la table — vide quand il l'arme. */
 function manquesDuDossier() {
-  if (!DOSSIER) return ['args.dossier — le rendu de `dossier-de-chapitre` du même chapitre (la fiche du MJ en est tirée)']
+  if (!DOSSIER) return [`args.dossier — l'objet de la fiche commitée du chapitre (docs/dossiers/<livre>/<chapitre>.json, la fiche du MJ en est tirée) : ${LANCEUR}`]
   const manques = []
-  if (DOSSIER.livre !== LIVRE || DOSSIER.chapitre !== CHAPITRE) manques.push(`args.dossier — dossier de « ${DOSSIER.livre ?? '?'} ${DOSSIER.chapitre ?? '?'} », table de « ${LIVRE} ${CHAPITRE} » : un dossier n'arme que la table de SON chapitre`)
-  if (DOSSIER.verdict !== VERDICT_DE_DOSSIER_COMPLET) manques.push(`args.dossier — verdict « ${DOSSIER.verdict} » : seul un dossier au verdict ${VERDICT_DE_DOSSIER_COMPLET} (relu par son juge de complétude) arme une table`)
-  else manques.push(...manquesDesTrous(DOSSIER.trous))
-  for (const champ of CHAMPS_DE_LA_FICHE) if (!Array.isArray(DOSSIER[champ])) manques.push(`args.dossier.${champ} absent — dossier antérieur au contrat de la table, à refaire`)
+  for (const champ of CHAMPS_DE_LA_FICHE) if (!Array.isArray(DOSSIER[champ])) manques.push(`args.dossier.${champ} absent — la fiche du chapitre vient du lanceur : ${LANCEUR}`)
   if (Array.isArray(DOSSIER.beats) && !DOSSIER.beats.length) manques.push('args.dossier.beats vide — le MJ ne joue pas un chapitre sans beats')
   return manques
 }
@@ -275,8 +260,8 @@ const sosie = sosieRendu.id ? sosieRendu : null
 if (anomaliesDeSosie.length) log(`Préparation : anomalie de sosie — ${anomaliesDeSosie[0]} ; aucun PJ n’est marqué, le MJ ne reçoit aucun sosie.`)
 const joueurs = PERSONAS.map((persona, rang) => ({ persona, pj: fichesPJ.pjs[rang], sosie: Boolean(sosie) && fichesPJ.pjs[rang].id === sosie.id }))
 
-/** Les déclencheurs du dossier, un par id : la table n'arme que sur un `trous.anomaliesDeLecture` présent et
- *  vide (`manquesDesTrous`), qui nomme tout id vide ou en double. */
+/** Les déclencheurs de la fiche, un par id : le lanceur ne projette qu'une fiche au schéma `ficheDeDossier`,
+ *  dont les ids sont uniques. */
 const DECLENCHEURS = ficheMJ.declencheurs
 log(`Préparation : ${ficheMJ.beats.length} beats, ${ficheMJ.imperatifs.length} impératifs, ${DECLENCHEURS.length} déclencheur(s), tirés du dossier ; groupe ${fichesPJ.groupe.source} (sonde : ${fichesPJ.groupe.commande}). PJ par persona : ${joueurs.map((j) => `${j.persona} → ${j.pj.nom}${j.sosie ? ' (sosie)' : ''}`).join(', ')} ; sosie ${sosie ? sosie.id : 'aucun'} — ${sosieRendu.motif}.`)
 log(`Partie : ${MAX_ECHANGES} échanges au plus ; MJ et joueurs reçoivent les ${DERNIERS_ECHANGES} derniers échanges publics, le reste vit dans le résumé privé du MJ et les notes de chaque joueur.`)
@@ -293,7 +278,7 @@ const IDS_DES_BEATS = ficheMJ.beats.map((b) => b.id)
  *  `joue` à un échange, `ecarte` à un échange avec son motif. Joué ou écarté, il ne reçoit plus de sort. */
 const etatDe = new Map(DECLENCHEURS.map((d) => [d.id, { etat: 'attente', dernierStatut: 'aucun', motif: '' }]))
 const libelleDEtat = (e) => (e.etat === 'joue' ? `JOUÉ à l'échange ${e.echange}` : e.etat === 'ecarte' ? `ÉCARTÉ à l'échange ${e.echange} — ${e.motif}` : 'en attente')
-const etatDesDeclencheurs = () => DECLENCHEURS.map((d) => `- ${d.id} — ${d.evenement} — condition : ${d.condition} (${d.ref}) — ${libelleDEtat(etatDe.get(d.id))}`).join('\n') || '(aucun)'
+const etatDesDeclencheurs = () => DECLENCHEURS.map((d) => `- ${d.id} — ${d.evenement} — condition : ${d.condition} (${d.ref.join(' ; ')}) — ${libelleDEtat(etatDe.get(d.id))}`).join('\n') || '(aucun)'
 const echanges = []
 /** Notes privées par RANG de joueur : deux joueurs ne partagent jamais leurs notes. */
 const notes = joueurs.map(() => '')
@@ -322,7 +307,7 @@ ${CADRE}
 ${CHAPITRE_LU}
 Tu peux relire le chapitre au Source/ pour citer la ligne exacte.
 
-FICHE DU MJ (privée, tirée du dossier du chapitre tel que son juge de complétude l'a corrigé) :
+FICHE DU MJ (privée, tirée de la fiche commitée du dossier du chapitre) :
 ${JSON.stringify({ ...ficheSansDeclencheurs, ...(sosie ? { sosie } : {}) }, null, 1)}
 
 DÉCLENCHEURS DU LIVRE (événements à l'initiative d'un PNJ ou du monde) :
@@ -450,7 +435,7 @@ const declencheursNonJoues = DECLENCHEURS.filter((d) => etatDe.get(d.id).etat ==
   .map((d) => ({ id: d.id, evenement: d.evenement, ref: d.ref, dernierStatut: etatDe.get(d.id).dernierStatut, motif: etatDe.get(d.id).motif }))
 const declencheursEcartes = DECLENCHEURS.filter((d) => etatDe.get(d.id).etat === 'ecarte')
   .map((d) => ({ id: d.id, evenement: d.evenement, ref: d.ref, echange: etatDe.get(d.id).echange, motif: etatDe.get(d.id).motif }))
-const bilanDesDeclencheurs = `déclencheurs : ${declencheursNonJoues.length} NON JOUÉ(S)${declencheursNonJoues.length ? ` (${declencheursNonJoues.map((d) => `${d.id} ${d.ref}, dernier sort ${d.dernierStatut}`).join(' ; ')})` : ''}, ${declencheursEcartes.length} ÉCARTÉ(S)${declencheursEcartes.length ? ` (${declencheursEcartes.map((d) => `${d.id} à l'échange ${d.echange} — ${d.motif}`).join(' ; ')})` : ''}`
+const bilanDesDeclencheurs = `déclencheurs : ${declencheursNonJoues.length} NON JOUÉ(S)${declencheursNonJoues.length ? ` (${declencheursNonJoues.map((d) => `${d.id} ${d.ref.join(' ; ')}, dernier sort ${d.dernierStatut}`).join(' ; ')})` : ''}, ${declencheursEcartes.length} ÉCARTÉ(S)${declencheursEcartes.length ? ` (${declencheursEcartes.map((d) => `${d.id} à l'échange ${d.echange} — ${d.motif}`).join(' ; ')})` : ''}`
 
 /** Les anomalies d'une espèce, sur toute la partie, chacune à son échange. */
 const anomaliesDesEchanges = (espece) => echanges.flatMap((e) => e[espece].map((a) => `échange ${e.numero} : ${a}`))
@@ -508,7 +493,7 @@ Rends :
 - synthese.markdown : une synthèse courte.
 Un jet du journal se vérifie en rejouant sa commande : l'outil est déterministe.`,
   {
-    label: 'analyse', phase: 'Analyse', agentType: 'juge', model: 'opus', effort: 'medium',
+    label: 'analyse', phase: 'Analyse', agentType: 'juge', model: 'opus', effort: 'high',
     schema: {
       type: 'object', additionalProperties: false,
       properties: {
@@ -558,7 +543,7 @@ const declencheursJuges = aJuger.map((id) => ({ id, ...analyse.declencheurs[id] 
 const adverses = intentionsClassees.filter((i) => PERSONAS_ADVERSES.includes(i.persona) && (i.classe === 'refuse' || i.classe === 'hors-livre'))
 const besoins = analyse.besoins.map((b) => ({ ...b, retenu: b.personas.length >= 2 || b.ref !== '' }))
 const fuitesSourcees = analyse.fuites.map((f) => ({ ...f, ref: refDuSecret.get(f.secret) }))
-const fuites = fuitesSourcees.map((f) => `échange ${f.echange} : secret « ${f.secret} » — ${f.constat} (${f.ref})`)
+const fuites = fuitesSourcees.map((f) => `échange ${f.echange} : secret « ${f.secret} » — ${f.constat} (${f.ref.join(' ; ')})`)
 const manquesDuMJ = declencheursJuges.filter((d) => d.manque)
 const { verdict, trous } = conclusion(trousDuRun({ fuites }), adverses.length ? 'SIGNAL' : 'THÉÂTRE')
 log(`Analyse : ${verdict} — ${intentionsClassees.length} intention(s) classée(s), dont ${adverses.length} refusée(s) ou hors livre jouée(s) par les personas adverses (${PERSONAS_ADVERSES.join(', ')}) ; ${analyse.tempsMorts.length} temps mort(s) ; ${fuites.length} fuite(s) de secret ; ${bilanDesDeclencheurs}, dont ${manquesDuMJ.length} MANQUÉ(S) par le MJ ; besoins ${besoins.filter((b) => b.retenu).length} retenu(s) sur ${besoins.length} ; ${agents.total} agents joués (2 de préparation, ${agentsMJ} MJ, ${agentsJoueurs} joueurs, 1 juge).`)

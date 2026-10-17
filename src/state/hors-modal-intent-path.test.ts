@@ -295,6 +295,9 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   raiseHand: { parUI: true },
   lowerHand: { interne: 'actionRegistry.ACTION_RUN.raiseHand — le retrait est le `toggleOff` de la même entrée', dans: 'src/state/actionRegistry.ts' },
   assignVictoryGear: { parUI: true },
+  // Carnet d'enquête (#670) : l'épingle et la nouveauté vue, émises par `CarnetScreen`.
+  toggleCluePin: { parUI: true },
+  markCluesSeen: { parUI: true },
   partyAddHero: { parUI: true },
   partyRemoveHero: { parUI: true },
   partyReplaceHero: { parUI: true },

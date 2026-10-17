@@ -20,21 +20,16 @@
 *.ogg  binary
 *.wav  binary
 
-# --- Docs MIXTES : un fichier 100 % dérivé n'est pas commité (#2203, bloc de .gitignore). ---
-# Pilote déclaré par `npm run postinstall` (git config merge.docs-fiche-raw.driver), implémenté par
-# scripts/git-hooks/merge-docs.mjs.
-#   docs-fiche-raw : fiche MIXTE (prose manuscrite + champs `**Implémente :**` dérivés) — fusion
-#                    3-voies de la PROSE seule ; conflit résiduel = vrai conflit humain.
+# --- Pilotes de fusion LOCAUX : déclarés par `npm run postinstall` (git config merge.<nom>.driver). ---
+# GitHub n'exécute aucun pilote de fusion : une PR qui touche un fichier piloté en même temps que
+# `main` y est en conflit. Le train la reprend par fusion locale, régénération des stocks de sites et
+# nouvelle tête (scripts/ops/etapesDuTrain.mjs, étape `file`, #2525).
+
+# docs-fiche-raw : scripts/git-hooks/merge-docs.mjs (#2203).
 docs/raw/**/*.md              merge=docs-fiche-raw
 
-# --- Stocks : fusion par groupe de site. ---
-# Pilote `stocks`, déclaré par `npm run postinstall` (git config merge.stocks.driver), implémenté par
-# scripts/git-hooks/merge-stocks.mjs : chaque version est lue par le format de son extension
-# (`FORMATS`, scripts/guards/lib/stockDeSites.mjs) et la fusion se fait au niveau du GROUPE de site ;
-# deux soldes de groupes disjoints d'un même stock ne se heurtent plus. Ces motifs désignent les
-# fichiers qui ESSAIENT le pilote : un fichier sans collection de sites (un `*Stock.mjs` qui porte
-# d'autres formes, comme `legacyVocabStock.mjs`, `plageStock.mjs` ou `structuresStock.mjs`) retombe
-# sur la fusion 3-voies ordinaire. Un stock hors de ces motifs garde la fusion ordinaire.
+# stocks : scripts/git-hooks/merge-stocks.mjs, par groupe de site (`FORMATS`,
+# scripts/guards/lib/stockDeSites.mjs) ; un fichier sans collection de sites retombe sur la 3-voies.
 scripts/guards/lib/*Stock.mjs merge=stocks
 scripts/raw/*-stock.json      merge=stocks
 scripts/guards/*-stock.json   merge=stocks

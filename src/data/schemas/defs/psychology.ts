@@ -1,9 +1,5 @@
-/**
- * Schéma de `psychology.json` — États PSYCHOLOGIQUES (LDB 21), miroir de `PsychologyData extends
- * StatusData` (`src/data/index.ts`). Inventaire réel (9 entrées) : `gating` (hérité
- * de `StatusData`) n'est utilisé par AUCUNE entrée aujourd'hui — modélisé quand même (reflet de
- * l'interface), simplement optionnel et jamais peuplé en pratique.
- */
+import { nommerChamps } from '../grammaire/meta';
+/** LDB 21 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { difficultySchema, stakeFormSchema } from '../grammaire/valeurs';
@@ -19,21 +15,25 @@ const doc = document(
   {
     passive: z.array(gameOpSchema).optional(),
     effects: z.array(triggeredEffectSchema).optional(),
-    gating: z
+    gating: nommerChamps(z
       .strictObject({
         action: z.literal('none').optional(),
         movement: z.enum(['none', 'half', 'crawl']).optional(),
         cannotDefend: z.literal(true).optional(),
-      })
+      }), {
+      action: { label: 'Action' },
+      movement: { label: 'Déplacement' },
+      cannotDefend: { label: 'Défense impossible' },
+    })
       .optional(),
     psychImmune: z.boolean().optional(),
     targeted: z.boolean().optional(),
     endedByOtherPsych: z.boolean().optional(),
     immuneToFromTarget: z.array(z.string()).optional(),
-    attackDR: z.strictObject({ amount: z.number(), vs: z.enum(['source', 'group', 'any']) }).optional(),
+    attackDR: nommerChamps(z.strictObject({ amount: z.number(), vs: z.enum(['source', 'group', 'any']) }), { amount: { label: 'Quantité' }, vs: { label: 'Contre' } }).optional(),
     immuneWhileActive: z.array(z.string()).optional(),
     containedSocialMod: z.number().optional(),
-    targetCauses: z.strictObject({ kind: z.string(), indice: z.number() }).optional(),
+    targetCauses: nommerChamps(z.strictObject({ kind: z.string(), indice: z.number() }), { kind: { label: 'Type' }, indice: { label: 'Indice' } }).optional(),
     triggerOn: z.enum(['encounter', 'threatened']).optional(),
     /** ENJEU du Test de Psychologie (#1117 L2) — porté par l'ENTRÉE, pas par un gabarit de `kind` :
      *  les conséquences diffèrent d'une entrée à l'autre (`resolution`/`failCondition`/`failAmount`/
@@ -44,14 +44,14 @@ const doc = document(
     stakeForm: stakeFormSchema.optional(),
     resolution: z.enum(['extended', 'terreur', 'binary']).optional(),
     failCondition: z.string().optional(),
-    failAmount: z
+    failAmount: nommerChamps(z
       .strictObject({
         base: z.union([z.literal('indice'), z.number()]).optional(),
         perDegreeOfFailure: z.number().optional(),
-      })
+      }), { base: { label: 'Base' }, perDegreeOfFailure: { label: 'Par degré d’échec' } })
       .optional(),
     becomes: z.string().optional(),
-    test: z.strictObject({ skill: refOuSpec('skill').optional(), difficulty: difficultySchema.optional() }).optional(),
+    test: nommerChamps(z.strictObject({ skill: refOuSpec('skill').optional(), difficulty: difficultySchema.optional() }), { skill: { label: 'Compétence' }, difficulty: { label: 'Difficulté' } }).optional(),
   },
   {
     passive: { label: 'Effets passifs' },

@@ -10,9 +10,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contexteDeLaGarde, corpusDeLaGarde, estDansLeCorpus, scanLabelLogicFichier } from '../guards/lib/labelLogic.mjs';
-import { OUTILS_ECRITURE, ecrituresDe, texteAvant, texteNeuf } from '../guards/lib/contratGarde.mjs';
+import { OUTILS_ECRITURE, cheminDEcriture, ecrituresDe, texteAvant, texteNeuf } from '../guards/lib/contratGarde.mjs';
 import { INDEX, depotDe, lireEnLot } from '../guards/lib/gitPorte.mjs';
-import { cheminDEcriture } from './solde-ticket-guard.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -39,9 +38,9 @@ async function voletPoison(rel, reel) {
   if (!text) return [];
   const lines = [];
   for (const f of scanTombstones(rel, text))
-    lines.push(`POISON pierre tombale (règle 6c, tolérance zéro) — ${rel}:${f.line} ${f.detail}`);
+    lines.push(`POISON pierre tombale (règle 6, tolérance zéro) — ${rel}:${f.line} ${f.detail}`);
   for (const f of scanExcuses(rel, text))
-    lines.push(`${EXCUSE_GUARD_ACTIVE ? 'POISON' : 'ALERTE'} commentaire-excuse sans tag [entériné AAAA-MM-JJ] (règle 6b) — ${rel}:${f.line} ${f.detail}`);
+    lines.push(`${EXCUSE_GUARD_ACTIVE ? 'POISON' : 'ALERTE'} commentaire-excuse sans tag [entériné AAAA-MM-JJ] (règle 6) — ${rel}:${f.line} ${f.detail}`);
   // Famille (e) — #1486 : un mot qui nomme l'état d'avant se solde par la mort du site (stock
   // nominatif décroissant `legacyVocabStock.mjs`), ou par un tag `[entériné]` de l'utilisateur.
   for (const f of scanLegacyVocabHorsStock(rel, text))

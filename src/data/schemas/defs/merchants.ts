@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `merchants.json` — archétypes de marchand (#2, migré du CODE en donnée éditable,
  * doctrine « aucun archétype en dur »). Reflet FIDÈLE de `MerchantArchetypeDef`
@@ -17,13 +18,13 @@ const doc = document(
   'merchants',
   famille,
   {
-    category: z.strictObject({
+    category: nommerChamps(z.strictObject({
       /** CATÉGORIES de catalogue vendues (`TrappingData.categorie`) — mesuré : 1 porteur, valeurs ⊆ le
        *  vocabulaire de `trappings.json`. Absent = pas de filtre par catégorie. */
       categories: z.array(z.string()).optional(),
       /** Sous-types vendus (`TrappingData.subType`, Groupe d'objet) — axe DISTINCT, nom inchangé. */
       subTypes: z.array(z.string()).optional(),
-    }),
+    }), { categories: { label: 'catégories' }, subTypes: { label: 'groupes d’objets' } }),
     settlement: settlementSchema,
     resaleRate: z.number(),
     buyMarkup: z.number().optional(),

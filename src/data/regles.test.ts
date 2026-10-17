@@ -34,7 +34,7 @@ describe('regles.json — adresses à fragments `blocs` seuls', () => {
     delete sansAdresse.descRef;
     const r = schema.safeParse([{ ...sansAdresse, desc: 'Une prose recopiée du livre.' }]);
     expect(r.success).toBe(false);
-    expect(r.error?.issues.map((i) => i.message)).toContainEqual(expect.stringMatching(/prose recopiée d'un livre extrait/));
+    expect(r.error?.issues.map((i) => i.message)).toContainEqual(expect.stringMatching(/texte recopié d’un livre extrait/));
   });
 
   it('une `desc` inline est REFUSÉE au parse même quand le livre cité n’a pas d’extraction (`porteursDeProse`)', () => {
@@ -43,7 +43,7 @@ describe('regles.json — adresses à fragments `blocs` seuls', () => {
     delete sansAdresse.descRef;
     const r = schema.safeParse([{ ...sansAdresse, desc: 'Une prose recopiée.', source: { ...sansAdresse.source, book: sansExtraction.id } }]);
     expect(r.success).toBe(false);
-    expect(r.error?.issues.map((i) => i.message)).toContainEqual(expect.stringMatching(/n'admet que `descRef`/));
+    expect(r.error?.issues.map((i) => i.message)).toContainEqual(expect.stringMatching(/ce document adresse sa prose au livre, jamais inline/));
   });
 
   it('une entrée adressée par fragment `cellule` est REFUSÉE au parse, à son `kind`', () => {

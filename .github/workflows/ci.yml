@@ -143,8 +143,7 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # `test:hooks` hors du chemin critique de `types` (#2178). Il ne fait aucune écriture d'arbre SUIVIE
-  # (sa seule écriture réelle, le journal gitignoré, est en `ecritFerme` d'`ECRIT_LU`).
+  # `test:hooks` hors du chemin critique de `types` (#2178), sous garde des écritures d'arbre (#2489).
   # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
   # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
   # `livraison:plage` (#2328, scripts/guards/livraison-plage.mjs) : la porte de PUBLICATION des

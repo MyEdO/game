@@ -20,7 +20,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs'
 import * as ts from 'typescript/unstable/ast'
-import { loadSource, renderFields, jsdocRole } from './lib/jsdocUnion.mjs'
+import { loadSource, indexerConstantes, renderFields, jsdocRole, noyauZod, estOptionnel } from './lib/jsdocUnion.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
@@ -46,7 +46,9 @@ function rendu() {
 
   // ── La FORME d'une entrée : champs propres + méta d'édition, lus au def ───────────────────────────
 
-  const { text: DEF_SRC, sf: DEF_SF } = loadSource(DEF)
+  const SCHEMAS = indexerConstantes([DEF])
+  const ENTREE = SCHEMAS.get('ritualSchema')
+  const { text: DEF_SRC, sf: DEF_SF } = ENTREE
 
   /** Objet littéral d'un `const NOM = { … }` de premier niveau. */
   function objetConst(nom) {
@@ -66,7 +68,7 @@ function rendu() {
     const src = p.initializer.getText(DEF_SF)
     return {
       nom: p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, ''),
-      optionnel: /\.optional\(\)/.test(src),
+      optionnel: estOptionnel(p.initializer, ENTREE),
       nullable: /\.nullable\(\)/.test(src),
       role: jsdocRole(DEF_SRC.slice(p.getFullStart(), p.getStart(DEF_SF))),
     }
@@ -107,13 +109,14 @@ function rendu() {
     DEF_SF.forEachChild((n) => {
       if (!ts.isVariableStatement(n)) return
       for (const d of n.declarationList.declarations) {
-        if (ts.isIdentifier(d.name) && d.name.text === nom && d.initializer && ts.isCallExpression(d.initializer)) appel = d.initializer
+        if (ts.isIdentifier(d.name) && d.name.text === nom && d.initializer) appel = noyauZod(d.initializer, ENTREE)
       }
     })
-    if (!appel || !/discriminatedUnion$/.test(appel.expression.getText(DEF_SF)) || !ts.isArrayLiteralExpression(appel.arguments[1])) {
+    if (!appel || !ts.isCallExpression(appel) || !/discriminatedUnion$/.test(appel.expression.getText(DEF_SF)) || !ts.isArrayLiteralExpression(appel.arguments[1])) {
       abandon(`\`${nom}\` n'est plus un \`z.discriminatedUnion('kind', [ … ])\` dans ${DEF}`)
     }
     const rows = appel.arguments[1].elements.map((m) => {
+      m = noyauZod(m, ENTREE)
       if (!ts.isCallExpression(m) || !ts.isObjectLiteralExpression(m.arguments[0])) {
         abandon(`membre de \`${nom}\` illisible (attendu \`z.strictObject({ … })\` inline)`)
       }
@@ -128,7 +131,7 @@ function rendu() {
           name = litt[1]
           continue
         }
-        fields.push(cle + (/\.optional\(\)/.test(src) ? '?' : ''))
+        fields.push(cle + (estOptionnel(p.initializer, ENTREE) ? '?' : ''))
       }
       if (!name) abandon(`membre de \`${nom}\` sans \`kind: z.literal('…')\``)
       return { name, fieldGroups: [fields] }
@@ -146,12 +149,12 @@ function rendu() {
     DEF_SF.forEachChild((n) => {
       if (!ts.isVariableStatement(n)) return
       for (const d of n.declarationList.declarations) {
-        if (ts.isIdentifier(d.name) && d.name.text === 'ritualSchema' && ts.isCallExpression(d.initializer)) appel = d.initializer
+        if (ts.isIdentifier(d.name) && d.name.text === 'ritualSchema' && d.initializer) appel = noyauZod(d.initializer, ENTREE)
       }
     })
-    if (!appel || !ts.isObjectLiteralExpression(appel.arguments[0])) abandon(`\`ritualSchema\` n'est plus un \`z.strictObject({ … })\` dans ${DEF}`)
+    if (!appel || !ts.isCallExpression(appel) || !ts.isObjectLiteralExpression(appel.arguments[0])) abandon(`\`ritualSchema\` n'est plus un \`z.strictObject({ … })\` dans ${DEF}`)
     return appel.arguments[0].properties.filter(ts.isPropertyAssignment).map((p) => ({
-      nom: p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, '') + (/\.optional\(\)/.test(p.initializer.getText(DEF_SF)) ? '?' : ''),
+      nom: p.name.getText(DEF_SF).replace(/^['"]|['"]$/g, '') + (estOptionnel(p.initializer, ENTREE) ? '?' : ''),
       role: jsdocRole(DEF_SRC.slice(p.getFullStart(), p.getStart(DEF_SF))),
     }))
   })()

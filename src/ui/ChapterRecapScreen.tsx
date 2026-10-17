@@ -9,6 +9,7 @@ import { XpBadge } from './creator/CreatorStepFrame';
 import { useSessionEnd } from './SessionEndModal';
 import { GatedAction } from './GatedAction';
 import { Grid, Row } from './Layout';
+import { Prose } from './Prose';
 
 /**
  * RÉCAP DE FIN DE CHAPITRE (#717) — ce que la route retiendra : la chronique DÉRIVÉE (objectifs
@@ -37,7 +38,7 @@ export function ChapterRecapScreen() {
 
   return (
     <ScreenShell
-      title={<>{recap.titre}{recap.sousTitre ? <small> {recap.sousTitre}</small> : null}</>}
+      title={recap.titre}
       onClose={invite ? () => setMasque(true) : ajourner}
       closeLabel={invite ? t('chap.masquer') : t('chap.ajourner')}
       body="centered"
@@ -53,6 +54,7 @@ export function ChapterRecapScreen() {
         />
       ) : seance.gestes}
     >
+      {recap.sousTitre && <Prose md={recap.sousTitre} />}
       <Band title={t('chap.chronique')} right={<XpBadge value={recap.px} />}>
         <ParchmentCard>
           {recap.chronique.length > 0

@@ -40,7 +40,8 @@ export const MOTIFS_DE_RECIT = [
   { nom: 'session du', re: /\bsession du\b/i },
 ]
 
-const DATE = /20\d\d-\d\d-\d\d/
+/** Une date ISO `AAAA-MM-JJ`, celle que porte une ligne de citation verbatim. */
+export const DATE = /20\d\d-\d\d-\d\d/
 
 /** Le CORPS d'un document : ce qui suit le frontmatter YAML, ou tout le texte s'il n'y en a pas. PURE. */
 export function corpsDe(texte) {

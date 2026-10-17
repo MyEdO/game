@@ -17,7 +17,7 @@ function fakeStorage(): Storage {
   } as Storage;
 }
 
-const KEY = 'wfrp4.house-rules.v1';
+const KEY = 'wfrp4.house-rules';
 
 describe('houseRules — persistance des règles optionnelles (localStorage)', () => {
   beforeEach(() => {
@@ -42,6 +42,25 @@ describe('houseRules — persistance des règles optionnelles (localStorage)', (
     localStorage.setItem(KEY, JSON.stringify({ 'regle-fantome': true }));
     loadHouseRules();
     expect(rule('regle-fantome')).toBe(false);
+  });
+
+  it('une valeur non conforme à la forme de sa règle est ignorée : le défaut s’applique, les valeurs conformes passent (#2404)', () => {
+    const flag = OPTIONAL_RULES.find((r) => r.kind === 'flag')!;
+    const mode = OPTIONAL_RULES.find((r) => r.kind === 'mode' && r.options?.length)!;
+    const param = OPTIONAL_RULES.find((r) => r.kind === 'param' && r.max !== undefined)!;
+    const autreMode = mode.options!.find((o) => o !== mode.default)!;
+    localStorage.setItem(KEY, JSON.stringify({ [flag.id]: 'oui', [mode.id]: 'inconnu', [param.id]: param.max! + 1 }));
+    loadHouseRules();
+    expect([rule(flag.id), rule(mode.id), rule(param.id)]).toEqual([flag.default, mode.default, param.default]);
+    localStorage.setItem(KEY, JSON.stringify({ [flag.id]: !flag.default, [mode.id]: autreMode, [param.id]: param.max }));
+    loadHouseRules();
+    expect([rule(flag.id), rule(mode.id), rule(param.id)]).toEqual([!flag.default, autreMode, param.max]);
+  });
+
+  it('un magasin qui n’est pas un dictionnaire est ignoré', () => {
+    localStorage.setItem(KEY, JSON.stringify(['test-fast-sl']));
+    loadHouseRules();
+    expect(rule('test-fast-sl')).toBe(OPTIONAL_RULES.find((r) => r.id === 'test-fast-sl')!.default);
   });
 });
 

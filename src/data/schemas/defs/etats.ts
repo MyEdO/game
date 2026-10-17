@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `etats.json` — dérivé de l'inventaire COMPLET des clés (script node, n=20/20) et de
  * `StatusData`/`EtatData` (`src/data/index.ts`). `effects` (`TriggeredEffect[]`) et
@@ -15,14 +16,18 @@ export const file = 'etats.json';
 export const famille = 'entite';
 
 /** `StatusData.gating` (`src/data/index.ts`) — restriction Action/Mouvement/défense. */
-const gatingSchema = z.strictObject({
+const gatingSchema = nommerChamps(z.strictObject({
   action: z.literal('none').optional(),
   movement: z.enum(['none', 'half', 'crawl']).optional(),
   cannotDefend: z.literal(true).optional(),
+}), {
+  action: { label: 'action' },
+  movement: { label: 'mouvement' },
+  cannotDefend: { label: 'défense impossible' },
 });
 
 /** `EtatData.recover` (`src/data/index.ts`). */
-const recoverSchema = z.strictObject({
+const recoverSchema = nommerChamps(z.strictObject({
   skill: refOuSpec('skill').optional(),
   characteristic: charKeySchema.optional(),
   opposedBy: z.literal('source').optional(),
@@ -31,6 +36,13 @@ const recoverSchema = z.strictObject({
   enjeu: z.string(),
   /** Forme déclarée de `enjeu` (garde `night-stake-form.test.ts`). */
   form: stakeFormSchema,
+}), {
+  skill: { label: 'Compétence' },
+  characteristic: { label: 'caractéristique' },
+  opposedBy: { label: 'opposition' },
+  difficulty: { label: 'difficulté' },
+  enjeu: { label: 'enjeu' },
+  form: { label: 'forme' },
 });
 
 /** `EtatData.lockedUntil` : même contexte d'évaluation que le verrou d'instance (`conditionLockCtx`),
@@ -55,20 +67,18 @@ const doc = document(
     severity: z.number().optional(),
     aiThreat: z.number().optional(),
     perStack: z.boolean().optional(),
-    /** `stacksReducedBy` = clé de `CombatFeature` (ex. `bleedIgnore`) — laissé en `z.string()` (référence
-     *  croisée hors périmètre d'un seul dataset). */
+
     stacksReducedBy: z.string().optional(),
     restrictsAction: z.boolean().optional(),
-    /** LDB 16 l.115 (Inconscient), l.37 (À Terre), l.137 (Surpris) — « ne se cumule pas ». */
+    /** LDB 16 l.115. */
     nonCumulable: z.boolean().optional(),
     recover: recoverSchema.optional(),
-    /** `EtatData.lockedUntil` — verrou de TYPE (À Terre : `LDB 18 l.15`). Même porte que le verrou
-     *  d'instance de l'op `condition` : un sujet hors du contexte de verrou est refusé ICI, nommé. */
+    /** LDB 18 l.15. */
     lockedUntil: verrouDEtatSchema.optional(),
     lockedReason: z.string().optional(),
-    /** `EtatData.resolveHeals` — `LDB 17 l.61`. Un soin NUL se dit par l'absence du champ. */
+    /** LDB 17 l.61. */
     resolveHeals: z.number().int().min(1).optional(),
-    /** `EtatData.persistsAfterCombat` (`src/data/index.ts`) — LDB 16 l.56/70/84/92/107/117, LDB 62 l.250. */
+    /** LDB 16 l.56/70/84/92/107/117 ; LDB 62 l.250. */
     persistsAfterCombat: z.boolean().optional(),
   },
   {

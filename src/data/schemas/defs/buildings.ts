@@ -1,3 +1,4 @@
+import { nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma de `buildings.json` — LE catalogue des types de bâtiment (#1715), consommé comme
  * `BuildingDef[]` (`src/data/buildings.types.ts`). 7 entrées, UNE forme, aucun discriminant : tous
@@ -32,7 +33,7 @@ const doc = document(
   famille,
   {
     roofMaterial: idDe('material', 'roof'),
-    features: z.array(ref('prop', { anchor: buildingAnchorSchema })).optional(),
+    features: z.array(ref('prop', { anchor: nommerNoeud(buildingAnchorSchema, { nom: 'ancrage' }) })).optional(),
   },
   {
     roofMaterial: {

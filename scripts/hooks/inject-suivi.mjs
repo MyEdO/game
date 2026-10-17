@@ -13,7 +13,8 @@ import '../node-requis.mjs'
 import * as FS from 'node:fs'
 import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 
-const { dossierDesSuivis, etatDeSession } = await import('../ops/suivi.mjs')
+const { dossierDesSuivis } = await import('../guards/lib/gitPorte.mjs')
+const { etatDeSession } = await import('../ops/suivi.mjs')
 const { sessionPrincipale } = await import('./suivi-lien-guard.mjs')
 
 /**

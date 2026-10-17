@@ -183,8 +183,8 @@ Les sept catégories de Taille et leurs exemples (LDB 85 l.343-355) :
 **Source :** LDB 85 l. (implication générale : les sorts/effets modifiant F/E/FM impactent les Blessures maximales).
 
 Les effets magiques actifs qui modifient F, E ou FM font varier le maximum de Blessures en temps réel :
-seul le **MEILLEUR bonus** et la **PIRE pénalité** s'appliquent (règle générale des modificateurs de Caractéristique,
-voir LDB 46 l.119 / p.220 pour la règle d'accumulation).
+entre **Sorts**, seuls le **MEILLEUR bonus** et la **PIRE pénalité** s'appliquent (LDB 46 l.119) ; une même Prière
+ne se cumule pas avec elle-même (LDB 40 l.19) ; les autres sources se somment (LDB 14 l.95).
 
 ---
 

@@ -1140,9 +1140,28 @@ export function actorRenderSignature(p: ActorPose): string {
   return signatureDe(actorSnapshot(p));
 }
 
+/** L'uniforme de cadre d'un matériau de corps, tel que l'écrivain de frames (`stage/boardPose`) le pilote. */
+export type FrameRectUniform = { value: THREE.Vector4 };
+
+/** Uniforme de cadre porté par un matériau, s'il en a un (corps de billboard ou son jumeau). */
+export function frameRectOf(material: THREE.Material): FrameRectUniform | undefined {
+  return material.userData.frameRect as FrameRectUniform | undefined;
+}
+
 /** Id(s) du sujet et signature de son instantané — l'identité d'un acteur (#1396). */
 function cléActeur(p: ActorPose, signature: string): string {
   return `${p.c.id}${p.rider ? `+${p.rider.id}` : ''}|${signature}`;
+}
+
+/** Préfixe de l'identité de texture d'un acteur (`actorBillboards`), que porte le nom de son quad. */
+const PREFIXE_ACTEUR = 'acteur:';
+
+/** DÉCODEUR de l'identité d'un acteur (`PREFIXE_ACTEUR` + `cléActeur`) : l'ensemble EXACT des ids qu'elle
+ *  porte — le sujet, et son cavalier s'il est monté. Vide pour toute autre identité (#2198). */
+export function idsDeLActeur(identite: string): string[] {
+  if (!identite.startsWith(PREFIXE_ACTEUR)) return [];
+  const fin = identite.indexOf('|', PREFIXE_ACTEUR.length);
+  return identite.slice(PREFIXE_ACTEUR.length, fin < 0 ? undefined : fin).split('+');
 }
 
 /** Clé de MÉMO d'un acteur du monde volumique (`stage/VolumetricWorld`) : son identité
@@ -1493,7 +1512,7 @@ export function actorBillboards(actors: readonly ActorPose[], scene: Scene, mpt:
     const { anchor, cell } = ancreActeur(pose, scene, mpt);
     out.push({
       // la signature de l'INSTANTANÉ (`actorRenderSignature`) — la MÊME valeur que `actorIdentityKey`.
-      identity: `acteur:${cléActeur(p, signatureDe(instantané))}`,
+      identity: `${PREFIXE_ACTEUR}${cléActeur(p, signatureDe(instantané))}`,
       cid: c.id,
       ...(rider ? { cavalier: rider.id } : {}),
       // TEINTE D'ÉQUIPE (#1297) : la MÊME dérivation que l'anneau aux pieds du jeton et que le jeton

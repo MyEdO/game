@@ -19,9 +19,9 @@ const construireAuberge = (): Scene => buildScene({
   heroStart: [3, 4],
   rest: { auberge: true },
   startMessage:
-    'Une rumeur court : un rituel se prépare quelque part en ville, pour dans deux jours à minuit. ' +
+    { texte: 'Une rumeur court : un rituel se prépare quelque part en ville, pour dans deux jours à minuit. ' +
     'Rien à faire d’autre ici que dormir — regardez le bandeau d’objectif en haut de l’écran se ' +
-    'décompter à chaque nuit (« Dormir jusqu’au lendemain » chez l’aubergiste).',
+    'décompter à chaque nuit (« Dormir jusqu’au lendemain » chez l’aubergiste).' },
   entities: [
     { id: 'aubergiste', kind: 'personnage', ref: 'humain', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-auberge-echeance' },
   ],

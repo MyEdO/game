@@ -109,13 +109,14 @@ describe('Effet learnSpell (trouvaille de campagne)', () => {
     expect(useGame.getState().journal).toContain(refus(s));
   });
 
-  it('héros NOMMÉ qui connaît DÉJÀ le sort : aucun doublon, et le journal dit le refus (jamais « apprend »)', () => {
+  it('héros NOMMÉ qui connaît DÉJÀ le sort : aucun doublon, le journal dit « déjà connu », jamais « sans Talent » (#2312)', () => {
     const s = soldatNomme({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 });
     s.spells = ['cauteriser'];
     useGame.setState({ party: [s] as Combatant[] });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'learnSpell', spell: 'cauteriser', heroId: s.id }]);
     expect(useGame.getState().party[0].spells).toEqual(['cauteriser']);
-    expect(useGame.getState().journal).toContain(refus(s)); // même message que buySpell (spellCost → null)
+    expect(useGame.getState().journal).toContain(t('pf.spellAlreadyKnown', { name: s.label, spell: CAUTERISER.label }));
+    expect(useGame.getState().journal).not.toContain(refus(s));
     expect(useGame.getState().journal).not.toContain(t('eff.learnSpell', { name: s.label, spell: CAUTERISER.label }));
   });
 

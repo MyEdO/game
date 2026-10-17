@@ -4,15 +4,14 @@ import { Buffer } from 'node:buffer';
 import { readFile } from 'node:fs/promises';
 import {
   normalizeText, readFrontmatter, readTomlStringField, transformGuide,
-  transformSkillTree, validateRolePairs, buildExpectedOutputs as sortiesAttendues, collectDiffs,
-  HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, hooksAttendus, remplacerCleJson,
+  transformSkillTree, validateRolePairs, OUTILS_NON_RESOLUS, buildExpectedOutputs as sortiesAttendues, collectDiffs,
+  DESTINATIONS, HOOKS_DE_SESSION, PLACE_PROJET, SURFACE_CLAUDE, SURFACE_CODEX, TIMEOUT_SYNCHRONISEUR, aplatirHooks, compilerMatcher, hooksAttendus, remplacerCleJson,
 } from './compat-core.mjs';
 import { atomicWrite, chargerRegistres, runCompat } from './compat-cli.mjs';
 
-/** Registres de fixture : un point d'entrée par `ENTREES_OUTIL`, deux gardes au répartiteur. */
+/** Registre de fixture : le point d'entrée de `ENTREES_OUTIL`, deux gardes au répartiteur. */
 const REGISTRES = new Map([
   ['repartiteur.mjs', { PreToolUse: [{ outils: ['Write', 'Edit'] }, { outils: ['Bash', 'Edit'] }], PostToolUse: [{ outils: ['Write'] }] }],
-  ['solde-ticket-hook.mjs', { PreToolUse: [{ outils: ['Bash'] }] }],
 ]);
 /** Les sorties attendues d'un snapshot, sous les registres de fixture. */
 const buildExpectedOutputs = (snapshot) => sortiesAttendues(snapshot, REGISTRES);
@@ -137,6 +136,17 @@ test('valide noms, descriptions et références des rôles', () => {
   assert.equal(validateRolePairs(claude, new Map())[0].type, 'missing');
 });
 
+test('refuse une entrée `tools:` hors du pool des sous-agents, accepte un outil résolu', () => {
+  const paire = (tools) => [
+    new Map([['joueur', `---\nname: joueur\ndescription: Joue\ntools: ${tools}\n---\nCorps.\n`]]),
+    new Map([['joueur', 'name = "joueur"\ndescription = "Joue"\ndeveloper_instructions = """\nCorps.\n"""']]),
+  ];
+  assert.deepEqual(validateRolePairs(...paire('CronList')), []);
+  for (const outil of OUTILS_NON_RESOLUS) {
+    assert.deepEqual(validateRolePairs(...paire(`Read, ${outil}`)).map((d) => [d.type, d.message]), [['tools', `outil « ${outil} » hors du pool des sous-agents`]]);
+  }
+});
+
 test('génère seulement le credo Codex et partage la mémoire Claude', () => {
   const expected = buildExpectedOutputs(new Map([
     ['CLAUDE.md', Buffer.from('# CLAUDE.md\n')],
@@ -153,11 +163,28 @@ test('les hooks ATTENDUS dérivent des registres : un par point d’entrée et p
   const outil = (liste) => liste.filter((h) => h.phase !== 'SessionStart').map(({ phase, matcher, script, timeout }) => ({ phase, matcher, script, timeout }));
   assert.deepEqual(outil(claude), [
     { phase: 'PreToolUse', matcher: 'Write|Edit|Bash', script: 'repartiteur.mjs', timeout: 10 },
-    { phase: 'PreToolUse', matcher: 'Bash', script: 'solde-ticket-hook.mjs', timeout: 10 },
     { phase: 'PostToolUse', matcher: 'Write', script: 'repartiteur.mjs', timeout: 10 },
   ]);
   assert.deepEqual(outil(codex), outil(claude).map((h) => ({ ...h, matcher: `^(?:${h.matcher})$` })), 'la même source, ANCRÉE pour le moteur regex de Codex (`MOTEUR_DE_SURFACE`)');
   assert.ok(codex.every((h) => h.command.startsWith('node scripts/hooks/') && h.args === undefined));
+});
+
+test('les matchers générés capturent les noms natifs réellement observés de Codex et Claude', async () => {
+  const registres = await chargerRegistres();
+  for (const [surface, shell, inconnu] of [
+    [SURFACE_CODEX, 'mcp__lean_ctx__ctx_shell', 'mcp__lean_ctx__ctx_execute'],
+    [SURFACE_CLAUDE, 'mcp__lean-ctx__ctx_shell', 'mcp__lean-ctx__ctx_execute'],
+  ]) {
+    const hooks = hooksAttendus(registres, surface);
+    const pre = compilerMatcher(hooks.PreToolUse[0].matcher, surface);
+    const post = compilerMatcher(hooks.PostToolUse[0].matcher, surface);
+    assert.ok(pre(shell), surface);
+    assert.ok(pre(inconnu), surface);
+    assert.ok(pre('apply_patch'), surface);
+    assert.ok(post('apply_patch'), surface);
+    assert.ok(pre('NotebookEdit'), surface);
+    assert.equal(pre('PasUnEdit'), false);
+  }
 });
 
 test('CONTRAT — toute déclaration Claude est en forme EXEC : `command` = `node`, `args` non vide, aucun `$` hors `${CLAUDE_PROJECT_DIR}` (#2112, #2125)', async () => {
@@ -193,6 +220,28 @@ test('CÂBLAGE — le suivi de vague est injecté au SessionStart de Codex seul,
       assert.equal(portes.length, surface === SURFACE_CODEX ? 1 : 0, `${origine} ${surface}`);
     }
   }
+});
+
+test('CÂBLAGE — la synchronisation du principal est le PREMIER SessionStart de Codex, généré et commité ; Claude la porte par le mod harnais (#2187)', async () => {
+  for (const surface of [SURFACE_CLAUDE, SURFACE_CODEX]) {
+    const commitees = JSON.parse(await readFile(new URL(`../../${surface}`, import.meta.url), 'utf8'));
+    for (const [origine, valeur] of [['générées', { hooks: hooksAttendus(REGISTRES, surface) }], ['commitées', commitees]]) {
+      const session = aplatirHooks(valeur, surface).filter((h) => h.phase === 'SessionStart');
+      const portes = session.filter((h) => h.script === 'synchroniser-principal.mjs');
+      assert.equal(portes.length, surface === SURFACE_CODEX ? 1 : 0, `${origine} ${surface}`);
+      if (surface === SURFACE_CODEX) {
+        assert.equal(session[0].script, 'synchroniser-principal.mjs', `${origine} : en tête`);
+        assert.equal(portes[0].timeout, TIMEOUT_SYNCHRONISEUR, origine);
+      }
+    }
+  }
+});
+
+test('le mod harnais et le hook Codex partagent la borne de la synchronisation (#2187 commentaire 6029118597, C7)', async () => {
+  const mod = await readFile(new URL('../../.claude/skills/harnais/hooks/suivi.ts', import.meta.url), 'utf8');
+  const borne = /^const BORNE_SYNCHRO_MS = ([\d_]+) \* 1000$/m.exec(mod);
+  assert.ok(borne, 'BORNE_SYNCHRO_MS introuvable dans suivi.ts');
+  assert.equal(Number(borne[1].replaceAll('_', '')), TIMEOUT_SYNCHRONISEUR, 'BORNE_SYNCHRO_MS === TIMEOUT_SYNCHRONISEUR * 1000');
 });
 
 test('sortie PAR CLÉ : sync réécrit la seule clé `hooks` de settings.json, permissions et ordre des clés à l’octet près', async () => {
@@ -256,6 +305,18 @@ test('les déclarations committées sont celles que les registres RÉELS produis
   const snapshot = new Map(await Promise.all([SURFACE_CLAUDE, SURFACE_CODEX].map(async (s) => [s, await readFile(new URL(s, racine))])));
   const attendu = sortiesAttendues(snapshot, await chargerRegistres());
   assert.deepEqual(collectDiffs(attendu, snapshot).filter((d) => d.family === 'hook'), []);
+});
+
+test('`DESTINATIONS` couvre chaque sortie de `buildExpectedOutputs`, et chacune en reçoit une', () => {
+  const attendu = buildExpectedOutputs(new Map([
+    ['CLAUDE.md', Buffer.from('# CLAUDE.md\nClaude Code\n')],
+    ['.claude/credo.md', Buffer.from('# Credo\n')],
+    ['.claude/skills/demo/SKILL.md', Buffer.from('---\nname: demo\ndescription: Démo\n---\nCorps\n')],
+  ]));
+  const sous = (chemin, racine) => chemin === racine || chemin.startsWith(`${racine}/`);
+  const sorties = [...attendu.files.keys()];
+  assert.deepEqual(sorties.filter((c) => !DESTINATIONS.some((r) => sous(c, r))), []);
+  assert.deepEqual(DESTINATIONS.filter((r) => !sorties.some((c) => sous(c, r))), []);
 });
 
 test('réfute toute référence de profil qui diverge après normalisation', () => {

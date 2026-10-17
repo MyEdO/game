@@ -1,5 +1,4 @@
 import { pregen, PREGEN } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
 import { flowFromEffects } from '../../state/flow';
 import { crewFormationSlots } from '../../state/shipPostes';
 import { buildScene } from '../../state/mapSpec';
@@ -51,10 +50,10 @@ function construireScene(): Scene {
     ambientLight: 'jour',
     heroStart: [6, 6],
     startMessage:
-      'Le Soldat sert le bélier : autour de lui, TROIS choses offrent un geste — le cheval libre (Monter), ' +
+      { texte: 'Le Soldat sert le bélier : autour de lui, TROIS choses offrent un geste — le cheval libre (Monter), ' +
       'le coffre à deux objets (Ramasser, panneau borné à ses deux candidats) et l’engin lui-même ' +
       '(Pousser). Chaque geste se clique SUR la chose, jamais dans la barre ; un geste refusé reste ' +
-      'visible et dit pourquoi ; Échap referme un panneau sans rien engager.',
+      'visible et dit pourquoi ; Échap referme un panneau sans rien engager.' },
     entities: [
       {
         id: 'coffre-de-cour', kind: 'prop', ref: 'coffre', pos: { x: 5, y: 7 }, label: 'Coffre entrouvert',
@@ -75,7 +74,7 @@ function construireScene(): Scene {
         // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
         {
           ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
-          postes: [{ item: itemFromTrappingById('belier-ade2')!, crewIds: [...RAM_CREW] }],
+          postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
         },
         { ref: 'cheval', pos: { x: 5, y: 5 }, mount: true, side: 'ally', label: 'Cheval de manœuvre' },
         { ref: 'garde-du-village', pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },

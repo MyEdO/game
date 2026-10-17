@@ -1,7 +1,7 @@
 /** Carnet d'enquête (#670 dernier lot) — surface de lecture JOUEUR du système d'enquête. Présentation
  *  MAISON (aucun livre ne définit de carnet) : lit `campaignNarratif` (données) + `clues` (état runtime,
  *  `src/state/clues.ts`) — un indice ABSENT de `clues` est CACHÉ, jamais affiché ici. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
 import { Band } from './Band';
@@ -11,8 +11,9 @@ import { Icon } from './Icon';
 import { ListRow } from './ListRow';
 import { SourceBadge, sourceAffichee } from './SourceBadge';
 import { useGame } from '../state/store';
+import { t } from '../i18n';
 import type { Affaire, DocumentNarratif, Indice, IndiceStade } from '../state/campaignNarratif';
-import type { ClueState } from '../state/clues';
+import { affichageDe, estNouveauPour, type ClueState, type IndiceAffiché } from '../state/clues';
 import { Row, Stack } from './Layout';
 import { porteurDuNarratif } from './porteurDeProjet';
 
@@ -25,6 +26,11 @@ function StadeSource({ source }: { source: IndiceStade['source'] }) {
 
 function indicesRevélésDe(affaireId: string, indices: Indice[], clues: Record<string, ClueState>): Indice[] {
   return indices.filter((i) => i.affaireId === affaireId && clues[i.id]);
+}
+
+/** Compte des nouveautés d'une rangée de liste — rien quand il n'y en a pas. */
+function NouveautésChip({ n }: { n: number }) {
+  return n > 0 ? <span className="chip tone-warn">{t('carnet.nouveau')} <span className="count">{n}</span></span> : null;
 }
 
 function EpingleButton({ clue, onToggle }: { clue: ClueState; onToggle: () => void }) {
@@ -60,7 +66,7 @@ function StadeLu({ indice, stade, documents, attenue }: { indice: Indice; stade:
   );
 }
 
-function ClueBand({ indice, clue, documents, onTogglePin }: { indice: Indice; clue: ClueState; documents: readonly DocumentNarratif[]; onTogglePin: (id: string) => void }) {
+function ClueBand({ indice, clue, nouveau, documents, onTogglePin }: { indice: Indice; clue: ClueState; nouveau: boolean; documents: readonly DocumentNarratif[]; onTogglePin: (id: string) => void }) {
   const stadeCourant = indice.stades.find((s) => s.id === clue.stadeCourant);
   const précédents = clue.historique.filter((h) => h.stade !== clue.stadeCourant);
   return (
@@ -72,6 +78,7 @@ function ClueBand({ indice, clue, documents, onTogglePin }: { indice: Indice; cl
       }
       right={
         <Row as="span">
+          {nouveau && <span className="chip tone-warn">{t('carnet.nouveau')}</span>}
           <span className="chip">{indice.kind === 'rumeur' ? 'Rumeur' : 'Indice'}</span>
           {clue.statut === 'réfuté' && <span className="chip tone-danger">Fausse piste</span>}
           <EpingleButton clue={clue} onToggle={() => onTogglePin(indice.id)} />
@@ -103,6 +110,10 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
   const campaignNarratif = useGame((s) => s.campaignNarratif);
   const clues = useGame((s) => s.clues);
   const toggleCluePin = useGame((s) => s.toggleCluePin);
+  const markCluesSeen = useGame((s) => s.markCluesSeen);
+  const mySeat = useGame((s) => s.net.mySeat);
+  /** Nouveautés levées pendant CE montage : leur pastille reste lisible jusqu'à la fermeture du carnet. */
+  const [vusIci, setVusIci] = useState<ReadonlySet<string>>(() => new Set());
 
   const affaires: Affaire[] = campaignNarratif?.affaires ?? [];
   const indices: Indice[] = campaignNarratif?.indices ?? [];
@@ -117,6 +128,9 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
   );
 
   const aucunIndice = Object.keys(clues).length === 0;
+  const nouveauPourMoi = (id: string) => !!clues[id] && estNouveauPour(clues[id], mySeat);
+  const estNouveau = (id: string) => nouveauPourMoi(id) || vusIci.has(id);
+  const nouveautés = (liste: Indice[]) => liste.filter((i) => estNouveau(i.id)).length;
 
   const list = aucunIndice ? (
     <p className="empty">Aucun indice découvert pour l’instant.</p>
@@ -130,6 +144,7 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
           label={<><Icon id="map-tool/pin" size="sm" /> Épinglés</>}
         >
           <span className="chip">{indicesÉpinglés.length}</span>
+          <NouveautésChip n={nouveautés(indicesÉpinglés)} />
         </ListRow>
       )}
       {affairesAvecIndices.map((a) => {
@@ -143,6 +158,7 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
             label={a.titre}
           >
             <span className="chip">{revélés.length}</span>
+            <NouveautésChip n={nouveautés(revélés)} />
           </ListRow>
         );
       })}
@@ -156,6 +172,14 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
         ? indicesRevélésDe(selId, indices, clues)
         : [];
 
+  const àMarquer = JSON.stringify(indicesDétail.filter((i) => nouveauPourMoi(i.id)).map((i) => affichageDe(i.id, clues[i.id])));
+  useEffect(() => {
+    const affichés = JSON.parse(àMarquer) as IndiceAffiché[];
+    if (affichés.length === 0) return;
+    setVusIci((avant) => new Set([...avant, ...affichés.map((a) => a.id)]));
+    markCluesSeen(affichés);
+  }, [àMarquer, markCluesSeen]);
+
   const detail = aucunIndice ? null : indicesDétail.length === 0 ? (
     <p className="empty">Sélectionnez une affaire pour consulter ses indices.</p>
   ) : (
@@ -163,13 +187,13 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
       {indicesDétail.map((i) => {
         const clue = clues[i.id];
         if (!clue) return null;
-        return <ClueBand key={i.id} indice={i} clue={clue} documents={documents} onTogglePin={toggleCluePin} />;
+        return <ClueBand key={i.id} indice={i} clue={clue} nouveau={estNouveau(i.id)} documents={documents} onTogglePin={toggleCluePin} />;
       })}
     </Stack>
   );
 
   return (
-    <ScreenShell title={<><Icon id="nav/compendium" size="lg" /> Carnet d’enquête</>} onClose={onClose} body="centered-wide">
+    <ScreenShell title={<><Icon id="nav/carnet" size="lg" /> Carnet d’enquête</>} onClose={onClose} body="centered-wide">
       <MasterDetail list={list} detail={detail} listLabel="Affaires" />
     </ScreenShell>
   );

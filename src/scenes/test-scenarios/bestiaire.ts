@@ -44,13 +44,13 @@ const construireScene = (): Scene => buildScene({
   size: [26, 20],
   heroStart: [3, 10],
   startMessage:
-    'Grande ménagerie. Le groupe porte à lui seul les 19 mutations physiques (vérifiez les calques/morpho sur ' +
+    { texte: 'Grande ménagerie. Le groupe porte à lui seul les 19 mutations physiques (vérifiez les calques/morpho sur ' +
     'les pions et les portraits du HUD) ; Sœur Greta de Shallya peut purger les états. Le Fantôme est Éthéré ' +
     '(frappez-le avec un sort !) et Instable ; la Démonette sauvegarde (Démoniaque), riposte (Champion), perturbe ' +
     '(−20 à 4 m) et expose à la Corruption en fin de combat ; le Troll régénère (Stupide) ; l’Araignée emmaillote ' +
     '(Toile→Empêtré, Venin) ; la Cockatrice pétrifie du regard (Redoutable) ; le Griffon est Énorme (Piétinement) ; ' +
     'la Pieuvre frappe de ses 8 tentacules (gratuites, Empêtré) ; le Sorcier mutant lance Fléchette ; le Squelette ' +
-    'est un facultatif « Élite » aux Caractéristiques aléatoires ; l’Envoûteuse débuffe (Peur 2 + Terreur 2).',
+    'est un facultatif « Élite » aux Caractéristiques aléatoires ; l’Envoûteuse débuffe (Peur 2 + Terreur 2).' },
   encounters: [
     {
       id: 'enc-bestiaire',

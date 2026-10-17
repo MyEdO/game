@@ -10,7 +10,8 @@
 // exemption. Ce module exporte la MÉCANIQUE, sans foyer ; le consommateur la déclare en y joignant son
 // foyer (`{ ...FORMULE_DE_CHEBYSHEV, foyer: 'src/engine/grid.ts' }`) :
 //  - les constructions génériques `FORMULE_DE_CHEBYSHEV`, `ECHAPPEUR_DE_LITTERAL`,
-//    `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
+//    `COUVERTURE_DE_SPEC`, `IDENTITE_D_INSTANCE`, `CONSTRUCTION_DE_PROGRAMME`, `ECRITURE_DE_STOCK_JSON`,
+//    `SONDE_D_EXISTENCE` et `CONSTRUCTION_DE_TABLE_TOTALE` ;
 //  - six fabriques : `recopieDeCanon` (un canon, ses membres, six formes de recopie, paramètres
 //    `complet` et `formes`, la forme `membres de type` lisant un type littéral comme une `interface`),
 //    `cleEnLigne` (la clé d'un site de stock écrite en ligne), `lectureBruteDeCollection` (la
@@ -26,7 +27,7 @@
 // appelants déclarent ; les verrous de lint du même concept sont #2019.
 import * as ts from 'typescript/unstable/ast';
 import { resolve, relative } from 'node:path';
-import { analyserCorpus } from './dialecte.mjs';
+import { analyserCorpus, avecAnalyse } from './dialecte.mjs';
 import { sAppliqueA } from './sourceCorpus.mjs';
 import { RACINE } from './bindingsVivants.mjs';
 import { resolveImport, sitesDeModule, liaisonsDe } from './importGraph.mjs';
@@ -65,7 +66,15 @@ export function contexteImports(sf, verificateur) {
       return verificateur;
     },
     module: (spec) => {
-      if (!modules.has(spec)) modules.set(spec, moduleDe(spec, sf));
+      if (!modules.has(spec)) {
+        let module = moduleDe(spec, sf);
+        if (!module && verificateur && spec.startsWith('.')) {
+          const declaration = sf.statements.find(n => ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier) && n.moduleSpecifier.text === spec);
+          const proprietaire = declaration && verificateur.getSymbolAtLocation(declaration.moduleSpecifier)?.declarations?.map(d => d.resolve()).find(d => ts.isSourceFile(d));
+          if (proprietaire) module = relative(RACINE, proprietaire.fileName).split('\\').join('/');
+        }
+        modules.set(spec, module);
+      }
       return modules.get(spec);
     },
   };
@@ -340,6 +349,119 @@ export const ECHAPPEUR_DE_LITTERAL = Object.freeze({
   },
 });
 
+/** L'opérande `X` d'un test de nullité de `X` : `X == null`, `X === undefined` (et commutés), `!X`.
+ *  @param {ts.Expression} e @returns {ts.Expression | null} */
+function testeLeVide(e) {
+  const x = sansEnveloppe(e);
+  if (ts.isPrefixUnaryExpression(x) && x.operator === ts.SyntaxKind.ExclamationToken) return sansEnveloppe(x.operand);
+  if (!ts.isBinaryExpression(x) || ![ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.EqualsEqualsEqualsToken].includes(x.operatorToken.kind)) return null;
+  const vide = (o) => o.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(o) && o.text === 'undefined');
+  return vide(x.right) ? sansEnveloppe(x.left) : vide(x.left) ? sansEnveloppe(x.right) : null;
+}
+
+/** L'opérande `X` d'un test de PRÉSENCE de `X` : `X` nu, `!!X`, `X != null`, `X !== undefined` (et commutés).
+ *  @param {ts.Expression} e @returns {ts.Expression | null} */
+function testeLePlein(e) {
+  const x = sansEnveloppe(e);
+  if (ts.isPrefixUnaryExpression(x) && x.operator === ts.SyntaxKind.ExclamationToken) {
+    const y = sansEnveloppe(x.operand);
+    return ts.isPrefixUnaryExpression(y) && y.operator === ts.SyntaxKind.ExclamationToken ? sansEnveloppe(y.operand) : null;
+  }
+  if (!ts.isBinaryExpression(x) || !INEGALITES.includes(x.operatorToken.kind)) return x;
+  const vide = (o) => o.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(o) && o.text === 'undefined');
+  return vide(x.right) ? sansEnveloppe(x.left) : vide(x.left) ? sansEnveloppe(x.right) : null;
+}
+
+/** `X` nommé `spec` (identifiant ou propriété), sinon `null`. @param {ts.Expression | null} x
+ *  @returns {ts.Expression | null} */
+const specNomme = (x) => (x && ((ts.isIdentifier(x) && x.text === 'spec') || (ts.isPropertyAccessExpression(x) && x.name.text === 'spec')) ? x : null);
+
+const EGALITES_SEULES = [ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.EqualsEqualsEqualsToken];
+const INEGALITES = [ts.SyntaxKind.ExclamationEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken];
+
+/** `e` est-elle une comparaison `operateurs` (égalité par défaut) dont un opérande est `x` (même
+ *  texte) ? @param {ts.Expression} e @param {ts.Expression} x @param {ts.SourceFile} sf
+ *  @param {readonly ts.SyntaxKind[]} [operateurs] @returns {boolean} */
+function egaliteAvec(e, x, sf, operateurs = EGALITES_SEULES) {
+  const egalite = sansEnveloppe(e);
+  if (!ts.isBinaryExpression(egalite) || !operateurs.includes(egalite.operatorToken.kind)) return false;
+  const texte = x.getText(sf);
+  const memeX = (o) => sansEnveloppe(o).getText(sf) === texte;
+  return memeX(egalite.left) || memeX(egalite.right);
+}
+
+/** Les opérandes d'une chaîne `a <op> b <op> …` (`||` par défaut), à plat. @param {ts.Expression} e
+ *  @param {ts.SyntaxKind} [op] @returns {ts.Expression[]} */
+function operandesOu(e, op = ts.SyntaxKind.BarBarToken) {
+  const x = sansEnveloppe(e);
+  return ts.isBinaryExpression(x) && x.operatorToken.kind === op ? [...operandesOu(x.left, op), ...operandesOu(x.right, op)] : [x];
+}
+
+/** `n` est-il un MAILLON d'une chaîne `op` englobante (parenthèses traversées) ? La chaîne se juge à sa
+ *  racine, une fois. @param {ts.Node} n @param {ts.SyntaxKind} op @returns {boolean} */
+function maillonDeChaine(n, op) {
+  let p = n.parent;
+  while (p && ts.isParenthesizedExpression(p)) p = p.parent;
+  return !!p && ts.isBinaryExpression(p) && p.operatorToken.kind === op;
+}
+
+/** La COUVERTURE de Spécialisation recopiée, où `X` se nomme `spec` — la convention qu'écrit `refCouvre`
+ *  (`src/data/schemas/grammaire/ref.ts`) : la chaîne `X == null || … || X === Y` à N opérandes (formes
+ *  `=== undefined`, `!X`, égalité commutée), sa forme NIÉE `X && … && Y !== X` (`X != null`,
+ *  `X !== undefined`, `!!X`, `!=`), et le ternaire `X ? Y === X : true` (`X != null`, `X !== undefined`),
+ *  `!X ? true : Y === X`, `X == null ? true : Y === X`. Une chaîne se compte une fois, à sa racine. */
+export const COUVERTURE_DE_SPEC = Object.freeze({
+  nom: 'COUVERTURE_DE_SPEC',
+  indice: (texte) => texte.includes('spec'),
+  /** @param {ts.Node} n @param {ts.SourceFile} sf @returns {string | null} */
+  reconnait: (n, sf) => {
+    const verdict = 'couverture de Spécialisation recopiée (`refCouvre`)';
+    if (ts.isConditionalExpression(n)) {
+      const vrai = (e) => sansEnveloppe(e).kind === ts.SyntaxKind.TrueKeyword;
+      const vide = specNomme(testeLeVide(n.condition));
+      if (vide) return vrai(n.whenTrue) && egaliteAvec(n.whenFalse, vide, sf) ? verdict : null;
+      const plein = specNomme(testeLePlein(n.condition));
+      return plein && vrai(n.whenFalse) && egaliteAvec(n.whenTrue, plein, sf) ? verdict : null;
+    }
+    if (!ts.isBinaryExpression(n)) return null;
+    const chaine = n.operatorToken.kind;
+    if (chaine === ts.SyntaxKind.BarBarToken || chaine === ts.SyntaxKind.AmpersandAmpersandToken) {
+      if (maillonDeChaine(n, chaine)) return null;
+      const ou = chaine === ts.SyntaxKind.BarBarToken;
+      const ops = operandesOu(n, chaine);
+      return ops.some((o) => {
+        const x = specNomme(ou ? testeLeVide(o) : testeLePlein(o));
+        return x != null && ops.some((e) => e !== o && egaliteAvec(e, x, sf, ou ? EGALITES_SEULES : INEGALITES));
+      }) ? verdict : null;
+    }
+    return null;
+  },
+});
+
+/** L'IDENTITÉ d'instance recopiée, où `X` se nomme `spec` — la convention qu'écrit `memeSpecialisation`
+ *  (`src/data/schemas/grammaire/ref.ts`) : `(X ?? '') === (Y ?? '')`, ou `!==`, `==`, `!=` ; chaque côté
+ *  vide par défaut en `X ?? ''` ou `X || ''`, nu ou sous `String(…)`. */
+export const IDENTITE_D_INSTANCE = Object.freeze({
+  nom: 'IDENTITE_D_INSTANCE',
+  indice: (texte) => texte.includes('spec'),
+  /** @param {ts.Node} n @returns {string | null} */
+  reconnait: (n) => {
+    if (!ts.isBinaryExpression(n) || ![...EGALITES_SEULES, ...INEGALITES].includes(n.operatorToken.kind)) return null;
+    /** L'opérande `X` de `X ?? ''`, `X || ''` ou `String(…)` de l'une d'elles, sinon `null`.
+     *  @param {ts.Expression} e @returns {ts.Expression | null} */
+    const videParDefaut = (e) => {
+      const x = sansEnveloppe(e);
+      if (ts.isCallExpression(x) && ts.isIdentifier(x.expression) && x.expression.text === 'String' && x.arguments.length === 1) return videParDefaut(x.arguments[0]);
+      if (!ts.isBinaryExpression(x) || ![ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.BarBarToken].includes(x.operatorToken.kind)) return null;
+      const defaut = sansEnveloppe(x.right);
+      return ts.isStringLiteral(defaut) && defaut.text === '' ? sansEnveloppe(x.left) : null;
+    };
+    const a = videParDefaut(n.left);
+    const b = videParDefaut(n.right);
+    return a && b && (specNomme(a) || specNomme(b)) ? 'identité d’instance recopiée (`memeSpecialisation`)' : null;
+  },
+});
+
 const FABRIQUE_DE_PROGRAMME = /^create(\w*Program|LanguageService)$/;
 
 function origineConstruction(expression, sf, contexte, vus = new Set()) {
@@ -412,6 +534,23 @@ export const ECRITURE_DE_STOCK_JSON = Object.freeze({
     const objet = appel.args[0];
     if (!objet || !ts.isObjectLiteralExpression(objet)) return null;
     return objet.properties.some((p) => keyName(p.name) === 'entrees') ? 'écriture du format JSON des stocks recopiée (`texteDeStock`)' : null;
+  },
+});
+
+/** La SONDE D'EXISTENCE d'un processus, un appel `kill(<pid>, 0)` — méthode `.kill` ou fonction `kill`,
+ *  signal `0` ou `'0'` (kill(2), #2516). Son foyer : `estPidVivant`. */
+export const SONDE_D_EXISTENCE = Object.freeze({
+  nom: 'SONDE_D_EXISTENCE',
+  indice: (texte) => texte.includes('kill'),
+  /** @param {ts.Node} n @returns {string | null} */
+  reconnait: (n) => {
+    if (!ts.isCallExpression(n) || n.arguments.length < 2) return null;
+    const appele = sansEnveloppe(n.expression);
+    const nom = ts.isPropertyAccessExpression(appele) ? appele.name.text : ts.isIdentifier(appele) ? appele.text : null;
+    if (nom !== 'kill') return null;
+    const signal = sansEnveloppe(n.arguments[1]);
+    const nul = (ts.isNumericLiteral(signal) && Number(signal.text) === 0) || (ts.isStringLiteral(signal) && signal.text === '0');
+    return nul ? 'sonde d’existence de processus recopiée (`estPidVivant`)' : null;
   },
 });
 
@@ -571,7 +710,7 @@ function moduleDe(spec, sf) {
 export function origineImportee(identifiant, sf, contexte) {
   exigerContexte(sf, contexte);
   const l = typeof identifiant === 'string' ? liaisonDe(identifiant, sf, contexte) : origineConstruction(identifiant, sf, contexte);
-  const module = l && (moduleDe(l.spec, sf) ?? (/^typescript\/unstable\//.test(l.spec) ? l.spec : null));
+  const module = l && (contexte.module(l.spec) ?? (/^typescript\/unstable\//.test(l.spec) ? l.spec : null));
   return module ? { module, nom: l.nom } : null;
 }
 
@@ -592,6 +731,37 @@ export function estAppelDeclare(appel, sf, fonctions, contexte) {
   if (!nom || !Object.values(fonctions).some((noms) => noms.includes(nom))) return null;
   const module = contexte.module(liaison.spec);
   return module && (fonctions[module] ?? []).includes(nom) ? nom : null;
+}
+
+export function sansDeclarationsDeMetadonnees(fichier, sourceFile, checker) {
+  if (!/\bnommer(?:Champs|Noeud)\b/.test(fichier.text)) return fichier.text;
+  return avecAnalyse(fichier, sourceFile, checker, (sf, checker) => {
+    const contexte = contexteImports(sf, checker);
+    const fonctions = { 'src/data/schemas/grammaire/meta.ts': ['nommerChamps', 'nommerNoeud'] };
+    const plages = [];
+    const declaratif = (n) => {
+      if (ts.isParenthesizedExpression(n) || ts.isAsExpression(n) || ts.isSatisfiesExpression(n) || ts.isNonNullExpression(n)) return declaratif(n.expression);
+      if (ts.isArrayLiteralExpression(n)) { for (const element of n.elements) declaratif(element); return; }
+      if (!ts.isObjectLiteralExpression(n)) return;
+      plages.push([n.getStart(sf), n.getStart(sf) + 1], [n.end - 1, n.end]);
+      for (const propriete of n.properties) {
+        if (!ts.isPropertyAssignment(propriete) || ts.isComputedPropertyName(propriete.name)) continue;
+        plages.push([propriete.name.getStart(sf), propriete.name.end]);
+        declaratif(propriete.initializer);
+      }
+    };
+    const walk = (n) => {
+      if (ts.isCallExpression(n)) {
+        const nom = estAppelDeclare(n, sf, fonctions, contexte);
+        if (nom) for (const argument of n.arguments.slice(1, nom === 'nommerChamps' ? 3 : 2)) declaratif(argument);
+      }
+      n.forEachChild(walk);
+    };
+    walk(sf);
+    let texte = fichier.text;
+    for (const [debut, fin] of plages.sort((a, b) => b[0] - a[0])) texte = texte.slice(0, debut) + texte.slice(debut, fin).replace(/[^\r\n]/g, ' ') + texte.slice(fin);
+    return texte;
+  });
 }
 
 /**
@@ -849,30 +1019,28 @@ export function comparaisonDAppel({ nom, fonctions }) {
 export function scanConstructionsReservees(fichier, constructions, sourceFile, checker) {
   const retenues = constructions.filter((c) => sAppliqueA(fichier, c) && (!c.indice || c.indice(fichier.text)));
   if (!retenues.length) return [];
-  if (!sourceFile) {
-    for (const analyse of analyserCorpus([fichier])) return scanConstructionsReservees(fichier, constructions, analyse.sourceFile, analyse.checker);
-  }
-  const sf = sourceFile;
-  const contexte = contexteImports(sf, checker);
-  /** @type {{ line: number, construction: string, detail: string }[]} */
-  const trouvailles = [];
-  const vues = new Set();
-  /** @param {ts.Node} n */
-  const walk = (n) => {
-    if (ts.isJSDocNodeKind(n.kind) || (n.flags & ts.NodeFlags.JSDoc)) return;
-    for (const c of retenues) {
-      const detail = c.reconnait(n, sf, contexte);
-      if (detail == null) continue;
-      const line = lineOf(sf, n);
-      const cle = `${line}|${c.nom}`;
-      if (vues.has(cle)) continue;
-      vues.add(cle);
-      trouvailles.push({ line, construction: c.nom, detail });
-    }
-    n.forEachChild(walk);
-  };
-  walk(sf);
-  return trouvailles;
+  return avecAnalyse(fichier, sourceFile, checker, (sf, checker) => {
+    const contexte = contexteImports(sf, checker);
+    /** @type {{ line: number, construction: string, detail: string }[]} */
+    const trouvailles = [];
+    const vues = new Set();
+    /** @param {ts.Node} n */
+    const walk = (n) => {
+      if (ts.isJSDocNodeKind(n.kind) || (n.flags & ts.NodeFlags.JSDoc)) return;
+      for (const c of retenues) {
+        const detail = c.reconnait(n, sf, contexte);
+        if (detail == null) continue;
+        const line = lineOf(sf, n);
+        const cle = `${line}|${c.nom}`;
+        if (vues.has(cle)) continue;
+        vues.add(cle);
+        trouvailles.push({ line, construction: c.nom, detail });
+      }
+      n.forEachChild(walk);
+    };
+    walk(sf);
+    return trouvailles;
+  });
 }
 
 /**

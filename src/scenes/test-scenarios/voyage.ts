@@ -3,11 +3,11 @@ import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { contractDisease } from '../../engine/disease';
 import { itemFromTrappingById } from '../../engine/items';
-import { Combatant, SkillInstance } from '../../engine/types';
+import { Combatant } from '../../engine/types';
 import { rigSpeciesId } from '../../data';
 import { WorldMap } from '../../state/worldMap';
 import { buildScene } from '../../state/mapSpec';
-import type { TestScenario } from './_shared';
+import { renforcerCompetence, type TestScenario } from './_shared';
 import type { Scene } from '../../state/scene';
 
 /**
@@ -16,40 +16,34 @@ import type { Scene } from '../../state/scene';
  * embuscade), le Voyage par ÉTAPES EDOC (postes d'Activité PERSISTANTS par héros + règle `travel-etapes`
  * activable au panneau Règles maison) et l'Entre-deux-aventures (interlude d'Activités à l'arrivée).
  */
-const skill = (c: Combatant, skillId: string, advances: number, spec?: string, characteristic: SkillInstance['characteristic'] = 'intelligence') => {
-  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
-  if (ex) ex.advances = Math.max(ex.advances, advances);
-  else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
-};
-
 /** Quatre héros, chacun à son POSTE de voyage (Étapes EDOC) ; Greta cumule le « mauvais état » qui fait
  *  parler le bilan de nuit (blessée, sans rations, Vérole contagieuse, cauchemars). */
 function groupe(): Combatant[] {
   // Chasseur — Plein air (Survie) : sa réussite dispense le groupe d'Exposition. Porte les rations du groupe.
   const bjorn = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', seed: 2401, id: 'bjorn' });
-  bjorn.travelRole = 'plein-air';
-  skill(bjorn, 'survie-en-exterieur', 60);
+  bjorn.travelRole = { activityId: 'plein-air' };
+  renforcerCompetence(bjorn, 'survie-en-exterieur', 60);
   bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
   bjorn.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   // Éclaireuse — Rester aux aguets (Perception) : le groupe ne peut être surpris cette Étape.
   const mira = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Mira (test)', motivation: 'Test', seed: 2402, id: 'mira' });
-  mira.travelRole = 'rester-aux-aguets';
-  skill(mira, 'perception', 50);
+  mira.travelRole = { activityId: 'rester-aux-aguets' };
+  renforcerCompetence(mira, 'perception', 50);
   mira.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
   // Érudit — Établir des cartes (Métier Cartographe) : Test étendu cumulé ; PX pour l'Apprentissage (interlude).
   const aldric = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Aldric (test)', motivation: 'Test', seed: 2403, id: 'aldric' });
-  aldric.travelRole = 'etablir-cartes';
-  skill(aldric, 'metier', 70, 'Cartographe', 'dexterite');
+  aldric.travelRole = { activityId: 'etablir-cartes' };
+  renforcerCompetence(aldric, 'metier', 70, 'cartographe');
   aldric.xp = 300;
   aldric.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.5 };
 
   // Soldate — Approvisionnement (Survie FAIBLE → Rencontres dangereuses) ET « mauvais état » : blessée,
   // SANS rations (faim RAW), Vérole Urticante contagieuse (LDB 20), cauchemars (Test de Calme/nuit).
   const greta = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Greta Hartmann', motivation: 'Ramener sa compagnie vivante — quel qu’en soit le prix.', seed: 1502, id: 'greta' });
-  greta.travelRole = 'approvisionnement';
-  skill(greta, 'survie-en-exterieur', 0);
+  greta.travelRole = { activityId: 'approvisionnement' };
+  renforcerCompetence(greta, 'survie-en-exterieur', 0);
   greta.wounds.current = Math.max(1, greta.wounds.max - 6);
   greta.nightmares = true;
   greta.diseases = [contractDisease('verole-urticante', makeRNG(1503), { incubation: 0, duration: 5 })!];
@@ -70,12 +64,12 @@ const construireVillage = (): Scene => buildScene({
   weather: 'pluie', // nuit dehors = Exposition (la météo de la scène de départ suit le voyage)
   rest: { auberge: true },
   startMessage:
-    'L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg ' +
+    { texte: 'L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg ' +
     '(30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois ' +
     'nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta ' +
     'fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de ' +
     'cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour ' +
-    'voyager.)',
+    'voyager.)' },
   entities: [
     { id: 'aubergiste', kind: 'personnage', ref: 'humain', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-auberge' },
   ],
@@ -106,7 +100,7 @@ const construireHameau = (): Scene => buildScene({
   terrain: 'herbe',
   heroStart: [3, 4],
   weather: 'pluie', // la longue route part d'ici : camper sous la pluie expose
-  startMessage: 'Vous voilà à Federholz. (Reprenez la carte pour repartir — la LONGUE route d’Altdorf part d’ici.)',
+  startMessage: { texte: 'Vous voilà à Federholz. (Reprenez la carte pour repartir — la LONGUE route d’Altdorf part d’ici.)' },
 });
 
 const construireBourg = (): Scene => buildScene({
@@ -116,7 +110,7 @@ const construireBourg = (): Scene => buildScene({
   size: [12, 8],
   terrain: 'herbe',
   heroStart: [3, 4],
-  startMessage: 'Steinbruck, ses quais et sa halle. (Reprenez la carte pour repartir.)',
+  startMessage: { texte: 'Steinbruck, ses quais et sa halle. (Reprenez la carte pour repartir.)' },
 });
 
 // Cité d'arrivée + INTERLUDE (Entre deux aventures) : marcher sur le cercle ouvre les Activités.
@@ -127,7 +121,7 @@ const construireCite = (): Scene => buildScene({
   size: [12, 8],
   terrain: 'herbe',
   heroStart: [3, 4],
-  startMessage: 'Altdorf, au bout de la longue route. Marchez sur le cercle runique pour l’entre-deux-aventures (Activités).',
+  startMessage: { texte: 'Altdorf, au bout de la longue route. Marchez sur le cercle runique pour l’entre-deux-aventures (Activités).' },
   entities: [
     { id: 'cercle', kind: 'prop', ref: 'cercle-runique', pos: { x: 6, y: 4 } },
   ],

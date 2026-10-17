@@ -122,12 +122,11 @@ const authoredPropFootTable = (): [string, string, string, number, number][] =>
 const sceneWithEntity = (ent: SceneEntity): Scene => ({ ...emptyScene(8, 8), entities: [ent] });
 
 describe('migration de l’empreinte : du legacy d’instance au catalogue de type', () => {
-  it('migre sans dérive les empreintes de type et purge le legacy d’instance', () => {
+  it('migre sans dérive les empreintes de type : la physique d’un décor vient de son TYPE', () => {
     expect(propFootTable()).toEqual(LEGACY_PROP_FOOT_TABLE);
-    const legacy = normalizeScene(sceneWithEntity({ id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'charrette', foot: { w: 9, h: 9 } } as never));
-    expect(legacy.entities[0]).not.toHaveProperty('foot');
-    expect(entityBlockedAt(legacy, legacy.entities[0].pos.x + 1, legacy.entities[0].pos.y, 0)).toBe(true);
-    expect(entityBlockedAt(legacy, legacy.entities[0].pos.x + 2, legacy.entities[0].pos.y, 0)).toBe(false);
+    const scene = normalizeScene(sceneWithEntity({ id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'charrette' }));
+    expect(entityBlockedAt(scene, scene.entities[0].pos.x + 1, scene.entities[0].pos.y, 0)).toBe(true);
+    expect(entityBlockedAt(scene, scene.entities[0].pos.x + 2, scene.entities[0].pos.y, 0)).toBe(false);
   });
 
   it('conserve l’empreinte effective de chaque instance authorée', () => {
@@ -161,8 +160,7 @@ describe('migration de l’empreinte : du legacy d’instance au catalogue de ty
     expect(authoredPropFoot(OPERA, 'salon-s-table')).toEqual(['table', 1, 1]);
   });
 
-  /** Le JSON BRUT, jamais `parseProject`/`normalizeScene` : `stripLegacyFoot` dépouille `foot` au
-   *  chargement, une assertion posée APRÈS lui serait verte sur un fichier sali. */
+  /** Le JSON BRUT, jamais `parseProject` : le verrou juge le fichier tel qu'il est commité. */
   it('plus AUCUNE instance authorée ne porte d’empreinte propre — mesuré sur le JSON BRUT', () => {
     expect(entitesAvecFootDansLesJson()).toEqual([]);
     expect(scenarioEntities().filter((e) => 'foot' in e).map((e) => `${OPERA}/${e.id}`)).toEqual([]);
@@ -173,8 +171,6 @@ describe('migration de l’empreinte : du legacy d’instance au catalogue de ty
     const hub = sali.scenes.find((s: { id: string }) => s.id === 'arene-hub');
     hub.entities.find((e: { id: string }) => e.id === 'p8').foot = { w: 9, h: 9 };
     expect(entitesAvecFoot(sali, 'arene-projet.json')).toEqual(['arene-projet.json/arene-hub/p8']);
-    // et la normalisation, elle, l'aurait effacé : c'est bien le fichier BRUT que ce verrou juge.
-    expect(normalizeScene(hub as Scene).entities.find((e) => e.id === 'p8')).not.toHaveProperty('foot');
   });
 });
 

@@ -1,10 +1,5 @@
-/**
- * Schéma de `sea-cargo.json` — COMMERCE MARITIME (MDG 15 l.309-436). Consommé par
- * `src/engine/seaVoyage.ts` (`CARGO as unknown as { ... }`, cast inline reflété ICI 1:1) : catalogue
- * de cargaisons (`CargoDef` — `src/engine/cargo.ts`), achat, vente, Commerce d'opportunité. `avail` =
- * plages d100 par saison (`Season`, `src/engine/travelStages.ts`) ; `price` = colonne par saison, ou
- * `{ dice }` (Vin maritime : 3d10, tiré une fois à l'achat).
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** MDG 15 l.309-436 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import {
@@ -23,7 +18,7 @@ export const file = 'sea-cargo.json';
 export const famille = 'config';
 
 /** Une CARGAISON ÉCHANGEABLE : disponibilité saisonnière + prix (tableau des cargaisons, l.406-434). */
-const cargoMarchand = z.strictObject({
+const cargoMarchand = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   /** Discriminant du catalogue (`catalogueSaisonnier`) : `CargoDef.echangeable` (`src/engine/cargo.ts`). */
@@ -31,6 +26,13 @@ const cargoMarchand = z.strictObject({
   avail: dispoSaisonniereSchema,
   price: z.union([prixSaisonnierSchema, prixTireSchema]),
   source: sourceRefSchema,
+}), {
+  id: { label: 'Identifiant' },
+  label: { label: 'Libellé' },
+  echangeable: { label: 'Échangeable' },
+  avail: { label: 'Disponibilité' },
+  price: { label: 'Prix' },
+  source: { label: 'Source' },
 });
 
 /**
@@ -43,7 +45,7 @@ const cargoMarchand = z.strictObject({
  * misérable se verrait offrir le prix de base plein.
  */
 const offerPriceSchema = z
-  .array(z.strictObject({ ...plageOuverteSchema.shape, pct: z.number() }))
+  .array(nommerChamps(z.strictObject({ ...plageOuverteSchema.shape, pct: z.number() }), { ...metaDesChamps(plageOuverteSchema, { exigees: true }), pct: { label: 'Pourcentage' } }))
   .superRefine((bandes, ctx) => {
     const ecarts = ecartsDeCouverture(bandes, 1, 'ouverte', (b) => `la bande ${b.min}–${b.max ?? '+'} (${b.pct} %)`);
     if (ecarts.length) {
@@ -54,20 +56,23 @@ const offerPriceSchema = z
     }
   });
 
-/** Un MARQUEUR de la colonne Production de l'Index (« commerce », « minimum vital », MDG 15 l.321) :
- *  il occupe la même colonne que les cargaisons sans être une marchandise — donc ni disponibilité ni
- *  prix. `echangeable: false` est le champ d'EXCLUSION lu par le résolveur (`engine/seaVoyage.ts`),
- *  qui filtre le catalogue échangeable à la source ; une entrée marchande ne le porte pas `false`. */
-const cargoMarqueur = z.strictObject({
+/** MDG 15 l.321 */
+const cargoMarqueur = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   echangeable: z.literal(false),
   /** Qualificatif d'affichage ÉDITABLE (« plaque tournante » / « rien à échanger ») — cf. `CargoMarkerDef`. */
   hint: z.string().optional(),
-  /** Ce marqueur désigne une PLAQUE TOURNANTE du commerce (MDG 15 l.321) — lu par `isTradeHubEntry`
-   *  (`engine/cargo.ts`) : tirage d'une cargaison au hasard, bonus de vente, bradage. */
+  /** MDG 15 l.321 */
   tradeHub: z.literal(true).optional(),
   source: sourceRefSchema,
+}), {
+  id: { label: 'Identifiant' },
+  label: { label: 'Libellé' },
+  echangeable: { label: 'Échangeable' },
+  hint: { label: 'Aide' },
+  tradeHub: { label: 'Centre de commerce' },
+  source: { label: 'Source' },
 });
 
 /**
@@ -84,48 +89,98 @@ const doc = document(
   famille,
   {
   cargoes: cargoesSchema,
-  buy: z.strictObject({
+  buy: nommerChamps(z.strictObject({
     availabilityMultiplier: z.number(),
-    merchantSkill: z.strictObject({ d10: z.number(), plus: z.number() }),
-    bigPortSkill: z.strictObject({ d10: z.number(), plus: z.number() }),
+    merchantSkill: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
+    bigPortSkill: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
     partialPurchaseSellerDR: z.number(),
     surplusSellerDR: z.number(),
     source: sourceRefSchema,
+  }), {
+    availabilityMultiplier: { label: 'Multiplicateur de disponibilité' },
+    merchantSkill: { label: 'Compétence du marchand' },
+    bigPortSkill: { label: 'Compétence dans un grand port' },
+    partialPurchaseSellerDR: { label: 'DR du vendeur pour achat partiel' },
+    surplusSellerDR: { label: 'DR du vendeur pour surplus' },
+    source: { label: 'Source' },
   }),
-  sell: z.strictObject({
+  sell: nommerChamps(z.strictObject({
     offerPrice: offerPriceSchema,
     noProduceTargetPerSize: z.number(),
     commerceBonus: z.number(),
-    producesGossip: z.strictObject({ difficulty: difficultySchema, targetPerSize: z.number(), minMilles: z.number() }),
-    surplusGossip: z.strictObject({ difficulty: difficultySchema, targetPerSize: z.number() }),
-    sellerDR: z.strictObject({ noProduce: z.number(), demand: z.number(), produces: z.number(), surplus: z.number() }),
+    producesGossip: nommerChamps(z.strictObject({ difficulty: difficultySchema, targetPerSize: z.number(), minMilles: z.number() }), {
+      difficulty: { label: 'Difficulté' },
+      targetPerSize: { label: 'Cible par taille' },
+      minMilles: { label: 'Milles minimaux' },
+    }),
+    surplusGossip: nommerChamps(z.strictObject({ difficulty: difficultySchema, targetPerSize: z.number() }), { difficulty: { label: 'Difficulté' }, targetPerSize: { label: 'Cible par taille' } }),
+    sellerDR: nommerChamps(z.strictObject({ noProduce: z.number(), demand: z.number(), produces: z.number(), surplus: z.number() }), {
+      noProduce: { label: 'Absence de production' },
+      demand: { label: 'Demande' },
+      produces: { label: 'Production' },
+      surplus: { label: 'Surplus' },
+    }),
     dumpingPctOfBase: z.number(),
     source: sourceRefSchema,
+  }), {
+    offerPrice: { label: 'Prix proposé' },
+    noProduceTargetPerSize: { label: 'Cible sans production par taille' },
+    commerceBonus: { label: 'Bonus de Commerce' },
+    producesGossip: { label: 'Ragot sur la production' },
+    surplusGossip: { label: 'Ragot sur le surplus' },
+    sellerDR: { label: 'DR du vendeur' },
+    dumpingPctOfBase: { label: 'Prix de liquidation (% du prix de base)' },
+    source: { label: 'Source' },
   }),
-  overload: z.strictObject({
+  overload: nommerChamps(z.strictObject({
     hardCapPct: z.number(),
     paliers: z.array(
-      z.strictObject({ id: z.string(), fromPct: z.number(), label: z.string(), mMod: z.number(), manoeuvreDR: z.number() }),
+      nommerChamps(z.strictObject({ id: z.string(), fromPct: z.number(), label: z.string(), mMod: z.number(), manoeuvreDR: z.number() }), {
+        id: { label: 'Identifiant' },
+        fromPct: { label: 'À partir de (%)' },
+        label: { label: 'Libellé' },
+        mMod: { label: 'Modificateur de Mouvement' },
+        manoeuvreDR: { label: 'DR de manœuvre' },
+      }),
     ),
     source: sourceRefSchema,
+  }), {
+    hardCapPct: { label: 'Limite absolue (%)' },
+    paliers: { label: 'Paliers' },
+    source: { label: 'Source' },
   }),
-  opportunite: z.strictObject({
+  opportunite: nommerChamps(z.strictObject({
     investMaxEnc: z.boolean(),
-    test: z.strictObject({
+    test: nommerChamps(z.strictObject({
       skill: refOuSpec('skill'),
       difficulty: difficultySchema,
       totalDR: z.number(),
       maxAttempts: z.number(),
+    }), {
+      skill: { label: 'Compétence' },
+      difficulty: { label: 'Difficulté' },
+      totalDR: { label: 'DR cumulés' },
+      maxAttempts: { label: 'Tentatives maximales' },
     }),
     outcomes: z.array(
-      z.strictObject({
+      nommerChamps(z.strictObject({
         on: z.enum(['success', 'failure']),
         minMissing: z.number().optional(),
         minExtraDR: z.number().optional(),
         pct: z.number(),
+      }), {
+        on: { label: 'Cible' },
+        minMissing: { label: 'Manque minimal' },
+        minExtraDR: { label: 'DR supplémentaires minimaux' },
+        pct: { label: 'Pourcentage' },
       }),
     ),
     source: sourceRefSchema,
+  }), {
+    investMaxEnc: { label: 'Investissement maximal (Enc)' },
+    test: { label: 'Test' },
+    outcomes: { label: 'Issues' },
+    source: { label: 'Source' },
   }),
   },
   {

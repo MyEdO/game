@@ -109,7 +109,7 @@ function withFixtures(srcFiles, docFiles, fn, dette = [], coeur = COEUR_REEL) {
   for (const [name, content] of Object.entries(docFiles))
     if (!estCatalogue(name)) writeFileSync(join(rawDir, coeur, name), content, 'utf8')
   const catalogues = () => new Map(Object.entries(docFiles).filter(([name]) => estCatalogue(name)).map(([name, content]) => [`${coeur}/${name}`, content]))
-  try { fn({ srcDir, rawDir, manifestPath, catalogues }) } finally { rmSync(root, { recursive: true, force: true }) }
+  try { fn({ racines: srcDir, rawDir, manifestPath, catalogues }) } finally { rmSync(root, { recursive: true, force: true }) }
 }
 
 /** Les mêmes fixtures, posées sous un cœur du registre de FIXTURE — pour tout cas qui injecte

@@ -1,36 +1,4 @@
-// RULESET `main` — LA protection serveur de `main` (#1776, #2178). C'est elle, et
-// rien de local, qui tient l'invariant « `main` n'est jamais rouge » : le serveur SÉRIALISE les entrées.
-//
-// Décision utilisateur du 2026-09-29, verbatim : « une fois qu'on veut publié, ca se bouscule beaucoup,
-// en plus des gates, du rebase + CI qui potentiellement réponds que main a bougé entre le début et la
-// fin et j'en passe » (#2178). Arbitrage utilisateur du 2026-09-16 : « Oui, ruleset actif ». Le mode
-// `evaluate` n'existe pas sur le plan de ce dépôt (HTTP 422 « Enforcement evaluate option is not
-// supported on this plan », mesuré le 2026-09-04) : les modes offerts sont `active` et `disabled`.
-//
-// CINQ RÈGLES (schémas `repository-rule-*` de github/rest-api-description) :
-//   · `required_status_checks` — les checks des jobs VÉRIFIANTS du `ci.yml` du TRONC (`origin/main`,
-//     jamais l'arbre local : un check exigé qu'aucun job de `main` ne produit bloquerait toute entrée),
-//     ou de la ref `--depuis <ref>` : le `ci.yml` d'un lot qui CHANGE les checks, posé juste avant sa
-//     publication — le lot les satisfait, une PR à l'ancien `ci.yml` reste bloquée jusqu'à fusionner
-//     `main`, et aucune fenêtre n'exige moins de checks (#2178, design du lot 1b §4).
-//     `strict_required_status_checks_policy: false` : le commit de file jugé EST celui qui entre ;
-//   · `merge_queue` — la file de fusion, paramètres TOUS explicites (`PARAMETRES_DE_FILE`), posée
-//     seulement quand le `ci.yml` du tronc déclenche sur `merge_group` (`refusDeFile`) ;
-//   · `pull_request` — aucun push direct sur `main`, zéro approbation (`PARAMETRES_DE_PR`) ;
-//   · `non_fast_forward` — `main` n'est jamais réécrite ;
-//   · `deletion` — `main` ne se supprime pas.
-//
-// AUCUN BYPASS — mesure du 2026-09-16 à l'activation : un corps portant l'intégration GitHub Actions
-// en `bypass_actors` est REFUSÉ par le serveur. `gh api -X POST repos/cgauche/game/rulesets --input
-// <corps>` → HTTP 422, verbatim : « Actor GitHub Actions integration must be part of the ruleset
-// source or owner organization » — le dépôt était alors PERSONNEL (`cgauche/game`) ; il appartient à
-// l'organisation `MyEdO` depuis le 2026-09-29 (#2178). Le ruleset n'exonère AUCUN acteur : `main`
-// n'avance que par la file. (le `git push` de `deploy.yml` pousse sur le dépôt de PROD, pas sur
-// `main` : le ruleset ne le voit jamais.)
-//
-// Usage : `npm run ops:ruleset -- --dry-run` (imprime les corps, n'écrit rien) ou `npm run ops:ruleset`
-// (crée ou met à jour le ruleset — geste de l'orchestrateur, jamais d'un agent) ; `--depuis <ref>` lit
-// le `ci.yml` de `<ref>` au lieu d'`origin/main`, avec ou sans `--dry-run`.
+// #1776 ; #2178 ; #2626
 import { execFileSync } from 'node:child_process'
 import { writeFileSync, rmSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -43,6 +11,7 @@ import { TRONC, depotDe, fetchOrigin, lireEnLot, reussi, shaDe } from '../guards
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 export const NOM = 'main'
+export const PARAMETRES_DU_DEPOT = Object.freeze({ allow_auto_merge: true })
 
 /** Chemin de `ci.yml`, relatif à la racine du dépôt. */
 const CI = '.github/workflows/ci.yml'
@@ -221,6 +190,7 @@ export function executer({
   const texteCi = lireCi(ref)
   const contextes = contextesRequis({ texte: texteCi })
   const corps = corpsDuRuleset(contextes)
+  sortie(`${JSON.stringify(PARAMETRES_DU_DEPOT, null, 2)}\n`)
   sortie(`${JSON.stringify(corps, null, 2)}\n`)
   sortie(`[ruleset] checks requis posés, lus à ${ref}:${CI} : ${contextes.join(', ')}\n`)
   const refus = refusDeFile(texteCi, ref)
@@ -245,6 +215,9 @@ export function executer({
       }
     }
     const id = idExistant(runner)
+    writeFileSync(fichier, JSON.stringify(PARAMETRES_DU_DEPOT))
+    runner(['api', '-X', 'PATCH', `repos/${DEPOT}`, '--input', fichier])
+    sortie('[ruleset] dépôt : allow_auto_merge=true\n')
     writeFileSync(fichier, JSON.stringify(corps))
     const cible = id === null ? `repos/${DEPOT}/rulesets` : `repos/${DEPOT}/rulesets/${id}`
     runner(['api', '-X', id === null ? 'POST' : 'PUT', cible, '--input', fichier])

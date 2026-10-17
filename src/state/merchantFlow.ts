@@ -6,17 +6,18 @@
 import type { GameState } from './store';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
-import { recomputeLoadout, itemFromTrappingById, addItemToHero, autoStowNewItem } from '../engine/items';
+import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
-import { bargainBuyFactor, bargainSellFactor } from '../engine/bargain';
-import { SL_ASTOUNDING } from '../engine/tests';
+import { bargainBuyFactor, bargainSellFactor, type BargainOutcome } from '../engine/bargain';
+import { SL_ASTOUNDING, estJete } from '../engine/tests';
 import { craftPriceFactor, shiftAvailability } from '../engine/qualities/craftEconomy';
 import { rule, type RuleValue } from '../engine/policy';
 import type { SceneEntity } from './scene';
-import { partyAssisted, skillBaseValue, type SupportDetail } from '../engine/skills';
+import { partyAssisted, skillBaseValue, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
+import { hasTalent } from '../engine/magic';
 import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
@@ -25,27 +26,21 @@ import { bourseOf, payWithAllocation, payFromGroup, soloPayer, creditBourse } fr
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
-import { slugId } from '../data/slug';
 import { MERCHANTS } from './merchants/index';
 import type { UniteAchetable } from './merchants/types';
 import { FLOWS } from './rollFlowSpecs';
 import { registerCascadeApplier, startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
-import { actorIn, garanti } from './combatants';
-import type { CascadeStep } from './pendings';
+import { actorIn, ecrireActeur, garanti } from './combatants';
+import type { CascadeStep, ContrepartieDeMarchandage, OpposantDeMarchandage } from './pendings';
+import { sceneNpc } from './sceneNpc';
+import { cleDeBillet } from './worldMap';
 import { addPossession } from './possessionsFlow';
 import { traceLineOf } from '../engine/traceLine';
 
 import type { Get, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
-
-/** Issue d'un Marchandage conclu (achat OU vente) — module les prix de la visite. */
-export interface BargainOutcome {
-  won: boolean;
-  drNet: number;
-  negotiator: boolean;
-}
 
 /** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {
@@ -367,7 +362,7 @@ registerCascadeApplier(MERCHANT_RAGOT_KIND, (get, set, step) => {
   return {
     consequences: freeCons([stepDetail(
       actor ? dataLabel(actor.label) : t('eff.party'),
-      t(gossipDay ? 'mf.searchOk' : 'mf.searchKo', { roll: step.result.roll }),
+      estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo', { roll: step.result.roll }) : t('mf.searchSansJet'),
     )]),
   };
 });
@@ -449,9 +444,10 @@ export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
   const free = comptesFree(ent, get().party, listedBrassOf(entry));
   const cost = free ? fromBrass(0) : fromBrass(Math.round(toBrass(priceToMoney(entry.price)) * craftPriceFactor({ qualities: entry.qualities as never }) * (m.buyMarkup ?? 1) * factor));
   const dest = heroId ?? get().party[0]?.id;
-  const destHero = get().party.find((h) => h.id === dest);
+  const destHero = dest ? actorIn(get(), dest) : undefined;
   if (!free && (!destHero || !canAfford(bourseOf(destHero), cost))) { get().log(t('mf.purseKo', { label: entry.label })); return; }
-  if (!entry.unit && !itemFromTrappingById(id)) return; // objet de sac introuvable → abandon (parité comportement)
+  const objet = entry.unit ? null : itemFromTrappingById(id);
+  if (!entry.unit && !objet) return; // objet de sac introuvable → abandon (parité comportement)
   if (!free) payWithAllocation(get, set, { debits: soloPayer(dest!, cost), recipient: dest, purpose: 'achat' });
   const decr = (st: { id: string; qty: number }[]) => st.map((l) => (l.id === id ? { ...l, qty: l.qty - 1 } : l));
   if (entry.unit && dest) {
@@ -463,7 +459,7 @@ export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
     const eid = s.merchant!.entityId;
     const persisted = s.merchantStocks[eid];
     return {
-      party: entry.unit ? s.party : s.party.map((h) => (h.id === dest ? addItemToHero(h, id) : h)), // flux objet→héros mutualisé
+      ...(!objet || !dest ? {} : ecrireActeur(s, dest, (h) => avecObjet(h, objet))), // flux objet→héros mutualisé
       merchant: { ...s.merchant!, stock: newStock },
       // Déplétion PERSISTANTE (#T3) : la quantité reste réduite entre visites (rolledAt inchangé).
       merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
@@ -575,16 +571,9 @@ export function confirmDistribution(get: Get, set: Set): void {
     const mm = s.merchant; if (!mm) return {};
     const byHero: Record<string, ItemInstance[]> = {};
     for (const d of dist) { if ('item' in d) (byHero[d.heroId] ??= []).push(d.item); }
-    const party = s.party.map((h) => {
-      const add = byHero[h.id]; if (!add) return h;
-      const clone: Combatant = structuredClone(h);
-      const added = add.map((it) => ({ ...it, equipped: false }));
-      clone.items = [...(clone.items ?? []), ...added];
-      for (const it of added) autoStowNewItem(clone, it); // #204 : rangement par défaut
-      recomputeLoadout(clone);
-      return clone;
-    });
-    return { party, merchant: { ...mm, pendingDistribution: null } };
+    const ecrit = ecrireActeur(s, Object.keys(byHero), (h) =>
+      byHero[h.id]!.reduce((porteur, it) => avecObjet(porteur, { ...it, equipped: false }), h)); // #204 : rangement par défaut
+    return { ...ecrit, merchant: { ...mm, pendingDistribution: null } };
   });
   for (const u of unitEntries) addPossession(get, set, possessionDUnite(u.unit, u.heroId));
 }
@@ -695,17 +684,16 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
   if (givable.length < quote.giveCount) { get().log(t('mf.barterNeed', { n: quote.giveCount, label: donne, dispo: givable.length })); return; }
   if (stockLine.qty < getCount) { get().log(t('mf.barterNoStock')); return; }
   const soldUids = givable.slice(0, quote.giveCount).map((i) => i.uid);
+  const acquis = Array.from({ length: getCount }, () => itemFromTrappingById(opts.getStockId)).filter((i) => i !== null);
   const newStock = m.stock.map((l) => (l.id === opts.getStockId ? { ...l, qty: l.qty - getCount } : l));
   set((s) => {
     const eid = s.merchant!.entityId;
     const persisted = s.merchantStocks[eid];
     return {
-      party: s.party.map((h) => {
-        if (h.id !== opts.giveHeroId) return h;
-        let clone: Combatant = structuredClone(h);
+      ...ecrireActeur(s, opts.giveHeroId, (h) => {
+        const clone: Combatant = structuredClone(h);
         clone.items = (clone.items ?? []).filter((i) => !soldUids.includes(i.uid)); // biens cédés
-        for (let i = 0; i < getCount; i++) clone = addItemToHero(clone, opts.getStockId); // biens acquis
-        return clone;
+        return acquis.reduce(avecObjet, clone); // biens acquis
       }),
       merchant: { ...s.merchant!, stock: newStock },
       merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
@@ -718,11 +706,10 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
   }));
 }
 
-/** Retire de `party` (clone + recompute) les instances `entries` (uid+heroId) et renvoie la nouvelle liste. */
-function removeSold(party: Combatant[], entries: { uid: string; heroId: string }[]): Combatant[] {
-  return party.map((h) => {
+/** Retire de leurs porteurs (clone + recompute) les instances `entries` (uid+heroId) : patch `ecrireActeur`. */
+function removeSold(s: GameState, entries: { uid: string; heroId: string }[]): ReturnType<typeof ecrireActeur> {
+  return ecrireActeur(s, entries.map((e) => e.heroId), (h) => {
     const uids = entries.filter((e) => e.heroId === h.id).map((e) => e.uid);
-    if (!uids.length) return h;
     const clone: Combatant = structuredClone(h);
     clone.items = (clone.items ?? []).filter((i) => !uids.includes(i.uid));
     recomputeLoadout(clone);
@@ -775,7 +762,7 @@ export function confirmSell(get: Get, set: Set): void {
   if (!names.length) return;
   set((s) => ({
     merchant: s.merchant ? { ...s.merchant, sellCart: [], bargainSellUsed: true } : s.merchant,
-    party: removeSold(s.party, sold),
+    ...removeSold(s, sold),
   }));
   for (const [heroId, g] of Object.entries(gainByHero)) creditBourse(get, set, heroId, g);
   get().log(`Vente : ${names.join(', ')} (+${formatMoney(total)}).`);
@@ -793,16 +780,30 @@ export function repairItem(get: Get, set: Set, uid: string, heroId: string): voi
   const cost = fromBrass(itemRepairCostBrass(item, base));
   if (!hero || !canAfford(bourseOf(hero), cost)) { get().log(msg('mf.repairPurseKo', { label: item.label })); return; }
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'réparation' });
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (h.id !== heroId) return h;
-      const clone: Combatant = structuredClone(h);
-      const it = clone.items?.find((i) => i.uid === uid); if (it) it.damageTaken = 0;
-      recomputeLoadout(clone);
-      return clone;
-    }),
+  set((s) => ecrireActeur(s, heroId, (h) => {
+    const clone: Combatant = structuredClone(h);
+    const it = clone.items?.find((i) => i.uid === uid); if (it) it.damageTaken = 0;
+    recomputeLoadout(clone);
+    return clone;
   }));
   get().log(msg('mf.repairDone', { label: item.label }));
+}
+
+/** Ouvre le Marchandage du meilleur négociateur du groupe (Soutien, LDB 12) contre `opposant`, pour
+ *  `contrepartie` — porte UNIQUE des deux contreparties (marchand, billet). */
+export function ouvrirMarchandage(get: Get, set: Set, contrepartie: ContrepartieDeMarchandage, opposant: OpposantDeMarchandage): void {
+  const best = partyAssisted(get().party, 'marchandage', 'sociabilite'); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
+  set({ pendingBargain: {
+    playerId: best.actor.id, playerName: best.actor.label,
+    contrepartie, opposant,
+    playerSkill: best.value, support: best.support,
+    // Grandeur du départage à DR égal (`LDB 12 l.160`) : le Niveau de Compétence NU, à l'accesseur
+    // canon — `best.value` est la valeur de TEST, qui porte en plus le Soutien et TOUT modificateur du
+    // Marchandage (États, mutation Visage inversé, objet Laid… — cf. `skills.testValueParts`).
+    playerBase: skillBaseValue(best.actor, 'marchandage', undefined, 'sociabilite'),
+    negotiator: hasBargainBonus(best.actor), // Négociateur → registre de talents (jamais un name-match)
+    roll: null, merchantRoll: null, result: null,
+  } });
 }
 
 export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
@@ -815,43 +816,35 @@ export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
   if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return; // 1 marchandage par MODE et par visite (achat ≠ vente)
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
   const arch = garanti(MERCHANTS[m.archetype], m.archetype, 'marchandage');
-  const best = partyAssisted(get().party, 'marchandage', 'sociabilite'); if (!best) return; // Soutien (LDB 12) : conseillers du groupe
-  const negotiator = hasBargainBonus(best.actor); // Négociateur → registre de talents (jamais un name-match)
-  set({ pendingBargain: {
-    playerId: best.actor.id, playerName: best.actor.label,
-    merchantName: arch.label, merchantValue: arch.bargainSkill,
-    playerSkill: best.value, support: best.support,
-    // Grandeur du départage à DR égal (`LDB 12 l.160`) : le Niveau de Compétence NU, à l'accesseur
-    // canon — `best.value` est la valeur de TEST, qui porte en plus le Soutien et TOUT modificateur du
-    // Marchandage (États, mutation Visage inversé, objet Laid… — cf. `skills.testValueParts`).
-    playerBase: skillBaseValue(best.actor, 'marchandage', undefined, 'sociabilite'),
-    mode, negotiator, roll: null, merchantRoll: null, result: null,
-  } });
+  // Le marchand est un PNJ de scène : sa fiche porte le portrait de la ligne adverse.
+  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'buy' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId) });
 }
 
-/** « Conclure » le Marchandage : fige l'issue sur la visite (prix modulés) — LDB 59 l.43. */
+/** « Conclure » le Marchandage : fige l'issue sur sa contrepartie — les prix de la visite du marchand
+ *  (LDB 59 l.43), ou le billet (`marchandagesDeBillet`, EDO 01 l.142). */
 export function bargainConfirm(get: Get, set: Set): void {
   const pb = get().pendingBargain;
   if (!pb || !pb.result) return; // pas d'acquittement avant le jet
   const won = pb.result.attackerWins; // le joueur est l'attaquant
   const drNet = pb.result.netSL;
-  // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 (symétrique du Succès Stupéfiant
-  // +6 qui donne −20 %) → le marchand se méfie de votre monnaie : plus aucun marchandage cette visite.
-  const botch = !won && drNet >= SL_ASTOUNDING;
   const outcome = { won, drNet, negotiator: pb.negotiator };
-  const patch = pb.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome };
   // ACQUITTEMENT par le goulot (`FLOWS.bargain.apply`) : le verdict est déclaré AU FLUX (`spec.issue`),
   // journalisé là — ici on acquitte, avant de fermer le pending qui le porte.
   FLOWS.bargain.apply(get);
+  const c = pb.contrepartie;
+  // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 (symétrique du Succès Stupéfiant
+  // +6) → le marchand se méfie de votre monnaie : plus aucun marchandage cette visite.
+  const botch = !won && drNet >= SL_ASTOUNDING;
   set((s) => ({
     pendingBargain: null,
-    merchant: s.merchant ? { ...s.merchant, ...patch, soured: s.merchant.soured || botch } : s.merchant,
+    ...(c.kind === 'billet'
+      ? { marchandagesDeBillet: { ...s.marchandagesDeBillet, [cleDeBillet(c.routeId, c.vehicule, c.depuis)]: outcome } }
+      : { merchant: s.merchant ? { ...s.merchant, ...(c.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome }), soured: s.merchant.soured || botch } : s.merchant }),
   }));
 }
 
-/** Talent « Détection d'artefact » (LDB 10 l.336) : Test d'Intuition au toucher — succès =
- *  l'objet est senti magique, chaque DR apprend une règle spéciale ; UNE tentative par artefact. */
-export const DETECT_TALENT = "Détection d'artefact";
+/** Talent « Détection d'artefact », id stable — LDB 10 l.336. */
+const DETECT_TALENT = 'detection-d-artefact';
 
 /** Compétence testée par CHAQUE mode de la fenêtre Évaluation/Détection, par id STABLE — SOURCE
  *  UNIQUE lue par l'ouverture du jet (`bestDetector`/`openAppraise`) ET par la modale qui décompose
@@ -864,11 +857,26 @@ export const APPRAISE_SKILL = {
 
 /** Meilleur détecteur du groupe : meilleure Intuition PARMI les porteurs du Talent (c'est LUI qui
  *  touche l'objet — pas un partyBest global comme l'Évaluation). null si personne ne l'a. */
-export function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
-  const holders = party.filter((h) => !h.dead && h.talents.some((t) => t.talentId === slugId(DETECT_TALENT) && (t.times ?? 1) >= 1));
-  if (!holders.length) return null;
+function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
+  const holders = party.filter((h) => hasTalent(h, DETECT_TALENT));
   const best = partyAssisted(holders, APPRAISE_SKILL.detect.skill, APPRAISE_SKILL.detect.characteristic); // Soutien (LDB 12)
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
+}
+
+/** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection (`bestDetector`) ; `null` = personne qui puisse tenter. */
+function appraiseLeader(party: Combatant[], mode: 'evaluate' | 'detect'): { actor: Combatant; value: number; support: SupportDetail } | null {
+  return mode === 'detect' ? bestDetector(party) : partyAssisted(party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic);
+}
+
+/** Détection : le refus nomme le Talent, pas la Compétence — LDB 10 l.336. */
+const appraiseNobody = (mode: 'evaluate' | 'detect'): string => refusPersonneNePeutTenter(
+  mode === 'detect' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
+);
+
+/** Refus NOMMÉ d'une Évaluation/Détection que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste
+ *  de l'UI en dérive. */
+export function appraiseRefus(party: Combatant[], mode: 'evaluate' | 'detect' = 'evaluate'): string | null {
+  return appraiseLeader(party, mode) ? null : appraiseNobody(mode);
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
@@ -878,8 +886,8 @@ function openAppraise(
   target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; index: number } },
   itemName: string, mode: 'evaluate' | 'detect', trappingId?: string,
 ): void {
-  const best = mode === 'detect' ? bestDetector(get().party) : partyAssisted(get().party, APPRAISE_SKILL.evaluate.skill, APPRAISE_SKILL.evaluate.characteristic); // Soutien (LDB 12)
-  if (!best) return;
+  const best = appraiseLeader(get().party, mode);
+  if (!best) { get().log(appraiseNobody(mode)); return; }
   const t = trappingId ? findTrappingById(trappingId) : undefined;
   set({ pendingAppraise: {
     actorId: best.actor.id, actorName: best.actor.label, ...target, itemName,
@@ -897,7 +905,7 @@ export function gameDay(get: Get): number {
 }
 
 export function appraiseItem(get: Get, set: Set, uid: string, heroId: string, mode: 'evaluate' | 'detect' = 'evaluate'): void {
-  const hero = get().party.find((h) => h.id === heroId);
+  const hero = actorIn(get(), heroId);
   const item = hero?.items?.find((i) => i.uid === uid); if (!item) return;
   if (mode === 'detect' && item.detectTried) return; // une seule tentative par artefact (LDB 10 l.336)
   if (mode === 'evaluate' && item.appraiseTriedDay === gameDay(get)) {
@@ -918,7 +926,7 @@ export function appraiseGear(get: Get, set: Set, scope: 'loot' | 'victory', inde
 }
 
 /** Patch la cible de l'Évaluation/Détection — objet porté (party) ou ligne de butin en fenêtre. */
-function patchAppraiseTarget(_get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; index: number } },
+function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; index: number } },
   patch: { identified?: boolean; magicKnown?: boolean; detectTried?: boolean; appraiseTriedDay?: number }): void {
   if (pa.gear) {
     const key = pa.gear.scope === 'loot' ? 'pendingLoot' : 'pendingVictory';
@@ -936,17 +944,16 @@ function patchAppraiseTarget(_get: Get, set: Set, pa: { itemUid?: string; gear?:
     });
     return;
   }
-  set((s) => ({
-    party: s.party.map((h) => {
-      if (!(h.items ?? []).some((i) => i.uid === pa.itemUid)) return h; // clone uniquement le porteur de l'objet
-      const clone: Combatant = structuredClone(h);
-      const it = clone.items?.find((i) => i.uid === pa.itemUid);
-      if (it) {
-        Object.assign(it, patch);
-        if (patch.identified) delete it.suspectedQualities; // la vraie révélation dissipe les fausses certitudes
-      }
-      return clone;
-    }),
+  const porteur = get().party.map((h) => actorIn(get(), h.id) ?? h).find((h) => (h.items ?? []).some((i) => i.uid === pa.itemUid));
+  if (!porteur) return;
+  set((s) => ecrireActeur(s, porteur.id, (h) => {
+    const clone: Combatant = structuredClone(h);
+    const it = clone.items?.find((i) => i.uid === pa.itemUid);
+    if (it) {
+      Object.assign(it, patch);
+      if (patch.identified) delete it.suspectedQualities; // la vraie révélation dissipe les fausses certitudes
+    }
+    return clone;
   }));
 }
 

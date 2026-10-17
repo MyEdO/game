@@ -7,7 +7,7 @@ metadata:
 ---
 
 Un test verrouille le CONTRAT, jamais une implémentation. Deux formes interdites : l'assertion qui
-commémore une suppression (`not.toContain('<classe retirée>')` — règle 6c en exécutable) et le test
+commémore une suppression (`not.toContain('<classe retirée>')` — règle 6 en exécutable) et le test
 qui verrouille l'ancienne MÉCANIQUE après refonte. Un rouge post-refonte s'ATTRIBUE d'abord :
 contrat (RAW, invariant du ticket, design jugé) → il se respecte ; ancienne mécanique → il se RÉÉCRIT
 depuis le nouveau contrat. Jamais adapter le flux aux tests, jamais un hack (skip, mock, timeout).

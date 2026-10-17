@@ -17,10 +17,10 @@ import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 import { INDEX, lireEnLot } from './gitPorte.mjs'
 import { clotureDImports } from './importGraph.mjs'
 
-const EXTS_LINT = ['.ts', '.tsx', '.mjs', '.mts', '.js', '.jsx', '.cts', '.cjs']
 export const BUDGET_DE_LIGNE = 16000
 export function lotsDeLigne(fichiers, budget = BUDGET_DE_LIGNE) {
   const lots = []
@@ -70,14 +70,29 @@ export function defautsDeRapport(sortieJson, cwd, lire) {
 /** @param {string} racine @param {string[]} fichiers @param {{cwd: string, budget?:number, configuration?:object}} options */
 export function lancerLint(racine, fichiers, { cwd, budget = BUDGET_DE_LIGNE, configuration }) {
   if (!fichiers.length) return { defauts: [], brut: '', stdout: '', codeSortie: 0 }
+  let appel
+  try { appel = appelDuLint(racine) }
+  catch (e) { return { defauts: [defautOutillage(`script lint illisible — ${String(e?.message ?? e).trim().split('\n')[0]}`)], brut: '', stdout: '', codeSortie: 1 } }
   const config = join(cwd, `.lint-${process.pid}-${Math.random().toString(36).slice(2)}.config.mjs`)
   writeFileSync(config, `import config from ${JSON.stringify(pathToFileURL(join(racine, CONFIG_LINT)).href)};\nexport default {...config,...${JSON.stringify(configuration ?? {})}};\n`)
   try {
-    const lancements = lotsDeLigne(fichiers, budget).map(lot => lancerUnLot(racine, lot, cwd, config))
+    const lancements = lotsDeLigne(fichiers, budget).map(lot => lancerUnLot(racine, appel, lot, cwd, config))
     const rapports = lancements.map(l => { try { return JSON.parse(l.stdout) } catch { return {} } })
     return { defauts: lancements.flatMap(l => l.defauts), brut: lancements.map(l => l.brut).join('\n'), codeSortie:Math.max(...lancements.map(l=>l.codeSortie)), stdout: JSON.stringify({diagnostics:rapports.flatMap(r=>r.diagnostics??[]),number_of_files:rapports.reduce((n,r)=>n+(r.number_of_files??0),0)}) }
   } finally { unlinkSync(config) }
 }
+/**
+ * L'appel oxlint du dépôt, en mots : le script `lint` du `package.json` de `racine` sans sa cible `.`, sa SEULE
+ * déclaration (`lancerUnLot`, ligne de relance de `scripts/test/perimetre.mjs`).
+ * @param {string} racine @returns {string[]}
+ */
+export function appelDuLint(racine) {
+  const mots = String(JSON.parse(readFileSync(join(racine, 'package.json'), 'utf8')).scripts?.lint ?? '').trim().split(/\s+/)
+  const cible = mots.indexOf('.')
+  if (cible < 0 || mots[3] !== '--' || !mots.includes('--config')) throw new Error('script `lint` hors de la forme `node <lanceur> <paquet> -- <outil> --config <config> … .`')
+  return mots.toSpliced(cible, 1)
+}
+
 /** La config du dépôt, relative à sa racine. */
 export const CONFIG_LINT = 'oxlint.config.mjs'
 
@@ -106,7 +121,7 @@ export function fermetureDeConfig(racine) {
  * @returns {{ defauts: ReturnType<typeof defautsDeRapport>, saut: string | null }}
  */
 export function lintDeLIndex(racine, depot, chemins) {
-  const aJuger = chemins.map((c) => String(c).replace(/\\/g, '/')).filter((rel) => EXTS_LINT.some((e) => rel.endsWith(e)))
+  const aJuger = chemins.map((c) => String(c).replace(/\\/g, '/')).filter((rel) => EXTENSIONS_DE_SCRIPT.some((e) => rel.endsWith(e)))
   if (!aJuger.length) return { defauts: [], saut: null }
   let fermeture
   try {
@@ -146,8 +161,9 @@ function texteDuDisque(chemin) {
   }
 }
 
-function lancerUnLot(racine, lot, cwd, config) {
-  const args = [join(racine, 'scripts', 'lancer-local.mjs'), 'oxlint', '--cwd', cwd, '--', 'oxlint', '--max-warnings', '0', '--format', 'json', '--no-error-on-unmatched-pattern', '--disable-nested-config', '--config', config, ...lot]
+function lancerUnLot(racine, [, lanceur, paquet, separateur, ...outil], lot, cwd, config) {
+  const options = outil.map((mot, i) => (outil[i - 1] === '--config' ? config : mot))
+  const args = [join(racine, lanceur), paquet, '--cwd', cwd, separateur, ...options, '--format', 'json', '--no-error-on-unmatched-pattern', ...lot]
   let stdout, stderr = '', lancement = '', echec = false, codeSortie = 0
   try { stdout = execFileSync(process.execPath, args, { cwd: racine, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }) }
   catch (e) { echec = true; codeSortie = Number.isInteger(e.status) ? e.status : 1; stdout = String(e.stdout ?? ''); stderr = String(e.stderr ?? ''); lancement = String(e.message ?? '') }

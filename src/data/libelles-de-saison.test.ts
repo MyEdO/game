@@ -14,8 +14,13 @@
  * RENDU — c'est là que les libellés attendus se vérifient (`src/ui/PlageField.test.tsx`).
  */
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { weather, seasonLabel } from './index';
+import { setDataset } from './overrides';
+import { schema as seaWeatherSchema } from './schemas/defs/sea-weather';
+import { metaDesChamps } from './schemas/grammaire/meta';
+import { descendre } from './schemas/grammaire/descente';
 
 /** Les libellés que la donnée porte — cherchés tels qu'elle les écrit, jamais recopiés ici. */
 const LIBELLES = weather.map((s) => s.label);
@@ -24,6 +29,31 @@ const LIBELLES = weather.map((s) => s.label);
 const estCommentaire = (ligne: string) => /^\s*(\/\/|\/\*|\*)/.test(ligne);
 
 describe('libellés de saison — une SOURCE, la donnée (#1659)', () => {
+  it('la même méta saisonnière relit chaque libellé modifié dans le dataset', () => {
+    const initiales = structuredClone(weather);
+    let noeudSaisonnier: z.ZodObject | undefined;
+    descendre([seaWeatherSchema], ({ noeud, path }) => {
+      if (path === '.seasonMod' && noeud instanceof z.ZodObject) { noeudSaisonnier = noeud; return 'arreter'; }
+    });
+    expect(noeudSaisonnier).toBeDefined();
+    if (!noeudSaisonnier) throw new Error('objet saisonnier absent du schéma maritime');
+    const metas = metaDesChamps(noeudSaisonnier, { exigees: true });
+    try {
+      for (const saison of initiales) {
+        const meta = metas[saison.id];
+        expect(meta.label.length).toBeGreaterThan(0);
+        expect(meta.label).toBe(saison.label);
+        const nouveauNom = `Saison éditée ${saison.id}`;
+        setDataset('weather', initiales.map((s) => s.id === saison.id ? { ...s, label: nouveauNom } : s));
+        expect(meta.label).toBe(nouveauNom);
+        expect(seasonLabel(saison.id)).toBe(nouveauNom);
+        expect(metaDesChamps(noeudSaisonnier, { exigees: true })[saison.id]).toBe(meta);
+      }
+    } finally {
+      setDataset('weather', initiales);
+    }
+  });
+
   it('`seasonLabel` résout les quatre saisons par leur id STABLE', () => {
     expect(weather.map((s) => s.id)).toEqual(['printemps', 'ete', 'automne', 'hiver']);
     for (const s of weather) expect(seasonLabel(s.id)).toBe(s.label);

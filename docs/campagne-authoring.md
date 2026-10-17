@@ -1,7 +1,7 @@
 # Authoring de campagne — la carte des coutures d'auteur
 
 Référence VIVANTE (maintenue au fil du code). Une **campagne** = un projet multi-scènes relié par une
-carte du monde (`{ schema: SCHEMA_PROJET, scenes, worldMap, narratif }`), COMMITÉ, manuscrit ou possédé par un générateur (§1). Pour le
+carte du monde (`{ <identité>, scenes, worldMap, narratif }`), COMMITÉ, manuscrit ou possédé par un générateur (§1). Pour le
 pas-à-pas « par où commencer », voir le skill `creer-une-campagne`. Ce document cartographie CHAQUE
 système qu'un auteur mobilise. Règle d'or transverse : **on n'authore que des IDS stables** (le libellé
 est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **personne ne lit le journal**
@@ -23,8 +23,8 @@ est de l'affichage multilangue — CLAUDE.md, encadré « id STABLE ») ; **pers
 - **Chargement et validation** : `parseProject()` (`src/state/worldMap.ts`) est la porte UNIQUE — relit
   le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
   (`src/state/validateScene.ts`) et `src/scenes/bundled-projects.test.ts` (tout `*-projet.json` au glob)
-  confrontent le contenu. Un bump de forme (`SCHEMA_PROJET`) migre les paquets par un script daté de
-  `scripts/migrations/` (banc `src/scenes/migrations-format-projet.test.ts`).
+  confrontent le contenu. Un changement de forme réécrit les paquets commités dans le MÊME commit, par
+  leur générateur ou, pour un paquet manuscrit, par un script one-shot non commité (#2404).
 - **Générateurs** `scripts/<dossier>/generate.mjs` + lib `scripts/campagne/lib.mjs` : contrat byte-stable
   (`src/scenes/generateurs-byte-stables.test.ts`, #1522 — `build()` PUR et chemin `OUT`, artefact comparé
   à l'octet) qui fait du script le propriétaire exclusif de son paquet ; leur `scene()` compile un `MapSpec` par
@@ -69,6 +69,13 @@ persistance — chaque combat spawn une coque fraîche.
 - `sea: true` → voyage joué sur le navire de campagne (`src/state/seaVoyageFlow.ts`, cap `seaHeading`) ;
   `river: true` → descente jouée jour par jour (`src/state/riverVoyageFlow.ts`, `riverPerils`/
   `riverExposure`). Terrestre = table de péripéties + `inns` (relais d'auberge).
+- `billets[véhicule]` (`RouteBillet`) — BILLET d'auteur d'un passage payant, posé sur la PREMIÈRE route du
+  trajet : `prix` par classe du véhicule (sous par place, forfait du trajet), `suite` (routes suivantes
+  couvertes, contiguës, dans le mode), `depuis` (exigé si la route n'a pas de `from`), `marchandage`
+  (`presetId` du vendeur au narratif, `paliers` `{ drMin, prix }` du Test gagné), provenance `source` ∨
+  `maison`. Payé une fois au départ (`src/state/billetFlow.ts`), il couvre sa suite sans débit et
+  s'abandonne si le groupe part ailleurs ou autrement. Sans billet d'auteur, le passage se paie au km
+  de la classe (`billetImplicite`, LDB 51 l.178). Validation au chargement : `worldmap.ts`.
 - Une route `sea: true` REQUIERT un `seaHeading` explicite d'auteur — aucun défaut silencieux :
   `buildSeaPlan` jette si absent (#416). L'éditeur pose `'est'` (neutre) à l'activation du toggle
   « mer » ; à l'auteur de régler le vrai cap. Rappel RAW : la dominante de la Mer des Griffes souffle
@@ -154,11 +161,39 @@ Défaut littéral `false` — un objectif `destroyStructure` ne l'active PAS. R�
 (`src/state/combatFlow.ts`), consommé par `buildAiInput` ; sans effet sur les dégâts, l'immunité
 (`structureImmune`) ni le ciblage joueur.
 
-## 9. Flags et gating
+## 9. Flags, états de campagne et gating
 
-`setFlag` pose un drapeau de scène (`Scene.flags`) ; `flagWhen` (lib) / `when` gatent un choix ou un
-Trigger sur une expression « flag,!flag ». C'est le seul mécanisme d'état narratif — pas de compteur
-codé en dur.
+L'état narratif d'une partie se partitionne par la FORME de ce que le récit retient :
+
+- **Booléen → drapeau** (non déclaré). `setFlag` pose un drapeau de partie (`GameState.flags`, qui
+  traverse les scènes ; `Scene.flags` n'en porte que les valeurs par défaut d'une scène) ; la Condition
+  `{ kind: 'flag', expr: 'flag,!flag' }` le lit.
+- **Issue exclusive nommée → état ÉNUMÉRÉ** (registre `narratif.etats`, forme `enum`, ses `valeurs`
+  déclarées, id stable + libellé) : l'Effet `{ type: 'poserEtat', etat, valeur }` le pose, la Condition
+  `{ kind: 'etat', etat, value }` le compare (sans `value` : « est défini »). Aucun paquet livré n'en
+  déclare encore (l'issue de Phillipe, EDO 01 l.236-243 : à venir, #685).
+- **Un héros → RÉFÉRENCE** (registre `narratif.etats`, forme `heros`) : l'Effet
+  `{ type: 'designerHeros', etat, invite? }` ouvre la désignation d'un héros VIVANT par le joueur (modale
+  `designationHeros`, décision de groupe, non annulable ; `invite` = la prose affichée, `adapteDe` pour
+  un texte d'écran adapté du passage) ; le sélecteur `who: { etat }` des Conditions de groupe
+  (`partyDead`, `skill`, `career`, `species`, `status`) vise alors ce seul héros — référence non
+  désignée → faux. Ex. `campagne-sosie-heros` (EDO 02 l.91), désigné à la fouille du cadavre de Kastor.
+
+**Un geste joueur ne coupe pas le Flow.** `designerHeros`, `extendedTest` et `forceDoor` sont des Effets
+SUSPENSIFS (`EffectHandler.suspensif`, `src/state/combatEffects.ts`) : comme un nœud `test`
+(`openSkillTest(..., after)`), leur pending porte la SUITE — le reste de la pile de `runFlow`, ou le reste
+du lot d'`applyEffects` — et sa clôture la rejoue (`reprendreLaSuite`) : choix du héros (ou, plus aucun
+vivant, clôture sans choix), Test étendu atteint, épuisé ou abandonné, porte cédée ou abandonnée. Une
+étape posée APRÈS le geste s'exécute donc APRÈS lui, jamais avant ni jamais perdue : la fouille de Kastor
+déroule journal (EDO 02 l.89), désignation (l.91), puis le drapeau de fouille qui ouvre la route.
+
+Les valeurs d'état vivent dans `GameState.etats` (snapshot de sauvegarde, vidées en nouvelle partie,
+jamais fusionnées à une transition). Au parse du projet, un état lu ou posé doit être DÉCLARÉ, son usage
+conforme à sa forme (`FORMES_D_ETAT`, `src/data/schemas/defs-scenes/formes-d-etat.ts`) et sa valeur
+déclarée ; la garde `src/scenes/drapeau-lu-produit.test.ts` exige qu'un drapeau, un état ou une valeur
+LU ait son producteur dans le paquet, et qu'un état déclaré y soit produit. L'onglet **États** de
+l'éditeur du narratif (`NarratifEditor`) déclare, renomme (propagé à toute référence) et retire (refusé
+tant qu'une référence le désigne) un état et ses valeurs. Pas de compteur codé en dur.
 
 ### 9bis. Dialogues (`Dialogue`, `DialogueNode.speakerId`, #669)
 
@@ -278,17 +313,22 @@ projet — jamais per-scène), typé `NarratifBlock` (`src/state/campaignNarrati
 
 ```
 narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: TrappingData[];
-            documents: DocumentNarratif[]; ouverture?: OuvertureBlock; cloture?: ClotureBlock }
+            documents: DocumentNarratif[]; ouverture?: OuvertureBlock; cloture?: ClotureBlock;
+            ecartes?: EcartDeFiche[] }
 ```
 
 - **`affaires`** (`Affaire`) — fils d'enquête ; **`indices`** (`Indice`, `kind: 'indice' | 'rumeur'`)
   rattachés à une affaire (`affaireId`), révélés par `stades` et recoupés par `refs` (ids d'autres
-  indices) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
+  indices) ; l'ORDRE de `stades` fait sens — des paliers : le stade courant d'un indice est le plus
+  avancé atteint, jamais un recul, et un stade antérieur lu après coup s'ajoute à son historique
+  (`revealClue`, `src/state/clues.ts`) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
   `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
   pré-composés (`base` = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`**
   (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,
   `{ id, titre, prose, source? }`, #679) — les documents remis au joueur, `prose` en Markdown VERBATIM
-  (règle 5), non vide.
+  (règle 5), non vide ; **`etats`** (`{ id, label, source?, maison?, forme }`, #2539) — les états de campagne
+  (§ 9), provenance `source` (le passage qui pose l'état) OU `maison` (sa raison), exigée comme celle
+  d'un billet (`refuserSansProvenance`), `forme` ∈ `heros` | `enum { valeurs }`.
 - **Registres.** Les listes à `id` du narratif sont déclarées UNE fois, dans `REGISTRES_NARRATIFS`
   (`src/data/schemas/defs-scenes/registres-narratifs.ts`) : schéma (unicité inter-registres,
   anti-collision globale), résolveur (`campaignData.ts`), narratif vide (`emptyNarratif`) et éditeur la
@@ -303,40 +343,42 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   fail-fast au parse : aucun id narratif ne peut collisionner avec un id global (créature/possession),
   `refs`/`base` doivent résoudre, ids internes uniques.
 - **Références narratives : UN visiteur.** `sitesDuProjet` (`src/data/schemas/defs-scenes/refs-narratives.ts`)
-  énumère chaque clé de `REFERENCES_NARRATIVES` (`affaireId`, `indiceId`, `presetId`, `documentId`) et
-  chaque `stade` d'un `indiceId`, à son chemin complet : entités de scène (`presetId`), toutes les
-  racines de Flow d'une scène (déclencheurs, actions d'entité, choix de dialogue, `onVictory`) et leurs
-  Flows portés, périls de route de `worldMap`, `indices[].affaireId` et `stades[].documentId` du
-  narratif. Tous ses lecteurs le partagent : la FK de `projetSchema` (`refsNarrativesPendantes`, scènes
+  énumère chaque clé de `REFERENCES_NARRATIVES` (`affaireId`, `indiceId`, `presetId`, `documentId`, `etat`)
+  et chaque sous-référence (`SOUS_REFERENCES` : le `stade` d'un `indiceId`, la `valeur`/`value` d'un
+  `etat`), à son chemin complet : entités de scène (`presetId`), chaque site de
+  Condition et d'Effet du paquet par l'énumérateur unique `sitesDuPaquet`
+  (`src/data/schemas/defs-scenes/sites-de-paquet.ts` : `when` des déclencheurs, choix, lieux, routes et
+  clôture ; racines de Flow — déclencheurs, actions d'entité, choix de dialogue, `onVictory` — avec leurs
+  `if`, `gate`/`difficultyBy` de `test`, feuilles et Flows portés ; `crossTest` des zones ; périls de
+  route), `indices[].affaireId` et `stades[].documentId` du narratif. Une référence `etat` est en outre
+  confrontée à la forme de son état (`fautesDUsageDEtat`). Tous ses lecteurs le partagent : la FK de `projetSchema` (`refsNarrativesPendantes`, scènes
   et carte), le raffinage de `narratifSchema` (références internes au narratif), le contrat des
   scénarios de test (`scenarios-contrat.test.ts`) et l'éditeur (`referencesA`, `renommeRef`). La faute
   nomme son chemin : id vide chez un porteur qui EXIGE la référence (Effect, indice) → « aucun
   document choisi » (« aucun indice », « aucune affaire » — `aucunDe`, `registres-narratifs.ts`) ; id
   vide chez un porteur où elle est FACULTATIVE (entité, #1882 ; stade d'indice) → une absence, dont
-  le schéma du porteur juge seul la forme ; id inconnu → son registre ; stade inconnu → son indice.
+  le schéma du porteur juge seul la forme ; id inconnu → son registre ; sous-entrée inconnue → son entrée
+  (stade → son indice, valeur → son état).
 - **Identité (à plat).** Le paquet porte aussi son identité de campagne (`ProjectIdentite`,
   `src/state/worldMap.ts`) — champs PLATS à la racine du document depuis #1467 L1b, sans poche
   intermédiaire : `id`/`label`/`versionContenu` forment un trio TOUT-OU-RIEN, `icon`/`desc`/`auteur`
-  sont optionnels. `versionContenu` est le numéro de CONTENU de l'auteur ; la version de FORME du
-  document est `schema`. Identité pour la bibliothèque (#766), REQUISE par la porte : un document sans
+  sont optionnels. `versionContenu` est le numéro de CONTENU de l'auteur ; le document ne porte aucun
+  numéro de FORME. Identité pour la bibliothèque (#766), REQUISE par la porte : un document sans
   `id`, `label` ou `versionContenu` est refusé en nommant le champ (#1552,
   `src/data/schemas/defs-scenes/projet-schema.test.ts` cas (d bis)).
-- **Migration.** La forme courante du document est `SCHEMA_PROJET` (`src/data/schemas/defs-scenes/projet.ts`) ;
-  un document d'une forme antérieure monte au format courant au chargement, un saut de forme par entrée
-  de `PROJECT_MIGRATIONS` (`src/data/migrationsDeProjet.ts`). La fabrique UNIQUE du document est
+- **Forme.** `projetSchema` (`src/data/schemas/defs-scenes/projet.ts`) est le SEUL contrôle de forme du
+  document : aucun numéro de version, aucune migration de chargement — un document d'une autre forme est
+  REFUSÉ par `parseProject` (`ProjetRefuse`, cause `schema`, rapport zod), et une scène d'autosave par
+  `parseSceneDeProjet` (#2404, décision utilisateur du 2026-10-05). La fabrique UNIQUE du document est
   `documentDeProjet` (`src/state/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
   `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
   `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
   `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` — « La Diligence »
   (`src/scenes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
-  tous passent `parseProject` en CI (`src/scenes/bundled-projects.test.ts`).
-  La montée 17→18 (`PROJECT_MIGRATIONS[17]`, #679) soulève chaque Effect `document` en ligne
-  `{ title, desc }` en entrée `narratif.documents` — id `document-<slug du titre>`, suffixé `-2`,
-  `-3`… s'il est pris (`src/data/documentsAuNarratif.ts`) — et l'Effect devient `{ documentId }`. Une
-  scène d'AUTOSAVE (`migreSceneDeProjet`) dont la montée soulèverait un document est REFUSÉE nommément
-  (`ProjetRefuse`) : seule, elle n'a pas de narratif où le poser.
+  tous passent `parseProject` et `validateScene` en CI (`src/scenes/bundled-projects.test.ts`).
+  Un Effect `document` désigne son entrée du registre `narratif.documents` par `{ documentId }` (#679).
 - **Éditeur.** Le bouton « Narratif » (`src/ui/editor/EditorToolbar.tsx`) ouvre le viewer
-  `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/Documents/PNJ/Objets). L'onglet
+  `src/ui/editor/NarratifEditor.tsx` (onglets Cadre/Affaires/Indices/Documents/PNJ/Objets/Écarts). L'onglet
   **Documents** liste `narratif.documents` ; un ajout pose `document-<n>` (id frais contre TOUS les
   registres), le formulaire édite `titre`, le texte Markdown verbatim et la `source` (`SourceRefField`,
   `src/ui/SourceRefField.tsx` : livre choisi dans `books`, page — le même éditeur sert la source d'un
@@ -412,6 +454,30 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
   système). Aucun journal parallèle n'est écrit.
 - **Édition.** Onglet « Cadre » du `NarratifEditor` (champs texte, pitch, ambiance, `ConditionEditor`
   pour la clôture) — le cadre est de la DONNÉE de campagne, jamais du texte au catalogue i18n.
+
+## 10quinquies. Lien aux fiches de dossier de chapitre (`couvre` / `narratif.ecartes`, #2290)
+
+Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `ficheDeDossier` de
+`src/data/source/dossier.ts`) nomme chaque entrée par un identifiant GLOBAL `<ABBR>-<NN>#<id>`
+(`ID_D_ENTREE`). Le paquet de campagne CITE ces entrées ; la fiche ne connaît pas le paquet.
+
+- **`couvre?: string[]`** (`couvreSchema`, `src/data/schemas/defs-scenes/communs.ts`) — les entrées de
+  fiche que l'élément couvre, sans doublon. Porteurs : `Scene`, `SceneEntity`, `SceneEffectZone`,
+  `Trigger`, `Dialogue`, `EncounterDef`, `MapPlace`, `MapRoute`, `PresetPnj`, `Indice`.
+- **`narratif.ecartes?: EcartDeFiche[]`** (`ecartSchema`, `src/data/schemas/defs-scenes/narratif.ts`) —
+  `{ entree, motif }` : une entrée de fiche que l'adaptation écarte, une fois, motif non vide.
+- **Édition.** La primitive `CouvreField` (`src/ui/editor/CouvreField.tsx`) pose `couvre` dans chaque
+  inspecteur porteur : pli « Identité » de l'entité et de la scène, pli de la zone d'effet, panneau
+  Logique (déclencheur, dialogue, rencontre), panneaux de lieu et de route de la carte, formulaires
+  d'indice et de PNJ du `NarratifEditor`. Les écarts s'éditent à l'onglet « Écarts » du
+  `NarratifEditor`. Les entrées offertes sont celles des fiches commitées.
+- **État des lieux.** `docs/dossiers-de-chapitre.md` (GÉNÉRÉ, `npm run docs:dossiers`) rend, par fiche et par
+  famille, chaque entrée couverte (par quel élément de quel projet livré), écartée (motif) ou non couverte.
+  Il lit le paquet commité sous `src/scenes/` : un lien posé à l'éditeur ne l'atteint qu'après « Fichier →
+  Exporter forme dépôt (dev) » et le remplacement du fichier du paquet par l'export (§1) — « Enregistrer… »
+  n'écrit qu'une copie locale (localStorage).
+  Garde : `src/data/dossiers-couverture.test.ts` — tout lien résout à une entrée de fiche commitée, aucune
+  entrée n'est couverte et écartée dans le même paquet ; une entrée non couverte n'est jamais rouge.
 
 ## 11. Règles d'or
 

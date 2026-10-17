@@ -21,12 +21,12 @@ const construireScene = (): Scene => buildScene({
   size: [22, 16],
   heroStart: [3, 8],
   startMessage:
-    'Deux armées se font face. Un interlude est ouvert : préparez la bataille DEPUIS le menu d\'Activités de ' +
+    { texte: 'Deux armées se font face. Un interlude est ouvert : préparez la bataille DEPUIS le menu d\'Activités de ' +
     'l\'interlude (Discours, Planification, Repérage, Sabotage… figurent parmi les Activités par-héros) — chaque ' +
     'préparation puise dans vos Activités « Entre deux aventures » (max 3, budget PARTAGÉ). « Engager la bataille » ' +
     'clôt l\'interlude et lance les Rounds : choisissez vos Scènes de la situation du moment (plusieurs PJ par Scène, ' +
     'en soutien), résolvez le Test spectaculaire de Puissance et rassemblez vos forces. Les Scènes « Pluie de ' +
-    'flèches », « Charge », « Tuez la bête ! », « Duel » et « Intrus » vous jettent dans une vraie mêlée.',
+    'flèches », « Charge », « Tuez la bête ! », « Duel » et « Intrus » vous jettent dans une vraie mêlée.' },
   encounters: [
     { id: 'enc-charge', enemies: [
       { ref: 'mutant', pos: { x: 12, y: 6 } },
@@ -87,7 +87,7 @@ export const scenario: TestScenario = {
   tests:
     'Puissance de Bataille (ADE II 08) : Activités pré-combat, SITUATION par Round (sous-ensemble + menace ' +
     'Intrus qui s\'impose + enchaînements), Scènes MULTI-PJ en Soutien (Test OU combat qui nourrit la Puissance en ' +
-    'touches + kills), Rassemblement (Résistance), Test spectaculaire de Puissance (10 + DR, min 5), issue.',
+    'touches + kills), Rassemblement, Test spectaculaire de Puissance (10 + DR, min 5), issue.',
   partyNote: '4 pré-tirés (soldat, chasseur, sorcier, tueur)',
   // Interlude de 3 semaines AVANT la bataille : ses Activités (max 3 par héros, LDB 23) sont le budget
   // UNIQUE dans lequel puise la préparation de bataille (ADE II 8 l.65). Sans lui : Round 1 direct.

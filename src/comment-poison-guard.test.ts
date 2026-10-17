@@ -140,14 +140,14 @@ describe('garde-fou commentaires — en-tête structuré (#1475)', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// Famille 1 — PIERRE TOMBALE (CLAUDE.md règle 6c). Tolérance ZÉRO, pas d'exception.
+// Famille 1 — PIERRE TOMBALE (CLAUDE.md règle 6). Tolérance ZÉRO, pas d'exception.
 // Familles de regex + `tombstonesIn` : `scripts/guards/lib/commentPoison.mjs` (mécanique partagée).
 // ---------------------------------------------------------------------------------------------
 
 describe('balayage — un `/` de CODE ne fait jamais disparaître le commentaire qui suit', () => {
   // Le balayage doit distinguer le littéral de REGEX (dont les guillemets ne sont pas des chaînes)
   // de la division et de la fermeture JSX. Rater la distinction rend MUET tout ce qui suit dans le
-  // fichier — mesuré sur `scripts/hooks/solde-ticket-guard.mjs` : 2 commentaires vus sur 1 902 lignes.
+  // fichier.
   const TEMOIN = 'TEMOIN' + '_DE_QUEUE';
   const vu = (code: string) => extractComments(code).some((c) => c.text.includes(TEMOIN));
 
@@ -176,7 +176,7 @@ describe('balayage — un `/` de CODE ne fait jamais disparaître le commentaire
   });
 });
 
-describe('garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c)', () => {
+describe('garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6)', () => {
   it('cas planté : un rappel d\'ancien emplacement est détecté (preuve TDD)', () => {
     const planted = "// Cette logique vit ici anciennement dans un autre module.";
     expect(tombstonesIn(planted)).toContain('anciennement');
@@ -432,18 +432,18 @@ describe('garde-fou commentaires — pierres tombales (#136, CLAUDE.md règle 6c
     }
     expect(
       offenders,
-      `Pierre(s) tombale(s) détectée(s) — à PURGER (jamais à taguer en exception, CLAUDE.md règle 6c) :\n${offenders.join('\n')}`,
+      `Pierre(s) tombale(s) détectée(s) — à PURGER (jamais à taguer en exception, CLAUDE.md règle 6) :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 });
 
 // ---------------------------------------------------------------------------------------------
-// Famille 2 — commentaire-EXCUSE (CLAUDE.md règle 6b). Un tag `[entériné AAAA-MM-JJ]` dans le MÊME
+// Famille 2 — commentaire-EXCUSE (CLAUDE.md règle 6). Un tag `[entériné AAAA-MM-JJ]` dans le MÊME
 // commentaire neutralise la détection (décision utilisateur traçable).
 // Regex + `untaggedExcuseMatch` : `scripts/guards/lib/commentPoison.mjs` (mécanique partagée).
 // ---------------------------------------------------------------------------------------------
 
-describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6b)', () => {
+describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règle 6)', () => {
   it('cas planté : une justification sans tag est détectée (preuve TDD)', () => {
     expect(untaggedExcuseMatch("// on garde X pour l'instant")).not.toBeNull();
   });
@@ -619,7 +619,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règl
     expect(untaggedExcuseMatch('// hors de portée : géré ailleurs, pas « trop proche »')).toBeNull();
   });
 
-  it('affirmation-RAW non ancrée détectée (règle 6a — classe « bélier » 2026-07-06, preuve TDD)', () => {
+  it('affirmation-RAW non ancrée détectée (règle 6 — classe « bélier » 2026-07-06, preuve TDD)', () => {
     // Le verbatim qui a contourné toutes les gardes : thèse sur le RAW, zéro réf, et FAUSSE (ADE II 8 exige l'Équipe).
     expect(scanRawClaims('x.ts', "// mains, via son inventaire/loadout — RAW ne l'exige PAS « servi » en poste pour être manié")).toHaveLength(1);
     expect(scanRawClaims('x.ts', '// arbitrage : laissé au MJ')).toHaveLength(1);
@@ -684,7 +684,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, CLAUDE.md règl
       }
       expect(
         offenders,
-        `Excuse(s) sans tag \`[entériné AAAA-MM-JJ]\` (CLAUDE.md règle 6b) :\n${offenders.join('\n')}`,
+        `Excuse(s) sans tag \`[entériné AAAA-MM-JJ]\` (CLAUDE.md règle 6) :\n${offenders.join('\n')}`,
       ).toEqual([]);
     },
   );
@@ -1045,20 +1045,6 @@ describe('baseline nominative des signaux de commentaires (#136, 2026-08-03)', (
  *  une entrée dont le site ne matche plus se purge (les listes décroissent). Chaque entrée cite la
  *  SOURCE du verbatim — sans elle, la revendication n'est qu'une évaluation d'ingénierie. */
 const TEST_DECISION_SITES: BaselineEntry[] = [
-  {
-    fichier: 'src/state/saves-flow.test.ts',
-    motif: 'politique de version des saves (en-tête)',
-    ancre: 'Plus la POLITIQUE DE VERSION (arbitrage utilisateur 2026-08-17)',
-    raison: 'verbatim utilisateur du 2026-08-17 consigné dans `.claude/memory/user-arbitrage-saves-reset-pas-migration.md` (une save d’une autre version se jette, elle ne se migre plus)',
-    date: '2026-08-17',
-  },
-  {
-    fichier: 'src/state/saves-flow.test.ts',
-    motif: 'politique de version des saves (describe)',
-    ancre: 'Arbitrage utilisateur 2026-08-17 : un changement de forme persistée',
-    raison: 'même verbatim, même fiche mémoire (`user-arbitrage-saves-reset-pas-migration.md`) : c’est lui qui fixe le comportement mesuré par ce describe',
-    date: '2026-08-17',
-  },
   {
     fichier: 'src/data/schemas/defs-scenes/projet-schema.test.ts',
     motif: 'identité requise d’un projet (#1552)',

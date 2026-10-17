@@ -20,7 +20,8 @@ const GARDE = {
     'Les documents authorés des deux racines (les `.json` de `src/data`, les `-projet.json` de `src/scenes`), ' +
     'à TOUTE PROFONDEUR. MASQUE : « nœud portant un `desc` chaîne non vide dont la source EFFECTIVE — son ' +
     '`source.book` propre, sinon le `source.book` de l’ancêtre le plus proche qui en porte un — désigne un ' +
-    'livre à `dir` dans `books.json`, `maison` ou pas ». La CLÉ est le `type` du document racine, celle que ' +
+    'livre à `dir` dans `books.json`, `maison` ou pas » ; un nœud qui porte `adapteDe` coupe l’héritage. ' +
+    'La CLÉ est le `type` du document racine, celle que ' +
     'le verrou V3 consulte.',
   angleMort: [
     'Le verrou V3 (`grammaire/prose.ts`) ne mord AU PARSE qu’aux sites qui composent la forme de prose — au Lot A, l’ENVELOPPE seule — et sur le seul `source.book` PROPRE du nœud. TOUT nœud AUTRE que l’entrée d’enveloppe est COMPTÉ ici sans être refusable, et ne le deviendra qu’avec le schéma qui composera `proseAdressable` (Lot C) : RANGÉES (`[].entries[]`, `phenomena[]`, `boardEvents[]`…), VARIANTES à source PROPRE (`[].variants[]`, 30 nœuds : spells 18, talents 12), source HÉRITÉE (43). Répartition mesurée le 2026-09-05 : 2 161 nœuds d’enveloppe-racine / 464 profonds. Ce contrat est la garantie, le refine est la commodité.',

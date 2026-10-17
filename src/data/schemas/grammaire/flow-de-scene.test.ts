@@ -19,7 +19,7 @@ const RACINE = fileURLToPath(new URL('../../../scenes/', import.meta.url));
 const PROJETS = listerProjetsLivres();
 
 /** Toutes les feuilles `{ kind:'do', effect }` des Flows authorés des projets livrés. */
-function feuillesDo(): unknown[] {
+function feuillesDo(projets: unknown[]): unknown[] {
   const out: unknown[] = [];
   const marche = (n: unknown): void => {
     if (Array.isArray(n)) return void n.forEach(marche);
@@ -28,22 +28,32 @@ function feuillesDo(): unknown[] {
     if (o.kind === 'do' && o.effect) out.push(o.effect);
     Object.values(o).forEach(marche);
   };
-  for (const p of PROJETS) marche(JSON.parse(readFileSync(RACINE + p, 'utf8')));
+  projets.forEach(marche);
   return out;
 }
 
-describe('grammaire — `flowSchema` (Flow<EffectOp>) ≠ Flow de scène (Flow<Effect>)', () => {
-  const feuilles = feuillesDo();
+const projets = PROJETS.map((p) => JSON.parse(readFileSync(RACINE + p, 'utf8')));
+const croissance = structuredClone(projets);
+const paquet = croissance.find((p) => p.id === 'la-diligence');
+const scene = paquet.scenes.find((s: { id: string }) => s.id === 'la-diligence');
+paquet.worldMap.places.push({ id: 'lieu-croissance-2337', label: 'Lieu de contrôle', pos: { x: 20, y: 20 }, scene: scene.id, icon: 'scenario/hamlet' });
+scene.triggers.push({ id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'do', effect: { type: 'setFlag', flag: 'croissance-2337' } } });
 
-  it('le corpus de mesure est peuplé (les projets livrés portent des Flows authorés)', () => {
-    // #684+#717 (343→346) : +3 feuilles `do` authorées dans « La Barge du Sel » — le `setFlag` du cap
-    // pris au quai et son `journal`, plus le `setFlag` d'accostage ajouté au trigger d'arrivée.
-    // #2219 (346→349, 2026-10-05) : +3 feuilles `do` `setFlag` authorées dans « La Diligence », les producteurs
-    // de `edo-ch1-depart`, `edo-ch1-corps-kastor-fouille` et `edo-ch1-clos`.
-    expect(feuilles.length).toBe(349);
+describe.each([
+  { nom: 'corpus livré', corpus: projets, ajoute: false },
+  { nom: 'corpus avec un lieu et un déclencheur supplémentaires', corpus: croissance, ajoute: true },
+])('grammaire — $nom : `flowSchema` (Flow<EffectOp>) ≠ Flow de scène (Flow<Effect>)', ({ corpus, ajoute }) => {
+  const feuilles = feuillesDo(corpus);
+
+  it('le corpus réel reste branché : le départ de La Diligence est observé', () => {
+    expect(feuilles).toContainEqual({ type: 'setFlag', flag: 'edo-ch1-depart' });
+    if (ajoute) {
+      expect(feuilles).toContainEqual({ type: 'setFlag', flag: 'croissance-2337' });
+      expect(feuilles.length).toBe(feuillesDo(projets).length + 1);
+    }
   });
 
-  it('POSITIF — les 349 feuilles `do` réelles passent TOUTES `effectSchema` (le vocabulaire de scène)', () => {
+  it('POSITIF — les feuilles `do` réelles passent TOUTES `effectSchema` (le vocabulaire de scène)', () => {
     const refusees = feuilles
       .map((e, i) => ({ i, e, r: effectSchema.safeParse(e) }))
       .filter((x) => !x.r.success)

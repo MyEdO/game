@@ -20,7 +20,7 @@
 import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
 import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, findSpeciesById, advancementLabel, refLabel, CareerLevelData, type AdvancementRef } from '../data';
-import { entreeOuverte, refusDeSpec, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { entreeOuverte, refusDeSpec, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';
 import { effectiveEntry } from './variants';
@@ -123,25 +123,6 @@ function resumeDesOptions(options: SlotOption[]): string {
   return options.map((o) => `${refKey(o.optionId ?? '', o.spec)}${o.wildcard ? '*' : ''}`).join('+');
 }
 
-/** Position (`niveau:type:index`) d'une clé d'emplacement, quel que soit son résumé. */
-function positionDeCle(cle: string): string {
-  return cle.split(':').slice(0, 3).join(':');
-}
-
-/**
- * Clés de `careerSlotChoices` au résumé en ids (`resumeDesOptions`) : chaque clé prend celle de
- * l'emplacement de la donnée du jour à la même position (`positionDeCle`). Idempotent ; une clé sans
- * emplacement à sa position est gardée telle quelle (`designationsFor` ne la lit pas). Aucun libellé lu.
- */
-export function migrerClesDEmplacement(choix: Record<string, Record<string, string>>): Record<string, Record<string, string>> {
-  return Object.fromEntries(Object.entries(choix).map(([career, stored]) => {
-    const levels = levelsForCareer(career);
-    const top = Math.max(0, ...levels.map((l) => l.level));
-    const parPosition = new Map([...skillSlots(levels, top), ...talentSlotsUpTo(levels, top)].map((s) => [positionDeCle(s.key), s.key]));
-    return [career, Object.fromEntries(Object.entries(stored).map(([cle, v]) => [parPosition.get(positionDeCle(cle)) ?? cle, v]))];
-  }));
-}
-
 /** Slots de COMPÉTENCES disponibles au niveau `level` : cumul des niveaux ≤ courant (LDB 07 l.76). */
 export function skillSlots(levels: CareerLevelData[], level: number): CareerSlot[] {
   return levels.filter((l) => l.level <= level).flatMap((l) => slotsOfLevel(l, 'skill'));
@@ -170,7 +151,7 @@ export function availableChars(levels: CareerLevelData[], level: number): CharKe
 export function slotCovers(slot: CareerSlot, optionId: string, spec?: string): boolean {
   return slot.options.some((o) => {
     if (o.optionId !== optionId) return false;
-    if (!o.wildcard) return (o.spec ?? '') === (spec ?? '');
+    if (!o.wildcard) return memeSpecialisation(o.spec, spec);
     if (spec == null || refusDeSpec(slot.kind, optionId, spec) !== null) return false;
     return (!o.specOptions && entreeOuverte(slot.kind, optionId)) || wildcardSpecs(o, slot.kind).includes(spec);
   });
@@ -329,7 +310,7 @@ export function talentMaxLabel(max: number | { bonusOf: CharKey } | null): strin
 export function talentAcquisitions(hero: Pick<PorteurDeTalents, 'talents'>, talentId: string, spec?: string): number {
   const parDomaine = findTalentById(talentId)?.grantsArcaneDomain === true;
   return (hero.talents ?? [])
-    .filter((t) => t.talentId === talentId && (!parDomaine || (t.spec ?? '') === (spec ?? '')))
+    .filter((t) => t.talentId === talentId && (!parDomaine || memeSpecialisation(t.spec, spec)))
     .reduce((n, t) => n + t.times, 0);
 }
 
@@ -343,7 +324,7 @@ export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?
 export type PorteurDeTalents = Pick<Combatant, 'characteristics'> & { talents?: TalentInstance[] };
 
 /** L'instance `x` est-elle le Talent `ref` (id et spécialisation) ? */
-export const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && (x.spec ?? '') === (ref.spec ?? '');
+export const estLInstanceDe = (ref: RefDesignee) => (x: TalentInstance): boolean => x.talentId === ref.id && memeSpecialisation(x.spec, ref.spec);
 
 /**
  * ACQUISITION d'une instance de Talent — seule couture qui écrit `talents` : le Maxi borne (`LDB 10

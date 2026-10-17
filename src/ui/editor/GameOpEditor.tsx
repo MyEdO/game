@@ -9,6 +9,9 @@
  * « 0 » puis écrasé). Un nouveau type d'op = 1 entrée dans `OP_GROUPS` + 1 défaut dans `newOp`.
  */
 import { createContext, useContext, useMemo } from 'react';
+import { useId } from 'react';
+import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { tableTotale } from '../../lib/tableTotale';
 import { Formula, GameOp, type ResolveWindow } from '../../engine/ops';
 import type { JsonFormula } from '../../engine/miscast';
@@ -913,6 +916,7 @@ function sansClesVides<T extends object>(o: T): T {
 }
 
 function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
+  const identite = useId();
   const noeudDOp = useMemo(() => varianteDOp(noeudListe, op.op), [noeudListe, op.op]);
   const o = op as any;
   // Le payload d'une op est STRICT : un champ VIDÉ ôte sa clé, jamais une clé à `undefined` (une option
@@ -1251,7 +1255,10 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           </>
         )}
         {op.op === 'narrative' && (
-          <textarea placeholder="Texte journalisé (arbitrage MJ)" value={o.text ?? ''} onChange={(e) => upd({ text: e.target.value })} />
+          <>
+            <ProseField label="Texte journalisé" value={op.text} onChange={(text) => upd({ text })} />
+            <ProvenanceDuTexte copie identite={identite} sujet="de la narration" value={op} onChange={upd} />
+          </>
         )}
         {op.op === 'armourPierce' && (
           <>

@@ -7,18 +7,82 @@ import { EffectList, EffectFields, effectSummary, newEffect, EFFECT_MENU_GROUPS,
 import { FlowEditor } from './FlowEditor';
 import { EMPTY_FLOW } from '../../state/flow';
 import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
-import { convertTo } from './AddMenu';
+import { convertTo, memoriser } from './AddMenu';
+import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
 import type { Effect } from '../../state/scene';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
 import { talents } from '../../data';
 import { DAY_PHASES } from '../../engine/clock';
+import { startMassBattleSchema } from '../../data/schemas/defs-scenes/effets';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
+
+describe('terrain de bataille — prose et provenance', () => {
+  it('la saisie multiligne et les bascules conservent le texte, le folio et les autres champs à la sérialisation', async () => {
+    const source = { book: 'ennemi-dans-l-ombre', page: 12 };
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    let dernier: Effect = { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 60, terrain: 'Texte copié.', source } };
+    function Controle() {
+      const [effect, setEffect] = useState(dernier);
+      return <EffectFields effect={effect} ctx={ctx} onChange={(next) => { dernier = next; setEffect(next); }} />;
+    }
+    const basculer = async (mode: string) => {
+      const bouton = container.querySelector<HTMLButtonElement>(`button[aria-label="${mode} — provenance du terrain"]`);
+      expect(bouton).not.toBeNull();
+      await act(async () => { bouton!.click(); });
+    };
+    const bataille = () => startMassBattleSchema.parse(JSON.parse(JSON.stringify(dernier))).battle;
+    try {
+      await act(async () => { root.render(<Controle />); });
+      const zone = container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Description du terrain"]');
+      expect(zone?.classList.contains('prose-field')).toBe(true);
+      await basculer('Adapté');
+      expect(bataille()).toMatchObject({ adapteDe: source, terrain: 'Texte copié.', allyMight: 50, enemyMight: 60 });
+      expect(bataille().source).toBeUndefined();
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(zone, 'Premier paragraphe.\n\nDeuxième paragraphe.');
+        zone!.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(bataille().terrain).toBe('Premier paragraphe.\n\nDeuxième paragraphe.');
+      await basculer('Copie');
+      expect(bataille().source).toEqual(source);
+      expect(bataille().adapteDe).toBeUndefined();
+      await basculer('Maison');
+      expect(bataille().source).toBeUndefined();
+      expect(bataille().adapteDe).toBeUndefined();
+      expect(bataille().terrain).toBe('Premier paragraphe.\n\nDeuxième paragraphe.');
+    } finally {
+      await act(async () => { root.unmount(); });
+      container.remove();
+    }
+  });
+
+  it('le brouillon de copie appartient à l’instance d’effet', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const effect: Effect = { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, terrain: 'Maison.' } };
+    try {
+      await act(async () => { root.render(<EffectFields key="a" effect={effect} ctx={ctx} onChange={() => {}} />); });
+      const copie = container.querySelector<HTMLButtonElement>('button[aria-label="Copie — provenance du terrain"]');
+      expect(copie).not.toBeNull();
+      await act(async () => { copie!.click(); });
+      expect(container.querySelector('button[aria-label="Copie — provenance du terrain"]')?.getAttribute('aria-pressed')).toBe('true');
+      await act(async () => { root.render(<EffectFields key="b" effect={effect} ctx={ctx} onChange={() => {}} />); });
+      expect(container.querySelector('button[aria-label="Maison — provenance du terrain"]')?.getAttribute('aria-pressed')).toBe('true');
+    } finally {
+      await act(async () => { root.unmount(); });
+      container.remove();
+    }
+  });
+});
 
 describe('EffectList — Effet setTime (jour/nuit via trigger, #T1c)', () => {
   it('newEffect("setTime") crée un défaut phase nuit', () => {
@@ -133,6 +197,35 @@ describe('changer le type d’un effet CONVERTIT — un seul vocabulaire, un seu
     });
   });
 
+  /** Un changement de type de `TypeMenu` : la mémoire retient `value` (`memoriser`), puis le type visé la lit (`convertTo`). */
+  const changeDeType = (memoire: Record<string, unknown>, value: object, vise: Effect['type']) => {
+    const retenue = memoriser(memoire, value);
+    return { memoire: retenue, bloc: convertTo(newEffect(vise), retenue, 'type') };
+  };
+
+  it('la PROVENANCE d’un journal survit à l’aller-retour journal → objectif → journal (#2001)', () => {
+    const journal = { type: 'journal', desc: 'Réplique adaptée.', adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } };
+    const aller = changeDeType({}, journal, 'setObjective');
+    expect(changeDeType(aller.memoire, aller.bloc, 'journal').bloc).toEqual({ type: 'journal', desc: 'Réplique adaptée.', adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } });
+  });
+
+  it('journal ADRESSÉ → objectif → journal : ni texte du livre sans son adresse, ni adresse sans son texte (#2001)', () => {
+    const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] };
+    expect(adresseUnPassage(descRef)).toBe(true);
+    const aller = changeDeType({}, { type: 'journal', desc: 'Texte du livre.', descRef }, 'setObjective');
+    expect(aller.bloc).toEqual({ type: 'setObjective', id: '', desc: '' });
+    expect(changeDeType(aller.memoire, aller.bloc, 'journal').bloc).toEqual({ type: 'journal', desc: 'Texte du livre.', descRef });
+  });
+
+  it('journal ADRESSÉ → objectif où l’auteur ÉCRIT → journal → objectif : son texte l’emporte sur l’adresse (#2001)', () => {
+    const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] };
+    const aller = changeDeType({}, { type: 'journal', desc: 'Texte du livre.', descRef }, 'setObjective');
+    const retour = changeDeType(aller.memoire, { ...aller.bloc, desc: 'X' }, 'journal');
+    expect(retour.bloc).toEqual({ type: 'journal', desc: 'X' });
+    expect((retour.bloc as { descRef?: unknown }).descRef).toBeUndefined();
+    expect(changeDeType(retour.memoire, retour.bloc, 'setObjective').bloc).toEqual({ type: 'setObjective', id: '', desc: 'X' });
+  });
+
   it('ajouter et changer le type proposent EXACTEMENT le même vocabulaire', () => {
     // Un seul registre publié (`EFFECT_MENU_GROUPS`) : les deux menus le consomment tel quel.
     const rubriques = EFFECT_MENU_GROUPS.length;
@@ -165,10 +258,10 @@ describe('changer le type d’un effet CONVERTIT — un seul vocabulaire, un seu
     const choisirType = (libelle: string) => choisirDansMenu(menuDe(rangee, /^Type :/), libelle);
 
     try {
-      await choisirType('Objectif courant (« je fais quoi maintenant ? »)');
+      await choisirType('Objectif courant');
       expect(dernier[0]).toEqual({ type: 'setObjective', id: '', desc: 'Le plancher gemit' });
 
-      await choisirType('Définir un flag');
+      await choisirType('Définir un indicateur');
       expect(dernier[0].type).toBe('setFlag');
       expect(dernier[0]).not.toHaveProperty('desc'); // le flag ne porte que les champs de SON type
 

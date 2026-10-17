@@ -13,7 +13,7 @@ export function NarratedSegments({ event, combatants }: { event: CombatEvent; co
   return (
     <>
       <span className="jr-ic"><Icon id={n.icon} size="sm" /></span>
-      <span className="jr-tx"><TeamSegments segments={n.segments} /></span>
+      <div className="jr-tx"><TeamSegments segments={n.segments} /></div>
     </>
   );
 }

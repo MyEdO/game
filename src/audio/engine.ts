@@ -9,12 +9,12 @@
 import { SOUND_DEFS } from './_registry.generated';
 import type { SoundDef } from './types';
 import { musicDefsFor, type MusicSelection } from './music';
-import { stockageWeb } from '../lib/stockageWeb';
+import { lireDictionnaire, stockageWeb } from '../lib/stockageWeb';
 
-const LS_KEY = 'wfrp4.audio.v1';
+const LS_KEY = 'wfrp4.audio';
 const byId = new Map<string, SoundDef>(SOUND_DEFS.map((d) => [d.id, d]));
 
-interface AudioPrefs {
+export interface AudioPrefs {
   volume: number; // effets 0..1
   musicVolume: number; // musique 0..1
   muted: boolean; // coupe TOUT (effets + musique)
@@ -22,24 +22,22 @@ interface AudioPrefs {
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
-function loadPrefs(): AudioPrefs {
-  try {
-    const raw = stockageWeb('localStorage')?.getItem(LS_KEY);
-    if (raw) {
-      const p = JSON.parse(raw) as Partial<AudioPrefs>;
-      return {
-        volume: typeof p.volume === 'number' ? clamp01(p.volume) : 0.8,
-        musicVolume: typeof p.musicVolume === 'number' ? clamp01(p.musicVolume) : 0.6,
-        muted: !!p.muted,
-      };
-    }
-  } catch {
-    // stockage indisponible → défauts
-  }
-  return { volume: 0.8, musicVolume: 0.6, muted: false };
+const AUDIO_PAR_DEFAUT: AudioPrefs = { volume: 0.8, musicVolume: 0.6, muted: false };
+
+const volumeConforme = (v: unknown): v is number => typeof v === 'number' && v >= 0 && v <= 1;
+
+/** Les réglages persistés ; une valeur non conforme (volume hors de 0..1, sourdine non booléenne) est
+ *  ignorée : son défaut s'applique. */
+export function loadAudioPrefs(): AudioPrefs {
+  const p = lireDictionnaire('localStorage', LS_KEY) ?? {};
+  return {
+    volume: volumeConforme(p.volume) ? p.volume : AUDIO_PAR_DEFAUT.volume,
+    musicVolume: volumeConforme(p.musicVolume) ? p.musicVolume : AUDIO_PAR_DEFAUT.musicVolume,
+    muted: typeof p.muted === 'boolean' ? p.muted : AUDIO_PAR_DEFAUT.muted,
+  };
 }
 
-let prefs = loadPrefs();
+let prefs = loadAudioPrefs();
 
 function savePrefs(): void {
   try {

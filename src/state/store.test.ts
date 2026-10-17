@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { resetFields } from './stateFields';
 import { useGame, entityPickables, type BattleState } from './store';
-import { draineCascade, cascadeDeTest } from './cascadeTestKit';
+import { avanceEtapeCascade, draineCascade, cascadeDeTest } from './cascadeTestKit';
 import { flowFromEffects, flowEffects, testFlow, EMPTY_FLOW } from './flow';
 import { buildAdvancementView } from './advancement';
 import { createHero } from '../engine/character';
@@ -32,6 +32,8 @@ import { toBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, creditBourse, ensureBourse, bourseInstanceOf } from './bourseFlow';
 import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
+import { OPS_DIFFEREES } from './combatEffects';
+import { t } from '../i18n';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -72,16 +74,7 @@ function reset() {
  *  l'écran de victoire quand un héros survivant est conscient et a affronté des créatures corrompues /
  *  porte un marqueur de maladie). Lance chaque étape puis valide, jusqu'à `finishCombatEnd` → victoire. */
 function drainCombatEndCascade() {
-  for (let guard = 0; guard < 30; guard++) {
-    const p = useGame.getState().pendingCascade;
-    if (!p?.combatEndBoundary) break;
-    const cur = p.participants[p.cursor];
-    // Les jets de bilan de combat sont des BANDES (#1117 L4) : on lance chaque RANGÉE ; une étape MONO
-    // (upkeep différé non bandable) garde son lancer d'étape.
-    if (cur?.participants) { for (const row of cur.participants) if (!row.result) useGame.getState().cascadeBatchRoll(row.id); }
-    else if (cur?.target != null && !cur.result) useGame.getState().cascadeRoll(cur.id);
-    useGame.getState().cascadeNext();
-  }
+  for (let guard = 0; guard < 30 && useGame.getState().pendingCascade?.combatEndBoundary; guard++) avanceEtapeCascade(useGame.getState);
 }
 
 describe('Boucle de jeu (store)', () => {
@@ -207,7 +200,7 @@ describe('Boucle de jeu (store)', () => {
 
   it('Blessure critique (héros) : applyAttackResult SUSPEND sur UNE étape — tirage puis décision, sans effet de bord', () => {
     const { suspended } = mkDeviationSetup();
-    expect(suspended).toBe(true);
+    expect(suspended).toBe(OPS_DIFFEREES);
     const avant = useGame.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(avant).toHaveLength(1);
     expect(avant[0].table, 'la sévérité se tire DANS cette fenêtre').toBeTruthy();
@@ -777,6 +770,7 @@ describe('Boucle de jeu (store)', () => {
         result: null,
         suite: { mode: 'machine', coup: {} },
       },
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H.id }], { title: 'Défense', purpose: 'combat' }),
     });
     useGame.getState().defenseRoll(); // « Défendre » : roule la défense + résout
     let pd = useGame.getState().pendingDefense!;
@@ -1854,7 +1848,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   const looter = (over: Partial<Combatant> = {}): Combatant =>
     ({ id: 'a', label: 'A', kind: 'hero', xp: 0, wounds: { current: 12, max: 12 }, conditions: [],
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
-      weapons: [], armour: {}, items: [], skills: [], talents: [], movement: 4, ...over }) as unknown as Combatant;
+      weapons: [], armour: {}, items: [], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }], talents: [], movement: 4, ...over }) as unknown as Combatant;
 
   function lootScene() {
     const scene = emptyScene(8, 8);
@@ -1898,7 +1892,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
 
   it('en combat : applyEffectsLoot passe en direct (pas de fenêtre — Ramasser/victoire ont leurs flux)', () => {
     lootScene();
-    useGame.setState({ battle: {} as unknown as BattleState });
+    useGame.setState({ battle: { combatants: [] } as unknown as BattleState });
     applyEffectsLoot(useGame.getState, useGame.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Test');
     expect(useGame.getState().pendingLoot).toBeNull();
     expect((useGame.getState().party[0].items ?? []).map((i) => i.label)).toEqual(['Dague']);
@@ -3518,7 +3512,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const pb = useGame.getState().pendingBargain!;
     expect(pb).toBeTruthy();
     expect(pb.playerId).toBe('h');
-    expect(pb.merchantValue).toBe(45); // armurier.bargainSkill
+    expect(pb.opposant.valeur).toBe(45); // armurier.bargainSkill
   });
 
   it('bargainConfirm : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
@@ -3537,7 +3531,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     useGame.getState().startBargain('buy'); // achat déjà négocié → no-op
     expect(useGame.getState().pendingBargain).toBeNull();
     useGame.getState().startBargain('sell'); // la vente est une négociation DISTINCTE → s'ouvre
-    expect(useGame.getState().pendingBargain?.mode).toBe('sell');
+    expect(useGame.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell', titre: t('out.bargainTitreVente') });
   });
 
   it('bargainConfirm : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
@@ -3606,7 +3600,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     expect(buyAt(1.5)).toBeGreaterThan(buyAt(1)); // +50 % → coûte plus cher
   });
 
-  const appraiser = (): Combatant => ({ id: 'h', label: 'H', characteristics: { intelligence: 40 }, skills: [], talents: [], items: [{ uid: 'm', label: 'Épée', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false }], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
+  const appraiser = (): Combatant => ({ id: 'h', label: 'H', kind: 'hero', characteristics: { intelligence: 30 }, skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 10 }], talents: [], items: [{ uid: 'm', label: 'Épée', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false }], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
 
   it('appraiseItem : crée un pendingAppraise sur l’objet non identifié (#2e)', () => {
     useGame.setState({ party: [appraiser()], scene: merchantScene() });
@@ -3615,7 +3609,16 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
     const pa = useGame.getState().pendingAppraise!;
     expect(pa).toBeTruthy();
     expect(pa.itemUid).toBe('m');
-    expect(pa.target).toBe(40); // Int 40, Intermédiaire +0
+    expect(pa.target).toBe(40); // Int 30 + Évaluation 10, Intermédiaire +0
+  });
+
+  it('appraiseItem : personne qui puisse tenter l’Évaluation (LDB 09 l.30) → refus NOMMÉ, aucune fenêtre', () => {
+    const profane = { ...appraiser(), skills: [] } as Combatant;
+    useGame.setState({ party: [profane], scene: merchantScene() });
+    useGame.getState().openMerchant('pnj');
+    useGame.getState().appraiseItem('m', 'h');
+    expect(useGame.getState().pendingAppraise).toBeNull();
+    expect(useGame.getState().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
   });
 
   it('resolveAppraise : succès → identified=true (révèle l’objet) (#2e)', () => {

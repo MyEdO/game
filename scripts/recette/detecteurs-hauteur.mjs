@@ -331,3 +331,19 @@ export function nomRecouvert(releve) {
   if (!nom.couverts.length) return [];
   return [`${vue} · ${ecran} : le nom « ${nom.texte} » est RECOUVERT par « ${[...new Set(nom.couverts)].join(', ')} » (${nom.couverts.length}/5 points)`];
 }
+
+/**
+ * CLIC D'ONGLET À VIDE — le clic d'onglet de la recette vise un onglet INACTIF (`voulu` diffère de
+ * l'onglet `avant` lu avant le clic), et l'onglet actif après le clic est `voulu`. Juge de fermeture
+ * #1953 (`077f6be1c`) : « État » cliqué déjà actif dès la 2e vue, le contrôle passait à vide.
+ *
+ * @param {{ vue: string, ecran: string, avant: string | null, voulu: string | null, actif: string | null }} releve
+ * @returns {string[]}
+ */
+export function ongletClicAVide(releve) {
+  const { vue, ecran, avant, voulu, actif } = releve;
+  if (!voulu) return [`${vue} · ${ecran} : aucun onglet INACTIF à cliquer (actif : « ${avant} ») — contrôle à vide`];
+  if (voulu === avant) return [`${vue} · ${ecran} : l'onglet visé « ${voulu} » était déjà actif — contrôle à vide`];
+  if (actif !== voulu) return [`${vue} · ${ecran} : le clic sur « ${voulu} » n'a pas activé l'onglet (actif : « ${actif} »)`];
+  return [];
+}

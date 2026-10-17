@@ -1,0 +1,5 @@
+{
+  "timestamp": "2026-10-07T18:02:03.069Z",
+  "commande": "gh api graphql --input C:/Users/gauch/PhpstormProjects/Foundry/Game/.git/suivi/archives/2472/sonde-file.json",
+  "ligne": 417
+}

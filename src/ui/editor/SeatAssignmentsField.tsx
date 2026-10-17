@@ -17,6 +17,7 @@ import type { Scene } from '../../state/scene';
 import { PARTY_MAX } from '../../state/combatants';
 import { labelEmplacement, releaseSeat, seatSlotsOf, type SeatAssignmentResult, type SeatOccupant } from '../../state/seating';
 import { normaliseAssises, seatOccupant } from '../../state/sceneEdit';
+import { ChipDeRefus } from '../ChipDeRefus';
 
 /** Motif de refus d'`assignSeat`, dit à l'auteur. Chaque libellé énonce le fait MESURÉ par la raison
  *  qu'il traduit — `occupant-absent` ne peut désigner qu'un corps que la scène ne porte pas (les héros
@@ -104,7 +105,7 @@ export function SeatAssignmentsField({
         Un « Héros N » désigne l’EMPLACEMENT N du groupe, jamais un personnage : si la partie n’a pas
         tant de héros, la place se libère au chargement.
       </p>
-      {refus && <p className="hint" role="alert">Place refusée : {refus}.</p>}
+      {refus && <ChipDeRefus refus={{ message: `Place refusée : ${refus}.` }} />}
     </div>
   );
 }

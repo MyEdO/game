@@ -348,7 +348,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
     <div className="ed-field">
       <span>{label} — adresse du passage dans le Source (l’empreinte est recalculée, jamais saisie)</span>
 
-      <div className="de-reflrow">
+      <div className="fieldrow">
         <select
           aria-label={nomme('Livre du passage')}
           value={book}
@@ -396,7 +396,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
       {/* Un livre peut porter 87 chapitres (`livre-de-base`) : au-delà du seuil, la liste reçoit le
           MÊME champ de filtre que celle des sections. */}
       {chapitresFiltrables && (
-        <div className="de-reflrow">
+        <div className="fieldrow">
           <SearchFilterField value={filtreCh} onChange={setFiltreCh} placeholder="filtrer les chapitres…" ariaLabel={nomme('Filtrer les chapitres du livre')} />
           <em className="ed-hint">
             {chapitresVus.length === 0
@@ -423,7 +423,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
       )}
 
       {etat === 'pret' && filtrable && (
-        <div className="de-reflrow">
+        <div className="fieldrow">
           <SearchFilterField value={filtre} onChange={setFiltre} placeholder="filtrer les sections…" ariaLabel={nomme('Filtrer les sections du chapitre')} />
           <em className="ed-hint">
             {sectionsFiltrees.length === 0
@@ -459,7 +459,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
         const sectionFin = sections.find((s) => s.slug === fin.sec && s.occ === fin.secOcc);
         const dernierBlocFin = Math.max(0, (sectionFin?.blocks.length ?? 1) - 1);
         return (
-          <div className="de-reflrow" key={i} data-fragment={i}>
+          <div className="fieldrow" key={i} data-fragment={i}>
             <select
               aria-label={nomme(`Section du fragment ${i + 1}`)}
               value={cleSection(f.sec, f.secOcc)}
@@ -619,7 +619,7 @@ export function DescRefField({ label, sujet, value, onChange, chargeurs }: {
         // fragment à corriger, là où « chapitre épuisé » enverrait chercher au mauvais endroit.
         const raison = plafond ? PHRASE_REFUS['montage-hors-plafond'] : neuf!.frag ? RAISON_EPUISE : neuf!.raison;
         return (
-          <div className="de-reflrow">
+          <div className="fieldrow">
             <GatedAction
               id={`${uid}-fragment`}
               label="+ Fragment"

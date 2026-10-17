@@ -18,6 +18,7 @@ import { CHEMINS_ADRESSES } from '../liage';
 import { porteurDeRangee } from './CodexEntry'; // la SEULE composition rangée+entrée — celle du rendu
 import { pregen, PREGEN } from '../../data/pregens';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
+import { cheminsProseNommee } from '../../../scripts/guards/lib/proseNommee.mjs';
 import { detenteur } from '../../detenteur.testkit';
 
 interface Rangee {
@@ -112,12 +113,12 @@ describe('câblage `CHEMINS_ADRESSES` ⇄ porteurs réellement émis (#1392 §10
   /* CÂBLAGE des chemins de PROJET : l'inventaire (`CHAMPS_PROSE_DE_SCENE`) ne vaut que si CHAQUE
    * chemin a son SITE DE DÉCLARATION dans les defs de scène. Recopier le triplet attendu ici ne
    * prouverait que la recopie ; on le confronte donc au CODE RÉEL des defs (corpus partagé). */
-  const DEFS_SCENES = readCorpus(['src/data/schemas/defs-scenes']);
+  const DEFS_SCENES = detenteur(() => [...readCorpus(['src/data/schemas/defs-scenes']), ...readCorpus(['src/data/schemas/grammaire']).filter(f => f.rel === 'src/data/schemas/grammaire/mecanique.ts')]);
   const DECLARES = detenteur(
-    () => new Set(DEFS_SCENES.flatMap(({ text }) => [...text.matchAll(/proseDeScene\(\s*'([^']+)'\s*\)/g)].map((m) => m[1]))),
+    () => new Set(cheminsProseNommee(DEFS_SCENES())),
   );
 
-  it('chaque chemin de PROJET est DÉCLARÉ par un `proseDeScene()` d’une def de scène', () => {
+  it('chaque chemin de PROJET est composé par `proseNommee()` dans une def de scène', () => {
     const projets = CHEMINS_ADRESSES.filter((c) => c.type === 'projet').map((c) => c.chemin);
     expect(projets.length).toBeGreaterThan(0);
     expect(projets.filter((c) => !DECLARES().has(c)).sort()).toEqual([]);

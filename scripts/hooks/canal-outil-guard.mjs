@@ -1,11 +1,11 @@
 // Garde PreToolUse des CANAUX d'outil (#2180) : tout outil lean-ctx est CLASSÉ dans une famille gardée
 // (`FAMILLES_LEAN_CTX`, `scripts/guards/lib/contratGarde.mjs`) ou REFUSÉ, direct avec ses actions
 // refusées ; la passerelle n'appelle qu'un outil de `LECTURES_LIBRES`, quelle que soit la forme de ses
-// arguments (lean-ctx `LEAN_CTX_VERSION`, module `server::dispatch` : « agents also *flatten* the call »),
+// arguments (lean-ctx `LEAN_CTX_VERSION`, `registered/ctx_call.rs` l.75 : « Preserve the existing flattened-call contract »),
 // tout autre outil s'appelle DIRECTEMENT ; une écriture que les gardes d'écriture ne sauraient juger
 // (sans chemin, texte remplacé non résoluble, lot `ops` ambigu) est REFUSÉE, comme une entrée `ctx_patch` qui
 // porte une clé que son op ne consomme pas (`OPS_CTX_PATCH`), ou un shell lean-ctx qui porte une clé hors de
-// `CLES_SHELL` ; un appel dont le contexte (`construireContexte`, `scripts/hooks/repartiteur.mjs`) dit le
+// `CLES_SHELL` ; un appel dont le contexte (`construireContexte`, `scripts/hooks/repartition.mjs`) dit le
 // lieu NON JUGEABLE (#2224) est refusé avec le canal que ce contexte prescrit. Canal prescrit :
 // `~/.claude/CLAUDE.md` (« Project edits: `ctx_read(mode="anchored")` → `ctx_patch` »).
 import {
@@ -35,7 +35,7 @@ function evaluer(entree, contexte) {
     } else {
       const horsSchema = clesNonAdmises(entreeDOutil(entree))
       if (horsSchema.length) return refus(`clé hors du schéma MCP de son op (${outil} : ${horsSchema.join(', ')})`)
-      if (lotAmbigu(entreeDOutil(entree))) return refus(`écriture non jugeable (${outil}) : lot \`ops\` ambigu (non-tableau, élément non-objet ou plus d'un \`path\`)`)
+      if (lotAmbigu(entreeDOutil(entree))) return refus(`écriture non jugeable (${outil}) : lot \`ops\` ambigu (non-tableau, élément non-objet, plus d'un \`path\` ou op ancrée après une op déléguée)`)
     }
   }
   if (contexte?.nonJugeable) return { decision: 'deny', raison: `⛔ appel non jugeable (${outil}) : ${contexte.nonJugeable.raison} — canal prescrit : ${contexte.nonJugeable.canal}.` }

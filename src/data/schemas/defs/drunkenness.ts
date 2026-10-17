@@ -1,10 +1,5 @@
-/**
- * Schéma de `drunkenness.json` — Tableau d'Ivresse (LDB 09 l.475-481), consommé par
- * `src/engine/drunkenness.ts` (`{ table: DrunkEntry[] }`, lookup `findTableEntry` sur 1d10).
- * `outcome` = id STABLE de l'ISSUE tirée (Mouvement OU Action de « piece-tourne » lu par `drunkStaggers` ;
- * gueule de bois de « blackout » résolue par `soberUp`). La MÉCANIQUE exécutable (Bravoure/meilleur
- * ami/belligérant) est `ops` (`GameOp[]`, langue unique — `applyOps`), absent = rien d'exécutable.
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** LDB 09 l.475-481. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { gameOpSchema } from '../grammaire/mecanique';
@@ -23,13 +18,20 @@ export const file = 'drunkenness.json';
 export const famille = 'config';
 
 /** Un palier du 1d10 : `outcome` = id de l'ISSUE tirée, `ops` = la mécanique exécutable. */
-const drunkEntrySchema = z.strictObject({
+const drunkEntrySchema = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   id: z.string(),
   label: z.string(),
   outcome: drunkennessOutcomeSchema,
   desc: z.string(),
   ops: z.array(gameOpSchema).optional(),
+}), {
+  ...metaDesChamps(plageSchema, { exigees: true }),
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  outcome: { label: 'issue' },
+  desc: { label: 'texte' },
+  ops: { label: 'opérations' },
 });
 
 const doc = document(

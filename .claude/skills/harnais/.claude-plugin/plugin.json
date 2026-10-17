@@ -1,7 +1,7 @@
 {
   "name": "harnais",
   "version": "0.1.0",
-  "description": "Harnais d'orchestration du dépôt : rend l'état que mesurent les scripts (suivi de vague, #2279), sans porter de règle.",
+  "description": "Harnais d'orchestration du dépôt : rend l'état que mesurent les scripts (suivi de vague, #2279 ; CI et train de publication en status line, #2280), sans porter de règle.",
   "author": { "name": "MyEdO/game" },
   "types": "./types/index.d.ts"
 }

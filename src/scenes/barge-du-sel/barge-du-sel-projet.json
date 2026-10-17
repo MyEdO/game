@@ -2,7 +2,6 @@
  "id": "barge-du-sel",
  "type": "projet",
  "label": "La Barge du Sel",
- "schema": 18,
  "icon": "scenario/naval",
  "versionContenu": 1,
  "maison": "scénario naval authoré pour le jeu — aucun livre ne le publie (mesuré : absent de `Source/`) ; il compose des règles de la Mer des Griffes, qui portent leur source à leur foyer",
@@ -11,10 +10,13 @@
   "indices": [],
   "presetsPnj": [],
   "objets": [],
+  "etats": [],
   "documents": [],
   "ouverture": {
    "titre": "La Barge du Sel",
-   "sousTitre": "Une traversée courte, une mer mal fréquentée",
+   "sousTitre": {
+    "texte": "Une traversée courte, une mer mal fréquentée"
+   },
    "pitch": "Trente kilomètres de mer grise séparent le quai de l'îlot du sel. Une traversée d'une journée, que les caboteurs faisaient sans y penser.\n\nDepuis trois lunes, des voiles noires y prélèvent leur part, et plus personne ne trouve d'équipage pour la faire. La Louve grise appareille quand même — la cale pleine, le canon servi.",
    "ambiance": "veillee"
   },
@@ -24,7 +26,9 @@
     "expr": "sel-ilot-accoste"
    },
    "titre": "La Barge du Sel — la traversée est faite",
-   "sousTitre": "Ce que la Louve grise ramène de la traversée"
+   "sousTitre": {
+    "texte": "Ce que la Louve grise ramène de la traversée"
+   }
   }
  },
  "scenes": [
@@ -1413,7 +1417,9 @@
      "kind": "flag",
      "expr": "sel-cap-donne"
     },
-    "refus": "Aucun cap n'est donné : la Louve grise ne sait pas encore où porter le sel."
+    "refus": {
+     "texte": "Aucun cap n'est donné : la Louve grise ne sait pas encore où porter le sel."
+    }
    }
   ]
  }

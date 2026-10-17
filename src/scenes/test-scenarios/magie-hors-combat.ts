@@ -3,14 +3,16 @@ import { buildScene } from '../../state/mapSpec';
 import { findSkill } from '../../data';
 import { slugId } from '../../data/slug';
 import type { TestScenario } from './_shared';
+import { t } from '../../i18n';
 import type { Scene } from '../../state/scene';
 import type { Combatant, CharKey } from '../../engine/types';
+import { refCouvre } from '../../data/schemas/grammaire/ref';
 
 /** Garantit qu'un héros peut TENTER une Compétence d'incantation (avancée ≥ 1, LDB 09-Compétences) —
  *  fixture de vérif : un pré-tiré peut avoir la Compétence à 0 avance (donc non tentable). */
 function ensureSkill(h: Combatant, name: string, characteristic: CharKey, spec?: string) {
   const skillId = findSkill(name)?.id ?? slugId(name);
-  const sk = h.skills.find((s) => s.id === skillId && (spec == null || s.spec === spec));
+  const sk = h.skills.find((s) => refCouvre({ id: skillId, spec }, s));
   if (sk) sk.advances = Math.max(sk.advances, 5);
   else h.skills.push({ id: skillId, spec, characteristic, advances: 5 });
 }
@@ -22,9 +24,9 @@ const construireScene = (): Scene => buildScene({
   size: [14, 9],
   heroStart: [2, 4],
   startMessage:
-    'Exploration (aucun combat). Cliquez une fiche de lanceur → section « Sorts » : soignez/bénissez ' +
+    { texte: `Exploration (aucun combat). Cliquez une fiche de lanceur → onglet « ${t('sheet.tab.magie')} » : soignez/bénissez ` +
     'l’allié blessé (Prêtre), puis « Focaliser » et « Lancer » un Sort d’Arcane (Sorcier). ' +
-    'Les Projectiles magiques restent marqués « en combat ».',
+    'Les Projectiles magiques restent marqués « en combat ».' },
 });
 
 export const scenario: TestScenario = {

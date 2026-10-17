@@ -63,7 +63,7 @@ describe('le seuil DÉCLARÉ à la porte voyage jusqu’à l’étape', () => {
     })!;
     expect(st.de?.seuil).toEqual(PROTECTION);
     expect(stepInteraction(st)).toBe('de');
-    expect(stepReady(st)).toBe(false);
+    expect(stepReady(st, useGame.getState())).toBe(false);
   });
 });
 

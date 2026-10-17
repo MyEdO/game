@@ -11,7 +11,8 @@ import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
 import { emptyScene, type Scene } from '../../state/scene';
 import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
 import { narratifSchema } from '../../data/schemas/defs-scenes/narratif';
-import { creatures } from '../../data';
+import { charAbr, creatures } from '../../data';
+import { CHAR_KEYS } from '../../engine/types';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -114,11 +115,36 @@ function poserPage(sujet: string, valeur: string) {
 }
 const livre = (sujet: string) => champDeSource<HTMLSelectElement>('Livre', sujet);
 const note = (sujet: string) => champDeSource<HTMLInputElement>('Note', sujet);
+/** Choisit la provenance d'un texte (`ProvenanceDuTexte`) : un texte sans référence est « Maison », sans champ de source. */
+function provenance(mode: 'Copie' | 'Adapté' | 'Maison', sujet: string) {
+  const b = container.querySelector<HTMLButtonElement>(`[aria-label="${mode} — provenance ${sujet}"]`);
+  if (!b) throw new Error(`provenance « ${mode} » ${sujet} introuvable`);
+  click(b);
+}
 
 const avecIndice = (stades: NarratifBlock['indices'][number]['stades']): NarratifBlock => ({
   ...emptyNarratif(),
   affaires: [{ id: 'affaire-a', titre: 'Le Marché noir' }],
   indices: [{ id: 'indice-1', affaireId: 'affaire-a', kind: 'indice', titre: 'Un indice', stades }],
+});
+
+describe('NarratifEditor — provenance propre aux deux sous-titres', () => {
+  it.each([
+    ["Sous-titre de l'ouverture", "du sous-titre de l'ouverture", 'ouverture'],
+    ['Sous-titre de la clôture', 'du sous-titre de la clôture', 'cloture'],
+  ] as const)('%s : le sous-titre adapté garde son texte et ne modifie pas le pitch', (label, sujet, cle) => {
+    mount({ ...emptyNarratif(), ouverture: { titre: 'Titre', pitch: 'Pitch.', source: { book: 'ennemi-dans-l-ombre', page: 12 } }, cloture: { titre: 'Fin', when: { kind: 'flag', expr: 'fini' } } });
+    click(btn('Cadre'));
+    const zone = [...container.querySelectorAll('label.ed-field')].find(e => e.firstElementChild?.textContent === label)!.querySelector('textarea')!;
+    setValue(zone, 'Sous-titre maison.');
+    provenance('Adapté', sujet);
+    setValue(livre(sujet), 'aux-armes');
+    poserPage(sujet, '3');
+    expect(last[cle]?.sousTitre).toEqual({ texte: 'Sous-titre maison.', source: undefined, adapteDe: { book: 'aux-armes', page: 3 } });
+    expect(last.ouverture?.source).toEqual({ book: 'ennemi-dans-l-ombre', page: 12 });
+    expect(last.ouverture?.pitch).toBe('Pitch.');
+    expect(narratifSchema.safeParse(last).error?.issues).toBeUndefined();
+  });
 });
 
 describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, seule une réf complète est émise)', () => {
@@ -127,8 +153,9 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     click(btn('Cadre'));
     click(btn('Ajouter une ouverture'));
     setValue(field('Titre'), 'Ch. 1');
-    setValue(container.querySelector('textarea')!, 'Pitch maison.');
+    setValue([...container.querySelectorAll('label.ed-field')].find(e => e.firstElementChild?.textContent === 'Pitch (Markdown)')!.querySelector('textarea')!, 'Pitch maison.');
     expect(last.ouverture?.source).toBeUndefined();
+    provenance('Copie', "de l'ouverture");
     setValue(livre("de l'ouverture"), 'ennemi-dans-l-ombre');
     expect(last.ouverture?.source).toBeUndefined();
     poserPage("de l'ouverture", '12');
@@ -143,7 +170,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     mount();
     click(btn('Cadre'));
     click(btn('Ajouter une ouverture'));
-    const pitch = container.querySelector('textarea')!.closest('label')!;
+    const pitch = [...container.querySelectorAll('label.ed-field')].find(e => e.firstElementChild?.textContent === 'Pitch (Markdown)')!;
     expect(pitch.textContent).toBe('Pitch (Markdown)');
   });
 
@@ -160,6 +187,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     mount(avecIndice([{ id: 'stade-1', prose: 'p' }, { id: 'stade-2', prose: 'q' }]));
     click(btn('Indices'));
     click(btn('Un indice'));
+    provenance('Copie', 'du stade 2');
     setValue(livre('du stade 2'), 'ennemi-dans-l-ombre');
     poserPage('du stade 2', '7');
     expect(last.indices[0].stades[0].source).toBeUndefined();
@@ -187,6 +215,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     mount();
     click(btn('PNJ'));
     click(btn('Ajouter un PNJ'));
+    provenance('Copie', 'du PNJ');
     setValue(note('du PNJ'), 'ch. 2');
     expect(last.presetsPnj[0].source).toBeUndefined();
     setValue(livre('du PNJ'), 'ennemi-dans-l-ombre');
@@ -200,8 +229,11 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base, profil: { label: 'Alpha' } }, { id: 'pnj-b', base, profil: { label: 'Bravo' } }] });
     click(btn('PNJ'));
     click(btn('Alpha'));
+    provenance('Copie', 'du PNJ');
     setValue(livre('du PNJ'), 'ennemi-dans-l-ombre');
     click(btn('Bravo'));
+    expect(container.querySelector('[aria-label="Livre de la source du PNJ"]'), 'le mode choisi sur Alpha s’affiche sur Bravo').toBeNull();
+    provenance('Copie', 'du PNJ');
     expect(livre('du PNJ').value, 'le livre choisi sur Alpha s’affiche sur Bravo').toBe('');
     poserPage('du PNJ', '12');
     expect(last.presetsPnj[1].source, 'la page tapée sur Bravo a posé le livre d’Alpha').toBeUndefined();
@@ -219,8 +251,10 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     });
     click(btn('Indices'));
     click(btn('Indice Un'));
+    provenance('Copie', 'du stade 1');
     setValue(livre('du stade 1'), 'ennemi-dans-l-ombre');
     click(btn('Indice Deux'));
+    provenance('Copie', 'du stade 1');
     expect(livre('du stade 1').value, 'le livre choisi sur Indice Un s’affiche sur Indice Deux').toBe('');
     poserPage('du stade 1', '5');
     expect(last.indices[1].stades[0].source, 'la page tapée sur Indice Deux a posé le livre d’Indice Un').toBeUndefined();
@@ -229,6 +263,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
 
   /** Renommer n'est pas changer d'entité : le brouillon survit, puis se complète sur le même porteur. */
   const brouillonSurvitAuRenommage = (sujet: string, renommer: () => void) => {
+    provenance('Copie', sujet);
     setValue(livre(sujet), 'aux-armes');
     setValue(note(sujet), 'ch. 3 l.4');
     renommer();
@@ -260,6 +295,78 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
     click(btn('Alpha'));
     brouillonSurvitAuRenommage('du PNJ', () => setValue(field('Identifiant (id stable)'), 'pnj-z'));
     expect(last.presetsPnj[0]).toMatchObject({ id: 'pnj-z', source: { book: 'aux-armes', page: 9, note: 'ch. 3 l.4' } });
+  });
+});
+
+describe('NarratifEditor — provenance du texte : ouverture, stade, PNJ montent `ProvenanceDuTexte` (#2001)', () => {
+  const REF = { book: 'ennemi-dans-l-ombre', page: 12 };
+
+  it('ouverture : « Adapté » reporte `source` sur `adapteDe`, qui parse ; « Maison » la retire', () => {
+    mount({ ...emptyNarratif(), ouverture: { titre: 'Ch. 1', pitch: 'Pitch.', source: REF } });
+    click(btn('Cadre'));
+    provenance('Adapté', "de l'ouverture");
+    expect(last.ouverture).toMatchObject({ source: undefined, adapteDe: REF });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+    provenance('Maison', "de l'ouverture");
+    expect(last.ouverture).toMatchObject({ source: undefined, adapteDe: undefined });
+  });
+
+  it('stade : « Adapté » écrit `adapteDe` dans CE stade, le voisin intact', () => {
+    mount(avecIndice([{ id: 'stade-1', prose: 'p' }, { id: 'stade-2', prose: 'q', source: REF }]));
+    click(btn('Indices'));
+    click(btn('Un indice'));
+    provenance('Adapté', 'du stade 2');
+    expect(last.indices[0].stades[1]).toMatchObject({ source: undefined, adapteDe: REF });
+    expect(last.indices[0].stades[0]).toEqual({ id: 'stade-1', prose: 'p' });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
+  it('PNJ : « Copie » reporte `adapteDe` sur `source`', () => {
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha' }, adapteDe: REF }] });
+    click(btn('PNJ'));
+    click(btn('Alpha'));
+    provenance('Copie', 'du PNJ');
+    expect(last.presetsPnj[0]).toMatchObject({ source: REF, adapteDe: undefined });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
+  it('PNJ dont le profil ADRESSE sa description : « Adapté » refusé, sa raison dite ; sans adresse, offert', () => {
+    const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] };
+    mount({ ...emptyNarratif(), presetsPnj: [
+      { id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha', desc: 'Un cocher.', descRef } as never, source: REF },
+      { id: 'pnj-b', base: creatures[0].id, profil: { label: 'Bravo' }, source: REF },
+    ] });
+    click(btn('PNJ'));
+    click(btn('Alpha'));
+    const adapte = () => container.querySelector<HTMLButtonElement>('[aria-label="Adapté — provenance du PNJ"]')!;
+    expect(adapte().getAttribute('aria-disabled')).toBe('true');
+    expect(container.textContent).toContain('La description du profil est la copie adressée du livre.');
+    click(adapte());
+    expect(last.presetsPnj[0]).toMatchObject({ source: REF });
+    expect(last.presetsPnj[0].adapteDe).toBeUndefined();
+    click(btn('Bravo'));
+    expect(adapte().getAttribute('aria-disabled')).toBeNull();
+    click(adapte());
+    expect(last.presetsPnj[1]).toMatchObject({ source: undefined, adapteDe: REF });
+  });
+
+  it('le document reste verbatim : sa source se saisit sans choix de provenance', () => {
+    mount({ ...emptyNarratif(), documents: [{ id: 'doc', titre: 'Affiche', prose: 'VOYAGEURS' }] });
+    click(btn('Documents'));
+    click(btn('Affiche'));
+    expect(container.querySelector('[aria-label="Livre de la source du document"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label$="— provenance du document"]')).toBeNull();
+  });
+});
+
+describe('NarratifEditor — PNJ › surcharges : la caractéristique s’affiche par son abréviation', () => {
+  it('chaque case porte `charAbr`, jamais l’id de caractéristique', () => {
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha' } }] });
+    click(btn('PNJ'));
+    click(btn('Alpha'));
+    const cases = [...container.querySelectorAll('.statblock-grid .ed-subfield')].map((e) => e.textContent?.trim());
+    expect(cases).toEqual(CHAR_KEYS.map((k) => charAbr(k)));
+    expect(cases).not.toContain('capacite-de-combat');
   });
 });
 
@@ -485,3 +592,61 @@ function message(champ: HTMLInputElement | HTMLSelectElement): string | null {
   if (champ.getAttribute('aria-invalid') !== 'true') return null;
   return document.getElementById(champ.getAttribute('aria-describedby') ?? '')?.textContent ?? null;
 }
+
+describe('NarratifEditor — onglet États de campagne (#2539)', () => {
+  const issue = (): NarratifBlock => ({
+    ...emptyNarratif(),
+    etats: [{ id: 'issue', label: 'Issue', source: { book: 'ennemi-dans-l-ombre', page: 17, note: 'EDO 01 l.241' }, forme: { kind: 'enum', valeurs: [{ id: 'relache', label: 'Relâché' }, { id: 'condamne', label: 'Condamné' }] } }],
+  });
+  const tribunal = (): Scene => ({
+    ...emptyScene(4, 4),
+    id: 'tribunal',
+    label: 'Le tribunal',
+    triggers: [{
+      id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, when: { kind: 'etat', etat: 'issue', value: 'condamne' },
+      flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'poserEtat', etat: 'issue', valeur: 'condamne' } }] },
+    }],
+  });
+  const valeurs = () => [...container.querySelectorAll('label')].filter((l) => l.textContent?.includes('Id de la valeur')).map((l) => l.querySelector('input')!);
+
+  it('ajoute un état ; passer à la forme énumérée lui donne une valeur ; le bloc PARSE', () => {
+    mount();
+    click(btn('États'));
+    click(btn('Ajouter un état'));
+    expect(last.etats[0].source, 'un état neuf naît sans source, comme un document neuf').toBeUndefined();
+    setValue(livre('de l’état'), 'ennemi-dans-l-ombre');
+    setValue(note('de l’état'), 'EDO 02 l.91');
+    poserPage('de l’état', '26');
+    expect(last.etats).toEqual([{ id: 'etat-1', label: 'Nouvel état', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } }]);
+    setValue(field('Forme'), 'enum');
+    click(btn('Ajouter une valeur'));
+    expect(last.etats[0].forme).toEqual({ kind: 'enum', valeurs: [{ id: 'valeur-1', label: 'Valeur 1' }, { id: 'valeur-2', label: 'Valeur 2' }] });
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
+  it('un état neuf naît sans provenance, refusé comme un billet neuf ; la raison maison le rend valide', () => {
+    mount();
+    click(btn('États'));
+    click(btn('Ajouter un état'));
+    expect(narratifSchema.safeParse(last).success).toBe(false);
+    expect(container.textContent).toContain('Provenance exigée : la source de l’état, ou sa raison maison');
+    setValue(field('Raison maison de l’état'), 'issue tranchée par l’adaptation');
+    expect(last.etats[0].maison).toBe('issue tranchée par l’adaptation');
+    expect(container.textContent).not.toContain('Provenance exigée');
+    expect(narratifSchema.safeParse(last).success).toBe(true);
+  });
+
+  it('renommer une valeur propage à la Condition et à l’Effet qui la nomment ; la valeur nommée ne se retire pas', () => {
+    mount(issue(), [tribunal()]);
+    click(btn('États'));
+    expect(btn('Supprimer la valeur 2').getAttribute('aria-disabled')).toBe('true');
+    expect(btn('Supprimer cet état').getAttribute('aria-disabled')).toBe('true');
+    expect((field('Forme') as HTMLSelectElement).disabled, 'la forme d’un état désigné ne change pas').toBe(true);
+    setValue(valeurs()[1], 'pendu');
+    const t = lastProjet.scenes[0].triggers[0];
+    expect(t.when).toEqual({ kind: 'etat', etat: 'issue', value: 'pendu' });
+    expect((t.flow as { steps: { effect: unknown }[] }).steps[0].effect).toEqual({ type: 'poserEtat', etat: 'issue', valeur: 'pendu' });
+    click(btn('Supprimer la valeur 1'));
+    expect(last.etats[0].forme).toEqual({ kind: 'enum', valeurs: [{ id: 'pendu', label: 'Condamné' }] });
+  });
+});

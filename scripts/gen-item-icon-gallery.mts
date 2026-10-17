@@ -11,8 +11,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { ItemIcon } from '../src/ui/ItemIcon';
 import { findTrappingById, trappingsInstanciables } from '../src/data';
-import { isShieldItem, itemFromTrappingById } from '../src/engine/items';
-import { formeResolue } from '../src/gameIso/rig/parts/equipment';
+import { formeResolue, isShieldItem, itemFromTrappingById } from '../src/engine/items';
 import type { HitLocation, ItemInstance } from '../src/engine/types';
 
 const cell = (label: string, node: React.ReactElement) =>

@@ -14,7 +14,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
 import { defDe } from './descente';
-import { noyauEnum, type MetaChamp, type MetaDesChamps } from './meta';
+import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
 import { champsProse, refineProse, type PorteurDeProse } from './prose';
 import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
@@ -382,6 +382,18 @@ const DOCUMENT_DE_L_ENTREE_PARTIELLE = new WeakMap<object, z.ZodType<unknown>>()
 export const documentDeLEntreePartielle = (noeud: unknown): z.ZodType<unknown> | undefined =>
   noeud !== null && typeof noeud === 'object' ? DOCUMENT_DE_L_ENTREE_PARTIELLE.get(noeud) : undefined;
 
+/** Les champs de PROVENANCE d'une entrée ou d'une sous-entrée. */
+export interface Provenance { source?: unknown; maison?: unknown }
+
+/** PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE — refine UNIQUE, partagé par la
+ *  fabrique `document()` et toute sous-entrée qui porte sa propre provenance. `sujet` nomme ce qui
+ *  la doit (« de l’entrée », « du billet »). */
+export function refuserSansProvenance(v: Provenance, ctx: z.RefinementCtx, sujet: string): void {
+  if (v.source === undefined && v.maison === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['source'], message: `provenance manquante : cite le livre et la page, ou dis la raison maison ${sujet}.` });
+  }
+}
+
 /**
  * Déclare un document. `champs` = la charge utile propre au type, `meta` = son libellé FR par clé,
  * `exposition` = Codex + éditeur, `options.variantes` = les champs qu'une variante réglée republie —
@@ -464,10 +476,11 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
     }
   }
   verifieExposition(type, exposition);
-  const entree = z.strictObject({
+  const nomsEntree = { ...tableTotale(Object.keys(enveloppe(type)) as CleEnveloppe[], k => ({ label: LIBELLES_ENVELOPPE[k] })), ...meta };
+  const entree = nommerChamps(z.strictObject({
     ...enveloppe(type, idDocument, exiges, fragmentsAdmis),
     ...(champs as Record<string, z.ZodType>),
-  }) as z.ZodObject<z.ZodRawShape>;
+  }) as z.ZodObject<z.ZodRawShape>, nomsEntree);
   const declarees = [...(variantes ?? [])];
   for (const k of declarees) {
     if (!(k in entree.shape)) {
@@ -496,7 +509,8 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
             entries: marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')),
           }) as z.ZodObject<z.ZodRawShape>)
         : complet;
-  const entreePartielle: z.ZodType<unknown> = corps.partial().pipe(z.transform((v) => v));
+  const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
+  const entreePartielle: z.ZodType<unknown> = nommerChamps(corps.partial(), noms).pipe(z.transform((v) => v));
   const clesEntree: readonly string[] = Object.keys(corps.shape);
   // PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE. Une entrée sans folio n'est pas
   // interdite — elle doit DIRE pourquoi. `exigeSource` consulte l'UNION `SANS_PROVENANCE_EXIGEE`
@@ -509,22 +523,14 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   // construction, donc rien à éteindre ici (mesuré : un branchement qui l'éteindrait est inobservable).
   const avecProvenance = !exigeSource(type)
     ? corps
-    : (corps.superRefine((v, ctx) => {
-        const d = v as { source?: unknown; maison?: unknown };
-        if (d.source === undefined && d.maison === undefined) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['source'],
-            message: `document('${type}') : entrée sans \`source\` — un document sans folio porte \`maison\` (la raison de l'arbitrage).`,
-          });
-        }
-      }) as z.ZodObject<z.ZodRawShape>);
+    : (corps.superRefine((v, ctx) => refuserSansProvenance(v as Provenance, ctx, 'de l’entrée')) as z.ZodObject<z.ZodRawShape>);
   // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V5), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
   const avecProse = avecProvenance.superRefine(
-    refineProse({ type, site: type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
+    refineProse({ type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   const affine = affinerEntree ? affinerEntree(avecProse) : avecProse;
+  nommerChamps(affine as z.ZodObject<z.ZodRawShape>, { ...noms, ...metaDesChamps(affine) });
   const entreeScellee: z.ZodType<unknown> = affine.pipe(z.transform((v) => v));
 
   // EMBALLAGE par FAMILLE (#1467) : le dataset est ce que le FICHIER porte — une LISTE d'entrées

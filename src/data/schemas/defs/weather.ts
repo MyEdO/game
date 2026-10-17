@@ -1,21 +1,5 @@
-/**
- * Schéma de `weather.json` — Météo de voyage TERRESTRE (EDOC 8), consommée par
- * `src/data/index.ts` et typée par `engine/travelStages.ts` (`Weather`, `weatherRanges`,
- * `WeatherCondition`). Deux volets :
- *  - `seasons` : table de tirage d100 par saison (`ranges` = fourchette PLATE `{min, max}` incluse →
- *    `weather`, lookup via `rollStageWeather` → `findTableEntry`) ;
- *  - `conditions` : EFFETS par météo, MÊME vocabulaire de donnée que `sea-weather.json`
- *    (`visibiliteM`/`rangedMod` étendus des besoins terrestres : `physicalTestMod`, `powderUseless`,
- *    `rangedUseless`, `movementWalkOnly`, `resistanceTest`, `lightningNervous`).
- *
- * ALPHABET : `weatherIdSchema` est la SEULE déclaration des ids de condition — `engine/travelStages.ts`
- * en DÉRIVE `type Weather` (`(typeof weatherIdSchema.options)[number]`) et l'éditeur en dérive sa liste
- * d'options (`CodexEdit.WeatherRangesField`). Le LIBELLÉ, lui, ne vit qu'en donnée (`conditions[].label`,
- * lu par l'unique porte `weatherCondition`) : aucune carte FR ne double le dataset.
- * COMPLÉTUDE : le `superRefine` ci-dessous exige les 6 options dans `conditions[].id` — sans lui, le
- * z.enum refusait un id INCONNU mais laissait passer une SUPPRESSION, et `weatherCondition` n'aurait
- * plus eu de libellé à rendre.
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** EDOC 8 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { difficultySchema, ecartsDeCouverture, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
@@ -24,8 +8,7 @@ import { listeCle } from '../grammaire/collection-cle';
 export const file = 'weather.json';
 export const famille = 'config';
 
-/** ALPHABET FERMÉ des conditions météo terrestres (EDOC 8 l.50-59), de la plus clémente à la pire —
- *  l'ordre fixe le « degré de temps éloigné de Beau temps » de l'activité Plein Air (l.141). */
+/** EDOC 8 l.50-59 */
 export const weatherIdSchema = z.enum(['sec', 'beau', 'pluie', 'pluie-diluvienne', 'neige', 'blizzard']);
 
 const doc = document(
@@ -33,24 +16,29 @@ const doc = document(
   famille,
   {
   seasons: listeCle(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
       ranges: z.array(
-        z.strictObject({
+        nommerChamps(z.strictObject({
           ...plageSchema.shape,
           weather: weatherIdSchema,
-        }),
+        }), { ...metaDesChamps(plageSchema, { exigees: true }), weather: { label: 'Météo' } }),
       ),
       source: sourceRefSchema.optional(),
+    }), {
+      id: { label: 'Identifiant' },
+      label: { label: 'Libellé' },
+      ranges: { label: 'Plages' },
+      source: { label: 'Source' },
     }),
     'id',
   ),
-  /** Liste MAISON des Caractéristiques réputées « physiques » (EDOC 8 l.82 ne la définit pas). */
+  /** EDOC 8 l.82 */
   physicalTestChars: z.array(z.string()),
   physicalTestCharsSource: sourceRefSchema.optional(),
   conditions: listeCle(
-    z.strictObject({
+    nommerChamps(z.strictObject({
       id: weatherIdSchema,
       /** Le NOM de la météo à l'écran, et le seul (`weatherCondition(w).label`). `.min(1)` STRUCTUREL,
        *  patron de l'enveloppe (`grammaire/document.ts`) : tant que le nom venait du catalogue i18n, le
@@ -74,10 +62,23 @@ const doc = document(
       lightningNervous: z.boolean().optional(),
       /** Test de Résistance de traversée (ou État) — DISTINCT de l'Exposition de fin d'Étape.
        *  `enjeu` = énoncé VERBATIM de la source (ce que l'échec coûte), rendu sous le titre d'étape. */
-      resistanceTest: z
-        .strictObject({ difficulty: difficultySchema, onFail: z.enum(['extenue']), enjeu: z.string().optional() })
+      resistanceTest: nommerChamps(z
+        .strictObject({ difficulty: difficultySchema, onFail: z.enum(['extenue']), enjeu: z.string().optional() }), { difficulty: { label: 'Difficulté' }, onFail: { label: 'À l’échec' }, enjeu: { label: 'Enjeu' } })
         .optional(),
       source: sourceRefSchema.optional(),
+    }), {
+      id: { label: 'Identifiant' },
+      label: { label: 'Libellé' },
+      desc: { label: 'Description' },
+      visibiliteM: { label: 'Visibilité (m)' },
+      rangedMod: { label: 'Modificateur de tir' },
+      rangedUseless: { label: 'Tir inutilisable' },
+      powderUseless: { label: 'Poudre inutilisable' },
+      physicalTestMod: { label: 'Modificateur des Tests physiques' },
+      movementWalkOnly: { label: 'Marche uniquement' },
+      lightningNervous: { label: 'Nervosité face à la foudre' },
+      resistanceTest: { label: 'Test de résistance' },
+      source: { label: 'Source' },
     }),
     'id',
   ),

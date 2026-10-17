@@ -18,9 +18,9 @@ const construireVillage = (): Scene => buildScene({
   terrain: 'herbe',
   heroStart: [2, 4],
   startMessage:
-    'La place d’Ebendorf. Le médecin Holst reçoit près de sa maison (soins payants), l’autel de la ' +
+    { texte: 'La place d’Ebendorf. Le médecin Holst reçoit près de sa maison (soins payants), l’autel de la ' +
     'chapelle attend une prière, le messager porte de mauvaises nouvelles, et la trappe de la cave à ' +
-    'provisions n’a pas été réparée depuis des lustres.',
+    'provisions n’a pas été réparée depuis des lustres.' },
   entities: [
     // Effet `medicalAid` (LDB 75) : PNJ soigneur payant, distinct de l'Action Guérison générique.
     {

@@ -2,7 +2,8 @@ import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { garanti } from '../../state/combatants';
 import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE } from '../../state/rollFlowSpecs';
-import { defenseValue, defenseModifiers, DEFENSE_LABEL, FREE_ATTACK_LABEL, type DefenseMode } from '../../engine/combat';
+import { defenseDodgeMods } from '../../state/combatFlow';
+import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, DEFENSE_LABEL, type DefenseMode } from '../../engine/combat';
 import { shieldReactionCost } from '../../engine/combatFeatures/dispatch';
 import { combatSubstitute } from '../../engine/skillCombatApps';
 import { byId } from '../../data/index';
@@ -52,6 +53,8 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // Armes pouvant parer (hors Mains nues) ; arme de parade choisie (défaut = main principale).
   const parryPickable = defender.weapons.filter((w) => !isUnarmed(w) && !!w.uid);
   const chosenParry = pd.parryWeaponUid ? defender.weapons.find((w) => w.uid === pd.parryWeaponUid) : defender.weapons[0];
+  // Lignes d'Esquive du contexte (neige, monté) : MÊME source que le jet résolu (`defenseDodgeMods`).
+  const dodgeMods = defenseDodgeMods(useGame.getState(), defender);
   // Substitution sociale (LDB 09 l.207/287) : proposée en MÊLÉE quand une Compétence sociale
   // (Intimidation/Dressage `combatSubstitute`) est utilisable en défense — l'attaquant a PEUR du
   // défenseur (gate `fear`). Data-driven : l'option existe parce que la donnée+le gate le disent.
@@ -62,20 +65,16 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // MA ligne pré-remplie : valeur + mods de la défense CHOISIE (recalculés à chaque changement). La météo
   // « Tests physiques » du jour (#341) arrive par le CANAL UNIQUE : `defenseModifiers` lit `defender.envWeather`
   // et pousse la ligne « Météo » scopée par la carac du mode (Parade→CC, Esquive→Agilité) — zéro câblage ici.
-  const myMods = defenseModifiers(defender, pd.mode, 0, pd.mode === 'parade' ? chosenParry : undefined);
-  const myBase = defenseValue(defender, pd.mode, chosenParry, socialBase);
+  // Base NUE + modificateurs de la VALEUR nommés (`defenseValueModParts`) + modificateurs du jet : la Σ reste
+  // la valeur jetée.
+  const myMods = [...defenseValueModParts(defender, pd.mode, chosenParry), ...defenseModifiers(defender, pd.mode, dodgeMods, pd.mode === 'parade' ? chosenParry : undefined)];
+  const myBase = defenseBaseValue(defender, pd.mode, chosenParry, socialBase);
   const myLabel = pd.mode === 'social' ? (socialLabel ?? 'Intimidation') : DEFENSE_LABEL[pd.mode];
-  // Résolution alternative de l'arme de parade (`Weapon.resolveChar`) : la base vient déjà d'elle
-  // (`defenseValue`), le sous-titre nomme donc la MÊME Caractéristique (#203+, `attackTestLabel`).
-  // Z1 (`docs/charte-ui.md`) : l'acteur du jet est le DÉFENSEUR, sa Compétence celle du mode CHOISI —
-  // Parade = Corps à corps, Esquive = Esquive, substitution = la Compétence figée sur le pending
-  // (`substituteSkillId`, LDB 13 l.161-167). Ids stables : le libellé est dérivé par `composeRollLabel`.
-  const defenseTest = pd.mode === 'parade' && chosenParry?.resolveChar
-    ? { char: chosenParry.resolveChar }
-    : { skill: pd.mode === 'social' ? pd.substituteSkillId ?? sub?.skillId : pd.mode === 'esquive' ? 'esquive' : 'corps-a-corps' };
+  // Z1 (`docs/charte-ui.md`) : le DÉFENSEUR, et les ids du Test du mode CHOISI (`defenseTestOf`, LDB 13 l.161-167).
+  const defenseTest = defenseTestOf(defender, pd.mode, chosenParry, pd.substituteSkillId ?? sub?.skillId);
   // Valeurs affichées sur le segmented control (chaque option montre SA valeur effective).
   const segVal = (mode: DefenseMode) =>
-    optionValue(defenseValue(defender, mode, chosenParry, mode === 'social' ? sub?.value : undefined), defenseModifiers(defender, mode, 0, mode === 'parade' ? chosenParry : undefined));
+    optionValue(defenseValue(defender, mode, chosenParry, mode === 'social' ? sub?.value : undefined), defenseModifiers(defender, mode, dodgeMods, mode === 'parade' ? chosenParry : undefined));
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant).
@@ -106,12 +105,12 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // NATURE de l'attaque figée, telle que la frappe l'a DÉCLARÉE en ouvrant la fenêtre (#1858) : une
   // gratuite de créature s'annonce par la sienne (Morsure, Attaque caudale… LDB 85), le reste est une
   // Attaque. L'affichage ne devine rien — il lit la suite portée par la fenêtre.
-  const kindGratuit = pd.suite.mode === 'machine' ? pd.suite.coup.freeAttack?.kind : undefined;
+  const kindGratuit = pd.suite.mode === 'machine' ? pd.suite.coup.manoeuvre?.kind : undefined;
   // Attaque et défense sont les DEUX lignes d'un même Test opposé : la Difficulté est déclarée UNE
   // fois à la fabrique (LDB 12 l.166 ; jet de Combat, LDB 13 l.118).
   const [attackLine, defenseLine] = opposedLines([
     {
-      label: kindGratuit ? FREE_ATTACK_LABEL[kindGratuit] ?? 'Attaque gratuite' : 'Attaque',
+      label: kindGratuit ? pd.weapon.label : 'Attaque',
       base: pd.atk.target,
       r: { roll: pd.atk.roll, target: pd.atk.target, sl: pd.atk.sl, success: pd.atk.success },
     },

@@ -86,7 +86,7 @@ describe('session coop (net/session)', () => {
     const onClosed = vi.fn();
     const order: string[] = [];
     const guest = new GuestSession({
-      build: 'x',
+      build: 'test',
       label: 'Invité',
       applySnapshot: vi.fn(),
       onProtocolMismatch: (expected, got) => {
@@ -107,6 +107,24 @@ describe('session coop (net/session)', () => {
     expect(onProtocolMismatch).toHaveBeenCalledWith(PROTOCOL_VERSION, PROTOCOL_VERSION + 1);
     expect(onClosed).toHaveBeenCalled();
     expect(order).toEqual(['error', 'closed']); // motif typé avant la fermeture générique
+  });
+
+  it('empreinte de format (`build`) différente → l’hôte envoie le motif typé, refuse le siège et ferme', () => {
+    const { host } = mkHost();
+    const [a, b] = FakeTransport.pair();
+    const order: string[] = [];
+    const guest = new GuestSession({
+      build: 'autre-empreinte',
+      label: 'Invité',
+      applySnapshot: vi.fn(),
+      onFormatMismatch: () => order.push('format'),
+      onClosed: () => order.push('closed'),
+    });
+    host.addGuest(a, 1);
+    guest.connect(b);
+    expect(host.seats[1]).toBeUndefined();
+    expect(guest.joined).toBe(false);
+    expect(order).toEqual(['format', 'closed']);
   });
 
   it('déconnexion d’un invité → onSeatClosed(seat)', () => {

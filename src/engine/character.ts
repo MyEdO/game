@@ -42,7 +42,7 @@ import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
-import { versionCourante } from '../lib/versionCourante';
+import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
  *  Caractéristique + avances. (≠ re-lookup par libellé — multilangue-safe.) */
@@ -58,17 +58,6 @@ export const MAX_ADV_PER_SKILL = 10;
 /** « vos huit Compétences de départ » (LDB 05 l.535) ; « seules huit doivent être améliorées » d'un
  *  Niveau à dix Compétences (AA 02 l.134 ; VDM 03 l.37). */
 export const CAREER_SKILLS_ADVANCED = 8;
-
-/** Migrations du format PERSISTÉ des choix de création (brouillon du roster), keyées par format de DÉPART
- *  (#2226). */
-const MIGRATIONS_DES_CHOIX = {
-  2: '#1897 tirages de Talents par adresse',
-  3: '#1897 flux des tirages de Talents sous l’étape `talents`, option « A ou B » par `cleDOption`',
-  4: '#1988 choix de dotation par adresse',
-} as const;
-
-/** Format PERSISTÉ des choix de création (brouillon du roster). */
-export const FORMAT_DES_CHOIX = versionCourante(MIGRATIONS_DES_CHOIX);
 
 /** Étapes aléatoires de la création, chacune son flux (`fluxDeCreation`). */
 export type EtapeDeFlux = 'espece' | 'carriere' | 'carriere:deux-de-plus' | 'carriere:relance' | 'caracteristiques' | 'signe' | 'astrologie' | 'talents' | 'bourse' | 'details';
@@ -377,7 +366,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const heroSoFar: Combatant = { characteristics: chars, talents } as Combatant;
   const skills: SkillInstance[] = [];
   const addSkill = ({ id, spec }: RefDesignee, adv: number) => {
-    const existing = skills.find((s) => s.id === id && (s.spec ?? '') === (spec ?? ''));
+    const existing = skills.find((s) => s.id === id && memeSpecialisation(s.spec, spec));
     if (existing) existing.advances += adv; // même (id, spec) = même Compétence (LDB 09 l.42)
     else skills.push({ id, spec, characteristic: skillCharacteristicById(id), advances: adv });
   };

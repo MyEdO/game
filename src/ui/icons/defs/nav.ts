@@ -63,6 +63,17 @@ export const icons: IconFamily = [
       `<path ${KF} d="M6.6 8.1 C7.9 8.1 9.1 8.4 10.2 8.9 M6.6 11 C7.9 11 9.1 11.3 10.2 11.8 M13.8 8.9 C14.9 8.4 16.1 8.1 17.4 8.1 M13.8 11.8 C14.9 11.3 16.1 11 17.4 11"/>`,
   },
   {
+    id: 'nav/carnet',
+    label: 'Carnet d’enquête',
+    // Carnet relié (dos plein, notes) sous la loupe de l'enquêteur.
+    svg:
+      `<path ${F} d="M4.8 4.7 C4.8 4.1 5.2 3.7 5.8 3.7 H7.6 V19.9 H5.8 C5.2 19.9 4.8 19.5 4.8 18.9 Z"/>` +
+      `<path ${K} d="M16.1 9.9 V4.7 C16.1 4.1 15.7 3.7 15.1 3.7 H5.8 C5.2 3.7 4.8 4.1 4.8 4.7 V18.9 C4.8 19.5 5.2 19.9 5.8 19.9 H11.4"/>` +
+      `<path ${KF} d="M9.6 7.4 C11.1 7.3 12.6 7.3 14 7.4 M9.6 10.2 C10.7 10.1 11.7 10.1 12.6 10.2"/>` +
+      `<circle ${K} cx="15.3" cy="15.1" r="3.5"/>` +
+      `<path ${F} d="M17.4 18.4 L18.4 17.4 L20.9 19.9 C21.2 20.2 21.2 20.6 20.9 20.9 C20.6 21.2 20.2 21.2 19.9 20.9 Z"/>`,
+  },
+  {
     id: 'nav/editor',
     label: 'Éditeur',
     // Équerre graduée + marteau du bâtisseur.

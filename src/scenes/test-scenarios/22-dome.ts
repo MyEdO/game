@@ -43,10 +43,10 @@ function groupe() {
 function construireScene(): Scene {
   const scene = arena({ id: 'test-dome', label: 'Dôme — la sauvegarde d’une zone', w: 20, h: 10, heroStart: HERO_START });
   scene.startMessage =
-    'Ilyanwe lance le Dôme sur elle-même (console : alvéole « Dôme », cible « Vous ») : Berta, à côté, '
+    { texte: 'Ilyanwe lance le Dôme sur elle-même (console : alvéole « Dôme », cible « Vous ») : Berta, à côté, '
     + 'gagne le Trait Protection (6+) contre ce qui vient du DEHORS. Le tireur gobelin tire de loin — la '
     + 'sauvegarde tombe et le journal la nomme. L’orc, lui, entre sous la voûte et frappe au corps à '
-    + 'corps : là, le dôme ne protège de rien.';
+    + 'corps : là, le dôme ne protège de rien.' };
   setEncounters(scene, [
     {
       id: 'enc-dome',

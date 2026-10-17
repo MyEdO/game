@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 
 /**
- * @param {string} script module de `scripts/hooks/` (`repartiteur.mjs`, `solde-ticket-hook.mjs`)
+ * @param {string} script module de `scripts/hooks/` (`repartiteur.mjs`)
  * @param {object | string} charge l'entrée du hook, ou le texte brut du stdin
  * @param {{ env?: NodeJS.ProcessEnv, cwd?: string, surface?: 'claude' | 'codex' }} [options]
  * @returns {{ code: number | null, out: string, err: string, specifique: object | null }}

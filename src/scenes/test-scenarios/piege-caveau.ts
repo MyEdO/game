@@ -50,7 +50,7 @@ function construireScene(): Scene {
     ambiance: 'interieur',
     heroStart: [2, 5],
     startMessage:
-      'Un caveau humide. Au fond, une herse close protège un coffre. Un levier rouillé, une dalle suspecte au sol… et quelque part, une clé.',
+      { texte: 'Un caveau humide. Au fond, une herse close protège un coffre. Un levier rouillé, une dalle suspecte au sol… et quelque part, une clé.' },
     legend: { '#': 'mur' },
     levels: { z0: CAVEAU_Z0 },
     entities: [

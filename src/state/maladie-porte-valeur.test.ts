@@ -141,6 +141,8 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
   });
 
   it('sommeil MULTI-JOURS : chaque Test résolu d’office LAISSE SA LIGNE — dé, cible et issue', () => {
+    // Un second héros valide : la Fièvre peut mettre Hilda à terre, le groupe reste viable (`checkPartyWiped`).
+    useGame.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
     const journal: string[] = [];
     const vraiLog = useGame.getState().log;
@@ -156,14 +158,36 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     // cible (forme `casc.autoRowTrace` : « Nom — Résistance : 99/42 → échec (DR -5). »). Une par Test.
     const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+[ ]→[ ]/.test(l));
     expect(lignesDeJet.length, `aucune ligne de dé dans le journal : ${journal.join(' | ')}`).toBeGreaterThanOrEqual(3);
-    const [roll, target] = lignesDeJet[0].match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
+    const [roll] = lignesDeJet[0].match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
     expect(roll, 'le dé rendu est un d100').toBeGreaterThanOrEqual(1);
     expect(roll).toBeLessThanOrEqual(100);
     // La cible est celle de la PORTE : la Résistance du héros à Intermédiaire (+0), jamais 0 ni une
-    // valeur maison. (Le héros n'a aucun État ici : nue === jetée.)
+    // valeur maison. L'état du héros ÉVOLUE d'une nuit à l'autre (Malaise → Exténué, LDB 20 l.188 ; Faim,
+    // LDB 18 l.342) : seul le DERNIER Test est roulé dans l'état observé ici.
+    const target = Number(lignesDeJet[lignesDeJet.length - 1].match(/(\d+)\/(\d+)/)![2]);
     const h = useGame.getState().party[0];
     expect(target, 'la cible rendue est celle que la porte a montée')
       .toBe(clampTarget(testValue(h, 'resistance') + DIFFICULTY_MODIFIERS.intermediaire).target);
+  });
+
+  it('sommeil MULTI-JOURS sous un slot DÉJÀ vivant : chaque nuit se déroule — le pilote n’est interrompu que par un slot qu’IL a écrit', () => {
+    // Un second héros valide : la défaite (`checkPartyWiped`) ne peut pas être ce qui interrompt.
+    useGame.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
+    rendMalade('h1', 'pneumonie', 0);
+    useGame.getState().openRest({ places: { auberge: true } });
+    useGame.getState().restSleep();
+    const vivant = useGame.getState().pendingCascade;
+    expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();
+
+    const journal: string[] = [];
+    const vraiLog = useGame.getState().log;
+    useGame.setState({ log: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
+
+    useGame.getState().restParty(2);
+
+    const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+[ ]→[ ]/.test(l));
+    expect(lignesDeJet.length, `les DEUX nuits roulent leur Test : ${journal.join(' | ')}`).toBeGreaterThanOrEqual(2);
+    expect(useGame.getState().pendingCascade, 'le slot vivant à l’entrée reste le sien').toBe(vivant);
   });
 
   it('B2 — le HARNAIS de test et la NUIT réelle appliquent la MÊME guérison (Exténué collant compris)', () => {

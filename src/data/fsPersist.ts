@@ -5,7 +5,7 @@
  * page). Repli `download` quand l'API est absente (Firefox/Safari). Aucun serveur.
  */
 import { downloadText } from '../lib/fileIo';
-import { accesBase, type MigrationsIdb } from '../lib/indexedDb';
+import { accesBase } from '../lib/indexedDb';
 
 /** File System Access présente dans ce navigateur. */
 export function fsApiDisponible(): boolean {
@@ -15,16 +15,10 @@ export function fsApiDisponible(): boolean {
 const STORE = 'handles';
 const KEY = 'dataDir';
 
-/** Migrations de `wfrp4-data-editor` : un magasin à clés externes (le handle, structured-cloneable). */
-export const MIGRATIONS_EDITEUR_DE_DONNEES = {
-  0: (db) => {
-    db.createObjectStore(STORE);
-  },
-} satisfies MigrationsIdb;
-
 type DirHandle = FileSystemDirectoryHandle;
 
-const handles = accesBase({ nom: 'wfrp4-data-editor', migrations: MIGRATIONS_EDITEUR_DE_DONNEES }).magasin<DirHandle, string>(STORE);
+/** `wfrp4-data-editor` : un magasin à clés externes (le handle, structured-cloneable). */
+const handles = accesBase({ nom: 'wfrp4-data-editor', magasins: { [STORE]: {} } }).magasin<DirHandle, string>(STORE);
 
 async function perm(h: DirHandle, request: boolean): Promise<boolean> {
   const opts = { mode: 'readwrite' } as const;

@@ -34,11 +34,11 @@
 // Résidu mesuré sur l'arbre : Codex à 360×740, page 3007/740 — #1860. Aucune liste d'exemption ici :
 // la sonde reste rouge tant qu'il vit.
 import {
-  openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, realKey, clickButtonByText, clicReel, VUES_RECETTE,
+  openApp, evaluate, setViewport, sleep, gotoScreen, resoudreModales, realKey, clickButtonByText, clickItemByText, VUES_RECETTE, FN_NOMMER_ELEMENT,
 } from './lib.mjs';
 import {
   scrollportDePage, commandesInatteignables, corpsDeModaleEcrase, courantHorsChamp, piedHorsChamp,
-  contenuSousLeBord, ecranNomme, enfantsQuiSeChevauchent, ongletHorsDeVue, nomRecouvert,
+  contenuSousLeBord, ecranNomme, enfantsQuiSeChevauchent, ongletHorsDeVue, nomRecouvert, ongletClicAVide,
 } from './detecteurs-hauteur.mjs';
 
 function parseArgs(argv) {
@@ -62,12 +62,10 @@ function parseArgs(argv) {
  *  boîte qui couvre le viewport EST un scrollport de page, et une boîte qui commence sous la
  *  fenêtre ne montre rien de ce qu'elle tient. De chaque CARTE DE MENU on relève ce qu'aucun
  *  défilement ne peut ramener en vue. */
-const PROBE = `(() => {
+export const PROBE = `(() => {
   const page = document.scrollingElement || document.documentElement;
   const bord = (e) => { const r = e.getBoundingClientRect(); return { left: +r.left.toFixed(1), right: +r.right.toFixed(1), top: +r.top.toFixed(1), bottom: +r.bottom.toFixed(1) }; };
-  const nomDe = (e) => (e.className && typeof e.className === 'string'
-    ? '.' + e.className.trim().split(/\\s+/).join('.')
-    : e.tagName.toLowerCase()).slice(0, 60);
+  const nomDe = ${FN_NOMMER_ELEMENT};
 
   const defileurs = [];
   for (const e of document.querySelectorAll('*')) {
@@ -89,7 +87,7 @@ const PROBE = `(() => {
     const cs = getComputedStyle(voile);
     const px = (nom) => { const v = parseFloat(cs.getPropertyValue(nom)); return Number.isFinite(v) ? v : null; };
     modales.push({
-      quoi: (boite ? nomDe(boite) : '.modal'),
+      quoi: nomDe(boite),
       corps: { clientH: corps.clientHeight, scrollH: corps.scrollHeight },
       place: Math.round(voile.getBoundingClientRect().height),
       boite: boite ? Math.round(boite.getBoundingClientRect().height) : null,
@@ -207,7 +205,8 @@ const PROBE = `(() => {
 
 /** Sonde de l'ÉCRAN NOMMÉ : les dialogues montés (nom accessible), celui dont le nom contient \`nom\`, et
  *  si le point de son geste primaire — sinon de sa tête — tombe sur lui (\`elementFromPoint\`). */
-const NOMME = (nom) => `(() => {
+export const NOMME = (nom) => `(() => {
+  const nommer = ${FN_NOMMER_ELEMENT};
   const norm = (t) => (t || '').replace(/\\s+/g, ' ').trim();
   const nomDe = (d) => norm(d.getAttribute('aria-label') || (d.getAttribute('aria-labelledby') && document.getElementById(d.getAttribute('aria-labelledby'))?.textContent));
   const dialogues = [...document.querySelectorAll('[role="dialog"]')].filter((d) => d.getClientRects().length);
@@ -217,25 +216,17 @@ const NOMME = (nom) => `(() => {
   const r = geste.getBoundingClientRect();
   const el = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, 12));
   const hote = el && el.closest('[role="dialog"]');
-  const cls = el ? (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\\s+/).join('.') : el.tagName.toLowerCase()) : '(rien)';
+  const cls = el ? nommer(el) : '(rien)';
   return { dialogues: dialogues.map(nomDe), dialogue: { nom: nomDe(d), dessus: !!el && d.contains(el), cible: hote ? cls + ' dans « ' + nomDe(hote) + ' »' : cls } };
 })()`;
 
-/** Relevé de la fenêtre à champ lisible montée (\`.modal-overlay[data-champ]\`) : son titre, son corps. */
-/** Onglet NON sélectionné de la planche, amené dans la planche, et le point de son clic. */
-const ONGLET_A_CLIQUER = `(() => {
-  const onglet = [...document.querySelectorAll('.sheet-main [role=tab]')].find((t) => t.getAttribute('aria-selected') !== 'true');
-  if (!onglet) return null;
-  onglet.scrollIntoView({ block: 'nearest' });
-  const r = onglet.getBoundingClientRect();
-  const x = r.x + r.width / 2, y = r.y + r.height / 2;
-  const sous = document.elementFromPoint(x, y);
-  return { x, y, texte: onglet.textContent.trim(), sous: sous && !onglet.contains(sous) ? (sous.className || sous.tagName) + '' : null };
-})()`;
+/** Les ONGLETS de la planche montée : le clic d'onglet en NOMME un (`clickItemByText`). */
+const ONGLETS_PLANCHE = '.sheet-main [role=tab]';
 
 /** Nom de la planche montée (`.planche-nom`) : 5 points (centre, 4 coins rentrés de 3px), et ce qui
  *  tombe sur chacun quand ce n'est pas le dialogue de la planche (le nom lui-même, hors dialogue). */
-const NOM_PLANCHE = `(() => {
+export const NOM_PLANCHE = `(() => {
+  const nommer = ${FN_NOMMER_ELEMENT};
   const e = [...document.querySelectorAll('.planche-nom')].find((x) => x.getClientRects().length);
   if (!e) return null;
   const cadre = e.closest('[role="dialog"]') ?? e;
@@ -243,7 +234,7 @@ const NOM_PLANCHE = `(() => {
   const pts = [[r.x + r.width / 2, r.y + r.height / 2], [r.x + 3, r.y + 3], [r.right - 3, r.y + 3], [r.x + 3, r.bottom - 3], [r.right - 3, r.bottom - 3]];
   const couverts = pts.map(([x, y]) => document.elementFromPoint(x, y))
     .filter((h) => !h || !cadre.contains(h))
-    .map((h) => (!h ? '(hors écran)' : h.closest('.party-dock') ? 'party-dock' : (typeof h.className === 'string' && h.className ? '.' + h.className.trim().split(/\\s+/).join('.') : h.tagName.toLowerCase())));
+    .map((h) => (!h ? '(hors écran)' : h.closest('.party-dock') ? 'party-dock' : nommer(h)));
   return { texte: e.textContent.trim(), rect: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)], couverts };
 })()`;
 
@@ -256,6 +247,7 @@ const RELEVE_ONGLET = `(() => {
   const c = l.getBoundingClientRect(), b = barre.getBoundingClientRect();
   return {
     actif: document.querySelector('.sheet-main [role=tab][aria-selected=true]')?.textContent.trim() ?? null,
+    onglets: [...document.querySelectorAll('.sheet-main [role=tab]')].map((o) => o.textContent.trim()),
     finDeCourse: l.scrollTop >= l.scrollHeight - l.clientHeight - 1,
     cadre: { top: Math.round(c.top), bottom: Math.round(c.bottom) },
     barre: { top: Math.round(b.top), bottom: Math.round(b.bottom) },
@@ -358,17 +350,32 @@ async function main() {
         console.log(`  ${`${ecran} › nom`.padEnd(26)} ${nom ? `« ${nom.texte} » [${nom.rect.join(',')}]` : 'absent'} → ${d.length ? `${d.length} défaut(s)` : 'OK'}`);
         if (!args.mesures) echecs.push(...d);
       };
-      /** Un VRAI clic d'onglet de la planche montée : ce que le joueur vient d'ouvrir est en vue. */
+      /** Un VRAI clic sur un onglet INACTIF de la planche montée (le premier, lu avant le clic) : ce
+       *  que le joueur vient d'ouvrir est en vue. */
       const clicDOnglet = async (ecran) => {
         const ici = `${vue.largeur}×${vue.hauteur} (${vue.nom})`;
-        const onglet = await evaluate(session, ONGLET_A_CLIQUER);
-        if (!onglet) { echecs.push(`${ici} · ${ecran} : aucun onglet à cliquer — sonde aveugle`); return; }
-        await clicReel(session, onglet.x, onglet.y);
+        const avant = await evaluate(session, RELEVE_ONGLET);
+        if (!avant) {
+          echecs.push(`${ici} · ${ecran} : planche absente avant le clic d'onglet`);
+          return;
+        }
+        const voulu = avant.onglets.find((o) => o !== avant.actif) ?? null;
+        if (!voulu) {
+          echecs.push(...ongletClicAVide({ vue: ici, ecran, avant: avant.actif, voulu, actif: null }));
+          return;
+        }
+        try {
+          await clickItemByText(session, voulu, { selecteur: ONGLETS_PLANCHE });
+        } catch (e) {
+          echecs.push(`${ici} · ${ecran} : clic d'onglet refusé — ${e.message}`);
+          return;
+        }
         await sleep(600);
         const r = await evaluate(session, RELEVE_ONGLET);
+        const clicAVide = r && ongletClicAVide({ vue: ici, ecran, avant: avant.actif, voulu, actif: r.actif });
         const d = !r ? [`${ici} · ${ecran} : planche absente après le clic d'onglet`]
-          : r.actif !== onglet.texte ? [`${ici} · ${ecran} : le clic sur « ${onglet.texte} » n'a pas atteint l'onglet (point sur « ${onglet.sous} »)`]
-          : ongletHorsDeVue({ vue: ici, ecran, onglet: onglet.texte, ...r });
+          : clicAVide.length ? clicAVide
+          : ongletHorsDeVue({ vue: ici, ecran, onglet: voulu, ...r });
         console.log(`  ${`${ecran} › clic d’onglet`.padEnd(26)} ${r ? `barre ${r.barre.top - r.cadre.top}px sous le haut, corps à ${r.corps.top}/${r.cadre.bottom}` : 'absente'} → ${d.length ? `${d.length} défaut(s)` : 'OK'}`);
         if (!args.mesures) echecs.push(...d);
       };
@@ -384,7 +391,7 @@ async function main() {
       await gotoScreen(session, 'menu', { settleMs: 300 });
       await evaluate(session, `window.__wfrp.scenario('embuscade', 7)`);
       await sleep(1600);
-      await resoudreModales(session, `${vue.nom} · ouverture`);
+      await resoudreModales(session, `${vue.nom} · ouverture`, { dans: '.modal-overlay' });
       await sleep(400);
       const restante = await evaluate(session, FENETRE_RESTANTE);
       if (restante) echecs.push(`${vue.largeur}×${vue.hauteur} (${vue.nom}) · campagne (exploration) : fenêtre restée ouverte après l'ouverture — « ${restante} », les écrans suivants seraient jugés dessous`);
@@ -450,7 +457,7 @@ async function main() {
       // sonde aveugle sur la seule modale de jet que le combat ouvre sans geste de joueur.
       juger(await evaluate(session, PROBE), 'fenêtre de jet (combat)');
 
-      await resoudreModales(session, `${vue.nom} · ouverture de combat`);
+      await resoudreModales(session, `${vue.nom} · ouverture de combat`, { dans: '.modal-overlay' });
       await sleep(800);
       juger(await evaluate(session, PROBE), 'campagne (combat)');
 
@@ -474,7 +481,7 @@ async function main() {
       await sleep(1600);
       await evaluate(session, `window.__wfrp.fight('duel')`);
       await sleep(1800);
-      await resoudreModales(session, `${vue.nom} · ouverture du duel naval`);
+      await resoudreModales(session, `${vue.nom} · ouverture du duel naval`, { dans: '.modal-overlay' });
       await sleep(600);
       const navire = await evaluate(session, `(window.__game.getState().battle?.combatants || []).find((c) => c.bodyShape === 'vehicule')?.label ?? '(aucun navire)'`);
       await cadrePose(
@@ -482,7 +489,7 @@ async function main() {
         navire, 'planche de navire', { cadre: true },
       );
       await nomDePlanche('planche de navire');
-      await clicDOnglet('planche de navire');
+      await clicDOnglet('planche de navire', 'Manœuvre');
       await evaluate(session, `window.__game.setState({ sheetId: null })`);
       await sleep(400);
     }
@@ -498,7 +505,9 @@ async function main() {
   console.log('\nHauteur réelle : aucun scrollport de page, aucun corps de modale écrasé, acteur au trait en vue, aucun pied de cadre hors champ, aucun contenu coupé sous le bord d\'un cadre, aucun chevauchement dans un cadre — aux trois vues.');
 }
 
-main().catch((e) => {
-  console.error(`ERR ${e.message}`);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((e) => {
+    console.error(`ERR ${e.message}`);
+    process.exit(1);
+  });
+}

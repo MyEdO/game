@@ -1,5 +1,6 @@
 // Conformité des CANAUX gardés : les hooks PreToolUse qui gardent les COMMANDES
-// (`commande-piege-guard`, `solde-ticket-guard`, `issue-label-guard`, `runner-capture-guard`)
+// (`commande-piege-guard`, `fermeture-hors-commit-guard`, `hooks-git-contournes-guard`,
+// `issue-label-guard`, `runner-capture-guard`)
 // doivent couvrir tous les outils par lesquels une commande shell part réellement — pas seulement
 // `Bash`/`PowerShell`.
 //
@@ -20,12 +21,12 @@ import { dirname, join } from 'node:path'
 import { ENTREES_OUTIL, MOTEUR_DE_SURFACE, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks, compilerMatcher } from '../agents/compat-core.mjs'
 import { lancerHook } from '../guards/lib/lancerHook.mjs'
 import { REGISTRE } from './registre.mjs'
-import { REGISTRE_SOLDE } from './solde-ticket-hook.mjs'
 import { garde as commandePiege } from './commande-piege-guard.mjs'
-import { garde as solde } from './solde-ticket-guard.mjs'
+import { garde as fermetureHorsCommit } from './fermeture-hors-commit-guard.mjs'
+import { garde as hooksGitContournes } from './hooks-git-contournes-guard.mjs'
 import { garde as issueLabel } from './issue-label-guard.mjs'
 import { garde as runnerCapture } from './runner-capture-guard.mjs'
-import { LECTURES_LIBRES, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, matcherDOutils } from '../guards/lib/contratGarde.mjs'
+import { LECTURES_LIBRES, OUTILS_CREATION, OUTILS_ECRITURE, OUTILS_SHELL, matcherDOutils, nomOutilDeSurface } from '../guards/lib/contratGarde.mjs'
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // Les DEUX surfaces d'agents, déclarées par `agents:sync` depuis les registres
@@ -36,7 +37,8 @@ const hooksDe = (surface) => aplatirHooks(JSON.parse(readFileSync(join(REPO, sur
 
 /** Gardes de COMMANDES, avec le point d'entrée dont le registre les porte. */
 const GARDES_COMMANDE = [
-  [commandePiege, 'repartiteur.mjs', REGISTRE], [solde, 'solde-ticket-hook.mjs', REGISTRE_SOLDE],
+  [commandePiege, 'repartiteur.mjs', REGISTRE], [fermetureHorsCommit, 'repartiteur.mjs', REGISTRE],
+  [hooksGitContournes, 'repartiteur.mjs', REGISTRE],
   [issueLabel, 'repartiteur.mjs', REGISTRE], [runnerCapture, 'repartiteur.mjs', REGISTRE],
 ]
 /** Les registres des points d'entrée, avec leur script : la déclaration dont `agents:sync` dérive les
@@ -59,7 +61,7 @@ const matcherDe = (surface, script, phase = 'PreToolUse') =>
 /** Ce matcher couvre-t-il `outil`, lu par le moteur de `surface` (`compilerMatcher`) ? */
 const couvre = (surface, script, outil, phase = 'PreToolUse') => {
   const matcher = matcherDe(surface, script, phase)
-  return matcher !== null && compilerMatcher(matcher, surface)(outil)
+  return matcher !== null && compilerMatcher(matcher, surface)(nomOutilDeSurface(outil, MOTEUR_DE_SURFACE[surface].surface))
 }
 
 test('les gardes de commande sont au registre PreToolUse de leur point d’entrée, câblé sur les DEUX surfaces', () => {
@@ -116,7 +118,7 @@ test('chaque garde d’écriture du registre couvre une FAMILLE entière de cana
 })
 
 const LECTURES = LECTURES_LIBRES.map((nu) => `mcp__lean-ctx__${nu}`)
-const HORS_LECTURE = ['ctx_execute', 'ctx_edit', 'ctx_patch', 'shell', 'ctx_shell', 'ctx_call', 'ctx_knowledge', 'ctx_session', 'ctx_verify', 'outil_inconnu', 'ctx_outil_inconnu'].map((nu) => `mcp__lean-ctx__${nu}`)
+const HORS_LECTURE = ['ctx_execute', 'ctx_edit', 'ctx_patch', 'shell', 'ctx_shell', 'ctx_call', 'ctx_knowledge', 'ctx_session', 'outil_inconnu', 'ctx_outil_inconnu'].map((nu) => `mcp__lean-ctx__${nu}`)
 
 test('le matcher PreToolUse du répartiteur couvre TOUT outil lean-ctx hors `LECTURES_LIBRES`, classé ou non, sur les DEUX surfaces (sinon un refus ne part jamais)', () => {
   for (const surface of SURFACES)
@@ -130,10 +132,10 @@ test('un outil de `LECTURES_LIBRES` ne lance PAS le répartiteur là où le mote
     for (const outil of LECTURES) assert.equal(couvre(surface, 'repartiteur.mjs', outil), false, `${surface} : « ${outil} » (LECTURE) lance le répartiteur`)
 })
 
-test('le matcher ANCRÉ du répartiteur ne prend pas `NotebookEdit` pour `Edit`, sur les DEUX surfaces', () => {
+test('le matcher ANCRÉ du répartiteur ne prend pas `PasUnEdit` pour `Edit`, sur les DEUX surfaces', () => {
   for (const surface of SURFACES) {
     assert.ok(couvre(surface, 'repartiteur.mjs', 'Edit'), surface)
-    assert.equal(couvre(surface, 'repartiteur.mjs', 'NotebookEdit'), false, surface)
+    assert.equal(couvre(surface, 'repartiteur.mjs', 'PasUnEdit'), false, surface)
   }
 })
 
@@ -152,7 +154,7 @@ test('les matchers des points d’entrée couvrent les MÊMES outils sur .claude
 const OUTILS_CONNUS = [
   'Agent', 'Bash', 'BashOutput', 'Edit', 'ExitPlanMode', 'Glob', 'Grep', 'KillShell',
   'NotebookEdit', 'PowerShell', 'Read', 'SlashCommand', 'Task', 'TodoWrite', 'WebFetch',
-  'WebSearch', 'Write',
+  'WebSearch', 'Workflow', 'Write', ...OUTILS_ECRITURE,
 ]
 const MCP_TOOL = /^mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_]+$/
 
@@ -194,6 +196,7 @@ test('cas plantés : le préfixe magique et le texte libre sont refusés, mcp__*
   assert.equal(valide('OFF_Write|Edit'), false)
   assert.equal(valide('Write|Edit|Coucou'), false)
   assert.equal(valide('Write|Edit'), true)
+  assert.equal(valide('Workflow|Agent'), true, 'Workflow, outil réel (#2537)')
   assert.equal(valide('Bash|PowerShell|mcp__lean-ctx__ctx_shell'), true)
   assert.equal(valide(matcherDe(SURFACE_CLAUDE, 'repartiteur.mjs')), true, 'la regex dérivée')
   assert.equal(valide('^(?:DESACTIVE|Write)$'), false, 'une regex posée à la main')
@@ -212,16 +215,15 @@ function decisionOf(script, command, outil = 'mcp__lean-ctx__ctx_shell') {
 }
 
 test('DRIVER : les gardes de commande décident bien sur un payload ctx_shell (câblage de bout en bout)', () => {
-  // Fermeture d'un ticket sans solde : deny quoi qu'il arrive (`.claude/soldes/999999.md` n'existe
-  // pas).
-  assert.equal(decisionOf('solde-ticket-hook.mjs', 'git commit -m "feat: x (corrige #999999)"'), 'deny')
+  assert.equal(decisionOf('repartiteur.mjs', 'gh issue close 999999'), 'deny')
+  assert.equal(decisionOf('repartiteur.mjs', 'git commit --no-verify -m x'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'gh issue create --title "X" --body "y"'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'git show --stat -- 21d0153b7'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'npx vitest run | tail -20'), 'deny')
   assert.equal(decisionOf('repartiteur.mjs', 'taskkill //F //IM grep.exe', 'Bash'), 'deny')
 })
 
-test('DRIVER : une commande anodine passe par les deux points d’entrée sans décision', () => {
+test('DRIVER : une commande anodine passe par le point d’entrée sans décision', () => {
   for (const script of new Set(GARDES_COMMANDE.map(([, s]) => s))) {
     assert.equal(decisionOf(script, 'git status'), null, `${script} bloque un git status`)
   }

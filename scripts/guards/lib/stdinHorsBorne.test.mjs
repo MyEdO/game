@@ -3,6 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ENTREES_OUTIL, HOOKS_DE_SESSION, SURFACE_CLAUDE, SURFACE_CODEX, aplatirHooks } from '../../agents/compat-core.mjs'
 import { accesStdin, demandes, effetsDeModule, gardesAEffets, hooksHorsBorne, modulesQuiDemandent } from './stdinHorsBorne.mjs'
@@ -83,11 +84,24 @@ test('effetsDeModule : stdin, fin et code de sortie, écriture sur stdout, conso
   }
 })
 
+const sourceDe = (module) => readFileSync(join(HOOKS, module), 'utf8')
+/** Les modules de `scripts/hooks/` qu'un point d'entrée charge DIRECTEMENT (`from`, `import()`). */
+const chargesPar = (script) => [...sourceDe(script).matchAll(/(?:from |import\()\s*'\.\/([\w.-]+\.mjs)'/g)].map((m) => m[1])
+/** Un module qui exporte `garde` est une garde (scripts/guards/lib/contratGarde.mjs). */
+const exporteGarde = (module) => /^export\s+(?:const|function)\s+garde\b/m.test(sourceDe(module))
+
 test('aucune garde de scripts/hooks/ hors des points d’entrée ne porte un effet de processus ni un état de module (#2125)', () => {
+  /** La machinerie des hooks d'outil (#2187) : les modules que charge un point d'entrée d'`ENTREES_OUTIL`, gardes exclues. */
+  const machinerie = new Set([
+    ...POINTS_D_ENTREE,
+    ...ENTREES_OUTIL.flatMap(({ script }) => chargesPar(script)).filter((module) => !exporteGarde(module)),
+  ])
+  assert.ok(machinerie.has('barriere-outil.mjs') && machinerie.has('repartition.mjs'), [...machinerie].join(', '))
+  assert.deepEqual([...machinerie].filter(exporteGarde), [], 'aucune garde n’est exemptée')
   assert.deepEqual(
-    gardesAEffets(HOOKS, POINTS_D_ENTREE).map((f) => `scripts/hooks/${f.fichier}:${f.ligne} ${f.texte}`),
+    gardesAEffets(HOOKS, machinerie).map((f) => `scripts/hooks/${f.fichier}:${f.ligne} ${f.texte}`),
     [],
-    'une garde est PURE (scripts/guards/lib/contratGarde.mjs) : le point d’entrée (scripts/hooks/repartiteur.mjs) lit, écrit et sort',
+    'une garde est PURE (scripts/guards/lib/contratGarde.mjs) : `executer` (scripts/hooks/repartition.mjs) lit, écrit et sort',
   )
 })
 

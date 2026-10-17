@@ -1,21 +1,14 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { __setOuvertureIdbForTest, accesBase, idbDisponible, migrerBase, type BaseIdb, type MigrationsIdb } from './indexedDb';
-import { baseSimulee, brancherBasesSimulees, ouvertureSimulee, type BaseSimulee, type OuvertureSimulee } from './indexedDb.testkit';
+import { __setFabriqueIdbForTest, accesBase, idbDisponible, type BaseIdb } from './indexedDb';
+import { baseSimulee, brancherBasesSimulees, brancherOuvertures, ouvertureSimulee, type BaseSimulee, type OuvertureSimulee } from './indexedDb.testkit';
 
-/** Trois migrations ; chacune note sa version de départ dans `vues`, la dernière crée `choses`. */
-const migrationsNotees = (vues: number[] = []) => ({
-  0: () => { vues.push(0); },
-  1: () => { vues.push(1); },
-  2: (db) => { vues.push(2); db.createObjectStore('choses', { keyPath: 'id' }); },
-}) satisfies MigrationsIdb;
+const BASE: BaseIdb = { nom: 'wfrp4-essai', magasins: { choses: { keyPath: 'id' } } };
 
-const BASE: BaseIdb = { nom: 'wfrp4-essai', migrations: migrationsNotees() };
-
-/** Branche l'ouverture sur `base` ; rend chaque ouverture demandée, avec son nom et sa version. */
-function brancher(base: BaseSimulee): { ouvertures: (OuvertureSimulee & { nom: string; version: number })[] } {
-  const ouvertures: (OuvertureSimulee & { nom: string; version: number })[] = [];
-  __setOuvertureIdbForTest((nom, version) => {
-    const o = { ...ouvertureSimulee(base), nom, version };
+/** Branche l'ouverture sur `base` ; rend chaque ouverture demandée, avec ses arguments. */
+function brancher(base: BaseSimulee): { ouvertures: (OuvertureSimulee & { args: unknown[] })[] } {
+  const ouvertures: (OuvertureSimulee & { args: unknown[] })[] = [];
+  brancherOuvertures((...args: unknown[]) => {
+    const o = { ...ouvertureSimulee(base), args };
     ouvertures.push(o);
     return o.req;
   });
@@ -23,20 +16,20 @@ function brancher(base: BaseSimulee): { ouvertures: (OuvertureSimulee & { nom: s
 }
 
 afterEach(() => {
-  __setOuvertureIdbForTest(null);
+  __setFabriqueIdbForTest(null);
   vi.useRealTimers();
 });
 
-describe('idbDisponible — `indexedDB` présent OU ouverture substituée', () => {
+describe('idbDisponible — `indexedDB` présent OU fabrique substituée', () => {
   it('sans `indexedDB` et sans substitution : indisponible', () => {
     expect(typeof indexedDB).toBe('undefined');
     expect(idbDisponible()).toBe(false);
   });
 
-  it('ouverture substituée : disponible ; substitution retirée : indisponible', () => {
-    __setOuvertureIdbForTest(() => ouvertureSimulee(baseSimulee()).req);
+  it('fabrique substituée : disponible ; substitution retirée : indisponible', () => {
+    brancherOuvertures(() => ouvertureSimulee(baseSimulee()).req);
     expect(idbDisponible()).toBe(true);
-    __setOuvertureIdbForTest(null);
+    __setFabriqueIdbForTest(null);
     expect(idbDisponible()).toBe(false);
   });
 
@@ -54,17 +47,15 @@ describe('ouverture d’une base, par la poignée — un seul règlement, jamais
   const lireChoses = (base: BaseIdb = BASE) => accesBase(base).magasin<{ id: string }, string>('choses').lireTout();
   const avecChoses = () => baseSimulee({ choses: { keyPath: 'id' } });
 
-  it('succès : l’opération joue sur la connexion ouverte au nom et à la version de la base, migrée depuis l’ancienne version, puis refermée', async () => {
+  it('succès : l’opération joue sur la connexion ouverte au SEUL nom de la base, ses magasins créés de la déclaration, puis refermée', async () => {
     const base = baseSimulee();
-    const vues: number[] = [];
     const { ouvertures } = brancher(base);
-    const p = lireChoses({ nom: BASE.nom, migrations: migrationsNotees(vues) });
-    ouvertures[0].monter(2);
+    const p = lireChoses();
+    ouvertures[0].monter();
     base.magasins.get('choses')!.contenu.set('a', { id: 'a' });
     ouvertures[0].reussir();
     await expect(p).resolves.toEqual([{ id: 'a' }]);
-    expect([ouvertures[0].nom, ouvertures[0].version]).toEqual(['wfrp4-essai', 3]);
-    expect(vues).toEqual([2]);
+    expect(ouvertures[0].args).toEqual(['wfrp4-essai']);
     expect(base.magasins.get('choses')?.keyPath).toBe('id');
     expect(base.fermetures).toBe(1);
   });
@@ -142,16 +133,18 @@ describe('accesBase — un magasin par opération, sa connexion fermée à son r
     await expect(choses.lireTout()).resolves.toEqual([{ id: 'a', n: 1 }]);
     await choses.supprimer('a');
     await expect(choses.lire('a')).resolves.toBeNull();
+    const conformite = [['choses'], 'readonly'];
     expect(base.transactions.map((t) => [t.magasins, t.mode])).toEqual([
-      [['choses'], 'readwrite'], [['choses'], 'readonly'], [['choses'], 'readonly'], [['choses'], 'readwrite'], [['choses'], 'readonly'],
+      conformite, [['choses'], 'readwrite'], conformite, [['choses'], 'readonly'], conformite, [['choses'], 'readonly'],
+      conformite, [['choses'], 'readwrite'], conformite, [['choses'], 'readonly'],
     ]);
     expect(base.fermetures).toBe(5);
   });
 
   it('clé externe et clé composée passent telles quelles', async () => {
     const bases = brancherBasesSimulees();
-    const externe: BaseIdb = { nom: 'wfrp4-externe', migrations: { 0: (db) => { db.createObjectStore('poignees'); } } };
-    const composee: BaseIdb = { nom: 'wfrp4-composee', migrations: { 0: (db) => { db.createObjectStore('couches', { keyPath: ['scene', 'z'] }); } } };
+    const externe: BaseIdb = { nom: 'wfrp4-externe', magasins: { poignees: {} } };
+    const composee: BaseIdb = { nom: 'wfrp4-composee', magasins: { couches: { keyPath: ['scene', 'z'] } } };
     const poignees = accesBase(externe).magasin<{ kind: string }, string>('poignees');
     const couches = accesBase(composee).magasin<{ scene: string; z: number }, [string, number]>('couches');
     await poignees.ecrire({ kind: 'directory' }, 'dataDir');
@@ -202,7 +195,7 @@ describe('accesBase — un magasin par opération, sa connexion fermée à son r
   it('`vider` vide TOUS les magasins de la base dans UNE transaction ; en panne, il n’en vide aucun', async () => {
     const deux: BaseIdb = {
       nom: 'wfrp4-deux',
-      migrations: { 0: (db) => { db.createObjectStore('a', { keyPath: 'id' }); db.createObjectStore('b', { keyPath: 'id' }); } },
+      magasins: { a: { keyPath: 'id' }, b: { keyPath: 'id' } },
     };
     const bases = brancherBasesSimulees();
     const acces = accesBase(deux);
@@ -219,42 +212,84 @@ describe('accesBase — un magasin par opération, sa connexion fermée à son r
   });
 });
 
-describe('brancherBasesSimulees — un branchement, une base par nom', () => {
-  it('deux bases ouvertes par le même branchement restent distinctes, chacune migrée UNE fois', async () => {
+describe('ouverture déclarative — la base existante est comparée à sa déclaration, recréée si elle s’en écarte (#2404)', () => {
+  const choses = accesBase(BASE).magasin<{ id: string }, string>('choses');
+
+  it('base neuve : créée depuis la déclaration, aucune suppression', async () => {
     const bases = brancherBasesSimulees();
-    const migrations: string[] = [];
-    const autre: BaseIdb = { nom: 'wfrp4-autre', migrations: { 0: (db) => { migrations.push('autre'); db.createObjectStore('choses', { keyPath: 'id' }); } } };
-    const essai: BaseIdb = { nom: BASE.nom, migrations: { 0: (db) => { migrations.push('essai'); db.createObjectStore('choses', { keyPath: 'id' }); } } };
-    await accesBase(essai).magasin('choses').ecrire({ id: 'e' });
-    await accesBase(autre).magasin('choses').ecrire({ id: 'x' });
-    await accesBase(essai).magasin('choses').ecrire({ id: 'f' });
-    expect([...bases.contenu('wfrp4-essai', 'choses').keys()]).toEqual(['e', 'f']);
-    expect([...bases.contenu('wfrp4-autre', 'choses').keys()]).toEqual(['x']);
-    expect(migrations).toEqual(['essai', 'autre']);
+    await choses.ecrire({ id: 'a' });
+    expect(bases.base(BASE.nom).magasins.get('choses')?.keyPath).toBe('id');
+    expect(bases.suppressions).toEqual([]);
   });
 
-  it('une base amorcée à une version antérieure monte depuis elle ; à la version courante, ne monte pas', async () => {
+  it('base existante conforme : ouverte telle quelle, son contenu gardé', async () => {
     const bases = brancherBasesSimulees();
-    const vues: number[] = [];
-    const amorcee = bases.amorcer(BASE.nom, 2, { vieux: {} });
-    await accesBase({ nom: BASE.nom, migrations: migrationsNotees(vues) }).magasin('choses').lireTout();
-    expect(vues).toEqual([2]);
-    expect([...amorcee.magasins.keys()]).toEqual(['vieux', 'choses']);
+    bases.amorcer(BASE.nom, { choses: { keyPath: 'id' } }).magasins.get('choses')!.contenu.set('p', { id: 'p' });
+    await expect(choses.lire('p')).resolves.toEqual({ id: 'p' });
+    expect(bases.suppressions).toEqual([]);
+  });
 
-    const aJour = bases.amorcer('wfrp4-a-jour', 1, { choses: { keyPath: 'id' } });
-    aJour.magasins.get('choses')!.contenu.set('p', { id: 'p' });
-    await expect(accesBase({ nom: 'wfrp4-a-jour', migrations: { 0: () => { vues.push(-1); } } }).magasin('choses').lire('p')).resolves.toEqual({ id: 'p' });
-    expect(vues).toEqual([2]);
+  it.each<[string, Record<string, { keyPath?: string | string[] }>]>([
+    ['magasin manquant', {}],
+    ['magasin en trop', { choses: { keyPath: 'id' }, vieux: {} }],
+    ['`keyPath` différent', { choses: { keyPath: 'cle' } }],
+    ['`keyPath` composée au lieu de simple', { choses: { keyPath: ['id'] } }],
+    ['clés externes au lieu d’une `keyPath`', { choses: {} }],
+  ])('%s : la base est supprimée puis recréée depuis la déclaration, ses données perdues', async (_cas, existants) => {
+    const bases = brancherBasesSimulees();
+    const ancienne = bases.amorcer(BASE.nom, existants);
+    for (const m of ancienne.magasins.values()) m.contenu.set('p', { id: 'p' });
+    await expect(choses.lire('p')).resolves.toBeNull();
+    expect(bases.suppressions).toEqual([BASE.nom]);
+    expect([...bases.base(BASE.nom).magasins].map(([nom, m]) => [nom, m.keyPath])).toEqual([['choses', 'id']]);
+    expect(ancienne.fermetures).toBe(ancienne.ouvertures);
+  });
+
+  it('une base encore non conforme après sa recréation : erreur nommée, une seule suppression', async () => {
+    const suppressions: string[] = [];
+    __setFabriqueIdbForTest({
+      open: () => {
+        const o = ouvertureSimulee(baseSimulee({ autre: {} }));
+        queueMicrotask(() => o.reussir());
+        return o.req;
+      },
+      deleteDatabase: (nom) => {
+        suppressions.push(nom);
+        const req = {} as IDBOpenDBRequest;
+        queueMicrotask(() => req.onsuccess?.(new Event('success')));
+        return req;
+      },
+    });
+    await expect(choses.lireTout()).rejects.toMatchObject({ name: 'BaseIdbNonConforme' });
+    expect(suppressions).toEqual([BASE.nom]);
+  });
+
+  it('suppression bloquée : l’opération rejette sans attendre', async () => {
+    __setFabriqueIdbForTest({
+      open: () => {
+        const o = ouvertureSimulee(baseSimulee());
+        queueMicrotask(() => o.reussir());
+        return o.req;
+      },
+      deleteDatabase: () => {
+        const req = {} as IDBOpenDBRequest;
+        queueMicrotask(() => req.onblocked?.(new Event('blocked') as IDBVersionChangeEvent));
+        return req;
+      },
+    });
+    await expect(choses.lireTout()).rejects.toThrow('IndexedDB delete : bloqué');
   });
 });
 
-describe('migrerBase — les migrations d’une base, keyées par version de départ (#2226)', () => {
-  it('joue, dans l’ordre, chaque migration de l’ancienne version à la version courante', () => {
-    const depuisNeuve: number[] = [];
-    migrerBase(migrationsNotees(depuisNeuve), baseSimulee().db, 0);
-    expect(depuisNeuve).toEqual([0, 1, 2]);
-    const depuisUne: number[] = [];
-    migrerBase(migrationsNotees(depuisUne), baseSimulee().db, 1);
-    expect(depuisUne).toEqual([1, 2]);
+describe('brancherBasesSimulees — un branchement, une base par nom', () => {
+  it('deux bases ouvertes par le même branchement restent distinctes', async () => {
+    const bases = brancherBasesSimulees();
+    const autre: BaseIdb = { nom: 'wfrp4-autre', magasins: { choses: { keyPath: 'id' } } };
+    await accesBase(BASE).magasin('choses').ecrire({ id: 'e' });
+    await accesBase(autre).magasin('choses').ecrire({ id: 'x' });
+    await accesBase(BASE).magasin('choses').ecrire({ id: 'f' });
+    expect([...bases.contenu('wfrp4-essai', 'choses').keys()]).toEqual(['e', 'f']);
+    expect([...bases.contenu('wfrp4-autre', 'choses').keys()]).toEqual(['x']);
+    expect(bases.suppressions).toEqual([]);
   });
 });

@@ -4,7 +4,7 @@ import { combatStakeRef } from '../data';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { startCascade, registerCascadeApplier, stepInteraction, stepReady, buildConsequenceSteps, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
-import { freeCons, monoStep, displayStep, type BuiltCascadeStep } from './rollSeam';
+import { freeCons, monoStep, displayStep, buildBand, type BuiltCascadeStep } from './rollSeam';
 import { spyApplier } from './cascadeTestKit';
 import { journaliser } from './combatLog';
 import type { CascadeStep, BatchParticipant } from './pendings';
@@ -116,11 +116,18 @@ describe('Cascade séquentielle influençable', () => {
     expect(stepInteraction(jet)).toBe('jet');
     expect(stepInteraction(choix)).toBe('choix');
     expect(stepInteraction(aff)).toBe('affichage');
-    expect(stepReady(jet)).toBe(false);
-    expect(stepReady({ ...jet, result: { roll: 10, target: 30, sl: 2, success: true } })).toBe(true);
-    expect(stepReady(choix)).toBe(false);
-    expect(stepReady({ ...choix, chosen: 'a' })).toBe(true);
-    expect(stepReady(aff)).toBe(true);
+    expect(stepReady(jet, useGame.getState())).toBe(false);
+    expect(stepReady({ ...jet, result: { roll: 10, target: 30, sl: 2, success: true } }, useGame.getState())).toBe(true);
+    expect(stepReady(choix, useGame.getState())).toBe(false);
+    expect(stepReady({ ...choix, chosen: 'a' }, useGame.getState())).toBe(true);
+    expect(stepReady(aff, useGame.getState())).toBe(true);
+    // Étape HÔTE (#1765) : prête une fois sa fenêtre validée (`committed`) ou son slot rendu.
+    const hote: CascadeStep = { id: 'h', kind: 'defenseJet', jet: 'defense', actorId: 'x' };
+    const vivante = { pendingDefense: {} } as unknown as Parameters<typeof stepReady>[1];
+    expect(stepInteraction(hote)).toBe('affichage');
+    expect(stepReady(hote, vivante), 'la défense attend sa fenêtre').toBe(false);
+    expect(stepReady({ ...hote, committed: true }, vivante), 'validée : le slot vivant est celui de la frappe suivante').toBe(true);
+    expect(stepReady(hote, { pendingDefense: null }), 'slot rendu').toBe(true);
   });
 
   it('étape « choix » : no-op sans choix, puis l’option pilote la conséquence + insertion', () => {
@@ -185,12 +192,63 @@ describe('Cascade séquentielle influençable', () => {
     ];
     const resolved = runCascadeImmediate(useGame.getState, useGame.setState, steps);
     expect(applied.map((a) => a.kind)).toEqual(['tally']); // seul le jet est résolu
-    expect(resolved.map((s) => s.id)).toEqual(['s1', 'c', 'd']); // renvoyé tel quel (préfixe committé + reste)
+    expect(resolved, 'pilote INTERROMPU : aucune étape rendue, l’appelant n’enchaîne rien (#1595)').toBeUndefined();
     // La cascade est SURFACÉE (pas résolue en aveugle) — le joueur/l'appelant la reprend.
     const p = useGame.getState().pendingCascade!;
     expect(p).toBeTruthy();
     expect(p.cursor).toBe(1); // curseur SUR le choix
     expect(p.participants.map((s) => s.id)).toEqual(['s1', 'c', 'd']);
+  });
+
+  it('runCascadeImmediate : étape HÔTE dont la fenêtre vit (`pendingExtendedTest`) → S’ARRÊTE PENDANTE, non validée (#1765)', () => {
+    const h = hero();
+    useGame.getState().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+    const hote = useGame.getState().pendingCascade!.participants[0];
+    useGame.setState({ pendingCascade: null });
+    const resolved = runCascadeImmediate(useGame.getState, useGame.setState, [hote]);
+    expect(resolved, 'pilote INTERROMPU : aucune étape rendue, l’appelant n’enchaîne rien (#1765)').toBeUndefined();
+    const p = useGame.getState().pendingCascade!;
+    expect(p.cursor).toBe(0);
+    expect(p.participants[0].committed).toBeFalsy();
+    expect(useGame.getState().pendingExtendedTest).not.toBeNull();
+  });
+
+  it('runCascadeImmediate : parqué sur l’étape HÔTE, la fenêtre rendue → la reprise du pilote finit la séquence sans fenêtre, comme sans parcage (#1765)', () => {
+    const g = useGame.getState;
+    const s = useGame.setState;
+    const h = hero();
+    spyApplier('extendedJet', applied, () => ({ kind: 'extendedJet', success: true }));
+    spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+    const sequence = (): CascadeStep[] => {
+      g().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
+      const hote = g().pendingCascade!.participants[0];
+      s({ pendingCascade: null });
+      return [hote, step('s1', h.id), { id: 'd', kind: 'note', actorId: h.id }];
+    };
+
+    const temoinSteps = sequence();
+    s({ pendingExtendedTest: null });
+    g().seedRng(7);
+    const temoin = runCascadeImmediate(g, s, temoinSteps)!;
+    const appliquesTemoin = [...applied];
+    expect(appliquesTemoin.map((a) => a.kind)).toEqual(['extendedJet', 'tally', 'note']);
+
+    applied.length = 0;
+    const steps = sequence();
+    g().seedRng(7);
+    expect(runCascadeImmediate(g, s, steps), 'pilote PARQUÉ sur l’hôte').toBeUndefined();
+    expect(g().pendingCascade!.piloteImmediat, 'la séquence parquée sur l’hôte ne porte pas la reprise').toEqual({ sansContexte: true });
+    expect(applied).toEqual([]);
+
+    s({ pendingExtendedTest: null });
+    const done = advanceCascade(g, s)!;
+    expect(done, 'la reprise n’a pas fini la séquence : le curseur est resté sur une fenêtre').toBeTruthy();
+    expect(done.cursor).toBe(steps.length);
+    expect(g().pendingCascade, 'une fenêtre s’est rouverte après le rendu de l’hôte').toBeNull();
+    expect(applied.filter((a) => a.kind === 'extendedJet'), 'l’hôte validé plus d’une fois').toHaveLength(1);
+    expect(done.participants.every((x) => x.committed)).toBe(true);
+    expect(applied).toEqual(appliquesTemoin);
+    expect(done.participants.map((x) => x.result?.roll)).toEqual(temoin.map((x) => x.result?.roll));
   });
 
   it('runCascadeImmediate : CHOIX avec `defaultChoice` authoré → tranché sans surfacer (comportement inchangé)', () => {
@@ -200,7 +258,7 @@ describe('Cascade séquentielle influençable', () => {
     const steps: CascadeStep[] = [
       { id: 'c', kind: 'pick', actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }], defaultChoice: 'a'},
     ];
-    const resolved = runCascadeImmediate(useGame.getState, useGame.setState, steps);
+    const resolved = runCascadeImmediate(useGame.getState, useGame.setState, steps)!;
     expect(applied).toEqual([{ kind: 'pick', success: true }]); // défaut authoré appliqué
     expect(resolved[0].chosen).toBe('a');
     expect(useGame.getState().pendingCascade).toBeNull(); // rien à surfacer
@@ -237,13 +295,13 @@ describe('Cascade séquentielle influençable', () => {
     const batch: CascadeStep = { id: 'progression', kind: 'crew-batch', label: fixtureText('Progression'), groupOwner: true, participants, result: null};
     startCascade(useGame.getState, useGame.setState, { title: 'Voyage', purpose: 'test', steps: [batch] });
     expect(stepInteraction(useGame.getState().pendingCascade!.participants[0])).toBe('batch');
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(false); // aucun participant lancé
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(false); // aucun participant lancé
     useGame.getState().cascadeNext(); // batch pas prêt → no-op (aucun participant lancé)
     expect(applied).toHaveLength(0);
     useGame.getState().cascadeBatchRoll(h1.id);
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(false); // h2 pas encore lancé
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(false); // h2 pas encore lancé
     useGame.getState().cascadeBatchRoll(h2.id);
-    expect(stepReady(useGame.getState().pendingCascade!.participants[0])).toBe(true);
+    expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(true);
     useGame.getState().cascadeNext(); // agrège (essentiel ×2, MDG 14 l.19) puis applique
     expect(applied).toHaveLength(1);
     expect(useGame.getState().pendingCascade).toBeNull();
@@ -526,9 +584,66 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
     expect(erreurs).not.toHaveBeenCalled();
   });
 
+  it('immédiat REPRIS après une décision : la borne, le `log` et le compteur que la reprise collecte arrivent à la séquence finalisée', () => {
+    const steps: CascadeStep[] = [
+      { id: 'decision', kind: 'fenF', label: fixtureText('d'), options: [{ key: 'o', label: fixtureText('o') }] },
+      { id: 'x', kind: 'fenB', label: fixtureText('x') },
+    ];
+    expect(runCascadeImmediate(g, s, steps, { title: 'T', purpose: 'test' })).toBeUndefined();
+    g().cascadeChoose('decision', 'o');
+    const done = advanceCascade(g, s)!;
+    expect(done.participants.map((x) => x.id)).toEqual(['decision', 'x', 'borne']);
+    expect(done.roundBoundary, 'la borne collectée à la reprise n’arrive pas au dénouement').toBe(true);
+    expect(done.log).toContain('ligne du fragment');
+    expect(done.seq, 'le compteur rendu ignore l’étape ouverte à la reprise').toBe(3);
+    expect(erreurs).not.toHaveBeenCalled();
+  });
+
   it('immédiat ALLÉ AU BOUT avec une borne collectée : aucun slot ne la porte, la levée la NOMME', () => {
     const seul = (): CascadeStep[] => [{ id: 'x', kind: 'fenB', label: fixtureText('x') }];
     expect(() => runCascadeImmediate(g, s, seul(), { title: 'T', purpose: 'test' })).toThrow(/bornes collectées \(roundBoundary\)/);
     expect(erreurs).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * LA REPRISE D'UNE SÉQUENCE PARQUÉE PAR LE PILOTE IMMÉDIAT rejoue le CONTEXTE de son lancement (#1595) :
+ * la décision validée, la suite se résout comme si le pilote n'avait jamais rendu la main.
+ */
+describe('reprise du pilote immédiat : le contexte de lancement voyage avec la séquence parquée', () => {
+  const g = useGame.getState;
+  const s = useGame.setState;
+  const ligne = { test: { skill: 'resistance', char: 'endurance' } } as const;
+  registerCascadeApplier('repriseNeutre', () => {});
+  registerCascadeApplier('repriseCombat', (_get, set) => { set({ battle: {} as never }); });
+  beforeEach(() => { s({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], net: { ...g().net, mode: 'local', ownership: {} } } as never); });
+  afterEach(() => { s({ battle: null, pendingCascade: null, suspendedCascades: [] }); });
+
+  const choix = (): CascadeStep => ({ id: 'decision', kind: 'repriseNeutre', label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] });
+
+  it('`rowSurface` déclarée au lancement : la bande résolue APRÈS la décision ne redit pas ses dés au journal, et la clôture la rend', () => {
+    g().seedRng(5);
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    s({ party: [h] });
+    const bande = buildBand(g, { id: 'bande', kind: 'repriseNeutre', label: fixtureText('Bande'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne }] })!;
+    expect(runCascadeImmediate(g, s, [choix(), bande], { title: 'Jour', purpose: 'test', rowSurface: 'pv' })).toBeUndefined();
+    expect(g().pendingCascade!.piloteImmediat).toEqual({ rowSurface: 'pv' });
+
+    g().cascadeChoose('decision', 'a');
+    const done = advanceCascade(g, s)!;
+    expect(done.participants[1].participants?.[0].result, 'la bande n’a pas été résolue à la reprise').toBeTruthy();
+    expect(done.piloteImmediat, 'la clôture ne sait pas que ses rangées vont au PV').toEqual({ rowSurface: 'pv' });
+    expect(g().journal.filter((l) => l.includes('Brawn')), 'la reprise a tracé au journal les dés d’une bande déclarée au PV').toEqual([]);
+  });
+
+  it('lancé SANS contexte : un combat ouvert en plein vol après la décision arrête la boucle sans rien empiler', () => {
+    const steps: CascadeStep[] = [choix(), { id: 'combat', kind: 'repriseCombat', label: fixtureText('Combat') }, { id: 'reste', kind: 'repriseNeutre', label: fixtureText('Reste') }];
+    expect(runCascadeImmediate(g, s, steps)).toBeUndefined();
+    expect(g().pendingCascade!.piloteImmediat).toEqual({ sansContexte: true });
+
+    g().cascadeChoose('decision', 'a');
+    advanceCascade(g, s);
+    expect(g().battle, 'l’applier n’a pas ouvert son combat').toBeTruthy();
+    expect(g().suspendedCascades, 'la reprise a empilé une séquence que son lancement n’aurait pas empilée').toEqual([]);
   });
 });

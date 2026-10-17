@@ -29,7 +29,7 @@ import { bonus, effectiveChar } from '../engine/characteristics';
 import {
   resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, sequenceScoreOf,
   registerSequenceTieBreak, closeSequenceRound, sequenceBoardOf, SEQUENCE_HARD_MAX_ROUNDS,
-  type SequenceState, type SequenceThrowTurn, type SequenceVolleyRules, type MancheClose,
+  type EtatDeFamille, type SequenceThrowTurn, type SequenceVolleyRules, type MancheClose,
 } from './sequenceCore';
 import { resolveTavernRound } from '../engine/tavernGame';
 import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from './tavernFlow';
@@ -252,7 +252,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
   function aDeuxDoigts(points: number): Combatant {
     const a = seul();
     get().playTavernGame({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
-    const seq = get().sequence as SequenceState<TavernPayload>;
+    const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
     // Le lanceur du tour est le challenger : l'ordre est tiré au sort (l.83), on le fixe pour mesurer.
     const throwers = [...(seq.payload.throwers ?? [])].sort((x) => (x.camp === 'player' ? -1 : 1));
     useGame.setState({
@@ -391,7 +391,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
 
 describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l.27-28)', () => {
   /** Partie en cours, le challenger menant le camp `side`, avec les prises déjà faites. */
-  function partie(side: string, cum: Record<string, number>, challengerId: string): SequenceState<TavernPayload> {
+  function partie(side: string, cum: Record<string, number>, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
     return {
       def: TAVERN_SEQUENCE, round: 2, cum,
       params: { drBonus: 'intelligence', sides: ALVATAFL.sides! },

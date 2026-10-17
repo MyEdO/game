@@ -1,8 +1,8 @@
-import { createHero, skillCharacteristicById } from '../../engine/character';
-import type { Combatant, SkillInstance } from '../../engine/types';
+import { createHero } from '../../engine/character';
+import type { Combatant } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../state/scene';
 import { buildScene } from '../../state/mapSpec';
-import type { TestScenario } from './_shared';
+import { renforcerCompetence, type TestScenario } from './_shared';
 import { rigSpeciesId } from '../../data';
 
 /**
@@ -23,14 +23,6 @@ import { rigSpeciesId } from '../../data';
  * Les trois gestes de recette (console `__wfrp`) sont documentés dans `docs/test-scenarios.md`.
  */
 
-/** Ajoute/renforce une Compétence à la Caractéristique CANONIQUE de la Compétence (donnée). */
-function skill(c: Combatant, skillId: string, advances: number, spec?: string): void {
-  const characteristic = skillCharacteristicById(skillId);
-  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
-  if (ex) ex.advances = Math.max(ex.advances, advances);
-  else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
-}
-
 /**
  * Deux gabiers, chacun à SA station — c'est la station qui décide de la hauteur lue dans la table.
  * Athlétisme volontairement FAIBLE : le Test du gréement se rate souvent, et c'est l'échec qu'on vient
@@ -41,15 +33,15 @@ function equipage(): Combatant[] {
   const gabier = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Gabier Ott', motivation: 'Test', seed: 1508, id: 'gabier' });
   gabier.shipRole = 'mousse';
   gabier.shipStation = 'greement';
-  skill(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
-  skill(gabier, 'voile', 45);
+  renforcerCompetence(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
+  renforcerCompetence(gabier, 'voile', 45, 'cogue');
   gabier.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.45 };
 
   const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
   vigie.shipRole = 'vigie';
   vigie.shipStation = 'nid-de-pie';
-  skill(vigie, 'athletisme', 5);
-  skill(vigie, 'perception', 50);
+  renforcerCompetence(vigie, 'athletisme', 5);
+  renforcerCompetence(vigie, 'perception', 50);
   vigie.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.4 };
 
   return [gabier, vigie];
@@ -80,8 +72,8 @@ function construireScene(): Scene {
     metresPerTile: 10,
     heroStart: [3, 6],
     startMessage:
-      'Deux matelots dans la mâture : Ott dans le gréement, Nissa au nid-de-pie. Un boulet dans le gréement, '
-      + 'et il faudra tenir bon — sinon la hauteur se tire, puis les Dégâts. Console : __wfrp.shipCrit("greement").',
+      { texte: 'Deux matelots dans la mâture : Ott dans le gréement, Nissa au nid-de-pie. Un boulet dans le gréement, '
+      + 'et il faudra tenir bon — sinon la hauteur se tire, puis les Dégâts. Console : __wfrp.shipCrit("greement").' },
     entities: [
       // La coque des HÉROS : c'est elle que le Critique frappe, et ses `crewIds` sont les deux postés.
       cogueDEssai,

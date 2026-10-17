@@ -31,3 +31,5 @@ export interface StructureCritEntry {
 }
 
 export const STRUCTURE_CRITICALS = (structureCriticalsJson as { entries: StructureCritEntry[] }).entries;
+/** Libellé de la table (rangée de tirage `TableRollLine`). */
+export const STRUCTURE_CRITICALS_LABEL: string = structureCriticalsJson.label;

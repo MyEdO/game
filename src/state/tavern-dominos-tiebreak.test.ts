@@ -14,8 +14,8 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById, TAVERN_GAMES } from '../engine/tavernGame';
-import { resolveSequenceTie, closeSequenceRound, sequenceVolleyRounds, type SequenceState, type MancheClose } from './sequenceCore';
-import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from './tavernFlow';
+import { resolveSequenceTie, closeSequenceRound, sequenceVolleyRounds, type EtatDeFamille, type MancheClose } from './sequenceCore';
+import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, HABITUE } from './tavernFlow';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { pnjAuProfil } from './sceneNpc';
@@ -31,7 +31,7 @@ function heroes(): [Combatant, Combatant] {
 }
 
 /** Séquence de partie en cours, telle que `playTavernGame` la pose. */
-function partie(tieBreak: string | undefined, challengerId: string): SequenceState<TavernPayload> {
+function partie(tieBreak: string | undefined, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
   return {
     def: TAVERN_SEQUENCE, round: 1, cum: {},
     params: { ...(tieBreak ? { tieBreak } : {}) },

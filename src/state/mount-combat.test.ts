@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mountedAttackMods, mountedDodgePenalty, mountMovement, mountUp } from './mount';
+import { mountedAttackMods, mountedDodgeMods, mountMovement, mountUp } from './mount';
 import { RULE_REF } from '../engine/ruleRefs';
 import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';
@@ -43,9 +43,9 @@ describe('mount — modificateurs de Combat monté (LDB 14 l.179-184)', () => {
   });
 
   it('Esquive : −20 à cheval, annulé par Acrobaties équestres, nul à pied (l.184)', () => {
-    expect(mountedDodgePenalty(mk('x', 'moyenne', { mountId: 'h' }))).toBe(-20);
-    expect(mountedDodgePenalty(mk('x', 'moyenne', { mountId: 'h', talents: [{ talentId: 'acrobaties-equestres', times: 1 }] as any }))).toBe(0);
-    expect(mountedDodgePenalty(mk('x', 'moyenne'))).toBe(0); // à pied
+    expect(mountedDodgeMods(mk('x', 'moyenne', { mountId: 'h' }))).toEqual([{ label: 'Esquive à cheval', value: -20, famille: 'circonstance', ref: RULE_REF['combat-monte'] }]);
+    expect(mountedDodgeMods(mk('x', 'moyenne', { mountId: 'h', talents: [{ talentId: 'acrobaties-equestres', times: 1 }] as any }))).toEqual([]);
+    expect(mountedDodgeMods(mk('x', 'moyenne'))).toEqual([]); // à pied
   });
 
   it('mountMovement : le cavalier se déplace avec le Mouvement de sa monture (l.179)', () => {

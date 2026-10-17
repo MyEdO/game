@@ -9,11 +9,12 @@ import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
 import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from './flow';
+import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { byId, stakeSpeaks, matieresDe } from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
-import { validateDocument, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
+import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
 // Registre des effets (réfs de validation `handler.refs`) — importé via le BARIL `combatFlow` (qui
 // ré-exporte combatEffects), comme le store : entrer le cycle d'effets/combat par le MÊME nœud
 // canonique préserve l'ordre d'évaluation (un import direct de `combatEffects` ici casse la
@@ -74,8 +75,8 @@ export type ArchitectureWarningRef =
  *  seul l'objet modifié se re-parse, et une écriture au catalogue (Compendium) re-date tous les
  *  verdicts — les réfs se résolvent au catalogue VIVANT. */
 const verdictsDeSchema = memoByRefDeps<object, readonly Faute[] | null>();
-const fautesDeSchema = (schema: Parameters<typeof validateDocument>[0], objet: object): readonly Faute[] | null =>
-  verdictsDeSchema(objet, [versionDesDatasets(), schema], () => validateDocument(schema, objet));
+const fautesDeSchema = (schema: Parameters<typeof validerFormeVivante>[0], objet: object): readonly Faute[] | null =>
+  verdictsDeSchema(objet, [versionDesDatasets(), schema], () => validerFormeVivante(schema, objet)?.fautes ?? null);
 
 /** PORTÉE d'une faute pour l'éditeur (clic → sélection), par la suite des LISTES à clé que son lieu
  *  traverse depuis la racine ; les clés rencontrées nomment la sélection. Choix d'ÉCRAN : une façade
@@ -105,7 +106,7 @@ function fautifDe(lieu: readonly SegmentDeLieu[], portees: 'scene' | 'worldMap')
   const cles: string[] = [];
   let trouve: (Portee & { element: ElementDeLieu; reste: readonly SegmentDeLieu[] }) | undefined;
   for (const [k, segment] of lieu.entries()) {
-    if (typeof segment !== 'object') break;
+    if (segment.genre !== 'element') break;
     listes.push(segment.liste);
     cles.push(segment.cle);
     const portee = PORTEE_DU_LIEU[listes.join(' › ')];
@@ -119,7 +120,7 @@ function fautifDe(lieu: readonly SegmentDeLieu[], portees: 'scene' | 'worldMap')
  *  le lieu du champ fautif, puis le message du schéma. */
 const nomDAuteur = (element: ElementDeLieu): string => element.libelle ?? element.cle;
 function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string {
-  const ou = [f.element && nomDAuteur(f.element), f.reste.length ? cheminLisible(f.reste, nomDAuteur) : undefined].filter(Boolean).join(' › ');
+  const ou = cheminLisible([...(f.element ? [f.element] : []), ...f.reste], nomDAuteur);
   return ou ? `${ou} : ${message}` : message;
 }
 
@@ -370,7 +371,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
         }
       }
     }
-    /** Bornes des fenêtres horaires d'une Condition (trigger `when`, choix `when`, nœud `si`). */
+    /** Bornes des fenêtres horaires d'une Condition — chaque site de l'énumérateur unique (`sitesDeLaScene`,
+     *  `sites-de-paquet.ts` : `when`, `if`, `gate`, `difficultyBy`, `crossTest`). */
     const checkCondTimes = (cond: Condition, refId: string, scope: Warning['scope']) =>
       walkConditionTimes(cond, (tc) => {
         for (const [k, v] of [['afterHour', tc.afterHour], ['beforeHour', tc.beforeHour]] as const)
@@ -379,10 +381,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
           if (v != null && (v < 0 || v > 59)) add('error', scope, refId, `Fenêtre horaire « ${refId} » : ${k} ${v} hors 0-59`);
       });
     /** Parcours RÉCURSIF d'un Flow (branches `if`/`test`, et le `flow` imbriqué d'un `delayedEffect`) :
-     *  effets référencés + bornes des conditions horaires + ENJEU des jets. ENVELOPPÉ : un Flow corrompu
-     *  (nœud manquant/réf pendante — document ANCIEN qu'un `normalizeScene` ne peut pas tout réparer sans
-     *  inventer de donnée) rapporte un Warning `error` au lieu de faire tomber la validation de TOUTE la
-     *  scène — chaque flow est indépendant, un flow cassé ne masque pas les autres.
+     *  effets référencés + ENJEU des jets (les Conditions passent par `sitesDeLaScene`).
      *
      *  FLOWS PORTÉS par une feuille : trouvés PAR LA FORME (`carriedFlows`, `engine/flowCore`) — l'échéance
      *  d'un `delayedEffect`, la récompense d'une `petitePriere`, et tout champ `Flow` d'un effet à écrire.
@@ -396,35 +395,30 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null): War
      *  un enjeu authoré BLANC est un enjeu absent — sans ce partage, l'authoring déclarerait bon un
      *  document que `resolveStake` refuse d'afficher. */
     const checkFlow = (flow: Flow, refId: string, scope: Warning['scope']) => {
-      try {
-        walkFlow(flow, (node) => {
-          if (node.kind === 'do') {
-            checkEffect(node.effect, refId, scope);
-            for (const { flow: porte } of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
-          } else if (node.kind === 'if') checkCondTimes(node.cond, refId, scope);
-          else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
-            add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
-          }
-        });
-      } catch {
-        add('error', scope, refId, `Flow « ${refId} » corrompu (nœud invalide/réf pendante)`);
-      }
+      walkFlow(flow, (node) => {
+        if (node.kind === 'do') {
+          checkEffect(node.effect, refId, scope);
+          for (const { flow: porte } of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
+        } else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
+          add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
+        }
+      });
     };
 
     for (const t of s.triggers) {
       if (!within(t.rect.x, t.rect.y) || !within(t.rect.x + t.rect.w - 1, t.rect.y + t.rect.h - 1)) add('warn', 'trigger', t.id, `Zone « ${t.id} » déborde de la carte`);
-      if (t.when) checkCondTimes(t.when, t.id, 'trigger');
     }
     // Chaque RACINE de Flow authoré (`racinesDeFlow`) passe le même parcours : réfs d'effets, fenêtres
     // horaires, enjeu des jets.
     for (const r of racinesDeFlow(s)) checkFlow(r.flow as Flow, r.porteur.id, r.porteur.genre);
+    for (const site of sitesDeLaScene(s).conditions)
+      checkCondTimes(site.condition as Condition, site.porteur.id, PORTEE_DU_LIEU[site.porteur.liste]?.([site.porteur.id]).scope ?? 'scene');
     for (const d of s.dialogues) {
       const nodeIds = new Set(d.nodes.map((n) => n.id));
       if (!nodeIds.has(d.start)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : départ « ${d.start} » inexistant`);
       for (const n of d.nodes)
         for (const c of n.choices) {
           if (c.next && !nodeIds.has(c.next)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : choix → « ${c.next} » inexistant`);
-          if (c.when) checkCondTimes(c.when, d.id, 'dialogue');
           const terme = termeRecopie(c, VOCABULAIRE_DU_TAG);
           if (terme) add('warn', 'dialogue', d.id, avisLibelleRecopie(d.id, c.label, terme));
         }

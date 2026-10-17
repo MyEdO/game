@@ -1,3 +1,4 @@
+import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `species.json` — dérivé du contenu RÉEL (27 entrées, script d'inventaire) et de
  * `SpeciesData` (`src/data/index.ts`). `skills`/`talents` = emplacements d'avancement
@@ -30,20 +31,21 @@ const doc = document(
     refCareer: refCareerIdSchema,
     rand: z.number(),
     movement: z.number(),
-    fate: z.strictObject({ fate: z.number(), resilience: z.number(), extra: z.number() }),
+    fate: nommerChamps(z.strictObject({ fate: z.number(), resilience: z.number(), extra: z.number() }), {
+      fate: { label: 'Destin' },
+      resilience: { label: 'Résilience' },
+      extra: { label: 'Points supplémentaires' },
+    }),
     baseChar: z.record(charKeySchema, z.number()),
     /** Compétences d'espèce (positionnel +5/+3 — lu via `advancementLabel`). */
     skills: z.array(avancement('skill')),
     /** Talents d'espèce : réf, choix « A ou B » (`pick`), « Au choix » (`choix`), tirage (`random`). */
     talents: z.array(avancement('talent')),
-    /** Ids de `groups.json` de l'espèce (Traits psy ciblés, LDB 21) — racial, plus la sous-espèce
-     *  quand elle a son propre Groupe (« Humains (Tiléens) » → `humain` + `tileen`). DONNÉE requise
-     *  (27/27) : `groupsFor` les lit, il ne dérive plus rien du `label`. */
+    /** LDB 21 */
     grantGroups: z.array(z.string()),
-    /** Profil standard du PNJ de l'espèce (`LDB 77 l.7`) — réf à `creatures.json`, posée PAR ESPÈCE,
-     *  jamais dérivée de `family`. Absent = l'espèce n'a pas de profil standard (`gnomes`). */
+    /** LDB 77 l.7 */
     profilStandard: ref('creature').optional(),
-    /** Seuil d100 de mutation PHYSIQUE (LDB 19 l.78-81). Absent = défaut Humain (50). */
+    /** LDB 19 l.78-81 */
     mutationBodyMax: z.number().optional(),
     /** Habillage de l'APERÇU (créateur, carte de race #431) — id de carrière ICONIQUE et COMMUNE à
      *  l'espèce (jamais un choix de RÈGLE, pur flavor de vitrine) : la tuile de famille montre un
@@ -53,11 +55,9 @@ const doc = document(
      *  encombrance/consommation ×2 ; la Taille est portée par le TALENT Massif/Petit, pas ici).
      *  Absent (26/27 observées) = aucun trait racial mécanique. */
     traits: z.array(traitInstanceSchema).optional(),
-    /** `VDM 02 l.190` / `LDB 46 l.177` (`careerSlots.arcaneDomainCap`). Absent = plafond 1 (défaut RAW hors elfe).
-     *  Portée ici sur les deux entrées « Hauts elfes »/« Elfes sylvains ». */
+    /** VDM 02 l.190 ; LDB 46 l.177 */
     arcaneDomainsBonusOf: charKeySchema.optional(),
-    /** id d'`OptionalRule` (`reglesOptionnelles.json`) qui OUVRE l'espèce au joueur — absent = ouverte.
-     *  Portée sur `gnomes` (`NADJ 14 l.5`, règle `creation-gnome-jouable`). */
+    /** NADJ 14 l.5 */
     gatedByRule: z.string().optional(),
   },
   {

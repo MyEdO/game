@@ -77,15 +77,15 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
   /**
    * #1262 lot 4 — le Test poussé par l'applier est MINTÉ (`pushMono`) : la cible reste EXACTEMENT celle
    * du montage manuscrit (`base = target = testValue` de Force Mentale), seule la répartition change
-   * (base NUE + États en lignes nommées). Le porteur est chargé de 2 Exténué (−10/pion) et 3 Aveuglé
-   * (−10/pion, `combatOnly`) : hors canal combat le pool non-cumul retient l'Exténué (−20) et ignore
-   * l'Aveuglé ; le canal `combat` retiendrait l'Aveuglé (−30) — l'autre canal rate la cible de 10
-   * points. Ces deux États ne portent aucun Test de fin de Round : la séquence reste le seul choix.
+   * (base NUE + États en lignes nommées). Le porteur est chargé de 2 Exténué (−10/pion) et d'une aura
+   * de combat −20 (LDB 85 l.262) : hors canal combat le pool retient l'Exténué (−20) et ignore l'aura ;
+   * le canal `combat` y somme l'aura, son propre pool (LDB 14 l.95) — l'autre canal rate la cible de 20 points. Ni l'État
+   * ni l'aura ne portent de Test de fin de Round : la séquence reste le seul choix.
    */
   it('le Test poussé garde sa cible : `testValue` de Force Mentale, base NUE et États en chips', () => {
     const { H } = setup();
     addCondition(H, COND.extenue, 2);
-    addCondition(H, COND.aveugle, 3);
+    H.auraMods = [{ op: { op: 'testMod', amount: -20 } }];
     useGame.setState({ battle: { ...useGame.getState().battle! } });
     openRoundEndCascade(useGame.getState, useGame.setState);
     const choice = useGame.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;

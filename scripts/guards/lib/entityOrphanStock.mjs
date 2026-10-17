@@ -50,8 +50,6 @@
 //     aucun trapping ne les porte, cf. `assommante`/`defensive` sur les armes de base.
 //     `state/interludeFlow.ts` (`falseQualities()`) les sélectionne par champ mais ne les exploite
 //     que par LABEL (rumeurs de Particularité fausses, ADE II) — MODE 2 les rejette.
-//   — `skills:hypnotisme` : bloqué par #915 — le RAW ouvre 9 Carrières sans fixer de niveau, et
-//     `CareerLevelData` n'a aucun champ pour une Compétence optionnelle de supplément.
 //   — `creatures` HORS bestiaires de livre : 7 PNJ `named` (`pol-dankels`, `isrogdal-lempresse`,
 //     `ugrik-legaree`, `nazzaalta-affabule`, `artur-piedmarteau`, `p-tarix-celui-qui-ecrit`,
 //     `xirat-p-celui-qui-lit`) — un personnage de scénario n'a de chemin que par la scène qui le
@@ -420,7 +418,6 @@ export const ENTITY_ORPHAN_RATCHET = [
   { fichier: 'src/data/creatures.json', ref: 'zombie-gardien', occurrence: 1 },
   { fichier: 'src/data/qualities.json', ref: 'deroutante', occurrence: 1 },
   { fichier: 'src/data/qualities.json', ref: 'filet-barbele', occurrence: 1 },
-  { fichier: 'src/data/skills.json', ref: 'hypnotisme', occurrence: 1 },
   { fichier: 'src/data/talents.json', ref: 'benediction-de-tzeentch', occurrence: 1 },
   { fichier: 'src/data/talents.json', ref: 'disciple-du-changement', occurrence: 1 },
   { fichier: 'src/data/talents.json', ref: 'double-vie', occurrence: 1 },

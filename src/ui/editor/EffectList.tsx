@@ -17,7 +17,7 @@ import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCa
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
 import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
@@ -25,7 +25,9 @@ import { FlowEditor } from './FlowEditor';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { GameOpEditor, opSummary } from './GameOpEditor';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
-import { RefField, RefNarrativeField, entreesDeStades, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/RefField';
+import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/RefField';
+import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/libellesNarratifs';
+import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { NumberField } from '../NumberField';
@@ -42,6 +44,9 @@ import { sceneKindSchema } from '../../data/schemas/defs/activities';
 import { activitiesFor } from '../../engine/activities';
 import { formatMoney, toMoney } from '../../engine/money';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
+import { ProseField } from '../ProseField';
+import { ProvenanceDuTexte } from './ProvenanceDuTexte';
+import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 
 /** Noms des maladies câblées (LDB 20) proposés dans l'éditeur. */
 const diseaseNames = memoParVersion('maladies', () => Object.keys(diseaseDefs()));
@@ -129,6 +134,10 @@ export interface Ctx {
   narratif?: NarratifBlock;
 }
 
+/** L'USAGE d'état que fait chaque Effet à état (`FORMES_D_ETAT`) : son sélecteur n'offre que les états
+ *  dont la forme l'admet. */
+const USAGE_DE_L_EFFET = { poserEtat: 'poser', designerHeros: 'designer' } as const satisfies Partial<Record<Effect['type'], UsageDEtat>>;
+
 /** Les objets du projet que lit `giveTrapping` : ceux du narratif, aucun à une racine de catalogue. */
 const AUCUN_OBJET: readonly TrappingData[] = [];
 const objetsDuProjet = (ctx: Pick<Ctx, 'narratif'>): readonly TrappingData[] => ctx.narratif?.objets ?? AUCUN_OBJET;
@@ -201,6 +210,8 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
   switch (effect.type) {
     case 'journal': return `Journal : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}`;
     case 'setFlag': return `Flag ${e.flag || '?'} = ${e.value === false ? 'faux' : 'vrai'}`;
+    case 'poserEtat': return `État ${ref('etat', e.etat)} = ${e.valeur ? libelleDEtat(ctx.narratif?.etats, e.etat, e.valeur) : '?'}`;
+    case 'designerHeros': return `Désigner un héros : ${ref('etat', e.etat)}`;
     case 'setObjective': return `Objectif [${e.id || '?'}] : ${e.desc ? `« ${coupeAuMot(e.desc, 46)} »` : '(vide)'}${hasSchedule(e) ? ` (échéance ${scheduleSummary(e)})` : ''}`;
     case 'clearObjective': return e.id ? `Retirer l'objectif [${e.id}]` : `Retirer tous les objectifs`;
     case 'document': return `Document : ${ref('documentId', e.documentId)}`;
@@ -328,6 +339,8 @@ function ObjetDonneField({ objets, value, upd }: { objets: readonly TrappingData
 export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChange: (e: Effect) => void; ctx: Ctx }) {
   const e = effect as any;
   const upd = (patch: any) => onChange({ ...e, ...patch });
+  // L'instance vit autant que sa rangée (`key` = `useClesDeRangees` chez `EffectList` et `FlowEditor`).
+  const identite = useId();
   return (
     <div className="eff-body">
       <TypeMenu
@@ -339,7 +352,12 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         onChange={onChange}
       />
       <div className="eff-fields">
-        {effect.type === 'journal' && <input placeholder="Texte du journal" value={e.desc ?? ''} onChange={(ev) => upd({ desc: ev.target.value })} />}
+        {effect.type === 'journal' && (
+          <>
+            <ProseField label="Texte du journal" lecture={adresseUnPassage(effect.descRef) ? e.desc ?? '' : undefined} value={e.desc ?? ''} onChange={(desc) => upd({ desc: desc || undefined })} />
+            <ProvenanceDuTexte identite={identite} sujet="de la ligne de journal" value={effect} onChange={upd} />
+          </>
+        )}
         {effect.type === 'setFlag' && (
           <>
             <input placeholder="nom_du_flag" value={e.flag ?? ''} onChange={(ev) => upd({ flag: ev.target.value })} />
@@ -351,7 +369,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         {effect.type === 'setObjective' && (
           <>
             <input placeholder="id_de_l_objectif (stable — re-poser = mise à jour)" value={e.id ?? ''} onChange={(ev) => upd({ id: ev.target.value })} />
-            <input placeholder="Consigne joueur (ex. « Retrouver Gustav au port »)" value={e.desc ?? ''} onChange={(ev) => upd({ desc: ev.target.value })} />
+            <ProseField label="Consigne joueur" lecture={adresseUnPassage(effect.descRef) ? effect.desc ?? '' : undefined} value={effect.desc ?? ''} onChange={(desc) => upd({ desc: desc || undefined })} />
+            <ProvenanceDuTexte identite={identite} sujet="de l'objectif" value={effect} onChange={upd} />
             <label className="radio">
               <input
                 type="checkbox"
@@ -371,6 +390,28 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {TYPES_A_REF_NARRATIVE.has(effect.type) && !ctx.narratif && (
           <p className="hint">Ce catalogue ne connaît aucune campagne : cet Effet ne s’y pose pas.</p>
+        )}
+        {(effect.type === 'poserEtat' || effect.type === 'designerHeros') && ctx.narratif && (
+          <RefField
+            cfg={{ entrees: etatsAdmettant(ctx.narratif.etats, USAGE_DE_L_EFFET[effect.type]).map((x) => ({ id: x.id, label: x.label })), nom: SOURCE_NARRATIVE.etats }}
+            label="État de campagne"
+            value={e.etat ?? ''}
+            onChange={(v) => upd(effect.type === 'poserEtat' ? { etat: typeof v === 'string' ? v : '', valeur: '' } : { etat: typeof v === 'string' ? v : '' })}
+          />
+        )}
+        {effect.type === 'poserEtat' && ctx.narratif && (
+          <RefField
+            cfg={{ entrees: valeursDeclarees(ctx.narratif.etats.find((x) => x.id === e.etat)).map((v) => ({ id: v.id, label: v.label })), nom: 'valeurs de l’état' }}
+            label="Valeur posée"
+            value={e.valeur ?? ''}
+            onChange={(v) => upd({ valeur: typeof v === 'string' ? v : '' })}
+          />
+        )}
+        {effect.type === 'designerHeros' && (
+          <>
+            <ProseField label="Invite de la désignation" value={effect.invite ?? ''} onChange={(invite) => upd({ invite: invite || undefined })} />
+            <ProvenanceDuTexte copie identite={identite} sujet="de l'invite" value={effect} onChange={upd} />
+          </>
         )}
         {effect.type === 'document' && ctx.narratif && (
           <RefNarrativeField cle="documentId" narratif={ctx.narratif} label="Document remis" value={e.documentId} onChange={(documentId) => upd({ documentId: documentId ?? '' })} />
@@ -536,7 +577,8 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <option value="importante">Importante (jamais par Activité — aventure)</option>
             </select>
             <input placeholder="Due à… (créancier)" value={e.owedTo ?? ''} onChange={(ev) => upd({ owedTo: ev.target.value })} />
-            <input placeholder="Description (nature de la Faveur)" value={e.desc ?? ''} onChange={(ev) => upd({ desc: ev.target.value })} />
+            <ProseField label="Nature de la Faveur" lecture={adresseUnPassage(effect.descRef) ? effect.desc ?? '' : undefined} value={effect.desc ?? ''} onChange={(desc) => upd({ desc: desc || undefined })} />
+            <ProvenanceDuTexte identite={identite} sujet="de la Faveur" value={effect} onChange={upd} />
             <input placeholder="id du héros (vide = le premier)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
           </>
         )}
@@ -895,7 +937,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
           </div>
         )}
         {effect.type === 'startMassBattle' && (
-          <MassBattleFields battle={e.battle ?? {}} onChange={(battle) => upd({ battle })} ctx={ctx} />
+          <MassBattleFields identite={identite} battle={e.battle ?? {}} onChange={(battle) => upd({ battle })} ctx={ctx} />
         )}
         {effect.type === 'transition' && (ctx.scenes ? (
           <>
@@ -1075,7 +1117,7 @@ function SceneMultiSelect({ value, onChange, placeholder }: { value: string[]; o
   return (
     <div>
       {list.map((id, i) => (
-        <div key={i} className="de-reflrow">
+        <div key={i} className="fieldrow">
           <select value={id} onChange={(ev) => set(list.map((s, j) => (j === i ? ev.target.value : s)))}>
             {!BATTLE_SCENES().some((o) => o.id === id) && <option value={id}>{id} (inconnu)</option>}
             {BATTLE_SCENES().map((o) => <option key={o.id} value={o.id}>{o.label} · {libelleDeValeur(sceneKindSchema, o.sceneKind ?? '')}</option>)}
@@ -1092,7 +1134,7 @@ function SceneMultiSelect({ value, onChange, placeholder }: { value: string[]; o
 /** Éditeur complet du `MassBattleSpec` (armées, Rounds, situations par Round, rencontres de combat).
  *  Réutilise les primitives d'effet (`.test-fields`/`.tf-row`/`.dr`, patron `ListRefField`, select de
  *  rencontre de `startCombat`). Aucun id tapé : toute Scène/rencontre passe par un picker. */
-function MassBattleFields({ battle, onChange, ctx }: { battle: MassBattleSpec; onChange: (b: MassBattleSpec) => void; ctx: Ctx }) {
+function MassBattleFields({ identite, battle, onChange, ctx }: { identite: string; battle: MassBattleSpec; onChange: (b: MassBattleSpec) => void; ctx: Ctx }) {
   const b = battle ?? ({ allyMight: 50, enemyMight: 50 } as MassBattleSpec);
   const set = (patch: Partial<MassBattleSpec>) => onChange({ ...b, ...patch });
   const rounds = Math.max(1, Math.floor(b.plannedRounds ?? 1));
@@ -1120,7 +1162,8 @@ function MassBattleFields({ battle, onChange, ctx }: { battle: MassBattleSpec; o
         <label className="dr">Taille de tirage<NumberField variant="nu" label="Taille de tirage" min={1} value={b.situationSize ?? 3} onChange={(situationSize) => set({ situationSize })} /></label>
         <label className="dr">Modif. permanent (Planification)<NumberField variant="nu" label="Modificateur permanent (Planification)" value={b.allyMod ?? 0} onChange={(allyMod) => set({ allyMod })} /></label>
       </div>
-      <label className="dr">Terrain (description)<input value={b.terrain ?? ''} placeholder="Configuration du terrain (narratif)" onChange={(ev) => set({ terrain: ev.target.value || undefined })} /></label>
+      <ProseField label="Terrain (description)" ariaLabel="Description du terrain" value={b.terrain ?? ''} onChange={(terrain) => set({ terrain: terrain || undefined })} />
+      <ProvenanceDuTexte copie identite={identite} sujet="du terrain" value={b} onChange={set} />
       <div className="branch">
         <span className="branch-label">Catalogue de Scènes (pioche des situations) — vide = tout le catalogue.</span>
         <SceneMultiSelect value={b.scenes ?? []} onChange={(scenes) => set({ scenes: scenes.length ? scenes : undefined })} placeholder="Aucune restriction : les 12 Scènes du catalogue sont disponibles." />
@@ -1138,7 +1181,7 @@ function MassBattleFields({ battle, onChange, ctx }: { battle: MassBattleSpec; o
       <div className="branch">
         <span className="branch-label">Rencontres des Scènes de combat / menace (rencontre de la scène courante ; vide = rencontre par défaut de la Scène).</span>
         {combatScenes.length ? combatScenes.map((id) => (
-          <div key={id} className="de-reflrow">
+          <div key={id} className="fieldrow">
             <span className="dr" style={{ minWidth: 140 }}>{battleSceneById(id)?.label ?? id}</span>
             <select
               value={b.sceneEncounters?.[id] ?? ''}

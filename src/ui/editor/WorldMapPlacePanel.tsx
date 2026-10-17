@@ -13,12 +13,14 @@ import { MapCanvas } from '../MapCanvas';
 import { planChrome } from '../PlanChrome';
 import { VB_W, VB_H } from '../worldMapViewport';
 import { Scene } from '../../state/scene';
+import type { NarratifBlock } from '../../state/campaignNarratif';
 import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon } from '../../state/worldMap';
 import { LAND_CARGO_ENTRIES, LAND_RICHESSE_ROWS, type LandMarketProfile } from '../../engine/landCargo';
 import { cargoes, CARGO_ENTRIES, isEchangeable, type CargoEntry, type PortProfile } from '../../engine/seaVoyage';
 import { navalPorts, findNavalPortById, lieuxServices } from '../../data';
 import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
+import { CouvreField } from './CouvreField';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 
 /** Libellés des Tailles de communauté (MSRC 13 l.44-50, indices 1-4). */
@@ -31,10 +33,12 @@ const produitOptions = (entries: readonly CargoEntry[]): { id: string; label: st
 /** Port MARITIME par défaut posé quand l'auteur coche « Port » (petit port de production côtière). */
 const DEFAULT_PORT: PortProfile & { lighthouse?: boolean } = { taille: 2, richesse: 2, production: [] };
 
-export function WorldMapPlacePanel({ place, scenes, updPlace }: {
+export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
   place: MapPlace;
   /** Toutes les scènes du projet (active + réserve) — pour lier lieux/POI. */
   scenes: Scene[];
+  /** Narratif du projet — les états de campagne qu'un `when` de lieu peut lire. */
+  narratif: NarratifBlock;
   updPlace: (id: string, patch: Partial<MapPlace>) => void;
 }) {
   const [placeTab, setPlaceTab] = useState<'lieu' | 'commerce' | 'plan'>('lieu');
@@ -68,9 +72,10 @@ export function WorldMapPlacePanel({ place, scenes, updPlace }: {
           <label className="ed-field">Point d'entrée (optionnel)
             <input value={place.entry ?? ''} onChange={(e) => updPlace(place.id, { entry: e.target.value || undefined })} />
           </label>
+          <CouvreField value={place.couvre} sujet="du lieu" onChange={(couvre) => updPlace(place.id, { couvre })} />
 
           <div className="mini-title" title="Le lieu n'existe sur la carte qu'une fois la condition vraie : ni médaillon, ni route, ni voyage vers lui. « Toujours » = lieu toujours visible.">Visible si</div>
-          <WhenEditor when={place.when} kinds={CONDITION_KINDS_CARTE} onChange={(when) => updPlace(place.id, { when })} />
+          <WhenEditor when={place.when} kinds={CONDITION_KINDS_CARTE} narratif={narratif} onChange={(when) => updPlace(place.id, { when })} />
 
           {/* ── Services du lieu (auberge/temple/forgeron/guilde…, catalogue lieux-services.json #343) ── */}
           <div className="mini-title">Services du lieu</div>

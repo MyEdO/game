@@ -9,7 +9,7 @@
  * place et renvoie le journal. Le référent des formules « (X) » est le PORTEUR (`caster` = la créature
  * qui frappe) — donc « Force de la source » = sa Force.
  */
-import { type Combatant, type Weapon, type HitLocation, type Difficulty, type EffectSource, CHAR_LABELS } from '../engine/types';
+import { type Combatant, type Weapon, type HitLocation, type Difficulty, type EffectSource } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
 import { type EffectTrigger, type TriggeredEffect, type Flow, flowHasTest, spellEffectOps, EMPTY_FLOW } from './flow';
 import type { OpsCtx, GameOp } from '../engine/ops';
@@ -29,7 +29,8 @@ import { chebyshev } from './path';
 import { losClear, tileSeenByFoe } from './lineOfSight';
 import { smokeOf, combatantsWithinRadius, porteeEnCases } from './combatGeometry';
 import { sceneMetresPerTile } from './scene';
-import { findTraitById, findQualityById, findManeuverById, findTalentById, findConditionById, findPsychologyById, findSymptomById, findMutationById, refLabel } from '../data';
+import { findTraitById, findQualityById, findTalentById, findConditionById, findPsychologyById, findSymptomById, findMutationById, testSkillLabel } from '../data';
+import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
 import { difficultyFromLabel, rollTest } from '../engine/tests';
 import { rawCombatTestBase } from '../engine/skills';
@@ -320,9 +321,9 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   // Brisé compté une fois, LDB 16) — MÊME convention que `simpleTriggeredTestStep` (héros) → récupération identique.
   const base = rawCombatTestBase(c, ft.skill?.id, ft.characteristic, ft.skill?.spec);
   const difficulty: Difficulty = resolveTestDifficulty(ft, cc);
-  const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
   const rng = ctx.rng ?? defaultRNG;
-  const res = rollTest(base, difficulty, rng, combatTestPenalty(c));
+  const res = rollTest(base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
   const branch = res.success ? flow.success : flow.fail;
   const lines = [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
   // SEAM `onOwnTestFailed` (voie inline) : un Test déclenché RATÉ par le porteur émet le trigger (Crampes
@@ -556,20 +557,14 @@ export function maneuverEffects(def: { id: string; effects?: TriggeredEffect[] }
   return withSource(def.effects ?? [], { kind: 'maneuver', id: def.id });
 }
 
-/** Effets onHit AUTHORÉS de la manœuvre `kind` portée par `actor` (Caudale → À Terre, Tentacules →
- *  Empêtré…) — lus de la MANŒUVRE octroyée (`TraitData.grantsManeuvers` → `findManeuverById`) dont la
- *  `def.kind` correspond. Vide si la créature n'a pas cette manœuvre. Sert le chemin de mêlée FREE
+/** Effets onHit AUTHORÉS de la manœuvre `kind` de `actor` (Caudale → À Terre, Tentacules → Empêtré…) —
+ *  lus de la DÉFINITION que porte la liste unique `attaquesNaturelles` (manœuvres de ses traits, et
+ *  d'écart de Taille, ouvertes sans trait). Vide si `actor` n'a pas cette manœuvre. Sert le chemin de mêlée FREE
  *  (`freeKind` → arme + onHit) : la touche est résolue comme un coup d'arme, mais les États propres à
  *  la manœuvre (À Terre/Empêtré) viennent de SA donnée éditable. TAGUÉS de leur manœuvre source
  *  (`withSource`, comme toute autre source du dispatcher) : la pastille d'effet ouvre sa fiche, et un
  *  Test qu'elle exige en dérive son enjeu (#1262 V2 L6d). */
 export function maneuverEffectsOf(actor: Combatant, kind: string): TriggeredEffect[] {
-  for (const raw of actor.traits ?? []) {
-    const td = findTraitById(raw.id);
-    for (const ref of td?.grantsManeuvers ?? []) {
-      const def = findManeuverById(ref.id);
-      if (def?.kind === kind) return maneuverEffects(def);
-    }
-  }
-  return [];
+  const def = attaqueNaturelle(actor.traits ?? [], kind)?.def;
+  return def ? maneuverEffects(def) : [];
 }

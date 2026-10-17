@@ -1,3 +1,4 @@
+import { nommerChamps, metaDesChamps } from './meta';
 /**
  * RÉFÉRENCES de la grammaire de document (#1466 L1a) — les formes ACTUELLES de désignation d'une
  * entité par son id (réf simple, réf de Qualité, dotation, emplacement d'avancement, Trait posé).
@@ -69,7 +70,7 @@ export function refusDArgHorsRegistre(id: string, arg: string): string | null {
     : null;
 }
 
-export const traitInstanceSchema = z.strictObject({
+export const traitInstanceSchema = nommerChamps(z.strictObject({
   id: z.string(),
   value: z.number().optional(),
   arg: z.string().optional(),
@@ -82,13 +83,13 @@ export const traitInstanceSchema = z.strictObject({
   for (const refus of [refusDArgDeTrait(t.id, t.arg), refusDArgHorsRegistre(t.id, t.arg)]) {
     if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
   }
-});
+}), { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, natural: { label: "naturel" }, hidden: { label: "caché" } });
 
 /**
  * `Ref` (`src/data/index.ts`) — réf structurée par id + spec optionnelle (talent/sort/manœuvre/dieu
  * ciblé). Dupliqué à l'identique dans `careerLevels`/`classes`/`creatures`/`gods`/`species`/`traits`.
  */
-export const refSchema = z.strictObject({ id: z.string(), spec: z.string().optional() });
+export const refSchema = nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional() }), { id: { label: "identifiant" }, spec: { label: "spécialisation" } });
 
 /** `TalentRef` (`src/data/index.ts`) — référence + niveau facultatif (« Maîtrise du combat 2 »).
  *  Porte UNIQUE de la forme `{id, spec?, times?}` : `creatures` et les profils embarqués de scène en
@@ -96,7 +97,7 @@ export const refSchema = z.strictObject({ id: z.string(), spec: z.string().optio
  *  Les trois clés sont ÉCRITES, jamais `...refSchema.shape` : le mesureur de redéclarations lit les
  *  littéraux par AST et ne résout pas un spread — la forme épandue lui présenterait la signature
  *  `times` seule, qu'il attribuerait à ce schéma sur tout littéral à clé `times` unique. */
-export const talentRefSchema = z.strictObject({ id: z.string(), spec: z.string().optional(), times: z.number().optional() });
+export const talentRefSchema = nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional(), times: z.number().optional() }), { id: { label: "identifiant" }, spec: { label: "spécialisation" }, times: { label: "multiplicateur" } });
 
 /** Référence par id portant une MAGNITUDE, et rien d'autre — forme CANONIQUE de la « référence
  *  indicée » du dépôt (`scripts/guards/lib/structuresStock.mjs`, signature `id,value` : Traits de
@@ -104,7 +105,7 @@ export const talentRefSchema = z.strictObject({ id: z.string(), spec: z.string()
  *  schémas qui l'expriment la RÉFÉRENCENT, ils ne la re-tapent pas (volet `redeclaration` de
  *  `src/data/grammaire-guard.test.ts`). Elle ne dérive PAS de `refSchema` : ce qu'une magnitude qualifie
  *  n'est pas une SPÉCIALISATION. */
-export const refIndiceSchema = z.strictObject({ id: z.string(), value: z.number().optional() });
+export const refIndiceSchema = nommerChamps(z.strictObject({ id: z.string(), value: z.number().optional() }), { id: { label: "identifiant" }, value: { label: "valeur" } });
 
 /** `QualityRef` (`src/data/index.ts`) — id + Indice éventuel (« Solide 3 », « Taillade (1A) » →
  *  `value`). Vue COMMUNE du joker de qualité d'une dotation (`TrappingRef.qualities`, #657 Lot 1) ET du
@@ -131,15 +132,15 @@ export const trappingRefSchema: z.ZodType<
   | { choice: unknown[] }
   | { wildcard: string }
 > = z.union([
-  refSchema.extend({
+  nommerChamps(refSchema.extend({
     count: countSpecSchema.optional(),
     qualities: z.array(qualityRefSchema).optional(),
     qualityChoice: z.literal(true).optional(),
-  }),
-  z.strictObject({ text: z.string(), count: countSpecSchema.optional() }),
-  z.strictObject({ vehicleId: z.string(), count: countSpecSchema.optional(), label: z.string().optional() }),
-  z.strictObject({ creatureId: z.string(), count: countSpecSchema.optional(), label: z.string().optional() }),
-  z.strictObject({ choice: z.array(z.lazy(() => trappingRefSchema)) }),
-  z.strictObject({ wildcard: z.string() }),
+  }), { ...metaDesChamps(refSchema, { exigees: true }), count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' } }),
+  nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } }),
+  nommerChamps(z.strictObject({ vehicleId: z.string(), count: countSpecSchema.optional(), label: z.string().optional() }), { vehicleId: { label: "véhicule" }, count: { label: "nombre" }, label: { label: "libellé" } }),
+  nommerChamps(z.strictObject({ creatureId: z.string(), count: countSpecSchema.optional(), label: z.string().optional() }), { creatureId: { label: "créature" }, count: { label: "nombre" }, label: { label: "libellé" } }),
+  nommerChamps(z.strictObject({ choice: z.array(z.lazy(() => trappingRefSchema)) }), { choice: { label: "choix" } }),
+  nommerChamps(z.strictObject({ wildcard: z.string() }), { wildcard: { label: "choix libre" } }),
 ]);
 

@@ -63,7 +63,7 @@ const mkGet = (sc: Scene, combatants: Combatant[], facing: Record<string, string
 //     `applyShipPostes` (kind-agnostique) sert la pièce au chef d'équipage. SANS `side` (tir omni).
 describe('(A) Service — emplacement au sol : spawn lit les postes, le chef est servi (mannedPoste)', () => {
   it('SceneEntity NON-navire portant `postes` → `Combatant.postes` au spawn (comme la voie navale)', () => {
-    const poste = mkPoste('baliste', ['gunner', 's1']); // PAS de `side` → exige `ShipPoste.side` optionnel
+    const poste = { trappingId: 'baliste', crewIds: ['gunner', 's1'] }; // PAS de `side` → exige `side` optionnel
     const emplacement = spawnEnemy({ statblock: { name: 'Affût de baliste', char: { B: 20 } } as never }, 'emplacement', { x: 5, y: 5 }, { postes: [poste] });
     expect(emplacement.postes).toBeTruthy();
     expect(emplacement.bodyShape).not.toBe('vehicule'); // AUCUN couplage navire (pas une coque)
@@ -99,7 +99,7 @@ describe('(B) Tir — le chef sert la pièce et touche la cible (resolveAttack, 
     const all = [mkEmplacement(poste), gunner, s1, cible];
     applyShipPostes(all);
     const get = mkGet(groundScene(), all, { gunner: 'N' });
-    const r = resolveAttack(get, gunner, cible, undefined, false, false, false, poste.item.uid);
+    const r = resolveAttack(get, gunner, cible, undefined, false, false, false, firedWeapon(gunner, cible, poste.item.uid, all));
     expect(r).not.toBeNull();
     expect(r!.weapon.uid).toBe(poste.item.uid); // c'est bien la baliste du poste qui a tiré
     expect(r!.res.hit).toBe(true);

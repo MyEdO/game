@@ -1,4 +1,5 @@
-import { beforeAll, describe, it, expect } from 'vitest';
+import { afterAll, beforeEach, vi, beforeAll, describe, it, expect } from 'vitest';
+import * as cssImages from '../../scripts/guards/lib/cssImages.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,6 +39,7 @@ import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/sto
 import { FUITES_COUCHE_PARTAGEE } from '../../scripts/guards/lib/fuitesPartageesStock.mjs';
 import { sitesNomSansTexteVisible } from '../../scripts/guards/lib/nomVisibleDansNom.mjs';
 import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
+import { sitesChipDeRefusNu } from '../../scripts/guards/lib/chipDeRefusNu.mjs';
 
 /**
  * Cliquets d'hygiène UI (#236) — même patron que `combat-hardcode-guard`/`no-emoji-affordance` : une
@@ -50,7 +52,24 @@ const UI = fileURLToPath(new URL('.', import.meta.url)); // src/ui/
 /** L'image CSS de l'arbre de travail, lue UNE fois avant les `it` : chaque lecture rejoue tout le corpus
  *  git, et un `it` qui la paierait dépasserait sa limite sous charge (#2349). */
 let image: ReturnType<typeof imageDuDisque>;
-beforeAll(() => { image = imageDuDisque(); }, 120_000);
+const lecturesImage = { nombre: 0 };
+const originalImageCss = cssImages.imageCss;
+const compterImage: typeof cssImages.imageCss = (...args) => {
+  lecturesImage.nombre++;
+  return originalImageCss(...args);
+};
+let espionImage = vi.spyOn(cssImages, 'imageCss').mockImplementation(compterImage);
+beforeEach(() => {
+  espionImage = vi.spyOn(cssImages, 'imageCss').mockImplementation(compterImage);
+});
+afterAll(() => {
+  try { expect(lecturesImage.nombre).toBe(1); }
+  finally { espionImage.mockRestore(); }
+});
+beforeAll(() => {
+  image = imageDuDisque();
+  expect(lecturesImage.nombre).toBe(1);
+}, 120_000);
 /** Les modules d'ÉCRAN de l'arbre de travail. */
 const ecransDuDisque = () => modulesDEcran(image);
 /** Les trois volets du stock CSS, mesurés sur l'arbre de travail. */
@@ -120,10 +139,8 @@ const FLEX_WRAP_BASELINE: Record<string, number> = {
   // -1 (#1834) : l'enroulement du titre de section suit `.panel h3` en couche PARTAGÉE
   // (`components.css`, hors cliquet) — une base et sa tranche dans la MÊME feuille.
   'styles/base.css': 3,
-  // +1 (#1388) : `.de-reflrow` (rangée dense de réfs de l'atelier Codex) s'enroule dès 360 px —
-  // motif `.bar` non composable ici (c'est une rangée de CHAMPS d'un formulaire d'édition, pas un
-  // bandeau d'écran) ; le `flex-wrap` seul ne suffisait pas, il va de pair avec `min-width: 0`.
-  'styles/codex-edit.css': 2,
+  // -1 (#2290) : la rangée de champs `.fieldrow` est une primitive de `components.css`, hors cliquet.
+  'styles/codex-edit.css': 1,
   'styles/gear-assign-list.css': 1,
   'styles/compendium.css': 3,
   // +1 : `.creator-race-lineages` (#393, correction structurelle Race) — rangée de chips de
@@ -1044,10 +1061,10 @@ describe('canon responsive, peaux et matières partagées de src/ui/styles', () 
   // Une DÉCLARATION, pas une mesure : l'enroulement réel dépend des largeurs intrinsèques, que seul
   // un navigateur calcule (`docs/recette-navigateur.md`). Ce contrat tient la condition NÉCESSAIRE —
   // un enfant de la rangée qui ne peut pas rétrécir la fait déborder même enroulée.
-  it('≤360 : tout ENFANT de `.de-reflrow` peut rétrécir sous sa largeur intrinsèque, bornée à la rangée', () => {
-    const enfants = reglesCss(readFileSync(join(UI, 'styles', 'codex-edit.css'), 'utf8'))
-      .filter((r) => !r.media && r.selecteurs.includes('.de-reflrow > *'));
-    expect(enfants.length, '`.de-reflrow > *` a sa règle dans `codex-edit.css`').toBe(1);
+  it('≤360 : tout ENFANT de `.fieldrow` peut rétrécir sous sa largeur intrinsèque, bornée à la rangée', () => {
+    const enfants = reglesCss(readFileSync(join(UI, 'styles', 'components.css'), 'utf8'))
+      .filter((r) => !r.media && r.selecteurs.includes('.fieldrow > *'));
+    expect(enfants.length, '`.fieldrow > *` a sa règle dans `components.css`').toBe(1);
     expect(enfants[0].corps).toMatch(/min-width:\s*0\b/);
     expect(enfants[0].corps).toMatch(/max-width:\s*100%/);
   });
@@ -1491,7 +1508,7 @@ describe('#1800 — trois couches CSS : un module d’écran ne pose que du PLAC
   });
 
   it('le stock committé est un point fixe de sa régénération', () => {
-    for (const r of regenerations()) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
+    for (const r of regenerations(mesureDuDisque())) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   it('(xxi) le manifeste classe chaque module : un css de primitive existe, et n’est pas une feuille partagée', () => {
@@ -1631,5 +1648,50 @@ describe('#2199 — le nom accessible d’un contrôle CONTIENT son texte vu (WC
     expect(vus('const x = <button aria-label="Fermer"><span aria-hidden="true">Croix</span><span aria-hidden={true}>X ici</span></button>;')).toEqual([]);
     expect(vus('const x = <button aria-label="Fin du tour, touche Espace">Fin du tour</button>;')).toEqual([]);
     expect(vus('const x = <span aria-label="Ouvrir">Fermer</span>;'), 'un élément non interactif n’est pas un contrôle').toEqual([]);
+  });
+});
+
+// ── (xxiv) CHIP DE REFUS NU (#2404) — question : un REFUS (geste ou donnée refusés, champ exigé
+//    manquant) se rend-il ailleurs que par `ChipDeRefus` ? Primitive : `src/ui/ChipDeRefus.tsx`, seule
+//    à composer `chip` + `tone-danger` (`docs/charte-ui.md`, `.chip.chip-phrase`). Périmètre : tout
+//    `.tsx` de `src/` hors instruments Vitest. Angle mort : en-tête de `chipDeRefusNu.mjs`.
+//    EXCLUSIONS AU SITE (fichier + texte de l'élément) — chacune une alerte qui n'est PAS un refus :
+const CHIP_DANGER_HORS_REFUS = new Map<string, string>([
+  ['src/ui/CampaignLibraryScreen.tsx :: <span className="chip tone-danger">{MARQUE_AUTRE_FORMAT}</span>', 'marque de RANGÉE de liste, non un message : le refus de l’entrée se dit par `ChipDeRefus` au panneau de détail'],
+  ['src/ui/editor/ProjectModals.tsx :: <span className="chip tone-danger">{MARQUE_AUTRE_FORMAT}</span>', 'marque de RANGÉE de liste, non un message : le refus d’« Ouvrir » se dit par `ChipDeRefus` en tête de modale'],
+  ['src/ui/CarnetScreen.tsx :: <span className="chip tone-danger">Fausse piste</span>', 'statut d’un indice réfuté, état de jeu'],
+  ['src/ui/CoopPanels.tsx :: <div className="chip tone-danger coop-banner" role="status"><Icon id={icone} size="sm" /> {children}</div>', 'bandeau d’état de la liaison réseau (`role="status"`), aucun geste refusé'],
+  ['src/ui/EtatPanel.tsx :: <span className="chip tone-danger">DAMNÉ</span>', 'état de jeu du héros'],
+  ["src/ui/editor/ValidationPanel.tsx :: <span className={`chip${w.level === 'error' ? ' tone-danger' : ''}`}>{w.level === 'error' ? 'erreur' : 'avertissement'}</span>", 'niveau d’un constat du validateur dans sa rangée, non un message'],
+]);
+
+describe('#2404 — un refus se rend par `ChipDeRefus`', () => {
+  it('(xxiv) aucun `chip` + `tone-danger` hors de `ChipDeRefus.tsx`, sauf exclusion au site ; toute exclusion vise un site vivant', () => {
+    const fichiers = readCorpus(['src'], { exts: ['.tsx'] }).filter((f) => f.rel !== 'src/ui/ChipDeRefus.tsx');
+    const sites: string[] = [];
+    const lignes: string[] = [];
+    for (const { fichier, sourceFile } of analyserCorpus(fichiers)) {
+      if (!sourceFile) continue;
+      for (const s of sitesChipDeRefusNu(fichier, sourceFile)) {
+        sites.push(`${fichier.rel} :: ${s.texte}`);
+        lignes.push(`${fichier.rel}:${s.ligne} ${s.texte}`);
+      }
+    }
+    const nus = lignes.filter((_, i) => !CHIP_DANGER_HORS_REFUS.has(sites[i]));
+    expect(nus, 'refus rendu hors de `ChipDeRefus` — composer la primitive, ou exclure AU SITE une alerte qui n’est pas un refus').toEqual([]);
+    const mortes = [...CHIP_DANGER_HORS_REFUS.keys()].filter((k) => !sites.includes(k));
+    expect(mortes, 'exclusion sans site vivant — la retirer').toEqual([]);
+  });
+
+  it('(xxiv) preuve — chaîne, gabarit, ternaire ; ni `chip` seul, ni `tone-danger` seul, ni commentaire', () => {
+    const vus = (tsx: string) => sitesChipDeRefusNu({ rel: 'Faux.tsx', text: tsx }).map((s) => s.ligne);
+    expect(vus('const x = <p className="chip tone-danger" role="alert">M</p>;')).toEqual([1]);
+    expect(vus('const x = <p className="tone-danger x chip">M</p>;')).toEqual([1]);
+    expect(vus("const x = <span className={`chip${e ? ' tone-danger' : ''}`}>M</span>;")).toEqual([1]);
+    expect(vus("const x = <span className={e ? 'chip tone-danger' : 'chip'} />;")).toEqual([1]);
+    expect(vus('const x = <span className="chip tone-warn">M</span>;')).toEqual([]);
+    expect(vus('const x = <span className="btn tone-danger">M</span>;')).toEqual([]);
+    expect(vus('const x = <span className="chip-phrase tone-danger">M</span>;')).toEqual([]);
+    expect(vus('// <p className="chip tone-danger">M</p>')).toEqual([]);
   });
 });

@@ -9,7 +9,8 @@
 // Le reste de chaque page est MANUSCRIT : seuls les blocs entre marqueurs sont réécrits (patron
 // `injecte` de `scripts/docs/build-all.mjs`).
 // Re-run : node scripts/raw/build-atlas-index.mjs (`--check` : sortie 1 sur un bloc périmé).
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
+import { ecrireDoc } from '../docs/lib/ecriture-derives.mjs'
 import { join } from 'node:path'
 import { booksDe, coeursDe, coeursDuRegistre, domainesDe, livresDeCoeur, pagesDeLAtlas, REGISTRE_LIVRES } from './_lib.mjs'
 
@@ -125,7 +126,7 @@ function regenerer() {
       console.error(`build-atlas-index — ${chemin} PÉRIMÉ`)
       continue
     }
-    writeFileSync(chemin, attendu, 'utf8')
+    ecrireDoc(chemin, attendu)
     console.log(`build-atlas-index — blocs réécrits dans ${chemin}`)
   }
   if (check && perimes.length) {

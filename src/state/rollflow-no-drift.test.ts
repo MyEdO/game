@@ -91,7 +91,7 @@ describe('Anti-dérive du système de jet — tout passe par la fabrique + les a
     // Preuve POSITIVE minimale : les atomes du système sont présents dans le registre des flux. Si un
     // refactor les retire au profit d'un recodage local, ce test tombe (avec les gardes ci-dessus).
     // `forcedTR` a REJOINT la liste depuis le balayage « zéro copie » : les littéraux TestResult de réussite
-    // forcée des flux opposés (attack/defense/counterspell/castOpposition/trample/maneuver) passent par l'atome.
+    // forcée des flux opposés (attack/defense/counterspell/castOpposition/maneuver) passent par l'atome.
     // `hydrateTR` a REJOINT la liste depuis la fermeture de la ré-hydratation (`{ …, isDouble: isDoubleRoll(X.roll) }`).
     const specs = readFileSync(join(STATE_DIR, 'rollFlowSpecs.ts'), 'utf8');
     for (const atom of ['bumpSL', 'bestForcedRoll', 'forcedTR', 'hydrateTR']) {

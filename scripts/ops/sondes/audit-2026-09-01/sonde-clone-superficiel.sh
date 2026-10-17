@@ -2,7 +2,7 @@
 # SONDE (dépôt JETABLE, lecture seule sur l'arbre) — les mesures d'HISTOIRE de `test:hooks`
 # survivent-elles au clone SUPERFICIEL que produit `actions/checkout` sans `fetch-depth` ?
 # Deux d'entre elles lisent l'histoire : le cas fondateur « corrigé par 4d6e1ff78 » du solde #584
-# (scripts/hooks/solde-ticket-guard.test.mjs) et le cliquet des fermetures sans solde
+# (scripts/git-hooks/porte-du-commit.test.mjs) et le cliquet des fermetures sans solde
 # (scripts/hooks/fermetures-sans-solde.test.mjs). On reproduit ce que le runner obtient.
 # Un test ne clone pas : cette vérification vit ici, la CI porte `fetch-depth: 0` et les deux tests
 # refusent NOMMÉMENT un dépôt superficiel.

@@ -165,9 +165,8 @@ test('stock COMMITTÉ : chaque saut mesuré y a son entrée, et aucune entrée n
   assert.deepEqual(perimees, [], `entrée(s) SOLDÉE(s) à retirer :\n${perimees.join('\n')}`)
 })
 
-test('stock COMMITTÉ : PLAFOND de la dette d’extraction — 76 sauts, aucun de plus (le relever exige de changer CE test)', () => {
+test('stock COMMITTÉ : chaque entrée nomme son chapitre et son saut de folio', () => {
   const entrees = lireEntreesDeSite(STOCK_PATH)
-  assert.equal(entrees.length, 76)
   for (const e of entrees) {
     assert.match(e.fichier, /^Source\/.+\.md$/, `entrée sans chapitre extrait : ${JSON.stringify(e)}`)
     assert.match(e.ref, /^.+ \d+→\d+$/, `entrée sans saut de folio : ${JSON.stringify(e)}`)

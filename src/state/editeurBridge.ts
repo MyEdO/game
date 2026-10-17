@@ -13,6 +13,9 @@
  * `fermerMenuFichier` n'est publiée QUE tant que le menu fichier est ouvert : sa PRÉSENCE est ce qui
  * arbitre Échap (fermer le menu d'abord, désélectionner ensuite) — aucun état dupliqué.
  */
+import type { Condition } from '../engine/flowCore';
+import type { CellSide } from './scene';
+
 export interface CommandesEditeur {
   /** Rotation caméra de l'éditeur, d'un quart de tour (`-1` = anti-horaire). */
   tourner: (dir: 1 | -1) => void;
@@ -39,10 +42,12 @@ export interface CommandesEditeur {
   ouvrir: (id: string) => string;
   /**
    * Pose un patch PARTIEL sur une entité de la scène ouverte — SETUP de recette (#877) : une clé à
-   * `undefined` vaut ABSENTE, ce qui permet de fabriquer un état que le schéma refuse
-   * (« décor sans type ») pour éprouver une porte. Rend `✓ …` ou `✗ « id » introuvable — …` avec les
-   * ids de la scène. Même régime qu'`ouvrir` : les arguments sont une INTENTION (« patche CETTE
-   * entité ainsi »), aucun état de l'éditeur ne REMONTE par le pont.
+   * `undefined` vaut ABSENTE. Le patch passe la porte d'authoring (`state/sceneEdit.ts:editEntity`) :
+   * retirer le TYPE d'une entité (`PORTEURS_DU_TYPE`) y est refusé (#1882) ; l'état que le schéma
+   * refuse se fabrique par un type INCONNU du catalogue (`ref` absent de `props.json`). Rend `✓ …` ou
+   * `✗ …` (entité introuvable avec les ids de la scène, clé d'identité, type retiré). Même régime
+   * qu'`ouvrir` : les arguments sont une INTENTION (« patche CETTE entité ainsi »), aucun état de
+   * l'éditeur ne REMONTE par le pont.
    */
   patcherEntite: (entityId: string, patch: Record<string, unknown>) => string;
   /**
@@ -54,7 +59,29 @@ export interface CommandesEditeur {
    * qu'on puisse muter à distance), pas le diagnostic.
    */
   listerEntites: () => { id: string; kind: string; ref?: string; pos: { x: number; y: number; z?: number } }[];
+  /**
+   * LECTURE du brouillon de carte du monde — OBSERVATION de recette (#2306) : `null` si le projet
+   * ouvert n'en porte aucune. Même contrat qu'`listerEntites` : une COPIE détachée des champs
+   * d'identification et de gating, jamais la `WorldMap` de l'éditeur.
+   */
+  lireCarteDuMonde: () => CarteDuMondeLue | null;
+  /**
+   * Point ÉCRAN (coordonnées client) du milieu de l'arête `dir` de la case (x, y) à l'étage `z`, par la
+   * projection de la vue de l'éditeur (rotation, plan/iso, zoom, panoramique) — OBSERVATION de recette
+   * (#2404) : où cliquer pour que l'outil murs résolve CETTE arête. `null` si le canevas n'est pas monté.
+   * L'arête et l'étage sont des arguments d'INTENTION ; seul un point d'écran remonte.
+   */
+  positionEcranArete: (x: number, y: number, z: number, dir: CellSide) => { x: number; y: number } | null;
   fermerMenuFichier: () => void;
+}
+
+/** Ce que `lireCarteDuMonde` rend : lieux et routes par id, avec leur `when` (et le `refus` d'une
+ *  route gatée, `Praticabilite`). */
+export interface CarteDuMondeLue {
+  id: string;
+  label: string;
+  lieux: { id: string; label: string; scene: string; pos: { x: number; y: number }; when?: Condition }[];
+  routes: { id: string; a: string; b: string; km: number; when?: Condition; refus?: string }[];
 }
 
 export const editeur: Partial<CommandesEditeur> = {};

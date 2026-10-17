@@ -11,6 +11,6 @@ test('résout le credo depuis le script, indépendamment du cwd', async () => {
   await mkdir(join(root, '.codex'), { recursive: true });
   await writeFile(join(root, '.codex/credo.md'), 'Credo Codex\n');
   let value = '';
-  await injectProjectCredo('codex', scriptUrl.href, { write: (chunk) => { value += chunk; } });
+  await injectProjectCredo('codex', scriptUrl.href, { write: (chunk) => { value += chunk; } }, { env: {} });
   assert.equal(value, 'Credo Codex\n');
 });

@@ -9,8 +9,8 @@
 // Le discriminant est la FRONTIÈRE lue dans chaque côté (`coteCss`, `cssImages.mjs`) — manifeste,
 // `FEUILLES_PARTAGEES`, `fichier`s réutilisés —, jamais le libellé `nature` qu'un commit écrit lui-même.
 //
-// FRONTIÈRE : cette lib CALCULE ; le VERDICT appartient aux appelants — le garde de solde au commit
-// (`scripts/hooks/solde-ticket-guard.mjs`), la porte de plage au push (`plageStock.mjs`), chaque
+// FRONTIÈRE : cette lib CALCULE ; le VERDICT appartient aux appelants — la porte du commit
+// (`scripts/git-hooks/porte-du-commit.mjs`), la porte de plage au push (`plageStock.mjs`), chaque
 // commit contre sa base (#1806 D3″).
 import {
   CHEMIN_COUCHES, CHEMIN_MANIFESTE, RACINE_DES_MODULES, manifesteDe, modulesDePrimitive, modulesExemptes, ventiler,
@@ -52,12 +52,14 @@ export function franchisDesCotes(base, commit) {
  * compris : l'ordre de repli de `resolveImport` (`importGraph.mjs`) peut alors faire changer de cible un
  * import que rien ne réécrit ; ou un module de `src/` qu'il touche n'importe pas les mêmes `fichier`s
  * du manifeste dans la base et au commit (`importsDansLArbre`, chaque côté résolu dans son arbre). Le manifeste
- * est celui de la base ; `nesOuMorts` et les côtés ne sont lus qu'à défaut des chemins.
+ * est celui de la base ; `nesOuMorts` et les côtés ne sont lus qu'à défaut des chemins ; `specificateurs` sont les
+ * mémos d'analyse (`memosDAnalyse`).
  * @param {{ chemins: Iterable<string>, nesOuMorts: () => readonly string[],
- *   base: import('./cssImages.mjs').SourceCss, commit: import('./cssImages.mjs').SourceCss, racine?: string }} p
+ *   base: import('./cssImages.mjs').SourceCss, commit: import('./cssImages.mjs').SourceCss, racine?: string,
+ *   specificateurs?: import('./memosDAnalyse.mjs').Specificateurs }} p
  * @returns {boolean}
  */
-export function deplaceLaFrontiere({ chemins, nesOuMorts, base, commit, racine = '.' }) {
+export function deplaceLaFrontiere({ chemins, nesOuMorts, base, commit, racine = '.', specificateurs }) {
   const touches = [...chemins]
   if (touches.some((f) => f === CHEMIN_COUCHES || f === CHEMIN_MANIFESTE || f === CHEMIN_TSCONFIG)) return true
   const manifeste = manifesteDe(base.lire(CHEMIN_MANIFESTE))
@@ -67,7 +69,7 @@ export function deplaceLaFrontiere({ chemins, nesOuMorts, base, commit, racine =
   const modules = touches.filter((f) => f.startsWith(`${RACINE_DES_SOURCES}/`) && estModule(f))
   if (!modules.length) return false
   const fichiers = new Set(manifeste.flatMap(({ fichier }) => (typeof fichier === 'string' ? [fichier] : [])))
-  const arcs = (cote) => importsDansLArbre(cote, modules, { racine }).map(([, cibles]) => cibles.filter((c) => fichiers.has(c)).sort().join('\n'))
+  const arcs = (cote) => importsDansLArbre(cote, modules, { racine, specificateurs }).map(([, cibles]) => cibles.filter((c) => fichiers.has(c)).sort().join('\n'))
   const deBase = arcs(base)
   const duCommit = arcs(commit)
   return deBase.some((a, i) => a !== duCommit[i])

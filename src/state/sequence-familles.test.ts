@@ -66,9 +66,17 @@ describe('Famille (6) — phases (mi-temps)', () => {
 interface JoutePayload { lices: string[]; passes: number[] }
 
 const JOUTE = 'test-tournoi-joute';
+
+declare module './sequenceContract' {
+  interface SequenceFamilies {
+    [JOUTE]: JoutePayload;
+    'test-joute-borne-attrition': JoutePayload;
+    'test-joute-sans-fin': JoutePayload;
+  }
+}
 const passes: number[] = [];
 
-registerSequence<JoutePayload>(JOUTE, {
+registerSequence(JOUTE, {
   round: (get, seq): SequenceRound<JoutePayload> | undefined => {
     const h = get().party[0];
     if (!h) return undefined;
@@ -172,7 +180,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
   /** Même invariant à la BORNE : une séquence qui s'arrête faute de conclusion s'arrête AUSSI sur une
    *  manche qui ne « passe » plus — l'attrition ne la frappe pas non plus. */
   it('la manche de BORNE n’inflige pas non plus l’attrition', () => {
-    registerSequence<JoutePayload>('test-joute-borne-attrition', {
+    registerSequence('test-joute-borne-attrition', {
       round: (get, seq) => {
         const h = get().party[0];
         passes.push(seq.round);
@@ -216,7 +224,7 @@ describe('la BORNE tient compte des phases déclarées', () => {
   });
 
   it('un réducteur qui ne conclut JAMAIS s’arrête quand même au total des phases', () => {
-    registerSequence<JoutePayload>('test-joute-sans-fin', {
+    registerSequence('test-joute-sans-fin', {
       round: (get, seq) => {
         const h = get().party[0];
         passes.push(seq.round);

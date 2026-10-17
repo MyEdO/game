@@ -24,8 +24,8 @@ function construireScene(): Scene {
     terrain: 'planches',
     heroStart: [2, 3],
     startMessage:
-      'Un habitué de la salle, coude sur la table, vous toise. Parlez-lui : il propose un bras de fer, ' +
-      'et il joue de sa fiche — le profil standard Humain (LDB 77).',
+      { texte: 'Un habitué de la salle, coude sur la table, vous toise. Parlez-lui : il propose un bras de fer, ' +
+      'et il joue de sa fiche — le profil standard Humain (LDB 77).' },
     entities: [
       {
         id: 'habitue-bras-de-fer',

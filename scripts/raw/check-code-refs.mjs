@@ -1,8 +1,9 @@
 // Garde de cohérence des lignes citées par le CODE (suite #434/#487, prévention).
 // `check-refs.mjs` borne les réfs des DOCS (docs/raw) ; rien ne couvrait celles du CODE — vécu :
 // `LDB 60 l.92` cité dans un chapitre de 62 lignes. Ici : pour chaque réf `<ABRÉV> NN l.X[-Y|+n…]`
-// de `src/**` (.ts/.tsx/.json, hors node_modules, hors `src/gameIso/rig/parts/tenues/defs/` — même
-// périmètre que le générateur `build-implemente`), résout le fichier-chapitre (`chapterFile`, _lib.mjs)
+// des CITANTS (`RACINES_CITANTES`, `lib/fichiersCitants.mjs`, hors node_modules, hors
+// `src/gameIso/rig/parts/tenues/defs/` comme le générateur `build-implemente`), résout le
+// fichier-chapitre (`chapterFile`, _lib.mjs)
 // et signale la réf dont la borne haute dépasse le nombre de lignes du chapitre, OU dont le chapitre
 // est introuvable. Regex de réfs RÉUTILISÉE (`refRe`/`span`/`bookOf`) — jamais réécrite.
 // Cliquet NOMINATIF (`scripts/raw/dead-code-refs-stock.json`, écart calculé par `ecartDuVolet` de
@@ -26,9 +27,8 @@ import { fileURLToPath } from 'node:url'
 import { refRe, span, chapterFile, bookOf, readText } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
-import { fichiersCitants } from './lib/fichiersCitants.mjs'
+import { RACINES_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 
-export const SRC_DIR = 'src'
 export const EXCLUDE_SRC_PREFIX = 'src/gameIso/rig/parts/tenues/defs/' // art de couverture, pas une règle (cf. build-implemente)
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'dead-code-refs-stock.json')
 export const EMPTY_LINE_STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'empty-line-code-refs-stock.json')
@@ -60,12 +60,12 @@ function lineCount(path) {
 
 export const isExcludedSrc = (rel) => rel.startsWith(EXCLUDE_SRC_PREFIX)
 
-/** Parcourt `srcDir` (src/ par défaut) et retourne les réfs mortes du code :
+/** Parcourt `racines` (`RACINES_CITANTES` par défaut) et retourne les réfs mortes du code :
  *  `{ file, row, ref, abbr, nn, hi, kind, chapterLines?, chapterFile? }`.
  *  `kind` ∈ `out-of-bounds` (chapitre résolu, ligne hors borne) | `chapter-not-found` (chapitre absent). */
-export function scanDeadCodeRefs(srcDir = SRC_DIR) {
+export function scanDeadCodeRefs(racines = RACINES_CITANTES) {
   const dead = []
-  for (const f of fichiersCitants(srcDir)) {
+  for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
     if (isExcludedSrc(rel)) continue
     const lines = readFileSync(f, 'utf8').split('\n')
@@ -87,13 +87,13 @@ export function scanDeadCodeRefs(srcDir = SRC_DIR) {
   return dead
 }
 
-/** Parcourt `srcDir` et retourne les réfs dont la ligne (ou TOUTE la plage) citée est VIDE dans le
+/** Parcourt `racines` et retourne les réfs dont la ligne (ou TOUTE la plage) citée est VIDE dans le
  *  chapitre résolu : `{ file, row, ref, abbr, nn, lo, hi, chapterFile }`. Une réf dans les bornes qui
  *  tombe sur du blanc ne cite RIEN — symptôme d'une dérive de lignes (ré-extraction, restitution de
  *  folio). Les réfs hors borne / à chapitre introuvable sont l'affaire de `scanDeadCodeRefs`. */
-export function scanEmptyLineCodeRefs(srcDir = SRC_DIR) {
+export function scanEmptyLineCodeRefs(racines = RACINES_CITANTES) {
   const vides = []
-  for (const f of fichiersCitants(srcDir)) {
+  for (const f of fichiersCitants(racines)) {
     const rel = f.split('\\').join('/')
     if (isExcludedSrc(rel)) continue
     const lines = readFileSync(f, 'utf8').split('\n')
@@ -121,21 +121,21 @@ export const sitesDeCode = (refs) => refs.map(({ file, ref }) => ({ file, ref })
 const QUOI = {
   mortes:
     'Réfs MORTES du CODE (`scripts/raw/check-code-refs.mjs`, #434 #487) : une réf `<ABRÉV> NN l.X[-Y|+n…]` ' +
-    'des citants de `src/**` dont la borne haute dépasse le nombre de lignes du chapitre résolu, ou dont ' +
+    'des citants (`RACINES_CITANTES`, scripts/raw/lib/fichiersCitants.mjs) dont la borne haute dépasse le nombre de lignes du chapitre résolu, ou dont ' +
     'le chapitre est introuvable. Une ENTRÉE par SITE, clé `fichier :: ref :: occurrence` (régime #1711) ; ' +
-    '`fichier` = le fichier de `src/` qui cite, `ref` = la réf, borne haute comprise. Une entrée se solde ' +
+    '`fichier` = le fichier citant, `ref` = la réf, borne haute comprise. Une entrée se solde ' +
     'en lisant le `Source/` et en réancrant la réf ; le fichier se régénère par ' +
     '`npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-code-refs.mjs`, et un solde total le retire.',
   vides:
     'Réfs du CODE sur une ligne VIDE (`scripts/raw/check-code-refs.mjs`, #1457) : une réf dans les bornes ' +
     'de son chapitre dont la ligne (ou toute la plage) citée est blanche. Une ENTRÉE par SITE, clé ' +
-    '`fichier :: ref :: occurrence` (régime #1711) ; `fichier` = le fichier de `src/` qui cite, `ref` = la ' +
+    '`fichier :: ref :: occurrence` (régime #1711) ; `fichier` = le fichier citant, `ref` = la ' +
     'réf. Une entrée se solde en lisant le `Source/` et en repointant la réf ; le fichier se régénère par ' +
     '`npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-code-refs.mjs`, et un solde total le retire.',
 }
 
 /** Les RÉGÉNÉRATIONS des deux stocks (`RegenerationDeStock`, `stockDeSites.mjs`), sur des réfs mortes
- *  et des réfs sur ligne vide (par défaut, celles de `src/**`). */
+ *  et des réfs sur ligne vide (par défaut, celles des `RACINES_CITANTES`). */
 export const regenerations = (mortes = scanDeadCodeRefs(), vides = scanEmptyLineCodeRefs()) => [
   { chemin: STOCK_PATH, politique: SOUS_LOT, horsCollections: QUOI.mortes, collections: [{ nom: 'entrees', sites: sitesDeCode(mortes) }] },
   { chemin: EMPTY_LINE_STOCK_PATH, politique: SOUS_LOT, horsCollections: QUOI.vides, collections: [{ nom: 'entrees', sites: sitesDeCode(vides) }] },

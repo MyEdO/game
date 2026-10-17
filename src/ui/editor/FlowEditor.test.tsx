@@ -37,7 +37,7 @@ describe('FlowEditor — menu « + Bloc » : effets, condition et test', () => {
   it('propose les nœuds logiques (si / test) ET les feuilles d’effet', async () => {
     const { container } = monterRacine(<FlowEditor flow={EMPTY_FLOW} onChange={() => {}} ctx={ctx} />);
     const menu = await ouvrirMenu(menuDe(container, '+ Bloc'));
-    for (const libelle of ['Condition (si…)', 'Test de compétence', 'Journal']) {
+    for (const libelle of ['Condition (si…)', 'Test de compétence', 'Choix du joueur', 'Journal']) {
       expect(entreeDe(menu, libelle), libelle).toBeDefined();
     }
   });

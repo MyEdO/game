@@ -3,7 +3,7 @@ export interface EcartsDeStock {
   neuves: string[];
   /** Clés du STOCK que l'observé ne porte plus (décorées par `remede.perimee`). */
   perimees: string[];
-  /** Clés DISTINCTES du stock — le plafond, lui, reste au test. */
+  /** Clés DISTINCTES du stock. */
   taille: number;
 }
 
@@ -43,6 +43,8 @@ export type Site = { [C in (typeof CHAMPS_DE_SITE_OBSERVE)[number]]: string };
 export type Echeance = { [C in (typeof CHAMPS_D_ECHEANCE)[number]]: string };
 
 export function cleDeSite(e: EntreeDeSite): string;
+export function cleDeContenu(rel: string, texte: string, ligne: number): string;
+export function lignesDuContenu(rel: string, texte: string, cle: string): number[];
 export function groupeDeSite(e: EntreeDeSite): string;
 export function estEntreeDeSite(e: unknown): e is EntreeDeSite;
 
@@ -61,6 +63,7 @@ export function ecartDuVolet(p: {
   sites: readonly Site[];
   stock: Iterable<Partial<EntreeDeSite>>;
   ou?: string;
+  remede?: { neuve?: (cle: string, entree: EntreeDeSite) => string };
 }): EcartsDeStock;
 
 export function nombresAccrus(observe: Iterable<object>, stock: Iterable<object>, ou?: string): string[];

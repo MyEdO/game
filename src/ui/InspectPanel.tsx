@@ -12,7 +12,7 @@ import { combatantSections, proseDeFiche } from './compendium/registry';
 import { Tabs } from './Tabs';
 import { EffectChips } from './EffectChips';
 import { isFrenzied } from '../engine/psychology';
-import { isVehicle } from '../engine/vehicle';
+import { isVehicle } from '../engine/coque';
 import { isEngin } from '../engine/structures';
 import { ShipInspectBody } from './ShipSheet';
 import { Icon } from './Icon';

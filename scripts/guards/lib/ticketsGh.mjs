@@ -26,7 +26,7 @@
 // Aucune FERMETURE ici. Le dépôt en compte DEUX sites, recensés et déclarés par
 // `sitesDeFermeture.mjs` : `fermer-depuis-main.mjs` pour les tickets SOLDÉS du job `fermetures`, et
 // `signaler-rouge.mjs` pour la survivante d'un signalement de course rouge. Le premier porte le geste
-// que la porte de commit impose, et il n'est hors de portée d'un tiers que parce qu'il est une
+// que la porte du commit impose, et il n'est hors de portée d'un tiers que parce qu'il est une
 // FEUILLE que rien n'importe (`modulesFeuilles.mjs`) : le vocabulaire de lecture d'une plage fermante
 // vit dans `plageFermante.mjs`, et le cliquet « le train n'importe pas le module qui FERME »
 // (`publier.test.mjs`) le mesure. Un cliquet qui ne lirait que des argv littéraux serait aveugle à
@@ -81,6 +81,10 @@ export const appelGhRunner = ({ cwd, maxBuffer = 64 * 1024 * 1024, executer = ex
     return { ok: false, ...(String(err?.stdout ?? '').length === 0 ? {} : { stdout: String(err.stdout) }), raison: String(err?.stderr || err?.message || err).trim().slice(0, BORNE_RAISON) }
   }
 }
+
+/** L'entrée d'une liste `repos/<o>/<r>/issues` est-elle une PULL REQUEST ? La route sert AUSSI les PR,
+ *  qui portent le champ `pull_request` ; un ticket ne le porte jamais. PUR. @param {unknown} entree */
+export const estPullRequest = (entree) => Boolean(entree?.pull_request)
 
 /** Route REST d'un ticket. @param {string} depot `<owner>/<repo>` @param {string|number} numero */
 export const cheminTicket = (depot, numero) => `repos/${depot}/issues/${numero}`
@@ -150,7 +154,7 @@ export function lireTicket({ depot, numero, appel }) {
     return { ok: false, raison: `réponse gh illisible (${e.message})` }
   }
   // La route `/issues/<n>` sert AUSSI les pull requests : la refuser AVANT toute lecture.
-  if (issue?.pull_request) return { ok: false, raison: `#${numero} est une pull request, pas un ticket` }
+  if (estPullRequest(issue)) return { ok: false, raison: `#${numero} est une pull request, pas un ticket` }
   const pages = pagesRest(`${chemin}/comments`, appel)
   if (!pages.ok) return { ok: false, raison: pages.raison }
   return {

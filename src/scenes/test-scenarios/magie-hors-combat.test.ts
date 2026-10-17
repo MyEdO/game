@@ -25,7 +25,7 @@ describe('Scénario Magie hors combat', () => {
     expect(layerTiles(scene, 0).every((t) => t === 'herbe')).toBe(true); // remplissage plat par défaut
     expect(scene.entities.find((e) => e.kind === 'heroStart')?.pos).toEqual({ x: 2, y: 4 });
     expect(scene.encounters).toHaveLength(0); // pas de rencontre : exploration pure
-    expect(scene.startMessage).toContain('Exploration');
+    expect(scene.startMessage?.texte).toContain('Exploration');
   });
 
   it('le Sorcier maîtrise l’incantation et la Focalisation, et connaît un Sort d’Arcane focalisable', () => {

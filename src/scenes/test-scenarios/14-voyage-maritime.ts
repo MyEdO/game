@@ -1,9 +1,9 @@
-import { createHero, skillCharacteristicById } from '../../engine/character';
+import { createHero } from '../../engine/character';
 import { itemFromTrappingById } from '../../engine/items';
-import type { Combatant, SkillInstance } from '../../engine/types';
+import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../state/mapSpec';
 import type { WorldMap } from '../../state/worldMap';
-import type { TestScenario } from './_shared';
+import { renforcerCompetence, type TestScenario } from './_shared';
 import type { Scene } from '../../state/scene';
 import { rigSpeciesId } from '../../data';
 
@@ -16,47 +16,39 @@ import { rigSpeciesId } from '../../data';
  * réparer/caréner/commerce). L'équipage = les PJ (MDG 14 l.39), chacun tenant son RÔLE.
  */
 
-/** Ajoute/renforce une Compétence sur un héros, à la Caractéristique CANONIQUE de la Compétence (donnée). */
-function skill(c: Combatant, skillId: string, advances: number, spec?: string): void {
-  const characteristic = skillCharacteristicById(skillId);
-  const ex = c.skills.find((s) => s.id === skillId && s.spec === spec);
-  if (ex) ex.advances = Math.max(ex.advances, advances);
-  else c.skills.push({ id: skillId, spec, characteristic, advances } as SkillInstance);
-}
-
 /** Quatre marins couvrant les RÔLES d'équipage essentiels des Tests de voyage (MDG 14) : Capitaine
  *  (Progression), Timonier/Mousse (Manœuvre/Affaler/Entretien), Navigateur (Orientation), Vigie
  *  (Perception au phare). `shipRole` ÉPINGLE le rôle de chacun pour un défaut d'équipage lisible. */
 function crew(): Combatant[] {
   const cap = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', seed: 4801, id: 'mar-cap' });
   cap.shipRole = 'capitaine';
-  skill(cap, 'commandement', 50);
-  skill(cap, 'voile', 40);
+  renforcerCompetence(cap, 'commandement', 50);
+  renforcerCompetence(cap, 'voile', 40, 'cogue');
   cap.items = [...(cap.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
   cap.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   const timo = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', seed: 4802, id: 'mar-timo' });
   timo.shipRole = 'timonier';
-  skill(timo, 'voile', 55);
-  skill(timo, 'ramer', 45);
-  skill(timo, 'metier', 40, 'Charpentier'); // entretien de la coque au soir
+  renforcerCompetence(timo, 'voile', 55, 'cogue');
+  renforcerCompetence(timo, 'ramer', 45);
+  renforcerCompetence(timo, 'metier', 40, 'charpentier'); // entretien de la coque au soir
   timo.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
   const navi = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Navigateur Ansmann', motivation: 'Test', seed: 4803, id: 'mar-navi' });
   navi.shipRole = 'navigateur';
-  skill(navi, 'orientation', 55);
-  skill(navi, 'savoir', 40, 'oceans'); // bonus d'Orientation au phare (MDG 13 l.335)
+  renforcerCompetence(navi, 'orientation', 55);
+  renforcerCompetence(navi, 'savoir', 40, 'oceans'); // bonus d'Orientation au phare (MDG 13 l.335)
   // Astromancien de bord (Magie des mers, MDG 02 l.176) : lance Bienfait de Bel Shanaar (Domaine des
   // Cieux, MDG 02 l.238) en mer — +2 DR aux Tests d'Orientation qui l'impliquent (Test d'équipage compris).
-  skill(navi, 'langue', 40, 'magick');
-  skill(navi, 'focalisation', 40);
+  renforcerCompetence(navi, 'langue', 40, 'magick');
+  renforcerCompetence(navi, 'focalisation', 40, 'cieux');
   navi.spells = ['bienfait-de-bel-shanaar'];
   navi.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.48 };
 
   const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Vigie Perla', motivation: 'Test', seed: 4804, id: 'mar-vigie' });
   vigie.shipRole = 'vigie';
-  skill(vigie, 'perception', 55);
-  skill(vigie, 'voile', 35);
+  renforcerCompetence(vigie, 'perception', 55);
+  renforcerCompetence(vigie, 'voile', 35, 'cogue');
   vigie.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.4 };
 
   return [cap, timo, navi, vigie];
@@ -72,12 +64,12 @@ const construireDepart = (): Scene => buildScene({
   heroStart: [3, 4],
   weather: 'brouillard',
   startMessage:
-    'Le capitaine Brenner arpente le pont de la cogue. « Cap sur Marienburg, plusieurs jours de mer nous attendent. ' +
+    { texte: 'Le capitaine Brenner arpente le pont de la cogue. « Cap sur Marienburg, plusieurs jours de mer nous attendent. ' +
     'Chacun tient son poste : au vent et à la Progression, à l’Orientation, à l’entretien de la coque — elle a pris ' +
     'l’eau à Salzenmund, alors on la choie chaque soir. Vigie, ouvre l’œil dès qu’on approche : le phare de Marienburg ' +
     'annoncera la côte. Une fois à quai, on répare et on commerce au Grand Port. » Le Navigateur, qui sert aussi ' +
     'd’astromancien de bord, sait invoquer le Bienfait de Bel Shanaar pour affiner sa route en mer. (Ouvrez la carte ' +
-    'du monde pour appareiller vers Marienburg.)',
+    'du monde pour appareiller vers Marienburg.)' },
 });
 
 const construireArrivee = (): Scene => buildScene({
@@ -88,9 +80,9 @@ const construireArrivee = (): Scene => buildScene({
   terrain: 'planches',
   heroStart: [3, 4],
   startMessage:
-    'Marienburg, au bout de la traversée. Un maître de port vous hèle depuis le quai : « Charpentiers et calfats sont ' +
+    { texte: 'Marienburg, au bout de la traversée. Un maître de port vous hèle depuis le quai : « Charpentiers et calfats sont ' +
     'là pour la coque (1 CO la Blessure), le carénage débarrasse la coque de ses Salissures, et le grand marché ' +
-    'cosmopolite achète comme il vend. » (Ouvrez l’écran Port depuis la scène ; reprenez la carte du monde pour repartir.)',
+    'cosmopolite achète comme il vend. » (Ouvrez l’écran Port depuis la scène ; reprenez la carte du monde pour repartir.)' },
 });
 
 // ── Carte du monde : une seule route, MARITIME (milles), avec phare à l'arrivée ──

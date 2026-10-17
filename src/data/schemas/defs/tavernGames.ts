@@ -1,13 +1,5 @@
-/**
- * Schéma de `tavernGames.json` — Jeux de taverne (Nuits agitées & dures journées, ch.16), consommé
- * par `src/engine/tavernGame.ts` (type `TavernGame`, 13 entrées réelles). `skill` = référence de
- * Compétence (`{ id, spec? }`), ABSENTE quand le jeu n'en indique aucune (→ Pari, `NADJ 16 l.11`).
- * `characteristic` réutilise l'enum `CharKey` du moteur (`src/engine/types.ts`).
- *
- * `desc` = la règle RECOPIÉE (CLAUDE.md règle 5), Markdown de la source compris. Un paragraphe que
- * l'extraction coupe sur une frontière de page est RECOLLÉ par-dessus son ancre de folio — aucun
- * caractère n'est réécrit (garde : `src/data/tavern-desc-verbatim.test.ts`).
- */
+import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+/** NADJ 16 l.11 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { difficultySchema, plageSchema } from '../grammaire/valeurs';
@@ -35,18 +27,16 @@ const doc = document(
   {
     skill: refOuSpec('skill').optional(),
     characteristic: charKeySchema.optional(),
-    /** RÉGIME RAPIDE (règle optionnelle `tavern-games-rapides`) — le Test qu'il joue pour CETTE
-     *  entrée, quand la table veut autre chose que la lettre. DÉFAUT (absent) = `NADJ 16 l.11` mot à
-     *  mot : « la Compétence indiquée dans la section "Jeu" […] Si aucune Compétence n'est indiquée
-     *  […] Pari ». Une section « Jeu » qui n'indique qu'une CARACTÉRISTIQUE (Bras de fer l.34 : « un
-     *  Test opposé étendu de Force ») tombe donc sur Pari par défaut ; jouer la Force à sa place est
-     *  une lecture d'ESPRIT — elle s'écrit ICI, en donnée éditable et taguée maison, jamais en
-     *  arbitrage de code qui dévierait du verbatim. */
-    fastSkill: z.strictObject({
+    /** NADJ 16 l.11 */
+    fastSkill: nommerChamps(z.strictObject({
       skill: refOuSpec('skill').optional(),
       char: charKeySchema.optional(),
       /** Tag MAISON obligatoire : cet override n'est pas dans la source. */
       maison: z.string(),
+    }), {
+      skill: { label: 'Compétence' },
+      char: { label: 'Caractéristique' },
+      maison: { label: 'Arbitrage maison' },
     }).optional(),
     /** Absent quand le jeu ne se résout pas au Test : l'Al-zahr est un jeu de MISE (`pot`). */
     mode: z.enum(['opposed', 'extended']).optional(),
@@ -60,52 +50,66 @@ const doc = document(
     drBonus: charKeySchema.optional(),
     /** Effets PAR MANCHE en `GameOp[]` (Bras de fer l.34-35 : +1 Avantage au vainqueur du tour,
      *  +1 Exténué tous les (Bonus d'Endurance) tours) — `SequenceParams.rounds`. */
-    roundOps: z.strictObject({
+    roundOps: nommerChamps(z.strictObject({
       winner: z.array(gameOpSchema).optional(),
       attrition: z.array(gameOpSchema).optional(),
-      attritionEvery: z.union([z.number(), z.strictObject({ charBonus: charKeySchema })]).optional(),
+      attritionEvery: z.union([z.number(), nommerChamps(z.strictObject({ charBonus: charKeySchema }), { charBonus: { label: 'Bonus de Caractéristique' } })]).optional(),
+    }), {
+      winner: { label: 'Vainqueur' },
+      attrition: { label: 'Attrition' },
+      attritionEvery: { label: 'Fréquence d’attrition' },
     }).optional(),
     /** Effectif RAW d'un camp d'un jeu d'ÉQUIPE (Middenball l.119 : 11 par équipe) — le groupe le
      *  complète de figurants (`src/state/tavernFlow.ts`). */
-    team: z.strictObject({ size: z.number() }).optional(),
+    team: nommerChamps(z.strictObject({ size: z.number() }), { size: { label: 'Taille' } }).optional(),
     /** FORME d'un tour (capacité DÉCLARÉE, jamais déduite d'un effectif) : `team` = tous testent et on
      *  somme par équipe (Middenball l.121) ; `thrower` = un tour, un lanceur (Torchon l.111). */
     roundShape: z.enum(['team', 'thrower', 'pot', 'volley']).optional(),
     /** Options de Test d'une manche (Middenball l.121 : Bagarre (+20) OU Athlétisme (+0)) — le choix
      *  va au joueur ; la 1ʳᵉ option est celle que suivent les porteurs sans siège et les figurants. */
-    options: z.array(z.strictObject({
+    options: z.array(nommerChamps(z.strictObject({
       skill: refOuSpec('skill').optional(),
       char: charKeySchema.optional(),
       difficulty: difficultySchema,
-      /** Test de COMBAT : l'Avantage s'y applique (« +10 à un Test de Combat ou de Psychologie
-       *  approprié », LDB 14 l.215) — consommé par `src/state/tavernFlow.ts`. */
+      /** LDB 14 l.215 */
       combatTest: z.boolean().optional(),
+    }), {
+      skill: { label: 'Compétence' },
+      char: { label: 'Caractéristique' },
+      difficulty: { label: 'Difficulté' },
+      combatTest: { label: 'Test de combat' },
     })).optional(),
     /** Formule de score d'un CAMP (`registerSequenceScore` : `sum` pour une équipe, l.121). */
     campScore: z.enum(['min', 'max', 'sum', 'first']).optional(),
     /** Seuil d'un acquis de manche (Middenball l.121 : but à 25 DR d'équipe). */
     scoreThreshold: z.number().optional(),
     /** Mi-temps (Middenball l.121 : deux mi-temps de trois tours). */
-    phases: z.strictObject({ count: z.number(), rounds: z.number() }).optional(),
+    phases: nommerChamps(z.strictObject({ count: z.number(), rounds: z.number() }), { count: { label: 'Nombre' }, rounds: { label: 'Rounds' } }).optional(),
     /** Effectif du cercle qui esquive (Torchon l.109-111 : 11 danseurs, cible tirée au sort). */
     dancers: z.number().optional(),
     /** Table de score par plage de DR (Torchon l.111) — lue par `findTableEntry` via le socle. */
-    table: z.array(z.strictObject({
+    table: z.array(nommerChamps(z.strictObject({
       ...plageSchema.shape, points: z.number(), label: z.string(),
-    })).optional(),
+    }), { ...metaDesChamps(plageSchema, { exigees: true }), points: { label: 'Points' }, label: { label: 'Libellé' } })).optional(),
     /** VOLÉE de lancers (famille 7 du socle) : Bête l.42, Arène l.65, Fléchettes l.83, Boules l.57.
      *  `gain`/`critique`/`maladresse`/`depassement` nomment un effet de lancer ENREGISTRÉ
      *  (`registerSequenceThrow`, `src/state/sequenceCore.ts`), jamais un id de jeu. */
-    volley: z.strictObject({
+    volley: nommerChamps(z.strictObject({
       throws: z.number(),
       reserve: z.number().optional(),
       pick: z.enum(['reserve', 'choix']).optional(),
-      rows: z.array(z.strictObject({
+      rows: z.array(nommerChamps(z.strictObject({
         min: z.number().optional(),
         max: z.number().optional(),
         difficulty: difficultySchema.optional(),
         points: z.number().optional(),
         label: z.string(),
+      }), {
+        min: { label: 'Minimum' },
+        max: { label: 'Maximum' },
+        difficulty: { label: 'Difficulté' },
+        points: { label: 'Points' },
+        label: { label: 'Libellé' },
       })).optional(),
       gain: throwEffectSchema,
       critique: throwEffectSchema.optional(),
@@ -117,14 +121,27 @@ const doc = document(
       ordre: z.enum(['declare', 'tirage']).optional(),
       /** Unité de borne de la famille quand la règle ne fixe aucun terme (anti-boucle, pas une règle). */
       manchesBorne: z.number().optional(),
+    }), {
+      throws: { label: 'Lancers' },
+      reserve: { label: 'Réserve' },
+      pick: { label: 'Sélection' },
+      rows: { label: 'Rangées' },
+      gain: { label: 'Gain' },
+      critique: { label: 'Critique' },
+      maladresse: { label: 'Maladresse' },
+      depassement: { label: 'Dépassement' },
+      libre: { label: 'Libre' },
+      exact: { label: 'Résultat exact' },
+      manches: { label: 'Manches' },
+      ordre: { label: 'Ordre' },
+      manchesBorne: { label: 'Limite de manches' },
     }).optional(),
-    /** TEST COMBINÉ à conséquences distinctes (famille 9 du socle) — Cerevis l.97 : un seul dé, deux
-     *  lectures. `tours` est un ARBITRAGE MAISON ÉDITABLE (le RAW ne dit pas quand la partie s'arrête). */
-    combined: z.strictObject({
-      second: z.strictObject({
+    /** NADJ 16 l.97 */
+    combined: nommerChamps(z.strictObject({
+      second: nommerChamps(z.strictObject({
         skill: refOuSpec('skill').optional(),
         char: charKeySchema.optional(),
-      }),
+      }), { skill: { label: 'Compétence' }, char: { label: 'Caractéristique' } }),
       failEvery: z.number().optional(),
       eraseEvery: z.number().optional(),
       ops: z.array(gameOpSchema).optional(),
@@ -132,16 +149,24 @@ const doc = document(
       /** Id d'État (`etats.json`) dont l'apparition arrête la partie (l.88 « rouler sous la table »). */
       stopCondition: z.string().optional(),
       tours: z.number().optional(),
+    }), {
+      second: { label: 'Second Test' },
+      failEvery: { label: 'Fréquence d’échec' },
+      eraseEvery: { label: 'Fréquence d’effacement' },
+      ops: { label: 'Opérations' },
+      markLoser: { label: 'Marquer le perdant' },
+      stopCondition: { label: 'Condition d’arrêt' },
+      tours: { label: 'Tours' },
     }).optional(),
     /** SANCTION DU LANCEUR QUI MANQUE (famille 10 du socle) — Torchon l.111 : le Test que le raté
      *  impose, ce que son échec coûte au camp (`points`) et applique au lanceur (`ops`), et le prix
      *  du balayage final des trop sobres (`sobrietyPoints`). Consommée par
      *  `SequenceParams.throwerPenalty` (`src/state/sequenceCore.ts`). */
-    throwerPenalty: z.strictObject({
-      test: z.strictObject({
+    throwerPenalty: nommerChamps(z.strictObject({
+      test: nommerChamps(z.strictObject({
         skill: refOuSpec('skill').optional(),
         char: charKeySchema.optional(),
-      }),
+      }), { skill: { label: 'Compétence' }, char: { label: 'Caractéristique' } }),
       difficulty: difficultySchema,
       label: z.string().optional(),
       points: z.number().optional(),
@@ -149,41 +174,71 @@ const doc = document(
       sobrietyPoints: z.number().optional(),
       /** RÉCIT de la sanction (gabarits `{who}`/`{points}`/`{s}`/`{mien}`… interpolés par le socle) —
        *  sans eux, un second jeu à lanceurs raconterait la pinte du premier. */
-      lines: z.strictObject({
+      lines: nommerChamps(z.strictObject({
         manque: z.string().optional(),
         reussite: z.string().optional(),
         echec: z.string().optional(),
         balayage: z.string().optional(),
+      }), {
+        manque: { label: 'Manque' },
+        reussite: { label: 'Réussite' },
+        echec: { label: 'Échec' },
+        balayage: { label: 'Balayage' },
       }).optional(),
+    }), {
+      test: { label: 'Test' },
+      difficulty: { label: 'Difficulté' },
+      label: { label: 'Libellé' },
+      points: { label: 'Points' },
+      ops: { label: 'Opérations' },
+      sobrietyPoints: { label: 'Points de sobriété' },
+      lines: { label: 'Lignes' },
     }).optional(),
     /** Unité de ce que le jeu compte, au pluriel (affichage : « quilles », « points »…). */
     scoreUnit: z.string().optional(),
     /** CAMPS ASYMÉTRIQUES (famille 8 du socle) — Alvatafl l.27-28 : chaque camp convertit son total en
      *  prises sur l'adversaire (`div`), et sa victoire au Critique se lit au dé des unités (`mult`). */
-    sides: z.array(z.strictObject({
+    sides: z.array(nommerChamps(z.strictObject({
       id: z.string(),
       label: z.string(),
       pieces: z.number(),
       div: z.number(),
       mult: z.number(),
+    }), {
+      id: { label: 'Identifiant' },
+      label: { label: 'Libellé' },
+      pieces: { label: 'Pièces' },
+      div: { label: 'Diviseur' },
+      mult: { label: 'Multiplicateur' },
     })).optional(),
     /** MISE / POT / ABANDON / ÉLIMINATION (Al-zahr l.17) — famille (5) du socle de séquence,
      *  consommée par `SequenceParams.pot` (`src/state/sequenceCore.ts`). `potEffectId` est le nom d'un
      *  effet de pot ENREGISTRÉ (`registerSequencePotEffect`), jamais un id de jeu — la clé nomme donc
      *  ce qu'elle porte : une CLÉ DE REGISTRE, ni de la prose ni l'issue du tour. */
-    pot: z.strictObject({
-      dice: z.strictObject({ count: z.number(), faces: z.number() }),
+    pot: nommerChamps(z.strictObject({
+      dice: nommerChamps(z.strictObject({ count: z.number(), faces: z.number() }), { count: { label: 'Nombre' }, faces: { label: 'Faces' } }),
       targetRange: plageSchema.optional(),
       manchesPerPlayer: z.number().optional(),
       /** Unité de borne de la famille : tours qu'une manche peut prendre (anti-boucle, pas une règle). */
       roundsPerManche: z.number().optional(),
-      rows: z.array(z.strictObject({
+      rows: z.array(nommerChamps(z.strictObject({
         ...plageSchema.shape,
         potEffectId: z.enum(['rafle-le-pot', 'reprend-mise', 'cible-ou-passe', 'remise-ou-abandon', 'quitte-la-manche']),
         /** Paramètre de l'effet : combien de mises il déplace (défaut 1). */
         mises: z.number().optional(),
         label: z.string(),
+      }), {
+        ...metaDesChamps(plageSchema, { exigees: true }),
+        potEffectId: { label: 'Effet sur le pot' },
+        mises: { label: 'Mises' },
+        label: { label: 'Libellé' },
       })),
+    }), {
+      dice: { label: 'Dés' },
+      targetRange: { label: 'Plage cible' },
+      manchesPerPlayer: { label: 'Manches par joueur' },
+      roundsPerManche: { label: 'Rounds par manche' },
+      rows: { label: 'Rangées' },
     }).optional(),
   },
   {

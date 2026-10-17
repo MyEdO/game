@@ -64,7 +64,7 @@ export function deriveChapterRecap(args: {
     ...objectifsSoldes.map((o): RecapLine => ({ text: o.text, icon: 'map-tool/start-flag', tone: 'ok' })),
     ...tombes.map((t): RecapLine => ({ text: t.label, icon: 'ui/close', tone: 'bad' })),
   ];
-  return { titre: cloture.titre, sousTitre: cloture.sousTitre, px, chronique, tombes, lieux };
+  return { titre: cloture.titre, sousTitre: cloture.sousTitre?.texte, px, chronique, tombes, lieux };
 }
 
 /**

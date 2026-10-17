@@ -274,10 +274,10 @@ export const comptesDeTri = (stock) => {
 const QUOI = (comptes) =>
   'Tables du `Source/` que leur FORME rend inadressables (#1384, épique #1388) : une ENTRÉE par SITE, ' +
   `clé \`famille :: fichier :: ref :: occurrence\` (régime #1711). ${phraseDeNaissance(comptes, FAMILLES)} ` +
-  'CE FICHIER EST UN INVENTAIRE des sites mesurés, PLAFONNÉ en nombre d\'entrées : il ne décroît que ' +
+  'CE FICHIER EST UN INVENTAIRE NOMINATIF des sites mesurés : il ne décroît que ' +
   'quand un site disparaît du `Source/`. La DETTE, elle, est le compte « à trier » — les entrées SANS ' +
-  '`preuve` — et celle-là décroît vers zéro, sous son propre plafond (`PLAFOND_A_TRIER`, ' +
-  '`check-source-tables.test.mjs`) : une entrée reçoit sa `preuve` (« PDF p.N : … ») + sa `date` le jour ' +
+  '`preuve` — et celle-là décroît vers zéro. Les sites déjà prouvés sont gardés NOMINATIVEMENT ' +
+  'dans `check-source-tables.test.mjs` : une entrée reçoit sa `preuve` (« PDF p.N : … ») + sa `date` le jour ' +
   'où sa forme est lue au PDF et jugée conforme au livre, et elle RESTE (le site existe, il est jugé). ' +
   'PLAN de résorption — B2 : AUCUNE migration de `Source/`. Un `<br>` de cellule est un saut de ' +
   'ligne IMPRIMÉ (GFM n\'a pas d\'autre forme) : la lib l\'absorbe pour l\'ADRESSAGE (`sansBr`) et le ' +

@@ -47,7 +47,6 @@ test('DRIVER : tout outil lean-ctx NON classé, direct ou par la passerelle, et 
     ['ctx_knowledge action non-chaîne', 'mcp__lean-ctx__ctx_knowledge', { action: ['export'], path: FICHE }],
     ['ctx_session export', 'mcp__lean-ctx__ctx_session', { action: 'export', path: FICHE }],
     ['ctx_session import', 'mcp__lean-ctx__ctx_session', { action: 'import', path: FICHE }],
-    ['ctx_verify proof', 'mcp__lean-ctx__ctx_verify', { action: 'proof' }],
     ['ctx_call tool non-chaîne', 'mcp__lean-ctx__ctx_call', { tool: ['ctx_edit'], arguments: { path: FICHE } }],
     ['ctx_edit', 'mcp__lean-ctx__ctx_edit', { path: FICHE, old_string: 'x', new_string: 'y' }],
     ['ctx_refactor', 'mcp__lean-ctx__ctx_refactor', { action: 'replace_symbol_body', name_path: 'f', body: 'x' }],
@@ -82,6 +81,7 @@ test('DRIVER : un outil de LECTURE classé, direct ou par la passerelle, un shel
     ['ctx_knowledge recall', 'mcp__lean-ctx__ctx_knowledge', { action: 'recall', query: 'x' }],
     ['ctx_session status', 'mcp__lean-ctx__ctx_session', { action: 'status' }],
     ['ctx_verify stats', 'mcp__lean-ctx__ctx_verify', { action: 'stats' }],
+    ['ctx_verify proof', 'mcp__lean-ctx__ctx_verify', { action: 'proof' }],
     ['ctx_shell anodin', 'mcp__lean-ctx__ctx_shell', { command: 'git status', cwd: REPO }],
     ['shell (alias) anodin', 'mcp__lean-ctx__shell', { command: 'git status', cwd: REPO }],
     ['ctx_patch create avec path', 'mcp__lean-ctx__ctx_patch', { op: 'create', path: join(REPO, 'docs', 'zz-sonde.md'), new_text: 'x' }],
@@ -100,7 +100,6 @@ test('DRIVER : la passerelle vers un outil hors `LECTURES_LIBRES` est REFUSÉE q
     ['aplati ctx_knowledge export', { name: 'ctx_knowledge', action: 'export', format: 'okf', path: FICHE }],
     ['aplati ctx_knowledge import', { name: 'ctx_knowledge', action: 'import', path: FICHE, merge: 'replace' }],
     ['aplati ctx_session export', { name: 'ctx_session', action: 'export', value: FICHE }],
-    ['aplati ctx_verify proof', { name: 'ctx_verify', action: 'proof' }],
     ['arguments null + action à plat', { name: 'ctx_knowledge', arguments: null, action: 'export', path: FICHE }],
     ['arguments {} + action à plat', { name: 'ctx_knowledge', arguments: {}, action: 'export' }],
     ['imbriqué ctx_knowledge export', { name: 'ctx_knowledge', arguments: { action: 'export', path: FICHE } }],
@@ -123,6 +122,7 @@ test('DRIVER : la passerelle vers un outil de `LECTURES_LIBRES` passe, aplatie c
     ['aplati ctx_read', { name: 'ctx_read', path: FICHE, mode: 'full' }],
     ['imbriqué ctx_read', { name: 'ctx_read', arguments: { path: FICHE } }],
     ['arguments null ctx_read', { name: 'ctx_read', arguments: null, path: FICHE }],
+    ['aplati ctx_verify proof', { name: 'ctx_verify', action: 'proof' }],
   ]
   for (const surface of ['claude', 'codex'])
     for (const [nom, entree] of passent) assert.equal(decisionDe(`${P}ctx_call`, entree, surface).decision, null, `${surface} : ${nom}`)
@@ -138,15 +138,12 @@ test('DRIVER : une entrée `ctx_patch` qui porte une clé hors de son schéma MC
     ['set_line + backup + backup_path (préimage écrite ailleurs)', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x', backup: true, backup_path: join(REPO, 'src', 'data', 'zz-sonde.json') }, 'backup_path'],
     ['ops[] set_line en old_string', { path: DOC, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'b', old_string: 'a' }] }, 'ops[0].old_string'],
     ['dry_run de tête, ops[] set_line à dry_run:false', { path: DOC, dry_run: true, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'b', dry_run: false }] }, 'ops[0].dry_run'],
-    ['ops[] replace_unique (délégué)', { path: DOC, ops: [{ op: 'replace_unique', old_text: 'a', new_text: 'b' }] }, 'ops[0].op replace_unique hors lot'],
-    ['ops[] replace_symbol (délégué)', { path: DOC, ops: [{ op: 'replace_symbol', name: 'f', new_text: 'b' }] }, 'ops[0].op replace_symbol hors lot'],
     ['validate_syntax:false', { op: 'set_line', path: DOC, line: 1, hash: '00', new_text: 'x', validate_syntax: false }, 'validate_syntax'],
     ['content (Write-équivalent) sur ctx_patch', { op: 'replace_unique', path: DOC, old_text: 'a', new_text: 'b', content: 'x' }, 'content'],
     ['ops[] set_line + old_text (clé d’une autre op)', { path: DOC, ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'x', old_text: 'y' }] }, 'ops[0].old_text'],
     ['delete aux deux formes', { op: 'delete', path: DOC, line: 1, hash: '00', start_line: 2, start_hash: '11', end_line: 3, end_hash: '22' }, 'line'],
     ['op absente', { path: DOC, new_text: 'x' }, 'op absente'],
     ['op inconnue', { op: 'rewrite', path: DOC, new_text: 'x' }, 'op "rewrite" inconnue'],
-    ['ops[] create (hors lot)', { path: DOC, ops: [{ op: 'create', new_text: 'x' }] }, 'ops[0].op create hors lot'],
     ['op de tête à côté de ops[]', { path: DOC, op: 'set_line', ops: [{ op: 'set_line', line: 1, hash: '00', new_text: 'x' }] }, 'op'],
   ]
   for (const surface of ['claude', 'codex']) {
@@ -203,8 +200,51 @@ test('CONTRAT : chaque op du schéma `ctx_patch`, avec ses seules clés déclar�
   ]
   for (const surface of ['claude', 'codex'])
     for (const [nom, entree] of ops) assert.equal(decisionDe(`${P}ctx_patch`, entree, surface).decision, null, `${surface} : ${nom}`)
-  const { raison } = decisionDe(`${P}ctx_patch`, { op: 'replace_symbol', path: DOC, name: 'f', new_text: 'x' })
-  assert.ok(!raison.includes('hors du schéma') && raison.includes('non jugeable'), raison)
+  for (const [nom, entree] of [
+    ['replace_symbol en tête', { op: 'replace_symbol', path: DOC, name: 'f', new_text: 'x' }],
+    ['replace_symbol dans ops[]', { path: DOC, ops: [{ op: 'replace_symbol', name: 'f', new_text: 'x' }] }],
+  ]) {
+    const { raison } = decisionDe(`${P}ctx_patch`, entree)
+    assert.ok(!raison.includes('hors du schéma') && raison.includes('non jugeable'), `${nom} : ${raison}`)
+  }
+})
+
+test('lean-ctx `LEAN_CTX_VERSION` : les formes de `ctx_patch` hors de `OPS_CTX_PATCH` (`registered/ctx_patch.rs` l.190-212, l.661-695) et les outils non classés sont refusés — surfaces claude et codex', () => {
+  const refuses = [
+    ['ctx_patch', 'sans op, old_text/new_text', { path: DOC, old_text: 'a', new_text: 'b' }],
+    ['ctx_patch', 'sans op, old_string/new_string', { path: DOC, old_string: 'a', new_string: 'b' }],
+    ['ctx_patch', 'replace_all old_string/new_string', { op: 'replace_all', path: DOC, old_string: 'a', new_string: 'b' }],
+    ['ctx_patch', 'replace_all old_text/new_text', { op: 'replace_all', path: DOC, old_text: 'a', new_text: 'b' }],
+    ['ctx_patch', 'ops[] sans op', { path: DOC, ops: [{ old_text: 'a', new_text: 'b' }] }],
+    ['ctx_work_graph', 'execute', { action: 'execute' }],
+    ['ctx_shape', 'sans argument', {}],
+  ]
+  for (const surface of ['claude', 'codex'])
+    for (const [nu, nom, entree] of refuses) assert.equal(decisionDe(`${P}${nu}`, entree, surface).decision, 'deny', `${surface} : ${nu} ${nom}`)
+})
+
+test('SCHÉMA lean-ctx « Cross-file ops[] batch (incl. replace_unique) supported; replace_all and create must be sent as separate top-level calls, not inside ops[] » — surfaces claude et codex', () => {
+  const ancree = { op: 'set_line', line: 1, hash: '00', new_text: 'x' }
+  const contreTemoins = [
+    ['replace_all dans ops[]', { path: DOC, ops: [{ op: 'replace_all', find: 'a', replace: 'b' }] }, 'ops[0].op replace_all hors lot'],
+    ['create dans ops[]', { path: DOC, ops: [{ op: 'create', new_text: 'x' }] }, 'ops[0].op create hors lot'],
+    ['déléguée puis ancrée', { path: DOC, ops: [{ op: 'replace_unique', old_text: 'a', new_text: 'b' }, ancree] }, 'ambigu'],
+    ['A : ancrée puis déléguée à old_text vide', { path: DOC, ops: [ancree, { op: 'replace_unique', old_text: '', new_text: 'b' }] }, 'ops[1].old_text vide'],
+    ['B : ancrée puis déléguée sans new_text', { path: DOC, ops: [ancree, { op: 'replace_unique', old_text: '' }] }, 'ops[1].new_text absente'],
+    ['C : ancrée puis déléguée à old_text non-chaîne', { path: DOC, ops: [ancree, { op: 'replace_unique', old_text: 5, new_text: 'b' }] }, 'ops[1].old_text non-chaîne'],
+    ['D : déléguée valide puis déléguée sans new_text', { path: DOC, ops: [{ op: 'replace_unique', old_text: 'a', new_text: 'b' }, { op: 'replace_unique', old_text: 'c' }] }, 'ops[1].new_text absente'],
+  ]
+  for (const surface of ['claude', 'codex']) {
+    assert.equal(decisionDe(`${P}ctx_patch`, { path: DOC, ops: [{ op: 'replace_unique', old_text: 'a', new_text: 'b' }] }, surface).decision, null, `${surface} : replace_unique dans ops[]`)
+    for (const [nom, entree, motif] of contreTemoins) {
+      const { decision, raison } = decisionDe(`${P}ctx_patch`, entree, surface)
+      assert.equal(decision, 'deny', `${surface} : ${nom}`)
+      assert.ok(raison.includes(motif), `${surface} : ${nom} : ${raison}`)
+      if (/^[A-D] :/.test(nom)) assert.ok(raison.includes('hors du schéma'), `${surface} : ${nom} : ${raison}`)
+    }
+    const { raison } = decisionDe(`${P}ctx_patch`, { op: 'replace_unique', path: DOC, old_text: 'a' }, surface)
+    assert.ok(!raison.includes('new_text'), `${surface} : replace_unique de tête sans new_text : ${raison}`)
+  }
 })
 
 test('les outils que les sessions utilisent pour LIRE sont classés LECTURE (sinon toute session se bloque)', () => {

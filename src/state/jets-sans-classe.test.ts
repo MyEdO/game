@@ -5,8 +5,8 @@
  * face a un adversaire ou face a ... une maladie ».
  *
  * La surface d'un jet se DÉRIVE donc de trois choses, et de rien d'autre :
- *  1. la cadence déférée à un automate (`cadenceAuto`) — pour la porte d'un JET (`resolveSurface`) ;
- *  2. la politique d'ORDRES d'une traversée (`seaAutoResolves`) — « Traversée commandée sans fenêtre » ;
+ *  1. la cadence déférée à un automate (`cadenceAuto`) — pour la porte d'un JET (`surfaceDeLEtape`) ;
+ *  2. la politique d'ORDRES d'une traversée (`resoluSousOrdres`) — « Traversée commandée sans fenêtre » ;
  *  3. la TENUE des porteurs (`netOwnership.tenuParUnHumain`), le prédicat de #1426.
  *
  * Ce fichier PROMEUT en contrat les sondes du juge du lot : la matrice des Tests de mer, le mono
@@ -16,17 +16,25 @@ import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { buildBand, bandStep, monoStep, surfaceDesEtapes, resolveSurface, type RollRequest, type BuiltCascadeStep } from './rollSeam';
+import { buildBand, bandStep, monoStep, surfaceDesEtapes, surfaceDeLEtape, type BuiltCascadeStep } from './rollSeam';
 import { startCascade, registerCascadeApplier } from './cascade';
 import { draineCascade } from './cascadeTestKit';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
 import { voyageStakeRef } from '../data';
+import { KINDS_SOUS_ORDRES } from './voyageCadence';
 import type { Combatant } from '../engine/types';
+import { ECHEC_SANS_JET } from '../engine/tests';
+import { refusNePeutTenter } from '../engine/skills';
+import { seedBattleRng, battleRng } from './battleRng';
+import { makeRNG } from '../engine/dice';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 const NET0 = get().net;
+
+/** Les `kind` que couvrent les ORDRES d'une traversée, lus à leur source. */
+const SOUS_ORDRES = [...KINDS_SOUS_ORDRES];
 
 /** Les `kind` de l'entretien-survie maritime, tels que les émettent les trois phases du jour. */
 const KINDS_DE_MER = ['sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement'];
@@ -65,6 +73,29 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   });
 
   /**
+   * COOP × COMMANDÉE : la résolution sans fenêtre est hôte-seule (`docs/architecture.md`, « Coop en ligne —
+   * limitations connues ») ; la porte lit la MÊME source que les gardes du jour (`traverseeCommandee`).
+   * Le héros d'un invité garde sa fenêtre sous des ordres commandés, sur chaque route.
+   */
+  it('COOP × COMMANDÉE : le héros d’un invité garde sa fenêtre (M) pour chaque kind sous ordres, mer comme fleuve', () => {
+    const invite = get().party[0];
+    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
+    for (const mode of ['sea', 'river'] as const) {
+      traversee('commande', mode);
+      const mesure = SOUS_ORDRES.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, [invite])])] as const);
+      expect(Object.fromEntries(mesure), mode).toEqual(tableTotale(SOUS_ORDRES, () => 'M'));
+    }
+  });
+
+  it('LOCAL × COMMANDÉE, CONTRÔLE POSITIF : les mêmes kinds se résolvent d’office (I), mer comme fleuve', () => {
+    for (const mode of ['sea', 'river'] as const) {
+      traversee('commande', mode);
+      const mesure = SOUS_ORDRES.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, get().party)])] as const);
+      expect(Object.fromEntries(mesure), mode).toEqual(tableTotale(SOUS_ORDRES, () => 'I'));
+    }
+  });
+
+  /**
    * L'EXPOSITION DE NUIT/SCÈNE N'EST PAS SOUS LES ORDRES D'UNE TRAVERSÉE (#1479) — même RÈGLE
    * (LDB 18 l.326-334, même applier), autre ROUTE : « cap tenu, ne me réveillez pas » ne commande
    * que l'entretien du BORD (`sea-exposition`). Un ordre de traversée qui éteindrait aussi
@@ -95,16 +126,19 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
     for (const k of KINDS_DE_MER) {
       expect(surfaceDesEtapes(get, [bandeDe(k, get().party)]), `« ${k} » : le porteur est un héros, son joueur le tient`).toBe('M');
     }
-    const requeteMonde: RollRequest = { side: { worldSide: 'world' }, actionLabel: 'Désertion', test: {}, difficulty: 'intermediaire' };
-    expect(resolveSurface(get, requeteMonde, 'x'), 'le dé du MONDE, lui, revient au siège qui le tient').toBe('V');
+    const deMonde = monoStep({
+      id: 'x', kind: 'x', monde: true, label: fixtureText('Désertion'), difficulty: 'intermediaire',
+      ligne: { valeur: 40 }, stake: voyageStakeRef('sea-salissures'),
+    })!;
+    expect(surfaceDesEtapes(get, [deMonde]), 'le dé du MONDE, lui, revient au siège qui le tient').toBe('V');
   });
 
   it('cadence DÉFÉRÉE : la porte d’un JET rend I ; la fenêtre d’une SÉQUENCE, elle, reste (le pilote la déroule)', () => {
     traversee('jour-par-jour');
     setCadence('rapide');
     const h = get().party[0];
-    const req: RollRequest = { side: { actorId: h.id }, actionLabel: 'Scorbut', test: {}, difficulty: 'intermediaire' };
-    expect(resolveSurface(get, req, 'sea-scorbut'), 'un dé isolé se résout inline en cadence déférée').toBe('I');
+    const jet = monoStep({ id: 'sea-scorbut', kind: 'sea-scorbut', label: fixtureText('Scorbut'), actor: h, difficulty: 'intermediaire', ligne: { valeur: 40 }, stake: voyageStakeRef('sea-scorbut') })!;
+    expect(surfaceDeLEtape(get, jet), 'un dé isolé se résout inline en cadence déférée').toBe('I');
     expect(surfaceDesEtapes(get, [bandeDe('sea-scorbut', get().party)]), 'la bande garde son bilan — `combatAuto` la déroule').toBe('M');
   });
 });
@@ -147,6 +181,24 @@ describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade
     expect(bande.participants![0].interactive, 'c’est SON joueur qui la roulera').toBe(true);
     expect(bande.participants![0].result).toBeNull();
     expect(surfaceDesEtapes(get, [bande])).toBe('M');
+  });
+});
+
+describe('mono non tentable = cas N=0 de la bande (LDB 09 l.30 ; #2588 Q1)', () => {
+  it('`monoStep` à ligne refusée naît ÉCHEC SANS JET avec son refus, et la séquence n’y tire aucun dé', () => {
+    const h = get().party[0];
+    const refus = refusNePeutTenter(h, { skill: 'resistance' });
+    const step = monoStep({
+      id: 'muet', kind: 'sonde-1479', actor: h, label: fixtureText('muet'), difficulty: 'intermediaire', ligne: { ...ligne, refus },
+      stake: voyageStakeRef('sea-epuisement', { condition: 'Exténué' }),
+    })!;
+    expect(step.result).toEqual(ECHEC_SANS_JET);
+    expect(step.refus).toBe(refus);
+    seedBattleRng(9);
+    startCascade(get, set, { title: 'Sonde', purpose: 'test', steps: [step] });
+    get().cascadeRoll('muet');
+    expect(get().pendingCascade!.participants[0].result).toEqual(ECHEC_SANS_JET);
+    expect(battleRng().int(1, 1_000_000)).toBe(makeRNG(9).int(1, 1_000_000));
   });
 });
 

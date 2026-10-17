@@ -125,6 +125,15 @@ for (const [corps, forme] of ROUGES)
     for (const m of msgs) assert.match(m.message, /le calcul va à un script de `scripts\/`, le mod rend/, 'chaque message porte le remède')
   })
 
+// #2596
+test('ROUGE hors couture — `$.session.append` : un mod n’écrit jamais dans l’historique de la session', async () => {
+  for (const corps of ['await $.session.append({})', "await $.session.append({ message: { type: 'user', content: [] } })", 'const ajouter = $.session.append']) {
+    const msgs = await messagesDuMur(module(corps), HORS_COUTURE)
+    assert.ok(msgs.some((m) => /#2596/.test(m.message) && /cache de prompt/.test(m.message) && /au bandeau, en résultat d'outil ou en bloc `prompt\.context`/.test(m.message)),
+      `${corps} : ${JSON.stringify(msgs.map((m) => m.message))}`)
+  }
+})
+
 const VERTS = [
   ["const lu = await $.process.run(...appel($.plugin.root, 'suivi', ['--json']))", 'idiome'],
   ["const lu = await $.process.run(\n  ...appel(\n    $.plugin.root,\n    'suivi',\n    ['--json'],\n  ),\n)", 'idiome sur plusieurs lignes'],
@@ -135,7 +144,7 @@ const VERTS = [
   ["if (t === 'ajouter-item') q = 1", 'égalité de chaînes'],
   ["const s = 'a' + nom", 'concaténation de chaînes'],
   ["$.ui.invalidate('ui.render')", 'invalidate d’un événement de rendu'],
-  ["$.ui.log('x', { to: 'debug' })\nawait $.state.get('k')\nawait $.tool.register({})\n$.clock.every(PERIODE, () => {})\nawait $.session.append({})", 'accès à liste blanche'],
+  ["$.ui.log('x', { to: 'debug' })\nawait $.state.get('k')\nawait $.tool.register({})\n$.clock.every(PERIODE, () => {})", 'accès à liste blanche'],
   ['const PERIODE = 1', 'constante sans seuil'],
   ['const v = e.at', 'N6 lecture d’un champ nommé `at`'],
   ['const v = e.test', 'N6 lecture d’un champ nommé `test`'],
@@ -145,6 +154,9 @@ const VERTS = [
   ["import { h } from 'claude-code'\nconst v = h", 'N5 `claude-code` permis'],
   ["import { suivi } from './suivi'\nconst v = suivi", 'N5 `./x` permis'],
   ['const v = `${n} / ${m}`', 'gabarit d’affichage'],
+  ['$.ui.status(t)', 'V6 `ui.status`, puits de rendu (#2280)'],
+  ['$.ui.toast(t)', 'V6 `ui.toast`, puits de rendu (#2280)'],
+  ['const racine = await $.session.root()', 'V6 `session.root`, lecture de la racine (#2280)'],
 ]
 
 for (const [corps, forme] of VERTS)
@@ -253,7 +265,7 @@ test('PÉRIMÈTRE natif : modules et workflows lus, bancs TS et reste de `.claud
 test('les modules RÉELS du mod `harnais` et les workflows passent le lint natif', async () => {
   const hooks = join(RACINE, '.claude', 'skills', 'harnais', 'hooks')
   const modules = listerDossier(hooks).filter((nom) => nom.endsWith('.ts') && !estSuiteVitest(nom))
-  assert.ok(modules.includes('suivi.ts') && modules.includes('ops.ts') && modules.includes('register.ts'), 'le corpus réel est lu')
+  assert.ok(['suivi.ts', 'vigie.ts', 'ops.ts', 'register.ts'].every((nom) => modules.includes(nom)), 'le corpus réel est lu')
   const types = join(RACINE, '.claude', 'skills', 'harnais', 'types')
   const workflows = join(RACINE, '.claude', 'workflows')
   const declarations = listerDossier(types).filter((nom) => nom.endsWith('.d.ts'))

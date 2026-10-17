@@ -14,7 +14,7 @@ import type { RoofEl, SceneEl } from '../builders/types';
 import { elOccluder } from './occluders';
 import { actorCapsuleOf } from './actorCapsule';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
-import type { ActorPose } from '../backends/webgl/sceneMeshes';
+import { frameRectOf, type ActorPose } from '../backends/webgl/sceneMeshes';
 import {
   GameStage3D,
   setStageRendererFactory,
@@ -26,7 +26,6 @@ import { BancRenderer, attendreQuads, brancherArdoise, brancherImagesPilotees, c
 import { PERCAGE_DEFINE, PERCAGE_FONDU_MS, PERCAGE_RAYON_PX, percerMateriau, trousPercage } from '../backends/webgl/percageLocal';
 import { centrePercage, clePercage, verdictPercage } from './percage';
 import { sourcesDeFrames } from './stageFrames';
-import { frameRectOf } from './boardPose';
 import { resetBakeQueue } from '../backends/webgl/atlasBake';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { useGame } from '../../state/store';

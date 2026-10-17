@@ -6,7 +6,9 @@
 //
 // MASQUE, mot à mot : « nœud portant un `desc` chaîne non vide dont la source EFFECTIVE — son
 // `source.book` propre, sinon le `source.book` de l'ancêtre le plus proche qui en porte un —
-// désigne un livre à `dir` dans `books.json`, `maison` ou pas, à toute profondeur ».
+// désigne un livre à `dir` dans `books.json`, `maison` ou pas, à toute profondeur ». Un nœud qui porte
+// `adapteDe` (`champAdapteDe`, `src/data/schemas/grammaire/prose.ts`) COUPE l'héritage, pour lui et ce
+// qu'il contient (#2001).
 //
 // PÉRIMÈTRE — les DEUX racines de documents, DONNÉES EN DESCRIPTEURS (`RACINES_PROSE` ci-dessous),
 // aux mêmes motifs que `RACINES` (`scripts/docs/lib/structures-scan.mts`) : `src/data/*.json` (non
@@ -100,7 +102,7 @@ export function mesurerProseInline(racines = RACINES_PROSE, root = RACINE_DEPOT)
         if (!v || typeof v !== 'object') return;
         const propre =
           v.source && typeof v.source === 'object' && typeof v.source.book === 'string' ? v.source.book : null;
-        const effective = propre ?? heritee;
+        const effective = v.adapteDe !== undefined ? null : (propre ?? heritee);
         if (typeof v.desc === 'string' && v.desc.length > 0 && effective && extraits.has(effective)) {
           trouves.push(`${relatif} › ${chemin || '(racine)'}`);
         }

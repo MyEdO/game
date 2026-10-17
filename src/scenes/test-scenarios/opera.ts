@@ -293,7 +293,7 @@ function construireScene(): Scene {
     ],
     flags: {},
     startMessage:
-      'Le Théâtre Staatsoper. Du vestibule, le hall s’ouvre sur le parterre face à la scène surélevée ; deux rampes d’angle montent à la galerie des loges, où siège la Comtesse dans la loge royale.',
+      { texte: 'Le Théâtre Staatsoper. Du vestibule, le hall s’ouvre sur le parterre face à la scène surélevée ; deux rampes d’angle montent à la galerie des loges, où siège la Comtesse dans la loge royale.' },
   };
 
   const scene = buildScene(spec);

@@ -9,7 +9,7 @@ import type { Combatant } from '../engine/types';
 /**
  * Porte de repli SANS-PILOTE du seam (#918 phase 2a) — l'invariant « un jet inline n'est permis QUE si
  * aucun humain ne pilote l'acteur » vit dans la primitive, plus dans chaque call-site. Prédicat
- * `humanControlled` (`netOwnership.ts`) : le MÊME que la surface M de `resolveSurface`.
+ * `humanControlled` (`netOwnership.ts`) : le MÊME que la surface M de `surfaceDeLEtape`.
  */
 describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
   const rng = () => makeRNG(1234);

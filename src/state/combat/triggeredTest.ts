@@ -27,9 +27,8 @@ import { combatTestPenalty } from '../../engine/conditions';
 import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skills';
 import { type OpsCtx, nomDeSource } from '../../engine/ops';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
-import { CHAR_LABELS } from '../../engine/types';
 import type { CharKey, Combatant, Difficulty, EffectSource } from '../../engine/types';
-import { refLabel, derivedStake } from '../../data';
+import { derivedStake, testSkillLabel } from '../../data';
 import { type Flow, type FlowTest, type ConditionCtx, evalCondition, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, resolveTestDifficulty, EMPTY_FLOW } from '../flow';
 import { condCtx } from '../bourseFlow';
 import { buildActorView, combatConditionCtx, flowTestGated } from './flowEval';
@@ -44,16 +43,10 @@ import { freeCons, rollLine, rollStep, surfaceOf, bandStep, monoStep, choiceStep
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
 import { emitCombatEvent } from '../combatEvents';
 import { inBattleId, actorIn, coqueParId } from '../combatants';
+import { touchActors } from '../combatOrParty';
 import { campSpend, spendableAdvantage } from './advantagePool';
 import { dataLabel } from '../../data';
 import { t } from '../../i18n';
-
-/** Reflète la mutation EN PLACE d'un combattant (États retirés) dans les références party/battle pour
- *  un re-rendu React (clone des tableaux) — mirroir de `syncCombatant` des appliers d'upkeep. */
-function syncCombatant(get: Get, set: SetFn): void {
-  set({ party: [...get().party] });
-  if (get().battle) set({ battle: { ...get().battle!, combatants: [...get().battle!.combatants] } });
-}
 
 /** Pousse des lignes de journal d'un effet inline dans la file différée (déversée au rendu) — un hook
  *  profond fire AVANT le `set(battle.log)` final → on passe par la file (`drainPendingLog`, §5). */
@@ -107,7 +100,7 @@ export interface ExecCtx {
 type FreeAttackHook = (
   get: Get, set: SetFn, actor: Combatant, op: Extract<import('../../engine/ops').GameOp, { op: 'grantFreeAttack' }>,
   fa: FreeAttackFreeze,
-) => boolean;
+) => Applique;
 let freeAttackHook: FreeAttackHook | undefined;
 export function setFreeAttackHook(fn: FreeAttackHook): void { freeAttackHook = fn; }
 
@@ -230,7 +223,7 @@ export function withDerivedStake(ft: FlowTest, source: EffectSource | undefined)
 export function simpleTriggeredTestStep(
   c: Combatant, ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow, difficulty: Difficulty, extraMeta: Record<string, unknown> = {},
 ): BuiltCascadeStep | undefined {
-  const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
   return monoStep({
     id: triggeredTestStepId(c, ft.label, skillLabel),
     kind: 'triggeredTest', icon: 'nav/dice', rollLabel: skillLabel,
@@ -305,7 +298,7 @@ export function frozenOpposedBatchStep(
   if (!opp) throw new Error('frozenOpposedBatchStep : le FlowTest doit déclarer son opposition (`opposed`).');
   // Test tagué `menace` : la rangée batch porte le tag ELLE-MÊME (comme l'étape mono), donc le verbe
   // `resist` (Résistance (Menace), LDB 10 l.1016-1020) s'y joue PAR RANGÉE — `FLOWS.cascadeBatch.caps`.
-  const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
   const participants: BatchParticipant[] = [];
   for (const c of defenders) {
     if (flowTestGated(ft, c, combatConditionCtx(c, { caster: attacker }))) continue;
@@ -347,7 +340,7 @@ export function simpleBatchTestStep(
   testers: Combatant[], ft: FlowTest, branches: { onSuccess: Flow; onFail: Flow }, after: Flow,
   difficulty: Difficulty, id: string, hullId?: string,
 ): BuiltCascadeStep | undefined {
-  const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
   const participants: BatchParticipant[] = [];
   for (const c of testers) {
     if (flowTestGated(ft, c, combatConditionCtx(c, { caster: c }))) continue;
@@ -392,7 +385,7 @@ registerCascadeApplier('triggeredBatchTest', (get, set, step) => {
     const hero = actorIn(get(), part.id);
     if (!hero || !part.result) continue;
     journal.push(...applyTriggeredTestBranch(hero, part.result, { onSuccess, onFail }, { get, set, ...(caster ? { caster } : {}), ...(hull ? { hull } : {}) }));
-    syncCombatant(get, set);
+    set(touchActors(get()));
     playAfter(get, set, hero, step.meta?.after, nomDeSource(step));
   }
   return { consequences: freeCons(journal) };
@@ -503,7 +496,7 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
               differerLaSuite(ctx.set, { kind: 'seq', steps: stack.splice(0) }, 'combat', label);
               return;
             }
-            syncCombatant(ctx.get, ctx.set); queueLines(ctx.get, ctx.set, lines, unit.id);
+            ctx.set(touchActors(ctx.get())); queueLines(ctx.get, ctx.set, lines, unit.id);
           }
         }
         break;
@@ -567,7 +560,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   //  · Test OPPOSÉ → `base` = `testValue` (porte déjà la pénalité d'État) + aucune pénalité ajoutée (penalty 0).
   const base = opp ? testValue(c, ft.skill?.id, ft.characteristic, ft.skill?.spec) : rawCombatTestBase(c, ft.skill?.id, ft.characteristic, ft.skill?.spec);
   const difficulty: Difficulty = resolveTestDifficulty(ft, cc); // dynamique (Brisé : caché/proche/loin), sinon ft.difficulty
-  const skillLabel = ft.skill ? refLabel('skills', ft.skill) : (ft.characteristic ? CHAR_LABELS[ft.characteristic] : 'Test');
+  const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
   const label = dataLabel(ft.label, skillLabel);
   // Test SIMPLE : `combatTestPenalty` (sur le `base` BRUT → −10 d'État compté une fois). Test OPPOSÉ : 0
   // (l'op `opposedTest` jetait `testValue` brut des deux côtés ; `testValue` porte déjà la pénalité d'État).
@@ -644,7 +637,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test OPPOSÉ PERDU par le porteur). Une
     // égalité parfaite n'est pas un échec (statu quo) : le trigger ne part que si l'attaquant l'emporte.
     if (o.winner === 'attacker') lines.push(...fireOwnTestFailed(ctx.get, c, { sl: t.sl }));
-    syncCombatant(ctx.get, ctx.set);
+    ctx.set(touchActors(ctx.get()));
     queueLines(ctx.get, ctx.set, lines, c.id);
     playAfter(ctx.get, ctx.set, c, after, ctx.label, ctx.opsCtx?.source);
     return;
@@ -653,7 +646,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   const lines = applyTriggeredTestBranch(c, t, { onSuccess: node.success, onFail: node.fail }, exec);
   // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test SIMPLE raté par le porteur).
   if (!t.success) lines.push(...fireOwnTestFailed(ctx.get, c, { sl: t.sl }));
-  syncCombatant(ctx.get, ctx.set); // les combattants ont muté (États retirés)
+  ctx.set(touchActors(ctx.get())); // les combattants ont muté (États retirés)
   queueLines(ctx.get, ctx.set, lines, c.id);
   playAfter(ctx.get, ctx.set, c, after, ctx.label, ctx.opsCtx?.source); // continuation APRÈS la branche (ordre du journal)
 }
@@ -695,7 +688,7 @@ registerCascadeApplier('triggeredTest', (get, set, step, hero) => {
   const journal = applyTriggeredTestBranch(hero, step.result, { onSuccess, onFail }, exec);
   // (SEAM `onOwnTestFailed` d'une étape de cascade : centralisé dans `commitStep` — jamais ici, sinon
   //  double-émission ; l'étampe `meta.noOwnTestFailed` y garde la ré-entrance du FM de palier 2.)
-  syncCombatant(get, set); // refléter la mutation du héros (États) dans party/battle
+  set(touchActors(get())); // refléter la mutation du héros (États) dans party/battle
   // Continuation `after` (le reste du `seq` qui suivait le `test`) — peut ré-appender une étape
   // `triggeredTest` à la MÊME cascade (commitStep `liveMerge` repart des participants courants).
   playAfter(get, set, hero, step.meta?.after, nomDeSource(step), exec.source);
@@ -782,7 +775,7 @@ registerCascadeApplier('triggeredChoice', (get, set, step, hero) => {
   const fa = step.meta?.freeAttack;
   const freeAttack = fa && typeof fa === 'object' && 'targetId' in fa ? fa : undefined;
   const can = yes && choiceAffordable(get, hero, cost);
-  if (yes && can && cost != null) { campSpend(get, hero, cost); syncCombatant(get, set); } // débite la réserve du camp (mode groupe) / le combattant (LDB)
+  if (yes && can && cost != null) { campSpend(get, hero, cost); set(touchActors(get())); } // débite la réserve du camp (mode groupe) / le combattant (LDB)
   // Le DÉCIDEUR (`hero`) est le `caster` (porteur). La branche vise `choiceTargetId` (la VICTIME, Déstabilisante)
   // si présent, sinon le décideur lui-même (Frappe réactive : Test sur soi). Reconstruit depuis get() — jamais capturé.
   const tid = typeof step.meta?.choiceTargetId === 'string' ? step.meta.choiceTargetId : undefined;

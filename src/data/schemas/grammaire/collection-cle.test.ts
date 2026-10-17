@@ -66,6 +66,8 @@ describe('anti-perte — le seul détecteur du zéro SILENCIEUX', () => {
  * Clé = chemin de la marche, branches d'union effacées.
  */
 const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
+  '.scenes[].effectZones[].onCross[]^summon.addTraits[]': 'références de Traits (traits.json)',
+  '.scenes[].effectZones[].onCross[]^testMod.exceptSkills[]': 'références de Compétences (skills.json)',
   '.scenes[].triggers[].when.of[]': 'conditions composées : `id` d’un objet/talent désigné',
   '.scenes[].entities[].statblock.traits[]': 'références de Traits (`traits.json`)',
   '.scenes[].entities[].statblock.skills[]': 'références de Compétences (`skills.json`)',
@@ -132,10 +134,10 @@ describe('unicité PROUVÉE à la porte — un id répété dans une liste à cl
   const route = { id: 'route-1', a: 'lieu-1', b: 'lieu-1', km: 1, modes: ['pied'] };
   const noeud = { id: 'n1', desc: 'x', choices: [] };
   const CAS: [string, (d: Doc) => void, string][] = [
-    ['une entité', (d) => repete(d.scenes[0].entities), 'entities'],
-    ['un déclencheur', (d) => { d.scenes[0].triggers = [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [] } }]; repete(d.scenes[0].triggers); }, 'triggers'],
-    ['un nœud de dialogue', (d) => { d.scenes[0].dialogues = [{ id: 'd1', start: 'n1', nodes: [noeud, noeud] }]; }, 'nodes'],
-    ['un lieu', (d) => { d.worldMap = { id: 'carte', label: 'Carte', places: [lieu, lieu], routes: [] }; }, 'places'],
+    ['une entité', (d) => repete(d.scenes[0].entities), 'entité'],
+    ['un déclencheur', (d) => { d.scenes[0].triggers = [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [] } }]; repete(d.scenes[0].triggers); }, 'déclencheur'],
+    ['un nœud de dialogue', (d) => { d.scenes[0].dialogues = [{ id: 'd1', start: 'n1', nodes: [noeud, noeud] }]; }, 'nœud'],
+    ['un lieu', (d) => { d.worldMap = { id: 'carte', label: 'Carte', places: [lieu, lieu], routes: [] }; }, 'lieux'],
     ['une route', (d) => { d.worldMap = { id: 'carte', label: 'Carte', places: [lieu], routes: [route, route] }; }, 'routes'],
   ];
 

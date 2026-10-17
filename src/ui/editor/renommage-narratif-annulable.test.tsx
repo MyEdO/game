@@ -8,8 +8,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
-import { __resetLibraryForTest, type SavedProject } from '../../state/projectLibrary';
-import { __setOuvertureIdbForTest } from '../../lib/indexedDb';
+import { type SavedProject } from '../../state/projectLibrary';
+import { __setFabriqueIdbForTest } from '../../lib/indexedDb';
 import { brancherBasesSimulees } from '../../lib/indexedDb.testkit';
 import { parseProject } from '../../state/worldMap';
 import { emptyScene, type Scene } from '../../state/scene';
@@ -17,11 +17,9 @@ import { Editor } from './Editor';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-afterEach(async () => {
+afterEach(() => {
   demonterRacines();
-  await __resetLibraryForTest();
-  __setOuvertureIdbForTest(null);
-  localStorage.clear();
+  __setFabriqueIdbForTest(null);
 });
 
 const relais = (): Scene => ({
@@ -40,7 +38,7 @@ function saisir(el: HTMLInputElement, valeur: string) {
 
 describe('Éditeur — renommer une entrée du narratif, puis annuler', () => {
   it('l’annulation ramène l’édition de scène d’AVANT, jamais l’ancien id : la référence résout et la porte accepte', async () => {
-    const base = brancherBasesSimulees().amorcer('wfrp4-library', 1, { projects: { keyPath: 'id' } });
+    const base = brancherBasesSimulees().amorcer('wfrp4-library', { projects: { keyPath: 'id' } });
     const { container, rendre } = monterRacine(null);
     await act(async () => { rendre(<Editor initialScene={relais()} />); });
     const bouton = (texte: string) => [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(texte))!;

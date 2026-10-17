@@ -1,3 +1,4 @@
+import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
  * Schéma de `vehicles.json` — véhicules/embarcations à coque (chariots, barges, navires), 3 facettes
  * indépendantes (achat/voyage/coque+navire+pont). Dérivé de l'interface `VehicleData` EXISTANTE
@@ -6,14 +7,15 @@
  * 22/25, `ship` 20/25, `travel` 3/25, `deck` 1/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
  */
 import { z } from 'zod';
-import { availabilitySchema, cell2Schema, enumNomme, moneySchema } from '../grammaire/valeurs';
+import { availabilitySchema, cell2Schema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { ref } from '../grammaire/ref';
 
 export const file = 'vehicles.json';
 export const famille = 'entite';
 
-/** Gréement d'une coque (MDG 12) — affiché par la fiche et le dossier de navire. */
+/** Gréement d'une coque, dérivé de sa propulsion par `rigDuNavire` (MDG 13) — libellés de la fiche et du
+ *  dossier de navire. */
 export const rigSchema = enumNomme({ avirons: 'Avirons', voile: 'Voile', mixte: 'Mixte (voile et avirons)' });
 
 /** BORD du pont où siège un poste d'équipage (MDG 12) — affiché par la fiche de navire. */
@@ -23,24 +25,24 @@ export const posteSideSchema = enumNomme({ proue: 'Proue', tribord: 'Tribord', p
  *  (MDG 12), + Indice éventuel. Le foyer des ids est `naval-traits.json`, JAMAIS `traits.json` :
  *  les 19 références de `ship.traits` y résolvent toutes, aucune n'existe au bestiaire (mesuré
  *  2026-09-01) — composer `traitInstanceSchema` ouvrirait les Traits de créature aux navires. */
-const navalTraitRefSchema = ref('navalTrait', { value: z.number().optional() });
+const navalTraitRefSchema = ref('navalTrait', { value: nommerNoeud(z.number().optional(), { nom: 'valeur' }) });
 
-const deckPosteSlotSchema = z.strictObject({
+const deckPosteSlotSchema = nommerChamps(z.strictObject({
   pos: cell2Schema,
   side: posteSideSchema,
   cover: z.enum(['imparfaite', 'moyenne', 'totale']).optional(),
-});
+}), { pos: { label: "position" }, side: { label: "côté" }, cover: { label: "couvert" } });
 
-const shipDeckSchema = z.strictObject({
+const shipDeckSchema = nommerChamps(z.strictObject({
   ascii: z.array(z.string()),
   postes: z.array(deckPosteSlotSchema).optional(),
-});
+}), { ascii: { label: "plan" }, postes: { label: "postes" } });
 
-const vehicleTravelClassSchema = z.strictObject({
+const vehicleTravelClassSchema = nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   brassPerKm: z.number(),
-});
+}), { id: { label: "identifiant" }, label: { label: "nom" }, brassPerKm: { label: "sous par kilomètre" } });
 
 const doc = document(
   'vehicles',
@@ -53,26 +55,25 @@ const doc = document(
      *  champs — crew/manoeuvre/lengthM naval — n'ont pas d'équivalent EDOC pour un attelage terrestre). */
     chargement: z.number().optional(),
     /** Facette ACHAT — `availability` absent pour les navires (MDG ne donne pas de Disponibilité). */
-    purchase: z.strictObject({
+    purchase: nommerChamps(z.strictObject({
       price: moneySchema,
       availability: availabilitySchema.optional(),
-    }).optional(),
+    }), { price: { label: "prix" }, availability: { label: "disponibilité" } }).optional(),
     /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `medium` : milieu du TRAJET PAYÉ (un véhicule
      *  peut être bi-milieu — ex. la Barge navigue le fleuve LDB 70 l.10 tout en figurant à la table
      *  navale MDG 12 avec `hull.propulsion:'maritime'` — les deux facettes sont INDÉPENDANTES,
      *  jamais l'une dérivée de l'autre) ; absent = terrestre implicite (défaut historique). */
-    travel: z.strictObject({
+    travel: nommerChamps(z.strictObject({
       movement: z.number(),
       medium: z.enum(['terrestre', 'fluvial', 'maritime']).optional(),
-      draft: z.strictObject({ montureId: z.string(), count: z.number() }).optional(),
+      draft: nommerChamps(z.strictObject({ montureId: z.string(), count: z.number() }), { montureId: { label: "monture" }, count: { label: "nombre" } }).optional(),
       classes: z.array(vehicleTravelClassSchema),
-    }).optional(),
+    }), { movement: { label: "Mouvement" }, medium: { label: "milieu" }, draft: { label: "attelage" }, classes: { label: "classes" } }).optional(),
     /** Facette COQUE (entité à PV, `bodyShape` toujours `'vehicule'` dans les 22 entrées observées). */
-    hull: z.strictObject({
-      char: z.strictObject({ endurance: z.number(), B: z.number() }),
+    hull: nommerChamps(z.strictObject({
+      char: nommerChamps(z.strictObject({ endurance: z.number(), B: z.number() }), { endurance: { label: "Endurance" }, B: { label: "Blessures" } }),
       bodyShape: z.literal('vehicule'),
       propulsion: z.enum(['terrestre', 'fluvial', 'maritime']),
-      rig: rigSchema.optional(),
       /** Table de Localisation des coups (`shipHitLocation`, `src/engine/combat.ts`) — vocabulaire
        *  FERMÉ : une coquille d'authoring résoudrait sinon la coque fluviale sur la table maritime.
        *  Absent/`null` = `navire` (MDG 13) ; `navire-fluvial` = MSRC 7. */
@@ -81,9 +82,9 @@ const doc = document(
        *  FERMÉ que `locationTable`, et pour la même raison : les deux jeux chargés sont
        *  `ship-criticals` (MDG 13) et `river-criticals` (MSRC 5). Absent/`null` = `ship-criticals`. */
       criticalTable: z.union([z.enum(['ship-criticals', 'river-criticals']), z.null()]).optional(),
-    }).optional(),
+    }), { char: { label: "caractéristiques" }, bodyShape: { label: "forme" }, propulsion: { label: "propulsion" }, locationTable: { label: "table de Localisation" }, criticalTable: { label: "table de Critiques" } }).optional(),
     /** Facette NAVIRE (profil naval MDG 12). */
-    ship: z.strictObject({
+    ship: nommerChamps(z.strictObject({
       crew: z.number(),
       manoeuvre: z.number(),
       /** Longueur de coque en mètres. ENTIER ≥ 1 : c'est le domaine de la colonne « Taille » du
@@ -94,10 +95,10 @@ const doc = document(
       lengthM: z.number().int().min(1),
       footprint: z.number().optional(),
       capacity: z.number(),
-      sail: z.strictObject({ m: z.number(), crew: z.number() }).optional(),
-      oars: z.strictObject({ m: z.number(), crew: z.number() }).optional(),
+      sail: profilDeVoileSchema.optional(),
+      oars: profilDePropulsionSchema.optional(),
       traits: z.array(navalTraitRefSchema),
-    }).optional(),
+    }), { crew: { label: "équipage" }, manoeuvre: { label: "manœuvre" }, lengthM: { label: "longueur en mètres" }, footprint: { label: "emprise" }, capacity: { label: "capacité" }, sail: { label: "voile" }, oars: { label: "avirons" }, traits: { label: "Traits" } }).optional(),
     /** Facette PONT (plan person-scale, authoré par TYPE). */
     deck: shipDeckSchema.optional(),
   },
@@ -119,6 +120,16 @@ const doc = document(
   {
     codex: { keys: ['vehicles'] },
     edit: { dataset: 'vehicles' },
+  },
+  {
+    /** MDG 12 l.131, l.195-199, l.311 */
+    affinerEntree: (entree) =>
+      entree.superRefine((v, ctx) => {
+        const navire = (v as { ship?: { sail?: unknown; oars?: unknown } }).ship;
+        if (navire && !navire.sail && !navire.oars) {
+          ctx.addIssue({ code: 'custom', path: ['ship', 'sail'], message: `${(v as { id: string }).id} : navire sans propulsion — Voiles ou Avirons requis` });
+        }
+      }),
   },
 );
 

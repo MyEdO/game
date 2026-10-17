@@ -13,6 +13,7 @@
  */
 import { targetArc } from './fireArc';
 import { resolveCrewTestByRoles, type CrewAssignment, type CrewTestResult } from '../engine/crewMorale';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { defaultRNG, type RNG } from '../engine/dice';
 import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Dir8 } from './dir8';
@@ -36,13 +37,13 @@ export interface BatteryPlan {
  */
 export function resolveBattery(
   hull: Combatant, target: Combatant, heading: Dir8 | undefined,
-  assignments: CrewAssignment[], moraleScore: number, rng: RNG = defaultRNG,
+  assignments: CrewAssignment[], moraleScore: number, navigation: RefDesignee, rng: RNG = defaultRNG,
 ): BatteryPlan | null {
   if (!hull.pos || !target.pos) return null;
   const side = targetArc(heading ?? 'N', hull.pos, target.pos); // la bordée où tombe la cible
   const postes = (hull.postes ?? []).filter((p) => p.side === side);
   if (!postes.length) return null; // aucune pièce sur ce bord → pas de bordée à lâcher
-  const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', moraleScore, rng);
+  const crewTest = resolveCrewTestByRoles(assignments, 'batterie', 'intermediaire', moraleScore, navigation, rng);
   return { side, postes, crewTest, dr: crewTest.total };
 }
 

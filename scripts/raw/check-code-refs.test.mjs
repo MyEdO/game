@@ -79,7 +79,7 @@ test('isExcludedSrc : art de couverture (tenues/defs/) exclu, reste inclus', () 
   assert.equal(isExcludedSrc('src/engine/combat.ts'), false)
 })
 
-test('non-régression : le VRAI src/ n’a aucune réf morte ni aucune réf sur ligne VIDE', () => {
+test('non-régression : les VRAIS citants n’ont aucune réf morte ni aucune réf sur ligne VIDE', () => {
   const mortes = scanDeadCodeRefs()
   assert.deepEqual(mortes.map((d) => `${d.file}:${d.row} — ${d.ref}`), [], 'réf(s) de code MORTE(S)')
   const vides = scanEmptyLineCodeRefs()
