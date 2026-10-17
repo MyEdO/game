@@ -3,7 +3,8 @@ import { useGame } from '../../state/store';
 import { FLOWS } from '../../state/rollFlowSpecs';
 import { HitLocation, type Combatant, type Weapon } from '../../engine/types';
 import type { RollLabelRef } from '../RollLine';
-import { crowdMod, bestRangedDefense, locationLabel, weaponInflictsFlames, attackTestOf, isHelplessTarget } from '../../engine/combat';
+import { rule } from '../../engine/policy';
+import { crowdMod, bestRangedDefense, locationLabel, peutRetenirSesCoups, attackTestOf, isHelplessTarget } from '../../engine/combat';
 import { isUnarmed } from '../../engine/items';
 import { isInanimate } from '../../engine/structures';
 import { combatDistance } from '../../state/footprint';
@@ -119,8 +120,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   // ADE II 02 l.677
   const objetSource = weapon ? objetSourceDeLArme(attacker, weapon) : undefined;
   const canHarpoonRopeCut = !res && weapon?.type === 'ranged' && attacker.kind === 'hero' && !!objetSource && itemCapability(objetSource, 'ropeMode');
-  // AA 07 l.59-61
-  const canWithhold = !res && weapon?.type === 'melee' && attacker.kind === 'hero' && !weaponInflictsFlames(weapon);
+  // LDB 18 l.30 ; AA 07 l.59, l.61
+  const canWithhold = !res && attacker.kind === 'hero' && !!weapon && peutRetenirSesCoups(weapon);
   // LDB 14 l.159
   const canGrapple = !res && weapon?.type === 'melee' && isUnarmed(weapon) && attacker.kind === 'hero';
   // Panneau pré-rempli (l'avant-jet = le résultat, pré-rempli) : MA ligne (score + mods) recalculée à
@@ -309,7 +310,9 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
                 <Icon id="melee/pulled-punch" size="sm" /> Retenir ses coups
               </button>
               <CodexRef category="regles" id="retenir-ses-coups" label="Retenir ses coups (maîtriser sans tuer)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
-              {pa.withhold && <span className="rm-note" data-ton="discret">Non létal : Critique seulement si la cible tombe à 0 ; sans Empaleuse/Percutante/Perforante/Taille.</span>}
+              {pa.withhold && <span className="rm-note" data-ton="discret">{rule('combat-aa-blessures') === 'aa'
+                ? 'Non létal : Critique seulement si la cible tombe à 0 ; sans Empaleuse/Percutante/Perforante/Taille.'
+                : 'Non létal : tout Coup Critique est ignoré.'}</span>}
             </Row>
           )}
           {canGrapple && (
