@@ -1,17 +1,19 @@
 import { tableTotale } from '../lib/tableTotale';
+import { t } from '../i18n';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { applyLeafOps, ouvrirChute, runFlow, checkTriggers, differerLaSuite, pushCombatStep, runPureFlowLines, OPS_DIFFEREES } from './combatEffects';
+import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, runPureFlowLines, OPS_DIFFEREES } from './combatEffects';
 import { openSequence } from './rollSeam';
 import { buildAuthorPerilSteps } from './authorPerils';
 import { SEA_PERIL_INTERRUPT } from './seaVoyageFlow';
 import type { MapRoute } from './worldMap';
-import type { Cloture, PendingCascade } from './pendings';
-import { emptyScene, type Dialogue } from './scene';
+import type { PendingCascade, Suite } from './pendings';
+import { emptyScene, type Dialogue, type Effect } from './scene';
+import { cleActionJouee } from './usable';
 import { ouvrirDialogue } from './dialogue';
 import { runCombatFlow, bandeTriggeredTest } from './combat/triggeredTest';
 import { seedBattleRng } from './battleRng';
-import './combatFlow'; // injecte le walker de COMBAT dans la porte des dés (registerSuiteCombat)
+import './combatFlow'; // enregistre la clôture `reprendreFlowDeCombat`
 import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
 import { stepInteraction, suspendActiveCascade, runCascadeImmediate, pushStep, startCascade, resolveRemainingCascade, registerCascadeApplier } from './cascade';
 import { checkPartyWiped } from './partyWipe';
@@ -621,18 +623,74 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     expect(useGame.getState().dialogue?.nodeId, 'elle joue quand la grappe entière est retombée').toBe('n2');
   });
 
-  it('DEUX confidences sur la MÊME étape se COMPOSENT — la première suite n’est pas écrasée', () => {
-    // `dismissVictory` confie le reste du butin PUIS la continuation d'`onContinue` : un écrasement
-    // perdait le premier lot en silence. Le `seq` est l'opérateur de suite du Flow, ici comme ailleurs.
+  it('DEUX confidences sur la MÊME étape s’AJOUTENT — la première suite n’est pas écrasée', () => {
+    // `dismissVictory` confie le reste du butin PUIS la continuation d'`onContinue` (#2689).
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [marinBlesse('h1')] });
     ouvrirChute(useGame.setState, useGame.getState().party[0], 4);
-    differerLaSuite(useGame.setState, DIT('LOT-A'), 'scene');
-    differerLaSuite(useGame.setState, DIT('LOT-B'), 'scene');
+    confierLaSuite(useGame.setState, [{ verbe: 'reprendreFlow', flow: DIT('LOT-A') }]);
+    confierLaSuite(useGame.setState, [{ verbe: 'reprendreFlow', flow: DIT('LOT-B') }]);
     poseLeDe(8);
     const j = useGame.getState().journal;
     expect(j.some((l) => l.includes('LOT-A')), 'la 1re suite confiée a joué').toBe(true);
     expect(j.findIndex((l) => l.includes('LOT-B')), 'et la 2e APRÈS elle')
       .toBeGreaterThan(j.findIndex((l) => l.includes('LOT-A')));
+  });
+
+  it('#2689 (8) — une clôture PUIS un Flow confiés au même porteur se jouent dans l’ordre de la confidence', () => {
+    seedBattleRng(3);
+    useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], flags: {}, party: [marinBlesse('h1')] });
+    ouvrirChute(useGame.setState, useGame.getState().party[0], 4);
+    confierLaSuite(useGame.setState, [{ verbe: 'marquerActionJouee', entityId: 'e', actionId: 'a' }]);
+    confierLaSuite(useGame.setState, [{ verbe: 'reprendreFlow',
+      flow: { kind: 'if', cond: { kind: 'flag', expr: cleActionJouee('e', 'a') }, then: DIT('VU'), else: DIT('PAS-VU') } as Flow }]);
+    poseLeDe(8);
+    const j = useGame.getState().journal;
+    expect(j.some((l) => l.includes('PAS-VU')), 'le Flow confié APRÈS la clôture la voit jouée').toBe(false);
+    expect(j.some((l) => l.includes('VU'))).toBe(true);
+  });
+
+  it('#2689 (8b) — setTime tire deux effets programmés dont une chute : l’effet du même pas passe AVANT la suite du lot', () => {
+    seedBattleRng(3);
+    useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], flags: {}, party: [marinBlesse('h1')],
+      gameTime: 600, scheduledEffects: [{ executeAt: 610, flow: CHUTE }, { executeAt: 610, flow: DIT('E2-MEME-PAS') }] });
+    jouerFlowEntier(runFlow(useGame.getState, useGame.setState,
+      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setTime', hour: 12 } as Effect }, DIT('X-SUITE-DU-LOT')] }));
+    expect(useGame.getState().pendingCascade, 'la chute programmée a ouvert son dé').not.toBeNull();
+    poseLeDe(8);
+    const j = useGame.getState().journal;
+    const e2 = j.findIndex((l) => l.includes('E2-MEME-PAS'));
+    expect(e2, 'l’effet du même pas d’horloge a joué').toBeGreaterThanOrEqual(0);
+    expect(j.findIndex((l) => l.includes('X-SUITE-DU-LOT')), 'la suite du lot APRÈS lui').toBeGreaterThan(e2);
+  });
+
+  it('#2689 (9) — un lot de butin qui rend la main confie son équipement, offert à la fenêtre APRÈS le dé', () => {
+    seedBattleRng(3);
+    useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingLoot: null, party: [marinBlesse('h1')] });
+    const issue = applyEffectsLoot(useGame.getState, useGame.setState, [
+      { type: 'fall', target: 'party', metres: 4 } as unknown as Effect,
+      { type: 'giveTrapping', custom: 'Talisman-sonde' } as Effect,
+    ], 'Fouille');
+    expect(issue, 'le lot a rendu la main').toBe(OPS_DIFFEREES);
+    expect(useGame.getState().pendingLoot, 'rien n’est offert devant le dé').toBeNull();
+    poseLeDe(8);
+    const s = useGame.getState();
+    expect({ titre: s.pendingLoot?.title, fenetre: s.pendingLoot?.gear.map((g) => g.label) ?? [],
+      surLeHeros: (s.party[0].items ?? []).some((i) => i.label === 'Talisman-sonde') })
+      .toEqual({ titre: 'Fouille', fenetre: ['Talisman-sonde'], surLeHeros: false });
+  });
+
+  it('#2689 (9b) — le reste du lot et son équipement rejouent sous le TITRE du lot : une seule fenêtre « Fouille »', () => {
+    seedBattleRng(3);
+    useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingLoot: null, party: [marinBlesse('h1')] });
+    jouerFlowEntier(applyEffectsLoot(useGame.getState, useGame.setState, [
+      { type: 'fall', target: 'party', metres: 4 } as unknown as Effect,
+      { type: 'giveMoney', montant: { gold: 1 } } as unknown as Effect,
+      { type: 'giveTrapping', custom: 'Talisman-sonde' } as Effect,
+    ], 'Fouille'));
+    poseLeDe(8);
+    const s = useGame.getState();
+    expect({ titre: s.pendingLoot?.title, or: s.pendingLoot?.gold, gear: s.pendingLoot?.gear.map((g) => g.label) })
+      .toEqual({ titre: 'Fouille', or: { gold: 1, silver: 0, brass: 0 }, gear: ['Talisman-sonde'] });
   });
 
   it('SAUVEGARDE entre deux dés : la clôture survit au round-trip JSON, et ne se joue qu’UNE fois', () => {
@@ -650,10 +708,11 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     const clefs = ['pendingCascade', 'dialogue', 'party', 'scene', 'journal', 'gameTime', 'flags', 'scheduledEffects', 'suspendedCascades'] as const;
     const etat = useGame.getState() as unknown as Record<string, unknown>;
     const save = JSON.parse(JSON.stringify(tableTotale(clefs, (k) => etat[k])));
-    const clotures = (save.pendingCascade as PendingCascade).participants
-      .map((p) => p.meta?.apresClotures as Cloture[] | undefined).filter(Boolean);
-    expect(clotures, 'UNE étape porte la clôture — l’étape validée l’a rendue').toHaveLength(1);
-    expect(clotures[0]![0]!.verbe).toBe('dialogueSuivant');
+    // #2689 : les maillons restants sont repartis avec le nouveau porteur ; l'étape validée a rendu sa suite.
+    const suites = (save.pendingCascade as PendingCascade).participants
+      .map((p) => p.meta?.apresSuite).filter((x): x is Suite => !!x);
+    expect(suites.map((suite) => suite.map((c) => c.verbe)), 'UNE étape porte la suite, réduite à la clôture restante')
+      .toEqual([['dialogueSuivant']]);
     useGame.setState({ pendingCascade: null, dialogue: null, journal: [] } as never); // « nouvelle session »
     useGame.setState(save as never); // rechargement
     expect(useGame.getState().dialogue?.nodeId, 'la clôture attend toujours son dé').toBe('n1');
@@ -1080,5 +1139,51 @@ describe('(xv) WALKER PUR : une op à DÉ y LÈVE — aucune magnitude tirée en
     const c = victime();
     const seq = { kind: 'seq', steps: [{ kind: 'seq', steps: [flowFall()] }] } as unknown as Flow;
     expect(() => runPureFlowLines(c, c, seq, { hull: coque() })).toThrow(/op à DÉ|porte/);
+  });
+});
+
+describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible et SON contexte', () => {
+  // Nid-de-pie : hauteur entière (25 m), un seul dé, celui des Dégâts (MDG 13 l.684-688, LDB 15 l.80).
+  const vigie = (id: string, pv: number): Combatant =>
+    ({ ...marin(id, { kind: 'hero', wounds: { current: pv, max: 200, base: 200 } } as Partial<Combatant>), shipStation: 'nid-de-pie' }) as Combatant;
+  const chuteSur = (on: 'caster' | 'target'): Flow => ({ kind: 'do', effect: { type: 'ops', on, ops: opsDeChute() } } as unknown as Flow);
+  const opsSurCible = (ops: unknown[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } } as unknown as Flow);
+  const poseLeDe = (v: number): void => { avanceEtapeCascade(useGame.getState, () => v); };
+  const pv = (id: string): number => useGame.getState().party.find((c) => c.id === id)!.wounds.current;
+  const PERTE = 3 * 25 + 4 - BE;
+
+  beforeEach(() => { seedBattleRng(3); });
+
+  it('feuille `on:caster` différée : la suite `on:target` soigne la CIBLE du walker, pas le lanceur', () => {
+    const c = vigie('C', 190);
+    const cible = vigie('T', 100);
+    useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [c, cible, coque()] });
+    runCombatFlow({ mode: 'combat', get: useGame.getState, set: useGame.setState, target: cible, caster: c, label: 'sonde', opsCtx: { hull: coque() } },
+      { kind: 'seq', steps: [chuteSur('caster'), opsSurCible([{ op: 'heal', amount: 50 }])] } as Flow);
+    poseLeDe(4);
+    expect({ C: pv('C'), T: pv('T') }).toEqual({ C: 190 - PERTE, T: 150 });
+  });
+
+  it('le CONTEXTE de la pile survit au dé : `{woundsDealt}` (EDO 11 l.222) vaut après la reprise ce qu’il valait avant', () => {
+    const h = vigie('H', 190);
+    useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [h, coque()] });
+    runCombatFlow({ mode: 'combat', get: useGame.getState, set: useGame.setState, target: h, caster: h, label: 'sonde', opsCtx: { hull: coque(), woundsDealt: 7 } },
+      { kind: 'seq', steps: [chuteSur('target'), opsSurCible([{ op: 'wounds', amount: { woundsDealt: true }, ignoreTB: true, ignoreAP: true }])] } as Flow);
+    poseLeDe(4);
+    expect(pv('H')).toBe(190 - PERTE - 7);
+  });
+
+  it('cible RETIRÉE avant le dé : son maillon se DIT perdu, et les maillons suivants jouent', () => {
+    const c = vigie('C', 190);
+    const cible = vigie('T', 100);
+    useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], party: [c, cible, coque()] });
+    runCombatFlow({ mode: 'combat', get: useGame.getState, set: useGame.setState, target: cible, caster: c, label: 'sonde', opsCtx: { hull: coque() } },
+      { kind: 'seq', steps: [chuteSur('caster'), opsSurCible([{ op: 'heal', amount: 50 }])] } as Flow);
+    confierLaSuite(useGame.setState, [{ verbe: 'reprendreFlow', flow: { kind: 'do', effect: { type: 'journal', desc: 'MAILLON-SUIVANT' } } as unknown as Flow }]);
+    useGame.setState({ party: useGame.getState().party.filter((x) => x.id !== 'T') });
+    poseLeDe(4);
+    const j = useGame.getState().journal;
+    expect(j.some((l) => l.includes(t('cascade.cibleDisparue', { label: 'sonde' }))), 'la perte se dit').toBe(true);
+    expect(j.some((l) => l.includes('MAILLON-SUIVANT')), 'le maillon suivant a joué').toBe(true);
   });
 });
