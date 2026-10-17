@@ -2601,10 +2601,8 @@ function appliquerLaTouche(
   // Un dé déclaré a ARRÊTÉ la chaîne : aucun modifier d'ordre supérieur n'a muté quoi que ce soit. La
   // résolution repart de l'applier 'sauvegarde', qui rejouera la chaîne ENTIÈRE une fois la touche connue.
   if (apresModifiers.suspendu) return null;
-  // Empoignade (LDB 14 l.159) : « Au lieu d'infliger des Dégâts ». Sur une touche, on NEUTRALISE Dégâts,
-  // Critique et mort-auto de CE coup (les branches Surpris/Engagé/Avantage/journal restent intactes) ; la
-  // pose de l'Empoignade + de l'État *Empêtré* se fait après l'Engagement, plus bas.
-  if (grapple && res.hit) res = { ...res, woundsLost: 0, critical: false, autoKill: false };
+  // Empoignade : LDB 14 l.159. La pose de l'Empoignade et de l'État *Empêtré* suit l'Engagement, plus bas.
+  if (grapple && res.hit) res = { ...res, woundsLost: 0, autoKill: false, sansPrise: 'empoignade' };
   // Cible Inconsciente — règle optionnelle « mort-auto » (LDB 16 l.113) : en CORPS À CORPS la cible est
   // tuée automatiquement. On applique la mort par le MÊME chemin que les morts normales (`finalizeHeroDeath`
   // → un héros à Destin est suspendu via pendingFateSave, sinon `dead = true`), pas un early-return brutal.

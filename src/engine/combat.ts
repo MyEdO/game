@@ -477,8 +477,9 @@ export interface RollBreakdown {
   second?: SecondReadLine;
 }
 
-/** Ce qui ôte au coup toute prise sur sa cible : MDG 13 l.605, l.614 ; ADE II 08 l.296, l.300 ; LDB 85 l.98, l.278 ; LDB 47 l.358. */
-export type SansPrise = 'coque-bloquee' | 'structure-immune' | 'sauvegarde' | 'bouclier-anti-fleches';
+/** Ce qui ôte au coup toute prise sur sa cible : MDG 13 l.605, l.614 ; ADE II 08 l.296, l.300 ; LDB 85 l.98, l.278 ; LDB 47 l.358 ;
+ *  LDB 85 l.134 ; LDB 14 l.159. */
+export type SansPrise = 'coque-bloquee' | 'structure-immune' | 'sauvegarde' | 'bouclier-anti-fleches' | 'ethere' | 'empoignade';
 
 export interface AttackResult {
   hit: boolean;
@@ -1617,12 +1618,16 @@ function applyHit(
   // Un OBJET INANIMÉ (structure/véhicule/affût) n'a PAS de Tableau de Localisation → aucune localisation
   // (l'affichage omet alors le membre, et le résolveur de Blessures l'ignore déjà : armure 0 partout).
   const loc = isInanimate(defender) ? undefined : (forcedLoc ?? hitLocationByShape(reverseRoll(atkBd.roll), defender.bodyShape));
+  // Coup Critique (LDB 13 l.183 ; LDB 62 l.248). Le compte des Blessures critiques, dépassement compris,
+  // vit dans `critiquesDuCoup` (#1595 c.6220635824).
+  const empale = qualityCritTriggered(weapon, atkBd.roll);
+  const isCritical = (critical || empale) && !withholding; // LDB 18 l.30 ; AA 07 l.59
   // Éthéré (LDB 85 l.134) : « ne peut être blessée que par les Attaques magiques » — une attaque
   // non magique (créature non Magique/Démoniaque, arme non magique) passe au travers : 0 Blessure.
   if (incomingDamageNullified(defender, attacker, isMagicWeapon(weapon))) {
     return {
       hit: true, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, location: loc,
-      damage: 0, woundsLost: 0, critical: false, ...(withholding ? { retenu: true as const } : {}), advantageTo: 'attacker', defenderDefeated: false,
+      damage: 0, woundsLost: 0, critical: isCritical, ...(withholding ? { retenu: true as const } : {}), sansPrise: 'ethere', advantageTo: 'attacker', defenderDefeated: false,
       log: `${attacker.label} touche ${defender.label}… mais le coup passe au travers (Éthéré — seules les attaques magiques la blessent).`,
     };
   }
@@ -1653,10 +1658,6 @@ function applyHit(
   // Coque (MDG 13 l.618-637) : le BE ajusté du tableau (« 3 × BE » / « BE−1 ») est appliqué côté
   // Dégâts (mathématiquement identique, sans écraser le clamp de PA) — « 3 × BE » ⇔ −2×BE de plus.
   if (hullAdj && 'extraTB' in hullAdj) damage -= hullAdj.extraTB;
-  // Coup Critique (LDB 13 l.183 ; LDB 62 l.248). Le compte des Blessures critiques, dépassement compris,
-  // vit dans `critiquesDuCoup` (#1595 c.6220635824).
-  const empale = qualityCritTriggered(weapon, atkBd.roll);
-  let isCritical = (critical || empale) && !withholding; // LDB 18 l.30 ; AA 07 l.59
   // LDB 63 l.86, l.90 ; LDB 63 l.78 ; #1595 c.6225326419 R2.
   const ignoredAP = loc ? ignoredArmourAP(defender, loc, { roll: atkBd.roll, critical: isCritical, empaleuse: hasQuality(weapon, 'empaleuse') }) : 0;
   // Tir sûr (LDB 10) : ignore niveau PA de la cible au tir.
@@ -1666,7 +1667,6 @@ function applyHit(
   const hullBlocked = !!hullAdj && 'blocked' in hullAdj;
   const sansPrise: SansPrise | undefined = hullBlocked ? 'coque-bloquee'
     : isStructure(defender) && structureImmune(weapon, defender) ? 'structure-immune' : undefined;
-  if (sansPrise) isCritical = false;
   const woundsLost = hullBlocked ? 0 : woundsFromHit(weapon, defender, hullAdj ? 'corps' : loc, damage, extraAP - ignoredAP - sureShot, hullAdj ? 0 : 1, attacker.size); // Blindage de la Coque : MDG 12 l.232
   // AA 10 l.98 — terme DIT au journal quand le BE d'une Structure est compté plusieurs fois.
   const beMult = structureEnduranceMult(weapon, defender, attacker.size);
@@ -1696,7 +1696,7 @@ function applyHit(
           : 'trop petit pour entamer cette coque'} — MDG 13).`
       : `${attacker.label} touche ${defender.label}${loc ? ` (${locationLabel(loc, defender.bodyShape)})` : ''} : ` +
         `${damage} dégâts − ${damage - woundsLost} (${mitLabel}) = ${woundsLost} Blessures` +
-        (isCritical ? ' — CRITIQUE !' : '') +
+        (isCritical && !sansPrise ? ' — CRITIQUE !' : '') +
         '.',
   };
 }

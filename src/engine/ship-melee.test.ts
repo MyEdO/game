@@ -80,12 +80,13 @@ describe('hullHitAdjust — consommé par applyHit (petites armes / table des Ta
 });
 
 describe('applyHit contre une coque (résolution complète)', () => {
-  it('tir de petite arme RÉUSSI sur la coque → 0 Blessure, pas de Critique, log explicite (l.605)', () => {
+  it('tir de petite arme RÉUSSI sur la coque, double : Critique obtenu (l.656), sans prise (l.605), 0 Blessure', () => {
     const h = hull('cogue');
     const res = rederivePassiveAttack(bruiser(), h, arc, { roll: 11, target: 60, success: true, sl: 4, isDouble: true }, 'ranged');
     expect(res.hit).toBe(true);
     expect(res.woundsLost).toBe(0);
-    expect(res.critical).toBe(false); // même un double : les petites armes n'ont pas d'effet sur le vaisseau
+    expect(res.critical).toBe(true);
+    expect(res.sansPrise).toBe('coque-bloquee');
     expect(res.log).toContain('petites armes');
   });
   it('mêlée d’un humain sur une coque Énorme → touche sans AUCUN Dégât (case « – »)', () => {

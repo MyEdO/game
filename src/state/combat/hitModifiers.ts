@@ -142,7 +142,7 @@ export function seuilsDeSauvegarde(
  * l.125) : un coup sauvé garde donc son Avantage, son Engagement et sa ligne de journal.
  */
 export function toucheSauvee(res: AttackResult): AttackResult {
-  return { ...res, woundsLost: 0, damage: 0, critical: false, autoKill: false, sansPrise: 'sauvegarde' };
+  return { ...res, woundsLost: 0, damage: 0, autoKill: false, sansPrise: 'sauvegarde' };
 }
 
 /** Projectile « constitué de matière organique » (Bouclier anti-flèches, LDB 47) — flag maison
@@ -292,7 +292,7 @@ registerHitModifier({
   apply: ({ get, attacker, target, weapon, attaque, res }) => {
     if (res.hit && attaque === 'ranged' && weapon && organicProjectile(weapon)
       && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', sceneMetresPerTile(get().scene))) {
-      res = { ...res, woundsLost: 0, damage: 0, critical: false, sansPrise: 'bouclier-anti-fleches', log: t('cf.arrowWardDestroys', { name: target.label }) };
+      res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', log: t('cf.arrowWardDestroys', { name: target.label }) };
     }
     return res;
   },
