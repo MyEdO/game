@@ -521,10 +521,9 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const ds = useGame.getState().pendingDualStrike;
     expect(ds, 'la 2ᵉ frappe s’ouvre à la reprise').not.toBeNull();
     expect(ds!.offWeaponUid, 'la main secondaire est celle du héros').toBe('o');
-    expect(ds!.mainRoll, 'le jet de la main directrice voyage avec la suite').toBe(30);
     const crit = [...(useGame.getState().pendingCascade?.participants ?? [])].reverse().find((s) => s.kind === 'critical');
     expect(crit, 'le Critique a bien appendu SON étape à la reprise').toBeDefined();
-    expect(ds!.critValue, "'ldb' : le d100 nu du Coup Critique est le dé de la table (LDB 10 l.773 ; LDB 18 l.53)").toBe(crit!.reveal?.dice);
+    expect(ds!.jet, "'ldb' : le d100 nu du Coup Critique est le dé de la table (LDB 10 l.773 ; LDB 18 l.53)").toBe(crit!.reveal?.dice);
     expect(useGame.getState().pendingCascade, 'la cascade reste OUVERTE : la 2ᵉ frappe s’y rendra').not.toBeNull();
   });
 
@@ -541,7 +540,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
     expect(crits.map((s) => s.reveal?.origine), 'les deux Blessures critiques, dans leur ordre').toEqual(['coup-critique', 'depassement']);
     expect(crits.map((s) => s.reveal?.title)).toEqual([tr('step.coupCritique'), tr('step.blessureCritique')]);
-    expect(useGame.getState().pendingDualStrike!.critValue, "'ldb' : le d100 nu du Coup Critique (LDB 18 l.53)").toBe(crits[0].reveal?.dice);
+    expect(useGame.getState().pendingDualStrike!.jet, "'ldb' : le d100 nu du Coup Critique (LDB 18 l.53)").toBe(crits[0].reveal?.dice);
   });
 
   /** La 1ʳᵉ frappe d'un Maniement de deux armes, en `aa`, sur une cible à `current` Blessures, jusqu'à l'ouverture de la 2ᵉ. */
@@ -555,17 +554,17 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     useGame.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result: premiere } as never });
     useGame.getState().attackConfirm();
     const crits = (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
-    return { crits, critValue: useGame.getState().pendingDualStrike?.critValue };
+    return { crits, jet: useGame.getState().pendingDualStrike?.jet };
   }
 
   it("(iii ter) 'aa', Coup Critique qui fait aussi passer à 0 : la 2ᵉ frappe lit le d100 NU, pas le jet décalé (LDB 10 l.773 ; AA 07 l.36, l.42)", () => {
     try {
-      const { crits, critValue } = secondeMainEnAA(true, 2);
+      const { crits, jet } = secondeMainEnAA(true, 2);
       expect(crits.map((s) => s.reveal?.origine), 'une seule Blessure critique (AA 07 l.42)').toEqual(['coup-critique']);
       const dice = crits[0].reveal!.dice!;
-      expect(critValue).toBeDefined();
-      expect(dice - critValue!, 'le +10 par Blessure au-delà de 0 est hors de la valeur').toBeGreaterThan(0);
-      expect((dice - critValue!) % 10).toBe(0);
+      expect(jet).toBeDefined();
+      expect(dice - jet!, 'le +10 par Blessure au-delà de 0 est hors de la valeur').toBeGreaterThan(0);
+      expect((dice - jet!) % 10).toBe(0);
     } finally {
       resetRule('combat-aa-blessures');
     }
@@ -574,9 +573,9 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
   it("(iii ter bis) 'aa', Coup Critique sur un dormeur réveillé : la 2ᵉ frappe lit le d100 du Critique appliqué (LDB 10 l.773 ; LDB 47 l.277)", () => {
     try {
       const dormeur = { conditions: [{ id: 'inconscient', value: 1, roundsLeft: 3 }] } as unknown as Partial<Combatant>;
-      const { crits, critValue } = secondeMainEnAA(true, 30, dormeur);
+      const { crits, jet } = secondeMainEnAA(true, 30, dormeur);
       expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
-      expect(critValue).toBe(crits[0].reveal!.dice);
+      expect(jet).toBe(crits[0].reveal!.dice);
     } finally {
       resetRule('combat-aa-blessures');
     }
@@ -585,9 +584,9 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
   for (const [branche, current] of [['cible déjà à 0', 0], ['passage à 0', 2]] as const) {
     it(`(iii quater) 'aa', ${branche}, sans double : le Coup Critique donne la valeur de la 2ᵉ frappe (LDB 10 l.773 ; #1595 c.6226467544)`, () => {
       try {
-        const { crits, critValue } = secondeMainEnAA(false, current);
+        const { crits, jet } = secondeMainEnAA(false, current);
         expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
-        expect(critValue, 'la 2ᵉ frappe lit la valeur du tableau').toBeDefined();
+        expect(jet, 'la 2ᵉ frappe lit la valeur du tableau').toBeDefined();
       } finally {
         resetRule('combat-aa-blessures');
       }

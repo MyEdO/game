@@ -26,7 +26,7 @@ const g = useGame.getState;
 const CAS: { nom: string; etat: Record<string, unknown>; holder: string | null; mode: string }[] = [
   { nom: 'balayage en cours', etat: { pendingCleave: { attackerId: 'a', hitIds: [], count: 0 } }, holder: 'pendingCleave', mode: 'cleave' },
   { nom: 'balayage dont la frappe est ouverte (pendingAttack)', etat: { pendingCleave: { attackerId: 'a', hitIds: [], count: 0 }, pendingAttack: { attackerId: 'a', targetId: 'b', location: null, result: null } }, holder: null, mode: 'attack' },
-  { nom: '2ᵉ frappe en attente de cible', etat: { pendingDualStrike: { attackerId: 'a', offWeaponUid: 'o', mainRoll: 34 } }, holder: 'pendingDualStrike', mode: 'dual' },
+  { nom: '2ᵉ frappe en attente de cible', etat: { pendingDualStrike: { attackerId: 'a', offWeaponUid: 'o', jet: 43 } }, holder: 'pendingDualStrike', mode: 'dual' },
   { nom: 'pilonnage indirect (placeur de case)', etat: { pendingSiegeAim: { gunnerId: 'a', weaponUid: 'w', radius: 1, rangeTiles: null } }, holder: 'pendingSiegeAim', mode: 'placing-zone' },
   { nom: 'Surincantation « +Cible » (fenêtre du registre des MODALES)', etat: { pendingCast: { casterId: 'a', spellId: 's', pickingTargets: true } }, holder: null, mode: 'overcast' },
   { nom: 'aucun ciblage particulier', etat: {}, holder: null, mode: 'attack' },

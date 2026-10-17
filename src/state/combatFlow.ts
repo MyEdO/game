@@ -854,8 +854,8 @@ export function resolveAttack(
   return { res: resolveMelee(attacker, target, weapon, battleRng(), { defense: surfaced ? 'none' : bestDefenseMode(target), location, env, dodgeMods: defenseDodgeMods(get(), target), dmgProxy, withhold, flankRear }), weapon };
 }
 
-/** 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773). Jet d'attaquant IMPOSÉ : `reverseRoll(mainRoll)`,
- *  ou `critValue` (valeur du tableau des Critiques) si la 1ʳᵉ frappe était un Critique. Le `target` (valeur à
+/** 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773). Jet d'attaquant IMPOSÉ : `jet`, tranché à
+ *  l'ouverture de la Seconde main (`PendingDualStrike.jet`, LDB 10 l.773). Le `target` (valeur à
  *  toucher) inclut déjà la pénalité de main secondaire (l'arme `off` porte `hand:'off'`, cf. plan #1). Le
  *  défenseur fait un NOUVEAU jet de défense (LDB 10 l.773) : un défenseur SURFACÉ le joue dans SA fenêtre
  *  (#998) — on ne résout alors que le jet d'ATTAQUANT, et `attackConfirm` interpose la fenêtre
@@ -865,8 +865,8 @@ export function resolveDualSecond(
   attacker: Combatant,
   target: Combatant,
   offWeapon: Weapon,
-  mainRoll: number,
-  opts?: { critValue?: number; location?: HitLocation },
+  jet: number,
+  opts?: { location?: HitLocation },
 ): AttackResult {
   // Règles d'arme contextuelles de Groupe (LDB 62) AUSSI pour la 2ᵉ frappe : Fléau sans Spé → Dangereuse +
   // aucun Atout, Lance hors Charge → improvisée. Replié AVANT touche/Dégâts (même `weaponContextOf` que
@@ -881,8 +881,7 @@ export function resolveDualSecond(
     actor: attacker, difficulty: 'intermediaire', combat: { kind: 'melee', weapon: offWeapon },
     surLaCible: mods, plafond: 'difficultes',
   }).target;
-  const atkRoll = opts?.critValue != null ? opts.critValue : reverseRoll(mainRoll);
-  const atk = evaluateTest(atkRoll, toHit, valeur);
+  const atk = evaluateTest(jet, toHit, valeur);
   // MÊME composition que la cible montée ci-dessus (`mods`, plafond compris) : les deux branches la
   // reçoivent FIGÉE — la 2ᵉ frappe annonce la Difficulté qui a fait sa cible.
   const compo = composeAttack(mods);
@@ -4013,8 +4012,8 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   const battleDual = get().battle;
   if (enAction && suite?.dualMain && touche.hit && offDual && battleDual && dualStrikeTargets(battleDual, attacker, offDual).length) {
     // LDB 10 l.773 ; #1595 c.6227274650 Q3.
-    const critValue = estUnCoupCritique(touche.critiqueApplique?.origine) ? touche.critiqueApplique!.naturel : undefined;
-    set({ pendingDualStrike: { attackerId: attacker.id, offWeaponUid: suite.dualMain.offWeaponUid, mainRoll: suite.dualMain.mainRoll, critValue } });
+    const jet = estUnCoupCritique(touche.critiqueApplique?.origine) ? touche.critiqueApplique!.naturel : reverseRoll(suite.dualMain.mainRoll);
+    set({ pendingDualStrike: { attackerId: attacker.id, offWeaponUid: suite.dualMain.offWeaponUid, jet } });
   }
   // La chaîne d'un héros est une fenêtre (`pendingCleave`) : hors de combat, `maybeHeroCleave` la FERME.
   const declare: EnchainementDuCoup = suite?.enchainement ?? { mode: 'auto' };
