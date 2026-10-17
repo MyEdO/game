@@ -176,16 +176,21 @@ La compétence **Prière**, **Langue (Magick)** et **Focalisation** sont des **c
 
 ## Incantation Critique
 
-**Sources RAW :** `LDB 46 l.27-32`
+**Sources RAW :** `LDB 46 l.26-32`
 
-Un **Critique** au Test d'incantation (double réussi) signifie que les Vents ont développé une force dangereuse. À moins de posséder le Talent **Diction instinctive**, effectuer un jet sur le Tableau des Incantations Imparfaites Mineures. On peut choisir l'un des effets suivants à la place :
+Un **Critique** au Test d'incantation (double réussi, `LDB 46 l.28` renvoie à la p.159) signifie que les Vents ont développé une force dangereuse. À moins de posséder le Talent **Diction instinctive**, effectuer un jet sur le Tableau des Incantations Imparfaites Mineures. On peut **aussi** choisir l'un des effets suivants : le jet sur l'Imparfaite Mineure **demeure**, l'effet choisi s'y ajoute. `LDB 46 l.28` : « Mais vous pouvez aussi choisir » ; `VDM 02 l.52` : « peut également choisir ».
 
 - **Incantation Critique** : si le sort inflige des Dégâts, il inflige également une Blessure Critique (voir traumatisme).
 - **Puissance totale** : le sort est lancé quel que soient son NI et le DR obtenu — mais il peut être Dissipé.
 - **Force inéluctable** : si le DR est suffisant pour lancer le sort, il ne peut pas être Dissipé.
+- **Localisation de la Blessure critique d'Incantation, silence du texte** : `LDB 46 l.28` renvoie le Critique à la p.159 (« Si vous obtenez un Critique (voir page 159) à votre lancer d'Incantation »). `LDB 18 l.53` relance la Localisation de tout Coup Critique (« Lorsque vous encaissez un **Coup Critique (voir page 159)**, vous ne déterminez pas la Localisation en inversant votre lancer comme d'habitude. À la place, lancez 1d100 et référez-vous à **Déterminer la Localisation (voir page 159)** »). `LDB 46 l.101` fixe celle de la touche d'un *Projectile magique* par inversion (« la Localisation atteinte est déterminée en inversant les dés lancés pour le Test de Langue (Magick) »). Aucun passage ne dit laquelle sert à la Blessure critique d'Incantation.
+- **Choix (A), décision d'orchestrateur, ingénierie révisable, non entérinée** (#1595 c.6229735418 ; consigne utilisateur, 2026-10-17 : « seule une vraie contradiction du texte remonte à game-2e ») : la Localisation de la Blessure critique d'Incantation est **relancée au 1d100** (`LDB 18 l.53`), en `ldb` comme en `aa`. Déclencheur unique : `relanceLaLocalisation` (`src/engine/critical.ts`), cause `incantation-critique`.
+- **Prières** : `LDB 40` : aucune règle de Critique (ni « Critique » ni « double » dans le chapitre des Prières). Le Test de Prière n'a pas d'équivalent de l'Incantation Critique.
 
 > **Verbatim** (l.28) : « À moins que vous n'ayez le Talent Diction instinctive, effectuez un lancer sur le Tableau des Incantations Imparfaites Mineures lorsque la puissance dépasse votre contrôle. Mais vous pouvez aussi choisir l'un des effets suivants : »
 > **Verbatim** (l.31-32) : « **Puissance totale :** le Sort est lancé, quels que soient son NI et votre DR obtenu, mais il peut être Dissipé. » / « **Force inéluctable :** si vous obtenez suffisamment de DR pour lancer votre Sort, il ne peut être Dissipé. »
+> **Verbatim** (l.30) : « **Incantation Critique :** si le Sort inflige des Dégâts, il inflige également une Blessure Critique. Voir page 172 pour plus de détails. »
+> **Verbatim** (`VDM 02 l.52`) : « Le Personnage doit effectuer un lancer sur le Tableau des Incantations Imparfaites Mineures (voir **WFJDR**, page 234) à moins qu'il ne dispose du Talent *Diction instinctive*. Un Personnage qui obtient une Incantation Critique peut également choisir l'un des trois effets supplémentaires suivants : »
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 46` (l.27-32) → `miscast-mineure`, `mineure-signe-de-sorciere`, `mineure-lait-caille`, `mineure-mildiou`, `mineure-cerumen`, `mineure-lueur-occulte`, `mineure-murmures-mortels`, `mineure-rupture`, `VerdictApprentissage`, `mineure-secousse-spirituelle`, +60 — `src/data/index.ts`, `src/data/miscast.json`, `src/data/schemas/defs-scenes/effets.ts`, `src/engine/critical.ts`, `src/engine/grimoire.ts`, `src/engine/magic.ts`, +9 fichiers
@@ -419,7 +424,7 @@ Si un sort **vous cible** ou vise un point **visible** à une distance en mètre
 **Limites :**
 - On ne peut tenter de dissiper qu'un **seul sort chaque Round**.
 - Les Prières (Bénédictions/Miracles) ne peuvent pas être dissipées — **INFÉRENCE** du mot « Sort » de l.156 (aucun passage n'énonce le cas des Prières, dont la résolution vit sous `LDB 40`), pas un verbatim.
-- Le seul verrou RAW est **Force inéluctable** (l.32) : c'est l'un des **trois effets d'Incantation Critique au CHOIX** du lanceur (l.30-32), et il n'immunise qu'« si vous obtenez suffisamment de DR pour lancer votre Sort ». Les deux autres choix n'immunisent pas — « **Puissance totale** » (l.31) est explicitement dissipable. Sans choix, l'Incantation Critique renvoie au **Tableau des Incantations Imparfaites Mineures** (l.28), à moins du Talent Diction instinctive.
+- Le seul verrou RAW est **Force inéluctable** (l.32) : c'est l'un des **trois effets d'Incantation Critique au CHOIX** du lanceur (l.30-32), et il n'immunise qu'« si vous obtenez suffisamment de DR pour lancer votre Sort ». Les deux autres choix n'immunisent pas — « **Puissance totale** » (l.31) est explicitement dissipable. Avec ou sans choix, l'Incantation Critique renvoie au **Tableau des Incantations Imparfaites Mineures** (l.28), à moins du Talent Diction instinctive : le choix s'y ajoute (« Mais vous pouvez aussi choisir »).
 
 > **Verbatim** (l.156) : « Si un Sort vous cible, ou vise un point que vous pouvez voir à une distance en mètres égale à votre Force Mentale, vous pouvez opposer le Test d'Incantation avec Langue (Magick), car vous chantez un Contre-sort. Effectuez un Test opposé de Langue (Magick). Sur un succès, vous dissipez le Sort ; sur un échec, le Sort utilise le DR du Test opposé pour déterminer si l'incantation a réussi normalement. Vous ne pouvez tenter de dissiper qu'un seul Sort chaque Round. »
 > **Verbatim** (l.31-32) : « **Puissance totale :** le Sort est lancé, quels que soient son NI et votre DR obtenu, mais il peut être Dissipé. » / « **Force inéluctable :** si vous obtenez suffisamment de DR pour lancer votre Sort, il ne peut être Dissipé. »
@@ -1710,7 +1715,7 @@ Table de synthèse des modificateurs (Incantation / Focalisation / Saturation) e
 | Mémoriser un sort (PX) | LDB 46 l.16-20 | OK |
 | Test d'incantation (Langue Magick, DR ≥ NI) | LDB 46 l.22-24 | OK |
 | Compétence avancée (0 avance = pas de test) | LDB 09 | OK |
-| Incantation Critique (double réussi) | LDB 46 l.27-32 | OK |
+| Incantation Critique (double réussi) | LDB 46 l.26-32 | OK |
 | Maladresse → Imparfaite Mineure | LDB 46 l.83-85 | OK |
 | Influence corruptrice → le 8 | LDB 46 l.87-89 | OK |
 | Tableau Imparfaites Mineures (20 entrées) | LDB 46 l.34-55 | OK — verbatim |
