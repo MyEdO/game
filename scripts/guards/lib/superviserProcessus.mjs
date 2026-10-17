@@ -12,7 +12,7 @@ import { citerArgv } from './lancerDetache.mjs'
 import { estPidVivant } from './pid.mjs'
 
 const DELAI_IPC = 15000
-/** Mesures consécutives en échec au-delà desquelles l'indétermination interrompt le hook (#2626). */
+/** Mesures consécutives en échec à partir desquelles l'indétermination interrompt le hook (#2626). */
 export const MESURES_INDETERMINEES_MAX = 20
 
 function interpreteurHote() {

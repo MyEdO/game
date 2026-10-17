@@ -1,10 +1,11 @@
+import { estShaComplet } from './gitPorte.mjs'
 import { pagesRest } from './ticketsGh.mjs'
 
 const SIGNATURE_PR = 'Train de publication (`npm run ops:publier`), tête '
 export const corpsDePr = (tete) => `${SIGNATURE_PR}${tete}.`
 export function estPrDuTrain(corps) {
   const tete = String(corps ?? '').slice(SIGNATURE_PR.length, -1)
-  return /^[0-9a-f]{40}$/i.test(tete) && corps === corpsDePr(tete)
+  return estShaComplet(tete) && corps === corpsDePr(tete)
 }
 
 
@@ -13,7 +14,6 @@ export const refusDEnfileur = ({ depot, numero, compte, message }) =>
   `mise en file REFUSÉE au compte « ${compte} » : ${message} — geste humain : bouton « Merge when ready » de https://github.com/${depot}/pull/${numero}`
 
 const surUneLigne = (texte) => String(texte ?? '').replace(/\s*[\r\n]+\s*/g, ' ').trim()
-const shaValide = (sha) => typeof sha === 'string' && /^[0-9a-f]{40}$/i.test(sha)
 
 function graphqlDe(vu) {
   if (!vu.ok) return { ok: false, raison: vu.raison ?? 'GraphQL refusé' }
@@ -36,12 +36,12 @@ function identiteDePr({ depot, numero, sha, appel }) {
   const pr = lu.data.repository?.pullRequest
   const compte = lu.data.viewer?.login
   if (typeof compte !== 'string' || !compte.trim()) return { ok: false, raison: 'GraphQL compte (`viewer.login`) hors schéma' }
-  if (!pr || typeof pr.id !== 'string' || !pr.id.trim() || !shaValide(pr.headRefOid)
+  if (!pr || typeof pr.id !== 'string' || !pr.id.trim() || !estShaComplet(pr.headRefOid)
     || !['OPEN', 'CLOSED', 'MERGED'].includes(pr.state) || typeof pr.merged !== 'boolean'
     || typeof pr.isInMergeQueue !== 'boolean' || pr.merged !== (pr.state === 'MERGED'))
     return { ok: false, raison: 'GraphQL identité de PR hors schéma' }
   if (pr.headRefOid !== sha) return { ok: false, raison: `tête de PR changée : ${pr.headRefOid}, pas la tête publiée ${sha}`, compte }
-  if (pr.merged) return shaValide(pr.mergeCommit?.oid)
+  if (pr.merged) return estShaComplet(pr.mergeCommit?.oid)
     ? { ok: true, statut: 'merged', fusion: pr.mergeCommit.oid, compte }
     : { ok: false, raison: 'GraphQL PR fusionnée sans commit valide', compte }
   if (pr.state !== 'OPEN') return { ok: false, raison: 'GraphQL PR fermée sans fusion', compte }
@@ -54,7 +54,7 @@ function identiteDePr({ depot, numero, sha, appel }) {
   if (!entree || typeof entree.id !== 'string' || !entree.id.trim()
     || typeof entree.state !== 'string' || !entree.state.trim() || !Number.isFinite(Date.parse(entree.enqueuedAt))
     || typeof entree.enqueuer?.login !== 'string' || !entree.enqueuer.login.trim()
-    || (entree.headCommit !== null && !shaValide(entree.headCommit?.oid)))
+    || (entree.headCommit !== null && !estShaComplet(entree.headCommit?.oid)))
     return { ok: false, compte, raison: 'GraphQL entrée de file hors schéma' }
   return { ok: true, statut: 'enqueued', deja: true, compte, entree }
 }
@@ -67,7 +67,7 @@ export function etatFileDePr({ depot, numero, sha, appel, maintenant = Date.now 
   const { entree, compte } = identite
   if (entree.state !== 'AWAITING_CHECKS' || maintenant() - Date.parse(entree.enqueuedAt) < DELAI_FILE_MS) return identite
   const indetermine = (raison) => ({ ok: false, compte, entree, raison: `entrée ${entree.id} : ${raison}` })
-  if (!shaValide(entree.headCommit?.oid)) return indetermine('tête de groupe indéterminée')
+  if (!estShaComplet(entree.headCommit?.oid)) return indetermine('tête de groupe indéterminée')
   let total = null
   const courses = pagesRest(`repos/${depot}/actions/workflows/ci.yml/runs?head_sha=${entree.headCommit.oid}&event=merge_group`, (args) => {
     const vu = appel(args)
@@ -95,7 +95,7 @@ export function etatFileDePr({ depot, numero, sha, appel, maintenant = Date.now 
 
 export function fusionDePr({ depot, numero, sha, appel, maintenant = Date.now, journaliser = () => {} }) {
   if (typeof depot !== 'string' || !/^[\w.-]+\/[\w.-]+$/.test(depot)
-    || !/^[1-9]\d*$/.test(String(numero)) || !Number.isSafeInteger(Number(numero)) || !shaValide(sha))
+    || !/^[1-9]\d*$/.test(String(numero)) || !Number.isSafeInteger(Number(numero)) || !estShaComplet(sha))
     return { ok: false, raison: 'demande de fusion : identité ou tête invalide' }
   const lireFile = () => {
     const vue = etatFileDePr({ depot, numero, sha, appel, maintenant })
@@ -126,7 +126,7 @@ export function fusionDePr({ depot, numero, sha, appel, maintenant = Date.now, j
   if (!lu.ok) return refuse(lu.raison)
   const entree = lu.data.enqueuePullRequest?.mergeQueueEntry
   if (!entree || typeof entree.id !== 'string' || !entree.id.trim()
-    || (entree.headCommit !== null && !shaValide(entree.headCommit?.oid)))
+    || (entree.headCommit !== null && !estShaComplet(entree.headCommit?.oid)))
     return refuse('GraphQL entrée de file absente ou invalide')
   const confirmation = lireFile()
   if (!confirmation.ok && confirmation.entree) return confirmation
