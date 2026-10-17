@@ -134,7 +134,7 @@ const rendre = async (etiquette, lancer) => {
   if (!rendu) SANS_RENDU.push(etiquette + ' — ' + cause)
   return rendu
 }
-const LANGUES =[...new Set(BOOKS.map((b) => b.language))].join(', ')
+const LANGUES = [...new Set(BOOKS.map((b) => b.language))].join(', ')
 // #1816 — fiche `user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`.
 const LANGUE_FICHE = 'LANGUE DE LA FICHE : la SYNTHESE que tu rediges est en FRANCAIS parfaitement accentue.'
 // Deux clauses, parce que deux gestes : REPERER du texte (inventorier, juger) et le TRANSCRIRE
@@ -270,7 +270,9 @@ function verifyPrompt(dom, entry) {
     + '\n' + LECTURE_SEULE
 }
 
-async function applyGaps(dom, entries, gaps) {
+/** Les entrees corrigees de `gaps`, chaque appel sous le label `<domaine>:<etape>:<topic>` : `augment` pour un
+ *  trou d audit, `corrige` pour une infidelite, qu une reprise rejuge. */
+async function applyGaps(dom, entries, gaps, etape) {
   phase('Correction')
   const groups = new Map()
   for (const g of gaps) {
@@ -284,7 +286,7 @@ async function applyGaps(dom, entries, gaps) {
     const existing = info.isNew ? null : entries.find((e) => e.topicId === info.topicId)
     const title = info.isNew ? info.title : (existing ? existing.title : info.topicId)
     const tid = info.isNew ? slug(info.title) : info.topicId
-    const etiquette = dom.domain + ':augment:' + tid
+    const etiquette = dom.domain + ':' + etape + ':' + tid
     return rendre(etiquette, () => agent(augmentPrompt(dom, existing ? existing.markdown : null, title, tid, info.gaps), { label: etiquette, phase: 'Correction', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: SYNTH_SCHEMA }))
       .then((rendu) => ficheDe(recolter(rendu, 'Correction'), tid))
   }))
@@ -324,7 +326,7 @@ async function passeDeFidelite(dom, entries, issuesById, aJuger) {
   // corrige la fidelite + re-verifie SEULEMENT les topics touches (economie de quota : plus de 2e passe globale)
   log(dom.title + ' — correction fidelite : ' + fidGaps.length + ' points / ' + Object.keys(fidByTopic).length + ' topics')
   const avant = new Set(entries.map((e) => e.topicId))
-  const corrigees = await applyGaps(dom, entries, fidGaps)
+  const corrigees = await applyGaps(dom, entries, fidGaps, 'corrige')
   const touches = new Set(Object.keys(fidByTopic))
   // Un topic NEUF sorti de la correction n a AUCUN verdict : il entre dans la re-verif avec les autres.
   const aRelire = corrigees.filter((e) => touches.has(e.topicId) || !avant.has(e.topicId))
@@ -352,9 +354,9 @@ function renduDeDomaine(dom, entries, issuesById, mesures) {
     agentsSansRendu: (mesures.agentsSansRendu || []).filter((ligne) => !verifRejugee(ligne, dom, issuesById)).concat(SANS_RENDU),
   }
 }
-/** Une ligne `<domaine>:verif|reverif:<topic> — <cause>` dont le topic porte desormais un verdict. */
+/** Une ligne `<domaine>:verif|reverif|corrige:<topic> — <cause>` dont le topic porte desormais un verdict. */
 const verifRejugee = (ligne, dom, issuesById) => {
-  const m = new RegExp('^' + dom.domain + ':(?:re)?verif:(.+?) — ').exec(ligne)
+  const m = new RegExp('^' + dom.domain + ':(?:(?:re)?verif|corrige):(.+?) — ').exec(ligne)
   return !!(m && issuesById[m[1]])
 }
 
@@ -409,7 +411,7 @@ async function runDomain(domain) {
   const cad = await rendre(etiquetteDeCadrage, () => agent(cadragePrompt(dom), { label: etiquetteDeCadrage, phase: 'Cadrage', agentType: 'lecteur', model: 'sonnet', effort: 'medium', schema: CADRAGE_SCHEMA }))
   if (!cad) return { saute: 'cadrage SANS RENDU : ' + SANS_RENDU.join(' ; ') }
   recolter(cad, 'Cadrage')
-  const COVERAGE = cad.coverageRefs || []
+  const COVERAGE = cad.coverageRefs
   if (!COVERAGE.length) return { saute: 'cadrage VIDE : aucun chapitre dedie rendu par l agent de cadrage' }
   log(dom.title + ' — cadrage : ' + COVERAGE.map((r) => r.ab + r.nn).join(','))
 
@@ -427,9 +429,9 @@ async function runDomain(domain) {
   phase('Taxonomie')
   const etiquetteDeTaxonomie = dom.domain + ':taxo'
   const taxo = await rendre(etiquetteDeTaxonomie, () => agent(taxoPrompt(dom, inventory), { label: etiquetteDeTaxonomie, phase: 'Taxonomie', agentType: 'redacteur', model: 'opus', effort: 'medium', schema: TAXO_SCHEMA }))
-  if (!taxo) return { saute: 'taxonomie SANS RENDU : ' + SANS_RENDU.filter((l) => l.startsWith(etiquetteDeTaxonomie + ' — ')).join(' ; ') }
+  if (!taxo) return { saute: 'taxonomie SANS RENDU : ' + SANS_RENDU.join(' ; ') }
   recolter(taxo, 'Taxonomie')
-  const TOPICS = taxo.topics || []
+  const TOPICS = taxo.topics
   if (!TOPICS.length) return { saute: 'taxonomie VIDE : aucun topic decoupe sur ' + inventory.length + ' elements inventories' }
   log(dom.title + ' — ' + TOPICS.length + ' topics')
 
@@ -464,11 +466,10 @@ async function runDomain(domain) {
       break
     }
     recolter(audit, 'Audit')
-    const gaps = (audit && audit.gaps) || []
-    lastDry = !!(audit && audit.dry)
-    log(dom.title + ' — audit #' + (loops + 1) + ' : ' + gaps.length + ' trous' + (lastDry ? ' — sec' : ''))
-    if (!gaps.length || lastDry) break
-    entries = await applyGaps(dom, entries, gaps)
+    lastDry = audit.dry
+    log(dom.title + ' — audit #' + (loops + 1) + ' : ' + audit.gaps.length + ' trous' + (lastDry ? ' — sec' : ''))
+    if (!audit.gaps.length || lastDry) break
+    entries = await applyGaps(dom, entries, audit.gaps, 'augment')
     loops++
   }
 

@@ -23,28 +23,35 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url))
 const DEPLOIE = /\b(wrangler deploy|gh workflow run deploy\.yml)\b/
 const MOTIFS = motifsDeConfirmation(SETTINGS)
 const confirme = (commande) => regleDeConfirmation(commande, MOTIFS) !== null
+/** Ce que Bash confirme : un motif `ask` sur le TEXTE de la commande, sans rien en déplier. */
+const confirmeParBash = (commande) => MOTIFS.some(({ re }) => re.test(commande))
+/** Les écritures d'un script `nom` de `package.json#scripts` : npm, puis chaque autre lanceur (#2721). */
+const lancementsDe = (nom) => [`node --run ${nom}`, `pnpm run ${nom}`, `pnpm ${nom}`, `yarn ${nom}`, `yarn run ${nom}`, `bun run ${nom}`, `bun ${nom}`,
+  `corepack npm run ${nom}`, `corepack pnpm ${nom}`, `corepack yarn ${nom}`]
 
 /** Les commandes qui déploient : les outils eux-mêmes, puis chaque script npm qui les lance ou relaie un tel
- *  script, sous les écritures que npm accepte (options avant ou après `run`). */
+ *  script, sous les écritures que npm accepte (options avant ou après `run`) et sous chaque autre lanceur. */
 function commandesQuiDeploient() {
   const serveur = Object.keys(SERVEUR).filter((nom) => DEPLOIE.test(SERVEUR[nom]))
   const relais = new RegExp(`npm --prefix server run (${serveur.join('|')})\\b`)
   const racine = Object.keys(RACINE).filter((nom) => DEPLOIE.test(RACINE[nom]) || (serveur.length > 0 && relais.test(RACINE[nom])))
   return [
-    'wrangler deploy', 'npx wrangler deploy', 'npx --yes wrangler@3 deploy', 'gh workflow run deploy.yml --ref main',
+    'wrangler deploy', 'npx wrangler deploy', 'npx --yes wrangler@3 deploy', 'pnpm dlx wrangler deploy', 'yarn dlx wrangler deploy', 'bunx wrangler deploy', 'bun x wrangler deploy',
+    'gh workflow run deploy.yml --ref main',
     'gh workflow run "Déploiement prod" --ref main', 'gh workflow run -R MyEdO/game deploy.yml', 'GH_REPO=MyEdO/game gh workflow run deploy.yml',
     'gh api -X POST repos/MyEdO/game/actions/workflows/deploy.yml/dispatches -f ref=main',
     'gh run rerun 123456', 'gh run rerun 123456 --failed', 'gh api -X POST repos/MyEdO/game/actions/runs/123456/rerun',
     ...serveur.flatMap((nom) => [`npm --prefix server run ${nom}`, `npm run --prefix server ${nom}`, `npm run ${nom}`, `npm run -s ${nom}`]),
-    ...racine.flatMap((nom) => [`npm run ${nom}`, `npm run --silent ${nom}`, `npm run -s ${nom}`]),
+    ...racine.flatMap((nom) => [`npm run ${nom}`, `npm run --silent ${nom}`, `npm run -s ${nom}`, ...lancementsDe(nom)]),
   ]
 }
-const BANALES = ['npm run relay:dev', 'npm run dev', 'npm --prefix server run dev', 'gh workflow list', 'gh api repos/MyEdO/game/actions/runs', 'git status']
+const BANALES = ['npm run relay:dev', 'npm run dev', 'npm --prefix server run dev', 'node --run relay:dev', 'pnpm run dev', 'yarn dev', 'bun run dev', 'corepack npm run dev',
+  'gh workflow list', 'gh api repos/MyEdO/game/actions/runs', 'git status']
 
 test('chaque écriture d’une commande npm ou wrangler qui déploie en production est sous `permissions.ask` (outil Bash)', () => {
   const commandes = commandesQuiDeploient()
   assert.ok(commandes.includes('npm run relay:deploy'), 'la dérivation doit trouver le relais du serveur coop')
-  assert.deepEqual(commandes.filter((c) => !confirme(c)), [])
+  assert.deepEqual(commandes.filter((c) => !confirmeParBash(c)), [], 'Bash confirme sur le texte : chaque écriture porte un motif')
 })
 
 test('le déclenchement d’un workflow par le connecteur GitHub est sous `permissions.ask`', () => {
@@ -52,7 +59,7 @@ test('le déclenchement d’un workflow par le connecteur GitHub est sous `permi
 })
 
 test('une commande qui ne déploie pas reste hors confirmation', () => {
-  for (const commande of BANALES) assert.equal(confirme(commande), false, commande)
+  for (const commande of BANALES) assert.deepEqual([confirme(commande), confirmeParBash(commande)], [false, false], commande)
 })
 
 test('ctx_shell reste pré-approuvé (arbitrage du 2026-09-28) ; la garde couvre chaque shell hors Bash, et lui seul', () => {
@@ -70,7 +77,10 @@ test('chaque motif `ask` de Bash, passé par ctx_shell, est REFUSÉ et renvoyé 
     assert.equal(verdict?.decision, 'deny', regle)
     assert.match(verdict.raison, /Relance-la par Bash\.$/, regle)
   }
-  for (const commande of commandesQuiDeploient()) assert.equal(parCtxShell(commande)?.decision, 'deny', commande)
+  for (const commande of commandesQuiDeploient()) {
+    assert.equal(parCtxShell(commande)?.decision, 'deny', commande)
+    assert.equal(garde.evaluer({ hook_event_name: 'PreToolUse', tool_name: 'PowerShell', tool_input: { command: commande, cwd: REPO } })?.decision, 'deny', `PowerShell : ${commande}`)
+  }
   for (const commande of BANALES) assert.equal(parCtxShell(commande), null, commande)
 })
 

@@ -1,6 +1,6 @@
 export const meta = {
   name: 'table-simulee',
-  description: "Table papier SIMULÉE d'un chapitre de campagne, sur son DOSSIER : un lecteur prépare les 4 PJ du groupe prétiré canonique (sans rien savoir du chapitre), un autre désigne le sosie sur le dossier et la liste des PJ ; la fiche du MJ est tirée du dossier. Puis une partie de `maxEchanges` échanges au plus (défaut : 3 par beat du dossier ; chaque échange coûte ≈ 5 agents, 1 MJ + 4 joueurs), plafond que le MJ ignore — un MJ agent qui cite le livre ou déclare IMPRO, tire chaque jet par l'outil de dés du moteur et rend le sort de chaque déclencheur, quatre joueurs CLOISONNÉS à personas (dont deux adverses), que le MJ et les autres joueurs ne connaissent que par leur PJ —, enfin un juge classe chaque intention et chaque déclencheur non joué ou écarté sur le journal PROJETÉ de la partie (ses sorties, ni l'état privé du MJ ni son classement), mesure les temps morts en beats, relève chaque secret que la narration du MJ a fui, et le script calcule le verdict et les besoins retenus. Toute sortie d'agent qui désigne un membre d'un ensemble fermé (PJ, déclencheur en attente, beat, persona, secret, échange, id du sosie, catégorie d'IMPRO selon la source) est contrainte par le SCHÉMA de son appel — enum, branche par cas, ou objet dont les clés sont exactement les membres qui doivent chacun recevoir une entrée —, jamais re-vérifiée par le script. Un agent qui échoue ne coupe pas le run : sa cause entre aux `trous`, le journal garde les échanges joués. Un rendu du MJ anomal (tirage hors suite, déclencheur non joué sans motif) lui est RENVOYÉ (prompt d'origine, sortie fautive, anomalies précises), 2 fois au plus. Le verdict se DÉRIVE de `trous`, une liste par espèce : SIGNAL ou THÉÂTRE quand toutes sont vides, sinon la première espèce trouée le nomme — INTERROMPU (le MJ n'a rien rendu, à quelque échange que ce soit), PARTIE INCOMPLÈTE (un joueur sans rendu), PARTIE ANOMALE (sosie à id vide qui cite un passage, tirage hors suite ou déclencheur non joué sans motif restés après les renvois, secret fui par la narration du MJ), SANS ANALYSE (juge sans rendu) ; ARRÊT avant la partie. Rend le journal complet (base de rejeu), l'analyse, les déclencheurs non joués et écartés. args : { livre, chapitre, fichiers, dossier, typeDePointAuMJ, seed, maxEchanges?, personas?, worktree, date } — `dossier` = l'OBJET de la fiche commitée du chapitre (`docs/dossiers/<livre>/<chapitre>.json`, schéma `ficheDeDossier`), chargé et gardé par le lanceur ; `typeDePointAuMJ` = la forme projetée du type d'un point au MJ, dont les catégories d'IMPRO dérivent : `node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine>`.",
+  description: "Table papier SIMULÉE d'un chapitre de campagne, sur son DOSSIER : un lecteur prépare les 4 PJ du groupe prétiré canonique (sans rien savoir du chapitre), un autre désigne le sosie sur le dossier et la liste des PJ ; la fiche du MJ est tirée du dossier. Puis une partie de `maxEchanges` échanges au plus (défaut : 3 par beat du dossier ; chaque échange coûte ≈ 5 agents, 1 MJ + 4 joueurs), plafond que le MJ ignore — un MJ agent qui cite le livre ou déclare IMPRO, tire chaque jet par l'outil de dés du moteur et rend le sort de chaque déclencheur, quatre joueurs CLOISONNÉS à personas (dont deux adverses), que le MJ et les autres joueurs ne connaissent que par leur PJ —, enfin un juge classe chaque intention et chaque déclencheur non joué ou écarté sur le journal PROJETÉ de la partie (ses sorties, ni l'état privé du MJ ni son classement), mesure les temps morts en beats, relève chaque secret que la narration du MJ a fui, et le script calcule le verdict et les besoins retenus. Toute sortie d'agent qui désigne un membre d'un ensemble fermé (PJ, déclencheur en attente, beat, persona, secret, échange, id du sosie, catégorie d'IMPRO selon la source) est contrainte par le SCHÉMA de son appel — enum, branche par cas, ou objet dont les clés sont exactement les membres qui doivent chacun recevoir une entrée —, jamais re-vérifiée par le script. En préparation, un agent qui échoue (fiches des PJ, sosie) ARRÊTE le run, sa cause aux `manques` ; en partie et à l'analyse, il ne le coupe pas : sa cause entre aux `trous`, le journal garde les échanges joués. Un rendu du MJ anomal (tirage hors suite, déclencheur non joué sans motif) lui est RENVOYÉ (prompt d'origine, sortie fautive, anomalies précises), 2 fois au plus ; un renvoi sans rendu nomme sa cause au journal de l'échange. Le verdict se DÉRIVE de `trous`, une liste par espèce : SIGNAL ou THÉÂTRE quand toutes sont vides, sinon la première espèce trouée le nomme — INTERROMPU (le MJ n'a rien rendu, à quelque échange que ce soit), PARTIE INCOMPLÈTE (un joueur sans rendu), PARTIE ANOMALE (sosie à id vide qui cite un passage, tirage hors suite ou déclencheur non joué sans motif restés après les renvois, secret fui par la narration du MJ), SANS ANALYSE (juge sans rendu) ; ARRÊT avant la partie. Rend le journal complet (base de rejeu), l'analyse, les déclencheurs non joués et écartés. args : { livre, chapitre, fichiers, dossier, typeDePointAuMJ, seed, maxEchanges?, personas?, worktree, date } — `dossier` = l'OBJET de la fiche commitée du chapitre (`docs/dossiers/<livre>/<chapitre>.json`, schéma `ficheDeDossier`), chargé et gardé par le lanceur ; `typeDePointAuMJ` = la forme projetée du type d'un point au MJ, dont les catégories d'IMPRO dérivent : `node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine>`.",
   whenToUse: "Sur un chapitre à forte ambiguïté (méthode de #665, étape 4), APRÈS la fiche commitée de son dossier de chapitre, qu'elle consomme : pour mesurer ce que des joueurs FONT du chapitre — intentions prévues, improvisées, refusées, hors livre — avant d'en décider les médias et les besoins. Le verdict THÉÂTRE dit que les personas adverses n'ont pas joué : le run ne prouve rien.",
   phases: [
     { title: 'Préparation', detail: 'fiches des 4 PJ au groupe canonique, puis sosie désigné sur le dossier et la liste des PJ — le lecteur des fiches des PJ ne voit pas le chapitre ; la fiche du MJ vient du dossier' },
@@ -106,7 +106,7 @@ Rends la sortie ENTIÈRE, corrigée.`
 /** `lancer(prompt, essai)` (essai 0 = l'appel, puis chaque renvoi), validé par `anomaliesDe(rendu)` : une
  *  sortie anomale est renvoyée `ESSAIS_DE_CORRECTION` fois au plus. Rend le dernier rendu, ses anomalies
  *  restantes, la cause d'un premier appel sans rendu, et le nombre de renvois joués ; un renvoi sans rendu
- *  garde le rendu précédent. */
+ *  garde le rendu précédent et nomme sa cause parmi les anomalies. */
 const appelValide = async (prompt, lancer, anomaliesDe) => {
   const premier = await capturer(() => lancer(prompt, 0))
   let { rendu } = premier
@@ -115,7 +115,10 @@ const appelValide = async (prompt, lancer, anomaliesDe) => {
   while (rendu && anomalies.length && renvois < ESSAIS_DE_CORRECTION) {
     renvois += 1
     const corrige = await capturer(() => lancer(renvoiDeCorrection(prompt, rendu, anomalies), renvois))
-    if (!corrige.rendu) break
+    if (!corrige.rendu) {
+      anomalies = [...anomalies, `renvoi ${renvois} sans rendu — ${corrige.cause}`]
+      break
+    }
     rendu = corrige.rendu
     anomalies = anomaliesDe(rendu)
   }
@@ -417,8 +420,8 @@ Règles de ta table :
 - \`tour.narration\` = ce que les joueurs entendent, rien de la fiche privée qu'ils n'ont pas découvert. \`tour.etatPrive\` = ton nouveau résumé privé (où en est le chapitre, ce que chaque PNJ sait et veut, les fils ouverts). \`tour.beat\` = l'id du beat courant de la fiche. \`fin: true\` quand le chapitre est clos selon le livre.`
   /** Les tirages d'un rendu du MJ hors de la suite de cet échange, ou sans la graine et le tirage dans leur commande. */
   const anomaliesDeTirageDe = (rendu) => rendu.jets.flatMap((jet, rang) => [
-    ...(jet.tirage === premierTirage + rang ? [] : [`jet ${rang + 1} : tirage ${jet.tirage}, attendu ${premierTirage + rang}`]),
-    ...(jet.commande.includes(`--seed "${SEED}"`) && jet.commande.includes(`--tirage ${jet.tirage}`) ? [] : [`jet ${rang + 1} : commande sans --seed "${SEED}" ou sans --tirage ${jet.tirage}`]),
+    ...(jet.tirage === premierTirage + rang ? [] : [`jet ${rang + 1} : tirage ${jet.tirage}, attendu ${premierTirage + rang} — relance sa commande au tirage ${premierTirage + rang} ; la résolution et la narration qui dépendent de ce jet suivent sa nouvelle sortie`]),
+    ...(jet.commande.includes(`--seed "${SEED}"`) && new RegExp(`--tirage ${jet.tirage}(?!\\d)`).test(jet.commande) ? [] : [`jet ${rang + 1} : commande sans --seed "${SEED}" ou sans --tirage ${jet.tirage}`]),
   ])
   /** Les déclencheurs d'un rendu du MJ non joués sans motif. */
   const anomaliesDeDeclencheursDe = (rendu) => enAttente.filter((id) => rendu.tour.declencheurs[id].statut !== 'joue' && !rendu.tour.declencheurs[id].motif.trim())
@@ -455,6 +458,8 @@ Règles de ta table :
     break
   }
   if (appelDuMJ.renvois) log(`Échange ${numero} : ${appelDuMJ.renvois} renvoi(s) au MJ pour anomalie(s) ; ${appelDuMJ.anomalies.length} restée(s).`)
+  /** Ce que les renvois ont perdu : un renvoi sans rendu, et sa cause. */
+  const anomaliesDeRenvoi = appelDuMJ.anomalies.filter((a) => !anomaliesDeTirageDe(mj).includes(a) && !anomaliesDeDeclencheursDe(mj).includes(a))
   const declencheursDeLEchange = enAttente.map((id) => ({ id, ...mj.tour.declencheurs[id] }))
   const anomaliesDeDeclencheurs = anomaliesDeDeclencheursDe(mj)
   for (const d of declencheursDeLEchange) {
@@ -469,7 +474,7 @@ Règles de ta table :
   etatPrive = mj.tour.etatPrive
   echanges.push({
     numero, intentions, resolutions: intentions.map((i) => ({ persona: i.persona, pj: i.pj, intention: i.intention, ...mj.resolutions[i.pj] })), jets: mj.jets, anomaliesDeTirage, declencheurs: declencheursDeLEchange, anomaliesDeDeclencheurs,
-    renvois: appelDuMJ.renvois, narration: mj.tour.narration, beat: mj.tour.beat, etatPrive: mj.tour.etatPrive, fin: mj.fin,
+    renvois: appelDuMJ.renvois, anomaliesDeRenvoi, narration: mj.tour.narration, beat: mj.tour.beat, etatPrive: mj.tour.etatPrive, fin: mj.fin,
   })
   if (mj.fin) {
     fin = true
@@ -528,7 +533,7 @@ const journalDuJuge = {
   joueurs: journal.joueurs,
   echanges: echanges.map((e) => ({
     numero: e.numero, intentions: e.intentions, resolutions: e.resolutions.map((r) => ({ persona: r.persona, pj: r.pj, resolution: r.resolution })),
-    jets: e.jets, declencheurs: e.declencheurs, narration: e.narration, beat: e.beat, fin: e.fin,
+    jets: e.jets, declencheurs: e.declencheurs.map((d) => ({ id: d.id, statut: d.statut })), narration: e.narration, beat: e.beat, fin: e.fin,
   })),
   fin, plafondAtteint, interrompue,
 }
@@ -580,11 +585,11 @@ const analyse = await capturer(() => agent(`Tu ANALYSES une table papier simulé
 ${CADRE}
 ${CHAPITRE_LU}
 
-JOURNAL DE LA PARTIE (ses sorties ; ni l'état privé du MJ, ni son classement de ses résolutions) :
+JOURNAL DE LA PARTIE (ses sorties ; ni l'état privé du MJ, ni son classement de ses résolutions, ni ses motifs) :
 ${JSON.stringify(journalDuJuge, null, 1)}
 
 DÉCLENCHEURS NON JOUÉS OU ÉCARTÉS :
-${JSON.stringify([...declencheursNonJoues, ...declencheursEcartes], null, 1)}
+${JSON.stringify([...declencheursNonJoues.map(({ id, evenement, ref }) => ({ id, evenement, ref })), ...declencheursEcartes.map(({ id, evenement, ref, echange }) => ({ id, evenement, ref, echange }))], null, 1)}
 
 Rends :
 - intentions : un objet dont chaque clé est le numéro d'un échange qui porte des intentions (${echangesClasses.map((n) => `\`${n}\``).join(', ') || "aucune clé : l'objet est vide"}), et sa valeur un objet dont chaque clé est la persona d'une intention de cet échange (\`echanges[].intentions[].persona\`) : chacune classée par toi, au livre : \`prevu\` (réf nue de la ligne qui la prévoit), \`IMPRO\` (le livre ne la prévoit pas et le MJ a dû improviser — \`categorie\` parmi ${CATEGORIES_IMPRO.join(', ')}), \`refuse\` (la fiction l'a refusée), \`hors-livre\` (elle sort du cadre du chapitre). \`ref: ''\` et \`categorie: ''\` quand ils ne s'appliquent pas.

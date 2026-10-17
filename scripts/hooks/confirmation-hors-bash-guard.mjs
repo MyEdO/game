@@ -3,6 +3,10 @@
 // Bash, seul outil que ces motifs couvrent — décision « Confirmation » du 2026-10-17 (#2712). Les shells
 // lean-ctx restent pré-approuvés pour les agents de fond (fiche `user-doctrine-ctx-shell-pre-approuve`) ;
 // la garde REFUSE et renvoie à Bash, jamais ne demande (`user-doctrine-gardes-jamais-de-ask`). #2721.
+// Elle lit la commande comme `segmentsProfonds` la lit (scripts des lanceurs de `package.json#scripts` dépliés,
+// porteurs de chaîne relus). ANGLES MORTS : ce que ce lecteur ne relit pas — un texte lu sur l'entrée d'un shell
+// (`echo … | sh`), une commande tenue dans une variable (`c=…; $c`), `Start-Process` de PowerShell, un appel REST
+// hors `gh` (`curl …/dispatches`).
 import { readFileSync } from 'node:fs'
 import { OUTILS_SHELL, commandeDe } from '../guards/lib/contratGarde.mjs'
 import { segmentsProfonds } from '../guards/lib/commandeShell.mjs'

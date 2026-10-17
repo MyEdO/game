@@ -26,6 +26,12 @@
       "Bash(*gh api*rerun*)",
       "mcp__github__actions_run_trigger",
       "Bash(npm *deploy*)",
+      "Bash(node --run*deploy*)",
+      "Bash(pnpm *deploy*)",
+      "Bash(yarn *deploy*)",
+      "Bash(bun *deploy*)",
+      "Bash(bunx *deploy*)",
+      "Bash(corepack *deploy*)",
       "Bash(*wrangler*deploy*)"
     ]
   },
