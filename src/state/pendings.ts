@@ -1597,35 +1597,45 @@ export type Cloture =
    *  ses deltas de PX/bourse se LISENT après l'encaissement — d'où les deux bornes AVANT, pas un total. */
   | { verbe: 'ouvrirEcranDeVictoire'; ecran: Omit<PendingVictory, 'xp' | 'gold'>; xpAvant: number; laitonAvant: number }
   /** Teardown de fin de combat : reprise de la bataille de masse puis de la séquence parquée. */
-  | { verbe: 'teardownDeVictoire'; kills: number; batailleDeMasse: boolean };
+  | { verbe: 'teardownDeVictoire'; kills: number; batailleDeMasse: boolean }
+  /** Reste d'un lot d'Effets d'auteur, rejoué par le walker de SCÈNE (`runFlow`). */
+  | { verbe: 'reprendreFlow'; flow: Flow; label?: string; sl?: number }
+  /** Reste d'une pile de Flow d'effet déclenché, rejoué par le walker de COMBAT (`runCombatFlow`) sur
+   *  sa cible et avec le contexte porté de sa pile. */
+  | { verbe: 'reprendreFlowDeCombat'; flow: Flow; cibleId: string; ctx: OpsCtxPorte; label?: string };
+
+/**
+ * CONTEXTE d'une feuille d'ops PORTÉ jusqu'à sa reprise (#1508, #2689) — la partition TOTALE d'`OpsCtx`
+ * (`engine/ops`) : la part GELÉE voyage telle quelle (`gelerOpsCtx`), les Combattants par ID, le reste
+ * se rebâtit (`combatEffects.ctxRepris`).
+ */
+export interface OpsCtxPorte {
+  gele: OpsCtxGele;
+  casterId?: string;
+  hullId?: string;
+  crewIds?: string[];
+}
+
+/**
+ * SUITE confiée au porteur qui tient la main (#2689) : une liste ORDONNÉE de clôtures, rejouée dans
+ * l'ordre de la confidence (`combatEffects.confierLaSuite`, `jouerLesClotures`).
+ */
+export type Suite = Cloture[];
 
 export interface CascadeStepMeta {
-  [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxGele | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
+  [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
   /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un dé (#1508) : le lot/la pile qui l'a
-   *  produite lui confie SA SUITE (`apresFlow`) au lieu de continuer par-dessus le dé en vol. Posé par
+   *  produite lui confie SA SUITE (`apresSuite`) au lieu de continuer par-dessus le dé en vol. Posé par
    *  les mints du canal (`opsDe`, `chuteDe`) ; lu par les DEUX walkers de Flow, qui n'ont ainsi aucune
    *  liste de `kind` à tenir — un troisième kind à dé déclare le même champ et il est servi. */
   differeLaSuite?: boolean;
-  /** CLÔTURES confiées AVEC la continuation (#1508) — les verbes que le site allait jouer après son
-   *  Flow, en donnée. Rejouées APRÈS `apresFlow`, dans l'ordre du site, à la DERNIÈRE étape de la
-   *  grappe : si le Flow rouvre un dé, elles repartent avec lui. */
-  apresClotures?: Cloture[];
-  /** CONTINUATION confiée par le walker qui a différé — le reste de son lot/de sa pile, en Flow pur
-   *  (sérialisable). Rejouée par l'applier de l'étape APRÈS la conséquence, jamais avant. */
-  apresFlow?: Flow;
-  /** QUEL walker rejoue `apresFlow` : `'scene'` (`runFlow` — lot d'Effets d'auteur) ou `'combat'`
-   *  (`runCombatFlow` — pile d'un Flow d'effet déclenché, qui porte cible/lanceur et la cadence). C'est
-   *  l'identité du PRODUCTEUR (`ExecCtx.mode`, déjà nommée par le socle), pas une classe de situation :
-   *  un lot de scène rejoué par le walker de combat perdrait ses Effets non-`ops`, et l'inverse
-   *  perdrait cible et lanceur. */
-  apresMode?: 'scene' | 'combat';
-  /** CONTEXTE de la feuille d'ops différée, part GELÉE (`engine/ops.gelerOpsCtx` — partition TOTALE
-   *  `OPS_CTX_GELES`). Ce qui n'est pas gelable voyage à côté (`casterId`/`hullId`/`opsDeCrewIds`) ou se
-   *  rebâtit (rng, hook de Corruption, dés). Sans lui, une reprise appliquait la feuille avec un
-   *  contexte AMPUTÉ — `{woundsDealt}` (EDO 11 l.222) y tombait à 0. */
-  opsDeCtx?: OpsCtxGele;
-  /** ÉQUIPAGE (`OpsCtx.crew`) d'une feuille différée, en ids — résolus par `actorIn` à la reprise. */
-  opsDeCrewIds?: string[];
+  /** SUITE confiée à cette étape (#2689, `combatEffects.confierLaSuite`), rejouée APRÈS sa conséquence
+   *  à la DERNIÈRE étape de la grappe : si un maillon rouvre un dé, les maillons restants repartent avec
+   *  lui. */
+  apresSuite?: Suite;
+  /** CONTEXTE PORTÉ de la feuille d'ops différée (`combatEffects.porterOpsCtx`). Sans lui, une reprise
+   *  appliquait la feuille avec un contexte AMPUTÉ — `{woundsDealt}` (EDO 11 l.222) y tombait à 0. */
+  opsDeCtx?: OpsCtxPorte;
   /** Acteur et soutiens d'un jet de Voile ou de Ramer, en ids (MDG 13 l.111). */
   manieurs?: string[];
   /** Modificateur PLAT au total d'une étape batch sommée — NEUTRE : le flux propriétaire y verse ses
