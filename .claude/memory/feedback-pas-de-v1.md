@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « J'aime pas les v1 quand on peut faire v2 ou v3 directement ».
+Verbatim utilisateur (au plus tard le 2026-07-16) : « J'aime pas les v1 quand on peut faire v2 ou v3 directement ».
 
 **Why:** l'étagement v1→v2 crée du travail jeté et du legacy ; un périmètre réduit est tolérable, un brouillon ne l'est pas.
 

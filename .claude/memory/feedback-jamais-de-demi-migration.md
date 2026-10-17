@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatims utilisateur : « je n'aime pas le travail fait a moitié et les demi-migrations » ; « murer le neuf c'est valider du legacy qui vivra eternellement » ; « Pas de demi-migration ou de guard qui valident l'existent et empeche les nouvelles apparitions ».
+Verbatims utilisateur : « je n'aime pas le travail fait a moitié et les demi-migrations » (au plus tard le 2026-08-10) ; « murer le neuf c'est valider du legacy qui vivra eternellement » (au plus tard le 2026-08-14) ; « Pas de demi-migration ou de guard qui valident l'existent et empeche les nouvelles apparitions » (au plus tard le 2026-08-16).
 
 **Why:** un site non migré est un bug en incubation plus un précédent que le code voisin copie ; finir coûte toujours moins que redécouvrir les sites un incident à la fois.
 

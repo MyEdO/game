@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « Je n'aime pas les fallback qui pousse a garder un comportement legacy, dans parfois l'utilisation de label interdit ».
+Verbatim utilisateur (2026-07-20) : « Je n'aime pas les fallback qui pousse a garder un comportement legacy, dans parfois l'utilisation de label interdit ».
 
 **Why:** investir du code pour faire vivre un modèle que le programme élimine est de la dette : le fallback masque une migration incomplète et ré-introduit souvent la résolution par label.
 

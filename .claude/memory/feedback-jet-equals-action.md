@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Mots de l'utilisateur : « tout jet indique que c'est une Action », « sinon c'est juste du mouvement non ? ».
+Mots de l'utilisateur (au plus tard le 2026-07-16) : « tout jet indique que c'est une Action », « sinon c'est juste du mouvement non ? ».
 
 **Why:** ça comble les silences du livre par un critère objectif et vérifiable, sans rien inventer.
 

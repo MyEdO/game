@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « tu m'as poser cette question alors qu'un arbitrage existait deja. J'ai pris ton choix recommandé et c'était une grave erreur ».
+Verbatim utilisateur (2026-08-16) : « tu m'as poser cette question alors qu'un arbitrage existait deja. J'ai pris ton choix recommandé et c'était une grave erreur ».
 
 **Why:** trois vices suffisent à produire une décision que personne ne voulait — re-arbitrer un point déjà tranché sans le rappeler, laisser le périmètre ambigu, recommander une option qui contredit le programme ; et la mémoire fossilise ensuite l'arbitrage vicié en doctrine servie avec assurance.
 

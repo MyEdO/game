@@ -8,7 +8,7 @@ metadata:
   modified: 2026-09-20T21:45:14.942Z
 ---
 
-Verbatims utilisateur : « Moi je n'en sais rien, c'est tes relevés » ; « Je ne fais pas vraiment de choix, j'ai juste cliqué sur "Recommander", tu connais les grands principes de l application ».
+Verbatims utilisateur : « Moi je n'en sais rien, c'est tes relevés » (2026-07-26) ; « Je ne fais pas vraiment de choix, j'ai juste cliqué sur "Recommander", tu connais les grands principes de l application » (au plus tard le 2026-09-06).
 Verbatim utilisateur (2026-09-20, table lue dans un PDF) : « dit pas de betise meme toi ou un agent en regardant la page du pdf serait voir les bonnes valeurs ».
 
 **Why:** faire arbitrer un FAIT transfère MA vérification et fabrique un faux « arbitrage utilisateur » : la réponse ainsi obtenue est une décision d'ingénierie révisable, jamais un verbatim de doctrine.

@@ -1,5 +1,5 @@
 ---
-name: env-foundry-champ-multi-surfaces
+name: foundry-champ-multi-surfaces
 description: "wfrp4e — un champ de fiche s'affiche à PLUSIEURS endroits (chatData ET gabarit de la fiche) ; n'en corriger qu'un laisse le résidu visible"
 metadata: 
   node_type: memory
@@ -19,4 +19,4 @@ Dans wfrp4e, un champ d'objet a plusieurs surfaces de rendu indépendantes ; en 
 
 **How to apply:** avant de déclarer un champ 4e disparu, lister toutes ses surfaces (`chatData`, `.hbs`, colonnes, handlers), un contrôle par surface dans `5e — Verifier`, prouvé par un geste réel ensuite rétabli.
 
-Voir [[env-foundry-effectscripts]], [[env-foundry-macro-execute]], [[feedback-5e-retirer-le-4e]].
+Voir [[foundry-effectscripts]], [[foundry-macro-execute]], [[foundry-5e-retirer-le-4e]].

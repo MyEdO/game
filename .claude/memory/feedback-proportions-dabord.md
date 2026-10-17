@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « Je m'en fiche que les tables et les chaises ne sont pas exactement au même endroit, tant que les proportions sont proches, mais les tables murales sont pathétiques en terme de taille par rapport a celui du plan. »
+Verbatim utilisateur (au plus tard le 2026-08-25) : « Je m'en fiche que les tables et les chaises ne sont pas exactement au même endroit, tant que les proportions sont proches, mais les tables murales sont pathétiques en terme de taille par rapport a celui du plan. »
 
 **Why:** une position à ½ case près est tolérée, une emprise à 50 % ne l'est pas ; et un « ça colle » énoncé sur une vignette est une affirmation non mesurée.
 

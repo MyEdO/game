@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « La mémoire n'est pas une poubelle, les tickets servent a ca ».
+Verbatim utilisateur (2026-09-09) : « La mémoire n'est pas une poubelle, les tickets servent a ca ».
 
 **Why:** une fiche par ticket livré double le ticket, gonfle l'index chargé à chaque session et enterre les fiches qui comptent.
 

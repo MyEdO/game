@@ -1,5 +1,5 @@
 ---
-name: env-foundry-ou-vit-une-entite
+name: foundry-ou-vit-une-entite
 description: "wfrp4e — une entité (Trait, État, compétence, règle basculée) vit dans six endroits distincts ; conclure à son absence depuis une seule sonde est faux"
 metadata: 
   node_type: memory
@@ -20,4 +20,4 @@ Sur le monde Foundry, une entité vit dans **six** endroits sans rapport :
 **Why:** trois absences déclarées (*Besmirched*, *Distrayant*, « compétence » *Psychologie*) étaient fausses, et un chantier « à ouvrir » était déjà construit dans une macro :
 « Tu as deja tout code mec ! »
 
-**How to apply:** avant « n'existe pas » ou « reste à faire », balayer les six, nom VO **et** VF. Avant de dire qu'une règle manque de support, vérifier sa catégorie : un « Test de Psychologie » se passe avec Cool (`08 l.2195`). `5e — Verifier` garde que toute référence `@UUID` se résout. Voir [[env-foundry-champ-multi-surfaces]], [[feedback-5e-regle-absente-ecartee]].
+**How to apply:** avant « n'existe pas » ou « reste à faire », balayer les six, nom VO **et** VF. Avant de dire qu'une règle manque de support, vérifier sa catégorie : un « Test de Psychologie » se passe avec Cool (`08 l.2195`). `5e — Verifier` garde que toute référence `@UUID` se résout. Voir [[foundry-champ-multi-surfaces]], [[foundry-5e-regle-absente-ecartee]].

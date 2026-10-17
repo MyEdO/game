@@ -12,6 +12,6 @@ Un arbitrage 5e du JEU ne se reconstruit jamais depuis les fiches du MONDE FOUND
 
 Utilisateur, 2026-09-26 : « Je peux te dire que mes arbitrages ce n'est pas les 3 points que tu m'as remonté ».
 
-**Why:** deux projets partagent le mot « bascule 5e » : la table Foundry (fiches `env-foundry-*`, `game-bascule-5e-*`) et le jeu (`cgauche/game`). Les choix de la table ne sont, pour le jeu, qu'une option PARQUÉE hors chemin critique (#1816 §1).
+**Why:** deux projets partagent le mot « bascule 5e » : la table Foundry (fiches `foundry-*`) et le jeu (`cgauche/game`). Les choix de la table ne sont, pour le jeu, qu'une option PARQUÉE hors chemin critique (#1816 §1).
 
 **How to apply:** avant de citer un arbitrage 5e du jeu, relire le verbatim daté du corps de l'épique #1816 §1 (édition sélectionnable, le Core 5e remplace le LDB, Appendice I pour les suppléments, RAW strict sauf errata, VO dans l'app avec repli VF→VO, ne pas casser les sentiers) et la fiche `user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`. Voir [[feedback-invariant-verbatim]].

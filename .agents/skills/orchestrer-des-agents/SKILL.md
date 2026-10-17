@@ -17,6 +17,9 @@ l'intégration triviale et les gates.
   absoluelement faire un truc pour ce fichier de suivis, c'est vital si on veux éviter la dérive »).
   Il se relit EN PREMIER à toute reprise (compaction, lendemain) : `npm run ops:suivi -- <N>` (la
   situation), `-- <N> --rendu` (le suivi entier), `-- <N> --mesurer [--sans-fetch]` (la mesure).
+- **Il vit sur le POSTE, jamais versionné** : la reprise d'une épique se fait sur le poste. Hors du
+  poste (session cloud), il n'existe pas : l'état se reconstruit depuis le ticket de l'épique (corps,
+  sous-issues, PR liées), et le ticket reçoit ce que la session décide.
 - **Il ne s'écrit que par son outil** (utilisateur, 2026-10-07, #2460 : « Ca aurait du etre un json
   modifiable que via des outils adaptés, histoire d'éviter de faire n'importe quoi dessus, non ? ») :
   l'outil `mcp__harnais__suivi` (mod `harnais`) ou `npm run ops:suivi -- <N> --<geste> <args>…` (table

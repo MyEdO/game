@@ -5,16 +5,16 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { TAILLE_MAX, corpsDe, defautsDeForme, familleDe, raisonDeRefusDeForme } from './memoire-forme.mjs'
+import { PLAFONDS_DE_L_INDEX, TAILLE_MAX, corpsDe, defautsDeForme, familleDe, raisonDeRefusDeForme } from './memoire-forme.mjs'
 import { gitDeLArbreReel } from '../test/gitDeBanc.mjs'
 
 const RACINE = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const entete = '---\nname: x\ndescription: "d"\n---\n'
 const fiche = (corps) => `${entete}\n${corps}\n`
 
-test('le périmètre est NOMMÉ : fiches, skills, agents, credo — et MEMORY.md en est exclu', () => {
+test('le périmètre est NOMMÉ : index, fiches, skills, agents, credo', () => {
   assert.equal(familleDe('.claude/memory/game-x.md'), 'fiche')
-  assert.equal(familleDe('.claude/memory/MEMORY.md'), null)
+  assert.equal(familleDe('.claude/memory/MEMORY.md'), 'index')
   assert.equal(familleDe('.claude/skills/creer-une-map/SKILL.md'), 'prose')
   assert.equal(familleDe('.claude/agents/codeur.md'), 'prose')
   assert.equal(familleDe('.claude/credo.md'), 'prose')
@@ -81,6 +81,29 @@ test('une date dans le NOM du fichier ou dans le FRONTMATTER n’est pas jugée 
   )
 })
 
+test('une ligne qui cite l’utilisateur sans date est refusée ; datée, ou citation sans attribution, elle passe', () => {
+  for (const ligne of ['Verbatim utilisateur : « fais-le »', '**Verbatims** : « a » ; « b »', 'Utilisateur, #12 : « non »']) {
+    const [d] = defautsDeForme('.claude/memory/feedback-x.md', fiche(ligne))
+    assert.equal(d?.quoi, 'citation sans date', ligne)
+    assert.equal(d.ligne, 6)
+  }
+  assert.deepEqual(defautsDeForme('.claude/memory/feedback-x.md', fiche('Verbatim utilisateur (2026-09-01) : « fais-le »')), [])
+  assert.deepEqual(defautsDeForme('.claude/memory/feedback-x.md', fiche('Le livre dit : « Test opposé »')), [])
+  assert.deepEqual(defautsDeForme('.claude/memory/feedback-x.md', fiche('un « arbitrage utilisateur » se cite')), [])
+})
+
+test('l’index est jugé à ses PLAFONDS DE CHARGEMENT, chacun nommé avec sa mesure', () => {
+  const ligne = '- [quand](fiche.md)\n'
+  assert.deepEqual(defautsDeForme('.claude/memory/MEMORY.md', ligne.repeat(PLAFONDS_DE_L_INDEX.lignes)), [])
+  const [lignes] = defautsDeForme('.claude/memory/MEMORY.md', ligne.repeat(PLAFONDS_DE_L_INDEX.lignes + 1))
+  assert.equal(lignes.quoi, 'index hors plafond')
+  assert.match(lignes.detail, new RegExp(`^${PLAFONDS_DE_L_INDEX.lignes + 1} lignes pour un plafond de ${PLAFONDS_DE_L_INDEX.lignes}`))
+  const [caracteres] = defautsDeForme('.claude/memory/MEMORY.md', `${'é'.repeat(PLAFONDS_DE_L_INDEX.caracteres + 1)}\n`)
+  assert.match(caracteres.detail, / caracteres pour un plafond de /)
+  const unites = defautsDeForme('.claude/memory/MEMORY.md', `${'é'.repeat(PLAFONDS_DE_L_INDEX.octets)}\n`).map((d) => d.detail.split(' ')[1])
+  assert.deepEqual(unites, ['octets', 'caracteres'], 'un é compte deux octets et un caractère')
+})
+
 test('chaque motif de RÉCIT est refusé, dans une fiche comme dans un skill, un agent ou le credo', () => {
   const cas = ['vécu #254', 'mesuré le 8 septembre', 'précédent : la fausse piste', 'audit 2026-07', 'session du 3 août']
   for (const phrase of cas) {
@@ -126,4 +149,19 @@ test('AUCUNE fiche ne dépasse le plafond de PROSE dans le stock permanent de ce
     .filter((d) => d.quoi === 'fiche trop longue')
     .map((d) => `${c}:${d.ligne} ${d.detail}`))
   assert.deepEqual(trop, [])
+})
+
+test('AUCUNE citation de l’utilisateur sans date dans le stock permanent de cet arbre', () => {
+  const fichiers = gitDeLArbreReel(RACINE)('ls-files', '.claude/memory')
+    .split('\n').filter(Boolean).filter((c) => familleDe(c) === 'fiche')
+  assert.ok(fichiers.length > 0, `périmètre vide ou illisible : ${fichiers.length} fichier(s)`)
+  const sansDate = fichiers.flatMap((c) => defautsDeForme(c, readFileSync(join(RACINE, c), 'utf8'))
+    .filter((d) => d.quoi === 'citation sans date')
+    .map((d) => `${c}:${d.ligne}`))
+  assert.deepEqual(sansDate, [])
+})
+
+test('l’index de cet arbre tient dans ses plafonds de chargement', () => {
+  const index = '.claude/memory/MEMORY.md'
+  assert.deepEqual(defautsDeForme(index, readFileSync(join(RACINE, index), 'utf8')).map((d) => d.detail), [])
 })

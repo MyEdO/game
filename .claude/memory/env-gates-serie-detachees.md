@@ -10,6 +10,6 @@ metadata:
 
 **How to apply :** `npm run ops:publier -- --detache` imprime `pid=`, `log=`, `veille=` et rend la main. **Monitor** sur la commande composite `veille=` telle qu'imprimée (#2227) : `… --veiller <run>; … --veiller <run> --constat`. Une ligne `#<seq>` par transition, puis `PUBLICATION:` ; le constat rend le verdict (0/1/3/4/5). Monitor plafonné : ré-armer `… --veiller <run> --depuis <dernier #seq>; … --veiller <run> --constat`, sans ré-émission, borne depuis le lancement. Jamais un `tail`/`grep` du log.
 
-**SHA capturé pendant le run :** le train publie un snapshot de la tête committée au lancement. WIP et nouveaux commits peuvent évoluer pendant le run ; le bail distant empêche d’écraser une tête plus récente. Utilisateur, 16 octobre 2026, #2626 : « publier une tête committée et verte sans que le WIP d'un codeur dans le même arbre bloque ».
+**SHA capturé pendant le run :** le train publie un snapshot de la tête committée au lancement. WIP et nouveaux commits peuvent évoluer pendant le run ; le bail distant empêche d’écraser une tête plus récente. Utilisateur, 2026-10-16, #2626 : « publier une tête committée et verte sans que le WIP d'un codeur dans le même arbre bloque ».
 
 **Veille sortie en arrêt moteur ou en borne dépassée** : `-- --etapes` lit le journal sans rien jouer, `-- --reprendre` repart de la première étape non verte ; sans `--reprendre`, lot neuf.

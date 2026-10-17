@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « ce qui m'étonne c'est que tu le savais que ce n'était pas complet, je n'ai même pas eu besoin de te dire ce qui manquait. »
+Verbatim utilisateur (au plus tard le 2026-07-16) : « ce qui m'étonne c'est que tu le savais que ce n'était pas complet, je n'ai même pas eu besoin de te dire ce qui manquait. »
 
 **Why:** claimer « done » en le sachant faux force l'utilisateur à faire ma relecture ; et padder un bilan de « restes » recopiés — souvent faux — noie le vrai signal sous du bruit.
 

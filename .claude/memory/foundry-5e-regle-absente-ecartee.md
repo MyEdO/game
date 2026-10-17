@@ -1,5 +1,5 @@
 ---
-name: feedback-5e-regle-absente-ecartee
+name: foundry-5e-regle-absente-ecartee
 description: "Monde Foundry — une règle 5e sans AUCUN support dans le système s'écarte au lieu de se construire ; on corrige ce qui existe et qui est faux"
 metadata: 
   node_type: memory
@@ -26,5 +26,5 @@ mal (`grep` du concept dans `wfrp4e.js`) :
 
 Écartées de même : interruption et dégâts en focalisant (`11 l.207`, `11 l.213`).
 
-Voir [[feedback-5e-retirer-le-4e]] et
-[[env-foundry-jet-sans-modale]].
+Voir [[foundry-5e-retirer-le-4e]] et
+[[foundry-jet-sans-modale]].

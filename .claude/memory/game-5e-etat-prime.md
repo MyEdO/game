@@ -21,7 +21,7 @@ Cas connus au moment de l'arbitrage :
   against you benefit from **Advantage** » → **Avantage** (inversion du dé), pas un modificateur.
 
 **Why:** sans règle de préséance, chaque État contradictoire redevient un arbitrage ponctuel, et le
-monde dérive vers un mélange d'éditions — ce que [[feedback-5e-retirer-le-4e]]
+monde dérive vers un mélange d'éditions — ce que [[foundry-5e-retirer-le-4e]]
 interdit.
 
 **How to apply:** avant de coder un modificateur tiré d'une table de combat, ouvrir la description de

@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « ca montre clairement que notre worflow échoue si tu échoue a exécuté notre plan sans mon intervention ».
+Verbatim utilisateur (au plus tard le 2026-08-30) : « ca montre clairement que notre worflow échoue si tu échoue a exécuté notre plan sans mon intervention ».
 
 **Why:** un plan approuvé EST un arbitrage ; le sous-exécuter en silence remet la vigilance de l'utilisateur au centre, précisément ce que le régime anti-dérive condamne.
 

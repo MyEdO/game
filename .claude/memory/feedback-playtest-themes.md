@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatims utilisateur : « On ne peut pas traiter les points individuellement […] C'est plus des thèmes sur lesquels il faut agir » ; « Et sûrement plein d'autres choses, c'est incomplet ».
+Verbatims utilisateur (au plus tard le 2026-07-16) : « On ne peut pas traiter les points individuellement […] C'est plus des thèmes sur lesquels il faut agir » ; « Et sûrement plein d'autres choses, c'est incomplet ».
 
 **Why:** corriger le symptôme isolé laisse les bugs, manques RAW et pièges UX adjacents en place, et donne une fausse impression de « réglé ».
 

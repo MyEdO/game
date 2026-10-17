@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « M'en fiche s'il l'authorise ou non, l'objectif c'est la carte, le moteur doit suivre ».
+Verbatim utilisateur (2026-07-26) : « M'en fiche s'il l'authorise ou non, l'objectif c'est la carte, le moteur doit suivre ».
 
 **Why:** vérifier « est-ce que le format le permet ? » avant de décider ce que la carte doit être laisse l'outil dicter le contenu, et produit des cartes pleines de compromis dont plus personne ne sait s'ils étaient voulus.
 

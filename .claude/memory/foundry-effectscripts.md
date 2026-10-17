@@ -1,5 +1,5 @@
 ---
-name: env-foundry-effectscripts
+name: foundry-effectscripts
 description: "wfrp4e — game.wfrp4e.config.effectScripts est indexé par l'id NU, et un script vide retombe sur la référence brute"
 metadata: 
   node_type: memory
@@ -23,4 +23,4 @@ Deux pièges, tous deux découverts en mesurant et invisibles autrement :
    que le moteur évalue ensuite comme du JavaScript → `ReferenceError: Script is not defined`.
    Pour neutraliser un script, mettre un corps non vide : `"/* sans effet */"`.
 
-Voir [[env-foundry-macro-execute]] pour l'autre faux vert de ce monde.
+Voir [[foundry-macro-execute]] pour l'autre faux vert de ce monde.

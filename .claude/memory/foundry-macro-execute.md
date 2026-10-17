@@ -1,5 +1,5 @@
 ---
-name: env-foundry-macro-execute
+name: foundry-macro-execute
 description: "Foundry — Macro#execute() sans droits n'échoue pas : il avertit et rend undefined, d'où un faux vert"
 metadata: 
   node_type: memory
@@ -24,5 +24,5 @@ Corollaire de mesure : une sous-macro asynchrone peut mettre plusieurs secondes 
 poste joueur ; sonder trop tôt produit le même symptôme sans le même défaut. Distinguer les deux en
 relançant la sonde après quelques secondes avant de conclure.
 
-Voir [[env-foundry-effectscripts]] et
-[[env-foundry-onglet-mj]].
+Voir [[foundry-effectscripts]] et
+[[foundry-onglet-mj]].

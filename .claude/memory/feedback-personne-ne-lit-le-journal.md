@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « J'ai plein de dialogues qui finissent en rien… car tu mets tout dans le journal. Faut partir du fait que personne ne lit le journal. »
+Verbatim utilisateur (au plus tard le 2026-07-16) : « J'ai plein de dialogues qui finissent en rien… car tu mets tout dans le journal. Faut partir du fait que personne ne lit le journal. »
 
 **Why:** un payoff authoré en entrée de journal fait réussir un jet au joueur sans qu'il VOIE rien — l'expérience est « le dialogue finit en rien ».
 
