@@ -11,7 +11,7 @@
 // - `mcp__lean-ctx__ctx_shell` : « timeout_ms: Job lifetime in ms (max 3600000) — NOT the inline wait. A command
 //   still running at the ~110s foreground cap detaches to a pollable shell_* job » : hors garde.
 // Limite : un agent qui ATTEND une notification (Monitor, commande de fond sans sonde) reste inactif au-delà de
-// 5 min sans qu'aucun appel ne le porte ; la garde ne le juge pas, `.claude/rules/outils.md` prescrit la sonde.
+// 5 min sans qu'aucun appel ne le porte ; la garde ne le juge pas, `.claude/sous-agents.md` prescrit la sonde.
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

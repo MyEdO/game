@@ -3,8 +3,7 @@
 Time matters here: do not spend time that can be avoided, and the earlier a correct result is obtained, the better.
 
 - Un code de sortie ne se lit jamais à travers un pipe ; status 1 sans assertion en échec = erreur de collecte.
-- **Sous-agent : aucun appel d'outil ne dure plus de 270 s.** Plus long, `test:perimetre` compris : en fond, sous la forme que la garde imprime, sondé par `node scripts/ops/sonde.mjs <base>.code` (Bash, `timeout: 260000`) tant qu'il rend 124. `scripts/hooks/appel-borne-guard.mjs` #2596
-- **Rien ne te survit** : toute tâche de fond est bornée (`timeout`, boucle à sortie garantie), arrêtée avant ton rendu, listée avec sa fin. Un `tail -F` porte `--pid=$$` : un pipeline Git Bash survit à l'arrêt de son shell. Un orphelin se tue par PID exact (4e colonne de `ps -W`).
+- Règles d'un sous-agent à canal shell (durée d'un appel, tâches de fond) : `.claude/sous-agents.md`, injecté à son lancement.
 - **Git Bash** : `\\` arrive en `\`, même entre apostrophes ou en heredoc cité : écris le texte par Write au scratchpad et lance-le par son chemin, ou passe par PowerShell (#2603). MSYS réécrit `<rév>:<chemin>` : `MSYS_NO_PATHCONV=1`, ou `git ls-tree <rév> -- <f>`.
 - **`grep`** : seul, le hook RTK le réécrit en `rtk grep` ; composé, l'alias lean-ctx `lean_ctx_track` rend un FAUX ZÉRO. Motif à `\`, `[` ou `"` : `git grep`, `/usr/bin/grep` ou `\grep` ; sur fichiers, finis par `< /dev/null`.
 - **PowerShell** : aucune cmdlet d'écriture (`Set-Content`, `Out-File`, `Add-Content`) sur un fichier du dépôt (CRLF, `.gitattributes:5`). Suite rouge sans diff : `git ls-files --eol`.

@@ -144,5 +144,5 @@ Détail : `docs/architecture.md`.
 
 - **Closure synchrone en test Playwright** : jamais lire le DOM dans le même `evaluate` que l'action
   qui change l'état React (`docs/recette-navigateur.md`).
-- `src/data/*.json` est la SOURCE app-owned commitée : rien à régénérer après un clone.
-- Aucun inventaire de GROUPE : tout objet va sur un héros (`Combatant.items`) via `giveTrapping`.
+- Conventions propres à un chemin (`src/data`, `src/engine`, `src/state`, `src/ui`, `src/scenes`…) :
+  `.claude/rules/`, chargées à la lecture ou l'écriture d'un fichier qui correspond.

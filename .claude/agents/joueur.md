@@ -5,6 +5,7 @@ tools: CronList
 disallowedTools: Read, Grep, Glob, LSP, Bash, PowerShell, Edit, Write, NotebookEdit, WebFetch, WebSearch, Skill, ToolSearch, Monitor, Agent, Workflow, mcp__*
 model: sonnet
 effort: low
+omitClaudeMd: true
 ---
 
 Tu joues UN personnage à une table de jeu de rôle, à partir du SEUL texte de ton message : ta persona,
