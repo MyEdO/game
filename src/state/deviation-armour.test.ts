@@ -162,7 +162,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     expect(hh.criticalWounds ?? 0).toBe(1); // Critique subi
   });
 
-  it('ATTAQUE STANDARD (aucune option) → la fenêtre offre ses voies ; SOUS-ATTAQUE → aucune fenêtre de Déviation', () => {
+  it('LDB 63 l.30 : héros tenu, attaque STANDARD comme SOUS-ATTAQUE → la fenêtre offre ses voies', () => {
     const mont = () => {
       seedBattleRng(424242);
       const e = enemy({});
@@ -170,17 +170,16 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
       setBattle([e, h]);
       return { e, h };
     };
-    const voies = () => (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'deviation');
     const std = mont();
     expect(applyAttackResult(useGame.getState, useGame.setState, std.e, std.h, critWeapon, critRes()), 'standard : suspendu').toBe(OPS_DIFFEREES);
     expect(tireLaSeverite().options?.map((o) => o.key), 'standard : Dévier / Subir offerts').toEqual(['devier', 'subir']);
 
     useGame.setState({ pendingCascade: null });
     const sous = mont();
-    applyAttackResult(useGame.getState, useGame.setState, sous.e, sous.h, critWeapon, critRes(), { sousAttaque: true });
-    expect(voies(), 'sous-attaque : pas de fenêtre de Déviation imbriquée').toEqual([]);
+    expect(applyAttackResult(useGame.getState, useGame.setState, sous.e, sous.h, critWeapon, critRes(), { sousAttaque: true }), 'sous-attaque : suspendu').toBe(OPS_DIFFEREES);
+    expect(tireLaSeverite().options?.map((o) => o.key), 'sous-attaque : Dévier / Subir offerts').toEqual(['devier', 'subir']);
     const hh = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken ?? 0, 'la pièce n’est pas sacrifiée').toBe(0);
+    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken ?? 0, 'rien n’est sacrifié avant la décision').toBe(0);
   });
 
   it('héros avec une PIÈCE portée → Déviation offerte ; sur « Dévier », la pièce perd 1 PA, Critique ignoré', () => {

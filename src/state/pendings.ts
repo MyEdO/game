@@ -807,7 +807,7 @@ export interface DeviationCtx {
   weaponObj?: Weapon;
   critTwice?: boolean;
   /** Le coup qui porte le Critique, pour le marin d'un Critique de coque à l'Équipage (MDG 13 l.584). */
-  coup?: CoupSuspendu;
+  coup?: CoupDeTouche;
 }
 
 /** La décision prise sur UNE Blessure critique d'un coup, au rang de son append (#1426 ; LDB 63 l.30) :
@@ -823,8 +823,22 @@ export interface DecisionDeCritique {
  *  tranchées (#1426 ; #1595 c.6220635824) — union discriminée par `mode` :
  *  - `melee` : un coup d'arme, `res`/`weapon` figés → la reprise rejoue `applyAttackResult` (son
  *    « tail » décision-indépendant — riposte/triggers/ammo… — tourne ainsi une seule fois) ;
- *  - `projectile` : une touche de Projectile magique → la reprise rejoue son application. */
+ *  - `projectile` : une touche de Projectile magique → la reprise rejoue son application ;
+ *  - `marin` : le coup qu'encaisse le marin d'un Critique de coque à l'Équipage → la reprise ré-entre le
+ *    seul pipeline du marin (MDG 13 l.584 ; LDB 63 l.30). */
 export type CoupSuspendu =
+  | CoupDeTouche
+  | {
+      mode: 'marin';
+      coupDuMarin: CoupDuMarin;
+      weapon?: never;
+      res?: never;
+      suite?: never;
+      touche?: never;
+    };
+
+/** Le coup d'une touche, arme ou Projectile magique. */
+export type CoupDeTouche =
   | {
       mode: 'melee';
       weapon: Weapon;
@@ -834,6 +848,7 @@ export type CoupSuspendu =
        *  et l'Action d'une frappe gratuite. */
       suite?: SuiteDeCoup;
       touche?: never;
+      coupDuMarin?: never;
     }
   | {
       mode: 'projectile';
@@ -843,11 +858,12 @@ export type CoupSuspendu =
       weapon?: never;
       res?: never;
       suite?: never;
+      coupDuMarin?: never;
     };
 
 /** Le coup qu'encaisse le marin d'un Critique de coque à l'Équipage, sa touche calculée contre LUI : MDG 13
  *  l.584 ; LDB 85 l.360-361. Donnée SÉRIALISABLE, que le pipeline du marin ré-entre. */
-export type CoupDuMarin = CoupSuspendu & { attackerId: string; marinId: string };
+export type CoupDuMarin = CoupDeTouche & { attackerId: string; marinId: string };
 
 /** Déviation Critique en attente (LDB 63 l.30) : une victime a subi une Blessure Critique — Coup
  *  Critique OU dépassement — à une localisation où elle porte de la PA ; elle choisit Dévier (sacrifie

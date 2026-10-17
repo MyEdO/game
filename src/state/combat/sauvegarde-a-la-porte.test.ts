@@ -381,9 +381,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     // `res` FORGÉ passé DIRECTEMENT à `applyAttackResult` — ce qui court-circuite `maybeOpenDefense`.
     // S'y ajoute la Protection (6+) du porteur : la SAUVEGARDE s'ouvre d'abord, la DÉVIATION ensuite, sur
     // le MÊME coup. La suite sous contrat est l'Avantage DIFFÉRÉ du Maniement de deux armes (LDB 10
-    // l.767-773) : c'est la seule dont l'effet se MESURE après les deux fenêtres (l'attaque GRATUITE et le
-    // maillon de balayage entrent, eux, en `sousAttaque` — un enchaînement n'ouvre PAS de fenêtre de
-    // Déviation imbriquée, `ApplicationDuCoup.sousAttaque`).
+    // l.767-773) : c'est la seule dont l'effet se MESURE après les deux fenêtres (`ApplicationDuCoup.sousAttaque`).
     const gourdin = { label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as unknown as Weapon;
     const brute = mk('enemy', 'brute', { pos: { x: 1, y: 0 }, weapons: [gourdin] });
     const porteur = mk('hero', 'porteur', {

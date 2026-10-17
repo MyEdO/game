@@ -6,11 +6,12 @@ import { useGame } from './store';
 import { spawnEnemy } from './spawn';
 import { seedBattleRng } from './battleRng';
 import { applyHullCriticalToTarget } from './combatFlow';
-import type { CoupSuspendu } from './pendings';
+import type { CoupDeTouche } from './pendings';
 import { emptyScene } from './scene';
 import { createHero } from '../engine/character';
 import { findSpell } from '../data';
 import { hasCondition, COND } from '../engine/conditions';
+import { draineCascade } from './cascadeTestKit';
 
 /**
  * Critique de coque à l'Équipage : le marin encaisse LE coup qui porte le Critique, calculé contre LUI
@@ -44,7 +45,7 @@ const SEED_LETAL = 37;
 const enJeu = (id: string): Combatant => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
 
 /** Le Critique de coque à l'Équipage (d100 de Localisation imposé à 5, MDG 13), porté par `coup`. */
-const critiqueDEquipage = (seed: number, attaquant: Combatant, nav: Combatant, marin: Combatant, coup: CoupSuspendu): string[] => {
+const critiqueDEquipage = (seed: number, attaquant: Combatant, nav: Combatant, marin: Combatant, coup: CoupDeTouche): string[] => {
   poser([attaquant, nav, marin]);
   seedBattleRng(seed);
   const log: string[] = [];
@@ -54,7 +55,7 @@ const critiqueDEquipage = (seed: number, attaquant: Combatant, nav: Combatant, m
   });
   return log;
 };
-const enMelee = (attaquant: Combatant, nav: Combatant, roll: number, dmgProxy?: { sb: number; size: Combatant['size'] }): CoupSuspendu =>
+const enMelee = (attaquant: Combatant, nav: Combatant, roll: number, dmgProxy?: { sb: number; size: Combatant['size'] }): CoupDeTouche =>
   ({ mode: 'melee', weapon: hache, res: toucheAuJetPose(attaquant, nav, hache, jet(roll), 2, false, dmgProxy) });
 /** Ce que le même jet inflige au marin, calculé contre lui hors flux. */
 const contreLeMarin = (attaquant: Combatant, marin: Combatant, roll: number, dmgProxy?: { sb: number; size: Combatant['size'] }): number =>
@@ -113,7 +114,7 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
     const attendu = evaluateMissile(mage, structuredClone(marin), sort, mres).woundsLost ?? 0;
     expect(attendu).toBeGreaterThan(0);
     expect(mres.woundsLost ?? 0).not.toBe(attendu);
-    const coup: CoupSuspendu = { mode: 'projectile', touche: { casterId: mage.id, de: mage.id, targetId: nav.id, spell: sort, mres, zoneTalentMod: 0, critWound: false, overcastDamageSteps: 0, overcastDurationSteps: 0 } };
+    const coup: CoupDeTouche = { mode: 'projectile', touche: { casterId: mage.id, de: mage.id, targetId: nav.id, spell: sort, mres, zoneTalentMod: 0, critWound: false, overcastDamageSteps: 0, overcastDurationSteps: 0 } };
     critiqueDEquipage(1, mage, nav, marin, coup);
     expect(enJeu('marin').wounds.current).toBe(40 - attendu);
   });
@@ -142,6 +143,7 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
     marin.fate = 2;
     const nav = navire(marin);
     critiqueDEquipage(SEED_LETAL, ogre, nav, marin, enMelee(ogre, nav, 44));
+    expect(draineCascade(useGame.getState, 200, undefined, () => 'subir'), 'héros tenu : sa fenêtre s’ouvre (LDB 63 l.30)').toEqual(['deviation']);
     expect(useGame.getState().pendingFateSave?.heroId).toBe('marin');
     expect(enJeu('marin').criticalWounds ?? 0).toBeGreaterThan(0);
   });

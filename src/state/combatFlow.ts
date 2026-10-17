@@ -5,7 +5,7 @@
 import type { PlayerText } from '../i18n/playerText';
 import type { GameState, BattleState, RevealEntry, ShootingStanceKey } from './store';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
+import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
@@ -1900,7 +1900,7 @@ export function applyHullCriticalToTarget(
     const coup = garanti(ctx?.coup, target.id, "coup qui porte le Critique d'Équipage (MDG 13 l.584)");
     const attaquant = garanti(inBattleId(lire().battle, ctx?.attackerId), ctx?.attackerId, "auteur du coup qui porte le Critique d'Équipage");
     const marin = garanti(crew.find((c) => c.id === outcome.marinId), outcome.marinId, "marin d'un Critique d'Équipage");
-    for (const l of encaisserLeCoupDuMarin(lire, set, naissanceDuCoupDuMarin(coup, attaquant, marin), [])) log.push(l);
+    for (const l of encaisserLeCoupDuMarin(lire, set, naissanceDuCoupDuMarin(coup, attaquant, marin), []) ?? []) log.push(l);
     return false;
   }
   // Le coup à l'équipage de la rangée (MSRC 07 l.78/l.94, MDG 13 l.763) sur N marins passe par la PORTE
@@ -2170,10 +2170,8 @@ registerCascadeTableFold('deviation', (step, get) => {
   if (!target) return step;
   const crit = resolveCritique(jeuDeCritique(p.twice), target, p.location, battleRng(), { overkill: p.overkill, twice: p.twice, forcedRoll: rolled.roll });
   const reveal = previewCritEntry(target, crit, p.origine, { attackerId: p.attackerId, weapon: libelleDuCoup(p) });
-  const coup: CoupSuspendu = p.mode === 'melee'
-    ? { mode: 'melee', weapon: p.weapon, res: p.res, ...(p.suite ? { suite: p.suite } : {}) }
-    : { mode: 'projectile', touche: p.touche };
-  const dev: PendingDeviation = { ...coup, attackerId: p.attackerId, targetId: p.targetId, crit, decides: p.decides, reveal, resumeAfter: true };
+  const { attackerId, targetId, decides, location: _lieu, overkill: _depassement, origine: _origine, twice: _twice, ...coup } = p;
+  const dev: PendingDeviation = { ...coup, attackerId, targetId, crit, decides, reveal, resumeAfter: true };
   return { ...step, deviation: dev, ...(step.options ? { reveal } : {}) };
 });
 
@@ -2430,7 +2428,7 @@ interface PlanDesCritiques<C extends CompteDuCoup> {
   coup: CoupSuspendu;
   /** Les décisions déjà tranchées (reprise). */
   decides: readonly DecisionDeCritique[];
-  /** Sous-attaque résolue d'office : aucune fenêtre imbriquée. */
+  /** Sous-attaque, porteur non tenu : aucune étape ; Surpris conservé (LDB 16 l.139 ; LDB 63 l.30). */
   sousAttaque: boolean;
   twice: boolean;
   /** Le compte après `n` Déviations, sur la cible intacte (`apresDeviations`). */
@@ -2440,7 +2438,10 @@ interface PlanDesCritiques<C extends CompteDuCoup> {
   deviable: (lieu: HitLocation, n: number, cassee: boolean) => boolean;
 }
 
-const libelleDuCoup = (coup: CoupSuspendu): string | undefined => (coup.mode === 'melee' ? coup.weapon?.label : coup.touche.spell.label);
+const libelleDuCoup = (coup: CoupSuspendu): string | undefined => {
+  if (coup.mode === 'marin') return libelleDuCoup(coup.coupDuMarin);
+  return coup.mode === 'melee' ? coup.weapon?.label : coup.touche.spell.label;
+};
 
 /**
  * LES BLESSURES CRITIQUES D'UN COUP, PLANIFIÉES (#1426 ; #1595 c.6220635824) — UNE fenêtre par Blessure
@@ -2472,7 +2473,7 @@ function planifierLesCritiques<C extends CompteDuCoup>(
     const cassee = compte.coupCritique && !compte.compte.critiques.slice(plan.length).some((c) => estUnCoupCritique(c.origine));
     const deviable = regime.fenetre && !!rule('combat-critical-deflect') && p.deviable(cloc, devies(), cassee);
     if (deviable && !tenu) { plan.push({ deviation: 'devier', auto: true }); continue; }
-    if (p.sousAttaque || !regime.fenetre) { plan.push({}); continue; }
+    if (!regime.fenetre || (p.sousAttaque && !tenu)) { plan.push({}); continue; }
     const fenetre = { attackerId: p.attacker.id, targetId: target.id, decides: plan };
     if (critSeverityInSeam(twice)) {
       pushDeviationStep(set, {
@@ -2598,7 +2599,7 @@ function cloreLeCoup(get: Get, cible: Combatant, currentBefore: number, log: str
 
 /** La touche du marin d'un Critique de coque à l'Équipage, calculée contre LUI depuis le coup qui porte le
  *  Critique : MDG 13 l.584 ; LDB 85 l.360-361 ; LDB 14 l.183 ; #1595 c.6228605059 (b). */
-function naissanceDuCoupDuMarin(coup: CoupSuspendu, attaquant: Combatant, marin: Combatant): CoupDuMarin {
+function naissanceDuCoupDuMarin(coup: CoupDeTouche, attaquant: Combatant, marin: Combatant): CoupDuMarin {
   const qui = { attackerId: attaquant.id, marinId: marin.id };
   if (coup.mode === 'melee') {
     const { res, weapon } = coup;
@@ -2612,8 +2613,9 @@ function naissanceDuCoupDuMarin(coup: CoupSuspendu, attaquant: Combatant, marin:
 
 /** LE COUP ENCAISSÉ PAR LE MARIN d'un Critique de coque à l'Équipage (MDG 13 l.584), par le pipeline des
  *  Critiques du coup : compte, plan, application. Ré-entrant : `coup` est une donnée sérialisable, `decides`
- *  les Blessures critiques déjà tranchées. Rend les lignes du journal. */
-function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides: readonly DecisionDeCritique[]): string[] {
+ *  les Blessures critiques déjà tranchées. Rend les lignes du journal, ou `null` quand une fenêtre de Blessure
+ *  critique du marin a SUSPENDU le coup (`CoupSuspendu` `marin`, LDB 63 l.30). */
+function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides: readonly DecisionDeCritique[]): string[] | null {
   const battle = get().battle;
   const attaquant = garanti(inBattleId(battle, coup.attackerId), coup.attackerId, "auteur du coup qui porte le Critique d'Équipage");
   const marin = garanti(inBattleId(battle, coup.marinId), coup.marinId, "marin d'un Critique d'Équipage (MDG 13 l.584)");
@@ -2623,10 +2625,11 @@ function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides
   const lignes: string[] = [];
   if (!touche.hit) return lignes;
   const twice = critRollTwiceFor(attaquant);
-  const planifie = garanti(planifierLesCritiques(get, set, {
-    attacker: attaquant, target: marin, coup, decides, sousAttaque: true, twice, recompter: touche.recompter,
+  const planifie = planifierLesCritiques(get, set, {
+    attacker: attaquant, target: marin, coup: { mode: 'marin', coupDuMarin: coup }, decides, sousAttaque: true, twice, recompter: touche.recompter,
     deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(marin, lieu, n, { casse }), lieu),
-  }), marin.id, "plan des Blessures critiques du marin, sous-attaque sans fenêtre (#1595 c.6228605059 (b))");
+  });
+  if (!planifie) return null;
   if (planifie.compte.blessures > 0) lignes.push(tr('op.wounds', { name: marin.label, n: planifie.compte.blessures, mitig: '' }));
   encaisserLeCoup({
     get, set, auteur: attaquant, cible: marin, compte: planifie.compte, plan: planifie.plan, log: lignes, roll: touche.roll, arme: touche.arme,
@@ -2641,8 +2644,8 @@ function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides
  * écrivait `false` pour « rien » perdait l'offre de Déviation.
  */
 export interface ApplicationDuCoup {
-  /** Sous-attaque résolue d'office (maillon de balayage, attaque gratuite) : ni fenêtre de Déviation
-   *  imbriquée, ni retrait de l'État Surpris (LDB 16 l.139 : UN assaut). */
+  /** Sous-attaque (maillon de balayage, attaque gratuite, bordée) : porteur non tenu, aucune étape ;
+   *  Surpris conservé (LDB 16 l.139 ; LDB 63 l.30). */
   sousAttaque?: boolean;
   /** Les Blessures critiques du coup déjà tranchées à leur fenêtre, dans l'ordre (#1426 ; LDB 63 l.30) —
    *  posées par la seule reprise de la fenêtre. */
@@ -2826,7 +2829,7 @@ function appliquerLaTouche(
   }
   // Critiques du Test opposé : LDB 14 l.3 ; LDB 13 l.183.
   // (Pas de garde `deviation` : une 1ʳᵉ entrée qui SUSPEND (déviation) fait son early-return AVANT ce
-  // bloc — la reprise « Dévier »/« Subir » l'exécute donc UNE seule fois, comme les sous-attaques.)
+  // bloc — la reprise « Dévier »/« Subir » l'exécute donc UNE seule fois.)
   if (weapon.type === 'melee' && res.defenderDetail) {
     const ad = res.attackerDetail;
     const dd = res.defenderDetail;
@@ -4545,12 +4548,18 @@ function cloreLaReprise(get: Get, set: SetFn, target: Combatant, log: string[], 
 }
 
 /** REPRISE du coup qu'une fenêtre de Blessure critique a suspendu, avec SA décision : un coup d'arme
- *  ré-entre `applyAttackResult` (après-coup compris) ; une touche de Projectile ré-entre son application,
- *  puis joue le rebond d'« Attaques en chaîne » (`LDB 47 l.340`) qu'elle déclarait, sur les PB frais. */
+ *  ré-entre `applyAttackResult` (après-coup compris) ; le coup du marin ré-entre son seul pipeline
+ *  (MDG 13 l.584) ; une touche de Projectile ré-entre son application, puis joue le rebond d'« Attaques en chaîne » (`LDB 47 l.340`) qu'elle déclarait, sur les PB frais. */
 function reprendreLeCoup(get: Get, set: SetFn, dev: PendingDeviation & CoupSuspendu, decision: DecisionDeCritique): void {
   const critiques = [...dev.decides, decision];
   if (dev.mode === 'melee') {
     resumeMeleeAfterSuspension(get, set, dev.attackerId, dev.targetId, dev.weapon, dev.res, { critiques, ...(dev.suite ? { suite: dev.suite } : {}) });
+    return;
+  }
+  if (dev.mode === 'marin') {
+    const lignes = encaisserLeCoupDuMarin(get, set, dev.coupDuMarin, critiques);
+    const marin = actorIn(get(), dev.targetId);
+    if (lignes && marin) cloreLaReprise(get, set, marin, lignes, dev.attackerId);
     return;
   }
   const appliquee = appliquerToucheDeProjectile(get, set, { ...dev.touche, critiques });
