@@ -19,7 +19,7 @@ import { addCondition, addTimedCondition, addClockCondition, removeCondition, lo
 import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel, findTrappingById } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch } from './groups';
-import { findTableEntry } from './tables';
+import { facesDuDe, findTableEntry } from './tables';
 import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable } from '../data/shipCriticals';
@@ -2482,9 +2482,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
       }
       case 'rollTable': {
         // Table INLINE (`rows`) ou RÉFÉRENCÉE (`tableId` → tables.json, fail-fast) — jamais les deux.
-        const tbl = 'tableId' in o ? findEffectTableById(o.tableId) : null;
-        const rows: { min: number; max: number; ops: GameOp[] }[] = tbl ? tbl.rows : ('rows' in o ? o.rows : []);
-        const sides = (tbl ? tbl.die : o.die) === 'd100' ? 100 : 10;
+        const table = 'tableId' in o ? findEffectTableById(o.tableId) : o;
+        const rows: { min: number; max: number; ops: GameOp[] }[] = table.rows;
+        const sides = facesDuDe(table.die);
         // Modificateur CONSTANT (Haute Alchimie « 1d10 + 3 », VDM 03 l.698) + |DR négatif| (Vers de carie,
         // MSRC 16 l.90) → lookup `[min,max]` (source unique) → ops de la rangée.
         const modifier = (o.mod ?? 0) + (o.addNegativeSL ? Math.max(0, -(ctx.sl ?? 0)) : 0);

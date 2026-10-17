@@ -44,10 +44,11 @@ import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS } from '../../engine/travelTables';
 import type { TravelTableEntry } from '../../engine/travelTables';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { OBSESSIONS } from '../../data/obsessions';
-import { STRUCTURE_CRITICALS } from '../../data/structureCriticals';
+import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
+import { bandeAuDe, facesDuDe, fourchette } from '../../engine/tables';
 import { ARTILLERY_MISFIRE } from '../../data/artilleryMisfire';
 import { type LandCargoDef } from '../../engine/landCargo';
-import { findCargoEntryById, isEchangeable } from '../../engine/seaVoyage';
+import { DE_DES_EVENEMENTS_DE_BORD, findCargoEntryById, isEchangeable } from '../../engine/seaVoyage';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
 import { RIVER_PERILS } from '../../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../../engine/crewMorale';
@@ -477,7 +478,7 @@ function outcomeBandsSection(bands?: OutcomeBand[]): CodexSection | null {
   for (const [i, b] of bands.entries()) {
     const head = [
       b.on ? libelleDeValeur(outcomeOnSchema, b.on) : 'Toute issue',
-      b.minSL != null || b.maxSL != null ? `DR ${b.minSL ?? '−∞'} … ${b.maxSL ?? '+∞'}` : null,
+      b.minSL != null || b.maxSL != null ? `DR ${fourchette(b.minSL ?? null, b.maxSL ?? null)}` : null,
       b.when ? libelleDeValeur(battleCondSchema, b.when) : null,
     ].filter(Boolean).join(' · ');
     rows.push({ t: 'sub', label: head });
@@ -737,7 +738,7 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
   const amputation = noeudAmputation(e, jeu, CRIT_TABLE_LOCATION[table]);
   const jetsAmp = noeudsDeTest(amputation);
   return depuisEnveloppe(e, {
-    sub: `d100 ${e.min}–${e.max}`,
+    sub: bandeAuDe('d100', e.min, e.max),
     meta: facts(
       e.lethal ? fact('Létal', 'oui') : null,
       !e.lethal && !(e.ops ?? []).some((o) => o.op === 'wounds') ? fact('Type', 'Triviale (« T »)') : null,
@@ -768,7 +769,7 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
  *  familles : plage d100 → texte + Dégâts véhicule éventuels + effet GameOp sur les occupants. */
 function travelEntryItem(e: TravelTableEntry, occupantsTitle: string): CodexItem {
   return depuisEnveloppe(e, {
-    sub: `d100 ${e.min}–${e.max}`,
+    sub: bandeAuDe('d100', e.min, e.max),
     meta: facts(fact('Dégâts véhicule', e.vehicleWounds ?? null)),
     sections: sections(passiveSection(e.occupantOps, occupantsTitle)),
   });
@@ -791,7 +792,7 @@ function shipCritEntryItem(e: ShipCritEntry): CodexItem {
   const jet = ch?.test?.test;
   const sujet = jet && (testSkillLabel({ skill: jet.skill, char: jet.characteristic }) ?? '');
   return depuisEnveloppe(e, {
-    sub: `d10 ${e.min}–${e.max}`,
+    sub: bandeAuDe('d10', e.min, e.max),
     desc: e.note,
     meta: facts(
       typeof e.shrapnel === 'number' ? fact('Éclats (Indice)', e.shrapnel) : null,
@@ -816,8 +817,8 @@ function shipCritEntryItem(e: ShipCritEntry): CodexItem {
 
 /** Item Codex d'un Événement de bord/de port (`SeaEventDef` — MDG 15, #157 suite) : plage de jet
  *  (d100 modifié par l'Humeur de Manann, ou 2d10) → texte verbatim. */
-function seaEventItem(e: SeaEventDef): CodexItem {
-  return depuisEnveloppe(e, { sub: `${e.min}–${e.max}` });
+function seaEventItem(e: SeaEventDef, faces?: number): CodexItem {
+  return depuisEnveloppe(e, { sub: fourchette(e.min, e.max, faces) });
 }
 
 /** Item Codex d'un Facteur d'Humeur de Manann (`ManannFactor` — MDG 15, #157 suite) : effet signé
@@ -1012,7 +1013,7 @@ function miscastTestSection(t: NonNullable<MiscastRowEntry['test']>): CodexSecti
  *  nom, effet immédiat (`ops`, dialecte) + Test imbriqué éventuel + relance (cascade/multiplication). */
 function miscastRowItem(e: MiscastRowEntry): CodexItem {
   return depuisEnveloppe(e, {
-    sub: `d100 ${e.min}–${e.max}`,
+    sub: bandeAuDe('d100', e.min, e.max),
     meta: facts(e.reroll ? fact('Relance', e.reroll === 'majeure' ? 'Cascade → Tableau Majeur' : 'Multiplication (2 tirages Mineurs)') : null),
     sections: sections(
       e.ops?.length ? { title: 'Effet immédiat', layout: 'list', rows: replieCausesPersistantes(e.ops).map(miscastOpRow) } : null,
@@ -1084,7 +1085,7 @@ function phenomenonSaturationFact(s: ArcanePhenomenon['saturation']): CodexFact 
 function arcaneTableRows(t: ArcaneTable): CodexRow[] {
   return t.rows.map((r) => ({
     t: 'kv',
-    k: r.min === r.max ? String(r.min) : `${r.min}–${r.max}`,
+    k: fourchette(r.min, r.max, facesDuDe(t.die)),
     v: [r.label, r.domainIds?.length ? `(${r.domainIds.map((d) => refLabel('domains', { id: d })).join(', ')})` : undefined].filter(Boolean).join(' '),
   } as CodexRow));
 }
@@ -1114,7 +1115,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         ...[...d.saturationLevels].sort((a, b) => a.order - b.order).map((l) => depuisEnveloppe(l, {
           group: 'Paliers de Saturation',
           meta: facts(
-            fact('Effets de Saturation', l.effectsMin === l.effectsMax ? String(l.effectsMin) : `${l.effectsMin}–${l.effectsMax}`),
+            fact('Effets de Saturation', fourchette(l.effectsMin, l.effectsMax)),
             fact('Peut se corrompre', l.corrupts ? 'oui (Geheimnisnacht/Hexensnacht)' : null),
           ),
           sections: l.testMods?.length ? sections({ title: 'Modificateurs de Test', layout: 'list', rows: l.testMods.map(testModRow) }) : undefined,
@@ -1203,14 +1204,14 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'drivingMishap', label: 'Accidents de Conduite d’attelage', group: 'Tables', cluster: 'Voyage terrestre', sourceRef: 'LDB 09',
     build: () => datasetArray('drivingMishap').map((e) => ({
-      id: e.id, label: e.label, sub: `1d10 ${e.min}–${e.max}`, desc: e.desc,
+      id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max), desc: e.desc,
       meta: facts(fact('Type', libelleDeValeur(drivingMishapOutcomeSchema, e.outcome))),
     })),
   },
   {
     key: 'drunkenness', label: 'Ivresse (Tableau)', group: 'Tables', sourceRef: 'LDB 09',
     build: () => datasetArray('drunkenness').map((e) => ({
-      id: e.id, label: e.label, sub: `1d10 ${e.min}–${e.max}`, desc: e.desc,
+      id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max), desc: e.desc,
       meta: facts(fact('Type', libelleDeValeur(drunkennessOutcomeSchema, e.outcome))),
       sections: sections(passiveSection(e.ops, 'Effet')),
     })),
@@ -1253,11 +1254,11 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         sections: sections(
           {
             title: 'Force du vent (1d10)', layout: 'list',
-            rows: n.windForces.map((f) => ({ t: 'kv', k: `1d10 ${f.min}–${f.max}`, v: f.label } as CodexRow)),
+            rows: n.windForces.map((f) => ({ t: 'kv', k: bandeAuDe('d10', f.min, f.max), v: f.label } as CodexRow)),
           },
           {
             title: 'Direction du vent (1d10, relative au bateau)', layout: 'list',
-            rows: n.windDirections.map((d) => ({ t: 'kv', k: `1d10 ${d.min}–${d.max}`, v: d.label } as CodexRow)),
+            rows: n.windDirections.map((d) => ({ t: 'kv', k: bandeAuDe('d10', d.min, d.max), v: d.label } as CodexRow)),
           },
           {
             title: 'Effet du vent (Force × Direction)', layout: 'list',
@@ -1588,7 +1589,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         title: 'Tirage (d100 → Mutation)', layout: 'list',
         rows: t.ranges.map((r) => {
           const label = mutations.find((mu) => mu.id === r.mutation)?.label ?? r.mutation;
-          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: `${r.min}–${r.max}` } as CodexRow;
+          return { t: 'ref', category: 'mutations', id: r.mutation, label, show: label, badge: fourchette(r.min, r.max, facesDuDe('d100')) } as CodexRow;
         }),
       }),
     })),
@@ -1599,7 +1600,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     // aspects démoniaques par Domaine du Chaos). Chaque rangée = fourchette + ops (chips codex-liées).
     build: () => effectTables.map((t) => depuisEnveloppe(t, {
       sub: `${t.rows.length} rangée(s) · ${t.die}`,
-      sections: sections({ title: `Tirage (${t.die} → effet)`, layout: 'list', rows: tableRows(t.rows) }),
+      sections: sections({ title: `Tirage (${t.die} → effet)`, layout: 'list', rows: tableRows(t) }),
     })),
   },
   {
@@ -1677,7 +1678,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     // Option `vents-tourbillonnants` (LDB 46 l.179-190) : table 1d10 de force des Vents, ajoutée
     // aux Tests d'Incantation/Focalisation (`engine/windsOfMagic.ts`).
     build: () => windsOfMagicTable.map((e) => ({
-      id: e.id, label: e.label, sub: `1d10 ${e.min}${e.max > e.min ? `–${e.max}` : ''}`,
+      id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max),
       meta: facts(fact('Modificateur', e.mod >= 0 ? `+${e.mod}` : `${e.mod}`)),
     })),
   },
@@ -1830,18 +1831,18 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'oups', label: 'Oups !', group: 'Tables',
     // Le `label` EST le texte du résultat (et la clé d'édition `entryKey`) → on le garde tel quel ;
-    // on enrichit par la plage d100 et le TYPE d'effet (kind) en méta.
+    // on enrichit par le TYPE d'effet (kind) en méta.
     build: () => oups.map((o) => {
-      const range = 'min' in o ? `d100 ${o.min}–${o.max}` : 'Hors table (arme à Poudre noire, jet pair)';
+      const range = 'min' in o ? bandeAuDe('d100', o.min, o.max) : 'Hors table (arme à Poudre noire, jet pair)';
       return depuisEnveloppe(o, {
         sub: range,
-        meta: facts(fact('d100', range), fact('Type', valeurFR('oups.json', 'kind', o.kind))),
+        meta: facts(fact('Type', valeurFR('oups.json', 'kind', o.kind))),
       });
     }),
   },
   {
     key: 'interludeEvents', label: 'Entre deux aventures', group: 'Tables',
-    build: () => interludeEvents.map((e) => depuisEnveloppe(e, { sub: `d100 ${e.min}–${e.max}` })),
+    build: () => interludeEvents.map((e) => depuisEnveloppe(e, { sub: bandeAuDe('d100', e.min, e.max) })),
   },
   {
     key: 'peripeties', label: 'Péripéties de voyage', group: 'Tables', cluster: 'Voyage terrestre',
@@ -2231,11 +2232,11 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'seaBoardEvents', label: 'Événements de bord (mer)', group: 'Tables', cluster: 'Mer & rivière', sourceRef: 'MDG 15',
-    build: () => datasetArray('seaBoardEvents').map(seaEventItem),
+    build: () => datasetArray('seaBoardEvents').map((e) => seaEventItem(e, facesDuDe(DE_DES_EVENEMENTS_DE_BORD))),
   },
   {
     key: 'seaPortEvents', label: 'Événements de port (mer)', group: 'Tables', cluster: 'Mer & rivière', sourceRef: 'MDG 15',
-    build: () => datasetArray('seaPortEvents').map(seaEventItem),
+    build: () => datasetArray('seaPortEvents').map((e) => seaEventItem(e)),
   },
   {
     key: 'waterExposure', label: 'Exposition à l’eau (maladies hydriques)', group: 'Tables', cluster: 'Mer & rivière', sourceRef: 'MSRC 16',
@@ -2253,7 +2254,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             title: 'Maladies (jet d100 après échec du Test)', layout: 'list',
             rows: w.diseases.map((d) => {
               const label = maladies.find((m) => m.id === d.disease)?.label ?? d.disease;
-              return { t: 'ref', category: 'maladies', id: d.disease, label, show: label, badge: `${d.min}–${d.max}${d.rerollUnlessWounded ? ' · relance si indemne' : ''}` } as CodexRow;
+              return { t: 'ref', category: 'maladies', id: d.disease, label, show: label, badge: `${fourchette(d.min, d.max, facesDuDe('d100'))}${d.rerollUnlessWounded ? ' · relance si indemne' : ''}` } as CodexRow;
             }),
           },
         ),
@@ -2279,7 +2280,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'navalProgression', label: 'Progression de navire (DR de Navigation → Mouvement)', group: 'Tables', cluster: 'Mer & rivière', sourceRef: 'MDG 13',
     build: () => datasetArray('navalProgression').map((e) => ({
       id: e.id, label: libelleDeValeur(progressionModeSchema, e.mode),
-      sub: `DR ${e.min}…${e.max}`, desc: e.desc, source: src(e.source),
+      sub: `DR ${fourchette(e.min, e.max)}`, desc: e.desc, source: src(e.source),
     })),
   },
   {
@@ -2291,8 +2292,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         fact('Équipage', s.crew),
         s.sail ? fact('Voile', `M${s.sail.m} (équipage ${s.sail.crew})`) : null,
         s.oars ? fact('Rames', `M${s.oars.m} (équipage ${s.oars.crew})`) : null,
-        // Bande FINALE sans plafond (MDG 12 l.129 « 81+ ») : elle se dit « et plus », pas « –null ».
-        fact('Longueur', s.lengthM.max == null ? `${s.lengthM.min} m et plus` : `${s.lengthM.min}–${s.lengthM.max} m`),
+        fact('Longueur', `${fourchette(s.lengthM.min, s.lengthM.max)} m`), // MDG 12 l.129
         fact('Endurance', s.e), fact('Blessures', s.b), fact('Capacité', s.capacity),
       ),
       sections: sections(shipConstructionRulesSection()),
@@ -2345,7 +2345,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
             title: 'Vitesses maximum (« Ça va lâcher, capitaine ! »)', layout: 'list',
             rows: [
               { t: 'kv', k: 'Sans risque', v: `jusqu’à M+${n.vitesseMax.safeBonus}` } as CodexRow,
-              ...n.vitesseMax.table.map((row) => ({ t: 'kv', k: `M+${row.min}${row.max > row.min ? `…+${row.max}` : ''}`, v: `${DIFFICULTY_LABELS[row.difficulty]} · ${row.damage} Dégâts/${row.per}` } as CodexRow)),
+              ...n.vitesseMax.table.map((row) => ({ t: 'kv', k: `Bonus de M ${fourchette(row.min, row.max)}`, v: `${DIFFICULTY_LABELS[row.difficulty]} · ${row.damage} Dégâts/${row.per}` } as CodexRow)),
             ],
           },
           {
@@ -2354,15 +2354,15 @@ const CODEX_SPECS: CodexCategorySpec[] = [
           },
           {
             title: 'Orientation — Repères (1 Test/jour)', layout: 'list',
-            rows: n.orientation.reperes.map((r) => ({ t: 'kv', k: `DR ${r.min}…${r.max}`, v: r.desc } as CodexRow)),
+            rows: n.orientation.reperes.map((r) => ({ t: 'kv', k: `DR ${fourchette(r.min, r.max)}`, v: r.desc } as CodexRow)),
           },
           {
             title: 'Changement de cap', layout: 'list',
-            rows: n.orientation.changementDeCap.map((r) => ({ t: 'kv', k: `d10 ${r.min}…${r.max}`, v: r.desc } as CodexRow)),
+            rows: n.orientation.changementDeCap.map((r) => ({ t: 'kv', k: bandeAuDe('d10', r.min, r.max), v: r.desc } as CodexRow)),
           },
           {
             title: 'Phares & clochers (Perception)', layout: 'list',
-            rows: n.phares.voirLaLumiere.map((r) => ({ t: 'kv', k: `jusqu’à ${r.max} milles`, v: DIFFICULTY_LABELS[r.difficulty] } as CodexRow)),
+            rows: n.phares.voirLaLumiere.map((r) => ({ t: 'kv', k: `${fourchette(r.min, r.max)} milles`, v: DIFFICULTY_LABELS[r.difficulty] } as CodexRow)),
           },
           {
             title: 'Longs voyages', layout: 'list',
@@ -2432,9 +2432,9 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         meta: facts(fact('Modificateur mer chaude', w.warmSeaMod)),
         sections: sections(
           {
-            title: 'Tirage quotidien (2d10)', layout: 'list',
+            title: 'Tirage quotidien (1d10 + saison, par aspect)', layout: 'list',
             rows: w.table.map((row) => ({
-              t: 'kv', k: `2d10 ${row.min}…${row.max}`,
+              t: 'kv', k: fourchette(row.min, row.max),
               v: [precipLabel.get(row.precipitations), tempLabel.get(row.temperature), visLabel.get(row.visibilite), windLabel.get(row.vent)].join(' · '),
             } as CodexRow)),
           },
@@ -2486,7 +2486,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
           : g.volley ? `Volée de ${g.volley.throws} lancers`
             : g.mode === 'extended' ? `Étendu (${g.target ?? '?'} DR)` : 'Opposé simple'),
         fact('Plafond de DR', g.drCap ?? null),
-        fact('Nombre cible', g.pot?.targetRange ? `de ${g.pot.targetRange.min} à ${g.pot.targetRange.max}` : null),
+        fact('Nombre cible', g.pot?.targetRange ? fourchette(g.pot.targetRange.min, g.pot.targetRange.max) : null),
         fact('Total exact', g.volley?.exact ?? null),
         fact('À abattre', g.volley?.reserve ?? null),
         fact('Camps', g.sides?.length ? g.sides.map((s) => `${s.label} (${s.pieces} pièces)`).join(' contre ') : null),
@@ -2496,7 +2496,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'obsessions', label: 'Obsessions (table)', group: 'Tables',
-    build: () => OBSESSIONS.map((o) => ({ id: o.id, label: o.label, sub: `2d10 ${o.min}–${o.max}` })),
+    build: () => OBSESSIONS.map((o) => ({ id: o.id, label: o.label, sub: `2d10 ${fourchette(o.min, o.max)}` })),
   },
   {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
@@ -2531,8 +2531,8 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'structureCriticals', label: 'Critiques de structure', group: 'Effets',
-    build: () => STRUCTURE_CRITICALS.map((c) => ({
-      id: c.id, label: c.label, sub: c.max == null ? `d100 ${c.min} ou plus` : `d100 ${c.min}–${c.max}`, desc: c.note,
+    build: () => tableDesCritiquesDeStructure().map((c) => ({
+      id: c.id, label: c.label, sub: bandeAuDe('d100', c.min, c.max), desc: c.note,
       meta: facts(
         c.wounds != null ? fact('Blessures', c.wounds) : null,
         c.trivial ? fact('Type', 'Triviale (« T »)') : null,
@@ -2543,7 +2543,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'artilleryMisfire', label: 'Incidents de Tir par Salve', group: 'Effets',
     build: () => ARTILLERY_MISFIRE.map((e) => ({
-      id: e.id, label: e.label, sub: `d10 ${e.min}–${e.max}`, desc: e.note,
+      id: e.id, label: e.label, sub: bandeAuDe('d10', e.min, e.max), desc: e.note,
       meta: facts(
         fact('Localisation', e.location === 'brasPrincipal' ? 'Bras principal' : 'Aléatoire'),
         e.perSalveIndex ? fact('Répétition', 'par Indice de Salve restant') : null,
@@ -2576,7 +2576,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'crewMoraleBands', label: 'Moral d’équipage — Effets', group: 'Tables', cluster: 'Équipage & navire',
     build: () => MORALE_BANDS.map((b) => depuisEnveloppe(b, {
-      sub: `d100 ${b.min}–${b.max}`,
+      sub: `Moral ${fourchette(b.min, b.max)}`,
       meta: facts(
         fact('DR Commandement (capitaine)', b.captainCmdDR), fact('DR Tests équipage', b.crewTestDR),
         fact('Désertion (seuil d100)', b.desertionRoll ?? null),
@@ -2586,7 +2586,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'steamBreakdowns', label: 'Pannes de navire à vapeur', group: 'Tables', cluster: 'Équipage & navire',
     build: () => STEAM_BREAKDOWNS.map((e) => depuisEnveloppe(e, {
-      sub: `d100 ${e.min}–${e.max}`,
+      sub: bandeAuDe('d100', e.min, e.max),
       meta: facts(fact('Moteur détruit', e.engineDestroyed ? 'oui' : null)),
     })),
   },

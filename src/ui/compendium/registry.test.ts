@@ -292,7 +292,7 @@ describe('Codex registry — #157 (suite) : 5 derniers catalogues de CONTENU (Cr
     const items = categoryByKey('shipCriticalsCoque')!.items;
     const barreAbimee = items.find((i) => i.label === 'Barre abîmée');
     expect(barreAbimee, 'Barre abîmée (coque, MDG 13)').toBeTruthy();
-    expect(barreAbimee!.sub).toBe('d10 2–2');
+    expect(barreAbimee!.sub).toBe('1d10 2');
     const coqueDegradee = items.find((i) => i.label === 'Coque dégradée')!;
     expect(coqueDegradee.meta?.find((f) => f.label === 'Éclats (Indice)')?.value).toBe('4');
   });
@@ -333,7 +333,7 @@ describe('Codex registry — #157 (suite) : 5 derniers catalogues de CONTENU (Cr
   it('une Rencontre de voyage (EDOC 8) porte sa plage d100 + son texte verbatim', () => {
     const items = categoryByKey('rencontresPositives')!.items;
     expect(items.length).toBeGreaterThan(0);
-    for (const it of items) { expect(it.sub).toMatch(/^d100 \d+–\d+$/); expect(it.desc).toBeTruthy(); }
+    for (const it of items) { expect(it.sub).toMatch(/^1d100 \d+–\d+$/); expect(it.desc).toBeTruthy(); }
   });
 
   it('un Facteur d’Humeur de Manann (MDG 15) affiche son effet signé (Nd10 + constante)', () => {
@@ -347,8 +347,14 @@ describe('Codex registry — #157 (suite) : 5 derniers catalogues de CONTENU (Cr
     const items = categoryByKey('seaBoardEvents')!.items;
     const triton = items.find((i) => i.label === 'Triton !')!;
     expect(triton, 'événement Triton').toBeTruthy();
-    expect(triton.sub).toBe('-9999–-65');
+    expect(triton.sub).toBe('≤−65');
     expect(triton.desc).toMatch(/Manann ne supporte plus/);
+  });
+
+  it('une bande d’Événement de bord s’écrit sur les faces du d100, comme au tableau (MDG 15 l.182) et dans la cascade', () => {
+    const collision = categoryByKey('seaBoardEvents')!.items.find((i) => i.id === 'collision-soudaine')!;
+    expect(collision, 'événement collision-soudaine').toBeTruthy();
+    expect(collision.sub).toBe('00–05');
   });
 
   it('la fiche « Exposition à l’eau » (dataset-OBJET, MSRC 16) est éditable et projette Test + Modificateurs + Maladies (cross-réf)', () => {

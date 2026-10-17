@@ -7,10 +7,13 @@
  * Ce module = TYPES + chargement + lookup ; ajouter/régler = éditer `tables.json`, jamais ce fichier.
  */
 import type { GameOp } from '../engine/ops';
+import { tableOuverte, type BandeOuverte } from '../engine/tables';
 import effectTablesJson from './tables.json';
 
 /** Une rangée d'une table d'effets : fourchette `[min,max]` du jet → `ops` appliquées (même ctx).
- *  `label` = libellé d'affichage RAW de la rangée (colonne du Tableau), optionnel. */
+ *  `label` = libellé d'affichage RAW de la rangée (colonne du Tableau), optionnel. Bornes telles que
+ *  `findTableEntry` les lit : une bande ouverte en donnée (`null`, « 11+ », VDM 12 l.435) l'est à
+ *  l'infini (`tableOuverte`, au chargement). */
 export interface EffectTableRow {
   min: number;
   max: number;
@@ -29,7 +32,8 @@ export interface EffectTable {
   source?: { book: string; page: number };
 }
 
-const TABLES = effectTablesJson as unknown as EffectTable[];
+const TABLES: EffectTable[] = (effectTablesJson as unknown as (Omit<EffectTable, 'rows'> & { rows: (BandeOuverte & Omit<EffectTableRow, 'min' | 'max'>)[] })[])
+  .map((t) => ({ ...t, rows: tableOuverte(t.rows) }));
 const BY_ID = new Map(TABLES.map((t) => [t.id, t]));
 
 /** Toutes les tables d'effets (Codex, éditeur). */

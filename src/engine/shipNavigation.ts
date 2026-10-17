@@ -7,21 +7,22 @@
  * passés par l'appelant via `extraDR`, jamais codés ici.
  */
 import navalProgressionJson from '../data/naval-progression.json';
-import { findTableEntry } from './tables';
+import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
+import { memoParVersion } from '../data/versionDataset';
 
 type ProgressionMode = 'plus2' | 'plus1' | 'normal' | 'minus1' | 'half';
-interface ProgressionEntry {
-  min: number;
-  max: number;
+interface ProgressionEntry extends BandeOuverte {
   mode: ProgressionMode;
   desc: string;
 }
-const PROGRESSION = (navalProgressionJson as { entries: ProgressionEntry[] }).entries;
+/** La table telle que `findTableEntry` la lit (`tableOuverte`) : « 4 ou plus » et « –5 ou moins »
+ *  (MDG 13 l.71, l.75) sont ouvertes. Mémoïsée sur le dataset, que le Codex édite. */
+const progression = memoParVersion('navalProgression', () => tableOuverte((navalProgressionJson as { entries: ProgressionEntry[] }).entries));
 
 /** Déplacement effectif d'un navire de Mouvement `baseM` selon le DR du Test de Navigation (MDG 13
- *  l.68-75 : 4+ → M+2 ; 1 à 3 → M+1 ; −2 à 0 → M ; −3 à −4 → M−1 ; −5 ou moins → M÷2 arrondi inférieur). PUR. */
+ *  l.68-75). PUR. */
 export function progressionMovement(baseM: number, dr: number): number {
-  switch (findTableEntry(PROGRESSION, dr).mode) {
+  switch (findTableEntry(progression(), dr).mode) {
     case 'plus2': return baseM + 2;
     case 'plus1': return baseM + 1;
     case 'minus1': return baseM - 1;
@@ -47,5 +48,5 @@ export interface ShipManeuverOutcome {
  */
 export function resolveShipManeuver(navTestDR: number, baseM: number, manoeuvre: number, extraDR = 0): ShipManeuverOutcome {
   const dr = navTestDR + manoeuvre + extraDR;
-  return { dr, movement: progressionMovement(baseM, dr), label: findTableEntry(PROGRESSION, dr).desc };
+  return { dr, movement: progressionMovement(baseM, dr), label: findTableEntry(progression(), dr).desc };
 }

@@ -234,6 +234,15 @@
     "verrou": "table-lookup-guard.test.ts"
   },
   {
+    "id": "fourchette",
+    "type": "primitives.manifest",
+    "label": "fourchette",
+    "fichier": "src/engine/tables.ts",
+    "concept": "graphie d'une bande de table (« 01–50 », « 96+ », « ≤50 », « −4 à −3 »)",
+    "perimetre": "toute bande de table affichée dans src/ui : tuile d'étape à table, Codex, création de personnage",
+    "verrou": "src/ui/bande-en-ligne-guard.test.ts (scripts/guards/lib/bandeEnLigne.mjs)"
+  },
+  {
     "id": "baseTestMods",
     "type": "primitives.manifest",
     "label": "baseTestMods",

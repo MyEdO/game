@@ -422,7 +422,7 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
     expect(html).toContain('Quatre destins');
     expect((html.match(/plaque-row/g) ?? []).length).toBe(4);
     expect(html).toMatch(/plaque-row sel/); // le destin élu porte la plaque chaude
-    expect(html).toContain('1d10 : 4-6'); // sa fourchette de sous-table
+    expect(html).toContain('1d10 4–6'); // sa fourchette de sous-table
   });
 
   it('étape Possessions (#393 P5, étalon = planche ratifiée du créateur, écran Possessions) — gabarit DEUX ZONES (panneau + fiche vivante), chips CodexRef + statut + bourse (plus de liste à puces)', () => {

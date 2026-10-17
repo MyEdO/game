@@ -56,7 +56,7 @@ import { profilNavalDe } from '../engine/coque';
 import { installCost, steamBreakdownFor, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { d10, deMonde, roll as rollDice, type RNG } from '../engine/dice';
-import { findTableEntry } from '../engine/tables';
+import { facesDuDe, findTableEntry } from '../engine/tables';
 import { rollTest, isDoubleRoll, extendedTestStep, estJete } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
@@ -84,7 +84,7 @@ import { addCondition } from '../engine/conditions';
 import { effectiveChar } from '../engine/characteristics';
 import { findWhirlpool, pickSeaHazard, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
-  BOARD_EVENTS, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
+  evenementsDeBord, DE_DES_EVENEMENTS_DE_BORD, rollPortEvent, rollDaysToNextEvent, addManann, MANANN_BASE, seaBoardEventById,
   removeCargo, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   type SeaEventDef, type ManannMood, type PortProfile,
 } from '../engine/seaVoyage';
@@ -1155,7 +1155,7 @@ function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
   return tableStep({
     id: SEA_BOARD_EVENT_STEP_ID, kind: SEA_BOARD_EVENT_KIND, worldOwner: true, icon: 'travel/wave',
     label: t('step.seaBoardEvent'),
-    table: { tableId: SEA_BOARD_EVENT_TABLE, spec: { n: 1, sides: 100 }, ...(mood.score ? { mod: mood.score } : {}) },
+    table: { tableId: SEA_BOARD_EVENT_TABLE, spec: { n: 1, sides: facesDuDe(DE_DES_EVENEMENTS_DE_BORD) }, ...(mood.score ? { mod: mood.score } : {}) },
     stake: voyageStakeRef(SEA_BOARD_EVENT_KIND),
   });
 }
@@ -1169,8 +1169,8 @@ export const SEA_BOARD_EVENT_TABLE = 'sea-board-events';
 const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<string, TableStepDef>([[SEA_BOARD_EVENT_TABLE, {
   label: t('step.seaBoardEvent'),
   die: 100,
-  rows: BOARD_EVENTS.map((e) => ({ id: e.id, min: e.min, max: e.max })),
-  lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(BOARD_EVENTS, die).label })],
+  rows: evenementsDeBord().map((e) => ({ id: e.id, min: e.min, max: e.max })),
+  lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(evenementsDeBord(), die).label })],
 }]]));
 registerTableStepFamily(tableDesEvenementsDeBord);
 

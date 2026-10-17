@@ -18,6 +18,7 @@ import { GatedAction } from './GatedAction';
 import { t } from '../i18n';
 import { SceneBackdrop } from './SceneBackdrop';
 import { NumberField } from './NumberField';
+import { fourchette } from '../engine/tables';
 
 /** Un sport d'ÉQUIPE n'oppose pas deux personnes : le camp d'en face est tenu par la salle. Raison
  *  UNIQUE, portée par les deux adversaires individuels qu'elle ferme. */
@@ -232,7 +233,7 @@ export function TavernGameModal() {
               {game.pot ? (
                 <p className="tavern-detail">
                   Lancer : <b>{game.pot.dice.count}d{game.pot.dice.faces}</b> à chaque tour
-                  {game.pot.targetRange ? ` · nombre cible de ${game.pot.targetRange.min} à ${game.pot.targetRange.max}` : ''}.
+                  {game.pot.targetRange ? ` · nombre cible ${fourchette(game.pot.targetRange.min, game.pot.targetRange.max)}` : ''}.
                 </p>
               ) : (
                 <p className="tavern-detail">Test opposé : <b>{skillLine}</b>{game.mode === 'extended' ? ` · premier à ${game.target ?? 10} DR cumulés` : ''}.</p>

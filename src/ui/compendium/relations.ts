@@ -27,6 +27,7 @@ import {
 import type { AdvancementRef } from '../../data';
 import { isOptionalNote } from '../../engine/statEntry';
 import { effectiveEntry } from '../../engine/variants';
+import { facesDuDe, fourchette } from '../../engine/tables';
 import { spellEffectOps } from '../../state/flow';
 import type { Flow, TriggeredEffect } from '../../state/flow';
 import { CLES_VERSIONNEES, memoParVersion } from '../../data/versionDataset';
@@ -196,7 +197,7 @@ const graph = versionCached<ReverseGraph>(() => {
   for (const d of domains) for (const id of conditionIdsInEffects(d.effects)) addReverse('etats', id, { category: 'domains', id: d.id, label: d.label }, 'Domaines l’infligeant');
 
   // 14) Mutation ← Table de Corruption qui la tire (inversion de mutationTable.ranges[].mutation).
-  for (const tab of mutationTables) for (const r of tab.ranges) addReverse('mutations', r.mutation, { category: 'mutationTables', id: tab.id, label: tab.label, detail: `${r.min}–${r.max}` }, 'Tables de Corruption la tirant');
+  for (const tab of mutationTables) for (const r of tab.ranges) addReverse('mutations', r.mutation, { category: 'mutationTables', id: tab.id, label: tab.label, detail: fourchette(r.min, r.max, facesDuDe('d100')) }, 'Tables de Corruption la tirant');
   // 15) Lieu ← sous-lieux (inversion de location.parent, désormais un id de parent).
   for (const l of locations) if (l.parent) addReverse('locations', l.parent, { category: 'locations', id: l.id, label: l.label }, 'Sous-lieux');
 
