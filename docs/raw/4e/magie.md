@@ -495,7 +495,8 @@ Les sorts indiqués *Projectile magique* suivent des règles de résolution spé
 2. **Dégâts totaux** = Dégâts du sort + DR du Test de Langue (Magick) + Bonus de Force Mentale du lanceur.
 3. Ces Dégâts sont **réduits normalement** par le Bonus d'Endurance et les PA de la cible.
 
-- **Déviation d'un Critique de Projectile, RAW déduit, évaluation d'arbitre révisable, non entérinée** (#1595 c.6231943159, feuille 5) : la Blessure critique d'une Incantation Critique (« si le Sort inflige des Dégâts, il inflige également une Blessure Critique » — `LDB 46 l.30`) portée par un *Projectile magique* se dévie. La Déviation exige « une Blessure Critique issue d'une attaque visant un emplacement protégé par une armure » (`LDB 63 l.30`) ; le livre range les sorts parmi les attaques (« contre les Attaques magiques ou à distance » — `LDB 47 l.410`), le Projectile touche une Localisation et ses Dégâts « sont réduits normalement par l'Endurance et les PA de la cible » (`LDB 46 l.101`). La Blessure supplémentaire suit le recompte des Dégâts du sort à PA−n (voir `combat.md` [§ 5 Déviation Critique par l'armure](combat.md#5-déviation-critique-par-larmure-ldb-63)) ; un sort qui ignore les PA n'en ajoute aucune.
+- **Déviation d'un Critique de Projectile, RAW déduit, évaluation d'arbitre révisable, non entérinée** (#1595 c.6231943159, feuille 5) : la Blessure critique d'une Incantation Critique (« si le Sort inflige des Dégâts, il inflige également une Blessure Critique » — `LDB 46 l.30`) portée par un *Projectile magique* se dévie. La Déviation exige « une Blessure Critique issue d'une attaque visant un emplacement protégé par une armure » (`LDB 63 l.30`) ; le livre range les sorts parmi les attaques (« contre les Attaques magiques ou à distance » — `LDB 47 l.410`), le Projectile touche une Localisation et ses Dégâts « sont réduits normalement par l'Endurance et les PA de la cible » (`LDB 46 l.101`). La Blessure supplémentaire suit le recompte des Dégâts du sort à PA−n (voir `combat.md` [§ 5 Déviation Critique par l'armure](combat.md#5-déviation-critique-par-larmure-ldb-63)).
+- **Sort qui ignore les PA, ou dont un Domaine contourne les PA** : **Lecture du silence, décision d'orchestrateur révisable, non entérinée** (#1595 c.6232294713, 2026-10-17) : sa Blessure critique se dévie, la Déviation se lisant sur la pièce (`LDB 63 l.13`, `l.30`, `l.21`) ; la lecture contraire est citable (`LDB 63 l.32`, `ADE II 04 l.349`) ; le livre écrit ses exclusions ailleurs (`EDO 11 l.196`, Impénétrable `LDB 63 l.78`). Blessure supplémentaire 0 ; Métal : [§ Domaine du Métal](#domaine-du-métal-chamon--vent-doré). Verbatims : `combat.md` [§ 5](combat.md#5-déviation-critique-par-larmure-ldb-63).
 
 > **Verbatim** (l.101) : « Quand un Projectile magique est lancé avec succès et qu'il cible un autre Personnage, la Localisation atteinte est déterminée en inversant les dés lancés pour le Test de Langue (Magick). […] Le DR du Test de Langue (Magick) est ajouté aux Dégâts du Sort et à votre Bonus de Force Mentale pour déterminer le total de Dégâts infligés. Ces Dégâts sont réduits normalement par l'Endurance et les PA de la cible. »
 
@@ -595,7 +596,7 @@ Effet post-incantation appliqué **au lanceur** : acquisition optionnelle de `Pe
 
 ### Domaine des Cieux (Azyr — Vent Céruléen)
 
-**Sources RAW :** `LDB 48 l.105`
+**Sources RAW :** `LDB 48 l.104-106`
 
 > « Les Sorts infligeant des Dégâts ignorent les PA des armures en métal, et se dirigent vers toutes les autres cibles dans les 2 mètres, à l'exception de ceux possédant le Talent Magie des Arcanes (Cieux), infligeant un nombre de Dégâts égal à votre Bonus de Force Mentale, traités comme un Projectile magique. »
 
@@ -635,11 +636,11 @@ Double effet : (1) rider optionnel `+1 État Aveuglé` sur chaque cible (sauf po
 
 ### Domaine du Métal (Chamon — Vent Doré)
 
-**Sources RAW :** `LDB 48 l.398`
+**Sources RAW :** `LDB 48 l.399`
 
 > « Les Sorts infligeant des Dégâts ignorent les PA des armures métalliques, et infligent un bonus de Dégâts égal au nombre de PA de l'armure métallique portée à n'importe quelle Localisation frappée. Donc, si votre Sort frappe un Bras protégé par 2 PA d'une armure métallique, il inflige +2 Dégâts supplémentaires et ignore les PA. »
 
-Bypass des PA en métal **et** bonus de dégâts égal aux PA bypassés (Métal = arme qui inflige les PA qu'elle pénètre).
+- **Lecture du silence, décision d'orchestrateur révisable, non entérinée** (#1595 c.6232294713, 2026-10-17) : Déviation d'une Blessure critique de sort du Métal à un emplacement protégé par une armure métallique. Le bonus se fige à la frappe (« si votre Sort frappe un Bras protégé par 2 PA d'une armure métallique, il inflige +2 Dégâts supplémentaires et ignore les PA » — `LDB 48 l.399`), la Blessure Critique étant « issue d'une attaque » (`LDB 63 l.30`) : la Déviation n'ôte aucune Blessure, Blessure supplémentaire 0. Le texte ne dit pas si ce bonus se relit quand « vos PA sont à présent réduits de 1 Point » (`LDB 63 l.32`). Déviabilité même du cas : [§ Projectiles Magiques](#projectiles-magiques).
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 48` (l.398) → `gainCorruption`, `isProfane`, `GameOp`, `clarte-d-esprit`, `fauche-demon`, `filet-d-amyntok`, `lumiere-aveuglante`, `lumiere-de-guerison`, `pensee-rapide`, `protection-de-pha`, +3 — `src/data/spells.json`, `src/engine/corruption.ts`, `src/engine/domainAttributes.ts`, `src/engine/ops.ts`, `src/state/combatFlow.ts`, `src/state/corruptionFlow.ts`
@@ -661,11 +662,13 @@ Rider optionnel `+1 État Exténué` sur chaque cible vivante (sans limite par s
 
 ### Domaine des Ombres (Ulgu — Vent Gris)
 
-**Sources RAW :** `LDB 48 l.582-585`
+**Sources RAW :** `LDB 48 l.584-588`, `VDM 08 l.243`, `ADE II 04 l.349`
 
-> « les Sorts lancés depuis le Domaine des Ombres ignorent tous les PA non magiques. »
+> « De plus, les Sorts lancés depuis le Domaine des Ombres ignorent tous les PA non magiques. » — `LDB 48 l.588`
 
-Bypass systématique de **tous les PA non magiques** (cuir, métal ordinaire — seuls les PA magiques résistent).
+> « De plus, les Sorts lancés depuis le Domaine des Ombres qui infligent des Dégâts ignorent tous les Points d'Armure non magiques. » — `VDM 08 l.243`
+
+> « L'armure magique protège également des attaques qui ignorent les protections des armures non magiques. » — `ADE II 04 l.349`
 
 **Implémente :** _(généré — `npm run raw:implemente`)_
 - `LDB 48` (l.582-585) → `castContextMods`, `caresse-de-laniph`, `dernieres-paroles`, `la-faux-de-shyish`, `le-voile-violet-de-shyish`, `mort-rapide`, `sanctifier`, `vol-de-vie`, `vortex-d-ames`, `destrier-d-ombre`, +7 — `src/data/spells.json`, `src/engine/domainAttributes.ts`, `src/state/combatFlow.ts`
@@ -1737,11 +1740,11 @@ Table de synthèse des modificateurs (Incantation / Focalisation / Saturation) e
 | Restrictions (parole, unicité, non-cumul, LoS) | LDB 46 l.116-121 | OK |
 | Sort de Contact en combat (Corps à corps Bagarre) | LDB 46 l.103-105 | Dette #2669 « Sort de contact (LDB 46 l.105) : Bagarre du lanceur absente, opposition inversée, Projectile localisé par l'Incantation » |
 | Attributs de Domaine — Bête (Peur 1 post-incantation) | LDB 48 l.7 | OK — `domainAfterCast` |
-| Attributs de Domaine — Cieux (bypass PA métal + AoE 2 m) | LDB 48 l.105 | OK — `domainMissileMods` / `domainOnHitEffects` |
+| Attributs de Domaine — Cieux (bypass PA métal + AoE 2 m) | LDB 48 l.104-106 | OK — `domainMissileMods` / `domainOnHitEffects` |
 | Attributs de Domaine — Lumière (Aveuglé + frappe BInt vs Démons/Mort-vivants) | LDB 48 l.302 | OK — `domainOnHitEffects` |
-| Attributs de Domaine — Métal (bypass PA métal + bonus = PA ignorés) | LDB 48 l.398 | OK — `domainMissileMods` (bonusFromBypass) |
+| Attributs de Domaine — Métal (bypass PA métal + bonus = PA ignorés) | LDB 48 l.399 | OK — `domainMissileMods` (bonusFromBypass) |
 | Attributs de Domaine — Mort (Exténué sur vivants, cap 1) | LDB 48 l.497 | OK — `domainOnHitEffects` |
-| Attributs de Domaine — Ombres (bypass tous PA non magiques) | LDB 48 l.582 | OK — `domainMissileMods` |
+| Attributs de Domaine — Ombres (bypass tous PA non magiques) | LDB 48 l.584-588 | OK — `domainMissileMods` |
 | ZdE = diamètre | LDB 47 l.28 | OK |
 | Surincantation — Sort (×initial Portée/ZdE/Durée/Cible, +2 DR/pas) | LDB 47 l.13-17 | OK — `engine/overcast.ts` |
 | Surincantation — Bénédiction (+6 m / +1 Cible / +6 Rounds FIXE, pas de ZdE) | LDB 41 l.21-27 | OK — `engine/overcast.ts` |
