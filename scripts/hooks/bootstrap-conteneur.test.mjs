@@ -7,9 +7,9 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
-  GESTES_DU_CONTENEUR, INDEX_MEMOIRE, bootstrap, bootstrapSessionStart, demanderLesDerives, estConteneurDistant, lancer, memoireDuConteneur,
-  mettreEnConformite, sousOutillage,
+  GESTES_DU_CONTENEUR, bootstrap, bootstrapSessionStart, demanderLesDerives, lancer, mettreEnConformite, sousOutillage,
 } from './bootstrap-conteneur.mjs'
+import { INDEX_MEMOIRE, estConteneurDistant, memoireDuConteneur } from './memoire-du-depot.mjs'
 import { verrouOutillageDe } from './barriere-outil.mjs'
 import { attendreLibre } from '../test/verrou.mjs'
 import { demanderLaReconstruction, demandesDe } from '../git-hooks/reconstruction.mjs'
@@ -64,7 +64,7 @@ test('conteneur DÉJÀ conforme : silence complet, aucune pose', () => {
   assert.deepEqual(bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes), [])
   assert.deepEqual(
     vus,
-    ['git estSuperficiel', 'git dossierDesHooks', 'docs mesurés', 'gh --version'],
+    ['git estSuperficiel', 'git dossierDesHooks', 'docs mesurés', 'gh --version', 'claude plugin list'],
     'seuls les constats se jouent',
   )
 })
@@ -144,7 +144,7 @@ test('la VALEUR mesurée ne lit que stdout — un bruit sur stderr ne fausse auc
 
   const reponses = { 'rev-parse': 'false\n', config: 'scripts/git-hooks\n' }
   const depot = depotDe(REPO, { spawn: (_git, args) => ({ status: 0, stdout: reponses[args.find((a) => a in reponses)], stderr: 'warning: bruit\n' }) })
-  const run = (exe) => (exe === 'gh' ? { ok: true, valeur: 'gh version 2.45.0', rapport: '' } : assert.fail(`${exe} lancé`))
+  const run = (exe) => (exe === 'gh' || exe === 'claude' ? { ok: true, valeur: 'gh version 2.45.0', rapport: '' } : assert.fail(`${exe} lancé`))
   assert.deepEqual(mettreEnConformite({ racine: REPO, run, gestes: GESTES_GIT_REELS, pannes: [], depot }), [], 'hooks vivants : rien à poser')
 })
 
@@ -154,7 +154,7 @@ for (const [nom, stderr] of [
 ]) test(`une PANNE de git se NOMME, et le prérequis qu’elle empêche de mesurer n’est pas posé — ${nom}`, () => {
   const pannes = []
   const depot = depotDe(REPO, { spawn: () => ({ status: 128, stdout: '', stderr }), enPanne: (r) => pannes.push(r) })
-  const run = (exe) => (exe === 'gh' ? { ok: true, valeur: 'gh version 2.45.0', rapport: '' } : assert.fail(`${exe} lancé`))
+  const run = (exe) => (exe === 'gh' || exe === 'claude' ? { ok: true, valeur: 'gh version 2.45.0', rapport: '' } : assert.fail(`${exe} lancé`))
   const rapports = mettreEnConformite({ racine: REPO, run, gestes: GESTES_GIT_REELS, pannes, depot })
   assert.deepEqual(pannes, [stderr, stderr])
   const prefixes = ['[conteneur] histoire git complète : NON MESURÉ, git indisponible — ', '[conteneur] hooks git du dépôt : NON MESURÉ, git indisponible — ']
@@ -203,11 +203,28 @@ test('CÂBLAGE — le hook est PROPRE à la surface Claude (sa garde est un marq
   )
 })
 
-test('la table couvre les trois manques MESURÉS au conteneur du 2026-09-18, plus les docs dérivés (#2203)', () => {
+test('la table couvre les trois manques MESURÉS au conteneur du 2026-09-18, plus les docs dérivés (#2203) et le mod harnais (#2712)', () => {
   assert.deepEqual(
-    PREREQUIS.map((p) => p.geste),
-    ['git fetch --unshallow origin', 'npm install', 'reconstruction détachée des dérivés (journal .git/hooks-git/reconstruction/<pid>.log)', 'apt-get update puis apt-get install -y gh'],
+    PREREQUIS.map((p) => p.geste ?? `constat : ${p.nom}`),
+    ['git fetch --unshallow origin', 'npm install', 'reconstruction détachée des dérivés (journal .git/hooks-git/reconstruction/<pid>.log)', 'apt-get update puis apt-get install -y gh', 'constat : mod harnais'],
   )
+})
+
+test('mod harnais (#2712) : un espace de travail non approuvé se CONSTATE avec sa conséquence, rien ne se pose', () => {
+  const ignore = 'Skills-directory plugins (.claude/skills/*):\n\n  ‼ 1 project-scope directory under ./.claude/skills/ that may load as a plugin was skipped because this workspace was not trusted when plugins were scanned.'
+  const { run, gestes, vus } = lanceurFeint({ ...CONFORME, 'claude plugin': { ok: true, valeur: ignore, rapport: ignore } })
+  assert.deepEqual(bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, run, gestes), [
+    '[conteneur] mod harnais : MANQUANT — `.claude/skills/harnais/hooks` ne joue pas dans cette session : ni `suivi` (synchronisation du principal sur origin/main, suivi de vague), ni `vigie` (état de la CI et du train).',
+  ])
+  assert.deepEqual(vus.filter((v) => v.startsWith('claude')), ['claude plugin list'])
+  const charge = lanceurFeint({ ...CONFORME, 'claude plugin': { ok: true, valeur: 'harnais@skills ✔ enabled', rapport: 'harnais@skills ✔ enabled' } })
+  assert.deepEqual(bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, charge.run, charge.gestes), [], 'mod chargé : silence')
+  const surStderr = lanceurFeint({ ...CONFORME, 'claude plugin': { ok: true, valeur: '', rapport: ignore } })
+  assert.deepEqual(bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, surStderr.run, surStderr.gestes), [], 'seul stdout est mesuré')
+  const echec = lanceurFeint({ ...CONFORME, 'claude plugin': { ok: false, valeur: '', rapport: 'spawnSync claude ENOENT' } })
+  assert.deepEqual(bootstrap({ CLAUDE_CODE_REMOTE: 'true' }, REPO, echec.run, echec.gestes), [
+    '[conteneur] mod harnais : NON MESURÉ — `claude plugin list` a échoué — spawnSync claude ENOENT',
+  ])
 })
 
 test('docs dérivés détachés (#2603) : `demanderLesDerives` DEMANDE la reconstruction de l’arbre, un détaché `--servir` lancé, la demande nommée', () => {

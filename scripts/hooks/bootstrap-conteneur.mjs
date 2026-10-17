@@ -24,19 +24,16 @@
 // charge : c'est sa seule sortie quand le conteneur est conforme (#2710).
 import '../node-requis.mjs'
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { verrouOutillageDe } from './barriere-outil.mjs'
+import { RACINE_DU_DEPOT, estConteneurDistant, memoireDuConteneur } from './memoire-du-depot.mjs'
 import { prendreVerrou } from '../test/verrou.mjs'
 import { GENERATORS, ciblesLitterales } from '../docs/build-all.mjs'
 import { demanderLaReconstruction } from '../git-hooks/reconstruction.mjs'
 import { approfondir, depotDe, dossierDesHooks, estSuperficiel, reussi } from '../guards/lib/gitPorte.mjs'
 import { BUDGET_CONSTAT, PREREQUIS } from './bootstrap-prerequis.mjs'
 import { entreeHookNative, produireRecuSessionStart } from '../ops/session-start.mjs'
-
-/** Marqueur d'un conteneur distant Claude Code (`CLAUDE_CODE_REMOTE=true`). */
-export const estConteneurDistant = (env) => env.CLAUDE_CODE_REMOTE === 'true'
 
 /** Plafond d'un rapport d'échec entrant au contexte de la session. */
 const PLAFOND_RAPPORT = 400
@@ -122,7 +119,15 @@ export function mettreEnConformite(contexte, prerequis = PREREQUIS) {
       lignes.push(`[conteneur] ${p.nom} : NON MESURÉ, git indisponible — ${borner(contexte.pannes.at(-1))}`)
       continue
     }
+    if (manque?.nonMesure) {
+      lignes.push(`[conteneur] ${p.nom} : NON MESURÉ — ${borner(manque.nonMesure)}`)
+      continue
+    }
     if (!manque) continue
+    if (!p.poser) {
+      lignes.push(`[conteneur] ${p.nom} : MANQUANT — ${p.consequence}.`)
+      continue
+    }
     const vu = p.poser({ ...contexte, budget: p.budget })
     lignes.push(
       vu.ok
@@ -139,19 +144,6 @@ export function bootstrap(env = process.env, racine = process.cwd(), run = lance
   if (!estConteneurDistant(env)) return []
   const pannes = []
   return mettreEnConformite({ racine, run, gestes, pannes, depot: depotDe(racine, { enPanne: (raison) => pannes.push(raison) }) })
-}
-
-/** L'index de la mémoire committée, que seule une session locale charge (doc memory : « Auto memory is
- *  machine-local ») : en conteneur distant, la sortie du hook le porte au contexte (#2710). */
-export const INDEX_MEMOIRE = '.claude/memory/MEMORY.md'
-
-/** Le dépôt qui porte ce hook, et donc la mémoire qu'il imprime. */
-const RACINE_DU_DEPOT = fileURLToPath(new URL('../../', import.meta.url))
-
-export function memoireDuConteneur(env = process.env, racine = RACINE_DU_DEPOT) {
-  const chemin = join(racine, INDEX_MEMOIRE)
-  if (!estConteneurDistant(env) || !existsSync(chemin)) return ''
-  return `[conteneur] mémoire du dépôt (\`${INDEX_MEMOIRE}\`, fiches sous \`.claude/memory/\`) :\n${readFileSync(chemin, 'utf8').trim()}\n`
 }
 
 export function bootstrapSessionStart({ env = process.env, racine = process.cwd(), depot = RACINE_DU_DEPOT, entree, run = lancer, gestes = GESTES_DU_CONTENEUR, output = process.stdout } = {}) {
