@@ -37,6 +37,7 @@ import {
   hitLocationByShape,
   locationLabel,
   reverseRoll,
+  lancerDeLaSecondeMain,
   woundsFromHit,
   woundsAtCritLocation,
   rangeBandModifier,
@@ -2470,14 +2471,13 @@ interface ApplicationDesCritiques {
   roll: number;
   /** Après une Blessure critique INFLIGÉE (Frappe blessante, `onCrit`). */
   apres?: (lethal: boolean, origine: OrigineCritique) => void;
-  /** Le Critique résolu d'une Blessure critique subie, avant son application. */
-  surLeCritique?: (crit: CriticalResolved, origine: OrigineCritique) => void;
 }
 
 /** APPLIQUE le plan des Blessures critiques d'un coup, Blessures du coup déjà retirées : Mort subite, puis
  *  chaque décision dans l'ordre — Dévier (LDB 63 l.30 ; son échec applique la Blessure) ou Subir —, la
- *  casse de la pièce Bâclée après le Coup Critique. S'arrête à la première Blessure létale (LDB 18 l.53). */
-function appliquerLesCritiques(a: ApplicationDesCritiques): void {
+ *  casse de la pièce Bâclée après le Coup Critique. S'arrête à la première Blessure létale (LDB 18 l.53).
+ *  Rend le d100 nu du tableau du Coup Critique, quand une table l'a tiré : LDB 10 l.773 ; LDB 18 l.53. */
+function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: number } {
   const { target, log, ctx } = a;
   const { compte, lieu, coupCritique } = a.compte;
   const heroConcerne = target.kind === 'hero' || ctx.attackerKind === 'hero';
@@ -2487,20 +2487,24 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): void {
   const casse = (): void => { if (bacle) breakBacleArmour(target, lieu, log); bacle = false; };
   if (!compte.critiques.some((c) => estUnCoupCritique(c.origine))) casse();
   let lethal = false;
+  let lancerDuTableau: number | undefined;
   for (let i = 0; i < a.plan.length && !lethal; i++) {
     const decision = a.plan[i];
     const entree = compte.critiques[i];
+    const coupCritiqueEntree = estUnCoupCritique(entree.origine);
+    if (coupCritiqueEntree) lancerDuTableau = decision.crit?.naturel;
     const devie = decision.deviation === 'devier' && (decision.auto
       ? autoDeviate(a.set, target, lieu, { attackerId: ctx.attackerId, weapon: ctx.weapon }, a.roll, log, heroConcerne)
       : deflectCrit(target, lieu, log));
     if (!devie) {
       // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
       // (pose du dé, #942 L4) garde sa révélation.
-      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.currentBefore, decision.crit, !!decision.crit && !!decision.deviation, (crit) => a.surLeCritique?.(crit, entree.origine));
+      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.currentBefore, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
       a.apres?.(lethal, entree.origine);
     }
-    if (estUnCoupCritique(entree.origine)) casse();
+    if (coupCritiqueEntree) casse();
   }
+  return lancerDuTableau == null ? {} : { lancerDuTableau };
 }
 
 /**
@@ -2702,11 +2706,11 @@ function appliquerLaTouche(
       const reinj = reinjuryBleed(target, lieu);
       if (reinj > 0) { addCondition(target, COND.hemorragique, reinj); critLog.push(tr('cf.reinjuryBleed', { name: target.label, n: reinj, loc: locationLabel(lieu, target.bodyShape) })); }
     }
-    appliquerLesCritiques({
+    const { lancerDuTableau } = appliquerLesCritiques({
       get, set, target, compte: coupCompte, plan, log: critLog, ctx: ctxCrit, currentBefore,
       roll: res.attackerRoll, apres: apresLeCritiqueDe({ get, set, auteur: attacker, cible: target, lieu, log: critLog, arme: weapon, woundsDealt: blessures }),
-      surLeCritique: (crit, origine) => { res.critiqueApplique ??= { origine, naturel: crit.naturel }; },
     });
+    if (lancerDuTableau != null) res.lancerDuTableau = lancerDuTableau;
     if (regimeDePorteur(target).clore) clore(currentBefore);
   }
   // Critiques du Test opposé (LDB 14 l.3) : « Si vous obtenez un Critique, votre adversaire reçoit
@@ -4009,8 +4013,8 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   const offDual = suite?.dualMain ? attacker.weapons.find((w) => w.uid === suite.dualMain!.offWeaponUid) : undefined;
   const battleDual = get().battle;
   if (enAction && suite?.dualMain && touche.hit && offDual && battleDual && dualStrikeTargets(battleDual, attacker, offDual).length) {
-    // LDB 10 l.773 ; #1595 c.6227274650 Q3.
-    const jet = estUnCoupCritique(touche.critiqueApplique?.origine) ? touche.critiqueApplique!.naturel : reverseRoll(suite.dualMain.mainRoll);
+    // LDB 10 l.773 ; LDB 18 l.53 ; #1595 c.6229354257, c.6229550544.
+    const jet = lancerDeLaSecondeMain(touche, suite.dualMain.mainRoll, battleRng(), critRollTwiceFor(attacker));
     set({ pendingDualStrike: { attackerId: attacker.id, offWeaponUid: suite.dualMain.offWeaponUid, jet } });
   }
   // La chaîne d'un héros est une fenêtre (`pendingCleave`) : hors de combat, `maybeHeroCleave` la FERME.
@@ -4403,7 +4407,7 @@ export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, de
   const battle = get().battle;
   if (!battle) return;
   if (dev.mode !== 'self') {
-    reprendreLeCoup(get, set, dev, deviate ? { deviation: 'devier' } : { crit: dev.crit, deviation: 'subir' });
+    reprendreLeCoup(get, set, dev, { crit: dev.crit, deviation: deviate ? 'devier' : 'subir' });
     return;
   }
   const target = inBattleId(battle, dev.targetId);

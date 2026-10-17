@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { applyAttackResult, applyCast, applyOpposedCritical } from './combatFlow';
-import { draineCascade, type ChoisitCle } from './cascadeTestKit';
+import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascadeTestKit';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack, type AttackResult } from '../engine/combat';
 import { setRule, resetRule } from '../engine/policy';
@@ -57,9 +57,17 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   const res = rederivePassiveAttack(H, cible, arme, { roll, target: 90, success: true, sl: 0, isDouble: double } as never, 'melee', 'corps', retenu);
   const auJet = { critical: res.critical, woundsLost: res.woundsLost ?? 0 };
   applyAttackResult(useGame.getState, useGame.setState, H, cible, arme, res, sousAttaque ? { sousAttaque: true } : {});
-  const kinds = draineCascade(useGame.getState, 200, () => de, choisir);
+  const kinds: string[] = [];
+  const origines: (string | undefined)[] = [];
+  for (let i = 0; i < 200 && useGame.getState().pendingCascade; i++) {
+    const p = useGame.getState().pendingCascade!;
+    const etape = p.participants[p.cursor];
+    if (etape?.kind === 'critical') origines.push(etape.reveal?.origine);
+    const k = avanceEtapeCascade(useGame.getState, () => de, choisir);
+    if (k !== undefined) kinds.push(k);
+  }
   const apres = useGame.getState().battle!.combatants;
-  return { res, H, auJet, kinds, cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)! };
+  return { res, H, auJet, kinds, origines, cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)! };
 }
 
 /** Un Coup Critique (double 44) qui DÉPASSE les 2 Blessures restantes de la cible. */
@@ -271,18 +279,17 @@ describe("'aa' : le Critique du passage à 0 est un Coup Critique (AA 07 l.25, l
   });
 
   it('arme Inoffensive sur une cible déjà à 0 : 0 Blessure, un Coup Critique à la Localisation relancée (LDB 62 l.327 ; AA 07 l.25 ; #1595 c.6227274650 Q1)', () => {
-    const { auJet, res, kinds, cible } = coup({ arme: inoffensive, roll: 45, double: false, current: 0, chanceux: true });
+    const { auJet, res, origines, cible } = coup({ arme: inoffensive, roll: 45, double: false, current: 0, chanceux: true });
     expect(auJet.woundsLost).toBe(0);
-    expect(kinds).toContain('critical');
-    expect(res.critiqueApplique?.origine).toBe('coup-critique');
+    expect(origines).toEqual(['coup-critique']);
     expect(res.critLocation).toBeDefined();
     expect(cible.criticalWounds).toBe(1);
   });
 
   it('coup retenu sur une cible déjà à 0 : le double tombe, une seule Blessure critique, Coup Critique relancé (AA 07 l.42, l.59 ; #1595 c.6227274650 Q2)', () => {
-    const { auJet, res, cible } = coup({ retenu: true, current: 0, chanceux: true });
+    const { auJet, res, origines, cible } = coup({ retenu: true, current: 0, chanceux: true });
     expect(auJet.critical, 'Retenir ses coups ignore le double').toBe(false);
-    expect(res.critiqueApplique?.origine).toBe('coup-critique');
+    expect(origines).toEqual(['coup-critique']);
     expect(res.critLocation).toBeDefined();
     expect(res.critiques).toBe(1);
     expect(cible.criticalWounds).toBe(1);

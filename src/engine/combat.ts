@@ -38,7 +38,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import { lancerDuTableau, type CauseCoupCritique, type OrigineCritique } from './critical';
+import { lancerDuTableau, type CauseCoupCritique } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -507,9 +507,6 @@ export interface AttackResult {
   /** Blessures critiques comptées par CE coup, écrites à l'application (`critiquesDuCoup`). LDB 18 l.17 ;
    *  AA 07 l.42. */
   critiques?: number;
-  /** La première Blessure critique appliquée par CE coup, écrite à l'application : `naturel` =
-   *  `CriticalResolved.naturel`. LDB 10 l.773 ; #1595 c.6227274650 Q3. */
-  critiqueApplique?: { origine: OrigineCritique; naturel: number };
   /** d100 nu du tableau des Critiques du Coup Critique de CE coup, quand une table l'a tiré. LDB 10 l.773 ;
    *  LDB 18 l.53. */
   lancerDuTableau?: number;

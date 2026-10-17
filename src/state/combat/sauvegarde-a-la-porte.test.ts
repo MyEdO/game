@@ -541,6 +541,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
     expect(crits.map((s) => s.reveal?.origine), 'les deux Blessures critiques, dans leur ordre').toEqual(['coup-critique', 'depassement']);
     expect(crits.map((s) => s.reveal?.title)).toEqual([tr('step.coupCritique'), tr('step.blessureCritique')]);
     expect(useGame.getState().pendingDualStrike!.jet, "'ldb' : le d100 nu du Coup Critique (LDB 18 l.53)").toBe(crits[0].reveal?.dice);
+    expect(useGame.getState().pendingDualStrike!.jet, 'jamais le d100 du dépassement').not.toBe(crits[1].reveal?.dice);
   });
 
   /** La 1ʳᵉ frappe d'un Maniement de deux armes, en `aa`, sur une cible à `current` Blessures, jusqu'à l'ouverture de la 2ᵉ. */
@@ -582,11 +583,11 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `attackConfi
   });
 
   for (const [branche, current] of [['cible déjà à 0', 0], ['passage à 0', 2]] as const) {
-    it(`(iii quater) 'aa', ${branche}, sans double : le Coup Critique donne la valeur de la 2ᵉ frappe (LDB 10 l.773 ; #1595 c.6226467544)`, () => {
+    it(`(iii quater) 'aa', ${branche}, sans double : aucun Critique au jet, la 2ᵉ frappe vaut le jet inversé (LDB 10 l.773 ; LDB 13 l.183 ; #1595 c.6229354257)`, () => {
       try {
         const { crits, jet } = secondeMainEnAA(false, current);
         expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
-        expect(jet, 'la 2ᵉ frappe lit la valeur du tableau').toBeDefined();
+        expect(jet, '30 inversé').toBe(3);
       } finally {
         resetRule('combat-aa-blessures');
       }

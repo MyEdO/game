@@ -270,7 +270,7 @@ export interface CritiqueDuCoup { origine: OrigineCritique; overkill: number }
 export interface CompteDesCritiques { critiques: readonly CritiqueDuCoup[]; mortSubite: boolean }
 
 /** Ce Critique est-il un Coup Critique ? SOURCE UNIQUE des lecteurs d'un Critique déjà compté (Bâclée,
- *  `onCrit` filtré, Seconde main, titre). Partielle et Points faibles se lisent AVANT le compte : au jet
+ *  `onCrit` filtré, titre). Partielle et Points faibles se lisent AVANT le compte : au jet
  *  (`applyHit`, `AttackResult.critical`) et à la Localisation relancée (`woundsAtCritLocation`), qui
  *  n'existe que par `relanceLaLocalisation`. Relance ⇒ Coup Critique ; pas la réciproque (#1595 c.6226467544,
  *  branche 2). LDB 13 l.183 ; LDB 14 l.3 ; LDB 18 l.23 ; AA 07 l.34, l.38 ; #1595 c.6226467544. */
