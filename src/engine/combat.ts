@@ -1572,9 +1572,7 @@ export function weaponInflictsFlames(weapon: Weapon): boolean {
  *  `woundsAtCritLocation`. `retenu` = Retenir ses coups effectif (`AttackResult.retenu`).
  *  LDB 62 l.135 ; LDB 18 l.30 ; AA 07 l.59, l.61 ; AA 06 l.556. */
 export function profilDuCoup(weapon: Weapon, retenu: boolean): Weapon {
-  // Arme usée à +0 → improvisée. L'enchantement (Magique/Dégâts/onHit) est DÉJÀ replié dans l'arme active
-  // par recomputeLoadout (applyEnchants) — porté par l'objet, plus de merge ici.
-  const w = effectiveWeapon(weapon);
+  const w = effectiveWeapon(weapon); // LDB 62 l.135 ; enchantements : recomputeLoadout (applyEnchants).
   if (!retenu || rule('combat-aa-blessures') !== 'aa') return w;
   // `resolveQualities` (avec Groupe) énumère propre+FAMILLE avant filtrage — sinon une qualité retirée
   // portée par la FAMILLE (ex. Empaleuse d'Escrime) survivrait au retrait (elle est absente de la liste
@@ -1690,22 +1688,14 @@ function applyHit(
   };
 }
 
-/**
- * Recalcule les Blessures NON-critiques d'un Coup Critique à sa localisation RE-TIRÉE (`LDB 18 l.55` :
- * « Pour calculer enfin les Dégâts non Critiques d'une Attaque, utilisez la nouvelle Localisation
- * déterminée par la Blessure Critique »). Un Coup Critique re-tire la localisation (1d100 frais, ou choix
- * RAW-2) ; les Dégâts non-critiques utilisent CETTE localisation → PA portée + ignorance de PA (Partielle /
- * Points faibles, `ignoredArmourAP`) RÉ-ÉVALUÉS à la nouvelle localisation. Réutilise EXACTEMENT la queue de
- * `applyHit` : `res.apExternal` (PA location-indépendant : Tir sûr / PA d'opposition) + `ignoredArmourAP` à
- * `location`. Les PB du Critique eux-mêmes ignorent BE+PA (gérés à part, `LDB 18 l.53`).
- */
+/** Blessures non critiques à la Localisation relancée (`relanceLaLocalisation`) ; queue d'`applyHit`.
+ *  LDB 18 l.53, l.55 ; LDB 62 l.135 ; LDB 63 l.86, l.90. */
 export function woundsAtCritLocation(res: AttackResult, weapon: Weapon, defender: Combatant, location: HitLocation): number {
   // AA 10 l.105 — ce site re-tire une Localisation : une Structure ne peut pas y passer, et la Taille de
   // l'attaquant (`AA 10 l.98`) n'y a donc aucun terme à compter (passée `undefined`, jamais omise).
   if (isStructure(defender)) throw new Error(`woundsAtCritLocation : ${defender.label} est une Structure — AA 10 l.105.`);
   if (res.degatsTransferes) return 0;
   const profil = profilDuCoup(weapon, !!res.retenu);
-  // `relanceLaLocalisation` : la Localisation relancée est celle d'un Coup Critique. LDB 63 l.86, l.90.
   const ignoredAP = ignoredArmourAP(defender, location, { roll: res.attackerRoll, critical: true, empaleuse: hasQuality(profil, 'empaleuse') });
   return woundsFromHit(profil, defender, location, res.damage ?? 0, (res.apExternal ?? 0) - ignoredAP, 1, undefined);
 }
