@@ -260,7 +260,7 @@ test('docs dérivés : un marqueur `SOURCES_LUES` sans les docs est MESURÉ manq
   try {
     mkdirSync(join(racine, 'docs'), { recursive: true })
     writeFileSync(join(racine, SOURCES_LUES), '{}')
-    assert.deepEqual(ciblesLitterales(['docs/a.md', 'docs/raw/**/catalogue-*.md', 'src/b.generated.ts']), ['docs/a.md', 'src/b.generated.ts'])
+    assert.deepEqual(ciblesLitterales(['sortie/a.md', 'sortie/**/catalogue-*.md', 'src/b.generated.ts']), ['sortie/a.md', 'src/b.generated.ts'])
     assert.equal(GESTES_DU_CONTENEUR.docsMesures(racine), false, 'le marqueur seul ne prouve aucun doc')
     for (const cible of ciblesLitterales(GENERATORS.flatMap((g) => g.targets))) {
       mkdirSync(dirname(join(racine, cible)), { recursive: true })
