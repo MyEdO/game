@@ -22,7 +22,8 @@ import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { cheminsDeJournal, lireJournal } from './publicationDonnee.mjs'
 import { etatDuTrain } from './publierTrain.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
-import { estPidVivant, prendreVerrou } from '../test/verrou.mjs'
+import { prendreVerrou } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 
 /** Symbole de chaque verdict de CI dans la ligne ; `null` (rien de poussé) se lit `—`. */
 export const SYMBOLES_DE_CI = Object.freeze({ verte: '✓', rouge: '✗', annulee: '⊘', 'en-vol': '…', absente: '∅' })

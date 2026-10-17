@@ -257,6 +257,7 @@ export function classerValeur(sig: string, cles: readonly string[], contexte: Co
   const site = { dataset: contexte.dataset, champ: contexte.champ };
   for (const c of CONCEPTS_CLASSABLES) {
     if (c.exigeCandidatureStructurelle && !contexte.candidats?.includes(c.id)) continue;
+    if (c.datasets && !c.datasets.includes(contexte.dataset)) continue;
     const parChamp = c.champs?.includes(contexte.champ) ?? false;
     const parNoyau = c.noyau ? c.noyau.filter((k) => set.has(k)).length >= (c.noyauMin ?? c.noyau.length) : false;
     // `coPresence` DÉCLARÉE : le concept n'est retenu que si l'objet porte au moins une de ces clés,

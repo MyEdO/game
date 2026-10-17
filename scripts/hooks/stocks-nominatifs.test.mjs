@@ -33,8 +33,8 @@ function exigerHistoireComplete() {
 
 /** Début de la plage à juger. En CI, l'événement de push le porte (`GITHUB_EVENT_PATH` → `before`) ;
  *  `origin/main` n'y a PAS de reflog, il ne peut donc pas servir de début. Sans événement lisible, le
- *  début reste nul : `croissancesDeLaPlage` n'exclut alors que le tronc, ou juge HEAD seul en le
- *  DISANT (jamais un silence). */
+ *  début reste nul : `croissancesDeLaPlage` n'exclut alors que le tronc ; sans tronc lisible, elle juge
+ *  toute l'ascendance de HEAD et le DIT dans ses notes (jamais un silence). */
 function debutDeLaPlage(env = process.env) {
   if (!env.GITHUB_EVENT_PATH) return SHA_NUL
   try {

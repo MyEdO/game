@@ -7,7 +7,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
  * comble (`layers`/`entities`/`dialogues`/`triggers`/`encounters`/`flags`) sont donc OPTIONNELLES
  * ici, alors que le type manuscrit les déclare requises : un document ancien n'en porte pas.
  *
- * `Effect` et son `Flow` vivent dans `./effets.ts` (les 57 variantes) ; le vocabulaire feuille
+ * `Effect` et son `Flow` vivent dans `./effets.ts` (les 59 variantes) ; le vocabulaire feuille
  * partagé avec elles vit dans `./communs.ts`. Import de TYPE seul depuis `src/state` — aucun import
  * runtime de la couche state.
  *

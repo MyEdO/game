@@ -41,6 +41,7 @@ const TABLE: { readonly [K in CleDeRegistreNarratif]: Omit<RegistreNarratif, 'cl
   indices: { de: 'd\'indice', nom: 'l\'indice', inconnu: 'indice inconnu', aucun: 'aucun indice choisi', idAuSchema: true },
   presetsPnj: { de: 'de preset PNJ', nom: 'le PNJ', inconnu: 'preset de PNJ inconnu', aucun: 'aucun preset de PNJ choisi', idAuSchema: true },
   objets: { de: 'd\'objet', nom: 'l\'objet', inconnu: 'objet inconnu', aucun: 'aucun objet choisi', idAuSchema: false },
+  etats: { de: 'd\'état de campagne', nom: 'l\'état de campagne', inconnu: 'état de campagne non déclaré', aucun: 'aucun état de campagne choisi', idAuSchema: true },
   documents: { de: 'de document', nom: 'le document', inconnu: 'document inconnu', aucun: 'aucun document choisi', idAuSchema: true },
 };
 
@@ -56,6 +57,7 @@ export const REFERENCES_NARRATIVES = {
   indiceId: 'indices',
   presetId: 'presetsPnj',
   documentId: 'documents',
+  etat: 'etats',
 } as const satisfies Readonly<Record<string, CleDeRegistreNarratif>>;
 
 /** Registre désigné par une référence narrative. */
@@ -66,3 +68,6 @@ export const inconnuDe = (registre: CleDeRegistreNarratif): string => TABLE[regi
 
 /** Le sujet d'une référence encore VIDE vers `registre` (« aucun document choisi »). */
 export const aucunDe = (registre: CleDeRegistreNarratif): string => TABLE[registre].aucun;
+
+/** Le nom d'une entrée de `registre` pour l'auteur (« l'indice »). */
+export const nomDe = (registre: CleDeRegistreNarratif): string => TABLE[registre].nom;

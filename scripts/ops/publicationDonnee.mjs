@@ -1,8 +1,10 @@
 // #2626
 import { appendFileSync, openSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { DELAI_DE_REPONSE_MINUTES } from './ruleset-main.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
+import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
+import { GitIndisponible, refusDeGit } from '../guards/lib/gitPorte.mjs'
 
 export const FILE_TIMEOUT_MIN = 2 * DELAI_DE_REPONSE_MINUTES
 
@@ -16,13 +18,14 @@ export function lancementNpm(script, platform) {
  * valeur) : `separerInvocation` lit `<positionnel> [--opt val]* -- reste`, une grammaire qui n'est
  * pas la nôtre.
  * @param {string[]} argv arguments APRÈS `node publier.mjs`
- * `--veiller <run>` prend un identifiant de run (`idDeRun`), `--depuis <seq>` un entier ≥ 0 ; toute autre
- * valeur est rendue inconnue. `--constat` ne vaut qu'avec `--veiller`.
+ * `--veiller <run>` prend un identifiant de run (`idDeRun`), `--depuis <seq>` un entier ≥ 0, chaque clé de `valeurs`
+ * un nombre > 0 ; toute autre valeur, absente comprise, est rendue inconnue, et la commande refuse AVANT de détacher
+ * (#2603). `--constat` ne vaut qu'avec `--veiller`.
  * @returns {{detache:boolean, reprendre:boolean, etapes:boolean, fileTimeoutMin:number, veiller:string|null, depuis:number, constat:boolean, inconnus:string[]}}
  */
 export function optionsDe(argv) {
   const args = (argv ?? []).map(String)
-  const connus = new Set(['--detache', '--reprendre', '--etapes', '--file-timeout-min', '--constat'])
+  const connus = new Set(['--detache', '--reprendre', '--etapes', '--constat'])
   const valeurs = { '--file-timeout-min': FILE_TIMEOUT_MIN }
   const inconnus = []
   let veiller = null
@@ -44,8 +47,10 @@ export function optionsDe(argv) {
       continue
     }
     if (Object.hasOwn(valeurs, a)) {
-      const n = Number(args[i + 1])
+      const brut = args[i + 1]
+      const n = Number(brut)
       if (Number.isFinite(n) && n > 0) valeurs[a] = n
+      else inconnus.push(`${a} ${brut ?? ''}`.trim())
       i += 1
       continue
     }
@@ -138,23 +143,72 @@ export const ligneDeDetachement = ({ pid, log, args }) =>
 /**
  * Le filet de l'enfant détaché (#1784). Détaché, le train n'a plus de stdio redirigé : sa console est
  * CACHÉE, donc tout ce qu'il écrit hors du journal est perdu, et un train né puis MORT avant
- * `ouvrirLog` serait invisible (pid annoncé, journal vide). Ce filet écrit la chute DANS le log, avec
- * sa ligne `PUBLICATION:`, puis sort en `CODE_ARRET_MOTEUR` ; la veille (`veillerLeTrain`) constate la mort du pid. Le script détaché étant
+ * `ouvrirLog` serait invisible (pid annoncé, journal vide). Ce filet rend la chute par `sortirHorsJournal`
+ * (log et trace du run `run`), puis sort sur son code. Le script détaché étant
  * `fileURLToPath(import.meta.url)`, un « module introuvable » n'est atteignable que par un défaut de
  * citation du lancement (`citerArgv`).
- * @param {{chemin:string, processus?:NodeJS.Process, ecrire?:Function}} p
+ * @param {{chemin:string, run:string, processus?:NodeJS.Process, ecrire?:(chemin:string, texte:string) => void}} p
  * @returns {(e:unknown) => void} le gestionnaire branché, rendu pour le test
  */
-export function filetDuTrainEnfant({ chemin, processus = process, ecrire = appendFileSync }) {
+export function filetDuTrainEnfant({ chemin, run, processus = process, ecrire = appendFileSync }) {
   const tomber = (e) => {
-    const trace = e?.stack ?? String(e)
-    const verdict = { etat: 'rouge', etape: 'moteur', raison: trace }
-    ecrire(chemin, `[publier] ARRÊT INATTENDU hors train : ${trace}\n${ligneDePublication(verdict)}\n`)
-    processus.exit(codeDeVerdict(verdict))
+    const raison = e?.stack ?? String(e)
+    processus.exit(sortirHorsJournal({ log: chemin, run, raison, dit: `[publier] ARRÊT INATTENDU hors train : ${raison}`, ecrire }))
   }
   processus.on('uncaughtException', tomber)
   processus.on('unhandledRejection', tomber)
   return tomber
+}
+
+/** Le fichier de la TRACE du run `run` dans le dossier de publication `dossier` (#2603). PURE. */
+export const cheminDeTrace = (dossier, run) => join(dossier, `sortie-${run}.json`)
+
+/** Motif des traces de `cheminDeTrace`, sur le NOM de fichier. */
+const MOTIF_DE_TRACE = /^sortie-[1-9]\d*-\d+\.json$/
+
+/**
+ * La sortie d'un enfant de `--detache` dont le verdict ne va pas au journal (#2603) : la TRACE `{ run, verdict }`, une
+ * ligne JSON ajoutée à `cheminDeTrace` du dossier du log, dont le run est le seul écrivain, puis `dit` et la ligne
+ * `PUBLICATION:` de son verdict `rouge moteur` au `log`. La trace seule porte le verdict : elle s'écrit d'abord, puis les
+ * traces de plus de `PEREMPTION_MS` partent (`purger`), puis le log ; une purge ou un log qui lève ne change pas le code
+ * rendu. La veille la lit (`verdictDeTrace`) quand le journal ne porte pas son run.
+ * @param {{log:string, run:string, raison:string, dit?:string, ecrire?:(chemin:string, texte:string) => void, purger?:typeof purgerPerimes}} p
+ * @returns {number} le code du verdict (`codeDeVerdict`)
+ */
+export function sortirHorsJournal({ log, run, raison, dit = raison, ecrire = appendFileSync, purger = purgerPerimes }) {
+  const { verdict, texte, code } = chuteMoteur(raison, { dit })
+  ecrire(cheminDeTrace(dirname(log), run), `${JSON.stringify({ run, verdict })}\n`)
+  try {
+    purger({ dossier: dirname(log), motif: MOTIF_DE_TRACE, ageMs: PEREMPTION_MS })
+  } catch {}
+  try {
+    ecrire(log, texte)
+  } catch {}
+  return code
+}
+
+/**
+ * Le verdict que le run `run` a laissé dans sa trace (`sortirHorsJournal`), `null` sans trace à son nom. Une
+ * ligne lue à moitié ne se parse pas : rien n'est conclu, le tour suivant la relit (#2603).
+ * @param {string} dossier @param {string} run
+ * @returns {object|null}
+ */
+export function verdictDeTrace(dossier, run) {
+  let texte
+  try {
+    texte = readFileSync(cheminDeTrace(dossier, run), 'utf8')
+  } catch {
+    return null
+  }
+  for (const ligne of texte.split('\n')) {
+    try {
+      const vu = JSON.parse(ligne)
+      if (vu?.run === run && vu.verdict) return vu.verdict
+    } catch {
+      /* ligne partielle (#2603) */
+    }
+  }
+  return null
 }
 
 /** Nom de ROTATION du log d'un run précédent : `<nom>.<AAAAMMJJ-HHMMSS>.log`, horodaté en heure locale
@@ -225,20 +279,47 @@ export const CODE_ARRET_MOTEUR = 4
 export const CODE_BORNE_DEPASSEE = 5
 
 /**
- * L'en-tête du run qui PART sur `journal` : son identifiant, son pid, sa borne de file, son compteur de
+ * L'en-tête du run qui PART sur `journal` : son identifiant, son pid et sa `naissance` `{ pid, creation }` (#2603), sa borne de file, son compteur de
  * transitions `seq` à 0 ; le verdict d'un run précédent (journal repris) s'efface. Le journal ainsi estampillé est sauvé AVANT la première
  * étape : c'est lui qui dit à la veille que le run courant a démarré. MUTE `journal`, le rend.
- * @param {object} journal @param {{run:string, pid:number, fileTimeoutMin:number}} p
+ * @param {object} journal @param {{run:string, pid:number, creation:number, fileTimeoutMin:number}} p
  */
-export function entameDuRun(journal, { run, pid, fileTimeoutMin }) {
-  return Object.assign(journal, { run, pid, fileTimeoutMin, seq: 0, verdict: null })
+export function entameDuRun(journal, { run, pid, creation, fileTimeoutMin }) {
+  return Object.assign(journal, { run, pid, naissance: { pid, creation }, fileTimeoutMin, seq: 0, verdict: null })
 }
+
+/** La `creation` que le pid `pid` a inscrite de lui-même à l'entame de `journal` ; `NAISSANCE_ABSENTE` sans `naissance` (journal d'avant #2603) ou si elle date un autre pid. PURE. */
+export const naissanceDuPid = (journal, pid) => (journal?.naissance && journal.naissance.pid === pid ? journal.naissance.creation : NAISSANCE_ABSENTE)
+
+/** Le run SANS VERDICT de `journal` vit-il ? Son `pid`, jugé né à sa `naissanceDuPid` (`estPidVivantDepuis`, #2603). PURE hors de `identite` et `estVivant`.
+ *  @param {object|null} journal @param {{ lireCreation: (pid: number) => number | null, toleranceMs: number }} identite
+ *  @param {{ estVivant?: (pid: number) => boolean }} [options] */
+export const runEnVol = (journal, identite, options) =>
+  !journal?.verdict && estPidVivantDepuis(journal?.pid, naissanceDuPid(journal, journal?.pid), identite, options)
 
 /** La ligne `PUBLICATION:` d'un verdict — la dernière du log du train, et celle de sa veille. PURE. */
 export function ligneDePublication(verdict, tete) {
   if (verdict.etat === 'vert') return `PUBLICATION: vert ${tete}`
   if (verdict.etat === 'indeterminee') return `PUBLICATION: indéterminée file ${tete}`
   return `PUBLICATION: rouge ${verdict.etape} — ${String(verdict.raison).split('\n')[0]}`
+}
+
+/** Le refus d'une ligne de commande aux options `inconnus` (`optionsDe`), usage compris. PURE. */
+export const refusDOptions = (inconnus) =>
+  `[publier] option inconnue : ${inconnus.join(' ')}\n  usage : node scripts/ops/publier.mjs [--detache] [--reprendre] [--etapes] [--file-timeout-min <n>] [--veiller <run> [--depuis <seq>] [--constat]]`
+
+/** La raison d'une erreur `e` : le refus nommé d'une panne git (`refusDeGit`), son message sinon. PURE. */
+export const raisonDeLErreur = (e) => (e instanceof GitIndisponible ? refusDeGit(e) : String(e?.message ?? e))
+
+/**
+ * La CHUTE `rouge moteur` de `raison` : son verdict, son texte (`dit`, puis sa ligne `PUBLICATION:` à la tête `tete`) et
+ * son code (`codeDeVerdict`). L'appelant n'en garde que son écriture (log, stderr, journal). PURE.
+ * @param {string} raison @param {{dit?:string, tete?:string|null}} [p]
+ * @returns {{verdict:{etat:'rouge', etape:'moteur', raison:string}, texte:string, code:number}}
+ */
+export function chuteMoteur(raison, { dit = raison, tete } = {}) {
+  const verdict = { etat: 'rouge', etape: 'moteur', raison }
+  return { verdict, texte: `${dit}\n${ligneDePublication(verdict, tete)}\n`, code: codeDeVerdict(verdict) }
 }
 
 /** Code de sortie d'un verdict, pour le train comme pour sa veille. PURE. */
@@ -280,14 +361,3 @@ export function lireJournal(chemin, branche) {
   }
 }
 
-
-/** Le processus `pid` vit-il ? `kill(pid, 0)` ne signale rien : il sonde (EPERM = vivant, hors de nos droits). */
-export function vivant(pid) {
-  if (!Number.isSafeInteger(pid) || pid <= 0) return false
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (e) {
-    return e?.code === 'EPERM'
-  }
-}

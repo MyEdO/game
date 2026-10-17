@@ -12,10 +12,11 @@ import { STATUS_DLL_INIT_FAILED } from './spawnResilient.mjs'
 import {
   BorneAbsente, ENV_GIT_FEINT, GitIndisponible, INDEX, MARQUE_FEINTE, OPTIONS_DE_L_HOTE, SUIVI, TRAVAIL, abandonnerFusion, ajouterOrigine, ajouterWorktree, approfondir, arbrePrincipal, arbreVide, attributDe,
   baseCommune, brancheDe, branchesDe, ceQuEmporteLIndex, ceQueFaitLaFusionEnCours, ceQueFaitLeCommit, ceQueFontLesCommits, ceQuiChange, cheminGit, cheminsEnConflit, classer, combienDe, commitDe, commitsNommes, conclureFusionSansChemins,
-  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, dossierGitCommun, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre, estRepertoire,
-  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, natureDuChemin, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
-  fusionner, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refsDistantes, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, tetesDistantes, urlOrigineAcceptee, worktreesDe,
+  appliquerCorrectif, depotDe, divergenceDe, dossierDesHooks, dossierGitCommun, elaguerWorktrees, eolsDe, estIgnore, estSuperficiel, etatDeLArbre, enfantsDirects, estAncetre,
+  fetchOrigin, fichiersDuGrep, fusionDeTextes, fusionnesEnCours, grapheDe, histoireDeHead, initialiserDepot, journalDe, lireEnLot, listerImage, origineDe, parentsDe, patchsParChemin, poserRef, pousser,
+  fusionner, nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, raisonCourte, rebaseEntame, reglerDepot, retirerWorktree, reussi, refsDistantes, objetsNommes, refusDeGit, shaDe, shaPrecedentDeHead, shasDe, shasDistants, supprimerBranche, tenter, tetesDistantes, urlOrigineAcceptee, worktreesDe,
 } from './gitPorte.mjs'
+import { estRepertoire, natureDuChemin } from './natureDuChemin.mjs'
 import { envDeDepotForge, envDeLUtilisatrice, instanceDeDepot, sousGitFeint } from './depotGabarit.mjs'
 import { sourceGit } from './cssImages.mjs'
 import { listerDossier, parUnitesDeCode } from './lister.mjs'
@@ -670,6 +671,57 @@ test('fetchOrigin : une origine LOCALE réelle met `origin/main` à jour ; sans 
     jeter(amont.racine)
     jeter(aval)
   }
+})
+
+test('#2626 pousser : bail SHA exactement 40 ou 64, aucune longueur intermédiaire', () => {
+  const appels = []
+  const d = depotFeint(tmpdir(), (args) => { appels.push(args); return { status: 0, stdout: '', stderr: '' } })
+  for (const n of [40, 64]) assert.equal(reussi(pousser(d, { vers: 'chantier/2626', bail: 'a'.repeat(n) })), true)
+  for (const n of [39, ...Array.from({ length: 23 }, (_, i) => i + 41), 65])
+    assert.throws(() => pousser(d, { vers: 'chantier/2626', bail: 'a'.repeat(n) }), /bail SHA explicite invalide/)
+  assert.equal(appels.length, 2)
+})
+
+test('#2626 fetchOrigin objets : lot exclusif dédupliqué, SHA complets et borne distante', () => {
+  const appels = []
+  const d = depotDe(tmpdir(), { spawn: (_git, args, opts) => { appels.push({ args, timeout: opts.timeout }); return { status: 0, stdout: '', stderr: '' } } })
+  const a = 'a'.repeat(40), b = 'b'.repeat(64)
+  assert.equal(reussi(fetchOrigin(d, { objets: [a, b, a] })), true)
+  assert.deepEqual(appels, [{ args: ['fetch', '--quiet', '--no-tags', '--no-write-fetch-head', '--refmap=', 'origin', a, b], timeout: 60000 }])
+  for (const opts of [{ objets: [] }, { objets: [a], branche: undefined }, { objets: 'a' }, { objets: [null] }, ...[39, 41, 63, 65].map((n) => ({ objets: ['a'.repeat(n)] }))])
+    assert.throws(() => fetchOrigin(d, opts), /objets/)
+  assert.equal(appels.length, 1)
+})
+
+test('#2626 refsDistantes : une annonce malformée reste illisible', () => {
+  for (const stdout of ['illisible\n', `${'a'.repeat(41)}\trefs/heads/x\n`, `${'a'.repeat(40)}\n`, `${'a'.repeat(40)} refs/heads/x surplus\n`]) {
+    const d = depotFeint(tmpdir(), () => ({ status: 0, stdout, stderr: '' }))
+    assert.equal(refsDistantes(d), null)
+  }
+  const sha = 'b'.repeat(64)
+  const d = depotFeint(tmpdir(), () => ({ status: 0, stdout: `${sha}\trefs/heads/x\n`, stderr: '' }))
+  assert.deepEqual(refsDistantes(d), new Map([['refs/heads/x', sha]]))
+})
+
+test('#2626 objetsNommes : objet et cible pelée en UN lot — étiquette vers blob, blob, commit, absent, ambigu', () => {
+  const d = depotDHistoire()
+  try {
+    const { dansHead, commun } = poserUnePaireAmbigue(d, d.racine)
+    const blob = d.git('rev-parse', 'HEAD:scripts/racine.txt')
+    d.git('tag', '-a', 'blob', '-m', 'blob', blob)
+    const tag = d.git('rev-parse', 'refs/tags/blob')
+    const { valeur, lances } = lancesDeGit(() => objetsNommes(d.depot(), [tag, blob, dansHead, 'f'.repeat(40), dansHead.slice(0, commun)]))
+    assert.deepEqual(valeur, [
+      { objet: tag, pele: { sha: blob, type: 'blob' } },
+      { objet: blob, pele: { sha: blob, type: 'blob' } },
+      { objet: dansHead, pele: { sha: dansHead, type: 'commit' } },
+      { objet: null, pele: null },
+      { objet: null, pele: null },
+    ])
+    assert.equal(lances.length, 1, `lancements : ${JSON.stringify(lances)}`)
+    assert.deepEqual(objetsNommes(d.depot(), []), [])
+    assert.equal(shaDe(d.depot(), blob), null)
+  } finally { d.jeter() }
 })
 
 test('shasDistants : UN `ls-remote` rend le sha de chaque ref de l’origine, `null` pour l’absente, sans poser AUCUNE ref locale', () => {

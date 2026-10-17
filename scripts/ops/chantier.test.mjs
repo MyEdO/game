@@ -17,7 +17,8 @@ import {
 import { brancheDe, cibleDe } from './nomsDeChantier.mjs'
 import { synchroniserPrincipal } from './synchroniser.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
-import { estPidVivant, sousEcheanceAsync } from '../test/verrou.mjs'
+import { sousEcheanceAsync } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
 
 /** Le script du consommateur du post-merge, celui de CET arbre : un principal jetable n'en porte pas. */
 const SYNCHRONISEUR = join(import.meta.dirname, 'synchroniser.mjs')

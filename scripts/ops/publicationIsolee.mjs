@@ -6,8 +6,10 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { ajouterWorktree, brancheDe, depotDe, estAncetre, estShaComplet, fetchOrigin, reussi, refusDeGit, retirerWorktree, shaDe, shasDistants } from '../guards/lib/gitPorte.mjs'
 import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
-import { prendreVerrou, estPidVivant, tenantDe } from '../test/verrou.mjs'
-import { cheminsDeJournal, lireJournal } from './publicationDonnee.mjs'
+import { prendreVerrou, tenantDe } from '../test/verrou.mjs'
+import { estPidVivant } from '../guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
+import { cheminsDeJournal, lireJournal, runEnVol } from './publicationDonnee.mjs'
 
 function snapshotDe(source, generation) {
   if (typeof generation !== 'string' || !/^[a-zA-Z0-9-]+$/.test(generation))
@@ -61,12 +63,12 @@ export function publicationDe(env, racine) {
 }
 
 export function preparerPublication({ source, branche, chemins, reprendre, uuid = randomUUID, gestes = {} }) {
-  const g = { depotDe, shaDe, brancheDe, shasDistants, fetchOrigin, estAncetre, ajouterWorktree, ...gestes }
+  const g = { depotDe, shaDe, brancheDe, shasDistants, fetchOrigin, estAncetre, ajouterWorktree, estVivant: estPidVivant, identite: IDENTITE_MESUREE, ...gestes }
   const depot = g.depotDe(source)
   if (!branche || branche === 'HEAD' || branche === 'main' || g.brancheDe(depot) !== branche)
     throw new Error('publication isolée : une branche de chantier est requise')
   const precedent = existsSync(chemins.json) ? JSON.parse(readFileSync(chemins.json, 'utf8')) : null
-  if (precedent?.pid && !precedent.verdict && estPidVivant(precedent.pid))
+  if (runEnVol(precedent, g.identite, { estVivant: g.estVivant }))
     throw new Error(`publication isolée : train ${precedent.pid} encore vivant`)
   if (reprendre && precedent?.publication) {
     const p = precedent.publication
@@ -131,15 +133,13 @@ export async function publierDepuisSnapshot({
   fusionDansMain = (p) => ancetreConfirme(estAncetre, depotDe(p.snapshot), 'HEAD', 'origin/main'),
   ecrire = (texte) => process.stderr.write(texte),
   ouvrir = () => 'inherit', entamer = () => {}, achever = () => {}, echouer = (e) => { ecrire(`${e.message}\n`); return 4 }, fermer = () => {},
+  refuser = (raison) => { ecrire(`${raison}\n`); return 1 },
 }) {
   const verrou = verrouiller({
     chemin: `${chemins.json}.publication.verrou`,
     libelle: `publication de ${branche}`, commande: `ops:publier ${args.join(' ')}`, cwd: source,
   })
-  if (verrou.etat !== 'pris') {
-    ecrire(`${verrou.message}\n`)
-    return 1
-  }
+  if (verrou.etat !== 'pris') return refuser(verrou.message)
   try {
     const stdio = ouvrir()
     const precedent = reprendre && existsSync(chemins.json) ? JSON.parse(readFileSync(chemins.json, 'utf8')) : null

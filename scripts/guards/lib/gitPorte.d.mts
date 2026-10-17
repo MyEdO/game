@@ -40,8 +40,8 @@ export class GitIndisponible extends Error {
 }
 export function reussi(union: ResultatGit): boolean;
 export function refusDeGit(vu: ResultatGit | GitIndisponible): string;
-export function pousser(depot: Depot, geste: { vers: string; bail?: boolean }): ResultatGit;
-export function fetchOrigin(depot: Depot, opts?: { branche?: string }): ResultatGit;
+export function pousser(depot: Depot, geste: { vers: string; bail?: false | string }): ResultatGit;
+export function fetchOrigin(depot: Depot, opts?: { branche?: string; objets?: never } | { objets: readonly string[]; branche?: never }): ResultatGit;
 
 /** Le dépôt git de `cwd`. */
 export function depotDe(

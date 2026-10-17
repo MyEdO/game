@@ -398,4 +398,24 @@
 .frame-pick .cap {
   font-size: 11px;
   color: var(--muted);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+/* Rangée de `PortraitPicker` : colonnes ÉGALES à la plus large tuile légendée, centrées sur une seule
+   rangée ; ≤560 en 2 colonnes régulières. Passe après les pistes de `.rm-loc-grid` (option-chooser.css)
+   par l'ordre d'import. */
+.portrait-picker {
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-auto-columns: 1fr;
+  gap: var(--sp-md);
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+@media (max-width: 560px) {
+  .portrait-picker {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

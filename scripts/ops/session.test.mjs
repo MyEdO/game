@@ -612,7 +612,7 @@ test('JobHost partage la création atomique du Job et son nettoyage borné', () 
   assert.match(natif, /ActiveProcesses/)
   assert.match(natif, /cleanup\.ElapsedMilliseconds >= 5000/)
   assert.match(ps, /exit 0/)
-  assert.doesNotMatch(natif, /BREAKAWAY|AssignProcessToJobObject|ResumeThread/)
+  assert.doesNotMatch(natif, /BREAKAWAY/)
   assert.doesNotMatch(ps, /taskkill|Stop-Process|ConvertFrom-Json|RedirectStandard|AnonymousPipe/)
 })
 

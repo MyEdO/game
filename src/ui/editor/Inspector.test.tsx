@@ -150,7 +150,7 @@ function mountWall(wall: NonNullable<Scene['walls']>[number]) {
       enemyCreatures={[]}
       openLogic={() => undefined}
       resizeScene={() => undefined}
-      narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [], documents: [] }}
+      narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [], documents: [], etats: [] }}
       tool={{ mode: 'select' }}
       armZoneTiles={() => undefined}
       zoneFocusKey={null}
