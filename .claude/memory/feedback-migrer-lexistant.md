@@ -8,9 +8,9 @@ metadata:
   modified: 2026-09-20T09:03:56.273Z
 ---
 
-Verbatims utilisateur : « Quand tu vois que l'existant ne suis pas nos exigences, il faut le migrer » ; « tu dois t'assurer de migrer les éléments qui l'utilisent » ; « on a pleins de guard avec une liste en dure d'élément a migrer ».
+Verbatims utilisateur : « Quand tu vois que l'existant ne suis pas nos exigences, il faut le migrer » (2026-07-26) ; « tu dois t'assurer de migrer les éléments qui l'utilisent » (2026-07-26) ; « on a pleins de guard avec une liste en dure d'élément a migrer » (2026-07-26).
 
-Rappel du 2026-09-20, quand j'ai proposé d'ouvrir un stock décroissant de plus pour les `!important` : « L'application c'est un dépot de stock decroissant. Surtout que c'est toi qui a mis ces !important il y a quelques jours » (vérifié : `74b952861`, 2026-09-18, 11 `!important` dans `base.css` + une garde qui les EXIGE).
+Rappel du 2026-09-20, quand j'ai proposé d'ouvrir un stock décroissant de plus pour les `!important` : « L'application c'est un dépot de stock decroissant. Surtout que c'est toi qui a mis ces !important il y a quelques jours ».
 
 **Ne pas OUVRIR de nouveau stock.** Une classe de défaut trouvée se corrige à ZÉRO dans le chantier, avec une garde ABSOLUE (sans liste) ; si c'est trop gros, c'est un ticket, pas un registre. Un `!important` ou une garde qui verrouille un contournement est une rustine : remonter à la cause (sélecteur trop général, ordre de cascade).
 

@@ -1,5 +1,5 @@
 ---
-name: env-foundry-inventaire-5e
+name: foundry-inventaire-5e
 description: "Monde Foundry — l'inventaire de ce qui est basculé en 5e est une page GÉNÉRÉE ; la lire avant de proposer le moindre chantier"
 metadata: 
   node_type: memory
@@ -20,8 +20,8 @@ daté), le non-prouvé et le bruit de console préexistant. Seconde page génér
 référence au livre, pas de troisième document.
 
 **Why:** lire le système et le livre sans lire la liste des macros fait présenter comme « à ouvrir »
-un chantier déjà construit (Avantage/Désavantage 5e) :
-« Tu as deja tout code mec ! »
+un chantier déjà construit (Avantage/Désavantage 5e).
+Verbatim utilisateur (au plus tard le 2026-09-27) : « Tu as deja tout code mec ! »
 
 **How to apply:** inventaire d'abord, proposition ensuite. Voir
-[[env-foundry-ou-vit-une-entite]], sixième endroit.
+[[foundry-ou-vit-une-entite]], sixième endroit.

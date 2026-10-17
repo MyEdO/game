@@ -7,7 +7,7 @@ metadata:
 ---
 
 **Règle :** re-remonter périodiquement à l'objectif macro de la session et y mesurer la sous-tâche en cours.
-**Why:** enchaîner des sous-tâches de plus en plus fines fait perdre l'objectif et lasse l'utilisateur — son « tu as oublié l'objectif » EST la dérive, déjà consommée.
+**Why:** enchaîner des sous-tâches toujours plus fines perd l'objectif et lasse l'utilisateur — son « tu as oublié l'objectif » (2026-06-14) EST la dérive, déjà consommée.
 **How to apply:** s'apprêter à faire arbitrer un détail alors que le but est une architecture large est le signal rouge : zoom out, proposer l'audit ou le plan macro, pas la micro-tâche.
 - Chantier EDO : l'objectif est le Tome 1 jouable de bout en bout (épique #665). Utilisateur, 2026-09-28 : « Je te rappel que notre objectif est "Adaptation du chapitre 1 campagne impériale" », puis « Enfin le Tome 1, pas le chapitre 1 ». L'avancement se dit sur le chemin du Tome 1, jamais sur la DoD d'un chantier.
 - Une trouvaille de juge hors du chemin du Tome 1 part en ticket, sauf si elle rougit la CI ou casse ce que le chantier livre.

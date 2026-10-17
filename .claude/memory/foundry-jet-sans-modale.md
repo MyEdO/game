@@ -1,5 +1,5 @@
 ---
-name: env-foundry-jet-sans-modale
+name: foundry-jet-sans-modale
 description: "wfrp4e — mesurer un jet au navigateur : skipDialog, evaluateSync refusé, et les écritures non attendues de updateChannelledItems"
 metadata: 
   node_type: memory
@@ -15,4 +15,4 @@ Pièges du moteur de jets wfrp4e éprouvé depuis Playwright :
 3. **`updateChannelledItems` (l.11404) écrit sans `await`** : une seconde écriture de la réserve se perd. Replier toute correction sur son unique delta, dans la méthode.
 4. **`computeResult` (l.11341) décore déjà** `minormis`/`majormis` avec `miscastModifier` : poser le modificateur avant, sinon « (+30) (+30) ».
 
-**How to apply:** acteur réel, `test.preData.roll = N` entre `setup*` et `test.roll()`, puis restauration intégrale et suppression des messages créés. Prouver un patch par deux mesures au même dé forcé, origine puis patch. Voir [[env-foundry-champ-multi-surfaces]], [[feedback-5e-regle-absente-ecartee]].
+**How to apply:** acteur réel, `test.preData.roll = N` entre `setup*` et `test.roll()`, puis restauration intégrale et suppression des messages créés. Prouver un patch par deux mesures au même dé forcé, origine puis patch. Voir [[foundry-champ-multi-surfaces]], [[foundry-5e-regle-absente-ecartee]].

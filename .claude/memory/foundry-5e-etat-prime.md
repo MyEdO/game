@@ -1,6 +1,6 @@
 ---
-name: game-5e-etat-prime
-description: "WFRP 5e — quand la table des modificateurs de combat contredit la description d'un État, la description gagne"
+name: foundry-5e-etat-prime
+description: "Monde Foundry — WFRP 5e : quand la table des modificateurs de combat contredit la description d'un État, la description gagne"
 metadata: 
   node_type: memory
   type: project
@@ -12,6 +12,8 @@ Le livre 5e se contredit entre les tables de modificateurs de combat (`08 - Rule
 les descriptions d'États (l.2258-2335). Arbitrage utilisateur : **c'est la description de l'État qui
 fait foi.**
 
+Portée : monde Foundry seulement, pas le jeu. Verbatim utilisateur, 2026-10-17 (carte de décision) : « Foundry seulement ».
+
 Verbatim utilisateur, 2026-09-16 : « En cas de conflit, c'est la description de l'état qui gagne. »
 
 Cas connus au moment de l'arbitrage :
@@ -21,7 +23,7 @@ Cas connus au moment de l'arbitrage :
   against you benefit from **Advantage** » → **Avantage** (inversion du dé), pas un modificateur.
 
 **Why:** sans règle de préséance, chaque État contradictoire redevient un arbitrage ponctuel, et le
-monde dérive vers un mélange d'éditions — ce que [[feedback-5e-retirer-le-4e]]
+monde dérive vers un mélange d'éditions — ce que [[foundry-5e-retirer-le-4e]]
 interdit.
 
 **How to apply:** avant de coder un modificateur tiré d'une table de combat, ouvrir la description de

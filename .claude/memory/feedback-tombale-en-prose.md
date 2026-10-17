@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « Tu met des pierres tombales ? ». `src/comment-poison-guard.test.ts` ne scanne que les COMMENTAIRES de `src/**` et `scripts/guards/lib/**` : la prose est son angle mort, et c'est là que le réflexe est le plus fort — quand on CORRIGE un écrit, on veut expliquer ce qu'on corrige.
+Verbatim utilisateur (2026-07-26) : « Tu met des pierres tombales ? ». `src/comment-poison-guard.test.ts` ne scanne que les COMMENTAIRES de `src/**` et `scripts/guards/lib/**` : la prose est son angle mort, et c'est là que le réflexe est le plus fort — quand on CORRIGE un écrit, on veut expliquer ce qu'on corrige.
 
 **Why:** le lecteur de demain n'a que faire du delta, il lui faut l'état courant ; git porte l'histoire d'une fiche comme celle du code.
 

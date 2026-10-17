@@ -1,5 +1,5 @@
 ---
-name: env-foundry-onglet-mj
+name: foundry-onglet-mj
 description: "Foundry ne garde qu'une session par navigateur — recharger l'onglet MJ le reconnecte en joueur"
 metadata: 
   node_type: memory

@@ -6,7 +6,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur (2026-06) : « Pas de "en fait j'ai demandé ça mais ça marche donc ce n'est pas un retour utile". Mets juste des vrais retours. »
+Verbatim utilisateur (2026-06, au plus tard le 2026-07-16) : « Pas de "en fait j'ai demandé ça mais ça marche donc ce n'est pas un retour utile". Mets juste des vrais retours. »
 
 **Why:** ce qu'un joueur essaie spontanément (un portrait, un pion, un bouton) et qui ne répond pas est un manque du produit ; et conclure depuis un test bancal, c'est affirmer du faux.
 

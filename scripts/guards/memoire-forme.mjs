@@ -2,8 +2,10 @@
 // credo) porte une RÈGLE, pas un RÉCIT. Le récit (ce qui a été vécu, mesuré, daté) est de l'histoire :
 // git la porte. Une fiche qui raconte grossit à chaque relecture et personne ne la relit.
 //
-// PÉRIMÈTRE JUGÉ (trois familles, deux volets) :
-//   A. `.claude/memory/*.md` HORS `MEMORY.md` (l'index, jugé par `budget-contexte.mjs`) —
+// PÉRIMÈTRE JUGÉ (trois familles) :
+//   0. `.claude/memory/MEMORY.md`, l'INDEX — ses PLAFONDS DE CHARGEMENT seulement (`PLAFONDS_DE_L_INDEX`) ;
+//      sa croissance, elle, est jugée par `budget-contexte.mjs`.
+//   A. `.claude/memory/*.md` HORS `MEMORY.md` —
 //      1. corps > TAILLE_MAX octets, frontmatter exclu ET TEXTE CITÉ (`« … »`) EXCLU : la PROSE se
 //         plafonne, jamais les mots de l'utilisateur. « Tout arbitrage UTILISATEUR consigné (doc,
 //         mémoire, ticket) porte sa CITATION verbatim + date » (CLAUDE.md § Pour TOUT agent) : un
@@ -12,7 +14,10 @@
 //         même ligne comme ailleurs : un seul mot cité n'exempte pas la ligne qui le porte ;
 //      2. toute date ISO (`AAAA-MM-JJ`) dans le corps HORS d'une ligne de citation verbatim
 //         (celle qui porte les guillemets `«` : un arbitrage consigné DOIT porter sa date) ;
-//      3. les motifs de RÉCIT.
+//      3. toute ligne qui CITE L'UTILISATEUR (`CITATION_DE_L_UTILISATEUR`) sans sa date ISO, la même
+//         règle de CLAUDE.md, sur toute fiche et pas seulement les `user-*` que
+//         `scripts/docs/build-doctrines.mjs` rend ;
+//      4. les motifs de RÉCIT.
 //   B. `.claude/skills/*/SKILL.md`, `.claude/agents/*.md`, `.claude/credo.md` — les motifs de RÉCIT
 //      seulement : ces fichiers n'ont pas de plafond de taille ici (leur `description:` est plafonnée
 //      par `budget-contexte.mjs`, leur corps est chargé à la demande).
@@ -21,7 +26,10 @@
 // fiche juste et dense passe tant qu'elle tient) ; une date dans un NOM DE FICHIER n'est pas jugée ;
 // une date dans le FRONTMATTER (`description`, `metadata`) n'est pas jugée ; les motifs de récit sont
 // une liste FERMÉE, pas une détection sémantique — un récit qui n'emploie aucun de ces mots passe ; un
-// texte de la session placé tout entier entre `« »` passe pour une citation.
+// texte de la session placé tout entier entre `« »` passe pour une citation ; une parole de l'utilisateur
+// citée sans marqueur d'attribution (`Verbatim`, `utilisateur`) suivi de `:` puis `«` n'est pas vue citée ;
+// à l'inverse, un livre ou un tiers cité sous la même forme (`Verbatim : « … »`) est jugé comme une parole
+// de l'utilisateur et doit porter une date.
 import { Buffer } from 'node:buffer'
 
 /** Plafond du CORPS d'une fiche de mémoire, en octets. Une règle tient ; un récit non. */
@@ -43,6 +51,21 @@ export const MOTIFS_DE_RECIT = [
 /** Une date ISO `AAAA-MM-JJ`, celle que porte une ligne de citation verbatim. */
 export const DATE = /20\d\d-\d\d-\d\d/
 
+/**
+ * Une ligne qui CITE l'utilisateur : un marqueur d'attribution (`Verbatim`, `Verbatims`, `utilisateur`),
+ * au plus 40 caractères (date, contexte, gras), puis `:` et la citation `«`.
+ */
+export const CITATION_DE_L_UTILISATEUR = /\b(verbatims?|utilisateur)\b[^«:\n]{0,40}:\s*«/i
+
+/**
+ * Plafonds de CHARGEMENT de l'index. Doc memory : « The first 200 lines of `MEMORY.md`, or the first
+ * 25KB, whichever comes first, are loaded at the start of every conversation. » Doc hooks : la sortie
+ * d'un hook (`additionalContext`, stdout) est « capped at 10,000 characters » ; au-delà elle est remplacée
+ * par un aperçu. En conteneur distant, c'est un hook qui porte l'index au contexte (#2710) : `caracteres`
+ * lui laisse 500 caractères pour son en-tête et ses lignes de constat.
+ */
+export const PLAFONDS_DE_L_INDEX = Object.freeze({ lignes: 200, octets: 25_000, caracteres: 9_500 })
+
 /** Le CORPS d'un document : ce qui suit le frontmatter YAML, ou tout le texte s'il n'y en a pas. PURE. */
 export function corpsDe(texte) {
   const lignes = String(texte ?? '').split(/\r?\n/)
@@ -52,10 +75,10 @@ export function corpsDe(texte) {
   return { corps: lignes.slice(fin + 1).join('\n'), premiereLigne: fin + 2 }
 }
 
-/** La famille d'un chemin du périmètre : `'fiche'`, `'prose'` ou `null` (hors périmètre). PURE. */
+/** La famille d'un chemin du périmètre : `'index'`, `'fiche'`, `'prose'` ou `null` (hors périmètre). PURE. */
 export function familleDe(chemin) {
   const rel = String(chemin ?? '').replace(/\\/g, '/')
-  if (rel === '.claude/memory/MEMORY.md') return null
+  if (rel === '.claude/memory/MEMORY.md') return 'index'
   if (/^\.claude\/memory\/[^/]+\.md$/.test(rel)) return 'fiche'
   if (/^\.claude\/skills\/[^/]+\/SKILL\.md$/.test(rel)) return 'prose'
   if (/^\.claude\/agents\/[^/]+\.md$/.test(rel)) return 'prose'
@@ -71,6 +94,7 @@ export function familleDe(chemin) {
 export function defautsDeForme(chemin, texte) {
   const famille = familleDe(chemin)
   if (!famille) return []
+  if (famille === 'index') return defautsDIndex(texte)
   const { corps, premiereLigne } = corpsDe(texte)
   const lignes = corps.split(/\r?\n/)
   const defauts = []
@@ -105,6 +129,17 @@ export function defautsDeForme(chemin, texte) {
       })
     })
   }
+  if (famille === 'fiche') {
+    lignes.forEach((l, i) => {
+      if (!CITATION_DE_L_UTILISATEUR.test(l) || DATE.test(l)) return
+      defauts.push({
+        ligne: premiereLigne + i,
+        quoi: 'citation sans date',
+        detail: 'une parole de l\'utilisateur se consigne avec sa date AAAA-MM-JJ sur la ligne qui la cite ; '
+          + 'introuvable, la date du commit qui l\'a versée au dépôt (`git log -S`) la borne : « au plus tard le … ».',
+      })
+    })
+  }
   lignes.forEach((l, i) => {
     for (const m of MOTIFS_DE_RECIT) {
       if (!m.re.test(l)) continue
@@ -116,6 +151,24 @@ export function defautsDeForme(chemin, texte) {
     }
   })
   return defauts
+}
+
+/** Les dépassements de `PLAFONDS_DE_L_INDEX` par le texte de l'index, ligne 1. PURE. */
+function defautsDIndex(texte) {
+  const normalise = String(texte ?? '').replace(/\r\n/g, '\n')
+  const mesure = {
+    lignes: normalise.split('\n').length - (normalise.endsWith('\n') ? 1 : 0),
+    octets: Buffer.byteLength(normalise, 'utf8'),
+    caracteres: [...normalise].length,
+  }
+  return Object.entries(PLAFONDS_DE_L_INDEX)
+    .filter(([unite, plafond]) => mesure[unite] > plafond)
+    .map(([unite, plafond]) => ({
+      ligne: 1,
+      quoi: 'index hors plafond',
+      detail: `${mesure[unite]} ${unite} pour un plafond de ${plafond} — au-delà, l'index n'est pas chargé en entier ; `
+        + 'raccourcir les libellés, jamais retirer une fiche.',
+    }))
 }
 
 /** Le refus, prêt à être joint aux autres refus d'une porte. `null` si rien. PURE. */

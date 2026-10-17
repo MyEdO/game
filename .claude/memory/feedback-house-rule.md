@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « tu inventes des raisons fallacieuses pour justifier une mauvaise implémentation ? ».
+Verbatim utilisateur (au plus tard le 2026-07-16) : « tu inventes des raisons fallacieuses pour justifier une mauvaise implémentation ? ».
 
 **Why:** une vraie house-rule est un choix délibéré, éditable et tagué `maison` — pas l'habillage a posteriori d'un défaut qu'on vient de découvrir, qui masque le défaut au lieu de le corriger.
 

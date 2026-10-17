@@ -5,7 +5,7 @@ metadata:
   type: feedback
 ---
 
-Verbatim utilisateur : « corrige les .md dans ce genre de cas […] Je parlais des fichiers sources .md ».
+Verbatim utilisateur (2026-08-13) : « corrige les .md dans ce genre de cas […] Je parlais des fichiers sources .md ».
 
 **Why:** `Source/` est une EXTRACTION — un fichier coupé sur un signet Word, un espace de coupure d'italique ne sont pas du RAW, et les laisser force tout l'aval à des contournements qui sont chacun un mensonge de plus.
 

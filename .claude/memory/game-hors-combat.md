@@ -6,6 +6,6 @@ metadata:
   type: feedback
 ---
 
-**Why:** un flux hors-combat self-contained recopie la résolution et les effets (soin, buffs, États, maléfice) — dette et divergence garanties ; l'utilisateur l'a tranché par « Évite de dupliquer ».
+**Why:** un flux hors-combat self-contained recopie la résolution et les effets (soin, buffs, États, maléfice) — dette et divergence garanties. Verbatim utilisateur (au plus tard le 2026-07-16) : « Évite de dupliquer ».
 
 **How to apply:** patron « résoudre → appliquer l'effet → finaliser » : résolution par `actorIn`/`inBattleId` (`src/state/combatants.ts`) et re-rendu par `touchActors` (`src/state/combatOrParty.ts`), sortie unique par `finishPlayerAction` (`src/state/combatFlow.ts`), cœur d'effet rendu `battle`-nullable. Seule dérogation : un fichier dédié est acceptable si le flux ne réutiliserait QUE des résolveurs purs (zéro logique d'effet à copier).
