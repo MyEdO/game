@@ -97,4 +97,19 @@ describe('Critique obtenu, touche sans prise', () => {
     expect(vivant(proie.id).criticalWounds ?? 0).toBe(0);
     expect(vivant(proie.id).wounds.current).toBe(30);
   });
+
+  it('Empoignade déclarée contre une Structure : ignorée, le coup inflige ses Dégâts (#1595 c.6230022636)', () => {
+    const h = mk('hero', 'h');
+    const mur = mk('enemy', 'mur', { pos: { x: 1, y: 0 }, bodyShape: 'structure', important: false });
+    setBattle([h, mur]);
+    const res = rederivePassiveAttack(h, mur, epee, { roll: 21, target: 90, success: true, sl: 6, isDouble: false } as never, 'melee', 'corps');
+    const { finale } = frappe(h, mur, res, true);
+    expect(finale.hit).toBe(true);
+    expect(finale.sansPrise).toBeUndefined();
+    expect(finale.woundsLost).toBeGreaterThan(0);
+    expect(vivant(mur.id).wounds.current).toBeLessThan(30);
+    expect(vivant(mur.id).grapplingWith ?? []).toEqual([]);
+    expect(vivant(h.id).grapplingWith ?? []).toEqual([]);
+    expect(vivant(mur.id).conditions.map((c) => c.id)).not.toContain('empetre');
+  });
 });

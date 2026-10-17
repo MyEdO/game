@@ -64,7 +64,7 @@ import {
 } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
-import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
+import { areGrappling, clearGrapple, grappleEnvMod, peutEtreEmpoigne } from '../engine/grapple';
 import { gainAdvantage } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { campGain, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
@@ -2560,7 +2560,7 @@ function appliquerLaTouche(
   // Attaque STANDARD : ni sous-attaque, ni reprise d'une fenêtre de Blessure critique.
   const standard = !sousAttaque && decides.length === 0;
   const deferAttackerAdvantage = suite?.deferAttackerAdvantage;
-  const grapple = suite?.grapple;
+  const grapple = !!suite?.grapple && peutEtreEmpoigne(target); // #1595 c.6230022636
   // SEAM du télégraphe (#1143) : cette fonction est l'entonnoir UNIQUE de résolution d'une attaque —
   // toutes ses sorties écrivent la ligne de journal du geste, que le bandeau prend alors. Le réticule
   // d'intention n'a donc plus lieu d'être ici, quel que soit le chemin qui a mené à l'application.

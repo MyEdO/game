@@ -32,7 +32,7 @@ import { rollObsession } from '../data/obsessions';
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps } from './corruption';
 import { findEffectTableById } from '../data/effectTables';
-import { setGrapple } from './grapple'; // op `condition {grapple:true}` → relation d'Empoignade (côté grapple : import type GameOp erased → pas de cycle runtime)
+import { peutEtreEmpoigne, setGrapple } from './grapple'; // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
 import type { CodexTarget } from './ruleRefs'; // module FEUILLE (aucun import) : type de l'identité de source portée par PassiveMod
 import { cureDiseases, blessDiseaseDuration } from './rest';
 import { applyAlcoholTest } from './drunkenness';
@@ -1769,6 +1769,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
       }
       case 'condition': {
         if (!groupGate(o.onlyGroups)) break;
+        if (o.grapple && !peutEtreEmpoigne(target)) break; // #1595 c.6230022636
         if (o.perRound && (o.durationMinutes != null || o.durationHours != null)) throw new Error(messageRecurrenceHorloge(o.id));
         // Gates d'État (Sommeil, LDB 47) : l'op ne s'applique que si la cible porte / ne porte pas
         // l'État — évalués à CHAQUE application. Sous `perRound`, l'application est le REJEU de fin
