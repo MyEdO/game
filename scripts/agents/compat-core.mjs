@@ -241,6 +241,9 @@ export const ENTREES_OUTIL = [
  *
  * La synchronisation du principal (`scripts/hooks/synchroniser-principal.mjs`, #2187) : surface Codex
  * seule, EN TÊTE ; côté Claude, le mod `harnais` (`suivi.ts`, `session.start`).
+ *
+ * L'oubli des règles projetées à la compaction (`scripts/hooks/regles-projection-oubli.mjs`, #2683) : les DEUX
+ * surfaces, qui portent toutes deux la projection et rendent `source: 'compact'`.
  */
 export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'synchroniser-principal.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: TIMEOUT_SYNCHRONISEUR, statusMessage: 'Synchronisation du principal sur origin/main' },
@@ -248,6 +251,7 @@ export const HOOKS_DE_SESSION = [
   { phase: 'SessionStart', script: 'bootstrap-conteneur.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: TIMEOUT_DU_HOOK, statusMessage: 'Conformité du conteneur distant (hooks git, docs, gh)' },
   { phase: 'SubagentStart', script: 'memoire-sous-agent.mjs', arguments: [], surfaces: [SURFACE_CLAUDE], timeout: 10, statusMessage: 'Mémoire du dépôt au sous-agent (conteneur distant)' },
   { phase: 'SessionStart', script: 'inject-suivi.mjs', arguments: [], surfaces: [SURFACE_CODEX], timeout: 10, statusMessage: 'Suivi de vague de la session' },
+  { phase: 'SessionStart', script: 'regles-projection-oubli.mjs', arguments: [], surfaces: [SURFACE_CLAUDE, SURFACE_CODEX], timeout: 10, statusMessage: 'Oubli des règles projetées à la compaction' },
 ];
 
 /**

@@ -29,7 +29,7 @@ chacune, réponds dans cet ordre et ARRÊTE-TOI à la première étape qui répo
    concept, des règles voisines et de l'intention écrite ; chaque pas est cité, et ton rendu le dit.
 4. **Renvoi au MJ**, dès qu'un passage lu laisse EXPLICITEMENT la main au MJ (« avec l'accord du
    MJ », « le MJ décide », fourchette) : ce n'est PAS un SILENCE, et aucune déduction ne remplace le MJ. Tranche
-   d'abord la FORME (fiche `feedback-lacune-raw`) : la valeur dépend de ce que le CONTENU connaît →
+   d'abord la FORME (skill `ajouter-une-mecanique`) : la valeur dépend de ce que le CONTENU connaît →
    un champ éditable sur l'entité (couche *scénario* : la valeur d'adaptation) ; sinon, couche
    *système* : la règle optionnelle taguée `maison`, surchargeable, ou le choix joueur (credo
    « D'abord la COUCHE », règle 7 de `CLAUDE.md`). Propose sa valeur par défaut, sans question.
@@ -42,14 +42,14 @@ chacune, réponds dans cet ordre et ARRÊTE-TOI à la première étape qui répo
    - *système*, lecture fine : la mécanique existe, un détail de son application se tait (où se fait
      un Test, filtre d'une liste « etc. ») :
      le litmus du credo (« deux joueurs pourraient-ils se disputer en citant le livre ? ») ; oui → la
-     même QUESTION ; non → détail de lecture (fiche `feedback-decidez-ne-changez-pas`) : la décision
+     même QUESTION ; non → détail de lecture (fiche `user-doctrine-orchestrateur-tranche-la-lecture-et-tient`) : la décision
      proposée, marquée « à confronter au livré » : le comportement livré reste, sauf contradiction
      prouvée au Source.
 
+- **La FAQ WFRP4 officieuse** (VO, développeurs et staff C7 : https://docs.google.com/document/d/1v37KH8Pa1BjTfnH4QT_N4_MGK3seKMvkvQKnWiJ4u3A/edit?tab=t.0) fournit une lecture CONCURRENTE à porter au dossier, jamais une règle citable. Télécharge-la une fois en texte (`curl -sL '…/export?format=txt'` vers le scratchpad), puis greppe-la ; confronte chaque réponse au verbatim VF.
 - **Le code n'est pas une source** : le comportement actuel n'est pas un argument de règle. Tu ne lis
   `src/` que si l'orchestrateur te demande de comparer.
 - Lecture seule, aucune commande mutante, aucun commentaire de ticket posté.
-- **Rien ne te survit** : toute commande en arrière-plan (sonde, script, serveur) est BORNÉE (`timeout`, ou boucle à sortie garantie), arrêtée avant ton rendu et LISTÉE avec sa fin ; aucun appel d'outil ne dure plus de 270 s, une commande plus longue part en fond et se sonde (règles de `codeur.md`, garde `scripts/hooks/appel-borne-guard.mjs`).
 
 ## Rendu (données brutes, par partie de la question)
 

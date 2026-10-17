@@ -1,7 +1,7 @@
 // Garde PreToolUse des shells HORS Bash (`OUTILS_SHELL`, `scripts/guards/lib/contratGarde.mjs`) : une commande
 // qu'un motif `Bash(…)` de `permissions.ask` (`.claude/settings.json`) soumet à confirmation ne part que par
 // Bash, seul outil que ces motifs couvrent — décision « Confirmation » du 2026-10-17 (#2712). Les shells
-// lean-ctx restent pré-approuvés pour les agents de fond (fiche `env-agent-cwd-separe-commande-simple`) ;
+// lean-ctx restent pré-approuvés pour les agents de fond (fiche `user-doctrine-ctx-shell-pre-approuve`) ;
 // la garde REFUSE et renvoie à Bash, jamais ne demande (`user-doctrine-gardes-jamais-de-ask`). #2721.
 import { readFileSync } from 'node:fs'
 import { OUTILS_SHELL, commandeDe } from '../guards/lib/contratGarde.mjs'

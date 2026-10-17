@@ -1,5 +1,5 @@
 // Résolveur UNIQUE de la couche de campagne runtime (#767). Frontière RÉFÉRENCE vs NARRATIF
-// (doctrine `game-campagne-json-portable-frontiere-reference-narratif`) : le narratif d'un paquet de
+// (doctrine `user-doctrine-campagne-json-portable-frontiere-reference-narratif`) : le narratif d'un paquet de
 // campagne (`state.campaignNarratif`, posé par `loadProject`) est lu ICI par id STABLE, jamais copié
 // dans `src/data` global. Les accesseurs d'affaire/indice/preset/document n'existent QUE dans la couche ; seul
 // `trappingById` chaîne campagne-d'abord puis règle globale (`findTrappingById`).

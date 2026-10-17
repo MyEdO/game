@@ -85,8 +85,8 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     expect(pickActiveModalKey({ pendingCast: {}, pendingCascade: castCascade })).toBe('cascade');
     // Ciblage CARTE (Surincantation / pose de zone) : la carte prend la main, la fenêtre s'efface —
     // et c'est l'ARBITRE qui ne l'élit pas (#1852). Il n'élit JAMAIS une modale au corps vide : le
-    // `null` rendu par le host sous une fenêtre déjà élue était un état mort (fiche mémoire
-    // `game-modal-arbiter-dead-state`). La cascade, elle, reste OUVERTE : la fenêtre revient à la pose.
+    // `null` rendu par le host sous une fenêtre déjà élue était un état mort (`.claude/rules/ui.md`).
+    // La cascade, elle, reste OUVERTE : la fenêtre revient à la pose.
     expect(pickActiveModalKey({ pendingCast: { pickingTargets: true }, pendingCascade: castCascade })).toBeNull();
     expect(pickActiveModalKey({ pendingCast: { zone: { placing: true } }, pendingCascade: castCascade })).toBeNull();
   });

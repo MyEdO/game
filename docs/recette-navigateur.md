@@ -20,6 +20,11 @@ pris fait ÉCHOUER `npm run dev` au lieu de glisser sur le suivant. Le kit de re
 port par défaut (`DEFAULT_URL`, `scripts/recette/lib.mjs`) ; `WFRP_DEV_URL` ou `--url` visent un
 autre serveur.
 
+**Serveur lancé par l'outil depuis un worktree** : le lanceur ne lit que le `.claude/launch.json` de la
+RACINE de l'arbre principal (gitignoré) ; l'entrée du worktree y pose `npm --prefix <worktree> run dev`
+sur son port dérivé (`portDev`, `scripts/port-dev.mjs`). Aucune mesure d'écran par un volet navigateur
+MASQUÉ : `requestAnimationFrame` n'y bat pas, la caméra ne suit pas ; mesurer par le kit.
+
 **La recette est adossée à l'arbre qu'elle mesure** (#1679 L1c) — trois contrôles, tous portés par
 `scripts/recette/lib.mjs`, aucun à recoder par scénario :
 
@@ -1435,15 +1440,12 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   CONTOURNEMENT EN DEUX TEMPS, seul chemin qui tienne : capturer avec un chemin EXPLICITE sous
   `.playwright-mcp/` (gitignoré, donc jamais commité par erreur), PUIS copier le PNG vers un dossier
   hors dépôt (`%TEMP%`) pour l'archiver — viser `%TEMP%` dès la prise échoue (racine non autorisée).
-- **« Browser already in use » / « Target page… has been closed » PERSISTANT (2026-07-16)** : si
-  l'erreur revient après 2 tentatives, ce n'est PAS une contention active mais un lock Chrome MORT
-  (reliquat d'une session Playwright jamais fermée proprement, pipe `--remote-debugging-pipe`
-  orphelin) — signature : les PID `chrome.exe` du profil concerné restent FIGÉS (zéro churn) entre
-  deux vérifications. Récupération : identifier UNIQUEMENT les processus du profil dédié
-  `ms-playwright-mcp\<id>` par leur ligne de commande (ex. `Get-CimInstance Win32_Process -Filter
-  "Name='chrome.exe'" | Where-Object { $_.CommandLine -like '*ms-playwright-mcp*' }`), puis
-  `Stop-Process` sur CES PID uniquement — JAMAIS un kill global par nom d'image (`chrome.exe`
-  seul) : d'autres Chrome tournent sur la machine, dont celui de l'utilisateur.
+- **« Browser is already in use »** : le profil Chrome de Playwright MCP
+  (`%LOCALAPPDATA%/ms-playwright-mcp/mcp-chrome-<hash>`) est un par racine de session (hash de la
+  première root MCP) : les sessions de même racine se le disputent. Dès la première occurrence,
+  ni réessai, ni attente, ni arrêt de ses processus : jouer la recette par le kit (§ « Session tenue »,
+  patron `scripts/qc/capture-jeu.mjs`). Une capture versionnée sort du `shot` du kit, jamais du volet
+  intégré, qui sert à regarder.
 - **Jamais de `dispatchEvent`/`MouseEvent` synthétique** pour cliquer un token/bouton — provoque de
   FAUSSES erreurs `setPointerCapture` (l'élément n'a jamais reçu de vrai pointeur). Utiliser les
   VRAIS clics Playwright (`browser_click`, sélecteur `data-cid`/rôle/texte).

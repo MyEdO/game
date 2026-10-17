@@ -10,11 +10,10 @@ import { lireStdinBorne } from '../guards/lib/stdinBorne.mjs'
 import { RACINE } from './barriere-outil.mjs'
 import { panneDe } from './panne-outil.mjs'
 import {
-  EDITION, SHELL, cheminVise, commandeDe, decisionCumulee, ecrituresDe, entreeDOutil, familleLeanCtx, nomLeanCtx, normaliserNomOutil, outilCouvert,
+  EDITION, PROJECTION, SHELL, cheminVise, commandeDe, decisionCumulee, ecrituresDe, entreeDOutil, familleLeanCtx, nomLeanCtx, normaliserNomOutil, outilCouvert, racineDeLeanCtx,
 } from '../guards/lib/contratGarde.mjs'
 import { normaliserPatchCodex, resoudreCheminPatchCodex } from '../guards/lib/patchCodex.mjs'
 import { racineNpmDe, sousRacineNpm } from '../guards/lib/racineNpm.mjs'
-import { arbrePrincipal, depotDe } from '../guards/lib/gitPorte.mjs'
 import { estRepertoire } from '../guards/lib/natureDuChemin.mjs'
 import { canoniser, relatifSousRacine } from '../docs/lib/chemin-mesure.mjs'
 import {
@@ -90,7 +89,7 @@ const CANAL_CWD = 'passer `cwd` ABSOLU, dans l’arbre principal (ses `.wt-*` co
  * le `cwd` de l'entrée de hook, sinon celui du processus. Shell lean-ctx sans `command` (`job_id`,
  * `background_action`) : rien ne s'exécute, sa base est celle du hook. Avec : son `cwd`, qui doit être
  * absolu, exister tel que lean-ctx le lit (sans conversion MSYS : `/c/x` y est le `c/x` du disque courant, #2224), et
- * tenir dans l'arbre principal (`arbrePrincipal`) — absent, il vaut le dernier `cwd` passé (lean-ctx `LEAN_CTX_VERSION` : « Working dir
+ * tenir dans l'arbre principal (`racineDeLeanCtx`) — absent, il vaut le dernier `cwd` passé (lean-ctx `LEAN_CTX_VERSION` : « Working dir
  * (persists across calls) ») ; relatif, il se résout contre la racine de lean-ctx ; hors de cet arbre,
  * lean-ctx l'exécute à sa racine (#2224). Écriture lean-ctx : un `path` relatif se résout contre la
  * racine de lean-ctx, jamais contre celle du hook.
@@ -111,7 +110,7 @@ function baseDeLAppel(entree, cwd, platform) {
   if (!isAbsolute(brut)) return nonJugeable(`\`cwd\` relatif (${brut}) : lean-ctx le résout contre SA racine`, CANAL_CWD)
   const natif = resolve(brut)
   if (!estRepertoire(natif)) return nonJugeable(`\`cwd\` inexistant tel que lean-ctx le lit (${brut} → ${natif})`, CANAL_CWD)
-  const principal = arbrePrincipal(depotDe(hook))
+  const principal = racineDeLeanCtx(hook)
   if (!principal.disponible) return nonJugeable(`\`cwd\` invérifiable (${principal.raison})`, CANAL_CWD)
   if (relatifSousRacine(canoniser(principal.valeur), natif) === null) {
     return nonJugeable(`\`cwd\` hors de l’arbre principal ${principal.valeur} (${brut}) : lean-ctx l’exécute à sa racine`, CANAL_CWD)
@@ -253,7 +252,8 @@ export function verdictDePanne(quoi, e, entree, racine = RACINE) {
 
 /**
  * Les verdicts des `gardes`, dans l'ordre, chacun étiqueté de sa garde. Une garde qui LÈVE rend son
- * `verdictDePanne` ; un `deny` court-circuite les suivantes.
+ * `verdictDePanne` ; une garde `PROJECTION` qui rend une `decision` rend un contexte qui la nomme, jamais
+ * un refus ; un `deny` court-circuite les suivantes.
  */
 export async function evaluerGardes(gardes, entree, contexte, racine = RACINE) {
   const verdicts = []
@@ -263,6 +263,9 @@ export async function evaluerGardes(gardes, entree, contexte, racine = RACINE) {
       rendus = [await sousRacineNpm(contexte.racineNpm, () => garde.evaluer(entree, contexte))].flat().filter(Boolean)
     } catch (e) {
       rendus = [verdictDePanne(`garde ${garde.nom}`, e, entree, racine)]
+    }
+    if (garde.role === PROJECTION && rendus.some((v) => v.decision)) {
+      rendus = [{ contexte: `garde ${garde.nom} en panne : une garde de projection ne décide jamais` }]
     }
     verdicts.push(...rendus.map((v) => ({ ...v, garde: garde.nom })))
     if (rendus.some((v) => v.decision === 'deny')) break
