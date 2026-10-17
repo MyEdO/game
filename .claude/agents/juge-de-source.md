@@ -1,7 +1,7 @@
 ---
 name: juge-de-source
 description: Juge de workflow en lecture seule, qui réfute contre le `Source/` la pièce soumise.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_shell, Bash, PowerShell
 model: opus
 effort: high
 ---

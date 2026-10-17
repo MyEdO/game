@@ -1,7 +1,7 @@
 ---
 name: mj-de-table
 description: MJ d'une table papier simulée (workflow `table-simulee`).
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_shell, Bash, PowerShell
 model: sonnet
 effort: medium
 ---

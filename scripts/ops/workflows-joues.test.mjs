@@ -929,9 +929,9 @@ const RUNS_COUVRANTS = {
 /** Ce qui fige un agent de fond (une commande qui attend une autorisation) : changement de dossier,
  *  enchaînement, shell prescrit, fichier de sonde écrit ou lu par redirection. */
 const INTERDITS_D_EXECUTION = /(^|[\s`"(])cd\s|&&|Shell = Bash|git -C|dossier de sondes|s'écrit sous|redirection fichier/i;
-const CONTRAT_D_EXECUTION = /Tes lectures passent par Read, Grep et Glob, chemins ABSOLUS sous l'arbre\. Toute commande passe par l'outil Bash : UNE commande simple par appel, sans changement de dossier, sans enchaînement ni pipe, sans redirection, [^\n]*chaque chemin ABSOLU sous l'arbre [^\n]*; UN SEUL appel Bash par message, jamais plusieurs en parallèle\. Une sonde est une commande [^\n]*, jamais un fichier écrit/;
+const CONTRAT_D_EXECUTION = /Tes lectures passent par Read, Grep et Glob, chemins ABSOLUS sous l'arbre\. Toute commande passe par l'outil `ctx_shell` s'il est disponible \(poste\), son paramètre `cwd` = l'arbre, sinon par l'outil Bash : UNE commande simple par appel, sans changement de dossier, sans enchaînement ni pipe, sans redirection, [^\n]*chaque chemin ABSOLU sous l'arbre [^\n]*; UN SEUL appel shell par message, jamais plusieurs en parallèle\. Une sonde est une commande [^\n]*, jamais un fichier écrit/;
 
-test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de changement de dossier, d’enchaînement ni de fichier de sonde ; qui nomme Bash ou une sonde reçoit le contrat entier', async () => {
+test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de changement de dossier, d’enchaînement ni de fichier de sonde ; qui nomme un shell ou une sonde reçoit le contrat entier', async () => {
   assert.deepEqual(Object.keys(RUNS_COUVRANTS).sort(), scriptsDeWorkflowDuDepot(RACINE).map(nomDe).sort(), 'chaque script reconnu est joué');
   const executants = [];
   for (const [script, runs] of Object.entries(RUNS_COUVRANTS)) {
@@ -939,7 +939,7 @@ test('CLASSE — tout workflow du dépôt : aucun agent ne reçoit de shell, de 
       assert.ok(promptsParLabel.size > 0, `${script} : aucun agent atteint`);
       for (const [cle, prompt] of promptsParLabel) {
         assert.doesNotMatch(prompt, INTERDITS_D_EXECUTION, `${script} ${cle}`);
-        if (/\bBash\b|\bsondes?\b/.test(prompt)) {
+        if (/\bctx_shell\b|\bBash\b|\bsondes?\b/.test(prompt)) {
           assert.match(prompt, CONTRAT_D_EXECUTION, `${script} ${cle}`);
           executants.push(script);
         }
@@ -993,11 +993,11 @@ test('CLASSE — un verdict de SUCCÈS ne se rend que sur une liste de trous VID
   }
 });
 
-test('table-simulee : la commande de dés est SIMPLE, par son chemin absolu, lancée par Bash ; les fiches des PJ se construisent par une sonde sans fichier', async () => {
+test('table-simulee : la commande de dés est SIMPLE, par son chemin absolu, lancée par `ctx_shell` (poste) ou Bash ; les fiches des PJ se construisent par une sonde sans fichier', async () => {
   const table = await jouerTable(mjSansFin);
   const mj = table.promptsParLabel.get('Partie:mj:1');
   assert.match(mj, /^ {2}npx tsx \/arbre-jete\/scripts\/ops\/table-des\.mts simple --seed "graine" --tirage <n>/m, 'la commande de dés est SIMPLE, son outil par son chemin ABSOLU dans l’arbre');
-  assert.match(mj, /une commande par jet, lancée par Bash\./);
+  assert.match(mj, /une commande par jet, lancée par `ctx_shell` \(poste\) ou Bash\./);
   assert.match(table.promptsParLabel.get('Préparation:fiches-pj'), /UNE sonde `npx tsx -e "…"`, sans fichier écrit/);
 });
 

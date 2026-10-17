@@ -70,7 +70,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
    - Lecture : workflow `dossier-de-chapitre`, args projetés par
      `node scripts/raw/workflow-args.mjs dossier-de-chapitre <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> [--compagnons <ABBR>-<NN>,…]`
      (fichiers du chapitre, tête de l'arbre lu, familles, formes et définitions d'entrée de la fiche).
-     Tout agent lit par Read/Grep et exécute par Bash, chemins absolus sous l'arbre, une commande simple
+     Tout agent lit par Read/Grep et exécute par `ctx_shell` (poste) ou Bash, chemins absolus sous l'arbre, une commande simple
      par appel, un seul appel par message, et n'écrit aucun fichier. Lentilles parallèles au `Source/` — impératifs, beats, points au MJ,
      indices, secrets et DÉCLENCHEURS (événements à l'initiative d'un PNJ ou du monde) ; PNJ, lieux,
      textes ; tests, rencontres, durée et difficulté, récompenses, états ; matière des compagnons si
@@ -109,7 +109,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
      PJ, ou pourquoi aucun), `ref` vide sans sosie ; la fiche du MJ est TIRÉE de la fiche commitée.
    - Partie : MJ agent (`mj-de-table`) qui cite le livre ou déclare IMPRO, résout chaque intention et rend
      le sort de chaque déclencheur en attente (joué, non échu, écarté), 4 joueurs cloisonnés à personas,
-     dés tirés par le moteur (une commande simple par jet, par Bash, chemin absolu de l'outil). Le MJ ignore
+     dés tirés par le moteur (une commande simple par jet, par `ctx_shell` ou Bash, chemin absolu de l'outil). Le MJ ignore
      le plafond `maxEchanges` : `fin` = le chapitre est clos selon le livre. Un rendu du MJ à tirage hors
      suite ou à déclencheur non joué sans motif lui est renvoyé (prompt, sortie fautive, anomalies), 2 fois
      au plus.

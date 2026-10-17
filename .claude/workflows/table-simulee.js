@@ -122,11 +122,11 @@ const appelValide = async (prompt, lancer, anomaliesDe) => {
   return { rendu, cause: premier.cause, anomalies, renvois }
 }
 
-/** L'outil de dés du moteur, par son chemin ABSOLU dans l'arbre : le répertoire courant de Bash n'est pas forcément l'arbre. */
+/** L'outil de dés du moteur, par son chemin ABSOLU dans l'arbre : le répertoire courant du shell n'est pas forcément l'arbre. */
 const COMMANDE_DES = `npx tsx ${WORKTREE}/scripts/ops/table-des.mts`
 /** Comment un agent de ce workflow EXÉCUTE : un agent de fond dont la commande attend une autorisation
  *  reste bloqué sans fin. */
-const EXECUTION = `Tes lectures passent par Read, Grep et Glob, chemins ABSOLUS sous l'arbre. Toute commande passe par l'outil Bash : UNE commande simple par appel, sans changement de dossier, sans enchaînement ni pipe, sans redirection, sans variable d'environnement en tête, chaque chemin ABSOLU sous l'arbre (le répertoire courant de Bash n'est pas forcément l'arbre) ; UN SEUL appel Bash par message, jamais plusieurs en parallèle. Une sonde est une commande (\`npx tsx -e "…"\`), jamais un fichier écrit ; tout processus lancé est TUÉ avant ton rendu.`
+const EXECUTION = `Tes lectures passent par Read, Grep et Glob, chemins ABSOLUS sous l'arbre. Toute commande passe par l'outil \`ctx_shell\` s'il est disponible (poste), son paramètre \`cwd\` = l'arbre, sinon par l'outil Bash : UNE commande simple par appel, sans changement de dossier, sans enchaînement ni pipe, sans redirection, sans variable d'environnement en tête, chaque chemin ABSOLU sous l'arbre (le répertoire courant du shell n'est pas forcément l'arbre) ; UN SEUL appel shell par message, jamais plusieurs en parallèle. Une sonde est une commande (\`npx tsx -e "…"\`), jamais un fichier écrit ; tout processus lancé est TUÉ avant ton rendu.`
 /** Le cadre d'un agent qui ne lit PAS le livre : le lecteur des fiches des PJ, qui ne doit rien en savoir. */
 const CADRE_ARBRE = `Arbre (chemin ABSOLU, à utiliser tel quel) : ${WORKTREE}
 Date du jour : ${DATE}
@@ -408,7 +408,7 @@ ${intentions.map((i) => `- ${designationDe.get(i.pj)} : ${i.intention}`).join('\
 
 Règles de ta table :
 - \`resolutions\` est un objet dont chaque clé est l'id NU d'un PJ qui a une intention ci-dessus (${pjsAResoudre.map((pj) => `\`${pj}\``).join(', ') || "aucune clé : l'objet est vide"}), jamais sa désignation « Nom (id) » ; sa valeur est LA résolution de cette intention : \`source: 'livre'\` avec la réf nue de la ligne qui la prévoit, ou \`source: 'IMPRO'\` avec \`ref: ''\` et une \`categorie\` parmi ${CATEGORIES_IMPRO.join(', ')} (\`categorie: ''\` quand la source est le livre). Tu ne refuses jamais en silence : un refus de la fiction se résout et se dit.
-- TOUT jet passe par l'outil de dés du moteur, jamais de tête : une commande par jet, lancée par Bash. Test simple :
+- TOUT jet passe par l'outil de dés du moteur, jamais de tête : une commande par jet, lancée par \`ctx_shell\` (poste) ou Bash. Test simple :
   ${COMMANDE_DES} simple --seed "${SEED}" --tirage <n> --valeur <valeur de Test> --difficulte <id>
   Test opposé :
   ${COMMANDE_DES} oppose --seed "${SEED}" --tirage <n> --valeur <v> --difficulte <id> --valeur-oppose <v> --difficulte-oppose <id>
