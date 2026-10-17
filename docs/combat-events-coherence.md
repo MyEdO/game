@@ -99,7 +99,7 @@ supprimer + garde de double-exécution).
 > `LDB 16 l.35` (+20 pour le toucher en mêlée). Il perd connaissance après BE Rounds (`LDB 18 l.15`) ; il
 > meurt Inconscient à 0 quand ses Blessures critiques dépassent son BE (`LDB 18 l.34`), ou par une ligne
 > mortelle du Tableau des Critiques (`LDB 18 l.38`). L'oubli « dans le tumulte du combat » vise ceux qui
-> sont « au sol, apparemment morts » (`LDB 18 l.36`), donc l'Inconscient, que `isOutOfAction` retire du ciblage.
+> sont « au sol, apparemment morts » (`LDB 18 l.36`), donc l'Inconscient ; sa mise à mort par un adversaire Engagé (`LDB 18 l.36`) : #2660.
 
 Modèle de mort (RAW LDB 18, `engine/conditions.ts`) :
 - 0 PB → À Terre, **conscient**, `isOutOfAction` FAUX.
@@ -120,7 +120,7 @@ Côté IA (`state/ai.ts`, `state/combatFlow.ts`) :
 incrémentant `target.criticalWounds` (`state/combatFlow.ts`), **sans mourir** tant que la porte
 (Inconscient ET `crit > BE`) n'est pas franchie, hors ligne mortelle du Tableau des Critiques.
 
-### 4b. Suspecté (non clos par lecture statique) : « X est hors combat » puis ils continuent
+### 4b. Suspecté (non clos par lecture statique) : « X est hors combat » puis ils continuent (#2661)
 - La ligne de journal `cf.outOfAction` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
   sites de `state/combatFlow.ts`).
 - Un héros à Destin : `finalizeHeroDeath` pose `pendingFateSave` et **suspend** sans tuer.
