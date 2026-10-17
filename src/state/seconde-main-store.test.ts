@@ -1,6 +1,6 @@
 /**
  * LA VALEUR DE LA 2ᵉ FRAPPE DU MANIEMENT DE DEUX ARMES, jouée par le store (`attackConfirm` → `jouerLaSuiteDuCoup`).
- * LDB 10 l.773 ; LDB 18 l.53 ; LDB 13 l.183 ; #1595 c.6229354257, c.6229550544.
+ * LDB 10 l.773 ; LDB 18 l.53 ; LDB 13 l.183 ; LDB 41 l.170 ; MDG 13 l.656, l.724 ; AA 10 l.114 ; #1595 c.6229354257, c.6229550544.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
@@ -12,6 +12,8 @@ import { setRule, resetRule } from '../engine/policy';
 import { rederivePassiveAttack, resolveMelee, type AttackResult } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
 import { recomputeLoadout } from '../engine/items';
+import { applyOps, type GameOp } from '../engine/ops';
+import { rollShipCritical } from '../engine/shipCritical';
 import type { CascadeStep } from './pendings';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 
@@ -46,11 +48,14 @@ interface Frappe {
   tenu?: boolean;
   /** La touche, résolue par le moteur à la place de `rederivePassiveAttack`. */
   resoudre?: (heros: Combatant, cible: Combatant, arme: Weapon) => AttackResult;
+  /** Les ops que le héros porte avant la frappe. */
+  opsDuHeros?: GameOp[];
 }
 
 /** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `attackConfirm`. */
-function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, retenu = false, tenu = false, resoudre }: Frappe) {
+function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, retenu = false, tenu = false, resoudre, opsDuHeros = [] }: Frappe) {
   const heros = mk('hero', 'bretteur', { weapons: [arme, dague] } as never);
+  applyOps(heros, opsDuHeros);
   const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, ...over } as never);
   const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
   if (pieces.length) { cible.items = structuredClone(pieces); recomputeLoadout(cible); }
@@ -151,5 +156,47 @@ describe('la 2ᵉ frappe après un Coup Critique prend un d100 du tableau, jamai
     expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
     expect(jet()).toBe(crits[0].reveal!.dice);
     expect(jet()).not.toBe(3);
+  });
+});
+
+/** Sous `GRAINE` : le d10 de la table de coque du coracle, et les d100 figés de chaque cas. */
+const D10_DE_COQUE = 6;
+const D100_NAVIRE = 61;
+const D100_TABLE_STRUCTURE = 52;
+const D100_STRUCTURE = 53;
+const D100_SAUVAGERIE_RETENU = 61;
+
+describe('la valeur de la 2ᵉ frappe hors table de Personnage et sous Sauvagerie (#1595 c.6229550544)', () => {
+  it('Navire, double 33 : un d100 nu tiré pour la 2ᵉ frappe, jamais le d10 de la table de coque (MDG 13 l.656, l.724)', () => {
+    const res = premiereFrappe({ roll: 33, cible: { bodyShape: 'vehicule', creatureId: 'coracle', wounds: { current: 60, max: 60 } } as never });
+    for (let i = 0; i < 20 && !useGame.getState().pendingDualStrike; i++) avanceEtapeCascade(useGame.getState);
+    expect(res.critical).toBe(true);
+    expect(vivant('cible').criticalWounds).toBe(1);
+    const journal = useGame.getState().battle!.log.map((l) => l.text);
+    expect(journal, 'la table de coque a tiré ce d10').toContain(rollShipCritical('coque', makeRNG(0), D10_DE_COQUE).log);
+    expect(jet()).toBe(D100_NAVIRE);
+    expect(jet()).not.toBe(D10_DE_COQUE);
+    expect(jet()).not.toBe(33);
+  });
+
+  it('Structure, Coup Critique au double 33 : un d100 nu tiré pour la 2ᵉ frappe, jamais celui de la table AA (AA 10 l.114)', () => {
+    const res = premiereFrappe({ roll: 33, cible: { bodyShape: 'structure', important: false, wounds: { current: 10, max: 30 } } as never });
+    for (let i = 0; i < 20 && !useGame.getState().pendingDualStrike; i++) avanceEtapeCascade(useGame.getState);
+    expect(res.critical).toBe(true);
+    const crits = critiques();
+    expect(crits.map((s) => s.reveal?.title)).toEqual(['Critique de Structure']);
+    expect(crits[0].reveal!.dice).toBe(D100_TABLE_STRUCTURE);
+    expect(jet()).toBe(D100_STRUCTURE);
+    expect(jet()).not.toBe(D100_TABLE_STRUCTURE);
+  });
+
+  it('Bénédiction de Sauvagerie, double 33 : la 2ᵉ frappe vaut le d100 RETENU du tableau (LDB 41 l.170)', () => {
+    const res = premiereFrappe({ roll: 33, opsDuHeros: [{ op: 'critTwice' }] });
+    for (let i = 0; i < 20 && !useGame.getState().pendingDualStrike; i++) avanceEtapeCascade(useGame.getState);
+    expect(res.critical).toBe(true);
+    const crits = critiques();
+    expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
+    expect(crits[0].reveal!.dice).toBe(D100_SAUVAGERIE_RETENU);
+    expect(jet()).toBe(D100_SAUVAGERIE_RETENU);
   });
 });
