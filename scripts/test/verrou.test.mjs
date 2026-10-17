@@ -424,6 +424,15 @@ test('#2603 — identité : PID RÉUTILISÉ (création mesurée postérieure) = 
   assert.equal(prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(ancien), estVivant: () => true, identite: tolere.identite }).etat, 'refus', 'dans la tolérance')
 })
 
+test('#2603 — identité : un tenant pris sans identité (sans `creation`) est jugé sur son existence seule (`NAISSANCE_ABSENTE`), sans lecture', () => {
+  for (const [vivant, attendu] of [[true, 'refus'], [false, 'pris']]) {
+    const { identite, lectures } = identiteFeinte({ 1234: 9_999_999 })
+    const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(tenu(1234, 'g')), estVivant: () => vivant, identite })
+    assert.equal(vu.etat, attendu, `kill(pid, 0) ${vivant}`)
+    assert.deepEqual(lectures, [])
+  }
+})
+
 test('#2603 — identité : aucune lecture de création d’un PID mort au sens de kill(pid, 0) ; refusée hors du PID courant', () => {
   const { identite, lectures } = identiteFeinte({ 1234: 1_000 })
   const vu = prendreVerrou({ chemin: VERROU, libelle: LIBELLE, fs: fsFactice(tenu(1234, 'g', { creation: 1_000 })), estVivant: () => false, identite })

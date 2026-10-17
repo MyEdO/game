@@ -953,6 +953,8 @@ test('pid réutilisé : un verrou de reconstruction tenu par un pid vivant né a
     })
     assert.equal(attendre(1_001_001).etat, 'mort')
     assert.equal(attendre(1_001_000).etat, 'en-cours')
+    writeFileSync(chemins.verrou, JSON.stringify({ pid: 4250, date: new Date().toISOString() }))
+    assert.equal(attendre(1_001_001).etat, 'en-cours', 'tenant pris sans identité : `NAISSANCE_ABSENTE`, l’existence seule')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

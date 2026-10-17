@@ -2,7 +2,7 @@
 // sondé ; ESRCH, EPERM et toute autre erreur de `process.kill(pid, 0)` portés par une sonde injectée.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { creationMemorisee, estPidDeProcessus, estPidVivant, estPidVivantDepuis } from './pid.mjs'
+import { NAISSANCE_ABSENTE, creationMemorisee, estPidDeProcessus, estPidVivant, estPidVivantDepuis } from './pid.mjs'
 import { constructionsReserveesDuCorpus, scanConstructionsReservees, SONDE_D_EXISTENCE } from './canonUnique.mjs'
 import { corpusDesGardes } from './commentPoison.mjs'
 
@@ -47,6 +47,21 @@ test('estPidVivantDepuis : pid invalide ou ESRCH mort sans mesure ; mesure indé
   assert.equal(estPidVivantDepuis(7, 5_000, identite(6_000), { estVivant: vivant }), true)
   assert.equal(estPidVivantDepuis(7, 5_000, identite(6_001), { estVivant: vivant }), false)
   assert.deepEqual(mesures, [7, 7, 7])
+})
+
+// #2603
+test('estPidVivantDepuis : `NAISSANCE_ABSENTE` juge l’existence seule, sans mesure ; toute autre naissance non finie LÈVE, même pour un pid mort', () => {
+  const mesures = []
+  const identite = { toleranceMs: 0, lireCreation: (pid) => { mesures.push(pid); return 9_999_999 } }
+  assert.equal(estPidVivantDepuis(7, NAISSANCE_ABSENTE, identite, { estVivant: () => true }), true)
+  assert.equal(estPidVivantDepuis(7, NAISSANCE_ABSENTE, identite, { estVivant: () => false }), false)
+  assert.deepEqual(mesures, [], 'sans naissance, aucune mesure')
+  for (const naissance of [undefined, null, Number.NaN, Infinity, '5000', Symbol('NAISSANCE_ABSENTE')]) {
+    for (const estVivant of [() => true, () => false]) {
+      assert.throws(() => estPidVivantDepuis(7, /** @type {any} */ (naissance), identite, { estVivant }), (e) => e instanceof TypeError && /NAISSANCE_ABSENTE/.test(e.message), String(naissance))
+    }
+  }
+  assert.deepEqual(mesures, [])
 })
 
 // #2603

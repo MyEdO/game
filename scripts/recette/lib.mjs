@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import { attendreSync } from '../guards/lib/spawnResilient.mjs';
 import { TOLERANCE_CREATION_MS } from '../guards/lib/processusWorktrees.mjs';
-import { estPidVivant } from '../guards/lib/pid.mjs';
+import { NAISSANCE_ABSENTE, estPidVivant, estPidVivantDepuis } from '../guards/lib/pid.mjs';
+import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs';
 import { browserFreezeTimeout, browserUnfreezeTimeout } from '../../src/state/devtoolsTimers.ts';
 import { ENTETE_RACINE, RACINE, normaliserRacine, racineDepuisEntete, urlDev } from '../port-dev.mjs';
 
@@ -382,14 +383,14 @@ export async function waitForWsUrl(port, timeoutMs = 10000, { recuperer = fetch 
 /** Préfixe des profils Chrome JETABLES du kit, sous `os.tmpdir()` — la purge des orphelins le lit. */
 export const PREFIXE_PROFIL = 'recette-cdp-profile-';
 
-/** Nom d'un profil : il porte le PID du process qui lance Chrome (`p<pid>`), relu par
- *  `purgerProfilsOrphelins`. */
+/** Nom d'un profil : il porte le PID du process qui lance Chrome (`p<pid>`) et sa naissance (`Date.now()`,
+ *  posé par ce process), relus par `purgerProfilsOrphelins` (#2603). */
 export const nomDeProfil = (pid) => `${PREFIXE_PROFIL}p${pid}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
-/** Le PID consigné dans un nom de profil (`nomDeProfil`), ou `null` si le nom n'en porte pas. */
+/** Le lanceur consigné dans un nom de profil (`nomDeProfil`) : `{ pid, naissance }`, ou `null` si le nom n'en porte pas (#2603). */
 export function pidDeProfil(nom) {
-  const m = new RegExp(`^${PREFIXE_PROFIL}p(\\d+)-`).exec(nom);
-  return m ? Number(m[1]) : null;
+  const m = new RegExp(`^${PREFIXE_PROFIL}p(\\d+)-(\\d+)-`).exec(nom);
+  return m ? { pid: Number(m[1]), naissance: Number(m[2]) } : null;
 }
 
 /** Sous-dossier du profil jetable où Chrome dépose les téléchargements (`launchSession`). */
@@ -2666,10 +2667,12 @@ export function fichierDeSession(racine = RACINE_COURANTE, dossier = os.tmpdir()
 export const signalDe = (fichier, quoi) => `${fichier}.${quoi}`;
 export const SIGNAUX = Object.freeze(['fermer', 'vue', 'actif']);
 
-/** Ce que le fichier de session publie (PURE) : de quoi s'attacher, observer, et nettoyer. */
-export function descripteurSession({ pidGardien, session, url, journal, vue, racine = RACINE_COURANTE }) {
+/** Ce que le fichier de session publie (PURE) : de quoi s'attacher, observer, et nettoyer ; le gardien, né à
+ *  `naissanceGardien` (#2603). */
+export function descripteurSession({ pidGardien, naissanceGardien, session, url, journal, vue, racine = RACINE_COURANTE }) {
   return {
     pidGardien,
+    naissanceGardien,
     pidChrome: session.chrome?.pid ?? null,
     port: session.port,
     targetId: session.targetId,
@@ -2679,6 +2682,19 @@ export function descripteurSession({ pidGardien, session, url, journal, vue, rac
     vue: { nom: vue.nom, largeur: vue.largeur, hauteur: vue.hauteur },
     racine: normaliserRacine(racine),
   };
+}
+
+/** Le gardien du descripteur `d` (`descripteurSession`) vit-il ? Né à `naissanceGardien` ; un fichier qui n'en
+ *  porte pas : `NAISSANCE_ABSENTE` (#2603). */
+export const gardienVivant = (d, { vivant = estPidVivant, identite = IDENTITE_MESUREE } = {}) =>
+  estPidVivantDepuis(d.pidGardien, d.naissanceGardien ?? NAISSANCE_ABSENTE, identite, { estVivant: vivant });
+
+/** L'état de la session de `fichier` : `aucune`, `tenue` (gardien vivant, `gardienVivant`) ou `gardien-mort`, avec
+ *  son descripteur. */
+export function etatDeSession(fichier, { disque = DISQUE, vivant = estPidVivant, identite = IDENTITE_MESUREE } = {}) {
+  if (!disque.existe(fichier)) return { etat: 'aucune', fichier };
+  const d = JSON.parse(disque.lire(fichier));
+  return { etat: gardienVivant(d, { vivant, identite }) ? 'tenue' : 'gardien-mort', fichier, ...d };
 }
 
 /** Lecture du journal de console du gardien à partir de l'octet `depuis` : `{ entries, errors(), warnings() }`. */
@@ -2699,15 +2715,15 @@ const cibleDejaPartie = (e) => isNavigationError(e) || /No session with given id
  *    rien, puis signale au gardien de ré-imposer SA vue (l'émulation d'un client tombe avec lui) ;
  *  - aucune console n'est posée par le client : un client qui active `Runtime`/`Log` reçoit le PASSÉ
  *    de la console. `session.console` lit le journal du GARDIEN, découpé à l'attache.
- * Refus NOMMÉS, sans pendre : aucune session, gardien mort (PID absent), CDP muet.
+ * Refus NOMMÉS, sans pendre : aucune session, gardien mort (`gardienVivant` : PID absent ou réutilisé), CDP muet.
  */
 export async function attacherSession(fichier = fichierDeSession(), {
-  disque = DISQUE, vivant = estPidVivant, recuperer = fetch, connecter = (url) => new WebSocket(url), delaiMs = 5000,
+  disque = DISQUE, vivant = estPidVivant, identite = IDENTITE_MESUREE, recuperer = fetch, connecter = (url) => new WebSocket(url), delaiMs = 5000,
   taille = (chemin) => statSync(chemin).size, signaler = (chemin) => writeFileSync(chemin, String(Date.now())),
 } = {}) {
   if (!disque.existe(fichier)) throw new Error(`attacherSession : aucune session tenue (${fichier}) — lancer « node scripts/recette/session.mjs ouvrir » en fond`);
   const d = JSON.parse(disque.lire(fichier));
-  if (!vivant(d.pidGardien)) {
+  if (!gardienVivant(d, { vivant, identite })) {
     throw new Error(`attacherSession : le gardien (pid ${d.pidGardien}) est MORT — « node scripts/recette/session.mjs fermer » purge son profil et son fichier`);
   }
   let wsUrl;
@@ -2744,11 +2760,11 @@ export async function attacherSession(fichier = fichierDeSession(), {
  */
 export async function tenirSession(url = DEFAULT_URL, {
   vue = 'bureau', inactiviteMs = 30 * 60 * 1000, fichier = fichierDeSession(), pasMs = 250, timeoutMs = 120000, ouvrir = openApp,
-  disque = DISQUE, vivant = estPidVivant,
+  disque = DISQUE, vivant = estPidVivant, identite = IDENTITE_MESUREE,
 } = {}) {
   const refusTenue = () => {
     const ancien = JSON.parse(disque.lire(fichier));
-    if (vivant(ancien.pidGardien)) return new Error(`tenirSession : une session est déjà tenue par le gardien ${ancien.pidGardien} (${fichier})`);
+    if (gardienVivant(ancien, { vivant, identite })) return new Error(`tenirSession : une session est déjà tenue par le gardien ${ancien.pidGardien} (${fichier})`);
     return new Error(`tenirSession : fichier de session d'un gardien MORT (${fichier}) — « session.mjs fermer » le nettoie d'abord`);
   };
   if (disque.existe(fichier)) throw refusTenue();
@@ -2770,7 +2786,7 @@ export async function tenirSession(url = DEFAULT_URL, {
     crees.push(journal);
     session = await ouvrir(url, { timeoutMs, width: v.largeur, height: v.hauteur, console: { journal } });
     try {
-      disque.ecrire(fichier, JSON.stringify(descripteurSession({ pidGardien: process.pid, session, url, journal, vue: v }), null, 2), { exclusif: true });
+      disque.ecrire(fichier, JSON.stringify(descripteurSession({ pidGardien: process.pid, naissanceGardien: performance.timeOrigin, session, url, journal, vue: v }), null, 2), { exclusif: true });
     } catch (e) {
       if (e.code === 'EEXIST') throw refusTenue();
       throw e;
@@ -2798,17 +2814,17 @@ export async function tenirSession(url = DEFAULT_URL, {
 /**
  * FERME la session de `fichier`, IDEMPOTENT :
  *  - aucune session → `{ etat: 'aucune' }` ;
- *  - gardien vivant → signal `fermer`, puis attente de la disparition du fichier (le gardien nettoie) ;
+ *  - gardien vivant (`gardienVivant`) → signal `fermer`, puis attente de la disparition du fichier (le gardien nettoie) ;
  *  - gardien mort → son profil est purgé par son CHEMIN enregistré (jamais une mise à mort : Chrome est
  *    mort avec lui, et le PID peut avoir été réattribué), purge VÉRIFIÉE, puis fichier, signaux et
  *    journal supprimés.
  */
 export async function fermerSession(fichier = fichierDeSession(), {
-  disque = DISQUE, vivant = estPidVivant, signaler = (chemin) => writeFileSync(chemin, String(Date.now())), attenteMs = 30000, pasMs = 250,
+  disque = DISQUE, vivant = estPidVivant, identite = IDENTITE_MESUREE, signaler = (chemin) => writeFileSync(chemin, String(Date.now())), attenteMs = 30000, pasMs = 250,
 } = {}) {
   if (!disque.existe(fichier)) return { etat: 'aucune' };
   const d = JSON.parse(disque.lire(fichier));
-  if (vivant(d.pidGardien)) {
+  if (gardienVivant(d, { vivant, identite })) {
     signaler(signalDe(fichier, 'fermer'));
     const fin = Date.now() + attenteMs;
     while (disque.existe(fichier)) {
@@ -2822,7 +2838,7 @@ export async function fermerSession(fichier = fichierDeSession(), {
   return { etat: 'gardien-mort', profilPurge, profil: d.profil };
 }
 
-/** Le Chrome inscrit au `SingletonLock` d'un profil (lien `hôte-pid` que Chrome pose sous POSIX) :
+/** Le Chrome inscrit au `SingletonLock` d'un profil (lien `hôte-pid` que Chrome pose sous POSIX, sans naissance) :
  *  `{ absent: true }` sans verrou, `{ hote, pid }` lu, `{ illisible }` sinon. */
 function verrouChrome(profil, { disque = DISQUE } = {}) {
   let cible;
@@ -2839,8 +2855,10 @@ function verrouChrome(profil, { disque = DISQUE } = {}) {
 /**
  * PURGE les profils ORPHELINS du kit (`PREFIXE_PROFIL` sous `dossier`). FAIL-SAFE : un profil ne se purge
  * que sur PREUVE qu'aucun process ne l'utilise :
- *  - le PID de son lanceur, consigné dans son nom (`pidDeProfil`), est MORT ;
- *  - hors win32, EN PLUS, le Chrome de son `SingletonLock` (`verrouChrome`) est mort, sur CET hôte, ou
+ *  - son lanceur, consigné dans son nom (`pidDeProfil`), est MORT : PID absent, ou RÉUTILISÉ depuis la naissance
+ *    du nom (`estPidVivantDepuis`) ;
+ *  - hors win32, EN PLUS, le Chrome de son `SingletonLock` (`verrouChrome`) est mort, sur CET hôte (son
+ *    existence seule, `NAISSANCE_ABSENTE` : le verrou de Chrome n'en porte pas), ou
  *    le verrou est absent : hors du job object de win32 (`OPTIONS_SPAWN_CHROME`), Chrome peut survivre
  *    à son lanceur.
  * Lanceur ou Chrome vivant → compté dans `vivants`. Nom sans PID, verrou illisible ou d'un autre hôte →
@@ -2849,19 +2867,19 @@ function verrouChrome(profil, { disque = DISQUE } = {}) {
  * — chaque purge est VÉRIFIÉE.
  */
 export async function purgerProfilsOrphelins({
-  dossier = os.tmpdir(), disque = DISQUE, vivant = estPidVivant, plateforme = process.platform, hote = os.hostname(),
+  dossier = os.tmpdir(), disque = DISQUE, vivant = estPidVivant, identite = IDENTITE_MESUREE, plateforme = process.platform, hote = os.hostname(),
 } = {}) {
   const trouves = disque.lister(dossier).filter((n) => n.startsWith(PREFIXE_PROFIL));
   const bilan = { trouves: trouves.length, purges: 0, vivants: 0, sansPreuve: [], echecs: [] };
   for (const nom of trouves) {
     const profil = join(dossier, nom);
-    const pid = pidDeProfil(nom);
-    if (pid === null) { bilan.sansPreuve.push(profil); continue; }
-    if (vivant(pid)) { bilan.vivants += 1; continue; }
+    const lanceur = pidDeProfil(nom);
+    if (lanceur === null) { bilan.sansPreuve.push(profil); continue; }
+    if (estPidVivantDepuis(lanceur.pid, lanceur.naissance, identite, { estVivant: vivant })) { bilan.vivants += 1; continue; }
     if (plateforme !== 'win32') {
       const verrou = verrouChrome(profil, { disque });
       if (!verrou.absent && (verrou.pid === undefined || verrou.hote !== hote)) { bilan.sansPreuve.push(profil); continue; }
-      if (!verrou.absent && vivant(verrou.pid)) { bilan.vivants += 1; continue; }
+      if (!verrou.absent && estPidVivantDepuis(verrou.pid, NAISSANCE_ABSENTE, identite, { estVivant: vivant })) { bilan.vivants += 1; continue; }
     }
     if (purgerProfil(profil, { disque, echeanceMs: 1500 })) bilan.purges += 1;
     else bilan.echecs.push(profil);
