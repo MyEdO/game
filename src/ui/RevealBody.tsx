@@ -81,7 +81,7 @@ export function RevealBody({ entry, actor, subject }: { entry: RevealEntry; acto
     return (
       <ParchmentCard>
         {entry.lines.map((l, i) => (
-          <div key={i} className="modal-log"><Prose md={l} porteur={entry.sceneId !== undefined ? porteurDeScene({ campaignDoc }, entry.sceneId, 'startMessage.texte') : undefined} /></div>
+          <div key={i} className="modal-log"><Prose md={l} paquet porteur={entry.sceneId !== undefined ? porteurDeScene({ campaignDoc }, entry.sceneId, 'startMessage.texte') : undefined} /></div>
         ))}
       </ParchmentCard>
     );

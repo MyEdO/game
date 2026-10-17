@@ -99,7 +99,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
       {mb.terrain && (
         <div className="mb-terrain">
           <h3>Configuration du terrain</h3>
-          <Prose md={mb.terrain} />
+          <Prose md={mb.terrain} paquet />
         </div>
       )}
       {threatPen !== 0 && (

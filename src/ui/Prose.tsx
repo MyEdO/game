@@ -24,6 +24,8 @@ import { CodexRef } from './compendium/CodexRef';
 import { ParchmentCard } from './ParchmentCard';
 import { tokenizeLinks } from './compendium/relations';
 import type { Porteur } from './liage';
+import { useIdentites } from './useIdentites';
+import { nommer } from '../state/identites';
 import { decodeString } from 'micromark-util-decode-string';
 
 /** Nœud HAST minimal (sous-ensemble manipulé par le plugin d'auto-liage). */
@@ -206,7 +208,7 @@ const COMPONENTS = {
  * carte-parchemin à leur place — et RIEN n'y est lié, une citation étant la voix du livre et non du
  * texte de règle.
  */
-export function Prose({ md, porteur, exergues: avecExergues, annotations, compact }: { md: string; porteur?: Porteur; exergues?: boolean; annotations?: readonly AnnotationProse[]; compact?: boolean }) {
+function RenduProse({ md, porteur, exergues: avecExergues, annotations, compact }: Omit<ProseProps, 'paquet'>) {
   // Mémo sur les VALEURS du porteur (type/id), pas sur l'objet : les appelants le composent à la volée
   // (`{ type, id, chemin }`), un mémo par référence re-tokeniserait la prose à chaque rendu.
   const type = porteur?.type;
@@ -227,6 +229,23 @@ export function Prose({ md, porteur, exergues: avecExergues, annotations, compac
     </ReactMarkdown>
   );
   return compact ? <div className="prose-compact">{contenu}</div> : contenu;
+}
+
+/** Les props de `Prose`. `paquet` : le texte est une prose de PAQUET (`SITES_PROSE`), rendue nommée par les
+ *  identités en vigueur (`nommer`, `src/state/identites.ts`) ; ses annotations, posées sur le texte stocké, en sont exclues. */
+type ProseProps = { md: string; porteur?: Porteur; exergues?: boolean; compact?: boolean } & (
+  | { paquet?: false; annotations?: readonly AnnotationProse[] }
+  | { paquet: boolean; annotations?: never }
+);
+
+export function Prose({ paquet, ...props }: ProseProps) {
+  return paquet ? <ProseDePaquet {...props} /> : <RenduProse {...props} />;
+}
+
+function ProseDePaquet({ md, ...props }: Omit<ProseProps, 'paquet' | 'annotations'>) {
+  const identites = useIdentites();
+  const nomme = useMemo(() => nommer(md, identites), [md, identites]);
+  return <RenduProse md={nomme} {...props} />;
 }
 
 /** Markdown → texte brut (tooltips/blurbs où l'on ne peut pas rendre de React). Approximatif (suffisant
