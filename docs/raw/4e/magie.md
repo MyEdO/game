@@ -1728,7 +1728,7 @@ Table de synthèse des modificateurs (Incantation / Focalisation / Saturation) e
 | Projectile magique (localisation inversée, dégâts) | LDB 46 l.99-101 | OK |
 | Composants (Majeure→Mineure, Mineure→annulée) | LDB 46 l.107-114 | OK |
 | Restrictions (parole, unicité, non-cumul, LoS) | LDB 46 l.116-121 | OK |
-| Sort de Contact en combat (Corps à corps Bagarre) | LDB 46 l.103-105 | NON IMPLÉMENTÉ — #2669 |
+| Sort de Contact en combat (Corps à corps Bagarre) | LDB 46 l.103-105 | Dette #2669 « Sort de contact (LDB 46 l.105) : Bagarre du lanceur absente, opposition inversée, Projectile localisé par l'Incantation » |
 | Attributs de Domaine — Bête (Peur 1 post-incantation) | LDB 48 l.7 | OK — `domainAfterCast` |
 | Attributs de Domaine — Cieux (bypass PA métal + AoE 2 m) | LDB 48 l.105 | OK — `domainMissileMods` / `domainOnHitEffects` |
 | Attributs de Domaine — Lumière (Aveuglé + frappe BInt vs Démons/Mort-vivants) | LDB 48 l.302 | OK — `domainOnHitEffects` |
