@@ -429,6 +429,11 @@ export interface OptionsCritique {
   forcedRoll?: number;
 }
 
+/** d100 nu du tableau des Critiques. LDB 18 l.53 ; LDB 41 l.170 ; #1595 c.6229550544. */
+export function lancerDuTableau(rng: RNG, twice: boolean): number {
+  return twice ? Math.max(d100(rng), d100(rng)) : d100(rng);
+}
+
 /**
  * Résout une Blessure critique sur `target` à la `location`, dans le `jeu` donné. Le nœud `test` de
  * l'entrée n'est PAS joué ici : il ressort en `testFlow`, enjeu posé, et l'appelant `state` l'ouvre
@@ -445,7 +450,7 @@ export function resolveCritique(
   const { overkill = 0, twice = false, forcedRoll } = options;
   const regime = regimeDe(jeu);
   const be = bonus(effectiveChar(target, 'endurance'));
-  const raw = forcedRoll ?? (twice ? Math.max(d100(rng), d100(rng)) : d100(rng));
+  const raw = forcedRoll ?? lancerDuTableau(rng, twice);
   const roll = Math.max(1, raw + regime.severite(target, overkill));
   const entry = structuredClone(findTableEntry(rangeesLues(critiqueTable(jeu, location)), roll)); // repli Bras (LDB 76 l.21) si loc sans table dédiée ; #2097
   const ops: GameOp[] = [...(entry.ops ?? [])];

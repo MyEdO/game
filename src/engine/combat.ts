@@ -38,7 +38,7 @@ import { offHandPenalty, talentDamageBonus, isSlayer, talentRangedAPIgnore, igno
 import { isEngagedWith, meleeReachRank } from './engagement';
 import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
-import type { CauseCoupCritique, OrigineCritique } from './critical';
+import { lancerDuTableau, type CauseCoupCritique, type OrigineCritique } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
@@ -49,6 +49,16 @@ export function reverseRoll(r: number): number {
   let rev = o * 10 + t;
   if (rev === 0) rev = 100;
   return rev;
+}
+
+/** Jet de la seconde frappe du Maniement de deux armes. LDB 10 l.773 ; LDB 41 l.170 ; #1595 c.6229550544. */
+export function lancerDeLaSecondeMain(
+  touche: Pick<AttackResult, 'critical' | 'lancerDuTableau'>,
+  mainRoll: number,
+  rng: RNG,
+  twice: boolean,
+): number {
+  return touche.critical ? (touche.lancerDuTableau ?? lancerDuTableau(rng, twice)) : reverseRoll(mainRoll);
 }
 
 // ── Localisation des coups — FOYER UNIQUE data-driven (`src/data/localisation.json`) ──────────────
@@ -499,6 +509,9 @@ export interface AttackResult {
   /** La première Blessure critique appliquée par CE coup, écrite à l'application : `naturel` =
    *  `CriticalResolved.naturel`. LDB 10 l.773 ; #1595 c.6227274650 Q3. */
   critiqueApplique?: { origine: OrigineCritique; naturel: number };
+  /** d100 nu du tableau des Critiques du Coup Critique de CE coup, quand une table l'a tiré. LDB 10 l.773 ;
+   *  LDB 18 l.53. */
+  lancerDuTableau?: number;
   /** #1595 c.6221792068 Q2. */
   sansPrise?: SansPrise;
   /** SAUVEGARDE « 1d10 ≥ Indice » de CE coup, DÉCIDÉE (LDB 85 l.98, LDB 85 l.278, LDB 47 l.410) — posée
