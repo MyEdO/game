@@ -103,7 +103,6 @@
 - [aide de jeu à écrire](game-finalite.md)
 - [delta 4e→5e](reference-doc-differences-4e-5e-carte-jamais-source.md)
 - [citer un arbitrage 5e du jeu](feedback-5e-arbitrages-1816.md)
-- [table et État 5e divergent](game-5e-etat-prime.md)
 
 ## Données, doc, éditeur
 - [flux qui émet du texte](game-structure-plus-renderer.md)
@@ -154,6 +153,7 @@
 ## Hors jeu — monde Foundry
 > Bascule 5e de la table Foundry « Campagne Impériale Mercredi », un autre produit : ces fiches ne s'appliquent pas au jeu.
 - [règle basculée en 5e](foundry-5e-retirer-le-4e.md)
+- [État 5e contre table](foundry-5e-etat-prime.md)
 - [recharger l'onglet MJ](foundry-onglet-mj.md)
 - [Momentum de la table](foundry-5e-pas-de-momentum.md)
 - [effectScripts](foundry-effectscripts.md)

@@ -24,4 +24,4 @@ les grandes créatures cumulaient les deux éditions.
 **How to apply:** avant de déclarer une bascule faite, chercher dans `wfrp4e.js` toutes les coutures
 qui implémentent la règle 4e correspondante (pas seulement celle qu'on a patchée), et vérifier qu'elles
 sont neutralisées. Le vérificateur du monde doit porter un contrôle par couture retirée, pas seulement
-par couture ajoutée. Voir [[game-5e-etat-prime]].
+par couture ajoutée. Voir [[foundry-5e-etat-prime]].

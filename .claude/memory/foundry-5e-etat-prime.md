@@ -1,6 +1,6 @@
 ---
-name: game-5e-etat-prime
-description: "WFRP 5e — quand la table des modificateurs de combat contredit la description d'un État, la description gagne"
+name: foundry-5e-etat-prime
+description: "Monde Foundry — WFRP 5e : quand la table des modificateurs de combat contredit la description d'un État, la description gagne"
 metadata: 
   node_type: memory
   type: project
@@ -11,6 +11,8 @@ metadata:
 Le livre 5e se contredit entre les tables de modificateurs de combat (`08 - Rules.md` l.1497-1515) et
 les descriptions d'États (l.2258-2335). Arbitrage utilisateur : **c'est la description de l'État qui
 fait foi.**
+
+Portée : monde Foundry seulement, pas le jeu. Verbatim utilisateur, 2026-10-17 (carte de décision) : « Foundry seulement ».
 
 Verbatim utilisateur, 2026-09-16 : « En cas de conflit, c'est la description de l'état qui gagne. »
 
