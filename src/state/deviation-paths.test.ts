@@ -15,7 +15,7 @@ import { applyAttackResult, applyOpposedCritical, applyCast, resolveDeviation } 
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
-import { critWoundLocation } from '../engine/critical';
+import { critWoundLocation, critTableRows, critTableKeyFor, critImmediateSummary } from '../engine/critical';
 import { resetRule, setRule } from '../engine/policy';
 import { locationLabel, type Combatant, type HitLocation, type Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
@@ -121,6 +121,34 @@ describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30
     expect(aPleinesPA, 'le Métal ignore les mailles et ajoute leurs PA').toBeGreaterThan(sansDomaine);
     expect(cible.wounds.current).toBe(30 - aPleinesPA);
     expect(cible.criticalWounds ?? 0).toBe(0);
+  });
+
+  // LDB 63 l.30, l.32 ; LDB 18 l.53 ; #1595 c.6240485441 Q1.
+  it('F6 Critique dévié : la ligne de table ne retire aucun PB, seules les Blessures du coup tombent', () => {
+    const spell = missileSpell({ ignorePA: true });
+    const tranche = (devier: boolean) => {
+      const caster = mage('enemy', 'e-mage');
+      const t = mk('hero', 'T', { armour: uniformArmour(4) });
+      const aPleinesPA = evaluateMissile(caster, t, spell, cr).woundsLost ?? 0;
+      setBattle([caster, t]);
+      castMissile(caster, t, spell, { critical: true });
+      const [etape] = devSteps();
+      const ligne = critTableRows('ldb', critTableKeyFor(etape.critSeverity!.location))
+        .filter((e) => !e.lethal)
+        .reduce((a, e) => (critImmediateSummary(e.ops ?? []).woundsLost > critImmediateSummary(a.ops ?? []).woundsLost ? e : a));
+      useGame.getState().cascadeTableSetForcedRoll(etape.id, ligne.max - (etape.table?.mod ?? 0));
+      const dev = devSteps()[0].deviation!;
+      expect(dev.crit.entryId, 'le dé posé atteint la ligne choisie').toBe(ligne.id);
+      resolveDeviation(useGame.getState, useGame.setState, dev, devier);
+      return { aPleinesPA, perte: critImmediateSummary(ligne.ops ?? []).woundsLost, cible: live('T') };
+    };
+    const subi = tranche(false);
+    expect(subi.perte, 'la ligne retire des PB').toBeGreaterThan(0);
+    expect(subi.cible.wounds.current).toBe(30 - subi.aPleinesPA - subi.perte);
+    const devie = tranche(true);
+    expect(armourSum(devie.cible)).toBe(23);
+    expect(devie.cible.wounds.current).toBe(30 - devie.aPleinesPA);
+    expect(devie.cible.criticalWounds ?? 0).toBe(0);
   });
 });
 

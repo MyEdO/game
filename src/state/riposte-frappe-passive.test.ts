@@ -16,6 +16,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { avanceEtapeCascade, poseSurDeNonTombe } from './cascadeTestKit';
 import { unarmedWeapon } from '../engine/items';
 import { weaponsFromTraits } from '../engine/creatureEquip';
+import { findCritEntrySuffered } from '../engine/critical';
 
 const g = useGame.getState;
 const CH = { 'capacite-de-combat': 60, 'capacite-de-tir': 30, force: 60, endurance: 20, initiative: 40, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -142,6 +143,19 @@ describe('frappe passive — Riposte par l’applicateur de la touche', () => {
     coup(defenseGagnee(empaleuse, 70, false)); draine();
     expect(cur('a').wounds.current).toBeLessThan(30);
     expect(cur('a').criticalWounds ?? 0).toBe(0);
+  });
+
+  // LDB 14 l.3 ; LDB 85 l.71 ; #1595 c.6240485441 Q4.
+  it('R12 — double de l’attaquant qui PERD : son Critique met le défenseur hors de combat, aucune frappe passive', () => {
+    monte({ pbAttaquant: 30 });
+    seedBattleRng(37);
+    const res = defenseGagnee(RAPIERE);
+    coup({ ...res, attackerDetail: { ...res.attackerDetail!, roll: 33, success: true, sl: 2 } }); draine();
+    const [ligne] = cur('d').critEntriesSuffered ?? [];
+    expect(findCritEntrySuffered(ligne)?.entry.lethal, `la graine 37 tire une ligne létale (${ligne})`).toBe(true);
+    expect(isOutOfAction(cur('d'))).toBe(true);
+    expect(cur('a').wounds.current).toBe(30);
+    expect(cur('d').ripostesThisRound ?? 0).toBe(0);
   });
 
   it('R11 — Champion (trait) : la frappe part sans déclaration, à l’arme non Rapide (LDB 85 l.71)', () => {

@@ -10,7 +10,7 @@ import { evaluateMissile, type CastResult, type MissileResult } from '../engine/
 import { bus, EVT } from './bus';
 import { findSpell, type SpellData } from '../data';
 import { hasCondition } from '../engine/conditions';
-import { critTableRows, critTableKeyFor } from '../engine/critical';
+import { critTableRows, critTableKeyFor, critImmediateSummary } from '../engine/critical';
 import { findTableEntry } from '../engine/tables';
 import { recomputeLoadout } from '../engine/items';
 import { testScene } from '../scenes/test-fixture';
@@ -110,6 +110,20 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
       expect(cible.critEntriesSuffered).toEqual([rangee(50), rangee(seconde)]);
     });
   }
+
+  // LDB 18 l.53, l.17 ; LDB 13 l.161 ; #1595 c.6240485441 Q3.
+  it("'ldb' : le dépassement se mesure sur les PB d'avant la perte de la ligne du Coup Critique", () => {
+    const sonde = coup({ current: 20 });
+    const ligne = critTableRows('ldb', critTableKeyFor(sonde.res.critLocation!))
+      .filter((e) => !e.lethal)
+      .reduce((a, e) => (critImmediateSummary(e.ops ?? []).woundsLost > critImmediateSummary(a.ops ?? []).woundsLost ? e : a));
+    expect(critImmediateSummary(ligne.ops ?? []).woundsLost, 'la ligne retire des PB').toBeGreaterThan(0);
+    const blessures = sonde.auJet.woundsLost;
+    const { cible } = coup({ current: blessures, de: ligne.max });
+    expect(cible.critEntriesSuffered).toEqual([ligne.id]);
+    expect(cible.criticalWounds).toBe(1);
+    expect(cible.wounds.current).toBe(0);
+  });
 
   it("'ldb' : la Déviation du premier Critique laisse le second (LDB 63 l.30 ; LDB 18 l.17)", () => {
     const { cible } = coupQuiDepasse(true, { pa: 1, endurance: 10 });
