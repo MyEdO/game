@@ -940,9 +940,6 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    },
-    "capabilities": {
-      "critImmuneOdd": true
     }
   },
   {

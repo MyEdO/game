@@ -422,7 +422,6 @@ export const HORS_STRATE_RATCHET = [
   { fichier: 'src/data/qualities.json', ref: 'capabilities | bladeTrap', occurrence: 1 },
   { fichier: 'src/data/qualities.json', ref: 'capabilities | canFireWhileEngaged', occurrence: 1 },
   { fichier: 'src/data/qualities.json', ref: 'capabilities | crewedTeam', occurrence: 1 },
-  { fichier: 'src/data/qualities.json', ref: 'capabilities | critImmuneOdd', occurrence: 1 },
   { fichier: 'src/data/qualities.json', ref: 'capabilities | damagesArmour', occurrence: 1 },
   { fichier: 'src/data/qualities.json', ref: 'capabilities | encDelta', occurrence: 1 },
   { fichier: 'src/data/qualities.json', ref: 'capabilities | explosion,firearm', occurrence: 1 },

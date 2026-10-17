@@ -1928,7 +1928,6 @@ export interface QualityCapabilities {
   encDelta?: number;            // Léger −1 / Volumineux +1 Encombrement
   // Armure (LDB 63)
   layerable?: boolean;          // Flexible : superposition sous une couche non Flexible
-  critImmuneOdd?: boolean;      // Impénétrable : Critiques sur jet impair ignorés
   apIgnoredOnEven?: boolean;    // Partielle : PA ignorés sur jet pair ou Critique
   apIgnoredOnImpaleCrit?: boolean; // Points faibles : PA ignorés sur Critique Empaleuse
   // Siège (ADE II 8)

@@ -465,7 +465,7 @@ const QUALITY_CAP_LABEL: Record<string, string> = {
   fastStrike: 'Rapide', slowStrike: 'Lente', fumbleOn9: 'Dangereuse', pushback: 'Perturbante',
   bladeTrap: 'Piège-lame', damagesArmour: 'Endommage l’armure', firearm: 'Arme à feu', canFireWhileEngaged: 'Tir au contact',
   magazine: 'À répétition', salvo: 'Salve', areaFire: 'Tir de zone', crewedTeam: 'Arme d’équipe', parryAP: 'Protectrice',
-  layerable: 'Flexible', critImmuneOdd: 'Impénétrable', apIgnoredOnEven: 'Partielle', apIgnoredOnImpaleCrit: 'Points faibles',
+  layerable: 'Flexible', apIgnoredOnEven: 'Partielle', apIgnoredOnImpaleCrit: 'Points faibles',
   unbreakable: 'Incassable', magic: 'Magique',
 };
 
